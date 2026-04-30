@@ -1,6 +1,5 @@
 /* =========================================================
-   SIREN — common.js
-   교사유가족협의회 공통 스크립트 (전 페이지 로드)
+   SIREN — common.js  (v2 — 모달/GNB 안정성 강화)
    ========================================================= */
 (function () {
   'use strict';
@@ -10,12 +9,13 @@
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
   /* ------------ 1. 파셜 자동 로더 ------------ */
-  /* <div id="header-slot"></div> 등의 자리에 partials/*.html을 fetch해 삽입 */
   const PARTIALS = [
     { slot: '#header-slot', file: '/partials/header.html' },
     { slot: '#modals-slot', file: '/partials/modals.html' },
     { slot: '#footer-slot', file: '/partials/footer.html' }
   ];
+
+  let partialsLoaded = false;
 
   async function loadPartial({ slot, file }) {
     const target = $(slot);
@@ -31,25 +31,49 @@
 
   async function loadAllPartials() {
     await Promise.all(PARTIALS.map(loadPartial));
+    partialsLoaded = true;
+    document.dispatchEvent(new CustomEvent('partials:loaded'));
   }
 
   /* ------------ 2. 토스트 ------------ */
   let toastTimer;
   function toast(msg, ms = 2400) {
-    const t = $('#toast');
-    if (!t) return alert(msg);
+    let t = $('#toast');
+    // 토스트 엘리먼트가 없으면 생성
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.className = 'toast';
+      document.body.appendChild(t);
+    }
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), ms);
   }
 
-  /* ------------ 3. 모달 컨트롤 ------------ */
-  function openModal(id) {
+  /* ------------ 3. 모달 컨트롤 (★ 안정성 강화) ------------ */
+  function openModal(id, retries = 5) {
     const m = $('#' + id);
-    if (!m) return;
-    m.classList.add('show');
-    document.body.style.overflow = 'hidden';
+    if (m) {
+      m.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      // 첫 input에 포커스
+      setTimeout(() => {
+        const firstInput = m.querySelector('input:not([type="hidden"]), select, textarea');
+        if (firstInput) firstInput.focus();
+      }, 100);
+      return true;
+    }
+    // 모달이 없으면 잠시 후 재시도 (partials 로딩 대기)
+    if (retries > 0) {
+      console.warn(`[Modal] #${id} not yet loaded, retrying... (${retries} left)`);
+      setTimeout(() => openModal(id, retries - 1), 150);
+    } else {
+      console.error(`[Modal] #${id} not found after retries`);
+      toast(`모달을 열 수 없습니다 (${id})`);
+    }
+    return false;
   }
   function closeModal(id) {
     const m = id ? $('#' + id) : $('.modal-bg.show');
@@ -77,7 +101,6 @@
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('[data-action]');
     if (!trigger) return;
-
     const action = trigger.dataset.action;
 
     if (action === 'open-modal') {
@@ -92,10 +115,14 @@
       e.preventDefault();
       switchModal(trigger.dataset.from, trigger.dataset.to);
     }
+    else if (action === 'mobile-menu') {
+      e.preventDefault();
+      const gnb = document.querySelector('nav.gnb');
+      if (gnb) gnb.classList.toggle('mobile-open');
+    }
   });
 
   /* ------------ 5. GNB 활성 메뉴 자동 표시 ------------ */
-  /* <body data-page="about"> 와 <li data-page="about"> 매칭 */
   function activateGNB() {
     const page = document.body.dataset.page;
     if (!page) return;
@@ -103,7 +130,7 @@
     if (li) li.classList.add('active');
   }
 
-  /* ------------ 6. 언어 토글 (KO/EN) ------------ */
+  /* ------------ 6. 언어 토글 ------------ */
   const I18N = {
     KO: {
       heroTitle: '교사 유가족들의 <em>지원과 수사</em>,<br />모든 교사들의 <em>사회적 문제 해결</em>을 위해<br />싸이렌 홈페이지의 문을 열었습니다.',
@@ -127,8 +154,6 @@
         localStorage.setItem('siren-lang', lang);
       });
     });
-
-    // 저장된 언어 복원
     const saved = localStorage.getItem('siren-lang');
     if (saved && saved !== 'KO') {
       const btn = btns.find(b => b.dataset.lang === saved);
@@ -141,17 +166,13 @@
     const input = $('#globalSearch');
     const btn = $('#searchBtn');
     if (!input) return;
-
     const submit = () => {
       const q = input.value.trim();
       if (!q) return toast('검색어를 입력해 주세요');
-      // 실제 환경: window.location.href = `/search.html?q=${encodeURIComponent(q)}`;
       toast(`"${q}" 검색 결과 페이지로 이동합니다`);
     };
     if (btn) btn.addEventListener('click', submit);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') submit();
-    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   }
 
   /* ------------ 8. 관련 사이트 셀렉트 ------------ */
@@ -168,26 +189,23 @@
     });
   }
 
-  /* ------------ 9. 폼 기본 핸들러 (로그인/회원가입) ------------ */
+  /* ------------ 9. 폼 기본 핸들러 (로그인/회원가입) - API 연동 후 STEP 5에서 갱신됨 ------------ */
   function setupCommonForms() {
     document.addEventListener('submit', async (e) => {
       const form = e.target;
       const type = form.dataset.form;
       if (!type) return;
-
-      // donate 폼은 donate.js에서 별도 처리하므로 제외
-      if (type === 'donate') return;
+      if (type === 'donate') return; // donate.js에서 처리
 
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
 
+      // 추후 STEP 5에서 실제 API 호출로 교체됨
       if (type === 'login') {
-        // 실제 환경: await fetch('/api/login', ...)
         toast('로그인되었습니다. 환영합니다 :)');
         closeModal('loginModal');
       }
       else if (type === 'signup') {
-        // 실제 환경: await fetch('/api/signup', ...)
         toast('가입이 완료되었습니다. 환영합니다 :)');
         closeModal('signupModal');
       }
@@ -209,14 +227,12 @@
 
   /* ------------ 11. 초기화 ------------ */
   async function init() {
-    await loadAllPartials();   // 파셜 먼저 로드
-    activateGNB();             // 그 다음 GNB 활성화
+    await loadAllPartials();
+    activateGNB();
     setupLangToggle();
     setupSearch();
     setupRelatedSelect();
     setupCommonForms();
-
-    // 페이지별 초기화 훅: window.SIREN_PAGE_INIT 가 정의돼 있으면 호출
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }
@@ -228,10 +244,10 @@
     init();
   }
 
-  /* ------------ 12. 전역 노출 (다른 스크립트에서 사용) ------------ */
+  /* ------------ 12. 전역 노출 ------------ */
   window.SIREN = {
-    $, $$,
-    toast,
-    openModal, closeModal, switchModal
+    $, $$, toast,
+    openModal, closeModal, switchModal,
+    isPartialsLoaded: () => partialsLoaded
   };
 })();

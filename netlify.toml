@@ -1,19 +1,78 @@
+# =========================================================
+# Netlify 빌드 & 배포 설정
+# =========================================================
 [build]
   publish = "public"
   functions = "netlify/functions"
+  command = "echo 'No build step'"
 
+[build.environment]
+  NODE_VERSION = "20"
+
+# =========================================================
+# API 라우팅: /api/* → /.netlify/functions/*
+# 프론트에서 fetch('/api/donate') 처럼 호출 가능
+# =========================================================
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
+# =========================================================
+# SPA 폴백 (선택) — 추후 라우팅 확장 대비
+# =========================================================
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/mypage"
+  to = "/mypage.html"
+  status = 200
+
+# =========================================================
+# 보안 헤더
+# =========================================================
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
+# 정적 자산 캐싱
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/partials/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+
+# =========================================================
+# Functions 번들러 설정
+# =========================================================
 [functions]
   node_bundler = "esbuild"
+  directory = "netlify/functions"
+  included_files = ["db/**", "lib/**"]
+
+# =========================================================
+# 개발 서버 설정 (netlify dev)
+# =========================================================
+[dev]
+  command = "echo 'Static dev'"
+  port = 8888
+  publish = "public"
+  autoLaunch = false
