@@ -1,0 +1,90 @@
+<!-- ============================================================
+     TOP BAR (언어 / 검색 / 로그인)
+     ============================================================ -->
+<div class="topbar">
+  <div class="container row">
+    <select class="related-select" aria-label="관련 사이트 바로가기">
+      <option>관련 사이트 바로가기</option>
+      <option data-link="https://www.eduhope.net">전국교직원노동조합</option>
+      <option data-link="https://www.kfta.or.kr">한국교원단체총연합회</option>
+      <option data-link="https://www.kpu.or.kr">전국초등교사노동조합</option>
+      <option data-link="https://www.kfta.or.kr">교사노동조합연맹</option>
+    </select>
+    <div class="top-right">
+      <a href="#" data-action="open-modal" data-target="loginModal">로그인</a>
+      <a href="#" data-action="open-modal" data-target="signupModal">회원가입</a>
+      <a href="/mypage.html">마이페이지</a>
+      <div class="lang-toggle">
+        <button class="on" data-lang="KO">KO</button>
+        <span class="sep">|</span>
+        <button data-lang="EN">EN</button>
+      </div>
+      <div class="search">
+        <input id="globalSearch" type="text" placeholder="검색어를 입력하세요" />
+        <button id="searchBtn" aria-label="search">⌕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN HEADER (로고 / GNB / 후원 CTA)
+     ============================================================ -->
+<header class="site-header">
+  <div class="container header-row">
+    <a href="/index.html" class="brand" aria-label="교사유가족협의회 홈">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 3 C 7 7, 7 13, 12 15 L 12 25 L 9 22 L 12 15 L 15 22 L 12 25 L 12 15 C 17 13, 17 7, 12 3 Z" fill="#7a1f2b"/>
+          <ellipse cx="12" cy="8" rx="4.5" ry="3.5" fill="#0a0a0a" stroke="#7a1f2b" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        교사유가족협의회
+        <small>SOLIDARITY · DIGNITY</small>
+      </div>
+    </a>
+
+    <ul class="gnb">
+      <li data-page="about">
+        <a href="/about.html">협의회 소개</a>
+        <ul class="dropdown">
+          <li><a href="/about.html#greeting">인사말 / 비전</a></li>
+          <li><a href="/about.html#history">설립 취지 / 연혁</a></li>
+          <li><a href="/about.html#org">조직도 / 오시는 길</a></li>
+        </ul>
+      </li>
+      <li data-page="support">
+        <a href="/support.html">주요 활동</a>
+        <ul class="dropdown">
+          <li><a href="/support.html#family">유가족 지원사업</a></li>
+          <li><a href="/support.html#memorial">추모 / 장학사업</a></li>
+          <li><a href="/report.html">활동 보고서</a></li>
+        </ul>
+      </li>
+      <li data-page="news">
+        <a href="/news.html">소식 / 참여</a>
+        <ul class="dropdown">
+          <li><a href="/news.html#notice">공지사항</a></li>
+          <li><a href="/news.html#media">언론보도 / 갤러리</a></li>
+          <li><a href="/news.html#faq">FAQ</a></li>
+        </ul>
+      </li>
+      <li data-page="donate">
+        <a href="#" data-action="open-modal" data-target="donateModal">후원 안내</a>
+        <ul class="dropdown">
+          <li><a href="#" data-action="open-modal" data-target="donateModal">정기 / 일시 후원</a></li>
+          <li><a href="/mypage.html">기부금 영수증</a></li>
+        </ul>
+      </li>
+      <li data-page="mypage"><a href="/mypage.html">마이페이지</a></li>
+    </ul>
+
+    <button class="cta" data-action="open-modal" data-target="donateModal">
+      <svg class="cta-ribbon" viewBox="0 0 14 16" fill="none" aria-hidden="true">
+        <path d="M7 1 C 4 3, 4 7, 7 8 L 7 14 L 5 12 L 7 8 L 9 12 L 7 14 L 7 8 C 10 7, 10 3, 7 1 Z" fill="currentColor"/>
+      </svg>
+      후원하기
+    </button>
+  </div>
+</header>

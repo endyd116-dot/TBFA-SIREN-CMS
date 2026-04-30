@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>교사유가족협의회 | 존엄한 기억, 투명한 동행</title>
+<meta name="description" content="교사유가족협의회 — 교사 유가족들의 지원과 수사, 모든 교사들의 사회적 문제 해결을 위해 함께합니다.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- CSS (홈에 필요한 것만 로드) -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/home.css">
+</head>
+<body data-page="home">
+
+  <!-- ============================================================
+       자동 삽입 영역 (common.js가 채움)
+       ============================================================ -->
+  <div id="header-slot"></div>
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <svg class="ribbon-art" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="rbg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3a0d14"/>
+            <stop offset="100%" stop-color="#7a1f2b"/>
+          </linearGradient>
+          <linearGradient id="rbg2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5a141d"/>
+            <stop offset="100%" stop-color="#2a0a10"/>
+          </linearGradient>
+        </defs>
+        <path d="M100 30 C 70 60, 70 100, 100 110 L 100 200 L 80 175 L 100 110 L 120 175 L 100 200 L 100 110 C 130 100, 130 60, 100 30 Z" fill="url(#rbg)"/>
+        <ellipse cx="100" cy="62" rx="40" ry="32" fill="url(#rbg2)" stroke="#7a1f2b" stroke-width="1.5"/>
+        <ellipse cx="100" cy="62" rx="6" ry="9" fill="#b8935a" opacity=".8"/>
+      </svg>
+
+      <div class="container hero-row">
+        <span class="hero-eyebrow"><span class="dot"></span>REMEMBER · SUPPORT · SOLIDARITY</span>
+        <h1 id="heroTitle">
+          교사 유가족들의 <em>지원과 수사</em>,<br />
+          모든 교사들의 <em>사회적 문제 해결</em>을 위해<br />
+          싸이렌 홈페이지의 문을 열었습니다.
+        </h1>
+        <p class="lead">존엄한 기억과 투명한 동행, 그리고 따뜻한 연대로 교육 공동체의 회복을 함께 만들어 갑니다.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary" data-action="open-modal" data-target="donateModal">
+            <svg class="cta-ribbon" viewBox="0 0 14 16" fill="none" aria-hidden="true">
+              <path d="M7 1 C 4 3, 4 7, 7 8 L 7 14 L 5 12 L 7 8 L 9 12 L 7 14 L 7 8 C 10 7, 10 3, 7 1 Z" fill="currentColor"/>
+            </svg>
+            후원 동참하기
+          </button>
+          <a href="/support.html" class="btn btn-ghost-light">지원 신청 안내 →</a>
+        </div>
+      </div>
+
+      <div class="slide-ctrl">
+        <span id="slideCounter">01 / 03</span>
+        <div class="slide-dots">
+          <span class="slide-dot on"></span>
+          <span class="slide-dot"></span>
+          <span class="slide-dot"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK MENU -->
+    <div class="container quick-wrap">
+      <div class="quick-grid">
+        <div class="quick-item" data-action="open-modal" data-target="donateModal">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">🤝</div>
+          <div class="qi-label">후원하기</div>
+        </div>
+        <a class="quick-item" href="/news.html">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">🔍</div>
+          <div class="qi-label">사건 관련 제보</div>
+        </a>
+        <a class="quick-item" href="/support.html">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">⚠️</div>
+          <div class="qi-label">악성 민원 신고</div>
+        </a>
+        <a class="quick-item" href="/news.html">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">💬</div>
+          <div class="qi-label">자유게시판</div>
+        </a>
+        <a class="quick-item" href="/support.html">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">⚖️</div>
+          <div class="qi-label">법률 지원 서비스</div>
+        </a>
+        <a class="quick-item" href="/mypage.html">
+          <span class="qi-arrow">↗</span>
+          <div class="qi-icon">📋</div>
+          <div class="qi-label">신청 내역 조회</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <section class="stats">
+      <div class="container">
+        <div class="stats-head sec-head">
+          <div>
+            <div class="sec-eyebrow" style="color:var(--gold)">TRANSPARENCY</div>
+            <div class="sec-title" style="color:#fff">실시간 활동 지표</div>
+          </div>
+          <a href="/report.html" class="sec-link" style="color:#888">활동 보고서 보기 →</a>
+        </div>
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="stat-num" data-target="847" data-suffix="건">0<small></small></div>
+            <div class="stat-label">유가족 지원 건수</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" data-target="1283" data-suffix="백만원">0<small></small></div>
+            <div class="stat-label">누적 후원금</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" data-target="3527" data-suffix="명">0<small></small></div>
+            <div class="stat-label">정기 후원 회원</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" data-target="186" data-suffix="명">0<small></small></div>
+            <div class="stat-label">전문 봉사자</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTICE + FAQ -->
+    <section class="block">
+      <div class="container">
+        <div class="info-grid">
+          <!-- LEFT: 공지사항 -->
+          <div>
+            <div class="sec-head">
+              <div>
+                <div class="sec-eyebrow">COMMUNITY</div>
+                <div class="sec-title">통합 공지사항</div>
+              </div>
+              <a href="/news.html" class="sec-link">+ 더보기</a>
+            </div>
+            <ul class="notice-list">
+              <li><span class="tag tag-pri">단체공지</span><span class="notice-title">2026년 정기총회 개최 및 활동 보고서 공개 안내</span><span class="notice-date">2026.04.28</span></li>
+              <li><span class="tag tag-sec">회원공지</span><span class="notice-title">신규 정기 후원 회원을 위한 감사 캠페인 진행</span><span class="notice-date">2026.04.21</span></li>
+              <li><span class="tag tag-mute">일반공지</span><span class="notice-title">유가족 심리상담 지원 프로그램 2기 모집 (~5/10)</span><span class="notice-date">2026.04.18</span></li>
+              <li><span class="tag tag-mute">일반공지</span><span class="notice-title">법률 자문 봉사단 1차 모집 결과 공지</span><span class="notice-date">2026.04.12</span></li>
+              <li><span class="tag tag-sec">회원공지</span><span class="notice-title">기부금 영수증 일괄 발급 기간 안내</span><span class="notice-date">2026.04.05</span></li>
+            </ul>
+          </div>
+
+          <!-- RIGHT: FAQ -->
+          <div>
+            <div class="sec-head">
+              <div>
+                <div class="sec-eyebrow">HELP CENTER</div>
+                <div class="sec-title">자주 묻는 질문</div>
+              </div>
+              <a href="/news.html#faq" class="sec-link">+ 더보기</a>
+            </div>
+            <div>
+              <div class="faq-item">
+                <div class="faq-q"><span class="q-mark">Q</span>교사유가족협의회 가입 절차가 궁금해요.<span class="arrow">▼</span></div>
+                <div class="faq-a"><div class="faq-a-inner">가족관계증명서 등 증빙 서류와 함께 회원가입을 진행하시면, 사무국에서 영업일 기준 3일 이내 검토 후 승인 결과를 알림톡으로 안내드립니다.</div></div>
+              </div>
+              <div class="faq-item">
+                <div class="faq-q"><span class="q-mark">Q</span>기부금 영수증은 언제 어떻게 발급되나요?<span class="arrow">▼</span></div>
+                <div class="faq-a"><div class="faq-a-inner">매년 1월 국세청 연말정산 간소화 서비스에 자동 등재되며, 마이페이지 &gt; 증명서 발급에서 PDF 형태로 즉시 출력 가능합니다.</div></div>
+              </div>
+              <div class="faq-item">
+                <div class="faq-q"><span class="q-mark">Q</span>법률 지원은 어떤 분들이 도와주시나요?<span class="arrow">▼</span></div>
+                <div class="faq-a"><div class="faq-a-inner">교육 관련 분쟁 경험이 풍부한 변호사 패널 12분이 협력하고 있으며, 사안의 성격에 맞춰 전문가가 매칭됩니다.</div></div>
+              </div>
+              <div class="faq-item">
+                <div class="faq-q"><span class="q-mark">Q</span>정기 후원을 해지하고 싶어요.<span class="arrow">▼</span></div>
+                <div class="faq-a"><div class="faq-a-inner">마이페이지 &gt; 내 후원 내역에서 즉시 해지 가능하며, 별도 위약금이 없습니다. 그동안 동참해 주셔서 진심으로 감사드립니다.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAMPAIGN -->
+    <section class="block" style="padding-top:0">
+      <div class="container">
+        <div class="campaign">
+          <div style="position:relative;z-index:2">
+            <span class="camp-tag">SPECIAL CAMPAIGN</span>
+            <h3>"기억의 약속" 추모 주간<br />특별 모금함이 진행 중입니다</h3>
+            <p class="lead">고인이 된 동료 교사를 기리고, 남은 가족들이 다시 일상으로 돌아갈 수 있도록 함께해 주세요. 모금액은 전액 유가족 직접 지원과 추모 사업에 사용됩니다.</p>
+            <div class="progress"><div class="progress-bar" style="width:68%"></div></div>
+            <div class="progress-stats">
+              <span>모금 진행률 <strong>68%</strong></span>
+              <span>목표 <strong>100,000,000원</strong> 중 <strong>68,420,000원</strong></span>
+            </div>
+            <div class="hero-btns">
+              <button class="btn btn-primary" data-action="open-modal" data-target="donateModal">캠페인 동참</button>
+              <a href="/report.html" class="btn btn-ghost-light">집행 내역 보기</a>
+            </div>
+          </div>
+          <div class="camp-visual">
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="width:240px;margin:0 auto" aria-hidden="true">
+              <defs>
+                <linearGradient id="cv" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#7a1f2b"/>
+                  <stop offset="100%" stop-color="#3a0d14"/>
+                </linearGradient>
+              </defs>
+              <path d="M100 30 C 60 70, 60 110, 100 130 L 100 220 L 70 195 L 100 130 L 130 195 L 100 220 L 100 130 C 140 110, 140 70, 100 30 Z" fill="url(#cv)"/>
+              <ellipse cx="100" cy="70" rx="42" ry="34" fill="#3a0d14"/>
+              <ellipse cx="100" cy="70" rx="6" ry="9" fill="#b8935a"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       자동 삽입 영역 (common.js가 채움)
+       ============================================================ -->
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <!-- ============================================================
+       SCRIPTS (로드 순서 중요)
+       ============================================================ -->
+  <script src="/js/common.js"></script>
+  <script src="/js/home.js"></script>
+  <script src="/js/donate.js"></script>
+</body>
+</html>

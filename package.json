@@ -1,0 +1,23 @@
+{
+  "name": "siren-website",
+  "version": "1.0.0",
+  "description": "교사유가족협의회 공식 웹사이트",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/database": "^1.0.0",
+    "@netlify/functions": "^2.8.0",
+    "@netlify/neon": "^0.1.2",
+    "drizzle-orm": "^1.0.0-beta.22"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^1.0.0-beta.22"
+  }
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>소식 / 참여 | 교사유가족협의회</title>
+<meta name="description" content="공지사항 · 언론보도 · 자주 묻는 질문 — 교사유가족협의회의 소식을 만나보세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/home.css">
+<link rel="stylesheet" href="/css/pages.css">
+</head>
+<body data-page="news">
+
+  <div id="header-slot"></div>
+
+  <main>
+
+    <section class="page-hero">
+      <div class="container">
+        <h1>소식 / 참여</h1>
+        <p>공지사항 · 언론보도 · FAQ</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; 소식 / 참여 &nbsp;›&nbsp; 공지사항
+    </div>
+
+    <!-- 카테고리 탭 -->
+    <section class="block" id="notice" style="padding-bottom:0">
+      <div class="container">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid var(--line)">
+          <button class="btn-sm btn-sm-primary" style="padding:10px 20px">전체</button>
+          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">단체공지</button>
+          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">회원공지</button>
+          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">사업안내</button>
+          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">언론보도</button>
+        </div>
+
+        <div class="panel" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:80px">번호</th>
+                <th style="width:130px">분류</th>
+                <th>제목</th>
+                <th style="width:130px">작성일</th>
+                <th style="width:80px">조회</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="cursor:pointer"><td>15</td><td><span class="badge b-danger">공지</span></td><td>📌 2026년 정기총회 개최 및 활동 보고서 공개 안내</td><td>2026.04.28</td><td>1,284</td></tr>
+              <tr style="cursor:pointer"><td>14</td><td><span class="badge b-info">회원</span></td><td>신규 정기 후원 회원을 위한 감사 캠페인 진행</td><td>2026.04.21</td><td>892</td></tr>
+              <tr style="cursor:pointer"><td>13</td><td><span class="badge b-warn">사업</span></td><td>📌 유가족 심리상담 지원 프로그램 2기 모집</td><td>2026.04.18</td><td>1,567</td></tr>
+              <tr style="cursor:pointer"><td>12</td><td><span class="badge b-warn">사업</span></td><td>법률 자문 봉사단 1차 모집 결과 공지</td><td>2026.04.12</td><td>723</td></tr>
+              <tr style="cursor:pointer"><td>11</td><td><span class="badge b-info">회원</span></td><td>기부금 영수증 일괄 발급 기간 안내 (5/1~5/15)</td><td>2026.04.05</td><td>2,103</td></tr>
+              <tr style="cursor:pointer" id="media"><td>10</td><td><span class="badge b-success">언론</span></td><td>[OO일보] 교사유가족협의회 1주년, 그 의미를 묻다</td><td>2026.03.28</td><td>3,294</td></tr>
+              <tr style="cursor:pointer"><td>9</td><td><span class="badge b-success">언론</span></td><td>[OO뉴스] "기억의 약속", 교사 추모 캠페인 시작</td><td>2026.03.20</td><td>2,847</td></tr>
+              <tr style="cursor:pointer"><td>8</td><td><span class="badge b-warn">사업</span></td><td>장학사업 1기 수혜자 선정 결과 발표</td><td>2026.03.15</td><td>1,832</td></tr>
+              <tr style="cursor:pointer"><td>7</td><td><span class="badge b-info">회원</span></td><td>회원 등급별 혜택 개편 안내</td><td>2026.03.08</td><td>967</td></tr>
+              <tr style="cursor:pointer"><td>6</td><td><span class="badge b-mute">일반</span></td><td>홈페이지 점검 안내 (3/3 02:00~04:00)</td><td>2026.03.01</td><td>456</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div style="display:flex;justify-content:center;gap:6px;margin-top:30px">
+          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">‹</button>
+          <button class="btn-sm btn-sm-primary" style="width:36px;padding:8px">1</button>
+          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">2</button>
+          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">3</button>
+          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="block" id="faq" style="background:var(--bg-soft)">
+      <div class="container">
+        <div class="sec-head" style="justify-content:center;text-align:center;flex-direction:column;align-items:center">
+          <div>
+            <div class="sec-eyebrow">HELP CENTER</div>
+            <div class="sec-title">자주 묻는 질문</div>
+          </div>
+        </div>
+
+        <div style="max-width:880px;margin:0 auto">
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>교사유가족협의회 가입 절차가 궁금해요.<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">가족관계증명서 등 증빙 서류와 함께 회원가입을 진행하시면, 사무국에서 영업일 기준 3일 이내 검토 후 승인 결과를 알림톡으로 안내드립니다.</div></div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>기부금 영수증은 언제 어떻게 발급되나요?<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">매년 1월 국세청 연말정산 간소화 서비스에 자동 등재되며, 마이페이지 &gt; 증명서 발급에서 PDF 형태로 즉시 출력 가능합니다.</div></div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>법률 지원은 어떤 분들이 도와주시나요?<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">교육 관련 분쟁 경험이 풍부한 변호사 패널 12분이 협력하고 있으며, 사안의 성격에 맞춰 전문가가 매칭됩니다.</div></div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>정기 후원을 해지하고 싶어요.<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">마이페이지 &gt; 내 후원 내역에서 즉시 해지 가능하며, 별도 위약금이 없습니다. 그동안 동참해 주셔서 진심으로 감사드립니다.</div></div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>봉사자로 참여하고 싶습니다. 어떻게 신청하나요?<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">회원가입 시 "봉사자 회원"을 선택하시고 보유 기술(심리상담/법률/행정 등)을 등록해 주세요. AI 매칭 시스템이 적합한 활동을 추천해 드립니다.</div></div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q"><span class="q-mark">Q</span>후원금은 어디에 사용되나요?<span class="arrow">▼</span></div>
+            <div class="faq-a"><div class="faq-a-inner">직접 지원(58%) · 추모 사업(17%) · 장학 사업(15%) · 운영비(10%) 비율로 집행되며, 매월 활동 보고서 페이지에서 상세 내역을 공개합니다.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/home.js"></script>
+  <script src="/js/donate.js"></script>
+</body>
+</html>

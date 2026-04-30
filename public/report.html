@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>활동 보고서 | 교사유가족협의회</title>
+<meta name="description" content="투명한 집행, 공개된 신뢰 — 교사유가족협의회의 활동 보고서를 확인하세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+</head>
+<body data-page="support">
+
+  <div id="header-slot"></div>
+
+  <main>
+
+    <section class="page-hero">
+      <div class="container">
+        <h1>활동 보고서</h1>
+        <p>투명한 집행, 공개된 신뢰</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; 주요 활동 &nbsp;›&nbsp; 활동 보고서
+    </div>
+
+    <section class="block">
+      <div class="container">
+
+        <!-- KPI 요약 -->
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">YTD 누적 후원금</div><div class="kpi-value">₩ 150.8M</div><div class="kpi-delta">▲ 18.2%</div></div>
+          <div class="kpi"><div class="kpi-label">YTD 지원 건수</div><div class="kpi-value">128 건</div><div class="kpi-delta">▲ 24.5%</div></div>
+          <div class="kpi"><div class="kpi-label">정기 후원 회원</div><div class="kpi-value">3,527 명</div><div class="kpi-delta">▲ 8.1%</div></div>
+          <div class="kpi"><div class="kpi-label">투명성 등급</div><div class="kpi-value" style="font-size:22px;color:var(--success)">A+</div></div>
+        </div>
+
+        <!-- 차트 영역 -->
+        <div class="row-2">
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">월별 후원금 추이</div>
+              <span class="p-tag">2026년</span>
+            </div>
+            <div style="height:280px"><canvas id="reportChart1"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">집행 비율</div>
+              <span class="p-tag">YTD</span>
+            </div>
+            <div style="height:280px"><canvas id="reportChart2"></canvas></div>
+          </div>
+        </div>
+
+        <!-- 보고서 다운로드 -->
+        <div class="panel" style="margin-top:18px">
+          <div class="p-head">
+            <div class="p-title">📄 연간 보고서 다운로드</div>
+            <span class="p-tag">PDF · 무결성 검증 완료</span>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr><th>연도</th><th>제목</th><th>발행일</th><th>크기</th><th style="width:140px">다운로드</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>2025</strong></td>
+                <td>2025년 연간 활동 보고서 — "함께 한 걸음, 더 단단해진 우리"</td>
+                <td>2026.03.15</td>
+                <td>4.2 MB</td>
+                <td><button class="btn-sm btn-sm-primary" data-demo-action="report-2025-pdf" data-demo-message="2025 보고서 PDF를 다운로드합니다">PDF 다운</button></td>
+              </tr>
+              <tr>
+                <td><strong>2024</strong></td>
+                <td>2024년 연간 활동 보고서 — "시작의 기록"</td>
+                <td>2025.03.20</td>
+                <td>3.8 MB</td>
+                <td><button class="btn-sm btn-sm-primary" data-demo-action="report-2024-pdf" data-demo-message="2024 보고서 PDF를 다운로드합니다">PDF 다운</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 분기별 상세 -->
+        <div class="panel" style="margin-top:18px">
+          <div class="p-head">
+            <div class="p-title">📊 분기별 집행 상세</div>
+            <span class="p-tag">실시간 업데이트</span>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr><th>분기</th><th>총 수입</th><th>직접 지원</th><th>추모 사업</th><th>장학 사업</th><th>운영비</th><th>잔액</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2026 Q1</td><td>₩ 112.4M</td><td>₩ 65.2M</td><td>₩ 19.1M</td><td>₩ 16.8M</td><td>₩ 11.2M</td><td style="color:var(--success);font-weight:600">+0.1M</td></tr>
+              <tr><td>2025 Q4</td><td>₩ 118.0M</td><td>₩ 68.4M</td><td>₩ 20.1M</td><td>₩ 17.7M</td><td>₩ 11.8M</td><td style="color:var(--success);font-weight:600">+0.0M</td></tr>
+              <tr><td>2025 Q3</td><td>₩ 96.5M</td><td>₩ 56.0M</td><td>₩ 16.4M</td><td>₩ 14.5M</td><td>₩ 9.6M</td><td style="color:var(--success);font-weight:600">+0.0M</td></tr>
+              <tr><td>2025 Q2</td><td>₩ 84.2M</td><td>₩ 48.8M</td><td>₩ 14.3M</td><td>₩ 12.6M</td><td>₩ 8.4M</td><td style="color:var(--success);font-weight:600">+0.1M</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 신뢰 인증 -->
+        <div class="campaign" style="margin-top:30px">
+          <div style="position:relative;z-index:2">
+            <span class="camp-tag">CERTIFICATION</span>
+            <h3>한국가이드스타<br />투명성 등급 <em style="color:var(--gold);font-style:normal">A+</em> 인증</h3>
+            <p class="lead">매년 외부 회계감사를 통해 공개된 회계 자료와 활동 내역으로 투명성을 검증받고 있습니다. 모든 후원금은 1원 단위까지 추적 가능합니다.</p>
+            <div class="hero-btns">
+              <button class="btn btn-primary" data-action="open-modal" data-target="donateModal">신뢰와 함께 후원하기</button>
+            </div>
+          </div>
+          <div class="camp-visual">
+            <div style="font-size:120px;text-align:center">🏆</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <!-- Chart.js (보고서 페이지 전용) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/donate.js"></script>
+  <script src="/js/charts.js"></script>
+</body>
+</html>

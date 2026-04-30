@@ -1,0 +1,120 @@
+/* =========================================================
+   ADMIN LOGIN  (★ 기본은 hidden, .show 추가 시에만 노출)
+   ========================================================= */
+.admin-login{
+  display:none;
+  position:fixed;inset:0;
+  background:linear-gradient(135deg,#0a0a0a 0%,#1a0a10 50%,#0a0a0a 100%);
+  z-index:9999;align-items:center;justify-content:center;padding:20px;
+}
+.admin-login.show{display:flex;animation:fadeIn .3s}
+.admin-login::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 500px 400px at 30% 30%,rgba(122,31,43,.18),transparent 60%),
+    radial-gradient(ellipse 400px 300px at 70% 70%,rgba(184,147,90,.1),transparent 60%);
+}
+.login-card{
+  background:#fff;border-radius:var(--radius-lg);padding:44px;
+  width:100%;max-width:420px;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);position:relative;z-index:1;
+}
+.login-card .brand-mark{margin-bottom:20px;width:48px;height:48px}
+.login-card h2{
+  font-family:'Noto Serif KR',serif;font-size:24px;
+  margin-bottom:6px;font-weight:600;
+}
+.login-card .login-sub{
+  color:var(--text-3);font-size:13px;margin-bottom:28px;line-height:1.6;
+}
+.login-card code{
+  background:var(--bg-mute);padding:2px 8px;border-radius:4px;
+  font-family:'Inter';font-size:12px;color:var(--brand);font-weight:600;
+}
+.login-foot{
+  margin-top:28px;font-size:11.5px;color:var(--text-3);line-height:1.7;
+  text-align:center;padding-top:20px;border-top:1px solid var(--line);
+}
+
+/* =========================================================
+   ADMIN LAYOUT
+   ========================================================= */
+.admin-wrap{display:none;min-height:100vh;background:var(--bg-soft)}
+.admin-wrap.show{display:flex}
+
+.adm-side{
+  width:240px;background:#0a0a0a;color:#bbb;
+  min-height:100vh;padding:24px 0;flex-shrink:0;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.adm-logo{
+  padding:0 24px 22px;border-bottom:1px solid #1a1a1a;margin-bottom:18px;
+  color:#fff;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;
+}
+.adm-logo span{
+  display:block;font-size:10px;color:var(--gold);
+  font-family:'Inter';letter-spacing:.2em;margin-top:5px;font-weight:500;
+}
+.adm-menu li a{
+  display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;
+  color:#999;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
+}
+.adm-menu li a:hover{background:#141414;color:#fff}
+.adm-menu li a.on{background:#141414;color:#fff;border-left-color:var(--brand)}
+.adm-menu i{font-style:normal;width:18px;text-align:center;font-size:14px}
+
+.adm-main{flex:1;min-width:0}
+.adm-top{
+  height:64px;background:#fff;display:flex;align-items:center;justify-content:space-between;
+  padding:0 30px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:50;
+}
+.adm-page-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.adm-user{display:flex;align-items:center;gap:14px;font-size:13px}
+.adm-avatar{
+  width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+}
+.adm-content{padding:30px}
+.adm-page{display:none}
+.adm-page.show{display:block;animation:fadeIn .25s}
+
+/* =========================================================
+   ADMIN — AI CARDS / BANNER
+   ========================================================= */
+.p-tag.ai{background:linear-gradient(90deg,var(--brand),var(--gold));color:#fff}
+
+.ai-card{
+  background:linear-gradient(135deg,#fff,var(--brand-soft));
+  border:1px solid #f0e0e3;border-radius:10px;padding:16px;
+  margin-bottom:10px;transition:var(--t);
+}
+.ai-card:hover{box-shadow:var(--shadow);transform:translateX(2px)}
+.ai-card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ai-icon{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--brand),var(--gold));
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;
+}
+.ai-name{font-weight:700;font-size:13.5px}
+.ai-score{margin-left:auto;font-size:11.5px;color:var(--brand);font-weight:700;font-family:'Inter'}
+.ai-desc{font-size:12px;color:var(--text-2);line-height:1.65}
+
+.ai-banner{
+  background:linear-gradient(135deg,#0a0a0a,#2a1119);color:#fff;
+  border-radius:var(--radius);padding:24px;
+}
+.ai-banner .p-title{color:#fff;font-size:16px}
+.ai-banner p{color:#aaa;font-size:13px;margin-top:6px}
+
+/* =========================================================
+   ADMIN RESPONSIVE
+   ========================================================= */
+@media (max-width:880px){
+  .adm-side{width:64px}
+  .adm-side .adm-logo,.adm-menu span{display:none}
+  .adm-menu li a{justify-content:center;padding:14px 0}
+  .adm-content{padding:20px}
+  .login-card{padding:32px 24px}
+}
