@@ -196,6 +196,9 @@
 
     /* 후원 내역 로드 */
     await refreshDonations();
+    /* 지원 신청 내역 로드 */         
+    await refreshSupport();
+
   }
 
   /* 후원 내역 새로고침 (전역 노출) */
@@ -254,7 +257,44 @@
     const d = new Date(iso);
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   }
+  /* 지원 신청 내역 새로고침 (전역 노출) */
+  async function refreshSupport() {
+    const res = await api('/api/support/mine');
+    if (!res.ok || !res.data?.data) return;
 
+    const { list } = res.data.data;
+    const panel = document.querySelector('.mp-panel[data-mp-panel="consult"]');
+    const tbody = panel?.querySelector('table.tbl tbody');
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">아직 신청 내역이 없습니다</td></tr>`;
+      return;
+    }
+
+    const catMap = { counseling:'심리상담', legal:'법률자문', scholarship:'장학사업', other:'기타' };
+    const statusMap = {
+      submitted: '<span class="badge b-info">접수</span>',
+      reviewing: '<span class="badge b-warn">서류검토</span>',
+      supplement: '<span class="badge b-danger">보완요청</span>',
+      matched: '<span class="badge b-info">매칭완료</span>',
+      in_progress: '<span class="badge b-warn">진행중</span>',
+      completed: '<span class="badge b-success">완료</span>',
+      rejected: '<span class="badge b-mute">반려</span>',
+    };
+
+    tbody.innerHTML = list.map(s => `
+      <tr>
+        <td>${escapeHtml(s.requestNo)}</td>
+        <td>${catMap[s.category] || s.category}</td>
+        <td>${escapeHtml(s.title || '').slice(0,40)}</td>
+        <td>${formatDate(s.createdAt)}</td>
+        <td>${statusMap[s.status] || s.status}</td>
+      </tr>
+    `).join('');
+  }
+
+  window.SIREN_REFRESH_SUPPORT = refreshSupport;
   /* 전역 노출 (donate.js가 후원 완료 시 호출) */
   window.SIREN_REFRESH_MYPAGE = refreshDonations;
 
