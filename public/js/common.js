@@ -190,26 +190,11 @@
   }
 
   /* ------------ 9. 폼 기본 핸들러 (로그인/회원가입) - API 연동 후 STEP 5에서 갱신됨 ------------ */
+    /* ------------ 9. 폼 기본 핸들러 (auth.js가 login/signup 처리, donate.js가 donate 처리) ------------ */
   function setupCommonForms() {
-    document.addEventListener('submit', async (e) => {
-      const form = e.target;
-      const type = form.dataset.form;
-      if (!type) return;
-      if (type === 'donate') return; // donate.js에서 처리
-
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
-
-      // 추후 STEP 5에서 실제 API 호출로 교체됨
-      if (type === 'login') {
-        toast('로그인되었습니다. 환영합니다 :)');
-        closeModal('loginModal');
-      }
-      else if (type === 'signup') {
-        toast('가입이 완료되었습니다. 환영합니다 :)');
-        closeModal('signupModal');
-      }
-    });
+    // login/signup → auth.js
+    // donate → donate.js
+    // 여기서는 추가 공통 폼만 처리 (현재 없음)
   }
 
   /* ------------ 10. 부드러운 앵커 스크롤 ------------ */
