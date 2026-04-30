@@ -174,6 +174,7 @@
   }
 
   /* ------------ 마이페이지 데이터 주입 (있을 때만) ------------ */
+    /* ------------ 마이페이지 데이터 주입 (있을 때만) ------------ */
   async function injectMypage() {
     if (!document.body.dataset.page || document.body.dataset.page !== 'mypage') return;
     if (!Auth.isLoggedIn()) {
@@ -181,7 +182,8 @@
       setTimeout(() => location.href = '/index.html', 800);
       return;
     }
-    // 사용자명/아바타
+
+    /* 사용자 정보 표시 */
     const avatar = document.querySelector('.mp-avatar');
     if (avatar) avatar.textContent = (Auth.user.name || '?').charAt(0);
     const nameEl = document.querySelector('.mp-user strong');
@@ -191,13 +193,70 @@
       const map = { regular:'정기 후원 회원', family:'유가족 회원', volunteer:'봉사자', admin:'관리자' };
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
-    // KPI 갱신
-    if (Auth.stats) {
-      const kpiValues = document.querySelectorAll('.mp-content .kpi-value');
-      if (kpiValues[0]) kpiValues[0].textContent = (Auth.stats.totalAmount || 0).toLocaleString() + '원';
-      if (kpiValues[1]) kpiValues[1].textContent = (Auth.stats.regularCount || 0) + '회';
+
+    /* 후원 내역 로드 */
+    await refreshDonations();
+  }
+
+  /* 후원 내역 새로고침 (전역 노출) */
+  async function refreshDonations() {
+    const res = await api('/api/donations/mine');
+    if (!res.ok || !res.data?.data) return;
+
+    const { list, stats } = res.data.data;
+
+    /* KPI 카드 */
+    const panel = document.querySelector('.mp-panel[data-mp-panel="donations"]');
+    if (panel) {
+      const kpiValues = panel.querySelectorAll('.kpi-value');
+      if (kpiValues[0]) kpiValues[0].textContent = (stats.totalAmount || 0).toLocaleString() + '원';
+      if (kpiValues[1]) kpiValues[1].textContent = (stats.regularCount || 0) + '회';
+      if (kpiValues[2]) {
+        kpiValues[2].textContent = stats.totalCount > 0 ? '발급 가능' : '내역 없음';
+        kpiValues[2].style.color = stats.totalCount > 0 ? 'var(--success)' : 'var(--text-3)';
+      }
+    }
+
+    /* 테이블 갱신 */
+    const tbody = panel?.querySelector('table.tbl tbody');
+    if (tbody) {
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">아직 후원 내역이 없습니다 🎗</td></tr>`;
+      } else {
+        const typeMap = { regular: '정기 후원', onetime: '일시 후원' };
+        const payMap = { cms: 'CMS', card: '카드', bank: '계좌이체' };
+        const statusMap = {
+          completed: '<span class="badge b-success">완료</span>',
+          pending: '<span class="badge b-warn">대기</span>',
+          failed: '<span class="badge b-danger">실패</span>',
+          cancelled: '<span class="badge b-mute">취소</span>',
+          refunded: '<span class="badge b-mute">환불</span>',
+        };
+        tbody.innerHTML = list.map(d => `
+          <tr>
+            <td>${formatDate(d.createdAt)}</td>
+            <td>${typeMap[d.type] || d.type}</td>
+            <td>${(d.amount || 0).toLocaleString()}원</td>
+            <td>${payMap[d.payMethod] || d.payMethod}</td>
+            <td>${statusMap[d.status] || d.status}</td>
+            <td>${d.status === 'completed'
+              ? `<button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button>`
+              : '<span style="color:var(--text-3);font-size:12px">—</span>'}
+            </td>
+          </tr>
+        `).join('');
+      }
     }
   }
+
+  function formatDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  /* 전역 노출 (donate.js가 후원 완료 시 호출) */
+  window.SIREN_REFRESH_MYPAGE = refreshDonations;
 
   /* ------------ 초기화 ------------ */
   async function init() {
