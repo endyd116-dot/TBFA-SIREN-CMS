@@ -165,6 +165,12 @@ export const supportRequests = pgTable("support_requests", {
   reportContent: text("report_content"),
   completedAt: timestamp("completed_at"),
 
+  /* ───────── ★ STEP E-1 신규 컬럼 (4개) ───────── */
+  answeredBy: integer("answered_by").references(() => members.id, { onDelete: "set null" }),
+  answeredAt: timestamp("answered_at"),
+  priority: varchar("priority", { length: 10 }),       // 'urgent' | 'normal' | 'low'
+  priorityReason: text("priority_reason"),             // AI 판단 근거 요약
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -172,6 +178,7 @@ export const supportRequests = pgTable("support_requests", {
   statusIdx: index("support_status_idx").on(t.status),
   categoryIdx: index("support_category_idx").on(t.category),
   requestNoIdx: index("support_request_no_idx").on(t.requestNo),
+  priorityIdx: index("support_priority_idx").on(t.priority),
 }));
 
 /* =========================================================
