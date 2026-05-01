@@ -6,11 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
+# ⚠️ [[redirects]] /api/* → 제거! v2 functions가 config.path로 직접 처리
 
 [[redirects]]
   from = "/admin"
@@ -28,14 +24,27 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/partials/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
 
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions"
-  included_files = ["db/**/*", "lib/**/*", "drizzle/**/*"]
-
-[functions."*"]
-  external_node_modules = ["@netlify/neon", "@netlify/blobs"]
+  included_files = ["db/**/*", "lib/**/*"]
 
 [dev]
   port = 8888
