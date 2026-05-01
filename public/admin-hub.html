@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>관리자 허브 | SIREN</title>
+<meta name="description" content="교사유가족협의회 통합 관리 허브">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/admin-hub.css">
+</head>
+<body data-page="admin-hub">
+
+  <!-- 배경 -->
+  <div class="hub-bg"></div>
+
+  <!-- 상단 바 -->
+  <header class="hub-topbar">
+    <div class="hub-brand">
+      <div class="hub-brand-mark">
+        <svg viewBox="0 0 24 28" fill="none" aria-hidden="true">
+          <path d="M12 3 C 7 7, 7 13, 12 15 L 12 25 L 9 22 L 12 15 L 15 22 L 12 25 L 12 15 C 17 13, 17 7, 12 3 Z" fill="#b8935a"/>
+          <ellipse cx="12" cy="8" rx="4.5" ry="3.5" fill="#0a0a0a" stroke="#b8935a" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="hub-brand-text">
+        <strong>SIREN</strong>
+        <small>INTEGRATED ADMIN HUB</small>
+      </div>
+    </div>
+    <div class="hub-user">
+      <div class="hub-user-info" id="hubUserInfo">
+        <span class="hub-user-name" id="hubUserName">관리자</span>
+        <span class="hub-user-role">SUPER ADMIN</span>
+      </div>
+      <button class="hub-logout" id="btnHubLogout" aria-label="로그아웃">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        로그아웃
+      </button>
+    </div>
+  </header>
+
+  <!-- 메인 -->
+  <main class="hub-main">
+    <div class="hub-container">
+      <div class="hub-header">
+        <div class="hub-eyebrow">WELCOME BACK</div>
+        <h1 class="hub-title" id="hubGreeting">어떤 서비스를 관리하시겠습니까?</h1>
+        <p class="hub-subtitle">4개 통합 관리 시스템 중 하나를 선택해 주세요</p>
+      </div>
+
+      <!-- 카드 그리드 -->
+      <div class="hub-grid">
+
+        <!-- 카드 1: 싸이렌 웹 관리 -->
+        <a href="/admin.html?service=siren" class="hub-card" data-service="siren" data-status="active">
+          <div class="hub-card-icon" style="background:linear-gradient(135deg,#7a1f2b,#5a141d)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 12h8M12 8v8"/>
+            </svg>
+          </div>
+          <div class="hub-card-badge hub-badge-active">● 서비스 중</div>
+          <h3 class="hub-card-title">① 싸이렌 웹 관리</h3>
+          <p class="hub-card-desc">공식 웹사이트 회원·후원·공지 등 콘텐츠 관리</p>
+          <ul class="hub-card-meta">
+            <li>📊 대시보드 · AI 분석</li>
+            <li>👥 회원 · 유가족 관리</li>
+            <li>💰 기부 · 영수증 발행</li>
+            <li>🤝 지원 신청 처리</li>
+          </ul>
+          <div class="hub-card-action">
+            들어가기
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </a>
+
+        <!-- 카드 2: 교사유가족협의회 통합 CMS -->
+        <a href="/cms-tbfa.html" class="hub-card" data-service="tbfa" data-status="active">
+          <div class="hub-card-icon" style="background:linear-gradient(135deg,#1a5ec4,#0d3d8a)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="hub-card-badge hub-badge-active">● 서비스 중</div>
+          <h3 class="hub-card-title">② 교유협 통합 CMS</h3>
+          <p class="hub-card-desc">웹 회원 + 기존 회원 + 유족 + 후원자 통합 관리</p>
+          <ul class="hub-card-meta">
+            <li>📇 통합 회원 데이터베이스</li>
+            <li>📤 Excel 일괄 등록</li>
+            <li>🏷️ 태그 · 분류 시스템</li>
+            <li>📨 대량 알림 발송</li>
+          </ul>
+          <div class="hub-card-action">
+            들어가기
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </a>
+
+        <!-- 카드 3: 함께워크_ON -->
+        <a href="/cms-on.html" class="hub-card" data-service="on" data-status="beta">
+          <div class="hub-card-icon" style="background:linear-gradient(135deg,#1a8b46,#116833)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 9h6v6H9z"/>
+              <path d="M3 9h18M9 3v18"/>
+            </svg>
+          </div>
+          <div class="hub-card-badge hub-badge-beta">● BETA</div>
+          <h3 class="hub-card-title">③ 함께워크_ON</h3>
+          <p class="hub-card-desc">공유오피스 공간·예약·멤버십 통합 관리</p>
+          <ul class="hub-card-meta">
+            <li>🏢 공간 · 회의실 관리</li>
+            <li>📅 예약 · 달력 시스템</li>
+            <li>💳 멤버십 · 정기결제</li>
+            <li>🏷️ 입주사 관리</li>
+          </ul>
+          <div class="hub-card-action">
+            들어가기
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </a>
+
+        <!-- 카드 4: 함께워크_SI -->
+        <a href="/cms-si.html" class="hub-card" data-service="si" data-status="demo">
+          <div class="hub-card-icon" style="background:linear-gradient(135deg,#c47a00,#8f5800)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="hub-card-badge hub-badge-demo">● DEMO</div>
+          <h3 class="hub-card-title">④ 함께워크_SI</h3>
+          <p class="hub-card-desc">SI 사업 프로젝트·고객·계약 관리 시스템</p>
+          <ul class="hub-card-meta">
+            <li>🏢 고객사 · CRM</li>
+            <li>📋 프로젝트 · WBS</li>
+            <li>📄 계약 · 인보이스</li>
+            <li>🐛 이슈 트래커</li>
+          </ul>
+          <div class="hub-card-action">
+            들어가기 (데모)
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- 하단 정보 -->
+      <div class="hub-footer">
+        <div class="hub-stats">
+          <div class="hub-stat-item">
+            <span class="hub-stat-num" id="statTotalMembers">-</span>
+            <span class="hub-stat-label">전체 회원</span>
+          </div>
+          <div class="hub-stat-divider"></div>
+          <div class="hub-stat-item">
+            <span class="hub-stat-num" id="statMonthDonation">-</span>
+            <span class="hub-stat-label">금월 후원</span>
+          </div>
+          <div class="hub-stat-divider"></div>
+          <div class="hub-stat-item">
+            <span class="hub-stat-num" id="statPendingSupport">-</span>
+            <span class="hub-stat-label">대기 신청</span>
+          </div>
+        </div>
+        <div class="hub-notice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>각 서비스는 독립된 회원 DB를 사용합니다. 웹 후원자는 ② 교유협 CMS로 선택적 이관이 가능합니다.</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 토스트 -->
+  <div id="toast" class="hub-toast" role="status"></div>
+
+  <script src="/js/admin-hub.js"></script>
+</body>
+</html>

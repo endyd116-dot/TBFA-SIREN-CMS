@@ -548,40 +548,54 @@
   }
   
   /* ============ 로그인 ============ */
-  function setupLoginForm() {
-    const form = document.querySelector('#adminLogin form');
-    if (!form) return;
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const id = (document.getElementById('adm_id') || {}).value || '';
-      const pw = (document.getElementById('adm_pw') || {}).value || '';
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const oldText = submitBtn ? submitBtn.textContent : '';
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = '인증 중...';
-      }
-      try {
-        const res = await api('/api/admin/login', {
-          method: 'POST',
-          body: { id: id.trim(), password: pw },
-        });
-        if (res.ok && res.data && res.data.data) {
-          CURRENT_ADMIN = res.data.data.admin;
+  /* ============ 로그인 ============ */
+function setupLoginForm() {
+  const form = document.querySelector('#adminLogin form');
+  if (!form) return;
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = (document.getElementById('adm_id') || {}).value || '';
+    const pw = (document.getElementById('adm_pw') || {}).value || '';
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const oldText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '인증 중...';
+    }
+    try {
+      const res = await api('/api/admin/login', {
+        method: 'POST',
+        body: { id: id.trim(), password: pw },
+      });
+      if (res.ok && res.data && res.data.data) {
+        CURRENT_ADMIN = res.data.data.admin;
+        toast(res.data.message || '로그인되었습니다');
+        
+        /* ★★★ 변경: 허브로 리다이렉트 (단, URL에 service 파라미터 있으면 유지) ★★★ */
+        const urlParams = new URLSearchParams(window.location.search);
+        const service = urlParams.get('service');
+        
+        if (service === 'siren') {
+          // 허브에서 ①번 카드 통해 온 경우 → 기존 패널 표시
           await fetchAdminMe();
           await showAdminPanel();
-          toast(res.data.message || '로그인되었습니다');
         } else {
-          toast((res.data && res.data.error) ? res.data.error : '인증 실패');
+          // 일반 로그인 → 허브로 이동
+          setTimeout(() => {
+            window.location.href = '/admin-hub.html';
+          }, 600);
         }
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = oldText;
-        }
+      } else {
+        toast((res.data && res.data.error) ? res.data.error : '인증 실패');
       }
-    });
-  }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+      }
+    }
+  });
+}
 
   async function fetchAdminMe() {
     const res = await api('/api/admin/me');
@@ -673,22 +687,33 @@
   }
 
   /* ============ 초기화 ============ */
-  async function init() {
-    setupLoginForm();
-    setupSidebar();
-    setupLogout();
-    setupDemoActions();
-    setupMemberActions();
-    setupDonationActions();
-    setupSupportActions();
+  /* ============ 초기화 ============ */
+async function init() {
+  setupLoginForm();
+  setupSidebar();
+  setupLogout();
+  setupDemoActions();
+  setupMemberActions();
+  setupDonationActions();
+  setupSupportActions();
 
-    const isLogged = await fetchAdminMe();
-    if (isLogged) {
+  const isLogged = await fetchAdminMe();
+  if (isLogged) {
+    /* ★★★ 변경: URL에 service 파라미터 있으면 패널 표시, 없으면 허브로 ★★★ */
+    const urlParams = new URLSearchParams(window.location.search);
+    const service = urlParams.get('service');
+    
+    if (service === 'siren') {
       await showAdminPanel();
     } else {
-      showLogin();
+      // 이미 로그인된 상태에서 /admin.html 직접 접속 → 허브로 이동
+      window.location.href = '/admin-hub.html';
+      return;
     }
+  } else {
+    showLogin();
   }
+}
 
   /* ============ 강제 부트스트랩 ============ */
   (function bootstrap() {
