@@ -1,4 +1,163 @@
 <!-- ============================================================
+     SIREN HEADER — 자체 완결형 스타일 (외부 CSS 의존 없음)
+     ============================================================ -->
+<style>
+  /* ===== 헤더 자체 완결형 스타일 ===== */
+  header.site-header .header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    height:78px;
+    gap:24px;
+    flex-wrap:nowrap;
+  }
+  header.site-header .brand{
+    display:flex;align-items:center;gap:12px;
+    flex-shrink:0;text-decoration:none;color:inherit;
+  }
+  header.site-header .brand-mark{
+    width:42px;height:42px;border-radius:8px;background:#0f0f0f;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  header.site-header .brand-mark svg{width:24px;height:24px}
+  header.site-header .brand-text{
+    font-family:'Noto Serif KR',serif;font-weight:700;font-size:18px;
+    line-height:1.1;white-space:nowrap;
+  }
+  header.site-header .brand-text small{
+    display:block;font-family:'Inter';font-size:9.5px;color:#8a8a8a;
+    letter-spacing:.22em;font-weight:500;margin-top:3px;white-space:nowrap;
+  }
+
+  /* GNB 한 줄 강제 */
+  header.site-header nav.gnb{
+    display:flex;flex-wrap:nowrap;gap:32px;
+    flex:1 1 auto;justify-content:center;align-items:center;
+    list-style:none;margin:0;padding:0;min-width:0;
+  }
+  header.site-header nav.gnb > li{
+    position:relative;list-style:none;margin:0;padding:0;flex-shrink:0;
+  }
+  header.site-header nav.gnb > li > a{
+    display:block;padding:28px 4px;font-weight:500;font-size:15px;
+    color:#1a1a1a;text-decoration:none;white-space:nowrap;
+    position:relative;transition:color .25s;
+  }
+  header.site-header nav.gnb > li > a:hover,
+  header.site-header nav.gnb > li.active > a{color:#7a1f2b}
+  header.site-header nav.gnb > li > a::after{
+    content:"";position:absolute;left:4px;right:4px;bottom:22px;
+    height:2px;background:#7a1f2b;
+    transform:scaleX(0);transform-origin:left;transition:transform .25s;
+  }
+  header.site-header nav.gnb > li:hover > a::after,
+  header.site-header nav.gnb > li.active > a::after{transform:scaleX(1)}
+
+  /* DROPDOWN — 기본 숨김 (외부 inline 충돌 없음) */
+  header.site-header nav.gnb .dropdown{
+    position:absolute;top:calc(100% - 6px);left:-16px;
+    background:#fff;border:1px solid #e8e6e3;
+    min-width:200px;padding:8px 0;margin:0;border-radius:10px;
+    box-shadow:0 20px 50px rgba(15,15,15,.12);
+    list-style:none;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transform:translateY(6px);
+    transition:opacity .25s, visibility .25s, transform .25s;
+    z-index:50;
+  }
+  header.site-header nav.gnb > li:hover > .dropdown,
+  header.site-header nav.gnb > li:focus-within > .dropdown{
+    opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);
+  }
+  header.site-header nav.gnb .dropdown li{
+    list-style:none;margin:0;padding:0;
+  }
+  header.site-header nav.gnb .dropdown a{
+    display:block;padding:11px 22px;font-size:13.5px;
+    color:#525252;text-decoration:none;transition:.25s;white-space:nowrap;
+  }
+  header.site-header nav.gnb .dropdown a:hover{
+    background:#fafaf9;color:#7a1f2b;padding-left:26px;
+  }
+
+  /* CTA 버튼 */
+  header.site-header .cta{
+    flex-shrink:0;padding:11px 22px;background:#0f0f0f;color:#fff;
+    border-radius:30px;font-weight:600;font-size:13.5px;
+    display:inline-flex;align-items:center;gap:8px;
+    border:none;cursor:pointer;white-space:nowrap;
+    transition:all .25s;text-decoration:none;
+  }
+  header.site-header .cta:hover{
+    background:#7a1f2b;transform:translateY(-1px);
+    box-shadow:0 8px 20px rgba(122,31,43,.25);
+  }
+  header.site-header .cta-ribbon{width:14px;height:14px;flex-shrink:0}
+
+  /* 모바일 햄버거 토글 */
+  header.site-header .mobile-toggle{
+    display:none;
+    width:40px;height:40px;border:1px solid #e8e6e3;border-radius:8px;
+    align-items:center;justify-content:center;cursor:pointer;
+    background:#fff;flex-shrink:0;position:relative;
+  }
+  header.site-header .mobile-toggle span,
+  header.site-header .mobile-toggle::before,
+  header.site-header .mobile-toggle::after{
+    content:"";position:absolute;left:50%;width:18px;height:2px;
+    background:#0f0f0f;transform:translateX(-50%);transition:.3s;
+  }
+  header.site-header .mobile-toggle::before{top:13px}
+  header.site-header .mobile-toggle span{top:50%;margin-top:-1px}
+  header.site-header .mobile-toggle::after{bottom:13px}
+
+  /* ===== 반응형 ===== */
+  @media (max-width:1200px){
+    header.site-header nav.gnb{gap:24px}
+    header.site-header nav.gnb > li > a{font-size:14px}
+    header.site-header .header-row{gap:16px}
+    header.site-header .brand-text{font-size:16px}
+  }
+  @media (max-width:1080px){
+    header.site-header nav.gnb{gap:18px}
+    header.site-header nav.gnb > li > a{font-size:13px;padding:28px 2px}
+    header.site-header .brand-text small{display:none}
+  }
+  @media (max-width:920px){
+    header.site-header .header-row{height:64px}
+    header.site-header nav.gnb{display:none}
+    header.site-header .mobile-toggle{display:flex}
+    header.site-header .brand-text{font-size:15px}
+
+    /* 모바일 메뉴 펼침 */
+    header.site-header nav.gnb.mobile-open{
+      display:flex;flex-direction:column;
+      position:absolute;top:100%;left:0;right:0;
+      background:#fff;border-top:1px solid #e8e6e3;border-bottom:1px solid #e8e6e3;
+      padding:10px 24px;gap:0;z-index:99;
+      box-shadow:0 8px 20px rgba(0,0,0,.08);
+      align-items:stretch;justify-content:flex-start;
+    }
+    header.site-header nav.gnb.mobile-open > li{
+      border-bottom:1px solid #f0eeeb;width:100%;
+    }
+    header.site-header nav.gnb.mobile-open > li:last-child{border-bottom:none}
+    header.site-header nav.gnb.mobile-open > li > a{
+      padding:14px 4px;font-size:14px;
+    }
+    header.site-header nav.gnb.mobile-open .dropdown{
+      position:static;opacity:1;visibility:visible;pointer-events:auto;
+      box-shadow:none;border:none;background:#fafaf9;border-radius:6px;
+      margin:0 0 8px 0;transform:none;padding:4px 0;min-width:auto;
+    }
+  }
+  @media (max-width:560px){
+    header.site-header .cta{padding:9px 14px;font-size:12px}
+    header.site-header .brand-text{font-size:14px}
+  }
+</style>
+
+<!-- ============================================================
      TOP BAR
      ============================================================ -->
 <div class="topbar">
@@ -28,86 +187,68 @@
 </div>
 
 <!-- ============================================================
-     MAIN HEADER — inline style로 드롭다운 강제 숨김
+     MAIN HEADER
      ============================================================ -->
 <header class="site-header">
-  <div class="container header-row" style="display:flex;align-items:center;justify-content:space-between;height:78px;gap:24px;flex-wrap:nowrap;">
+  <div class="container header-row">
 
-    <a href="/index.html" class="brand" aria-label="교사유가족협의회 홈" style="display:flex;align-items:center;gap:12px;flex-shrink:0;text-decoration:none;color:inherit;">
-      <div class="brand-mark" style="width:42px;height:42px;border-radius:8px;background:#0f0f0f;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <svg viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:24px;height:24px" aria-hidden="true">
+    <a href="/index.html" class="brand" aria-label="교사유가족협의회 홈">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M12 3 C 7 7, 7 13, 12 15 L 12 25 L 9 22 L 12 15 L 15 22 L 12 25 L 12 15 C 17 13, 17 7, 12 3 Z" fill="#7a1f2b"/>
           <ellipse cx="12" cy="8" rx="4.5" ry="3.5" fill="#0a0a0a" stroke="#7a1f2b" stroke-width="1"/>
         </svg>
       </div>
-      <div class="brand-text" style="font-family:'Noto Serif KR',serif;font-weight:700;font-size:18px;line-height:1.1;white-space:nowrap;">
+      <div class="brand-text">
         교사유가족협의회
-        <small style="display:block;font-family:'Inter';font-size:9.5px;color:#8a8a8a;letter-spacing:.22em;font-weight:500;margin-top:3px;">SOLIDARITY · DIGNITY</small>
+        <small>SOLIDARITY · DIGNITY</small>
       </div>
     </a>
 
-    <ul class="gnb" style="display:flex;flex-wrap:nowrap;gap:32px;flex:1 1 auto;justify-content:center;align-items:center;list-style:none;margin:0;padding:0;min-width:0;">
-      <li data-page="about" style="position:relative;list-style:none;flex-shrink:0;">
-        <a href="/about.html" style="display:block;padding:28px 4px;font-weight:500;font-size:15px;color:#1a1a1a;text-decoration:none;white-space:nowrap;">협의회 소개</a>
-        <ul class="dropdown" style="position:absolute;top:calc(100% - 6px);left:-16px;background:#fff;border:1px solid #e8e6e3;min-width:200px;padding:8px 0;margin:0;border-radius:10px;box-shadow:0 20px 50px rgba(15,15,15,.12);list-style:none;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(6px);transition:all .25s;z-index:50;">
-          <li style="list-style:none;margin:0;padding:0;"><a href="/about.html#greeting" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">인사말 / 비전</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/about.html#history" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">설립 취지 / 연혁</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/about.html#org" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">조직도 / 오시는 길</a></li>
+    <ul class="gnb">
+      <li data-page="about">
+        <a href="/about.html">협의회 소개</a>
+        <ul class="dropdown">
+          <li><a href="/about.html#greeting">인사말 / 비전</a></li>
+          <li><a href="/about.html#history">설립 취지 / 연혁</a></li>
+          <li><a href="/about.html#org">조직도 / 오시는 길</a></li>
         </ul>
       </li>
-      <li data-page="support" style="position:relative;list-style:none;flex-shrink:0;">
-        <a href="/support.html" style="display:block;padding:28px 4px;font-weight:500;font-size:15px;color:#1a1a1a;text-decoration:none;white-space:nowrap;">주요 활동</a>
-        <ul class="dropdown" style="position:absolute;top:calc(100% - 6px);left:-16px;background:#fff;border:1px solid #e8e6e3;min-width:200px;padding:8px 0;margin:0;border-radius:10px;box-shadow:0 20px 50px rgba(15,15,15,.12);list-style:none;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(6px);transition:all .25s;z-index:50;">
-          <li style="list-style:none;margin:0;padding:0;"><a href="/support.html#family" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">유가족 지원사업</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/support.html#memorial" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">추모 / 장학사업</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/report.html" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">활동 보고서</a></li>
+      <li data-page="support">
+        <a href="/support.html">주요 활동</a>
+        <ul class="dropdown">
+          <li><a href="/support.html#family">유가족 지원사업</a></li>
+          <li><a href="/support.html#memorial">추모 / 장학사업</a></li>
+          <li><a href="/report.html">활동 보고서</a></li>
         </ul>
       </li>
-      <li data-page="news" style="position:relative;list-style:none;flex-shrink:0;">
-        <a href="/news.html" style="display:block;padding:28px 4px;font-weight:500;font-size:15px;color:#1a1a1a;text-decoration:none;white-space:nowrap;">소식 / 참여</a>
-        <ul class="dropdown" style="position:absolute;top:calc(100% - 6px);left:-16px;background:#fff;border:1px solid #e8e6e3;min-width:200px;padding:8px 0;margin:0;border-radius:10px;box-shadow:0 20px 50px rgba(15,15,15,.12);list-style:none;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(6px);transition:all .25s;z-index:50;">
-          <li style="list-style:none;margin:0;padding:0;"><a href="/news.html#notice" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">공지사항</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/news.html#media" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">언론보도 / 갤러리</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/news.html#faq" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">FAQ</a></li>
+      <li data-page="news">
+        <a href="/news.html">소식 / 참여</a>
+        <ul class="dropdown">
+          <li><a href="/news.html#notice">공지사항</a></li>
+          <li><a href="/news.html#media">언론보도 / 갤러리</a></li>
+          <li><a href="/news.html#faq">FAQ</a></li>
         </ul>
       </li>
-      <li data-page="donate" style="position:relative;list-style:none;flex-shrink:0;">
-        <a href="#" data-action="open-modal" data-target="donateModal" style="display:block;padding:28px 4px;font-weight:500;font-size:15px;color:#1a1a1a;text-decoration:none;white-space:nowrap;">후원 안내</a>
-        <ul class="dropdown" style="position:absolute;top:calc(100% - 6px);left:-16px;background:#fff;border:1px solid #e8e6e3;min-width:200px;padding:8px 0;margin:0;border-radius:10px;box-shadow:0 20px 50px rgba(15,15,15,.12);list-style:none;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(6px);transition:all .25s;z-index:50;">
-          <li style="list-style:none;margin:0;padding:0;"><a href="#" data-action="open-modal" data-target="donateModal" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">정기 / 일시 후원</a></li>
-          <li style="list-style:none;margin:0;padding:0;"><a href="/mypage.html" style="display:block;padding:11px 22px;font-size:13.5px;color:#525252;text-decoration:none;white-space:nowrap;">기부금 영수증</a></li>
+      <li data-page="donate">
+        <a href="#" data-action="open-modal" data-target="donateModal">후원 안내</a>
+        <ul class="dropdown">
+          <li><a href="#" data-action="open-modal" data-target="donateModal">정기 / 일시 후원</a></li>
+          <li><a href="/mypage.html">기부금 영수증</a></li>
         </ul>
       </li>
-      <li data-page="mypage" style="position:relative;list-style:none;flex-shrink:0;">
-        <a href="/mypage.html" style="display:block;padding:28px 4px;font-weight:500;font-size:15px;color:#1a1a1a;text-decoration:none;white-space:nowrap;">마이페이지</a>
-      </li>
+      <li data-page="mypage"><a href="/mypage.html">마이페이지</a></li>
     </ul>
 
-    <button class="cta" data-action="open-modal" data-target="donateModal" style="flex-shrink:0;padding:11px 22px;background:#0f0f0f;color:#fff;border-radius:30px;font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;white-space:nowrap;">
-      <svg class="cta-ribbon" viewBox="0 0 14 16" fill="none" style="width:14px;height:14px" aria-hidden="true">
+    <button class="mobile-toggle" data-action="mobile-menu" aria-label="메뉴 열기">
+      <span></span>
+    </button>
+
+    <button class="cta" data-action="open-modal" data-target="donateModal">
+      <svg class="cta-ribbon" viewBox="0 0 14 16" fill="none" aria-hidden="true">
         <path d="M7 1 C 4 3, 4 7, 7 8 L 7 14 L 5 12 L 7 8 L 9 12 L 7 14 L 7 8 C 10 7, 10 3, 7 1 Z" fill="currentColor"/>
       </svg>
       후원하기
     </button>
   </div>
 </header>
-
-<!-- 드롭다운 호버 동작을 inline <style>로 직접 주입 -->
-<style>
-  nav.gnb > li:hover > .dropdown,
-  nav.gnb > li:focus-within > .dropdown {
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    transform: translateY(0) !important;
-  }
-  nav.gnb > li > a:hover,
-  nav.gnb > li.active > a {
-    color: #7a1f2b !important;
-  }
-  nav.gnb .dropdown a:hover {
-    background: #fafaf9 !important;
-    color: #7a1f2b !important;
-    padding-left: 26px !important;
-  }
-</style>
