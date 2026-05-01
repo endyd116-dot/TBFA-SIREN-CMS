@@ -39,9 +39,9 @@
           <!-- 사이드바 -->
           <aside class="mp-side">
             <div class="mp-user">
-              <div class="mp-avatar">홍</div>
-              <strong>홍길동님</strong>
-              <span>정기 후원 회원</span>
+              <div class="mp-avatar">?</div>
+              <strong>회원님</strong>
+              <span>로딩 중...</span>
             </div>
             <ul id="mpMenu">
               <li class="on" data-mp="donations">내 후원 내역</li>
@@ -61,9 +61,9 @@
               <p class="sub">최근 1년간의 후원 기록을 확인하실 수 있습니다.</p>
 
               <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-                <div class="kpi"><div class="kpi-label">누적 후원금</div><div class="kpi-value">240,000원</div></div>
-                <div class="kpi"><div class="kpi-label">정기 후원 회차</div><div class="kpi-value">12회</div></div>
-                <div class="kpi"><div class="kpi-label">기부금 영수증</div><div class="kpi-value" style="font-size:20px;color:var(--success)">발급 가능</div></div>
+                <div class="kpi"><div class="kpi-label">누적 후원금</div><div class="kpi-value">0원</div></div>
+                <div class="kpi"><div class="kpi-label">정기 후원 회차</div><div class="kpi-value">0회</div></div>
+                <div class="kpi"><div class="kpi-label">기부금 영수증</div><div class="kpi-value" style="font-size:20px;color:var(--text-3)">내역 없음</div></div>
               </div>
 
               <div style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
@@ -81,11 +81,11 @@
               <table class="tbl" style="margin-top:14px">
                 <thead><tr><th>일자</th><th>구분</th><th>금액</th><th>결제수단</th><th>상태</th><th>영수증</th></tr></thead>
                 <tbody>
-                  <tr><td>2026.04.10</td><td>정기 후원</td><td>20,000원</td><td>CMS</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button></td></tr>
-                  <tr><td>2026.03.10</td><td>정기 후원</td><td>20,000원</td><td>CMS</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button></td></tr>
-                  <tr><td>2026.02.14</td><td>일시 후원</td><td>50,000원</td><td>카드</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button></td></tr>
-                  <tr><td>2026.02.10</td><td>정기 후원</td><td>20,000원</td><td>CMS</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button></td></tr>
-                  <tr><td>2026.01.10</td><td>정기 후원</td><td>20,000원</td><td>CMS</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link">발급</button></td></tr>
+                  <tr>
+                    <td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">
+                      후원 내역을 불러오는 중... 🎗
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -99,8 +99,8 @@
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                   <div style="font-size:48px">📄</div>
                   <div style="flex:1;min-width:200px">
-                    <div style="font-weight:700;margin-bottom:4px">2025년 귀속 기부금 영수증</div>
-                    <div style="font-size:13px;color:var(--text-2)">총 기부금액: <strong style="color:var(--brand)">240,000원</strong> · 12건</div>
+                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 귀속 기부금 영수증</div>
+                    <div style="font-size:13px;color:var(--text-2)">총 기부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
                   <button class="btn btn-primary" data-demo-action="receipt-yearly" data-demo-message="연간 기부금 영수증 PDF를 발급합니다">PDF 발급</button>
                 </div>
@@ -120,12 +120,15 @@
               <table class="tbl">
                 <thead><tr><th>접수번호</th><th>유형</th><th>제목</th><th>접수일</th><th>상태</th></tr></thead>
                 <tbody>
-                  <tr><td>C-2026-0024</td><td>일반 문의</td><td>정기 후원 결제일 변경 문의</td><td>2026.04.20</td><td><span class="badge b-success">답변완료</span></td></tr>
-                  <tr><td>C-2026-0019</td><td>영수증</td><td>이전 연도 기부금 영수증 재발급</td><td>2026.03.05</td><td><span class="badge b-success">답변완료</span></td></tr>
+                  <tr>
+                    <td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">
+                      신청 내역을 불러오는 중...
+                    </td>
+                  </tr>
                 </tbody>
               </table>
 
-              <button class="btn btn-primary" style="margin-top:20px">+ 새 상담 작성</button>
+              <button class="btn btn-primary" style="margin-top:20px" data-action="open-modal" data-target="supportModal">+ 새 지원 신청</button>
             </div>
 
             <!-- 4. 회원 정보 수정 -->
@@ -134,15 +137,15 @@
               <p class="sub">개인정보는 본인만 수정 가능하며, 모든 변경 이력은 안전하게 기록됩니다.</p>
 
               <div style="max-width:520px">
-                <div class="fg"><label>이름</label><input type="text" value="홍길동"></div>
-                <div class="fg"><label>이메일</label><input type="email" value="hong@example.com"></div>
-                <div class="fg"><label>연락처</label><input type="tel" value="010-1234-5678"></div>
+                <div class="fg"><label>이름</label><input type="text" id="mpName" readonly style="background:var(--bg-soft)"></div>
+                <div class="fg"><label>이메일</label><input type="email" id="mpEmail" readonly style="background:var(--bg-soft)"></div>
+                <div class="fg"><label>연락처</label><input type="tel" id="mpPhone" placeholder="010-0000-0000"></div>
                 <div class="fg"><label>비밀번호 변경 <span class="hint">(변경 시에만 입력)</span></label><input type="password" placeholder="8자 이상, 영문+숫자"></div>
                 <div class="fg"><label>알림 수신 동의</label>
                   <div style="display:flex;gap:18px;margin-top:6px">
-                    <label class="checkbox-line" style="margin:0"><input type="checkbox" checked> 이메일</label>
-                    <label class="checkbox-line" style="margin:0"><input type="checkbox" checked> SMS</label>
-                    <label class="checkbox-line" style="margin:0"><input type="checkbox"> 우편물</label>
+                    <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeEmail"> 이메일</label>
+                    <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeSms"> SMS</label>
+                    <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeMail"> 우편물</label>
                   </div>
                 </div>
                 <button class="btn btn-primary" data-demo-action="profile-update" data-demo-message="회원 정보가 안전하게 변경되었습니다">변경 사항 저장</button>
@@ -159,12 +162,12 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <script src="/js/common.js?v=3"></script>
-  <script src="/js/auth.js?v=3"></script>
-  <script src="/js/support.js?v=3"></script>
-  <script src="/js/donate.js?v=3"></script>
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/auth.js?v=4"></script>
+  <script src="/js/support.js?v=4"></script>
+  <script src="/js/donate.js?v=4"></script>
   <script>
-    // 마이페이지 사이드바 메뉴 전환
+    // 마이페이지 사이드바 메뉴 전환 + 회원 정보 주입
     window.SIREN_PAGE_INIT = function () {
       const menu = document.getElementById('mpMenu');
       const crumb = document.getElementById('mpCrumb');
@@ -177,6 +180,7 @@
 
         if (key === 'logout') {
           if (confirm('로그아웃 하시겠습니까?')) {
+            if (window.SIREN_AUTH) window.SIREN_AUTH.logout();
             SIREN.toast('로그아웃 되었습니다');
             setTimeout(() => location.href = '/index.html', 800);
           }
@@ -195,6 +199,57 @@
         // 브레드크럼
         if (crumb) crumb.textContent = li.textContent;
       });
+
+      // 회원 정보 수정 탭에 데이터 자동 채우기 (auth.js 로딩 대기)
+      const fillProfile = () => {
+        const user = window.SIREN_AUTH?.user;
+        if (!user) return false;
+        const nameEl = document.getElementById('mpName');
+        const emailEl = document.getElementById('mpEmail');
+        const phoneEl = document.getElementById('mpPhone');
+        const agreeEmail = document.getElementById('mpAgreeEmail');
+        const agreeSms = document.getElementById('mpAgreeSms');
+        const agreeMail = document.getElementById('mpAgreeMail');
+        
+        if (nameEl) nameEl.value = user.name || '';
+        if (emailEl) emailEl.value = user.email || '';
+        if (phoneEl) phoneEl.value = user.phone || '';
+        if (agreeEmail) agreeEmail.checked = user.agreeEmail !== false;
+        if (agreeSms) agreeSms.checked = user.agreeSms !== false;
+        if (agreeMail) agreeMail.checked = user.agreeMail === true;
+        
+        return true;
+      };
+
+      // 여러 번 시도 (auth.js가 로딩되는 시점까지)
+      let tries = 0;
+      const tryFill = setInterval(() => {
+        if (fillProfile() || tries++ > 20) {
+          clearInterval(tryFill);
+        }
+      }, 200);
+
+      // 증명서 발급 카드 정보 업데이트 (auth.js가 stats 채운 후)
+      const updateReceiptCard = () => {
+        const stats = window.SIREN_AUTH?.stats;
+        if (!stats) return false;
+        const amtEl = document.getElementById('receiptAmount');
+        const cntEl = document.getElementById('receiptCount');
+        const yearEl = document.getElementById('receiptYear');
+        if (amtEl) amtEl.textContent = (stats.totalAmount || 0).toLocaleString() + '원';
+        if (cntEl) cntEl.textContent = stats.totalCount || 0;
+        if (yearEl) {
+          const year = new Date().getFullYear() - 1;
+          yearEl.textContent = `${year}년 귀속 기부금 영수증`;
+        }
+        return true;
+      };
+      let rTries = 0;
+      const tryReceipt = setInterval(() => {
+        if (updateReceiptCard() || rTries++ > 20) {
+          clearInterval(tryReceipt);
+        }
+      }, 200);
 
       // 데모 액션 (영수증 발급 등)
       document.addEventListener('click', (e) => {
