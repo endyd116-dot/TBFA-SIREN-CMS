@@ -160,3 +160,77 @@
   .quick-grid{grid-template-columns:repeat(2,1fr)}
   .quick-item{border-right:none !important;border-bottom:1px solid var(--line-soft)}
 }
+/* =========================================================
+   NOTICE / FAQ — 한 줄 고정 + 깔끔 정렬 (오버라이드)
+   ========================================================= */
+.notice-list li{
+  display:grid;
+  grid-template-columns:74px 1fr 90px;
+  align-items:center;
+  gap:14px;
+  padding:14px 6px;
+  font-size:13.5px;
+}
+.notice-list .tag{
+  font-size:10.5px;
+  padding:3px 8px;
+  min-width:0;
+  width:100%;
+  text-align:center;
+  letter-spacing:-.02em;
+  white-space:nowrap;
+}
+.notice-list .notice-title{
+  font-size:13.5px;
+  font-weight:500;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+.notice-list .notice-date{
+  font-size:11.5px;
+  color:var(--text-3);
+  text-align:right;
+  white-space:nowrap;
+}
+
+.faq-q{
+  font-size:13.5px;
+  padding:16px 6px;
+  gap:12px;
+  align-items:flex-start;
+}
+.q-mark{
+  font-size:16px;
+  flex-shrink:0;
+  margin-top:-1px;
+}
+.faq-q > span:nth-child(2){
+  flex:1;
+  line-height:1.5;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.faq-a-inner{
+  font-size:12.5px;
+  padding:6px 6px 18px 32px;
+  line-height:1.75;
+}
+
+/* 소식 페이지 테이블도 깔끔하게 */
+table.tbl td:nth-child(3){
+  max-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+@media (max-width:560px){
+  .notice-list li{ grid-template-columns:60px 1fr 80px; gap:10px; font-size:12.5px; }
+  .notice-list .tag{ font-size:10px; padding:2px 6px; }
+  .notice-list .notice-title{ font-size:12.5px; }
+}
