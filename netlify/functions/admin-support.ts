@@ -1,10 +1,9 @@
 /**
- * GET   /api/admin/support              — 지원 신청 목록 + 통계
- * GET   /api/admin/support?id=N         — 신청 상세
- * PATCH /api/admin/support              — 상태/매칭/메모 변경
- *                                       - body.sendEmail=true 일 때만 신청자에게 답변 알림 메일 발송
+ * GET   /api/admin/support              — 목록 (신청자/답변자 정보 포함)
+ * GET   /api/admin/support?id=N         — 상세
+ * PATCH /api/admin/support              — 상태/메모/답변자 업데이트 + 메일
  */
-import { eq, desc, and, count, sql } from "drizzle-orm";
+import { eq, desc, count, sql, inArray } from "drizzle-orm";
 import { db, supportRequests, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { supportStatusUpdateSchema, safeValidate } from "../../lib/validation";
@@ -28,7 +27,7 @@ export default async (req: Request) => {
       const url = new URL(req.url);
       const id = url.searchParams.get("id");
 
-      /* 상세 */
+      /* ─── 상세 조회 ─── */
       if (id) {
         const reqId = Number(id);
         if (!Number.isFinite(reqId)) return badRequest("유효하지 않은 ID");
@@ -48,24 +47,35 @@ export default async (req: Request) => {
             email: members.email,
             phone: members.phone,
             type: members.type,
+            createdAt: members.createdAt,
           })
           .from(members)
           .where(eq(members.id, item.memberId))
           .limit(1);
 
-        return ok({ request: item, requester });
+        /* 답변자 정보 */
+        let answerer: any = null;
+        if (item.answeredBy) {
+          const [a] = await db
+            .select({ id: members.id, name: members.name, email: members.email })
+            .from(members)
+            .where(eq(members.id, item.answeredBy))
+            .limit(1);
+          answerer = a || null;
+        }
+
+        return ok({ request: item, requester, answerer });
       }
 
-      /* 목록 */
+      /* ─── 목록 조회 ─── */
       const limit = Math.min(100, Number(url.searchParams.get("limit") || 50));
       const status = url.searchParams.get("status");
+      const validStatuses = ["submitted", "reviewing", "supplement", "matched", "in_progress", "completed", "rejected"];
+      const whereClause: any = (status && validStatuses.includes(status))
+        ? eq(supportRequests.status, status as any)
+        : undefined;
 
-      const conditions: any[] = [];
-      if (status && ["submitted","reviewing","supplement","matched","in_progress","completed","rejected"].includes(status)) {
-        conditions.push(eq(supportRequests.status, status as any));
-      }
-      const where = conditions.length === 0 ? undefined : conditions[0];
-
+      /* 1차: supportRequests + 신청자(members) join */
       const list = await db
         .select({
           id: supportRequests.id,
@@ -75,13 +85,46 @@ export default async (req: Request) => {
           title: supportRequests.title,
           status: supportRequests.status,
           assignedExpertName: supportRequests.assignedExpertName,
+          adminNote: supportRequests.adminNote,
           createdAt: supportRequests.createdAt,
           completedAt: supportRequests.completedAt,
+          priority: supportRequests.priority,
+          priorityReason: supportRequests.priorityReason,
+          answeredBy: supportRequests.answeredBy,
+          answeredAt: supportRequests.answeredAt,
+          requesterName: members.name,
+          requesterEmail: members.email,
+          requesterPhone: members.phone,
         })
         .from(supportRequests)
-        .where(where as any)
+        .leftJoin(members, eq(supportRequests.memberId, members.id))
+        .where(whereClause)
         .orderBy(desc(supportRequests.createdAt))
         .limit(limit);
+
+      /* 2차: 답변자 ID 추출 → JS에서 매핑 */
+      const answeredByIds: number[] = [];
+      for (const row of list) {
+        if (row.answeredBy && !answeredByIds.includes(row.answeredBy)) {
+          answeredByIds.push(row.answeredBy);
+        }
+      }
+
+      const answererMap = new Map<number, string>();
+      if (answeredByIds.length > 0) {
+        const answerers = await db
+          .select({ id: members.id, name: members.name })
+          .from(members)
+          .where(inArray(members.id, answeredByIds));
+        for (const a of answerers) {
+          answererMap.set(a.id, a.name);
+        }
+      }
+
+      const enrichedList = list.map((r: any) => ({
+        ...r,
+        answererName: r.answeredBy ? (answererMap.get(r.answeredBy) || null) : null,
+      }));
 
       /* 통계 */
       const submittedRows = await db.select({ c: count() }).from(supportRequests).where(eq(supportRequests.status, "submitted"));
@@ -89,7 +132,6 @@ export default async (req: Request) => {
       const matchedRows = await db.select({ c: count() }).from(supportRequests).where(eq(supportRequests.status, "matched"));
       const completedRows = await db.select({ c: count() }).from(supportRequests).where(eq(supportRequests.status, "completed"));
 
-      /* 평균 처리일 */
       const avgRows = await db
         .select({
           avg: sql<number>`COALESCE(AVG(EXTRACT(EPOCH FROM (${supportRequests.completedAt} - ${supportRequests.createdAt})) / 86400), 0)`,
@@ -98,7 +140,7 @@ export default async (req: Request) => {
         .where(eq(supportRequests.status, "completed"));
 
       return ok({
-        list,
+        list: enrichedList,
         stats: {
           submitted: Number(submittedRows[0]?.c ?? 0),
           inProgress: Number(inProgressRows[0]?.c ?? 0) + Number(matchedRows[0]?.c ?? 0),
@@ -116,27 +158,61 @@ export default async (req: Request) => {
       const reqId = Number(body.id);
       if (!Number.isFinite(reqId)) return badRequest("유효하지 않은 ID");
 
-      /* sendEmail 플래그는 schema 검증 대상에서 제외 (안전하게 별도 추출) */
       const sendEmailFlag = body.sendEmail === true;
+      const isInlineStatusUpdate = body.inlineStatusOnly === true;
 
+      /* ─── 인라인 단계 변경 ─── */
+      if (isInlineStatusUpdate) {
+        const validStatuses = ["submitted", "reviewing", "supplement", "matched", "in_progress", "completed", "rejected"];
+        if (!validStatuses.includes(body.status)) return badRequest("유효하지 않은 상태");
+
+        const updateData: any = {
+          status: body.status,
+          updatedAt: new Date(),
+        };
+        if (body.status === "completed") updateData.completedAt = new Date();
+
+        const [updated] = await db
+          .update(supportRequests)
+          .set(updateData)
+          .where(eq(supportRequests.id, reqId))
+          .returning();
+
+        if (!updated) return notFound("신청 내역 없음");
+
+        await logAdminAction(req, admin.uid as any, admin.name as any, "support_inline_status", {
+          target: updated.requestNo,
+          detail: { newStatus: body.status },
+        });
+
+        return ok({ request: updated }, "단계가 변경되었습니다");
+      }
+
+      /* ─── 일반 PATCH (답변 작성) ─── */
       const v = safeValidate(supportStatusUpdateSchema, body);
-      if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+      if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
+      const data = (v as any).data;
       const updateData: any = {
-        status: v.data.status,
+        status: data.status,
         updatedAt: new Date(),
       };
-      if (v.data.assignedMemberId !== undefined) updateData.assignedMemberId = v.data.assignedMemberId;
-      if (v.data.assignedExpertName !== undefined) {
-        updateData.assignedExpertName = v.data.assignedExpertName;
+      if (data.assignedMemberId !== undefined) updateData.assignedMemberId = data.assignedMemberId;
+      if (data.assignedExpertName !== undefined) {
+        updateData.assignedExpertName = data.assignedExpertName;
         updateData.assignedAt = new Date();
       }
-      if (v.data.adminNote !== undefined) updateData.adminNote = v.data.adminNote;
-      if (v.data.supplementNote !== undefined) updateData.supplementNote = v.data.supplementNote;
-      if (v.data.reportContent !== undefined) updateData.reportContent = v.data.reportContent;
+      if (data.adminNote !== undefined) updateData.adminNote = data.adminNote;
+      if (data.supplementNote !== undefined) updateData.supplementNote = data.supplementNote;
+      if (data.reportContent !== undefined) updateData.reportContent = data.reportContent;
 
-      /* 완료 처리 시 completedAt 자동 */
-      if (v.data.status === "completed") updateData.completedAt = new Date();
+      if (data.status === "completed") updateData.completedAt = new Date();
+
+      /* ★ adminNote가 채워지면 답변자/시간 자동 기록 */
+      if (data.adminNote && String(data.adminNote).trim().length > 0) {
+        updateData.answeredBy = admin.uid;
+        updateData.answeredAt = new Date();
+      }
 
       const [updated] = await db
         .update(supportRequests)
@@ -146,7 +222,7 @@ export default async (req: Request) => {
 
       if (!updated) return notFound("신청 내역 없음");
 
-      /* ───── 신청자 메일 발송 (sendEmail=true 일 때만) ───── */
+      /* ───── 신청자 메일 발송 ───── */
       let emailSent = false;
       let emailError: string | null = null;
 
@@ -181,9 +257,9 @@ export default async (req: Request) => {
         }
       }
 
-      await logAdminAction(req, admin.uid, admin.name, "support_status_change", {
+      await logAdminAction(req, admin.uid as any, admin.name as any, "support_status_change", {
         target: updated.requestNo,
-        detail: { newStatus: v.data.status, emailSent, emailError },
+        detail: { newStatus: data.status, emailSent, emailError, hasNote: !!data.adminNote },
       });
 
       const message = emailSent
