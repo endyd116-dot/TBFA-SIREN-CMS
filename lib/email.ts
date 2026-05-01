@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "re_iFrL6mjs_6yvaEiYk3Pw7QBUhDwSD932e";
+/* 환경변수에서만 로드 — 하드코딩 절대 금지 (Netlify Secrets Scanning 차단) */
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const FROM_EMAIL = process.env.EMAIL_FROM || "SIREN <onboarding@resend.dev>";
 
 /* 사이트 기본 URL — 메일 내 링크에 사용 */
