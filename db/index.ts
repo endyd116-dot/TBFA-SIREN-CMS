@@ -1,12 +1,20 @@
 import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@netlify/neon";
+import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 
 /* =========================================================
-   Netlify Neon Postgres 연결
-   - NETLIFY_DATABASE_URL 환경변수는 Netlify가 자동 주입
+   Neon Postgres 연결 (HTTP fetch 기반 — 서버리스 최적)
    ========================================================= */
-const sql = neon();
+const databaseUrl =
+  process.env.NETLIFY_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  "";
+
+if (!databaseUrl) {
+  console.error("[DB] NETLIFY_DATABASE_URL 환경변수가 없습니다");
+}
+
+const sql = neon(databaseUrl);
 export const db = drizzle(sql, { schema });
 
 /* =========================================================
@@ -16,7 +24,7 @@ export * from "./schema";
 export { sql };
 
 /* =========================================================
-   ID 생성 유틸 (지원신청번호 등)
+   ID 생성 유틸
    ========================================================= */
 export function generateRequestNo(prefix: string = "S"): string {
   const now = new Date();

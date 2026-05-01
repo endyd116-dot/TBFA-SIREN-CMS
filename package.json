@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@netlify/blobs": "^8.2.0",
     "@netlify/functions": "^2.8.2",
     "@netlify/neon": "^0.1.2",
