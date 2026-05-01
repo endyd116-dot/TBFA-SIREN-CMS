@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "allowJs": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "db/**/*.ts",
+    "lib/**/*.ts",
+    "netlify/functions/**/*.ts",
+    "drizzle.config.ts"
+  ],
+  "exclude": ["node_modules", "public", ".netlify", "drizzle"]
+}
