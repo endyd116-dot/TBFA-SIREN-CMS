@@ -367,24 +367,32 @@
   <!-- Toast -->
   <div id="toast" class="toast" role="status"></div>
 
-  <!-- Chart.js 먼저 -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- 관리자는 파셜 로딩 안 함 → 최소한의 SIREN 헬퍼만 등록 -->
-  <script>
-    window.SIREN = {
-      $: (s, r=document) => r.querySelector(s),
-      $$: (s, r=document) => Array.from(r.querySelectorAll(s)),
-      toast(msg, ms = 2400) {
-        const t = document.getElementById('toast');
-        if (!t) return alert(msg);
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(window._tt);
-        window._tt = setTimeout(() => t.classList.remove('show'), ms);
-      },
-    };
-  </script>
-  <script src="/js/charts.js"></script>
-  <script src="/js/admin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/charts.js"></script>
+<script src="/js/admin.js"></script>
+
+<script>
+  /* ============ 강제 부트스트랩 — admin.js init 보장 ============ */
+  (function () {
+    function ensureLoginVisible() {
+      var login = document.getElementById('adminLogin');
+      var wrap = document.getElementById('adminWrap');
+      // 둘 다 숨겨져 있으면 로그인 화면 강제 표시
+      if (login && !login.classList.contains('show') &&
+          (!wrap || !wrap.classList.contains('show'))) {
+        login.classList.add('show');
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureLoginVisible);
+    } else {
+      ensureLoginVisible();
+    }
+    // 0.3초 후 한 번 더 (admin.js의 fetchAdminMe()가 실패할 경우 대비)
+    setTimeout(ensureLoginVisible, 300);
+    setTimeout(ensureLoginVisible, 1000); // 한 번 더 보험
+  })();
+</script>
+
 </body>
 </html>
