@@ -120,6 +120,19 @@
     return map[status] || status;
   }
 
+    function priorityMarkerHtml(priority, reason) {
+    const safeReason = reason ? String(reason).replace(/"/g, '&quot;') : '';
+    if (priority === 'urgent') {
+      return '<span title="긴급: ' + safeReason + '" style="color:#c5293a;font-weight:700">🔴</span>';
+    }
+    if (priority === 'low') {
+      return '<span title="낮음: ' + safeReason + '" style="color:#1a8b46">🟢</span>';
+    }
+    if (priority === 'normal') {
+      return '<span title="보통: ' + safeReason + '" style="color:#c47a00">🟡</span>';
+    }
+    return '<span style="color:#bbb">⚪</span>';
+  }
   /* ============ 신규 뱃지 ============ */
   function updateSupportBadge(count) {
     const badge = document.getElementById('supportNewBadge');
@@ -489,14 +502,21 @@
       return html;
     }
 
-    tbody.innerHTML = list.map((s) => {
-      const rowAttr = s.status === 'submitted' ? ' style="background:#fff8ec"' : '';
+        tbody.innerHTML = list.map((s) => {
+      /* 우선순위 행 강조 (긴급은 빨강 배경, 신규는 노랑) */
+      let rowAttr = '';
+      if (s.priority === 'urgent') rowAttr = ' style="background:#fdecec"';
+      else if (s.status === 'submitted') rowAttr = ' style="background:#fff8ec"';
+
       const requesterName = s.requesterName ? escapeHtml(s.requesterName) : ('유가족 #' + s.memberId);
       const answererName = s.answererName ? escapeHtml(s.answererName) : '—';
       const answeredAt = s.answeredAt ? formatShortDateTime(s.answeredAt) : '—';
 
+      /* 우선순위 마커 */
+      const priorityIcon = priorityMarkerHtml(s.priority, s.priorityReason);
+
       return '<tr' + rowAttr + '>' +
-        '<td style="font-family:Inter;font-size:12px">' + escapeHtml(s.requestNo) + '</td>' +
+        '<td style="font-family:Inter;font-size:12px">' + priorityIcon + ' ' + escapeHtml(s.requestNo) + '</td>' +
         '<td>' + (SUPPORT_CAT_LABEL[s.category] || s.category) + '</td>' +
         '<td><span class="clickable-name" data-member-info-id="' + s.memberId + '">' + requesterName + '</span></td>' +
         '<td style="font-family:Inter;font-size:12px">' + formatShortDateTime(s.createdAt) + '</td>' +
@@ -624,8 +644,55 @@
 
     document.getElementById('replyStatus').value = r.status || 'submitted';
     document.getElementById('replyNote').value = r.adminNote || '';
-  }
 
+    /* AI 답변 초안 버튼 주입 */
+    injectAiDraftButton();
+  }
+  /* AI 답변 초안 버튼 추가 (모달 오픈 시) */
+  function injectAiDraftButton() {
+    const note = document.getElementById('replyNote');
+    if (!note) return;
+    if (document.getElementById('btnAiDraft')) return; // 이미 있음
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'btnAiDraft';
+    btn.className = 'btn-sm btn-sm-ghost';
+    btn.style.cssText = 'margin-bottom:6px;font-size:12px;color:var(--brand);border:1px dashed var(--brand);padding:6px 12px;border-radius:5px;background:#fff;cursor:pointer';
+    btn.innerHTML = '✍️ AI 답변 초안 생성 (Gemini)';
+    note.parentElement.insertBefore(btn, note);
+
+    btn.addEventListener('click', async () => {
+      const id = Number(document.getElementById('replyId').value);
+      if (!id) return toast('신청을 먼저 선택하세요');
+
+      btn.disabled = true;
+      const oldText = btn.innerHTML;
+      btn.innerHTML = '⏳ 생성 중... (3-5초)';
+
+      try {
+        const res = await api('/api/admin/ai/reply-draft', {
+          method: 'POST',
+          body: { id },
+        });
+
+        if (res.ok && res.data?.data?.draft) {
+          /* 기존 내용이 있으면 confirm */
+          const cur = note.value.trim();
+          if (cur && !confirm('현재 입력된 답변이 있습니다. AI 초안으로 덮어쓸까요?')) {
+            return;
+          }
+          note.value = res.data.data.draft;
+          toast('AI 답변 초안이 생성되었습니다 (수정 후 저장하세요)');
+        } else {
+          toast(res.data?.error || 'AI 초안 생성 실패');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+      }
+    });
+  }
   /* 지원 답변 폼 제출 */
   function setupSupportReplyForm() {
     const form = document.getElementById('supportReplyForm');
