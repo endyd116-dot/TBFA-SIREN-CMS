@@ -208,14 +208,32 @@
     }
   }
 
+    /* ------------ 안전한 부트스트랩 (DOM 준비 + 강제 init) ------------ */
+  async function safeInit() {
+    try {
+      // 일단 로그인 화면을 무조건 보여주기 (흰 화면 방지)
+      const login = document.getElementById('adminLogin');
+      if (login && !login.classList.contains('show')) {
+        login.classList.add('show');
+      }
+      // 그 다음 세션 체크 + 메뉴 등 셋업
+      await init();
+    } catch (err) {
+      console.error('[admin bootstrap]', err);
+      const login = document.getElementById('adminLogin');
+      if (login) login.classList.add('show');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', safeInit);
+  } else {
+    safeInit();
+  }
+
+  /* 다른 스크립트 호환용 (사용자 페이지에서 admin.js를 로드한 경우 대비) */
   const prevInit = window.SIREN_PAGE_INIT;
   window.SIREN_PAGE_INIT = function () {
     if (typeof prevInit === 'function') prevInit();
-    init();
   };
-
-  /* 페이지 로드 시 SIREN_PAGE_INIT가 정의되어 있으면 즉시 호출 */
-  if (document.readyState !== 'loading') {
-    if (typeof window.SIREN_PAGE_INIT === 'function') window.SIREN_PAGE_INIT();
-  }
 })();
