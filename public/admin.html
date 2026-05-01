@@ -29,12 +29,12 @@
         </svg>
       </div>
       <h2 class="serif">관리자 로그인</h2>
-      <p class="login-sub">관리자 페이지 접속을 위해 인증이 필요합니다.<br />최초 접속 정보 : <code>admin / 1234</code></p>
+      <p class="login-sub">관리자 페이지 접속을 위해 인증이 필요합니다.<br />최초 접속 정보 : <code>admin / admin1234</code></p>
 
       <form>
-        <div class="fg"><label>관리자 ID</label><input id="adm_id" type="text" required value="admin"></div>
-        <div class="fg"><label>비밀번호</label><input id="adm_pw" type="password" required value="1234"></div>
-        <div class="fg"><label>OTP 인증 코드 <span class="hint">(2단계 인증)</span></label><input type="text" placeholder="000000" maxlength="6"></div>
+        <div class="fg"><label>관리자 ID</label><input id="adm_id" type="text" required value="admin" autocomplete="username"></div>
+        <div class="fg"><label>비밀번호</label><input id="adm_pw" type="password" required value="admin1234" autocomplete="current-password"></div>
+        <div class="fg"><label>OTP 인증 코드 <span class="hint">(2단계 인증 — 선택)</span></label><input type="text" placeholder="000000" maxlength="6" autocomplete="one-time-code"></div>
         <button type="submit" class="btn btn-primary btn-block">인증 후 접속</button>
         <p class="form-link"><a href="#" data-action="admin-exit">← 사용자 사이트로 돌아가기</a></p>
       </form>
@@ -76,13 +76,13 @@
 
       <div class="adm-content">
 
-        <!-- 1. 대시보드 -->
+        <!-- ============= 1. 대시보드 ============= -->
         <div id="adm-dashboard" class="adm-page show">
           <div class="kpi-grid">
-            <div class="kpi"><div class="kpi-label">금월 후원금</div><div class="kpi-value">₩ 38.4M</div><div class="kpi-delta">▲ 12.4% 전월</div></div>
-            <div class="kpi"><div class="kpi-label">신규 정기 후원</div><div class="kpi-value">147 명</div><div class="kpi-delta">▲ 8.2%</div></div>
-            <div class="kpi"><div class="kpi-label">대기 중 지원 신청</div><div class="kpi-value">23 건</div><div class="kpi-delta down">▼ 3 건</div></div>
-            <div class="kpi"><div class="kpi-label">금일 방문자</div><div class="kpi-value">2,847</div><div class="kpi-delta">▲ 5.6%</div></div>
+            <div class="kpi"><div class="kpi-label">금월 후원금</div><div class="kpi-value">₩ 0.0M</div><div class="kpi-delta">실시간</div></div>
+            <div class="kpi"><div class="kpi-label">신규 정기 후원</div><div class="kpi-value">0 명</div><div class="kpi-delta">금월</div></div>
+            <div class="kpi"><div class="kpi-label">대기 중 지원 신청</div><div class="kpi-value">0 건</div><div class="kpi-delta">검토 필요</div></div>
+            <div class="kpi"><div class="kpi-label">전체 회원</div><div class="kpi-value">0</div><div class="kpi-delta">누적</div></div>
           </div>
 
           <div class="row-2">
@@ -109,99 +109,118 @@
               </div>
             </div>
             <div class="panel">
-              <div class="p-head"><div class="p-title">최근 신청 / 활동</div><span class="p-tag">실시간</span></div>
-              <table class="tbl">
+              <div class="p-head"><div class="p-title">최근 활동</div><span class="p-tag">실시간</span></div>
+              <table class="tbl" id="recentActivityTable">
                 <tbody>
-                  <tr><td>15:18</td><td>신규 정기 후원</td><td>김◯◯</td><td><span class="badge b-success">완료</span></td></tr>
-                  <tr><td>14:52</td><td>지원 신청</td><td>#2026-0413</td><td><span class="badge b-warn">검토 중</span></td></tr>
-                  <tr><td>14:30</td><td>봉사자 가입</td><td>이◯◯</td><td><span class="badge b-info">대기</span></td></tr>
-                  <tr><td>13:47</td><td>일시 후원</td><td>익명</td><td><span class="badge b-success">완료</span></td></tr>
-                  <tr><td>12:18</td><td>증빙서류 보완</td><td>#2026-0411</td><td><span class="badge b-danger">반려</span></td></tr>
+                  <tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:30px">최근 활동을 불러오는 중...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- 2. 회원 관리 -->
+        <!-- ============= 2. 회원 관리 ============= -->
         <div id="adm-members" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="kpi"><div class="kpi-label">전체 회원</div><div class="kpi-value">8,427 명</div></div>
-            <div class="kpi"><div class="kpi-label">유가족 회원</div><div class="kpi-value">128 명</div></div>
-            <div class="kpi"><div class="kpi-label">승인 대기</div><div class="kpi-value">7 명</div></div>
+            <div class="kpi"><div class="kpi-label">전체 회원</div><div class="kpi-value" data-stat="total">0 명</div></div>
+            <div class="kpi"><div class="kpi-label">유가족 회원</div><div class="kpi-value" data-stat="family">0 명</div></div>
+            <div class="kpi"><div class="kpi-label">승인 대기</div><div class="kpi-value" data-stat="pending">0 명</div></div>
           </div>
           <div class="panel">
             <div class="p-head">
               <div class="p-title">회원 리스트</div>
               <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" data-demo-action="export-members" data-demo-message="회원 데이터를 엑셀로 추출합니다">엑셀 추출</button>
-                <button class="btn-sm btn-sm-primary">+ 회원 추가</button>
+                <input type="search" id="memberSearch" placeholder="이름/이메일 검색" style="padding:8px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;width:200px">
+                <button class="btn-sm btn-sm-ghost" data-demo-action="export-members" data-demo-message="회원 데이터 엑셀 추출 (STEP 10에서 구현)">엑셀 추출</button>
               </div>
             </div>
-            <table class="tbl">
-              <thead><tr><th style="width:30px"><input type="checkbox"></th><th>회원ID</th><th>이름</th><th>등급</th><th>가입일</th><th>최종 활동</th><th>상태</th><th>관리</th></tr></thead>
+            <table class="tbl" id="membersTable">
+              <thead>
+                <tr>
+                  <th style="width:30px"><input type="checkbox"></th>
+                  <th>회원ID</th>
+                  <th>이름</th>
+                  <th>이메일</th>
+                  <th>등급</th>
+                  <th>가입일</th>
+                  <th>최종 활동</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td><input type="checkbox"></td><td>M-08427</td><td>홍◯◯</td><td><span class="badge b-info">정기후원</span></td><td>2026.04.12</td><td>2026.04.28</td><td><span class="badge b-success">정상</span></td><td><button class="btn-link">상세</button></td></tr>
-                <tr><td><input type="checkbox"></td><td>M-08426</td><td>김◯◯</td><td><span class="badge b-danger">유가족</span></td><td>2026.04.10</td><td>2026.04.27</td><td><span class="badge b-warn">승인대기</span></td><td><button class="btn-link">검토</button></td></tr>
-                <tr><td><input type="checkbox"></td><td>M-08425</td><td>이◯◯</td><td><span class="badge b-success">봉사자</span></td><td>2026.04.08</td><td>2026.04.26</td><td><span class="badge b-success">정상</span></td><td><button class="btn-link">상세</button></td></tr>
-                <tr><td><input type="checkbox"></td><td>M-08424</td><td>박◯◯</td><td><span class="badge b-info">정기후원</span></td><td>2026.04.05</td><td>2026.04.25</td><td><span class="badge b-success">정상</span></td><td><button class="btn-link">상세</button></td></tr>
-                <tr><td><input type="checkbox"></td><td>M-08423</td><td>최◯◯</td><td><span class="badge b-info">일시후원</span></td><td>2026.04.03</td><td>2026.04.20</td><td><span class="badge b-success">정상</span></td><td><button class="btn-link">상세</button></td></tr>
+                <tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:40px">회원 목록을 불러오는 중...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- 3. 기부 관리 -->
+        <!-- ============= 3. 기부 관리 ============= -->
         <div id="adm-donations" class="adm-page">
           <div class="kpi-grid">
-            <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value">₩ 2.84M</div></div>
-            <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value">₩ 38.4M</div></div>
-            <div class="kpi"><div class="kpi-label">미납 건</div><div class="kpi-value">12 건</div></div>
-            <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value">347 건</div></div>
+            <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value" data-stat="today">₩ 0</div></div>
+            <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value" data-stat="month">₩ 0</div></div>
+            <div class="kpi"><div class="kpi-label">실패 건</div><div class="kpi-value" data-stat="failed">0 건</div></div>
+            <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value" data-stat="receipt">0 건</div></div>
           </div>
           <div class="panel">
             <div class="p-head">
               <div class="p-title">결제 내역</div>
               <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" data-demo-action="export-tax" data-demo-message="국세청 연동 엑셀이 생성되었습니다">국세청 엑셀 생성</button>
-                <button class="btn-sm btn-sm-primary" data-demo-action="bulk-receipt" data-demo-message="347건의 영수증이 일괄 발행되었습니다">📄 영수증 일괄 발행</button>
+                <button class="btn-sm btn-sm-ghost" data-demo-action="export-tax" data-demo-message="국세청 엑셀 생성 (STEP 10에서 구현)">국세청 엑셀</button>
+                <button class="btn-sm btn-sm-primary" data-demo-action="bulk-receipt" data-demo-message="영수증 일괄 발행 (STEP 10에서 구현)">📄 영수증 일괄 발행</button>
               </div>
             </div>
-            <table class="tbl">
-              <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th></tr></thead>
+            <table class="tbl" id="donationsTable">
+              <thead>
+                <tr>
+                  <th>결제일</th>
+                  <th>회원/기부자</th>
+                  <th>유형</th>
+                  <th>금액</th>
+                  <th>수단</th>
+                  <th>승인번호</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td>2026.04.30 15:18</td><td>김◯◯</td><td>정기후원</td><td>₩ 30,000</td><td>CMS</td><td>3284-0915</td><td><span class="badge b-success">승인</span></td></tr>
-                <tr><td>2026.04.30 13:47</td><td>익명</td><td>일시후원</td><td>₩ 100,000</td><td>카드</td><td>3284-0914</td><td><span class="badge b-success">승인</span></td></tr>
-                <tr><td>2026.04.30 11:24</td><td>이◯◯</td><td>정기후원</td><td>₩ 50,000</td><td>CMS</td><td>3284-0913</td><td><span class="badge b-danger">실패</span></td></tr>
-                <tr><td>2026.04.30 09:12</td><td>박◯◯</td><td>일시후원</td><td>₩ 200,000</td><td>계좌이체</td><td>3284-0912</td><td><span class="badge b-success">승인</span></td></tr>
+                <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:40px">결제 내역을 불러오는 중...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- 4. 지원 관리 -->
+        <!-- ============= 4. 지원 관리 ============= -->
         <div id="adm-support" class="adm-page">
           <div class="kpi-grid">
-            <div class="kpi"><div class="kpi-label">신청 대기</div><div class="kpi-value">7 건</div></div>
-            <div class="kpi"><div class="kpi-label">진행 중</div><div class="kpi-value">23 건</div></div>
-            <div class="kpi"><div class="kpi-label">완료</div><div class="kpi-value">847 건</div></div>
-            <div class="kpi"><div class="kpi-label">평균 처리</div><div class="kpi-value">3.2 일</div></div>
+            <div class="kpi"><div class="kpi-label">신청 대기</div><div class="kpi-value" data-stat="pending">0 건</div></div>
+            <div class="kpi"><div class="kpi-label">진행 중</div><div class="kpi-value" data-stat="progress">0 건</div></div>
+            <div class="kpi"><div class="kpi-label">완료</div><div class="kpi-value" data-stat="completed">0 건</div></div>
+            <div class="kpi"><div class="kpi-label">평균 처리</div><div class="kpi-value" data-stat="avgDays">- 일</div></div>
           </div>
           <div class="panel">
             <div class="p-head"><div class="p-title">유가족 지원 신청</div></div>
-            <table class="tbl">
-              <thead><tr><th>신청번호</th><th>유형</th><th>신청자</th><th>접수일</th><th>매칭 전문가</th><th>단계</th><th>관리</th></tr></thead>
+            <table class="tbl" id="supportTable">
+              <thead>
+                <tr>
+                  <th>신청번호</th>
+                  <th>유형</th>
+                  <th>신청자</th>
+                  <th>제목</th>
+                  <th>접수일</th>
+                  <th>매칭 전문가</th>
+                  <th>단계</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td>S-2026-0413</td><td>심리상담</td><td>유가족 #128</td><td>2026.04.28</td><td>—</td><td><span class="badge b-warn">서류검토</span></td><td><button class="btn-link">검토</button></td></tr>
-                <tr><td>S-2026-0412</td><td>법률자문</td><td>유가족 #127</td><td>2026.04.26</td><td>김◯◯ 변호사</td><td><span class="badge b-info">매칭완료</span></td><td><button class="btn-link">상세</button></td></tr>
-                <tr><td>S-2026-0411</td><td>장학금</td><td>유가족 #126</td><td>2026.04.25</td><td>—</td><td><span class="badge b-danger">보완요청</span></td><td><button class="btn-link">상세</button></td></tr>
-                <tr><td>S-2026-0410</td><td>심리상담</td><td>유가족 #125</td><td>2026.04.22</td><td>이◯◯ 상담사</td><td><span class="badge b-success">완료</span></td><td><button class="btn-link">보고서</button></td></tr>
+                <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:40px">지원 신청 내역을 불러오는 중...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- 5. AI 추천 센터 -->
+        <!-- ============= 5. AI 추천 센터 ============= -->
         <div id="adm-ai" class="adm-page">
           <div class="ai-banner">
             <div class="p-head" style="margin-bottom:0">
@@ -214,7 +233,7 @@
           <div class="row-2" style="margin-top:18px">
             <div class="panel">
               <div class="p-head"><div class="p-title">봉사자 ↔ 유가족 자동 매칭</div><span class="p-tag ai">AI 추천</span></div>
-              <p style="font-size:13px;color:var(--text-3);margin-bottom:14px">신청번호 <strong style="color:var(--text)">S-2026-0413</strong> (심리상담 요청)에 대한 추천 봉사자</p>
+              <p style="font-size:13px;color:var(--text-3);margin-bottom:14px">최근 신청 건에 대한 추천 봉사자 (STEP 11에서 실 데이터 연동)</p>
               <div class="ai-card">
                 <div class="ai-card-head"><div class="ai-icon">1</div><div class="ai-name">박◯◯ 임상심리사</div><div class="ai-score">매칭 96%</div></div>
                 <div class="ai-desc">청소년·가족 위기 상담 12년 경력 / 가용시간 일치 / 거주지 인접 (요청자와 4.2km)</div>
@@ -233,49 +252,79 @@
               <div class="p-head"><div class="p-title">후원 이탈 예측</div><span class="p-tag ai">XGBoost</span></div>
               <div style="height:200px"><canvas id="chart3"></canvas></div>
               <p style="font-size:12px;color:var(--text-3);margin-top:12px;line-height:1.65">최근 90일 결제 패턴, 사이트 방문 주기, 메시지 반응률을 종합 분석한 예측 결과입니다.</p>
-              <button class="btn btn-primary btn-block" style="margin-top:14px;padding:11px;font-size:13px" data-demo-action="send-thanks" data-demo-message="감사 메시지 12건이 큐에 등록되었습니다">감사 메시지 일괄 발송</button>
+              <button class="btn btn-primary btn-block" style="margin-top:14px;padding:11px;font-size:13px" data-demo-action="send-thanks" data-demo-message="감사 메시지 일괄 발송 (STEP 11에서 구현)">감사 메시지 일괄 발송</button>
             </div>
           </div>
 
           <div class="panel" style="margin-top:18px">
             <div class="p-head"><div class="p-title">스마트 활동 보고서 초안 생성</div><span class="p-tag ai">GenAI</span></div>
-            <p style="font-size:13px;color:var(--text-3);margin-bottom:16px">지정한 기간의 데이터를 기반으로 AI가 활동 보고서 초안을 작성합니다.</p>
+            <p style="font-size:13px;color:var(--text-3);margin-bottom:16px">지정한 기간의 데이터를 기반으로 AI가 활동 보고서 초안을 작성합니다. (STEP 11에서 실 GenAI 연동)</p>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
               <div class="fg" style="margin:0"><label>기간</label><select><option>2026년 1분기</option><option>2026년 2분기</option></select></div>
               <div class="fg" style="margin:0"><label>범위</label><select><option>전체 활동</option><option>지원사업</option><option>후원사업</option></select></div>
               <div class="fg" style="margin:0"><label>분량</label><select><option>요약 (1페이지)</option><option>상세 (10페이지+)</option></select></div>
-              <button class="btn btn-primary" style="height:46px" data-demo-action="ai-report" data-demo-message="AI가 보고서 초안을 작성하고 있습니다 (~30초)">초안 생성</button>
+              <button class="btn btn-primary" style="height:46px" data-demo-action="ai-report" data-demo-message="AI 보고서 초안 작성 중... (~30초)">초안 생성</button>
             </div>
           </div>
         </div>
 
-        <!-- 6. 콘텐츠 관리 -->
+        <!-- ============= 6. 콘텐츠 관리 ============= -->
         <div id="adm-content" class="adm-page">
           <div class="panel">
             <div class="p-head">
               <div class="p-title">공지사항 관리</div>
-              <button class="btn-sm btn-sm-primary">+ 새 글 작성</button>
+              <button class="btn-sm btn-sm-primary" data-demo-action="new-notice" data-demo-message="새 공지 작성 모달 (STEP 11에서 구현)">+ 새 글 작성</button>
             </div>
-            <table class="tbl">
-              <thead><tr><th>번호</th><th>분류</th><th>제목</th><th>작성자</th><th>고정</th><th>조회</th><th>관리</th></tr></thead>
+            <table class="tbl" id="contentTable">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>분류</th>
+                  <th>제목</th>
+                  <th>작성자</th>
+                  <th>고정</th>
+                  <th>조회</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td>15</td><td><span class="badge b-danger">공지</span></td><td>2026년 정기총회 개최 안내</td><td>관리자</td><td>📌</td><td>1,284</td><td><button class="btn-link">수정</button></td></tr>
-                <tr><td>14</td><td><span class="badge b-info">회원</span></td><td>신규 후원 회원 감사 캠페인</td><td>관리자</td><td>—</td><td>892</td><td><button class="btn-link">수정</button></td></tr>
-                <tr><td>13</td><td><span class="badge b-warn">사업</span></td><td>심리상담 지원 2기 모집</td><td>관리자</td><td>📌</td><td>1,567</td><td><button class="btn-link">수정</button></td></tr>
+                <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:40px">공지사항을 불러오는 중...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel" style="margin-top:18px">
+            <div class="p-head">
+              <div class="p-title">FAQ 관리</div>
+              <button class="btn-sm btn-sm-primary" data-demo-action="new-faq" data-demo-message="새 FAQ 작성 (STEP 11에서 구현)">+ FAQ 추가</button>
+            </div>
+            <table class="tbl" id="faqTable">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>카테고리</th>
+                  <th>질문</th>
+                  <th>순서</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">FAQ를 불러오는 중...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- 7. 시스템 설정 -->
+        <!-- ============= 7. 시스템 설정 ============= -->
         <div id="adm-settings" class="adm-page">
           <div class="row-1-1">
             <div class="panel">
               <div class="p-head"><div class="p-title">보안 설정</div><span class="p-tag">중요</span></div>
               <div class="fg"><label>2단계 인증 (2FA)</label><select><option>활성화 (OTP)</option><option>활성화 (이메일)</option><option>비활성화</option></select></div>
               <div class="fg"><label>관리자 IP 화이트리스트</label><input type="text" value="211.234.0.0/16, 121.0.0.1"></div>
-              <div class="fg"><label>로그인 실패 잠금</label><input type="text" value="5회 / 30분"></div>
-              <button class="btn-sm btn-sm-primary" data-demo-action="save-security" data-demo-message="보안 설정이 저장되었습니다">설정 저장</button>
+              <div class="fg"><label>로그인 실패 잠금</label><input type="text" value="5회 / 30분" readonly></div>
+              <button class="btn-sm btn-sm-primary" data-demo-action="save-security" data-demo-message="보안 설정 저장 (STEP 12에서 구현)">설정 저장</button>
             </div>
             <div class="panel">
               <div class="p-head"><div class="p-title">권한 분리</div></div>
@@ -292,13 +341,20 @@
           </div>
 
           <div class="panel" style="margin-top:18px">
-            <div class="p-head"><div class="p-title">감사 로그 (Audit Log)</div><span class="p-tag">최근 30일 / 1년 보관</span></div>
-            <table class="tbl">
-              <thead><tr><th>일시</th><th>사용자</th><th>IP</th><th>활동</th><th>대상</th></tr></thead>
+            <div class="p-head"><div class="p-title">감사 로그 (Audit Log)</div><span class="p-tag">최근 1년 보관</span></div>
+            <table class="tbl" id="auditTable">
+              <thead>
+                <tr>
+                  <th>일시</th>
+                  <th>사용자</th>
+                  <th>IP</th>
+                  <th>활동</th>
+                  <th>대상</th>
+                  <th>성공</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr><td>2026.04.30 15:22</td><td>admin</td><td>211.234.12.34</td><td>로그인</td><td>ADMIN</td></tr>
-                <tr><td>2026.04.30 14:18</td><td>admin</td><td>211.234.12.34</td><td>회원 정보 수정</td><td>M-08423</td></tr>
-                <tr><td>2026.04.30 11:42</td><td>admin</td><td>211.234.12.34</td><td>영수증 일괄 발행</td><td>347건</td></tr>
+                <tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">감사 로그를 불러오는 중...</td></tr>
               </tbody>
             </table>
           </div>
@@ -308,15 +364,16 @@
     </main>
   </div>
 
-  <!-- Toast (관리자도 토스트 사용) -->
+  <!-- Toast -->
   <div id="toast" class="toast" role="status"></div>
 
   <!-- Chart.js 먼저 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- 관리자는 파셜이 없으므로 common.js의 헬퍼만 사용 (window.SIREN.toast 등) -->
+  <!-- 관리자는 파셜 로딩 안 함 → 최소한의 SIREN 헬퍼만 등록 -->
   <script>
-    // 관리자 페이지 전용: 파셜 로드 건너뛰고 토스트/모달 헬퍼만 사용
     window.SIREN = {
+      $: (s, r=document) => r.querySelector(s),
+      $$: (s, r=document) => Array.from(r.querySelectorAll(s)),
       toast(msg, ms = 2400) {
         const t = document.getElementById('toast');
         if (!t) return alert(msg);
@@ -325,15 +382,9 @@
         clearTimeout(window._tt);
         window._tt = setTimeout(() => t.classList.remove('show'), ms);
       },
-      $: (s, r=document) => r.querySelector(s),
-      $$: (s, r=document) => Array.from(r.querySelectorAll(s))
     };
   </script>
   <script src="/js/charts.js"></script>
   <script src="/js/admin.js"></script>
-  <script>
-    // admin.js의 SIREN_PAGE_INIT 훅을 즉시 실행
-    if (typeof window.SIREN_PAGE_INIT === 'function') window.SIREN_PAGE_INIT();
-  </script>
 </body>
 </html>
