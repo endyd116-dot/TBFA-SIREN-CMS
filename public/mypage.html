@@ -168,7 +168,9 @@
   <script src="/js/donate.js?v=4"></script>
   <script>
     // 마이페이지 사이드바 메뉴 전환 + 회원 정보 주입
+    const __mpPrevInit = window.SIREN_PAGE_INIT;
     window.SIREN_PAGE_INIT = function () {
+      if (typeof __mpPrevInit === 'function') __mpPrevInit();
       const menu = document.getElementById('mpMenu');
       const crumb = document.getElementById('mpCrumb');
       if (!menu) return;
