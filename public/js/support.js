@@ -119,15 +119,18 @@
         const result = await res.json();
 
         if (res.ok && result.ok) {
-          window.SIREN.toast(result.message || '신청이 접수되었습니다');
+          // 1. 성공 메시지 토스트 띄우기 (api에서 내려준 완료 메시지 활용)
+          window.SIREN.toast(result.message || '지원 신청이 완료되었습니다.');
           window.SIREN.closeModal('supportModal');
           form.reset();
           uploadedFiles = [];
           renderFileList();
-          // 마이페이지면 갱신
-          if (typeof window.SIREN_REFRESH_SUPPORT === 'function') {
-            setTimeout(() => window.SIREN_REFRESH_SUPPORT(), 300);
-          }
+          
+          // 2. 알림을 읽을 수 있도록 1.5초 뒤 마이페이지로 강제 이동 (리다이렉트)
+          setTimeout(() => {
+            window.location.href = '/mypage.html'; // 탭 구분이 필요하다면 '/mypage.html#support' 등으로 수정
+          }, 1500);
+
         } else {
           if (res.status === 401) {
             window.SIREN.toast('로그인이 필요합니다');
