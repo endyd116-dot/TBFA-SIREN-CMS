@@ -132,8 +132,9 @@ export default async (req: Request) => {
     };
 
     /* 1. 공지 시드 (이미 있으면 스킵) */
-    const noticeCountRows = await db.select({ total: count() }).from(notices);
-    if (Number(noticeCountRows[0]?.total ?? 0) === 0) {
+    const noticeRows = await db.select({ id: notices.id }).from(notices).limit(1);
+if (noticeRows.length === 0) {
+
       await db.insert(notices).values(
         SEED_NOTICES.map((n) => ({
           ...n,
@@ -145,8 +146,8 @@ export default async (req: Request) => {
     }
 
     /* 2. FAQ 시드 (이미 있으면 스킵) */
-    const faqCountRows = await db.select({ total: count() }).from(faqs);
-    if (Number(faqCountRows[0]?.total ?? 0) === 0) {
+    const faqRows = await db.select({ id: faqs.id }).from(faqs).limit(1);
+if (faqRows.length === 0) {
       await db.insert(faqs).values(
         SEED_FAQS.map((f) => ({
           ...f,
