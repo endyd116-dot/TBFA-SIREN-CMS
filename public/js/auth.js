@@ -263,7 +263,8 @@
     if (!res.ok || !res.data?.data) return;
 
     const { list } = res.data.data;
-    const panel = document.querySelector('.mp-panel[data-mp-panel="support"]');                                                     
+    /* KPI 카드 */
+    const panel = document.querySelector('.mp-panel[data-mp-panel="donations"]');                                                                                             
     const tbody = panel?.querySelector('table.tbl tbody');
     if (!tbody) return;
 
