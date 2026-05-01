@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — common.js  (v2 — 모달/GNB 안정성 강화)
+   SIREN — common.js  (v3 — 모바일 햄버거 수정)
    ========================================================= */
 (function () {
   'use strict';
@@ -39,7 +39,6 @@
   let toastTimer;
   function toast(msg, ms = 2400) {
     let t = $('#toast');
-    // 토스트 엘리먼트가 없으면 생성
     if (!t) {
       t = document.createElement('div');
       t.id = 'toast';
@@ -52,20 +51,18 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), ms);
   }
 
-  /* ------------ 3. 모달 컨트롤 (★ 안정성 강화) ------------ */
+  /* ------------ 3. 모달 컨트롤 ------------ */
   function openModal(id, retries = 5) {
     const m = $('#' + id);
     if (m) {
       m.classList.add('show');
       document.body.style.overflow = 'hidden';
-      // 첫 input에 포커스
       setTimeout(() => {
         const firstInput = m.querySelector('input:not([type="hidden"]), select, textarea');
         if (firstInput) firstInput.focus();
       }, 100);
       return true;
     }
-    // 모달이 없으면 잠시 후 재시도 (partials 로딩 대기)
     if (retries > 0) {
       console.warn(`[Modal] #${id} not yet loaded, retrying... (${retries} left)`);
       setTimeout(() => openModal(id, retries - 1), 150);
@@ -86,7 +83,6 @@
     setTimeout(() => openModal(to), 200);
   }
 
-  // 모달 외부 클릭 시 닫기 + ESC 닫기
   document.addEventListener('click', (e) => {
     if (e.target.classList && e.target.classList.contains('modal-bg')) {
       e.target.classList.remove('show');
@@ -117,8 +113,15 @@
     }
     else if (action === 'mobile-menu') {
       e.preventDefault();
-      const gnb = document.querySelector('nav.gnb');
-      if (gnb) gnb.classList.toggle('mobile-open');
+      /* ★ 핵심 수정: nav.gnb 또는 ul.gnb 둘 다 찾기 */
+      const gnb = document.querySelector('nav.gnb, ul.gnb');
+      if (gnb) {
+        gnb.classList.toggle('mobile-open');
+        trigger.classList.toggle('active');
+        console.log('[Mobile Menu] toggled:', gnb.classList.contains('mobile-open'));
+      } else {
+        console.warn('[Mobile Menu] GNB element not found');
+      }
     }
   });
 
@@ -126,12 +129,29 @@
   function activateGNB() {
     const page = document.body.dataset.page;
     if (!page) return;
-    const li = document.querySelector(`nav.gnb li[data-page="${page}"]`);
+    /* ★ 수정: nav.gnb 또는 ul.gnb */
+    const li = document.querySelector(`nav.gnb li[data-page="${page}"], ul.gnb li[data-page="${page}"]`);
     if (li) li.classList.add('active');
   }
 
-  /* ------------ 6. 언어 토글 ------------ */
-  const I18N = {
+  /* ------------ 6. 메뉴 항목 클릭 시 모바일 메뉴 자동 닫기 ------------ */
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('ul.gnb a, nav.gnb a');
+    if (!link) return;
+    const gnb = document.querySelector('nav.gnb, ul.gnb');
+    if (gnb && gnb.classList.contains('mobile-open')) {
+      /* 드롭다운 부모 링크는 제외 (바로 닫지 않음) */
+      const hasDropdown = link.parentElement?.querySelector('.dropdown');
+      if (!hasDropdown) {
+        gnb.classList.remove('mobile-open');
+        const toggleBtn = document.querySelector('.mobile-toggle');
+        if (toggleBtn) toggleBtn.classList.remove('active');
+      }
+    }
+  });
+
+  /* ------------ 7. 언어 토글 ------------ */
+const I18N = {
     KO: {
       heroTitle: '교사 유가족들의 <em>지원과 수사</em>,<br />모든 교사들의 <em>사회적 문제 해결</em>을 위해<br />싸이렌 홈페이지의 문을 열었습니다.',
       langSwitched: '한국어로 전환되었습니다'
@@ -141,6 +161,7 @@
       langSwitched: 'Switched to English'
     }
   };
+
 
   function setupLangToggle() {
     const btns = $$('.lang-toggle button[data-lang]');
@@ -161,7 +182,8 @@
     }
   }
 
-  /* ------------ 7. 통합 검색 ------------ */
+
+  /* ------------ 8. 통합 검색 ------------ */
   function setupSearch() {
     const input = $('#globalSearch');
     const btn = $('#searchBtn');
@@ -175,7 +197,8 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   }
 
-  /* ------------ 8. 관련 사이트 셀렉트 ------------ */
+
+  /* ------------ 9. 관련 사이트 셀렉트 ------------ */
   function setupRelatedSelect() {
     const sel = $('.related-select');
     if (!sel) return;
@@ -189,15 +212,16 @@
     });
   }
 
-  /* ------------ 9. 폼 기본 핸들러 (로그인/회원가입) - API 연동 후 STEP 5에서 갱신됨 ------------ */
-    /* ------------ 9. 폼 기본 핸들러 (auth.js가 login/signup 처리, donate.js가 donate 처리) ------------ */
+
+  /* ------------ 10. 폼 기본 핸들러 (auth.js가 login/signup 처리, donate.js가 donate 처리) ------------ */
   function setupCommonForms() {
     // login/signup → auth.js
     // donate → donate.js
     // 여기서는 추가 공통 폼만 처리 (현재 없음)
   }
 
-  /* ------------ 10. 부드러운 앵커 스크롤 ------------ */
+
+  /* ------------ 11. 부드러운 앵커 스크롤 ------------ */
   document.addEventListener('click', (e) => {
     const a = e.target.closest('a[href^="#"]');
     if (!a) return;
@@ -210,7 +234,21 @@
     }
   });
 
-  /* ------------ 11. 초기화 ------------ */
+
+  /* ------------ 12. 화면 리사이즈 시 모바일 메뉴 자동 닫기 ------------ */
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 920) {
+      const gnb = document.querySelector('nav.gnb, ul.gnb');
+      if (gnb && gnb.classList.contains('mobile-open')) {
+        gnb.classList.remove('mobile-open');
+        const toggleBtn = document.querySelector('.mobile-toggle');
+        if (toggleBtn) toggleBtn.classList.remove('active');
+      }
+    }
+  });
+
+
+  /* ------------ 13. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
     activateGNB();
@@ -223,13 +261,15 @@
     }
   }
 
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  /* ------------ 12. 전역 노출 ------------ */
+
+  /* ------------ 14. 전역 노출 ------------ */
   window.SIREN = {
     $, $$, toast,
     openModal, closeModal, switchModal,
