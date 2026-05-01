@@ -1,13 +1,40 @@
 /* =========================================================
    SIREN — support.js
-   유가족 지원 신청 모달 처리 + 파일 업로드
+   유가족 지원 신청 모달 처리 + 파일 업로드 + 로그인 가드
    ========================================================= */
 (function () {
   'use strict';
 
   let uploadedFiles = []; // [{ key, originalName, size, mimeType }]
 
-  /* ------------ 1. 파일 선택 시 자동 업로드 ------------ */
+  /* ───────── 1. 로그인 가드 (신청하기 버튼 클릭 시 모달 오픈 전 차단) ───────── */
+  function setupAuthGuard() {
+    // ⚠️ capture phase(true)로 등록하여 common.js의 모달 오픈 핸들러보다 먼저 실행
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest('[data-action="open-modal"][data-target="supportModal"]');
+      if (!trigger) return;
+
+      const Auth = window.SIREN_AUTH;
+      // 로그인 상태 → 정상 진행 (common.js가 모달 오픈)
+      if (Auth && Auth.isLoggedIn()) return;
+
+      // 비로그인 → 모달 오픈 차단
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (window.SIREN && window.SIREN.toast) {
+        window.SIREN.toast('로그인이 필요한 서비스입니다');
+      }
+      // 토스트 보이고 0.6초 후 로그인 모달 오픈
+      setTimeout(() => {
+        if (window.SIREN && window.SIREN.openModal) {
+          window.SIREN.openModal('loginModal');
+        }
+      }, 600);
+    }, true); // ★ capture phase 필수
+  }
+
+  /* ───────── 2. 파일 선택 시 자동 업로드 ───────── */
   function setupFileUpload() {
     document.addEventListener('change', async (e) => {
       if (e.target.id !== 'supportFile') return;
@@ -88,7 +115,7 @@
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  /* ------------ 2. 폼 제출 ------------ */
+  /* ───────── 3. 폼 제출 ───────── */
   function setupForm() {
     document.addEventListener('submit', async (e) => {
       const form = e.target;
@@ -119,22 +146,26 @@
         const result = await res.json();
 
         if (res.ok && result.ok) {
-          // 1. 성공 메시지 토스트 띄우기 (api에서 내려준 완료 메시지 활용)
-          window.SIREN.toast(result.message || '지원 신청이 완료되었습니다.');
+          // 1. 성공 메시지 토스트
+          window.SIREN.toast(result.message || '지원 신청이 완료되었습니다');
           window.SIREN.closeModal('supportModal');
           form.reset();
           uploadedFiles = [];
           renderFileList();
-          
-          // 2. 알림을 읽을 수 있도록 1.5초 뒤 마이페이지로 강제 이동 (리다이렉트)
+
+          // 2. 1.5초 후 마이페이지 #support 탭으로 이동 (STEP D에서 탭 구현 예정)
           setTimeout(() => {
-            window.location.href = '/mypage.html'; // 탭 구분이 필요하다면 '/mypage.html#support' 등으로 수정
+            window.location.href = '/mypage.html#support';
           }, 1500);
 
         } else {
           if (res.status === 401) {
+            // 세션 만료 등 — 다시 로그인 유도
             window.SIREN.toast('로그인이 필요합니다');
             setTimeout(() => window.SIREN.openModal('loginModal'), 800);
+          } else if (res.status === 403) {
+            // 회원 승인 대기 (pending) 등
+            window.SIREN.toast(result.error || '회원 승인 후 이용 가능합니다');
           } else {
             window.SIREN.toast(result.error || '신청 처리 중 오류가 발생했습니다');
           }
@@ -148,8 +179,9 @@
     });
   }
 
-  /* ------------ 3. 초기화 ------------ */
+  /* ───────── 4. 초기화 ───────── */
   function init() {
+    setupAuthGuard();
     setupFileUpload();
     setupForm();
   }
