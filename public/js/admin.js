@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin.js (v4 — 풀 동적 + AI 매칭)
+   SIREN — admin.js (v5 — 지원 답변 모달 + 신규 뱃지)
    ========================================================= */
 (function () {
   'use strict';
@@ -23,7 +23,7 @@
   };
 
   const SUPPORT_STATUS_BADGE = {
-    submitted: '<span class="badge b-info">접수</span>',
+    submitted: '<span class="badge b-info">🆕 접수</span>',
     reviewing: '<span class="badge b-warn">검토중</span>',
     supplement: '<span class="badge b-danger">보완요청</span>',
     matched: '<span class="badge b-info">매칭완료</span>',
@@ -34,6 +34,7 @@
 
   let CURRENT_ADMIN = null;
   let CURRENT_KPI = null;
+  let _kpiPollTimer = null;
 
   /* ============ 헬퍼 ============ */
   function toast(msg, ms = 2400) {
@@ -63,9 +64,9 @@
   }
 
   function escapeHtml(s) {
-    return String(s || '').replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+    return String(s || '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
   }
 
   function formatDate(iso) {
@@ -88,21 +89,55 @@
     return '₩ ' + (Number(n || 0) / 1_000_000).toFixed(1) + 'M';
   }
 
+  /* ============ 🆕 신규 뱃지 (사이드바) ============ */
+  function updateSupportBadge(count) {
+    const badge = document.getElementById('supportNewBadge');
+    if (!badge) return;
+    const n = Number(count) || 0;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* 관리자 KPI 주기적 갱신 (60초) — 뱃지 자동 업데이트 */
+  function startKpiPolling() {
+    if (_kpiPollTimer) clearInterval(_kpiPollTimer);
+    _kpiPollTimer = setInterval(async () => {
+      const ok = await fetchAdminMe();
+      if (ok) {
+        renderDashboardKPI();
+        if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
+      }
+    }, 60000);
+  }
+
+  function stopKpiPolling() {
+    if (_kpiPollTimer) {
+      clearInterval(_kpiPollTimer);
+      _kpiPollTimer = null;
+    }
+  }
+
   /* ============ 화면 전환 ============ */
   function showLogin() {
     document.getElementById('adminLogin')?.classList.add('show');
     document.getElementById('adminWrap')?.classList.remove('show');
+    stopKpiPolling();
   }
 
   async function showAdminPanel() {
     document.getElementById('adminLogin')?.classList.remove('show');
     document.getElementById('adminWrap')?.classList.add('show');
     renderDashboardKPI();
+    if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
     await loadDashboardActivity();
-    /* 차트는 charts.js의 실 데이터 버전 호출 */
     if (window.SIREN_CHARTS && typeof window.SIREN_CHARTS.initDashboardWithData === 'function') {
-      setTimeout(function () { window.SIREN_CHARTS.initDashboardWithData(); }, 150);
+      setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 150);
     }
+    startKpiPolling();
   }
 
   /* ============ 대시보드 KPI ============ */
@@ -131,7 +166,7 @@
     if (!tbody) return;
 
     const res = await api('/api/admin/stats');
-    if (!res.ok || !res.data || !res.data.data) {
+    if (!res.ok || !res.data?.data) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-3)">통계 조회 실패</td></tr>';
       return;
     }
@@ -146,7 +181,7 @@
       pending: '<span class="badge b-warn">대기</span>',
       failed: '<span class="badge b-danger">실패</span>',
     };
-    tbody.innerHTML = recent.map(function (r) {
+    tbody.innerHTML = recent.map((r) => {
       const t = new Date(r.createdAt);
       const hh = String(t.getHours()).padStart(2, '0');
       const mm = String(t.getMinutes()).padStart(2, '0');
@@ -168,7 +203,7 @@
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin/members?limit=50');
-    if (!res.ok || !res.data || !res.data.data) {
+    if (!res.ok || !res.data?.data) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
@@ -177,8 +212,8 @@
 
     const kpis = panel.querySelectorAll('.kpi-value');
     if (kpis[0]) kpis[0].textContent = total.toLocaleString() + ' 명';
-    if (kpis[1]) kpis[1].textContent = list.filter(function (m) { return m.type === 'family'; }).length + ' 명';
-    if (kpis[2]) kpis[2].textContent = list.filter(function (m) { return m.status === 'pending'; }).length + ' 명';
+    if (kpis[1]) kpis[1].textContent = list.filter((m) => m.type === 'family').length + ' 명';
+    if (kpis[2]) kpis[2].textContent = list.filter((m) => m.status === 'pending').length + ' 명';
 
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">회원이 없습니다</td></tr>';
@@ -198,7 +233,7 @@
       withdrawn: '<span class="badge b-mute">탈퇴</span>',
     };
 
-    tbody.innerHTML = list.map(function (m) {
+    tbody.innerHTML = list.map((m) => {
       let actionBtns = '';
       if (m.status === 'pending') {
         actionBtns += '<button class="btn-link" data-member-action="approve" data-id="' + m.id + '">승인</button>';
@@ -223,7 +258,7 @@
   }
 
   function setupMemberActions() {
-    document.addEventListener('click', async function (e) {
+    document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-member-action]');
       if (!btn) return;
       e.preventDefault();
@@ -235,17 +270,17 @@
 
       const res = await api('/api/admin/members', {
         method: 'PATCH',
-        body: { id: id, status: status },
+        body: { id, status },
       });
       if (res.ok) {
         toast('회원이 ' + label + '되었습니다');
         loadMembers();
       } else {
-        toast(res.data && res.data.error ? res.data.error : '처리 실패');
+        toast(res.data?.error || '처리 실패');
       }
     });
   }
-  
+
   /* ============ 기부 관리 ============ */
   async function loadDonations() {
     const panel = document.getElementById('adm-donations');
@@ -255,7 +290,7 @@
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin/donations?limit=50');
-    if (!res.ok || !res.data || !res.data.data) {
+    if (!res.ok || !res.data?.data) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
@@ -283,7 +318,7 @@
       refunded: '<span class="badge b-mute">환불</span>',
     };
 
-    tbody.innerHTML = list.map(function (d) {
+    tbody.innerHTML = list.map((d) => {
       const txn = d.transactionId ? d.transactionId.slice(-12) : '-';
       return '<tr>' +
         '<td>' + formatDateTime(d.createdAt) + '</td>' +
@@ -298,26 +333,23 @@
   }
 
   function setupDonationActions() {
-    document.addEventListener('click', async function (e) {
+    document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-demo-action="bulk-receipt"]');
       if (!btn) return;
       e.preventDefault();
 
       const res = await api('/api/admin/donations?limit=100&status=completed');
-      const allList = (res.data && res.data.data && res.data.data.list) ? res.data.data.list : [];
-      const ids = allList.filter(function (d) { return !d.receiptIssued; }).map(function (d) { return d.id; });
+      const allList = res.data?.data?.list || [];
+      const ids = allList.filter((d) => !d.receiptIssued).map((d) => d.id);
 
-      if (ids.length === 0) {
-        toast('발행할 영수증이 없습니다');
-        return;
-      }
+      if (ids.length === 0) return toast('발행할 영수증이 없습니다');
 
       const r = await api('/api/admin/donations', {
         method: 'PATCH',
-        body: { ids: ids },
+        body: { ids },
       });
       if (r.ok) {
-        toast(r.data && r.data.message ? r.data.message : ids.length + '건 발행 완료');
+        toast(r.data?.message || ids.length + '건 발행 완료');
         loadDonations();
       } else {
         toast('발행 실패');
@@ -325,17 +357,17 @@
     });
   }
 
-  /* ============ 콘텐츠 관리 (공지 + FAQ) ============ */
+  /* ============ 콘텐츠 관리 ============ */
   async function loadContent() {
     const panel = document.getElementById('adm-content');
     if (!panel) return;
 
-    /* 공지사항 */
+    /* 공지 */
     const noticeBody = panel.querySelector('table[data-content-tbl="notices"] tbody');
     if (noticeBody) {
       noticeBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
       const nRes = await api('/api/notices?limit=50');
-      const nList = (nRes.data && nRes.data.data && nRes.data.data.list) ? nRes.data.data.list : [];
+      const nList = nRes.data?.data?.list || [];
       if (nList.length === 0) {
         noticeBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>';
       } else {
@@ -345,16 +377,16 @@
           event: '<span class="badge b-warn">사업</span>',
           media: '<span class="badge b-success">언론</span>',
         };
-        noticeBody.innerHTML = nList.map(function (n) {
-          return '<tr>' +
-            '<td>' + n.id + '</td>' +
-            '<td>' + (catMap[n.category] || n.category) + '</td>' +
-            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(n.title) + '</td>' +
-            '<td>' + (n.isPinned ? '📌' : '—') + '</td>' +
-            '<td>' + (n.views || 0).toLocaleString() + '</td>' +
-            '<td><button class="btn-link">수정</button></td>' +
-            '</tr>';
-        }).join('');
+        noticeBody.innerHTML = nList.map((n) =>
+          '<tr>' +
+          '<td>' + n.id + '</td>' +
+          '<td>' + (catMap[n.category] || n.category) + '</td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(n.title) + '</td>' +
+          '<td>' + (n.isPinned ? '📌' : '—') + '</td>' +
+          '<td>' + (n.views || 0).toLocaleString() + '</td>' +
+          '<td><button class="btn-link">수정</button></td>' +
+          '</tr>'
+        ).join('');
       }
     }
 
@@ -363,7 +395,7 @@
     if (faqBody) {
       faqBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
       const fRes = await api('/api/faqs');
-      const fList = (fRes.data && fRes.data.data && fRes.data.data.list) ? fRes.data.data.list : [];
+      const fList = fRes.data?.data?.list || [];
       if (fList.length === 0) {
         faqBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">FAQ가 없습니다</td></tr>';
       } else {
@@ -372,7 +404,7 @@
           donation: '<span class="badge b-warn">후원</span>',
           support: '<span class="badge b-info">지원</span>',
         };
-        faqBody.innerHTML = fList.map(function (f) {
+        faqBody.innerHTML = fList.map((f) => {
           const activeIcon = f.isActive !== false
             ? '<span style="color:var(--success)">●</span>'
             : '<span style="color:var(--text-3)">●</span>';
@@ -389,7 +421,7 @@
     }
   }
 
-  /* ============ 지원 관리 ============ */
+  /* ============ 🆕 지원 관리 + 답변 모달 ============ */
   async function loadSupport() {
     const panel = document.getElementById('adm-support');
     if (!panel) return;
@@ -398,7 +430,7 @@
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin/support?limit=50');
-    if (!res.ok || !res.data || !res.data.data) {
+    if (!res.ok || !res.data?.data) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
@@ -412,22 +444,23 @@
     if (kpis[2]) kpis[2].textContent = (stats.completed || 0) + ' 건';
     if (kpis[3]) kpis[3].textContent = (stats.avgDays || 0) + ' 일';
 
+    /* 사이드바 뱃지 동기화 */
+    updateSupportBadge(stats.submitted || 0);
+
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">신청 내역이 없습니다</td></tr>';
       return;
     }
 
-    tbody.innerHTML = list.map(function (s) {
-      let actionBtns = '';
-      if (s.status === 'submitted' || s.status === 'reviewing') {
-        actionBtns += '<button class="btn-link" data-support-action="match" data-id="' + s.id + '">매칭</button> ';
-        actionBtns += '<button class="btn-link" data-support-action="supplement" data-id="' + s.id + '" style="color:var(--warn)">보완요청</button>';
-      } else if (s.status === 'matched' || s.status === 'in_progress') {
-        actionBtns += '<button class="btn-link" data-support-action="complete" data-id="' + s.id + '">완료처리</button>';
-      } else {
-        actionBtns += '<button class="btn-link" data-support-action="view" data-id="' + s.id + '">상세</button>';
-      }
-      return '<tr>' +
+    tbody.innerHTML = list.map((s) => {
+      /* 신규(submitted) 행 강조 */
+      const rowAttr = s.status === 'submitted'
+        ? ' style="background:#fff8ec"'
+        : '';
+      /* 모든 행에 "상세/답변" 버튼 추가 → 모달 오픈 */
+      const actionBtns = '<button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button>';
+
+      return '<tr' + rowAttr + '>' +
         '<td>' + escapeHtml(s.requestNo) + '</td>' +
         '<td>' + (SUPPORT_CAT_LABEL[s.category] || s.category) + '</td>' +
         '<td>유가족 #' + s.memberId + '</td>' +
@@ -439,81 +472,145 @@
     }).join('');
   }
 
+  /* 지원 행 → 모달 오픈 */
+  async function openSupportModal(id) {
+    const modal = document.getElementById('supportDetailModal');
+    if (!modal) return toast('모달 요소를 찾을 수 없습니다');
+
+    const res = await api('/api/admin/support?id=' + id);
+    if (!res.ok || !res.data?.data) {
+      return toast('상세 조회 실패');
+    }
+    const r = res.data.data.request;
+    const requester = res.data.data.requester || {};
+
+    /* 폼 데이터 채우기 */
+    document.getElementById('replyId').value = r.id;
+
+    const infoEl = document.getElementById('detail-info');
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<strong>' + escapeHtml(r.requestNo) + '</strong> · ' +
+        escapeHtml(requester.name || '알 수 없음') +
+        (requester.email ? ' (' + escapeHtml(requester.email) + ')' : '') +
+        ' · ' + (SUPPORT_CAT_LABEL[r.category] || r.category) +
+        ' · 접수 ' + formatDate(r.createdAt);
+    }
+
+    const titleEl = document.getElementById('detail-title');
+    if (titleEl) titleEl.textContent = r.title || '';
+
+    const contentEl = document.getElementById('detail-content');
+    if (contentEl) contentEl.textContent = r.content || '';
+
+    /* 첨부파일 */
+    const attachEl = document.getElementById('detail-attachments');
+    if (attachEl) {
+      let attaches = [];
+      try { attaches = r.attachments ? JSON.parse(r.attachments) : []; } catch (e) {}
+      if (Array.isArray(attaches) && attaches.length > 0) {
+        attachEl.innerHTML =
+          '<span class="support-detail-label">첨부파일 (' + attaches.length + '건)</span>' +
+          '<div style="font-size:13px;color:var(--text-2);line-height:1.8">' +
+          attaches.map((k) => '📎 ' + escapeHtml(String(k))).join('<br />') +
+          '</div>';
+      } else {
+        attachEl.innerHTML = '';
+      }
+    }
+
+    /* 상태 select / 답변 내용 채우기 */
+    const statusSel = document.getElementById('replyStatus');
+    if (statusSel) statusSel.value = r.status || 'submitted';
+
+    const noteEl = document.getElementById('replyNote');
+    if (noteEl) noteEl.value = r.adminNote || '';
+
+    /* 메일 발송 체크박스는 항상 OFF로 초기화 */
+    const sendEmailEl = document.getElementById('replySendEmail');
+    if (sendEmailEl) sendEmailEl.checked = false;
+
+    modal.classList.add('show');
+  }
+
+  /* 지원 답변 폼 제출 */
+  function setupSupportReplyForm() {
+    const form = document.getElementById('supportReplyForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = Number(document.getElementById('replyId').value);
+      const status = document.getElementById('replyStatus').value;
+      const adminNote = (document.getElementById('replyNote').value || '').trim();
+      const sendEmail = document.getElementById('replySendEmail')?.checked === true;
+
+      if (!id) return toast('신청 ID 없음');
+      if (sendEmail && !adminNote) {
+        return toast('메일 발송 시 답변 내용을 입력해 주세요');
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const oldText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '처리 중...';
+      }
+
+      try {
+        const res = await api('/api/admin/support', {
+          method: 'PATCH',
+          body: { id, status, adminNote, sendEmail },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '저장되었습니다');
+          document.getElementById('supportDetailModal')?.classList.remove('show');
+          loadSupport();
+          /* KPI도 즉시 갱신 (뱃지 반영) */
+          fetchAdminMe().then(() => {
+            renderDashboardKPI();
+            if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
+          });
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = oldText;
+        }
+      }
+    });
+  }
+
   function setupSupportActions() {
-    document.addEventListener('click', async function (e) {
+    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-support-action]');
       if (!btn) return;
       e.preventDefault();
       const id = Number(btn.dataset.id);
       const action = btn.dataset.supportAction;
 
-      if (action === 'match') {
-        const expert = prompt('매칭할 전문가 이름을 입력하세요 (또는 AI 추천 활용)', '');
-        if (!expert) return;
-        const res = await api('/api/admin/support', {
-          method: 'PATCH',
-          body: { id: id, status: 'matched', assignedExpertName: expert },
-        });
-        if (res.ok) {
-          toast('매칭이 완료되었습니다');
-          loadSupport();
-        } else {
-          toast(res.data && res.data.error ? res.data.error : '처리 실패');
-        }
+      if (action === 'open' || action === 'view') {
+        openSupportModal(id);
       }
-      else if (action === 'supplement') {
-        const note = prompt('보완 요청 사유를 입력하세요', '');
-        if (!note) return;
-        const res = await api('/api/admin/support', {
-          method: 'PATCH',
-          body: { id: id, status: 'supplement', supplementNote: note },
-        });
-        if (res.ok) {
-          toast('보완 요청이 전송되었습니다');
-          loadSupport();
-        } else {
-          toast('처리 실패');
-        }
-      }
-      else if (action === 'complete') {
-        const report = prompt('완료 보고서 내용을 입력하세요', '지원 완료');
-        if (!report) return;
-        const res = await api('/api/admin/support', {
-          method: 'PATCH',
-          body: { id: id, status: 'completed', reportContent: report },
-        });
-        if (res.ok) {
-          toast('완료 처리되었습니다');
-          loadSupport();
-        } else {
-          toast('처리 실패');
-        }
-      }
-      else if (action === 'view') {
-        const res = await api('/api/admin/support?id=' + id);
-        if (res.ok && res.data && res.data.data) {
-          const r = res.data.data.request;
-          alert('신청번호: ' + r.requestNo + '\n' +
-                '제목: ' + r.title + '\n' +
-                '내용:\n' + r.content);
-        }
-      }
+      /* 'match', 'supplement', 'complete'는 모달로 통합되었음 */
     });
   }
 
   /* ============ AI 추천 센터 ============ */
   async function loadAI() {
-    /* 1. 봉사자 매칭 */
     const aiPanel = document.getElementById('adm-ai');
     if (!aiPanel) return;
     const matchPanel = aiPanel.querySelector('.row-2 .panel:first-child');
     if (matchPanel) {
       const cards = matchPanel.querySelectorAll('.ai-card');
       const res = await api('/api/admin/ai/match');
-      if (res.ok && res.data && res.data.data) {
+      if (res.ok && res.data?.data) {
         const recs = res.data.data.recommendations || [];
         const target = res.data.data.request;
-        /* 신청 정보 표시 */
         const subText = matchPanel.querySelector('p[style*="font-size:13px"]');
         if (subText) {
           if (target) {
@@ -523,8 +620,7 @@
             subText.textContent = '대기 중인 신청이 없습니다';
           }
         }
-        /* 카드 갱신 */
-        recs.forEach(function (rec, idx) {
+        recs.forEach((rec, idx) => {
           const card = cards[idx];
           if (!card) return;
           const nameEl = card.querySelector('.ai-name');
@@ -534,72 +630,65 @@
           if (scoreEl) scoreEl.textContent = '매칭 ' + rec.score + '%';
           if (descEl) descEl.textContent = rec.memo;
         });
-        /* 카드가 추천보다 많으면 숨김 */
-        cards.forEach(function (card, idx) {
+        cards.forEach((card, idx) => {
           card.style.display = idx < recs.length ? '' : 'none';
         });
       }
     }
-
-    /* 2. 차트 */
     if (window.SIREN_CHARTS && typeof window.SIREN_CHARTS.initAIWithData === 'function') {
-      setTimeout(function () { window.SIREN_CHARTS.initAIWithData(); }, 100);
+      setTimeout(() => window.SIREN_CHARTS.initAIWithData(), 100);
     }
   }
-  
+
   /* ============ 로그인 ============ */
-  /* ============ 로그인 ============ */
-function setupLoginForm() {
-  const form = document.querySelector('#adminLogin form');
-  if (!form) return;
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const id = (document.getElementById('adm_id') || {}).value || '';
-    const pw = (document.getElementById('adm_pw') || {}).value || '';
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const oldText = submitBtn ? submitBtn.textContent : '';
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = '인증 중...';
-    }
-    try {
-      const res = await api('/api/admin/login', {
-        method: 'POST',
-        body: { id: id.trim(), password: pw },
-      });
-      if (res.ok && res.data && res.data.data) {
-        CURRENT_ADMIN = res.data.data.admin;
-        toast(res.data.message || '로그인되었습니다');
-        
-        /* ★★★ 변경: 허브로 리다이렉트 (단, URL에 service 파라미터 있으면 유지) ★★★ */
-        const urlParams = new URLSearchParams(window.location.search);
-        const service = urlParams.get('service');
-        
-        if (service === 'siren') {
-          // 허브에서 ①번 카드 통해 온 경우 → 기존 패널 표시
-          await fetchAdminMe();
-          await showAdminPanel();
-        } else {
-          // 일반 로그인 → 허브로 이동
-          setTimeout(() => {
-            window.location.href = '/admin-hub.html';
-          }, 600);
-        }
-      } else {
-        toast((res.data && res.data.error) ? res.data.error : '인증 실패');
-      }
-    } finally {
+  function setupLoginForm() {
+    const form = document.querySelector('#adminLogin form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = (document.getElementById('adm_id') || {}).value || '';
+      const pw = (document.getElementById('adm_pw') || {}).value || '';
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const oldText = submitBtn ? submitBtn.textContent : '';
       if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = oldText;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '인증 중...';
       }
-    }
-  });
-}
+      try {
+        const res = await api('/api/admin/login', {
+          method: 'POST',
+          body: { id: id.trim(), password: pw },
+        });
+        if (res.ok && res.data?.data) {
+          CURRENT_ADMIN = res.data.data.admin;
+          toast(res.data.message || '로그인되었습니다');
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const service = urlParams.get('service');
+
+          if (service === 'siren') {
+            await fetchAdminMe();
+            await showAdminPanel();
+          } else {
+            setTimeout(() => {
+              window.location.href = '/admin-hub.html';
+            }, 600);
+          }
+        } else {
+          toast(res.data?.error || '인증 실패');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = oldText;
+        }
+      }
+    });
+  }
 
   async function fetchAdminMe() {
     const res = await api('/api/admin/me');
-    if (res.ok && res.data && res.data.data) {
+    if (res.ok && res.data?.data) {
       CURRENT_ADMIN = res.data.data.admin;
       CURRENT_KPI = res.data.data.kpi;
       return true;
@@ -611,7 +700,7 @@ function setupLoginForm() {
 
   /* ============ 사이드바 라우팅 ============ */
   function setupSidebar() {
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', (e) => {
       const link = e.target.closest('.adm-menu a[data-page]');
       if (!link) return;
       e.preventDefault();
@@ -620,26 +709,21 @@ function setupLoginForm() {
   }
 
   function switchAdminPage(page, linkEl) {
-    document.querySelectorAll('.adm-menu a').forEach(function (a) {
-      a.classList.remove('on');
-    });
+    document.querySelectorAll('.adm-menu a').forEach((a) => a.classList.remove('on'));
     if (linkEl) linkEl.classList.add('on');
 
-    document.querySelectorAll('.adm-page').forEach(function (p) {
-      p.classList.remove('show');
-    });
+    document.querySelectorAll('.adm-page').forEach((p) => p.classList.remove('show'));
     const target = document.getElementById('adm-' + page);
     if (target) target.classList.add('show');
 
     const titleEl = document.getElementById('admPageTitle');
     if (titleEl) titleEl.textContent = PAGE_TITLES[page] || '관리자';
 
-    /* 탭별 데이터 로딩 */
     if (page === 'dashboard') {
       renderDashboardKPI();
       loadDashboardActivity();
       if (window.SIREN_CHARTS && typeof window.SIREN_CHARTS.initDashboardWithData === 'function') {
-        setTimeout(function () { window.SIREN_CHARTS.initDashboardWithData(); }, 100);
+        setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 100);
       }
     } else if (page === 'members') {
       loadMembers();
@@ -656,18 +740,19 @@ function setupLoginForm() {
 
   /* ============ 로그아웃 / 사이트 복귀 ============ */
   function setupLogout() {
-    document.addEventListener('click', async function (e) {
+    document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action="admin-logout"]');
       if (!btn) return;
       e.preventDefault();
       await api('/api/admin/logout', { method: 'POST' });
       CURRENT_ADMIN = null;
       CURRENT_KPI = null;
+      stopKpiPolling();
       toast('로그아웃되었습니다');
-      setTimeout(function () { location.href = '/index.html'; }, 600);
+      setTimeout(() => location.href = '/index.html', 600);
     });
 
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', (e) => {
       const exit = e.target.closest('[data-action="admin-exit"]');
       if (!exit) return;
       e.preventDefault();
@@ -675,9 +760,9 @@ function setupLoginForm() {
     });
   }
 
-  /* ============ 데모 액션 (영수증 일괄은 별도 처리) ============ */
+  /* ============ 데모 액션 ============ */
   function setupDemoActions() {
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-demo-action]');
       if (!btn) return;
       if (btn.dataset.demoAction === 'bulk-receipt') return;
@@ -687,33 +772,31 @@ function setupLoginForm() {
   }
 
   /* ============ 초기화 ============ */
-  /* ============ 초기화 ============ */
-async function init() {
-  setupLoginForm();
-  setupSidebar();
-  setupLogout();
-  setupDemoActions();
-  setupMemberActions();
-  setupDonationActions();
-  setupSupportActions();
+  async function init() {
+    setupLoginForm();
+    setupSidebar();
+    setupLogout();
+    setupDemoActions();
+    setupMemberActions();
+    setupDonationActions();
+    setupSupportActions();
+    setupSupportReplyForm(); // ★ 신규: 답변 모달 폼
 
-  const isLogged = await fetchAdminMe();
-  if (isLogged) {
-    /* ★★★ 변경: URL에 service 파라미터 있으면 패널 표시, 없으면 허브로 ★★★ */
-    const urlParams = new URLSearchParams(window.location.search);
-    const service = urlParams.get('service');
-    
-    if (service === 'siren') {
-      await showAdminPanel();
+    const isLogged = await fetchAdminMe();
+    if (isLogged) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const service = urlParams.get('service');
+
+      if (service === 'siren') {
+        await showAdminPanel();
+      } else {
+        window.location.href = '/admin-hub.html';
+        return;
+      }
     } else {
-      // 이미 로그인된 상태에서 /admin.html 직접 접속 → 허브로 이동
-      window.location.href = '/admin-hub.html';
-      return;
+      showLogin();
     }
-  } else {
-    showLogin();
   }
-}
 
   /* ============ 강제 부트스트랩 ============ */
   (function bootstrap() {
@@ -724,7 +807,7 @@ async function init() {
           (!wrap || !wrap.classList.contains('show'))) {
         login.classList.add('show');
       }
-      init().catch(function (e) { console.error('[admin init]', e); });
+      init().catch((e) => console.error('[admin init]', e));
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', go);
