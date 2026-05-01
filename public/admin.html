@@ -6,19 +6,17 @@
 <title>관리자 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- CSS -->
 <link rel="stylesheet" href="/css/base.css?v=3">
 <link rel="stylesheet" href="/css/components.css?v=3">
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 
 <style>
-  /* [추가] 실시간 알림 뱃지 스타일 */
+  /* 신규 알림 뱃지 */
   .adm-badge {
     display: inline-flex;
     align-items: center;
@@ -33,8 +31,57 @@
     border-radius: 10px;
     margin-left: auto;
   }
-  
-  /* [추가] 모달 상세 내용 스타일 */
+
+  /* 모달 (강제 표시 보장) */
+  .modal {
+    display: none !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 40px 20px;
+  }
+  .modal.show {
+    display: flex !important;
+  }
+  .modal-content {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin: auto;
+  }
+  .modal-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-3);
+    line-height: 1;
+  }
+  .modal-close:hover {
+    color: var(--ink);
+  }
+  .modal-body {
+    padding: 24px 28px;
+  }
+
+  /* 모달 상세 내용 */
   .support-detail-box {
     background: #f8f9fa;
     padding: 20px;
@@ -60,13 +107,86 @@
     line-height: 1.6;
     color: var(--text-1);
   }
+
+  /* 표 — 인라인 단계 select */
+  .inline-status-select {
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 12px;
+    background: white;
+    cursor: pointer;
+  }
+
+  /* 신청자 이름 클릭 가능 표시 */
+  .clickable-name {
+    color: var(--brand);
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .clickable-name:hover {
+    color: var(--brand-deep);
+    text-decoration-style: solid;
+  }
+
+  /* 회원 정보 팝업 */
+  .member-info-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .member-info-grid > div:nth-child(odd) {
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .activity-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .activity-stat {
+    background: var(--bg-soft);
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .activity-stat-label {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .activity-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .mini-list {
+    background: var(--bg-soft);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .mini-list-row {
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .mini-list-row:last-child {
+    border-bottom: none;
+  }
 </style>
 </head>
 <body>
 
-  <!-- ============================================================
-       관리자 로그인
-       ============================================================ -->
+  <!-- 관리자 로그인 -->
   <div id="adminLogin" class="admin-login">
     <div class="login-card">
       <div class="brand-mark" style="background:var(--ink)">
@@ -90,9 +210,7 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       관리자 패널
-       ============================================================ -->
+  <!-- 관리자 패널 -->
   <div id="adminWrap" class="admin-wrap">
 
     <aside class="adm-side">
@@ -104,7 +222,6 @@
         <li>
           <a data-page="support">
             <i>🤝</i><span>지원 관리</span>
-            <!-- 🚩 신규 알림 뱃지 -->
             <span class="adm-badge" id="supportNewBadge" style="display:none">0</span>
           </a>
         </li>
@@ -225,10 +342,24 @@
           </div>
           <div class="panel">
             <div class="p-head"><div class="p-title">유가족 지원 신청 관리</div></div>
-            <table class="tbl" id="adminSupportTable">
-              <thead><tr><th>신청번호</th><th>유형</th><th>신청자</th><th>접수일</th><th>매칭 전문가</th><th>단계</th><th>관리</th></tr></thead>
-              <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-            </table>
+            <div style="overflow-x:auto">
+              <table class="tbl" id="adminSupportTable" style="min-width:1200px">
+                <thead>
+                  <tr>
+                    <th style="width:130px">신청번호</th>
+                    <th style="width:90px">유형</th>
+                    <th style="width:120px">신청자</th>
+                    <th style="width:140px">접수일시</th>
+                    <th style="width:110px">매칭 전문가</th>
+                    <th style="width:130px">단계</th>
+                    <th style="width:110px">답변자</th>
+                    <th style="width:130px">답변시간</th>
+                    <th style="width:100px">관리</th>
+                  </tr>
+                </thead>
+                <tbody><tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -299,9 +430,7 @@
     </main>
   </div>
 
-  <!-- ============================================================
-       [추가] 지원 신청 상세 및 답변 모달 (Step 3용)
-       ============================================================ -->
+  <!-- 지원 신청 상세 / 답변 모달 -->
   <div id="supportDetailModal" class="modal">
     <div class="modal-content" style="max-width:700px">
       <div class="modal-header">
@@ -312,54 +441,65 @@
         <div class="support-detail-box">
           <div class="support-detail-item">
             <span class="support-detail-label">신청 정보</span>
-            <div id="detail-info" style="font-weight: 500;">신청번호 및 신청자 정보</div>
+            <div id="detail-info" style="font-weight: 500;">로딩 중...</div>
           </div>
           <div class="support-detail-item">
             <span class="support-detail-label">제목</span>
-            <div id="detail-title" style="font-size: 16px; font-weight: 600;">신청 제목</div>
+            <div id="detail-title" style="font-size: 16px; font-weight: 600;"></div>
           </div>
           <div class="support-detail-item">
             <span class="support-detail-label">신청 내용</span>
-            <div id="detail-content" class="support-content-text">상세 내용이 표시됩니다.</div>
+            <div id="detail-content" class="support-content-text"></div>
           </div>
-          <div id="detail-attachments" class="support-detail-item">
-            <!-- 첨부파일 동적 렌더링 -->
-          </div>
+          <div id="detail-attachments" class="support-detail-item"></div>
+          <div id="detail-answer-history" class="support-detail-item"></div>
         </div>
 
         <form id="supportReplyForm">
-  <input type="hidden" id="replyId">
-  <div class="fg">
-    <label>처리 상태 변경</label>
-    <select id="replyStatus" class="input" required>
-      <option value="submitted">접수됨 (신규)</option>
-      <option value="reviewing">검토 중</option>
-      <option value="supplement">보완 요청</option>
-      <option value="matched">매칭 완료</option>
-      <option value="in_progress">지원 진행 중</option>
-      <option value="completed">지원 완료</option>
-      <option value="rejected">반려</option>
-    </select>
-  </div>
-  <div class="fg">
-    <label>관리자 답변 메시지 <span class="hint">(마이페이지에서 회원이 확인합니다)</span></label>
-    <textarea id="replyNote" class="input" style="height:150px;" placeholder="유가족 회원에게 전달할 답변을 입력하세요."></textarea>
+          <input type="hidden" id="replyId">
+          <div class="fg">
+            <label>처리 상태 변경</label>
+            <select id="replyStatus" class="input" required>
+              <option value="submitted">접수됨 (신규)</option>
+              <option value="reviewing">검토 중</option>
+              <option value="supplement">보완 요청</option>
+              <option value="matched">매칭 완료</option>
+              <option value="in_progress">지원 진행 중</option>
+              <option value="completed">지원 완료</option>
+              <option value="rejected">반려</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>관리자 답변 메시지 <span class="hint">(마이페이지에서 회원이 확인합니다)</span></label>
+            <textarea id="replyNote" class="input" style="height:150px;" placeholder="유가족 회원에게 전달할 답변을 입력하세요."></textarea>
+          </div>
+
+          <div class="fg" style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px 16px;margin-top:12px">
+            <label class="checkbox-line" style="margin:0;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+              <input type="checkbox" id="replySendEmail" style="margin-top:3px">
+              <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
+                <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
+                체크하면 회원의 이메일로 "답변 등록 알림" 메일이 자동 전송됩니다.<br />
+                <span style="color:var(--text-3);font-size:11.5px">※ 답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능합니다.</span>
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">저장하기</button>
+        </form>
+      </div>
+    </div>
   </div>
 
-  <!-- ★ 신규: 메일 발송 체크박스 (기본 OFF) -->
-  <div class="fg" style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px 16px;margin-top:12px">
-    <label class="checkbox-line" style="margin:0;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
-      <input type="checkbox" id="replySendEmail" style="margin-top:3px">
-      <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
-        <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
-        체크하면 회원의 이메일로 "답변 등록 알림" 메일이 자동 전송됩니다.<br />
-        <span style="color:var(--text-3);font-size:11.5px">※ 답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능합니다.</span>
-      </span>
-    </label>
-  </div>
-
-  <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">저장하기</button>
-</form>
+  <!-- ★ 신규: 회원 정보 팝업 모달 -->
+  <div id="memberInfoModal" class="modal">
+    <div class="modal-content" style="max-width:560px">
+      <div class="modal-header">
+        <h3 class="serif">👤 회원 정보</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="memberInfoBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
       </div>
     </div>
   </div>
@@ -370,20 +510,34 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=6"></script>
 
-  <!-- 부트스트랩 및 공통 모달 닫기 제어 -->
   <script>
   (function () {
-    /* 모달 닫기 이벤트 */
+    /* 모달 닫기 — 통합 처리 */
     document.addEventListener('click', function(e) {
+      // X 버튼 또는 [data-action="close-modal"]
       if (e.target.closest('[data-action="close-modal"]')) {
         var modal = e.target.closest('.modal');
         if (modal) modal.classList.remove('show');
+        return;
+      }
+      // 모달 배경(검은 영역) 클릭
+      if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('show');
       }
     });
 
-    /* 로그인 화면 제어 */
+    /* ESC 키로 모달 닫기 */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.show').forEach(function(m) {
+          m.classList.remove('show');
+        });
+      }
+    });
+
+    /* 로그인 화면 보장 */
     function ensureLoginVisible() {
       var login = document.getElementById('adminLogin');
       var wrap = document.getElementById('adminWrap');

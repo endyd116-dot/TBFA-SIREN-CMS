@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin.js (v5 — 지원 답변 모달 + 신규 뱃지)
+   SIREN — admin.js (v6 — STEP E-2 표 개선 + 회원 팝업 + 모달 버그 수정)
    ========================================================= */
 (function () {
   'use strict';
@@ -22,14 +22,21 @@
     other: '기타',
   };
 
-  const SUPPORT_STATUS_BADGE = {
-    submitted: '<span class="badge b-info">🆕 접수</span>',
-    reviewing: '<span class="badge b-warn">검토중</span>',
-    supplement: '<span class="badge b-danger">보완요청</span>',
-    matched: '<span class="badge b-info">매칭완료</span>',
-    in_progress: '<span class="badge b-warn">진행중</span>',
-    completed: '<span class="badge b-success">완료</span>',
-    rejected: '<span class="badge b-mute">반려</span>',
+  const SUPPORT_STATUS_LABEL = {
+    submitted: '접수됨',
+    reviewing: '검토 중',
+    supplement: '보완 요청',
+    matched: '매칭 완료',
+    in_progress: '진행 중',
+    completed: '완료',
+    rejected: '반려',
+  };
+
+  const MEMBER_TYPE_LABEL = {
+    regular: '정기 후원',
+    family: '유가족',
+    volunteer: '봉사자',
+    admin: '관리자',
   };
 
   let CURRENT_ADMIN = null;
@@ -64,7 +71,7 @@
   }
 
   function escapeHtml(s) {
-    return String(s || '').replace(/[&<>"']/g, (c) =>
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
     );
   }
@@ -80,7 +87,18 @@
   function formatDateTime(iso) {
     if (!iso) return '-';
     const d = new Date(iso);
-    return formatDate(iso) + ' ' +
+    return d.getFullYear() + '.' +
+      String(d.getMonth() + 1).padStart(2, '0') + '.' +
+      String(d.getDate()).padStart(2, '0') + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' +
+      String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function formatShortDateTime(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return String(d.getMonth() + 1).padStart(2, '0') + '/' +
+      String(d.getDate()).padStart(2, '0') + ' ' +
       String(d.getHours()).padStart(2, '0') + ':' +
       String(d.getMinutes()).padStart(2, '0');
   }
@@ -89,7 +107,20 @@
     return '₩ ' + (Number(n || 0) / 1_000_000).toFixed(1) + 'M';
   }
 
-  /* ============ 🆕 신규 뱃지 (사이드바) ============ */
+  function statusBadgeHtml(status) {
+    const map = {
+      submitted: '<span class="badge b-info">🆕 접수</span>',
+      reviewing: '<span class="badge b-warn">검토중</span>',
+      supplement: '<span class="badge b-danger">보완요청</span>',
+      matched: '<span class="badge b-info">매칭완료</span>',
+      in_progress: '<span class="badge b-warn">진행중</span>',
+      completed: '<span class="badge b-success">완료</span>',
+      rejected: '<span class="badge b-mute">반려</span>',
+    };
+    return map[status] || status;
+  }
+
+  /* ============ 신규 뱃지 ============ */
   function updateSupportBadge(count) {
     const badge = document.getElementById('supportNewBadge');
     if (!badge) return;
@@ -102,7 +133,6 @@
     }
   }
 
-  /* 관리자 KPI 주기적 갱신 (60초) — 뱃지 자동 업데이트 */
   function startKpiPolling() {
     if (_kpiPollTimer) clearInterval(_kpiPollTimer);
     _kpiPollTimer = setInterval(async () => {
@@ -158,7 +188,6 @@
     }
   }
 
-  /* ============ 대시보드 최근 활동 ============ */
   async function loadDashboardActivity() {
     const dash = document.getElementById('adm-dashboard');
     const panels = dash ? dash.querySelectorAll('.row-1-1 .panel') : [];
@@ -247,7 +276,7 @@
       return '<tr>' +
         '<td><input type="checkbox"></td>' +
         '<td>M-' + String(m.id).padStart(5, '0') + '</td>' +
-        '<td>' + escapeHtml(m.name) + '</td>' +
+        '<td><span class="clickable-name" data-member-info-id="' + m.id + '">' + escapeHtml(m.name) + '</span></td>' +
         '<td>' + (typeMap[m.type] || m.type) + '</td>' +
         '<td>' + formatDate(m.createdAt) + '</td>' +
         '<td>' + formatDate(m.lastLoginAt) + '</td>' +
@@ -362,7 +391,6 @@
     const panel = document.getElementById('adm-content');
     if (!panel) return;
 
-    /* 공지 */
     const noticeBody = panel.querySelector('table[data-content-tbl="notices"] tbody');
     if (noticeBody) {
       noticeBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
@@ -390,7 +418,6 @@
       }
     }
 
-    /* FAQ */
     const faqBody = panel.querySelector('table[data-content-tbl="faqs"] tbody');
     if (faqBody) {
       faqBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
@@ -421,17 +448,17 @@
     }
   }
 
-  /* ============ 🆕 지원 관리 + 답변 모달 ============ */
+  /* ============ ★ 지원 관리 (STEP E-2 개선) ============ */
   async function loadSupport() {
     const panel = document.getElementById('adm-support');
     if (!panel) return;
     const tbody = panel.querySelector('table.tbl tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin/support?limit=50');
     if (!res.ok || !res.data?.data) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
     const list = res.data.data.list || [];
@@ -444,49 +471,112 @@
     if (kpis[2]) kpis[2].textContent = (stats.completed || 0) + ' 건';
     if (kpis[3]) kpis[3].textContent = (stats.avgDays || 0) + ' 일';
 
-    /* 사이드바 뱃지 동기화 */
     updateSupportBadge(stats.submitted || 0);
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">신청 내역이 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-3)">신청 내역이 없습니다</td></tr>';
       return;
     }
 
+    /* 인라인 단계 select 옵션 생성 헬퍼 */
+    function buildStatusSelect(currentStatus, requestId) {
+      let html = '<select class="inline-status-select" data-inline-id="' + requestId + '">';
+      Object.keys(SUPPORT_STATUS_LABEL).forEach((key) => {
+        const sel = key === currentStatus ? ' selected' : '';
+        html += '<option value="' + key + '"' + sel + '>' + SUPPORT_STATUS_LABEL[key] + '</option>';
+      });
+      html += '</select>';
+      return html;
+    }
+
     tbody.innerHTML = list.map((s) => {
-      /* 신규(submitted) 행 강조 */
-      const rowAttr = s.status === 'submitted'
-        ? ' style="background:#fff8ec"'
-        : '';
-      /* 모든 행에 "상세/답변" 버튼 추가 → 모달 오픈 */
-      const actionBtns = '<button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button>';
+      const rowAttr = s.status === 'submitted' ? ' style="background:#fff8ec"' : '';
+      const requesterName = s.requesterName ? escapeHtml(s.requesterName) : ('유가족 #' + s.memberId);
+      const answererName = s.answererName ? escapeHtml(s.answererName) : '—';
+      const answeredAt = s.answeredAt ? formatShortDateTime(s.answeredAt) : '—';
 
       return '<tr' + rowAttr + '>' +
-        '<td>' + escapeHtml(s.requestNo) + '</td>' +
+        '<td style="font-family:Inter;font-size:12px">' + escapeHtml(s.requestNo) + '</td>' +
         '<td>' + (SUPPORT_CAT_LABEL[s.category] || s.category) + '</td>' +
-        '<td>유가족 #' + s.memberId + '</td>' +
-        '<td>' + formatDate(s.createdAt) + '</td>' +
+        '<td><span class="clickable-name" data-member-info-id="' + s.memberId + '">' + requesterName + '</span></td>' +
+        '<td style="font-family:Inter;font-size:12px">' + formatShortDateTime(s.createdAt) + '</td>' +
         '<td>' + escapeHtml(s.assignedExpertName || '—') + '</td>' +
-        '<td>' + (SUPPORT_STATUS_BADGE[s.status] || s.status) + '</td>' +
-        '<td>' + actionBtns + '</td>' +
+        '<td>' + buildStatusSelect(s.status, s.id) + '</td>' +
+        '<td>' + answererName + '</td>' +
+        '<td style="font-family:Inter;font-size:12px">' + answeredAt + '</td>' +
+        '<td><button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button></td>' +
         '</tr>';
     }).join('');
   }
 
-  /* 지원 행 → 모달 오픈 */
+  /* 인라인 단계 변경 */
+  function setupInlineStatusChange() {
+    document.addEventListener('change', async (e) => {
+      const sel = e.target.closest('.inline-status-select');
+      if (!sel) return;
+
+      const id = Number(sel.dataset.inlineId);
+      const newStatus = sel.value;
+      if (!id || !newStatus) return;
+
+      sel.disabled = true;
+      const res = await api('/api/admin/support', {
+        method: 'PATCH',
+        body: { id, status: newStatus, inlineStatusOnly: true },
+      });
+      sel.disabled = false;
+
+      if (res.ok) {
+        toast(res.data?.message || '단계가 변경되었습니다');
+        /* 행 배경색 갱신을 위해 살짝 반영 */
+        const tr = sel.closest('tr');
+        if (tr) {
+          if (newStatus === 'submitted') tr.setAttribute('style', 'background:#fff8ec');
+          else tr.removeAttribute('style');
+        }
+        /* KPI/뱃지 갱신 */
+        fetchAdminMe().then(() => {
+          renderDashboardKPI();
+          if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
+        });
+      } else {
+        toast(res.data?.error || '변경 실패');
+        loadSupport();
+      }
+    });
+  }
+
+  /* 모달 오픈 */
   async function openSupportModal(id) {
     const modal = document.getElementById('supportDetailModal');
-    if (!modal) return toast('모달 요소를 찾을 수 없습니다');
+    if (!modal) {
+      console.error('supportDetailModal not found');
+      return toast('모달 요소를 찾을 수 없습니다');
+    }
+
+    /* 일단 빠르게 모달 표시 */
+    modal.classList.add('show');
+
+    /* 폼 초기화 */
+    document.getElementById('detail-info').textContent = '로딩 중...';
+    document.getElementById('detail-title').textContent = '';
+    document.getElementById('detail-content').textContent = '';
+    document.getElementById('detail-attachments').innerHTML = '';
+    document.getElementById('detail-answer-history').innerHTML = '';
+    document.getElementById('replyId').value = id;
+    document.getElementById('replyNote').value = '';
+    document.getElementById('replySendEmail').checked = false;
 
     const res = await api('/api/admin/support?id=' + id);
     if (!res.ok || !res.data?.data) {
+      document.getElementById('detail-info').textContent = '상세 조회 실패';
       return toast('상세 조회 실패');
     }
     const r = res.data.data.request;
     const requester = res.data.data.requester || {};
+    const answerer = res.data.data.answerer || null;
 
     /* 폼 데이터 채우기 */
-    document.getElementById('replyId').value = r.id;
-
     const infoEl = document.getElementById('detail-info');
     if (infoEl) {
       infoEl.innerHTML =
@@ -494,14 +584,11 @@
         escapeHtml(requester.name || '알 수 없음') +
         (requester.email ? ' (' + escapeHtml(requester.email) + ')' : '') +
         ' · ' + (SUPPORT_CAT_LABEL[r.category] || r.category) +
-        ' · 접수 ' + formatDate(r.createdAt);
+        ' · 접수 ' + formatDateTime(r.createdAt);
     }
 
-    const titleEl = document.getElementById('detail-title');
-    if (titleEl) titleEl.textContent = r.title || '';
-
-    const contentEl = document.getElementById('detail-content');
-    if (contentEl) contentEl.textContent = r.content || '';
+    document.getElementById('detail-title').textContent = r.title || '';
+    document.getElementById('detail-content').textContent = r.content || '';
 
     /* 첨부파일 */
     const attachEl = document.getElementById('detail-attachments');
@@ -519,18 +606,24 @@
       }
     }
 
-    /* 상태 select / 답변 내용 채우기 */
-    const statusSel = document.getElementById('replyStatus');
-    if (statusSel) statusSel.value = r.status || 'submitted';
+    /* 답변 이력 */
+    const historyEl = document.getElementById('detail-answer-history');
+    if (historyEl && r.adminNote) {
+      historyEl.innerHTML =
+        '<span class="support-detail-label">📝 기존 답변 이력</span>' +
+        '<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.7">' +
+        '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:6px">' +
+        '답변자: <strong>' + (answerer ? escapeHtml(answerer.name) : '—') + '</strong> · ' +
+        '답변시간: ' + (r.answeredAt ? formatDateTime(r.answeredAt) : '—') +
+        '</div>' +
+        '<div style="white-space:pre-wrap">' + escapeHtml(r.adminNote) + '</div>' +
+        '</div>';
+    } else if (historyEl) {
+      historyEl.innerHTML = '';
+    }
 
-    const noteEl = document.getElementById('replyNote');
-    if (noteEl) noteEl.value = r.adminNote || '';
-
-    /* 메일 발송 체크박스는 항상 OFF로 초기화 */
-    const sendEmailEl = document.getElementById('replySendEmail');
-    if (sendEmailEl) sendEmailEl.checked = false;
-
-    modal.classList.add('show');
+    document.getElementById('replyStatus').value = r.status || 'submitted';
+    document.getElementById('replyNote').value = r.adminNote || '';
   }
 
   /* 지원 답변 폼 제출 */
@@ -568,7 +661,6 @@
           toast(res.data?.message || '저장되었습니다');
           document.getElementById('supportDetailModal')?.classList.remove('show');
           loadSupport();
-          /* KPI도 즉시 갱신 (뱃지 반영) */
           fetchAdminMe().then(() => {
             renderDashboardKPI();
             if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
@@ -590,13 +682,116 @@
       const btn = e.target.closest('[data-support-action]');
       if (!btn) return;
       e.preventDefault();
+      e.stopPropagation();
       const id = Number(btn.dataset.id);
       const action = btn.dataset.supportAction;
 
       if (action === 'open' || action === 'view') {
         openSupportModal(id);
       }
-      /* 'match', 'supplement', 'complete'는 모달로 통합되었음 */
+    });
+  }
+
+  /* ============ ★ 신규: 회원 정보 팝업 ============ */
+  async function openMemberInfoModal(memberId) {
+    const modal = document.getElementById('memberInfoModal');
+    const body = document.getElementById('memberInfoBody');
+    if (!modal || !body) return toast('모달 요소를 찾을 수 없습니다');
+
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/member-detail?id=' + memberId);
+    if (!res.ok || !res.data?.data) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
+      return;
+    }
+    const { member, donationSummary, supportSummary } = res.data.data;
+
+    const typeBadge = {
+      regular: '<span class="badge b-info">정기후원</span>',
+      family: '<span class="badge b-danger">유가족</span>',
+      volunteer: '<span class="badge b-success">봉사자</span>',
+      admin: '<span class="badge b-warn">관리자</span>',
+    };
+    const statusBadge = {
+      active: '<span class="badge b-success">정상</span>',
+      pending: '<span class="badge b-warn">승인대기</span>',
+      suspended: '<span class="badge b-danger">정지</span>',
+      withdrawn: '<span class="badge b-mute">탈퇴</span>',
+    };
+
+    /* 최근 후원 5건 */
+    const recentDonationHtml = (donationSummary.recent || []).length === 0
+      ? '<div style="text-align:center;color:var(--text-3);padding:14px">후원 내역 없음</div>'
+      : (donationSummary.recent || []).map((d) =>
+          '<div class="mini-list-row">' +
+          formatDate(d.createdAt) + ' · ' +
+          (d.type === 'regular' ? '정기' : '일시') + ' · ' +
+          '₩' + (d.amount || 0).toLocaleString() +
+          ' (' + (d.status === 'completed' ? '완료' : d.status) + ')' +
+          '</div>'
+        ).join('');
+
+    /* 최근 지원 신청 */
+    const recentSupportHtml = (supportSummary.list || []).length === 0
+      ? '<div style="text-align:center;color:var(--text-3);padding:14px">지원 내역 없음</div>'
+      : (supportSummary.list || []).slice(0, 5).map((s) =>
+          '<div class="mini-list-row">' +
+          escapeHtml(s.requestNo) + ' · ' +
+          (SUPPORT_CAT_LABEL[s.category] || s.category) + ' · ' +
+          (SUPPORT_STATUS_LABEL[s.status] || s.status) + ' · ' +
+          formatDate(s.createdAt) +
+          '</div>'
+        ).join('');
+
+    body.innerHTML =
+      '<div class="member-info-grid">' +
+      '<div>이름</div><div><strong>' + escapeHtml(member.name) + '</strong> ' + (typeBadge[member.type] || member.type) + ' ' + (statusBadge[member.status] || member.status) + '</div>' +
+      '<div>이메일</div><div>' + escapeHtml(member.email) + (member.emailVerified ? ' <span style="color:var(--success);font-size:11px">✓ 인증됨</span>' : '') + '</div>' +
+      '<div>연락처</div><div>' + escapeHtml(member.phone || '—') + '</div>' +
+      '<div>가입일</div><div>' + formatDate(member.createdAt) + '</div>' +
+      '<div>최종 로그인</div><div>' + formatDateTime(member.lastLoginAt) + '</div>' +
+      '<div>알림 동의</div><div>' +
+      (member.agreeEmail ? '✉️ ' : '') +
+      (member.agreeSms ? '📱 ' : '') +
+      (member.agreeMail ? '📬 ' : '') +
+      (!member.agreeEmail && !member.agreeSms && !member.agreeMail ? '없음' : '') +
+      '</div>' +
+      '</div>' +
+
+      '<div class="activity-stat-grid">' +
+      '<div class="activity-stat">' +
+      '<div class="activity-stat-label">💰 누적 후원</div>' +
+      '<div class="activity-stat-value">₩' + (donationSummary.totalAmount || 0).toLocaleString() + '</div>' +
+      '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">총 ' + (donationSummary.totalCount || 0) + '건</div>' +
+      '</div>' +
+      '<div class="activity-stat">' +
+      '<div class="activity-stat-label">🤝 지원 신청</div>' +
+      '<div class="activity-stat-value">' + (supportSummary.total || 0) + '건</div>' +
+      '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">진행 ' + (supportSummary.inProgress || 0) + ' · 완료 ' + (supportSummary.completed || 0) + '</div>' +
+      '</div>' +
+      '</div>' +
+
+      '<div style="margin-bottom:14px">' +
+      '<div class="support-detail-label">최근 후원 내역</div>' +
+      '<div class="mini-list">' + recentDonationHtml + '</div>' +
+      '</div>' +
+
+      '<div>' +
+      '<div class="support-detail-label">최근 지원 신청</div>' +
+      '<div class="mini-list">' + recentSupportHtml + '</div>' +
+      '</div>';
+  }
+
+  function setupMemberInfoActions() {
+    document.addEventListener('click', (e) => {
+      const span = e.target.closest('[data-member-info-id]');
+      if (!span) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = Number(span.dataset.memberInfoId);
+      if (id) openMemberInfoModal(id);
     });
   }
 
@@ -698,7 +893,7 @@
     return false;
   }
 
-  /* ============ 사이드바 라우팅 ============ */
+  /* ============ 사이드바 ============ */
   function setupSidebar() {
     document.addEventListener('click', (e) => {
       const link = e.target.closest('.adm-menu a[data-page]');
@@ -738,7 +933,7 @@
     }
   }
 
-  /* ============ 로그아웃 / 사이트 복귀 ============ */
+  /* ============ 로그아웃 ============ */
   function setupLogout() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action="admin-logout"]');
@@ -780,7 +975,9 @@
     setupMemberActions();
     setupDonationActions();
     setupSupportActions();
-    setupSupportReplyForm(); // ★ 신규: 답변 모달 폼
+    setupSupportReplyForm();
+    setupInlineStatusChange();
+    setupMemberInfoActions();
 
     const isLogged = await fetchAdminMe();
     if (isLogged) {
@@ -798,7 +995,7 @@
     }
   }
 
-  /* ============ 강제 부트스트랩 ============ */
+  /* ============ 부트스트랩 ============ */
   (function bootstrap() {
     function go() {
       const login = document.getElementById('adminLogin');
