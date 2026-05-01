@@ -17,9 +17,9 @@ import { sendEmail, tplSupportAnsweredUser } from "../../lib/email";
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
-  const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
-  const { admin } = guard.ctx;
+  const guard: any = await requireAdmin(req);
+if (!guard.ok) return guard.res;
+const { admin } = guard.ctx;
 
   try {
     /* ===== GET ===== */
