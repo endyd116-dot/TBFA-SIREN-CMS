@@ -91,12 +91,15 @@ export interface CookieOptions {
   secure?: boolean;
   sameSite?: string;
   path?: string;
+  domain?: string;
 }
 
 export function buildCookie(name: string, value: string, options: CookieOptions = {}): string {
   const maxAge = options.maxAge ?? 60 * 60 * 24 * 7;
   const httpOnly = options.httpOnly ?? true;
-  const secure = options.secure ?? (process.env.NODE_ENV !== "development");
+  const isProduction = process.env.NODE_ENV !== "development" 
+    && !process.env.NETLIFY_DEV;
+  const secure = options.secure ?? isProduction;
   const sameSite = options.sameSite ?? "Lax";
   const path = options.path ?? "/";
 
@@ -108,6 +111,8 @@ export function buildCookie(name: string, value: string, options: CookieOptions 
   ];
   if (httpOnly) parts.push("HttpOnly");
   if (secure) parts.push("Secure");
+  if (options.domain) parts.push(`Domain=${options.domain}`);
+  
   return parts.join("; ");
 }
 
