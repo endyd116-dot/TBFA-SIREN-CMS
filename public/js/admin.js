@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin.js (v3 — 실 데이터 동적 로딩)
+   SIREN — admin.js (v3 — 풀 동적 로딩)
    ========================================================= */
 (function () {
   'use strict';
@@ -55,6 +55,10 @@
     return `${formatDate(iso)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
+  function fmtMoney(n) {
+    return '₩ ' + (Number(n || 0) / 1_000_000).toFixed(1) + 'M';
+  }
+
   /* ------------ 화면 전환 ------------ */
   function showLogin() {
     document.getElementById('adminLogin')?.classList.add('show');
@@ -72,13 +76,14 @@
 
   /* ------------ KPI ------------ */
   function renderDashboardKPI() {
+    console.log('[Render KPI]', CURRENT_KPI);
     if (!CURRENT_KPI) return;
     const dash = document.getElementById('adm-dashboard');
     if (!dash) return;
     const kpis = dash.querySelectorAll('.kpi-grid > .kpi .kpi-value');
+    console.log('[KPI elements]', kpis.length);
     if (kpis.length < 4) return;
-    const fmt = (n) => '₩ ' + (n / 1_000_000).toFixed(1) + 'M';
-    kpis[0].textContent = fmt(CURRENT_KPI.monthlyDonation);
+    kpis[0].textContent = fmtMoney(CURRENT_KPI.monthlyDonation);
     kpis[1].textContent = (CURRENT_KPI.newRegularCount || 0) + ' 명';
     kpis[2].textContent = (CURRENT_KPI.pendingSupportCount || 0) + ' 건';
     kpis[3].textContent = (CURRENT_KPI.totalMembers || 0).toLocaleString();
@@ -91,14 +96,18 @@
 
   /* ------------ 대시보드 최근 활동 ------------ */
   async function loadDashboardActivity() {
-    const res = await api('/api/admin/stats');
-    if (!res.ok || !res.data?.data) return;
-    const recent = res.data.data.recentActivity || [];
     const dash = document.getElementById('adm-dashboard');
     const tbody = dash?.querySelectorAll('.row-1-1 .panel')[1]?.querySelector('table.tbl tbody');
     if (!tbody) return;
+
+    const res = await api('/api/admin/stats');
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-3)">통계 조회 실패</td></tr>`;
+      return;
+    }
+    const recent = res.data.data.recentActivity || [];
     if (recent.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:30px">최근 활동 없음</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-3)">최근 활동 없음</td></tr>`;
       return;
     }
     const typeMap = { regular:'정기후원', onetime:'일시후원' };
@@ -111,7 +120,7 @@
       const time = new Date(r.createdAt);
       const hh = String(time.getHours()).padStart(2,'0');
       const mm = String(time.getMinutes()).padStart(2,'0');
-      return `<tr><td>${hh}:${mm}</td><td>${typeMap[r.type]||r.type}</td><td>${escapeHtml(r.donorName||'-')} (${(r.amount||0).toLocaleString()})</td><td>${statusMap[r.status]||r.status}</td></tr>`;
+      return `<tr><td>${hh}:${mm}</td><td>${typeMap[r.type]||r.type}</td><td>${escapeHtml(r.donorName||'-')} (₩${(r.amount||0).toLocaleString()})</td><td>${statusMap[r.status]||r.status}</td></tr>`;
     }).join('');
   }
 
@@ -125,13 +134,12 @@
 
     const res = await api('/api/admin/members?limit=50');
     if (!res.ok || !res.data?.data) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패: ${escapeHtml(res.data?.error || '')}</td></tr>`;
       return;
     }
     const list = res.data.data.list || [];
     const total = res.data.data.pagination?.total || 0;
 
-    /* KPI 갱신 */
     const kpis = panel.querySelectorAll('.kpi-value');
     if (kpis[0]) kpis[0].textContent = total.toLocaleString() + ' 명';
     if (kpis[1]) kpis[1].textContent = list.filter(m=>m.type==='family').length + ' 명';
@@ -173,7 +181,6 @@
     `).join('');
   }
 
-  /* 회원 액션 (승인/정지) */
   function setupMemberActions() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-member-action]');
@@ -183,14 +190,9 @@
       const action = btn.dataset.memberAction;
       const status = action === 'approve' ? 'active' : 'suspended';
       const label = action === 'approve' ? '승인' : '정지';
-
       if (!confirm(`회원을 ${label}하시겠습니까?`)) return;
 
-      const res = await api('/api/admin/members', {
-        method: 'PATCH',
-        body: { id, status },
-      });
-
+      const res = await api('/api/admin/members', { method:'PATCH', body:{ id, status } });
       if (res.ok) {
         toast(`회원이 ${label}되었습니다`);
         loadMembers();
@@ -216,11 +218,9 @@
     const list = res.data.data.list || [];
     const stats = res.data.data.stats || {};
 
-    /* KPI */
     const kpis = panel.querySelectorAll('.kpi-value');
-    const fmt = (n) => '₩ ' + (n / 1_000_000).toFixed(2) + 'M';
-    if (kpis[0]) kpis[0].textContent = fmt(stats.today || 0);
-    if (kpis[1]) kpis[1].textContent = fmt(stats.month || 0);
+    if (kpis[0]) kpis[0].textContent = fmtMoney(stats.today);
+    if (kpis[1]) kpis[1].textContent = fmtMoney(stats.month);
     if (kpis[2]) kpis[2].textContent = (stats.failedCount || 0) + ' 건';
     if (kpis[3]) kpis[3].textContent = (stats.receiptPendingCount || 0) + ' 건';
 
@@ -252,14 +252,12 @@
     `).join('');
   }
 
-  /* 영수증 일괄 발행 */
   function setupDonationActions() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-demo-action="bulk-receipt"]');
       if (!btn) return;
       e.preventDefault();
 
-      /* completed && !receiptIssued 인 모든 ID 조회 후 발행 */
       const res = await api('/api/admin/donations?limit=100&status=completed');
       const ids = (res.data?.data?.list || [])
         .filter(d => !d.receiptIssued)
@@ -267,11 +265,7 @@
 
       if (ids.length === 0) return toast('발행할 영수증이 없습니다');
 
-      const r = await api('/api/admin/donations', {
-        method: 'PATCH',
-        body: { ids },
-      });
-
+      const r = await api('/api/admin/donations', { method:'PATCH', body:{ ids } });
       if (r.ok) {
         toast(r.data?.message || `${ids.length}건 발행 완료`);
         loadDonations();
@@ -281,51 +275,74 @@
     });
   }
 
-  /* ------------ 콘텐츠 관리 (공지사항) ------------ */
+  /* ------------ 콘텐츠 관리 (공지사항 + FAQ) ------------ */
   async function loadContent() {
     const panel = document.getElementById('adm-content');
     if (!panel) return;
-    const tbody = panel.querySelector('table.tbl tbody');
-    if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>`;
 
-    const res = await api('/api/notices?limit=50');
-    if (!res.ok) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>`;
-      return;
+    /* 공지사항 */
+    const noticeBody = panel.querySelector('table[data-content-tbl="notices"] tbody');
+    if (noticeBody) {
+      noticeBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>`;
+      const nRes = await api('/api/notices?limit=50');
+      const nList = nRes.data?.data?.list || [];
+      if (nList.length === 0) {
+        noticeBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>`;
+      } else {
+        const catMap = {
+          general:'<span class="badge b-mute">일반</span>',
+          member:'<span class="badge b-info">회원</span>',
+          event:'<span class="badge b-warn">사업</span>',
+          media:'<span class="badge b-success">언론</span>',
+        };
+        noticeBody.innerHTML = nList.map(n => `
+          <tr>
+            <td>${n.id}</td>
+            <td>${catMap[n.category]||n.category}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(n.title)}</td>
+            <td>${n.isPinned ? '📌' : '—'}</td>
+            <td>${(n.views||0).toLocaleString()}</td>
+            <td><button class="btn-link">수정</button></td>
+          </tr>
+        `).join('');
+      }
     }
-    const list = res.data?.data?.list || [];
-    if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">공지사항이 없습니다</td></tr>`;
-      return;
+
+    /* FAQ */
+    const faqBody = panel.querySelector('table[data-content-tbl="faqs"] tbody');
+    if (faqBody) {
+      faqBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>`;
+      const fRes = await api('/api/faqs');
+      const fList = fRes.data?.data?.list || [];
+      if (fList.length === 0) {
+        faqBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">FAQ가 없습니다</td></tr>`;
+      } else {
+        const catBadge = {
+          general:'<span class="badge b-mute">일반</span>',
+          donation:'<span class="badge b-warn">후원</span>',
+          support:'<span class="badge b-info">지원</span>',
+        };
+        faqBody.innerHTML = fList.map(f => `
+          <tr>
+            <td>${f.id}</td>
+            <td>${catBadge[f.category]||f.category}</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.question)}</td>
+            <td>${f.isActive!==false ? '<span style="color:var(--success)">●</span>' : '<span style="color:var(--text-3)">●</span>'}</td>
+            <td>${f.sortOrder||0}</td>
+            <td><button class="btn-link">수정</button></td>
+          </tr>
+        `).join('');
+      }
     }
-    const catMap = {
-      general:'<span class="badge b-mute">일반</span>',
-      member:'<span class="badge b-info">회원</span>',
-      event:'<span class="badge b-warn">사업</span>',
-      media:'<span class="badge b-success">언론</span>',
-    };
-    tbody.innerHTML = list.map(n => `
-      <tr>
-        <td>${n.id}</td>
-        <td>${catMap[n.category]||n.category}</td>
-        <td>${escapeHtml(n.title)}</td>
-        <td>${escapeHtml(n.authorName||'관리자')}</td>
-        <td>${n.isPinned ? '📌' : '—'}</td>
-        <td>${(n.views||0).toLocaleString()}</td>
-        <td><button class="btn-link">상세</button></td>
-      </tr>
-    `).join('');
   }
 
-  /* ------------ 지원 관리 ------------ */
+  /* ------------ 지원 관리 (STEP 11에서 풀 구현) ------------ */
   async function loadSupport() {
-    /* support 페이지는 STEP 11에서 풀 구현 — 지금은 KPI만 */
     const panel = document.getElementById('adm-support');
     if (!panel) return;
     const tbody = panel.querySelector('table.tbl tbody');
     if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">STEP 11에서 구현 예정 — 현재는 사용자가 신청한 내역이 표시됩니다</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">STEP 11에서 구현 예정</td></tr>`;
   }
 
   /* ------------ 로그인 ------------ */
@@ -357,9 +374,11 @@
 
   async function fetchAdminMe() {
     const res = await api('/api/admin/me');
+    console.log('[Admin Me API]', res.status, res.data);
     if (res.ok && res.data?.data) {
       CURRENT_ADMIN = res.data.data.admin;
       CURRENT_KPI = res.data.data.kpi;
+      console.log('[KPI loaded]', CURRENT_KPI);
       return true;
     }
     CURRENT_ADMIN = null;
@@ -385,8 +404,8 @@
     const titleEl = document.getElementById('admPageTitle');
     if (titleEl) titleEl.textContent = PAGE_TITLES[page] || '관리자';
 
-    /* 탭별 데이터 로딩 */
-    if (page === 'members') loadMembers();
+    if (page === 'dashboard') { renderDashboardKPI(); loadDashboardActivity(); }
+    else if (page === 'members') loadMembers();
     else if (page === 'donations') loadDonations();
     else if (page === 'content') loadContent();
     else if (page === 'support') loadSupport();
@@ -395,7 +414,7 @@
     }
   }
 
-  /* ------------ 로그아웃 ------------ */
+  /* ------------ 로그아웃 / Exit ------------ */
   function setupLogout() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action="admin-logout"]');
@@ -417,7 +436,8 @@
   function setupDemoActions() {
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-demo-action]');
-      if (!btn || btn.dataset.demoAction === 'bulk-receipt') return;
+      if (!btn) return;
+      if (btn.dataset.demoAction === 'bulk-receipt') return; // 별도 처리
       e.preventDefault();
       toast(btn.dataset.demoMessage || '처리되었습니다');
     });
@@ -437,7 +457,7 @@
     else showLogin();
   }
 
-  /* ------------ 강제 부트스트랩 ------------ */
+  /* ------------ 부트스트랩 ------------ */
   (function bootstrap() {
     function go() {
       const login = document.getElementById('adminLogin');
@@ -447,12 +467,10 @@
       }
       init().catch(e => console.error('[admin init]', e));
     }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
-    else go();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', go);
+    } else {
+      go();
+    }
   })();
-
-  const prevInit = window.SIREN_PAGE_INIT;
-  window.SIREN_PAGE_INIT = function () {
-    if (typeof prevInit === 'function') prevInit();
-  };
 })();
