@@ -1,6 +1,6 @@
 /**
  * POST /api/support/create
- * 유가족 지원 신청 — 로그인 + 유가족/일반 회원 모두 가능 (단, family는 우선순위)
+ * 유가족 지원 신청 — 로그인 필수, 신청 즉시 관리자에게 알림 메일 발송
  */
 import { eq } from "drizzle-orm";
 import { db, supportRequests, members, generateRequestNo } from "../../db";
@@ -11,6 +11,9 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
+import { sendEmail, tplSupportReceivedAdmin } from "../../lib/email";
+
+const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || "";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -26,6 +29,7 @@ export default async (req: Request) => {
       .select({
         id: members.id,
         name: members.name,
+        email: members.email,
         type: members.type,
         status: members.status,
       })
@@ -46,27 +50,29 @@ export default async (req: Request) => {
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
     const v = safeValidate(supportRequestSchema, body);
-    if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+    if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
-    const { category, title, content, attachments } = v.data;
+    const { category, title, content, attachments } = (v as any).data;
 
     /* 4. 신청번호 생성 */
     const requestNo = generateRequestNo("S");
 
     /* 5. DB 저장 */
+    const insertData: any = {
+      requestNo,
+      memberId: user.id,
+      category,
+      title,
+      content,
+      attachments: attachments && attachments.length > 0
+        ? JSON.stringify(attachments)
+        : null,
+      status: "submitted",
+    };
+
     const [record] = await db
       .insert(supportRequests)
-      .values({
-        requestNo,
-        memberId: user.id,
-        category,
-        title,
-        content,
-        attachments: attachments && attachments.length > 0
-          ? JSON.stringify(attachments)
-          : null,
-        status: "submitted",
-      })
+      .values(insertData)
       .returning({
         id: supportRequests.id,
         requestNo: supportRequests.requestNo,
@@ -76,15 +82,39 @@ export default async (req: Request) => {
         createdAt: supportRequests.createdAt,
       });
 
-    /* 6. 감사 로그 */
-    await logUserAction(req, user.id, user.name, "support_create", {
+    /* 6. 관리자 알림 메일 발송 (실패해도 신청은 성공) */
+    if (ADMIN_NOTIFY_EMAIL) {
+      try {
+        const contentPreview = (content || "").trim().slice(0, 80);
+        const tpl = tplSupportReceivedAdmin({
+          requestNo,
+          applicantName: user.name,
+          applicantEmail: user.email,
+          category,
+          title,
+          contentPreview,
+        });
+        await sendEmail({
+          to: ADMIN_NOTIFY_EMAIL,
+          subject: tpl.subject,
+          html: tpl.html,
+        });
+      } catch (emailErr) {
+        console.error("[support-create] 관리자 메일 발송 실패:", emailErr);
+      }
+    } else {
+      console.warn("[support-create] ADMIN_NOTIFY_EMAIL 환경변수 미설정 — 관리자 알림 스킵");
+    }
+
+    /* 7. 감사 로그 */
+    await logUserAction(req, user.id as any, user.name as any, "support_create", {
       target: requestNo,
       detail: { category, memberType: user.type },
     });
 
     return created(
       { request: record },
-      "지원 신청이 접수되었습니다. 영업일 기준 3일 이내 안내드립니다."
+      "지원 신청이 성공적으로 완료되었습니다."
     );
   } catch (err) {
     console.error("[support-create]", err);

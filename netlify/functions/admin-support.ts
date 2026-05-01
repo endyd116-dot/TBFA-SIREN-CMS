@@ -2,6 +2,7 @@
  * GET   /api/admin/support              — 지원 신청 목록 + 통계
  * GET   /api/admin/support?id=N         — 신청 상세
  * PATCH /api/admin/support              — 상태/매칭/메모 변경
+ *                                       - body.sendEmail=true 일 때만 신청자에게 답변 알림 메일 발송
  */
 import { eq, desc, and, count, sql } from "drizzle-orm";
 import { db, supportRequests, members } from "../../db";
@@ -12,6 +13,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { sendEmail, tplSupportAnsweredUser } from "../../lib/email";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -114,6 +116,9 @@ export default async (req: Request) => {
       const reqId = Number(body.id);
       if (!Number.isFinite(reqId)) return badRequest("유효하지 않은 ID");
 
+      /* sendEmail 플래그는 schema 검증 대상에서 제외 (안전하게 별도 추출) */
+      const sendEmailFlag = body.sendEmail === true;
+
       const v = safeValidate(supportStatusUpdateSchema, body);
       if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
 
@@ -141,12 +146,53 @@ export default async (req: Request) => {
 
       if (!updated) return notFound("신청 내역 없음");
 
+      /* ───── 신청자 메일 발송 (sendEmail=true 일 때만) ───── */
+      let emailSent = false;
+      let emailError: string | null = null;
+
+      if (sendEmailFlag) {
+        try {
+          const [requester] = await db
+            .select({ name: members.name, email: members.email })
+            .from(members)
+            .where(eq(members.id, updated.memberId))
+            .limit(1);
+
+          if (requester?.email) {
+            const tpl = tplSupportAnsweredUser({
+              applicantName: requester.name,
+              requestNo: updated.requestNo,
+              title: updated.title,
+              newStatus: updated.status,
+            });
+            const result = await sendEmail({
+              to: requester.email,
+              subject: tpl.subject,
+              html: tpl.html,
+            });
+            emailSent = !!result.ok;
+            if (!result.ok) emailError = "메일 발송 실패";
+          } else {
+            emailError = "신청자 이메일 정보 없음";
+          }
+        } catch (mailErr) {
+          console.error("[admin-support] 메일 발송 예외:", mailErr);
+          emailError = "메일 발송 중 예외 발생";
+        }
+      }
+
       await logAdminAction(req, admin.uid, admin.name, "support_status_change", {
         target: updated.requestNo,
-        detail: { newStatus: v.data.status },
+        detail: { newStatus: v.data.status, emailSent, emailError },
       });
 
-      return ok({ request: updated }, "상태가 변경되었습니다");
+      const message = emailSent
+        ? "상태가 변경되고 신청자에게 알림 메일이 발송되었습니다"
+        : sendEmailFlag
+          ? `상태는 변경되었으나 메일 발송에 실패했습니다 (${emailError || "원인 불명"})`
+          : "상태가 변경되었습니다";
+
+      return ok({ request: updated, emailSent }, message);
     }
 
     return methodNotAllowed();
