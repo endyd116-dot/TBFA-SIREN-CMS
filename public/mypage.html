@@ -46,7 +46,8 @@
             <ul id="mpMenu">
               <li class="on" data-mp="donations">내 후원 내역</li>
               <li data-mp="receipts">증명서 발급</li>
-              <li data-mp="consult">1:1 상담 내역</li>
+              <li data-mp="support">🎯 내 지원 내역</li>
+              <li data-mp="consult">💬 1:1 상담 내역</li>
               <li data-mp="profile">회원 정보 수정</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
             </ul>
@@ -112,26 +113,75 @@
               </p>
             </div>
 
-            <!-- 3. 1:1 상담 내역 -->
-            <div class="mp-panel" data-mp-panel="consult" style="display:none">
-              <h3 class="serif">1:1 상담 내역</h3>
-              <p class="sub">접수하신 상담의 진행 상태를 확인하실 수 있습니다.</p>
+            <!-- 3. 🎯 내 지원 내역 (신규) — 골드 액센트 -->
+            <div class="mp-panel" data-mp-panel="support" style="display:none">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="display:inline-block;width:4px;height:24px;background:var(--gold,#b8935a);border-radius:2px"></span>
+                <h3 class="serif" style="margin:0">🎯 내 지원 내역</h3>
+              </div>
+              <p class="sub">신청하신 <strong>유가족 지원 프로그램</strong>(심리상담/법률자문/장학사업)의 진행 상태와 관리자 답변을 확인하실 수 있습니다.</p>
+
+              <div class="panel" style="background:linear-gradient(135deg,#fff,#fdf8ee);border-color:#f0e3c4;margin-bottom:18px;padding:16px 20px">
+                <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
+                  <div style="font-size:32px">🤝</div>
+                  <div>
+                    유가족 지원 프로그램은 증빙 서류 검토 후 <strong style="color:var(--gold,#b8935a)">영업일 기준 3일 이내</strong>에 안내드립니다.<br />
+                    모든 신청 내용은 비밀이 보장되며, 답변은 마이페이지에서 안전하게 확인하실 수 있습니다.
+                  </div>
+                </div>
+              </div>
 
               <table class="tbl">
-                <thead><tr><th>접수번호</th><th>유형</th><th>제목</th><th>접수일</th><th>상태</th></tr></thead>
+                <thead><tr><th style="width:140px">접수번호</th><th style="width:110px">지원 유형</th><th>제목</th><th style="width:120px">접수일</th><th style="width:110px">진행 상태</th></tr></thead>
                 <tbody>
                   <tr>
                     <td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">
-                      신청 내역을 불러오는 중...
+                      신청 내역을 불러오는 중... 🎗
                     </td>
                   </tr>
                 </tbody>
               </table>
 
-              <button class="btn btn-primary" style="margin-top:20px" data-action="open-modal" data-target="supportModal">+ 새 지원 신청</button>
+              <div style="margin-top:20px;display:flex;gap:10px">
+                <a href="/support.html#family" class="btn btn-primary">+ 새 지원 신청</a>
+                <a href="/support.html" class="btn btn-ghost" style="background:transparent;border:1px solid var(--line);color:var(--text-2)">지원 프로그램 안내 보기</a>
+              </div>
             </div>
 
-            <!-- 4. 회원 정보 수정 -->
+            <!-- 4. 💬 1:1 상담 내역 (기존 유지 — 추후 별도 기능 구현 예정) -->
+            <div class="mp-panel" data-mp-panel="consult" style="display:none">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="display:inline-block;width:4px;height:24px;background:var(--info,#1a5ec4);border-radius:2px"></span>
+                <h3 class="serif" style="margin:0">💬 1:1 상담 내역</h3>
+              </div>
+              <p class="sub">후원 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대한 답변 내역을 확인하실 수 있습니다.</p>
+
+              <div class="panel" style="background:linear-gradient(135deg,#fff,#eef4fc);border-color:#cee0f2;margin-bottom:18px;padding:16px 20px">
+                <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
+                  <div style="font-size:32px">💌</div>
+                  <div>
+                    홈페이지 이용·후원 절차·기부금 영수증 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 1:1 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
+                    <span style="color:var(--text-3);font-size:12px">※ 특정 프로그램(심리상담/법률자문/장학)에 신청하시려면 위의 '🎯 내 지원 내역'을 이용해 주세요.</span>
+                  </div>
+                </div>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th style="width:140px">접수번호</th><th style="width:110px">문의 유형</th><th>제목</th><th style="width:120px">접수일</th><th style="width:110px">상태</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">
+                      🚧 1:1 상담 기능은 곧 오픈됩니다.<br />
+                      <span style="font-size:12px">긴급 문의는 02-0000-0000 또는 admin@siren-org.kr 로 연락주세요.</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <button class="btn btn-primary" style="margin-top:20px;opacity:0.5;cursor:not-allowed" disabled title="기능 준비 중">+ 새 상담 문의 (준비 중)</button>
+            </div>
+
+            <!-- 5. 회원 정보 수정 -->
             <div class="mp-panel" data-mp-panel="profile" style="display:none">
               <h3 class="serif">회원 정보 수정</h3>
               <p class="sub">개인정보는 본인만 수정 가능하며, 모든 변경 이력은 안전하게 기록됩니다.</p>
@@ -167,13 +217,25 @@
   <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=4"></script>
   <script>
-    // 마이페이지 사이드바 메뉴 전환 + 회원 정보 주입
+    // 마이페이지 사이드바 메뉴 전환 + 회원 정보 주입 + 해시 라우팅
     const __mpPrevInit = window.SIREN_PAGE_INIT;
     window.SIREN_PAGE_INIT = function () {
       if (typeof __mpPrevInit === 'function') __mpPrevInit();
       const menu = document.getElementById('mpMenu');
       const crumb = document.getElementById('mpCrumb');
       if (!menu) return;
+
+      function activatePanel(key) {
+        const li = menu.querySelector(`li[data-mp="${key}"]`);
+        if (!li) return false;
+        menu.querySelectorAll('li').forEach(x => x.classList.remove('on'));
+        li.classList.add('on');
+        document.querySelectorAll('.mp-panel').forEach(p => p.style.display = 'none');
+        const target = document.querySelector(`.mp-panel[data-mp-panel="${key}"]`);
+        if (target) target.style.display = 'block';
+        if (crumb) crumb.textContent = li.textContent.trim();
+        return true;
+      }
 
       menu.addEventListener('click', (e) => {
         const li = e.target.closest('li[data-mp]');
@@ -189,20 +251,20 @@
           return;
         }
 
-        // 메뉴 활성화
-        menu.querySelectorAll('li').forEach(x => x.classList.remove('on'));
-        li.classList.add('on');
-
-        // 패널 전환
-        document.querySelectorAll('.mp-panel').forEach(p => p.style.display = 'none');
-        const target = document.querySelector(`.mp-panel[data-mp-panel="${key}"]`);
-        if (target) target.style.display = 'block';
-
-        // 브레드크럼
-        if (crumb) crumb.textContent = li.textContent;
+        activatePanel(key);
+        if (history.replaceState) history.replaceState(null, '', '#' + key);
       });
 
-      // 회원 정보 수정 탭에 데이터 자동 채우기 (auth.js 로딩 대기)
+      /* 해시 라우팅 (#support, #consult 등으로 진입 시 해당 탭 자동 활성화) */
+      function applyHash() {
+        const hash = (location.hash || '').replace('#', '').trim();
+        if (!hash) return;
+        setTimeout(() => activatePanel(hash), 50);
+      }
+      applyHash();
+      window.addEventListener('hashchange', applyHash);
+
+      /* 회원 정보 주입 */
       const fillProfile = () => {
         const user = window.SIREN_AUTH?.user;
         if (!user) return false;
@@ -212,26 +274,20 @@
         const agreeEmail = document.getElementById('mpAgreeEmail');
         const agreeSms = document.getElementById('mpAgreeSms');
         const agreeMail = document.getElementById('mpAgreeMail');
-        
         if (nameEl) nameEl.value = user.name || '';
         if (emailEl) emailEl.value = user.email || '';
         if (phoneEl) phoneEl.value = user.phone || '';
         if (agreeEmail) agreeEmail.checked = user.agreeEmail !== false;
         if (agreeSms) agreeSms.checked = user.agreeSms !== false;
         if (agreeMail) agreeMail.checked = user.agreeMail === true;
-        
         return true;
       };
-
-      // 여러 번 시도 (auth.js가 로딩되는 시점까지)
       let tries = 0;
       const tryFill = setInterval(() => {
-        if (fillProfile() || tries++ > 20) {
-          clearInterval(tryFill);
-        }
+        if (fillProfile() || tries++ > 20) clearInterval(tryFill);
       }, 200);
 
-      // 증명서 발급 카드 정보 업데이트 (auth.js가 stats 채운 후)
+      /* 영수증 카드 업데이트 */
       const updateReceiptCard = () => {
         const stats = window.SIREN_AUTH?.stats;
         if (!stats) return false;
@@ -248,12 +304,10 @@
       };
       let rTries = 0;
       const tryReceipt = setInterval(() => {
-        if (updateReceiptCard() || rTries++ > 20) {
-          clearInterval(tryReceipt);
-        }
+        if (updateReceiptCard() || rTries++ > 20) clearInterval(tryReceipt);
       }, 200);
 
-      // 데모 액션 (영수증 발급 등)
+      /* 데모 액션 */
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-demo-action]');
         if (!btn || !btn.dataset.demoMessage) return;

@@ -209,7 +209,7 @@
     const { list, stats } = res.data.data;
 
     /* KPI 카드 */
-    const panel = document.querySelector('.mp-panel[data-mp-panel="donations"]');
+    const panel = document.querySelector('.mp-panel[data-mp-panel="support"]');
     if (panel) {
       const kpiValues = panel.querySelectorAll('.kpi-value');
       if (kpiValues[0]) kpiValues[0].textContent = (stats.totalAmount || 0).toLocaleString() + '원';
