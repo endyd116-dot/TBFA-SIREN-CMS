@@ -1,7 +1,4 @@
-/**
- * SIREN — 관리자 권한 검증 미들웨어
- * 모든 /api/admin/* 함수에서 첫 번째로 호출
- */
+// lib/admin-guard.ts
 import { eq } from "drizzle-orm";
 import { db, members } from "../db";
 import { authenticateAdmin, AdminPayload } from "./auth";
@@ -12,12 +9,6 @@ export interface AdminContext {
   member: typeof members.$inferSelect;
 }
 
-/**
- * 관리자 인증 + DB 회원 조회
- * - 토큰 없거나 잘못 → 401 Response 반환
- * - 회원 상태 비정상 → 403 Response 반환
- * - 정상 → AdminContext 반환
- */
 export async function requireAdmin(req: Request): Promise<
   | { ok: true; ctx: AdminContext }
   | { ok: false; res: Response }
