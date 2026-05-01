@@ -1,0 +1,416 @@
+/* =========================================================
+   CMS TBFA — 전용 스타일
+   ========================================================= */
+
+/* 가입 경로 리스트 */
+.cms-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cms-source-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #fafaf9;
+  border-radius: 8px;
+  transition: all 0.25s;
+}
+.cms-source-item:hover {
+  background: #f4f4f2;
+  transform: translateX(2px);
+}
+.cms-source-icon {
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.cms-source-info { flex: 1; }
+.cms-source-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+.cms-source-count {
+  font-size: 11px;
+  color: #8a8a8a;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Chart container */
+.cms-chart-wrap {
+  position: relative;
+  height: 240px;
+  padding: 10px;
+}
+
+/* Members table specifics */
+.cms-tbl-members td,
+.cms-tbl-members th {
+  font-size: 12px;
+}
+.cms-tbl-members td:first-child,
+.cms-tbl-members th:first-child {
+  width: 40px;
+  text-align: center;
+}
+.cms-tags-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cms-tag-chip {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #f4f4f2;
+  color: #525252;
+  border-radius: 30px;
+  font-weight: 500;
+}
+
+/* ============ Import 페이지 ============ */
+.cms-import-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+}
+
+.cms-upload-zone {
+  border: 2px dashed #e8e6e3;
+  border-radius: 10px;
+  padding: 50px 30px;
+  text-align: center;
+  transition: all 0.25s;
+  cursor: pointer;
+  background: #fafaf9;
+}
+.cms-upload-zone:hover,
+.cms-upload-zone.drag-over {
+  border-color: #7a1f2b;
+  background: #fbf3f4;
+}
+.cms-upload-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.cms-upload-zone h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.cms-upload-zone p {
+  font-size: 12px;
+  color: #8a8a8a;
+  margin-bottom: 18px;
+}
+
+.cms-template-info {
+  padding: 22px;
+  background: #fafaf9;
+  border-radius: 10px;
+  border: 1px solid #e8e6e3;
+}
+.cms-template-info h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.cms-template-info ul {
+  list-style: none;
+  margin-bottom: 16px;
+}
+.cms-template-info li {
+  font-size: 12px;
+  color: #525252;
+  padding: 4px 0 4px 18px;
+  position: relative;
+  line-height: 1.6;
+}
+.cms-template-info li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #1a8b46;
+  font-weight: 700;
+}
+
+.cms-preview {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e8e6e3;
+}
+.cms-preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cms-preview-head h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.cms-preview-head span {
+  font-size: 12px;
+  color: #8a8a8a;
+  font-family: 'Inter', sans-serif;
+}
+.cms-preview-table-wrap {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid #e8e6e3;
+  border-radius: 6px;
+  background: #fff;
+}
+.cms-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ============ Transfer 페이지 ============ */
+.cms-transfer-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fafaf9, #f4f4f2);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.cms-ts-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 100px;
+}
+.cms-ts-label {
+  font-size: 11px;
+  color: #8a8a8a;
+  font-weight: 500;
+}
+.cms-ts-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'Noto Serif KR', serif;
+  color: #0f0f0f;
+}
+.cms-ts-arrow {
+  color: #b8935a;
+  font-size: 20px;
+  font-weight: 700;
+}
+.cms-transfer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e8e6e3;
+}
+.cms-transfer-toolbar > div:last-child {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============ Tags 페이지 ============ */
+.cms-tag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.cms-tag-card {
+  padding: 14px 16px;
+  background: #fafaf9;
+  border: 1px solid #e8e6e3;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.25s;
+}
+.cms-tag-card:hover {
+  border-color: #7a1f2b;
+  background: #fff;
+}
+.cms-tag-info-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cms-tag-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.cms-tag-count {
+  font-size: 11px;
+  color: #8a8a8a;
+  font-family: 'Inter', sans-serif;
+}
+.cms-tag-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ============ Notify 페이지 ============ */
+.cms-notify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cms-notify-step {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0eeeb;
+}
+.cms-notify-step:last-of-type { border-bottom: none; }
+.cms-step-num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #7a1f2b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+.cms-step-body {
+  flex: 1;
+  padding-top: 3px;
+}
+.cms-step-body > label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #1a1a1a;
+}
+.cms-step-body input[type="text"],
+.cms-step-body textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e8e6e3;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+.cms-step-body input:focus,
+.cms-step-body textarea:focus {
+  outline: none;
+  border-color: #7a1f2b;
+}
+.cms-step-body textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.7;
+}
+.cms-char-count {
+  font-size: 11px;
+  color: #8a8a8a;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+}
+
+.cms-radio-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cms-radio-group input { display: none; }
+.cms-radio-group label {
+  padding: 10px 16px;
+  border: 1.5px solid #e8e6e3;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #525252;
+  transition: all 0.25s;
+}
+.cms-radio-group input:checked + label {
+  border-color: #7a1f2b;
+  background: #7a1f2b;
+  color: #fff;
+  font-weight: 600;
+}
+.cms-radio-stack {
+  flex-direction: column;
+  gap: 4px;
+}
+.cms-radio-stack label {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.cms-target-detail {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #e6f0ff;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1a5ec4;
+  font-weight: 500;
+}
+
+.cms-notify-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #e8e6e3;
+}
+
+/* ============ Export 페이지 ============ */
+.cms-export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.cms-export-card {
+  padding: 24px;
+  background: linear-gradient(135deg, #fff, #fafaf9);
+  border: 1px solid #e8e6e3;
+  border-radius: 10px;
+  text-align: center;
+  transition: all 0.25s;
+}
+.cms-export-card:hover {
+  border-color: #7a1f2b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(122,31,43,.1);
+}
+.cms-export-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+.cms-export-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.cms-export-card p {
+  font-size: 12px;
+  color: #8a8a8a;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* 반응형 */
+@media (max-width: 1100px) {
+  .cms-import-grid { grid-template-columns: 1fr; }
+}

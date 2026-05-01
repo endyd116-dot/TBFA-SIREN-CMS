@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>교유협 통합 CMS | SIREN</title>
+<meta name="description" content="교사유가족협의회 통합 회원 관리 시스템">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/cms-common.css">
+<link rel="stylesheet" href="/css/cms-tbfa.css">
+</head>
+<body data-page="cms-tbfa">
+
+  <!-- ============ 사이드바 ============ -->
+  <aside class="cms-side">
+    <a href="/admin-hub.html" class="cms-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      허브로 돌아가기
+    </a>
+    
+    <div class="cms-logo">
+      <div class="cms-logo-icon" style="background:linear-gradient(135deg,#1a5ec4,#0d3d8a)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        </svg>
+      </div>
+      <div>
+        교유협 CMS
+        <span>TBFA UNIFIED</span>
+      </div>
+    </div>
+
+    <nav class="cms-menu">
+      <li><a href="#dashboard" class="on" data-tab="dashboard">
+        <i>📊</i><span>대시보드</span>
+      </a></li>
+      <li><a href="#members" data-tab="members">
+        <i>👥</i><span>통합 회원</span>
+      </a></li>
+      <li><a href="#import" data-tab="import">
+        <i>📤</i><span>외부 등록</span>
+      </a></li>
+      <li><a href="#transfer" data-tab="transfer">
+        <i>🔄</i><span>웹 → 이관</span>
+      </a></li>
+      <li><a href="#tags" data-tab="tags">
+        <i>🏷️</i><span>태그 관리</span>
+      </a></li>
+      <li><a href="#notify" data-tab="notify">
+        <i>📨</i><span>알림 발송</span>
+      </a></li>
+      <li><a href="#export" data-tab="export">
+        <i>📥</i><span>데이터 추출</span>
+      </a></li>
+    </nav>
+  </aside>
+
+  <!-- ============ 메인 ============ -->
+  <main class="cms-main">
+    <!-- 상단 바 -->
+    <header class="cms-top">
+      <div class="cms-top-title" id="cmsPageTitle">대시보드</div>
+      <div class="cms-top-user">
+        <span class="cms-user-name" id="cmsUserName">관리자</span>
+        <div class="cms-avatar" id="cmsAvatar">A</div>
+      </div>
+    </header>
+
+    <div class="cms-content">
+
+      <!-- ============ 1. 대시보드 ============ -->
+      <section class="cms-page show" id="page-dashboard">
+        <div class="cms-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">👥</div>
+            <div class="cms-kpi-label">전체 회원</div>
+            <div class="cms-kpi-value" id="kpiTotal">-</div>
+            <div class="cms-kpi-delta">↑ 이번달 신규 <span id="kpiNew">-</span>명</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">🎗</div>
+            <div class="cms-kpi-label">유족 회원</div>
+            <div class="cms-kpi-value" id="kpiFamily">-</div>
+            <div class="cms-kpi-delta">1기~10기 전체</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">💰</div>
+            <div class="cms-kpi-label">후원 회원</div>
+            <div class="cms-kpi-value" id="kpiDonor">-</div>
+            <div class="cms-kpi-delta">정기 <span id="kpiRegular">-</span> · 일시 <span id="kpiOnetime">-</span></div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🤝</div>
+            <div class="cms-kpi-label">봉사 회원</div>
+            <div class="cms-kpi-value" id="kpiVolunteer">-</div>
+            <div class="cms-kpi-delta">활동 가능</div>
+          </div>
+        </div>
+
+        <div class="cms-row-2-1">
+          <!-- 회원 분포 -->
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">회원 유형 분포</div>
+            </div>
+            <div class="cms-chart-wrap">
+              <canvas id="chartMemberType"></canvas>
+            </div>
+          </div>
+
+          <!-- 가입 경로 -->
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">가입 경로</div>
+            </div>
+            <div class="cms-source-list">
+              <div class="cms-source-item">
+                <div class="cms-source-icon" style="background:#e6f0ff">🌐</div>
+                <div class="cms-source-info">
+                  <div class="cms-source-name">싸이렌 웹사이트</div>
+                  <div class="cms-source-count" id="srcWeb">-명</div>
+                </div>
+              </div>
+              <div class="cms-source-item">
+                <div class="cms-source-icon" style="background:#fff4e0">📋</div>
+                <div class="cms-source-info">
+                  <div class="cms-source-name">Excel 일괄 등록</div>
+                  <div class="cms-source-count" id="srcExcel">-명</div>
+                </div>
+              </div>
+              <div class="cms-source-item">
+                <div class="cms-source-icon" style="background:#e8f5ed">📞</div>
+                <div class="cms-source-info">
+                  <div class="cms-source-name">수기 접수</div>
+                  <div class="cms-source-count" id="srcManual">-명</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 최근 활동 -->
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">최근 회원 활동</div>
+          </div>
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>시간</th><th>유형</th><th>회원</th><th>활동</th>
+              </tr>
+            </thead>
+            <tbody id="recentActivityBody">
+              <tr><td colspan="4" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 2. 통합 회원 ============ -->
+      <section class="cms-page" id="page-members">
+        <div class="cms-filter-bar">
+          <div class="cms-filter-group">
+            <select id="filterType">
+              <option value="">전체 유형</option>
+              <option value="family">유족 회원</option>
+              <option value="donor">후원 회원</option>
+              <option value="regular">일반 회원</option>
+              <option value="volunteer">봉사 회원</option>
+            </select>
+            <select id="filterSource">
+              <option value="">전체 가입경로</option>
+              <option value="web">웹사이트</option>
+              <option value="excel">Excel 등록</option>
+              <option value="manual">수기 접수</option>
+            </select>
+            <input type="text" id="filterSearch" placeholder="이름·이메일·전화번호 검색...">
+          </div>
+          <div class="cms-filter-actions">
+            <button class="cms-btn cms-btn-ghost" id="btnRefreshMembers">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              새로고침
+            </button>
+            <button class="cms-btn cms-btn-primary" id="btnAddMember">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              회원 추가
+            </button>
+          </div>
+        </div>
+
+        <div class="cms-panel cms-panel-flush">
+          <table class="cms-tbl cms-tbl-members">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll"></th>
+                <th>ID</th>
+                <th>이름</th>
+                <th>유형</th>
+                <th>가입경로</th>
+                <th>연락처</th>
+                <th>태그</th>
+                <th>등록일</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="membersBody">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 3. 외부 등록 (Excel) ============ -->
+      <section class="cms-page" id="page-import">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📤 Excel 일괄 등록</div>
+            <span class="cms-panel-tag">CSV · XLSX 지원</span>
+          </div>
+
+          <div class="cms-import-grid">
+            <!-- 업로드 영역 -->
+            <div class="cms-upload-zone" id="uploadZone">
+              <div class="cms-upload-icon">📋</div>
+              <h3>파일을 끌어놓거나 클릭해 선택</h3>
+              <p>CSV, XLSX 형식 · 최대 5MB</p>
+              <input type="file" id="uploadFile" accept=".csv,.xlsx,.xls" hidden>
+              <button class="cms-btn cms-btn-primary" type="button" id="btnSelectFile">
+                파일 선택
+              </button>
+            </div>
+
+            <!-- 템플릿 다운로드 -->
+            <div class="cms-template-info">
+              <h4>📝 등록 전 준비사항</h4>
+              <ul>
+                <li>엑셀 첫 행은 <strong>헤더</strong>여야 합니다</li>
+                <li>필수 컬럼: 이름, 전화번호</li>
+                <li>권장 컬럼: 이메일, 회원유형, 가입일, 비고</li>
+                <li>중복 시 전화번호 기준 병합됩니다</li>
+              </ul>
+              <button class="cms-btn cms-btn-ghost cms-btn-block" id="btnDownloadTemplate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                템플릿 다운로드
+              </button>
+            </div>
+          </div>
+
+          <!-- 미리보기 -->
+          <div class="cms-preview" id="importPreview" style="display:none">
+            <div class="cms-preview-head">
+              <h4>📋 미리보기 (상위 5행)</h4>
+              <span id="previewCount"></span>
+            </div>
+            <div class="cms-preview-table-wrap">
+              <table class="cms-tbl" id="previewTable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="cms-preview-actions">
+              <button class="cms-btn cms-btn-ghost" id="btnCancelImport">취소</button>
+              <button class="cms-btn cms-btn-primary" id="btnConfirmImport">일괄 등록 진행</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 수기 등록 -->
+        <div class="cms-panel" style="margin-top:20px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">✍️ 개별 수기 등록</div>
+          </div>
+          <form id="manualAddForm" class="cms-form-grid">
+            <div class="cms-fg">
+              <label>이름 *</label>
+              <input type="text" name="name" required placeholder="홍길동">
+            </div>
+            <div class="cms-fg">
+              <label>전화번호 *</label>
+              <input type="tel" name="phone" required placeholder="010-0000-0000">
+            </div>
+            <div class="cms-fg">
+              <label>이메일</label>
+              <input type="email" name="email" placeholder="선택사항">
+            </div>
+            <div class="cms-fg">
+              <label>회원 유형 *</label>
+              <select name="type" required>
+                <option value="family">유족 회원</option>
+                <option value="donor">후원 회원</option>
+                <option value="regular">일반 회원</option>
+                <option value="volunteer">봉사 회원</option>
+              </select>
+            </div>
+            <div class="cms-fg cms-fg-full">
+              <label>태그 (쉼표로 구분)</label>
+              <input type="text" name="tags" placeholder="예: 유족1기, 월정기, 서울지역">
+            </div>
+            <div class="cms-fg cms-fg-full">
+              <label>메모</label>
+              <textarea name="memo" rows="3" placeholder="특이사항..."></textarea>
+            </div>
+            <div class="cms-fg cms-fg-full">
+              <button type="submit" class="cms-btn cms-btn-primary">등록하기</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============ 4. 웹 후원자 이관 ============ -->
+      <section class="cms-page" id="page-transfer">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">🔄 싸이렌 웹 후원자 → TBFA 이관</div>
+            <span class="cms-panel-tag cms-tag-info">수동 이관</span>
+          </div>
+          <p class="cms-panel-desc">
+            싸이렌 웹사이트에서 후원한 분들 중, TBFA 통합 회원으로 등록할 대상을 선택하세요.<br />
+            <strong>이미 이관된 회원은 목록에서 자동 제외</strong>됩니다.
+          </p>
+
+          <div class="cms-transfer-stats">
+            <div class="cms-ts-item">
+              <span class="cms-ts-label">웹 후원자</span>
+              <span class="cms-ts-value" id="tsWebDonors">-</span>
+            </div>
+            <div class="cms-ts-arrow">→</div>
+            <div class="cms-ts-item">
+              <span class="cms-ts-label">이관 대기</span>
+              <span class="cms-ts-value" id="tsPending">-</span>
+            </div>
+            <div class="cms-ts-arrow">→</div>
+            <div class="cms-ts-item">
+              <span class="cms-ts-label">이관 완료</span>
+              <span class="cms-ts-value" id="tsDone">-</span>
+            </div>
+          </div>
+
+          <div class="cms-transfer-toolbar">
+            <label class="cms-check-line">
+              <input type="checkbox" id="transferSelectAll"> 전체 선택
+            </label>
+            <div>
+              <button class="cms-btn cms-btn-ghost" id="btnTransferRefresh">새로고침</button>
+              <button class="cms-btn cms-btn-primary" id="btnTransferExecute" disabled>
+                선택 회원 이관 (<span id="transferCount">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th style="width:40px"></th>
+                <th>ID</th>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>전화</th>
+                <th>첫 후원일</th>
+                <th>총 후원액</th>
+                <th>후원 유형</th>
+              </tr>
+            </thead>
+            <tbody id="transferBody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 5. 태그 관리 ============ -->
+      <section class="cms-page" id="page-tags">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">🏷️ 회원 태그 관리</div>
+            <button class="cms-btn cms-btn-primary" id="btnAddTag">+ 태그 추가</button>
+          </div>
+          <p class="cms-panel-desc">
+            회원을 분류하는 태그를 만들고 관리합니다. 태그로 필터링/발송 대상 지정이 가능합니다.
+          </p>
+
+          <div class="cms-tag-grid" id="tagGrid">
+            <!-- JS로 렌더 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 6. 알림 발송 ============ -->
+      <section class="cms-page" id="page-notify">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📨 대량 알림 발송</div>
+          </div>
+
+          <form id="notifyForm" class="cms-notify-form">
+            <div class="cms-notify-step">
+              <div class="cms-step-num">1</div>
+              <div class="cms-step-body">
+                <label>발송 채널 선택</label>
+                <div class="cms-radio-group">
+                  <input type="radio" name="channel" id="ch1" value="sms" checked>
+                  <label for="ch1">📱 알림톡/SMS</label>
+                  <input type="radio" name="channel" id="ch2" value="email">
+                  <label for="ch2">📧 이메일</label>
+                  <input type="radio" name="channel" id="ch3" value="both">
+                  <label for="ch3">🔔 둘 다</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="cms-notify-step">
+              <div class="cms-step-num">2</div>
+              <div class="cms-step-body">
+                <label>수신자 선택</label>
+                <div class="cms-radio-group cms-radio-stack">
+                  <input type="radio" name="target" id="tg1" value="all" checked>
+                  <label for="tg1">전체 회원</label>
+                  <input type="radio" name="target" id="tg2" value="type">
+                  <label for="tg2">유형별 (유족/후원/봉사/일반)</label>
+                  <input type="radio" name="target" id="tg3" value="tag">
+                  <label for="tg3">태그로 선택</label>
+                  <input type="radio" name="target" id="tg4" value="custom">
+                  <label for="tg4">수동 선택</label>
+                </div>
+                <div id="targetDetail" class="cms-target-detail">
+                  <span id="targetPreview">예상 수신자: -명</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cms-notify-step">
+              <div class="cms-step-num">3</div>
+              <div class="cms-step-body">
+                <label>메시지 작성</label>
+                <input type="text" name="title" placeholder="제목 (이메일 발송 시)" maxlength="100">
+                <textarea name="content" rows="6" placeholder="내용을 입력하세요.&#10;&#10;#{이름}님, 안녕하세요. 교유협입니다.&#10;&#10;치환 변수: #{이름}, #{유형}" required></textarea>
+                <div class="cms-char-count">0 / 2000자</div>
+              </div>
+            </div>
+
+            <div class="cms-notify-actions">
+              <button type="button" class="cms-btn cms-btn-ghost" id="btnTestSend">테스트 발송</button>
+              <button type="submit" class="cms-btn cms-btn-primary">전체 발송 예약</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 발송 이력 -->
+        <div class="cms-panel" style="margin-top:20px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📜 최근 발송 이력</div>
+          </div>
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>발송일시</th><th>채널</th><th>수신자 수</th><th>제목</th><th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="notifyHistoryBody">
+              <tr><td colspan="5" style="text-align:center;padding:30px;color:#888">발송 이력이 없습니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 7. 데이터 추출 ============ -->
+      <section class="cms-page" id="page-export">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📥 데이터 추출</div>
+          </div>
+          <p class="cms-panel-desc">원하는 조건으로 회원 데이터를 Excel로 다운로드하세요.</p>
+
+          <div class="cms-export-grid">
+            <div class="cms-export-card" data-export="all">
+              <div class="cms-export-icon">👥</div>
+              <h4>전체 회원</h4>
+              <p>모든 회원 정보를 일괄 추출</p>
+              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
+            </div>
+            <div class="cms-export-card" data-export="family">
+              <div class="cms-export-icon">🎗</div>
+              <h4>유족 회원</h4>
+              <p>유족 회원만 별도 추출</p>
+              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
+            </div>
+            <div class="cms-export-card" data-export="donors">
+              <div class="cms-export-icon">💰</div>
+              <h4>후원 회원 + 이력</h4>
+              <p>후원자 + 결제 내역 포함</p>
+              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
+            </div>
+            <div class="cms-export-card" data-export="tax">
+              <div class="cms-export-icon">🧾</div>
+              <h4>기부금 영수증용</h4>
+              <p>국세청 연말정산 간소화 양식</p>
+              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 토스트 -->
+  <div id="cmsToast" class="cms-toast"></div>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- SheetJS (Excel 파싱용) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Our code -->
+  <script src="/js/cms-tbfa.js"></script>
+</body>
+</html>
