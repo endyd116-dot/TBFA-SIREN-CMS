@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>함께워크_SI | SIREN</title>
+<meta name="description" content="SI 사업 프로젝트 관리 시스템">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/cms-common.css">
+<link rel="stylesheet" href="/css/cms-si.css">
+</head>
+<body data-page="cms-si">
+
+  <!-- 사이드바 -->
+  <aside class="cms-side">
+    <a href="/admin-hub.html" class="cms-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      허브로 돌아가기
+    </a>
+    
+    <div class="cms-logo">
+      <div class="cms-logo-icon" style="background:linear-gradient(135deg,#c47a00,#8f5800)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        함께워크_SI
+        <span>SI · DEMO</span>
+      </div>
+    </div>
+
+    <div class="cms-demo-banner">⚠️ DEMO 버전<br />실제 저장되지 않음</div>
+
+    <nav class="cms-menu">
+      <li><a href="#si-dash" class="on" data-tab="si-dash"><i>📊</i><span>대시보드</span></a></li>
+      <li><a href="#si-client" data-tab="si-client"><i>🏢</i><span>고객사 (CRM)</span></a></li>
+      <li><a href="#si-project" data-tab="si-project"><i>📋</i><span>프로젝트</span></a></li>
+      <li><a href="#si-task" data-tab="si-task"><i>✅</i><span>업무 (WBS)</span></a></li>
+      <li><a href="#si-invoice" data-tab="si-invoice"><i>📄</i><span>인보이스</span></a></li>
+      <li><a href="#si-issue" data-tab="si-issue"><i>🐛</i><span>이슈 트래커</span></a></li>
+      <li><a href="#si-resource" data-tab="si-resource"><i>👨‍💻</i><span>리소스 관리</span></a></li>
+    </nav>
+  </aside>
+
+  <!-- 메인 -->
+  <main class="cms-main">
+    <header class="cms-top">
+      <div class="cms-top-title" id="cmsSiPageTitle">대시보드</div>
+      <div class="cms-top-user">
+        <span class="cms-user-name" id="cmsSiUserName">관리자</span>
+        <div class="cms-avatar" id="cmsSiAvatar">A</div>
+      </div>
+    </header>
+
+    <div class="cms-content">
+
+           <!-- ============ 1. 대시보드 ============ -->
+      <section class="cms-page show" id="page-si-dash">
+        <div class="cms-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">💼</div>
+            <div class="cms-kpi-label">진행 프로젝트</div>
+            <div class="cms-kpi-value">12건</div>
+            <div class="cms-kpi-delta">완료 <span>8건</span> / 신규 <span>3건</span></div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">💰</div>
+            <div class="cms-kpi-label">금월 매출</div>
+            <div class="cms-kpi-value">₩124M</div>
+            <div class="cms-kpi-delta">↑ 전월 대비 <span>+18%</span></div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">⚠️</div>
+            <div class="cms-kpi-label">오픈 이슈</div>
+            <div class="cms-kpi-value">14건</div>
+            <div class="cms-kpi-delta">긴급 <span>3건</span></div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">📄</div>
+            <div class="cms-kpi-label">미수금</div>
+            <div class="cms-kpi-value">₩42M</div>
+            <div class="cms-kpi-delta" style="color:#c47a00">30일 초과 <span>₩15M</span></div>
+          </div>
+        </div>
+
+        <div class="cms-row-2-1">
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">📈 매출 · 수주 추이</div>
+              <span class="cms-panel-tag">최근 6개월</span>
+            </div>
+            <div class="cms-chart-wrap" style="height:260px">
+              <canvas id="siChartRevenue"></canvas>
+            </div>
+          </div>
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">📊 프로젝트 상태</div>
+            </div>
+            <div class="cms-chart-wrap" style="height:260px">
+              <canvas id="siChartStatus"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 진행 중 프로젝트 + 최근 이슈 -->
+        <div class="cms-row-1-1">
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">🚀 진행 중 프로젝트</div>
+            </div>
+            <div class="cms-project-list" id="activeProjects">
+              <!-- JS 렌더 -->
+            </div>
+          </div>
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">🐛 최근 이슈</div>
+              <span class="cms-panel-tag">긴급 우선</span>
+            </div>
+            <div class="cms-issue-list" id="recentIssues">
+              <!-- JS 렌더 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 2. 고객사 (CRM) ============ -->
+      <section class="cms-page" id="page-si-client">
+        <div class="cms-filter-bar">
+          <div class="cms-filter-group">
+            <select>
+              <option>전체 상태</option>
+              <option>거래 중</option>
+              <option>잠재 고객</option>
+              <option>종료</option>
+            </select>
+            <input type="text" placeholder="회사명/담당자 검색...">
+          </div>
+          <button class="cms-btn cms-btn-primary">+ 고객사 등록</button>
+        </div>
+
+        <div class="cms-client-grid" id="clientGrid">
+          <!-- JS 렌더 -->
+        </div>
+      </section>
+
+      <!-- ============ 3. 프로젝트 ============ -->
+      <section class="cms-page" id="page-si-project">
+        <div class="cms-filter-bar">
+          <div class="cms-filter-group">
+            <select id="projectStatusFilter">
+              <option value="">전체 상태</option>
+              <option value="planning">기획</option>
+              <option value="active">진행 중</option>
+              <option value="testing">테스트</option>
+              <option value="delivered">납품 완료</option>
+              <option value="maintenance">유지보수</option>
+            </select>
+            <input type="text" placeholder="프로젝트명 검색...">
+          </div>
+          <button class="cms-btn cms-btn-primary">+ 프로젝트 추가</button>
+        </div>
+
+        <div class="cms-panel cms-panel-flush">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>코드</th>
+                <th>프로젝트명</th>
+                <th>고객사</th>
+                <th>PM</th>
+                <th>단계</th>
+                <th>진행률</th>
+                <th>계약금</th>
+                <th>완료예정</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="projectBody">
+              <tr><td colspan="9" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 4. 업무 (WBS / 칸반) ============ -->
+      <section class="cms-page" id="page-si-task">
+        <div class="cms-kanban-header">
+          <div>
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:4px">📋 [진행중] AI챗봇 개발 프로젝트</h3>
+            <p style="font-size:12px;color:#8a8a8a">진행률 64% · PM 김진호 · 팀원 5명</p>
+          </div>
+          <div class="cms-kanban-actions">
+            <select>
+              <option>AI챗봇 개발 프로젝트</option>
+              <option>쇼핑몰 리뉴얼</option>
+              <option>ERP 구축</option>
+            </select>
+            <button class="cms-btn cms-btn-primary cms-btn-sm">+ 업무 추가</button>
+          </div>
+        </div>
+
+        <div class="cms-kanban-board">
+          <div class="cms-kanban-col" data-status="todo">
+            <div class="cms-kanban-col-head">
+              <span class="cms-kanban-col-title">📝 대기</span>
+              <span class="cms-kanban-col-count">5</span>
+            </div>
+            <div class="cms-kanban-cards" id="kanbanTodo"></div>
+          </div>
+          <div class="cms-kanban-col" data-status="progress">
+            <div class="cms-kanban-col-head">
+              <span class="cms-kanban-col-title">⚡ 진행 중</span>
+              <span class="cms-kanban-col-count">3</span>
+            </div>
+            <div class="cms-kanban-cards" id="kanbanProgress"></div>
+          </div>
+          <div class="cms-kanban-col" data-status="review">
+            <div class="cms-kanban-col-head">
+              <span class="cms-kanban-col-title">👀 검토</span>
+              <span class="cms-kanban-col-count">2</span>
+            </div>
+            <div class="cms-kanban-cards" id="kanbanReview"></div>
+          </div>
+          <div class="cms-kanban-col" data-status="done">
+            <div class="cms-kanban-col-head">
+              <span class="cms-kanban-col-title">✅ 완료</span>
+              <span class="cms-kanban-col-count">8</span>
+            </div>
+            <div class="cms-kanban-cards" id="kanbanDone"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 5. 인보이스 ============ -->
+      <section class="cms-page" id="page-si-invoice">
+        <div class="cms-kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">✅</div>
+            <div class="cms-kpi-label">수금 완료</div>
+            <div class="cms-kpi-value">₩ 680M</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">⏳</div>
+            <div class="cms-kpi-label">대기 중</div>
+            <div class="cms-kpi-value">₩ 42M</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">🚨</div>
+            <div class="cms-kpi-label">연체</div>
+            <div class="cms-kpi-value">₩ 15M</div>
+          </div>
+        </div>
+
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📄 인보이스 목록</div>
+            <div class="cms-panel-actions">
+              <button class="cms-btn cms-btn-ghost cms-btn-sm">CSV 내보내기</button>
+              <button class="cms-btn cms-btn-primary cms-btn-sm">+ 인보이스 발행</button>
+            </div>
+          </div>
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>인보이스 번호</th>
+                <th>발행일</th>
+                <th>고객사</th>
+                <th>프로젝트</th>
+                <th>금액</th>
+                <th>납부 기한</th>
+                <th>상태</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceBody">
+              <tr><td colspan="8" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 6. 이슈 트래커 ============ -->
+      <section class="cms-page" id="page-si-issue">
+        <div class="cms-filter-bar">
+          <div class="cms-filter-group">
+            <select>
+              <option>전체 프로젝트</option>
+              <option>AI챗봇 개발</option>
+              <option>쇼핑몰 리뉴얼</option>
+            </select>
+            <select>
+              <option>전체 상태</option>
+              <option>오픈</option>
+              <option>진행 중</option>
+              <option>해결</option>
+              <option>종료</option>
+            </select>
+            <select>
+              <option>전체 우선순위</option>
+              <option>🔴 긴급</option>
+              <option>🟠 높음</option>
+              <option>🟡 보통</option>
+              <option>🔵 낮음</option>
+            </select>
+            <input type="text" placeholder="이슈 제목/코드 검색...">
+          </div>
+          <button class="cms-btn cms-btn-primary cms-btn-sm">+ 이슈 등록</button>
+        </div>
+
+        <div class="cms-panel cms-panel-flush">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>제목</th>
+                <th>프로젝트</th>
+                <th>유형</th>
+                <th>우선순위</th>
+                <th>담당자</th>
+                <th>SLA</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="issueBody">
+              <tr><td colspan="8" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 7. 리소스 관리 ============ -->
+      <section class="cms-page" id="page-si-resource">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">👨‍💻 개발자 가용성</div>
+            <span class="cms-panel-tag">이번 주</span>
+          </div>
+          <div class="cms-resource-grid" id="resourceGrid">
+            <!-- JS 렌더 -->
+          </div>
+        </div>
+
+        <div class="cms-panel" style="margin-top:18px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📊 월별 공수 현황</div>
+          </div>
+          <div class="cms-chart-wrap" style="height:260px">
+            <canvas id="siChartManHour"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="cmsSiToast" class="cms-toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/cms-si.js"></script>
+</body>
+</html>

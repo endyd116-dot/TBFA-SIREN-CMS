@@ -1,0 +1,574 @@
+/* =========================================================
+   CMS SI — 전용 스타일
+   ========================================================= */
+
+/* DEMO 배너 */
+.cms-demo-banner {
+  margin: 0 22px 14px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #c47a00, #8f5800);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+/* ============ 대시보드 — 진행 프로젝트 ============ */
+.cms-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cms-project-item {
+  padding: 14px;
+  background: #fafaf9;
+  border-radius: 8px;
+  border-left: 3px solid #c47a00;
+  transition: all 0.25s;
+}
+.cms-project-item:hover {
+  background: #fff;
+  border-left-width: 5px;
+  transform: translateX(2px);
+}
+.cms-project-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.cms-project-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f0f0f;
+  flex: 1;
+  margin-right: 10px;
+}
+.cms-project-code {
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  color: #8a8a8a;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: #fff;
+  border-radius: 30px;
+  flex-shrink: 0;
+}
+.cms-project-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: #525252;
+  margin-bottom: 8px;
+}
+.cms-project-meta .client {
+  font-weight: 600;
+  color: #0f0f0f;
+}
+.cms-project-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cms-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #f0eeeb;
+  border-radius: 30px;
+  overflow: hidden;
+}
+.cms-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c47a00, #e0a040);
+  border-radius: 30px;
+}
+.cms-progress-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c47a00;
+  font-family: 'Inter', sans-serif;
+  min-width: 35px;
+  text-align: right;
+}
+
+/* ============ 대시보드 — 최근 이슈 ============ */
+.cms-issue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cms-issue-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #fafaf9;
+  border-radius: 8px;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.cms-issue-item:hover {
+  background: #fff;
+  border: 1px solid #e8e6e3;
+  margin: -1px;
+}
+.cms-issue-priority {
+  width: 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.cms-issue-priority.critical { background: #c5293a; }
+.cms-issue-priority.high { background: #e07b00; }
+.cms-issue-priority.normal { background: #c47a00; }
+.cms-issue-priority.low { background: #1a5ec4; }
+
+.cms-issue-body { flex: 1; }
+.cms-issue-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f0f0f;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.cms-issue-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 10.5px;
+  color: #8a8a8a;
+}
+.cms-issue-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ============ 고객사 (CRM) 그리드 ============ */
+.cms-client-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.cms-client-card {
+  background: #fff;
+  border: 1px solid #e8e6e3;
+  border-radius: 10px;
+  padding: 20px;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+.cms-client-card:hover {
+  border-color: #c47a00;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(196,122,0,.1);
+}
+.cms-client-head {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.cms-client-logo {
+  width: 48px; height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #c47a00, #8f5800);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  font-family: 'Noto Serif KR', serif;
+  flex-shrink: 0;
+}
+.cms-client-info { flex: 1; min-width: 0; }
+.cms-client-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cms-client-contact {
+  font-size: 11px;
+  color: #8a8a8a;
+}
+.cms-client-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid #f0eeeb;
+  border-bottom: 1px solid #f0eeeb;
+  margin-bottom: 12px;
+}
+.cms-client-stat {
+  text-align: center;
+}
+.cms-client-stat-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f0f0f;
+  font-family: 'Noto Serif KR', serif;
+  display: block;
+  line-height: 1.2;
+}
+.cms-client-stat-label {
+  font-size: 10px;
+  color: #8a8a8a;
+  margin-top: 2px;
+}
+.cms-client-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #8a8a8a;
+}
+.cms-client-status {
+  padding: 2px 8px;
+  border-radius: 30px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+}
+.cms-client-status.active {
+  background: #e8f5ed;
+  color: #1a8b46;
+}
+.cms-client-status.lead {
+  background: #fff4e0;
+  color: #c47a00;
+}
+.cms-client-status.closed {
+  background: #f4f4f2;
+  color: #525252;
+}
+
+/* ============ 칸반 보드 ============ */
+.cms-kanban-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 18px 22px;
+  background: #fff;
+  border: 1px solid #e8e6e3;
+  border-radius: 10px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cms-kanban-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cms-kanban-actions select {
+  padding: 8px 12px;
+  border: 1px solid #e8e6e3;
+  border-radius: 6px;
+  font-size: 12.5px;
+  background: #fff;
+  font-family: inherit;
+  color: #1a1a1a;
+  min-width: 200px;
+}
+
+.cms-kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.cms-kanban-col {
+  background: #fafaf9;
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 500px;
+}
+.cms-kanban-col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e8e6e3;
+}
+.cms-kanban-col[data-status="todo"] .cms-kanban-col-head {
+  border-bottom-color: #8a8a8a;
+}
+.cms-kanban-col[data-status="progress"] .cms-kanban-col-head {
+  border-bottom-color: #c47a00;
+}
+.cms-kanban-col[data-status="review"] .cms-kanban-col-head {
+  border-bottom-color: #1a5ec4;
+}
+.cms-kanban-col[data-status="done"] .cms-kanban-col-head {
+  border-bottom-color: #1a8b46;
+}
+.cms-kanban-col-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f0f0f;
+}
+.cms-kanban-col-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: #fff;
+  border-radius: 30px;
+  color: #525252;
+  font-family: 'Inter', sans-serif;
+  min-width: 26px;
+  text-align: center;
+}
+.cms-kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cms-kanban-card {
+  background: #fff;
+  border: 1px solid #e8e6e3;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: grab;
+  transition: all 0.25s;
+}
+.cms-kanban-card:hover {
+  border-color: #c47a00;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  transform: translateY(-1px);
+}
+.cms-kanban-card:active {
+  cursor: grabbing;
+}
+.cms-kanban-card-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border-radius: 30px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.03em;
+}
+.cms-kanban-card-tag.feature {
+  background: #e6f0ff;
+  color: #1a5ec4;
+}
+.cms-kanban-card-tag.bug {
+  background: #fde7ea;
+  color: #c5293a;
+}
+.cms-kanban-card-tag.task {
+  background: #fff4e0;
+  color: #c47a00;
+}
+.cms-kanban-card-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f0f0f;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.cms-kanban-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cms-kanban-assignees {
+  display: flex;
+  gap: -6px;
+}
+.cms-kanban-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #c47a00;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  border: 2px solid #fff;
+  margin-left: -6px;
+}
+.cms-kanban-avatar:first-child { margin-left: 0; }
+.cms-kanban-card-date {
+  font-size: 10px;
+  color: #8a8a8a;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ============ 인보이스 ============ */
+.cms-invoice-status {
+  font-size: 10.5px;
+  padding: 3px 9px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+}
+.cms-invoice-status.paid { background: #e8f5ed; color: #1a8b46; }
+.cms-invoice-status.pending { background: #fff4e0; color: #c47a00; }
+.cms-invoice-status.overdue { background: #fde7ea; color: #c5293a; }
+.cms-invoice-status.draft { background: #f4f4f2; color: #525252; }
+
+/* ============ 이슈 트래커 ============ */
+.cms-issue-priority-badge {
+  font-size: 10.5px;
+  padding: 3px 9px;
+  border-radius: 30px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cms-issue-priority-badge.critical {
+  background: #fde7ea;
+  color: #c5293a;
+}
+.cms-issue-priority-badge.high {
+  background: #fff0e0;
+  color: #e07b00;
+}
+.cms-issue-priority-badge.normal {
+  background: #fff4e0;
+  color: #c47a00;
+}
+.cms-issue-priority-badge.low {
+  background: #e6f0ff;
+  color: #1a5ec4;
+}
+
+.cms-sla-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+.cms-sla-indicator.safe { color: #1a8b46; }
+.cms-sla-indicator.warning { color: #c47a00; }
+.cms-sla-indicator.danger { color: #c5293a; }
+
+/* ============ 리소스 관리 ============ */
+.cms-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.cms-resource-card {
+  padding: 16px;
+  background: #fafaf9;
+  border: 1px solid #e8e6e3;
+  border-radius: 10px;
+  transition: all 0.25s;
+}
+.cms-resource-card:hover {
+  background: #fff;
+  border-color: #c47a00;
+}
+.cms-resource-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cms-resource-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c47a00, #8f5800);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: 'Noto Serif KR', serif;
+  flex-shrink: 0;
+}
+.cms-resource-info { flex: 1; min-width: 0; }
+.cms-resource-name {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cms-resource-role {
+  font-size: 10.5px;
+  color: #8a8a8a;
+}
+.cms-resource-util {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e8e6e3;
+}
+.cms-util-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+.cms-util-label strong {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+}
+.cms-util-bar {
+  height: 6px;
+  background: #f0eeeb;
+  border-radius: 30px;
+  overflow: hidden;
+}
+.cms-util-fill {
+  height: 100%;
+  border-radius: 30px;
+  transition: width 0.5s;
+}
+.cms-util-fill.low { background: #1a8b46; }
+.cms-util-fill.medium { background: #c47a00; }
+.cms-util-fill.high { background: #c5293a; }
+.cms-resource-projects {
+  margin-top: 10px;
+  font-size: 10.5px;
+  color: #525252;
+  line-height: 1.6;
+}
+.cms-resource-projects strong {
+  color: #0f0f0f;
+}
+
+/* ============ 반응형 ============ */
+@media (max-width: 1400px) {
+  .cms-kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cms-kanban-col {
+    min-height: 350px;
+  }
+}
+@media (max-width: 880px) {
+  .cms-kanban-board {
+    grid-template-columns: 1fr;
+  }
+  .cms-client-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .cms-kanban-header {
+    padding: 14px;
+  }
+  .cms-kanban-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .cms-kanban-actions select {
+    width: 100%;
+  }
+}
