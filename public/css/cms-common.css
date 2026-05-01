@@ -11,7 +11,6 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ============ 사이드바 ============ */
 .cms-side {
   width: 240px;
   background: #0a0a0a;
@@ -100,7 +99,6 @@ body {
   font-size: 14px;
 }
 
-/* ============ 메인 영역 ============ */
 .cms-main {
   flex: 1;
   min-width: 0;
@@ -108,7 +106,6 @@ body {
   flex-direction: column;
 }
 
-/* 상단 바 */
 .cms-top {
   height: 60px;
   background: #fff;
@@ -145,7 +142,6 @@ body {
   font-size: 13px;
 }
 
-/* ============ 콘텐츠 ============ */
 .cms-content {
   padding: 26px 28px;
   flex: 1;
@@ -160,7 +156,6 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ============ KPI 카드 ============ */
 .cms-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -211,7 +206,6 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
-/* ============ 패널 ============ */
 .cms-panel {
   background: #fff;
   border: 1px solid #e8e6e3;
@@ -258,7 +252,6 @@ body {
   color: #1a5ec4;
 }
 
-/* Grid rows */
 .cms-row-2-1 {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -272,7 +265,6 @@ body {
   margin-bottom: 18px;
 }
 
-/* ============ 테이블 ============ */
 .cms-tbl {
   width: 100%;
   border-collapse: collapse;
@@ -297,7 +289,6 @@ body {
 .cms-tbl tr:hover td { background: #fafaf9; }
 .cms-tbl tr:last-child td { border-bottom: none; }
 
-/* ============ 버튼 ============ */
 .cms-btn {
   display: inline-flex;
   align-items: center;
@@ -357,7 +348,6 @@ body {
   background: #fbf3f4;
 }
 
-/* ============ 필터바 ============ */
 .cms-filter-bar {
   display: flex;
   justify-content: space-between;
@@ -397,7 +387,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ============ 폼 ============ */
 .cms-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -443,7 +432,6 @@ body {
   accent-color: #7a1f2b;
 }
 
-/* ============ 뱃지 ============ */
 .cms-badge {
   display: inline-block;
   padding: 3px 9px;
@@ -459,7 +447,6 @@ body {
 .cms-b-info { background: #e6f0ff; color: #1a5ec4; }
 .cms-b-mute { background: #f4f4f2; color: #525252; }
 
-/* ============ 토스트 ============ */
 .cms-toast {
   position: fixed;
   bottom: 24px;
@@ -482,7 +469,6 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ============ 반응형 ============ */
 @media (max-width: 1100px) {
   .cms-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .cms-row-2-1,
