@@ -45,8 +45,8 @@
   node_bundler = "esbuild"
   directory = "netlify/functions"
   included_files = ["db/**/*", "lib/**/*"]
-  external_node_modules = ["postgres"]
-  
+  external_node_modules = ["postgres", "resend"]
+
 [dev]
   port = 8888
   publish = "public"
