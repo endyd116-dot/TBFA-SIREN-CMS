@@ -124,6 +124,7 @@ export const donations = pgTable("donations", {
   receiptRequested: boolean("receipt_requested").default(false),
   receiptIssued: boolean("receipt_issued").default(false),
   receiptIssuedAt: timestamp("receipt_issued_at"),
+  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규 (예: TBFA-2026-000042)
 
   // 캠페인 연결 (선택)
   campaignTag: varchar("campaign_tag", { length: 50 }),
@@ -138,6 +139,7 @@ export const donations = pgTable("donations", {
   memberIdx: index("donations_member_idx").on(t.memberId),
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
+  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber), // ★ STEP H-2a 신규
 }));
 
 /* =========================================================
