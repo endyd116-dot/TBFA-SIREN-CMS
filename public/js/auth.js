@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — auth.js (★ K-1 비밀번호 재설정 요청 핸들러 추가)
+   SIREN — auth.js (★ K-2 회원 탈퇴 핸들러 추가)
    인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러 + 채팅 알림
    ========================================================= */
 (function () {
@@ -61,6 +61,17 @@
       await api('/api/auth/logout', { method: 'POST' });
       this.user = null;
       this.stats = null;
+    },
+
+    /* ★ K-2: 회원 탈퇴 */
+    async withdraw(payload) {
+      const res = await api('/api/auth/withdraw', { method: 'POST', body: payload });
+      if (res.ok) {
+        /* 탈퇴 성공 시 클라이언트 상태도 즉시 초기화 */
+        this.user = null;
+        this.stats = null;
+      }
+      return res;
     },
 
     isLoggedIn() {
@@ -230,6 +241,78 @@
     });
   }
 
+  /* ★ K-2: 회원 탈퇴 핸들러 */
+  function setupWithdrawForm() {
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form.id !== 'mpWithdrawForm') return;
+
+      e.preventDefault();
+
+      const passwordEl = document.getElementById('mpWithdrawPassword');
+      const reasonEl = document.getElementById('mpWithdrawReason');
+      const confirmEl = document.getElementById('mpWithdrawConfirm');
+      const btn = document.getElementById('mpWithdrawBtn');
+
+      const password = (passwordEl?.value || '').trim();
+      const reason = (reasonEl?.value || '').trim();
+      const confirmed = confirmEl?.checked === true;
+
+      if (!password) {
+        return window.SIREN.toast('비밀번호를 입력해 주세요');
+      }
+      if (!confirmed) {
+        return window.SIREN.toast('탈퇴 안내를 확인하셨다면 동의 체크박스를 선택해 주세요');
+      }
+
+      /* 한 번 더 명시적 confirm */
+      const finalConfirm = window.confirm(
+        '정말로 회원 탈퇴를 진행하시겠습니까?\n\n' +
+        '• 회원 정보가 즉시 익명화됩니다\n' +
+        '• 탈퇴 후에는 복구할 수 없습니다\n' +
+        '• 후원 내역만 5년간 법령에 따라 보관됩니다\n\n' +
+        '계속 진행하려면 "확인"을 눌러 주세요.'
+      );
+      if (!finalConfirm) return;
+
+      const oldText = btn ? btn.textContent : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '탈퇴 처리 중...';
+      }
+
+      try {
+        const res = await Auth.withdraw({ password, reason: reason || undefined });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data.message || '회원 탈퇴가 완료되었습니다');
+
+          /* 헤더 즉시 비로그인 상태로 갱신 */
+          syncHeader();
+
+          /* 2초 후 홈으로 이동 */
+          setTimeout(() => {
+            location.href = '/index.html';
+          }, 2000);
+        } else {
+          const msg = res.data?.error || '탈퇴 처리 중 오류가 발생했습니다';
+          window.SIREN.toast(msg);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        }
+      } catch (err) {
+        console.error('[withdraw]', err);
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      }
+    });
+  }
+
   /* ------------ 마이페이지 데이터 주입 ------------ */
   async function injectMypage() {
     if (!document.body.dataset.page || document.body.dataset.page !== 'mypage') return;
@@ -356,6 +439,7 @@
     _initExecuted = true;
 
     setupAuthForms();
+    setupWithdrawForm();  /* ★ K-2 */
     await Auth.fetchMe();
     syncHeader();
 
