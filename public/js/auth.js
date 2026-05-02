@@ -277,7 +277,7 @@
             <td>${payMap[d.payMethod] || d.payMethod}</td>
             <td>${statusMap[d.status] || d.status}</td>
             <td>${d.status === 'completed'
-              ? `<button class="btn-link" data-demo-action="receipt" data-demo-message="영수증 PDF를 발급합니다">발급</button>`
+              ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`
               : '<span style="color:var(--text-3);font-size:12px">—</span>'}
             </td>
           </tr>
