@@ -11,6 +11,7 @@
     donations: '기부 관리',
     support: '지원 관리',
     operators: '운영자 관리',
+    chat: '채팅 관리',    
     ai: 'AI 추천 센터',
     content: '콘텐츠 관리',
     settings: '시스템 설정',
@@ -1403,6 +1404,8 @@
       loadSupport();
     } else if (page === 'operators') {
       loadOperators();
+    } else if (page === 'chat') {
+      if (window.SIREN_ADMIN_CHAT) window.SIREN_ADMIN_CHAT.loadRoomList();
     } else if (page === 'content') {
       loadContent();
     } else if (page === 'ai') {
