@@ -1,36 +1,28 @@
 /**
- * SIREN — PDF 기부금 영수증 생성 (STEP H-2c)
+ * SIREN — PDF 기부금 영수증 생성 (STEP H-2c + H-2d-2)
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
- * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (전체 폰트)
+ * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset)
  * - A4 (595 x 842 pt) 1장
- * - 협회 정보는 환경변수에서 읽음 (없으면 샘플 값)
  *
- * 환경변수:
+ * ★ H-2d-2 변경:
+ *   - 협회 정보 + 양식 텍스트를 DB(receipt_settings)에서 우선 조회
+ *   - DB 비어있으면 환경변수 → 그것도 없으면 샘플값
+ *   - 두 관리자 페이지에서 변경한 내용이 즉시 PDF에 반영됨
+ *
+ * 환경변수 (DB 미설정 시 폴백):
  *   ORG_NAME              — 단체명
  *   ORG_REGISTRATION_NO   — 고유번호 (사업자등록번호 격)
  *   ORG_REPRESENTATIVE    — 대표자
  *   ORG_ADDRESS           — 주소
  *   ORG_PHONE             — 연락처
- *
- * ★ 수정: subset:true 제거 — pdf-lib의 한글 CJK subset 버그로 글자 누락 발생
- *   → 폰트 전체 임베딩 (PDF 약 6MB)
  */
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-
-/* ============ 협회 정보 (환경변수 기반) ============ */
-function getOrgInfo() {
-  return {
-    name: process.env.ORG_NAME || "(샘플) 교사유가족협의회",
-    registrationNo: process.env.ORG_REGISTRATION_NO || "000-00-00000",
-    representative: process.env.ORG_REPRESENTATIVE || "○○○",
-    address: process.env.ORG_ADDRESS || "(샘플) 서울특별시 ○○구 ○○로 ○○",
-    phone: process.env.ORG_PHONE || "(샘플) 02-0000-0000",
-  };
-}
+import { eq } from "drizzle-orm";
+import { db, receiptSettings } from "../db";
 
 /* ============ 폰트 캐싱 (Lambda 컨테이너 재사용 시 성능 향상) ============ */
 let _fontCache: Uint8Array | null = null;
@@ -42,6 +34,91 @@ function loadKoreanFont(): Uint8Array {
   const buf = readFileSync(fontPath);
   _fontCache = buf;
   return buf;
+}
+
+/* ============ 영수증 설정 조회 (DB 우선 → 환경변수 → 샘플) ============ */
+interface ReceiptSettingsResolved {
+  orgName: string;
+  orgRegistrationNo: string;
+  orgRepresentative: string;
+  orgAddress: string;
+  orgPhone: string;
+  title: string;
+  subtitle: string;
+  proofText: string;
+  donationTypeLabel: string;
+  footerNotes: string[];
+}
+
+async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
+  /* 환경변수 폴백값 */
+  const envOrgName = process.env.ORG_NAME || "(샘플) 교사유가족협의회";
+  const envOrgRegNo = process.env.ORG_REGISTRATION_NO || "000-00-00000";
+  const envOrgRep = process.env.ORG_REPRESENTATIVE || "○○○";
+  const envOrgAddr = process.env.ORG_ADDRESS || "(샘플) 서울특별시 ○○구 ○○로 ○○";
+  const envOrgPhone = process.env.ORG_PHONE || "(샘플) 02-0000-0000";
+
+  const defaultTitle = "기 부 금  영 수 증";
+  const defaultSubtitle = "(소득세법 시행규칙 별지 제45호의2 서식)";
+  const defaultProofText = "위와 같이 기부금을 기부하였음을 증명합니다.";
+  const defaultDonationLabel = "지정기부금";
+  const defaultFooter: string[] = [
+    "• 본 영수증은 「소득세법」 제34조 및 「법인세법」 제24조에 따른 기부금 영수증입니다.",
+    "• 본 영수증은 발급기관에서 전자 발급되었으며, 영수증 번호로 진위를 확인할 수 있습니다.",
+    `• 문의: ${envOrgPhone} / ${envOrgName}`,
+  ];
+
+  /* DB 조회 시도 (실패해도 폴백으로 진행) */
+  try {
+    const [row] = await db
+      .select()
+      .from(receiptSettings)
+      .where(eq(receiptSettings.id, 1))
+      .limit(1);
+
+    if (row) {
+      const r = row as any;
+      let footerNotes: string[] = defaultFooter;
+      if (r.footerNotes) {
+        try {
+          const parsed = JSON.parse(r.footerNotes);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            footerNotes = parsed.map((s: any) => String(s));
+          }
+        } catch {
+          /* JSON 파싱 실패 시 기본 폴백 */
+        }
+      }
+      return {
+        orgName: r.orgName || envOrgName,
+        orgRegistrationNo: r.orgRegistrationNo || envOrgRegNo,
+        orgRepresentative: r.orgRepresentative || envOrgRep,
+        orgAddress: r.orgAddress || envOrgAddr,
+        orgPhone: r.orgPhone || envOrgPhone,
+        title: r.title || defaultTitle,
+        subtitle: r.subtitle || defaultSubtitle,
+        proofText: r.proofText || defaultProofText,
+        donationTypeLabel: r.donationTypeLabel || defaultDonationLabel,
+        footerNotes,
+      };
+    }
+  } catch (e) {
+    console.warn("[pdf-receipt] receipt_settings 조회 실패, 환경변수 폴백:", e);
+  }
+
+  /* DB 없거나 조회 실패 시 환경변수/샘플 사용 */
+  return {
+    orgName: envOrgName,
+    orgRegistrationNo: envOrgRegNo,
+    orgRepresentative: envOrgRep,
+    orgAddress: envOrgAddr,
+    orgPhone: envOrgPhone,
+    title: defaultTitle,
+    subtitle: defaultSubtitle,
+    proofText: defaultProofText,
+    donationTypeLabel: defaultDonationLabel,
+    footerNotes: defaultFooter,
+  };
 }
 
 /* ============ 영수증 데이터 인터페이스 ============ */
@@ -61,14 +138,16 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
 
-  /* 한글 폰트 임베딩 — ★ subset 옵션 제거 (CJK 글자 누락 버그 회피) */
+  /* 한글 폰트 임베딩 (subset: 사용된 글자만 포함 → 파일 크기 작음) */
   const fontBytes = loadKoreanFont();
-  const font = await pdfDoc.embedFont(fontBytes);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+
+  /* 영수증 설정 (DB 우선) */
+  const settings = await getReceiptSettings();
 
   /* A4 1장 추가 */
   const page = pdfDoc.addPage([595, 842]);
   const { width, height } = page.getSize();
-  const org = getOrgInfo();
 
   /* 색상 정의 */
   const black = rgb(0, 0, 0);
@@ -78,7 +157,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const stampRed = rgb(0.7, 0.05, 0.1);
 
   /* ───────── 제목 ───────── */
-  const title = "기 부 금  영 수 증";
+  const title = settings.title;
   const titleSize = 22;
   const titleWidth = font.widthOfTextAtSize(title, titleSize);
   page.drawText(title, {
@@ -90,7 +169,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   });
 
   /* 부제목 */
-  const subtitle = "(소득세법 시행규칙 별지 제45호의2 서식)";
+  const subtitle = settings.subtitle;
   const subSize = 10;
   const subWidth = font.widthOfTextAtSize(subtitle, subSize);
   page.drawText(subtitle, {
@@ -206,14 +285,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   });
   y -= 8;
 
-  drawLabelValue("단체명", org.name, 50, y, 70, 425);
+  drawLabelValue("단체명", settings.orgName, 50, y, 70, 425);
   y -= 25;
-  drawLabelValue("고유번호", org.registrationNo, 50, y, 70, 210);
-  drawLabelValue("대표자", org.representative, 330, y, 70, 165);
+  drawLabelValue("고유번호", settings.orgRegistrationNo, 50, y, 70, 210);
+  drawLabelValue("대표자", settings.orgRepresentative, 330, y, 70, 165);
   y -= 25;
-  drawLabelValue("주소", org.address, 50, y, 70, 425);
+  drawLabelValue("주소", settings.orgAddress, 50, y, 70, 425);
   y -= 25;
-  drawLabelValue("연락처", org.phone, 50, y, 70, 425);
+  drawLabelValue("연락처", settings.orgPhone, 50, y, 70, 425);
 
   /* ───────── ③ 기부 내역 ───────── */
   y -= 40;
@@ -241,11 +320,11 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     cms: "자동이체(CMS)",
   };
   drawLabelValue("결제방법", payMap[data.payMethod] || data.payMethod, 50, y, 70, 210);
-  drawLabelValue("기부금구분", "지정기부금", 330, y, 70, 165);
+  drawLabelValue("기부금구분", settings.donationTypeLabel, 330, y, 70, 165);
 
   /* ───────── 증명 문구 ───────── */
   y -= 60;
-  const proofText = "위와 같이 기부금을 기부하였음을 증명합니다.";
+  const proofText = settings.proofText;
   const proofWidth = font.widthOfTextAtSize(proofText, 12);
   page.drawText(proofText, {
     x: (width - proofWidth) / 2,
@@ -257,7 +336,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   /* ───────── 발급 단체명 + 직인 ───────── */
   y -= 50;
-  const orgLine = `${org.name}`;
+  const orgLine = `${settings.orgName}`;
   const orgLineSize = 14;
   const orgWidth = font.widthOfTextAtSize(orgLine, orgLineSize);
   const orgX = (width - orgWidth) / 2 - 25;
@@ -296,14 +375,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     color: gray,
   });
 
-  const notes = [
-    "• 본 영수증은 「소득세법」 제34조 및 「법인세법」 제24조에 따른 기부금 영수증입니다.",
-    "• 본 영수증은 발급기관에서 전자 발급되었으며, 영수증 번호로 진위를 확인할 수 있습니다.",
-    `• 문의: ${org.phone} / ${org.name}`,
-  ];
-
   let noteY = 100;
-  for (const note of notes) {
+  for (const note of settings.footerNotes) {
     page.drawText(note, {
       x: 50,
       y: noteY,
@@ -312,6 +385,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
       color: gray,
     });
     noteY -= 14;
+    if (noteY < 30) break; // 페이지 밖으로 나가면 중단
   }
 
   /* ───────── PDF 바이너리 반환 ───────── */
