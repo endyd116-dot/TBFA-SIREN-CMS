@@ -4,6 +4,7 @@
  *  + 관리자/담당자 다중 메일 발송 (STEP F-3)
  *  + AI 우선순위 자동 분석 (STEP E-4a)
  *  + 긴급 신청은 모든 운영자에게 강제 발송
+ *  + 신청자에게 접수 확인 메일 발송 (★ STEP H-4)
  */
 import { eq, and } from "drizzle-orm";
 import { db, supportRequests, members, generateRequestNo } from "../../db";
@@ -14,7 +15,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
-import { sendEmail, tplSupportReceivedAdmin } from "../../lib/email";
+import { sendEmail, tplSupportReceivedAdmin, tplSupportReceiptUser } from "../../lib/email";
 import { analyzePriority } from "../../lib/ai-priority";
 
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || "";
@@ -150,7 +151,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* 8. 메일 발송 (실패해도 신청은 정상 처리) */
+    /* 8. 관리자/운영자 메일 발송 (실패해도 신청은 정상 처리) */
     if (recipientEmails.size > 0) {
       const contentPreview = (content || "").trim().slice(0, 80);
       const subjectPrefix = priority === "urgent" ? "🔴 긴급 - " : "";
@@ -179,6 +180,30 @@ export default async (req: Request) => {
       }
     } else {
       console.warn("[support-create] 메일 수신자 없음 — ADMIN_NOTIFY_EMAIL 또는 운영자 알림 설정 필요");
+    }
+
+    /* ★ STEP H-4: 신청자에게 접수 확인 메일 발송
+       - 결정 Q3-A안: 긴급 신청자에게만 1:1 채팅 안내 추가
+       - try-catch로 격리 → 메일 실패해도 신청 처리 응답은 정상 반환 */
+    if (user.email) {
+      try {
+        const userTpl = tplSupportReceiptUser({
+          applicantName: user.name,
+          requestNo,
+          category,
+          title,
+          priority,
+          createdAt: new Date((record as any).createdAt || Date.now()),
+        });
+        await sendEmail({
+          to: user.email,
+          subject: userTpl.subject,
+          html: userTpl.html,
+        });
+      } catch (userMailErr) {
+        /* 사용자 메일 발송 실패는 응답에 영향 주지 않음 — 로그만 남김 */
+        console.error("[support-create] 신청자 접수 확인 메일 발송 실패:", userMailErr);
+      }
     }
 
     /* 9. 감사 로그 */

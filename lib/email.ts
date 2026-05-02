@@ -431,3 +431,165 @@ export function tplDonationThanks(opts: {
     }),
   };
 }
+
+/* ═══════════════════════════════════════════════════════
+   템플릿 4. 유저에게 — 지원 신청 접수 확인 (★ STEP H-4)
+   결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가
+   ═══════════════════════════════════════════════════════ */
+export function tplSupportReceiptUser(opts: {
+  applicantName: string;
+  requestNo: string;
+  category: string;
+  title: string;
+  priority: string;          // 'urgent' | 'normal' | 'low'
+  createdAt: Date;
+}) {
+  const { applicantName, requestNo, category, title, priority, createdAt } = opts;
+  const categoryKr = CATEGORY_KR[category] || category;
+  const isUrgent = priority === "urgent";
+
+  /* 날짜/시간 포맷팅 */
+  const yyyy = createdAt.getFullYear();
+  const mm = String(createdAt.getMonth() + 1).padStart(2, "0");
+  const dd = String(createdAt.getDate()).padStart(2, "0");
+  const hh = String(createdAt.getHours()).padStart(2, "0");
+  const min = String(createdAt.getMinutes()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+
+  /* 우선순위별 안내 박스 (긴급/일반 분기) */
+  const priorityNoticeHtml = isUrgent
+    ? `
+    <div style="margin:20px 0;padding:16px 20px;
+                background:linear-gradient(135deg,#fdecec,#fff5f5);
+                border:2px solid #c5293a;border-radius:8px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:24px;line-height:1;flex-shrink:0;">🔴</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:6px;">
+            긴급 신청으로 분류되었습니다
+          </div>
+          <div style="font-size:13px;color:#a01e2c;line-height:1.6;">
+            AI가 ${esc(applicantName)} 님의 신청을 <strong>최우선 처리 대상</strong>으로 분류했습니다.<br />
+            담당자가 즉시 검토 중이며, 빠른 시일 내에 답변드리겠습니다.
+          </div>
+        </div>
+      </div>
+    </div>`
+    : `
+    <div style="margin:20px 0;padding:14px 18px;background:#f0f5fc;
+                border:1px solid #cee0f2;border-radius:6px;
+                font-size:13px;color:#1a5ec4;line-height:1.6;">
+      💼 담당자가 신청 내용을 확인 후 <strong>영업일 기준 1~3일 이내</strong>에<br />
+      마이페이지 및 이메일로 답변드리겠습니다.
+    </div>`;
+
+  /* ★ 결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가 */
+  const chatNoticeHtml = isUrgent
+    ? `
+    <div style="margin:20px 0 0;padding:18px 20px;
+                background:#fff8ec;border:1px solid #f0e3c4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:8px;">
+        ⚡ 더 빠른 상담이 필요하신가요?
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:12px;">
+        긴급한 도움이 필요하시면 <strong>1:1 실시간 채팅 상담</strong>을 이용해 보세요.<br />
+        담당자가 연결되는 즉시 직접 대화하며 도움을 드릴 수 있습니다.
+      </div>
+      <a href="${SITE_URL}/mypage.html#consult" target="_blank"
+         style="display:inline-block;padding:10px 18px;background:#c5293a;color:#ffffff;
+                text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
+        💬 1:1 채팅 상담 시작 →
+      </a>
+    </div>`
+    : "";
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(applicantName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(applicantName)} 님의 <strong style="color:#7a1f2b;">${esc(categoryKr)}</strong> 지원 신청이<br />
+      정상적으로 접수되었습니다. 🎗
+    </p>
+
+    ${priorityNoticeHtml}
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+            📋 접수 정보
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:5px 0;color:#8a8a8a;">접수번호</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(requestNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">접수일시</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">지원 유형</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(categoryKr)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;vertical-align:top;">제목</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:600;">${esc(title)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">처리 상태</td>
+              <td style="padding:5px 0;">
+                <span style="display:inline-block;padding:3px 10px;
+                             background:${isUrgent ? "#c5293a" : "#1a5ec4"};
+                             color:#ffffff;border-radius:3px;font-size:12px;font-weight:600;">
+                  ${isUrgent ? "🔴 긴급 처리 중" : "접수됨"}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    ${chatNoticeHtml}
+
+    <div style="margin:24px 0 0;padding:18px 20px;background:#ffffff;border:1px solid #e8e6e3;
+                border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
+                  font-family:'Noto Serif KR',serif;">
+        🤝 처리 절차 안내
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        <div style="margin-bottom:6px;"><strong style="color:#0f0f0f;">1단계.</strong> 신청 내용 검토 (현재 단계)</div>
+        <div style="margin-bottom:6px;"><strong style="color:#0f0f0f;">2단계.</strong> 담당 전문가 매칭</div>
+        <div style="margin-bottom:6px;"><strong style="color:#0f0f0f;">3단계.</strong> 지원 진행 및 답변 등록</div>
+        <div><strong style="color:#0f0f0f;">4단계.</strong> 완료 보고</div>
+      </div>
+      <div style="margin-top:12px;font-size:12.5px;color:#8a8a8a;line-height:1.6;">
+        진행 상황은 마이페이지에서 실시간으로 확인하실 수 있으며,<br />
+        답변이 등록되면 별도 알림 메일을 발송해 드립니다.
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
+                border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
+      🔒 <strong>개인정보 보호</strong> · 신청 내용은 담당자만 열람할 수 있으며,<br />
+      관련 법령에 따라 안전하게 관리됩니다.
+    </div>
+  `;
+
+  const subjectPrefix = isUrgent ? "🔴 긴급 - " : "";
+  return {
+    subject: `[SIREN] ${subjectPrefix}${applicantName}님, 지원 신청이 접수되었습니다`,
+    html: baseLayout({
+      title: isUrgent ? "긴급 지원 신청이 접수되었습니다" : "지원 신청이 접수되었습니다",
+      bodyHtml,
+      ctaText: "마이페이지에서 진행 상황 확인",
+      ctaUrl: `${SITE_URL}/mypage.html#support`,
+    }),
+  };
+}
