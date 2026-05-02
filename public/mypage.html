@@ -438,6 +438,8 @@
         <div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">로딩 중...</div>
       </div>
       <div id="chatInputArea">
+        <input type="file" id="chatImageInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+        <button id="chatImageBtn" title="이미지 전송" style="background:transparent;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;flex-shrink:0;color:var(--text-2)">📷</button>
         <textarea id="chatInputText" rows="1" placeholder="메시지를 입력하세요... (Enter: 전송 / Shift+Enter: 줄바꿈)"></textarea>
         <button id="chatSendBtn" title="전송">➤</button>
       </div>

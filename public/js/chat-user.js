@@ -322,6 +322,127 @@
     msgsEl.insertAdjacentHTML('beforeend', html);
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
+  /* ============ 이미지 업로드 (클라이언트 압축 + 전송) ============ */
+  function setupImageUpload() {
+    /* 📷 버튼 → 파일 선택 창 열기 */
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#chatImageBtn')) return;
+      e.preventDefault();
+      if (!_currentRoom?.id) return;
+      const input = document.getElementById('chatImageInput');
+      if (input) input.click();
+    });
+
+    /* 파일 선택 → 압축 → 업로드 → 메시지 전송 */
+    document.addEventListener('change', async (e) => {
+      if (e.target.id !== 'chatImageInput') return;
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = ''; // 리셋
+
+      if (file.size > 10 * 1024 * 1024) {
+        SIREN.toast('파일 크기는 10MB 이하여야 합니다');
+        return;
+      }
+
+      SIREN.toast('⏳ 이미지 처리 중...');
+
+      try {
+        /* 클라이언트 압축 (Canvas API) */
+        const compressed = await compressImage(file, 1200, 0.75);
+
+        /* FormData로 업로드 */
+        const fd = new FormData();
+        fd.append('file', compressed, file.name);
+        fd.append('roomId', String(_currentRoom.id));
+
+        const uploadRes = await fetch('/api/chat/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: fd,
+        });
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok || !uploadData?.ok) {
+          SIREN.toast(uploadData?.error || '이미지 업로드 실패');
+          return;
+        }
+
+        const att = uploadData.data?.attachment;
+        if (!att) { SIREN.toast('업로드 응답 오류'); return; }
+
+        /* 이미지 메시지 전송 */
+        const msgRes = await api('/api/chat/messages', {
+          method: 'POST',
+          body: {
+            roomId: _currentRoom.id,
+            content: `[이미지] ${att.originalName}`,
+            messageType: 'image',
+            attachmentId: att.id,
+          },
+        });
+
+        if (msgRes.ok && msgRes.data?.data?.message) {
+          appendMessages([msgRes.data.data.message], false);
+          _lastMessageAt = msgRes.data.data.message.createdAt;
+          SIREN.toast('이미지가 전송되었습니다');
+        } else {
+          SIREN.toast('이미지 메시지 전송 실패');
+        }
+      } catch (err) {
+        console.error('[chat] 이미지 업로드 에러:', err);
+        SIREN.toast('이미지 처리 중 오류가 발생했습니다');
+      }
+    });
+  }
+
+  /**
+   * Canvas API 기반 이미지 압축
+   * @param {File} file - 원본 파일
+   * @param {number} maxDim - 최대 가로/세로 (px)
+   * @param {number} quality - JPEG 품질 (0.0 ~ 1.0)
+   * @returns {Promise<Blob>}
+   */
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+
+        /* 리사이즈 */
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Canvas toBlob 실패'));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('이미지 로드 실패'));
+      };
+
+      img.src = url;
+    });
+  }
 
   /* ============ 메시지 전송 (이벤트 위임 방식) ============ */
   function setupSend() {
@@ -421,6 +542,7 @@
     setupRoomClick();
     setupNewChatBtn();
     setupModalClose();
+    setupImageUpload();
     setupSend();
   }
 
