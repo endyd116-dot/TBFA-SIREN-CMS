@@ -34,9 +34,9 @@ export default async (req: Request) => {
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
     const v = safeValidate(adminLoginSchema, body);
-    if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+    if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
-    const { id, password } = v.data;
+    const { id, password } = (v as any).data;
 
     /* 'admin' ID는 admin@siren-org.kr 로 매핑 */
     const email = id === ADMIN_DEFAULT_ID

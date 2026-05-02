@@ -39,9 +39,9 @@ export default async (req: Request) => {
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
     const v = safeValidate(loginSchema, body);
-    if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+    if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
-    const { email, password, remember } = v.data;
+    const { email, password, remember } = (v as any).data;
     const wantRemember = remember === true;
 
     /* 2. 이메일로 회원 조회 */
@@ -121,7 +121,8 @@ export default async (req: Request) => {
     }
 
     /* 6. 로그인 성공 — 잠금/실패카운트 초기화, 마지막 로그인 갱신 */
-    await db
+        /* 6. 로그인 성공 — 잠금/실패카운트 초기화, 마지막 로그인 갱신 */
+      await db
       .update(members)
       .set({
         loginFailCount: 0,
@@ -129,7 +130,7 @@ export default async (req: Request) => {
         lastLoginAt: new Date(),
         /* ★ B-5: null 가드 */
         lastLoginIp: (getClientIp(req) || "").slice(0, 45),
-      })
+      } as any)
       .where(eq(members.id, user.id));
 
     /* 7. ★ E: JWT + 쿠키 발급 (remember 분기) */

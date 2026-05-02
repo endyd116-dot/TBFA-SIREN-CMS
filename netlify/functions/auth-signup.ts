@@ -29,9 +29,9 @@ export default async (req: Request) => {
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
     const v = safeValidate(signupSchema, body);
-    if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+    if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
-    const { email, password, name, phone, memberType } = v.data;
+    const { email, password, name, phone, memberType } = (v as any).data;
 
     /* 2. 이메일 중복 확인 */
     const existing = await db
