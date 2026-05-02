@@ -13,6 +13,7 @@
     support_other:    { emoji: '💬', label: '기타',     cls: 'cat-other' },
   };
 
+  let _chatInitDone = false; // ★ 중복 init 방어
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMessageAt = null;
@@ -552,10 +553,12 @@
 
   /* ============ 초기화 ============ */
   function init() {
+    if (_chatInitDone) return; // ★ 2번째 호출 차단
+    _chatInitDone = true;
+
     setupRoomClick();
     setupNewChatBtn();
     setupModalClose();
-    setupImageUpload();
     setupSend();
   }
 
