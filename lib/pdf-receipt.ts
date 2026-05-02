@@ -2,7 +2,7 @@
  * SIREN — PDF 기부금 영수증 생성 (STEP H-2c)
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
- * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset)
+ * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (전체 폰트)
  * - A4 (595 x 842 pt) 1장
  * - 협회 정보는 환경변수에서 읽음 (없으면 샘플 값)
  *
@@ -12,6 +12,9 @@
  *   ORG_REPRESENTATIVE    — 대표자
  *   ORG_ADDRESS           — 주소
  *   ORG_PHONE             — 연락처
+ *
+ * ★ 수정: subset:true 제거 — pdf-lib의 한글 CJK subset 버그로 글자 누락 발생
+ *   → 폰트 전체 임베딩 (PDF 약 6MB)
  */
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -58,9 +61,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
 
-  /* 한글 폰트 임베딩 (subset: 사용된 글자만 포함 → 파일 크기 작음) */
+  /* 한글 폰트 임베딩 — ★ subset 옵션 제거 (CJK 글자 누락 버그 회피) */
   const fontBytes = loadKoreanFont();
-  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const font = await pdfDoc.embedFont(fontBytes);
 
   /* A4 1장 추가 */
   const page = pdfDoc.addPage([595, 842]);
