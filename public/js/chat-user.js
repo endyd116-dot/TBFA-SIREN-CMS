@@ -323,47 +323,68 @@
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
-  /* ============ 메시지 전송 ============ */
+  /* ============ 메시지 전송 (이벤트 위임 방식) ============ */
   function setupSend() {
-    const sendBtn = document.getElementById('chatSendBtn');
-    const input = document.getElementById('chatInputText');
-    if (!sendBtn || !input) return;
+    /* 전송 함수 */
+    async function doSend() {
+      const input = document.getElementById('chatInputText');
+      const sendBtn = document.getElementById('chatSendBtn');
+      if (!input) return;
 
-    async function send() {
       const text = (input.value || '').trim();
-      if (!text || !_currentRoom?.id) return;
-
-      sendBtn.disabled = true;
-      const res = await api('/api/chat/messages', {
-        method: 'POST',
-        body: { roomId: _currentRoom.id, content: text, messageType: 'text' },
-      });
-      sendBtn.disabled = false;
-
-      if (res.ok && res.data?.data?.message) {
-        input.value = '';
-        input.style.height = 'auto';
-        appendMessages([res.data.data.message], false);
-        _lastMessageAt = res.data.data.message.createdAt;
-      } else {
-        SIREN.toast(res.data?.error || '전송 실패');
+      if (!text) return;
+      if (!_currentRoom || !_currentRoom.id) {
+        console.warn('[chat] _currentRoom 없음', _currentRoom);
+        return;
       }
-      input.focus();
+
+      if (sendBtn) sendBtn.disabled = true;
+
+      try {
+        const res = await api('/api/chat/messages', {
+          method: 'POST',
+          body: { roomId: _currentRoom.id, content: text, messageType: 'text' },
+        });
+
+        if (res.ok && res.data?.data?.message) {
+          input.value = '';
+          input.style.height = 'auto';
+          appendMessages([res.data.data.message], false);
+          _lastMessageAt = res.data.data.message.createdAt;
+        } else {
+          SIREN.toast(res.data?.error || '전송 실패');
+        }
+      } catch (err) {
+        console.error('[chat] 전송 에러:', err);
+        SIREN.toast('메시지 전송 중 오류가 발생했습니다');
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+        input.focus();
+      }
     }
 
-    sendBtn.addEventListener('click', send);
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    /* 전송 버튼 클릭 (이벤트 위임) */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#chatSendBtn')) {
         e.preventDefault();
-        send();
+        doSend();
       }
     });
 
-    /* 자동 높이 조절 */
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    /* Enter 키 (이벤트 위임) */
+    document.addEventListener('keydown', (e) => {
+      if (e.target.id !== 'chatInputText') return;
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        doSend();
+      }
+    });
+
+    /* textarea 자동 높이 (이벤트 위임) */
+    document.addEventListener('input', (e) => {
+      if (e.target.id !== 'chatInputText') return;
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
     });
   }
 
