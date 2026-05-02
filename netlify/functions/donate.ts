@@ -1,6 +1,8 @@
 /**
  * POST /api/donate
  * 후원 처리 — 비회원/회원 모두 가능, 회원이면 memberId 자동 연결
+ *
+ * ★ STEP H-3: 결제 완료 시 후원자에게 감사 메일 자동 발송
  */
 import { db, donations, generateTransactionId } from "../../db";
 import { authenticateUser } from "../../lib/auth";
@@ -10,6 +12,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
+import { sendEmail, tplDonationThanks } from "../../lib/email";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -65,6 +68,32 @@ export default async (req: Request) => {
     /* 6. 응답 */
     if (status !== "completed") {
       return badRequest("결제가 실패했습니다. 다시 시도해주세요.", { transactionId });
+    }
+
+    /* ★ STEP H-3: 후원 감사 메일 발송 (결제 완료 + 이메일 있을 때만)
+       - try-catch로 격리 → 메일 실패해도 후원 처리 응답은 정상 반환
+       - 결정 1-A안: 비회원에게는 "회원가입 후 발급" 안내만 (토큰 링크 없음)
+       - 결정 3-B안: completed 상태일 때만 발송 (failed/pending은 발송 X) */
+    if (email) {
+      try {
+        const tpl = tplDonationThanks({
+          donorName: name,
+          amount,
+          donationType: type,
+          payMethod,
+          donationId: record.id,
+          donationDate: new Date((record as any).createdAt || Date.now()),
+          isMember: !!memberId,
+        });
+        await sendEmail({
+          to: email,
+          subject: tpl.subject,
+          html: tpl.html,
+        });
+      } catch (mailErr) {
+        /* 메일 발송 실패는 응답에 영향 주지 않음 — 로그만 남김 */
+        console.error("[donate] 감사 메일 발송 실패:", mailErr);
+      }
     }
 
     return created(

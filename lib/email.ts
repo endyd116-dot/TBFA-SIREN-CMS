@@ -273,3 +273,161 @@ export function tplSupportAnsweredUser(opts: {
     }),
   };
 }
+
+/* ═══════════════════════════════════════════════════════
+   템플릿 3. 유저에게 — 후원 완료 감사 메일 (★ STEP H-3)
+   ═══════════════════════════════════════════════════════ */
+export function tplDonationThanks(opts: {
+  donorName: string;
+  amount: number;
+  donationType: string;        // regular / onetime
+  payMethod: string;           // card / bank / cms
+  donationId: number;          // donations.id (원본 숫자)
+  donationDate: Date;
+  isMember: boolean;           // memberId 존재 여부
+}) {
+  const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember } = opts;
+
+  /* 한글 라벨 */
+  const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
+  const payKr =
+    payMethod === "card" ? "신용카드" :
+    payMethod === "bank" ? "계좌이체" :
+    payMethod === "cms"  ? "자동이체(CMS)" : payMethod;
+
+  /* 날짜/시간 포맷팅 */
+  const yyyy = donationDate.getFullYear();
+  const mm = String(donationDate.getMonth() + 1).padStart(2, "0");
+  const dd = String(donationDate.getDate()).padStart(2, "0");
+  const hh = String(donationDate.getHours()).padStart(2, "0");
+  const min = String(donationDate.getMinutes()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+
+  const donationNo = `D-${String(donationId).padStart(7, "0")}`;
+
+  /* 영수증 영역 — 회원/비회원 분기 (결정 1-A안) */
+  const receiptBlockHtml = isMember
+    ? `
+    <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
+                border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+        📄 기부금 영수증 발급 안내
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;margin-bottom:14px;">
+        후원해 주신 금액에 대한 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 PDF로 발급받으실 수 있습니다.<br />
+        연말정산 시 소득공제 자료로 활용해 주세요.
+      </div>
+      <a href="${SITE_URL}/mypage.html#donations" target="_blank"
+         style="display:inline-block;padding:10px 18px;background:#0f0f0f;color:#ffffff;
+                text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
+        영수증 발급하러 가기 →
+      </a>
+    </div>`
+    : `
+    <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
+                border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+        📄 기부금 영수증 발급 안내
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        기부금 영수증은 <strong>회원가입 후</strong> 마이페이지에서 발급받으실 수 있습니다.<br />
+        가입 시 본 후원 내역이 자동으로 연결되어 PDF로 즉시 발급됩니다.
+      </div>
+      <div style="margin-top:14px;">
+        <a href="${SITE_URL}/index.html" target="_blank"
+           style="display:inline-block;padding:10px 18px;background:#0f0f0f;color:#ffffff;
+                  text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;">
+          회원가입 →
+        </a>
+      </div>
+    </div>`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(donorName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(donorName)} 님께서 보내주신 따뜻한 마음 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>을<br />
+      감사한 마음으로 받았습니다. 🎗
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+            📋 후원 내역
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:5px 0;color:#8a8a8a;">후원번호</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(donationNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">일시</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">금액</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
+                ₩${amount.toLocaleString()}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">유형</td>
+              <td style="padding:5px 0;color:#0f0f0f;">
+                <span style="display:inline-block;padding:2px 9px;background:${donationType === "regular" ? "#fff4e0" : "#e6f0ff"};
+                             color:${donationType === "regular" ? "#c47a00" : "#1a5ec4"};border-radius:3px;
+                             font-size:12px;font-weight:600;">
+                  ${esc(typeKr)}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">결제 수단</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(payKr)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    ${receiptBlockHtml}
+
+    <div style="margin:28px 0 0;padding:18px 20px;background:#ffffff;border:1px solid #e8e6e3;
+                border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
+                  font-family:'Noto Serif KR',serif;">
+        ✨ 후원금은 이렇게 사용됩니다
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        • 유가족 심리 상담 지원<br />
+        • 법률 자문 및 행정 지원 서비스<br />
+        • 자녀 교육·장학 사업 운영<br />
+        • 추모 사업 및 사회 인식 개선 캠페인
+      </div>
+      <div style="margin-top:12px;font-size:12.5px;color:#8a8a8a;line-height:1.6;">
+        모든 후원금의 사용 내역은 <strong>매년 투명하게 공개</strong>되며,<br />
+        협회 홈페이지의 "재정 보고"에서 확인하실 수 있습니다.
+      </div>
+    </div>
+
+    <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      ${esc(donorName)} 님의 따뜻한 마음이 유가족분들께<br />
+      큰 위로와 힘이 되어 전해질 수 있도록 정성을 다하겠습니다.<br /><br />
+      다시 한 번 깊이 감사드립니다. 🙏
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] ${donorName}님, 따뜻한 후원에 감사드립니다 🎗`,
+    html: baseLayout({
+      title: "따뜻한 후원에 감사드립니다",
+      bodyHtml,
+      ctaText: isMember ? "마이페이지에서 후원 내역 확인" : "협회 홈페이지 바로가기",
+      ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
+    }),
+  };
+}
