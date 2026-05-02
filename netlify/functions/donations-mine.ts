@@ -31,6 +31,8 @@ export default async (req: Request) => {
         payMethod: donations.payMethod,
         status: donations.status,
         receiptIssued: donations.receiptIssued,
+        receiptNumber: donations.receiptNumber,           // ★ STEP H-2c 신규
+        receiptIssuedAt: donations.receiptIssuedAt,       // ★ STEP H-2c 신규
         campaignTag: donations.campaignTag,
         createdAt: donations.createdAt,
       })
@@ -65,6 +67,8 @@ export default async (req: Request) => {
         payMethod: d.payMethod,
         status: d.status,
         receiptIssued: d.receiptIssued,
+        receiptNumber: d.receiptNumber,                   // ★ STEP H-2c 신규
+        receiptIssuedAt: d.receiptIssuedAt,               // ★ STEP H-2c 신규
         campaignTag: d.campaignTag,
         createdAt: d.createdAt,
       })),
