@@ -1,8 +1,9 @@
 /* =========================================================
-   SIREN — admin-chat.js (STEP G-4 + H-1 + I-1 중복 렌더 픽스)
+   SIREN — admin-chat.js (STEP G-4 + H-1 + I-1 + I-1b 폭 계산 픽스)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
    ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
    ★ I-1: 마지막 메시지 5초마다 반복 렌더되는 버그 수정 (_renderedMsgIds 추가)
+   ★ I-1b: 텍스트가 세로로 보이는 현상 수정 (max-width 중첩 제거 + 구조 단순화)
    ========================================================= */
 (function () {
   'use strict';
@@ -284,11 +285,25 @@
     if (isActive) startPoll(roomId);
   }
 
-  /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
+  /* ============ ★ I-1b: 메시지 본문 빌드 (텍스트 / 이미지) ============ */
+  /**
+   * 핵심 변경:
+   *   - 텍스트 메시지 → 단일 bubble div 반환 (max-width:65% 직접 적용)
+   *   - 이미지 메시지 → column flex 컨테이너 반환 (텍스트+이미지 세로 정렬, max-width:65%)
+   *   - 어떤 경우든 "1개의 flex 자식"이 되어 폭 계산이 정상화됨
+   */
   function buildMsgBody(m, isUser) {
     const att = m.attachment;
 
+    /* 텍스트 bubble 공통 스타일 */
+    const bubbleBase =
+      'padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;' +
+      (isUser
+        ? 'background:#fff;color:inherit;border:1px solid var(--line);border-radius:14px 14px 14px 4px;'
+        : 'background:var(--brand);color:#fff;border-radius:14px 14px 4px 14px;');
+
     if (att && att.id) {
+      /* 이미지 메시지 — column flex로 텍스트+이미지 묶기 */
       const safeName = esc(att.originalName || '이미지');
       const imgTag =
         `<img class="chat-msg-image" src="/api/chat/image?id=${att.id}" alt="${safeName}" ` +
@@ -297,14 +312,19 @@
 
       const text = (m.content || '').trim();
       const textHtml = text && !text.startsWith('[이미지]')
-        ? `<div style="padding:10px 14px;border-radius:14px;background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};font-size:13px;line-height:1.55;${isUser ? 'border:1px solid var(--line);' : ''}margin-bottom:6px">${esc(text).replace(/\n/g, '<br />')}</div>`
+        ? `<div style="${bubbleBase}margin-bottom:6px">${esc(text).replace(/\n/g, '<br />')}</div>`
         : '';
 
-      return textHtml + imgTag;
+      return (
+        `<div style="display:flex;flex-direction:column;max-width:65%;` +
+        `align-items:${isUser ? 'flex-start' : 'flex-end'};min-width:0">` +
+        `${textHtml}${imgTag}` +
+        `</div>`
+      );
     }
 
-    /* 일반 텍스트 */
-    return `<div style="max-width:65%;padding:10px 14px;border-radius:${isUser ? '14px 14px 14px 4px' : '14px 14px 4px 14px'};background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};${isUser ? 'border:1px solid var(--line);' : ''}font-size:13px;line-height:1.55">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
+    /* 일반 텍스트 — 단일 bubble (max-width:65% 직접 적용) */
+    return `<div style="max-width:65%;${bubbleBase}">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
   }
 
   /* ============ 메시지 렌더 ============ */
@@ -318,14 +338,16 @@
       const body = buildMsgBody(m, isUser);
 
       if (isUser) {
+        /* 회원 메시지 — 좌측 정렬 */
         return `<div style="display:flex;margin-bottom:10px;align-items:flex-end;gap:6px">
-          <div style="max-width:65%">${body}</div>
-          <span style="font-size:10px;color:var(--text-3)">${time}</span>
+          ${body}
+          <span style="font-size:10px;color:var(--text-3);flex-shrink:0">${time}</span>
         </div>`;
       }
+      /* 관리자 메시지 — 우측 정렬 */
       return `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;align-items:flex-end;gap:6px">
-        <span style="font-size:10px;color:var(--text-3)">${time}</span>
-        <div style="max-width:65%">${body}</div>
+        <span style="font-size:10px;color:var(--text-3);flex-shrink:0">${time}</span>
+        ${body}
       </div>`;
     }).join('');
   }
