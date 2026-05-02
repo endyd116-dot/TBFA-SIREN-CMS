@@ -44,7 +44,7 @@
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions"
-  included_files = ["db/**/*", "lib/**/*"]
+  included_files = ["db/**/*", "lib/**/*", "assets/fonts/**"]
   external_node_modules = ["postgres"]
   
 [dev]
