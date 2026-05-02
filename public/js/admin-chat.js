@@ -1,6 +1,7 @@
 /* =========================================================
-   SIREN — admin-chat.js (STEP G-4)
+   SIREN — admin-chat.js (STEP G-4 + H-1)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
+   ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
    ========================================================= */
 (function () {
   'use strict';
@@ -42,6 +43,75 @@
   function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0'); }
   function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2400); }
 
+  /* ============ ★ H-1: 라이트박스 ============ */
+  function openLightbox(attId, originalName) {
+    const existing = document.querySelector('.lightbox-overlay');
+    if (existing) existing.remove();
+
+    const safeName = esc(originalName || '이미지');
+    const overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    overlay.innerHTML = `
+      <div class="lightbox-controls">
+        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드">💾</button>
+        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
+      </div>
+      <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    function closeLb() {
+      overlay.remove();
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e) {
+      if (e.key === 'Escape') closeLb();
+    }
+
+    overlay.addEventListener('click', async (e) => {
+      const closeBtn = e.target.closest('[data-lb-action="close"]');
+      const dlBtn = e.target.closest('[data-lb-action="download"]');
+
+      if (dlBtn) {
+        e.stopPropagation();
+        if (dlBtn.classList.contains('is-loading')) return;
+        dlBtn.classList.add('is-loading');
+        try {
+          const res = await fetch('/api/chat/image?id=' + encodeURIComponent(attId) + '&download=1', {
+            credentials: 'include',
+          });
+          if (!res.ok) {
+            toast('다운로드 실패');
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = originalName || 'chat-image-' + attId + '.jpg';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+          console.error('[lightbox] download error', err);
+          toast('다운로드 중 오류');
+        } finally {
+          dlBtn.classList.remove('is-loading');
+        }
+        return;
+      }
+
+      if (closeBtn) { closeLb(); return; }
+      if (e.target === overlay) closeLb();
+    });
+
+    document.addEventListener('keydown', onEsc);
+  }
+
   /* ============ 채팅방 목록 로드 ============ */
   async function loadRoomList() {
     const list = document.getElementById('acRoomList');
@@ -67,14 +137,12 @@
     const rooms = res.data?.data?.rooms || [];
     const stats = res.data?.data?.stats || {};
 
-    /* KPI */
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('acKpiActive', (stats.active || 0) + ' 건');
     set('acKpiClosed', (stats.closed || 0) + ' 건');
     set('acKpiArchived', (stats.archived || 0) + ' 건');
     set('acKpiUnread', (stats.totalUnread || 0) + ' 건');
 
-    /* 사이드바 뱃지 */
     const badge = document.getElementById('chatNewBadge');
     if (badge) {
       const u = stats.totalUnread || 0;
@@ -119,7 +187,6 @@
     if (!detail) return;
     detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">⏳ 로딩 중...</div>';
 
-    /* 방 상세 + 회원 정보 조회 */
     const roomRes = await api('/api/admin/chat/rooms?id=' + roomId);
     if (!roomRes.ok || !roomRes.data?.data) {
       detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--danger)">조회 실패</div>';
@@ -128,12 +195,10 @@
     const { room, member, summary, blacklist } = roomRes.data.data;
     _currentRoom = room;
 
-    /* 메시지 조회 */
     const msgRes = await api('/api/admin/chat/messages?roomId=' + roomId);
     const messages = msgRes.data?.data?.messages || [];
     if (messages.length > 0) _lastMsgAt = messages[messages.length - 1].createdAt;
 
-    /* UI 구성 */
     const cat = CAT_LABEL[room.category] || '💬 기타';
     const isActive = room.status === 'active';
 
@@ -169,21 +234,40 @@
       </div>` : '<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px;background:#f8f8f8;border-top:1px solid var(--line)">종료된 채팅방입니다</div>'}
     `;
 
-    /* 스크롤 하단 */
     const area = document.getElementById('acMsgArea');
     if (area) area.scrollTop = area.scrollHeight;
 
-    /* 읽음 처리 */
     api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
 
-    /* 목록에서 현재방 강조 */
     document.querySelectorAll('.ac-room-item').forEach(el => {
       el.style.background = Number(el.dataset.acRoom) === roomId ? '#f0f0ff' : '';
       el.classList.toggle('active', Number(el.dataset.acRoom) === roomId);
     });
 
-    /* 폴링 시작 */
     if (isActive) startPoll(roomId);
+  }
+
+  /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
+  function buildMsgBody(m, isUser) {
+    const att = m.attachment;
+
+    if (att && att.id) {
+      const safeName = esc(att.originalName || '이미지');
+      const imgTag =
+        `<img class="chat-msg-image" src="/api/chat/image?id=${att.id}" alt="${safeName}" ` +
+        `data-att-id="${att.id}" data-att-name="${safeName}" loading="lazy" ` +
+        `style="max-width:240px;max-height:240px;border-radius:10px;cursor:zoom-in;display:block;background:#eee" />`;
+
+      const text = (m.content || '').trim();
+      const textHtml = text && !text.startsWith('[이미지]')
+        ? `<div style="padding:10px 14px;border-radius:14px;background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};font-size:13px;line-height:1.55;${isUser ? 'border:1px solid var(--line);' : ''}margin-bottom:6px">${esc(text).replace(/\n/g, '<br />')}</div>`
+        : '';
+
+      return textHtml + imgTag;
+    }
+
+    /* 일반 텍스트 */
+    return `<div style="max-width:65%;padding:10px 14px;border-radius:${isUser ? '14px 14px 14px 4px' : '14px 14px 4px 14px'};background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};${isUser ? 'border:1px solid var(--line);' : ''}font-size:13px;line-height:1.55">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
   }
 
   /* ============ 메시지 렌더 ============ */
@@ -194,18 +278,30 @@
       }
       const isUser = m.senderId === userMemberId;
       const time = fmtTime(m.createdAt);
-      const content = esc(m.content || '').replace(/\n/g, '<br />');
+      const body = buildMsgBody(m, isUser);
+
       if (isUser) {
         return `<div style="display:flex;margin-bottom:10px;align-items:flex-end;gap:6px">
-          <div style="max-width:65%;padding:10px 14px;border-radius:14px 14px 14px 4px;background:#fff;border:1px solid var(--line);font-size:13px;line-height:1.55">${content}</div>
+          <div style="max-width:65%">${body}</div>
           <span style="font-size:10px;color:var(--text-3)">${time}</span>
         </div>`;
       }
       return `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;align-items:flex-end;gap:6px">
         <span style="font-size:10px;color:var(--text-3)">${time}</span>
-        <div style="max-width:65%;padding:10px 14px;border-radius:14px 14px 4px 14px;background:var(--brand);color:#fff;font-size:13px;line-height:1.55">${content}</div>
+        <div style="max-width:65%">${body}</div>
       </div>`;
     }).join('');
+  }
+
+  /* ============ ★ H-1: 이미지 클릭 → 라이트박스 ============ */
+  function setupImageClick() {
+    document.addEventListener('click', (e) => {
+      const img = e.target.closest('.chat-msg-image');
+      if (!img) return;
+      const attId = img.dataset.attId;
+      const name = img.dataset.attName;
+      if (attId) openLightbox(attId, name);
+    });
   }
 
   /* ============ 관리자 메시지 전송 ============ */
@@ -295,7 +391,6 @@
         return;
       }
 
-      /* 방 목록 클릭 */
       const roomItem = e.target.closest('.ac-room-item');
       if (roomItem) {
         const id = Number(roomItem.dataset.acRoom);
@@ -346,6 +441,7 @@
     loadRoomList,
     selectRoom,
     stopPoll,
+    openLightbox,
   };
 
   /* ============ 초기화 ============ */
@@ -354,6 +450,7 @@
     setupMemo();
     setupActions();
     setupFilters();
+    setupImageClick(); // ★ H-1
   }
 
   if (document.readyState === 'loading') {

@@ -1,17 +1,50 @@
 /**
  * GET   /api/admin/chat/messages?roomId=N&since=ISO   — 메시지 조회 (폴링)
  * POST  /api/admin/chat/messages                       — 관리자 메시지 전송
- *                                                        body: { roomId, content, messageType?, attachmentId? }
  * PATCH /api/admin/chat/messages                       — 관리자 측 읽음 처리
- *                                                        body: { roomId }
+ *
+ * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
  */
-import { eq, and, gt, asc } from "drizzle-orm";
-import { db, chatRooms, chatMessages } from "../../db";
+import { eq, and, gt, asc, inArray } from "drizzle-orm";
+import { db, chatRooms, chatMessages, chatAttachments } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, notFound, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
+
+/* ============ 헬퍼: 메시지 배열에 attachment 정보 합치기 ============ */
+async function enrichWithAttachments(messages: any[]): Promise<any[]> {
+  if (!messages || messages.length === 0) return messages;
+
+  const ids = messages
+    .map((m) => m.attachmentId)
+    .filter((v) => typeof v === "number" && v > 0) as number[];
+
+  if (ids.length === 0) {
+    return messages.map((m) => ({ ...m, attachment: null }));
+  }
+
+  const atts = await db
+    .select({
+      id: chatAttachments.id,
+      originalName: chatAttachments.originalName,
+      mimeType: chatAttachments.mimeType,
+      width: chatAttachments.width,
+      height: chatAttachments.height,
+      fileSize: chatAttachments.fileSize,
+    })
+    .from(chatAttachments)
+    .where(inArray(chatAttachments.id, ids));
+
+  const map = new Map<number, any>();
+  for (const a of atts as any[]) map.set(a.id, a);
+
+  return messages.map((m) => ({
+    ...m,
+    attachment: m.attachmentId ? map.get(m.attachmentId) || null : null,
+  }));
+}
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -46,13 +79,14 @@ export default async (req: Request) => {
         } catch (e) {}
       }
 
-      const messages = await db
+      const rawMessages = await db
         .select()
         .from(chatMessages)
         .where(whereClause)
         .orderBy(asc(chatMessages.createdAt))
         .limit(300);
 
+      const messages = await enrichWithAttachments(rawMessages as any[]);
       return ok({ messages, room });
     }
 
@@ -93,7 +127,6 @@ export default async (req: Request) => {
         .values(insertData)
         .returning();
 
-      /* 채팅방 메타 업데이트 (사용자 미읽음 +1) */
       const preview = (content || "[이미지]").slice(0, 200);
       const updateMeta: any = {
         lastMessageAt: new Date(),
@@ -106,7 +139,8 @@ export default async (req: Request) => {
         .set(updateMeta)
         .where(eq(chatRooms.id, roomId));
 
-      return ok({ message }, "메시지가 전송되었습니다");
+      const [enriched] = await enrichWithAttachments([message] as any[]);
+      return ok({ message: enriched }, "메시지가 전송되었습니다");
     }
 
     /* ===== PATCH — 관리자 측 읽음 처리 ===== */

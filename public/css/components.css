@@ -130,3 +130,94 @@ table.tbl tr:last-child td{border-bottom:none}
   box-shadow:0 10px 30px rgba(0,0,0,.3);font-weight:500;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* =========================================
+   채팅 이미지 + 라이트박스 (STEP H-1)
+   ========================================= */
+
+/* 메시지 내 이미지 썸네일 */
+.chat-msg-image {
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 10px;
+  cursor: zoom-in;
+  display: block;
+  margin-top: 4px;
+  object-fit: cover;
+  background: #f1f5f9;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-msg-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 라이트박스 오버레이 */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lightbox-fade 0.18s ease-out;
+}
+@keyframes lightbox-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 88vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+  background: #111;
+}
+
+/* 컨트롤 버튼 (닫기 / 다운로드) */
+.lightbox-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 10000;
+}
+.lightbox-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(6px);
+}
+.lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.08);
+}
+.lightbox-btn:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* 다운로드 진행 표시 */
+.lightbox-btn.is-loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .chat-msg-image { max-width: 180px; max-height: 180px; }
+  .lightbox-controls { top: 12px; right: 12px; }
+  .lightbox-btn { width: 40px; height: 40px; font-size: 16px; }
+}

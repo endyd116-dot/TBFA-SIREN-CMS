@@ -1,6 +1,7 @@
 /* =========================================================
-   SIREN — chat-user.js (STEP G-3)
+   SIREN — chat-user.js (STEP G-3 + H-1)
    사용자측 1:1 채팅 (마이페이지 내 모달)
+   ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
    ========================================================= */
 (function () {
   'use strict';
@@ -13,11 +14,11 @@
     support_other:    { emoji: '💬', label: '기타',     cls: 'cat-other' },
   };
 
-  let _chatInitDone = false; // ★ 중복 init 방어
+  let _chatInitDone = false;
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMessageAt = null;
-  let _renderedMsgIds = new Set(); // ★ 중복 방지
+  let _renderedMsgIds = new Set();
   let _isBlacklisted = null;
 
   /* ============ API ============ */
@@ -63,6 +64,80 @@
     return (d.getMonth() + 1) + '/' + d.getDate();
   }
 
+  /* ============ ★ H-1: 라이트박스 ============ */
+  function openLightbox(attId, originalName) {
+    /* 기존 라이트박스 제거 */
+    const existing = document.querySelector('.lightbox-overlay');
+    if (existing) existing.remove();
+
+    const safeName = escapeHtml(originalName || '이미지');
+    const overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    overlay.innerHTML = `
+      <div class="lightbox-controls">
+        <button type="button" class="lightbox-btn" data-lb-action="download" title="다운로드 (${safeName})" aria-label="다운로드">💾</button>
+        <button type="button" class="lightbox-btn" data-lb-action="close" title="닫기 (ESC)" aria-label="닫기">✕</button>
+      </div>
+      <img class="lightbox-img" src="/api/chat/image?id=${encodeURIComponent(attId)}" alt="${safeName}" />
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden'; // 스크롤 잠금
+
+    /* 닫기 함수 */
+    function closeLb() {
+      overlay.remove();
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e) {
+      if (e.key === 'Escape') closeLb();
+    }
+
+    /* 이벤트: 닫기 / 배경 클릭 / 다운로드 */
+    overlay.addEventListener('click', async (e) => {
+      const closeBtn = e.target.closest('[data-lb-action="close"]');
+      const dlBtn = e.target.closest('[data-lb-action="download"]');
+
+      if (dlBtn) {
+        e.stopPropagation();
+        if (dlBtn.classList.contains('is-loading')) return;
+        dlBtn.classList.add('is-loading');
+        try {
+          const res = await fetch('/api/chat/image?id=' + encodeURIComponent(attId) + '&download=1', {
+            credentials: 'include',
+          });
+          if (!res.ok) {
+            SIREN.toast('다운로드 실패');
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = originalName || 'chat-image-' + attId + '.jpg';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+          console.error('[lightbox] download error', err);
+          SIREN.toast('다운로드 중 오류');
+        } finally {
+          dlBtn.classList.remove('is-loading');
+        }
+        return;
+      }
+
+      if (closeBtn) { closeLb(); return; }
+
+      /* 배경 클릭 (이미지 본체 외) */
+      if (e.target === overlay) closeLb();
+    });
+
+    document.addEventListener('keydown', onEsc);
+  }
+
   /* ============ 채팅방 목록 로드 ============ */
   async function loadRooms() {
     const container = document.getElementById('chatRoomsList');
@@ -79,7 +154,6 @@
     const rooms = res.data?.data?.rooms || [];
     _isBlacklisted = res.data?.data?.blacklisted || null;
 
-    /* 블랙리스트 안내 */
     let blackBanner = '';
     if (_isBlacklisted) {
       blackBanner = `
@@ -129,7 +203,7 @@
     container.innerHTML = blackBanner + html;
   }
 
-  /* ============ 채팅방 카드 클릭 → 채팅 창 열기 ============ */
+  /* ============ 채팅방 카드 클릭 ============ */
   function setupRoomClick() {
     document.addEventListener('click', (e) => {
       const card = e.target.closest('.chat-room-card');
@@ -158,7 +232,6 @@
       if (modal) modal.classList.add('show');
     });
 
-    /* 카테고리 선택 → 채팅방 생성 */
     document.addEventListener('click', async (e) => {
       const catBtn = e.target.closest('.chat-cat-btn[data-cat]');
       if (!catBtn) return;
@@ -199,7 +272,6 @@
         }
         return;
       }
-      /* 배경 클릭 */
       if (e.target.id === 'chatCategoryModal') {
         e.target.classList.remove('show');
       }
@@ -209,9 +281,10 @@
       }
     });
 
-    /* ESC 닫기 */
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
+      /* 라이트박스가 열려 있으면 ESC를 라이트박스에서 처리 — 여기는 스킵 */
+      if (document.querySelector('.lightbox-overlay')) return;
       ['chatCategoryModal', 'chatWindowModal'].forEach((id) => {
         const m = document.getElementById(id);
         if (m && m.classList.contains('show')) {
@@ -242,13 +315,10 @@
 
     modal.classList.add('show');
 
-    /* 첫 로드 + 폴링 시작 */
     await fetchMessages(roomId, true);
-    /* 읽음 처리 */
     api('/api/chat/messages', { method: 'PATCH', body: { roomId } });
 
     startPolling(roomId);
-
     setTimeout(() => inputEl?.focus(), 200);
   }
 
@@ -267,7 +337,6 @@
     const messages = res.data?.data?.messages || [];
     const room = res.data?.data?.room;
 
-    /* 헤더 정보 갱신 */
     if (room) {
       _currentRoom = room;
       const cat = CATEGORY_LABEL[room.category] || CATEGORY_LABEL.support_other;
@@ -279,7 +348,6 @@
           statusEl.textContent = `${cat.emoji} ${cat.label} · 진행 중`;
         } else {
           statusEl.textContent = `${cat.emoji} ${cat.label} · 종료됨`;
-          /* 입력창 비활성화 */
           const inputEl = document.getElementById('chatInputText');
           const sendBtn = document.getElementById('chatSendBtn');
           if (inputEl) { inputEl.disabled = true; inputEl.placeholder = '종료된 상담입니다'; }
@@ -300,6 +368,30 @@
     }
   }
 
+  /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
+  function buildMessageBody(m) {
+    const att = m.attachment;
+
+    /* 이미지 첨부가 있는 경우 */
+    if (att && att.id) {
+      const safeName = escapeHtml(att.originalName || '이미지');
+      const imgTag =
+        `<img class="chat-msg-image" src="/api/chat/image?id=${att.id}" alt="${safeName}" ` +
+        `data-att-id="${att.id}" data-att-name="${safeName}" loading="lazy" />`;
+
+      /* 이미지 외 텍스트 메시지 본문이 "[이미지] xxx" 형식이면 표시 안 함 */
+      const text = (m.content || '').trim();
+      const textHtml = text && !text.startsWith('[이미지]')
+        ? `<div class="msg-bubble">${escapeHtml(text).replace(/\n/g, '<br />')}</div>`
+        : '';
+
+      return textHtml + imgTag;
+    }
+
+    /* 일반 텍스트 메시지 */
+    return `<div class="msg-bubble">${escapeHtml(m.content || '').replace(/\n/g, '<br />')}</div>`;
+  }
+
   /* ============ 메시지 렌더 ============ */
   function appendMessages(messages, replace) {
     const msgsEl = document.getElementById('chatMessages');
@@ -311,7 +403,6 @@
 
     const myUid = window.SIREN_AUTH?.user?.id;
 
-    /* 이미 렌더된 메시지 제외 */
     const newMessages = messages.filter((m) => !_renderedMsgIds.has(m.id));
     if (newMessages.length === 0) return;
 
@@ -323,11 +414,11 @@
       }
       const isMine = m.senderId === myUid;
       const time = formatTime(m.createdAt);
-      const bubble = `<div class="msg-bubble">${escapeHtml(m.content || '').replace(/\n/g, '<br />')}</div>`;
+      const body = buildMessageBody(m);
       const meta = `<span class="msg-meta">${time}</span>`;
       return isMine
-        ? `<div class="msg-row mine">${meta}${bubble}</div>`
-        : `<div class="msg-row theirs">${bubble}${meta}</div>`;
+        ? `<div class="msg-row mine">${meta}${body}</div>`
+        : `<div class="msg-row theirs">${body}${meta}</div>`;
     }).join('');
 
     if (html) {
@@ -335,9 +426,20 @@
       msgsEl.scrollTop = msgsEl.scrollHeight;
     }
   }
+
+  /* ============ ★ H-1: 이미지 클릭 → 라이트박스 ============ */
+  function setupImageClick() {
+    document.addEventListener('click', (e) => {
+      const img = e.target.closest('.chat-msg-image');
+      if (!img) return;
+      const attId = img.dataset.attId;
+      const name = img.dataset.attName;
+      if (attId) openLightbox(attId, name);
+    });
+  }
+
   /* ============ 이미지 업로드 (클라이언트 압축 + 전송) ============ */
   function setupImageUpload() {
-    /* 📷 버튼 → 파일 선택 창 열기 */
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#chatImageBtn')) return;
       e.preventDefault();
@@ -346,12 +448,11 @@
       if (input) input.click();
     });
 
-    /* 파일 선택 → 압축 → 업로드 → 메시지 전송 */
     document.addEventListener('change', async (e) => {
       if (e.target.id !== 'chatImageInput') return;
       const file = e.target.files?.[0];
       if (!file) return;
-      e.target.value = ''; // 리셋
+      e.target.value = '';
 
       if (file.size > 10 * 1024 * 1024) {
         SIREN.toast('파일 크기는 10MB 이하여야 합니다');
@@ -361,10 +462,8 @@
       SIREN.toast('⏳ 이미지 처리 중...');
 
       try {
-        /* 클라이언트 압축 (Canvas API) */
         const compressed = await compressImage(file, 1200, 0.75);
 
-        /* FormData로 업로드 */
         const fd = new FormData();
         fd.append('file', compressed, file.name);
         fd.append('roomId', String(_currentRoom.id));
@@ -384,7 +483,6 @@
         const att = uploadData.data?.attachment;
         if (!att) { SIREN.toast('업로드 응답 오류'); return; }
 
-        /* 이미지 메시지 전송 */
         const msgRes = await api('/api/chat/messages', {
           method: 'POST',
           body: {
@@ -409,13 +507,6 @@
     });
   }
 
-  /**
-   * Canvas API 기반 이미지 압축
-   * @param {File} file - 원본 파일
-   * @param {number} maxDim - 최대 가로/세로 (px)
-   * @param {number} quality - JPEG 품질 (0.0 ~ 1.0)
-   * @returns {Promise<Blob>}
-   */
   function compressImage(file, maxDim, quality) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -425,7 +516,6 @@
         URL.revokeObjectURL(url);
         let { width, height } = img;
 
-        /* 리사이즈 */
         if (width > maxDim || height > maxDim) {
           const ratio = Math.min(maxDim / width, maxDim / height);
           width = Math.round(width * ratio);
@@ -457,9 +547,8 @@
     });
   }
 
-  /* ============ 메시지 전송 (이벤트 위임 방식) ============ */
+  /* ============ 메시지 전송 ============ */
   function setupSend() {
-    /* 전송 함수 */
     async function doSend() {
       const input = document.getElementById('chatInputText');
       const sendBtn = document.getElementById('chatSendBtn');
@@ -497,7 +586,6 @@
       }
     }
 
-    /* 전송 버튼 클릭 (이벤트 위임) */
     document.addEventListener('click', (e) => {
       if (e.target.closest('#chatSendBtn')) {
         e.preventDefault();
@@ -505,7 +593,6 @@
       }
     });
 
-    /* Enter 키 (이벤트 위임) */
     document.addEventListener('keydown', (e) => {
       if (e.target.id !== 'chatInputText') return;
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -514,7 +601,6 @@
       }
     });
 
-    /* textarea 자동 높이 (이벤트 위임) */
     document.addEventListener('input', (e) => {
       if (e.target.id !== 'chatInputText') return;
       e.target.style.height = 'auto';
@@ -524,7 +610,6 @@
 
   /* ============ 폴링 ============ */
   function startPolling(roomId) {
-    /* 이전 타이머만 정리 (방 데이터는 유지) */
     if (_pollTimer) {
       clearInterval(_pollTimer);
       _pollTimer = null;
@@ -532,7 +617,6 @@
     _pollTimer = setInterval(async () => {
       if (!_currentRoom || _currentRoom.id !== roomId) return;
       await fetchMessages(roomId, false);
-      /* 읽음 처리 */
       api('/api/chat/messages', { method: 'PATCH', body: { roomId } });
     }, POLL_INTERVAL);
   }
@@ -544,8 +628,7 @@
     }
     _currentRoom = null;
     _lastMessageAt = null;
-    _renderedMsgIds.clear(); // ★ 초기화
-    /* 목록 새로고침 (미읽음/마지막 메시지 갱신) */
+    _renderedMsgIds.clear();
     if (document.querySelector('.mp-panel[data-mp-panel="consult"]')?.style.display !== 'none') {
       loadRooms();
     }
@@ -553,19 +636,22 @@
 
   /* ============ 초기화 ============ */
   function init() {
-    if (_chatInitDone) return; // ★ 2번째 호출 차단
+    if (_chatInitDone) return;
     _chatInitDone = true;
 
     setupRoomClick();
     setupNewChatBtn();
     setupModalClose();
     setupSend();
+    setupImageUpload();
+    setupImageClick(); // ★ H-1
   }
 
   /* 전역 노출 */
   window.SIREN_CHAT = {
     loadRooms,
     openChatWindow,
+    openLightbox, // ★ H-1: 외부에서도 호출 가능
   };
 
   /* SIREN_PAGE_INIT 훅 */
@@ -575,7 +661,6 @@
     init();
   };
 
-  /* 백업 진입 */
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(init, 600);
   } else {

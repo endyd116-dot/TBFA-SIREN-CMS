@@ -4,14 +4,49 @@
  *                                                  body: { roomId, content, messageType?, attachmentId? }
  * PATCH /api/chat/messages                       — 사용자 측 읽음 처리
  *                                                  body: { roomId }
+ *
+ * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
  */
-import { eq, and, gt, asc } from "drizzle-orm";
-import { db, chatRooms, chatMessages, chatBlacklist } from "../../db";
+import { eq, and, gt, asc, inArray } from "drizzle-orm";
+import { db, chatRooms, chatMessages, chatBlacklist, chatAttachments } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import {
   ok, badRequest, unauthorized, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
+
+/* ============ 헬퍼: 메시지 배열에 attachment 정보 합치기 ============ */
+async function enrichWithAttachments(messages: any[]): Promise<any[]> {
+  if (!messages || messages.length === 0) return messages;
+
+  const ids = messages
+    .map((m) => m.attachmentId)
+    .filter((v) => typeof v === "number" && v > 0) as number[];
+
+  if (ids.length === 0) {
+    return messages.map((m) => ({ ...m, attachment: null }));
+  }
+
+  const atts = await db
+    .select({
+      id: chatAttachments.id,
+      originalName: chatAttachments.originalName,
+      mimeType: chatAttachments.mimeType,
+      width: chatAttachments.width,
+      height: chatAttachments.height,
+      fileSize: chatAttachments.fileSize,
+    })
+    .from(chatAttachments)
+    .where(inArray(chatAttachments.id, ids));
+
+  const map = new Map<number, any>();
+  for (const a of atts as any[]) map.set(a.id, a);
+
+  return messages.map((m) => ({
+    ...m,
+    attachment: m.attachmentId ? map.get(m.attachmentId) || null : null,
+  }));
+}
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -24,11 +59,10 @@ export default async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const roomId = Number(url.searchParams.get("roomId"));
-      const since = url.searchParams.get("since"); // ISO 문자열
+      const since = url.searchParams.get("since");
 
       if (!Number.isFinite(roomId)) return badRequest("roomId가 필요합니다");
 
-      /* 채팅방 소유자 검증 */
       const [room] = await db
         .select()
         .from(chatRooms)
@@ -38,7 +72,6 @@ export default async (req: Request) => {
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
       if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
 
-      /* 메시지 조회 */
       let whereClause: any = eq(chatMessages.roomId, roomId);
       if (since) {
         try {
@@ -46,18 +79,17 @@ export default async (req: Request) => {
           if (!isNaN(sinceDate.getTime())) {
             whereClause = and(eq(chatMessages.roomId, roomId), gt(chatMessages.createdAt, sinceDate));
           }
-        } catch (e) {
-          /* since 파싱 실패 시 전체 조회 */
-        }
+        } catch (e) { /* ignore */ }
       }
 
-      const messages = await db
+      const rawMessages = await db
         .select()
         .from(chatMessages)
         .where(whereClause)
         .orderBy(asc(chatMessages.createdAt))
         .limit(200);
 
+      const messages = await enrichWithAttachments(rawMessages as any[]);
       return ok({ messages, room });
     }
 
@@ -86,7 +118,6 @@ export default async (req: Request) => {
         return forbidden(`채팅 이용이 제한되었습니다. 사유: ${black.reason}`);
       }
 
-      /* 채팅방 검증 */
       const [room] = await db
         .select()
         .from(chatRooms)
@@ -97,7 +128,6 @@ export default async (req: Request) => {
       if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
       if (room.status !== "active") return forbidden("종료된 채팅방입니다");
 
-      /* 메시지 저장 */
       const insertData: any = {
         roomId,
         senderId: auth.uid,
@@ -112,7 +142,6 @@ export default async (req: Request) => {
         .values(insertData)
         .returning();
 
-      /* 채팅방 메타 업데이트 (관리자 미읽음 +1) */
       const preview = (content || "[이미지]").slice(0, 200);
       const updateMeta: any = {
         lastMessageAt: new Date(),
@@ -125,7 +154,9 @@ export default async (req: Request) => {
         .set(updateMeta)
         .where(eq(chatRooms.id, roomId));
 
-      return ok({ message }, "메시지가 전송되었습니다");
+      /* attachment 정보 합쳐서 응답 */
+      const [enriched] = await enrichWithAttachments([message] as any[]);
+      return ok({ message: enriched }, "메시지가 전송되었습니다");
     }
 
     /* ===== PATCH — 사용자 측 읽음 처리 ===== */
