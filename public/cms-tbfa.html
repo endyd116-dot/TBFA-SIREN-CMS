@@ -9,6 +9,135 @@
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/cms-common.css">
 <link rel="stylesheet" href="/css/cms-tbfa.css">
+
+<style>
+  /* ★ STEP H-2d-4: 영수증 설정 페이지 전용 (교유협 CMS) */
+  .rs-form-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px 16px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .rs-form-grid label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #525252;
+    text-align: right;
+  }
+  .rs-form-grid input[type="text"],
+  .rs-form-grid textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #e0e3e8;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+  }
+  .rs-form-grid textarea {
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.6;
+  }
+  .rs-form-grid input:focus,
+  .rs-form-grid textarea:focus {
+    outline: none;
+    border-color: #1a5ec4;
+    box-shadow: 0 0 0 3px rgba(26, 94, 196, 0.12);
+  }
+  .rs-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 22px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #1a5ec4;
+  }
+  .rs-section-title:first-child {
+    margin-top: 0;
+  }
+  .rs-footer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rs-footer-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .rs-footer-row input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #e0e3e8;
+    border-radius: 5px;
+    font-size: 12.5px;
+    background: #fff;
+  }
+  .rs-footer-row input:focus {
+    outline: none;
+    border-color: #1a5ec4;
+  }
+  .rs-footer-row button {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid #e0e3e8;
+    color: #c5293a;
+    padding: 7px 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .rs-footer-row button:hover {
+    background: #fdecec;
+    border-color: #f5b5bb;
+  }
+  .rs-meta-info {
+    background: #f0f5fc;
+    border: 1px solid #cee0f2;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #1a5ec4;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .rs-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px dashed #e0e3e8;
+  }
+  .rs-info-banner {
+    background: linear-gradient(135deg, #f0f5fc, #e6f0ff);
+    border: 1px solid #cee0f2;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    font-size: 12.5px;
+    color: #0d3d8a;
+    line-height: 1.7;
+  }
+  .rs-info-banner strong {
+    color: #1a5ec4;
+  }
+  #rsAddFooterBtn {
+    margin-top: 10px;
+    padding: 8px 14px;
+    border: 1px dashed #1a5ec4;
+    background: #fff;
+    color: #1a5ec4;
+    border-radius: 5px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  #rsAddFooterBtn:hover {
+    background: #f0f5fc;
+  }
+</style>
 </head>
 <body data-page="cms-tbfa">
 
@@ -56,6 +185,9 @@
       </a></li>
       <li><a href="#export" data-tab="export">
         <i>📥</i><span>데이터 추출</span>
+      </a></li>
+      <li><a href="#receipt-settings" data-tab="receipt-settings">
+        <i>📄</i><span>영수증 설정</span>
       </a></li>
     </nav>
   </aside>
@@ -515,6 +647,78 @@
         </div>
       </section>
 
+      <!-- ============ ★ 8. STEP H-2d-4: 영수증 설정 ============ -->
+      <section class="cms-page" id="page-receipt-settings">
+        <div class="cms-panel">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">📄 기부금 영수증 설정</div>
+            <span class="cms-panel-tag cms-tag-info">DB 동기화</span>
+          </div>
+
+          <div class="rs-info-banner">
+            💡 이 설정은 <strong>사이렌 웹 관리자</strong>와 <strong>교유협 통합 CMS</strong>에서 모두 공유됩니다.<br />
+            한 곳에서 변경하면 양쪽 모두에 즉시 반영되며, 다음 발급되는 PDF 영수증부터 적용됩니다.
+          </div>
+
+          <div class="rs-meta-info" id="rsMetaInfo">
+            마지막 수정: <strong id="rsUpdatedAt">—</strong> · 수정자: <strong id="rsUpdatedBy">—</strong>
+          </div>
+
+          <form id="receiptSettingsForm">
+
+            <!-- 기관 정보 -->
+            <div class="rs-section-title">🏢 기관 정보</div>
+            <div class="rs-form-grid">
+              <label for="rsOrgName">단체명</label>
+              <input type="text" id="rsOrgName" name="orgName" placeholder="사단법인 교사유가족협의회" maxlength="100">
+
+              <label for="rsOrgRegistrationNo">고유번호</label>
+              <input type="text" id="rsOrgRegistrationNo" name="orgRegistrationNo" placeholder="123-45-67890" maxlength="50">
+
+              <label for="rsOrgRepresentative">대표자</label>
+              <input type="text" id="rsOrgRepresentative" name="orgRepresentative" placeholder="홍길동" maxlength="50">
+
+              <label for="rsOrgAddress">주소</label>
+              <input type="text" id="rsOrgAddress" name="orgAddress" placeholder="서울특별시 종로구 ○○로 123" maxlength="255">
+
+              <label for="rsOrgPhone">연락처</label>
+              <input type="text" id="rsOrgPhone" name="orgPhone" placeholder="02-1234-5678" maxlength="50">
+            </div>
+
+            <!-- 양식 텍스트 -->
+            <div class="rs-section-title">📝 영수증 양식 텍스트</div>
+            <div class="rs-form-grid">
+              <label for="rsTitle">제목</label>
+              <input type="text" id="rsTitle" name="title" placeholder="기 부 금  영 수 증" maxlength="100">
+
+              <label for="rsSubtitle">부제목</label>
+              <input type="text" id="rsSubtitle" name="subtitle" placeholder="(소득세법 시행규칙 별지 제45호의2 서식)" maxlength="200">
+
+              <label for="rsProofText">증명 문구</label>
+              <input type="text" id="rsProofText" name="proofText" placeholder="위와 같이 기부금을 기부하였음을 증명합니다." maxlength="200">
+
+              <label for="rsDonationTypeLabel">기부금 구분</label>
+              <input type="text" id="rsDonationTypeLabel" name="donationTypeLabel" placeholder="지정기부금" maxlength="50">
+            </div>
+
+            <!-- 하단 안내문 (동적 추가/삭제) -->
+            <div class="rs-section-title">📋 하단 안내문 (최대 10개)</div>
+            <p style="font-size:12px;color:#888;margin:-6px 0 10px">각 줄은 영수증 PDF 하단에 안내문으로 표시됩니다.</p>
+            <div class="rs-footer-list" id="rsFooterList">
+              <!-- JS가 동적 생성 -->
+            </div>
+            <button type="button" id="rsAddFooterBtn">+ 안내문 추가</button>
+
+            <!-- 액션 버튼 -->
+            <div class="rs-actions">
+              <button type="submit" class="cms-btn cms-btn-primary" style="flex:1;padding:11px">💾 저장하기</button>
+              <button type="button" class="cms-btn cms-btn-ghost" id="rsPreviewBtn" style="flex:1;padding:11px">👀 PDF 미리보기</button>
+              <button type="button" class="cms-btn cms-btn-ghost" id="rsReloadBtn" style="padding:11px 18px">🔄 다시 불러오기</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -526,6 +730,6 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js"></script>
+  <script src="/js/cms-tbfa.js?v=2"></script>
 </body>
 </html>

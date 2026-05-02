@@ -1,6 +1,7 @@
 /* =========================================================
    SIREN — CMS TBFA (교유협 통합 관리)
    데모 데이터 기반, 향후 실 API 연동 가능하게 구조화
+   ★ STEP H-2d-4: 영수증 설정 메뉴 추가 (사이렌 관리자와 자동 동기화)
    ========================================================= */
 (function() {
   'use strict';
@@ -43,6 +44,17 @@
     return d.getFullYear() + '.' +
       String(d.getMonth() + 1).padStart(2, '0') + '.' +
       String(d.getDate()).padStart(2, '0');
+  }
+
+  /* ★ STEP H-2d-4: 날짜+시간 포맷터 (영수증 설정용) */
+  function formatDateTime(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return d.getFullYear() + '.' +
+      String(d.getMonth() + 1).padStart(2, '0') + '.' +
+      String(d.getDate()).padStart(2, '0') + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' +
+      String(d.getMinutes()).padStart(2, '0');
   }
 
   /* ============ 데모 데이터 ============ */
@@ -114,6 +126,7 @@
           tags: '태그 관리',
           notify: '알림 발송',
           export: '데이터 추출',
+          'receipt-settings': '영수증 설정', /* ★ STEP H-2d-4 */
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -123,6 +136,7 @@
         else if (tab === 'members') renderMembers();
         else if (tab === 'transfer') renderTransfer();
         else if (tab === 'tags') renderTags();
+        else if (tab === 'receipt-settings') loadReceiptSettings(); /* ★ STEP H-2d-4 */
       });
     });
   }
@@ -572,6 +586,211 @@
     });
   }
 
+  /* ============ ★ STEP H-2d-4: 영수증 설정 (사이렌 관리자와 자동 동기화) ============ */
+
+  /**
+   * 페이지 진입 시 호출 — DB에서 현재 설정 로드 후 폼에 채움
+   */
+  async function loadReceiptSettings() {
+    const form = document.getElementById('receiptSettingsForm');
+    if (!form) return;
+
+    /* 로딩 표시 (저장 버튼 비활성화) */
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    const res = await api('/api/admin/receipt-settings');
+    if (!res.ok || !res.data?.data) {
+      toast('영수증 설정 조회 실패');
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    const s = res.data.data.settings || {};
+    const updatedByName = res.data.data.updatedByName;
+
+    /* 메타 정보 */
+    const updatedAtEl = document.getElementById('rsUpdatedAt');
+    const updatedByEl = document.getElementById('rsUpdatedBy');
+    if (updatedAtEl) updatedAtEl.textContent = formatDateTime(s.updatedAt);
+    if (updatedByEl) updatedByEl.textContent = updatedByName || (s.updatedBy ? '관리자 #' + s.updatedBy : '—');
+
+    /* 5개 협회 정보 */
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    setVal('rsOrgName', s.orgName);
+    setVal('rsOrgRegistrationNo', s.orgRegistrationNo);
+    setVal('rsOrgRepresentative', s.orgRepresentative);
+    setVal('rsOrgAddress', s.orgAddress);
+    setVal('rsOrgPhone', s.orgPhone);
+
+    /* 4개 양식 텍스트 */
+    setVal('rsTitle', s.title);
+    setVal('rsSubtitle', s.subtitle);
+    setVal('rsProofText', s.proofText);
+    setVal('rsDonationTypeLabel', s.donationTypeLabel);
+
+    /* 하단 안내문 (배열 → 동적 row) */
+    renderFooterNotes(Array.isArray(s.footerNotes) ? s.footerNotes : []);
+
+    if (submitBtn) submitBtn.disabled = false;
+  }
+
+  /**
+   * 하단 안내문 동적 렌더링
+   */
+  function renderFooterNotes(notes) {
+    const list = document.getElementById('rsFooterList');
+    if (!list) return;
+
+    if (!notes || notes.length === 0) {
+      /* 빈 상태일 때도 1개 빈 row 제공 */
+      notes = [''];
+    }
+
+    list.innerHTML = notes.map((note, idx) => {
+      const safeVal = String(note || '').replace(/"/g, '&quot;');
+      return '<div class="rs-footer-row" data-rs-idx="' + idx + '">' +
+        '<input type="text" value="' + safeVal + '" placeholder="• 안내문 내용..." maxlength="200">' +
+        '<button type="button" data-rs-remove="' + idx + '" title="삭제">✕</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  /**
+   * 현재 폼에서 footerNotes 배열 추출
+   */
+  function collectFooterNotes() {
+    const inputs = document.querySelectorAll('#rsFooterList .rs-footer-row input[type="text"]');
+    const arr = [];
+    inputs.forEach((inp) => {
+      const v = (inp.value || '').trim();
+      if (v.length > 0) arr.push(v);
+    });
+    return arr;
+  }
+
+  /**
+   * 폼 제출 → 저장
+   */
+  function setupReceiptSettingsForm() {
+    const form = document.getElementById('receiptSettingsForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const body = {
+        orgName: document.getElementById('rsOrgName')?.value || '',
+        orgRegistrationNo: document.getElementById('rsOrgRegistrationNo')?.value || '',
+        orgRepresentative: document.getElementById('rsOrgRepresentative')?.value || '',
+        orgAddress: document.getElementById('rsOrgAddress')?.value || '',
+        orgPhone: document.getElementById('rsOrgPhone')?.value || '',
+        title: document.getElementById('rsTitle')?.value || '',
+        subtitle: document.getElementById('rsSubtitle')?.value || '',
+        proofText: document.getElementById('rsProofText')?.value || '',
+        donationTypeLabel: document.getElementById('rsDonationTypeLabel')?.value || '',
+        footerNotes: collectFooterNotes(),
+      };
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const oldText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '저장 중...';
+      }
+
+      const res = await api('/api/admin/receipt-settings', {
+        method: 'PATCH',
+        body,
+      });
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+      }
+
+      if (res.ok) {
+        toast(res.data?.message || '영수증 설정이 저장되었습니다');
+        /* 메타 정보 갱신 */
+        const s = res.data?.data?.settings || {};
+        const updatedByName = res.data?.data?.updatedByName;
+        const updatedAtEl = document.getElementById('rsUpdatedAt');
+        const updatedByEl = document.getElementById('rsUpdatedBy');
+        if (updatedAtEl) updatedAtEl.textContent = formatDateTime(s.updatedAt);
+        if (updatedByEl) updatedByEl.textContent = updatedByName || '—';
+      } else {
+        toast(res.data?.error || '저장 실패');
+      }
+    });
+  }
+
+  /**
+   * 안내문 추가/삭제 / 미리보기 / 다시 불러오기 버튼
+   */
+  function setupReceiptSettingsActions() {
+    document.addEventListener('click', (e) => {
+      /* 안내문 추가 */
+      if (e.target.closest('#rsAddFooterBtn')) {
+        e.preventDefault();
+        const list = document.getElementById('rsFooterList');
+        if (!list) return;
+        const currentRows = list.querySelectorAll('.rs-footer-row').length;
+        if (currentRows >= 10) {
+          toast('안내문은 최대 10개까지 추가할 수 있습니다');
+          return;
+        }
+        const newRow = document.createElement('div');
+        newRow.className = 'rs-footer-row';
+        newRow.dataset.rsIdx = String(currentRows);
+        newRow.innerHTML =
+          '<input type="text" value="" placeholder="• 안내문 내용..." maxlength="200">' +
+          '<button type="button" data-rs-remove="' + currentRows + '" title="삭제">✕</button>';
+        list.appendChild(newRow);
+        newRow.querySelector('input')?.focus();
+        return;
+      }
+
+      /* 안내문 삭제 */
+      const removeBtn = e.target.closest('[data-rs-remove]');
+      if (removeBtn) {
+        e.preventDefault();
+        const row = removeBtn.closest('.rs-footer-row');
+        if (row) row.remove();
+        /* 모두 삭제했을 경우 빈 row 1개 보장 */
+        const list = document.getElementById('rsFooterList');
+        if (list && list.querySelectorAll('.rs-footer-row').length === 0) {
+          renderFooterNotes(['']);
+        }
+        return;
+      }
+
+      /* 다시 불러오기 */
+      if (e.target.closest('#rsReloadBtn')) {
+        e.preventDefault();
+        loadReceiptSettings();
+        toast('현재 DB 설정을 다시 불러왔습니다');
+        return;
+      }
+
+      /* 미리보기 (PDF를 새 탭에서 인라인 표시) */
+      if (e.target.closest('#rsPreviewBtn')) {
+        e.preventDefault();
+        const previewUrl = '/api/admin/receipt-preview?ts=' + Date.now();
+        window.open(previewUrl, '_blank', 'noopener');
+        toast('미리보기 PDF를 새 탭에서 엽니다 (현재 저장된 DB 설정 기준)');
+        return;
+      }
+    });
+  }
+
+  /**
+   * 통합 setup 함수 (init에서 호출)
+   */
+  function setupReceiptSettings() {
+    setupReceiptSettingsForm();
+    setupReceiptSettingsActions();
+  }
+
   /* ============ 초기화 ============ */
   async function init() {
     const auth = await checkAuth();
@@ -590,6 +809,7 @@
     setupTransferActions();
     setupNotifyForm();
     setupExport();
+    setupReceiptSettings(); /* ★ STEP H-2d-4 */
 
     renderDashboard();
   }
