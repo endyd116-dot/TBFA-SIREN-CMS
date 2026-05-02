@@ -1,7 +1,8 @@
 /* =========================================================
-   SIREN — admin-chat.js (STEP G-4 + H-1)
+   SIREN — admin-chat.js (STEP G-4 + H-1 + I-1 중복 렌더 픽스)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
    ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
+   ★ I-1: 마지막 메시지 5초마다 반복 렌더되는 버그 수정 (_renderedMsgIds 추가)
    ========================================================= */
 (function () {
   'use strict';
@@ -17,6 +18,7 @@
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMsgAt = null;
+  let _renderedMsgIds = new Set();  /* ★ I-1: 중복 렌더 방지 */
 
   /* ============ API ============ */
   async function api(path, opts = {}) {
@@ -112,6 +114,38 @@
     document.addEventListener('keydown', onEsc);
   }
 
+  /* ============ ★ I-1: 메시지 중복 방지 + 일괄 렌더 헬퍼 ============ */
+  /**
+   * 새 메시지만 필터해서 _renderedMsgIds에 등록한 후
+   * 메시지 영역(#acMsgArea)에 추가합니다.
+   *
+   * @param {Array} msgs — 메시지 배열
+   * @returns {boolean} — 1개 이상 새로 렌더됐으면 true
+   */
+  function appendNewMessages(msgs) {
+    if (!Array.isArray(msgs) || msgs.length === 0) return false;
+    if (!_currentRoom) return false;
+
+    /* 이미 렌더된 ID 제외 */
+    const newMsgs = msgs.filter((m) => m && m.id && !_renderedMsgIds.has(m.id));
+    if (newMsgs.length === 0) return false;
+
+    /* ID 등록 */
+    for (const m of newMsgs) _renderedMsgIds.add(m.id);
+
+    /* 마지막 createdAt 갱신 */
+    const last = newMsgs[newMsgs.length - 1];
+    if (last && last.createdAt) _lastMsgAt = last.createdAt;
+
+    /* 영역에 삽입 */
+    const area = document.getElementById('acMsgArea');
+    if (area) {
+      area.insertAdjacentHTML('beforeend', renderMessages(newMsgs, _currentRoom.memberId));
+      area.scrollTop = area.scrollHeight;
+    }
+    return true;
+  }
+
   /* ============ 채팅방 목록 로드 ============ */
   async function loadRoomList() {
     const list = document.getElementById('acRoomList');
@@ -182,6 +216,7 @@
     stopPoll();
     _currentRoom = { id: roomId };
     _lastMsgAt = null;
+    _renderedMsgIds.clear();  /* ★ I-1: 새 방 진입 시 초기화 */
 
     const detail = document.getElementById('acChatDetail');
     if (!detail) return;
@@ -197,7 +232,6 @@
 
     const msgRes = await api('/api/admin/chat/messages?roomId=' + roomId);
     const messages = msgRes.data?.data?.messages || [];
-    if (messages.length > 0) _lastMsgAt = messages[messages.length - 1].createdAt;
 
     const cat = CAT_LABEL[room.category] || '💬 기타';
     const isActive = room.status === 'active';
@@ -224,7 +258,7 @@
       <div id="acMsgArea" style="flex:1;overflow-y:auto;padding:16px;background:#f5f6f8">
         ${messages.length === 0
           ? '<div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">대화가 아직 없습니다</div>'
-          : renderMessages(messages, room.memberId)}
+          : ''}
       </div>
 
       ${isActive ? `
@@ -234,9 +268,12 @@
       </div>` : '<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px;background:#f8f8f8;border-top:1px solid var(--line)">종료된 채팅방입니다</div>'}
     `;
 
-    const area = document.getElementById('acMsgArea');
-    if (area) area.scrollTop = area.scrollHeight;
+    /* ★ I-1: 초기 메시지 렌더 시에도 _renderedMsgIds에 등록 */
+    if (messages.length > 0) {
+      appendNewMessages(messages);
+    }
 
+    /* 읽음 처리 */
     api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
 
     document.querySelectorAll('.ac-room-item').forEach(el => {
@@ -340,13 +377,8 @@
     if (res.ok && res.data?.data?.message) {
       input.value = '';
       input.style.height = 'auto';
-      const area = document.getElementById('acMsgArea');
-      if (area) {
-        const msg = res.data.data.message;
-        area.insertAdjacentHTML('beforeend', renderMessages([msg], _currentRoom.memberId));
-        area.scrollTop = area.scrollHeight;
-        _lastMsgAt = msg.createdAt;
-      }
+      /* ★ I-1: appendNewMessages 사용 (중복 방지) */
+      appendNewMessages([res.data.data.message]);
     } else {
       toast(res.data?.error || '전송 실패');
     }
@@ -420,20 +452,16 @@
       const url = '/api/admin/chat/messages?roomId=' + roomId + (_lastMsgAt ? '&since=' + encodeURIComponent(_lastMsgAt) : '');
       const res = await api(url);
       const msgs = res.data?.data?.messages || [];
-      if (msgs.length > 0) {
-        _lastMsgAt = msgs[msgs.length - 1].createdAt;
-        const area = document.getElementById('acMsgArea');
-        if (area) {
-          area.insertAdjacentHTML('beforeend', renderMessages(msgs, _currentRoom.memberId));
-          area.scrollTop = area.scrollHeight;
-        }
-      }
+      /* ★ I-1: appendNewMessages가 중복을 자동 필터 */
+      appendNewMessages(msgs);
       api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
     }, POLL_INTERVAL);
   }
 
   function stopPoll() {
     if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    /* ★ I-1: 폴링 중단 시 ID 추적도 초기화 (다음 방 진입 대비) */
+    _renderedMsgIds.clear();
   }
 
   /* ============ 외부 노출 ============ */
