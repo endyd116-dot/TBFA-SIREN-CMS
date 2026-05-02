@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — auth.js
+   SIREN — auth.js (★ K-1 비밀번호 재설정 요청 핸들러 추가)
    인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러 + 채팅 알림
    ========================================================= */
 (function () {
@@ -159,12 +159,12 @@
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  /* ------------ 폼 제출 핸들러 (로그인/회원가입) ------------ */
+  /* ------------ 폼 제출 핸들러 (로그인/회원가입/비번재설정 요청) ------------ */
   function setupAuthForms() {
     document.addEventListener('submit', async (e) => {
       const form = e.target;
       const type = form.dataset.form;
-      if (type !== 'login' && type !== 'signup') return;
+      if (type !== 'login' && type !== 'signup' && type !== 'password-reset-request') return;
 
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
@@ -181,7 +181,7 @@
             password: data.password,
             remember: !!data.remember,
           });
-        } else {
+        } else if (type === 'signup') {
           const checkboxes = form.querySelectorAll('input[type="checkbox"][required]');
           const agreeAll = Array.from(checkboxes).every(c => c.checked);
           if (!agreeAll) throw new Error('이용약관에 동의해주세요');
@@ -194,13 +194,29 @@
             memberType: data.memberType || 'regular',
             agree: true,
           });
+        } else if (type === 'password-reset-request') {
+          /* ★ K-1: 비밀번호 재설정 링크 요청 */
+          res = await api('/api/auth/password-reset-request', {
+            method: 'POST',
+            body: { email: data.email },
+          });
         }
 
         if (res.ok) {
           window.SIREN.toast(res.data.message || '완료되었습니다');
-          window.SIREN.closeModal(type === 'login' ? 'loginModal' : 'signupModal');
-          form.reset();
-          syncHeader();
+
+          if (type === 'login') {
+            window.SIREN.closeModal('loginModal');
+            form.reset();
+            syncHeader();
+          } else if (type === 'signup') {
+            window.SIREN.closeModal('signupModal');
+            form.reset();
+            syncHeader();
+          } else if (type === 'password-reset-request') {
+            window.SIREN.closeModal('passwordResetModal');
+            form.reset();
+          }
         } else {
           const msg = res.data?.error || '처리 중 오류가 발생했습니다';
           window.SIREN.toast(msg);

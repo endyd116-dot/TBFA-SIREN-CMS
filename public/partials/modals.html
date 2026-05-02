@@ -9,19 +9,26 @@
     <form data-form="login">
       <div class="fg">
         <label>아이디 (이메일)</label>
-        <input type="email" name="email" required placeholder="example@email.com">
+        <input type="email" name="email" required placeholder="example@email.com" autocomplete="email">
       </div>
       <div class="fg">
         <label>비밀번호</label>
-        <input type="password" name="password" required placeholder="비밀번호">
+        <input type="password" name="password" required placeholder="비밀번호" autocomplete="current-password">
       </div>
-      <label class="checkbox-line">
-        <input type="checkbox" name="remember"> 로그인 상태 유지
-      </label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;flex-wrap:wrap;gap:8px">
+        <label class="checkbox-line" style="margin:0">
+          <input type="checkbox" name="remember"> 로그인 상태 유지
+        </label>
+        <a href="javascript:void(0)" data-action="switch-modal"
+           data-from="loginModal" data-to="passwordResetModal"
+           style="font-size:12.5px;color:var(--text-3);text-decoration:none">
+          🔑 비밀번호 찾기
+        </a>
+      </div>
       <button type="submit" class="btn btn-primary btn-block">로그인</button>
       <p class="form-link">
         아직 회원이 아니신가요?
-        <a href="#" data-action="switch-modal" data-from="loginModal" data-to="signupModal">회원가입</a>
+        <a href="javascript:void(0)" data-action="switch-modal" data-from="loginModal" data-to="signupModal">회원가입</a>
       </p>
     </form>
   </div>
@@ -46,19 +53,19 @@
       </div>
       <div class="fg">
         <label>이름</label>
-        <input type="text" name="name" required placeholder="홍길동">
+        <input type="text" name="name" required placeholder="홍길동" autocomplete="name">
       </div>
       <div class="fg">
         <label>이메일</label>
-        <input type="email" name="email" required placeholder="example@email.com">
+        <input type="email" name="email" required placeholder="example@email.com" autocomplete="email">
       </div>
       <div class="fg">
         <label>연락처</label>
-        <input type="tel" name="phone" required placeholder="010-0000-0000">
+        <input type="tel" name="phone" required placeholder="010-0000-0000" autocomplete="tel">
       </div>
       <div class="fg">
         <label>비밀번호 <span class="hint">(8자 이상, 영문+숫자)</span></label>
-        <input type="password" name="password" required minlength="8">
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
       </div>
       <label class="checkbox-line">
         <input type="checkbox" required>
@@ -72,7 +79,41 @@
       <button type="submit" class="btn btn-primary btn-block">본인 인증 후 가입</button>
       <p class="form-link">
         이미 회원이신가요?
-        <a href="#" data-action="switch-modal" data-from="signupModal" data-to="loginModal">로그인</a>
+        <a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="loginModal">로그인</a>
+      </p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     PASSWORD RESET REQUEST MODAL (★ K-1)
+     ============================================================ -->
+<div id="passwordResetModal" class="modal-bg" data-modal>
+  <div class="modal">
+    <button class="modal-close" data-action="close-modal" aria-label="닫기">✕</button>
+    <h2 class="serif">🔑 비밀번호 찾기</h2>
+    <p class="modal-sub">
+      가입 시 등록한 이메일을 입력해 주세요.<br />
+      비밀번호 재설정 링크를 보내드립니다.
+    </p>
+    <form data-form="password-reset-request">
+      <div class="fg">
+        <label>이메일</label>
+        <input type="email" name="email" required
+               placeholder="example@email.com" autocomplete="email">
+      </div>
+      <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;
+                  padding:12px 14px;font-size:12px;color:#8a6a00;line-height:1.6;
+                  margin-bottom:16px">
+        ⏰ 재설정 링크는 발송 후 <strong>30분간만 유효</strong>합니다.<br />
+        ⚠️ 메일이 도착하지 않으면 스팸함을 확인해 주세요.<br />
+        🔒 가입된 이메일이 아니어도 동일한 메시지가 표시됩니다 (보안).
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">재설정 링크 받기</button>
+      <p class="form-link">
+        비밀번호가 기억나셨나요?
+        <a href="javascript:void(0)" data-action="switch-modal"
+           data-from="passwordResetModal" data-to="loginModal">로그인</a>
       </p>
     </form>
   </div>
@@ -167,6 +208,7 @@
     </div>
   </div>
 </div>
+
 <!-- ============================================================
      SUPPORT REQUEST MODAL — 유가족 지원 신청
      ============================================================ -->
@@ -219,6 +261,7 @@
     </form>
   </div>
 </div>
+
 <!-- ============================================================
      TOAST CONTAINER
      ============================================================ -->
