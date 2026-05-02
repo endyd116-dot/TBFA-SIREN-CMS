@@ -46,6 +46,10 @@
   directory = "netlify/functions"
   included_files = ["db/**/*", "lib/**/*", "assets/fonts/**"]
   external_node_modules = ["postgres"]
+
+# ★ STEP I-2: 채팅 이미지 자동 정리 스케줄 (매일 새벽 3시 KST = UTC 18:00)
+[functions."cleanup-chat-images"]
+  schedule = "0 18 * * *"
   
 [dev]
   port = 8888
