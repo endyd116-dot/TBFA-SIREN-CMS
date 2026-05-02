@@ -143,7 +143,7 @@ export function tplSupportReceivedAdmin(opts: {
   applicantEmail?: string | null;
   category: string;
   title: string;
-  contentPreview: string;
+  contentPreview: string;   // 80자 이내 미리보기
 }) {
   const { requestNo, applicantName, applicantEmail, category, title, contentPreview } = opts;
   const categoryKr = CATEGORY_KR[category] || category;
@@ -280,20 +280,22 @@ export function tplSupportAnsweredUser(opts: {
 export function tplDonationThanks(opts: {
   donorName: string;
   amount: number;
-  donationType: string;
-  payMethod: string;
-  donationId: number;
+  donationType: string;        // regular / onetime
+  payMethod: string;           // card / bank / cms
+  donationId: number;          // donations.id (원본 숫자)
   donationDate: Date;
-  isMember: boolean;
+  isMember: boolean;           // memberId 존재 여부
 }) {
   const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember } = opts;
 
+  /* 한글 라벨 */
   const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
   const payKr =
     payMethod === "card" ? "신용카드" :
     payMethod === "bank" ? "계좌이체" :
     payMethod === "cms"  ? "자동이체(CMS)" : payMethod;
 
+  /* 날짜/시간 포맷팅 */
   const yyyy = donationDate.getFullYear();
   const mm = String(donationDate.getMonth() + 1).padStart(2, "0");
   const dd = String(donationDate.getDate()).padStart(2, "0");
@@ -303,6 +305,7 @@ export function tplDonationThanks(opts: {
 
   const donationNo = `D-${String(donationId).padStart(7, "0")}`;
 
+  /* 영수증 영역 — 회원/비회원 분기 (결정 1-A안) */
   const receiptBlockHtml = isMember
     ? `
     <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
@@ -431,19 +434,21 @@ export function tplDonationThanks(opts: {
 
 /* ═══════════════════════════════════════════════════════
    템플릿 4. 유저에게 — 지원 신청 접수 확인 (★ STEP H-4)
+   결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가
    ═══════════════════════════════════════════════════════ */
 export function tplSupportReceiptUser(opts: {
   applicantName: string;
   requestNo: string;
   category: string;
   title: string;
-  priority: string;
+  priority: string;          // 'urgent' | 'normal' | 'low'
   createdAt: Date;
 }) {
   const { applicantName, requestNo, category, title, priority, createdAt } = opts;
   const categoryKr = CATEGORY_KR[category] || category;
   const isUrgent = priority === "urgent";
 
+  /* 날짜/시간 포맷팅 */
   const yyyy = createdAt.getFullYear();
   const mm = String(createdAt.getMonth() + 1).padStart(2, "0");
   const dd = String(createdAt.getDate()).padStart(2, "0");
@@ -451,6 +456,7 @@ export function tplSupportReceiptUser(opts: {
   const min = String(createdAt.getMinutes()).padStart(2, "0");
   const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 
+  /* 우선순위별 안내 박스 (긴급/일반 분기) */
   const priorityNoticeHtml = isUrgent
     ? `
     <div style="margin:20px 0;padding:16px 20px;
@@ -477,6 +483,7 @@ export function tplSupportReceiptUser(opts: {
       마이페이지 및 이메일로 답변드리겠습니다.
     </div>`;
 
+  /* ★ 결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가 */
   const chatNoticeHtml = isUrgent
     ? `
     <div style="margin:20px 0 0;padding:18px 20px;
@@ -588,7 +595,7 @@ export function tplSupportReceiptUser(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ★ K-1: 템플릿 5. 유저에게 — 비밀번호 재설정 링크 (NEW)
+   ★ K-1: 템플릿 5. 유저에게 — 비밀번호 재설정 링크
    ═══════════════════════════════════════════════════════ */
 export function tplPasswordReset(opts: {
   userName: string;
@@ -647,6 +654,184 @@ export function tplPasswordReset(opts: {
       bodyHtml,
       ctaText: "새 비밀번호 설정하기",
       ctaUrl: resetUrl,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ K-2: 템플릿 6. 유저에게 — 이메일 인증 링크 (NEW)
+   - 가입 직후 자동 발송 / 사용자 요청 시 재발송
+   - 24시간 유효
+   ═══════════════════════════════════════════════════════ */
+export function tplEmailVerify(opts: {
+  userName: string;
+  rawToken: string;
+  ttlHours: number;
+}) {
+  const { userName, rawToken, ttlHours } = opts;
+  const verifyUrl = `${SITE_URL}/email-verify.html?token=${encodeURIComponent(rawToken)}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      교사유가족협의회 회원이 되어 주셔서 감사합니다.<br />
+      아래 버튼을 클릭하여 이메일 인증을 완료해 주세요.
+    </p>
+
+    <div style="margin:24px 0;padding:18px 20px;
+                background:linear-gradient(135deg,#fef9f5,#fff);
+                border:1px solid #f0e0d4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:8px;
+                  font-family:'Noto Serif KR',serif;">
+        ✉️ 이메일 인증이 필요한 이유
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        • 본인 명의의 이메일 주소를 확인하기 위해 필요합니다<br />
+        • 비밀번호 분실 시 안전한 재설정을 위해 필요합니다<br />
+        • 후원 영수증·지원 답변 등 중요 안내를 받기 위해 필요합니다
+      </div>
+    </div>
+
+    <div style="margin:24px 0;padding:16px 20px;background:#fff8ec;
+                border:1px solid #f0e3c4;border-radius:8px;">
+      <div style="font-size:13px;color:#8a6a00;line-height:1.7;">
+        ⏰ <strong>이 링크는 ${ttlHours}시간 동안 유효합니다.</strong><br />
+        만료되면 마이페이지에서 다시 요청하실 수 있습니다.
+      </div>
+    </div>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
+                border:1px solid #e8e6e3;border-radius:8px;">
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        <strong style="color:#0f0f0f;">📌 인증을 완료하지 않아도 가입은 유효합니다</strong><br />
+        하지만 일부 보안 기능(비밀번호 찾기 등)은 인증 후에만 정상 작동합니다.<br />
+        가능한 빨리 인증을 완료해 주세요.
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
+                border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
+      🔒 <strong>보안 안내</strong><br />
+      • 회원가입을 하지 않으셨다면 이 메일을 무시하셔도 됩니다<br />
+      • 다른 사람의 메일 주소가 잘못 입력된 경우일 수 있습니다<br />
+      • 협회는 절대 비밀번호를 메일/전화로 묻지 않습니다
+    </div>
+
+    <div style="margin:20px 0 0;font-size:11px;color:#aaaaaa;
+                line-height:1.6;word-break:break-all;">
+      버튼이 작동하지 않으면 아래 주소를 브라우저에 직접 붙여넣어 주세요:<br />
+      <a href="${verifyUrl}" style="color:#7a1f2b;text-decoration:underline;">${verifyUrl}</a>
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 이메일 인증을 완료해 주세요 ✉️`,
+    html: baseLayout({
+      title: "이메일 인증",
+      bodyHtml,
+      ctaText: "이메일 인증 완료하기",
+      ctaUrl: verifyUrl,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ K-2: 템플릿 7. 유저에게 — 회원 탈퇴 확인 (NEW)
+   - 탈퇴 처리 직후 발송
+   - 30일 이내 복구 안내 (정책 결정 사항이므로 안내만 표시)
+   ═══════════════════════════════════════════════════════ */
+export function tplWithdrawConfirm(opts: {
+  userName: string;
+  email: string;
+  withdrawnAt: Date;
+}) {
+  const { userName, email, withdrawnAt } = opts;
+
+  const yyyy = withdrawnAt.getFullYear();
+  const mm = String(withdrawnAt.getMonth() + 1).padStart(2, "0");
+  const dd = String(withdrawnAt.getDate()).padStart(2, "0");
+  const hh = String(withdrawnAt.getHours()).padStart(2, "0");
+  const min = String(withdrawnAt.getMinutes()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      회원 탈퇴가 정상적으로 처리되었습니다.<br />
+      그동안 교사유가족협의회와 함께해 주셔서 진심으로 감사드립니다. 🙏
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+            📋 탈퇴 정보
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:5px 0;color:#8a8a8a;">탈퇴 일시</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">탈퇴 계정</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-family:'Inter',monospace;">
+                ${esc(email)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
+                border:1px solid #e8e6e3;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
+                  font-family:'Noto Serif KR',serif;">
+        🔒 개인정보 처리 안내
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        • 회원 정보는 즉시 비활성화되며, 더 이상 로그인하실 수 없습니다<br />
+        • 후원 내역은 <strong>관련 법령(국세청 기부금 영수증 보관)</strong>에 따라<br />
+          &nbsp;&nbsp;5년간 보관 후 자동 삭제됩니다<br />
+        • 그 외 개인정보는 <strong>30일 이내 완전 삭제</strong>됩니다<br />
+        • 채팅 기록 및 지원 신청 내역은 익명 처리되어 보존됩니다
+      </div>
+    </div>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#fff8ec;
+                border:1px solid #f0e3c4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:8px;">
+        💝 다시 함께해 주실 수 있다면
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        ${esc(userName)} 님과 함께한 모든 순간이 협회에 큰 힘이 되었습니다.<br />
+        언젠가 다시 동행해 주실 날을 기다리겠습니다.<br /><br />
+        가족과 동료 교사들의 곁에서 든든한 버팀목이 될 수 있도록<br />
+        앞으로도 정성을 다하겠습니다.
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
+                border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
+      📞 <strong>문의 안내</strong><br />
+      • 잘못 탈퇴하셨거나 복구를 원하시는 경우<br />
+        &nbsp;&nbsp;<strong>contact@siren-org.kr</strong>로 문의해 주세요<br />
+      • 보관 중인 개인정보 열람·정정·삭제 요청도 가능합니다
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 회원 탈퇴가 완료되었습니다`,
+    html: baseLayout({
+      title: "회원 탈퇴 완료",
+      bodyHtml,
+      ctaText: "협회 홈페이지로",
+      ctaUrl: `${SITE_URL}/index.html`,
     }),
   };
 }
