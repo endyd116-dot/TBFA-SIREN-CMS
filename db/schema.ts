@@ -86,6 +86,10 @@ export const members = pgTable("members", {
   agreeSms: boolean("agree_sms").default(true),
   agreeMail: boolean("agree_mail").default(false),
 
+  /* ───────── ★ K-2: 회원 탈퇴 추적 (NEW) ───────── */
+  withdrawnAt: timestamp("withdrawn_at"),                         // 탈퇴 시점
+  withdrawnReason: varchar("withdrawn_reason", { length: 500 }),  // 탈퇴 사유 (선택)
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -124,7 +128,7 @@ export const donations = pgTable("donations", {
   receiptRequested: boolean("receipt_requested").default(false),
   receiptIssued: boolean("receipt_issued").default(false),
   receiptIssuedAt: timestamp("receipt_issued_at"),
-  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규
+  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규 (예: TBFA-2026-000042)
 
   // 캠페인 연결 (선택)
   campaignTag: varchar("campaign_tag", { length: 50 }),
@@ -139,7 +143,7 @@ export const donations = pgTable("donations", {
   memberIdx: index("donations_member_idx").on(t.memberId),
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
-  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber),
+  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber), // ★ STEP H-2a 신규
 }));
 
 /* =========================================================
@@ -147,7 +151,7 @@ export const donations = pgTable("donations", {
    ========================================================= */
 export const supportRequests = pgTable("support_requests", {
   id: serial("id").primaryKey(),
-  requestNo: varchar("request_no", { length: 30 }).unique().notNull(),
+  requestNo: varchar("request_no", { length: 30 }).unique().notNull(), // S-2026-0413
 
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
@@ -251,8 +255,10 @@ export const chatRooms = pgTable("chat_rooms", {
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
   category: varchar("category", { length: 30 }).default("support_other").notNull(),
+  // support_donation / support_homepage / support_signup / support_other
   title: varchar("title", { length: 200 }),
   status: varchar("status", { length: 20 }).default("active").notNull(),
+  // active / closed / archived
 
   lastMessageAt: timestamp("last_message_at").defaultNow(),
   lastMessagePreview: varchar("last_message_preview", { length: 200 }),
@@ -281,8 +287,10 @@ export const chatMessages = pgTable("chat_messages", {
 
   senderId: integer("sender_id").references(() => members.id, { onDelete: "set null" }).notNull(),
   senderRole: varchar("sender_role", { length: 20 }).default("user").notNull(),
+  // user / admin / system
 
   messageType: varchar("message_type", { length: 20 }).default("text").notNull(),
+  // text / image / system_notice
 
   content: text("content"),
   attachmentId: integer("attachment_id"),
@@ -313,7 +321,7 @@ export const chatAttachments = pgTable("chat_attachments", {
   width: integer("width"),
   height: integer("height"),
 
-  expiresAt: timestamp("expires_at"),
+  expiresAt: timestamp("expires_at"), // 1년 후 자동 정리
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
@@ -341,25 +349,31 @@ export const chatBlacklist = pgTable("chat_blacklist", {
 
 /* =========================================================
    ★ STEP H-2d: 영수증 설정 (단일 진실 원천)
+   - 행은 항상 1개만 유지 (id=1 고정)
+   - admin.html (사이렌 백오피스) + cms-tbfa.html (교유협 CMS) 양쪽에서 공유
    ========================================================= */
 export const receiptSettings = pgTable("receipt_settings", {
   id: serial("id").primaryKey(),
 
+  // 협회 정보 (PDF에 표시되는 5가지)
   orgName: varchar("org_name", { length: 100 }),
   orgRegistrationNo: varchar("org_registration_no", { length: 50 }),
   orgRepresentative: varchar("org_representative", { length: 50 }),
   orgAddress: varchar("org_address", { length: 255 }),
   orgPhone: varchar("org_phone", { length: 50 }),
 
-  title: varchar("title", { length: 100 }),
-  subtitle: varchar("subtitle", { length: 200 }),
-  proofText: varchar("proof_text", { length: 200 }),
-  donationTypeLabel: varchar("donation_type_label", { length: 50 }),
-  footerNotes: text("footer_notes"),
+  // 영수증 양식 텍스트 (커스터마이징 가능)
+  title: varchar("title", { length: 100 }),                  // "기 부 금  영 수 증"
+  subtitle: varchar("subtitle", { length: 200 }),            // "(소득세법 시행규칙 ...)"
+  proofText: varchar("proof_text", { length: 200 }),         // "위와 같이 기부금을 기부하였음을 증명합니다."
+  donationTypeLabel: varchar("donation_type_label", { length: 50 }), // "지정기부금"
+  footerNotes: text("footer_notes"),                         // JSON 배열 ["• ...", "• ...", "• ..."]
 
+  // 메타
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
+
 
 /* =========================================================
    6. audit_logs — 감사 로그 (보안 추적)
@@ -367,12 +381,12 @@ export const receiptSettings = pgTable("receipt_settings", {
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => members.id, { onDelete: "set null" }),
-  userType: varchar("user_type", { length: 20 }),
+  userType: varchar("user_type", { length: 20 }), // admin/user/system
   userName: varchar("user_name", { length: 50 }),
 
-  action: varchar("action", { length: 100 }).notNull(),
-  target: varchar("target", { length: 100 }),
-  detail: text("detail"),
+  action: varchar("action", { length: 100 }).notNull(),    // login/donate/update_member 등
+  target: varchar("target", { length: 100 }),              // 대상 (회원ID, 신청번호 등)
+  detail: text("detail"),                                  // 상세 내용 (JSON 가능)
 
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 500 }),
@@ -388,7 +402,7 @@ export const auditLogs = pgTable("audit_logs", {
 }));
 
 /* =========================================================
-   ★ K-1: 비밀번호 재설정 토큰 (NEW)
+   ★ K-1: 비밀번호 재설정 토큰
    - rawToken은 메일에만 노출, DB에는 SHA-256 해시만 저장
    - 30분 유효 / 1회 사용 / 회원당 1시간에 3개 제한
    ========================================================= */
@@ -413,6 +427,39 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   memberIdx: index("prt_member_idx").on(t.memberId),
   tokenIdx: index("prt_token_idx").on(t.tokenHash),
   expiresIdx: index("prt_expires_idx").on(t.expiresAt),
+}));
+
+/* =========================================================
+   ★ K-2: 이메일 인증 토큰 (NEW)
+   - 가입 직후 자동 발송, 또는 사용자 요청 시 재발송
+   - 24시간 유효 / 1회 사용
+   - 회원당 1시간에 5개 제한 (Rate Limit)
+   - 인증 완료 시 members.emailVerified = true
+   ========================================================= */
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id")
+    .references(() => members.id, { onDelete: "cascade" })
+    .notNull(),
+
+  // SHA-256(rawToken) — 64자 hex
+  tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
+
+  // 인증 대상 이메일 (회원 이메일과 동일하지만 변경 시 추적용)
+  email: varchar("email", { length: 100 }).notNull(),
+
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+
+  // 보안 추적
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: varchar("user_agent", { length: 500 }),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("evt_member_idx").on(t.memberId),
+  tokenIdx: index("evt_token_idx").on(t.tokenHash),
+  expiresIdx: index("evt_expires_idx").on(t.expiresAt),
 }));
 
 /* =========================================================
@@ -448,3 +495,7 @@ export type NewReceiptSettings = typeof receiptSettings.$inferInsert;
 /* ★ K-1: 비밀번호 재설정 토큰 타입 */
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+/* ★ K-2: 이메일 인증 토큰 타입 (NEW) */
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
