@@ -646,7 +646,60 @@
     document.getElementById('replyNote').value = r.adminNote || '';
 
     /* AI 답변 초안 버튼 주입 */
+        /* AI 답변 초안 버튼 주입 */
     injectAiDraftButton();
+
+    /* AI 추천 전문가 자동 로드 (백그라운드) */
+    loadExpertMatch(id);
+  }
+    /* AI 추천 전문가 섹션 로드 */
+  async function loadExpertMatch(supportId) {
+    const container = document.getElementById('aiExpertMatchSection');
+    if (!container) return;
+
+    container.innerHTML =
+      '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
+      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">⏳ 매칭 분석 중... (3-5초)</div>';
+
+    try {
+      const res = await api('/api/admin/ai/expert-match', {
+        method: 'POST',
+        body: { id: supportId },
+      });
+
+      if (!res.ok || !res.data?.data?.recommendations) {
+        container.innerHTML =
+          '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
+          '<div style="color:var(--danger);font-size:12.5px;padding:8px">매칭 실패: ' + (res.data?.error || '알 수 없음') + '</div>';
+        return;
+      }
+
+      const recs = res.data.data.recommendations;
+      const cardsHtml = recs.map((r, idx) => {
+        const scoreColor = r.score >= 85 ? '#1a8b46' : r.score >= 70 ? '#c47a00' : '#8a8a8a';
+        return '<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<div>' +
+          '<strong style="font-size:13.5px">' + escapeHtml(r.name) + '</strong> ' +
+          '<span style="color:var(--text-2);font-size:11.5px">· ' + escapeHtml(r.role) + '</span>' +
+          '</div>' +
+          '<span style="background:' + scoreColor + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">' +
+          '매칭 ' + r.score + '%</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--brand);margin-bottom:4px">' + escapeHtml(r.specialty) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-2);line-height:1.5">' + escapeHtml(r.reason) + '</div>' +
+          '</div>';
+      }).join('');
+
+      container.innerHTML =
+        '<span class="support-detail-label">🤝 AI 추천 전문가 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
+        cardsHtml;
+    } catch (err) {
+      console.error('[loadExpertMatch]', err);
+      container.innerHTML =
+        '<span class="support-detail-label">🤝 AI 추천 전문가</span>' +
+        '<div style="color:var(--danger);font-size:12.5px;padding:8px">매칭 호출 중 오류 발생</div>';
+    }
   }
   /* AI 답변 초안 버튼 추가 (모달 오픈 시) */
   function injectAiDraftButton() {
