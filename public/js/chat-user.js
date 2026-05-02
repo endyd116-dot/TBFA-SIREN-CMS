@@ -390,7 +390,11 @@
 
   /* ============ 폴링 ============ */
   function startPolling(roomId) {
-    stopChatWindow();
+    /* 이전 타이머만 정리 (방 데이터는 유지) */
+    if (_pollTimer) {
+      clearInterval(_pollTimer);
+      _pollTimer = null;
+    }
     _pollTimer = setInterval(async () => {
       if (!_currentRoom || _currentRoom.id !== roomId) return;
       await fetchMessages(roomId, false);
