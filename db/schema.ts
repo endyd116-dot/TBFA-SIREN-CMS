@@ -124,7 +124,7 @@ export const donations = pgTable("donations", {
   receiptRequested: boolean("receipt_requested").default(false),
   receiptIssued: boolean("receipt_issued").default(false),
   receiptIssuedAt: timestamp("receipt_issued_at"),
-  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규 (예: TBFA-2026-000042)
+  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규
 
   // 캠페인 연결 (선택)
   campaignTag: varchar("campaign_tag", { length: 50 }),
@@ -139,7 +139,7 @@ export const donations = pgTable("donations", {
   memberIdx: index("donations_member_idx").on(t.memberId),
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
-  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber), // ★ STEP H-2a 신규
+  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber),
 }));
 
 /* =========================================================
@@ -147,7 +147,7 @@ export const donations = pgTable("donations", {
    ========================================================= */
 export const supportRequests = pgTable("support_requests", {
   id: serial("id").primaryKey(),
-  requestNo: varchar("request_no", { length: 30 }).unique().notNull(), // S-2026-0413
+  requestNo: varchar("request_no", { length: 30 }).unique().notNull(),
 
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
@@ -240,6 +240,7 @@ export const faqs = pgTable("faqs", {
   categoryIdx: index("faqs_category_idx").on(t.category),
   sortIdx: index("faqs_sort_idx").on(t.sortOrder),
 }));
+
 /* =========================================================
    ★ G-1: 채팅 시스템 (4 테이블)
    ========================================================= */
@@ -250,10 +251,8 @@ export const chatRooms = pgTable("chat_rooms", {
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
   category: varchar("category", { length: 30 }).default("support_other").notNull(),
-  // support_donation / support_homepage / support_signup / support_other
   title: varchar("title", { length: 200 }),
   status: varchar("status", { length: 20 }).default("active").notNull(),
-  // active / closed / archived
 
   lastMessageAt: timestamp("last_message_at").defaultNow(),
   lastMessagePreview: varchar("last_message_preview", { length: 200 }),
@@ -282,10 +281,8 @@ export const chatMessages = pgTable("chat_messages", {
 
   senderId: integer("sender_id").references(() => members.id, { onDelete: "set null" }).notNull(),
   senderRole: varchar("sender_role", { length: 20 }).default("user").notNull(),
-  // user / admin / system
 
   messageType: varchar("message_type", { length: 20 }).default("text").notNull(),
-  // text / image / system_notice
 
   content: text("content"),
   attachmentId: integer("attachment_id"),
@@ -316,7 +313,7 @@ export const chatAttachments = pgTable("chat_attachments", {
   width: integer("width"),
   height: integer("height"),
 
-  expiresAt: timestamp("expires_at"), // 1년 후 자동 정리
+  expiresAt: timestamp("expires_at"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
@@ -344,31 +341,25 @@ export const chatBlacklist = pgTable("chat_blacklist", {
 
 /* =========================================================
    ★ STEP H-2d: 영수증 설정 (단일 진실 원천)
-   - 행은 항상 1개만 유지 (id=1 고정)
-   - admin.html (사이렌 백오피스) + cms-tbfa.html (교유협 CMS) 양쪽에서 공유
    ========================================================= */
 export const receiptSettings = pgTable("receipt_settings", {
   id: serial("id").primaryKey(),
 
-  // 협회 정보 (PDF에 표시되는 5가지)
   orgName: varchar("org_name", { length: 100 }),
   orgRegistrationNo: varchar("org_registration_no", { length: 50 }),
   orgRepresentative: varchar("org_representative", { length: 50 }),
   orgAddress: varchar("org_address", { length: 255 }),
   orgPhone: varchar("org_phone", { length: 50 }),
 
-  // 영수증 양식 텍스트 (커스터마이징 가능)
-  title: varchar("title", { length: 100 }),                  // "기 부 금  영 수 증"
-  subtitle: varchar("subtitle", { length: 200 }),            // "(소득세법 시행규칙 ...)"
-  proofText: varchar("proof_text", { length: 200 }),         // "위와 같이 기부금을 기부하였음을 증명합니다."
-  donationTypeLabel: varchar("donation_type_label", { length: 50 }), // "지정기부금"
-  footerNotes: text("footer_notes"),                         // JSON 배열 ["• ...", "• ...", "• ..."]
+  title: varchar("title", { length: 100 }),
+  subtitle: varchar("subtitle", { length: 200 }),
+  proofText: varchar("proof_text", { length: 200 }),
+  donationTypeLabel: varchar("donation_type_label", { length: 50 }),
+  footerNotes: text("footer_notes"),
 
-  // 메타
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
-
 
 /* =========================================================
    6. audit_logs — 감사 로그 (보안 추적)
@@ -376,12 +367,12 @@ export const receiptSettings = pgTable("receipt_settings", {
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => members.id, { onDelete: "set null" }),
-  userType: varchar("user_type", { length: 20 }), // admin/user/system
+  userType: varchar("user_type", { length: 20 }),
   userName: varchar("user_name", { length: 50 }),
 
-  action: varchar("action", { length: 100 }).notNull(),    // login/donate/update_member 등
-  target: varchar("target", { length: 100 }),              // 대상 (회원ID, 신청번호 등)
-  detail: text("detail"),                                  // 상세 내용 (JSON 가능)
+  action: varchar("action", { length: 100 }).notNull(),
+  target: varchar("target", { length: 100 }),
+  detail: text("detail"),
 
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 500 }),
@@ -394,6 +385,34 @@ export const auditLogs = pgTable("audit_logs", {
   userIdx: index("audit_user_idx").on(t.userId),
   actionIdx: index("audit_action_idx").on(t.action),
   createdIdx: index("audit_created_idx").on(t.createdAt),
+}));
+
+/* =========================================================
+   ★ K-1: 비밀번호 재설정 토큰 (NEW)
+   - rawToken은 메일에만 노출, DB에는 SHA-256 해시만 저장
+   - 30분 유효 / 1회 사용 / 회원당 1시간에 3개 제한
+   ========================================================= */
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id")
+    .references(() => members.id, { onDelete: "cascade" })
+    .notNull(),
+
+  // SHA-256(rawToken) — 64자 hex
+  tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
+
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+
+  // 보안 추적
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: varchar("user_agent", { length: 500 }),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("prt_member_idx").on(t.memberId),
+  tokenIdx: index("prt_token_idx").on(t.tokenHash),
+  expiresIdx: index("prt_expires_idx").on(t.expiresAt),
 }));
 
 /* =========================================================
@@ -425,3 +444,7 @@ export type NewChatBlacklist = typeof chatBlacklist.$inferInsert;
 /* H-2d: 영수증 설정 타입 */
 export type ReceiptSettings = typeof receiptSettings.$inferSelect;
 export type NewReceiptSettings = typeof receiptSettings.$inferInsert;
+
+/* ★ K-1: 비밀번호 재설정 토큰 타입 */
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
