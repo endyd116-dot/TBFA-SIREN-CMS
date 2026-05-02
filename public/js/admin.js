@@ -134,6 +134,19 @@
     }
     return '<span style="color:#bbb">⚪</span>';
   }
+    function priorityCellLabel(priority, reason) {
+    const safeReason = reason ? String(reason).replace(/"/g, '&quot;') : '';
+    if (priority === 'urgent') {
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c5293a;color:#fff;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:11px">🔴 긴급</span>';
+    }
+    if (priority === 'low') {
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#1a8b46;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">🟢 낮음</span>';
+    }
+    if (priority === 'normal') {
+      return '<span title="' + safeReason + '" style="display:inline-flex;align-items:center;gap:4px;background:#c47a00;color:#fff;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:11px">🟡 보통</span>';
+    }
+    return '<span style="color:#bbb;font-size:11.5px">⚪ —</span>';
+  }
   /* ============ 신규 뱃지 ============ */
   function updateSupportBadge(count) {
     const badge = document.getElementById('supportNewBadge');
@@ -503,7 +516,7 @@
       return html;
     }
 
-        tbody.innerHTML = list.map((s) => {
+    tbody.innerHTML = list.map((s) => {
       /* 우선순위 행 강조 (긴급은 빨강 배경, 신규는 노랑) */
       let rowAttr = '';
       if (s.priority === 'urgent') rowAttr = ' style="background:#fdecec"';
@@ -513,11 +526,12 @@
       const answererName = s.answererName ? escapeHtml(s.answererName) : '—';
       const answeredAt = s.answeredAt ? formatShortDateTime(s.answeredAt) : '—';
 
-      /* 우선순위 마커 */
-      const priorityIcon = priorityMarkerHtml(s.priority, s.priorityReason);
+      /* 위험도 컬럼 (큰 마커 + 라벨) */
+      const priorityCellHtml = priorityCellLabel(s.priority, s.priorityReason);
 
       return '<tr' + rowAttr + '>' +
-        '<td style="font-family:Inter;font-size:12px">' + priorityIcon + ' ' + escapeHtml(s.requestNo) + '</td>' +
+        '<td>' + priorityCellHtml + '</td>' +
+        '<td style="font-family:Inter;font-size:12px">' + escapeHtml(s.requestNo) + '</td>' +
         '<td>' + (SUPPORT_CAT_LABEL[s.category] || s.category) + '</td>' +
         '<td><span class="clickable-name" data-member-info-id="' + s.memberId + '">' + requesterName + '</span></td>' +
         '<td style="font-family:Inter;font-size:12px">' + formatShortDateTime(s.createdAt) + '</td>' +
@@ -528,6 +542,22 @@
         '<td><button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button></td>' +
         '</tr>';
     }).join('');
+
+    /* 긴급 KPI 카운트 */
+    const urgentCount = list.filter((s) => s.priority === 'urgent').length;
+    const urgentEl = document.getElementById('support-kpi-urgent');
+    if (urgentEl) urgentEl.textContent = urgentCount + ' 건';
+    /* 긴급 카드 강조 (0건이면 회색) */
+    const urgentCard = document.getElementById('kpiUrgentCard');
+    if (urgentCard) {
+      if (urgentCount > 0) {
+        urgentCard.style.borderLeft = '4px solid #c5293a';
+        urgentCard.style.background = '#fdecec';
+      } else {
+        urgentCard.style.borderLeft = '4px solid var(--line)';
+        urgentCard.style.background = 'transparent';
+      }
+    }
   }
 
   /* 인라인 단계 변경 */
@@ -587,6 +617,9 @@
     document.getElementById('replyId').value = id;
     document.getElementById('replyNote').value = '';
     document.getElementById('replySendEmail').checked = false;
+    /* 긴급 경고 박스 초기화 */
+    const urgentBox = document.getElementById('urgentWarningBox');
+    if (urgentBox) urgentBox.style.display = 'none';
 
     const res = await api('/api/admin/support?id=' + id);
     if (!res.ok || !res.data?.data) {
@@ -610,6 +643,18 @@
 
     document.getElementById('detail-title').textContent = r.title || '';
     document.getElementById('detail-content').textContent = r.content || '';
+
+    /* 긴급 신청이면 경고 박스 표시 */
+    if (r.priority === 'urgent') {
+      const urgentBox = document.getElementById('urgentWarningBox');
+      const urgentReason = document.getElementById('urgentReason');
+      if (urgentBox) urgentBox.style.display = 'block';
+      if (urgentReason) {
+        urgentReason.textContent = r.priorityReason
+          ? `AI 판단 근거: ${r.priorityReason}`
+          : 'AI가 긴급 신청으로 분류했습니다';
+      }
+    }
 
     /* 첨부파일 */
     const attachEl = document.getElementById('detail-attachments');

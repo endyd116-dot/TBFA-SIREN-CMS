@@ -1,10 +1,11 @@
 /**
  * POST /api/support/create
  * 유가족 지원 신청 — 로그인 필수
- *  + 관리자에게 알림 메일 발송
- *  + AI 우선순위 자동 분석 후 DB 저장 (STEP E-4a)
+ *  + 관리자/담당자 다중 메일 발송 (STEP F-3)
+ *  + AI 우선순위 자동 분석 (STEP E-4a)
+ *  + 긴급 신청은 모든 운영자에게 강제 발송
  */
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, supportRequests, members, generateRequestNo } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { supportRequestSchema, safeValidate } from "../../lib/validation";
@@ -60,14 +61,14 @@ export default async (req: Request) => {
     /* 4. 신청번호 */
     const requestNo = generateRequestNo("S");
 
-    /* 5. ★ AI 우선순위 분석 (실패해도 신청은 진행) */
+    /* 5. AI 우선순위 분석 */
     let priority = "normal";
     let priorityReason = "AI 미실행";
     try {
       const analysis = await analyzePriority({ category, title, content });
       priority = analysis.priority;
       priorityReason = analysis.reason;
-      console.log(`[support-create] AI 우선순위 분석: ${priority} (${analysis.confidence}) - ${analysis.reason}`);
+      console.log(`[support-create] AI 우선순위: ${priority} (${analysis.confidence}) - ${analysis.reason}`);
     } catch (aiErr) {
       console.error("[support-create] AI 분석 실패:", aiErr);
     }
@@ -100,35 +101,90 @@ export default async (req: Request) => {
         createdAt: supportRequests.createdAt,
       });
 
-    /* 7. 관리자 알림 메일 (긴급 표시 포함) */
+    /* 7. ★ 메일 수신자 결정 (STEP F-3) */
+    const recipientEmails = new Set<string>();
+
+    /* 7-1. 환경변수 ADMIN_NOTIFY_EMAIL은 항상 폴백으로 추가 */
     if (ADMIN_NOTIFY_EMAIL) {
+      recipientEmails.add(ADMIN_NOTIFY_EMAIL);
+    }
+
+    /* 7-2. 긴급(urgent)은 모든 활성 운영자에게 강제 발송 */
+    if (priority === "urgent") {
       try {
-        const contentPreview = (content || "").trim().slice(0, 80);
-        const subjectPrefix = priority === "urgent" ? "🔴 긴급 - " : "";
-        const tpl = tplSupportReceivedAdmin({
-          requestNo,
-          applicantName: user.name,
-          applicantEmail: user.email,
-          category,
-          title: subjectPrefix + title,
-          contentPreview: priority === "urgent"
-            ? `[AI 긴급 판단: ${priorityReason}]\n\n${contentPreview}`
-            : contentPreview,
-        });
-        await sendEmail({
-          to: ADMIN_NOTIFY_EMAIL,
-          subject: tpl.subject,
-          html: tpl.html,
-        });
-      } catch (emailErr) {
-        console.error("[support-create] 관리자 메일 발송 실패:", emailErr);
+        const allOperators = await db
+          .select({ email: members.email })
+          .from(members)
+          .where(
+            and(
+              eq(members.type, "admin"),
+              eq(members.operatorActive, true)
+            )
+          );
+        for (const op of allOperators) {
+          if (op.email) recipientEmails.add(op.email);
+        }
+        console.log(`[support-create] 🔴 긴급 — 모든 운영자에게 발송: ${recipientEmails.size}명`);
+      } catch (opErr) {
+        console.error("[support-create] 긴급 운영자 조회 실패:", opErr);
+      }
+    } else {
+      /* 7-3. 일반 신청 — notifyOnSupport=true인 운영자에게만 발송 */
+      try {
+        const notifyOps = await db
+          .select({ email: members.email })
+          .from(members)
+          .where(
+            and(
+              eq(members.type, "admin"),
+              eq(members.operatorActive, true),
+              eq(members.notifyOnSupport, true)
+            )
+          );
+        for (const op of notifyOps) {
+          if (op.email) recipientEmails.add(op.email);
+        }
+        console.log(`[support-create] 일반 — 알림 수신 운영자: ${recipientEmails.size}명`);
+      } catch (opErr) {
+        console.error("[support-create] 알림 운영자 조회 실패:", opErr);
       }
     }
 
-    /* 8. 감사 로그 */
+    /* 8. 메일 발송 (실패해도 신청은 정상 처리) */
+    if (recipientEmails.size > 0) {
+      const contentPreview = (content || "").trim().slice(0, 80);
+      const subjectPrefix = priority === "urgent" ? "🔴 긴급 - " : "";
+      const tpl = tplSupportReceivedAdmin({
+        requestNo,
+        applicantName: user.name,
+        applicantEmail: user.email,
+        category,
+        title: subjectPrefix + title,
+        contentPreview: priority === "urgent"
+          ? `[AI 긴급 판단: ${priorityReason}]\n\n${contentPreview}`
+          : contentPreview,
+      });
+
+      /* 각 수신자에게 개별 발송 (실패 시 다음 사람으로) */
+      for (const email of recipientEmails) {
+        try {
+          await sendEmail({
+            to: email,
+            subject: tpl.subject,
+            html: tpl.html,
+          });
+        } catch (emailErr) {
+          console.error(`[support-create] ${email} 메일 발송 실패:`, emailErr);
+        }
+      }
+    } else {
+      console.warn("[support-create] 메일 수신자 없음 — ADMIN_NOTIFY_EMAIL 또는 운영자 알림 설정 필요");
+    }
+
+    /* 9. 감사 로그 */
     await logUserAction(req, user.id as any, user.name as any, "support_create", {
       target: requestNo,
-      detail: { category, memberType: user.type, priority },
+      detail: { category, memberType: user.type, priority, recipientCount: recipientEmails.size },
     });
 
     return created(
