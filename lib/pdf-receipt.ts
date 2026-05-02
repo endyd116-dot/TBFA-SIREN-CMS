@@ -1,14 +1,19 @@
 /**
- * SIREN — PDF 기부금 영수증 생성 (STEP H-2c + H-2d-2)
+ * SIREN — PDF 기부금 영수증 생성 (STEP H-2c + H-2d-2 + 한글 깨짐 핫픽스)
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
- * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset)
+ * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (★ subset 비활성화 — 한글 안정성 확보)
  * - A4 (595 x 842 pt) 1장
  *
  * ★ H-2d-2 변경:
  *   - 협회 정보 + 양식 텍스트를 DB(receipt_settings)에서 우선 조회
  *   - DB 비어있으면 환경변수 → 그것도 없으면 샘플값
  *   - 두 관리자 페이지에서 변경한 내용이 즉시 PDF에 반영됨
+ *
+ * ★ 한글 깨짐 핫픽스 (2026-05-02):
+ *   - 폰트 캐시를 ArrayBuffer로 보관 + 매번 새 Uint8Array 반환
+ *     → pdf-lib가 buffer를 mutate해도 안전
+ *   - subset: false로 변경 → 큰 한글 폰트의 subset 누락 버그 우회
  *
  * 환경변수 (DB 미설정 시 폴백):
  *   ORG_NAME              — 단체명
@@ -24,16 +29,27 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { db, receiptSettings } from "../db";
 
-/* ============ 폰트 캐싱 (Lambda 컨테이너 재사용 시 성능 향상) ============ */
-let _fontCache: Uint8Array | null = null;
+/* ============ 폰트 캐싱 (ArrayBuffer로 보관, 매번 새 Uint8Array 반환) ============ */
+/**
+ * ★ 핫픽스: pdf-lib는 임베딩 과정에서 입력 Uint8Array를 mutate합니다.
+ *   같은 buffer를 두 번 사용하면 두 번째 PDF부터 한글이 깨집니다.
+ *   ArrayBuffer를 캐싱하고, 매번 새 Uint8Array를 만들어 반환하면 해결됩니다.
+ */
+let _fontCache: ArrayBuffer | null = null;
 
 function loadKoreanFont(): Uint8Array {
-  if (_fontCache) return _fontCache;
-  /* process.cwd() = /var/task (Netlify Functions) */
-  const fontPath = join(process.cwd(), "assets", "fonts", "NotoSansKR-Regular.ttf");
-  const buf = readFileSync(fontPath);
-  _fontCache = buf;
-  return buf;
+  if (!_fontCache) {
+    /* process.cwd() = /var/task (Netlify Functions) */
+    const fontPath = join(process.cwd(), "assets", "fonts", "NotoSansKR-Regular.ttf");
+    const buf = readFileSync(fontPath);
+    /* Node.js Buffer → ArrayBuffer 복사 (slice로 독립된 ArrayBuffer 생성) */
+    _fontCache = buf.buffer.slice(
+      buf.byteOffset,
+      buf.byteOffset + buf.byteLength
+    );
+  }
+  /* 매번 새 Uint8Array를 반환 (원본 ArrayBuffer는 보존) */
+  return new Uint8Array(_fontCache.slice(0));
 }
 
 /* ============ 영수증 설정 조회 (DB 우선 → 환경변수 → 샘플) ============ */
@@ -138,9 +154,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
 
-  /* 한글 폰트 임베딩 (subset: 사용된 글자만 포함 → 파일 크기 작음) */
+  /* 한글 폰트 임베딩 (★ subset: false — 한글 깨짐 방지) */
   const fontBytes = loadKoreanFont();
-  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const font = await pdfDoc.embedFont(fontBytes, { subset: false });
 
   /* 영수증 설정 (DB 우선) */
   const settings = await getReceiptSettings();
