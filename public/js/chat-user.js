@@ -16,6 +16,7 @@
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMessageAt = null;
+  let _renderedMsgIds = new Set(); // ★ 중복 방지
   let _isBlacklisted = null;
 
   /* ============ API ============ */
@@ -302,11 +303,20 @@
   function appendMessages(messages, replace) {
     const msgsEl = document.getElementById('chatMessages');
     if (!msgsEl) return;
-    if (replace) msgsEl.innerHTML = '';
+    if (replace) {
+      msgsEl.innerHTML = '';
+      _renderedMsgIds.clear();
+    }
 
     const myUid = window.SIREN_AUTH?.user?.id;
 
-    const html = messages.map((m) => {
+    /* 이미 렌더된 메시지 제외 */
+    const newMessages = messages.filter((m) => !_renderedMsgIds.has(m.id));
+    if (newMessages.length === 0) return;
+
+    const html = newMessages.map((m) => {
+      _renderedMsgIds.add(m.id);
+
       if (m.isSystem || m.senderRole === 'system' || m.messageType === 'system_notice') {
         return `<div class="msg-row system"><div class="msg-bubble">📢 ${escapeHtml(m.content || '')}</div></div>`;
       }
@@ -319,8 +329,10 @@
         : `<div class="msg-row theirs">${bubble}${meta}</div>`;
     }).join('');
 
-    msgsEl.insertAdjacentHTML('beforeend', html);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
+    if (html) {
+      msgsEl.insertAdjacentHTML('beforeend', html);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
   }
   /* ============ 이미지 업로드 (클라이언트 압축 + 전송) ============ */
   function setupImageUpload() {
@@ -531,6 +543,7 @@
     }
     _currentRoom = null;
     _lastMessageAt = null;
+    _renderedMsgIds.clear(); // ★ 초기화
     /* 목록 새로고침 (미읽음/마지막 메시지 갱신) */
     if (document.querySelector('.mp-panel[data-mp-panel="consult"]')?.style.display !== 'none') {
       loadRooms();
