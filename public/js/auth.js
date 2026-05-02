@@ -1,6 +1,6 @@
 /* =========================================================
    SIREN — auth.js
-   인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러
+   인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러 + 채팅 알림
    ========================================================= */
 (function () {
   'use strict';
@@ -68,7 +68,49 @@
     },
   };
 
-  /* ------------ 헤더 UI 동기화 (로그인/회원가입 영역) ------------ */
+  /* ------------ 채팅 미읽음 알림 (헤더 뱃지) ------------ */
+  let _chatAlarmTimer = null;
+
+  async function checkChatUnread() {
+    if (!Auth.isLoggedIn()) return;
+    try {
+      const res = await api('/api/chat/mine');
+      if (!res.ok || !res.data?.data?.rooms) return;
+
+      const rooms = res.data.data.rooms;
+      let totalUnread = 0;
+      for (const r of rooms) {
+        totalUnread += (r.unreadForUser || 0);
+      }
+
+      const badge = document.getElementById('chatNotifyBadge');
+      if (badge) {
+        if (totalUnread > 0) {
+          badge.textContent = totalUnread > 99 ? '99+' : String(totalUnread);
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch (e) {
+      /* 조용히 실패 */
+    }
+  }
+
+  function startChatAlarmPolling() {
+    stopChatAlarmPolling();
+    checkChatUnread();
+    _chatAlarmTimer = setInterval(checkChatUnread, 30000);
+  }
+
+  function stopChatAlarmPolling() {
+    if (_chatAlarmTimer) {
+      clearInterval(_chatAlarmTimer);
+      _chatAlarmTimer = null;
+    }
+  }
+
+  /* ------------ 헤더 UI 동기화 ------------ */
   function syncHeader() {
     const topRight = document.querySelector('.top-right');
     if (!topRight) return;
@@ -77,10 +119,8 @@
     let userBox = document.getElementById('userBox');
 
     if (Auth.isLoggedIn()) {
-      // 로그인/회원가입 링크 숨김
       loginLinks.forEach(a => a.style.display = 'none');
 
-      // 사용자 박스 추가/갱신
       if (!userBox) {
         userBox = document.createElement('div');
         userBox.id = 'userBox';
@@ -92,6 +132,9 @@
       const u = Auth.user;
       const typeLabel = ({regular:'후원회원',family:'유가족',volunteer:'봉사자',admin:'관리자'})[u.type] || u.type;
       userBox.innerHTML = `
+        <a href="/mypage.html#consult" style="color:#fff;font-weight:500;position:relative;display:inline-flex;align-items:center;gap:4px;text-decoration:none" title="1:1 상담">
+          💬<span id="chatNotifyBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c5293a;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;padding:0 4px">0</span>
+        </a>
         <a href="/mypage.html" style="color:#fff;font-weight:500" title="마이페이지">${escapeHtml(u.name)} <span style="color:var(--gold,#b8935a);font-size:11px">(${typeLabel})</span></a>
         <button id="btnLogout" style="background:transparent;border:1px solid #2a2a2a;color:#bdbdbd;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">로그아웃</button>
       `;
@@ -99,15 +142,16 @@
         await Auth.logout();
         if (window.SIREN) SIREN.toast('로그아웃되었습니다');
         syncHeader();
-        // 마이페이지/관리자였으면 홈으로 이동
         if (['/mypage.html'].includes(location.pathname)) {
           setTimeout(() => location.href = '/index.html', 500);
         }
       });
+
+      startChatAlarmPolling();
     } else {
-      // 비로그인 상태 — 로그인/회원가입 다시 보이기
       loginLinks.forEach(a => a.style.display = '');
       if (userBox) userBox.remove();
+      stopChatAlarmPolling();
     }
   }
 
@@ -125,7 +169,6 @@
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
 
-      // 제출 버튼 잠금
       const btn = form.querySelector('button[type="submit"]');
       const oldText = btn ? btn.textContent : '';
       if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
@@ -139,7 +182,6 @@
             remember: !!data.remember,
           });
         } else {
-          // signup
           const checkboxes = form.querySelectorAll('input[type="checkbox"][required]');
           const agreeAll = Array.from(checkboxes).every(c => c.checked);
           if (!agreeAll) throw new Error('이용약관에 동의해주세요');
@@ -162,7 +204,6 @@
         } else {
           const msg = res.data?.error || '처리 중 오류가 발생했습니다';
           window.SIREN.toast(msg);
-          // 검증 에러 상세 출력 (콘솔)
           if (res.data?.detail) console.warn('[Validation]', res.data.detail);
         }
       } catch (err) {
@@ -173,8 +214,7 @@
     });
   }
 
-  /* ------------ 마이페이지 데이터 주입 (있을 때만) ------------ */
-    /* ------------ 마이페이지 데이터 주입 (있을 때만) ------------ */
+  /* ------------ 마이페이지 데이터 주입 ------------ */
   async function injectMypage() {
     if (!document.body.dataset.page || document.body.dataset.page !== 'mypage') return;
     if (!Auth.isLoggedIn()) {
@@ -183,7 +223,6 @@
       return;
     }
 
-    /* 사용자 정보 표시 */
     const avatar = document.querySelector('.mp-avatar');
     if (avatar) avatar.textContent = (Auth.user.name || '?').charAt(0);
     const nameEl = document.querySelector('.mp-user strong');
@@ -194,21 +233,17 @@
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
 
-    /* 후원 내역 로드 */
     await refreshDonations();
-    /* 지원 신청 내역 로드 */         
     await refreshSupport();
-
   }
 
-  /* 후원 내역 새로고침 (전역 노출) */
+  /* ------------ 후원 내역 새로고침 ------------ */
   async function refreshDonations() {
     const res = await api('/api/donations/mine');
     if (!res.ok || !res.data?.data) return;
 
     const { list, stats } = res.data.data;
 
-    /* KPI 카드 */
     const panel = document.querySelector('.mp-panel[data-mp-panel="donations"]');
     if (panel) {
       const kpiValues = panel.querySelectorAll('.kpi-value');
@@ -220,7 +255,6 @@
       }
     }
 
-    /* 테이블 갱신 */
     const tbody = panel?.querySelector('table.tbl tbody');
     if (tbody) {
       if (list.length === 0) {
@@ -257,13 +291,14 @@
     const d = new Date(iso);
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   }
-  /* 지원 신청 내역 새로고침 (전역 노출) */
+
+  /* ------------ 지원 신청 내역 새로고침 ------------ */
   async function refreshSupport() {
     const res = await api('/api/support/mine');
     if (!res.ok || !res.data?.data) return;
 
     const { list } = res.data.data;
-    const panel = document.querySelector('.mp-panel[data-mp-panel="support"]');                                                     
+    const panel = document.querySelector('.mp-panel[data-mp-panel="support"]');
     const tbody = panel?.querySelector('table.tbl tbody');
     if (!tbody) return;
 
@@ -295,24 +330,41 @@
   }
 
   window.SIREN_REFRESH_SUPPORT = refreshSupport;
-  /* 전역 노출 (donate.js가 후원 완료 시 호출) */
   window.SIREN_REFRESH_MYPAGE = refreshDonations;
 
   /* ------------ 초기화 ------------ */
+  let _initExecuted = false;
+
   async function init() {
+    if (_initExecuted) return;
+    _initExecuted = true;
+
     setupAuthForms();
-    await Auth.fetchMe();   // 세션 확인
-    syncHeader();           // 헤더 UI 갱신
-    injectMypage();         // 마이페이지면 데이터 주입
+    await Auth.fetchMe();
+    syncHeader();
+
+    if (document.body.dataset.page === 'mypage') {
+      await injectMypage();
+    }
   }
 
-  /* common.js의 SIREN_PAGE_INIT 훅에 합류 */
+  window.SIREN_AUTH = Auth;
+  window.SIREN_AUTH_INIT = init;
+
+  /* 3가지 경로로 init 보장 */
   const prevInit = window.SIREN_PAGE_INIT;
   window.SIREN_PAGE_INIT = function () {
     if (typeof prevInit === 'function') prevInit();
     init();
   };
 
-  /* 전역 노출 */
-  window.SIREN_AUTH = Auth;
+  document.addEventListener('partials:loaded', () => init());
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(init, 500);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(init, 500);
+    });
+  }
 })();
