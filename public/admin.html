@@ -225,7 +225,8 @@
             <span class="adm-badge" id="supportNewBadge" style="display:none">0</span>
           </a>
         </li>
-        <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
+        <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
+        <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>>
         <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
       </ul>
@@ -362,7 +363,42 @@
             </div>
           </div>
         </div>
+        <!-- 5. 운영자 관리 -->
+        <div id="adm-operators" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="opKpiTotal">0 명</div></div>
+            <div class="kpi"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="opKpiSuper">0 명</div></div>
+            <div class="kpi"><div class="kpi-label">일반 운영자</div><div class="kpi-value" id="opKpiOperator">0 명</div></div>
+            <div class="kpi"><div class="kpi-label">활성 운영자</div><div class="kpi-value" id="opKpiActive">0 명</div></div>
+          </div>
 
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">👨‍💼 운영자 목록</div>
+              <div class="p-actions">
+                <button class="btn-sm btn-sm-primary" data-op-action="open-promote">+ 회원 승급</button>
+              </div>
+            </div>
+            <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+              💡 운영자는 백오피스에 접근할 수 있으며, "알림 수신"이 켜진 운영자는 새 지원 신청 시 이메일을 받습니다.<br>
+              긴급(🔴) 신청은 모든 운영자에게 자동 발송됩니다.
+            </p>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>이메일</th>
+                  <th>역할</th>
+                  <th>알림 수신</th>
+                  <th>상태</th>
+                  <th>최종 로그인</th>
+                  <th style="width:140px">관리</th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
         <!-- 5. AI 추천 센터 -->
         <div id="adm-ai" class="adm-page">
           <div class="ai-banner">
@@ -492,7 +528,52 @@
       </div>
     </div>
   </div>
+  <!-- ★ 운영자 승급 모달 -->
+  <div id="promoteOperatorModal" class="modal">
+    <div class="modal-content" style="max-width:560px">
+      <div class="modal-header">
+        <h3 class="serif">👨‍💼 회원 → 운영자 승급</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.6">
+          기존 회원을 검색하여 운영자로 승급할 수 있습니다.<br>
+          <span style="color:var(--text-3);font-size:12px">※ 이미 운영자(admin)인 회원은 검색 결과에서 제외됩니다.</span>
+        </p>
 
+        <div class="fg">
+          <label>회원 검색 <span class="hint">(이름 또는 이메일, 2자 이상)</span></label>
+          <input type="text" id="promoteSearchInput" placeholder="홍길동 또는 hong@..." style="width:100%">
+        </div>
+
+        <div id="promoteSearchResults" style="max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;padding:8px">
+          <div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">검색어를 입력하세요</div>
+        </div>
+
+        <div id="promoteSelected" style="display:none;background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px;margin-top:14px">
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">✓ 승급할 회원</div>
+          <div id="promoteSelectedInfo" style="font-weight:600;margin-bottom:10px"></div>
+
+          <div class="fg" style="margin-bottom:10px">
+            <label>역할</label>
+            <select id="promoteRole" style="width:100%">
+              <option value="operator">일반 운영자 (operator)</option>
+              <option value="super_admin">슈퍼 관리자 (super_admin)</option>
+            </select>
+          </div>
+
+          <label class="checkbox-line" style="margin:0;display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="promoteNotify" checked>
+            <span style="font-size:13px">📧 새 지원 신청 시 알림 메일 수신</span>
+          </label>
+
+          <button type="button" id="promoteConfirmBtn" class="btn btn-primary btn-block" style="margin-top:14px">
+            운영자로 승급하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- ★ 신규: 회원 정보 팝업 모달 -->
   <div id="memberInfoModal" class="modal">
     <div class="modal-content" style="max-width:560px">

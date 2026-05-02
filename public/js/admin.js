@@ -10,6 +10,7 @@
     members: '회원 관리',
     donations: '기부 관리',
     support: '지원 관리',
+    operators: '운영자 관리',
     ai: 'AI 추천 센터',
     content: '콘텐츠 관리',
     settings: '시스템 설정',
@@ -982,7 +983,248 @@
       if (id) openMemberInfoModal(id);
     });
   }
+  /* ============ ★ 운영자 관리 (STEP F-2) ============ */
+  let _promoteSelectedMember = null;
 
+  async function loadOperators() {
+    const panel = document.getElementById('adm-operators');
+    if (!panel) return;
+    const tbody = panel.querySelector('table.tbl tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    const res = await api('/api/admin/operators');
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
+    }
+    const ops = res.data.data.operators || [];
+    const stats = res.data.data.stats || {};
+
+    /* KPI */
+    const total = document.getElementById('opKpiTotal');
+    const sup = document.getElementById('opKpiSuper');
+    const reg = document.getElementById('opKpiOperator');
+    const act = document.getElementById('opKpiActive');
+    if (total) total.textContent = (stats.total || 0) + ' 명';
+    if (sup) sup.textContent = (stats.superAdmins || 0) + ' 명';
+    if (reg) reg.textContent = (stats.regular || 0) + ' 명';
+    if (act) act.textContent = (stats.active || 0) + ' 명';
+
+    if (ops.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">운영자가 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = ops.map((op) => {
+      const roleBadge = op.role === 'super_admin'
+        ? '<span class="badge b-danger">슈퍼 관리자</span>'
+        : '<span class="badge b-info">운영자</span>';
+      const notifyToggle = `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+        <input type="checkbox" ${op.notifyOnSupport ? 'checked' : ''} data-op-toggle="notify" data-op-id="${op.id}">
+        ${op.notifyOnSupport ? '✅' : '⬜'}
+      </label>`;
+      const statusBadge = op.operatorActive
+        ? '<span class="badge b-success">활성</span>'
+        : '<span class="badge b-mute">비활성</span>';
+
+      const actionBtns =
+        `<button class="btn-link" data-op-action="toggle-active" data-op-id="${op.id}" data-current="${op.operatorActive}">${op.operatorActive ? '비활성화' : '활성화'}</button> ` +
+        `<button class="btn-link" data-op-action="demote" data-op-id="${op.id}" data-name="${escapeHtml(op.name)}" style="color:var(--danger)">강등</button>`;
+
+      return `<tr>
+        <td><strong>${escapeHtml(op.name)}</strong></td>
+        <td style="font-size:12px">${escapeHtml(op.email)}</td>
+        <td>${roleBadge}</td>
+        <td>${notifyToggle}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:12px">${formatDate(op.lastLoginAt)}</td>
+        <td>${actionBtns}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* 회원 검색 (디바운스) */
+  let _promoteSearchTimer = null;
+  function setupPromoteSearch() {
+    const input = document.getElementById('promoteSearchInput');
+    const results = document.getElementById('promoteSearchResults');
+    if (!input || !results) return;
+
+    input.addEventListener('input', () => {
+      clearTimeout(_promoteSearchTimer);
+      const q = input.value.trim();
+
+      if (q.length < 2) {
+        results.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">2자 이상 입력하세요</div>';
+        return;
+      }
+
+      results.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">⏳ 검색 중...</div>';
+
+      _promoteSearchTimer = setTimeout(async () => {
+        const res = await api('/api/admin/operators?candidates=1&q=' + encodeURIComponent(q));
+        if (!res.ok || !res.data?.data) {
+          results.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px">검색 실패</div>';
+          return;
+        }
+        const list = res.data.data.candidates || [];
+        if (list.length === 0) {
+          results.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">검색 결과가 없습니다</div>';
+          return;
+        }
+        results.innerHTML = list.map((m) => `
+          <div data-promote-pick="${m.id}" data-name="${escapeHtml(m.name)}" data-email="${escapeHtml(m.email)}" 
+               style="padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px"
+               onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">
+            <div>
+              <strong>${escapeHtml(m.name)}</strong>
+              <span style="color:var(--text-3);font-size:11.5px;margin-left:8px">${escapeHtml(m.email)}</span>
+            </div>
+            <span style="font-size:11px;color:var(--brand)">선택 →</span>
+          </div>
+        `).join('');
+      }, 300);
+    });
+  }
+
+  /* 검색 결과에서 회원 선택 */
+  function setupPromotePick() {
+    document.addEventListener('click', (e) => {
+      const row = e.target.closest('[data-promote-pick]');
+      if (!row) return;
+
+      _promoteSelectedMember = {
+        id: Number(row.dataset.promotePick),
+        name: row.dataset.name,
+        email: row.dataset.email,
+      };
+
+      const info = document.getElementById('promoteSelectedInfo');
+      const sel = document.getElementById('promoteSelected');
+      if (info) info.innerHTML = `<strong>${escapeHtml(_promoteSelectedMember.name)}</strong> <span style="color:var(--text-3);font-weight:400;font-size:12px">(${escapeHtml(_promoteSelectedMember.email)})</span>`;
+      if (sel) sel.style.display = 'block';
+
+      /* 검색 결과 영역에 선택 표시 */
+      document.querySelectorAll('[data-promote-pick]').forEach((el) => {
+        el.style.background = el.dataset.promotePick === String(_promoteSelectedMember.id) ? '#fff8ec' : 'transparent';
+      });
+    });
+  }
+
+  /* 승급 확정 */
+  function setupPromoteConfirm() {
+    const btn = document.getElementById('promoteConfirmBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      if (!_promoteSelectedMember) return toast('회원을 선택하세요');
+
+      const role = document.getElementById('promoteRole').value;
+      const notify = document.getElementById('promoteNotify').checked;
+
+      btn.disabled = true;
+      btn.textContent = '처리 중...';
+
+      const res = await api('/api/admin/operators', {
+        method: 'POST',
+        body: {
+          memberId: _promoteSelectedMember.id,
+          role,
+          notifyOnSupport: notify,
+        },
+      });
+
+      btn.disabled = false;
+      btn.textContent = '운영자로 승급하기';
+
+      if (res.ok) {
+        toast(res.data?.message || '승급 완료');
+        document.getElementById('promoteOperatorModal')?.classList.remove('show');
+        /* 모달 초기화 */
+        _promoteSelectedMember = null;
+        document.getElementById('promoteSearchInput').value = '';
+        document.getElementById('promoteSearchResults').innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">검색어를 입력하세요</div>';
+        document.getElementById('promoteSelected').style.display = 'none';
+        loadOperators();
+      } else {
+        toast(res.data?.error || '승급 실패');
+      }
+    });
+  }
+
+  /* 알림 토글 / 활성화 / 강등 */
+  function setupOperatorActions() {
+    /* 알림 수신 토글 */
+    document.addEventListener('change', async (e) => {
+      const cb = e.target.closest('[data-op-toggle="notify"]');
+      if (!cb) return;
+      const id = Number(cb.dataset.opId);
+      const newVal = cb.checked;
+
+      const res = await api('/api/admin/operators', {
+        method: 'PATCH',
+        body: { id, notifyOnSupport: newVal },
+      });
+      if (res.ok) {
+        toast('알림 수신 ' + (newVal ? '활성화' : '비활성화'));
+        loadOperators();
+      } else {
+        toast(res.data?.error || '변경 실패');
+        cb.checked = !newVal;
+      }
+    });
+
+    document.addEventListener('click', async (e) => {
+      /* 승급 모달 열기 */
+      const promoteBtn = e.target.closest('[data-op-action="open-promote"]');
+      if (promoteBtn) {
+        e.preventDefault();
+        document.getElementById('promoteOperatorModal')?.classList.add('show');
+        document.getElementById('promoteSearchInput')?.focus();
+        return;
+      }
+
+      /* 활성/비활성 토글 */
+      const toggleBtn = e.target.closest('[data-op-action="toggle-active"]');
+      if (toggleBtn) {
+        e.preventDefault();
+        const id = Number(toggleBtn.dataset.opId);
+        const isActive = toggleBtn.dataset.current === 'true';
+        const newVal = !isActive;
+
+        if (!confirm('운영자를 ' + (newVal ? '활성화' : '비활성화') + '하시겠습니까?')) return;
+
+        const res = await api('/api/admin/operators', {
+          method: 'PATCH',
+          body: { id, operatorActive: newVal },
+        });
+        if (res.ok) {
+          toast('운영자가 ' + (newVal ? '활성화' : '비활성화') + '되었습니다');
+          loadOperators();
+        } else {
+          toast(res.data?.error || '변경 실패');
+        }
+        return;
+      }
+
+      /* 강등 */
+      const demoteBtn = e.target.closest('[data-op-action="demote"]');
+      if (demoteBtn) {
+        e.preventDefault();
+        const id = Number(demoteBtn.dataset.opId);
+        const name = demoteBtn.dataset.name;
+        if (!confirm(name + '님을 일반 회원으로 강등하시겠습니까?\n(운영자 권한이 모두 해제됩니다)')) return;
+
+        const res = await api('/api/admin/operators?id=' + id, { method: 'DELETE' });
+        if (res.ok) {
+          toast(res.data?.message || '강등 완료');
+          loadOperators();
+        } else {
+          toast(res.data?.error || '강등 실패');
+        }
+      }
+    });
+  }
   /* ============ AI 추천 센터 ============ */
   async function loadAI() {
     const aiPanel = document.getElementById('adm-ai');
@@ -1114,6 +1356,8 @@
       loadDonations();
     } else if (page === 'support') {
       loadSupport();
+    } else if (page === 'operators') {
+      loadOperators();
     } else if (page === 'content') {
       loadContent();
     } else if (page === 'ai') {
@@ -1166,8 +1410,13 @@
     setupSupportReplyForm();
     setupInlineStatusChange();
     setupMemberInfoActions();
+    setupPromoteSearch();
+    setupPromotePick();
+    setupPromoteConfirm();
+    setupOperatorActions();
 
     const isLogged = await fetchAdminMe();
+
     if (isLogged) {
       const urlParams = new URLSearchParams(window.location.search);
       const service = urlParams.get('service');
