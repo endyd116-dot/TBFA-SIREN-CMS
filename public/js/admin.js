@@ -650,7 +650,75 @@
     injectAiDraftButton();
 
     /* AI 추천 전문가 자동 로드 (백그라운드) */
+        /* AI 추천 전문가 자동 로드 (백그라운드) */
     loadExpertMatch(id);
+
+    /* AI 유사 사례 자동 로드 (백그라운드) */
+    loadSimilarCases(id);
+  }
+    /* AI 유사 사례 로드 */
+  async function loadSimilarCases(supportId) {
+    const container = document.getElementById('aiSimilarCasesSection');
+    if (!container) return;
+
+    container.innerHTML =
+      '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+      '<div style="text-align:center;padding:14px;color:var(--text-3);font-size:12.5px">⏳ 비슷한 사례 검색 중... (3-5초)</div>';
+
+    try {
+      const res = await api('/api/admin/ai/similar-cases', {
+        method: 'POST',
+        body: { id: supportId },
+      });
+
+      if (!res.ok) {
+        container.innerHTML =
+          '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+          '<div style="color:var(--danger);font-size:12.5px;padding:8px">검색 실패</div>';
+        return;
+      }
+
+      const cases = res.data?.data?.cases || [];
+
+      if (cases.length === 0) {
+        container.innerHTML =
+          '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+          '<div style="font-size:12.5px;color:var(--text-3);padding:10px;background:var(--bg-soft);border-radius:6px;text-align:center">' +
+          '동일 카테고리에 완료된 유사 사례가 아직 없습니다' +
+          '</div>';
+        return;
+      }
+
+      const cardsHtml = cases.map((c) => {
+        const simColor = c.similarity >= 80 ? '#1a8b46' : c.similarity >= 60 ? '#c47a00' : '#8a8a8a';
+        const simBadge = c.similarity > 0
+          ? '<span style="background:' + simColor + ';color:#fff;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px">유사도 ' + c.similarity + '%</span>'
+          : '<span style="color:var(--text-3);font-size:11px">최근 완료</span>';
+        const daysText = c.processingDays !== null
+          ? '<span style="color:var(--text-3)">· ' + c.processingDays + '일 만에 완료</span>'
+          : '';
+
+        return '<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:11px 14px;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<div style="font-size:12px;color:var(--text-2);font-family:Inter">' + escapeHtml(c.requestNo) + ' ' + daysText + '</div>' +
+          simBadge +
+          '</div>' +
+          '<div style="font-size:13px;font-weight:600;margin-bottom:4px">' + escapeHtml(c.title) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-2);line-height:1.5;border-left:2px solid var(--brand);padding-left:8px">' +
+          '💡 ' + escapeHtml(c.summary) +
+          '</div>' +
+          '</div>';
+      }).join('');
+
+      container.innerHTML =
+        '<span class="support-detail-label">🔍 AI 유사 처리 사례 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
+        cardsHtml;
+    } catch (err) {
+      console.error('[loadSimilarCases]', err);
+      container.innerHTML =
+        '<span class="support-detail-label">🔍 AI 유사 처리 사례</span>' +
+        '<div style="color:var(--danger);font-size:12.5px;padding:8px">분석 호출 중 오류</div>';
+    }
   }
     /* AI 추천 전문가 섹션 로드 */
   async function loadExpertMatch(supportId) {
