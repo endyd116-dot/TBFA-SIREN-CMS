@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin.js (v7 — STEP H-2d-3 영수증 설정 추가)
+   SIREN — admin.js (v8 — STEP H-2d-3 영수증 설정 + I-3 블랙리스트 연동)
    ========================================================= */
 (function () {
   'use strict';
@@ -40,6 +40,14 @@
     family: '유가족',
     volunteer: '봉사자',
     admin: '관리자',
+  };
+
+  /* ★ I-3: 채팅 카테고리 라벨 (회원 모달의 채팅 메모 목록용) */
+  const CHAT_CAT_LABEL = {
+    support_donation: '💝 후원 문의',
+    support_homepage: '🌐 홈페이지',
+    support_signup: '📝 가입 절차',
+    support_other: '💬 기타',
   };
 
   let CURRENT_ADMIN = null;
@@ -478,14 +486,10 @@
   }
 
   /* ============ ★ STEP H-2d-3: 영수증 설정 ============ */
-  /**
-   * 페이지 진입 시 호출 — DB에서 현재 설정 로드 후 폼에 채움
-   */
   async function loadReceiptSettings() {
     const form = document.getElementById('receiptSettingsForm');
     if (!form) return;
 
-    /* 로딩 표시 (저장 버튼 비활성화) */
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
@@ -499,13 +503,11 @@
     const s = res.data.data.settings || {};
     const updatedByName = res.data.data.updatedByName;
 
-    /* 메타 정보 */
     const updatedAtEl = document.getElementById('rsUpdatedAt');
     const updatedByEl = document.getElementById('rsUpdatedBy');
     if (updatedAtEl) updatedAtEl.textContent = formatDateTime(s.updatedAt);
     if (updatedByEl) updatedByEl.textContent = updatedByName || (s.updatedBy ? '관리자 #' + s.updatedBy : '—');
 
-    /* 5개 협회 정보 */
     const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
     setVal('rsOrgName', s.orgName);
     setVal('rsOrgRegistrationNo', s.orgRegistrationNo);
@@ -513,27 +515,21 @@
     setVal('rsOrgAddress', s.orgAddress);
     setVal('rsOrgPhone', s.orgPhone);
 
-    /* 4개 양식 텍스트 */
     setVal('rsTitle', s.title);
     setVal('rsSubtitle', s.subtitle);
     setVal('rsProofText', s.proofText);
     setVal('rsDonationTypeLabel', s.donationTypeLabel);
 
-    /* 하단 안내문 (배열 → 동적 row) */
     renderFooterNotes(Array.isArray(s.footerNotes) ? s.footerNotes : []);
 
     if (submitBtn) submitBtn.disabled = false;
   }
 
-  /**
-   * 하단 안내문 동적 렌더링
-   */
   function renderFooterNotes(notes) {
     const list = document.getElementById('rsFooterList');
     if (!list) return;
 
     if (!notes || notes.length === 0) {
-      /* 빈 상태일 때도 1개 빈 row 제공 */
       notes = [''];
     }
 
@@ -546,9 +542,6 @@
     }).join('');
   }
 
-  /**
-   * 현재 폼에서 footerNotes 배열 추출
-   */
   function collectFooterNotes() {
     const inputs = document.querySelectorAll('#rsFooterList .rs-footer-row input[type="text"]');
     const arr = [];
@@ -559,9 +552,6 @@
     return arr;
   }
 
-  /**
-   * 폼 제출 → 저장
-   */
   function setupReceiptSettingsForm() {
     const form = document.getElementById('receiptSettingsForm');
     if (!form) return;
@@ -601,7 +591,6 @@
 
       if (res.ok) {
         toast(res.data?.message || '영수증 설정이 저장되었습니다');
-        /* 메타 정보 갱신 */
         const s = res.data?.data?.settings || {};
         const updatedByName = res.data?.data?.updatedByName;
         const updatedAtEl = document.getElementById('rsUpdatedAt');
@@ -614,12 +603,8 @@
     });
   }
 
-  /**
-   * 안내문 추가/삭제 / 미리보기 / 다시 불러오기 버튼
-   */
   function setupReceiptSettingsActions() {
     document.addEventListener('click', (e) => {
-      /* 안내문 추가 */
       if (e.target.closest('#rsAddFooterBtn')) {
         e.preventDefault();
         const list = document.getElementById('rsFooterList');
@@ -640,13 +625,11 @@
         return;
       }
 
-      /* 안내문 삭제 */
       const removeBtn = e.target.closest('[data-rs-remove]');
       if (removeBtn) {
         e.preventDefault();
         const row = removeBtn.closest('.rs-footer-row');
         if (row) row.remove();
-        /* 모두 삭제했을 경우 빈 row 1개 보장 */
         const list = document.getElementById('rsFooterList');
         if (list && list.querySelectorAll('.rs-footer-row').length === 0) {
           renderFooterNotes(['']);
@@ -654,7 +637,6 @@
         return;
       }
 
-      /* 다시 불러오기 */
       if (e.target.closest('#rsReloadBtn')) {
         e.preventDefault();
         loadReceiptSettings();
@@ -662,7 +644,6 @@
         return;
       }
 
-      /* 미리보기 (PDF를 새 탭에서 인라인 표시) */
       if (e.target.closest('#rsPreviewBtn')) {
         e.preventDefault();
         const previewUrl = '/api/admin/receipt-preview?ts=' + Date.now();
@@ -673,9 +654,6 @@
     });
   }
 
-  /**
-   * 통합 setup 함수 (init에서 호출)
-   */
   function setupReceiptSettings() {
     setupReceiptSettingsForm();
     setupReceiptSettingsActions();
@@ -697,7 +675,6 @@
     const list = res.data.data.list || [];
     const stats = res.data.data.stats || {};
 
-    /* KPI */
     const kpis = panel.querySelectorAll('.kpi-value');
     if (kpis[0]) kpis[0].textContent = (stats.submitted || 0) + ' 건';
     if (kpis[1]) kpis[1].textContent = (stats.inProgress || 0) + ' 건';
@@ -711,7 +688,6 @@
       return;
     }
 
-    /* 인라인 단계 select 옵션 생성 헬퍼 */
     function buildStatusSelect(currentStatus, requestId) {
       let html = '<select class="inline-status-select" data-inline-id="' + requestId + '">';
       Object.keys(SUPPORT_STATUS_LABEL).forEach((key) => {
@@ -723,7 +699,6 @@
     }
 
     tbody.innerHTML = list.map((s) => {
-      /* 우선순위 행 강조 (긴급은 빨강 배경, 신규는 노랑) */
       let rowAttr = '';
       if (s.priority === 'urgent') rowAttr = ' style="background:#fdecec"';
       else if (s.status === 'submitted') rowAttr = ' style="background:#fff8ec"';
@@ -732,7 +707,6 @@
       const answererName = s.answererName ? escapeHtml(s.answererName) : '—';
       const answeredAt = s.answeredAt ? formatShortDateTime(s.answeredAt) : '—';
 
-      /* 위험도 컬럼 (큰 마커 + 라벨) */
       const priorityCellHtml = priorityCellLabel(s.priority, s.priorityReason);
 
       return '<tr' + rowAttr + '>' +
@@ -749,11 +723,9 @@
         '</tr>';
     }).join('');
 
-    /* 긴급 KPI 카운트 */
     const urgentCount = list.filter((s) => s.priority === 'urgent').length;
     const urgentEl = document.getElementById('support-kpi-urgent');
     if (urgentEl) urgentEl.textContent = urgentCount + ' 건';
-    /* 긴급 카드 강조 (0건이면 회색) */
     const urgentCard = document.getElementById('kpiUrgentCard');
     if (urgentCard) {
       if (urgentCount > 0) {
@@ -766,7 +738,6 @@
     }
   }
 
-  /* 인라인 단계 변경 */
   function setupInlineStatusChange() {
     document.addEventListener('change', async (e) => {
       const sel = e.target.closest('.inline-status-select');
@@ -785,13 +756,11 @@
 
       if (res.ok) {
         toast(res.data?.message || '단계가 변경되었습니다');
-        /* 행 배경색 갱신을 위해 살짝 반영 */
         const tr = sel.closest('tr');
         if (tr) {
           if (newStatus === 'submitted') tr.setAttribute('style', 'background:#fff8ec');
           else tr.removeAttribute('style');
         }
-        /* KPI/뱃지 갱신 */
         fetchAdminMe().then(() => {
           renderDashboardKPI();
           if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
@@ -803,7 +772,6 @@
     });
   }
 
-  /* 모달 오픈 */
   async function openSupportModal(id) {
     const modal = document.getElementById('supportDetailModal');
     if (!modal) {
@@ -811,10 +779,8 @@
       return toast('모달 요소를 찾을 수 없습니다');
     }
 
-    /* 일단 빠르게 모달 표시 */
     modal.classList.add('show');
 
-    /* 폼 초기화 */
     document.getElementById('detail-info').textContent = '로딩 중...';
     document.getElementById('detail-title').textContent = '';
     document.getElementById('detail-content').textContent = '';
@@ -823,7 +789,6 @@
     document.getElementById('replyId').value = id;
     document.getElementById('replyNote').value = '';
     document.getElementById('replySendEmail').checked = false;
-    /* 긴급 경고 박스 초기화 */
     const urgentBox = document.getElementById('urgentWarningBox');
     if (urgentBox) urgentBox.style.display = 'none';
 
@@ -836,7 +801,6 @@
     const requester = res.data.data.requester || {};
     const answerer = res.data.data.answerer || null;
 
-    /* 폼 데이터 채우기 */
     const infoEl = document.getElementById('detail-info');
     if (infoEl) {
       infoEl.innerHTML =
@@ -850,7 +814,6 @@
     document.getElementById('detail-title').textContent = r.title || '';
     document.getElementById('detail-content').textContent = r.content || '';
 
-    /* 긴급 신청이면 경고 박스 표시 */
     if (r.priority === 'urgent') {
       const urgentBox = document.getElementById('urgentWarningBox');
       const urgentReason = document.getElementById('urgentReason');
@@ -862,7 +825,6 @@
       }
     }
 
-    /* 첨부파일 */
     const attachEl = document.getElementById('detail-attachments');
     if (attachEl) {
       let attaches = [];
@@ -878,7 +840,6 @@
       }
     }
 
-    /* 답변 이력 */
     const historyEl = document.getElementById('detail-answer-history');
     if (historyEl && r.adminNote) {
       historyEl.innerHTML =
@@ -897,18 +858,11 @@
     document.getElementById('replyStatus').value = r.status || 'submitted';
     document.getElementById('replyNote').value = r.adminNote || '';
 
-    /* AI 답변 초안 버튼 주입 */
-        /* AI 답변 초안 버튼 주입 */
     injectAiDraftButton();
-
-    /* AI 추천 전문가 자동 로드 (백그라운드) */
-        /* AI 추천 전문가 자동 로드 (백그라운드) */
     loadExpertMatch(id);
-
-    /* AI 유사 사례 자동 로드 (백그라운드) */
     loadSimilarCases(id);
   }
-    /* AI 유사 사례 로드 */
+
   async function loadSimilarCases(supportId) {
     const container = document.getElementById('aiSimilarCasesSection');
     if (!container) return;
@@ -972,7 +926,7 @@
         '<div style="color:var(--danger);font-size:12.5px;padding:8px">분석 호출 중 오류</div>';
     }
   }
-    /* AI 추천 전문가 섹션 로드 */
+
   async function loadExpertMatch(supportId) {
     const container = document.getElementById('aiExpertMatchSection');
     if (!container) return;
@@ -1021,11 +975,11 @@
         '<div style="color:var(--danger);font-size:12.5px;padding:8px">매칭 호출 중 오류 발생</div>';
     }
   }
-  /* AI 답변 초안 버튼 추가 (모달 오픈 시) */
+
   function injectAiDraftButton() {
     const note = document.getElementById('replyNote');
     if (!note) return;
-    if (document.getElementById('btnAiDraft')) return; // 이미 있음
+    if (document.getElementById('btnAiDraft')) return;
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -1050,7 +1004,6 @@
         });
 
         if (res.ok && res.data?.data?.draft) {
-          /* 기존 내용이 있으면 confirm */
           const cur = note.value.trim();
           if (cur && !confirm('현재 입력된 답변이 있습니다. AI 초안으로 덮어쓸까요?')) {
             return;
@@ -1066,7 +1019,7 @@
       }
     });
   }
-  /* 지원 답변 폼 제출 */
+
   function setupSupportReplyForm() {
     const form = document.getElementById('supportReplyForm');
     if (!form) return;
@@ -1132,7 +1085,7 @@
     });
   }
 
-  /* ============ ★ 신규: 회원 정보 팝업 ============ */
+  /* ============ ★ 회원 정보 팝업 (★ I-3 블랙/메모 연동) ============ */
   async function openMemberInfoModal(memberId) {
     const modal = document.getElementById('memberInfoModal');
     const body = document.getElementById('memberInfoBody');
@@ -1146,7 +1099,8 @@
       body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
       return;
     }
-    const { member, donationSummary, supportSummary } = res.data.data;
+    /* ★ I-3: blacklist + chatMemos 추가 추출 */
+    const { member, donationSummary, supportSummary, blacklist, chatMemos } = res.data.data;
 
     const typeBadge = {
       regular: '<span class="badge b-info">정기후원</span>',
@@ -1185,7 +1139,52 @@
           '</div>'
         ).join('');
 
+    /* ★ I-3: 블랙리스트 박스 (있을 때만) */
+    const blacklistBlock = blacklist
+      ? '<div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:8px;padding:14px 16px;margin-bottom:16px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">' +
+            '<div>' +
+              '<div style="font-weight:700;color:#a01e2c;font-size:14px;margin-bottom:4px">⛔ 채팅 블랙리스트</div>' +
+              '<div style="font-size:12.5px;color:#a01e2c;line-height:1.6">' +
+                '사유: <strong>' + escapeHtml(blacklist.reason) + '</strong>' +
+              '</div>' +
+              '<div style="font-size:11.5px;color:var(--text-3);margin-top:4px">' +
+                '등록자: ' + escapeHtml(blacklist.blockedByName || '관리자 #' + blacklist.blockedBy) +
+                ' · ' + formatDateTime(blacklist.blockedAt) +
+              '</div>' +
+            '</div>' +
+            '<button class="btn-sm btn-sm-ghost" data-mi-action="unblock" data-mi-member="' + member.id + '" data-mi-name="' + escapeHtml(member.name) + '" style="font-size:11px;color:#1a8b46;border:1px solid #1a8b46;background:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;flex-shrink:0">🔓 블랙 해지</button>' +
+          '</div>' +
+        '</div>'
+      : '';
+
+    /* ★ I-3: 채팅 관리자 메모 목록 (있을 때만) */
+    const chatMemoBlock = (chatMemos && chatMemos.length > 0)
+      ? '<div style="margin-bottom:14px">' +
+          '<div class="support-detail-label">💬 채팅 관리자 메모 (' + chatMemos.length + '건)</div>' +
+          '<div class="mini-list">' +
+            chatMemos.map((m) => {
+              const cat = CHAT_CAT_LABEL[m.category] || '💬 기타';
+              const memoText = String(m.adminMemo || '').slice(0, 100);
+              const isClosed = m.status !== 'active';
+              return '<div class="mini-list-row" style="cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px" data-mi-action="goto-chat" data-mi-room="' + m.roomId + '">' +
+                '<div style="flex:1;min-width:0">' +
+                  '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:2px">' +
+                    cat + (isClosed ? ' · <span style="color:var(--text-3)">종료</span>' : '') + ' · ' + formatDate(m.updatedAt) +
+                  '</div>' +
+                  '<div style="font-size:12.5px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+                    escapeHtml(memoText) +
+                  '</div>' +
+                '</div>' +
+                '<span style="font-size:11px;color:var(--brand);flex-shrink:0">채팅으로 →</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>'
+      : '';
+
     body.innerHTML =
+      blacklistBlock +
       '<div class="member-info-grid">' +
       '<div>이름</div><div><strong>' + escapeHtml(member.name) + '</strong> ' + (typeBadge[member.type] || member.type) + ' ' + (statusBadge[member.status] || member.status) + '</div>' +
       '<div>이메일</div><div>' + escapeHtml(member.email) + (member.emailVerified ? ' <span style="color:var(--success);font-size:11px">✓ 인증됨</span>' : '') + '</div>' +
@@ -1213,6 +1212,8 @@
       '</div>' +
       '</div>' +
 
+      chatMemoBlock +
+
       '<div style="margin-bottom:14px">' +
       '<div class="support-detail-label">최근 후원 내역</div>' +
       '<div class="mini-list">' + recentDonationHtml + '</div>' +
@@ -1225,6 +1226,7 @@
   }
 
   function setupMemberInfoActions() {
+    /* 회원 이름 클릭 → 모달 오픈 */
     document.addEventListener('click', (e) => {
       const span = e.target.closest('[data-member-info-id]');
       if (!span) return;
@@ -1232,6 +1234,64 @@
       e.stopPropagation();
       const id = Number(span.dataset.memberInfoId);
       if (id) openMemberInfoModal(id);
+    });
+
+    /* ★ I-3: 모달 내 액션 (블랙 해지 / 채팅 이동) */
+    document.addEventListener('click', async (e) => {
+      /* 블랙 해지 버튼 */
+      const unblockBtn = e.target.closest('[data-mi-action="unblock"]');
+      if (unblockBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const memberId = Number(unblockBtn.dataset.miMember);
+        const name = unblockBtn.dataset.miName || '해당 회원';
+        if (!confirm(`${name}님의 채팅 블랙리스트를 해지하시겠습니까?\n해지 후 다시 채팅을 이용할 수 있습니다.`)) return;
+
+        unblockBtn.disabled = true;
+        unblockBtn.textContent = '처리 중...';
+
+        const res = await api('/api/admin/chat/rooms?action=blacklist&memberId=' + memberId, { method: 'DELETE' });
+
+        if (res.ok) {
+          toast(res.data?.message || '블랙 해지 완료');
+          /* 모달 새로고침 */
+          openMemberInfoModal(memberId);
+          /* 채팅 화면도 동기화 (열려 있으면) */
+          if (window.SIREN_ADMIN_CHAT && typeof window.SIREN_ADMIN_CHAT.loadRoomList === 'function') {
+            window.SIREN_ADMIN_CHAT.loadRoomList();
+          }
+        } else {
+          toast(res.data?.error || '해지 실패');
+          unblockBtn.disabled = false;
+          unblockBtn.textContent = '🔓 블랙 해지';
+        }
+        return;
+      }
+
+      /* 채팅 메모 행 클릭 → 채팅 관리 페이지로 이동 + 해당 방 열기 */
+      const chatRow = e.target.closest('[data-mi-action="goto-chat"]');
+      if (chatRow) {
+        e.preventDefault();
+        e.stopPropagation();
+        const roomId = Number(chatRow.dataset.miRoom);
+        if (!roomId) return;
+
+        /* 회원 정보 모달 닫기 */
+        document.getElementById('memberInfoModal')?.classList.remove('show');
+
+        /* 채팅 관리 페이지로 전환 */
+        const chatLink = document.querySelector('.adm-menu a[data-page="chat"]');
+        if (chatLink) {
+          switchAdminPage('chat', chatLink);
+          /* 약간 딜레이 후 해당 방 선택 */
+          setTimeout(() => {
+            if (window.SIREN_ADMIN_CHAT && typeof window.SIREN_ADMIN_CHAT.selectRoom === 'function') {
+              window.SIREN_ADMIN_CHAT.selectRoom(roomId);
+            }
+          }, 300);
+        }
+        return;
+      }
     });
   }
   /* ============ ★ 운영자 관리 (STEP F-2) ============ */
@@ -1252,7 +1312,6 @@
     const ops = res.data.data.operators || [];
     const stats = res.data.data.stats || {};
 
-    /* KPI */
     const total = document.getElementById('opKpiTotal');
     const sup = document.getElementById('opKpiSuper');
     const reg = document.getElementById('opKpiOperator');
@@ -1295,7 +1354,6 @@
     }).join('');
   }
 
-  /* 회원 검색 (디바운스) */
   let _promoteSearchTimer = null;
   function setupPromoteSearch() {
     const input = document.getElementById('promoteSearchInput');
@@ -1339,7 +1397,6 @@
     });
   }
 
-  /* 검색 결과에서 회원 선택 */
   function setupPromotePick() {
     document.addEventListener('click', (e) => {
       const row = e.target.closest('[data-promote-pick]');
@@ -1356,14 +1413,12 @@
       if (info) info.innerHTML = `<strong>${escapeHtml(_promoteSelectedMember.name)}</strong> <span style="color:var(--text-3);font-weight:400;font-size:12px">(${escapeHtml(_promoteSelectedMember.email)})</span>`;
       if (sel) sel.style.display = 'block';
 
-      /* 검색 결과 영역에 선택 표시 */
       document.querySelectorAll('[data-promote-pick]').forEach((el) => {
         el.style.background = el.dataset.promotePick === String(_promoteSelectedMember.id) ? '#fff8ec' : 'transparent';
       });
     });
   }
 
-  /* 승급 확정 */
   function setupPromoteConfirm() {
     const btn = document.getElementById('promoteConfirmBtn');
     if (!btn) return;
@@ -1391,7 +1446,6 @@
       if (res.ok) {
         toast(res.data?.message || '승급 완료');
         document.getElementById('promoteOperatorModal')?.classList.remove('show');
-        /* 모달 초기화 */
         _promoteSelectedMember = null;
         document.getElementById('promoteSearchInput').value = '';
         document.getElementById('promoteSearchResults').innerHTML = '<div style="text-align:center;color:var(--text-3);padding:20px;font-size:13px">검색어를 입력하세요</div>';
@@ -1403,9 +1457,7 @@
     });
   }
 
-  /* 알림 토글 / 활성화 / 강등 */
   function setupOperatorActions() {
-    /* 알림 수신 토글 */
     document.addEventListener('change', async (e) => {
       const cb = e.target.closest('[data-op-toggle="notify"]');
       if (!cb) return;
@@ -1426,7 +1478,6 @@
     });
 
     document.addEventListener('click', async (e) => {
-      /* 승급 모달 열기 */
       const promoteBtn = e.target.closest('[data-op-action="open-promote"]');
       if (promoteBtn) {
         e.preventDefault();
@@ -1435,7 +1486,6 @@
         return;
       }
 
-      /* 활성/비활성 토글 */
       const toggleBtn = e.target.closest('[data-op-action="toggle-active"]');
       if (toggleBtn) {
         e.preventDefault();
@@ -1458,7 +1508,6 @@
         return;
       }
 
-      /* 강등 */
       const demoteBtn = e.target.closest('[data-op-action="demote"]');
       if (demoteBtn) {
         e.preventDefault();
@@ -1669,7 +1718,7 @@
     setupPromotePick();
     setupPromoteConfirm();
     setupOperatorActions();
-    setupReceiptSettings(); /* ★ STEP H-2d-3 */
+    setupReceiptSettings();
 
     const isLogged = await fetchAdminMe();
 

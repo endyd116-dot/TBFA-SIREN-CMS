@@ -1,9 +1,10 @@
 /* =========================================================
-   SIREN — admin-chat.js (STEP G-4 + H-1 + I-1 + I-1b 폭 계산 픽스)
+   SIREN — admin-chat.js (G-4 + H-1 + I-1 + I-1b + I-3)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
    ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
    ★ I-1: 마지막 메시지 5초마다 반복 렌더되는 버그 수정 (_renderedMsgIds 추가)
    ★ I-1b: 텍스트가 세로로 보이는 현상 수정 (max-width 중첩 제거 + 구조 단순화)
+   ★ I-3: 블랙리스트 해지 버튼 추가 (채팅방 헤더에서)
    ========================================================= */
 (function () {
   'use strict';
@@ -116,29 +117,18 @@
   }
 
   /* ============ ★ I-1: 메시지 중복 방지 + 일괄 렌더 헬퍼 ============ */
-  /**
-   * 새 메시지만 필터해서 _renderedMsgIds에 등록한 후
-   * 메시지 영역(#acMsgArea)에 추가합니다.
-   *
-   * @param {Array} msgs — 메시지 배열
-   * @returns {boolean} — 1개 이상 새로 렌더됐으면 true
-   */
   function appendNewMessages(msgs) {
     if (!Array.isArray(msgs) || msgs.length === 0) return false;
     if (!_currentRoom) return false;
 
-    /* 이미 렌더된 ID 제외 */
     const newMsgs = msgs.filter((m) => m && m.id && !_renderedMsgIds.has(m.id));
     if (newMsgs.length === 0) return false;
 
-    /* ID 등록 */
     for (const m of newMsgs) _renderedMsgIds.add(m.id);
 
-    /* 마지막 createdAt 갱신 */
     const last = newMsgs[newMsgs.length - 1];
     if (last && last.createdAt) _lastMsgAt = last.createdAt;
 
-    /* 영역에 삽입 */
     const area = document.getElementById('acMsgArea');
     if (area) {
       area.insertAdjacentHTML('beforeend', renderMessages(newMsgs, _currentRoom.memberId));
@@ -217,7 +207,7 @@
     stopPoll();
     _currentRoom = { id: roomId };
     _lastMsgAt = null;
-    _renderedMsgIds.clear();  /* ★ I-1: 새 방 진입 시 초기화 */
+    _renderedMsgIds.clear();
 
     const detail = document.getElementById('acChatDetail');
     if (!detail) return;
@@ -237,6 +227,16 @@
     const cat = CAT_LABEL[room.category] || '💬 기타';
     const isActive = room.status === 'active';
 
+    /* ★ I-3: 블랙리스트 영역 (사유 표시 + 해지 버튼) */
+    const blacklistBlock = blacklist
+      ? `<div style="margin-top:8px;background:#fdecec;border:1px solid #f5b5bb;border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:12.5px;color:#a01e2c;line-height:1.5;flex:1;min-width:200px">
+            <strong>⛔ 채팅 블랙리스트</strong> · 사유: ${esc(blacklist.reason)}
+          </div>
+          <button class="btn-sm btn-sm-ghost" data-ac-action="unblock" data-ac-member="${room.memberId}" data-ac-name="${esc(member?.name)}" style="font-size:11px;color:#1a8b46;border:1px solid #1a8b46;background:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;flex-shrink:0">🔓 블랙 해지</button>
+        </div>`
+      : '';
+
     detail.innerHTML = `
       <div style="padding:14px 18px;border-bottom:1px solid var(--line);background:#fafafa">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -244,13 +244,13 @@
             <span style="font-size:12px;color:var(--text-2)">${cat}</span>
             <div style="font-weight:700;font-size:15px;margin:4px 0">${esc(member?.name || '회원')} <span style="font-weight:400;color:var(--text-3);font-size:12px">${esc(member?.email || '')}</span></div>
             <div style="font-size:11.5px;color:var(--text-3)">가입 ${fmtDate(member?.createdAt)} · 후원 ₩${(summary?.donationTotal || 0).toLocaleString()} (${summary?.donationCount || 0}건) · 지원 ${summary?.supportCount || 0}건</div>
-            ${blacklist ? '<div style="margin-top:4px;font-size:12px;color:#a01e2c">⚠️ 블랙리스트: ' + esc(blacklist.reason) + '</div>' : ''}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
             ${isActive ? `<button class="btn-sm btn-sm-ghost" data-ac-action="close" data-ac-id="${room.id}" style="font-size:11px">🔒 종료</button>` : ''}
             ${!blacklist ? `<button class="btn-sm btn-sm-ghost" data-ac-action="block" data-ac-member="${room.memberId}" data-ac-name="${esc(member?.name)}" style="font-size:11px;color:var(--danger)">⛔ 블랙</button>` : ''}
           </div>
         </div>
+        ${blacklistBlock}
         <div style="margin-top:8px">
           <input type="text" id="acMemoInput" value="${esc(room.adminMemo || '')}" placeholder="관리자 메모 (Enter로 저장)" style="width:100%;font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:#fff" data-room-id="${room.id}">
         </div>
@@ -269,12 +269,10 @@
       </div>` : '<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px;background:#f8f8f8;border-top:1px solid var(--line)">종료된 채팅방입니다</div>'}
     `;
 
-    /* ★ I-1: 초기 메시지 렌더 시에도 _renderedMsgIds에 등록 */
     if (messages.length > 0) {
       appendNewMessages(messages);
     }
 
-    /* 읽음 처리 */
     api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
 
     document.querySelectorAll('.ac-room-item').forEach(el => {
@@ -286,16 +284,9 @@
   }
 
   /* ============ ★ I-1b: 메시지 본문 빌드 (텍스트 / 이미지) ============ */
-  /**
-   * 핵심 변경:
-   *   - 텍스트 메시지 → 단일 bubble div 반환 (max-width:65% 직접 적용)
-   *   - 이미지 메시지 → column flex 컨테이너 반환 (텍스트+이미지 세로 정렬, max-width:65%)
-   *   - 어떤 경우든 "1개의 flex 자식"이 되어 폭 계산이 정상화됨
-   */
   function buildMsgBody(m, isUser) {
     const att = m.attachment;
 
-    /* 텍스트 bubble 공통 스타일 */
     const bubbleBase =
       'padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;' +
       (isUser
@@ -303,7 +294,6 @@
         : 'background:var(--brand);color:#fff;border-radius:14px 14px 4px 14px;');
 
     if (att && att.id) {
-      /* 이미지 메시지 — column flex로 텍스트+이미지 묶기 */
       const safeName = esc(att.originalName || '이미지');
       const imgTag =
         `<img class="chat-msg-image" src="/api/chat/image?id=${att.id}" alt="${safeName}" ` +
@@ -323,7 +313,6 @@
       );
     }
 
-    /* 일반 텍스트 — 단일 bubble (max-width:65% 직접 적용) */
     return `<div style="max-width:65%;${bubbleBase}">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
   }
 
@@ -338,13 +327,11 @@
       const body = buildMsgBody(m, isUser);
 
       if (isUser) {
-        /* 회원 메시지 — 좌측 정렬 */
         return `<div style="display:flex;margin-bottom:10px;align-items:flex-end;gap:6px">
           ${body}
           <span style="font-size:10px;color:var(--text-3);flex-shrink:0">${time}</span>
         </div>`;
       }
-      /* 관리자 메시지 — 우측 정렬 */
       return `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;align-items:flex-end;gap:6px">
         <span style="font-size:10px;color:var(--text-3);flex-shrink:0">${time}</span>
         ${body}
@@ -399,7 +386,6 @@
     if (res.ok && res.data?.data?.message) {
       input.value = '';
       input.style.height = 'auto';
-      /* ★ I-1: appendNewMessages 사용 (중복 방지) */
       appendNewMessages([res.data.data.message]);
     } else {
       toast(res.data?.error || '전송 실패');
@@ -420,7 +406,7 @@
     });
   }
 
-  /* ============ 종료 / 블랙 ============ */
+  /* ============ 종료 / 블랙 / ★ I-3 블랙 해지 ============ */
   function setupActions() {
     document.addEventListener('click', async (e) => {
       const closeBtn = e.target.closest('[data-ac-action="close"]');
@@ -442,6 +428,24 @@
         const res = await api('/api/admin/chat/rooms?action=blacklist', { method: 'POST', body: { memberId, reason: reason.trim() } });
         if (res.ok) { toast(res.data?.message || '블랙리스트 등록 완료'); loadRoomList(); if (_currentRoom) selectRoom(_currentRoom.id); }
         else toast(res.data?.error || '블랙 등록 실패');
+        return;
+      }
+
+      /* ★ I-3: 블랙 해지 */
+      const unblockBtn = e.target.closest('[data-ac-action="unblock"]');
+      if (unblockBtn) {
+        const memberId = Number(unblockBtn.dataset.acMember);
+        const name = unblockBtn.dataset.acName || '해당 회원';
+        if (!confirm(`${name}님의 채팅 블랙리스트를 해지하시겠습니까?\n해지 후 다시 채팅을 이용할 수 있습니다.`)) return;
+
+        const res = await api('/api/admin/chat/rooms?action=blacklist&memberId=' + memberId, { method: 'DELETE' });
+        if (res.ok) {
+          toast(res.data?.message || '블랙 해지 완료');
+          loadRoomList();
+          if (_currentRoom) selectRoom(_currentRoom.id);
+        } else {
+          toast(res.data?.error || '해지 실패');
+        }
         return;
       }
 
@@ -474,7 +478,6 @@
       const url = '/api/admin/chat/messages?roomId=' + roomId + (_lastMsgAt ? '&since=' + encodeURIComponent(_lastMsgAt) : '');
       const res = await api(url);
       const msgs = res.data?.data?.messages || [];
-      /* ★ I-1: appendNewMessages가 중복을 자동 필터 */
       appendNewMessages(msgs);
       api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
     }, POLL_INTERVAL);
@@ -482,7 +485,6 @@
 
   function stopPoll() {
     if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
-    /* ★ I-1: 폴링 중단 시 ID 추적도 초기화 (다음 방 진입 대비) */
     _renderedMsgIds.clear();
   }
 

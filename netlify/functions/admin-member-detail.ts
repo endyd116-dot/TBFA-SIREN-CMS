@@ -1,9 +1,9 @@
 /**
  * GET /api/admin/member-detail?id=N
- * 회원 종합 정보 (회원정보 + 후원 요약 + 지원 신청 요약)
+ * 회원 종합 정보 (회원정보 + 후원 요약 + 지원 신청 요약 + ★ I-3 블랙/채팅메모)
  */
-import { eq, desc, count, sql } from "drizzle-orm";
-import { db, members, donations, supportRequests } from "../../db";
+import { eq, desc, count, sql, and, isNotNull } from "drizzle-orm";
+import { db, members, donations, supportRequests, chatBlacklist, chatRooms } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, notFound, serverError,
@@ -92,6 +92,48 @@ export default async (req: Request) => {
     ).length;
     const supportCompleted = supportList.filter((s) => s.status === "completed").length;
 
+    /* ★ I-3: 4. 블랙리스트 상태 (활성 블랙만) */
+    const [blackRow] = await db
+      .select({
+        id: chatBlacklist.id,
+        reason: chatBlacklist.reason,
+        blockedAt: chatBlacklist.blockedAt,
+        blockedBy: chatBlacklist.blockedBy,
+      })
+      .from(chatBlacklist)
+      .where(and(eq(chatBlacklist.memberId, id), eq(chatBlacklist.isActive, true)))
+      .limit(1);
+
+    let blackBlockedByName: string | null = null;
+    if (blackRow && (blackRow as any).blockedBy) {
+      const [b] = await db
+        .select({ name: members.name })
+        .from(members)
+        .where(eq(members.id, (blackRow as any).blockedBy))
+        .limit(1);
+      if (b) blackBlockedByName = (b as any).name;
+    }
+
+    /* ★ I-3: 5. 해당 회원의 채팅방 중 관리자 메모가 있는 것들 */
+    const chatMemos = await db
+      .select({
+        roomId: chatRooms.id,
+        category: chatRooms.category,
+        status: chatRooms.status,
+        adminMemo: chatRooms.adminMemo,
+        updatedAt: chatRooms.updatedAt,
+        lastMessageAt: chatRooms.lastMessageAt,
+      })
+      .from(chatRooms)
+      .where(and(eq(chatRooms.memberId, id), isNotNull(chatRooms.adminMemo)))
+      .orderBy(desc(chatRooms.updatedAt))
+      .limit(20);
+
+    /* 메모가 빈 문자열인 경우 필터 */
+    const filteredMemos = (chatMemos as any[]).filter(
+      (m) => m.adminMemo && String(m.adminMemo).trim().length > 0
+    );
+
     return ok({
       member,
       donationSummary: {
@@ -105,6 +147,17 @@ export default async (req: Request) => {
         completed: supportCompleted,
         list: supportList,
       },
+      /* ★ I-3 신규 */
+      blacklist: blackRow
+        ? {
+            id: (blackRow as any).id,
+            reason: (blackRow as any).reason,
+            blockedAt: (blackRow as any).blockedAt,
+            blockedBy: (blackRow as any).blockedBy,
+            blockedByName: blackBlockedByName,
+          }
+        : null,
+      chatMemos: filteredMemos,
     });
   } catch (err) {
     console.error("[admin-member-detail]", err);
