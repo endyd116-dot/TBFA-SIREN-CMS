@@ -238,6 +238,108 @@ export const faqs = pgTable("faqs", {
   categoryIdx: index("faqs_category_idx").on(t.category),
   sortIdx: index("faqs_sort_idx").on(t.sortOrder),
 }));
+/* =========================================================
+   ★ G-1: 채팅 시스템 (4 테이블)
+   ========================================================= */
+
+/* 7. chat_rooms — 채팅방 */
+export const chatRooms = pgTable("chat_rooms", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+
+  category: varchar("category", { length: 30 }).default("support_other").notNull(),
+  // support_donation / support_homepage / support_signup / support_other
+  title: varchar("title", { length: 200 }),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
+  // active / closed / archived
+
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  lastMessagePreview: varchar("last_message_preview", { length: 200 }),
+
+  unreadForAdmin: integer("unread_for_admin").default(0),
+  unreadForUser: integer("unread_for_user").default(0),
+
+  adminMemo: text("admin_memo"),
+
+  closedAt: timestamp("closed_at"),
+  closedBy: integer("closed_by").references(() => members.id, { onDelete: "set null" }),
+  archivedAt: timestamp("archived_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("chat_rooms_member_idx").on(t.memberId),
+  statusIdx: index("chat_rooms_status_idx").on(t.status),
+  lastMsgIdx: index("chat_rooms_last_msg_idx").on(t.lastMessageAt),
+}));
+
+/* 8. chat_messages — 메시지 */
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id").references(() => chatRooms.id, { onDelete: "cascade" }).notNull(),
+
+  senderId: integer("sender_id").references(() => members.id, { onDelete: "set null" }).notNull(),
+  senderRole: varchar("sender_role", { length: 20 }).default("user").notNull(),
+  // user / admin / system
+
+  messageType: varchar("message_type", { length: 20 }).default("text").notNull(),
+  // text / image / system_notice
+
+  content: text("content"),
+  attachmentId: integer("attachment_id"),
+
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+
+  isSystem: boolean("is_system").default(false),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  roomIdx: index("chat_messages_room_idx").on(t.roomId, t.createdAt),
+  senderIdx: index("chat_messages_sender_idx").on(t.senderId),
+}));
+
+/* 9. chat_attachments — 첨부파일 */
+export const chatAttachments = pgTable("chat_attachments", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id").references(() => chatRooms.id, { onDelete: "cascade" }).notNull(),
+  uploaderId: integer("uploader_id").references(() => members.id, { onDelete: "set null" }),
+
+  blobKey: varchar("blob_key", { length: 255 }).notNull(),
+  originalName: varchar("original_name", { length: 255 }),
+  mimeType: varchar("mime_type", { length: 100 }),
+  fileSize: integer("file_size"),
+
+  thumbnailKey: varchar("thumbnail_key", { length: 255 }),
+  width: integer("width"),
+  height: integer("height"),
+
+  expiresAt: timestamp("expires_at"), // 1년 후 자동 정리
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  roomIdx: index("chat_attachments_room_idx").on(t.roomId),
+  expiresIdx: index("chat_attachments_expires_idx").on(t.expiresAt),
+}));
+
+/* 10. chat_blacklist — 블랙리스트 */
+export const chatBlacklist = pgTable("chat_blacklist", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull().unique(),
+
+  reason: text("reason").notNull(),
+  blockedBy: integer("blocked_by").references(() => members.id, { onDelete: "set null" }).notNull(),
+  blockedAt: timestamp("blocked_at").defaultNow().notNull(),
+
+  unblockedAt: timestamp("unblocked_at"),
+  unblockedBy: integer("unblocked_by").references(() => members.id, { onDelete: "set null" }),
+
+  isActive: boolean("is_active").default(true),
+}, (t) => ({
+  memberIdx: index("chat_blacklist_member_idx").on(t.memberId),
+  activeIdx: index("chat_blacklist_active_idx").on(t.isActive),
+}));
+
 
 /* =========================================================
    6. audit_logs — 감사 로그 (보안 추적)
@@ -280,3 +382,13 @@ export type Faq = typeof faqs.$inferSelect;
 export type NewFaq = typeof faqs.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+/* G-1: 채팅 시스템 타입 */
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type NewChatRoom = typeof chatRooms.$inferInsert;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type NewChatMessage = typeof chatMessages.$inferInsert;
+export type ChatAttachment = typeof chatAttachments.$inferSelect;
+export type NewChatAttachment = typeof chatAttachments.$inferInsert;
+export type ChatBlacklist = typeof chatBlacklist.$inferSelect;
+export type NewChatBlacklist = typeof chatBlacklist.$inferInsert;
