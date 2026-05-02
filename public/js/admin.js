@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin.js (v8 — STEP H-2d-3 영수증 설정 + I-3 블랙리스트 연동)
+   SIREN — admin.js (v9 — H-2d-3 영수증 + I-3 블랙리스트 + I-4 컬럼 정렬)
    ========================================================= */
 (function () {
   'use strict';
@@ -50,9 +50,30 @@
     support_other: '💬 기타',
   };
 
+  /* ★ I-4: 회원 정렬 — type 그룹 우선순위 (작은 값 먼저) */
+  const MEMBER_TYPE_PRIORITY = {
+    admin: 1,      // 관리자 먼저
+    family: 2,     // 유가족
+    regular: 3,    // 정기후원
+    volunteer: 4,  // 봉사자
+  };
+
+  /* ★ I-4: 회원 정렬 — status 그룹 우선순위 */
+  const MEMBER_STATUS_PRIORITY = {
+    active: 1,      // 정상 먼저
+    pending: 2,     // 승인대기
+    suspended: 3,   // 정지(블랙)
+    withdrawn: 4,   // 탈퇴
+  };
+
   let CURRENT_ADMIN = null;
   let CURRENT_KPI = null;
   let _kpiPollTimer = null;
+
+  /* ★ I-4: 회원 목록 캐시 + 정렬 상태 */
+  let _currentMembers = [];
+  let _currentMembersTotal = 0;
+  let _memberSort = { field: null, dir: 'asc' };  // field: 'id'|'name'|'type'|'createdAt'|'lastLoginAt'|'status'|null
 
   /* ============ 헬퍼 ============ */
   function toast(msg, ms = 2400) {
@@ -260,7 +281,7 @@
     }).join('');
   }
 
-  /* ============ 회원 관리 ============ */
+  /* ============ ★ I-4: 회원 관리 (정렬 가능) ============ */
   async function loadMembers() {
     const panel = document.getElementById('adm-members');
     if (!panel) return;
@@ -273,13 +294,155 @@
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
-    const list = res.data.data.list || [];
-    const total = res.data.data.pagination ? res.data.data.pagination.total : 0;
+    _currentMembers = res.data.data.list || [];
+    _currentMembersTotal = res.data.data.pagination ? res.data.data.pagination.total : 0;
 
+    /* KPI */
     const kpis = panel.querySelectorAll('.kpi-value');
-    if (kpis[0]) kpis[0].textContent = total.toLocaleString() + ' 명';
-    if (kpis[1]) kpis[1].textContent = list.filter((m) => m.type === 'family').length + ' 명';
-    if (kpis[2]) kpis[2].textContent = list.filter((m) => m.status === 'pending').length + ' 명';
+    if (kpis[0]) kpis[0].textContent = _currentMembersTotal.toLocaleString() + ' 명';
+    if (kpis[1]) kpis[1].textContent = _currentMembers.filter((m) => m.type === 'family').length + ' 명';
+    if (kpis[2]) kpis[2].textContent = _currentMembers.filter((m) => m.status === 'pending').length + ' 명';
+
+    /* ★ I-4: 헤더 정렬 가능 표시 + 테이블 렌더 */
+    decorateMemberHeaders();
+    renderMemberTable();
+  }
+
+  /**
+   * ★ I-4: 회원 정렬 비교 함수
+   * @param list - 회원 배열
+   * @param field - 'id'|'name'|'type'|'createdAt'|'lastLoginAt'|'status'|null
+   * @param dir   - 'asc'|'desc'
+   */
+  function sortMembers(list, field, dir) {
+    if (!field) return list.slice();
+    const arr = list.slice();
+    const mult = dir === 'desc' ? -1 : 1;
+
+    arr.sort((a, b) => {
+      let av, bv, primary;
+
+      if (field === 'id') {
+        av = Number(a.id) || 0;
+        bv = Number(b.id) || 0;
+        return (av - bv) * mult;
+      }
+
+      if (field === 'name') {
+        av = String(a.name || '');
+        bv = String(b.name || '');
+        return av.localeCompare(bv, 'ko') * mult;
+      }
+
+      if (field === 'type') {
+        av = MEMBER_TYPE_PRIORITY[a.type] || 99;
+        bv = MEMBER_TYPE_PRIORITY[b.type] || 99;
+        primary = (av - bv) * mult;
+        if (primary !== 0) return primary;
+        /* 같은 등급끼리는 이름순 보조 정렬 */
+        return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+      }
+
+      if (field === 'status') {
+        av = MEMBER_STATUS_PRIORITY[a.status] || 99;
+        bv = MEMBER_STATUS_PRIORITY[b.status] || 99;
+        primary = (av - bv) * mult;
+        if (primary !== 0) return primary;
+        /* 같은 상태끼리는 이름순 보조 정렬 */
+        return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+      }
+
+      if (field === 'createdAt' || field === 'lastLoginAt') {
+        av = a[field] ? new Date(a[field]).getTime() : 0;
+        bv = b[field] ? new Date(b[field]).getTime() : 0;
+        /* null/0 값은 항상 끝으로 보내기 (정렬 방향 무시) */
+        if (!av && bv) return 1;
+        if (av && !bv) return -1;
+        if (!av && !bv) return 0;
+        return (av - bv) * mult;
+      }
+
+      return 0;
+    });
+
+    return arr;
+  }
+
+  /**
+   * ★ I-4: 회원 테이블 헤더에 정렬 가능 표시 (한 번만 호출)
+   */
+  function decorateMemberHeaders() {
+    const panel = document.getElementById('adm-members');
+    if (!panel) return;
+    const ths = panel.querySelectorAll('table.tbl thead th');
+    if (!ths || ths.length === 0) return;
+
+    /* 컬럼 인덱스 매핑: 0=체크박스, 1=회원ID, 2=이름, 3=등급, 4=가입일, 5=최종활동, 6=상태, 7=관리 */
+    const fields = [null, 'id', 'name', 'type', 'createdAt', 'lastLoginAt', 'status', null];
+    const labels = ['', '회원ID', '이름', '등급', '가입일', '최종 활동', '상태', '관리'];
+
+    ths.forEach((th, i) => {
+      const f = fields[i];
+      if (!f) {
+        /* 정렬 불가 컬럼 — 원본 유지 */
+        if (i === 0 && !th.querySelector('input')) {
+          th.innerHTML = '<input type="checkbox">';
+        }
+        th.dataset.sortField = '';
+        th.style.cursor = '';
+        return;
+      }
+      th.dataset.sortField = f;
+      th.style.cursor = 'pointer';
+      th.style.userSelect = 'none';
+      th.title = '클릭하여 정렬';
+
+      let arrow = '⇅';
+      let color = 'var(--text-3)';
+      if (_memberSort.field === f) {
+        arrow = _memberSort.dir === 'asc' ? '▲' : '▼';
+        color = 'var(--brand)';
+      }
+      th.innerHTML = labels[i] + ' <span style="font-size:10px;color:' + color + ';margin-left:3px">' + arrow + '</span>';
+    });
+  }
+
+  /**
+   * ★ I-4: 헤더 화살표만 갱신 (라벨은 유지)
+   */
+  function updateSortArrows() {
+    const panel = document.getElementById('adm-members');
+    if (!panel) return;
+    const ths = panel.querySelectorAll('table.tbl thead th[data-sort-field]');
+    ths.forEach((th) => {
+      const f = th.dataset.sortField;
+      if (!f) return;
+      let arrow = '⇅';
+      let color = 'var(--text-3)';
+      if (_memberSort.field === f) {
+        arrow = _memberSort.dir === 'asc' ? '▲' : '▼';
+        color = 'var(--brand)';
+      }
+      /* 기존 라벨 추출 (화살표/공백 제거) */
+      const labelText = th.textContent.replace(/[⇅▲▼]/g, '').trim();
+      th.innerHTML = labelText + ' <span style="font-size:10px;color:' + color + ';margin-left:3px">' + arrow + '</span>';
+    });
+  }
+
+  /**
+   * ★ I-4: 회원 테이블 본문 렌더 (정렬 적용)
+   */
+  function renderMemberTable() {
+    const panel = document.getElementById('adm-members');
+    if (!panel) return;
+    const tbody = panel.querySelector('table.tbl tbody');
+    if (!tbody) return;
+
+    /* 화살표 갱신 */
+    updateSortArrows();
+
+    /* 정렬 */
+    const list = sortMembers(_currentMembers, _memberSort.field, _memberSort.dir);
 
     if (list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">회원이 없습니다</td></tr>';
@@ -321,6 +484,29 @@
         '<td>' + actionBtns + '</td>' +
         '</tr>';
     }).join('');
+  }
+
+  /**
+   * ★ I-4: 컬럼 헤더 클릭 → 정렬 전환 (이벤트 위임)
+   */
+  function setupMemberSort() {
+    document.addEventListener('click', (e) => {
+      const th = e.target.closest('#adm-members table.tbl thead th[data-sort-field]');
+      if (!th) return;
+      const field = th.dataset.sortField;
+      if (!field) return;
+      e.preventDefault();
+
+      if (_memberSort.field === field) {
+        /* 같은 필드 → 방향 토글 */
+        _memberSort.dir = _memberSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        /* 다른 필드 → 새 필드 + 오름차순 시작 */
+        _memberSort.field = field;
+        _memberSort.dir = 'asc';
+      }
+      renderMemberTable();
+    });
   }
 
   function setupMemberActions() {
@@ -1709,6 +1895,7 @@
     setupLogout();
     setupDemoActions();
     setupMemberActions();
+    setupMemberSort(); /* ★ I-4 */
     setupDonationActions();
     setupSupportActions();
     setupSupportReplyForm();
