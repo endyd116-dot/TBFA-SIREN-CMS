@@ -14,6 +14,199 @@
 <link rel="stylesheet" href="/css/layout.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/pages.css">
+
+<style>
+/* ===== 채팅 모달 전용 스타일 ===== */
+#chatCategoryModal, #chatWindowModal {
+  display: none !important;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9999;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+#chatCategoryModal.show, #chatWindowModal.show {
+  display: flex !important;
+}
+#chatCategoryModal .modal-content, #chatWindowModal .modal-content {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: auto;
+}
+#chatCategoryModal .modal-content { max-width: 480px; }
+#chatWindowModal .modal-content {
+  max-width: 720px;
+  height: 80vh;
+  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 12px 12px 0 0;
+}
+.chat-modal-header .close-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chat-room-card {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.chat-room-card:hover { background: var(--bg-soft); }
+.chat-room-card.closed { opacity: 0.65; cursor: default; }
+.chat-room-card.closed:hover { background: transparent; }
+
+.chat-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.chat-cat-btn:hover {
+  border-color: var(--brand);
+  background: #fefcfa;
+  transform: translateX(2px);
+}
+.chat-cat-btn .emoji { font-size: 22px; }
+.chat-cat-btn .label { flex: 1; font-weight: 600; font-size: 14px; }
+.chat-cat-btn .desc { font-size: 11.5px; color: var(--text-3); margin-top: 2px; font-weight: 400; }
+
+#chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f5f6f8;
+}
+.msg-row { display: flex; margin-bottom: 12px; }
+.msg-row.mine { justify-content: flex-end; }
+.msg-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.msg-row.mine .msg-bubble {
+  background: var(--brand);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-row.theirs .msg-bubble {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+.msg-row.system { justify-content: center; }
+.msg-row.system .msg-bubble {
+  background: #fff8ec;
+  color: #8a6a00;
+  border: 1px solid #f0e3c4;
+  font-size: 12px;
+  text-align: center;
+}
+.msg-meta {
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin: 0 6px;
+  align-self: flex-end;
+}
+
+#chatInputArea {
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+#chatInputText {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  resize: none;
+  font-family: inherit;
+  max-height: 100px;
+  min-height: 40px;
+}
+#chatInputText:focus { outline: none; border-color: var(--brand); }
+#chatSendBtn {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+#chatSendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cat-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cat-donation { background: #fff5e6; color: #c47a00; }
+.cat-homepage { background: #e6f2ff; color: #1a5ec4; }
+.cat-signup { background: #e7f7ec; color: #1a8b46; }
+.cat-other { background: #f0f0f0; color: #525252; }
+
+.unread-dot {
+  display: inline-block;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 10px;
+  padding: 0 6px;
+}
+</style>
 </head>
 <body data-page="mypage">
 
@@ -36,7 +229,6 @@
       <div class="container">
         <div class="mp-grid">
 
-          <!-- 사이드바 -->
           <aside class="mp-side">
             <div class="mp-user">
               <div class="mp-avatar">?</div>
@@ -53,7 +245,6 @@
             </ul>
           </aside>
 
-          <!-- 콘텐츠 -->
           <div class="mp-content">
 
             <!-- 1. 내 후원 내역 -->
@@ -109,11 +300,11 @@
 
               <p style="font-size:12.5px;color:var(--text-3);line-height:1.85;padding:14px 18px;background:var(--bg-soft);border-radius:8px">
                 💡 모든 기부금은 매년 1월 국세청 연말정산 간소화 서비스에 자동 등재됩니다.<br />
-                별도 발급이 필요하신 경우 위의 PDF 발급 버튼을 이용해 주세요. (주민등록번호는 AES-256 암호화 후 안전하게 처리됩니다)
+                별도 발급이 필요하신 경우 위의 PDF 발급 버튼을 이용해 주세요.
               </p>
             </div>
 
-            <!-- 3. 🎯 내 지원 내역 (신규) — 골드 액센트 -->
+            <!-- 3. 🎯 내 지원 내역 -->
             <div class="mp-panel" data-mp-panel="support" style="display:none">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span style="display:inline-block;width:4px;height:24px;background:var(--gold,#b8935a);border-radius:2px"></span>
@@ -148,37 +339,30 @@
               </div>
             </div>
 
-            <!-- 4. 💬 1:1 상담 내역 (기존 유지 — 추후 별도 기능 구현 예정) -->
+            <!-- 4. 💬 1:1 상담 내역 (★ G-3에서 활성화) -->
             <div class="mp-panel" data-mp-panel="consult" style="display:none">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span style="display:inline-block;width:4px;height:24px;background:var(--info,#1a5ec4);border-radius:2px"></span>
-                <h3 class="serif" style="margin:0">💬 1:1 상담 내역</h3>
+                <h3 class="serif" style="margin:0">💬 1:1 상담</h3>
               </div>
-              <p class="sub">후원 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대한 답변 내역을 확인하실 수 있습니다.</p>
+              <p class="sub">후원 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대해 관리자와 1:1 채팅으로 상담하실 수 있습니다.</p>
 
               <div class="panel" style="background:linear-gradient(135deg,#fff,#eef4fc);border-color:#cee0f2;margin-bottom:18px;padding:16px 20px">
                 <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
                   <div style="font-size:32px">💌</div>
-                  <div>
-                    홈페이지 이용·후원 절차·기부금 영수증 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 1:1 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
-                    <span style="color:var(--text-3);font-size:12px">※ 특정 프로그램(심리상담/법률자문/장학)에 신청하시려면 위의 '🎯 내 지원 내역'을 이용해 주세요.</span>
+                  <div style="flex:1">
+                    홈페이지 이용·후원 절차·기부금 영수증 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 채팅 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
+                    <span style="color:var(--text-3);font-size:12px">※ 특정 프로그램(심리상담/법률자문/장학)에 신청하시려면 '🎯 내 지원 내역'을 이용해 주세요.</span>
                   </div>
+                  <button class="btn btn-primary" id="btnNewChat" style="white-space:nowrap">+ 새 상담 시작</button>
                 </div>
               </div>
 
-              <table class="tbl">
-                <thead><tr><th style="width:140px">접수번호</th><th style="width:110px">문의 유형</th><th>제목</th><th style="width:120px">접수일</th><th style="width:110px">상태</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">
-                      🚧 1:1 상담 기능은 곧 오픈됩니다.<br />
-                      <span style="font-size:12px">긴급 문의는 02-0000-0000 또는 admin@siren-org.kr 로 연락주세요.</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <button class="btn btn-primary" style="margin-top:20px;opacity:0.5;cursor:not-allowed" disabled title="기능 준비 중">+ 새 상담 문의 (준비 중)</button>
+              <div id="chatRoomsList">
+                <div style="text-align:center;color:var(--text-3);padding:40px">
+                  채팅 내역을 불러오는 중...
+                </div>
+              </div>
             </div>
 
             <!-- 5. 회원 정보 수정 -->
@@ -209,6 +393,57 @@
 
   </main>
 
+  <!-- ★ G-3: 카테고리 선택 모달 -->
+  <div id="chatCategoryModal">
+    <div class="modal-content">
+      <div class="chat-modal-header">
+        <div>
+          <div style="font-weight:700;font-size:15px">💬 새 상담 시작</div>
+          <div style="font-size:11.5px;opacity:0.8;margin-top:2px">문의 유형을 선택해 주세요</div>
+        </div>
+        <button class="close-btn" data-chat-close>&times;</button>
+      </div>
+      <div style="padding:24px">
+        <button class="chat-cat-btn" data-cat="support_donation">
+          <span class="emoji">💝</span>
+          <span class="label">후원 관련 문의<div class="desc">정기/일시 후원, 영수증 발급, 후원 변경 등</div></span>
+        </button>
+        <button class="chat-cat-btn" data-cat="support_homepage">
+          <span class="emoji">🌐</span>
+          <span class="label">홈페이지 이용 문의<div class="desc">사이트 사용법, 마이페이지, 오류 신고 등</div></span>
+        </button>
+        <button class="chat-cat-btn" data-cat="support_signup">
+          <span class="emoji">📝</span>
+          <span class="label">가입 절차 문의<div class="desc">회원 가입, 유가족 인증, 비밀번호 등</div></span>
+        </button>
+        <button class="chat-cat-btn" data-cat="support_other">
+          <span class="emoji">💬</span>
+          <span class="label">기타 문의<div class="desc">위 항목에 해당하지 않는 일반 문의</div></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ G-3: 채팅 창 모달 -->
+  <div id="chatWindowModal">
+    <div class="modal-content">
+      <div class="chat-modal-header">
+        <div>
+          <div id="chatWinTitle" style="font-weight:700;font-size:15px">상담 채팅</div>
+          <div id="chatWinStatus" style="font-size:11.5px;opacity:0.8;margin-top:2px">연결 중...</div>
+        </div>
+        <button class="close-btn" data-chat-close>&times;</button>
+      </div>
+      <div id="chatMessages">
+        <div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">로딩 중...</div>
+      </div>
+      <div id="chatInputArea">
+        <textarea id="chatInputText" rows="1" placeholder="메시지를 입력하세요... (Enter: 전송 / Shift+Enter: 줄바꿈)"></textarea>
+        <button id="chatSendBtn" title="전송">➤</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
@@ -216,8 +451,8 @@
   <script src="/js/auth.js?v=4"></script>
   <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=4"></script>
+  <script src="/js/chat-user.js?v=1"></script>
   <script>
-    // 마이페이지 사이드바 메뉴 전환 + 회원 정보 주입 + 해시 라우팅
     const __mpPrevInit = window.SIREN_PAGE_INIT;
     window.SIREN_PAGE_INIT = function () {
       if (typeof __mpPrevInit === 'function') __mpPrevInit();
@@ -234,6 +469,11 @@
         const target = document.querySelector(`.mp-panel[data-mp-panel="${key}"]`);
         if (target) target.style.display = 'block';
         if (crumb) crumb.textContent = li.textContent.trim();
+
+        /* 1:1 상담 탭 활성 시 채팅 목록 로드 */
+        if (key === 'consult' && window.SIREN_CHAT && typeof window.SIREN_CHAT.loadRooms === 'function') {
+          window.SIREN_CHAT.loadRooms();
+        }
         return true;
       }
 
@@ -241,7 +481,6 @@
         const li = e.target.closest('li[data-mp]');
         if (!li) return;
         const key = li.dataset.mp;
-
         if (key === 'logout') {
           if (confirm('로그아웃 하시겠습니까?')) {
             if (window.SIREN_AUTH) window.SIREN_AUTH.logout();
@@ -250,12 +489,10 @@
           }
           return;
         }
-
         activatePanel(key);
         if (history.replaceState) history.replaceState(null, '', '#' + key);
       });
 
-      /* 해시 라우팅 (#support, #consult 등으로 진입 시 해당 탭 자동 활성화) */
       function applyHash() {
         const hash = (location.hash || '').replace('#', '').trim();
         if (!hash) return;
@@ -264,22 +501,17 @@
       applyHash();
       window.addEventListener('hashchange', applyHash);
 
-      /* 회원 정보 주입 */
       const fillProfile = () => {
         const user = window.SIREN_AUTH?.user;
         if (!user) return false;
-        const nameEl = document.getElementById('mpName');
-        const emailEl = document.getElementById('mpEmail');
-        const phoneEl = document.getElementById('mpPhone');
-        const agreeEmail = document.getElementById('mpAgreeEmail');
-        const agreeSms = document.getElementById('mpAgreeSms');
-        const agreeMail = document.getElementById('mpAgreeMail');
-        if (nameEl) nameEl.value = user.name || '';
-        if (emailEl) emailEl.value = user.email || '';
-        if (phoneEl) phoneEl.value = user.phone || '';
-        if (agreeEmail) agreeEmail.checked = user.agreeEmail !== false;
-        if (agreeSms) agreeSms.checked = user.agreeSms !== false;
-        if (agreeMail) agreeMail.checked = user.agreeMail === true;
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        set('mpName', user.name);
+        set('mpEmail', user.email);
+        set('mpPhone', user.phone);
+        const cb = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+        cb('mpAgreeEmail', user.agreeEmail !== false);
+        cb('mpAgreeSms', user.agreeSms !== false);
+        cb('mpAgreeMail', user.agreeMail === true);
         return true;
       };
       let tries = 0;
@@ -287,19 +519,13 @@
         if (fillProfile() || tries++ > 20) clearInterval(tryFill);
       }, 200);
 
-      /* 영수증 카드 업데이트 */
       const updateReceiptCard = () => {
         const stats = window.SIREN_AUTH?.stats;
         if (!stats) return false;
-        const amtEl = document.getElementById('receiptAmount');
-        const cntEl = document.getElementById('receiptCount');
-        const yearEl = document.getElementById('receiptYear');
-        if (amtEl) amtEl.textContent = (stats.totalAmount || 0).toLocaleString() + '원';
-        if (cntEl) cntEl.textContent = stats.totalCount || 0;
-        if (yearEl) {
-          const year = new Date().getFullYear() - 1;
-          yearEl.textContent = `${year}년 귀속 기부금 영수증`;
-        }
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '원');
+        set('receiptCount', stats.totalCount || 0);
+        set('receiptYear', `${new Date().getFullYear() - 1}년 귀속 기부금 영수증`);
         return true;
       };
       let rTries = 0;
@@ -307,7 +533,6 @@
         if (updateReceiptCard() || rTries++ > 20) clearInterval(tryReceipt);
       }, 200);
 
-      /* 데모 액션 */
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-demo-action]');
         if (!btn || !btn.dataset.demoMessage) return;
