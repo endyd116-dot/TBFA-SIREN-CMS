@@ -3,6 +3,9 @@
  * 현재 로그인 사용자 정보 조회 (세션 유효성 확인용)
  * - 토큰 없거나 만료 → 401
  * - 토큰 유효 → 회원 정보 + 후원 통계 반환
+ *
+ * ★ K-2 패치: emailVerified 필드 응답에 추가
+ *   - mypage.html의 이메일 인증 배너 갱신용
  */
 import { eq, sql, and } from "drizzle-orm";
 import { db, members, donations } from "../../db";
@@ -30,6 +33,7 @@ export default async (req: Request) => {
         phone: members.phone,
         type: members.type,
         status: members.status,
+        emailVerified: members.emailVerified,  /* ★ K-2 추가 */
         agreeEmail: members.agreeEmail,
         agreeSms: members.agreeSms,
         agreeMail: members.agreeMail,
@@ -71,6 +75,7 @@ export default async (req: Request) => {
         phone: user.phone,
         type: user.type,
         status: user.status,
+        emailVerified: user.emailVerified,  /* ★ K-2 추가 */
         agreeEmail: user.agreeEmail,
         agreeSms: user.agreeSms,
         agreeMail: user.agreeMail,
