@@ -115,18 +115,20 @@ export default async (req: Request) => {
       if (existing.type === "admin") return badRequest("이미 운영자입니다");
 
       /* 승급 */
+      /* 승급 */
+      const updateData: any = {
+        type: "admin",
+        role,
+        notifyOnSupport,
+        operatorActive: true,
+        updatedAt: new Date(),
+      };
+
       const [updated] = await db
         .update(members)
-        .set({
-          type: "admin",
-          role,
-          notifyOnSupport,
-          operatorActive: true,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(members.id, memberId))
         .returning();
-
       await logAdminAction(req, admin.uid, admin.name, "operator_promote", {
         target: `M-${memberId}`,
         detail: { name: existing.name, newRole: role, notifyOnSupport },
@@ -206,15 +208,17 @@ export default async (req: Request) => {
       }
 
       /* 강등: type → regular, role/operatorActive 초기화 */
+      const demoteData: any = {
+        type: "regular",
+        role: null,
+        notifyOnSupport: false,
+        operatorActive: false,
+        updatedAt: new Date(),
+      };
+
       const [updated] = await db
         .update(members)
-        .set({
-          type: "regular",
-          role: null,
-          notifyOnSupport: false,
-          operatorActive: false,
-          updatedAt: new Date(),
-        })
+        .set(demoteData)
         .where(eq(members.id, id))
         .returning();
 

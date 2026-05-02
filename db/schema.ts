@@ -69,6 +69,11 @@ export const members = pgTable("members", {
   type: memberTypeEnum("type").default("regular").notNull(),
   status: memberStatusEnum("status").default("active").notNull(),
 
+  /* ───────── ★ STEP F-1 운영자 시스템 ───────── */
+  role: varchar("role", { length: 20 }),                          // 'super_admin' | 'operator' | null
+  notifyOnSupport: boolean("notify_on_support").default(false),   // 지원 신청 알림 수신 여부
+  operatorActive: boolean("operator_active").default(true),       // 운영자 활성 상태
+
   // 보안 / 인증
   emailVerified: boolean("email_verified").default(false),
   loginFailCount: integer("login_fail_count").default(0),
@@ -89,6 +94,7 @@ export const members = pgTable("members", {
   emailIdx: index("members_email_idx").on(t.email),
   typeIdx: index("members_type_idx").on(t.type),
   statusIdx: index("members_status_idx").on(t.status),
+  roleIdx: index("members_role_idx").on(t.role),
 }));
 
 /* =========================================================
