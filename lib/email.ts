@@ -143,7 +143,7 @@ export function tplSupportReceivedAdmin(opts: {
   applicantEmail?: string | null;
   category: string;
   title: string;
-  contentPreview: string;   // 80자 이내 미리보기
+  contentPreview: string;
 }) {
   const { requestNo, applicantName, applicantEmail, category, title, contentPreview } = opts;
   const categoryKr = CATEGORY_KR[category] || category;
@@ -280,22 +280,20 @@ export function tplSupportAnsweredUser(opts: {
 export function tplDonationThanks(opts: {
   donorName: string;
   amount: number;
-  donationType: string;        // regular / onetime
-  payMethod: string;           // card / bank / cms
-  donationId: number;          // donations.id (원본 숫자)
+  donationType: string;
+  payMethod: string;
+  donationId: number;
   donationDate: Date;
-  isMember: boolean;           // memberId 존재 여부
+  isMember: boolean;
 }) {
   const { donorName, amount, donationType, payMethod, donationId, donationDate, isMember } = opts;
 
-  /* 한글 라벨 */
   const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
   const payKr =
     payMethod === "card" ? "신용카드" :
     payMethod === "bank" ? "계좌이체" :
     payMethod === "cms"  ? "자동이체(CMS)" : payMethod;
 
-  /* 날짜/시간 포맷팅 */
   const yyyy = donationDate.getFullYear();
   const mm = String(donationDate.getMonth() + 1).padStart(2, "0");
   const dd = String(donationDate.getDate()).padStart(2, "0");
@@ -305,7 +303,6 @@ export function tplDonationThanks(opts: {
 
   const donationNo = `D-${String(donationId).padStart(7, "0")}`;
 
-  /* 영수증 영역 — 회원/비회원 분기 (결정 1-A안) */
   const receiptBlockHtml = isMember
     ? `
     <div style="margin:24px 0 0;padding:18px 20px;background:#fef9f5;border:1px solid #f0e0d4;
@@ -434,21 +431,19 @@ export function tplDonationThanks(opts: {
 
 /* ═══════════════════════════════════════════════════════
    템플릿 4. 유저에게 — 지원 신청 접수 확인 (★ STEP H-4)
-   결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가
    ═══════════════════════════════════════════════════════ */
 export function tplSupportReceiptUser(opts: {
   applicantName: string;
   requestNo: string;
   category: string;
   title: string;
-  priority: string;          // 'urgent' | 'normal' | 'low'
+  priority: string;
   createdAt: Date;
 }) {
   const { applicantName, requestNo, category, title, priority, createdAt } = opts;
   const categoryKr = CATEGORY_KR[category] || category;
   const isUrgent = priority === "urgent";
 
-  /* 날짜/시간 포맷팅 */
   const yyyy = createdAt.getFullYear();
   const mm = String(createdAt.getMonth() + 1).padStart(2, "0");
   const dd = String(createdAt.getDate()).padStart(2, "0");
@@ -456,7 +451,6 @@ export function tplSupportReceiptUser(opts: {
   const min = String(createdAt.getMinutes()).padStart(2, "0");
   const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 
-  /* 우선순위별 안내 박스 (긴급/일반 분기) */
   const priorityNoticeHtml = isUrgent
     ? `
     <div style="margin:20px 0;padding:16px 20px;
@@ -483,7 +477,6 @@ export function tplSupportReceiptUser(opts: {
       마이페이지 및 이메일로 답변드리겠습니다.
     </div>`;
 
-  /* ★ 결정 Q3-A: 긴급 신청자에게만 1:1 채팅 안내 추가 */
   const chatNoticeHtml = isUrgent
     ? `
     <div style="margin:20px 0 0;padding:18px 20px;
@@ -590,6 +583,70 @@ export function tplSupportReceiptUser(opts: {
       bodyHtml,
       ctaText: "마이페이지에서 진행 상황 확인",
       ctaUrl: `${SITE_URL}/mypage.html#support`,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ K-1: 템플릿 5. 유저에게 — 비밀번호 재설정 링크 (NEW)
+   ═══════════════════════════════════════════════════════ */
+export function tplPasswordReset(opts: {
+  userName: string;
+  rawToken: string;
+  ttlMinutes: number;
+}) {
+  const { userName, rawToken, ttlMinutes } = opts;
+  const resetUrl = `${SITE_URL}/password-reset.html?token=${encodeURIComponent(rawToken)}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      비밀번호 재설정 요청을 받았습니다.<br />
+      아래 버튼을 클릭하여 새 비밀번호를 설정해 주세요.
+    </p>
+
+    <div style="margin:24px 0;padding:16px 20px;background:#fff8ec;
+                border:1px solid #f0e3c4;border-radius:8px;">
+      <div style="font-size:13px;color:#8a6a00;line-height:1.7;">
+        ⏰ <strong>이 링크는 ${ttlMinutes}분 동안만 유효합니다.</strong><br />
+        보안을 위해 한 번 사용하면 자동으로 만료됩니다.
+      </div>
+    </div>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
+                border:1px solid #e8e6e3;border-radius:8px;">
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        <strong style="color:#0f0f0f;">⚠️ 본인이 요청하지 않으셨다면</strong><br />
+        이 메일을 무시하셔도 됩니다. 비밀번호는 변경되지 않습니다.<br /><br />
+        만약 본인이 아닌데 반복적으로 이 메일을 받으신다면,<br />
+        계정 보안을 위해 즉시 협회에 알려 주세요.
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
+                border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
+      🔒 <strong>보안 안내</strong><br />
+      • 이 링크는 ${esc(userName)} 님 메일함을 통해서만 사용 가능합니다.<br />
+      • 누구에게도 이 링크를 공유하지 마세요.<br />
+      • 협회는 절대 비밀번호를 메일/전화로 묻지 않습니다.
+    </div>
+
+    <div style="margin:20px 0 0;font-size:11px;color:#aaaaaa;
+                line-height:1.6;word-break:break-all;">
+      버튼이 작동하지 않으면 아래 주소를 브라우저에 직접 붙여넣어 주세요:<br />
+      <a href="${resetUrl}" style="color:#7a1f2b;text-decoration:underline;">${resetUrl}</a>
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 비밀번호 재설정 요청 안내`,
+    html: baseLayout({
+      title: "비밀번호 재설정",
+      bodyHtml,
+      ctaText: "새 비밀번호 설정하기",
+      ctaUrl: resetUrl,
     }),
   };
 }
