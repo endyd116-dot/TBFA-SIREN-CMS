@@ -342,6 +342,33 @@ export const chatBlacklist = pgTable("chat_blacklist", {
   activeIdx: index("chat_blacklist_active_idx").on(t.isActive),
 }));
 
+/* =========================================================
+   ★ STEP H-2d: 영수증 설정 (단일 진실 원천)
+   - 행은 항상 1개만 유지 (id=1 고정)
+   - admin.html (사이렌 백오피스) + cms-tbfa.html (교유협 CMS) 양쪽에서 공유
+   ========================================================= */
+export const receiptSettings = pgTable("receipt_settings", {
+  id: serial("id").primaryKey(),
+
+  // 협회 정보 (PDF에 표시되는 5가지)
+  orgName: varchar("org_name", { length: 100 }),
+  orgRegistrationNo: varchar("org_registration_no", { length: 50 }),
+  orgRepresentative: varchar("org_representative", { length: 50 }),
+  orgAddress: varchar("org_address", { length: 255 }),
+  orgPhone: varchar("org_phone", { length: 50 }),
+
+  // 영수증 양식 텍스트 (커스터마이징 가능)
+  title: varchar("title", { length: 100 }),                  // "기 부 금  영 수 증"
+  subtitle: varchar("subtitle", { length: 200 }),            // "(소득세법 시행규칙 ...)"
+  proofText: varchar("proof_text", { length: 200 }),         // "위와 같이 기부금을 기부하였음을 증명합니다."
+  donationTypeLabel: varchar("donation_type_label", { length: 50 }), // "지정기부금"
+  footerNotes: text("footer_notes"),                         // JSON 배열 ["• ...", "• ...", "• ..."]
+
+  // 메타
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+});
+
 
 /* =========================================================
    6. audit_logs — 감사 로그 (보안 추적)
@@ -394,3 +421,7 @@ export type ChatAttachment = typeof chatAttachments.$inferSelect;
 export type NewChatAttachment = typeof chatAttachments.$inferInsert;
 export type ChatBlacklist = typeof chatBlacklist.$inferSelect;
 export type NewChatBlacklist = typeof chatBlacklist.$inferInsert;
+
+/* H-2d: 영수증 설정 타입 */
+export type ReceiptSettings = typeof receiptSettings.$inferSelect;
+export type NewReceiptSettings = typeof receiptSettings.$inferInsert;
