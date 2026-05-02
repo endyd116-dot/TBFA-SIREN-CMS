@@ -9,38 +9,25 @@
  *   - 1회 실행당 최대 500건 처리 (Netlify 함수 시간 제한 10초 회피)
  *
  * 수동 실행 (테스트용):
- *   GET /api/cleanup-chat-images?key=siren-i2-2026
+ *   Netlify 대시보드 → Functions → cleanup-chat-images → "Test invoke" 버튼
+ *   (Scheduled Functions는 URL 직접 호출 불가)
  *
- * 스케줄 설정: netlify.toml의 [functions.cleanup-chat-images] schedule = "0 18 * * *"
+ * 스케줄 설정: export const config 의 schedule 또는 netlify.toml
  */
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
-import { eq, lt, and, ne, inArray, isNotNull } from "drizzle-orm";
+import { eq, lt, and, inArray, isNotNull } from "drizzle-orm";
 import { db, chatAttachments, chatRooms } from "../../db";
 
+/* ★ Scheduled Functions는 path를 지정할 수 없음 (Netlify 제약)
+   schedule만 선언하면 자동으로 cron으로만 호출되며, URL 라우팅은 불가 */
 export const config = {
-  path: "/api/cleanup-chat-images",
   schedule: "0 18 * * *", // 매일 UTC 18:00 = KST 03:00
 };
 
-const SECRET_KEY = "siren-i2-2026"; // 수동 실행 시 검증용
 const BATCH_LIMIT = 500;            // 1회 실행 최대 처리 건수
 
 export default async (req: Request, _ctx: Context) => {
-  /* ============ 인증 (수동 실행 시) ============
-   * 스케줄 자동 실행 시에는 Netlify 내부에서 호출되므로 인증 불필요
-   * 사용자가 직접 호출할 때만 ?key=xxx 검증 */
-  const url = new URL(req.url);
-  const isManual = req.method === "GET" && url.searchParams.has("key");
-  if (isManual) {
-    if (url.searchParams.get("key") !== SECRET_KEY) {
-      return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
-        status: 403,
-        headers: { "content-type": "application/json" },
-      });
-    }
-  }
-
   const startedAt = Date.now();
   const log: string[] = [];
   const stats = {
@@ -52,7 +39,7 @@ export default async (req: Request, _ctx: Context) => {
   };
 
   try {
-    log.push(`▶ Cleanup 시작 (${isManual ? "수동" : "스케줄"})`);
+    log.push(`▶ Cleanup 시작 (Scheduled invocation)`);
     log.push(`▶ 기준 시각: ${new Date().toISOString()}`);
 
     /* ============ 1단계: 만료된 첨부 목록 조회 ============ */
