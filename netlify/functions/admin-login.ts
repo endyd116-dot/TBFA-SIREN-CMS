@@ -1,10 +1,18 @@
 /**
  * POST /api/admin/login
  * 관리자 로그인 — 별도 시크릿/쿠키 사용 (siren_admin_token)
+ *
+ * ★ K-1+ A-1: 비밀번호 검증 후에 상태 체크
+ * ★ K-1+ A-2: 응답 본문에서 token 제거
+ * ★ K-1+ A-4: 타이밍 공격 방어 (더미 verify)
+ * ★ K-1+ B-5: getClientIp null 가드
+ * ★ K-1+ E:   세션 쿠키로 변경 — 브라우저 종료 시 즉시 만료 (관리자 보안 강화)
  */
 import { eq } from "drizzle-orm";
 import { db, members } from "../../db";
-import { verifyPassword, signAdminToken, buildCookie } from "../../lib/auth";
+import {
+  verifyPassword, signAdminToken, buildCookie, DUMMY_BCRYPT_HASH,
+} from "../../lib/auth";
 import { adminLoginSchema, safeValidate } from "../../lib/validation";
 import {
   ok, badRequest, unauthorized, forbidden, tooManyRequests,
@@ -42,7 +50,9 @@ export default async (req: Request) => {
       .where(eq(members.email, email))
       .limit(1);
 
+    /* ★ A-4: 사용자 미존재 또는 관리자 아님 → 더미 verify (타이밍 공격 방어) */
     if (!user || user.type !== "admin") {
+      await verifyPassword(password, DUMMY_BCRYPT_HASH);
       await logAudit({
         req, userId: null, userType: "admin", userName: id,
         action: "admin_login_failed",
@@ -54,15 +64,13 @@ export default async (req: Request) => {
 
     /* 잠금 확인 */
     if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
-      const remain = Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000);
+      const remain = Math.ceil(
+        (new Date(user.lockedUntil).getTime() - Date.now()) / 60000
+      );
       return tooManyRequests(`계정이 잠겨 있습니다. ${remain}분 후 다시 시도해 주세요.`);
     }
 
-    if (user.status !== "active") {
-      return forbidden("이용할 수 없는 계정입니다");
-    }
-
-    /* 비밀번호 검증 */
+    /* ★ A-1: 비밀번호 검증을 상태 체크보다 먼저 */
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       const newCount = (user.loginFailCount ?? 0) + 1;
@@ -86,31 +94,51 @@ export default async (req: Request) => {
       return unauthorized(`ID 또는 비밀번호가 일치하지 않습니다 (${newCount}/${MAX_FAIL})`);
     }
 
+    /* ★ A-1: 비밀번호 검증 통과 후 상태 확인 */
+    if (user.status !== "active") {
+      await logAudit({
+        req, userId: user.id, userType: "admin", userName: user.name,
+        action: "admin_login_blocked",
+        detail: { reason: "status_not_active", status: user.status },
+        success: false,
+      });
+      return forbidden("이용할 수 없는 계정입니다");
+    }
+
     /* 로그인 성공 */
     await db.update(members).set({
       loginFailCount: 0,
       lockedUntil: null,
       lastLoginAt: new Date(),
-      lastLoginIp: getClientIp(req).slice(0, 45),
+      /* ★ B-5: null 가드 */
+      lastLoginIp: (getClientIp(req) || "").slice(0, 45),
     }).where(eq(members.id, user.id));
 
-    /* 관리자 전용 토큰 + 쿠키 (2시간) */
+    /* ★ E: 관리자 토큰은 2시간(JWT) + 세션 쿠키 (브라우저 종료 시 즉시 만료) */
     const token = signAdminToken({
       uid: user.id,
       email: user.email,
       role: "super_admin",
       name: user.name,
     });
-    const cookie = buildCookie("siren_admin_token", token, { maxAge: 60 * 60 * 2 });
+    const cookie = buildCookie("siren_admin_token", token, {
+      maxAge: null, // ★ 세션 쿠키 — 브라우저 종료 시 삭제
+    });
 
     await logAudit({
       req, userId: user.id, userType: "admin", userName: user.name,
       action: "admin_login_success",
     });
 
+    /* ★ A-2: 응답 본문에서 token 제거 */
     const res = ok({
-      admin: { id: user.id, email: user.email, name: user.name, role: "super_admin" },
-      token,
+      admin: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: "super_admin",
+      },
+      /* token 필드 제거 */
     }, "관리자 인증 완료. 환영합니다.");
     res.headers.set("Set-Cookie", cookie);
     return res;

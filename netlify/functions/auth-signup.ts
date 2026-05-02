@@ -1,16 +1,23 @@
 /**
  * POST /api/auth/signup
  * 회원가입 — 이메일 중복 확인 → 비밀번호 해싱 → DB 저장 → JWT 발급 → 쿠키 설정
+ *
+ * ★ K-1+ A-2: 응답 본문에서 token 제거
+ * ★ K-1+ E:   회원가입 시 세션 쿠키 발급 (브라우저 종료 시 만료)
+ *              — 사용자가 명시적으로 "로그인 유지"를 선택하지 않았으므로 짧게
  */
 import { eq } from "drizzle-orm";
 import { db, members } from "../../db";
 import { hashPassword, signUserToken, buildCookie } from "../../lib/auth";
 import { signupSchema, safeValidate } from "../../lib/validation";
 import {
-  ok, created, badRequest, serverError,
+  created, badRequest, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
+
+/* ★ E: 가입 직후 토큰은 1일 (세션 쿠키와 함께) */
+const SIGNUP_JWT_EXPIRES = "1d";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -47,7 +54,7 @@ export default async (req: Request) => {
 
     /* 4. 회원 등록
        - 일반/봉사자: 즉시 active
-       - 유가족: 증빙 검토 필요 → pending */
+       - 유가족:     증빙 검토 필요 → pending */
     const status = memberType === "family" ? "pending" : "active";
 
     const [newMember] = await db
@@ -70,21 +77,26 @@ export default async (req: Request) => {
         status: members.status,
       });
 
-    /* 5. JWT 발급 + 쿠키 설정 */
-    const token = signUserToken({
-      uid: newMember.id,
-      email: newMember.email,
-      type: newMember.type,
-      name: newMember.name,
+    /* 5. JWT 발급 + ★ E: 세션 쿠키 (브라우저 종료 시 삭제) */
+    const token = signUserToken(
+      {
+        uid: newMember.id,
+        email: newMember.email,
+        type: newMember.type,
+        name: newMember.name,
+      },
+      SIGNUP_JWT_EXPIRES
+    );
+    const cookie = buildCookie("siren_token", token, {
+      maxAge: null, // ★ 세션 쿠키
     });
-    const cookie = buildCookie("siren_token", token);
 
     /* 6. 감사 로그 */
     await logUserAction(req, newMember.id, newMember.name, "signup_success", {
       detail: { type: memberType, status },
     });
 
-    /* 7. 응답 (status별 메시지) */
+    /* 7. ★ A-2: token 제거 후 응답 */
     const message =
       status === "pending"
         ? "가입 신청이 접수되었습니다. 관리자 승인 후 이용 가능합니다."
@@ -99,7 +111,7 @@ export default async (req: Request) => {
           type: newMember.type,
           status: newMember.status,
         },
-        token,
+        /* token 필드 제거 */
       },
       message
     );
