@@ -7,30 +7,74 @@ const FROM_EMAIL = process.env.EMAIL_FROM || "SIREN <onboarding@resend.dev>";
 /* 사이트 기본 URL — 메일 내 링크에 사용 */
 const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
 
-/* ───────────────────── 공용 발송 함수 ───────────────────── */
+/* ───────────────────── 공용 발송 함수 (디버그 강화) ───────────────────── */
+/* ───────────────────── 공용 발송 함수 (★ 임시 redirect 모드) ─────────────────────
+   - RESEND_TEST_RECIPIENT 환경변수가 설정되면 모든 메일을 그 주소로 redirect
+   - 도메인 검증 완료 후 환경변수만 삭제하면 정상 모드로 자동 복귀
+   - 코드 변경 없이 운영 모드 전환 가능
+   ───────────────────────────────────────────────────────────── */
+const TEST_MODE_RECIPIENT = (process.env.RESEND_TEST_RECIPIENT || "").trim();
+
 export async function sendEmail(opts: { to: string; subject: string; html: string }) {
+  const apiKeyMasked = RESEND_API_KEY 
+    ? RESEND_API_KEY.slice(0, 6) + "..." + RESEND_API_KEY.slice(-4)
+    : "(비어있음)";
+
+  /* ★ 임시 모드: 모든 메일을 본인 이메일로 redirect + 원래 수신자 표시 */
+  let actualTo = opts.to;
+  let actualSubject = opts.subject;
+  let actualHtml = opts.html;
+  const isTestMode = !!TEST_MODE_RECIPIENT;
+
+  if (isTestMode) {
+    actualTo = TEST_MODE_RECIPIENT;
+    actualSubject = `[TEST → ${opts.to}] ${opts.subject}`;
+    actualHtml = `
+      <div style="background:#fff8ec;border:2px solid #f0e3c4;padding:16px 20px;margin-bottom:20px;font-family:'Noto Sans KR',Arial,sans-serif;border-radius:8px;">
+        <div style="font-weight:700;color:#c47a00;margin-bottom:8px;font-size:14px;">⚠️ 도메인 검증 전 — 테스트 redirect 모드</div>
+        <div style="font-size:13px;color:#525252;line-height:1.7;">
+          이 메일은 Resend 도메인 검증 전 임시 모드로 발송되었습니다.<br />
+          • 원래 수신자: <strong style="color:#0f0f0f;">${opts.to}</strong><br />
+          • 현재 수신자: <strong style="color:#0f0f0f;">${TEST_MODE_RECIPIENT}</strong> (관리자 테스트용)<br />
+          <span style="color:#8a8a8a;font-size:12px;">도메인 검증 완료 후 자동으로 정상 모드로 전환됩니다.</span>
+        </div>
+      </div>
+      ${opts.html}
+    `;
+  }
+
+  console.log("[Email] ====== 발송 시도 ======");
+  console.log("[Email] Original To:", opts.to);
+  console.log("[Email] Actual To:", actualTo);
+  console.log("[Email] Test Mode:", isTestMode ? "ON (redirect)" : "OFF (정상)");
+  console.log("[Email] Subject:", actualSubject.slice(0, 70));
+  console.log("[Email] From:", FROM_EMAIL);
+  console.log("[Email] API Key:", apiKeyMasked);
+
   if (!RESEND_API_KEY) {
-    console.warn("[Email] RESEND_API_KEY가 등록되지 않아 메일 발송을 스킵합니다.");
-    return { ok: false, error: "No API Key" };
+    console.error("[Email] ❌ RESEND_API_KEY 환경변수 미설정");
+    return { ok: false, error: "RESEND_API_KEY not configured" };
   }
 
   try {
     const client = new Resend(RESEND_API_KEY);
     const { data, error } = await client.emails.send({
       from: FROM_EMAIL,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
+      to: actualTo,
+      subject: actualSubject,
+      html: actualHtml,
     });
 
     if (error) {
-      console.error("[Email] 발송 실패:", error);
+      console.error("[Email] ❌ Resend 응답 에러:");
+      console.error("[Email]", JSON.stringify(error, null, 2));
       return { ok: false, error };
     }
-    console.log("[Email] 발송 성공:", data?.id, "→", opts.to);
+
+    console.log("[Email] ✅ 발송 성공:", data?.id, "→", actualTo);
     return { ok: true, id: data?.id };
-  } catch (err) {
-    console.error("[Email] 예외 발생:", err);
+  } catch (err: any) {
+    console.error("[Email] ❌ 예외:", err?.message);
     return { ok: false, error: err };
   }
 }
