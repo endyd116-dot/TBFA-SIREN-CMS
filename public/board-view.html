@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>게시글 보기 | 자유게시판</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/board.css?v=m8">
+<link rel="stylesheet" href="/css/attachment.css?v=m2">
+</head>
+<body data-page="board-view">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>💬 자유게시판</h1>
+        <p>게시글 보기</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; <a href="/board.html">자유게시판</a> &nbsp;›&nbsp; <span>게시글</span>
+    </div>
+
+    <section class="block">
+      <div class="container">
+        <div class="board-wrap">
+
+          <div id="boardViewContainer">
+            <div style="text-align:center;padding:60px;color:var(--text-3)">로딩 중...</div>
+          </div>
+
+          <div id="boardCommentsContainer" style="display:none"></div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/auth.js?v=6"></script>
+  <script src="/js/board.js?v=m8"></script>
+</body>
+</html>
