@@ -930,6 +930,91 @@ export const boardComments = pgTable("board_comments", {
 }));
 
 /* =========================================================
+   ★ Phase M-11: content_pages — 단일 페이지 콘텐츠 (about 등)
+   - key 기반 (UNIQUE): 'about_greeting_text', 'about_history' 등
+   - 어드민 콘텐츠 관리에서 Toast UI Editor로 편집
+   - 사용자 페이지가 GET /api/content-pages?key=xxx 로 호출
+   ========================================================= */
+export const contentPages = pgTable("content_pages", {
+  id: serial("id").primaryKey(),
+  pageKey: varchar("page_key", { length: 100 }).notNull().unique(),
+  title: varchar("title", { length: 200 }),
+  contentHtml: text("content_html"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+}, (t) => ({
+  keyIdx: index("content_pages_key_idx").on(t.pageKey),
+}));
+
+/* =========================================================
+   ★ Phase M-11: activity_posts — 주요 활동 앨범
+   - 활동보고서/사진/뉴스 통합 게시판
+   - M-19 #3 (AI 활동보고서 자동생성)과 연계
+   ========================================================= */
+export const activityCategoryEnum = pgEnum("activity_category", [
+  "report",  // 활동 보고서
+  "photo",   // 사진/포토 에세이
+  "news"     // 활동 뉴스
+]);
+
+export const activityPosts = pgTable("activity_posts", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  year: integer("year").notNull(),
+  month: integer("month"),
+  category: activityCategoryEnum("category").default("news").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  summary: varchar("summary", { length: 500 }),
+  contentHtml: text("content_html"),
+  thumbnailBlobId: integer("thumbnail_blob_id"),
+  attachmentIds: text("attachment_ids"),
+  isPublished: boolean("is_published").default(true).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  views: integer("views").default(0).notNull(),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+}, (t) => ({
+  slugIdx: index("activity_posts_slug_idx").on(t.slug),
+  yearIdx: index("activity_posts_year_idx").on(t.year, t.month),
+  categoryIdx: index("activity_posts_category_idx").on(t.category),
+  publishedIdx: index("activity_posts_published_idx").on(t.isPublished),
+  pinnedIdx: index("activity_posts_pinned_idx").on(t.isPinned),
+}));
+
+/* =========================================================
+   ★ Phase M-11: media_posts — 언론보도 / 갤러리
+   - news.html에 추가 표시
+   ========================================================= */
+export const mediaCategoryEnum = pgEnum("media_category", [
+  "press",  // 언론 보도
+  "photo",  // 사진 갤러리
+  "event"   // 행사 / 이벤트
+]);
+
+export const mediaPosts = pgTable("media_posts", {
+  id: serial("id").primaryKey(),
+  category: mediaCategoryEnum("category").default("press").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  summary: varchar("summary", { length: 500 }),
+  contentHtml: text("content_html"),
+  thumbnailBlobId: integer("thumbnail_blob_id"),
+  externalUrl: varchar("external_url", { length: 500 }),  // 언론사 원문 링크
+  source: varchar("source", { length: 100 }),              // 언론사명
+  isPublished: boolean("is_published").default(true).notNull(),
+  views: integer("views").default(0).notNull(),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+}, (t) => ({
+  categoryIdx: index("media_posts_category_idx").on(t.category),
+  publishedIdx: index("media_posts_published_idx").on(t.isPublished),
+  publishedAtIdx: index("media_posts_published_at_idx").on(t.publishedAt),
+}));
+/* =========================================================
    ★ Phase M-7: legal_consultations — 법률 상담 신청
    ========================================================= */
 export const legalConsultations = pgTable("legal_consultations", {
@@ -1114,3 +1199,11 @@ export type BoardPost = typeof boardPosts.$inferSelect;
 export type NewBoardPost = typeof boardPosts.$inferInsert;
 export type BoardComment = typeof boardComments.$inferSelect;
 export type NewBoardComment = typeof boardComments.$inferInsert;
+
+/* ★ M-11: 콘텐츠 관리 타입 (NEW) */
+export type ContentPage = typeof contentPages.$inferSelect;
+export type NewContentPage = typeof contentPages.$inferInsert;
+export type ActivityPost = typeof activityPosts.$inferSelect;
+export type NewActivityPost = typeof activityPosts.$inferInsert;
+export type MediaPost = typeof mediaPosts.$inferSelect;
+export type NewMediaPost = typeof mediaPosts.$inferInsert;
