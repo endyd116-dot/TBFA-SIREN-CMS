@@ -1,0 +1,94 @@
+외부키
+
+resend
+
+DB키
+
+제미나이키
+API 키
+AIzaSyDS4_lmYNW7gmjpkmE4yGwtQcX6dCT8EEE
+이름
+Gemini API Key
+프로젝트 이름
+projects/1029875545738
+프로젝트 번호
+1029875545738
+
+등록된 외부 서비스 정리 (값은 노출 X)
+
+
+1. Resend (이메일 발송)
+
+
+RESEND_API_KEY        : re_iFrL6...XXXX   (Netlify 환경변수, Secret 체크됨)
+RESEND_TEST_RECIPIENT : endyd116@gmail.com  (도메인 검증 전 임시 redirect 모드)
+EMAIL_FROM            : SIREN <onboarding@resend.dev>  (또는 미설정)
+
+Plain TextCopy
+
+
+
+
+
+→ 운영 시작 시: 도메인 구매 + Resend 검증 →  RESEND_TEST_RECIPIENT  삭제 +  EMAIL_FROM  변경
+
+
+2. Cloudflare R2 (파일 저장소 — M-2.5)
+
+
+R2_ACCOUNT_ID         : e681aab0b46cfb281a71dfdd7729e1b5  (공개 가능, 노출됨)
+R2_BUCKET             : siren-uploads
+R2_ENDPOINT           : https://e681aab0...r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID      : 6ff92c36...22dfb  (Secret, 일부 노출됐음)
+R2_SECRET_ACCESS_KEY  : b9f8a04fb65b81d58c6540e00c7c84f254c9ae9e63bd657d9ebad1693eb2986f
+
+Plain TextCopy
+
+
+
+
+
+→ 이전에 강력 권고드렸지만, 이 토큰은 채팅 로그에 남아있어서 재발급 권장입니다. 운영 시작 전엔 꼭 다시 발급받으세요.
+
+
+3. Google Gemini AI
+
+
+GEMINI_API_KEY        : (Secret 체크됨 — 값 미공개)
+GEMINI_MODEL          : gemini-2.0-flash  (지금 이슈가 발생한 그 모델)
+
+Plain TextCopy
+
+
+
+
+
+4. 토스페이먼츠
+
+
+TOSS_TEST_CLIENT_KEY  : test_ck_vZnjEJeQVxeemRee2PBMrPmOoBN0  (테스트, 공개 OK)
+TOSS_TEST_SECRET_KEY  : test_sk_DpexMgkW36oW2na5bXNpVGbR5ozO  (테스트)
+TOSS_MODE             : test
+
+Plain TextCopy
+
+
+
+
+
+→ 운영 시  TOSS_LIVE_CLIENT_KEY  /  TOSS_LIVE_SECRET_KEY  추가 +  TOSS_MODE=live 
+
+
+5. 라이브러리 CDN (코드에 하드코딩 — Secret 아님, 공개 OK)
+
+
+Toast UI Editor       : v3.2.2 (jsdelivr)
+Toast UI Color Plugin : v3.1.0
+TUI Color Picker       : v2.0.3
+토스 SDK              : https://js.tosspayments.com/v2/standard
+Chart.js              : v4.4.0
+Pretendard 웹폰트     : Google Fonts (Noto Seri
+
+
+
+
