@@ -751,6 +751,85 @@ export const incidentReports = pgTable("incident_reports", {
 }));
 
 /* =========================================================
+   ★ Phase M-6: 악성민원 카테고리 / 신고 상태 ENUM
+   ========================================================= */
+export const harassmentCategoryEnum = pgEnum("harassment_category", [
+  "parent",     // 학부모 민원
+  "student",    // 학생 폭력/문제행동
+  "admin",      // 관리자/상급자 부당 지시
+  "colleague",  // 동료 갈등
+  "other"       // 기타
+]);
+
+export const harassmentReportStatusEnum = pgEnum("harassment_report_status", [
+  "submitted",   // 접수
+  "ai_analyzed", // AI 분석 완료
+  "reviewing",   // 관리자 검토 중 (정식 신고 후)
+  "responded",   // 답변 완료
+  "closed",     // 종결 (AI 답변만)
+  "rejected"    // 반려
+]);
+
+/* =========================================================
+   ★ Phase M-6: harassment_reports — 악성민원 신고
+   - 사건 마스터 없이 사용자가 본인 경험을 신고
+   - AI 분석: 분류/심각도/즉각대처/법적검토/심리지원
+   ========================================================= */
+export const harassmentReports = pgTable("harassment_reports", {
+  id: serial("id").primaryKey(),
+  reportNo: varchar("report_no", { length: 30 }).notNull().unique(), // H-2026-0001
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
+
+  // 사용자 입력 카테고리
+  category: harassmentCategoryEnum("category").default("parent").notNull(),
+
+  // 발생 시기/빈도 (선택)
+  occurredAt: timestamp("occurred_at"),
+  frequency: varchar("frequency", { length: 30 }), // 'once' | 'recurring' | 'ongoing'
+
+  // 본문
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html").notNull(),
+  attachmentIds: text("attachment_ids"), // JSON 배열
+
+  // 익명/신원
+  isAnonymous: boolean("is_anonymous").default(false),
+  reporterName: varchar("reporter_name", { length: 50 }),
+  reporterPhone: varchar("reporter_phone", { length: 20 }),
+  reporterEmail: varchar("reporter_email", { length: 100 }),
+
+  // ★ AI 분석 결과
+  aiCategory: varchar("ai_category", { length: 30 }),       // AI가 재분류한 카테고리
+  aiSeverity: varchar("ai_severity", { length: 20 }),       // low/medium/high/critical
+  aiSummary: text("ai_summary"),
+  aiImmediateAction: text("ai_immediate_action"),           // 즉각적 대처
+  aiLegalReviewNeeded: boolean("ai_legal_review_needed"),
+  aiLegalReason: text("ai_legal_reason"),
+  aiPsychSupportNeeded: boolean("ai_psych_support_needed"),
+  aiSuggestion: text("ai_suggestion"),                      // 종합 권장사항
+  aiAnalyzedAt: timestamp("ai_analyzed_at"),
+
+  // 사이렌 정식 신고 여부
+  sirenReportRequested: boolean("siren_report_requested"),
+  sirenReportRequestedAt: timestamp("siren_report_requested_at"),
+
+  // 상태/관리자
+  status: harassmentReportStatusEnum("status").default("submitted").notNull(),
+  adminResponse: text("admin_response"),
+  respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
+  respondedAt: timestamp("responded_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  reportNoIdx: index("harassment_reports_report_no_idx").on(t.reportNo),
+  memberIdx: index("harassment_reports_member_idx").on(t.memberId),
+  statusIdx: index("harassment_reports_status_idx").on(t.status),
+  severityIdx: index("harassment_reports_severity_idx").on(t.aiSeverity),
+  categoryIdx: index("harassment_reports_category_idx").on(t.category),
+}));
+
+/* =========================================================
    ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
    - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
    - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
@@ -860,3 +939,7 @@ export type Incident = typeof incidents.$inferSelect;
 export type NewIncident = typeof incidents.$inferInsert;
 export type IncidentReport = typeof incidentReports.$inferSelect;
 export type NewIncidentReport = typeof incidentReports.$inferInsert;
+
+/* ★ M-6: 악성민원 신고 타입 (NEW) */
+export type HarassmentReport = typeof harassmentReports.$inferSelect;
+export type NewHarassmentReport = typeof harassmentReports.$inferInsert;
