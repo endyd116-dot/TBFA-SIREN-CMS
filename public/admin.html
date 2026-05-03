@@ -1476,6 +1476,322 @@
   color: #525252;
   margin-left: 4px;
 }
+/* ===== ★ M-10: 사이렌 관리 공통 ===== */
+.srn-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.srn-toolbar select,
+.srn-toolbar input[type="search"] {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  background: #fff;
+  font-family: inherit;
+}
+.srn-toolbar input[type="search"] { flex: 1; min-width: 220px; }
+.srn-toolbar .srn-count {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+.srn-sev-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.srn-sev-pill.critical, .srn-sev-pill.urgent { background: #c5293a; color: #fff; }
+.srn-sev-pill.high { background: #e87a3a; color: #fff; }
+.srn-sev-pill.medium, .srn-sev-pill.normal { background: #c47a00; color: #fff; }
+.srn-sev-pill.low { background: #1a5ec4; color: #fff; }
+.srn-sev-pill.empty { background: #f0f0f0; color: #8a8a8a; font-weight:500; }
+
+.srn-status-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.srn-status-pill.submitted, .srn-status-pill.ai_analyzed { background:#e6f2ff; color:#1a5ec4; }
+.srn-status-pill.reviewing, .srn-status-pill.matching { background:#fff8ec; color:#8a6a00; }
+.srn-status-pill.matched, .srn-status-pill.in_progress { background:#fef9f5; color:#7a1f2b; }
+.srn-status-pill.responded, .srn-status-pill.completed { background:#e7f7ec; color:#1a5e2c; }
+.srn-status-pill.closed { background:#f0f0f0; color:#525252; }
+.srn-status-pill.rejected { background:#fdecec; color:#a01e2c; }
+
+.srn-row-summary {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 3px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.srn-row-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.srn-row-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.srn-row-actions button.detail { color: var(--brand); border-color: #f0e0e3; }
+.srn-row-actions button.detail:hover { background: var(--brand-soft, #fef9f5); }
+.srn-row-actions button.hide { color: var(--danger); border-color: #f5b5bb; }
+.srn-row-actions button.hide:hover { background: #fdecec; }
+.srn-row-actions button.unhide { color: #1a8b46; border-color: #a3d9b4; }
+
+.srn-anon-badge {
+  display: inline-block;
+  background: #f0f0f0;
+  color: #525252;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+/* 사이렌 모달 내부 */
+.srn-modal-info-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px 14px;
+  font-size: 12.5px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border-radius: 6px;
+}
+.srn-modal-info-grid > div:nth-child(odd) { color: var(--text-3); font-weight: 600; }
+.srn-modal-info-grid > div:nth-child(even) { word-break: break-all; }
+
+.srn-modal-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.srn-modal-section h5 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.srn-content-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-1, #2a2a2a);
+  word-break: break-word;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.srn-content-box img { max-width: 100%; height: auto; border-radius: 4px; }
+
+.srn-ai-block {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.srn-ai-block .ai-title {
+  font-weight: 700;
+  color: var(--brand);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.srn-ai-block.legal { background: #f8f7fc; border-color: #c4bce0; }
+.srn-ai-block.legal .ai-title { color: #5a4d8c; }
+.srn-ai-block.danger { background: #fef2f2; border-color: #fca5a5; }
+.srn-ai-block.danger .ai-title { color: #dc2626; }
+
+.srn-attach-list { display: flex; flex-direction: column; gap: 6px; }
+.srn-attach-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  text-decoration: none;
+}
+.srn-attach-link:hover { border-color: var(--brand); color: var(--brand); background: #fefcfa; }
+
+.srn-form-group { margin-bottom: 12px; }
+.srn-form-group label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 5px;
+}
+.srn-form-group label .hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.srn-form-group input,
+.srn-form-group select,
+.srn-form-group textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.srn-form-group textarea {
+  resize: vertical;
+  min-height: 130px;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.srn-form-group input:focus,
+.srn-form-group select:focus,
+.srn-form-group textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.srn-ai-draft-btn {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--brand);
+  border: 1px dashed var(--brand);
+  padding: 6px 12px;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+.srn-ai-draft-btn:hover { background: var(--brand-soft, #fef9f5); }
+.srn-ai-draft-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.srn-checkbox-block {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 11px 14px;
+  margin: 10px 0;
+}
+.srn-checkbox-block label {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal !important;
+  font-size: 12.5px;
+}
+.srn-checkbox-block label input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.srn-action-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.srn-action-row button {
+  padding: 11px 18px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+.srn-action-row .btn-save {
+  flex: 1;
+  background: var(--brand);
+  color: #fff;
+}
+.srn-action-row .btn-save:hover:not(:disabled) { background: var(--brand-deep, #5a1620); }
+.srn-action-row .btn-hide,
+.srn-action-row .btn-unhide {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+}
+.srn-action-row .btn-hide:hover { background: #fdecec; color: var(--danger); border-color: #f5b5bb; }
+.srn-action-row .btn-unhide:hover { background: #e7f7ec; color: #1a8b46; border-color: #a3d9b4; }
+.srn-action-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.srn-comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.srn-comment-item {
+  padding: 8px 12px;
+  background: #fafaf8;
+  border-radius: 5px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.srn-comment-item .meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-3);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.srn-comment-item .content {
+  line-height: 1.55;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.srn-comment-item.hidden { opacity: 0.5; }
+.srn-comment-item .del-btn {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
 </style>
 </head>
 <body>
@@ -1514,11 +1830,47 @@
         <li><a data-page="members"><i>👥</i><span>회원 관리</span></a></li>
         <li><a data-page="donations"><i>💰</i><span>기부 관리</span></a></li>
         <li>
+                  <li>
           <a data-page="support">
-            <i>🤝</i><span>지원 관리</span>
+            <i>🤝</i><span>유가족 지원 관리</span>
             <span class="adm-badge" id="supportNewBadge" style="display:none">0</span>
           </a>
         </li>
+
+        <!-- ★ M-10: 사이렌 관리 (4개 통합) -->
+        <li class="adm-menu-group">
+          <div style="padding:14px 18px 8px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;border-top:1px solid var(--line);margin-top:8px">
+            🚨 사이렌 관리 (교원 전용)
+          </div>
+        </li>
+        <li>
+          <a data-page="siren-incidents">
+            <i>🔍</i><span>사건 제보 관리</span>
+            <span class="adm-badge" id="sirenIncidentBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li>
+          <a data-page="siren-harassment">
+            <i>⚠️</i><span>악성민원 관리</span>
+            <span class="adm-badge" id="sirenHarassmentBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li>
+          <a data-page="siren-legal">
+            <i>⚖️</i><span>법률지원 관리</span>
+            <span class="adm-badge" id="sirenLegalBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li>
+          <a data-page="siren-board">
+            <i>💬</i><span>자유게시판 관리</span>
+            <span class="adm-badge" id="sirenBoardBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li class="adm-menu-group">
+          <div style="padding:8px 18px 4px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;border-top:1px solid var(--line);margin-top:8px"></div>
+        </li>
+
         <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
         <li>
           <a data-page="chat">
@@ -1685,7 +2037,7 @@
           </div>
         </div>
 
-        <!-- 4. 지원 관리 -->
+        <!-- 4. 유가족 지원 관리 -->
         <div id="adm-support" class="adm-page">
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
             <div class="kpi" id="kpiUrgentCard" style="border-left:4px solid #c5293a;background:#fdecec">
@@ -1716,6 +2068,265 @@
                   </tr>
                 </thead>
                 <tbody><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+                <!-- ============================================
+             ★ M-10: 사이렌 관리 — 4개 통합 페이지
+             ============================================ -->
+
+        <!-- 🔍 사건 제보 관리 -->
+        <div id="adm-siren-incidents" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 위급 (high+)</div><div class="kpi-value" id="siKpiHigh" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label">🆕 AI 분석 완료</div><div class="kpi-value" id="siKpiAi">0</div></div>
+            <div class="kpi"><div class="kpi-label">📌 정식 접수</div><div class="kpi-value" id="siKpiSiren">0</div></div>
+            <div class="kpi"><div class="kpi-label">⏳ 검토 중</div><div class="kpi-value" id="siKpiReviewing">0</div></div>
+            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="siKpiResponded">0</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">🔍 사건 제보 관리</div>
+            </div>
+
+            <div class="srn-toolbar">
+              <select data-srn-filter="status" data-srn-kind="incident">
+                <option value="">전체 상태</option>
+                <option value="ai_analyzed">AI 분석 완료</option>
+                <option value="reviewing">검토 중</option>
+                <option value="responded">답변 완료</option>
+                <option value="closed">종결</option>
+                <option value="rejected">반려</option>
+              </select>
+              <select data-srn-filter="severity" data-srn-kind="incident">
+                <option value="">전체 위급도</option>
+                <option value="critical">🚨 CRITICAL</option>
+                <option value="high">⚠️ HIGH</option>
+                <option value="medium">⚖️ MEDIUM</option>
+                <option value="low">💡 LOW</option>
+              </select>
+              <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
+                <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="incident"> 정식 접수만
+              </label>
+              <input type="search" data-srn-filter="q" data-srn-kind="incident" placeholder="🔍 제목/접수번호 검색 (2자+)">
+              <span class="srn-count" data-srn-count="incident">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:90px">위급도</th>
+                    <th style="width:120px">접수번호</th>
+                    <th style="width:130px">접수일</th>
+                    <th>제목 / AI 요약</th>
+                    <th style="width:110px">제보자</th>
+                    <th style="width:100px">상태</th>
+                    <th style="width:80px">정식</th>
+                    <th style="width:80px">관리</th>
+                  </tr>
+                </thead>
+                <tbody data-srn-tbody="incident">
+                  <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⚠️ 악성민원 관리 -->
+        <div id="adm-siren-harassment" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 위급 (high+)</div><div class="kpi-value" id="shKpiHigh" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label">🆕 AI 분석</div><div class="kpi-value" id="shKpiAi">0</div></div>
+            <div class="kpi"><div class="kpi-label">📌 정식 신고</div><div class="kpi-value" id="shKpiSiren">0</div></div>
+            <div class="kpi"><div class="kpi-label">⏳ 검토 중</div><div class="kpi-value" id="shKpiReviewing">0</div></div>
+            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="shKpiResponded">0</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">⚠️ 악성민원 신고 관리</div>
+            </div>
+
+            <div class="srn-toolbar">
+              <select data-srn-filter="status" data-srn-kind="harassment">
+                <option value="">전체 상태</option>
+                <option value="ai_analyzed">AI 분석 완료</option>
+                <option value="reviewing">검토 중</option>
+                <option value="responded">답변 완료</option>
+                <option value="closed">종결</option>
+                <option value="rejected">반려</option>
+              </select>
+              <select data-srn-filter="severity" data-srn-kind="harassment">
+                <option value="">전체 심각도</option>
+                <option value="critical">🚨 CRITICAL</option>
+                <option value="high">⚠️ HIGH</option>
+                <option value="medium">⚖️ MEDIUM</option>
+                <option value="low">💡 LOW</option>
+              </select>
+              <select data-srn-filter="category" data-srn-kind="harassment">
+                <option value="">전체 유형</option>
+                <option value="parent">학부모</option>
+                <option value="student">학생</option>
+                <option value="admin">관리자</option>
+                <option value="colleague">동료</option>
+                <option value="other">기타</option>
+              </select>
+              <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
+                <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="harassment"> 정식 신고만
+              </label>
+              <input type="search" data-srn-filter="q" data-srn-kind="harassment" placeholder="🔍 제목/접수번호 (2자+)">
+              <span class="srn-count" data-srn-count="harassment">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:90px">심각도</th>
+                    <th style="width:120px">접수번호</th>
+                    <th style="width:80px">유형</th>
+                    <th style="width:130px">접수일</th>
+                    <th>제목 / AI 요약</th>
+                    <th style="width:110px">신고자</th>
+                    <th style="width:100px">상태</th>
+                    <th style="width:80px">관리</th>
+                  </tr>
+                </thead>
+                <tbody data-srn-tbody="harassment">
+                  <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⚖️ 법률지원 관리 -->
+        <div id="adm-siren-legal" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 긴급</div><div class="kpi-value" id="slKpiUrgent" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label">📥 대기</div><div class="kpi-value" id="slKpiSubmitted">0</div></div>
+            <div class="kpi"><div class="kpi-label">🔗 매칭 중</div><div class="kpi-value" id="slKpiMatching">0</div></div>
+            <div class="kpi"><div class="kpi-label">👨‍⚖️ 매칭 완료</div><div class="kpi-value" id="slKpiMatched">0</div></div>
+            <div class="kpi"><div class="kpi-label">✅ 답변 완료</div><div class="kpi-value" id="slKpiResponded">0</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">⚖️ 법률지원 상담 관리</div>
+            </div>
+
+            <div class="srn-toolbar">
+              <select data-srn-filter="status" data-srn-kind="legal">
+                <option value="">전체 상태</option>
+                <option value="ai_analyzed">AI 분석 완료</option>
+                <option value="matching">매칭 중</option>
+                <option value="matched">매칭 완료</option>
+                <option value="in_progress">진행 중</option>
+                <option value="responded">답변 완료</option>
+                <option value="closed">종결</option>
+                <option value="rejected">반려</option>
+              </select>
+              <select data-srn-filter="urgency" data-srn-kind="legal">
+                <option value="">전체 긴급도</option>
+                <option value="urgent">🚨 URGENT</option>
+                <option value="high">⚠️ HIGH</option>
+                <option value="normal">⚖️ NORMAL</option>
+                <option value="low">💡 LOW</option>
+              </select>
+              <select data-srn-filter="category" data-srn-kind="legal">
+                <option value="">전체 분야</option>
+                <option value="school_dispute">학교 분쟁</option>
+                <option value="civil">민사</option>
+                <option value="criminal">형사</option>
+                <option value="family">가사</option>
+                <option value="labor">노동</option>
+                <option value="contract">계약</option>
+                <option value="other">기타</option>
+              </select>
+              <label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer">
+                <input type="checkbox" data-srn-filter="onlySiren" data-srn-kind="legal"> 매칭 신청만
+              </label>
+              <input type="search" data-srn-filter="q" data-srn-kind="legal" placeholder="🔍 제목/접수번호 (2자+)">
+              <span class="srn-count" data-srn-count="legal">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1200px">
+                <thead>
+                  <tr>
+                    <th style="width:90px">긴급도</th>
+                    <th style="width:120px">접수번호</th>
+                    <th style="width:90px">분야</th>
+                    <th style="width:130px">접수일</th>
+                    <th>제목 / AI 요약</th>
+                    <th style="width:120px">변호사</th>
+                    <th style="width:100px">상태</th>
+                    <th style="width:80px">관리</th>
+                  </tr>
+                </thead>
+                <tbody data-srn-tbody="legal">
+                  <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 💬 자유게시판 관리 -->
+        <div id="adm-siren-board" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi"><div class="kpi-label">전체 게시글</div><div class="kpi-value" id="sbKpiTotal">0</div></div>
+            <div class="kpi"><div class="kpi-label">📌 고정</div><div class="kpi-value" id="sbKpiPinned">0</div></div>
+            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">🚫 숨김</div><div class="kpi-value" id="sbKpiHidden" style="color:var(--danger)">0</div></div>
+            <div class="kpi"><div class="kpi-label">💬 댓글 수</div><div class="kpi-value" id="sbKpiComments">0</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">💬 자유게시판 관리</div>
+            </div>
+
+            <div class="srn-toolbar">
+              <select data-srn-filter="category" data-srn-kind="board">
+                <option value="">전체 분류</option>
+                <option value="general">자유</option>
+                <option value="share">경험 공유</option>
+                <option value="question">질문</option>
+                <option value="info">정보</option>
+                <option value="etc">기타</option>
+              </select>
+              <select data-srn-filter="hidden" data-srn-kind="board">
+                <option value="">전체 노출</option>
+                <option value="0">노출 중</option>
+                <option value="1">🚫 숨김</option>
+              </select>
+              <input type="search" data-srn-filter="q" data-srn-kind="board" placeholder="🔍 제목/번호/작성자 (2자+)">
+              <span class="srn-count" data-srn-count="board">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1000px">
+                <thead>
+                  <tr>
+                    <th style="width:80px">번호</th>
+                    <th style="width:80px">분류</th>
+                    <th style="width:130px">작성일</th>
+                    <th>제목</th>
+                    <th style="width:120px">작성자</th>
+                    <th style="width:60px">조회</th>
+                    <th style="width:60px">댓글</th>
+                    <th style="width:60px">상태</th>
+                    <th style="width:160px">관리</th>
+                  </tr>
+                </thead>
+                <tbody data-srn-tbody="board">
+                  <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
               </table>
             </div>
           </div>
@@ -2716,9 +3327,24 @@
       </div>
     </div>
   </div>
+  <!-- ============================================
+       ★ M-10: 사이렌 관리 통합 상세 모달
+       ============================================ -->
+  <div id="sirenDetailModal" class="modal">
+    <div class="modal-content" style="max-width:780px">
+      <div class="modal-header">
+        <h3 class="serif" id="srnModalTitle">사이렌 관리 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="srnModalBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status"></div>
+
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
