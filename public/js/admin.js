@@ -958,7 +958,7 @@
     });
   }
 
-  async function openSupportModal(id) {
+    async function openSupportModal(id) {
     const modal = document.getElementById('supportDetailModal');
     if (!modal) {
       console.error('supportDetailModal not found');
@@ -975,6 +975,15 @@
     document.getElementById('replyId').value = id;
     document.getElementById('replyNote').value = '';
     document.getElementById('replySendEmail').checked = false;
+
+    /* ★ K-3: 새 입력칸 초기화 */
+    const expertEl = document.getElementById('replyAssignedExpert');
+    const supplementEl = document.getElementById('replySupplement');
+    const reportEl = document.getElementById('replyReport');
+    if (expertEl) expertEl.value = '';
+    if (supplementEl) supplementEl.value = '';
+    if (reportEl) reportEl.value = '';
+
     const urgentBox = document.getElementById('urgentWarningBox');
     if (urgentBox) urgentBox.style.display = 'none';
 
@@ -1011,16 +1020,29 @@
       }
     }
 
+    /* ★ K-3: 첨부파일을 다운로드 링크로 렌더링 */
     const attachEl = document.getElementById('detail-attachments');
     if (attachEl) {
       let attaches = [];
       try { attaches = r.attachments ? JSON.parse(r.attachments) : []; } catch (e) {}
       if (Array.isArray(attaches) && attaches.length > 0) {
+        const linksHtml = attaches.map((k) => {
+          const safeKey = encodeURIComponent(String(k));
+          const fileName = String(k).split('/').pop() || k;
+          /* originalName은 다운로드 시 메타데이터에서 가져오므로 키 마지막 부분으로 표시 */
+          const displayName = fileName.replace(/^\d+-/, ''); // timestamp prefix 제거
+          return `<a href="/api/support/download?key=${safeKey}&id=${r.id}" 
+                     target="_blank" rel="noopener"
+                     class="k3-attach-item"
+                     title="다운로드: ${escapeHtml(String(k))}">
+                    <span class="file-icon">📎</span>
+                    <span class="file-name">${escapeHtml(displayName)}</span>
+                    <span class="download-icon">⬇ 다운로드</span>
+                  </a>`;
+        }).join('');
         attachEl.innerHTML =
           '<span class="support-detail-label">첨부파일 (' + attaches.length + '건)</span>' +
-          '<div style="font-size:13px;color:var(--text-2);line-height:1.8">' +
-          attaches.map((k) => '📎 ' + escapeHtml(String(k))).join('<br />') +
-          '</div>';
+          '<div class="k3-attach-list">' + linksHtml + '</div>';
       } else {
         attachEl.innerHTML = '';
       }
@@ -1043,6 +1065,14 @@
 
     document.getElementById('replyStatus').value = r.status || 'submitted';
     document.getElementById('replyNote').value = r.adminNote || '';
+
+    /* ★ K-3: 기존 값 채우기 */
+    if (expertEl) expertEl.value = r.assignedExpertName || '';
+    if (supplementEl) supplementEl.value = r.supplementNote || '';
+    if (reportEl) reportEl.value = r.reportContent || '';
+
+    /* ★ K-3: 상태에 따라 입력칸 표시/숨김 */
+    toggleSupportConditionalFields(r.status || 'submitted');
 
     injectAiDraftButton();
     loadExpertMatch(id);
@@ -1113,7 +1143,7 @@
     }
   }
 
-  async function loadExpertMatch(supportId) {
+    async function loadExpertMatch(supportId) {
     const container = document.getElementById('aiExpertMatchSection');
     if (!container) return;
 
@@ -1137,14 +1167,25 @@
       const recs = res.data.data.recommendations;
       const cardsHtml = recs.map((r, idx) => {
         const scoreColor = r.score >= 85 ? '#1a8b46' : r.score >= 70 ? '#c47a00' : '#8a8a8a';
+        /* ★ K-3: "이 전문가로 배정" 버튼 추가 */
+        const safeName = String(r.name).replace(/"/g, '&quot;');
+        const safeRole = String(r.role).replace(/"/g, '&quot;');
+        const expertLabel = `${r.name} ${r.role}`;
+        const safeLabel = expertLabel.replace(/"/g, '&quot;');
+
         return '<div style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-          '<div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">' +
+          '<div style="flex:1;min-width:160px">' +
           '<strong style="font-size:13.5px">' + escapeHtml(r.name) + '</strong> ' +
           '<span style="color:var(--text-2);font-size:11.5px">· ' + escapeHtml(r.role) + '</span>' +
           '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
           '<span style="background:' + scoreColor + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">' +
           '매칭 ' + r.score + '%</span>' +
+          '<button type="button" class="k3-assign-btn" data-k3-assign="' + safeLabel + '">' +
+          '✓ 이 전문가로 배정' +
+          '</button>' +
+          '</div>' +
           '</div>' +
           '<div style="font-size:12px;color:var(--brand);margin-bottom:4px">' + escapeHtml(r.specialty) + '</div>' +
           '<div style="font-size:12px;color:var(--text-2);line-height:1.5">' + escapeHtml(r.reason) + '</div>' +
@@ -1206,9 +1247,17 @@
     });
   }
 
-  function setupSupportReplyForm() {
+    function setupSupportReplyForm() {
     const form = document.getElementById('supportReplyForm');
     if (!form) return;
+
+    /* ★ K-3: 상태 변경 시 보완/완료 입력칸 표시/숨김 */
+    const statusEl = document.getElementById('replyStatus');
+    if (statusEl) {
+      statusEl.addEventListener('change', (e) => {
+        toggleSupportConditionalFields(e.target.value);
+      });
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1218,9 +1267,23 @@
       const adminNote = (document.getElementById('replyNote').value || '').trim();
       const sendEmail = document.getElementById('replySendEmail')?.checked === true;
 
+      /* ★ K-3: 새 필드 수집 */
+      const assignedExpertName = (document.getElementById('replyAssignedExpert')?.value || '').trim();
+      const supplementNote = (document.getElementById('replySupplement')?.value || '').trim();
+      const reportContent = (document.getElementById('replyReport')?.value || '').trim();
+
       if (!id) return toast('신청 ID 없음');
       if (sendEmail && !adminNote) {
         return toast('메일 발송 시 답변 내용을 입력해 주세요');
+      }
+
+      /* ★ K-3: 상태별 필수 입력 검증 */
+      if (status === 'supplement' && !supplementNote) {
+        return toast('보완 요청 시 보완 안내 내용을 입력해 주세요');
+      }
+      if (status === 'completed' && !reportContent) {
+        const ok = confirm('완료 보고서 없이 저장하시겠습니까?\n(추후 입력 가능합니다)');
+        if (!ok) return;
       }
 
       const submitBtn = form.querySelector('button[type="submit"]');
@@ -1231,9 +1294,20 @@
       }
 
       try {
+        /* ★ K-3: 새 필드를 PATCH body에 포함 */
+        const body = {
+          id,
+          status,
+          adminNote,
+          sendEmail,
+        };
+        if (assignedExpertName) body.assignedExpertName = assignedExpertName;
+        if (supplementNote) body.supplementNote = supplementNote;
+        if (reportContent) body.reportContent = reportContent;
+
         const res = await api('/api/admin/support', {
           method: 'PATCH',
-          body: { id, status, adminNote, sendEmail },
+          body,
         });
 
         if (res.ok) {
@@ -1252,6 +1326,42 @@
           submitBtn.disabled = false;
           submitBtn.textContent = oldText;
         }
+      }
+    });
+  }
+
+    /* ★ K-3: 상태별 입력칸 표시/숨김 */
+  function toggleSupportConditionalFields(status) {
+    const supplementGroup = document.getElementById('replySupplementGroup');
+    const reportGroup = document.getElementById('replyReportGroup');
+
+    if (supplementGroup) {
+      supplementGroup.style.display = (status === 'supplement') ? 'block' : 'none';
+    }
+    if (reportGroup) {
+      reportGroup.style.display = (status === 'completed') ? 'block' : 'none';
+    }
+  }
+
+  /* ★ K-3: AI 추천 전문가 → 배정 입력칸 자동 입력 */
+  function setupExpertAssignClick() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-k3-assign]');
+      if (!btn) return;
+      e.preventDefault();
+      const expertLabel = btn.dataset.k3Assign || '';
+      const expertEl = document.getElementById('replyAssignedExpert');
+      if (expertEl) {
+        expertEl.value = expertLabel;
+        expertEl.focus();
+        /* 시각적 피드백 */
+        btn.classList.add('assigned');
+        btn.textContent = '✓ 입력됨';
+        setTimeout(() => {
+          btn.classList.remove('assigned');
+          btn.textContent = '✓ 이 전문가로 배정';
+        }, 2000);
+        toast('전문가 정보가 입력되었습니다. 저장 버튼을 눌러주세요.');
       }
     });
   }
@@ -1889,13 +1999,13 @@
   }
 
   /* ============ 초기화 ============ */
-  async function init() {
+    async function init() {
     setupLoginForm();
     setupSidebar();
     setupLogout();
     setupDemoActions();
     setupMemberActions();
-    setupMemberSort(); /* ★ I-4 */
+    setupMemberSort();
     setupDonationActions();
     setupSupportActions();
     setupSupportReplyForm();
@@ -1906,8 +2016,10 @@
     setupPromoteConfirm();
     setupOperatorActions();
     setupReceiptSettings();
+    setupExpertAssignClick();  /* ★ K-3 추가 */
 
     const isLogged = await fetchAdminMe();
+    // ... 이하 기존 코드 그대로
 
     if (isLogged) {
       const urlParams = new URLSearchParams(window.location.search);

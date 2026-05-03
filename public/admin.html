@@ -16,6 +16,109 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 
 <style>
+  /* ===== ★ K-3: 지원 모달 — 전문가 배정 / 보완 / 완료 입력칸 ===== */
+.k3-field-group {
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.k3-field-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  display: block;
+}
+.k3-field-group .hint {
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+.k3-field-group input,
+.k3-field-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.k3-field-group textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.6;
+}
+.k3-field-group input:focus,
+.k3-field-group textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.k3-supplement {
+  background: #fff5f5;
+  border-color: #f5b5bb;
+}
+.k3-supplement label { color: #a01e2c; }
+.k3-completed {
+  background: #f0f9f3;
+  border-color: #a3d9b4;
+}
+.k3-completed label { color: #1a5e2c; }
+
+/* 첨부 다운로드 링크 */
+.k3-attach-list { display: flex; flex-direction: column; gap: 6px; }
+.k3-attach-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.k3-attach-item:hover {
+  border-color: var(--brand);
+  background: #fefcfa;
+  color: var(--brand);
+}
+.k3-attach-item .file-icon { font-size: 16px; }
+.k3-attach-item .file-name {
+  flex: 1;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 400px;
+}
+.k3-attach-item .download-icon {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+/* AI 전문가 → 배정 버튼 */
+.k3-assign-btn {
+  background: #1a5ec4;
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background 0.15s;
+}
+.k3-assign-btn:hover { background: #154a9c; }
+.k3-assign-btn.assigned {
+  background: #1a8b46;
+  cursor: default;
+}
   /* 신규 알림 뱃지 */
   .adm-badge {
     display: inline-flex;
@@ -719,37 +822,79 @@
         </div>
 
         <form id="supportReplyForm">
-          <input type="hidden" id="replyId">
-          <div class="fg">
-            <label>처리 상태 변경</label>
-            <select id="replyStatus" class="input" required>
-              <option value="submitted">접수됨 (신규)</option>
-              <option value="reviewing">검토 중</option>
-              <option value="supplement">보완 요청</option>
-              <option value="matched">매칭 완료</option>
-              <option value="in_progress">지원 진행 중</option>
-              <option value="completed">지원 완료</option>
-              <option value="rejected">반려</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>관리자 답변 메시지 <span class="hint">(마이페이지에서 회원이 확인합니다)</span></label>
-            <textarea id="replyNote" class="input" style="height:150px;" placeholder="유가족 회원에게 전달할 답변을 입력하세요."></textarea>
-          </div>
+  <input type="hidden" id="replyId">
 
-          <div class="fg" style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px 16px;margin-top:12px">
-            <label class="checkbox-line" style="margin:0;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
-              <input type="checkbox" id="replySendEmail" style="margin-top:3px">
-              <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
-                <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
-                체크하면 회원의 이메일로 "답변 등록 알림" 메일이 자동 전송됩니다.<br />
-                <span style="color:var(--text-3);font-size:11.5px">※ 답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능합니다.</span>
-              </span>
-            </label>
-          </div>
+  <!-- 처리 상태 변경 -->
+  <div class="fg">
+    <label>처리 상태 변경</label>
+    <select id="replyStatus" class="input" required>
+      <option value="submitted">접수됨 (신규)</option>
+      <option value="reviewing">검토 중</option>
+      <option value="supplement">보완 요청</option>
+      <option value="matched">매칭 완료</option>
+      <option value="in_progress">지원 진행 중</option>
+      <option value="completed">지원 완료</option>
+      <option value="rejected">반려</option>
+    </select>
+  </div>
 
-          <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">저장하기</button>
-        </form>
+  <!-- ★ K-3: 전문가 배정 (항상 표시) -->
+  <div class="k3-field-group">
+    <label>
+      🤝 매칭 전문가 / 봉사자 <span class="hint">(이름 또는 직함, 선택)</span>
+    </label>
+    <input type="text" id="replyAssignedExpert" maxlength="50"
+           placeholder="예) 박○○ 임상심리사 / 김○○ 변호사">
+    <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">
+      💡 AI 추천 전문가 카드의 <strong>"이 전문가로 배정"</strong> 버튼을 클릭하면 자동 입력됩니다.
+    </div>
+  </div>
+
+  <!-- 관리자 답변 메시지 -->
+  <div class="fg">
+    <label>관리자 답변 메시지 <span class="hint">(마이페이지에서 회원이 확인합니다)</span></label>
+    <textarea id="replyNote" class="input" style="height:150px;" placeholder="유가족 회원에게 전달할 답변을 입력하세요."></textarea>
+  </div>
+
+  <!-- ★ K-3: 보완 요청 안내 (status=supplement일 때만 표시) -->
+  <div class="k3-field-group k3-supplement" id="replySupplementGroup" style="display:none">
+    <label>
+      📝 보완 요청 안내 <span class="hint">(어떤 자료를 보완해야 하는지 안내)</span>
+    </label>
+    <textarea id="replySupplement" maxlength="2000"
+              placeholder="예) 가족관계증명서를 추가로 첨부해 주세요. 현재 첨부된 서류만으로는 유가족 인증이 어렵습니다."></textarea>
+    <div style="font-size:11.5px;color:#a01e2c;margin-top:4px">
+      ⚠️ 상태가 <strong>'보완 요청'</strong>으로 변경될 때 회원에게 함께 전달됩니다.
+    </div>
+  </div>
+
+  <!-- ★ K-3: 완료 보고서 (status=completed일 때만 표시) -->
+  <div class="k3-field-group k3-completed" id="replyReportGroup" style="display:none">
+    <label>
+      📋 완료 보고서 <span class="hint">(처리 결과 요약)</span>
+    </label>
+    <textarea id="replyReport" maxlength="10000"
+              placeholder="예) 박○○ 임상심리사와 매칭하여 4회 상담 완료. 회복 진척 양호. 향후 1개월 후 follow-up 예정."></textarea>
+    <div style="font-size:11.5px;color:#1a5e2c;margin-top:4px">
+      ✅ 내부 관리용 보고서이며, 회원에게는 노출되지 않습니다.
+    </div>
+  </div>
+
+  <!-- 메일 발송 옵션 -->
+  <div class="fg" style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px 16px;margin-top:12px">
+    <label class="checkbox-line" style="margin:0;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+      <input type="checkbox" id="replySendEmail" style="margin-top:3px">
+      <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
+        <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
+        체크하면 회원의 이메일로 "답변 등록 알림" 메일이 자동 전송됩니다.<br />
+        <span style="color:var(--text-3);font-size:11.5px">※ 답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능합니다.</span>
+      </span>
+    </label>
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">저장하기</button>
+</form>
+
       </div>
     </div>
   </div>
