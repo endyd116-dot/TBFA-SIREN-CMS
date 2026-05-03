@@ -136,6 +136,17 @@ export const donations = pgTable("donations", {
   // 익명 여부
   isAnonymous: boolean("is_anonymous").default(false),
 
+  /* ───────── ★ Phase L: 토스페이먼츠 결제 추적 (NEW) ─────────
+     - tossPaymentKey: 토스가 발급한 결제 키 (paymentKey)
+     - tossOrderId: 우리가 생성한 주문번호 (TOSS-YYYY-MMxxxx)
+     - billingKeyId: 정기결제 시 사용한 billing_keys.id 참조
+     - failureReason: 결제 실패 시 사유 (토스 응답 message)
+     ────────────────────────────────────────────────────────── */
+  tossPaymentKey: varchar("toss_payment_key", { length: 200 }),
+  tossOrderId: varchar("toss_order_id", { length: 64 }),
+  billingKeyId: integer("billing_key_id"),
+  failureReason: varchar("failure_reason", { length: 500 }),
+
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -144,6 +155,10 @@ export const donations = pgTable("donations", {
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
   receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber), // ★ STEP H-2a 신규
+  /* ★ Phase L: 토스 결제 검색용 인덱스 */
+  tossPaymentKeyIdx: index("donations_toss_payment_key_idx").on(t.tossPaymentKey),
+  tossOrderIdIdx: index("donations_toss_order_id_idx").on(t.tossOrderId),
+  billingKeyIdx: index("donations_billing_key_idx").on(t.billingKeyId),
 }));
 
 /* =========================================================
@@ -463,6 +478,52 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 }));
 
 /* =========================================================
+   ★ Phase L: 토스페이먼츠 빌링키 (정기 결제용 — NEW)
+   - 회원이 카드 1회 등록 시 토스가 빌링키 발급
+   - 매월 cron이 빌링키로 자동 결제 호출
+   - 회원이 해지 시 isActive=false + deactivatedAt 기록
+   - billingKey는 토스 측에서 발급한 영구 키 (재사용)
+   - customerKey는 우리가 생성한 고유 식별자 (회원당 1개)
+   ========================================================= */
+export const billingKeys = pgTable("billing_keys", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id")
+    .references(() => members.id, { onDelete: "cascade" })
+    .notNull(),
+
+  // 토스 빌링키 정보
+  billingKey: varchar("billing_key", { length: 200 }).notNull().unique(),  // 토스 발급
+  customerKey: varchar("customer_key", { length: 64 }).notNull().unique(), // 우리 생성
+
+  // 카드 정보 (마스킹 — PCI-DSS 준수)
+  cardCompany: varchar("card_company", { length: 30 }),                    // "현대카드" 등
+  cardNumberMasked: varchar("card_number_masked", { length: 30 }),         // "****-****-****-1234"
+  cardType: varchar("card_type", { length: 20 }),                          // "신용" / "체크"
+
+  // 정기 결제 설정
+  amount: integer("amount").notNull(),                                     // 월 결제 금액
+  isActive: boolean("is_active").default(true).notNull(),                  // 활성/해지 여부
+  nextChargeAt: timestamp("next_charge_at"),                               // 다음 결제 예정일 (cron 기준)
+  lastChargedAt: timestamp("last_charged_at"),                             // 마지막 결제 시점
+
+  // 실패 추적 (연속 3회 실패 시 자동 비활성화)
+  consecutiveFailCount: integer("consecutive_fail_count").default(0),
+  lastFailureReason: varchar("last_failure_reason", { length: 500 }),
+
+  // 해지 정보
+  deactivatedAt: timestamp("deactivated_at"),
+  deactivatedReason: varchar("deactivated_reason", { length: 200 }),       // 'user_canceled' / 'card_expired' / 'too_many_fails'
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("billing_keys_member_idx").on(t.memberId),
+  activeIdx: index("billing_keys_active_idx").on(t.isActive),
+  nextChargeIdx: index("billing_keys_next_charge_idx").on(t.nextChargeAt),
+  customerKeyIdx: index("billing_keys_customer_key_idx").on(t.customerKey),
+}));
+
+/* =========================================================
    타입 export (TypeScript 자동완성용)
    ========================================================= */
 export type Member = typeof members.$inferSelect;
@@ -499,3 +560,7 @@ export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 /* ★ K-2: 이메일 인증 토큰 타입 (NEW) */
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
+
+/* ★ Phase L: 토스 빌링키 타입 (NEW) */
+export type BillingKey = typeof billingKeys.$inferSelect;
+export type NewBillingKey = typeof billingKeys.$inferInsert;
