@@ -3,34 +3,20 @@
  *
  * 효성 CMS+ billing_update.csv 업로드 → 수납 결과 반영
  *
- * 동작:
- * 1. multipart/form-data로 CSV 파일 수신
- * 2. CSV 파싱 (EUC-KR/UTF-8 자동 감지)
- * 3. 각 행의 회원번호('00000060 → 60)로 donations 매칭
- * 4. 매칭된 건: 해당 월(청구월) donations 생성 또는 업데이트
- * 5. 중복 청구번호 건: 스킵 (멱등성)
- * 6. 매칭 실패 건: 기록만 (에러 아님)
- * 7. hyosung_import_logs에 결과 기록
- * 8. 감사 로그
+ * ★ M-13 추가:
+ * - createMembers 폼 필드 (true/false) — 매칭 실패 행에 대해 회원 자동 생성
+ * - 응답에 createdMembers 카운트 추가
  *
  * billing_update.csv 컬럼 (10개):
  *   회원번호 / 계약번호 / 회원명 / 청구월 / 약정일 /
  *   결제일 / 상품 / 기본금액 / 수량 / 청구번호
- *
- * 매칭 전략:
- *   csv.회원번호 → 숫자 변환 → donations.hyosung_member_no 매칭
- *   매칭 후 해당 회원의 해당 월 청구를 새 donation으로 INSERT
- *   (이미 같은 청구번호가 있으면 스킵)
- *
- * 보안:
- * - 관리자/운영자만
- * - 파일 크기 5MB 제한
- * - audit_logs + hyosung_import_logs 이중 기록
  */
 import { eq, and, sql } from "drizzle-orm";
 import { db, donations, members, hyosungImportLogs } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
-import { upgradeToSponsor, getSignupSourceId } from "../../lib/member-classifier";
+import {
+  upgradeToSponsor, getSignupSourceId, createHyosungMember,
+} from "../../lib/member-classifier";
 import {
   ok, badRequest, serverError,
   corsPreflight, methodNotAllowed,
@@ -61,21 +47,21 @@ export default async (req: Request) => {
       return badRequest("파일 크기는 5MB 이하여야 합니다");
     }
 
+    /* ★ M-13: createMembers 옵션 (매칭 실패 시 자동 회원 생성) */
+    const createMembersFlag = String(formData.get("createMembers") || "").trim() === "true";
+
     /* 2. 파일 읽기 (인코딩 자동 감지) */
     const rawBuffer = await file.arrayBuffer();
     let csvText = "";
 
-    /* UTF-8 시도 */
     try {
       const decoder = new TextDecoder("utf-8", { fatal: true });
       csvText = decoder.decode(rawBuffer);
     } catch (e) {
-      /* EUC-KR fallback (효성 CSV는 보통 EUC-KR) */
       try {
         const decoder = new TextDecoder("euc-kr");
         csvText = decoder.decode(rawBuffer);
       } catch (e2) {
-        /* 최종 fallback: UTF-8 비관용 */
         csvText = new TextDecoder("utf-8").decode(rawBuffer);
       }
     }
@@ -91,20 +77,12 @@ export default async (req: Request) => {
       return badRequest("CSV에 데이터 행이 없습니다 (헤더만 있음)");
     }
 
-    /* 헤더 행 */
     const headerLine = lines[0];
     const headers = parseCSVRow(headerLine);
 
-    /* 컬럼 인덱스 매핑 (효성 billing_update 양식) */
     const colMap: Record<string, number> = {};
-    const expectedCols = [
-      "회원번호", "계약번호", "회원명", "청구월", "약정일",
-      "결제일", "상품", "기본금액", "수량", "청구번호",
-    ];
 
-    /* 헤더에서 인코딩이 깨져도 순서 기반 fallback */
     if (headers.length >= 10) {
-      /* 순서 기반 매핑 (billing_update는 항상 10컬럼 고정) */
       colMap["회원번호"] = 0;
       colMap["계약번호"] = 1;
       colMap["회원명"] = 2;
@@ -127,10 +105,9 @@ export default async (req: Request) => {
       const cells = parseCSVRow(lines[i]);
       if (cells.length < 10) continue;
 
-      /* 회원번호: '00000060 → 60 (앞의 ' 제거 + 숫자 변환) */
       const rawMemberNo = String(cells[colMap["회원번호"]] || "").replace(/^'/, "").trim();
       const memberNo = Number(rawMemberNo);
-      if (!memberNo || memberNo <= 0) continue; // 유효하지 않은 행 무시
+      if (!memberNo || memberNo <= 0) continue;
 
       const rawBillNo = String(cells[colMap["청구번호"]] || "").replace(/^'/, "").trim();
       const rawContractNo = String(cells[colMap["계약번호"]] || "").replace(/^'/, "").trim();
@@ -139,9 +116,9 @@ export default async (req: Request) => {
         hyosungMemberNo: memberNo,
         contractNo: rawContractNo,
         donorName: String(cells[colMap["회원명"]] || "").trim(),
-        billingMonth: String(cells[colMap["청구월"]] || "").trim(), // 202605
-        appointDay: String(cells[colMap["약정일"]] || "").trim(),   // 20
-        paymentDate: String(cells[colMap["결제일"]] || "").trim(),  // 20260520
+        billingMonth: String(cells[colMap["청구월"]] || "").trim(),
+        appointDay: String(cells[colMap["약정일"]] || "").trim(),
+        paymentDate: String(cells[colMap["결제일"]] || "").trim(),
         product: String(cells[colMap["상품"]] || "").trim(),
         amount: Number(String(cells[colMap["기본금액"]] || "0").replace(/[^0-9]/g, "")) || 0,
         quantity: Number(cells[colMap["수량"]] || "1") || 1,
@@ -160,7 +137,10 @@ export default async (req: Request) => {
     let updatedCount = 0;
     let skippedCount = 0;
     let failedCount = 0;
+    let createdMembersCount = 0;        // ★ M-13: 자동 생성된 회원 수
+    let reusedMembersCount = 0;         // ★ M-13: 중복으로 재사용된 회원 수
     const failures: any[] = [];
+    const createdMembers: any[] = [];   // ★ M-13: 생성/재사용된 회원 정보
 
     for (const row of dataRows) {
       try {
@@ -174,11 +154,11 @@ export default async (req: Request) => {
 
           if (existingBill) {
             skippedCount++;
-            continue; // 이미 처리된 청구번호
+            continue;
           }
         }
 
-        /* 5-2. 효성 회원번호로 기존 donations 매칭 (completed 상태) */
+        /* 5-2. 효성 회원번호로 기존 donations 매칭 */
         const [matchedDonation] = await db
           .select({
             id: donations.id,
@@ -197,53 +177,107 @@ export default async (req: Request) => {
           )
           .limit(1);
 
-        if (!matchedDonation) {
-          /* 매칭 실패 — 우리 DB에 이 효성 번호가 없음 */
-          failedCount++;
-          failures.push({
-            lineNo: row.lineNo,
-            hyosungMemberNo: row.hyosungMemberNo,
-            donorName: row.donorName,
-            reason: "효성 회원번호 매칭 실패 (DB에 없음)",
-          });
-          continue;
+        let useMemberId: number | null = null;
+        let useDonorName = row.donorName;
+        let useDonorPhone: string | null = null;
+        let useDonorEmail: string | null = null;
+        let isFromAutoCreate = false;
+
+        if (matchedDonation) {
+          /* 매칭 성공 — 기존 회원 활용 */
+          matchedCount++;
+          useMemberId = matchedDonation.memberId;
+          useDonorName = matchedDonation.donorName || row.donorName;
+          useDonorPhone = matchedDonation.donorPhone;
+          useDonorEmail = matchedDonation.donorEmail;
+        } else {
+          /* ★ M-13: 매칭 실패 — createMembers 옵션에 따라 처리 */
+          if (createMembersFlag) {
+            /* 자동 회원 생성 */
+            const createResult = await createHyosungMember({
+              hyosungMemberNo: row.hyosungMemberNo,
+              donorName: row.donorName,
+            });
+
+            if (createResult.ok && createResult.memberId) {
+              useMemberId = createResult.memberId;
+              useDonorEmail = createResult.email || null;
+              isFromAutoCreate = true;
+
+              if (createResult.duplicate) {
+                reusedMembersCount++;
+              } else {
+                createdMembersCount++;
+              }
+
+              createdMembers.push({
+                lineNo: row.lineNo,
+                hyosungMemberNo: row.hyosungMemberNo,
+                memberId: createResult.memberId,
+                email: createResult.email,
+                donorName: row.donorName,
+                duplicate: createResult.duplicate,
+              });
+            } else {
+              /* 자동 생성도 실패 */
+              failedCount++;
+              failures.push({
+                lineNo: row.lineNo,
+                hyosungMemberNo: row.hyosungMemberNo,
+                donorName: row.donorName,
+                reason: `자동 회원 생성 실패: ${createResult.error || "알 수 없음"}`,
+              });
+              continue;
+            }
+          } else {
+            /* createMembers 미체크 → 기존 동작 (실패 처리) */
+            failedCount++;
+            failures.push({
+              lineNo: row.lineNo,
+              hyosungMemberNo: row.hyosungMemberNo,
+              donorName: row.donorName,
+              reason: "효성 회원번호 매칭 실패 (DB에 없음)",
+            });
+            continue;
+          }
         }
 
-        matchedCount++;
-
-        /* 5-3. 해당 월 청구에 대해 새 donation INSERT */
+        /* 5-3. donation INSERT */
         const totalAmount = row.amount * row.quantity;
 
+        const memoPrefix = isFromAutoCreate
+          ? `[효성 자동등록 + 수납 ${row.billingMonth}]`
+          : `[효성 수납 ${row.billingMonth}]`;
+
         const insertPayload: any = {
-          memberId: matchedDonation.memberId,
-          donorName: matchedDonation.donorName || row.donorName,
-          donorPhone: matchedDonation.donorPhone,
-          donorEmail: matchedDonation.donorEmail,
+          memberId: useMemberId,
+          donorName: useDonorName,
+          donorPhone: useDonorPhone,
+          donorEmail: useDonorEmail,
           amount: totalAmount,
           type: "regular",
           payMethod: "cms",
           pgProvider: "hyosung_cms",
-          status: "completed", // billing_update는 청구 확정 → completed
+          status: "completed",
           hyosungMemberNo: row.hyosungMemberNo,
           hyosungContractNo: row.contractNo,
           hyosungBillNo: row.billNo,
           receiptRequested: true,
-          memo: `[효성 수납 ${row.billingMonth}] ${row.product} ₩${totalAmount.toLocaleString()} (약정일: ${row.appointDay}일, 결제일: ${row.paymentDate})`,
+          memo: `${memoPrefix} ${row.product} ₩${totalAmount.toLocaleString()} (약정일: ${row.appointDay}일, 결제일: ${row.paymentDate})`,
         };
 
         await db.insert(donations).values(insertPayload);
         createdCount++;
 
         /* ★ M-12: 매칭된 회원이 있으면 sponsor + hyosung_donation으로 승급 */
-        if (matchedDonation.memberId) {
+        if (useMemberId) {
           try {
-            await upgradeToSponsor(matchedDonation.memberId, "hyosung");
-            /* 가입경로가 비어있는 경우만 효성으로 마킹 */
+            await upgradeToSponsor(useMemberId, "hyosung");
             const hyosungSourceId = await getSignupSourceId("hyosung_csv");
             if (hyosungSourceId) {
               await db.execute(
                 sql`UPDATE members SET signup_source_id = ${hyosungSourceId}
-                    WHERE id = ${matchedDonation.memberId}
+                    WHERE id = ${useMemberId}
                       AND signup_source_id IS NULL`
               );
             }
@@ -274,9 +308,13 @@ export default async (req: Request) => {
       skippedCount,
       failedCount,
       detail: JSON.stringify({
-        failures: failures.slice(0, 100), // 최대 100건만 저장
+        createMembersOption: createMembersFlag,
+        createdMembersCount,
+        reusedMembersCount,
+        createdMembers: createdMembers.slice(0, 100),
+        failures: failures.slice(0, 100),
         headers: headers.slice(0, 15),
-      }).slice(0, 5000),
+      }).slice(0, 8000),
     };
 
     await db.insert(hyosungImportLogs).values(importLogPayload);
@@ -290,10 +328,20 @@ export default async (req: Request) => {
         created: createdCount,
         skipped: skippedCount,
         failed: failedCount,
+        createMembersOption: createMembersFlag,
+        createdMembers: createdMembersCount,
+        reusedMembers: reusedMembersCount,
       },
     });
 
     /* 8. 응답 */
+    const summary = createMembersFlag
+      ? `처리 완료: ${dataRows.length}건 중 ${createdCount}건 후원 생성, ` +
+        `${createdMembersCount}명 신규 회원, ${reusedMembersCount}명 기존 회원 재사용, ` +
+        `${skippedCount}건 스킵, ${failedCount}건 실패`
+      : `처리 완료: ${dataRows.length}건 중 ${createdCount}건 생성, ` +
+        `${skippedCount}건 스킵, ${failedCount}건 실패`;
+
     return ok({
       fileName: file.name,
       totalRows: dataRows.length,
@@ -302,8 +350,13 @@ export default async (req: Request) => {
       updated: updatedCount,
       skipped: skippedCount,
       failed: failedCount,
-      failures: failures.slice(0, 20), // 응답에는 20건만
-    }, `처리 완료: ${dataRows.length}건 중 ${createdCount}건 생성, ${skippedCount}건 스킵, ${failedCount}건 실패`);
+      /* ★ M-13: 자동 회원 생성 통계 */
+      createMembersOption: createMembersFlag,
+      createdMembers: createdMembersCount,
+      reusedMembers: reusedMembersCount,
+      newMembersList: createdMembers.slice(0, 30),
+      failures: failures.slice(0, 20),
+    }, summary);
   } catch (err) {
     console.error("[admin-hyosung-import]", err);
     return serverError("CSV 업로드 처리 중 오류", err);
