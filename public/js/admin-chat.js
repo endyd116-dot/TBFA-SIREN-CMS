@@ -1,11 +1,21 @@
 /* =========================================================
-   SIREN — admin-chat.js (STEP G-4 + H-1 + I-3)
+   SIREN — admin-chat.js (★ K-9 핫픽스 v2 — DOM 기반 영구 차단)
    관리자측 채팅 관리 (좌우 분할 레이아웃)
    ★ H-1: 이미지 인라인 표시 + 라이트박스 + 다운로드
-   ★ I-3: 보관함(archived) 액션 추가 (closed ↔ archived ↔ active 전환)
+   ★ I-3: 보관함(archived) 액션
+   ★ K-9 v2:
+     1. 모든 메시지 ID를 String()으로 정규화
+     2. DOM 검증 (querySelector data-msg-id)
+     3. selectRoom 토큰으로 stale 요청 차단
+     4. init() 중복 실행 방지
+     5. appendMessagesIfNew 통합 헬퍼 (idempotent)
    ========================================================= */
 (function () {
   'use strict';
+
+  /* ★ 중복 init 방지 */
+  if (window.__SIREN_ADMIN_CHAT_LOADED__) return;
+  window.__SIREN_ADMIN_CHAT_LOADED__ = true;
 
   const POLL_INTERVAL = 5000;
   const CAT_LABEL = {
@@ -18,6 +28,10 @@
   let _currentRoom = null;
   let _pollTimer = null;
   let _lastMsgAt = null;
+  /* ★ ID는 항상 String으로 저장 */
+  let _seenMessageIds = new Set();
+  /* ★ selectRoom stale 요청 차단 */
+  let _selectRoomToken = 0;
 
   /* ============ API ============ */
   async function api(path, opts = {}) {
@@ -43,6 +57,66 @@
   }
   function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0'); }
   function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2400); }
+
+  /* ★ K-9 v2: ID 정규화 */
+  function normalizeId(id) {
+    if (id == null) return null;
+    return String(id);
+  }
+
+  /* ★ K-9 v2: DOM 셀렉터 안전 이스케이프 */
+  function safeAttrSelector(value) {
+    /* CSS.escape이 있으면 사용, 없으면 직접 처리 */
+    if (typeof CSS !== 'undefined' && CSS.escape) {
+      return CSS.escape(value);
+    }
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  }
+
+  /* ★ K-9 v2: 통합 헬퍼 — 메시지를 안전하게 DOM에 추가 (이중 검증)
+     - Set 검증 + DOM 검증으로 중복 방지
+     - 이미 있으면 무시, 새로운 것만 렌더
+     - 사용처: 초기 로드, 폴링, 송신 모두 동일 */
+  function appendMessagesIfNew(area, messages, userMemberId) {
+    if (!area || !Array.isArray(messages) || messages.length === 0) return 0;
+
+    const trulyNew = [];
+
+    for (const m of messages) {
+      const idStr = normalizeId(m.id);
+      if (idStr == null) continue;
+
+      /* 1차: Set 검증 */
+      if (_seenMessageIds.has(idStr)) continue;
+
+      /* 2차: DOM 검증 (Set이 깨져도 안전) */
+      const selector = '[data-msg-id="' + safeAttrSelector(idStr) + '"]';
+      try {
+        if (area.querySelector(selector)) {
+          /* DOM에는 있는데 Set에는 없음 → Set 보정 */
+          _seenMessageIds.add(idStr);
+          continue;
+        }
+      } catch (e) {
+        /* 셀렉터 에러 시 안전 폴백 */
+      }
+
+      /* 3차: 둘 다 없음 → 추가 대상 */
+      _seenMessageIds.add(idStr);
+      trulyNew.push(m);
+    }
+
+    if (trulyNew.length === 0) return 0;
+
+    area.insertAdjacentHTML('beforeend', renderMessages(trulyNew, userMemberId));
+    area.scrollTop = area.scrollHeight;
+
+    /* _lastMsgAt 업데이트 */
+    const last = trulyNew[trulyNew.length - 1];
+    if (last && last.createdAt) _lastMsgAt = last.createdAt;
+
+    return trulyNew.length;
+  }
 
   /* ============ ★ H-1: 라이트박스 ============ */
   function openLightbox(attId, originalName) {
@@ -159,7 +233,6 @@
     list.innerHTML = rooms.map(r => {
       const cat = CAT_LABEL[r.category] || '💬 기타';
       const unread = r.unreadForAdmin > 0 ? `<span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:10px;padding:0 5px;display:inline-block">${r.unreadForAdmin}</span>` : '';
-      /* ★ I-3: 상태별 라벨 강화 */
       const statusLabel =
         r.status === 'closed'   ? '<span style="color:var(--text-3);font-size:10px">🔒 종료</span>' :
         r.status === 'archived' ? '<span style="color:#8a6a00;background:#fff8ec;font-size:10px;padding:1px 6px;border-radius:8px">🗄 보관</span>' :
@@ -189,18 +262,14 @@
     const buttons = [];
 
     if (status === 'active') {
-      /* 활성 → 종료 가능, 블랙 가능 */
       buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 종료하시겠습니까?" data-ac-msg="채팅방이 종료되었습니다" style="font-size:11px">🔒 종료</button>`);
     } else if (status === 'closed') {
-      /* 종료 → 보관/재개 가능, 블랙 가능 */
       buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="archived" data-ac-confirm="이 채팅방을 보관함으로 이동하시겠습니까?\\n(보관함은 일반 목록에서 숨겨집니다)" data-ac-msg="🗄 보관함으로 이동되었습니다" style="font-size:11px;color:#8a6a00">🗄 보관</button>`);
       buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="active" data-ac-confirm="이 채팅방을 다시 활성 상태로 되돌리시겠습니까?" data-ac-msg="🔓 채팅방이 재개되었습니다" style="font-size:11px;color:#1a8b46">🔓 재개</button>`);
     } else if (status === 'archived') {
-      /* 보관 → 종료 상태로만 복구 가능 (active는 두 단계 필요) */
       buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="status-change" data-ac-id="${room.id}" data-ac-status="closed" data-ac-confirm="이 채팅방을 보관함에서 꺼내시겠습니까?\\n(종료 상태로 되돌립니다)" data-ac-msg="🔓 보관함에서 복구되었습니다" style="font-size:11px;color:#1a5ec4">🔓 복구</button>`);
     }
 
-    /* 블랙 버튼 — active/closed 상태일 때만 (archived는 의미 없음) */
     if (!blacklist && status !== 'archived') {
       buttons.push(`<button class="btn-sm btn-sm-ghost" data-ac-action="block" data-ac-member="${room.memberId}" data-ac-name="${safeName}" style="font-size:11px;color:var(--danger)">⛔ 블랙</button>`);
     }
@@ -210,15 +279,22 @@
 
   /* ============ 채팅방 선택 → 대화 로드 ============ */
   async function selectRoom(roomId) {
+    /* ★ K-9 v2: 토큰으로 stale 요청 차단 */
+    const myToken = ++_selectRoomToken;
+
     stopPoll();
     _currentRoom = { id: roomId };
     _lastMsgAt = null;
+    _seenMessageIds = new Set();
 
     const detail = document.getElementById('acChatDetail');
     if (!detail) return;
     detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">⏳ 로딩 중...</div>';
 
     const roomRes = await api('/api/admin/chat/rooms?id=' + roomId);
+    /* ★ stale 요청 검증 — 다른 방을 클릭했으면 중단 */
+    if (myToken !== _selectRoomToken) return;
+
     if (!roomRes.ok || !roomRes.data?.data) {
       detail.innerHTML = '<div style="text-align:center;padding:60px;color:var(--danger)">조회 실패</div>';
       return;
@@ -227,26 +303,34 @@
     _currentRoom = room;
 
     const msgRes = await api('/api/admin/chat/messages?roomId=' + roomId);
+    /* ★ stale 요청 재검증 */
+    if (myToken !== _selectRoomToken) return;
+
     const messages = msgRes.data?.data?.messages || [];
-    if (messages.length > 0) _lastMsgAt = messages[messages.length - 1].createdAt;
+
+    /* ★ K-9 v2: 초기 메시지 ID 미리 등록 (innerHTML 직전에) */
+    messages.forEach(m => {
+      const idStr = normalizeId(m.id);
+      if (idStr) _seenMessageIds.add(idStr);
+    });
+    if (messages.length > 0) {
+      _lastMsgAt = messages[messages.length - 1].createdAt;
+    }
 
     const cat = CAT_LABEL[room.category] || '💬 기타';
     const isActive = room.status === 'active';
     const isArchived = room.status === 'archived';
 
-    /* ★ I-3: 상태 표시 강화 */
     const statusBadgeHtml =
       room.status === 'active'   ? '' :
       room.status === 'closed'   ? '<span style="display:inline-block;background:#f0f0f0;color:#525252;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">🔒 종료됨</span>' :
       room.status === 'archived' ? '<span style="display:inline-block;background:#fff8ec;color:#8a6a00;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px">🗄 보관함</span>' :
       '';
 
-    /* ★ I-3: 보관함 안내 박스 */
     const archivedBannerHtml = isArchived
       ? '<div style="margin:0 0 0;padding:10px 16px;background:#fff8ec;border-bottom:1px solid #f0e3c4;font-size:12px;color:#8a6a00;line-height:1.5">📦 이 채팅방은 보관함에 있습니다. 메시지 전송이 불가능하며, "🔓 복구" 버튼으로 종료 상태로 되돌릴 수 있습니다.</div>'
       : '';
 
-    /* ★ I-3: 액션 버튼 (상태별 분기) */
     const actionBtnsHtml = buildActionButtons(room, blacklist, member?.name);
 
     detail.innerHTML = `
@@ -269,7 +353,7 @@
 
       ${archivedBannerHtml}
 
-      <div id="acMsgArea" style="flex:1;overflow-y:auto;padding:16px;background:#f5f6f8">
+      <div id="acMsgArea" style="flex:1;overflow-y:auto;padding:16px;background:#f5f6f8;min-width:0;word-wrap:break-word">
         ${messages.length === 0
           ? '<div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">대화가 아직 없습니다</div>'
           : renderMessages(messages, room.memberId)}
@@ -294,12 +378,29 @@
       el.classList.toggle('active', Number(el.dataset.acRoom) === roomId);
     });
 
-    if (isActive) startPoll(roomId);
+    if (isActive) startPoll(roomId, myToken);
   }
 
-  /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
+  /* ============ 메시지 본문 빌드 (세로 표시 차단 유지) ============ */
   function buildMsgBody(m, isUser) {
     const att = m.attachment;
+
+    const bubbleBaseStyle =
+      'display:inline-block;' +
+      'padding:10px 14px;' +
+      'font-size:13px;' +
+      'line-height:1.55;' +
+      'word-break:keep-all;' +
+      'overflow-wrap:anywhere;' +
+      'white-space:pre-wrap;' +
+      'writing-mode:horizontal-tb;' +
+      'text-orientation:mixed;' +
+      'text-align:left;' +
+      'max-width:100%;' +
+      'box-sizing:border-box;';
+
+    const userColor = 'background:#fff;color:inherit;border:1px solid var(--line);';
+    const adminColor = 'background:var(--brand);color:#fff;';
 
     if (att && att.id) {
       const safeName = esc(att.originalName || '이미지');
@@ -310,40 +411,43 @@
 
       const text = (m.content || '').trim();
       const textHtml = text && !text.startsWith('[이미지]')
-        ? `<div style="padding:10px 14px;border-radius:14px;background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};font-size:13px;line-height:1.55;${isUser ? 'border:1px solid var(--line);' : ''}margin-bottom:6px">${esc(text).replace(/\n/g, '<br />')}</div>`
+        ? `<div style="${bubbleBaseStyle}border-radius:14px;${isUser ? userColor : adminColor}margin-bottom:6px">${esc(text).replace(/\n/g, '<br />')}</div>`
         : '';
 
       return textHtml + imgTag;
     }
 
-    /* 일반 텍스트 */
-    return `<div style="max-width:65%;padding:10px 14px;border-radius:${isUser ? '14px 14px 14px 4px' : '14px 14px 4px 14px'};background:${isUser ? '#fff' : 'var(--brand)'};color:${isUser ? 'inherit' : '#fff'};${isUser ? 'border:1px solid var(--line);' : ''}font-size:13px;line-height:1.55">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
+    const radius = isUser ? '14px 14px 14px 4px' : '14px 14px 4px 14px';
+    return `<div style="${bubbleBaseStyle}border-radius:${radius};${isUser ? userColor : adminColor}">${esc(m.content || '').replace(/\n/g, '<br />')}</div>`;
   }
 
-  /* ============ 메시지 렌더 ============ */
+  /* ============ 메시지 렌더 (data-msg-id 필수) ============ */
   function renderMessages(messages, userMemberId) {
     return messages.map(m => {
+      const msgId = normalizeId(m.id) || '';
+      const safeId = esc(msgId);
+
       if (m.isSystem || m.senderRole === 'system' || m.messageType === 'system_notice') {
-        return `<div style="text-align:center;margin:8px 0"><span style="background:#fff8ec;color:#8a6a00;border:1px solid #f0e3c4;font-size:12px;padding:4px 12px;border-radius:12px;display:inline-block">📢 ${esc(m.content || '')}</span></div>`;
+        return `<div data-msg-id="${safeId}" style="text-align:center;margin:8px 0"><span style="background:#fff8ec;color:#8a6a00;border:1px solid #f0e3c4;font-size:12px;padding:4px 12px;border-radius:12px;display:inline-block">📢 ${esc(m.content || '')}</span></div>`;
       }
       const isUser = m.senderId === userMemberId;
       const time = fmtTime(m.createdAt);
       const body = buildMsgBody(m, isUser);
 
       if (isUser) {
-        return `<div style="display:flex;margin-bottom:10px;align-items:flex-end;gap:6px">
-          <div style="max-width:65%">${body}</div>
-          <span style="font-size:10px;color:var(--text-3)">${time}</span>
+        return `<div data-msg-id="${safeId}" style="display:flex;margin-bottom:10px;align-items:flex-end;gap:6px;justify-content:flex-start;width:100%">
+          <div style="max-width:65%;min-width:0;display:flex;flex-direction:column">${body}</div>
+          <span style="font-size:10px;color:var(--text-3);flex-shrink:0;white-space:nowrap">${time}</span>
         </div>`;
       }
-      return `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;align-items:flex-end;gap:6px">
-        <span style="font-size:10px;color:var(--text-3)">${time}</span>
-        <div style="max-width:65%">${body}</div>
+      return `<div data-msg-id="${safeId}" style="display:flex;justify-content:flex-end;margin-bottom:10px;align-items:flex-end;gap:6px;width:100%">
+        <span style="font-size:10px;color:var(--text-3);flex-shrink:0;white-space:nowrap">${time}</span>
+        <div style="max-width:65%;min-width:0;display:flex;flex-direction:column">${body}</div>
       </div>`;
     }).join('');
   }
 
-  /* ============ ★ H-1: 이미지 클릭 → 라이트박스 ============ */
+  /* ============ 이미지 클릭 → 라이트박스 ============ */
   function setupImageClick() {
     document.addEventListener('click', (e) => {
       const img = e.target.closest('.chat-msg-image');
@@ -393,9 +497,8 @@
       const area = document.getElementById('acMsgArea');
       if (area) {
         const msg = res.data.data.message;
-        area.insertAdjacentHTML('beforeend', renderMessages([msg], _currentRoom.memberId));
-        area.scrollTop = area.scrollHeight;
-        _lastMsgAt = msg.createdAt;
+        /* ★ K-9 v2: 통합 헬퍼로 안전 추가 */
+        appendMessagesIfNew(area, [msg], _currentRoom.memberId);
       }
     } else {
       toast(res.data?.error || '전송 실패');
@@ -416,10 +519,9 @@
     });
   }
 
-  /* ============ ★ I-3: 통합 액션 핸들러 (상태 변경 / 블랙) ============ */
+  /* ============ ★ I-3: 통합 액션 ============ */
   function setupActions() {
     document.addEventListener('click', async (e) => {
-      /* 상태 변경 (종료/보관/재개/복구) — 통합 처리 */
       const statusBtn = e.target.closest('[data-ac-action="status-change"]');
       if (statusBtn) {
         e.preventDefault();
@@ -438,7 +540,6 @@
         if (res.ok) {
           toast(successMsg);
           loadRoomList();
-          /* 보관/종료 후에도 같은 방을 다시 보여주기 (상태 변화 확인용) */
           selectRoom(id);
         } else {
           toast(res.data?.error || '변경 실패');
@@ -446,7 +547,6 @@
         return;
       }
 
-      /* 블랙리스트 등록 (기존) */
       const blockBtn = e.target.closest('[data-ac-action="block"]');
       if (blockBtn) {
         e.preventDefault();
@@ -460,7 +560,6 @@
         return;
       }
 
-      /* 방 목록 클릭 (기존) */
       const roomItem = e.target.closest('.ac-room-item');
       if (roomItem) {
         const id = Number(roomItem.dataset.acRoom);
@@ -482,22 +581,32 @@
     });
   }
 
-  /* ============ 폴링 ============ */
-  function startPoll(roomId) {
+  /* ============ ★ K-9 v2: 폴링 (토큰 + DOM 검증) ============ */
+  function startPoll(roomId, ownerToken) {
     stopPoll();
     _pollTimer = setInterval(async () => {
+      /* ★ stale 토큰 검사 — selectRoom이 새로 호출되면 즉시 중단 */
+      if (ownerToken !== undefined && ownerToken !== _selectRoomToken) {
+        stopPoll();
+        return;
+      }
       if (!_currentRoom || _currentRoom.id !== roomId) return;
+
       const url = '/api/admin/chat/messages?roomId=' + roomId + (_lastMsgAt ? '&since=' + encodeURIComponent(_lastMsgAt) : '');
       const res = await api(url);
+
+      /* 응답 도착 후에도 토큰 재검사 */
+      if (ownerToken !== undefined && ownerToken !== _selectRoomToken) return;
+      if (!_currentRoom || _currentRoom.id !== roomId) return;
+
       const msgs = res.data?.data?.messages || [];
-      if (msgs.length > 0) {
-        _lastMsgAt = msgs[msgs.length - 1].createdAt;
-        const area = document.getElementById('acMsgArea');
-        if (area) {
-          area.insertAdjacentHTML('beforeend', renderMessages(msgs, _currentRoom.memberId));
-          area.scrollTop = area.scrollHeight;
-        }
+
+      const area = document.getElementById('acMsgArea');
+      if (area && msgs.length > 0) {
+        /* ★ 통합 헬퍼로 안전 추가 (Set + DOM 이중 검증) */
+        appendMessagesIfNew(area, msgs, _currentRoom.memberId);
       }
+
       api('/api/admin/chat/messages', { method: 'PATCH', body: { roomId } });
     }, POLL_INTERVAL);
   }
@@ -515,7 +624,11 @@
   };
 
   /* ============ 초기화 ============ */
+  let _initialized = false;
   function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     setupAdminSend();
     setupMemo();
     setupActions();
