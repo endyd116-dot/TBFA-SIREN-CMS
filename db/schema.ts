@@ -578,6 +578,42 @@ export const hyosungImportLogs = pgTable("hyosung_import_logs", {
 }));
 
 /* =========================================================
+   ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
+   - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
+   - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
+   - reference_table/reference_id로 사후 매칭 (게시글 저장 후 연결)
+   - expires_at: 7일 내 미참조 파일 자동 정리 (M-3 cron 연동 예정)
+   ========================================================= */
+export const blobUploads = pgTable("blob_uploads", {
+  id: serial("id").primaryKey(),
+  blobKey: varchar("blob_key", { length: 255 }).notNull().unique(),
+  originalName: varchar("original_name", { length: 500 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+
+  // 업로드 주체 (둘 중 하나)
+  uploadedBy: integer("uploaded_by").references(() => members.id, { onDelete: "set null" }),
+  uploadedByAdmin: integer("uploaded_by_admin"),
+
+  // 사용처 분류
+  context: varchar("context", { length: 50 }),
+
+  // 참조 매칭 (게시글 저장 시 연결)
+  referenceTable: varchar("reference_table", { length: 50 }),
+  referenceId: integer("reference_id"),
+
+  // 공개 여부 (false면 인증 필요)
+  isPublic: boolean("is_public").default(true),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+}, (t) => ({
+  keyIdx: index("blob_uploads_key_idx").on(t.blobKey),
+  refIdx: index("blob_uploads_ref_idx").on(t.referenceTable, t.referenceId),
+  expiresIdx: index("blob_uploads_expires_idx").on(t.expiresAt),
+}));
+
+/* =========================================================
    타입 export (TypeScript 자동완성용)
    ========================================================= */
 export type Member = typeof members.$inferSelect;
@@ -622,3 +658,7 @@ export type NewBillingKey = typeof billingKeys.$inferInsert;
 /* ★ Phase L-9: 효성 Import 로그 타입 (NEW) */
 export type HyosungImportLog = typeof hyosungImportLogs.$inferSelect;
 export type NewHyosungImportLog = typeof hyosungImportLogs.$inferInsert;
+
+/* ★ Phase M-1: blob_uploads 타입 (NEW) */
+export type BlobUpload = typeof blobUploads.$inferSelect;
+export type NewBlobUpload = typeof blobUploads.$inferInsert;

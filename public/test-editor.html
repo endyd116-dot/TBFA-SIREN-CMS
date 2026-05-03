@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SIREN Editor 테스트 (M-1)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: 'Pretendard', -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f9fafb; }
+    h1 { color: #2563eb; }
+    .panel { margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
+    button { padding: 8px 16px; margin-right: 8px; cursor: pointer; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; }
+    button:hover { background: #f3f4f6; }
+    pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow: auto; max-height: 300px; font-size: 12px; }
+    .info { background: #eff6ff; padding: 12px; border-radius: 6px; color: #1e40af; line-height: 1.6; }
+    .info ul { margin: 8px 0 0 20px; padding: 0; }
+    .info li { margin: 2px 0; }
+  </style>
+</head>
+<body>
+  <h1>📝 SIREN Editor 테스트 (Phase M-1)</h1>
+
+  <div class="panel info">
+    <strong>🔍 검증 항목:</strong>
+    <ul>
+      <li>한글 IME 입력 (조합 중 끊김 없는지)</li>
+      <li>이미지 드래그&amp;드롭 → 자동 업로드 → 본문 삽입</li>
+      <li>이미지 클립보드 붙여넣기 (스크린샷 등)</li>
+      <li>이미지 크기 조절 / 정렬 (Toast UI 기본 기능)</li>
+      <li>5MB 초과 이미지 자동 압축 (콘솔에서 원본 vs 압축본 크기 확인)</li>
+      <li>WYSIWYG ↔ Markdown 모드 전환</li>
+      <li>📎 첨부파일 업로드 (PDF/HWP 등)</li>
+    </ul>
+    <strong>⚠️ 주의:</strong> 로그인된 상태에서 테스트해주세요. (관리자 또는 일반 회원 모두 OK)
+  </div>
+
+  <div class="panel">
+    <h3>편집기</h3>
+    <div id="editor"></div>
+  </div>
+
+  <div class="panel">
+    <button id="btnGetHtml">HTML 보기</button>
+    <button id="btnGetMd">Markdown 보기</button>
+    <button id="btnSet">샘플 내용 삽입</button>
+    <button id="btnAttach">📎 첨부파일 업로드 (PDF 등)</button>
+    <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.hwp,.xlsx,.txt" />
+    <pre id="output">출력 결과가 여기에 표시됩니다.</pre>
+  </div>
+
+  <script src="/js/editor.js?v=m1"></script>
+  <script>
+    let editor;
+
+    (async () => {
+      try {
+        editor = await SirenEditor.create({
+          el: document.getElementById('editor'),
+          initialValue: '<p>안녕하세요. <strong>SIREN 편집기 테스트</strong>입니다.</p><p>한글 입력을 테스트해보세요: 가나다라마바사아자차카타파하</p>',
+          height: '500px',
+          uploadContext: 'editor',
+          onChange: (html) => {
+            console.log('[change] HTML 길이:', html.length);
+          },
+        });
+        console.log('✅ SirenEditor 초기화 성공', editor);
+      } catch (err) {
+        alert('편집기 로드 실패: ' + err.message);
+        console.error(err);
+      }
+    })();
+
+    document.getElementById('btnGetHtml').addEventListener('click', () => {
+      document.getElementById('output').textContent = editor.getHTML();
+    });
+    document.getElementById('btnGetMd').addEventListener('click', () => {
+      document.getElementById('output').textContent = editor.getMarkdown();
+    });
+    document.getElementById('btnSet').addEventListener('click', () => {
+      editor.setHTML('<h2>샘플 내용</h2><p>한글 입력 테스트: 가나다라마바사</p><blockquote>인용 블록 예시</blockquote><ul><li>리스트 항목 1</li><li>리스트 항목 2</li></ul>');
+    });
+    document.getElementById('btnAttach').addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const result = await editor.uploadAttachment(file);
+        document.getElementById('output').textContent = '✅ 업로드 성공:\n' + JSON.stringify(result, null, 2);
+      } catch (err) {
+        document.getElementById('output').textContent = '❌ 업로드 실패: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
