@@ -751,8 +751,10 @@
       /* 액션 버튼 */
       const canRefund = d.status === 'completed';
       const canCancel = d.status === 'pending' || d.status === 'completed';
+      const canReceipt = d.status === 'completed';
       const actions = '<div class="dm-row-actions">' +
         '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">📝 상세</button>' +
+        (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">📄 영수증</button>' : '') +
         (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">💸 환불</button>' : '') +
         (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">❌ 취소</button>' : '') +
         '</div>';
@@ -831,6 +833,14 @@
       }
       if (action === 'cancel') {
         openCancelModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0);
+        return;
+      }
+
+      /* ★ M-14: 영수증 보기 (관리자) */
+      if (action === 'receipt') {
+        const receiptUrl = '/api/donation-receipt?id=' + id;
+        window.open(receiptUrl, '_blank', 'noopener');
+        toast('영수증 PDF를 새 탭에서 엽니다');
         return;
       }
     });
@@ -2422,7 +2432,7 @@
   }
 
   /* ============ ★ STEP H-2d-3: 영수증 설정 ============ */
-  async function loadReceiptSettings() {
+    async function loadReceiptSettings() {
     const form = document.getElementById('receiptSettingsForm');
     if (!form) return;
 
@@ -2457,6 +2467,38 @@
     setVal('rsDonationTypeLabel', s.donationTypeLabel);
 
     renderFooterNotes(Array.isArray(s.footerNotes) ? s.footerNotes : []);
+
+    /* ★ M-14: 직인 정보 표시 */
+    const stampBlobIdEl = document.getElementById('rsStampBlobId');
+    const stampPreviewEl = document.getElementById('rsStampPreview');
+    const stampPlaceholderEl = document.getElementById('rsStampPlaceholder');
+    const stampInfoEl = document.getElementById('rsStampInfo');
+    const stampClearBtn = document.getElementById('rsStampClearBtn');
+
+    if (s.stampBlobId && s.stampUrl) {
+      if (stampBlobIdEl) stampBlobIdEl.value = String(s.stampBlobId);
+      if (stampPreviewEl) {
+        stampPreviewEl.style.backgroundImage = `url('${s.stampUrl}')`;
+        stampPreviewEl.style.borderStyle = 'solid';
+      }
+      if (stampPlaceholderEl) stampPlaceholderEl.style.display = 'none';
+      if (stampInfoEl) {
+        stampInfoEl.innerHTML = `<strong style="color:var(--success)">✓ 직인 등록됨</strong><br />` +
+          `<span style="font-size:11.5px;color:var(--text-3)">${escapeHtml(s.stampOriginalName || '직인 이미지')}</span>`;
+      }
+      if (stampClearBtn) stampClearBtn.style.display = 'inline-block';
+    } else {
+      if (stampBlobIdEl) stampBlobIdEl.value = '';
+      if (stampPreviewEl) {
+        stampPreviewEl.style.backgroundImage = '';
+        stampPreviewEl.style.borderStyle = 'dashed';
+      }
+      if (stampPlaceholderEl) stampPlaceholderEl.style.display = 'block';
+      if (stampInfoEl) {
+        stampInfoEl.textContent = '직인이 등록되지 않았습니다. 업로드하면 PDF 영수증에 자동 삽입됩니다.';
+      }
+      if (stampClearBtn) stampClearBtn.style.display = 'none';
+    }
 
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -2539,7 +2581,7 @@
     });
   }
 
-  function setupReceiptSettingsActions() {
+    function setupReceiptSettingsActions() {
     document.addEventListener('click', (e) => {
       if (e.target.closest('#rsAddFooterBtn')) {
         e.preventDefault();
@@ -2587,7 +2629,95 @@
         toast('미리보기 PDF를 새 탭에서 엽니다 (현재 저장된 DB 설정 기준)');
         return;
       }
+
+      /* ★ M-14: 직인 업로드 버튼 */
+      if (e.target.closest('#rsStampUploadBtn')) {
+        e.preventDefault();
+        document.getElementById('rsStampFileInput')?.click();
+        return;
+      }
+
+      /* ★ M-14: 직인 제거 버튼 */
+      if (e.target.closest('#rsStampClearBtn')) {
+        e.preventDefault();
+        if (!confirm('직인을 제거하시겠습니까?\n\n제거 후 발급되는 영수증은 빨간 원형 표식으로 대체됩니다.\n기존 발급된 영수증은 영향받지 않습니다.')) return;
+
+        api('/api/admin/receipt-settings', {
+          method: 'PATCH',
+          body: { stampBlobId: null },
+        }).then((res) => {
+          if (res.ok) {
+            toast(res.data?.message || '직인이 제거되었습니다');
+            loadReceiptSettings();
+          } else {
+            toast(res.data?.error || '제거 실패');
+          }
+        });
+        return;
+      }
     });
+
+    /* ★ M-14: 직인 파일 선택 핸들러 (R2 직접 업로드 → blob_id 저장) */
+    const stampInput = document.getElementById('rsStampFileInput');
+    if (stampInput && !stampInput.dataset.bound) {
+      stampInput.dataset.bound = '1';
+      stampInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        e.target.value = ''; // 다음 업로드를 위해 초기화
+
+        if (!file.type || !file.type.startsWith('image/')) {
+          toast('이미지 파일만 업로드 가능합니다 (PNG/JPG/WebP)');
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast('직인 이미지는 5MB 이하여야 합니다');
+          return;
+        }
+
+        toast('직인 업로드 중...');
+
+        try {
+          /* SirenEditor 또는 SirenAttachment의 R2 업로드 어댑터 재사용 */
+          if (!window.SirenEditor || typeof window.SirenEditor.uploadFile !== 'function') {
+            toast('업로드 모듈을 찾을 수 없습니다 (editor.js 로드 필요)');
+            return;
+          }
+
+          /* 직인은 큰 압축 불필요 — 원본 그대로 (또는 최소 압축) */
+          let toUpload = file;
+          if (window.SirenEditor.compressImage) {
+            try {
+              toUpload = await window.SirenEditor.compressImage(file, 800, 0.92);
+            } catch (_) {
+              toUpload = file;
+            }
+          }
+
+          const result = await window.SirenEditor.uploadFile(toUpload, 'stamp');
+          if (!result || !result.id) {
+            toast('업로드 실패');
+            return;
+          }
+
+          /* 영수증 설정에 stampBlobId 저장 */
+          const patchRes = await api('/api/admin/receipt-settings', {
+            method: 'PATCH',
+            body: { stampBlobId: result.id },
+          });
+
+          if (patchRes.ok) {
+            toast(patchRes.data?.message || '직인이 등록되었습니다');
+            loadReceiptSettings();
+          } else {
+            toast(patchRes.data?.error || '직인 저장 실패');
+          }
+        } catch (err) {
+          console.error('[stamp upload]', err);
+          toast('업로드 중 오류 발생');
+        }
+      });
+    }
   }
 
   function setupReceiptSettings() {
