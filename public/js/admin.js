@@ -8,6 +8,7 @@
   const PAGE_TITLES = {
   dashboard: '대시보드',
   members: '회원 관리',
+  'signup-sources': '가입 경로 관리',
   donations: '후원금 관리',
   support: '유가족 지원 관리',
   'siren-incidents': '🔍 사건 제보 관리',
@@ -46,6 +47,22 @@
     family: '유가족',
     volunteer: '봉사자',
     admin: '관리자',
+  };
+
+  /* ★ M-12: 회원 분류 라벨 */
+  const MEMBER_CATEGORY_LABEL = {
+    sponsor: '💝 후원회원',
+    regular: '👤 일반회원',
+    family: '🎗 유족회원',
+    etc: '🤝 기타회원',
+  };
+  const MEMBER_SUBTYPE_LABEL = {
+    regular_donation: '정기후원',
+    hyosung_donation: '정기(효성)',
+    onetime_donation: '일시후원',
+    volunteer: '봉사자',
+    lawyer: '법률전문가',
+    counselor: '심리전문가',
   };
 
   /* ★ I-3: 채팅 카테고리 라벨 (회원 모달의 채팅 메모 목록용) */
@@ -307,12 +324,15 @@
   /* ============ ★ I-4 + K-7: 회원 관리 ============ */
   let _mmSearchTimer = null;
 
-  async function loadMembers() {
+    async function loadMembers() {
     const panel = document.getElementById('adm-members');
     if (!panel) return;
     const tbody = panel.querySelector('table.tbl tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    /* ★ M-12: 가입경로 셀렉트 자동 채우기 (1회만) */
+    await populateSourceSelect();
 
     /* 필터 수집 */
     const params = new URLSearchParams();
@@ -320,29 +340,37 @@
     params.set('page', '1');
     const t = document.getElementById('mmFilterType')?.value || '';
     const s = document.getElementById('mmFilterStatus')?.value || '';
+    const cat = document.getElementById('mmFilterCategory')?.value || '';
+    const sub = document.getElementById('mmFilterSubtype')?.value || '';
+    const src = document.getElementById('mmFilterSource')?.value || '';
     const q = (document.getElementById('mmFilterQ')?.value || '').trim();
     if (t) params.set('type', t);
     if (s) params.set('status', s);
+    if (cat) params.set('category', cat);
+    if (sub) params.set('subtype', sub);
+    if (src) params.set('source', src);
     if (q && q.length >= 2) params.set('q', q);
 
     const res = await api('/api/admin/members?' + params.toString());
     if (!res.ok || !res.data?.data) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
     _currentMembers = res.data.data.list || [];
     _currentMembersTotal = res.data.data.pagination ? res.data.data.pagination.total : 0;
+    const categoryCounts = res.data.data.categoryCounts || {};
 
-    /* KPI */
-    const kpis = panel.querySelectorAll('.kpi-value');
-    if (kpis[0]) kpis[0].textContent = _currentMembersTotal.toLocaleString() + ' 명';
-    if (kpis[1]) kpis[1].textContent = _currentMembers.filter((m) => m.type === 'family').length + ' 명';
-    if (kpis[2]) kpis[2].textContent = _currentMembers.filter((m) => m.status === 'pending').length + ' 명';
+    /* ★ M-12: 4분류 KPI */
+    const setKpi = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = (n || 0).toLocaleString() + ' 명'; };
+    setKpi('mmKpiSponsor', categoryCounts.sponsor || 0);
+    setKpi('mmKpiRegular', categoryCounts.regular || 0);
+    setKpi('mmKpiFamily', categoryCounts.family || 0);
+    setKpi('mmKpiEtc', categoryCounts.etc || 0);
 
-    /* ★ K-7: 검색 결과 카운트 */
+    /* 검색 결과 카운트 */
     const countEl = document.getElementById('mmCount');
     if (countEl) {
-      if (q || t || s) {
+      if (q || t || s || cat || sub || src) {
         countEl.textContent = `필터: ${_currentMembers.length}건 / 전체 ${_currentMembersTotal.toLocaleString()}명`;
       } else {
         countEl.textContent = `전체 ${_currentMembersTotal.toLocaleString()}명`;
@@ -351,6 +379,27 @@
 
     decorateMemberHeaders();
     renderMemberTable();
+  }
+
+  /* ★ M-12: 가입경로 셀렉트 채우기 (캐시) */
+  let _sourceSelectFilled = false;
+  async function populateSourceSelect() {
+    if (_sourceSelectFilled) return;
+    const sel = document.getElementById('mmFilterSource');
+    if (!sel) return;
+    try {
+      const res = await api('/api/admin/signup-sources');
+      if (!res.ok || !res.data?.data?.list) return;
+      const list = res.data.data.list || [];
+      let html = '<option value="">전체 가입경로</option>';
+      list.forEach((s) => {
+        if (s.isActive) {
+          html += `<option value="${s.id}">${escapeHtml(s.label)} (${s.memberCount || 0}명)</option>`;
+        }
+      });
+      sel.innerHTML = html;
+      _sourceSelectFilled = true;
+    } catch (_) {}
   }
 
   /**
@@ -477,20 +526,17 @@
   /**
    * ★ I-4: 회원 테이블 본문 렌더 (정렬 적용)
    */
-  function renderMemberTable() {
+    function renderMemberTable() {
     const panel = document.getElementById('adm-members');
     if (!panel) return;
     const tbody = panel.querySelector('table.tbl tbody');
     if (!tbody) return;
 
-    /* 화살표 갱신 */
     updateSortArrows();
-
-    /* 정렬 */
     const list = sortMembers(_currentMembers, _memberSort.field, _memberSort.dir);
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">회원이 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-3)">회원이 없습니다</td></tr>';
       return;
     }
 
@@ -518,11 +564,23 @@
       if (m.status === 'suspended') {
         actionBtns += '<button class="btn-link" data-member-action="approve" data-id="' + m.id + '">정상화</button>';
       }
+
+      /* ★ M-12: 분류 / 가입경로 셀 */
+      const categoryLabel = MEMBER_CATEGORY_LABEL[m.memberCategory] || '<span style="color:var(--text-3);font-size:11px">미분류</span>';
+      const subtypeLabel = m.memberSubtype
+        ? `<div style="font-size:10.5px;color:var(--text-3);margin-top:2px">${escapeHtml(MEMBER_SUBTYPE_LABEL[m.memberSubtype] || m.memberSubtype)}</div>`
+        : '';
+      const sourceLabel = m.sourceLabel
+        ? `<span style="font-size:11.5px;color:var(--text-2)">${escapeHtml(m.sourceLabel)}</span>`
+        : '<span style="font-size:11px;color:var(--text-3)">—</span>';
+
       return '<tr>' +
         '<td><input type="checkbox"></td>' +
         '<td>M-' + String(m.id).padStart(5, '0') + '</td>' +
         '<td><span class="clickable-name" data-member-info-id="' + m.id + '">' + escapeHtml(m.name) + '</span></td>' +
+        '<td>' + categoryLabel + subtypeLabel + '</td>' +
         '<td>' + (typeMap[m.type] || m.type) + '</td>' +
+        '<td>' + sourceLabel + '</td>' +
         '<td>' + formatDate(m.createdAt) + '</td>' +
         '<td>' + formatDate(m.lastLoginAt) + '</td>' +
         '<td>' + (statusMap[m.status] || m.status) + '</td>' +
@@ -554,7 +612,7 @@
     });
   }
   /* ★ K-7: 회원 관리 검색/필터 디바운스 */
-  function setupMemberSearch() {
+    function setupMemberSearch() {
     const qInput = document.getElementById('mmFilterQ');
     if (qInput) {
       qInput.addEventListener('input', () => {
@@ -562,10 +620,36 @@
         _mmSearchTimer = setTimeout(loadMembers, 400);
       });
     }
-    ['mmFilterType', 'mmFilterStatus'].forEach((id) => {
+    /* ★ M-12: 신규 필터 추가 */
+    ['mmFilterType', 'mmFilterStatus', 'mmFilterCategory', 'mmFilterSubtype', 'mmFilterSource'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', loadMembers);
     });
+
+    /* ★ M-12: 엑셀 추출 버튼 */
+    const exportBtn = document.getElementById('btnExportMembers');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams();
+        const t = document.getElementById('mmFilterType')?.value || '';
+        const s = document.getElementById('mmFilterStatus')?.value || '';
+        const cat = document.getElementById('mmFilterCategory')?.value || '';
+        const sub = document.getElementById('mmFilterSubtype')?.value || '';
+        const src = document.getElementById('mmFilterSource')?.value || '';
+        const q = (document.getElementById('mmFilterQ')?.value || '').trim();
+        if (t) params.set('type', t);
+        if (s) params.set('status', s);
+        if (cat) params.set('category', cat);
+        if (sub) params.set('subtype', sub);
+        if (src) params.set('source', src);
+        if (q && q.length >= 2) params.set('q', q);
+
+        const url = '/api/admin/members-export' + (params.toString() ? '?' + params.toString() : '');
+        window.open(url, '_blank');
+        toast('CSV 파일을 다운로드합니다 (Excel에서 바로 열림)');
+      });
+    }
   }
 
   function setupMemberActions() {
@@ -4117,8 +4201,14 @@
       loadContent();
     } else if (page === 'receipt-settings') {
       loadReceiptSettings();
-    } else if (page === 'hyosung') {       /* ★ L-8 추가 */
+        } else if (page === 'hyosung') {       /* ★ L-8 추가 */
       loadHyosung();
+
+    /* ★ M-12: 가입 경로 관리 */
+    } else if (page === 'signup-sources') {
+      if (window.SIREN_ADMIN_SIGNUP_SOURCES) window.SIREN_ADMIN_SIGNUP_SOURCES.loadList();
+
+    /* ★ M-10: 사이렌 관리 4개 페이지 */
 
     /* ★ M-10: 사이렌 관리 4개 페이지 */
     } else if (page === 'siren-incidents') {
