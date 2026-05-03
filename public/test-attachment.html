@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SIREN Attachment 테스트 (M-2)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/attachment.css?v=m2">
+  <style>
+    body { font-family: 'Pretendard', -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f9fafb; }
+    h1 { color: #2563eb; }
+    .panel { margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
+    button.act { padding: 8px 16px; margin-right: 8px; cursor: pointer; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; }
+    button.act:hover { background: #f3f4f6; }
+    pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 300px; }
+    .info { background: #eff6ff; color: #1e40af; line-height: 1.7; }
+    .info ul { margin: 8px 0 0 20px; padding: 0; }
+  </style>
+</head>
+<body>
+  <h1>📎 SIREN Attachment 테스트 (M-2)</h1>
+
+  <div class="panel info">
+    <strong>🔍 검증 항목:</strong>
+    <ul>
+      <li>📁 파일 선택 버튼으로 다중 파일 첨부</li>
+      <li>🖱️ 드래그&드롭 영역에 파일 드래그</li>
+      <li>📊 업로드 진행률 표시 (큰 파일에서 잘 보임)</li>
+      <li>🖼️ 이미지는 썸네일, 그 외는 아이콘</li>
+      <li>❌ × 버튼으로 개별 삭제</li>
+      <li>⚠️ 10MB 초과 / 5개 초과 시 경고</li>
+      <li>이미지 업로드 시 자동 압축 (콘솔 확인)</li>
+    </ul>
+    <strong>⚠️ 주의:</strong> 로그인된 상태에서 테스트
+  </div>
+
+  <div class="panel">
+    <h3>첨부 영역</h3>
+    <div id="attach-zone"></div>
+  </div>
+
+  <div class="panel">
+    <button class="act" id="btnGetIds">선택된 ID 보기</button>
+    <button class="act" id="btnGetFiles">전체 정보 보기</button>
+    <button class="act" id="btnClear">모두 삭제</button>
+    <pre id="output">결과가 여기에 표시됩니다.</pre>
+  </div>
+
+  <script src="/js/editor.js?v=m1"></script>
+  <script src="/js/attachment.js?v=m2"></script>
+  <script>
+    const att = SirenAttachment.create({
+      el: document.getElementById('attach-zone'),
+      context: 'test',
+      maxFiles: 5,
+      maxFileSize: 10 * 1024 * 1024,
+      onChange: (files) => {
+        console.log('[change]', files);
+      },
+    });
+
+    document.getElementById('btnGetIds').onclick = () => {
+      document.getElementById('output').textContent = JSON.stringify(att.getIds(), null, 2);
+    };
+    document.getElementById('btnGetFiles').onclick = () => {
+      document.getElementById('output').textContent = JSON.stringify(att.getFiles(), null, 2);
+    };
+    document.getElementById('btnClear').onclick = () => {
+      att.clear();
+      document.getElementById('output').textContent = '비워졌습니다.';
+    };
+  </script>
+</body>
+</html>

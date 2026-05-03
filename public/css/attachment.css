@@ -1,0 +1,187 @@
+/* public/css/attachment.css
+   ★ Phase M-2: SIREN 공통 첨부파일 위젯 스타일 */
+
+.siren-attachment {
+  width: 100%;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.siren-attachment-dropzone {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background: #f9fafb;
+  transition: all 0.2s;
+}
+
+.siren-attachment-dropzone.dragover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.siren-attachment-pick {
+  display: inline-block;
+  padding: 8px 18px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.siren-attachment-pick:hover { background: #1d4ed8; }
+
+.siren-attachment-hint {
+  display: inline-block;
+  margin-left: 12px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.siren-attachment-limit {
+  display: block;
+  margin-top: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.siren-attachment-list {
+  list-style: none;
+  margin: 12px 0 0 0;
+  padding: 0;
+}
+
+.siren-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.siren-attachment-item[data-status="error"] {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.siren-attachment-item[data-status="uploading"] {
+  background: #f9fafb;
+}
+
+.siren-attachment-thumb {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.siren-attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.siren-attachment-icon {
+  font-size: 24px;
+}
+
+.siren-attachment-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.siren-attachment-name {
+  font-size: 14px;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.siren-attachment-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.siren-attachment-info progress {
+  flex: 1;
+  height: 6px;
+  border: none;
+  border-radius: 3px;
+  overflow: hidden;
+  max-width: 200px;
+}
+
+.siren-attachment-info progress::-webkit-progress-bar {
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
+.siren-attachment-info progress::-webkit-progress-value {
+  background: #2563eb;
+  border-radius: 3px;
+}
+
+.siren-attachment-info progress::-moz-progress-bar {
+  background: #2563eb;
+}
+
+.siren-attachment-done {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.siren-attachment-error {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.siren-attachment-remove {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b7280;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.siren-attachment-remove:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .siren-attachment-hint {
+    display: block;
+    margin: 8px 0 0 0;
+  }
+  .siren-attachment-thumb {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+  }
+  .siren-attachment-name {
+    font-size: 13px;
+  }
+}
