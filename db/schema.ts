@@ -854,6 +854,82 @@ export const legalConsultationStatusEnum = pgEnum("legal_consultation_status", [
 ]);
 
 /* =========================================================
+   ★ Phase M-8: 자유게시판 카테고리 ENUM
+   ========================================================= */
+export const boardCategoryEnum = pgEnum("board_category", [
+  "general",   // 자유
+  "share",     // 경험 공유
+  "question",  // 질문/도움요청
+  "info",      // 정보 공유
+  "etc"        // 기타
+]);
+
+/* =========================================================
+   ★ Phase M-8: board_posts — 자유게시판 게시글
+   - 조회는 로그인 필수 X (공개)
+   - 작성/수정/삭제는 로그인 필수
+   - 부적절 콘텐츠는 isHidden=true 처리 (관리자만)
+   ========================================================= */
+export const boardPosts = pgTable("board_posts", {
+  id: serial("id").primaryKey(),
+  postNo: varchar("post_no", { length: 30 }).notNull().unique(), // B-2026-0001
+
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  authorName: varchar("author_name", { length: 50 }).notNull(),
+
+  category: boardCategoryEnum("category").default("general").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html").notNull(),
+  attachmentIds: text("attachment_ids"),
+
+  // 통계
+  views: integer("views").default(0).notNull(),
+  likeCount: integer("like_count").default(0).notNull(),
+  commentCount: integer("comment_count").default(0).notNull(),
+
+  // 관리
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  isHidden: boolean("is_hidden").default(false).notNull(),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+
+  // 관리자 메모 (관리자 사이트에서)
+  adminMemo: text("admin_memo"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  postNoIdx: index("board_posts_post_no_idx").on(t.postNo),
+  memberIdx: index("board_posts_member_idx").on(t.memberId),
+  categoryIdx: index("board_posts_category_idx").on(t.category),
+  pinnedIdx: index("board_posts_pinned_idx").on(t.isPinned),
+  hiddenIdx: index("board_posts_hidden_idx").on(t.isHidden),
+  createdIdx: index("board_posts_created_idx").on(t.createdAt),
+}));
+
+/* =========================================================
+   ★ Phase M-8: board_comments — 게시글 댓글
+   ========================================================= */
+export const boardComments = pgTable("board_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => boardPosts.id, { onDelete: "cascade" }).notNull(),
+
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  authorName: varchar("author_name", { length: 50 }).notNull(),
+
+  content: varchar("content", { length: 1000 }).notNull(),
+  parentId: integer("parent_id"), // 대댓글용 (selfRef는 처리 복잡 — 그냥 integer로)
+
+  isHidden: boolean("is_hidden").default(false).notNull(),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  postIdx: index("board_comments_post_idx").on(t.postId, t.createdAt),
+  memberIdx: index("board_comments_member_idx").on(t.memberId),
+  parentIdx: index("board_comments_parent_idx").on(t.parentId),
+}));
+
+/* =========================================================
    ★ Phase M-7: legal_consultations — 법률 상담 신청
    ========================================================= */
 export const legalConsultations = pgTable("legal_consultations", {
@@ -1032,3 +1108,9 @@ export type NewHarassmentReport = typeof harassmentReports.$inferInsert;
 /* ★ M-7: 법률 상담 타입 (NEW) */
 export type LegalConsultation = typeof legalConsultations.$inferSelect;
 export type NewLegalConsultation = typeof legalConsultations.$inferInsert;
+
+/* ★ M-8: 자유게시판 타입 (NEW) */
+export type BoardPost = typeof boardPosts.$inferSelect;
+export type NewBoardPost = typeof boardPosts.$inferInsert;
+export type BoardComment = typeof boardComments.$inferSelect;
+export type NewBoardComment = typeof boardComments.$inferInsert;
