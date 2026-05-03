@@ -659,6 +659,98 @@ export const donationPolicies = pgTable("donation_policies", {
 });
 
 /* =========================================================
+   ★ Phase M-5: 사건 카테고리 / 제보 상태 ENUM
+   ========================================================= */
+export const incidentCategoryEnum = pgEnum("incident_category", [
+  "school",  // 학교 내 사건
+  "public",  // 공공/사회적 사건
+  "other"    // 기타
+]);
+
+export const incidentReportStatusEnum = pgEnum("incident_report_status", [
+  "submitted",   // 접수 (AI 분석 전)
+  "ai_analyzed", // AI 분석 완료, 사용자 확인 대기
+  "reviewing",   // 관리자 검토 중 (정식 접수 후)
+  "responded",   // 답변 완료
+  "closed",      // 종결
+  "rejected"     // 반려/스팸
+]);
+
+/* =========================================================
+   ★ Phase M-5: incidents — 사건 마스터
+   - 관리자가 M-11 콘텐츠 관리에서 추가/수정 (현 단계는 시드 2건)
+   - 슬러그 기반 URL: /incident.html?slug=seoyicho-2023
+   ========================================================= */
+export const incidents = pgTable("incidents", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  title: varchar("title", { length: 200 }).notNull(),
+  summary: varchar("summary", { length: 500 }),
+  contentHtml: text("content_html"),                    // Toast UI Editor 결과
+  thumbnailBlobId: integer("thumbnail_blob_id"),        // blob_uploads.id 참조
+  occurredAt: timestamp("occurred_at"),
+  location: varchar("location", { length: 200 }),
+  category: incidentCategoryEnum("category").default("school").notNull(),
+  status: varchar("status", { length: 20 }).default("active").notNull(), // active/archived
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  slugIdx: index("incidents_slug_idx").on(t.slug),
+  statusIdx: index("incidents_status_idx").on(t.status),
+  sortIdx: index("incidents_sort_idx").on(t.sortOrder),
+}));
+
+/* =========================================================
+   ★ Phase M-5: incident_reports — 사용자 제보
+   - 로그인 필수 (A안)
+   - AI 분석 후 사용자가 사이렌 정식 접수 여부 결정 (B안)
+   ========================================================= */
+export const incidentReports = pgTable("incident_reports", {
+  id: serial("id").primaryKey(),
+  reportNo: varchar("report_no", { length: 30 }).notNull().unique(), // R-2026-0001
+
+  incidentId: integer("incident_id").references(() => incidents.id, { onDelete: "set null" }),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
+
+  // 본문
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html").notNull(),
+  attachmentIds: text("attachment_ids"), // JSON 배열 [12, 34, ...]
+
+  // 익명 / 신원
+  isAnonymous: boolean("is_anonymous").default(false),
+  reporterName: varchar("reporter_name", { length: 50 }),
+  reporterPhone: varchar("reporter_phone", { length: 20 }),
+  reporterEmail: varchar("reporter_email", { length: 100 }),
+
+  // ★ AI 분석 결과 (자동 채움)
+  aiSeverity: varchar("ai_severity", { length: 20 }),    // 'low' | 'medium' | 'high' | 'critical'
+  aiSummary: text("ai_summary"),
+  aiSuggestion: text("ai_suggestion"),
+  aiAnalyzedAt: timestamp("ai_analyzed_at"),
+
+  // ★ B안: 사이렌 정식 접수 여부 (AI 결과 본 후 사용자 결정)
+  sirenReportRequested: boolean("siren_report_requested"), // null=미결정, true=접수, false=AI만
+  sirenReportRequestedAt: timestamp("siren_report_requested_at"),
+
+  // 상태/관리자
+  status: incidentReportStatusEnum("status").default("submitted").notNull(),
+  adminResponse: text("admin_response"),
+  respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
+  respondedAt: timestamp("responded_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  reportNoIdx: index("incident_reports_report_no_idx").on(t.reportNo),
+  incidentIdx: index("incident_reports_incident_idx").on(t.incidentId),
+  memberIdx: index("incident_reports_member_idx").on(t.memberId),
+  statusIdx: index("incident_reports_status_idx").on(t.status),
+  severityIdx: index("incident_reports_severity_idx").on(t.aiSeverity),
+}));
+
+/* =========================================================
    ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
    - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
    - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
@@ -762,3 +854,9 @@ export type NewNotification = typeof notifications.$inferInsert;
 /* ★ M-4: 후원 정책 타입 (NEW) */
 export type DonationPolicy = typeof donationPolicies.$inferSelect;
 export type NewDonationPolicy = typeof donationPolicies.$inferInsert;
+
+/* ★ M-5: 사건 / 제보 타입 (NEW) */
+export type Incident = typeof incidents.$inferSelect;
+export type NewIncident = typeof incidents.$inferInsert;
+export type IncidentReport = typeof incidentReports.$inferSelect;
+export type NewIncidentReport = typeof incidentReports.$inferInsert;
