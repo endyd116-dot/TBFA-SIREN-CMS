@@ -1,3 +1,8 @@
+# ============================================================
+# Netlify 설정 — 교사유가족협의회 사이트 (SIREN)
+# 원본 기존 설정 100% 보존 + K-9/L-5 추가분 통합
+# ============================================================
+
 [build]
   publish = "public"
   functions = "netlify/functions"
@@ -6,7 +11,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# ⚠️ [[redirects]] /api/* → 제거! v2 functions가 config.path로 직접 처리
+# ============================================================
+# Redirects
+# ============================================================
 
 [[redirects]]
   from = "/admin"
@@ -18,6 +25,16 @@
   to = "/mypage.html"
   status = 200
 
+# ★ K-9: 커스텀 404 라우팅 (다른 redirects보다 아래에 위치해야 함)
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+# ============================================================
+# Headers — 보안
+# ============================================================
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -25,6 +42,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 [[headers]]
   for = "/css/*"
@@ -41,75 +59,34 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# ★ API 응답 캐시 방지
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+# ============================================================
+# Functions 설정
+# ============================================================
+
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions"
   included_files = ["db/**/*", "lib/**/*", "assets/fonts/**"]
   external_node_modules = ["postgres"]
 
-# ★ STEP I-2: 채팅 이미지 자동 정리 스케줄 (매일 새벽 3시 KST = UTC 18:00)
+# ★ STEP I-2: 채팅 이미지 자동 정리 (매일 새벽 3시 KST = UTC 18:00)
 [functions."cleanup-chat-images"]
   schedule = "0 18 * * *"
-  
+
+# ★ Phase L-5: 정기 결제 cron (매일 새벽 3시 KST = UTC 18:00)
+[functions."cron-billing-monthly"]
+  schedule = "0 18 * * *"
+
+# ============================================================
+# Dev 설정
+# ============================================================
+
 [dev]
   port = 8888
   publish = "public"
-
-  # ============================================================
-# ★ K-9: 커스텀 에러 페이지 라우팅
-# ============================================================
-
-
-[[redirects]]
-  from = "/*"
-  to = "/404.html"
-  status = 404
-
-
-# 500은 Netlify Functions가 throw할 때 자동 발생
-# 정적 페이지로 리다이렉트시키려면 아래 주석 해제 (선택)
-# [[redirects]]
-#   from = "/*"
-#   to = "/500.html"
-#   status = 500
-
-# ============================================================
-# Netlify 설정 — 교사유가족협의회 사이트
-# ============================================================
-
-[build]
-  publish = "public"
-  functions = "netlify/functions"
-
-[functions]
-  node_bundler = "esbuild"
-
-# ===== 기본 보안 헤더 =====
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-
-# ===== API 캐시 방지 =====
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Cache-Control = "no-store, no-cache, must-revalidate"
-
-# ===== K-9 커스텀 404 라우팅 =====
-[[redirects]]
-  from = "/*"
-  to = "/404.html"
-  status = 404
-
-# ============================================================
-# ★ Phase L-5: 정기 결제 cron 스케줄
-# ============================================================
-# 매일 새벽 03:00 KST (UTC 18:00) 실행
-# 활성 빌링키 중 nextChargeAt <= 오늘인 건 결제 처리
-
-[functions."cron-billing-monthly"]
-  schedule = "0 18 * * *"
