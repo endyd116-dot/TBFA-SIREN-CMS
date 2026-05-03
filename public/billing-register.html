@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>정기 후원 카드 등록 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  .br-wrap {
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 50px 24px;
+  }
+  .br-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 40px 36px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  }
+  .br-icon {
+    text-align: center;
+    font-size: 48px;
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+  .br-title {
+    text-align: center;
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .br-subtitle {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-3);
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+
+  .br-summary {
+    background: linear-gradient(135deg, var(--brand-soft, #fef9f5), #fff);
+    border: 1px solid #f0e0d4;
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 26px;
+  }
+  .br-summary-title {
+    font-size: 12.5px;
+    color: var(--brand);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .br-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13.5px;
+  }
+  .br-summary-row + .br-summary-row {
+    border-top: 1px dashed var(--line);
+  }
+  .br-summary-label {
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .br-summary-value {
+    color: var(--ink);
+    font-weight: 600;
+    text-align: right;
+  }
+  .br-summary-value.amount {
+    color: var(--brand);
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Inter', monospace;
+  }
+
+  .br-info-box {
+    background: #f0f5fc;
+    border: 1px solid #cee0f2;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12.5px;
+    color: #1a5ec4;
+    line-height: 1.75;
+    margin-bottom: 24px;
+  }
+  .br-info-box h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .br-info-box ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+
+  .br-warn-box {
+    background: #fff8ec;
+    border: 1px solid #f0e3c4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #8a6a00;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .br-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .br-actions .primary {
+    flex: 1;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    padding: 13px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .br-actions .primary:hover { background: var(--brand-deep, #5a1620); }
+  .br-actions .primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .br-actions .ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+    padding: 13px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .br-loading {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border: 4px solid var(--line);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: br-spin 0.8s linear infinite;
+  }
+  @keyframes br-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .br-error {
+    background: #fdecec;
+    border: 1px solid #f5b5bb;
+    color: #a01e2c;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+    line-height: 1.6;
+  }
+
+  /* 처리 중 화면 */
+  .br-processing {
+    text-align: center;
+    padding: 30px 0;
+  }
+
+  /* 만료 안내 */
+  .br-expired {
+    text-align: center;
+  }
+  .br-expired .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body data-page="billing-register">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <div class="br-wrap">
+
+      <!-- 메인 화면 -->
+      <div id="brMain" class="br-card">
+        <div class="br-icon">💳</div>
+        <h1 class="br-title">정기 후원 카드 등록</h1>
+        <p class="br-subtitle">
+          카드 정보를 1회만 등록하시면<br />
+          매월 자동으로 후원이 진행됩니다.
+        </p>
+
+        <div id="brError" class="br-error"></div>
+
+        <!-- 후원 정보 요약 -->
+        <div class="br-summary" id="brSummary" style="display:none">
+          <div class="br-summary-title">📋 후원 정보</div>
+          <div class="br-summary-row">
+            <span class="br-summary-label">후원 유형</span>
+            <span class="br-summary-value">정기 후원 (월 자동)</span>
+          </div>
+          <div class="br-summary-row">
+            <span class="br-summary-label">월 후원 금액</span>
+            <span class="br-summary-value amount" id="brAmount">—</span>
+          </div>
+          <div class="br-summary-row">
+            <span class="br-summary-label">후원자</span>
+            <span class="br-summary-value" id="brDonorName">—</span>
+          </div>
+          <div class="br-summary-row">
+            <span class="br-summary-label">이메일</span>
+            <span class="br-summary-value" id="brDonorEmail" style="font-family:'Inter',monospace;font-size:12.5px">—</span>
+          </div>
+        </div>
+
+        <div class="br-info-box">
+          <h4>💡 카드 등록 안내</h4>
+          <ul>
+            <li>토스페이먼츠의 안전한 결제창에서 카드 정보를 입력합니다</li>
+            <li>등록 후 <strong>오늘 즉시 첫 결제가 진행됩니다</strong></li>
+            <li>이후 매월 같은 날짜에 자동으로 결제됩니다</li>
+            <li>언제든 마이페이지에서 해지하실 수 있습니다</li>
+          </ul>
+        </div>
+
+        <div class="br-warn-box">
+          🔒 <strong>보안 안내</strong><br />
+          • 카드 정보는 토스페이먼츠가 직접 처리하며, 협회는 카드 번호를 보관하지 않습니다<br />
+          • PCI-DSS 인증된 보안 결제 시스템을 사용합니다<br />
+          • 결제 결과는 즉시 이메일로 안내됩니다
+        </div>
+
+        <div class="br-actions">
+          <a href="/index.html" class="ghost">← 취소</a>
+          <button type="button" class="primary" id="brStartBtn">💳 카드 등록하기</button>
+        </div>
+      </div>
+
+      <!-- 처리 중 화면 -->
+      <div id="brProcessing" class="br-card br-processing" style="display:none">
+        <div class="br-loading"></div>
+        <h2 class="br-title" style="margin-top:20px">카드 정보 처리 중...</h2>
+        <p class="br-subtitle">
+          잠시만 기다려 주세요.<br />
+          결제창이 자동으로 표시됩니다.
+        </p>
+      </div>
+
+      <!-- 만료/잘못된 접근 화면 -->
+      <div id="brExpired" class="br-card br-expired" style="display:none">
+        <div class="icon">⏰</div>
+        <h1 class="br-title">접근 정보가 만료되었습니다</h1>
+        <p class="br-subtitle">
+          이 페이지는 후원 모달에서만 접근할 수 있으며,<br />
+          30분 이내에 진행해 주셔야 합니다.<br /><br />
+          홈으로 돌아가서 다시 후원해 주세요.
+        </p>
+        <div class="br-actions" style="justify-content:center">
+          <a href="/index.html" class="primary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">
+            🏠 홈으로 이동
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    function $(id) { return document.getElementById(id); }
+    function show(id) {
+      ['brMain', 'brProcessing', 'brExpired'].forEach(function (k) {
+        var el = $(k);
+        if (el) el.style.display = (k === id) ? 'block' : 'none';
+      });
+    }
+    function showError(msg) {
+      var el = $('brError');
+      if (el) {
+        el.textContent = msg;
+        el.style.display = 'block';
+      }
+    }
+
+    /* 1. sessionStorage에서 후원 의도 읽기 */
+    var INTENT_TTL_MS = 30 * 60 * 1000; // 30분
+    var intentRaw = '';
+    try {
+      intentRaw = sessionStorage.getItem('siren_billing_intent') || '';
+    } catch (e) {}
+
+    if (!intentRaw) {
+      show('brExpired');
+      return;
+    }
+
+    var intent;
+    try {
+      intent = JSON.parse(intentRaw);
+    } catch (e) {
+      show('brExpired');
+      return;
+    }
+
+    /* 만료 검증 */
+    if (!intent || !intent.timestamp || Date.now() - intent.timestamp > INTENT_TTL_MS) {
+      show('brExpired');
+      try { sessionStorage.removeItem('siren_billing_intent'); } catch (e) {}
+      return;
+    }
+
+    /* 필수 정보 검증 */
+    if (!intent.name || !intent.phone || !intent.email || !intent.amount) {
+      show('brExpired');
+      return;
+    }
+
+    /* 2. 후원 정보 화면에 표시 */
+    $('brAmount').textContent = '₩ ' + Number(intent.amount).toLocaleString();
+    $('brDonorName').textContent = intent.name;
+    $('brDonorEmail').textContent = intent.email;
+    $('brSummary').style.display = '';
+
+    /* 3. 토스 SDK 로드 */
+    var _tossSdkLoaded = false;
+    function loadTossSdk() {
+      return new Promise(function (resolve, reject) {
+        if (_tossSdkLoaded || window.TossPayments) {
+          _tossSdkLoaded = true;
+          resolve();
+          return;
+        }
+        var script = document.createElement('script');
+        script.src = 'https://js.tosspayments.com/v2/standard';
+        script.async = true;
+        script.onload = function () {
+          _tossSdkLoaded = true;
+          resolve();
+        };
+        script.onerror = function () {
+          reject(new Error('토스 SDK 로드 실패'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function getTossClientKey() {
+      if (window.SIREN_TOSS_CLIENT_KEY) return window.SIREN_TOSS_CLIENT_KEY;
+      var meta = document.querySelector('meta[name="toss-client-key"]');
+      if (meta && meta.content) return meta.content;
+      return 'test_ck_vZnjEJeQVxeemRee2PBMrPmOoBN0';
+    }
+
+    /* 4. "카드 등록하기" 버튼 클릭 */
+    $('brStartBtn').addEventListener('click', async function () {
+      show('brProcessing');
+
+      try {
+        /* 4-1. 백엔드에 빌링 준비 요청 */
+        var prepRes = await fetch('/api/billing-prepare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: intent.name,
+            phone: intent.phone,
+            email: intent.email,
+            amount: intent.amount,
+            isAnonymous: !!intent.isAnonymous,
+          }),
+        });
+        var prepData = await prepRes.json().catch(function () { return {}; });
+
+        if (!prepRes.ok || !prepData.ok || !prepData.data) {
+          throw new Error(prepData.error || '빌링 준비 실패');
+        }
+
+        var customerKey = prepData.data.customerKey;
+        var memberIdent = prepData.data.memberIdent || customerKey;
+
+        /* 4-2. 토스 SDK 로드 */
+        await loadTossSdk();
+
+        /* 4-3. 빌링키 발급 요청 */
+        var clientKey = getTossClientKey();
+        var tossPayments = window.TossPayments(clientKey);
+        var billing = tossPayments.payment({ customerKey: customerKey });
+
+        var origin = location.origin;
+        await billing.requestBillingAuth({
+          method: 'CARD',
+          successUrl: origin + '/billing-success.html',
+          failUrl: origin + '/billing-fail.html',
+          customerEmail: intent.email,
+          customerName: intent.name,
+        });
+        /* 토스가 자동으로 billing-success.html?customerKey=...&authKey=... 로 리다이렉트 */
+      } catch (err) {
+        console.error('[billing-register]', err);
+        if (err.code === 'USER_CANCEL') {
+          show('brMain');
+          showError('등록이 취소되었습니다');
+        } else {
+          show('brMain');
+          showError(err.message || '카드 등록 중 오류가 발생했습니다');
+        }
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
