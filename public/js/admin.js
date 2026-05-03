@@ -282,7 +282,9 @@
     }).join('');
   }
 
-  /* ============ ★ I-4: 회원 관리 (정렬 가능) ============ */
+  /* ============ ★ I-4 + K-7: 회원 관리 ============ */
+  let _mmSearchTimer = null;
+
   async function loadMembers() {
     const panel = document.getElementById('adm-members');
     if (!panel) return;
@@ -290,7 +292,18 @@
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
-    const res = await api('/api/admin/members?limit=50');
+    /* 필터 수집 */
+    const params = new URLSearchParams();
+    params.set('limit', '100');
+    params.set('page', '1');
+    const t = document.getElementById('mmFilterType')?.value || '';
+    const s = document.getElementById('mmFilterStatus')?.value || '';
+    const q = (document.getElementById('mmFilterQ')?.value || '').trim();
+    if (t) params.set('type', t);
+    if (s) params.set('status', s);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/members?' + params.toString());
     if (!res.ok || !res.data?.data) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
@@ -304,7 +317,16 @@
     if (kpis[1]) kpis[1].textContent = _currentMembers.filter((m) => m.type === 'family').length + ' 명';
     if (kpis[2]) kpis[2].textContent = _currentMembers.filter((m) => m.status === 'pending').length + ' 명';
 
-    /* ★ I-4: 헤더 정렬 가능 표시 + 테이블 렌더 */
+    /* ★ K-7: 검색 결과 카운트 */
+    const countEl = document.getElementById('mmCount');
+    if (countEl) {
+      if (q || t || s) {
+        countEl.textContent = `필터: ${_currentMembers.length}건 / 전체 ${_currentMembersTotal.toLocaleString()}명`;
+      } else {
+        countEl.textContent = `전체 ${_currentMembersTotal.toLocaleString()}명`;
+      }
+    }
+
     decorateMemberHeaders();
     renderMemberTable();
   }
@@ -507,6 +529,20 @@
         _memberSort.dir = 'asc';
       }
       renderMemberTable();
+    });
+  }
+  /* ★ K-7: 회원 관리 검색/필터 디바운스 */
+  function setupMemberSearch() {
+    const qInput = document.getElementById('mmFilterQ');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        clearTimeout(_mmSearchTimer);
+        _mmSearchTimer = setTimeout(loadMembers, 400);
+      });
+    }
+    ['mmFilterType', 'mmFilterStatus'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', loadMembers);
     });
   }
 
@@ -1756,7 +1792,7 @@
     });
   }
 
-  /* ============ ★ 회원 정보 팝업 (★ I-3 블랙/메모 연동) ============ */
+  /* ============ ★ 회원 정보 팝업 (★ I-3 블랙/메모 + ★ K-7 메모/잠금/인증) ============ */
   async function openMemberInfoModal(memberId) {
     const modal = document.getElementById('memberInfoModal');
     const body = document.getElementById('memberInfoBody');
@@ -1765,13 +1801,22 @@
     body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
     modal.classList.add('show');
 
-    const res = await api('/api/admin/member-detail?id=' + memberId);
-    if (!res.ok || !res.data?.data) {
+    /* 회원 상세 (member-detail) + 추가로 admin-members?id=N 도 호출해서 잠금/인증 정보 가져오기 */
+    const [detailRes, adminRes] = await Promise.all([
+      api('/api/admin/member-detail?id=' + memberId),
+      api('/api/admin/members?id=' + memberId),
+    ]);
+
+    if (!detailRes.ok || !detailRes.data?.data) {
       body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
       return;
     }
-    /* ★ I-3: blacklist + chatMemos 추가 추출 */
-    const { member, donationSummary, supportSummary, blacklist, chatMemos } = res.data.data;
+    const { member, donationSummary, supportSummary, blacklist, chatMemos } = detailRes.data.data;
+    /* admin-members 응답에서 lockedUntil/emailVerified/memo/agree* 보강 */
+    const adminMember = adminRes.ok ? (adminRes.data?.data?.member || {}) : {};
+    const lockedUntil = adminMember.lockedUntil || member.lockedUntil;
+    const emailVerified = adminMember.emailVerified !== undefined ? adminMember.emailVerified : member.emailVerified;
+    const memo = adminMember.memo !== undefined ? adminMember.memo : (member.memo || '');
 
     const typeBadge = {
       regular: '<span class="badge b-info">정기후원</span>',
@@ -1786,6 +1831,25 @@
       withdrawn: '<span class="badge b-mute">탈퇴</span>',
     };
 
+    /* ★ K-7: 잠금 상태 박스 */
+    const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
+    const lockedBlock = isLocked
+      ? '<div class="mi-locked-box">' +
+          '<strong>🔒 계정이 잠겨 있습니다</strong><br />' +
+          '잠금 해제 시점: ' + formatDateTime(lockedUntil) +
+          ' (5회 로그인 실패로 자동 잠금)' +
+        '</div>'
+      : '';
+
+    /* ★ K-7: 미인증 안내 박스 */
+    const unverifiedBlock = !emailVerified
+      ? '<div class="mi-unverified-box">' +
+          '<span style="font-size:18px">✉️</span>' +
+          '<span style="flex:1">이메일 미인증 상태입니다</span>' +
+          '<button type="button" class="mi-action-row button success" data-mi-k7="verify-email" data-mi-id="' + member.id + '" style="padding:5px 12px;font-size:11.5px;background:#e7f7ec;color:#1a5e2c;border:1px solid #a3d9b4;border-radius:5px;cursor:pointer;font-weight:600">✓ 강제 인증</button>' +
+        '</div>'
+      : '';
+
     /* 최근 후원 5건 */
     const recentDonationHtml = (donationSummary.recent || []).length === 0
       ? '<div style="text-align:center;color:var(--text-3);padding:14px">후원 내역 없음</div>'
@@ -1798,7 +1862,6 @@
           '</div>'
         ).join('');
 
-    /* 최근 지원 신청 */
     const recentSupportHtml = (supportSummary.list || []).length === 0
       ? '<div style="text-align:center;color:var(--text-3);padding:14px">지원 내역 없음</div>'
       : (supportSummary.list || []).slice(0, 5).map((s) =>
@@ -1810,7 +1873,6 @@
           '</div>'
         ).join('');
 
-    /* ★ I-3: 블랙리스트 박스 (있을 때만) */
     const blacklistBlock = blacklist
       ? '<div style="background:#fdecec;border:1px solid #f5b5bb;border-radius:8px;padding:14px 16px;margin-bottom:16px">' +
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">' +
@@ -1829,7 +1891,6 @@
         '</div>'
       : '';
 
-    /* ★ I-3: 채팅 관리자 메모 목록 (있을 때만) */
     const chatMemoBlock = (chatMemos && chatMemos.length > 0)
       ? '<div style="margin-bottom:14px">' +
           '<div class="support-detail-label">💬 채팅 관리자 메모 (' + chatMemos.length + '건)</div>' +
@@ -1854,11 +1915,17 @@
         '</div>'
       : '';
 
+    const safeMemo = String(memo || '').replace(/"/g, '&quot;');
+    const isAdminType = member.type === 'admin';
+
     body.innerHTML =
       blacklistBlock +
+      lockedBlock +
+      unverifiedBlock +
+
       '<div class="member-info-grid">' +
       '<div>이름</div><div><strong>' + escapeHtml(member.name) + '</strong> ' + (typeBadge[member.type] || member.type) + ' ' + (statusBadge[member.status] || member.status) + '</div>' +
-      '<div>이메일</div><div>' + escapeHtml(member.email) + (member.emailVerified ? ' <span style="color:var(--success);font-size:11px">✓ 인증됨</span>' : '') + '</div>' +
+      '<div>이메일</div><div>' + escapeHtml(member.email) + (emailVerified ? ' <span style="color:var(--success);font-size:11px">✓ 인증됨</span>' : ' <span style="color:var(--text-3);font-size:11px">미인증</span>') + '</div>' +
       '<div>연락처</div><div>' + escapeHtml(member.phone || '—') + '</div>' +
       '<div>가입일</div><div>' + formatDate(member.createdAt) + '</div>' +
       '<div>최종 로그인</div><div>' + formatDateTime(member.lastLoginAt) + '</div>' +
@@ -1885,18 +1952,33 @@
 
       chatMemoBlock +
 
-      '<div style="margin-bottom:14px">' +
+      /* ★ K-7: 관리자 메모 입력 */
+      '<div class="mi-section">' +
+        '<h5>📝 관리자 메모 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(회원에게 노출되지 않음)</span></h5>' +
+        '<textarea id="miMemoInput" class="mi-memo-textarea" maxlength="2000" placeholder="이 회원에 대한 메모를 입력하세요...">' + safeMemo + '</textarea>' +
+        '<div class="mi-action-row">' +
+          '<button type="button" class="primary" data-mi-k7="save-memo" data-mi-id="' + member.id + '">💾 메모 저장</button>' +
+          (isLocked
+            ? '<button type="button" class="warn" data-mi-k7="unlock" data-mi-id="' + member.id + '">🔓 잠금 해제</button>'
+            : '') +
+          (member.status === 'pending' && !isAdminType
+            ? '<button type="button" class="success" data-mi-k7="approve" data-mi-id="' + member.id + '">✓ 승인 (정상으로 변경)</button>'
+            : '') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="mi-section">' +
       '<div class="support-detail-label">최근 후원 내역</div>' +
       '<div class="mini-list">' + recentDonationHtml + '</div>' +
       '</div>' +
 
-      '<div>' +
+      '<div class="mi-section">' +
       '<div class="support-detail-label">최근 지원 신청</div>' +
       '<div class="mini-list">' + recentSupportHtml + '</div>' +
       '</div>';
   }
 
-  function setupMemberInfoActions() {
+    function setupMemberInfoActions() {
     /* 회원 이름 클릭 → 모달 오픈 */
     document.addEventListener('click', (e) => {
       const span = e.target.closest('[data-member-info-id]');
@@ -1907,9 +1989,8 @@
       if (id) openMemberInfoModal(id);
     });
 
-    /* ★ I-3: 모달 내 액션 (블랙 해지 / 채팅 이동) */
+    /* 모달 내 액션 (블랙 해지 / 채팅 이동) */
     document.addEventListener('click', async (e) => {
-      /* 블랙 해지 버튼 */
       const unblockBtn = e.target.closest('[data-mi-action="unblock"]');
       if (unblockBtn) {
         e.preventDefault();
@@ -1925,9 +2006,7 @@
 
         if (res.ok) {
           toast(res.data?.message || '블랙 해지 완료');
-          /* 모달 새로고침 */
           openMemberInfoModal(memberId);
-          /* 채팅 화면도 동기화 (열려 있으면) */
           if (window.SIREN_ADMIN_CHAT && typeof window.SIREN_ADMIN_CHAT.loadRoomList === 'function') {
             window.SIREN_ADMIN_CHAT.loadRoomList();
           }
@@ -1939,7 +2018,6 @@
         return;
       }
 
-      /* 채팅 메모 행 클릭 → 채팅 관리 페이지로 이동 + 해당 방 열기 */
       const chatRow = e.target.closest('[data-mi-action="goto-chat"]');
       if (chatRow) {
         e.preventDefault();
@@ -1947,14 +2025,11 @@
         const roomId = Number(chatRow.dataset.miRoom);
         if (!roomId) return;
 
-        /* 회원 정보 모달 닫기 */
         document.getElementById('memberInfoModal')?.classList.remove('show');
 
-        /* 채팅 관리 페이지로 전환 */
         const chatLink = document.querySelector('.adm-menu a[data-page="chat"]');
         if (chatLink) {
           switchAdminPage('chat', chatLink);
-          /* 약간 딜레이 후 해당 방 선택 */
           setTimeout(() => {
             if (window.SIREN_ADMIN_CHAT && typeof window.SIREN_ADMIN_CHAT.selectRoom === 'function') {
               window.SIREN_ADMIN_CHAT.selectRoom(roomId);
@@ -1963,9 +2038,226 @@
         }
         return;
       }
+
+      /* ★ K-7: 메모 저장 / 잠금 해제 / 강제 인증 / 승인 */
+      const k7Btn = e.target.closest('[data-mi-k7]');
+      if (k7Btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const action = k7Btn.dataset.miK7;
+        const memberId = Number(k7Btn.dataset.miId);
+        if (!memberId) return;
+
+        if (action === 'save-memo') {
+          const memo = (document.getElementById('miMemoInput')?.value || '').slice(0, 2000);
+          k7Btn.disabled = true;
+          const oldText = k7Btn.textContent;
+          k7Btn.textContent = '저장 중...';
+
+          const res = await api('/api/admin/members', {
+            method: 'PATCH',
+            body: { id: memberId, inlineMemoOnly: true, memo },
+          });
+
+          k7Btn.disabled = false;
+          k7Btn.textContent = oldText;
+
+          if (res.ok) {
+            toast(res.data?.message || '메모가 저장되었습니다');
+            /* 회원 목록 갱신 (메모 컬럼은 표에는 없지만 캐시 일관성) */
+            if (typeof loadMembers === 'function') loadMembers();
+          } else {
+            toast(res.data?.error || '저장 실패');
+          }
+          return;
+        }
+
+        if (action === 'unlock') {
+          if (!confirm('이 계정의 잠금을 해제하시겠습니까?\n로그인 실패 카운트도 0으로 초기화됩니다.')) return;
+          k7Btn.disabled = true;
+          const oldText = k7Btn.textContent;
+          k7Btn.textContent = '처리 중...';
+
+          const res = await api('/api/admin/members', {
+            method: 'PATCH',
+            body: { id: memberId, unlock: true },
+          });
+
+          if (res.ok) {
+            toast(res.data?.message || '잠금이 해제되었습니다');
+            openMemberInfoModal(memberId);
+            loadMembers();
+          } else {
+            toast(res.data?.error || '해제 실패');
+            k7Btn.disabled = false;
+            k7Btn.textContent = oldText;
+          }
+          return;
+        }
+
+        if (action === 'verify-email') {
+          if (!confirm('이 회원의 이메일을 강제로 인증 처리하시겠습니까?\n(예: 전화로 본인 확인 완료한 경우)')) return;
+          k7Btn.disabled = true;
+          const oldText = k7Btn.textContent;
+          k7Btn.textContent = '처리 중...';
+
+          const res = await api('/api/admin/members', {
+            method: 'PATCH',
+            body: { id: memberId, verifyEmail: true },
+          });
+
+          if (res.ok) {
+            toast(res.data?.message || '이메일 인증이 완료 처리되었습니다');
+            openMemberInfoModal(memberId);
+          } else {
+            toast(res.data?.error || '처리 실패');
+            k7Btn.disabled = false;
+            k7Btn.textContent = oldText;
+          }
+          return;
+        }
+
+        if (action === 'approve') {
+          if (!confirm('이 회원을 정상(active) 상태로 승인하시겠습니까?')) return;
+          k7Btn.disabled = true;
+          const oldText = k7Btn.textContent;
+          k7Btn.textContent = '처리 중...';
+
+          const res = await api('/api/admin/members', {
+            method: 'PATCH',
+            body: { id: memberId, inlineStatusOnly: true, status: 'active' },
+          });
+
+          if (res.ok) {
+            toast(res.data?.message || '승인되었습니다');
+            openMemberInfoModal(memberId);
+            loadMembers();
+          } else {
+            toast(res.data?.error || '승인 실패');
+            k7Btn.disabled = false;
+            k7Btn.textContent = oldText;
+          }
+          return;
+        }
+      }
     });
   }
 
+    /* ★ K-7: 회원 추가 모달 */
+  function setupAddMemberModal() {
+    /* + 회원 추가 버튼 클릭 → 모달 오픈 */
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#btnAddMember')) return;
+      e.preventDefault();
+      const modal = document.getElementById('addMemberModal');
+      if (!modal) return;
+      /* 폼 초기화 */
+      const ids = ['amEmail', 'amName', 'amPhone', 'amMemo'];
+      ids.forEach((id) => { const el = document.getElementById(id); if (el) el.value = ''; });
+      const typeEl = document.getElementById('amType');
+      if (typeEl) typeEl.value = 'regular';
+      modal.classList.add('show');
+      setTimeout(() => document.getElementById('amEmail')?.focus(), 100);
+    });
+
+    /* 폼 제출 */
+    const form = document.getElementById('addMemberForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = (document.getElementById('amEmail')?.value || '').trim();
+      const name = (document.getElementById('amName')?.value || '').trim();
+      const phone = (document.getElementById('amPhone')?.value || '').trim();
+      const type = document.getElementById('amType')?.value || 'regular';
+      const memo = (document.getElementById('amMemo')?.value || '').trim();
+
+      if (!email || !name || !phone) {
+        return toast('이메일/이름/연락처를 모두 입력해 주세요');
+      }
+
+      const btn = document.getElementById('btnAddMemberSubmit');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+      try {
+        const res = await api('/api/admin/members', {
+          method: 'POST',
+          body: { email, name, phone, type, memo: memo || undefined },
+        });
+
+        if (res.ok && res.data?.data) {
+          const newMember = res.data.data.member;
+          const tempPw = res.data.data.tempPassword;
+
+          /* 회원 추가 모달 닫기 */
+          document.getElementById('addMemberModal')?.classList.remove('show');
+
+          /* 임시 비번 결과 모달 오픈 */
+          showTempPasswordModal(newMember, tempPw);
+
+          /* 회원 목록 갱신 */
+          loadMembers();
+        } else {
+          toast(res.data?.error || '회원 추가 실패');
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ★ K-7: 임시 비밀번호 결과 모달 */
+  function showTempPasswordModal(member, tempPassword) {
+    const modal = document.getElementById('tempPasswordModal');
+    if (!modal) return;
+
+    const infoEl = document.getElementById('tpMemberInfo');
+    const pwEl = document.getElementById('tpPassword');
+    const copyBtn = document.getElementById('tpCopyBtn');
+
+    if (infoEl) infoEl.textContent = `${member.name} (${member.email})`;
+    if (pwEl) pwEl.textContent = tempPassword;
+    if (copyBtn) {
+      copyBtn.classList.remove('copied');
+      copyBtn.textContent = '📋 복사하기';
+    }
+
+    modal.classList.add('show');
+  }
+
+  /* ★ K-7: 임시 비번 복사 버튼 */
+  function setupTempPasswordCopy() {
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('#tpCopyBtn');
+      if (!btn) return;
+      e.preventDefault();
+
+      const pwEl = document.getElementById('tpPassword');
+      const pw = pwEl?.textContent || '';
+      if (!pw || pw === '—') return;
+
+      try {
+        await navigator.clipboard.writeText(pw);
+        btn.classList.add('copied');
+        btn.textContent = '✓ 복사됨';
+        toast('임시 비밀번호가 클립보드에 복사되었습니다');
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = '📋 복사하기';
+        }, 3000);
+      } catch (err) {
+        /* 클립보드 API 실패 시 fallback (선택 텍스트) */
+        const range = document.createRange();
+        range.selectNode(pwEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        toast('수동으로 Ctrl+C를 눌러 복사해 주세요');
+      }
+    });
+  }
     /* ============ ★ K-4: 감사 로그 ============ */
   let _auditPage = 1;
   const _auditLimit = 50;
@@ -2676,12 +2968,15 @@
     setupOperatorActions();
     setupReceiptSettings();
     setupExpertAssignClick();  /* ★ K-3 추가 */
-    setupAuditActions();       /* ★ K-4 추가 */
     setupContentActions();     /* ★ K-5 추가 */
     setupNoticeEditForm();     /* ★ K-5 추가 */
     setupFaqEditForm();        /* ★ K-5 추가 */
+    setupMemberSearch();       /* ★ K-7 추가 */
+    setupAddMemberModal();     /* ★ K-7 추가 */
+    setupTempPasswordCopy();   /* ★ K-7 추가 */
 
     const isLogged = await fetchAdminMe();
+
     // ... 이하 기존 코드 그대로
 
     if (isLogged) {
