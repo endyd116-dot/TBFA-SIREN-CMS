@@ -15,6 +15,7 @@ import { db, members, emailVerificationTokens } from "../../db";
 import { hashPassword, signUserToken, buildCookie } from "../../lib/auth";
 import { signupSchema, safeValidate } from "../../lib/validation";
 import { sendEmail, tplEmailVerify } from "../../lib/email";
+import { classifyForSignup } from "../../lib/member-classifier";
 import {
   ok, created, badRequest, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -64,6 +65,12 @@ export default async (req: Request) => {
        - 유가족: 증빙 검토 필요 → pending */
     const status = memberType === "family" ? "pending" : "active";
 
+    /* ★ M-12: 자동 분류 + 가입경로='website' 자동 설정 */
+    const classify = await classifyForSignup({
+      type: memberType,
+      signupSource: "website",
+    });
+
     const insertPayload: any = {
       email,
       passwordHash,
@@ -73,6 +80,10 @@ export default async (req: Request) => {
       status,
       agreeEmail: true,
       agreeSms: true,
+      /* ★ M-12: 자동 분류 */
+      memberCategory: classify.memberCategory,
+      memberSubtype: classify.memberSubtype,
+      signupSourceId: classify.signupSourceId,
     };
 
     const [newMember] = await db

@@ -27,9 +27,10 @@
  * - 파일 크기 5MB 제한
  * - audit_logs + hyosung_import_logs 이중 기록
  */
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db, donations, members, hyosungImportLogs } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { upgradeToSponsor, getSignupSourceId } from "../../lib/member-classifier";
 import {
   ok, badRequest, serverError,
   corsPreflight, methodNotAllowed,
@@ -232,6 +233,24 @@ export default async (req: Request) => {
 
         await db.insert(donations).values(insertPayload);
         createdCount++;
+
+        /* ★ M-12: 매칭된 회원이 있으면 sponsor + hyosung_donation으로 승급 */
+        if (matchedDonation.memberId) {
+          try {
+            await upgradeToSponsor(matchedDonation.memberId, "hyosung");
+            /* 가입경로가 비어있는 경우만 효성으로 마킹 */
+            const hyosungSourceId = await getSignupSourceId("hyosung_csv");
+            if (hyosungSourceId) {
+              await db.execute(
+                sql`UPDATE members SET signup_source_id = ${hyosungSourceId}
+                    WHERE id = ${matchedDonation.memberId}
+                      AND signup_source_id IS NULL`
+              );
+            }
+          } catch (classifyErr) {
+            console.error("[hyosung-import] 분류 승급 실패:", classifyErr);
+          }
+        }
       } catch (rowErr: any) {
         failedCount++;
         failures.push({

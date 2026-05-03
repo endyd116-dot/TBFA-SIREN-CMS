@@ -20,8 +20,10 @@
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db, members, donations } from "../../db";
+import { signupSources } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { hashPassword, checkPasswordStrength } from "../../lib/auth";
+import { classifyForSignup } from "../../lib/member-classifier";
 import {
   ok, created, badRequest, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -36,6 +38,12 @@ const addMemberSchema = z.object({
   phone: z.string().trim().regex(/^[0-9\-+\s()]{8,20}$/, "연락처 형식이 올바르지 않습니다"),
   type: z.enum(["regular", "family", "volunteer"]),
   memo: z.string().max(2000).optional(),
+  /* ★ M-12: 관리자 추가 시 분류 옵션 (선택, 미지정 시 자동 분류) */
+  memberCategory: z.enum(["sponsor", "regular", "family", "etc"]).optional(),
+  memberSubtype: z.enum([
+    "regular_donation", "hyosung_donation", "onetime_donation",
+    "volunteer", "lawyer", "counselor",
+  ]).optional(),
 });
 
 /* ───────── 임시 비밀번호 생성 (영문+숫자 조합 12자) ───────── */
@@ -103,10 +111,14 @@ export default async (req: Request) => {
       }
 
       /* 목록 조회 */
+            /* 목록 조회 (★ M-12: 4분류 + 가입경로 필터 + signup_sources join) */
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
       const limit = Math.min(100, Number(url.searchParams.get("limit") || 20));
       const type = url.searchParams.get("type");
       const status = url.searchParams.get("status");
+      const category = url.searchParams.get("category");           /* ★ M-12 */
+      const subtype = url.searchParams.get("subtype");             /* ★ M-12 */
+      const sourceId = url.searchParams.get("source");             /* ★ M-12 */
       const q = (url.searchParams.get("q") || "").trim();
 
       const conditions: any[] = [];
@@ -115,6 +127,20 @@ export default async (req: Request) => {
       }
       if (status && ["pending", "active", "suspended", "withdrawn"].includes(status)) {
         conditions.push(eq(members.status, status as any));
+      }
+      /* ★ M-12: 카테고리/세부분류/가입경로 필터 */
+      if (category && ["sponsor", "regular", "family", "etc"].includes(category)) {
+        conditions.push(eq(members.memberCategory, category));
+      }
+      if (subtype) {
+        const validSub = ["regular_donation", "hyosung_donation", "onetime_donation",
+          "volunteer", "lawyer", "counselor"];
+        if (validSub.includes(subtype)) {
+          conditions.push(eq(members.memberSubtype, subtype));
+        }
+      }
+      if (sourceId && /^\d+$/.test(sourceId)) {
+        conditions.push(eq(members.signupSourceId, Number(sourceId)));
       }
       if (q && q.length >= 2) {
         const pattern = `%${q}%`;
@@ -135,6 +161,7 @@ export default async (req: Request) => {
 
       const [{ total }] = await db.select({ total: count() }).from(members).where(where);
 
+      /* ★ M-12: signup_sources join으로 가입경로 라벨도 함께 반환 */
       const list = await db
         .select({
           id: members.id,
@@ -143,6 +170,11 @@ export default async (req: Request) => {
           phone: members.phone,
           type: members.type,
           status: members.status,
+          memberCategory: members.memberCategory,
+          memberSubtype: members.memberSubtype,
+          signupSourceId: members.signupSourceId,
+          sourceLabel: signupSources.label,
+          sourceCode: signupSources.code,
           emailVerified: members.emailVerified,
           lockedUntil: members.lockedUntil,
           memo: members.memo,
@@ -150,14 +182,28 @@ export default async (req: Request) => {
           createdAt: members.createdAt,
         })
         .from(members)
-        .where(where)
+        .leftJoin(signupSources, eq(members.signupSourceId, signupSources.id))
+        .where(where as any)
         .orderBy(desc(members.createdAt))
         .limit(limit)
         .offset((page - 1) * limit);
 
+      /* ★ M-12: 카테고리별 카운트 (대시보드용) */
+      const catStats: any[] = await db.execute(sql`
+        SELECT
+          COALESCE(member_category, 'unknown') AS category,
+          COUNT(*)::int AS count
+        FROM members
+        WHERE status != 'withdrawn'
+        GROUP BY member_category
+      `);
+      const categoryCounts: Record<string, number> = {};
+      for (const r of catStats) categoryCounts[r.category] = r.count;
+
       return ok({
         list,
         pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
+        categoryCounts,
       });
     }
 
@@ -192,12 +238,18 @@ export default async (req: Request) => {
         return badRequest("이미 가입된 이메일입니다");
       }
 
-      /* 임시 비밀번호 생성 + 해싱 */
+            /* 임시 비밀번호 생성 + 해싱 */
       const tempPassword = generateTempPassword();
       const passwordHash = await hashPassword(tempPassword);
 
       /* 유가족은 pending, 그 외는 active */
       const status = data.type === "family" ? "pending" : "active";
+
+      /* ★ M-12: 자동 분류 + 가입경로='admin' 자동 설정 */
+      const classify = await classifyForSignup({
+        type: data.type,
+        signupSource: "admin",
+      });
 
       const insertPayload: any = {
         email: data.email,
@@ -211,6 +263,10 @@ export default async (req: Request) => {
         agreeEmail: true,
         agreeSms: true,
         agreeMail: false,
+        /* ★ M-12: 자동 분류 (관리자가 명시적으로 지정한 경우 우선) */
+        memberCategory: data.memberCategory || classify.memberCategory,
+        memberSubtype: data.memberSubtype || classify.memberSubtype,
+        signupSourceId: classify.signupSourceId,
       };
 
       const [inserted] = await db
