@@ -570,30 +570,60 @@
     });
   }
 
-  /* ============ 기부 관리 ============ */
+  /* ============ ★ K-8: 기부 관리 (확장) ============ */
+  let _dmSearchTimer = null;
+
   async function loadDonations() {
     const panel = document.getElementById('adm-donations');
     if (!panel) return;
     const tbody = panel.querySelector('table.tbl tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
-    const res = await api('/api/admin/donations?limit=50');
+    /* 필터 수집 */
+    const params = new URLSearchParams();
+    params.set('limit', '50');
+    params.set('page', '1');
+    const t = document.getElementById('dmFilterType')?.value || '';
+    const s = document.getElementById('dmFilterStatus')?.value || '';
+    const q = (document.getElementById('dmFilterQ')?.value || '').trim();
+    if (t) params.set('type', t);
+    if (s) params.set('status', s);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/donations?' + params.toString());
     if (!res.ok || !res.data?.data) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
       return;
     }
     const list = res.data.data.list || [];
     const stats = res.data.data.stats || {};
+    const pagination = res.data.data.pagination || {};
 
+    /* KPI */
     const kpis = panel.querySelectorAll('.kpi-value');
     if (kpis[0]) kpis[0].textContent = fmtMoney(stats.today);
     if (kpis[1]) kpis[1].textContent = fmtMoney(stats.month);
     if (kpis[2]) kpis[2].textContent = (stats.failedCount || 0) + ' 건';
     if (kpis[3]) kpis[3].textContent = (stats.receiptPendingCount || 0) + ' 건';
+    const refundedEl = document.getElementById('dmKpiRefunded');
+    const cancelledEl = document.getElementById('dmKpiCancelled');
+    if (refundedEl) refundedEl.textContent = (stats.refundedCount || 0) + ' 건';
+    if (cancelledEl) cancelledEl.textContent = (stats.cancelledCount || 0) + ' 건';
+
+    /* 카운트 표시 */
+    const countEl = document.getElementById('dmCount');
+    if (countEl) {
+      const total = pagination.total || 0;
+      if (q || t || s) {
+        countEl.textContent = `필터: ${list.length}건 / 전체 ${total.toLocaleString()}건`;
+      } else {
+        countEl.textContent = `전체 ${total.toLocaleString()}건`;
+      }
+    }
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">결제 내역이 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">결제 내역이 없습니다</td></tr>';
       return;
     }
 
@@ -609,14 +639,27 @@
 
     tbody.innerHTML = list.map((d) => {
       const txn = d.transactionId ? d.transactionId.slice(-12) : '-';
+      const anonMark = d.isAnonymous ? '<span class="dm-anonymous-mark">익명</span>' : '';
+      const campaignMark = d.campaignTag ? '<span class="dm-campaign-tag">' + escapeHtml(d.campaignTag) + '</span>' : '';
+
+      /* 액션 버튼 */
+      const canRefund = d.status === 'completed';
+      const canCancel = d.status === 'pending' || d.status === 'completed';
+      const actions = '<div class="dm-row-actions">' +
+        '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">📝 상세</button>' +
+        (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">💸 환불</button>' : '') +
+        (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">❌ 취소</button>' : '') +
+        '</div>';
+
       return '<tr>' +
         '<td>' + formatDateTime(d.createdAt) + '</td>' +
-        '<td>' + escapeHtml(d.donorName) + '</td>' +
-        '<td>' + (typeMap[d.type] || d.type) + '</td>' +
+        '<td>' + escapeHtml(d.donorName) + anonMark + '</td>' +
+        '<td>' + (typeMap[d.type] || d.type) + campaignMark + '</td>' +
         '<td>₩ ' + (d.amount || 0).toLocaleString() + '</td>' +
         '<td>' + (payMap[d.payMethod] || d.payMethod) + '</td>' +
         '<td style="font-family:Inter;font-size:11px">' + escapeHtml(txn) + '</td>' +
         '<td>' + (statusMap[d.status] || d.status) + '</td>' +
+        '<td>' + actions + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -642,6 +685,333 @@
         loadDonations();
       } else {
         toast('발행 실패');
+      }
+    });
+  }
+
+  /* ★ K-8: 기부 관리 검색/필터 디바운스 */
+  function setupDonationSearch() {
+    const qInput = document.getElementById('dmFilterQ');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        clearTimeout(_dmSearchTimer);
+        _dmSearchTimer = setTimeout(loadDonations, 400);
+      });
+    }
+    ['dmFilterType', 'dmFilterStatus'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', loadDonations);
+    });
+  }
+
+  /* ★ K-8: 행 액션 핸들러 (상세/환불/취소) */
+  function setupDonationRowActions() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-dm-action]');
+      if (!btn) return;
+      e.preventDefault();
+
+      const action = btn.dataset.dmAction;
+      const id = Number(btn.dataset.id);
+      if (!id) return;
+
+      if (action === 'detail') {
+        openDonationDetailModal(id);
+        return;
+      }
+      if (action === 'refund') {
+        openRefundModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0);
+        return;
+      }
+      if (action === 'cancel') {
+        openCancelModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0);
+        return;
+      }
+    });
+  }
+
+  /* ★ K-8: 후원 상세 모달 */
+  async function openDonationDetailModal(id) {
+    const modal = document.getElementById('donationDetailModal');
+    const body = document.getElementById('donationDetailBody');
+    if (!modal || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/donations?id=' + id);
+    if (!res.ok || !res.data?.data?.donation) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
+      return;
+    }
+    const d = res.data.data.donation;
+
+    const typeMap = { regular: '정기 후원', onetime: '일시 후원' };
+    const payMap = { cms: 'CMS 자동이체', card: '신용카드', bank: '계좌이체' };
+    const statusKr = {
+      completed: '승인 완료',
+      pending: '결제 대기',
+      failed: '실패',
+      cancelled: '취소',
+      refunded: '환불',
+    };
+    const statusClass = d.status;
+
+    const statusCard = '<div class="dd-status-card ' + statusClass + '">' +
+      '<div class="icon">' +
+      (d.status === 'completed' ? '✅' :
+       d.status === 'pending' ? '⏳' :
+       d.status === 'refunded' ? '💸' :
+       d.status === 'cancelled' ? '❌' : '⚠️') +
+      '</div>' +
+      '<div class="text">' +
+        '<strong>' + (statusKr[d.status] || d.status) + '</strong>' +
+        '₩ ' + (d.amount || 0).toLocaleString() + ' · ' + (typeMap[d.type] || d.type) +
+      '</div>' +
+      '</div>';
+
+    const safeMemo = String(d.memo || '').replace(/"/g, '&quot;');
+    const safeCampaign = String(d.campaignTag || '').replace(/"/g, '&quot;');
+
+    body.innerHTML =
+      statusCard +
+
+      '<div class="dd-grid">' +
+        '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(d.id).padStart(7, '0') + '</div>' +
+        '<div>후원자</div><div><strong>' + escapeHtml(d.donorName) + '</strong>' + (d.isAnonymous ? ' <span class="dm-anonymous-mark">익명</span>' : '') + '</div>' +
+        (d.donorEmail ? '<div>이메일</div><div>' + escapeHtml(d.donorEmail) + '</div>' : '') +
+        (d.donorPhone ? '<div>연락처</div><div>' + escapeHtml(d.donorPhone) + '</div>' : '') +
+        '<div>금액</div><div style="font-weight:700">₩ ' + (d.amount || 0).toLocaleString() + '</div>' +
+        '<div>유형</div><div>' + (typeMap[d.type] || d.type) + '</div>' +
+        '<div>결제수단</div><div>' + (payMap[d.payMethod] || d.payMethod) + '</div>' +
+        '<div>승인번호</div><div style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.transactionId || '—') + '</div>' +
+        (d.receiptNumber ? '<div>영수증번호</div><div style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.receiptNumber) + '</div>' : '') +
+        '<div>결제일시</div><div>' + formatDateTime(d.createdAt) + '</div>' +
+      '</div>' +
+
+      /* 캠페인 태그 */
+      '<div class="dd-section">' +
+        '<h5>🏷️ 캠페인 태그</h5>' +
+        '<div class="field-row">' +
+          '<input type="text" id="ddCampaignInput" maxlength="50" value="' + safeCampaign + '" placeholder="예) 2026-spring-memorial">' +
+          '<button type="button" class="small-btn" data-dd-action="save-campaign" data-id="' + d.id + '">💾 저장</button>' +
+        '</div>' +
+      '</div>' +
+
+      /* 익명 토글 */
+      '<div class="dd-section">' +
+        '<h5>🎭 익명 후원 표시</h5>' +
+        '<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px">' +
+          '<input type="checkbox" id="ddAnonymousToggle" ' + (d.isAnonymous ? 'checked' : '') + ' data-id="' + d.id + '">' +
+          '<span>관리자 외 다른 사용자에게 후원자 정보 노출 안 함 (현재: ' + (d.isAnonymous ? '익명' : '공개') + ')</span>' +
+        '</label>' +
+      '</div>' +
+
+      /* 메모 */
+      '<div class="dd-section">' +
+        '<h5>📝 관리자 메모</h5>' +
+        '<textarea id="ddMemoInput" maxlength="2000" placeholder="이 후원에 대한 메모...">' + safeMemo + '</textarea>' +
+        '<div class="field-row" style="margin-top:8px">' +
+          '<button type="button" class="small-btn" data-dd-action="save-memo" data-id="' + d.id + '">💾 메모 저장</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ★ K-8: 환불 모달 */
+  function openRefundModal(id, donorName, amount) {
+    const modal = document.getElementById('refundReasonModal');
+    if (!modal) return;
+
+    document.getElementById('rcRefundId').value = String(id);
+    document.getElementById('rcRefundReason').value = '';
+
+    const infoEl = document.getElementById('rcRefundInfo');
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(id).padStart(7, '0') + '</div>' +
+        '<div>후원자</div><div><strong>' + escapeHtml(donorName) + '</strong></div>' +
+        '<div>금액</div><div style="font-weight:700;color:#c47a00">₩ ' + amount.toLocaleString() + '</div>';
+    }
+
+    modal.classList.add('show');
+    setTimeout(() => document.getElementById('rcRefundReason')?.focus(), 100);
+  }
+
+  /* ★ K-8: 취소 모달 */
+  function openCancelModal(id, donorName, amount) {
+    const modal = document.getElementById('cancelReasonModal');
+    if (!modal) return;
+
+    document.getElementById('rcCancelId').value = String(id);
+    document.getElementById('rcCancelReason').value = '';
+
+    const infoEl = document.getElementById('rcCancelInfo');
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(id).padStart(7, '0') + '</div>' +
+        '<div>후원자</div><div><strong>' + escapeHtml(donorName) + '</strong></div>' +
+        '<div>금액</div><div style="font-weight:700;color:var(--danger)">₩ ' + amount.toLocaleString() + '</div>';
+    }
+
+    modal.classList.add('show');
+    setTimeout(() => document.getElementById('rcCancelReason')?.focus(), 100);
+  }
+
+  /* ★ K-8: 환불/취소 폼 + 상세 모달 액션 */
+  function setupDonationDetailActions() {
+    /* 환불 폼 제출 */
+    const refundForm = document.getElementById('refundForm');
+    if (refundForm) {
+      refundForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = Number(document.getElementById('rcRefundId').value);
+        const reason = (document.getElementById('rcRefundReason').value || '').trim();
+        if (!id) return;
+
+        const finalConfirm = confirm(
+          '정말 환불 처리하시겠습니까?\n\n' +
+          '• 시스템 상태가 refunded로 변경됩니다\n' +
+          '• 실제 PG사 환불은 별도 진행해야 합니다\n' +
+          '• 되돌릴 수 없습니다'
+        );
+        if (!finalConfirm) return;
+
+        const btn = document.getElementById('btnRefundConfirm');
+        const oldText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+        try {
+          const res = await api('/api/admin/donations', {
+            method: 'PATCH',
+            body: { id, refundOne: true, reason: reason || undefined },
+          });
+
+          if (res.ok) {
+            toast(res.data?.message || '환불 처리되었습니다');
+            document.getElementById('refundReasonModal')?.classList.remove('show');
+            loadDonations();
+          } else {
+            toast(res.data?.error || '환불 실패');
+          }
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+        }
+      });
+    }
+
+    /* 취소 폼 제출 */
+    const cancelForm = document.getElementById('cancelForm');
+    if (cancelForm) {
+      cancelForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = Number(document.getElementById('rcCancelId').value);
+        const reason = (document.getElementById('rcCancelReason').value || '').trim();
+        if (!id) return;
+
+        const finalConfirm = confirm(
+          '정말 취소 처리하시겠습니까?\n\n' +
+          '• 결제가 무효 처리됩니다\n' +
+          '• 정기 후원은 다음 결제부터 자동 청구가 중단됩니다\n' +
+          '• 한 번 취소되면 되돌릴 수 없습니다'
+        );
+        if (!finalConfirm) return;
+
+        const btn = document.getElementById('btnCancelConfirm');
+        const oldText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+        try {
+          const res = await api('/api/admin/donations', {
+            method: 'PATCH',
+            body: { id, cancelOne: true, reason: reason || undefined },
+          });
+
+          if (res.ok) {
+            toast(res.data?.message || '취소 처리되었습니다');
+            document.getElementById('cancelReasonModal')?.classList.remove('show');
+            loadDonations();
+          } else {
+            toast(res.data?.error || '취소 실패');
+          }
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+        }
+      });
+    }
+
+    /* 상세 모달 내 액션 (메모/캠페인 저장 + 익명 토글) */
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-dd-action]');
+      if (!btn) return;
+      e.preventDefault();
+      const action = btn.dataset.ddAction;
+      const id = Number(btn.dataset.id);
+      if (!id) return;
+
+      if (action === 'save-memo') {
+        const memo = (document.getElementById('ddMemoInput')?.value || '').slice(0, 2000);
+        btn.disabled = true;
+        const oldText = btn.textContent;
+        btn.textContent = '저장 중...';
+
+        const res = await api('/api/admin/donations', {
+          method: 'PATCH',
+          body: { id, inlineMemoOnly: true, memo },
+        });
+
+        btn.disabled = false;
+        btn.textContent = oldText;
+
+        if (res.ok) {
+          toast(res.data?.message || '메모가 저장되었습니다');
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+        return;
+      }
+
+      if (action === 'save-campaign') {
+        const campaignTag = (document.getElementById('ddCampaignInput')?.value || '').trim();
+        btn.disabled = true;
+        const oldText = btn.textContent;
+        btn.textContent = '저장 중...';
+
+        const res = await api('/api/admin/donations', {
+          method: 'PATCH',
+          body: { id, campaignTag: campaignTag || null },
+        });
+
+        btn.disabled = false;
+        btn.textContent = oldText;
+
+        if (res.ok) {
+          toast('캠페인 태그가 저장되었습니다');
+          loadDonations();
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+        return;
+      }
+    });
+
+    /* 익명 토글 */
+    document.addEventListener('change', async (e) => {
+      const cb = e.target.closest('#ddAnonymousToggle');
+      if (!cb) return;
+      const id = Number(cb.dataset.id);
+      const newVal = cb.checked;
+
+      const res = await api('/api/admin/donations', {
+        method: 'PATCH',
+        body: { id, isAnonymous: newVal },
+      });
+
+      if (res.ok) {
+        toast(newVal ? '익명 후원으로 변경되었습니다' : '공개 후원으로 변경되었습니다');
+        loadDonations();
+      } else {
+        toast(res.data?.error || '변경 실패');
+        cb.checked = !newVal;
       }
     });
   }
@@ -2974,6 +3344,9 @@
     setupMemberSearch();       /* ★ K-7 추가 */
     setupAddMemberModal();     /* ★ K-7 추가 */
     setupTempPasswordCopy();   /* ★ K-7 추가 */
+    setupDonationSearch();     /* ★ K-8 추가 */
+    setupDonationRowActions(); /* ★ K-8 추가 */
+    setupDonationDetailActions(); /* ★ K-8 추가 */
 
     const isLogged = await fetchAdminMe();
 

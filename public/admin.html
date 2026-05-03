@@ -885,6 +885,227 @@
 }
 .tp-warn strong { color: #6a1820; }
 
+/* ===== ★ K-8: 기부 관리 보강 ===== */
+.dm-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.dm-toolbar select,
+.dm-toolbar input[type="search"] {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.dm-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+}
+.dm-toolbar .dm-count {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+.dm-row-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.dm-row-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dm-row-actions button.detail { color: var(--brand); border-color: #f0e0e3; }
+.dm-row-actions button.detail:hover { background: var(--brand-soft, #fef9f5); }
+.dm-row-actions button.refund {
+  color: #c47a00;
+  border-color: #f0e3c4;
+  background: #fff8ec;
+}
+.dm-row-actions button.refund:hover { background: #fdf3d8; }
+.dm-row-actions button.cancel {
+  color: var(--danger);
+  border-color: #f5b5bb;
+}
+.dm-row-actions button.cancel:hover { background: #fdecec; }
+.dm-row-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dm-anonymous-mark {
+  display: inline-block;
+  background: #f0f0f0;
+  color: #525252;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+.dm-campaign-tag {
+  display: inline-block;
+  background: #e6f2ff;
+  color: #1a5ec4;
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  margin-left: 4px;
+  font-family: 'Inter', monospace;
+}
+
+/* 기부 상세 모달 */
+.dd-grid {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px 14px;
+  font-size: 12.5px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border-radius: 6px;
+}
+.dd-grid > div:nth-child(odd) {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.dd-grid > div:nth-child(even) {
+  word-break: break-all;
+}
+
+.dd-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.dd-section h5 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.dd-section .field-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.dd-section input[type="text"] {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: inherit;
+  flex: 1;
+  min-width: 180px;
+  box-sizing: border-box;
+}
+.dd-section textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.dd-section input:focus,
+.dd-section textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.dd-section .small-btn {
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+.dd-section .small-btn:hover { background: var(--brand-deep, #5a1620); }
+.dd-section .small-btn.ghost {
+  background: #fff;
+  color: var(--text-2);
+  border-color: var(--line);
+}
+.dd-section .small-btn.ghost:hover { background: #f5f4f2; }
+
+.dd-status-card {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dd-status-card.completed {
+  background: #e7f7ec;
+  border: 1px solid #a3d9b4;
+  color: #1a5e2c;
+}
+.dd-status-card.pending {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  color: #8a6a00;
+}
+.dd-status-card.failed,
+.dd-status-card.cancelled,
+.dd-status-card.refunded {
+  background: #fdecec;
+  border: 1px solid #f5b5bb;
+  color: #a01e2c;
+}
+.dd-status-card .icon { font-size: 22px; }
+.dd-status-card .text { flex: 1; font-size: 13px; line-height: 1.5; }
+.dd-status-card .text strong { display: block; margin-bottom: 2px; }
+
+/* 환불/취소 사유 입력 모달 */
+.rc-warn-box {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: #8a6a00;
+  line-height: 1.7;
+}
+.rc-warn-box.danger {
+  background: #fdecec;
+  border-color: #f5b5bb;
+  color: #a01e2c;
+}
+.rc-info-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 6px 12px;
+  font-size: 12.5px;
+  padding: 12px 14px;
+  background: var(--bg-soft);
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+.rc-info-grid > div:nth-child(odd) { color: var(--text-3); font-weight: 600; }
+
   /* ★ STEP H-2d-3: 영수증 설정 페이지 전용 */
   .rs-form-grid {
     display: grid;
@@ -1136,12 +1357,15 @@
 
         <!-- 3. 기부 관리 -->
         <div id="adm-donations" class="adm-page">
-          <div class="kpi-grid">
+          <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
             <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value">₩ 0.0M</div></div>
             <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value">₩ 0.0M</div></div>
             <div class="kpi"><div class="kpi-label">실패 건</div><div class="kpi-value">0 건</div></div>
             <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value">0 건</div></div>
+            <div class="kpi" style="border-left:3px solid #c47a00"><div class="kpi-label" style="color:#c47a00">환불</div><div class="kpi-value" id="dmKpiRefunded" style="color:#c47a00">0 건</div></div>
+            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">취소</div><div class="kpi-value" id="dmKpiCancelled" style="color:var(--danger)">0 건</div></div>
           </div>
+
           <div class="panel">
             <div class="p-head">
               <div class="p-title">결제 내역</div>
@@ -1150,10 +1374,32 @@
                 <button class="btn-sm btn-sm-primary" data-demo-action="bulk-receipt">📄 영수증 일괄 발행</button>
               </div>
             </div>
-            <table class="tbl">
-              <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th></tr></thead>
-              <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-            </table>
+
+            <!-- ★ K-8: 검색/필터 툴바 -->
+            <div class="dm-toolbar">
+              <select id="dmFilterType">
+                <option value="">전체 유형</option>
+                <option value="regular">정기 후원</option>
+                <option value="onetime">일시 후원</option>
+              </select>
+              <select id="dmFilterStatus">
+                <option value="">전체 상태</option>
+                <option value="completed">승인</option>
+                <option value="pending">대기</option>
+                <option value="failed">실패</option>
+                <option value="cancelled">취소</option>
+                <option value="refunded">환불</option>
+              </select>
+              <input type="search" id="dmFilterQ" placeholder="🔍 이름·이메일·승인번호·영수증번호 검색 (2자 이상)">
+              <span class="dm-count" id="dmCount">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1100px">
+                <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th><th style="width:160px">관리</th></tr></thead>
+                <tbody><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -1948,6 +2194,111 @@
         </div>
 
         <button type="button" class="btn btn-primary btn-block" data-action="close-modal" style="margin-top:14px">확인 (모달 닫기)</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- ★ K-8: 후원 상세 모달 -->
+  <div id="donationDetailModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif">💝 후원 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="donationDetailBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ K-8: 환불 사유 입력 모달 -->
+  <div id="refundReasonModal" class="modal">
+    <div class="modal-content" style="max-width:520px">
+      <div class="modal-header">
+        <h3 class="serif">💸 후원 환불 처리</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="rc-warn-box">
+          ⚠️ <strong>주의 — 환불 처리 안내</strong><br />
+          • 이 작업은 시스템 상의 상태만 변경합니다 (DB)<br />
+          • <strong>실제 PG사 환불</strong>은 결제대행사를 통해 별도 진행해야 합니다<br />
+          • 환불 후 상태는 'refunded'로 변경되며 영수증 발급에 영향을 줄 수 있습니다<br />
+          • 사유는 후원 메모에 누적 기록됩니다 (감사 로그용)
+        </div>
+
+        <div class="rc-info-grid" id="rcRefundInfo">
+          <!-- JS 동적 생성 -->
+        </div>
+
+        <form id="refundForm">
+          <input type="hidden" id="rcRefundId" value="">
+          <div class="fg">
+            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+              환불 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
+            </label>
+            <textarea id="rcRefundReason" maxlength="500"
+                      style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box"
+                      placeholder="예) 회원 요청, 중복 결제 / 시스템 오류로 인한 더블 청구 / ..."></textarea>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="submit" id="btnRefundConfirm"
+                    style="flex:1;background:#c47a00;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">
+              💸 환불 처리 확정
+            </button>
+            <button type="button" data-action="close-modal"
+                    style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">
+              취소
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ K-8: 결제 취소 사유 입력 모달 -->
+  <div id="cancelReasonModal" class="modal">
+    <div class="modal-content" style="max-width:520px">
+      <div class="modal-header">
+        <h3 class="serif">❌ 후원 취소 처리</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="rc-warn-box danger">
+          ⚠️ <strong>관리자 강제 취소</strong><br />
+          • 결제 자체가 무효 처리됩니다 (cancelled)<br />
+          • 정기 후원은 다음 결제부터 자동 청구가 중단됩니다 (PG 별도 처리 필요)<br />
+          • 한 번 취소되면 되돌릴 수 없습니다<br />
+          • 사유는 후원 메모에 누적 기록됩니다
+        </div>
+
+        <div class="rc-info-grid" id="rcCancelInfo">
+          <!-- JS 동적 생성 -->
+        </div>
+
+        <form id="cancelForm">
+          <input type="hidden" id="rcCancelId" value="">
+          <div class="fg">
+            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
+              취소 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
+            </label>
+            <textarea id="rcCancelReason" maxlength="500"
+                      style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box"
+                      placeholder="예) 결제 실패 후 정리 / 회원 탈퇴로 인한 정기후원 정리 / ..."></textarea>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="submit" id="btnCancelConfirm"
+                    style="flex:1;background:var(--danger);color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">
+              ❌ 취소 처리 확정
+            </button>
+            <button type="button" data-action="close-modal"
+                    style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">
+              취소
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
