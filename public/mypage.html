@@ -553,7 +553,248 @@
   border: 1px solid var(--line);
 }
 
+/* ===== ★ M-9: 신청 내역 통합 탭 ===== */
+.app-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--line);
+  flex-wrap: wrap;
+}
+.app-subtab {
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-size: 13.5px;
+  color: var(--text-3);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-subtab:hover { color: var(--brand); }
+.app-subtab.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+.app-subtab .count-badge {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+.app-subtab:not(.active) .count-badge {
+  background: var(--text-4, #d1d5db);
+}
+
+.app-list { list-style: none; margin: 0; padding: 0; }
+.app-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  transition: all 0.15s;
+}
+.app-card:hover {
+  border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(122, 31, 43, 0.06);
+}
+.app-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.app-card-no {
+  font-family: 'Inter';
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.app-card-status {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.app-status-submitted, .app-status-ai_analyzed { background: #eef2ff; color: #4338ca; }
+.app-status-reviewing, .app-status-matching { background: #fff8ec; color: #8a6a00; }
+.app-status-matched, .app-status-in_progress { background: #e7f7ec; color: #1a5e2c; }
+.app-status-responded, .app-status-completed { background: #d1fae5; color: #065f46; }
+.app-status-closed { background: #f3f4f6; color: #525252; }
+.app-status-rejected { background: #fee2e2; color: #991b1b; }
+
+.app-card-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+.app-card-summary {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.app-card-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.app-card-meta .severity {
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.app-severity-critical { background: #fee2e2; color: #991b1b; }
+.app-severity-high { background: #ffedd5; color: #9a3412; }
+.app-severity-urgent { background: #fee2e2; color: #991b1b; }
+.app-severity-medium, .app-severity-normal { background: #fef3c7; color: #854d0e; }
+.app-severity-low { background: #dbeafe; color: #1e40af; }
+
+.app-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.app-card-actions button {
+  padding: 6px 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text-2);
+  font-family: inherit;
+  font-weight: 600;
+}
+.app-card-actions button:hover { border-color: var(--brand); color: var(--brand); }
+.app-card-actions .btn-detail { background: var(--brand); color: #fff; border-color: var(--brand); }
+.app-card-actions .btn-detail:hover { background: #5a1620; color: #fff; }
+.app-card-actions .btn-delete { color: #dc2626; border-color: #fca5a5; }
+.app-card-actions .btn-delete:hover { background: #fee2e2; }
+
+.app-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-3);
+  background: var(--bg-soft);
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+}
+.app-empty .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.6; }
+.app-empty .title { font-size: 13.5px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+.app-empty .desc { font-size: 12px; line-height: 1.6; }
+.app-empty .new-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ===== M-9 상세 모달 ===== */
+#appDetailModal {
+  display: none !important;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px 16px;
+  overflow-y: auto;
+}
+#appDetailModal.show { display: flex !important; }
+#appDetailModal .adm-content {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 720px;
+  width: 100%;
+  margin: auto;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+#appDetailModal .adm-header {
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #3a0d14, #7a1f2b);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#appDetailModal .adm-header h3 {
+  margin: 0;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px;
+}
+#appDetailModal .adm-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+}
+#appDetailModal .adm-body {
+  padding: 24px 28px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+#appDetailModal .adm-section {
+  background: var(--bg-soft);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+#appDetailModal .adm-section h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#appDetailModal .adm-section .body {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.7;
+  word-break: break-word;
+}
+#appDetailModal .adm-section.admin-response {
+  background: linear-gradient(135deg, #f0f5fc, #fff);
+  border: 1px solid #cee0f2;
+}
+#appDetailModal .adm-section.admin-response h4 { color: #1a5ec4; }
+
 </style>
+
 </head>
 <body data-page="mypage">
 
@@ -585,7 +826,7 @@
             <ul id="mpMenu">
               <li class="on" data-mp="donations">내 후원 내역</li>
               <li data-mp="receipts">증명서 발급</li>
-              <li data-mp="support">🎯 내 지원 내역</li>
+              <li data-mp="support">📋 신청 내역</li>
               <li data-mp="consult">💬 1:1 상담 내역</li>
               <li data-mp="profile">회원 정보 수정</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
@@ -652,39 +893,41 @@
               </p>
             </div>
 
-            <!-- 3. 🎯 내 지원 내역 -->
+            <!-- ★ M-9: 📋 신청 내역 통합 (4개 서브탭) -->
             <div class="mp-panel" data-mp-panel="support" style="display:none">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-                <span style="display:inline-block;width:4px;height:24px;background:var(--gold,#b8935a);border-radius:2px"></span>
-                <h3 class="serif" style="margin:0">🎯 내 지원 내역</h3>
+                <span style="display:inline-block;width:4px;height:24px;background:var(--brand);border-radius:2px"></span>
+                <h3 class="serif" style="margin:0">📋 신청 내역 조회</h3>
               </div>
-              <p class="sub">신청하신 <strong>유가족 지원 프로그램</strong>(심리상담/법률자문/장학사업)의 진행 상태와 관리자 답변을 확인하실 수 있습니다.</p>
+              <p class="sub">유가족 지원, 사건 제보, 악성민원 신고, 법률지원 신청 내역을 모두 확인하실 수 있습니다.</p>
 
-              <div class="panel" style="background:linear-gradient(135deg,#fff,#fdf8ee);border-color:#f0e3c4;margin-bottom:18px;padding:16px 20px">
-                <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
-                  <div style="font-size:32px">🤝</div>
-                  <div>
-                    유가족 지원 프로그램은 증빙 서류 검토 후 <strong style="color:var(--gold,#b8935a)">영업일 기준 3일 이내</strong>에 안내드립니다.<br />
-                    모든 신청 내용은 비밀이 보장되며, 답변은 마이페이지에서 안전하게 확인하실 수 있습니다.
-                  </div>
-                </div>
+              <!-- 서브탭 -->
+              <div class="app-subtabs">
+                <button class="app-subtab active" data-app-tab="family">
+                  🤝 <span>유가족 지원</span>
+                  <span class="count-badge" data-count="family">0</span>
+                </button>
+                <button class="app-subtab" data-app-tab="incident">
+                  🔍 <span>사건 제보</span>
+                  <span class="count-badge" data-count="incident">0</span>
+                </button>
+                <button class="app-subtab" data-app-tab="harassment">
+                  ⚠️ <span>악성민원</span>
+                  <span class="count-badge" data-count="harassment">0</span>
+                </button>
+                <button class="app-subtab" data-app-tab="legal">
+                  ⚖️ <span>법률지원</span>
+                  <span class="count-badge" data-count="legal">0</span>
+                </button>
               </div>
 
-              <table class="tbl">
-                <thead><tr><th style="width:140px">접수번호</th><th style="width:110px">지원 유형</th><th>제목</th><th style="width:120px">접수일</th><th style="width:110px">진행 상태</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td colspan="5" style="text-align:center;color:var(--text-3);padding:40px">
-                      신청 내역을 불러오는 중... 🎗
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div style="margin-top:20px;display:flex;gap:10px">
-                <a href="/support.html#family" class="btn btn-primary">+ 새 지원 신청</a>
-                <a href="/support.html" class="btn btn-ghost" style="background:transparent;border:1px solid var(--line);color:var(--text-2)">지원 프로그램 안내 보기</a>
+              <!-- 각 탭 컨테이너 (mypage-applications.js가 채움) -->
+              <div data-app-pane="family">
+                <div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">로딩 중...</div>
               </div>
+              <div data-app-pane="incident" style="display:none"></div>
+              <div data-app-pane="harassment" style="display:none"></div>
+              <div data-app-pane="legal" style="display:none"></div>
             </div>
 
             <!-- 4. 💬 1:1 상담 내역 -->
@@ -914,11 +1157,26 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
+  <!-- ★ M-9: 신청 내역 상세 모달 -->
+  <div id="appDetailModal">
+    <div class="adm-content">
+      <div class="adm-header">
+        <h3 id="appDetailTitle">신청 상세</h3>
+        <button type="button" class="adm-close" data-app-close aria-label="닫기">&times;</button>
+      </div>
+      <div class="adm-body" id="appDetailBody">
+        <div style="text-align:center;color:var(--text-3);padding:40px">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/common.js?v=4"></script>
   <script src="/js/auth.js?v=6"></script>
   <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=4"></script>
   <script src="/js/chat-user.js?v=1"></script>
+  <script src="/js/mypage-applications.js?v=m9"></script>
+  
   <script>
     const __mpPrevInit = window.SIREN_PAGE_INIT;
     window.SIREN_PAGE_INIT = function () {
