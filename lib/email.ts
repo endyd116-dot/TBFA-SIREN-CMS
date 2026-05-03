@@ -1019,6 +1019,8 @@ export function tplBillingChargeFailed(opts: {
     ? `${willRetryAt.getFullYear()}-${String(willRetryAt.getMonth() + 1).padStart(2, "0")}-${String(willRetryAt.getDate()).padStart(2, "0")}`
     : "";
 
+
+    
   /* 상태별 안내 박스 */
   const noticeHtml = isFinal
     ? `
@@ -1111,6 +1113,312 @@ export function tplBillingChargeFailed(opts: {
       bodyHtml,
       ctaText: isMember ? "마이페이지에서 확인" : "협회 홈페이지로",
       ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ Phase M-10: 사이렌 관리 답변 알림 메일 4종
+   ═══════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────────────
+   M-10-1. 사건 제보 답변 등록 알림
+   ─────────────────────────────────────────────────────── */
+export function tplIncidentResponseUser(opts: {
+  applicantName: string;
+  reportNo: string;
+  title: string;
+  newStatus: string;
+}) {
+  const { applicantName, reportNo, title, newStatus } = opts;
+
+  const statusKr: Record<string, string> = {
+    submitted: "접수됨",
+    ai_analyzed: "AI 분석 완료",
+    reviewing: "검토 중",
+    responded: "답변 등록 완료",
+    closed: "종결",
+    rejected: "반려",
+  };
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(applicantName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(applicantName)} 님의 사건 제보에 대한 <strong style="color:#7a1f2b;">관리자 답변이 등록</strong>되었습니다.<br />
+      자세한 내용은 마이페이지에서 확인해 주세요.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:6px 0;color:#8a8a8a;">제보번호</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(reportNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;vertical-align:top;">제목</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;">${esc(title)}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;">처리 상태</td>
+              <td style="padding:6px 0;">
+                <span style="display:inline-block;padding:3px 10px;background:#7a1f2b;
+                             color:#ffffff;border-radius:3px;font-size:12px;font-weight:600;">
+                  ${esc(statusKr[newStatus] || newStatus)}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
+                border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
+      🔒 <strong>보안 안내</strong> · 답변 내용은 본인 확인을 위해 마이페이지 로그인 후에만
+      열람하실 수 있습니다.
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 사건 제보에 대한 답변이 등록되었습니다`,
+    html: baseLayout({
+      title: "사건 제보 답변 등록",
+      bodyHtml,
+      ctaText: "마이페이지에서 답변 확인",
+      ctaUrl: `${SITE_URL}/mypage.html#support`,
+    }),
+  };
+}
+
+/* ───────────────────────────────────────────────────────
+   M-10-2. 악성민원 신고 답변 등록 알림
+   ─────────────────────────────────────────────────────── */
+export function tplHarassmentResponseUser(opts: {
+  applicantName: string;
+  reportNo: string;
+  title: string;
+  newStatus: string;
+}) {
+  const { applicantName, reportNo, title, newStatus } = opts;
+
+  const statusKr: Record<string, string> = {
+    submitted: "접수됨",
+    ai_analyzed: "AI 분석 완료",
+    reviewing: "검토 중",
+    responded: "답변 등록 완료",
+    closed: "종결",
+    rejected: "반려",
+  };
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(applicantName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 16px;color:#525252;">
+      ${esc(applicantName)} 님의 악성민원 신고에 대한 <strong style="color:#7a1f2b;">사이렌 운영진의 검토 답변</strong>이 등록되었습니다.<br />
+      마이페이지에서 자세히 확인해 주세요.
+    </p>
+
+    <div style="margin:18px 0;padding:14px 18px;background:#f0f5fc;
+                border:1px solid #cee0f2;border-radius:6px;
+                font-size:13px;color:#1a5ec4;line-height:1.6;">
+      💗 혼자 견디지 마세요. 사이렌이 함께합니다.
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:6px 0;color:#8a8a8a;">신고번호</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(reportNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;vertical-align:top;">제목</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;">${esc(title)}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;">처리 상태</td>
+              <td style="padding:6px 0;">
+                <span style="display:inline-block;padding:3px 10px;background:#7a1f2b;
+                             color:#ffffff;border-radius:3px;font-size:12px;font-weight:600;">
+                  ${esc(statusKr[newStatus] || newStatus)}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
+                border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.6;">
+      🔒 <strong>비밀 보장</strong> · 신고 내용과 답변은 본인 외에 열람할 수 없습니다.
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 악성민원 신고에 대한 답변이 등록되었습니다`,
+    html: baseLayout({
+      title: "악성민원 신고 답변 등록",
+      bodyHtml,
+      ctaText: "마이페이지에서 답변 확인",
+      ctaUrl: `${SITE_URL}/mypage.html#support`,
+    }),
+  };
+}
+
+/* ───────────────────────────────────────────────────────
+   M-10-3. 법률지원 답변/변호사 매칭 알림
+   ─────────────────────────────────────────────────────── */
+export function tplLegalResponseUser(opts: {
+  applicantName: string;
+  consultationNo: string;
+  title: string;
+  newStatus: string;
+  assignedLawyerName?: string | null;
+}) {
+  const { applicantName, consultationNo, title, newStatus, assignedLawyerName } = opts;
+
+  const statusKr: Record<string, string> = {
+    submitted: "접수됨",
+    ai_analyzed: "AI 1차 분석 완료",
+    matching: "변호사 매칭 중",
+    matched: "변호사 매칭 완료",
+    in_progress: "상담 진행 중",
+    responded: "답변 등록 완료",
+    closed: "종결",
+    rejected: "반려",
+  };
+
+  const lawyerHtml = assignedLawyerName
+    ? `
+    <div style="margin:18px 0;padding:14px 18px;background:#f8f7fc;
+                border:2px solid #5a4d8c;border-radius:6px;">
+      <div style="font-size:13px;font-weight:700;color:#5a4d8c;margin-bottom:4px;">
+        👨‍⚖️ 매칭된 변호사
+      </div>
+      <div style="font-size:14px;color:#0f0f0f;font-family:'Noto Serif KR',serif;font-weight:600;">
+        ${esc(assignedLawyerName)}
+      </div>
+    </div>`
+    : "";
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(applicantName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 16px;color:#525252;">
+      ${esc(applicantName)} 님의 법률 상담 신청에 대한 <strong style="color:#5a4d8c;">사이렌 운영진의 답변</strong>이 등록되었습니다.
+    </p>
+
+    ${lawyerHtml}
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:6px 0;color:#8a8a8a;">접수번호</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(consultationNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;vertical-align:top;">제목</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;">${esc(title)}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;">처리 상태</td>
+              <td style="padding:6px 0;">
+                <span style="display:inline-block;padding:3px 10px;background:#5a4d8c;
+                             color:#ffffff;border-radius:3px;font-size:12px;font-weight:600;">
+                  ${esc(statusKr[newStatus] || newStatus)}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#fff8ec;border:1px solid #f0e3c4;
+                border-radius:6px;font-size:12px;color:#8a6a00;line-height:1.7;">
+      ⚠️ <strong>면책 안내</strong> · 사이렌이 제공하는 답변은 1차 자문 안내이며 법률 자문이 아닙니다.<br />
+      정확한 법적 판단은 매칭된 변호사와의 상담을 통해 받으시기 바랍니다.
+    </div>
+  `;
+
+  return {
+    subject: `[SIREN] 법률 상담에 대한 답변이 등록되었습니다`,
+    html: baseLayout({
+      title: "법률 상담 답변 등록",
+      bodyHtml,
+      ctaText: "마이페이지에서 답변 확인",
+      ctaUrl: `${SITE_URL}/mypage.html#support`,
+    }),
+  };
+}
+
+/* ───────────────────────────────────────────────────────
+   M-10-4. 자유게시판 관리자 답변 알림
+   ─────────────────────────────────────────────────────── */
+export function tplBoardResponseUser(opts: {
+  applicantName: string;
+  postNo: string;
+  title: string;
+  postId: number;
+}) {
+  const { applicantName, postNo, title, postId } = opts;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(applicantName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      자유게시판에 작성하신 게시글에 <strong style="color:#7a1f2b;">사이렌 관리자의 답변</strong>이 등록되었습니다.<br />
+      자세한 내용은 게시글 페이지에서 확인해 주세요.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="90" style="padding:6px 0;color:#8a8a8a;">게시글 번호</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(postNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#8a8a8a;vertical-align:top;">제목</td>
+              <td style="padding:6px 0;color:#0f0f0f;font-weight:600;">${esc(title)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  return {
+    subject: `[SIREN] 자유게시판 게시글에 관리자 답변이 등록되었습니다`,
+    html: baseLayout({
+      title: "자유게시판 답변 등록",
+      bodyHtml,
+      ctaText: "게시글로 이동",
+      ctaUrl: `${SITE_URL}/board-view.html?id=${postId}`,
     }),
   };
 }
