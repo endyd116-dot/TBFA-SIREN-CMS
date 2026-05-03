@@ -578,6 +578,49 @@ export const hyosungImportLogs = pgTable("hyosung_import_logs", {
 }));
 
 /* =========================================================
+   ★ Phase M-3: notifications — 통합 알림 (NEW)
+   - recipientType으로 사용자/관리자/운영자 구분
+   - severity='critical'은 알림 외에 토스트/모달 처리
+   - 90일 후 expires_at으로 자동 정리
+   ========================================================= */
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+
+  // 수신자 (member.id)
+  recipientId: integer("recipient_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  recipientType: varchar("recipient_type", { length: 20 }).default("user").notNull(),
+  // 'user' | 'admin' | 'operator'
+
+  // 분류
+  category: varchar("category", { length: 30 }).notNull(),
+  // 'support' | 'donation' | 'chat' | 'audit' | 'system' | 'billing' | 'member'
+  severity: varchar("severity", { length: 20 }).default("info").notNull(),
+  // 'info' | 'warning' | 'critical'
+
+  // 본문
+  title: varchar("title", { length: 200 }).notNull(),
+  message: varchar("message", { length: 500 }),
+  link: varchar("link", { length: 500 }),  // 클릭 시 이동할 경로
+
+  // 참조 (선택)
+  refTable: varchar("ref_table", { length: 50 }),
+  refId: integer("ref_id"),
+
+  // 읽음 처리
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+
+  // 생성/만료
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+}, (t) => ({
+  recipientIdx: index("notifications_recipient_idx").on(t.recipientId, t.isRead, t.createdAt),
+  categoryIdx: index("notifications_category_idx").on(t.category),
+  severityIdx: index("notifications_severity_idx").on(t.severity),
+  expiresIdx: index("notifications_expires_idx").on(t.expiresAt),
+}));
+
+/* =========================================================
    ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
    - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
    - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
@@ -673,3 +716,7 @@ export type NewHyosungImportLog = typeof hyosungImportLogs.$inferInsert;
 /* ★ Phase M-1: blob_uploads 타입 (NEW) */
 export type BlobUpload = typeof blobUploads.$inferSelect;
 export type NewBlobUpload = typeof blobUploads.$inferInsert;
+
+/* ★ M-3: 알림 타입 (NEW) */
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
