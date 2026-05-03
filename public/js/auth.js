@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — auth.js (★ K-2 회원 탈퇴 핸들러 추가)
+   SIREN — auth.js (★ K-1 비번재설정 + K-2 인증/탈퇴 + K-6 정보수정/비번변경/정기해지)
    인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러 + 채팅 알림
    ========================================================= */
 (function () {
@@ -61,17 +61,6 @@
       await api('/api/auth/logout', { method: 'POST' });
       this.user = null;
       this.stats = null;
-    },
-
-    /* ★ K-2: 회원 탈퇴 */
-    async withdraw(payload) {
-      const res = await api('/api/auth/withdraw', { method: 'POST', body: payload });
-      if (res.ok) {
-        /* 탈퇴 성공 시 클라이언트 상태도 즉시 초기화 */
-        this.user = null;
-        this.stats = null;
-      }
-      return res;
     },
 
     isLoggedIn() {
@@ -206,7 +195,6 @@
             agree: true,
           });
         } else if (type === 'password-reset-request') {
-          /* ★ K-1: 비밀번호 재설정 링크 요청 */
           res = await api('/api/auth/password-reset-request', {
             method: 'POST',
             body: { email: data.email },
@@ -241,78 +229,6 @@
     });
   }
 
-  /* ★ K-2: 회원 탈퇴 핸들러 */
-  function setupWithdrawForm() {
-    document.addEventListener('submit', async (e) => {
-      const form = e.target;
-      if (form.id !== 'mpWithdrawForm') return;
-
-      e.preventDefault();
-
-      const passwordEl = document.getElementById('mpWithdrawPassword');
-      const reasonEl = document.getElementById('mpWithdrawReason');
-      const confirmEl = document.getElementById('mpWithdrawConfirm');
-      const btn = document.getElementById('mpWithdrawBtn');
-
-      const password = (passwordEl?.value || '').trim();
-      const reason = (reasonEl?.value || '').trim();
-      const confirmed = confirmEl?.checked === true;
-
-      if (!password) {
-        return window.SIREN.toast('비밀번호를 입력해 주세요');
-      }
-      if (!confirmed) {
-        return window.SIREN.toast('탈퇴 안내를 확인하셨다면 동의 체크박스를 선택해 주세요');
-      }
-
-      /* 한 번 더 명시적 confirm */
-      const finalConfirm = window.confirm(
-        '정말로 회원 탈퇴를 진행하시겠습니까?\n\n' +
-        '• 회원 정보가 즉시 익명화됩니다\n' +
-        '• 탈퇴 후에는 복구할 수 없습니다\n' +
-        '• 후원 내역만 5년간 법령에 따라 보관됩니다\n\n' +
-        '계속 진행하려면 "확인"을 눌러 주세요.'
-      );
-      if (!finalConfirm) return;
-
-      const oldText = btn ? btn.textContent : '';
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = '탈퇴 처리 중...';
-      }
-
-      try {
-        const res = await Auth.withdraw({ password, reason: reason || undefined });
-
-        if (res.ok) {
-          window.SIREN.toast(res.data.message || '회원 탈퇴가 완료되었습니다');
-
-          /* 헤더 즉시 비로그인 상태로 갱신 */
-          syncHeader();
-
-          /* 2초 후 홈으로 이동 */
-          setTimeout(() => {
-            location.href = '/index.html';
-          }, 2000);
-        } else {
-          const msg = res.data?.error || '탈퇴 처리 중 오류가 발생했습니다';
-          window.SIREN.toast(msg);
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = oldText;
-          }
-        }
-      } catch (err) {
-        console.error('[withdraw]', err);
-        window.SIREN.toast('네트워크 오류가 발생했습니다');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = oldText;
-        }
-      }
-    });
-  }
-
   /* ------------ 마이페이지 데이터 주입 ------------ */
   async function injectMypage() {
     if (!document.body.dataset.page || document.body.dataset.page !== 'mypage') return;
@@ -332,8 +248,296 @@
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
 
+    /* ★ K-2: 이메일 인증 상태 배너 갱신 */
+    updateEmailVerifyBanner();
+
+    /* ★ K-6: 폼 필드 채우기 */
+    fillProfileForm();
+
     await refreshDonations();
     await refreshSupport();
+  }
+
+  /* ★ K-6: 회원 정보 폼 채우기 */
+  function fillProfileForm() {
+    if (!Auth.user) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    const cb = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    set('mpName', Auth.user.name);
+    set('mpEmail', Auth.user.email);
+    set('mpPhone', Auth.user.phone);
+    cb('mpAgreeEmail', Auth.user.agreeEmail !== false);
+    cb('mpAgreeSms', Auth.user.agreeSms !== false);
+    cb('mpAgreeMail', Auth.user.agreeMail === true);
+  }
+
+  /* ------------ ★ K-2: 이메일 인증 상태 배너 ------------ */
+  function updateEmailVerifyBanner() {
+    const banner = document.getElementById('emailVerifyBanner');
+    if (!banner || !Auth.user) return;
+
+    if (Auth.user.emailVerified) {
+      banner.classList.add('verified');
+      banner.innerHTML = `
+        <div class="icon">✅</div>
+        <div class="text">
+          <strong>이메일 인증 완료</strong><br />
+          모든 보안 기능을 안전하게 이용하실 수 있습니다.
+        </div>
+      `;
+      banner.style.display = 'flex';
+    } else {
+      banner.classList.remove('verified');
+      banner.innerHTML = `
+        <div class="icon">✉️</div>
+        <div class="text">
+          <strong>이메일 인증이 필요합니다</strong><br />
+          비밀번호 찾기 등 보안 기능을 이용하려면 이메일 인증을 완료해 주세요.
+        </div>
+        <button type="button" id="btnResendVerify">인증 메일 재발송</button>
+      `;
+      banner.style.display = 'flex';
+    }
+  }
+
+  /* ------------ ★ K-2: 인증 메일 재발송 ------------ */
+  function setupResendVerifyHandler() {
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('#btnResendVerify');
+      if (!btn) return;
+      e.preventDefault();
+
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '발송 중...';
+
+      try {
+        const res = await api('/api/auth/email-verify-request', { method: 'POST' });
+        if (res.ok) {
+          window.SIREN.toast(res.data.message || '인증 메일이 발송되었습니다');
+        } else {
+          window.SIREN.toast(res.data?.error || '메일 발송에 실패했습니다');
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    });
+  }
+
+  /* ------------ ★ K-2: 회원 탈퇴 ------------ */
+  function setupWithdrawHandler() {
+    document.addEventListener('change', (e) => {
+      if (e.target.id !== 'withdrawConfirm') return;
+      const btn = document.getElementById('btnWithdraw');
+      if (btn) btn.disabled = !e.target.checked;
+    });
+
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form.id !== 'withdrawForm') return;
+      e.preventDefault();
+
+      const password = (document.getElementById('withdrawPassword') || {}).value || '';
+      const reason = (document.getElementById('withdrawReason') || {}).value || '';
+      const confirmed = (document.getElementById('withdrawConfirm') || {}).checked;
+
+      if (!password) return window.SIREN.toast('비밀번호를 입력해 주세요');
+      if (!confirmed) return window.SIREN.toast('탈퇴 확인 체크박스를 선택해 주세요');
+
+      const finalConfirm = confirm(
+        '정말 탈퇴하시겠습니까?\n\n' +
+        '• 탈퇴 후 복구가 불가능합니다\n' +
+        '• 같은 이메일로 재가입할 수 없습니다\n' +
+        '• 즉시 로그아웃됩니다\n\n' +
+        '계속하시려면 [확인]을 눌러주세요.'
+      );
+      if (!finalConfirm) return;
+
+      const btn = document.getElementById('btnWithdraw');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+      try {
+        const res = await api('/api/auth/withdraw', {
+          method: 'POST',
+          body: { password, reason: reason.trim() || undefined },
+        });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data.message || '탈퇴가 완료되었습니다');
+          Auth.user = null;
+          Auth.stats = null;
+          stopChatAlarmPolling();
+          setTimeout(() => { location.href = '/index.html'; }, 2000);
+        } else {
+          window.SIREN.toast(res.data?.error || '탈퇴 처리 중 오류가 발생했습니다');
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ------------ ★ K-6: 회원 정보 저장 ------------ */
+  function setupProfileFormHandler() {
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form.id !== 'profileForm') return;
+      e.preventDefault();
+
+      const name = (document.getElementById('mpName')?.value || '').trim();
+      const phone = (document.getElementById('mpPhone')?.value || '').trim();
+      const agreeEmail = !!document.getElementById('mpAgreeEmail')?.checked;
+      const agreeSms = !!document.getElementById('mpAgreeSms')?.checked;
+      const agreeMail = !!document.getElementById('mpAgreeMail')?.checked;
+
+      if (name.length < 2) return window.SIREN.toast('이름은 2자 이상이어야 합니다');
+
+      const btn = document.getElementById('btnProfileSave');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+      try {
+        const res = await api('/api/auth/me', {
+          method: 'PATCH',
+          body: { name, phone, agreeEmail, agreeSms, agreeMail },
+        });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data?.message || '저장되었습니다');
+          /* Auth 캐시 갱신 */
+          if (res.data?.data?.user) {
+            Auth.user = { ...Auth.user, ...res.data.data.user };
+            syncHeader();
+          }
+        } else {
+          window.SIREN.toast(res.data?.error || '저장 실패');
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ------------ ★ K-6: 비밀번호 변경 ------------ */
+  function setupPasswordFormHandler() {
+    /* 새 비번 일치 실시간 표시 */
+    document.addEventListener('input', (e) => {
+      if (e.target.id !== 'mpNewPw' && e.target.id !== 'mpNewPw2') return;
+      const pw1 = document.getElementById('mpNewPw')?.value || '';
+      const pw2 = document.getElementById('mpNewPw2')?.value || '';
+      const matchEl = document.getElementById('mpPwMatch');
+      if (!matchEl) return;
+      if (!pw2) { matchEl.textContent = ''; return; }
+      if (pw1 === pw2) {
+        matchEl.textContent = '✓ 일치합니다';
+        matchEl.style.color = '#10b981';
+      } else {
+        matchEl.textContent = '✗ 일치하지 않습니다';
+        matchEl.style.color = '#dc2626';
+      }
+    });
+
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form.id !== 'passwordForm') return;
+      e.preventDefault();
+
+      const currentPassword = document.getElementById('mpCurrentPw')?.value || '';
+      const newPassword = document.getElementById('mpNewPw')?.value || '';
+      const newPassword2 = document.getElementById('mpNewPw2')?.value || '';
+
+      if (!currentPassword) return window.SIREN.toast('현재 비밀번호를 입력해 주세요');
+      if (newPassword.length < 8) return window.SIREN.toast('새 비밀번호는 8자 이상이어야 합니다');
+      if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+        return window.SIREN.toast('새 비밀번호는 영문과 숫자를 모두 포함해야 합니다');
+      }
+      if (newPassword !== newPassword2) return window.SIREN.toast('새 비밀번호가 일치하지 않습니다');
+      if (currentPassword === newPassword) return window.SIREN.toast('새 비밀번호는 현재와 달라야 합니다');
+
+      const btn = document.getElementById('btnPasswordSave');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '변경 중...'; }
+
+      try {
+        const res = await api('/api/auth/password', {
+          method: 'POST',
+          body: { currentPassword, newPassword },
+        });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data?.message || '비밀번호가 변경되었습니다');
+          form.reset();
+          const matchEl = document.getElementById('mpPwMatch');
+          if (matchEl) matchEl.textContent = '';
+        } else {
+          window.SIREN.toast(res.data?.error || '비밀번호 변경 실패');
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ------------ ★ K-6: 정기 후원 해지 (행 단위) ------------ */
+  function setupDonationCancelHandler() {
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-cancel-donation]');
+      if (!btn) return;
+      e.preventDefault();
+
+      const id = Number(btn.dataset.cancelDonation);
+      if (!id) return;
+
+      const confirmed = confirm(
+        '이 정기 후원을 해지하시겠습니까?\n\n' +
+        '• 다음 결제부터 자동 청구가 중단됩니다\n' +
+        '• 이미 처리된 결제분은 영향을 받지 않습니다\n' +
+        '• 영수증 발급은 그대로 가능합니다\n\n' +
+        '해지 후 복구는 새로 가입하셔야 합니다.'
+      );
+      if (!confirmed) return;
+
+      btn.disabled = true;
+      const oldText = btn.textContent;
+      btn.textContent = '해지 중...';
+
+      try {
+        const res = await api('/api/donations/cancel', {
+          method: 'POST',
+          body: { id },
+        });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data?.message || '정기 후원이 해지되었습니다');
+          await refreshDonations();
+        } else {
+          window.SIREN.toast(res.data?.error || '해지 실패');
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    });
+
+    /* 안내 버튼 (탭 상단 "정기 후원 해지 안내") */
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#btnCancelRegular')) return;
+      e.preventDefault();
+      window.SIREN.toast('해지하실 정기 후원의 행에서 "🚫 해지" 버튼을 클릭해 주세요');
+    });
   }
 
   /* ------------ 후원 내역 새로고침 ------------ */
@@ -368,19 +572,30 @@
           cancelled: '<span class="badge b-mute">취소</span>',
           refunded: '<span class="badge b-mute">환불</span>',
         };
-        tbody.innerHTML = list.map(d => `
-          <tr>
-            <td>${formatDate(d.createdAt)}</td>
-            <td>${typeMap[d.type] || d.type}</td>
-            <td>${(d.amount || 0).toLocaleString()}원</td>
-            <td>${payMap[d.payMethod] || d.payMethod}</td>
-            <td>${statusMap[d.status] || d.status}</td>
-            <td>${d.status === 'completed'
-              ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`
-              : '<span style="color:var(--text-3);font-size:12px">—</span>'}
-            </td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = list.map(d => {
+          /* ★ K-6: 정기 후원 + 활성 상태일 때만 해지 버튼 표시 */
+          const canCancel = d.type === 'regular' && (d.status === 'completed' || d.status === 'pending');
+          const receiptCell = d.status === 'completed'
+            ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`
+            : canCancel
+              ? `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">🚫 해지</button>`
+              : '<span style="color:var(--text-3);font-size:12px">—</span>';
+          /* 정기 + 완료일 경우 영수증 + 해지 둘 다 표시 */
+          const actionCell = (d.status === 'completed' && canCancel)
+            ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600;margin-right:8px">📄 발급</a><button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0;font-size:12.5px">🚫 해지</button>`
+            : receiptCell;
+
+          return `
+            <tr>
+              <td>${formatDate(d.createdAt)}</td>
+              <td>${typeMap[d.type] || d.type}</td>
+              <td>${(d.amount || 0).toLocaleString()}원</td>
+              <td>${payMap[d.payMethod] || d.payMethod}</td>
+              <td>${statusMap[d.status] || d.status}</td>
+              <td>${actionCell}</td>
+            </tr>
+          `;
+        }).join('');
       }
     }
   }
@@ -439,7 +654,12 @@
     _initExecuted = true;
 
     setupAuthForms();
-    setupWithdrawForm();  /* ★ K-2 */
+    setupResendVerifyHandler();      /* ★ K-2 */
+    setupWithdrawHandler();          /* ★ K-2 */
+    setupProfileFormHandler();       /* ★ K-6 */
+    setupPasswordFormHandler();      /* ★ K-6 */
+    setupDonationCancelHandler();    /* ★ K-6 */
+
     await Auth.fetchMe();
     syncHeader();
 
@@ -451,7 +671,6 @@
   window.SIREN_AUTH = Auth;
   window.SIREN_AUTH_INIT = init;
 
-  /* 3가지 경로로 init 보장 */
   const prevInit = window.SIREN_PAGE_INIT;
   window.SIREN_PAGE_INIT = function () {
     if (typeof prevInit === 'function') prevInit();

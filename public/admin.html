@@ -543,6 +543,124 @@
   .mini-list-row:last-child {
     border-bottom: none;
   }
+/* ===== ★ K-6: 지원 상세 모달 — 글자 깨짐/레이아웃 수정 ===== */
+#supportDetailModal .modal-content {
+  max-width: 720px;
+}
+
+#supportDetailModal .modal-body {
+  /* 한글 단어 단위 줄바꿈 (한 글자씩 세로 표시 방지) */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+#supportDetailModal .modal-body .fg {
+  margin-bottom: 14px;
+}
+
+#supportDetailModal .modal-body .fg label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 6px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+#supportDetailModal .modal-body .fg .hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+#supportDetailModal .modal-body select.input,
+#supportDetailModal .modal-body textarea.input,
+#supportDetailModal .modal-body input.input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+#supportDetailModal .modal-body textarea.input {
+  resize: vertical;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 메일 발송 체크박스 영역 — 글자 깨짐 픽스 */
+#supportDetailModal .modal-body .fg.checkbox-block {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+
+#supportDetailModal .modal-body .checkbox-line {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+#supportDetailModal .modal-body .checkbox-line input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+#supportDetailModal .modal-body .checkbox-line > span {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  display: block;
+}
+
+#supportDetailModal .modal-body .checkbox-line > span strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+/* 저장 버튼 — 항상 100% 폭 + 한 줄 표시 */
+#supportDetailModal .modal-body .btn-block {
+  width: 100%;
+  display: block;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 16px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* K-3 field group들도 깨짐 방지 */
+#supportDetailModal .k3-field-group {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+#supportDetailModal .k3-field-group label {
+  display: block;
+  word-break: keep-all;
+}
+#supportDetailModal .k3-field-group input,
+#supportDetailModal .k3-field-group textarea {
+  box-sizing: border-box;
+}
 
   /* ★ STEP H-2d-3: 영수증 설정 페이지 전용 */
   .rs-form-grid {
@@ -1308,8 +1426,8 @@
   </div>
 
   <!-- 메일 발송 옵션 -->
-  <div class="fg" style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:14px 16px;margin-top:12px">
-    <label class="checkbox-line" style="margin:0;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+      <div class="fg checkbox-block">
+      <label class="checkbox-line">
       <input type="checkbox" id="replySendEmail" style="margin-top:3px">
       <span style="flex:1;font-size:13px;color:var(--text-2);line-height:1.6">
         <strong style="color:var(--ink)">📧 저장 시 신청자에게 알림 메일 발송</strong><br />
