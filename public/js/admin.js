@@ -1682,6 +1682,7 @@
 
   /* 행 액션 (상세/완료/해지) */
     /* ★ L-8 + L-9: 효성 CMS+ 통합 액션 핸들러 */
+    /* ★ L-8 + L-9 + M-13: 효성 CMS+ 통합 액션 핸들러 */
   function setupHyosungActions() {
     /* ─── 행 액션 (상세/완료/해지) ─── */
     document.addEventListener('click', (e) => {
@@ -1707,7 +1708,7 @@
       }
     });
 
-    /* ─── ★ L-9: CSV 추출 실 동작화 ─── */
+    /* ─── CSV 추출 ─── */
     document.addEventListener('click', (e) => {
       var exportBtn = e.target.closest('[data-demo-action="hyosung-csv-export"]');
       if (exportBtn) {
@@ -1719,13 +1720,12 @@
         return;
       }
 
-      /* ─── ★ L-9: CSV 업로드 실 동작화 ─── */
+      /* ─── ★ M-13: CSV 업로드 (자동 회원 생성 옵션 추가) ─── */
       var importBtn = e.target.closest('[data-demo-action="hyosung-csv-import"]');
       if (importBtn) {
         e.preventDefault();
         e.stopPropagation();
 
-        /* 숨겨진 file input 생성/재사용 */
         var fileInput = document.getElementById('hyImportFileInput');
         if (!fileInput) {
           fileInput = document.createElement('input');
@@ -1745,6 +1745,7 @@
               return;
             }
 
+            /* 1단계: 업로드 확인 */
             var confirmed = confirm(
               '효성 CMS+ 수납 결과 CSV를 업로드합니다.\n\n' +
               '파일: ' + file.name + '\n' +
@@ -1759,10 +1760,27 @@
               return;
             }
 
+            /* ★ M-13: 2단계 — 매칭 실패 시 자동 회원 생성 옵션 */
+            var createMembers = confirm(
+              '🆕 매칭 실패 행에 대해 회원을 자동 생성하시겠습니까?\n\n' +
+              '✅ [확인] = 자동 생성 ON (권장)\n' +
+              '  • 효성 CMS+에만 있고 사이트에 회원이 없는 경우\n' +
+              '  • 가상 이메일로 자동 회원 생성\n' +
+              '    (hyosung-{회원번호}@auto.siren-org.kr)\n' +
+              '  • 회원 분류: 후원회원 / 정기(효성)\n' +
+              '  • 가입 경로: 효성 CMS+ 정기후원 등록\n\n' +
+              '❌ [취소] = 자동 생성 OFF\n' +
+              '  • 매칭 실패 행은 단순 "실패"로 기록만\n' +
+              '  • 회원은 생성되지 않음'
+            );
+
             var fd = new FormData();
             fd.append('file', file);
+            fd.append('createMembers', createMembers ? 'true' : 'false');
 
-            toast('CSV 업로드 처리 중...');
+            toast(createMembers
+              ? 'CSV 업로드 + 자동 회원 생성 처리 중...'
+              : 'CSV 업로드 처리 중...');
 
             try {
               var res = await fetch('/api/admin/hyosung-import', {
@@ -1776,22 +1794,50 @@
                 var d = data.data || {};
                 toast(data.message || '처리 완료');
 
-                alert(
-                  '📥 효성 CSV 업로드 결과\n\n' +
+                /* ★ M-13: 결과 표시 강화 */
+                var resultMsg = '📥 효성 CSV 업로드 결과\n\n' +
                   '파일: ' + (d.fileName || file.name) + '\n' +
                   '전체 행: ' + (d.totalRows || 0) + '건\n' +
-                  '매칭 성공: ' + (d.matched || 0) + '건\n' +
-                  '생성됨: ' + (d.created || 0) + '건\n' +
-                  '스킵 (중복): ' + (d.skipped || 0) + '건\n' +
-                  '매칭 실패: ' + (d.failed || 0) + '건\n\n' +
-                  (d.failed > 0
-                    ? '⚠️ 매칭 실패 건:\n' +
-                      (d.failures || []).slice(0, 10).map(function (f) {
-                        return '  - 효성#' + f.hyosungMemberNo + ' (' + (f.donorName || '') + '): ' + f.reason;
-                      }).join('\n')
-                    : '✅ 모든 건이 정상 처리되었습니다')
-                );
+                  '─────────────────────\n' +
+                  '✓ 매칭 성공: ' + (d.matched || 0) + '건\n' +
+                  '✓ 후원 생성: ' + (d.created || 0) + '건\n' +
+                  '⏭ 스킵 (중복): ' + (d.skipped || 0) + '건\n' +
+                  '✗ 실패: ' + (d.failed || 0) + '건\n';
 
+                if (d.createMembersOption) {
+                  resultMsg += '─────────────────────\n' +
+                    '🆕 신규 회원 생성: ' + (d.createdMembers || 0) + '명\n' +
+                    '🔄 기존 회원 재사용: ' + (d.reusedMembers || 0) + '명\n';
+                }
+
+                /* 신규 생성된 회원 미리보기 (최대 10건) */
+                if (d.createdMembers > 0 && Array.isArray(d.newMembersList) && d.newMembersList.length > 0) {
+                  resultMsg += '\n📌 생성된 신규 회원 (최대 10건):\n';
+                  var newCount = 0;
+                  d.newMembersList.forEach(function (m) {
+                    if (!m.duplicate && newCount < 10) {
+                      resultMsg += '  • ' + (m.donorName || '이름없음') +
+                        ' (효성#' + m.hyosungMemberNo + ')\n' +
+                        '    → ' + (m.email || '-') + '\n';
+                      newCount++;
+                    }
+                  });
+                  resultMsg += '\n💡 신규 회원은 임시 비밀번호 미발급 상태입니다.\n' +
+                    '   회원 관리 메뉴에서 비번 발급을 진행해 주세요.';
+                }
+
+                /* 실패 건 상세 */
+                if (d.failed > 0 && Array.isArray(d.failures) && d.failures.length > 0) {
+                  resultMsg += '\n\n⚠️ 실패 건 (최대 10건):\n';
+                  d.failures.slice(0, 10).forEach(function (f) {
+                    resultMsg += '  - 효성#' + f.hyosungMemberNo +
+                      ' (' + (f.donorName || '') + '): ' + f.reason + '\n';
+                  });
+                } else if (d.failed === 0) {
+                  resultMsg += '\n✅ 모든 건이 정상 처리되었습니다';
+                }
+
+                alert(resultMsg);
                 loadHyosung();
               } else {
                 toast(data.error || '업로드 실패');
