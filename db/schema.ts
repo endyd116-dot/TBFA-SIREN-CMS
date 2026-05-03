@@ -26,11 +26,13 @@ export const donationTypeEnum = pgEnum("donation_type", [
 ]);
 
 export const donationStatusEnum = pgEnum("donation_status", [
-  "pending",   // 결제 대기
-  "completed", // 승인 완료
-  "failed",    // 실패
-  "cancelled", // 취소
-  "refunded"   // 환불
+  "pending",          // 결제 대기
+  "completed",        // 승인 완료
+  "failed",           // 실패
+  "cancelled",        // 취소
+  "refunded",         // 환불
+  "pending_hyosung",  // ★ M-4: 효성 CMS+ 신청 의향 (외부 사이트 이동 전 기록)
+  "pending_bank"      // ★ M-4: 직접 계좌이체 대기 (관리자 입금 확인 전)
 ]);
 
 export const supportCategoryEnum = pgEnum("support_category", [
@@ -163,6 +165,10 @@ export const donations = pgTable("donations", {
   hyosungMemberNo: integer("hyosung_member_no"),
   hyosungContractNo: varchar("hyosung_contract_no", { length: 20 }),
   hyosungBillNo: varchar("hyosung_bill_no", { length: 30 }),
+
+  /* ─────── ★ M-4: 직접 계좌이체 관련 (NEW) ─────── */
+  bankDepositorName: varchar("bank_depositor_name", { length: 50 }),  // 입금자명
+  depositExpectedAt: timestamp("deposit_expected_at"),                // 입금 예정일 (선택)
 
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -621,6 +627,38 @@ export const notifications = pgTable("notifications", {
 }));
 
 /* =========================================================
+   ★ Phase M-4: donation_policies — 후원 정책 (단일 행, id=1)
+   - 모달의 금액 버튼/계좌번호/효성 URL 등 관리자가 어드민에서 관리
+   - M-15 (후원정책 관리) 에서 PATCH UI 구현
+   - M-4에서는 GET만 제공하고 기본값 시드
+   ========================================================= */
+export const donationPolicies = pgTable("donation_policies", {
+  id: serial("id").primaryKey(),
+
+  // 금액 옵션 (JSON 배열: [10000, 30000, ...])
+  regularAmounts: text("regular_amounts"),    // JSON
+  onetimeAmounts: text("onetime_amounts"),    // JSON
+
+  // 직접 계좌이체 정보
+  bankName: varchar("bank_name", { length: 50 }),
+  bankAccountNo: varchar("bank_account_no", { length: 50 }),
+  bankAccountHolder: varchar("bank_account_holder", { length: 50 }),
+  bankGuideText: text("bank_guide_text"),
+
+  // 효성 CMS+ 정보
+  hyosungUrl: varchar("hyosung_url", { length: 500 }),
+  hyosungGuideText: text("hyosung_guide_text"),
+
+  // 모달 커스터마이징
+  modalTitle: varchar("modal_title", { length: 200 }),
+  modalSubtitle: varchar("modal_subtitle", { length: 500 }),
+
+  // 메타
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+});
+
+/* =========================================================
    ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
    - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
    - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
@@ -720,3 +758,7 @@ export type NewBlobUpload = typeof blobUploads.$inferInsert;
 /* ★ M-3: 알림 타입 (NEW) */
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+
+/* ★ M-4: 후원 정책 타입 (NEW) */
+export type DonationPolicy = typeof donationPolicies.$inferSelect;
+export type NewDonationPolicy = typeof donationPolicies.$inferInsert;
