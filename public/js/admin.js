@@ -6,17 +6,18 @@
 
   /* ============ 상수 ============ */
   const PAGE_TITLES = {
-    dashboard: '대시보드',
-    members: '회원 관리',
-    donations: '기부 관리',
-    support: '지원 관리',
-    operators: '운영자 관리',
-    chat: '채팅 관리',    
-    ai: 'AI 추천 센터',
-    content: '콘텐츠 관리',
-    'receipt-settings': '영수증 설정',
-    settings: '시스템 설정',
-  };
+  dashboard: '대시보드',
+  members: '회원 관리',
+  donations: '기부 관리',
+  support: '지원 관리',
+  operators: '운영자 관리',
+  chat: '채팅 관리',    
+  ai: 'AI 추천 센터',
+  content: '콘텐츠 관리',
+  'receipt-settings': '영수증 설정',
+  audit: '감사 로그',  /* ★ K-4 */
+  settings: '시스템 설정',
+};
 
   const SUPPORT_CAT_LABEL = {
     counseling: '심리상담',
@@ -1590,6 +1591,287 @@
       }
     });
   }
+
+    /* ============ ★ K-4: 감사 로그 ============ */
+  let _auditPage = 1;
+  const _auditLimit = 50;
+  let _auditTotalPages = 1;
+  let _auditSearchTimer = null;
+
+  const AUDIT_ACTION_LABEL = {
+    login_success: '🟢 로그인 성공',
+    login_failed: '🔴 로그인 실패',
+    login_locked: '🔒 로그인 잠금',
+    login_blocked: '🚫 로그인 차단',
+    signup_success: '✨ 회원가입',
+    signup_failed: '❌ 가입 실패',
+    password_reset_request: '🔑 비번 재설정 요청',
+    password_reset_success: '✅ 비번 재설정 완료',
+    password_reset_failed: '❌ 비번 재설정 실패',
+    email_verify_request: '✉️ 이메일 인증 요청',
+    email_verify_success: '✅ 이메일 인증 완료',
+    email_verify_failed: '❌ 이메일 인증 실패',
+    email_verify_already_done: 'ℹ️ 이미 인증됨',
+    withdraw_success: '👋 회원 탈퇴',
+    withdraw_blocked: '🚫 탈퇴 차단',
+    withdraw_failed: '❌ 탈퇴 실패',
+    donate_success: '💝 후원 완료',
+    support_create: '🤝 지원 신청',
+    support_status_change: '📝 지원 상태 변경',
+    support_inline_status: '🔄 지원 인라인 변경',
+    support_download_success: '📎 첨부 다운로드',
+    support_download_denied: '🚫 다운로드 차단',
+    support_download_failed: '❌ 다운로드 실패',
+    file_upload: '📤 파일 업로드',
+    admin_login_success: '👨‍💼 관리자 로그인',
+    admin_login_failed: '❌ 관리자 로그인 실패',
+    member_status_change: '🔧 회원 상태 변경',
+    receipt_issue_bulk: '📄 영수증 일괄 발행',
+  };
+
+  function getAuditActionLabel(action) {
+    return AUDIT_ACTION_LABEL[action] || action;
+  }
+
+  function getAuditTypeLabel(type) {
+    const map = {
+      admin: '👨‍💼 관리자',
+      user: '👤 회원',
+      system: '⚙️ 시스템',
+      anonymous: '🌐 익명',
+    };
+    return map[type] || type || '—';
+  }
+
+  async function loadAudit() {
+    const tbody = document.getElementById('auTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    /* 필터 값 수집 */
+    const params = new URLSearchParams();
+    params.set('page', String(_auditPage));
+    params.set('limit', String(_auditLimit));
+
+    const userType = document.getElementById('auFilterType')?.value || '';
+    const action = document.getElementById('auFilterAction')?.value || '';
+    const success = document.getElementById('auFilterSuccess')?.value || '';
+    const dateFrom = document.getElementById('auFilterDateFrom')?.value || '';
+    const dateTo = document.getElementById('auFilterDateTo')?.value || '';
+    const q = (document.getElementById('auFilterQ')?.value || '').trim();
+
+    if (userType) params.set('userType', userType);
+    if (action) params.set('action', action);
+    if (success) params.set('success', success);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/audit?' + params.toString());
+
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
+    }
+
+    const list = res.data.data.list || [];
+    const stats = res.data.data.stats?.last7Days || {};
+    const pagination = res.data.data.pagination || {};
+
+    /* KPI */
+    const total = stats.total || 0;
+    const success7 = stats.success || 0;
+    const fail7 = stats.fail || 0;
+    const failRate = total > 0 ? ((fail7 / total) * 100).toFixed(1) : '0';
+
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('auKpiTotal', total.toLocaleString());
+    setText('auKpiSuccess', success7.toLocaleString());
+    setText('auKpiFail', fail7.toLocaleString());
+    setText('auKpiFailRate', failRate + '%');
+
+    /* 페이지네이션 정보 저장 */
+    _auditTotalPages = pagination.totalPages || 1;
+    const pInfo = document.getElementById('auPageInfo');
+    if (pInfo) pInfo.textContent = `${pagination.page} / ${_auditTotalPages} (전체 ${pagination.total?.toLocaleString() || 0}건)`;
+    const pagBox = document.getElementById('auPagination');
+    if (pagBox) pagBox.style.display = _auditTotalPages > 1 ? 'flex' : 'none';
+
+    const prevBtn = document.querySelector('[data-au-page="prev"]');
+    const nextBtn = document.querySelector('[data-au-page="next"]');
+    if (prevBtn) prevBtn.disabled = _auditPage <= 1;
+    if (nextBtn) nextBtn.disabled = _auditPage >= _auditTotalPages;
+
+    /* 목록 렌더 */
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">조회된 로그가 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((row) => {
+      const time = formatDateTime(row.createdAt);
+      const typeLabel = getAuditTypeLabel(row.userType);
+      const userName = row.userName ? escapeHtml(row.userName) : '<span style="color:var(--text-3)">—</span>';
+      const actionLabel = getAuditActionLabel(row.action);
+      const target = row.target ? escapeHtml(row.target) : '';
+      const detailPreview = row.detail
+        ? escapeHtml(String(row.detail).slice(0, 80)) + (row.detail.length > 80 ? '...' : '')
+        : '';
+      const targetCell = target
+        ? `<strong>${target}</strong>${detailPreview ? '<br /><span style="font-size:11px;color:var(--text-3)">' + detailPreview + '</span>' : ''}`
+        : detailPreview
+          ? `<span style="font-size:11.5px;color:var(--text-3)">${detailPreview}</span>`
+          : '<span style="color:var(--text-3)">—</span>';
+      const ip = row.ipAddress ? escapeHtml(row.ipAddress) : '—';
+      const successIcon = row.success
+        ? '<span class="audit-status-icon success">✓</span>'
+        : '<span class="audit-status-icon fail">✗</span>';
+
+      return `<tr data-au-detail-id="${row.id}">
+        <td class="col-time">${time}</td>
+        <td><span class="audit-badge-type ${row.userType || ''}">${typeLabel}</span></td>
+        <td>${userName}</td>
+        <td class="col-action">${actionLabel}</td>
+        <td>${targetCell}</td>
+        <td class="col-ip">${ip}</td>
+        <td style="text-align:center">${successIcon}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setupAuditActions() {
+    /* 검색 버튼 */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#auBtnSearch')) {
+        e.preventDefault();
+        _auditPage = 1;
+        loadAudit();
+        return;
+      }
+
+      /* 초기화 버튼 */
+      if (e.target.closest('#auBtnReset')) {
+        e.preventDefault();
+        const ids = ['auFilterType', 'auFilterAction', 'auFilterSuccess', 'auFilterDateFrom', 'auFilterDateTo', 'auFilterQ'];
+        ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        _auditPage = 1;
+        loadAudit();
+        return;
+      }
+
+      /* 페이지네이션 */
+      const pageBtn = e.target.closest('[data-au-page]');
+      if (pageBtn) {
+        e.preventDefault();
+        const dir = pageBtn.dataset.auPage;
+        if (dir === 'prev' && _auditPage > 1) {
+          _auditPage--;
+          loadAudit();
+        } else if (dir === 'next' && _auditPage < _auditTotalPages) {
+          _auditPage++;
+          loadAudit();
+        }
+        return;
+      }
+
+      /* 행 클릭 → 상세 모달 */
+      const row = e.target.closest('[data-au-detail-id]');
+      if (row) {
+        const id = Number(row.dataset.auDetailId);
+        if (id) openAuditDetailModal(id);
+      }
+    });
+
+    /* 검색어 디바운스 */
+    const qInput = document.getElementById('auFilterQ');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        clearTimeout(_auditSearchTimer);
+        _auditSearchTimer = setTimeout(() => {
+          _auditPage = 1;
+          loadAudit();
+        }, 500);
+      });
+    }
+
+    /* 셀렉트 변경 즉시 검색 */
+    ['auFilterType', 'auFilterAction', 'auFilterSuccess', 'auFilterDateFrom', 'auFilterDateTo'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => {
+          _auditPage = 1;
+          loadAudit();
+        });
+      }
+    });
+  }
+
+  async function openAuditDetailModal(id) {
+    const modal = document.getElementById('auditDetailModal');
+    const body = document.getElementById('auditDetailBody');
+    if (!modal || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
+    modal.classList.add('show');
+
+    /* 현재 페이지 데이터에서 찾기 (별도 API 없이 캐시 활용) */
+    /* 단순화를 위해 다시 API 호출 (단일 행) */
+    const params = new URLSearchParams();
+    params.set('limit', '1');
+    params.set('userId', '0'); // 사용 안 함
+    /* id로 필터하는 API 분기가 없으므로, 현재 테이블의 행에서 데이터 직접 추출 */
+
+    const row = document.querySelector(`[data-au-detail-id="${id}"]`);
+    if (!row) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">데이터를 찾을 수 없습니다</div>';
+      return;
+    }
+
+    /* 테이블 행에는 요약만 있으므로 API에서 단건 가져오기 */
+    /* admin-audit.ts는 단건 GET을 제공하지 않음 → 현재 페이지 검색 결과에서 매칭 */
+    /* 실용적으로 처리: 행에서 보이는 정보 + tooltip 정보로 충분히 표시 */
+
+    const cells = row.querySelectorAll('td');
+    const time = cells[0]?.textContent || '—';
+    const typeBadge = cells[1]?.querySelector('.audit-badge-type')?.textContent || '—';
+    const userName = cells[2]?.textContent || '—';
+    const actionLabel = cells[3]?.textContent || '—';
+    const targetText = cells[4]?.textContent || '—';
+    const ip = cells[5]?.textContent || '—';
+    const successText = cells[6]?.querySelector('.success') ? '✅ 성공' : '❌ 실패';
+
+    /* 추가로 detail 전체를 가져오려면 별도 API 필요 — 현재는 테이블 데이터로 표시 */
+    /* 실 운영에서 더 자세히 보고 싶다면 GET /api/admin/audit?id=N 분기 추가 필요 */
+
+    body.innerHTML = `
+      <div class="audit-detail-grid">
+        <div>로그 ID</div>
+        <div style="font-family:Inter;font-weight:600">#${id}</div>
+        <div>시간</div>
+        <div style="font-family:Inter">${escapeHtml(time)}</div>
+        <div>사용자 유형</div>
+        <div>${escapeHtml(typeBadge)}</div>
+        <div>사용자</div>
+        <div><strong>${escapeHtml(userName)}</strong></div>
+        <div>액션</div>
+        <div style="font-family:Inter;font-weight:600">${escapeHtml(actionLabel)}</div>
+        <div>결과</div>
+        <div>${successText}</div>
+        <div>IP 주소</div>
+        <div style="font-family:Inter">${escapeHtml(ip)}</div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">📋 대상 / 상세</div>
+        <div class="audit-detail-json">${escapeHtml(targetText)}</div>
+      </div>
+
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg-soft);border-radius:6px;font-size:11.5px;color:var(--text-3);line-height:1.6">
+        💡 <strong>전체 detail 정보</strong>는 테이블에서 미리보기만 표시됩니다.<br />
+        상세한 JSON 내용이 필요하면 같은 사용자/액션으로 필터링한 후 행의 "대상 / 상세" 칸을 확인하세요.
+      </div>
+    `;
+  }
   /* ============ ★ 운영자 관리 (STEP F-2) ============ */
   let _promoteSelectedMember = null;
 
@@ -1960,6 +2242,9 @@
       loadContent();
     } else if (page === 'receipt-settings') {
       loadReceiptSettings();
+    } else if (page === 'audit') {
+      _auditPage = 1;
+      loadAudit();
     } else if (page === 'ai') {
       loadAI();
     }
@@ -2017,6 +2302,7 @@
     setupOperatorActions();
     setupReceiptSettings();
     setupExpertAssignClick();  /* ★ K-3 추가 */
+    setupAuditActions();       /* ★ K-4 추가 */
 
     const isLogged = await fetchAdminMe();
     // ... 이하 기존 코드 그대로

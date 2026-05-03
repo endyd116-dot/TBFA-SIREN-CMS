@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 
 <style>
+  
   /* ===== ★ K-3: 지원 모달 — 전문가 배정 / 보완 / 완료 입력칸 ===== */
 .k3-field-group {
   background: #fafaf8;
@@ -65,6 +66,154 @@
   border-color: #a3d9b4;
 }
 .k3-completed label { color: #1a5e2c; }
+/* ===== ★ K-4: 감사 로그 페이지 ===== */
+.audit-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 14px;
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.audit-filter-bar select,
+.audit-filter-bar input {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.audit-filter-bar input[type="search"] {
+  flex: 1;
+  min-width: 200px;
+}
+.audit-filter-bar input[type="date"] { min-width: 130px; }
+.audit-filter-bar button {
+  padding: 7px 14px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.audit-filter-bar button:hover { background: var(--brand-deep, #5a1620); }
+.audit-filter-bar .btn-reset {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+}
+.audit-filter-bar .btn-reset:hover { background: #f5f4f2; }
+
+.audit-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.audit-table tbody tr:hover { background: #fefcfa; }
+.audit-table .col-time {
+  font-family: 'Inter', monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.audit-table .col-action {
+  font-family: 'Inter', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.audit-table .col-ip {
+  font-family: 'Inter', monospace;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.audit-badge-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.audit-badge-type.admin { background: #fdecec; color: #a01e2c; }
+.audit-badge-type.user { background: #e6f2ff; color: #1a5ec4; }
+.audit-badge-type.system { background: #f0f0f0; color: #525252; }
+.audit-badge-type.anonymous { background: #fff8ec; color: #8a6a00; }
+
+.audit-status-icon {
+  font-size: 13px;
+  font-weight: 700;
+}
+.audit-status-icon.success { color: #1a8b46; }
+.audit-status-icon.fail { color: #c5293a; }
+
+.audit-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+}
+.audit-pagination button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text-2);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 36px;
+}
+.audit-pagination button.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.audit-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.audit-pagination .page-info {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: 0 8px;
+}
+
+/* 감사로그 상세 모달 */
+.audit-detail-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px 14px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+.audit-detail-grid > div:nth-child(odd) {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.audit-detail-json {
+  background: #1a1a1a;
+  color: #d8d8d8;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-family: 'Inter', 'Courier New', monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.audit-ua-text {
+  background: #f5f4f2;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: 'Inter', monospace;
+  word-break: break-all;
+  line-height: 1.5;
+}
 
 /* 첨부 다운로드 링크 */
 .k3-attach-list { display: flex; flex-direction: column; gap: 6px; }
@@ -430,6 +579,7 @@
         <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
         <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
         <li><a data-page="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
+        <li><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
       </ul>
     </aside>
@@ -759,6 +909,113 @@
             </form>
           </div>
         </div>
+        <!-- ★ K-4: 감사 로그 -->
+        <div id="adm-audit" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi"><div class="kpi-label">최근 7일 전체</div><div class="kpi-value" id="auKpiTotal">0</div></div>
+            <div class="kpi"><div class="kpi-label">성공</div><div class="kpi-value" id="auKpiSuccess" style="color:#1a8b46">0</div></div>
+            <div class="kpi"><div class="kpi-label">실패</div><div class="kpi-value" id="auKpiFail" style="color:#c5293a">0</div></div>
+            <div class="kpi"><div class="kpi-label">실패율</div><div class="kpi-value" id="auKpiFailRate">0%</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">🔍 활동 로그 검색</div>
+              <span class="p-tag">최신 50건씩</span>
+            </div>
+
+            <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+              💡 모든 사용자/관리자 활동이 자동으로 기록됩니다. 보안 사고 추적 / 감사 / 분쟁 시 사용됩니다.<br />
+              로그 행을 클릭하면 상세 내용(detail JSON / User-Agent)을 확인할 수 있습니다.
+            </p>
+
+            <!-- 필터 영역 -->
+            <div class="audit-filter-bar">
+              <select id="auFilterType">
+                <option value="">전체 사용자 유형</option>
+                <option value="admin">👨‍💼 관리자</option>
+                <option value="user">👤 일반 회원</option>
+                <option value="system">⚙️ 시스템</option>
+                <option value="anonymous">🌐 비로그인</option>
+              </select>
+
+              <select id="auFilterAction">
+                <option value="">전체 액션</option>
+                <optgroup label="🔐 인증">
+                  <option value="login_success">로그인 성공</option>
+                  <option value="login_failed">로그인 실패</option>
+                  <option value="login_locked">로그인 잠금</option>
+                  <option value="signup_success">회원가입</option>
+                  <option value="signup_failed">가입 실패</option>
+                  <option value="password_reset_request">비번 재설정 요청</option>
+                  <option value="password_reset_success">비번 재설정 완료</option>
+                  <option value="password_reset_failed">비번 재설정 실패</option>
+                  <option value="email_verify_request">이메일 인증 요청</option>
+                  <option value="email_verify_success">이메일 인증 완료</option>
+                  <option value="withdraw_success">회원 탈퇴</option>
+                  <option value="withdraw_blocked">탈퇴 차단</option>
+                  <option value="withdraw_failed">탈퇴 실패</option>
+                </optgroup>
+                <optgroup label="💝 후원/지원">
+                  <option value="donate_success">후원 완료</option>
+                  <option value="support_create">지원 신청</option>
+                  <option value="support_status_change">지원 상태 변경</option>
+                  <option value="support_inline_status">지원 인라인 변경</option>
+                  <option value="support_download_success">첨부 다운로드</option>
+                  <option value="support_download_denied">다운로드 차단</option>
+                  <option value="file_upload">파일 업로드</option>
+                </optgroup>
+                <optgroup label="👨‍💼 관리자">
+                  <option value="admin_login_success">관리자 로그인</option>
+                  <option value="admin_login_failed">관리자 로그인 실패</option>
+                  <option value="member_status_change">회원 상태 변경</option>
+                  <option value="receipt_issue_bulk">영수증 일괄 발행</option>
+                </optgroup>
+              </select>
+
+              <select id="auFilterSuccess">
+                <option value="">전체 결과</option>
+                <option value="true">✅ 성공만</option>
+                <option value="false">❌ 실패만</option>
+              </select>
+
+              <input type="date" id="auFilterDateFrom" title="시작일">
+              <input type="date" id="auFilterDateTo" title="종료일">
+
+              <input type="search" id="auFilterQ" placeholder="🔍 액션/대상/이름/상세 통합 검색 (2자 이상)">
+
+              <button type="button" id="auBtnSearch">검색</button>
+              <button type="button" id="auBtnReset" class="btn-reset">초기화</button>
+            </div>
+
+            <!-- 로그 테이블 -->
+            <div style="overflow-x:auto">
+              <table class="tbl audit-table" style="min-width:900px">
+                <thead>
+                  <tr>
+                    <th style="width:140px">시간</th>
+                    <th style="width:90px">유형</th>
+                    <th style="width:120px">사용자</th>
+                    <th style="width:160px">액션</th>
+                    <th>대상 / 상세</th>
+                    <th style="width:120px">IP</th>
+                    <th style="width:60px">결과</th>
+                  </tr>
+                </thead>
+                <tbody id="auTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 페이지네이션 -->
+            <div class="audit-pagination" id="auPagination" style="display:none">
+              <button type="button" data-au-page="prev">‹ 이전</button>
+              <span class="page-info" id="auPageInfo">1 / 1</span>
+              <button type="button" data-au-page="next">다음 ›</button>
+            </div>
+          </div>
+        </div>
 
         <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
@@ -944,6 +1201,20 @@
       </div>
     </div>
   </div>
+
+    <!-- ★ K-4: 감사 로그 상세 모달 -->
+  <div id="auditDetailModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif">🔍 감사 로그 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="auditDetailBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+  
   <!-- ★ 신규: 회원 정보 팝업 모달 -->
   <div id="memberInfoModal" class="modal">
     <div class="modal-content" style="max-width:560px">
