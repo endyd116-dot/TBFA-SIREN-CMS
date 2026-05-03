@@ -178,6 +178,115 @@
   color: var(--text-3);
   margin: 0 8px;
 }
+/* ===== ★ K-5: 공지/FAQ 관리 ===== */
+.cm-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cm-toolbar select,
+.cm-toolbar input[type="search"] {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+}
+.cm-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 180px;
+}
+
+.cm-table tbody tr td {
+  vertical-align: middle;
+}
+.cm-row-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+.cm-row-actions button {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.cm-row-actions button.edit { color: var(--brand); border-color: #f0e0e3; }
+.cm-row-actions button.edit:hover { background: var(--brand-soft, #fef9f5); }
+.cm-row-actions button.delete { color: var(--danger); border-color: #f5b5bb; }
+.cm-row-actions button.delete:hover { background: #fdecec; }
+
+.cm-inline-active {
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+.cm-inline-active.on { color: var(--success); }
+.cm-inline-active.off { color: var(--text-3); }
+
+.cm-inline-order {
+  width: 56px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  font-family: 'Inter', monospace;
+}
+
+.cm-pinned-mark { font-size: 14px; }
+
+/* 작성/수정 모달 */
+.cm-modal-form .fg label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 4px;
+  display: block;
+}
+.cm-modal-form .fg input,
+.cm-modal-form .fg select,
+.cm-modal-form .fg textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.cm-modal-form .fg textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.cm-modal-form .fg input:focus,
+.cm-modal-form .fg select:focus,
+.cm-modal-form .fg textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.cm-modal-form .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.cm-modal-form .toggle-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 6px 0 14px;
+}
+.cm-modal-form .toggle-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  margin: 0;
+  font-weight: normal;
+  color: var(--text-1);
+}
 
 /* 감사로그 상세 모달 */
 .audit-detail-grid {
@@ -819,21 +928,82 @@
           </div>
         </div>
 
-        <!-- 6. 콘텐츠 관리 -->
+                <!-- 6. 콘텐츠 관리 -->
         <div id="adm-content" class="adm-page">
           <div class="row-1-1">
+
+            <!-- 공지사항 관리 -->
             <div class="panel">
-              <div class="p-head"><div class="p-title">📢 공지사항 관리</div><button class="btn-sm btn-sm-primary">+ 새 글</button></div>
-              <table class="tbl" data-content-tbl="notices">
-                <thead><tr><th>번호</th><th>분류</th><th>제목</th><th>고정</th><th>조회</th><th>관리</th></tr></thead>
-                <tbody><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              <div class="p-head">
+                <div class="p-title">📢 공지사항 관리</div>
+                <button class="btn-sm btn-sm-primary" data-cm-action="new-notice">+ 새 글</button>
+              </div>
+
+              <div class="cm-toolbar">
+                <select id="cmNoticeCategory">
+                  <option value="">전체 분류</option>
+                  <option value="general">일반</option>
+                  <option value="member">회원</option>
+                  <option value="event">사업/행사</option>
+                  <option value="media">언론</option>
+                </select>
+                <select id="cmNoticePublished">
+                  <option value="">전체 상태</option>
+                  <option value="true">공개</option>
+                  <option value="false">비공개</option>
+                </select>
+                <input type="search" id="cmNoticeQ" placeholder="🔍 제목/내용 검색 (2자 이상)">
+              </div>
+
+              <table class="tbl cm-table" data-content-tbl="notices">
+                <thead>
+                  <tr>
+                    <th style="width:60px">번호</th>
+                    <th style="width:90px">분류</th>
+                    <th>제목</th>
+                    <th style="width:50px">고정</th>
+                    <th style="width:60px">공개</th>
+                    <th style="width:60px">조회</th>
+                    <th style="width:120px">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
               </table>
             </div>
+
+            <!-- FAQ 관리 -->
             <div class="panel">
-              <div class="p-head"><div class="p-title">❓ FAQ 관리</div><button class="btn-sm btn-sm-primary">+ 새 FAQ</button></div>
-              <table class="tbl" data-content-tbl="faqs">
-                <thead><tr><th>번호</th><th>분류</th><th>질문</th><th>활성</th><th>순서</th><th>관리</th></tr></thead>
-                <tbody><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              <div class="p-head">
+                <div class="p-title">❓ FAQ 관리</div>
+                <button class="btn-sm btn-sm-primary" data-cm-action="new-faq">+ 새 FAQ</button>
+              </div>
+
+              <div class="cm-toolbar">
+                <input type="text" id="cmFaqCategory" placeholder="카테고리 필터" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;width:120px">
+                <select id="cmFaqActive">
+                  <option value="">전체 상태</option>
+                  <option value="true">활성</option>
+                  <option value="false">비활성</option>
+                </select>
+                <input type="search" id="cmFaqQ" placeholder="🔍 질문/답변 검색 (2자 이상)">
+              </div>
+
+              <table class="tbl cm-table" data-content-tbl="faqs">
+                <thead>
+                  <tr>
+                    <th style="width:60px">번호</th>
+                    <th style="width:90px">분류</th>
+                    <th>질문</th>
+                    <th style="width:60px">활성</th>
+                    <th style="width:70px">순서</th>
+                    <th style="width:120px">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
               </table>
             </div>
           </div>
@@ -1214,7 +1384,113 @@
       </div>
     </div>
   </div>
-  
+  <!-- ★ K-5: 공지사항 작성/수정 모달 -->
+  <div id="noticeEditModal" class="modal">
+    <div class="modal-content" style="max-width:760px">
+      <div class="modal-header">
+        <h3 class="serif" id="noticeModalTitle">📢 새 공지 작성</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="noticeEditForm" class="cm-modal-form">
+          <input type="hidden" id="noticeEditId" value="">
+
+          <div class="grid-2">
+            <div class="fg">
+              <label>분류</label>
+              <select id="noticeEditCategory" required>
+                <option value="general">일반공지</option>
+                <option value="member">회원공지</option>
+                <option value="event">사업/행사</option>
+                <option value="media">언론보도</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>썸네일 URL <span style="font-weight:400;color:var(--text-3)">(선택)</span></label>
+              <input type="url" id="noticeEditThumb" placeholder="https://...">
+            </div>
+          </div>
+
+          <div class="fg">
+            <label>제목 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="noticeEditTitle" required maxlength="200" placeholder="공지사항 제목">
+          </div>
+
+          <div class="fg">
+            <label>요약 <span style="font-weight:400;color:var(--text-3)">(목록에 표시될 짧은 설명)</span></label>
+            <input type="text" id="noticeEditExcerpt" maxlength="300" placeholder="(선택) 짧은 요약">
+          </div>
+
+          <div class="fg">
+            <label>본문 <span style="color:var(--danger)">*</span></label>
+            <textarea id="noticeEditContent" required rows="12" placeholder="HTML 태그 사용 가능 (예: <p>, <br />, <strong>)"></textarea>
+          </div>
+
+          <div class="toggle-row">
+            <label>
+              <input type="checkbox" id="noticeEditPinned"> 📌 상단 고정
+            </label>
+            <label>
+              <input type="checkbox" id="noticeEditPublished" checked> 🌐 공개 (체크 해제 시 비공개)
+            </label>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ K-5: FAQ 작성/수정 모달 -->
+  <div id="faqEditModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif" id="faqModalTitle">❓ 새 FAQ 작성</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="faqEditForm" class="cm-modal-form">
+          <input type="hidden" id="faqEditId" value="">
+
+          <div class="grid-2">
+            <div class="fg">
+              <label>분류</label>
+              <input type="text" id="faqEditCategory" placeholder="general / donation / support 등" maxlength="30">
+            </div>
+            <div class="fg">
+              <label>표시 순서 <span style="font-weight:400;color:var(--text-3)">(작은 값 먼저)</span></label>
+              <input type="number" id="faqEditSort" value="0" min="0" max="9999">
+            </div>
+          </div>
+
+          <div class="fg">
+            <label>질문 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="faqEditQuestion" required maxlength="300" placeholder="자주 묻는 질문">
+          </div>
+
+          <div class="fg">
+            <label>답변 <span style="color:var(--danger)">*</span></label>
+            <textarea id="faqEditAnswer" required rows="8" placeholder="답변 내용 (HTML 태그 사용 가능)"></textarea>
+          </div>
+
+          <div class="toggle-row">
+            <label>
+              <input type="checkbox" id="faqEditActive" checked> ✅ 활성 (체크 해제 시 사용자에게 노출 안 됨)
+            </label>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- ★ 신규: 회원 정보 팝업 모달 -->
   <div id="memberInfoModal" class="modal">
     <div class="modal-content" style="max-width:560px">

@@ -610,66 +610,440 @@
     });
   }
 
-  /* ============ 콘텐츠 관리 ============ */
+  /* ============ ★ K-5: 콘텐츠 관리 (공지/FAQ CRUD) ============ */
+  let _cmNoticeSearchTimer = null;
+  let _cmFaqSearchTimer = null;
+
+  const NOTICE_CATEGORY_BADGE = {
+    general: '<span class="badge b-mute">일반</span>',
+    member: '<span class="badge b-info">회원</span>',
+    event: '<span class="badge b-warn">사업</span>',
+    media: '<span class="badge b-success">언론</span>',
+  };
+
   async function loadContent() {
-    const panel = document.getElementById('adm-content');
-    if (!panel) return;
+    await Promise.all([loadNotices(), loadFaqs()]);
+  }
 
-    const noticeBody = panel.querySelector('table[data-content-tbl="notices"] tbody');
-    if (noticeBody) {
-      noticeBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
-      const nRes = await api('/api/notices?limit=50');
-      const nList = nRes.data?.data?.list || [];
-      if (nList.length === 0) {
-        noticeBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>';
-      } else {
-        const catMap = {
-          general: '<span class="badge b-mute">일반</span>',
-          member: '<span class="badge b-info">회원</span>',
-          event: '<span class="badge b-warn">사업</span>',
-          media: '<span class="badge b-success">언론</span>',
-        };
-        noticeBody.innerHTML = nList.map((n) =>
-          '<tr>' +
-          '<td>' + n.id + '</td>' +
-          '<td>' + (catMap[n.category] || n.category) + '</td>' +
-          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(n.title) + '</td>' +
-          '<td>' + (n.isPinned ? '📌' : '—') + '</td>' +
-          '<td>' + (n.views || 0).toLocaleString() + '</td>' +
-          '<td><button class="btn-link">수정</button></td>' +
-          '</tr>'
-        ).join('');
-      }
+  async function loadNotices() {
+    const tbody = document.querySelector('#adm-content table[data-content-tbl="notices"] tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    const params = new URLSearchParams({ limit: '50', page: '1' });
+    const cat = document.getElementById('cmNoticeCategory')?.value || '';
+    const pub = document.getElementById('cmNoticePublished')?.value || '';
+    const q = (document.getElementById('cmNoticeQ')?.value || '').trim();
+    if (cat) params.set('category', cat);
+    if (pub) params.set('published', pub);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/notices?' + params.toString());
+
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
     }
 
-    const faqBody = panel.querySelector('table[data-content-tbl="faqs"] tbody');
-    if (faqBody) {
-      faqBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
-      const fRes = await api('/api/faqs');
-      const fList = fRes.data?.data?.list || [];
-      if (fList.length === 0) {
-        faqBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">FAQ가 없습니다</td></tr>';
-      } else {
-        const catBadge = {
-          general: '<span class="badge b-mute">일반</span>',
-          donation: '<span class="badge b-warn">후원</span>',
-          support: '<span class="badge b-info">지원</span>',
-        };
-        faqBody.innerHTML = fList.map((f) => {
-          const activeIcon = f.isActive !== false
-            ? '<span style="color:var(--success)">●</span>'
-            : '<span style="color:var(--text-3)">●</span>';
-          return '<tr>' +
-            '<td>' + f.id + '</td>' +
-            '<td>' + (catBadge[f.category] || f.category) + '</td>' +
-            '<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(f.question) + '</td>' +
-            '<td>' + activeIcon + '</td>' +
-            '<td>' + (f.sortOrder || 0) + '</td>' +
-            '<td><button class="btn-link">수정</button></td>' +
-            '</tr>';
-        }).join('');
-      }
+    const list = res.data.data.list || [];
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">공지사항이 없습니다</td></tr>';
+      return;
     }
+
+    tbody.innerHTML = list.map((n) => {
+      const catBadge = NOTICE_CATEGORY_BADGE[n.category] || n.category;
+      const pinnedMark = n.isPinned ? '<span class="cm-pinned-mark" title="상단 고정">📌</span>' : '<span style="color:var(--text-3)">—</span>';
+      const publishedIcon = n.isPublished
+        ? '<span style="color:var(--success);font-size:13px">●</span>'
+        : '<span style="color:var(--text-3);font-size:13px">○</span>';
+
+      return '<tr>' +
+        '<td>' + n.id + '</td>' +
+        '<td>' + catBadge + '</td>' +
+        '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(n.title) + '">' + escapeHtml(n.title) + '</td>' +
+        '<td style="text-align:center">' + pinnedMark + '</td>' +
+        '<td style="text-align:center">' + publishedIcon + '</td>' +
+        '<td style="text-align:right;font-family:Inter;font-size:11.5px">' + (n.views || 0).toLocaleString() + '</td>' +
+        '<td><div class="cm-row-actions">' +
+          '<button class="edit" data-cm-action="edit-notice" data-id="' + n.id + '">✏️ 수정</button>' +
+          '<button class="delete" data-cm-action="delete-notice" data-id="' + n.id + '" data-title="' + escapeHtml(n.title) + '">🗑 삭제</button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  async function loadFaqs() {
+    const tbody = document.querySelector('#adm-content table[data-content-tbl="faqs"] tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    const params = new URLSearchParams({ limit: '100', page: '1' });
+    const cat = (document.getElementById('cmFaqCategory')?.value || '').trim();
+    const active = document.getElementById('cmFaqActive')?.value || '';
+    const q = (document.getElementById('cmFaqQ')?.value || '').trim();
+    if (cat) params.set('category', cat);
+    if (active) params.set('active', active);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/faqs?' + params.toString());
+
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
+    }
+
+    const list = res.data.data.list || [];
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">FAQ가 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((f) => {
+      const activeIcon = f.isActive
+        ? '<span class="cm-inline-active on" data-cm-action="toggle-faq-active" data-id="' + f.id + '" data-current="true" title="클릭하여 비활성화">●</span>'
+        : '<span class="cm-inline-active off" data-cm-action="toggle-faq-active" data-id="' + f.id + '" data-current="false" title="클릭하여 활성화">○</span>';
+      const catText = f.category ? escapeHtml(f.category) : '<span style="color:var(--text-3)">—</span>';
+
+      return '<tr>' +
+        '<td>' + f.id + '</td>' +
+        '<td style="font-size:11.5px">' + catText + '</td>' +
+        '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(f.question) + '">' + escapeHtml(f.question) + '</td>' +
+        '<td style="text-align:center">' + activeIcon + '</td>' +
+        '<td style="text-align:center"><input type="number" class="cm-inline-order" value="' + (f.sortOrder || 0) + '" min="0" max="9999" data-cm-action="change-faq-order" data-id="' + f.id + '"></td>' +
+        '<td><div class="cm-row-actions">' +
+          '<button class="edit" data-cm-action="edit-faq" data-id="' + f.id + '">✏️ 수정</button>' +
+          '<button class="delete" data-cm-action="delete-faq" data-id="' + f.id + '" data-title="' + escapeHtml(f.question) + '">🗑 삭제</button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ===== 공지 모달 열기 ===== */
+  async function openNoticeEditModal(id) {
+    const modal = document.getElementById('noticeEditModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('noticeModalTitle');
+    const idEl = document.getElementById('noticeEditId');
+    const catEl = document.getElementById('noticeEditCategory');
+    const thumbEl = document.getElementById('noticeEditThumb');
+    const tEl = document.getElementById('noticeEditTitle');
+    const exEl = document.getElementById('noticeEditExcerpt');
+    const cEl = document.getElementById('noticeEditContent');
+    const pinEl = document.getElementById('noticeEditPinned');
+    const pubEl = document.getElementById('noticeEditPublished');
+
+    /* 신규 작성 모드 */
+    if (!id) {
+      if (titleEl) titleEl.textContent = '📢 새 공지 작성';
+      if (idEl) idEl.value = '';
+      if (catEl) catEl.value = 'general';
+      if (thumbEl) thumbEl.value = '';
+      if (tEl) tEl.value = '';
+      if (exEl) exEl.value = '';
+      if (cEl) cEl.value = '';
+      if (pinEl) pinEl.checked = false;
+      if (pubEl) pubEl.checked = true;
+      modal.classList.add('show');
+      setTimeout(() => tEl?.focus(), 100);
+      return;
+    }
+
+    /* 수정 모드: 기존 데이터 로드 */
+    if (titleEl) titleEl.textContent = '✏️ 공지 수정';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/notices?id=' + id);
+    if (!res.ok || !res.data?.data?.notice) {
+      toast('공지사항을 불러오지 못했습니다');
+      modal.classList.remove('show');
+      return;
+    }
+    const n = res.data.data.notice;
+    if (idEl) idEl.value = String(n.id);
+    if (catEl) catEl.value = n.category || 'general';
+    if (thumbEl) thumbEl.value = n.thumbnailUrl || '';
+    if (tEl) tEl.value = n.title || '';
+    if (exEl) exEl.value = n.excerpt || '';
+    if (cEl) cEl.value = n.content || '';
+    if (pinEl) pinEl.checked = !!n.isPinned;
+    if (pubEl) pubEl.checked = n.isPublished !== false;
+  }
+
+  /* ===== FAQ 모달 열기 ===== */
+  async function openFaqEditModal(id) {
+    const modal = document.getElementById('faqEditModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('faqModalTitle');
+    const idEl = document.getElementById('faqEditId');
+    const catEl = document.getElementById('faqEditCategory');
+    const sortEl = document.getElementById('faqEditSort');
+    const qEl = document.getElementById('faqEditQuestion');
+    const aEl = document.getElementById('faqEditAnswer');
+    const actEl = document.getElementById('faqEditActive');
+
+    if (!id) {
+      if (titleEl) titleEl.textContent = '❓ 새 FAQ 작성';
+      if (idEl) idEl.value = '';
+      if (catEl) catEl.value = 'general';
+      if (sortEl) sortEl.value = '0';
+      if (qEl) qEl.value = '';
+      if (aEl) aEl.value = '';
+      if (actEl) actEl.checked = true;
+      modal.classList.add('show');
+      setTimeout(() => qEl?.focus(), 100);
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = '✏️ FAQ 수정';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/faqs?id=' + id);
+    if (!res.ok || !res.data?.data?.faq) {
+      toast('FAQ를 불러오지 못했습니다');
+      modal.classList.remove('show');
+      return;
+    }
+    const f = res.data.data.faq;
+    if (idEl) idEl.value = String(f.id);
+    if (catEl) catEl.value = f.category || 'general';
+    if (sortEl) sortEl.value = String(f.sortOrder || 0);
+    if (qEl) qEl.value = f.question || '';
+    if (aEl) aEl.value = f.answer || '';
+    if (actEl) actEl.checked = f.isActive !== false;
+  }
+
+  /* ===== 공지 폼 제출 ===== */
+  function setupNoticeEditForm() {
+    const form = document.getElementById('noticeEditForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('noticeEditId').value;
+      const body = {
+        category: document.getElementById('noticeEditCategory').value || 'general',
+        title: document.getElementById('noticeEditTitle').value.trim(),
+        content: document.getElementById('noticeEditContent').value.trim(),
+        excerpt: document.getElementById('noticeEditExcerpt').value.trim() || undefined,
+        thumbnailUrl: document.getElementById('noticeEditThumb').value.trim() || undefined,
+        isPinned: document.getElementById('noticeEditPinned').checked,
+        isPublished: document.getElementById('noticeEditPublished').checked,
+      };
+
+      if (!body.title || !body.content) {
+        return toast('제목과 본문을 입력해 주세요');
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const oldText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '저장 중...'; }
+
+      try {
+        let res;
+        if (id) {
+          res = await api('/api/admin/notices', {
+            method: 'PATCH',
+            body: { id: Number(id), ...body },
+          });
+        } else {
+          res = await api('/api/admin/notices', { method: 'POST', body });
+        }
+
+        if (res.ok) {
+          toast(res.data?.message || '저장되었습니다');
+          document.getElementById('noticeEditModal')?.classList.remove('show');
+          loadNotices();
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ===== FAQ 폼 제출 ===== */
+  function setupFaqEditForm() {
+    const form = document.getElementById('faqEditForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('faqEditId').value;
+      const body = {
+        category: document.getElementById('faqEditCategory').value.trim() || 'general',
+        question: document.getElementById('faqEditQuestion').value.trim(),
+        answer: document.getElementById('faqEditAnswer').value.trim(),
+        sortOrder: Number(document.getElementById('faqEditSort').value) || 0,
+        isActive: document.getElementById('faqEditActive').checked,
+      };
+
+      if (!body.question || !body.answer) {
+        return toast('질문과 답변을 입력해 주세요');
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const oldText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '저장 중...'; }
+
+      try {
+        let res;
+        if (id) {
+          res = await api('/api/admin/faqs', {
+            method: 'PATCH',
+            body: { id: Number(id), ...body },
+          });
+        } else {
+          res = await api('/api/admin/faqs', { method: 'POST', body });
+        }
+
+        if (res.ok) {
+          toast(res.data?.message || '저장되었습니다');
+          document.getElementById('faqEditModal')?.classList.remove('show');
+          loadFaqs();
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = oldText; }
+      }
+    });
+  }
+
+  /* ===== 통합 액션 핸들러 (작성/수정/삭제/인라인) ===== */
+  function setupContentActions() {
+    /* 클릭 액션 */
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-cm-action]');
+      if (!btn) return;
+      const action = btn.dataset.cmAction;
+
+      if (action === 'new-notice') {
+        e.preventDefault();
+        openNoticeEditModal(null);
+        return;
+      }
+      if (action === 'edit-notice') {
+        e.preventDefault();
+        openNoticeEditModal(Number(btn.dataset.id));
+        return;
+      }
+      if (action === 'delete-notice') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const title = btn.dataset.title || '';
+        if (!confirm('공지사항을 삭제하시겠습니까?\n\n"' + title + '"\n\n※ 삭제 후 복구할 수 없습니다.')) return;
+        const res = await api('/api/admin/notices?id=' + id, { method: 'DELETE' });
+        if (res.ok) {
+          toast(res.data?.message || '삭제되었습니다');
+          loadNotices();
+        } else {
+          toast(res.data?.error || '삭제 실패');
+        }
+        return;
+      }
+
+      if (action === 'new-faq') {
+        e.preventDefault();
+        openFaqEditModal(null);
+        return;
+      }
+      if (action === 'edit-faq') {
+        e.preventDefault();
+        openFaqEditModal(Number(btn.dataset.id));
+        return;
+      }
+      if (action === 'delete-faq') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const title = btn.dataset.title || '';
+        if (!confirm('FAQ를 삭제하시겠습니까?\n\n"' + title + '"\n\n※ 삭제 후 복구할 수 없습니다.')) return;
+        const res = await api('/api/admin/faqs?id=' + id, { method: 'DELETE' });
+        if (res.ok) {
+          toast(res.data?.message || '삭제되었습니다');
+          loadFaqs();
+        } else {
+          toast(res.data?.error || '삭제 실패');
+        }
+        return;
+      }
+
+      /* FAQ 인라인 활성 토글 */
+      if (action === 'toggle-faq-active') {
+        e.preventDefault();
+        const id = Number(btn.dataset.id);
+        const current = btn.dataset.current === 'true';
+        const newVal = !current;
+        const res = await api('/api/admin/faqs', {
+          method: 'PATCH',
+          body: { id, inlineOnly: true, isActive: newVal },
+        });
+        if (res.ok) {
+          toast(newVal ? '활성화되었습니다' : '비활성화되었습니다');
+          loadFaqs();
+        } else {
+          toast(res.data?.error || '변경 실패');
+        }
+        return;
+      }
+    });
+
+    /* FAQ 순서 인라인 변경 (debounce) */
+    let _orderTimer = null;
+    document.addEventListener('input', (e) => {
+      const inp = e.target.closest('[data-cm-action="change-faq-order"]');
+      if (!inp) return;
+      const id = Number(inp.dataset.id);
+      const newSort = Number(inp.value) || 0;
+      clearTimeout(_orderTimer);
+      _orderTimer = setTimeout(async () => {
+        const res = await api('/api/admin/faqs', {
+          method: 'PATCH',
+          body: { id, inlineOnly: true, sortOrder: newSort },
+        });
+        if (res.ok) {
+          toast('순서가 변경되었습니다');
+        } else {
+          toast(res.data?.error || '변경 실패');
+        }
+      }, 600);
+    });
+
+    /* 검색/필터 디바운스 */
+    const noticeQ = document.getElementById('cmNoticeQ');
+    if (noticeQ) {
+      noticeQ.addEventListener('input', () => {
+        clearTimeout(_cmNoticeSearchTimer);
+        _cmNoticeSearchTimer = setTimeout(loadNotices, 400);
+      });
+    }
+    const faqQ = document.getElementById('cmFaqQ');
+    if (faqQ) {
+      faqQ.addEventListener('input', () => {
+        clearTimeout(_cmFaqSearchTimer);
+        _cmFaqSearchTimer = setTimeout(loadFaqs, 400);
+      });
+    }
+    ['cmNoticeCategory', 'cmNoticePublished'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', loadNotices);
+    });
+    ['cmFaqCategory', 'cmFaqActive'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (id === 'cmFaqCategory') {
+          el.addEventListener('input', () => {
+            clearTimeout(_cmFaqSearchTimer);
+            _cmFaqSearchTimer = setTimeout(loadFaqs, 400);
+          });
+        } else {
+          el.addEventListener('change', loadFaqs);
+        }
+      }
+    });
   }
 
   /* ============ ★ STEP H-2d-3: 영수증 설정 ============ */
@@ -2303,6 +2677,9 @@
     setupReceiptSettings();
     setupExpertAssignClick();  /* ★ K-3 추가 */
     setupAuditActions();       /* ★ K-4 추가 */
+    setupContentActions();     /* ★ K-5 추가 */
+    setupNoticeEditForm();     /* ★ K-5 추가 */
+    setupFaqEditForm();        /* ★ K-5 추가 */
 
     const isLogged = await fetchAdminMe();
     // ... 이하 기존 코드 그대로
