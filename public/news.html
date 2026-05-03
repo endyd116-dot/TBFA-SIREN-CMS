@@ -15,6 +15,138 @@
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/home.css">
 <link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  /* ===== ★ K-5: 동적 공지/FAQ ===== */
+  .news-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .news-tabs .tab-btn {
+    padding: 10px 20px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text-2);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .news-tabs .tab-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .news-tabs .tab-btn.on {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
+
+  .news-table tbody tr { cursor: pointer; transition: background 0.1s; }
+  .news-table tbody tr:hover { background: var(--bg-soft); }
+
+  .news-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+  .news-pagination button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text-2);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12.5px;
+    padding: 0;
+  }
+  .news-pagination button.active {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+    font-weight: 700;
+  }
+  .news-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .news-pagination button:hover:not(.active):not(:disabled) {
+    background: var(--bg-soft);
+  }
+
+  /* 공지 상세 모달 */
+  #noticeViewModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  #noticeViewModal.show { display: flex; }
+  #noticeViewModal .modal-content {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 800px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    margin: auto;
+  }
+  #noticeViewModal .modal-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  #noticeViewModal .modal-header .nv-title-wrap { flex: 1; }
+  #noticeViewModal .modal-header h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-family: 'Noto Serif KR', serif;
+    line-height: 1.5;
+  }
+  #noticeViewModal .modal-header .nv-meta {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  #noticeViewModal .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-3);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  #noticeViewModal .modal-body {
+    padding: 24px 28px;
+    font-size: 14px;
+    line-height: 1.85;
+    color: var(--text-1);
+  }
+  #noticeViewModal .modal-body img { max-width: 100%; height: auto; }
+
+  .nv-loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-3);
+    font-size: 13px;
+  }
+</style>
 </head>
 <body data-page="news">
 
@@ -33,19 +165,21 @@
       <a href="/index.html">홈</a> &nbsp;›&nbsp; 소식 / 참여 &nbsp;›&nbsp; 공지사항
     </div>
 
-    <!-- 카테고리 탭 -->
+    <!-- 공지사항 -->
     <section class="block" id="notice" style="padding-bottom:0">
       <div class="container">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid var(--line)">
-          <button class="btn-sm btn-sm-primary" style="padding:10px 20px">전체</button>
-          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">단체공지</button>
-          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">회원공지</button>
-          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">사업안내</button>
-          <button class="btn-sm btn-sm-ghost" style="padding:10px 20px">언론보도</button>
+
+        <!-- 카테고리 탭 -->
+        <div class="news-tabs" id="newsTabs">
+          <button type="button" class="tab-btn on" data-cat="">전체</button>
+          <button type="button" class="tab-btn" data-cat="general">단체공지</button>
+          <button type="button" class="tab-btn" data-cat="member">회원공지</button>
+          <button type="button" class="tab-btn" data-cat="event">사업안내</button>
+          <button type="button" class="tab-btn" data-cat="media">언론보도</button>
         </div>
 
         <div class="panel" style="padding:0;overflow:hidden">
-          <table class="tbl">
+          <table class="tbl news-table">
             <thead>
               <tr>
                 <th style="width:80px">번호</th>
@@ -55,28 +189,19 @@
                 <th style="width:80px">조회</th>
               </tr>
             </thead>
-            <tbody>
-              <tr style="cursor:pointer"><td>15</td><td><span class="badge b-danger">공지</span></td><td>📌 2026년 정기총회 개최 및 활동 보고서 공개 안내</td><td>2026.04.28</td><td>1,284</td></tr>
-              <tr style="cursor:pointer"><td>14</td><td><span class="badge b-info">회원</span></td><td>신규 정기 후원 회원을 위한 감사 캠페인 진행</td><td>2026.04.21</td><td>892</td></tr>
-              <tr style="cursor:pointer"><td>13</td><td><span class="badge b-warn">사업</span></td><td>📌 유가족 심리상담 지원 프로그램 2기 모집</td><td>2026.04.18</td><td>1,567</td></tr>
-              <tr style="cursor:pointer"><td>12</td><td><span class="badge b-warn">사업</span></td><td>법률 자문 봉사단 1차 모집 결과 공지</td><td>2026.04.12</td><td>723</td></tr>
-              <tr style="cursor:pointer"><td>11</td><td><span class="badge b-info">회원</span></td><td>기부금 영수증 일괄 발급 기간 안내 (5/1~5/15)</td><td>2026.04.05</td><td>2,103</td></tr>
-              <tr style="cursor:pointer" id="media"><td>10</td><td><span class="badge b-success">언론</span></td><td>[OO일보] 교사유가족협의회 1주년, 그 의미를 묻다</td><td>2026.03.28</td><td>3,294</td></tr>
-              <tr style="cursor:pointer"><td>9</td><td><span class="badge b-success">언론</span></td><td>[OO뉴스] "기억의 약속", 교사 추모 캠페인 시작</td><td>2026.03.20</td><td>2,847</td></tr>
-              <tr style="cursor:pointer"><td>8</td><td><span class="badge b-warn">사업</span></td><td>장학사업 1기 수혜자 선정 결과 발표</td><td>2026.03.15</td><td>1,832</td></tr>
-              <tr style="cursor:pointer"><td>7</td><td><span class="badge b-info">회원</span></td><td>회원 등급별 혜택 개편 안내</td><td>2026.03.08</td><td>967</td></tr>
-              <tr style="cursor:pointer"><td>6</td><td><span class="badge b-mute">일반</span></td><td>홈페이지 점검 안내 (3/3 02:00~04:00)</td><td>2026.03.01</td><td>456</td></tr>
+            <tbody id="newsTableBody">
+              <tr>
+                <td colspan="5" style="text-align:center;padding:60px;color:var(--text-3);font-size:13px">
+                  공지사항을 불러오는 중...
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <!-- 페이지네이션 -->
-        <div style="display:flex;justify-content:center;gap:6px;margin-top:30px">
-          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">‹</button>
-          <button class="btn-sm btn-sm-primary" style="width:36px;padding:8px">1</button>
-          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">2</button>
-          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">3</button>
-          <button class="btn-sm btn-sm-ghost" style="width:36px;padding:8px">›</button>
+        <div class="news-pagination" id="newsPagination" style="display:none">
+          <!-- JS 동적 생성 -->
         </div>
       </div>
     </section>
@@ -91,30 +216,9 @@
           </div>
         </div>
 
-        <div style="max-width:880px;margin:0 auto">
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>교사유가족협의회 가입 절차가 궁금해요.<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">가족관계증명서 등 증빙 서류와 함께 회원가입을 진행하시면, 사무국에서 영업일 기준 3일 이내 검토 후 승인 결과를 알림톡으로 안내드립니다.</div></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>기부금 영수증은 언제 어떻게 발급되나요?<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">매년 1월 국세청 연말정산 간소화 서비스에 자동 등재되며, 마이페이지 &gt; 증명서 발급에서 PDF 형태로 즉시 출력 가능합니다.</div></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>법률 지원은 어떤 분들이 도와주시나요?<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">교육 관련 분쟁 경험이 풍부한 변호사 패널 12분이 협력하고 있으며, 사안의 성격에 맞춰 전문가가 매칭됩니다.</div></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>정기 후원을 해지하고 싶어요.<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">마이페이지 &gt; 내 후원 내역에서 즉시 해지 가능하며, 별도 위약금이 없습니다. 그동안 동참해 주셔서 진심으로 감사드립니다.</div></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>봉사자로 참여하고 싶습니다. 어떻게 신청하나요?<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">회원가입 시 "봉사자 회원"을 선택하시고 보유 기술(심리상담/법률/행정 등)을 등록해 주세요. AI 매칭 시스템이 적합한 활동을 추천해 드립니다.</div></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-q"><span class="q-mark">Q</span>후원금은 어디에 사용되나요?<span class="arrow">▼</span></div>
-            <div class="faq-a"><div class="faq-a-inner">직접 지원(58%) · 추모 사업(17%) · 장학 사업(15%) · 운영비(10%) 비율로 집행되며, 매월 활동 보고서 페이지에서 상세 내역을 공개합니다.</div></div>
+        <div style="max-width:880px;margin:0 auto" id="faqContainer">
+          <div style="text-align:center;padding:40px;color:var(--text-3);font-size:13px">
+            FAQ를 불러오는 중...
           </div>
         </div>
       </div>
@@ -122,14 +226,30 @@
 
   </main>
 
+  <!-- ★ K-5: 공지 상세 모달 -->
+  <div id="noticeViewModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="nv-title-wrap">
+          <h3 id="nvTitle">불러오는 중...</h3>
+          <div class="nv-meta" id="nvMeta">—</div>
+        </div>
+        <button class="modal-close" type="button" data-nv-close>&times;</button>
+      </div>
+      <div class="modal-body" id="nvBody">
+        <div class="nv-loading">잠시만 기다려 주세요...</div>
+      </div>
+    </div>
+  </div>
+
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
   <script src="/js/common.js?v=3"></script>
-  <script src="/js/auth.js?v=3"></script>
-  <script src="/js/news.js?v=3"></script>
-  <script src="/js/support.js?v=3"></script>
+  <script src="/js/auth.js?v=5"></script>
+  <script src="/js/news.js?v=2"></script>
+  <script src="/js/support.js?v=4"></script>
   <script src="/js/home.js?v=3"></script>
-  <script src="/js/donate.js?v=3"></script>
+  <script src="/js/donate.js?v=4"></script>
 </body>
 </html>
