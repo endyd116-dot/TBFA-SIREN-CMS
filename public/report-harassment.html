@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>악성민원 신고 | 교사유가족협의회</title>
+<meta name="description" content="교사가 겪은 악성민원·교권 침해 사례를 신고하고 AI 분석과 사이렌 운영진의 도움을 받으세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/harassment.css?v=m6">
+<link rel="stylesheet" href="/css/attachment.css?v=m2">
+</head>
+<body data-page="harassment">
+
+  <div id="header-slot"></div>
+
+  <main>
+
+    <section class="page-hero">
+      <div class="container">
+        <h1>⚠️ 악성민원·교권 침해 신고</h1>
+        <p>혼자 견디지 마세요. 사이렌이 함께합니다.</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; <span>악성민원 신고</span>
+    </div>
+
+    <section class="block">
+      <div class="container">
+        <div class="harass-wrap">
+
+          <!-- 안내 -->
+          <div class="harass-intro">
+            <h2>📋 신고 안내</h2>
+            <p>교사가 겪고 있는 <strong>악성민원, 학부모 폭언, 학생 폭력, 관리자 부당지시, 동료 갈등</strong> 등 교권 침해 사례를 신고하실 수 있습니다.</p>
+            <p>접수된 신고는 <strong>AI가 1차 분석</strong>하여 <strong>즉각적 대처법, 법률 자문 필요성, 심리상담 권장 여부</strong>를 안내드립니다. 추가 도움이 필요하시면 사이렌 운영진의 정식 검토를 받으실 수 있습니다.</p>
+            <div class="badge-row">
+              <span class="b">🔒 비밀 보장</span>
+              <span class="b">👤 익명 가능</span>
+              <span class="b">⚖️ 법률 자문 연결</span>
+              <span class="b">💗 심리상담 연결</span>
+              <span class="b">🤖 AI 즉시 분석</span>
+            </div>
+          </div>
+
+          <!-- 단계 표시 -->
+          <div class="harass-steps">
+            <div class="harass-step-indicator active" data-step-ind="1"><span class="num">1</span> 작성</div>
+            <div class="harass-step-indicator" data-step-ind="2"><span class="num">2</span> AI 분석</div>
+            <div class="harass-step-indicator" data-step-ind="3"><span class="num">3</span> 완료</div>
+          </div>
+
+          <!-- STEP 1: 작성 폼 -->
+          <div class="harass-step" data-harass-step="1">
+            <div class="harass-form-card">
+              <h3>신고서 작성</h3>
+              <p class="sub">상세하게 작성하실수록 더 정확한 AI 분석과 답변을 받으실 수 있습니다.</p>
+
+              <form id="harassmentForm">
+                <!-- 카테고리 -->
+                <div class="fg">
+                  <label>유형 <span class="req">*</span></label>
+                  <div class="harass-cat-grid">
+                    <label>
+                      <input type="radio" name="category" value="parent" checked>
+                      <span class="cat-icon">👨‍👩‍👧</span>
+                      <span class="cat-label">학부모 민원</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="category" value="student">
+                      <span class="cat-icon">🎒</span>
+                      <span class="cat-label">학생 폭력/문제행동</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="category" value="admin">
+                      <span class="cat-icon">🏢</span>
+                      <span class="cat-label">관리자 부당지시</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="category" value="colleague">
+                      <span class="cat-icon">👥</span>
+                      <span class="cat-label">동료 갈등</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="category" value="other">
+                      <span class="cat-icon">📌</span>
+                      <span class="cat-label">기타</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 빈도 -->
+                <div class="fg">
+                  <label>발생 빈도 <span class="hint">(선택)</span></label>
+                  <div class="harass-freq-row">
+                    <label>
+                      <input type="radio" name="frequency" value="once">
+                      <span>1회성</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="frequency" value="recurring">
+                      <span>반복적</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="frequency" value="ongoing">
+                      <span>현재 진행 중</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 발생 시기 -->
+                <div class="fg">
+                  <label>발생 시기 <span class="hint">(선택)</span></label>
+                  <input type="date" name="occurredAt" id="harassOccurredAt">
+                </div>
+
+                <!-- 제목 -->
+                <div class="fg">
+                  <label>제목 <span class="req">*</span></label>
+                  <input type="text" name="title" id="harassTitle" required maxlength="200" placeholder="신고 내용을 간단히 요약해 주세요">
+                </div>
+
+                <!-- 본문 -->
+                <div class="fg">
+                  <label>상세 내용 <span class="req">*</span> <span class="hint">(서식·이미지 첨부 가능, 10자 이상)</span></label>
+                  <div id="harassEditor"></div>
+                </div>
+
+                <!-- 첨부 -->
+                <div class="fg">
+                  <label>증빙 자료 첨부 <span class="hint">(선택 — 카톡 캡처·이메일·녹음 등)</span></label>
+                  <div id="harassAttachments"></div>
+                </div>
+
+                <!-- 익명 -->
+                <label class="checkbox-line">
+                  <input type="checkbox" name="isAnonymous" id="harassAnonymous">
+                  <span>
+                    <strong>익명으로 신고합니다</strong><br />
+                    <span style="font-size:12px;color:var(--text-3)">관리자에게 신원 정보가 전달되지 않습니다. 답변은 마이페이지에서만 확인 가능합니다.</span>
+                  </span>
+                </label>
+
+                <!-- 동의 -->
+                <label class="checkbox-line">
+                  <input type="checkbox" required>
+                  <span>
+                    <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:underline">개인정보 수집·이용</a>
+                    및 비밀 유지 안내에 동의합니다.<br />
+                    <span style="font-size:12px;color:var(--text-3)">신고 내용과 첨부 파일은 암호화되어 안전하게 보관됩니다.</span>
+                  </span>
+                </label>
+
+                <div class="harass-actions">
+                  <a href="/index.html" class="btn-cancel" style="text-decoration:none;display:inline-block;text-align:center;line-height:1">취소</a>
+                  <button type="submit" class="btn-submit" id="harassSubmitBtn">🤖 AI 분석 후 제출</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- STEP 2: AI 분석 결과 -->
+          <div class="harass-step" data-harass-step="2" style="display:none">
+            <div class="harass-ai-result">
+              <div class="harass-ai-header">
+                <div class="label">접수번호</div>
+                <div class="num" id="harassReportNo">H-2026-0000</div>
+                <h3>🤖 AI 분석 결과</h3>
+                <p>아래 분석은 1차 자동 분석 결과이며, 법률 자문이나 공식 입장이 아닙니다.</p>
+              </div>
+
+              <!-- 심각도 배너 -->
+              <div class="harass-severity-banner" id="harassSeverityBanner">
+                <span class="icon" id="harassSeverityIcon">⚖️</span>
+                <div class="text">
+                  <div class="label">AI 판단 심각도</div>
+                  <div class="level" id="harassSeverityLabel">분석 중...</div>
+                </div>
+              </div>
+
+              <!-- 상황 요약 -->
+              <div class="harass-ai-block">
+                <div class="b-title">📋 상황 요약</div>
+                <div class="b-content" id="harassAiSummary">분석 중...</div>
+              </div>
+
+              <!-- 즉각적 대처 -->
+              <div class="harass-ai-block">
+                <div class="b-title">🚀 즉각적 대처 방법</div>
+                <div class="b-content" id="harassAiImmediate">분석 중...</div>
+              </div>
+
+              <!-- 법적 검토 + 심리지원 (2분할) -->
+              <div class="harass-flags">
+                <div class="harass-flag-card" id="harassLegalCard">
+                  <span class="icon">⚖️</span>
+                  <div class="text">
+                    <div class="title">법률 자문</div>
+                    <span class="status" id="harassLegalStatus">검토 필요</span>
+                    <div class="reason" id="harassLegalReason">분석 중...</div>
+                  </div>
+                </div>
+                <div class="harass-flag-card" id="harassPsychCard">
+                  <span class="icon">💗</span>
+                  <div class="text">
+                    <div class="title">심리상담 지원</div>
+                    <span class="status" id="harassPsychStatus">권장</span>
+                    <div class="reason" id="harassPsychReason">분석 중...</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 종합 권장 -->
+              <div class="harass-ai-block">
+                <div class="b-title">💡 사이렌의 권장사항</div>
+                <div class="b-content" id="harassAiSuggestion">분석 중...</div>
+              </div>
+
+              <!-- 결정 박스 -->
+              <div class="harass-decision">
+                <h4>📌 사이렌에 정식 신고하시겠습니까?</h4>
+                <p>
+                  AI 분석 결과를 보셨습니다. 추가로 사이렌 운영진의 검토와 답변이 필요하시면 정식 신고하시고,
+                  AI 답변만으로 충분하시면 'AI 답변만' 버튼을 눌러주세요.<br />
+                  <span style="color:var(--text-3);font-size:12px">※ 정식 신고 시 운영자에게 알림이 발송되며, 마이페이지에서 답변을 확인하실 수 있습니다.</span>
+                </p>
+                <div class="decision-buttons">
+                  <button type="button" class="btn-siren" id="harassBtnSiren">✅ 사이렌에 정식 신고</button>
+                  <button type="button" class="btn-ai-only" id="harassBtnAiOnly">📋 AI 답변만 받고 종료</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: 완료 -->
+          <div class="harass-step" data-harass-step="3" style="display:none">
+            <div class="harass-final">
+              <div class="icon" id="harassFinalIcon">🎯</div>
+              <h3 id="harassFinalTitle">신고가 완료되었습니다</h3>
+              <p id="harassFinalMsg">
+                소중한 신고 감사합니다.<br />
+                마이페이지에서 진행 상태를 확인하실 수 있습니다.
+              </p>
+              <div class="button-group">
+                <a href="/mypage.html" class="btn btn-primary">마이페이지로 이동</a>
+                <a href="/index.html" class="btn btn-outline" style="background:transparent;border:1px solid var(--line);color:var(--text-2)">홈으로</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/auth.js?v=6"></script>
+  <script src="/js/editor.js?v=m2-5"></script>
+  <script src="/js/attachment.js?v=m2-5"></script>
+  <script src="/js/harassment.js?v=m6"></script>
+</body>
+</html>
