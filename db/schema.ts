@@ -92,6 +92,15 @@ export const members = pgTable("members", {
   withdrawnAt: timestamp("withdrawn_at"),                         // 탈퇴 시점
   withdrawnReason: varchar("withdrawn_reason", { length: 500 }),  // 탈퇴 사유 (선택)
 
+  /* ───────── ★ M-12: 회원 4분류 + 가입경로 (NEW) ───────── */
+  memberCategory: varchar("member_category", { length: 20 }),
+  // 'sponsor' | 'regular' | 'family' | 'etc' (null 가능 — 마이그레이션 후 자동 분류)
+  memberSubtype: varchar("member_subtype", { length: 50 }),
+  // 'regular_donation' | 'hyosung_donation' | 'onetime_donation' |
+  // 'volunteer' | 'lawyer' | 'counselor' | null
+  signupSourceId: integer("signup_source_id"),
+  // signup_sources.id 참조 (런타임 join)
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -101,8 +110,11 @@ export const members = pgTable("members", {
   typeIdx: index("members_type_idx").on(t.type),
   statusIdx: index("members_status_idx").on(t.status),
   roleIdx: index("members_role_idx").on(t.role),
+  /* ★ M-12: 분류/가입경로 인덱스 */
+  categoryIdx: index("members_category_idx").on(t.memberCategory),
+  subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
+  signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
 }));
-
 /* =========================================================
    2. donations — 기부 내역
    ========================================================= */
@@ -624,6 +636,25 @@ export const notifications = pgTable("notifications", {
   categoryIdx: index("notifications_category_idx").on(t.category),
   severityIdx: index("notifications_severity_idx").on(t.severity),
   expiresIdx: index("notifications_expires_idx").on(t.expiresAt),
+}));
+/* =========================================================
+   ★ Phase M-12: signup_sources — 회원 가입 경로 마스터
+   - code UNIQUE: 'website' | 'admin' | 'hyosung_csv' | 'event' | 'etc'
+   - 어드민이 추가/수정/삭제 가능 (CRUD)
+   - 기본 시드 5건 (마이그레이션에서 INSERT)
+   ========================================================= */
+export const signupSources = pgTable("signup_sources", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  label: varchar("label", { length: 100 }).notNull(),
+  description: varchar("description", { length: 300 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index("signup_sources_code_idx").on(t.code),
+  activeIdx: index("signup_sources_active_idx").on(t.isActive),
 }));
 
 /* =========================================================
@@ -1207,3 +1238,7 @@ export type ActivityPost = typeof activityPosts.$inferSelect;
 export type NewActivityPost = typeof activityPosts.$inferInsert;
 export type MediaPost = typeof mediaPosts.$inferSelect;
 export type NewMediaPost = typeof mediaPosts.$inferInsert;
+
+/* ★ M-12: 가입경로 타입 (NEW) */
+export type SignupSource = typeof signupSources.$inferSelect;
+export type NewSignupSource = typeof signupSources.$inferInsert;
