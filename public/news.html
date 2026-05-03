@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/home.css">
 <link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/activity.css?v=m11">
 
 <style>
   /* ===== ★ K-5: 동적 공지/FAQ ===== */
@@ -206,6 +207,29 @@
       </div>
     </section>
 
+    <!-- ★ M-11: 언론보도 / 갤러리 -->
+    <section class="block" id="media" style="padding-top:0">
+      <div class="container">
+        <div class="sec-head" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:18px">
+          <div>
+            <div class="sec-eyebrow">PRESS & GALLERY</div>
+            <div class="sec-title">언론보도 / 갤러리</div>
+          </div>
+          <div class="act-cat-tabs" id="mediaCatTabs" style="margin-left:0">
+            <button type="button" class="act-cat-tab on" data-mc="">전체</button>
+            <button type="button" class="act-cat-tab" data-mc="press">📰 언론보도</button>
+            <button type="button" class="act-cat-tab" data-mc="photo">📷 사진</button>
+            <button type="button" class="act-cat-tab" data-mc="event">🎯 행사</button>
+          </div>
+        </div>
+
+        <div id="mediaGrid">
+          <div style="text-align:center;padding:40px;color:var(--text-3);font-size:13px">언론보도/갤러리를 불러오는 중...</div>
+        </div>
+      </div>
+    </section>
+
+
     <!-- FAQ -->
     <section class="block" id="faq" style="background:var(--bg-soft)">
       <div class="container">
@@ -248,6 +272,7 @@
   <script src="/js/common.js?v=3"></script>
   <script src="/js/auth.js?v=5"></script>
   <script src="/js/news.js?v=2"></script>
+  <script src="/js/news-media.js?v=m11"></script>
   <script src="/js/support.js?v=4"></script>
   <script src="/js/home.js?v=3"></script>
   <script src="/js/donate.js?v=4"></script>

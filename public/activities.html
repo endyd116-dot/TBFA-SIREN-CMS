@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>주요 활동 | 교사유가족협의회</title>
+<meta name="description" content="활동보고서 · 사진 · 활동뉴스">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/activity.css?v=m11">
+</head>
+<body data-page="activities">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>📊 주요 활동</h1>
+        <p>활동보고서 · 사진 · 활동뉴스</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; <span>주요 활동</span>
+    </div>
+
+    <section class="block">
+      <div class="container">
+        <div class="act-wrap">
+
+          <!-- 필터 -->
+          <div class="act-filter-bar">
+            <span class="label">필터</span>
+            <select id="actYearFilter">
+              <option value="">전체 연도</option>
+            </select>
+            <div class="act-cat-tabs" id="actCatTabs">
+              <button type="button" class="act-cat-tab on" data-cat="">전체</button>
+              <button type="button" class="act-cat-tab" data-cat="report">📋 활동보고서</button>
+              <button type="button" class="act-cat-tab" data-cat="photo">📷 사진</button>
+              <button type="button" class="act-cat-tab" data-cat="news">📰 뉴스</button>
+            </div>
+          </div>
+
+          <!-- 앨범 -->
+          <div id="actAlbum">
+            <div class="act-empty">
+              <div class="icon">⏳</div>
+              <div class="title">불러오는 중...</div>
+            </div>
+          </div>
+
+          <!-- 페이징 -->
+          <div class="act-pagination" id="actPagination" style="display:none"></div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/auth.js?v=6"></script>
+  <script src="/js/activity.js?v=m11"></script>
+</body>
+</html>
