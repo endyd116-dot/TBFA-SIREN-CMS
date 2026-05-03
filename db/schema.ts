@@ -136,7 +136,7 @@ export const donations = pgTable("donations", {
   // 익명 여부
   isAnonymous: boolean("is_anonymous").default(false),
 
-  /* ───────── ★ Phase L: 토스페이먼츠 결제 추적 (NEW) ─────────
+  /* ───────── ★ Phase L: 토스페이먼츠 결제 추적 ─────────
      - tossPaymentKey: 토스가 발급한 결제 키 (paymentKey)
      - tossOrderId: 우리가 생성한 주문번호 (TOSS-YYYY-MMxxxx)
      - billingKeyId: 정기결제 시 사용한 billing_keys.id 참조
@@ -146,6 +146,23 @@ export const donations = pgTable("donations", {
   tossOrderId: varchar("toss_order_id", { length: 64 }),
   billingKeyId: integer("billing_key_id"),
   failureReason: varchar("failure_reason", { length: 500 }),
+
+  /* ───────── ★ Phase L-9: 효성 CMS+ 연동 매칭 키 (NEW) ─────────
+     역할 분담 모델: 효성 = 결제/청구 마스터, 사이렌 = 회원/UI 마스터
+     공유 키: 효성 회원번호로 billing_update.csv와 우리 DB 매칭
+
+     - hyosungMemberNo: 효성 CMS+ 자동 부여 회원번호 (예: 60)
+       * 관리자가 효성 등록 후 L-8 완료처리 모달에서 수동 입력
+       * billing_update.csv의 '회원번호' 컬럼과 매칭 (문자열 '00000060' → 60)
+     - hyosungContractNo: 효성 계약번호 (대부분 '001')
+       * 한 회원이 여러 계약을 가질 경우 대비 (현재는 1:1)
+     - hyosungBillNo: 효성 청구번호 (예: '0000000213274690')
+       * 월별 청구에 1:1 매칭되는 고유키
+       * billing_update.csv 업로드 시 중복 처리 방지용
+     ────────────────────────────────────────────────────────── */
+  hyosungMemberNo: integer("hyosung_member_no"),
+  hyosungContractNo: varchar("hyosung_contract_no", { length: 20 }),
+  hyosungBillNo: varchar("hyosung_bill_no", { length: 30 }),
 
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -159,6 +176,9 @@ export const donations = pgTable("donations", {
   tossPaymentKeyIdx: index("donations_toss_payment_key_idx").on(t.tossPaymentKey),
   tossOrderIdIdx: index("donations_toss_order_id_idx").on(t.tossOrderId),
   billingKeyIdx: index("donations_billing_key_idx").on(t.billingKeyId),
+  /* ★ Phase L-9: 효성 매칭 인덱스 (billing_update CSV 고속 처리) */
+  hyosungMemberNoIdx: index("donations_hyosung_member_no_idx").on(t.hyosungMemberNo),
+  hyosungBillNoIdx: index("donations_hyosung_bill_no_idx").on(t.hyosungBillNo),
 }));
 
 /* =========================================================
@@ -478,7 +498,7 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 }));
 
 /* =========================================================
-   ★ Phase L: 토스페이먼츠 빌링키 (정기 결제용 — NEW)
+   ★ Phase L: 토스페이먼츠 빌링키 (정기 결제용)
    - 회원이 카드 1회 등록 시 토스가 빌링키 발급
    - 매월 cron이 빌링키로 자동 결제 호출
    - 회원이 해지 시 isActive=false + deactivatedAt 기록
@@ -524,6 +544,40 @@ export const billingKeys = pgTable("billing_keys", {
 }));
 
 /* =========================================================
+   ★ Phase L-9: 효성 CMS+ Import 이력 (NEW)
+   - billing_update.csv 업로드 기록
+   - 한 번 업로드된 청구번호는 중복 처리 방지 (멱등성)
+   - 감사 추적 (누가/언제/몇 건 처리)
+   ========================================================= */
+export const hyosungImportLogs = pgTable("hyosung_import_logs", {
+  id: serial("id").primaryKey(),
+
+  // 업로드한 관리자
+  uploadedBy: integer("uploaded_by").references(() => members.id, { onDelete: "set null" }),
+  uploadedByName: varchar("uploaded_by_name", { length: 50 }),
+
+  // 파일 정보
+  fileName: varchar("file_name", { length: 255 }),
+  fileSize: integer("file_size"),
+
+  // 처리 결과
+  totalRows: integer("total_rows").default(0),
+  matchedCount: integer("matched_count").default(0),      // 효성 회원번호 매칭 성공
+  createdCount: integer("created_count").default(0),      // 새 donations 생성
+  updatedCount: integer("updated_count").default(0),      // 기존 donations 업데이트
+  skippedCount: integer("skipped_count").default(0),      // 중복 청구번호 등 스킵
+  failedCount: integer("failed_count").default(0),        // 매칭 실패
+
+  // 상세 (JSON: 매칭 실패 행 목록, 에러 등)
+  detail: text("detail"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  uploadedByIdx: index("hyosung_import_logs_uploaded_by_idx").on(t.uploadedBy),
+  createdIdx: index("hyosung_import_logs_created_idx").on(t.createdAt),
+}));
+
+/* =========================================================
    타입 export (TypeScript 자동완성용)
    ========================================================= */
 export type Member = typeof members.$inferSelect;
@@ -561,6 +615,10 @@ export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 
-/* ★ Phase L: 토스 빌링키 타입 (NEW) */
+/* ★ Phase L: 토스 빌링키 타입 */
 export type BillingKey = typeof billingKeys.$inferSelect;
 export type NewBillingKey = typeof billingKeys.$inferInsert;
+
+/* ★ Phase L-9: 효성 Import 로그 타입 (NEW) */
+export type HyosungImportLog = typeof hyosungImportLogs.$inferSelect;
+export type NewHyosungImportLog = typeof hyosungImportLogs.$inferInsert;
