@@ -72,3 +72,44 @@
 #   from = "/*"
 #   to = "/500.html"
 #   status = 500
+
+# ============================================================
+# Netlify 설정 — 교사유가족협의회 사이트
+# ============================================================
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# ===== 기본 보안 헤더 =====
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# ===== API 캐시 방지 =====
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+# ===== K-9 커스텀 404 라우팅 =====
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+# ============================================================
+# ★ Phase L-5: 정기 결제 cron 스케줄
+# ============================================================
+# 매일 새벽 03:00 KST (UTC 18:00) 실행
+# 활성 빌링키 중 nextChargeAt <= 오늘인 건 결제 처리
+
+[functions."cron-billing-monthly"]
+  schedule = "0 18 * * *"

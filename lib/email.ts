@@ -781,6 +781,7 @@ export function tplEmailVerify(opts: {
   };
 }
 
+
 /* ═══════════════════════════════════════════════════════
    ★ K-2: 템플릿 7. 유저에게 — 회원 탈퇴 확인 (NEW)
    - 탈퇴 처리 직후 발송
@@ -876,6 +877,240 @@ export function tplWithdrawConfirm(opts: {
       bodyHtml,
       ctaText: "협회 홈페이지로",
       ctaUrl: `${SITE_URL}/index.html`,
+    }),
+  };
+}
+/* ═══════════════════════════════════════════════════════
+   ★ Phase L-5: 템플릿 8. 정기 후원 결제 성공 알림 (NEW)
+   - 매월 자동 결제 성공 시 발송
+   ═══════════════════════════════════════════════════════ */
+export function tplBillingChargeSuccess(opts: {
+  donorName: string;
+  amount: number;
+  donationId: number;
+  chargedAt: Date;
+  nextChargeAt: Date;
+  cardCompany: string;
+  cardNumberMasked: string;
+  isMember: boolean;
+}) {
+  const {
+    donorName, amount, donationId, chargedAt, nextChargeAt,
+    cardCompany, cardNumberMasked, isMember,
+  } = opts;
+
+  const yyyy = chargedAt.getFullYear();
+  const mm = String(chargedAt.getMonth() + 1).padStart(2, "0");
+  const dd = String(chargedAt.getDate()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+
+  const nextDateStr = `${nextChargeAt.getFullYear()}-${String(nextChargeAt.getMonth() + 1).padStart(2, "0")}-${String(nextChargeAt.getDate()).padStart(2, "0")}`;
+  const donationNo = `D-${String(donationId).padStart(7, "0")}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(donorName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(donorName)} 님의 정기 후원 <strong style="color:#7a1f2b;">₩${amount.toLocaleString()}</strong>이<br />
+      정상적으로 결제되었습니다. 매월 보내주시는 따뜻한 마음에 깊이 감사드립니다. 🎗
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+            📋 결제 내역
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="100" style="padding:5px 0;color:#8a8a8a;">후원번호</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:600;font-family:'Inter',monospace;">
+                ${esc(donationNo)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">결제일</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">결제 금액</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
+                ₩${amount.toLocaleString()}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">결제 카드</td>
+              <td style="padding:5px 0;color:#0f0f0f;">
+                ${esc(cardCompany)} ${esc(cardNumberMasked)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">다음 결제일</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(nextDateStr)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:20px 0;padding:16px 20px;background:#fef9f5;
+                border:1px solid #f0e0d4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:8px;">
+        📄 기부금 영수증
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.7;">
+        ${isMember
+          ? "마이페이지에서 영수증을 즉시 발급받으실 수 있습니다."
+          : "회원가입 후 마이페이지에서 후원 내역과 영수증을 확인하실 수 있습니다."}
+      </div>
+    </div>
+
+    <div style="margin:20px 0;padding:14px 16px;background:#f0f5fc;
+                border:1px solid #cee0f2;border-radius:6px;
+                font-size:12.5px;color:#1a5ec4;line-height:1.7;">
+      💡 <strong>정기 후원 관리 안내</strong><br />
+      • 결제 카드 변경/해지: 마이페이지 → 후원 내역에서 가능합니다<br />
+      • 카드 만료 등으로 결제 실패 시 별도 안내 메일을 보내드립니다<br />
+      • 매월 자동 결제일 약 5~10일 전에 결제 예정 안내를 보내드립니다
+    </div>
+
+    <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      ${esc(donorName)} 님의 따뜻한 마음으로<br />
+      유가족분들이 더 단단히 일어설 수 있습니다.<br /><br />
+      늘 감사합니다. 🙏
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] 정기 후원 결제 완료 안내 (₩${amount.toLocaleString()})`,
+    html: baseLayout({
+      title: "정기 후원 결제 완료",
+      bodyHtml,
+      ctaText: isMember ? "마이페이지에서 영수증 발급" : "협회 홈페이지로",
+      ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ Phase L-5: 템플릿 9. 정기 후원 결제 실패 알림 (NEW)
+   - 매월 자동 결제 실패 시 발송
+   - 1회/2회/3회(자동해지)별로 다른 메시지
+   ═══════════════════════════════════════════════════════ */
+export function tplBillingChargeFailed(opts: {
+  donorName: string;
+  amount: number;
+  failureReason: string;
+  consecutiveFailCount: number;  // 1, 2, 3
+  willRetryAt?: Date;             // 다음 재시도 일정
+  isMember: boolean;
+}) {
+  const {
+    donorName, amount, failureReason,
+    consecutiveFailCount, willRetryAt, isMember,
+  } = opts;
+
+  const isFinal = consecutiveFailCount >= 3;
+  const isWarning = consecutiveFailCount === 2;
+
+  const retryStr = willRetryAt
+    ? `${willRetryAt.getFullYear()}-${String(willRetryAt.getMonth() + 1).padStart(2, "0")}-${String(willRetryAt.getDate()).padStart(2, "0")}`
+    : "";
+
+  /* 상태별 안내 박스 */
+  const noticeHtml = isFinal
+    ? `
+    <div style="margin:20px 0;padding:18px 20px;
+                background:linear-gradient(135deg,#fdecec,#fff5f5);
+                border:2px solid #c5293a;border-radius:8px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:24px;line-height:1;flex-shrink:0;">🛑</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:6px;">
+            정기 후원이 자동 해지되었습니다
+          </div>
+          <div style="font-size:13px;color:#a01e2c;line-height:1.6;">
+            연속 ${consecutiveFailCount}회 결제 실패로 정기 후원이 해지되었습니다.<br />
+            다시 시작하시려면 마이페이지에서 새 카드로 등록해 주세요.
+          </div>
+        </div>
+      </div>
+    </div>`
+    : isWarning
+    ? `
+    <div style="margin:20px 0;padding:16px 20px;
+                background:#fff8ec;border:2px solid #f0e3c4;border-radius:8px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:24px;line-height:1;flex-shrink:0;">⚠️</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:6px;">
+            연속 2회 결제 실패 — 1회 더 실패 시 자동 해지
+          </div>
+          <div style="font-size:13px;color:#6a5400;line-height:1.6;">
+            카드를 확인해 주시거나 마이페이지에서 새 카드로 등록해 주세요.
+            ${retryStr ? `<br />다음 자동 재시도: <strong>${esc(retryStr)}</strong>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>`
+    : `
+    <div style="margin:20px 0;padding:14px 18px;
+                background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;
+                font-size:13px;color:#8a6a00;line-height:1.6;">
+      💡 결제 실패가 발생했습니다.${retryStr ? `<br />다음 자동 재시도: <strong>${esc(retryStr)}</strong>` : ""}
+    </div>`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(donorName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      정기 후원 결제 ₩${amount.toLocaleString()}이<br />
+      <strong style="color:#c5293a;">정상적으로 처리되지 않았습니다.</strong>
+    </p>
+
+    ${noticeHtml}
+
+    <div style="margin:20px 0;padding:14px 16px;background:#fafaf8;
+                border:1px solid #e8e6e3;border-radius:6px;font-size:12.5px;
+                color:#525252;line-height:1.7;">
+      <strong style="color:#0f0f0f;">⚠️ 실패 사유</strong><br />
+      ${esc(failureReason || "카드 결제가 거절되었습니다")}
+    </div>
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f0f5fc;
+                border:1px solid #cee0f2;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#1a5ec4;margin-bottom:10px;">
+        💡 해결 방법
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        • 카드 한도 또는 잔액을 확인해 주세요<br />
+        • 카드 유효기간이 만료되었는지 확인해 주세요<br />
+        • 해외 결제 차단이 활성화되어 있다면 해제해 주세요<br />
+        • 다른 카드로 변경하시려면 마이페이지에서 정기 후원을 해지 후 재등록해 주세요
+      </div>
+    </div>
+
+    <p style="margin:20px 0 0;color:#8a8a8a;font-size:12px;line-height:1.7;">
+      문의: contact@siren-org.kr / 02-0000-0000
+    </p>
+  `;
+
+  const subjectPrefix = isFinal
+    ? "🛑 [SIREN] 정기 후원 자동 해지 안내"
+    : isWarning
+    ? "⚠️ [SIREN] 정기 후원 결제 실패 (2회 연속)"
+    : "[SIREN] 정기 후원 결제 실패 안내";
+
+  return {
+    subject: subjectPrefix,
+    html: baseLayout({
+      title: isFinal ? "정기 후원 자동 해지" : "정기 후원 결제 실패",
+      bodyHtml,
+      ctaText: isMember ? "마이페이지에서 확인" : "협회 홈페이지로",
+      ctaUrl: isMember ? `${SITE_URL}/mypage.html#donations` : `${SITE_URL}/index.html`,
     }),
   };
 }
