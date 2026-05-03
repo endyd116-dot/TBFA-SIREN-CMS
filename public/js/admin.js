@@ -1016,6 +1016,128 @@
     });
   }
 
+  /* ============ ★ K-9: 관리자 비밀번호 변경 ============ */
+  function calcPasswordStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  function setupAdminPasswordForm() {
+    /* 새 비번 강도 + 일치 실시간 표시 */
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'apNewPw') {
+        const pw = e.target.value;
+        const score = calcPasswordStrength(pw);
+        const pct = Math.min(100, (score / 6) * 100);
+        const bar = document.getElementById('apMeterBar');
+        const label = document.getElementById('apStrength');
+
+        let color = '#dc2626';
+        let text = '약함';
+        if (score >= 5) { color = '#10b981'; text = '강함'; }
+        else if (score >= 3) { color = '#f59e0b'; text = '보통'; }
+
+        if (bar) {
+          bar.style.width = pct + '%';
+          bar.style.background = color;
+        }
+        if (label) {
+          label.textContent = '비밀번호 강도: ' + text;
+          label.style.color = color;
+        }
+
+        /* 확인 입력란이 채워져 있으면 일치도 갱신 */
+        const pw2El = document.getElementById('apNewPw2');
+        if (pw2El && pw2El.value) {
+          const matchEl = document.getElementById('apMatch');
+          if (matchEl) {
+            const match = pw === pw2El.value;
+            matchEl.textContent = match ? '✓ 일치합니다' : '✗ 일치하지 않습니다';
+            matchEl.style.color = match ? '#10b981' : '#dc2626';
+          }
+        }
+      }
+
+      if (e.target.id === 'apNewPw2') {
+        const pw = (document.getElementById('apNewPw') || {}).value || '';
+        const pw2 = e.target.value;
+        const matchEl = document.getElementById('apMatch');
+        if (!matchEl) return;
+        if (!pw2) { matchEl.textContent = ''; return; }
+        const match = pw === pw2;
+        matchEl.textContent = match ? '✓ 일치합니다' : '✗ 일치하지 않습니다';
+        matchEl.style.color = match ? '#10b981' : '#dc2626';
+      }
+    });
+
+    /* 폼 제출 */
+    const form = document.getElementById('adminPasswordForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const currentPassword = (document.getElementById('apCurrentPw') || {}).value || '';
+      const newPassword = (document.getElementById('apNewPw') || {}).value || '';
+      const newPassword2 = (document.getElementById('apNewPw2') || {}).value || '';
+
+      if (!currentPassword) return toast('현재 비밀번호를 입력해 주세요');
+      if (newPassword.length < 8) return toast('새 비밀번호는 8자 이상이어야 합니다');
+      if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+        return toast('새 비밀번호는 영문과 숫자를 모두 포함해야 합니다');
+      }
+      if (newPassword !== newPassword2) return toast('새 비밀번호가 일치하지 않습니다');
+      if (currentPassword === newPassword) return toast('새 비밀번호는 현재와 달라야 합니다');
+      if (newPassword.toLowerCase() === 'admin1234') {
+        return toast('기본 비밀번호는 사용할 수 없습니다');
+      }
+
+      const finalConfirm = confirm(
+        '관리자 비밀번호를 변경하시겠습니까?\n\n' +
+        '• 변경 후 즉시 새 비밀번호로 사용해야 합니다\n' +
+        '• 다른 관리자 세션은 유지됩니다 (본인만 영향)\n\n' +
+        '계속하려면 [확인]을 눌러주세요.'
+      );
+      if (!finalConfirm) return;
+
+      const btn = document.getElementById('apSubmitBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '변경 중...'; }
+
+      try {
+        const res = await api('/api/admin/password', {
+          method: 'POST',
+          body: { currentPassword, newPassword },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '비밀번호가 변경되었습니다');
+          form.reset();
+          /* 강도/일치 표시 초기화 */
+          const bar = document.getElementById('apMeterBar');
+          const label = document.getElementById('apStrength');
+          const matchEl = document.getElementById('apMatch');
+          if (bar) bar.style.width = '0%';
+          if (label) {
+            label.textContent = '비밀번호 강도: —';
+            label.style.color = 'var(--text-3)';
+          }
+          if (matchEl) matchEl.textContent = '';
+        } else {
+          toast(res.data?.error || '비밀번호 변경 실패');
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
+    });
+  }
+
   /* ============ ★ K-5: 콘텐츠 관리 (공지/FAQ CRUD) ============ */
   let _cmNoticeSearchTimer = null;
   let _cmFaqSearchTimer = null;
@@ -3347,9 +3469,9 @@
     setupDonationSearch();     /* ★ K-8 추가 */
     setupDonationRowActions(); /* ★ K-8 추가 */
     setupDonationDetailActions(); /* ★ K-8 추가 */
+    setupAdminPasswordForm();  /* ★ K-9 추가 */
 
     const isLogged = await fetchAdminMe();
-
     // ... 이하 기존 코드 그대로
 
     if (isLogged) {

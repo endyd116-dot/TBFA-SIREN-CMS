@@ -275,4 +275,136 @@ const I18N = {
     openModal, closeModal, switchModal,
     isPartialsLoaded: () => partialsLoaded
   };
+
+  
+})();
+
+/* =========================================================
+   ★ K-9: 401 자동 세션 만료 처리
+   - 모든 fetch() 호출의 응답에서 401을 자동 감지
+   - 사용자: 토스트 안내 → 로그인 모달 자동 오픈
+   - 관리자: 토스트 안내 → admin 로그인 페이지로 리다이렉트
+   - 정상 동작 (원래의 401 핸들링)을 방해하지 않음 (응답 그대로 전달)
+   ========================================================= */
+(function () {
+  'use strict';
+
+  if (window.__SIREN_401_INSTALLED__) return;
+  window.__SIREN_401_INSTALLED__ = true;
+
+  const ORIGINAL_FETCH = window.fetch.bind(window);
+  let _last401HandledAt = 0;
+  const COOLDOWN_MS = 3000; // 3초 내 중복 처리 방지
+
+  /* 401 처리에서 제외할 경로 (로그인 시도 자체는 정상 401 가능) */
+  const EXCLUDED_PATHS = [
+    '/api/auth/login',
+    '/api/auth/signup',
+    '/api/auth/password-reset-request',
+    '/api/auth/password-reset',
+    '/api/auth/email-verify',
+    '/api/admin/login',
+  ];
+
+  function isExcluded(url) {
+    try {
+      const u = typeof url === 'string' ? url : (url && url.url) || '';
+      return EXCLUDED_PATHS.some((p) => u.indexOf(p) >= 0);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isApiCall(url) {
+    try {
+      const u = typeof url === 'string' ? url : (url && url.url) || '';
+      return u.indexOf('/api/') >= 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isAdminPage() {
+    return location.pathname === '/admin.html' ||
+      location.pathname.indexOf('/admin') === 0 ||
+      document.body && document.body.dataset && document.body.dataset.page === 'admin';
+  }
+
+  function safeToast(msg) {
+    try {
+      if (window.SIREN && typeof window.SIREN.toast === 'function') {
+        window.SIREN.toast(msg);
+      } else {
+        console.warn('[401]', msg);
+      }
+    } catch (e) {
+      console.warn('[401] toast 실패:', e, msg);
+    }
+  }
+
+  function handle401(url) {
+    const now = Date.now();
+    if (now - _last401HandledAt < COOLDOWN_MS) return; // 중복 방지
+    _last401HandledAt = now;
+
+    /* 클라이언트 인증 캐시 무효화 */
+    try {
+      if (window.SIREN_AUTH) {
+        window.SIREN_AUTH.user = null;
+        window.SIREN_AUTH.stats = null;
+      }
+    } catch (e) {}
+
+    if (isAdminPage()) {
+      /* 관리자 페이지: 토스트 + admin 로그인 페이지 리다이렉트 */
+      safeToast('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.');
+      setTimeout(function () {
+        location.href = '/admin.html';
+      }, 1200);
+    } else {
+      /* 사용자 페이지: 토스트 + 로그인 모달 자동 오픈 */
+      safeToast('세션이 만료되었습니다. 다시 로그인해 주세요.');
+
+      /* 마이페이지 등 보호 페이지에 있다면 홈으로 이동 후 로그인 모달 */
+      const isProtected = location.pathname === '/mypage.html';
+
+      setTimeout(function () {
+        if (isProtected) {
+          location.href = '/index.html';
+          return;
+        }
+        /* 일반 페이지: 헤더 갱신 + 로그인 모달 오픈 시도 */
+        try {
+          if (window.SIREN_AUTH && typeof window.SIREN_AUTH.fetchMe === 'function') {
+            /* fetchMe는 또 401을 받을 수 있으므로 호출 X */
+          }
+          /* 로그인 모달 오픈 */
+          if (window.SIREN && typeof window.SIREN.openModal === 'function') {
+            window.SIREN.openModal('loginModal');
+          }
+        } catch (e) {
+          console.warn('[401] 모달 오픈 실패:', e);
+        }
+      }, 800);
+    }
+  }
+
+  /* fetch monkey-patching */
+  window.fetch = async function (resource, init) {
+    let response;
+    try {
+      response = await ORIGINAL_FETCH(resource, init);
+    } catch (err) {
+      throw err;
+    }
+
+    /* 401 + API 호출 + 제외 경로 아닌 경우만 처리 */
+    if (response && response.status === 401 && isApiCall(resource) && !isExcluded(resource)) {
+      handle401(resource);
+    }
+
+    return response;
+  };
+
+  console.log('[K-9] 401 자동 처리 핸들러 활성화');
 })();

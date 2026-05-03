@@ -1106,6 +1106,97 @@
 }
 .rc-info-grid > div:nth-child(odd) { color: var(--text-3); font-weight: 600; }
 
+/* ===== ★ K-9: 시스템 설정 — 관리자 비밀번호 변경 ===== */
+.adm-pw-card {
+  background: linear-gradient(135deg, #fff, #fef9f5);
+  border: 2px solid var(--brand);
+  border-radius: 10px;
+  padding: 22px 24px;
+}
+.adm-pw-card h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brand);
+  font-family: 'Noto Serif KR', serif;
+}
+.adm-pw-card .sub {
+  font-size: 12.5px;
+  color: var(--text-3);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.adm-pw-card .fg {
+  margin-bottom: 12px;
+}
+.adm-pw-card .fg label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 5px;
+}
+.adm-pw-card .fg label .hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.adm-pw-card .fg input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.adm-pw-card .fg input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.adm-pw-meter {
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.adm-pw-meter-bar {
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s, background 0.3s;
+}
+.adm-pw-hint {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.adm-pw-warn-box {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 11px 14px;
+  font-size: 12px;
+  color: #8a6a00;
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.adm-pw-submit {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 6px;
+}
+.adm-pw-submit:hover { background: var(--brand-deep, #5a1620); }
+.adm-pw-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* ★ STEP H-2d-3: 영수증 설정 페이지 전용 */
   .rs-form-grid {
     display: grid;
@@ -1796,21 +1887,66 @@
           </div>
         </div>
 
-        <!-- 7. 시스템 설정 -->
+                <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
           <div class="row-1-1">
-            <div class="panel">
-              <div class="p-head"><div class="p-title">보안 설정</div><span class="p-tag">중요</span></div>
-              <div class="fg"><label>2단계 인증 (2FA)</label><select><option>활성화 (OTP)</option><option>비활성화</option></select></div>
-              <div class="fg"><label>관리자 IP 화이트리스트</label><input type="text" value="211.234.0.0/16"></div>
-              <button class="btn-sm btn-sm-primary" data-demo-action="save-security">설정 저장</button>
+
+            <!-- ★ K-9: 관리자 비밀번호 변경 -->
+            <div class="panel" style="border:none;padding:0;background:transparent;box-shadow:none">
+              <div class="adm-pw-card">
+                <h4>🔐 관리자 비밀번호 변경</h4>
+                <p class="sub">
+                  본인 계정의 비밀번호를 변경합니다. 보안을 위해 정기적으로 변경하시고,<br />
+                  쉬운 비밀번호나 다른 곳에서 사용하는 비밀번호는 피해 주세요.
+                </p>
+
+                <div class="adm-pw-warn-box">
+                  ⚠️ <strong>주의 사항</strong><br />
+                  • 변경 후 즉시 새 비밀번호로 다시 로그인해야 합니다<br />
+                  • 5회 실패 시 30분간 계정이 잠깁니다<br />
+                  • 기본 비밀번호(admin1234)는 다시 사용할 수 없습니다
+                </div>
+
+                <form id="adminPasswordForm">
+                  <div class="fg">
+                    <label>현재 비밀번호 <span class="hint">(본인 인증용)</span></label>
+                    <input type="password" id="apCurrentPw" required autocomplete="current-password" placeholder="현재 사용 중인 비밀번호">
+                  </div>
+
+                  <div class="fg">
+                    <label>새 비밀번호 <span class="hint">(8자 이상, 영문+숫자)</span></label>
+                    <input type="password" id="apNewPw" required minlength="8" maxlength="100" autocomplete="new-password" placeholder="새 비밀번호">
+                    <div class="adm-pw-meter"><div id="apMeterBar" class="adm-pw-meter-bar"></div></div>
+                    <div id="apStrength" class="adm-pw-hint">비밀번호 강도: —</div>
+                  </div>
+
+                  <div class="fg">
+                    <label>새 비밀번호 확인</label>
+                    <input type="password" id="apNewPw2" required minlength="8" autocomplete="new-password" placeholder="새 비밀번호 다시 입력">
+                    <div id="apMatch" class="adm-pw-hint"></div>
+                  </div>
+
+                  <button type="submit" class="adm-pw-submit" id="apSubmitBtn">🔐 비밀번호 변경</button>
+                </form>
+              </div>
             </div>
+
+            <!-- 권한 분리 (기존) -->
             <div class="panel">
               <div class="p-head"><div class="p-title">권한 분리</div></div>
               <table class="tbl">
                 <thead><tr><th>권한</th><th>접근 영역</th></tr></thead>
-                <tbody><tr><td>총괄 관리자</td><td>전체</td></tr><tr><td>상담사</td><td>지원사업</td></tr></tbody>
+                <tbody>
+                  <tr><td>총괄 관리자 (super_admin)</td><td>전체 (모든 메뉴 + 운영자 관리)</td></tr>
+                  <tr><td>일반 운영자 (operator)</td><td>지원 관리 / 채팅 / 회원 정보 조회</td></tr>
+                  <tr><td>상담사</td><td>지원사업 (배정된 건만)</td></tr>
+                </tbody>
               </table>
+
+              <div style="margin-top:18px;padding:14px 16px;background:var(--bg-soft);border-radius:6px;font-size:12px;color:var(--text-3);line-height:1.7">
+                💡 <strong>2단계 인증 (OTP)</strong>과 <strong>IP 화이트리스트</strong>는 향후 업데이트에서 제공될 예정입니다.<br />
+                현재는 비밀번호 + 5회 실패 잠금 + 감사 로그로 보호됩니다.
+              </div>
             </div>
           </div>
         </div>
