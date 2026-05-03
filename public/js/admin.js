@@ -1589,30 +1589,136 @@
   }
 
   /* 행 액션 (상세/완료/해지) */
+    /* ★ L-8 + L-9: 효성 CMS+ 통합 액션 핸들러 */
   function setupHyosungActions() {
+    /* ─── 행 액션 (상세/완료/해지) ─── */
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-hy-action]');
-      if (!btn) return;
-      e.preventDefault();
+      if (btn) {
+        e.preventDefault();
+        const action = btn.dataset.hyAction;
+        const id = Number(btn.dataset.id);
+        if (!id) return;
 
-      const action = btn.dataset.hyAction;
-      const id = Number(btn.dataset.id);
-      if (!id) return;
+        if (action === 'detail') {
+          openHyosungDetailModal(id);
+          return;
+        }
+        if (action === 'complete') {
+          openHyosungQuickComplete(id, btn.dataset.name || '');
+          return;
+        }
+        if (action === 'cancel') {
+          openHyosungQuickCancel(id, btn.dataset.name || '');
+          return;
+        }
+      }
+    });
 
-      if (action === 'detail') {
-        openHyosungDetailModal(id);
+    /* ─── ★ L-9: CSV 추출 실 동작화 ─── */
+    document.addEventListener('click', (e) => {
+      var exportBtn = e.target.closest('[data-demo-action="hyosung-csv-export"]');
+      if (exportBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var statusFilter = document.getElementById('hyFilterStatus')?.value || 'pending';
+        window.open('/api/admin/hyosung-export?status=' + encodeURIComponent(statusFilter), '_blank');
+        toast('효성 CMS+ CSV를 다운로드합니다');
         return;
       }
-      if (action === 'complete') {
-        openHyosungQuickComplete(id, btn.dataset.name || '');
-        return;
-      }
-      if (action === 'cancel') {
-        openHyosungQuickCancel(id, btn.dataset.name || '');
+
+      /* ─── ★ L-9: CSV 업로드 실 동작화 ─── */
+      var importBtn = e.target.closest('[data-demo-action="hyosung-csv-import"]');
+      if (importBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        /* 숨겨진 file input 생성/재사용 */
+        var fileInput = document.getElementById('hyImportFileInput');
+        if (!fileInput) {
+          fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.id = 'hyImportFileInput';
+          fileInput.accept = '.csv';
+          fileInput.style.display = 'none';
+          document.body.appendChild(fileInput);
+
+          fileInput.addEventListener('change', async function (ev) {
+            var file = ev.target.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+              toast('파일 크기는 5MB 이하여야 합니다');
+              fileInput.value = '';
+              return;
+            }
+
+            var confirmed = confirm(
+              '효성 CMS+ 수납 결과 CSV를 업로드합니다.\n\n' +
+              '파일: ' + file.name + '\n' +
+              '크기: ' + (file.size / 1024).toFixed(1) + ' KB\n\n' +
+              '• billing_update 형식(10컬럼)이어야 합니다\n' +
+              '• 회원번호로 DB와 자동 매칭됩니다\n' +
+              '• 중복 청구번호는 자동 스킵됩니다\n\n' +
+              '계속하시겠습니까?'
+            );
+            if (!confirmed) {
+              fileInput.value = '';
+              return;
+            }
+
+            var fd = new FormData();
+            fd.append('file', file);
+
+            toast('CSV 업로드 처리 중...');
+
+            try {
+              var res = await fetch('/api/admin/hyosung-import', {
+                method: 'POST',
+                credentials: 'include',
+                body: fd,
+              });
+              var data = await res.json().catch(function () { return {}; });
+
+              if (res.ok && data.ok !== false) {
+                var d = data.data || {};
+                toast(data.message || '처리 완료');
+
+                alert(
+                  '📥 효성 CSV 업로드 결과\n\n' +
+                  '파일: ' + (d.fileName || file.name) + '\n' +
+                  '전체 행: ' + (d.totalRows || 0) + '건\n' +
+                  '매칭 성공: ' + (d.matched || 0) + '건\n' +
+                  '생성됨: ' + (d.created || 0) + '건\n' +
+                  '스킵 (중복): ' + (d.skipped || 0) + '건\n' +
+                  '매칭 실패: ' + (d.failed || 0) + '건\n\n' +
+                  (d.failed > 0
+                    ? '⚠️ 매칭 실패 건:\n' +
+                      (d.failures || []).slice(0, 10).map(function (f) {
+                        return '  - 효성#' + f.hyosungMemberNo + ' (' + (f.donorName || '') + '): ' + f.reason;
+                      }).join('\n')
+                    : '✅ 모든 건이 정상 처리되었습니다')
+                );
+
+                loadHyosung();
+              } else {
+                toast(data.error || '업로드 실패');
+              }
+            } catch (err) {
+              console.error('[hyosung-import]', err);
+              toast('네트워크 오류가 발생했습니다');
+            } finally {
+              fileInput.value = '';
+            }
+          });
+        }
+
+        fileInput.click();
         return;
       }
     });
 
+    /* ─── 검색/필터 디바운스 ─── */
     setupHyosungSearch();
   }
 
