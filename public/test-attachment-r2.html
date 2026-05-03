@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SIREN R2 업로드 테스트 (M-2.5)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/attachment.css?v=m2">
+  <style>
+    body { font-family: 'Pretendard', -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f9fafb; }
+    h1 { color: #2563eb; }
+    .panel { margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
+    button.act { padding: 8px 16px; margin-right: 8px; cursor: pointer; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; }
+    button.act:hover { background: #f3f4f6; }
+    pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 300px; }
+    .info { background: #eff6ff; color: #1e40af; line-height: 1.7; }
+    .info ul { margin: 8px 0 0 20px; padding: 0; }
+  </style>
+</head>
+<body>
+  <h1>📎 SIREN R2 업로드 테스트 (M-2.5)</h1>
+
+  <div class="panel info">
+    <strong>🔍 검증 항목:</strong>
+    <ul>
+      <li>📁 일반 파일 50MB 이상 업로드 (예: 큰 PDF, 영상)</li>
+      <li>🖼️ 이미지 15MB 업로드 → 자동 압축 후 R2로 직접 PUT</li>
+      <li>📊 업로드 진행률이 PUT 단계에서 부드럽게 진행</li>
+      <li>⬇ 다운로드 버튼 → R2 Pre-signed GET URL로 302 리다이렉트</li>
+      <li>F12 Network에서 PUT https://...r2.cloudflarestorage.com 직접 요청 확인</li>
+      <li>F12 Network에서 /api/blob-presign / /api/blob-confirm 200 OK 확인</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h3>첨부 영역</h3>
+    <div id="attach-zone"></div>
+  </div>
+
+  <div class="panel">
+    <button class="act" id="btnGetIds">선택된 ID 보기</button>
+    <button class="act" id="btnGetFiles">전체 정보 보기</button>
+    <button class="act" id="btnClear">모두 삭제</button>
+    <pre id="output">결과가 여기에 표시됩니다.</pre>
+  </div>
+
+  <script src="/js/editor.js?v=m2-5"></script>
+  <script src="/js/attachment.js?v=m2-5"></script>
+  <script>
+    const att = SirenAttachment.create({
+      el: document.getElementById('attach-zone'),
+      context: 'test',
+      maxFiles: 5,
+      maxImageSize: 20 * 1024 * 1024,
+      maxFileSize: 100 * 1024 * 1024,
+      onChange: (files) => console.log('[change]', files),
+    });
+
+    document.getElementById('btnGetIds').onclick = () => {
+      document.getElementById('output').textContent = JSON.stringify(att.getIds(), null, 2);
+    };
+    document.getElementById('btnGetFiles').onclick = () => {
+      document.getElementById('output').textContent = JSON.stringify(att.getFiles(), null, 2);
+    };
+    document.getElementById('btnClear').onclick = () => {
+      att.clear();
+      document.getElementById('output').textContent = '비워졌습니다.';
+    };
+  </script>
+</body>
+</html>

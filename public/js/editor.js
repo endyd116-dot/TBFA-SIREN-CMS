@@ -133,28 +133,53 @@
   /* ============================================================
      업로드 (서버 어댑터)
      ============================================================ */
+    /* ============================================================
+     업로드 (★ M-2.5: R2 직접 업로드 — presign → PUT → confirm)
+     ============================================================ */
   async function uploadFile(file, context = 'editor') {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('context', context);
-    fd.append('isPublic', 'true');
-
-    const res = await fetch('/api/blob-upload', {
+    /* 1) presign */
+    const presignRes = await fetch('/api/blob-presign', {
       method: 'POST',
       credentials: 'include',
-      body: fd,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        sizeBytes: file.size,
+        context,
+        isPublic: true,
+      }),
     });
-
-    if (!res.ok) {
-      let msg = '업로드 실패';
-      try {
-        const err = await res.json();
-        msg = err.error || msg;
-      } catch (_) {}
+    if (!presignRes.ok) {
+      let msg = 'presign 실패';
+      try { const err = await presignRes.json(); msg = err.error || msg; } catch (_) {}
       throw new Error(msg);
     }
+    const { data: presignData } = await presignRes.json();
 
-    const json = await res.json();
+    /* 2) R2 직접 PUT */
+    const putRes = await fetch(presignData.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error(`R2 업로드 실패 (${putRes.status})`);
+    }
+
+    /* 3) confirm */
+    const confirmRes = await fetch('/api/blob-confirm', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: presignData.id }),
+    });
+    if (!confirmRes.ok) {
+      let msg = 'confirm 실패';
+      try { const err = await confirmRes.json(); msg = err.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const json = await confirmRes.json();
     return json.data;
   }
 

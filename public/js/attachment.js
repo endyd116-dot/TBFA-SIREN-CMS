@@ -1,9 +1,8 @@
 // public/js/attachment.js
-// ★ Phase M-2: SIREN 공통 첨부파일 위젯
-// - /api/blob-upload (M-1) 재사용
-// - 다중 파일 + 드래그&드롭 + 진행률 + 썸네일 + 삭제
-// - 이미지 자동 압축 (SirenEditor 로드되어 있으면 재사용)
-// - 사용법: const att = SirenAttachment.create({ el, ... });
+// ★ Phase M-2.5: SIREN 공통 첨부파일 위젯 (R2 직접 업로드)
+// - 흐름: presign → R2 직접 PUT → confirm
+// - 이미지 20MB / 일반 파일 100MB
+// - 다중 파일 + 드래그&드롭 + 진행률 + 썸네일 + 다운로드 + 삭제
 
 (function (window, document) {
   'use strict';
@@ -11,7 +10,8 @@
   const DEFAULTS = {
     context: 'attachment',
     maxFiles: 10,
-    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxImageSize: 20 * 1024 * 1024, // 20MB
+    maxFileSize: 100 * 1024 * 1024, // 100MB
     accept: '',
     autoCompress: true,
     onChange: null,
@@ -27,11 +27,8 @@
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function fileIcon(mime) {
@@ -41,14 +38,19 @@
     if (mime.includes('word')) return '📄';
     if (mime.includes('excel') || mime.includes('spreadsheet')) return '📊';
     if (mime.includes('hwp') || mime.includes('hancom')) return '📃';
+    if (mime.includes('zip')) return '🗜️';
     if (mime.startsWith('text/')) return '📃';
     return '📎';
   }
 
-  /* 이미지 자동 압축 — SirenEditor(M-1)가 로드되어 있으면 그 함수 재사용 */
+  function isImageType(mime) {
+    return mime && mime.startsWith('image/');
+  }
+
+  /* 이미지 자동 압축 */
   async function compressIfImage(file, autoCompress) {
     if (!autoCompress) return file;
-    if (!file.type || !file.type.startsWith('image/')) return file;
+    if (!isImageType(file.type)) return file;
     if (file.type === 'image/gif') return file;
 
     if (window.SirenEditor && typeof window.SirenEditor.compressImage === 'function') {
@@ -58,46 +60,65 @@
     return file;
   }
 
-  /* XHR 기반 업로드 (진행률 추적) */
-  function uploadWithProgress(file, context, onProgress) {
-    return new Promise((resolve, reject) => {
+  /* ============================================================
+     R2 직접 업로드 (presign → PUT → confirm)
+     ============================================================ */
+  async function uploadToR2(file, context, onProgress) {
+    /* 1) presign 요청 */
+    const presignRes = await fetch('/api/blob-presign', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        sizeBytes: file.size,
+        context,
+        isPublic: true,
+      }),
+    });
+
+    if (!presignRes.ok) {
+      let msg = 'presign 실패';
+      try { const err = await presignRes.json(); msg = err.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const presignJson = await presignRes.json();
+    const { id, uploadUrl } = presignJson.data;
+
+    /* 2) R2에 직접 PUT (XHR로 진행률 추적) */
+    await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('context', context);
-      fd.append('isPublic', 'true');
-
-      xhr.open('POST', '/api/blob-upload', true);
-      xhr.withCredentials = true;
-
+      xhr.open('PUT', uploadUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable && typeof onProgress === 'function') {
           onProgress(Math.round((e.loaded / e.total) * 100));
         }
       };
-
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const json = JSON.parse(xhr.responseText);
-            if (json.ok && json.data) resolve(json.data);
-            else reject(new Error(json.error || '업로드 실패'));
-          } catch (e) {
-            reject(new Error('응답 파싱 실패'));
-          }
-        } else {
-          let msg = `업로드 실패 (${xhr.status})`;
-          try {
-            const err = JSON.parse(xhr.responseText);
-            msg = err.error || msg;
-          } catch (_) {}
-          reject(new Error(msg));
-        }
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`R2 업로드 실패 (${xhr.status})`));
       };
-
-      xhr.onerror = () => reject(new Error('네트워크 오류'));
-      xhr.send(fd);
+      xhr.onerror = () => reject(new Error('R2 업로드 네트워크 오류'));
+      xhr.send(file);
     });
+
+    /* 3) 서버 확인 */
+    const confirmRes = await fetch('/api/blob-confirm', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!confirmRes.ok) {
+      let msg = 'confirm 실패';
+      try { const err = await confirmRes.json(); msg = err.error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const confirmJson = await confirmRes.json();
+    return confirmJson.data;
   }
 
   /* ============================================================
@@ -110,12 +131,8 @@
     const root = opts.el;
     root.classList.add('siren-attachment');
 
-    /* 내부 상태:
-       [{ id, originalName, mimeType, sizeBytes, url, status, progress, error }, ...]
-       status: 'uploading' | 'done' | 'error' */
     const items = [];
 
-    /* 초기 파일 (서버에서 불러온 기존 첨부 표시용) */
     if (Array.isArray(opts.initialFiles)) {
       opts.initialFiles.forEach((f) => {
         items.push({
@@ -129,12 +146,11 @@
       });
     }
 
-    /* DOM 생성 */
     root.innerHTML = `
       <div class="siren-attachment-dropzone" data-role="dropzone">
         <button type="button" class="siren-attachment-pick" data-role="pick">📎 파일 선택</button>
         <span class="siren-attachment-hint">또는 이 영역에 드래그&amp;드롭하세요</span>
-        <small class="siren-attachment-limit">최대 ${opts.maxFiles}개 / 파일당 ${fmtSize(opts.maxFileSize)}</small>
+        <small class="siren-attachment-limit">최대 ${opts.maxFiles}개 / 이미지 ${fmtSize(opts.maxImageSize)} / 일반 ${fmtSize(opts.maxFileSize)}</small>
         <input type="file" multiple data-role="input" style="display:none" ${opts.accept ? `accept="${escapeHtml(opts.accept)}"` : ''}>
       </div>
       <ul class="siren-attachment-list" data-role="list"></ul>
@@ -145,11 +161,10 @@
     const fileInput = root.querySelector('[data-role="input"]');
     const listEl = root.querySelector('[data-role="list"]');
 
-    /* 렌더 */
     function render() {
       listEl.innerHTML = items.map((item, idx) => {
-        const isImage = item.mimeType && item.mimeType.startsWith('image/');
-        const thumb = isImage && item.url
+        const isImg = isImageType(item.mimeType);
+        const thumb = isImg && item.url
           ? `<img src="${escapeHtml(item.url)}" alt="">`
           : `<span class="siren-attachment-icon">${fileIcon(item.mimeType)}</span>`;
 
@@ -161,6 +176,10 @@
         } else if (item.status === 'done') {
           statusHtml = `<span class="siren-attachment-done">✓ 완료</span>`;
         }
+
+        const downloadBtn = (item.status === 'done' && item.id)
+          ? `<a class="siren-attachment-download" href="/api/blob-image?id=${item.id}&download=1" target="_blank" rel="noopener" title="다운로드">⬇</a>`
+          : '';
 
         const removeBtn = item.status === 'uploading'
           ? ''
@@ -176,12 +195,12 @@
                 ${statusHtml}
               </div>
             </div>
+            ${downloadBtn}
             ${removeBtn}
           </li>
         `;
       }).join('');
 
-      /* 삭제 버튼 바인딩 */
       listEl.querySelectorAll('.siren-attachment-remove').forEach((btn) => {
         btn.addEventListener('click', () => {
           const idx = Number(btn.dataset.idx);
@@ -206,7 +225,6 @@
       else alert(msg);
     }
 
-    /* 파일 추가 */
     async function addFiles(fileList) {
       const files = Array.from(fileList || []);
       if (!files.length) return;
@@ -216,8 +234,11 @@
           fireError(`첨부파일은 최대 ${opts.maxFiles}개까지 가능합니다`);
           break;
         }
-        if (rawFile.size > opts.maxFileSize) {
-          fireError(`"${rawFile.name}" 파일이 ${fmtSize(opts.maxFileSize)}를 초과합니다`);
+
+        const isImg = isImageType(rawFile.type);
+        const limit = isImg ? opts.maxImageSize : opts.maxFileSize;
+        if (rawFile.size > limit) {
+          fireError(`"${rawFile.name}" 파일이 ${fmtSize(limit)}를 초과합니다`);
           continue;
         }
 
@@ -238,7 +259,7 @@
           slot.sizeBytes = file.size;
           render();
 
-          const result = await uploadWithProgress(file, opts.context, (pct) => {
+          const result = await uploadToR2(file, opts.context, (pct) => {
             slot.progress = pct;
             const idx = items.indexOf(slot);
             const progEl = listEl.querySelector(
@@ -263,7 +284,6 @@
       }
     }
 
-    /* 이벤트 바인딩 */
     pickBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       addFiles(e.target.files);
@@ -272,15 +292,13 @@
 
     ['dragenter', 'dragover'].forEach((evt) => {
       dropzone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         dropzone.classList.add('dragover');
       });
     });
     ['dragleave', 'drop'].forEach((evt) => {
       dropzone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         dropzone.classList.remove('dragover');
       });
     });
@@ -291,7 +309,6 @@
 
     render();
 
-    /* 공개 API */
     return {
       _root: root,
       getFiles: () => items.filter((x) => x.status === 'done').map((x) => ({
@@ -319,7 +336,7 @@
 
   window.SirenAttachment = {
     create,
-    version: '1.0.0-m2',
+    version: '2.0.0-m2-5-r2',
   };
 
 })(window, document);

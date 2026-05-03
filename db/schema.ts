@@ -603,7 +603,18 @@ export const blobUploads = pgTable("blob_uploads", {
   referenceId: integer("reference_id"),
 
   // 공개 여부 (false면 인증 필요)
+    // 공개 여부 (false면 인증 필요)
   isPublic: boolean("is_public").default(true),
+
+  /* ★ M-2.5: 저장소 분기 ('netlify' | 'r2')
+     - 기존 데이터(채팅 등)는 'netlify' 유지
+     - 신규 업로드는 모두 'r2' (Cloudflare R2 직접 업로드) */
+  storageProvider: varchar("storage_provider", { length: 20 }).default("netlify").notNull(),
+
+  /* ★ M-2.5: 업로드 상태 ('pending' | 'completed' | 'failed')
+     - presign 후 R2에 업로드 전: pending
+     - confirm 호출 시: completed */
+  uploadStatus: varchar("upload_status", { length: 20 }).default("completed").notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"),
