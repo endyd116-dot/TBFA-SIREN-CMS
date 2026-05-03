@@ -1,14 +1,17 @@
 /**
- * SIREN — 영수증 설정 관리 API (STEP H-2d-2)
+ * SIREN — 영수증 설정 관리 API
  *
- * GET   /api/admin/receipt-settings    — 현재 설정 조회 (없으면 자동 생성)
+ * GET   /api/admin/receipt-settings    — 현재 설정 조회 (직인 정보 포함)
  * PATCH /api/admin/receipt-settings    — 설정 업데이트
  *
- * 권한: 관리자 (사이렌/교유협 모두 동일)
- * 동작: 단일 행(id=1)만 사용 — 모든 관리자 페이지가 같은 데이터 공유
+ * ★ M-14: 직인 이미지 처리 추가
+ *   - PATCH body에 stampBlobId 포함 시 직인 변경
+ *   - stampBlobId=null로 보내면 직인 제거
+ *   - 응답에 stampUrl 자동 생성
  */
 import { eq } from "drizzle-orm";
 import { db, receiptSettings, members } from "../../db";
+import { blobUploads } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, serverError,
@@ -17,7 +20,7 @@ import {
 
 export const config = { path: "/api/admin/receipt-settings" };
 
-/* ============ 기본값 (DB가 비어있을 때 자동 생성) ============ */
+/* ============ 기본값 ============ */
 function buildDefaults() {
   const orgName = process.env.ORG_NAME || "(샘플) 교사유가족협의회";
   const orgRegNo = process.env.ORG_REGISTRATION_NO || "000-00-00000";
@@ -43,17 +46,40 @@ function buildDefaults() {
   };
 }
 
-/* ============ 응답 객체에 footerNotes를 배열로 변환 ============ */
-function normalizeForResponse(row: any) {
+/* ============ 응답 정규화 (★ M-14: 직인 정보 포함) ============ */
+async function normalizeForResponse(row: any) {
   let notes: string[] = [];
   if (row.footerNotes) {
     try {
       const parsed = JSON.parse(row.footerNotes);
       if (Array.isArray(parsed)) notes = parsed.map((s) => String(s));
-    } catch {
-      notes = [];
+    } catch { notes = []; }
+  }
+
+  /* ★ M-14: 직인 정보 조회 */
+  let stampUrl: string | null = null;
+  let stampOriginalName: string | null = null;
+  if (row.stampBlobId) {
+    try {
+      const [b] = await db
+        .select({
+          id: blobUploads.id,
+          originalName: blobUploads.originalName,
+          mimeType: blobUploads.mimeType,
+        })
+        .from(blobUploads)
+        .where(eq(blobUploads.id, row.stampBlobId))
+        .limit(1);
+
+      if (b) {
+        stampUrl = `/api/blob-image?id=${(b as any).id}`;
+        stampOriginalName = (b as any).originalName;
+      }
+    } catch (e) {
+      console.warn("[admin-receipt-settings] 직인 BLOB 조회 실패:", e);
     }
   }
+
   return {
     id: row.id,
     orgName: row.orgName || "",
@@ -66,6 +92,10 @@ function normalizeForResponse(row: any) {
     proofText: row.proofText || "",
     donationTypeLabel: row.donationTypeLabel || "",
     footerNotes: notes,
+    /* ★ M-14: 직인 정보 */
+    stampBlobId: row.stampBlobId || null,
+    stampUrl,
+    stampOriginalName,
     updatedAt: row.updatedAt,
     updatedBy: row.updatedBy,
   };
@@ -74,13 +104,12 @@ function normalizeForResponse(row: any) {
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
-  /* 관리자 인증 */
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return guard.res;
   const { admin } = guard.ctx;
 
   try {
-    /* ===== GET — 현재 설정 조회 ===== */
+    /* ===== GET ===== */
     if (req.method === "GET") {
       let [row] = await db
         .select()
@@ -88,7 +117,6 @@ export default async (req: Request) => {
         .where(eq(receiptSettings.id, 1))
         .limit(1);
 
-      /* 자동 생성 (결정1-A안) */
       if (!row) {
         const defaults = buildDefaults();
         const inserted = await db
@@ -102,7 +130,6 @@ export default async (req: Request) => {
         row = inserted[0];
       }
 
-      /* 마지막 수정자 이름 함께 반환 */
       let updatedByName: string | null = null;
       if ((row as any).updatedBy) {
         const [m] = await db
@@ -113,18 +140,15 @@ export default async (req: Request) => {
         if (m) updatedByName = (m as any).name;
       }
 
-      return ok({
-        settings: normalizeForResponse(row),
-        updatedByName,
-      });
+      const normalized = await normalizeForResponse(row);
+      return ok({ settings: normalized, updatedByName });
     }
 
-    /* ===== PATCH — 설정 업데이트 ===== */
+    /* ===== PATCH ===== */
     if (req.method === "PATCH") {
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
 
-      /* 화이트리스트 — 허용된 필드만 업데이트 */
       const updateData: any = {};
 
       if (typeof body.orgName === "string") updateData.orgName = body.orgName.trim().slice(0, 100);
@@ -132,19 +156,46 @@ export default async (req: Request) => {
       if (typeof body.orgRepresentative === "string") updateData.orgRepresentative = body.orgRepresentative.trim().slice(0, 50);
       if (typeof body.orgAddress === "string") updateData.orgAddress = body.orgAddress.trim().slice(0, 255);
       if (typeof body.orgPhone === "string") updateData.orgPhone = body.orgPhone.trim().slice(0, 50);
-
       if (typeof body.title === "string") updateData.title = body.title.trim().slice(0, 100);
       if (typeof body.subtitle === "string") updateData.subtitle = body.subtitle.trim().slice(0, 200);
       if (typeof body.proofText === "string") updateData.proofText = body.proofText.trim().slice(0, 200);
       if (typeof body.donationTypeLabel === "string") updateData.donationTypeLabel = body.donationTypeLabel.trim().slice(0, 50);
 
-      /* footerNotes는 배열로 받아서 JSON 문자열로 저장 */
       if (Array.isArray(body.footerNotes)) {
         const cleaned = body.footerNotes
           .map((s: any) => String(s || "").trim())
           .filter((s: string) => s.length > 0)
-          .slice(0, 10); // 최대 10개
+          .slice(0, 10);
         updateData.footerNotes = JSON.stringify(cleaned);
+      }
+
+      /* ★ M-14: 직인 처리 */
+      if (body.stampBlobId !== undefined) {
+        if (body.stampBlobId === null || body.stampBlobId === 0 || body.stampBlobId === "") {
+          /* 직인 제거 */
+          updateData.stampBlobId = null;
+        } else {
+          const blobId = Number(body.stampBlobId);
+          if (!Number.isFinite(blobId) || blobId <= 0) {
+            return badRequest("stampBlobId가 유효하지 않습니다");
+          }
+
+          /* 해당 BLOB이 실존하고 이미지인지 검증 */
+          const [b] = await db
+            .select({ id: blobUploads.id, mimeType: blobUploads.mimeType })
+            .from(blobUploads)
+            .where(eq(blobUploads.id, blobId))
+            .limit(1);
+
+          if (!b) return badRequest("업로드된 직인 이미지를 찾을 수 없습니다");
+
+          const mime = String((b as any).mimeType || "").toLowerCase();
+          if (!mime.startsWith("image/")) {
+            return badRequest("직인은 이미지 파일이어야 합니다");
+          }
+
+          updateData.stampBlobId = blobId;
+        }
       }
 
       if (Object.keys(updateData).length === 0) {
@@ -154,7 +205,7 @@ export default async (req: Request) => {
       updateData.updatedAt = new Date();
       updateData.updatedBy = admin.uid;
 
-      /* 행이 없으면 생성, 있으면 업데이트 (UPSERT 유사 처리) */
+      /* UPSERT */
       const [existing] = await db
         .select({ id: receiptSettings.id })
         .from(receiptSettings)
@@ -177,7 +228,6 @@ export default async (req: Request) => {
           .where(eq(receiptSettings.id, 1));
       }
 
-      /* 업데이트된 행 반환 */
       const [row] = await db
         .select()
         .from(receiptSettings)
@@ -194,14 +244,16 @@ export default async (req: Request) => {
         if (m) updatedByName = (m as any).name;
       }
 
-      console.log(`[admin-receipt-settings] updated by admin uid=${admin.uid}`);
+      console.log(`[admin-receipt-settings] updated by admin uid=${admin.uid}, stampChanged=${updateData.stampBlobId !== undefined}`);
 
+      const normalized = await normalizeForResponse(row);
       return ok(
-        {
-          settings: normalizeForResponse(row),
-          updatedByName,
-        },
-        "영수증 설정이 저장되었습니다"
+        { settings: normalized, updatedByName },
+        updateData.stampBlobId !== undefined
+          ? (updateData.stampBlobId === null
+            ? "직인이 제거되었습니다"
+            : "직인이 변경되었습니다")
+          : "영수증 설정이 저장되었습니다"
       );
     }
 

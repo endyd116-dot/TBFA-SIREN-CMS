@@ -1,26 +1,11 @@
 /**
- * SIREN — PDF 기부금 영수증 생성 (STEP H-2c + H-2d-2 + 한글 깨짐 핫픽스)
+ * SIREN — PDF 기부금 영수증 생성 (★ M-14: 직인 이미지 삽입 추가)
  *
  * - pdf-lib + @pdf-lib/fontkit 사용
- * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (★ subset 비활성화 — 한글 안정성 확보)
+ * - assets/fonts/NotoSansKR-Regular.ttf 임베딩 (subset: false)
  * - A4 (595 x 842 pt) 1장
- *
- * ★ H-2d-2 변경:
- *   - 협회 정보 + 양식 텍스트를 DB(receipt_settings)에서 우선 조회
- *   - DB 비어있으면 환경변수 → 그것도 없으면 샘플값
- *   - 두 관리자 페이지에서 변경한 내용이 즉시 PDF에 반영됨
- *
- * ★ 한글 깨짐 핫픽스 (2026-05-02):
- *   - 폰트 캐시를 ArrayBuffer로 보관 + 매번 새 Uint8Array 반환
- *     → pdf-lib가 buffer를 mutate해도 안전
- *   - subset: false로 변경 → 큰 한글 폰트의 subset 누락 버그 우회
- *
- * 환경변수 (DB 미설정 시 폴백):
- *   ORG_NAME              — 단체명
- *   ORG_REGISTRATION_NO   — 고유번호 (사업자등록번호 격)
- *   ORG_REPRESENTATIVE    — 대표자
- *   ORG_ADDRESS           — 주소
- *   ORG_PHONE             — 연락처
+ * - ★ M-14: 관리자가 업로드한 직인 이미지를 R2에서 가져와 PDF에 삽입
+ *   * 직인 미설정 시 기존처럼 빨간 원형 표식 표시
  */
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -28,31 +13,25 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { db, receiptSettings } from "../db";
+import { blobUploads } from "../db/schema";
+import { downloadFromR2 } from "./r2-server";
 
-/* ============ 폰트 캐싱 (ArrayBuffer로 보관, 매번 새 Uint8Array 반환) ============ */
-/**
- * ★ 핫픽스: pdf-lib는 임베딩 과정에서 입력 Uint8Array를 mutate합니다.
- *   같은 buffer를 두 번 사용하면 두 번째 PDF부터 한글이 깨집니다.
- *   ArrayBuffer를 캐싱하고, 매번 새 Uint8Array를 만들어 반환하면 해결됩니다.
- */
+/* ============ 폰트 캐싱 ============ */
 let _fontCache: ArrayBuffer | null = null;
 
 function loadKoreanFont(): Uint8Array {
   if (!_fontCache) {
-    /* process.cwd() = /var/task (Netlify Functions) */
     const fontPath = join(process.cwd(), "assets", "fonts", "NotoSansKR-Regular.ttf");
     const buf = readFileSync(fontPath);
-    /* Node.js Buffer → ArrayBuffer 복사 (slice로 독립된 ArrayBuffer 생성) */
     _fontCache = buf.buffer.slice(
       buf.byteOffset,
       buf.byteOffset + buf.byteLength
     );
   }
-  /* 매번 새 Uint8Array를 반환 (원본 ArrayBuffer는 보존) */
   return new Uint8Array(_fontCache.slice(0));
 }
 
-/* ============ 영수증 설정 조회 (DB 우선 → 환경변수 → 샘플) ============ */
+/* ============ 영수증 설정 + 직인 조회 ============ */
 interface ReceiptSettingsResolved {
   orgName: string;
   orgRegistrationNo: string;
@@ -64,10 +43,13 @@ interface ReceiptSettingsResolved {
   proofText: string;
   donationTypeLabel: string;
   footerNotes: string[];
+  /* ★ M-14 */
+  stampBlobId: number | null;
+  stampBlobKey: string | null;
+  stampMimeType: string | null;
 }
 
 async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
-  /* 환경변수 폴백값 */
   const envOrgName = process.env.ORG_NAME || "(샘플) 교사유가족협의회";
   const envOrgRegNo = process.env.ORG_REGISTRATION_NO || "000-00-00000";
   const envOrgRep = process.env.ORG_REPRESENTATIVE || "○○○";
@@ -84,7 +66,6 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
     `• 문의: ${envOrgPhone} / ${envOrgName}`,
   ];
 
-  /* DB 조회 시도 (실패해도 폴백으로 진행) */
   try {
     const [row] = await db
       .select()
@@ -101,10 +82,29 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
           if (Array.isArray(parsed) && parsed.length > 0) {
             footerNotes = parsed.map((s: any) => String(s));
           }
-        } catch {
-          /* JSON 파싱 실패 시 기본 폴백 */
+        } catch {}
+      }
+
+      /* ★ M-14: 직인 BLOB 키 조회 */
+      let stampBlobKey: string | null = null;
+      let stampMimeType: string | null = null;
+      const stampBlobId = r.stampBlobId || null;
+      if (stampBlobId) {
+        try {
+          const [b] = await db
+            .select({ blobKey: blobUploads.blobKey, mimeType: blobUploads.mimeType })
+            .from(blobUploads)
+            .where(eq(blobUploads.id, stampBlobId))
+            .limit(1);
+          if (b) {
+            stampBlobKey = (b as any).blobKey;
+            stampMimeType = (b as any).mimeType;
+          }
+        } catch (e) {
+          console.warn("[pdf-receipt] 직인 BLOB 조회 실패:", e);
         }
       }
+
       return {
         orgName: r.orgName || envOrgName,
         orgRegistrationNo: r.orgRegistrationNo || envOrgRegNo,
@@ -116,13 +116,15 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
         proofText: r.proofText || defaultProofText,
         donationTypeLabel: r.donationTypeLabel || defaultDonationLabel,
         footerNotes,
+        stampBlobId,
+        stampBlobKey,
+        stampMimeType,
       };
     }
   } catch (e) {
     console.warn("[pdf-receipt] receipt_settings 조회 실패, 환경변수 폴백:", e);
   }
 
-  /* DB 없거나 조회 실패 시 환경변수/샘플 사용 */
   return {
     orgName: envOrgName,
     orgRegistrationNo: envOrgRegNo,
@@ -134,6 +136,9 @@ async function getReceiptSettings(): Promise<ReceiptSettingsResolved> {
     proofText: defaultProofText,
     donationTypeLabel: defaultDonationLabel,
     footerNotes: defaultFooter,
+    stampBlobId: null,
+    stampBlobKey: null,
+    stampMimeType: null,
   };
 }
 
@@ -145,8 +150,8 @@ export interface ReceiptData {
   donorPhone?: string | null;
   amount: number;
   donationDate: Date;
-  payMethod: string;          // card / bank / cms
-  donationType: string;       // regular / onetime
+  payMethod: string;
+  donationType: string;
 }
 
 /* ============ 메인 함수: PDF 바이너리 생성 ============ */
@@ -154,12 +159,38 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit as any);
 
-  /* 한글 폰트 임베딩 (★ subset: false — 한글 깨짐 방지) */
+  /* 한글 폰트 임베딩 */
   const fontBytes = loadKoreanFont();
   const font = await pdfDoc.embedFont(fontBytes, { subset: false });
 
   /* 영수증 설정 (DB 우선) */
   const settings = await getReceiptSettings();
+
+  /* ★ M-14: 직인 이미지 임베딩 (있으면) */
+  let stampImage: any = null;
+  if (settings.stampBlobKey) {
+    try {
+      const imgBytes = await downloadFromR2(settings.stampBlobKey);
+      if (imgBytes && imgBytes.length > 0) {
+        const mime = (settings.stampMimeType || "").toLowerCase();
+        if (mime.includes("png")) {
+          stampImage = await pdfDoc.embedPng(imgBytes);
+        } else if (mime.includes("jpeg") || mime.includes("jpg")) {
+          stampImage = await pdfDoc.embedJpg(imgBytes);
+        } else {
+          /* MIME 모를 때 PNG 우선 시도 → JPG 폴백 */
+          try {
+            stampImage = await pdfDoc.embedPng(imgBytes);
+          } catch {
+            try { stampImage = await pdfDoc.embedJpg(imgBytes); }
+            catch (e2) { console.warn("[pdf-receipt] 직인 이미지 형식 인식 실패"); }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[pdf-receipt] 직인 이미지 임베딩 실패:", e);
+    }
+  }
 
   /* A4 1장 추가 */
   const page = pdfDoc.addPage([595, 842]);
@@ -184,7 +215,6 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     color: black,
   });
 
-  /* 부제목 */
   const subtitle = settings.subtitle;
   const subSize = 10;
   const subWidth = font.widthOfTextAtSize(subtitle, subSize);
@@ -198,109 +228,51 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   /* ───────── 영수증 번호 / 발급일 ───────── */
   page.drawText(`영수증 번호: ${data.receiptNumber}`, {
-    x: 50,
-    y: height - 140,
-    size: 11,
-    font,
-    color: black,
+    x: 50, y: height - 140, size: 11, font, color: black,
   });
 
   const issueDate = new Date();
   const issueDateStr = `발급일: ${issueDate.getFullYear()}년 ${issueDate.getMonth() + 1}월 ${issueDate.getDate()}일`;
   const issueDateWidth = font.widthOfTextAtSize(issueDateStr, 11);
   page.drawText(issueDateStr, {
-    x: width - 50 - issueDateWidth,
-    y: height - 140,
-    size: 11,
-    font,
-    color: black,
+    x: width - 50 - issueDateWidth, y: height - 140, size: 11, font, color: black,
   });
 
-  /* 상단 구분선 */
   let y = height - 165;
   page.drawLine({
-    start: { x: 50, y },
-    end: { x: width - 50, y },
-    thickness: 1.5,
-    color: lineColor,
+    start: { x: 50, y }, end: { x: width - 50, y },
+    thickness: 1.5, color: lineColor,
   });
 
-  /* ───────── 헬퍼: 라벨/값 박스 그리기 ───────── */
-  function drawLabelValue(
-    label: string,
-    value: string,
-    x: number,
-    yPos: number,
-    labelW: number,
-    valueW: number
-  ) {
-    /* 라벨 박스 (회색 배경) */
+  /* 헬퍼 */
+  function drawLabelValue(label: string, value: string, x: number, yPos: number, labelW: number, valueW: number) {
     page.drawRectangle({
-      x,
-      y: yPos - 25,
-      width: labelW,
-      height: 25,
-      color: lightGray,
-      borderColor: lineColor,
-      borderWidth: 0.8,
+      x, y: yPos - 25, width: labelW, height: 25,
+      color: lightGray, borderColor: lineColor, borderWidth: 0.8,
     });
-    /* 값 박스 (흰색) */
     page.drawRectangle({
-      x: x + labelW,
-      y: yPos - 25,
-      width: valueW,
-      height: 25,
-      borderColor: lineColor,
-      borderWidth: 0.8,
+      x: x + labelW, y: yPos - 25, width: valueW, height: 25,
+      borderColor: lineColor, borderWidth: 0.8,
     });
-    /* 라벨 텍스트 */
-    page.drawText(label, {
-      x: x + 8,
-      y: yPos - 17,
-      size: 10,
-      font,
-      color: black,
-    });
-    /* 값 텍스트 (긴 텍스트 자동 자르기) */
+    page.drawText(label, { x: x + 8, y: yPos - 17, size: 10, font, color: black });
     const maxValueLen = Math.floor(valueW / 6);
     const displayValue = value.length > maxValueLen ? value.slice(0, maxValueLen - 2) + ".." : value;
-    page.drawText(displayValue, {
-      x: x + labelW + 8,
-      y: yPos - 17,
-      size: 10,
-      font,
-      color: black,
-    });
+    page.drawText(displayValue, { x: x + labelW + 8, y: yPos - 17, size: 10, font, color: black });
   }
 
-  /* ───────── ① 기부자 정보 ───────── */
+  /* ① 기부자 정보 */
   y -= 25;
-  page.drawText("① 기부자 정보", {
-    x: 50,
-    y,
-    size: 12,
-    font,
-    color: black,
-  });
+  page.drawText("① 기부자 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
-
   drawLabelValue("성명", data.donorName, 50, y, 70, 210);
   drawLabelValue("연락처", data.donorPhone || "-", 330, y, 70, 165);
-
   y -= 25;
   drawLabelValue("이메일", data.donorEmail || "-", 50, y, 70, 445);
 
-  /* ───────── ② 기부단체 정보 ───────── */
+  /* ② 기부단체 정보 */
   y -= 40;
-  page.drawText("② 기부단체 정보", {
-    x: 50,
-    y,
-    size: 12,
-    font,
-    color: black,
-  });
+  page.drawText("② 기부단체 정보", { x: 50, y, size: 12, font, color: black });
   y -= 8;
-
   drawLabelValue("단체명", settings.orgName, 50, y, 70, 425);
   y -= 25;
   drawLabelValue("고유번호", settings.orgRegistrationNo, 50, y, 70, 210);
@@ -310,101 +282,90 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   y -= 25;
   drawLabelValue("연락처", settings.orgPhone, 50, y, 70, 425);
 
-  /* ───────── ③ 기부 내역 ───────── */
+  /* ③ 기부 내역 */
   y -= 40;
-  page.drawText("③ 기부 내역", {
-    x: 50,
-    y,
-    size: 12,
-    font,
-    color: black,
-  });
+  page.drawText("③ 기부 내역", { x: 50, y, size: 12, font, color: black });
   y -= 8;
-
   const donDateStr = `${data.donationDate.getFullYear()}년 ${data.donationDate.getMonth() + 1}월 ${data.donationDate.getDate()}일`;
   drawLabelValue("기부일자", donDateStr, 50, y, 70, 210);
   drawLabelValue("기부유형", data.donationType === "regular" ? "정기후원" : "일시후원", 330, y, 70, 165);
-
   y -= 25;
   const amountStr = `₩ ${data.amount.toLocaleString()} (금 ${numberToKorean(data.amount)} 원정)`;
   drawLabelValue("기부금액", amountStr, 50, y, 70, 425);
-
   y -= 25;
-  const payMap: Record<string, string> = {
-    card: "신용카드",
-    bank: "계좌이체",
-    cms: "자동이체(CMS)",
-  };
+  const payMap: Record<string, string> = { card: "신용카드", bank: "계좌이체", cms: "자동이체(CMS)" };
   drawLabelValue("결제방법", payMap[data.payMethod] || data.payMethod, 50, y, 70, 210);
   drawLabelValue("기부금구분", settings.donationTypeLabel, 330, y, 70, 165);
 
-  /* ───────── 증명 문구 ───────── */
+  /* 증명 문구 */
   y -= 60;
   const proofText = settings.proofText;
   const proofWidth = font.widthOfTextAtSize(proofText, 12);
-  page.drawText(proofText, {
-    x: (width - proofWidth) / 2,
-    y,
-    size: 12,
-    font,
-    color: black,
-  });
+  page.drawText(proofText, { x: (width - proofWidth) / 2, y, size: 12, font, color: black });
 
-  /* ───────── 발급 단체명 + 직인 ───────── */
+  /* 발급 단체명 + 직인 */
   y -= 50;
-  const orgLine = `${settings.orgName}`;
+  const orgLine = settings.orgName;
   const orgLineSize = 14;
   const orgWidth = font.widthOfTextAtSize(orgLine, orgLineSize);
   const orgX = (width - orgWidth) / 2 - 25;
-  page.drawText(orgLine, {
-    x: orgX,
-    y,
-    size: orgLineSize,
-    font,
-    color: black,
-  });
+  page.drawText(orgLine, { x: orgX, y, size: orgLineSize, font, color: black });
 
-  /* 직인 자리 (붉은 원형 표시 — 실제 직인 이미지가 없으므로 표식만) */
-  page.drawCircle({
-    x: orgX + orgWidth + 35,
-    y: y + 5,
-    size: 22,
-    borderColor: stampRed,
-    borderWidth: 1.2,
-  });
-  const stampText = "직인";
-  const stampSize = 9;
-  const stampWidth = font.widthOfTextAtSize(stampText, stampSize);
-  page.drawText(stampText, {
-    x: orgX + orgWidth + 35 - stampWidth / 2,
-    y: y + 1,
-    size: stampSize,
-    font,
-    color: stampRed,
-  });
+  /* ★ M-14: 직인 이미지가 있으면 삽입, 없으면 빨간 원형 표식 */
+  const stampCenterX = orgX + orgWidth + 35;
+  const stampCenterY = y + 5;
 
-  /* ───────── 하단 안내 (구분선 + 안내문) ───────── */
+  if (stampImage) {
+    /* 직인 이미지 그리기 (60x60 픽셀 박스에 맞춤) */
+    const stampSize = 55;
+    const stampDrawX = stampCenterX - stampSize / 2;
+    const stampDrawY = stampCenterY - stampSize / 2;
+
+    /* 비율 유지 */
+    const imgW = stampImage.width;
+    const imgH = stampImage.height;
+    const ratio = Math.min(stampSize / imgW, stampSize / imgH);
+    const drawW = imgW * ratio;
+    const drawH = imgH * ratio;
+
+    page.drawImage(stampImage, {
+      x: stampCenterX - drawW / 2,
+      y: stampCenterY - drawH / 2,
+      width: drawW,
+      height: drawH,
+      opacity: 0.95,
+    });
+  } else {
+    /* 직인 미설정 — 기존 빨간 원형 표식 */
+    page.drawCircle({
+      x: stampCenterX, y: stampCenterY, size: 22,
+      borderColor: stampRed, borderWidth: 1.2,
+    });
+    const stampText = "직인";
+    const stampTextSize = 9;
+    const stampTextWidth = font.widthOfTextAtSize(stampText, stampTextSize);
+    page.drawText(stampText, {
+      x: stampCenterX - stampTextWidth / 2,
+      y: stampCenterY - 3,
+      size: stampTextSize,
+      font,
+      color: stampRed,
+    });
+  }
+
+  /* 하단 안내 */
   page.drawLine({
-    start: { x: 50, y: 120 },
-    end: { x: width - 50, y: 120 },
-    thickness: 0.5,
-    color: gray,
+    start: { x: 50, y: 120 }, end: { x: width - 50, y: 120 },
+    thickness: 0.5, color: gray,
   });
 
   let noteY = 100;
   for (const note of settings.footerNotes) {
-    page.drawText(note, {
-      x: 50,
-      y: noteY,
-      size: 8.5,
-      font,
-      color: gray,
-    });
+    page.drawText(note, { x: 50, y: noteY, size: 8.5, font, color: gray });
     noteY -= 14;
-    if (noteY < 30) break; // 페이지 밖으로 나가면 중단
+    if (noteY < 30) break;
   }
 
-  /* ───────── PDF 바이너리 반환 ───────── */
   return pdfDoc.save();
 }
 
@@ -430,7 +391,6 @@ function numberToKorean(num: number): string {
       while (temp > 0) {
         const d = temp % 10;
         if (d > 0) {
-          /* 자리수가 1일 때, 십/백/천 자리에서는 "일" 생략 (단, 일의 자리는 표시) */
           const dStr = d === 1 && placeIdx > 0 ? "" : digits[d];
           chunkStr = dStr + placeNames[placeIdx] + chunkStr;
         }

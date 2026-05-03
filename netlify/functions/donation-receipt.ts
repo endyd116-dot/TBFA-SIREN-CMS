@@ -1,23 +1,20 @@
 /**
- * GET /api/donation-receipt?id=N         — PDF 영수증 (브라우저 인라인 표시)
- * GET /api/donation-receipt?id=N&dl=1    — 강제 다운로드
+ * GET /api/donation-receipt?id=N         — PDF 영수증 (인라인)
+ * GET /api/donation-receipt?id=N&dl=1    — 다운로드
  *
- * 권한:
- *   - 본인 후원 (memberId 일치)
- *   - 또는 관리자 (모든 후원 접근 가능)
- *
- * 발급 조건:
- *   - donations.status === "completed"
- *   - 자동으로 receipt_number 발급 + DB 저장 (1회만)
- *
- * STEP H-2c
+ * ★ M-14:
+ * - 첫 발급 시 R2에 PDF 저장 + donations.receipt_blob_id 기록
+ * - 재발급 시 R2에서 캐시된 PDF 반환 (동일 영수증 일관성 보장)
+ * - regenerate=1 쿼리로 강제 재생성 가능 (관리자만)
  */
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
+import { blobUploads } from "../../db/schema";
 import { authenticateUser, authenticateAdmin } from "../../lib/auth";
 import { issueReceiptNumber } from "../../lib/receipt-number";
 import { generateReceiptPDF } from "../../lib/pdf-receipt";
+import { uploadToR2, downloadFromR2 } from "../../lib/r2-server";
 
 export const config = { path: "/api/donation-receipt" };
 
@@ -26,6 +23,7 @@ export default async (req: Request, _ctx: Context) => {
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
     const isDownload = url.searchParams.get("dl") === "1";
+    const forceRegenerate = url.searchParams.get("regenerate") === "1";
 
     if (!id || !/^\d+$/.test(id)) {
       return new Response(
@@ -50,7 +48,7 @@ export default async (req: Request, _ctx: Context) => {
       );
     }
 
-    /* 2) 권한 검증 (관리자 우선 → 사용자 본인) */
+    /* 2) 권한 검증 */
     const admin = authenticateAdmin(req);
     let allowed = !!admin;
 
@@ -86,30 +84,101 @@ export default async (req: Request, _ctx: Context) => {
       );
     }
 
-    /* 4) 영수증 번호 발급 (없으면 신규, 있으면 기존) */
+    /* 4) 영수증 번호 발급 */
     const { receiptNumber, isNew } = await issueReceiptNumber(donationId);
     console.log(
-      `[donation-receipt] id=${donationId} receiptNumber=${receiptNumber} isNew=${isNew}`
+      `[donation-receipt] id=${donationId} receiptNumber=${receiptNumber} isNew=${isNew} forceRegen=${forceRegenerate}`
     );
 
-    /* 5) PDF 생성 */
-    const pdfBytes = await generateReceiptPDF({
-      receiptNumber,
-      donorName: (d as any).donorName,
-      donorEmail: (d as any).donorEmail,
-      donorPhone: (d as any).donorPhone,
-      amount: (d as any).amount,
-      donationDate: new Date((d as any).createdAt),
-      payMethod: (d as any).payMethod,
-      donationType: (d as any).type,
-    });
+    /* 5) ★ M-14: R2 캐시 활용
+       - donations.receipt_blob_id가 있고 forceRegenerate가 false면 캐시 반환
+       - regenerate=1은 관리자만 허용 */
+    let pdfBytes: Uint8Array | null = null;
+    let cacheHit = false;
 
-    /* 6) 응답 헤더 (인라인 vs 다운로드) */
+    const existingBlobId = (d as any).receiptBlobId;
+    const useCache = existingBlobId && !forceRegenerate;
+    const allowRegenerate = forceRegenerate && !!admin;
+
+    if (forceRegenerate && !admin) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "강제 재생성은 관리자만 가능합니다" }),
+        { status: 403, headers: { "content-type": "application/json" } }
+      );
+    }
+
+    if (useCache) {
+      try {
+        const [cached] = await db
+          .select({ blobKey: blobUploads.blobKey, mimeType: blobUploads.mimeType })
+          .from(blobUploads)
+          .where(eq(blobUploads.id, existingBlobId))
+          .limit(1);
+
+        if (cached && (cached as any).blobKey) {
+          const downloaded = await downloadFromR2((cached as any).blobKey);
+          if (downloaded && downloaded.length > 100) {
+            pdfBytes = downloaded;
+            cacheHit = true;
+            console.log(`[donation-receipt] 캐시 히트: blobId=${existingBlobId}`);
+          }
+        }
+      } catch (e) {
+        console.warn(`[donation-receipt] 캐시 조회 실패, 신규 생성:`, e);
+      }
+    }
+
+    /* 6) 캐시 미스 또는 강제 재생성 → PDF 신규 생성 */
+    if (!pdfBytes) {
+      pdfBytes = await generateReceiptPDF({
+        receiptNumber,
+        donorName: (d as any).donorName,
+        donorEmail: (d as any).donorEmail,
+        donorPhone: (d as any).donorPhone,
+        amount: (d as any).amount,
+        donationDate: new Date((d as any).createdAt),
+        payMethod: (d as any).payMethod,
+        donationType: (d as any).type,
+      });
+
+      /* R2 저장 + DB 기록 */
+      try {
+        const fileName = `기부금영수증_${receiptNumber}.pdf`;
+        const uploadResult = await uploadToR2({
+          buffer: pdfBytes,
+          originalName: fileName,
+          mimeType: "application/pdf",
+          context: "receipt",
+          uploadedByAdmin: admin ? (admin as any).uid : null,
+          uploadedBy: !admin ? ((d as any).memberId || null) : null,
+          isPublic: false,         /* 영수증은 비공개 (인증 통과한 사람만 접근) */
+          expiresInDays: null,     /* 만료 없음 — 영구 보관 */
+        });
+
+        if (uploadResult.ok && uploadResult.blobId) {
+          await db.update(donations)
+            .set({ receiptBlobId: uploadResult.blobId } as any)
+            .where(eq(donations.id, donationId));
+
+          console.log(`[donation-receipt] 신규 R2 저장: blobId=${uploadResult.blobId}, regen=${forceRegenerate}`);
+
+          /* 강제 재생성이면 기존 BLOB 삭제는 안 함 (감사 추적용 보존) */
+        } else {
+          console.warn(`[donation-receipt] R2 저장 실패 (PDF는 정상 응답): ${uploadResult.error}`);
+        }
+      } catch (uploadErr) {
+        /* R2 저장 실패해도 PDF 응답은 정상 진행 */
+        console.error("[donation-receipt] R2 저장 중 예외:", uploadErr);
+      }
+    }
+
+    /* 7) 응답 헤더 */
     const fileName = `기부금영수증_${receiptNumber}.pdf`;
     const encoded = encodeURIComponent(fileName);
     const headers: Record<string, string> = {
       "content-type": "application/pdf",
       "cache-control": "private, no-cache",
+      "x-cache-hit": cacheHit ? "1" : "0",
     };
 
     if (isDownload) {
@@ -120,7 +189,6 @@ export default async (req: Request, _ctx: Context) => {
         `inline; filename="${encoded}"; filename*=UTF-8''${encoded}`;
     }
 
-    /* Buffer 변환 (Netlify Functions에서 안정적인 응답) */
     return new Response(Buffer.from(pdfBytes) as any, { status: 200, headers });
   } catch (e: any) {
     console.error("[donation-receipt] error", e);
