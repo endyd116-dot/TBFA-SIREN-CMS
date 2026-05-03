@@ -1,6 +1,7 @@
 /* =========================================================
-   SIREN — auth.js (★ K-1 비번재설정 + K-2 인증/탈퇴 + K-6 정보수정/비번변경/정기해지)
-   인증 API 클라이언트 + 헤더 동기화 + 폼 핸들러 + 채팅 알림
+   SIREN — auth.js v6
+   (★ K-1 비번재설정 + K-2 인증/탈퇴 + K-6 정보수정/비번변경/해지
+    + 세션 마커 + L-7 정기후원 카드/해지)
    ========================================================= */
 (function () {
   'use strict';
@@ -45,6 +46,7 @@
       const res = await api('/api/auth/signup', { method: 'POST', body: payload });
       if (res.ok && res.data.data) {
         this.user = res.data.data.user;
+        if (window.SIREN_SESSION) window.SIREN_SESSION.markUserLogin();
       }
       return res;
     },
@@ -53,6 +55,7 @@
       const res = await api('/api/auth/login', { method: 'POST', body: payload });
       if (res.ok && res.data.data) {
         this.user = res.data.data.user;
+        if (window.SIREN_SESSION) window.SIREN_SESSION.markUserLogin();
       }
       return res;
     },
@@ -61,6 +64,7 @@
       await api('/api/auth/logout', { method: 'POST' });
       this.user = null;
       this.stats = null;
+      if (window.SIREN_SESSION) window.SIREN_SESSION.clearAll();
     },
 
     isLoggedIn() {
@@ -92,9 +96,7 @@
           badge.style.display = 'none';
         }
       }
-    } catch (e) {
-      /* 조용히 실패 */
-    }
+    } catch (e) { /* 조용히 실패 */ }
   }
 
   function startChatAlarmPolling() {
@@ -157,6 +159,13 @@
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   }
 
   /* ------------ 폼 제출 핸들러 (로그인/회원가입/비번재설정 요청) ------------ */
@@ -248,14 +257,17 @@
       typeEl.textContent = map[Auth.user.type] || '회원';
     }
 
-    /* ★ K-2: 이메일 인증 상태 배너 갱신 */
+    /* ★ K-2: 이메일 인증 상태 배너 */
     updateEmailVerifyBanner();
 
-    /* ★ K-6: 폼 필드 채우기 */
+    /* ★ K-6: 회원 정보 폼 채우기 */
     fillProfileForm();
 
     await refreshDonations();
     await refreshSupport();
+
+    /* ★ L-7: 정기 후원 카드 로드 */
+    await refreshBilling();
   }
 
   /* ★ K-6: 회원 정보 폼 채우기 */
@@ -371,6 +383,7 @@
           Auth.user = null;
           Auth.stats = null;
           stopChatAlarmPolling();
+          if (window.SIREN_SESSION) window.SIREN_SESSION.clearAll();
           setTimeout(() => { location.href = '/index.html'; }, 2000);
         } else {
           window.SIREN.toast(res.data?.error || '탈퇴 처리 중 오류가 발생했습니다');
@@ -410,7 +423,6 @@
 
         if (res.ok) {
           window.SIREN.toast(res.data?.message || '저장되었습니다');
-          /* Auth 캐시 갱신 */
           if (res.data?.data?.user) {
             Auth.user = { ...Auth.user, ...res.data.data.user };
             syncHeader();
@@ -428,7 +440,7 @@
 
   /* ------------ ★ K-6: 비밀번호 변경 ------------ */
   function setupPasswordFormHandler() {
-    /* 새 비번 일치 실시간 표시 */
+    /* 새 비번 일치 실시간 */
     document.addEventListener('input', (e) => {
       if (e.target.id !== 'mpNewPw' && e.target.id !== 'mpNewPw2') return;
       const pw1 = document.getElementById('mpNewPw')?.value || '';
@@ -488,7 +500,7 @@
     });
   }
 
-  /* ------------ ★ K-6: 정기 후원 해지 (행 단위) ------------ */
+  /* ------------ ★ K-6: 일시 후원 해지 (행 단위, 기존) ------------ */
   function setupDonationCancelHandler() {
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-cancel-donation]');
@@ -520,6 +532,7 @@
         if (res.ok) {
           window.SIREN.toast(res.data?.message || '정기 후원이 해지되었습니다');
           await refreshDonations();
+          await refreshBilling();
         } else {
           window.SIREN.toast(res.data?.error || '해지 실패');
           btn.disabled = false;
@@ -532,11 +545,253 @@
       }
     });
 
-    /* 안내 버튼 (탭 상단 "정기 후원 해지 안내") */
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#btnCancelRegular')) return;
       e.preventDefault();
-      window.SIREN.toast('해지하실 정기 후원의 행에서 "🚫 해지" 버튼을 클릭해 주세요');
+      window.SIREN.toast('해지하실 정기 후원 카드의 "🛑 해지하기" 버튼을 클릭해 주세요');
+    });
+  }
+
+  /* ============================================================
+     ★ L-7: 정기 후원 카드 렌더링
+     ============================================================ */
+  async function refreshBilling() {
+    const container = document.getElementById('mpBillingContainer');
+    if (!container) return;
+
+    const res = await api('/api/billing-mine');
+    if (!res.ok || !res.data?.data) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const { active, history, recentCharges, stats } = res.data.data;
+
+    let html = '';
+
+    if (active) {
+      html += renderBillingActiveCard(active, stats);
+    } else if (history && history.length > 0) {
+      html += renderBillingEmpty(true);
+    } else {
+      html += renderBillingEmpty(false);
+    }
+
+    /* 최근 결제 이력 */
+    if (recentCharges && recentCharges.length > 0) {
+      html += renderRecentCharges(recentCharges);
+    }
+
+    container.innerHTML = html;
+  }
+
+  /* ★ L-7: 활성 빌링 카드 렌더 */
+  function renderBillingActiveCard(b, stats) {
+    const isWarning = (b.consecutiveFailCount || 0) > 0;
+    const cardClass = isWarning ? 'mp-billing-card' : 'mp-billing-card';
+    const statusBadge = isWarning
+      ? '<span class="mp-billing-status-badge warning">⚠️ 결제 실패 ' + b.consecutiveFailCount + '회</span>'
+      : '<span class="mp-billing-status-badge active">✅ 활성</span>';
+
+    const warningHtml = isWarning
+      ? '<div class="mp-billing-warning">⚠️ <strong>주의:</strong> ' +
+        '최근 결제가 실패했습니다. 카드 한도/유효기간을 확인해 주세요. ' +
+        '연속 3회 실패 시 자동 해지됩니다.' +
+        (b.lastFailureReason ? '<br />사유: ' + escapeHtml(b.lastFailureReason) : '') +
+        '</div>'
+      : '';
+
+    return `
+      <div class="${cardClass}">
+        <div class="mp-billing-header">
+          <div>
+            <div class="mp-billing-title">🎗 정기 후원</div>
+            <div class="mp-billing-subtitle">
+              ${stats.monthsActive}개월간 함께해 주셔서 감사합니다 · 누적 ₩${(stats.totalAmount || 0).toLocaleString()}
+            </div>
+          </div>
+          ${statusBadge}
+        </div>
+
+        ${warningHtml}
+
+        <div class="mp-billing-info-grid">
+          <div class="mp-billing-info-row">
+            <span class="mp-billing-info-label">월 후원 금액</span>
+            <span class="mp-billing-info-value amount">₩${(b.amount || 0).toLocaleString()}</span>
+          </div>
+          <div class="mp-billing-info-row">
+            <span class="mp-billing-info-label">등록 카드</span>
+            <span class="mp-billing-info-value">${escapeHtml(b.cardCompany || '카드')} ${escapeHtml(b.cardNumberMasked || '')}</span>
+          </div>
+          <div class="mp-billing-info-row">
+            <span class="mp-billing-info-label">마지막 결제</span>
+            <span class="mp-billing-info-value">${formatDate(b.lastChargedAt)}</span>
+          </div>
+          <div class="mp-billing-info-row">
+            <span class="mp-billing-info-label">다음 결제 예정</span>
+            <span class="mp-billing-info-value">${formatDate(b.nextChargeAt)}</span>
+          </div>
+        </div>
+
+        <div class="mp-billing-actions">
+          <button type="button" class="btn-cancel" data-billing-cancel="${b.id}">🛑 정기 후원 해지</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ★ L-7: 빈 상태 렌더 */
+  function renderBillingEmpty(hasHistory) {
+    return `
+      <div class="mp-billing-empty">
+        <div class="icon">🎗</div>
+        <div class="title">
+          ${hasHistory ? '현재 활성 정기 후원이 없습니다' : '정기 후원을 시작해 보세요'}
+        </div>
+        <div class="desc">
+          ${hasHistory
+            ? '새로 정기 후원을 시작하시려면 홈에서 후원 버튼을 눌러주세요.'
+            : '매월 자동 결제로 유가족 지원에 꾸준히 동참해 주세요.<br />언제든 해지 가능합니다.'}
+        </div>
+        <a href="/index.html" class="btn-start">🎗 정기 후원 시작하기</a>
+      </div>
+    `;
+  }
+
+  /* ★ L-7: 최근 결제 이력 렌더 */
+  function renderRecentCharges(list) {
+    if (!list || list.length === 0) return '';
+
+    const statusMap = {
+      completed: '<span class="badge b-success">완료</span>',
+      pending: '<span class="badge b-warn">대기</span>',
+      failed: '<span class="badge b-danger">실패</span>',
+      cancelled: '<span class="badge b-mute">취소</span>',
+      refunded: '<span class="badge b-mute">환불</span>',
+    };
+
+    const rowsHtml = list.map(c => {
+      const receiptBtn = c.status === 'completed'
+        ? `<a class="btn-link" href="/api/donation-receipt?id=${c.id}" target="_blank" rel="noopener" title="영수증 발급" style="text-decoration:none;color:var(--brand);font-weight:600">📄</a>`
+        : '<span style="color:var(--text-3);font-size:12px">—</span>';
+      return `
+        <tr>
+          <td>${formatDate(c.createdAt)}</td>
+          <td>${(c.amount || 0).toLocaleString()}원</td>
+          <td>${statusMap[c.status] || c.status}</td>
+          <td>${receiptBtn}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div style="margin-top:28px">
+        <h4 style="font-size:14px;font-weight:700;margin:0 0 10px;color:var(--ink)">📋 최근 정기 결제 이력</h4>
+        <table class="tbl" style="font-size:13px">
+          <thead>
+            <tr><th>결제일</th><th>금액</th><th>상태</th><th style="width:60px">영수증</th></tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  /* ★ L-7: 정기 후원 해지 모달 + 핸들러 */
+  function setupBillingCancelHandler() {
+    /* 해지 버튼 클릭 → 모달 오픈 */
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-billing-cancel]');
+      if (!btn) return;
+      e.preventDefault();
+
+      const id = Number(btn.dataset.billingCancel);
+      if (!id) return;
+
+      const modal = document.getElementById('billingCancelModal');
+      if (!modal) return;
+
+      document.getElementById('billingCancelId').value = String(id);
+      document.getElementById('billingCancelReason').value = '';
+      modal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    });
+
+    /* 모달 닫기 */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-bcm-close]')) {
+        const modal = document.getElementById('billingCancelModal');
+        if (modal) {
+          modal.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+        return;
+      }
+      /* 모달 배경 클릭 */
+      if (e.target.id === 'billingCancelModal') {
+        e.target.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    });
+
+    /* ESC 키 */
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = document.getElementById('billingCancelModal');
+      if (modal && modal.classList.contains('show')) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+    });
+
+    /* 폼 제출 */
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form.id !== 'billingCancelForm') return;
+      e.preventDefault();
+
+      const id = Number(document.getElementById('billingCancelId').value);
+      const reason = (document.getElementById('billingCancelReason').value || '').trim();
+      if (!id) return;
+
+      const finalConfirm = confirm(
+        '정말 정기 후원을 해지하시겠습니까?\n\n' +
+        '• 다음 결제일부터 자동 청구가 중단됩니다\n' +
+        '• 되돌릴 수 없으며, 재시작 시 새 카드 등록이 필요합니다\n\n' +
+        '계속하시려면 [확인]을 눌러주세요.'
+      );
+      if (!finalConfirm) return;
+
+      const btn = document.getElementById('billingCancelConfirmBtn');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+      try {
+        const res = await api('/api/billing-cancel', {
+          method: 'POST',
+          body: { billingKeyId: id, reason: reason || undefined },
+        });
+
+        if (res.ok) {
+          window.SIREN.toast(res.data?.message || '정기 후원이 해지되었습니다');
+          /* 모달 닫기 */
+          const modal = document.getElementById('billingCancelModal');
+          if (modal) {
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+          }
+          /* UI 갱신 */
+          await refreshBilling();
+          await refreshDonations();
+        } else {
+          window.SIREN.toast(res.data?.error || '해지 처리 중 오류가 발생했습니다');
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+        }
+      } catch (err) {
+        window.SIREN.toast('네트워크 오류가 발생했습니다');
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+      }
     });
   }
 
@@ -573,17 +828,15 @@
           refunded: '<span class="badge b-mute">환불</span>',
         };
         tbody.innerHTML = list.map(d => {
-          /* ★ K-6: 정기 후원 + 활성 상태일 때만 해지 버튼 표시 */
-          const canCancel = d.type === 'regular' && (d.status === 'completed' || d.status === 'pending');
+          const canCancelInline =
+            d.type === 'regular' &&
+            (d.status === 'completed' || d.status === 'pending') &&
+            d.pgProvider !== 'toss';
           const receiptCell = d.status === 'completed'
             ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`
-            : canCancel
+            : canCancelInline
               ? `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">🚫 해지</button>`
               : '<span style="color:var(--text-3);font-size:12px">—</span>';
-          /* 정기 + 완료일 경우 영수증 + 해지 둘 다 표시 */
-          const actionCell = (d.status === 'completed' && canCancel)
-            ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600;margin-right:8px">📄 발급</a><button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0;font-size:12.5px">🚫 해지</button>`
-            : receiptCell;
 
           return `
             <tr>
@@ -592,18 +845,12 @@
               <td>${(d.amount || 0).toLocaleString()}원</td>
               <td>${payMap[d.payMethod] || d.payMethod}</td>
               <td>${statusMap[d.status] || d.status}</td>
-              <td>${actionCell}</td>
+              <td>${receiptCell}</td>
             </tr>
           `;
         }).join('');
       }
     }
-  }
-
-  function formatDate(iso) {
-    if (!iso) return '-';
-    const d = new Date(iso);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   }
 
   /* ------------ 지원 신청 내역 새로고침 ------------ */
@@ -645,6 +892,7 @@
 
   window.SIREN_REFRESH_SUPPORT = refreshSupport;
   window.SIREN_REFRESH_MYPAGE = refreshDonations;
+  window.SIREN_REFRESH_BILLING = refreshBilling;
 
   /* ------------ 초기화 ------------ */
   let _initExecuted = false;
@@ -654,11 +902,12 @@
     _initExecuted = true;
 
     setupAuthForms();
-    setupResendVerifyHandler();      /* ★ K-2 */
-    setupWithdrawHandler();          /* ★ K-2 */
-    setupProfileFormHandler();       /* ★ K-6 */
-    setupPasswordFormHandler();      /* ★ K-6 */
-    setupDonationCancelHandler();    /* ★ K-6 */
+    setupResendVerifyHandler();      /* K-2 */
+    setupWithdrawHandler();          /* K-2 */
+    setupProfileFormHandler();       /* K-6 */
+    setupPasswordFormHandler();      /* K-6 */
+    setupDonationCancelHandler();    /* K-6 */
+    setupBillingCancelHandler();     /* ★ L-7 */
 
     await Auth.fetchMe();
     syncHeader();
