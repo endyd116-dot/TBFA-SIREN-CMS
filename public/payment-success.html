@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>결제 처리 중 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  .ps-wrap {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+  }
+  .ps-card {
+    max-width: 560px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  }
+  .ps-loading {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--line);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: ps-spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes ps-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .ps-icon {
+    font-size: 64px;
+    margin-bottom: 18px;
+    line-height: 1;
+  }
+
+  .ps-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+
+  .ps-message {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.8;
+    margin-bottom: 28px;
+    word-break: keep-all;
+  }
+
+  .ps-info-box {
+    background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
+    border: 1px solid #f0e0d4;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .ps-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .ps-info-row + .ps-info-row {
+    border-top: 1px dashed var(--line);
+  }
+  .ps-info-label {
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .ps-info-value {
+    color: var(--ink);
+    font-weight: 600;
+    text-align: right;
+    font-family: 'Inter', monospace;
+  }
+  .ps-info-value.amount {
+    color: var(--brand);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .ps-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .ps-actions a {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .ps-actions .primary {
+    background: var(--brand);
+    color: #fff;
+  }
+  .ps-actions .primary:hover {
+    background: var(--brand-deep, #5a1620);
+  }
+  .ps-actions .ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+  }
+  .ps-actions .ghost:hover {
+    background: var(--bg-soft);
+  }
+
+  .ps-error-box {
+    background: #fdecec;
+    border: 1px solid #f5b5bb;
+    color: #a01e2c;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    text-align: left;
+  }
+  .ps-error-box strong { color: #6a1820; }
+
+  .ps-receipt-link {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 10px 18px;
+    background: #1a5e2c;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .ps-receipt-link:hover { background: #155022; }
+
+  .ps-thanks-emoji {
+    display: inline-block;
+    font-size: 32px;
+    animation: ps-bounce 1.2s ease-in-out infinite;
+  }
+  @keyframes ps-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+</style>
+</head>
+<body data-page="payment-success">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <div class="ps-wrap">
+
+      <!-- 처리 중 화면 (기본) -->
+      <div id="psLoading" class="ps-card">
+        <div class="ps-loading"></div>
+        <h1 class="ps-title">결제 확인 중...</h1>
+        <p class="ps-message">
+          토스페이먼츠로부터 결제 결과를 확인하고 있습니다.<br />
+          잠시만 기다려 주세요.
+        </p>
+        <div style="font-size:12px;color:var(--text-3);margin-top:14px">
+          ⚠️ 이 페이지를 닫지 마세요. 자동으로 다음 화면으로 이동합니다.
+        </div>
+      </div>
+
+      <!-- 성공 화면 -->
+      <div id="psSuccess" class="ps-card" style="display:none">
+        <div class="ps-icon">
+          <span class="ps-thanks-emoji">🎗</span>
+        </div>
+        <h1 class="ps-title">소중한 마음, 감사합니다!</h1>
+        <p class="ps-message">
+          후원이 정상적으로 완료되었습니다.<br />
+          여러분의 따뜻한 동행이 유가족들에게 큰 힘이 됩니다.
+        </p>
+
+        <div class="ps-info-box">
+          <div class="ps-info-row">
+            <span class="ps-info-label">후원 번호</span>
+            <span class="ps-info-value" id="psDonationNo">—</span>
+          </div>
+          <div class="ps-info-row">
+            <span class="ps-info-label">후원자</span>
+            <span class="ps-info-value" id="psDonorName">—</span>
+          </div>
+          <div class="ps-info-row">
+            <span class="ps-info-label">후원 금액</span>
+            <span class="ps-info-value amount" id="psAmount">—</span>
+          </div>
+          <div class="ps-info-row">
+            <span class="ps-info-label">결제 일시</span>
+            <span class="ps-info-value" id="psPaidAt">—</span>
+          </div>
+          <div class="ps-info-row">
+            <span class="ps-info-label">결제 수단</span>
+            <span class="ps-info-value" id="psMethod">신용카드 (토스)</span>
+          </div>
+        </div>
+
+        <div style="font-size:12.5px;color:var(--text-3);line-height:1.7;margin-bottom:18px;padding:12px 16px;background:var(--bg-soft);border-radius:6px">
+          📧 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다.<br />
+          📄 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 발급 가능합니다.<br />
+          <span style="font-size:11.5px">※ 회원이 아니신 경우 회원가입 후 자동으로 후원 내역이 연결됩니다.</span>
+        </div>
+
+        <div class="ps-actions">
+          <a href="/mypage.html#donations" class="primary" id="psMyPageLink">📄 영수증 발급하기</a>
+          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+      <!-- 실패/오류 화면 -->
+      <div id="psError" class="ps-card" style="display:none">
+        <div class="ps-icon">⚠️</div>
+        <h1 class="ps-title" style="color:var(--danger)">결제 확인 실패</h1>
+        <p class="ps-message" id="psErrorMessage">
+          결제 정보를 확인하는 중 문제가 발생했습니다.<br />
+          잠시 후 다시 시도해 주세요.
+        </p>
+
+        <div class="ps-error-box" id="psErrorDetail" style="display:none">
+          <strong>오류 정보</strong><br />
+          <span id="psErrorReason">—</span>
+        </div>
+
+        <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:12px 14px;margin-bottom:18px;font-size:12.5px;color:#8a6a00;line-height:1.6;text-align:left">
+          💡 <strong>안내</strong><br />
+          • 결제가 실제로 완료되었는지 확인이 필요합니다<br />
+          • 결제가 진행되었다면 마이페이지에서 확인 가능합니다<br />
+          • 문제가 지속되면 협회로 연락해 주세요 (contact@siren-org.kr)
+        </div>
+
+        <div class="ps-actions">
+          <a href="/mypage.html#donations" class="primary">마이페이지에서 확인</a>
+          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+      <!-- 잘못된 접근 화면 -->
+      <div id="psInvalid" class="ps-card" style="display:none">
+        <div class="ps-icon">❌</div>
+        <h1 class="ps-title" style="color:var(--danger)">잘못된 접근입니다</h1>
+        <p class="ps-message">
+          결제 정보가 없거나 잘못된 경로로 접근하셨습니다.<br />
+          홈에서 다시 후원해 주세요.
+        </p>
+        <div class="ps-actions">
+          <a href="/index.html" class="primary">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    function $(id) { return document.getElementById(id); }
+    function show(id) {
+      ['psLoading', 'psSuccess', 'psError', 'psInvalid'].forEach(function (k) {
+        var el = $(k);
+        if (el) el.style.display = (k === id) ? 'block' : 'none';
+      });
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.getFullYear() + '.' +
+        String(d.getMonth() + 1).padStart(2, '0') + '.' +
+        String(d.getDate()).padStart(2, '0') + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' +
+        String(d.getMinutes()).padStart(2, '0');
+    }
+
+    /* 1. 토스 콜백 파라미터 추출 */
+    var params = new URLSearchParams(location.search);
+    var paymentKey = params.get('paymentKey') || '';
+    var orderId = params.get('orderId') || '';
+    var amount = params.get('amount') || '';
+    var donationId = params.get('donationId') || '';
+
+    /* 필수 파라미터 검증 */
+    if (!paymentKey || !orderId || !amount) {
+      show('psInvalid');
+      return;
+    }
+
+    /* 2. 백엔드에 confirm 요청 */
+    (async function confirmPayment() {
+      try {
+        var res = await fetch('/api/donate-toss-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            paymentKey: paymentKey,
+            orderId: orderId,
+            amount: Number(amount),
+            donationId: donationId ? Number(donationId) : undefined,
+          }),
+        });
+
+        var data = await res.json().catch(function () { return {}; });
+
+        if (res.ok && data.ok !== false && data.data) {
+          /* 성공 처리 */
+          var d = data.data;
+          var donationNo = d.donationNo || ('D-' + String(d.donationId || '').padStart(7, '0'));
+
+          $('psDonationNo').textContent = donationNo;
+          $('psDonorName').textContent = d.donorName || '—';
+          $('psAmount').textContent = '₩ ' + (d.amount || 0).toLocaleString();
+          $('psPaidAt').textContent = formatDateTime(d.paidAt || new Date().toISOString());
+          $('psMethod').textContent = d.method || '신용카드 (토스)';
+
+          show('psSuccess');
+
+          /* sessionStorage 정리 (정기 후원 시 사용) */
+          try {
+            sessionStorage.removeItem('siren_billing_intent');
+          } catch (e) {}
+
+          /* 마이페이지 영수증 링크 ID 주입 */
+          if (d.donationId) {
+            var link = $('psMyPageLink');
+            if (link) link.href = '/mypage.html#donations';
+          }
+        } else {
+          /* 실패 처리 */
+          $('psErrorMessage').textContent = data.error || '결제 확인에 실패했습니다.';
+          if (data.detail) {
+            $('psErrorDetail').style.display = 'block';
+            $('psErrorReason').textContent = String(data.detail).slice(0, 200);
+          }
+          show('psError');
+        }
+      } catch (err) {
+        console.error('[payment-success]', err);
+        $('psErrorMessage').textContent = '네트워크 오류가 발생했습니다.';
+        show('psError');
+      }
+    })();
+  })();
+  </script>
+</body>
+</html>
