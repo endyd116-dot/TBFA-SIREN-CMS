@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>페이지를 찾을 수 없습니다 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  .err-wrap {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+  }
+  .err-card {
+    max-width: 560px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 56px 40px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  }
+  .err-code {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 88px;
+    font-weight: 900;
+    color: var(--brand);
+    line-height: 1;
+    margin: 0 0 8px;
+    letter-spacing: -2px;
+  }
+  .err-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+  }
+  .err-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .err-message {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.8;
+    margin-bottom: 32px;
+    word-break: keep-all;
+  }
+  .err-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .err-actions a {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .err-actions .primary {
+    background: var(--brand);
+    color: #fff;
+  }
+  .err-actions .primary:hover {
+    background: var(--brand-deep, #5a1620);
+  }
+  .err-actions .ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+  }
+  .err-actions .ghost:hover {
+    background: var(--bg-soft);
+  }
+  .err-suggest {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--line);
+    font-size: 12.5px;
+    color: var(--text-3);
+    line-height: 1.8;
+  }
+  .err-suggest a {
+    color: var(--brand);
+    text-decoration: none;
+    margin: 0 8px;
+  }
+  .err-suggest a:hover { text-decoration: underline; }
+</style>
+</head>
+<body data-page="error-404">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <div class="err-wrap">
+      <div class="err-card">
+        <div class="err-icon">🔍</div>
+        <h1 class="err-code">404</h1>
+        <h2 class="err-title">페이지를 찾을 수 없습니다</h2>
+        <p class="err-message">
+          요청하신 페이지가 존재하지 않거나, 이동·삭제되었을 수 있습니다.<br />
+          주소를 다시 확인해 주시거나 아래 버튼을 통해 이동해 주세요.
+        </p>
+
+        <div class="err-actions">
+          <a href="/index.html" class="primary">🏠 홈으로 이동</a>
+          <a href="javascript:history.back()" class="ghost">← 이전 페이지</a>
+        </div>
+
+        <div class="err-suggest">
+          자주 찾는 메뉴
+          <br />
+          <a href="/about.html">협의회 소개</a> ·
+          <a href="/support.html">주요 활동</a> ·
+          <a href="/news.html">소식 / FAQ</a> ·
+          <a href="/report.html">활동 보고서</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+</body>
+</html>

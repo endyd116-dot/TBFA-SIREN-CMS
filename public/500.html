@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>일시적인 오류가 발생했습니다 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  .err-wrap {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+  }
+  .err-card {
+    max-width: 560px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 56px 40px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  }
+  .err-code {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 88px;
+    font-weight: 900;
+    color: var(--danger);
+    line-height: 1;
+    margin: 0 0 8px;
+    letter-spacing: -2px;
+  }
+  .err-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+  }
+  .err-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .err-message {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.8;
+    margin-bottom: 24px;
+    word-break: keep-all;
+  }
+  .err-info-box {
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12.5px;
+    color: var(--text-3);
+    line-height: 1.7;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .err-info-box strong { color: var(--text-2); }
+  .err-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .err-actions a, .err-actions button {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+  .err-actions .primary {
+    background: var(--brand);
+    color: #fff;
+  }
+  .err-actions .ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+  }
+</style>
+</head>
+<body data-page="error-500">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <div class="err-wrap">
+      <div class="err-card">
+        <div class="err-icon">⚠️</div>
+        <h1 class="err-code">500</h1>
+        <h2 class="err-title">일시적인 오류가 발생했습니다</h2>
+        <p class="err-message">
+          서버에서 요청을 처리하는 중 문제가 발생했습니다.<br />
+          잠시 후 다시 시도해 주시거나, 문제가 지속되면 협회로 연락해 주세요.
+        </p>
+
+        <div class="err-info-box">
+          <strong>📞 긴급 문의</strong><br />
+          • 이메일: <strong>contact@siren-org.kr</strong><br />
+          • 전화: <strong>02-0000-0000</strong> (평일 09:30 ~ 18:00)<br />
+          • 협회는 사용자의 정보를 안전하게 보호하고 있으며,<br />
+          &nbsp;&nbsp;&nbsp;이미 진행된 후원/지원 신청은 영향을 받지 않습니다.
+        </div>
+
+        <div class="err-actions">
+          <button onclick="location.reload()" class="primary">🔄 다시 시도</button>
+          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+</body>
+</html>
