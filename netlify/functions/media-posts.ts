@@ -32,10 +32,10 @@ export default async (req: Request) => {
       if (!item) return notFound("게시글을 찾을 수 없습니다");
 
       db.update(mediaPosts)
-        .set({ views: sqlExp`${mediaPosts.views} + 1` as any })
+        .set({ views: sqlExp`${mediaPosts.views} + 1` } as any)
         .where(eq(mediaPosts.id, itemId))
         .catch(() => {});
-
+        
       const r: any = item;
       return ok({
         post: {
