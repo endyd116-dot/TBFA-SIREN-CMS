@@ -1540,16 +1540,25 @@
           : '') +
         '</div>';
 
+            /* ★ L-9: 효성 회원번호 표시 (있으면 배지, 없으면 경고) */
+      const hyosungBadge = r.hyosungMemberNo
+        ? '<span style="font-family:Inter;font-size:11px;background:#e7f7ec;color:#1a5e2c;padding:2px 7px;border-radius:8px;font-weight:600">#' + String(r.hyosungMemberNo).padStart(8, '0') + '</span>'
+        : (r.status === 'pending'
+          ? '<span style="font-size:11px;color:var(--text-3)">—</span>'
+          : '<span style="font-size:11px;color:#c47a00" title="효성 회원번호가 등록되지 않았습니다">⚠️ 미등록</span>');
+
       return '<tr>' +
         '<td style="font-family:Inter;font-size:12px">' + donationNo + '</td>' +
         '<td style="font-family:Inter;font-size:12px">' + formatDateTime(r.createdAt) + '</td>' +
         '<td>' + escapeHtml(r.donorName || '') + anonMark + '</td>' +
         '<td style="font-weight:600">₩ ' + (r.amount || 0).toLocaleString() + '</td>' +
+        '<td>' + hyosungBadge + '</td>' +
         '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(r.donorEmail || '—') + '</td>' +
         '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(r.donorPhone || '—') + '</td>' +
         '<td><span class="hy-status-pill ' + statusClass + '">' + statusText + '</span></td>' +
         '<td>' + actions + '</td>' +
         '</tr>';
+        
     }).join('');
   }
 
@@ -1680,8 +1689,43 @@
           </div>
         </div>
       `;
-    } else if (d.status === 'completed') {
+        } else if (d.status === 'completed') {
       actionButtons = `
+        <div class="hy-section">
+          <h5>🏦 효성 CMS+ 정보</h5>
+          <div style="background:#e7f7ec;border:1px solid #a3d9b4;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+            <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">
+              <div>
+                <span style="color:#1a5e2c;font-weight:600">효성 회원번호</span><br />
+                <strong style="font-family:Inter,monospace;font-size:15px;color:var(--ink)">${d.hyosungMemberNo ? '#' + String(d.hyosungMemberNo).padStart(8, '0') : '미등록'}</strong>
+              </div>
+              <div>
+                <span style="color:#1a5e2c;font-weight:600">계약번호</span><br />
+                <strong style="font-family:Inter,monospace">${escapeHtml(d.hyosungContractNo || '001')}</strong>
+              </div>
+              ${d.hyosungBillNo ? '<div><span style="color:#1a5e2c;font-weight:600">최근 청구번호</span><br /><strong style="font-family:Inter,monospace;font-size:11px">' + escapeHtml(d.hyosungBillNo) + '</strong></div>' : ''}
+            </div>
+            <button type="button" class="small-btn ghost" data-hy-edit-info="${d.id}" style="margin-top:10px;font-size:11.5px">✏️ 효성 정보 수정</button>
+          </div>
+        </div>
+
+        <div class="hy-section" id="hyEditInfoSection" style="display:none">
+          <h5>✏️ 효성 정보 수정</h5>
+          <div class="field-row">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+              <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">효성 회원번호</label>
+                <input type="number" id="hyEditMemberNo" value="${d.hyosungMemberNo || ''}" min="1" style="width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:Inter,monospace">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">계약번호</label>
+                <input type="text" id="hyEditContractNo" value="${escapeHtml(d.hyosungContractNo || '001')}" maxlength="20" style="width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:Inter,monospace">
+              </div>
+            </div>
+            <button type="button" class="small-btn" data-hy-save-info="${d.id}">💾 효성 정보 저장</button>
+          </div>
+        </div>
+
         <div class="hy-section">
           <h5>🚫 해지 처리</h5>
           <div class="field-row">
@@ -1732,19 +1776,38 @@
   }
 
   /* 효성 빠른 완료 처리 (행에서 클릭) */
+    /* 효성 빠른 완료 처리 (행에서 클릭) — ★ L-9: 번호 입력 */
   async function openHyosungQuickComplete(id, name) {
     const safeName = name || '후원자';
+
+    const hyMemberNo = prompt(
+      safeName + '님의 효성 CMS+ 등록을 완료합니다.\n\n' +
+      '효성 CMS+에서 부여된 회원번호를 입력해 주세요 (숫자만):\n' +
+      '(예: 60)',
+    );
+
+    if (hyMemberNo === null) return; // 취소
+    const numMemberNo = Number(hyMemberNo);
+    if (!numMemberNo || numMemberNo <= 0) {
+      return toast('올바른 효성 회원번호를 입력해 주세요 (양수 숫자)');
+    }
+
     const confirmed = confirm(
       safeName + '님의 효성 CMS+ 신청을 완료 처리하시겠습니까?\n\n' +
-      '• 효성 CMS+에 이미 수동 등록되어 있어야 합니다\n' +
-      '• 처리 시 감사 메일이 자동 발송됩니다\n' +
-      '• 상태가 \'활성\'으로 변경됩니다',
+      '• 효성 회원번호: ' + numMemberNo + '\n' +
+      '• 감사 메일이 자동 발송됩니다\n' +
+      '• 향후 수납 CSV 매칭에 사용됩니다',
     );
     if (!confirmed) return;
 
     const res = await api('/api/admin/hyosung', {
       method: 'PATCH',
-      body: { id, markCompleted: true, reason: '행 액션으로 빠른 완료 처리' },
+      body: {
+        id,
+        markCompleted: true,
+        hyosungMemberNo: numMemberNo,
+        reason: '행 액션 빠른 완료 (회원번호: ' + numMemberNo + ')',
+      },
     });
 
     if (res.ok) {
@@ -1807,17 +1870,25 @@
       }
 
       /* 모달 내 완료 처리 (사유 포함) */
+            /* 모달 내 완료 처리 (★ L-9: 효성 회원번호 필수) */
       const completeBtn = e.target.closest('[data-hy-complete]');
       if (completeBtn) {
         e.preventDefault();
         const id = Number(completeBtn.dataset.hyComplete);
         const reason = (document.getElementById('hyCompleteReason')?.value || '').trim();
+        const hyMemberNo = document.getElementById('hyMemberNoInput')?.value || '';
+        const hyContractNo = (document.getElementById('hyContractNoInput')?.value || '').trim();
+
+        if (!hyMemberNo || Number(hyMemberNo) <= 0) {
+          return toast('효성 회원번호를 입력해 주세요 (필수)');
+        }
 
         const confirmed = confirm(
           '효성 CMS+ 등록 완료로 처리하시겠습니까?\n\n' +
+          '• 효성 회원번호: ' + hyMemberNo + '\n' +
           '• 상태가 \'활성\'으로 변경됩니다\n' +
           '• 신청자에게 감사 메일이 자동 발송됩니다\n' +
-          '• 이후 해지 처리는 별도 진행해야 합니다',
+          '• 이 번호로 향후 수납 CSV가 자동 매칭됩니다',
         );
         if (!confirmed) return;
 
@@ -1827,7 +1898,13 @@
 
         const res = await api('/api/admin/hyosung', {
           method: 'PATCH',
-          body: { id, markCompleted: true, reason: reason || undefined },
+          body: {
+            id,
+            markCompleted: true,
+            hyosungMemberNo: Number(hyMemberNo),
+            hyosungContractNo: hyContractNo || undefined,
+            reason: reason || undefined,
+          },
         });
 
         if (res.ok) {
@@ -1841,7 +1918,56 @@
         }
         return;
       }
+      /* ★ L-9: 효성 정보 수정 표시/숨김 토글 */
+      const editInfoBtn = e.target.closest('[data-hy-edit-info]');
+      if (editInfoBtn) {
+        e.preventDefault();
+        const section = document.getElementById('hyEditInfoSection');
+        if (section) {
+          section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+        return;
+      }
 
+      /* ★ L-9: 효성 정보 저장 */
+      const saveInfoBtn = e.target.closest('[data-hy-save-info]');
+      if (saveInfoBtn) {
+        e.preventDefault();
+        const id = Number(saveInfoBtn.dataset.hySaveInfo);
+        const hyMemberNo = document.getElementById('hyEditMemberNo')?.value || '';
+        const hyContractNo = (document.getElementById('hyEditContractNo')?.value || '').trim();
+
+        if (!hyMemberNo || Number(hyMemberNo) <= 0) {
+          return toast('효성 회원번호를 입력해 주세요');
+        }
+
+        saveInfoBtn.disabled = true;
+        const oldText = saveInfoBtn.textContent;
+        saveInfoBtn.textContent = '저장 중...';
+
+        const res = await api('/api/admin/hyosung', {
+          method: 'PATCH',
+          body: {
+            id,
+            updateHyosungInfo: true,
+            hyosungMemberNo: Number(hyMemberNo),
+            hyosungContractNo: hyContractNo || undefined,
+          },
+        });
+
+        saveInfoBtn.disabled = false;
+        saveInfoBtn.textContent = oldText;
+
+        if (res.ok) {
+          toast(res.data?.message || '효성 정보가 저장되었습니다');
+          /* 모달 새로고침 */
+          openHyosungDetailModal(id);
+          loadHyosung();
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+        return;
+      }
       /* 모달 내 해지 처리 */
       const cancelBtn = e.target.closest('[data-hy-cancel]');
       if (cancelBtn) {
