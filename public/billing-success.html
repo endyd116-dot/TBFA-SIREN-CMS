@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>정기 후원 등록 처리 중 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+  .bs-wrap {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+  }
+  .bs-card {
+    max-width: 580px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  }
+  .bs-loading {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--line);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: bs-spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes bs-spin {
+    to { transform: rotate(360deg); }
+  }
+  .bs-icon {
+    font-size: 64px;
+    margin-bottom: 18px;
+    line-height: 1;
+  }
+  .bs-thanks-emoji {
+    display: inline-block;
+    font-size: 36px;
+    animation: bs-bounce 1.2s ease-in-out infinite;
+  }
+  @keyframes bs-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .bs-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .bs-message {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.8;
+    margin-bottom: 28px;
+    word-break: keep-all;
+  }
+  .bs-info-box {
+    background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
+    border: 1px solid #f0e0d4;
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .bs-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    font-size: 13px;
+  }
+  .bs-info-row + .bs-info-row {
+    border-top: 1px dashed var(--line);
+  }
+  .bs-info-label {
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .bs-info-value {
+    color: var(--ink);
+    font-weight: 600;
+    font-family: 'Inter', monospace;
+    text-align: right;
+  }
+  .bs-info-value.amount {
+    color: var(--brand);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .bs-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .bs-actions a {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .bs-actions .primary {
+    background: var(--brand);
+    color: #fff;
+  }
+  .bs-actions .ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+  }
+  .bs-error-box {
+    background: #fdecec;
+    border: 1px solid #f5b5bb;
+    color: #a01e2c;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+    text-align: left;
+  }
+  .bs-info-side {
+    background: var(--bg-soft);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+</style>
+</head>
+<body data-page="billing-success">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <div class="bs-wrap">
+
+      <!-- 처리 중 -->
+      <div id="bsLoading" class="bs-card">
+        <div class="bs-loading"></div>
+        <h1 class="bs-title">카드 등록 처리 중...</h1>
+        <p class="bs-message">
+          토스페이먼츠로부터 카드 정보를 확인하고<br />
+          첫 결제를 진행하고 있습니다.<br /><br />
+          ⏰ 약 5~10초 정도 소요됩니다. 페이지를 닫지 마세요.
+        </p>
+      </div>
+
+      <!-- 성공 -->
+      <div id="bsSuccess" class="bs-card" style="display:none">
+        <div class="bs-icon"><span class="bs-thanks-emoji">🎗</span></div>
+        <h1 class="bs-title">정기 후원이 시작되었습니다!</h1>
+        <p class="bs-message">
+          따뜻한 마음에 깊이 감사드립니다.<br />
+          매월 자동으로 결제되며, 언제든 마이페이지에서 해지 가능합니다.
+        </p>
+
+        <div class="bs-info-box">
+          <div class="bs-info-row">
+            <span class="bs-info-label">후원 번호</span>
+            <span class="bs-info-value" id="bsDonationNo">—</span>
+          </div>
+          <div class="bs-info-row">
+            <span class="bs-info-label">월 후원 금액</span>
+            <span class="bs-info-value amount" id="bsAmount">—</span>
+          </div>
+          <div class="bs-info-row">
+            <span class="bs-info-label">후원자</span>
+            <span class="bs-info-value" id="bsDonorName">—</span>
+          </div>
+          <div class="bs-info-row">
+            <span class="bs-info-label">등록 카드</span>
+            <span class="bs-info-value" id="bsCardInfo">—</span>
+          </div>
+          <div class="bs-info-row">
+            <span class="bs-info-label">첫 결제일</span>
+            <span class="bs-info-value" id="bsFirstChargedAt">—</span>
+          </div>
+          <div class="bs-info-row">
+            <span class="bs-info-label">다음 결제 예정</span>
+            <span class="bs-info-value" id="bsNextChargeAt">—</span>
+          </div>
+        </div>
+
+        <div class="bs-info-side">
+          📧 입력하신 이메일로 <strong>감사 메일</strong>이 발송되었습니다<br />
+          📄 <strong>기부금 영수증</strong>은 마이페이지에서 즉시 발급 가능합니다<br />
+          🛑 <strong>해지</strong>는 마이페이지에서 1클릭으로 가능합니다
+        </div>
+
+        <div class="bs-actions">
+          <a href="/mypage.html#donations" class="primary">📄 마이페이지로</a>
+          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+      <!-- 실패 -->
+      <div id="bsError" class="bs-card" style="display:none">
+        <div class="bs-icon">⚠️</div>
+        <h1 class="bs-title" style="color:var(--danger)">처리 중 오류가 발생했습니다</h1>
+        <p class="bs-message" id="bsErrorMessage">
+          카드 등록 또는 첫 결제 중 문제가 발생했습니다.<br />
+          잠시 후 다시 시도해 주세요.
+        </p>
+
+        <div class="bs-error-box" id="bsErrorDetail" style="display:none">
+          <strong>오류 정보</strong><br />
+          <span id="bsErrorReason">—</span>
+        </div>
+
+        <div class="bs-info-side">
+          💡 <strong>안내</strong><br />
+          • 카드는 등록되었으나 첫 결제만 실패했을 수 있습니다<br />
+          • 마이페이지에서 정기 후원 상태를 확인해 주세요<br />
+          • 문제 지속 시 협회로 연락 (contact@siren-org.kr)
+        </div>
+
+        <div class="bs-actions">
+          <a href="/mypage.html#donations" class="primary">마이페이지에서 확인</a>
+          <a href="/index.html" class="ghost">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+      <!-- 잘못된 접근 -->
+      <div id="bsInvalid" class="bs-card" style="display:none">
+        <div class="bs-icon">❌</div>
+        <h1 class="bs-title" style="color:var(--danger)">잘못된 접근입니다</h1>
+        <p class="bs-message">
+          정상적인 카드 등록 경로가 아닙니다.<br />
+          홈에서 다시 후원해 주세요.
+        </p>
+        <div class="bs-actions">
+          <a href="/index.html" class="primary">🏠 홈으로 이동</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    function $(id) { return document.getElementById(id); }
+    function show(id) {
+      ['bsLoading', 'bsSuccess', 'bsError', 'bsInvalid'].forEach(function (k) {
+        var el = $(k);
+        if (el) el.style.display = (k === id) ? 'block' : 'none';
+      });
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.getFullYear() + '.' +
+        String(d.getMonth() + 1).padStart(2, '0') + '.' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    /* 1. 토스 콜백 파라미터 */
+    var params = new URLSearchParams(location.search);
+    var authKey = params.get('authKey') || '';
+    var customerKey = params.get('customerKey') || '';
+
+    if (!authKey || !customerKey) {
+      show('bsInvalid');
+      return;
+    }
+
+    /* 2. sessionStorage에서 intent 다시 읽기 (amount/name 등) */
+    var intent = null;
+    try {
+      var raw = sessionStorage.getItem('siren_billing_intent');
+      if (raw) intent = JSON.parse(raw);
+    } catch (e) {}
+
+    /* intent 만료 검증 (60분으로 여유) */
+    var INTENT_TTL_MS = 60 * 60 * 1000;
+    if (!intent || !intent.amount || !intent.timestamp ||
+        Date.now() - intent.timestamp > INTENT_TTL_MS) {
+      /* intent 없어도 confirm은 customerKey + authKey만으로 시도 */
+      intent = intent || {};
+    }
+
+    /* 3. 백엔드 confirm 호출 */
+    (async function confirmBilling() {
+      try {
+        var res = await fetch('/api/billing-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            authKey: authKey,
+            customerKey: customerKey,
+            amount: intent.amount,
+            name: intent.name,
+            phone: intent.phone,
+            email: intent.email,
+            isAnonymous: !!intent.isAnonymous,
+          }),
+        });
+
+        var data = await res.json().catch(function () { return {}; });
+
+        if (res.ok && data.ok !== false && data.data) {
+          var d = data.data;
+          $('bsDonationNo').textContent = d.donationNo || '—';
+          $('bsAmount').textContent = '₩ ' + (d.amount || 0).toLocaleString() + ' / 월';
+          $('bsDonorName').textContent = d.donorName || '—';
+          $('bsCardInfo').textContent =
+            (d.cardCompany || '카드') + ' ' + (d.cardNumberMasked || '****-****-****-****');
+          $('bsFirstChargedAt').textContent = formatDate(d.firstChargedAt);
+          $('bsNextChargeAt').textContent = formatDate(d.nextChargeAt);
+
+          show('bsSuccess');
+
+          /* sessionStorage 정리 */
+          try {
+            sessionStorage.removeItem('siren_billing_intent');
+          } catch (e) {}
+        } else {
+          $('bsErrorMessage').textContent = data.error || '처리 중 오류가 발생했습니다.';
+          if (data.detail) {
+            $('bsErrorDetail').style.display = 'block';
+            $('bsErrorReason').textContent = String(data.detail).slice(0, 200);
+          }
+          show('bsError');
+        }
+      } catch (err) {
+        console.error('[billing-success]', err);
+        $('bsErrorMessage').textContent = '네트워크 오류가 발생했습니다.';
+        show('bsError');
+      }
+    })();
+  })();
+  </script>
+</body>
+</html>
