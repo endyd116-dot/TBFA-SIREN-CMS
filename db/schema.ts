@@ -830,6 +830,91 @@ export const harassmentReports = pgTable("harassment_reports", {
 }));
 
 /* =========================================================
+   ★ Phase M-7: 법률 분야 / 상담 상태 ENUM
+   ========================================================= */
+export const legalCategoryEnum = pgEnum("legal_category", [
+  "school_dispute",  // 학교 내 분쟁 (교권/징계/계약)
+  "civil",           // 민사 (손해배상/명예훼손)
+  "criminal",        // 형사 (폭행/협박/무고)
+  "family",          // 가사 (이혼/상속)
+  "labor",           // 노동 (해고/임금)
+  "contract",        // 계약 (임대차/매매)
+  "other"            // 기타
+]);
+
+export const legalConsultationStatusEnum = pgEnum("legal_consultation_status", [
+  "submitted",       // 접수
+  "ai_analyzed",     // AI 분석 완료
+  "matching",        // 변호사 매칭 중
+  "matched",         // 변호사 배정됨
+  "in_progress",     // 진행 중
+  "responded",       // 답변 완료
+  "closed",          // 종결 (AI만)
+  "rejected"         // 반려
+]);
+
+/* =========================================================
+   ★ Phase M-7: legal_consultations — 법률 상담 신청
+   ========================================================= */
+export const legalConsultations = pgTable("legal_consultations", {
+  id: serial("id").primaryKey(),
+  consultationNo: varchar("consultation_no", { length: 30 }).notNull().unique(), // L-2026-0001
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
+
+  // 사용자 입력
+  category: legalCategoryEnum("category").default("school_dispute").notNull(),
+  urgency: varchar("urgency", { length: 20 }), // 'urgent' | 'normal' | 'reference' (참고용)
+  occurredAt: timestamp("occurred_at"),
+  partyInfo: varchar("party_info", { length: 200 }), // 상대방 정보 (선택)
+
+  // 본문
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html").notNull(),
+  attachmentIds: text("attachment_ids"),
+
+  // 익명/신원
+  isAnonymous: boolean("is_anonymous").default(false),
+  reporterName: varchar("reporter_name", { length: 50 }),
+  reporterPhone: varchar("reporter_phone", { length: 20 }),
+  reporterEmail: varchar("reporter_email", { length: 100 }),
+
+  // ★ AI 법률 분석 결과
+  aiCategory: varchar("ai_category", { length: 30 }),
+  aiUrgency: varchar("ai_urgency", { length: 20 }),       // 'urgent'|'high'|'normal'|'low'
+  aiSummary: text("ai_summary"),                          // 사안 요약
+  aiRelatedLaws: text("ai_related_laws"),                 // 관련 법령
+  aiLegalOpinion: text("ai_legal_opinion"),               // 1차 법률 의견
+  aiLawyerSpecialty: varchar("ai_lawyer_specialty", { length: 100 }), // 권장 변호사 전문분야
+  aiImmediateAction: text("ai_immediate_action"),         // 즉시 조치 필요사항
+  aiSuggestion: text("ai_suggestion"),
+  aiAnalyzedAt: timestamp("ai_analyzed_at"),
+
+  // 사이렌 변호사 매칭 신청 여부
+  sirenReportRequested: boolean("siren_report_requested"),
+  sirenReportRequestedAt: timestamp("siren_report_requested_at"),
+
+  // 매칭 정보 (관리자가 채움)
+  assignedLawyerId: integer("assigned_lawyer_id").references(() => members.id, { onDelete: "set null" }),
+  assignedLawyerName: varchar("assigned_lawyer_name", { length: 50 }),
+  assignedAt: timestamp("assigned_at"),
+
+  // 상태/관리자
+  status: legalConsultationStatusEnum("status").default("submitted").notNull(),
+  adminResponse: text("admin_response"),
+  respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
+  respondedAt: timestamp("responded_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  consultationNoIdx: index("legal_consultations_no_idx").on(t.consultationNo),
+  memberIdx: index("legal_consultations_member_idx").on(t.memberId),
+  statusIdx: index("legal_consultations_status_idx").on(t.status),
+  urgencyIdx: index("legal_consultations_urgency_idx").on(t.aiUrgency),
+  categoryIdx: index("legal_consultations_category_idx").on(t.category),
+}));
+
+/* =========================================================
    ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
    - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
    - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
@@ -943,3 +1028,7 @@ export type NewIncidentReport = typeof incidentReports.$inferInsert;
 /* ★ M-6: 악성민원 신고 타입 (NEW) */
 export type HarassmentReport = typeof harassmentReports.$inferSelect;
 export type NewHarassmentReport = typeof harassmentReports.$inferInsert;
+
+/* ★ M-7: 법률 상담 타입 (NEW) */
+export type LegalConsultation = typeof legalConsultations.$inferSelect;
+export type NewLegalConsultation = typeof legalConsultations.$inferInsert;
