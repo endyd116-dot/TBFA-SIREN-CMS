@@ -1,0 +1,576 @@
+/* public/css/legal.css
+   ★ Phase M-7: 법률지원 서비스 페이지 스타일
+   - M-6 harassment.css와 컬러/레이아웃 일관성 유지
+   - 법률 특화: 관련법령 박스, 변호사 전문분야 카드 */
+
+.legal-wrap {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+/* ===== 인트로 ===== */
+.legal-intro {
+  background: linear-gradient(135deg, #fff 0%, #f8f7fc 100%);
+  border: 2px solid #5a4d8c;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 30px;
+}
+
+.legal-intro h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  color: #5a4d8c;
+  margin: 0 0 10px;
+}
+
+.legal-intro p {
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.85;
+  margin: 0 0 6px;
+}
+
+.legal-intro .badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.legal-intro .badge-row .b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: rgba(90, 77, 140, 0.1);
+  color: #5a4d8c;
+  border-radius: 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.legal-intro .disclaimer {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #8a6a00;
+  line-height: 1.7;
+}
+
+/* ===== 단계 표시 ===== */
+.legal-steps {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.legal-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #f3f4f6;
+  border-radius: 24px;
+  color: var(--text-3);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.legal-step-indicator.active {
+  background: #5a4d8c;
+  color: #fff;
+}
+
+.legal-step-indicator.done {
+  background: #10b981;
+  color: #fff;
+}
+
+.legal-step-indicator .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+.legal-step-indicator:not(.active):not(.done) .num {
+  background: var(--text-4, #d1d5db);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .legal-steps {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+  }
+  .legal-step-indicator {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    padding: 8px 12px;
+  }
+}
+
+/* ===== 폼 카드 ===== */
+.legal-form-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 32px 36px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
+.legal-form-card h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 18px;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.legal-form-card .sub {
+  font-size: 13px;
+  color: var(--text-3);
+  line-height: 1.7;
+  margin: 0 0 24px;
+}
+
+.legal-form-card .fg {
+  margin-bottom: 18px;
+}
+
+.legal-form-card label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.legal-form-card label .req { color: #dc2626; }
+.legal-form-card label .hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11.5px;
+  margin-left: 4px;
+}
+
+.legal-form-card input[type="text"],
+.legal-form-card input[type="date"],
+.legal-form-card select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: inherit;
+  background: #fff;
+}
+
+.legal-form-card input[type="text"]:focus,
+.legal-form-card input[type="date"]:focus,
+.legal-form-card select:focus {
+  outline: none;
+  border-color: #5a4d8c;
+  box-shadow: 0 0 0 3px rgba(90, 77, 140, 0.1);
+}
+
+/* ===== 카테고리 그리드 (7개) ===== */
+.legal-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.legal-cat-grid label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 0;
+  font-weight: 500;
+  font-size: 13.5px;
+}
+
+.legal-cat-grid label:hover {
+  border-color: #5a4d8c;
+  background: #f8f7fc;
+}
+
+.legal-cat-grid label:has(input:checked) {
+  border-color: #5a4d8c;
+  background: linear-gradient(135deg, #fff, #f8f7fc);
+}
+
+.legal-cat-grid input[type="radio"] { margin: 0; }
+.legal-cat-grid .cat-icon { font-size: 18px; }
+
+/* ===== 긴급도 라디오 ===== */
+.legal-urgency-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legal-urgency-row label {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 0;
+  font-weight: 500;
+  font-size: 12.5px;
+}
+
+.legal-urgency-row label:hover { border-color: #5a4d8c; }
+.legal-urgency-row label:has(input:checked) {
+  border-color: #5a4d8c;
+  background: #5a4d8c;
+  color: #fff;
+}
+.legal-urgency-row label[data-urg="urgent"]:has(input:checked) {
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.legal-urgency-row input[type="radio"] { display: none; }
+
+/* ===== 액션 버튼 ===== */
+.legal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+.legal-actions button,
+.legal-actions a {
+  padding: 12px 26px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legal-actions .btn-cancel {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--line);
+}
+
+.legal-actions .btn-cancel:hover {
+  background: var(--bg-soft);
+}
+
+.legal-actions .btn-submit {
+  background: #5a4d8c;
+  color: #fff;
+}
+
+.legal-actions .btn-submit:hover:not(:disabled) {
+  background: #483d70;
+}
+
+.legal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== AI 분석 결과 (STEP 2) ===== */
+.legal-ai-result {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 32px 36px;
+}
+
+.legal-ai-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-ai-header .label {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+
+.legal-ai-header .num {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #5a4d8c;
+  letter-spacing: 0.5px;
+}
+
+.legal-ai-header h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  margin: 12px 0 6px;
+  color: var(--ink);
+}
+
+.legal-ai-header p {
+  font-size: 13px;
+  color: var(--text-3);
+  margin: 0;
+}
+
+/* 긴급도 배너 */
+.legal-urgency-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+.legal-urgency-banner.urgent { background: #fee2e2; border: 2px solid #ef4444; }
+.legal-urgency-banner.high   { background: #ffedd5; border: 2px solid #f97316; }
+.legal-urgency-banner.normal { background: #eef2ff; border: 1px solid #6366f1; }
+.legal-urgency-banner.low    { background: #f0fdf4; border: 1px solid #10b981; }
+
+.legal-urgency-banner .icon { font-size: 32px; }
+.legal-urgency-banner .text .label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+.legal-urgency-banner .text .level {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* AI 블록 */
+.legal-ai-block {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+
+.legal-ai-block .b-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a4d8c;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legal-ai-block .b-content {
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.75;
+}
+
+/* 관련 법령 박스 (특수 강조) */
+.legal-laws-box {
+  background: linear-gradient(135deg, #f8f7fc 0%, #fff 100%);
+  border: 1px solid #c4bce0;
+  border-left: 4px solid #5a4d8c;
+}
+
+.legal-laws-box .b-title {
+  color: #5a4d8c;
+}
+
+.legal-laws-box .b-content {
+  font-family: 'Noto Serif KR', serif;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* 변호사 전문분야 카드 */
+.legal-lawyer-card {
+  background: linear-gradient(135deg, #fff, #f8f7fc);
+  border: 2px solid #5a4d8c;
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.legal-lawyer-card .icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.legal-lawyer-card .text {
+  flex: 1;
+  min-width: 0;
+}
+
+.legal-lawyer-card .label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5a4d8c;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.legal-lawyer-card .specialty {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: 'Noto Serif KR', serif;
+}
+
+/* 즉시 조치 (강조) */
+.legal-immediate-box {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-left: 4px solid #dc2626;
+}
+
+.legal-immediate-box .b-title {
+  color: #dc2626;
+}
+
+/* 결정 박스 */
+.legal-decision {
+  background: linear-gradient(135deg, #f8f7fc, #fff);
+  border: 2px solid #5a4d8c;
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-top: 22px;
+}
+
+.legal-decision h4 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px;
+  color: #5a4d8c;
+  margin: 0 0 8px;
+}
+
+.legal-decision p {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.75;
+  margin: 0 0 16px;
+}
+
+.legal-decision .decision-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.legal-decision .decision-buttons button {
+  flex: 1;
+  min-width: 220px;
+  padding: 13px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.legal-decision .btn-siren {
+  background: #5a4d8c;
+  color: #fff;
+}
+.legal-decision .btn-siren:hover { background: #483d70; }
+
+.legal-decision .btn-ai-only {
+  background: #fff;
+  color: var(--text-2);
+  border: 1px solid var(--line);
+}
+.legal-decision .btn-ai-only:hover { background: #f3f4f6; }
+
+@media (max-width: 600px) {
+  .legal-decision .decision-buttons button { min-width: auto; }
+}
+
+/* ===== 완료 화면 (STEP 3) ===== */
+.legal-final {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 50px 30px;
+  text-align: center;
+}
+
+.legal-final .icon {
+  font-size: 64px;
+  margin-bottom: 14px;
+}
+
+.legal-final h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.legal-final p {
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.85;
+  margin: 0 0 28px;
+}
+
+.legal-final .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 700px) {
+  .legal-form-card,
+  .legal-ai-result {
+    padding: 22px 20px;
+  }
+  .legal-intro {
+    padding: 22px 20px;
+  }
+  .legal-lawyer-card {
+    padding: 14px 16px;
+  }
+  .legal-lawyer-card .icon { font-size: 28px; }
+  .legal-lawyer-card .specialty { font-size: 14px; }
+}
