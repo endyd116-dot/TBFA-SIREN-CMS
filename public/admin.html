@@ -1288,6 +1288,194 @@
     padding-top: 18px;
     border-top: 1px dashed var(--line);
   }
+
+  /* ===== ★ L-8: 효성 CMS+ 관리 ===== */
+.hy-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.hy-toolbar select,
+.hy-toolbar input[type="search"] {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.hy-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+}
+.hy-toolbar .hy-count {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+.hy-status-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.hy-status-pill.pending { background: #fff8ec; color: #8a6a00; }
+.hy-status-pill.completed { background: #e7f7ec; color: #1a5e2c; }
+.hy-status-pill.cancelled { background: #f0f0f0; color: #525252; }
+.hy-status-pill.failed { background: #fdecec; color: #a01e2c; }
+
+.hy-row-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.hy-row-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.hy-row-actions button.detail { color: var(--brand); border-color: #f0e0e3; }
+.hy-row-actions button.detail:hover { background: var(--brand-soft, #fef9f5); }
+.hy-row-actions button.complete {
+  background: #e7f7ec;
+  color: #1a5e2c;
+  border-color: #a3d9b4;
+}
+.hy-row-actions button.complete:hover { background: #d4f0dc; }
+.hy-row-actions button.cancel {
+  color: var(--danger);
+  border-color: #f5b5bb;
+}
+.hy-row-actions button.cancel:hover { background: #fdecec; }
+.hy-row-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 효성 상세 모달 전용 */
+.hy-detail-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 14px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--bg-soft);
+  border-radius: 6px;
+}
+.hy-detail-grid > div:nth-child(odd) {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.hy-detail-grid > div:nth-child(even) {
+  word-break: break-all;
+}
+
+.hy-status-card {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hy-status-card.pending { background: #fff8ec; border: 1px solid #f0e3c4; color: #8a6a00; }
+.hy-status-card.completed { background: #e7f7ec; border: 1px solid #a3d9b4; color: #1a5e2c; }
+.hy-status-card.cancelled,
+.hy-status-card.failed { background: #fdecec; border: 1px solid #f5b5bb; color: #a01e2c; }
+.hy-status-card .icon { font-size: 22px; }
+.hy-status-card .text { flex: 1; font-size: 13px; line-height: 1.5; }
+.hy-status-card .text strong { display: block; margin-bottom: 2px; }
+
+.hy-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.hy-section h5 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.hy-section .field-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-direction: column;
+}
+.hy-section textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.hy-section textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.hy-section .small-btn {
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font-family: inherit;
+}
+.hy-section .small-btn:hover { background: var(--brand-deep, #5a1620); }
+.hy-section .small-btn.success {
+  background: #1a8b46;
+  border-color: #1a8b46;
+}
+.hy-section .small-btn.success:hover { background: #156e38; }
+.hy-section .small-btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.hy-section .small-btn.danger:hover { background: #a01e2c; }
+.hy-section .small-btn.ghost {
+  background: #fff;
+  color: var(--text-2);
+  border-color: var(--line);
+}
+.hy-section .action-warn {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.hy-info-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  background: #f0f0f0;
+  color: #525252;
+  margin-left: 4px;
+}
 </style>
 </head>
 <body>
@@ -1341,6 +1529,9 @@
         <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
         <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
         <li><a data-page="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
+        <li><a data-page="hyosung"><i>🏦</i><span>효성 CMS+ 관리</span>
+          <span class="adm-badge" id="hyosungPendingBadge" style="display:none">0</span>
+           </a></li>
         <li><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
       </ul>
@@ -1887,6 +2078,78 @@
           </div>
         </div>
 
+                <!-- ★ L-8: 효성 CMS+ 관리 -->
+        <div id="adm-hyosung" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi" style="border-left:3px solid #8a6a00">
+              <div class="kpi-label" style="color:#8a6a00">🟡 대기</div>
+              <div class="kpi-value" id="hyKpiPending" style="color:#8a6a00">0 건</div>
+              <div class="kpi-delta" id="hyKpiPendingAmt">₩ 0</div>
+            </div>
+            <div class="kpi" style="border-left:3px solid #1a5e2c">
+              <div class="kpi-label" style="color:#1a5e2c">✅ 활성</div>
+              <div class="kpi-value" id="hyKpiCompleted" style="color:#1a5e2c">0 건</div>
+              <div class="kpi-delta" id="hyKpiCompletedAmt">₩ 0</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">🚫 해지</div>
+              <div class="kpi-value" id="hyKpiCancelled">0 건</div>
+            </div>
+            <div class="kpi" style="border-left:3px solid var(--danger)">
+              <div class="kpi-label" style="color:var(--danger)">❌ 실패</div>
+              <div class="kpi-value" id="hyKpiFailed" style="color:var(--danger)">0 건</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">🏦 효성 CMS+ 정기 후원 관리</div>
+              <div class="p-actions">
+                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-export" data-demo-message="효성 CMS+ 일괄 등록용 CSV를 생성합니다 (L-9에서 구현)">📤 CSV 추출</button>
+                <button class="btn-sm btn-sm-ghost" data-demo-action="hyosung-csv-import" data-demo-message="효성 CMS+ 수납 결과 CSV를 업로드합니다 (L-9에서 구현)">📥 결과 업로드</button>
+              </div>
+            </div>
+
+            <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+              💡 사용자가 "정기 후원 + 효성 CMS+" 선택 시 이 목록에 <strong>대기</strong> 상태로 등록됩니다.<br />
+              효성 CMS+에 수동 등록 후 "✅ 완료" 처리하시면 감사 메일이 자동 발송됩니다.
+            </p>
+
+            <!-- 필터 툴바 -->
+            <div class="hy-toolbar">
+              <select id="hyFilterStatus">
+                <option value="">전체 상태</option>
+                <option value="pending" selected>🟡 대기</option>
+                <option value="completed">✅ 활성</option>
+                <option value="cancelled">🚫 해지</option>
+                <option value="failed">❌ 실패</option>
+              </select>
+              <input type="search" id="hyFilterQ" placeholder="🔍 이름·이메일·연락처·메모 검색 (2자 이상)">
+              <span class="hy-count" id="hyCount">—</span>
+            </div>
+
+            <!-- 목록 테이블 -->
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1000px">
+                <thead>
+                  <tr>
+                    <th style="width:80px">번호</th>
+                    <th style="width:120px">신청일</th>
+                    <th style="width:100px">신청자</th>
+                    <th style="width:120px">금액</th>
+                    <th style="width:180px">이메일</th>
+                    <th style="width:120px">연락처</th>
+                    <th style="width:90px">상태</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+                <tbody id="hyTableBody">
+                  <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
                 <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
           <div class="row-1-1">
@@ -2129,6 +2392,20 @@
       </div>
     </div>
   </div>
+
+    <!-- ★ L-8: 효성 CMS+ 후원 상세 모달 -->
+  <div id="hyosungDetailModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif">🏦 효성 CMS+ 후원 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="hyosungDetailBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+  
   <!-- ★ K-5: 공지사항 작성/수정 모달 -->
   <div id="noticeEditModal" class="modal">
     <div class="modal-content" style="max-width:760px">

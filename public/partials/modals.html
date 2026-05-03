@@ -308,15 +308,90 @@
 <!-- ============================================================
      ★ Phase L: 결제 방식 카드 선택 시 시각 효과
      ============================================================ -->
+<!-- ============================================================
+     ★ Phase L: 결제 방식 카드 스타일 + 레이아웃 픽스
+     ============================================================ -->
 <style>
-  .pay-method-card:hover {
+  /* 기본 hover/checked 효과 */
+  #donateModal .pay-method-card:hover {
     border-color: var(--brand) !important;
     background: #fefcfa;
   }
-  .pay-method-card:has(input:checked) {
+  #donateModal .pay-method-card:has(input:checked) {
     border-color: var(--brand) !important;
     background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
     box-shadow: 0 2px 8px rgba(122, 31, 43, 0.08);
+  }
+
+  /* ===== 🚨 핫픽스: 결제 방식 레이아웃 한쪽 쏠림 방지 ===== */
+  #donateModal #payMethodGroup {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+  }
+
+  #donateModal #payMethodGroup > label {
+    display: block !important;
+    margin: 0 0 8px !important;
+    font-weight: 500;
+    font-size: 13.5px;
+    color: var(--text-2);
+    text-align: left !important;
+  }
+
+  /* 정기 후원: 세로 2개 카드 */
+  #donateModal #regularPayMethods {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 개별 결제 방식 카드 — 가로 가득 차도록 */
+  #donateModal #regularPayMethods .pay-method-card {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 14px 16px !important;
+    border: 2px solid var(--line) !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    background: #fff;
+    text-align: left !important;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  /* 라디오 버튼 — 크기/위치 고정 */
+  #donateModal #regularPayMethods .pay-method-card > input[type="radio"] {
+    margin: 3px 0 0 0 !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    width: 16px !important;
+    height: 16px !important;
+    cursor: pointer;
+  }
+
+  /* 라디오 옆 텍스트 박스 — 가용 공간 전부 사용 */
+  #donateModal #regularPayMethods .pay-method-card > div {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    text-align: left !important;
+    width: auto !important;
+  }
+
+  /* 일시 후원: 토스 안내 박스 */
+  #donateModal #onetimePayInfo {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
   }
 </style>
 

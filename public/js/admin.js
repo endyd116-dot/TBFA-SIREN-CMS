@@ -15,9 +15,10 @@
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
-  audit: '감사 로그',  /* ★ K-4 */
+  hyosung: '효성 CMS+ 관리',  /* ★ L-8 추가 */
+  audit: '감사 로그',
   settings: '시스템 설정',
-};
+  };
 
   const SUPPORT_CAT_LABEL = {
     counseling: '심리상담',
@@ -192,7 +193,7 @@
     }
   }
 
-  function startKpiPolling() {
+    function startKpiPolling() {
     if (_kpiPollTimer) clearInterval(_kpiPollTimer);
     _kpiPollTimer = setInterval(async () => {
       const ok = await fetchAdminMe();
@@ -200,7 +201,19 @@
         renderDashboardKPI();
         if (CURRENT_KPI) updateSupportBadge(CURRENT_KPI.pendingSupportCount);
       }
+      /* ★ L-8: 효성 대기 건수 뱃지 갱신 (관리자 페이지 밖에 있어도 표시) */
+      fetchHyosungPendingBadge().catch(() => {});
     }, 60000);
+  }
+
+  /* ★ L-8: 효성 대기 건수만 가볍게 조회 */
+  async function fetchHyosungPendingBadge() {
+    try {
+      const res = await api('/api/admin/hyosung?status=pending&limit=1&page=1');
+      if (res.ok && res.data?.data?.stats) {
+        updateHyosungPendingBadge(res.data.data.stats.pending?.count || 0);
+      }
+    } catch (e) {}
   }
 
   function stopKpiPolling() {
@@ -217,7 +230,7 @@
     stopKpiPolling();
   }
 
-  async function showAdminPanel() {
+    async function showAdminPanel() {
     document.getElementById('adminLogin')?.classList.remove('show');
     document.getElementById('adminWrap')?.classList.add('show');
     renderDashboardKPI();
@@ -226,6 +239,7 @@
     if (window.SIREN_CHARTS && typeof window.SIREN_CHARTS.initDashboardWithData === 'function') {
       setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 150);
     }
+    fetchHyosungPendingBadge().catch(() => {});  /* ★ L-8: 첫 로그인 시 뱃지 표시 */
     startKpiPolling();
   }
 
@@ -1441,6 +1455,469 @@
     });
   }
 
+    /* ============ ★ L-8: 효성 CMS+ 관리 ============ */
+  let _hySearchTimer = null;
+  let _hyCurrentList = [];
+
+  const HY_STATUS_LABEL = {
+    pending: '🟡 대기',
+    completed: '✅ 활성',
+    cancelled: '🚫 해지',
+    failed: '❌ 실패',
+    refunded: '💸 환불',
+  };
+
+  async function loadHyosung() {
+    const panel = document.getElementById('adm-hyosung');
+    if (!panel) return;
+    const tbody = document.getElementById('hyTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    /* 필터 수집 */
+    const params = new URLSearchParams();
+    params.set('limit', '100');
+    params.set('page', '1');
+    const status = document.getElementById('hyFilterStatus')?.value || '';
+    const q = (document.getElementById('hyFilterQ')?.value || '').trim();
+    if (status) params.set('status', status);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/hyosung?' + params.toString());
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
+    }
+
+    const list = res.data.data.list || [];
+    const pagination = res.data.data.pagination || {};
+    const stats = res.data.data.stats || {};
+
+    _hyCurrentList = list;
+
+    /* KPI 갱신 */
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('hyKpiPending', (stats.pending?.count || 0) + ' 건');
+    set('hyKpiPendingAmt', '₩ ' + (stats.pending?.amount || 0).toLocaleString());
+    set('hyKpiCompleted', (stats.completed?.count || 0) + ' 건');
+    set('hyKpiCompletedAmt', '₩ ' + (stats.completed?.amount || 0).toLocaleString());
+    set('hyKpiCancelled', (stats.cancelled?.count || 0) + ' 건');
+    set('hyKpiFailed', (stats.failed?.count || 0) + ' 건');
+
+    /* 사이드바 대기 뱃지 갱신 */
+    updateHyosungPendingBadge(stats.pending?.count || 0);
+
+    /* 카운트 */
+    const countEl = document.getElementById('hyCount');
+    if (countEl) {
+      const total = pagination.total || 0;
+      if (q || status) {
+        countEl.textContent = `필터: ${list.length}건 / 전체 ${total.toLocaleString()}건`;
+      } else {
+        countEl.textContent = `전체 ${total.toLocaleString()}건`;
+      }
+    }
+
+    /* 목록 렌더 */
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-3)">조회된 후원이 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((r) => {
+      const donationNo = 'D-' + String(r.id).padStart(7, '0');
+      const statusClass = r.status || 'pending';
+      const statusText = HY_STATUS_LABEL[r.status] || r.status;
+      const anonMark = r.isAnonymous ? '<span class="hy-info-badge">익명</span>' : '';
+
+      const actions = '<div class="hy-row-actions">' +
+        '<button type="button" class="detail" data-hy-action="detail" data-id="' + r.id + '">📝 상세</button>' +
+        (r.status === 'pending'
+          ? '<button type="button" class="complete" data-hy-action="complete" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">✅ 완료</button>'
+          : '') +
+        (r.status !== 'cancelled' && r.status !== 'failed'
+          ? '<button type="button" class="cancel" data-hy-action="cancel" data-id="' + r.id + '" data-name="' + escapeHtml(r.donorName || '') + '">🚫 해지</button>'
+          : '') +
+        '</div>';
+
+      return '<tr>' +
+        '<td style="font-family:Inter;font-size:12px">' + donationNo + '</td>' +
+        '<td style="font-family:Inter;font-size:12px">' + formatDateTime(r.createdAt) + '</td>' +
+        '<td>' + escapeHtml(r.donorName || '') + anonMark + '</td>' +
+        '<td style="font-weight:600">₩ ' + (r.amount || 0).toLocaleString() + '</td>' +
+        '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(r.donorEmail || '—') + '</td>' +
+        '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(r.donorPhone || '—') + '</td>' +
+        '<td><span class="hy-status-pill ' + statusClass + '">' + statusText + '</span></td>' +
+        '<td>' + actions + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* 사이드바 대기 건수 뱃지 */
+  function updateHyosungPendingBadge(count) {
+    const badge = document.getElementById('hyosungPendingBadge');
+    if (!badge) return;
+    const n = Number(count) || 0;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* 검색/필터 디바운스 */
+  function setupHyosungSearch() {
+    const qInput = document.getElementById('hyFilterQ');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        clearTimeout(_hySearchTimer);
+        _hySearchTimer = setTimeout(loadHyosung, 400);
+      });
+    }
+    const statusSel = document.getElementById('hyFilterStatus');
+    if (statusSel) statusSel.addEventListener('change', loadHyosung);
+  }
+
+  /* 행 액션 (상세/완료/해지) */
+  function setupHyosungActions() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-hy-action]');
+      if (!btn) return;
+      e.preventDefault();
+
+      const action = btn.dataset.hyAction;
+      const id = Number(btn.dataset.id);
+      if (!id) return;
+
+      if (action === 'detail') {
+        openHyosungDetailModal(id);
+        return;
+      }
+      if (action === 'complete') {
+        openHyosungQuickComplete(id, btn.dataset.name || '');
+        return;
+      }
+      if (action === 'cancel') {
+        openHyosungQuickCancel(id, btn.dataset.name || '');
+        return;
+      }
+    });
+
+    setupHyosungSearch();
+  }
+
+  /* 효성 상세 모달 */
+  async function openHyosungDetailModal(id) {
+    const modal = document.getElementById('hyosungDetailModal');
+    const body = document.getElementById('hyosungDetailBody');
+    if (!modal || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/hyosung?id=' + id);
+    if (!res.ok || !res.data?.data?.donation) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
+      return;
+    }
+
+    const d = res.data.data.donation;
+    const member = res.data.data.member;
+    const donationNo = 'D-' + String(d.id).padStart(7, '0');
+    const statusClass = d.status;
+    const statusLabel = HY_STATUS_LABEL[d.status] || d.status;
+
+    const statusCard = '<div class="hy-status-card ' + statusClass + '">' +
+      '<div class="icon">' +
+      (d.status === 'pending' ? '🟡' :
+       d.status === 'completed' ? '✅' :
+       d.status === 'cancelled' ? '🚫' :
+       d.status === 'failed' ? '❌' : '💸') +
+      '</div>' +
+      '<div class="text">' +
+        '<strong>' + statusLabel + '</strong>' +
+        '₩ ' + (d.amount || 0).toLocaleString() + ' / 월 · 정기 후원 · 효성 CMS+' +
+      '</div>' +
+      '</div>';
+
+    const safeMemo = String(d.memo || '').replace(/"/g, '&quot;');
+    const memberInfoHtml = member
+      ? '<div class="hy-detail-grid">' +
+          '<div>회원 구분</div><div>' + (member.type === 'regular' ? '정기후원' : member.type === 'family' ? '유가족' : member.type === 'volunteer' ? '봉사자' : member.type) + '</div>' +
+          '<div>회원 가입일</div><div>' + formatDate(member.createdAt) + '</div>' +
+          '<div>회원 상태</div><div>' + (member.status === 'active' ? '정상' : member.status === 'pending' ? '승인대기' : member.status === 'suspended' ? '정지' : '탈퇴') + '</div>' +
+        '</div>'
+      : '<div class="hy-detail-grid"><div>비회원</div><div>로그인하지 않은 상태에서 신청한 후원입니다</div></div>';
+
+    /* 액션 버튼 영역 (상태에 따라) */
+    let actionButtons = '';
+
+    if (d.status === 'pending') {
+      actionButtons = `
+        <div class="hy-section">
+          <h5>✅ 효성 CMS+ 등록 완료 처리</h5>
+          <div class="field-row">
+            <textarea id="hyCompleteReason" placeholder="(선택) 효성 등록 상세 내역을 기록하세요. 예: 2026.5.3 효성 CMS+ 수동 등록 완료, 회원 ID M-15"></textarea>
+            <button type="button" class="small-btn success" data-hy-complete="${d.id}">✅ 등록 완료 처리 (감사 메일 발송)</button>
+            <div class="action-warn">※ 클릭 시 즉시 상태가 '활성'으로 변경되고 신청자에게 감사 메일이 발송됩니다.</div>
+          </div>
+        </div>
+
+        <div class="hy-section">
+          <h5>🚫 신청 취소 처리</h5>
+          <div class="field-row">
+            <textarea id="hyCancelReason" placeholder="취소 사유 (예: 회원 요청으로 취소, 연락처 오류 등)"></textarea>
+            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">🚫 취소 처리</button>
+          </div>
+        </div>
+
+        <div class="hy-section">
+          <h5>❌ 실패 처리 (등록 불가)</h5>
+          <div class="field-row">
+            <textarea id="hyFailReason" placeholder="실패 사유 (필수, 예: 계좌번호 오류로 효성 등록 불가)"></textarea>
+            <button type="button" class="small-btn ghost" data-hy-fail="${d.id}">❌ 실패 처리</button>
+          </div>
+        </div>
+      `;
+    } else if (d.status === 'completed') {
+      actionButtons = `
+        <div class="hy-section">
+          <h5>🚫 해지 처리</h5>
+          <div class="field-row">
+            <textarea id="hyCancelReason" placeholder="해지 사유 (예: 회원 요청, 효성 CMS+ 측 해지 반영 등)"></textarea>
+            <button type="button" class="small-btn danger" data-hy-cancel="${d.id}">🚫 해지 처리</button>
+            <div class="action-warn">※ 효성 CMS+ 측에서 먼저 해지 처리 후 이 버튼을 눌러 주세요.</div>
+          </div>
+        </div>
+      `;
+    } else {
+      actionButtons = `
+        <div class="hy-section">
+          <div style="padding:14px 16px;background:#f0f0f0;border-radius:6px;color:var(--text-3);font-size:12.5px;line-height:1.6">
+            이 후원은 <strong>${statusLabel}</strong> 상태로 더 이상 상태 변경이 불가합니다.<br />
+            새로 신청을 받으려면 회원에게 다시 신청 링크를 안내해 주세요.
+          </div>
+        </div>
+      `;
+    }
+
+    body.innerHTML =
+      statusCard +
+
+      '<div class="hy-detail-grid">' +
+        '<div>후원 번호</div><div style="font-family:Inter;font-weight:600">' + donationNo + '</div>' +
+        '<div>신청자</div><div><strong>' + escapeHtml(d.donorName || '') + '</strong>' + (d.isAnonymous ? ' <span class="hy-info-badge">익명</span>' : '') + '</div>' +
+        '<div>이메일</div><div style="font-family:Inter">' + escapeHtml(d.donorEmail || '—') + '</div>' +
+        '<div>연락처</div><div style="font-family:Inter">' + escapeHtml(d.donorPhone || '—') + '</div>' +
+        '<div>월 후원 금액</div><div style="font-weight:700;color:var(--brand)">₩ ' + (d.amount || 0).toLocaleString() + '</div>' +
+        '<div>신청 일시</div><div>' + formatDateTime(d.createdAt) + '</div>' +
+        '<div>최근 갱신</div><div>' + formatDateTime(d.updatedAt) + '</div>' +
+      '</div>' +
+
+      '<div class="hy-section">' +
+        '<h5>👤 회원 정보</h5>' +
+      '</div>' +
+      memberInfoHtml +
+
+      '<div class="hy-section">' +
+        '<h5>📝 관리자 메모 (히스토리 포함)</h5>' +
+        '<div class="field-row">' +
+          '<textarea id="hyMemoInput" placeholder="이 후원에 대한 메모...">' + safeMemo + '</textarea>' +
+          '<button type="button" class="small-btn" data-hy-memo="' + d.id + '">💾 메모 저장</button>' +
+        '</div>' +
+      '</div>' +
+
+      actionButtons;
+  }
+
+  /* 효성 빠른 완료 처리 (행에서 클릭) */
+  async function openHyosungQuickComplete(id, name) {
+    const safeName = name || '후원자';
+    const confirmed = confirm(
+      safeName + '님의 효성 CMS+ 신청을 완료 처리하시겠습니까?\n\n' +
+      '• 효성 CMS+에 이미 수동 등록되어 있어야 합니다\n' +
+      '• 처리 시 감사 메일이 자동 발송됩니다\n' +
+      '• 상태가 \'활성\'으로 변경됩니다',
+    );
+    if (!confirmed) return;
+
+    const res = await api('/api/admin/hyosung', {
+      method: 'PATCH',
+      body: { id, markCompleted: true, reason: '행 액션으로 빠른 완료 처리' },
+    });
+
+    if (res.ok) {
+      toast(res.data?.message || '완료 처리되었습니다');
+      loadHyosung();
+    } else {
+      toast(res.data?.error || '처리 실패');
+    }
+  }
+
+  /* 효성 빠른 해지 처리 */
+  async function openHyosungQuickCancel(id, name) {
+    const safeName = name || '후원자';
+    const reason = prompt(
+      safeName + '님의 효성 CMS+ 후원을 해지 처리합니다.\n해지 사유를 입력하세요 (선택):',
+      '',
+    );
+    if (reason === null) return;
+
+    const res = await api('/api/admin/hyosung', {
+      method: 'PATCH',
+      body: { id, markCancelled: true, reason: reason.trim() || undefined },
+    });
+
+    if (res.ok) {
+      toast(res.data?.message || '해지 처리되었습니다');
+      loadHyosung();
+    } else {
+      toast(res.data?.error || '처리 실패');
+    }
+  }
+
+  /* 효성 상세 모달 내 액션 (메모/완료/해지/실패) */
+  function setupHyosungDetailActions() {
+    document.addEventListener('click', async (e) => {
+      /* 메모 저장 */
+      const memoBtn = e.target.closest('[data-hy-memo]');
+      if (memoBtn) {
+        e.preventDefault();
+        const id = Number(memoBtn.dataset.hyMemo);
+        const memo = (document.getElementById('hyMemoInput')?.value || '').slice(0, 2000);
+        memoBtn.disabled = true;
+        const oldText = memoBtn.textContent;
+        memoBtn.textContent = '저장 중...';
+
+        const res = await api('/api/admin/hyosung', {
+          method: 'PATCH',
+          body: { id, inlineMemoOnly: true, memo },
+        });
+
+        memoBtn.disabled = false;
+        memoBtn.textContent = oldText;
+
+        if (res.ok) {
+          toast(res.data?.message || '메모가 저장되었습니다');
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+        return;
+      }
+
+      /* 모달 내 완료 처리 (사유 포함) */
+      const completeBtn = e.target.closest('[data-hy-complete]');
+      if (completeBtn) {
+        e.preventDefault();
+        const id = Number(completeBtn.dataset.hyComplete);
+        const reason = (document.getElementById('hyCompleteReason')?.value || '').trim();
+
+        const confirmed = confirm(
+          '효성 CMS+ 등록 완료로 처리하시겠습니까?\n\n' +
+          '• 상태가 \'활성\'으로 변경됩니다\n' +
+          '• 신청자에게 감사 메일이 자동 발송됩니다\n' +
+          '• 이후 해지 처리는 별도 진행해야 합니다',
+        );
+        if (!confirmed) return;
+
+        completeBtn.disabled = true;
+        const oldText = completeBtn.textContent;
+        completeBtn.textContent = '처리 중...';
+
+        const res = await api('/api/admin/hyosung', {
+          method: 'PATCH',
+          body: { id, markCompleted: true, reason: reason || undefined },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '완료 처리되었습니다');
+          document.getElementById('hyosungDetailModal')?.classList.remove('show');
+          loadHyosung();
+        } else {
+          toast(res.data?.error || '처리 실패');
+          completeBtn.disabled = false;
+          completeBtn.textContent = oldText;
+        }
+        return;
+      }
+
+      /* 모달 내 해지 처리 */
+      const cancelBtn = e.target.closest('[data-hy-cancel]');
+      if (cancelBtn) {
+        e.preventDefault();
+        const id = Number(cancelBtn.dataset.hyCancel);
+        const reason = (document.getElementById('hyCancelReason')?.value || '').trim();
+
+        const confirmed = confirm(
+          '해지 처리하시겠습니까?\n\n' +
+          '• 상태가 \'해지\'로 변경됩니다\n' +
+          '• 되돌릴 수 없습니다',
+        );
+        if (!confirmed) return;
+
+        cancelBtn.disabled = true;
+        const oldText = cancelBtn.textContent;
+        cancelBtn.textContent = '처리 중...';
+
+        const res = await api('/api/admin/hyosung', {
+          method: 'PATCH',
+          body: { id, markCancelled: true, reason: reason || undefined },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '해지 처리되었습니다');
+          document.getElementById('hyosungDetailModal')?.classList.remove('show');
+          loadHyosung();
+        } else {
+          toast(res.data?.error || '처리 실패');
+          cancelBtn.disabled = false;
+          cancelBtn.textContent = oldText;
+        }
+        return;
+      }
+
+      /* 모달 내 실패 처리 */
+      const failBtn = e.target.closest('[data-hy-fail]');
+      if (failBtn) {
+        e.preventDefault();
+        const id = Number(failBtn.dataset.hyFail);
+        const reason = (document.getElementById('hyFailReason')?.value || '').trim();
+
+        if (!reason) {
+          return toast('실패 처리 시 사유 입력이 필요합니다');
+        }
+
+        const confirmed = confirm(
+          '실패 처리하시겠습니까?\n\n' +
+          '사유: ' + reason.slice(0, 100) + '\n\n' +
+          '• 상태가 \'실패\'로 변경됩니다\n' +
+          '• 되돌릴 수 없습니다',
+        );
+        if (!confirmed) return;
+
+        failBtn.disabled = true;
+        const oldText = failBtn.textContent;
+        failBtn.textContent = '처리 중...';
+
+        const res = await api('/api/admin/hyosung', {
+          method: 'PATCH',
+          body: { id, markFailed: true, reason },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '실패 처리되었습니다');
+          document.getElementById('hyosungDetailModal')?.classList.remove('show');
+          loadHyosung();
+        } else {
+          toast(res.data?.error || '처리 실패');
+          failBtn.disabled = false;
+          failBtn.textContent = oldText;
+        }
+        return;
+      }
+    });
+  }
   /* ===== 통합 액션 핸들러 (작성/수정/삭제/인라인) ===== */
   function setupContentActions() {
     /* 클릭 액션 */
@@ -3400,6 +3877,9 @@
       loadContent();
     } else if (page === 'receipt-settings') {
       loadReceiptSettings();
+    } else if (page === 'hyosung') {       /* ★ L-8 추가 */
+      loadHyosung();
+
     } else if (page === 'audit') {
       _auditPage = 1;
       loadAudit();
@@ -3460,16 +3940,18 @@
     setupOperatorActions();
     setupReceiptSettings();
     setupExpertAssignClick();  /* ★ K-3 추가 */
-    setupContentActions();     /* ★ K-5 추가 */
-    setupNoticeEditForm();     /* ★ K-5 추가 */
-    setupFaqEditForm();        /* ★ K-5 추가 */
-    setupMemberSearch();       /* ★ K-7 추가 */
-    setupAddMemberModal();     /* ★ K-7 추가 */
-    setupTempPasswordCopy();   /* ★ K-7 추가 */
-    setupDonationSearch();     /* ★ K-8 추가 */
-    setupDonationRowActions(); /* ★ K-8 추가 */
-    setupDonationDetailActions(); /* ★ K-8 추가 */
-    setupAdminPasswordForm();  /* ★ K-9 추가 */
+    setupContentActions();     /* K-5 */
+    setupNoticeEditForm();     /* K-5 */
+    setupFaqEditForm();        /* K-5 */
+    setupMemberSearch();       /* K-7 */
+    setupAddMemberModal();     /* K-7 */
+    setupTempPasswordCopy();   /* K-7 */
+    setupDonationSearch();     /* K-8 */
+    setupDonationRowActions(); /* K-8 */
+    setupDonationDetailActions(); /* K-8 */
+    setupAdminPasswordForm();  /* K-9 */
+    setupHyosungActions();       /* ★ L-8 추가 */
+    setupHyosungDetailActions(); /* ★ L-8 추가 */
 
     const isLogged = await fetchAdminMe();
     // ... 이하 기존 코드 그대로
