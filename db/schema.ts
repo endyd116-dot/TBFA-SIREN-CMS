@@ -178,9 +178,12 @@ export const donations = pgTable("donations", {
   hyosungContractNo: varchar("hyosung_contract_no", { length: 20 }),
   hyosungBillNo: varchar("hyosung_bill_no", { length: 30 }),
 
-  /* ─────── ★ M-4: 직접 계좌이체 관련 (NEW) ─────── */
-  bankDepositorName: varchar("bank_depositor_name", { length: 50 }),  // 입금자명
-  depositExpectedAt: timestamp("deposit_expected_at"),                // 입금 예정일 (선택)
+   /* ─────── ★ M-4: 직접 계좌이체 관련 ─────── */
+  bankDepositorName: varchar("bank_depositor_name", { length: 50 }),
+  depositExpectedAt: timestamp("deposit_expected_at"),
+
+  /* ★ M-14: 발급된 영수증 PDF 캐시 (blob_uploads.id 참조) */
+  receiptBlobId: integer("receipt_blob_id"),
 
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -683,6 +686,9 @@ export const donationPolicies = pgTable("donation_policies", {
   // 모달 커스터마이징
   modalTitle: varchar("modal_title", { length: 200 }),
   modalSubtitle: varchar("modal_subtitle", { length: 500 }),
+
+  /* ★ M-14: 직인 이미지 (blob_uploads.id 참조) */
+  stampBlobId: integer("stamp_blob_id"),
 
   // 메타
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
