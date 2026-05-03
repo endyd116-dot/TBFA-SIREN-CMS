@@ -9,7 +9,11 @@
   dashboard: '대시보드',
   members: '회원 관리',
   donations: '기부 관리',
-  support: '지원 관리',
+  support: '유가족 지원 관리',
+  'siren-incidents': '🔍 사건 제보 관리',
+  'siren-harassment': '⚠️ 악성민원 신고 관리',
+  'siren-legal': '⚖️ 법률지원 상담 관리',
+  'siren-board': '💬 자유게시판 관리',
   operators: '운영자 관리',
   chat: '채팅 관리',    
   ai: 'AI 추천 센터',
@@ -240,6 +244,10 @@
       setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 150);
     }
     fetchHyosungPendingBadge().catch(() => {});  /* ★ L-8: 첫 로그인 시 뱃지 표시 */
+    /* ★ M-10: 사이렌 관리 4개 사이드바 뱃지 갱신 */
+    if (window.SIREN_ADMIN_SIREN && typeof window.SIREN_ADMIN_SIREN.refreshBadgesOnly === 'function') {
+      window.SIREN_ADMIN_SIREN.refreshBadgesOnly().catch(() => {});
+    }
     startKpiPolling();
   }
 
@@ -4111,6 +4119,18 @@
       loadReceiptSettings();
     } else if (page === 'hyosung') {       /* ★ L-8 추가 */
       loadHyosung();
+
+    /* ★ M-10: 사이렌 관리 4개 페이지 */
+    } else if (page === 'siren-incidents') {
+      if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('incident');
+    } else if (page === 'siren-harassment') {
+      if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('harassment');
+    } else if (page === 'siren-legal') {
+      if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('legal');
+    } else if (page === 'siren-board') {
+      if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('board');
+
+    } else if (page === 'audit') {
 
     } else if (page === 'audit') {
       _auditPage = 1;
