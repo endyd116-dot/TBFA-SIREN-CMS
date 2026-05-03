@@ -1,23 +1,30 @@
 /**
- * GET    /api/admin/hyosung           — 효성 CMS+ 정기 후원 목록 (pending/completed/cancelled)
+ * GET    /api/admin/hyosung           — 효성 CMS+ 정기 후원 목록
  * GET    /api/admin/hyosung?id=N      — 단건 상세
- * PATCH  /api/admin/hyosung           — 상태 변경 (등록 완료 / 해지 / 메모)
+ * PATCH  /api/admin/hyosung           — 상태 변경 / 메모 / 효성 정보 업데이트
+ *
+ * ★ L-9 업데이트:
+ * - markCompleted 시 hyosungMemberNo 필수 입력
+ * - updateHyosungInfo 분기 추가 (효성 회원번호/계약번호 수정)
+ * - 목록/상세에 hyosung_member_no 포함
  *
  * 용도:
  * - 사용자가 "정기 + 효성 CMS+" 신청한 건들을 관리자가 확인
  * - 관리자가 효성 CMS+에 수동 등록 후 "등록 완료" 처리
- * - 해지 처리 (효성 CMS+에서 해지한 경우 DB 동기화)
+ *   * 이때 효성이 부여한 회원번호(예: 60)를 필수 입력
+ *   * 이후 billing_update.csv 업로드 시 이 번호로 자동 매칭
+ * - 해지 처리 (효성 측 해지 반영)
  *
  * 조회 조건:
  * - pgProvider = 'hyosung_cms' AND type = 'regular'
- * - 상태별 필터 (pending/completed/cancelled/failed)
  *
  * 권한: 관리자/슈퍼관리자/운영자
  *
  * 상태 전환:
- * - pending → completed: 효성 등록 완료 (감사 메일 발송)
+ * - pending → completed: 효성 등록 완료 (효성번호 필수 + 감사 메일 발송)
  * - pending → cancelled: 등록 취소 (사유 메모에 기록)
  * - completed → cancelled: 효성 측 해지 반영
+ * - pending → failed: 등록 불가 (사유 필수)
  */
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import { db, donations, members } from "../../db";
@@ -118,7 +125,7 @@ export default async (req: Request) => {
         .where(where);
       const total = Number(totalRows[0]?.total ?? 0);
 
-      /* 목록 */
+      /* 목록 (★ L-9: 효성 컬럼 3개 포함) */
       const list = await db
         .select({
           id: donations.id,
@@ -133,6 +140,10 @@ export default async (req: Request) => {
           memo: donations.memo,
           receiptIssued: donations.receiptIssued,
           receiptNumber: donations.receiptNumber,
+          /* ★ L-9 추가 */
+          hyosungMemberNo: donations.hyosungMemberNo,
+          hyosungContractNo: donations.hyosungContractNo,
+          hyosungBillNo: donations.hyosungBillNo,
           createdAt: donations.createdAt,
           updatedAt: donations.updatedAt,
         })
@@ -142,7 +153,7 @@ export default async (req: Request) => {
         .limit(limit)
         .offset((page - 1) * limit);
 
-      /* 상태별 통계 (전체 효성 CMS+ 기준) */
+      /* 상태별 통계 */
       const statsRows = await db
         .select({
           status: donations.status,
@@ -224,7 +235,50 @@ export default async (req: Request) => {
         return ok({ donation: updated }, "메모가 저장되었습니다");
       }
 
-      /* ───── 분기 2: 효성 등록 완료 처리 (pending → completed) ───── */
+      /* ───── 분기 2: ★ L-9 효성 정보만 업데이트 (회원번호 수정 등) ───── */
+      if (body.updateHyosungInfo === true) {
+        const hyMemberNo = body.hyosungMemberNo != null
+          ? Number(body.hyosungMemberNo)
+          : null;
+        const hyContractNo = typeof body.hyosungContractNo === "string"
+          ? body.hyosungContractNo.trim().slice(0, 20)
+          : null;
+
+        if (hyMemberNo !== null && !Number.isFinite(hyMemberNo)) {
+          return badRequest("효성 회원번호는 숫자만 입력 가능합니다");
+        }
+        if (hyMemberNo !== null && hyMemberNo <= 0) {
+          return badRequest("효성 회원번호는 0보다 커야 합니다");
+        }
+
+        const updatePayload: any = {
+          updatedAt: new Date(),
+        };
+        if (hyMemberNo !== null) updatePayload.hyosungMemberNo = hyMemberNo;
+        if (hyContractNo !== null) updatePayload.hyosungContractNo = hyContractNo || null;
+
+        const [updated] = await db
+          .update(donations)
+          .set(updatePayload)
+          .where(eq(donations.id, donationId))
+          .returning({
+            id: donations.id,
+            hyosungMemberNo: donations.hyosungMemberNo,
+            hyosungContractNo: donations.hyosungContractNo,
+          });
+
+        await logAdminAction(req, admin.uid, admin.name, "hyosung_info_update", {
+          target: `D-${donationId}`,
+          detail: {
+            hyosungMemberNo: hyMemberNo,
+            hyosungContractNo: hyContractNo,
+          },
+        });
+
+        return ok({ donation: updated }, "효성 정보가 업데이트되었습니다");
+      }
+
+      /* ───── 분기 3: 효성 등록 완료 처리 (pending → completed) ───── */
       if (body.markCompleted === true) {
         if (existing.status !== "pending") {
           return badRequest(
@@ -232,10 +286,26 @@ export default async (req: Request) => {
           );
         }
 
+        /* ★ L-9: 효성 회원번호 필수 */
+        const hyMemberNo = body.hyosungMemberNo != null
+          ? Number(body.hyosungMemberNo)
+          : null;
+        if (hyMemberNo === null || !Number.isFinite(hyMemberNo) || hyMemberNo <= 0) {
+          return badRequest(
+            "효성 CMS+ 회원번호를 입력해 주세요 (예: 60). " +
+            "이 번호로 향후 월별 수납 결과 CSV를 자동 매칭합니다.",
+          );
+        }
+
+        /* 계약번호는 선택 (기본값 '001') */
+        const hyContractNo = typeof body.hyosungContractNo === "string"
+          ? body.hyosungContractNo.trim().slice(0, 20) || "001"
+          : "001";
+
         const now = new Date();
-        const adminTag = `[효성 등록 완료 ${now.toISOString().slice(0, 10)} by ${admin.name || "관리자"}]`;
+        const adminTag = `[효성 등록 완료 ${now.toISOString().slice(0, 10)} by ${admin.name || "관리자"}] 회원번호: ${hyMemberNo}`;
         const completedMemo = body.reason
-          ? `${adminTag} ${String(body.reason).trim().slice(0, 300)}`
+          ? `${adminTag} · ${String(body.reason).trim().slice(0, 300)}`
           : adminTag;
         const newMemo = existing.memo
           ? `${existing.memo}\n${completedMemo}`
@@ -245,6 +315,9 @@ export default async (req: Request) => {
           status: "completed",
           memo: newMemo,
           receiptRequested: true,
+          /* ★ L-9: 효성 매칭 정보 저장 */
+          hyosungMemberNo: hyMemberNo,
+          hyosungContractNo: hyContractNo,
           updatedAt: now,
         };
 
@@ -260,6 +333,8 @@ export default async (req: Request) => {
             type: donations.type,
             memberId: donations.memberId,
             status: donations.status,
+            hyosungMemberNo: donations.hyosungMemberNo,
+            hyosungContractNo: donations.hyosungContractNo,
           });
 
         /* 감사 메일 발송 (실패해도 처리는 성공) */
@@ -291,6 +366,8 @@ export default async (req: Request) => {
           detail: {
             donorName: updated.donorName,
             amount: updated.amount,
+            hyosungMemberNo: hyMemberNo,
+            hyosungContractNo: hyContractNo,
             emailSent,
             reasonProvided: !!body.reason,
           },
@@ -298,11 +375,11 @@ export default async (req: Request) => {
 
         return ok(
           { donation: updated, emailSent },
-          `효성 CMS+ 등록 완료 처리되었습니다${emailSent ? " (감사 메일 발송 완료)" : ""}`,
+          `효성 CMS+ 등록 완료 처리되었습니다 (회원번호: ${hyMemberNo})${emailSent ? " · 감사 메일 발송 완료" : ""}`,
         );
       }
 
-      /* ───── 분기 3: 해지 처리 ───── */
+      /* ───── 분기 4: 해지 처리 ───── */
       if (body.markCancelled === true) {
         if (existing.status === "cancelled") {
           return badRequest("이미 해지된 후원입니다");
@@ -349,7 +426,7 @@ export default async (req: Request) => {
         return ok({ donation: updated }, "효성 CMS+ 후원이 해지 처리되었습니다");
       }
 
-      /* ───── 분기 4: 실패 처리 (사유 필수) ───── */
+      /* ───── 분기 5: 실패 처리 (사유 필수) ───── */
       if (body.markFailed === true) {
         if (existing.status === "completed") {
           return badRequest("이미 완료된 후원은 실패 처리할 수 없습니다");
@@ -386,7 +463,9 @@ export default async (req: Request) => {
         return ok({ donation: updated }, "실패 처리되었습니다");
       }
 
-      return badRequest("처리할 작업을 지정해 주세요 (markCompleted/markCancelled/markFailed/inlineMemoOnly)");
+      return badRequest(
+        "처리할 작업을 지정해 주세요 (markCompleted/markCancelled/markFailed/inlineMemoOnly/updateHyosungInfo)",
+      );
     }
 
     return methodNotAllowed();
