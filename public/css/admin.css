@@ -277,3 +277,183 @@
   border-color: #f5b5bb;
 }
 .op-row-actions button.danger:hover { background: #fdecec; }
+
+/* public/css/admin.css — 파일 끝에 append */
+
+/* =========================================================
+   ★ M-15 Part 3-B: 후원 정책 관리 카드 (시스템 설정)
+   ========================================================= */
+.dp-card {
+  background: linear-gradient(135deg, #fff, #f7f9fc);
+  border: 2px solid var(--brand);
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-top: 18px;
+}
+.dp-card h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brand);
+  font-family: 'Noto Serif KR', serif;
+}
+.dp-card .sub {
+  font-size: 12.5px;
+  color: var(--text-3);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.dp-readonly-banner {
+  background: #fff8ec;
+  border: 1px solid #f0e3c4;
+  border-radius: 6px;
+  padding: 11px 14px;
+  font-size: 12px;
+  color: #8a6a00;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  display: none;
+}
+.dp-readonly-banner.show { display: block; }
+
+.dp-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 18px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--brand);
+}
+.dp-section-title:first-child { margin-top: 0; }
+
+.dp-form-grid {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+.dp-form-grid label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-align: right;
+  padding-top: 8px;
+}
+.dp-form-grid label .hint {
+  display: block;
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11px;
+  margin-top: 2px;
+}
+.dp-form-grid input[type="text"],
+.dp-form-grid input[type="number"],
+.dp-form-grid input[type="url"],
+.dp-form-grid textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.dp-form-grid input[type="number"] {
+  font-family: 'Inter', monospace;
+  text-align: right;
+  max-width: 200px;
+}
+.dp-form-grid textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.6;
+}
+.dp-form-grid input:focus,
+.dp-form-grid textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.dp-form-grid input:disabled,
+.dp-form-grid textarea:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  color: var(--text-3);
+}
+
+.dp-amount-input {
+  font-family: 'Inter', monospace !important;
+  font-size: 12.5px !important;
+}
+.dp-amount-preview {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.dp-amount-preview .chip {
+  display: inline-block;
+  background: var(--brand-soft, #fef9f5);
+  color: var(--brand);
+  padding: 1px 8px;
+  border-radius: 9px;
+  font-weight: 600;
+  margin-right: 4px;
+  margin-bottom: 3px;
+  font-family: 'Inter', monospace;
+}
+
+.dp-meta {
+  background: #f8f9fa;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.dp-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+.dp-actions button {
+  padding: 11px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+}
+.dp-actions .btn-save {
+  flex: 1;
+  background: var(--brand);
+  color: #fff;
+}
+.dp-actions .btn-save:hover:not(:disabled) { background: var(--brand-deep, #5a1620); }
+.dp-actions .btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #aaa;
+}
+.dp-actions .btn-reload {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+}
+.dp-actions .btn-reload:hover { background: #f5f4f2; }
+
+@media (max-width: 700px) {
+  .dp-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .dp-form-grid label {
+    text-align: left;
+    padding-top: 0;
+  }
+}

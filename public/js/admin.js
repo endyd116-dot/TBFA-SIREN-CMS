@@ -1408,6 +1408,231 @@
     });
   }
 
+  // public/js/admin.js — setupAdminPasswordForm 함수 다음에 추가
+
+  /* ============ ★ M-15 Part 3-B: 후원 정책 관리 ============ */
+
+  /**
+   * 콤마 구분 문자열 → 정수 배열 (정렬+중복제거)
+   */
+  function parseAmountListInput(input) {
+    if (!input) return [];
+    const arr = String(input).split(',').map((s) => s.trim()).filter(Boolean);
+    const set = new Set();
+    for (const v of arr) {
+      const n = Number(v.replace(/[\s,]/g, ''));
+      if (Number.isInteger(n) && n > 0) set.add(n);
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }
+
+  /**
+   * 정수 배열 → 콤마 구분 문자열
+   */
+  function formatAmountList(arr) {
+    if (!Array.isArray(arr)) return '';
+    return arr.map(n => Number(n)).filter(n => Number.isFinite(n)).join(', ');
+  }
+
+  /**
+   * 금액 미리보기 chip 렌더
+   */
+  function renderAmountPreview(elId, amounts) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!amounts || amounts.length === 0) {
+      el.innerHTML = '<span style="color:var(--text-3)">미리보기: 비어있음</span>';
+      return;
+    }
+    const chips = amounts.map(n => `<span class="chip">${n.toLocaleString()}원</span>`).join('');
+    el.innerHTML = `미리보기 (${amounts.length}개): ${chips}`;
+  }
+
+  /**
+   * 단일 금액 미리보기
+   */
+  function renderSingleAmount(elId, n, suffix) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const num = Number(n);
+    if (!Number.isFinite(num)) {
+      el.textContent = '— ' + (suffix || '');
+      return;
+    }
+    el.textContent = num.toLocaleString() + ' ' + (suffix || '');
+  }
+
+  /**
+   * 후원 정책 GET → 폼 채우기
+   */
+  async function loadDonationPolicy() {
+    const card = document.getElementById('donationPolicyCard');
+    if (!card) return;
+
+    /* 권한 체크 — super_admin만 수정 가능 */
+    const isSuperAdmin = CURRENT_ADMIN && CURRENT_ADMIN.role === 'super_admin';
+    const banner = document.getElementById('dpReadonlyBanner');
+    const saveBtn = document.getElementById('dpSaveBtn');
+    if (banner) banner.classList.toggle('show', !isSuperAdmin);
+    if (saveBtn) saveBtn.style.display = isSuperAdmin ? '' : 'none';
+
+    const res = await api('/api/admin/donation-policy');
+    if (!res.ok || !res.data?.data?.policy) {
+      toast('후원 정책 조회 실패');
+      return;
+    }
+    const p = res.data.data.policy;
+
+    /* 메타 정보 */
+    const updatedAtEl = document.getElementById('dpUpdatedAt');
+    const updatedByEl = document.getElementById('dpUpdatedBy');
+    if (updatedAtEl) updatedAtEl.textContent = p.updatedAt ? formatDateTime(p.updatedAt) : '—';
+    if (updatedByEl) updatedByEl.textContent = p.updatedBy ? '관리자 #' + p.updatedBy : '—';
+
+    /* 값 채우기 */
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v; };
+    setVal('dpModalTitle', p.modalTitle);
+    setVal('dpModalSubtitle', p.modalSubtitle);
+    setVal('dpMinAmount', p.minAmount);
+    setVal('dpMaxAmount', p.maxAmount);
+    setVal('dpRegularAmounts', formatAmountList(p.regularAmounts));
+    setVal('dpOnetimeAmounts', formatAmountList(p.onetimeAmounts));
+    setVal('dpBankName', p.bankName);
+    setVal('dpBankAccountNo', p.bankAccountNo);
+    setVal('dpBankAccountHolder', p.bankAccountHolder);
+    setVal('dpBankGuideText', p.bankGuideText);
+    setVal('dpHyosungUrl', p.hyosungUrl);
+    setVal('dpHyosungGuideText', p.hyosungGuideText);
+
+    /* 미리보기 갱신 */
+    renderSingleAmount('dpMinPreview', p.minAmount, '원 이상');
+    renderSingleAmount('dpMaxPreview', p.maxAmount, '원 이하');
+    renderAmountPreview('dpRegularPreview', p.regularAmounts || []);
+    renderAmountPreview('dpOnetimePreview', p.onetimeAmounts || []);
+
+    /* operator일 때 모든 입력 disabled */
+    const inputs = card.querySelectorAll('input, textarea');
+    inputs.forEach((inp) => { inp.disabled = !isSuperAdmin; });
+  }
+
+  /**
+   * 후원 정책 PATCH
+   */
+  async function saveDonationPolicy(e) {
+    e.preventDefault();
+
+    /* 권한 체크 (UI에서 차단되어 있지만 한번 더) */
+    if (!CURRENT_ADMIN || CURRENT_ADMIN.role !== 'super_admin') {
+      toast('슈퍼 관리자만 정책을 수정할 수 있습니다');
+      return;
+    }
+
+    const minAmount = Number(document.getElementById('dpMinAmount').value);
+    const maxAmount = Number(document.getElementById('dpMaxAmount').value);
+    const regularAmounts = parseAmountListInput(document.getElementById('dpRegularAmounts').value);
+    const onetimeAmounts = parseAmountListInput(document.getElementById('dpOnetimeAmounts').value);
+
+    /* 클라이언트 측 유효성 */
+    if (!Number.isInteger(minAmount) || minAmount < 100) {
+      return toast('최소 금액은 100원 이상의 정수여야 합니다');
+    }
+    if (!Number.isInteger(maxAmount) || maxAmount < 1000) {
+      return toast('최대 금액은 1,000원 이상의 정수여야 합니다');
+    }
+    if (minAmount >= maxAmount) {
+      return toast('최소 금액은 최대 금액보다 작아야 합니다');
+    }
+    if (regularAmounts.length === 0) {
+      return toast('정기 후원 금액을 1개 이상 입력해 주세요');
+    }
+    if (onetimeAmounts.length === 0) {
+      return toast('일시 후원 금액을 1개 이상 입력해 주세요');
+    }
+    if (regularAmounts.length > 10 || onetimeAmounts.length > 10) {
+      return toast('금액 옵션은 최대 10개까지 가능합니다');
+    }
+    /* 범위 체크 */
+    const allAmounts = [...regularAmounts, ...onetimeAmounts];
+    for (const n of allAmounts) {
+      if (n < minAmount || n > maxAmount) {
+        return toast(`금액이 범위(${minAmount.toLocaleString()}~${maxAmount.toLocaleString()})를 벗어남: ${n.toLocaleString()}`);
+      }
+    }
+
+    const body = {
+      modalTitle: document.getElementById('dpModalTitle').value.trim(),
+      modalSubtitle: document.getElementById('dpModalSubtitle').value.trim(),
+      minAmount,
+      maxAmount,
+      regularAmounts,
+      onetimeAmounts,
+      bankName: document.getElementById('dpBankName').value.trim(),
+      bankAccountNo: document.getElementById('dpBankAccountNo').value.trim(),
+      bankAccountHolder: document.getElementById('dpBankAccountHolder').value.trim(),
+      bankGuideText: document.getElementById('dpBankGuideText').value.trim(),
+      hyosungUrl: document.getElementById('dpHyosungUrl').value.trim(),
+      hyosungGuideText: document.getElementById('dpHyosungGuideText').value.trim(),
+    };
+
+    const btn = document.getElementById('dpSaveBtn');
+    const oldText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+    try {
+      const res = await api('/api/admin/donation-policy', { method: 'PATCH', body });
+
+      if (res.ok) {
+        toast(res.data?.message || '후원 정책이 저장되었습니다');
+        /* 응답 받은 정책으로 재렌더 (미리보기/메타 갱신) */
+        loadDonationPolicy();
+      } else {
+        if (res.status === 403) {
+          toast(res.data?.error || '권한이 없습니다 (슈퍼 관리자 전용)');
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = oldText; }
+    }
+  }
+
+  /**
+   * 이벤트 핸들러 등록 (init에서 1회 호출)
+   */
+  function setupDonationPolicy() {
+    const form = document.getElementById('donationPolicyForm');
+    if (form) form.addEventListener('submit', saveDonationPolicy);
+
+    /* 다시 불러오기 */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#dpReloadBtn')) {
+        e.preventDefault();
+        loadDonationPolicy();
+        toast('현재 DB 정책을 다시 불러왔습니다');
+      }
+    });
+
+    /* 실시간 미리보기 (입력 디바운스) */
+    let _dpPreviewTimer = null;
+    const debouncePreview = () => {
+      clearTimeout(_dpPreviewTimer);
+      _dpPreviewTimer = setTimeout(() => {
+        const minA = Number(document.getElementById('dpMinAmount')?.value);
+        const maxA = Number(document.getElementById('dpMaxAmount')?.value);
+        renderSingleAmount('dpMinPreview', minA, '원 이상');
+        renderSingleAmount('dpMaxPreview', maxA, '원 이하');
+        renderAmountPreview('dpRegularPreview', parseAmountListInput(document.getElementById('dpRegularAmounts')?.value));
+        renderAmountPreview('dpOnetimePreview', parseAmountListInput(document.getElementById('dpOnetimeAmounts')?.value));
+      }, 250);
+    };
+
+    ['dpMinAmount', 'dpMaxAmount', 'dpRegularAmounts', 'dpOnetimeAmounts'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', debouncePreview);
+    });
+  }
+
   /* ============ ★ K-5: 콘텐츠 관리 (공지/FAQ CRUD) ============ */
   let _cmNoticeSearchTimer = null;
   let _cmFaqSearchTimer = null;
@@ -4711,11 +4936,15 @@
 
     } else if (page === 'audit') {
 
+  // public/js/admin.js — switchAdminPage 끝부분 교체
     } else if (page === 'audit') {
       _auditPage = 1;
       loadAudit();
     } else if (page === 'ai') {
       loadAI();
+    } else if (page === 'settings') {
+      /* ★ M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
+      loadDonationPolicy();
     }
   }
 
@@ -4782,7 +5011,9 @@
     setupDonationSearch();     /* K-8 */
     setupDonationRowActions(); /* K-8 */
     setupDonationDetailActions(); /* K-8 */
+// public/js/admin.js — init() 내부, setupAdminPasswordForm 다음에 1줄 추가
     setupAdminPasswordForm();  /* K-9 */
+    setupDonationPolicy();     /* ★ M-15 Part 3-B */
     setupHyosungActions();       /* ★ L-8 추가 */
     setupHyosungDetailActions(); /* ★ L-8 추가 */
 

@@ -3172,24 +3172,103 @@
               </div>
             </div>
 
+<!-- public/admin.html — #adm-settings 페이지 내, row-1-1 닫는 div 다음에 추가 -->
             <!-- 권한 분리 (기존) -->
             <div class="panel">
-              <div class="p-head"><div class="p-title">권한 분리</div></div>
-              <table class="tbl">
-                <thead><tr><th>권한</th><th>접근 영역</th></tr></thead>
-                <tbody>
-                  <tr><td>총괄 관리자 (super_admin)</td><td>전체 (모든 메뉴 + 운영자 관리)</td></tr>
-                  <tr><td>일반 운영자 (operator)</td><td>지원 관리 / 채팅 / 회원 정보 조회</td></tr>
-                  <tr><td>상담사</td><td>지원사업 (배정된 건만)</td></tr>
-                </tbody>
-              </table>
-
-              <div style="margin-top:18px;padding:14px 16px;background:var(--bg-soft);border-radius:6px;font-size:12px;color:var(--text-3);line-height:1.7">
-                💡 <strong>2단계 인증 (OTP)</strong>과 <strong>IP 화이트리스트</strong>는 향후 업데이트에서 제공될 예정입니다.<br />
-                현재는 비밀번호 + 5회 실패 잠금 + 감사 로그로 보호됩니다.
-              </div>
+              <!-- ... 권한 분리 카드 (기존 그대로) ... -->
             </div>
           </div>
+
+          <!-- ★ M-15 Part 3-B: 후원 정책 관리 -->
+          <div class="dp-card" id="donationPolicyCard">
+            <h4>💰 후원 정책 관리</h4>
+            <p class="sub">
+              사용자가 보는 후원 모달의 금액 옵션, 직접 계좌이체 정보, 효성 CMS+ URL을 관리합니다.<br />
+              슈퍼 관리자만 수정 가능하며, 변경 즉시 사용자 후원 모달에 반영됩니다.
+            </p>
+
+            <div class="dp-readonly-banner" id="dpReadonlyBanner">
+              ⚠️ <strong>읽기 전용 모드</strong> — 슈퍼 관리자만 수정 가능합니다. 일반 운영자는 정책을 조회만 할 수 있습니다.
+            </div>
+
+            <div class="dp-meta" id="dpMetaInfo">
+              마지막 수정: <strong id="dpUpdatedAt">—</strong> · 수정자: <strong id="dpUpdatedBy">—</strong>
+            </div>
+
+            <form id="donationPolicyForm">
+
+              <!-- 모달 헤더 텍스트 -->
+              <div class="dp-section-title">📌 후원 모달 헤더</div>
+              <div class="dp-form-grid">
+                <label for="dpModalTitle">제목</label>
+                <input type="text" id="dpModalTitle" maxlength="200" placeholder="🎗 후원 동참하기">
+
+                <label for="dpModalSubtitle">부제목 <span class="hint">(소개 문구)</span></label>
+                <input type="text" id="dpModalSubtitle" maxlength="500" placeholder="여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.">
+              </div>
+
+              <!-- 금액 옵션 -->
+              <div class="dp-section-title">💵 금액 옵션</div>
+              <div class="dp-form-grid">
+                <label for="dpMinAmount">최소 금액 <span class="hint">(원)</span></label>
+                <div>
+                  <input type="number" id="dpMinAmount" min="100" step="100" value="1000">
+                  <div class="dp-amount-preview" id="dpMinPreview">— 원 이상</div>
+                </div>
+
+                <label for="dpMaxAmount">최대 금액 <span class="hint">(원)</span></label>
+                <div>
+                  <input type="number" id="dpMaxAmount" min="1000" step="1000" value="100000000">
+                  <div class="dp-amount-preview" id="dpMaxPreview">— 원 이하</div>
+                </div>
+
+                <label for="dpRegularAmounts">정기 후원 금액 <span class="hint">(콤마 구분, 최대 10개)</span></label>
+                <div>
+                  <input type="text" id="dpRegularAmounts" class="dp-amount-input" placeholder="10000, 30000, 50000, 100000, 300000, 500000">
+                  <div class="dp-amount-preview" id="dpRegularPreview">미리보기:</div>
+                </div>
+
+                <label for="dpOnetimeAmounts">일시 후원 금액 <span class="hint">(콤마 구분, 최대 10개)</span></label>
+                <div>
+                  <input type="text" id="dpOnetimeAmounts" class="dp-amount-input" placeholder="10000, 30000, 50000, 100000, 300000, 500000">
+                  <div class="dp-amount-preview" id="dpOnetimePreview">미리보기:</div>
+                </div>
+              </div>
+
+              <!-- 직접 계좌이체 -->
+              <div class="dp-section-title">🏦 직접 계좌이체 정보</div>
+              <div class="dp-form-grid">
+                <label for="dpBankName">은행명</label>
+                <input type="text" id="dpBankName" maxlength="50" placeholder="국민은행">
+
+                <label for="dpBankAccountNo">계좌번호</label>
+                <input type="text" id="dpBankAccountNo" maxlength="50" placeholder="123-45-678901">
+
+                <label for="dpBankAccountHolder">예금주</label>
+                <input type="text" id="dpBankAccountHolder" maxlength="50" placeholder="(사)교사유가족협의회">
+
+                <label for="dpBankGuideText">계좌이체 안내</label>
+                <textarea id="dpBankGuideText" maxlength="1000" placeholder="입금 확인까지 1~3일 이내 소요될 수 있습니다."></textarea>
+              </div>
+
+              <!-- 효성 CMS+ -->
+              <div class="dp-section-title">🏧 효성 CMS+ 정기 후원</div>
+              <div class="dp-form-grid">
+                <label for="dpHyosungUrl">효성 URL</label>
+                <input type="url" id="dpHyosungUrl" maxlength="500" placeholder="https://ap.hyosungcmsplus.co.kr/...">
+
+                <label for="dpHyosungGuideText">효성 안내문구</label>
+                <textarea id="dpHyosungGuideText" maxlength="1000" placeholder="효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다."></textarea>
+              </div>
+
+              <!-- 액션 버튼 -->
+              <div class="dp-actions">
+                <button type="submit" class="btn-save" id="dpSaveBtn">💾 정책 저장</button>
+                <button type="button" class="btn-reload" id="dpReloadBtn">🔄 다시 불러오기</button>
+              </div>
+            </form>
+          </div>
+
         </div>
 
       </div>
