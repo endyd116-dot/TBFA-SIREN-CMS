@@ -7,6 +7,7 @@
  * - 사용자 공개 GET은 /api/donation-policy (별도 파일, 변경 없음)
  * - 본 파일은 어드민 전용 (admin-guard 통과 필수)
  * - PATCH는 super_admin role만 허용 (operator는 GET만 가능)
+ * - 권한 체크는 DB에서 조회한 member.role 사용 (AdminPayload에 role 없을 수 있음)
  */
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -30,7 +31,11 @@ function parseJsonArr(v: any): any[] {
  * 금액 배열 검증
  * - 1~10개, 정수, min~max 범위, 중복 제거 후 오름차순
  */
-function sanitizeAmountList(input: any, min: number, max: number): { ok: true; list: number[] } | { ok: false; reason: string } {
+function sanitizeAmountList(
+  input: any,
+  min: number,
+  max: number,
+): { ok: true; list: number[] } | { ok: false; reason: string } {
   if (!Array.isArray(input)) return { ok: false, reason: "배열이 아닙니다" };
   if (input.length === 0) return { ok: false, reason: "최소 1개 이상의 금액이 필요합니다" };
   if (input.length > 10) return { ok: false, reason: "최대 10개까지 가능합니다" };
@@ -69,12 +74,17 @@ export default async (req: Request) => {
 
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return guard.res;
-  const { admin } = guard.ctx;
+  /* ★ M-15: member도 함께 구조분해 (DB 조회 결과 — role 100% 보장) */
+  const { admin, member } = guard.ctx;
 
   try {
     /* ===== GET ===== */
     if (req.method === "GET") {
-      const [row] = await db.select().from(donationPolicies).where(eq(donationPolicies.id, 1)).limit(1);
+      const [row] = await db
+        .select()
+        .from(donationPolicies)
+        .where(eq(donationPolicies.id, 1))
+        .limit(1);
 
       if (!row) {
         /* 행이 없으면 기본값 응답 (시드 미실행 케이스) */
@@ -126,7 +136,8 @@ export default async (req: Request) => {
 
     /* ===== PATCH (super_admin 전용) ===== */
     if (req.method === "PATCH") {
-      if (admin.role !== "super_admin") {
+      /* ★ M-15: member.role 사용 (DB 최신값 + AdminPayload 타입 안정성) */
+      if (member.role !== "super_admin") {
         return forbidden("후원 정책 수정은 슈퍼 관리자만 가능합니다");
       }
 
@@ -134,7 +145,11 @@ export default async (req: Request) => {
       if (!body || typeof body !== "object") return badRequest("요청 본문이 비어있습니다");
 
       /* 현재 정책 조회 (없으면 기본값 사용) */
-      const [existing] = await db.select().from(donationPolicies).where(eq(donationPolicies.id, 1)).limit(1);
+      const [existing] = await db
+        .select()
+        .from(donationPolicies)
+        .where(eq(donationPolicies.id, 1))
+        .limit(1);
 
       const updateData: any = { updatedAt: new Date(), updatedBy: admin.uid };
 
@@ -144,13 +159,17 @@ export default async (req: Request) => {
 
       if (body.minAmount !== undefined) {
         const n = Number(body.minAmount);
-        if (!Number.isInteger(n) || n < 100) return badRequest("최소 금액은 100원 이상의 정수여야 합니다");
+        if (!Number.isInteger(n) || n < 100) {
+          return badRequest("최소 금액은 100원 이상의 정수여야 합니다");
+        }
         minAmount = n;
         updateData.minAmount = n;
       }
       if (body.maxAmount !== undefined) {
         const n = Number(body.maxAmount);
-        if (!Number.isInteger(n) || n < 1000) return badRequest("최대 금액은 1000원 이상의 정수여야 합니다");
+        if (!Number.isInteger(n) || n < 1000) {
+          return badRequest("최대 금액은 1000원 이상의 정수여야 합니다");
+        }
         maxAmount = n;
         updateData.maxAmount = n;
       }
@@ -159,19 +178,18 @@ export default async (req: Request) => {
       }
 
       /* 금액 배열 검증 */
-// netlify/functions/admin-donation-policy.ts (162행 부근)
-      /* 금액 배열 검증 */
       if (body.regularAmounts !== undefined) {
-        const r: any = sanitizeAmountList(body.regularAmounts, minAmount, maxAmount);
+        const r = sanitizeAmountList(body.regularAmounts, minAmount, maxAmount);
         if (!r.ok) return badRequest(`정기 후원 금액 오류: ${r.reason}`);
         updateData.regularAmounts = JSON.stringify(r.list);
       }
       if (body.onetimeAmounts !== undefined) {
-        const r: any = sanitizeAmountList(body.onetimeAmounts, minAmount, maxAmount);
+        const r = sanitizeAmountList(body.onetimeAmounts, minAmount, maxAmount);
         if (!r.ok) return badRequest(`일시 후원 금액 오류: ${r.reason}`);
         updateData.onetimeAmounts = JSON.stringify(r.list);
       }
-      /* 텍스트 필드 */
+
+      /* 텍스트 필드 (길이 제한) */
       if (body.bankName !== undefined) updateData.bankName = clipString(body.bankName, 50);
       if (body.bankAccountNo !== undefined) updateData.bankAccountNo = clipString(body.bankAccountNo, 50);
       if (body.bankAccountHolder !== undefined) updateData.bankAccountHolder = clipString(body.bankAccountHolder, 50);
@@ -180,21 +198,22 @@ export default async (req: Request) => {
       if (body.modalTitle !== undefined) updateData.modalTitle = clipString(body.modalTitle, 200);
       if (body.modalSubtitle !== undefined) updateData.modalSubtitle = clipString(body.modalSubtitle, 500);
 
-// netlify/functions/admin-donation-policy.ts (183행 부근)
       /* URL 검증 */
       if (body.hyosungUrl !== undefined) {
-        const u: any = validateUrl(body.hyosungUrl);
+        const u = validateUrl(body.hyosungUrl);
         if (!u.ok) return badRequest(`효성 URL 오류: ${u.reason}`);
         updateData.hyosungUrl = u.url;
       }
 
-      /* stampBlobId — 영수증 직인 (M-14에서 별도 API 사용 가능, 여기선 ID만 받음) */
+      /* stampBlobId — 영수증 직인 (M-14) */
       if (body.stampBlobId !== undefined) {
         if (body.stampBlobId === null) {
           updateData.stampBlobId = null;
         } else {
           const n = Number(body.stampBlobId);
-          if (!Number.isInteger(n) || n < 1) return badRequest("stampBlobId는 양의 정수여야 합니다");
+          if (!Number.isInteger(n) || n < 1) {
+            return badRequest("stampBlobId는 양의 정수여야 합니다");
+          }
           updateData.stampBlobId = n;
         }
       }
@@ -231,7 +250,7 @@ export default async (req: Request) => {
         result = updated;
       }
 
-      /* 감사 로그 (전체 변경 필드 키만 기록 — 값은 detail에 일부 포함) */
+      /* 감사 로그 (변경 필드 키 + 핵심 값 일부) */
       const changedKeys = Object.keys(updateData).filter(k => k !== "updatedAt" && k !== "updatedBy");
       await logAdminAction(req, admin.uid, admin.name, "donation_policy_update", {
         target: "donation_policies#1",
