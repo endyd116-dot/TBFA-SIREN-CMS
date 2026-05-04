@@ -51,8 +51,7 @@ export default async (req: Request, _ctx: Context) => {
     };
     await db.update(incidentReports).set(updateData).where(eq(incidentReports.id, reportId));
 
-    /* 정식 접수 시 운영자 알림 */
-    if (requested) {
+// netlify/functions/incident-report-confirm.ts — notifyAllOperators 호출부 교체
       try {
         const severity = (row as any).aiSeverity || "medium";
         const isCritical = severity === "critical";
@@ -66,6 +65,9 @@ export default async (req: Request, _ctx: Context) => {
           link: `/admin.html#incident-reports`,
           refTable: "incident_reports",
           refId: reportId,
+        }, {
+          /* ★ M-15: incident 담당 운영자 + super_admin에게만 발송 */
+          category: "incident",
         });
       } catch (e) {
         console.warn("[incident-report-confirm] 알림 실패", e);
