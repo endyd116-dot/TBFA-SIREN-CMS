@@ -107,6 +107,160 @@
     clearTimeout(window._tt);
     window._tt = setTimeout(() => t.classList.remove('show'), ms);
   }
+// public/js/admin.js — 상수 정의 영역에 추가 (MEMBER_STATUS_PRIORITY 다음)
+
+  /* ★ M-15: 운영자 담당 카테고리 정의 */
+  const OPERATOR_CATEGORIES = [
+    { code: 'incident',   label: '사건 제보',    emoji: '🔍' },
+    { code: 'harassment', label: '악성민원',     emoji: '📢' },
+    { code: 'legal',      label: '법률 상담',    emoji: '⚖️' },
+    { code: 'board',      label: '자유게시판',   emoji: '💬' },
+    { code: 'donation',   label: '후원',         emoji: '💰' },
+    { code: 'support',    label: '유가족 지원',  emoji: '🤝' },
+  ];
+  const VALID_CAT_CODES = OPERATOR_CATEGORIES.map(c => c.code).concat(['all']);
+
+  /**
+   * 카테고리 코드 → 라벨/이모지 객체
+   */
+  function getCategoryMeta(code) {
+    if (code === 'all') return { code: 'all', label: '전체', emoji: '🌐' };
+    return OPERATOR_CATEGORIES.find(c => c.code === code) || null;
+  }
+
+  /**
+   * 카테고리 배열 → 뱃지 HTML
+   * @param categories - assignedCategories 배열 (또는 null)
+   * @param role - super_admin이면 '전체' 표시
+   */
+  function renderCategoryBadges(categories, role) {
+    /* super_admin은 카테고리 무관하게 전체 수신 → '전체' 뱃지 */
+    if (role === 'super_admin') {
+      return '<div class="op-cat-badges"><span class="op-cat-badge all">🌐 전체</span></div>';
+    }
+
+    const cats = Array.isArray(categories) ? categories : [];
+    if (cats.length === 0) {
+      return '<div class="op-cat-badges"><span class="op-cat-badge empty">미할당</span></div>';
+    }
+    if (cats.includes('all')) {
+      return '<div class="op-cat-badges"><span class="op-cat-badge all">🌐 전체</span></div>';
+    }
+
+    const html = cats.map((code) => {
+      const m = getCategoryMeta(code);
+      if (!m) return '';
+      return `<span class="op-cat-badge ${code}">${m.emoji} ${m.label}</span>`;
+    }).filter(Boolean).join('');
+
+    return `<div class="op-cat-badges">${html}</div>`;
+  }
+
+  /**
+   * 카테고리 체크박스 UI 렌더링
+   * @param containerId - 그룹 컨테이너 ID
+   * @param selected - 현재 선택된 카테고리 배열
+   * @param role - 'super_admin'이면 'all' 자동 + 비활성화
+   */
+  function renderCategoryCheckboxes(containerId, selected, role) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+
+    /* 라벨 영역 보존 */
+    const labelEl = box.querySelector('.cat-label');
+    const labelHtml = labelEl ? labelEl.outerHTML : '<span class="cat-label">📂 담당 카테고리</span>';
+
+    const sel = Array.isArray(selected) ? selected : [];
+    const hasAll = sel.includes('all');
+    const isSuper = role === 'super_admin';
+
+    /* super_admin은 자동으로 'all' 체크 + 비활성화 */
+    const allChecked = isSuper || hasAll;
+
+    let html = labelHtml;
+
+    /* '전체' 체크박스 */
+    html += `
+      <label class="op-cat-all-row">
+        <input type="checkbox" data-cat-all ${allChecked ? 'checked' : ''} ${isSuper ? 'disabled' : ''}>
+        <span>🌐 전체 (모든 도메인 알림 수신)</span>
+      </label>
+    `;
+
+    /* 6개 카테고리 그리드 */
+    html += '<div class="op-cat-grid">';
+    OPERATOR_CATEGORIES.forEach((c) => {
+      const checked = !hasAll && sel.includes(c.code);
+      const disabled = allChecked; // 'all' 선택 시 다른 항목 비활성화
+      html += `
+        <label class="op-cat-item ${disabled ? 'disabled' : ''}">
+          <input type="checkbox" data-cat-code="${c.code}" 
+                 ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+          <span class="emoji">${c.emoji}</span>
+          <span>${c.label}</span>
+        </label>
+      `;
+    });
+    html += '</div>';
+
+    /* 안내 문구 */
+    if (isSuper) {
+      html += `<div class="op-cat-warn">슈퍼 관리자는 자동으로 모든 카테고리 알림을 받습니다 (변경 불가).</div>`;
+    } else {
+      html += `<div class="op-cat-warn">'전체' 선택 시 모든 도메인 알림을 받습니다. 개별 선택 시 해당 도메인의 알림만 받습니다.</div>`;
+    }
+
+    box.innerHTML = html;
+
+    /* 'all' 체크박스 토글 시 다른 항목 자동 처리 */
+    if (!isSuper) {
+      const allCb = box.querySelector('[data-cat-all]');
+      if (allCb) {
+        allCb.addEventListener('change', () => {
+          const checked = allCb.checked;
+          const items = box.querySelectorAll('.op-cat-item');
+          const cbs = box.querySelectorAll('[data-cat-code]');
+          items.forEach(it => it.classList.toggle('disabled', checked));
+          cbs.forEach(cb => {
+            cb.disabled = checked;
+            if (checked) cb.checked = false;
+          });
+        });
+      }
+      /* 개별 항목 체크 시 'all' 해제 (정합성) */
+      const itemCbs = box.querySelectorAll('[data-cat-code]');
+      itemCbs.forEach((cb) => {
+        cb.addEventListener('change', () => {
+          if (cb.checked && allCb && allCb.checked) {
+            allCb.checked = false;
+            box.querySelectorAll('.op-cat-item').forEach(it => it.classList.remove('disabled'));
+            box.querySelectorAll('[data-cat-code]').forEach(c => c.disabled = false);
+          }
+        });
+      });
+    }
+  }
+
+  /**
+   * 컨테이너에서 선택된 카테고리 배열 추출
+   * - 'all'이 체크되어 있으면 ['all']만 반환
+   * - 그 외 개별 체크들을 배열로 반환
+   */
+  function collectSelectedCategories(containerId) {
+    const box = document.getElementById(containerId);
+    if (!box) return [];
+
+    const allCb = box.querySelector('[data-cat-all]');
+    if (allCb && allCb.checked) return ['all'];
+
+    const items = box.querySelectorAll('[data-cat-code]:checked');
+    const arr = [];
+    items.forEach((cb) => {
+      const code = cb.dataset.catCode;
+      if (code && VALID_CAT_CODES.includes(code)) arr.push(code);
+    });
+    return arr;
+  }
 
   async function api(path, options = {}) {
     const opts = {
@@ -4010,6 +4164,7 @@
   /* ============ ★ 운영자 관리 (STEP F-2) ============ */
   let _promoteSelectedMember = null;
 
+  // public/js/admin.js — loadOperators 함수 전체 교체
   async function loadOperators() {
     const panel = document.getElementById('adm-operators');
     if (!panel) return;
@@ -4043,6 +4198,10 @@
       const roleBadge = op.role === 'super_admin'
         ? '<span class="badge b-danger">슈퍼 관리자</span>'
         : '<span class="badge b-info">운영자</span>';
+
+      /* ★ M-15: 카테고리 뱃지 (역할 컬럼 아래에 표시) */
+      const catBadges = renderCategoryBadges(op.assignedCategories, op.role);
+
       const notifyToggle = `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
         <input type="checkbox" ${op.notifyOnSupport ? 'checked' : ''} data-op-toggle="notify" data-op-id="${op.id}">
         ${op.notifyOnSupport ? '✅' : '⬜'}
@@ -4051,14 +4210,18 @@
         ? '<span class="badge b-success">활성</span>'
         : '<span class="badge b-mute">비활성</span>';
 
+      /* ★ M-15: 편집 버튼 추가 */
       const actionBtns =
-        `<button class="btn-link" data-op-action="toggle-active" data-op-id="${op.id}" data-current="${op.operatorActive}">${op.operatorActive ? '비활성화' : '활성화'}</button> ` +
-        `<button class="btn-link" data-op-action="demote" data-op-id="${op.id}" data-name="${escapeHtml(op.name)}" style="color:var(--danger)">강등</button>`;
+        `<div class="op-row-actions">` +
+        `<button type="button" class="edit" data-op-action="open-edit" data-op-id="${op.id}">✏️ 편집</button>` +
+        `<button type="button" class="warn" data-op-action="toggle-active" data-op-id="${op.id}" data-current="${op.operatorActive}">${op.operatorActive ? '⏸ 비활성' : '▶ 활성'}</button>` +
+        `<button type="button" class="danger" data-op-action="demote" data-op-id="${op.id}" data-name="${escapeHtml(op.name)}">🔻 강등</button>` +
+        `</div>`;
 
       return `<tr>
         <td><strong>${escapeHtml(op.name)}</strong></td>
         <td style="font-size:12px">${escapeHtml(op.email)}</td>
-        <td>${roleBadge}</td>
+        <td>${roleBadge}${catBadges}</td>
         <td>${notifyToggle}</td>
         <td>${statusBadge}</td>
         <td style="font-size:12px">${formatDate(op.lastLoginAt)}</td>
@@ -4132,16 +4295,41 @@
     });
   }
 
+  // public/js/admin.js — setupPromoteConfirm 함수 전체 교체
   function setupPromoteConfirm() {
     const btn = document.getElementById('promoteConfirmBtn');
     if (!btn) return;
+
+    /* ★ M-15: 역할 변경 시 카테고리 영역 재렌더 */
+    const roleSel = document.getElementById('promoteRole');
+    if (roleSel) {
+      roleSel.addEventListener('change', () => {
+        renderCategoryCheckboxes('promoteCatGroup', [], roleSel.value);
+      });
+    }
+
     btn.addEventListener('click', async () => {
       if (!_promoteSelectedMember) return toast('회원을 선택하세요');
 
       const role = document.getElementById('promoteRole').value;
       const notify = document.getElementById('promoteNotify').checked;
 
+      /* ★ M-15: 선택된 카테고리 수집 */
+      const assignedCategories = collectSelectedCategories('promoteCatGroup');
+
+      /* operator인데 카테고리 미선택 시 경고 */
+      if (role !== 'super_admin' && assignedCategories.length === 0) {
+        const ok = confirm(
+          '담당 카테고리가 선택되지 않았습니다.\n\n' +
+          '이 상태로 승급하면 슈퍼 관리자가 보내는 알림 외에는 받을 수 없습니다.\n' +
+          '나중에 편집 모달에서 카테고리를 추가할 수 있습니다.\n\n' +
+          '계속하시겠습니까?'
+        );
+        if (!ok) return;
+      }
+
       btn.disabled = true;
+      const oldText = btn.textContent;
       btn.textContent = '처리 중...';
 
       const res = await api('/api/admin/operators', {
@@ -4150,11 +4338,12 @@
           memberId: _promoteSelectedMember.id,
           role,
           notifyOnSupport: notify,
+          assignedCategories,  // ★ M-15
         },
       });
 
       btn.disabled = false;
-      btn.textContent = '운영자로 승급하기';
+      btn.textContent = oldText;
 
       if (res.ok) {
         toast(res.data?.message || '승급 완료');
@@ -4166,6 +4355,116 @@
         loadOperators();
       } else {
         toast(res.data?.error || '승급 실패');
+      }
+    });
+  }
+
+  // public/js/admin.js — setupPromoteConfirm 다음에 추가
+  /* ★ M-15: 운영자 편집 모달 오픈 */
+  let _opEditCurrent = null;
+
+  async function openOperatorEditModal(opId) {
+    const modal = document.getElementById('operatorEditModal');
+    if (!modal) return toast('편집 모달을 찾을 수 없습니다');
+
+    /* 운영자 목록 캐시에서 정보 조회 */
+    const res = await api('/api/admin/operators');
+    if (!res.ok || !res.data?.data) {
+      return toast('운영자 정보 조회 실패');
+    }
+    const op = (res.data.data.operators || []).find(o => o.id === opId);
+    if (!op) return toast('운영자를 찾을 수 없습니다');
+
+    _opEditCurrent = op;
+
+    /* 정보 영역 채우기 */
+    const infoEl = document.getElementById('opEditInfo');
+    if (infoEl) {
+      infoEl.innerHTML =
+        `<strong>${escapeHtml(op.name)}</strong> ` +
+        `<span style="color:var(--text-3);font-size:12px">${escapeHtml(op.email)}</span>`;
+    }
+
+    /* 폼 채우기 */
+    document.getElementById('opEditId').value = String(op.id);
+    document.getElementById('opEditRole').value = op.role || 'operator';
+    document.getElementById('opEditNotify').checked = !!op.notifyOnSupport;
+    document.getElementById('opEditActive').checked = op.operatorActive !== false;
+
+    /* 카테고리 체크박스 렌더 */
+    renderCategoryCheckboxes(
+      'opEditCatGroup',
+      Array.isArray(op.assignedCategories) ? op.assignedCategories : [],
+      op.role
+    );
+
+    modal.classList.add('show');
+  }
+
+  /* ★ M-15: 운영자 편집 모달 핸들러 */
+  function setupOperatorEditModal() {
+    /* 역할 변경 시 카테고리 영역 재렌더 */
+    const roleSel = document.getElementById('opEditRole');
+    if (roleSel) {
+      roleSel.addEventListener('change', () => {
+        const currentCats = _opEditCurrent
+          ? (Array.isArray(_opEditCurrent.assignedCategories) ? _opEditCurrent.assignedCategories : [])
+          : [];
+        renderCategoryCheckboxes('opEditCatGroup', currentCats, roleSel.value);
+      });
+    }
+
+    /* 폼 제출 */
+    const form = document.getElementById('operatorEditForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = Number(document.getElementById('opEditId').value);
+      if (!id) return toast('운영자 ID 없음');
+
+      const role = document.getElementById('opEditRole').value;
+      const notifyOnSupport = document.getElementById('opEditNotify').checked;
+      const operatorActive = document.getElementById('opEditActive').checked;
+      const assignedCategories = collectSelectedCategories('opEditCatGroup');
+
+      /* operator인데 카테고리 미선택 시 경고 */
+      if (role !== 'super_admin' && assignedCategories.length === 0) {
+        const ok = confirm(
+          '담당 카테고리가 비어있습니다.\n\n' +
+          '이 상태로 저장하면 새 알림을 받을 수 없습니다.\n' +
+          '계속하시겠습니까?'
+        );
+        if (!ok) return;
+      }
+
+      const btn = form.querySelector('button[type="submit"]');
+      const oldText = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+      try {
+        const res = await api('/api/admin/operators', {
+          method: 'PATCH',
+          body: {
+            id,
+            role,
+            notifyOnSupport,
+            operatorActive,
+            assignedCategories,
+          },
+        });
+
+        if (res.ok) {
+          toast(res.data?.message || '저장되었습니다');
+          document.getElementById('operatorEditModal')?.classList.remove('show');
+          _opEditCurrent = null;
+          loadOperators();
+        } else {
+          toast(res.data?.error || '저장 실패');
+        }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
       }
     });
   }
@@ -4190,12 +4489,26 @@
       }
     });
 
+// public/js/admin.js — setupOperatorActions 내 click 리스너 상단부 교체
     document.addEventListener('click', async (e) => {
       const promoteBtn = e.target.closest('[data-op-action="open-promote"]');
       if (promoteBtn) {
         e.preventDefault();
-        document.getElementById('promoteOperatorModal')?.classList.add('show');
+        /* ★ M-15: 모달 열 때 카테고리 초기화 */
+        const modal = document.getElementById('promoteOperatorModal');
+        if (modal) modal.classList.add('show');
         document.getElementById('promoteSearchInput')?.focus();
+        /* 카테고리 영역 초기 렌더 (operator 기본) */
+        renderCategoryCheckboxes('promoteCatGroup', [], 'operator');
+        return;
+      }
+
+      /* ★ M-15: 편집 모달 오픈 */
+      const editBtn = e.target.closest('[data-op-action="open-edit"]');
+      if (editBtn) {
+        e.preventDefault();
+        const id = Number(editBtn.dataset.opId);
+        if (id) openOperatorEditModal(id);
         return;
       }
 
@@ -4455,7 +4768,9 @@
     setupPromoteSearch();
     setupPromotePick();
     setupPromoteConfirm();
+// public/js/admin.js — init() 내부, setupOperatorActions 다음에 1줄 추가
     setupOperatorActions();
+    setupOperatorEditModal();    /* ★ M-15 */
     setupReceiptSettings();
     setupExpertAssignClick();  /* ★ K-3 추가 */
     setupContentActions();     /* K-5 */

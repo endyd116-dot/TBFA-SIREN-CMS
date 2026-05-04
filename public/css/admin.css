@@ -118,3 +118,162 @@
   .adm-content{padding:20px}
   .login-card{padding:32px 24px}
 }
+
+/* public/css/admin.css — 파일 끝에 append */
+
+/* =========================================================
+   ★ M-15: 운영자 카테고리 시스템
+   ========================================================= */
+
+/* 카테고리 뱃지 (운영자 목록 테이블 / 모달 등) */
+.op-cat-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.op-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f0f0f0;
+  color: #525252;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.op-cat-badge.all     { background: #fef9f5; color: #7a1f2b; border: 1px solid #f0d6da; }
+.op-cat-badge.incident   { background: #fef2f2; color: #a01e2c; }
+.op-cat-badge.harassment { background: #fff8ec; color: #8a6a00; }
+.op-cat-badge.legal      { background: #f8f7fc; color: #5a4d8c; }
+.op-cat-badge.board      { background: #eef2ff; color: #4338ca; }
+.op-cat-badge.donation   { background: #e7f7ec; color: #1a5e2c; }
+.op-cat-badge.support    { background: #e6f2ff; color: #1a5ec4; }
+.op-cat-badge.empty {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--text-3);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* 카테고리 체크박스 그룹 (모달 안) */
+.op-cat-group {
+  background: #fafaf8;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.op-cat-group .cat-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+  display: block;
+}
+.op-cat-group .cat-label .hint {
+  font-weight: 400;
+  color: var(--text-3);
+  font-size: 11px;
+}
+.op-cat-all-row {
+  padding: 8px 10px;
+  background: #fef9f5;
+  border: 1px solid #f0d6da;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #7a1f2b;
+}
+.op-cat-all-row:hover { background: #fef0e8; }
+.op-cat-all-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.op-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 10px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+.op-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-1);
+  transition: background 0.1s;
+}
+.op-cat-item:hover { background: #fff; }
+.op-cat-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.op-cat-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.op-cat-item .emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.op-cat-warn {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: #fff;
+  border-radius: 4px;
+  border-left: 3px solid var(--brand);
+}
+
+/* 운영자 행 액션 버튼 */
+.op-row-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.op-row-actions button {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.op-row-actions button.edit { color: var(--brand); border-color: #f0e0e3; }
+.op-row-actions button.edit:hover { background: var(--brand-soft, #fef9f5); }
+.op-row-actions button.warn {
+  color: #8a6a00;
+  border-color: #f0e3c4;
+  background: #fff8ec;
+}
+.op-row-actions button.warn:hover { background: #fdf3d8; }
+.op-row-actions button.danger {
+  color: var(--danger);
+  border-color: #f5b5bb;
+}
+.op-row-actions button.danger:hover { background: #fdecec; }
