@@ -979,6 +979,16 @@ export const campaignTypeEnum = pgEnum("campaign_type", [
   "memorial",
   "awareness"
 ]);
+// db/schema.ts — campaignTypeEnum 다음에 추가
+
+/* ★ M-19-4: 회원 등급 (자연 모티브 5단계) */
+export const memberTierEnum = pgEnum("member_tier", [
+  "seed",    // 🌱 씨앗  (0 ~ 99,999원)
+  "sprout",  // 🌿 새싹  (100,000 ~ 499,999원)
+  "tree",    // 🌳 나무  (500,000 ~ 1,999,999원)
+  "forest",  // 🌲 숲    (2,000,000 ~ 4,999,999원)
+  "land",    // 🏞 대지  (5,000,000원+)
+]);
 
 export const campaigns = pgTable("campaigns", {
   id: serial("id").primaryKey(),
