@@ -103,14 +103,17 @@
 [functions."cron-churn-predictor"]
   schedule = "30 19 * * *"
 
-# ★ Phase M-19-2: 캠페인 진행 부진 자동 감지 (매주 월요일 오전 10시 KST = UTC 일요일 01:00)
+# netlify.toml — cron-campaign-slump-check 다음에 추가
 [functions."cron-campaign-slump-check"]
   schedule = "0 1 * * 1"
+
+# ★ Phase M-19-4: 회원 등급 재산정 (매주 일요일 04:00 KST = UTC 토 19:00)
+[functions."cron-tier-recalc"]
+  schedule = "0 19 * * 6"
 
 # ============================================================
 # Dev 설정
 # ============================================================
-
 [dev]
   port = 8888
   publish = "public"

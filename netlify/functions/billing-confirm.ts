@@ -340,6 +340,8 @@ export default async (req: Request) => {
     }
 
     /* 13. 감사 로그 */
+// netlify/functions/billing-confirm.ts — 감사 로그 직후, 응답 직전에 추가
+    /* 13. 감사 로그 */
     await logUserAction(req, memberId, data.name, "billing_register_success", {
       target: data.customerKey,
       detail: {
@@ -351,6 +353,16 @@ export default async (req: Request) => {
         nextChargeAt: nextCharge.toISOString(),
       },
     });
+
+
+    /* ★ M-19-4: 등급 자동 재산정 (정기 후원 등록 + 첫 결제 완료) */
+    if (memberId) {
+      try {
+        const { refreshTierAfterDonation } = await import("../../lib/member-tier");
+        refreshTierAfterDonation(memberId).catch(() => {});
+      } catch (_) {}
+    }
+
 // netlify/functions/billing-confirm.ts — 감사 로그(13) 다음, 응답(14) 앞에 추가
     /* ★ M-19-1: 14. 등급 재계산 훅 (실패해도 결제는 성공) */
     if (memberId) {

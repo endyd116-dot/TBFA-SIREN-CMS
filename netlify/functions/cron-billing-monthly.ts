@@ -315,6 +315,7 @@ async function processOneCharge(billing: any, authHeader: string): Promise<{
     }
   }
 
+// netlify/functions/cron-billing-monthly.ts — processOneCharge 함수, audit 다음
   await logAudit({
     userId: billing.memberId,
     userType: "system",
@@ -328,6 +329,14 @@ async function processOneCharge(billing: any, authHeader: string): Promise<{
       nextChargeAt: nextCharge.toISOString(),
     },
   });
+
+  /* ★ M-19-4: 정기 결제 성공 시 등급 자동 재산정 */
+  if (billing.memberId) {
+    try {
+      const { refreshTierAfterDonation } = await import("../../lib/member-tier");
+      refreshTierAfterDonation(billing.memberId).catch(() => {});
+    } catch (_) {}
+  }
 
   return { success: true, donationId: donation.id };
 }
