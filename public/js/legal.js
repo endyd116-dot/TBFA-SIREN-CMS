@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — legal.js (★ Phase M-7)
+   SIREN — legal.js (★ Phase M-7 + M-17 후원자 분기 추가)
    - 법률지원 서비스 페이지
    - 단일 페이지 STEP 1/2/3 전환
    ========================================================= */
@@ -7,6 +7,11 @@
   'use strict';
 
   /* ============ 헬퍼 ============ */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   function urgencyInfo(u) {
     const map = {
       urgent: { icon: '🚨', label: 'URGENT — 24~72시간 내 조치 필요', cls: 'urgent' },
@@ -50,7 +55,7 @@
         });
       } catch (e) {
         console.error('[legal] editor init failed', e);
-        window.SIREN.toast('편집기 로드 실패');
+        if (window.SIREN && window.SIREN.toast) window.SIREN.toast('편집기 로드 실패 — 새로고침해 주세요');
       }
     }
 
@@ -152,33 +157,92 @@
     }
   }
 
-  /* ============ AI 결과 렌더 ============ */
+  /* ============ AI 결과 렌더 (★ M-17 후원자 분기 추가) ============ */
   function renderAiResult(data) {
-    const ai = data.ai || {};
+    const noEl = document.getElementById('legalConsultationNo');
+    if (noEl) noEl.textContent = data.consultationNo || '-';
 
-    document.getElementById('legalConsultationNo').textContent = data.consultationNo || '-';
+    if (data.isDonor && data.ai) {
+      /* ─── 후원자 — AI 분석 결과 정상 표시 ─── */
+      const ai = data.ai;
 
-    /* 긴급도 배너 */
-    const urg = ai.urgency || 'normal';
-    const urgInfo = urgencyInfo(urg);
-    const banner = document.getElementById('legalUrgencyBanner');
-    banner.className = 'legal-urgency-banner ' + urgInfo.cls;
-    document.getElementById('legalUrgencyIcon').textContent = urgInfo.icon;
-    document.getElementById('legalUrgencyLabel').textContent = urgInfo.label;
+      const notice = document.getElementById('legalPremiumNotice');
+      if (notice) notice.style.display = 'none';
 
-    /* 본문 */
-    document.getElementById('legalAiSummary').textContent =
-      ai.summary || '(AI 법률 분석을 일시적으로 사용할 수 없습니다)';
-    document.getElementById('legalAiLaws').textContent =
-      ai.relatedLaws || '(관련 법령 정보가 없습니다)';
-    document.getElementById('legalAiOpinion').textContent =
-      ai.legalOpinion || '(1차 법률 의견을 제공할 수 없습니다)';
-    document.getElementById('legalLawyerSpecialty').textContent =
-      ai.lawyerSpecialty || '교육법 / 일반 민·형사';
-    document.getElementById('legalAiImmediate').textContent =
-      ai.immediateAction || '(즉시 조치 필요사항이 없습니다)';
-    document.getElementById('legalAiSuggestion').textContent =
-      ai.suggestion || '(권장사항 정보가 없습니다)';
+      /* 긴급도 배너 표시 */
+      const banner = document.getElementById('legalUrgencyBanner');
+      if (banner) {
+        banner.style.display = '';
+        const urg = ai.urgency || 'normal';
+        const urgInfo = urgencyInfo(urg);
+        banner.className = 'legal-urgency-banner ' + urgInfo.cls;
+        const iconEl = document.getElementById('legalUrgencyIcon');
+        const labelEl = document.getElementById('legalUrgencyLabel');
+        if (iconEl) iconEl.textContent = urgInfo.icon;
+        if (labelEl) labelEl.textContent = urgInfo.label;
+      }
+
+      /* 본문 필드 */
+      const fields = [
+        ['legalAiSummary', ai.summary || '(AI 법률 분석을 일시적으로 사용할 수 없습니다)'],
+        ['legalAiLaws', ai.relatedLaws || '(관련 법령 정보가 없습니다)'],
+        ['legalAiOpinion', ai.legalOpinion || '(1차 법률 의견을 제공할 수 없습니다)'],
+        ['legalLawyerSpecialty', ai.lawyerSpecialty || '교육법 / 일반 민·형사'],
+        ['legalAiImmediate', ai.immediateAction || '(즉시 조치 필요사항이 없습니다)'],
+        ['legalAiSuggestion', ai.suggestion || '(권장사항 정보가 없습니다)'],
+      ];
+      fields.forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      });
+    } else if (data.premiumNotice) {
+      /* ─── 비후원자 — 후원 회원 전용 안내 ─── */
+      const banner = document.getElementById('legalUrgencyBanner');
+      if (banner) banner.style.display = 'none';
+
+      ['legalAiSummary', 'legalAiLaws', 'legalAiOpinion', 'legalLawyerSpecialty',
+       'legalAiImmediate', 'legalAiSuggestion'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+      });
+
+      renderLegalPremiumNotice(data.premiumNotice);
+    }
+  }
+
+  /* ★ M-17: 비후원자 안내 박스 */
+  function renderLegalPremiumNotice(notice) {
+    const step2 = document.querySelector('.legal-step[data-legal-step="2"]');
+    if (!step2) return;
+
+    let box = document.getElementById('legalPremiumNotice');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'legalPremiumNotice';
+      box.style.cssText = 'background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid #7a1f2b;border-radius:10px;padding:28px;margin:18px 0;text-align:center';
+
+      const noBox = document.getElementById('legalConsultationNo');
+      const target = noBox ? noBox.closest('div') : null;
+      if (target && target.parentElement) {
+        target.parentElement.insertBefore(box, target.nextSibling);
+      } else {
+        step2.appendChild(box);
+      }
+    }
+    box.style.display = '';
+
+    const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
+    box.innerHTML =
+      '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
+        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
+      '</div>' +
+      '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
+        safeMessage +
+      '</div>' +
+      '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
+         'style="display:inline-block;padding:14px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
+        escapeHtml(notice.ctaText || '후원하러 가기') + ' →' +
+      '</a>';
   }
 
   /* ============ 변호사 매칭 결정 ============ */
@@ -210,17 +274,17 @@
       const finalMsg = document.getElementById('legalFinalMsg');
 
       if (requested) {
-        finalIcon.textContent = '👨‍⚖️';
-        finalTitle.textContent = '변호사 매칭이 신청되었습니다';
-        finalMsg.innerHTML =
+        if (finalIcon) finalIcon.textContent = '👨‍⚖️';
+        if (finalTitle) finalTitle.textContent = '변호사 매칭이 신청되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
           '소중한 신청 감사합니다.<br />' +
           '사안에 맞는 변호사를 검토하여 배정해 드리며,<br />' +
           '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.<br /><br />' +
           '<span style="color:var(--text-3);font-size:12px">※ 변호사 배정까지 영업일 기준 1~3일이 소요될 수 있습니다.</span>';
       } else {
-        finalIcon.textContent = '📋';
-        finalTitle.textContent = 'AI 자문으로 종료 처리되었습니다';
-        finalMsg.innerHTML =
+        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalTitle) finalTitle.textContent = 'AI 자문으로 종료 처리되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
           '상담 내역이 기록되었습니다.<br />' +
           '추후 변호사 매칭이 필요하시면<br />' +
           '마이페이지 &gt; 1:1 상담을 이용해 주세요.';
@@ -238,11 +302,12 @@
   function init() {
     if (document.body.dataset.page !== 'legal') return;
 
-    /* 비로그인 시 안내 */
     setTimeout(() => {
       const auth = window.SIREN_AUTH;
       if (!auth || !auth.isLoggedIn()) {
-        window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
+        if (window.SIREN && window.SIREN.toast) {
+          window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
+        }
       }
     }, 1500);
 

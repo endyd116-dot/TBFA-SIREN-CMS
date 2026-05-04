@@ -1,7 +1,8 @@
 /* =========================================================
-   SIREN — harassment.js (★ Phase M-6)
+   SIREN — harassment.js (★ Phase M-6 + Pass 6 패치)
    - 악성민원 신고 페이지
    - 단일 페이지 STEP 1/2/3 전환
+   - ★ Pass 6: renderAiResult가 legal 코드로 잘못 채워졌던 것 정정
    ========================================================= */
 (function () {
   'use strict';
@@ -41,13 +42,11 @@
       else if (num === n) el.classList.add('active');
     });
 
-    /* 화면 상단으로 부드럽게 스크롤 */
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   /* ============ 편집기 + 첨부 초기화 ============ */
   async function initEditorAndAttachments() {
-    /* 편집기 */
     if (!_editor) {
       try {
         _editor = await window.SirenEditor.create({
@@ -58,11 +57,10 @@
         });
       } catch (e) {
         console.error('[harassment] editor init failed', e);
-        window.SIREN.toast('편집기 로드 실패');
+        if (window.SIREN && window.SIREN.toast) window.SIREN.toast('편집기 로드 실패');
       }
     }
 
-    /* 첨부 */
     if (!_attachments && window.SirenAttachment) {
       _attachments = window.SirenAttachment.create({
         el: document.getElementById('harassAttachments'),
@@ -165,11 +163,10 @@
     }
   }
 
-  /* ============ AI 결과 렌더 ============ */
-  // public/js/harassment.js — renderAiResult 함수 전체 교체
-  // public/js/legal.js — renderAiResult 함수 전체 교체
+  /* ============ AI 결과 렌더 (★ Pass 6 정정: harassment 전용으로 재작성) ============ */
   function renderAiResult(data) {
-    document.getElementById('legalConsultationNo').textContent = data.consultationNo || '-';
+    const reportNoEl = document.getElementById('harassReportNo');
+    if (reportNoEl) reportNoEl.textContent = data.reportNo || '-';
 
     /* ★ M-17: 후원자 분기 */
     if (data.isDonor && data.ai) {
@@ -177,90 +174,50 @@
       const ai = data.ai;
 
       /* 비후원자 안내 박스 숨김 */
-      const notice = document.getElementById('legalPremiumNotice');
+      const notice = document.getElementById('harassPremiumNotice');
       if (notice) notice.style.display = 'none';
 
-      /* AI 결과 영역 표시 */
-      const banner = document.getElementById('legalUrgencyBanner');
-      if (banner) banner.style.display = '';
+      /* 심각도 배너 */
+      const sev = ai.severity || 'medium';
+      const sevInfo = severityInfo(sev);
+      const sevBox = document.getElementById('harassSeverity');
+      if (sevBox) {
+        sevBox.style.display = '';
+        sevBox.className = 'harass-severity ' + sevInfo.cls;
+      }
+      const sevIcon = document.getElementById('harassSeverityIcon');
+      const sevLabel = document.getElementById('harassSeverityLabel');
+      if (sevIcon) sevIcon.textContent = sevInfo.icon;
+      if (sevLabel) sevLabel.textContent = sevInfo.label;
 
-      /* 긴급도 배너 */
-      const urg = ai.urgency || 'normal';
-      const urgInfo = urgencyInfo(urg);
-      banner.className = 'legal-urgency-banner ' + urgInfo.cls;
-      document.getElementById('legalUrgencyIcon').textContent = urgInfo.icon;
-      document.getElementById('legalUrgencyLabel').textContent = urgInfo.label;
-
-      /* 본문 */
-      document.getElementById('legalAiSummary').textContent =
-        ai.summary || '(AI 법률 분석을 일시적으로 사용할 수 없습니다)';
-      document.getElementById('legalAiLaws').textContent =
-        ai.relatedLaws || '(관련 법령 정보가 없습니다)';
-      document.getElementById('legalAiOpinion').textContent =
-        ai.legalOpinion || '(1차 법률 의견을 제공할 수 없습니다)';
-      document.getElementById('legalLawyerSpecialty').textContent =
-        ai.lawyerSpecialty || '교육법 / 일반 민·형사';
-      document.getElementById('legalAiImmediate').textContent =
-        ai.immediateAction || '(즉시 조치 필요사항이 없습니다)';
-      document.getElementById('legalAiSuggestion').textContent =
-        ai.suggestion || '(권장사항 정보가 없습니다)';
+      /* 본문 필드 */
+      const fields = [
+        ['harassAiSummary', ai.summary || '(AI 분석을 일시적으로 사용할 수 없습니다)'],
+        ['harassAiCategory', ai.category || '(분류 정보 없음)'],
+        ['harassAiImmediate', ai.immediateAction || '(즉시 조치사항 정보 없음)'],
+        ['harassAiLegalReview', ai.legalReviewNeeded
+          ? '필요 — ' + (ai.legalReason || '법률 검토 권장')
+          : '불필요'],
+        ['harassAiPsychSupport', ai.psychSupportNeeded ? '심리 지원 권장' : '필요 없음'],
+        ['harassAiSuggestion', ai.suggestion || '(권장사항 정보 없음)'],
+      ];
+      fields.forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      });
     } else if (data.premiumNotice) {
-      /* 비후원자 — 후원 회원 전용 안내 */
-      const banner = document.getElementById('legalUrgencyBanner');
-      if (banner) banner.style.display = 'none';
+      /* 비후원자 — 후원 회원 전용 안내 표시 */
+      const sevBox = document.getElementById('harassSeverity');
+      if (sevBox) sevBox.style.display = 'none';
 
-      /* 본문 비우기 */
-      ['legalAiSummary', 'legalAiLaws', 'legalAiOpinion', 'legalLawyerSpecialty',
-       'legalAiImmediate', 'legalAiSuggestion'].forEach((id) => {
+      ['harassAiSummary', 'harassAiCategory', 'harassAiImmediate',
+       'harassAiLegalReview', 'harassAiPsychSupport', 'harassAiSuggestion'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.textContent = '';
       });
 
-      renderLegalPremiumNotice(data.premiumNotice);
+      renderHarassPremiumNotice(data.premiumNotice);
     }
-  }
-
-  /* ★ M-17: 비후원자 안내 박스 */
-  function renderLegalPremiumNotice(notice) {
-    const step2 = document.querySelector('.legal-step[data-legal-step="2"]');
-    if (!step2) return;
-
-    let box = document.getElementById('legalPremiumNotice');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'legalPremiumNotice';
-      box.style.cssText = 'background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid #7a1f2b;border-radius:10px;padding:28px;margin:18px 0;text-align:center';
-
-      /* 접수번호 다음에 삽입 */
-      const noBox = document.getElementById('legalConsultationNo');
-      const target = noBox ? noBox.closest('div')?.parentElement : null;
-      if (target && target.parentElement) {
-        target.parentElement.insertBefore(box, target.nextSibling);
-      } else {
-        step2.appendChild(box);
-      }
-    }
-    box.style.display = '';
-
-    const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
-    box.innerHTML =
-      '<div style="font-family:\'Noto Serif KR\',serif;font-size:19px;font-weight:700;color:#7a1f2b;margin-bottom:14px">' +
-        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
-      '</div>' +
-      '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:20px">' +
-        safeMessage +
-      '</div>' +
-      '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
-         'style="display:inline-block;padding:14px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
-        escapeHtml(notice.ctaText || '후원하러 가기') + ' →' +
-      '</a>';
-  }
-
-  /* ★ M-17: escapeHtml 헬퍼 (legal.js에 없을 경우 대비) */
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-    });
   }
 
   /* ★ M-17: 비후원자 안내 박스 렌더 */
@@ -274,7 +231,6 @@
       box.id = 'harassPremiumNotice';
       box.style.cssText = 'background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid #7a1f2b;border-radius:10px;padding:28px;margin:18px 0;text-align:center';
 
-      /* 접수번호 박스 다음에 삽입 */
       const reportNoBox = document.getElementById('harassReportNo');
       const insertTarget = reportNoBox ? reportNoBox.closest('div')?.parentElement : null;
       if (insertTarget && insertTarget.parentElement) {
@@ -323,22 +279,21 @@
         return;
       }
 
-      /* 완료 화면 */
       const finalIcon = document.getElementById('harassFinalIcon');
       const finalTitle = document.getElementById('harassFinalTitle');
       const finalMsg = document.getElementById('harassFinalMsg');
 
       if (requested) {
-        finalIcon.textContent = '✅';
-        finalTitle.textContent = '사이렌에 정식 신고되었습니다';
-        finalMsg.innerHTML =
+        if (finalIcon) finalIcon.textContent = '✅';
+        if (finalTitle) finalTitle.textContent = '사이렌에 정식 신고되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
           '소중한 신고 감사합니다.<br />' +
           '운영진 검토 후 답변을 드리며,<br />' +
           '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.';
       } else {
-        finalIcon.textContent = '📋';
-        finalTitle.textContent = 'AI 답변으로 종료 처리되었습니다';
-        finalMsg.innerHTML =
+        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalTitle) finalTitle.textContent = 'AI 답변으로 종료 처리되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
           '신고 내역이 기록되었습니다.<br />' +
           '추후 사이렌 정식 신고가 필요하시면<br />' +
           '마이페이지 &gt; 1:1 상담을 이용해 주세요.';

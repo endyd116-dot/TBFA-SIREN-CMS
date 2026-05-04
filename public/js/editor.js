@@ -1,9 +1,9 @@
 // public/js/editor.js
-// ★ Phase M-1: SIREN 공통 WYSIWYG 편집기 래퍼
+// ★ Phase M-1 + 2026-05 패치: SIREN 공통 WYSIWYG 편집기
 // - Toast UI Editor v3.2.2 (CDN, lazy-load)
+// - color-syntax 플러그인 완전 옵셔널화 (CDN 호스팅 불안정 대응)
 // - 이미지 자동 압축 (Canvas, max 1600px, JPEG 85%)
-// - Netlify Blobs 업로드 어댑터 (/api/blob-upload)
-// - 사용법: const ed = await SirenEditor.create({ el, ... });
+// - R2 직접 업로드 (presign → PUT → confirm)
 
 (function (window) {
   'use strict';
@@ -17,7 +17,6 @@
     editorJs:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor-all.min.js`,
     colorCss:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.css`,
     colorJs:   `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.js`,
-    /* ★ 2026-05 패치: uicdn.toast.com 서비스 종료 → jsdelivr로 교체 */
     pickerCss: `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.css`,
     pickerJs:  `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.js`,
   };
@@ -58,23 +57,33 @@
     });
   }
 
+  /* ★ 2026-05 패치: color-picker CDN이 모두 불안정 → 실패해도 무시하고 진행 */
   async function loadLib() {
     if (_libLoaded) return;
     if (_libLoading) return _libLoading;
 
     _libLoading = (async () => {
-      // CSS 병렬 로드
-      await Promise.all([
-        loadStylesheet(CDN.editorCss),
-        loadStylesheet(CDN.colorCss),
-        loadStylesheet(CDN.pickerCss),
-        loadStylesheet('/css/editor.css'),
-      ]);
+      const safeLoadCss = (url) => loadStylesheet(url).catch((e) => {
+        console.warn('[SirenEditor] CSS skip:', url.split('/').pop(), '-', e.message);
+      });
+      const safeLoadJs = (url) => loadScript(url).catch((e) => {
+        console.warn('[SirenEditor] JS skip:', url.split('/').pop(), '-', e.message);
+      });
 
-      // JS는 순서 보장 (color-picker → editor → color-syntax)
-      await loadScript(CDN.pickerJs);
+      /* 핵심 CSS (필수) */
+      await loadStylesheet(CDN.editorCss);
+      await loadStylesheet('/css/editor.css').catch(() => {});
+
+      /* 색상 관련 CSS (옵셔널 — 실패 무시) */
+      await safeLoadCss(CDN.colorCss);
+      await safeLoadCss(CDN.pickerCss);
+
+      /* 핵심 editor JS (필수) */
       await loadScript(CDN.editorJs);
-      await loadScript(CDN.colorJs);
+
+      /* 색상 플러그인 JS (옵셔널 — 실패 무시) */
+      await safeLoadJs(CDN.pickerJs);
+      await safeLoadJs(CDN.colorJs);
 
       _libLoaded = true;
     })();
@@ -132,9 +141,6 @@
   }
 
   /* ============================================================
-     업로드 (서버 어댑터)
-     ============================================================ */
-    /* ============================================================
      업로드 (★ M-2.5: R2 직접 업로드 — presign → PUT → confirm)
      ============================================================ */
   async function uploadFile(file, context = 'editor') {
@@ -211,7 +217,13 @@
     if (readonly) el.classList.add('siren-editor-readonly');
 
     const Editor = window.toastui.Editor;
-    const colorSyntax = window.toastui.Editor.plugin.colorSyntax;
+
+    /* ★ 2026-05 패치: colorSyntax가 로드 안 됐으면 빈 배열로 진행 */
+    const plugins = [];
+    try {
+      const cs = window.toastui?.Editor?.plugin?.colorSyntax;
+      if (typeof cs === 'function') plugins.push(cs);
+    } catch (_) {}
 
     const toolbarItems = readonly ? [] : [
       ['heading', 'bold', 'italic', 'strike'],
@@ -232,7 +244,7 @@
       usageStatistics: false,
       hideModeSwitch: false,
       language: 'ko',
-      plugins: [colorSyntax],
+      plugins,
       toolbarItems,
       hooks: {
         addImageBlobHook: async (blob, callback) => {
@@ -296,7 +308,7 @@
     loadLib,
     compressImage,
     uploadFile,
-    version: '1.0.0-m1',
+    version: '1.1.0-color-optional',
   };
 
 })(window);
