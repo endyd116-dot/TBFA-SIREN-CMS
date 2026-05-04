@@ -1,8 +1,9 @@
+// db/schema.ts (1~5행) — import 라인 교체
 import {
   pgTable, serial, varchar, integer, text, timestamp,
-  boolean, index, pgEnum
+  boolean, index, pgEnum, jsonb
 } from "drizzle-orm/pg-core";
-
+import { sql } from "drizzle-orm";
 /* =========================================================
    ENUM 타입
    ========================================================= */
@@ -92,6 +93,7 @@ export const members = pgTable("members", {
   withdrawnAt: timestamp("withdrawn_at"),                         // 탈퇴 시점
   withdrawnReason: varchar("withdrawn_reason", { length: 500 }),  // 탈퇴 사유 (선택)
 
+// db/schema.ts — members 테이블 내부, M-12 블록 다음에 추가
   /* ───────── ★ M-12: 회원 4분류 + 가입경로 (NEW) ───────── */
   memberCategory: varchar("member_category", { length: 20 }),
   // 'sponsor' | 'regular' | 'family' | 'etc' (null 가능 — 마이그레이션 후 자동 분류)
@@ -100,6 +102,14 @@ export const members = pgTable("members", {
   // 'volunteer' | 'lawyer' | 'counselor' | null
   signupSourceId: integer("signup_source_id"),
   // signup_sources.id 참조 (런타임 join)
+
+  /* ───────── ★ M-15: 운영자 담당 카테고리 (NEW) ───────── */
+  // type='admin'인 회원에게만 의미 있음
+  // 가능 값: ['incident','harassment','legal','board','donation','support'] 또는 ['all']
+  // super_admin은 이 값을 무시하고 항상 전체 알림 수신 (notify.ts에서 처리)
+  // 'all' 포함 시 다른 카테고리 무시 (admin-operators.ts에서 정규화)
+  // GIN 인덱스: idx_members_assigned_categories (DB 측에서 직접 생성, STEP 1 마이그레이션)
+  assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
 
   // 메타
   memo: text("memo"),
