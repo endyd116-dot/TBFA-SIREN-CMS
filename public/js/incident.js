@@ -322,21 +322,39 @@
         return;
       }
 
+// public/js/incident.js — handleReportSubmit 내 AI 결과 표시 블록 교체
       const data = json.data || {};
       _lastReportId = data.reportId;
 
-      /* AI 결과 표시 */
-      const ai = data.ai || {};
-      const sev = ai.severity || 'medium';
-      const sevInfo = severityInfo(sev);
-
       document.getElementById('irReportNo').textContent = data.reportNo || '-';
-      const sevBox = document.getElementById('irAiSeverity');
-      sevBox.className = 'ir-ai-severity ' + sevInfo.cls;
-      document.getElementById('irSeverityIcon').textContent = sevInfo.icon;
-      document.getElementById('irSeverityLabel').textContent = sevInfo.label;
-      document.getElementById('irAiSummary').textContent = ai.summary || '(AI 분석을 일시적으로 사용할 수 없습니다)';
-      document.getElementById('irAiSuggestion').textContent = ai.suggestion || '(권장 후속조치 정보가 없습니다)';
+
+      /* ★ M-17: 후원자 여부에 따른 분기 표시 */
+      if (data.isDonor && data.ai) {
+        /* 후원자 — AI 분석 결과 정상 표시 */
+        const ai = data.ai;
+        const sev = ai.severity || 'medium';
+        const sevInfo = severityInfo(sev);
+
+        const sevBox = document.getElementById('irAiSeverity');
+        sevBox.style.display = '';
+        sevBox.className = 'ir-ai-severity ' + sevInfo.cls;
+        document.getElementById('irSeverityIcon').textContent = sevInfo.icon;
+        document.getElementById('irSeverityLabel').textContent = sevInfo.label;
+        document.getElementById('irAiSummary').textContent = ai.summary || '(AI 분석을 일시적으로 사용할 수 없습니다)';
+        document.getElementById('irAiSuggestion').textContent = ai.suggestion || '(권장 후속조치 정보가 없습니다)';
+
+        /* 비후원자 안내 박스가 있다면 숨김 */
+        const notice = document.getElementById('irPremiumNotice');
+        if (notice) notice.style.display = 'none';
+      } else if (data.premiumNotice) {
+        /* 비후원자 — 후원 회원 전용 안내 표시 */
+        const sevBox = document.getElementById('irAiSeverity');
+        if (sevBox) sevBox.style.display = 'none';
+        document.getElementById('irAiSummary').textContent = '';
+        document.getElementById('irAiSuggestion').textContent = '';
+
+        renderPremiumNotice(data.premiumNotice);
+      }
 
       showStep(2);
     } catch (e) {
@@ -398,6 +416,41 @@
     }
   }
 
+  // public/js/incident.js — confirmReport 함수 다음에 추가
+  /* ★ M-17: 비후원자 안내 박스 렌더 */
+  function renderPremiumNotice(notice) {
+    const step2 = document.querySelector('[data-ir-step="2"]');
+    if (!step2) return;
+
+    let box = document.getElementById('irPremiumNotice');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'irPremiumNotice';
+      box.style.cssText = 'background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid #7a1f2b;border-radius:10px;padding:24px;margin:16px 0;text-align:center';
+
+      const summaryBox = document.getElementById('irAiSummary');
+      if (summaryBox && summaryBox.parentElement) {
+        summaryBox.parentElement.insertBefore(box, summaryBox);
+      } else {
+        step2.appendChild(box);
+      }
+    }
+    box.style.display = '';
+
+    const safeMessage = String(notice.message || '').replace(/\n/g, '<br />');
+    box.innerHTML =
+      '<div style="font-family:\'Noto Serif KR\',serif;font-size:18px;font-weight:700;color:#7a1f2b;margin-bottom:12px">' +
+        escapeHtml(notice.title || '🎗 사이렌 후원 회원 전용 서비스') +
+      '</div>' +
+      '<div style="font-size:13.5px;color:#525252;line-height:1.8;margin-bottom:18px">' +
+        safeMessage +
+      '</div>' +
+      '<a href="' + escapeHtml(notice.ctaUrl || '/support.html') + '" ' +
+         'style="display:inline-block;padding:12px 28px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">' +
+        escapeHtml(notice.ctaText || '후원하러 가기') + ' →' +
+      '</a>';
+  }
+  
   /* ============ 초기화 ============ */
   function init() {
     const page = document.body.dataset.page;
