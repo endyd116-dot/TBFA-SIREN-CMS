@@ -108,7 +108,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* 통계 대시보드 */
+    /* 통계 대시보드 (기본) */
     const overallRow: any = await db.execute(sql`
       SELECT
         COUNT(*)::int AS "totalSent",
