@@ -1,16 +1,24 @@
 // netlify/functions/admin-churn-reengage.ts
-// ★ Phase M-19-1: 후원자 재참여 유도 메일 발송 (NEW)
+// ★ Phase M-19-1: 후원자 재참여 유도 메일 발송
+// ★ Pass 1-C 패치: admin.js 의 API 계약에 맞게 재작성
 //
 // POST /api/admin/churn-reengage
-// Body: { memberId: number, messageBody?: string }
+// Body 형식 (둘 중 하나):
+//   { memberId: number, useAiMessage: true }      → AI 자동 생성
+//   { memberId: number, customMessage: string }   → 운영자 직접 작성
 //
 // 정책:
-//   1. members.agreeEmail === false 인 회원에게는 발송 차단 (이메일 수신 거부 존중)
-//   2. lastReengageEmailAt 7일 이내면 발송 차단 (스팸 방지)
-//   3. messageBody 미입력 시 AI가 churnSignals 기반 자동 생성
-//   4. 발송 후 members.lastReengageEmailAt 갱신
+//   1. members.agreeEmail === false 이면 발송 차단
+//   2. lastReengageEmailAt 7일 이내면 발송 차단
+//   3. 운영자 작성 시 50~600자 검증
+//   4. 발송 후 lastReengageEmailAt 갱신
 //   5. audit_logs 자동 기록
 //   6. 권한: super_admin / operator 모두 가능
+//
+// 응답:
+//   data: {
+//     memberId, sentTo, messageSource: 'ai'|'custom'|'fallback', messageBody
+//   }
 
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -36,14 +44,26 @@ const SIGNAL_LABEL_KO: Record<string, string> = {
   card_likely_expired: "카드 만료 가능성",
 };
 
+const FALLBACK_MESSAGE = (memberName: string) =>
+  `${memberName}님, 오랜만에 안부 인사드립니다.
+
+지금까지 보내주신 따뜻한 마음이 교사 유가족분들의 회복 여정에 큰 힘이 되었습니다.
+
+사이렌은 지금도 유가족 심리 상담, 법률 자문, 자녀 장학 사업을 묵묵히 이어가고 있습니다.
+
+${memberName}님의 안부가 늘 궁금합니다.
+언제든 편안히 연락 주세요. 🎗`;
+
 /* ─────────────────────────────────────────────────────
-   AI 자동 메시지 생성 (운영자 입력 없을 때)
+   AI 자동 메시지 생성
+   - 성공 시 → 'ai' source 반환
+   - 실패 시 → 'fallback' source 반환
    ───────────────────────────────────────────────────── */
-async function generateReengageMessage(
+async function generateAiMessage(
   memberName: string,
   signals: string[],
   totalAmount: number,
-): Promise<string> {
+): Promise<{ text: string; source: "ai" | "fallback" }> {
   const signalsText = signals.map((s) => SIGNAL_LABEL_KO[s] || s).join(", ");
 
   const prompt = `당신은 NPO(교사유가족협의회)의 후원자 케어 담당자입니다.
@@ -75,22 +95,13 @@ async function generateReengageMessage(
     if (r.ok && r.data?.messageBody) {
       const body = String(r.data.messageBody).trim();
       if (body.length >= 50 && body.length <= 600) {
-        return body;
+        return { text: body, source: "ai" };
       }
     }
   } catch (e) {
     console.warn("[churn-reengage] AI 생성 실패, 폴백 사용:", e);
   }
-
-  /* 폴백 메시지 */
-  return `${memberName}님, 오랜만에 안부 인사드립니다.
-
-지금까지 보내주신 따뜻한 마음이 교사 유가족분들의 회복 여정에 큰 힘이 되었습니다.
-
-사이렌은 지금도 유가족 심리 상담, 법률 자문, 자녀 장학 사업을 묵묵히 이어가고 있습니다.
-
-${memberName}님의 안부가 늘 궁금합니다.
-언제든 편안히 연락 주세요. 🎗`;
+  return { text: FALLBACK_MESSAGE(memberName), source: "fallback" };
 }
 
 /* ─────────────────────────────────────────────────────
@@ -138,7 +149,7 @@ export default async (req: Request) => {
       return badRequest("이메일 주소가 등록되지 않은 회원입니다");
     }
 
-    /* 정책 1: agreeEmail 체크 (수신 거부 존중) */
+    /* 정책 1: agreeEmail 체크 */
     if (m.agreeEmail === false) {
       return forbidden("이 회원은 이메일 수신에 동의하지 않았습니다");
     }
@@ -154,25 +165,38 @@ export default async (req: Request) => {
       }
     }
 
-    /* 본문 결정: 운영자 입력 우선, 없으면 AI 자동 생성 */
+    /* ★ 본문 결정: admin.js 의 두 가지 입력 방식 모두 지원 */
     let messageBody = "";
-    let usedAI = false;
+    let messageSource: "ai" | "custom" | "fallback" = "custom";
 
-    const inputBody = typeof body.messageBody === "string" ? body.messageBody.trim() : "";
-    if (inputBody.length >= 50 && inputBody.length <= 600) {
-      messageBody = inputBody;
-    } else if (inputBody.length > 0) {
-      return badRequest("메시지는 50자 이상 600자 이하로 작성해 주세요");
-    } else {
-      /* AI 자동 생성 */
+    const useAiMessage = body.useAiMessage === true;
+    const customMessage = typeof body.customMessage === "string"
+      ? body.customMessage.trim()
+      : "";
+
+    if (useAiMessage) {
+      /* AI 자동 생성 모드 */
       const signalsRaw: any = m.churnSignals || {};
       const signalCodes: string[] = Array.isArray(signalsRaw.codes) ? signalsRaw.codes : [];
-      messageBody = await generateReengageMessage(
+      const aiResult = await generateAiMessage(
         m.name || "회원",
         signalCodes,
         m.totalDonationAmount || 0,
       );
-      usedAI = true;
+      messageBody = aiResult.text;
+      messageSource = aiResult.source;  // 'ai' | 'fallback'
+    } else if (customMessage.length > 0) {
+      /* 운영자 직접 작성 모드 */
+      if (customMessage.length < 50) {
+        return badRequest("메시지는 50자 이상으로 작성해 주세요");
+      }
+      if (customMessage.length > 600) {
+        return badRequest("메시지는 600자 이하로 작성해 주세요");
+      }
+      messageBody = customMessage;
+      messageSource = "custom";
+    } else {
+      return badRequest("useAiMessage:true 또는 customMessage 중 하나를 지정해 주세요");
     }
 
     /* 메일 발송 */
@@ -209,16 +233,17 @@ export default async (req: Request) => {
         detail: {
           email: m.email,
           churnLevel: m.churnRiskLevel,
-          usedAI,
+          messageSource,
           messageLength: messageBody.length,
         },
       });
     } catch (_) {}
 
+    /* ★ admin.js 가 기대하는 응답 키: messageSource */
     return ok({
       memberId,
       sentTo: m.email,
-      usedAI,
+      messageSource,    // 'ai' | 'custom' | 'fallback'
       messageBody,
     }, "재참여 메일이 발송되었습니다");
   } catch (err: any) {
