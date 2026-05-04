@@ -2130,6 +2130,384 @@
     if (statusSel) statusSel.addEventListener('change', loadHyosung);
   }
 
+  // public/js/admin.js — setupHyosungDetailActions 함수 정의 끝 다음에 삽입
+
+  /* ============ ★ M-19-1: 후원자 이탈 위험 ============ */
+  let _churnSearchTimer = null;
+  let _churnCurrentList = [];
+
+  const CHURN_SIGNAL_LABEL = {
+    consecutive_fail: '결제 연속 실패',
+    long_inactive: '35~60일 결제 X',
+    very_long_inactive: '60일+ 결제 X',
+    no_recent_login: '90일+ 로그인 X',
+    amount_decreasing: '금액 감소 추세',
+    billing_deactivated: '카드 비활성',
+    card_likely_expired: '카드 만료 임박',
+  };
+
+  async function loadChurnRisks() {
+    const tbody = document.getElementById('churnTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+
+    const params = new URLSearchParams();
+    params.set('limit', '100');
+    params.set('page', '1');
+    const level = document.getElementById('churnFilterLevel')?.value || '';
+    const q = (document.getElementById('churnFilterQ')?.value || '').trim();
+    if (level) params.set('level', level);
+    if (q && q.length >= 2) params.set('q', q);
+
+    const res = await api('/api/admin/churn-risks?' + params.toString());
+    if (!res.ok || !res.data?.data) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--danger)">조회 실패</td></tr>';
+      return;
+    }
+
+    const list = res.data.data.list || [];
+    const stats = res.data.data.stats || {};
+    const pagination = res.data.data.pagination || {};
+
+    _churnCurrentList = list;
+
+    /* KPI */
+    const setKpi = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = (n || 0).toLocaleString() + ' 명'; };
+    setKpi('churnKpiCritical', stats.critical || 0);
+    setKpi('churnKpiWarning', stats.warning || 0);
+    setKpi('churnKpiStable', stats.stable || 0);
+    setKpi('churnKpiTotal', stats.evaluated || 0);
+
+    const lastEvalEl = document.getElementById('churnLastEvalAt');
+    if (lastEvalEl) {
+      lastEvalEl.textContent = stats.lastEvaluatedAt
+        ? '마지막 평가: ' + formatDateTime(stats.lastEvaluatedAt)
+        : '평가 미실행';
+    }
+
+    const countEl = document.getElementById('churnCount');
+    if (countEl) {
+      const total = pagination.total || 0;
+      if (q || level) {
+        countEl.textContent = `필터: ${list.length}건 / 전체 ${total.toLocaleString()}명`;
+      } else {
+        countEl.textContent = `전체 ${total.toLocaleString()}명`;
+      }
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">조회된 위험 회원이 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((m) => {
+      const level = m.churnRiskLevel || 'stable';
+      const score = m.churnRiskScore || 0;
+
+      const levelLabel = level === 'critical' ? '🚨 CRITICAL' :
+                         level === 'warning' ? '⚠️ WARNING' :
+                         '✅ STABLE';
+
+      const signalsHtml = (m.signalCodes || []).slice(0, 4).map((c) => {
+        const label = CHURN_SIGNAL_LABEL[c] || c;
+        return `<span class="churn-signal-tag">${escapeHtml(label)}</span>`;
+      }).join('');
+
+      const aiSummaryHtml = m.aiSummary
+        ? `<div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.5">💬 ${escapeHtml(m.aiSummary)}</div>`
+        : '';
+
+      const lastSent = m.lastReengageEmailAt;
+      const recentlySent = lastSent && (Date.now() - new Date(lastSent).getTime()) < 7 * 24 * 60 * 60 * 1000;
+      const lastSentText = lastSent ? formatShortDateTime(lastSent) : '<span style="color:var(--text-3)">—</span>';
+      const evaluatedText = m.churnLastEvaluatedAt ? formatShortDateTime(m.churnLastEvaluatedAt) : '—';
+
+      return `<tr>
+        <td><span class="churn-level-badge ${level}">${levelLabel}</span></td>
+        <td><div class="churn-score-circle ${level}">${score}</div></td>
+        <td>
+          <div><strong>${escapeHtml(m.name || '-')}</strong></div>
+          <div style="font-size:11px;color:var(--text-3)">${escapeHtml(m.email || '')}</div>
+        </td>
+        <td style="font-size:12px">
+          ${signalsHtml || '<span style="color:var(--text-3)">신호 없음</span>'}
+          ${aiSummaryHtml}
+        </td>
+        <td style="font-size:11.5px;color:${recentlySent ? '#c47a00' : 'var(--text-2)'}">${lastSentText}</td>
+        <td style="font-size:11px;color:var(--text-3)">${evaluatedText}</td>
+        <td>
+          <div class="churn-row-actions">
+            <button type="button" class="detail" data-churn-action="detail" data-id="${m.id}">📝 상세</button>
+            <button type="button" class="email" data-churn-action="reengage" data-id="${m.id}" data-name="${escapeHtml(m.name || '')}" ${recentlySent ? 'disabled title="7일 내 이미 발송됨"' : ''}>💌 메일 발송</button>
+            <button type="button" class="reeval" data-churn-action="reeval" data-id="${m.id}">🔄 재평가</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function openChurnDetailModal(memberId) {
+    const modal = document.getElementById('churnDetailModal');
+    const body = document.getElementById('churnDetailBody');
+    if (!modal || !body) return;
+
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
+    modal.classList.add('show');
+
+    const res = await api('/api/admin/churn-risks?id=' + memberId);
+    if (!res.ok || !res.data?.data) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">조회 실패</div>';
+      return;
+    }
+
+    const d = res.data.data;
+    const m = d.member;
+    const c = d.churn;
+    const bk = d.billing;
+    const recent = d.recentDonations || [];
+
+    const levelLabel = c.level === 'critical' ? '🚨 CRITICAL' :
+                       c.level === 'warning' ? '⚠️ WARNING' :
+                       '✅ STABLE';
+
+    const signalsHtml = (c.signals || []).map((s) => `<li style="margin-bottom:4px">${escapeHtml(s.label)}</li>`).join('');
+
+    const recentHtml = recent.length === 0
+      ? '<div style="color:var(--text-3);font-size:12px">최근 후원 내역 없음</div>'
+      : recent.map(r =>
+          `<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line)">
+            ${formatDate(r.createdAt)} · ${r.type === 'regular' ? '정기' : '일시'} · ₩${(r.amount || 0).toLocaleString()}
+          </div>`
+        ).join('');
+
+    const billingHtml = bk
+      ? `<div class="srn-modal-info-grid">
+          <div>활성 여부</div><div>${bk.isActive ? '✅ 활성' : '🛑 비활성'}</div>
+          <div>월 금액</div><div><strong>₩${(bk.amount || 0).toLocaleString()}</strong></div>
+          <div>카드</div><div>${escapeHtml(bk.cardCompany || '—')} ${escapeHtml(bk.cardNumberMasked || '')}</div>
+          <div>연속 실패</div><div>${bk.consecutiveFailCount || 0}회 ${bk.lastFailureReason ? '<br /><span style="font-size:11px;color:var(--danger)">' + escapeHtml(bk.lastFailureReason) + '</span>' : ''}</div>
+          <div>마지막 결제</div><div>${formatDateTime(bk.lastChargedAt)}</div>
+          <div>다음 결제</div><div>${formatDate(bk.nextChargeAt)}</div>
+          ${bk.deactivatedAt ? '<div>해지 시점</div><div>' + formatDateTime(bk.deactivatedAt) + ' (' + escapeHtml(bk.deactivatedReason || '') + ')</div>' : ''}
+        </div>`
+      : '<div style="color:var(--text-3);font-size:12px">정기 결제 빌링키 없음</div>';
+
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-soft);border-radius:8px;margin-bottom:18px">
+        <div class="churn-score-circle ${c.level}" style="width:60px;height:60px;font-size:18px">${c.score}</div>
+        <div style="flex:1">
+          <div style="font-size:18px;font-weight:700;color:var(--ink)">${escapeHtml(m.name)}</div>
+          <div style="font-size:12px;color:var(--text-3)">${escapeHtml(m.email)} · ${escapeHtml(m.phone || '')}</div>
+          <div style="margin-top:6px"><span class="churn-level-badge ${c.level}">${levelLabel}</span></div>
+        </div>
+      </div>
+
+      <div class="srn-modal-section">
+        <h5>🔍 감지된 신호 (${c.signals.length}개)</h5>
+        ${c.signals.length === 0
+          ? '<div style="color:var(--text-3);font-size:12px">감지된 신호 없음</div>'
+          : '<ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text-1)">' + signalsHtml + '</ul>'
+        }
+      </div>
+
+      ${c.aiSummary ? `
+        <div class="srn-modal-section srn-ai-block" style="margin-top:14px">
+          <div class="ai-title">💬 AI 종합 분석</div>
+          <div style="margin-bottom:8px"><strong>요약:</strong> ${escapeHtml(c.aiSummary)}</div>
+          ${c.aiSuggestion ? `<div><strong>권장 조치:</strong> ${escapeHtml(c.aiSuggestion)}</div>` : ''}
+        </div>
+      ` : ''}
+
+      <div class="srn-modal-section">
+        <h5>💳 정기 결제 정보</h5>
+        ${billingHtml}
+      </div>
+
+      <div class="srn-modal-section">
+        <h5>💝 최근 후원 내역</h5>
+        ${recentHtml}
+      </div>
+
+      <div class="srn-modal-section">
+        <h5>📊 동행 통계</h5>
+        <div class="srn-modal-info-grid">
+          <div>누적 후원</div><div><strong>₩${(m.totalDonationAmount || 0).toLocaleString()}</strong></div>
+          <div>정기 후원 개월</div><div>${m.regularMonthsCount || 0}개월</div>
+          <div>가입일</div><div>${formatDate(m.createdAt)}</div>
+          <div>최근 로그인</div><div>${formatDateTime(m.lastLoginAt)}</div>
+          <div>마지막 평가</div><div>${formatDateTime(c.lastEvaluatedAt)}</div>
+          <div>마지막 재참여 메일</div><div>${d.reengageEmail.lastSentAt ? formatDateTime(d.reengageEmail.lastSentAt) : '미발송'}</div>
+        </div>
+      </div>
+
+      <div class="srn-action-row">
+        <button type="button" class="btn-save" data-churn-action="reengage" data-id="${m.id}" data-name="${escapeHtml(m.name)}" ${!d.reengageEmail.canSendNow ? 'disabled' : ''}>
+          💌 재참여 메일 발송 ${!d.reengageEmail.canSendNow ? '(7일 후 가능)' : ''}
+        </button>
+        <button type="button" class="btn-hide" data-churn-action="reeval" data-id="${m.id}">🔄 즉시 재평가</button>
+      </div>
+    `;
+  }
+
+  function openChurnReengageModal(memberId, memberName) {
+    const modal = document.getElementById('churnReengageModal');
+    const body = document.getElementById('churnReengageBody');
+    if (!modal || !body) return;
+
+    body.innerHTML = `
+      <div style="background:var(--bg-soft);padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:13px">
+        💌 <strong>${escapeHtml(memberName)}</strong>님에게 재참여 유도 메일을 발송합니다.<br />
+        <span style="font-size:11.5px;color:var(--text-3)">※ 7일 내 동일 회원에게 중복 발송은 자동 차단됩니다.</span>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:8px">
+          <input type="radio" name="cre_source" value="ai" checked id="cre_src_ai">
+          <span><strong>🤖 AI가 메시지 자동 생성</strong> <span style="color:var(--text-3);font-size:11.5px">(추천 — 회원 상황에 맞는 따뜻한 메시지)</span></span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="cre_source" value="custom" id="cre_src_custom">
+          <span><strong>✍️ 직접 작성</strong></span>
+        </label>
+      </div>
+
+      <div id="cre_custom_box" style="display:none;margin-bottom:14px">
+        <label style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;display:block">메시지 본문 (50~600자)</label>
+        <textarea id="cre_custom_msg" class="reengage-message-area" maxlength="600" placeholder="${escapeHtml(memberName)}님께 전달할 따뜻한 메시지를 작성해주세요..."></textarea>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">메일에는 협회 활동 안내 + 누적 후원 정보가 자동으로 포함됩니다.</div>
+      </div>
+
+      <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#8a6a00;line-height:1.6">
+        ⚠️ <strong>발송 전 확인</strong><br />
+        • 재참여 메일은 회원의 <code>agreeEmail</code> 동의 시에만 발송됩니다<br />
+        • AI 생성 시 약 3~5초 소요 (Gemini API)<br />
+        • 발송 후에는 7일간 같은 회원에게 재발송이 차단됩니다
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-primary" style="flex:1" id="cre_send_btn" data-member-id="${memberId}" data-member-name="${escapeHtml(memberName)}">
+          💌 발송하기
+        </button>
+        <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+      </div>
+    `;
+
+    modal.classList.add('show');
+
+    const aiRadio = document.getElementById('cre_src_ai');
+    const customRadio = document.getElementById('cre_src_custom');
+    const customBox = document.getElementById('cre_custom_box');
+    const onChange = () => { customBox.style.display = customRadio.checked ? 'block' : 'none'; };
+    if (aiRadio) aiRadio.addEventListener('change', onChange);
+    if (customRadio) customRadio.addEventListener('change', onChange);
+  }
+
+  async function sendChurnReengage(memberId, memberName) {
+    const useAi = document.getElementById('cre_src_ai')?.checked === true;
+    const customMessage = (document.getElementById('cre_custom_msg')?.value || '').trim();
+
+    if (!useAi && customMessage.length < 50) {
+      return toast('직접 작성 시 메시지는 50자 이상이어야 합니다');
+    }
+
+    const btn = document.getElementById('cre_send_btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = useAi ? '🤖 AI 메시지 생성 + 발송 중...' : '💌 발송 중...';
+    }
+
+    const body = useAi
+      ? { memberId, useAiMessage: true }
+      : { memberId, customMessage };
+
+    const res = await api('/api/admin/churn-reengage', { method: 'POST', body });
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '💌 발송하기';
+    }
+
+    if (res.ok) {
+      const data = res.data?.data || {};
+      const sourceLabel = data.messageSource === 'ai' ? '🤖 AI 생성'
+                        : data.messageSource === 'custom' ? '✍️ 직접 작성'
+                        : '📋 폴백';
+      toast(`재참여 메일이 발송되었습니다 (${sourceLabel})`);
+      document.getElementById('churnReengageModal')?.classList.remove('show');
+      document.getElementById('churnDetailModal')?.classList.remove('show');
+      loadChurnRisks();
+    } else {
+      toast(res.data?.error || '발송 실패');
+    }
+  }
+
+  async function reEvaluateMember(memberId) {
+    if (!confirm('이 회원의 이탈 위험을 즉시 재평가하시겠습니까?\n(AI 분석 약 3~5초 소요)')) return;
+
+    toast('재평가 진행 중...');
+
+    const res = await api('/api/admin/churn-risks', {
+      method: 'POST',
+      body: { memberId, useAI: true },
+    });
+
+    if (res.ok) {
+      const d = res.data?.data || {};
+      toast(`재평가 완료: ${d.level?.toUpperCase()} (${d.score}점, 신호 ${d.signals?.length || 0}개)`);
+      loadChurnRisks();
+    } else {
+      toast(res.data?.error || '재평가 실패');
+    }
+  }
+
+  function setupChurnActions() {
+    /* 새로고침 */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#churnReloadBtn')) {
+        e.preventDefault();
+        loadChurnRisks();
+        return;
+      }
+
+      const btn = e.target.closest('[data-churn-action]');
+      if (!btn) return;
+      e.preventDefault();
+      const action = btn.dataset.churnAction;
+      const id = Number(btn.dataset.id);
+      const name = btn.dataset.name || '회원';
+      if (!id) return;
+
+      if (action === 'detail') {
+        openChurnDetailModal(id);
+      } else if (action === 'reengage') {
+        openChurnReengageModal(id, name);
+      } else if (action === 'reeval') {
+        reEvaluateMember(id);
+      }
+    });
+
+    /* 발송 버튼 */
+    document.addEventListener('click', (e) => {
+      const sendBtn = e.target.closest('#cre_send_btn');
+      if (!sendBtn) return;
+      e.preventDefault();
+      const id = Number(sendBtn.dataset.memberId);
+      const name = sendBtn.dataset.memberName || '';
+      if (id) sendChurnReengage(id, name);
+    });
+
+    /* 필터 */
+    const levelSel = document.getElementById('churnFilterLevel');
+    if (levelSel) levelSel.addEventListener('change', loadChurnRisks);
+
+    const qInput = document.getElementById('churnFilterQ');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        clearTimeout(_churnSearchTimer);
+        _churnSearchTimer = setTimeout(loadChurnRisks, 400);
+      });
+    }
+  }
   /* 행 액션 (상세/완료/해지) */
     /* ★ L-8 + L-9: 효성 CMS+ 통합 액션 핸들러 */
     /* ★ L-8 + L-9 + M-13: 효성 CMS+ 통합 액션 핸들러 */
@@ -5047,8 +5425,10 @@
     } else if (page === 'audit') {
       _auditPage = 1;
       loadAudit();
+// public/js/admin.js — switchAdminPage 내부, 'ai' 분기에 1줄 추가
     } else if (page === 'ai') {
       loadAI();
+      loadChurnRisks();   /* ★ M-19-1 추가 */
     } else if (page === 'settings') {
       /* ★ M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
       loadDonationPolicy();
@@ -5121,11 +5501,12 @@
 // public/js/admin.js — init() 내부, setupAdminPasswordForm 다음에 1줄 추가
     setupAdminPasswordForm();  /* K-9 */
     setupDonationPolicy();     /* ★ M-15 Part 3-B */
+// public/js/admin.js — init() 내부, setupHyosungDetailActions 다음 줄에 1줄 추가
     setupHyosungActions();       /* ★ L-8 추가 */
     setupHyosungDetailActions(); /* ★ L-8 추가 */
+    setupChurnActions();         /* ★ M-19-1 추가 */
 
     const isLogged = await fetchAdminMe();
-    // ... 이하 기존 코드 그대로
 
     if (isLogged) {
       const urlParams = new URLSearchParams(window.location.search);
