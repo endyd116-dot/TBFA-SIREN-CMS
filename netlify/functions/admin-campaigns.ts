@@ -350,7 +350,16 @@ export default async (req: Request) => {
         .where(eq(donations.campaignId, id));
       const linkedCount = Number(linkedRow[0]?.c ?? 0);
 
-      /* 삭제 (donations.campaignId는 SET NULL로 자동 처리) */
+           /* ★ Pass 2 패치: donations.campaignId가 FK가 아니므로 명시적으로 NULL 처리
+         (FK가 추가되면 ON DELETE SET NULL이 자동 처리할 예정) */
+      if (linkedCount > 0) {
+        await db.update(donations)
+          .set({ campaignId: null } as any)
+          .where(eq(donations.campaignId, id));
+      }
+
+
+     /* 캠페인 삭제 */
       await db.delete(campaigns).where(eq(campaigns.id, id));
 
       try {
