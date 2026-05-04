@@ -218,6 +218,15 @@ export const members = pgTable("members", {
   /* ───────── ★ M-19-11: 전문가 가입 검토 대기 플래그 ───────── */
   pendingExpertReview: boolean("pending_expert_review").default(false),
 
+  /* ───────── ★ M-19-11 V2: 전문가 증빙 시스템 ───────── */
+  certificateBlobId: integer("certificate_blob_id"),
+  certificateVerifiedAt: timestamp("certificate_verified_at"),
+  certificateRejectedReason: text("certificate_rejected_reason"),
+  certificateUploadedAt: timestamp("certificate_uploaded_at"),
+  secondaryVerified: boolean("secondary_verified").default(false),
+  secondaryVerifiedAt: timestamp("secondary_verified_at"),
+  secondaryVerifiedBy: integer("secondary_verified_by"),
+
   /* ───────── ★ M-19-1: 회원 등급 시스템 ───────── */
   gradeId: integer("grade_id"),
   gradeAssignedAt: timestamp("grade_assigned_at"),
