@@ -1,6 +1,5 @@
 // public/js/editor.js
 // ★ Phase M-1 + 2026-05 패치: SIREN 공통 WYSIWYG 편집기
-// - Toast UI Editor v3.2.2 (CDN, lazy-load)
 // - color-syntax 플러그인 완전 옵셔널화 (CDN 호스팅 불안정 대응)
 // - 이미지 자동 압축 (Canvas, max 1600px, JPEG 85%)
 // - R2 직접 업로드 (presign → PUT → confirm)
@@ -24,9 +23,6 @@
   let _libLoaded = false;
   let _libLoading = null;
 
-  /* ============================================================
-     CDN 동적 로더
-     ============================================================ */
   function loadStylesheet(url) {
     return new Promise((resolve, reject) => {
       if (document.querySelector(`link[href="${url}"]`)) return resolve();
@@ -57,7 +53,7 @@
     });
   }
 
-  /* ★ 2026-05 패치: color-picker CDN이 모두 불안정 → 실패해도 무시하고 진행 */
+  /* ★ 2026-05 패치: color-picker CDN 불안정 → 실패 무시 */
   async function loadLib() {
     if (_libLoaded) return;
     if (_libLoading) return _libLoading;
@@ -74,14 +70,14 @@
       await loadStylesheet(CDN.editorCss);
       await loadStylesheet('/css/editor.css').catch(() => {});
 
-      /* 색상 관련 CSS (옵셔널 — 실패 무시) */
+      /* 색상 관련 CSS (옵셔널) */
       await safeLoadCss(CDN.colorCss);
       await safeLoadCss(CDN.pickerCss);
 
       /* 핵심 editor JS (필수) */
       await loadScript(CDN.editorJs);
 
-      /* 색상 플러그인 JS (옵셔널 — 실패 무시) */
+      /* 색상 플러그인 JS (옵셔널) */
       await safeLoadJs(CDN.pickerJs);
       await safeLoadJs(CDN.colorJs);
 
@@ -96,11 +92,6 @@
     }
   }
 
-  /* ============================================================
-     이미지 압축 (Canvas)
-     - GIF는 애니메이션 보존 위해 압축 안 함
-     - 원본보다 큰 결과물은 원본 유지
-     ============================================================ */
   async function compressImage(file, maxSize = 1600, quality = 0.85) {
     if (!file || !file.type) return file;
     if (!file.type.startsWith('image/')) return file;
@@ -140,11 +131,7 @@
     });
   }
 
-  /* ============================================================
-     업로드 (★ M-2.5: R2 직접 업로드 — presign → PUT → confirm)
-     ============================================================ */
   async function uploadFile(file, context = 'editor') {
-    /* 1) presign */
     const presignRes = await fetch('/api/blob-presign', {
       method: 'POST',
       credentials: 'include',
@@ -164,17 +151,13 @@
     }
     const { data: presignData } = await presignRes.json();
 
-    /* 2) R2 직접 PUT */
     const putRes = await fetch(presignData.uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': file.type || 'application/octet-stream' },
       body: file,
     });
-    if (!putRes.ok) {
-      throw new Error(`R2 업로드 실패 (${putRes.status})`);
-    }
+    if (!putRes.ok) throw new Error(`R2 업로드 실패 (${putRes.status})`);
 
-    /* 3) confirm */
     const confirmRes = await fetch('/api/blob-confirm', {
       method: 'POST',
       credentials: 'include',
@@ -190,9 +173,6 @@
     return json.data;
   }
 
-  /* ============================================================
-     create — 메인 팩토리
-     ============================================================ */
   async function create(opts) {
     opts = opts || {};
     const {
@@ -216,12 +196,15 @@
     }
     if (readonly) el.classList.add('siren-editor-readonly');
 
-    const Editor = window.toastui.Editor;
+    const Editor = window.toastui && window.toastui.Editor;
+    if (!Editor) {
+      throw new Error('Toast UI Editor 코어 로드 실패 — 페이지 새로고침이 필요합니다');
+    }
 
-    /* ★ 2026-05 패치: colorSyntax가 로드 안 됐으면 빈 배열로 진행 */
+    /* ★ 2026-05 패치: colorSyntax 옵셔널 */
     const plugins = [];
     try {
-      const cs = window.toastui?.Editor?.plugin?.colorSyntax;
+      const cs = window.toastui && window.toastui.Editor && window.toastui.Editor.plugin && window.toastui.Editor.plugin.colorSyntax;
       if (typeof cs === 'function') plugins.push(cs);
     } catch (_) {}
 
@@ -284,13 +267,11 @@
       focus: () => editor.focus(),
       destroy: () => { try { editor.destroy(); } catch (_) {} },
 
-      /* 첨부파일 업로드 헬퍼 (이미지 외 파일을 본문에 링크로 삽입) */
       uploadAttachment: async (file) => {
         el.classList.add('siren-editor-uploading');
         try {
           const result = await uploadFile(file, uploadContext);
-          const safeName = (result.originalName || 'file')
-            .replace(/[\[\]]/g, '');
+          const safeName = (result.originalName || 'file').replace(/[\[\]]/g, '');
           editor.insertText(`\n[📎 ${safeName}](${result.url})\n`);
           return result;
         } finally {
@@ -300,15 +281,12 @@
     };
   }
 
-  /* ============================================================
-     공개 API
-     ============================================================ */
   window.SirenEditor = {
     create,
     loadLib,
     compressImage,
     uploadFile,
-    version: '1.1.0-color-optional',
+    version: '1.2.0-2026-05',
   };
 
 })(window);
