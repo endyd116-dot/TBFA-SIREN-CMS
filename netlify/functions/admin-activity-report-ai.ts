@@ -195,6 +195,7 @@ export default async (req: Request) => {
 
   try {
     /* ===== GET: 저장된 보고서 PDF 재생성 ===== */
+        /* ===== GET: 저장된 보고서 PDF 다운로드 ===== */
     if (req.method === "GET") {
       const url = new URL(req.url);
       const postId = Number(url.searchParams.get("postId"));
@@ -213,24 +214,62 @@ export default async (req: Request) => {
         return badRequest("AI 활동보고서가 아닙니다");
       }
 
-      if (!wantPdf) {
-        /* HTML 본문 반환 */
-        return ok({
-          post: {
-            id: post.id,
-            slug: post.slug,
-            title: post.title,
-            year: post.year,
-            month: post.month,
-            contentHtml: post.contentHtml,
-            isPublished: post.isPublished,
+      /* ?pdf=1: 저장된 PDF blob으로 리다이렉트 (원본 시점 보존) */
+      if (wantPdf) {
+        let pdfBlobId: number | null = null;
+        try {
+          const attachIds: any = post.attachmentIds
+            ? (typeof post.attachmentIds === "string"
+                ? JSON.parse(post.attachmentIds)
+                : post.attachmentIds)
+            : [];
+          if (Array.isArray(attachIds) && attachIds.length > 0) {
+            /* 첨부파일 중 PDF (activity_report_pdf 컨텍스트) 우선 선택 */
+            const blobRows = await db
+              .select({
+                id: blobUploads.id,
+                mimeType: blobUploads.mimeType,
+                context: blobUploads.context,
+              })
+              .from(blobUploads)
+              .where(sql`${blobUploads.id} = ANY(${attachIds})`);
+            const pdfBlob = blobRows.find((b: any) =>
+              b.context === "activity_report_pdf" || b.mimeType === "application/pdf"
+            );
+            if (pdfBlob) pdfBlobId = pdfBlob.id;
+          }
+        } catch (e) {
+          console.warn("[activity-report-ai GET] attachmentIds 파싱 실패:", e);
+        }
+
+        if (!pdfBlobId) {
+          return notFound(
+            "이 보고서에는 PDF 첨부파일이 없습니다. POST로 generatePdf:true 옵션을 주어 다시 생성해 주세요."
+          );
+        }
+
+        /* blob-image 함수로 리다이렉트 (R2 presigned URL로 직접 다운로드) */
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: `/api/blob-image?id=${pdfBlobId}&download=1`,
           },
         });
       }
 
-      /* PDF 재생성: 보고서 데이터를 다시 수집해야 함
-         (게시글 본문은 HTML이므로 통계/PDF는 재계산 필요) */
-      return badRequest("저장된 보고서의 PDF 재생성은 별도 기능으로 제공됩니다 (POST 새로 생성 권장)");
+      /* ?pdf 없음: HTML 본문 반환 */
+      return ok({
+        post: {
+          id: post.id,
+          slug: post.slug,
+          title: post.title,
+          year: post.year,
+          month: post.month,
+          contentHtml: post.contentHtml,
+          isPublished: post.isPublished,
+          attachmentIds: post.attachmentIds,
+        },
+      });
     }
 
     /* ===== POST: 보고서 생성 ===== */
