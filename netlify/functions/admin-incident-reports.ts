@@ -1,8 +1,9 @@
 // netlify/functions/admin-incident-reports.ts
 // ★ M-10: 사건 제보 관리자 목록 조회
+// ★ 2026-05 패치: db.execute() 결과 처리 표준화 (stats.rows || stats)
 
 import type { Context } from "@netlify/functions";
-import { eq, and, desc, count, or, like, sql, isNotNull } from "drizzle-orm";
+import { eq, and, desc, count, or, like, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { incidentReports, incidents, members } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -42,7 +43,11 @@ export default async (req: Request, _ctx: Context) => {
     const where = conds.length === 0 ? undefined : (conds.length === 1 ? conds[0] : and(...conds));
 
     /* 총 개수 */
-    const [{ total }]: any = await db.select({ total: count() }).from(incidentReports).where(where as any);
+    const totalRow: any = await db
+      .select({ total: count() })
+      .from(incidentReports)
+      .where(where as any);
+    const total = Number(totalRow[0]?.total ?? 0);
 
     /* 목록 */
     const list = await db.select({
@@ -72,8 +77,8 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
-    /* 통계 */
-    const stats = await db.execute(sql`
+    /* 통계 — ★ 패치: drizzle.execute 결과 표준 처리 */
+    const statsResult: any = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE status = 'submitted')::int  AS "submittedCount",
         COUNT(*) FILTER (WHERE status = 'ai_analyzed')::int AS "aiAnalyzedCount",
@@ -83,22 +88,31 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "highSeverityCount"
       FROM incident_reports
     `);
-    const s: any = stats[0] || {};
+    /* postgres-js drizzle: result.rows 또는 직접 배열 — 양쪽 모두 안전 처리 */
+    const statsRows = Array.isArray(statsResult)
+      ? statsResult
+      : (statsResult?.rows || []);
+    const s: any = statsRows[0] || {};
 
     return ok({
       list,
-      pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
       stats: {
-        submitted: s.submittedCount || 0,
-        aiAnalyzed: s.aiAnalyzedCount || 0,
-        reviewing: s.reviewingCount || 0,
-        responded: s.respondedCount || 0,
-        sirenRequested: s.sirenRequestedCount || 0,
-        highSeverity: s.highSeverityCount || 0,
+        submitted: Number(s.submittedCount || 0),
+        aiAnalyzed: Number(s.aiAnalyzedCount || 0),
+        reviewing: Number(s.reviewingCount || 0),
+        responded: Number(s.respondedCount || 0),
+        sirenRequested: Number(s.sirenRequestedCount || 0),
+        highSeverity: Number(s.highSeverityCount || 0),
       },
     });
   } catch (e: any) {
     console.error("[admin-incident-reports]", e);
-    return serverError("조회 실패", e);
+    return serverError("조회 실패", e?.message);
   }
 };
