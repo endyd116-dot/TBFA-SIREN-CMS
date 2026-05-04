@@ -405,6 +405,7 @@
     stopKpiPolling();
   }
 
+// public/js/admin.js — showAdminPanel 함수 전체 교체
     async function showAdminPanel() {
     document.getElementById('adminLogin')?.classList.remove('show');
     document.getElementById('adminWrap')?.classList.add('show');
@@ -419,7 +420,19 @@
     if (window.SIREN_ADMIN_SIREN && typeof window.SIREN_ADMIN_SIREN.refreshBadgesOnly === 'function') {
       window.SIREN_ADMIN_SIREN.refreshBadgesOnly().catch(() => {});
     }
+
+    /* ★ M-16: super_admin 전용 메뉴 가시성 토글 */
+    applyRoleVisibility();
+
     startKpiPolling();
+  }
+
+  /* ★ M-16: 역할 기반 사이드바 가시성 */
+  function applyRoleVisibility() {
+    const isSuperAdmin = CURRENT_ADMIN && CURRENT_ADMIN.role === 'super_admin';
+    document.querySelectorAll('[data-super-only]').forEach((el) => {
+      el.style.display = isSuperAdmin ? '' : 'none';
+    });
   }
 
   /* ============ 대시보드 KPI ============ */
@@ -4320,6 +4333,8 @@
     });
   }
 
+  // public/js/admin.js — openAuditDetailModal 함수 전체 교체
+  /* ★ M-16: 단건 GET API 활용으로 detail JSON 전체 + User-Agent 까지 표시 */
   async function openAuditDetailModal(id) {
     const modal = document.getElementById('auditDetailModal');
     const body = document.getElementById('auditDetailBody');
@@ -4328,62 +4343,78 @@
     body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>';
     modal.classList.add('show');
 
-    /* 현재 페이지 데이터에서 찾기 (별도 API 없이 캐시 활용) */
-    /* 단순화를 위해 다시 API 호출 (단일 행) */
-    const params = new URLSearchParams();
-    params.set('limit', '1');
-    params.set('userId', '0'); // 사용 안 함
-    /* id로 필터하는 API 분기가 없으므로, 현재 테이블의 행에서 데이터 직접 추출 */
-
-    const row = document.querySelector(`[data-au-detail-id="${id}"]`);
-    if (!row) {
-      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">데이터를 찾을 수 없습니다</div>';
+    /* ★ M-16: 단건 GET 호출 */
+    const res = await api('/api/admin/audit?id=' + id);
+    if (!res.ok || !res.data?.data?.log) {
+      body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--danger)">로그 조회 실패</div>';
       return;
     }
 
-    /* 테이블 행에는 요약만 있으므로 API에서 단건 가져오기 */
-    /* admin-audit.ts는 단건 GET을 제공하지 않음 → 현재 페이지 검색 결과에서 매칭 */
-    /* 실용적으로 처리: 행에서 보이는 정보 + tooltip 정보로 충분히 표시 */
+    const log = res.data.data.log;
+    const time = formatDateTime(log.createdAt);
+    const typeLabel = getAuditTypeLabel(log.userType);
+    const userName = log.userName ? escapeHtml(log.userName) : '—';
+    const actionLabel = getAuditActionLabel(log.action);
+    const target = log.target ? escapeHtml(log.target) : '—';
+    const ip = log.ipAddress ? escapeHtml(log.ipAddress) : '—';
+    const successText = log.success ? '✅ 성공' : '❌ 실패';
+    const userAgent = log.userAgent ? escapeHtml(log.userAgent) : '';
 
-    const cells = row.querySelectorAll('td');
-    const time = cells[0]?.textContent || '—';
-    const typeBadge = cells[1]?.querySelector('.audit-badge-type')?.textContent || '—';
-    const userName = cells[2]?.textContent || '—';
-    const actionLabel = cells[3]?.textContent || '—';
-    const targetText = cells[4]?.textContent || '—';
-    const ip = cells[5]?.textContent || '—';
-    const successText = cells[6]?.querySelector('.success') ? '✅ 성공' : '❌ 실패';
+    /* detail: parsed JSON이 있으면 보기 좋게 포맷, 아니면 원본 문자열 */
+    let detailHtml = '<span style="color:var(--text-3)">(없음)</span>';
+    if (log.detailParsed && typeof log.detailParsed === 'object') {
+      try {
+        detailHtml = escapeHtml(JSON.stringify(log.detailParsed, null, 2));
+      } catch (_) {
+        detailHtml = escapeHtml(String(log.detail || ''));
+      }
+    } else if (log.detail) {
+      detailHtml = escapeHtml(String(log.detail));
+    }
 
-    /* 추가로 detail 전체를 가져오려면 별도 API 필요 — 현재는 테이블 데이터로 표시 */
-    /* 실 운영에서 더 자세히 보고 싶다면 GET /api/admin/audit?id=N 분기 추가 필요 */
+    /* 에러 메시지 (실패한 경우) */
+    const errorBlock = (!log.success && log.errorMessage)
+      ? `<div style="margin-top:14px">
+          <div style="font-size:12.5px;font-weight:600;color:var(--danger);margin-bottom:6px">❌ 에러 메시지</div>
+          <div class="audit-detail-json" style="background:#3a1a1a;color:#ffc4c4">${escapeHtml(log.errorMessage)}</div>
+        </div>`
+      : '';
+
+    /* User-Agent (있는 경우만) */
+    const uaBlock = userAgent
+      ? `<div style="margin-top:14px">
+          <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">🌐 User-Agent</div>
+          <div class="audit-ua-text">${userAgent}</div>
+        </div>`
+      : '';
 
     body.innerHTML = `
       <div class="audit-detail-grid">
         <div>로그 ID</div>
-        <div style="font-family:Inter;font-weight:600">#${id}</div>
+        <div style="font-family:Inter;font-weight:600">#${log.id}</div>
         <div>시간</div>
         <div style="font-family:Inter">${escapeHtml(time)}</div>
         <div>사용자 유형</div>
-        <div>${escapeHtml(typeBadge)}</div>
+        <div><span class="audit-badge-type ${log.userType || ''}">${typeLabel}</span></div>
         <div>사용자</div>
-        <div><strong>${escapeHtml(userName)}</strong></div>
+        <div><strong>${userName}</strong>${log.userId ? ' <span style="color:var(--text-3);font-size:11px">(M-' + log.userId + ')</span>' : ''}</div>
         <div>액션</div>
-        <div style="font-family:Inter;font-weight:600">${escapeHtml(actionLabel)}</div>
+        <div style="font-family:Inter;font-weight:600">${actionLabel} <span style="color:var(--text-3);font-size:11px;font-weight:400">(${escapeHtml(log.action)})</span></div>
+        <div>대상</div>
+        <div style="font-family:Inter">${target}</div>
         <div>결과</div>
         <div>${successText}</div>
         <div>IP 주소</div>
-        <div style="font-family:Inter">${escapeHtml(ip)}</div>
+        <div style="font-family:Inter">${ip}</div>
       </div>
 
       <div style="margin-top:14px">
-        <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">📋 대상 / 상세</div>
-        <div class="audit-detail-json">${escapeHtml(targetText)}</div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px">📋 상세 데이터 (detail)</div>
+        <div class="audit-detail-json">${detailHtml}</div>
       </div>
 
-      <div style="margin-top:14px;padding:12px 14px;background:var(--bg-soft);border-radius:6px;font-size:11.5px;color:var(--text-3);line-height:1.6">
-        💡 <strong>전체 detail 정보</strong>는 테이블에서 미리보기만 표시됩니다.<br />
-        상세한 JSON 내용이 필요하면 같은 사용자/액션으로 필터링한 후 행의 "대상 / 상세" 칸을 확인하세요.
-      </div>
+      ${errorBlock}
+      ${uaBlock}
     `;
   }
   /* ============ ★ 운영자 관리 (STEP F-2) ============ */

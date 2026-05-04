@@ -1,29 +1,26 @@
+// netlify/functions/admin-audit.ts
 /**
- * GET /api/admin/audit
+ * GET /api/admin/audit            — 감사 로그 목록 조회 (super_admin 전용)
+ * GET /api/admin/audit?id=N       — 단건 상세 조회 (★ M-16 신규)
  *
- * 감사 로그 조회 (관리자/슈퍼관리자 전용)
+ * 쿼리 파라미터 (목록):
+ * - page (1~), limit (10~100, 기본 50)
+ * - action / userType / userId / success
+ * - q (action / target / userName / detail 통합 검색)
+ * - dateFrom / dateTo (ISO 날짜)
  *
- * 쿼리 파라미터:
- * - page (1~)
- * - limit (10~100, 기본 50)
- * - action: 액션 필터 (예: login_success, withdraw_success, password_reset_request)
- * - userType: admin | user | system | anonymous
- * - userId: 특정 회원의 로그만
- * - success: "true" | "false" (성공/실패만)
- * - q: 검색어 (action / target / userName / detail에서 검색)
- * - dateFrom: ISO 날짜 (2026-04-01)
- * - dateTo:   ISO 날짜 (2026-05-01)
+ * 권한:
+ * - 모든 admin이 GET 가능 (operator 포함) → ★ M-16에서 super_admin only로 강화
  *
  * 응답:
- * - list: 로그 목록 (최신순)
- * - pagination: { page, limit, total, totalPages }
- * - stats: 액션별 카운트 (최근 7일)
+ * - 목록: { list, pagination, stats, filters }
+ * - 단건: { log: {...전체 필드} }
  */
 import { eq, desc, and, or, like, count, gte, lte, sql } from "drizzle-orm";
 import { db, auditLogs, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
-  ok, badRequest, serverError,
+  ok, badRequest, notFound, forbidden, serverError,
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 
@@ -32,11 +29,52 @@ export default async (req: Request) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   /* 1. 관리자 인증 */
-  const guard = await requireAdmin(req);
+  const guard: any = await requireAdmin(req);
   if (!guard.ok) return guard.res;
+  /* ★ M-16: member.role 사용 (DB 최신값 + AdminPayload 타입 안정성) */
+  const { member } = guard.ctx;
+
+  /* ★ M-16: super_admin only 가드 */
+  if (member.role !== "super_admin") {
+    return forbidden("감사 로그는 슈퍼 관리자만 조회할 수 있습니다");
+  }
 
   try {
     const url = new URL(req.url);
+
+    /* ===== ★ M-16: 단건 상세 조회 (?id=N) ===== */
+    const idStr = url.searchParams.get("id");
+    if (idStr) {
+      const id = Number(idStr);
+      if (!Number.isFinite(id) || id < 1) return badRequest("id가 유효하지 않습니다");
+
+      const [row] = await db
+        .select()
+        .from(auditLogs)
+        .where(eq(auditLogs.id, id))
+        .limit(1);
+
+      if (!row) return notFound("로그를 찾을 수 없습니다");
+
+      /* detail JSON 파싱 시도 (실패 시 원본 유지) */
+      let detailParsed: any = null;
+      if ((row as any).detail) {
+        try {
+          detailParsed = JSON.parse(String((row as any).detail));
+        } catch (_) {
+          detailParsed = null; // 원본은 row.detail에 그대로 보존
+        }
+      }
+
+      return ok({
+        log: {
+          ...row,
+          detailParsed, // 파싱 성공 시에만 객체, 아니면 null
+        },
+      });
+    }
+
+    /* ===== 목록 조회 ===== */
 
     /* 2. 파라미터 파싱 */
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
@@ -113,7 +151,7 @@ export default async (req: Request) => {
           : and(...conditions);
 
     /* 4. 총 개수 */
-    const totalRows = await db
+    const totalRows: any = await db
       .select({ total: count() })
       .from(auditLogs)
       .where(whereClause as any);
@@ -159,7 +197,7 @@ export default async (req: Request) => {
       .limit(20);
 
     /* 7. 전체 통계 (성공/실패) */
-    const overallStats = await db
+    const overallStats: any = await db
       .select({
         total: count(),
         successCount: sql<number>`COUNT(*) FILTER (WHERE ${auditLogs.success} = true)`,
@@ -183,7 +221,7 @@ export default async (req: Request) => {
           success: Number(overallStats[0]?.successCount ?? 0),
           fail: Number(overallStats[0]?.failCount ?? 0),
         },
-        topActions: actionStats.map((a) => ({
+        topActions: actionStats.map((a: any) => ({
           action: a.action,
           count: Number(a.c),
           success: Number(a.successCount),
