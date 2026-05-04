@@ -1,8 +1,8 @@
 // lib/report-data-collector.ts
 // ★ Phase M-19-3: 활동보고서용 데이터 수집 헬퍼
-// - 기간 지정 시 모든 도메인 통계를 일괄 집계
-// - STEP 2 (AI 보고서 생성)에서 재사용
+// - 기간 지정 시 모든 도메인의 통계를 일괄 집계 (Promise.all 병렬)
 // - 분기/반기/연간/자유 기간 모두 지원
+// - STEP 2(AI 분석) + STEP 3(PDF) 모두에서 재사용
 
 import { sql } from "drizzle-orm";
 import { db } from "../db";
@@ -12,7 +12,7 @@ export interface ReportPeriod {
   startDate: Date;
   endDate: Date;
   type: "quarterly" | "half" | "annual" | "custom";
-  label: string; // "2026년 1분기", "2026년 상반기" 등
+  label: string;
 }
 
 export interface DonationStats {
@@ -24,10 +24,11 @@ export interface DonationStats {
   avgAmount: number;
   maxAmount: number;
   minAmount: number;
-  /* 결제수단별 */
   byPayMethod: { card: number; cms: number; bank: number };
-  /* 월별 추이 (배열) */
   monthlyTrend: Array<{ month: string; amount: number; count: number }>;
+  /* 비교: 직전 동일 기간 대비 (트렌드 분석용) */
+  prevPeriodAmount: number;
+  growthRate: number | null;
 }
 
 export interface MemberStats {
@@ -36,14 +37,19 @@ export interface MemberStats {
   withdrawnCount: number;
   byCategory: { sponsor: number; regular: number; family: number; etc: number };
   bySourceTop5: Array<{ label: string; count: number }>;
+  retentionRate: number | null;
 }
 
 export interface SupportStats {
   totalCount: number;
   byCategory: { counseling: number; legal: number; scholarship: number; other: number };
-  byStatus: { submitted: number; reviewing: number; matched: number; in_progress: number; completed: number; rejected: number };
+  byStatus: {
+    submitted: number; reviewing: number; matched: number;
+    in_progress: number; completed: number; rejected: number;
+  };
   avgProcessingDays: number | null;
   urgentCount: number;
+  completionRate: number | null;
 }
 
 export interface SirenStats {
@@ -81,39 +87,23 @@ export interface ReportData {
 
 /* ───────── 기간 헬퍼 ───────── */
 
-/**
- * 분기 (1~4) → 시작/종료일 + 라벨
- */
 export function periodForQuarter(year: number, quarter: 1 | 2 | 3 | 4): ReportPeriod {
   const startMonth = (quarter - 1) * 3;
   const startDate = new Date(year, startMonth, 1, 0, 0, 0);
   const endDate = new Date(year, startMonth + 3, 0, 23, 59, 59);
-  return {
-    startDate,
-    endDate,
-    type: "quarterly",
-    label: `${year}년 ${quarter}분기`,
-  };
+  return { startDate, endDate, type: "quarterly", label: `${year}년 ${quarter}분기` };
 }
 
-/**
- * 반기 (1=상반기, 2=하반기)
- */
 export function periodForHalf(year: number, half: 1 | 2): ReportPeriod {
   const startMonth = half === 1 ? 0 : 6;
   const startDate = new Date(year, startMonth, 1, 0, 0, 0);
   const endDate = new Date(year, startMonth + 6, 0, 23, 59, 59);
   return {
-    startDate,
-    endDate,
-    type: "half",
+    startDate, endDate, type: "half",
     label: `${year}년 ${half === 1 ? "상" : "하"}반기`,
   };
 }
 
-/**
- * 연간
- */
 export function periodForYear(year: number): ReportPeriod {
   return {
     startDate: new Date(year, 0, 1, 0, 0, 0),
@@ -123,9 +113,6 @@ export function periodForYear(year: number): ReportPeriod {
   };
 }
 
-/**
- * 자유 범위
- */
 export function periodForCustom(startDate: Date, endDate: Date, label?: string): ReportPeriod {
   return {
     startDate,
@@ -137,6 +124,15 @@ export function periodForCustom(startDate: Date, endDate: Date, label?: string):
 
 function formatDate(d: Date): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/* 직전 동일 기간 계산 (성장률 비교용) */
+function previousPeriod(period: ReportPeriod): { startDate: Date; endDate: Date } {
+  const ms = period.endDate.getTime() - period.startDate.getTime();
+  return {
+    startDate: new Date(period.startDate.getTime() - ms - 1),
+    endDate: new Date(period.startDate.getTime() - 1),
+  };
 }
 
 /* ───────── 후원 통계 ───────── */
@@ -176,8 +172,24 @@ async function collectDonationStats(period: ReportPeriod): Promise<DonationStats
   `);
   const trendRows = trendResult.rows || trendResult || [];
 
+  /* 직전 기간 대비 성장률 */
+  const prev = previousPeriod(period);
+  const prevResult: any = await db.execute(sql`
+    SELECT COALESCE(SUM(amount), 0)::bigint AS "prevAmount"
+    FROM donations
+    WHERE status = 'completed'
+      AND created_at >= ${prev.startDate}
+      AND created_at <= ${prev.endDate}
+  `);
+  const p: any = prevResult.rows ? prevResult.rows[0] : prevResult[0] || {};
+  const prevAmount = Number(p.prevAmount || 0);
+  const currAmount = Number(a.totalAmount || 0);
+  const growthRate = prevAmount > 0
+    ? Math.round(((currAmount - prevAmount) / prevAmount) * 1000) / 10
+    : null;
+
   return {
-    totalAmount: Number(a.totalAmount || 0),
+    totalAmount: currAmount,
     totalCount: Number(a.totalCount || 0),
     donorCount: Number(a.donorCount || 0),
     regularCount: Number(a.regularCount || 0),
@@ -195,6 +207,8 @@ async function collectDonationStats(period: ReportPeriod): Promise<DonationStats
       amount: Number(r.amount || 0),
       count: r.count || 0,
     })),
+    prevPeriodAmount: prevAmount,
+    growthRate,
   };
 }
 
@@ -208,43 +222,51 @@ async function collectMemberStats(period: ReportPeriod): Promise<MemberStats> {
       COUNT(*) FILTER (WHERE member_category = 'family')::int AS "familyCount",
       COUNT(*) FILTER (WHERE member_category = 'etc')::int AS "etcCount"
     FROM members
-    WHERE created_at >= ${period.startDate}
-      AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
   `);
   const n: any = newRow.rows ? newRow.rows[0] : newRow[0] || {};
 
-  /* 종료일 기준 전체 회원 수 */
   const totalRow: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "total"
     FROM members
-    WHERE created_at <= ${period.endDate}
-      AND status != 'withdrawn'
+    WHERE created_at <= ${period.endDate} AND status != 'withdrawn'
   `);
   const t: any = totalRow.rows ? totalRow.rows[0] : totalRow[0] || {};
 
-  /* 탈퇴 */
   const wdRow: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "wd"
     FROM members
-    WHERE withdrawn_at >= ${period.startDate}
-      AND withdrawn_at <= ${period.endDate}
+    WHERE withdrawn_at >= ${period.startDate} AND withdrawn_at <= ${period.endDate}
   `);
   const w: any = wdRow.rows ? wdRow.rows[0] : wdRow[0] || {};
 
-  /* 가입경로 TOP 5 */
   const sourceRows: any = await db.execute(sql`
     SELECT
       COALESCE(s.label, '미지정') AS "label",
       COUNT(m.id)::int AS "count"
     FROM members m
     LEFT JOIN signup_sources s ON s.id = m.signup_source_id
-    WHERE m.created_at >= ${period.startDate}
-      AND m.created_at <= ${period.endDate}
+    WHERE m.created_at >= ${period.startDate} AND m.created_at <= ${period.endDate}
     GROUP BY COALESCE(s.label, '미지정')
     ORDER BY 2 DESC
     LIMIT 5
   `);
   const srcRows = sourceRows.rows || sourceRows || [];
+
+  /* 유지율: (기간 시작 시점 활성 회원 중 종료 시점에도 활성인 비율) */
+  const retainRow: any = await db.execute(sql`
+    SELECT
+      COUNT(*)::int AS "startActive",
+      COUNT(*) FILTER (WHERE status != 'withdrawn' OR (withdrawn_at IS NOT NULL AND withdrawn_at > ${period.endDate}))::int AS "stillActive"
+    FROM members
+    WHERE created_at < ${period.startDate}
+  `);
+  const r: any = retainRow.rows ? retainRow.rows[0] : retainRow[0] || {};
+  const startActive = Number(r.startActive || 0);
+  const stillActive = Number(r.stillActive || 0);
+  const retentionRate = startActive > 0
+    ? Math.round((stillActive / startActive) * 1000) / 10
+    : null;
 
   return {
     newMembersCount: Number(n.newCount || 0),
@@ -256,10 +278,11 @@ async function collectMemberStats(period: ReportPeriod): Promise<MemberStats> {
       family: Number(n.familyCount || 0),
       etc: Number(n.etcCount || 0),
     },
-    bySourceTop5: srcRows.map((r: any) => ({
-      label: r.label || "미지정",
-      count: Number(r.count || 0),
+    bySourceTop5: srcRows.map((rr: any) => ({
+      label: rr.label || "미지정",
+      count: Number(rr.count || 0),
     })),
+    retentionRate,
   };
 }
 
@@ -281,13 +304,16 @@ async function collectSupportStats(period: ReportPeriod): Promise<SupportStats> 
       COUNT(*) FILTER (WHERE priority = 'urgent')::int AS "urgent",
       AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 86400) FILTER (WHERE completed_at IS NOT NULL) AS "avgDays"
     FROM support_requests
-    WHERE created_at >= ${period.startDate}
-      AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
   `);
   const s: any = r.rows ? r.rows[0] : r[0] || {};
 
+  const total = Number(s.totalCount || 0);
+  const completed = Number(s.completed || 0);
+  const completionRate = total > 0 ? Math.round((completed / total) * 1000) / 10 : null;
+
   return {
-    totalCount: Number(s.totalCount || 0),
+    totalCount: total,
     byCategory: {
       counseling: Number(s.counseling || 0),
       legal: Number(s.legal || 0),
@@ -299,19 +325,19 @@ async function collectSupportStats(period: ReportPeriod): Promise<SupportStats> 
       reviewing: Number(s.reviewing || 0),
       matched: Number(s.matched || 0),
       in_progress: Number(s.in_progress || 0),
-      completed: Number(s.completed || 0),
+      completed: completed,
       rejected: Number(s.rejected || 0),
     },
     avgProcessingDays: s.avgDays ? Math.round(Number(s.avgDays) * 10) / 10 : null,
     urgentCount: Number(s.urgent || 0),
+    completionRate,
   };
 }
 
 /* ───────── 사이렌 4종 통계 ───────── */
 async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
   const ir: any = await db.execute(sql`
-    SELECT
-      COUNT(*)::int AS "total",
+    SELECT COUNT(*)::int AS "total",
       COUNT(*) FILTER (WHERE siren_report_requested = true)::int AS "siren",
       COUNT(*) FILTER (WHERE status = 'responded')::int AS "responded",
       COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "criticalHigh"
@@ -319,8 +345,7 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
     WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
   `);
   const hr: any = await db.execute(sql`
-    SELECT
-      COUNT(*)::int AS "total",
+    SELECT COUNT(*)::int AS "total",
       COUNT(*) FILTER (WHERE siren_report_requested = true)::int AS "siren",
       COUNT(*) FILTER (WHERE status = 'responded')::int AS "responded",
       COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "criticalHigh"
@@ -328,8 +353,7 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
     WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
   `);
   const lr: any = await db.execute(sql`
-    SELECT
-      COUNT(*)::int AS "total",
+    SELECT COUNT(*)::int AS "total",
       COUNT(*) FILTER (WHERE siren_report_requested = true)::int AS "siren",
       COUNT(*) FILTER (WHERE status IN ('matched','responded'))::int AS "matched",
       COUNT(*) FILTER (WHERE ai_urgency = 'urgent')::int AS "urgent"
@@ -337,8 +361,7 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
     WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
   `);
   const br: any = await db.execute(sql`
-    SELECT
-      COUNT(*)::int AS "totalPosts",
+    SELECT COUNT(*)::int AS "totalPosts",
       COUNT(*) FILTER (WHERE is_pinned = true)::int AS "pinned"
     FROM board_posts
     WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
@@ -357,22 +380,16 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
 
   return {
     incident: {
-      total: Number(i.total || 0),
-      sirenRequested: Number(i.siren || 0),
-      responded: Number(i.responded || 0),
-      criticalHigh: Number(i.criticalHigh || 0),
+      total: Number(i.total || 0), sirenRequested: Number(i.siren || 0),
+      responded: Number(i.responded || 0), criticalHigh: Number(i.criticalHigh || 0),
     },
     harassment: {
-      total: Number(h.total || 0),
-      sirenRequested: Number(h.siren || 0),
-      responded: Number(h.responded || 0),
-      criticalHigh: Number(h.criticalHigh || 0),
+      total: Number(h.total || 0), sirenRequested: Number(h.siren || 0),
+      responded: Number(h.responded || 0), criticalHigh: Number(h.criticalHigh || 0),
     },
     legal: {
-      total: Number(l.total || 0),
-      sirenRequested: Number(l.siren || 0),
-      matched: Number(l.matched || 0),
-      urgent: Number(l.urgent || 0),
+      total: Number(l.total || 0), sirenRequested: Number(l.siren || 0),
+      matched: Number(l.matched || 0), urgent: Number(l.urgent || 0),
     },
     board: {
       totalPosts: Number(b.totalPosts || 0),
@@ -384,7 +401,6 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
 
 /* ───────── 캠페인 통계 ───────── */
 async function collectCampaignStats(period: ReportPeriod): Promise<CampaignStats> {
-  /* 기간 내 활성/종료된 캠페인 */
   const r: any = await db.execute(sql`
     SELECT
       COUNT(*) FILTER (WHERE status = 'active')::int AS "activeCount",
@@ -393,18 +409,18 @@ async function collectCampaignStats(period: ReportPeriod): Promise<CampaignStats
       COALESCE(SUM(donor_count), 0)::int AS "totalDonors"
     FROM campaigns
     WHERE created_at <= ${period.endDate}
-      AND (status IN ('active', 'closed'))
+      AND status IN ('active','closed')
   `);
   const s: any = r.rows ? r.rows[0] : r[0] || {};
 
-  /* 모금액 TOP 5 (해당 기간 내 active/closed) */
   const topRows: any = await db.execute(sql`
-    SELECT
-      id, title, type, raised_amount AS "raisedAmount",
-      goal_amount AS "goalAmount", donor_count AS "donorCount"
+    SELECT id, title, type,
+      raised_amount AS "raisedAmount",
+      goal_amount AS "goalAmount",
+      donor_count AS "donorCount"
     FROM campaigns
     WHERE created_at <= ${period.endDate}
-      AND (status IN ('active', 'closed'))
+      AND status IN ('active','closed')
     ORDER BY raised_amount DESC
     LIMIT 5
   `);
@@ -425,8 +441,7 @@ async function collectCampaignStats(period: ReportPeriod): Promise<CampaignStats
         raisedAmount: raised,
         goalAmount: goal,
         progressPercent: goal && goal > 0
-          ? Math.min(100, Math.round((raised / goal) * 100 * 10) / 10)
-          : null,
+          ? Math.min(100, Math.round((raised / goal) * 100 * 10) / 10) : null,
         donorCount: Number(c.donorCount || 0),
       };
     }),
