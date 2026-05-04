@@ -113,6 +113,7 @@
       </div>
     </div>
 
+<!-- public/index.html — STATS 섹션 다음에 캠페인 섹션 추가 -->
     <!-- STATS -->
     <section class="stats">
       <div class="container">
@@ -143,6 +144,43 @@
         </div>
       </div>
     </section>
+
+
+    <!-- ★ M-19-2: 진행 중 캠페인 카드 영역 (활성 캠페인 있을 때만 JS가 표시) -->
+    <section id="homeCampaignSection" class="block" style="display:none;background:#fafaf8">
+      <div class="container">
+        <div class="sec-head" style="margin-bottom:28px">
+          <div>
+            <div class="sec-eyebrow">CAMPAIGN</div>
+            <div class="sec-title">🎗 진행 중인 캠페인</div>
+          </div>
+          <a href="/campaigns.html" class="sec-link">+ 모든 캠페인 보기</a>
+        </div>
+
+
+        <p style="font-size:14px;color:var(--text-3);margin:-18px 0 28px;line-height:1.7;text-align:center">
+          여러분의 따뜻한 마음이 모여 큰 변화를 만듭니다.<br />
+          교사 유가족과 동료 교사들의 회복을 함께 지원해주세요.
+        </p>
+
+
+        <div id="homeCampaignGrid"
+             style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-bottom:28px">
+          <!-- JS가 자동 채움 -->
+        </div>
+
+
+        <div style="text-align:center">
+          <a href="/campaigns.html"
+             style="display:inline-block;padding:11px 28px;background:transparent;border:2px solid var(--brand);color:var(--brand);border-radius:24px;font-weight:600;text-decoration:none;font-size:14px;transition:all 0.2s"
+             onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
+             onmouseout="this.style.background='transparent';this.style.color='var(--brand)'">
+            모든 캠페인 보기 →
+          </a>
+        </div>
+      </div>
+    </section>
+
 
     <!-- NOTICE + FAQ -->
     <section class="block">
@@ -244,11 +282,16 @@
   <!-- ============================================================
        SCRIPTS (로드 순서 중요)
        ============================================================ -->
+<!-- public/index.html — 마지막 스크립트 영역에 1줄 추가 -->
+  <!-- ============================================================
+       SCRIPTS (로드 순서 중요)
+       ============================================================ -->
   <script src="/js/common.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/news.js"></script>
   <script src="/js/support.js"></script>
   <script src="/js/home.js"></script>
   <script src="/js/donate.js"></script>
+  <script src="/js/home-campaigns.js?v=m19-2"></script>
 </body>
 </html>

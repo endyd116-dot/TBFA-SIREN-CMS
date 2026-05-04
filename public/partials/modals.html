@@ -128,9 +128,23 @@
     <h2 class="serif">🎗 후원 동참하기</h2>
     <p class="modal-sub">여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.</p>
 
+<!-- public/partials/modals.html — donateModal 안의 form 시작 직후 1블록 삽입 -->
     <!-- STEP 1: 입력 -->
     <div class="donate-step active" data-step="1">
       <form data-form="donate">
+
+        <!-- ★ M-19-2: 캠페인 선택 (활성 캠페인이 있을 때만 JS가 표시) -->
+        <div class="fg" id="donateCampaignWrap" style="display:none">
+          <label>🎯 후원 캠페인 <span class="hint">(선택 — 특정 캠페인에 합산)</span></label>
+          <select id="donateCampaignSelect" name="campaignSelect"
+                  style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;background:#fff;font-family:inherit;color:var(--ink)">
+            <option value="">캠페인 선택 안 함 (일반 후원)</option>
+          </select>
+          <small style="display:block;margin-top:5px;font-size:11.5px;color:var(--text-3);line-height:1.5">
+            💡 특정 캠페인을 선택하시면 해당 캠페인 모금액에 합산되어 진행률이 갱신됩니다.
+          </small>
+        </div>
+
         <div class="fg">
           <label>후원 유형</label>
           <div class="pay-radio" style="grid-template-columns:1fr 1fr">
@@ -140,7 +154,6 @@
             <label for="dt2">일시 후원</label>
           </div>
         </div>
-
         <div class="fg">
           <label>후원 금액</label>
           <div class="amt-grid">
