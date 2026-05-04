@@ -19,14 +19,8 @@
 </head>
 <body data-page="home">
 
-  <!-- ============================================================
-       자동 삽입 영역 (common.js가 채움)
-       ============================================================ -->
   <div id="header-slot"></div>
 
-  <!-- ============================================================
-       MAIN CONTENT
-       ============================================================ -->
   <main>
 
     <!-- HERO -->
@@ -80,7 +74,7 @@
     <!-- QUICK MENU -->
     <div class="container quick-wrap">
       <div class="quick-grid">
-        <div class="quick-item" data-action="open-modal" data-target="donateModal">
+        <div class="quick-item" data-action="open-modal" data-target="donateModal" style="cursor:pointer">
           <span class="qi-arrow">↗</span>
           <div class="qi-icon">🤝</div>
           <div class="qi-label">후원하기</div>
@@ -105,7 +99,8 @@
           <div class="qi-icon">⚖️</div>
           <div class="qi-label">법률 지원 서비스</div>
         </a>
-        <a class="quick-item" href="/mypage.html">
+        <!-- ★ 2026-05 패치: 신청 내역 조회 → mypage의 신청 내역 탭(#support)으로 직접 이동 -->
+        <a class="quick-item" href="/mypage.html#support">
           <span class="qi-arrow">↗</span>
           <div class="qi-icon">📋</div>
           <div class="qi-label">신청 내역 조회</div>
@@ -113,7 +108,6 @@
       </div>
     </div>
 
-<!-- public/index.html — STATS 섹션 다음에 캠페인 섹션 추가 -->
     <!-- STATS -->
     <section class="stats">
       <div class="container">
@@ -145,7 +139,6 @@
       </div>
     </section>
 
-
     <!-- ★ M-19-2: 진행 중 캠페인 카드 영역 (활성 캠페인 있을 때만 JS가 표시) -->
     <section id="homeCampaignSection" class="block" style="display:none;background:#fafaf8">
       <div class="container">
@@ -157,18 +150,15 @@
           <a href="/campaigns.html" class="sec-link">+ 모든 캠페인 보기</a>
         </div>
 
-
         <p style="font-size:14px;color:var(--text-3);margin:-18px 0 28px;line-height:1.7;text-align:center">
           여러분의 따뜻한 마음이 모여 큰 변화를 만듭니다.<br />
           교사 유가족과 동료 교사들의 회복을 함께 지원해주세요.
         </p>
 
-
         <div id="homeCampaignGrid"
              style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-bottom:28px">
           <!-- JS가 자동 채움 -->
         </div>
-
 
         <div style="text-align:center">
           <a href="/campaigns.html"
@@ -180,7 +170,6 @@
         </div>
       </div>
     </section>
-
 
     <!-- NOTICE + FAQ -->
     <section class="block">
@@ -273,19 +262,10 @@
 
   </main>
 
-  <!-- ============================================================
-       자동 삽입 영역 (common.js가 채움)
-       ============================================================ -->
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <!-- ============================================================
-       SCRIPTS (로드 순서 중요)
-       ============================================================ -->
-<!-- public/index.html — 마지막 스크립트 영역에 1줄 추가 -->
-  <!-- ============================================================
-       SCRIPTS (로드 순서 중요)
-       ============================================================ -->
+  <!-- SCRIPTS (로드 순서 중요) -->
   <script src="/js/common.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/news.js"></script>
