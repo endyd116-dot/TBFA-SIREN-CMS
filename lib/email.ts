@@ -1420,5 +1420,87 @@ export function tplBoardResponseUser(opts: {
       ctaText: "게시글로 이동",
       ctaUrl: `${SITE_URL}/board-view.html?id=${postId}`,
     }),
+    
+  };
+  
+}
+// lib/email.ts — 파일 맨 끝 tplBoardResponseUser 다음에 추가
+/* ═══════════════════════════════════════════════════════
+   ★ Phase M-19-1: 템플릿 14. 회원 등급 상승 축하 (NEW)
+   - recalculateGrade() 에서 등급 상승 감지 시 자동 발송
+   - members.agreeEmail=true 인 경우만 (정책 준수)
+   ═══════════════════════════════════════════════════════ */
+export function tplGradeUpgrade(opts: {
+  userName: string;
+  gradeName: string;
+  gradeIcon: string;
+  totalAmount: number;
+  regularMonths: number;
+}) {
+  const { userName, gradeName, gradeIcon, totalAmount, regularMonths } = opts;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(userName)} 님의 따뜻한 동행에 진심으로 감사드립니다.<br />
+      회원 등급이 <strong style="color:#7a1f2b;">${esc(gradeIcon)} ${esc(gradeName)}</strong> 등급으로 상승하였습니다. 🎉
+    </p>
+
+    <div style="margin:24px 0;padding:24px;
+                background:linear-gradient(135deg,#fef9f5,#fff8ec);
+                border:2px solid #f0e0d4;border-radius:12px;text-align:center;">
+      <div style="font-size:48px;line-height:1;margin-bottom:10px;">${esc(gradeIcon)}</div>
+      <div style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;
+                  color:#0f0f0f;margin-bottom:6px;">
+        ${esc(gradeName)}
+      </div>
+      <div style="font-size:13px;color:#8a6a00;letter-spacing:1px;">
+        SIREN MEMBER GRADE
+      </div>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <div style="font-size:13px;font-weight:700;color:#0f0f0f;margin-bottom:10px;">
+            📊 동행 기록
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="120" style="padding:5px 0;color:#8a8a8a;">누적 후원 금액</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
+                ₩${totalAmount.toLocaleString()}
+              </td>
+            </tr>
+            ${regularMonths > 0 ? `
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">정기 후원 기간</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:700;">
+                ${regularMonths}개월
+              </td>
+            </tr>` : ""}
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      ${esc(userName)} 님과 같은 분들이 계시기에<br />
+      유가족분들이 한 걸음씩 일상을 회복해 갈 수 있습니다.<br /><br />
+      앞으로도 변함없는 따뜻한 동행 부탁드립니다. 🎗
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] 회원 등급이 상승했습니다 ${gradeIcon} ${gradeName}`,
+    html: baseLayout({
+      title: "회원 등급 상승 축하",
+      bodyHtml,
+      ctaText: "마이페이지에서 확인",
+      ctaUrl: `${SITE_URL}/mypage.html`,
+    }),
   };
 }

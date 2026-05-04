@@ -1,9 +1,10 @@
-// db/schema.ts (1~5행) — import 라인 교체
+// db/schema.ts
 import {
   pgTable, serial, varchar, integer, text, timestamp,
   boolean, index, pgEnum, jsonb
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
 /* =========================================================
    ENUM 타입
    ========================================================= */
@@ -93,7 +94,6 @@ export const members = pgTable("members", {
   withdrawnAt: timestamp("withdrawn_at"),                         // 탈퇴 시점
   withdrawnReason: varchar("withdrawn_reason", { length: 500 }),  // 탈퇴 사유 (선택)
 
-// db/schema.ts — members 테이블 내부, M-12 블록 다음에 추가
   /* ───────── ★ M-12: 회원 4분류 + 가입경로 (NEW) ───────── */
   memberCategory: varchar("member_category", { length: 20 }),
   // 'sponsor' | 'regular' | 'family' | 'etc' (null 가능 — 마이그레이션 후 자동 분류)
@@ -111,6 +111,16 @@ export const members = pgTable("members", {
   // GIN 인덱스: idx_members_assigned_categories (DB 측에서 직접 생성, STEP 1 마이그레이션)
   assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
 
+  /* ───────── ★ M-19-1: 회원 등급 시스템 (NEW) ───────── */
+  // gradeId: member_grades.id 참조 (런타임 join)
+  // gradeLocked: 운영자가 수동 지정한 등급은 자동 갱신 막기
+  // totalDonationAmount/regularMonthsCount: 매 후원 시점 캐시 (cron이 일괄 갱신)
+  gradeId: integer("grade_id"),
+  gradeAssignedAt: timestamp("grade_assigned_at"),
+  gradeLocked: boolean("grade_locked").default(false),
+  totalDonationAmount: integer("total_donation_amount").default(0),
+  regularMonthsCount: integer("regular_months_count").default(0),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -124,7 +134,10 @@ export const members = pgTable("members", {
   categoryIdx: index("members_category_idx").on(t.memberCategory),
   subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
+  /* ★ M-19-1: 등급 인덱스 */
+  gradeIdx: index("members_grade_idx").on(t.gradeId),
 }));
+
 /* =========================================================
    2. donations — 기부 내역
    ========================================================= */
@@ -650,6 +663,7 @@ export const notifications = pgTable("notifications", {
   severityIdx: index("notifications_severity_idx").on(t.severity),
   expiresIdx: index("notifications_expires_idx").on(t.expiresAt),
 }));
+
 /* =========================================================
    ★ Phase M-12: signup_sources — 회원 가입 경로 마스터
    - code UNIQUE: 'website' | 'admin' | 'hyosung_csv' | 'event' | 'etc'
@@ -668,6 +682,30 @@ export const signupSources = pgTable("signup_sources", {
 }, (t) => ({
   codeIdx: index("signup_sources_code_idx").on(t.code),
   activeIdx: index("signup_sources_active_idx").on(t.isActive),
+}));
+
+/* =========================================================
+   ★ Phase M-19-1: member_grades — 회원 등급 마스터 (NEW)
+   - 5단계: 동행 / 든든 / 디딤돌 / 기둥 / 등불
+   - 시드는 마이그레이션에서 INSERT
+   - 운영자가 임계값/이름/혜택 변경 가능 (admin-grades CRUD)
+   ========================================================= */
+export const memberGrades = pgTable("member_grades", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 30 }).notNull().unique(),
+  // 'companion' | 'steadfast' | 'stepping_stone' | 'pillar' | 'beacon'
+  nameKo: varchar("name_ko", { length: 50 }).notNull(),
+  minTotalAmount: integer("min_total_amount").notNull().default(0),
+  minRegularMonths: integer("min_regular_months").notNull().default(0),
+  color: varchar("color", { length: 20 }).notNull(),
+  icon: varchar("icon", { length: 10 }).notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  benefits: jsonb("benefits").default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index("member_grades_code_idx").on(t.code),
+  sortIdx: index("member_grades_sort_idx").on(t.sortOrder),
 }));
 
 /* =========================================================
@@ -1061,6 +1099,7 @@ export const mediaPosts = pgTable("media_posts", {
   publishedIdx: index("media_posts_published_idx").on(t.isPublished),
   publishedAtIdx: index("media_posts_published_at_idx").on(t.publishedAt),
 }));
+
 /* =========================================================
    ★ Phase M-7: legal_consultations — 법률 상담 신청
    ========================================================= */
@@ -1258,3 +1297,7 @@ export type NewMediaPost = typeof mediaPosts.$inferInsert;
 /* ★ M-12: 가입경로 타입 (NEW) */
 export type SignupSource = typeof signupSources.$inferSelect;
 export type NewSignupSource = typeof signupSources.$inferInsert;
+
+/* ★ M-19-1: 회원 등급 타입 (NEW) */
+export type MemberGrade = typeof memberGrades.$inferSelect;
+export type NewMemberGrade = typeof memberGrades.$inferInsert;
