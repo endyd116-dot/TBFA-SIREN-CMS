@@ -20,7 +20,9 @@
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
-  hyosung: '효성 CMS+ 관리',  /* ★ L-8 추가 */
+// public/js/admin.js — PAGE_TITLES 객체 안에 추가
+  hyosung: '효성 CMS+ 관리',
+  campaigns: '📢 캠페인 관리',
   audit: '감사 로그',
   settings: '시스템 설정',
   };
@@ -5400,8 +5402,11 @@
       loadContent();
     } else if (page === 'receipt-settings') {
       loadReceiptSettings();
-        } else if (page === 'hyosung') {       /* ★ L-8 추가 */
+// public/js/admin.js — switchAdminPage 안, hyosung 다음에 추가
+    } else if (page === 'hyosung') {
       loadHyosung();
+    } else if (page === 'campaigns') {
+      if (window.SIREN_ADMIN_CAMPAIGNS) window.SIREN_ADMIN_CAMPAIGNS.loadCampaigns();
 
     /* ★ M-12: 가입 경로 관리 */
     } else if (page === 'signup-sources') {

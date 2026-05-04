@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>캠페인 | 교사유가족협의회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+
+<style>
+.cmp-list-page { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
+.cmp-list-page h1 { font-family: 'Noto Serif KR', serif; font-size: 28px; margin-bottom: 8px; color: var(--ink); }
+.cmp-list-sub { font-size: 14px; color: var(--text-3); margin-bottom: 28px; line-height: 1.7; }
+
+.cmp-filter { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.cmp-filter button {
+  padding: 8px 16px; background: #fff; border: 1px solid var(--line);
+  border-radius: 20px; font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.cmp-filter button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+.cmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+.cmp-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden; transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit;
+}
+.cmp-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); transform: translateY(-2px); }
+.cmp-card-thumb {
+  width: 100%; height: 180px; background: #f0e8e8 center/cover no-repeat;
+  position: relative;
+}
+.cmp-card-pin { position: absolute; top: 10px; left: 10px; background: var(--brand); color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.cmp-card-type {
+  position: absolute; top: 10px; right: 10px;
+  padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.95);
+}
+.cmp-card-body { padding: 18px 20px; }
+.cmp-card-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+.cmp-card-summary { font-size: 13px; color: var(--text-3); line-height: 1.6; min-height: 42px; margin-bottom: 14px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cmp-card-progress-bar { background: #f0f0f0; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.cmp-card-progress-fill { background: var(--brand); height: 100%; transition: width 0.3s; }
+.cmp-card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); }
+.cmp-card-raised { font-weight: 700; color: var(--brand); font-family: Inter, monospace; }
+.cmp-card-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-3); }
+</style>
+</head>
+<body>
+<div id="header-mount"></div>
+
+<main class="cmp-list-page">
+  <h1>🎗 진행 중인 캠페인</h1>
+  <p class="cmp-list-sub">
+    여러분의 따뜻한 마음이 모여 큰 변화를 만듭니다.<br />
+    교사 유가족과 동료 교사들의 회복을 함께 지원해주세요.
+  </p>
+
+  <div class="cmp-filter">
+    <button class="on" data-filter="">전체</button>
+    <button data-filter="fundraising">💰 모금</button>
+    <button data-filter="memorial">🎗 추모</button>
+    <button data-filter="awareness">📣 인식 개선</button>
+  </div>
+
+  <div class="cmp-grid" id="cmpGrid">
+    <div class="cmp-card-empty">불러오는 중...</div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<div id="modals-mount"></div>
+
+<script src="/js/common.js?v=3"></script>
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/donate.js?v=m19-2"></script>
+<script>
+(function(){
+  let _filter = '';
+
+  const TYPE_LABEL = { fundraising: '💰 모금', memorial: '🎗 추모', awareness: '📣 인식' };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function load() {
+    const grid = document.getElementById('cmpGrid');
+    grid.innerHTML = '<div class="cmp-card-empty">불러오는 중...</div>';
+
+    const params = new URLSearchParams({ limit: '24' });
+    if (_filter) params.set('type', _filter);
+
+    try {
+      const res = await fetch('/api/campaigns?' + params.toString());
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('실패');
+
+      const list = data.data.list || [];
+      if (list.length === 0) {
+        grid.innerHTML = '<div class="cmp-card-empty">진행 중인 캠페인이 없습니다.</div>';
+        return;
+      }
+
+      grid.innerHTML = list.map(c => {
+        const thumb = c.thumbnailBlobId
+          ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
+          : 'background:linear-gradient(135deg,#7a1f2b,#a64252)';
+        const goal = c.goalAmount || 0;
+        const raised = c.raisedAmount || 0;
+        const pct = c.progressPercent;
+        const progressBlock = goal > 0
+          ? `<div class="cmp-card-progress-bar"><div class="cmp-card-progress-fill" style="width:${pct}%"></div></div>
+             <div class="cmp-card-meta">
+               <span class="cmp-card-raised">₩${raised.toLocaleString()}</span>
+               <span>${pct}% / ₩${goal.toLocaleString()}</span>
+             </div>`
+          : `<div class="cmp-card-meta">
+               <span>👥 ${c.donorCount || 0}명 후원</span>
+               ${c.remainingDays !== null ? `<span>D-${c.remainingDays}</span>` : ''}
+             </div>`;
+
+        return `<a href="/campaign.html?slug=${encodeURIComponent(c.slug)}" class="cmp-card">
+          <div class="cmp-card-thumb" style="${thumb}">
+            ${c.isPinned ? '<span class="cmp-card-pin">📌 추천</span>' : ''}
+            <span class="cmp-card-type">${TYPE_LABEL[c.type] || c.type}</span>
+          </div>
+          <div class="cmp-card-body">
+            <div class="cmp-card-title">${escapeHtml(c.title)}</div>
+            <div class="cmp-card-summary">${escapeHtml(c.summary || '')}</div>
+            ${progressBlock}
+          </div>
+        </a>`;
+      }).join('');
+    } catch (e) {
+      grid.innerHTML = '<div class="cmp-card-empty" style="color:var(--danger)">조회 실패</div>';
+    }
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-filter]');
+    if (!btn) return;
+    document.querySelectorAll('.cmp-filter button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    _filter = btn.dataset.filter;
+    load();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

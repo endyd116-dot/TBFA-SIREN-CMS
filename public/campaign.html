@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>캠페인 | 교사유가족협의회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+
+<style>
+.cmp-detail-page { max-width: 880px; margin: 0 auto; padding: 30px 20px 80px; }
+.cmp-detail-hero {
+  width: 100%; height: 320px; border-radius: 16px;
+  background: #f0e8e8 center/cover no-repeat; margin-bottom: 28px; position: relative;
+}
+.cmp-detail-type-badge {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(255,255,255,0.95); padding: 5px 14px;
+  border-radius: 14px; font-size: 12px; font-weight: 600;
+}
+.cmp-detail-title { font-family: 'Noto Serif KR', serif; font-size: 30px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
+.cmp-detail-summary { font-size: 15px; color: var(--text-2); line-height: 1.8; margin-bottom: 28px; padding: 16px 20px; background: var(--bg-soft); border-left: 3px solid var(--brand); border-radius: 6px; }
+
+.cmp-stats-card {
+  background: linear-gradient(135deg, #fff, #fef9f5);
+  border: 2px solid var(--brand); border-radius: 12px; padding: 24px 28px; margin-bottom: 32px;
+}
+.cmp-progress-large {
+  background: #f0f0f0; height: 14px; border-radius: 7px; overflow: hidden; margin: 12px 0 8px;
+}
+.cmp-progress-large-fill { background: linear-gradient(90deg, #7a1f2b, #a64252); height: 100%; transition: width 0.4s; }
+.cmp-stats-row { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.cmp-stats-item { flex: 1; min-width: 140px; }
+.cmp-stats-label { font-size: 11.5px; color: var(--text-3); margin-bottom: 4px; }
+.cmp-stats-value { font-size: 22px; font-weight: 700; color: var(--ink); font-family: Inter, monospace; }
+.cmp-stats-value.brand { color: var(--brand); }
+
+.cmp-detail-content { font-size: 15px; line-height: 1.85; color: var(--ink); margin-bottom: 40px; }
+.cmp-detail-content p { margin-bottom: 16px; }
+.cmp-detail-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 14px 0; }
+
+.cmp-cta {
+  background: var(--brand); color: #fff; border: none;
+  padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 700;
+  cursor: pointer; width: 100%; max-width: 400px; margin: 0 auto; display: block;
+  font-family: inherit;
+}
+.cmp-cta:hover { background: var(--brand-deep, #5a1620); }
+</style>
+</head>
+<body>
+<div id="header-mount"></div>
+
+<main class="cmp-detail-page" id="cmpRoot">
+  <div style="text-align:center;padding:80px 20px;color:var(--text-3)">불러오는 중...</div>
+</main>
+
+<div id="footer-mount"></div>
+<div id="modals-mount"></div>
+
+<script src="/js/common.js?v=3"></script>
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/donate.js?v=m19-2"></script>
+<script>
+(function(){
+  const TYPE_LABEL = { fundraising: '💰 모금', memorial: '🎗 추모', awareness: '📣 인식 개선' };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function load() {
+    const root = document.getElementById('cmpRoot');
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('slug');
+    const id = params.get('id');
+    if (!slug && !id) {
+      root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">잘못된 URL입니다.</div>';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/campaigns?' + (slug ? 'slug=' + encodeURIComponent(slug) : 'id=' + id));
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('실패');
+      const c = data.data.campaign;
+
+      const thumb = c.thumbnailBlobId
+        ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
+        : 'background:linear-gradient(135deg,#7a1f2b,#a64252)';
+      const goal = c.goalAmount || 0;
+      const raised = c.raisedAmount || 0;
+      const pct = c.progressPercent;
+
+      const progressHtml = goal > 0
+        ? `<div class="cmp-progress-large"><div class="cmp-progress-large-fill" style="width:${pct}%"></div></div>
+           <div style="font-size:14px;color:var(--text-2);text-align:right;margin-bottom:14px">${pct}% 달성</div>
+           <div class="cmp-stats-row">
+             <div class="cmp-stats-item"><div class="cmp-stats-label">현재 모금액</div><div class="cmp-stats-value brand">₩${raised.toLocaleString()}</div></div>
+             <div class="cmp-stats-item"><div class="cmp-stats-label">목표 금액</div><div class="cmp-stats-value">₩${goal.toLocaleString()}</div></div>
+             <div class="cmp-stats-item"><div class="cmp-stats-label">후원자</div><div class="cmp-stats-value">${(c.donorCount || 0).toLocaleString()}명</div></div>
+             ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
+           </div>`
+        : `<div class="cmp-stats-row">
+             <div class="cmp-stats-item"><div class="cmp-stats-label">참여 후원자</div><div class="cmp-stats-value brand">${(c.donorCount || 0).toLocaleString()}명</div></div>
+             ${c.remainingDays !== null ? `<div class="cmp-stats-item"><div class="cmp-stats-label">남은 기간</div><div class="cmp-stats-value">D-${c.remainingDays}</div></div>` : ''}
+           </div>`;
+
+      const isClosed = c.status === 'closed';
+
+      root.innerHTML = `
+        <div class="cmp-detail-hero" style="${thumb}">
+          <span class="cmp-detail-type-badge">${TYPE_LABEL[c.type] || c.type}</span>
+        </div>
+
+        <h1 class="cmp-detail-title">${escapeHtml(c.title)}</h1>
+
+        ${c.summary ? `<div class="cmp-detail-summary">${escapeHtml(c.summary)}</div>` : ''}
+
+        <div class="cmp-stats-card">
+          ${progressHtml}
+        </div>
+
+        <div class="cmp-detail-content">${c.contentHtml || ''}</div>
+
+        ${isClosed
+          ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. 🙏</div>'
+          : `<button class="cmp-cta" data-cmp-donate="${c.id}" data-cmp-slug="${escapeHtml(c.slug)}" data-cmp-title="${escapeHtml(c.title)}">
+              💝 이 캠페인에 후원하기
+            </button>`
+        }
+      `;
+    } catch (e) {
+      root.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--danger)">캠페인을 찾을 수 없습니다.</div>';
+    }
+  }
+
+  /* 후원하기 버튼 → donate 모달 열기 + 캠페인 사전 선택 */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-cmp-donate]');
+    if (!btn) return;
+    e.preventDefault();
+    const id = Number(btn.dataset.cmpDonate);
+    const slug = btn.dataset.cmpSlug;
+    const title = btn.dataset.cmpTitle;
+    /* donate.js가 이 정보를 사용하도록 sessionStorage에 저장 */
+    sessionStorage.setItem('siren_preselect_campaign', JSON.stringify({ id, slug, title }));
+    /* 후원 모달 트리거 */
+    if (window.SirenDonate && window.SirenDonate.openModal) {
+      window.SirenDonate.openModal();
+    } else {
+      location.href = '/index.html#donate';
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

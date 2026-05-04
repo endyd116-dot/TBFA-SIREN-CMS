@@ -2542,6 +2542,8 @@
           </a>
         </li>
         <!-- ★ M-16 STEP A: super_admin 전용 -->
+         <!-- public/admin.html — audit 메뉴 위에 1줄 추가 -->
+        <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
         <li data-super-only="1"><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
       </ul>
@@ -3674,6 +3676,72 @@
             </div>
           </div>
         </div>
+<!-- public/admin.html — 시스템 설정 섹션 위에 삽입 -->
+
+        <!-- ★ M-19-2: 캠페인 관리 -->
+        <div id="adm-campaigns" class="adm-page">
+          <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="kpi"><div class="kpi-label">전체 캠페인</div><div class="kpi-value" id="cmpKpiTotal">0</div></div>
+            <div class="kpi" style="border-left:3px solid #1a8b46"><div class="kpi-label" style="color:#1a8b46">활성</div><div class="kpi-value" id="cmpKpiActive" style="color:#1a8b46">0</div></div>
+            <div class="kpi"><div class="kpi-label">초안</div><div class="kpi-value" id="cmpKpiDraft">0</div></div>
+            <div class="kpi"><div class="kpi-label">활성 모금액</div><div class="kpi-value" id="cmpKpiRaised">₩ 0</div></div>
+            <div class="kpi"><div class="kpi-label">활성 후원자</div><div class="kpi-value" id="cmpKpiDonors">0</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">📢 캠페인 목록</div>
+              <div class="p-actions">
+                <button class="btn-sm btn-sm-ghost" id="cmpRecalcAllBtn">🔄 전체 통계 재계산</button>
+                <button class="btn-sm btn-sm-primary" id="cmpNewBtn">+ 새 캠페인</button>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#fafaf8;border:1px solid var(--line);border-radius:8px">
+              <select id="cmpFilterType" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                <option value="">전체 종류</option>
+                <option value="fundraising">💰 모금</option>
+                <option value="memorial">🎗 추모</option>
+                <option value="awareness">📣 인식 개선</option>
+              </select>
+              <select id="cmpFilterStatus" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                <option value="">전체 상태</option>
+                <option value="draft">초안</option>
+                <option value="active">활성</option>
+                <option value="closed">종료</option>
+                <option value="archived">보관</option>
+              </select>
+              <select id="cmpFilterPublished" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                <option value="">전체 공개</option>
+                <option value="true">🌐 공개</option>
+                <option value="false">🔒 비공개</option>
+              </select>
+              <input type="search" id="cmpFilterQ" placeholder="🔍 제목·slug 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+              <span id="cmpCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:60px">📌</th>
+                    <th style="width:80px">종류</th>
+                    <th>제목 / slug</th>
+                    <th style="width:80px">상태</th>
+                    <th style="width:130px">진행률</th>
+                    <th style="width:110px">모금액</th>
+                    <th style="width:70px">후원자</th>
+                    <th style="width:90px">기간</th>
+                    <th style="width:200px">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="cmpTableBody">
+                  <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
         <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
@@ -4487,6 +4555,119 @@
       </div>
     </div>
   </div>
+<!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
+  <!-- ★ M-19-2: 캠페인 편집 모달 -->
+  <div id="campaignEditModal" class="modal">
+    <div class="modal-content" style="max-width:840px">
+      <div class="modal-header">
+        <h3 class="serif" id="cmpModalTitle">📢 새 캠페인</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="campaignEditForm" class="cnt-form">
+          <input type="hidden" id="cmpEditId" value="">
+
+          <div class="grid-2">
+            <div class="fg">
+              <label>종류 <span style="color:var(--danger)">*</span></label>
+              <select id="cmpType" required>
+                <option value="fundraising">💰 모금 (목표금액 표시)</option>
+                <option value="memorial">🎗 추모 (스토리 중심)</option>
+                <option value="awareness">📣 인식 개선</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>상태</label>
+              <select id="cmpStatus">
+                <option value="draft">📝 초안</option>
+                <option value="active">✅ 활성</option>
+                <option value="closed">⏹ 종료</option>
+                <option value="archived">📦 보관</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label>제목 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="cmpTitle" required maxlength="200" placeholder="2026 봄 추모 캠페인">
+          </div>
+
+          <div class="fg">
+            <label>slug <span class="hint">(URL용 영숫자/하이픈, 자동 정규화)</span></label>
+            <input type="text" id="cmpSlug" required maxlength="100" placeholder="2026-spring-memorial">
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">URL: /campaign.html?slug=<strong id="cmpSlugPreview">—</strong></div>
+          </div>
+
+          <div class="fg">
+            <label>요약 <span class="hint">(목록 카드 / 메타)</span></label>
+            <textarea id="cmpSummary" rows="2" maxlength="500" placeholder="간단한 요약"></textarea>
+          </div>
+
+          <!-- AI 카피 생성 -->
+          <div style="background:linear-gradient(135deg,#f7f9fc,#fff);border:2px dashed var(--brand);border-radius:8px;padding:14px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <strong style="color:var(--brand);font-size:13px">🤖 AI 카피 생성</strong>
+              <span style="font-size:11px;color:var(--text-3)">Gemini AI</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <input type="text" id="cmpAiTheme" placeholder="캠페인 주제 (예: 교사 자녀 장학사업)" style="flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+              <select id="cmpAiTone" style="padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                <option value="warm">따뜻한 어조</option>
+                <option value="urgent">긴급한 어조</option>
+                <option value="inspiring">영감 어조</option>
+              </select>
+              <button type="button" id="cmpAiBtn" class="btn-sm btn-sm-primary">✨ AI 카피 생성</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.5">💡 종류/주제/어조를 선택하고 클릭하면 제목·요약·본문 초안이 자동 생성됩니다 (3~5초)</div>
+          </div>
+
+          <div class="fg">
+            <label>본문 HTML</label>
+            <textarea id="cmpContentHtml" rows="10" maxlength="100000" placeholder="<p>캠페인 상세 내용...</p>"></textarea>
+          </div>
+
+          <div class="fg">
+            <label>썸네일</label>
+            <div class="cnt-thumb-row">
+              <div class="cnt-thumb-preview" id="cmpThumbPreview" style="background-image:url('')"></div>
+              <div class="cnt-thumb-actions">
+                <input type="hidden" id="cmpThumbId" value="">
+                <input type="file" id="cmpThumbInput" accept="image/jpeg,image/png,image/webp" style="display:none">
+                <button type="button" id="cmpThumbBtn">🖼️ 썸네일 업로드</button>
+                <button type="button" id="cmpThumbClearBtn" style="color:var(--danger)">✕ 제거</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-3" id="cmpGoalRow">
+            <div class="fg" style="grid-column:span 1">
+              <label>목표 금액 <span class="hint">(원, fundraising만)</span></label>
+              <input type="number" id="cmpGoalAmount" min="0" step="10000" placeholder="10000000">
+            </div>
+            <div class="fg">
+              <label>시작일</label>
+              <input type="date" id="cmpStartDate">
+            </div>
+            <div class="fg">
+              <label>종료일</label>
+              <input type="date" id="cmpEndDate">
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <label><input type="checkbox" id="cmpPublished"> 🌐 공개</label>
+            <label><input type="checkbox" id="cmpPinned"> 📌 상단 고정</label>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+            <button type="button" class="btn btn-ghost" id="cmpDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none">🗑 삭제</button>
+            <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
 <!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
   <!-- ★ M-19-1: 재참여 메일 발송 모달 -->
@@ -4531,6 +4712,7 @@
   <script src="/js/attachment.js?v=m2-5"></script>
   <script src="/js/admin-content.js?v=m11"></script>
   <script src="/js/admin-signup-sources.js?v=m12"></script>
+  <script src="/js/admin-campaigns.js?v=m19-2"></script>
 
   <script>
   (function () {

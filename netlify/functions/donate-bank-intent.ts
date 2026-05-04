@@ -55,6 +55,11 @@ export default async (req: Request) => {
 
     /* DB 저장 (pending_bank 상태) */
     const transactionId = generateTransactionId();
+   // netlify/functions/donate-bank-intent.ts — insertData 부근 교체
+    /* ★ M-19-2: 캠페인 연결 (선택) */
+    const campaignId = body.campaignId && Number.isFinite(Number(body.campaignId))
+      ? Number(body.campaignId) : null;
+
     const insertData: any = {
       memberId,
       donorName: name,
@@ -69,6 +74,7 @@ export default async (req: Request) => {
       isAnonymous,
       receiptRequested: true,
       bankDepositorName: depositorName,
+      campaignId,  // ★ M-19-2
     };
 
     const [record] = await db.insert(donations).values(insertData).returning();
