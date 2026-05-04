@@ -48,6 +48,7 @@ export default async (req: Request, _ctx: Context) => {
     await db.update(harassmentReports).set(updateData).where(eq(harassmentReports.id, reportId));
 
     if (requested) {
+// netlify/functions/harassment-report-confirm.ts — notifyAllOperators 호출부 교체
       try {
         const sev = (row as any).aiSeverity || "medium";
         const isCritical = sev === "critical";
@@ -61,6 +62,9 @@ export default async (req: Request, _ctx: Context) => {
           link: `/admin.html#harassment-reports`,
           refTable: "harassment_reports",
           refId: reportId,
+        }, {
+          /* ★ M-15: harassment 담당 운영자 + super_admin에게만 발송 */
+          category: "harassment",
         });
       } catch (e) {
         console.warn("[harassment-report-confirm] 알림 실패", e);
