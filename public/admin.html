@@ -3169,7 +3169,9 @@
             <button type="button" class="ct-tab" data-ct="faqs">❓ FAQ</button>
             <button type="button" class="ct-tab" data-ct="about">📖 협의회 소개</button>
             <button type="button" class="ct-tab" data-ct="activity">📊 주요 활동</button>
+              <!-- public/admin.html — 콘텐츠 관리 탭 버튼 영역에 추가 -->
             <button type="button" class="ct-tab" data-ct="media">📰 언론보도/갤러리</button>
+            <button type="button" class="ct-tab" data-ct="resources">📁 자료실</button>
           </div>
 
           <!-- ─── 공지사항 탭 ─── -->
@@ -3322,46 +3324,163 @@
             </div>
           </div>
 
+          <!-- public/admin.html — 자료실 탭 + 모달 추가 -->
           <!-- ★ M-11: 언론보도/갤러리 탭 ─── -->
           <div class="ct-pane" data-ct-pane="media" style="display:none">
+            <!-- ... 기존 미디어 탭 내용 그대로 ... -->
+          </div>
+
+
+          <!-- ★ M-19-8: 자료실 탭 ─── -->
+          <div class="ct-pane" data-ct-pane="resources" style="display:none">
             <div class="panel">
               <div class="p-head">
-                <div class="p-title">📰 언론보도 / 갤러리</div>
-                <button class="btn-sm btn-sm-primary" data-mp-action="new">+ 새 게시글</button>
+                <div class="p-title">📁 자료실 관리</div>
+                <div class="p-actions" style="display:flex;gap:6px">
+                  <button class="btn-sm btn-sm-ghost" id="rsCategoryBtn">🗂 카테고리 관리</button>
+                  <button class="btn-sm btn-sm-primary" id="rsNewBtn">+ 새 자료</button>
+                </div>
               </div>
 
-              <div class="cm-toolbar">
-                <select id="mpFilterCat">
-                  <option value="">전체 분류</option>
-                  <option value="press">📰 언론보도</option>
-                  <option value="photo">📷 사진</option>
-                  <option value="event">🎯 행사</option>
+
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#fafaf8;border:1px solid var(--line);border-radius:8px">
+                <select id="rsFilterCategory" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                  <option value="">전체 카테고리</option>
                 </select>
-                <select id="mpFilterPublished">
+                <select id="rsFilterAccess" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                  <option value="">전체 권한</option>
+                  <option value="public">🌐 공개</option>
+                  <option value="members_only">🔐 회원전용</option>
+                  <option value="private">🚫 비공개</option>
+                </select>
+                <select id="rsFilterPublished" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
                   <option value="">전체 상태</option>
-                  <option value="true">공개</option>
-                  <option value="false">비공개</option>
+                  <option value="true">🟢 공개</option>
+                  <option value="false">⚪ 비공개</option>
                 </select>
-                <input type="search" id="mpFilterQ" placeholder="🔍 제목/언론사 (2자+)">
+                <input type="search" id="rsFilterQ" placeholder="🔍 제목·설명 검색 (2자+)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+                <span id="rsCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
               </div>
 
-              <table class="tbl">
-                <thead>
-                  <tr>
-                    <th style="width:80px">분류</th>
-                    <th>제목</th>
-                    <th style="width:120px">언론사/출처</th>
-                    <th style="width:130px">발행일</th>
-                    <th style="width:60px">공개</th>
-                    <th style="width:120px">관리</th>
-                  </tr>
-                </thead>
-                <tbody id="mpTbody">
-                  <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
-                </tbody>
-              </table>
+
+              <div style="overflow-x:auto">
+                <table class="tbl" style="min-width:1000px">
+                  <thead>
+                    <tr>
+                      <th style="width:50px;text-align:center">📌</th>
+                      <th style="width:100px">카테고리</th>
+                      <th>제목</th>
+                      <th style="width:80px">권한</th>
+                      <th style="width:60px;text-align:center">공개</th>
+                      <th style="width:70px;text-align:right">다운</th>
+                      <th style="width:70px;text-align:right">조회</th>
+                      <th style="width:110px">발행일</th>
+                      <th style="width:150px">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rsTableBody">
+                    <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
+
+
+        </div>  <!-- content tabs container 닫힘 (기존 유지) -->
+
+
+        <!-- ★ M-19-8: 자료 편집 모달 -->
+        <div id="resourceEditModal" class="modal">
+          <div class="modal-content" style="max-width:840px">
+            <div class="modal-header">
+              <h3 class="serif" id="rsModalTitle">📁 새 자료</h3>
+              <button class="modal-close" data-action="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="resourceEditForm">
+                <input type="hidden" id="rsEditId" value="">
+
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                  <div>
+                    <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">카테고리</label>
+                    <select id="rsCategory" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px">
+                      <option value="">(선택 안 함)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">접근 권한 <span style="color:var(--danger)">*</span></label>
+                    <select id="rsAccessLevel" required style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px">
+                      <option value="public">🌐 공개</option>
+                      <option value="members_only">🔐 회원전용</option>
+                      <option value="private">🚫 비공개</option>
+                    </select>
+                  </div>
+                </div>
+
+
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">제목 <span style="color:var(--danger)">*</span></label>
+                  <input type="text" id="rsTitle" required maxlength="200" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px">
+                </div>
+
+
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">설명 <span style="font-weight:400;color:var(--text-3);font-size:11px">(목록 카드 표시)</span></label>
+                  <textarea id="rsDescription" rows="3" maxlength="2000" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;resize:vertical;font-family:inherit"></textarea>
+                </div>
+
+
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">첨부 파일 <span style="font-weight:400;color:var(--text-3);font-size:11px">(PDF/이미지/오피스 문서, 최대 50MB)</span></label>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="file" id="rsFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.webp" style="flex:1">
+                    <input type="hidden" id="rsFileBlobId" value="">
+                    <span id="rsFileStatus" style="font-size:11.5px;color:var(--text-3)">미선택</span>
+                  </div>
+                </div>
+
+
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:5px">태그 <span style="font-weight:400;color:var(--text-3);font-size:11px">(쉼표로 구분, 최대 10개)</span></label>
+                  <input type="text" id="rsTags" maxlength="300" placeholder="예: 2026, 1분기, 회계" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px">
+                </div>
+
+
+                <div style="display:flex;gap:18px;margin-bottom:14px;flex-wrap:wrap">
+                  <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px">
+                    <input type="checkbox" id="rsPublished" checked> 🟢 공개
+                  </label>
+                  <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px">
+                    <input type="checkbox" id="rsPinned"> 📌 상단 고정
+                  </label>
+                </div>
+
+
+                <div style="display:flex;gap:10px;margin-top:14px">
+                  <button type="submit" class="btn btn-primary" style="flex:1">💾 저장</button>
+                  <button type="button" class="btn btn-ghost" id="rsDeleteBtn" style="background:#fdecec;border:1px solid #f5b5bb;color:var(--danger);padding:11px 20px;display:none">🗑 삭제</button>
+                  <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ★ M-19-8: 카테고리 관리 모달 -->
+        <div id="resourceCategoryModal" class="modal">
+          <div class="modal-content" style="max-width:720px">
+            <div class="modal-header">
+              <h3 class="serif">🗂 자료실 카테고리 관리</h3>
+              <button class="modal-close" data-action="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="rsCategoryBody">
+              <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+            </div>
+          </div>
+        </div>
 
         </div>
 
@@ -4921,8 +5040,10 @@
   <script src="/js/admin-content.js?v=m11"></script>
   <script src="/js/admin-signup-sources.js?v=m12"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
-  <script src="/js/admin-campaigns.js?v=m19-2"></script>
-  <script src="/js/admin-activity-report.js?v=m19-3"></script>
+<!-- public/admin.html — 스크립트 영역에 1줄 추가 -->
+<script src="/js/admin-campaigns.js?v=m19-2"></script>
+<script src="/js/admin-activity-report.js?v=m19-3"></script>
+<script src="/js/admin-resources.js?v=m19-8"></script>
 
   <script>
   (function () {

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>자료실 | 교사유가족협의회</title>
+<meta name="description" content="협의회의 재무/결산, 정관, 회의록, 활동 자료를 공개합니다.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+
+<style>
+.res-page { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
+.res-page h1 { font-family: 'Noto Serif KR', serif; font-size: 28px; margin-bottom: 8px; color: var(--ink); }
+.res-sub { font-size: 14px; color: var(--text-3); margin-bottom: 28px; line-height: 1.7; }
+
+.res-cats { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.res-cat-btn {
+  padding: 10px 18px; background: #fff; border: 1px solid var(--line);
+  border-radius: 22px; font-size: 13px; cursor: pointer; font-family: inherit;
+  transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+}
+.res-cat-btn:hover { border-color: var(--brand); }
+.res-cat-btn.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.res-cat-btn .count { opacity: 0.7; font-size: 11.5px; }
+
+.res-toolbar { display: flex; gap: 8px; margin-bottom: 22px; }
+.res-search-input {
+  flex: 1; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13.5px; font-family: inherit;
+}
+.res-search-input:focus { outline: none; border-color: var(--brand); }
+
+.res-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+
+.res-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px;
+  transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit;
+  display: flex; flex-direction: column;
+}
+.res-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+  border-color: var(--brand);
+}
+.res-card-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; font-size: 11.5px; color: var(--text-3);
+}
+.res-card-cat {
+  background: var(--bg-soft); padding: 2px 10px; border-radius: 10px; font-weight: 600;
+}
+.res-card-pinned {
+  background: var(--brand); color: #fff; padding: 2px 8px; border-radius: 10px;
+  font-size: 10.5px; font-weight: 700;
+}
+.res-card-title {
+  font-size: 16px; font-weight: 700; line-height: 1.4; margin-bottom: 8px;
+}
+.res-card-desc {
+  font-size: 13px; color: var(--text-3); line-height: 1.6; margin-bottom: 12px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 42px; flex: 1;
+}
+.res-card-tags {
+  display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.res-card-tag {
+  background: #f0e8e8; color: var(--brand);
+  padding: 2px 8px; border-radius: 4px; font-size: 10.5px;
+}
+.res-card-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11.5px; color: var(--text-3); padding-top: 10px; border-top: 1px dashed var(--line);
+}
+.res-card-empty {
+  grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-3);
+}
+.res-card-lock {
+  display: inline-flex; align-items: center; gap: 4px; color: #c47a00;
+  font-size: 11px; font-weight: 600;
+}
+.res-card-private-content {
+  color: #8a6a00; font-style: italic;
+}
+
+.res-pagination {
+  display: flex; justify-content: center; align-items: center;
+  gap: 6px; margin-top: 30px;
+}
+.res-pagination button {
+  padding: 8px 14px; border: 1px solid var(--line); background: #fff;
+  border-radius: 6px; cursor: pointer; font-size: 12.5px;
+  color: var(--text-2); min-width: 38px;
+}
+.res-pagination button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.res-pagination button.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.res-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.res-pagination .page-info { font-size: 12px; color: var(--text-3); margin: 0 10px; }
+
+.res-loading {
+  grid-column: 1/-1; text-align: center; padding: 40px 20px; color: var(--text-3);
+}
+.res-loading::before {
+  content: ''; display: inline-block; width: 20px; height: 20px;
+  border: 2px solid var(--line); border-top-color: var(--brand);
+  border-radius: 50%; animation: res-spin 0.8s linear infinite; margin-right: 10px;
+  vertical-align: middle;
+}
+@keyframes res-spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="header-mount"></div>
+
+<main class="res-page">
+  <h1>📁 자료실</h1>
+  <p class="res-sub">
+    협의회의 재무/결산, 정관, 회의록, 활동 자료를 공개합니다.<br />
+    일부 자료는 회원 전용입니다. 로그인 후 열람이 가능합니다.
+  </p>
+
+  <div class="res-cats" id="resCats">
+    <button class="res-cat-btn on" data-cat="">📁 전체 <span class="count">(0)</span></button>
+  </div>
+
+  <div class="res-toolbar">
+    <input type="search" class="res-search-input" id="resSearchInput"
+           placeholder="🔍 제목·설명 검색 (2자 이상)" aria-label="자료 검색">
+  </div>
+
+  <div class="res-grid" id="resGrid">
+    <div class="res-loading">불러오는 중...</div>
+  </div>
+
+  <div class="res-pagination" id="resPagination" style="display:none">
+    <button type="button" id="resPrevBtn">‹ 이전</button>
+    <span class="page-info" id="resPageInfo">1 / 1</span>
+    <button type="button" id="resNextBtn">다음 ›</button>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<div id="modals-mount"></div>
+
+<script src="/js/common.js?v=3"></script>
+<script src="/js/auth.js?v=3"></script>
+<script>
+(function(){
+  let _currentCat = '';
+  let _currentPage = 1;
+  let _totalPages = 1;
+  let _searchTimer = null;
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.getFullYear() + '.' +
+      String(d.getMonth()+1).padStart(2,'0') + '.' +
+      String(d.getDate()).padStart(2,'0');
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await fetch('/api/resources?categories=1', { credentials: 'include' });
+      const d = await res.json();
+      if (!res.ok || !d.ok) return;
+      const cats = d.data.categories || [];
+      const wrap = document.getElementById('resCats');
+
+      let total = 0;
+      cats.forEach(c => total += c.resourceCount || 0);
+
+      const totalBtn = `<button class="res-cat-btn ${_currentCat==='' ? 'on' : ''}" data-cat="">📁 전체 <span class="count">(${total})</span></button>`;
+      const catBtns = cats.map(c =>
+        `<button class="res-cat-btn ${String(_currentCat)===String(c.id) ? 'on' : ''}" data-cat="${c.id}">
+          ${c.icon || '📁'} ${escapeHtml(c.nameKo)}
+          <span class="count">(${c.resourceCount || 0})</span>
+        </button>`
+      ).join('');
+
+      wrap.innerHTML = totalBtn + catBtns;
+    } catch (e) {
+      console.warn('[resources] categories load failed', e);
+    }
+  }
+
+  async function loadResources(page) {
+    page = page || 1;
+    _currentPage = page;
+    const grid = document.getElementById('resGrid');
+    const pag = document.getElementById('resPagination');
+    grid.innerHTML = '<div class="res-loading">불러오는 중...</div>';
+    pag.style.display = 'none';
+
+    const params = new URLSearchParams({ limit: '24', page: String(page) });
+    if (_currentCat) params.set('categoryId', _currentCat);
+    const q = document.getElementById('resSearchInput').value.trim();
+    if (q && q.length >= 2) params.set('q', q);
+
+    try {
+      const res = await fetch('/api/resources?' + params.toString(), { credentials: 'include' });
+      const d = await res.json();
+      if (!res.ok || !d.ok) throw new Error('fetch failed');
+
+      const list = d.data.list || [];
+      const paginationData = d.data.pagination || {};
+      _totalPages = paginationData.totalPages || 1;
+
+      /* 페이지네이션 표시 */
+      if (_totalPages > 1) {
+        pag.style.display = '';
+        document.getElementById('resPageInfo').textContent = `${_currentPage} / ${_totalPages}`;
+        document.getElementById('resPrevBtn').disabled = _currentPage <= 1;
+        document.getElementById('resNextBtn').disabled = _currentPage >= _totalPages;
+      }
+
+      if (list.length === 0) {
+        grid.innerHTML = '<div class="res-card-empty">표시할 자료가 없습니다.</div>';
+        return;
+      }
+
+      grid.innerHTML = list.map(r => {
+        const catLabel = r.categoryIcon ? `${r.categoryIcon} ${escapeHtml(r.categoryName || '')}` : '';
+        const fileMark = r.fileBlobId ? '📎 ' : '';
+        const lockMark = r.accessLevel === 'members_only'
+          ? '<span class="res-card-lock">🔐 회원전용</span>' : '';
+        const pinnedMark = r.isPinned
+          ? '<span class="res-card-pinned">📌 추천</span>' : '';
+
+        const tags = Array.isArray(r.tags) && r.tags.length > 0
+          ? `<div class="res-card-tags">${r.tags.slice(0, 5).map(t => `<span class="res-card-tag">#${escapeHtml(String(t))}</span>`).join('')}</div>`
+          : '';
+
+        return `<div class="res-card" data-res-id="${r.id}" data-res-slug="${escapeHtml(r.slug || '')}">
+          <div class="res-card-meta">
+            <span class="res-card-cat">${catLabel || '기타'}</span>
+            ${pinnedMark || lockMark}
+          </div>
+          <div class="res-card-title">${fileMark}${escapeHtml(r.title)}</div>
+          <div class="res-card-desc">${escapeHtml(r.description || '설명이 없습니다.')}</div>
+          ${tags}
+          <div class="res-card-foot">
+            <span>📥 ${(r.downloadCount || 0).toLocaleString()} · 👁 ${(r.views || 0).toLocaleString()}</span>
+            <span>${formatDate(r.publishedAt)}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      console.error('[resources] load failed', e);
+      grid.innerHTML = '<div class="res-card-empty" style="color:var(--danger)">조회 실패</div>';
+    }
+  }
+
+  async function openResource(id) {
+    if (!id) return;
+    try {
+      const res = await fetch('/api/resources?id=' + id, { credentials: 'include' });
+      const d = await res.json();
+      if (!res.ok || !d.ok) return alert('자료를 찾을 수 없습니다');
+      const r = d.data.resource;
+
+      if (r.requiresLogin) {
+        if (confirm('이 자료는 회원 전용입니다. 로그인 페이지로 이동하시겠습니까?')) {
+          location.href = '/login.html';
+        }
+        return;
+      }
+
+      if (r.fileBlobId) {
+        const dlUrl = `/api/blob-image?id=${r.fileBlobId}&download=1`;
+        fetch('/api/resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ id: r.id }),
+        }).catch(() => {});
+        window.open(dlUrl, '_blank', 'noopener');
+      } else {
+        const msg = `【${r.title}】\n\n${r.description || '(설명 없음)'}\n\n📎 첨부된 파일이 없습니다.`;
+        alert(msg);
+      }
+    } catch (e) {
+      console.error('[resources] open failed', e);
+      alert('조회 실패');
+    }
+  }
+
+  /* 이벤트 바인딩 */
+  document.addEventListener('click', (e) => {
+    const catBtn = e.target.closest('[data-cat]');
+    if (catBtn) {
+      document.querySelectorAll('.res-cat-btn').forEach(b => b.classList.remove('on'));
+      catBtn.classList.add('on');
+      _currentCat = catBtn.dataset.cat;
+      _currentPage = 1;
+      loadResources(1);
+      return;
+    }
+    const card = e.target.closest('[data-res-id]');
+    if (card) {
+      openResource(Number(card.dataset.resId));
+      return;
+    }
+    if (e.target.id === 'resPrevBtn' && _currentPage > 1) {
+      loadResources(_currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (e.target.id === 'resNextBtn' && _currentPage < _totalPages) {
+      loadResources(_currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+  });
+
+  document.getElementById('resSearchInput').addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => loadResources(1), 400);
+  });
+
+  loadCategories();
+  loadResources(1);
+})();
+</script>
+</body>
+</html>
