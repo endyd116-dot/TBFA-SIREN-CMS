@@ -421,11 +421,12 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 13. 즉시 활성화된 경우만 로그인 토큰 발급 */
     if (config.initialStatus === "active") {
-      const token = signUserToken({
-        uid: created.id,
-        email: created.email,
-        name: created.name,
-      });
+    const token = await signUserToken({
+      uid: created.id,
+      email: created.email,
+      name: created.name,
+      type: created.type,
+    });
       const cookie = buildCookie("siren_token", token, {
         maxAge: 14 * 24 * 60 * 60, // 14일
       });
