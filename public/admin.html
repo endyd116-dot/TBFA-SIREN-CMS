@@ -2525,7 +2525,9 @@
           <div style="padding:8px 18px 4px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;border-top:1px solid var(--line);margin-top:8px"></div>
         </li>
 
-        <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
+<!-- public/admin.html — 사이드바 메뉴에 추가 -->
+<li><a data-page="operators">👨‍💼 운영자 관리</a></li>
+<li><a data-page="experts">🎓 전문가 관리 <span class="adm-badge" id="expertPendingBadge" style="display:none">0</span></a></li>
         <li>
           <a data-page="chat">
             <i>💬</i><span>문의 관리</span>
@@ -5043,8 +5045,9 @@
 <!-- public/admin.html — 스크립트 영역에 1줄 추가 -->
 <script src="/js/admin-campaigns.js?v=m19-2"></script>
 <script src="/js/admin-activity-report.js?v=m19-3"></script>
+<!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <script src="/js/admin-resources.js?v=m19-8"></script>
-
+<script src="/js/admin-experts.js?v=m19-11"></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */

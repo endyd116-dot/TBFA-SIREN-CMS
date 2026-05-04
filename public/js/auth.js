@@ -156,6 +156,69 @@
       stopChatAlarmPolling();
     }
   }
+// public/js/auth.js — 회원가입 관련 코드 영역에 추가
+
+// ★ M-19-11: 전문가 유형 선택 시 전문가 필드 표시/숨김
+document.addEventListener('change', async function (e) {
+  const typeSel = e.target.closest('#signupMemberType');
+  if (!typeSel) return;
+  const expertFields = document.getElementById('expertSignupFields');
+  if (!expertFields) return;
+  if (typeSel.value === 'expert') {
+    expertFields.style.display = '';
+    /* 필수 표시 */
+    document.getElementById('signupExpertType').required = true;
+    document.getElementById('signupCertificateFile').required = true;
+  } else {
+    expertFields.style.display = 'none';
+    document.getElementById('signupExpertType').required = false;
+    document.getElementById('signupCertificateFile').required = false;
+  }
+});
+
+// ★ M-19-11: 증빙 파일 선택 시 자동 업로드
+document.addEventListener('change', async function (e) {
+  const fileInput = e.target.closest('#signupCertificateFile');
+  if (!fileInput) return;
+  const file = fileInput.files && fileInput.files[0];
+  const statusEl = document.getElementById('signupCertificateStatus');
+  const blobIdInput = document.getElementById('signupCertificateBlobId');
+
+  if (!file) {
+    if (statusEl) statusEl.textContent = '미선택';
+    if (blobIdInput) blobIdInput.value = '';
+    return;
+  }
+
+  /* 파일 크기 검증 */
+  if (file.size > 10 * 1024 * 1024) {
+    alert('증빙 파일은 10MB 이하여야 합니다');
+    fileInput.value = '';
+    return;
+  }
+
+  if (statusEl) statusEl.textContent = '업로드 중...';
+
+  try {
+    if (!window.SirenEditor || typeof window.SirenEditor.uploadFile !== 'function') {
+      throw new Error('업로드 모듈 미설치');
+    }
+    const result = await window.SirenEditor.uploadFile(file, 'expert_certificate');
+    if (!result || !result.id) throw new Error('업로드 실패');
+
+    if (blobIdInput) blobIdInput.value = String(result.id);
+    if (statusEl) {
+      statusEl.textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+      statusEl.style.color = 'var(--success)';
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = '❌ 업로드 실패: ' + (err.message || '오류');
+      statusEl.style.color = 'var(--danger)';
+    }
+    fileInput.value = '';
+  }
+});
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
