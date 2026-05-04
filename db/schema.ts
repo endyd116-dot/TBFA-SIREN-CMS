@@ -139,6 +139,24 @@ export const campaignTypeEnum = pgEnum("campaign_type", [
   "memorial",
   "awareness"
 ]);
+// db/schema.ts — campaignTypeEnum 다음에 추가
+
+/* ★ M-19-8: 자료실 접근 권한 */
+export const resourceAccessLevelEnum = pgEnum("resource_access_level", [
+  "public",
+  "members_only",
+  "private",
+]);
+
+/* ★ M-19-7: 기념일 종류 */
+export const anniversaryTypeEnum = pgEnum("anniversary_type", [
+  "signup_1month",
+  "signup_1year",
+  "first_donation_1year",
+  "donation_milestone",
+  "regular_donation_6months",
+  "regular_donation_1year",
+]);
 
 /* =========================================================
    1. members — 회원 (★ M-19-1 grade 시스템 유지)
@@ -931,6 +949,77 @@ export const campaigns = pgTable("campaigns", {
   datesIdx: index("campaigns_dates_idx").on(t.startDate, t.endDate),
 }));
 
+// db/schema.ts — campaigns 테이블 다음, blob_uploads 테이블 직전에 추가
+
+/* =========================================================
+   ★ Phase M-19-8: 자료실 (resource_categories + resources)
+   ========================================================= */
+export const resourceCategories = pgTable("resource_categories", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  nameKo: varchar("name_ko", { length: 100 }).notNull(),
+  description: varchar("description", { length: 300 }),
+  icon: varchar("icon", { length: 10 }),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index("resource_categories_code_idx").on(t.code),
+  activeIdx: index("resource_categories_active_idx").on(t.isActive, t.sortOrder),
+}));
+
+export const resources = pgTable("resources", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").references(() => resourceCategories.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  slug: varchar("slug", { length: 100 }).unique(),
+  description: text("description"),
+  contentHtml: text("content_html"),
+  fileBlobId: integer("file_blob_id"),
+  thumbnailBlobId: integer("thumbnail_blob_id"),
+  accessLevel: resourceAccessLevelEnum("access_level").default("public").notNull(),
+  tags: jsonb("tags").default(sql`'[]'::jsonb`),
+  downloadCount: integer("download_count").default(0).notNull(),
+  views: integer("views").default(0).notNull(),
+  isPublished: boolean("is_published").default(true).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+}, (t) => ({
+  categoryIdx: index("resources_category_idx").on(t.categoryId),
+  slugIdx: index("resources_slug_idx").on(t.slug),
+  accessIdx: index("resources_access_idx").on(t.accessLevel),
+  publishedIdx: index("resources_published_idx").on(t.isPublished),
+  pinnedIdx: index("resources_pinned_idx").on(t.isPinned),
+  createdIdx: index("resources_created_idx").on(t.createdAt),
+}));
+
+/* =========================================================
+   ★ Phase M-19-7: anniversary_emails_log
+   ========================================================= */
+export const anniversaryEmailsLog = pgTable("anniversary_emails_log", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  anniversaryType: anniversaryTypeEnum("anniversary_type").notNull(),
+  anniversaryDate: timestamp("anniversary_date", { mode: "date" }).notNull(),
+  milestoneAmount: integer("milestone_amount"),
+  emailSentAt: timestamp("email_sent_at").defaultNow().notNull(),
+  emailStatus: varchar("email_status", { length: 20 }).default("sent").notNull(),
+  recipientEmail: varchar("recipient_email", { length: 100 }),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("ael_member_idx").on(t.memberId),
+  typeIdx: index("ael_type_idx").on(t.anniversaryType),
+  sentIdx: index("ael_sent_idx").on(t.emailSentAt),
+}));
+
 /* =========================================================
    ★ M-1 + M-2.5: blob_uploads
    ========================================================= */
@@ -1036,3 +1125,15 @@ export type NewSignupSource = typeof signupSources.$inferInsert;
 /* ★ M-19-2: 캠페인 타입 */
 export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
+
+// db/schema.ts — Campaign 타입 다음, 파일 끝에 추가
+
+/* ★ M-19-8: 자료실 타입 */
+export type ResourceCategory = typeof resourceCategories.$inferSelect;
+export type NewResourceCategory = typeof resourceCategories.$inferInsert;
+export type Resource = typeof resources.$inferSelect;
+export type NewResource = typeof resources.$inferInsert;
+
+/* ★ M-19-7: 기념일 로그 타입 */
+export type AnniversaryEmailLog = typeof anniversaryEmailsLog.$inferSelect;
+export type NewAnniversaryEmailLog = typeof anniversaryEmailsLog.$inferInsert;
