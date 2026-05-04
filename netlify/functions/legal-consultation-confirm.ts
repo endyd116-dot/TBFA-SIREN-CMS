@@ -48,6 +48,7 @@ export default async (req: Request, _ctx: Context) => {
     await db.update(legalConsultations).set(updateData).where(eq(legalConsultations.id, consultationId));
 
     if (requested) {
+// netlify/functions/legal-consultation-confirm.ts — notifyAllOperators 호출부 교체
       try {
         const urg = (row as any).aiUrgency || "normal";
         const isUrgent = urg === "urgent";
@@ -61,6 +62,9 @@ export default async (req: Request, _ctx: Context) => {
           link: `/admin.html#legal-consultations`,
           refTable: "legal_consultations",
           refId: consultationId,
+        }, {
+          /* ★ M-15: legal 담당 운영자 + super_admin에게만 발송 */
+          category: "legal",
         });
       } catch (e) {
         console.warn("[legal-consultation-confirm] 알림 실패", e);
