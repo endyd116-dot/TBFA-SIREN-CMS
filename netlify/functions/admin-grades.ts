@@ -1,5 +1,6 @@
 // netlify/functions/admin-grades.ts
 // ★ Phase M-19-1: 회원 등급 마스터 CRUD
+// ★ Pass 1-C 패치: schema.ts 정합화 (color → colorHex, benefits 제거, description 추가)
 //
 // GET    /api/admin/grades         — 전체 등급 5개 + 회원 수 (운영자)
 // GET    /api/admin/grades/public  — 공개 등급 정보 (마이페이지)
@@ -28,12 +29,13 @@ export default async (req: Request) => {
           id: memberGrades.id,
           code: memberGrades.code,
           nameKo: memberGrades.nameKo,
+          nameEn: memberGrades.nameEn,
           minTotalAmount: memberGrades.minTotalAmount,
           minRegularMonths: memberGrades.minRegularMonths,
-          color: memberGrades.color,
+          colorHex: memberGrades.colorHex,    // ★ Pass 1-C: color → colorHex
           icon: memberGrades.icon,
           sortOrder: memberGrades.sortOrder,
-          benefits: memberGrades.benefits,
+          description: memberGrades.description,  // ★ Pass 1-C: 추가
         })
         .from(memberGrades)
         .orderBy(asc(memberGrades.sortOrder));
@@ -104,6 +106,10 @@ export default async (req: Request) => {
         updatePayload.nameKo = body.nameKo.trim().slice(0, 50);
         changedFields.push("nameKo");
       }
+      if (typeof body.nameEn === "string") {
+        updatePayload.nameEn = body.nameEn.trim().slice(0, 50);
+        changedFields.push("nameEn");
+      }
       if (Number.isFinite(Number(body.minTotalAmount))) {
         updatePayload.minTotalAmount = Math.max(0, Number(body.minTotalAmount));
         changedFields.push("minTotalAmount");
@@ -112,20 +118,29 @@ export default async (req: Request) => {
         updatePayload.minRegularMonths = Math.max(0, Number(body.minRegularMonths));
         changedFields.push("minRegularMonths");
       }
-      if (typeof body.color === "string" && /^#[0-9a-f]{3,8}$/i.test(body.color)) {
-        updatePayload.color = body.color;
-        changedFields.push("color");
+      /* ★ Pass 1-C: color → colorHex 변경 (#RRGGBB 또는 #RRGGBBAA 검증) */
+      if (typeof body.colorHex === "string" && /^#[0-9a-f]{3,8}$/i.test(body.colorHex)) {
+        updatePayload.colorHex = body.colorHex;
+        changedFields.push("colorHex");
       }
       if (typeof body.icon === "string" && body.icon.trim().length > 0) {
         updatePayload.icon = body.icon.trim().slice(0, 10);
         changedFields.push("icon");
       }
-      if (Array.isArray(body.benefits)) {
-        updatePayload.benefits = body.benefits
-          .filter((b: any) => typeof b === "string")
-          .slice(0, 10);
-        changedFields.push("benefits");
+      /* ★ Pass 1-C: description 추가 (schema에 존재) */
+      if (typeof body.description === "string") {
+        updatePayload.description = body.description.trim().slice(0, 500);
+        changedFields.push("description");
       }
+      if (typeof body.sortOrder !== "undefined" && Number.isFinite(Number(body.sortOrder))) {
+        updatePayload.sortOrder = Number(body.sortOrder);
+        changedFields.push("sortOrder");
+      }
+      if (typeof body.isActive === "boolean") {
+        updatePayload.isActive = body.isActive;
+        changedFields.push("isActive");
+      }
+      /* ★ Pass 1-C: benefits 제거 (schema에 없음 — DB legacy 컬럼) */
 
       if (changedFields.length === 0) {
         return badRequest("변경할 항목이 없습니다");
