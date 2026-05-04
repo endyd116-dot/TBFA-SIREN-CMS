@@ -943,6 +943,31 @@ export const mediaPosts = pgTable("media_posts", {
   publishedAtIdx: index("media_posts_published_at_idx").on(t.publishedAt),
 }));
 
+// db/schema.ts — campaigns 테이블 정의 바로 위에 삽입
+
+/* =========================================================
+   ★ Phase M-19-1: member_grades — 회원 등급 마스터
+   - 5단계: 동행 / 든든 / 디딤돌 / 기둥 / 등불
+   - 시드는 마이그레이션에서 INSERT
+   - 운영자가 임계값/이름/혜택 변경 가능 (admin-grades CRUD)
+   ========================================================= */
+export const memberGrades = pgTable("member_grades", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 30 }).notNull().unique(),
+  nameKo: varchar("name_ko", { length: 50 }).notNull(),
+  minTotalAmount: integer("min_total_amount").notNull().default(0),
+  minRegularMonths: integer("min_regular_months").notNull().default(0),
+  color: varchar("color", { length: 20 }).notNull(),
+  icon: varchar("icon", { length: 10 }).notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  benefits: jsonb("benefits").default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index("member_grades_code_idx").on(t.code),
+  sortIdx: index("member_grades_sort_idx").on(t.sortOrder),
+}));
+
 /* =========================================================
    ★ Phase M-19-2: campaigns — 캠페인 관리
    - 모금/추모/인식개선 3종
@@ -1178,3 +1203,7 @@ export type NewSignupSource = typeof signupSources.$inferInsert;
 /* ★ M-19-2: 캠페인 (NEW) */
 export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
+
+/* ★ M-19-1: 회원 등급 타입 */
+export type MemberGrade = typeof memberGrades.$inferSelect;
+export type NewMemberGrade = typeof memberGrades.$inferInsert;
