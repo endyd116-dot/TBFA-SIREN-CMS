@@ -2356,9 +2356,8 @@
     border-color: #f5b5bb;
   }
   .op-row-actions button.danger:hover { background: #fdecec; }
-  /* public/admin.html — </style> 직전에 삽입 */
-  .op-row-actions button.danger:hover { background: #fdecec; }
 
+  /* ===== ★ M-19-1: 후원자 이탈 위험 ===== */
   /* ===== ★ M-19-1: 후원자 이탈 위험 ===== */
   .churn-level-badge {
     display: inline-block;
@@ -4997,36 +4996,6 @@
       </div>
     </div>
   </div>
-
-<!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
-  <!-- ★ M-19-1: 재참여 메일 발송 모달 -->
-  <div id="churnReengageModal" class="modal">
-    <div class="modal-content" style="max-width:680px">
-      <div class="modal-header">
-        <h3 class="serif">💌 재참여 유도 메일 발송</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body" id="churnReengageBody">
-        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ★ M-19-1: 위험 회원 상세 모달 -->
-  <div id="churnDetailModal" class="modal">
-    <div class="modal-content" style="max-width:760px">
-      <div class="modal-header">
-        <h3 class="serif">🔍 이탈 위험 상세</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body" id="churnDetailBody">
-        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast" class="toast" role="status"></div>
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status"></div>
