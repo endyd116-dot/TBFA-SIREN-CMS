@@ -83,6 +83,10 @@
 [functions."cron-billing-monthly"]
   schedule = "0 18 * * *"
 
+# netlify.toml — cron-billing-monthly 블록 다음에 추가
+# ★ Phase M-19-1: 회원 등급 일괄 재계산 (매일 새벽 3:30 KST = UTC 18:30)
+[functions."cron-grade-recalc"]
+  schedule = "30 18 * * *"
 # ============================================================
 # Dev 설정
 # ============================================================

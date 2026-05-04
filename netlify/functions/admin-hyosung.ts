@@ -35,6 +35,8 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
+// netlify/functions/admin-hyosung.ts — import 추가
+import { recalculateGrade } from "../../lib/grade-calculator";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -372,7 +374,18 @@ export default async (req: Request) => {
             reasonProvided: !!body.reason,
           },
         });
-
+// netlify/functions/admin-hyosung.ts — markCompleted 분기에서 logAdminAction 다음, return ok 앞에 추가
+        /* ★ M-19-1: 등급 재계산 훅 (효성 후원이 첫 completed가 되는 시점) */
+        if (updated.memberId) {
+          try {
+            const r = await recalculateGrade(updated.memberId);
+            if (r.isUpgrade) {
+              console.log(`[admin-hyosung] 등급 상승: M-${updated.memberId} → ${r.newCode}`);
+            }
+          } catch (e) {
+            console.error("[admin-hyosung] 등급 재계산 실패:", e);
+          }
+        }
         return ok(
           { donation: updated, emailSent },
           `효성 CMS+ 등록 완료 처리되었습니다 (회원번호: ${hyMemberNo})${emailSent ? " · 감사 메일 발송 완료" : ""}`,

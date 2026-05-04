@@ -1,3 +1,4 @@
+// netlify/functions/admin-members.ts
 /**
  * GET    /api/admin/members              — 회원 목록 (페이징/필터/검색)
  * GET    /api/admin/members?id=N         — 회원 상세 (후원 통계 포함)
@@ -11,6 +12,9 @@
  * - 일반 PATCH:          여러 필드 동시 변경 (status/type/memo/agreeXxx)
  * - emailVerified=true:  이메일 인증 강제 처리 (관리자 권한)
  *
+ * ★ M-19-1 PATCH 분기 추가:
+ * - setGrade=true:       등급 수동 변경 (gradeId/gradeLocked)
+ *
  * ★ K-7 POST:
  * - name/email/phone/type/memo 입력
  * - 임시 비밀번호 자동 생성 (12자 랜덤, 응답에 1회만 노출)
@@ -20,10 +24,11 @@
 import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db, members, donations } from "../../db";
-import { signupSources } from "../../db/schema";
+import { signupSources, memberGrades } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { hashPassword, checkPasswordStrength } from "../../lib/auth";
 import { classifyForSignup } from "../../lib/member-classifier";
+import { setMemberGradeManual } from "../../lib/grade-calculator";
 import {
   ok, created, badRequest, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -100,7 +105,7 @@ export default async (req: Request) => {
           .from(donations)
           .where(and(eq(donations.memberId, memberId), eq(donations.status, "completed")));
 
-        const { passwordHash, ...safe } = m;
+        const { passwordHash, ...safe } = m as any;
         return ok({
           member: safe,
           stats: {
@@ -110,15 +115,15 @@ export default async (req: Request) => {
         });
       }
 
-      /* 목록 조회 */
-            /* 목록 조회 (★ M-12: 4분류 + 가입경로 필터 + signup_sources join) */
+      /* 목록 조회 (★ M-12: 4분류 + 가입경로 / ★ M-19-1: 등급 추가) */
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
       const limit = Math.min(100, Number(url.searchParams.get("limit") || 20));
       const type = url.searchParams.get("type");
       const status = url.searchParams.get("status");
-      const category = url.searchParams.get("category");           /* ★ M-12 */
-      const subtype = url.searchParams.get("subtype");             /* ★ M-12 */
-      const sourceId = url.searchParams.get("source");             /* ★ M-12 */
+      const category = url.searchParams.get("category");
+      const subtype = url.searchParams.get("subtype");
+      const sourceId = url.searchParams.get("source");
+      const gradeIdParam = url.searchParams.get("grade");
       const q = (url.searchParams.get("q") || "").trim();
 
       const conditions: any[] = [];
@@ -128,19 +133,22 @@ export default async (req: Request) => {
       if (status && ["pending", "active", "suspended", "withdrawn"].includes(status)) {
         conditions.push(eq(members.status, status as any));
       }
-      /* ★ M-12: 카테고리/세부분류/가입경로 필터 */
       if (category && ["sponsor", "regular", "family", "etc"].includes(category)) {
-        conditions.push(eq(members.memberCategory, category));
+        conditions.push(eq((members as any).memberCategory, category));
       }
       if (subtype) {
         const validSub = ["regular_donation", "hyosung_donation", "onetime_donation",
           "volunteer", "lawyer", "counselor"];
         if (validSub.includes(subtype)) {
-          conditions.push(eq(members.memberSubtype, subtype));
+          conditions.push(eq((members as any).memberSubtype, subtype));
         }
       }
       if (sourceId && /^\d+$/.test(sourceId)) {
-        conditions.push(eq(members.signupSourceId, Number(sourceId)));
+        conditions.push(eq((members as any).signupSourceId, Number(sourceId)));
+      }
+      /* ★ M-19-1: 등급 필터 */
+      if (gradeIdParam && /^\d+$/.test(gradeIdParam)) {
+        conditions.push(eq((members as any).gradeId, Number(gradeIdParam)));
       }
       if (q && q.length >= 2) {
         const pattern = `%${q}%`;
@@ -161,7 +169,7 @@ export default async (req: Request) => {
 
       const [{ total }] = await db.select({ total: count() }).from(members).where(where);
 
-      /* ★ M-12: signup_sources join으로 가입경로 라벨도 함께 반환 */
+      /* ★ M-12 + M-19-1: signup_sources + member_grades join */
       const list = await db
         .select({
           id: members.id,
@@ -170,11 +178,21 @@ export default async (req: Request) => {
           phone: members.phone,
           type: members.type,
           status: members.status,
-          memberCategory: members.memberCategory,
-          memberSubtype: members.memberSubtype,
-          signupSourceId: members.signupSourceId,
+          memberCategory: (members as any).memberCategory,
+          memberSubtype: (members as any).memberSubtype,
+          signupSourceId: (members as any).signupSourceId,
           sourceLabel: signupSources.label,
           sourceCode: signupSources.code,
+          /* ★ M-19-1: 등급 컬럼들 */
+          gradeId: (members as any).gradeId,
+          gradeCode: memberGrades.code,
+          gradeNameKo: memberGrades.nameKo,
+          gradeIcon: memberGrades.icon,
+          gradeColor: memberGrades.color,
+          totalDonationAmount: (members as any).totalDonationAmount,
+          regularMonthsCount: (members as any).regularMonthsCount,
+          gradeLocked: (members as any).gradeLocked,
+          /* 기존 */
           emailVerified: members.emailVerified,
           lockedUntil: members.lockedUntil,
           memo: members.memo,
@@ -182,14 +200,15 @@ export default async (req: Request) => {
           createdAt: members.createdAt,
         })
         .from(members)
-        .leftJoin(signupSources, eq(members.signupSourceId, signupSources.id))
+        .leftJoin(signupSources, eq((members as any).signupSourceId, signupSources.id))
+        .leftJoin(memberGrades, eq((members as any).gradeId, memberGrades.id))
         .where(where as any)
         .orderBy(desc(members.createdAt))
         .limit(limit)
         .offset((page - 1) * limit);
 
       /* ★ M-12: 카테고리별 카운트 (대시보드용) */
-      const catStats: any[] = await db.execute(sql`
+      const catStats: any = await db.execute(sql`
         SELECT
           COALESCE(member_category, 'unknown') AS category,
           COUNT(*)::int AS count
@@ -198,7 +217,8 @@ export default async (req: Request) => {
         GROUP BY member_category
       `);
       const categoryCounts: Record<string, number> = {};
-      for (const r of catStats) categoryCounts[r.category] = r.count;
+      const catRows: any[] = Array.isArray(catStats) ? catStats : (catStats?.rows || []);
+      for (const r of catRows) categoryCounts[r.category] = Number(r.count);
 
       return ok({
         list,
@@ -238,7 +258,7 @@ export default async (req: Request) => {
         return badRequest("이미 가입된 이메일입니다");
       }
 
-            /* 임시 비밀번호 생성 + 해싱 */
+      /* 임시 비밀번호 생성 + 해싱 */
       const tempPassword = generateTempPassword();
       const passwordHash = await hashPassword(tempPassword);
 
@@ -263,7 +283,6 @@ export default async (req: Request) => {
         agreeEmail: true,
         agreeSms: true,
         agreeMail: false,
-        /* ★ M-12: 자동 분류 (관리자가 명시적으로 지정한 경우 우선) */
         memberCategory: data.memberCategory || classify.memberCategory,
         memberSubtype: data.memberSubtype || classify.memberSubtype,
         signupSourceId: classify.signupSourceId,
@@ -294,7 +313,6 @@ export default async (req: Request) => {
       return created(
         {
           member: inserted,
-          /* ★ 임시 비밀번호는 응답에 1회만 포함 — 관리자가 회원에게 직접 전달 */
           tempPassword,
         },
         `회원이 추가되었습니다. 임시 비밀번호를 회원에게 전달하고, 첫 로그인 후 변경하도록 안내해 주세요.`,
@@ -320,12 +338,13 @@ export default async (req: Request) => {
       }
 
       /* 기존 회원 조회 */
-      const [existing] = await db
+      const [existingRow] = await db
         .select()
         .from(members)
         .where(eq(members.id, memberId))
         .limit(1);
-      if (!existing) return notFound("회원을 찾을 수 없습니다");
+      if (!existingRow) return notFound("회원을 찾을 수 없습니다");
+      const existing: any = existingRow;
 
       /* ───── 분기 1: inlineStatusOnly (기존 호환) ───── */
       if (body.inlineStatusOnly === true) {
@@ -427,6 +446,37 @@ export default async (req: Request) => {
         });
 
         return ok({ member: updated }, "이메일 인증이 완료 처리되었습니다");
+      }
+
+      /* ───── 분기 4.5: ★ M-19-1 setGrade (등급 수동 변경) ───── */
+      if (body.setGrade === true) {
+        const gradeId = body.gradeId === null ? null : Number(body.gradeId);
+        const lock = body.gradeLocked === true;
+
+        if (gradeId !== null && !Number.isFinite(gradeId)) {
+          return badRequest("유효하지 않은 등급 ID");
+        }
+
+        const okFlag = await setMemberGradeManual(memberId, gradeId, lock);
+        if (!okFlag) {
+          return serverError("등급 변경 실패");
+        }
+
+        await logAdminAction(req, admin.uid, admin.name, "grade_set_manual", {
+          target: `M-${memberId}`,
+          detail: {
+            name: existing.name,
+            newGradeId: gradeId,
+            locked: lock,
+          },
+        });
+
+        return ok(
+          { id: memberId, gradeId, gradeLocked: lock },
+          lock
+            ? "등급이 수동 지정되었습니다 (자동 갱신 잠금)"
+            : "등급이 변경되었습니다",
+        );
       }
 
       /* ───── 분기 5: 일반 PATCH (여러 필드 동시 변경) ───── */

@@ -3,7 +3,9 @@
  * 회원 종합 정보 (회원정보 + 후원 요약 + 지원 신청 요약 + ★ I-3 블랙/채팅메모)
  */
 import { eq, desc, count, sql, and, isNotNull } from "drizzle-orm";
+// netlify/functions/admin-member-detail.ts — import 라인 교체
 import { db, members, donations, supportRequests, chatBlacklist, chatRooms } from "../../db";
+import { memberGrades } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, notFound, serverError,
@@ -26,6 +28,8 @@ export default async (req: Request) => {
     if (!Number.isFinite(id)) return badRequest("유효하지 않은 ID");
 
     /* 1. 회원 기본 정보 */
+// netlify/functions/admin-member-detail.ts — '1. 회원 기본 정보' 블록 교체
+    /* 1. 회원 기본 정보 (★ M-19-1: 등급 정보 포함) */
     const [member] = await db
       .select({
         id: members.id,
@@ -41,13 +45,23 @@ export default async (req: Request) => {
         lastLoginAt: members.lastLoginAt,
         createdAt: members.createdAt,
         memo: members.memo,
+        /* ★ M-19-1: 등급 정보 */
+        gradeId: members.gradeId,
+        gradeCode: memberGrades.code,
+        gradeNameKo: memberGrades.nameKo,
+        gradeIcon: memberGrades.icon,
+        gradeColor: memberGrades.color,
+        gradeAssignedAt: members.gradeAssignedAt,
+        gradeLocked: members.gradeLocked,
+        totalDonationAmount: members.totalDonationAmount,
+        regularMonthsCount: members.regularMonthsCount,
       })
       .from(members)
+      .leftJoin(memberGrades, eq(members.gradeId, memberGrades.id))
       .where(eq(members.id, id))
       .limit(1);
 
     if (!member) return notFound("회원을 찾을 수 없습니다");
-
     /* 2. 후원 요약 */
     const [donationStats] = await db
       .select({

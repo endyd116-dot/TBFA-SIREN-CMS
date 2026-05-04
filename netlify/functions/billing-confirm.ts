@@ -29,6 +29,9 @@ import {
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
+// netlify/functions/billing-confirm.ts — import 추가
+import { recalculateGrade } from "../../lib/grade-calculator";
+
 
 const TOSS_MODE = (process.env.TOSS_MODE || "test").toLowerCase();
 const TOSS_SECRET_KEY =
@@ -348,6 +351,18 @@ export default async (req: Request) => {
         nextChargeAt: nextCharge.toISOString(),
       },
     });
+// netlify/functions/billing-confirm.ts — 감사 로그(13) 다음, 응답(14) 앞에 추가
+    /* ★ M-19-1: 14. 등급 재계산 훅 (실패해도 결제는 성공) */
+    if (memberId) {
+      try {
+        const r = await recalculateGrade(memberId);
+        if (r.isUpgrade) {
+          console.log(`[billing-confirm] 등급 상승: M-${memberId} → ${r.newCode}`);
+        }
+      } catch (e) {
+        console.error("[billing-confirm] 등급 재계산 실패:", e);
+      }
+    }
 
     /* 14. 응답 */
     const donationNo = `D-${String(donation.id).padStart(7, "0")}`;
