@@ -3272,12 +3272,17 @@
             </div>
           </div>
 
-          <!-- ★ M-11: 주요 활동 탭 ─── -->
+<!-- public/admin.html — 주요 활동 탭 p-head 교체 -->
           <div class="ct-pane" data-ct-pane="activity" style="display:none">
             <div class="panel">
               <div class="p-head">
                 <div class="p-title">📊 주요 활동 게시글</div>
-                <button class="btn-sm btn-sm-primary" data-ap-action="new">+ 새 게시글</button>
+                <div class="p-actions" style="display:flex;gap:6px">
+                  <button class="btn-sm btn-sm-ghost" id="arOpenBtn" style="background:linear-gradient(135deg,#fef9f5,#fff);border:1.5px dashed var(--brand);color:var(--brand);font-weight:700">
+                    🤖 AI 보고서 생성
+                  </button>
+                  <button class="btn-sm btn-sm-primary" data-ap-action="new">+ 새 게시글</button>
+                </div>
               </div>
 
               <div class="cm-toolbar">
@@ -4556,6 +4561,209 @@
     </div>
   </div>
 <!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
+  <!-- ★ M-19-3: AI 활동보고서 생성 모달 -->
+  <div id="activityReportModal" class="modal">
+    <div class="modal-content" style="max-width:920px">
+      <div class="modal-header">
+        <h3 class="serif">🤖 AI 활동보고서 생성</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="arModalBody">
+        <!-- ─── STEP 1: 기간 선택 ─── -->
+        <div id="arStep1">
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:18px;line-height:1.7;background:linear-gradient(135deg,#f7f9fc,#fff);padding:12px 14px;border-left:3px solid var(--brand);border-radius:6px">
+            💡 보고 기간을 선택하면 후원/회원/지원/사이렌/캠페인 데이터를 자동 집계하고,<br />
+            Gemini AI가 약 <strong>2,500~3,500자의 심층 보고서</strong>를 생성합니다 (10~20초 소요).
+          </p>
+
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">📅 기간 유형</label>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <label class="ar-period-card on" data-period-type="quarterly">
+                <input type="radio" name="arPeriodType" value="quarterly" checked style="display:none">
+                <div style="font-size:20px;margin-bottom:4px">🗓</div>
+                <div style="font-weight:700;font-size:13px">분기별</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">3개월 단위</div>
+              </label>
+              <label class="ar-period-card" data-period-type="half">
+                <input type="radio" name="arPeriodType" value="half" style="display:none">
+                <div style="font-size:20px;margin-bottom:4px">📆</div>
+                <div style="font-weight:700;font-size:13px">반기</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">6개월 단위</div>
+              </label>
+              <label class="ar-period-card" data-period-type="annual">
+                <input type="radio" name="arPeriodType" value="annual" style="display:none">
+                <div style="font-size:20px;margin-bottom:4px">📅</div>
+                <div style="font-weight:700;font-size:13px">연간</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">1년 단위</div>
+              </label>
+              <label class="ar-period-card" data-period-type="custom">
+                <input type="radio" name="arPeriodType" value="custom" style="display:none">
+                <div style="font-size:20px;margin-bottom:4px">⚙️</div>
+                <div style="font-weight:700;font-size:13px">자유 범위</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">직접 지정</div>
+              </label>
+            </div>
+          </div>
+
+          <div id="arQuarterlyBox">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">연도</label>
+                <select id="arYear" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px"></select>
+              </div>
+              <div id="arQuarterField">
+                <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">분기</label>
+                <select id="arQuarter" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+                  <option value="1">1분기 (1~3월)</option>
+                  <option value="2">2분기 (4~6월)</option>
+                  <option value="3">3분기 (7~9월)</option>
+                  <option value="4">4분기 (10~12월)</option>
+                </select>
+              </div>
+              <div id="arHalfField" style="display:none">
+                <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">반기</label>
+                <select id="arHalf" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+                  <option value="1">상반기 (1~6월)</option>
+                  <option value="2">하반기 (7~12월)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="arCustomBox" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">시작일</label>
+                <input type="date" id="arStartDate" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+              </div>
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">종료일</label>
+                <input type="date" id="arEndDate" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">기간 라벨 <span style="font-weight:400;color:var(--text-3);font-size:11px">(선택, 보고서 제목용)</span></label>
+              <input type="text" id="arCustomLabel" maxlength="100" placeholder="예: 2026년 봄 시즌 보고서" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+            </div>
+          </div>
+
+          <div style="background:#fafaf8;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:14px">
+            <h5 style="margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink)">⚙️ 옵션</h5>
+            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px;margin-bottom:8px">
+              <input type="checkbox" id="arSaveAsPost" checked style="margin-top:3px">
+              <span style="flex:1;line-height:1.6">
+                <strong>📝 주요 활동에 초안으로 저장</strong><br />
+                <span style="font-size:11.5px;color:var(--text-3)">생성된 보고서를 활동 게시판에 비공개 초안으로 저장합니다. 이후 수정/공개 가능</span>
+              </span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px">
+              <input type="checkbox" id="arGeneratePdf" checked style="margin-top:3px">
+              <span style="flex:1;line-height:1.6">
+                <strong>📄 PDF 파일도 생성</strong><br />
+                <span style="font-size:11.5px;color:var(--text-3)">한글 폰트 적용된 A4 PDF로 다운로드 가능 (Cloudflare R2 저장, 영구 보관)</span>
+              </span>
+            </label>
+          </div>
+
+          <div id="arPostTitleField" style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:5px">게시글 제목 <span style="font-weight:400;color:var(--text-3);font-size:11px">(선택, 비우면 AI 생성 제목 사용)</span></label>
+            <input type="text" id="arPostTitle" maxlength="200" placeholder="예: 2026년 1분기 활동보고서" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px">
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <button type="button" class="btn btn-primary" id="arGenerateBtn" style="flex:1">
+              🤖 AI 보고서 생성하기
+            </button>
+            <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">취소</button>
+          </div>
+        </div>
+
+        <!-- ─── STEP 2: 진행 ─── -->
+        <div id="arStep2" style="display:none;text-align:center;padding:50px 30px">
+          <div style="font-size:48px;margin-bottom:16px;animation:pulse 1.5s ease-in-out infinite">🤖</div>
+          <h3 style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px" id="arProgressTitle">데이터 수집 중...</h3>
+          <p style="font-size:13px;color:var(--text-3);line-height:1.7" id="arProgressMsg">
+            후원/회원/지원/사이렌/캠페인 데이터를<br />
+            기간별로 집계하고 있습니다
+          </p>
+          <div style="margin-top:20px;padding:14px 18px;background:#f7f9fc;border-radius:6px;font-size:12px;color:var(--text-2);text-align:left">
+            <div id="arProgressStep1" style="margin-bottom:6px">⏳ 1. 데이터 수집 중...</div>
+            <div id="arProgressStep2" style="margin-bottom:6px;color:var(--text-3)">⏸ 2. AI 심층 분석 (Gemini, 10~15초)</div>
+            <div id="arProgressStep3" style="color:var(--text-3)">⏸ 3. PDF 생성 + 저장</div>
+          </div>
+        </div>
+
+        <!-- ─── STEP 3: 결과 미리보기 ─── -->
+        <div id="arStep3" style="display:none">
+          <div id="arResultStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px">
+            <!-- JS 자동 채움 -->
+          </div>
+
+          <div style="border:1px solid var(--line);border-radius:8px;max-height:500px;overflow-y:auto;padding:24px;margin-bottom:14px;background:#fff" id="arResultPreview">
+            <!-- AI 생성 보고서 HTML 표시 -->
+          </div>
+
+          <div id="arResultActions" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary" id="arDownloadPdfBtn" style="flex:1;display:none">
+              📥 PDF 다운로드
+            </button>
+            <button type="button" class="btn btn-ghost" id="arEditPostBtn" style="flex:1;background:#fff;border:1px solid var(--line);color:var(--text-2);display:none">
+              ✏️ 게시글 수정하기
+            </button>
+            <button type="button" class="btn btn-ghost" id="arRegenerateBtn" style="background:#fff;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">
+              🔄 다시 생성
+            </button>
+            <button type="button" class="btn btn-ghost" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px">닫기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .ar-period-card {
+      padding: 14px 12px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      background: #fff;
+    }
+    .ar-period-card:hover {
+      border-color: var(--brand);
+      background: #fefcfa;
+    }
+    .ar-period-card.on {
+      border-color: var(--brand);
+      background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
+      box-shadow: 0 2px 6px rgba(122,31,43,0.1);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.95); }
+    }
+    .ar-stat-card {
+      padding: 12px 14px;
+      background: var(--bg-soft);
+      border-radius: 8px;
+      text-align: center;
+    }
+    .ar-stat-card .label {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .ar-stat-card .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--brand);
+      font-family: 'Inter', monospace;
+    }
+  </style>
+
+<!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
   <!-- ★ M-19-2: 캠페인 편집 모달 -->
   <div id="campaignEditModal" class="modal">
     <div class="modal-content" style="max-width:840px">
@@ -4712,7 +4920,9 @@
   <script src="/js/attachment.js?v=m2-5"></script>
   <script src="/js/admin-content.js?v=m11"></script>
   <script src="/js/admin-signup-sources.js?v=m12"></script>
+<!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
   <script src="/js/admin-campaigns.js?v=m19-2"></script>
+  <script src="/js/admin-activity-report.js?v=m19-3"></script>
 
   <script>
   (function () {
