@@ -1593,13 +1593,14 @@ export function tplChurnReengage(opts: {
     }),
   };
 }
+
 // lib/email.ts — 파일 끝에 추가
 
 /* ============================================================
    ★ M-19-7: 기념일 축하 메일 템플릿 5종
    ============================================================ */
 
-const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+
 const ORG_NAME = process.env.ORG_NAME || "(사)교사유가족협의회";
 
 function buildAnniversaryEmailShell(opts: {

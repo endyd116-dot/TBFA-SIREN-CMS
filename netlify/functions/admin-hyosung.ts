@@ -363,18 +363,7 @@ export default async (req: Request) => {
           console.error("[admin-hyosung] 감사 메일 예외:", mailErr);
         }
 
-        await logAdminAction(req, admin.uid, admin.name, "hyosung_mark_completed", {
-          target: `D-${donationId}`,
-          detail: {
-            donorName: updated.donorName,
-            amount: updated.amount,
-            hyosungMemberNo: hyMemberNo,
-            hyosungContractNo: hyContractNo,
-            emailSent,
-            reasonProvided: !!body.reason,
-          },
-        });
-// netlify/functions/admin-hyosung.ts — markCompleted 분기에서 logAdminAction 다음, return ok 앞에 추가
+// netlify/functions/admin-hyosung.ts — 기존 recalculateGrade 블록 다음에 추가
         /* ★ M-19-1: 등급 재계산 훅 (효성 후원이 첫 completed가 되는 시점) */
         if (updated.memberId) {
           try {
@@ -386,8 +375,13 @@ export default async (req: Request) => {
             console.error("[admin-hyosung] 등급 재계산 실패:", e);
           }
         }
+
+
+
+
         return ok(
           { donation: updated, emailSent },
+
           `효성 CMS+ 등록 완료 처리되었습니다 (회원번호: ${hyMemberNo})${emailSent ? " · 감사 메일 발송 완료" : ""}`,
         );
       }

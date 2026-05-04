@@ -355,13 +355,7 @@ export default async (req: Request) => {
     });
 
 
-    /* ★ M-19-4: 등급 자동 재산정 (정기 후원 등록 + 첫 결제 완료) */
-    if (memberId) {
-      try {
-        const { refreshTierAfterDonation } = await import("../../lib/member-tier");
-        refreshTierAfterDonation(memberId).catch(() => {});
-      } catch (_) {}
-    }
+
 
 // netlify/functions/billing-confirm.ts — 감사 로그(13) 다음, 응답(14) 앞에 추가
     /* ★ M-19-1: 14. 등급 재계산 훅 (실패해도 결제는 성공) */
