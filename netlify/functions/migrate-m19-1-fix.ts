@@ -1,19 +1,10 @@
 // netlify/functions/migrate-m19-1-fix.ts
-// ★ 1회용 마이그레이션 — 실행 후 즉시 삭제 (보안)
+// ★ 1회용 마이그레이션 v2 — 실행 후 즉시 삭제 (보안)
 //
-// 목적:
-//   1. M-19-11 V2 STEP 1 마이그레이션 미완료 보정
-//      - members에 certificate_*, secondary_* 컬럼 7개 추가
-//      - members.pending_expert_review DROP
-//      - expert_profiles 테이블 DROP
-//      - expert_type / expert_status ENUM DROP
-//   2. member_grades 시드 등급 순서 정정
-//   3. members.grade_id FK 추가
+// 변경: STEP 5 직전에 member_grades 누락 컬럼을 ADD COLUMN IF NOT EXISTS로 보강
 //
 // 호출:
-//   GET https://tbfa-siren-cms.netlify.app/api/migrate-m19-1-fix?key=siren-m19-1-fix-2026
-//
-// ★ 응답 ok:true 확인 후 즉시 이 파일 삭제 + git push
+//   GET /.netlify/functions/migrate-m19-1-fix?key=siren-m19-1-fix-2026
 
 import type { Handler } from "@netlify/functions";
 import { db } from "../../db";
@@ -22,7 +13,6 @@ import { sql } from "drizzle-orm";
 const MIGRATION_KEY = "siren-m19-1-fix-2026";
 
 export const handler: Handler = async (event) => {
-  // 키 검증
   const key = event.queryStringParameters?.key;
   if (key !== MIGRATION_KEY) {
     return {
@@ -35,7 +25,7 @@ export const handler: Handler = async (event) => {
 
   try {
     /* =====================================================
-       STEP 1. M-19-11 V2: members에 신규 컬럼 7개 추가
+       STEP 1. members에 M-19-11 V2 컬럼 7개 추가 (멱등)
        ===================================================== */
     await db.execute(sql`
       ALTER TABLE members
@@ -47,34 +37,53 @@ export const handler: Handler = async (event) => {
         ADD COLUMN IF NOT EXISTS secondary_verified_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS secondary_verified_by INTEGER
     `);
-    log.push("✅ STEP 1: members에 M-19-11 V2 컬럼 7개 추가 완료");
+    log.push("✅ STEP 1: members M-19-11 V2 컬럼 7개 (이미 있을 시 스킵)");
 
     /* =====================================================
-       STEP 2. members.pending_expert_review 컬럼 DROP
+       STEP 2. members.pending_expert_review 컬럼 DROP (멱등)
        ===================================================== */
     await db.execute(sql`
       ALTER TABLE members DROP COLUMN IF EXISTS pending_expert_review
     `);
-    log.push("✅ STEP 2: members.pending_expert_review DROP 완료");
+    log.push("✅ STEP 2: members.pending_expert_review DROP");
 
     /* =====================================================
-       STEP 3. expert_profiles 테이블 DROP
+       STEP 3. expert_profiles 테이블 DROP (멱등)
        ===================================================== */
     await db.execute(sql`DROP TABLE IF EXISTS expert_profiles CASCADE`);
-    log.push("✅ STEP 3: expert_profiles 테이블 DROP 완료");
+    log.push("✅ STEP 3: expert_profiles DROP");
 
     /* =====================================================
-       STEP 4. expert_type / expert_status ENUM DROP
+       STEP 4. expert_type / expert_status ENUM DROP (멱등)
        ===================================================== */
     await db.execute(sql`DROP TYPE IF EXISTS expert_type CASCADE`);
     await db.execute(sql`DROP TYPE IF EXISTS expert_status CASCADE`);
-    log.push("✅ STEP 4: expert ENUM 2종 DROP 완료");
+    log.push("✅ STEP 4: expert ENUM 2종 DROP");
+
+    /* =====================================================
+       ★ STEP 5-PRE. member_grades 누락 컬럼 모두 보강 (NEW)
+       schema.ts 정의에 따라 누락 가능성 있는 모든 컬럼을
+       ADD COLUMN IF NOT EXISTS로 안전하게 추가
+       ===================================================== */
+    await db.execute(sql`
+      ALTER TABLE member_grades
+        ADD COLUMN IF NOT EXISTS name_en VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS icon VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS color_hex VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS description TEXT,
+        ADD COLUMN IF NOT EXISTS min_total_amount INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS min_regular_months INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true NOT NULL,
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    `);
+    log.push("✅ STEP 5-PRE: member_grades 누락 컬럼 보강");
 
     /* =====================================================
        STEP 5. member_grades 시드 5건 재정렬
-       (등급 순서 + 기준금액 + 기간 정상화)
        ===================================================== */
-    // 1단계: 동행 (가입 즉시)
+    // 1단계: 동행
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '동행',
@@ -88,7 +97,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'companion'
     `);
 
-    // 2단계: 등불 (10만원)
+    // 2단계: 등불
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '등불',
@@ -102,7 +111,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'beacon'
     `);
 
-    // 3단계: 든든 (50만원 + 6개월)
+    // 3단계: 든든
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '든든',
@@ -116,7 +125,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'steadfast'
     `);
 
-    // 4단계: 디딤돌 (100만원 + 12개월)
+    // 4단계: 디딤돌
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '디딤돌',
@@ -130,7 +139,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'stepping_stone'
     `);
 
-    // 5단계: 기둥 (300만원 + 24개월)
+    // 5단계: 기둥
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '기둥',
@@ -143,11 +152,10 @@ export const handler: Handler = async (event) => {
           updated_at = NOW()
       WHERE code = 'pillar'
     `);
-    log.push("✅ STEP 5: member_grades 5건 시드 재정렬 완료");
+    log.push("✅ STEP 5: member_grades 시드 5건 재정렬");
 
     /* =====================================================
        STEP 6. members.grade_id FK 추가
-       (이미 있으면 스킵)
        ===================================================== */
     await db.execute(sql`
       DO $$
@@ -164,12 +172,12 @@ export const handler: Handler = async (event) => {
         END IF;
       END $$
     `);
-    log.push("✅ STEP 6: members.grade_id FK 추가 완료");
+    log.push("✅ STEP 6: members.grade_id FK 추가");
 
     /* =====================================================
-       STEP 7. 검증 — 결과 조회
+       STEP 7. 검증
        ===================================================== */
-    const verifyColumns = await db.execute(sql`
+    const verifyMemberCols = await db.execute(sql`
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'members'
         AND column_name IN (
@@ -181,17 +189,17 @@ export const handler: Handler = async (event) => {
       ORDER BY column_name
     `);
 
-    const verifyGrades = await db.execute(sql`
-      SELECT id, code, name_ko, icon, min_total_amount, min_regular_months, sort_order
-      FROM member_grades
-      ORDER BY sort_order
+    const verifyGradeCols = await db.execute(sql`
+      SELECT column_name, data_type FROM information_schema.columns
+      WHERE table_name = 'member_grades'
+      ORDER BY ordinal_position
     `);
 
-    const verifyExpertGone = await db.execute(sql`
-      SELECT
-        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'expert_profiles') AS expert_table_still_exists,
-        EXISTS (SELECT 1 FROM pg_type WHERE typname = 'expert_type') AS expert_type_still_exists,
-        EXISTS (SELECT 1 FROM pg_type WHERE typname = 'expert_status') AS expert_status_still_exists
+    const verifyGrades = await db.execute(sql`
+      SELECT id, code, name_ko, icon, color_hex,
+             min_total_amount, min_regular_months, sort_order
+      FROM member_grades
+      ORDER BY sort_order
     `);
 
     return {
@@ -201,16 +209,15 @@ export const handler: Handler = async (event) => {
         ok: true,
         log,
         verify: {
-          memberColumns: verifyColumns,
+          memberCols: verifyMemberCols,
+          gradeCols: verifyGradeCols,
           grades: verifyGrades,
-          expertCleanup: verifyExpertGone,
         },
-        nextStep: "응답 확인 후 즉시 이 파일을 삭제하고 git push 하세요.",
       }, null, 2),
     };
   } catch (e: any) {
     log.push(`❌ 에러: ${e.message}`);
-    console.error("[migrate-m19-1-fix] error:", e);
+    console.error("[migrate-m19-1-fix v2] error:", e);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
