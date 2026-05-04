@@ -17,8 +17,9 @@
     editorJs:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor-all.min.js`,
     colorCss:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.css`,
     colorJs:   `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.js`,
-    pickerCss: `https://uicdn.toast.com/tui-color-picker/v${COLORPICKER_VER}/tui-color-picker.min.css`,
-    pickerJs:  `https://uicdn.toast.com/tui-color-picker/v${COLORPICKER_VER}/tui-color-picker.min.js`,
+    /* ★ 2026-05 패치: uicdn.toast.com 서비스 종료 → jsdelivr로 교체 */
+    pickerCss: `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.css`,
+    pickerJs:  `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.js`,
   };
 
   let _libLoaded = false;

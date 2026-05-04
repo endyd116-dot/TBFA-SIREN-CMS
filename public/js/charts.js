@@ -89,10 +89,11 @@
     const monthly = data.data.monthlyDonations || { labels: [], values: [] };
     const dist = data.data.memberDistribution || {};
 
-    /* 1-1. 월별 후원금 (Line) */
+       /* 1-1. 월별 후원금 (Line) */
     const c1 = document.getElementById('chart1');
     if (c1) {
-     // public/js/charts.js — chart1 (월별 후원금) 정의 전체 교체
+      /* ★ 2026-05 패치: 페이지 재진입 시 Canvas 중복 사용 에러 방지 */
+      if (instances.chart1) instances.chart1.destroy();
       instances.chart1 = new Chart(c1.getContext('2d'), {
         type: 'line',
         data: {
