@@ -11,7 +11,7 @@
 //   3. members.grade_id FK 추가
 //
 // 호출:
-//   GET /api/migrate-m19-1-fix?key=siren-m19-1-fix-2026
+//   GET https://tbfa-siren-cms.netlify.app/api/migrate-m19-1-fix?key=siren-m19-1-fix-2026
 //
 // ★ 응답 ok:true 확인 후 즉시 이 파일 삭제 + git push
 
@@ -47,7 +47,7 @@ export const handler: Handler = async (event) => {
         ADD COLUMN IF NOT EXISTS secondary_verified_at TIMESTAMP,
         ADD COLUMN IF NOT EXISTS secondary_verified_by INTEGER
     `);
-    log.push("✅ members에 M-19-11 V2 컬럼 7개 추가 완료");
+    log.push("✅ STEP 1: members에 M-19-11 V2 컬럼 7개 추가 완료");
 
     /* =====================================================
        STEP 2. members.pending_expert_review 컬럼 DROP
@@ -55,26 +55,26 @@ export const handler: Handler = async (event) => {
     await db.execute(sql`
       ALTER TABLE members DROP COLUMN IF EXISTS pending_expert_review
     `);
-    log.push("✅ members.pending_expert_review DROP 완료");
+    log.push("✅ STEP 2: members.pending_expert_review DROP 완료");
 
     /* =====================================================
        STEP 3. expert_profiles 테이블 DROP
        ===================================================== */
     await db.execute(sql`DROP TABLE IF EXISTS expert_profiles CASCADE`);
-    log.push("✅ expert_profiles 테이블 DROP 완료");
+    log.push("✅ STEP 3: expert_profiles 테이블 DROP 완료");
 
     /* =====================================================
        STEP 4. expert_type / expert_status ENUM DROP
        ===================================================== */
     await db.execute(sql`DROP TYPE IF EXISTS expert_type CASCADE`);
     await db.execute(sql`DROP TYPE IF EXISTS expert_status CASCADE`);
-    log.push("✅ expert ENUM 2종 DROP 완료");
+    log.push("✅ STEP 4: expert ENUM 2종 DROP 완료");
 
     /* =====================================================
        STEP 5. member_grades 시드 5건 재정렬
        (등급 순서 + 기준금액 + 기간 정상화)
        ===================================================== */
-    // 1단계: 동행
+    // 1단계: 동행 (가입 즉시)
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '동행',
@@ -88,7 +88,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'companion'
     `);
 
-    // 2단계: 등불
+    // 2단계: 등불 (10만원)
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '등불',
@@ -102,7 +102,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'beacon'
     `);
 
-    // 3단계: 든든
+    // 3단계: 든든 (50만원 + 6개월)
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '든든',
@@ -116,7 +116,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'steadfast'
     `);
 
-    // 4단계: 디딤돌
+    // 4단계: 디딤돌 (100만원 + 12개월)
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '디딤돌',
@@ -130,7 +130,7 @@ export const handler: Handler = async (event) => {
       WHERE code = 'stepping_stone'
     `);
 
-    // 5단계: 기둥
+    // 5단계: 기둥 (300만원 + 24개월)
     await db.execute(sql`
       UPDATE member_grades
       SET name_ko = '기둥',
@@ -143,7 +143,7 @@ export const handler: Handler = async (event) => {
           updated_at = NOW()
       WHERE code = 'pillar'
     `);
-    log.push("✅ member_grades 5건 시드 재정렬 완료");
+    log.push("✅ STEP 5: member_grades 5건 시드 재정렬 완료");
 
     /* =====================================================
        STEP 6. members.grade_id FK 추가
@@ -164,7 +164,7 @@ export const handler: Handler = async (event) => {
         END IF;
       END $$
     `);
-    log.push("✅ members.grade_id FK 추가 완료");
+    log.push("✅ STEP 6: members.grade_id FK 추가 완료");
 
     /* =====================================================
        STEP 7. 검증 — 결과 조회
@@ -187,6 +187,13 @@ export const handler: Handler = async (event) => {
       ORDER BY sort_order
     `);
 
+    const verifyExpertGone = await db.execute(sql`
+      SELECT
+        EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'expert_profiles') AS expert_table_still_exists,
+        EXISTS (SELECT 1 FROM pg_type WHERE typname = 'expert_type') AS expert_type_still_exists,
+        EXISTS (SELECT 1 FROM pg_type WHERE typname = 'expert_status') AS expert_status_still_exists
+    `);
+
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
@@ -196,7 +203,9 @@ export const handler: Handler = async (event) => {
         verify: {
           memberColumns: verifyColumns,
           grades: verifyGrades,
+          expertCleanup: verifyExpertGone,
         },
+        nextStep: "응답 확인 후 즉시 이 파일을 삭제하고 git push 하세요.",
       }, null, 2),
     };
   } catch (e: any) {
