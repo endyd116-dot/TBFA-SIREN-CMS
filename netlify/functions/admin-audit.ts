@@ -42,40 +42,130 @@ export default async (req: Request) => {
   try {
     const url = new URL(req.url);
 
-    /* ===== ★ M-16: 단건 상세 조회 (?id=N) ===== */
-    const idStr = url.searchParams.get("id");
-    if (idStr) {
-      const id = Number(idStr);
-      if (!Number.isFinite(id) || id < 1) return badRequest("id가 유효하지 않습니다");
+// netlify/functions/admin-audit.ts — 단건 GET 분기 다음에 export 분기 추가
 
-      const [row] = await db
-        .select()
-        .from(auditLogs)
-        .where(eq(auditLogs.id, id))
-        .limit(1);
+    /* ===== ★ M-16: CSV 익스포트 (?export=csv) ===== */
+    const exportType = url.searchParams.get("export") || "";
+    if (exportType === "csv") {
+      /* 필터는 목록과 동일하게 적용 (현재 화면 그대로 추출) */
+      const action = url.searchParams.get("action") || "";
+      const userType = url.searchParams.get("userType") || "";
+      const userIdStr = url.searchParams.get("userId") || "";
+      const successStr = url.searchParams.get("success") || "";
+      const q = (url.searchParams.get("q") || "").trim();
+      const dateFromStr = url.searchParams.get("dateFrom") || "";
+      const dateToStr = url.searchParams.get("dateTo") || "";
 
-      if (!row) return notFound("로그를 찾을 수 없습니다");
-
-      /* detail JSON 파싱 시도 (실패 시 원본 유지) */
-      let detailParsed: any = null;
-      if ((row as any).detail) {
-        try {
-          detailParsed = JSON.parse(String((row as any).detail));
-        } catch (_) {
-          detailParsed = null; // 원본은 row.detail에 그대로 보존
+      const conds: any[] = [];
+      if (action) conds.push(eq(auditLogs.action, action));
+      if (userType && ["admin", "user", "system", "anonymous"].includes(userType)) {
+        conds.push(eq(auditLogs.userType, userType));
+      }
+      if (userIdStr) {
+        const uid = Number(userIdStr);
+        if (Number.isFinite(uid)) conds.push(eq(auditLogs.userId, uid));
+      }
+      if (successStr === "true") conds.push(eq(auditLogs.success, true));
+      else if (successStr === "false") conds.push(eq(auditLogs.success, false));
+      if (q && q.length >= 2) {
+        const lp = `%${q}%`;
+        conds.push(or(
+          like(auditLogs.action, lp),
+          like(auditLogs.target, lp),
+          like(auditLogs.userName, lp),
+          like(auditLogs.detail, lp),
+        ));
+      }
+      if (dateFromStr) {
+        const d = new Date(dateFromStr);
+        if (!isNaN(d.getTime())) conds.push(gte(auditLogs.createdAt, d));
+      }
+      if (dateToStr) {
+        const d = new Date(dateToStr);
+        if (!isNaN(d.getTime())) {
+          d.setHours(23, 59, 59, 999);
+          conds.push(lte(auditLogs.createdAt, d));
         }
       }
 
-      return ok({
-        log: {
-          ...row,
-          detailParsed, // 파싱 성공 시에만 객체, 아니면 null
+      const whereExp: any = conds.length === 0 ? undefined :
+        conds.length === 1 ? conds[0] : and(...conds);
+
+      /* 최대 5,000건 제한 (대용량 익스포트 방지) */
+      const MAX_EXPORT = 5000;
+      const rows = await db
+        .select()
+        .from(auditLogs)
+        .where(whereExp as any)
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(MAX_EXPORT);
+
+      /* CSV 생성 */
+      const csvEscape = (v: any): string => {
+        if (v === null || v === undefined) return "";
+        const s = String(v);
+        if (/[",\n\r]/.test(s)) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      };
+
+      const headers = [
+        "ID", "시간", "사용자유형", "사용자ID", "사용자이름",
+        "액션", "대상", "상세", "IP", "User-Agent", "결과", "에러메시지",
+      ];
+
+      const csvLines: string[] = [];
+      csvLines.push(headers.join(","));
+
+      for (const r of rows as any[]) {
+        const dt = r.createdAt ? new Date(r.createdAt) : null;
+        const timeStr = dt
+          ? dt.getFullYear() + "-" +
+            String(dt.getMonth() + 1).padStart(2, "0") + "-" +
+            String(dt.getDate()).padStart(2, "0") + " " +
+            String(dt.getHours()).padStart(2, "0") + ":" +
+            String(dt.getMinutes()).padStart(2, "0") + ":" +
+            String(dt.getSeconds()).padStart(2, "0")
+          : "";
+
+        csvLines.push([
+          csvEscape(r.id),
+          csvEscape(timeStr),
+          csvEscape(r.userType || ""),
+          csvEscape(r.userId || ""),
+          csvEscape(r.userName || ""),
+          csvEscape(r.action || ""),
+          csvEscape(r.target || ""),
+          csvEscape(r.detail || ""),
+          csvEscape(r.ipAddress || ""),
+          csvEscape(r.userAgent || ""),
+          csvEscape(r.success ? "성공" : "실패"),
+          csvEscape(r.errorMessage || ""),
+        ].join(","));
+      }
+
+      /* UTF-8 BOM + Excel 호환 */
+      const BOM = "\uFEFF";
+      const csv = BOM + csvLines.join("\r\n");
+
+      const ts = new Date();
+      const fileName = `audit-logs-${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, "0")}${String(ts.getDate()).padStart(2, "0")}-${String(ts.getHours()).padStart(2, "0")}${String(ts.getMinutes()).padStart(2, "0")}.csv`;
+
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${fileName}"`,
+          "X-Total-Rows": String(rows.length),
+          "X-Max-Rows": String(MAX_EXPORT),
         },
       });
     }
 
     /* ===== 목록 조회 ===== */
 
+    // ... 이하 기존 동일 (page/limit 파싱부터 끝까지)
     /* 2. 파라미터 파싱 */
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));
     const limit = Math.min(100, Math.max(10, Number(url.searchParams.get("limit") || 50)));

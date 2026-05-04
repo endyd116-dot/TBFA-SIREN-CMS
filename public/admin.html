@@ -3021,10 +3021,12 @@
               <input type="date" id="auFilterDateFrom" title="시작일">
               <input type="date" id="auFilterDateTo" title="종료일">
 
+              <!-- public/admin.html — audit-filter-bar 내 버튼 영역 교체 -->
               <input type="search" id="auFilterQ" placeholder="🔍 액션/대상/이름/상세 통합 검색 (2자 이상)">
 
               <button type="button" id="auBtnSearch">검색</button>
               <button type="button" id="auBtnReset" class="btn-reset">초기화</button>
+              <button type="button" id="auBtnExport" class="btn-reset" style="background:#fff8ec;color:#8a6a00;border-color:#f0e3c4" title="현재 필터 결과를 CSV로 추출 (최대 5,000건)">📥 CSV 추출</button>
             </div>
 
             <!-- 로그 테이블 -->

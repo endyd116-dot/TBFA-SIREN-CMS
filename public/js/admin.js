@@ -4286,6 +4286,34 @@
         return;
       }
 
+
+      /* ★ M-16: CSV 추출 버튼 */
+      if (e.target.closest('#auBtnExport')) {
+        e.preventDefault();
+        const params = new URLSearchParams();
+        params.set('export', 'csv');
+        const userType = document.getElementById('auFilterType')?.value || '';
+        const action = document.getElementById('auFilterAction')?.value || '';
+        const success = document.getElementById('auFilterSuccess')?.value || '';
+        const dateFrom = document.getElementById('auFilterDateFrom')?.value || '';
+        const dateTo = document.getElementById('auFilterDateTo')?.value || '';
+        const q = (document.getElementById('auFilterQ')?.value || '').trim();
+        if (userType) params.set('userType', userType);
+        if (action) params.set('action', action);
+        if (success) params.set('success', success);
+        if (dateFrom) params.set('dateFrom', dateFrom);
+        if (dateTo) params.set('dateTo', dateTo);
+        if (q && q.length >= 2) params.set('q', q);
+
+
+        const url = '/api/admin/audit?' + params.toString();
+        window.open(url, '_blank');
+        toast('CSV를 다운로드합니다 (최대 5,000건, Excel 호환)');
+        return;
+      }
+
+
+
       /* 페이지네이션 */
       const pageBtn = e.target.closest('[data-au-page]');
       if (pageBtn) {

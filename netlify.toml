@@ -83,10 +83,20 @@
 [functions."cron-billing-monthly"]
   schedule = "0 18 * * *"
 
-# netlify.toml — cron-billing-monthly 블록 다음에 추가
+# netlify.toml — cron-grade-recalc 블록 다음에 추가
 # ★ Phase M-19-1: 회원 등급 일괄 재계산 (매일 새벽 3:30 KST = UTC 18:30)
 [functions."cron-grade-recalc"]
   schedule = "30 18 * * *"
+
+# ★ Phase M-16: 감사 로그 자동 정리 (매일 새벽 4:00 KST = UTC 19:00)
+# - 일반 로그: 1년 이상 자동 삭제
+# - 보안 로그(login_failed/withdraw_*/등): 2년까지 보관
+[functions."cron-cleanup-audit-logs"]
+  schedule = "0 19 * * *"
+
+# ============================================================
+# Dev 설정
+# ============================================================
 # ============================================================
 # Dev 설정
 # ============================================================
