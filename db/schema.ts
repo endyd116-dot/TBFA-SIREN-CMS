@@ -178,8 +178,14 @@ export const donations = pgTable("donations", {
   receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규 (예: TBFA-2026-000042)
 
   // 캠페인 연결 (선택)
+// db/schema.ts — donations 테이블 안, campaignTag 다음에 추가
+  // 캠페인 연결 (선택)
   campaignTag: varchar("campaign_tag", { length: 50 }),
-
+  
+  /* ★ M-19-2: 정규화된 캠페인 참조 (campaignTag와 병행 유지)
+     - 신규 후원: campaignId 사용 권장
+     - 기존 후원: campaignTag 자유 입력값 유지 */
+  campaignId: integer("campaign_id"),
   // 익명 여부
   isAnonymous: boolean("is_anonymous").default(false),
 
@@ -1083,10 +1089,13 @@ export const activityPosts = pgTable("activity_posts", {
    ★ Phase M-11: media_posts — 언론보도 / 갤러리
    - news.html에 추가 표시
    ========================================================= */
-export const mediaCategoryEnum = pgEnum("media_category", [
-  "press",  // 언론 보도
-  "photo",  // 사진 갤러리
-  "event"   // 행사 / 이벤트
+// db/schema.ts — mediaCategoryEnum 정의 다음에 추가
+
+/* ★ M-19-2: 캠페인 종류 */
+export const campaignTypeEnum = pgEnum("campaign_type", [
+  "fundraising",  // 모금 캠페인 (목표금액 O, 진행률 표시)
+  "memorial",     // 추모 캠페인 (스토리 중심)
+  "awareness"     // 인식 개선 캠페인
 ]);
 
 export const mediaPosts = pgTable("media_posts", {
@@ -1110,6 +1119,55 @@ export const mediaPosts = pgTable("media_posts", {
   publishedAtIdx: index("media_posts_published_at_idx").on(t.publishedAt),
 }));
 
+// db/schema.ts — mediaPosts 테이블 정의 다음에 추가
+
+/* =========================================================
+   ★ Phase M-19-2: campaigns — 캠페인 관리
+   - 모금/추모/인식개선 3종
+   - donations.campaign_id로 후원 연결 (raised_amount/donor_count 캐시)
+   - AI 카피 생성 + 진행 부진 자동 알림 지원
+   ========================================================= */
+export const campaigns = pgTable("campaigns", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  type: campaignTypeEnum("type").default("fundraising").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  summary: varchar("summary", { length: 500 }),
+  contentHtml: text("content_html"),
+  thumbnailBlobId: integer("thumbnail_blob_id"),
+
+  /* 'draft' | 'active' | 'closed' | 'archived' */
+  status: varchar("status", { length: 20 }).default("draft").notNull(),
+
+  /* 모금 (fundraising 타입만 의미 있음) */
+  goalAmount: integer("goal_amount"),
+  raisedAmount: integer("raised_amount").default(0).notNull(),
+  donorCount: integer("donor_count").default(0).notNull(),
+
+  /* 기간 */
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+
+  /* 노출/정렬 */
+  isPublished: boolean("is_published").default(false).notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  views: integer("views").default(0).notNull(),
+
+  /* AI 부진 알림 중복 방지 (같은 캠페인에 7일 내 1회) */
+  lastSlumpAlertAt: timestamp("last_slump_alert_at"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+}, (t) => ({
+  slugIdx: index("campaigns_slug_idx").on(t.slug),
+  statusIdx: index("campaigns_status_idx").on(t.status),
+  typeIdx: index("campaigns_type_idx").on(t.type),
+  publishedIdx: index("campaigns_published_idx").on(t.isPublished),
+  pinnedIdx: index("campaigns_pinned_idx").on(t.isPinned),
+  datesIdx: index("campaigns_dates_idx").on(t.startDate, t.endDate),
+}));
 /* =========================================================
    ★ Phase M-7: legal_consultations — 법률 상담 신청
    ========================================================= */
@@ -1311,3 +1369,7 @@ export type NewSignupSource = typeof signupSources.$inferInsert;
 /* ★ M-19-1: 회원 등급 타입 (NEW) */
 export type MemberGrade = typeof memberGrades.$inferSelect;
 export type NewMemberGrade = typeof memberGrades.$inferInsert;
+
+/* ★ M-19-2: 캠페인 타입 (NEW) */
+export type Campaign = typeof campaigns.$inferSelect;
+export type NewCampaign = typeof campaigns.$inferInsert;
