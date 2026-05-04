@@ -9,56 +9,56 @@ import { sql } from "drizzle-orm";
    ENUM 타입
    ========================================================= */
 export const memberTypeEnum = pgEnum("member_type", [
-  "regular",   // 일반 후원 회원
-  "family",    // 유가족 회원
-  "volunteer", // 봉사자
-  "admin"      // 관리자
+  "regular",
+  "family",
+  "volunteer",
+  "admin"
 ]);
 
 export const memberStatusEnum = pgEnum("member_status", [
-  "pending",   // 승인 대기 (유가족 증빙 검토 중)
-  "active",    // 정상
-  "suspended", // 정지
-  "withdrawn"  // 탈퇴
+  "pending",
+  "active",
+  "suspended",
+  "withdrawn"
 ]);
 
 export const donationTypeEnum = pgEnum("donation_type", [
-  "regular",   // 정기 후원
-  "onetime"    // 일시 후원
+  "regular",
+  "onetime"
 ]);
 
 export const donationStatusEnum = pgEnum("donation_status", [
-  "pending",          // 결제 대기
-  "completed",        // 승인 완료
-  "failed",           // 실패
-  "cancelled",        // 취소
-  "refunded",         // 환불
-  "pending_hyosung",  // ★ M-4: 효성 CMS+ 신청 의향 (외부 사이트 이동 전 기록)
-  "pending_bank"      // ★ M-4: 직접 계좌이체 대기 (관리자 입금 확인 전)
+  "pending",
+  "completed",
+  "failed",
+  "cancelled",
+  "refunded",
+  "pending_hyosung",
+  "pending_bank"
 ]);
 
 export const supportCategoryEnum = pgEnum("support_category", [
-  "counseling",  // 심리상담
-  "legal",       // 법률자문
-  "scholarship", // 장학사업
-  "other"        // 기타
+  "counseling",
+  "legal",
+  "scholarship",
+  "other"
 ]);
 
 export const supportStatusEnum = pgEnum("support_status", [
-  "submitted",   // 접수
-  "reviewing",   // 서류 검토
-  "supplement",  // 보완 요청
-  "matched",     // 매칭 완료
-  "in_progress", // 진행 중
-  "completed",   // 완료
-  "rejected"     // 반려
+  "submitted",
+  "reviewing",
+  "supplement",
+  "matched",
+  "in_progress",
+  "completed",
+  "rejected"
 ]);
 
 export const noticeCategoryEnum = pgEnum("notice_category", [
-  "general", // 일반공지
-  "member",  // 회원공지
-  "event",   // 사업/행사
-  "media"    // 언론보도
+  "general",
+  "member",
+  "event",
+  "media"
 ]);
 
 /* =========================================================
@@ -73,10 +73,10 @@ export const members = pgTable("members", {
   type: memberTypeEnum("type").default("regular").notNull(),
   status: memberStatusEnum("status").default("active").notNull(),
 
-  /* ───────── ★ STEP F-1 운영자 시스템 ───────── */
-  role: varchar("role", { length: 20 }),                          // 'super_admin' | 'operator' | null
-  notifyOnSupport: boolean("notify_on_support").default(false),   // 지원 신청 알림 수신 여부
-  operatorActive: boolean("operator_active").default(true),       // 운영자 활성 상태
+  /* ───────── ★ STEP F-1: 운영자 시스템 ───────── */
+  role: varchar("role", { length: 20 }),
+  notifyOnSupport: boolean("notify_on_support").default(false),
+  operatorActive: boolean("operator_active").default(true),
 
   // 보안 / 인증
   emailVerified: boolean("email_verified").default(false),
@@ -90,40 +90,32 @@ export const members = pgTable("members", {
   agreeSms: boolean("agree_sms").default(true),
   agreeMail: boolean("agree_mail").default(false),
 
-  /* ───────── ★ K-2: 회원 탈퇴 추적 (NEW) ───────── */
-  withdrawnAt: timestamp("withdrawn_at"),                         // 탈퇴 시점
-  withdrawnReason: varchar("withdrawn_reason", { length: 500 }),  // 탈퇴 사유 (선택)
+  /* ───────── ★ K-2: 회원 탈퇴 추적 ───────── */
+  withdrawnAt: timestamp("withdrawn_at"),
+  withdrawnReason: varchar("withdrawn_reason", { length: 500 }),
 
-  /* ───────── ★ M-12: 회원 4분류 + 가입경로 (NEW) ───────── */
+  /* ───────── ★ M-12: 회원 4분류 + 가입경로 ───────── */
   memberCategory: varchar("member_category", { length: 20 }),
-  // 'sponsor' | 'regular' | 'family' | 'etc' (null 가능 — 마이그레이션 후 자동 분류)
   memberSubtype: varchar("member_subtype", { length: 50 }),
-  // 'regular_donation' | 'hyosung_donation' | 'onetime_donation' |
-  // 'volunteer' | 'lawyer' | 'counselor' | null
   signupSourceId: integer("signup_source_id"),
-  // signup_sources.id 참조 (런타임 join)
 
-  /* ───────── ★ M-15: 운영자 담당 카테고리 (NEW) ───────── */
-  // type='admin'인 회원에게만 의미 있음
+  /* ───────── ★ M-15: 운영자 담당 카테고리 ───────── */
   // 가능 값: ['incident','harassment','legal','board','donation','support'] 또는 ['all']
-  // super_admin은 이 값을 무시하고 항상 전체 알림 수신 (notify.ts에서 처리)
-  // 'all' 포함 시 다른 카테고리 무시 (admin-operators.ts에서 정규화)
-  // GIN 인덱스: idx_members_assigned_categories (DB 측에서 직접 생성, STEP 1 마이그레이션)
+  // super_admin은 이 값 무시하고 항상 전체 알림 수신
+  // GIN 인덱스: idx_members_assigned_categories (DB 측 직접 생성)
   assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
 
- // db/schema.ts — members 테이블 내부, 등급 블록 다음에 추가
-  /* ───────── ★ M-19-1: 회원 등급 시스템 (기존) ───────── */
+  /* ───────── ★ M-19-1: 회원 등급 시스템 ───────── */
   gradeId: integer("grade_id"),
   gradeAssignedAt: timestamp("grade_assigned_at"),
   gradeLocked: boolean("grade_locked").default(false),
   totalDonationAmount: integer("total_donation_amount").default(0),
   regularMonthsCount: integer("regular_months_count").default(0),
 
-  /* ───────── ★ M-19-1 (신규): 후원자 이탈 예측 ───────── */
+  /* ───────── ★ M-19-1: 후원자 이탈 예측 ───────── */
   // churnRiskScore: 0~100 (높을수록 위험)
   // churnRiskLevel: 'critical'(75+) | 'warning'(50-74) | 'stable'(<50) | null
-  // churnSignals: JSONB 배열 — 감지된 신호 코드들
-  //   ['consecutive_fail', 'long_inactive', 'amount_decreasing', ...]
+  // churnSignals: JSONB { codes: [...], summary, suggestion, evaluatedAt }
   // lastReengageEmailAt: 재참여 메일 발송 시각 (1주일 내 중복 발송 방지)
   churnRiskScore: integer("churn_risk_score").default(0),
   churnRiskLevel: varchar("churn_risk_level", { length: 20 }),
@@ -140,12 +132,9 @@ export const members = pgTable("members", {
   typeIdx: index("members_type_idx").on(t.type),
   statusIdx: index("members_status_idx").on(t.status),
   roleIdx: index("members_role_idx").on(t.role),
-  /* ★ M-12: 분류/가입경로 인덱스 */
   categoryIdx: index("members_category_idx").on(t.memberCategory),
   subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
-  /* ★ M-19-1: 등급 인덱스 */
-  gradeIdx: index("members_grade_idx").on(t.gradeId),
 }));
 
 /* =========================================================
@@ -153,75 +142,48 @@ export const members = pgTable("members", {
    ========================================================= */
 export const donations = pgTable("donations", {
   id: serial("id").primaryKey(),
-
-  // 회원이 아닌 비회원 후원도 가능 → memberId nullable
   memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
 
-  // 비회원 또는 회원의 정보 스냅샷
   donorName: varchar("donor_name", { length: 50 }).notNull(),
   donorPhone: varchar("donor_phone", { length: 20 }),
   donorEmail: varchar("donor_email", { length: 100 }),
 
   amount: integer("amount").notNull(),
   type: donationTypeEnum("type").notNull(),
-  payMethod: varchar("pay_method", { length: 20 }).notNull(), // cms/card/bank
+  payMethod: varchar("pay_method", { length: 20 }).notNull(),
   status: donationStatusEnum("status").default("pending").notNull(),
 
-  // 결제 / PG사 정보
   transactionId: varchar("transaction_id", { length: 100 }),
   pgProvider: varchar("pg_provider", { length: 30 }),
 
-  // 영수증
   receiptRequested: boolean("receipt_requested").default(false),
   receiptIssued: boolean("receipt_issued").default(false),
   receiptIssuedAt: timestamp("receipt_issued_at"),
-  receiptNumber: varchar("receipt_number", { length: 30 }).unique(), // ★ STEP H-2a 신규 (예: TBFA-2026-000042)
+  receiptNumber: varchar("receipt_number", { length: 30 }).unique(),
 
-  // 캠페인 연결 (선택)
-// db/schema.ts — donations 테이블 안, campaignTag 다음에 추가
-  // 캠페인 연결 (선택)
+  // 캠페인 연결
   campaignTag: varchar("campaign_tag", { length: 50 }),
-  
-  /* ★ M-19-2: 정규화된 캠페인 참조 (campaignTag와 병행 유지)
-     - 신규 후원: campaignId 사용 권장
-     - 기존 후원: campaignTag 자유 입력값 유지 */
+  /* ★ M-19-2: 정규화된 캠페인 참조 (campaignTag와 병행 유지) */
   campaignId: integer("campaign_id"),
-  // 익명 여부
+
   isAnonymous: boolean("is_anonymous").default(false),
 
-  /* ───────── ★ Phase L: 토스페이먼츠 결제 추적 ─────────
-     - tossPaymentKey: 토스가 발급한 결제 키 (paymentKey)
-     - tossOrderId: 우리가 생성한 주문번호 (TOSS-YYYY-MMxxxx)
-     - billingKeyId: 정기결제 시 사용한 billing_keys.id 참조
-     - failureReason: 결제 실패 시 사유 (토스 응답 message)
-     ────────────────────────────────────────────────────────── */
+  /* ───────── ★ Phase L: 토스페이먼츠 결제 추적 ───────── */
   tossPaymentKey: varchar("toss_payment_key", { length: 200 }),
   tossOrderId: varchar("toss_order_id", { length: 64 }),
   billingKeyId: integer("billing_key_id"),
   failureReason: varchar("failure_reason", { length: 500 }),
 
-  /* ───────── ★ Phase L-9: 효성 CMS+ 연동 매칭 키 (NEW) ─────────
-     역할 분담 모델: 효성 = 결제/청구 마스터, 사이렌 = 회원/UI 마스터
-     공유 키: 효성 회원번호로 billing_update.csv와 우리 DB 매칭
-
-     - hyosungMemberNo: 효성 CMS+ 자동 부여 회원번호 (예: 60)
-       * 관리자가 효성 등록 후 L-8 완료처리 모달에서 수동 입력
-       * billing_update.csv의 '회원번호' 컬럼과 매칭 (문자열 '00000060' → 60)
-     - hyosungContractNo: 효성 계약번호 (대부분 '001')
-       * 한 회원이 여러 계약을 가질 경우 대비 (현재는 1:1)
-     - hyosungBillNo: 효성 청구번호 (예: '0000000213274690')
-       * 월별 청구에 1:1 매칭되는 고유키
-       * billing_update.csv 업로드 시 중복 처리 방지용
-     ────────────────────────────────────────────────────────── */
+  /* ───────── ★ Phase L-9: 효성 CMS+ 매칭 키 ───────── */
   hyosungMemberNo: integer("hyosung_member_no"),
   hyosungContractNo: varchar("hyosung_contract_no", { length: 20 }),
   hyosungBillNo: varchar("hyosung_bill_no", { length: 30 }),
 
-   /* ─────── ★ M-4: 직접 계좌이체 관련 ─────── */
+  /* ─────── ★ M-4: 직접 계좌이체 ─────── */
   bankDepositorName: varchar("bank_depositor_name", { length: 50 }),
   depositExpectedAt: timestamp("deposit_expected_at"),
 
-  /* ★ M-14: 발급된 영수증 PDF 캐시 (blob_uploads.id 참조) */
+  /* ★ M-14: 영수증 PDF 캐시 */
   receiptBlobId: integer("receipt_blob_id"),
 
   memo: text("memo"),
@@ -231,14 +193,13 @@ export const donations = pgTable("donations", {
   memberIdx: index("donations_member_idx").on(t.memberId),
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
-  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber), // ★ STEP H-2a 신규
-  /* ★ Phase L: 토스 결제 검색용 인덱스 */
+  receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber),
   tossPaymentKeyIdx: index("donations_toss_payment_key_idx").on(t.tossPaymentKey),
   tossOrderIdIdx: index("donations_toss_order_id_idx").on(t.tossOrderId),
   billingKeyIdx: index("donations_billing_key_idx").on(t.billingKeyId),
-  /* ★ Phase L-9: 효성 매칭 인덱스 (billing_update CSV 고속 처리) */
   hyosungMemberNoIdx: index("donations_hyosung_member_no_idx").on(t.hyosungMemberNo),
   hyosungBillNoIdx: index("donations_hyosung_bill_no_idx").on(t.hyosungBillNo),
+  campaignIdIdx: index("donations_campaign_id_idx").on(t.campaignId),
 }));
 
 /* =========================================================
@@ -246,7 +207,7 @@ export const donations = pgTable("donations", {
    ========================================================= */
 export const supportRequests = pgTable("support_requests", {
   id: serial("id").primaryKey(),
-  requestNo: varchar("request_no", { length: 30 }).unique().notNull(), // S-2026-0413
+  requestNo: varchar("request_no", { length: 30 }).unique().notNull(),
 
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
@@ -254,29 +215,23 @@ export const supportRequests = pgTable("support_requests", {
   title: varchar("title", { length: 200 }).notNull(),
   content: text("content").notNull(),
 
-  // 첨부 파일 (Netlify Blobs key)
-  attachments: text("attachments"), // JSON 배열 형태로 저장
-
+  attachments: text("attachments"),
   status: supportStatusEnum("status").default("submitted").notNull(),
 
-  // 매칭된 전문가 / 봉사자
   assignedMemberId: integer("assigned_member_id").references(() => members.id, { onDelete: "set null" }),
   assignedExpertName: varchar("assigned_expert_name", { length: 50 }),
   assignedAt: timestamp("assigned_at"),
 
-  // 관리자 메모
   adminNote: text("admin_note"),
   supplementNote: text("supplement_note"),
-
-  // 완료 보고서
   reportContent: text("report_content"),
   completedAt: timestamp("completed_at"),
 
-  /* ───────── ★ STEP E-1 신규 컬럼 (4개) ───────── */
+  /* ★ STEP E-1 */
   answeredBy: integer("answered_by").references(() => members.id, { onDelete: "set null" }),
   answeredAt: timestamp("answered_at"),
-  priority: varchar("priority", { length: 10 }),       // 'urgent' | 'normal' | 'low'
-  priorityReason: text("priority_reason"),             // AI 판단 근거 요약
+  priority: varchar("priority", { length: 10 }),
+  priorityReason: text("priority_reason"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -297,18 +252,13 @@ export const notices = pgTable("notices", {
   title: varchar("title", { length: 200 }).notNull(),
   content: text("content").notNull(),
 
-  // 작성자
   authorId: integer("author_id").references(() => members.id, { onDelete: "set null" }),
   authorName: varchar("author_name", { length: 50 }).default("관리자"),
 
-  // 표시 옵션
   isPinned: boolean("is_pinned").default(false),
   isPublished: boolean("is_published").default(true),
-
-  // 통계
   views: integer("views").default(0),
 
-  // SEO / 메타
   thumbnailUrl: varchar("thumbnail_url", { length: 500 }),
   excerpt: varchar("excerpt", { length: 300 }),
 
@@ -341,19 +291,16 @@ export const faqs = pgTable("faqs", {
 }));
 
 /* =========================================================
-   ★ G-1: 채팅 시스템 (4 테이블)
+   ★ G-1: 채팅 시스템
    ========================================================= */
 
-/* 7. chat_rooms — 채팅방 */
 export const chatRooms = pgTable("chat_rooms", {
   id: serial("id").primaryKey(),
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
   category: varchar("category", { length: 30 }).default("support_other").notNull(),
-  // support_donation / support_homepage / support_signup / support_other
   title: varchar("title", { length: 200 }),
   status: varchar("status", { length: 20 }).default("active").notNull(),
-  // active / closed / archived
 
   lastMessageAt: timestamp("last_message_at").defaultNow(),
   lastMessagePreview: varchar("last_message_preview", { length: 200 }),
@@ -375,24 +322,19 @@ export const chatRooms = pgTable("chat_rooms", {
   lastMsgIdx: index("chat_rooms_last_msg_idx").on(t.lastMessageAt),
 }));
 
-/* 8. chat_messages — 메시지 */
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
   roomId: integer("room_id").references(() => chatRooms.id, { onDelete: "cascade" }).notNull(),
 
   senderId: integer("sender_id").references(() => members.id, { onDelete: "set null" }).notNull(),
   senderRole: varchar("sender_role", { length: 20 }).default("user").notNull(),
-  // user / admin / system
-
   messageType: varchar("message_type", { length: 20 }).default("text").notNull(),
-  // text / image / system_notice
 
   content: text("content"),
   attachmentId: integer("attachment_id"),
 
   isRead: boolean("is_read").default(false),
   readAt: timestamp("read_at"),
-
   isSystem: boolean("is_system").default(false),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -401,7 +343,6 @@ export const chatMessages = pgTable("chat_messages", {
   senderIdx: index("chat_messages_sender_idx").on(t.senderId),
 }));
 
-/* 9. chat_attachments — 첨부파일 */
 export const chatAttachments = pgTable("chat_attachments", {
   id: serial("id").primaryKey(),
   roomId: integer("room_id").references(() => chatRooms.id, { onDelete: "cascade" }).notNull(),
@@ -416,15 +357,13 @@ export const chatAttachments = pgTable("chat_attachments", {
   width: integer("width"),
   height: integer("height"),
 
-  expiresAt: timestamp("expires_at"), // 1년 후 자동 정리
-
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   roomIdx: index("chat_attachments_room_idx").on(t.roomId),
   expiresIdx: index("chat_attachments_expires_idx").on(t.expiresAt),
 }));
 
-/* 10. chat_blacklist — 블랙리스트 */
 export const chatBlacklist = pgTable("chat_blacklist", {
   id: serial("id").primaryKey(),
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull().unique(),
@@ -443,45 +382,42 @@ export const chatBlacklist = pgTable("chat_blacklist", {
 }));
 
 /* =========================================================
-   ★ STEP H-2d: 영수증 설정 (단일 진실 원천)
-   - 행은 항상 1개만 유지 (id=1 고정)
-   - admin.html (사이렌 백오피스) + cms-tbfa.html (교유협 CMS) 양쪽에서 공유
+   ★ STEP H-2d: 영수증 설정
    ========================================================= */
 export const receiptSettings = pgTable("receipt_settings", {
   id: serial("id").primaryKey(),
 
-  // 협회 정보 (PDF에 표시되는 5가지)
   orgName: varchar("org_name", { length: 100 }),
   orgRegistrationNo: varchar("org_registration_no", { length: 50 }),
   orgRepresentative: varchar("org_representative", { length: 50 }),
   orgAddress: varchar("org_address", { length: 255 }),
   orgPhone: varchar("org_phone", { length: 50 }),
 
-  // 영수증 양식 텍스트 (커스터마이징 가능)
-  title: varchar("title", { length: 100 }),                  // "기 부 금  영 수 증"
-  subtitle: varchar("subtitle", { length: 200 }),            // "(소득세법 시행규칙 ...)"
-  proofText: varchar("proof_text", { length: 200 }),         // "위와 같이 기부금을 기부하였음을 증명합니다."
-  donationTypeLabel: varchar("donation_type_label", { length: 50 }), // "지정기부금"
-  footerNotes: text("footer_notes"),                         // JSON 배열 ["• ...", "• ...", "• ..."]
+  title: varchar("title", { length: 100 }),
+  subtitle: varchar("subtitle", { length: 200 }),
+  proofText: varchar("proof_text", { length: 200 }),
+  donationTypeLabel: varchar("donation_type_label", { length: 50 }),
+  footerNotes: text("footer_notes"),
 
-  // 메타
+  /* ★ M-14: 직인 이미지 */
+  stampBlobId: integer("stamp_blob_id"),
+
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
 
-
 /* =========================================================
-   6. audit_logs — 감사 로그 (보안 추적)
+   6. audit_logs — 감사 로그
    ========================================================= */
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => members.id, { onDelete: "set null" }),
-  userType: varchar("user_type", { length: 20 }), // admin/user/system
+  userType: varchar("user_type", { length: 20 }),
   userName: varchar("user_name", { length: 50 }),
 
-  action: varchar("action", { length: 100 }).notNull(),    // login/donate/update_member 등
-  target: varchar("target", { length: 100 }),              // 대상 (회원ID, 신청번호 등)
-  detail: text("detail"),                                  // 상세 내용 (JSON 가능)
+  action: varchar("action", { length: 100 }).notNull(),
+  target: varchar("target", { length: 100 }),
+  detail: text("detail"),
 
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 500 }),
@@ -498,22 +434,15 @@ export const auditLogs = pgTable("audit_logs", {
 
 /* =========================================================
    ★ K-1: 비밀번호 재설정 토큰
-   - rawToken은 메일에만 노출, DB에는 SHA-256 해시만 저장
-   - 30분 유효 / 1회 사용 / 회원당 1시간에 3개 제한
    ========================================================= */
 export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: serial("id").primaryKey(),
-  memberId: integer("member_id")
-    .references(() => members.id, { onDelete: "cascade" })
-    .notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
-  // SHA-256(rawToken) — 64자 hex
   tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
-
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
 
-  // 보안 추적
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 500 }),
 
@@ -525,28 +454,18 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 }));
 
 /* =========================================================
-   ★ K-2: 이메일 인증 토큰 (NEW)
-   - 가입 직후 자동 발송, 또는 사용자 요청 시 재발송
-   - 24시간 유효 / 1회 사용
-   - 회원당 1시간에 5개 제한 (Rate Limit)
-   - 인증 완료 시 members.emailVerified = true
+   ★ K-2: 이메일 인증 토큰
    ========================================================= */
 export const emailVerificationTokens = pgTable("email_verification_tokens", {
   id: serial("id").primaryKey(),
-  memberId: integer("member_id")
-    .references(() => members.id, { onDelete: "cascade" })
-    .notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
-  // SHA-256(rawToken) — 64자 hex
   tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
-
-  // 인증 대상 이메일 (회원 이메일과 동일하지만 변경 시 추적용)
   email: varchar("email", { length: 100 }).notNull(),
 
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
 
-  // 보안 추적
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 500 }),
 
@@ -558,41 +477,29 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 }));
 
 /* =========================================================
-   ★ Phase L: 토스페이먼츠 빌링키 (정기 결제용)
-   - 회원이 카드 1회 등록 시 토스가 빌링키 발급
-   - 매월 cron이 빌링키로 자동 결제 호출
-   - 회원이 해지 시 isActive=false + deactivatedAt 기록
-   - billingKey는 토스 측에서 발급한 영구 키 (재사용)
-   - customerKey는 우리가 생성한 고유 식별자 (회원당 1개)
+   ★ Phase L: 토스페이먼츠 빌링키
    ========================================================= */
 export const billingKeys = pgTable("billing_keys", {
   id: serial("id").primaryKey(),
-  memberId: integer("member_id")
-    .references(() => members.id, { onDelete: "cascade" })
-    .notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
 
-  // 토스 빌링키 정보
-  billingKey: varchar("billing_key", { length: 200 }).notNull().unique(),  // 토스 발급
-  customerKey: varchar("customer_key", { length: 64 }).notNull().unique(), // 우리 생성
+  billingKey: varchar("billing_key", { length: 200 }).notNull().unique(),
+  customerKey: varchar("customer_key", { length: 64 }).notNull().unique(),
 
-  // 카드 정보 (마스킹 — PCI-DSS 준수)
-  cardCompany: varchar("card_company", { length: 30 }),                    // "현대카드" 등
-  cardNumberMasked: varchar("card_number_masked", { length: 30 }),         // "****-****-****-1234"
-  cardType: varchar("card_type", { length: 20 }),                          // "신용" / "체크"
+  cardCompany: varchar("card_company", { length: 30 }),
+  cardNumberMasked: varchar("card_number_masked", { length: 30 }),
+  cardType: varchar("card_type", { length: 20 }),
 
-  // 정기 결제 설정
-  amount: integer("amount").notNull(),                                     // 월 결제 금액
-  isActive: boolean("is_active").default(true).notNull(),                  // 활성/해지 여부
-  nextChargeAt: timestamp("next_charge_at"),                               // 다음 결제 예정일 (cron 기준)
-  lastChargedAt: timestamp("last_charged_at"),                             // 마지막 결제 시점
+  amount: integer("amount").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  nextChargeAt: timestamp("next_charge_at"),
+  lastChargedAt: timestamp("last_charged_at"),
 
-  // 실패 추적 (연속 3회 실패 시 자동 비활성화)
   consecutiveFailCount: integer("consecutive_fail_count").default(0),
   lastFailureReason: varchar("last_failure_reason", { length: 500 }),
 
-  // 해지 정보
   deactivatedAt: timestamp("deactivated_at"),
-  deactivatedReason: varchar("deactivated_reason", { length: 200 }),       // 'user_canceled' / 'card_expired' / 'too_many_fails'
+  deactivatedReason: varchar("deactivated_reason", { length: 200 }),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -604,31 +511,24 @@ export const billingKeys = pgTable("billing_keys", {
 }));
 
 /* =========================================================
-   ★ Phase L-9: 효성 CMS+ Import 이력 (NEW)
-   - billing_update.csv 업로드 기록
-   - 한 번 업로드된 청구번호는 중복 처리 방지 (멱등성)
-   - 감사 추적 (누가/언제/몇 건 처리)
+   ★ Phase L-9: 효성 CMS+ Import 이력
    ========================================================= */
 export const hyosungImportLogs = pgTable("hyosung_import_logs", {
   id: serial("id").primaryKey(),
 
-  // 업로드한 관리자
   uploadedBy: integer("uploaded_by").references(() => members.id, { onDelete: "set null" }),
   uploadedByName: varchar("uploaded_by_name", { length: 50 }),
 
-  // 파일 정보
   fileName: varchar("file_name", { length: 255 }),
   fileSize: integer("file_size"),
 
-  // 처리 결과
   totalRows: integer("total_rows").default(0),
-  matchedCount: integer("matched_count").default(0),      // 효성 회원번호 매칭 성공
-  createdCount: integer("created_count").default(0),      // 새 donations 생성
-  updatedCount: integer("updated_count").default(0),      // 기존 donations 업데이트
-  skippedCount: integer("skipped_count").default(0),      // 중복 청구번호 등 스킵
-  failedCount: integer("failed_count").default(0),        // 매칭 실패
+  matchedCount: integer("matched_count").default(0),
+  createdCount: integer("created_count").default(0),
+  updatedCount: integer("updated_count").default(0),
+  skippedCount: integer("skipped_count").default(0),
+  failedCount: integer("failed_count").default(0),
 
-  // 상세 (JSON: 매칭 실패 행 목록, 에러 등)
   detail: text("detail"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -638,39 +538,27 @@ export const hyosungImportLogs = pgTable("hyosung_import_logs", {
 }));
 
 /* =========================================================
-   ★ Phase M-3: notifications — 통합 알림 (NEW)
-   - recipientType으로 사용자/관리자/운영자 구분
-   - severity='critical'은 알림 외에 토스트/모달 처리
-   - 90일 후 expires_at으로 자동 정리
+   ★ Phase M-3: notifications — 통합 알림
    ========================================================= */
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
 
-  // 수신자 (member.id)
   recipientId: integer("recipient_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
   recipientType: varchar("recipient_type", { length: 20 }).default("user").notNull(),
-  // 'user' | 'admin' | 'operator'
 
-  // 분류
   category: varchar("category", { length: 30 }).notNull(),
-  // 'support' | 'donation' | 'chat' | 'audit' | 'system' | 'billing' | 'member'
   severity: varchar("severity", { length: 20 }).default("info").notNull(),
-  // 'info' | 'warning' | 'critical'
 
-  // 본문
   title: varchar("title", { length: 200 }).notNull(),
   message: varchar("message", { length: 500 }),
-  link: varchar("link", { length: 500 }),  // 클릭 시 이동할 경로
+  link: varchar("link", { length: 500 }),
 
-  // 참조 (선택)
   refTable: varchar("ref_table", { length: 50 }),
   refId: integer("ref_id"),
 
-  // 읽음 처리
   isRead: boolean("is_read").default(false),
   readAt: timestamp("read_at"),
 
-  // 생성/만료
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"),
 }, (t) => ({
@@ -681,10 +569,7 @@ export const notifications = pgTable("notifications", {
 }));
 
 /* =========================================================
-   ★ Phase M-12: signup_sources — 회원 가입 경로 마스터
-   - code UNIQUE: 'website' | 'admin' | 'hyosung_csv' | 'event' | 'etc'
-   - 어드민이 추가/수정/삭제 가능 (CRUD)
-   - 기본 시드 5건 (마이그레이션에서 INSERT)
+   ★ Phase M-12: signup_sources — 회원 가입 경로
    ========================================================= */
 export const signupSources = pgTable("signup_sources", {
   id: serial("id").primaryKey(),
@@ -701,98 +586,68 @@ export const signupSources = pgTable("signup_sources", {
 }));
 
 /* =========================================================
-   ★ Phase M-19-1: member_grades — 회원 등급 마스터 (NEW)
-   - 5단계: 동행 / 든든 / 디딤돌 / 기둥 / 등불
-   - 시드는 마이그레이션에서 INSERT
-   - 운영자가 임계값/이름/혜택 변경 가능 (admin-grades CRUD)
-   ========================================================= */
-export const memberGrades = pgTable("member_grades", {
-  id: serial("id").primaryKey(),
-  code: varchar("code", { length: 30 }).notNull().unique(),
-  // 'companion' | 'steadfast' | 'stepping_stone' | 'pillar' | 'beacon'
-  nameKo: varchar("name_ko", { length: 50 }).notNull(),
-  minTotalAmount: integer("min_total_amount").notNull().default(0),
-  minRegularMonths: integer("min_regular_months").notNull().default(0),
-  color: varchar("color", { length: 20 }).notNull(),
-  icon: varchar("icon", { length: 10 }).notNull(),
-  sortOrder: integer("sort_order").notNull(),
-  benefits: jsonb("benefits").default(sql`'[]'::jsonb`),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (t) => ({
-  codeIdx: index("member_grades_code_idx").on(t.code),
-  sortIdx: index("member_grades_sort_idx").on(t.sortOrder),
-}));
-
-/* =========================================================
-   ★ Phase M-4: donation_policies — 후원 정책 (단일 행, id=1)
-   - 모달의 금액 버튼/계좌번호/효성 URL 등 관리자가 어드민에서 관리
-   - M-15 (후원정책 관리) 에서 PATCH UI 구현
-   - M-4에서는 GET만 제공하고 기본값 시드
+   ★ Phase M-4: donation_policies — 후원 정책 (id=1)
    ========================================================= */
 export const donationPolicies = pgTable("donation_policies", {
   id: serial("id").primaryKey(),
 
-  // 금액 옵션 (JSON 배열: [10000, 30000, ...])
-  regularAmounts: text("regular_amounts"),    // JSON
-  onetimeAmounts: text("onetime_amounts"),    // JSON
+  regularAmounts: text("regular_amounts"),
+  onetimeAmounts: text("onetime_amounts"),
 
-  // 직접 계좌이체 정보
+  /* ★ M-15: 금액 한도 */
+  minAmount: integer("min_amount").default(1000),
+  maxAmount: integer("max_amount").default(100000000),
+
   bankName: varchar("bank_name", { length: 50 }),
   bankAccountNo: varchar("bank_account_no", { length: 50 }),
   bankAccountHolder: varchar("bank_account_holder", { length: 50 }),
   bankGuideText: text("bank_guide_text"),
 
-  // 효성 CMS+ 정보
   hyosungUrl: varchar("hyosung_url", { length: 500 }),
   hyosungGuideText: text("hyosung_guide_text"),
 
-  // 모달 커스터마이징
   modalTitle: varchar("modal_title", { length: 200 }),
   modalSubtitle: varchar("modal_subtitle", { length: 500 }),
 
-  /* ★ M-14: 직인 이미지 (blob_uploads.id 참조) */
+  /* ★ M-14: 직인 이미지 */
   stampBlobId: integer("stamp_blob_id"),
 
-  // 메타
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
 
 /* =========================================================
-   ★ Phase M-5: 사건 카테고리 / 제보 상태 ENUM
+   ★ Phase M-5: 사건 ENUM
    ========================================================= */
 export const incidentCategoryEnum = pgEnum("incident_category", [
-  "school",  // 학교 내 사건
-  "public",  // 공공/사회적 사건
-  "other"    // 기타
+  "school",
+  "public",
+  "other"
 ]);
 
 export const incidentReportStatusEnum = pgEnum("incident_report_status", [
-  "submitted",   // 접수 (AI 분석 전)
-  "ai_analyzed", // AI 분석 완료, 사용자 확인 대기
-  "reviewing",   // 관리자 검토 중 (정식 접수 후)
-  "responded",   // 답변 완료
-  "closed",      // 종결
-  "rejected"     // 반려/스팸
+  "submitted",
+  "ai_analyzed",
+  "reviewing",
+  "responded",
+  "closed",
+  "rejected"
 ]);
 
 /* =========================================================
    ★ Phase M-5: incidents — 사건 마스터
-   - 관리자가 M-11 콘텐츠 관리에서 추가/수정 (현 단계는 시드 2건)
-   - 슬러그 기반 URL: /incident.html?slug=seoyicho-2023
    ========================================================= */
 export const incidents = pgTable("incidents", {
   id: serial("id").primaryKey(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   title: varchar("title", { length: 200 }).notNull(),
   summary: varchar("summary", { length: 500 }),
-  contentHtml: text("content_html"),                    // Toast UI Editor 결과
-  thumbnailBlobId: integer("thumbnail_blob_id"),        // blob_uploads.id 참조
+  contentHtml: text("content_html"),
+  thumbnailBlobId: integer("thumbnail_blob_id"),
   occurredAt: timestamp("occurred_at"),
   location: varchar("location", { length: 200 }),
   category: incidentCategoryEnum("category").default("school").notNull(),
-  status: varchar("status", { length: 20 }).default("active").notNull(), // active/archived
+  status: varchar("status", { length: 20 }).default("active").notNull(),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -803,39 +658,32 @@ export const incidents = pgTable("incidents", {
 }));
 
 /* =========================================================
-   ★ Phase M-5: incident_reports — 사용자 제보
-   - 로그인 필수 (A안)
-   - AI 분석 후 사용자가 사이렌 정식 접수 여부 결정 (B안)
+   ★ Phase M-5: incident_reports
    ========================================================= */
 export const incidentReports = pgTable("incident_reports", {
   id: serial("id").primaryKey(),
-  reportNo: varchar("report_no", { length: 30 }).notNull().unique(), // R-2026-0001
+  reportNo: varchar("report_no", { length: 30 }).notNull().unique(),
 
   incidentId: integer("incident_id").references(() => incidents.id, { onDelete: "set null" }),
   memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
 
-  // 본문
   title: varchar("title", { length: 200 }).notNull(),
   contentHtml: text("content_html").notNull(),
-  attachmentIds: text("attachment_ids"), // JSON 배열 [12, 34, ...]
+  attachmentIds: text("attachment_ids"),
 
-  // 익명 / 신원
   isAnonymous: boolean("is_anonymous").default(false),
   reporterName: varchar("reporter_name", { length: 50 }),
   reporterPhone: varchar("reporter_phone", { length: 20 }),
   reporterEmail: varchar("reporter_email", { length: 100 }),
 
-  // ★ AI 분석 결과 (자동 채움)
-  aiSeverity: varchar("ai_severity", { length: 20 }),    // 'low' | 'medium' | 'high' | 'critical'
+  aiSeverity: varchar("ai_severity", { length: 20 }),
   aiSummary: text("ai_summary"),
   aiSuggestion: text("ai_suggestion"),
   aiAnalyzedAt: timestamp("ai_analyzed_at"),
 
-  // ★ B안: 사이렌 정식 접수 여부 (AI 결과 본 후 사용자 결정)
-  sirenReportRequested: boolean("siren_report_requested"), // null=미결정, true=접수, false=AI만
+  sirenReportRequested: boolean("siren_report_requested"),
   sirenReportRequestedAt: timestamp("siren_report_requested_at"),
 
-  // 상태/관리자
   status: incidentReportStatusEnum("status").default("submitted").notNull(),
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
@@ -852,69 +700,60 @@ export const incidentReports = pgTable("incident_reports", {
 }));
 
 /* =========================================================
-   ★ Phase M-6: 악성민원 카테고리 / 신고 상태 ENUM
+   ★ Phase M-6: 악성민원 ENUM
    ========================================================= */
 export const harassmentCategoryEnum = pgEnum("harassment_category", [
-  "parent",     // 학부모 민원
-  "student",    // 학생 폭력/문제행동
-  "admin",      // 관리자/상급자 부당 지시
-  "colleague",  // 동료 갈등
-  "other"       // 기타
+  "parent",
+  "student",
+  "admin",
+  "colleague",
+  "other"
 ]);
 
 export const harassmentReportStatusEnum = pgEnum("harassment_report_status", [
-  "submitted",   // 접수
-  "ai_analyzed", // AI 분석 완료
-  "reviewing",   // 관리자 검토 중 (정식 신고 후)
-  "responded",   // 답변 완료
-  "closed",     // 종결 (AI 답변만)
-  "rejected"    // 반려
+  "submitted",
+  "ai_analyzed",
+  "reviewing",
+  "responded",
+  "closed",
+  "rejected"
 ]);
 
 /* =========================================================
-   ★ Phase M-6: harassment_reports — 악성민원 신고
-   - 사건 마스터 없이 사용자가 본인 경험을 신고
-   - AI 분석: 분류/심각도/즉각대처/법적검토/심리지원
+   ★ Phase M-6: harassment_reports
    ========================================================= */
 export const harassmentReports = pgTable("harassment_reports", {
   id: serial("id").primaryKey(),
-  reportNo: varchar("report_no", { length: 30 }).notNull().unique(), // H-2026-0001
+  reportNo: varchar("report_no", { length: 30 }).notNull().unique(),
   memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
 
-  // 사용자 입력 카테고리
   category: harassmentCategoryEnum("category").default("parent").notNull(),
 
-  // 발생 시기/빈도 (선택)
   occurredAt: timestamp("occurred_at"),
-  frequency: varchar("frequency", { length: 30 }), // 'once' | 'recurring' | 'ongoing'
+  frequency: varchar("frequency", { length: 30 }),
 
-  // 본문
   title: varchar("title", { length: 200 }).notNull(),
   contentHtml: text("content_html").notNull(),
-  attachmentIds: text("attachment_ids"), // JSON 배열
+  attachmentIds: text("attachment_ids"),
 
-  // 익명/신원
   isAnonymous: boolean("is_anonymous").default(false),
   reporterName: varchar("reporter_name", { length: 50 }),
   reporterPhone: varchar("reporter_phone", { length: 20 }),
   reporterEmail: varchar("reporter_email", { length: 100 }),
 
-  // ★ AI 분석 결과
-  aiCategory: varchar("ai_category", { length: 30 }),       // AI가 재분류한 카테고리
-  aiSeverity: varchar("ai_severity", { length: 20 }),       // low/medium/high/critical
+  aiCategory: varchar("ai_category", { length: 30 }),
+  aiSeverity: varchar("ai_severity", { length: 20 }),
   aiSummary: text("ai_summary"),
-  aiImmediateAction: text("ai_immediate_action"),           // 즉각적 대처
+  aiImmediateAction: text("ai_immediate_action"),
   aiLegalReviewNeeded: boolean("ai_legal_review_needed"),
   aiLegalReason: text("ai_legal_reason"),
   aiPsychSupportNeeded: boolean("ai_psych_support_needed"),
-  aiSuggestion: text("ai_suggestion"),                      // 종합 권장사항
+  aiSuggestion: text("ai_suggestion"),
   aiAnalyzedAt: timestamp("ai_analyzed_at"),
 
-  // 사이렌 정식 신고 여부
   sirenReportRequested: boolean("siren_report_requested"),
   sirenReportRequestedAt: timestamp("siren_report_requested_at"),
 
-  // 상태/관리자
   status: harassmentReportStatusEnum("status").default("submitted").notNull(),
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
@@ -931,49 +770,46 @@ export const harassmentReports = pgTable("harassment_reports", {
 }));
 
 /* =========================================================
-   ★ Phase M-7: 법률 분야 / 상담 상태 ENUM
+   ★ Phase M-7: 법률 ENUM
    ========================================================= */
 export const legalCategoryEnum = pgEnum("legal_category", [
-  "school_dispute",  // 학교 내 분쟁 (교권/징계/계약)
-  "civil",           // 민사 (손해배상/명예훼손)
-  "criminal",        // 형사 (폭행/협박/무고)
-  "family",          // 가사 (이혼/상속)
-  "labor",           // 노동 (해고/임금)
-  "contract",        // 계약 (임대차/매매)
-  "other"            // 기타
+  "school_dispute",
+  "civil",
+  "criminal",
+  "family",
+  "labor",
+  "contract",
+  "other"
 ]);
 
 export const legalConsultationStatusEnum = pgEnum("legal_consultation_status", [
-  "submitted",       // 접수
-  "ai_analyzed",     // AI 분석 완료
-  "matching",        // 변호사 매칭 중
-  "matched",         // 변호사 배정됨
-  "in_progress",     // 진행 중
-  "responded",       // 답변 완료
-  "closed",          // 종결 (AI만)
-  "rejected"         // 반려
+  "submitted",
+  "ai_analyzed",
+  "matching",
+  "matched",
+  "in_progress",
+  "responded",
+  "closed",
+  "rejected"
 ]);
 
 /* =========================================================
-   ★ Phase M-8: 자유게시판 카테고리 ENUM
+   ★ Phase M-8: 자유게시판 ENUM
    ========================================================= */
 export const boardCategoryEnum = pgEnum("board_category", [
-  "general",   // 자유
-  "share",     // 경험 공유
-  "question",  // 질문/도움요청
-  "info",      // 정보 공유
-  "etc"        // 기타
+  "general",
+  "share",
+  "question",
+  "info",
+  "etc"
 ]);
 
 /* =========================================================
-   ★ Phase M-8: board_posts — 자유게시판 게시글
-   - 조회는 로그인 필수 X (공개)
-   - 작성/수정/삭제는 로그인 필수
-   - 부적절 콘텐츠는 isHidden=true 처리 (관리자만)
+   ★ Phase M-8: board_posts
    ========================================================= */
 export const boardPosts = pgTable("board_posts", {
   id: serial("id").primaryKey(),
-  postNo: varchar("post_no", { length: 30 }).notNull().unique(), // B-2026-0001
+  postNo: varchar("post_no", { length: 30 }).notNull().unique(),
 
   memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
   authorName: varchar("author_name", { length: 50 }).notNull(),
@@ -983,17 +819,14 @@ export const boardPosts = pgTable("board_posts", {
   contentHtml: text("content_html").notNull(),
   attachmentIds: text("attachment_ids"),
 
-  // 통계
   views: integer("views").default(0).notNull(),
   likeCount: integer("like_count").default(0).notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
 
-  // 관리
   isPinned: boolean("is_pinned").default(false).notNull(),
   isHidden: boolean("is_hidden").default(false).notNull(),
   isAnonymous: boolean("is_anonymous").default(false).notNull(),
 
-  // 관리자 메모 (관리자 사이트에서)
   adminMemo: text("admin_memo"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1008,7 +841,7 @@ export const boardPosts = pgTable("board_posts", {
 }));
 
 /* =========================================================
-   ★ Phase M-8: board_comments — 게시글 댓글
+   ★ Phase M-8: board_comments
    ========================================================= */
 export const boardComments = pgTable("board_comments", {
   id: serial("id").primaryKey(),
@@ -1018,7 +851,7 @@ export const boardComments = pgTable("board_comments", {
   authorName: varchar("author_name", { length: 50 }).notNull(),
 
   content: varchar("content", { length: 1000 }).notNull(),
-  parentId: integer("parent_id"), // 대댓글용 (selfRef는 처리 복잡 — 그냥 integer로)
+  parentId: integer("parent_id"),
 
   isHidden: boolean("is_hidden").default(false).notNull(),
   isAnonymous: boolean("is_anonymous").default(false).notNull(),
@@ -1031,10 +864,7 @@ export const boardComments = pgTable("board_comments", {
 }));
 
 /* =========================================================
-   ★ Phase M-11: content_pages — 단일 페이지 콘텐츠 (about 등)
-   - key 기반 (UNIQUE): 'about_greeting_text', 'about_history' 등
-   - 어드민 콘텐츠 관리에서 Toast UI Editor로 편집
-   - 사용자 페이지가 GET /api/content-pages?key=xxx 로 호출
+   ★ Phase M-11: content_pages
    ========================================================= */
 export const contentPages = pgTable("content_pages", {
   id: serial("id").primaryKey(),
@@ -1048,14 +878,12 @@ export const contentPages = pgTable("content_pages", {
 }));
 
 /* =========================================================
-   ★ Phase M-11: activity_posts — 주요 활동 앨범
-   - 활동보고서/사진/뉴스 통합 게시판
-   - M-19 #3 (AI 활동보고서 자동생성)과 연계
+   ★ Phase M-11: activity_posts
    ========================================================= */
 export const activityCategoryEnum = pgEnum("activity_category", [
-  "report",  // 활동 보고서
-  "photo",   // 사진/포토 에세이
-  "news"     // 활동 뉴스
+  "report",
+  "photo",
+  "news"
 ]);
 
 export const activityPosts = pgTable("activity_posts", {
@@ -1086,16 +914,12 @@ export const activityPosts = pgTable("activity_posts", {
 }));
 
 /* =========================================================
-   ★ Phase M-11: media_posts — 언론보도 / 갤러리
-   - news.html에 추가 표시
+   ★ Phase M-11: media_posts
    ========================================================= */
-// db/schema.ts — mediaCategoryEnum 정의 다음에 추가
-
-/* ★ M-19-2: 캠페인 종류 */
-export const campaignTypeEnum = pgEnum("campaign_type", [
-  "fundraising",  // 모금 캠페인 (목표금액 O, 진행률 표시)
-  "memorial",     // 추모 캠페인 (스토리 중심)
-  "awareness"     // 인식 개선 캠페인
+export const mediaCategoryEnum = pgEnum("media_category", [
+  "press",
+  "photo",
+  "event"
 ]);
 
 export const mediaPosts = pgTable("media_posts", {
@@ -1105,8 +929,8 @@ export const mediaPosts = pgTable("media_posts", {
   summary: varchar("summary", { length: 500 }),
   contentHtml: text("content_html"),
   thumbnailBlobId: integer("thumbnail_blob_id"),
-  externalUrl: varchar("external_url", { length: 500 }),  // 언론사 원문 링크
-  source: varchar("source", { length: 100 }),              // 언론사명
+  externalUrl: varchar("external_url", { length: 500 }),
+  source: varchar("source", { length: 100 }),
   isPublished: boolean("is_published").default(true).notNull(),
   views: integer("views").default(0).notNull(),
   publishedAt: timestamp("published_at").defaultNow(),
@@ -1119,14 +943,18 @@ export const mediaPosts = pgTable("media_posts", {
   publishedAtIdx: index("media_posts_published_at_idx").on(t.publishedAt),
 }));
 
-// db/schema.ts — mediaPosts 테이블 정의 다음에 추가
-
 /* =========================================================
    ★ Phase M-19-2: campaigns — 캠페인 관리
    - 모금/추모/인식개선 3종
    - donations.campaign_id로 후원 연결 (raised_amount/donor_count 캐시)
    - AI 카피 생성 + 진행 부진 자동 알림 지원
    ========================================================= */
+export const campaignTypeEnum = pgEnum("campaign_type", [
+  "fundraising",
+  "memorial",
+  "awareness"
+]);
+
 export const campaigns = pgTable("campaigns", {
   id: serial("id").primaryKey(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
@@ -1168,52 +996,46 @@ export const campaigns = pgTable("campaigns", {
   pinnedIdx: index("campaigns_pinned_idx").on(t.isPinned),
   datesIdx: index("campaigns_dates_idx").on(t.startDate, t.endDate),
 }));
+
 /* =========================================================
-   ★ Phase M-7: legal_consultations — 법률 상담 신청
+   ★ Phase M-7: legal_consultations
    ========================================================= */
 export const legalConsultations = pgTable("legal_consultations", {
   id: serial("id").primaryKey(),
-  consultationNo: varchar("consultation_no", { length: 30 }).notNull().unique(), // L-2026-0001
+  consultationNo: varchar("consultation_no", { length: 30 }).notNull().unique(),
   memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }).notNull(),
 
-  // 사용자 입력
   category: legalCategoryEnum("category").default("school_dispute").notNull(),
-  urgency: varchar("urgency", { length: 20 }), // 'urgent' | 'normal' | 'reference' (참고용)
+  urgency: varchar("urgency", { length: 20 }),
   occurredAt: timestamp("occurred_at"),
-  partyInfo: varchar("party_info", { length: 200 }), // 상대방 정보 (선택)
+  partyInfo: varchar("party_info", { length: 200 }),
 
-  // 본문
   title: varchar("title", { length: 200 }).notNull(),
   contentHtml: text("content_html").notNull(),
   attachmentIds: text("attachment_ids"),
 
-  // 익명/신원
   isAnonymous: boolean("is_anonymous").default(false),
   reporterName: varchar("reporter_name", { length: 50 }),
   reporterPhone: varchar("reporter_phone", { length: 20 }),
   reporterEmail: varchar("reporter_email", { length: 100 }),
 
-  // ★ AI 법률 분석 결과
   aiCategory: varchar("ai_category", { length: 30 }),
-  aiUrgency: varchar("ai_urgency", { length: 20 }),       // 'urgent'|'high'|'normal'|'low'
-  aiSummary: text("ai_summary"),                          // 사안 요약
-  aiRelatedLaws: text("ai_related_laws"),                 // 관련 법령
-  aiLegalOpinion: text("ai_legal_opinion"),               // 1차 법률 의견
-  aiLawyerSpecialty: varchar("ai_lawyer_specialty", { length: 100 }), // 권장 변호사 전문분야
-  aiImmediateAction: text("ai_immediate_action"),         // 즉시 조치 필요사항
+  aiUrgency: varchar("ai_urgency", { length: 20 }),
+  aiSummary: text("ai_summary"),
+  aiRelatedLaws: text("ai_related_laws"),
+  aiLegalOpinion: text("ai_legal_opinion"),
+  aiLawyerSpecialty: varchar("ai_lawyer_specialty", { length: 100 }),
+  aiImmediateAction: text("ai_immediate_action"),
   aiSuggestion: text("ai_suggestion"),
   aiAnalyzedAt: timestamp("ai_analyzed_at"),
 
-  // 사이렌 변호사 매칭 신청 여부
   sirenReportRequested: boolean("siren_report_requested"),
   sirenReportRequestedAt: timestamp("siren_report_requested_at"),
 
-  // 매칭 정보 (관리자가 채움)
   assignedLawyerId: integer("assigned_lawyer_id").references(() => members.id, { onDelete: "set null" }),
   assignedLawyerName: varchar("assigned_lawyer_name", { length: 50 }),
   assignedAt: timestamp("assigned_at"),
 
-  // 상태/관리자
   status: legalConsultationStatusEnum("status").default("submitted").notNull(),
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
@@ -1230,11 +1052,7 @@ export const legalConsultations = pgTable("legal_consultations", {
 }));
 
 /* =========================================================
-   ★ Phase M-1: blob_uploads — 공용 파일/이미지 업로드 마스터
-   - Toast UI Editor 본문 이미지 + 일반 첨부파일 통합 관리
-   - context로 사용처 구분 ('editor' | 'attachment' | 'profile' 등)
-   - reference_table/reference_id로 사후 매칭 (게시글 저장 후 연결)
-   - expires_at: 7일 내 미참조 파일 자동 정리 (M-3 cron 연동 예정)
+   ★ Phase M-1: blob_uploads
    ========================================================= */
 export const blobUploads = pgTable("blob_uploads", {
   id: serial("id").primaryKey(),
@@ -1243,29 +1061,20 @@ export const blobUploads = pgTable("blob_uploads", {
   mimeType: varchar("mime_type", { length: 100 }).notNull(),
   sizeBytes: integer("size_bytes").notNull(),
 
-  // 업로드 주체 (둘 중 하나)
   uploadedBy: integer("uploaded_by").references(() => members.id, { onDelete: "set null" }),
   uploadedByAdmin: integer("uploaded_by_admin"),
 
-  // 사용처 분류
   context: varchar("context", { length: 50 }),
 
-  // 참조 매칭 (게시글 저장 시 연결)
   referenceTable: varchar("reference_table", { length: 50 }),
   referenceId: integer("reference_id"),
 
-  // 공개 여부 (false면 인증 필요)
-    // 공개 여부 (false면 인증 필요)
   isPublic: boolean("is_public").default(true),
 
-  /* ★ M-2.5: 저장소 분기 ('netlify' | 'r2')
-     - 기존 데이터(채팅 등)는 'netlify' 유지
-     - 신규 업로드는 모두 'r2' (Cloudflare R2 직접 업로드) */
+  /* ★ M-2.5: 저장소 분기 ('netlify' | 'r2') */
   storageProvider: varchar("storage_provider", { length: 20 }).default("netlify").notNull(),
 
-  /* ★ M-2.5: 업로드 상태 ('pending' | 'completed' | 'failed')
-     - presign 후 R2에 업로드 전: pending
-     - confirm 호출 시: completed */
+  /* ★ M-2.5: 업로드 상태 ('pending' | 'completed' | 'failed') */
   uploadStatus: varchar("upload_status", { length: 20 }).default("completed").notNull(),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1277,7 +1086,7 @@ export const blobUploads = pgTable("blob_uploads", {
 }));
 
 /* =========================================================
-   타입 export (TypeScript 자동완성용)
+   타입 export
    ========================================================= */
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
@@ -1292,7 +1101,7 @@ export type NewFaq = typeof faqs.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
 
-/* G-1: 채팅 시스템 타입 */
+/* G-1: 채팅 시스템 */
 export type ChatRoom = typeof chatRooms.$inferSelect;
 export type NewChatRoom = typeof chatRooms.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
@@ -1302,59 +1111,59 @@ export type NewChatAttachment = typeof chatAttachments.$inferInsert;
 export type ChatBlacklist = typeof chatBlacklist.$inferSelect;
 export type NewChatBlacklist = typeof chatBlacklist.$inferInsert;
 
-/* H-2d: 영수증 설정 타입 */
+/* H-2d: 영수증 설정 */
 export type ReceiptSettings = typeof receiptSettings.$inferSelect;
 export type NewReceiptSettings = typeof receiptSettings.$inferInsert;
 
-/* ★ K-1: 비밀번호 재설정 토큰 타입 */
+/* ★ K-1: 비밀번호 재설정 토큰 */
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
-/* ★ K-2: 이메일 인증 토큰 타입 (NEW) */
+/* ★ K-2: 이메일 인증 토큰 */
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 
-/* ★ Phase L: 토스 빌링키 타입 */
+/* ★ Phase L: 토스 빌링키 */
 export type BillingKey = typeof billingKeys.$inferSelect;
 export type NewBillingKey = typeof billingKeys.$inferInsert;
 
-/* ★ Phase L-9: 효성 Import 로그 타입 (NEW) */
+/* ★ Phase L-9: 효성 Import 로그 */
 export type HyosungImportLog = typeof hyosungImportLogs.$inferSelect;
 export type NewHyosungImportLog = typeof hyosungImportLogs.$inferInsert;
 
-/* ★ Phase M-1: blob_uploads 타입 (NEW) */
+/* ★ Phase M-1: blob_uploads */
 export type BlobUpload = typeof blobUploads.$inferSelect;
 export type NewBlobUpload = typeof blobUploads.$inferInsert;
 
-/* ★ M-3: 알림 타입 (NEW) */
+/* ★ M-3: 알림 */
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 
-/* ★ M-4: 후원 정책 타입 (NEW) */
+/* ★ M-4: 후원 정책 */
 export type DonationPolicy = typeof donationPolicies.$inferSelect;
 export type NewDonationPolicy = typeof donationPolicies.$inferInsert;
 
-/* ★ M-5: 사건 / 제보 타입 (NEW) */
+/* ★ M-5: 사건 / 제보 */
 export type Incident = typeof incidents.$inferSelect;
 export type NewIncident = typeof incidents.$inferInsert;
 export type IncidentReport = typeof incidentReports.$inferSelect;
 export type NewIncidentReport = typeof incidentReports.$inferInsert;
 
-/* ★ M-6: 악성민원 신고 타입 (NEW) */
+/* ★ M-6: 악성민원 */
 export type HarassmentReport = typeof harassmentReports.$inferSelect;
 export type NewHarassmentReport = typeof harassmentReports.$inferInsert;
 
-/* ★ M-7: 법률 상담 타입 (NEW) */
+/* ★ M-7: 법률 상담 */
 export type LegalConsultation = typeof legalConsultations.$inferSelect;
 export type NewLegalConsultation = typeof legalConsultations.$inferInsert;
 
-/* ★ M-8: 자유게시판 타입 (NEW) */
+/* ★ M-8: 자유게시판 */
 export type BoardPost = typeof boardPosts.$inferSelect;
 export type NewBoardPost = typeof boardPosts.$inferInsert;
 export type BoardComment = typeof boardComments.$inferSelect;
 export type NewBoardComment = typeof boardComments.$inferInsert;
 
-/* ★ M-11: 콘텐츠 관리 타입 (NEW) */
+/* ★ M-11: 콘텐츠 관리 */
 export type ContentPage = typeof contentPages.$inferSelect;
 export type NewContentPage = typeof contentPages.$inferInsert;
 export type ActivityPost = typeof activityPosts.$inferSelect;
@@ -1362,14 +1171,10 @@ export type NewActivityPost = typeof activityPosts.$inferInsert;
 export type MediaPost = typeof mediaPosts.$inferSelect;
 export type NewMediaPost = typeof mediaPosts.$inferInsert;
 
-/* ★ M-12: 가입경로 타입 (NEW) */
+/* ★ M-12: 가입경로 */
 export type SignupSource = typeof signupSources.$inferSelect;
 export type NewSignupSource = typeof signupSources.$inferInsert;
 
-/* ★ M-19-1: 회원 등급 타입 (NEW) */
-export type MemberGrade = typeof memberGrades.$inferSelect;
-export type NewMemberGrade = typeof memberGrades.$inferInsert;
-
-/* ★ M-19-2: 캠페인 타입 (NEW) */
+/* ★ M-19-2: 캠페인 (NEW) */
 export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
