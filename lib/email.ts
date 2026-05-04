@@ -1801,4 +1801,21 @@ export function tplRegularDonationAnniversary(opts: {
       ctaLink: `${SITE_URL}/mypage.html`,
     }),
   };
+  
 }
+
+// lib/email.ts — 파일 끝에 추가 (M-19-7 기념일 템플릿 5종)
+
+/* ============================================================
+   ★ M-19-7: 기념일 축하 메일 템플릿 5종
+   - 1. 가입 1개월
+   - 2. 가입 1주년
+   - 3. 첫 후원 1주년
+   - 4. 누적 후원액 마일스톤 (10만/50만/100만/300만/500만/1000만)
+   - 5. 정기 후원 6개월/1년 (함수 1개로 통합)
+   ============================================================ */
+
+const ANNIVERSARY_SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+const ANNIVERSARY_ORG_NAME = process.env.ORG_NAME || "(사)교사유가족협의회";
+
+

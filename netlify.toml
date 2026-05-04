@@ -107,6 +107,12 @@
 [functions."cron-campaign-slump-check"]
   schedule = "0 1 * * 1"
 
+# netlify.toml — cron 섹션에 추가
+
+# ★ Phase M-19-7: 매일 새벽 05:00 KST 기념일 축하 메일
+[functions."cron-anniversary-check"]
+  schedule = "0 20 * * *"
+  
 # ============================================================
 # Dev 설정
 # ============================================================
