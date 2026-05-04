@@ -3,13 +3,14 @@
 // - 로그인 필수 (A안)
 // - DB 저장 후 Gemini 자동 분석 → AI 결과 응답
 // - 사이렌 정식 접수 여부는 후속 confirm API에서 결정 (B안)
-
+// netlify/functions/incident-report-create.ts — import 영역 (1~10행 부근) 통째 교체
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { incidents, incidentReports, members } from "../../db/schema";
 import { authenticateUser } from "../../lib/auth";
 import { analyzeIncidentReport } from "../../lib/ai-incident";
+import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -23,6 +24,7 @@ function generateReportNo(): string {
   const year = now.getFullYear();
   const rand = String(Math.floor(Math.random() * 9000) + 1000);
   return `R-${year}-${rand}`;
+  
 }
 
 export default async (req: Request, _ctx: Context) => {
@@ -106,23 +108,37 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     /* 감사 로그 */
+// netlify/functions/incident-report-create.ts — 감사 로그 + return 블록 교체
+    /* ★ M-17: 후원자 검증 — AI 결과 응답 제한 */
+    const donorCheck = await hasAnyCompletedDonation(user.uid);
+
+    /* 감사 로그 */
     try {
       await logUserAction(req, user.uid, (me as any)?.name || "unknown", "incident_report_create", {
         target: reportNo,
-        detail: { incidentSlug, isAnonymous, hasAi: !!aiResult },
+        detail: {
+          incidentSlug,
+          isAnonymous,
+          hasAi: !!aiResult,
+          isDonor: donorCheck.isDonor,
+          donationCount: donorCheck.donationCount,
+        },
         success: true,
       });
     } catch (_) {}
 
+    /* ★ M-17: AI 결과는 DB에는 항상 저장하되, 응답에서는 후원자에게만 제공 */
     return created({
       reportId,
       reportNo,
-      ai: aiResult ? {
+      isDonor: donorCheck.isDonor,
+      ai: (aiResult && donorCheck.isDonor) ? {
         severity: aiResult.severity,
         summary: aiResult.summary,
         suggestion: aiResult.suggestion,
         fromAi: aiResult.fromAi,
       } : null,
+      premiumNotice: !donorCheck.isDonor ? getNonDonorPremiumNotice("incident") : null,
     }, "제보가 접수되었습니다");
   } catch (err) {
     console.error("[incident-report-create]", err);

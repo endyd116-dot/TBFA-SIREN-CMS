@@ -5,15 +5,15 @@ import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { legalConsultations, members } from "../../db/schema";
+// netlify/functions/legal-consultation-create.ts — import 영역 교체
 import { authenticateUser } from "../../lib/auth";
 import { analyzeLegalConsultation } from "../../lib/ai-legal";
+import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
-
-export const config = { path: "/api/legal-consultation-create" };
 
 function genConsultationNo(): string {
   const y = new Date().getFullYear();
@@ -104,18 +104,30 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[legal-consultation-create] AI 예외:", aiErr);
     }
 
+   // netlify/functions/legal-consultation-create.ts — 감사 로그 + return 블록 교체
+    /* ★ M-17: 후원자 검증 */
+    const donorCheck = await hasAnyCompletedDonation(user.uid);
+
     try {
       await logUserAction(req, user.uid, (me as any)?.name || "unknown", "legal_consultation_create", {
         target: consultationNo,
-        detail: { category, urgency, isAnonymous },
+        detail: {
+          category,
+          urgency,
+          isAnonymous,
+          isDonor: donorCheck.isDonor,
+          donationCount: donorCheck.donationCount,
+        },
         success: true,
       });
     } catch (_) {}
 
+    /* ★ M-17: AI 결과는 DB에 항상 저장, 응답은 후원자만 */
     return created({
       consultationId,
       consultationNo,
-      ai: aiResult ? {
+      isDonor: donorCheck.isDonor,
+      ai: (aiResult && donorCheck.isDonor) ? {
         category: aiResult.category,
         urgency: aiResult.urgency,
         summary: aiResult.summary,
@@ -126,6 +138,7 @@ export default async (req: Request, _ctx: Context) => {
         suggestion: aiResult.suggestion,
         fromAi: aiResult.fromAi,
       } : null,
+      premiumNotice: !donorCheck.isDonor ? getNonDonorPremiumNotice("legal") : null,
     }, "법률 상담 신청이 접수되었습니다");
   } catch (err) {
     console.error("[legal-consultation-create]", err);

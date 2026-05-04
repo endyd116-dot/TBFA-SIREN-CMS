@@ -5,8 +5,10 @@ import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { harassmentReports, members } from "../../db/schema";
+// netlify/functions/harassment-report-create.ts — import 영역 교체
 import { authenticateUser } from "../../lib/auth";
 import { analyzeHarassmentReport } from "../../lib/ai-harassment";
+import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -102,19 +104,30 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[harassment-report-create] AI 예외:", aiErr);
     }
 
+    // netlify/functions/harassment-report-create.ts — 감사 로그 + return 블록 교체
+    /* ★ M-17: 후원자 검증 */
+    const donorCheck = await hasAnyCompletedDonation(user.uid);
+
     /* 감사 로그 */
     try {
       await logUserAction(req, user.uid, (me as any)?.name || "unknown", "harassment_report_create", {
         target: reportNo,
-        detail: { category, isAnonymous },
+        detail: {
+          category,
+          isAnonymous,
+          isDonor: donorCheck.isDonor,
+          donationCount: donorCheck.donationCount,
+        },
         success: true,
       });
     } catch (_) {}
 
+    /* ★ M-17: AI 결과는 DB에 항상 저장, 응답은 후원자만 */
     return created({
       reportId,
       reportNo,
-      ai: aiResult ? {
+      isDonor: donorCheck.isDonor,
+      ai: (aiResult && donorCheck.isDonor) ? {
         category: aiResult.category,
         severity: aiResult.severity,
         summary: aiResult.summary,
@@ -125,6 +138,7 @@ export default async (req: Request, _ctx: Context) => {
         suggestion: aiResult.suggestion,
         fromAi: aiResult.fromAi,
       } : null,
+      premiumNotice: !donorCheck.isDonor ? getNonDonorPremiumNotice("harassment") : null,
     }, "신고가 접수되었습니다");
   } catch (err) {
     console.error("[harassment-report-create]", err);
