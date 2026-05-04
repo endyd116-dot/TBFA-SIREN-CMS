@@ -1593,3 +1593,211 @@ export function tplChurnReengage(opts: {
     }),
   };
 }
+// lib/email.ts — 파일 끝에 추가
+
+/* ============================================================
+   ★ M-19-7: 기념일 축하 메일 템플릿 5종
+   ============================================================ */
+
+const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+const ORG_NAME = process.env.ORG_NAME || "(사)교사유가족협의회";
+
+function buildAnniversaryEmailShell(opts: {
+  heroEmoji: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  bodyHtml: string;
+  ctaText?: string;
+  ctaLink?: string;
+}): string {
+  const cta = opts.ctaText && opts.ctaLink
+    ? `<div style="text-align:center;margin-top:30px">
+         <a href="${opts.ctaLink}" style="display:inline-block;padding:13px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">
+           ${opts.ctaText}
+         </a>
+       </div>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8" /></head>
+<body style="margin:0;padding:0;background:#f5f4f2;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr><td align="center" style="padding:40px 20px">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+        <tr><td style="padding:50px 40px 30px;text-align:center;background:linear-gradient(135deg,#7a1f2b,#3a0d14);color:#fff">
+          <div style="font-size:64px;margin-bottom:12px;line-height:1">${opts.heroEmoji}</div>
+          <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;font-family:'Noto Serif KR',serif">${opts.heroTitle}</h1>
+          <p style="margin:0;font-size:14px;opacity:0.9">${opts.heroSubtitle}</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          ${opts.bodyHtml}
+          ${cta}
+        </td></tr>
+        <tr><td style="padding:24px;background:#fafaf8;text-align:center;font-size:11.5px;color:#999;line-height:1.7">
+          본 메일은 발신 전용입니다.<br />
+          ${ORG_NAME} · 문의: support@siren-org.kr
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+/* 1. 가입 1개월 */
+export function tplAnniversarySignup1Month(opts: { memberName: string }): { subject: string; html: string } {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#2a2a2a">
+      ${opts.memberName}님, 안녕하세요!
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
+      ${ORG_NAME}의 가족이 되신 지 <strong style="color:#7a1f2b">한 달</strong>이 되었습니다.<br /><br />
+      처음 저희와 함께해 주신 날을 잊지 않고 있습니다.<br />
+      작은 관심과 응원이 교사 유가족분들께는 큰 위로가 됩니다.<br /><br />
+      앞으로도 ${opts.memberName}님과 함께 따뜻한 동행을 이어가겠습니다.
+    </p>
+  `;
+  return {
+    subject: `🌱 ${opts.memberName}님, 함께한 한 달을 기념합니다`,
+    html: buildAnniversaryEmailShell({
+      heroEmoji: "🌱",
+      heroTitle: "함께한 한 달, 감사합니다",
+      heroSubtitle: "가입 1개월 기념",
+      bodyHtml,
+      ctaText: "마이페이지 바로가기",
+      ctaLink: `${SITE_URL}/mypage.html`,
+    }),
+  };
+}
+
+/* 2. 가입 1주년 */
+export function tplAnniversarySignup1Year(opts: { memberName: string }): { subject: string; html: string } {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#2a2a2a">
+      ${opts.memberName}님, 
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
+      ${ORG_NAME}과 함께하신 지 <strong style="color:#7a1f2b">1년</strong>이 되었습니다.<br /><br />
+      지난 1년 동안 ${opts.memberName}님의 변함없는 관심과 응원 덕분에<br />
+      많은 교사 유가족분들이 일상으로 돌아올 수 있었습니다.<br /><br />
+      <em style="color:#888;font-size:13px">"혼자가 아니라는 말 한 마디, 1년의 동행이 만들어낸 기적입니다."</em>
+    </p>
+    <div style="background:#fef9f5;border-left:3px solid #7a1f2b;padding:14px 18px;border-radius:6px;margin:20px 0">
+      <p style="margin:0;font-size:13px;color:#7a1f2b;font-weight:600">💝 1주년 기념 혜택</p>
+      <p style="margin:6px 0 0;font-size:12.5px;color:#666;line-height:1.6">
+        연간 활동보고서를 가장 먼저 받아보실 수 있는 권한이 부여되었습니다.
+      </p>
+    </div>
+  `;
+  return {
+    subject: `🎉 ${opts.memberName}님, 함께한 1주년을 축하드립니다`,
+    html: buildAnniversaryEmailShell({
+      heroEmoji: "🎉",
+      heroTitle: "함께한 1주년을 축하드립니다",
+      heroSubtitle: "가입 1주년 기념",
+      bodyHtml,
+      ctaText: "내 등급 확인하기",
+      ctaLink: `${SITE_URL}/mypage.html`,
+    }),
+  };
+}
+
+/* 3. 첫 후원 1주년 */
+export function tplFirstDonation1Year(opts: { memberName: string }): { subject: string; html: string } {
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#2a2a2a">
+      ${opts.memberName}님,
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
+      ${opts.memberName}님께서 처음 후원해 주신 지 <strong style="color:#7a1f2b">1년</strong>이 되었습니다.<br /><br />
+      그때 보내주신 따뜻한 마음 하나가<br />
+      지금까지 교사 유가족분들의 회복 여정에 큰 힘이 되고 있습니다.<br /><br />
+      작은 시작이 이렇게 큰 변화를 만들어낸다는 것,<br />
+      ${opts.memberName}님이 보여주신 진심에 깊이 감사드립니다.
+    </p>
+  `;
+  return {
+    subject: `🎗 ${opts.memberName}님, 첫 후원 1주년을 기념합니다`,
+    html: buildAnniversaryEmailShell({
+      heroEmoji: "🎗",
+      heroTitle: "첫 후원, 1주년을 기념합니다",
+      heroSubtitle: "첫 후원 1주년",
+      bodyHtml,
+      ctaText: "활동보고서 보기",
+      ctaLink: `${SITE_URL}/report.html`,
+    }),
+  };
+}
+
+/* 4. 누적 후원액 마일스톤 */
+export function tplDonationMilestone(opts: {
+  memberName: string;
+  milestoneAmount: number;
+  totalDonation: number;
+}): { subject: string; html: string } {
+  const milestoneText = `${(opts.milestoneAmount / 10000).toLocaleString()}만원`;
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#2a2a2a">
+      ${opts.memberName}님의 따뜻한 마음이 모여
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
+      오늘 드디어 누적 후원 <strong style="color:#7a1f2b;font-size:18px">${milestoneText}</strong>을 달성하셨습니다.<br /><br />
+      이 의미 있는 순간을 ${ORG_NAME}이 함께 기념하고 싶습니다.
+    </p>
+    <div style="text-align:center;padding:24px;background:#fafaf8;border-radius:12px;margin:24px 0">
+      <div style="font-size:13px;color:#888;margin-bottom:8px">누적 후원액</div>
+      <div style="font-size:32px;font-weight:700;color:#7a1f2b;font-family:'Inter',monospace;line-height:1.2">
+        ₩${opts.totalDonation.toLocaleString()}
+      </div>
+    </div>
+    <p style="margin:20px 0 0;font-size:13px;line-height:1.8;color:#666;text-align:center">
+      여러분의 마음이 모여 교사 유가족과 동료 교사들의<br />
+      일상 회복을 만들어 가고 있습니다.
+    </p>
+  `;
+  return {
+    subject: `💎 ${opts.memberName}님, 누적 후원 ${milestoneText} 달성을 축하드립니다`,
+    html: buildAnniversaryEmailShell({
+      heroEmoji: "💎",
+      heroTitle: `${milestoneText} 달성`,
+      heroSubtitle: "누적 후원 마일스톤",
+      bodyHtml,
+      ctaText: "후원 내역 보기",
+      ctaLink: `${SITE_URL}/mypage.html`,
+    }),
+  };
+}
+
+/* 5. 정기 후원 6개월/1년 */
+export function tplRegularDonationAnniversary(opts: {
+  memberName: string;
+  months: number; // 6 or 12
+}): { subject: string; html: string } {
+  const monthsText = opts.months === 12 ? "1년" : `${opts.months}개월`;
+  const emoji = opts.months === 12 ? "🏆" : "🌿";
+  const bodyHtml = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#2a2a2a">
+      ${opts.memberName}님,
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.85;color:#2a2a2a">
+      정기 후원을 시작하신 지 <strong style="color:#7a1f2b">${monthsText}</strong>이 되었습니다.<br /><br />
+      매달 변함없는 ${opts.memberName}님의 후원이<br />
+      교사 유가족분들의 안정적인 지원에 중요한 역할을 하고 있습니다.<br /><br />
+      ${opts.months === 12
+        ? "1년간 함께해 주신 진심에 깊은 감사의 마음을 전합니다."
+        : "반년 동안 보내주신 변함없는 마음에 감사드립니다."}
+    </p>
+  `;
+  return {
+    subject: `${emoji} ${opts.memberName}님, 정기 후원 ${monthsText}을 함께 기념합니다`,
+    html: buildAnniversaryEmailShell({
+      heroEmoji: emoji,
+      heroTitle: `정기 후원 ${monthsText} 기념`,
+      heroSubtitle: `${monthsText}의 따뜻한 동행`,
+      bodyHtml,
+      ctaText: "정기 후원 관리",
+      ctaLink: `${SITE_URL}/mypage.html`,
+    }),
+  };
+}
