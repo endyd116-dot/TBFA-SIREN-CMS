@@ -1504,3 +1504,92 @@ export function tplGradeUpgrade(opts: {
     }),
   };
 }
+// lib/email.ts — 파일 맨 끝 tplGradeUpgrade 함수 다음에 추가
+
+/* ═══════════════════════════════════════════════════════
+   ★ Phase M-19-1: 템플릿 15. 후원자 재참여 유도 메일 (NEW)
+   - 어드민이 churn risk가 있는 회원에게 수동/AI로 발송
+   - members.agreeEmail=true 인 회원만 (정책 준수)
+   - 7일 내 중복 발송 방지 (admin-churn-reengage.ts에서 처리)
+   ═══════════════════════════════════════════════════════ */
+export function tplChurnReengage(opts: {
+  memberName: string;
+  messageBody: string;       // AI 생성 또는 운영자 작성 본문 (50~600자)
+  totalDonationAmount: number;
+}) {
+  const { memberName, messageBody, totalDonationAmount } = opts;
+  const safeMessage = esc(messageBody).replace(/\n/g, "<br />");
+  const hasDonationHistory = totalDonationAmount > 0;
+
+  const historyBlock = hasDonationHistory
+    ? `
+    <div style="margin:24px 0;padding:18px 20px;
+                background:linear-gradient(135deg,#fef9f5,#fff8ec);
+                border:1px solid #f0e0d4;border-radius:8px;text-align:center;">
+      <div style="font-size:13px;color:#8a8a8a;margin-bottom:6px;">
+        💝 ${esc(memberName)} 님과 함께한 동행
+      </div>
+      <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;
+                  color:#7a1f2b;letter-spacing:-0.5px;">
+        누적 후원 ₩${totalDonationAmount.toLocaleString()}
+      </div>
+      <div style="font-size:12px;color:#a08568;margin-top:6px;">
+        교사 유가족분들에게 큰 힘이 되어주셨습니다 🎗
+      </div>
+    </div>`
+    : "";
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(memberName)}</strong> 님.
+    </p>
+
+    <div style="margin:18px 0;padding:18px 22px;background:#fafaf8;
+                border-left:3px solid #7a1f2b;border-radius:4px;
+                font-size:14px;color:#333333;line-height:1.85;">
+      ${safeMessage}
+    </div>
+
+    ${historyBlock}
+
+    <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
+                border:1px solid #e8e6e3;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
+                  font-family:'Noto Serif KR',serif;">
+        🎗 사이렌은 지금 이런 활동을 하고 있습니다
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        • 유가족 심리 상담 및 법률 자문 매칭<br />
+        • 교사 악성민원 신고 및 대응 지원<br />
+        • 자녀 교육·장학 사업 운영<br />
+        • 추모 사업 및 사회 인식 개선 캠페인
+      </div>
+      <div style="margin-top:12px;font-size:12.5px;color:#8a8a8a;line-height:1.6;">
+        모든 후원금은 <strong>매년 투명하게</strong> 사용 내역이 공개됩니다.<br />
+        협회 홈페이지의 "재정 보고"에서 언제든 확인하실 수 있습니다.
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
+                border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
+      📬 <strong>이 메일을 받으신 이유</strong><br />
+      ${esc(memberName)} 님은 사이렌의 소중한 후원 회원이십니다.<br />
+      알림 메일을 받지 않으시려면 마이페이지 → 알림 설정에서 변경하실 수 있습니다.
+    </div>
+
+    <p style="margin:20px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      언제 어디서든 ${esc(memberName)} 님의 마음 곁에서<br />
+      함께 걷고 있겠습니다. 🙏
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] ${memberName}님, 사이렌이 안부를 전합니다 🎗`,
+    html: baseLayout({
+      title: "사이렌이 안부를 전합니다",
+      bodyHtml,
+      ctaText: "사이렌 홈페이지 방문",
+      ctaUrl: `${SITE_URL}/index.html`,
+    }),
+  };
+}
