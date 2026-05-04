@@ -111,15 +111,25 @@ export const members = pgTable("members", {
   // GIN 인덱스: idx_members_assigned_categories (DB 측에서 직접 생성, STEP 1 마이그레이션)
   assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
 
-  /* ───────── ★ M-19-1: 회원 등급 시스템 (NEW) ───────── */
-  // gradeId: member_grades.id 참조 (런타임 join)
-  // gradeLocked: 운영자가 수동 지정한 등급은 자동 갱신 막기
-  // totalDonationAmount/regularMonthsCount: 매 후원 시점 캐시 (cron이 일괄 갱신)
+ // db/schema.ts — members 테이블 내부, 등급 블록 다음에 추가
+  /* ───────── ★ M-19-1: 회원 등급 시스템 (기존) ───────── */
   gradeId: integer("grade_id"),
   gradeAssignedAt: timestamp("grade_assigned_at"),
   gradeLocked: boolean("grade_locked").default(false),
   totalDonationAmount: integer("total_donation_amount").default(0),
   regularMonthsCount: integer("regular_months_count").default(0),
+
+  /* ───────── ★ M-19-1 (신규): 후원자 이탈 예측 ───────── */
+  // churnRiskScore: 0~100 (높을수록 위험)
+  // churnRiskLevel: 'critical'(75+) | 'warning'(50-74) | 'stable'(<50) | null
+  // churnSignals: JSONB 배열 — 감지된 신호 코드들
+  //   ['consecutive_fail', 'long_inactive', 'amount_decreasing', ...]
+  // lastReengageEmailAt: 재참여 메일 발송 시각 (1주일 내 중복 발송 방지)
+  churnRiskScore: integer("churn_risk_score").default(0),
+  churnRiskLevel: varchar("churn_risk_level", { length: 20 }),
+  churnLastEvaluatedAt: timestamp("churn_last_evaluated_at"),
+  churnSignals: jsonb("churn_signals").default(sql`'[]'::jsonb`),
+  lastReengageEmailAt: timestamp("last_reengage_email_at"),
 
   // 메타
   memo: text("memo"),
