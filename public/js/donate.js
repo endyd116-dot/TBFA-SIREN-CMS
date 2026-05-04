@@ -137,6 +137,7 @@
         const phoneInput = modal.querySelector('input[name="phone"]');
         const emailInput = modal.querySelector('#donateEmail');
 
+// public/js/donate.js — setupAutoFill 안, updatePayMethodVisibility 직전에 추가
         if (auth && auth.isLoggedIn()) {
           if (nameInput && !nameInput.value) nameInput.value = auth.user.name || '';
           if (phoneInput && !phoneInput.value) phoneInput.value = auth.user.phone || '';
@@ -152,6 +153,9 @@
             emailInput.style.background = '';
           }
         }
+
+        /* ★ M-19-2: 캠페인 셀렉트 로드 */
+        loadCampaignsForDonate();
 
         updatePayMethodVisibility();
       }, 150);
@@ -260,11 +264,17 @@
         submitBtn.textContent = '처리 중...';
       }
 
+      // public/js/donate.js — try 블록 시작부, 분기들 직전 + 각 분기 호출 수정
       try {
+        /* ★ M-19-2: 캠페인 ID 수집 (선택) */
+        const campaignSelect = document.getElementById('donateCampaignSelect');
+        const campaignId = campaignSelect?.value ? Number(campaignSelect.value) : null;
+
         /* ───── 분기 1: 일시 + 토스 카드 ───── */
         if (dtype === 'onetime' && onetimeChoice === 'toss_card') {
           await handleTossOnetime({
             name: data.name, phone: data.phone, email, amount, isAnonymous, isLoggedIn,
+            campaignId,
           });
           return;
         }
@@ -279,6 +289,7 @@
           await handleBankIntent({
             name: data.name, phone: data.phone, email, amount, isAnonymous,
             depositorName,
+            campaignId,
           });
           return;
         }
@@ -287,6 +298,7 @@
         if (dtype === 'regular' && payChoice === 'toss_card') {
           sessionStorage.setItem('siren_billing_intent', JSON.stringify({
             name: data.name, phone: data.phone, email, amount, isAnonymous,
+            campaignId,
             timestamp: Date.now(),
           }));
           window.SIREN.toast('카드 등록 페이지로 이동합니다...');
@@ -298,6 +310,7 @@
         if (dtype === 'regular' && payChoice === 'hyosung_cms') {
           await handleHyosungIntent({
             name: data.name, phone: data.phone, email, amount, isAnonymous,
+            campaignId,
           });
           restoreBtn();
           return;
@@ -317,11 +330,15 @@
   async function handleTossOnetime(opts) {
     const { name, phone, email, amount, isAnonymous } = opts;
 
+// public/js/donate.js — handleTossOnetime fetch 부분 교체
     const prepRes = await fetch('/api/donate-toss-prepare', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ name, phone, email, amount, type: 'onetime', isAnonymous }),
+      body: JSON.stringify({
+        name, phone, email, amount, type: 'onetime', isAnonymous,
+        campaignId: opts.campaignId || null,  // ★ M-19-2
+      }),
     });
     const prepData = await prepRes.json().catch(() => ({}));
     if (!prepRes.ok || !prepData.ok || !prepData.data?.orderId) {
@@ -358,8 +375,9 @@
   }
 
   /* ============ 6. 직접 계좌이체 신청 ============ */
+// public/js/donate.js — handleBankIntent 함수 fetch 부분 교체
   async function handleBankIntent(opts) {
-    const { name, phone, email, amount, isAnonymous, depositorName } = opts;
+    const { name, phone, email, amount, isAnonymous, depositorName, campaignId } = opts;
 
     const res = await fetch('/api/donate-bank-intent', {
       method: 'POST',
@@ -367,6 +385,7 @@
       credentials: 'include',
       body: JSON.stringify({
         name, phone, email, amount, isAnonymous, depositorName,
+        campaignId: campaignId || null,  // ★ M-19-2
       }),
     });
     const result = await res.json().catch(() => ({}));
@@ -587,6 +606,54 @@
   window.SIREN_DONATE = {
     showSuccess: showDonateSuccess,
   };
+
+ // public/js/donate.js — init() 함수 직전에 신규 함수 추가
+  /* ============ ★ M-19-2: 캠페인 셀렉트 로드 ============ */
+  async function loadCampaignsForDonate() {
+    const wrap = document.getElementById('donateCampaignWrap');
+    const select = document.getElementById('donateCampaignSelect');
+    if (!wrap || !select) return;
+
+    try {
+      const res = await fetch('/api/campaigns?featured=1', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        wrap.style.display = 'none';
+        return;
+      }
+      const list = data.data?.list || [];
+
+      if (list.length === 0) {
+        wrap.style.display = 'none';
+        return;
+      }
+
+      const TYPE_ICON = { fundraising: '💰', memorial: '🎗', awareness: '📣' };
+      select.innerHTML = '<option value="">캠페인 선택 안 함 (일반 후원)</option>' +
+        list.map(c => {
+          const icon = TYPE_ICON[c.type] || '🎯';
+          const pctText = c.progressPercent !== null ? ` (${c.progressPercent}%)` : '';
+          const safeTitle = String(c.title || '').replace(/[<>]/g, '');
+          return `<option value="${c.id}">${icon} ${safeTitle}${pctText}</option>`;
+        }).join('');
+
+      wrap.style.display = '';
+
+      /* sessionStorage에 사전 선택값 있으면 자동 선택 (campaign.html에서 진입 시) */
+      const pre = sessionStorage.getItem('siren_preselect_campaign');
+      if (pre) {
+        try {
+          const obj = JSON.parse(pre);
+          select.value = String(obj.id);
+          sessionStorage.removeItem('siren_preselect_campaign');
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[Donate] 캠페인 로드 실패', e);
+      wrap.style.display = 'none';
+    }
+  }
+
 
   /* ============ 초기화 ============ */
   function init() {
