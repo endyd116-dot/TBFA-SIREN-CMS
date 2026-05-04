@@ -95,8 +95,14 @@ export default async (req: Request) => {
   }
 };
 
+// netlify/functions/cron-churn-predictor.ts — 마지막 export 영역 교체
 /* ───────── Scheduled Function 설정 ─────────
-   매일 새벽 4시 KST = UTC 19:00 (전날) */
+   매일 새벽 4시 30분 KST = UTC 19:30 (전날)
+   - 03:00 cron-billing-monthly / cleanup-chat-images
+   - 03:30 cron-grade-recalc
+   - 04:00 cron-cleanup-audit-logs
+   - 04:30 cron-churn-predictor ← 이 함수
+   ※ 다른 cron과 30분 간격으로 분산 배치 */
 export const config = {
-  schedule: "0 19 * * *",  // UTC 19:00 = KST 04:00
+  schedule: "30 19 * * *",  // UTC 19:30 = KST 04:30
 };

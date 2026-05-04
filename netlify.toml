@@ -88,18 +88,24 @@
 [functions."cron-grade-recalc"]
   schedule = "30 18 * * *"
 
+# netlify.toml — cron-cleanup-audit-logs 블록 다음에 추가
 # ★ Phase M-16: 감사 로그 자동 정리 (매일 새벽 4:00 KST = UTC 19:00)
 # - 일반 로그: 1년 이상 자동 삭제
 # - 보안 로그(login_failed/withdraw_*/등): 2년까지 보관
 [functions."cron-cleanup-audit-logs"]
   schedule = "0 19 * * *"
 
+# ★ Phase M-19-1: 후원자 이탈 위험 평가 (매일 새벽 4:30 KST = UTC 19:30)
+# - 활성 정기 후원자 + 최근 6개월 내 후원한 회원 평가
+# - 룰 기반 점수 + AI 종합 분석 (members.churn_risk_* 갱신)
+# - 환경변수 CHURN_AI_DISABLED=true 설정 시 룰 기반만 실행 (비용 차단)
+[functions."cron-churn-predictor"]
+  schedule = "30 19 * * *"
+
 # ============================================================
 # Dev 설정
 # ============================================================
-# ============================================================
-# Dev 설정
-# ============================================================
+
 
 [dev]
   port = 8888
