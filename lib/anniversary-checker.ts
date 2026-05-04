@@ -245,15 +245,6 @@ export async function getDonationMilestoneCandidates(): Promise<AnniversaryCandi
     for (const milestone of [...MILESTONE_AMOUNTS].reverse()) {
       if (total < milestone) continue;
 
-      /* 해당 마일스톤을 최근 1일 내에 달성했는지 확인 */
-      const result: any = await db.execute(sql`
-        SELECT
-          MIN(d.created_at) AS "firstExceed"
-        FROM donations d
-        WHERE d.member_id = ${r.memberId}
-          AND d.status = 'completed'
-        HAVING SUM(CASE WHEN d.created_at <= NOW() THEN d.amount ELSE 0 END) >= ${milestone}
-      `);
 
       /* 단순화: total이 마일스톤을 방금 넘은 경우 — 전일 합계 체크 */
       const yesterdayTotal: any = await db.execute(sql`
