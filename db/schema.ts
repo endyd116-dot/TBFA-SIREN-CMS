@@ -158,6 +158,20 @@ export const anniversaryTypeEnum = pgEnum("anniversary_type", [
   "regular_donation_1year",
 ]);
 
+// db/schema.ts — anniversaryTypeEnum 다음에 추가
+
+/* ★ M-19-11: 전문가 유형 */
+export const expertTypeEnum = pgEnum("expert_type", ["lawyer", "counselor"]);
+
+/* ★ M-19-11: 전문가 승인 상태 */
+export const expertStatusEnum = pgEnum("expert_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "suspended",
+  "resigned",
+]);
+
 /* =========================================================
    1. members — 회원 (★ M-19-1 grade 시스템 유지)
    ========================================================= */
@@ -196,8 +210,13 @@ export const members = pgTable("members", {
   memberSubtype: varchar("member_subtype", { length: 50 }),
   signupSourceId: integer("signup_source_id"),
 
+// db/schema.ts — members 테이블, assignedCategories 다음 + gradeId 직전에 추가
+
   /* ───────── ★ M-15: 운영자 담당 카테고리 ───────── */
   assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
+
+  /* ───────── ★ M-19-11: 전문가 가입 검토 대기 플래그 ───────── */
+  pendingExpertReview: boolean("pending_expert_review").default(false),
 
   /* ───────── ★ M-19-1: 회원 등급 시스템 ───────── */
   gradeId: integer("grade_id"),
@@ -1020,6 +1039,56 @@ export const anniversaryEmailsLog = pgTable("anniversary_emails_log", {
   sentIdx: index("ael_sent_idx").on(t.emailSentAt),
 }));
 
+// db/schema.ts — anniversaryEmailsLog 다음에 추가
+
+/* =========================================================
+   ★ Phase M-19-11: expert_profiles — 전문가 프로필
+   - 변호사 + 심리상담사 통합 프로필
+   - 회원가입 시 전문가 선택 → 증빙 업로드 → 관리자 승인
+   ========================================================= */
+export const expertProfiles = pgTable("expert_profiles", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull().unique(),
+  expertType: expertTypeEnum("expert_type").notNull(),
+  expertStatus: expertStatusEnum("expert_status").default("pending").notNull(),
+
+  /* 프로필 정보 */
+  specialty: varchar("specialty", { length: 200 }),
+  affiliation: varchar("affiliation", { length: 200 }),
+  licenseNumber: varchar("license_number", { length: 100 }),
+  yearsOfExperience: integer("years_of_experience").default(0),
+  bio: text("bio"),
+
+  /* 상담 관련 */
+  preferredArea: varchar("preferred_area", { length: 200 }),
+  availableDays: jsonb("available_days").default(sql`'[]'::jsonb`),
+  availableHours: varchar("available_hours", { length: 100 }),
+  isMatchable: boolean("is_matchable").default(false).notNull(),
+  maxConcurrentCases: integer("max_concurrent_cases").default(5),
+
+  /* 증빙 파일 */
+  certificateBlobId: integer("certificate_blob_id"),
+  additionalDocs: jsonb("additional_docs").default(sql`'[]'::jsonb`),
+
+  /* 관리자 메모 & 승인 이력 */
+  adminMemo: text("admin_memo"),
+  reviewedBy: integer("reviewed_by").references(() => members.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectedReason: text("rejected_reason"),
+  approvedAt: timestamp("approved_at"),
+
+  /* 매칭 통계 */
+  totalCasesHandled: integer("total_cases_handled").default(0),
+  totalCasesCompleted: integer("total_cases_completed").default(0),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("ep_member_idx").on(t.memberId),
+  typeIdx: index("ep_type_idx").on(t.expertType),
+  statusIdx: index("ep_status_idx").on(t.expertStatus),
+  matchableIdx: index("ep_matchable_idx").on(t.isMatchable),
+}));
 /* =========================================================
    ★ M-1 + M-2.5: blob_uploads
    ========================================================= */
@@ -1137,3 +1206,9 @@ export type NewResource = typeof resources.$inferInsert;
 /* ★ M-19-7: 기념일 로그 타입 */
 export type AnniversaryEmailLog = typeof anniversaryEmailsLog.$inferSelect;
 export type NewAnniversaryEmailLog = typeof anniversaryEmailsLog.$inferInsert;
+
+// db/schema.ts — 파일 끝에 추가
+
+/* ★ M-19-11: 전문가 프로필 타입 */
+export type ExpertProfile = typeof expertProfiles.$inferSelect;
+export type NewExpertProfile = typeof expertProfiles.$inferInsert;
