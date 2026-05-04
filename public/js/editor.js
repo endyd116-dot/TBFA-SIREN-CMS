@@ -1,8 +1,9 @@
 // public/js/editor.js
-// ★ Phase M-1 + 2026-05 패치: SIREN 공통 WYSIWYG 편집기
-// - color-syntax 플러그인 완전 옵셔널화 (CDN 호스팅 불안정 대응)
-// - 이미지 자동 압축 (Canvas, max 1600px, JPEG 85%)
-// - R2 직접 업로드 (presign → PUT → confirm)
+// ★ Phase M-1 + 2026-05 v3 패치
+// - Toast UI Editor v3.2.2 (CDN, lazy-load)
+// - ★ NEW: 3-tier CDN fallback (jsdelivr → unpkg → uicdn.toast.com)
+// - color-syntax 플러그인 완전 옵셔널화
+// - 이미지 자동 압축 + R2 직접 업로드
 
 (function (window) {
   'use strict';
@@ -11,18 +12,48 @@
   const COLOR_VER = '3.1.0';
   const COLORPICKER_VER = '2.0.3';
 
-  const CDN = {
-    editorCss: `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor.min.css`,
-    editorJs:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor-all.min.js`,
-    colorCss:  `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.css`,
-    colorJs:   `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.js`,
-    pickerCss: `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.css`,
-    pickerJs:  `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.js`,
+  /* ★ 2026-05 v3: 3-tier CDN fallback 시스템
+     순서: jsdelivr → unpkg → uicdn.toast.com (공식)
+     하나라도 성공하면 진행 */
+  const CDN_FALLBACKS = {
+    editorCss: [
+      `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor.min.css`,
+      `https://unpkg.com/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor.min.css`,
+      `https://uicdn.toast.com/editor/${TOAST_VER}/toastui-editor.min.css`,
+    ],
+    editorJs: [
+      `https://cdn.jsdelivr.net/npm/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor-all.min.js`,
+      `https://unpkg.com/@toast-ui/editor@${TOAST_VER}/dist/toastui-editor-all.min.js`,
+      `https://uicdn.toast.com/editor/${TOAST_VER}/toastui-editor-all.min.js`,
+    ],
+    colorCss: [
+      `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.css`,
+      `https://unpkg.com/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.css`,
+      `https://uicdn.toast.com/editor-plugin-color-syntax/${COLOR_VER}/toastui-editor-plugin-color-syntax.min.css`,
+    ],
+    colorJs: [
+      `https://cdn.jsdelivr.net/npm/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.js`,
+      `https://unpkg.com/@toast-ui/editor-plugin-color-syntax@${COLOR_VER}/dist/toastui-editor-plugin-color-syntax.min.js`,
+      `https://uicdn.toast.com/editor-plugin-color-syntax/${COLOR_VER}/toastui-editor-plugin-color-syntax.min.js`,
+    ],
+    pickerCss: [
+      `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.css`,
+      `https://unpkg.com/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.css`,
+      `https://uicdn.toast.com/tui-color-picker/v${COLORPICKER_VER}/tui-color-picker.min.css`,
+    ],
+    pickerJs: [
+      `https://cdn.jsdelivr.net/npm/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.js`,
+      `https://unpkg.com/tui-color-picker@${COLORPICKER_VER}/dist/tui-color-picker.min.js`,
+      `https://uicdn.toast.com/tui-color-picker/v${COLORPICKER_VER}/tui-color-picker.min.js`,
+    ],
   };
 
   let _libLoaded = false;
   let _libLoading = null;
 
+  /* ============================================================
+     CDN 동적 로더
+     ============================================================ */
   function loadStylesheet(url) {
     return new Promise((resolve, reject) => {
       if (document.querySelector(`link[href="${url}"]`)) return resolve();
@@ -53,35 +84,61 @@
     });
   }
 
-  /* ★ 2026-05 패치: color-picker CDN 불안정 → 실패 무시 */
+  /* ★ 2026-05 v3: fallback 시도 — 첫 번째 성공한 URL 사용 */
+  async function loadCssWithFallback(urls, label) {
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        await loadStylesheet(urls[i]);
+        if (i > 0) console.info(`[SirenEditor] ${label} loaded from fallback #${i + 1}: ${new URL(urls[i]).hostname}`);
+        return true;
+      } catch (e) {
+        console.warn(`[SirenEditor] ${label} CDN ${i + 1} failed: ${new URL(urls[i]).hostname}`);
+      }
+    }
+    return false;
+  }
+
+  async function loadJsWithFallback(urls, label) {
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        await loadScript(urls[i]);
+        if (i > 0) console.info(`[SirenEditor] ${label} loaded from fallback #${i + 1}: ${new URL(urls[i]).hostname}`);
+        return true;
+      } catch (e) {
+        console.warn(`[SirenEditor] ${label} CDN ${i + 1} failed: ${new URL(urls[i]).hostname}`);
+      }
+    }
+    return false;
+  }
+
   async function loadLib() {
     if (_libLoaded) return;
     if (_libLoading) return _libLoading;
 
     _libLoading = (async () => {
-      const safeLoadCss = (url) => loadStylesheet(url).catch((e) => {
-        console.warn('[SirenEditor] CSS skip:', url.split('/').pop(), '-', e.message);
-      });
-      const safeLoadJs = (url) => loadScript(url).catch((e) => {
-        console.warn('[SirenEditor] JS skip:', url.split('/').pop(), '-', e.message);
-      });
-
-      /* 핵심 CSS (필수) */
-      await loadStylesheet(CDN.editorCss);
+      /* 핵심 CSS (필수) — 모든 CDN 실패하면 throw */
+      const editorCssOk = await loadCssWithFallback(CDN_FALLBACKS.editorCss, 'editor.css');
+      if (!editorCssOk) {
+        throw new Error('Toast UI Editor CSS를 로드할 수 없습니다 (모든 CDN 실패)');
+      }
       await loadStylesheet('/css/editor.css').catch(() => {});
 
       /* 색상 관련 CSS (옵셔널) */
-      await safeLoadCss(CDN.colorCss);
-      await safeLoadCss(CDN.pickerCss);
+      await loadCssWithFallback(CDN_FALLBACKS.colorCss, 'colorSyntax.css');
+      await loadCssWithFallback(CDN_FALLBACKS.pickerCss, 'colorPicker.css');
 
-      /* 핵심 editor JS (필수) */
-      await loadScript(CDN.editorJs);
+      /* ★ 핵심 editor JS (필수) — 모든 CDN 실패하면 throw */
+      const editorJsOk = await loadJsWithFallback(CDN_FALLBACKS.editorJs, 'editor.js');
+      if (!editorJsOk) {
+        throw new Error('Toast UI Editor JS를 로드할 수 없습니다 (모든 CDN 실패) — 네트워크 또는 CDN 차단을 확인해주세요');
+      }
 
       /* 색상 플러그인 JS (옵셔널) */
-      await safeLoadJs(CDN.pickerJs);
-      await safeLoadJs(CDN.colorJs);
+      await loadJsWithFallback(CDN_FALLBACKS.pickerJs, 'colorPicker.js');
+      await loadJsWithFallback(CDN_FALLBACKS.colorJs, 'colorSyntax.js');
 
       _libLoaded = true;
+      console.info('[SirenEditor] All libraries loaded successfully');
     })();
 
     try {
@@ -92,6 +149,9 @@
     }
   }
 
+  /* ============================================================
+     이미지 압축 (Canvas)
+     ============================================================ */
   async function compressImage(file, maxSize = 1600, quality = 0.85) {
     if (!file || !file.type) return file;
     if (!file.type.startsWith('image/')) return file;
@@ -131,6 +191,9 @@
     });
   }
 
+  /* ============================================================
+     업로드 (R2 직접)
+     ============================================================ */
   async function uploadFile(file, context = 'editor') {
     const presignRes = await fetch('/api/blob-presign', {
       method: 'POST',
@@ -173,6 +236,9 @@
     return json.data;
   }
 
+  /* ============================================================
+     create — 메인 팩토리
+     ============================================================ */
   async function create(opts) {
     opts = opts || {};
     const {
@@ -198,10 +264,10 @@
 
     const Editor = window.toastui && window.toastui.Editor;
     if (!Editor) {
-      throw new Error('Toast UI Editor 코어 로드 실패 — 페이지 새로고침이 필요합니다');
+      throw new Error('Toast UI Editor 코어가 로드되지 않았습니다 — 페이지를 새로고침해 주세요');
     }
 
-    /* ★ 2026-05 패치: colorSyntax 옵셔널 */
+    /* colorSyntax 옵셔널 */
     const plugins = [];
     try {
       const cs = window.toastui && window.toastui.Editor && window.toastui.Editor.plugin && window.toastui.Editor.plugin.colorSyntax;
@@ -281,12 +347,15 @@
     };
   }
 
+  /* ============================================================
+     공개 API
+     ============================================================ */
   window.SirenEditor = {
     create,
     loadLib,
     compressImage,
     uploadFile,
-    version: '1.2.0-2026-05',
+    version: '1.3.0-fallback',
   };
 
 })(window);
