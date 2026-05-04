@@ -2356,6 +2356,98 @@
     border-color: #f5b5bb;
   }
   .op-row-actions button.danger:hover { background: #fdecec; }
+  /* public/admin.html — </style> 직전에 삽입 */
+  .op-row-actions button.danger:hover { background: #fdecec; }
+
+  /* ===== ★ M-19-1: 후원자 이탈 위험 ===== */
+  .churn-level-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 11px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .churn-level-badge.critical { background: #c5293a; color: #fff; }
+  .churn-level-badge.warning { background: #c47a00; color: #fff; }
+  .churn-level-badge.stable { background: #1a8b46; color: #fff; }
+
+  .churn-score-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-family: 'Inter', monospace;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .churn-score-circle.critical { background: #fdecec; color: #c5293a; border: 2px solid #c5293a; }
+  .churn-score-circle.warning { background: #fff8ec; color: #c47a00; border: 2px solid #c47a00; }
+  .churn-score-circle.stable { background: #e7f7ec; color: #1a8b46; border: 2px solid #1a8b46; }
+
+  .churn-signal-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #fafaf8;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 10.5px;
+    color: var(--text-2);
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  .churn-row-actions {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .churn-row-actions button {
+    padding: 4px 10px;
+    font-size: 11px;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .churn-row-actions button.detail { color: var(--brand); border-color: #f0e0e3; }
+  .churn-row-actions button.detail:hover { background: var(--brand-soft, #fef9f5); }
+  .churn-row-actions button.email {
+    color: #1a5e2c;
+    border-color: #a3d9b4;
+    background: #e7f7ec;
+  }
+  .churn-row-actions button.email:hover { background: #d4f0dc; }
+  .churn-row-actions button.email:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .churn-row-actions button.reeval {
+    color: var(--text-2);
+    border-color: var(--line);
+  }
+  .churn-row-actions button.reeval:hover { background: #f5f4f2; }
+
+  .reengage-message-area {
+    width: 100%;
+    min-height: 180px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.7;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  .reengage-message-area:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
 </style>
 </head>
 <body>
@@ -2974,6 +3066,8 @@
           </div>
         </div>
 
+       <!-- public/admin.html — id="adm-ai" 내부, 기존 row-2 다음에 신규 패널 삽입 -->
+<!-- public/admin.html — #adm-ai 안의 row-2 다음에 신규 패널 추가 -->
         <!-- AI 추천 센터 -->
         <div id="adm-ai" class="adm-page">
           <div class="ai-banner">
@@ -2994,6 +3088,72 @@
               <div class="p-head"><div class="p-title">후원 이탈 예측</div><span class="p-tag ai">XGBoost</span></div>
               <div style="height:200px"><canvas id="chart3"></canvas></div>
               <button class="btn btn-primary btn-block" style="margin-top:14px;padding:11px;font-size:13px" data-demo-action="send-thanks">감사 메시지 일괄 발송</button>
+            </div>
+          </div>
+
+          <!-- ★ M-19-1: 후원자 이탈 위험 패널 -->
+          <div class="panel" style="margin-top:18px">
+            <div class="p-head">
+              <div class="p-title">🚨 후원자 이탈 위험 분석</div>
+              <span class="p-tag ai">Gemini AI</span>
+              <div class="p-actions" style="margin-left:auto">
+                <span id="churnLastEvalAt" style="font-size:11.5px;color:var(--text-3);margin-right:8px">—</span>
+                <button class="btn-sm btn-sm-ghost" id="churnReloadBtn">🔄 새로고침</button>
+              </div>
+            </div>
+
+            <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+              💡 매일 새벽 04:30 자동 평가됩니다. 위험 회원에게 따뜻한 재참여 메시지를 보낼 수 있습니다.<br />
+              CRITICAL 등급 회원이 5명 이상이면 슈퍼 관리자에게 알림이 발송됩니다.
+            </p>
+
+            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+              <div class="kpi" style="border-left:3px solid #c5293a">
+                <div class="kpi-label" style="color:#c5293a">🚨 CRITICAL (75+)</div>
+                <div class="kpi-value" id="churnKpiCritical" style="color:#c5293a">0 명</div>
+              </div>
+              <div class="kpi" style="border-left:3px solid #c47a00">
+                <div class="kpi-label" style="color:#c47a00">⚠️ WARNING (50~74)</div>
+                <div class="kpi-value" id="churnKpiWarning" style="color:#c47a00">0 명</div>
+              </div>
+              <div class="kpi" style="border-left:3px solid #1a8b46">
+                <div class="kpi-label" style="color:#1a8b46">✅ STABLE</div>
+                <div class="kpi-value" id="churnKpiStable" style="color:#1a8b46">0 명</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">총 평가 회원</div>
+                <div class="kpi-value" id="churnKpiTotal">0 명</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:#fafaf8;border:1px solid var(--line);border-radius:8px">
+              <select id="churnFilterLevel" style="padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px;background:#fff">
+                <option value="">전체 등급</option>
+                <option value="critical" selected>🚨 CRITICAL만</option>
+                <option value="warning">⚠️ WARNING만</option>
+                <option value="stable">✅ STABLE만</option>
+              </select>
+              <input type="search" id="churnFilterQ" placeholder="🔍 이름·이메일 검색 (2자 이상)" style="flex:1;min-width:220px;padding:7px 12px;border:1px solid var(--line);border-radius:5px;font-size:12.5px">
+              <span id="churnCount" style="font-size:12px;color:var(--text-3);margin-left:auto">—</span>
+            </div>
+
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:1000px">
+                <thead>
+                  <tr>
+                    <th style="width:80px">위험도</th>
+                    <th style="width:60px">점수</th>
+                    <th style="width:130px">회원</th>
+                    <th>감지 신호 / AI 요약</th>
+                    <th style="width:120px">최근 발송</th>
+                    <th style="width:120px">평가 시각</th>
+                    <th style="width:200px">관리</th>
+                  </tr>
+                </thead>
+                <tbody id="churnTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -3304,6 +3464,33 @@
             </form>
           </div>
         </div>
+
+<!-- public/admin.html — 모달 영역에 추가 -->
+  <!-- ★ M-19-1: 재참여 메일 발송 모달 -->
+  <div id="churnReengageModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif">💌 재참여 유도 메일 발송</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="churnReengageBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ M-19-1: 위험 회원 상세 모달 -->
+  <div id="churnDetailModal" class="modal">
+    <div class="modal-content" style="max-width:760px">
+      <div class="modal-header">
+        <h3 class="serif">🔍 이탈 위험 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="churnDetailBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
 
         <!-- ★ K-4: 감사 로그 -->
         <div id="adm-audit" class="adm-page">
@@ -4300,6 +4487,36 @@
       </div>
     </div>
   </div>
+
+<!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
+  <!-- ★ M-19-1: 재참여 메일 발송 모달 -->
+  <div id="churnReengageModal" class="modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <h3 class="serif">💌 재참여 유도 메일 발송</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="churnReengageBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ★ M-19-1: 위험 회원 상세 모달 -->
+  <div id="churnDetailModal" class="modal">
+    <div class="modal-content" style="max-width:760px">
+      <div class="modal-header">
+        <h3 class="serif">🔍 이탈 위험 상세</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="churnDetailBody">
+        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status"></div>
 
   <!-- Toast -->
   <div id="toast" class="toast" role="status"></div>
