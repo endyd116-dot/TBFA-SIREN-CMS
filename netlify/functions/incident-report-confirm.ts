@@ -51,6 +51,8 @@ export default async (req: Request, _ctx: Context) => {
     };
     await db.update(incidentReports).set(updateData).where(eq(incidentReports.id, reportId));
 
+    /* 정식 접수 시 운영자 알림 */
+    if (requested) {
 // netlify/functions/incident-report-confirm.ts — notifyAllOperators 호출부 교체
       try {
         const severity = (row as any).aiSeverity || "medium";
