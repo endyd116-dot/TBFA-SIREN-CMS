@@ -159,17 +159,18 @@ export default async (req: Request) => {
       }
 
       /* 금액 배열 검증 */
+// netlify/functions/admin-donation-policy.ts (162행 부근)
+      /* 금액 배열 검증 */
       if (body.regularAmounts !== undefined) {
-        const r = sanitizeAmountList(body.regularAmounts, minAmount, maxAmount);
+        const r: any = sanitizeAmountList(body.regularAmounts, minAmount, maxAmount);
         if (!r.ok) return badRequest(`정기 후원 금액 오류: ${r.reason}`);
         updateData.regularAmounts = JSON.stringify(r.list);
       }
       if (body.onetimeAmounts !== undefined) {
-        const r = sanitizeAmountList(body.onetimeAmounts, minAmount, maxAmount);
+        const r: any = sanitizeAmountList(body.onetimeAmounts, minAmount, maxAmount);
         if (!r.ok) return badRequest(`일시 후원 금액 오류: ${r.reason}`);
         updateData.onetimeAmounts = JSON.stringify(r.list);
       }
-
       /* 텍스트 필드 */
       if (body.bankName !== undefined) updateData.bankName = clipString(body.bankName, 50);
       if (body.bankAccountNo !== undefined) updateData.bankAccountNo = clipString(body.bankAccountNo, 50);
@@ -179,9 +180,10 @@ export default async (req: Request) => {
       if (body.modalTitle !== undefined) updateData.modalTitle = clipString(body.modalTitle, 200);
       if (body.modalSubtitle !== undefined) updateData.modalSubtitle = clipString(body.modalSubtitle, 500);
 
+// netlify/functions/admin-donation-policy.ts (183행 부근)
       /* URL 검증 */
       if (body.hyosungUrl !== undefined) {
-        const u = validateUrl(body.hyosungUrl);
+        const u: any = validateUrl(body.hyosungUrl);
         if (!u.ok) return badRequest(`효성 URL 오류: ${u.reason}`);
         updateData.hyosungUrl = u.url;
       }
