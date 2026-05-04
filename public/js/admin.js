@@ -312,9 +312,57 @@
       String(d.getMinutes()).padStart(2, '0');
   }
 
+// public/js/admin.js — fmtMoney 함수 전체 교체
+  /**
+   * ★ M-18: 한국식 금액 포맷터
+   * - 10,000원 미만: "₩ 5,000원"
+   * - 10,000원 ~ 99,999,999원: "₩ 1,234만원"
+   * - 100,000,000원 이상: "₩ 1억 2,340만원" (만원 단위 0이면 "1억" 만 표기)
+   * - 음수/NaN/null 안전 처리
+   */
   function fmtMoney(n) {
-    return '₩ ' + (Number(n || 0) / 1_000_000).toFixed(1) + 'M';
+    const num = Math.floor(Number(n) || 0);
+
+    /* 1만원 미만 → 원 단위 그대로 */
+    if (Math.abs(num) < 10000) {
+      return '₩ ' + num.toLocaleString() + '원';
+    }
+
+    /* 1억원 미만 → 만원 단위 */
+    if (Math.abs(num) < 100000000) {
+      const man = Math.floor(num / 10000);
+      return '₩ ' + man.toLocaleString() + '만원';
+    }
+
+    /* 1억원 이상 → 억 + 만원 */
+    const eok = Math.floor(num / 100000000);
+    const remainMan = Math.floor((num % 100000000) / 10000);
+    if (remainMan === 0) {
+      return '₩ ' + eok.toLocaleString() + '억';
+    }
+    return '₩ ' + eok.toLocaleString() + '억 ' + remainMan.toLocaleString() + '만원';
   }
+
+  /**
+   * ★ M-18: 차트/뱃지용 짧은 표기 (단위 콤팩트)
+   * - "1,234만" / "1.2억" / "1.23억"
+   */
+  function fmtMoneyShort(n) {
+    const num = Math.floor(Number(n) || 0);
+    if (Math.abs(num) < 10000) return num.toLocaleString();
+    if (Math.abs(num) < 100000000) {
+      return Math.floor(num / 10000).toLocaleString() + '만';
+    }
+    const eok = num / 100000000;
+    /* 1억 이상은 소수 1자리까지 (1.2억), 10억 이상은 정수 (12억) */
+    if (Math.abs(eok) >= 10) return Math.floor(eok).toLocaleString() + '억';
+    return eok.toFixed(1) + '억';
+  }
+
+  /* ★ M-18: 차트 등 외부 모듈에서 사용할 수 있도록 노출 */
+  window.SIREN_FMT = window.SIREN_FMT || {};
+  window.SIREN_FMT.money = fmtMoney;
+  window.SIREN_FMT.moneyShort = fmtMoneyShort;
 
   function statusBadgeHtml(status) {
     const map = {

@@ -18,10 +18,39 @@
     mute: '#888888',
   };
 
+// public/js/charts.js — baseFont 다음에 포맷터 헬퍼 추가
   const baseFont = {
     family: "'Noto Sans KR', 'Inter', sans-serif",
     size: 11,
   };
+
+  /* ★ M-18: 한국식 금액 포맷터 (admin.js의 SIREN_FMT 우선 사용, 없으면 자체 폴백) */
+  function fmtKrw(n) {
+    if (window.SIREN_FMT && typeof window.SIREN_FMT.money === 'function') {
+      return window.SIREN_FMT.money(n);
+    }
+    /* 폴백 */
+    const num = Math.floor(Number(n) || 0);
+    if (Math.abs(num) < 10000) return '₩ ' + num.toLocaleString() + '원';
+    if (Math.abs(num) < 100000000) return '₩ ' + Math.floor(num / 10000).toLocaleString() + '만원';
+    const eok = Math.floor(num / 100000000);
+    const man = Math.floor((num % 100000000) / 10000);
+    return man === 0
+      ? '₩ ' + eok.toLocaleString() + '억'
+      : '₩ ' + eok.toLocaleString() + '억 ' + man.toLocaleString() + '만원';
+  }
+
+  function fmtKrwShort(n) {
+    if (window.SIREN_FMT && typeof window.SIREN_FMT.moneyShort === 'function') {
+      return window.SIREN_FMT.moneyShort(n);
+    }
+    const num = Math.floor(Number(n) || 0);
+    if (Math.abs(num) < 10000) return num.toLocaleString();
+    if (Math.abs(num) < 100000000) return Math.floor(num / 10000).toLocaleString() + '만';
+    const eok = num / 100000000;
+    if (Math.abs(eok) >= 10) return Math.floor(eok).toLocaleString() + '억';
+    return eok.toFixed(1) + '억';
+  }
 
   /* ============ API 헬퍼 ============ */
   async function getJson(url) {
@@ -63,13 +92,14 @@
     /* 1-1. 월별 후원금 (Line) */
     const c1 = document.getElementById('chart1');
     if (c1) {
-      if (instances.chart1) instances.chart1.destroy();
+     // public/js/charts.js — chart1 (월별 후원금) 정의 전체 교체
       instances.chart1 = new Chart(c1.getContext('2d'), {
         type: 'line',
         data: {
           labels: monthly.labels,
           datasets: [{
-            label: '후원금 (백만원)',
+            /* ★ M-18: 라벨을 "후원금 (만원)"으로 변경 */
+            label: '후원금',
             data: monthly.values,
             borderColor: COLORS.brand,
             backgroundColor: 'rgba(122,31,43,0.08)',
@@ -93,12 +123,25 @@
               bodyFont: baseFont,
               padding: 12,
               cornerRadius: 6,
+              /* ★ M-18: 툴팁 한국식 표기 */
+              callbacks: {
+                label: function (ctx) {
+                  return fmtKrw(ctx.parsed.y);
+                },
+              },
             },
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { font: baseFont, color: '#888' },
+              ticks: {
+                font: baseFont,
+                color: '#888',
+                /* ★ M-18: Y축 한국식 짧은 표기 (예: "1,234만", "1.2억") */
+                callback: function (value) {
+                  return fmtKrwShort(value);
+                },
+              },
               grid: { color: '#f0eeeb' },
             },
             x: {
@@ -245,12 +288,14 @@
       const labels = monthly ? monthly.labels.slice(-4) : ['1월', '2월', '3월', '4월'];
       const values = monthly ? monthly.values.slice(-4) : [0, 0, 0, 0];
 
+      // public/js/charts.js — reportChart1 정의 전체 교체
       instances.reportChart1 = new Chart(r1.getContext('2d'), {
         type: 'bar',
         data: {
           labels: labels,
           datasets: [{
-            label: '후원금 (백만원)',
+            /* ★ M-18: 라벨 변경 */
+            label: '후원금',
             data: values,
             backgroundColor: COLORS.brand,
             borderRadius: 6,
@@ -266,12 +311,25 @@
               backgroundColor: '#0f0f0f',
               padding: 12,
               cornerRadius: 6,
+              /* ★ M-18: 툴팁 한국식 표기 */
+              callbacks: {
+                label: function (ctx) {
+                  return fmtKrw(ctx.parsed.y);
+                },
+              },
             },
           },
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { font: baseFont, color: '#888' },
+              ticks: {
+                font: baseFont,
+                color: '#888',
+                /* ★ M-18: Y축 한국식 표기 */
+                callback: function (value) {
+                  return fmtKrwShort(value);
+                },
+              },
               grid: { color: '#f0eeeb' },
             },
             x: {
