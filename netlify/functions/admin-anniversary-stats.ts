@@ -1,13 +1,13 @@
 // netlify/functions/admin-anniversary-stats.ts
 // ★ Phase M-19-7: 기념일 축하 메일 통계 + 발송 로그 조회
 //
-// GET /api/admin/anniversary-stats           — 통계 (전체/최근7일/타입별)
-// GET /api/admin/anniversary-stats?logs=1    — 발송 로그 목록 (페이지네이션)
-// GET /api/admin/anniversary-stats?candidates=1 — 오늘의 예정 대상자 (테스트용)
+// GET /api/admin/anniversary-stats              — 통계 대시보드
+// GET /api/admin/anniversary-stats?logs=1       — 발송 로그 목록 (페이지네이션)
+// GET /api/admin/anniversary-stats?candidates=1 — 오늘의 예정 대상자
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { db } from "../../db";
 import { anniversaryEmailsLog, members } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -50,7 +50,7 @@ export default async (req: Request) => {
   try {
     const url = new URL(req.url);
 
-    /* ═══ 발송 로그 목록 ═══ */
+    /* 발송 로그 목록 */
     if (url.searchParams.get("logs") === "1") {
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
       const limit = Math.min(100, Math.max(10, Number(url.searchParams.get("limit") || 50)));
@@ -86,15 +86,13 @@ export default async (req: Request) => {
           typeLabel: TYPE_LABELS[l.anniversaryType] || l.anniversaryType,
         })),
         pagination: {
-          page,
-          limit,
-          total,
+          page, limit, total,
           totalPages: Math.ceil(total / limit),
         },
       });
     }
 
-    /* ═══ 오늘의 예정 대상자 (테스트/미리보기) ═══ */
+    /* 오늘의 예정 대상자 (테스트/미리보기) */
     if (url.searchParams.get("candidates") === "1") {
       try {
         const candidates = await getAllAnniversaryCandidates();
@@ -110,8 +108,7 @@ export default async (req: Request) => {
       }
     }
 
-    /* ═══ 통계 대시보드 ═══ */
-    /* 1. 전체 통계 */
+    /* 통계 대시보드 */
     const overallRow: any = await db.execute(sql`
       SELECT
         COUNT(*)::int AS "totalSent",
@@ -121,21 +118,16 @@ export default async (req: Request) => {
     `);
     const overall: any = (overallRow.rows || overallRow || [{}])[0];
 
-    /* 2. 최근 7일 */
     const recent7Row: any = await db.execute(sql`
-      SELECT
-        COUNT(*)::int AS "sent7d"
+      SELECT COUNT(*)::int AS "sent7d"
       FROM anniversary_emails_log
       WHERE email_sent_at >= NOW() - INTERVAL '7 days'
         AND email_status = 'sent'
     `);
     const recent7: any = (recent7Row.rows || recent7Row || [{}])[0];
 
-    /* 3. 타입별 통계 (전체 누적) */
     const byTypeRow: any = await db.execute(sql`
-      SELECT
-        anniversary_type AS "type",
-        COUNT(*)::int AS "count"
+      SELECT anniversary_type AS "type", COUNT(*)::int AS "count"
       FROM anniversary_emails_log
       WHERE email_status = 'sent'
       GROUP BY anniversary_type
@@ -147,7 +139,6 @@ export default async (req: Request) => {
       count: Number(r.count || 0),
     }));
 
-    /* 4. 최근 발송 5건 (미리보기) */
     const recentSent = await db
       .select({
         id: anniversaryEmailsLog.id,
