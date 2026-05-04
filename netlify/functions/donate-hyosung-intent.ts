@@ -78,6 +78,7 @@ export default async (req: Request) => {
       success: true,
     });
 
+// netlify/functions/donate-hyosung-intent.ts — 운영자 알림 try 블록 교체
     /* 운영자 알림 (효성 신청 의향이 들어왔음을 알림) */
     try {
       await notifyAllOperators({
@@ -88,6 +89,9 @@ export default async (req: Request) => {
         link: "/admin.html#hyosung",
         refTable: "donations",
         refId: (record as any).id,
+      }, {
+        /* ★ M-15: donation 담당 운영자 + super_admin에게만 발송 */
+        category: "donation",
       });
     } catch (e) {
       console.warn("[donate-hyosung-intent] 알림 실패", e);
