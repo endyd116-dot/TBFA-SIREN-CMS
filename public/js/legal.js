@@ -45,13 +45,14 @@
   }
 
   /* ============ 편집기 + 첨부 ============ */
+  /* ============ 편집기 + 첨부 ============ */
   async function initEditorAndAttachments() {
     if (!_editor) {
       try {
         _editor = await window.SirenEditor.create({
           el: document.getElementById('legalEditor'),
           height: '360px',
-          placeholder: '사실관계를 시간순으로 구체적으로 작성해 주세요.\n\n예) 2024년 3월 15일 오후, ○○가 ... / 같은 달 20일에는 ...\n\n이메일·문자·녹음 내용도 함께 적어주시면 도움됩니다.',
+          placeholder: '사실관계를 시간순으로 구체적으로 작성해 주세요. 이메일, 문자, 녹음 내용도 함께 적어주시면 도움됩니다.',
           uploadContext: 'legal-consultation',
         });
       } catch (e) {
@@ -71,6 +72,7 @@
     }
   }
 
+  /* ============ 폼 제출 ============ */
   /* ============ 폼 제출 ============ */
   async function handleSubmit(e) {
     e.preventDefault();
@@ -109,9 +111,34 @@
       return;
     }
 
+    /* ★ getHTML 정규식 깨짐 대응: 1차 getHTML, 실패 시 DOM 직접 추출 */
     let contentHtml = '';
-    try { contentHtml = _editor ? _editor.getHTML() : ''; } catch (err) {
-      console.error('[legal] getHTML 에러:', err);
+    if (_editor) {
+      try {
+        contentHtml = _editor.getHTML();
+      } catch (err) {
+        console.warn('[legal] getHTML 에러, DOM 폴백 사용:', err.message);
+        try {
+          const editorEl = document.getElementById('legalEditor');
+          const wysiwyg = editorEl?.querySelector('.toastui-editor-ww-container .toastui-editor-contents');
+          const md = editorEl?.querySelector('.toastui-editor-md-container .toastui-editor-contents');
+          contentHtml = (wysiwyg?.innerHTML || md?.innerHTML || '').trim();
+          console.log('[legal] 🔄 DOM 폴백 결과 길이:', contentHtml.length);
+        } catch (e2) {
+          console.error('[legal] DOM 폴백도 실패:', e2);
+        }
+      }
+
+      /* 2차 폴백: getMarkdown으로 시도 */
+      if (!contentHtml) {
+        try {
+          const md = _editor.getMarkdown();
+          if (md) {
+            contentHtml = md.replace(/\n/g, '<br />');
+            console.log('[legal] 🔄 getMarkdown 폴백 사용, 길이:', contentHtml.length);
+          }
+        } catch (_) {}
+      }
     }
     contentHtml = String(contentHtml || '').trim();
 
