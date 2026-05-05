@@ -278,24 +278,23 @@
   }
 
   /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
+    /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
+  /* ★ 2026-05 패치: admin API 호출 제거 → 401로 인한 로그인 모달 강제 오픈 방지
+     향후 public 통계 API가 추가되면 그쪽으로 교체 권장 */
   async function initReport() {
     if (typeof Chart === 'undefined') return;
 
-    /* 3-1. 월별 후원금 (Bar) - 공개 통계 API 가 따로 없으므로 admin/stats 시도 */
+    /* 3-1. 월별 후원금 (Bar) - 정적 데이터 사용 */
     const r1 = document.getElementById('reportChart1');
     if (r1 && !instances.reportChart1) {
-      const data = await getJson('/api/admin/stats');
-      const monthly = (data && data.data) ? data.data.monthlyDonations : null;
-      const labels = monthly ? monthly.labels.slice(-4) : ['1월', '2월', '3월', '4월'];
-      const values = monthly ? monthly.values.slice(-4) : [0, 0, 0, 0];
+      const labels = ['1월', '2월', '3월', '4월'];
+      const values = [84200000, 96500000, 118000000, 112400000];
 
-      // public/js/charts.js — reportChart1 정의 전체 교체
       instances.reportChart1 = new Chart(r1.getContext('2d'), {
         type: 'bar',
         data: {
           labels: labels,
           datasets: [{
-            /* ★ M-18: 라벨 변경 */
             label: '후원금',
             data: values,
             backgroundColor: COLORS.brand,
@@ -312,7 +311,6 @@
               backgroundColor: '#0f0f0f',
               padding: 12,
               cornerRadius: 6,
-              /* ★ M-18: 툴팁 한국식 표기 */
               callbacks: {
                 label: function (ctx) {
                   return fmtKrw(ctx.parsed.y);
@@ -326,7 +324,6 @@
               ticks: {
                 font: baseFont,
                 color: '#888',
-                /* ★ M-18: Y축 한국식 표기 */
                 callback: function (value) {
                   return fmtKrwShort(value);
                 },
@@ -342,7 +339,7 @@
       });
     }
 
-    /* 3-2. 집행 비율 (Doughnut) - 정적 (실제 회계 데이터는 STEP 12 이후) */
+    /* 3-2. 집행 비율 (Doughnut) - 정적 더미 */
     const r2 = document.getElementById('reportChart2');
     if (r2 && !instances.reportChart2) {
       instances.reportChart2 = new Chart(r2.getContext('2d'), {
