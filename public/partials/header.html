@@ -14,12 +14,12 @@
       <a href="#" data-action="open-modal" data-target="loginModal">로그인</a>
       <a href="#" data-action="open-modal" data-target="signupModal">회원가입</a>
       <a href="/mypage.html">마이페이지</a>
-      <!-- ★ M-3: 알림 벨 (notification-bell.js가 자동 마운트) -->
+      <!-- ★ M-3: 알림 벨 -->
       <div id="siren-notification-bell" style="margin: 0 8px;"></div>
       <div class="lang-toggle">
-        <button class="on" data-lang="KO">KO</button>
+        <button class="on" data-lang="KO" type="button">KO</button>
         <span class="sep">|</span>
-        <button data-lang="EN">EN</button>
+        <button data-lang="EN" type="button" id="btnLangEN">EN</button>
       </div>
       <div class="search">
         <input id="globalSearch" type="search" name="q" placeholder="검색어를 입력하세요" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -44,7 +44,7 @@
       </div>
       <div class="brand-text">
         교사유가족협의회
-        <small>SOLIDARITY · DIGNITY</small>
+        <small>연대 · 존엄 (SOLIDARITY · DIGNITY)</small>
       </div>
     </a>
 
@@ -57,6 +57,7 @@
           <li><a href="/about.html#org">조직도 / 오시는 길</a></li>
         </ul>
       </li>
+
       <li data-page="support">
         <a href="/support.html">주요 활동</a>
         <ul class="dropdown">
@@ -65,21 +66,42 @@
           <li><a href="/report.html">활동 보고서</a></li>
         </ul>
       </li>
+
+      <!-- ★ 사이렌 메뉴 (3대 관리 + 신청내역) -->
+      <li data-page="siren" class="gnb-siren">
+        <a href="/incidents.html">
+          <span class="siren-icon" aria-hidden="true">🚨</span>
+          사이렌
+        </a>
+        <ul class="dropdown">
+          <li><a href="/incidents.html">🔍 사건 제보</a></li>
+          <li><a href="/report-harassment.html">⚠️ 악성민원 신고</a></li>
+          <li><a href="/legal-support.html">⚖️ 법률 지원</a></li>
+          <li><a href="/board.html">💬 자유게시판</a></li>
+          <li class="dropdown-divider"></li>
+          <li><a href="/mypage.html#support">📋 신청 내역 확인</a></li>
+        </ul>
+      </li>
+
       <li data-page="news">
         <a href="/news.html">소식 / 참여</a>
         <ul class="dropdown">
           <li><a href="/news.html#notice">공지사항</a></li>
           <li><a href="/news.html#media">언론보도 / 갤러리</a></li>
-          <li><a href="/news.html#faq">FAQ</a></li>
+          <li><a href="/news.html#faq">자주 묻는 질문</a></li>
+          <li><a href="/resources.html">📚 자료실</a></li>
         </ul>
       </li>
+
       <li data-page="donate">
         <a href="#" data-action="open-modal" data-target="donateModal">후원 안내</a>
         <ul class="dropdown">
           <li><a href="#" data-action="open-modal" data-target="donateModal">정기 / 일시 후원</a></li>
+          <li><a href="/campaigns.html">📢 캠페인</a></li>
           <li><a href="/mypage.html">기부금 영수증</a></li>
         </ul>
       </li>
+
       <li data-page="mypage"><a href="/mypage.html">마이페이지</a></li>
     </ul>
 
@@ -95,3 +117,52 @@
     </button>
   </div>
 </header>
+
+<!-- ============================================================
+     ★ 사이렌 메뉴 전용 스타일
+     ============================================================ -->
+<style>
+  /* 사이렌 메뉴: 빨간색 강조 + 펄스 */
+  .gnb-siren > a {
+    color: #c5293a !important;
+    font-weight: 700 !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .gnb-siren > a:hover { color: #7a1f2b !important; }
+  .gnb-siren .siren-icon {
+    font-size: 14px;
+    animation: siren-pulse 2.5s ease-in-out infinite;
+    display: inline-block;
+  }
+  @keyframes siren-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.85; }
+  }
+  .gnb .dropdown .dropdown-divider {
+    height: 1px;
+    background: var(--line, #e8e6e3);
+    margin: 6px 0;
+    padding: 0 !important;
+  }
+  .gnb .dropdown .dropdown-divider:hover {
+    background: var(--line, #e8e6e3) !important;
+  }
+</style>
+
+<!-- ★ 2026-05: EN 토글 임시 비활성화 (영문 페이지 추후 구현 예정) -->
+<script>
+(function () {
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-lang="EN"]');
+    if (!btn) return;
+    e.preventDefault();
+    if (window.SIREN && window.SIREN.toast) {
+      window.SIREN.toast('영문 페이지는 추후 제공 예정입니다 (English version coming soon)');
+    } else {
+      alert('영문 페이지는 추후 제공 예정입니다');
+    }
+  });
+})();
+</script>

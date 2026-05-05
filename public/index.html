@@ -6,12 +6,10 @@
 <title>교사유가족협의회 | 존엄한 기억, 투명한 동행</title>
 <meta name="description" content="교사유가족협의회 — 교사 유가족들의 지원과 수사, 모든 교사들의 사회적 문제 해결을 위해 함께합니다.">
 
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- CSS (홈에 필요한 것만 로드) -->
 <link rel="stylesheet" href="/css/base.css?v=3">
 <link rel="stylesheet" href="/css/layout.css?v=3">
 <link rel="stylesheet" href="/css/components.css?v=3">
@@ -43,7 +41,7 @@
       </svg>
 
       <div class="container hero-row">
-        <span class="hero-eyebrow"><span class="dot"></span>REMEMBER · SUPPORT · SOLIDARITY</span>
+        <span class="hero-eyebrow"><span class="dot"></span>기억 · 지원 · 연대 (REMEMBER · SUPPORT · SOLIDARITY)</span>
         <h1 id="heroTitle">
           교사 유가족들의 <em>지원과 수사</em>,<br />
           모든 교사들의 <em>사회적 문제 해결</em>을 위해<br />
@@ -99,7 +97,6 @@
           <div class="qi-icon">⚖️</div>
           <div class="qi-label">법률 지원 서비스</div>
         </a>
-        <!-- ★ 2026-05 패치: 신청 내역 조회 → mypage의 신청 내역 탭(#support)으로 직접 이동 -->
         <a class="quick-item" href="/mypage.html#support">
           <span class="qi-arrow">↗</span>
           <div class="qi-icon">📋</div>
@@ -113,7 +110,7 @@
       <div class="container">
         <div class="stats-head sec-head">
           <div>
-            <div class="sec-eyebrow" style="color:var(--gold)">TRANSPARENCY</div>
+            <div class="sec-eyebrow" style="color:var(--gold)">투명성 (TRANSPARENCY)</div>
             <div class="sec-title" style="color:#fff">실시간 활동 지표</div>
           </div>
           <a href="/report.html" class="sec-link" style="color:#888">활동 보고서 보기 →</a>
@@ -139,12 +136,12 @@
       </div>
     </section>
 
-    <!-- ★ M-19-2: 진행 중 캠페인 카드 영역 (활성 캠페인 있을 때만 JS가 표시) -->
+    <!-- ★ M-19-2: 진행 중 캠페인 카드 영역 -->
     <section id="homeCampaignSection" class="block" style="display:none;background:#fafaf8">
       <div class="container">
         <div class="sec-head" style="margin-bottom:28px">
           <div>
-            <div class="sec-eyebrow">CAMPAIGN</div>
+            <div class="sec-eyebrow">캠페인 (CAMPAIGN)</div>
             <div class="sec-title">🎗 진행 중인 캠페인</div>
           </div>
           <a href="/campaigns.html" class="sec-link">+ 모든 캠페인 보기</a>
@@ -157,7 +154,6 @@
 
         <div id="homeCampaignGrid"
              style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-bottom:28px">
-          <!-- JS가 자동 채움 -->
         </div>
 
         <div style="text-align:center">
@@ -179,7 +175,7 @@
           <div>
             <div class="sec-head">
               <div>
-                <div class="sec-eyebrow">COMMUNITY</div>
+                <div class="sec-eyebrow">커뮤니티 (COMMUNITY)</div>
                 <div class="sec-title">통합 공지사항</div>
               </div>
               <a href="/news.html" class="sec-link">+ 더보기</a>
@@ -197,7 +193,7 @@
           <div>
             <div class="sec-head">
               <div>
-                <div class="sec-eyebrow">HELP CENTER</div>
+                <div class="sec-eyebrow">도움말 센터 (HELP CENTER)</div>
                 <div class="sec-title">자주 묻는 질문</div>
               </div>
               <a href="/news.html#faq" class="sec-link">+ 더보기</a>
@@ -225,12 +221,12 @@
       </div>
     </section>
 
-    <!-- CAMPAIGN -->
+    <!-- 특별 캠페인 -->
     <section class="block" style="padding-top:0">
       <div class="container">
         <div class="campaign">
           <div style="position:relative;z-index:2">
-            <span class="camp-tag">SPECIAL CAMPAIGN</span>
+            <span class="camp-tag">특별 캠페인 (SPECIAL CAMPAIGN)</span>
             <h3>"기억의 약속" 추모 주간<br />특별 모금함이 진행 중입니다</h3>
             <p class="lead">고인이 된 동료 교사를 기리고, 남은 가족들이 다시 일상으로 돌아갈 수 있도록 함께해 주세요. 모금액은 전액 유가족 직접 지원과 추모 사업에 사용됩니다.</p>
             <div class="progress"><div class="progress-bar" style="width:68%"></div></div>
@@ -265,13 +261,12 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <!-- SCRIPTS (로드 순서 중요) -->
   <script src="/js/common.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/news.js"></script>
   <script src="/js/support.js"></script>
   <script src="/js/home.js"></script>
   <script src="/js/donate.js"></script>
-  <script src="/js/home-campaigns.js?v=m19-2"></script>
+  <script src="/js/home-campaigns.js?v=2026-05"></script>
 </body>
 </html>
