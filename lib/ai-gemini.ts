@@ -1,23 +1,20 @@
 /**
- * Google Gemini API 래퍼 (★ 2026-05 v3.3 — 3-flash 통일 + 3-tier 폴백)
+ * Google Gemini API 래퍼 (★ 2026-05 v3.4 — 첨부 파일 분석 추가)
  *
  * 모델 정책:
  *   1차 (디폴트): GEMINI_MODEL_PRO / FLASH (기본 gemini-3-flash)
- *   2차: gemini-3.1-flash-lite
- *   3차: gemini-2.5-flash
+ *   2차: gemini-3.0-flash
+ *   3차: gemini-3.1-flash-lite-preview
  *
- * 동작:
- *   - fetch에 timeout 없음 → 모델이 끝까지 일하도록 대기 (Netlify 26초 한도 내)
- *   - HTTP 에러(503/429/404/UNAVAILABLE) 발생 시 즉시 다음 모델로 폴백
- *   - 인증 에러는 즉시 종료 (폴백해도 같은 결과)
- *   - 만약 1차 모델이 존재하지 않으면 (404) 자동으로 2,3차 시도
+ * v3.4 추가:
+ *   - inlineFiles 지원 (이미지 + PDF, base64 인라인)
+ *   - Gemini 3.0+는 PDF 직접 분석 (페이지 OCR + 레이아웃 인식)
  */
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
 const FLASH_MODEL = process.env.GEMINI_MODEL_FLASH || "gemini-3-flash";
 
-/* 하위호환 */
 const LEGACY_MODEL = process.env.GEMINI_MODEL;
 const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_MODEL : FLASH_MODEL;
 
@@ -28,15 +25,21 @@ function buildFallbackChain(mode: "pro" | "flash"): string[] {
   const push = (m: string) => { if (!chain.includes(m)) chain.push(m); };
 
   if (mode === "pro") {
-    push(PRO_MODEL);                  // 1차: gemini-3-flash (기본)
-    push("gemini-3.0-flash");    // 2차
-    push("gemini-3.1-flash-lite-preview");         // 3차 (검증된 안정 모델)
+    push(PRO_MODEL);
+    push("gemini-3.0-flash");
+    push("gemini-3.1-flash-lite-preview");
   } else {
-    push(EFFECTIVE_FLASH);            // 1차
-    push("gemini-3.0-flash");    // 2차
-    push("gemini-3.1-flash-lite-preview");         // 3차
+    push(EFFECTIVE_FLASH);
+    push("gemini-3.0-flash");
+    push("gemini-3.1-flash-lite-preview");
   }
   return chain;
+}
+
+/* ★ B-9: 인라인 파일 정의 */
+export interface InlineFile {
+  data: string;        // base64 (data: prefix 없이)
+  mimeType: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
 }
 
 export interface GeminiOptions {
@@ -44,6 +47,8 @@ export interface GeminiOptions {
   maxOutputTokens?: number;
   systemInstruction?: string;
   mode?: "pro" | "flash";
+  /* ★ B-9: 첨부 파일 (이미지 + PDF) */
+  inlineFiles?: InlineFile[];
 }
 
 interface GeminiResult {
@@ -69,8 +74,21 @@ async function callSingleModel(
 
   const url = `${GEMINI_API_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
+  /* ★ B-9: parts 구성 — 텍스트 + 첨부 파일 */
+  const parts: any[] = [{ text: prompt }];
+  if (opts.inlineFiles && opts.inlineFiles.length > 0) {
+    for (const file of opts.inlineFiles) {
+      parts.push({
+        inlineData: {
+          mimeType: file.mimeType,
+          data: file.data,
+        },
+      });
+    }
+  }
+
   const body: any = {
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    contents: [{ role: "user", parts }],
     generationConfig: {
       temperature: opts.temperature ?? 0.7,
       maxOutputTokens: opts.maxOutputTokens ?? 2000,
@@ -84,8 +102,6 @@ async function callSingleModel(
   }
 
   try {
-    /* ★ timeout 없음 — 모델이 끝까지 일하도록 대기
-       Netlify Functions 26초 한도 내에서 자연스럽게 동작 */
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -142,6 +158,12 @@ export async function callGemini(
   const chain = buildFallbackChain(mode);
   let lastError = "";
 
+  /* ★ B-9: 첨부 파일 정보 로그 */
+  if (opts.inlineFiles && opts.inlineFiles.length > 0) {
+    console.info(`[Gemini-${mode}] 첨부 파일 ${opts.inlineFiles.length}개 포함:`,
+      opts.inlineFiles.map(f => f.mimeType).join(", "));
+  }
+
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];
     const result = await callSingleModel(model, prompt, opts);
@@ -156,7 +178,6 @@ export async function callGemini(
     lastError = result.error || "Unknown";
     console.warn(`[Gemini-${mode}] ${i + 1}/${chain.length} ${model} 실패:`, lastError.slice(0, 120));
 
-    /* 폴백 가능 에러 — 다음 모델 시도 */
     const isRetryable =
       lastError.includes("503") ||
       lastError.includes("429") ||
