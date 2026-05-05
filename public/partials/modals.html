@@ -476,8 +476,15 @@
         </span>
       </label>
 
-      <button type="submit" class="btn btn-primary btn-block">신청하기</button>
-      <p style="margin-top:14px;font-size:12px;color:var(--text-3);text-align:center">
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <button type="submit" class="btn btn-primary btn-block" id="supportAiSubmitBtn">🤖 AI 분석 후 신청</button>
+        <button type="button" class="btn btn-block" id="supportSkipAiBtn"
+                style="background:#fff;border:1.5px solid var(--line);color:var(--text-2);font-weight:600;padding:14px">
+          📋 일반 신청 (AI 분석 없이)
+        </button>
+      </div>
+      <p style="margin-top:14px;font-size:12px;color:var(--text-3);text-align:center;line-height:1.7">
+        🤖 AI 분석은 <strong style="color:var(--brand)">후원 회원</strong> 전용입니다 · 일반 신청은 누구나 가능<br />
         영업일 기준 3일 이내 결과를 알림톡으로 안내드립니다.
       </p>
     </form>
@@ -617,6 +624,40 @@
     box-sizing: border-box;
   }
 </style>
+
+<!-- ============================================================
+     ★ 2026-05: 후원자 전용 기능 안내 모달 (AI 분석 시도 차단용)
+     ============================================================ -->
+<div id="donorRequiredModal" class="modal-bg" data-modal>
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" data-action="close-modal" aria-label="닫기">✕</button>
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:56px;margin-bottom:14px">🎗</div>
+      <h2 class="serif" style="margin-bottom:10px;color:var(--brand)">후원 회원 전용 서비스</h2>
+      <p style="color:var(--text-2);font-size:14px;line-height:1.85;margin-bottom:18px">
+        <strong>AI 분석 기능</strong>은 사이렌의 따뜻한 동행에<br />
+        함께해 주신 <strong style="color:var(--brand)">후원 회원</strong>께 제공되는 서비스입니다.
+      </p>
+      <div style="background:linear-gradient(135deg,#fef9f5,#fff);border:1px solid #f0e0d4;border-radius:8px;padding:16px 20px;margin-bottom:20px;text-align:left">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">💡 일반 신고/신청은 누구나 가능합니다</div>
+        <div style="font-size:12.5px;color:var(--text-2);line-height:1.7">
+          • 한 번이라도 후원하시면 <strong>평생 AI 분석 이용 가능</strong><br />
+          • 일반 제출 시 <strong>운영진이 직접 검토</strong>해 답변드립니다<br />
+          • 후원금은 유가족 지원·법률·심리상담에 전액 사용됩니다
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary" data-action="open-modal" data-target="donateModal" style="flex:1;min-width:160px;padding:13px"
+                onclick="document.getElementById('donorRequiredModal').classList.remove('show')">
+          🎗 후원하러 가기
+        </button>
+        <button type="button" class="btn btn-outline" data-action="close-modal" style="flex:1;min-width:140px;padding:13px;background:transparent;border:1px solid var(--line);color:var(--text-2)">
+          나중에
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============================================================
      TOAST CONTAINER
