@@ -158,6 +158,7 @@
   }
 
   /* ============ 이벤트 ============ */
+   /* ============ 이벤트 ============ */
   function setup() {
     /* 서브탭 전환 */
     document.addEventListener('click', (e) => {
@@ -168,12 +169,20 @@
       document.querySelectorAll('#adm-siren-incidents .ct-tab[data-ictab]').forEach(t => t.classList.remove('on'));
       tab.classList.add('on');
       document.querySelectorAll('#adm-siren-incidents .ic-tab-pane').forEach(p => {
-        p.style.display = p.dataset.ictabPane === target ? '' : 'none';
+        if (p.dataset.ictabPane === target) {
+          p.style.display = 'block';
+        } else {
+          p.style.display = 'none';
+        }
       });
-      if (target === 'posts') loadPosts();
-      if (target === 'reports' && window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('incident');
+      console.log('[B-3] 탭 전환:', target);
+      if (target === 'posts') {
+        setTimeout(() => loadPosts(), 50);
+      }
+      if (target === 'reports' && window.SIREN_ADMIN_SIREN) {
+        window.SIREN_ADMIN_SIREN.loadList('incident');
+      }
     });
-
     /* 새 사건 등록 */
     document.addEventListener('click', (e) => {
       if (e.target.closest('#icNewPostBtn')) { e.preventDefault(); openEditModal(null); }
