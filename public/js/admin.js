@@ -112,13 +112,17 @@
 // public/js/admin.js — 상수 정의 영역에 추가 (MEMBER_STATUS_PRIORITY 다음)
 
   /* ★ M-15: 운영자 담당 카테고리 정의 */
-  const OPERATOR_CATEGORIES = [
-    { code: 'incident',   label: '사건 제보',    emoji: '🔍' },
-    { code: 'harassment', label: '악성민원',     emoji: '📢' },
-    { code: 'legal',      label: '법률 상담',    emoji: '⚖️' },
-    { code: 'board',      label: '자유게시판',   emoji: '💬' },
-    { code: 'donation',   label: '후원',         emoji: '💰' },
-    { code: 'support',    label: '유가족 지원',  emoji: '🤝' },
+const OPERATOR_CATEGORIES = [
+  { code: 'incident',   label: '사건 제보',    emoji: '🔍' },
+  { code: 'harassment', label: '악성민원',     emoji: '📢' },
+  { code: 'legal',      label: '법률 상담',    emoji: '⚖️' },
+  { code: 'board',      label: '자유게시판',   emoji: '💬' },
+  { code: 'donation',   label: '후원',         emoji: '💰' },
+  { code: 'support',    label: '유가족 지원',  emoji: '🤝' },
+  /* ★ 2026-05: 콘텐츠 + 통계 편집 권한 추가 */
+  { code: 'content',    label: '콘텐츠 / 통계', emoji: '📝' },
+  { code: 'stats_management', label: '통계 전용', emoji: '📊' },
+];
   ];
   const VALID_CAT_CODES = OPERATOR_CATEGORIES.map(c => c.code).concat(['all']);
 
