@@ -1,8 +1,6 @@
 // netlify/functions/admin-ai-reply-v2.ts
 // ★ M-10: 사이렌 관리 통합 AI 답변 초안 (사건/악성/법률/자유게시판)
-//
-// Body: { kind: 'incident'|'harassment'|'legal'|'board', id: number }
-// Response: { draft }
+// ★ 2026-05 패치: type-only import 의존성 완전 제거 (빌드 안정성 ↑)
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
@@ -13,7 +11,6 @@ import {
 } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { generateUniversalReplyDraft } from "../../lib/ai-reply";
-import type { UniversalCategory } from "../../lib/ai-reply";
 import {
   ok, badRequest, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -21,7 +18,7 @@ import {
 
 export const config = { path: "/api/admin/ai/reply-draft-v2" };
 
-const VALID_KINDS: UniversalCategory[] = ["incident", "harassment", "legal", "board"];
+const VALID_KINDS = ["incident", "harassment", "legal", "board"] as const;
 
 function htmlToText(html: string): string {
   return String(html || "")
@@ -34,8 +31,13 @@ function htmlToText(html: string): string {
 }
 
 export default async (req: Request, _ctx: Context) => {
+  console.log("[admin-ai-reply-v2] called:", req.method, req.url);
+
   if (req.method === "OPTIONS") return corsPreflight();
-  if (req.method !== "POST") return methodNotAllowed();
+  if (req.method !== "POST") {
+    console.warn("[admin-ai-reply-v2] non-POST:", req.method);
+    return methodNotAllowed("POST 메서드만 허용됩니다");
+  }
 
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return guard.res;
@@ -44,10 +46,12 @@ export default async (req: Request, _ctx: Context) => {
     const body: any = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
-    const kind = body.kind as UniversalCategory;
+    const kind = String(body.kind || "");
     const id = Number(body.id);
 
-    if (!VALID_KINDS.includes(kind)) return badRequest("kind 유효하지 않음 (incident|harassment|legal|board)");
+    if (!VALID_KINDS.includes(kind as any)) {
+      return badRequest("kind 유효하지 않음 (incident|harassment|legal|board)");
+    }
     if (!Number.isFinite(id)) return badRequest("id 유효하지 않음");
 
     let applicantName = "회원";
@@ -117,7 +121,7 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     const result = await generateUniversalReplyDraft({
-      category: kind,
+      category: kind as any,
       applicantName,
       title,
       contentText,
@@ -128,12 +132,12 @@ export default async (req: Request, _ctx: Context) => {
     });
 
     if (!result.ok) {
-      return serverError("AI 답변 초안 생성 실패", { error: result.error });
+      return serverError("AI 답변 초안 생성 실패", result.error);
     }
 
     return ok({ draft: result.draft }, "답변 초안이 생성되었습니다");
   } catch (e: any) {
     console.error("[admin-ai-reply-v2]", e);
-    return serverError("AI 호출 중 오류", e);
+    return serverError("AI 호출 중 오류", e?.message);
   }
 };
