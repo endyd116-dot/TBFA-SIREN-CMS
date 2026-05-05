@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — legal.js (★ Phase M-7 + M-17 후원자 분기 추가)
+   SIREN — legal.js (★ Phase M-7 + 2026-05 M-17 후원자 분기 추가)
    - 법률지원 서비스 페이지
    - 단일 페이지 STEP 1/2/3 전환
    ========================================================= */
@@ -55,7 +55,9 @@
         });
       } catch (e) {
         console.error('[legal] editor init failed', e);
-        if (window.SIREN && window.SIREN.toast) window.SIREN.toast('편집기 로드 실패 — 새로고침해 주세요');
+        if (window.SIREN && window.SIREN.toast) {
+          window.SIREN.toast('편집기 로드 실패 — 새로고침해 주세요');
+        }
       }
     }
 
@@ -169,7 +171,7 @@
       const notice = document.getElementById('legalPremiumNotice');
       if (notice) notice.style.display = 'none';
 
-      /* 긴급도 배너 표시 */
+      /* 긴급도 배너 */
       const banner = document.getElementById('legalUrgencyBanner');
       if (banner) {
         banner.style.display = '';
@@ -182,7 +184,6 @@
         if (labelEl) labelEl.textContent = urgInfo.label;
       }
 
-      /* 본문 필드 */
       const fields = [
         ['legalAiSummary', ai.summary || '(AI 법률 분석을 일시적으로 사용할 수 없습니다)'],
         ['legalAiLaws', ai.relatedLaws || '(관련 법령 정보가 없습니다)'],

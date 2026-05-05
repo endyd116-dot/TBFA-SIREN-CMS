@@ -1,8 +1,8 @@
 /* =========================================================
-   SIREN — harassment.js (★ Phase M-6 + Pass 6 패치)
+   SIREN — harassment.js (★ Phase M-6 + 2026-05 정정 패치)
    - 악성민원 신고 페이지
    - 단일 페이지 STEP 1/2/3 전환
-   - ★ Pass 6: renderAiResult가 legal 코드로 잘못 채워졌던 것 정정
+   - ★ 2026-05: legal 코드 잘못 들어가 있던 것 정정
    ========================================================= */
 (function () {
   'use strict';
@@ -34,7 +34,6 @@
     const target = document.querySelector(`.harass-step[data-harass-step="${n}"]`);
     if (target) target.style.display = '';
 
-    /* 단계 인디케이터 */
     document.querySelectorAll('.harass-step-indicator').forEach((el) => {
       const num = Number(el.dataset.stepInd);
       el.classList.remove('active', 'done');
@@ -57,7 +56,9 @@
         });
       } catch (e) {
         console.error('[harassment] editor init failed', e);
-        if (window.SIREN && window.SIREN.toast) window.SIREN.toast('편집기 로드 실패');
+        if (window.SIREN && window.SIREN.toast) {
+          window.SIREN.toast('편집기 로드 실패 — 새로고침해 주세요');
+        }
       }
     }
 
@@ -163,14 +164,14 @@
     }
   }
 
-  /* ============ AI 결과 렌더 (★ Pass 6 정정: harassment 전용으로 재작성) ============ */
+  /* ============ AI 결과 렌더 (★ 2026-05 정정: harassment 전용으로 복구) ============ */
   function renderAiResult(data) {
     const reportNoEl = document.getElementById('harassReportNo');
     if (reportNoEl) reportNoEl.textContent = data.reportNo || '-';
 
     /* ★ M-17: 후원자 분기 */
     if (data.isDonor && data.ai) {
-      /* 후원자 — AI 분석 결과 정상 표시 */
+      /* ─── 후원자 — AI 분석 결과 정상 표시 ─── */
       const ai = data.ai;
 
       /* 비후원자 안내 박스 숨김 */
@@ -180,10 +181,10 @@
       /* 심각도 배너 */
       const sev = ai.severity || 'medium';
       const sevInfo = severityInfo(sev);
-      const sevBox = document.getElementById('harassSeverity');
+      const sevBox = document.getElementById('harassSeverityBanner');
       if (sevBox) {
         sevBox.style.display = '';
-        sevBox.className = 'harass-severity ' + sevInfo.cls;
+        sevBox.className = 'harass-severity-banner ' + sevInfo.cls;
       }
       const sevIcon = document.getElementById('harassSeverityIcon');
       const sevLabel = document.getElementById('harassSeverityLabel');
@@ -193,25 +194,33 @@
       /* 본문 필드 */
       const fields = [
         ['harassAiSummary', ai.summary || '(AI 분석을 일시적으로 사용할 수 없습니다)'],
-        ['harassAiCategory', ai.category || '(분류 정보 없음)'],
         ['harassAiImmediate', ai.immediateAction || '(즉시 조치사항 정보 없음)'],
-        ['harassAiLegalReview', ai.legalReviewNeeded
-          ? '필요 — ' + (ai.legalReason || '법률 검토 권장')
-          : '불필요'],
-        ['harassAiPsychSupport', ai.psychSupportNeeded ? '심리 지원 권장' : '필요 없음'],
         ['harassAiSuggestion', ai.suggestion || '(권장사항 정보 없음)'],
       ];
       fields.forEach(([id, val]) => {
         const el = document.getElementById(id);
         if (el) el.textContent = val;
       });
+
+      /* 법률 자문 카드 */
+      const legalStatusEl = document.getElementById('harassLegalStatus');
+      const legalReasonEl = document.getElementById('harassLegalReason');
+      if (legalStatusEl) legalStatusEl.textContent = ai.legalReviewNeeded ? '필요' : '불필요';
+      if (legalReasonEl) legalReasonEl.textContent = ai.legalReason || (ai.legalReviewNeeded ? '법률 검토 권장' : '법적 조치는 현재 단계에서 권장되지 않습니다');
+
+      /* 심리상담 카드 */
+      const psychStatusEl = document.getElementById('harassPsychStatus');
+      const psychReasonEl = document.getElementById('harassPsychReason');
+      if (psychStatusEl) psychStatusEl.textContent = ai.psychSupportNeeded ? '권장' : '필요 없음';
+      if (psychReasonEl) psychReasonEl.textContent = ai.psychSupportNeeded ? '전문 상담사 매칭을 권장합니다' : '심리적 어려움이 적은 것으로 분석됩니다';
     } else if (data.premiumNotice) {
-      /* 비후원자 — 후원 회원 전용 안내 표시 */
-      const sevBox = document.getElementById('harassSeverity');
+      /* ─── 비후원자 — 후원 회원 전용 안내 ─── */
+      const sevBox = document.getElementById('harassSeverityBanner');
       if (sevBox) sevBox.style.display = 'none';
 
-      ['harassAiSummary', 'harassAiCategory', 'harassAiImmediate',
-       'harassAiLegalReview', 'harassAiPsychSupport', 'harassAiSuggestion'].forEach((id) => {
+      ['harassAiSummary', 'harassAiImmediate', 'harassAiSuggestion',
+       'harassLegalStatus', 'harassLegalReason',
+       'harassPsychStatus', 'harassPsychReason'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.textContent = '';
       });
@@ -232,7 +241,7 @@
       box.style.cssText = 'background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid #7a1f2b;border-radius:10px;padding:28px;margin:18px 0;text-align:center';
 
       const reportNoBox = document.getElementById('harassReportNo');
-      const insertTarget = reportNoBox ? reportNoBox.closest('div')?.parentElement : null;
+      const insertTarget = reportNoBox ? reportNoBox.closest('.harass-ai-header') : null;
       if (insertTarget && insertTarget.parentElement) {
         insertTarget.parentElement.insertBefore(box, insertTarget.nextSibling);
       } else {
@@ -311,22 +320,20 @@
   function init() {
     if (document.body.dataset.page !== 'harassment') return;
 
-    /* 비로그인 시 안내 (페이지 진입 시점) */
     setTimeout(() => {
       const auth = window.SIREN_AUTH;
       if (!auth || !auth.isLoggedIn()) {
-        window.SIREN.toast('신고하려면 로그인이 필요합니다');
+        if (window.SIREN && window.SIREN.toast) {
+          window.SIREN.toast('신고하려면 로그인이 필요합니다');
+        }
       }
     }, 1500);
 
-    /* 편집기/첨부 초기화 (지연 로드) */
     initEditorAndAttachments();
 
-    /* 폼 제출 */
     const form = document.getElementById('harassmentForm');
     if (form) form.addEventListener('submit', handleSubmit);
 
-    /* 결정 버튼 */
     const btnSiren = document.getElementById('harassBtnSiren');
     const btnAiOnly = document.getElementById('harassBtnAiOnly');
     if (btnSiren) btnSiren.addEventListener('click', () => confirmReport(true));
