@@ -43,6 +43,7 @@ export default async (req: Request, _ctx: Context) => {
     const title = String(body.title || "").trim().slice(0, 200);
     const contentHtml = String(body.contentHtml || "").trim();
     const isAnonymous = !!body.isAnonymous;
+    const skipAi = !!body.skipAi;
     const attachmentIds = Array.isArray(body.attachmentIds)
       ? body.attachmentIds.filter((x: any) => Number.isFinite(Number(x))).map(Number)
       : [];
@@ -87,9 +88,9 @@ export default async (req: Request, _ctx: Context) => {
     const [record] = await db.insert(incidentReports).values(insertData).returning();
     const reportId = (record as any).id;
 
-    /* AI 분석 (try-catch 격리) */
+    /* AI 분석 (try-catch 격리) — skipAi=true면 건너뜀 */
     let aiResult: any = null;
-    try {
+    if (!skipAi) try {
       aiResult = await analyzeIncidentReport({
         incidentTitle,
         reportTitle: title,
@@ -132,7 +133,8 @@ export default async (req: Request, _ctx: Context) => {
       reportId,
       reportNo,
       isDonor: donorCheck.isDonor,
-      ai: (aiResult && donorCheck.isDonor) ? {
+      skipAi,
+      ai: (aiResult && donorCheck.isDonor && !skipAi) ? {
         severity: aiResult.severity,
         summary: aiResult.summary,
         suggestion: aiResult.suggestion,

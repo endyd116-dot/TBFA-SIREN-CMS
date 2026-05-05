@@ -58,14 +58,15 @@ export default async (req: Request) => {
     if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
     const { category, title, content, attachments } = (v as any).data;
+    const skipAi = !!body.skipAi;
 
     /* 4. 신청번호 */
     const requestNo = generateRequestNo("S");
 
-    /* 5. AI 우선순위 분석 */
+    /* 5. AI 우선순위 분석 — skipAi=true면 건너뜀 */
     let priority = "normal";
-    let priorityReason = "AI 미실행";
-    try {
+    let priorityReason = skipAi ? "AI 분석 건너뜀 (사용자 선택)" : "AI 미실행";
+    if (!skipAi) try {
       const analysis = await analyzePriority({ category, title, content });
       priority = analysis.priority;
       priorityReason = analysis.reason;

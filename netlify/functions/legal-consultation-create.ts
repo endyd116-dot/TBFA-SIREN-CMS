@@ -41,6 +41,7 @@ export default async (req: Request, _ctx: Context) => {
     const title = String(body.title || "").trim().slice(0, 200);
     const contentHtml = String(body.contentHtml || "").trim();
     const isAnonymous = !!body.isAnonymous;
+    const skipAi = !!body.skipAi;
     const occurredAtRaw = body.occurredAt ? new Date(body.occurredAt) : null;
     const occurredAt = (occurredAtRaw && !isNaN(occurredAtRaw.getTime())) ? occurredAtRaw : null;
     const attachmentIds = Array.isArray(body.attachmentIds)
@@ -77,9 +78,9 @@ export default async (req: Request, _ctx: Context) => {
     const [record] = await db.insert(legalConsultations).values(insertData).returning();
     const consultationId = (record as any).id;
 
-    /* AI 분석 */
+    /* AI 분석 — skipAi=true면 건너뜀 */
     let aiResult: any = null;
-    try {
+    if (!skipAi) try {
       aiResult = await analyzeLegalConsultation({
         userCategory: category,
         userUrgency: urgency || undefined,
@@ -127,7 +128,8 @@ export default async (req: Request, _ctx: Context) => {
       consultationId,
       consultationNo,
       isDonor: donorCheck.isDonor,
-      ai: (aiResult && donorCheck.isDonor) ? {
+      skipAi,
+      ai: (aiResult && donorCheck.isDonor && !skipAi) ? {
         category: aiResult.category,
         urgency: aiResult.urgency,
         summary: aiResult.summary,
