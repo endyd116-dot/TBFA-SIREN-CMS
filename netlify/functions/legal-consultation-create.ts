@@ -145,3 +145,4 @@ export default async (req: Request, _ctx: Context) => {
     return serverError("처리 중 오류가 발생했습니다", err);
   }
 };
+export const config = { path: "/api/legal-consultation-create" };
