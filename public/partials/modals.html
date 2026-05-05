@@ -518,16 +518,23 @@
     text-align: left !important;
   }
 
-  /* 정기 + 일시 결제 카드 공통 — 세로 가득 */
+  /* 정기 + 일시 결제 카드 공통 — 세로 가득 (display는 JS가 제어) */
   #donateModal #regularPayMethods,
   #donateModal #onetimePayMethods {
-    display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
     width: 100% !important;
     box-sizing: border-box;
     margin: 0 !important;
     padding: 0 !important;
+  }
+  #donateModal #regularPayMethods[style*="flex"],
+  #donateModal #onetimePayMethods[style*="flex"] {
+    display: flex !important;
+  }
+  #donateModal #regularPayMethods[style*="none"],
+  #donateModal #onetimePayMethods[style*="none"] {
+    display: none !important;
   }
 
   /* 개별 결제 방식 카드 — 가로 가득 차도록 */
