@@ -200,7 +200,7 @@ async function evaluateWithAI(
   try {
     const r = await callGeminiJSON(prompt, {
       temperature: 0.4,
-      maxOutputTokens: 300,
+      maxOutputTokens: 4000,
     });
     if (r.ok && r.data) {
       return {

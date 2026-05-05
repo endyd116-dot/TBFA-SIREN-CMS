@@ -72,7 +72,7 @@ JSON 객체로만 응답하세요. 설명 없이 JSON만 출력:
   try {
     const result = await callGeminiJSON<PriorityAnalysis>(prompt, {
       temperature: 0.2,
-      maxOutputTokens: 200,
+      maxOutputTokens: 500,
     });
 
     if (result.ok && result.data) {

@@ -106,7 +106,7 @@ export default async (req: Request) => {
     /* Gemini 호출 (JSON 응답 모드) */
     const r = await callGemini(prompt, {
       temperature: 0.8,
-      maxOutputTokens: 2000,
+      maxOutputTokens: 4000,
     });
 
     if (!r.ok || !r.text) {

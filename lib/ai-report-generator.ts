@@ -197,7 +197,7 @@ export async function generateActivityReport(data: ReportData): Promise<Generate
 
   const r = await callGemini(prompt, {
     temperature: 0.7,
-    maxOutputTokens: 6000,
+    maxOutputTokens: 8000,
   });
 
   if (!r.ok || !r.text) {

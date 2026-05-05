@@ -52,7 +52,7 @@ export async function callGemini(
     ],
     generationConfig: {
       temperature: opts.temperature ?? 0.7,
-      maxOutputTokens: opts.maxOutputTokens ?? 1024,
+      maxOutputTokens: opts.maxOutputTokens ?? 2000,
       topP: 0.95,
       topK: 40,
     },

@@ -80,7 +80,7 @@ ${input.content.slice(0, 1500)}${input.content.length > 1500 ? "..." : ""}
   try {
     const result = await callGemini(prompt, {
       temperature: 0.6,
-      maxOutputTokens: 800,
+      maxOutputTokens: 4000,
       systemInstruction,
     });
 
