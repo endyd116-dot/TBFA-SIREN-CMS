@@ -1,4 +1,5 @@
-// db/schema.ts — ★ M-19-4 전본 (M-19-1 grade 시스템 유지, tier 관련 제거)
+// db/schema.ts — ★ M-19-11 V2: expertProfiles/expertTypeEnum/expertStatusEnum 제거
+// (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, varchar, integer, text, timestamp,
   boolean, index, pgEnum, jsonb
@@ -139,7 +140,6 @@ export const campaignTypeEnum = pgEnum("campaign_type", [
   "memorial",
   "awareness"
 ]);
-// db/schema.ts — campaignTypeEnum 다음에 추가
 
 /* ★ M-19-8: 자료실 접근 권한 */
 export const resourceAccessLevelEnum = pgEnum("resource_access_level", [
@@ -158,19 +158,9 @@ export const anniversaryTypeEnum = pgEnum("anniversary_type", [
   "regular_donation_1year",
 ]);
 
-// db/schema.ts — anniversaryTypeEnum 다음에 추가
-
-/* ★ M-19-11: 전문가 유형 */
-export const expertTypeEnum = pgEnum("expert_type", ["lawyer", "counselor"]);
-
-/* ★ M-19-11: 전문가 승인 상태 */
-export const expertStatusEnum = pgEnum("expert_status", [
-  "pending",
-  "approved",
-  "rejected",
-  "suspended",
-  "resigned",
-]);
+/* ★ M-19-11 V2: expertTypeEnum + expertStatusEnum 제거됨
+   - DB에는 ENUM이 남아있을 수 있으나 schema.ts에서는 사용하지 않음
+   - 추후 cleanup migration에서 DROP TYPE 실행 가능 */
 
 /* =========================================================
    1. members — 회원 (★ M-19-1 grade 시스템 유지)
@@ -210,12 +200,10 @@ export const members = pgTable("members", {
   memberSubtype: varchar("member_subtype", { length: 50 }),
   signupSourceId: integer("signup_source_id"),
 
-// db/schema.ts — members 테이블, assignedCategories 다음 + gradeId 직전에 추가
-
   /* ───────── ★ M-15: 운영자 담당 카테고리 ───────── */
   assignedCategories: jsonb("assigned_categories").default(sql`'[]'::jsonb`),
 
-  /* ───────── ★ M-19-11: 전문가 가입 검토 대기 플래그 ───────── */
+  /* ───────── ★ M-19-11: 전문가 가입 검토 대기 플래그 (legacy 컬럼, V2에서 미사용) ───────── */
   pendingExpertReview: boolean("pending_expert_review").default(false),
 
   /* ───────── ★ M-19-11 V2: 전문가 증빙 시스템 ───────── */
@@ -254,7 +242,6 @@ export const members = pgTable("members", {
   subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
 }));
-// db/schema.ts (Part 2) — 이어서
 
 /* =========================================================
    ★ M-19-1: member_grades — 회원 등급 마스터
@@ -487,8 +474,6 @@ export const chatBlacklist = pgTable("chat_blacklist", {
   memberIdx: index("chat_blacklist_member_idx").on(t.memberId),
   activeIdx: index("chat_blacklist_active_idx").on(t.isActive),
 }));
-
-// db/schema.ts (Part 3) — 이어서
 
 /* =========================================================
    ★ STEP H-2d + M-14: 영수증 설정
@@ -827,7 +812,6 @@ export const legalConsultations = pgTable("legal_consultations", {
   urgencyIdx: index("legal_consultations_urgency_idx").on(t.aiUrgency),
   categoryIdx: index("legal_consultations_category_idx").on(t.category),
 }));
-// db/schema.ts (Part 4) — 마지막
 
 /* =========================================================
    ★ M-8: board_posts + board_comments
@@ -977,8 +961,6 @@ export const campaigns = pgTable("campaigns", {
   datesIdx: index("campaigns_dates_idx").on(t.startDate, t.endDate),
 }));
 
-// db/schema.ts — campaigns 테이블 다음, blob_uploads 테이블 직전에 추가
-
 /* =========================================================
    ★ Phase M-19-8: 자료실 (resource_categories + resources)
    ========================================================= */
@@ -1048,56 +1030,10 @@ export const anniversaryEmailsLog = pgTable("anniversary_emails_log", {
   sentIdx: index("ael_sent_idx").on(t.emailSentAt),
 }));
 
-// db/schema.ts — anniversaryEmailsLog 다음에 추가
+/* ★ M-19-11 V2: expert_profiles 테이블 정의 제거됨
+   - DB에는 테이블이 DROP된 상태
+   - 변호사/심리상담사는 members 테이블의 type='volunteer' AND member_subtype='lawyer'/'counselor' 로 관리 */
 
-/* =========================================================
-   ★ Phase M-19-11: expert_profiles — 전문가 프로필
-   - 변호사 + 심리상담사 통합 프로필
-   - 회원가입 시 전문가 선택 → 증빙 업로드 → 관리자 승인
-   ========================================================= */
-export const expertProfiles = pgTable("expert_profiles", {
-  id: serial("id").primaryKey(),
-  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull().unique(),
-  expertType: expertTypeEnum("expert_type").notNull(),
-  expertStatus: expertStatusEnum("expert_status").default("pending").notNull(),
-
-  /* 프로필 정보 */
-  specialty: varchar("specialty", { length: 200 }),
-  affiliation: varchar("affiliation", { length: 200 }),
-  licenseNumber: varchar("license_number", { length: 100 }),
-  yearsOfExperience: integer("years_of_experience").default(0),
-  bio: text("bio"),
-
-  /* 상담 관련 */
-  preferredArea: varchar("preferred_area", { length: 200 }),
-  availableDays: jsonb("available_days").default(sql`'[]'::jsonb`),
-  availableHours: varchar("available_hours", { length: 100 }),
-  isMatchable: boolean("is_matchable").default(false).notNull(),
-  maxConcurrentCases: integer("max_concurrent_cases").default(5),
-
-  /* 증빙 파일 */
-  certificateBlobId: integer("certificate_blob_id"),
-  additionalDocs: jsonb("additional_docs").default(sql`'[]'::jsonb`),
-
-  /* 관리자 메모 & 승인 이력 */
-  adminMemo: text("admin_memo"),
-  reviewedBy: integer("reviewed_by").references(() => members.id, { onDelete: "set null" }),
-  reviewedAt: timestamp("reviewed_at"),
-  rejectedReason: text("rejected_reason"),
-  approvedAt: timestamp("approved_at"),
-
-  /* 매칭 통계 */
-  totalCasesHandled: integer("total_cases_handled").default(0),
-  totalCasesCompleted: integer("total_cases_completed").default(0),
-
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (t) => ({
-  memberIdx: index("ep_member_idx").on(t.memberId),
-  typeIdx: index("ep_type_idx").on(t.expertType),
-  statusIdx: index("ep_status_idx").on(t.expertStatus),
-  matchableIdx: index("ep_matchable_idx").on(t.isMatchable),
-}));
 /* =========================================================
    ★ M-1 + M-2.5: blob_uploads
    ========================================================= */
@@ -1232,8 +1168,6 @@ export type NewSignupSource = typeof signupSources.$inferInsert;
 export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
 
-// db/schema.ts — Campaign 타입 다음, 파일 끝에 추가
-
 /* ★ M-19-8: 자료실 타입 */
 export type ResourceCategory = typeof resourceCategories.$inferSelect;
 export type NewResourceCategory = typeof resourceCategories.$inferInsert;
@@ -1244,8 +1178,8 @@ export type NewResource = typeof resources.$inferInsert;
 export type AnniversaryEmailLog = typeof anniversaryEmailsLog.$inferSelect;
 export type NewAnniversaryEmailLog = typeof anniversaryEmailsLog.$inferInsert;
 
-// db/schema.ts — 파일 끝에 추가
+/* ★ M-19-11 V2: ExpertProfile 타입 제거됨 (members 테이블로 통합) */
 
-/* ★ M-19-11: 전문가 프로필 타입 */
-export type ExpertProfile = typeof expertProfiles.$inferSelect;
-export type NewExpertProfile = typeof expertProfiles.$inferInsert;
+/* ★ Phase A: 사이트 설정 */
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type NewSiteSetting = typeof siteSettings.$inferInsert;
