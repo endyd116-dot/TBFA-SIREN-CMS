@@ -123,7 +123,6 @@ const OPERATOR_CATEGORIES = [
   { code: 'content',    label: '콘텐츠 / 통계', emoji: '📝' },
   { code: 'stats_management', label: '통계 전용', emoji: '📊' },
 ];
-  ];
   const VALID_CAT_CODES = OPERATOR_CATEGORIES.map(c => c.code).concat(['all']);
 
   /**
