@@ -1,10 +1,5 @@
 /**
- * AI 답변 초안 생성 — STEP E-4b + ★ M-10 + ★ 2026-05 요청사항
- *
- * 1. generateReplyDraft        — 유가족 지원 전용
- * 2. generateUniversalReplyDraft — 사건제보/악성민원/법률/자유게시판 통합
- *
- * ★ 2026-05: requestNote 추가 — 운영자가 AI에게 어떤 답변을 원하는지 입력
+ * AI 답변 초안 생성 — STEP E-4b + ★ M-10 + 2026-05 C-2 운영자 요청사항
  */
 import { callGemini } from "./ai-gemini";
 
@@ -23,7 +18,7 @@ const CATEGORY_GUIDE: Record<string, string> = {
 };
 
 /* ═══════════════════════════════════════════════════
-   기존: 유가족 지원 전용 (★ requestNote 추가)
+   기존: 유가족 지원 전용 + 운영자 요청사항 반영
    ═══════════════════════════════════════════════════ */
 export interface ReplyDraftInput {
   applicantName: string;
@@ -32,7 +27,8 @@ export interface ReplyDraftInput {
   content: string;
   priority?: string;
   currentStatus: string;
-  requestNote?: string; /* ★ 2026-05: 운영자 요청사항 */
+  /* ★ C-2: 운영자가 입력하는 답변 요청사항 */
+  instruction?: string;
 }
 
 export interface ReplyDraftResult {
@@ -46,7 +42,14 @@ export async function generateReplyDraft(
 ): Promise<ReplyDraftResult> {
   const categoryKr = CATEGORY_LABEL[input.category] || input.category;
   const guide = CATEGORY_GUIDE[input.category] || "검토 후 안내";
-  const note = (input.requestNote || "").trim();
+
+  /* ★ C-2: 운영자 요청사항이 있으면 시스템 인스트럭션에 포함 */
+  const operatorInstructionBlock = input.instruction && input.instruction.trim()
+    ? `\n\n# ⭐ 운영자 요청사항 (가장 중요)
+${input.instruction.trim()}
+
+위 운영자 요청사항을 반드시 답변 본문에 반영해 주세요. 운영자가 명시한 결정/방향성을 우선시합니다.`
+    : "";
 
   const systemInstruction = `당신은 교사유가족협의회 NPO의 전담 코디네이터입니다.
 유가족 회원에게 따뜻하고 정중한 답변을 작성합니다.
@@ -54,24 +57,17 @@ export async function generateReplyDraft(
 # 작성 원칙
 1. 정중하고 따뜻한 어조 (공감 + 전문성)
 2. 호칭: "${input.applicantName}님"
-3. 분량: 4-6문장 (너무 짧지도 길지도 않게)
+3. 분량: 8-11문장 (너무 짧지도 길지도 않게)
 4. 구조:
-   - 1문장: 감사/위로 인사
-   - 2-3문장: 신청 내용 확인 + 처리 방향 안내
-   - 1-2문장: 다음 단계 (영업일 며칠 이내 / 추가 정보 필요 여부 등)
+   - 1~3문장: 감사/위로 인사
+   - 4-8문장: 신청 내용 확인 + 처리 방향 안내
+   - 9-10문장: 다음 단계 (영업일 며칠 이내 / 추가 정보 필요 여부 등)
    - 마지막: 격려 한마디
 5. 절대 금지:
    - 공허한 약속 ("반드시 해결해드리겠습니다" 등)
    - 책임 회피성 표현
    - 전문 용어 남발
-6. 카테고리별 안내 포인트: ${guide}`;
-
-  const noteBlock = note
-    ? `\n# ⚠️ 운영자 요청사항 (반드시 반영)
-${note}
-
-위 요청사항을 답변의 핵심 메시지로 삼아주세요.`
-    : "";
+6. 카테고리별 안내 포인트: ${guide}${operatorInstructionBlock}`;
 
   const prompt = `다음 유가족 지원 신청에 대한 관리자 답변 초안을 작성해주세요.
 순수 텍스트로만 응답하세요 (마크다운/JSON 사용 금지).
@@ -82,7 +78,6 @@ ${note}
 - 제목: ${input.title}
 - 현재 처리 상태: ${input.currentStatus}
 ${input.priority === "urgent" ? "- ⚠️ AI 긴급 분석: 우선 대응 필요" : ""}
-${noteBlock}
 
 # 신청 내용
 ${input.content.slice(0, 1500)}${input.content.length > 1500 ? "..." : ""}
@@ -112,25 +107,25 @@ ${input.content.slice(0, 1500)}${input.content.length > 1500 ? "..." : ""}
 }
 
 /* ═══════════════════════════════════════════════════
-   ★ M-10: 사이렌 관리 통합 답변 초안 (4종 카테고리)
-   ★ 2026-05: requestNote 추가
+   ★ M-10 NEW: 사이렌 관리 통합 답변 초안 (4종 카테고리) + C-2 요청사항
    ═══════════════════════════════════════════════════ */
 export type UniversalCategory =
-  | "incident"
-  | "harassment"
-  | "legal"
-  | "board";
+  | "incident"      // 사건 제보
+  | "harassment"    // 악성민원
+  | "legal"         // 법률 상담
+  | "board";        // 자유게시판 (관리자 답변/공식 입장 표명)
 
 export interface UniversalReplyInput {
   category: UniversalCategory;
   applicantName: string;
   title: string;
-  contentText: string;
-  aiSeverity?: string;
+  contentText: string;       // HTML 제거된 평문
+  aiSeverity?: string;       // 'critical'|'high'|'medium'|'low' or 'urgent'|'normal'
   aiSummary?: string;
   aiSuggestion?: string;
   currentStatus?: string;
-  requestNote?: string; /* ★ 2026-05: 운영자 요청사항 */
+  /* ★ C-2: 운영자가 입력하는 답변 요청사항 */
+  instruction?: string;
 }
 
 const UNIVERSAL_GUIDE: Record<UniversalCategory, string> = {
@@ -160,7 +155,14 @@ export async function generateUniversalReplyDraft(
   const categoryKr = CATEGORY_KR_UNIVERSAL[input.category];
   const guide = UNIVERSAL_GUIDE[input.category];
   const tone = UNIVERSAL_TONE[input.category];
-  const note = (input.requestNote || "").trim();
+
+  /* ★ C-2: 운영자 요청사항이 있으면 가장 중요한 지시로 포함 */
+  const operatorInstructionBlock = input.instruction && input.instruction.trim()
+    ? `\n\n# ⭐ 운영자 요청사항 (반드시 반영)
+${input.instruction.trim()}
+
+위 운영자 요청사항을 답변 본문에 반드시 반영하여 작성해 주세요. 운영자의 결정/방향성이 일반적인 가이드보다 우선합니다.`
+    : "";
 
   const systemInstruction = `당신은 교사유가족협의회 "사이렌" 사이트의 운영진 코디네이터입니다.
 
@@ -181,7 +183,7 @@ ${tone}
    - 공허한 약속 ("반드시 해결" 등)
    - 책임 회피성 표현
    - 법률 자문이라는 단정 (legal에서 특히)
-   - 익명 게시자 신원 추측 (board에서)`;
+   - 익명 게시자 신원 추측 (board에서)${operatorInstructionBlock}`;
 
   const aiContext = input.aiSeverity || input.aiSummary || input.aiSuggestion
     ? `
@@ -190,13 +192,6 @@ ${input.aiSeverity ? `- 위급도/긴급도: ${input.aiSeverity}` : ""}
 ${input.aiSummary ? `- AI 요약: ${input.aiSummary}` : ""}
 ${input.aiSuggestion ? `- AI 권장: ${input.aiSuggestion}` : ""}
 `
-    : "";
-
-  const noteBlock = note
-    ? `\n# ⚠️ 운영자 요청사항 (반드시 반영)
-${note}
-
-위 요청사항을 답변의 핵심 메시지로 삼아주세요. 운영자가 의도한 방향(거절/지원/보완 요청 등)을 정확히 전달하세요.`
     : "";
 
   const prompt = `다음 ${categoryKr}에 대한 관리자 답변 초안을 작성해주세요.
@@ -208,7 +203,6 @@ ${note}
 - 제목: ${input.title}
 ${input.currentStatus ? `- 현재 상태: ${input.currentStatus}` : ""}
 ${aiContext}
-${noteBlock}
 
 # 본문
 ${input.contentText.slice(0, 2000)}${input.contentText.length > 2000 ? "..." : ""}

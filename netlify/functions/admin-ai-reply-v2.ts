@@ -1,6 +1,5 @@
 // netlify/functions/admin-ai-reply-v2.ts
-// ★ M-10: 사이렌 관리 통합 AI 답변 초안 (사건/악성/법률/자유게시판)
-// ★ 2026-05 패치: type-only import 의존성 완전 제거 (빌드 안정성 ↑)
+// ★ M-10 + 2026-05 C-2: 사이렌 관리 통합 AI 답변 초안 + 운영자 요청사항
 
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
@@ -48,6 +47,10 @@ export default async (req: Request, _ctx: Context) => {
 
     const kind = String(body.kind || "");
     const id = Number(body.id);
+    /* ★ C-2: 운영자 요청사항 (선택, 최대 1000자) */
+    const instruction = typeof body.instruction === "string"
+      ? body.instruction.trim().slice(0, 1000)
+      : "";
 
     if (!VALID_KINDS.includes(kind as any)) {
       return badRequest("kind 유효하지 않음 (incident|harassment|legal|board)");
@@ -129,6 +132,7 @@ export default async (req: Request, _ctx: Context) => {
       aiSummary,
       aiSuggestion,
       currentStatus,
+      instruction,
     });
 
     if (!result.ok) {
