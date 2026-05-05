@@ -5,6 +5,7 @@
 // - try-catch로 격리되어 있어 본 작업을 막지 않음
 
 import { callGeminiJSON } from "./ai-gemini";
+import { loadAttachmentsForAI } from "./ai-attachments";
 
 export interface IncidentAIResult {
   severity: "low" | "medium" | "high" | "critical";
@@ -59,6 +60,7 @@ export async function analyzeIncidentReport(opts: {
   incidentTitle?: string;
   reportTitle: string;
   reportContent: string;
+  attachmentIds?: number[];
 }): Promise<IncidentAIResult> {
   const { incidentTitle, reportTitle, reportContent } = opts;
   const text = htmlToText(reportContent);
@@ -95,9 +97,13 @@ ${text}
 }`;
 
   try {
+    /* ★ B-9: 첨부 파일 로드 */
+    const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
+    const fullPrompt = prompt + attach.summary;
+
     const result = await callGeminiJSON<{ severity: string; summary: string; suggestion: string }>(
-      prompt,
-      { temperature: 0.3, maxOutputTokens: 2000 }
+      fullPrompt,
+      { temperature: 0.3, maxOutputTokens: 2000, inlineFiles: attach.files }
     );
 
     if (!result.ok || !result.data) {

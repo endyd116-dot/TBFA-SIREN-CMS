@@ -3,6 +3,7 @@
 // - 분야/긴급도/관련법령/1차의견/변호사 전문분야
 
 import { callGeminiJSON } from "./ai-gemini";
+import { loadAttachmentsForAI } from "./ai-attachments";
 
 export interface LegalAIResult {
   category: "school_dispute" | "civil" | "criminal" | "family" | "labor" | "contract" | "other";
@@ -62,6 +63,7 @@ export async function analyzeLegalConsultation(opts: {
   reportTitle: string;
   reportContent: string;
   partyInfo?: string;
+  attachmentIds?: number[];
 }): Promise<LegalAIResult> {
   const { userCategory, userUrgency, reportTitle, reportContent, partyInfo } = opts;
   const text = htmlToText(reportContent);
@@ -138,7 +140,9 @@ ${text}
 }`;
 
   try {
-    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 3000 });
+    const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
+    const fullPrompt = prompt + attach.summary;
+    const result = await callGeminiJSON<any>(fullPrompt, { temperature: 0.3, maxOutputTokens: 3000, inlineFiles: attach.files });
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);
     }

@@ -3,6 +3,7 @@
 // - 분류 + 심각도 + 즉각대처 + 법적검토 + 심리지원
 
 import { callGeminiJSON } from "./ai-gemini";
+import { loadAttachmentsForAI } from "./ai-attachments";
 
 export interface HarassmentAIResult {
   category: "parent" | "student" | "admin" | "colleague" | "other";
@@ -61,6 +62,7 @@ export async function analyzeHarassmentReport(opts: {
   reportTitle: string;
   reportContent: string;
   frequency?: string;
+  attachmentIds?: number[];
 }): Promise<HarassmentAIResult> {
   const { userCategory, reportTitle, reportContent, frequency } = opts;
   const text = htmlToText(reportContent);
@@ -121,7 +123,9 @@ ${text}
 }`;
 
   try {
-    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 3000 });
+    const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
+    const fullPrompt = prompt + attach.summary;
+    const result = await callGeminiJSON<any>(fullPrompt, { temperature: 0.3, maxOutputTokens: 3000, inlineFiles: attach.files });
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);
     }

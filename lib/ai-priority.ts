@@ -7,6 +7,7 @@
  *   - low: 일반 문의/장기 사안
  */
 import { callGeminiJSON } from "./ai-gemini";
+import { loadAttachmentsForAI } from "./ai-attachments";
 
 export type PriorityLevel = "urgent" | "normal" | "low";
 
@@ -32,6 +33,7 @@ export async function analyzePriority(input: {
   category: string;
   title: string;
   content: string;
+  attachmentIds?: number[];
 }): Promise<PriorityAnalysis> {
   const categoryKr = CATEGORY_LABEL[input.category] || input.category;
 
@@ -70,9 +72,12 @@ JSON 객체로만 응답하세요. 설명 없이 JSON만 출력:
 }`;
 
   try {
-    const result = await callGeminiJSON<PriorityAnalysis>(prompt, {
+    const attach = await loadAttachmentsForAI(input.attachmentIds || []);
+    const fullPrompt = prompt + attach.summary;
+    const result = await callGeminiJSON<PriorityAnalysis>(fullPrompt, {
       temperature: 0.2,
       maxOutputTokens: 500,
+      inlineFiles: attach.files,
     });
 
     if (result.ok && result.data) {
