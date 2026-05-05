@@ -406,6 +406,8 @@
   /* ★ 카운트다운 모달 — 강제 표시 + 중복 방지 */
   /* ★ 카운트다운 모달 — 중복 방지 + 강제 표시 */
   let _hyosungShowing = false;
+  /* ★ 카운트다운 모달 — 중복 방지 + 강제 표시 */
+  let _hyosungShowing = false;
   function openHyosungCountdown(url, guideText, seconds) {
     /* 중복 호출 차단 */
     if (_hyosungShowing) {
