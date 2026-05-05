@@ -281,19 +281,42 @@
     /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
   /* ★ 2026-05 패치: admin API 호출 제거 → 401로 인한 로그인 모달 강제 오픈 방지
      향후 public 통계 API가 추가되면 그쪽으로 교체 권장 */
+    /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
+  /* ★ 2026-05 v2: /api/public/stats 사용 (admin API 호출 X, 401 발생 X) */
   async function initReport() {
     if (typeof Chart === 'undefined') return;
 
-    /* 3-1. 월별 후원금 (Bar) - 정적 데이터 사용 */
+    /* 공개 통계 API 호출 — 인증 불필요 */
+    let statsData = null;
+    try {
+      const res = await fetch('/api/public/stats');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok) statsData = json.data;
+      }
+    } catch (e) {
+      console.warn('[charts] public stats failed, using fallback', e);
+    }
+
+    /* 3-1. 월별 후원금 (Bar) */
     const r1 = document.getElementById('reportChart1');
     if (r1 && !instances.reportChart1) {
-      const labels = ['1월', '2월', '3월', '4월'];
-      const values = [84200000, 96500000, 118000000, 112400000];
+      const trend = (statsData && Array.isArray(statsData.donations?.monthlyTrend))
+        ? statsData.donations.monthlyTrend
+        : [
+          { month: '1월', amount: 84200000 },
+          { month: '2월', amount: 96500000 },
+          { month: '3월', amount: 118000000 },
+          { month: '4월', amount: 112400000 },
+        ];
+
+      const labels = trend.map((t) => t.month || '');
+      const values = trend.map((t) => Number(t.amount) || 0);
 
       instances.reportChart1 = new Chart(r1.getContext('2d'), {
         type: 'bar',
         data: {
-          labels: labels,
+          labels,
           datasets: [{
             label: '후원금',
             data: values,
@@ -312,9 +335,7 @@
               padding: 12,
               cornerRadius: 6,
               callbacks: {
-                label: function (ctx) {
-                  return fmtKrw(ctx.parsed.y);
-                },
+                label: function (ctx) { return fmtKrw(ctx.parsed.y); },
               },
             },
           },
@@ -324,9 +345,7 @@
               ticks: {
                 font: baseFont,
                 color: '#888',
-                callback: function (value) {
-                  return fmtKrwShort(value);
-                },
+                callback: function (value) { return fmtKrwShort(value); },
               },
               grid: { color: '#f0eeeb' },
             },
@@ -339,21 +358,24 @@
       });
     }
 
-    /* 3-2. 집행 비율 (Doughnut) - 정적 더미 */
+    /* 3-2. 집행 비율 (Doughnut) */
     const r2 = document.getElementById('reportChart2');
     if (r2 && !instances.reportChart2) {
+      const dist = (statsData && statsData.distribution) || {};
+      const data = [
+        Number(dist.directSupport ?? 58),
+        Number(dist.memorial ?? 17),
+        Number(dist.scholarship ?? 15),
+        Number(dist.operation ?? 10),
+      ];
+
       instances.reportChart2 = new Chart(r2.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['직접 지원', '추모 사업', '장학 사업', '운영비'],
           datasets: [{
-            data: [58, 17, 15, 10],
-            backgroundColor: [
-              COLORS.brand,
-              COLORS.gold,
-              COLORS.ink,
-              COLORS.mute,
-            ],
+            data,
+            backgroundColor: [COLORS.brand, COLORS.gold, COLORS.ink, COLORS.mute],
             borderWidth: 0,
           }],
         },
@@ -363,21 +385,14 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                font: baseFont,
-                color: '#525252',
-                boxWidth: 12,
-                padding: 10,
-              },
+              labels: { font: baseFont, color: '#525252', boxWidth: 12, padding: 10 },
             },
             tooltip: {
               backgroundColor: '#0f0f0f',
               padding: 12,
               cornerRadius: 6,
               callbacks: {
-                label: function (ctx) {
-                  return ctx.label + ': ' + ctx.parsed + '%';
-                },
+                label: function (ctx) { return ctx.label + ': ' + ctx.parsed + '%'; },
               },
             },
           },
