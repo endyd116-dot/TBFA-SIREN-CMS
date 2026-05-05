@@ -1,7 +1,8 @@
 /* =========================================================
-   SIREN — legal.js (★ Phase M-7 + 2026-05 M-17 후원자 분기 + 디버그 로그)
+   SIREN — legal.js (★ Phase M-7 + 2026-05 + B-9 토스트)
    - 법률지원 서비스 페이지
    - 단일 페이지 STEP 1/2/3 전환
+   - ★ B-9: AI 분석 시간 동적 토스트 (다중 폴백)
    ========================================================= */
 (function () {
   'use strict';
@@ -20,6 +21,52 @@
       low:    { icon: '💡', label: 'LOW — 단순 자문/참고',             cls: 'low' },
     };
     return map[u] || map.normal;
+  }
+
+  /* ★ B-9: 본문/첨부량 기반 토스트 시간 동적 계산 */
+  function calcAiToastDuration(plainLen, attachCount) {
+    let ms = 8000;
+    if (plainLen > 200) ms += 5000;
+    if (plainLen > 500) ms += 5000;
+    if (plainLen > 1000) ms += 10000;
+    ms += (attachCount || 0) * 10000;
+    return Math.min(ms, 90000);
+  }
+
+  /* ★ B-9: 다중 폴백 토스트 (SIREN.toast 우회) */
+  function showAiToast(msg, duration) {
+    const ms = duration || 5000;
+    console.log('[legal] 🟢 showAiToast 호출됨', { msg: msg.slice(0, 30), ms });
+
+    const t = document.getElementById('toast');
+    if (t) {
+      console.log('[legal] → #toast 직접 조작 (duration', ms, 'ms)');
+      if (t._aiTimer) clearTimeout(t._aiTimer);
+      if (t._tt) clearTimeout(t._tt);
+      setTimeout(() => {
+        t.textContent = msg;
+        t.style.whiteSpace = 'pre-line';
+        t.style.maxWidth = '90vw';
+        t.style.lineHeight = '1.6';
+        t.style.padding = '16px 26px';
+        t.classList.add('show');
+        t._aiTimer = setTimeout(() => {
+          t.classList.remove('show');
+          t.style.whiteSpace = '';
+          t.style.maxWidth = '';
+          t.style.lineHeight = '';
+          t.style.padding = '';
+        }, ms);
+      }, 50);
+      return;
+    }
+
+    /* 폴백 */
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:#fff;padding:14px 26px;border-radius:12px;font-size:13.5px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-weight:500;line-height:1.6;text-align:center;white-space:pre-line;max-width:90vw;';
+    tmp.textContent = msg;
+    document.body.appendChild(tmp);
+    setTimeout(() => tmp.remove(), ms);
   }
 
   /* ============ 상태 ============ */
@@ -44,7 +91,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /* ============ 편집기 + 첨부 ============ */
   /* ============ 편집기 + 첨부 ============ */
   async function initEditorAndAttachments() {
     if (!_editor) {
@@ -73,17 +119,13 @@
   }
 
   /* ============ 폼 제출 ============ */
-  /* ============ 폼 제출 ============ */
   async function handleSubmit(e) {
     e.preventDefault();
     console.log('[legal] 🔵 handleSubmit 호출됨');
     const form = e.target;
 
     const auth = window.SIREN_AUTH;
-    console.log('[legal] auth 상태:', { hasAuth: !!auth, isLoggedIn: auth ? auth.isLoggedIn() : 'no auth' });
-
     if (!auth || !auth.isLoggedIn()) {
-      console.log('[legal] ❌ 로그인 필요 — 중단');
       window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
       setTimeout(() => {
         const loginBtn = document.querySelector('[data-target="loginModal"]');
@@ -100,18 +142,12 @@
     const title = String(fd.get('title') || '').trim();
     const isAnonymous = !!fd.get('isAnonymous');
 
-    console.log('[legal] 📝 입력값:', {
-      category, urgency, title, titleLen: title.length,
-      isAnonymous, hasEditor: !!_editor
-    });
-
     if (!title) {
-      console.log('[legal] ❌ 제목 비어있음 — 중단');
       window.SIREN.toast('제목을 입력해 주세요');
       return;
     }
 
-    /* ★ getHTML 정규식 깨짐 대응: 1차 getHTML, 실패 시 DOM 직접 추출 */
+    /* getHTML 정규식 깨짐 대응: DOM 폴백 */
     let contentHtml = '';
     if (_editor) {
       try {
@@ -123,42 +159,30 @@
           const wysiwyg = editorEl?.querySelector('.toastui-editor-ww-container .toastui-editor-contents');
           const md = editorEl?.querySelector('.toastui-editor-md-container .toastui-editor-contents');
           contentHtml = (wysiwyg?.innerHTML || md?.innerHTML || '').trim();
-          console.log('[legal] 🔄 DOM 폴백 결과 길이:', contentHtml.length);
-        } catch (e2) {
-          console.error('[legal] DOM 폴백도 실패:', e2);
-        }
+        } catch (_) {}
       }
 
-      /* 2차 폴백: getMarkdown으로 시도 */
       if (!contentHtml) {
         try {
           const md = _editor.getMarkdown();
-          if (md) {
-            contentHtml = md.replace(/\n/g, '<br />');
-            console.log('[legal] 🔄 getMarkdown 폴백 사용, 길이:', contentHtml.length);
-          }
+          if (md) contentHtml = md.replace(/\n/g, '<br />');
         } catch (_) {}
       }
     }
     contentHtml = String(contentHtml || '').trim();
 
     const plain = contentHtml.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-    console.log('[legal] 📄 본문 길이:', { htmlLen: contentHtml.length, plainLen: plain.length });
-
     if (plain.length < 10) {
-      console.log('[legal] ❌ 본문 10자 미만 — 중단');
       window.SIREN.toast('사실관계를 10자 이상 입력해 주세요');
       return;
     }
 
     if (_attachments && _attachments.hasUploading && _attachments.hasUploading()) {
-      console.log('[legal] ❌ 첨부 업로드 중 — 중단');
       window.SIREN.toast('첨부 파일이 아직 업로드 중입니다');
       return;
     }
 
     const attachmentIds = (_attachments && _attachments.getIds) ? _attachments.getIds() : [];
-    console.log('[legal] 📎 첨부:', attachmentIds);
 
     const submitBtn = document.getElementById('legalSubmitBtn');
     const oldText = submitBtn ? submitBtn.textContent : '';
@@ -167,8 +191,14 @@
       submitBtn.textContent = '🤖 AI 법률 분석 중... (최대 15초)';
     }
 
+    /* ★ B-9: AI 분석 시간 동적 토스트 */
+    const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
+    showAiToast(
+      '🤖 AI 법률 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+      toastMs
+    );
+
     try {
-      console.log('[legal] 🚀 API 호출 시작');
       const res = await fetch('/api/legal-consultation-create', {
         method: 'POST',
         credentials: 'include',
@@ -178,9 +208,7 @@
           title, contentHtml, isAnonymous, attachmentIds,
         }),
       });
-      console.log('[legal] 📡 API 응답:', { status: res.status, ok: res.ok });
       const json = await res.json();
-      console.log('[legal] 📦 응답 본문:', json);
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
@@ -207,19 +235,17 @@
     }
   }
 
-  /* ============ AI 결과 렌더 (★ M-17 후원자 분기 추가) ============ */
+  /* ============ AI 결과 렌더 ============ */
   function renderAiResult(data) {
     const noEl = document.getElementById('legalConsultationNo');
     if (noEl) noEl.textContent = data.consultationNo || '-';
 
     if (data.isDonor && data.ai) {
-      /* ─── 후원자 — AI 분석 결과 정상 표시 ─── */
       const ai = data.ai;
 
       const notice = document.getElementById('legalPremiumNotice');
       if (notice) notice.style.display = 'none';
 
-      /* 긴급도 배너 */
       const banner = document.getElementById('legalUrgencyBanner');
       if (banner) {
         banner.style.display = '';
@@ -245,7 +271,6 @@
         if (el) el.textContent = val;
       });
     } else if (data.premiumNotice) {
-      /* ─── 비후원자 — 후원 회원 전용 안내 ─── */
       const banner = document.getElementById('legalUrgencyBanner');
       if (banner) banner.style.display = 'none';
 
@@ -259,7 +284,6 @@
     }
   }
 
-  /* ★ M-17: 비후원자 안내 박스 */
   function renderLegalPremiumNotice(notice) {
     const step2 = document.querySelector('.legal-step[data-legal-step="2"]');
     if (!step2) return;
@@ -349,15 +373,8 @@
 
   /* ============ 초기화 ============ */
   function init() {
-    if (_initDone) {
-      console.log('[legal] ⏭ 이미 init 완료, 중복 호출 무시');
-      return;
-    }
-    console.log('[legal] init() 호출, body.dataset.page =', document.body.dataset.page);
-    if (document.body.dataset.page !== 'legal') {
-      console.log('[legal] ⏭ 다른 페이지이므로 init 스킵');
-      return;
-    }
+    if (_initDone) return;
+    if (document.body.dataset.page !== 'legal') return;
 
     setTimeout(() => {
       const auth = window.SIREN_AUTH;
@@ -371,12 +388,7 @@
     initEditorAndAttachments();
 
     const form = document.getElementById('legalForm');
-    if (form) {
-      console.log('[legal] ✅ form 발견 + submit 핸들러 등록');
-      form.addEventListener('submit', handleSubmit);
-    } else {
-      console.warn('[legal] ❌ #legalForm 요소를 찾을 수 없음');
-    }
+    if (form) form.addEventListener('submit', handleSubmit);
 
     const btnSiren = document.getElementById('legalBtnSiren');
     const btnAiOnly = document.getElementById('legalBtnAiOnly');

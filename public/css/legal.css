@@ -1,8 +1,9 @@
 /* public/css/legal.css
-   ★ Phase M-7: 법률지원 서비스 페이지 스타일
-   - M-6 harassment.css와 컬러/레이아웃 일관성 유지
-   - 법률 특화: 관련법령 박스, 변호사 전문분야 카드 */
+   ★ Phase M-7 + 2026-05: 법률지원 서비스 페이지 스타일
+   - 중복 정의 제거 + UI 깨짐 수정
+   - M-6 harassment.css와 컬러/레이아웃 일관성 유지 */
 
+/* ===== 페이지 컨테이너 ===== */
 .legal-wrap {
   max-width: 880px;
   margin: 0 auto;
@@ -167,6 +168,7 @@
 
 .legal-form-card input[type="text"],
 .legal-form-card input[type="date"],
+.legal-form-card input[type="datetime-local"],
 .legal-form-card select {
   width: 100%;
   padding: 10px 12px;
@@ -180,31 +182,35 @@
 
 .legal-form-card input[type="text"]:focus,
 .legal-form-card input[type="date"]:focus,
+.legal-form-card input[type="datetime-local"]:focus,
 .legal-form-card select:focus {
   outline: none;
   border-color: #5a4d8c;
   box-shadow: 0 0 0 3px rgba(90, 77, 140, 0.1);
 }
 
-/* ===== 카테고리 그리드 (7개) ===== */
+/* ===== ★ B-5 핫픽스: 법률 분야 카테고리 그리드 (7개) ===== */
 .legal-cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 10px !important;
 }
 
 .legal-cat-grid label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 2px solid var(--line);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-  margin: 0;
-  font-weight: 500;
-  font-size: 13.5px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 14px 16px !important;
+  border: 2px solid var(--line) !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  background: #fff;
+  box-sizing: border-box !important;
+  word-break: keep-all;
 }
 
 .legal-cat-grid label:hover {
@@ -215,10 +221,27 @@
 .legal-cat-grid label:has(input:checked) {
   border-color: #5a4d8c;
   background: linear-gradient(135deg, #fff, #f8f7fc);
+  font-weight: 700;
 }
 
-.legal-cat-grid input[type="radio"] { margin: 0; }
-.legal-cat-grid .cat-icon { font-size: 18px; }
+.legal-cat-grid input[type="radio"] {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  width: 14px !important;
+  height: 14px !important;
+  accent-color: #5a4d8c;
+}
+
+.legal-cat-grid .cat-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.legal-cat-grid label > span:not(.cat-icon) {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
 
 /* ===== 긴급도 라디오 ===== */
 .legal-urgency-row {
@@ -257,28 +280,33 @@
 
 .legal-urgency-row input[type="radio"] { display: none; }
 
-/* ===== 액션 버튼 ===== */
+/* ===== ★ B-5 핫픽스: 액션 버튼 정렬 통일 ===== */
 .legal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 24px;
-  justify-content: flex-end;
+  display: flex !important;
+  gap: 10px !important;
+  margin-top: 24px !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap;
 }
 
-.legal-actions button,
-.legal-actions a {
-  padding: 12px 26px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-family: inherit;
-  transition: all 0.15s;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.legal-actions .btn-cancel,
+.legal-actions .btn-submit,
+.legal-actions a.btn-cancel,
+.legal-actions button.btn-submit {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 26px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: all 0.15s !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
 }
 
 .legal-actions .btn-cancel {
@@ -289,11 +317,13 @@
 
 .legal-actions .btn-cancel:hover {
   background: var(--bg-soft);
+  color: var(--text-1);
 }
 
 .legal-actions .btn-submit {
   background: #5a4d8c;
   color: #fff;
+  border: none;
 }
 
 .legal-actions .btn-submit:hover:not(:disabled) {
@@ -398,6 +428,7 @@
   font-size: 13.5px;
   color: var(--text-2);
   line-height: 1.75;
+  white-space: pre-wrap;
 }
 
 /* 관련 법령 박스 (특수 강조) */
@@ -419,7 +450,7 @@
 
 /* 변호사 전문분야 카드 */
 .legal-lawyer-card {
-  background: linear-gradient(135deg, #fff, #f8f7fc);
+  background: linear-gradient(135deg, #5a4d8c, #483d6e);
   border: 2px solid #5a4d8c;
   border-radius: 10px;
   padding: 18px 22px;
@@ -427,6 +458,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  color: #fff;
 }
 
 .legal-lawyer-card .icon {
@@ -442,7 +474,7 @@
 .legal-lawyer-card .label {
   font-size: 11.5px;
   font-weight: 600;
-  color: #5a4d8c;
+  color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
@@ -450,11 +482,10 @@
 .legal-lawyer-card .specialty {
   font-size: 16px;
   font-weight: 700;
-  color: var(--ink);
   font-family: 'Noto Serif KR', serif;
 }
 
-/* 즉시 조치 (강조) */
+/* 즉시 조치 (강조 빨강) */
 .legal-immediate-box {
   background: #fef2f2;
   border: 1px solid #fca5a5;
