@@ -67,7 +67,10 @@ export default async (req: Request) => {
     let priority = "normal";
     let priorityReason = skipAi ? "AI 분석 건너뜀 (사용자 선택)" : "AI 미실행";
     if (!skipAi) try {
-      const analysis = await analyzePriority({ category, title, content });
+      const attachIds = attachments && attachments.length > 0
+        ? attachments.map((k: string) => Number(k)).filter(Number.isFinite)
+        : [];
+      const analysis = await analyzePriority({ category, title, content, attachmentIds: attachIds });
       priority = analysis.priority;
       priorityReason = analysis.reason;
       console.log(`[support-create] AI 우선순위: ${priority} (${analysis.confidence}) - ${analysis.reason}`);

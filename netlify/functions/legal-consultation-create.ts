@@ -87,6 +87,7 @@ export default async (req: Request, _ctx: Context) => {
         reportTitle: title,
         reportContent: contentHtml,
         partyInfo: partyInfo || undefined,
+        attachmentIds,
       });
 
       await db.update(legalConsultations).set({

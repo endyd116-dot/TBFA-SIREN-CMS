@@ -95,6 +95,7 @@ export default async (req: Request, _ctx: Context) => {
         incidentTitle,
         reportTitle: title,
         reportContent: contentHtml,
+        attachmentIds,
       });
 
       await db.update(incidentReports).set({
