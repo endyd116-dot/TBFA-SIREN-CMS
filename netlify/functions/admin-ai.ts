@@ -173,4 +173,8 @@ export default async (req: Request) => {
   }
 };
 
-export const config = { path: "/api/admin/ai/*" };
+/* ★ 2026-05 패치: 와일드카드 제거 → 3개 액션만 명시
+   다른 admin-ai-*.ts (reply-draft, reply-draft-v2, expert-match, similar-cases)와의 path 충돌 방지 */
+export const config = {
+  path: ["/api/admin/ai/match", "/api/admin/ai/churn", "/api/admin/ai/distribution"],
+};
