@@ -240,12 +240,16 @@
               <input type="radio" name="payMethodChoice" value="toss_card" checked style="margin-top:3px">
               <div style="flex:1">
                 <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:3px">
+            <label class="pay-method-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--line);border-radius:8px;cursor:pointer;transition:all 0.15s">
+              <input type="radio" name="onetimeChoice" value="toss_card" checked style="margin-top:3px">
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:3px">
                   💳 신용카드 (토스페이먼츠)
                 </div>
                 <div style="font-size:12px;color:var(--text-3);line-height:1.5">
-                  • 카드 정보 1회 등록 후 매월 자동 결제<br />
-                  • 즉시 등록 완료 (3분)<br />
-                  • 수수료: 결제금액의 약 2~3%
+                  • 신용카드 결제<br />
+                  • 즉시 결제 완료 (3분 이내)<br />
+                  • 영수증 PDF 마이페이지에서 즉시 발급
                 </div>
               </div>
             </label>
@@ -257,9 +261,8 @@
                   🏦 계좌 자동이체 (효성 CMS+)
                 </div>
                 <div style="font-size:12px;color:var(--text-3);line-height:1.5">
-                  • 계좌 등록 + 본인인증 (5~10분)<br />
-                  • 매월 지정일 자동 출금<br />
-                  • 수수료: 건당 약 250원 (정액)
+                  • 계좌 등록 + 본인인증 (5분)<br />
+                  • 매월 지정일 자동 출금<br />                  
                 </div>
               </div>
             </label>
@@ -285,7 +288,7 @@
               <input type="radio" name="onetimeChoice" value="bank_transfer" style="margin-top:3px">
               <div style="flex:1">
                 <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:3px">
-                  🏦 직접 계좌이체
+                  🏦 직접 계좌이체 <span style="font-weight:400;font-size:11.5px;color:var(--text-3)">(계좌번호로 직접이체하기)</span>
                 </div>
                 <div style="font-size:12px;color:var(--text-3);line-height:1.5">
                   • 제공된 계좌로 직접 이체<br />

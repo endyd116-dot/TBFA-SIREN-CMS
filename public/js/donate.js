@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — donate.js (★ 2026-05: 효성 카운트다운 + 정책 동적 적용)
+   SIREN — donate.js (★ 2026-05: 카운트다운 모달 강제 표시 + 일시 결제 텍스트 변경)
    ========================================================= */
 (function () {
   'use strict';
@@ -90,7 +90,6 @@
     });
   }
 
-  /* ★ 정책 → 금액 버튼 동적 갱신 */
   function applyAmountButtons(policy) {
     const grid = document.querySelector('#donateModal .amt-grid');
     if (!grid) return;
@@ -130,7 +129,6 @@
           if (h2 && _policyCache.modalTitle) h2.textContent = _policyCache.modalTitle;
           if (sub && _policyCache.modalSubtitle) sub.textContent = _policyCache.modalSubtitle;
 
-          /* ★ 정책 기반 금액 버튼 동적 갱신 */
           applyAmountButtons(_policyCache);
         }
 
@@ -203,7 +201,6 @@
           || e.target.name === 'payMethodChoice'
           || e.target.name === 'onetimeChoice') {
         updatePayMethodVisibility();
-        /* ★ dtype 변경 시 금액 버튼도 갱신 */
         if (e.target.name === 'dtype' && _policyCache) {
           applyAmountButtons(_policyCache);
         }
@@ -390,7 +387,6 @@
 
     if (!res.ok || !result.ok) throw new Error(result.error || '신청 처리 실패');
 
-    /* ★ 정책에서 받은 값 우선 */
     const policy = _policyCache || {};
     const hyosungUrl = result.data?.hyosungUrl
       || policy.hyosungUrl
@@ -402,20 +398,25 @@
       || Number(result.data?.autoRedirectSeconds)
       || 5;
 
+    /* ★ 후원 모달 닫기 → 600ms 후 카운트다운 모달 */
     closeModalById('donateModal');
-    setTimeout(() => openHyosungCountdown(hyosungUrl, guideText, seconds), 350);
+    setTimeout(() => openHyosungCountdown(hyosungUrl, guideText, seconds), 600);
   }
 
-  /* ★ 카운트다운 모달 (창 2개 방지 + 중복 방지) */
+  /* ★ 카운트다운 모달 — 강제 표시 + 중복 방지 */
   function openHyosungCountdown(url, guideText, seconds) {
+    console.log('[Donate] 🔵 openHyosungCountdown 호출', { url, seconds });
+
     const modal = document.getElementById('hyosungRedirectModal');
 
     if (!modal) {
-      console.warn('[Donate] hyosungRedirectModal 없음 → 폴백');
+      console.error('[Donate] ❌ hyosungRedirectModal DOM에 없음 → 폴백');
       window.SIREN.toast('효성 CMS+ 페이지로 이동합니다...');
       setTimeout(() => { window.location.href = url; }, 1000);
       return;
     }
+
+    console.log('[Donate] ✅ 모달 발견');
 
     const guideEl = document.getElementById('hyosungGuideText');
     const countEl = document.getElementById('hyosungCountdown');
@@ -430,7 +431,7 @@
     let remain = Math.max(1, Math.min(30, Number(seconds) || 5));
     if (countEl) countEl.textContent = String(remain);
 
-    /* 기존 리스너 제거 (cloneNode 트릭) */
+    /* 기존 리스너 제거 */
     if (confirmBtn) {
       const cb = confirmBtn.cloneNode(true);
       confirmBtn.parentNode.replaceChild(cb, confirmBtn);
@@ -456,7 +457,10 @@
       if (_done) return;
       _done = true;
       stopTimer();
-      closeModalById('hyosungRedirectModal');
+      modal.classList.remove('show');
+      modal.style.zIndex = '';
+      modal.style.display = '';
+      document.body.style.overflow = '';
       console.log('[Donate] 효성 페이지로 이동:', url);
       window.location.href = url;
     };
@@ -465,7 +469,10 @@
       if (_done) return;
       _done = true;
       stopTimer();
-      closeModalById('hyosungRedirectModal');
+      modal.classList.remove('show');
+      modal.style.zIndex = '';
+      modal.style.display = '';
+      document.body.style.overflow = '';
       window.SIREN.toast('이동이 취소되었습니다');
     };
 
@@ -480,7 +487,20 @@
     if (cancelBtn) cancelBtn.addEventListener('click', cancel);
     if (cancelBtn2) cancelBtn2.addEventListener('click', cancel);
 
-    openModalById('hyosungRedirectModal');
+    /* ★ 강제 표시 + z-index 우선순위 */
+    modal.classList.add('show');
+    modal.style.zIndex = '1100';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    void modal.offsetHeight;
+
+    console.log('[Donate] 모달 표시:', {
+      classList: modal.classList.toString(),
+      display: getComputedStyle(modal).display,
+      zIndex: modal.style.zIndex,
+    });
+
     timer = setInterval(tick, 1000);
   }
 
