@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — legal.js (★ Phase M-7 + 2026-05 M-17 후원자 분기 추가)
+   SIREN — legal.js (★ Phase M-7 + 2026-05 M-17 후원자 분기 + 디버그 로그)
    - 법률지원 서비스 페이지
    - 단일 페이지 STEP 1/2/3 전환
    ========================================================= */
@@ -26,6 +26,7 @@
   let _editor = null;
   let _attachments = null;
   let _lastConsultationId = null;
+  let _initDone = false;
 
   /* ============ 단계 전환 ============ */
   function showStep(n) {
@@ -78,7 +79,9 @@
 
     const auth = window.SIREN_AUTH;
     console.log('[legal] auth 상태:', { hasAuth: !!auth, isLoggedIn: auth ? auth.isLoggedIn() : 'no auth' });
+
     if (!auth || !auth.isLoggedIn()) {
+      console.log('[legal] ❌ 로그인 필요 — 중단');
       window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
       setTimeout(() => {
         const loginBtn = document.querySelector('[data-target="loginModal"]');
@@ -95,27 +98,40 @@
     const title = String(fd.get('title') || '').trim();
     const isAnonymous = !!fd.get('isAnonymous');
 
+    console.log('[legal] 📝 입력값:', {
+      category, urgency, title, titleLen: title.length,
+      isAnonymous, hasEditor: !!_editor
+    });
+
     if (!title) {
+      console.log('[legal] ❌ 제목 비어있음 — 중단');
       window.SIREN.toast('제목을 입력해 주세요');
       return;
     }
 
     let contentHtml = '';
-    try { contentHtml = _editor ? _editor.getHTML() : ''; } catch (_) {}
+    try { contentHtml = _editor ? _editor.getHTML() : ''; } catch (err) {
+      console.error('[legal] getHTML 에러:', err);
+    }
     contentHtml = String(contentHtml || '').trim();
 
     const plain = contentHtml.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    console.log('[legal] 📄 본문 길이:', { htmlLen: contentHtml.length, plainLen: plain.length });
+
     if (plain.length < 10) {
+      console.log('[legal] ❌ 본문 10자 미만 — 중단');
       window.SIREN.toast('사실관계를 10자 이상 입력해 주세요');
       return;
     }
 
     if (_attachments && _attachments.hasUploading && _attachments.hasUploading()) {
+      console.log('[legal] ❌ 첨부 업로드 중 — 중단');
       window.SIREN.toast('첨부 파일이 아직 업로드 중입니다');
       return;
     }
 
     const attachmentIds = (_attachments && _attachments.getIds) ? _attachments.getIds() : [];
+    console.log('[legal] 📎 첨부:', attachmentIds);
 
     const submitBtn = document.getElementById('legalSubmitBtn');
     const oldText = submitBtn ? submitBtn.textContent : '';
@@ -125,6 +141,7 @@
     }
 
     try {
+      console.log('[legal] 🚀 API 호출 시작');
       const res = await fetch('/api/legal-consultation-create', {
         method: 'POST',
         credentials: 'include',
@@ -134,7 +151,9 @@
           title, contentHtml, isAnonymous, attachmentIds,
         }),
       });
+      console.log('[legal] 📡 API 응답:', { status: res.status, ok: res.ok });
       const json = await res.json();
+      console.log('[legal] 📦 응답 본문:', json);
 
       if (!res.ok || !json.ok) {
         if (res.status === 401) {
@@ -151,7 +170,7 @@
       renderAiResult(data);
       showStep(2);
     } catch (e) {
-      console.error('[legal] submit', e);
+      console.error('[legal] submit 예외:', e);
       window.SIREN.toast('네트워크 오류. 잠시 후 다시 시도해 주세요');
     } finally {
       if (submitBtn) {
@@ -303,6 +322,10 @@
 
   /* ============ 초기화 ============ */
   function init() {
+    if (_initDone) {
+      console.log('[legal] ⏭ 이미 init 완료, 중복 호출 무시');
+      return;
+    }
     console.log('[legal] init() 호출, body.dataset.page =', document.body.dataset.page);
     if (document.body.dataset.page !== 'legal') {
       console.log('[legal] ⏭ 다른 페이지이므로 init 스킵');
@@ -332,6 +355,8 @@
     const btnAiOnly = document.getElementById('legalBtnAiOnly');
     if (btnSiren) btnSiren.addEventListener('click', () => confirmConsultation(true));
     if (btnAiOnly) btnAiOnly.addEventListener('click', () => confirmConsultation(false));
+
+    _initDone = true;
   }
 
   const prevInit = window.SIREN_PAGE_INIT;
