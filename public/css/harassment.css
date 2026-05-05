@@ -179,24 +179,39 @@
 }
 
 /* ===== 카테고리 라디오 그리드 ===== */
+/* ★ 2026-05 패치: 5개 항목 깔끔한 배치 + 정렬 깨짐 방지 */
 .harass-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
 
+@media (min-width: 720px) {
+  .harass-cat-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .harass-cat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .harass-cat-grid label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 14px 12px !important;
   border: 2px solid var(--line);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
   margin: 0;
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 13px;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .harass-cat-grid label:hover {
@@ -205,10 +220,16 @@
 }
 
 .harass-cat-grid input[type="radio"] {
-  margin: 0;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--brand);
 }
 
-.harass-cat-grid input[type="radio"]:checked + .cat-label {
+.harass-cat-grid input[type="radio"]:checked + .cat-icon + .cat-label,
+.harass-cat-grid input[type="radio"]:checked ~ .cat-label {
   color: var(--brand);
   font-weight: 700;
 }
@@ -220,6 +241,15 @@
 
 .harass-cat-grid .cat-icon {
   font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.harass-cat-grid .cat-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ===== 빈도 라디오 (수평) ===== */
@@ -261,22 +291,32 @@
 }
 
 /* ===== 액션 버튼 ===== */
+/* ★ 2026-05 패치: a/button 정렬 통일 */
 .harass-actions {
   display: flex;
   gap: 10px;
   margin-top: 24px;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
-.harass-actions button {
-  padding: 12px 26px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-family: inherit;
-  transition: all 0.15s;
+.harass-actions .btn-cancel,
+.harass-actions .btn-submit {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 26px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: all 0.15s !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
+  height: auto !important;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .harass-actions .btn-cancel {
@@ -287,11 +327,13 @@
 
 .harass-actions .btn-cancel:hover {
   background: var(--bg-soft);
+  color: var(--text-1);
 }
 
 .harass-actions .btn-submit {
   background: var(--brand);
   color: #fff;
+  border: none;
 }
 
 .harass-actions .btn-submit:hover:not(:disabled) {

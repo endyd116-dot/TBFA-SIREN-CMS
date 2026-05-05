@@ -298,7 +298,7 @@
       previewStyle,
       initialEditType,
       usageStatistics: false,
-      hideModeSwitch: false,
+      hideModeSwitch: true,
       language: 'ko',
       plugins,
       toolbarItems,

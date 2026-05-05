@@ -119,7 +119,11 @@
     const oldText = submitBtn ? submitBtn.textContent : '';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = '🤖 AI 분석 중... (최대 10초 소요)';
+      submitBtn.textContent = '🤖 AI 분석 중... (최대 20초 소요)';
+    }
+    /* ★ B-9: AI 분석 시간 안내 토스트 */
+    if (window.SIREN && window.SIREN.toast) {
+      window.SIREN.toast('🤖 AI 분석에 시간이 걸릴 수 있습니다. 응답이 오래 없으면 다시 한번 눌러주세요', 5000);
     }
 
     try {

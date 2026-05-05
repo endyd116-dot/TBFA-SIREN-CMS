@@ -16,11 +16,7 @@
       <a href="/mypage.html">마이페이지</a>
       <!-- ★ M-3: 알림 벨 -->
       <div id="siren-notification-bell" style="margin: 0 8px;"></div>
-      <div class="lang-toggle">
-        <button class="on" data-lang="KO" type="button">KO</button>
-        <span class="sep">|</span>
-        <button data-lang="EN" type="button" id="btnLangEN">EN</button>
-      </div>
+
       <div class="search">
         <input id="globalSearch" type="search" name="q" placeholder="검색어를 입력하세요" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button id="searchBtn" aria-label="search">⌕</button>
@@ -150,19 +146,3 @@
     background: var(--line, #e8e6e3) !important;
   }
 </style>
-
-<!-- ★ 2026-05: EN 토글 임시 비활성화 (영문 페이지 추후 구현 예정) -->
-<script>
-(function () {
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-lang="EN"]');
-    if (!btn) return;
-    e.preventDefault();
-    if (window.SIREN && window.SIREN.toast) {
-      window.SIREN.toast('영문 페이지는 추후 제공 예정입니다 (English version coming soon)');
-    } else {
-      alert('영문 페이지는 추후 제공 예정입니다');
-    }
-  });
-})();
-</script>
