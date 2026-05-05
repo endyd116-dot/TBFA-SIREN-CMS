@@ -1,4 +1,4 @@
-/**
+/**lib/auth.ts
  * SIREN — 인증 유틸리티
  * ★ K-1+ E: buildCookie 세션 쿠키 지원
  * ★ K-1+ A-4: DUMMY_BCRYPT_HASH export (타이밍 공격 방어용)
