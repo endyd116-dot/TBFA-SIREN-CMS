@@ -3035,6 +3035,16 @@
 
         <!-- 🔍 사건 제보 관리 -->
         <div id="adm-siren-incidents" class="adm-page">
+
+          <!-- ★ B-3: 서브탭 -->
+          <div class="content-tabs" style="margin-bottom:18px">
+            <button type="button" class="ct-tab on" data-ictab="reports">📋 제보 관리</button>
+            <button type="button" class="ct-tab" data-ictab="posts">🏫 사건 게시글 CRUD</button>
+          </div>
+
+          <!-- ─── 탭 1: 제보 관리 (기존) ─── -->
+          <div class="ic-tab-pane" data-ictab-pane="reports">
+
           <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
             <div class="kpi" style="border-left:3px solid #c5293a"><div class="kpi-label" style="color:#c5293a">🚨 위급 (high+)</div><div class="kpi-value" id="siKpiHigh" style="color:#c5293a">0</div></div>
             <div class="kpi"><div class="kpi-label">🆕 AI 분석 완료</div><div class="kpi-value" id="siKpiAi">0</div></div>
@@ -3092,6 +3102,41 @@
             </div>
           </div>
         </div>
+          </div><!-- ic-tab-pane reports -->
+
+          <!-- ─── 탭 2: 사건 게시글 CRUD (★ B-3) ─── -->
+          <div class="ic-tab-pane" data-ictab-pane="posts" style="display:none">
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">🏫 사건 게시글 관리</div>
+                <button class="btn-sm btn-sm-primary" id="icNewPostBtn">+ 새 사건 등록</button>
+              </div>
+              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+                💡 사용자 페이지의 "사건 관련 제보" 앨범에 표시되는 사건 목록입니다.<br />
+                각 사건을 클릭하면 댓글 + 제보를 받을 수 있는 상세 페이지가 자동 생성됩니다.
+              </p>
+              <div style="overflow-x:auto">
+                <table class="tbl" style="min-width:800px">
+                  <thead>
+                    <tr>
+                      <th style="width:50px">ID</th>
+                      <th>제목</th>
+                      <th style="width:80px">분류</th>
+                      <th style="width:100px">발생일</th>
+                      <th style="width:100px">지역</th>
+                      <th style="width:70px">상태</th>
+                      <th style="width:140px">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody id="icPostsTableBody">
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div><!-- ic-tab-pane posts -->
+
+        </div><!-- adm-siren-incidents -->
 
         <!-- ⚠️ 악성민원 관리 -->
         <div id="adm-siren-harassment" class="adm-page">
@@ -5375,6 +5420,7 @@
 <script src="/js/admin-activity-report.js?v=m19-3"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <script src="/js/admin-resources.js?v=m19-8"></script>
+<script src="/js/admin-incidents-crud.js?v=2026-05"></script>
 <script src="/js/admin-stats-edit.js?v=2026-05"></script>
 <script src="/js/admin-approvals.js?v=m19-11-v2"></script>
   <script>
