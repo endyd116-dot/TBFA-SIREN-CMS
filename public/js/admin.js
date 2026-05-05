@@ -469,6 +469,8 @@ const OPERATOR_CATEGORIES = [
       setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 150);
     }
     fetchHyosungPendingBadge().catch(() => {});  /* ★ L-8: 첫 로그인 시 뱃지 표시 */
+    /* ★ M-19-11 V2: 회원 자격 관리 뱃지 prefetch */
+    if (window.SIREN_ADMIN_APPROVALS) window.SIREN_ADMIN_APPROVALS.refreshBadge();
     /* ★ M-10: 사이렌 관리 4개 사이드바 뱃지 갱신 */
     if (window.SIREN_ADMIN_SIREN && typeof window.SIREN_ADMIN_SIREN.refreshBadgesOnly === 'function') {
       window.SIREN_ADMIN_SIREN.refreshBadgesOnly().catch(() => {});
@@ -5373,6 +5375,35 @@ const OPERATOR_CATEGORIES = [
       switchAdminPage(link.dataset.page, link);
     });
   }
+  /* ★ M-19-11 V2: 회원 관리 페이지 내 탭 (회원 목록 ↔ 회원 자격 관리) */
+  function setupMemberTabs() {
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('#memberSubTabs .ct-tab[data-mtab]');
+      if (!tab) return;
+      e.preventDefault();
+
+      const target = tab.dataset.mtab;
+      if (!target) return;
+
+      /* 탭 활성화 */
+      document.querySelectorAll('#memberSubTabs .ct-tab').forEach(t => t.classList.remove('on'));
+      tab.classList.add('on');
+
+      /* 패널 전환 */
+      document.querySelectorAll('#adm-members .m-tab-pane').forEach((pane) => {
+        pane.style.display = (pane.dataset.mtabPane === target) ? '' : 'none';
+      });
+
+      /* 회원 자격 관리 탭 진입 시 데이터 로드 */
+      if (target === 'approvals') {
+        if (window.SIREN_ADMIN_APPROVALS && typeof window.SIREN_ADMIN_APPROVALS.loadList === 'function') {
+          window.SIREN_ADMIN_APPROVALS.loadList('all');
+        }
+      } else if (target === 'list') {
+        loadMembers();
+      }
+    });
+  }
 
   function switchAdminPage(page, linkEl) {
     document.querySelectorAll('.adm-menu a').forEach((a) => a.classList.remove('on'));
@@ -5392,7 +5423,16 @@ const OPERATOR_CATEGORIES = [
         setTimeout(() => window.SIREN_CHARTS.initDashboardWithData(), 100);
       }
     } else if (page === 'members') {
-      loadMembers();
+      /* ★ M-19-11 V2: 활성 탭 확인 후 해당 데이터 로드 */
+      const activeMTab = document.querySelector('#memberSubTabs .ct-tab.on');
+      const activeTab = activeMTab ? activeMTab.dataset.mtab : 'list';
+      if (activeTab === 'approvals') {
+        if (window.SIREN_ADMIN_APPROVALS) window.SIREN_ADMIN_APPROVALS.loadList('all');
+      } else {
+        loadMembers();
+      }
+      /* 자격관리 사이드바 뱃지 갱신 (탭과 무관) */
+      if (window.SIREN_ADMIN_APPROVALS) window.SIREN_ADMIN_APPROVALS.refreshBadge();
     } else if (page === 'donations') {
       loadDonations();
     } else if (page === 'support') {
@@ -5484,6 +5524,8 @@ const OPERATOR_CATEGORIES = [
     setupDemoActions();
     setupMemberActions();
     setupMemberSort();
+    setupMemberTabs();   /* ★ M-19-11 V2 */
+    setupDonationActions();
     setupDonationActions();
     setupSupportActions();
     setupSupportReplyForm();
