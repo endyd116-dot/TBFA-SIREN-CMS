@@ -4314,6 +4314,12 @@
 
                 <label for="dpHyosungGuideText">효성 안내문구</label>
                 <textarea id="dpHyosungGuideText" maxlength="1000" placeholder="효성 CMS+에서 등록한 경우 등록 완료까지 2~3일 정도 소요됩니다."></textarea>
+
+                <label for="dpHyosungCountdownMessage">카운트다운 모달 안내 <span class="hint">(외부 이동 직전 표시)</span></label>
+                <textarea id="dpHyosungCountdownMessage" maxlength="500" placeholder="자동이체를 위해 외부페이지로 이동합니다."></textarea>
+
+                <label for="dpHyosungCountdownSeconds">카운트다운 초수 <span class="hint">(1~30초)</span></label>
+                <input type="number" id="dpHyosungCountdownSeconds" min="1" max="30" step="1" value="5" style="max-width:120px;font-family:'Inter',monospace;text-align:right">
               </div>
 
               <!-- 액션 버튼 -->

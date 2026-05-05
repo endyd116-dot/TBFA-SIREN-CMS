@@ -1571,7 +1571,8 @@ const OPERATOR_CATEGORIES = [
     setVal('dpBankGuideText', p.bankGuideText);
     setVal('dpHyosungUrl', p.hyosungUrl);
     setVal('dpHyosungGuideText', p.hyosungGuideText);
-
+    setVal('dpHyosungCountdownMessage', p.hyosungCountdownMessage);
+    setVal('dpHyosungCountdownSeconds', p.hyosungCountdownSeconds || 5);
     /* 미리보기 갱신 */
     renderSingleAmount('dpMinPreview', p.minAmount, '원 이상');
     renderSingleAmount('dpMaxPreview', p.maxAmount, '원 이하');
@@ -1640,6 +1641,8 @@ const OPERATOR_CATEGORIES = [
       bankGuideText: document.getElementById('dpBankGuideText').value.trim(),
       hyosungUrl: document.getElementById('dpHyosungUrl').value.trim(),
       hyosungGuideText: document.getElementById('dpHyosungGuideText').value.trim(),
+      hyosungCountdownMessage: document.getElementById('dpHyosungCountdownMessage').value.trim(),
+      hyosungCountdownSeconds: Number(document.getElementById('dpHyosungCountdownSeconds').value) || 5,
     };
 
     const btn = document.getElementById('dpSaveBtn');
