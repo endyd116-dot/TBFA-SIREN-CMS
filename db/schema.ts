@@ -1124,6 +1124,34 @@ export const blobUploads = pgTable("blob_uploads", {
 }));
 
 /* =========================================================
+   ★ 2026-05: 메인 화면 관리 시스템 (Phase A — 통계만 사용)
+   ========================================================= */
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  scope: varchar("scope", { length: 50 }).notNull(),
+  key: varchar("key", { length: 150 }).notNull(),
+  valueType: varchar("value_type", { length: 20 }).default("text").notNull(),
+  valueText: text("value_text"),
+  valueBlobId: integer("value_blob_id"),
+  valueJson: jsonb("value_json"),
+  /* Draft 시스템 */
+  draftValueText: text("draft_value_text"),
+  draftValueBlobId: integer("draft_value_blob_id"),
+  draftValueJson: jsonb("draft_value_json"),
+  hasDraft: boolean("has_draft").default(false).notNull(),
+  /* 메타 */
+  description: varchar("description", { length: 300 }),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by"),
+}, (t) => ({
+  scopeIdx: index("site_settings_scope_idx").on(t.scope),
+  activeIdx: index("site_settings_active_idx").on(t.isActive),
+  draftIdx: index("site_settings_draft_idx").on(t.hasDraft),
+}));
+
+/* =========================================================
    타입 export
    ========================================================= */
 export type Member = typeof members.$inferSelect;
