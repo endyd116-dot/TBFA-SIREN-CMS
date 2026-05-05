@@ -3911,48 +3911,90 @@ const OPERATOR_CATEGORIES = [
     }
   }
 
+  /* ★ C-2: AI 초안 생성 + 운영자 요청사항 영역 삽입 */
   function injectAiDraftButton() {
     const note = document.getElementById('replyNote');
     if (!note) return;
-    if (document.getElementById('btnAiDraft')) return;
+    if (document.getElementById('supportInstructionArea')) return;
 
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'btnAiDraft';
-    btn.className = 'btn-sm btn-sm-ghost';
-    btn.style.cssText = 'margin-bottom:6px;font-size:12px;color:var(--brand);border:1px dashed var(--brand);padding:6px 12px;border-radius:5px;background:#fff;cursor:pointer';
-    btn.innerHTML = '✍️ AI 답변 초안 생성 (Gemini)';
-    note.parentElement.insertBefore(btn, note);
+    /* 요청사항 영역 */
+    const area = document.createElement('div');
+    area.id = 'supportInstructionArea';
+    area.style.cssText = 'background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:10px';
+    area.innerHTML = `
+      <label style="display:block;margin-bottom:8px;font-size:12.5px;font-weight:700;color:var(--brand)">
+        🎯 AI에게 어떤 답변을 요청할지 적어주세요 <span style="color:var(--text-3);font-weight:400;font-size:11px">(선택)</span>
+      </label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button type="button" class="support-instruction-preset" data-preset="최종 거절이니 이해시키도록 정중하게 답변해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">거절 안내</button>
+        <button type="button" class="support-instruction-preset" data-preset="지원 가능하니 다음 절차와 서류를 안내해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">지원 안내</button>
+        <button type="button" class="support-instruction-preset" data-preset="보완 자료가 필요하니 추가 제출 요청해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">보완 요청</button>
+        <button type="button" class="support-instruction-preset" data-preset="전문가 매칭이 완료됐으니 다음 단계를 안내해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">매칭 완료</button>
+      </div>
+      <textarea id="supportInstruction" maxlength="1000" rows="3" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예: 최종 거절이니 잘 이해시키도록 답변해줘"></textarea>
+      <div style="font-size:11px;color:var(--text-3);margin-top:4px">💡 요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다.</div>
+    `;
+    note.parentElement.insertBefore(area, note);
 
-    btn.addEventListener('click', async () => {
-      const id = Number(document.getElementById('replyId').value);
-      if (!id) return toast('신청을 먼저 선택하세요');
+    /* AI 초안 생성 버튼 */
+    if (!document.getElementById('btnAiDraft')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'btnAiDraft';
+      btn.className = 'btn-sm btn-sm-ghost';
+      btn.style.cssText = 'margin-bottom:6px;font-size:12px;color:var(--brand);border:1px dashed var(--brand);padding:6px 12px;border-radius:5px;background:#fff;cursor:pointer';
+      btn.innerHTML = '✍️ AI 답변 초안 생성 (Gemini)';
+      note.parentElement.insertBefore(btn, note);
 
-      btn.disabled = true;
-      const oldText = btn.innerHTML;
-      btn.innerHTML = '⏳ 생성 중... (3-5초)';
+      btn.addEventListener('click', async () => {
+        const id = Number(document.getElementById('replyId').value);
+        if (!id) return toast('신청을 먼저 선택하세요');
 
-      try {
-        const res = await api('/api/admin/ai/reply-draft', {
-          method: 'POST',
-          body: { id },
-        });
+        /* ★ C-2: 운영자 요청사항 수집 */
+        const instructionEl = document.getElementById('supportInstruction');
+        const instruction = instructionEl ? instructionEl.value.trim() : '';
 
-        if (res.ok && res.data?.data?.draft) {
-          const cur = note.value.trim();
-          if (cur && !confirm('현재 입력된 답변이 있습니다. AI 초안으로 덮어쓸까요?')) {
-            return;
+        btn.disabled = true;
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '⏳ 생성 중... (3-5초)';
+
+        try {
+          const res = await api('/api/admin/ai/reply-draft', {
+            method: 'POST',
+            body: { id, instruction },
+          });
+
+          if (res.ok && res.data?.data?.draft) {
+            const cur = note.value.trim();
+            if (cur && !confirm('현재 입력된 답변이 있습니다. AI 초안으로 덮어쓸까요?')) {
+              return;
+            }
+            note.value = res.data.data.draft;
+            toast('AI 답변 초안이 생성되었습니다' + (instruction ? ' (요청사항 반영)' : '') + ' — 수정 후 저장하세요');
+          } else {
+            toast(res.data?.error || 'AI 초안 생성 실패');
           }
-          note.value = res.data.data.draft;
-          toast('AI 답변 초안이 생성되었습니다 (수정 후 저장하세요)');
-        } else {
-          toast(res.data?.error || 'AI 초안 생성 실패');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = oldText;
         }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = oldText;
-      }
-    });
+      });
+    }
+
+    /* 프리셋 버튼 이벤트 (위임) */
+    if (!area.dataset.bound) {
+      area.dataset.bound = '1';
+      area.addEventListener('click', (e) => {
+        const preset = e.target.closest('.support-instruction-preset');
+        if (!preset) return;
+        e.preventDefault();
+        const instructionEl = document.getElementById('supportInstruction');
+        if (instructionEl) {
+          instructionEl.value = preset.dataset.preset || '';
+          instructionEl.focus();
+        }
+      });
+    }
   }
 
     function setupSupportReplyForm() {

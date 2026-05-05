@@ -652,35 +652,25 @@
   }
 
   /* ============ 답변 폼 (사건/악성/법률 공통) ============ */
+    /* ============ 답변 폼 (사건/악성/법률 공통) — ★ C-2: 요청사항 추가 ============ */
   function renderResponseForm(kind, r) {
     const cfg = KIND_CONFIG[kind];
     const noField = cfg.noField;
-    const itemNo = r[noField];
     const currentResponse = String(r.adminResponse || '').replace(/"/g, '&quot;');
 
     const VALID_STATUS = {
       incident: [
-        ['ai_analyzed', 'AI 분석 완료'],
-        ['reviewing', '검토 중'],
-        ['responded', '답변 완료'],
-        ['closed', '종결'],
-        ['rejected', '반려'],
+        ['ai_analyzed', 'AI 분석 완료'], ['reviewing', '검토 중'],
+        ['responded', '답변 완료'], ['closed', '종결'], ['rejected', '반려'],
       ],
       harassment: [
-        ['ai_analyzed', 'AI 분석 완료'],
-        ['reviewing', '검토 중'],
-        ['responded', '답변 완료'],
-        ['closed', '종결'],
-        ['rejected', '반려'],
+        ['ai_analyzed', 'AI 분석 완료'], ['reviewing', '검토 중'],
+        ['responded', '답변 완료'], ['closed', '종결'], ['rejected', '반려'],
       ],
       legal: [
-        ['ai_analyzed', 'AI 분석 완료'],
-        ['matching', '변호사 매칭 중'],
-        ['matched', '매칭 완료'],
-        ['in_progress', '상담 진행 중'],
-        ['responded', '답변 완료'],
-        ['closed', '종결'],
-        ['rejected', '반려'],
+        ['ai_analyzed', 'AI 분석 완료'], ['matching', '변호사 매칭 중'],
+        ['matched', '매칭 완료'], ['in_progress', '상담 진행 중'],
+        ['responded', '답변 완료'], ['closed', '종결'], ['rejected', '반려'],
       ],
     };
 
@@ -705,6 +695,22 @@
 
         ${lawyerField}
 
+        <!-- ★ C-2: 운영자 요청사항 입력 영역 -->
+        <div class="srn-form-group" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+          <label style="margin-bottom:8px;color:var(--brand);font-weight:700">
+            🎯 AI에게 어떤 답변을 요청할지 적어주세요 <span class="hint" style="color:var(--text-3);font-weight:400">(선택)</span>
+          </label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button type="button" class="srn-instruction-preset" data-preset="최종 거절이니 이해시키도록 정중하게 답변해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">거절 안내</button>
+            <button type="button" class="srn-instruction-preset" data-preset="지원 가능하니 다음 절차와 서류를 안내해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">지원 안내</button>
+            <button type="button" class="srn-instruction-preset" data-preset="보완 자료가 필요하니 추가 제출 요청해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">보완 요청</button>
+            <button type="button" class="srn-instruction-preset" data-preset="전문가 매칭이 완료됐으니 다음 단계를 안내해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">매칭 완료</button>
+            <button type="button" class="srn-instruction-preset" data-preset="추가 정보가 필요하니 구체적으로 요청해줘" style="padding:4px 10px;border:1px solid var(--line);border-radius:14px;font-size:11px;background:#fff;cursor:pointer;font-family:inherit;color:var(--text-2)">추가 요청</button>
+          </div>
+          <textarea id="srnInstruction" maxlength="1000" rows="3" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예: 최종 거절이니 잘 이해시키도록 답변해줘 / 변호사 매칭 완료, 다음 절차 안내해줘"></textarea>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">💡 요청사항을 입력하면 AI가 해당 방향으로 답변 초안을 생성합니다. 비워두면 일반 톤으로 생성됩니다.</div>
+        </div>
+
         <div class="srn-form-group">
           <label>답변 메시지 <span class="hint">(마이페이지에서 신청자가 확인합니다)</span></label>
           <button type="button" class="srn-ai-draft-btn" data-srn-action="ai-draft" data-srn-kind="${kind}" data-srn-id="${r.id}" data-srn-target="srnResponse">✍️ AI 답변 초안 생성 (Gemini)</button>
@@ -716,7 +722,7 @@
             <input type="checkbox" id="srnSendEmail">
             <span style="flex:1;line-height:1.6">
               <strong>📧 저장 시 신청자에게 알림 메일 발송</strong><br />
-              <span style="color:var(--text-3);font-size:11.5px">체크하면 답변 등록 알림이 메일로 함께 발송됩니다. (답변 본문은 메일에 노출되지 않으며, 마이페이지 로그인 후 열람 가능)</span>
+              <span style="color:var(--text-3);font-size:11.5px">체크하면 답변 등록 알림이 메일로 함께 발송됩니다.</span>
             </span>
           </label>
         </div>
@@ -733,6 +739,7 @@
   }
 
   /* ============ AI 답변 초안 생성 ============ */
+  /* ============ AI 답변 초안 생성 — ★ C-2: instruction 전달 ============ */
   async function generateAiDraft(kind, id, targetTextareaId) {
     const btn = document.querySelector(`[data-srn-action="ai-draft"][data-srn-id="${id}"][data-srn-kind="${kind}"]`);
     const textarea = document.getElementById(targetTextareaId);
@@ -742,6 +749,10 @@
       if (!confirm('현재 입력된 답변이 있습니다. AI 초안으로 덮어쓸까요?')) return;
     }
 
+    /* ★ C-2: 운영자 요청사항 수집 */
+    const instructionEl = document.getElementById('srnInstruction');
+    const instruction = instructionEl ? instructionEl.value.trim() : '';
+
     if (btn) {
       btn.disabled = true;
       btn.textContent = '⏳ AI 분석 중... (3-7초)';
@@ -750,13 +761,13 @@
     try {
       const res = await api('/api/admin/ai/reply-draft-v2', {
         method: 'POST',
-        body: { kind, id },
+        body: { kind, id, instruction },
       });
 
       if (res.ok && res.data?.data?.draft) {
         textarea.value = res.data.data.draft;
         textarea.focus();
-        toast('AI 답변 초안이 생성되었습니다 (수정 후 저장하세요)');
+        toast('AI 답변 초안이 생성되었습니다' + (instruction ? ' (요청사항 반영)' : '') + ' — 수정 후 저장하세요');
       } else {
         toast(res.data?.error || 'AI 초안 생성 실패');
       }
@@ -905,6 +916,19 @@
       _filters[kind].q = el.value || '';
       clearTimeout(_searchTimer[kind]);
       _searchTimer[kind] = setTimeout(() => loadList(kind), 400);
+    });
+
+    /* ★ C-2: 프리셋 버튼 → 요청사항 textarea 자동 입력 */
+    document.addEventListener('click', (e) => {
+      const preset = e.target.closest('.srn-instruction-preset');
+      if (!preset) return;
+      e.preventDefault();
+      const text = preset.dataset.preset || '';
+      const instructionEl = document.getElementById('srnInstruction');
+      if (instructionEl) {
+        instructionEl.value = text;
+        instructionEl.focus();
+      }
     });
 
     /* 액션 버튼 */
