@@ -1186,3 +1186,48 @@ export type NewAnniversaryEmailLog = typeof anniversaryEmailsLog.$inferInsert;
 /* ★ Phase A: 사이트 설정 */
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type NewSiteSetting = typeof siteSettings.$inferInsert;
+
+/* =========================================================
+   ★ 2026-05 B-2: 사건 댓글 시스템
+   ========================================================= */
+export const incidentComments = pgTable("incident_comments", {
+  id: serial("id").primaryKey(),
+  incidentId: integer("incident_id").references(() => incidents.id, { onDelete: "cascade" }).notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  parentId: integer("parent_id"),
+  authorName: varchar("author_name", { length: 50 }).notNull(),
+  content: varchar("content", { length: 1000 }).notNull(),
+  isAnonymous: boolean("is_anonymous").default(false),
+  isPrivate: boolean("is_private").default(false),
+  likeCount: integer("like_count").default(0),
+  dislikeCount: integer("dislike_count").default(0),
+  isHidden: boolean("is_hidden").default(false),
+  hiddenBy: integer("hidden_by"),
+  hiddenAt: timestamp("hidden_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const commentVotes = pgTable("comment_votes", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id").references(() => incidentComments.id, { onDelete: "cascade" }).notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  voteType: varchar("vote_type", { length: 10 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const commentReports = pgTable("comment_reports", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id").references(() => incidentComments.id, { onDelete: "cascade" }),
+  incidentId: integer("incident_id").references(() => incidents.id, { onDelete: "cascade" }),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  reportType: varchar("report_type", { length: 20 }).default("comment").notNull(),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  status: varchar("status", { length: 20 }).default("pending"),
+  reviewedBy: integer("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type IncidentComment = typeof incidentComments.$inferSelect;
+export type CommentVote = typeof commentVotes.$inferSelect;
+export type CommentReport = typeof commentReports.$inferSelect;
