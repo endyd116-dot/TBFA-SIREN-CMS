@@ -132,13 +132,20 @@ export default async (req: Request) => {
       for (let i = 0; i < 10; i++) {
         const isAnon = i % 4 === 3;
         const isPriv = i % 7 === 6;
+        const daysAgo = 10 - i;
+        const commentDate = new Date();
+        commentDate.setDate(commentDate.getDate() - daysAgo);
+        const likeC = Math.floor(Math.random() * 20);
+        const dislikeC = Math.floor(Math.random() * 3);
+        const authorN = isAnon ? "익명" : sampleAuthors[i];
+
         await db.execute(sql`
           INSERT INTO incident_comments (incident_id, member_id, author_name, content, is_anonymous, is_private, like_count, dislike_count, created_at)
           VALUES (
-            ${incId}, NULL, ${isAnon ? "익명" : sampleAuthors[i]},
+            ${incId}, NULL, ${authorN},
             ${sampleComments[i]}, ${isAnon}, ${isPriv},
-            ${Math.floor(Math.random() * 20)}, ${Math.floor(Math.random() * 3)},
-            NOW() - INTERVAL '${String(10 - i)} days'
+            ${likeC}, ${dislikeC},
+            ${commentDate.toISOString()}::timestamp
           )
         `);
         commentCount++;
