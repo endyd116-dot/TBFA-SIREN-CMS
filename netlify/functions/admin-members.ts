@@ -188,7 +188,7 @@ export default async (req: Request) => {
           gradeCode: memberGrades.code,
           gradeNameKo: memberGrades.nameKo,
           gradeIcon: memberGrades.icon,
-          gradeColor: memberGrades.color,
+          gradeColorHex: memberGrades.colorHex,
           totalDonationAmount: (members as any).totalDonationAmount,
           regularMonthsCount: (members as any).regularMonthsCount,
           gradeLocked: (members as any).gradeLocked,

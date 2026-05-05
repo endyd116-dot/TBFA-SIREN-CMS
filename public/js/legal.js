@@ -73,9 +73,11 @@
   /* ============ 폼 제출 ============ */
   async function handleSubmit(e) {
     e.preventDefault();
+    console.log('[legal] 🔵 handleSubmit 호출됨');
     const form = e.target;
 
     const auth = window.SIREN_AUTH;
+    console.log('[legal] auth 상태:', { hasAuth: !!auth, isLoggedIn: auth ? auth.isLoggedIn() : 'no auth' });
     if (!auth || !auth.isLoggedIn()) {
       window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
       setTimeout(() => {
@@ -301,7 +303,11 @@
 
   /* ============ 초기화 ============ */
   function init() {
-    if (document.body.dataset.page !== 'legal') return;
+    console.log('[legal] init() 호출, body.dataset.page =', document.body.dataset.page);
+    if (document.body.dataset.page !== 'legal') {
+      console.log('[legal] ⏭ 다른 페이지이므로 init 스킵');
+      return;
+    }
 
     setTimeout(() => {
       const auth = window.SIREN_AUTH;
@@ -315,7 +321,12 @@
     initEditorAndAttachments();
 
     const form = document.getElementById('legalForm');
-    if (form) form.addEventListener('submit', handleSubmit);
+    if (form) {
+      console.log('[legal] ✅ form 발견 + submit 핸들러 등록');
+      form.addEventListener('submit', handleSubmit);
+    } else {
+      console.warn('[legal] ❌ #legalForm 요소를 찾을 수 없음');
+    }
 
     const btnSiren = document.getElementById('legalBtnSiren');
     const btnAiOnly = document.getElementById('legalBtnAiOnly');

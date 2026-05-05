@@ -102,8 +102,16 @@ export default async (req: Request) => {
         eq(donations.type, "regular"),
       ];
 
-      if (status && ["pending", "completed", "cancelled", "failed", "refunded"].includes(status)) {
-        conditions.push(eq(donations.status, status as any));
+      /* ★ 효성 status 매핑: 클라이언트 'pending' → DB 'pending_hyosung' */
+      const HY_STATUS_MAP: Record<string, string> = {
+        pending: "pending_hyosung",
+        completed: "completed",
+        cancelled: "cancelled",
+        failed: "failed",
+        refunded: "refunded",
+      };
+      if (status && HY_STATUS_MAP[status]) {
+        conditions.push(eq(donations.status, HY_STATUS_MAP[status] as any));
       }
 
       if (q && q.length >= 2) {
@@ -178,9 +186,11 @@ export default async (req: Request) => {
         failed: { count: 0, amount: 0 },
       };
       statsRows.forEach((r: any) => {
-        if (stats[r.status]) {
-          stats[r.status].count = Number(r.c);
-          stats[r.status].amount = Number(r.sum);
+        /* ★ pending_hyosung → pending 키로 매핑 */
+        const key = r.status === "pending_hyosung" ? "pending" : r.status;
+        if (stats[key]) {
+          stats[key].count = Number(r.c);
+          stats[key].amount = Number(r.sum);
         }
       });
 
@@ -282,7 +292,8 @@ export default async (req: Request) => {
 
       /* ───── 분기 3: 효성 등록 완료 처리 (pending → completed) ───── */
       if (body.markCompleted === true) {
-        if (existing.status !== "pending") {
+        /* ★ pending 또는 pending_hyosung 둘 다 허용 */
+        if (existing.status !== "pending_hyosung" && existing.status !== "pending") {
           return badRequest(
             `현재 상태(${existing.status})에서는 완료 처리할 수 없습니다. pending 상태만 가능합니다.`,
           );
