@@ -42,12 +42,16 @@ export interface InlineFile {
   mimeType: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
 }
 
+export interface InlineFile {
+  data: string;      // base64
+  mimeType: string;  // 'image/jpeg' | 'application/pdf' 등
+}
+
 export interface GeminiOptions {
   temperature?: number;
   maxOutputTokens?: number;
   systemInstruction?: string;
   mode?: "pro" | "flash";
-  /* ★ B-9: 첨부 파일 (이미지 + PDF) */
   inlineFiles?: InlineFile[];
 }
 
@@ -74,16 +78,11 @@ async function callSingleModel(
 
   const url = `${GEMINI_API_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
-  /* ★ B-9: parts 구성 — 텍스트 + 첨부 파일 */
+  /* ★ B-9: 인라인 파일(이미지/PDF)을 parts에 포함 */
   const parts: any[] = [{ text: prompt }];
   if (opts.inlineFiles && opts.inlineFiles.length > 0) {
-    for (const file of opts.inlineFiles) {
-      parts.push({
-        inlineData: {
-          mimeType: file.mimeType,
-          data: file.data,
-        },
-      });
+    for (const f of opts.inlineFiles) {
+      parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
     }
   }
 
