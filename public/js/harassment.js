@@ -25,31 +25,38 @@
   }
 
   /* ★ B-9: 다중 폴백 토스트 */
-  function showAiToast(msg, duration) {
+   function showAiToast(msg, duration) {
     const ms = duration || 5000;
     console.log('[harassment] 🟢 showAiToast 호출됨', { msg: msg.slice(0, 30), ms });
 
-    /* 1순위: window.SIREN.toast */
-    if (window.SIREN && typeof window.SIREN.toast === 'function') {
-      console.log('[harassment] → SIREN.toast 사용');
-      try {
-        window.SIREN.toast(msg, ms);
-        return;
-      } catch (e) {
-        console.warn('[harassment] SIREN.toast 에러:', e);
-      }
-    }
-    /* 2순위: 직접 #toast 요소 조작 */
+    /* ★ SIREN.toast는 duration을 무시하므로 우회 — 직접 #toast 요소 제어 */
     const t = document.getElementById('toast');
     if (t) {
-      console.log('[harassment] → #toast 직접 조작');
-      t.textContent = msg;
-      t.classList.add('show');
-      clearTimeout(t._aiTimer);
-      t._aiTimer = setTimeout(() => t.classList.remove('show'), ms);
+      console.log('[harassment] → #toast 직접 조작 (duration', ms, 'ms)');
+      /* common.js가 설정한 짧은 타이머가 있을 수 있으므로 제거 */
+      if (t._aiTimer) clearTimeout(t._aiTimer);
+      if (t._tt) clearTimeout(t._tt);
+      /* 짧은 지연 후 강제 표시 (common.js의 짧은 타이머가 먼저 동작해도 덮어씀) */
+      setTimeout(() => {
+        t.textContent = msg;
+        t.style.whiteSpace = 'pre-line';
+        t.style.maxWidth = '90vw';
+        t.style.lineHeight = '1.6';
+        t.style.padding = '16px 26px';
+        t.classList.add('show');
+        t._aiTimer = setTimeout(() => {
+          t.classList.remove('show');
+          /* 스타일 원복 */
+          t.style.whiteSpace = '';
+          t.style.maxWidth = '';
+          t.style.lineHeight = '';
+          t.style.padding = '';
+        }, ms);
+      }, 50);
       return;
     }
-    /* 3순위: 임시 토스트 직접 생성 */
+
+    /* 폴백: 임시 토스트 직접 생성 */
     console.log('[harassment] → 임시 토스트 생성');
     const tmp = document.createElement('div');
     tmp.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:#fff;padding:14px 26px;border-radius:12px;font-size:13.5px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-weight:500;line-height:1.6;text-align:center;white-space:pre-line;max-width:90vw;';
@@ -57,6 +64,7 @@
     document.body.appendChild(tmp);
     setTimeout(() => tmp.remove(), ms);
   }
+
 
   function severityInfo(s) {
     const map = {
