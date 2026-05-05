@@ -256,7 +256,7 @@
       onChange,
       uploadContext = 'editor',
       readonly = false,
-      previewStyle = 'tab',
+      previewStyle = 'vertical',
       initialEditType = 'wysiwyg',
     } = opts;
 
@@ -330,6 +330,14 @@
         },
       },
     });
+
+    /* ★ 2026-05: WYSIWYG 모드만 사용 — markdown 컨테이너 강제 숨김 */
+    setTimeout(() => {
+      const mdContainer = el.querySelector('.toastui-editor-md-container');
+      if (mdContainer) mdContainer.style.display = 'none';
+      const wwContainer = el.querySelector('.toastui-editor-ww-container');
+      if (wwContainer) wwContainer.style.display = 'block';
+    }, 100);
 
     return {
       _instance: editor,
