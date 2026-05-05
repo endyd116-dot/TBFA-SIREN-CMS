@@ -60,11 +60,28 @@
       return res;
     },
 
-    async logout() {
+    async logout(opts = {}) {
       await api('/api/auth/logout', { method: 'POST' });
       this.user = null;
       this.stats = null;
       if (window.SIREN_SESSION) window.SIREN_SESSION.clearAll();
+
+      /* ★ 2026-05 패치: 보호 페이지에서는 즉시 홈으로 리다이렉트
+         (마이페이지/관리자 페이지 등에서 로그아웃 후 데이터가 그대로 보이는 문제 해결) */
+      const PROTECTED_PAGES = ['/mypage.html', '/admin.html', '/board-write.html'];
+      const currentPath = location.pathname;
+
+      if (opts.skipRedirect) return;
+
+      if (PROTECTED_PAGES.includes(currentPath)) {
+        if (window.SIREN && window.SIREN.toast) {
+          window.SIREN.toast('로그아웃되었습니다. 홈으로 이동합니다...');
+        }
+        setTimeout(() => { location.href = '/index.html'; }, 600);
+      } else {
+        /* 일반 페이지에서는 새로고침으로 UI 동기화 */
+        setTimeout(() => { location.reload(); }, 300);
+      }
     },
 
     isLoggedIn() {
@@ -141,12 +158,8 @@
         <button id="btnLogout" style="background:transparent;border:1px solid #2a2a2a;color:#bdbdbd;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">로그아웃</button>
       `;
       userBox.querySelector('#btnLogout').addEventListener('click', async () => {
+        /* ★ 2026-05: logout 함수 자체가 리다이렉트 처리하므로 여기서는 호출만 */
         await Auth.logout();
-        if (window.SIREN) SIREN.toast('로그아웃되었습니다');
-        syncHeader();
-        if (['/mypage.html'].includes(location.pathname)) {
-          setTimeout(() => location.href = '/index.html', 500);
-        }
       });
 
       startChatAlarmPolling();

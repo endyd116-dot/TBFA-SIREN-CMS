@@ -454,6 +454,27 @@
   }
 
   /* ============ 초기화 ============ */
+    /* ★ 2026-05 패치: 4개 탭 카운트 prefetch */
+  async function prefetchAllCounts() {
+    const tabs = ['family', 'incident', 'harassment', 'legal'];
+    /* 병렬로 모든 탭의 카운트 미리 가져오기 */
+    await Promise.all(tabs.map(async (tabKey) => {
+      const cfg = TYPES[tabKey];
+      try {
+        const res = await fetch(cfg.listApi, { credentials: 'include' });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.ok) return;
+        const list = (json.data && json.data[cfg.itemKey]) || [];
+        _cache[tabKey] = list;
+        updateCount(tabKey, list.length);
+      } catch (e) {
+        console.warn('[mypage-applications] prefetch failed:', tabKey, e);
+      }
+    }));
+  }
+
+  /* ============ 초기화 ============ */
   function init() {
     if (_initialized) return;
     if (document.body.dataset.page !== 'mypage') return;
@@ -475,21 +496,30 @@
       }
     });
 
-    /* "📋 신청 내역" 메뉴 클릭 시 자동 로드 */
+    /* "📋 신청 내역" 메뉴 클릭 시 첫 탭 자동 렌더 (캐시 활용) */
     const menu = document.getElementById('mpMenu');
     if (menu) {
       menu.addEventListener('click', (e) => {
         const li = e.target.closest('li[data-mp="support"]');
         if (li) {
-          /* 약간의 지연 후 (패널 표시 후) 로드 */
           setTimeout(() => loadTab(_currentTab), 100);
         }
       });
     }
 
-    /* 페이지 진입 시 #support 해시면 즉시 로드 */
+    /* ★ 2026-05 패치: 페이지 진입 즉시 4개 탭 카운트 prefetch */
+    setTimeout(() => {
+      prefetchAllCounts().then(() => {
+        /* prefetch 완료 후 현재 탭이 활성화되어 있으면 렌더 */
+        if (location.hash === '#support' || _currentTab) {
+          loadTab(_currentTab);
+        }
+      });
+    }, 500);
+
+    /* 페이지 진입 시 #support 해시면 즉시 첫 탭 로드 (prefetch 캐시 활용 가능) */
     if (location.hash === '#support') {
-      setTimeout(() => loadTab(_currentTab), 300);
+      setTimeout(() => loadTab(_currentTab), 800);
     }
 
     _initialized = true;
