@@ -663,6 +663,9 @@ export const donationPolicies = pgTable("donation_policies", {
   bankGuideText: text("bank_guide_text"),
   hyosungUrl: varchar("hyosung_url", { length: 500 }),
   hyosungGuideText: text("hyosung_guide_text"),
+  /* ★ 2026-05: 효성 카운트다운 모달 설정 */
+  hyosungCountdownMessage: text("hyosung_countdown_message"),
+  hyosungCountdownSeconds: integer("hyosung_countdown_seconds").default(5),
   modalTitle: varchar("modal_title", { length: 200 }),
   modalSubtitle: varchar("modal_subtitle", { length: 500 }),
   stampBlobId: integer("stamp_blob_id"),

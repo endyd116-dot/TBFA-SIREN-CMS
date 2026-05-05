@@ -327,32 +327,51 @@
   }
 
   /* ============ 5. 토스 일시 결제 ============ */
+  /* ============ 5. 토스 일시 결제 ============ */
   async function handleTossOnetime(opts) {
     const { name, phone, email, amount, isAnonymous } = opts;
+    console.log('[Donate] 🟦 토스 일시 결제 시작', { name, amount, email });
 
-// public/js/donate.js — handleTossOnetime fetch 부분 교체
     const prepRes = await fetch('/api/donate-toss-prepare', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
         name, phone, email, amount, type: 'onetime', isAnonymous,
-        campaignId: opts.campaignId || null,  // ★ M-19-2
+        campaignId: opts.campaignId || null,
       }),
     });
+    console.log('[Donate] prepare 응답 status:', prepRes.status);
     const prepData = await prepRes.json().catch(() => ({}));
+    console.log('[Donate] prepare 응답 본문:', prepData);
+
     if (!prepRes.ok || !prepData.ok || !prepData.data?.orderId) {
       throw new Error(prepData.error || '결제 준비 실패');
     }
     const { orderId, donationId } = prepData.data;
 
+    console.log('[Donate] 토스 SDK 로드 시작');
     await loadTossSdk();
-    const tossPayments = window.TossPayments(getTossClientKey());
+    console.log('[Donate] 토스 SDK 로드 완료');
+
+    const clientKey = getTossClientKey();
+    console.log('[Donate] clientKey:', clientKey ? clientKey.slice(0, 10) + '...' : '(없음)');
+
+    if (!window.TossPayments) {
+      throw new Error('토스 SDK가 로드되지 않았습니다');
+    }
+
+    const tossPayments = window.TossPayments(clientKey);
+    console.log('[Donate] tossPayments 객체:', !!tossPayments);
+
     const payment = tossPayments.payment({ customerKey: 'ANONYMOUS' });
+    console.log('[Donate] payment 객체:', !!payment);
+
     const successUrl = location.origin + '/payment-success.html';
     const failUrl = location.origin + '/payment-fail.html';
 
     try {
+      console.log('[Donate] 🚀 requestPayment 호출');
       await payment.requestPayment({
         method: 'CARD',
         amount: { currency: 'KRW', value: amount },
@@ -364,8 +383,9 @@
         customerEmail: email,
         customerMobilePhone: phone.replace(/[^0-9]/g, ''),
       });
+      console.log('[Donate] ✅ requestPayment 완료 (리다이렉트 대기)');
     } catch (tossErr) {
-      console.error('[Toss]', tossErr);
+      console.error('[Donate] ❌ Toss 결제창 에러:', tossErr);
       if (tossErr.code === 'USER_CANCEL') {
         window.SIREN.toast('결제가 취소되었습니다');
       } else {
@@ -412,6 +432,7 @@
   }
 
   /* ============ 7. 효성 CMS+ 신청 의향 + 카운트다운 모달 ============ */
+  /* ============ 7. 효성 CMS+ 신청 의향 + 카운트다운 모달 ============ */
   async function handleHyosungIntent(opts) {
     const { name, phone, email, amount, isAnonymous } = opts;
 
@@ -427,67 +448,104 @@
       throw new Error(result.error || '신청 처리 실패');
     }
 
+    /* ★ 2026-05: 정책에서 받은 값 우선, 없으면 응답값, 그것도 없으면 폴백 */
+    const policy = _policyCache || {};
     const hyosungUrl = result.data?.hyosungUrl
+      || policy.hyosungUrl
       || 'https://ap.hyosungcmsplus.co.kr/external/shorten/20240709hAxVVDFECf';
-    const guideText = result.data?.guideText || '';
-    const seconds = Number(result.data?.autoRedirectSeconds || 5);
+    const guideText = policy.hyosungCountdownMessage
+      || result.data?.guideText
+      || '자동이체를 위해 외부페이지로 이동합니다.';
+    const seconds = Number(policy.hyosungCountdownSeconds)
+      || Number(result.data?.autoRedirectSeconds)
+      || 5;
 
     /* 후원 모달 닫기 → 효성 카운트다운 모달 열기 */
     closeModalById('donateModal');
-    setTimeout(() => openHyosungCountdown(hyosungUrl, guideText, seconds), 300);
+    setTimeout(() => openHyosungCountdown(hyosungUrl, guideText, seconds), 350);
   }
 
   /* ============ 8. 효성 카운트다운 모달 컨트롤 ============ */
+  /* ============ 8. 효성 카운트다운 모달 컨트롤 (★ 2026-05 패치) ============ */
   function openHyosungCountdown(url, guideText, seconds) {
     const modal = document.getElementById('hyosungRedirectModal');
+
+    /* 모달이 DOM에 없으면 폴백: 1초 안내 후 메인 창에서 직접 이동 */
     if (!modal) {
-      /* 모달 없으면 즉시 이동 */
-      window.open(url, '_blank', 'noopener');
+      console.warn('[Donate] hyosungRedirectModal 없음 → 폴백 이동');
+      window.SIREN.toast('효성 CMS+ 페이지로 이동합니다...');
+      setTimeout(() => { window.location.href = url; }, 1000);
       return;
     }
 
     const guideEl = document.getElementById('hyosungGuideText');
     const countEl = document.getElementById('hyosungCountdown');
-    const confirmBtn = document.getElementById('hyosungConfirmBtn');
-    const cancelBtn = document.getElementById('hyosungCancelBtn');
-    const cancelBtn2 = document.getElementById('hyosungCancelBtn2');
+    let confirmBtn = document.getElementById('hyosungConfirmBtn');
+    let cancelBtn = document.getElementById('hyosungCancelBtn');
+    let cancelBtn2 = document.getElementById('hyosungCancelBtn2');
 
+    /* 안내 메시지 동적 적용 */
     if (guideEl && guideText) {
       guideEl.innerHTML = String(guideText).replace(/\n/g, '<br />');
     }
 
-    let remain = seconds;
+    /* 카운트다운 초수 안전 범위 (1~30초) */
+    let remain = Math.max(1, Math.min(30, Number(seconds) || 5));
     if (countEl) countEl.textContent = String(remain);
 
+    /* ★ 핵심 패치: 기존 이벤트 리스너 제거 (cloneNode 트릭) */
+    if (confirmBtn) {
+      const cb = confirmBtn.cloneNode(true);
+      confirmBtn.parentNode.replaceChild(cb, confirmBtn);
+      confirmBtn = cb;
+    }
+    if (cancelBtn) {
+      const cb = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(cb, cancelBtn);
+      cancelBtn = cb;
+    }
+    if (cancelBtn2) {
+      const cb = cancelBtn2.cloneNode(true);
+      cancelBtn2.parentNode.replaceChild(cb, cancelBtn2);
+      cancelBtn2 = cb;
+    }
+
     let timer = null;
-    const redirect = () => {
-      cleanup();
-      window.open(url, '_blank', 'noopener');
-      closeModalById('hyosungRedirectModal');
-      window.SIREN.toast('효성 CMS+ 페이지로 이동했습니다 🏦', 3000);
+    let _done = false;  /* ★ 중복 실행 방지 가드 */
+
+    const stopTimer = () => {
+      if (timer) { clearInterval(timer); timer = null; }
     };
+
+    const redirect = () => {
+      if (_done) return;
+      _done = true;
+      stopTimer();
+      closeModalById('hyosungRedirectModal');
+      /* ★ 메인 창에서 직접 이동 (window.open 사용 안 함 → 새 창 안 열림) */
+      console.log('[Donate] 효성 페이지로 이동:', url);
+      window.location.href = url;
+    };
+
     const cancel = () => {
-      cleanup();
+      if (_done) return;
+      _done = true;
+      stopTimer();
       closeModalById('hyosungRedirectModal');
       window.SIREN.toast('이동이 취소되었습니다');
     };
+
     const tick = () => {
+      if (_done) return;
       remain -= 1;
       if (countEl) countEl.textContent = String(Math.max(0, remain));
       if (remain <= 0) redirect();
-    };
-    const cleanup = () => {
-      if (timer) { clearInterval(timer); timer = null; }
-      if (confirmBtn) confirmBtn.removeEventListener('click', redirect);
-      if (cancelBtn) cancelBtn.removeEventListener('click', cancel);
-      if (cancelBtn2) cancelBtn2.removeEventListener('click', cancel);
     };
 
     if (confirmBtn) confirmBtn.addEventListener('click', redirect);
     if (cancelBtn) cancelBtn.addEventListener('click', cancel);
     if (cancelBtn2) cancelBtn2.addEventListener('click', cancel);
 
-    /* 모달 열기 */
     openModalById('hyosungRedirectModal');
     timer = setInterval(tick, 1000);
   }

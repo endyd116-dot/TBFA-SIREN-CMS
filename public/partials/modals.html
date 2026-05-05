@@ -570,6 +570,80 @@
     box-sizing: border-box;
     margin: 0;
   }
+    /* ===== ★ 2026-05: 일시 후원 카드 + 체크박스 정렬 핫픽스 ===== */
+  #donateModal #onetimePayMethods {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  #donateModal #onetimePayMethods .pay-method-card {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 14px 16px !important;
+    border: 2px solid var(--line) !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    background: #fff;
+    text-align: left !important;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  #donateModal #onetimePayMethods .pay-method-card > input[type="radio"] {
+    margin: 3px 0 0 0 !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    width: 16px !important;
+    height: 16px !important;
+    cursor: pointer;
+  }
+  #donateModal #onetimePayMethods .pay-method-card > div {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    text-align: left !important;
+    width: auto !important;
+  }
+
+  /* 체크박스 정렬 핫픽스 (B-5) */
+  #donateModal .checkbox-line {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    margin: 14px 0 !important;
+    line-height: 1.6;
+    cursor: pointer;
+  }
+  #donateModal .checkbox-line input[type="checkbox"] {
+    margin: 3px 0 0 0 !important;
+    flex: 0 0 auto !important;
+    width: 16px !important;
+    height: 16px !important;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+  #donateModal .checkbox-line span {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  /* 입금자명 박스 정렬 */
+  #donateModal #bankDepositorBox {
+    width: 100%;
+    box-sizing: border-box;
+  }
 </style>
 
 <!-- ============================================================
