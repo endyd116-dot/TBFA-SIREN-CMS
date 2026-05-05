@@ -85,7 +85,7 @@ ${text}
 
 2. summary: 제보 내용을 2~3문장(150자 이내)으로 객관적으로 요약. 신원 정보는 제거.
 
-3. suggestion: 제보자에게 권장하는 후속조치를 2~3문장(200자 이내)으로 제시. 따뜻하고 공감적인 어조 사용. 필요 시 사이렌 정식 접수, 1:1 상담, 법률 자문, 심리 상담 등을 안내.
+3. suggestion: 제보자에게 권장하는 후속조치를 5문장(500자 이내)으로 제시. 따뜻하고 공감적인 어조 사용. 필요 시 사이렌 정식 접수, 1:1 상담, 법률 자문, 심리 상담 등을 안내.
 
 응답 형식 (JSON):
 {
@@ -97,7 +97,7 @@ ${text}
   try {
     const result = await callGeminiJSON<{ severity: string; summary: string; suggestion: string }>(
       prompt,
-      { temperature: 0.3, maxOutputTokens: 800 }
+      { temperature: 0.3, maxOutputTokens: 2000 }
     );
 
     if (!result.ok || !result.data) {

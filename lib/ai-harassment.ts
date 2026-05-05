@@ -121,7 +121,7 @@ ${text}
 }`;
 
   try {
-    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 1200 });
+    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 3000 });
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);
     }

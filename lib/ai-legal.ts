@@ -115,15 +115,15 @@ ${text}
 
 3. summary: 법적 사안의 핵심을 2~3문장(150자 이내)으로 요약
 
-4. relatedLaws: 관련 가능성 있는 법령을 명시. 형식: "○○법 제○조, ○○법 제○조" (200자 이내). 정확한 조문이 불명확하면 "사안에 따라 ○○법, ○○법 등이 검토될 수 있습니다" 식으로 안내.
+4. relatedLaws: 관련 가능성 있는 법령을 명시. 형식: "○○법 제○조, ○○법 제○조" (500자 이내). 정확한 조문이 불명확하면 "사안에 따라 ○○법, ○○법 등이 검토될 수 있습니다" 식으로 안내.
 
-5. legalOpinion: 1차 법률 의견을 2~3문장(300자 이내)으로 제시. 단, "이는 1차 자문이며 정확한 판단은 변호사와 상담이 필요합니다" 안내 포함.
+5. legalOpinion: 1차 법률 의견을 2~3문장(500자 이내)으로 제시. 단, "이는 1차 자문이며 정확한 판단은 변호사와 상담이 필요합니다" 안내 포함.
 
 6. lawyerSpecialty: 권장 변호사 전문분야 (예: "교육법, 행정법", "민사 손해배상 전문", "이혼·가사 전문") (60자 이내)
 
-7. immediateAction: 사용자가 지금 당장 해야 할 일 2~3문장(200자 이내). 증거 보관, 시효 임박, 신고/소송 준비 등.
+7. immediateAction: 사용자가 지금 당장 해야 할 일 2~3문장(400자 이내). 증거 보관, 시효 임박, 신고/소송 준비 등.
 
-8. suggestion: 사이렌의 변호사 매칭 서비스 안내 + 따뜻한 어조 (200자 이내)
+8. suggestion: 사이렌의 변호사 매칭 서비스 안내 + 따뜻한 어조 (500자 이내)
 
 응답 형식 (JSON):
 {
@@ -138,7 +138,7 @@ ${text}
 }`;
 
   try {
-    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 1500 });
+    const result = await callGeminiJSON<any>(prompt, { temperature: 0.3, maxOutputTokens: 3000 });
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);
     }

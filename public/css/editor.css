@@ -122,3 +122,12 @@
 .siren-editor-readonly .toastui-editor-mode-switch {
   display: none !important;
 }
+/* ★ 2026-05: Toast UI Editor placeholder 중복 표시 제거 */
+.toastui-editor-md-container .ProseMirror p.placeholder:not(:first-child),
+.toastui-editor-ww-container .ProseMirror p.placeholder:not(:first-child) {
+  display: none !important;
+}
+/* 모드 스위치(Markdown/WYSIWYG 탭) 자체를 숨겨 사용자 혼란 방지 */
+.toastui-editor-mode-switch {
+  display: none !important;
+}

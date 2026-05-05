@@ -18,7 +18,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "GET") return methodNotAllowed();
 
-  const user = await authenticateUser(req);
+  const user = authenticateUser(req);
   if (!user) return unauthorized("로그인이 필요합니다");
 
   try {
