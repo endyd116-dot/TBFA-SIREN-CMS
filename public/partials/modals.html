@@ -43,6 +43,7 @@
     <h2 class="serif">회원가입</h2>
     <p class="modal-sub">본인 인증 후 회원가입을 완료해 주세요.</p>
     <form data-form="signup">
+<!-- public/partials/modals.html — 회원가입 폼 memberType 교체 -->
       <div class="fg">
         <label>회원 유형</label>
         <select name="memberType" id="signupMemberType" required>
@@ -53,12 +54,15 @@
         </select>
       </div>
 
+      <!-- ★ M-19-11: 전문가 가입 전용 필드 (기본 숨김) -->
       <div id="expertSignupFields" style="display:none;background:linear-gradient(135deg,#fef9f5,#fff);border:2px solid var(--brand);border-radius:10px;padding:18px 20px;margin-bottom:16px">
         <h4 style="margin:0 0 14px;font-size:14px;color:var(--brand);font-family:'Noto Serif KR',serif">🎓 전문가 회원 정보</h4>
+
         <p style="font-size:12px;color:var(--text-3);line-height:1.7;margin-bottom:14px">
           전문가 회원은 협의회의 법률/심리 상담 매칭에 참여합니다.<br />
           자격증 증빙 후 관리자 승인이 필요합니다 (영업일 기준 2~3일).
         </p>
+
         <div class="fg">
           <label>전문 분야 <span style="color:var(--danger)">*</span></label>
           <select name="expertType" id="signupExpertType">
@@ -67,10 +71,12 @@
             <option value="counselor">💗 심리상담사</option>
           </select>
         </div>
+
         <div class="fg">
           <label>세부 전문분야</label>
           <input type="text" name="specialty" placeholder="예: 교권분쟁, 트라우마 상담" maxlength="200">
         </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="fg">
             <label>소속</label>
@@ -81,24 +87,29 @@
             <input type="number" name="yearsOfExperience" min="0" max="50" placeholder="10">
           </div>
         </div>
+
         <div class="fg">
           <label>자격번호</label>
           <input type="text" name="licenseNumber" placeholder="변호사 등록번호 또는 자격증 번호" maxlength="100">
         </div>
+
         <div class="fg">
           <label>자기소개</label>
           <textarea name="bio" rows="3" maxlength="5000" placeholder="경력 및 전문성을 간단히 소개해주세요"></textarea>
         </div>
+
         <div class="fg">
           <label>활동 지역</label>
           <input type="text" name="preferredArea" placeholder="서울 강남구 / 비대면 가능" maxlength="200">
         </div>
+
         <div class="fg">
           <label>자격증 증빙 <span style="color:var(--danger)">* (PDF/이미지, 최대 10MB)</span></label>
           <input type="file" id="signupCertificateFile" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
           <input type="hidden" name="certificateBlobId" id="signupCertificateBlobId">
           <div id="signupCertificateStatus" style="font-size:11.5px;color:var(--text-3);margin-top:4px">미선택</div>
         </div>
+
         <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:10px 12px;margin-top:10px;font-size:11.5px;color:#8a6a00;line-height:1.6">
           ⚠️ 전문가 회원은 관리자 승인 후 활성화됩니다. 승인 결과는 이메일로 안내됩니다.
         </div>
@@ -138,7 +149,7 @@
 </div>
 
 <!-- ============================================================
-     PASSWORD RESET REQUEST MODAL
+     PASSWORD RESET REQUEST MODAL (★ K-1)
      ============================================================ -->
 <div id="passwordResetModal" class="modal-bg" data-modal>
   <div class="modal">
@@ -151,9 +162,12 @@
     <form data-form="password-reset-request">
       <div class="fg">
         <label>이메일</label>
-        <input type="email" name="email" required placeholder="example@email.com" autocomplete="email">
+        <input type="email" name="email" required
+               placeholder="example@email.com" autocomplete="email">
       </div>
-      <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;padding:12px 14px;font-size:12px;color:#8a6a00;line-height:1.6;margin-bottom:16px">
+      <div style="background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;
+                  padding:12px 14px;font-size:12px;color:#8a6a00;line-height:1.6;
+                  margin-bottom:16px">
         ⏰ 재설정 링크는 발송 후 <strong>30분간만 유효</strong>합니다.<br />
         ⚠️ 메일이 도착하지 않으면 스팸함을 확인해 주세요.<br />
         🔒 가입된 이메일이 아니어도 동일한 메시지가 표시됩니다 (보안).
@@ -161,14 +175,15 @@
       <button type="submit" class="btn btn-primary btn-block">재설정 링크 받기</button>
       <p class="form-link">
         비밀번호가 기억나셨나요?
-        <a href="javascript:void(0)" data-action="switch-modal" data-from="passwordResetModal" data-to="loginModal">로그인</a>
+        <a href="javascript:void(0)" data-action="switch-modal"
+           data-from="passwordResetModal" data-to="loginModal">로그인</a>
       </p>
     </form>
   </div>
 </div>
 
 <!-- ============================================================
-     DONATE MODAL
+     DONATE MODAL (★ Phase L: 토스/효성 듀얼 옵션 + 비회원 이메일)
      ============================================================ -->
 <div id="donateModal" class="modal-bg" data-modal>
   <div class="modal modal-lg">
@@ -176,11 +191,12 @@
     <h2 class="serif">🎗 후원 동참하기</h2>
     <p class="modal-sub">여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.</p>
 
+<!-- public/partials/modals.html — donateModal 안의 form 시작 직후 1블록 삽입 -->
     <!-- STEP 1: 입력 -->
     <div class="donate-step active" data-step="1">
       <form data-form="donate">
 
-        <!-- 캠페인 선택 -->
+        <!-- ★ M-19-2: 캠페인 선택 (활성 캠페인이 있을 때만 JS가 표시) -->
         <div class="fg" id="donateCampaignWrap" style="display:none">
           <label>🎯 후원 캠페인 <span class="hint">(선택 — 특정 캠페인에 합산)</span></label>
           <select id="donateCampaignSelect" name="campaignSelect"
@@ -201,7 +217,6 @@
             <label for="dt2">일시 후원</label>
           </div>
         </div>
-
         <div class="fg">
           <label>후원 금액</label>
           <div class="amt-grid">
@@ -215,11 +230,11 @@
           <input type="number" name="amount" id="customAmt" placeholder="직접 입력 (원)" value="30000" min="1000" max="100000000" required>
         </div>
 
-        <!-- 결제 방식 -->
+        <!-- ★ Phase L: 결제 방식 선택 -->
         <div class="fg" id="payMethodGroup">
           <label>결제 방식</label>
 
-          <!-- 정기 후원 -->
+          <!-- 정기 후원: 토스 카드 vs 효성 CMS+ 선택 -->
           <div id="regularPayMethods" style="display:flex;flex-direction:column;gap:8px">
             <label class="pay-method-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--line);border-radius:8px;cursor:pointer;transition:all 0.15s">
               <input type="radio" name="payMethodChoice" value="toss_card" checked style="margin-top:3px">
@@ -250,7 +265,7 @@
             </label>
           </div>
 
-          <!-- 일시 후원 (★ 텍스트 변경 적용) -->
+                    <!-- ★ M-4: 일시 후원: 토스 카드 vs 직접 계좌이체 선택 -->
           <div id="onetimePayMethods" style="display:none;flex-direction:column;gap:8px">
             <label class="pay-method-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--line);border-radius:8px;cursor:pointer;transition:all 0.15s">
               <input type="radio" name="onetimeChoice" value="toss_card" checked style="margin-top:3px">
@@ -281,7 +296,7 @@
             </label>
           </div>
 
-          <!-- 입금자명 박스 -->
+          <!-- ★ M-4: 직접 계좌이체 — 입금자명 입력 (bank_transfer 선택 시만 표시) -->
           <div id="bankDepositorBox" style="display:none;margin-top:10px;padding:12px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
             <label style="display:block;font-size:12.5px;color:var(--text-2);margin-bottom:6px;font-weight:500">
               입금자명 <span style="color:#dc2626">*</span>
@@ -293,7 +308,6 @@
               본인과 다른 이름으로 입금 시 확인이 지연될 수 있습니다.
             </small>
           </div>
-        </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="fg" style="margin-bottom:0">
@@ -306,11 +320,13 @@
           </div>
         </div>
 
+        <!-- ★ Phase L: 비회원 이메일 입력 -->
         <div class="fg" id="donateEmailGroup">
           <label>이메일 <span class="hint">(영수증/감사 메일 발송용)</span></label>
           <input type="email" name="email" id="donateEmail" placeholder="example@email.com" maxlength="100">
         </div>
 
+        <!-- ★ Phase L: 익명 후원 옵션 -->
         <label class="checkbox-line" style="font-size:12.5px;color:var(--text-2)">
           <input type="checkbox" name="isAnonymous" id="donateAnonymous">
           <span>익명으로 후원하기 <span style="color:var(--text-3);font-size:11.5px">(다른 사용자에게 이름 비공개)</span></span>
@@ -334,6 +350,7 @@
     </div>
 
     <!-- STEP 2: 완료 -->
+        <!-- STEP 2: 완료 -->
     <div class="donate-step" data-step="2" style="text-align:center;padding:30px 0">
       <div style="font-size:60px;margin-bottom:14px" id="donateSuccessIcon">🎗</div>
       <h2 class="serif" style="margin-bottom:10px" id="donateSuccessTitle">소중한 마음, 감사합니다</h2>
@@ -341,6 +358,7 @@
         여러분의 따뜻한 동행이<br />유가족들에게 큰 힘이 됩니다.
       </p>
 
+      <!-- ★ M-4: 계좌이체 선택 시 은행 정보 표시 -->
       <div id="bankInfoBox" style="display:none;max-width:420px;margin:0 auto 20px;padding:18px 20px;background:linear-gradient(135deg,#f8fafc,#fff);border:2px solid var(--brand);border-radius:10px;text-align:left">
         <div style="font-size:13px;font-weight:700;color:var(--brand);margin-bottom:10px;text-align:center">
           💳 입금 계좌 정보
@@ -372,9 +390,8 @@
     </div>
   </div>
 </div>
-
 <!-- ============================================================
-     ★ 효성 CMS+ 카운트다운 모달 (★ 안내사항 1줄 추가)
+     ★ M-4: 효성 CMS+ 안내 + 5초 카운트다운 모달
      ============================================================ -->
 <div id="hyosungRedirectModal" class="modal-bg" data-modal>
   <div class="modal" style="max-width:520px">
@@ -415,7 +432,7 @@
 </div>
 
 <!-- ============================================================
-     SUPPORT REQUEST MODAL
+     SUPPORT REQUEST MODAL — 유가족 지원 신청
      ============================================================ -->
 <div id="supportModal" class="modal-bg" data-modal>
   <div class="modal modal-lg">
@@ -468,9 +485,13 @@
 </div>
 
 <!-- ============================================================
-     결제 방식 카드 스타일 + 레이아웃 픽스
+     ★ Phase L: 결제 방식 카드 선택 시 시각 효과
+     ============================================================ -->
+<!-- ============================================================
+     ★ Phase L: 결제 방식 카드 스타일 + 레이아웃 픽스
      ============================================================ -->
 <style>
+  /* 기본 hover/checked 효과 */
   #donateModal .pay-method-card:hover {
     border-color: var(--brand) !important;
     background: #fefcfa;
@@ -481,6 +502,7 @@
     box-shadow: 0 2px 8px rgba(122, 31, 43, 0.08);
   }
 
+  /* ===== 🚨 핫픽스: 결제 방식 레이아웃 한쪽 쏠림 방지 ===== */
   #donateModal #payMethodGroup {
     width: 100%;
     box-sizing: border-box;
@@ -496,7 +518,7 @@
     text-align: left !important;
   }
 
-  /* 정기 + 일시 결제 카드 공통 */
+  /* 정기 + 일시 결제 카드 공통 — 세로 가득 */
   #donateModal #regularPayMethods,
   #donateModal #onetimePayMethods {
     display: flex !important;
@@ -508,6 +530,7 @@
     padding: 0 !important;
   }
 
+  /* 개별 결제 방식 카드 — 가로 가득 차도록 */
   #donateModal #regularPayMethods .pay-method-card,
   #donateModal #onetimePayMethods .pay-method-card {
     display: flex !important;
@@ -527,6 +550,7 @@
     overflow-wrap: anywhere;
   }
 
+  /* 라디오 버튼 — 크기/위치 고정 */
   #donateModal #regularPayMethods .pay-method-card > input[type="radio"],
   #donateModal #onetimePayMethods .pay-method-card > input[type="radio"] {
     margin: 3px 0 0 0 !important;
@@ -537,6 +561,7 @@
     cursor: pointer;
   }
 
+  /* 라디오 옆 텍스트 박스 — 가용 공간 전부 사용 */
   #donateModal #regularPayMethods .pay-method-card > div,
   #donateModal #onetimePayMethods .pay-method-card > div {
     flex: 1 1 auto !important;
@@ -545,7 +570,14 @@
     width: auto !important;
   }
 
-  /* 체크박스 정렬 */
+  /* 일시 후원: 토스 안내 박스 */
+  #donateModal #onetimePayInfo {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  /* 체크박스 정렬 핫픽스 */
   #donateModal .checkbox-line {
     display: flex !important;
     align-items: flex-start !important;
@@ -572,6 +604,7 @@
     overflow-wrap: anywhere;
   }
 
+  /* 입금자명 박스 정렬 */
   #donateModal #bankDepositorBox {
     width: 100%;
     box-sizing: border-box;
