@@ -404,19 +404,32 @@
   }
 
   /* ★ 카운트다운 모달 — 강제 표시 + 중복 방지 */
+  /* ★ 카운트다운 모달 — 중복 방지 + 강제 표시 */
+  let _hyosungShowing = false;
   function openHyosungCountdown(url, guideText, seconds) {
+    /* 중복 호출 차단 */
+    if (_hyosungShowing) {
+      console.warn('[Donate] ⏭ 카운트다운 이미 표시 중 — 중복 호출 무시');
+      return;
+    }
+    _hyosungShowing = true;
+
     console.log('[Donate] 🔵 openHyosungCountdown 호출', { url, seconds });
 
     const modal = document.getElementById('hyosungRedirectModal');
-
     if (!modal) {
       console.error('[Donate] ❌ hyosungRedirectModal DOM에 없음 → 폴백');
+      _hyosungShowing = false;
       window.SIREN.toast('효성 CMS+ 페이지로 이동합니다...');
       setTimeout(() => { window.location.href = url; }, 1000);
       return;
     }
 
-    console.log('[Donate] ✅ 모달 발견');
+    /* ★ 모달을 body 직속으로 이동 (부모 z-index 영향 차단) */
+    if (modal.parentNode !== document.body) {
+      document.body.appendChild(modal);
+      console.log('[Donate] 모달을 body 직속으로 이동');
+    }
 
     const guideEl = document.getElementById('hyosungGuideText');
     const countEl = document.getElementById('hyosungCountdown');
@@ -451,16 +464,18 @@
     let timer = null;
     let _done = false;
 
-    const stopTimer = () => { if (timer) { clearInterval(timer); timer = null; } };
+    const cleanup = () => {
+      if (timer) { clearInterval(timer); timer = null; }
+      modal.classList.remove('show');
+      modal.style.cssText = '';  /* 모든 inline style 제거 */
+      document.body.style.overflow = '';
+      _hyosungShowing = false;
+    };
 
     const redirect = () => {
       if (_done) return;
       _done = true;
-      stopTimer();
-      modal.classList.remove('show');
-      modal.style.zIndex = '';
-      modal.style.display = '';
-      document.body.style.overflow = '';
+      cleanup();
       console.log('[Donate] 효성 페이지로 이동:', url);
       window.location.href = url;
     };
@@ -468,11 +483,7 @@
     const cancel = () => {
       if (_done) return;
       _done = true;
-      stopTimer();
-      modal.classList.remove('show');
-      modal.style.zIndex = '';
-      modal.style.display = '';
-      document.body.style.overflow = '';
+      cleanup();
       window.SIREN.toast('이동이 취소되었습니다');
     };
 
@@ -487,18 +498,30 @@
     if (cancelBtn) cancelBtn.addEventListener('click', cancel);
     if (cancelBtn2) cancelBtn2.addEventListener('click', cancel);
 
-    /* ★ 강제 표시 + z-index 우선순위 */
+    /* ★ 강제 표시 — 모든 가능성 차단 */
     modal.classList.add('show');
-    modal.style.zIndex = '1100';
-    modal.style.display = 'flex';
+    modal.style.cssText = `
+      position: fixed !important;
+      inset: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 999999 !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      background: rgba(10,10,10,0.6) !important;
+      backdrop-filter: blur(8px) !important;
+      pointer-events: auto !important;
+    `;
     document.body.style.overflow = 'hidden';
 
     void modal.offsetHeight;
 
-    console.log('[Donate] 모달 표시:', {
+    console.log('[Donate] 모달 표시 완료:', {
       classList: modal.classList.toString(),
-      display: getComputedStyle(modal).display,
-      zIndex: modal.style.zIndex,
+      computed: getComputedStyle(modal).display,
+      zIndex: getComputedStyle(modal).zIndex,
+      parent: modal.parentNode === document.body ? 'body' : 'OTHER',
     });
 
     timer = setInterval(tick, 1000);
