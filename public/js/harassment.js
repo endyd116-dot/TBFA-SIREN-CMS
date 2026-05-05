@@ -1,9 +1,5 @@
 /* =========================================================
-   SIREN — harassment.js (★ Phase M-6 + 2026-05 정정 패치 + B-9 토스트)
-   - 악성민원 신고 페이지
-   - 단일 페이지 STEP 1/2/3 전환
-   - ★ 2026-05: legal 코드 잘못 들어가 있던 것 정정
-   - ★ B-9: AI 분석 시간 동적 토스트 (다중 폴백)
+   SIREN — harassment.js (★ M-6 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
    ========================================================= */
 (function () {
   'use strict';
@@ -14,7 +10,6 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  /* ★ B-9: 본문/첨부량 기반 토스트 시간 동적 계산 */
   function calcAiToastDuration(plainLen, attachCount) {
     let ms = 8000;
     if (plainLen > 200) ms += 5000;
@@ -24,19 +19,12 @@
     return Math.min(ms, 90000);
   }
 
-  /* ★ B-9: 다중 폴백 토스트 */
-   function showAiToast(msg, duration) {
+  function showAiToast(msg, duration) {
     const ms = duration || 5000;
-    console.log('[harassment] 🟢 showAiToast 호출됨', { msg: msg.slice(0, 30), ms });
-
-    /* ★ SIREN.toast는 duration을 무시하므로 우회 — 직접 #toast 요소 제어 */
     const t = document.getElementById('toast');
     if (t) {
-      console.log('[harassment] → #toast 직접 조작 (duration', ms, 'ms)');
-      /* common.js가 설정한 짧은 타이머가 있을 수 있으므로 제거 */
       if (t._aiTimer) clearTimeout(t._aiTimer);
       if (t._tt) clearTimeout(t._tt);
-      /* 짧은 지연 후 강제 표시 (common.js의 짧은 타이머가 먼저 동작해도 덮어씀) */
       setTimeout(() => {
         t.textContent = msg;
         t.style.whiteSpace = 'pre-line';
@@ -46,7 +34,6 @@
         t.classList.add('show');
         t._aiTimer = setTimeout(() => {
           t.classList.remove('show');
-          /* 스타일 원복 */
           t.style.whiteSpace = '';
           t.style.maxWidth = '';
           t.style.lineHeight = '';
@@ -55,16 +42,12 @@
       }, 50);
       return;
     }
-
-    /* 폴백: 임시 토스트 직접 생성 */
-    console.log('[harassment] → 임시 토스트 생성');
     const tmp = document.createElement('div');
     tmp.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:#fff;padding:14px 26px;border-radius:12px;font-size:13.5px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-weight:500;line-height:1.6;text-align:center;white-space:pre-line;max-width:90vw;';
     tmp.textContent = msg;
     document.body.appendChild(tmp);
     setTimeout(() => tmp.remove(), ms);
   }
-
 
   function severityInfo(s) {
     const map = {
@@ -80,6 +63,36 @@
   let _editor = null;
   let _attachments = null;
   let _lastReportId = null;
+  let _donorStatusCache = null;  /* ★ 3-3: 후원자 상태 캐시 */
+
+  /* ★ 3-3: 후원자 상태 조회 */
+  async function loadDonorStatus() {
+    if (_donorStatusCache !== null) return _donorStatusCache;
+    try {
+      const res = await fetch('/api/me/donor-status', { credentials: 'include' });
+      if (!res.ok) {
+        _donorStatusCache = { isDonor: false, donationCount: 0 };
+        return _donorStatusCache;
+      }
+      const json = await res.json();
+      _donorStatusCache = json.data || { isDonor: false, donationCount: 0 };
+      return _donorStatusCache;
+    } catch (e) {
+      console.warn('[harassment] donor-status 조회 실패', e);
+      _donorStatusCache = { isDonor: false, donationCount: 0 };
+      return _donorStatusCache;
+    }
+  }
+
+  /* ★ 3-3: 후원자 안내 모달 표시 */
+  function showDonorRequiredModal() {
+    const modal = document.getElementById('donorRequiredModal');
+    if (modal) {
+      modal.classList.add('show');
+    } else {
+      alert('AI 분석은 후원 회원 전용 서비스입니다. 일반 신고는 가능합니다.');
+    }
+  }
 
   /* ============ 단계 전환 ============ */
   function showStep(n) {
@@ -93,11 +106,10 @@
       if (num < n) el.classList.add('done');
       else if (num === n) el.classList.add('active');
     });
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /* ============ 편집기 + 첨부 초기화 ============ */
+  /* ============ 편집기 + 첨부 ============ */
   async function initEditorAndAttachments() {
     if (!_editor) {
       try {
@@ -124,10 +136,13 @@
     }
   }
 
-  /* ============ 폼 제출 ============ */
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const form = e.target;
+  /* ============ 폼 제출 (★ 3-3: skipAi 매개변수 추가) ============ */
+  async function handleSubmit(e, skipAi) {
+    if (e && e.preventDefault) e.preventDefault();
+    skipAi = !!skipAi;
+
+    const form = document.getElementById('harassmentForm');
+    if (!form) return;
 
     const auth = window.SIREN_AUTH;
     if (!auth || !auth.isLoggedIn()) {
@@ -137,6 +152,15 @@
         if (loginBtn) loginBtn.click();
       }, 600);
       return;
+    }
+
+    /* ★ 3-3: AI 분석 시도 시 후원자 검증 */
+    if (!skipAi) {
+      const donorStatus = await loadDonorStatus();
+      if (!donorStatus.isDonor) {
+        showDonorRequiredModal();
+        return;
+      }
     }
 
     const fd = new FormData(form);
@@ -169,17 +193,22 @@
     const attachmentIds = (_attachments && _attachments.getIds) ? _attachments.getIds() : [];
 
     const submitBtn = document.getElementById('harassSubmitBtn');
+    const skipBtn = document.getElementById('harassSkipAiBtn');
     const oldText = submitBtn ? submitBtn.textContent : '';
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = '🤖 AI 분석 중... (최대 10초 소요)';
+    const oldSkipText = skipBtn ? skipBtn.textContent : '';
+    if (submitBtn) submitBtn.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
+
+    if (skipAi) {
+      if (skipBtn) skipBtn.textContent = '📋 처리 중...';
+    } else {
+      if (submitBtn) submitBtn.textContent = '🤖 AI 분석 중... (최대 10초 소요)';
+      const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
+      showAiToast(
+        '🤖 AI 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+        toastMs
+      );
     }
-    /* ★ B-9: AI 분석 시간 안내 토스트 (본문/첨부량 기반 동적 시간) */
-    const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
-    showAiToast(
-      '🤖 AI 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
-      toastMs
-    );
 
     try {
       const res = await fetch('/api/harassment-report-create', {
@@ -187,13 +216,9 @@
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category,
-          frequency,
-          occurredAt,
-          title,
-          contentHtml,
-          isAnonymous,
-          attachmentIds,
+          category, frequency, occurredAt,
+          title, contentHtml, isAnonymous, attachmentIds,
+          skipAi,
         }),
       });
       const json = await res.json();
@@ -210,8 +235,22 @@
       const data = json.data || {};
       _lastReportId = data.reportId;
 
-      renderAiResult(data);
-      showStep(2);
+      /* ★ 3-3: skipAi=true면 STEP 2 건너뛰고 STEP 3 직행 */
+      if (skipAi) {
+        const finalIcon = document.getElementById('harassFinalIcon');
+        const finalTitle = document.getElementById('harassFinalTitle');
+        const finalMsg = document.getElementById('harassFinalMsg');
+        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalTitle) finalTitle.textContent = '신고가 접수되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
+          '소중한 신고 감사합니다.<br />' +
+          '운영진이 직접 검토 후 답변드리며,<br />' +
+          '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.';
+        showStep(3);
+      } else {
+        renderAiResult(data);
+        showStep(2);
+      }
     } catch (e) {
       console.error('[harassment] submit', e);
       window.SIREN.toast('네트워크 오류. 잠시 후 다시 시도해 주세요');
@@ -220,24 +259,23 @@
         submitBtn.disabled = false;
         submitBtn.textContent = oldText;
       }
+      if (skipBtn) {
+        skipBtn.disabled = false;
+        skipBtn.textContent = oldSkipText;
+      }
     }
   }
 
-  /* ============ AI 결과 렌더 (★ 2026-05 정정: harassment 전용으로 복구) ============ */
+  /* ============ AI 결과 렌더 ============ */
   function renderAiResult(data) {
     const reportNoEl = document.getElementById('harassReportNo');
     if (reportNoEl) reportNoEl.textContent = data.reportNo || '-';
 
-    /* ★ M-17: 후원자 분기 */
     if (data.isDonor && data.ai) {
-      /* ─── 후원자 — AI 분석 결과 정상 표시 ─── */
       const ai = data.ai;
-
-      /* 비후원자 안내 박스 숨김 */
       const notice = document.getElementById('harassPremiumNotice');
       if (notice) notice.style.display = 'none';
 
-      /* 심각도 배너 */
       const sev = ai.severity || 'medium';
       const sevInfo = severityInfo(sev);
       const sevBox = document.getElementById('harassSeverityBanner');
@@ -250,7 +288,6 @@
       if (sevIcon) sevIcon.textContent = sevInfo.icon;
       if (sevLabel) sevLabel.textContent = sevInfo.label;
 
-      /* 본문 필드 */
       const fields = [
         ['harassAiSummary', ai.summary || '(AI 분석을 일시적으로 사용할 수 없습니다)'],
         ['harassAiImmediate', ai.immediateAction || '(즉시 조치사항 정보 없음)'],
@@ -261,19 +298,16 @@
         if (el) el.textContent = val;
       });
 
-      /* 법률 자문 카드 */
       const legalStatusEl = document.getElementById('harassLegalStatus');
       const legalReasonEl = document.getElementById('harassLegalReason');
       if (legalStatusEl) legalStatusEl.textContent = ai.legalReviewNeeded ? '필요' : '불필요';
       if (legalReasonEl) legalReasonEl.textContent = ai.legalReason || (ai.legalReviewNeeded ? '법률 검토 권장' : '법적 조치는 현재 단계에서 권장되지 않습니다');
 
-      /* 심리상담 카드 */
       const psychStatusEl = document.getElementById('harassPsychStatus');
       const psychReasonEl = document.getElementById('harassPsychReason');
       if (psychStatusEl) psychStatusEl.textContent = ai.psychSupportNeeded ? '권장' : '필요 없음';
       if (psychReasonEl) psychReasonEl.textContent = ai.psychSupportNeeded ? '전문 상담사 매칭을 권장합니다' : '심리적 어려움이 적은 것으로 분석됩니다';
     } else if (data.premiumNotice) {
-      /* ─── 비후원자 — 후원 회원 전용 안내 ─── */
       const sevBox = document.getElementById('harassSeverityBanner');
       if (sevBox) sevBox.style.display = 'none';
 
@@ -288,7 +322,6 @@
     }
   }
 
-  /* ★ M-17: 비후원자 안내 박스 렌더 */
   function renderHarassPremiumNotice(notice) {
     const step2 = document.querySelector('.harass-step[data-harass-step="2"]');
     if (!step2) return;
@@ -385,13 +418,26 @@
         if (window.SIREN && window.SIREN.toast) {
           window.SIREN.toast('신고하려면 로그인이 필요합니다');
         }
+      } else {
+        /* 로그인 상태면 후원자 상태 사전 조회 (캐시) */
+        loadDonorStatus();
       }
     }, 1500);
 
     initEditorAndAttachments();
 
+    /* AI 분석 후 제출 (form submit) */
     const form = document.getElementById('harassmentForm');
-    if (form) form.addEventListener('submit', handleSubmit);
+    if (form) form.addEventListener('submit', (e) => handleSubmit(e, false));
+
+    /* ★ 3-3: 일반 신고 버튼 */
+    const skipBtn = document.getElementById('harassSkipAiBtn');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleSubmit(null, true);
+      });
+    }
 
     const btnSiren = document.getElementById('harassBtnSiren');
     const btnAiOnly = document.getElementById('harassBtnAiOnly');

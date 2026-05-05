@@ -1,8 +1,5 @@
 /* =========================================================
-   SIREN — legal.js (★ Phase M-7 + 2026-05 + B-9 토스트)
-   - 법률지원 서비스 페이지
-   - 단일 페이지 STEP 1/2/3 전환
-   - ★ B-9: AI 분석 시간 동적 토스트 (다중 폴백)
+   SIREN — legal.js (★ M-7 + 2026-05 + B-9 토스트 + 3-3 AI/일반 분리)
    ========================================================= */
 (function () {
   'use strict';
@@ -23,7 +20,6 @@
     return map[u] || map.normal;
   }
 
-  /* ★ B-9: 본문/첨부량 기반 토스트 시간 동적 계산 */
   function calcAiToastDuration(plainLen, attachCount) {
     let ms = 8000;
     if (plainLen > 200) ms += 5000;
@@ -33,14 +29,10 @@
     return Math.min(ms, 90000);
   }
 
-  /* ★ B-9: 다중 폴백 토스트 (SIREN.toast 우회) */
   function showAiToast(msg, duration) {
     const ms = duration || 5000;
-    console.log('[legal] 🟢 showAiToast 호출됨', { msg: msg.slice(0, 30), ms });
-
     const t = document.getElementById('toast');
     if (t) {
-      console.log('[legal] → #toast 직접 조작 (duration', ms, 'ms)');
       if (t._aiTimer) clearTimeout(t._aiTimer);
       if (t._tt) clearTimeout(t._tt);
       setTimeout(() => {
@@ -60,8 +52,6 @@
       }, 50);
       return;
     }
-
-    /* 폴백 */
     const tmp = document.createElement('div');
     tmp.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:#fff;padding:14px 26px;border-radius:12px;font-size:13.5px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-weight:500;line-height:1.6;text-align:center;white-space:pre-line;max-width:90vw;';
     tmp.textContent = msg;
@@ -74,6 +64,35 @@
   let _attachments = null;
   let _lastConsultationId = null;
   let _initDone = false;
+  let _donorStatusCache = null;
+
+  /* ★ 3-3: 후원자 상태 조회 */
+  async function loadDonorStatus() {
+    if (_donorStatusCache !== null) return _donorStatusCache;
+    try {
+      const res = await fetch('/api/me/donor-status', { credentials: 'include' });
+      if (!res.ok) {
+        _donorStatusCache = { isDonor: false, donationCount: 0 };
+        return _donorStatusCache;
+      }
+      const json = await res.json();
+      _donorStatusCache = json.data || { isDonor: false, donationCount: 0 };
+      return _donorStatusCache;
+    } catch (e) {
+      console.warn('[legal] donor-status 조회 실패', e);
+      _donorStatusCache = { isDonor: false, donationCount: 0 };
+      return _donorStatusCache;
+    }
+  }
+
+  function showDonorRequiredModal() {
+    const modal = document.getElementById('donorRequiredModal');
+    if (modal) {
+      modal.classList.add('show');
+    } else {
+      alert('AI 분석은 후원 회원 전용 서비스입니다. 일반 상담은 가능합니다.');
+    }
+  }
 
   /* ============ 단계 전환 ============ */
   function showStep(n) {
@@ -87,7 +106,6 @@
       if (num < n) el.classList.add('done');
       else if (num === n) el.classList.add('active');
     });
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -118,11 +136,13 @@
     }
   }
 
-  /* ============ 폼 제출 ============ */
-  async function handleSubmit(e) {
-    e.preventDefault();
-    console.log('[legal] 🔵 handleSubmit 호출됨');
-    const form = e.target;
+  /* ============ 폼 제출 (★ 3-3: skipAi 매개변수) ============ */
+  async function handleSubmit(e, skipAi) {
+    if (e && e.preventDefault) e.preventDefault();
+    skipAi = !!skipAi;
+
+    const form = document.getElementById('legalForm');
+    if (!form) return;
 
     const auth = window.SIREN_AUTH;
     if (!auth || !auth.isLoggedIn()) {
@@ -132,6 +152,15 @@
         if (loginBtn) loginBtn.click();
       }, 600);
       return;
+    }
+
+    /* ★ 3-3: AI 분석 시도 시 후원자 검증 */
+    if (!skipAi) {
+      const donorStatus = await loadDonorStatus();
+      if (!donorStatus.isDonor) {
+        showDonorRequiredModal();
+        return;
+      }
     }
 
     const fd = new FormData(form);
@@ -147,13 +176,11 @@
       return;
     }
 
-    /* getHTML 정규식 깨짐 대응: DOM 폴백 */
     let contentHtml = '';
     if (_editor) {
       try {
         contentHtml = _editor.getHTML();
       } catch (err) {
-        console.warn('[legal] getHTML 에러, DOM 폴백 사용:', err.message);
         try {
           const editorEl = document.getElementById('legalEditor');
           const wysiwyg = editorEl?.querySelector('.toastui-editor-ww-container .toastui-editor-contents');
@@ -161,7 +188,6 @@
           contentHtml = (wysiwyg?.innerHTML || md?.innerHTML || '').trim();
         } catch (_) {}
       }
-
       if (!contentHtml) {
         try {
           const md = _editor.getMarkdown();
@@ -185,18 +211,22 @@
     const attachmentIds = (_attachments && _attachments.getIds) ? _attachments.getIds() : [];
 
     const submitBtn = document.getElementById('legalSubmitBtn');
+    const skipBtn = document.getElementById('legalSkipAiBtn');
     const oldText = submitBtn ? submitBtn.textContent : '';
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = '🤖 AI 법률 분석 중... (최대 15초)';
-    }
+    const oldSkipText = skipBtn ? skipBtn.textContent : '';
+    if (submitBtn) submitBtn.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
 
-    /* ★ B-9: AI 분석 시간 동적 토스트 */
-    const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
-    showAiToast(
-      '🤖 AI 법률 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
-      toastMs
-    );
+    if (skipAi) {
+      if (skipBtn) skipBtn.textContent = '📋 처리 중...';
+    } else {
+      if (submitBtn) submitBtn.textContent = '🤖 AI 법률 분석 중... (최대 15초)';
+      const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
+      showAiToast(
+        '🤖 AI 법률 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+        toastMs
+      );
+    }
 
     try {
       const res = await fetch('/api/legal-consultation-create', {
@@ -206,6 +236,7 @@
         body: JSON.stringify({
           category, urgency, occurredAt, partyInfo,
           title, contentHtml, isAnonymous, attachmentIds,
+          skipAi,
         }),
       });
       const json = await res.json();
@@ -222,15 +253,34 @@
       const data = json.data || {};
       _lastConsultationId = data.consultationId;
 
-      renderAiResult(data);
-      showStep(2);
+      /* ★ 3-3: skipAi=true면 STEP 3 직행 */
+      if (skipAi) {
+        const finalIcon = document.getElementById('legalFinalIcon');
+        const finalTitle = document.getElementById('legalFinalTitle');
+        const finalMsg = document.getElementById('legalFinalMsg');
+        if (finalIcon) finalIcon.textContent = '📋';
+        if (finalTitle) finalTitle.textContent = '법률 상담 신청이 접수되었습니다';
+        if (finalMsg) finalMsg.innerHTML =
+          '소중한 신청 감사합니다.<br />' +
+          '운영진이 직접 검토 후 변호사 매칭을 진행하며,<br />' +
+          '마이페이지 &gt; 신청 내역에서 진행 상태를 확인하실 수 있습니다.<br /><br />' +
+          '<span style="color:var(--text-3);font-size:12px">※ 변호사 배정까지 영업일 기준 1~3일이 소요될 수 있습니다.</span>';
+        showStep(3);
+      } else {
+        renderAiResult(data);
+        showStep(2);
+      }
     } catch (e) {
-      console.error('[legal] submit 예외:', e);
+      console.error('[legal] submit', e);
       window.SIREN.toast('네트워크 오류. 잠시 후 다시 시도해 주세요');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.textContent = oldText;
+      }
+      if (skipBtn) {
+        skipBtn.disabled = false;
+        skipBtn.textContent = oldSkipText;
       }
     }
   }
@@ -242,7 +292,6 @@
 
     if (data.isDonor && data.ai) {
       const ai = data.ai;
-
       const notice = document.getElementById('legalPremiumNotice');
       if (notice) notice.style.display = 'none';
 
@@ -382,13 +431,24 @@
         if (window.SIREN && window.SIREN.toast) {
           window.SIREN.toast('상담 신청에는 로그인이 필요합니다');
         }
+      } else {
+        loadDonorStatus();
       }
     }, 1500);
 
     initEditorAndAttachments();
 
     const form = document.getElementById('legalForm');
-    if (form) form.addEventListener('submit', handleSubmit);
+    if (form) form.addEventListener('submit', (e) => handleSubmit(e, false));
+
+    /* ★ 3-3: 일반 상담 신청 버튼 */
+    const skipBtn = document.getElementById('legalSkipAiBtn');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleSubmit(null, true);
+      });
+    }
 
     const btnSiren = document.getElementById('legalBtnSiren');
     const btnAiOnly = document.getElementById('legalBtnAiOnly');
