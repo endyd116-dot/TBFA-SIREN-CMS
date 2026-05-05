@@ -12,7 +12,8 @@ import {
   members,
 } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
-import { generateUniversalReplyDraft, UniversalCategory } from "../../lib/ai-reply";
+import { generateUniversalReplyDraft } from "../../lib/ai-reply";
+import type { UniversalCategory } from "../../lib/ai-reply";
 import {
   ok, badRequest, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
