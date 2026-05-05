@@ -1,8 +1,9 @@
 /* =========================================================
-   SIREN — harassment.js (★ Phase M-6 + 2026-05 정정 패치)
+   SIREN — harassment.js (★ Phase M-6 + 2026-05 정정 패치 + B-9 토스트)
    - 악성민원 신고 페이지
    - 단일 페이지 STEP 1/2/3 전환
    - ★ 2026-05: legal 코드 잘못 들어가 있던 것 정정
+   - ★ B-9: AI 분석 시간 동적 토스트 (다중 폴백)
    ========================================================= */
 (function () {
   'use strict';
@@ -11,6 +12,50 @@
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  /* ★ B-9: 본문/첨부량 기반 토스트 시간 동적 계산 */
+  function calcAiToastDuration(plainLen, attachCount) {
+    let ms = 8000;
+    if (plainLen > 200) ms += 5000;
+    if (plainLen > 500) ms += 5000;
+    if (plainLen > 1000) ms += 10000;
+    ms += (attachCount || 0) * 10000;
+    return Math.min(ms, 90000);
+  }
+
+  /* ★ B-9: 다중 폴백 토스트 */
+  function showAiToast(msg, duration) {
+    const ms = duration || 5000;
+    console.log('[harassment] 🟢 showAiToast 호출됨', { msg: msg.slice(0, 30), ms });
+
+    /* 1순위: window.SIREN.toast */
+    if (window.SIREN && typeof window.SIREN.toast === 'function') {
+      console.log('[harassment] → SIREN.toast 사용');
+      try {
+        window.SIREN.toast(msg, ms);
+        return;
+      } catch (e) {
+        console.warn('[harassment] SIREN.toast 에러:', e);
+      }
+    }
+    /* 2순위: 직접 #toast 요소 조작 */
+    const t = document.getElementById('toast');
+    if (t) {
+      console.log('[harassment] → #toast 직접 조작');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._aiTimer);
+      t._aiTimer = setTimeout(() => t.classList.remove('show'), ms);
+      return;
+    }
+    /* 3순위: 임시 토스트 직접 생성 */
+    console.log('[harassment] → 임시 토스트 생성');
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#0f0f0f;color:#fff;padding:14px 26px;border-radius:12px;font-size:13.5px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.3);font-weight:500;line-height:1.6;text-align:center;white-space:pre-line;max-width:90vw;';
+    tmp.textContent = msg;
+    document.body.appendChild(tmp);
+    setTimeout(() => tmp.remove(), ms);
   }
 
   function severityInfo(s) {
@@ -119,12 +164,14 @@
     const oldText = submitBtn ? submitBtn.textContent : '';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = '🤖 AI 분석 중... (최대 20초 소요)';
+      submitBtn.textContent = '🤖 AI 분석 중... (최대 10초 소요)';
     }
-    /* ★ B-9: AI 분석 시간 안내 토스트 */
-    if (window.SIREN && window.SIREN.toast) {
-      window.SIREN.toast('🤖 AI 분석에 시간이 걸릴 수 있습니다. 응답이 오래 없으면 다시 한번 눌러주세요', 5000);
-    }
+    /* ★ B-9: AI 분석 시간 안내 토스트 (본문/첨부량 기반 동적 시간) */
+    const toastMs = calcAiToastDuration(plain.length, attachmentIds.length);
+    showAiToast(
+      '🤖 AI 분석에 시간이 걸릴 수 있습니다.\n응답이 오래 없으면 다시 한번 눌러주세요',
+      toastMs
+    );
 
     try {
       const res = await fetch('/api/harassment-report-create', {
