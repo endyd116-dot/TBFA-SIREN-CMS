@@ -1805,7 +1805,222 @@ export function tplRegularDonationAnniversary(opts: {
 }
 
 // lib/email.ts — 파일 끝에 추가 (M-19-7 기념일 템플릿 5종)
+// lib/email.ts — 파일 맨 끝에 추가 (M-19-11 V2 회원 승인 시스템)
 
+/* ═══════════════════════════════════════════════════════
+   ★ Phase M-19-11 V2: 템플릿 22. 회원 승인 완료 알림 (NEW)
+   - 유가족/교원/변호사/심리상담사 회원이 운영자에게 승인되었을 때
+   - members.agreeEmail=true 인 경우만 발송
+   ═══════════════════════════════════════════════════════ */
+export function tplMemberApproved(opts: {
+  userName: string;
+  memberSubtype: string;       // 'family' | 'teacher' | 'lawyer' | 'counselor'
+  approvedAt: Date;
+}) {
+  const { userName, memberSubtype, approvedAt } = opts;
+
+  const SUBTYPE_LABEL: Record<string, { label: string; icon: string; color: string }> = {
+    family:    { label: "유가족",     icon: "🎗",   color: "#7a1f2b" },
+    teacher:   { label: "교원",       icon: "👨‍🏫", color: "#1a5ec4" },
+    lawyer:    { label: "변호사",     icon: "⚖️",   color: "#5a4d8c" },
+    counselor: { label: "심리상담사", icon: "💗",   color: "#c5293a" },
+  };
+  const subtypeInfo = SUBTYPE_LABEL[memberSubtype] || { label: "회원", icon: "✅", color: "#7a1f2b" };
+
+  const yyyy = approvedAt.getFullYear();
+  const mm = String(approvedAt.getMonth() + 1).padStart(2, "0");
+  const dd = String(approvedAt.getDate()).padStart(2, "0");
+  const hh = String(approvedAt.getHours()).padStart(2, "0");
+  const min = String(approvedAt.getMinutes()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(userName)} 님의 <strong style="color:${subtypeInfo.color};">${subtypeInfo.icon} ${esc(subtypeInfo.label)}</strong> 회원 가입이<br />
+      운영진의 검토를 거쳐 <strong style="color:#1a8b46;">정상 승인</strong>되었습니다. 🎉
+    </p>
+
+    <div style="margin:24px 0;padding:24px;
+                background:linear-gradient(135deg,#e7f7ec,#fafff8);
+                border:2px solid #cdebd8;border-radius:12px;text-align:center;">
+      <div style="font-size:48px;line-height:1;margin-bottom:10px;">${subtypeInfo.icon}</div>
+      <div style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;
+                  color:#1a5e2c;margin-bottom:6px;">
+        ${esc(subtypeInfo.label)} 회원 승인 완료
+      </div>
+      <div style="font-size:13px;color:#1a8b46;letter-spacing:1px;">
+        SIREN MEMBER APPROVED
+      </div>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="100" style="padding:5px 0;color:#8a8a8a;">회원 유형</td>
+              <td style="padding:5px 0;color:#0f0f0f;font-weight:600;">
+                ${subtypeInfo.icon} ${esc(subtypeInfo.label)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">승인 일시</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#ffffff;
+                border:1px solid #e8e6e3;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#0f0f0f;margin-bottom:10px;
+                  font-family:'Noto Serif KR',serif;">
+        🚀 이제 이용하실 수 있습니다
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        ${memberSubtype === "family" ? `
+        • 유가족 전용 심리 상담·법률 자문·장학 지원 신청<br />
+        • 1:1 실시간 채팅 상담<br />
+        • 자료실 전체 열람` : ""}
+        ${memberSubtype === "teacher" ? `
+        • 사이렌 관리(사건 제보·악성민원·법률지원·자유게시판) 이용<br />
+        • 교원 자료실 열람<br />
+        • 활동 보고서 우선 열람` : ""}
+        ${memberSubtype === "lawyer" ? `
+        • 법률 자문 매칭 시스템 등록<br />
+        • 유가족 법률 상담 의뢰 수임<br />
+        • 전문가 자료실 열람` : ""}
+        ${memberSubtype === "counselor" ? `
+        • 심리 상담 매칭 시스템 등록<br />
+        • 유가족 상담 의뢰 수임<br />
+        • 전문가 자료실 열람` : ""}
+      </div>
+    </div>
+
+    <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      ${esc(userName)} 님과 함께 더 따뜻한 동행을 만들어가겠습니다.<br />
+      앞으로 잘 부탁드립니다. 🙏
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] ${userName}님, ${subtypeInfo.label} 회원 가입이 승인되었습니다 ${subtypeInfo.icon}`,
+    html: baseLayout({
+      title: "회원 가입 승인 완료",
+      bodyHtml,
+      ctaText: "마이페이지로 이동",
+      ctaUrl: `${SITE_URL}/mypage.html`,
+    }),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ★ Phase M-19-11 V2: 템플릿 23. 회원 승인 반려 알림 (NEW)
+   - 운영자가 자격증 검토 후 반려한 경우
+   - 반려 사유 명시 + 재신청 안내
+   ═══════════════════════════════════════════════════════ */
+export function tplMemberRejected(opts: {
+  userName: string;
+  memberSubtype: string;
+  rejectedReason: string;       // 운영자가 입력한 반려 사유
+  rejectedAt: Date;
+}) {
+  const { userName, memberSubtype, rejectedReason, rejectedAt } = opts;
+
+  const SUBTYPE_LABEL: Record<string, string> = {
+    family: "유가족",
+    teacher: "교원",
+    lawyer: "변호사",
+    counselor: "심리상담사",
+  };
+  const subtypeLabel = SUBTYPE_LABEL[memberSubtype] || "회원";
+
+  const yyyy = rejectedAt.getFullYear();
+  const mm = String(rejectedAt.getMonth() + 1).padStart(2, "0");
+  const dd = String(rejectedAt.getDate()).padStart(2, "0");
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+
+  const safeReason = esc(rejectedReason || "증빙 서류 미비").replace(/\n/g, "<br />");
+
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
+      안녕하세요, <strong>${esc(userName)}</strong> 님.
+    </p>
+    <p style="margin:0 0 20px;color:#525252;">
+      ${esc(userName)} 님의 <strong>${esc(subtypeLabel)}</strong> 회원 가입 신청을 검토하였으나,<br />
+      아쉽게도 아래 사유로 <strong style="color:#c5293a;">승인이 어려운 것</strong>으로 확인되었습니다.
+    </p>
+
+    <div style="margin:20px 0;padding:18px 20px;
+                background:linear-gradient(135deg,#fdecec,#fff5f5);
+                border:2px solid #f0c4c4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#c5293a;margin-bottom:10px;">
+        📋 반려 사유
+      </div>
+      <div style="font-size:13.5px;color:#7a1f1f;line-height:1.85;
+                  background:#ffffff;padding:14px 16px;border-radius:6px;">
+        ${safeReason}
+      </div>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:#fafaf8;border:1px solid #e8e6e3;border-radius:6px;margin:16px 0;">
+      <tr>
+        <td style="padding:18px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:13px;">
+            <tr>
+              <td width="100" style="padding:5px 0;color:#8a8a8a;">신청 유형</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(subtypeLabel)} 회원</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#8a8a8a;">검토 일자</td>
+              <td style="padding:5px 0;color:#0f0f0f;">${esc(dateStr)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <div style="margin:24px 0;padding:18px 20px;background:#fff8ec;
+                border:1px solid #f0e3c4;border-radius:8px;">
+      <div style="font-size:14px;font-weight:700;color:#8a6a00;margin-bottom:10px;">
+        💡 재신청을 원하신다면
+      </div>
+      <div style="font-size:13px;color:#525252;line-height:1.85;">
+        • 위 사유를 확인하시고 보완 가능한 증빙 서류를 준비해 주세요<br />
+        • 운영진에게 직접 문의하시거나 문의 메일을 보내주시면 재심사 절차를 안내드립니다<br />
+        • 일반 후원자로의 가입은 별도 제한 없이 가능합니다
+      </div>
+    </div>
+
+    <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
+                border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
+      📞 <strong>문의 안내</strong><br />
+      • 본인 확인이 필요한 경우: contact@siren-org.kr<br />
+      • 일반 가입 안내: 협회 홈페이지의 "회원 가입" 메뉴
+    </div>
+
+    <p style="margin:24px 0 0;color:#525252;font-size:13.5px;line-height:1.7;">
+      ${esc(userName)} 님께 도움이 되지 못해 죄송합니다.<br />
+      추가 문의 사항이 있으시면 언제든 협회로 연락 주세요. 🙏
+    </p>
+  `;
+
+  return {
+    subject: `[SIREN] ${userName}님, ${subtypeLabel} 회원 신청 검토 결과 안내`,
+    html: baseLayout({
+      title: "회원 가입 신청 검토 결과",
+      bodyHtml,
+      ctaText: "협회 홈페이지로",
+      ctaUrl: `${SITE_URL}/index.html`,
+    }),
+  };
+}
 /* ============================================================
    ★ M-19-7: 기념일 축하 메일 템플릿 5종
    - 1. 가입 1개월
