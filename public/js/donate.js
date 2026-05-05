@@ -1,11 +1,12 @@
 /* =========================================================
-   SIREN — donate.js (★ 2026-05: 카운트다운 모달 강제 표시 + 일시 결제 텍스트 변경)
+   SIREN — donate.js (★ 2026-05: _hyosungShowing 중복 수정)
    ========================================================= */
 (function () {
   'use strict';
 
   let _tossSdkLoaded = false;
   let _tossSdkLoading = null;
+  let _hyosungShowing = false;
 
   function loadTossSdk() {
     if (_tossSdkLoaded) return Promise.resolve();
@@ -298,17 +299,13 @@
     });
     console.log('[Donate] prepare 응답 status:', prepRes.status);
     const prepData = await prepRes.json().catch(() => ({}));
-    console.log('[Donate] prepare 응답 본문:', prepData);
 
     if (!prepRes.ok || !prepData.ok || !prepData.data?.orderId) {
       throw new Error(prepData.error || '결제 준비 실패');
     }
     const { orderId, donationId } = prepData.data;
 
-    console.log('[Donate] 토스 SDK 로드 시작');
     await loadTossSdk();
-    console.log('[Donate] 토스 SDK 로드 완료');
-
     const clientKey = getTossClientKey();
     if (!window.TossPayments) throw new Error('토스 SDK가 로드되지 않았습니다');
 
@@ -318,7 +315,6 @@
     const failUrl = location.origin + '/payment-fail.html';
 
     try {
-      console.log('[Donate] 🚀 requestPayment 호출');
       await payment.requestPayment({
         method: 'CARD',
         amount: { currency: 'KRW', value: amount },
@@ -330,9 +326,8 @@
         customerEmail: email,
         customerMobilePhone: phone.replace(/[^0-9]/g, ''),
       });
-      console.log('[Donate] ✅ requestPayment 완료');
     } catch (tossErr) {
-      console.error('[Donate] ❌ Toss 결제창 에러:', tossErr);
+      console.error('[Donate] ❌ Toss:', tossErr);
       if (tossErr.code === 'USER_CANCEL') {
         window.SIREN.toast('결제가 취소되었습니다');
       } else {
@@ -398,39 +393,30 @@
       || Number(result.data?.autoRedirectSeconds)
       || 5;
 
-    /* ★ 후원 모달 닫기 → 600ms 후 카운트다운 모달 */
     closeModalById('donateModal');
     setTimeout(() => openHyosungCountdown(hyosungUrl, guideText, seconds), 600);
   }
 
-  /* ★ 카운트다운 모달 — 강제 표시 + 중복 방지 */
-  /* ★ 카운트다운 모달 — 중복 방지 + 강제 표시 */
-  let _hyosungShowing = false;
-  /* ★ 카운트다운 모달 — 중복 방지 + 강제 표시 */
-  let _hyosungShowing = false;
   function openHyosungCountdown(url, guideText, seconds) {
-    /* 중복 호출 차단 */
     if (_hyosungShowing) {
-      console.warn('[Donate] ⏭ 카운트다운 이미 표시 중 — 중복 호출 무시');
+      console.warn('[Donate] ⏭ 카운트다운 이미 표시 중');
       return;
     }
     _hyosungShowing = true;
 
-    console.log('[Donate] 🔵 openHyosungCountdown 호출', { url, seconds });
+    console.log('[Donate] 🔵 openHyosungCountdown', { url, seconds });
 
     const modal = document.getElementById('hyosungRedirectModal');
     if (!modal) {
-      console.error('[Donate] ❌ hyosungRedirectModal DOM에 없음 → 폴백');
+      console.error('[Donate] ❌ 모달 DOM 없음 → 폴백');
       _hyosungShowing = false;
       window.SIREN.toast('효성 CMS+ 페이지로 이동합니다...');
       setTimeout(() => { window.location.href = url; }, 1000);
       return;
     }
 
-    /* ★ 모달을 body 직속으로 이동 (부모 z-index 영향 차단) */
     if (modal.parentNode !== document.body) {
       document.body.appendChild(modal);
-      console.log('[Donate] 모달을 body 직속으로 이동');
     }
 
     const guideEl = document.getElementById('hyosungGuideText');
@@ -446,7 +432,6 @@
     let remain = Math.max(1, Math.min(30, Number(seconds) || 5));
     if (countEl) countEl.textContent = String(remain);
 
-    /* 기존 리스너 제거 */
     if (confirmBtn) {
       const cb = confirmBtn.cloneNode(true);
       confirmBtn.parentNode.replaceChild(cb, confirmBtn);
@@ -469,7 +454,7 @@
     const cleanup = () => {
       if (timer) { clearInterval(timer); timer = null; }
       modal.classList.remove('show');
-      modal.style.cssText = '';  /* 모든 inline style 제거 */
+      modal.style.cssText = '';
       document.body.style.overflow = '';
       _hyosungShowing = false;
     };
@@ -478,7 +463,6 @@
       if (_done) return;
       _done = true;
       cleanup();
-      console.log('[Donate] 효성 페이지로 이동:', url);
       window.location.href = url;
     };
 
@@ -500,7 +484,6 @@
     if (cancelBtn) cancelBtn.addEventListener('click', cancel);
     if (cancelBtn2) cancelBtn2.addEventListener('click', cancel);
 
-    /* ★ 강제 표시 — 모든 가능성 차단 */
     modal.classList.add('show');
     modal.style.cssText = `
       position: fixed !important;
@@ -520,10 +503,8 @@
     void modal.offsetHeight;
 
     console.log('[Donate] 모달 표시 완료:', {
-      classList: modal.classList.toString(),
       computed: getComputedStyle(modal).display,
       zIndex: getComputedStyle(modal).zIndex,
-      parent: modal.parentNode === document.body ? 'body' : 'OTHER',
     });
 
     timer = setInterval(tick, 1000);
