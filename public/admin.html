@@ -2447,6 +2447,199 @@
     outline: none;
     border-color: var(--brand);
   }
+    .reengage-message-area:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
+
+  /* ===== ★ 2026-05: 통계 편집 ===== */
+  .stats-edit-header {
+    margin-bottom: 14px;
+  }
+  .stats-edit-desc {
+    font-size: 12.5px;
+    color: var(--text-3);
+    line-height: 1.7;
+    margin: 6px 0 14px;
+  }
+  .stats-draft-banner {
+    background: linear-gradient(135deg, #fff8ec, #fff);
+    border: 2px solid #f0e3c4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: #8a6a00;
+  }
+  .stats-draft-banner strong { color: #6a5400; }
+  .stats-draft-banner .btn-publish {
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stats-draft-banner .btn-publish:hover { background: var(--brand-deep, #5a1620); }
+  .stats-draft-banner .btn-discard-all {
+    background: transparent;
+    border: 1px solid #c47a00;
+    color: #c47a00;
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stats-draft-banner .btn-discard-all:hover { background: #fff8ec; }
+  .stats-no-draft {
+    background: #e7f7ec;
+    border: 1px solid #a3d9b4;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    color: #1a5e2c;
+  }
+  .stats-group {
+    background: #fafaf8;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .stats-group-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--brand);
+  }
+  .stats-row {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .stats-row-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .stats-row-label .label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+  .stats-draft-badge {
+    display: inline-block;
+    background: #fff8ec;
+    color: #8a6a00;
+    border: 1px solid #f0e3c4;
+    padding: 1px 8px;
+    border-radius: 9px;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .stats-row-input { margin-bottom: 4px; }
+  .stats-input,
+  .stats-input-json {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    font-size: 13px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .stats-input-json {
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .stats-input:focus,
+  .stats-input-json:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
+  .stats-row-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .stats-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .stats-row-actions .btn-mini {
+    padding: 4px 10px;
+    font-size: 11px;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stats-row-actions .btn-mini.btn-discard {
+    color: #c47a00;
+    border-color: #f0e3c4;
+    background: #fff8ec;
+  }
+  .stats-row-actions .btn-mini.btn-discard:hover { background: #fdf3d8; }
+  .stats-row-actions code {
+    background: var(--bg-soft);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'Inter', monospace;
+    font-size: 10.5px;
+  }
+  .stats-save-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+  }
+  .stats-save-bar .btn-save-all {
+    flex: 1;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stats-save-bar .btn-save-all:hover { background: var(--brand-deep, #5a1620); }
+  .stats-save-bar .btn-reload {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-2);
+    padding: 11px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .stats-save-bar .btn-reload:hover { background: #f5f4f2; }
 </style>
 </head>
 <body>
@@ -3173,6 +3366,7 @@
               <!-- public/admin.html — 콘텐츠 관리 탭 버튼 영역에 추가 -->
             <button type="button" class="ct-tab" data-ct="media">📰 언론보도/갤러리</button>
             <button type="button" class="ct-tab" data-ct="resources">📁 자료실</button>
+            <button type="button" class="ct-tab" data-ct="stats-edit">📊 통계 편집</button>
           </div>
 
           <!-- ─── 공지사항 탭 ─── -->
@@ -3386,7 +3580,13 @@
               </div>
             </div>
           </div>
-
+          
+          <!-- ★ 2026-05: 통계 편집 탭 ─── -->
+          <div class="ct-pane" data-ct-pane="stats-edit" style="display:none">
+            <div id="statsEditContainer">
+              <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
+            </div>
+          </div>
 
         </div>  <!-- content tabs container 닫힘 (기존 유지) -->
 
@@ -4680,7 +4880,7 @@
       </div>
     </div>
   </div>
-<!-- public/admin.html — <!-- Toast --> 바로 위에 삽입 -->
+<!-- public/admin.html —  Toast  바로 위에 삽입 -->
   <!-- ★ M-19-3: AI 활동보고서 생성 모달 -->
   <div id="activityReportModal" class="modal">
     <div class="modal-content" style="max-width:920px">
@@ -5017,6 +5217,7 @@
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <script src="/js/admin-resources.js?v=m19-8"></script>
 <script src="/js/admin-experts.js?v=m19-11"></script>
+<script src="/js/admin-stats-edit.js?v=2026-05"></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */
@@ -5053,6 +5254,18 @@
     } else {
       ensureLoginVisible();
     }
+
+    /* ★ 2026-05: 콘텐츠 관리 → 통계 편집 탭 클릭 시 자동 로드 */
+    document.addEventListener('click', function (e) {
+      var tab = e.target.closest('[data-ct="stats-edit"]');
+      if (!tab) return;
+      /* 탭이 활성화될 때 데이터 로드 */
+      setTimeout(function () {
+        if (window.SIREN_STATS_EDIT && typeof window.SIREN_STATS_EDIT.loadStats === 'function') {
+          window.SIREN_STATS_EDIT.loadStats();
+        }
+      }, 150);
+    });
   })();
   </script>
 
