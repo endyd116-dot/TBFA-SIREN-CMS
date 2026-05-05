@@ -1,47 +1,73 @@
 /**
- * Google Gemini API 래퍼 — STEP E-3 + 2026-05 강화 패치
+ * Google Gemini API 래퍼 (★ 2026-05 v3.3 — 3-flash 통일 + 3-tier 폴백)
  *
- * 모델: gemini-2.5-flash (기본) → 503 시 gemini-2.0-flash 폴백
- * 사용법:
- *   import { callGemini, callGeminiJSON } from "../../lib/ai-gemini";
- *   const text = await callGemini("질문...");
- *   const json = await callGeminiJSON("질문...", { temperature: 0.3 });
+ * 모델 정책:
+ *   1차 (디폴트): GEMINI_MODEL_PRO / FLASH (기본 gemini-3-flash)
+ *   2차: gemini-3.1-flash-lite
+ *   3차: gemini-2.5-flash
+ *
+ * 동작:
+ *   - fetch에 timeout 없음 → 모델이 끝까지 일하도록 대기 (Netlify 26초 한도 내)
+ *   - HTTP 에러(503/429/404/UNAVAILABLE) 발생 시 즉시 다음 모델로 폴백
+ *   - 인증 에러는 즉시 종료 (폴백해도 같은 결과)
+ *   - 만약 1차 모델이 존재하지 않으면 (404) 자동으로 2,3차 시도
  */
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL_PRIMARY = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const GEMINI_MODEL_FALLBACK1 = "gemini-2.0-flash";
-const GEMINI_MODEL_FALLBACK2 = "gemini-1.5-flash";
+const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
+const FLASH_MODEL = process.env.GEMINI_MODEL_FLASH || "gemini-3-flash";
+
+/* 하위호환 */
+const LEGACY_MODEL = process.env.GEMINI_MODEL;
+const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_MODEL : FLASH_MODEL;
+
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
-interface GeminiOptions {
+function buildFallbackChain(mode: "pro" | "flash"): string[] {
+  const chain: string[] = [];
+  const push = (m: string) => { if (!chain.includes(m)) chain.push(m); };
+
+  if (mode === "pro") {
+    push(PRO_MODEL);                  // 1차: gemini-3-flash (기본)
+    push("gemini-3.1-flash-lite");    // 2차
+    push("gemini-2.5-flash");         // 3차 (검증된 안정 모델)
+  } else {
+    push(EFFECTIVE_FLASH);            // 1차
+    push("gemini-3.1-flash-lite");    // 2차
+    push("gemini-2.5-flash");         // 3차
+  }
+  return chain;
+}
+
+export interface GeminiOptions {
   temperature?: number;
   maxOutputTokens?: number;
   systemInstruction?: string;
+  mode?: "pro" | "flash";
 }
 
 interface GeminiResult {
   ok: boolean;
   text?: string;
   error?: string;
-  modelUsed?: string;
-  retried?: number;
   usage?: {
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
   };
+  modelUsed?: string;
 }
 
-/* ─────────────────────────────────────────
-   단일 호출 시도 (재시도 + 폴백 없는 raw 호출)
-   ───────────────────────────────────────── */
-async function callGeminiOnce(
+async function callSingleModel(
+  modelName: string,
   prompt: string,
-  model: string,
   opts: GeminiOptions
-): Promise<{ ok: boolean; text?: string; error?: string; statusCode?: number; usage?: any }> {
-  const url = `${GEMINI_API_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
+): Promise<GeminiResult> {
+  if (!GEMINI_API_KEY) {
+    return { ok: false, error: "GEMINI_API_KEY not configured" };
+  }
+
+  const url = `${GEMINI_API_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
   const body: any = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -58,6 +84,8 @@ async function callGeminiOnce(
   }
 
   try {
+    /* ★ timeout 없음 — 모델이 끝까지 일하도록 대기
+       Netlify Functions 26초 한도 내에서 자연스럽게 동작 */
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,11 +94,10 @@ async function callGeminiOnce(
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[Gemini ${model}] API error ${res.status}`, errText.slice(0, 300));
       return {
         ok: false,
-        error: `API ${res.status}: ${errText.slice(0, 200)}`,
-        statusCode: res.status,
+        error: `${res.status}: ${errText.slice(0, 200)}`,
+        modelUsed: modelName,
       };
     }
 
@@ -81,8 +108,7 @@ async function callGeminiOnce(
       "";
 
     if (!text) {
-      console.warn(`[Gemini ${model}] 빈 응답`);
-      return { ok: false, error: "빈 응답" };
+      return { ok: false, error: "빈 응답", modelUsed: modelName };
     }
 
     const usage = data?.usageMetadata
@@ -93,108 +119,82 @@ async function callGeminiOnce(
         }
       : undefined;
 
-    return { ok: true, text: text.trim(), usage };
+    return { ok: true, text: text.trim(), usage, modelUsed: modelName };
   } catch (err: any) {
-    console.error(`[Gemini ${model}] 호출 예외:`, err);
-    return { ok: false, error: err?.message || "Unknown error" };
+    return {
+      ok: false,
+      error: err?.message || "Unknown error",
+      modelUsed: modelName,
+    };
   }
 }
 
-/* ─────────────────────────────────────────
-   sleep 헬퍼
-   ───────────────────────────────────────── */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Gemini API 호출 (텍스트 응답)
- * - 503 (서비스 과부하) 시 자동 재시도 (3회, 1s/3s/5s backoff)
- * - 모든 재시도 실패 시 폴백 모델로 자동 전환
- */
 export async function callGemini(
   prompt: string,
   opts: GeminiOptions = {}
 ): Promise<GeminiResult> {
   if (!GEMINI_API_KEY) {
-    console.warn("[Gemini] GEMINI_API_KEY 환경변수 미설정");
+    console.warn("[Gemini] GEMINI_API_KEY 환경변수가 설정되지 않음");
     return { ok: false, error: "GEMINI_API_KEY not configured" };
   }
 
-  const models = [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK1, GEMINI_MODEL_FALLBACK2];
-  const retryDelays = [1000, 3000, 5000]; // ms
+  const mode = opts.mode || "flash";
+  const chain = buildFallbackChain(mode);
+  let lastError = "";
 
-  let lastError = "Unknown error";
-  let totalRetries = 0;
+  for (let i = 0; i < chain.length; i++) {
+    const model = chain[i];
+    const result = await callSingleModel(model, prompt, opts);
 
-  for (let mIdx = 0; mIdx < models.length; mIdx++) {
-    const model = models[mIdx];
-
-    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
-      const result = await callGeminiOnce(prompt, model, opts);
-
-      if (result.ok) {
-        if (mIdx > 0 || attempt > 0) {
-          console.info(
-            `[Gemini] 성공 (모델: ${model}, 시도: ${attempt + 1}/${retryDelays.length}, 폴백 단계: ${mIdx})`
-          );
-        }
-        return {
-          ok: true,
-          text: result.text,
-          modelUsed: model,
-          retried: totalRetries,
-          usage: result.usage,
-        };
+    if (result.ok) {
+      if (i > 0) {
+        console.info(`[Gemini-${mode}] 폴백 #${i + 1} 성공: ${model} 사용 (1차 ${chain[0]} 실패)`);
       }
-
-      lastError = result.error || "Unknown";
-      totalRetries++;
-
-      /* 503 (서비스 과부하)이면 재시도, 그 외는 모델 전환 */
-      const is503 = result.statusCode === 503;
-      const is429 = result.statusCode === 429; // Rate limit
-      const isRetriable = is503 || is429;
-
-      if (!isRetriable) {
-        /* 401/403/400 등은 재시도 무의미 → 즉시 다음 모델로 */
-        console.warn(`[Gemini ${model}] 비-재시도 에러 (${result.statusCode}). 폴백 모델로 전환.`);
-        break;
-      }
-
-      /* 재시도 가능한 에러 → backoff 후 재시도 */
-      if (attempt < retryDelays.length - 1) {
-        console.info(
-          `[Gemini ${model}] 재시도 ${attempt + 1}/${retryDelays.length} (${retryDelays[attempt]}ms 대기)`
-        );
-        await sleep(retryDelays[attempt]);
-      }
+      return result;
     }
 
-    /* 마지막 모델이면 더 이상 폴백 없음 */
-    if (mIdx === models.length - 1) break;
+    lastError = result.error || "Unknown";
+    console.warn(`[Gemini-${mode}] ${i + 1}/${chain.length} ${model} 실패:`, lastError.slice(0, 120));
 
-    console.warn(`[Gemini] ${model} 모든 재시도 실패. 폴백 모델 ${models[mIdx + 1]}로 전환.`);
+    /* 폴백 가능 에러 — 다음 모델 시도 */
+    const isRetryable =
+      lastError.includes("503") ||
+      lastError.includes("429") ||
+      lastError.includes("404") ||
+      lastError.includes("UNAVAILABLE") ||
+      lastError.includes("NOT_FOUND") ||
+      lastError.includes("timeout") ||
+      lastError.includes("network");
+
+    if (!isRetryable) break;
   }
 
-  /* 모든 모델 + 모든 재시도 실패 */
-  console.error("[Gemini] 모든 모델 + 재시도 실패:", lastError);
-  return {
-    ok: false,
-    error: `AI 서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요. (${lastError.slice(0, 100)})`,
-    retried: totalRetries,
-  };
+  if (lastError.includes("503") || lastError.includes("UNAVAILABLE")) {
+    return {
+      ok: false,
+      error: "AI 서비스가 일시적으로 과부하 상태입니다. 1~2분 후 다시 시도해주세요.",
+    };
+  }
+  if (lastError.includes("429")) {
+    return {
+      ok: false,
+      error: "AI 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+    };
+  }
+  if (lastError.includes("PERMISSION_DENIED") || lastError.includes("API key")) {
+    return {
+      ok: false,
+      error: "AI 서비스 인증 오류가 발생했습니다. 관리자에게 문의해주세요.",
+    };
+  }
+
+  return { ok: false, error: `AI 호출 실패: ${lastError.slice(0, 100)}` };
 }
 
-/**
- * Gemini API 호출 → JSON 파싱
- * 프롬프트에 "JSON 형식으로 응답"을 명시해야 안정적
- */
 export async function callGeminiJSON<T = any>(
   prompt: string,
   opts: GeminiOptions = {}
 ): Promise<{ ok: boolean; data?: T; error?: string; raw?: string; modelUsed?: string }> {
-  /* JSON 응답엔 temperature 낮게 */
   const result = await callGemini(prompt, {
     temperature: 0.3,
     ...opts,
@@ -204,7 +204,6 @@ export async function callGeminiJSON<T = any>(
     return { ok: false, error: result.error };
   }
 
-  /* 마크다운 코드블록 제거 (```json ... ```) */
   let cleaned = result.text.trim();
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
 
@@ -215,19 +214,17 @@ export async function callGeminiJSON<T = any>(
     console.error("[Gemini] JSON 파싱 실패:", cleaned.slice(0, 300));
     return {
       ok: false,
-      error: "JSON 파싱 실패: " + (err?.message || "unknown"),
+      error: "AI 응답 파싱 실패 — 다시 시도해주세요",
       raw: result.text,
     };
   }
 }
 
-/**
- * 헬스 체크 — API 키 + 모델 동작 확인용
- */
 export async function pingGemini(): Promise<boolean> {
   const r = await callGemini("Reply with only the word: pong", {
     temperature: 0,
     maxOutputTokens: 10,
+    mode: "flash",
   });
   return r.ok && (r.text || "").toLowerCase().includes("pong");
 }
