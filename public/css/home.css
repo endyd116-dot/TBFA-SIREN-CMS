@@ -59,6 +59,7 @@
   padding:34px 18px 30px;text-align:center;
   border-right:1px solid var(--line-soft);cursor:pointer;
   transition:all var(--t);position:relative;background:#fff;
+  text-decoration:none;color:inherit;
 }
 .quick-item:last-child{border-right:none}
 .quick-item:hover{background:var(--bg-soft)}
@@ -74,6 +75,58 @@
   transition:var(--t);font-family:'Inter';
 }
 .quick-item:hover .qi-arrow{color:var(--brand);transform:translate(2px,-2px)}
+
+/* ===== ★ B-7: SIREN 그룹 디자인 (사건/악성/법률) ===== */
+.quick-item.siren-item{
+  background:linear-gradient(180deg,#fff 0%,#fef9f5 100%);
+  border-bottom:3px solid #c5293a;
+  padding-top:48px;
+}
+.quick-item.siren-item:hover{
+  background:linear-gradient(180deg,#fef9f5 0%,#fce8eb 100%);
+}
+.quick-item.siren-item .qi-icon{
+  background:linear-gradient(135deg,#fce8eb,#fef9f5);
+  color:#c5293a;
+}
+.quick-item.siren-item:hover .qi-icon{
+  background:linear-gradient(135deg,#c5293a,#7a1f2b);
+  color:#fff;
+}
+.quick-item.siren-item .qi-label{
+  color:#7a1f2b;
+  font-weight:700;
+}
+
+/* SIREN 배지 */
+.siren-badge{
+  position:absolute;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  background:linear-gradient(135deg,#c5293a,#7a1f2b);
+  color:#fff;
+  font-size:9.5px;
+  font-weight:800;
+  letter-spacing:1.2px;
+  padding:3px 11px;
+  border-radius:11px;
+  font-family:'Inter',sans-serif;
+  box-shadow:0 2px 8px rgba(197,41,58,0.35);
+  animation:siren-badge-pulse 2.5s ease-in-out infinite;
+  white-space:nowrap;
+  z-index:3;
+}
+@keyframes siren-badge-pulse{
+  0%,100%{transform:translateX(-50%) scale(1);box-shadow:0 2px 8px rgba(197,41,58,0.35);}
+  50%{transform:translateX(-50%) scale(1.06);box-shadow:0 4px 14px rgba(197,41,58,0.55);}
+}
+
+/* SIREN 그룹의 qi-arrow는 배지와 겹치지 않게 위치 조정 */
+.quick-item.siren-item .qi-arrow{
+  top:12px;
+  right:12px;
+}
 
 /* =========================================================
    STATS
@@ -100,24 +153,85 @@
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px}
 .notice-list{border-top:1px solid var(--ink)}
 .notice-list li{
-  display:flex;align-items:center;padding:18px 6px;
-  border-bottom:1px solid var(--line);cursor:pointer;transition:all var(--t);gap:16px;
+  display:grid;
+  grid-template-columns:74px 1fr 90px;
+  align-items:center;
+  gap:14px;
+  padding:14px 6px;
+  font-size:13.5px;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  transition:all var(--t);
 }
 .notice-list li:hover{padding-left:14px;background:var(--bg-soft)}
-.notice-title{flex:1;font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.notice-date{font-size:12px;color:var(--text-3);font-family:'Inter';flex-shrink:0}
+.notice-list .tag{
+  font-size:10.5px;
+  padding:3px 8px;
+  min-width:0;
+  width:100%;
+  text-align:center;
+  letter-spacing:-.02em;
+  white-space:nowrap;
+}
+.notice-list .notice-title{
+  font-size:13.5px;
+  font-weight:500;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+  color:var(--text);
+}
+.notice-list .notice-date{
+  font-size:11.5px;
+  color:var(--text-3);
+  text-align:right;
+  white-space:nowrap;
+  font-family:'Inter';
+}
 
 .faq-item{border-bottom:1px solid var(--line)}
 .faq-item:first-child{border-top:1px solid var(--ink)}
-.faq-q{display:flex;align-items:center;padding:18px 6px;cursor:pointer;font-weight:500;font-size:14px;transition:color var(--t);gap:14px}
+.faq-q{
+  display:flex;
+  align-items:flex-start;
+  padding:16px 6px;
+  cursor:pointer;
+  font-weight:500;
+  font-size:13.5px;
+  transition:color var(--t);
+  gap:12px;
+}
 .faq-q:hover{color:var(--brand)}
-.q-mark{color:var(--brand);font-family:'Noto Serif KR',serif;font-weight:700;font-size:18px;line-height:1}
-.faq-q .arrow{margin-left:auto;transition:transform var(--t);font-size:11px;color:var(--text-3);font-family:'Inter'}
+.q-mark{color:var(--brand);font-family:'Noto Serif KR',serif;font-weight:700;font-size:16px;line-height:1;flex-shrink:0;margin-top:-1px}
+.faq-q > span:nth-child(2){
+  flex:1;
+  line-height:1.5;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.faq-q .arrow{margin-left:auto;transition:transform var(--t);font-size:11px;color:var(--text-3);font-family:'Inter';flex-shrink:0}
 .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
-.faq-a-inner{padding:8px 6px 22px 36px;font-size:13.5px;color:var(--text-2);line-height:1.85}
+.faq-a-inner{
+  padding:6px 6px 18px 32px;
+  font-size:12.5px;
+  color:var(--text-2);
+  line-height:1.75;
+}
 .faq-item.open .faq-a{max-height:300px}
 .faq-item.open .arrow{transform:rotate(180deg);color:var(--brand)}
 .faq-item.open .faq-q{color:var(--brand)}
+
+/* 소식 페이지 테이블 */
+table.tbl td:nth-child(3){
+  max-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 
 /* =========================================================
    CAMPAIGN
@@ -156,81 +270,17 @@
   .info-grid{grid-template-columns:1fr;gap:50px}
   .campaign{grid-template-columns:1fr;padding:44px}
 }
+@media (max-width:980px){
+  .hero{padding-top:60px}
+  .hero h1{font-size:36px}
+  .ribbon-art{width:260px;height:260px;opacity:.6}
+}
 @media (max-width:560px){
   .quick-grid{grid-template-columns:repeat(2,1fr)}
   .quick-item{border-right:none !important;border-bottom:1px solid var(--line-soft)}
-}
-/* =========================================================
-   NOTICE / FAQ — 한 줄 고정 + 깔끔 정렬 (오버라이드)
-   ========================================================= */
-.notice-list li{
-  display:grid;
-  grid-template-columns:74px 1fr 90px;
-  align-items:center;
-  gap:14px;
-  padding:14px 6px;
-  font-size:13.5px;
-}
-.notice-list .tag{
-  font-size:10.5px;
-  padding:3px 8px;
-  min-width:0;
-  width:100%;
-  text-align:center;
-  letter-spacing:-.02em;
-  white-space:nowrap;
-}
-.notice-list .notice-title{
-  font-size:13.5px;
-  font-weight:500;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  min-width:0;
-}
-.notice-list .notice-date{
-  font-size:11.5px;
-  color:var(--text-3);
-  text-align:right;
-  white-space:nowrap;
-}
-
-.faq-q{
-  font-size:13.5px;
-  padding:16px 6px;
-  gap:12px;
-  align-items:flex-start;
-}
-.q-mark{
-  font-size:16px;
-  flex-shrink:0;
-  margin-top:-1px;
-}
-.faq-q > span:nth-child(2){
-  flex:1;
-  line-height:1.5;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-}
-.faq-a-inner{
-  font-size:12.5px;
-  padding:6px 6px 18px 32px;
-  line-height:1.75;
-}
-
-/* 소식 페이지 테이블도 깔끔하게 */
-table.tbl td:nth-child(3){
-  max-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-@media (max-width:560px){
-  .notice-list li{ grid-template-columns:60px 1fr 80px; gap:10px; font-size:12.5px; }
-  .notice-list .tag{ font-size:10px; padding:2px 6px; }
-  .notice-list .notice-title{ font-size:12.5px; }
+  .quick-item.siren-item{padding-top:42px}
+  .siren-badge{font-size:9px;padding:2px 9px;letter-spacing:1px}
+  .notice-list li{grid-template-columns:60px 1fr 80px;gap:10px;font-size:12.5px}
+  .notice-list .tag{font-size:10px;padding:2px 6px}
+  .notice-list .notice-title{font-size:12.5px}
 }
