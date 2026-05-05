@@ -29,12 +29,12 @@ function buildFallbackChain(mode: "pro" | "flash"): string[] {
 
   if (mode === "pro") {
     push(PRO_MODEL);                  // 1차: gemini-3-flash (기본)
-    push("gemini-3.1-flash-lite");    // 2차
-    push("gemini-2.5-flash");         // 3차 (검증된 안정 모델)
+    push("gemini-3.0-flash");    // 2차
+    push("gemini-3.1-flash-lite-preview");         // 3차 (검증된 안정 모델)
   } else {
     push(EFFECTIVE_FLASH);            // 1차
-    push("gemini-3.1-flash-lite");    // 2차
-    push("gemini-2.5-flash");         // 3차
+    push("gemini-3.0-flash");    // 2차
+    push("gemini-3.1-flash-lite-preview");         // 3차
   }
   return chain;
 }
