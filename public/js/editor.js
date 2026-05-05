@@ -111,15 +111,15 @@
     return false;
   }
 
-  async function loadLib() {
+    async function loadLib() {
     if (_libLoaded) return;
     if (_libLoading) return _libLoading;
 
     _libLoading = (async () => {
-      /* 핵심 CSS (필수) — 모든 CDN 실패하면 throw */
+      /* 핵심 CSS (필수) */
       const editorCssOk = await loadCssWithFallback(CDN_FALLBACKS.editorCss, 'editor.css');
       if (!editorCssOk) {
-        throw new Error('Toast UI Editor CSS를 로드할 수 없습니다 (모든 CDN 실패)');
+        throw new Error('Toast UI Editor CSS를 모든 CDN에서 로드할 수 없습니다');
       }
       await loadStylesheet('/css/editor.css').catch(() => {});
 
@@ -127,15 +127,22 @@
       await loadCssWithFallback(CDN_FALLBACKS.colorCss, 'colorSyntax.css');
       await loadCssWithFallback(CDN_FALLBACKS.pickerCss, 'colorPicker.css');
 
-      /* ★ 핵심 editor JS (필수) — 모든 CDN 실패하면 throw */
+      /* 핵심 editor JS (필수) */
       const editorJsOk = await loadJsWithFallback(CDN_FALLBACKS.editorJs, 'editor.js');
       if (!editorJsOk) {
-        throw new Error('Toast UI Editor JS를 로드할 수 없습니다 (모든 CDN 실패) — 네트워크 또는 CDN 차단을 확인해주세요');
+        throw new Error('Toast UI Editor JS를 모든 CDN에서 로드할 수 없습니다');
       }
 
-      /* 색상 플러그인 JS (옵셔널) */
-      await loadJsWithFallback(CDN_FALLBACKS.pickerJs, 'colorPicker.js');
-      await loadJsWithFallback(CDN_FALLBACKS.colorJs, 'colorSyntax.js');
+      /* ★ 2026-05 v3.1: colorSyntax는 picker JS 의존
+         → picker가 실제 window.tui.colorPicker로 노출돼야만 colorSyntax 로드 */
+      const pickerJsOk = await loadJsWithFallback(CDN_FALLBACKS.pickerJs, 'colorPicker.js');
+      const pickerReady = pickerJsOk && window.tui && window.tui.colorPicker;
+
+      if (pickerReady) {
+        await loadJsWithFallback(CDN_FALLBACKS.colorJs, 'colorSyntax.js');
+      } else {
+        console.warn('[SirenEditor] colorPicker 의존성 불충분 → colorSyntax 플러그인 스킵 (편집기는 정상 동작)');
+      }
 
       _libLoaded = true;
       console.info('[SirenEditor] All libraries loaded successfully');
