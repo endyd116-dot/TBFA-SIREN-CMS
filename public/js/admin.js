@@ -5514,10 +5514,6 @@ const OPERATOR_CATEGORIES = [
       if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('legal');
     } else if (page === 'siren-board') {
       if (window.SIREN_ADMIN_SIREN) window.SIREN_ADMIN_SIREN.loadList('board');
-
-    } else if (page === 'audit') {
-
-  // public/js/admin.js — switchAdminPage 끝부분 교체
     } else if (page === 'audit') {
       _auditPage = 1;
       loadAudit();
