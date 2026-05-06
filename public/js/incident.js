@@ -452,7 +452,10 @@
   }
   
   /* ============ 초기화 ============ */
+  let _initialized = false;
   function init() {
+    if (_initialized) return;
+    _initialized = true;
     const page = document.body.dataset.page;
     if (page === 'incidents') {
       loadIncidentList();
