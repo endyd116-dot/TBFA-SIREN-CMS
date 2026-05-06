@@ -452,15 +452,45 @@
     }
 
     try {
+      /* ★ Toast UI 호환 — 빈 값으로 생성 후 setHTML로 별도 주입 */
       _bodyEditor = await window.SirenEditor.create({
         el: editorEl,
         height: '480px',
-        initialValue: post.contentHtml || '',
+        initialValue: '',
         uploadContext: 'activity-report',
       });
+
+      /* HTML 본문 주입 (AI가 생성한 풍부한 HTML이라 markdown 파싱 회피) */
+      const html = post.contentHtml || '';
+      if (html) {
+        let injected = false;
+        /* 1순위: setHTML */
+        if (_bodyEditor.setHTML) {
+          try { _bodyEditor.setHTML(html); injected = true; } catch (e1) {
+            console.warn('[ar body editor] setHTML 실패:', e1);
+          }
+        }
+        /* 2순위: 내부 인스턴스의 setHTML */
+        if (!injected && _bodyEditor.editor && _bodyEditor.editor.setHTML) {
+          try { _bodyEditor.editor.setHTML(html); injected = true; } catch (e2) {
+            console.warn('[ar body editor] editor.setHTML 실패:', e2);
+          }
+        }
+        /* 3순위: HTML 직접 DOM 주입 (최후 수단) */
+        if (!injected) {
+          const ww = editorEl.querySelector('.toastui-editor-ww-container .ProseMirror');
+          if (ww) {
+            ww.innerHTML = html;
+            injected = true;
+          }
+        }
+        if (!injected) {
+          console.error('[ar body editor] HTML 주입 실패 — 모든 fallback 실패');
+        }
+      }
     } catch (e) {
       console.error('[ar body editor]', e);
-      editorEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">편집기 로드 실패</div>`;
+      editorEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">편집기 로드 실패: ${escapeHtml(e?.message || '오류')}</div>`;
     }
   }
 
