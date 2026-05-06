@@ -112,16 +112,18 @@ export default async (req: Request) => {
     const member: any = Array.isArray(memberRows) ? memberRows[0] : null;
 
     /* 7. 업데이트 */
+    const updateData: any = {
+      content: newContent,
+      attachments: mergedAttachments.length > 0
+        ? JSON.stringify(mergedAttachments)
+        : null,
+      status: "submitted",
+      updatedAt: now,
+    };
+
     const updatedRows: any = await db
       .update(supportRequests)
-      .set({
-        content: newContent,
-        attachments: mergedAttachments.length > 0
-          ? JSON.stringify(mergedAttachments)
-          : null,
-        status: "submitted",
-        updatedAt: now,
-      })
+      .set(updateData)
       .where(eq(supportRequests.id, id))
       .returning({
         id: supportRequests.id,
