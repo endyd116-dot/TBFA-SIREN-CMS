@@ -3,10 +3,10 @@
 // home.* 키 27개 + 향후 추가 키를 트리 형태로 묶어서 반환
 // preview=1 + 어드민 인증 시 Draft 우선
 
-import type { Context } from "@netlify/functions";
+import { authenticateAdmin } from "../../lib/auth";
 import { db } from "../../db/index.js";
 import { sql } from "drizzle-orm";
-import { authenticateAdmin } from "../../lib/admin-guard.js";
+import { ok, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 interface HomeKeyRow {
   key: string;
@@ -22,7 +22,6 @@ interface HomeKeyRow {
 /* "home.hero.slides" + 값 → tree에 nested 할당 */
 function setNested(tree: any, dottedKey: string, value: any) {
   const parts = dottedKey.split(".");
-  /* 첫 토막은 'home' 고정이므로 제거 */
   if (parts[0] === "home") parts.shift();
   let cur = tree;
   for (let i = 0; i < parts.length - 1; i++) {
@@ -55,7 +54,7 @@ function pickValue(row: HomeKeyRow, useDraft: boolean): any {
     : row.value_text;
   if (textVal === null || textVal === undefined) return null;
 
-  /* 자동 형변환 — "true"/"false" → boolean, 숫자 문자열 → number */
+  /* 자동 형변환 */
   if (textVal === "true") return true;
   if (textVal === "false") return false;
   if (/^-?\d+(\.\d+)?$/.test(textVal)) return Number(textVal);
@@ -63,20 +62,22 @@ function pickValue(row: HomeKeyRow, useDraft: boolean): any {
   return textVal;
 }
 
-export default async (req: Request, _context: Context) => {
+export default async (req: Request) => {
+  if (req.method === "OPTIONS") return corsPreflight();
+  if (req.method !== "GET") return methodNotAllowed();
+
   try {
     const url = new URL(req.url);
-    const preview = url.searchParams.get("preview");
+    const preview = url.searchParams.get("preview") === "1";
 
-    /* preview=1 일 때만 어드민 인증 시도 */
+    /* preview=1 + 어드민 인증 시 Draft 우선 */
     let useDraft = false;
-    if (preview === "1") {
+    if (preview) {
       const admin = authenticateAdmin(req);
       if (admin) useDraft = true;
-      /* 인증 실패 시 조용히 운영값으로 폴백 (외부 노출 방지) */
+      /* 미인증이면 조용히 운영값 폴백 */
     }
 
-    /* home.* 키 전부 한번에 SELECT */
     const result: any = await db.execute(sql`
       SELECT 
         key,
@@ -93,44 +94,34 @@ export default async (req: Request, _context: Context) => {
     `);
     const rows: HomeKeyRow[] = Array.isArray(result) ? result : (result?.rows || []);
 
-    /* 트리 빌드 */
     const tree: any = {};
     for (const row of rows) {
       const value = pickValue(row, useDraft);
       setNested(tree, row.key, value);
     }
 
-    /* 응답 캐시 정책 — Draft는 즉시 반영, 운영값은 30초 캐시 */
-    const cacheControl = useDraft
-      ? "no-store"
-      : "public, max-age=30, stale-while-revalidate=60";
+    const data = {
+      ...tree,
+      _meta: {
+        mode: useDraft ? "draft" : "published",
+        totalKeys: rows.length,
+        generatedAt: new Date().toISOString(),
+      },
+    };
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        data: tree,
-        _meta: {
-          mode: useDraft ? "draft" : "live",
-          totalKeys: rows.length,
-          generatedAt: new Date().toISOString(),
-        },
-      }),
-      {
-        status: 200,
-        headers: {
-          "content-type": "application/json; charset=utf-8",
-          "cache-control": cacheControl,
-        },
-      }
-    );
-  } catch (error: any) {
-    console.error("[public-home-content]", error);
-    return new Response(
-      JSON.stringify({ ok: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      }
-    );
+    const response = ok(data);
+
+    /* 캐시 정책 — Draft는 즉시 반영, 운영값은 30초 캐시 */
+    if (useDraft) {
+      response.headers.set("Cache-Control", "no-store");
+    } else {
+      response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    }
+    return response;
+  } catch (e: any) {
+    console.error("[public-home-content]", e);
+    return serverError("메인 콘텐츠 조회 실패", e?.message);
   }
 };
+
+export const config = { path: "/api/public/home-content" };
