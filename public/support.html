@@ -14,6 +14,12 @@
 <link rel="stylesheet" href="/css/layout.css?v=2026-05-bugfix">
 <link rel="stylesheet" href="/css/components.css?v=2026-05-bugfix">
 <link rel="stylesheet" href="/css/pages.css?v=2026-05-bugfix">
+<style>
+  /* 핫픽스: 모달 opacity CSS 캐시 우회 */
+  .modal-bg.show { opacity: 1 !important; pointer-events: auto !important; }
+  .modal-bg.show .modal { transform: translateY(0) !important; }
+</style>
+
 </head>
 <body data-page="support">
 
