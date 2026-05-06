@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — admin-site-builder.js (Phase B Step 4-A)
+   SIREN — admin-site-builder.js (Phase B Step 6-B)
    메인 화면 편집 시스템 — 트리 + 라우터 + iframe 미리보기
    ========================================================= */
 (function () {
@@ -17,10 +17,11 @@
     {
       key: 'home', label: '🌟 메인 (홈)', expanded: true,
       children: [
-        { key: 'home.hero', label: '히어로 배너' },
-        { key: 'home.cta', label: '메인 버튼 (CTA)' },
-        { key: 'home.sections', label: '섹션 제목' },
-        { key: 'home.campaign', label: '캠페인 영역' },
+        { key: 'home.hero',          label: '히어로 배너 (슬라이드 + 텍스트)' },
+        { key: 'home.quickMenu',     label: '퀵메뉴 (6개 박스)' },
+        { key: 'home.sections',      label: '섹션 제목 (캠페인/공지/FAQ)' },
+        { key: 'home.specialBanner', label: '특별 캠페인 배너 (하단)' },
+        { key: 'home.effects',       label: '효과 / 애니메이션' },
       ],
     },
     { key: 'stats', label: '📊 통계', leaf: true },
@@ -49,8 +50,8 @@
 
   /* ============ 상태 ============ */
   let _currentNode = null;
-  let _currentMode = 'draft';   // 'draft' | 'live'
-  let _currentDevice = 'desktop'; // 'desktop' | 'tablet' | 'mobile'
+  let _currentMode = 'draft';
+  let _currentDevice = 'desktop';
   let _draftCount = 0;
 
   /* ============ 헬퍼 ============ */
@@ -97,7 +98,7 @@
     }
     if (!res.ok) {
       console.warn('[site-builder] 인증 체크 실패:', res.data);
-      return true; // 일단 진행
+      return true;
     }
     return true;
   }
@@ -106,11 +107,8 @@
   function renderTree() {
     const root = $('#sbTree');
     if (!root) return;
-
     let html = '';
-    for (const node of TREE) {
-      html += renderTreeNode(node, false);
-    }
+    for (const node of TREE) html += renderTreeNode(node, false);
     root.innerHTML = html;
   }
 
@@ -125,19 +123,13 @@
     ].filter(Boolean).join(' ');
 
     let html = `<div class="${cls}" data-node-key="${escapeHtml(node.key)}" data-has-children="${hasChildren ? '1' : '0'}">`;
-    if (hasChildren) {
-      html += '<span class="sb-tree-toggle">▶</span>';
-    } else {
-      html += '<span class="sb-tree-toggle"></span>';
-    }
+    html += hasChildren ? '<span class="sb-tree-toggle">▶</span>' : '<span class="sb-tree-toggle"></span>';
     html += `<span class="sb-tree-node-label">${escapeHtml(node.label)}</span>`;
     html += '</div>';
 
     if (hasChildren) {
       html += `<div class="sb-tree-children${expanded ? ' expanded' : ''}" data-children-of="${escapeHtml(node.key)}">`;
-      for (const child of node.children) {
-        html += renderTreeNode(child, true);
-      }
+      for (const child of node.children) html += renderTreeNode(child, true);
       html += '</div>';
     }
     return html;
@@ -150,22 +142,18 @@
     root.addEventListener('click', (e) => {
       const nodeEl = e.target.closest('.sb-tree-node');
       if (!nodeEl) return;
-
       const key = nodeEl.dataset.nodeKey;
       const hasChildren = nodeEl.dataset.hasChildren === '1';
 
       if (hasChildren) {
-        /* 펼치기/접기 토글 */
         nodeEl.classList.toggle('expanded');
         const childrenEl = root.querySelector(`[data-children-of="${CSS.escape(key)}"]`);
         if (childrenEl) childrenEl.classList.toggle('expanded');
       } else {
-        /* 리프 노드 — 선택 */
         selectNode(key);
       }
     });
 
-    /* 모두 접기 토글 */
     const collapseBtn = $('#sbTreeCollapse');
     if (collapseBtn) {
       let isCollapsed = false;
@@ -195,7 +183,6 @@
   }
 
   function selectNode(key) {
-    /* active 표시 */
     document.querySelectorAll('.sb-tree-node').forEach((n) => {
       n.classList.toggle('active', n.dataset.nodeKey === key);
     });
@@ -204,18 +191,16 @@
     const subtitle = $('#sbCurrentSection');
     if (subtitle) subtitle.textContent = findNodeLabel(key);
 
-    /* 라우팅 */
     const renderer = RENDERERS[key];
     if (renderer) {
       renderer();
     } else {
-      renderPlaceholder(findNodeLabel(key));
+      renderPlaceholder(key, findNodeLabel(key));
     }
   }
 
   /* ============ 폼 렌더러 ============ */
   const RENDERERS = {
-    /* 통계 편집 — 기존 admin-stats-edit.js 재사용 */
     'stats': function () {
       const inner = $('#sbContentInner');
       inner.innerHTML = '<div id="statsEditContainer"></div>';
@@ -226,21 +211,75 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>통계 편집 모듈 로드 실패</p></div>';
       }
     },
-
-    /* 배포 관리 */
     'publish': function () {
       renderPublishPanel();
     },
   };
 
-  function renderPlaceholder(label) {
+  /* ★ Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
+  const HOME_NODE_INFO = {
+    'home.hero': {
+      icon: '🎬',
+      desc: 'HERO 슬라이더 (3장) + eyebrow 라벨 + 본문 + 자동재생 속도',
+      keys: ['home.hero.slides', 'home.hero.eyebrow', 'home.hero.lead', 'home.hero.autoplaySpeed', 'home.hero.autoplayEnabled'],
+    },
+    'home.quickMenu': {
+      icon: '🟦',
+      desc: '메인 상단 6개 박스 (후원하기 / SIREN 그룹 3개 / 자유게시판 / 신청내역)',
+      keys: ['home.quickMenu.items', 'home.quickMenu.sectionVisible'],
+    },
+    'home.sections': {
+      icon: '📑',
+      desc: '캠페인 영역 / 공지사항 / FAQ 영역의 제목·부제·노출개수·표시여부',
+      keys: ['home.campaign.*', 'home.notice.*', 'home.faq.*'],
+    },
+    'home.specialBanner': {
+      icon: '🎗',
+      desc: '하단 "기억의 약속" 특별 캠페인 배너 (제목/본문/모금액/CTA)',
+      keys: ['home.specialBanner.visible/tag/title/lead/goalAmount/raisedAmount/cta'],
+    },
+    'home.effects': {
+      icon: '✨',
+      desc: '카운터 애니메이션 / 사이렌 펄스 / 진행률 게이지 속도 조정',
+      keys: ['home.effects.counterDuration', 'home.effects.sirenPulseEnabled', 'home.effects.progressBarDuration'],
+    },
+  };
+
+  function renderPlaceholder(key, label) {
     const inner = $('#sbContentInner');
+    const info = HOME_NODE_INFO[key];
+
+    if (info) {
+      const keyList = info.keys.map((k) => `<li><code>${escapeHtml(k)}</code></li>`).join('');
+      inner.innerHTML = `
+        <div class="sb-placeholder" style="text-align:left;max-width:560px;margin:40px auto">
+          <div class="sb-placeholder-icon" style="text-align:center">${info.icon}</div>
+          <h3 style="text-align:center">${escapeHtml(label)}</h3>
+          <p style="text-align:center;color:#86868b">${escapeHtml(info.desc)}</p>
+          <div style="margin-top:24px;padding:16px 20px;background:#f5f5f7;border-radius:8px">
+            <div style="font-size:12px;color:#7a1f2b;font-weight:600;margin-bottom:8px">
+              ✅ DB 시드 완료 — 다음 키들이 편집 가능 상태입니다
+            </div>
+            <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.9">
+              ${keyList}
+            </ul>
+          </div>
+          <p style="margin-top:18px;font-size:12px;color:#86868b;text-align:center">
+            ※ 상세 편집 폼은 묶음 2 단계에서 추가됩니다.<br />
+            현재는 우측 미리보기에서 메인 페이지 전체를 확인할 수 있습니다.
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    /* 그 외 영역 — 기본 안내 */
     inner.innerHTML = `
       <div class="sb-placeholder">
         <div class="sb-placeholder-icon">🚧</div>
         <h3>${escapeHtml(label)}</h3>
         <p>이 영역의 편집 기능은 다음 단계에서 구현됩니다.</p>
-        <small>※ Step 5 이후 점진적으로 추가될 예정입니다.</small>
+        <small>※ 점진적으로 추가될 예정입니다.</small>
       </div>
     `;
   }
@@ -249,7 +288,6 @@
     const inner = $('#sbContentInner');
     inner.innerHTML = '<div class="sb-placeholder"><p>배포 정보 로딩 중...</p></div>';
 
-    /* draft 카운트 + 최근 배포 이력 */
     const [settingsRes, menusRes] = await Promise.all([
       api('/api/admin/site-settings'),
       api('/api/admin/nav-menus'),
@@ -262,7 +300,6 @@
     inner.innerHTML = `
       <div style="background:#fff;padding:32px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
         <h2 style="margin:0 0 24px;font-family:'Noto Serif KR',serif">🚀 배포 관리</h2>
-
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px">
           <div style="padding:20px;background:#fef9f5;border:1px solid #f5d97a;border-radius:8px;text-align:center">
             <div style="font-size:11px;color:#86868b;text-transform:uppercase;margin-bottom:6px">설정 임시저장</div>
@@ -273,7 +310,6 @@
             <div style="font-size:32px;font-weight:700;color:#7a5e00">${draftMenus}</div>
           </div>
         </div>
-
         <div style="padding:16px;background:#f5f5f7;border-radius:8px;margin-bottom:20px">
           <div style="font-size:13px;color:#424245;line-height:1.7">
             <strong>배포 동작:</strong><br />
@@ -282,7 +318,6 @@
             • 일반 사용자는 배포된 내용만 볼 수 있습니다
           </div>
         </div>
-
         <button type="button" id="sbInlinePublishBtn"
           style="width:100%;padding:14px;background:linear-gradient(135deg,#7a1f2b,#a3303f);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer"
           ${total === 0 ? 'disabled' : ''}>
@@ -324,7 +359,6 @@
       toast('배포할 변경사항이 없습니다');
       return;
     }
-
     const confirmed = confirm(
       `${_draftCount}건의 모든 임시 변경사항을 운영에 배포하시겠습니까?\n\n` +
       '• 즉시 사용자에게 반영됩니다\n' +
@@ -336,18 +370,13 @@
     if (btn) { btn.disabled = true; btn.textContent = '배포 중...'; }
 
     let total = 0;
-
-    /* site_settings 배포 */
     const r1 = await api('/api/admin/site-settings', {
-      method: 'POST',
-      body: { action: 'publish' },
+      method: 'POST', body: { action: 'publish' },
     });
     total += r1.data?.data?.affectedCount || 0;
 
-    /* nav_menus 배포 */
     const r2 = await api('/api/admin/nav-menus?action=publish', {
-      method: 'POST',
-      body: {},
+      method: 'POST', body: {},
     });
     total += r2.data?.data?.affectedCount || 0;
 
@@ -357,7 +386,6 @@
     await refreshDraftCount();
     reloadPreview();
 
-    /* 배포 패널이 열려있으면 갱신 */
     if (_currentNode === 'publish') renderPublishPanel();
   }
 
@@ -415,7 +443,6 @@
     const refreshBtn = $('#sbRefreshBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', reloadPreview);
 
-    /* postMessage 수신 — 폼에서 저장 후 자동 새로고침 요청 */
     window.addEventListener('message', (e) => {
       if (e.data && e.data.type === 'siren:reload-preview') {
         reloadPreview();
@@ -430,19 +457,14 @@
     if (_initialized) return;
     _initialized = true;
 
-    /* 인증 체크 */
     const ok = await checkAdminAuth();
     if (!ok) return;
 
-    /* 트리 렌더 */
     renderTree();
     attachTreeEvents();
-
-    /* 미리보기 초기화 */
     attachPreviewEvents();
     setMode('draft');
 
-    /* 어드민 이름 표시 (선택) */
     try {
       const r = await api('/api/admin/site-settings?scope=stats');
       if (r.ok && r.data?.data) {
@@ -452,18 +474,14 @@
       }
     } catch (_) {}
 
-    /* Draft 카운트 */
     await refreshDraftCount();
 
-    /* 일괄 배포 버튼 */
     const publishBtn = $('#sbPublishAllBtn');
     if (publishBtn) publishBtn.addEventListener('click', publishAll);
 
-    /* 30초마다 Draft 카운트 자동 갱신 */
     setInterval(refreshDraftCount, 30000);
   }
 
-  /* 외부 노출 (다른 모듈에서 미리보기 새로고침 요청 가능) */
   window.SIREN_SITE_BUILDER = {
     reloadPreview,
     refreshDraftCount,
