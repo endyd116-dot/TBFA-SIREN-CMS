@@ -16,7 +16,8 @@
   'siren-legal': '⚖️ 법률지원 상담 관리',
   'siren-board': '💬 자유게시판 관리',
   operators: '운영자 관리',
-  chat: '문의 관리',    
+  chat: '문의 관리',   
+  'activity-report': 'AI 활동보고서', 
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
@@ -5521,6 +5522,13 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'ai') {
       loadAI();
       loadChurnRisks();   /* ★ M-19-1 추가 */
+    } else if (page === 'activity-report') {
+      /* ★ C안 Step 2: AI 활동보고서 메뉴 진입점 (Step 3에서 모듈 연결) */
+      if (window.SIREN_ADMIN_ACTIVITY_REPORT_LIST && window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.load) {
+        window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.load();
+      } else {
+        console.log('[activity-report] 모듈 로드 대기 중 (Step 3에서 활성화)');
+      }
     } else if (page === 'settings') {
       /* ★ M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
       loadDonationPolicy();
