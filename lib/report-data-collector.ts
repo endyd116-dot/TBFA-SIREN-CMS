@@ -152,8 +152,8 @@ async function collectDonationStats(period: ReportPeriod): Promise<DonationStats
       COALESCE(SUM(amount) FILTER (WHERE pay_method = 'bank'), 0)::bigint AS "byBank"
     FROM donations
     WHERE status = 'completed'
-      AND created_at >= ${period.startDate}
-      AND created_at <= ${period.endDate}
+      AND created_at >= ${period.startDate.toISOString()}
+      AND created_at <= ${period.endDate.toISOString()}
   `);
   const a: any = aggResult.rows ? aggResult.rows[0] : aggResult[0] || {};
 
@@ -165,8 +165,8 @@ async function collectDonationStats(period: ReportPeriod): Promise<DonationStats
       COUNT(*)::int AS "count"
     FROM donations
     WHERE status = 'completed'
-      AND created_at >= ${period.startDate}
-      AND created_at <= ${period.endDate}
+      AND created_at >= ${period.startDate.toISOString()}
+      AND created_at <= ${period.endDate.toISOString()}
     GROUP BY TO_CHAR(created_at, 'YYYY-MM')
     ORDER BY 1 ASC
   `);
@@ -178,8 +178,8 @@ async function collectDonationStats(period: ReportPeriod): Promise<DonationStats
     SELECT COALESCE(SUM(amount), 0)::bigint AS "prevAmount"
     FROM donations
     WHERE status = 'completed'
-      AND created_at >= ${prev.startDate}
-      AND created_at <= ${prev.endDate}
+      AND created_at >= ${prev.startDate.toISOString()}
+      AND created_at <= ${prev.endDate.toISOString()}
   `);
   const p: any = prevResult.rows ? prevResult.rows[0] : prevResult[0] || {};
   const prevAmount = Number(p.prevAmount || 0);
@@ -222,21 +222,21 @@ async function collectMemberStats(period: ReportPeriod): Promise<MemberStats> {
       COUNT(*) FILTER (WHERE member_category = 'family')::int AS "familyCount",
       COUNT(*) FILTER (WHERE member_category = 'etc')::int AS "etcCount"
     FROM members
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const n: any = newRow.rows ? newRow.rows[0] : newRow[0] || {};
 
   const totalRow: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "total"
     FROM members
-    WHERE created_at <= ${period.endDate} AND status != 'withdrawn'
+    WHERE created_at <= ${period.endDate.toISOString()} AND status != 'withdrawn'
   `);
   const t: any = totalRow.rows ? totalRow.rows[0] : totalRow[0] || {};
 
   const wdRow: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "wd"
     FROM members
-    WHERE withdrawn_at >= ${period.startDate} AND withdrawn_at <= ${period.endDate}
+    WHERE withdrawn_at >= ${period.startDate.toISOString()} AND withdrawn_at <= ${period.endDate.toISOString()}
   `);
   const w: any = wdRow.rows ? wdRow.rows[0] : wdRow[0] || {};
 
@@ -246,7 +246,7 @@ async function collectMemberStats(period: ReportPeriod): Promise<MemberStats> {
       COUNT(m.id)::int AS "count"
     FROM members m
     LEFT JOIN signup_sources s ON s.id = m.signup_source_id
-    WHERE m.created_at >= ${period.startDate} AND m.created_at <= ${period.endDate}
+    WHERE m.created_at >= ${period.startDate.toISOString()} AND m.created_at <= ${period.endDate.toISOString()}
     GROUP BY COALESCE(s.label, '미지정')
     ORDER BY 2 DESC
     LIMIT 5
@@ -257,9 +257,9 @@ async function collectMemberStats(period: ReportPeriod): Promise<MemberStats> {
   const retainRow: any = await db.execute(sql`
     SELECT
       COUNT(*)::int AS "startActive",
-      COUNT(*) FILTER (WHERE status != 'withdrawn' OR (withdrawn_at IS NOT NULL AND withdrawn_at > ${period.endDate}))::int AS "stillActive"
+      COUNT(*) FILTER (WHERE status != 'withdrawn' OR (withdrawn_at IS NOT NULL AND withdrawn_at > ${period.endDate.toISOString()}))::int AS "stillActive"
     FROM members
-    WHERE created_at < ${period.startDate}
+    WHERE created_at < ${period.startDate.toISOString()}
   `);
   const r: any = retainRow.rows ? retainRow.rows[0] : retainRow[0] || {};
   const startActive = Number(r.startActive || 0);
@@ -304,7 +304,7 @@ async function collectSupportStats(period: ReportPeriod): Promise<SupportStats> 
       COUNT(*) FILTER (WHERE priority = 'urgent')::int AS "urgent",
       AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 86400) FILTER (WHERE completed_at IS NOT NULL) AS "avgDays"
     FROM support_requests
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const s: any = r.rows ? r.rows[0] : r[0] || {};
 
@@ -342,7 +342,7 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
       COUNT(*) FILTER (WHERE status = 'responded')::int AS "responded",
       COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "criticalHigh"
     FROM incident_reports
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const hr: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "total",
@@ -350,7 +350,7 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
       COUNT(*) FILTER (WHERE status = 'responded')::int AS "responded",
       COUNT(*) FILTER (WHERE ai_severity IN ('critical','high'))::int AS "criticalHigh"
     FROM harassment_reports
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const lr: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "total",
@@ -358,18 +358,18 @@ async function collectSirenStats(period: ReportPeriod): Promise<SirenStats> {
       COUNT(*) FILTER (WHERE status IN ('matched','responded'))::int AS "matched",
       COUNT(*) FILTER (WHERE ai_urgency = 'urgent')::int AS "urgent"
     FROM legal_consultations
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const br: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "totalPosts",
       COUNT(*) FILTER (WHERE is_pinned = true)::int AS "pinned"
     FROM board_posts
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
   const bcr: any = await db.execute(sql`
     SELECT COUNT(*)::int AS "totalComments"
     FROM board_comments
-    WHERE created_at >= ${period.startDate} AND created_at <= ${period.endDate}
+    WHERE created_at >= ${period.startDate.toISOString()} AND created_at <= ${period.endDate.toISOString()}
   `);
 
   const i: any = ir.rows ? ir.rows[0] : ir[0] || {};
@@ -408,7 +408,7 @@ async function collectCampaignStats(period: ReportPeriod): Promise<CampaignStats
       COALESCE(SUM(raised_amount), 0)::bigint AS "totalRaised",
       COALESCE(SUM(donor_count), 0)::int AS "totalDonors"
     FROM campaigns
-    WHERE created_at <= ${period.endDate}
+    WHERE created_at <= ${period.endDate.toISOString()}
       AND status IN ('active','closed')
   `);
   const s: any = r.rows ? r.rows[0] : r[0] || {};
@@ -419,7 +419,7 @@ async function collectCampaignStats(period: ReportPeriod): Promise<CampaignStats
       goal_amount AS "goalAmount",
       donor_count AS "donorCount"
     FROM campaigns
-    WHERE created_at <= ${period.endDate}
+    WHERE created_at <= ${period.endDate.toISOString()}
       AND status IN ('active','closed')
     ORDER BY raised_amount DESC
     LIMIT 5

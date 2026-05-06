@@ -50,7 +50,7 @@ export default async (req: Request) => {
         gradeCode: memberGrades.code,
         gradeNameKo: memberGrades.nameKo,
         gradeIcon: memberGrades.icon,
-        gradeColor: memberGrades.color,
+        gradeColor: memberGrades.colorHex,
         gradeAssignedAt: members.gradeAssignedAt,
         gradeLocked: members.gradeLocked,
         totalDonationAmount: members.totalDonationAmount,
