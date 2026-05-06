@@ -283,13 +283,18 @@
      향후 public 통계 API가 추가되면 그쪽으로 교체 권장 */
     /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
   /* ★ 2026-05 v2: /api/public/stats 사용 (admin API 호출 X, 401 발생 X) */
+  /* ============ 활동 보고서 차트 (사용자 페이지) ============ */
+  /* ★ 2026-05 Phase B: ?preview=1 감지 → 어드민 미리보기 모드 */
   async function initReport() {
     if (typeof Chart === 'undefined') return;
 
-    /* 공개 통계 API 호출 — 인증 불필요 */
+    /* ★ Phase B: 미리보기 모드 감지 */
+    const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
+
+    /* 공개 통계 API 호출 — 인증 불필요 (preview=1일 땐 어드민 쿠키 자동 포함) */
     let statsData = null;
     try {
-      const res = await fetch('/api/public/stats');
+      const res = await fetch('/api/public/stats' + previewParam, { credentials: 'include' });
       if (res.ok) {
         const json = await res.json();
         if (json.ok) statsData = json.data;

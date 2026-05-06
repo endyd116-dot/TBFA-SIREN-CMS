@@ -247,6 +247,45 @@ const I18N = {
     }
   });
 
+    /* ------------ 14-Phase B. 미리보기 모드 배너 ------------ */
+  function setupPreviewBanner() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('preview') !== '1') return;
+
+    /* 중복 생성 방지 */
+    if (document.getElementById('sirenPreviewBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'sirenPreviewBanner';
+    banner.style.cssText = [
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'right:0',
+      'z-index:99998',
+      'background:linear-gradient(90deg,#fff8ec 0%,#fef5d8 50%,#fff8ec 100%)',
+      'border-bottom:2px solid #c47a00',
+      'color:#7a5e00',
+      'padding:9px 16px',
+      'font-size:12.5px',
+      'font-weight:600',
+      'text-align:center',
+      'box-shadow:0 2px 8px rgba(0,0,0,0.08)',
+      'font-family:-apple-system,"Noto Sans KR",sans-serif',
+      'line-height:1.5',
+    ].join(';');
+    banner.innerHTML =
+      '📝 <strong>Draft 미리보기 모드</strong> — 어드민에서 임시저장한 변경사항이 표시됩니다 ' +
+      '<span style="opacity:0.7;font-weight:400">(일반 사용자에게는 보이지 않음)</span>';
+
+    document.body.appendChild(banner);
+
+    /* 페이지 상단에 36px 여백 추가 — 배너에 가려지지 않도록 */
+    const currentPad = parseInt(getComputedStyle(document.body).paddingTop || '0', 10) || 0;
+    document.body.style.paddingTop = (currentPad + 36) + 'px';
+
+    console.log('[Phase B] 미리보기 모드 활성화');
+  }
 
   /* ------------ 13. 초기화 ------------ */
   async function init() {
@@ -256,6 +295,7 @@ const I18N = {
     setupSearch();
     setupRelatedSelect();
     setupCommonForms();
+    setupPreviewBanner();  // ★ Phase B 추가 — preview=1일 때 상단 배너 표시
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }

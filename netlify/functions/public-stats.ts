@@ -1,10 +1,12 @@
 // netlify/functions/public-stats.ts
-// ★ 2026-05: 공개 통계 API (활동 보고서 페이지 + 메인 페이지 stats 영역)
+// ★ Phase A + B: 공개 통계 API + 어드민 미리보기 지원
 // 인증 불필요 — 캐싱 5분
 //
-// GET /api/public/stats
+// GET /api/public/stats              — 운영 적용된 값 (일반 사용자)
+// GET /api/public/stats?preview=1    — Draft 우선 (어드민 토큰 필요, 미인증 시 운영값 폴백)
 
-import { getPublishedSettings } from "../../lib/site-settings";
+import { authenticateAdmin } from "../../lib/auth";
+import { getPublishedSettings, getDraftSettings } from "../../lib/site-settings";
 import { ok, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 export default async (req: Request) => {
@@ -12,7 +14,20 @@ export default async (req: Request) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   try {
-    const settings = await getPublishedSettings("stats");
+    const url = new URL(req.url);
+    const preview = url.searchParams.get("preview") === "1";
+
+    /* ★ Phase B: preview=1 + 어드민 토큰 검증 → Draft 우선 */
+    let useDraft = false;
+    if (preview) {
+      const admin = authenticateAdmin(req);
+      if (admin) useDraft = true;
+      /* 어드민 아니면 조용히 운영값 폴백 (보안 누설 방지) */
+    }
+
+    const settings = useDraft
+      ? await getDraftSettings("stats")
+      : await getPublishedSettings("stats");
     const stats = settings.stats || {};
 
     /* 월별 추이 파싱 */
@@ -44,11 +59,18 @@ export default async (req: Request) => {
       transparency: {
         grade: stats["transparency.grade"] || "—",
       },
+      /* ★ Phase B: 미리보기 모드 메타 */
+      _meta: useDraft ? { mode: "draft" } : { mode: "published" },
     };
 
-    /* 5분 캐시 (CDN 캐싱 가능) */
     const response = ok(data);
-    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
+
+    /* ★ Phase B: Draft 모드는 캐싱 안 함 (실시간 반영) */
+    if (useDraft) {
+      response.headers.set("Cache-Control", "no-store");
+    } else {
+      response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
+    }
     return response;
   } catch (e: any) {
     console.error("[public-stats]", e);
