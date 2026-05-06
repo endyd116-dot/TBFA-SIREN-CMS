@@ -512,7 +512,8 @@
         body: { id: _bodyEditingId, contentHtml },
       });
       if (res.ok) {
-        toast('본문이 저장되었습니다');
+        const msg = res.data?.message || '본문이 저장되었습니다';
+        toast(msg, 4000);
         document.getElementById('arBodyEditModal').classList.remove('show');
         loadData();
       } else {

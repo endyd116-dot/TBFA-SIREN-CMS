@@ -327,7 +327,7 @@ export default async (req: Request) => {
       });
     }
 
-    /* ===== PATCH: 제목/발행상태/고정 수정 — ★ C안 신규 ===== */
+    /* ===== PATCH: 제목/발행상태/고정/본문 수정 + PDF 재생성 — ★ C안 ===== */
     if (req.method === "PATCH") {
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -351,20 +351,20 @@ export default async (req: Request) => {
       }
       if (typeof body.isPublished === "boolean") {
         updates.isPublished = body.isPublished;
-        /* false → true 전환 시 publishedAt 갱신 */
         if (body.isPublished === true && !existing.publishedAt) {
           updates.publishedAt = new Date();
         }
       }
       if (typeof body.isPinned === "boolean") updates.isPinned = body.isPinned;
 
-      /* ★ 본문 수정 — AI 초안을 사람이 다듬을 수 있도록 */
+      let contentChanged = false;
       if (typeof body.contentHtml === "string") {
         const c = body.contentHtml.trim();
         if (c.length > 200000) {
           return badRequest("본문이 너무 깁니다 (최대 200,000자)");
         }
         updates.contentHtml = c;
+        contentChanged = c !== (existing.contentHtml || "");
       }
       if (typeof body.summary === "string") {
         updates.summary = body.summary.trim().slice(0, 500);
@@ -383,14 +383,129 @@ export default async (req: Request) => {
         .where(eq(activityPosts.id, id))
         .returning();
 
+      /* ★ C안: 본문 변경 또는 명시적 regeneratePdf 시 PDF 재생성 */
+      const shouldRegenerate = (contentChanged || body.regeneratePdf === true);
+      let newPdfBlobId: number | null = null;
+      let pdfWarning: string | null = null;
+
+      if (shouldRegenerate) {
+        try {
+          /* 1. 기간 복원 — slug 또는 year/month로 추정 */
+          const finalContentHtml = updates.contentHtml || existing.contentHtml || "";
+
+          /* 보고서 기간을 메타에서 추정 */
+          let period: ReportPeriod;
+          const slug = String(existing.slug || "");
+          const year = existing.year || new Date().getFullYear();
+          if (slug.includes("-q1") || slug.includes("-q2") || slug.includes("-q3") || slug.includes("-q4")) {
+            const qm = slug.match(/-q([1-4])/);
+            const q = qm ? Number(qm[1]) as 1|2|3|4 : 1;
+            period = periodForQuarter(year, q);
+          } else if (slug.includes("-h1") || slug.includes("-h2")) {
+            const hm = slug.match(/-h([12])/);
+            const h = hm ? Number(hm[1]) as 1|2 : 1;
+            period = periodForHalf(year, h);
+          } else if (slug.includes("annual") || !existing.month) {
+            period = periodForYear(year);
+          } else {
+            /* 월별 또는 알 수 없으면 연간으로 폴백 */
+            period = periodForYear(year);
+          }
+
+          /* 2. 데이터 재수집 (최신 데이터로) */
+          const reportData = await collectReportData(period);
+
+          /* 3. 협회 정보 */
+          const [rs] = await db.select().from(receiptSettings).where(eq(receiptSettings.id, 1)).limit(1);
+          const orgInfo = rs ? {
+            name: rs.orgName || undefined,
+            address: rs.orgAddress || undefined,
+            phone: rs.orgPhone || undefined,
+          } : {};
+
+          /* 4. PDF 빌드 (수정된 본문 기준 + 이미지 포함) */
+          const fakeGenerated: any = {
+            title: updates.title || existing.title || "활동보고서",
+            greeting: "", highlights: "", detailedAnalysis: "",
+            trendAnalysis: "", futureOutlook: "", conclusion: "",
+            fullHtml: finalContentHtml,
+            generatedAt: new Date(),
+            aiModel: "사람 검토 반영본",
+          };
+
+          const pdfBytes = await buildActivityReportPdf({
+            data: reportData,
+            generated: fakeGenerated,
+            orgInfo,
+            customContentHtml: finalContentHtml,
+          });
+
+          /* 5. 새 PDF 업로드 */
+          const fileName = `activity-report-${slug || "report"}-rev${Date.now()}.pdf`;
+          const uploaded = await uploadPdfToR2({
+            pdfBytes,
+            fileName,
+            uploaderId: admin.uid,
+          });
+          newPdfBlobId = uploaded.blobId;
+
+          /* 6. 기존 PDF blob의 reference 해제 (자동 cleanup에 맡김) */
+          let oldBlobIds: number[] = [];
+          try {
+            const ids = typeof existing.attachmentIds === "string"
+              ? JSON.parse(existing.attachmentIds)
+              : existing.attachmentIds;
+            if (Array.isArray(ids)) oldBlobIds = ids.filter((x: any) => Number.isInteger(x));
+          } catch (_) {}
+
+          for (const bid of oldBlobIds) {
+            try {
+              await db.update(blobUploads).set({
+                referenceTable: null,
+                referenceId: null,
+              } as any).where(eq(blobUploads.id, bid));
+            } catch (_) {}
+          }
+
+          /* 7. attachmentIds 갱신 */
+          await db.update(activityPosts).set({
+            attachmentIds: JSON.stringify([newPdfBlobId]),
+          } as any).where(eq(activityPosts.id, id));
+
+          /* 8. 새 blob의 reference 연결 */
+          await db.update(blobUploads).set({
+            referenceTable: "activity_posts",
+            referenceId: id,
+          } as any).where(eq(blobUploads.id, newPdfBlobId));
+
+          console.log(`[activity-report-ai PATCH] PDF 재생성 완료: post-${id} → blob-${newPdfBlobId}`);
+        } catch (e: any) {
+          console.error("[activity-report-ai PATCH] PDF 재생성 실패:", e);
+          pdfWarning = e?.message || "PDF 재생성 중 오류";
+          /* PDF 실패해도 본문 저장은 정상 처리 */
+        }
+      }
+
       try {
         await logAdminAction(req, admin.uid, admin.name, "activity_report_update", {
           target: `R-${id}`,
-          detail: { changedFields: Object.keys(updates) },
+          detail: {
+            changedFields: Object.keys(updates),
+            pdfRegenerated: !!newPdfBlobId,
+            pdfWarning,
+          },
         });
       } catch (_) {}
 
-      return ok({ post: updated }, "수정되었습니다");
+      return ok({
+        post: updated,
+        pdfRegenerated: !!newPdfBlobId,
+        newPdfBlobId,
+        pdfWarning,
+      }, newPdfBlobId
+        ? "수정 + PDF가 재생성되었습니다"
+        : (pdfWarning ? `수정 완료 (PDF 재생성 실패: ${pdfWarning})` : "수정되었습니다")
+      );
     }
 
     /* ===== DELETE: 보고서 삭제 — ★ C안 신규 ===== */
