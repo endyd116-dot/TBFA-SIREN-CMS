@@ -1,8 +1,8 @@
 /* =========================================================
-   SIREN — mypage-applications.js (★ Phase M-9 + v11 묶음 B-3)
+   SIREN — mypage-applications.js (★ Phase M-9 + v11 묶음 B-3 + B-11)
    - 마이페이지 "📋 신청 내역" 통합 탭
    - 4개 서브탭: family / incident / harassment / legal
-   - v11: family 탭에 상세/삭제 기능 추가
+   - v11: family 탭에 상세/삭제/보완제출 기능 추가
    ========================================================= */
 (function () {
   'use strict';
@@ -50,7 +50,6 @@
     return map[s] || s;
   }
 
-  /* ★ v11 묶음 B-3: family 타입 라벨 추가 (priority 필드 — urgent/normal/low) */
   function severityLabel(s, type) {
     if (type === 'legal' || type === 'family') {
       const m = { urgent: '🚨 긴급', high: '⚠️ 높음', normal: '⚖️ 보통', low: '💡 낮음' };
@@ -83,13 +82,12 @@
   }
 
   /* ============ API 매핑 ============ */
-  /* ★ v11 묶음 B-3: family에 detailApi / deleteApi 추가 */
   const TYPES = {
     family: {
       label: '유가족 지원',
       listApi: '/api/support/mine',
-      detailApi: '/api/support/mine',     // ★ 같은 URL에 ?id=N로 분기
-      deleteApi: '/api/support-delete',   // ★ 신규
+      detailApi: '/api/support/mine',
+      deleteApi: '/api/support-delete',
       newPage: '/support.html#family',
       itemKey: 'list',
       idField: 'id',
@@ -146,7 +144,7 @@
     },
   };
 
-  /* ============ 캐시 ============ */
+  /* ============ 캐시 / 상태 ============ */
   const _cache = {};
   let _currentTab = 'family';
   let _initialized = false;
@@ -194,7 +192,7 @@
     if (badge) badge.textContent = n > 99 ? '99+' : String(n);
   }
 
-  /* ============ 렌더 ============ */
+  /* ============ 목록 렌더 ============ */
   function renderTab(tabKey, list) {
     const cfg = TYPES[tabKey];
     const pane = document.querySelector(`[data-app-pane="${tabKey}"]`);
@@ -220,7 +218,6 @@
       const severity = cfg.severityField ? item[cfg.severityField] : null;
       const category = cfg.categoryField ? item[cfg.categoryField] : null;
       const rawSummary = (item[cfg.summaryField] || '').toString();
-      /* HTML 태그 제거 후 200자 컷 (family는 contentHtml/content가 들어올 수 있음) */
       const summary = rawSummary.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').slice(0, 200);
       const hasResponse = item.adminResponse || item.respondedAt;
       const sirenRequested = item.sirenReportRequested === true;
@@ -247,6 +244,11 @@
         ? `<button type="button" class="btn-delete" data-act="delete" data-id="${id}" data-no="${escapeHtml(no)}">삭제</button>`
         : '';
 
+      /* ★ v11 묶음 B-11: family + supplement 상태일 때 보완 제출 버튼 노출 */
+      const supplementBtn = (tabKey === 'family' && status === 'supplement')
+        ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">📤 보완 제출</button>`
+        : '';
+
       html += `
         <li class="app-card" data-card-id="${id}">
           <div class="app-card-head">
@@ -264,6 +266,7 @@
           </div>
           <div class="app-card-actions">
             ${detailBtn}
+            ${supplementBtn}
             ${deleteBtn}
           </div>
         </li>
@@ -279,6 +282,10 @@
     });
     pane.querySelectorAll('[data-act="delete"]').forEach((btn) => {
       btn.addEventListener('click', () => deleteItem(tabKey, Number(btn.dataset.id), btn.dataset.no));
+    });
+    /* ★ v11 묶음 B-11: 보완 제출 버튼 (목록에서) */
+    pane.querySelectorAll('[data-act="supplement-open"]').forEach((btn) => {
+      btn.addEventListener('click', () => openSupplementModal(Number(btn.dataset.id), btn.dataset.no));
     });
   }
 
@@ -307,10 +314,14 @@
       }
 
       const data = json.data || {};
-      /* incident: data.report / harassment: data.report / legal: data.consultation / family: data.request */
       const item = data.report || data.consultation || data.request || data;
 
       bodyEl.innerHTML = renderDetailHtml(tabKey, item);
+
+      /* 상세 모달 안에 보완 제출 버튼이 있으면 핸들러 바인딩 */
+      bodyEl.querySelectorAll('[data-act="supplement-open"]').forEach((btn) => {
+        btn.addEventListener('click', () => openSupplementModal(Number(btn.dataset.id), btn.dataset.no));
+      });
     } catch (e) {
       console.error('[openDetail]', e);
       bodyEl.innerHTML = '<div style="text-align:center;color:#dc2626;padding:40px">네트워크 오류</div>';
@@ -333,15 +344,16 @@
     /* 본문 */
     const content = item.contentHtml || item.content || '';
     if (content) {
+      const isPlainText = !item.contentHtml;
       html += `
         <div class="adm-section">
           <h4>📝 신청 내용</h4>
-          <div class="body">${content}</div>
+          <div class="body" ${isPlainText ? 'style="white-space:pre-wrap"' : ''}>${isPlainText ? escapeHtml(content) : content}</div>
         </div>
       `;
     }
 
-    /* ★ v11 묶음 B-3: family 타입 — 카테고리 / 우선순위 / 보완요청 / 담당자 */
+    /* family 신청 정보 */
     if (tabKey === 'family') {
       const blocks = [];
       if (item.category) {
@@ -362,11 +374,24 @@
           </div>
         `;
       }
+      /* 보완 요청 박스 */
       if (item.supplementNote) {
         html += `
           <div class="adm-section" style="background:#fff8ec;border:1px solid #f0e3c4">
-            <h4 style="color:#8a6a00">⚠️ 보완 요청 사항</h4>
+            <h4 style="color:#8a6a00">⚠️ 운영자 보완 요청 사항</h4>
             <div class="body" style="white-space:pre-wrap">${escapeHtml(item.supplementNote)}</div>
+          </div>
+        `;
+      }
+      /* ★ v11 묶음 B-11: supplement 상태면 보완 제출 액션 박스 */
+      if (item.status === 'supplement') {
+        html += `
+          <div style="text-align:center;padding:18px;background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fbbf24;border-radius:8px;margin-top:14px">
+            <div style="font-size:14px;color:#8a6a00;font-weight:600;margin-bottom:10px">💡 위 보완 요청 사항을 반영한 자료를 제출해 주세요</div>
+            <button type="button" data-act="supplement-open" data-id="${item.id}" data-no="${escapeHtml(no)}" style="background:var(--brand);color:#fff;border:none;padding:11px 28px;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">
+              📤 보완 자료 제출하기
+            </button>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:8px">제출 후 운영자가 다시 검토합니다 (상태: 보완 요청 → 접수)</div>
           </div>
         `;
       }
@@ -412,7 +437,6 @@
     if (Array.isArray(item.attachments) && item.attachments.length) {
       html += '<div class="adm-section"><h4>📎 첨부파일</h4><div class="body">';
       item.attachments.forEach((a) => {
-        /* family는 R2 키 문자열일 수 있음 — 객체일 때만 링크 표시 */
         if (a && typeof a === 'object' && a.url) {
           html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
         } else if (typeof a === 'string') {
@@ -434,7 +458,7 @@
           <div class="body" style="white-space:pre-wrap">${escapeHtml(item.adminResponse)}</div>
         </div>
       `;
-    } else {
+    } else if (item.status !== 'supplement') {
       html += `<div style="text-align:center;padding:18px;color:var(--text-3);font-size:12.5px;background:var(--bg-soft);border-radius:6px;margin-top:14px">아직 관리자 답변이 등록되지 않았습니다</div>`;
     }
 
@@ -444,7 +468,7 @@
   function closeDetail() {
     const modal = document.getElementById('appDetailModal');
     if (modal) modal.classList.remove('show');
-    const anyOpen = document.querySelector('.modal-bg.show');
+    const anyOpen = document.querySelector('.modal-bg.show, #supplementModal.show');
     if (!anyOpen) document.body.style.overflow = '';
   }
 
@@ -475,6 +499,278 @@
     } catch (e) {
       console.error('[deleteItem]', e);
       window.SIREN.toast('네트워크 오류');
+    }
+  }
+
+  /* =========================================================
+     ★ v11 묶음 B-11: 보완 제출 모달
+     ========================================================= */
+  let _supplementUploadingCount = 0;
+  let _supplementAttachmentIds = [];  // 업로드 완료된 R2 blob ID들
+
+  /* editor.js의 SirenEditor.uploadFile 모듈을 동적 로드 */
+  async function ensureUploadModule() {
+    if (window.SirenEditor && typeof window.SirenEditor.uploadFile === 'function') {
+      return true;
+    }
+    try {
+      await new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[src*="/js/editor.js"]');
+        if (existing) {
+          if (existing.dataset.loaded === '1') return resolve();
+          existing.addEventListener('load', () => resolve());
+          existing.addEventListener('error', () => reject(new Error('editor.js 로드 실패')));
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = '/js/editor.js?v=2026-05';
+        s.async = false;
+        s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+        s.onerror = () => reject(new Error('editor.js 로드 실패'));
+        document.head.appendChild(s);
+      });
+      /* SirenEditor.loadLib는 호출하지 않음 — uploadFile은 라이브러리 없이도 동작 */
+      return !!(window.SirenEditor && typeof window.SirenEditor.uploadFile === 'function');
+    } catch (e) {
+      console.error('[supplement] editor.js 로드 실패', e);
+      return false;
+    }
+  }
+
+  /* 보완 제출 모달 동적 생성 + 표시 */
+  function openSupplementModal(id, requestNo) {
+    /* 다른 모달 위에 표시되어야 하므로 최상위에 동적 추가 */
+    closeSupplementModal();
+
+    _supplementUploadingCount = 0;
+    _supplementAttachmentIds = [];
+
+    const modal = document.createElement('div');
+    modal.id = 'supplementModal';
+    modal.style.cssText = 'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10001;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;max-width:560px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
+        <div style="padding:16px 24px;background:linear-gradient(135deg,#3a0d14,#7a1f2b);color:#fff;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">📤 보완 자료 제출</div>
+            <div style="font-size:11.5px;opacity:0.85;margin-top:2px">신청번호: ${escapeHtml(requestNo || '')}</div>
+          </div>
+          <button type="button" data-supp-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+        </div>
+        <div style="padding:22px 24px">
+          <input type="hidden" id="suppId" value="${id}">
+
+          <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#8a6a00;line-height:1.7">
+            💡 운영자가 요청한 보완 사항을 반영해서 제출해 주세요. 제출 후에는 상태가 <strong>"보완 요청"</strong>에서 <strong>"접수"</strong>로 변경되어 운영자가 다시 검토합니다.
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              보완 내용 <span style="color:#dc2626">*</span> <span style="font-weight:400;color:var(--text-3);font-size:11px">(5자 이상 5000자 이내)</span>
+            </label>
+            <textarea id="suppContent" maxlength="5000" rows="8" placeholder="보완 요청 사항에 대한 답변, 추가 설명, 보충 자료 안내 등을 작성해 주세요..." style="width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;min-height:140px"></textarea>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px;text-align:right" id="suppContentCount">0 / 5000</div>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              📎 추가 첨부 파일 <span style="font-weight:400;color:var(--text-3);font-size:11px">(선택, 최대 5개 / 파일당 10MB)</span>
+            </label>
+            <input type="file" id="suppFiles" multiple accept="image/*,.pdf,.hwp,.doc,.docx,.xls,.xlsx" style="display:block;font-size:12.5px;font-family:inherit">
+            <div id="suppFilesList" style="margin-top:10px;font-size:12px;color:var(--text-2)"></div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="button" data-supp-close style="flex:1;padding:11px 0;background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>
+            <button type="button" id="suppSubmitBtn" style="flex:2;padding:11px 0;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">📤 제출하기</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    /* 글자수 카운터 */
+    const contentEl = modal.querySelector('#suppContent');
+    const countEl = modal.querySelector('#suppContentCount');
+    contentEl.addEventListener('input', () => {
+      countEl.textContent = `${contentEl.value.length} / 5000`;
+    });
+    setTimeout(() => contentEl.focus(), 100);
+
+    /* 닫기 */
+    modal.querySelectorAll('[data-supp-close]').forEach((btn) => {
+      btn.addEventListener('click', closeSupplementModal);
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeSupplementModal();
+    });
+
+    /* 첨부 업로드 */
+    const fileInput = modal.querySelector('#suppFiles');
+    const filesListEl = modal.querySelector('#suppFilesList');
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files || []);
+      if (files.length === 0) return;
+
+      const totalSlots = 5 - _supplementAttachmentIds.length;
+      if (files.length > totalSlots) {
+        window.SIREN.toast(`최대 ${totalSlots}개까지만 추가할 수 있습니다`);
+        fileInput.value = '';
+        return;
+      }
+      for (const f of files) {
+        if (f.size > 10 * 1024 * 1024) {
+          window.SIREN.toast(`"${f.name}"은(는) 10MB를 초과합니다`);
+          fileInput.value = '';
+          return;
+        }
+      }
+
+      const ok = await ensureUploadModule();
+      if (!ok) {
+        window.SIREN.toast('업로드 모듈을 불러올 수 없습니다. 페이지를 새로고침해 주세요.');
+        fileInput.value = '';
+        return;
+      }
+
+      for (const file of files) {
+        const tmpId = 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        appendFileRow(filesListEl, tmpId, file.name, '⏳ 업로드 중...');
+        _supplementUploadingCount++;
+        try {
+          const result = await window.SirenEditor.uploadFile(file, 'support-supplement');
+          if (result && result.id) {
+            _supplementAttachmentIds.push(String(result.id));
+            updateFileRow(filesListEl, tmpId, file.name, '✅ 업로드 완료', String(result.id));
+          } else {
+            updateFileRow(filesListEl, tmpId, file.name, '❌ 업로드 실패', null);
+          }
+        } catch (err) {
+          console.error('[supplement] upload error', err);
+          updateFileRow(filesListEl, tmpId, file.name, '❌ 업로드 실패', null);
+        } finally {
+          _supplementUploadingCount--;
+        }
+      }
+
+      fileInput.value = '';
+    });
+
+    /* 제출 */
+    modal.querySelector('#suppSubmitBtn').addEventListener('click', () => submitSupplement(id, requestNo));
+
+    /* ESC */
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        closeSupplementModal();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
+  function appendFileRow(listEl, tmpId, fileName, statusText) {
+    const row = document.createElement('div');
+    row.dataset.suppFile = tmpId;
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-soft);border-radius:5px;margin-bottom:4px;font-size:12px';
+    row.innerHTML = `
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${escapeHtml(fileName)}</span>
+      <span class="status" style="margin-left:10px;color:var(--text-3);flex-shrink:0">${escapeHtml(statusText)}</span>
+      <button type="button" data-supp-remove="${tmpId}" style="margin-left:8px;background:transparent;border:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">×</button>
+    `;
+    listEl.appendChild(row);
+
+    row.querySelector('[data-supp-remove]').addEventListener('click', () => {
+      const blobId = row.dataset.suppBlobId;
+      if (blobId) {
+        _supplementAttachmentIds = _supplementAttachmentIds.filter(v => v !== blobId);
+      }
+      row.remove();
+    });
+  }
+
+  function updateFileRow(listEl, tmpId, fileName, statusText, blobId) {
+    const row = listEl.querySelector(`[data-supp-file="${tmpId}"]`);
+    if (!row) return;
+    const statusEl = row.querySelector('.status');
+    if (statusEl) {
+      statusEl.textContent = statusText;
+      if (blobId) statusEl.style.color = '#1a8b46';
+      else statusEl.style.color = '#dc2626';
+    }
+    if (blobId) row.dataset.suppBlobId = blobId;
+  }
+
+  function closeSupplementModal() {
+    const m = document.getElementById('supplementModal');
+    if (m) m.remove();
+    _supplementUploadingCount = 0;
+    _supplementAttachmentIds = [];
+    const anyOpen = document.querySelector('.modal-bg.show, #appDetailModal.show');
+    if (!anyOpen) document.body.style.overflow = '';
+  }
+
+  async function submitSupplement(id, requestNo) {
+    const contentEl = document.getElementById('suppContent');
+    const submitBtn = document.getElementById('suppSubmitBtn');
+    if (!contentEl || !submitBtn) return;
+
+    const supplementContent = (contentEl.value || '').trim();
+    if (supplementContent.length < 5) {
+      window.SIREN.toast('보완 내용을 5자 이상 작성해 주세요');
+      contentEl.focus();
+      return;
+    }
+    if (supplementContent.length > 5000) {
+      window.SIREN.toast('보완 내용은 5000자 이내로 작성해 주세요');
+      return;
+    }
+    if (_supplementUploadingCount > 0) {
+      window.SIREN.toast('첨부 파일이 아직 업로드 중입니다');
+      return;
+    }
+
+    if (!confirm('보완 자료를 제출하시겠습니까?\n\n• 상태가 "보완 요청" → "접수"로 변경됩니다\n• 운영자가 다시 검토합니다\n• 제출 후 추가 보완은 새로 요청 받았을 때만 가능합니다')) return;
+
+    const oldText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '제출 중...';
+
+    try {
+      const res = await fetch('/api/support-supplement', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          supplementContent,
+          attachmentIds: _supplementAttachmentIds,
+        }),
+      });
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        window.SIREN.toast(json.error || '제출 실패');
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+        return;
+      }
+
+      window.SIREN.toast('보완 자료가 제출되었습니다. 운영자가 다시 검토합니다.');
+      closeSupplementModal();
+
+      /* 상세 모달도 닫고 family 탭 캐시 무효화 + 새로고침 */
+      const detailModal = document.getElementById('appDetailModal');
+      if (detailModal) detailModal.classList.remove('show');
+
+      delete _cache.family;
+      await loadTab('family');
+    } catch (e) {
+      console.error('[submitSupplement]', e);
+      window.SIREN.toast('네트워크 오류');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
     }
   }
 
@@ -534,7 +830,7 @@
       }
     });
 
-    /* "📋 신청 내역" 메뉴 클릭 시 첫 탭 자동 렌더 */
+    /* 메뉴 클릭 시 첫 탭 자동 렌더 */
     const menu = document.getElementById('mpMenu');
     if (menu) {
       menu.addEventListener('click', (e) => {
@@ -545,7 +841,7 @@
       });
     }
 
-    /* 페이지 진입 즉시 4개 탭 카운트 prefetch */
+    /* prefetch */
     setTimeout(() => {
       prefetchAllCounts().then(() => {
         if (location.hash === '#support' || _currentTab) {
