@@ -117,7 +117,7 @@
       </div>
     </div>
 
-    <!-- STATS -->
+    <!-- STATS (★ Phase B: data-stat-key로 API 연동) -->
     <section class="stats">
       <div class="container">
         <div class="stats-head sec-head">
@@ -129,19 +129,19 @@
         </div>
         <div class="stats-grid">
           <div class="stat">
-            <div class="stat-num" data-target="847" data-suffix="건">0<small></small></div>
+            <div class="stat-num" data-stat-key="support.totalCount" data-target="847" data-suffix="건">0<small></small></div>
             <div class="stat-label">유가족 지원 건수</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-target="1283" data-suffix="백만원">0<small></small></div>
+            <div class="stat-num" data-stat-key="donations.totalAmount" data-target="12830" data-suffix="만원">0<small></small></div>
             <div class="stat-label">누적 후원금</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-target="3527" data-suffix="명">0<small></small></div>
+            <div class="stat-num" data-stat-key="members.regularDonors" data-target="3527" data-suffix="명">0<small></small></div>
             <div class="stat-label">정기 후원 회원</div>
           </div>
           <div class="stat">
-            <div class="stat-num" data-target="186" data-suffix="명">0<small></small></div>
+            <div class="stat-num" data-stat-key="members.volunteers" data-target="186" data-suffix="명">0<small></small></div>
             <div class="stat-label">전문 봉사자</div>
           </div>
         </div>
