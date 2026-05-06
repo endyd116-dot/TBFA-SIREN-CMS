@@ -251,6 +251,15 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>배너 편집 모듈 로드 실패 — admin-home-banner.js 스크립트 태그 확인</p></div>';
       }
     },
+        /* ★ Step 6-H: 효과/애니메이션 편집 */
+    'home.effects': function () {
+      if (window.SIREN_HOME_EFFECTS && window.SIREN_HOME_EFFECTS.render) {
+        window.SIREN_HOME_EFFECTS.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>효과 편집 모듈 로드 실패 — admin-home-effects.js 스크립트 태그 확인</p></div>';
+      }
+    },
   };
 
   
