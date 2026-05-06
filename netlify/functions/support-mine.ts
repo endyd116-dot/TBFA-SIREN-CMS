@@ -1,12 +1,17 @@
 /**
- * GET /api/support/mine
- * 로그인 사용자의 지원 신청 내역 조회 (마이페이지 1:1 상담 탭)
+ * GET /api/support/mine            — 본인의 지원 신청 목록
+ * GET /api/support/mine?id=N       — 본인의 지원 신청 단건 상세
+ *
+ * ★ v11 (2026-05) 묶음 B-3:
+ *   - ?id=N 분기 추가 (마이페이지 신청 내역 → 상세 모달용)
+ *   - list 응답에 content / priority / priorityReason 등 카드 표시용 필드 보강
+ *   - adminNote/answeredAt → adminResponse/respondedAt 별칭 추가 (클라이언트 호환)
  */
 import { eq, desc } from "drizzle-orm";
 import { db, supportRequests } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import {
-  ok, unauthorized, serverError,
+  ok, badRequest, unauthorized, notFound, forbidden, serverError,
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 
@@ -19,18 +24,72 @@ export default async (req: Request) => {
     if (!auth) return unauthorized("로그인이 필요합니다");
 
     const url = new URL(req.url);
+    const idStr = url.searchParams.get("id");
+
+    /* =========================================================
+       단건 상세 (?id=N)
+       ========================================================= */
+    if (idStr) {
+      const id = Number(idStr);
+      if (!Number.isFinite(id) || id <= 0) {
+        return badRequest("id가 올바르지 않습니다");
+      }
+
+      const rows: any = await db
+        .select()
+        .from(supportRequests)
+        .where(eq(supportRequests.id, id))
+        .limit(1);
+
+      const row: any = Array.isArray(rows) ? rows[0] : null;
+      if (!row) return notFound("신청을 찾을 수 없습니다");
+
+      if (Number(row.memberId) !== Number(auth.uid)) {
+        return forbidden("본인의 신청만 조회할 수 있습니다");
+      }
+
+      /* attachments — JSON 문자열로 저장된 경우 파싱, 배열이면 그대로 */
+      let attachments: any[] = [];
+      const rawAttach = row.attachments;
+      if (Array.isArray(rawAttach)) {
+        attachments = rawAttach;
+      } else if (typeof rawAttach === "string" && rawAttach.length > 0) {
+        try {
+          const parsed = JSON.parse(rawAttach);
+          if (Array.isArray(parsed)) attachments = parsed;
+        } catch { /* 무시 */ }
+      }
+
+      /* 클라이언트 renderDetailHtml과 호환되는 별칭 부여 */
+      const request = {
+        ...row,
+        attachments,
+        adminResponse: row.adminNote || "",
+        respondedAt: row.answeredAt || null,
+      };
+
+      return ok({ request });
+    }
+
+    /* =========================================================
+       목록
+       ========================================================= */
     const limit = Math.min(Number(url.searchParams.get("limit") || 50), 100);
 
-    const list = await db
+    const list: any = await db
       .select({
         id: supportRequests.id,
         requestNo: supportRequests.requestNo,
         category: supportRequests.category,
         title: supportRequests.title,
+        content: supportRequests.content,
         status: supportRequests.status,
+        priority: supportRequests.priority,
+        priorityReason: supportRequests.priorityReason,
         assignedExpertName: supportRequests.assignedExpertName,
         adminNote: supportRequests.adminNote,
         supplementNote: supportRequests.supplementNote,
+        answeredAt: supportRequests.answeredAt,
         createdAt: supportRequests.createdAt,
         completedAt: supportRequests.completedAt,
       })
@@ -39,10 +98,17 @@ export default async (req: Request) => {
       .orderBy(desc(supportRequests.createdAt))
       .limit(limit);
 
-    return ok({ list });
+    /* 카드 표시용 별칭 부여 (답변 완료 표시에 사용) */
+    const enriched = (Array.isArray(list) ? list : []).map((r: any) => ({
+      ...r,
+      adminResponse: r.adminNote || "",
+      respondedAt: r.answeredAt || null,
+    }));
+
+    return ok({ list: enriched });
   } catch (err) {
     console.error("[support-mine]", err);
-    return serverError("신청 내역 조회 중 오류가 발생했습니다", err);
+    return serverError("신청 조회 중 오류가 발생했습니다", err);
   }
 };
 

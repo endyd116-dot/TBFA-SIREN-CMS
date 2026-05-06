@@ -1,7 +1,8 @@
 /* =========================================================
-   SIREN — mypage-applications.js (★ Phase M-9)
+   SIREN — mypage-applications.js (★ Phase M-9 + v11 묶음 B-3)
    - 마이페이지 "📋 신청 내역" 통합 탭
    - 4개 서브탭: family / incident / harassment / legal
+   - v11: family 탭에 상세/삭제 기능 추가
    ========================================================= */
 (function () {
   'use strict';
@@ -49,8 +50,9 @@
     return map[s] || s;
   }
 
+  /* ★ v11 묶음 B-3: family 타입 라벨 추가 (priority 필드 — urgent/normal/low) */
   function severityLabel(s, type) {
-    if (type === 'legal') {
+    if (type === 'legal' || type === 'family') {
       const m = { urgent: '🚨 긴급', high: '⚠️ 높음', normal: '⚖️ 보통', low: '💡 낮음' };
       return m[s] || s;
     }
@@ -81,11 +83,13 @@
   }
 
   /* ============ API 매핑 ============ */
+  /* ★ v11 묶음 B-3: family에 detailApi / deleteApi 추가 */
   const TYPES = {
     family: {
       label: '유가족 지원',
       listApi: '/api/support/mine',
-      deleteApi: null, // 유가족 지원은 별도 삭제 미구현
+      detailApi: '/api/support/mine',     // ★ 같은 URL에 ?id=N로 분기
+      deleteApi: '/api/support-delete',   // ★ 신규
       newPage: '/support.html#family',
       itemKey: 'list',
       idField: 'id',
@@ -215,7 +219,9 @@
       const status = item[cfg.statusField] || 'submitted';
       const severity = cfg.severityField ? item[cfg.severityField] : null;
       const category = cfg.categoryField ? item[cfg.categoryField] : null;
-      const summary = (item[cfg.summaryField] || '').toString().slice(0, 200);
+      const rawSummary = (item[cfg.summaryField] || '').toString();
+      /* HTML 태그 제거 후 200자 컷 (family는 contentHtml/content가 들어올 수 있음) */
+      const summary = rawSummary.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').slice(0, 200);
       const hasResponse = item.adminResponse || item.respondedAt;
       const sirenRequested = item.sirenReportRequested === true;
       const sirenDeclined = item.sirenReportRequested === false;
@@ -301,7 +307,7 @@
       }
 
       const data = json.data || {};
-      /* incident: data.report / harassment: data.report / legal: data.consultation */
+      /* incident: data.report / harassment: data.report / legal: data.consultation / family: data.request */
       const item = data.report || data.consultation || data.request || data;
 
       bodyEl.innerHTML = renderDetailHtml(tabKey, item);
@@ -311,7 +317,7 @@
     }
   }
 
-    function renderDetailHtml(tabKey, item) {
+  function renderDetailHtml(tabKey, item) {
     const no = item.reportNo || item.consultationNo || item.requestNo || '';
     const title = item.title || '';
     const createdAt = fmtDateTime(item.createdAt);
@@ -335,6 +341,37 @@
       `;
     }
 
+    /* ★ v11 묶음 B-3: family 타입 — 카테고리 / 우선순위 / 보완요청 / 담당자 */
+    if (tabKey === 'family') {
+      const blocks = [];
+      if (item.category) {
+        blocks.push(`<div><strong>분류:</strong> ${escapeHtml(categoryLabel(item.category, 'family'))}</div>`);
+      }
+      if (item.priority) {
+        const sevText = severityLabel(item.priority, 'family');
+        blocks.push(`<div><strong>우선순위:</strong> ${escapeHtml(sevText)}${item.priorityReason ? ' <span style="color:var(--text-3);font-size:12px">(' + escapeHtml(item.priorityReason) + ')</span>' : ''}</div>`);
+      }
+      if (item.assignedExpertName) {
+        blocks.push(`<div><strong>담당 전문가:</strong> ${escapeHtml(item.assignedExpertName)}</div>`);
+      }
+      if (blocks.length > 0) {
+        html += `
+          <div class="adm-section">
+            <h4>📋 신청 정보</h4>
+            <div class="body" style="line-height:1.9">${blocks.join('')}</div>
+          </div>
+        `;
+      }
+      if (item.supplementNote) {
+        html += `
+          <div class="adm-section" style="background:#fff8ec;border:1px solid #f0e3c4">
+            <h4 style="color:#8a6a00">⚠️ 보완 요청 사항</h4>
+            <div class="body" style="white-space:pre-wrap">${escapeHtml(item.supplementNote)}</div>
+          </div>
+        `;
+      }
+    }
+
     /* AI 분석 (incident/harassment/legal) */
     if (tabKey === 'incident' || tabKey === 'harassment' || tabKey === 'legal') {
       if (item.aiSummary) {
@@ -351,7 +388,6 @@
           </div>
         `;
 
-        /* 법률 추가 정보 */
         if (tabKey === 'legal') {
           if (item.aiRelatedLaws) {
             html += `<div class="adm-section"><h4>📜 관련 법령</h4><div class="body">${escapeHtml(item.aiRelatedLaws)}</div></div>`;
@@ -364,7 +400,6 @@
           }
         }
 
-        /* 악성민원 추가 정보 */
         if (tabKey === 'harassment') {
           if (item.aiImmediateAction) {
             html += `<div class="adm-section"><h4>🚀 즉각적 대처</h4><div class="body">${escapeHtml(item.aiImmediateAction)}</div></div>`;
@@ -377,7 +412,13 @@
     if (Array.isArray(item.attachments) && item.attachments.length) {
       html += '<div class="adm-section"><h4>📎 첨부파일</h4><div class="body">';
       item.attachments.forEach((a) => {
-        html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(a.originalName)}</a></div>`;
+        /* family는 R2 키 문자열일 수 있음 — 객체일 때만 링크 표시 */
+        if (a && typeof a === 'object' && a.url) {
+          html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
+        } else if (typeof a === 'string') {
+          const fileName = a.split('/').pop() || a;
+          html += `<div style="margin-bottom:6px;color:var(--text-2);font-size:12.5px">📎 ${escapeHtml(fileName)} <span style="color:var(--text-3);font-size:11px">(다운로드는 운영자 확인 후 안내)</span></div>`;
+        }
       });
       html += '</div></div>';
     }
@@ -403,7 +444,6 @@
   function closeDetail() {
     const modal = document.getElementById('appDetailModal');
     if (modal) modal.classList.remove('show');
-    /* 다른 모달이 열려있지 않으면 스크롤 해제 */
     const anyOpen = document.querySelector('.modal-bg.show');
     if (!anyOpen) document.body.style.overflow = '';
   }
@@ -453,11 +493,9 @@
     loadTab(tabKey);
   }
 
-  /* ============ 초기화 ============ */
-    /* ★ 2026-05 패치: 4개 탭 카운트 prefetch */
+  /* ============ 4개 탭 카운트 prefetch ============ */
   async function prefetchAllCounts() {
     const tabs = ['family', 'incident', 'harassment', 'legal'];
-    /* 병렬로 모든 탭의 카운트 미리 가져오기 */
     await Promise.all(tabs.map(async (tabKey) => {
       const cfg = TYPES[tabKey];
       try {
@@ -496,7 +534,7 @@
       }
     });
 
-    /* "📋 신청 내역" 메뉴 클릭 시 첫 탭 자동 렌더 (캐시 활용) */
+    /* "📋 신청 내역" 메뉴 클릭 시 첫 탭 자동 렌더 */
     const menu = document.getElementById('mpMenu');
     if (menu) {
       menu.addEventListener('click', (e) => {
@@ -507,17 +545,15 @@
       });
     }
 
-    /* ★ 2026-05 패치: 페이지 진입 즉시 4개 탭 카운트 prefetch */
+    /* 페이지 진입 즉시 4개 탭 카운트 prefetch */
     setTimeout(() => {
       prefetchAllCounts().then(() => {
-        /* prefetch 완료 후 현재 탭이 활성화되어 있으면 렌더 */
         if (location.hash === '#support' || _currentTab) {
           loadTab(_currentTab);
         }
       });
     }, 500);
 
-    /* 페이지 진입 시 #support 해시면 즉시 첫 탭 로드 (prefetch 캐시 활용 가능) */
     if (location.hash === '#support') {
       setTimeout(() => loadTab(_currentTab), 800);
     }
