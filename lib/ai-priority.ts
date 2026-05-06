@@ -73,7 +73,7 @@ JSON 객체로만 응답하세요. 설명 없이 JSON만 출력:
 
   try {
     const attach = await loadAttachmentsForAI(input.attachmentIds || []);
-    const fullPrompt = prompt + attach.summary;
+const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
     const result = await callGeminiJSON<PriorityAnalysis>(fullPrompt, {
       temperature: 0.2,
       maxOutputTokens: 500,

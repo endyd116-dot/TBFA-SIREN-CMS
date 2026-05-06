@@ -124,7 +124,7 @@ ${text}
 
   try {
     const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
-    const fullPrompt = prompt + attach.summary;
+const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
     const result = await callGeminiJSON<any>(fullPrompt, { temperature: 0.3, maxOutputTokens: 3000, inlineFiles: attach.files });
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);

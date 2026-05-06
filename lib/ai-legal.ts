@@ -1,5 +1,5 @@
 // lib/ai-legal.ts
-// ★ Phase M-7: 법률 상담 AI 1차 자문
+// ★ Phase M-7 + v3.5: 법률 상담 AI 1차 자문 (PDF 첨부 분석 강화)
 // - 분야/긴급도/관련법령/1차의견/변호사 전문분야
 
 import { callGeminiJSON } from "./ai-gemini";
@@ -76,7 +76,6 @@ export async function analyzeLegalConsultation(opts: {
     : userUrgency === "normal" ? "보통"
     : userUrgency === "reference" ? "참고용" : "미상";
 
-  // lib/ai-legal.ts — analyzeLegalConsultation 내 prompt 변수 시작 부분 교체
   const prompt = `당신은 한국 교사유가족협의회 "사이렌"의 법률 정보 안내 AI 어시스턴트입니다.
 당신은 변호사가 아니며, 제공하는 답변은 일반적인 법률 정보 안내일 뿐 법률 자문이 아닙니다.
 하지만 당신은 최고수준의 법 지식과 판례를 알고있는 사람으로써 사용자에게 적절한 자문을 받을 수 있도록 최대한 상세하고 친절하게 안내해야 합니다.
@@ -141,8 +140,16 @@ ${text}
 
   try {
     const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
-    const fullPrompt = prompt + attach.summary;
-    const result = await callGeminiJSON<any>(fullPrompt, { temperature: 0.3, maxOutputTokens: 3000, inlineFiles: attach.files });
+
+    /* ★ v3.5: instructionPrefix를 프롬프트 맨 앞에 강제 주입 */
+    const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
+
+    const result = await callGeminiJSON<any>(fullPrompt, {
+      temperature: 0.3,
+      maxOutputTokens: 3000,
+      inlineFiles: attach.files,
+    });
+
     if (!result.ok || !result.data) {
       return fallback(reportTitle, text, userCategory);
     }

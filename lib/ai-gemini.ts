@@ -1,14 +1,16 @@
+// lib/ai-gemini.ts
 /**
- * Google Gemini API 래퍼 (★ 2026-05 v3.4 — 첨부 파일 분석 추가)
+ * Google Gemini API 래퍼 (★ 2026-05 v3.5 — PDF 첨부 분석 정확도 강화)
  *
  * 모델 정책:
  *   1차 (디폴트): GEMINI_MODEL_PRO / FLASH (기본 gemini-3-flash)
  *   2차: gemini-3.0-flash
- *   3차: gemini-3.1-flash-lite-preview
+ *   3차: gemini-3.1-flash-lite-preview (단, 첨부 있으면 자동 스킵)
  *
- * v3.4 추가:
- *   - inlineFiles 지원 (이미지 + PDF, base64 인라인)
- *   - Gemini 3.0+는 PDF 직접 분석 (페이지 OCR + 레이아웃 인식)
+ * v3.5 변경:
+ *   - parts 순서: 파일 먼저, 텍스트 나중에 (Gemini 공식 권장)
+ *   - base64 'data:' prefix 자동 정리 (방어 코드)
+ *   - 첨부 전송 직전 진단 로그 강화
  */
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
@@ -42,11 +44,6 @@ export interface InlineFile {
   mimeType: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
 }
 
-export interface InlineFile {
-  data: string;      // base64
-  mimeType: string;  // 'image/jpeg' | 'application/pdf' 등
-}
-
 export interface GeminiOptions {
   temperature?: number;
   maxOutputTokens?: number;
@@ -78,13 +75,39 @@ async function callSingleModel(
 
   const url = `${GEMINI_API_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
-  /* ★ B-9: 인라인 파일(이미지/PDF)을 parts에 포함 */
-  const parts: any[] = [{ text: prompt }];
+  /* ★ v3.5 핵심: 파일을 먼저, 텍스트(질문)를 나중에 — Gemini 공식 권장 순서 */
+  const parts: any[] = [];
+
   if (opts.inlineFiles && opts.inlineFiles.length > 0) {
     for (const f of opts.inlineFiles) {
-      parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
+      /* ★ v3.5: 'data:application/pdf;base64,XXX' prefix 자동 정리 */
+      let cleanData = f.data || "";
+      const hadPrefix = cleanData.startsWith("data:");
+      if (hadPrefix) {
+        const idx = cleanData.indexOf(",");
+        if (idx >= 0) cleanData = cleanData.slice(idx + 1);
+      }
+      parts.push({
+        inlineData: {
+          mimeType: f.mimeType,
+          data: cleanData,
+        },
+      });
     }
+
+    /* ★ v3.5: 첨부 전송 직전 상세 진단 로그 */
+    console.info(`[Gemini-${modelName}] inlineFiles 전송:`,
+      opts.inlineFiles.map((f, i) => ({
+        idx: i,
+        mimeType: f.mimeType,
+        base64KB: Math.round((f.data?.length || 0) / 1024),
+        prefixCleaned: (f.data || "").startsWith("data:"),
+      }))
+    );
   }
+
+  /* 텍스트는 파일 뒤에 배치 */
+  parts.push({ text: prompt });
 
   const body: any = {
     contents: [{ role: "user", parts }],
@@ -157,7 +180,6 @@ export async function callGemini(
   const chain = buildFallbackChain(mode);
   let lastError = "";
 
-  /* ★ B-9: 첨부 파일 정보 로그 */
   if (opts.inlineFiles && opts.inlineFiles.length > 0) {
     console.info(`[Gemini-${mode}] 첨부 파일 ${opts.inlineFiles.length}개 포함:`,
       opts.inlineFiles.map(f => f.mimeType).join(", "));

@@ -99,7 +99,7 @@ ${text}
   try {
     /* ★ B-9: 첨부 파일 로드 */
     const attach = await loadAttachmentsForAI(opts.attachmentIds || []);
-    const fullPrompt = prompt + attach.summary;
+const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
 
     const result = await callGeminiJSON<{ severity: string; summary: string; suggestion: string }>(
       fullPrompt,
