@@ -7,31 +7,63 @@
 
   let uploadedFiles = []; // [{ key, originalName, size, mimeType }]
 
-  /* ───────── 1. 로그인 가드 (신청하기 버튼 클릭 시 모달 오픈 전 차단) ───────── */
+  /* ───────── 1. 모달 오픈은 허용, 비로그인 시 모달 안에 안내 배너 표시 ─────────
+     이전: capture phase에서 모달 자체를 차단 → 모달 내 "일반 신청 누구나 가능"
+           정책과 충돌하여 제거
+     변경: 모달은 누구나 열 수 있고, 비로그인 사용자에게는 안내 배너로 알림.
+           실제 차단은 폼 제출 시 백엔드 401 응답 + setupForm()이 처리. */
   function setupAuthGuard() {
-    // ⚠️ capture phase(true)로 등록하여 common.js의 모달 오픈 핸들러보다 먼저 실행
     document.addEventListener('click', (e) => {
       const trigger = e.target.closest('[data-action="open-modal"][data-target="supportModal"]');
       if (!trigger) return;
 
-      const Auth = window.SIREN_AUTH;
-      // 로그인 상태 → 정상 진행 (common.js가 모달 오픈)
-      if (Auth && Auth.isLoggedIn()) return;
-
-      // 비로그인 → 모달 오픈 차단
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (window.SIREN && window.SIREN.toast) {
-        window.SIREN.toast('로그인이 필요한 서비스입니다');
-      }
-      // 토스트 보이고 0.6초 후 로그인 모달 오픈
+      /* 모달이 DOM에 그려진 후 배너 처리 (common.js의 openModal과 타이밍 맞춤) */
       setTimeout(() => {
-        if (window.SIREN && window.SIREN.openModal) {
-          window.SIREN.openModal('loginModal');
-        }
-      }, 600);
-    }, true); // ★ capture phase 필수
+        const modal = document.getElementById('supportModal');
+        if (!modal) return;
+
+        const Auth = window.SIREN_AUTH;
+        const isLoggedIn = Auth && Auth.isLoggedIn();
+
+        /* 기존 배너 제거 (모달 재오픈 시 중복 방지) */
+        const oldBanner = modal.querySelector('.support-login-banner');
+        if (oldBanner) oldBanner.remove();
+
+        /* 로그인 상태면 배너 없음 — 종료 */
+        if (isLoggedIn) return;
+
+        /* 비로그인 — 안내 배너 삽입 */
+        const subEl = modal.querySelector('.modal-sub');
+        if (!subEl) return;
+
+        const banner = document.createElement('div');
+        banner.className = 'support-login-banner';
+        banner.style.cssText = [
+          'background:linear-gradient(135deg,#fef9f5,#fff)',
+          'border:1px solid #f0e0d4',
+          'border-radius:8px',
+          'padding:12px 16px',
+          'margin:12px 0',
+          'font-size:12.5px',
+          'color:#7a1f2b',
+          'line-height:1.7',
+          'display:flex',
+          'align-items:center',
+          'gap:10px',
+        ].join(';');
+        banner.innerHTML = ''
+          + '<span style="font-size:20px;flex-shrink:0">🔒</span>'
+          + '<div style="flex:1;min-width:0">'
+          +   '<strong>신청을 위해 로그인이 필요합니다</strong><br />'
+          +   '<span style="color:#86868b">미리 내용을 입력하신 후, 제출 시점에 로그인하시면 작성 내용이 유지됩니다.</span>'
+          + '</div>'
+          + '<button type="button" data-action="switch-modal" data-from="supportModal" data-to="loginModal"'
+          + '  style="padding:6px 12px;background:#7a1f2b;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0">'
+          +   '로그인'
+          + '</button>';
+        subEl.insertAdjacentElement('afterend', banner);
+      }, 100);
+    });
   }
 
   /* ───────── 2. 파일 선택 시 자동 업로드 ───────── */
