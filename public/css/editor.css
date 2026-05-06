@@ -1,5 +1,6 @@
 /* public/css/editor.css */
 /* ★ Phase M-1: SIREN Toast UI Editor 공통 스킨 */
+/* ★ v11 (2026-05): markdown 컨테이너 영구 숨김 패치 추가 */
 
 /* 컨테이너 래퍼 */
 .siren-editor-wrap {
@@ -122,12 +123,46 @@
 .siren-editor-readonly .toastui-editor-mode-switch {
   display: none !important;
 }
-/* ★ 2026-05: Toast UI Editor placeholder 중복 표시 제거 */
+
+/* ★ 2026-05: Toast UI Editor placeholder 중복 표시 제거 (기존 유지) */
 .toastui-editor-md-container .ProseMirror p.placeholder:not(:first-child),
 .toastui-editor-ww-container .ProseMirror p.placeholder:not(:first-child) {
   display: none !important;
 }
-/* 모드 스위치(Markdown/WYSIWYG 탭) 자체를 숨겨 사용자 혼란 방지 */
+
+/* 모드 스위치(Markdown/WYSIWYG 탭) 자체를 숨겨 사용자 혼란 방지 (기존 유지) */
 .toastui-editor-mode-switch {
+  display: none !important;
+}
+
+/* ============================================================
+   ★ v11 (2026-05) 묶음 A 2차 — 버그 5번 + 10번 핵심 패치
+   ============================================================
+   원인:
+   - Toast UI Editor는 markdown 컨테이너와 WYSIWYG 컨테이너를
+     동시에 DOM에 생성함
+   - editor.js에서 setTimeout(100ms)로 markdown 컨테이너 inline
+     display:none을 시도하지만, Toast UI 내부 렌더링 로직이
+     이후에 다시 덮어씀
+   - 결과: 두 컨테이너 모두 표시 → placeholder 텍스트가 중복으로
+     보이고, 사용자가 한쪽에만 입력해도 반대쪽 placeholder는
+     남아있어 "안내 문구가 본문에 같이 들어간 것처럼" 보임
+   해결:
+   - CSS !important로 markdown 컨테이너를 영구 숨김
+   - WYSIWYG 컨테이너만 표시
+   - 모든 SirenEditor 호출은 initialEditType: 'wysiwyg' 전용이라
+     부작용 없음 (악성민원/자유게시판/사건제보/법률지원 등 전부)
+   ============================================================ */
+.siren-editor-wrap .toastui-editor-md-container {
+  display: none !important;
+}
+
+.siren-editor-wrap .toastui-editor-ww-container {
+  display: block !important;
+}
+
+/* 혹시 모르는 placeholder 중복 방지 — ProseMirror가 여러 p.placeholder
+   엘리먼트를 생성하는 케이스 대비 (첫 번째 형제만 남김) */
+.siren-editor-wrap .ProseMirror p.placeholder ~ p.placeholder {
   display: none !important;
 }
