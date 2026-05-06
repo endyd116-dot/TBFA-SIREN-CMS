@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — home.js
+   SIREN — home.js (★ Phase B: 통계 API 연동)
    홈페이지 전용 인터랙션 (메인 슬라이더 / 카운터 / FAQ)
    ========================================================= */
 (function () {
@@ -60,11 +60,10 @@
     dots.forEach((dot, i) => {
       dot.addEventListener('click', () => {
         setSlide(i);
-        startSlideAuto(); // 사용자가 누르면 타이머 리셋
+        startSlideAuto();
       });
     });
 
-    // 마우스 호버 시 일시정지
     const hero = document.querySelector('.hero');
     if (hero) {
       hero.addEventListener('mouseenter', stopSlideAuto);
@@ -74,7 +73,69 @@
     startSlideAuto();
   }
 
-  /* ------------ 2. 통계 카운팅 애니메이션 ------------ */
+  /* ------------ 2-A. ★ Phase B: 공개 통계 API에서 값 가져와 data-target 갱신 ------------ */
+  async function fetchAndApplyStats() {
+    try {
+      const previewParam = new URLSearchParams(location.search).get('preview') === '1' ? '?preview=1' : '';
+      const res = await fetch('/api/public/stats' + previewParam, { credentials: 'include' });
+      if (!res.ok) {
+        console.warn('[home.js] /api/public/stats 응답 실패:', res.status);
+        return;
+      }
+      const json = await res.json();
+      if (!json.ok || !json.data) return;
+
+      const d = json.data;
+
+      /* ★ HTML의 data-stat-key 속성을 가진 요소에 값 매핑 */
+      const mapping = {
+        'donations.totalAmount': d.donations?.totalAmount,
+        'support.totalCount': d.support?.totalCount,
+        'members.regularDonors': d.members?.regularDonors,
+        'members.volunteers': d.members?.volunteers,
+        'distribution.directSupport': d.distribution?.directSupport,
+        'distribution.memorial': d.distribution?.memorial,
+        'distribution.scholarship': d.distribution?.scholarship,
+        'distribution.operation': d.distribution?.operation,
+        'transparency.grade': d.transparency?.grade,
+      };
+
+      Object.keys(mapping).forEach((key) => {
+        const value = mapping[key];
+        if (value === undefined || value === null) return;
+        const els = document.querySelectorAll('[data-stat-key="' + key + '"]');
+        els.forEach((el) => {
+          /* 숫자형: data-target 갱신 (counter 애니메이션 대상) */
+          if (el.classList.contains('stat-num')) {
+            el.dataset.target = String(value);
+            el.dataset.done = ''; // 카운팅 다시 실행되도록 리셋
+          } else {
+            /* 텍스트형: 직접 textContent 갱신 (예: 투명성 등급 "A+") */
+            el.textContent = String(value);
+          }
+        });
+      });
+
+      /* ★ totalAmount는 별도 처리 (만원 단위 변환 가능성) */
+      const totalAmtEls = document.querySelectorAll('[data-stat-key="donations.totalAmount"]');
+      totalAmtEls.forEach((el) => {
+        if (el.classList.contains('stat-num')) {
+          /* 만원 단위로 표시되도록 (예: 128300000 → 12830) */
+          const manwon = Math.floor(Number(d.donations?.totalAmount || 0) / 10000);
+          el.dataset.target = String(manwon);
+          el.dataset.done = '';
+          /* suffix가 '만원'이 아니면 강제 설정 */
+          if (!el.dataset.suffix) el.dataset.suffix = '만원';
+        }
+      });
+
+      console.log('[home.js] 통계 API 값 적용 완료', json.data._meta);
+    } catch (e) {
+      console.warn('[home.js] 통계 fetch 실패, HTML 하드코딩 값 사용', e);
+    }
+  }
+
+  /* ------------ 2-B. 통계 카운팅 애니메이션 ------------ */
   function animateCounters() {
     document.querySelectorAll('.stat-num').forEach(el => {
       const target = +el.dataset.target;
@@ -120,12 +181,6 @@
       if (!q) return;
       const item = q.parentElement;
       const isOpen = item.classList.contains('open');
-
-      // 같은 그룹 내 다른 아이템 닫기 (선택사항)
-      // item.parentElement.querySelectorAll('.faq-item.open').forEach(it => {
-      //   if (it !== item) it.classList.remove('open');
-      // });
-
       item.classList.toggle('open', !isOpen);
     });
   }
@@ -165,16 +220,16 @@
   }
 
   /* ------------ 6. 초기화 ------------ */
-  function init() {
+  async function init() {
     setupSlider();
+    /* ★ Phase B: API 값 먼저 적용한 뒤 카운터 옵저버 설정 */
+    await fetchAndApplyStats();
     setupCounterObserver();
     setupFAQ();
     setupProgressBar();
     setupNoticeList();
   }
 
-  // common.js의 파셜 로드가 끝난 뒤 실행되도록 SIREN_PAGE_INIT 사용
-  // (이미 다른 페이지 init 훅이 등록돼 있으면 합쳐서 실행)
   const prevInit = window.SIREN_PAGE_INIT;
   window.SIREN_PAGE_INIT = function () {
     if (typeof prevInit === 'function') prevInit();
