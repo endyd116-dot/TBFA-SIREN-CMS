@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>메인 화면 편집 — SIREN 관리자</title>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/css/base.css?v=2026-05-06-1" />
+  <link rel="stylesheet" href="/css/components.css?v=2026-05-06-1" />
+  <link rel="stylesheet" href="/css/admin.css?v=2026-05-06-1" />
+  <link rel="stylesheet" href="/css/admin-site-builder.css?v=2026-05-06-1" />
+</head>
+<body data-page="site-builder">
+
+  <!-- 상단 바 -->
+  <header class="sb-topbar">
+    <div class="sb-topbar-left">
+      <a href="/admin.html" class="sb-back-btn" title="어드민으로 돌아가기">← 어드민</a>
+      <h1 class="sb-title">🎨 메인 화면 편집</h1>
+      <span class="sb-subtitle" id="sbCurrentSection">시작하기</span>
+    </div>
+    <div class="sb-topbar-right">
+      <span class="sb-draft-counter" id="sbDraftCounter" style="display:none">
+        💾 임시저장 <strong id="sbDraftCount">0</strong>건
+      </span>
+      <button type="button" class="sb-btn-publish-all" id="sbPublishAllBtn">
+        🚀 모든 변경사항 배포
+      </button>
+      <span class="sb-admin-name" id="sbAdminName">-</span>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 (3분할) -->
+  <main class="sb-layout">
+
+    <!-- 좌측: 카테고리 트리 -->
+    <aside class="sb-sidebar">
+      <div class="sb-sidebar-header">
+        <span>편집 영역</span>
+        <button type="button" class="sb-tree-collapse" id="sbTreeCollapse" title="모두 접기">⇅</button>
+      </div>
+      <div class="sb-tree" id="sbTree"></div>
+    </aside>
+
+    <!-- 중앙: 편집 폼 -->
+    <section class="sb-content">
+      <div class="sb-content-inner" id="sbContentInner">
+        <div class="sb-welcome">
+          <div class="sb-welcome-icon">👋</div>
+          <h2>메인 화면 편집을 시작하세요</h2>
+          <p>좌측에서 편집할 영역을 선택해 주세요.</p>
+          <ul class="sb-welcome-tips">
+            <li>📝 모든 변경사항은 <strong>임시저장(Draft)</strong>되어 운영에 즉시 반영되지 않습니다.</li>
+            <li>👁️ 우측 미리보기로 변경 내용을 즉시 확인할 수 있습니다.</li>
+            <li>🚀 검토 후 우측 상단 <strong>"모든 변경사항 배포"</strong>를 눌러야 실제 사이트에 적용됩니다.</li>
+            <li>↩️ 배포 전까지는 언제든 변경사항을 폐기할 수 있습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우측: 미리보기 iframe -->
+    <aside class="sb-preview">
+      <div class="sb-preview-toolbar">
+        <div class="sb-preview-mode" role="tablist">
+          <button type="button" class="sb-mode-btn active" data-mode="draft" role="tab" aria-selected="true">📝 Draft</button>
+          <button type="button" class="sb-mode-btn" data-mode="live" role="tab" aria-selected="false">🌐 Live</button>
+        </div>
+        <div class="sb-preview-device">
+          <button type="button" class="sb-device-btn active" data-device="desktop" title="PC">🖥️</button>
+          <button type="button" class="sb-device-btn" data-device="tablet" title="태블릿">📱</button>
+          <button type="button" class="sb-device-btn" data-device="mobile" title="모바일">📲</button>
+        </div>
+        <button type="button" class="sb-refresh-btn" id="sbRefreshBtn" title="미리보기 새로고침">↻</button>
+      </div>
+      <div class="sb-preview-frame-wrap device-desktop" id="sbPreviewFrameWrap">
+        <iframe id="sbPreviewFrame"
+                class="sb-preview-frame"
+                src="about:blank"
+                title="메인 화면 미리보기"
+                loading="lazy"></iframe>
+      </div>
+      <div class="sb-preview-status">
+        <span class="sb-status-dot draft" id="sbStatusDot"></span>
+        <span id="sbStatusText">Draft 모드 — 임시저장 반영</span>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- 토스트 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="/js/common.js?v=2026-05-06-1"></script>
+  <script src="/js/admin-stats-edit.js?v=2026-05-06-1"></script>
+  <script src="/js/admin-site-builder.js?v=2026-05-06-1"></script>
+</body>
+</html>
