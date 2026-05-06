@@ -166,9 +166,14 @@
       return toast(e.message);
     }
 
-    const saveAsPost = document.getElementById('arSaveAsPost').checked;
-    const generatePdf = document.getElementById('arGeneratePdf').checked;
-    const postTitle = document.getElementById('arPostTitle').value.trim();
+    /* ★ C안 A안: 자동 저장 + PDF 항상 활성화 (모달 종료해도 보존) */
+    const saveAsPostEl = document.getElementById('arSaveAsPost');
+    const generatePdfEl = document.getElementById('arGeneratePdf');
+    if (saveAsPostEl) saveAsPostEl.checked = true;
+    if (generatePdfEl) generatePdfEl.checked = true;
+    const saveAsPost = true;
+    const generatePdf = true;
+    const postTitle = document.getElementById('arPostTitle')?.value.trim() || '';
 
     showStep(2);
     updateProgress(0, '데이터 수집 중...', '후원/회원/지원/사이렌/캠페인 데이터를<br />기간별로 집계하고 있습니다');
@@ -271,6 +276,11 @@
     if (result.timing) {
       console.log('[AI Report] 소요 시간:',
         `데이터 ${result.timing.dataCollectMs}ms / AI ${result.timing.aiGenerateMs}ms / 총 ${result.timing.totalMs}ms`);
+    }
+
+    /* ★ C안: 활동보고서 목록 페이지가 열려있으면 자동 새로고침 */
+    if (window.SIREN_ADMIN_ACTIVITY_REPORT_LIST && window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.refresh) {
+      window.SIREN_ADMIN_ACTIVITY_REPORT_LIST.refresh();
     }
   }
 
