@@ -36,15 +36,6 @@
 
   async function loadAllPartials() {
     await Promise.all(PARTIALS.map(loadPartial));
-
-    /* ★ 핫픽스: 부모 요소에 transform/filter가 걸려도 모달 fixed가 깨지지 않도록
-       모든 .modal-bg / .modal-bg가 아닌 모달도 body 직속 자식으로 이동 */
-    const modalsSlot = document.getElementById('modals-slot');
-    if (modalsSlot) {
-      const modals = Array.from(modalsSlot.children);
-      modals.forEach((m) => document.body.appendChild(m));
-    }
-
     partialsLoaded = true;
     document.dispatchEvent(new CustomEvent('partials:loaded'));
   }
