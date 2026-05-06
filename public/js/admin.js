@@ -960,6 +960,7 @@ const OPERATOR_CATEGORIES = [
     const statusMap = {
       completed: '<span class="badge b-success">승인</span>',
       pending: '<span class="badge b-warn">대기</span>',
+      pending_hyosung: '<span class="badge b-warn">⏳ 효성 확인중</span>',
       failed: '<span class="badge b-danger">실패</span>',
       cancelled: '<span class="badge b-mute">취소</span>',
       refunded: '<span class="badge b-mute">환불</span>',
@@ -1089,6 +1090,7 @@ const OPERATOR_CATEGORIES = [
     const statusKr = {
       completed: '승인 완료',
       pending: '결제 대기',
+      pending_hyosung: '효성 CMS+ 입금 확인중',
       failed: '실패',
       cancelled: '취소',
       refunded: '환불',
@@ -1099,6 +1101,7 @@ const OPERATOR_CATEGORIES = [
       '<div class="icon">' +
       (d.status === 'completed' ? '✅' :
        d.status === 'pending' ? '⏳' :
+       d.status === 'pending_hyosung' ? '⏳' :
        d.status === 'refunded' ? '💸' :
        d.status === 'cancelled' ? '❌' : '⚠️') +
       '</div>' +
