@@ -373,6 +373,33 @@
 
       const d = json.data;
       console.log('[home.js] 메인 콘텐츠 API 적용', json._meta);
+        /* ---- 퀵메뉴 박스 1개 HTML 생성 ---- */
+  function renderQuickItem(item) {
+    const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const isSiren = !!item.isSirenGroup;
+    const cls = 'quick-item' + (isSiren ? ' siren-item' : '');
+    const sirenBadge = isSiren ? '<span class="siren-badge">🚨 SIREN</span>' : '';
+    const icon = escHtml(item.icon || '');
+    const label = escHtml(item.label || '');
+
+    /* 모달 vs 링크 */
+    if (item.opensModal) {
+      return `<div class="${cls}" data-action="open-modal" data-target="${escHtml(item.opensModal)}" style="cursor:pointer">
+        ${sirenBadge}
+        <span class="qi-arrow">↗</span>
+        <div class="qi-icon">${icon}</div>
+        <div class="qi-label">${label}</div>
+      </div>`;
+    }
+    return `<a class="${cls}" href="${escHtml(item.href || '#')}">
+      ${sirenBadge}
+      <span class="qi-arrow">↗</span>
+      <div class="qi-icon">${icon}</div>
+      <div class="qi-label">${label}</div>
+    </a>`;
+  }
 
       /* ---- 2-1. HERO ---- */
       if (d.hero) {
@@ -409,10 +436,26 @@
         startSlideAuto();
       }
 
-      /* ---- 2-2. 퀵메뉴 영역 표시/숨김 (항목 자체는 묶음 2에서 동적화) ---- */
-      if (d.quickMenu && typeof d.quickMenu.sectionVisible === 'boolean') {
-        const el = document.querySelector('.quick-wrap');
-        if (el) el.style.display = d.quickMenu.sectionVisible ? '' : 'none';
+      /* ---- 2-2. 퀵메뉴 영역 표시/숨김 + 6개 박스 동적 렌더 ---- */
+      if (d.quickMenu) {
+        const wrapEl = document.querySelector('.quick-wrap');
+        const gridEl = document.querySelector('.quick-grid');
+
+        /* 영역 자체 표시/숨김 */
+        if (wrapEl && typeof d.quickMenu.sectionVisible === 'boolean') {
+          wrapEl.style.display = d.quickMenu.sectionVisible ? '' : 'none';
+        }
+
+        /* 박스 N개 동적 렌더 */
+        if (gridEl && Array.isArray(d.quickMenu.items)) {
+          const activeItems = d.quickMenu.items
+            .filter((it) => it && it.isActive !== false)
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+          if (activeItems.length > 0) {
+            gridEl.innerHTML = activeItems.map(renderQuickItem).join('');
+          }
+        }
       }
 
       /* ---- 2-3. 캠페인 영역 제목/부제/표시 ---- */

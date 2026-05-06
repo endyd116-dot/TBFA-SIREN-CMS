@@ -213,12 +213,22 @@
       }
     },
     /* ★ Step 6-D: HERO 편집 폼 */
+    /* ★ Step 6-D: HERO 편집 폼 */
     'home.hero': function () {
       if (window.SIREN_HOME_HERO && window.SIREN_HOME_HERO.render) {
         window.SIREN_HOME_HERO.render();
       } else {
         const inner = $('#sbContentInner');
         inner.innerHTML = '<div class="sb-placeholder"><p>HERO 편집 모듈 로드 실패 — admin-home-hero.js 스크립트 태그 확인</p></div>';
+      }
+    },
+    /* ★ Step 6-E: 퀵메뉴 편집 폼 */
+    'home.quickMenu': function () {
+      if (window.SIREN_HOME_QUICKMENU && window.SIREN_HOME_QUICKMENU.render) {
+        window.SIREN_HOME_QUICKMENU.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>퀵메뉴 편집 모듈 로드 실패 — admin-home-quickmenu.js 스크립트 태그 확인</p></div>';
       }
     },
     'publish': function () {
