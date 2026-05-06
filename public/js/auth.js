@@ -665,10 +665,17 @@ document.addEventListener('change', async function (e) {
   function renderBillingActiveCard(b, stats) {
     const isWarning = (b.consecutiveFailCount || 0) > 0;
     const cardClass = isWarning ? 'mp-billing-card' : 'mp-billing-card';
-    const statusBadge = isWarning
-      ? '<span class="mp-billing-status-badge warning">⚠️ 결제 실패 ' + b.consecutiveFailCount + '회</span>'
-      : '<span class="mp-billing-status-badge active">✅ 활성</span>';
-
+    const isWarning = (b.consecutiveFailCount || 0) > 0;
+    const isHyosungPending = b.status === 'pending_hyosung';
+    const cardClass = isWarning ? 'mp-billing-card' : 'mp-billing-card';
+    let statusBadge;
+    if (isHyosungPending) {
+      statusBadge = '<span class="mp-billing-status-badge warning">⏳ 효성(CMS) 확인중</span>';
+    } else if (isWarning) {
+      statusBadge = '<span class="mp-billing-status-badge warning">⚠️ 결제 실패 ' + b.consecutiveFailCount + '회</span>';
+    } else {
+      statusBadge = '<span class="mp-billing-status-badge active">✅ 활성</span>';
+    }
     const warningHtml = isWarning
       ? '<div class="mp-billing-warning">⚠️ <strong>주의:</strong> ' +
         '최근 결제가 실패했습니다. 카드 한도/유효기간을 확인해 주세요. ' +
@@ -742,6 +749,7 @@ document.addEventListener('change', async function (e) {
     const statusMap = {
       completed: '<span class="badge b-success">완료</span>',
       pending: '<span class="badge b-warn">대기</span>',
+      pending_hyosung: '<span class="badge b-warn">⏳효성(CMS) 확인중</span>',
       failed: '<span class="badge b-danger">실패</span>',
       cancelled: '<span class="badge b-mute">취소</span>',
       refunded: '<span class="badge b-mute">환불</span>',
@@ -899,6 +907,7 @@ document.addEventListener('change', async function (e) {
         const statusMap = {
           completed: '<span class="badge b-success">완료</span>',
           pending: '<span class="badge b-warn">대기</span>',
+          pending_hyosung: '<span class="badge b-warn">⏳효성(CMS) 확인중</span>',
           failed: '<span class="badge b-danger">실패</span>',
           cancelled: '<span class="badge b-mute">취소</span>',
           refunded: '<span class="badge b-mute">환불</span>',
@@ -908,12 +917,21 @@ document.addEventListener('change', async function (e) {
             d.type === 'regular' &&
             (d.status === 'completed' || d.status === 'pending') &&
             d.pgProvider !== 'toss';
-          const receiptCell = d.status === 'completed'
-            ? `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`
-            : canCancelInline
-              ? `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">🚫 해지</button>`
-              : '<span style="color:var(--text-3);font-size:12px">—</span>';
+          const canCancelInline =
+            d.type === 'regular' &&
+            (d.status === 'completed' || d.status === 'pending') &&
+            d.pgProvider !== 'toss';
 
+          let receiptCell;
+          if (d.status === 'completed') {
+            receiptCell = `<a class="btn-link" href="/api/donation-receipt?id=${d.id}" target="_blank" rel="noopener" title="${d.receiptNumber ? '영수증번호: ' + escapeHtml(d.receiptNumber) : 'PDF 영수증 발급/열기'}" style="text-decoration:none;color:var(--brand);font-weight:600">📄 발급</a>`;
+          } else if (d.status === 'pending_hyosung') {
+            receiptCell = `<span style="color:#8a6a00;font-size:11.5px;line-height:1.4;display:inline-block">⏳ 입금 확인중<br /><small style="color:var(--text-3);font-size:10.5px">(1~3 영업일 소요)</small></span>`;
+          } else if (canCancelInline) {
+            receiptCell = `<button type="button" class="btn-link" data-cancel-donation="${d.id}" style="color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600;padding:0">🚫 해지</button>`;
+          } else {
+            receiptCell = '<span style="color:var(--text-3);font-size:12px">—</span>';
+          }
           return `
             <tr>
               <td>${formatDate(d.createdAt)}</td>
