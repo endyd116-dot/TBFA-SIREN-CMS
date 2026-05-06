@@ -409,8 +409,11 @@
   }
 
   /* ============ 초기화 ============ */
+  let _initialized = false;
   function init() {
+    if (_initialized) return;
     if (document.body.dataset.page !== 'harassment') return;
+    _initialized = true;
 
     setTimeout(() => {
       const auth = window.SIREN_AUTH;
