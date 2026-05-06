@@ -1,5 +1,5 @@
 /* =========================================================
-   SIREN — common.js  (v3 — 모바일 햄버거 수정)
+   SIREN — common.js  (v4 — Phase B Step 5-A: 헤더 동적 렌더링)
    ========================================================= */
 (function () {
   'use strict';
@@ -7,6 +7,11 @@
   /* ------------ 0. 헬퍼 ------------ */
   const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
   /* ------------ 1. 파셜 자동 로더 ------------ */
   const PARTIALS = [
@@ -113,7 +118,6 @@
     }
     else if (action === 'mobile-menu') {
       e.preventDefault();
-      /* ★ 핵심 수정: nav.gnb 또는 ul.gnb 둘 다 찾기 */
       const gnb = document.querySelector('nav.gnb, ul.gnb');
       if (gnb) {
         gnb.classList.toggle('mobile-open');
@@ -129,7 +133,6 @@
   function activateGNB() {
     const page = document.body.dataset.page;
     if (!page) return;
-    /* ★ 수정: nav.gnb 또는 ul.gnb */
     const li = document.querySelector(`nav.gnb li[data-page="${page}"], ul.gnb li[data-page="${page}"]`);
     if (li) li.classList.add('active');
   }
@@ -140,7 +143,6 @@
     if (!link) return;
     const gnb = document.querySelector('nav.gnb, ul.gnb');
     if (gnb && gnb.classList.contains('mobile-open')) {
-      /* 드롭다운 부모 링크는 제외 (바로 닫지 않음) */
       const hasDropdown = link.parentElement?.querySelector('.dropdown');
       if (!hasDropdown) {
         gnb.classList.remove('mobile-open');
@@ -151,7 +153,7 @@
   });
 
   /* ------------ 7. 언어 토글 ------------ */
-const I18N = {
+  const I18N = {
     KO: {
       heroTitle: '교사 유가족들의 <em>지원과 수사</em>,<br />모든 교사들의 <em>사회적 문제 해결</em>을 위해<br />싸이렌 홈페이지의 문을 열었습니다.',
       langSwitched: '한국어로 전환되었습니다'
@@ -161,7 +163,6 @@ const I18N = {
       langSwitched: 'Switched to English'
     }
   };
-
 
   function setupLangToggle() {
     const btns = $$('.lang-toggle button[data-lang]');
@@ -182,7 +183,6 @@ const I18N = {
     }
   }
 
-
   /* ------------ 8. 통합 검색 ------------ */
   function setupSearch() {
     const input = $('#globalSearch');
@@ -196,7 +196,6 @@ const I18N = {
     if (btn) btn.addEventListener('click', submit);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   }
-
 
   /* ------------ 9. 관련 사이트 셀렉트 ------------ */
   function setupRelatedSelect() {
@@ -212,14 +211,182 @@ const I18N = {
     });
   }
 
+  /* =========================================================
+     ★ Phase B Step 5-A — 헤더 메뉴 동적 렌더링
+     - /api/public/nav-menus 호출 → DB 데이터로 <ul class="gnb"> 다시 그림
+     - 실패 시 정적 HTML 폴백 그대로 유지
+     - preview=1 일 때 Draft 데이터 우선
+     ========================================================= */
 
-  /* ------------ 10. 폼 기본 핸들러 (auth.js가 login/signup 처리, donate.js가 donate 처리) ------------ */
-  function setupCommonForms() {
-    // login/signup → auth.js
-    // donate → donate.js
-    // 여기서는 추가 공통 폼만 처리 (현재 없음)
+  /* 응답 형태에 따라 메뉴 배열 추출 (트리/플랫 자동 인식) */
+  function extractMenusFromResponse(json) {
+    if (!json || !json.ok) return null;
+    const candidates = [
+      json.data?.menus,
+      json.data?.header,
+      json.data?.items,
+      json.menus,
+      json.data,
+    ];
+    for (const c of candidates) {
+      if (Array.isArray(c)) return c;
+    }
+    return null;
   }
 
+  /* 플랫 배열 → 트리 구조 변환 (children 없으면 호출됨) */
+  function buildMenuTree(flat) {
+    const map = new Map();
+    const roots = [];
+    flat.forEach(item => {
+      const copy = { ...item, children: [] };
+      map.set(copy.id, copy);
+    });
+    flat.forEach(item => {
+      const pid = item.parentId ?? item.parent_id ?? null;
+      const node = map.get(item.id);
+      if (pid && map.has(pid)) {
+        map.get(pid).children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    return roots;
+  }
+
+  /* 1뎁스 메뉴 1개 HTML */
+  function renderTopLevelMenu(parent) {
+    const label = parent.label || '';
+    const href = parent.href || '#';
+    const pageKey = parent.pageKey ?? parent.page_key;
+    const icon = parent.icon;
+    const cssClass = parent.cssClass ?? parent.css_class;
+    const opensModal = parent.opensModal ?? parent.opens_modal;
+    const target = parent.target || '_self';
+    const children = parent.children || [];
+
+    const dataPageAttr = pageKey ? ` data-page="${escHtml(pageKey)}"` : '';
+    const classAttr = cssClass ? ` class="${escHtml(cssClass)}"` : '';
+
+    /* 링크 속성 */
+    let linkAttrs;
+    if (opensModal) {
+      linkAttrs = `href="#" data-action="open-modal" data-target="${escHtml(opensModal)}"`;
+    } else {
+      const tgt = target === '_blank' ? ` target="_blank" rel="noopener"` : '';
+      linkAttrs = `href="${escHtml(href)}"${tgt}`;
+    }
+
+    /* 아이콘 (사이렌 등) */
+    const iconHtml = icon
+      ? `<span class="siren-icon" aria-hidden="true">${escHtml(icon)}</span> `
+      : '';
+
+    /* 자식 드롭다운 */
+    let dropdownHtml = '';
+    if (children.length > 0) {
+      const sortedChildren = [...children].sort(
+        (a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0)
+      );
+      const itemsHtml = sortedChildren.map(c => renderChildMenu(c)).join('');
+      dropdownHtml = `<ul class="dropdown">${itemsHtml}</ul>`;
+    }
+
+    return `<li${dataPageAttr}${classAttr}><a ${linkAttrs}>${iconHtml}${escHtml(label)}</a>${dropdownHtml}</li>`;
+  }
+
+  /* 2뎁스 메뉴 1개 HTML */
+  function renderChildMenu(child) {
+    const cssClass = child.cssClass ?? child.css_class;
+
+    /* 구분선 (label/href 없는 특수 행) */
+    if (cssClass === 'dropdown-divider') {
+      return `<li class="dropdown-divider"></li>`;
+    }
+
+    const label = child.label || '';
+    const href = child.href || '#';
+    const opensModal = child.opensModal ?? child.opens_modal;
+    const target = child.target || '_self';
+
+    let linkAttrs;
+    if (opensModal) {
+      linkAttrs = `href="#" data-action="open-modal" data-target="${escHtml(opensModal)}"`;
+    } else {
+      const tgt = target === '_blank' ? ` target="_blank" rel="noopener"` : '';
+      linkAttrs = `href="${escHtml(href)}"${tgt}`;
+    }
+
+    return `<li><a ${linkAttrs}>${escHtml(label)}</a></li>`;
+  }
+
+  /* 메인 렌더 함수 — partials 로드 직후 호출됨 */
+  async function renderHeaderMenu() {
+    const ul = document.querySelector('ul.gnb, nav.gnb');
+    if (!ul) {
+      console.warn('[Header] .gnb element not found, skip');
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(location.search);
+      const previewParam = params.get('preview') === '1' ? '?preview=1' : '';
+
+      const res = await fetch('/api/public/nav-menus' + previewParam, {
+        credentials: 'include',
+        cache: 'no-cache',
+      });
+
+      if (!res.ok) {
+        console.warn('[Header] /api/public/nav-menus 응답 실패, 정적 폴백 사용:', res.status);
+        return;
+      }
+
+      const json = await res.json();
+      let menus = extractMenusFromResponse(json);
+
+      if (!menus) {
+        console.warn('[Header] 메뉴 응답 형식 인식 실패, 정적 폴백', json);
+        return;
+      }
+
+      /* header location만 (혹시 footer 등이 섞여 있으면 필터) */
+      menus = menus.filter(m => {
+        const loc = m.menuLocation ?? m.menu_location;
+        return !loc || loc === 'header';
+      });
+
+      /* 트리 형식인지 자동 감지 */
+      const isTree = menus.some(m => Array.isArray(m.children) && m.children.length > 0);
+      if (!isTree) {
+        /* 플랫이면 트리로 변환 */
+        menus = buildMenuTree(menus);
+      }
+
+      /* 1뎁스만 (parent_id 없는 것) + sort_order 정렬 */
+      const topLevels = menus
+        .filter(m => !(m.parentId ?? m.parent_id))
+        .sort((a, b) => (a.sortOrder ?? a.sort_order ?? 0) - (b.sortOrder ?? b.sort_order ?? 0));
+
+      if (topLevels.length === 0) {
+        console.warn('[Header] 1뎁스 메뉴 0건, 정적 폴백 유지');
+        return;
+      }
+
+      /* HTML 다시 그리기 */
+      const html = topLevels.map(p => renderTopLevelMenu(p)).join('');
+      ul.innerHTML = html;
+
+      console.log(`[Header] 동적 렌더링 완료 — 1뎁스 ${topLevels.length}개`);
+    } catch (e) {
+      console.warn('[Header] 동적 렌더링 실패, 정적 폴백 사용', e);
+    }
+  }
+
+  /* ------------ 10. 폼 기본 핸들러 ------------ */
+  function setupCommonForms() {
+    /* login/signup → auth.js, donate → donate.js */
+  }
 
   /* ------------ 11. 부드러운 앵커 스크롤 ------------ */
   document.addEventListener('click', (e) => {
@@ -234,7 +401,6 @@ const I18N = {
     }
   });
 
-
   /* ------------ 12. 화면 리사이즈 시 모바일 메뉴 자동 닫기 ------------ */
   window.addEventListener('resize', () => {
     if (window.innerWidth > 920) {
@@ -247,32 +413,21 @@ const I18N = {
     }
   });
 
-    /* ------------ 14-Phase B. 미리보기 모드 배너 ------------ */
+  /* ------------ 13-Phase B. 미리보기 모드 배너 ------------ */
   function setupPreviewBanner() {
     const params = new URLSearchParams(location.search);
     if (params.get('preview') !== '1') return;
-
-    /* 중복 생성 방지 */
     if (document.getElementById('sirenPreviewBanner')) return;
 
     const banner = document.createElement('div');
     banner.id = 'sirenPreviewBanner';
     banner.style.cssText = [
-      'position:fixed',
-      'top:0',
-      'left:0',
-      'right:0',
-      'z-index:99998',
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:99998',
       'background:linear-gradient(90deg,#fff8ec 0%,#fef5d8 50%,#fff8ec 100%)',
-      'border-bottom:2px solid #c47a00',
-      'color:#7a5e00',
-      'padding:9px 16px',
-      'font-size:12.5px',
-      'font-weight:600',
-      'text-align:center',
-      'box-shadow:0 2px 8px rgba(0,0,0,0.08)',
-      'font-family:-apple-system,"Noto Sans KR",sans-serif',
-      'line-height:1.5',
+      'border-bottom:2px solid #c47a00', 'color:#7a5e00',
+      'padding:9px 16px', 'font-size:12.5px', 'font-weight:600',
+      'text-align:center', 'box-shadow:0 2px 8px rgba(0,0,0,0.08)',
+      'font-family:-apple-system,"Noto Sans KR",sans-serif', 'line-height:1.5',
     ].join(';');
     banner.innerHTML =
       '📝 <strong>Draft 미리보기 모드</strong> — 어드민에서 임시저장한 변경사항이 표시됩니다 ' +
@@ -280,27 +435,27 @@ const I18N = {
 
     document.body.appendChild(banner);
 
-    /* 페이지 상단에 36px 여백 추가 — 배너에 가려지지 않도록 */
     const currentPad = parseInt(getComputedStyle(document.body).paddingTop || '0', 10) || 0;
     document.body.style.paddingTop = (currentPad + 36) + 'px';
 
     console.log('[Phase B] 미리보기 모드 활성화');
   }
 
-  /* ------------ 13. 초기화 ------------ */
+  /* ------------ 14. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
+    /* ★ Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림 */
+    await renderHeaderMenu();
     activateGNB();
     setupLangToggle();
     setupSearch();
     setupRelatedSelect();
     setupCommonForms();
-    setupPreviewBanner();  // ★ Phase B 추가 — preview=1일 때 상단 배너 표시
+    setupPreviewBanner();
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }
   }
-
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -308,23 +463,19 @@ const I18N = {
     init();
   }
 
-
-  /* ------------ 14. 전역 노출 ------------ */
+  /* ------------ 15. 전역 노출 ------------ */
   window.SIREN = {
     $, $$, toast,
     openModal, closeModal, switchModal,
-    isPartialsLoaded: () => partialsLoaded
+    isPartialsLoaded: () => partialsLoaded,
+    /* ★ 외부에서 헤더 강제 새로고침 가능 (어드민 미리보기에서 활용) */
+    reloadHeader: renderHeaderMenu,
   };
 
-  
 })();
 
 /* =========================================================
-   ★ K-9: 401 자동 세션 만료 처리
-   - 모든 fetch() 호출의 응답에서 401을 자동 감지
-   - 사용자: 토스트 안내 → 로그인 모달 자동 오픈
-   - 관리자: 토스트 안내 → admin 로그인 페이지로 리다이렉트
-   - 정상 동작 (원래의 401 핸들링)을 방해하지 않음 (응답 그대로 전달)
+   ★ K-9: 401 자동 세션 만료 처리 (변경 없음)
    ========================================================= */
 (function () {
   'use strict';
@@ -334,9 +485,8 @@ const I18N = {
 
   const ORIGINAL_FETCH = window.fetch.bind(window);
   let _last401HandledAt = 0;
-  const COOLDOWN_MS = 3000; // 3초 내 중복 처리 방지
+  const COOLDOWN_MS = 3000;
 
-  /* 401 처리에서 제외할 경로 (로그인 시도 자체는 정상 401 가능) */
   const EXCLUDED_PATHS = [
     '/api/auth/login',
     '/api/auth/signup',
@@ -384,10 +534,9 @@ const I18N = {
 
   function handle401(url) {
     const now = Date.now();
-    if (now - _last401HandledAt < COOLDOWN_MS) return; // 중복 방지
+    if (now - _last401HandledAt < COOLDOWN_MS) return;
     _last401HandledAt = now;
 
-    /* 클라이언트 인증 캐시 무효화 */
     try {
       if (window.SIREN_AUTH) {
         window.SIREN_AUTH.user = null;
@@ -396,16 +545,12 @@ const I18N = {
     } catch (e) {}
 
     if (isAdminPage()) {
-      /* 관리자 페이지: 토스트 + admin 로그인 페이지 리다이렉트 */
       safeToast('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.');
       setTimeout(function () {
         location.href = '/admin.html';
       }, 1200);
     } else {
-      /* 사용자 페이지: 토스트 + 로그인 모달 자동 오픈 */
       safeToast('세션이 만료되었습니다. 다시 로그인해 주세요.');
-
-      /* 마이페이지 등 보호 페이지에 있다면 홈으로 이동 후 로그인 모달 */
       const isProtected = location.pathname === '/mypage.html';
 
       setTimeout(function () {
@@ -413,12 +558,7 @@ const I18N = {
           location.href = '/index.html';
           return;
         }
-        /* 일반 페이지: 헤더 갱신 + 로그인 모달 오픈 시도 */
         try {
-          if (window.SIREN_AUTH && typeof window.SIREN_AUTH.fetchMe === 'function') {
-            /* fetchMe는 또 401을 받을 수 있으므로 호출 X */
-          }
-          /* 로그인 모달 오픈 */
           if (window.SIREN && typeof window.SIREN.openModal === 'function') {
             window.SIREN.openModal('loginModal');
           }
@@ -429,7 +569,6 @@ const I18N = {
     }
   }
 
-  /* fetch monkey-patching */
   window.fetch = async function (resource, init) {
     let response;
     try {
@@ -438,7 +577,6 @@ const I18N = {
       throw err;
     }
 
-    /* 401 + API 호출 + 제외 경로 아닌 경우만 처리 */
     if (response && response.status === 401 && isApiCall(resource) && !isExcluded(resource)) {
       handle401(resource);
     }

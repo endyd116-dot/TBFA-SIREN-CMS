@@ -113,36 +113,3 @@
     </button>
   </div>
 </header>
-
-<!-- ============================================================
-     ★ 사이렌 메뉴 전용 스타일
-     ============================================================ -->
-<style>
-  /* 사이렌 메뉴: 빨간색 강조 + 펄스 */
-  .gnb-siren > a {
-    color: #c5293a !important;
-    font-weight: 700 !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .gnb-siren > a:hover { color: #7a1f2b !important; }
-  .gnb-siren .siren-icon {
-    font-size: 14px;
-    animation: siren-pulse 2.5s ease-in-out infinite;
-    display: inline-block;
-  }
-  @keyframes siren-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.15); opacity: 0.85; }
-  }
-  .gnb .dropdown .dropdown-divider {
-    height: 1px;
-    background: var(--line, #e8e6e3);
-    margin: 6px 0;
-    padding: 0 !important;
-  }
-  .gnb .dropdown .dropdown-divider:hover {
-    background: var(--line, #e8e6e3) !important;
-  }
-</style>
