@@ -304,3 +304,44 @@ section.block{padding:90px 0}
   .cta{padding:9px 14px;font-size:12px}
   .brand-text{font-size:14px}
 }
+/* =========================================================
+   ★ Phase B Step 5-A — 사이렌 메뉴 전용 스타일
+   (이전: public/partials/header.html 인라인 <style>)
+   동적 렌더링 후에도 적용 보장
+   ========================================================= */
+
+/* 사이렌 대분류 메뉴 — 빨간색 강조 + 굵게 */
+.gnb-siren > a {
+  color: #c5293a !important;
+  font-weight: 700 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.gnb-siren > a:hover {
+  color: #7a1f2b !important;
+}
+
+/* 사이렌 아이콘 펄스 애니메이션 */
+.gnb-siren .siren-icon {
+  font-size: 14px;
+  animation: siren-pulse 2.5s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes siren-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.15); opacity: 0.85; }
+}
+
+/* 드롭다운 구분선 — 회색 가로선 (label/href 없음, 클릭 불가) */
+.gnb .dropdown .dropdown-divider {
+  height: 1px;
+  background: var(--line, #e8e6e3);
+  margin: 6px 0;
+  padding: 0 !important;
+  list-style: none;
+  pointer-events: none;
+}
+.gnb .dropdown .dropdown-divider:hover {
+  background: var(--line, #e8e6e3) !important;
+}
