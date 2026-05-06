@@ -141,41 +141,32 @@ function autoSlug(period: ReportPeriod): string {
   return `report-${y}${m}${d}-${crypto.randomBytes(3).toString("hex")}`;
 }
 
-/* ───────── PDF → R2 업로드 헬퍼 ───────── */
+/* ───────── PDF → R2 업로드 헬퍼 ─────────
+ * uploadToR2()가 내부에서 blobKey 생성 + blob_uploads INSERT까지 자동 처리.
+ * 여기서는 단순 위임만 한다. */
 async function uploadPdfToR2(opts: {
   pdfBytes: Uint8Array;
   fileName: string;
   uploaderId: number;
 }): Promise<{ blobId: number; blobKey: string }> {
   const { pdfBytes, fileName, uploaderId } = opts;
-  const blobKey = `reports/${new Date().getFullYear()}/${crypto.randomBytes(8).toString("hex")}-${fileName}`;
 
-  await uploadToR2({
-    key: blobKey,
-    body: Buffer.from(pdfBytes),
-    contentType: "application/pdf",
-  });
-
-  /* blob_uploads에 기록 (★ M-2.5: storage_provider='r2', upload_status='completed') */
-  const insertData: any = {
-    blobKey,
+  const result = await uploadToR2({
+    buffer: Buffer.from(pdfBytes),
     originalName: fileName,
     mimeType: "application/pdf",
-    sizeBytes: pdfBytes.length,
-    uploadedByAdmin: uploaderId,
     context: "activity_report_pdf",
+    uploadedByAdmin: uploaderId,
     isPublic: true,
-    storageProvider: "r2",
-    uploadStatus: "completed",
-  };
-
-  const [inserted] = await db.insert(blobUploads).values(insertData).returning({
-    id: blobUploads.id,
   });
 
+  if (!result.ok || !result.blobId || !result.blobKey) {
+    throw new Error(result.error || "R2 업로드 실패");
+  }
+
   return {
-    blobId: inserted.id,
-    blobKey,
+    blobId: result.blobId,
+    blobKey: result.blobKey,
   };
 }
 
