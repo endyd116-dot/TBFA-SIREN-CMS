@@ -191,6 +191,23 @@
           </div>
         </div>
       </div>
+
+      <!-- ★ 본문 수정 모달 (AI 초안 다듬기) -->
+      <div class="ar-preview-modal" id="arBodyEditModal" style="z-index:10001">
+        <div class="ar-preview-box" style="max-width:1100px">
+          <div class="ar-preview-head">
+            <h3 id="arBodyEditTitle">📝 본문 수정 (AI 초안 다듬기)</h3>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button type="button" id="arBodyEditSaveBtn" style="background:var(--brand);color:#fff;border:none;padding:8px 18px;border-radius:5px;font-size:13px;font-weight:600;cursor:pointer">💾 저장</button>
+              <button class="close" type="button" data-close-body-edit>&times;</button>
+            </div>
+          </div>
+          <div style="padding:14px 20px;background:#fef9f5;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-2)">
+            💡 AI가 작성한 초안입니다. 사실 확인 후 표현/수치/문맥을 다듬어 주세요. 발행 전에는 반드시 검토하세요.
+          </div>
+          <div class="ar-preview-body" id="arBodyEditEditor" style="padding:0"></div>
+        </div>
+      </div>
     `;
   }
 
@@ -284,6 +301,7 @@
         <td>${pdfBtn}</td>
         <td><div class="ar-actions">
           <button class="preview" data-action="preview" data-id="${p.id}">👁 미리보기</button>
+          <button class="edit" data-action="edit-body" data-id="${p.id}" data-title="${escapeHtml(p.title)}">📝 본문</button>
           ${pubAction}
           <button class="edit" data-action="edit-title" data-id="${p.id}" data-title="${escapeHtml(p.title)}">✏️ 제목</button>
           <button class="delete" data-action="delete" data-id="${p.id}" data-title="${escapeHtml(p.title)}">🗑 삭제</button>
@@ -397,6 +415,94 @@
     }
   }
 
+  /* ===== 본문 수정 (AI 초안 다듬기) ===== */
+  let _bodyEditor = null;
+  let _bodyEditingId = null;
+
+  async function openBodyEditModal(id, title) {
+    const modal = document.getElementById('arBodyEditModal');
+    const titleEl = document.getElementById('arBodyEditTitle');
+    const editorEl = document.getElementById('arBodyEditEditor');
+    if (!modal || !editorEl) return;
+
+    titleEl.textContent = `📝 본문 수정 — ${title || ''}`;
+    _bodyEditingId = id;
+    modal.classList.add('show');
+
+    /* 본문 로드 */
+    editorEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">불러오는 중...</div>';
+    const res = await api('/api/admin/activity-report-ai?postId=' + id);
+    if (!res.ok) {
+      editorEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">불러오기 실패: ${escapeHtml(res.data?.error || '오류')}</div>`;
+      return;
+    }
+    const post = res.data.data?.post || {};
+
+    /* Toast UI Editor 준비 */
+    if (!window.SirenEditor || typeof window.SirenEditor.create !== 'function') {
+      editorEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">편집기 모듈을 찾을 수 없습니다 (editor.js 로드 필요)</div>`;
+      return;
+    }
+
+    /* 기존 인스턴스 정리 */
+    editorEl.innerHTML = '';
+    if (_bodyEditor) {
+      try { _bodyEditor.destroy && _bodyEditor.destroy(); } catch (_) {}
+      _bodyEditor = null;
+    }
+
+    try {
+      _bodyEditor = await window.SirenEditor.create({
+        el: editorEl,
+        height: '480px',
+        initialValue: post.contentHtml || '',
+        uploadContext: 'activity-report',
+      });
+    } catch (e) {
+      console.error('[ar body editor]', e);
+      editorEl.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">편집기 로드 실패</div>`;
+    }
+  }
+
+  async function saveBodyEdit() {
+    if (!_bodyEditingId || !_bodyEditor) return toast('편집기 상태 오류');
+
+    let contentHtml = '';
+    try { contentHtml = _bodyEditor.getHTML(); } catch (e) {
+      console.error(e);
+      return toast('본문 추출 실패');
+    }
+
+    const saveBtn = document.getElementById('arBodyEditSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '저장 중...'; }
+
+    try {
+      const res = await api('/api/admin/activity-report-ai', {
+        method: 'PATCH',
+        body: { id: _bodyEditingId, contentHtml },
+      });
+      if (res.ok) {
+        toast('본문이 저장되었습니다');
+        document.getElementById('arBodyEditModal').classList.remove('show');
+        loadData();
+      } else {
+        toast(res.data?.error || '저장 실패');
+      }
+    } finally {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 저장'; }
+    }
+  }
+
+  function closeBodyEditModal() {
+    const modal = document.getElementById('arBodyEditModal');
+    if (modal) modal.classList.remove('show');
+    if (_bodyEditor) {
+      try { _bodyEditor.destroy && _bodyEditor.destroy(); } catch (_) {}
+      _bodyEditor = null;
+    }
+    _bodyEditingId = null;
+  }
+
   async function deleteReport(id, title) {
     if (!confirm(`보고서를 삭제하시겠습니까?\n\n"${title}"\n\n※ 삭제 후 복구할 수 없습니다.\n※ PDF 첨부파일도 함께 사라집니다.`)) return;
 
@@ -455,6 +561,7 @@
         else if (action === 'publish') togglePublish(id, true);
         else if (action === 'unpublish') togglePublish(id, false);
         else if (action === 'edit-title') openEditTitleModal(id, actionBtn.dataset.title || '');
+        else if (action === 'edit-body') openBodyEditModal(id, actionBtn.dataset.title || '');
         else if (action === 'delete') deleteReport(id, actionBtn.dataset.title || '');
         return;
       }
@@ -483,6 +590,22 @@
       if (e.target.closest('#arEditSaveBtn')) {
         e.preventDefault();
         saveEditTitle();
+        return;
+      }
+
+      /* ★ 본문 수정 모달 닫기 + 저장 */
+      if (e.target.matches('[data-close-body-edit]') || e.target.closest('[data-close-body-edit]')) {
+        e.preventDefault();
+        closeBodyEditModal();
+        return;
+      }
+      if (e.target.id === 'arBodyEditModal') {
+        closeBodyEditModal();
+        return;
+      }
+      if (e.target.closest('#arBodyEditSaveBtn')) {
+        e.preventDefault();
+        saveBodyEdit();
         return;
       }
     });

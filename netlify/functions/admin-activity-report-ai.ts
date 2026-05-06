@@ -358,6 +358,18 @@ export default async (req: Request) => {
       }
       if (typeof body.isPinned === "boolean") updates.isPinned = body.isPinned;
 
+      /* ★ 본문 수정 — AI 초안을 사람이 다듬을 수 있도록 */
+      if (typeof body.contentHtml === "string") {
+        const c = body.contentHtml.trim();
+        if (c.length > 200000) {
+          return badRequest("본문이 너무 깁니다 (최대 200,000자)");
+        }
+        updates.contentHtml = c;
+      }
+      if (typeof body.summary === "string") {
+        updates.summary = body.summary.trim().slice(0, 500);
+      }
+
       if (Object.keys(updates).length === 0) {
         return badRequest("변경할 항목이 없습니다");
       }
