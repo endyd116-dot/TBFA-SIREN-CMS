@@ -199,7 +199,7 @@
     }
   }
 
-  /* ============ 폼 렌더러 ============ */
+
   /* ============ 폼 렌더러 ============ */
   const RENDERERS = {
     'stats': function () {
@@ -240,6 +240,15 @@
       } else {
         const inner = $('#sbContentInner');
         inner.innerHTML = '<div class="sb-placeholder"><p>섹션 제목 편집 모듈 로드 실패 — admin-home-sections.js 스크립트 태그 확인</p></div>';
+      }
+    },
+        /* ★ Step 6-G: 특별 캠페인 배너 편집 */
+    'home.specialBanner': function () {
+      if (window.SIREN_HOME_BANNER && window.SIREN_HOME_BANNER.render) {
+        window.SIREN_HOME_BANNER.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>배너 편집 모듈 로드 실패 — admin-home-banner.js 스크립트 태그 확인</p></div>';
       }
     },
   };

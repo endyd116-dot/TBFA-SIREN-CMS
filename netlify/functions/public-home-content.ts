@@ -99,7 +99,30 @@ export default async (req: Request) => {
       const value = pickValue(row, useDraft);
       setNested(tree, row.key, value);
     }
-
+    /* ★ Step 6-G: specialBanner.linkedCampaignId가 있으면 캠페인 데이터 덮어쓰기 */
+    try {
+      const linkedId = tree.specialBanner?.linkedCampaignId;
+      if (linkedId && String(linkedId).trim() !== "") {
+        const campRes: any = await db.execute(sql`
+          SELECT id, title, goal_amount, raised_amount
+          FROM campaigns
+          WHERE id = ${Number(linkedId)}
+          LIMIT 1
+        `);
+        const campRows = Array.isArray(campRes) ? campRes : (campRes?.rows || []);
+        const camp = campRows[0];
+        if (camp) {
+          if (!tree.specialBanner) tree.specialBanner = {};
+          tree.specialBanner.title = camp.title || tree.specialBanner.title;
+          tree.specialBanner.goalAmount = Number(camp.goal_amount || 0);
+          tree.specialBanner.raisedAmount = Number(camp.raised_amount || 0);
+          tree.specialBanner._linkedFrom = "campaign:" + camp.id;
+        }
+      }
+    } catch (e) {
+      console.warn("[public-home-content] linked campaign 조회 실패", e);
+      /* 실패해도 직접 입력 값 그대로 응답 */
+    }
     const data = {
       ...tree,
       _meta: {
