@@ -213,7 +213,6 @@
       }
     },
     /* ★ Step 6-D: HERO 편집 폼 */
-    /* ★ Step 6-D: HERO 편집 폼 */
     'home.hero': function () {
       if (window.SIREN_HOME_HERO && window.SIREN_HOME_HERO.render) {
         window.SIREN_HOME_HERO.render();
