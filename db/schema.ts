@@ -1091,6 +1091,68 @@ export const siteSettings = pgTable("site_settings", {
 }));
 
 /* =========================================================
+   ★ Phase A + B: nav_menu_items (메뉴 1뎁스/2뎁스 + Draft 시스템)
+   ========================================================= */
+export const navMenuItems = pgTable("nav_menu_items", {
+  id: serial("id").primaryKey(),
+  parentId: integer("parent_id"),                                              // 자기참조 — 2뎁스
+  menuLocation: varchar("menu_location", { length: 20 }).notNull(),            // 'header' | 'footer' | 'siren' 등
+  label: varchar("label", { length: 100 }).notNull(),
+  href: varchar("href", { length: 500 }),
+  icon: varchar("icon", { length: 20 }),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  opensModal: varchar("opens_modal", { length: 50 }),                          // 'donateModal' 등 모달 키
+  pageKey: varchar("page_key", { length: 50 }),                                // 내부 페이지 키
+  target: varchar("target", { length: 20 }).default("_self"),
+  cssClass: varchar("css_class", { length: 100 }),
+  /* Draft 시스템 */
+  draftLabel: varchar("draft_label", { length: 100 }),
+  draftHref: varchar("draft_href", { length: 500 }),
+  draftSortOrder: integer("draft_sort_order"),
+  hasDraft: boolean("has_draft").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  locationIdx: index("nav_menu_items_location_idx").on(t.menuLocation, t.sortOrder),
+  parentIdx: index("nav_menu_items_parent_idx").on(t.parentId),
+  activeIdx: index("nav_menu_items_active_idx").on(t.isActive),
+  draftIdx: index("nav_menu_items_draft_idx").on(t.hasDraft),
+}));
+
+/* =========================================================
+   ★ Phase A + B: related_sites (관련 사이트)
+   ========================================================= */
+export const relatedSites = pgTable("related_sites", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  url: varchar("url", { length: 500 }).notNull(),
+  description: varchar("description", { length: 300 }),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  activeIdx: index("related_sites_active_idx").on(t.isActive, t.sortOrder),
+}));
+
+/* =========================================================
+   ★ Phase A + B: site_publish_log (배포 이력)
+   ========================================================= */
+export const sitePublishLog = pgTable("site_publish_log", {
+  id: serial("id").primaryKey(),
+  publishedBy: integer("published_by"),
+  publishedByName: varchar("published_by_name", { length: 100 }),
+  affectedSettings: integer("affected_settings").default(0),
+  affectedMenus: integer("affected_menus").default(0),
+  scopes: text("scopes"),
+  note: varchar("note", { length: 500 }),
+  publishedAt: timestamp("published_at").defaultNow().notNull(),
+}, (t) => ({
+  publishedAtIdx: index("site_publish_log_published_at_idx").on(t.publishedAt),
+}));
+
+/* =========================================================
    타입 export
    ========================================================= */
 export type Member = typeof members.$inferSelect;
@@ -1183,10 +1245,14 @@ export type NewAnniversaryEmailLog = typeof anniversaryEmailsLog.$inferInsert;
 
 /* ★ M-19-11 V2: ExpertProfile 타입 제거됨 (members 테이블로 통합) */
 
-/* ★ Phase A: 사이트 설정 */
-export type SiteSetting = typeof siteSettings.$inferSelect;
-export type NewSiteSetting = typeof siteSettings.$inferInsert;
 
+/* ★ Phase B: 메뉴 / 관련 사이트 / 배포 이력 */
+export type NavMenuItem = typeof navMenuItems.$inferSelect;
+export type NewNavMenuItem = typeof navMenuItems.$inferInsert;
+export type RelatedSite = typeof relatedSites.$inferSelect;
+export type NewRelatedSite = typeof relatedSites.$inferInsert;
+export type SitePublishLog = typeof sitePublishLog.$inferSelect;
+export type NewSitePublishLog = typeof sitePublishLog.$inferInsert;
 /* =========================================================
    ★ 2026-05 B-2: 사건 댓글 시스템
    ========================================================= */
