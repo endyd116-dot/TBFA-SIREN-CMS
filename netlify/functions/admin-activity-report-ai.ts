@@ -23,7 +23,7 @@
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { activityPosts, blobUploads, receiptSettings } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -194,10 +194,77 @@ export default async (req: Request) => {
   }
 
   try {
-    /* ===== GET: 저장된 보고서 PDF 재생성 ===== */
-        /* ===== GET: 저장된 보고서 PDF 다운로드 ===== */
+    /* ===== GET: 목록 조회 또는 단건 조회 ===== */
     if (req.method === "GET") {
       const url = new URL(req.url);
+      const isList = url.searchParams.get("list") === "1";
+
+      /* ── 목록 조회 (?list=1) ── */
+      if (isList) {
+        const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+        const limit = Math.min(100, Math.max(10, Number(url.searchParams.get("limit") || 50)));
+        const published = url.searchParams.get("published") || "";
+        const yearStr = url.searchParams.get("year");
+
+        const conds: any[] = [eq(activityPosts.category, "report")];
+        if (published === "true") conds.push(eq(activityPosts.isPublished, true));
+        else if (published === "false") conds.push(eq(activityPosts.isPublished, false));
+        if (yearStr) {
+          const yn = Number(yearStr);
+          if (Number.isFinite(yn)) conds.push(eq(activityPosts.year, yn));
+        }
+        const where = conds.length === 1 ? conds[0] : and(...conds);
+
+        const totalRes: any = await db
+          .select({ c: sql<number>`COUNT(*)::int` })
+          .from(activityPosts)
+          .where(where as any);
+        const total = Number(totalRes[0]?.c ?? 0);
+
+        const list = await db
+          .select({
+            id: activityPosts.id,
+            slug: activityPosts.slug,
+            title: activityPosts.title,
+            year: activityPosts.year,
+            month: activityPosts.month,
+            summary: activityPosts.summary,
+            attachmentIds: activityPosts.attachmentIds,
+            isPublished: activityPosts.isPublished,
+            isPinned: activityPosts.isPinned,
+            views: activityPosts.views,
+            publishedAt: activityPosts.publishedAt,
+            createdAt: activityPosts.createdAt,
+            updatedAt: activityPosts.updatedAt,
+          })
+          .from(activityPosts)
+          .where(where as any)
+          .orderBy(desc(activityPosts.createdAt))
+          .limit(limit)
+          .offset((page - 1) * limit);
+
+        /* PDF blob ID 추출 */
+        const enriched = list.map((p: any) => {
+          let pdfBlobId: number | null = null;
+          try {
+            const ids = typeof p.attachmentIds === "string"
+              ? JSON.parse(p.attachmentIds)
+              : p.attachmentIds;
+            if (Array.isArray(ids) && ids.length > 0) pdfBlobId = ids[0];
+          } catch (_) {}
+          const pdfDownloadUrl = pdfBlobId
+            ? `/api/blob-image?id=${pdfBlobId}&download=1`
+            : null;
+          return { ...p, pdfBlobId, pdfDownloadUrl };
+        });
+
+        return ok({
+          list: enriched,
+          pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        });
+      }
+
+      /* ── 단건 조회 (postId 필수) ── */
       const postId = Number(url.searchParams.get("postId"));
       const wantPdf = url.searchParams.get("pdf") === "1";
 
@@ -270,6 +337,104 @@ export default async (req: Request) => {
           attachmentIds: post.attachmentIds,
         },
       });
+    }
+
+    /* ===== PATCH: 제목/발행상태/고정 수정 ===== */
+    if (req.method === "PATCH") {
+      const body = await parseJson(req);
+      if (!body) return badRequest("요청 본문이 비어있습니다");
+
+      const id = Number(body.id);
+      if (!Number.isFinite(id)) return badRequest("유효하지 않은 ID");
+
+      const [existing] = await db
+        .select()
+        .from(activityPosts)
+        .where(eq(activityPosts.id, id))
+        .limit(1);
+      if (!existing) return notFound("보고서를 찾을 수 없습니다");
+      if (existing.category !== "report") return badRequest("AI 보고서가 아닙니다");
+
+      const updates: any = {};
+      if (typeof body.title === "string") {
+        const t = body.title.trim().slice(0, 200);
+        if (!t) return badRequest("제목은 비울 수 없습니다");
+        updates.title = t;
+      }
+      if (typeof body.isPublished === "boolean") {
+        updates.isPublished = body.isPublished;
+        /* false → true 전환 시 publishedAt 갱신 */
+        if (body.isPublished === true && !existing.publishedAt) {
+          updates.publishedAt = new Date();
+        }
+      }
+      if (typeof body.isPinned === "boolean") updates.isPinned = body.isPinned;
+
+      if (Object.keys(updates).length === 0) {
+        return badRequest("변경할 항목이 없습니다");
+      }
+
+      updates.updatedBy = admin.uid;
+      updates.updatedAt = new Date();
+
+      const [updated] = await db
+        .update(activityPosts)
+        .set(updates)
+        .where(eq(activityPosts.id, id))
+        .returning();
+
+      try {
+        await logAdminAction(req, admin.uid, admin.name, "activity_report_update", {
+          target: `R-${id}`,
+          detail: { changedFields: Object.keys(updates) },
+        });
+      } catch (_) {}
+
+      return ok({ post: updated }, "수정되었습니다");
+    }
+
+    /* ===== DELETE: 보고서 삭제 ===== */
+    if (req.method === "DELETE") {
+      const url = new URL(req.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!Number.isFinite(id)) return badRequest("유효하지 않은 ID");
+
+      const [existing] = await db
+        .select()
+        .from(activityPosts)
+        .where(eq(activityPosts.id, id))
+        .limit(1);
+      if (!existing) return notFound("보고서를 찾을 수 없습니다");
+      if (existing.category !== "report") return badRequest("AI 보고서가 아닙니다");
+
+      /* PDF blob의 reference 해제 (자동 cleanup에 맡김) */
+      let pdfBlobIds: number[] = [];
+      try {
+        const ids = typeof existing.attachmentIds === "string"
+          ? JSON.parse(existing.attachmentIds)
+          : existing.attachmentIds;
+        if (Array.isArray(ids)) pdfBlobIds = ids;
+      } catch (_) {}
+
+      await db.delete(activityPosts).where(eq(activityPosts.id, id));
+
+      for (const bid of pdfBlobIds) {
+        try {
+          await db.update(blobUploads).set({
+            referenceTable: null,
+            referenceId: null,
+          } as any).where(eq(blobUploads.id, bid));
+        } catch (_) {}
+      }
+
+      try {
+        await logAdminAction(req, admin.uid, admin.name, "activity_report_delete", {
+          target: `R-${id}`,
+          detail: { title: existing.title, year: existing.year, pdfBlobIds },
+        });
+      } catch (_) {}
+
+      return ok({ deletedId: id }, "보고서가 삭제되었습니다");
     }
 
     /* ===== POST: 보고서 생성 ===== */
