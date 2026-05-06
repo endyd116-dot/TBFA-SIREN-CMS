@@ -1135,6 +1135,36 @@
   </div>
 </div>
 
+  <!-- ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 -->
+  <div id="cancelGuideModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+    <div style="background:#fff;border-radius:12px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">
+      <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef9f5,#fff)">
+        <h3 id="cgmTitle" style="margin:0;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--brand)">🎗 정기 후원 해지 안내</h3>
+        <button type="button" data-cgm-close style="background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--text-3);line-height:1" aria-label="닫기">&times;</button>
+      </div>
+      <div style="padding:24px 28px;max-height:calc(100vh - 200px);overflow-y:auto">
+        <div id="cgmLoading" style="text-align:center;padding:40px;color:var(--text-3)">불러오는 중...</div>
+
+        <div id="cgmContent" style="display:none">
+          <!-- 1. 인사말 -->
+          <div id="cgmGreeting" style="font-size:14px;line-height:1.85;color:var(--text-1);margin-bottom:22px;padding:14px 16px;background:linear-gradient(135deg,#fef9f5,#fff);border-left:4px solid var(--brand);border-radius:4px;white-space:pre-wrap"></div>
+
+          <!-- 2. 해지 절차 -->
+          <div id="cgmProcedure" style="font-size:13.5px;line-height:1.85;color:var(--text-1);margin-bottom:18px;padding:16px 18px;background:#f9f9fb;border-radius:6px;white-space:pre-wrap"></div>
+
+          <!-- 3. 주의사항 -->
+          <div id="cgmWarnings" style="font-size:13.5px;line-height:1.85;color:#6a5400;margin-bottom:18px;padding:16px 18px;background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;white-space:pre-wrap"></div>
+
+          <!-- 4. 문의처 -->
+          <div id="cgmContact" style="font-size:13.5px;line-height:1.85;color:var(--text-2);padding:16px 18px;background:#eef4fc;border:1px solid #cee0f2;border-radius:6px;white-space:pre-wrap"></div>
+        </div>
+      </div>
+      <div style="padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#fafafa">
+        <button type="button" data-cgm-close style="padding:10px 24px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">확인</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 

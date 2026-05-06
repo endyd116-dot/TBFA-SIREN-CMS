@@ -622,10 +622,86 @@ document.addEventListener('change', async function (e) {
       }
     });
 
+    /* ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 오픈 */
+
+  /* ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 제어 */
+  let _cgmCache = null;
+
+  async function openCancelGuideModal() {
+    const modal = document.getElementById('cancelGuideModal');
+    if (!modal) {
+      console.warn('[cancel-guide] 모달 요소를 찾을 수 없습니다');
+      window.SIREN.toast('안내 모달을 표시할 수 없습니다');
+      return;
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    /* 콘텐츠 fetch (캐시 활용) */
+    const loadingEl = document.getElementById('cgmLoading');
+    const contentEl = document.getElementById('cgmContent');
+    const titleEl = document.getElementById('cgmTitle');
+    const greetingEl = document.getElementById('cgmGreeting');
+    const procedureEl = document.getElementById('cgmProcedure');
+    const warningsEl = document.getElementById('cgmWarnings');
+    const contactEl = document.getElementById('cgmContact');
+
+    if (_cgmCache) {
+      applyCgmContent();
+      return;
+    }
+
+    if (loadingEl) loadingEl.style.display = '';
+    if (contentEl) contentEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/public/mypage-content', { credentials: 'include' });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || '로드 실패');
+      _cgmCache = json.data?.cancellationGuide || {};
+      applyCgmContent();
+    } catch (err) {
+      console.error('[cancel-guide] fetch 실패', err);
+      if (loadingEl) {
+        loadingEl.innerHTML = '<div style="color:#c5293a">안내를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>';
+      }
+    }
+
+    function applyCgmContent() {
+      const c = _cgmCache || {};
+      if (titleEl) titleEl.textContent = c.modalTitle || '🎗 정기 후원 해지 안내';
+      if (greetingEl) greetingEl.textContent = c.greeting || '';
+      if (procedureEl) procedureEl.textContent = c.procedure || '';
+      if (warningsEl) warningsEl.textContent = c.warnings || '';
+      if (contactEl) contactEl.textContent = c.contactInfo || '';
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (contentEl) contentEl.style.display = 'block';
+    }
+  }
+
+  function closeCancelGuideModal() {
+    const m = document.getElementById('cancelGuideModal');
+    if (!m) return;
+    m.style.display = 'none';
+    /* 다른 모달이 열려있지 않으면 스크롤 해제 */
+    const otherOpen = document.querySelector('.modal-bg.show, #appDetailModal.show, #billingCancelModal.show, #supplementModal');
+    if (!otherOpen) document.body.style.overflow = '';
+  }
+
+
+    /* 모달 닫기 */
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#btnCancelRegular')) return;
-      e.preventDefault();
-      window.SIREN.toast('해지하실 정기 후원 카드의 "🛑 해지하기" 버튼을 클릭해 주세요');
+      if (e.target.closest('[data-cgm-close]')) {
+        closeCancelGuideModal();
+        return;
+      }
+      if (e.target.id === 'cancelGuideModal') closeCancelGuideModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const m = document.getElementById('cancelGuideModal');
+      if (m && m.style.display === 'flex') closeCancelGuideModal();
     });
   }
 
