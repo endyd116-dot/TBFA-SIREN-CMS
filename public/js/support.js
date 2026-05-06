@@ -148,6 +148,28 @@
   }
 
   /* ───────── 3. 폼 제출 ───────── */
+    /* ───────── 2.5. "일반 신청 (AI 분석 없이)" 버튼 핸들러 ─────────
+     skipAi 플래그를 폼에 심어서 submit 트리거 */
+  function setupSkipAiButton() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('#supportSkipAiBtn');
+      if (!btn) return;
+      e.preventDefault();
+
+      const form = btn.closest('form[data-form="support"]');
+      if (!form) return;
+
+      /* 폼에 skipAi 플래그 심기 (setupForm이 읽음) */
+      form.dataset.skipAi = '1';
+
+      /* 강제 submit */
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+      } else {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
+    });
+  }
   function setupForm() {
     document.addEventListener('submit', async (e) => {
       const form = e.target;
@@ -173,6 +195,7 @@
             title: data.title,
             content: data.content,
             attachments: uploadedFiles.map(f => f.key),
+            skipAi: form.dataset.skipAi === '1',   // ★ 추가
           }),
         });
         const result = await res.json();
@@ -216,6 +239,7 @@
     setupAuthGuard();
     setupFileUpload();
     setupForm();
+    setupSkipAiButton();   // ★ 추가
   }
 
   const prevInit = window.SIREN_PAGE_INIT;
