@@ -194,7 +194,7 @@
 
       <!-- ★ 본문 수정 모달 (AI 초안 다듬기) -->
       <div class="ar-preview-modal" id="arBodyEditModal" style="z-index:10001">
-        <div class="ar-preview-box" style="max-width:1100px">
+        <div class="ar-preview-box" style="max-width:1100px;width:95vw;max-height:92vh">
           <div class="ar-preview-head">
             <h3 id="arBodyEditTitle">📝 본문 수정 (AI 초안 다듬기)</h3>
             <div style="display:flex;gap:8px;align-items:center">
@@ -205,7 +205,7 @@
           <div style="padding:14px 20px;background:#fef9f5;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-2)">
             💡 AI가 작성한 초안입니다. 사실 확인 후 표현/수치/문맥을 다듬어 주세요. 발행 전에는 반드시 검토하세요.
           </div>
-          <div class="ar-preview-body" id="arBodyEditEditor" style="padding:0"></div>
+          <div id="arBodyEditEditor" style="padding:16px 18px;min-height:520px;height:520px;background:#fff;overflow:auto"></div>
         </div>
       </div>
     `;
