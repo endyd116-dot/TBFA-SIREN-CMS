@@ -1,25 +1,23 @@
 // netlify/functions/admin-activity-report-ai.ts
-// ★ Phase M-19-3: AI 활동보고서 생성 어드민 API
+// ★ Phase M-19-3 + C안: AI 활동보고서 생성/조회/수정/삭제 어드민 API
 //
 // POST /api/admin/activity-report-ai
 //   body: {
-//     period: {
-//       type: 'quarterly' | 'half' | 'annual' | 'custom',
-//       year?: number,                  - quarterly/half/annual용
-//       quarter?: 1|2|3|4,              - quarterly용
-//       half?: 1|2,                     - half용
-//       startDate?: string (ISO),       - custom용
-//       endDate?: string (ISO),         - custom용
-//       label?: string,                 - custom 라벨 (선택)
-//     },
-//     saveAsPost?: boolean,             - true면 activity_posts에 초안 저장
-//     generatePdf?: boolean,            - true면 PDF 생성 + R2 업로드
-//     postTitle?: string,               - saveAsPost=true 시 게시글 제목 (없으면 AI 생성 title)
-//     postSlug?: string,                - 슬러그 (선택)
+//     period: { type, year?, quarter?, half?, startDate?, endDate?, label? },
+//     saveAsPost?: boolean,
+//     generatePdf?: boolean,
+//     postTitle?: string,
+//     postSlug?: string,
 //   }
 //
-// GET /api/admin/activity-report-ai?postId=N&pdf=1
-//   - 기존 저장된 보고서를 다시 PDF로 생성하여 다운로드
+// GET /api/admin/activity-report-ai?list=1                — 저장된 보고서 목록 (★ C안 신규)
+// GET /api/admin/activity-report-ai?postId=N              — 단건 HTML 본문
+// GET /api/admin/activity-report-ai?postId=N&pdf=1        — PDF 다운로드 리다이렉트
+//
+// PATCH /api/admin/activity-report-ai                     — 제목/발행/고정 수정 (★ C안 신규)
+//   body: { id, title?, isPublished?, isPinned? }
+//
+// DELETE /api/admin/activity-report-ai?id=N               — 보고서 삭제 (★ C안 신규)
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자
 
@@ -189,17 +187,15 @@ export default async (req: Request) => {
   if (!guard.ok) return guard.res;
   const { admin, member: adminMember } = guard.ctx;
 
-  if (!canGenerate(adminMember)) {
-    return forbidden("AI 활동보고서 생성 권한이 없습니다 (super_admin 또는 'all' 담당자만 가능)");
-  }
+  /* 목록/수정/삭제는 권한 검사 별도, 생성은 canGenerate 별도 처리 */
 
   try {
-    /* ===== GET: 목록 조회 또는 단건 조회 ===== */
+    /* ===== GET: 목록 또는 단건 조회 ===== */
     if (req.method === "GET") {
       const url = new URL(req.url);
       const isList = url.searchParams.get("list") === "1";
 
-      /* ── 목록 조회 (?list=1) ── */
+      /* ── 목록 조회 (?list=1) — ★ C안 신규 ── */
       if (isList) {
         const page = Math.max(1, Number(url.searchParams.get("page") || 1));
         const limit = Math.min(100, Math.max(10, Number(url.searchParams.get("limit") || 50)));
@@ -334,12 +330,13 @@ export default async (req: Request) => {
           month: post.month,
           contentHtml: post.contentHtml,
           isPublished: post.isPublished,
+          isPinned: post.isPinned,
           attachmentIds: post.attachmentIds,
         },
       });
     }
 
-    /* ===== PATCH: 제목/발행상태/고정 수정 ===== */
+    /* ===== PATCH: 제목/발행상태/고정 수정 — ★ C안 신규 ===== */
     if (req.method === "PATCH") {
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -393,7 +390,7 @@ export default async (req: Request) => {
       return ok({ post: updated }, "수정되었습니다");
     }
 
-    /* ===== DELETE: 보고서 삭제 ===== */
+    /* ===== DELETE: 보고서 삭제 — ★ C안 신규 ===== */
     if (req.method === "DELETE") {
       const url = new URL(req.url);
       const id = Number(url.searchParams.get("id"));
@@ -413,7 +410,7 @@ export default async (req: Request) => {
         const ids = typeof existing.attachmentIds === "string"
           ? JSON.parse(existing.attachmentIds)
           : existing.attachmentIds;
-        if (Array.isArray(ids)) pdfBlobIds = ids;
+        if (Array.isArray(ids)) pdfBlobIds = ids.filter((x: any) => Number.isInteger(x));
       } catch (_) {}
 
       await db.delete(activityPosts).where(eq(activityPosts.id, id));
@@ -439,6 +436,11 @@ export default async (req: Request) => {
 
     /* ===== POST: 보고서 생성 ===== */
     if (req.method !== "POST") return methodNotAllowed();
+
+    /* POST는 canGenerate 권한 필요 */
+    if (!canGenerate(adminMember)) {
+      return forbidden("AI 활동보고서 생성 권한이 없습니다 (super_admin 또는 'all' 담당자만 가능)");
+    }
 
     const body = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");
