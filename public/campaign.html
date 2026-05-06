@@ -50,20 +50,32 @@
   font-family: inherit;
 }
 .cmp-cta:hover { background: var(--brand-deep, #5a1620); }
+.cmp-cta:disabled { opacity: 0.6; cursor: wait; }
+
+.breadcrumb { padding: 14px 20px; font-size: 12.5px; color: var(--text-3); max-width: 880px; margin: 0 auto; }
+.breadcrumb a { color: var(--text-3); text-decoration: none; }
+.breadcrumb a:hover { color: var(--brand); }
 </style>
 </head>
-<body>
-<div id="header-mount"></div>
+<body data-page="campaign">
+
+<!-- ★ v11 묶음 C-7: header-mount → header-slot (common.js 표준 패턴) -->
+<div id="header-slot"></div>
+
+<div class="breadcrumb">
+  <a href="/index.html">홈</a> &nbsp;›&nbsp; <a href="/campaigns.html">캠페인</a> &nbsp;›&nbsp; 상세
+</div>
 
 <main class="cmp-detail-page" id="cmpRoot">
   <div style="text-align:center;padding:80px 20px;color:var(--text-3)">불러오는 중...</div>
 </main>
 
-<div id="footer-mount"></div>
-<div id="modals-mount"></div>
+<!-- ★ v11 묶음 C-7: mount → slot 통일 -->
+<div id="modals-slot"></div>
+<div id="footer-slot"></div>
 
-<script src="/js/common.js?v=3"></script>
-<script src="/js/auth.js?v=3"></script>
+<script src="/js/common.js?v=4"></script>
+<script src="/js/auth.js?v=6"></script>
 <script src="/js/donate.js?v=m19-2"></script>
 <script>
 (function(){
@@ -140,22 +152,60 @@
     }
   }
 
-  /* 후원하기 버튼 → donate 모달 열기 + 캠페인 사전 선택 */
+  /* ★ v11 묶음 C-7: 후원하기 버튼 → 같은 페이지에서 모달 오픈 (이동 X)
+     - sessionStorage에 캠페인 정보 저장 (donate.js가 자동 prefill)
+     - 표준 [data-action="open-modal"] 가짜 트리거로 common.js의 모달 오픈 메커니즘 활용
+     - donateModal이 partials 로드 후에 DOM에 들어오므로, 최대 6초 대기 후 폴백 */
+  function openDonateModalForCampaign(campaignInfo) {
+    sessionStorage.setItem('siren_preselect_campaign', JSON.stringify(campaignInfo));
+
+    const tryOpen = () => {
+      const modal = document.getElementById('donateModal');
+      if (!modal) return false;
+      /* common.js가 [data-action="open-modal"] 클릭을 감지하므로 가짜 트리거 dispatch */
+      const trigger = document.createElement('a');
+      trigger.setAttribute('href', 'javascript:void(0)');
+      trigger.setAttribute('data-action', 'open-modal');
+      trigger.setAttribute('data-target', 'donateModal');
+      trigger.style.display = 'none';
+      document.body.appendChild(trigger);
+      trigger.click();
+      setTimeout(() => trigger.remove(), 100);
+      return true;
+    };
+
+    /* 즉시 시도 */
+    if (tryOpen()) return;
+
+    /* partials 아직 로드 안 됨 → 200ms 간격 / 최대 30회 (6초) 대기 */
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (tryOpen()) {
+        clearInterval(interval);
+      } else if (attempts > 30) {
+        clearInterval(interval);
+        /* 폴백 — 6초 대기해도 모달이 안 뜨면 메인으로 이동 (기존 동작) */
+        location.href = '/index.html#donate';
+      }
+    }, 200);
+  }
+
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-cmp-donate]');
     if (!btn) return;
     e.preventDefault();
+
+    /* 시각적 피드백 — 버튼이 "준비 중..." 으로 잠시 변경 */
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ 후원 모달 준비 중...';
+    setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 1500);
+
     const id = Number(btn.dataset.cmpDonate);
     const slug = btn.dataset.cmpSlug;
     const title = btn.dataset.cmpTitle;
-    /* donate.js가 이 정보를 사용하도록 sessionStorage에 저장 */
-    sessionStorage.setItem('siren_preselect_campaign', JSON.stringify({ id, slug, title }));
-    /* 후원 모달 트리거 */
-    if (window.SirenDonate && window.SirenDonate.openModal) {
-      window.SirenDonate.openModal();
-    } else {
-      location.href = '/index.html#donate';
-    }
+    openDonateModalForCampaign({ id, slug, title });
   });
 
   load();
