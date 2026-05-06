@@ -35,6 +35,21 @@
     <section class="block">
       <div class="container">
 
+        <!-- ★ v11 묶음 C-8: 운영 시작 안내 배너 (더미 데이터 안내) -->
+        <div style="background:linear-gradient(135deg,#fef9f5,#fff);border:1px solid #f0e0e3;border-left:4px solid var(--brand);border-radius:8px;padding:18px 22px;margin-bottom:24px">
+          <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+            <div style="font-size:28px;flex-shrink:0">📊</div>
+            <div style="flex:1;min-width:240px">
+              <div style="font-weight:700;font-size:15px;color:var(--brand);margin-bottom:6px;font-family:'Noto Serif KR',serif">활동 보고서 시스템 운영 준비 중</div>
+              <div style="font-size:13px;color:var(--text-2);line-height:1.7">
+                현재 표시되는 수치와 차트는 <strong>예시 데이터</strong>입니다.<br />
+                운영 데이터가 충분히 누적되는 대로 정식 보고서와 PDF 다운로드 기능이 제공될 예정입니다.<br />
+                <span style="color:var(--text-3);font-size:11.5px">※ 첫 정식 분기 보고서: 2026년 Q3 예정</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- KPI 요약 -->
         <div class="kpi-grid">
           <div class="kpi"><div class="kpi-label">YTD 누적 후원금</div><div class="kpi-value">₩ 150.8M</div><div class="kpi-delta">▲ 18.2%</div></div>
@@ -65,36 +80,51 @@
         <div class="panel" style="margin-top:18px">
           <div class="p-head">
             <div class="p-title">📄 연간 보고서 다운로드</div>
-            <span class="p-tag">PDF · 무결성 검증 완료</span>
+            <span class="p-tag" style="background:#f0f0f0;color:var(--text-3)">🔧 운영 데이터 누적 후 제공 예정</span>
           </div>
           <table class="tbl">
             <thead>
-              <tr><th>연도</th><th>제목</th><th>발행일</th><th>크기</th><th style="width:140px">다운로드</th></tr>
+              <tr><th>연도</th><th>제목</th><th>발행일</th><th>크기</th><th style="width:160px">다운로드</th></tr>
             </thead>
             <tbody>
-              <tr>
+              <tr style="opacity:0.7">
                 <td><strong>2025</strong></td>
                 <td>2025년 연간 활동 보고서 — "함께 한 걸음, 더 단단해진 우리"</td>
-                <td>2026.03.15</td>
-                <td>4.2 MB</td>
-                <td><button class="btn-sm btn-sm-primary" data-demo-action="report-2025-pdf" data-demo-message="2025 보고서 PDF를 다운로드합니다">PDF 다운</button></td>
+                <td>2026.03.15 (예정)</td>
+                <td>—</td>
+                <td>
+                  <button type="button" class="btn-sm" disabled
+                          style="background:#f0f0f0;color:var(--text-3);border:1px solid var(--line);cursor:not-allowed;font-size:11.5px;padding:5px 10px;border-radius:4px"
+                          title="활동 보고서 시스템은 현재 준비 중입니다">
+                    🔧 준비 중
+                  </button>
+                </td>
               </tr>
-              <tr>
+              <tr style="opacity:0.7">
                 <td><strong>2024</strong></td>
                 <td>2024년 연간 활동 보고서 — "시작의 기록"</td>
-                <td>2025.03.20</td>
-                <td>3.8 MB</td>
-                <td><button class="btn-sm btn-sm-primary" data-demo-action="report-2024-pdf" data-demo-message="2024 보고서 PDF를 다운로드합니다">PDF 다운</button></td>
+                <td>2025.03.20 (예정)</td>
+                <td>—</td>
+                <td>
+                  <button type="button" class="btn-sm" disabled
+                          style="background:#f0f0f0;color:var(--text-3);border:1px solid var(--line);cursor:not-allowed;font-size:11.5px;padding:5px 10px;border-radius:4px"
+                          title="활동 보고서 시스템은 현재 준비 중입니다">
+                    🔧 준비 중
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
+          <div style="font-size:12px;color:var(--text-3);text-align:center;padding:14px 8px 4px;line-height:1.6">
+            💡 정식 보고서는 외부 회계감사 완료 후 PDF로 제공됩니다. 그 전에는 본 페이지의 분기별 집행 상세를 참고해 주세요.
+          </div>
         </div>
 
         <!-- 분기별 상세 -->
         <div class="panel" style="margin-top:18px">
           <div class="p-head">
             <div class="p-title">📊 분기별 집행 상세</div>
-            <span class="p-tag">실시간 업데이트</span>
+            <span class="p-tag">실시간 업데이트 (예시 데이터)</span>
           </div>
           <table class="tbl">
             <thead>
