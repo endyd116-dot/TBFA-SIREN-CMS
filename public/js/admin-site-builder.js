@@ -37,6 +37,12 @@
     },
     { key: 'siren_menu', label: '🚨 사이렌 메뉴', leaf: true },
     {
+      key: 'mypage', label: '🎗 마이페이지', expanded: false,
+      children: [
+        { key: 'mypage.cancellationGuide', label: '정기 후원 해지 안내' },
+      ],
+    },
+    {
       key: 'static_pages', label: '📄 정적 페이지', expanded: false,
       children: [
         { key: 'page.terms', label: '이용약관' },
