@@ -233,8 +233,18 @@
     'publish': function () {
       renderPublishPanel();
     },
+        /* ★ Step 6-F: 섹션 제목 편집 (캠페인/공지/FAQ) */
+    'home.sections': function () {
+      if (window.SIREN_HOME_SECTIONS && window.SIREN_HOME_SECTIONS.render) {
+        window.SIREN_HOME_SECTIONS.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>섹션 제목 편집 모듈 로드 실패 — admin-home-sections.js 스크립트 태그 확인</p></div>';
+      }
+    },
   };
 
+  
   /* ★ Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
   const HOME_NODE_INFO = {
     'home.hero': {
