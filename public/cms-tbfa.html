@@ -137,6 +137,51 @@
   #rsAddFooterBtn:hover {
     background: #f0f5fc;
   }
+
+  /* ★ Phase 1: 사이드바 계층 메뉴 */
+  .cms-menu-group > a {
+    position: relative;
+  }
+  .cms-menu-chevron {
+    margin-left: auto;
+    font-size: 10px;
+    transition: transform 0.25s;
+  }
+  .cms-menu-group.open .cms-menu-chevron {
+    transform: rotate(180deg);
+  }
+  .cms-submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: #0a0a0a;
+  }
+  .cms-submenu li a {
+    padding: 10px 22px 10px 48px !important;
+    font-size: 12.5px !important;
+  }
+  .cms-submenu li a.on {
+    background: #141414 !important;
+    color: #fff !important;
+    border-left-color: #b8935a !important;
+  }
+
+  /* ★ Phase 1: 효성 관리 탭 hover */
+  .hy-tab {
+    transition: all 0.2s;
+    color: #525252;
+    font-size: 13px;
+  }
+  .hy-tab:hover:not(.on) {
+    background: #fff !important;
+    color: #1a5ec4;
+  }
+  .hy-tab.on {
+    color: #1a5ec4;
+  }
+  .hy-pane {
+    animation: fadeIn 0.25s;
+  }
 </style>
 </head>
 <body data-page="cms-tbfa">
@@ -168,6 +213,17 @@
       <li><a href="#dashboard" class="on" data-tab="dashboard">
         <i>📊</i><span>대시보드</span>
       </a></li>
+      <li class="cms-menu-group" data-group="donation">
+        <a href="#" data-toggle="donation">
+          <i>💰</i><span>후원 관리</span>
+          <span class="cms-menu-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-submenu="donation" style="display:none">
+          <li><a href="#hyosung" data-tab="hyosung">
+            <i>🏦</i><span>효성 CMS+</span>
+          </a></li>
+        </ul>
+      </li>
       <li><a href="#members" data-tab="members">
         <i>👥</i><span>통합 회원</span>
       </a></li>
@@ -291,6 +347,140 @@
               <tr><td colspan="4" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ============ 💰 후원 관리 > 🏦 효성 CMS+ ============ -->
+      <section class="cms-page" id="page-hyosung">
+        <div class="cms-panel" style="padding:0">
+          <!-- 탭 헤더 -->
+          <div class="cms-tabs-bar" style="display:flex;border-bottom:2px solid #e0e3e8;background:#fafaf9">
+            <button class="hy-tab on" data-hy-tab="contracts" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #1a5ec4;font-weight:600;cursor:pointer">📋 계약 관리</button>
+            <button class="hy-tab" data-hy-tab="billings" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">📅 청구/수납</button>
+            <button class="hy-tab" data-hy-tab="upload" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">📤 CSV 업로드</button>
+          </div>
+
+          <!-- 탭 1: 계약 관리 -->
+          <div class="hy-pane show" data-hy-pane="contracts" style="padding:22px">
+            <div class="cms-filter-bar">
+              <div class="cms-filter-group">
+                <select id="hyContractStatus">
+                  <option value="">전체 상태</option>
+                  <option value="사용">사용</option>
+                  <option value="중지">중지</option>
+                  <option value="기간만료">기간만료</option>
+                </select>
+                <input type="text" id="hyContractSearch" placeholder="이름·전화 검색...">
+              </div>
+              <div class="cms-filter-actions">
+                <button class="cms-btn cms-btn-ghost" id="hyContractRefresh">새로고침</button>
+              </div>
+            </div>
+
+            <div id="hyContractStats" style="display:flex;gap:12px;margin-bottom:16px;font-size:12.5px;color:#525252">
+              <span>총 <strong id="hyContractTotal">-</strong>건</span>
+              <span>·</span>
+              <span>매칭됨 <strong id="hyContractLinked">-</strong>건</span>
+            </div>
+
+            <table class="cms-tbl">
+              <thead>
+                <tr>
+                  <th>회원번호</th><th>이름</th><th>연락처</th>
+                  <th>상태</th><th>상품</th><th>금액</th>
+                  <th>약정일</th><th>결제</th><th>매칭회원</th>
+                </tr>
+              </thead>
+              <tbody id="hyContractBody">
+                <tr><td colspan="9" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>
+              </tbody>
+            </table>
+            <div id="hyContractPagination" style="text-align:center;padding:16px"></div>
+          </div>
+
+          <!-- 탭 2: 청구/수납 -->
+          <div class="hy-pane" data-hy-pane="billings" style="padding:22px;display:none">
+            <div class="cms-filter-bar">
+              <div class="cms-filter-group">
+                <select id="hyBillingMonth">
+                  <option value="">전체 월</option>
+                  <option value="2026/05">2026/05</option>
+                  <option value="2026/04">2026/04</option>
+                  <option value="2026/03">2026/03</option>
+                  <option value="2026/02">2026/02</option>
+                  <option value="2026/01">2026/01</option>
+                </select>
+                <select id="hyBillingStatus">
+                  <option value="">전체 상태</option>
+                  <option value="완납">완납</option>
+                  <option value="미납">미납</option>
+                  <option value="수납대기">수납대기</option>
+                </select>
+                <input type="text" id="hyBillingSearch" placeholder="이름·전화 검색...">
+              </div>
+              <div class="cms-filter-actions">
+                <button class="cms-btn cms-btn-ghost" id="hyBillingRefresh">새로고침</button>
+              </div>
+            </div>
+
+            <div id="hyBillingStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+              <!-- JS로 채움 -->
+            </div>
+
+            <table class="cms-tbl">
+              <thead>
+                <tr>
+                  <th>월</th><th>회원번호</th><th>이름</th>
+                  <th>상품</th><th>청구금액</th><th>수납</th>
+                  <th>상태</th><th>결제방식</th><th>입금일</th>
+                </tr>
+              </thead>
+              <tbody id="hyBillingBody">
+                <tr><td colspan="9" style="text-align:center;padding:30px;color:#888">월을 선택하세요</td></tr>
+              </tbody>
+            </table>
+            <div id="hyBillingPagination" style="text-align:center;padding:16px"></div>
+          </div>
+
+          <!-- 탭 3: CSV 업로드 -->
+          <div class="hy-pane" data-hy-pane="upload" style="padding:22px;display:none">
+            <div style="background:#f0f5fc;border:1px solid #cee0f2;border-radius:8px;padding:14px;margin-bottom:20px;font-size:12.5px;color:#1a5ec4;line-height:1.7">
+              💡 <strong>효성 CMS+ 원본 엑셀을 CSV(UTF-8)로 저장한 후 업로드하세요.</strong><br />
+              • 계약정보: 54명 기준, 월 1회<br />
+              • 청구/수납: 매월 업데이트 (완납 건은 자동으로 후원 내역에 반영됨)
+            </div>
+
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">1. 업로드 유형 선택</label>
+              <div style="display:flex;gap:10px">
+                <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1.5px solid #e0e3e8;border-radius:6px;cursor:pointer">
+                  <input type="radio" name="hyUploadType" value="contracts" checked>
+                  <span>📋 계약정보</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1.5px solid #e0e3e8;border-radius:6px;cursor:pointer">
+                  <input type="radio" name="hyUploadType" value="billings">
+                  <span>📅 청구/수납 내역</span>
+                </label>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">2. CSV 텍스트 붙여넣기</label>
+              <textarea id="hyUploadCsv" rows="10" style="width:100%;padding:10px;border:1px solid #e0e3e8;border-radius:6px;font-family:monospace;font-size:11.5px" placeholder="NO.,회원번호,회원명,...&#10;1,7,유인자,010-2434-1756,...&#10;..."></textarea>
+              <div style="font-size:11px;color:#888;margin-top:4px">
+                팁: 엑셀에서 전체 선택(Ctrl+A) → 복사(Ctrl+C) → 여기 붙여넣기(Ctrl+V)
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button class="cms-btn cms-btn-ghost" id="hyUploadPreview">🔍 미리보기 (드라이런)</button>
+              <button class="cms-btn cms-btn-primary" id="hyUploadConfirm" disabled>✅ 확정 Import</button>
+            </div>
+
+            <div id="hyUploadResult" style="display:none;padding:16px;background:#fff;border:1px solid #e0e3e8;border-radius:8px">
+              <!-- JS로 결과 표시 -->
+            </div>
+          </div>
         </div>
       </section>
 
