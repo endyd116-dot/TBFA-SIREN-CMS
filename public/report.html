@@ -101,6 +101,7 @@
     const modalBody = document.getElementById('reportDetailBody');
 
     let _reports = [];
+    let _allYears = [];  // ★ 연도 필터: 전체 연도 고정 보관 (필터링과 무관)
 
     /* ===== API 호출 ===== */
     async function loadReports(year) {
@@ -115,6 +116,10 @@
         // ★ API 응답 형식: { ok, message, data: { list: [...] } }
         const list = (data && data.data && data.data.list) || data.list || [];
         _reports = list;
+        // ★ 최초 로드 시에만 전체 연도 목록 확정 (이후 필터링 시 변경 없음)
+        if (_allYears.length === 0) {
+          _allYears = [...new Set(list.map((p) => p.year).filter(Boolean))].sort((a, b) => b - a);
+        }
         renderList();
         renderYearOptions();
       } catch (e) {
@@ -133,8 +138,8 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'detail failed');
 
-        // ★ 단건 API 응답: { ok, data: { report: {...} } } 또는 { ok, report: {...} }
-        const r = (data && data.data && (data.data.report || data.data)) || data.report || {};
+        // ★ 단건 API 응답 형식: { ok, data: { post: {...}, pdf: null } }
+        const r = (data && data.data && data.data.post) || (data && data.post) || {};
         modalTitle.textContent = r.title || '보고서';
         modalBody.innerHTML = r.contentHtml || '<p style="color:var(--text-3)">본문이 비어있습니다.</p>';
         modal.style.display = 'flex';
@@ -181,10 +186,10 @@
     }
 
     function renderYearOptions() {
-      const years = [...new Set(_reports.map((p) => p.year).filter(Boolean))].sort((a, b) => b - a);
+      // ★ 필터링된 결과가 아닌 _allYears (전체) 사용 — 필터 선택해도 옵션 유지
       const current = yearFilter.value;
       yearFilter.innerHTML = '<option value="">전체</option>' +
-        years.map((y) => `<option value="${y}"${String(y) === current ? ' selected' : ''}>${y}년</option>`).join('');
+        _allYears.map((y) => `<option value="${y}"${String(y) === current ? ' selected' : ''}>${y}년</option>`).join('');
     }
 
     /* ===== 이벤트 ===== */
