@@ -1,5 +1,5 @@
 // netlify/functions/migrate-hyosung-schema.ts
-// ★ v14: 효성 CMS+ 연동 스키마 (v2 - UNIQUE 제약 분리)
+// ★ v14: 효성 CMS+ 연동 스키마 (v3 - 잔재 제거 + 재생성)
 // 호출: /migrate-hyosung-schema?key=siren-hyosung-2026
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -19,7 +19,14 @@ export default async (req: Request) => {
   try {
     const log: string[] = [];
 
-    // 1) members 컬럼 7개
+    // ===== STEP 0: 잔재 제거 (이전 부분 생성된 테이블 정리) =====
+    await db.execute(sql`DROP TABLE IF EXISTS hyosung_billings CASCADE`);
+    log.push("OK: 기존 hyosung_billings DROP (있었다면)");
+
+    await db.execute(sql`DROP TABLE IF EXISTS hyosung_contracts CASCADE`);
+    log.push("OK: 기존 hyosung_contracts DROP (있었다면)");
+
+    // ===== STEP 1: members 컬럼 7개 (멱등) =====
     await db.execute(sql`
       ALTER TABLE members
         ADD COLUMN IF NOT EXISTS hyosung_member_no INTEGER,
@@ -35,7 +42,7 @@ export default async (req: Request) => {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_members_hyosung_no ON members(hyosung_member_no)`);
     log.push("OK: members 인덱스");
 
-    // 2) donations 컬럼 4개
+    // ===== STEP 2: donations 컬럼 4개 (멱등) =====
     await db.execute(sql`
       ALTER TABLE donations
         ADD COLUMN IF NOT EXISTS hyosung_billing_id INTEGER,
@@ -49,11 +56,11 @@ export default async (req: Request) => {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_donations_hyosung_month ON donations(hyosung_billing_month)`);
     log.push("OK: donations 인덱스 2개");
 
-    // 3) hyosung_contracts 테이블
+    // ===== STEP 3: hyosung_contracts 신규 생성 =====
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS hyosung_contracts (
+      CREATE TABLE hyosung_contracts (
         id SERIAL PRIMARY KEY,
-        member_no INTEGER NOT NULL,
+        member_no INTEGER NOT NULL UNIQUE,
         member_name TEXT NOT NULL,
         phone TEXT,
         member_status TEXT,
@@ -79,29 +86,16 @@ export default async (req: Request) => {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    log.push("OK: hyosung_contracts 테이블 생성");
+    log.push("OK: hyosung_contracts 신규 생성");
 
-    // UNIQUE 제약 추가 (테이블 생성 후 별도)
-    await db.execute(sql`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint WHERE conname = 'hyosung_contracts_member_no_key'
-        ) THEN
-          ALTER TABLE hyosung_contracts ADD CONSTRAINT hyosung_contracts_member_no_key UNIQUE (member_no);
-        END IF;
-      END $$
-    `);
-    log.push("OK: hyosung_contracts UNIQUE(member_no)");
-
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_contracts_member_no ON hyosung_contracts(member_no)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_contracts_linked ON hyosung_contracts(linked_member_id)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_contracts_phone ON hyosung_contracts(phone)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_contracts_member_no ON hyosung_contracts(member_no)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_contracts_linked ON hyosung_contracts(linked_member_id)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_contracts_phone ON hyosung_contracts(phone)`);
     log.push("OK: hyosung_contracts 인덱스 3개");
 
-    // 4) hyosung_billings 테이블
+    // ===== STEP 4: hyosung_billings 신규 생성 =====
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS hyosung_billings (
+      CREATE TABLE hyosung_billings (
         id SERIAL PRIMARY KEY,
         member_no INTEGER NOT NULL,
         contract_no INTEGER NOT NULL DEFAULT 1,
@@ -130,35 +124,42 @@ export default async (req: Request) => {
         note TEXT,
         linked_donation_id INTEGER,
         raw_data JSONB,
-        imported_at TIMESTAMP DEFAULT NOW()
+        imported_at TIMESTAMP DEFAULT NOW(),
+        CONSTRAINT hyosung_billings_unique_key UNIQUE (member_no, billing_month, product_name)
       )
     `);
-    log.push("OK: hyosung_billings 테이블 생성");
+    log.push("OK: hyosung_billings 신규 생성");
 
-    // UNIQUE 제약 추가 (테이블 생성 후 별도)
-    await db.execute(sql`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint WHERE conname = 'hyosung_billings_unique_key'
-        ) THEN
-          ALTER TABLE hyosung_billings ADD CONSTRAINT hyosung_billings_unique_key UNIQUE (member_no, billing_month, product_name);
-        END IF;
-      END $$
-    `);
-    log.push("OK: hyosung_billings UNIQUE 복합키");
-
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_billings_member ON hyosung_billings(member_no)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_billings_month ON hyosung_billings(billing_month)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_hyosung_billings_status ON hyosung_billings(receipt_status)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_billings_member ON hyosung_billings(member_no)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_billings_month ON hyosung_billings(billing_month)`);
+    await db.execute(sql`CREATE INDEX idx_hyosung_billings_status ON hyosung_billings(receipt_status)`);
     log.push("OK: hyosung_billings 인덱스 3개");
+
+    // ===== STEP 5: 검증 =====
+    const verify: any = await db.execute(sql`
+      SELECT 
+        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='members' AND column_name LIKE 'hyosung%') AS members_cols,
+        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='donations' AND column_name LIKE 'hyosung%') AS donations_cols,
+        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='hyosung_contracts') AS contracts_cols,
+        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='hyosung_billings') AS billings_cols
+    `);
+    const v = Array.isArray(verify) ? verify[0] : (verify?.rows?.[0] || {});
+    log.push(`검증: members.hyosung_* = ${v.members_cols}컬럼 (기대 7)`);
+    log.push(`검증: donations.hyosung_* = ${v.donations_cols}컬럼 (기대 4)`);
+    log.push(`검증: hyosung_contracts = ${v.contracts_cols}컬럼 (기대 25)`);
+    log.push(`검증: hyosung_billings = ${v.billings_cols}컬럼 (기대 30)`);
 
     return new Response(JSON.stringify({ ok: true, log }), {
       status: 200, headers: { "Content-Type": "application/json" }
     });
   } catch (e: any) {
     console.error("[migrate-hyosung-schema]", e);
-    return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack?.slice(0, 500) }), {
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: e.message, 
+      stack: e.stack?.slice(0, 800),
+      hint: "에러 발생 위치를 stack에서 확인. 'member_no does not exist'면 이전 잔재가 또 있는 것."
+    }), {
       status: 500, headers: { "Content-Type": "application/json" }
     });
   }
