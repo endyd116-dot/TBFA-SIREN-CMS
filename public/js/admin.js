@@ -5388,7 +5388,7 @@ const OPERATOR_CATEGORIES = [
             await showAdminPanel();
           } else {
             setTimeout(() => {
-              window.location.href = '/admin-hub.html';
+              window.location.href = '/workspace.html';
             }, 600);
           }
         } else {
