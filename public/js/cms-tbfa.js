@@ -819,18 +819,151 @@
   }
 
   /**
-   * CSV 업로드 - 미리보기
+   * 파일에서 추출한 CSV 텍스트 (전역 캐시)
    */
-  async function hyosungUploadPreview() {
-    const csvText = document.getElementById('hyUploadCsv')?.value || '';
-    const type = document.querySelector('input[name="hyUploadType"]:checked')?.value || 'contracts';
-    const resultEl = document.getElementById('hyUploadResult');
-    const confirmBtn = document.getElementById('hyUploadConfirm');
+  let hyExtractedCsv = null;
+  let hyExtractedFileName = '';
+  let hyDetectedType = null;
 
-    if (!csvText || csvText.length < 10) {
-      toast('CSV 텍스트를 붙여넣으세요');
+  /**
+   * 엑셀/CSV 파일 → CSV 텍스트 추출 (SheetJS 사용)
+   */
+  function extractCsvFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          if (!ws) throw new Error('시트가 비어 있습니다');
+          /* CSV 변환 (FS 옵션: 필드 구분자 콤마) */
+          const csv = XLSX.utils.sheet_to_csv(ws, { FS: ',' });
+          resolve(csv);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('파일 읽기 실패'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  /**
+   * CSV 헤더 분석 → 양식 자동 감지
+   */
+  function detectCsvType(csvText) {
+    const firstLine = csvText.split('\n')[0] || '';
+    if (firstLine.includes('회원상태') && firstLine.includes('계약상태') && firstLine.includes('청구시작일')) {
+      return 'contracts';
+    }
+    if (firstLine.includes('청구월') && firstLine.includes('수납상태')) {
+      return 'billings';
+    }
+    return null;
+  }
+
+  /**
+   * 파일 선택 핸들러
+   */
+  async function handleHyosungFileSelected(file) {
+    const infoEl = document.getElementById('hyUploadFileInfo');
+    const previewBtn = document.getElementById('hyUploadPreview');
+    const resetBtn = document.getElementById('hyUploadReset');
+    const resultEl = document.getElementById('hyUploadResult');
+
+    if (!file) return;
+
+    /* 파일 크기 체크 (10MB 제한) */
+    if (file.size > 10 * 1024 * 1024) {
+      toast('파일 크기는 10MB 이하여야 합니다');
       return;
     }
+
+    /* 확장자 체크 */
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      toast('지원하지 않는 형식입니다 (.xlsx, .xls, .csv만 가능)');
+      return;
+    }
+
+    try {
+      toast('파일 분석 중...');
+      const csv = await extractCsvFromFile(file);
+      const detected = detectCsvType(csv);
+
+      if (!detected) {
+        toast('⚠️ 효성 CMS+ 양식이 아닙니다. 헤더를 확인하세요.');
+        return;
+      }
+
+      hyExtractedCsv = csv;
+      hyExtractedFileName = file.name;
+      hyDetectedType = detected;
+
+      /* 라디오 버튼 자동 선택 */
+      const radio = document.querySelector(`input[name="hyUploadType"][value="${detected}"]`);
+      if (radio) radio.checked = true;
+
+      /* 행 수 카운트 (헤더 제외) */
+      const lines = csv.split('\n').filter(l => l.trim()).length;
+      const rowCount = Math.max(0, lines - 1);
+
+      const typeLabel = detected === 'contracts' ? '📋 계약정보' : '📅 청구/수납 내역';
+      if (infoEl) {
+        infoEl.style.display = 'block';
+        infoEl.innerHTML = `✅ <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)<br />` +
+          `자동 감지된 양식: <strong>${typeLabel}</strong> · 데이터 ${rowCount}행 추출됨<br />` +
+          `<span style="color:#888;font-size:11px">아래 "미리보기" 버튼으로 검증을 진행하세요</span>`;
+      }
+
+      if (previewBtn) previewBtn.disabled = false;
+      if (resetBtn) resetBtn.disabled = false;
+      if (resultEl) resultEl.style.display = 'none';
+
+      toast('파일 추출 완료 ✅');
+    } catch (err) {
+      console.error('[file extract]', err);
+      toast('파일 분석 실패: ' + (err.message || err));
+    }
+  }
+
+  /**
+   * 업로드 영역 초기화
+   */
+  function resetHyosungUpload() {
+    hyExtractedCsv = null;
+    hyExtractedFileName = '';
+    hyDetectedType = null;
+    hyUploadParsedPreview = null;
+
+    const fileInput = document.getElementById('hyUploadFile');
+    if (fileInput) fileInput.value = '';
+
+    const infoEl = document.getElementById('hyUploadFileInfo');
+    if (infoEl) infoEl.style.display = 'none';
+
+    const resultEl = document.getElementById('hyUploadResult');
+    if (resultEl) resultEl.style.display = 'none';
+
+    document.getElementById('hyUploadPreview').disabled = true;
+    document.getElementById('hyUploadConfirm').disabled = true;
+    document.getElementById('hyUploadReset').disabled = true;
+  }
+
+  /**
+   * 파일 업로드 - 미리보기
+   */
+  async function hyosungUploadPreview() {
+    if (!hyExtractedCsv) {
+      toast('먼저 파일을 선택하세요');
+      return;
+    }
+
+    const csvText = hyExtractedCsv;
+    const type = hyDetectedType || 'contracts';
+    const resultEl = document.getElementById('hyUploadResult');
+    const confirmBtn = document.getElementById('hyUploadConfirm');
 
     toast('미리보기 분석 중...');
 
@@ -894,7 +1027,7 @@
       toast('먼저 미리보기를 실행하세요');
       return;
     }
-    if (!confirm('실제로 DB에 저장하시겠습니까?')) return;
+    if (!confirm(`실제로 DB에 저장하시겠습니까?\n\n파일: ${hyExtractedFileName}\n양식: ${hyDetectedType === 'contracts' ? '계약정보' : '청구/수납'}`)) return;
 
     const { csvText, type } = hyUploadParsedPreview;
     const resultEl = document.getElementById('hyUploadResult');
@@ -940,7 +1073,8 @@
     toast('Import 완료! ✅');
     hyUploadParsedPreview = null;
     document.getElementById('hyUploadConfirm').disabled = true;
-    document.getElementById('hyUploadCsv').value = '';
+    /* 파일 입력 초기화 */
+    setTimeout(() => resetHyosungUpload(), 1500);
   }
 
   /**
@@ -977,6 +1111,33 @@
     /* 업로드 버튼 */
     document.getElementById('hyUploadPreview')?.addEventListener('click', hyosungUploadPreview);
     document.getElementById('hyUploadConfirm')?.addEventListener('click', hyosungUploadConfirm);
+    document.getElementById('hyUploadReset')?.addEventListener('click', resetHyosungUpload);
+
+    /* 파일 드롭존 */
+    const drop = document.getElementById('hyUploadDrop');
+    const fileInput = document.getElementById('hyUploadFile');
+
+    if (drop && fileInput) {
+      drop.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) handleHyosungFileSelected(file);
+      });
+
+      drop.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        drop.classList.add('drag-over');
+      });
+      drop.addEventListener('dragleave', () => {
+        drop.classList.remove('drag-over');
+      });
+      drop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        drop.classList.remove('drag-over');
+        const file = e.dataTransfer.files?.[0];
+        if (file) handleHyosungFileSelected(file);
+      });
+    }
   }
 
   /* ============ ★ STEP H-2d-4: 영수증 설정 (사이렌 관리자와 자동 동기화) ============ */

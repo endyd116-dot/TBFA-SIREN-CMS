@@ -182,6 +182,15 @@
   .hy-pane {
     animation: fadeIn 0.25s;
   }
+  #hyUploadDrop:hover {
+    border-color: #1a5ec4;
+    background: #f0f5fc;
+  }
+  #hyUploadDrop.drag-over {
+    border-color: #1a5ec4;
+    background: #e6f0ff;
+    transform: scale(1.01);
+  }
 </style>
 </head>
 <body data-page="cms-tbfa">
@@ -465,16 +474,25 @@
             </div>
 
             <div style="margin-bottom:16px">
-              <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">2. CSV 텍스트 붙여넣기</label>
-              <textarea id="hyUploadCsv" rows="10" style="width:100%;padding:10px;border:1px solid #e0e3e8;border-radius:6px;font-family:monospace;font-size:11.5px" placeholder="NO.,회원번호,회원명,...&#10;1,7,유인자,010-2434-1756,...&#10;..."></textarea>
-              <div style="font-size:11px;color:#888;margin-top:4px">
-                팁: 엑셀에서 전체 선택(Ctrl+A) → 복사(Ctrl+C) → 여기 붙여넣기(Ctrl+V)
+              <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">2. 엑셀 파일 업로드</label>
+              <div id="hyUploadDrop" style="border:2px dashed #cee0f2;border-radius:10px;padding:40px 20px;text-align:center;background:#f8fbff;cursor:pointer;transition:all 0.25s">
+                <div style="font-size:42px;margin-bottom:10px">📂</div>
+                <div style="font-weight:600;font-size:14px;margin-bottom:6px">엑셀 파일을 드래그하거나 클릭해 선택</div>
+                <div style="font-size:11.5px;color:#888">.xlsx, .xls, .csv 형식 지원 (UTF-8 권장)</div>
+                <input type="file" id="hyUploadFile" accept=".xlsx,.xls,.csv" hidden>
+              </div>
+              <div id="hyUploadFileInfo" style="display:none;margin-top:10px;padding:10px 14px;background:#e8f5ed;border:1px solid #c3e6cb;border-radius:6px;font-size:12px;color:#1a8b46">
+                <!-- JS로 채움 -->
+              </div>
+              <div style="font-size:11px;color:#888;margin-top:6px">
+                💡 효성 CMS+에서 다운로드한 원본 엑셀 파일을 그대로 업로드하세요. 자동으로 양식을 감지합니다.
               </div>
             </div>
 
             <div style="display:flex;gap:8px;margin-bottom:16px">
-              <button class="cms-btn cms-btn-ghost" id="hyUploadPreview">🔍 미리보기 (드라이런)</button>
+              <button class="cms-btn cms-btn-ghost" id="hyUploadPreview" disabled>🔍 미리보기 (드라이런)</button>
               <button class="cms-btn cms-btn-primary" id="hyUploadConfirm" disabled>✅ 확정 Import</button>
+              <button class="cms-btn cms-btn-ghost" id="hyUploadReset" style="margin-left:auto" disabled>🔄 다시 선택</button>
             </div>
 
             <div id="hyUploadResult" style="display:none;padding:16px;background:#fff;border:1px solid #e0e3e8;border-radius:8px">
