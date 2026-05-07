@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>워크스페이스 | 교사유가족협의회</title>
+<meta name="robots" content="noindex,nofollow">
+
+<!-- 폰트 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- 공통 CSS -->
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<!-- 워크스페이스 전용 CSS -->
+<link rel="stylesheet" href="/css/workspace.css?v=1">
+</head>
+
+<body class="ws-body">
+
+<!-- ═══════════════════════════════════════════════════════
+     슬림 사이드바 (평상시 60px → 호버 시 240px)
+═══════════════════════════════════════════════════════ -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <!-- 로고 영역 -->
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+
+    <!-- 메인 메뉴 -->
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-active">
+          <a href="/workspace.html" data-ws-nav="dashboard" title="대시보드">
+            <span class="ws-nav-icon">📊</span>
+            <span class="ws-nav-text">대시보드</span>
+          </a>
+        </li>
+        <li>
+          <a href="#my-tasks" data-ws-nav="my-tasks" title="내 작업">
+            <span class="ws-nav-icon">📋</span>
+            <span class="ws-nav-text">내 작업</span>
+            <span class="ws-nav-badge" id="wsNavMyTasksBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li>
+          <a href="#inbox" data-ws-nav="inbox" title="지시받은 작업">
+            <span class="ws-nav-icon">📥</span>
+            <span class="ws-nav-text">지시함</span>
+            <span class="ws-nav-badge" id="wsNavInboxBadge" style="display:none">0</span>
+          </a>
+        </li>
+        <li>
+          <a href="#calendar" data-ws-nav="calendar" title="일정">
+            <span class="ws-nav-icon">📅</span>
+            <span class="ws-nav-text">일정</span>
+          </a>
+        </li>
+        <li>
+          <a href="#memos" data-ws-nav="memos" title="메모">
+            <span class="ws-nav-icon">📝</span>
+            <span class="ws-nav-text">메모</span>
+          </a>
+        </li>
+        <li>
+          <a href="#feed" data-ws-nav="feed" title="팀 피드">
+            <span class="ws-nav-icon">🔔</span>
+            <span class="ws-nav-text">피드</span>
+          </a>
+        </li>
+        <li class="ws-nav-divider"></li>
+        <li>
+          <a href="#due-changes" data-ws-nav="due-changes" title="마감일 변경 요청">
+            <span class="ws-nav-icon">⏰</span>
+            <span class="ws-nav-text">마감일 요청</span>
+            <span class="ws-nav-badge" id="wsNavDueBadge" style="display:none">0</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- 허브 이동 -->
+    <div class="ws-sidebar-hubs">
+      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
+      <ul>
+        <li>
+          <a href="/admin.html" title="SIREN 어드민">
+            <span class="ws-nav-icon">🚨</span>
+            <span class="ws-nav-text">SIREN 어드민</span>
+          </a>
+        </li>
+        <li>
+          <a href="/cms-tbfa.html" title="TBFA CMS">
+            <span class="ws-nav-icon">🏦</span>
+            <span class="ws-nav-text">TBFA CMS</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 하단 사용자 영역 -->
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
+      </a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     메인 컨텐츠 영역
+═══════════════════════════════════════════════════════ -->
+<main class="ws-main">
+
+  <!-- 상단 바 -->
+  <header class="ws-topbar">
+    <div class="ws-topbar-left">
+      <h1 class="ws-page-title">📅 워크스페이스</h1>
+      <span class="ws-greeting" id="wsGreeting">안녕하세요 👋</span>
+    </div>
+    <div class="ws-topbar-right">
+      <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task">
+        <span>📋</span> <span class="ws-btn-label">새 작업</span>
+      </button>
+      <button class="ws-btn-quick ws-btn-event" data-ws-action="new-event">
+        <span>📅</span> <span class="ws-btn-label">새 일정</span>
+      </button>
+      <button class="ws-btn-quick ws-btn-memo" data-ws-action="new-memo">
+        <span>📝</span> <span class="ws-btn-label">메모</span>
+      </button>
+      <button class="ws-btn-refresh" data-ws-action="refresh" title="새로고침">
+        <span>🔄</span>
+      </button>
+      <span class="ws-notif-bell" id="wsNotifBell" title="알림">
+        <span>🔔</span>
+        <span class="ws-notif-count" id="wsNotifCount" style="display:none">0</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- ─────────────────────────────────────────────────
+       오늘의 브리핑 섹션
+  ───────────────────────────────────────────────── -->
+  <section class="ws-briefing">
+    <div class="ws-briefing-header">
+      <h2>📊 오늘의 브리핑</h2>
+      <span class="ws-briefing-date" id="wsBriefingDate"></span>
+    </div>
+
+    <div class="ws-briefing-grid">
+      <a href="#overdue" class="ws-stat-card ws-stat-urgent" data-ws-filter="overdue">
+        <span class="ws-stat-icon">🔴</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatOverdue">-</strong>
+          <small class="ws-stat-label">지연</small>
+        </div>
+      </a>
+      <a href="#today" class="ws-stat-card" data-ws-filter="today">
+        <span class="ws-stat-icon">📅</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatToday">-</strong>
+          <small class="ws-stat-label">오늘 마감</small>
+        </div>
+      </a>
+      <a href="#tomorrow" class="ws-stat-card" data-ws-filter="tomorrow">
+        <span class="ws-stat-icon">📌</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatTomorrow">-</strong>
+          <small class="ws-stat-label">내일 마감</small>
+        </div>
+      </a>
+      <a href="#inbox" class="ws-stat-card" data-ws-filter="inbox">
+        <span class="ws-stat-icon">📥</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatInbox">-</strong>
+          <small class="ws-stat-label">지시받은 작업</small>
+        </div>
+      </a>
+      <a href="#urgent" class="ws-stat-card" data-ws-filter="urgent">
+        <span class="ws-stat-icon">🔥</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatUrgent">-</strong>
+          <small class="ws-stat-label">긴급</small>
+        </div>
+      </a>
+      <a href="#events" class="ws-stat-card" data-ws-filter="today-events">
+        <span class="ws-stat-icon">📆</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatEvents">-</strong>
+          <small class="ws-stat-label">오늘 일정</small>
+        </div>
+      </a>
+    </div>
+
+    <!-- Agent-8 AI 제안 (Step 5에서 연동) -->
+    <div class="ws-ai-suggestion" id="wsAiSuggestion" style="display:none">
+      <span class="ws-ai-icon">🤖</span>
+      <span class="ws-ai-text">AI가 제안하는 오늘의 우선순위:</span>
+      <ul class="ws-ai-list" id="wsAiList"></ul>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────
+       2x2 메인 그리드
+  ───────────────────────────────────────────────── -->
+  <section class="ws-grid-2x2">
+
+    <!-- [1] 내 작업 -->
+    <div class="ws-panel" id="wsPanelMyTasks">
+      <div class="ws-panel-header">
+        <h3>📋 내 작업</h3>
+        <div class="ws-panel-controls">
+          <select class="ws-filter-select" id="wsFilterTaskStatus" aria-label="상태 필터">
+            <option value="">전체</option>
+            <option value="todo" selected>할 일</option>
+            <option value="doing">진행 중</option>
+            <option value="blocked">차단</option>
+            <option value="done">완료</option>
+          </select>
+          <button class="ws-panel-add" data-ws-action="new-task" title="새 작업">+</button>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-task-list" id="wsMyTaskList">
+          <li class="ws-loading">불러오는 중...</li>
+        </ul>
+      </div>
+      <div class="ws-panel-footer">
+        <a href="#my-tasks-all" class="ws-panel-more" data-ws-action="view-all-tasks">전체 보기 →</a>
+      </div>
+    </div>
+
+    <!-- [2] 지시받은 작업 -->
+    <div class="ws-panel" id="wsPanelInbox">
+      <div class="ws-panel-header">
+        <h3>📥 지시받은 작업</h3>
+        <div class="ws-panel-controls">
+          <span class="ws-panel-badge" id="wsInboxBadge">0</span>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-task-list" id="wsInboxList">
+          <li class="ws-loading">불러오는 중...</li>
+        </ul>
+      </div>
+      <div class="ws-panel-footer">
+        <a href="#inbox-all" class="ws-panel-more" data-ws-action="view-all-inbox">전체 보기 →</a>
+      </div>
+    </div>
+
+    <!-- [3] 이번 주 일정 -->
+    <div class="ws-panel" id="wsPanelEvents">
+      <div class="ws-panel-header">
+        <h3>📅 이번 주 일정</h3>
+        <div class="ws-panel-controls">
+          <button class="ws-panel-add" data-ws-action="new-event" title="새 일정">+</button>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-event-list" id="wsEventList">
+          <li class="ws-loading">불러오는 중...</li>
+        </ul>
+      </div>
+      <div class="ws-panel-footer">
+        <a href="#calendar" class="ws-panel-more" data-ws-action="open-calendar">달력 보기 →</a>
+      </div>
+    </div>
+
+    <!-- [4] 메모 -->
+    <div class="ws-panel ws-panel-memo" id="wsPanelMemos">
+      <div class="ws-panel-header">
+        <h3>📝 메모</h3>
+        <div class="ws-panel-controls">
+          <button class="ws-panel-add" data-ws-action="new-memo" title="새 메모">+</button>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <div class="ws-memo-grid" id="wsMemoGrid">
+          <div class="ws-loading">불러오는 중...</div>
+        </div>
+      </div>
+      <div class="ws-panel-footer">
+        <a href="#memos-all" class="ws-panel-more" data-ws-action="view-all-memos">전체 보기 →</a>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─────────────────────────────────────────────────
+       팀 활동 피드
+  ───────────────────────────────────────────────── -->
+  <section class="ws-feed">
+    <div class="ws-feed-header">
+      <h2>🔔 팀 활동 피드</h2>
+      <div class="ws-feed-controls">
+        <select class="ws-filter-select" id="wsFilterFeedType" aria-label="활동 유형">
+          <option value="">전체</option>
+          <option value="task">작업</option>
+          <option value="event">일정</option>
+          <option value="due_request">마감일 변경</option>
+        </select>
+        <a href="#feed-all" class="ws-feed-more" data-ws-action="view-all-feed">더 보기 →</a>
+      </div>
+    </div>
+    <ul class="ws-feed-list" id="wsFeedList">
+      <li class="ws-loading">불러오는 중...</li>
+    </ul>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════
+     모달 컨테이너 (Step 4에서 동적 생성)
+═══════════════════════════════════════════════════════ -->
+<div id="wsModalRoot"></div>
+
+<!-- 토스트 컨테이너 -->
+<div id="wsToastRoot" class="ws-toast-root"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     스크립트
+═══════════════════════════════════════════════════════ -->
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/common.js?v=3"></script>
+<script src="/js/notification-bell.js?v=1" defer></script>
+<script src="/js/workspace.js?v=1" defer></script>
+
+<!-- 인증 가드 (즉시 실행) -->
+<script>
+(function wsAuthGuard() {
+  // Auth가 로드되기 전에도 체크
+  const token = localStorage.getItem('siren_token') || document.cookie.match(/siren_token=/);
+  if (!token) {
+    location.replace('/auth.html?redirect=' + encodeURIComponent('/workspace.html'));
+    return;
+  }
+  // Auth 로드 후 추가 체크는 workspace.js에서
+})();
+</script>
+
+</body>
+</html>
