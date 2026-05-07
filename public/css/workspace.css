@@ -1,0 +1,676 @@
+/* ═══════════════════════════════════════════════════════
+   workspace.css — Phase 3 Step 3 워크스페이스 전용 스타일
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --ws-sidebar-w: 60px;
+  --ws-sidebar-w-hover: 240px;
+  --ws-bg: #f5f4f0;
+  --ws-panel-bg: #fff;
+  --ws-ink: #1a1a1a;
+  --ws-text-2: #555;
+  --ws-text-3: #888;
+  --ws-line: #e5e2dc;
+  --ws-gold: #b8935a;
+  --ws-red: #c5293a;
+  --ws-blue: #3a7bc8;
+  --ws-green: #4a9b6e;
+  --ws-yellow: #f0c850;
+  --ws-radius: 8px;
+  --ws-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --ws-shadow-hover: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+/* ═══ Body & Layout ═══ */
+body.ws-body {
+  margin: 0;
+  background: var(--ws-bg);
+  font-family: 'Noto Sans KR', sans-serif;
+  color: var(--ws-ink);
+  min-height: 100vh;
+}
+
+/* ═══ Sidebar (슬림 → 호버 확장) ═══ */
+.ws-sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--ws-sidebar-w);
+  background: #1a1a1a;
+  color: #ddd;
+  z-index: 100;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+}
+.ws-sidebar:hover {
+  width: var(--ws-sidebar-w-hover);
+}
+.ws-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: var(--ws-sidebar-w-hover);
+}
+
+/* 사이드바 텍스트는 평소 숨김, 호버 시 표시 */
+.ws-sidebar .ws-nav-text,
+.ws-sidebar .ws-logo-text,
+.ws-sidebar .ws-hubs-title,
+.ws-sidebar .ws-nav-badge {
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+  white-space: nowrap;
+}
+.ws-sidebar:hover .ws-nav-text,
+.ws-sidebar:hover .ws-logo-text,
+.ws-sidebar:hover .ws-hubs-title,
+.ws-sidebar:hover .ws-nav-badge {
+  opacity: 1;
+}
+
+.ws-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #2a2a2a;
+  color: var(--ws-gold);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
+.ws-logo-icon { font-size: 20px; }
+
+.ws-sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+.ws-sidebar-nav ul,
+.ws-sidebar-hubs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ws-sidebar-nav li a,
+.ws-sidebar-hubs li a,
+.ws-sidebar-user a,
+.ws-sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 20px;
+  color: #bdbdbd;
+  text-decoration: none;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  position: relative;
+}
+.ws-sidebar-nav li a:hover,
+.ws-sidebar-hubs li a:hover,
+.ws-sidebar-user a:hover,
+.ws-sidebar-logout:hover {
+  background: #252525;
+  color: #fff;
+}
+.ws-sidebar-nav li.ws-nav-active a {
+  background: #252525;
+  color: var(--ws-gold);
+  border-left-color: var(--ws-gold);
+}
+.ws-nav-icon { font-size: 18px; flex-shrink: 0; width: 20px; text-align: center; }
+
+.ws-nav-divider {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 8px 14px;
+}
+
+.ws-nav-badge {
+  margin-left: auto;
+  background: var(--ws-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  border-radius: 9px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.ws-sidebar-hubs {
+  border-top: 1px solid #2a2a2a;
+  padding: 8px 0;
+}
+.ws-hubs-title {
+  padding: 8px 20px 4px;
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.ws-sidebar-user {
+  border-top: 1px solid #2a2a2a;
+  padding: 8px 0;
+}
+.ws-user-avatar { font-size: 18px; }
+.ws-sidebar-logout {
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+/* ═══ Main Content ═══ */
+.ws-main {
+  margin-left: var(--ws-sidebar-w);
+  padding: 0;
+  min-height: 100vh;
+  transition: margin-left 0.25s;
+}
+
+/* ═══ Topbar ═══ */
+.ws-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px;
+  background: #fff;
+  border-bottom: 1px solid var(--ws-line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.ws-topbar-left { display: flex; align-items: baseline; gap: 16px; }
+.ws-page-title {
+  margin: 0;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ws-ink);
+}
+.ws-greeting { color: var(--ws-text-2); font-size: 13px; }
+
+.ws-topbar-right { display: flex; align-items: center; gap: 8px; }
+.ws-btn-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--ws-ink);
+  color: #fff;
+  border: none;
+  border-radius: var(--ws-radius);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+.ws-btn-quick:hover { background: #2a2a2a; transform: translateY(-1px); }
+.ws-btn-task { background: var(--ws-blue); }
+.ws-btn-task:hover { background: #2c5fa0; }
+.ws-btn-event { background: var(--ws-green); }
+.ws-btn-event:hover { background: #3a7d56; }
+.ws-btn-memo { background: var(--ws-yellow); color: var(--ws-ink); }
+.ws-btn-memo:hover { background: #d9b242; }
+
+.ws-btn-refresh {
+  background: transparent;
+  border: 1px solid var(--ws-line);
+  padding: 7px 10px;
+  border-radius: var(--ws-radius);
+  cursor: pointer;
+  font-size: 14px;
+}
+.ws-btn-refresh:hover { background: var(--ws-bg); }
+
+.ws-notif-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  background: var(--ws-bg);
+  border-radius: var(--ws-radius);
+  cursor: pointer;
+  font-size: 16px;
+}
+.ws-notif-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--ws-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+/* ═══ Briefing Section ═══ */
+.ws-briefing {
+  padding: 24px 28px;
+  background: #fff;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-briefing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+.ws-briefing-header h2 {
+  margin: 0;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ws-briefing-date { color: var(--ws-text-3); font-size: 13px; }
+
+.ws-briefing-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.ws-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--ws-bg);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  text-decoration: none;
+  color: var(--ws-ink);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.ws-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ws-shadow-hover);
+  border-color: var(--ws-gold);
+}
+.ws-stat-card.ws-stat-urgent { border-color: var(--ws-red); }
+.ws-stat-icon { font-size: 24px; flex-shrink: 0; }
+.ws-stat-body { display: flex; flex-direction: column; line-height: 1.2; }
+.ws-stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ws-ink);
+  font-family: 'Inter', sans-serif;
+}
+.ws-stat-label { font-size: 11.5px; color: var(--ws-text-3); margin-top: 2px; }
+
+.ws-ai-suggestion {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fef9f0, #fff);
+  border: 1px solid var(--ws-gold);
+  border-radius: var(--ws-radius);
+  font-size: 13px;
+}
+.ws-ai-icon { margin-right: 6px; }
+.ws-ai-text { font-weight: 600; color: var(--ws-ink); }
+.ws-ai-list { margin: 8px 0 0; padding-left: 24px; color: var(--ws-text-2); }
+
+/* ═══ 2x2 Grid ═══ */
+.ws-grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px 28px;
+}
+
+.ws-panel {
+  background: var(--ws-panel-bg);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  box-shadow: var(--ws-shadow);
+}
+.ws-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ws-line);
+}
+.ws-panel-header h3 {
+  margin: 0;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.ws-panel-controls { display: flex; align-items: center; gap: 8px; }
+
+.ws-filter-select {
+  padding: 4px 8px;
+  border: 1px solid var(--ws-line);
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.ws-panel-add {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--ws-line);
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ws-text-2);
+  transition: background 0.15s, color 0.15s;
+}
+.ws-panel-add:hover { background: var(--ws-ink); color: #fff; }
+.ws-panel-badge {
+  background: var(--ws-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  border-radius: 10px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.ws-panel-body {
+  flex: 1;
+  padding: 12px 18px;
+  overflow-y: auto;
+  max-height: 400px;
+}
+.ws-panel-footer {
+  padding: 10px 18px;
+  border-top: 1px solid var(--ws-line);
+  text-align: right;
+}
+.ws-panel-more {
+  font-size: 12px;
+  color: var(--ws-blue);
+  text-decoration: none;
+}
+.ws-panel-more:hover { text-decoration: underline; }
+
+/* ═══ Task List ═══ */
+.ws-task-list,
+.ws-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ws-task-list li,
+.ws-event-list li {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0eee8;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 13px;
+}
+.ws-task-list li:hover,
+.ws-event-list li:hover { background: var(--ws-bg); }
+.ws-task-list li:last-child,
+.ws-event-list li:last-child { border-bottom: none; }
+
+.ws-task-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ws-line);
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+}
+.ws-task-checkbox.ws-checked {
+  background: var(--ws-green);
+  border-color: var(--ws-green);
+  position: relative;
+}
+.ws-task-checkbox.ws-checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 12px;
+  position: absolute;
+  top: -1px;
+  left: 2px;
+}
+
+.ws-task-content { flex: 1; min-width: 0; }
+.ws-task-title {
+  font-weight: 500;
+  color: var(--ws-ink);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+.ws-task-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--ws-text-3);
+}
+.ws-task-due {
+  color: var(--ws-text-2);
+}
+.ws-task-due.ws-overdue { color: var(--ws-red); font-weight: 600; }
+.ws-task-due.ws-today { color: var(--ws-gold); font-weight: 600; }
+
+.ws-task-priority {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ws-task-priority.ws-pri-urgent { background: #ffe5e8; color: var(--ws-red); }
+.ws-task-priority.ws-pri-high { background: #fef0d4; color: #c47e1f; }
+.ws-task-priority.ws-pri-normal { background: #e8f0fa; color: var(--ws-blue); }
+.ws-task-priority.ws-pri-low { background: #f0f0f0; color: var(--ws-text-3); }
+
+/* ═══ Event List ═══ */
+.ws-event-time {
+  width: 50px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ws-text-3);
+  padding-top: 2px;
+}
+.ws-event-time strong {
+  display: block;
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ws-event-content { flex: 1; min-width: 0; }
+.ws-event-title {
+  font-weight: 500;
+  color: var(--ws-ink);
+  margin-bottom: 3px;
+}
+.ws-event-meta { font-size: 11px; color: var(--ws-text-3); }
+.ws-event-color-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ═══ Memo Grid (Post-it 스타일) ═══ */
+.ws-memo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.ws-memo-card {
+  position: relative;
+  padding: 14px 14px 16px;
+  background: #fff8c4;
+  border-radius: 4px;
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  min-height: 90px;
+  font-size: 12.5px;
+}
+.ws-memo-card:nth-child(2n) { background: #ffd9d2; transform: rotate(-1deg); }
+.ws-memo-card:nth-child(3n) { background: #c8e8fa; transform: rotate(1deg); }
+.ws-memo-card:nth-child(4n) { background: #d4ebd0; transform: rotate(-0.5deg); }
+.ws-memo-card:hover {
+  transform: rotate(0) scale(1.03);
+  box-shadow: 4px 5px 14px rgba(0,0,0,0.12);
+  z-index: 2;
+}
+.ws-memo-card.ws-memo-pinned::before {
+  content: '📌';
+  position: absolute;
+  top: -6px;
+  right: 6px;
+  font-size: 16px;
+}
+.ws-memo-title {
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: var(--ws-ink);
+}
+.ws-memo-content {
+  color: #333;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ws-memo-date {
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(0,0,0,0.5);
+}
+
+/* ═══ Feed ═══ */
+.ws-feed {
+  padding: 20px 28px 40px;
+}
+.ws-feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.ws-feed-header h2 {
+  margin: 0;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ws-feed-controls { display: flex; align-items: center; gap: 12px; }
+.ws-feed-more {
+  font-size: 12.5px;
+  color: var(--ws-blue);
+  text-decoration: none;
+}
+
+.ws-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  overflow: hidden;
+}
+.ws-feed-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f0eee8;
+  font-size: 13px;
+}
+.ws-feed-list li:last-child { border-bottom: none; }
+.ws-feed-actor {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ws-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.ws-feed-content { flex: 1; }
+.ws-feed-text { color: var(--ws-ink); margin-bottom: 2px; }
+.ws-feed-text strong { color: var(--ws-gold); font-weight: 700; }
+.ws-feed-meta { font-size: 11px; color: var(--ws-text-3); }
+
+/* ═══ Loading & Empty ═══ */
+.ws-loading,
+.ws-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--ws-text-3);
+  font-size: 12.5px;
+}
+
+/* ═══ Toast ═══ */
+.ws-toast-root {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ws-toast {
+  background: var(--ws-ink);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: var(--ws-radius);
+  font-size: 13px;
+  box-shadow: var(--ws-shadow-hover);
+  animation: wsToastIn 0.25s ease;
+  max-width: 320px;
+}
+.ws-toast.ws-toast-error { background: var(--ws-red); }
+.ws-toast.ws-toast-success { background: var(--ws-green); }
+@keyframes wsToastIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ═══ Responsive ═══ */
+@media (max-width: 1100px) {
+  .ws-briefing-grid { grid-template-columns: repeat(3, 1fr); }
+  .ws-btn-label { display: none; }
+}
+
+@media (max-width: 900px) {
+  .ws-grid-2x2 { grid-template-columns: 1fr; }
+  .ws-memo-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .ws-sidebar { width: 0; }
+  .ws-sidebar:hover { width: var(--ws-sidebar-w-hover); }
+  .ws-main { margin-left: 0; }
+  .ws-briefing-grid { grid-template-columns: repeat(2, 1fr); }
+  .ws-memo-grid { grid-template-columns: 1fr; }
+  .ws-topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .ws-grid-2x2 { padding: 16px; }
+  .ws-feed { padding: 16px 16px 30px; }
+  .ws-briefing { padding: 16px; }
+}
