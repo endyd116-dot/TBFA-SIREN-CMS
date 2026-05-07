@@ -1468,27 +1468,46 @@ export type NewCardExpiryAlert = typeof cardExpiryAlerts.$inferInsert;
 // 1. WBS 작업
 export const workspaceTasks = pgTable("workspace_tasks", {
   id: serial("id").primaryKey(),
-  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(), // 소유자(실행자)
   title: varchar("title", { length: 300 }).notNull(),
   description: text("description"),
   status: varchar("status", { length: 20 }).default("todo").notNull(),       // todo | doing | done | blocked
   priority: varchar("priority", { length: 20 }).default("normal").notNull(), // low | normal | high | urgent
   dueDate: timestamp("due_date").notNull(),                                  // ★ 필수
   assignedBy: integer("assigned_by").references(() => members.id, { onDelete: "set null" }),
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }), // ⭐ 지시 대상
   assignedAt: timestamp("assigned_at"),
   parentTaskId: integer("parent_task_id"),
   tags: jsonb("tags").default(sql`'[]'::jsonb`),
   sortOrder: integer("sort_order").default(0),
+  progress: integer("progress").default(0).notNull(),                        // ⭐ 0~100
   completedAt: timestamp("completed_at"),
   completedBy: integer("completed_by").references(() => members.id, { onDelete: "set null" }),
+  // ⭐ 외부 리소스 연결 (AI 에이전트 맥락 추적)
+  sourceType: varchar("source_type", { length: 30 }),                        // 'incident' | 'donation' | 'support' | 'campaign' | 'member' | 'manual' | 'recurring' | 'ai_agent'
+  sourceId: integer("source_id"),
+  sourceRefUrl: varchar("source_ref_url", { length: 500 }),
+  // ⭐ 체크리스트 + 첨부
+  checklistItems: jsonb("checklist_items").default(sql`'[]'::jsonb`),        // [{id, text, done, doneAt}]
+  attachments: jsonb("attachments").default(sql`'[]'::jsonb`),                // R2 파일 ID 배열
+  // ⭐ 리마인더 (Agent-8)
+  reminderConfig: jsonb("reminder_config").default(sql`'{}'::jsonb`),        // { before: ['3d','1d','2h'], channels: ['email','bell'] }
+  remindersSentAt: jsonb("reminders_sent_at").default(sql`'[]'::jsonb`),     // ['3d','1d']
+  // ⭐ 반복 task
+  recurringParentId: integer("recurring_parent_id"),
+  // ⭐ AI 생성 식별
+  createdByAgent: varchar("created_by_agent", { length: 20 }),               // 'user' | 'agent-1' | 'agent-8' ...
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("workspace_tasks_member_idx").on(t.memberId),
+  assignedToIdx: index("workspace_tasks_assigned_to_idx").on(t.assignedTo),
   statusIdx: index("workspace_tasks_status_idx").on(t.status),
   dueIdx: index("workspace_tasks_due_idx").on(t.dueDate),
   assignedByIdx: index("workspace_tasks_assigned_by_idx").on(t.assignedBy),
   parentIdx: index("workspace_tasks_parent_idx").on(t.parentTaskId),
+  sourceIdx: index("workspace_tasks_source_idx").on(t.sourceType, t.sourceId),
+  recurringIdx: index("workspace_tasks_recurring_idx").on(t.recurringParentId),
 }));
 
 // 2. 개인 메모
@@ -1500,6 +1519,10 @@ export const workspaceMemos = pgTable("workspace_memos", {
   color: varchar("color", { length: 20 }).default("yellow").notNull(),
   isPinned: boolean("is_pinned").default(false).notNull(),
   sortOrder: integer("sort_order").default(0),
+  // ⭐ 메모 연결 (task/event와 연결 시)
+  relatedTaskId: integer("related_task_id"),
+  relatedEventId: integer("related_event_id"),
+  attachments: jsonb("attachments").default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -1518,14 +1541,30 @@ export const workspaceEvents = pgTable("workspace_events", {
   allDay: boolean("all_day").default(false).notNull(),
   color: varchar("color", { length: 20 }).default("blue").notNull(),
   description: text("description"),
-  attendees: jsonb("attendees").default(sql`'[]'::jsonb`),
+  attendees: jsonb("attendees").default(sql`'[]'::jsonb`),                   // [{memberId, status, respondedAt}]
   externalRef: varchar("external_ref", { length: 200 }),
+  // ⭐ 이벤트 분류
+  eventType: varchar("event_type", { length: 30 }).default("general").notNull(),
+    // 'general' | 'meeting' | 'board_meeting' | 'counseling' | 'deadline' | 'recurring'
+  // ⭐ 외부 리소스 연결
+  sourceType: varchar("source_type", { length: 30 }),
+  sourceId: integer("source_id"),
+  // ⭐ 반복 규칙 (RRULE)
+  recurringRule: varchar("recurring_rule", { length: 200 }),                 // "FREQ=MONTHLY;BYMONTHDAY=15"
+  recurringParentId: integer("recurring_parent_id"),
+  // ⭐ 리마인더
+  reminderConfig: jsonb("reminder_config").default(sql`'{}'::jsonb`),
+  remindersSentAt: jsonb("reminders_sent_at").default(sql`'[]'::jsonb`),
+  // ⭐ AI 생성 식별
+  createdByAgent: varchar("created_by_agent", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("workspace_events_member_idx").on(t.memberId),
   startIdx: index("workspace_events_start_idx").on(t.startAt),
   rangeIdx: index("workspace_events_range_idx").on(t.startAt, t.endAt),
+  typeIdx: index("workspace_events_type_idx").on(t.eventType),
+  sourceIdx: index("workspace_events_source_idx").on(t.sourceType, t.sourceId),
 }));
 
 // 4. 마감일 변경 요청
@@ -1556,6 +1595,14 @@ export const dailyBriefings = pgTable("daily_briefings", {
   todayDueCount: integer("today_due_count").default(0).notNull(),
   tomorrowDueCount: integer("tomorrow_due_count").default(0).notNull(),
   newAssignments: integer("new_assignments").default(0).notNull(),
+  // ⭐ 풍부한 인사이트 (Agent-8)
+  overdueCount: integer("overdue_count").default(0).notNull(),
+  inProgressCount: integer("in_progress_count").default(0).notNull(),
+  completedYesterdayCount: integer("completed_yesterday_count").default(0).notNull(),
+  todayEventsCount: integer("today_events_count").default(0).notNull(),
+  riskAlerts: jsonb("risk_alerts").default(sql`'[]'::jsonb`),               // [{type, taskId, message, severity}]
+  aiSuggestions: jsonb("ai_suggestions").default(sql`'[]'::jsonb`),         // Agent-8이 제안하는 오늘의 우선순위
+  readAt: timestamp("read_at"),
   summaryMd: text("summary_md"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
@@ -1572,4 +1619,58 @@ export type TaskDueChangeRequest = typeof taskDueChangeRequests.$inferSelect;
 export type NewTaskDueChangeRequest = typeof taskDueChangeRequests.$inferInsert;
 export type DailyBriefing = typeof dailyBriefings.$inferSelect;
 export type NewDailyBriefing = typeof dailyBriefings.$inferInsert;
+
+// ═══════════════════════════════════════════════════════
+// Phase 3 Step 1.5 — 워크스페이스 고도화 (옵션 A)
+// ═══════════════════════════════════════════════════════
+
+// 6. 리마인더 발송 기록 (Agent-8 작동 근거)
+export const workspaceNotifications = pgTable("workspace_notifications", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  sourceType: varchar("source_type", { length: 20 }).notNull(),  // 'task' | 'event' | 'due_change' | 'briefing'
+  sourceId: integer("source_id").notNull(),
+  notifType: varchar("notif_type", { length: 30 }).notNull(),
+    // 'reminder_3d' | 'reminder_1d' | 'reminder_2h' | 'overdue' | 'assigned' | 'approved' | 'rejected'
+  channel: varchar("channel", { length: 20 }).notNull(),         // 'bell' | 'email' | 'sms' | 'kakao'
+  title: varchar("title", { length: 300 }).notNull(),
+  body: text("body"),
+  actionUrl: varchar("action_url", { length: 500 }),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  readAt: timestamp("read_at"),
+  deliveryStatus: varchar("delivery_status", { length: 20 }).default("sent").notNull(),
+    // 'sent' | 'delivered' | 'failed'
+  errorMessage: text("error_message"),
+}, (t) => ({
+  memberIdx: index("ws_notifs_member_idx").on(t.memberId, t.readAt),
+  sourceIdx: index("ws_notifs_source_idx").on(t.sourceType, t.sourceId),
+  typeIdx: index("ws_notifs_type_idx").on(t.notifType),
+}));
+
+export type WorkspaceNotification = typeof workspaceNotifications.$inferSelect;
+export type NewWorkspaceNotification = typeof workspaceNotifications.$inferInsert;
+
+// 7. 팀 활동 피드 (Activity Log — Agent-9 감사 근거)
+export const workspaceActivityLog = pgTable("workspace_activity_log", {
+  id: serial("id").primaryKey(),
+  actorId: integer("actor_id").references(() => members.id, { onDelete: "set null" }),
+  actorName: varchar("actor_name", { length: 100 }),              // 삭제돼도 유지
+  actionType: varchar("action_type", { length: 40 }).notNull(),
+    // 'task.create' | 'task.complete' | 'task.assign' | 'event.create' | 'due.request' | 'due.approve' ...
+  targetType: varchar("target_type", { length: 20 }),             // 'task' | 'event' | 'memo'
+  targetId: integer("target_id"),
+  targetTitle: varchar("target_title", { length: 300 }),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  visibility: varchar("visibility", { length: 20 }).default("team").notNull(),
+    // 'private' | 'team' | 'public'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  actorIdx: index("ws_activity_actor_idx").on(t.actorId, t.createdAt),
+  targetIdx: index("ws_activity_target_idx").on(t.targetType, t.targetId),
+  typeIdx: index("ws_activity_type_idx").on(t.actionType),
+  dateIdx: index("ws_activity_date_idx").on(t.createdAt),
+}));
+
+export type WorkspaceActivityLog = typeof workspaceActivityLog.$inferSelect;
+export type NewWorkspaceActivityLog = typeof workspaceActivityLog.$inferInsert;
 
