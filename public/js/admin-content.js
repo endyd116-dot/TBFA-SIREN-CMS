@@ -217,6 +217,10 @@
     const tbody = document.getElementById('apTbody');
     if (!tbody) return;
 
+    /* ★ C안 Step 3-B: AI 활동보고서 요약 카드 로드 (병렬) */
+    loadActivityReportSummary().catch((e) => console.error('[ar-summary]', e));
+
+
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     const params = new URLSearchParams({ limit: '50', page: '1' });
@@ -263,6 +267,79 @@
     const years = [...new Set(list.map((p) => p.year))].sort((a, b) => b - a);
     populateYearSelect(years);
   }
+
+  /* ★ C안 Step 3-B: AI 활동보고서 요약 카드 로드 */
+  async function loadActivityReportSummary() {
+    const listEl = document.getElementById('arSummaryList');
+    if (!listEl) return;
+
+    try {
+      const res = await api('/api/admin/activity-report-ai?list=1&limit=3');
+      if (!res.ok || !res.data?.list) {
+        listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">불러오지 못했습니다</div>';
+        return;
+      }
+
+      const list = res.data.list || [];
+      if (list.length === 0) {
+        listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">아직 생성된 보고서가 없습니다. 상단 "🤖 AI 보고서 생성" 버튼으로 시작하세요.</div>';
+        return;
+      }
+
+      const fmtPeriod = (y, m) => {
+        if (!y) return '';
+        if (!m) return `${y}년 연간`;
+        if (m >= 1 && m <= 3) return `${y}년 1분기`;
+        if (m >= 4 && m <= 6) return `${y}년 2분기`;
+        if (m >= 7 && m <= 9) return `${y}년 3분기`;
+        if (m >= 10 && m <= 12) return `${y}년 4분기`;
+        return `${y}년 ${m}월`;
+      };
+      const fmtDate = (s) => {
+        if (!s) return '';
+        try {
+          const d = new Date(s);
+          return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        } catch { return s; }
+      };
+
+      listEl.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${list.map((p) => {
+            const badge = p.isPublished
+              ? '<span style="background:#e8f5e9;color:#1a8b46;padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">📢 발행</span>'
+              : '<span style="background:#f5f5f5;color:var(--text-3);padding:1px 7px;border-radius:3px;font-size:10.5px;font-weight:600">📝 비공개</span>';
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;background:#fff;border-radius:4px">
+                <div style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  <span style="color:var(--text-3);margin-right:6px">${escapeHtml(fmtPeriod(p.year, p.month))}</span>
+                  <span style="font-weight:600">${escapeHtml(p.title || '제목 없음')}</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                  ${badge}
+                  <span style="font-size:10.5px;color:var(--text-3);font-family:Inter">${fmtDate(p.createdAt)}</span>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    } catch (e) {
+      console.error('[ar-summary] load failed', e);
+      listEl.innerHTML = '<div style="font-size:11.5px;color:var(--danger);text-align:center;padding:8px 0">오류: ' + escapeHtml(e.message || '') + '</div>';
+    }
+  }
+
+  /* ★ C안 Step 3-B: "전체 보기" 버튼 → 사이드바 메뉴 전환 */
+  document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'arGoToFullBtn' || (e.target.closest && e.target.closest('#arGoToFullBtn')))) {
+      e.preventDefault();
+      const menuLink = document.querySelector('[data-page="activity-report"]');
+      if (menuLink) {
+        menuLink.click();
+      } else {
+        console.warn('[ar-summary] AI 활동보고서 메뉴 링크를 찾지 못함');
+      }
+    }
+  });
 
   function populateYearSelect(years) {
     const sel = document.getElementById('apFilterYear');
