@@ -168,11 +168,12 @@
       const target = tab.dataset.ictab;
       document.querySelectorAll('#adm-siren-incidents .ct-tab[data-ictab]').forEach(t => t.classList.remove('on'));
       tab.classList.add('on');
-      document.querySelectorAll('#adm-siren-incidents .ic-tab-pane').forEach(p => {
+      /* ★ 7번 수정: 부모 ID 셀렉터 제거 + setProperty로 important 덮기 */
+      document.querySelectorAll('.ic-tab-pane[data-ictab-pane]').forEach(p => {
         if (p.dataset.ictabPane === target) {
-          p.style.display = 'block';
+          p.style.setProperty('display', 'block', 'important');
         } else {
-          p.style.display = 'none';
+          p.style.setProperty('display', 'none', 'important');
         }
       });
       console.log('[B-3] 탭 전환:', target);
