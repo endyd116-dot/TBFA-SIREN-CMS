@@ -128,6 +128,11 @@
         .ar-preview-modal .ar-preview-head h3 { margin:0; font-size:15px; font-weight:700; }
         .ar-preview-modal .ar-preview-head .close { background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-3); padding:0 6px; }
         .ar-preview-modal .ar-preview-body { padding:24px 28px; overflow-y:auto; flex:1; }
+        .ar-preview-modal .ar-preview-foot { padding:12px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px; background:#fafafa; }
+        .ar-preview-modal .ar-btn-print { background:var(--brand, #8b2942); color:#fff; border:none; padding:9px 18px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+        .ar-preview-modal .ar-btn-print:hover { background:#6b1f34; }
+        .ar-preview-modal .ar-btn-close { background:#fff; color:var(--text-2); border:1px solid var(--line); padding:9px 18px; border-radius:6px; font-size:13px; cursor:pointer; }
+        .ar-preview-modal .ar-btn-close:hover { background:#f5f5f5; }
         .ar-preview-modal .ar-preview-body h1, .ar-preview-modal .ar-preview-body h2, .ar-preview-modal .ar-preview-body h3 { font-family:'Noto Serif KR', serif; }
 
         /* 제목 수정 모달 */
@@ -171,11 +176,19 @@
       <!-- 미리보기 모달 -->
       <div class="ar-preview-modal" id="arPreviewModal">
         <div class="ar-preview-box">
-          <div class="ar-preview-head">
+          <div class="ar-preview-head no-print">
             <h3 id="arPreviewTitle">미리보기</h3>
             <button class="close" type="button" data-close-preview>&times;</button>
           </div>
-          <div class="ar-preview-body" id="arPreviewBody"></div>
+          <div class="ar-preview-body activity-report-body" id="arPreviewBody"></div>
+          <div class="ar-preview-foot no-print">
+            <button type="button" class="ar-btn-print" data-print-preview>
+              🖨 인쇄 / PDF 저장
+            </button>
+            <button type="button" class="ar-btn-close" data-close-preview>
+              닫기
+            </button>
+          </div>
         </div>
       </div>
 
@@ -594,6 +607,13 @@
         else if (action === 'edit-title') openEditTitleModal(id, actionBtn.dataset.title || '');
         else if (action === 'edit-body') openBodyEditModal(id, actionBtn.dataset.title || '');
         else if (action === 'delete') deleteReport(id, actionBtn.dataset.title || '');
+        return;
+      }
+
+      /* ★ 미리보기 인쇄 버튼 */
+      if (e.target.matches('[data-print-preview]') || e.target.closest('[data-print-preview]')) {
+        e.preventDefault();
+        try { window.print(); } catch (err) { console.error('[activity-report] print failed', err); }
         return;
       }
 
