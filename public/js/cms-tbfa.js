@@ -1741,3 +1741,367 @@ function setupTossBilling() {
   document.getElementById('tbLogsStatus')?.addEventListener('change', () => { tbLogsPage = 1; loadTbLogs(); });
   document.getElementById('tbLogsAttemptType')?.addEventListener('change', () => { tbLogsPage = 1; loadTbLogs(); });
 }
+
+/* ============================================================
+   ★ Phase 2: 토스 빌링 자동 청구 관리
+   ============================================================ */
+
+let tbKeysPage = 1;
+let tbLogsPage = 1;
+
+function switchTbTab(target) {
+  document.querySelectorAll('.tb-tab').forEach(t => {
+    const on = t.dataset.tbTab === target;
+    t.classList.toggle('on', on);
+    t.style.borderBottom = on ? '3px solid #3c7c42' : '3px solid transparent';
+    t.style.fontWeight = on ? '600' : 'normal';
+  });
+  document.querySelectorAll('.tb-pane').forEach(p => {
+    p.style.display = p.dataset.tbPane === target ? 'block' : 'none';
+  });
+
+  if (target === 'keys') loadTbKeys();
+  else if (target === 'logs') loadTbLogs();
+  else if (target === 'schedule') loadTbSchedule();
+}
+
+/* ────────── 탭 1: 빌링키 관리 ────────── */
+
+async function loadTbKeysStats() {
+  try {
+    const res = await api('/api/admin/billing-keys?stats=1');
+    const d = res?.data || res;
+    const fmt = n => (n || 0).toLocaleString();
+    setText('tbStatTotal', fmt(d.totalCount));
+    setText('tbStatActive', fmt(d.activeCount));
+    setText('tbStatRisky', fmt(d.riskyCount));
+    setText('tbStatMonthly', fmt(d.monthlyTotal) + '원');
+  } catch (e) { console.warn('[tb] stats', e); }
+}
+
+async function loadTbKeys() {
+  await loadTbKeysStats();
+  try {
+    const search = (document.getElementById('tbKeysSearch')?.value || '').trim();
+    const status = document.getElementById('tbKeysStatus')?.value || '';
+    const params = new URLSearchParams({ list: '1', page: String(tbKeysPage), pageSize: '50' });
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+
+    const res = await api('/api/admin/billing-keys?' + params.toString());
+    const data = res?.data || res;
+    const rows = data.list || [];
+    const tbody = document.getElementById('tbKeysBody');
+    if (!tbody) return;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:#999">조회된 빌링키가 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const statusBadge = r.isActive
+        ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">활성</span>'
+        : '<span style="padding:2px 8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px">해지</span>';
+      const failBadge = (r.consecutiveFailCount || 0) > 0
+        ? `<span style="color:#c62828;font-weight:600">${r.consecutiveFailCount}회</span>`
+        : '<span style="color:#999">-</span>';
+      const nextCharge = r.nextBillingDate ? new Date(r.nextBillingDate).toLocaleDateString('ko-KR') : '-';
+      const expiryDisplay = r.cardExpiryMonth || '<span style="color:#c62828">미입력</span>';
+      const toggleBtn = r.isActive
+        ? `<button class="cms-btn" onclick="tbToggleKeyActive(${r.id}, false)" style="background:#d32f2f;color:#fff;padding:4px 8px;font-size:12px">해지</button>`
+        : `<button class="cms-btn" onclick="tbToggleKeyActive(${r.id}, true)" style="background:#2e7d32;color:#fff;padding:4px 8px;font-size:12px">재활성</button>`;
+
+      return `<tr>
+        <td>${r.id}</td>
+        <td><strong>${escapeHtml(r.memberName || '-')}</strong><br /><span style="color:#888;font-size:12px">${escapeHtml(r.memberEmail || '')}</span></td>
+        <td>${escapeHtml(r.cardCompany || '-')}<br /><span style="color:#888;font-size:12px">${escapeHtml(r.cardNumberMasked || '')}</span></td>
+        <td>${expiryDisplay} <a href="#" onclick="tbEditExpiryMonth(${r.id}, '${r.cardExpiryMonth || ''}'); return false" style="font-size:11px;color:#1976d2">✏️</a></td>
+        <td>${r.billingDay || '-'}일</td>
+        <td>${nextCharge}</td>
+        <td style="text-align:right">${(r.amount || 0).toLocaleString()}원</td>
+        <td>${statusBadge}</td>
+        <td style="text-align:center">${failBadge}</td>
+        <td>${toggleBtn} <button class="cms-btn" onclick="tbManualCharge(${r.memberId}, '${escapeHtml(r.memberName || '')}')" style="padding:4px 8px;font-size:12px">즉시청구</button></td>
+      </tr>`;
+    }).join('');
+
+    renderTbPagination('tbKeysPagination', data.page, data.pageSize, data.total, (p) => { tbKeysPage = p; loadTbKeys(); });
+  } catch (e) {
+    console.error('[tb] loadTbKeys', e);
+    alert('빌링키 조회 실패: ' + (e?.message || e));
+  }
+}
+
+async function tbToggleKeyActive(id, newActive) {
+  const reason = newActive ? null : (prompt('해지 사유를 입력하세요:', '관리자 수동 해지') || '관리자 수동 해지');
+  if (!newActive && reason === null) return;
+  try {
+    const res = await api('/api/admin/billing-keys', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, isActive: newActive, deactivatedReason: reason })
+    });
+    alert(newActive ? '빌링키가 재활성화되었습니다' : '빌링키가 해지되었습니다');
+    loadTbKeys();
+  } catch (e) {
+    alert('변경 실패: ' + (e?.message || e));
+  }
+}
+
+async function tbEditExpiryMonth(id, current) {
+  const newVal = prompt('카드 만료월 (YYMM 형식, 예: 2712):', current || '');
+  if (newVal === null) return;
+  const v = newVal.trim();
+  if (v && !/^\d{4}$/.test(v)) {
+    alert('YYMM 4자리 형식으로 입력하세요 (예: 2712)');
+    return;
+  }
+  try {
+    await api('/api/admin/billing-keys', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, cardExpiryMonth: v || null })
+    });
+    alert('만료월이 저장되었습니다');
+    loadTbKeys();
+  } catch (e) {
+    alert('저장 실패: ' + (e?.message || e));
+  }
+}
+
+async function tbManualCharge(memberId, memberName) {
+  if (!confirm(`${memberName}님에게 즉시 청구를 예약하시겠습니까?\n(다음 cron 실행 시 자동 처리됩니다)`)) return;
+  try {
+    await api('/api/admin/billing-logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'manual_charge', memberId })
+    });
+    alert('즉시 청구가 예약되었습니다. 다음 cron 실행 시 자동 처리됩니다.');
+    loadTbKeys();
+  } catch (e) {
+    alert('예약 실패: ' + (e?.message || e));
+  }
+}
+
+/* ────────── 탭 2: 빌링 이력 ────────── */
+
+async function loadTbLogsStats() {
+  try {
+    const res = await api('/api/admin/billing-logs?stats=1&days=30');
+    const d = res?.data || res;
+    setText('tbLogsTotal', (d.total || 0).toLocaleString() + '건');
+    setText('tbLogsRate', (d.successRate || 0) + '%');
+    setText('tbLogsFailed', (d.failedCount || 0).toLocaleString() + '건');
+    setText('tbLogsAmount', (d.totalAmount || 0).toLocaleString() + '원');
+
+    const top = document.getElementById('tbLogsTopErrorsList');
+    if (top) {
+      if (!d.topErrors || d.topErrors.length === 0) {
+        top.innerHTML = '<span style="color:#2e7d32">최근 30일 실패 없음 ✅</span>';
+      } else {
+        top.innerHTML = d.topErrors.map((e, i) =>
+          `${i + 1}. <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px">${escapeHtml(e.code)}</code> — <strong>${e.count}건</strong>`
+        ).join('<br />');
+      }
+    }
+  } catch (e) { console.warn('[tb] logs stats', e); }
+}
+
+async function loadTbLogs() {
+  await loadTbLogsStats();
+  try {
+    const status = document.getElementById('tbLogsStatus')?.value || '';
+    const attemptType = document.getElementById('tbLogsAttemptType')?.value || '';
+    const params = new URLSearchParams({ list: '1', page: String(tbLogsPage), pageSize: '50' });
+    if (status) params.set('status', status);
+    if (attemptType) params.set('attemptType', attemptType);
+
+    const res = await api('/api/admin/billing-logs?' + params.toString());
+    const data = res?.data || res;
+    const rows = data.list || [];
+    const tbody = document.getElementById('tbLogsBody');
+    if (!tbody) return;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#999">조회된 로그가 없습니다</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const dt = r.requestedAt ? new Date(r.requestedAt).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+      const statusBadge = r.status === 'success'
+        ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">✓ 성공</span>'
+        : r.status === 'failed'
+          ? '<span style="padding:2px 8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px">✗ 실패</span>'
+          : '<span style="padding:2px 8px;background:#fff3e0;color:#e65100;border-radius:4px;font-size:12px">⏳ 대기</span>';
+      const typeLabel = { scheduled: '정기', retry: '재시도', manual: '수동' }[r.attemptType] || r.attemptType;
+      const errorCell = r.status === 'failed' && r.tossResponseCode
+        ? `<code style="background:#ffebee;padding:2px 6px;border-radius:3px;font-size:11px">${escapeHtml(r.tossResponseCode)}</code><br /><span style="color:#888;font-size:11px">${escapeHtml((r.tossResponseMessage || '').slice(0, 50))}</span>`
+        : '-';
+      const retryBtn = (r.status === 'failed' && (r.attemptNumber || 1) < 3)
+        ? `<button class="cms-btn" onclick="tbRetryLog(${r.id})" style="padding:4px 8px;font-size:12px;background:#1976d2;color:#fff">재시도</button>`
+        : '-';
+
+      return `<tr>
+        <td>${r.id}</td>
+        <td style="font-size:12px">${dt}</td>
+        <td>${escapeHtml(r.memberName || '-')}<br /><span style="color:#888;font-size:11px">${escapeHtml(r.memberEmail || '')}</span></td>
+        <td>${typeLabel}</td>
+        <td style="text-align:center">${r.attemptNumber}</td>
+        <td style="text-align:right">${(r.amount || 0).toLocaleString()}원</td>
+        <td>${statusBadge}</td>
+        <td>${errorCell}</td>
+        <td>${retryBtn}</td>
+      </tr>`;
+    }).join('');
+
+    renderTbPagination('tbLogsPagination', data.page, data.pageSize, data.total, (p) => { tbLogsPage = p; loadTbLogs(); });
+  } catch (e) {
+    console.error('[tb] loadTbLogs', e);
+    alert('로그 조회 실패: ' + (e?.message || e));
+  }
+}
+
+async function tbRetryLog(logId) {
+  if (!confirm('이 실패 건을 재시도 하시겠습니까? (다음 cron 실행 시 처리됩니다)')) return;
+  try {
+    await api('/api/admin/billing-logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'retry', logId })
+    });
+    alert('재시도가 예약되었습니다');
+    loadTbLogs();
+  } catch (e) {
+    alert('재시도 실패: ' + (e?.message || e));
+  }
+}
+
+/* ────────── 탭 3: 스케줄 & 만료 ────────── */
+
+async function loadTbSchedule() {
+  const upcomingEl = document.getElementById('tbScheduleUpcoming');
+  const expiringEl = document.getElementById('tbScheduleExpiring');
+  if (upcomingEl) upcomingEl.innerHTML = '조회 중…';
+  if (expiringEl) expiringEl.innerHTML = '조회 중…';
+
+  try {
+    // 다음 30일 청구 예정 = billing_keys list 중 nextBillingDate 기준 정렬
+    const res = await api('/api/admin/billing-keys?list=1&pageSize=200&status=active');
+    const data = res?.data || res;
+    const rows = (data.list || []).filter(r => r.nextBillingDate);
+
+    // 30일 이내 필터링
+    const now = new Date();
+    const in30 = new Date(now);
+    in30.setDate(in30.getDate() + 30);
+    const upcoming = rows.filter(r => {
+      const d = new Date(r.nextBillingDate);
+      return d >= now && d <= in30;
+    }).sort((a, b) => new Date(a.nextBillingDate) - new Date(b.nextBillingDate));
+
+    if (upcomingEl) {
+      if (upcoming.length === 0) {
+        upcomingEl.innerHTML = '<span style="color:#999">30일 이내 청구 예정자가 없습니다</span>';
+      } else {
+        upcomingEl.innerHTML = '<div style="max-height:400px;overflow-y:auto">' +
+          upcoming.slice(0, 50).map(r => `
+            <div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong>${escapeHtml(r.memberName || '-')}</strong>
+                <span style="color:#888;font-size:12px">${new Date(r.nextBillingDate).toLocaleDateString('ko-KR')}</span>
+              </div>
+              <span style="color:#2e7d32;font-weight:600">${(r.amount || 0).toLocaleString()}원</span>
+            </div>
+          `).join('') +
+          (upcoming.length > 50 ? `<div style="padding:8px;text-align:center;color:#888;font-size:12px">... 외 ${upcoming.length - 50}명</div>` : '') +
+          '</div>';
+      }
+    }
+
+    // 만료 예정/만료됨 = cardExpiryMonth 기준
+    const currentYY = String(now.getFullYear()).slice(2);
+    const currentMM = String(now.getMonth() + 1).padStart(2, '0');
+    const currentYYMM = `${currentYY}${currentMM}`;
+    const in30YY = String(in30.getFullYear()).slice(2);
+    const in30MM = String(in30.getMonth() + 1).padStart(2, '0');
+    const in30YYMM = `${in30YY}${in30MM}`;
+
+    const expiring = rows.filter(r => {
+      if (!r.cardExpiryMonth || r.cardExpiryMonth.length !== 4) return false;
+      return r.cardExpiryMonth <= in30YYMM;
+    }).sort((a, b) => (a.cardExpiryMonth || '').localeCompare(b.cardExpiryMonth || ''));
+
+    if (expiringEl) {
+      if (expiring.length === 0) {
+        expiringEl.innerHTML = '<span style="color:#2e7d32">30일 이내 만료 예정 카드 없음 ✅</span>';
+      } else {
+        expiringEl.innerHTML = '<div style="max-height:400px;overflow-y:auto">' +
+          expiring.map(r => {
+            const isExpired = r.cardExpiryMonth < currentYYMM;
+            const badge = isExpired
+              ? '<span style="padding:2px 6px;background:#ffebee;color:#c62828;border-radius:3px;font-size:11px">만료됨</span>'
+              : '<span style="padding:2px 6px;background:#fff3e0;color:#e65100;border-radius:3px;font-size:11px">예정</span>';
+            const yy = r.cardExpiryMonth.slice(0, 2);
+            const mm = r.cardExpiryMonth.slice(2);
+            return `
+              <div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <strong>${escapeHtml(r.memberName || '-')}</strong> ${badge}
+                  <br /><span style="color:#888;font-size:12px">${escapeHtml(r.cardCompany || '')} ${escapeHtml(r.cardNumberMasked || '')} · 20${yy}년 ${mm}월</span>
+                </div>
+              </div>
+            `;
+          }).join('') + '</div>';
+      }
+    }
+  } catch (e) {
+    console.error('[tb] schedule', e);
+    if (upcomingEl) upcomingEl.innerHTML = '<span style="color:#c62828">조회 실패</span>';
+    if (expiringEl) expiringEl.innerHTML = '<span style="color:#c62828">조회 실패</span>';
+  }
+}
+
+/* ────────── 공통 헬퍼 ────────── */
+
+function renderTbPagination(containerId, page, pageSize, total, onClick) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+  const prev = page > 1 ? `<button class="cms-btn" data-tb-page="${page - 1}">← 이전</button>` : '';
+  const next = page < totalPages ? `<button class="cms-btn" data-tb-page="${page + 1}">다음 →</button>` : '';
+  const info = `<span style="align-self:center;color:#666">${page} / ${totalPages} (총 ${total.toLocaleString()}건)</span>`;
+  el.innerHTML = prev + info + next;
+  el.querySelectorAll('[data-tb-page]').forEach(b => {
+    b.addEventListener('click', () => onClick(Number(b.dataset.tbPage)));
+  });
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function setupTossBilling() {
+  document.querySelectorAll('.tb-tab').forEach(t => {
+    t.addEventListener('click', () => switchTbTab(t.dataset.tbTab));
+  });
+  document.getElementById('tbKeysRefresh')?.addEventListener('click', () => { tbKeysPage = 1; loadTbKeys(); });
+  document.getElementById('tbKeysSearch')?.addEventListener('input', () => {
+    clearTimeout(window._tbKeysSearchTimer);
+    window._tbKeysSearchTimer = setTimeout(() => { tbKeysPage = 1; loadTbKeys(); }, 400);
+  });
+  document.getElementById('tbKeysStatus')?.addEventListener('change', () => { tbKeysPage = 1; loadTbKeys(); });
+
+  document.getElementById('tbLogsRefresh')?.addEventListener('click', () => { tbLogsPage = 1; loadTbLogs(); });
+  document.getElementById('tbLogsStatus')?.addEventListener('change', () => { tbLogsPage = 1; loadTbLogs(); });
+  document.getElementById('tbLogsAttemptType')?.addEventListener('change', () => { tbLogsPage = 1; loadTbLogs(); });
+}
