@@ -12,13 +12,13 @@ import {
 } from "../../db/schema";
 import { eq, sql, and, desc } from "drizzle-orm";
 import { authenticateAdmin } from "../../lib/auth";
-import { success, fail } from "../../lib/response";
+import { ok, badRequest, unauthorized, methodNotAllowed, serverError } from "../../lib/response";
 import { parseContractsCsv } from "../../lib/hyosung-parser";
 import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
   const auth = authenticateAdmin(req);
-  if (!auth.ok) return fail("UNAUTHORIZED", 401);
+  if (!auth.ok) return unauthorized();
 
   const url = new URL(req.url);
 
@@ -98,13 +98,13 @@ export default async (req: Request, ctx: Context) => {
         linkedMemberName: r.linkedMemberId ? memberNameMap[r.linkedMemberId] || null : null,
       }));
 
-      return success({
+      return ok({
         list: enriched,
         pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
       });
     } catch (err: any) {
       console.error("[hyosung-contracts GET]", err);
-      return fail("LIST_FAILED", 500, { detail: String(err?.message || err) });
+      return serverError("계약 목록 조회 실패", err);
     }
   }
 
@@ -116,13 +116,13 @@ export default async (req: Request, ctx: Context) => {
       const dryRun: boolean = !!body.dryRun;
 
       if (!csvText || csvText.length < 10) {
-        return fail("CSV_EMPTY", 400);
+        return badRequest("CSV가 비어있습니다");
       }
 
       /* 1. 파싱 */
       const parsed = parseContractsCsv(csvText);
       if (parsed.rows.length === 0) {
-        return fail("PARSE_FAILED", 400, {
+        return badRequest("CSV 파싱 실패", {
           errors: parsed.errors,
           totalCount: parsed.totalCount,
         });
@@ -156,7 +156,7 @@ export default async (req: Request, ctx: Context) => {
             report.unlinked++;
           }
         }
-        return success({ ...report, rowsPreview: parsed.rows.slice(0, 5) });
+        return ok({ ...report, rowsPreview: parsed.rows.slice(0, 5) });
       }
 
       /* 2. 실제 Import (트랜잭션 없이 row별 처리 - Netlify Functions 환경) */
@@ -295,14 +295,14 @@ export default async (req: Request, ctx: Context) => {
         success: true,
       });
 
-      return success(report);
+      return ok(report);
     } catch (err: any) {
       console.error("[hyosung-contracts POST]", err);
-      return fail("IMPORT_FAILED", 500, { detail: String(err?.message || err) });
+      return serverError("Import 실패", err);
     }
   }
 
-  return fail("METHOD_NOT_ALLOWED", 405);
+  return methodNotAllowed();
 };
 
 export const config = {
