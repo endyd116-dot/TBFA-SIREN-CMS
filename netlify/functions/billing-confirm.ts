@@ -187,6 +187,10 @@ export default async (req: Request) => {
     const cardCompany: string = cardInfo.company || cardInfo.issuerCode || "카드";
     const cardNumberMasked: string = cardInfo.number || "****-****-****-****";
     const cardType: string = cardInfo.cardType === "체크" ? "체크" : "신용";
+    // ★ Phase 2 Step 4-B: 토스 응답에 만료월이 있으면 저장 (보통 없음 — 운영자가 UI에서 수동 입력 가능)
+    const cardExpiryMonth: string | null = (cardInfo.expiryYear && cardInfo.expiryMonth)
+      ? `${String(cardInfo.expiryYear).slice(2)}${String(cardInfo.expiryMonth).padStart(2, "0")}`
+      : null;
 
     if (!billingKey) {
       console.error("[billing-confirm] billingKey 누락:", billingResponse);
@@ -226,6 +230,7 @@ export default async (req: Request) => {
           cardCompany,
           cardNumberMasked,
           cardType,
+          cardExpiryMonth,
           amount: data.amount,
           isActive: false,
           consecutiveFailCount: 1,
@@ -267,6 +272,7 @@ export default async (req: Request) => {
       cardCompany,
       cardNumberMasked,
       cardType,
+      cardExpiryMonth,
       amount: data.amount,
       isActive: true,
       nextChargeAt: nextCharge,
