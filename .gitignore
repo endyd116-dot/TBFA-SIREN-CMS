@@ -52,3 +52,6 @@ build/
 .cache/
 .tmp/
 *.tsbuildinfo
+# 작업 중 생성되는 백업 파일
+*.bak
+*.bak[0-9]
