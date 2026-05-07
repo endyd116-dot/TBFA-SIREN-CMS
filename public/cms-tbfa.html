@@ -231,6 +231,7 @@
           <li><a href="#hyosung" data-tab="hyosung">
             <i>🏦</i><span>효성 CMS+</span>
           </a></li>
+                  <li><a href="#" data-page="toss-billing">💳 토스 빌링 (자동 청구)</a></li>
         </ul>
       </li>
       <li><a href="#members" data-tab="members">
@@ -503,6 +504,170 @@
       </section>
 
       <!-- ============ 2. 통합 회원 ============ -->
+            <!-- ============ 💰 후원 관리 > 💳 토스 빌링 (자동 청구) ============ -->
+      <section class="cms-page" id="page-toss-billing">
+        <div class="cms-panel" style="padding:0">
+          <!-- 탭 헤더 -->
+          <div class="cms-tabs-bar" style="display:flex;border-bottom:2px solid #e0e3e8;background:#fafaf9">
+            <button class="tb-tab on" data-tb-tab="keys" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid #3c7c42;font-weight:600;cursor:pointer">📋 빌링키 관리</button>
+            <button class="tb-tab" data-tb-tab="logs" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">💳 빌링 이력</button>
+            <button class="tb-tab" data-tb-tab="schedule" style="padding:12px 20px;border:none;background:transparent;border-bottom:3px solid transparent;cursor:pointer">📅 스케줄 & 만료</button>
+          </div>
+
+          <!-- ========== 탭 1: 빌링키 관리 ========== -->
+          <div class="tb-pane" data-tb-pane="keys" style="padding:20px">
+            <!-- 통계 카드 4개 -->
+            <div class="tb-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+              <div class="cms-stat-card" style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
+                <div style="font-size:12px;color:#8a8a8a;margin-bottom:4px">전체 빌링키</div>
+                <div id="tbStatTotal" style="font-size:24px;font-weight:700;color:#333">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#f0faf1;padding:16px;border-radius:8px;border:1px solid #c8e6c9">
+                <div style="font-size:12px;color:#2e7d32;margin-bottom:4px">활성 중</div>
+                <div id="tbStatActive" style="font-size:24px;font-weight:700;color:#2e7d32">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#fff3e0;padding:16px;border-radius:8px;border:1px solid #ffcc80">
+                <div style="font-size:12px;color:#e65100;margin-bottom:4px">위험 (연속 실패 2회+)</div>
+                <div id="tbStatRisky" style="font-size:24px;font-weight:700;color:#e65100">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#e8f5e9;padding:16px;border-radius:8px;border:1px solid #a5d6a7">
+                <div style="font-size:12px;color:#2e7d32;margin-bottom:4px">월 자동 청구액</div>
+                <div id="tbStatMonthly" style="font-size:24px;font-weight:700;color:#2e7d32">-</div>
+              </div>
+            </div>
+
+            <!-- 필터 + 액션 -->
+            <div class="cms-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <input id="tbKeysSearch" type="search" placeholder="회원명/이메일/전화번호 검색" style="flex:1;min-width:240px;padding:8px 12px;border:1px solid #ccc;border-radius:4px">
+              <select id="tbKeysStatus" style="padding:8px 12px;border:1px solid #ccc;border-radius:4px">
+                <option value="">상태 전체</option>
+                <option value="active">활성</option>
+                <option value="inactive">해지됨</option>
+              </select>
+              <button id="tbKeysRefresh" class="cms-btn">🔄 새로고침</button>
+            </div>
+
+            <!-- 목록 테이블 -->
+            <div style="background:#fff;border-radius:8px;border:1px solid #e0e3e8;overflow:auto">
+              <table class="cms-table" style="width:100%;min-width:1100px">
+                <thead>
+                  <tr>
+                    <th style="width:60px">ID</th>
+                    <th>회원</th>
+                    <th>카드</th>
+                    <th style="width:90px">만료월</th>
+                    <th style="width:100px">약정일</th>
+                    <th style="width:100px">다음 청구</th>
+                    <th style="width:100px;text-align:right">금액</th>
+                    <th style="width:70px">상태</th>
+                    <th style="width:80px">실패</th>
+                    <th style="width:160px">액션</th>
+                  </tr>
+                </thead>
+                <tbody id="tbKeysBody"><tr><td colspan="10" style="padding:20px;text-align:center;color:#999">조회 중…</td></tr></tbody>
+              </table>
+            </div>
+            <div id="tbKeysPagination" style="display:flex;gap:8px;justify-content:center;padding:16px;"></div>
+          </div>
+
+          <!-- ========== 탭 2: 빌링 이력 ========== -->
+          <div class="tb-pane" data-tb-pane="logs" style="padding:20px;display:none">
+            <!-- 통계 카드 -->
+            <div class="tb-logs-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+              <div class="cms-stat-card" style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
+                <div style="font-size:12px;color:#8a8a8a;margin-bottom:4px">최근 30일 시도</div>
+                <div id="tbLogsTotal" style="font-size:24px;font-weight:700">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#f0faf1;padding:16px;border-radius:8px;border:1px solid #c8e6c9">
+                <div style="font-size:12px;color:#2e7d32;margin-bottom:4px">성공률</div>
+                <div id="tbLogsRate" style="font-size:24px;font-weight:700;color:#2e7d32">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#ffebee;padding:16px;border-radius:8px;border:1px solid #ef9a9a">
+                <div style="font-size:12px;color:#c62828;margin-bottom:4px">실패 건수</div>
+                <div id="tbLogsFailed" style="font-size:24px;font-weight:700;color:#c62828">-</div>
+              </div>
+              <div class="cms-stat-card" style="background:#e8f5e9;padding:16px;border-radius:8px;border:1px solid #a5d6a7">
+                <div style="font-size:12px;color:#2e7d32;margin-bottom:4px">성공 총액</div>
+                <div id="tbLogsAmount" style="font-size:24px;font-weight:700;color:#2e7d32">-</div>
+              </div>
+            </div>
+
+            <!-- 실패 사유 Top 5 -->
+            <div id="tbLogsTopErrors" style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8;margin-bottom:16px">
+              <div style="font-weight:600;margin-bottom:8px">🚨 최근 30일 실패 사유 Top 5</div>
+              <div id="tbLogsTopErrorsList" style="color:#666;font-size:14px">조회 중…</div>
+            </div>
+
+            <!-- 필터 -->
+            <div class="cms-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <select id="tbLogsStatus" style="padding:8px 12px;border:1px solid #ccc;border-radius:4px">
+                <option value="">상태 전체</option>
+                <option value="success">성공</option>
+                <option value="failed">실패</option>
+                <option value="pending">대기중</option>
+              </select>
+              <select id="tbLogsAttemptType" style="padding:8px 12px;border:1px solid #ccc;border-radius:4px">
+                <option value="">유형 전체</option>
+                <option value="scheduled">정기</option>
+                <option value="retry">재시도</option>
+                <option value="manual">수동</option>
+              </select>
+              <button id="tbLogsRefresh" class="cms-btn">🔄 새로고침</button>
+            </div>
+
+            <!-- 로그 테이블 -->
+            <div style="background:#fff;border-radius:8px;border:1px solid #e0e3e8;overflow:auto">
+              <table class="cms-table" style="width:100%;min-width:1200px">
+                <thead>
+                  <tr>
+                    <th style="width:60px">ID</th>
+                    <th style="width:140px">시도일시</th>
+                    <th>회원</th>
+                    <th style="width:80px">유형</th>
+                    <th style="width:60px">차수</th>
+                    <th style="width:100px;text-align:right">금액</th>
+                    <th style="width:80px">상태</th>
+                    <th>에러 코드 / 메시지</th>
+                    <th style="width:100px">액션</th>
+                  </tr>
+                </thead>
+                <tbody id="tbLogsBody"><tr><td colspan="9" style="padding:20px;text-align:center;color:#999">조회 중…</td></tr></tbody>
+              </table>
+            </div>
+            <div id="tbLogsPagination" style="display:flex;gap:8px;justify-content:center;padding:16px;"></div>
+          </div>
+
+          <!-- ========== 탭 3: 스케줄 & 만료 ========== -->
+          <div class="tb-pane" data-tb-pane="schedule" style="padding:20px;display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <!-- 다음 30일 청구 예정 -->
+              <div style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
+                <div style="font-weight:600;margin-bottom:12px;font-size:16px">📅 다음 30일 청구 예정</div>
+                <div id="tbScheduleUpcoming" style="color:#666;font-size:14px">조회 중…</div>
+              </div>
+
+              <!-- 카드 만료 예정 -->
+              <div style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e3e8">
+                <div style="font-weight:600;margin-bottom:12px;font-size:16px">⚠️ 카드 만료 예정 / 만료됨</div>
+                <div id="tbScheduleExpiring" style="color:#666;font-size:14px">조회 중…</div>
+              </div>
+            </div>
+
+            <!-- 안내 -->
+            <div style="background:#fff8e1;padding:16px;border-radius:8px;border-left:4px solid #ffb300;margin-top:16px">
+              <div style="font-weight:600;margin-bottom:8px;color:#e65100">ℹ️ 자동 청구 시스템 안내</div>
+              <ul style="margin:0;padding-left:20px;color:#555;line-height:1.8;font-size:14px">
+                <li>매일 <strong>KST 00:00 자정</strong>에 오늘 약정일 회원을 자동 청구합니다</li>
+                <li>실패 시 <strong>1일 후 → 3일 후</strong> 자동 재시도</li>
+                <li><strong>3회 연속 실패 시 자동 해지</strong> + 회원 통보</li>
+                <li>카드 만료 <strong>30일 전 + 14일 전</strong>에 갱신 요청 알림 발송</li>
+                <li>만료월은 토스 응답에 포함되지 않아 <strong>수동 입력</strong>이 필요할 수 있습니다</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="cms-page" id="page-members">
         <div class="cms-filter-bar">
           <div class="cms-filter-group">
