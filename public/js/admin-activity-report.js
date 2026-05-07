@@ -220,6 +220,13 @@
     const m = stats.members || {};
     const s = stats.support || {};
 
+    /* ★ 데이터가 모두 0이면 기간 안내 */
+    const totalData = (d.totalAmount || 0) + (d.donorCount || 0) + (m.newCount || 0) + (s.total || 0);
+    if (totalData === 0) {
+      const periodLabel = stats.period?.label || '선택한 기간';
+      toast(`⚠️ ${periodLabel}에 데이터가 없습니다. 데이터가 있는 기간을 선택해 주세요.`, 5000);
+    }
+
     statsEl.innerHTML = `
       <div class="ar-stat-card">
         <div class="label">총 모금액</div>
