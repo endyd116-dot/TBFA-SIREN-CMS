@@ -36,139 +36,222 @@
     <section class="block">
       <div class="container">
 
-        <!-- ★ v11 묶음 C-8: 운영 시작 안내 배너 (더미 데이터 안내) -->
-        <div style="background:linear-gradient(135deg,#fef9f5,#fff);border:1px solid #f0e0e3;border-left:4px solid var(--brand);border-radius:8px;padding:18px 22px;margin-bottom:24px">
-          <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
-            <div style="font-size:28px;flex-shrink:0">📊</div>
-            <div style="flex:1;min-width:240px">
-              <div style="font-weight:700;font-size:15px;color:var(--brand);margin-bottom:6px;font-family:'Noto Serif KR',serif">활동 보고서 시스템 운영 준비 중</div>
-              <div style="font-size:13px;color:var(--text-2);line-height:1.7">
-                현재 표시되는 수치와 차트는 <strong>예시 데이터</strong>입니다.<br />
-                운영 데이터가 충분히 누적되는 대로 정식 보고서와 PDF 다운로드 기능이 제공될 예정입니다.<br />
-                <span style="color:var(--text-3);font-size:11.5px">※ 첫 정식 분기 보고서: 2026년 Q3 예정</span>
-              </div>
-            </div>
+        <!-- 연도 필터 + 안내 -->
+        <div class="report-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+          <div style="font-size:13px;color:var(--text-2)">
+            발행된 활동보고서를 확인하고 <strong>인쇄 / PDF로 저장</strong>하실 수 있습니다.
+          </div>
+          <div>
+            <label for="reportYearFilter" style="font-size:13px;color:var(--text-2);margin-right:8px">연도</label>
+            <select id="reportYearFilter" style="padding:6px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff">
+              <option value="">전체</option>
+            </select>
           </div>
         </div>
 
-        <!-- KPI 요약 -->
-        <div class="kpi-grid">
-          <div class="kpi"><div class="kpi-label">YTD 누적 후원금</div><div class="kpi-value">₩ 150.8M</div><div class="kpi-delta">▲ 18.2%</div></div>
-          <div class="kpi"><div class="kpi-label">YTD 지원 건수</div><div class="kpi-value">128 건</div><div class="kpi-delta">▲ 24.5%</div></div>
-          <div class="kpi"><div class="kpi-label">정기 후원 회원</div><div class="kpi-value">3,527 명</div><div class="kpi-delta">▲ 8.1%</div></div>
-          <div class="kpi"><div class="kpi-label">투명성 등급</div><div class="kpi-value" style="font-size:22px;color:var(--success)">A+</div></div>
-        </div>
-
-        <!-- 차트 영역 -->
-        <div class="row-2">
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">월별 후원금 추이</div>
-              <span class="p-tag">2026년</span>
-            </div>
-            <div style="height:280px"><canvas id="reportChart1"></canvas></div>
-          </div>
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">집행 비율</div>
-              <span class="p-tag">YTD</span>
-            </div>
-            <div style="height:280px"><canvas id="reportChart2"></canvas></div>
-          </div>
-        </div>
-
-        <!-- 보고서 다운로드 -->
-        <div class="panel" style="margin-top:18px">
-          <div class="p-head">
-            <div class="p-title">📄 연간 보고서 다운로드</div>
-            <span class="p-tag" style="background:#f0f0f0;color:var(--text-3)">🔧 운영 데이터 누적 후 제공 예정</span>
-          </div>
-          <table class="tbl">
-            <thead>
-              <tr><th>연도</th><th>제목</th><th>발행일</th><th>크기</th><th style="width:160px">다운로드</th></tr>
-            </thead>
-            <tbody>
-              <tr style="opacity:0.7">
-                <td><strong>2025</strong></td>
-                <td>2025년 연간 활동 보고서 — "함께 한 걸음, 더 단단해진 우리"</td>
-                <td>2026.03.15 (예정)</td>
-                <td>—</td>
-                <td>
-                  <button type="button" class="btn-sm" disabled
-                          style="background:#f0f0f0;color:var(--text-3);border:1px solid var(--line);cursor:not-allowed;font-size:11.5px;padding:5px 10px;border-radius:4px"
-                          title="활동 보고서 시스템은 현재 준비 중입니다">
-                    🔧 준비 중
-                  </button>
-                </td>
-              </tr>
-              <tr style="opacity:0.7">
-                <td><strong>2024</strong></td>
-                <td>2024년 연간 활동 보고서 — "시작의 기록"</td>
-                <td>2025.03.20 (예정)</td>
-                <td>—</td>
-                <td>
-                  <button type="button" class="btn-sm" disabled
-                          style="background:#f0f0f0;color:var(--text-3);border:1px solid var(--line);cursor:not-allowed;font-size:11.5px;padding:5px 10px;border-radius:4px"
-                          title="활동 보고서 시스템은 현재 준비 중입니다">
-                    🔧 준비 중
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="font-size:12px;color:var(--text-3);text-align:center;padding:14px 8px 4px;line-height:1.6">
-            💡 정식 보고서는 외부 회계감사 완료 후 PDF로 제공됩니다. 그 전에는 본 페이지의 분기별 집행 상세를 참고해 주세요.
-          </div>
-        </div>
-
-        <!-- 분기별 상세 -->
-        <div class="panel" style="margin-top:18px">
-          <div class="p-head">
-            <div class="p-title">📊 분기별 집행 상세</div>
-            <span class="p-tag">실시간 업데이트 (예시 데이터)</span>
-          </div>
-          <table class="tbl">
-            <thead>
-              <tr><th>분기</th><th>총 수입</th><th>직접 지원</th><th>추모 사업</th><th>장학 사업</th><th>운영비</th><th>잔액</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>2026 Q1</td><td>₩ 112.4M</td><td>₩ 65.2M</td><td>₩ 19.1M</td><td>₩ 16.8M</td><td>₩ 11.2M</td><td style="color:var(--success);font-weight:600">+0.1M</td></tr>
-              <tr><td>2025 Q4</td><td>₩ 118.0M</td><td>₩ 68.4M</td><td>₩ 20.1M</td><td>₩ 17.7M</td><td>₩ 11.8M</td><td style="color:var(--success);font-weight:600">+0.0M</td></tr>
-              <tr><td>2025 Q3</td><td>₩ 96.5M</td><td>₩ 56.0M</td><td>₩ 16.4M</td><td>₩ 14.5M</td><td>₩ 9.6M</td><td style="color:var(--success);font-weight:600">+0.0M</td></tr>
-              <tr><td>2025 Q2</td><td>₩ 84.2M</td><td>₩ 48.8M</td><td>₩ 14.3M</td><td>₩ 12.6M</td><td>₩ 8.4M</td><td style="color:var(--success);font-weight:600">+0.1M</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 신뢰 인증 -->
-        <div class="campaign" style="margin-top:30px">
-          <div style="position:relative;z-index:2">
-            <span class="camp-tag">CERTIFICATION</span>
-            <h3>한국가이드스타<br />투명성 등급 <em style="color:var(--gold);font-style:normal">A+</em> 인증</h3>
-            <p class="lead">매년 외부 회계감사를 통해 공개된 회계 자료와 활동 내역으로 투명성을 검증받고 있습니다. 모든 후원금은 1원 단위까지 추적 가능합니다.</p>
-            <div class="hero-btns">
-              <button class="btn btn-primary" data-action="open-modal" data-target="donateModal">신뢰와 함께 후원하기</button>
-            </div>
-          </div>
-          <div class="camp-visual">
-            <div style="font-size:120px;text-align:center">🏆</div>
+        <!-- 보고서 목록 -->
+        <div id="reportList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+          <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3);font-size:14px">
+            불러오는 중...
           </div>
         </div>
 
       </div>
     </section>
 
+    <!-- 상세 모달 -->
+    <div id="reportDetailModal" class="report-detail-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);padding:30px 20px;align-items:center;justify-content:center">
+      <div class="report-detail-box" style="background:#fff;border-radius:8px;max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;margin:0 auto">
+        <div class="report-detail-head no-print" style="padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <h3 id="reportDetailTitle" style="margin:0;font-size:15px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">보고서 제목</h3>
+          <button type="button" data-close-report-detail
+                  style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-3);padding:0 6px;line-height:1">&times;</button>
+        </div>
+        <div class="report-detail-body activity-report-body" id="reportDetailBody" style="padding:24px 28px;overflow-y:auto;flex:1;font-family:'Noto Serif KR',serif"></div>
+        <div class="report-detail-foot no-print" style="padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#fafafa">
+          <button type="button" data-print-report
+                  style="background:var(--brand,#8b2942);color:#fff;border:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
+            🖨 인쇄 / PDF 저장
+          </button>
+          <button type="button" data-close-report-detail
+                  style="background:#fff;color:var(--text-2);border:1px solid var(--line);padding:9px 18px;border-radius:6px;font-size:13px;cursor:pointer">
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <!-- Chart.js (보고서 페이지 전용) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/common.js?v=3"></script>
   <script src="/js/auth.js?v=3"></script>
   <script src="/js/support.js?v=3"></script>
   <script src="/js/donate.js?v=3"></script>
-  <script src="/js/charts.js?v=3"></script>
+
+  <!-- 활동보고서 페이지 전용 스크립트 -->
+  <script>
+  (function() {
+    const listEl = document.getElementById('reportList');
+    const yearFilter = document.getElementById('reportYearFilter');
+    const modal = document.getElementById('reportDetailModal');
+    const modalTitle = document.getElementById('reportDetailTitle');
+    const modalBody = document.getElementById('reportDetailBody');
+
+    let _reports = [];
+
+    /* ===== API 호출 ===== */
+    async function loadReports(year) {
+      try {
+        const url = year
+          ? `/api/public/activity-reports?year=${encodeURIComponent(year)}`
+          : '/api/public/activity-reports';
+        const res = await fetch(url, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'load failed');
+
+        _reports = data.list || [];
+        renderList();
+        renderYearOptions();
+      } catch (e) {
+        console.error('[report] load error', e);
+        listEl.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--danger,#c03);font-size:14px">
+            보고서를 불러오지 못했습니다.<br/>
+            <span style="font-size:12px;color:var(--text-3)">${escapeHtml(e.message || '')}</span>
+          </div>`;
+      }
+    }
+
+    async function loadDetail(id) {
+      try {
+        const res = await fetch(`/api/public/activity-reports?id=${id}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'detail failed');
+
+        const r = data.report;
+        modalTitle.textContent = r.title || '보고서';
+        modalBody.innerHTML = r.contentHtml || '<p style="color:var(--text-3)">본문이 비어있습니다.</p>';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } catch (e) {
+        alert('상세 내용을 불러오지 못했습니다: ' + (e.message || e));
+      }
+    }
+
+    /* ===== 렌더 ===== */
+    function renderList() {
+      if (!_reports.length) {
+        listEl.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3);font-size:14px">
+            📋 아직 발행된 활동보고서가 없습니다.<br/>
+            <span style="font-size:12px">정식 분기 보고서 발행 시 이곳에 표시됩니다.</span>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = _reports.map((p) => {
+        const period = fmtPeriod(p.year, p.month);
+        const date = fmtDate(p.publishedAt || p.createdAt);
+        const pin = p.isPinned ? '<span style="color:#c03;font-size:11px;margin-right:6px">📌 고정</span>' : '';
+        return `
+          <div class="report-card" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .2s">
+            <div style="font-size:12px;color:var(--brand,#8b2942);font-weight:600">${pin}${escapeHtml(period)}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text-1);line-height:1.4;min-height:42px;font-family:'Noto Serif KR',serif">
+              ${escapeHtml(p.title || '제목 없음')}
+            </div>
+            <div style="font-size:11.5px;color:var(--text-3);display:flex;gap:10px;flex-wrap:wrap">
+              <span>📢 발행됨</span>
+              <span>👁 조회 ${p.views || 0}</span>
+              <span>${escapeHtml(date)}</span>
+            </div>
+            <div style="margin-top:4px">
+              <button type="button" data-report-id="${p.id}"
+                      style="width:100%;padding:8px 14px;background:var(--brand,#8b2942);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">
+                📖 보기
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderYearOptions() {
+      const years = [...new Set(_reports.map((p) => p.year).filter(Boolean))].sort((a, b) => b - a);
+      const current = yearFilter.value;
+      yearFilter.innerHTML = '<option value="">전체</option>' +
+        years.map((y) => `<option value="${y}"${String(y) === current ? ' selected' : ''}>${y}년</option>`).join('');
+    }
+
+    /* ===== 이벤트 ===== */
+    document.addEventListener('click', (e) => {
+      // 보고서 보기 버튼
+      const btn = e.target.closest('[data-report-id]');
+      if (btn) {
+        loadDetail(btn.dataset.reportId);
+        return;
+      }
+
+      // 모달 닫기
+      if (e.target.matches('[data-close-report-detail]') || e.target.closest('[data-close-report-detail]')) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+      }
+      if (e.target.id === 'reportDetailModal') {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+      }
+
+      // 인쇄
+      if (e.target.matches('[data-print-report]') || e.target.closest('[data-print-report]')) {
+        e.preventDefault();
+        try { window.print(); } catch (err) { console.error('[report] print failed', err); }
+        return;
+      }
+    });
+
+    // ESC 키
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display !== 'none') {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    });
+
+    // 연도 필터
+    yearFilter.addEventListener('change', () => {
+      loadReports(yearFilter.value || null);
+    });
+
+    /* ===== 유틸 ===== */
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function fmtPeriod(y, m) {
+      if (!y) return '';
+      if (!m) return `${y}년 연간`;
+      if (m >= 1 && m <= 3) return `${y}년 1분기`;
+      if (m >= 4 && m <= 6) return `${y}년 2분기`;
+      if (m >= 7 && m <= 9) return `${y}년 3분기`;
+      if (m >= 10 && m <= 12) return `${y}년 4분기`;
+      return `${y}년 ${m}월`;
+    }
+    function fmtDate(s) {
+      if (!s) return '';
+      try {
+        const d = new Date(s);
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      } catch { return s; }
+    }
+
+    /* ===== 진입점 ===== */
+    loadReports();
+  })();
+  </script>
+
 </body>
 </html>
