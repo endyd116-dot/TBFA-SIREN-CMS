@@ -1,0 +1,150 @@
+/* ============================================================
+   SIREN — 인쇄 전용 스타일
+   @media print 블록만 포함 — 화면 표시에는 영향 없음
+   사용: <link rel="stylesheet" href="/css/print.css">
+        인쇄 대상에 .print-target 또는 .activity-report-body
+        제외할 요소에 .no-print
+   ============================================================ */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  header, footer, nav,
+  .gnb, .header, .footer,
+  .admin-header, .admin-sidebar, .adm-sidebar, .adm-topbar,
+  #notification-bell, .notification-bell,
+  .no-print, button, .btn,
+  .toast, .modal-backdrop,
+  .chat-widget, #chat-user-widget {
+    display: none !important;
+  }
+
+  .modal,
+  .ar-preview-modal,
+  .ar-body-edit-modal {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+  }
+  .modal-content,
+  .ar-preview-content {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .print-target,
+  .activity-report-body,
+  .ar-preview-body {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #000 !important;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+  }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 18pt; }
+  h3 { font-size: 14pt; }
+  h4 { font-size: 12pt; }
+
+  p, li {
+    orphans: 3;
+    widows: 3;
+    color: #000 !important;
+  }
+  p { margin: 0.5em 0; }
+  ul, ol { margin: 0.5em 0 0.5em 1.5em; }
+
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: block;
+    margin: 0.5em auto;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin: 0.5em 0;
+  }
+  table, th, td {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  th, td {
+    padding: 6px 10px;
+    text-align: left;
+  }
+  th {
+    background: #f0f0f0 !important;
+    font-weight: bold;
+  }
+
+  a, a:visited {
+    color: #000 !important;
+    text-decoration: none;
+  }
+
+  pre, code {
+    background: #f5f5f5 !important;
+    color: #000 !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+
+  blockquote {
+    border-left: 3px solid #333 !important;
+    padding-left: 10px;
+    color: #333 !important;
+    margin: 1em 0;
+  }
+
+  .page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .toastui-editor-contents {
+    padding: 0 !important;
+    font-size: 11pt !important;
+    color: #000 !important;
+  }
+  .toastui-editor-contents * {
+    color: #000 !important;
+  }
+}
