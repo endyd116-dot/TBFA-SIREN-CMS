@@ -78,6 +78,8 @@
 .adm-content{padding:30px}
 .adm-page{display:none}
 .adm-page.show{display:block;animation:fadeIn .25s}
+/* v14 N-2 fix */
+.adm-page:not(.show) .ic-tab-pane{display:none !important}
 
 /* =========================================================
    ADMIN — AI CARDS / BANNER
