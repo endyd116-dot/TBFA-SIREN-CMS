@@ -268,10 +268,7 @@
         <div class="label">📝 비공개</div>
         <div class="value" style="color:var(--text-3)">${draft}</div>
       </div>
-      <div class="ar-stat-mini">
-        <div class="label">📎 PDF 보유</div>
-        <div class="value" style="color:#1a5ec4">${withPdf}</div>
-      </div>
+      <!-- ★ v13.1: PDF 보유 카드 제거 (브라우저 인쇄 전환) -->
     `;
   }
 
@@ -296,7 +293,7 @@
         : '<span class="ar-badge-pub draft">📝 비공개</span>';
       const pinIcon = p.isPinned ? '<span class="ar-pin">📌</span>' : '';
       const pdfBtn = p.pdfDownloadUrl
-        ? `<a href="${escapeHtml(p.pdfDownloadUrl)}" target="_blank" rel="noopener" style="color:#1a5ec4;text-decoration:none;font-size:12px">📎 PDF</a>`
+        ? `<span style="color:#999;font-size:11px">—</span>`
         : '<span style="color:var(--text-3);font-size:11px">없음</span>';
       const pubAction = p.isPublished
         ? `<button class="unpublish" data-action="unpublish" data-id="${p.id}">🔒 비공개</button>`
@@ -311,7 +308,6 @@
           <div style="font-size:11px;color:var(--text-3);margin-top:2px">조회 ${p.views || 0}</div>
         </td>
         <td>${pubBadge}</td>
-        <td>${pdfBtn}</td>
         <td><div class="ar-actions">
           <button class="preview" data-action="preview" data-id="${p.id}">👁 미리보기</button>
           <button class="edit" data-action="edit-body" data-id="${p.id}" data-title="${escapeHtml(p.title)}">📝 본문</button>
@@ -330,7 +326,6 @@
             <th>기간</th>
             <th>제목</th>
             <th>상태</th>
-            <th>PDF</th>
             <th>액션</th>
           </tr>
         </thead>

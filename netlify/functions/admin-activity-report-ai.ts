@@ -388,7 +388,7 @@ export default async (req: Request) => {
       let newPdfBlobId: number | null = null;
       let pdfWarning: string | null = null;
 
-      if (shouldRegenerate) {
+      if (false && shouldRegenerate) { /* ★ v13.1: PDF 재생성 비활성화 — 브라우저 인쇄로 전환 */
         try {
           /* 1. 기간 복원 — slug 또는 year/month로 추정 */
           const finalContentHtml = updates.contentHtml || existing.contentHtml || "";
@@ -650,7 +650,7 @@ export default async (req: Request) => {
     let pdfBlobId: number | null = null;
     let pdfDownloadUrl: string | null = null;
 
-    if (generatePdf) {
+    if (false && generatePdf) { /* ★ v13.1: PDF 생성 비활성화 — 브라우저 인쇄로 전환 */
       try {
         /* 협회 정보 조회 (영수증 설정에서 재사용) */
         const [rs] = await db.select().from(receiptSettings).where(eq(receiptSettings.id, 1)).limit(1);
