@@ -229,6 +229,15 @@ export const members = pgTable("members", {
   churnSignals: jsonb("churn_signals").default(sql`'[]'::jsonb`),
   lastReengageEmailAt: timestamp("last_reengage_email_at"),
 
+  /* ───────── ★ 효성 CMS+ 연동 (Phase 1: 세션 2 DB 동기화) ───────── */
+  hyosungMemberNo: integer("hyosung_member_no"),
+  hyosungContractStatus: varchar("hyosung_contract_status", { length: 20 }),
+  hyosungPaymentMethod: varchar("hyosung_payment_method", { length: 30 }),
+  hyosungPaymentTool: varchar("hyosung_payment_tool", { length: 20 }),
+  hyosungBankInfo: varchar("hyosung_bank_info", { length: 100 }),
+  hyosungPromiseDay: integer("hyosung_promise_day"),
+  hyosungSyncedAt: timestamp("hyosung_synced_at"),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -241,6 +250,7 @@ export const members = pgTable("members", {
   categoryIdx: index("members_category_idx").on(t.memberCategory),
   subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
+  hyosungNoIdx: index("members_hyosung_no_idx").on(t.hyosungMemberNo),
 }));
 
 /* =========================================================
@@ -302,6 +312,12 @@ export const donations = pgTable("donations", {
   hyosungContractNo: varchar("hyosung_contract_no", { length: 20 }),
   hyosungBillNo: varchar("hyosung_bill_no", { length: 30 }),
 
+  /* ★ 효성 CMS+ 상세 연결 (Phase 1: 세션 2 DB 동기화) */
+  hyosungBillingId: integer("hyosung_billing_id"),
+  hyosungBillingMonth: varchar("hyosung_billing_month", { length: 10 }),
+  hyosungReceiptStatus: varchar("hyosung_receipt_status", { length: 20 }),
+  hyosungPaidDate: timestamp("hyosung_paid_date", { mode: "date" }),
+
   /* M-4 계좌이체 */
   bankDepositorName: varchar("bank_depositor_name", { length: 50 }),
   depositExpectedAt: timestamp("deposit_expected_at"),
@@ -322,6 +338,8 @@ export const donations = pgTable("donations", {
   billingKeyIdx: index("donations_billing_key_idx").on(t.billingKeyId),
   hyosungMemberNoIdx: index("donations_hyosung_member_no_idx").on(t.hyosungMemberNo),
   hyosungBillNoIdx: index("donations_hyosung_bill_no_idx").on(t.hyosungBillNo),
+  hyosungBillingIdIdx: index("donations_hyosung_billing_id_idx").on(t.hyosungBillingId),
+  hyosungBillingMonthIdx: index("donations_hyosung_billing_month_idx").on(t.hyosungBillingMonth),
   campaignIdIdx: index("donations_campaign_id_idx").on(t.campaignId),
 }));
 
@@ -1297,3 +1315,87 @@ export const commentReports = pgTable("comment_reports", {
 export type IncidentComment = typeof incidentComments.$inferSelect;
 export type CommentVote = typeof commentVotes.$inferSelect;
 export type CommentReport = typeof commentReports.$inferSelect;
+
+/* =========================================================
+   ★ Phase 1: 효성 CMS+ 계약 정보 테이블
+   세션 2에서 DB 생성됨 (members.id 참조)
+   ========================================================= */
+export const hyosungContracts = pgTable("hyosung_contracts", {
+  id: serial("id").primaryKey(),
+  memberNo: integer("member_no").notNull().unique(),
+  memberName: varchar("member_name", { length: 50 }),
+  phone: varchar("phone", { length: 20 }),
+  memberStatus: varchar("member_status", { length: 20 }),
+  contractStatus: varchar("contract_status", { length: 20 }),
+  promiseDay: integer("promise_day"),
+  paymentMethod: varchar("payment_method", { length: 30 }),
+  paymentTool: varchar("payment_tool", { length: 20 }),
+  paymentInfo: varchar("payment_info", { length: 100 }),
+  accountHolder: varchar("account_holder", { length: 50 }),
+  registrationStatus: varchar("registration_status", { length: 30 }),
+  agreementStatus: varchar("agreement_status", { length: 20 }),
+  electronicContract: varchar("electronic_contract", { length: 20 }),
+  productName: varchar("product_name", { length: 50 }),
+  productAmount: integer("product_amount"),
+  billingStart: timestamp("billing_start", { mode: "date" }),
+  billingEnd: timestamp("billing_end", { mode: "date" }),
+  managerName: varchar("manager_name", { length: 50 }),
+  memberType: varchar("member_type", { length: 30 }),
+  billingAuto: varchar("billing_auto", { length: 20 }),
+  sendMethod: varchar("send_method", { length: 20 }),
+  linkedMemberId: integer("linked_member_id").references(() => members.id, { onDelete: "set null" }),
+  rawData: jsonb("raw_data").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberNoIdx: index("hyosung_contracts_member_no_idx").on(t.memberNo),
+  linkedMemberIdx: index("hyosung_contracts_linked_member_idx").on(t.linkedMemberId),
+  phoneIdx: index("hyosung_contracts_phone_idx").on(t.phone),
+}));
+
+/* =========================================================
+   ★ Phase 1: 효성 CMS+ 청구/수납 내역
+   세션 2에서 DB 생성됨 (donations.id 참조)
+   ========================================================= */
+export const hyosungBillings = pgTable("hyosung_billings", {
+  id: serial("id").primaryKey(),
+  memberNo: integer("member_no").notNull(),
+  contractNo: varchar("contract_no", { length: 30 }),
+  memberName: varchar("member_name", { length: 50 }),
+  billingMonth: varchar("billing_month", { length: 10 }).notNull(),
+  firstBillingMonth: varchar("first_billing_month", { length: 10 }),
+  phone: varchar("phone", { length: 20 }),
+  productName: varchar("product_name", { length: 50 }),
+  billingAmount: integer("billing_amount"),
+  supplyAmount: integer("supply_amount"),
+  vatAmount: integer("vat_amount"),
+  receivedAmount: integer("received_amount").default(0),
+  unpaidAmount: integer("unpaid_amount").default(0),
+  cancelAmount: integer("cancel_amount").default(0),
+  refundAmount: integer("refund_amount").default(0),
+  receiptStatus: varchar("receipt_status", { length: 20 }),
+  paymentStatus: varchar("payment_status", { length: 20 }),
+  paymentMethod: varchar("payment_method", { length: 30 }),
+  paymentTool: varchar("payment_tool", { length: 20 }),
+  promiseDay: integer("promise_day"),
+  paymentDate: timestamp("payment_date", { mode: "date" }),
+  billingType: varchar("billing_type", { length: 20 }),
+  unreceivedHandling: varchar("unreceived_handling", { length: 20 }),
+  billingCompletionDate: timestamp("billing_completion_date"),
+  memo: text("memo"),
+  paymentResult: varchar("payment_result", { length: 50 }),
+  linkedDonationId: integer("linked_donation_id").references(() => donations.id, { onDelete: "set null" }),
+  rawData: jsonb("raw_data").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberNoIdx: index("hyosung_billings_member_no_idx").on(t.memberNo),
+  monthIdx: index("hyosung_billings_month_idx").on(t.billingMonth),
+  receiptStatusIdx: index("hyosung_billings_receipt_status_idx").on(t.receiptStatus),
+}));
+
+/* ★ Phase 1: 효성 CMS+ 타입 export */
+export type HyosungContract = typeof hyosungContracts.$inferSelect;
+export type NewHyosungContract = typeof hyosungContracts.$inferInsert;
+export type HyosungBilling = typeof hyosungBillings.$inferSelect;
+export type NewHyosungBilling = typeof hyosungBillings.$inferInsert;
