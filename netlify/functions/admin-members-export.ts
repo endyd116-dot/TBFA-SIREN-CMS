@@ -2,9 +2,9 @@
 // ★ Phase M-12: 회원 목록 CSV 추출 (Excel 호환)
 // GET /api/admin/members-export?type=&category=&status=&q=&source=
 
-import { eq, and, or, like, sql } from "drizzle-orm";
+import { eq, and, or, like, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import { members, signupSources } from "../../db/schema";
+import { members, signupSources, donations } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
 import { buildCSV, csvResponse } from "../../lib/csv-export";
@@ -110,18 +110,23 @@ export default async (req: Request) => {
     const memberIds = list.map((m: any) => m.id);
     const donationMap: Record<number, { total: number; count: number }> = {};
     if (memberIds.length > 0) {
-      const stats: any[] = await db.execute(sql`
-        SELECT
-          member_id AS "memberId",
-          COALESCE(SUM(amount), 0)::int AS "totalAmount",
-          COUNT(*)::int AS "donationCount"
-        FROM donations
-        WHERE member_id = ANY(${memberIds})
-          AND status = 'completed'
-        GROUP BY member_id
-      `);
+      const stats = await db
+        .select({
+          memberId: donations.memberId,
+          totalAmount: sql<number>`COALESCE(SUM(${donations.amount}), 0)::int`,
+          donationCount: sql<number>`COUNT(*)::int`,
+        })
+        .from(donations)
+        .where(and(
+          inArray(donations.memberId, memberIds),
+          eq(donations.status, 'completed'),
+        ))
+        .groupBy(donations.memberId);
       for (const row of stats) {
-        donationMap[row.memberId] = { total: row.totalAmount || 0, count: row.donationCount || 0 };
+        donationMap[row.memberId as number] = {
+          total: Number(row.totalAmount) || 0,
+          count: Number(row.donationCount) || 0,
+        };
       }
     }
 
