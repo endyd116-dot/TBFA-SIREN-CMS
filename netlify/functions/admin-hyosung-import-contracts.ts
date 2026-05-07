@@ -11,14 +11,16 @@ import {
   hyosungImportLogs,
 } from "../../db/schema";
 import { eq, sql, and, desc } from "drizzle-orm";
-import { authenticateAdmin } from "../../lib/auth";
+import { requireAdmin } from "../../lib/admin-guard";
 import { ok, badRequest, unauthorized, methodNotAllowed, serverError } from "../../lib/response";
 import { parseContractsCsv } from "../../lib/hyosung-parser";
 import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
-  const auth = authenticateAdmin(req);
-  if (!auth.ok) return unauthorized();
+  const guard = await requireAdmin(req);
+  if (!guard.ok) return guard.res;
+  const admin = guard.ctx.admin;
+  const adminMember = guard.ctx.member;
 
   const url = new URL(req.url);
 
@@ -265,8 +267,8 @@ export default async (req: Request, ctx: Context) => {
 
       /* 3. Import 로그 기록 */
       await db.insert(hyosungImportLogs).values({
-        uploadedBy: auth.admin.id,
-        uploadedByName: auth.admin.name,
+        uploadedBy: admin.uid,
+        uploadedByName: adminMember.name,
         fileName: body.fileName || "contracts.csv",
         fileSize: csvText.length,
         totalRows: parsed.totalCount,
@@ -284,8 +286,8 @@ export default async (req: Request, ctx: Context) => {
 
       /* 4. 감사 로그 */
       await logAudit({
-        userId: auth.admin.id,
-        userName: auth.admin.name,
+        userId: admin.uid,
+        userName: adminMember.name,
         userType: "admin",
         action: "hyosung_contracts_import",
         target: "hyosung_contracts",
