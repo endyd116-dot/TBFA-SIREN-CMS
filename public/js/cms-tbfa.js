@@ -127,6 +127,7 @@
           notify: '알림 발송',
           export: '데이터 추출',
           'receipt-settings': '영수증 설정', /* ★ STEP H-2d-4 */
+          hyosung: '효성 CMS+ 관리', /* ★ Phase 1 */
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -137,6 +138,32 @@
         else if (tab === 'transfer') renderTransfer();
         else if (tab === 'tags') renderTags();
         else if (tab === 'receipt-settings') loadReceiptSettings(); /* ★ STEP H-2d-4 */
+        else if (tab === 'hyosung') loadHyosungContracts(); /* ★ Phase 1 */
+      });
+    });
+
+    /* ★ Phase 1: 계층 메뉴 토글 */
+    document.querySelectorAll('[data-toggle]').forEach(toggle => {
+      toggle.addEventListener('click', e => {
+        e.preventDefault();
+        const group = toggle.closest('.cms-menu-group');
+        const submenu = group?.querySelector('.cms-submenu');
+        if (!submenu) return;
+        const isOpen = group.classList.contains('open');
+        group.classList.toggle('open', !isOpen);
+        submenu.style.display = isOpen ? 'none' : 'block';
+      });
+    });
+
+    /* ★ Phase 1: 서브메뉴 항목 클릭 시 상위 그룹도 active */
+    document.querySelectorAll('.cms-submenu a[data-tab]').forEach(a => {
+      a.addEventListener('click', () => {
+        const group = a.closest('.cms-menu-group');
+        if (group) {
+          group.classList.add('open');
+          const submenu = group.querySelector('.cms-submenu');
+          if (submenu) submenu.style.display = 'block';
+        }
       });
     });
   }
@@ -586,6 +613,372 @@
     });
   }
 
+  /* ============ ★ Phase 1: 효성 CMS+ 관리 ============ */
+
+  let hyContractPage = 1;
+  let hyBillingPage = 1;
+  let hyUploadParsedPreview = null;
+
+  /**
+   * 효성 서브탭 전환
+   */
+  function switchHyosungTab(target) {
+    document.querySelectorAll('.hy-tab').forEach(t => {
+      const active = t.dataset.hyTab === target;
+      t.classList.toggle('on', active);
+      t.style.borderBottomColor = active ? '#1a5ec4' : 'transparent';
+      t.style.fontWeight = active ? '600' : '500';
+    });
+    document.querySelectorAll('.hy-pane').forEach(p => {
+      p.style.display = p.dataset.hyPane === target ? 'block' : 'none';
+    });
+
+    if (target === 'contracts') loadHyosungContracts();
+    else if (target === 'billings') loadHyosungBillings();
+  }
+
+  /**
+   * 계약 목록 조회
+   */
+  async function loadHyosungContracts() {
+    const body = document.getElementById('hyContractBody');
+    if (!body) return;
+
+    const status = document.getElementById('hyContractStatus')?.value || '';
+    const search = document.getElementById('hyContractSearch')?.value || '';
+
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>';
+
+    const params = new URLSearchParams({
+      page: String(hyContractPage),
+      pageSize: '50',
+    });
+    if (status) params.set('status', status);
+    if (search) params.set('search', search);
+
+    const res = await api('/api/admin/hyosung-import-contracts?' + params.toString());
+    if (!res.ok || !res.data?.data) {
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + (res.data?.error || '알 수 없음') + '</td></tr>';
+      return;
+    }
+
+    const { list, pagination } = res.data.data;
+
+    /* 통계 */
+    const totalEl = document.getElementById('hyContractTotal');
+    const linkedEl = document.getElementById('hyContractLinked');
+    if (totalEl) totalEl.textContent = pagination.total.toLocaleString();
+    if (linkedEl) {
+      const linkedCount = list.filter(c => c.linkedMemberId).length;
+      linkedEl.textContent = linkedCount;
+    }
+
+    if (list.length === 0) {
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">데이터가 없습니다. CSV 업로드 탭에서 먼저 계약정보를 import하세요.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = list.map(c => {
+      const statusBadge = c.contractStatus === '사용'
+        ? '<span class="cms-badge cms-b-success">사용</span>'
+        : c.contractStatus === '중지'
+        ? '<span class="cms-badge cms-b-mute">중지</span>'
+        : '<span class="cms-badge cms-b-warn">' + escapeHtml(c.contractStatus || '-') + '</span>';
+
+      const amount = c.productAmount ? '₩' + c.productAmount.toLocaleString() : '-';
+      const linkedBadge = c.linkedMemberId
+        ? '<span class="cms-badge cms-b-info">#' + c.linkedMemberId + ' ' + escapeHtml(c.linkedMemberName || '') + '</span>'
+        : '<span style="color:#999">매칭없음</span>';
+
+      return '<tr>' +
+        '<td><strong>' + c.memberNo + '</strong></td>' +
+        '<td>' + escapeHtml(c.memberName || '-') + '</td>' +
+        '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(c.phone || '-') + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td>' + escapeHtml(c.productName || '-') + '</td>' +
+        '<td style="font-weight:600">' + amount + '</td>' +
+        '<td>' + (c.promiseDay || '-') + '일</td>' +
+        '<td style="font-size:11px">' + escapeHtml(c.paymentTool || '-') + '</td>' +
+        '<td>' + linkedBadge + '</td>' +
+        '</tr>';
+    }).join('');
+
+    /* 페이지네이션 */
+    const pgEl = document.getElementById('hyContractPagination');
+    if (pgEl) {
+      pgEl.innerHTML = '';
+      if (pagination.totalPages > 1) {
+        for (let p = 1; p <= pagination.totalPages; p++) {
+          const btn = document.createElement('button');
+          btn.textContent = p;
+          btn.className = 'cms-btn ' + (p === hyContractPage ? 'cms-btn-primary' : 'cms-btn-ghost');
+          btn.style.margin = '0 2px';
+          btn.onclick = () => { hyContractPage = p; loadHyosungContracts(); };
+          pgEl.appendChild(btn);
+        }
+      }
+    }
+  }
+
+  /**
+   * 청구/수납 목록 조회
+   */
+  async function loadHyosungBillings() {
+    const body = document.getElementById('hyBillingBody');
+    const statsEl = document.getElementById('hyBillingStats');
+    if (!body) return;
+
+    const month = document.getElementById('hyBillingMonth')?.value || '';
+    const status = document.getElementById('hyBillingStatus')?.value || '';
+    const search = document.getElementById('hyBillingSearch')?.value || '';
+
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">로딩 중...</td></tr>';
+
+    const params = new URLSearchParams({
+      page: String(hyBillingPage),
+      pageSize: '100',
+    });
+    if (month) params.set('month', month);
+    if (status) params.set('status', status);
+    if (search) params.set('search', search);
+
+    const res = await api('/api/admin/hyosung-import-billings?' + params.toString());
+    if (!res.ok || !res.data?.data) {
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#c5293a">조회 실패</td></tr>';
+      return;
+    }
+
+    const { list, pagination, stats } = res.data.data;
+
+    /* 통계 카드 */
+    if (statsEl) {
+      const statusColors = {
+        '완납': '#1a8b46',
+        '미납': '#c5293a',
+        '수납대기': '#c47a00',
+      };
+      statsEl.innerHTML = ['완납', '미납', '수납대기', 'total'].map(s => {
+        if (s === 'total') {
+          const totalCount = Object.values(stats).reduce((sum, v) => sum + v.count, 0);
+          const totalAmount = Object.values(stats).reduce((sum, v) => sum + v.amount, 0);
+          return '<div style="padding:12px;background:#fff;border:1px solid #e8e6e3;border-radius:8px;text-align:center">' +
+            '<div style="font-size:11px;color:#888;margin-bottom:4px">전체</div>' +
+            '<div style="font-size:20px;font-weight:700;color:#0f0f0f">' + totalCount + '건</div>' +
+            '<div style="font-size:11px;color:#525252">₩' + totalAmount.toLocaleString() + '</div>' +
+            '</div>';
+        }
+        const st = stats[s] || { count: 0, amount: 0 };
+        return '<div style="padding:12px;background:#fff;border:1px solid #e8e6e3;border-radius:8px;text-align:center;border-left:3px solid ' + statusColors[s] + '">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:4px">' + s + '</div>' +
+          '<div style="font-size:20px;font-weight:700;color:' + statusColors[s] + '">' + st.count + '건</div>' +
+          '<div style="font-size:11px;color:#525252">₩' + st.amount.toLocaleString() + '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    if (list.length === 0) {
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">데이터가 없습니다</td></tr>';
+      return;
+    }
+
+    body.innerHTML = list.map(b => {
+      const statusBadge = b.receiptStatus === '완납'
+        ? '<span class="cms-badge cms-b-success">완납</span>'
+        : b.receiptStatus === '미납'
+        ? '<span class="cms-badge cms-b-danger">미납</span>'
+        : '<span class="cms-badge cms-b-warn">' + escapeHtml(b.receiptStatus || '-') + '</span>';
+
+      return '<tr>' +
+        '<td style="font-family:Inter;font-weight:600">' + escapeHtml(b.billingMonth) + '</td>' +
+        '<td>' + b.memberNo + '</td>' +
+        '<td>' + escapeHtml(b.memberName || '-') + '</td>' +
+        '<td>' + escapeHtml(b.productName || '-') + '</td>' +
+        '<td style="font-weight:600">₩' + (b.billingAmount || 0).toLocaleString() + '</td>' +
+        '<td>₩' + (b.receivedAmount || 0).toLocaleString() + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td style="font-size:11px">' + escapeHtml(b.paymentTool || '-') + '</td>' +
+        '<td>' + (b.paymentDate ? formatDate(b.paymentDate) : '-') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    /* 페이지네이션 */
+    const pgEl = document.getElementById('hyBillingPagination');
+    if (pgEl) {
+      pgEl.innerHTML = '';
+      if (pagination.totalPages > 1) {
+        for (let p = 1; p <= pagination.totalPages; p++) {
+          const btn = document.createElement('button');
+          btn.textContent = p;
+          btn.className = 'cms-btn ' + (p === hyBillingPage ? 'cms-btn-primary' : 'cms-btn-ghost');
+          btn.style.margin = '0 2px';
+          btn.onclick = () => { hyBillingPage = p; loadHyosungBillings(); };
+          pgEl.appendChild(btn);
+        }
+      }
+    }
+  }
+
+  /**
+   * CSV 업로드 - 미리보기
+   */
+  async function hyosungUploadPreview() {
+    const csvText = document.getElementById('hyUploadCsv')?.value || '';
+    const type = document.querySelector('input[name="hyUploadType"]:checked')?.value || 'contracts';
+    const resultEl = document.getElementById('hyUploadResult');
+    const confirmBtn = document.getElementById('hyUploadConfirm');
+
+    if (!csvText || csvText.length < 10) {
+      toast('CSV 텍스트를 붙여넣으세요');
+      return;
+    }
+
+    toast('미리보기 분석 중...');
+
+    const endpoint = type === 'contracts'
+      ? '/api/admin/hyosung-import-contracts'
+      : '/api/admin/hyosung-import-billings';
+
+    const res = await api(endpoint, {
+      method: 'POST',
+      body: { csvText, dryRun: true },
+    });
+
+    if (!res.ok) {
+      toast('미리보기 실패: ' + (res.data?.error || '알 수 없음'));
+      return;
+    }
+
+    const r = res.data.data;
+    hyUploadParsedPreview = { csvText, type };
+
+    let html = '<h4 style="margin-bottom:12px">🔍 미리보기 결과</h4>';
+    if (type === 'contracts') {
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">' +
+        '<div style="padding:10px;background:#e8f5ed;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.linked || 0) + '</strong><div style="font-size:11px">매칭됨</div></div>' +
+        '<div style="padding:10px;background:#fff4e0;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.unlinked || 0) + '</strong><div style="font-size:11px">매칭없음</div></div>' +
+        '<div style="padding:10px;background:#fde7ea;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.conflicts?.length || 0) + '</strong><div style="font-size:11px">중복매칭</div></div>' +
+        '</div>';
+      if (r.conflicts && r.conflicts.length > 0) {
+        html += '<div style="background:#fde7ea;padding:10px;border-radius:6px;margin-bottom:10px;font-size:12px">⚠️ 전화번호가 여러 회원에게 매칭되는 경우: ' +
+          r.conflicts.map(c => c.memberNo + '번(' + c.phone + ')').join(', ') + '</div>';
+      }
+    } else {
+      const sc = r.statusCount || {};
+      html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">' +
+        '<div style="padding:10px;background:#e8f5ed;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (sc['완납'] || 0) + '</strong><div style="font-size:11px">완납</div></div>' +
+        '<div style="padding:10px;background:#fde7ea;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (sc['미납'] || 0) + '</strong><div style="font-size:11px">미납</div></div>' +
+        '<div style="padding:10px;background:#fff4e0;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (sc['수납대기'] || 0) + '</strong><div style="font-size:11px">수납대기</div></div>' +
+        '<div style="padding:10px;background:#f4f4f2;border-radius:6px;text-align:center"><strong style="font-size:20px">' + (r.totalRows || 0) + '</strong><div style="font-size:11px">전체</div></div>' +
+        '</div>';
+    }
+
+    if (r.parseErrors && r.parseErrors.length > 0) {
+      html += '<div style="background:#fff4e0;padding:10px;border-radius:6px;font-size:11.5px;color:#c47a00">⚠️ 파싱 에러 ' + r.parseErrors.length + '건</div>';
+    }
+
+    html += '<div style="margin-top:12px;font-size:12px;color:#525252">✅ 검증 통과. 아래 "확정 Import" 버튼으로 실제 저장하세요.</div>';
+
+    if (resultEl) {
+      resultEl.innerHTML = html;
+      resultEl.style.display = 'block';
+    }
+    if (confirmBtn) confirmBtn.disabled = false;
+    toast('미리보기 완료 ✅');
+  }
+
+  /**
+   * CSV 업로드 - 확정 Import
+   */
+  async function hyosungUploadConfirm() {
+    if (!hyUploadParsedPreview) {
+      toast('먼저 미리보기를 실행하세요');
+      return;
+    }
+    if (!confirm('실제로 DB에 저장하시겠습니까?')) return;
+
+    const { csvText, type } = hyUploadParsedPreview;
+    const resultEl = document.getElementById('hyUploadResult');
+
+    toast('Import 실행 중... (시간이 걸릴 수 있습니다)');
+
+    const endpoint = type === 'contracts'
+      ? '/api/admin/hyosung-import-contracts'
+      : '/api/admin/hyosung-import-billings';
+
+    const res = await api(endpoint, {
+      method: 'POST',
+      body: { csvText, dryRun: false },
+    });
+
+    if (!res.ok) {
+      toast('Import 실패: ' + (res.data?.error || '알 수 없음'));
+      return;
+    }
+
+    const r = res.data.data;
+    let html = '<h4 style="margin-bottom:12px;color:#1a8b46">✅ Import 완료!</h4>';
+
+    if (type === 'contracts') {
+      html += '<ul style="font-size:12.5px;line-height:1.8">' +
+        '<li>신규 생성: <strong>' + r.imported + '건</strong></li>' +
+        '<li>업데이트: <strong>' + r.updated + '건</strong></li>' +
+        '<li>회원 매칭됨: <strong>' + r.linked + '건</strong></li>' +
+        '<li>매칭 없음: ' + r.unlinked + '건 (수동 매칭 필요)</li>' +
+        '</ul>';
+    } else {
+      html += '<ul style="font-size:12.5px;line-height:1.8">' +
+        '<li>신규 생성: <strong>' + r.imported + '건</strong></li>' +
+        '<li>업데이트: <strong>' + r.updated + '건</strong></li>' +
+        '<li>🎉 후원 자동 확정: <strong style="color:#1a8b46">' + r.autoConfirmed + '건</strong></li>' +
+        '<li>중복 스킵: ' + r.skippedDuplicate + '건</li>' +
+        '<li>매칭없음 스킵: ' + r.skippedNoLink + '건</li>' +
+        '<li>완납아님 스킵: ' + r.skippedNotPaid + '건</li>' +
+        '</ul>';
+    }
+
+    if (resultEl) resultEl.innerHTML = html;
+    toast('Import 완료! ✅');
+    hyUploadParsedPreview = null;
+    document.getElementById('hyUploadConfirm').disabled = true;
+    document.getElementById('hyUploadCsv').value = '';
+  }
+
+  /**
+   * 효성 관리 초기화
+   */
+  function setupHyosung() {
+    /* 서브탭 전환 */
+    document.querySelectorAll('.hy-tab').forEach(t => {
+      t.addEventListener('click', () => switchHyosungTab(t.dataset.hyTab));
+    });
+
+    /* 계약 필터 */
+    ['hyContractStatus', 'hyContractSearch'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const handler = id === 'hyContractSearch'
+        ? () => { clearTimeout(window._hyct); window._hyct = setTimeout(() => { hyContractPage = 1; loadHyosungContracts(); }, 300); }
+        : () => { hyContractPage = 1; loadHyosungContracts(); };
+      el.addEventListener(id === 'hyContractSearch' ? 'input' : 'change', handler);
+    });
+    document.getElementById('hyContractRefresh')?.addEventListener('click', () => { hyContractPage = 1; loadHyosungContracts(); });
+
+    /* 청구 필터 */
+    ['hyBillingMonth', 'hyBillingStatus', 'hyBillingSearch'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const handler = id === 'hyBillingSearch'
+        ? () => { clearTimeout(window._hybt); window._hybt = setTimeout(() => { hyBillingPage = 1; loadHyosungBillings(); }, 300); }
+        : () => { hyBillingPage = 1; loadHyosungBillings(); };
+      el.addEventListener(id === 'hyBillingSearch' ? 'input' : 'change', handler);
+    });
+    document.getElementById('hyBillingRefresh')?.addEventListener('click', () => { hyBillingPage = 1; loadHyosungBillings(); });
+
+    /* 업로드 버튼 */
+    document.getElementById('hyUploadPreview')?.addEventListener('click', hyosungUploadPreview);
+    document.getElementById('hyUploadConfirm')?.addEventListener('click', hyosungUploadConfirm);
+  }
+
   /* ============ ★ STEP H-2d-4: 영수증 설정 (사이렌 관리자와 자동 동기화) ============ */
 
   /**
@@ -810,6 +1203,7 @@
     setupNotifyForm();
     setupExport();
     setupReceiptSettings(); /* ★ STEP H-2d-4 */
+    setupHyosung(); /* ★ Phase 1 */
 
     renderDashboard();
   }
