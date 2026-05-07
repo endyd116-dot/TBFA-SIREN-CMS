@@ -238,12 +238,6 @@ export const members = pgTable("members", {
   hyosungPromiseDay: integer("hyosung_promise_day"),
   hyosungSyncedAt: timestamp("hyosung_synced_at"),
 
-  /* ───────── ★ 토스 빌링 자동 청구 스케줄 (Phase 2) ───────── */
-  nextBillingDate: timestamp("next_billing_date", { mode: "date" }),
-  billingDay: integer("billing_day"),
-  billingRetryCount: integer("billing_retry_count").default(0).notNull(),
-  billingLastFailedAt: timestamp("billing_last_failed_at"),
-
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -257,7 +251,6 @@ export const members = pgTable("members", {
   subtypeIdx: index("members_subtype_idx").on(t.memberSubtype),
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
   hyosungNoIdx: index("members_hyosung_no_idx").on(t.hyosungMemberNo),
-  nextBillingIdx: index("idx_members_next_billing").on(t.nextBillingDate),
 }));
 
 /* =========================================================
@@ -324,9 +317,6 @@ export const donations = pgTable("donations", {
   hyosungBillingMonth: varchar("hyosung_billing_month", { length: 10 }),
   hyosungReceiptStatus: varchar("hyosung_receipt_status", { length: 20 }),
   hyosungPaidDate: timestamp("hyosung_paid_date", { mode: "date" }),
-
-  /* ★ 토스 자동 빌링 이력 연결 (Phase 2) */
-  billingLogId: integer("billing_log_id"),
 
   /* M-4 계좌이체 */
   bankDepositorName: varchar("bank_depositor_name", { length: 50 }),
@@ -1409,54 +1399,3 @@ export type HyosungContract = typeof hyosungContracts.$inferSelect;
 export type NewHyosungContract = typeof hyosungContracts.$inferInsert;
 export type HyosungBilling = typeof hyosungBillings.$inferSelect;
 export type NewHyosungBilling = typeof hyosungBillings.$inferInsert;
-
-/* =========================================================
-   ★ Phase 2: 토스 빌링 자동 청구 로그
-   ========================================================= */
-export const billingLogs = pgTable("billing_logs", {
-  id: serial("id").primaryKey(),
-  memberId: integer("member_id").references(() => members.id, { onDelete: "set null" }),
-  billingKey: varchar("billing_key", { length: 200 }),
-  attemptType: varchar("attempt_type", { length: 20 }).notNull(),
-  attemptNumber: integer("attempt_number").default(1).notNull(),
-  amount: integer("amount").notNull(),
-  status: varchar("status", { length: 20 }).notNull(),
-  tossOrderId: varchar("toss_order_id", { length: 100 }),
-  tossPaymentKey: varchar("toss_payment_key", { length: 200 }),
-  tossResponseCode: varchar("toss_response_code", { length: 50 }),
-  tossResponseMessage: varchar("toss_response_message", { length: 500 }),
-  errorDetail: jsonb("error_detail"),
-  donationId: integer("donation_id").references(() => donations.id, { onDelete: "set null" }),
-  requestedAt: timestamp("requested_at").defaultNow().notNull(),
-  completedAt: timestamp("completed_at"),
-  nextRetryAt: timestamp("next_retry_at"),
-  notifiedChannels: varchar("notified_channels", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => ({
-  memberIdx: index("idx_billing_logs_member").on(t.memberId),
-  statusIdx: index("idx_billing_logs_status").on(t.status),
-  nextRetryIdx: index("idx_billing_logs_next_retry").on(t.nextRetryAt),
-  requestedIdx: index("idx_billing_logs_requested").on(t.requestedAt),
-}));
-
-export type BillingLog = typeof billingLogs.$inferSelect;
-export type NewBillingLog = typeof billingLogs.$inferInsert;
-
-/* =========================================================
-   ★ Phase 2: 카드 만료 알림 발송 이력
-   ========================================================= */
-export const cardExpiryAlerts = pgTable("card_expiry_alerts", {
-  id: serial("id").primaryKey(),
-  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
-  billingKey: varchar("billing_key", { length: 200 }).notNull(),
-  cardExpiryMonth: varchar("card_expiry_month", { length: 10 }),
-  alertType: varchar("alert_type", { length: 20 }).notNull(),
-  channelsSent: varchar("channels_sent", { length: 50 }),
-  sentAt: timestamp("sent_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => ({
-  memberIdx: index("idx_card_expiry_member").on(t.memberId),
-}));
-
-export type CardExpiryAlert = typeof cardExpiryAlerts.$inferSelect;
-export type NewCardExpiryAlert = typeof cardExpiryAlerts.$inferInsert;
