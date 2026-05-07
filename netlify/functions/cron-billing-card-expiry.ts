@@ -1,0 +1,258 @@
+// netlify/functions/cron-billing-card-expiry.ts
+// ★ Phase 2 Step 4-C: 카드 만료 사전 알림 Scheduled Function
+// - 매일 KST 오전 9시 (UTC 00:00) 실행
+// - 30일 전 + 14일 전 만료 예정 카드 감지
+// - card_expiry_alerts 중복 발송 방지
+// - 이메일 + SMS + 알림톡 통보 (Phase 8 Stub)
+
+import type { Config } from "@netlify/functions";
+import { db } from "../../db";
+import {
+  members,
+  billingKeys,
+  cardExpiryAlerts,
+  type NewCardExpiryAlert,
+} from "../../db/schema";
+import { eq, and, sql } from "drizzle-orm";
+
+export const config: Config = {
+  schedule: "0 0 * * *",  // UTC 00:00 = KST 09:00
+};
+
+/* =========================================================
+   타입
+   ========================================================= */
+
+interface ExpiryTarget {
+  memberId: number;
+  memberName: string;
+  memberEmail: string;
+  memberPhone: string | null;
+  billingKeyId: number;
+  billingKey: string;
+  cardCompany: string | null;
+  cardNumberMasked: string | null;
+  cardExpiryMonth: string;  // YYMM 또는 YYYY-MM
+  alertType: "expiry_30d" | "expiry_14d" | "expired";
+}
+
+interface ExpirySummary {
+  total30d: number;
+  total14d: number;
+  totalExpired: number;
+  sentCount: number;
+  skippedCount: number;
+  errors: Array<{ memberId: number; error: string }>;
+  startedAt: string;
+  completedAt: string;
+}
+
+/* =========================================================
+   메인 핸들러
+   ========================================================= */
+
+export default async (_req: Request) => {
+  const startedAt = new Date();
+  console.log(`[cron-card-expiry] 시작 ${startedAt.toISOString()}`);
+
+  try {
+    // 1. 30일 전 만료 예정 카드 조회
+    const targets30d = await collectExpiryTargets(30);
+    // 2. 14일 전 만료 예정 카드 조회
+    const targets14d = await collectExpiryTargets(14);
+    // 3. 이미 만료된 카드 조회
+    const targetsExpired = await collectExpiredTargets();
+
+    const allTargets = [...targets30d, ...targets14d, ...targetsExpired];
+
+    console.log(`[cron-card-expiry] 대상: 30일전 ${targets30d.length}명, 14일전 ${targets14d.length}명, 만료됨 ${targetsExpired.length}명`);
+
+    const summary: ExpirySummary = {
+      total30d: targets30d.length,
+      total14d: targets14d.length,
+      totalExpired: targetsExpired.length,
+      sentCount: 0,
+      skippedCount: 0,
+      errors: [],
+      startedAt: startedAt.toISOString(),
+      completedAt: "",
+    };
+
+    // 배치 처리 (10명씩)
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < allTargets.length; i += BATCH_SIZE) {
+      const batch = allTargets.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(target => processExpiryTarget(target, summary))
+      );
+    }
+
+    summary.completedAt = new Date().toISOString();
+    console.log(`[cron-card-expiry] 완료`, JSON.stringify(summary, null, 2));
+
+    return new Response(
+      JSON.stringify({ ok: true, summary }, null, 2),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error(`[cron-card-expiry] 치명적 오류:`, error);
+    return new Response(
+      JSON.stringify({ ok: false, error: error?.message }, null, 2),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+};
+
+/* =========================================================
+   1. N일 전 만료 예정 조회
+   ========================================================= */
+
+async function collectExpiryTargets(daysAhead: number): Promise<ExpiryTarget[]> {
+  // 오늘로부터 daysAhead일 뒤의 YYMM 계산
+  const target = new Date();
+  target.setDate(target.getDate() + daysAhead);
+  const yy = String(target.getFullYear()).slice(2);
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const targetYYMM = `${yy}${mm}`;           // 예: "2712"
+  const targetYYYYMM = `${target.getFullYear()}-${mm}`;  // 예: "2027-12"
+
+  const result: any = await db.execute(sql`
+    SELECT
+      m.id AS member_id,
+      m.name AS member_name,
+      m.email AS member_email,
+      m.phone AS member_phone,
+      bk.id AS billing_key_id,
+      bk.billing_key,
+      bk.card_company,
+      bk.card_number_masked,
+      bk.card_expiry_month
+    FROM members m
+    INNER JOIN billing_keys bk ON bk.member_id = m.id
+    WHERE bk.is_active = true
+      AND m.withdrawn_at IS NULL
+      AND m.status = 'active'
+      AND (
+        bk.card_expiry_month = ${targetYYMM}
+        OR bk.card_expiry_month = ${targetYYYYMM}
+      )
+  `);
+
+  const rows = Array.isArray(result) ? result : (result as any).rows || [];
+  const alertType = daysAhead === 30 ? "expiry_30d" : "expiry_14d";
+
+  return rows.map((r: any) => ({
+    memberId: r.member_id,
+    memberName: r.member_name,
+    memberEmail: r.member_email,
+    memberPhone: r.member_phone,
+    billingKeyId: r.billing_key_id,
+    billingKey: r.billing_key,
+    cardCompany: r.card_company,
+    cardNumberMasked: r.card_number_masked,
+    cardExpiryMonth: r.card_expiry_month,
+    alertType: alertType as "expiry_30d" | "expiry_14d",
+  }));
+}
+
+/* =========================================================
+   2. 이미 만료된 카드 조회
+   ========================================================= */
+
+async function collectExpiredTargets(): Promise<ExpiryTarget[]> {
+  // 현재 월 기준으로 이전 월 카드 검출
+  const now = new Date();
+  const currentYY = String(now.getFullYear()).slice(2);
+  const currentMM = String(now.getMonth() + 1).padStart(2, "0");
+  const currentYYMM = `${currentYY}${currentMM}`;
+
+  const result: any = await db.execute(sql`
+    SELECT
+      m.id AS member_id,
+      m.name AS member_name,
+      m.email AS member_email,
+      m.phone AS member_phone,
+      bk.id AS billing_key_id,
+      bk.billing_key,
+      bk.card_company,
+      bk.card_number_masked,
+      bk.card_expiry_month
+    FROM members m
+    INNER JOIN billing_keys bk ON bk.member_id = m.id
+    WHERE bk.is_active = true
+      AND m.withdrawn_at IS NULL
+      AND m.status = 'active'
+      AND bk.card_expiry_month IS NOT NULL
+      AND LENGTH(bk.card_expiry_month) = 4
+      AND bk.card_expiry_month < ${currentYYMM}
+  `);
+
+  const rows = Array.isArray(result) ? result : (result as any).rows || [];
+  return rows.map((r: any) => ({
+    memberId: r.member_id,
+    memberName: r.member_name,
+    memberEmail: r.member_email,
+    memberPhone: r.member_phone,
+    billingKeyId: r.billing_key_id,
+    billingKey: r.billing_key,
+    cardCompany: r.card_company,
+    cardNumberMasked: r.card_number_masked,
+    cardExpiryMonth: r.card_expiry_month,
+    alertType: "expired" as const,
+  }));
+}
+
+/* =========================================================
+   3. 개별 처리
+   ========================================================= */
+
+async function processExpiryTarget(
+  target: ExpiryTarget,
+  summary: ExpirySummary
+): Promise<void> {
+  try {
+    // 중복 발송 체크 (uq_card_expiry_alert)
+    const existing: any = await db.execute(sql`
+      SELECT id FROM card_expiry_alerts
+      WHERE member_id = ${target.memberId}
+        AND alert_type = ${target.alertType}
+        AND card_expiry_month = ${target.cardExpiryMonth}
+      LIMIT 1
+    `);
+    const existingRows = Array.isArray(existing) ? existing : (existing as any).rows || [];
+
+    if (existingRows.length > 0) {
+      summary.skippedCount++;
+      return;
+    }
+
+    // 알림 발송 (Phase 8 Stub)
+    const channels: string[] = [];
+    if (target.memberEmail) channels.push("email");
+    if (target.memberPhone) channels.push("sms");
+    // TODO(phase8): 알림톡 채널 추가
+
+    // TODO(phase8): 실제 발송 함수 호출
+    // await sendCardExpiryNotifications(target, channels);
+
+    console.log(`[cron-card-expiry] 📧 알림: 회원 #${target.memberId} (${target.memberName}) — ${target.alertType} (${target.cardExpiryMonth})`);
+
+    // 이력 기록
+    const alertData: NewCardExpiryAlert = {
+      memberId: target.memberId,
+      billingKey: target.billingKey,
+      cardExpiryMonth: target.cardExpiryMonth,
+      alertType: target.alertType,
+      channelsSent: channels.join(","),
+    };
+    await db.insert(cardExpiryAlerts).values(alertData);
+
+    summary.sentCount++;
+  } catch (error: any) {
+    console.error(`[cron-card-expiry] 회원 #${target.memberId} 처리 실패:`, error);
+    summary.errors.push({
+      memberId: target.memberId,
+      error: error?.message || String(error),
+    });
+  }
+}
