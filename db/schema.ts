@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, varchar, integer, text, timestamp,
-  boolean, index, pgEnum, jsonb
+  boolean, index, uniqueIndex, pgEnum, jsonb
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -1460,3 +1460,116 @@ export const cardExpiryAlerts = pgTable("card_expiry_alerts", {
 
 export type CardExpiryAlert = typeof cardExpiryAlerts.$inferSelect;
 export type NewCardExpiryAlert = typeof cardExpiryAlerts.$inferInsert;
+
+/* =========================================================
+   ★ Phase 3: 공통 워크스페이스
+   ========================================================= */
+
+// 1. WBS 작업
+export const workspaceTasks = pgTable("workspace_tasks", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 20 }).default("todo").notNull(),       // todo | doing | done | blocked
+  priority: varchar("priority", { length: 20 }).default("normal").notNull(), // low | normal | high | urgent
+  dueDate: timestamp("due_date").notNull(),                                  // ★ 필수
+  assignedBy: integer("assigned_by").references(() => members.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at"),
+  parentTaskId: integer("parent_task_id"),
+  tags: jsonb("tags").default(sql`'[]'::jsonb`),
+  sortOrder: integer("sort_order").default(0),
+  completedAt: timestamp("completed_at"),
+  completedBy: integer("completed_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("workspace_tasks_member_idx").on(t.memberId),
+  statusIdx: index("workspace_tasks_status_idx").on(t.status),
+  dueIdx: index("workspace_tasks_due_idx").on(t.dueDate),
+  assignedByIdx: index("workspace_tasks_assigned_by_idx").on(t.assignedBy),
+  parentIdx: index("workspace_tasks_parent_idx").on(t.parentTaskId),
+}));
+
+// 2. 개인 메모
+export const workspaceMemos = pgTable("workspace_memos", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title", { length: 200 }),
+  contentHtml: text("content_html"),
+  color: varchar("color", { length: 20 }).default("yellow").notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("workspace_memos_member_idx").on(t.memberId, t.sortOrder),
+  pinnedIdx: index("workspace_memos_pinned_idx").on(t.isPinned),
+}));
+
+// 3. 일정/이벤트
+export const workspaceEvents = pgTable("workspace_events", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  location: varchar("location", { length: 300 }),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at").notNull(),
+  allDay: boolean("all_day").default(false).notNull(),
+  color: varchar("color", { length: 20 }).default("blue").notNull(),
+  description: text("description"),
+  attendees: jsonb("attendees").default(sql`'[]'::jsonb`),
+  externalRef: varchar("external_ref", { length: 200 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("workspace_events_member_idx").on(t.memberId),
+  startIdx: index("workspace_events_start_idx").on(t.startAt),
+  rangeIdx: index("workspace_events_range_idx").on(t.startAt, t.endAt),
+}));
+
+// 4. 마감일 변경 요청
+export const taskDueChangeRequests = pgTable("task_due_change_requests", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => workspaceTasks.id, { onDelete: "cascade" }).notNull(),
+  requestedBy: integer("requested_by").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  currentDue: timestamp("current_due").notNull(),
+  newDue: timestamp("new_due").notNull(),
+  reason: text("reason").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),  // pending | approved | rejected
+  reviewedBy: integer("reviewed_by").references(() => members.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  taskIdx: index("task_due_change_task_idx").on(t.taskId),
+  requesterIdx: index("task_due_change_requester_idx").on(t.requestedBy),
+  statusIdx: index("task_due_change_status_idx").on(t.status),
+}));
+
+// 5. 일일 브리핑 캐시 (Agent-8)
+export const dailyBriefings = pgTable("daily_briefings", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  briefingDate: timestamp("briefing_date", { mode: "date" }).notNull(),
+  urgentCount: integer("urgent_count").default(0).notNull(),
+  todayDueCount: integer("today_due_count").default(0).notNull(),
+  tomorrowDueCount: integer("tomorrow_due_count").default(0).notNull(),
+  newAssignments: integer("new_assignments").default(0).notNull(),
+  summaryMd: text("summary_md"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  uqMemberDate: uniqueIndex("uq_daily_briefings_member_date").on(t.memberId, t.briefingDate),
+}));
+
+export type WorkspaceTask = typeof workspaceTasks.$inferSelect;
+export type NewWorkspaceTask = typeof workspaceTasks.$inferInsert;
+export type WorkspaceMemo = typeof workspaceMemos.$inferSelect;
+export type NewWorkspaceMemo = typeof workspaceMemos.$inferInsert;
+export type WorkspaceEvent = typeof workspaceEvents.$inferSelect;
+export type NewWorkspaceEvent = typeof workspaceEvents.$inferInsert;
+export type TaskDueChangeRequest = typeof taskDueChangeRequests.$inferSelect;
+export type NewTaskDueChangeRequest = typeof taskDueChangeRequests.$inferInsert;
+export type DailyBriefing = typeof dailyBriefings.$inferSelect;
+export type NewDailyBriefing = typeof dailyBriefings.$inferInsert;
+
