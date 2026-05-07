@@ -112,7 +112,9 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'load failed');
 
-        _reports = data.list || [];
+        // ★ API 응답 형식: { ok, message, data: { list: [...] } }
+        const list = (data && data.data && data.data.list) || data.list || [];
+        _reports = list;
         renderList();
         renderYearOptions();
       } catch (e) {
@@ -131,7 +133,8 @@
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'detail failed');
 
-        const r = data.report;
+        // ★ 단건 API 응답: { ok, data: { report: {...} } } 또는 { ok, report: {...} }
+        const r = (data && data.data && (data.data.report || data.data)) || data.report || {};
         modalTitle.textContent = r.title || '보고서';
         modalBody.innerHTML = r.contentHtml || '<p style="color:var(--text-3)">본문이 비어있습니다.</p>';
         modal.style.display = 'flex';
