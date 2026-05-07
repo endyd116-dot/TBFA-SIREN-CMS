@@ -339,13 +339,20 @@
 <!-- 인증 가드 (즉시 실행) -->
 <script>
 (function wsAuthGuard() {
-  // Auth가 로드되기 전에도 체크
-  const token = localStorage.getItem('siren_token') || document.cookie.match(/siren_token=/);
-  if (!token) {
-    location.replace('/auth.html?redirect=' + encodeURIComponent('/workspace.html'));
+  /* 어드민 토큰 또는 사용자 토큰 둘 중 하나라도 있으면 OK
+     (v14 보안 설계: siren_admin_token vs siren_token 분리) */
+  const cookieStr = document.cookie || '';
+  const hasAdminToken = cookieStr.indexOf('siren_admin_token') !== -1;
+  const hasUserToken  = cookieStr.indexOf('siren_token=') !== -1;
+  const hasLocalToken = !!localStorage.getItem('siren_token') || !!localStorage.getItem('siren_admin_token');
+
+  if (!hasAdminToken && !hasUserToken && !hasLocalToken) {
+    /* 토큰 없음 → 로그인 안내 페이지로 (현재 별도 로그인 페이지 없으므로 홈으로) */
+    alert('로그인이 필요합니다. 관리자 페이지로 이동합니다.');
+    location.replace('/admin.html');
     return;
   }
-  // Auth 로드 후 추가 체크는 workspace.js에서
+  /* 토큰 종류는 workspace.js의 init()에서 추가 검증 */
 })();
 </script>
 
