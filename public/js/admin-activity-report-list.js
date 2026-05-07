@@ -292,9 +292,6 @@
         ? '<span class="ar-badge-pub published">📢 발행됨</span>'
         : '<span class="ar-badge-pub draft">📝 비공개</span>';
       const pinIcon = p.isPinned ? '<span class="ar-pin">📌</span>' : '';
-      const pdfBtn = p.pdfDownloadUrl
-        ? `<span style="color:#999;font-size:11px">—</span>`
-        : '<span style="color:var(--text-3);font-size:11px">없음</span>';
       const pubAction = p.isPublished
         ? `<button class="unpublish" data-action="unpublish" data-id="${p.id}">🔒 비공개</button>`
         : `<button class="publish" data-action="publish" data-id="${p.id}">📢 발행</button>`;
