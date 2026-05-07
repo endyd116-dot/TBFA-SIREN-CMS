@@ -128,7 +128,6 @@ export default async (req: Request, _ctx: Context) => {
         detail: { title: newMemo.title || "(제목 없음)" }, req,
       });
 
-      // 메모는 개인 활동이므로 Activity Log는 visibility='private'
       await logWorkspaceActivity({
         actorId: meId,
         actorName: adminMember.name,
@@ -153,7 +152,6 @@ export default async (req: Request, _ctx: Context) => {
       const body: any = await parseJson(req);
       if (!body) return badRequest("JSON body 필요");
 
-      // 소유권 확인
       const [memo]: any = await db
         .select()
         .from(workspaceMemos)
@@ -161,7 +159,6 @@ export default async (req: Request, _ctx: Context) => {
         .limit(1);
       if (!memo) return notFound("메모를 찾을 수 없습니다");
 
-      /* ─── action=pin ─── */
       if (action === "pin") {
         const isPinned = body.isPinned !== undefined ? !!body.isPinned : !memo.isPinned;
         const [updated]: any = await db
@@ -184,7 +181,6 @@ export default async (req: Request, _ctx: Context) => {
         return ok(updated, isPinned ? "고정되었습니다" : "고정이 해제되었습니다");
       }
 
-      /* ─── 일반 PATCH ─── */
       const updateData: any = { updatedAt: new Date() };
       if (body.title !== undefined) {
         updateData.title = body.title ? String(body.title).trim().slice(0, 200) : null;
