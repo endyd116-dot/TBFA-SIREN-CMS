@@ -695,3 +695,144 @@
   .wf-toolbar-search { max-width: none; }
   .wf-col-owner, .wf-col-size { display: none; }
 }
+
+/* ═══════════════════════════════════════════════
+   Step 7 추가 스타일 (2026.05)
+   ═══════════════════════════════════════════════ */
+
+/* ───── 우클릭 컨텍스트 메뉴 ───── */
+.wf-context-menu {
+  position: fixed;
+  z-index: 1500;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  padding: 6px 0;
+  animation: wfMenuIn 0.1s ease-out;
+  display: none;
+}
+.wf-context-menu.visible { display: block; }
+@keyframes wfMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.wf-context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+.wf-context-item:hover { background: #f3f4f6; }
+.wf-context-item.danger { color: #dc2626; }
+.wf-context-item.danger:hover { background: #fef2f2; }
+.wf-context-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+.wf-context-icon { width: 16px; text-align: center; }
+
+/* ───── ZIP 진행 모달 ───── */
+.wf-zip-progress {
+  padding: 20px;
+  text-align: center;
+}
+.wf-zip-status {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 12px;
+}
+.wf-zip-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.wf-zip-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  transition: width 0.3s;
+  width: 0%;
+}
+.wf-zip-current {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ───── 검색 고도화 ───── */
+.wf-search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+.wf-search-suggestions.visible { display: block; }
+.wf-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.wf-suggestion-item:hover { background: #f3f4f6; }
+.wf-suggestion-icon { font-size: 16px; }
+.wf-suggestion-name { flex: 1; color: #1f2937; }
+.wf-suggestion-path { color: #9ca3af; font-size: 11px; }
+
+/* ───── 공유 상태 아이콘 ───── */
+.wf-share-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  color: #2563eb;
+}
+.wf-col-name .wf-share-indicator { vertical-align: middle; }
+
+/* ───── 이동 다이얼로그 ───── */
+.wf-move-folder-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px;
+  margin-top: 8px;
+}
+.wf-move-folder-item {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.wf-move-folder-item:hover { background: #f3f4f6; }
+.wf-move-folder-item.selected { background: #dbeafe; color: #1e40af; font-weight: 500; }
+
+/* ───── 키보드 단축키 힌트 ───── */
+.wf-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: monospace;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  color: #6b7280;
+}

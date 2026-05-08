@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════
-   SIREN 파일함 — workspace-files.js (Step 6 본격 구현)
-   Phase 3-extra Step 6 (2026.05)
+   SIREN 파일함 — workspace-files.js (Step 7)
+   Phase 3-extra Step 7 — 검색+ZIP+공유+우클릭
    ═══════════════════════════════════════════════ */
 (function() {
   'use strict';
@@ -9,16 +9,18 @@
 
   /* ───────── 상태 관리 ───────── */
   const state = {
-    currentFolderId: 0,          // 0 = 루트
-    currentView: 'all',          // all | mine | shared | trash
+    currentFolderId: 0,
+    currentView: 'all',
     sortBy: 'date-desc',
     searchKeyword: '',
-    folders: [],                 // 전체 폴더 (eager load)
-    files: [],                   // 현재 폴더 파일
+    folders: [],
+    files: [],
     selectedFileIds: new Set(),
-    me: null,                    // 내 정보 (id, name, role)
-    members: [],                 // 운영자 목록 (공유용)
+    me: null,
+    members: [],
     breadcrumbPath: [{ id: 0, name: '홈' }],
+    contextTarget: null,         // { type, id, name } 우클릭 대상
+    moveSelectedFolderId: 0,     // 이동 다이얼로그 선택
   };
 
   /* ───────── API 클라이언트 ───────── */
@@ -32,18 +34,14 @@
       opts.body = JSON.stringify(opts.body);
     }
     const res = await fetch(path, opts);
-
-    // 인증 실패
     if (res.status === 401) {
       alert('관리자 로그인이 필요합니다');
       location.href = '/admin.html';
       throw new Error('unauthorized');
     }
-
     const text = await res.text();
     let json = null;
     try { json = text ? JSON.parse(text) : {}; } catch { json = { error: text }; }
-
     if (!res.ok) {
       const msg = json?.error || json?.message || `HTTP ${res.status}`;
       throw new Error(msg);
@@ -51,7 +49,7 @@
     return json;
   }
 
-  /* ───────── 토스트 알림 ───────── */
+  /* ───────── 토스트 ───────── */
   function toast(msg, type = 'default') {
     const container = document.getElementById('wfToastContainer');
     if (!container) return;
@@ -124,7 +122,32 @@
       .replace(/'/g, '&#39;');
   }
 
-  /* ───────── 폴더 트리 로드 ───────── */
+  /* ───────── 동적 스크립트 로드 (CDN fallback) ───────── */
+  const loadedScripts = new Set();
+  async function loadScript(urls) {
+    const urlList = Array.isArray(urls) ? urls : [urls];
+    const key = urlList[0];
+    if (loadedScripts.has(key)) return true;
+    for (const url of urlList) {
+      try {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = url;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+          setTimeout(() => reject(new Error('timeout')), 8000);
+        });
+        loadedScripts.add(key);
+        return true;
+      } catch (err) {
+        console.warn('[loadScript] failed:', url, '→ trying next');
+      }
+    }
+    throw new Error('모든 CDN 소스에서 로드 실패');
+  }
+
+  /* ───────── 폴더 로드 ───────── */
   async function loadFolders() {
     try {
       const res = await api('/api/admin-workspace-folders?list=1');
@@ -140,8 +163,6 @@
   function renderFolderTree() {
     const tree = document.getElementById('wfFolderTree');
     if (!tree) return;
-
-    // 루트 + 트리 구조 조립
     const byParent = {};
     state.folders.forEach(f => {
       const pid = f.parentId || 0;
@@ -155,15 +176,17 @@
       return children.map(f => {
         const hasChildren = (byParent[f.id] || []).length > 0;
         const isActive = f.id === state.currentFolderId;
+        const shareIcon = f.isShared ? ' <span class="wf-share-indicator">🔗</span>' : '';
         const childHtml = renderNode(f.id, depth + 1);
         return `
           <div>
             <div class="wf-tree-node ${isActive ? 'active' : ''}"
                  data-folder-id="${f.id}"
+                 data-folder-name="${escapeHtml(f.name)}"
                  style="padding-left:${8 + depth * 12}px">
               <span class="wf-tree-toggle ${hasChildren ? '' : 'empty'}" data-toggle="${f.id}">▶</span>
               <span>📁</span>
-              <span>${escapeHtml(f.name)}</span>
+              <span>${escapeHtml(f.name)}${shareIcon}</span>
             </div>
             <div class="wf-tree-children" data-children="${f.id}">${childHtml}</div>
           </div>
@@ -172,7 +195,7 @@
     }
 
     const rootHtml = `
-      <div class="wf-tree-node ${state.currentFolderId === 0 ? 'active' : ''}" data-folder-id="0">
+      <div class="wf-tree-node ${state.currentFolderId === 0 ? 'active' : ''}" data-folder-id="0" data-folder-name="홈">
         <span class="wf-tree-toggle empty"></span>
         <span>🏠</span>
         <span>홈</span>
@@ -181,16 +204,21 @@
     `;
     tree.innerHTML = rootHtml;
 
-    // 이벤트: 트리 노드 클릭
     tree.querySelectorAll('.wf-tree-node').forEach(node => {
       node.addEventListener('click', e => {
         if (e.target.dataset.toggle) return;
         const fid = parseInt(node.dataset.folderId, 10);
         navigateToFolder(fid);
       });
+      node.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const fid = parseInt(node.dataset.folderId, 10);
+        const fname = node.dataset.folderName;
+        if (fid === 0) return;
+        showContextMenu(e.clientX, e.clientY, 'folder', fid, fname);
+      });
     });
 
-    // 이벤트: 펼치기/접기
     tree.querySelectorAll('.wf-tree-toggle[data-toggle]').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -208,8 +236,6 @@
   function buildBreadcrumbPath(folderId) {
     const path = [{ id: 0, name: '홈' }];
     if (folderId === 0) return path;
-
-    // 부모 체인 거슬러 올라가며 구축
     const chain = [];
     let cur = state.folders.find(f => f.id === folderId);
     while (cur) {
@@ -233,7 +259,6 @@
         </span>
       `;
     }).join('');
-
     bc.querySelectorAll('.wf-crumb').forEach(el => {
       el.addEventListener('click', () => {
         if (el.classList.contains('active')) return;
@@ -243,7 +268,6 @@
     });
   }
 
-  /* ───────── 폴더 이동 ───────── */
   async function navigateToFolder(folderId) {
     state.currentFolderId = folderId;
     state.selectedFileIds.clear();
@@ -253,12 +277,11 @@
     await loadFiles();
   }
 
-  /* ───────── 파일 리스트 로드 ───────── */
+  /* ───────── 파일 리스트 ───────── */
   async function loadFiles() {
     const tbody = document.getElementById('wfFileListBody');
     const empty = document.getElementById('wfEmptyState');
     if (!tbody) return;
-
     tbody.innerHTML = '<tr class="wf-list-loading"><td colspan="7">불러오는 중...</td></tr>';
     if (empty) empty.style.display = 'none';
 
@@ -272,7 +295,6 @@
         if (state.currentView === 'shared') params.set('shared', '1');
       }
       if (state.searchKeyword) params.set('q', state.searchKeyword);
-
       const res = await api(`/api/admin-workspace-files?${params}`);
       state.files = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       renderFileList();
@@ -290,7 +312,6 @@
 
     let files = state.files.slice();
     files = sortFiles(files, state.sortBy);
-
     if (count) count.textContent = `파일 ${files.length}개`;
 
     if (!files.length) {
@@ -304,13 +325,16 @@
       const isSelected = state.selectedFileIds.has(f.id);
       const ownerName = f.ownerName || f.ownerEmail || '—';
       const isTrash = state.currentView === 'trash';
+      const shareIcon = f.isShared ? ' <span class="wf-share-indicator" title="공유됨">🔗</span>' : '';
       return `
-        <tr class="wf-list-row ${isSelected ? 'selected' : ''}" data-file-id="${f.id}">
+        <tr class="wf-list-row ${isSelected ? 'selected' : ''}"
+            data-file-id="${f.id}"
+            data-file-name="${escapeHtml(f.name)}">
           <td class="wf-col-check">
             <input type="checkbox" ${isSelected ? 'checked' : ''} data-select="${f.id}" />
           </td>
           <td class="wf-col-icon">${fileIcon(f.name)}</td>
-          <td class="wf-col-name">${escapeHtml(f.name)}</td>
+          <td class="wf-col-name">${escapeHtml(f.name)}${shareIcon}</td>
           <td class="wf-col-owner">${escapeHtml(ownerName)}</td>
           <td class="wf-col-size">${formatSize(f.sizeBytes)}</td>
           <td class="wf-col-date">${formatDate(f.updatedAt || f.createdAt)}</td>
@@ -331,7 +355,7 @@
       `;
     }).join('');
 
-    // 체크박스 이벤트
+    // 체크박스
     tbody.querySelectorAll('input[data-select]').forEach(cb => {
       cb.addEventListener('change', e => {
         const fid = parseInt(cb.dataset.select, 10);
@@ -343,7 +367,7 @@
       });
     });
 
-    // 행 액션 버튼
+    // 액션 버튼
     tbody.querySelectorAll('.wf-row-action-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
@@ -352,29 +376,27 @@
         handleFileAction(action, id);
       });
     });
+
+    // 우클릭 컨텍스트 메뉴 (파일)
+    tbody.querySelectorAll('.wf-list-row').forEach(row => {
+      row.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const fid = parseInt(row.dataset.fileId, 10);
+        const fname = row.dataset.fileName;
+        showContextMenu(e.clientX, e.clientY, 'file', fid, fname);
+      });
+    });
   }
 
   function sortFiles(files, sortBy) {
     const sorted = files.slice();
     switch (sortBy) {
-      case 'name-asc':
-        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
-        break;
-      case 'name-desc':
-        sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ko'));
-        break;
-      case 'date-asc':
-        sorted.sort((a, b) => new Date(a.updatedAt || a.createdAt || 0) - new Date(b.updatedAt || b.createdAt || 0));
-        break;
-      case 'date-desc':
-        sorted.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
-        break;
-      case 'size-asc':
-        sorted.sort((a, b) => (a.sizeBytes || 0) - (b.sizeBytes || 0));
-        break;
-      case 'size-desc':
-        sorted.sort((a, b) => (b.sizeBytes || 0) - (a.sizeBytes || 0));
-        break;
+      case 'name-asc':  sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko')); break;
+      case 'name-desc': sorted.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'ko')); break;
+      case 'date-asc':  sorted.sort((a, b) => new Date(a.updatedAt || a.createdAt || 0) - new Date(b.updatedAt || b.createdAt || 0)); break;
+      case 'date-desc': sorted.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)); break;
+      case 'size-asc':  sorted.sort((a, b) => (a.sizeBytes || 0) - (b.sizeBytes || 0)); break;
+      case 'size-desc': sorted.sort((a, b) => (b.sizeBytes || 0) - (a.sizeBytes || 0)); break;
     }
     return sorted;
   }
@@ -391,28 +413,18 @@
   async function handleFileAction(action, fileId) {
     const file = state.files.find(f => f.id === fileId);
     if (!file) return;
-
     switch (action) {
-      case 'download':
-        await downloadFile(fileId);
-        break;
-      case 'rename':
-        openRenameModal('file', fileId, file.name);
-        break;
+      case 'download': await downloadFile(fileId); break;
+      case 'rename':   openRenameModal('file', fileId, file.name); break;
       case 'delete':
         if (!confirm(`"${file.name}" 파일을 휴지통으로 이동하시겠습니까?`)) return;
-        await deleteFile(fileId);
-        break;
-      case 'share':
-        openShareModal('file', fileId, file.name);
-        break;
+        await deleteFile(fileId); break;
+      case 'share':    openShareModal('file', fileId, file.name); break;
       case 'restore':
         if (!confirm(`"${file.name}" 파일을 복원하시겠습니까?`)) return;
-        await restoreFile(fileId);
-        break;
-      case 'purge':
-        openPurgeConfirm('file', fileId, file.name);
-        break;
+        await restoreFile(fileId); break;
+      case 'purge':    openPurgeConfirm('file', fileId, file.name); break;
+      case 'move':     openMoveDialog('file', fileId, file.name); break;
     }
   }
 
@@ -467,7 +479,6 @@
     if (!queue) return;
     const files = Array.from(fileList);
     if (!files.length) return;
-
     for (const file of files) {
       if (file.size > 500 * 1024 * 1024) {
         toast(`"${file.name}" — 500MB 초과로 제외`, 'error');
@@ -491,12 +502,10 @@
       </div>
     `;
     queue.appendChild(item);
-
     const bar = item.querySelector('.wf-upload-progress-bar');
     const status = item.querySelector('.wf-upload-status');
 
     try {
-      // 1. presign
       status.textContent = 'URL 요청 중...';
       const presignRes = await api('/api/admin-workspace-file-presign', {
         method: 'POST',
@@ -510,7 +519,6 @@
       const { uploadUrl, r2Key, fileId } = presignRes.data || presignRes || {};
       if (!uploadUrl) throw new Error('업로드 URL 없음');
 
-      // 2. PUT to R2
       status.textContent = '업로드 중...';
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -531,7 +539,6 @@
         xhr.send(file);
       });
 
-      // 3. confirm
       status.textContent = '완료 처리 중...';
       await api('/api/admin-workspace-file-confirm', {
         method: 'POST',
@@ -584,7 +591,24 @@
     }
   }
 
-   /* ───────── 공유 관리 ───────── */
+  async function deleteFolder(id, name) {
+    if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n(폴더 내 모든 파일도 함께 이동)`)) return;
+    try {
+      await api(`/api/admin-workspace-folders?folderId=${id}`, { method: 'DELETE' });
+      toast('폴더가 휴지통으로 이동됨', 'success');
+      if (state.currentFolderId === id) {
+        await navigateToFolder(0);
+      } else {
+        await loadFolders();
+        await loadFiles();
+      }
+    } catch (err) {
+      toast('폴더 삭제 실패: ' + err.message, 'error');
+    }
+  }
+
+
+  /* ───────── 공유 관리 ───────── */
   async function loadMembers() {
     try {
       const res = await api('/api/admin-workspace-members');
@@ -623,7 +647,7 @@
       else params.set('fileId', String(id));
       const res = await api(`/api/admin-workspace-file-share?${params}`);
       const shares = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
-      const isPublic = res.isShared || false;
+      const isPublic = res.data?.isShared || res.isShared || false;
 
       const publicToggle = document.getElementById('wfSharePublic');
       if (publicToggle) publicToggle.checked = !!isPublic;
@@ -636,13 +660,25 @@
         list.innerHTML = shares.map(s => `
           <li>
             <span>${escapeHtml(s.memberName || ('#' + s.sharedWith))} <small>(${escapeHtml(s.permission)})</small></span>
-            <button class="wf-row-action-btn" data-remove-share="${s.id}" title="제거">✕</button>
+            <span style="display:flex;gap:4px;">
+              <select class="wf-perm-change" data-share-id="${s.id}" style="font-size:12px;padding:2px 4px;">
+                <option value="view" ${s.permission === 'view' ? 'selected' : ''}>조회</option>
+                <option value="edit" ${s.permission === 'edit' ? 'selected' : ''}>편집</option>
+              </select>
+              <button class="wf-row-action-btn" data-remove-share="${s.id}" title="제거">✕</button>
+            </span>
           </li>
         `).join('');
         list.querySelectorAll('[data-remove-share]').forEach(btn => {
           btn.addEventListener('click', async () => {
             const shareId = parseInt(btn.dataset.removeShare, 10);
             await removeShare(shareId, type, id);
+          });
+        });
+        list.querySelectorAll('.wf-perm-change').forEach(sel => {
+          sel.addEventListener('change', async e => {
+            const shareId = parseInt(sel.dataset.shareId, 10);
+            await updateSharePermission(shareId, e.target.value, type, id);
           });
         });
       }
@@ -677,6 +713,19 @@
     }
   }
 
+  async function updateSharePermission(shareId, permission, type, id) {
+    try {
+      await api('/api/admin-workspace-file-share', {
+        method: 'PATCH',
+        body: { shareId, permission }
+      });
+      toast('권한 변경됨', 'success');
+      await loadShareList(type, id);
+    } catch (err) {
+      toast('권한 변경 실패: ' + err.message, 'error');
+    }
+  }
+
   async function togglePublicShare(type, id, isPublic) {
     try {
       const body = { isShared: isPublic };
@@ -684,12 +733,14 @@
       else body.fileId = id;
       await api('/api/admin-workspace-file-share', { method: 'PATCH', body });
       toast(isPublic ? '전체 공개됨' : '공개 해제됨', 'success');
+      await loadFolders();
+      await loadFiles();
     } catch (err) {
       toast('공개 설정 실패: ' + err.message, 'error');
     }
   }
 
-  /* ───────── 모달 관련 UI 헬퍼 ───────── */
+  /* ───────── 모달 헬퍼 ───────── */
   function openRenameModal(type, id, currentName) {
     document.getElementById('wfRenameTargetType').value = type;
     document.getElementById('wfRenameTargetId').value = id;
@@ -698,12 +749,18 @@
     openModal('wfRenameModal');
   }
 
-  function openNewFolderModal() {
+  function openNewFolderModal(parentId) {
     const input = document.getElementById('wfNewFolderName');
     if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+    const targetParent = parentId != null ? parentId : state.currentFolderId;
+    state._newFolderParentId = targetParent;
     const parentEl = document.getElementById('wfNewFolderParent');
     if (parentEl) {
-      const parentName = state.breadcrumbPath[state.breadcrumbPath.length - 1]?.name || '홈';
+      let parentName = '홈';
+      if (targetParent !== 0) {
+        const f = state.folders.find(x => x.id === targetParent);
+        if (f) parentName = f.name;
+      }
       parentEl.innerHTML = `상위 폴더: <strong>${escapeHtml(parentName)}</strong>`;
     }
     openModal('wfNewFolderModal');
@@ -721,7 +778,297 @@
     openModal('wfDeleteConfirmModal');
   }
 
-  /* ───────── 검색 (디바운스) ───────── */
+  /* ───────── 우클릭 컨텍스트 메뉴 ───────── */
+  function showContextMenu(x, y, type, id, name) {
+    let menu = document.getElementById('wfContextMenu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'wfContextMenu';
+      menu.className = 'wf-context-menu';
+      document.body.appendChild(menu);
+    }
+
+    state.contextTarget = { type, id, name };
+
+    const items = [];
+    if (type === 'folder') {
+      items.push({ icon: '📁', label: '하위 폴더 추가', action: 'newSubFolder' });
+      items.push({ icon: '✏', label: '이름 변경', action: 'rename' });
+      items.push({ icon: '🔗', label: '공유 관리', action: 'share' });
+      items.push({ divider: true });
+      items.push({ icon: '🗑', label: '휴지통으로 이동', action: 'delete', danger: true });
+    } else {
+      items.push({ icon: '⬇', label: '다운로드', action: 'download' });
+      items.push({ icon: '🔗', label: '공유 관리', action: 'share' });
+      items.push({ icon: '📂', label: '다른 폴더로 이동', action: 'move' });
+      items.push({ icon: '✏', label: '이름 변경', action: 'rename' });
+      items.push({ divider: true });
+      items.push({ icon: '🗑', label: '휴지통으로 이동', action: 'delete', danger: true });
+    }
+
+    menu.innerHTML = items.map(it => {
+      if (it.divider) return '<div class="wf-context-divider"></div>';
+      return `
+        <div class="wf-context-item ${it.danger ? 'danger' : ''}" data-action="${it.action}">
+          <span class="wf-context-icon">${it.icon}</span>
+          <span>${escapeHtml(it.label)}</span>
+        </div>
+      `;
+    }).join('');
+
+    // 위치 조정 (화면 밖으로 안 나가게)
+    const menuW = 180, menuH = items.length * 36;
+    const finalX = Math.min(x, window.innerWidth - menuW - 8);
+    const finalY = Math.min(y, window.innerHeight - menuH - 8);
+    menu.style.left = finalX + 'px';
+    menu.style.top = finalY + 'px';
+    menu.classList.add('visible');
+
+    menu.querySelectorAll('.wf-context-item').forEach(item => {
+      item.addEventListener('click', () => {
+        hideContextMenu();
+        handleContextAction(item.dataset.action);
+      });
+    });
+  }
+
+  function hideContextMenu() {
+    const menu = document.getElementById('wfContextMenu');
+    if (menu) menu.classList.remove('visible');
+    state.contextTarget = null;
+  }
+
+  function handleContextAction(action) {
+    const t = state.contextTarget;
+    if (!t) return;
+    switch (action) {
+      case 'newSubFolder': openNewFolderModal(t.id); break;
+      case 'rename':       openRenameModal(t.type, t.id, t.name); break;
+      case 'share':        openShareModal(t.type, t.id, t.name); break;
+      case 'download':     downloadFile(t.id); break;
+      case 'move':         openMoveDialog('file', t.id, t.name); break;
+      case 'delete':
+        if (t.type === 'folder') deleteFolder(t.id, t.name);
+        else handleFileAction('delete', t.id);
+        break;
+    }
+  }
+
+  /* ───────── 이동 다이얼로그 ───────── */
+  function openMoveDialog(type, id, name) {
+    let modal = document.getElementById('wfMoveModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'wfMoveModal';
+      modal.className = 'wf-modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = `
+        <div class="wf-modal-backdrop" data-close="wfMoveModal"></div>
+        <div class="wf-modal-content wf-modal-sm">
+          <div class="wf-modal-header">
+            <h2>📂 이동</h2>
+            <button class="wf-modal-close" data-close="wfMoveModal">✕</button>
+          </div>
+          <div class="wf-modal-body">
+            <div class="wf-share-target" id="wfMoveTarget"></div>
+            <div class="wf-field-label">이동할 폴더 선택:</div>
+            <div class="wf-move-folder-list" id="wfMoveFolderList"></div>
+          </div>
+          <div class="wf-modal-footer">
+            <button class="wf-btn wf-btn-default" data-close="wfMoveModal">취소</button>
+            <button class="wf-btn wf-btn-primary" id="wfBtnConfirmMove">이동</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // 이벤트 위임
+      modal.querySelectorAll('[data-close]').forEach(el => {
+        el.addEventListener('click', () => closeModal('wfMoveModal'));
+      });
+      document.getElementById('wfBtnConfirmMove').addEventListener('click', confirmMove);
+    }
+
+    state.contextTarget = { type, id, name };
+    state.moveSelectedFolderId = 0;
+
+    const target = document.getElementById('wfMoveTarget');
+    if (target) {
+      target.innerHTML = `
+        <span class="wf-share-icon">${type === 'folder' ? '📁' : '📄'}</span>
+        <span class="wf-share-name">${escapeHtml(name)}</span>
+      `;
+    }
+
+    renderMoveFolderList();
+    openModal('wfMoveModal');
+  }
+
+  function renderMoveFolderList() {
+    const list = document.getElementById('wfMoveFolderList');
+    if (!list) return;
+    const items = [{ id: 0, name: '🏠 홈 (루트)', depth: 0 }];
+    state.folders.forEach(f => {
+      items.push({ id: f.id, name: f.name, depth: f.depth || 0 });
+    });
+    list.innerHTML = items.map(it => `
+      <div class="wf-move-folder-item ${it.id === state.moveSelectedFolderId ? 'selected' : ''}"
+           data-folder-id="${it.id}"
+           style="padding-left:${10 + (it.depth * 12)}px">
+        ${it.id === 0 ? '' : '📁 '}${escapeHtml(it.name)}
+      </div>
+    `).join('');
+    list.querySelectorAll('.wf-move-folder-item').forEach(el => {
+      el.addEventListener('click', () => {
+        state.moveSelectedFolderId = parseInt(el.dataset.folderId, 10);
+        renderMoveFolderList();
+      });
+    });
+  }
+
+  async function confirmMove() {
+    const t = state.contextTarget;
+    if (!t) return;
+    const targetFolderId = state.moveSelectedFolderId;
+    try {
+      if (t.type === 'file') {
+        await api('/api/admin-workspace-files', {
+          method: 'PATCH',
+          body: { fileId: t.id, folderId: targetFolderId }
+        });
+      } else {
+        await api('/api/admin-workspace-folders', {
+          method: 'PATCH',
+          body: { folderId: t.id, parentId: targetFolderId }
+        });
+      }
+      toast('이동 완료', 'success');
+      closeModal('wfMoveModal');
+      await loadFolders();
+      await loadFiles();
+    } catch (err) {
+      toast('이동 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* ───────── ZIP 일괄 다운로드 ───────── */
+  const JSZIP_CDNS = [
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  ];
+
+  async function downloadAsZip() {
+    const fileIds = Array.from(state.selectedFileIds);
+    if (!fileIds.length) {
+      toast('다운로드할 파일을 선택하세요', 'error');
+      return;
+    }
+
+    showZipModal();
+    updateZipStatus('JSZip 라이브러리 로드 중...', 0);
+
+    try {
+      await loadScript(JSZIP_CDNS);
+      if (!window.JSZip) throw new Error('JSZip 로드 실패');
+    } catch (err) {
+      hideZipModal();
+      toast('ZIP 라이브러리 로드 실패: ' + err.message, 'error');
+      return;
+    }
+
+    const zip = new window.JSZip();
+    const targets = fileIds
+      .map(fid => state.files.find(f => f.id === fid))
+      .filter(Boolean);
+
+    let done = 0;
+    const total = targets.length;
+
+    for (const file of targets) {
+      try {
+        updateZipStatus(`다운로드 중: ${file.name}`, Math.round((done / total) * 80), file.name);
+        const res = await api(`/api/admin-workspace-file-download?fileId=${file.id}`);
+        const url = res.data?.downloadUrl || res.data?.url || res.downloadUrl;
+        if (!url) throw new Error('URL 없음');
+        const blobRes = await fetch(url);
+        if (!blobRes.ok) throw new Error('HTTP ' + blobRes.status);
+        const blob = await blobRes.blob();
+        zip.file(file.name, blob);
+        done += 1;
+      } catch (err) {
+        console.warn('[zip] failed:', file.name, err);
+        toast(`"${file.name}" 다운로드 실패`, 'error');
+      }
+    }
+
+    updateZipStatus('ZIP 압축 중...', 90);
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' }, meta => {
+        const pct = 90 + Math.round(meta.percent / 10);
+        updateZipStatus('ZIP 압축 중...', pct);
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      a.href = url;
+      a.download = `siren-files-${ts}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      updateZipStatus(`완료 (${done}/${total} 파일)`, 100);
+      setTimeout(hideZipModal, 1200);
+      toast(`ZIP 다운로드 완료 (${done}/${total})`, 'success');
+    } catch (err) {
+      hideZipModal();
+      toast('ZIP 생성 실패: ' + err.message, 'error');
+    }
+  }
+
+  function showZipModal() {
+    let modal = document.getElementById('wfZipModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'wfZipModal';
+      modal.className = 'wf-modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML = `
+        <div class="wf-modal-backdrop"></div>
+        <div class="wf-modal-content wf-modal-sm">
+          <div class="wf-modal-header">
+            <h2>📦 ZIP 다운로드</h2>
+          </div>
+          <div class="wf-modal-body">
+            <div class="wf-zip-progress">
+              <div class="wf-zip-status" id="wfZipStatus">준비 중...</div>
+              <div class="wf-zip-bar"><div class="wf-zip-bar-fill" id="wfZipBarFill"></div></div>
+              <div class="wf-zip-current" id="wfZipCurrent"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    openModal('wfZipModal');
+  }
+
+  function updateZipStatus(text, percent, current) {
+    const status = document.getElementById('wfZipStatus');
+    const fill = document.getElementById('wfZipBarFill');
+    const curEl = document.getElementById('wfZipCurrent');
+    if (status) status.textContent = text;
+    if (fill) fill.style.width = Math.max(0, Math.min(100, percent)) + '%';
+    if (curEl) curEl.textContent = current || '';
+  }
+
+  function hideZipModal() {
+    closeModal('wfZipModal');
+  }
+
+  /* ───────── 검색 ───────── */
   let searchTimer = null;
   function handleSearch(value) {
     state.searchKeyword = value.trim();
@@ -744,16 +1091,12 @@
 
   /* ───────── 이벤트 바인딩 ───────── */
   function bindEvents() {
-    // 탭 전환
     document.querySelectorAll('.wf-tab[data-view]').forEach(tab => {
       tab.addEventListener('click', () => switchView(tab.dataset.view));
     });
 
-    // 검색
     const searchInput = document.getElementById('wfSearchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', e => handleSearch(e.target.value));
-    }
+    if (searchInput) searchInput.addEventListener('input', e => handleSearch(e.target.value));
     const searchClear = document.getElementById('wfSearchClear');
     if (searchClear) {
       searchClear.addEventListener('click', () => {
@@ -762,45 +1105,28 @@
       });
     }
 
-    // 정렬
     const sortSel = document.getElementById('wfSortSelect');
-    if (sortSel) {
-      sortSel.addEventListener('change', e => {
-        state.sortBy = e.target.value;
-        renderFileList();
-      });
-    }
+    if (sortSel) sortSel.addEventListener('change', e => { state.sortBy = e.target.value; renderFileList(); });
 
-    // 전체 선택
     const selectAll = document.getElementById('wfSelectAll');
     if (selectAll) {
       selectAll.addEventListener('change', e => {
         state.selectedFileIds.clear();
-        if (e.target.checked) {
-          state.files.forEach(f => state.selectedFileIds.add(f.id));
-        }
+        if (e.target.checked) state.files.forEach(f => state.selectedFileIds.add(f.id));
         renderFileList();
         updateBulkButtons();
       });
     }
 
-    // 업로드 버튼
     const btnUpload = document.getElementById('wfBtnUpload');
     if (btnUpload) btnUpload.addEventListener('click', () => openModal('wfUploadModal'));
 
-    // 새 폴더 버튼
     const btnNewFolder = document.getElementById('wfBtnNewFolder');
-    if (btnNewFolder) btnNewFolder.addEventListener('click', openNewFolderModal);
+    if (btnNewFolder) btnNewFolder.addEventListener('click', () => openNewFolderModal());
 
-    // ZIP 다운로드 (Step 7 예정)
     const btnZip = document.getElementById('wfBtnZipDownload');
-    if (btnZip) {
-      btnZip.addEventListener('click', () => {
-        toast('ZIP 일괄 다운로드는 Step 7에서 구현됩니다', 'default');
-      });
-    }
+    if (btnZip) btnZip.addEventListener('click', downloadAsZip);
 
-    // 일괄 삭제
     const btnDelete = document.getElementById('wfBtnDelete');
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
@@ -817,17 +1143,16 @@
       });
     }
 
-    // 새 폴더 생성
     const btnCreateFolder = document.getElementById('wfBtnCreateFolder');
     if (btnCreateFolder) {
       btnCreateFolder.addEventListener('click', () => {
         const name = (document.getElementById('wfNewFolderName').value || '').trim();
         if (!name) { toast('폴더 이름을 입력하세요', 'error'); return; }
-        createFolder(name, state.currentFolderId);
+        const parent = state._newFolderParentId != null ? state._newFolderParentId : state.currentFolderId;
+        createFolder(name, parent);
       });
     }
 
-    // 이름 변경
     const btnRename = document.getElementById('wfBtnRename');
     if (btnRename) {
       btnRename.addEventListener('click', () => {
@@ -839,7 +1164,6 @@
       });
     }
 
-    // 공유 추가
     const btnAddShare = document.getElementById('wfBtnAddShare');
     if (btnAddShare) {
       btnAddShare.addEventListener('click', () => {
@@ -852,7 +1176,6 @@
       });
     }
 
-    // 전체 공개 토글
     const publicToggle = document.getElementById('wfSharePublic');
     if (publicToggle) {
       publicToggle.addEventListener('change', e => {
@@ -862,7 +1185,6 @@
       });
     }
 
-    // 파일 input
     const fileInput = document.getElementById('wfFileInput');
     if (fileInput) {
       fileInput.addEventListener('change', e => {
@@ -870,13 +1192,9 @@
       });
     }
 
-    // 드래그앤드롭
     const dropZone = document.getElementById('wfDropZone');
     if (dropZone) {
-      dropZone.addEventListener('dragover', e => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      });
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
       dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
       dropZone.addEventListener('drop', e => {
         e.preventDefault();
@@ -885,21 +1203,46 @@
       });
     }
 
-    // 모달 닫기 (backdrop/X 버튼/data-close)
     document.querySelectorAll('[data-close]').forEach(el => {
       el.addEventListener('click', () => closeModal(el.dataset.close));
     });
 
-    // ESC로 모달 닫기
+    // 컨텍스트 메뉴 외부 클릭 시 닫기
+    document.addEventListener('click', e => {
+      const menu = document.getElementById('wfContextMenu');
+      if (menu && !menu.contains(e.target)) hideContextMenu();
+    });
+
+    // 전역 ESC
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
+        hideContextMenu();
         document.querySelectorAll('.wf-modal[aria-hidden="false"]').forEach(m => {
           m.setAttribute('aria-hidden', 'true');
         });
       }
+      // Ctrl+A: 전체 선택 (입력 필드 외)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          state.files.forEach(f => state.selectedFileIds.add(f.id));
+          renderFileList();
+          updateBulkButtons();
+          const sa = document.getElementById('wfSelectAll');
+          if (sa) sa.checked = true;
+        }
+      }
+      // Delete: 선택 항목 삭제
+      if (e.key === 'Delete' && state.selectedFileIds.size > 0) {
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          const btn = document.getElementById('wfBtnDelete');
+          if (btn) btn.click();
+        }
+      }
     });
 
-    // 사이드바 접기 (모바일)
     const sidebarToggle = document.getElementById('wfSidebarToggle');
     if (sidebarToggle) {
       sidebarToggle.addEventListener('click', () => {
@@ -915,7 +1258,7 @@
     try {
       await Promise.all([loadFolders(), loadMembers()]);
       await loadFiles();
-      console.log('[workspace-files] Step 6 초기화 완료');
+      console.log('[workspace-files] Step 7 초기화 완료');
     } catch (err) {
       console.error('[workspace-files] 초기화 실패:', err);
     }
