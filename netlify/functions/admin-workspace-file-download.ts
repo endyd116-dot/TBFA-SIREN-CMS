@@ -21,7 +21,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.response;
+    if (!auth.ok) return auth.res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 

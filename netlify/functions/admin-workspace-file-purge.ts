@@ -22,7 +22,7 @@ export default async (req: Request) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.response;
+    if (!auth.ok) return auth.res;
     const meId = (auth.ctx.member as any)?.id || (auth.ctx.admin as any)?.id;
     const meRole = (auth.ctx.member as any)?.role || (auth.ctx.admin as any)?.role;
 
