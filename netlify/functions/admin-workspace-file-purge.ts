@@ -1,0 +1,81 @@
+// netlify/functions/admin-workspace-file-purge.ts
+/**
+ * DELETE /api/admin-workspace-file-purge?fileId=N
+ *   파일 영구 삭제 (DB row + R2 객체)
+ *   - 권한: super_admin or 소유자
+ *   - R2 실패해도 DB 삭제는 진행 (고아 파일은 cron이 정리)
+ */
+import { eq } from "drizzle-orm";
+import { db } from "../../db";
+import { workspaceFiles } from "../../db/schema";
+import { requireAdmin } from "../../lib/admin-guard";
+import { deleteFromR2 } from "../../lib/r2-delete";
+import { logAudit } from "../../lib/audit";
+import {
+  ok, badRequest, notFound, forbidden,
+  methodNotAllowed, corsPreflight, serverError,
+} from "../../lib/response";
+
+export default async (req: Request) => {
+  if (req.method === "OPTIONS") return corsPreflight();
+  if (req.method !== "DELETE" && req.method !== "POST") return methodNotAllowed();
+
+  try {
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return auth.response;
+    const meId = (auth.ctx.member as any)?.id || (auth.ctx.admin as any)?.id;
+    const meRole = (auth.ctx.member as any)?.role || (auth.ctx.admin as any)?.role;
+
+    const url = new URL(req.url);
+    const fileId = parseInt(url.searchParams.get("fileId") || "0", 10);
+    if (!fileId) return badRequest("fileId 필수");
+
+    const rows = await db
+      .select()
+      .from(workspaceFiles)
+      .where(eq(workspaceFiles.id, fileId))
+      .limit(1);
+    const file = rows[0];
+    if (!file) return notFound("파일을 찾을 수 없습니다");
+
+    const isSuper = meRole === "super_admin";
+    const isOwner = (file as any).ownerId === meId;
+    if (!isSuper && !isOwner) return forbidden("영구 삭제 권한이 없습니다");
+
+    let r2Result: { success: boolean; error?: string } = { success: true };
+    if ((file as any).r2Key) {
+      r2Result = await deleteFromR2((file as any).r2Key);
+    }
+
+    await db.delete(workspaceFiles).where(eq(workspaceFiles.id, fileId));
+
+    try {
+      await logAudit({
+        memberId: meId,
+        action: "WORKSPACE_FILE_PURGE",
+        targetType: "workspace_file",
+        targetId: fileId,
+        detail: {
+          fileName: (file as any).name,
+          sizeBytes: (file as any).sizeBytes,
+          r2Key: (file as any).r2Key,
+          r2DeleteSuccess: r2Result.success,
+          r2Error: r2Result.error,
+        },
+      } as any);
+    } catch (e) {
+      console.warn("[file-purge] audit failed:", e);
+    }
+
+    return ok({
+      success: true,
+      r2Deleted: r2Result.success,
+      r2Error: r2Result.error,
+    }, "영구 삭제되었습니다");
+  } catch (err: any) {
+    console.error("[file-purge] error:", err);
+    return serverError(err?.message || "영구 삭제 실패");
+  }
+};
+
+export const config = { path: "/api/admin-workspace-file-purge" };
