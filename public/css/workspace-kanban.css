@@ -715,8 +715,17 @@
   font-size: 13px;
   font-weight: 700;
   color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .wk-ai-section-title:first-child { margin-top: 0; }
+.wk-ai-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+.wk-ai-btn:disabled { opacity: 0.5; cursor: wait; }
 .wk-ai-summary {
   padding: 12px;
   background: #fef9f0;

@@ -1205,6 +1205,47 @@
     }
   }
 
+  /* ═══════════════════ AI 재생성 ═══════════════════ */
+  async function regenerateAi(type, btn) {
+    const taskId = TAB_STATE.currentTask?.id;
+    if (!taskId) return;
+    if (!confirm(`AI ${type === 'summary' ? '요약' : type === 'risk' ? '리스크 점수' : '완료 보고서 초안'}을 ${type === 'completion' ? '생성' : '재계산'}하시겠습니까?\n\n외부 AI 호출이 발생하므로 5~15초 정도 걸릴 수 있습니다.`)) return;
+
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = '⏳ 처리 중...';
+
+    try {
+      const res = await api(`/api/admin-task-ai-regenerate?id=${taskId}&type=${type}`, { method: 'POST', body: {} });
+      const inner = res.data || res;
+
+      if (inner && inner.ok === false) {
+        toast(`AI ${type} 실패: ${inner.error || '알 수 없는 오류'}`, 'error');
+      } else {
+        toast(`${type === 'summary' ? '요약' : type === 'risk' ? '리스크' : '완료 보고서'} ${type === 'completion' ? '생성됨' : '재계산됨'}`, 'success');
+
+        if (type === 'summary' && inner.summary) {
+          TAB_STATE.currentTask.aiSummary = inner.summary;
+          renderAi();
+        } else if (type === 'risk' && typeof inner.score === 'number') {
+          TAB_STATE.currentTask.aiRiskScore = inner.score;
+          renderAi();
+        } else if (type === 'completion') {
+          // 보고 탭 캐시 무효화
+          TAB_STATE.loadedTabs.delete('reports');
+          $('#wkTabCountReports').textContent = '';
+          // 보고 탭으로 이동 (사용자에게 결과 보여주기)
+          switchTab('reports');
+        }
+      }
+    } catch (err) {
+      toast(`AI 호출 실패: ${err.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+
   /* ═══════════════════ 이벤트 바인딩 ═══════════════════ */
   document.addEventListener('DOMContentLoaded', bindTabs);
   if (document.readyState !== 'loading') bindTabs();
@@ -1220,6 +1261,11 @@
     });
     $('#wkFileAttach')?.addEventListener('click', openFilePicker);
     $('#wkReportSubmit')?.addEventListener('click', submitReport);
+
+    // AI 재생성 버튼
+    $('#wkAiRegenSummary')?.addEventListener('click', e => regenerateAi('summary', e.currentTarget));
+    $('#wkAiRegenRisk')?.addEventListener('click', e => regenerateAi('risk', e.currentTarget));
+    $('#wkAiRegenCompletion')?.addEventListener('click', e => regenerateAi('completion', e.currentTarget));
 
     // 파일 선택 모달 검색
     let pickerTimer;

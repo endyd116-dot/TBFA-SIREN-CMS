@@ -32,6 +32,27 @@ import {
   logTaskChange,
 } from "../../lib/workspace-logger";
 
+/* ─── AI 백그라운드 트리거 (Step 7-C.2) — fire-and-forget ─── */
+function triggerAiSummary(taskId: number) {
+  const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  fetch(`${base}/.netlify/functions/ai-task-summary-background`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, secret }),
+  }).catch((err) => console.warn("[ai-summary trigger]", err?.message || err));
+}
+
+function triggerAiCompletion(taskId: number, authorMemberId: number) {
+  const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  fetch(`${base}/.netlify/functions/ai-task-completion-background`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, authorMemberId, secret }),
+  }).catch((err) => console.warn("[ai-completion trigger]", err?.message || err));
+}
+
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
   if (!guard.ok) return guard.res;
@@ -295,6 +316,11 @@ export default async (req: Request, _ctx: Context) => {
         actionUrl: `/admin#task-${newTask.id}`,
       });
 
+      // ★ Phase 3 Step 7-C.2 — AI-1 요약 자동 트리거 (description 100자+)
+      if (newTask.description && String(newTask.description).length >= 100) {
+        triggerAiSummary(newTask.id);
+      }
+
       return ok(newTask, "작업이 생성되었습니다");
     }
 
@@ -371,6 +397,12 @@ export default async (req: Request, _ctx: Context) => {
           action: "workspace.task.status", target: `task:${id}`,
           detail: { prev: task.status, next: newStatus }, req,
         });
+
+        // ★ Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
+        if (newStatus === "done" && task.status !== "done") {
+          triggerAiCompletion(id, meId);
+        }
+
         return ok(updated, "상태가 변경되었습니다");
       }
 
