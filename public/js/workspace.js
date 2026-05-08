@@ -561,3 +561,196 @@
     if (STATE.pollTimer) clearInterval(STATE.pollTimer);
   });
 })();
+
+/* ═══════════════════════════════════════════════════════
+   파일함 사이드 패널 (Phase 3-extra Step 9)
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const panel = document.getElementById('wsFilePanel');
+  if (!panel) return;
+
+  const handle      = document.getElementById('wsFilePanelHandle');
+  const closeBtn    = document.getElementById('wsFilePanelClose');
+  const topbarBtn   = document.querySelector('[data-ws-action="toggle-files"]');
+  const searchInput = document.getElementById('wsFilePanelSearch');
+  const uploadBtn   = document.getElementById('wsFilePanelUpload');
+  const newFolderBtn= document.getElementById('wsFilePanelNewFolder');
+  const fileInput   = document.getElementById('wsFilePanelFileInput');
+  const treeEl      = document.getElementById('wsFilePanelTree');
+  const recentEl    = document.getElementById('wsFilePanelRecent');
+
+  let initialized = false;
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+  function formatSize(b) {
+    const n = Number(b);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 1024) return n + 'B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + 'KB';
+    return (n / 1024 / 1024).toFixed(1) + 'MB';
+  }
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      ...opts,
+      body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body
+    });
+    if (res.status === 401) { location.href = '/admin.html'; throw new Error('인증 만료'); }
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error((data && (data.error || data.message)) || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function open() {
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+    if (!initialized) {
+      initialized = true;
+      loadFolders();
+      loadRecent();
+    }
+  }
+  function close() {
+    panel.classList.remove('is-open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  function toggle() {
+    panel.classList.contains('is-open') ? close() : open();
+  }
+
+  handle?.addEventListener('click', toggle);
+  closeBtn?.addEventListener('click', close);
+  topbarBtn?.addEventListener('click', toggle);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && panel.classList.contains('is-open')) close();
+  });
+
+  searchInput?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = searchInput.value.trim();
+      if (q) location.href = '/workspace-files.html?search=' + encodeURIComponent(q);
+    }
+  });
+
+  uploadBtn?.addEventListener('click', () => fileInput?.click());
+  fileInput?.addEventListener('change', async e => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    let success = 0, failed = 0;
+    for (const file of files) {
+      try {
+        const presign = await api('/api/admin-workspace-file-presign', {
+          method: 'POST',
+          body: {
+            name: file.name,
+            sizeBytes: file.size,
+            mimeType: file.type || 'application/octet-stream',
+            folderId: null
+          }
+        });
+        const presignData = presign.data || presign;
+        if (!presignData.uploadUrl || !presignData.fileId) throw new Error('업로드 URL 없음');
+
+        const putRes = await fetch(presignData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file
+        });
+        if (!putRes.ok) throw new Error('R2 업로드 실패 ' + putRes.status);
+
+        await api('/api/admin-workspace-file-confirm', {
+          method: 'POST',
+          body: { fileId: presignData.fileId }
+        });
+        success++;
+      } catch (err) {
+        console.error('[file-panel upload]', err);
+        failed++;
+      }
+    }
+    e.target.value = '';
+    alert(`업로드 ${success}건 성공${failed ? ` / ${failed}건 실패` : ''}`);
+    loadRecent();
+  });
+
+  newFolderBtn?.addEventListener('click', async () => {
+    const name = prompt('새 폴더 이름 (루트에 생성):');
+    if (!name || !name.trim()) return;
+    try {
+      await api('/api/admin-workspace-folders', {
+        method: 'POST',
+        body: { name: name.trim(), parentId: null }
+      });
+      loadFolders();
+    } catch (err) {
+      alert('폴더 생성 실패: ' + err.message);
+    }
+  });
+
+  async function loadFolders() {
+    try {
+      const res = await api('/api/admin-workspace-folders?list=1');
+      const items = res.data?.items || res.items || (Array.isArray(res.data) ? res.data : []) || [];
+      const roots = items.filter(f => !f.parentId).slice(0, 20);
+      if (!roots.length) {
+        treeEl.innerHTML = '<li class="ws-file-panel-empty">폴더 없음</li>';
+        return;
+      }
+      treeEl.innerHTML = roots.map(f =>
+        `<li data-folder-id="${f.id}">
+          <span class="ws-file-icon">📁</span>
+          <span class="ws-file-name">${escapeHtml(f.name)}</span>
+        </li>`
+      ).join('');
+      treeEl.querySelectorAll('li[data-folder-id]').forEach(li => {
+        li.addEventListener('click', () => {
+          location.href = `/workspace-files.html?folder=${li.dataset.folderId}`;
+        });
+      });
+    } catch (err) {
+      console.error('[file-panel folders]', err);
+      treeEl.innerHTML = '<li class="ws-file-panel-empty">로드 실패</li>';
+    }
+  }
+
+  async function loadRecent() {
+    try {
+      const res = await api('/api/admin-workspace-files?folderId=0&limit=10');
+      const items = res.data?.items || res.items || (Array.isArray(res.data) ? res.data : []) || [];
+      if (!items.length) {
+        recentEl.innerHTML = '<li class="ws-file-panel-empty">최근 파일 없음</li>';
+        return;
+      }
+      recentEl.innerHTML = items.slice(0, 10).map(f =>
+        `<li data-file-id="${f.id}">
+          <span class="ws-file-icon">📄</span>
+          <span class="ws-file-name">${escapeHtml(f.name)}</span>
+          <span class="ws-file-meta">${formatSize(f.sizeBytes)}</span>
+        </li>`
+      ).join('');
+      recentEl.querySelectorAll('li[data-file-id]').forEach(li => {
+        li.addEventListener('click', async () => {
+          try {
+            const dl = await api(`/api/admin-workspace-file-download?id=${li.dataset.fileId}`);
+            const url = (dl.data && (dl.data.downloadUrl || dl.data.url)) || dl.downloadUrl;
+            if (url) window.open(url, '_blank');
+          } catch (err) {
+            alert('다운로드 실패: ' + err.message);
+          }
+        });
+      });
+    } catch (err) {
+      console.error('[file-panel recent]', err);
+      recentEl.innerHTML = '<li class="ws-file-panel-empty">로드 실패</li>';
+    }
+  }
+})();

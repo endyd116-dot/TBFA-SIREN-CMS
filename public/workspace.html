@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 CSS -->
-<link rel="stylesheet" href="/css/workspace.css?v=1">
+<link rel="stylesheet" href="/css/workspace.css?v=2">
 </head>
 
 <body class="ws-body">
@@ -66,6 +66,12 @@
           <a href="#memos" data-ws-nav="memos" title="메모">
             <span class="ws-nav-icon">📝</span>
             <span class="ws-nav-text">메모</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함">
+            <span class="ws-nav-icon">📁</span>
+            <span class="ws-nav-text">파일함</span>
           </a>
         </li>
         <li>
@@ -138,6 +144,9 @@
       </button>
       <button class="ws-btn-quick ws-btn-memo" data-ws-action="new-memo">
         <span>📝</span> <span class="ws-btn-label">메모</span>
+      </button>
+      <button class="ws-btn-quick ws-btn-files" data-ws-action="toggle-files" title="파일함 패널 토글">
+        <span>📁</span> <span class="ws-btn-label">파일</span>
       </button>
       <button class="ws-btn-refresh" data-ws-action="refresh" title="새로고침">
         <span>🔄</span>
@@ -321,6 +330,49 @@
 </main>
 
 <!-- ═══════════════════════════════════════════════════════
+     우측 파일함 사이드 패널 (Phase 3-extra Step 9)
+═══════════════════════════════════════════════════════ -->
+<aside class="ws-file-panel" id="wsFilePanel" aria-hidden="true">
+  <button class="ws-file-panel-handle" id="wsFilePanelHandle" type="button" aria-label="파일함 열기">
+    <span class="ws-file-handle-icon">📁</span>
+    <span class="ws-file-handle-label">파일함</span>
+  </button>
+  <div class="ws-file-panel-body">
+    <header class="ws-file-panel-header">
+      <h3>📁 파일함</h3>
+      <div class="ws-file-panel-actions-top">
+        <a href="/workspace-files.html" class="ws-file-panel-full" title="전체 보기">전체 ↗</a>
+        <button class="ws-file-panel-close" id="wsFilePanelClose" type="button" aria-label="닫기">✕</button>
+      </div>
+    </header>
+
+    <div class="ws-file-panel-search">
+      <input type="search" id="wsFilePanelSearch" placeholder="파일/폴더 검색 (Enter)" />
+    </div>
+
+    <div class="ws-file-panel-quick">
+      <button class="ws-file-panel-btn" id="wsFilePanelUpload" type="button">📤 빠른 업로드</button>
+      <button class="ws-file-panel-btn" id="wsFilePanelNewFolder" type="button">📁 새 폴더</button>
+      <input type="file" id="wsFilePanelFileInput" multiple style="display:none" />
+    </div>
+
+    <section class="ws-file-panel-section">
+      <h4>📁 폴더</h4>
+      <ul class="ws-file-panel-tree" id="wsFilePanelTree">
+        <li class="ws-file-panel-loading">불러오는 중...</li>
+      </ul>
+    </section>
+
+    <section class="ws-file-panel-section">
+      <h4>🕒 최근 파일</h4>
+      <ul class="ws-file-panel-list" id="wsFilePanelRecent">
+        <li class="ws-file-panel-loading">불러오는 중...</li>
+      </ul>
+    </section>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
      모달 컨테이너 (Step 4에서 동적 생성)
 ═══════════════════════════════════════════════════════ -->
 <div id="wsModalRoot"></div>
@@ -334,6 +386,6 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace.js?v=1" defer></script>
+<script src="/js/workspace.js?v=2" defer></script>
 </body>
 </html>
