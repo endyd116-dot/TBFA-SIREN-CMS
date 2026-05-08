@@ -1751,3 +1751,65 @@ export const workspaceFileShares = pgTable("workspace_file_shares", {
     .on(table.targetType, table.targetId, table.sharedWith),
 }));
 
+// ═══════════════════════════════════════════════════════
+// Phase 3 Step 7-B — 카드 고도화 (댓글/보고서/첨부)
+// ═══════════════════════════════════════════════════════
+
+// 1. 댓글 스레드 (@멘션)
+export const workspaceTaskComments = pgTable("workspace_task_comments", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => workspaceTasks.id, { onDelete: "cascade" }).notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  content: text("content").notNull(),
+  mentions: jsonb("mentions").default(sql`'[]'::jsonb`).notNull(),   // [memberId, ...]
+  parentCommentId: integer("parent_comment_id"),                      // 대댓글, self-ref (FK 생략)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+}, (t) => ({
+  taskIdx: index("task_comments_task_idx").on(t.taskId),
+  memberIdx: index("task_comments_member_idx").on(t.memberId),
+  parentIdx: index("task_comments_parent_idx").on(t.parentCommentId),
+}));
+
+// 2. 보고서 (중간/완료)
+export const workspaceTaskReports = pgTable("workspace_task_reports", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => workspaceTasks.id, { onDelete: "cascade" }).notNull(),
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { length: 20 }).notNull(),                   // progress | completion
+  title: varchar("title", { length: 300 }),
+  content: text("content").notNull(),
+  attachedFileIds: jsonb("attached_file_ids").default(sql`'[]'::jsonb`).notNull(),  // [fileId, ...]
+  reviewStatus: varchar("review_status", { length: 20 }).default("pending").notNull(), // pending | approved | rejected
+  reviewedBy: integer("reviewed_by").references(() => members.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewReason: text("review_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  taskIdx: index("task_reports_task_idx").on(t.taskId),
+  typeIdx: index("task_reports_type_idx").on(t.type),
+  reviewIdx: index("task_reports_review_idx").on(t.reviewStatus),
+}));
+
+// 3. 카드 ↔ 파일함 연결 (UNIQUE: taskId+fileId)
+export const workspaceTaskAttachments = pgTable("workspace_task_attachments", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => workspaceTasks.id, { onDelete: "cascade" }).notNull(),
+  fileId: integer("file_id").references(() => workspaceFiles.id, { onDelete: "cascade" }).notNull(),
+  attachedBy: integer("attached_by").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  attachedAt: timestamp("attached_at").defaultNow().notNull(),
+}, (t) => ({
+  taskIdx: index("task_attach_task_idx").on(t.taskId),
+  fileIdx: index("task_attach_file_idx").on(t.fileId),
+  uniqueAttach: uniqueIndex("task_attach_unique").on(t.taskId, t.fileId),
+}));
+
+export type WorkspaceTaskComment = typeof workspaceTaskComments.$inferSelect;
+export type NewWorkspaceTaskComment = typeof workspaceTaskComments.$inferInsert;
+export type WorkspaceTaskReport = typeof workspaceTaskReports.$inferSelect;
+export type NewWorkspaceTaskReport = typeof workspaceTaskReports.$inferInsert;
+export type WorkspaceTaskAttachment = typeof workspaceTaskAttachments.$inferSelect;
+export type NewWorkspaceTaskAttachment = typeof workspaceTaskAttachments.$inferInsert;
+
