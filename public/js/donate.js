@@ -659,6 +659,8 @@
     setupAutoFill();
     setupTypeToggle();
     setupDonateForm();
+    // ★ 후원 모달 프리페치 — 모달 처음 열릴 때 어드민 설정값 즉시 적용 (3초 딜레이 제거)
+    loadPolicy().catch(() => {});
   }
 
   const prevInit = window.SIREN_PAGE_INIT;
