@@ -1674,3 +1674,70 @@ export const workspaceActivityLog = pgTable("workspace_activity_log", {
 export type WorkspaceActivityLog = typeof workspaceActivityLog.$inferSelect;
 export type NewWorkspaceActivityLog = typeof workspaceActivityLog.$inferInsert;
 
+// ============================================================
+// Phase 3-extra: 파일함 (workspace files)
+// ============================================================
+
+export const workspaceFolders = pgTable("workspace_folders", {
+  id: serial("id").primaryKey(),
+  parentId: integer("parent_id"),
+  name: varchar("name", { length: 200 }).notNull(),
+  ownerId: integer("owner_id").notNull(),
+  path: varchar("path", { length: 500 }),
+  depth: integer("depth").default(0).notNull(),
+  isShared: boolean("is_shared").default(false).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+}, (table) => ({
+  parentNameUnique: uniqueIndex("ws_folders_parent_name_unique")
+    .on(table.parentId, table.name)
+    .where(sql`deleted_at IS NULL`),
+  ownerIdx: index("ws_folders_owner_idx").on(table.ownerId),
+  pathIdx: index("ws_folders_path_idx").on(table.path),
+  deletedIdx: index("ws_folders_deleted_idx").on(table.deletedAt),
+}));
+
+export const workspaceFiles = pgTable("workspace_files", {
+  id: serial("id").primaryKey(),
+  folderId: integer("folder_id"),
+  ownerId: integer("owner_id").notNull(),
+  name: varchar("name", { length: 300 }).notNull(),
+  r2Key: varchar("r2_key", { length: 500 }).notNull(),
+  sizeBytes: bigint("size_bytes", { mode: "number" }),
+  mimeType: varchar("mime_type", { length: 100 }),
+  ext: varchar("ext", { length: 20 }),
+  sha256: varchar("sha256", { length: 64 }),
+  uploadStatus: varchar("upload_status", { length: 20 }).default("pending").notNull(),
+  downloadCount: integer("download_count").default(0).notNull(),
+  description: text("description"),
+  tags: jsonb("tags").default([]).notNull(),
+  isShared: boolean("is_shared").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+}, (table) => ({
+  folderIdx: index("ws_files_folder_idx").on(table.folderId),
+  ownerIdx: index("ws_files_owner_idx").on(table.ownerId),
+  sha256Idx: index("ws_files_sha256_idx").on(table.sha256),
+  deletedIdx: index("ws_files_deleted_idx").on(table.deletedAt),
+  nameIdx: index("ws_files_name_idx").on(table.name),
+}));
+
+export const workspaceFileShares = pgTable("workspace_file_shares", {
+  id: serial("id").primaryKey(),
+  targetType: varchar("target_type", { length: 10 }).notNull(),
+  targetId: integer("target_id").notNull(),
+  sharedBy: integer("shared_by").notNull(),
+  sharedWith: integer("shared_with"),
+  permission: varchar("permission", { length: 10 }).default("view").notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  targetIdx: index("ws_fshare_target_idx").on(table.targetType, table.targetId),
+  withIdx: index("ws_fshare_with_idx").on(table.sharedWith),
+  uniqueShare: uniqueIndex("ws_fshare_unique")
+    .on(table.targetType, table.targetId, table.sharedWith),
+}));
+
