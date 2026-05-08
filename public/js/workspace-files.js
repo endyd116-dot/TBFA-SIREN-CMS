@@ -512,10 +512,10 @@
       const presignRes = await api('/api/admin-workspace-file-presign', {
         method: 'POST',
         body: {
-          fileName: file.name,
+          name: file.name,
           sizeBytes: file.size,
           mimeType: file.type || 'application/octet-stream',
-          folderId: state.currentFolderId,
+          folderId: state.currentFolderId || null,
         }
       });
       const { uploadUrl, r2Key, fileId } = presignRes.data || presignRes || {};
