@@ -239,6 +239,10 @@
     'publish': function () {
       renderPublishPanel();
     },
+    /* ★ 5순위 #9: 관련 사이트 CRUD */
+    'footer.related_sites': function () {
+      renderRelatedSitesEditor();
+    },
         /* ★ Step 6-F: 섹션 제목 편집 (캠페인/공지/FAQ) */
     'home.sections': function () {
       if (window.SIREN_HOME_SECTIONS && window.SIREN_HOME_SECTIONS.render) {
@@ -268,7 +272,152 @@
     },
   };
 
-  
+
+  /* ============ 관련 사이트 CRUD (5순위 #9) ============ */
+  async function renderRelatedSitesEditor() {
+    const inner = $('#sbContentInner');
+    inner.innerHTML =
+      '<div class="sb-section">' +
+        '<h2 style="margin:0 0 8px">🔗 관련 사이트 관리</h2>' +
+        '<p style="color:var(--text-3,#6b7280);font-size:13px;margin:0 0 16px;line-height:1.55">' +
+          '메인 페이지 상단 헤더의 "관련 사이트 바로가기" 드롭다운에 노출되는 사이트를 관리합니다. ' +
+          '활성화된 항목만 사용자에게 표시되며, 변경사항은 즉시 반영됩니다 (Draft 시스템 미적용).' +
+        '</p>' +
+        '<div id="rsListWrap"><div style="padding:24px;text-align:center;color:var(--text-3,#6b7280)">불러오는 중...</div></div>' +
+        '<div style="margin-top:20px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">' +
+          '<h3 style="margin:0 0 10px;font-size:14px;font-weight:700">＋ 새 관련 사이트 추가</h3>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+            '<input type="text" id="rsNewName" placeholder="이름 (예: 전국교직원노동조합)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px" maxlength="200">' +
+            '<input type="url" id="rsNewUrl" placeholder="URL (https://...)" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px" maxlength="500">' +
+          '</div>' +
+          '<input type="text" id="rsNewDesc" placeholder="설명 (선택)" style="margin-top:6px;width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;box-sizing:border-box" maxlength="300">' +
+          '<button type="button" id="rsAddBtn" class="primary" style="margin-top:10px;padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">＋ 추가</button>' +
+        '</div>' +
+      '</div>';
+
+    await loadRelatedSitesList();
+
+    document.getElementById('rsAddBtn')?.addEventListener('click', addRelatedSite);
+  }
+
+  async function loadRelatedSitesList() {
+    const wrap = document.getElementById('rsListWrap');
+    if (!wrap) return;
+    try {
+      const res = await api('/api/admin/related-sites');
+      const items = (res && res.data && res.data.items) || (res && res.items) || [];
+      if (!items.length) {
+        wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3,#6b7280);font-style:italic">등록된 관련 사이트가 없습니다. 아래에서 추가하세요.</div>';
+        return;
+      }
+      wrap.innerHTML =
+        '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<thead>' +
+            '<tr style="background:#f3f4f6;text-align:left">' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:60px">순서</th>' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb">이름</th>' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb">URL</th>' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb">설명</th>' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:70px;text-align:center">활성</th>' +
+              '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:120px;text-align:center">관리</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            items.map(function (s) {
+              return '<tr data-rs-id="' + s.id + '">' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="number" class="rs-field" data-field="sortOrder" value="' + (s.sortOrder || 0) + '" style="width:60px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px"></td>' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="text" class="rs-field" data-field="name" value="' + escapeHtml(s.name || '') + '" maxlength="200" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="url" class="rs-field" data-field="url" value="' + escapeHtml(s.url || '') + '" maxlength="500" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="text" class="rs-field" data-field="description" value="' + escapeHtml(s.description || '') + '" maxlength="300" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center"><input type="checkbox" class="rs-field" data-field="isActive" ' + (s.isActive ? 'checked' : '') + '></td>' +
+                '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center;white-space:nowrap">' +
+                  '<button type="button" class="rs-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">💾 저장</button>' +
+                  '<button type="button" class="rs-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer">🗑</button>' +
+                '</td>' +
+              '</tr>';
+            }).join('') +
+          '</tbody>' +
+        '</table>';
+
+      wrap.querySelectorAll('.rs-save-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { saveRelatedSiteRow(btn); });
+      });
+      wrap.querySelectorAll('.rs-del-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { deleteRelatedSiteRow(btn); });
+      });
+    } catch (err) {
+      wrap.innerHTML = '<div style="padding:24px;text-align:center;color:#b91c1c">로드 실패: ' + (err.message || '오류') + '</div>';
+    }
+  }
+
+  async function addRelatedSite() {
+    const name = (document.getElementById('rsNewName').value || '').trim();
+    const url = (document.getElementById('rsNewUrl').value || '').trim();
+    const description = (document.getElementById('rsNewDesc').value || '').trim();
+    if (!name) { toast('이름을 입력하세요'); return; }
+    if (!url) { toast('URL을 입력하세요'); return; }
+    if (!/^https?:\/\//i.test(url)) { toast('URL은 http:// 또는 https://로 시작해야 합니다'); return; }
+
+    try {
+      await api('/api/admin/related-sites', {
+        method: 'POST',
+        body: JSON.stringify({ name, url, description: description || null }),
+      });
+      toast('관련 사이트가 추가되었습니다');
+      document.getElementById('rsNewName').value = '';
+      document.getElementById('rsNewUrl').value = '';
+      document.getElementById('rsNewDesc').value = '';
+      await loadRelatedSitesList();
+    } catch (err) {
+      toast('추가 실패: ' + (err.message || '오류'));
+    }
+  }
+
+  async function saveRelatedSiteRow(btn) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const id = Number(tr.dataset.rsId);
+    if (!id) return;
+    const fields = tr.querySelectorAll('.rs-field');
+    const data = { id };
+    fields.forEach(function (f) {
+      const k = f.dataset.field;
+      if (k === 'isActive') data[k] = f.checked;
+      else if (k === 'sortOrder') data[k] = Number(f.value || 0);
+      else data[k] = String(f.value || '').trim();
+    });
+    if (!data.name) { toast('이름이 비어있습니다'); return; }
+    if (!data.url) { toast('URL이 비어있습니다'); return; }
+
+    try {
+      await api('/api/admin/related-sites', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      toast('저장되었습니다');
+    } catch (err) {
+      toast('저장 실패: ' + (err.message || '오류'));
+    }
+  }
+
+  async function deleteRelatedSiteRow(btn) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const id = Number(tr.dataset.rsId);
+    if (!id) return;
+    const nameInput = tr.querySelector('[data-field="name"]');
+    const name = nameInput ? nameInput.value : '';
+    if (!confirm('관련 사이트 "' + name + '"을(를) 삭제하시겠습니까?')) return;
+    try {
+      await api('/api/admin/related-sites?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      toast('삭제되었습니다');
+      await loadRelatedSitesList();
+    } catch (err) {
+      toast('삭제 실패: ' + (err.message || '오류'));
+    }
+  }
+
+
   /* ★ Step 6-B: home.* 노드용 placeholder는 시드 데이터 키 안내까지 표시 */
   const HOME_NODE_INFO = {
     'home.hero': {

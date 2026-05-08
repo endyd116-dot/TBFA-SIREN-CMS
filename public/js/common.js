@@ -197,15 +197,37 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   }
 
-  /* ------------ 9. 관련 사이트 셀렉트 ------------ */
-  function setupRelatedSelect() {
+  /* ------------ 9. 관련 사이트 셀렉트 (DB 동적 로드) ------------ */
+  async function setupRelatedSelect() {
     const sel = $('.related-select');
     if (!sel) return;
+
+    /* DB에서 동적 로드 (실패 시 placeholder만 유지) */
+    try {
+      const res = await fetch('/api/public/related-sites', { credentials: 'omit' });
+      if (res.ok) {
+        const json = await res.json();
+        const items = (json.data && json.data.items) || json.items || [];
+        if (items.length > 0) {
+          const escapeAttr = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+          const opts = ['<option value="">관련 사이트 바로가기</option>']
+            .concat(items.map((s) =>
+              '<option value="' + escapeAttr(s.url) + '">' + escapeAttr(s.name) + '</option>'
+            ));
+          sel.innerHTML = opts.join('');
+        }
+      }
+    } catch (err) {
+      console.warn('[setupRelatedSelect] 로드 실패:', err);
+    }
+
     sel.addEventListener('change', (e) => {
       const opt = e.target.selectedOptions[0];
-      const link = opt && opt.dataset.link;
-      if (link) {
-        window.open(link, '_blank', 'noopener');
+      // value 우선, fallback으로 data-link (구 호환)
+      const url = (opt && opt.value) || (opt && opt.dataset && opt.dataset.link) || '';
+      if (url) {
+        window.open(url, '_blank', 'noopener');
         sel.selectedIndex = 0;
       }
     });
