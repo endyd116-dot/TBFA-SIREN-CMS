@@ -4816,6 +4816,27 @@
     </div>
   </div>
 
+  <!-- ★ 5순위 #1: 회원 검색 모달 (블랙 처리 대상 선택) -->
+  <div id="memberPickerModal" class="modal">
+    <div class="modal-content" style="max-width:520px">
+      <div class="modal-header">
+        <h3 class="serif">🔍 블랙 처리할 회원 선택</h3>
+        <button class="modal-close" data-action="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12.5px;color:var(--text-3);margin:0 0 12px;line-height:1.55">
+          이름·이메일·전화번호로 검색 후 회원을 클릭하면 회원 상세 모달이 열립니다.
+          상세 모달에서 <strong>🚫 블랙 처리</strong> 버튼을 눌러 처리하세요.
+        </p>
+        <input type="search" id="memberPickerSearch" placeholder="이름 / 이메일 / 전화번호 (2자 이상)"
+               style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;outline:none;box-sizing:border-box">
+        <ul id="memberPickerList" style="list-style:none;margin:12px 0 0;padding:0;max-height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:6px">
+          <li style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic">검색어를 입력하세요</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <!-- 회원 추가 -->
   <div id="addMemberModal" class="modal">
     <div class="modal-content" style="max-width:560px">
@@ -5528,7 +5549,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=m19"></script>
+  <script src="/js/admin.js?v=m20"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05"></script>
   <script src="/js/editor.js?v=2026-05"></script>
