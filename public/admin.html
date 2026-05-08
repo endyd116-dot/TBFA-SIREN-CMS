@@ -2815,6 +2815,10 @@
               ⏳ 회원 자격 관리
               <span class="adm-badge" id="approvalsTabBadge" style="display:none;margin-left:6px">0</span>
             </button>
+            <button type="button" class="ct-tab" data-mtab="blacklist">
+              🚫 블랙 관리
+              <span class="adm-badge" id="blacklistTabBadge" style="display:none;margin-left:6px">0</span>
+            </button>
           </div>
 
           <!-- ─── 탭 1: 회원 목록 ─── -->
@@ -2946,6 +2950,41 @@
                   </thead>
                   <tbody id="apvTableBody">
                     <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── 탭 3: 블랙 관리 (5순위 #1) ─── -->
+          <div class="m-tab-pane" data-mtab-pane="blacklist" style="display:none">
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">🚫 블랙 처리된 회원</div>
+                <div class="p-actions">
+                  <button class="btn-sm btn-sm-primary" id="btnAddBlacklist" type="button">+ 회원 블랙 처리</button>
+                  <button class="btn-sm btn-sm-ghost" id="btnRefreshBlacklist" type="button">🔄 새로고침</button>
+                </div>
+              </div>
+              <p style="padding:8px 14px 0;font-size:12.5px;color:var(--text-3);line-height:1.55">
+                ⚠️ 블랙 처리된 회원은 SIREN 신고·유가족 지원·1:1 채팅 등 모든 서비스 이용 시
+                <strong>"귀하의 서비스가 차단되었습니다."</strong> 메시지가 표시되며 차단됩니다.
+                해제는 본 페이지에서 운영자/슈퍼어드민이 직접 처리합니다.
+              </p>
+              <div style="overflow-x:auto;padding:8px 0 16px">
+                <table class="tbl" style="min-width:900px">
+                  <thead>
+                    <tr>
+                      <th style="width:140px">처리일</th>
+                      <th style="width:120px">이름</th>
+                      <th>이메일</th>
+                      <th style="width:130px">연락처</th>
+                      <th>사유</th>
+                      <th style="width:120px">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody id="blkTableBody">
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -5489,7 +5528,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=m18"></script>
+  <script src="/js/admin.js?v=m19"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05"></script>
   <script src="/js/editor.js?v=2026-05"></script>

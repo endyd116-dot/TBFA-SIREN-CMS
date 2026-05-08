@@ -5449,8 +5449,108 @@ const OPERATOR_CATEGORIES = [
         }
       } else if (target === 'list') {
         loadMembers();
+      } else if (target === 'blacklist') {
+        loadBlacklist();
       }
     });
+
+    /* ★ 5순위 #1: 블랙 관리 탭 핸들러 */
+    document.addEventListener('click', async (e) => {
+      const refreshBtn = e.target.closest('#btnRefreshBlacklist');
+      if (refreshBtn) { e.preventDefault(); loadBlacklist(); return; }
+
+      const addBtn = e.target.closest('#btnAddBlacklist');
+      if (addBtn) {
+        e.preventDefault();
+        await openBlacklistAddPrompt();
+        return;
+      }
+
+      const removeBtn = e.target.closest('[data-blk-remove]');
+      if (removeBtn) {
+        e.preventDefault();
+        const id = removeBtn.dataset.blkRemove;
+        const name = removeBtn.dataset.name || '';
+        if (!confirm(`회원 "${name}"의 블랙 처리를 해제하시겠습니까?\n해제 후 즉시 모든 서비스 이용이 가능해집니다.`)) return;
+        try {
+          const res = await fetch('/api/admin-members-blacklist?id=' + encodeURIComponent(id), {
+            method: 'DELETE', credentials: 'include',
+          });
+          if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + res.status)); }
+          toast('블랙 해제 완료', 'success');
+          loadBlacklist();
+        } catch (err) {
+          toast('해제 실패: ' + (err && err.message ? err.message : '오류'), 'error');
+        }
+        return;
+      }
+    });
+  }
+
+  async function loadBlacklist() {
+    const tbody = document.getElementById('blkTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>';
+    try {
+      const res = await fetch('/api/admin-members-blacklist?list=1', { credentials: 'include' });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + res.status)); }
+      const json = await res.json();
+      const items = (json.data && json.data.items) || json.items || [];
+
+      const badge = document.getElementById('blacklistTabBadge');
+      if (badge) {
+        if (items.length > 0) { badge.textContent = items.length; badge.style.display = ''; }
+        else badge.style.display = 'none';
+      }
+
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">현재 블랙 처리된 회원이 없습니다.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(function (m) {
+        const at = m.blacklistedAt ? new Date(m.blacklistedAt).toLocaleString('ko-KR') : '';
+        const reason = (m.blacklistReason || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<tr>' +
+          '<td>' + at + '</td>' +
+          '<td><strong>' + (m.name || '') + '</strong></td>' +
+          '<td>' + (m.email || '') + '</td>' +
+          '<td>' + (m.phone || '') + '</td>' +
+          '<td style="white-space:pre-wrap;word-break:break-all">' + reason + '</td>' +
+          '<td><button class="btn-sm btn-sm-ghost" data-blk-remove="' + m.id + '" data-name="' + (m.name || '') + '" type="button">✓ 해제</button></td>' +
+          '</tr>';
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#b91c1c">로드 실패: ' + (err.message || '오류') + '</td></tr>';
+    }
+  }
+
+  async function openBlacklistAddPrompt() {
+    const idInput = prompt('블랙 처리할 회원 ID를 입력하세요 (회원 목록 탭에서 ID 확인):');
+    if (!idInput) return;
+    const memberId = Number(String(idInput).trim());
+    if (!Number.isFinite(memberId) || memberId <= 0) { toast('회원 ID가 올바르지 않습니다', 'error'); return; }
+
+    const reason = prompt('블랙 처리 사유 (선택, 1000자 이내):') || '';
+
+    const finalConfirm = confirm(
+      '회원 ID ' + memberId + '를 블랙 처리합니다.\n' +
+      '해당 회원은 즉시 모든 SIREN 서비스 이용이 차단됩니다.\n\n진행할까요?'
+    );
+    if (!finalConfirm) return;
+
+    try {
+      const res = await fetch('/api/admin-members-blacklist', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: memberId, reason: reason.slice(0, 1000) }),
+      });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + res.status)); }
+      toast('블랙 처리 완료', 'success');
+      loadBlacklist();
+    } catch (err) {
+      toast('블랙 처리 실패: ' + (err && err.message ? err.message : '오류'), 'error');
+    }
   }
 
   function switchAdminPage(page, linkEl) {
