@@ -5580,7 +5580,9 @@ const OPERATOR_CATEGORIES = [
       const res = await fetch('/api/admin/members?q=' + encodeURIComponent(q) + '&limit=30', { credentials: 'include' });
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || ('HTTP ' + res.status)); }
       const json = await res.json();
-      const items = (json.data && json.data.items) || json.items || [];
+      const items =
+        (json.data && (json.data.list || json.data.items || json.data.members)) ||
+        json.list || json.items || json.members || [];
       if (!items.length) {
         list.innerHTML = '<li style="padding:24px;text-align:center;color:var(--text-3);font-size:13px;font-style:italic">검색 결과 없음</li>';
         return;
