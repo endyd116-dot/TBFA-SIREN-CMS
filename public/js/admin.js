@@ -26,6 +26,7 @@
   campaigns: '📢 캠페인 관리',
   audit: '감사 로그',
   settings: '시스템 설정',
+  eligibility: '🎓 자격 변경 심사',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -5746,6 +5747,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'settings') {
       /* ★ M-15 Part 3-B: 시스템 설정 진입 시 후원 정책 로드 */
       loadDonationPolicy();
+    } else if (page === 'eligibility') {
+      /* 6순위 #6: 교원 자격 변경 심사 */
+      if (window.SIREN_ADMIN_ELIGIBILITY) window.SIREN_ADMIN_ELIGIBILITY.load('pending');
     }
   }
 
