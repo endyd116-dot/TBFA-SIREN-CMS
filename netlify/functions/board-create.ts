@@ -5,7 +5,7 @@ import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { boardPosts, members } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -26,8 +26,10 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* 인증 + 차단 검증 (5순위 #1) */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return _r.res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);

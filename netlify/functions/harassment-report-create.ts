@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { harassmentReports, members } from "../../db/schema";
 // netlify/functions/harassment-report-create.ts — import 영역 교체
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeHarassmentReport } from "../../lib/ai-harassment";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
@@ -30,8 +30,10 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* 인증 + 차단 검증 (5순위 #1) */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return _r.res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);
