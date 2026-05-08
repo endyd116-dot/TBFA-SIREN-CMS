@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>파일함 - SIREN 워크스페이스</title>
+  <link rel="stylesheet" href="/css/base.css?v=1" />
+  <link rel="stylesheet" href="/css/workspace-files.css?v=1" />
+</head>
+<body class="wf-page">
+
+  <!-- ═══════════ 상단 헤더 ═══════════ -->
+  <header class="wf-topbar">
+    <div class="wf-topbar-left">
+      <a href="/workspace.html"
+         onclick="window.location.href='/workspace.html';return false;"
+         class="wf-back-btn" title="워크스페이스로 돌아가기">
+        ← 워크스페이스
+      </a>
+      <h1 class="wf-title">📁 파일함</h1>
+    </div>
+    <div class="wf-topbar-right">
+      <span id="wfUserName" class="wf-user-name">—</span>
+    </div>
+  </header>
+
+  <!-- ═══════════ 뷰 전환 탭 ═══════════ -->
+  <nav class="wf-tabs" id="wfViewToggle">
+    <button class="wf-tab active" data-view="all">📂 전체</button>
+    <button class="wf-tab" data-view="mine">👤 내 파일</button>
+    <button class="wf-tab" data-view="shared">🔗 공유받음</button>
+    <button class="wf-tab" data-view="trash">🗑 휴지통</button>
+  </nav>
+
+  <!-- ═══════════ 툴바 ═══════════ -->
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-search">
+      <input type="text"
+             id="wfSearchInput"
+             placeholder="🔍 파일명 또는 폴더명 검색..."
+             autocomplete="off" />
+      <button class="wf-search-clear" id="wfSearchClear" title="지우기">✕</button>
+    </div>
+
+    <div class="wf-toolbar-actions">
+      <button id="wfBtnUpload" class="wf-btn wf-btn-primary">
+        📤 업로드
+      </button>
+      <button id="wfBtnNewFolder" class="wf-btn wf-btn-default">
+        📁 새 폴더
+      </button>
+      <button id="wfBtnZipDownload" class="wf-btn wf-btn-default" disabled>
+        📦 ZIP 다운로드
+      </button>
+      <button id="wfBtnDelete" class="wf-btn wf-btn-danger" disabled>
+        🗑 삭제
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════ 브레드크럼 ═══════════ -->
+  <div class="wf-breadcrumb" id="wfBreadcrumb">
+    <span class="wf-crumb active" data-folder-id="0">🏠 홈</span>
+  </div>
+
+  <!-- ═══════════ 본문 2컬럼 레이아웃 ═══════════ -->
+  <main class="wf-layout">
+
+    <!-- 좌: 폴더 트리 -->
+    <aside class="wf-sidebar" id="wfSidebar">
+      <div class="wf-sidebar-header">
+        <span class="wf-sidebar-title">폴더</span>
+        <button class="wf-sidebar-collapse" id="wfSidebarToggle" title="접기">◀</button>
+      </div>
+      <div class="wf-tree" id="wfFolderTree">
+        <div class="wf-tree-loading">불러오는 중...</div>
+      </div>
+    </aside>
+
+    <!-- 우: 파일 리스트 -->
+    <section class="wf-main">
+      <div class="wf-main-header">
+        <span class="wf-file-count" id="wfFileCount">파일 0개</span>
+        <div class="wf-sort">
+          <label for="wfSortSelect">정렬:</label>
+          <select id="wfSortSelect">
+            <option value="name-asc">이름 (가나다)</option>
+            <option value="name-desc">이름 (역순)</option>
+            <option value="date-desc" selected>수정일 (최신)</option>
+            <option value="date-asc">수정일 (오래된)</option>
+            <option value="size-desc">크기 (큰 것)</option>
+            <option value="size-asc">크기 (작은 것)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="wf-list" id="wfFileList">
+        <table class="wf-list-table">
+          <thead>
+            <tr>
+              <th class="wf-col-check">
+                <input type="checkbox" id="wfSelectAll" />
+              </th>
+              <th class="wf-col-icon"></th>
+              <th class="wf-col-name">이름</th>
+              <th class="wf-col-owner">소유자</th>
+              <th class="wf-col-size">크기</th>
+              <th class="wf-col-date">수정일</th>
+              <th class="wf-col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="wfFileListBody">
+            <tr class="wf-list-loading">
+              <td colspan="7">불러오는 중...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 빈 상태 -->
+      <div class="wf-empty" id="wfEmptyState" style="display:none;">
+        <div class="wf-empty-icon">📂</div>
+        <div class="wf-empty-title">비어 있습니다</div>
+        <div class="wf-empty-desc">파일을 업로드하거나 새 폴더를 만들어 보세요.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════ 모달: 업로드 ═══════════ -->
+  <div class="wf-modal" id="wfUploadModal" role="dialog" aria-hidden="true">
+    <div class="wf-modal-backdrop" data-close="wfUploadModal"></div>
+    <div class="wf-modal-content">
+      <div class="wf-modal-header">
+        <h2>📤 파일 업로드</h2>
+        <button class="wf-modal-close" data-close="wfUploadModal">✕</button>
+      </div>
+      <div class="wf-modal-body">
+        <div class="wf-drop-zone" id="wfDropZone">
+          <div class="wf-drop-icon">📥</div>
+          <div class="wf-drop-text">
+            여기로 파일을 끌어다 놓거나<br />
+            <label class="wf-drop-browse">
+              <input type="file" id="wfFileInput" multiple style="display:none" />
+              <span>파일 선택</span>
+            </label>
+          </div>
+          <div class="wf-drop-hint">파일당 최대 500MB</div>
+        </div>
+
+        <div class="wf-upload-queue" id="wfUploadQueue"></div>
+      </div>
+      <div class="wf-modal-footer">
+        <button class="wf-btn wf-btn-default" data-close="wfUploadModal">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 모달: 새 폴더 ═══════════ -->
+  <div class="wf-modal" id="wfNewFolderModal" role="dialog" aria-hidden="true">
+    <div class="wf-modal-backdrop" data-close="wfNewFolderModal"></div>
+    <div class="wf-modal-content wf-modal-sm">
+      <div class="wf-modal-header">
+        <h2>📁 새 폴더</h2>
+        <button class="wf-modal-close" data-close="wfNewFolderModal">✕</button>
+      </div>
+      <div class="wf-modal-body">
+        <label class="wf-field">
+          <span class="wf-field-label">폴더 이름</span>
+          <input type="text"
+                 id="wfNewFolderName"
+                 class="wf-field-input"
+                 placeholder="예: 2026 계약서"
+                 maxlength="100" />
+        </label>
+        <div class="wf-field-hint" id="wfNewFolderParent">
+          상위 폴더: <strong>홈</strong>
+        </div>
+      </div>
+      <div class="wf-modal-footer">
+        <button class="wf-btn wf-btn-default" data-close="wfNewFolderModal">취소</button>
+        <button class="wf-btn wf-btn-primary" id="wfBtnCreateFolder">생성</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 모달: 이름 변경 ═══════════ -->
+  <div class="wf-modal" id="wfRenameModal" role="dialog" aria-hidden="true">
+    <div class="wf-modal-backdrop" data-close="wfRenameModal"></div>
+    <div class="wf-modal-content wf-modal-sm">
+      <div class="wf-modal-header">
+        <h2>✏️ 이름 변경</h2>
+        <button class="wf-modal-close" data-close="wfRenameModal">✕</button>
+      </div>
+      <div class="wf-modal-body">
+        <label class="wf-field">
+          <span class="wf-field-label">새 이름</span>
+          <input type="text"
+                 id="wfRenameInput"
+                 class="wf-field-input"
+                 maxlength="255" />
+        </label>
+        <input type="hidden" id="wfRenameTargetType" />
+        <input type="hidden" id="wfRenameTargetId" />
+      </div>
+      <div class="wf-modal-footer">
+        <button class="wf-btn wf-btn-default" data-close="wfRenameModal">취소</button>
+        <button class="wf-btn wf-btn-primary" id="wfBtnRename">변경</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 모달: 공유 관리 ═══════════ -->
+  <div class="wf-modal" id="wfShareModal" role="dialog" aria-hidden="true">
+    <div class="wf-modal-backdrop" data-close="wfShareModal"></div>
+    <div class="wf-modal-content">
+      <div class="wf-modal-header">
+        <h2>🔗 공유 관리</h2>
+        <button class="wf-modal-close" data-close="wfShareModal">✕</button>
+      </div>
+      <div class="wf-modal-body">
+        <div class="wf-share-target" id="wfShareTarget">
+          <span class="wf-share-icon">📄</span>
+          <span class="wf-share-name">—</span>
+        </div>
+
+        <div class="wf-share-public">
+          <label class="wf-switch">
+            <input type="checkbox" id="wfSharePublic" />
+            <span class="wf-switch-slider"></span>
+            <span class="wf-switch-label">전체 공개 (로그인 관리자 모두 열람 가능)</span>
+          </label>
+        </div>
+
+        <div class="wf-share-section">
+          <h3>특정 멤버에게 공유</h3>
+          <div class="wf-share-add">
+            <select id="wfShareMemberSelect">
+              <option value="">-- 멤버 선택 --</option>
+            </select>
+            <select id="wfSharePermissionSelect">
+              <option value="view">조회</option>
+              <option value="edit">편집</option>
+            </select>
+            <button class="wf-btn wf-btn-primary" id="wfBtnAddShare">추가</button>
+          </div>
+
+          <ul class="wf-share-list" id="wfShareList">
+            <li class="wf-share-empty">아직 공유된 멤버가 없습니다.</li>
+          </ul>
+        </div>
+
+        <input type="hidden" id="wfShareTargetType" />
+        <input type="hidden" id="wfShareTargetId" />
+      </div>
+      <div class="wf-modal-footer">
+        <button class="wf-btn wf-btn-default" data-close="wfShareModal">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 모달: 영구 삭제 확인 (휴지통) ═══════════ -->
+  <div class="wf-modal" id="wfDeleteConfirmModal" role="dialog" aria-hidden="true">
+    <div class="wf-modal-backdrop" data-close="wfDeleteConfirmModal"></div>
+    <div class="wf-modal-content wf-modal-sm">
+      <div class="wf-modal-header">
+        <h2>⚠️ 영구 삭제</h2>
+        <button class="wf-modal-close" data-close="wfDeleteConfirmModal">✕</button>
+      </div>
+      <div class="wf-modal-body">
+        <p class="wf-warning-text">
+          선택한 항목을 <strong>영구 삭제</strong>합니다.<br />
+          이 작업은 <strong>되돌릴 수 없습니다.</strong>
+        </p>
+        <p class="wf-warning-detail" id="wfDeleteConfirmDetail">—</p>
+      </div>
+      <div class="wf-modal-footer">
+        <button class="wf-btn wf-btn-default" data-close="wfDeleteConfirmModal">취소</button>
+        <button class="wf-btn wf-btn-danger" id="wfBtnConfirmDelete">영구 삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 토스트 알림 컨테이너 ═══════════ -->
+  <div class="wf-toast-container" id="wfToastContainer"></div>
+
+  <!-- placeholder JS (Step 6에서 본격 구현) -->
+  <script src="/js/workspace-files.js?v=1"></script>
+</body>
+</html>
