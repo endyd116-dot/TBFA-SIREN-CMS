@@ -305,7 +305,12 @@
     if (!wrap) return;
     try {
       const res = await api('/api/admin/related-sites');
-      const items = (res && res.data && res.data.items) || (res && res.items) || [];
+      // api()는 { status, ok, data: <서버응답JSON> } 반환 → 서버 응답이 { ok, data: { items } }
+      // 따라서 res.data.data.items가 정답. 다중 fallback으로 안전.
+      const items =
+        (res && res.data && res.data.data && res.data.data.items) ||
+        (res && res.data && res.data.items) ||
+        (res && res.items) || [];
       if (!items.length) {
         wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3,#6b7280);font-style:italic">등록된 관련 사이트가 없습니다. 아래에서 추가하세요.</div>';
         return;
