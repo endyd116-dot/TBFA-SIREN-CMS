@@ -1,0 +1,413 @@
+# CLAUDE.md — SIREN 프로젝트 가이드
+
+> 새 대화 시작 시 자동으로 컨텍스트에 로드됩니다.
+> Claude Code(또는 Claude Agent)가 이 프로젝트를 작업할 때 따라야 하는 정책·구조·관습입니다.
+> 상세 인수인계서는 [`docs/handover/v20.md`](docs/handover/v20.md) 및 [`docs/handover/v17-expanded.md`](docs/handover/v17-expanded.md) 참고.
+
+---
+
+## 1. 프로젝트 개요
+
+| 항목 | 내용 |
+|---|---|
+| 프로젝트명 | **SIREN (싸이렌)** — 교사유가족협의회 통합 NPO 플랫폼 |
+| 운영 주체 | (사)교사유가족협의회 (사업자번호 1188271215) |
+| 라이브 URL | https://tbfa-siren-cms.netlify.app |
+| 호스팅 | Netlify Pro ($20/월) + Functions + Blobs + Scheduled |
+| DB | Neon PostgreSQL + Drizzle ORM + postgres-js (56+ 테이블) |
+| 저장소 | Cloudflare R2 (Pre-signed URL + base64 인라인) |
+| 결제 | 토스페이먼츠 + 효성 CMS+ + 토스 빌링 자동청구 |
+| 이메일 | Resend (redirect 모드) |
+| AI | Google Gemini 3-flash (cron 자동 호출) |
+| 도메인 보유 | tbfa.co.kr (메인 예정), yoonsiren.com (리다이렉트 예정) |
+
+**서비스 영역**: 후원(정기·일시·CMS·계좌이체) / 회원관리 / 유가족 지원(심리상담·법률·장학) / SIREN 신고(사건·괴롭힘·법률) / 게시판 / 채팅 / 워크스페이스(칸반·캘린더·파일함·템플릿) / AI 비서
+
+---
+
+## 2. 기술 스택
+
+| 영역 | 기술 |
+|---|---|
+| Frontend | Vanilla HTML/CSS/JS (No framework) |
+| Editor | Toast UI Editor v3.2.2 (3-tier CDN fallback) |
+| Backend | Netlify Functions v2 (Node.js 20) |
+| Auth | JWT (사용자/관리자 분리) + bcryptjs + httpOnly 쿠키 |
+| 결제 PG | 토스페이먼츠 (테스트/라이브) + 효성 CMS+ |
+| Cron | Netlify Scheduled Functions |
+| Charts | Chart.js 4.4 |
+| Calendar | FullCalendar 6 (CDN) |
+| Excel | SheetJS 0.18.5 (클라이언트 변환) |
+| ZIP | JSZip 3.10.1 |
+| Drag&Drop | SortableJS 1.15.2 |
+| PDF (영수증) | pdf-lib + @pdf-lib/fontkit (NotoSansKR 6MB) |
+| PDF (보고서) | window.print + print CSS |
+
+---
+
+## 3. 폴더 구조
+
+```
+tbfa-mis/
+├── CLAUDE.md                       ← 본 문서
+├── README.md
+├── package.json
+├── netlify.toml
+├── drizzle.config.ts
+├── tsconfig.json
+│
+├── public/                         ← 정적 프론트
+│   ├── *.html (40+ 페이지)
+│   ├── partials/ (header/footer/modals)
+│   ├── css/ (23+ 파일)
+│   └── js/ (46+ 파일)
+│
+├── netlify/functions/              ← API 함수 (170+ 개)
+│   ├── auth-*.ts
+│   ├── admin-*.ts
+│   ├── support-*, incident-*, harassment-*, legal-*
+│   ├── workspace-*, admin-workspace-*
+│   ├── chat-*, donate-*, billing-*
+│   ├── cron-*.ts                   ← Scheduled Functions
+│   ├── ai-task-*-background.ts     ← Background Functions
+│   └── migrate-*.ts                ← 1회용 마이그레이션 (호출 후 삭제)
+│
+├── lib/                            ← 공용 라이브러리
+│   ├── auth.ts                     ← JWT + requireActiveUser (블랙 차단)
+│   ├── admin-guard.ts              ← requireAdmin (반환 필드 'res')
+│   ├── ai-gemini.ts, ai-task.ts    ← AI 호출 (3-tier 모델 폴백)
+│   ├── workspace-logger.ts         ← 활동 로그 + 알림 통합
+│   ├── r2-client.ts, r2-server.ts, r2-delete.ts
+│   ├── csv-export.ts, site-settings.ts
+│   ├── audit.ts, validation.ts, response.ts
+│   └── ...
+│
+├── db/
+│   ├── index.ts
+│   └── schema.ts                   ← 56+ 테이블 (~1,800줄)
+│
+├── drizzle/                        ← 마이그레이션 SQL
+├── assets/fonts/NotoSansKR-Regular.ttf (6MB)
+└── docs/handover/                  ← 인수인계서 보관
+    ├── v20.md (통합 최종본)
+    └── v17-expanded.md (v15+세션증분)
+```
+
+---
+
+## 4. 자주 쓰는 명령어
+
+### 개발
+```bash
+npm run dev           # netlify dev (Functions 포함, http://localhost:8888)
+```
+
+### DB
+```bash
+npm run db:push       # drizzle-kit push (schema → DB 직접 적용)
+npm run db:generate   # drizzle-kit generate (마이그레이션 SQL 생성)
+npm run db:migrate    # drizzle-kit migrate (SQL 적용)
+npm run db:studio     # drizzle-kit studio (DB 시각화)
+```
+
+### 빌드·배포
+```bash
+npm run build         # 정적 사이트 — 별도 빌드 없음
+npm run deploy        # netlify deploy --prod (수동 배포 — 보통 git push로 자동)
+git push origin main  # 자동 배포 트리거 (Netlify가 빌드)
+```
+
+### 마이그레이션 (1회용)
+어드민 로그인된 상태에서 주소창에:
+```
+https://tbfa-siren-cms.netlify.app/api/migrate-{이름}?run=1
+```
+- GET ?run=1 : 어드민 인증 후 실행
+- GET 만 : 진단 (인증 불필요)
+- 호출 성공 후 즉시 파일 삭제 + 커밋 (1회용 보안 원칙)
+
+---
+
+## 5. 환경변수 (Netlify)
+
+```bash
+# DB / JWT
+NETLIFY_DATABASE_URL          # Neon PostgreSQL
+JWT_SECRET, JWT_EXPIRES_IN=7d
+ADMIN_JWT_SECRET, ADMIN_JWT_EXPIRES_IN=2h
+BCRYPT_ROUNDS=10
+
+# 이메일
+RESEND_API_KEY, RESEND_TEST_RECIPIENT
+EMAIL_FROM, SITE_URL, ADMIN_NOTIFY_EMAIL
+
+# 토스
+TOSS_TEST_CLIENT_KEY, TOSS_TEST_SECRET_KEY
+TOSS_MODE=test (운영 시 'live')
+
+# AI
+GEMINI_API_KEY
+GEMINI_MODEL_PRO=gemini-3-flash
+GEMINI_MODEL_FLASH=gemini-3-flash
+
+# Cloudflare R2
+R2_ACCOUNT_ID, R2_BUCKET=siren-uploads
+R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+
+# 협회 정보
+ORG_NAME, ORG_REGISTRATION_NO, ORG_REPRESENTATIVE, ORG_ADDRESS, ORG_PHONE
+```
+
+---
+
+## 6. 코딩 컨벤션·규칙 (필수 준수)
+
+### 6.1 작동 보장 후 고도화 (최우선 원칙)
+
+신규 기능 작성 시 **사전 점검 5원칙** 적용:
+
+1. **필드명·타입 일치**: 클라이언트 body와 서버 검증 필드, DB 컬럼 제약 동기 점검
+2. **응답 키 다중 fallback**: `res.data.data.X || res.data.X || res.X`
+3. **DB 컬럼 제약**: NOT NULL/DEFAULT/UNIQUE/FK 코드 충돌 사전 검증
+4. **캐시버스터(?v=N)**: 변경된 JS·CSS의 모든 참조 페이지에서 갱신
+5. **회귀 영역**: schema 변경 → 마이그레이션 적용 후 schema 정의 활성화 (DB-schema 동기화)
+
+### 6.2 API 응답 패턴 (검증된 표준)
+
+```typescript
+// 단계별 try/catch + step 라벨 + detail + stack
+function jsonError(step: string, err: any) {
+  return new Response(JSON.stringify({
+    ok: false,
+    error: "...실패",
+    step,                                          // 'auth' | 'select_X' | 'map' 등
+    detail: String(err?.message || err).slice(0, 500),
+    stack: String(err?.stack || "").slice(0, 1000),
+  }), { status: 500, headers: { "Content-Type": "application/json" } });
+}
+
+// 보조 SELECT는 실패해도 빈 배열로 계속 (메인 데이터로만 응답)
+let auxRows = [];
+try { auxRows = await db.select()...; } catch (err) { console.warn(...); }
+```
+
+### 6.3 DB 쿼리 패턴
+
+- **drizzle 다중 leftJoin 체인 금지** → separate query + JS Map 매칭
+- 필수 SELECT만 명시적 컬럼 선언 (schema 변경 영향 최소화)
+- inArray로 IN 절 사용 시 ID 배열 dedup
+- 페이지네이션 limit 명시 (안전 상한)
+
+### 6.4 클라이언트 패턴
+
+- `api()` 헬퍼는 `opts.body`를 자동 `JSON.stringify` 처리 → 호출부에서 객체 그대로 전달 (이중 stringify 금지)
+- 응답 검증: `if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status)`
+- 토스트 에러 메시지에 서버 detail 노출
+
+### 6.5 인증·권한
+
+- **httpOnly 쿠키** 환경 — `document.cookie` 토큰 체크 금지, 첫 API 401로만 인증 판정
+- `lib/admin-guard.ts requireAdmin` 반환 필드는 **`res`** (`response` 아님)
+  ```typescript
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.res;   // ✅ 'res'
+  ```
+- `lib/auth.ts requireActiveUser` (블랙 차단 통합)
+  - 차단된 사용자 → 403 + `{ error: "귀하의 서비스가 차단되었습니다.", blacklisted: true, reason }`
+  - SIREN 3개·유족지원·채팅·후원 등 사용자 진입 API에 적용
+
+### 6.6 라우팅·캐시
+
+- `/api/*` 경로 함수는 반드시:
+  ```typescript
+  export const config = { path: "/api/admin-xxx" };
+  ```
+  누락 시 `/api/xxx?...` → 404
+- HTML 외부 링크(SPA 외부 이동)는 onclick 우회:
+  ```html
+  <a href="/page.html" onclick="window.location.href='/page.html';return false;">
+  ```
+
+### 6.7 schema.ts
+
+- import에 `bigint`, `numeric` 등 사용한 타입 빠짐없이
+- DB 적용 전(마이그레이션 전) schema 컬럼 정의 추가 금지 — 즉시 운영 깨짐
+  - 정상 흐름: 마이그레이션 함수 작성 → 사용자 호출 → 적용 확인 → schema 정의 추가 → 푸시
+
+### 6.8 마이그레이션 호출 표준
+
+신규 마이그레이션은 **어드민 세션 GET ?run=1** 패턴:
+```typescript
+// netlify/functions/migrate-xxx.ts
+import { requireAdmin } from "../../lib/admin-guard";
+// GET ?run=1 : requireAdmin 후 실제 실행
+// GET (기본) : 진단 모드 (인증 불필요)
+```
+- 환경변수 키 검증 폐기 (특수문자 문제·재배포 부담 해결)
+- 어드민이 주소창에 한 번 입력 → 즉시 실행
+- 멱등 보장 (`IF NOT EXISTS`, 중복 INSERT 방지)
+- 호출 성공 후 즉시 파일 삭제 + 커밋·푸시
+
+### 6.9 자율 권한 (Claude 측)
+
+사용자가 명시한 자율 권한:
+- **자동 진행**: 코드 수정, git add/commit/push, Netlify 자동 배포, npm 명령, 옵션 추천 진행, 메모리 갱신
+- **확인 필요**: ① 설계·로직 결정 ② 마이그레이션 호출 (사용자 직접) ③ 진정 위험·비가역 작업 (force push, hard reset, DB DROP, 운영 결제 전환 등)
+- 그 외 묻지 말고 자율 진행
+
+### 6.10 답변 언어
+
+- **모든 답변·헤더·옵션 라벨·도구 description**: 한국어
+- 영어 단어 섞기 금지 (코드·식별자·기술용어 API/JWT/cron 등은 원형)
+
+---
+
+## 7. AI 호출 정책
+
+### 7.1 사용 모델
+- Gemini 3-flash (Pro/Flash 모두 동일 모델)
+- 폴백 chain: `gemini-3-flash` → `gemini-3.0-flash` → `gemini-3.1-flash-lite-preview`
+
+### 7.2 호출 시점 (안 2 자동화 중분간)
+- **AI-1 작업 요약**: 카드 생성 + description 100자+ 자동 (`ai-task-summary-background`)
+- **AI-2 리스크 점수**: 매일 KST 06:30 cron (`cron-task-risk`)
+- **AI-3 완료 보고서 초안**: done 이동 시 자동 (`ai-task-completion-background`)
+- 모두 **수동 재생성** 가능 (`/api/admin-task-ai-regenerate?type=summary|risk|completion`)
+
+### 7.3 안전장치
+- 폴백 텍스트 (AI 실패 시 휴리스틱·데이터 기반 자동 생성)
+- description 짧으면(<30자) 호출 스킵 (비용 통제)
+- 호출 실패 throw 안 함 (fire-and-forget 안전)
+
+---
+
+## 8. Cron 함수 (모두 운영 중)
+
+| 함수 | 시간 (UTC / KST) | 동작 |
+|---|---|---|
+| `cron-workspace-trash-cleanup.ts` | 18:00 / 03:00 | 휴지통 30일 경과 영구삭제 |
+| `cron-agent-8.ts` | 21:00 / 06:00 | 일일 브리핑 생성 (admin별) |
+| `cron-task-risk.ts` | 21:30 / 06:30 | 작업 리스크 점수 갱신 |
+| `cron-billing-monthly.ts` | 운영중 | 토스 빌링 월간 청구 |
+| `cron-billing-card-expiry.ts` | 운영중 | 카드 만료 알림 |
+| `cron-toss-billing.ts` | 운영중 | 토스 빌링 처리 |
+| `cron-grade-recalc.ts` | 운영중 | 회원 등급 재계산 |
+| `cron-cleanup-audit-logs.ts` | 운영중 | 감사 로그 1년 정리 |
+| `cron-churn-predictor.ts` | 운영중 | 이탈 예측 |
+| `cron-anniversary-check.ts` | 운영중 | 기념일 체크 |
+| `cron-campaign-slump-check.ts` | 운영중 | 캠페인 부진 체크 |
+
+---
+
+## 9. 작업 시 주의사항 (Critical, 필독)
+
+### 9.1 회귀 위험 영역
+1. **schema.ts 컬럼 추가**: drizzle SELECT가 schema 기준이므로 DB 적용 전 추가 금지 (즉시 운영 깨짐 — 어드민 로그인 등 SELECT 실패)
+2. **마이그레이션 함수**: 1회용. 호출 후 즉시 삭제 (보안 + 코드 청결성)
+3. **차단 미들웨어**: `requireActiveUser` 적용 시 영향 범위 사전 점검 (지금은 핵심 CREATE 6개만 적용)
+4. **API 응답 키**: 클라이언트에서 다중 fallback 사용 (`data.data.X || data.X`)
+5. **드리즐 leftJoin 체인**: 안정성 위험 → separate query + Map 매칭
+
+### 9.2 마이그레이션 호출 흐름 (사용자 액션)
+```
+1. AI가 schema.ts 정의 추가 → 마이그레이션 함수 작성 → 푸시
+2. 사용자가 admin.html 로그인
+3. 주소창: https://tbfa-siren-cms.netlify.app/api/migrate-xxx?run=1
+4. 응답 success 확인 → AI에게 알림
+5. AI가 schema 정의 활성화 (마이그레이션이 schema보다 먼저 추가된 경우) + 마이그레이션 파일 삭제 + 푸시
+```
+
+### 9.3 점진 푸시
+- 큰 작업은 1차로 핵심 동작 → 사용자 검증 → 다음 단계
+- 한 번에 너무 많은 변경 X
+- 사용자 확인 받은 후 고도화·UI 개선 추가
+
+### 9.4 컨텍스트 한계 알림 (Claude 측 자동)
+- **80% 도달**: "💡 컨텍스트 사용량 80%" 한 줄 알림 + 작업 계속
+- **90% 초과**: "🚨 컨텍스트 90% 초과 — 새 채팅 권장" 강력 경고 + 인수인계 절차 안내
+- 자동 압축 발생 전 사용자가 적절한 시점에 인수인계 가능하도록
+
+---
+
+## 10. Phase·작업 진행 상황 (이번 세션 기준 누적)
+
+### ✅ 완료
+- **Phase 1** 효성 CMS+ 연동 (100%)
+- **Phase 2** 토스 빌링 자동청구 (100%)
+- **Phase 3** 워크스페이스 본체 (100%)
+  - Step 1~3 (이전 세션) + Step 5 Agent-8 cron + Step 7-A 칸반 + 7-B 카드 7탭 + 7-C 캘린더·AI·검색·템플릿
+- **Phase 3-extra** 파일함 (100%, 9/9 Step + 통합 라우팅)
+- **4순위 자잘한 버그 3건**:
+  - 14번 후원 모달 3초 딜레이 (프리페치)
+  - 1번 회원 내역 엑셀 (22컬럼 효성 양식)
+  - 2번 수납내역 엑셀 (28컬럼 효성+토스 통합)
+- **5순위 진행 중** (#1·#9 완료):
+  - #1·#4 블랙 통합 (DB 컬럼 + API + UI + 차단 미들웨어 + CREATE 6곳 적용)
+  - #9 관련 사이트 메인 헤더 동적 로드 + 사이트 빌더 CRUD UI + 6개 교원단체 시드
+
+### ⏸ 진행 예정
+- **5순위 #10** 정기후원 해지 안내 CRUD (인프라 90% 완성, RENDERER 등록 + 시드 + 검증 남음)
+- **6순위 큰 기능 3건** (38~50h):
+  - #6 교원 회원 자격 변경 시스템
+  - #8 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅
+  - #15 효성 + 기업은행 CSV 자동 매핑 + 후원 확정 워크플로
+- **Phase 4~22** (19개)
+
+### 누적
+- 마스터플랜 진행률: 약 28~29% (5.5/22 Phase + 4·5순위 일부)
+- 누적 작업 시간: 약 400h+
+- 페이지: 5개 신규 (workspace, kanban, calendar, templates, files)
+- DB 테이블: 70+ (워크스페이스 + 파일함 + 카드 고도화 + 효성 + 토스 등)
+
+---
+
+## 11. 사용자 페이지 진입점 요약
+
+### 사용자
+- `/` (index) — 홈, 후원, 캠페인
+- `/about`, `/news`, `/support`, `/report`
+- `/incidents`, `/report-harassment`, `/legal-support` — SIREN 3개
+- `/board` — 자유게시판
+- `/mypage` — 마이페이지
+
+### 어드민
+- `/admin.html` — SPA, 모든 어드민 기능
+- `/cms-tbfa.html` — TBFA CMS (기부 통합 관리)
+- `/admin-hub.html` — 허브
+- `/admin-site-builder.html` — 메인 화면 편집
+
+### 워크스페이스 (어드민용)
+- `/workspace.html` — 대시보드 + 통합 검색바 + 우선 5개 위젯 + AI 브리핑
+- `/workspace-kanban.html` — 5컬럼 칸반 + 카드 7탭 + 템플릿 셀렉터
+- `/workspace-calendar.html` — FullCalendar (tasks·events 통합)
+- `/workspace-templates.html` — 템플릿 CRUD
+- `/workspace-files.html` — 파일함 + 휴지통 cron
+
+---
+
+## 12. 참고 문서
+
+- 인수인계서 v20 (통합): [docs/handover/v20.md](docs/handover/v20.md)
+- 인수인계서 v17 확장판 (v15+증분): [docs/handover/v17-expanded.md](docs/handover/v17-expanded.md)
+- 메모리: `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/`
+
+---
+
+## 13. Claude(AI) 작업 수행 시 핵심 체크리스트
+
+새 작업 시작할 때마다 이 체크리스트를 마음속으로 점검:
+
+- [ ] 사용자가 정한 자율 권한 범위 안인가? (확인 필요한 영역만 묻기)
+- [ ] 한국어 답변·도구 description 사용?
+- [ ] 신규 API라면 단계별 try/catch + step·detail·stack 응답?
+- [ ] 응답 키 다중 fallback?
+- [ ] 캐시버스터 일괄 갱신?
+- [ ] schema 변경 시 마이그레이션 함수 동시 작성?
+- [ ] requireAdmin 반환은 `auth.res` (response 아님)?
+- [ ] `/api/*` 함수에 `export const config = { path }`?
+- [ ] 컨텍스트 80%·90% 알림 체크?
+- [ ] 푸시 후 사용자에게 검증 권장 + 다음 단계 안내?
+
+---
+
+**마지막 업데이트**: 2026-05-09 (5순위 #1·#9 완료 직후)
