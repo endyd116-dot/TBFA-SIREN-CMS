@@ -311,8 +311,8 @@ export default async (req: Request, _ctx: Context) => {
       /* ─── action=status ─── */
       if (action === "status") {
         const newStatus = body.status;
-        if (!["todo", "doing", "done", "blocked"].includes(newStatus)) {
-          return badRequest("status 값 오류 (todo/doing/done/blocked)");
+        if (!["todo", "doing", "done", "blocked", "archived"].includes(newStatus)) {
+          return badRequest("status 값 오류 (todo/doing/done/blocked/archived)");
         }
         const updateData: any = {
           status: newStatus,
@@ -449,6 +449,138 @@ export default async (req: Request, _ctx: Context) => {
         return ok(updated, "지시가 완료되었습니다");
       }
 
+      /* ─── action=archive ─── */
+      if (action === "archive") {
+        if (!isOwner && !isAssignee && !isAssigner && !isSuperAdmin) {
+          return forbidden("보관 권한이 없습니다");
+        }
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({
+            status: "archived",
+            archivedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        await logWorkspaceActivity({
+          actorId: meId,
+          actorName: adminMember.name,
+          actionType: "task.archive",
+          targetType: "task",
+          targetId: id,
+          targetTitle: task.title,
+          metadata: { prevStatus: task.status },
+          visibility: "team",
+        });
+        await logAudit({
+          userId: meId, userType: "admin", userName: adminMember.name,
+          action: "workspace.task.archive", target: `task:${id}`,
+          detail: { title: task.title }, req,
+        });
+        return ok(updated, "작업이 보관되었습니다");
+      }
+
+      /* ─── action=unarchive ─── */
+      if (action === "unarchive") {
+        if (task.status !== "archived") return badRequest("보관 상태가 아닙니다");
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({
+            status: "done",
+            archivedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        await logWorkspaceActivity({
+          actorId: meId,
+          actorName: adminMember.name,
+          actionType: "task.unarchive",
+          targetType: "task",
+          targetId: id,
+          targetTitle: task.title,
+          metadata: {},
+          visibility: "team",
+        });
+        return ok(updated, "보관 해제되었습니다");
+      }
+
+      /* ─── action=hold (보류 시작) ─── */
+      if (action === "hold") {
+        const reason = String(body.reason || "").trim().slice(0, 500);
+        if (!reason) return badRequest("보류 사유(reason) 필수");
+        if (task.status === "archived") return badRequest("보관된 작업은 보류할 수 없습니다");
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({
+            status: "blocked",
+            holdReason: reason,
+            holdStartedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        const notifyTargets = new Set<number>();
+        if (task.assignedBy && task.assignedBy !== meId) notifyTargets.add(task.assignedBy);
+        if (task.memberId !== meId) notifyTargets.add(task.memberId);
+        await logTaskChange({
+          actorId: meId,
+          actorName: adminMember.name,
+          taskId: id,
+          taskTitle: task.title,
+          actionType: "task.hold",
+          metadata: { reason, prevStatus: task.status },
+          notifyMemberIds: Array.from(notifyTargets),
+          notifyType: "status_changed",
+          notifyTitle: `⏸ 작업 보류: ${task.title}`,
+          actionUrl: `/admin#task-${id}`,
+        });
+        return ok(updated, "보류 처리되었습니다");
+      }
+
+      /* ─── action=unhold (보류 해제) ─── */
+      if (action === "unhold") {
+        if (task.status !== "blocked") return badRequest("보류 상태가 아닙니다");
+        const resumeStatus = body.resumeStatus === "doing" ? "doing" : "todo";
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({
+            status: resumeStatus,
+            holdReason: null,
+            holdStartedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        await logWorkspaceActivity({
+          actorId: meId,
+          actorName: adminMember.name,
+          actionType: "task.unhold",
+          targetType: "task",
+          targetId: id,
+          targetTitle: task.title,
+          metadata: { resumeStatus },
+          visibility: "team",
+        });
+        return ok(updated, "보류 해제되었습니다");
+      }
+
+      /* ─── action=bookmark / unbookmark ─── */
+      if (action === "bookmark" || action === "unbookmark") {
+        const current = Array.isArray(task.bookmarkedBy) ? [...task.bookmarkedBy] : [];
+        const has = current.includes(meId);
+        let next = current;
+        if (action === "bookmark" && !has) next = [...current, meId];
+        if (action === "unbookmark" && has) next = current.filter((x: number) => x !== meId);
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({ bookmarkedBy: next as any, updatedAt: new Date() })
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        return ok(updated, action === "bookmark" ? "북마크 추가됨" : "북마크 해제됨");
+      }
+
       /* ─── 일반 PATCH (dueDate 제외) ─── */
       if (body.dueDate !== undefined) {
         return badRequest("마감일 변경은 /admin/task-due-changes API를 사용하세요");
@@ -473,6 +605,23 @@ export default async (req: Request, _ctx: Context) => {
       if (body.reminderConfig !== undefined) updateData.reminderConfig = body.reminderConfig;
       if (body.sortOrder !== undefined) updateData.sortOrder = Number(body.sortOrder);
       if (body.parentTaskId !== undefined) updateData.parentTaskId = body.parentTaskId;
+      // ★ Step 7-A: 신규 컬럼
+      if (body.estimatedHours !== undefined) {
+        const v = body.estimatedHours;
+        updateData.estimatedHours = v === null || v === "" ? null : String(v);
+      }
+      if (body.actualHours !== undefined) {
+        const v = body.actualHours;
+        updateData.actualHours = v === null || v === "" ? null : String(v);
+      }
+      if (body.aiSummary !== undefined) {
+        updateData.aiSummary = body.aiSummary === null ? null : String(body.aiSummary).slice(0, 2000);
+      }
+      if (body.aiRiskScore !== undefined) {
+        const n = Number(body.aiRiskScore);
+        updateData.aiRiskScore = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+        updateData.aiRiskUpdatedAt = new Date();
+      }
 
       const [updated]: any = await db
         .update(workspaceTasks)
