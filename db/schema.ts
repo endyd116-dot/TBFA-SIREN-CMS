@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, varchar, integer, text, timestamp,
-  boolean, index, uniqueIndex, pgEnum, jsonb
+  boolean, index, uniqueIndex, pgEnum, jsonb, bigint
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
