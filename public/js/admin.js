@@ -849,28 +849,15 @@ const OPERATOR_CATEGORIES = [
       if (el) el.addEventListener('change', loadMembers);
     });
 
-    /* ★ M-12: 엑셀 추출 버튼 */
+    /* ★ 4순위 #1: 회원 내역 내보내기 (효성 CMS+ 계약정보 22컬럼 .xlsx) */
     const exportBtn = document.getElementById('btnExportMembers');
     if (exportBtn) {
-      exportBtn.addEventListener('click', (e) => {
+      exportBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        const params = new URLSearchParams();
-        const t = document.getElementById('mmFilterType')?.value || '';
-        const s = document.getElementById('mmFilterStatus')?.value || '';
-        const cat = document.getElementById('mmFilterCategory')?.value || '';
-        const sub = document.getElementById('mmFilterSubtype')?.value || '';
-        const src = document.getElementById('mmFilterSource')?.value || '';
-        const q = (document.getElementById('mmFilterQ')?.value || '').trim();
-        if (t) params.set('type', t);
-        if (s) params.set('status', s);
-        if (cat) params.set('category', cat);
-        if (sub) params.set('subtype', sub);
-        if (src) params.set('source', src);
-        if (q && q.length >= 2) params.set('q', q);
-
-        const url = '/api/admin/members-export' + (params.toString() ? '?' + params.toString() : '');
-        window.open(url, '_blank');
-        toast('CSV 파일을 다운로드합니다 (Excel에서 바로 열림)');
+        await exportMembersContractExcel(exportBtn).catch((err) => {
+          console.error('[members-contract-export]', err);
+          toast('내보내기 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'), 'error');
+        });
       });
     }
   }
@@ -5713,6 +5700,61 @@ const OPERATOR_CATEGORIES = [
       XLSX.writeFile(wb, filename);
 
       toast('수납내역 ' + items.length + '건 다운로드', 'success');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+
+  async function exportMembersContractExcel(btn) {
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ 처리 중...';
+
+    try {
+      // 회원 관리 화면 필터 수집
+      const params = new URLSearchParams();
+      const t = document.getElementById('mmFilterType')?.value || '';
+      const s = document.getElementById('mmFilterStatus')?.value || '';
+      const q = (document.getElementById('mmFilterQ')?.value || '').trim();
+      if (t) params.set('type', t);
+      if (s) params.set('status', s);
+      if (q && q.length >= 2) params.set('q', q);
+
+      // 데이터 수신
+      const res = await fetch('/api/admin-members-contract-export?' + params.toString(), { credentials: 'include' });
+      if (res.status === 401) { location.href = '/admin.html'; return; }
+      if (!res.ok) {
+        const err = await res.json().catch(function () { return {}; });
+        throw new Error(err.error || ('HTTP ' + res.status));
+      }
+      const json = await res.json();
+      const items = (json.data && json.data.items) || json.items || [];
+      if (!items.length) {
+        toast('내보낼 회원이 없습니다', 'warning');
+        return;
+      }
+
+      // SheetJS 로드 + 변환
+      await ensureSheetJS();
+      const ws = XLSX.utils.json_to_sheet(items);
+      const headers = Object.keys(items[0] || {});
+      ws['!cols'] = headers.map(function (h) {
+        const wRaw = Math.max(h.length, 8);
+        return { wch: Math.min(wRaw + 4, 32) };
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '회원내역');
+
+      const today = new Date();
+      const ymd =
+        today.getFullYear() +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        String(today.getDate()).padStart(2, '0');
+      const filename = '회원내역_' + ymd + '.xlsx';
+      XLSX.writeFile(wb, filename);
+
+      toast('회원 ' + items.length + '명 다운로드', 'success');
     } finally {
       btn.disabled = false;
       btn.textContent = origText;
