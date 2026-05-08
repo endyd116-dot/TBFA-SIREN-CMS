@@ -1,0 +1,433 @@
+# PROJECT_STATE.md — SIREN 작업 상태 통합 문서
+
+> **목적**: 단일 휘발성 상태 문서. "지금 누가 뭘 하고 있나" 한 곳에 모음.
+> **자동 로드는 안 됨** — 각 채팅 시작 시 명시적으로 읽어야 함 (`CLAUDE.md`만 자동 로드).
+> **갱신 의무**: 작업 진행률·다음 할 일이 바뀌면 본인 채팅이 직접 갱신 후 push.
+
+---
+
+## 1. 프로젝트 개요
+
+| 항목 | 내용 |
+|---|---|
+| 이름 | **SIREN (싸이렌)** — 교사유가족협의회 통합 NPO 플랫폼 |
+| 라이브 URL | https://tbfa-siren-cms.netlify.app |
+| 스택 | Vanilla JS + Netlify Functions v2 + Neon PG + Drizzle + R2 |
+| 베이스 브랜치 | `main` |
+| 자동 로드 문서 | `CLAUDE.md` (코딩 컨벤션·구조·자율 권한) |
+| 영구 참조 | `docs/handover/v20.md`, `docs/handover/v17-expanded.md` (인수인계 역사 기록) |
+
+상세 스택·환경변수·폴더 구조는 `CLAUDE.md` §2~5 참조.
+
+---
+
+## 2. 마지막 업데이트
+
+| 시각 | 갱신자 | 내용 |
+|---|---|---|
+| 2026-05-09 | main 채팅 | 5순위 #10 완료, PROJECT_STATE.md 신설 (구 PARALLEL_PLAN.md 흡수) |
+
+> 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
+
+---
+
+## 3. 현재 작업 모드
+
+```
+🟢 병렬 (parallel) — 6순위 #6 / #8 / #15 동시 진행 가능 단계
+```
+
+- 단일(serial) 모드: main 채팅 하나만 작업
+- 병렬(parallel) 모드: 작업별 브랜치 + 별도 채팅으로 분배
+
+각 채팅이 작업 시작 시 본인 진행률을 §4의 표에 갱신.
+
+---
+
+## 4. 병렬 작업 분리
+
+### 4.0 의존성 매트릭스
+
+|   | A 자격변경 | B 1:1 매칭 | C CSV 매핑 |
+|---|---|---|---|
+| **A** | — | 독립 | 독립 |
+| **B** | 독립 | — | 독립 |
+| **C** | 독립 | 독립 | — |
+
+→ 도메인 독립. 동시 시작 가능. 머지 충돌만 §6에서 회피.
+
+### 4.1 작업 A — 6순위 #6: 교원 회원 자격 변경 시스템
+
+| 항목 | 값 |
+|---|---|
+| 브랜치 | `feature/eligibility-change` |
+| 베이스 | `origin/main` |
+| 진행률 | ⬜ 0% (미착수) |
+| 담당 채팅 | 미배정 |
+| 예상 시간 | 12~15h |
+| 다음 할 일 | 채팅 시작 → `git checkout -b feature/eligibility-change origin/main` → 마이그레이션 함수 작성 |
+
+**목적**: 회원이 본인 자격(현직/은퇴/예비/일반) 변경 신청 → 어드민 심사 → 승인/반려 → 등급·권한 갱신
+
+**신규 파일**
+- `netlify/functions/eligibility-request.ts` — 사용자 신청 POST
+- `netlify/functions/eligibility-status.ts` — 본인 신청 내역 GET
+- `netlify/functions/admin-eligibility-list.ts` — 어드민 심사 대기 목록
+- `netlify/functions/admin-eligibility-review.ts` — 어드민 승인/반려
+- `netlify/functions/migrate-add-eligibility-change.ts` — 1회용 마이그
+- `public/js/mypage-eligibility.js` — 마이페이지 모듈
+- `public/js/admin-eligibility.js` — 어드민 심사 모듈
+
+**확장 파일** (§6 충돌 주의)
+- `db/schema.ts` — `eligibilityChangeRequests` 테이블 + `members.eligibilityType` 컬럼
+- `public/mypage.html` — "자격 변경" 탭 + 스크립트 include
+- `public/admin.html` — "자격 심사" 메뉴 + 스크립트 include
+- `public/js/admin.js` — 라우터 1줄
+- `lib/audit.ts` — 자격 변경 로그 (옵션, append-only)
+
+**데이터 모델 (제안)**
+```sql
+CREATE TABLE eligibility_change_requests (
+  id serial PRIMARY KEY,
+  member_id int NOT NULL REFERENCES members(id),
+  current_type varchar(30),
+  requested_type varchar(30),
+  reason text,
+  evidence_blob_id int,
+  status varchar(20) DEFAULT 'pending',
+  admin_note text,
+  reviewed_by int REFERENCES admins(id),
+  reviewed_at timestamp,
+  created_at timestamp DEFAULT now()
+);
+ALTER TABLE members ADD COLUMN eligibility_type varchar(30);
+```
+
+---
+
+### 4.2 작업 B — 6순위 #8: 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅
+
+| 항목 | 값 |
+|---|---|
+| 브랜치 | `feature/expert-matching-chat` |
+| 베이스 | `origin/main` |
+| 진행률 | ⬜ 0% (미착수) |
+| 담당 채팅 | 미배정 |
+| 예상 시간 | 15~18h |
+| 다음 할 일 | 채팅 시작 → 브랜치 생성 → expert_matches 테이블 + chat_rooms.room_type 마이그 |
+
+**기존 인프라 활용** (신규 채팅 시스템 만들지 말 것)
+- 전문가는 `members.type='volunteer'` + `member_subtype='lawyer'/'counselor'`로 관리됨 (`db/schema.ts:1069-1071`)
+- `chat_rooms`, `chat_messages` 테이블 존재 (`db/schema.ts:440-481`)
+- → **chat_rooms 확장(`room_type='expert_1on1'`) + 권한 가드 강화** 방향
+
+**신규 파일**
+- `netlify/functions/expert-match-request.ts`
+- `netlify/functions/expert-match-list.ts`
+- `netlify/functions/admin-expert-list.ts`
+- `netlify/functions/admin-expert-assign.ts` — 매칭 + 채팅방 생성
+- `netlify/functions/expert-session-end.ts`
+- `netlify/functions/migrate-expert-matching.ts`
+- `public/js/mypage-expert-match.js`
+- `public/js/admin-expert.js`
+
+**확장 파일** (§6 충돌 주의)
+- `db/schema.ts` — `expertMatches` + `chatRooms.roomType`/`expertId` 컬럼
+- `netlify/functions/chat-*.ts` — 권한 가드 강화 (member_id 외 expert_id 확인)
+- `public/mypage.html`, `public/admin.html` — 메뉴/탭
+- `public/js/auth.js` — 채팅방 진입 시 type 분기 (옵션)
+
+**데이터 모델 (제안)**
+```sql
+CREATE TABLE expert_matches (
+  id serial PRIMARY KEY,
+  user_id int NOT NULL REFERENCES members(id),
+  expert_id int NOT NULL REFERENCES members(id),
+  match_type varchar(20),         -- 'lawyer'/'counselor'
+  source_domain varchar(30),      -- 'incident'/'harassment'/'legal'/'support'
+  source_id int,
+  chat_room_id int REFERENCES chat_rooms(id),
+  status varchar(20) DEFAULT 'pending',
+  assigned_at timestamp,
+  closed_at timestamp,
+  closed_reason varchar(50),
+  created_at timestamp DEFAULT now()
+);
+ALTER TABLE chat_rooms ADD COLUMN room_type varchar(20) DEFAULT 'general';
+ALTER TABLE chat_rooms ADD COLUMN expert_id int REFERENCES members(id);
+```
+
+---
+
+### 4.3 작업 C — 6순위 #15: 효성 + 기업은행 CSV 자동 매핑 + 후원 확정
+
+| 항목 | 값 |
+|---|---|
+| 브랜치 | `feature/csv-donation-mapping` |
+| 베이스 | `origin/main` |
+| 진행률 | ⬜ 0% (미착수) |
+| 담당 채팅 | 미배정 |
+| 예상 시간 | 10~13h |
+| 다음 할 일 | 채팅 시작 → 브랜치 생성 → ibk-parser + pending_donations 마이그 |
+
+**기존 인프라 활용**
+- `lib/hyosung-parser.ts` 존재 (Phase 1 완료) → 신규 ibk-parser와 인터페이스 통일
+- `public/cms-tbfa.html` — 기부 통합 관리 페이지
+
+**신규 파일**
+- `lib/ibk-parser.ts` — 기업은행 CSV 파서
+- `lib/donation-matcher.ts` — 자동 매칭 룰 엔진(이름·금액·날짜·계좌끝4자리)
+- `netlify/functions/admin-donation-import.ts` — multipart 업로드 → pending_donations 적재
+- `netlify/functions/admin-donation-pending-list.ts`
+- `netlify/functions/admin-donation-confirm.ts` — 확정(1건/일괄)
+- `netlify/functions/migrate-add-pending-donations.ts`
+- `public/js/cms-tbfa-import.js` — CSV 업로드·매핑 UI
+
+**확장 파일** (§6 충돌 주의)
+- `db/schema.ts` — `pendingDonations` + `donationMatchingRules` 테이블
+- `public/cms-tbfa.html` — "CSV 자동 매핑" 탭 + 스크립트 include
+- `public/admin.html` — 메뉴 등록
+- `public/js/cms-tbfa.js` — 라우터 등록 (옵션)
+
+**데이터 모델 (제안)**
+```sql
+CREATE TABLE pending_donations (
+  id serial PRIMARY KEY,
+  source varchar(20),                -- 'hyosung'|'ibk'
+  source_file_name varchar(200),
+  source_row_index int,
+  raw_data jsonb,
+  parsed_name varchar(100),
+  parsed_amount int,
+  parsed_date date,
+  parsed_memo text,
+  matched_member_id int REFERENCES members(id),
+  match_score numeric(4,2),
+  match_reason varchar(200),
+  status varchar(20) DEFAULT 'pending',
+  confirmed_donation_id int REFERENCES donations(id),
+  imported_by int REFERENCES admins(id),
+  created_at timestamp DEFAULT now()
+);
+```
+
+### 4.4 권장 머지 순서
+
+**C → A → B** (변경량 작은 → 큰)
+
+각 머지 전: `git fetch origin && git rebase origin/main` 충돌 해결.
+
+---
+
+## 5. 진행 상황 (직전 ~ 현재)
+
+### 5.1 마일스톤 진행률 (CLAUDE.md §10 기준)
+
+| 묶음 | 상태 |
+|---|---|
+| Phase 1 효성 CMS+ | ✅ 100% |
+| Phase 2 토스 빌링 자동청구 | ✅ 100% |
+| Phase 3 워크스페이스 본체 | ✅ 100% |
+| Phase 3-extra 파일함 | ✅ 100% (9/9 Step + 통합 라우팅) |
+| 4순위 자잘한 버그 3건 | ✅ 100% (모달 딜레이/회원엑셀/수납내역엑셀) |
+| 5순위 중간 작업 | ✅ #1 블랙·#9 관련사이트·#10 정기후원해지 안내 모두 완료 |
+| **6순위 큰 기능 3건** | ⬜ 0% — **§4에서 분배 시작** |
+| Phase 4~22 (19개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
+
+**누적**: 약 28~29% (5.5/22 Phase + 4·5순위) / 약 400h+
+
+### 5.2 직전 7개 커밋 (참고)
+
+| 커밋 | 요약 |
+|---|---|
+| `682bf5f` | docs: PARALLEL_PLAN.md 신설 (PROJECT_STATE.md 흡수 예정) |
+| `1bda417` | chore: 5순위 #10 시드 마이그레이션 파일 삭제 (1회용) |
+| `e58dac0` | feat: 5순위 #10 RENDERER 등록 + 시드 마이그레이션 |
+| `bb402c4` | docs: CLAUDE.md 신규 (자동 로드용) |
+| `dc15f06` | fix: 관련 사이트 캐시버스터 갱신 |
+| `260df6a` | feat: 5순위 #9 관련 사이트 메인 헤더 + CRUD UI |
+| `b20092a` | feat: 5순위 #1 후속 — 핵심 CREATE API 6개 차단 검증 |
+
+---
+
+## 6. 주의사항 및 위험 요소
+
+### 6.1 모든 채팅 공통 (CLAUDE.md §6 요약)
+1. **마이그레이션 호출은 사용자 액션** — AI는 함수만 작성
+2. **`requireAdmin` 반환 필드는 `auth.res`** (response 아님)
+3. 신규 함수에 `export const config = { path: "/api/..." }` 누락 금지
+4. **schema.ts 컬럼 정의는 마이그레이션 적용 후에 추가** (역순 금지 — 즉시 운영 깨짐)
+5. 응답 키 다중 fallback (`data.data.X || data.X || X`)
+6. 캐시버스터 형식 통일: `?v=2026-05-09-N`
+
+### 6.2 공유 파일 충돌 매트릭스
+
+| 파일 | A | B | C | 위험 | 회피 전략 |
+|---|---|---|---|---|---|
+| `db/schema.ts` | ✅ | ✅ | ✅ | 🔴 | **파일 끝에** 본인 섹션 헤더(`/* === 작업 X === */`) 추가, append-only |
+| `public/admin.html` | ✅ | ✅ | ✅ | 🟡 | 사이드바 `<nav>` 끝에 추가, emoji 라벨로 식별(🎓/⚖️/📥) |
+| `public/admin.js` | ✅ | ✅ | ✅ | 🟡 | 라우터 1줄만, 객체 끝에 추가 (중간 삽입 금지) |
+| `public/mypage.html` | ✅ | ✅ | — | 🟡 | 탭 영역 끝에 추가 |
+| `public/cms-tbfa.html` | — | — | ✅ | 🟢 | C 단독 |
+| `public/js/auth.js` | — | ✅ | — | 🟢 | B 단독 |
+| `netlify/functions/chat-*.ts` | — | ✅ | — | 🟡 | B만 가드 추가 |
+| `lib/audit.ts` | ✅ | ✅ | ✅ | 🟢 | append-only(호출만) |
+| `lib/auth.ts`, `lib/admin-guard.ts` | ⛔ | ⛔ | ⛔ | 🔴 | **변경 금지** (회귀 위험 최고) |
+
+### 6.3 충돌 회피 7대 원칙
+
+1. **schema.ts**: 파일 끝 append-only + 섹션 헤더
+2. **admin.html / mypage.html / cms-tbfa.html**: 메뉴/탭 영역 끝에 추가
+3. **admin.js**: 신규 모듈은 별도 `admin-{도메인}.js`로 분리, 라우터 1줄만
+4. **마이그레이션**: 함수명 prefix 강제, 호출 순서 = 머지 순서, 멱등 보장
+5. **캐시버스터**: 본인 파일만 갱신, 머지 시점 일괄 검증
+6. **package.json**: 가능하면 신규 dep 없이 진행, 추가 시 lock 충돌 = `npm install` 재실행
+7. **lib/auth·admin-guard**: 절대 변경 금지
+
+### 6.4 Phase 4~22 추후 안내
+
+| Phase | 그룹 |
+|---|---|
+| Phase 4 | 대표 보고 시스템 + Agent-9 |
+| Phase 5~7 | 재정 관리 |
+| Phase 8~11 | 커뮤니케이션 |
+| Phase 12~15 | SIREN 서비스 고도화 |
+| Phase 16~18 | 분석·경영 |
+| Phase 19~22 | 품질·안정성 |
+
+→ 6순위 3건 머지 후 별도 설계 세션에서 본 문서 v2 작성.
+
+---
+
+## 7. 채팅별 시작 프롬프트
+
+각 작업 채팅에 **첫 메시지로** 아래 프롬프트를 그대로 붙여넣으세요.
+
+### 7.1 작업 A 채팅 (자격 변경)
+
+```
+[작업 A — 6순위 #6 교원 회원 자격 변경 시스템]
+
+PROJECT_STATE.md 와 CLAUDE.md 를 먼저 읽고 작업해줘.
+
+## 읽어야 할 섹션
+- CLAUDE.md 전체 (자동 로드)
+- PROJECT_STATE.md §4.1 (작업 A 정의), §6 (주의사항)
+- db/schema.ts 의 members 테이블 정의 (라인 211 부근 pendingExpertReview, 374 assignedExpertName 참고)
+
+## 작업 범위 (이 채팅에서만 작업)
+PROJECT_STATE.md §4.1 의 신규/확장 파일 목록만. 다른 작업(B/C) 영역 절대 건드리지 마.
+
+## 금지 영역
+- public/admin.html / public/mypage.html / public/admin.js / db/schema.ts: 본인 섹션 끝에만 추가, 다른 작업 영역 손대지 말 것
+- lib/auth.ts, lib/admin-guard.ts: 변경 금지
+- 다른 작업(B/C)의 신규/확장 파일: 일체 손대지 말 것
+
+## 완료 조건
+1. 마이그레이션 함수 호출 성공(사용자가 ?run=1 실행) → schema.ts 컬럼 활성화 → 함수 삭제 + 커밋
+2. 사용자 마이페이지에서 자격 변경 신청 → 어드민이 심사·승인 가능
+3. 사용자 검증 완료 보고
+4. PROJECT_STATE.md §4.1 진행률 100% 갱신 + §2 마지막 업데이트 행 추가
+
+## 갱신 의무
+- 작업 시작 시: §4.1 진행률 ⬜0% → 🟡 진행중, 담당 채팅 표시
+- 마일스톤마다: §4.1 다음 할 일 갱신
+- 종료 시: §4.1 ✅ 100% + §2 행 추가 + git push
+
+## 브랜치
+feature/eligibility-change (베이스: origin/main)
+
+자, CLAUDE.md + PROJECT_STATE.md 읽고 시작 보고해줘.
+```
+
+### 7.2 작업 B 채팅 (1:1 매칭 채팅)
+
+```
+[작업 B — 6순위 #8 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅]
+
+PROJECT_STATE.md 와 CLAUDE.md 를 먼저 읽고 작업해줘.
+
+## 읽어야 할 섹션
+- CLAUDE.md 전체 (자동 로드)
+- PROJECT_STATE.md §4.2 (작업 B 정의), §6 (주의사항)
+- db/schema.ts:440-481 (chat_rooms, chat_messages), :1069-1071 (전문가 관리 방식)
+- netlify/functions/chat-*.ts (기존 채팅 권한 가드 구조)
+
+## 작업 범위 (이 채팅에서만 작업)
+PROJECT_STATE.md §4.2 의 신규/확장 파일 목록만. **신규 채팅 시스템 만들지 말고 chat_rooms 확장 방향**.
+
+## 금지 영역
+- 신규 chat 테이블 생성 금지 — 기존 chat_rooms / chat_messages 확장
+- public/admin.html / public/mypage.html / public/admin.js / db/schema.ts: 본인 섹션 끝에만 추가
+- lib/auth.ts, lib/admin-guard.ts: 변경 금지
+- 다른 작업(A/C)의 신규/확장 파일: 일체 손대지 말 것
+
+## 완료 조건
+1. 마이그레이션 호출 성공 → schema.ts 활성화 → 삭제 커밋
+2. 사용자 신고/유족지원 신청 → 어드민이 전문가 매칭 → 1:1 채팅방 자동 생성
+3. 양측 모두 채팅 + 세션 종료 가능
+4. 사용자 검증 완료 보고
+5. PROJECT_STATE.md §4.2 진행률 100% 갱신
+
+## 갱신 의무
+- §4.2 진행률, 담당 채팅, 다음 할 일 / 종료 시 §2 행 추가
+
+## 브랜치
+feature/expert-matching-chat (베이스: origin/main)
+
+자, CLAUDE.md + PROJECT_STATE.md 읽고 시작 보고해줘.
+```
+
+### 7.3 작업 C 채팅 (CSV 자동 매핑)
+
+```
+[작업 C — 6순위 #15 효성 + 기업은행 CSV 자동 매핑]
+
+PROJECT_STATE.md 와 CLAUDE.md 를 먼저 읽고 작업해줘.
+
+## 읽어야 할 섹션
+- CLAUDE.md 전체 (자동 로드)
+- PROJECT_STATE.md §4.3 (작업 C 정의), §6 (주의사항)
+- lib/hyosung-parser.ts 전체 (인터페이스 통일 참고)
+- public/cms-tbfa.html 구조 (탭 추가 위치)
+
+## 작업 범위 (이 채팅에서만 작업)
+PROJECT_STATE.md §4.3 의 신규/확장 파일 목록만. ibk-parser는 hyosung-parser와 동일 인터페이스로.
+
+## 금지 영역
+- 기존 hyosung-parser.ts 시그니처 변경 금지 (호출하는 곳 회귀 위험)
+- public/admin.html / public/cms-tbfa.html / db/schema.ts: 본인 섹션 끝에만 추가
+- lib/auth.ts, lib/admin-guard.ts: 변경 금지
+- 다른 작업(A/B)의 신규/확장 파일: 일체 손대지 말 것
+
+## 완료 조건
+1. 마이그레이션 호출 성공 → schema 활성화 → 삭제
+2. 어드민이 효성 CSV + 기업은행 CSV 업로드 → 자동 매칭 → 미확정 목록에서 확정 처리
+3. 자동 매칭 점수가 표시되고 1건/일괄 확정 가능
+4. 사용자 검증 완료 보고
+5. PROJECT_STATE.md §4.3 진행률 100% 갱신
+
+## 갱신 의무
+- §4.3 진행률, 담당 채팅, 다음 할 일 / 종료 시 §2 행 추가
+
+## 브랜치
+feature/csv-donation-mapping (베이스: origin/main)
+
+자, CLAUDE.md + PROJECT_STATE.md 읽고 시작 보고해줘.
+```
+
+---
+
+## 8. 머지·검증 체크리스트 (모든 채팅 공통)
+
+머지 전:
+- [ ] `git fetch origin && git rebase origin/main` 충돌 해결
+- [ ] CLAUDE.md §13 체크리스트 통과
+- [ ] 마이그레이션 호출 성공 → schema 정의 활성화 → 함수 삭제 완료
+- [ ] 캐시버스터 갱신
+- [ ] 로컬 동작 확인 (npm run dev → 핵심 시나리오)
+
+머지 후:
+- [ ] Netlify 배포 확인 (1~2분)
+- [ ] 사용자 검증 시나리오 안내
+- [ ] §4.X 진행률 100% + §2 마지막 업데이트 행 추가 후 push
