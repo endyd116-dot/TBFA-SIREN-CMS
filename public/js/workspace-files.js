@@ -432,7 +432,7 @@
 
   async function downloadFile(fileId) {
     try {
-      const res = await api(`/api/admin-workspace-file-download?fileId=${fileId}`);
+      const res = await api(`/api/admin-workspace-file-download?id=${fileId}`);
       const url = res.data?.downloadUrl || res.data?.url || res.downloadUrl;
       if (!url) throw new Error('다운로드 URL 없음');
       window.open(url, '_blank');
@@ -443,7 +443,7 @@
 
   async function deleteFile(fileId) {
     try {
-      await api(`/api/admin-workspace-files?fileId=${fileId}`, { method: 'DELETE' });
+      await api(`/api/admin-workspace-files?id=${fileId}`, { method: 'DELETE' });
       toast('휴지통으로 이동됨', 'success');
       await loadFiles();
     } catch (err) {
@@ -453,9 +453,8 @@
 
   async function restoreFile(fileId) {
     try {
-      await api(`/api/admin-workspace-files`, {
-        method: 'PATCH',
-        body: { fileId, action: 'restore' }
+      await api(`/api/admin-workspace-files?id=${fileId}&action=restore`, {
+        method: 'PATCH'
       });
       toast('복원됨', 'success');
       await loadFiles();
@@ -574,14 +573,14 @@
   async function renameItem(type, id, newName) {
     try {
       if (type === 'folder') {
-        await api(`/api/admin-workspace-folders`, {
+        await api(`/api/admin-workspace-folders?id=${id}`, {
           method: 'PATCH',
-          body: { folderId: id, name: newName }
+          body: { name: newName }
         });
       } else {
-        await api(`/api/admin-workspace-files`, {
+        await api(`/api/admin-workspace-files?id=${id}`, {
           method: 'PATCH',
-          body: { fileId: id, name: newName }
+          body: { name: newName }
         });
       }
       toast('이름 변경됨', 'success');
@@ -596,7 +595,7 @@
   async function deleteFolder(id, name) {
     if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n폴더 내 모든 파일도 함께 이동됩니다.\n\n📅 30일 후 자동으로 영구 삭제됩니다.`)) return;
     try {
-      await api(`/api/admin-workspace-folders?folderId=${id}`, { method: 'DELETE' });
+      await api(`/api/admin-workspace-folders?id=${id}`, { method: 'DELETE' });
       toast('폴더가 휴지통으로 이동됨', 'success');
       if (state.currentFolderId === id) {
         await navigateToFolder(0);
@@ -645,8 +644,8 @@
   async function loadShareList(type, id) {
     try {
       const params = new URLSearchParams();
-      if (type === 'folder') params.set('folderId', String(id));
-      else params.set('fileId', String(id));
+      params.set('targetType', type);
+      params.set('targetId', String(id));
       const res = await api(`/api/admin-workspace-file-share?${params}`);
       const shares = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       const isPublic = res.data?.isShared || res.isShared || false;
@@ -692,10 +691,12 @@
 
   async function addShare(type, id, memberId, permission) {
     try {
-      const body = { permission };
-      if (type === 'folder') body.folderId = id;
-      else body.fileId = id;
-      body.sharedWith = memberId;
+      const body = {
+        targetType: type,
+        targetId: id,
+        sharedWith: memberId,
+        permission
+      };
       await api('/api/admin-workspace-file-share', { method: 'POST', body });
       toast('공유 추가됨', 'success');
       await loadShareList(type, id);
@@ -707,7 +708,7 @@
   async function removeShare(shareId, type, id) {
     if (!confirm('이 공유를 해제하시겠습니까?')) return;
     try {
-      await api(`/api/admin-workspace-file-share?shareId=${shareId}`, { method: 'DELETE' });
+      await api(`/api/admin-workspace-file-share?id=${shareId}`, { method: 'DELETE' });
       toast('공유 해제됨', 'success');
       await loadShareList(type, id);
     } catch (err) {
@@ -717,9 +718,9 @@
 
   async function updateSharePermission(shareId, permission, type, id) {
     try {
-      await api('/api/admin-workspace-file-share', {
+      await api(`/api/admin-workspace-file-share?id=${shareId}`, {
         method: 'PATCH',
-        body: { shareId, permission }
+        body: { permission }
       });
       toast('권한 변경됨', 'success');
       await loadShareList(type, id);
@@ -730,10 +731,10 @@
 
   async function togglePublicShare(type, id, isPublic) {
     try {
-      const body = { isShared: isPublic };
-      if (type === 'folder') body.folderId = id;
-      else body.fileId = id;
-      await api('/api/admin-workspace-file-share', { method: 'PATCH', body });
+      const endpoint = type === 'folder'
+        ? `/api/admin-workspace-folders?id=${id}&action=toggle-public`
+        : `/api/admin-workspace-files?id=${id}&action=toggle-public`;
+      await api(endpoint, { method: 'PATCH' });
       toast(isPublic ? '전체 공개됨' : '공개 해제됨', 'success');
       await loadFolders();
       await loadFiles();
@@ -829,7 +830,7 @@
     let success = 0, failed = 0;
     for (const fid of state.selectedFileIds) {
       try {
-        await api('/api/admin-workspace-files', { method: 'PATCH', body: { fileId: fid, action: 'restore' } });
+        await api(`/api/admin-workspace-files?id=${fid}&action=restore`, { method: 'PATCH' });
         success++;
       } catch (err) { failed++; console.error('bulk restore:', err); }
     }
@@ -994,14 +995,14 @@
     const targetFolderId = state.moveSelectedFolderId;
     try {
       if (t.type === 'file') {
-        await api('/api/admin-workspace-files', {
+        await api(`/api/admin-workspace-files?id=${t.id}`, {
           method: 'PATCH',
-          body: { fileId: t.id, folderId: targetFolderId }
+          body: { folderId: targetFolderId }
         });
       } else {
-        await api('/api/admin-workspace-folders', {
+        await api(`/api/admin-workspace-folders?id=${t.id}`, {
           method: 'PATCH',
-          body: { folderId: t.id, parentId: targetFolderId }
+          body: { parentId: targetFolderId }
         });
       }
       toast('이동 완료', 'success');
@@ -1050,7 +1051,7 @@
     for (const file of targets) {
       try {
         updateZipStatus(`다운로드 중: ${file.name}`, Math.round((done / total) * 80), file.name);
-        const res = await api(`/api/admin-workspace-file-download?fileId=${file.id}`);
+        const res = await api(`/api/admin-workspace-file-download?id=${file.id}`);
         const url = res.data?.downloadUrl || res.data?.url || res.downloadUrl;
         if (!url) throw new Error('URL 없음');
         const blobRes = await fetch(url);
@@ -1262,7 +1263,7 @@
         for (const fid of state.selectedFileIds) {
           try {
             if (isPurge) await api(`/api/admin-workspace-file-purge?fileId=${fid}`, { method: 'DELETE' });
-            else await api(`/api/admin-workspace-files?fileId=${fid}`, { method: 'DELETE' });
+            else await api(`/api/admin-workspace-files?id=${fid}`, { method: 'DELETE' });
             success++;
           } catch (err) { failed++; console.error('bulk delete:', err); }
         }

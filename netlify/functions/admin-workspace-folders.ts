@@ -7,6 +7,7 @@
  * POST   {parentId, name, description} : 폴더 생성
  * PATCH  ?id=N {name?, parentId?, description?} : 수정/이동
  * PATCH  ?id=N&action=restore          : 휴지통 복원
+ * PATCH  ?id=N&action=toggle-public    : isShared 토글
  * DELETE ?id=N                         : soft delete (재귀)
  * DELETE ?id=N&hard=1                  : 영구 삭제 (super_admin or owner only)
  */
@@ -280,6 +281,23 @@ export default async (req: Request, _context: Context) => {
           meta: { name: folder.name }
         });
         return ok({ id }, "폴더가 복원되었습니다");
+      }
+
+      // 공개 토글
+      if (action === "toggle-public") {
+        const newVal = !folder.isShared;
+        await db
+          .update(workspaceFolders)
+          .set({ isShared: newVal, updatedAt: new Date() })
+          .where(eq(workspaceFolders.id, id));
+        await logAudit({
+          actorMemberId: meId,
+          action: "workspace.folder.toggle_public",
+          targetType: "workspace_folder",
+          targetId: id,
+          meta: { name: folder.name, isShared: newVal }
+        });
+        return ok({ id, isShared: newVal }, newVal ? "공개로 전환" : "비공개로 전환");
       }
 
       if (folder.deletedAt) return badRequest("삭제된 폴더입니다. 먼저 복원하세요");
