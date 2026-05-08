@@ -249,6 +249,9 @@ export const members = pgTable("members", {
   billingRetryCount: integer("billing_retry_count").default(0).notNull(),
   billingLastFailedAt: timestamp("billing_last_failed_at"),
 
+  /* ───────── ★ 6순위 #6: 교원 회원 자격 (현직/은퇴/예비/일반) ───────── */
+  eligibilityType: varchar("eligibility_type", { length: 30 }),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1841,4 +1844,33 @@ export const workspaceTaskTemplates = pgTable("workspace_task_templates", {
 
 export type WorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferSelect;
 export type NewWorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferInsert;
+
+/* =========================================================
+   ★ 6순위 #6 — 교원 회원 자격 변경 신청 (작업 A)
+   ========================================================= */
+export const eligibilityChangeRequests = pgTable("eligibility_change_requests", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id")
+    .references(() => members.id, { onDelete: "cascade" })
+    .notNull(),
+  currentType: varchar("current_type", { length: 30 }),
+  requestedType: varchar("requested_type", { length: 30 }).notNull(),
+  reason: text("reason"),
+  evidenceBlobId: integer("evidence_blob_id")
+    .references(() => blobUploads.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  adminNote: text("admin_note"),
+  reviewedBy: integer("reviewed_by")
+    .references(() => members.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("eligibility_req_member_idx").on(t.memberId),
+  statusIdx: index("eligibility_req_status_idx").on(t.status),
+  createdIdx: index("eligibility_req_created_idx").on(t.createdAt),
+}));
+
+export type EligibilityChangeRequest = typeof eligibilityChangeRequests.$inferSelect;
+export type NewEligibilityChangeRequest = typeof eligibilityChangeRequests.$inferInsert;
 
