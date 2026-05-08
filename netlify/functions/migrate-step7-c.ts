@@ -15,6 +15,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { requireAdmin } from "../../lib/admin-guard";
 
 const QUERIES: string[] = [
   `CREATE TABLE IF NOT EXISTS workspace_task_templates (
@@ -38,8 +39,56 @@ const QUERIES: string[] = [
 export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
 
-  /* ─── GET = 진단 ─── */
+  /* ─── GET ─── */
   if (req.method === "GET") {
+    const runFlag = url.searchParams.get("run");
+
+    /* GET ?run=1 : 어드민 세션으로 즉시 실행 (주소창에서 한 번 호출용) */
+    if (runFlag === "1") {
+      const auth = await requireAdmin(req);
+      if (!auth.ok) return auth.res;
+
+      const start = Date.now();
+      const results: Array<{ sql: string; ok: boolean; error?: string }> = [];
+      try {
+        for (const q of QUERIES) {
+          try {
+            await db.execute(sql.raw(q));
+            results.push({ sql: q.replace(/\s+/g, " ").slice(0, 80) + "...", ok: true });
+          } catch (err: any) {
+            results.push({
+              sql: q.replace(/\s+/g, " ").slice(0, 80) + "...",
+              ok: false,
+              error: err?.message || String(err),
+            });
+          }
+        }
+        const successCount = results.filter(r => r.ok).length;
+        const allOk = successCount === QUERIES.length;
+        return new Response(JSON.stringify({
+          ok: allOk,
+          mode: "run",
+          executor: (auth.ctx.member as any).name || (auth.ctx.member as any).email || "admin",
+          total: QUERIES.length,
+          success: successCount,
+          failed: QUERIES.length - successCount,
+          durationMs: Date.now() - start,
+          results,
+          nextAction: allOk
+            ? "✅ 모두 성공. AI에게 알려주세요. AI가 자동으로 이 파일을 삭제·푸시합니다."
+            : "⚠️ 일부 실패. results 확인 후 재시도 가능 (멱등 보장).",
+        }, null, 2), {
+          status: allOk ? 200 : 207,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({
+          ok: false, mode: "run", error: err?.message || "unknown", results,
+        }), { status: 500, headers: { "Content-Type": "application/json" } });
+      }
+    }
+
+    /* GET (기본) : 진단 모드, 인증 불필요 */
     try {
       const tblRows: any = await db.execute(sql`
         SELECT table_name FROM information_schema.tables
@@ -57,12 +106,6 @@ export default async (req: Request, _ctx: Context) => {
         columnInfo = Array.isArray(colRows) ? colRows : (colRows as any).rows || [];
       }
 
-      const keyHints = {
-        ADMIN_MIGRATION_KEY: process.env.ADMIN_MIGRATION_KEY ? `설정됨 (길이: ${process.env.ADMIN_MIGRATION_KEY.length})` : "없음",
-        ADMIN_JWT_SECRET: process.env.ADMIN_JWT_SECRET ? `설정됨 (길이: ${process.env.ADMIN_JWT_SECRET.length})` : "없음",
-        JWT_SECRET: process.env.JWT_SECRET ? `설정됨 (길이: ${process.env.JWT_SECRET.length})` : "없음",
-      };
-
       return new Response(JSON.stringify({
         ok: true,
         mode: "diagnose",
@@ -71,8 +114,7 @@ export default async (req: Request, _ctx: Context) => {
           status: exists ? "✅ 완료" : "⚠️ 미완료",
           columns: columnInfo,
         },
-        keyEnvironment: keyHints,
-        howToMigrate: "POST /api/migrate-step7-c?key=<ADMIN_MIGRATION_KEY 또는 다른 키>",
+        howToMigrate: "어드민 로그인된 상태에서 주소창에 ?run=1 붙여 호출: /api/migrate-step7-c?run=1",
       }, null, 2), {
         status: 200,
         headers: { "Content-Type": "application/json" },
