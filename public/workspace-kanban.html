@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>칸반 - SIREN 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=3">
+<link rel="stylesheet" href="/css/workspace-kanban.css?v=1">
+</head>
+
+<body class="ws-body">
+
+<!-- 슬림 사이드바 (workspace.html과 동일 마크업) -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li>
+          <a href="/workspace.html" title="대시보드">
+            <span class="ws-nav-icon">📊</span>
+            <span class="ws-nav-text">대시보드</span>
+          </a>
+        </li>
+        <li class="ws-nav-active">
+          <a href="/workspace-kanban.html" title="칸반">
+            <span class="ws-nav-icon">📋</span>
+            <span class="ws-nav-text">칸반</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#my-tasks" title="내 작업">
+            <span class="ws-nav-icon">📋</span>
+            <span class="ws-nav-text">내 작업</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#inbox" title="지시받은 작업">
+            <span class="ws-nav-icon">📥</span>
+            <span class="ws-nav-text">지시함</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#calendar" title="일정">
+            <span class="ws-nav-icon">📅</span>
+            <span class="ws-nav-text">일정</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#memos" title="메모">
+            <span class="ws-nav-icon">📝</span>
+            <span class="ws-nav-text">메모</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함">
+            <span class="ws-nav-icon">📁</span>
+            <span class="ws-nav-text">파일함</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-hubs">
+      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
+      <ul>
+        <li><a href="/admin.html" title="SIREN 어드민"><span class="ws-nav-icon">🚨</span><span class="ws-nav-text">SIREN 어드민</span></a></li>
+        <li><a href="/cms-tbfa.html" title="TBFA CMS"><span class="ws-nav-icon">🏦</span><span class="ws-nav-text">TBFA CMS</span></a></li>
+      </ul>
+    </div>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
+      </a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- 메인 -->
+<main class="wk-main">
+  <header class="wk-header">
+    <div class="wk-header-left">
+      <h1 class="wk-title">📋 칸반 보드</h1>
+      <span class="wk-subtitle" id="wkSubtitle">전체 작업을 5단계로 관리</span>
+    </div>
+    <div class="wk-header-right">
+      <select id="wkFilterScope" class="wk-select" aria-label="범위">
+        <option value="mine">내 작업</option>
+        <option value="inbox">지시받은 것</option>
+        <option value="all">전체</option>
+      </select>
+      <select id="wkFilterPriority" class="wk-select" aria-label="우선순위">
+        <option value="">우선순위 전체</option>
+        <option value="urgent">🔴 긴급</option>
+        <option value="high">🟠 높음</option>
+        <option value="normal">🟢 보통</option>
+        <option value="low">⚪ 낮음</option>
+      </select>
+      <input type="search" id="wkSearch" class="wk-search" placeholder="제목 검색...">
+      <button id="wkBtnNew" class="wk-btn-primary" type="button">＋ 새 작업</button>
+      <button id="wkBtnRefresh" class="wk-btn-icon" type="button" title="새로고침">🔄</button>
+    </div>
+  </header>
+
+  <!-- 5컬럼 그리드 -->
+  <section class="wk-board" id="wkBoard">
+    <div class="wk-column" data-status="todo">
+      <header class="wk-col-header">
+        <span class="wk-col-title">📋 준비중</span>
+        <span class="wk-col-count" data-count-for="todo">0</span>
+      </header>
+      <div class="wk-col-body" data-droppable="todo"></div>
+    </div>
+
+    <div class="wk-column" data-status="doing">
+      <header class="wk-col-header">
+        <span class="wk-col-title">🔄 진행중</span>
+        <span class="wk-col-count" data-count-for="doing">0</span>
+      </header>
+      <div class="wk-col-body" data-droppable="doing"></div>
+    </div>
+
+    <div class="wk-column wk-col-hold" data-status="blocked">
+      <header class="wk-col-header">
+        <span class="wk-col-title">⏸ 보류</span>
+        <span class="wk-col-count" data-count-for="blocked">0</span>
+      </header>
+      <div class="wk-col-body" data-droppable="blocked"></div>
+    </div>
+
+    <div class="wk-column wk-col-done" data-status="done">
+      <header class="wk-col-header">
+        <span class="wk-col-title">✅ 완료</span>
+        <span class="wk-col-count" data-count-for="done">0</span>
+      </header>
+      <div class="wk-col-body" data-droppable="done"></div>
+    </div>
+
+    <div class="wk-column wk-col-archived wk-col-collapsed" data-status="archived" id="wkColArchived">
+      <header class="wk-col-header" id="wkColArchivedHeader">
+        <span class="wk-col-title">📦 보관</span>
+        <span class="wk-col-count" data-count-for="archived">0</span>
+        <span class="wk-col-toggle" id="wkColArchivedToggle">▶</span>
+      </header>
+      <div class="wk-col-body" data-droppable="archived"></div>
+    </div>
+  </section>
+
+  <!-- 로딩/빈 상태 -->
+  <div id="wkLoading" class="wk-loading" style="display:none">불러오는 중...</div>
+  <div id="wkEmpty" class="wk-empty" style="display:none">조건에 맞는 작업이 없습니다.</div>
+</main>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 카드 상세
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wkCardModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wkCardModal"></div>
+  <div class="wk-modal-dialog">
+    <header class="wk-modal-header">
+      <h2 id="wkCardModalTitle">작업 상세</h2>
+      <button class="wk-modal-close" data-close-modal="wkCardModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="wkCardId">
+
+      <label class="wk-field-label">제목</label>
+      <input type="text" id="wkCardTitle" class="wk-input" maxlength="300">
+
+      <label class="wk-field-label">설명</label>
+      <textarea id="wkCardDescription" class="wk-textarea" rows="4"></textarea>
+
+      <div class="wk-row">
+        <div class="wk-col">
+          <label class="wk-field-label">우선순위</label>
+          <select id="wkCardPriority" class="wk-input">
+            <option value="urgent">🔴 긴급</option>
+            <option value="high">🟠 높음</option>
+            <option value="normal">🟢 보통</option>
+            <option value="low">⚪ 낮음</option>
+          </select>
+        </div>
+        <div class="wk-col">
+          <label class="wk-field-label">마감일</label>
+          <input type="datetime-local" id="wkCardDueDate" class="wk-input" disabled>
+          <small class="wk-hint">변경은 마감일 변경 요청으로</small>
+        </div>
+      </div>
+
+      <div class="wk-row">
+        <div class="wk-col">
+          <label class="wk-field-label">예상 시간 (h)</label>
+          <input type="number" id="wkCardEstHours" class="wk-input" step="0.5" min="0">
+        </div>
+        <div class="wk-col">
+          <label class="wk-field-label">실제 시간 (h)</label>
+          <input type="number" id="wkCardActHours" class="wk-input" step="0.5" min="0">
+        </div>
+      </div>
+
+      <label class="wk-field-label">진행률 (%)</label>
+      <input type="range" id="wkCardProgress" class="wk-range" min="0" max="100" step="5">
+      <span id="wkCardProgressVal">0%</span>
+
+      <label class="wk-field-label">체크리스트</label>
+      <ul id="wkCardChecklist" class="wk-checklist"></ul>
+      <div class="wk-checklist-add">
+        <input type="text" id="wkCardChecklistInput" class="wk-input" placeholder="새 항목 추가...">
+        <button type="button" id="wkCardChecklistAdd" class="wk-btn-secondary">＋</button>
+      </div>
+
+      <label class="wk-field-label">태그 (쉼표 구분)</label>
+      <input type="text" id="wkCardTags" class="wk-input" placeholder="예: 운영, 긴급, 외부">
+    </div>
+    <footer class="wk-modal-footer">
+      <button id="wkCardBookmark" class="wk-btn-icon" type="button" title="북마크">⭐</button>
+      <span class="wk-spacer"></span>
+      <button id="wkCardArchive" class="wk-btn-secondary" type="button">📦 보관</button>
+      <button id="wkCardDelete" class="wk-btn-danger" type="button">🗑 삭제</button>
+      <button id="wkCardSave" class="wk-btn-primary" type="button">저장</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 보류 사유
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wkHoldModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wkHoldModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2>⏸ 보류 사유</h2>
+      <button class="wk-modal-close" data-close-modal="wkHoldModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <p class="wk-hint">보류 사유는 필수입니다. 3일 이상 보류되면 알림이 발송됩니다.</p>
+      <input type="hidden" id="wkHoldTaskId">
+      <label class="wk-field-label">사유 *</label>
+      <textarea id="wkHoldReason" class="wk-textarea" rows="3" maxlength="500" placeholder="예: 외부 응답 대기, 의사결정 보류 등"></textarea>
+    </div>
+    <footer class="wk-modal-footer">
+      <button class="wk-btn-secondary" data-close-modal="wkHoldModal" type="button">취소</button>
+      <button id="wkHoldConfirm" class="wk-btn-primary" type="button">보류 처리</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 새 작업
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wkNewModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wkNewModal"></div>
+  <div class="wk-modal-dialog">
+    <header class="wk-modal-header">
+      <h2>＋ 새 작업</h2>
+      <button class="wk-modal-close" data-close-modal="wkNewModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <label class="wk-field-label">제목 *</label>
+      <input type="text" id="wkNewTitle" class="wk-input" maxlength="300">
+
+      <label class="wk-field-label">설명</label>
+      <textarea id="wkNewDescription" class="wk-textarea" rows="3"></textarea>
+
+      <div class="wk-row">
+        <div class="wk-col">
+          <label class="wk-field-label">우선순위</label>
+          <select id="wkNewPriority" class="wk-input">
+            <option value="urgent">🔴 긴급</option>
+            <option value="high">🟠 높음</option>
+            <option value="normal" selected>🟢 보통</option>
+            <option value="low">⚪ 낮음</option>
+          </select>
+        </div>
+        <div class="wk-col">
+          <label class="wk-field-label">마감일 *</label>
+          <input type="datetime-local" id="wkNewDueDate" class="wk-input">
+        </div>
+      </div>
+    </div>
+    <footer class="wk-modal-footer">
+      <button class="wk-btn-secondary" data-close-modal="wkNewModal" type="button">취소</button>
+      <button id="wkNewConfirm" class="wk-btn-primary" type="button">생성</button>
+    </footer>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="wkToastRoot" class="wk-toast-root"></div>
+
+<!-- SortableJS (3-tier CDN fallback) -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" id="wkSortableScript"></script>
+
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/common.js?v=3"></script>
+<script src="/js/workspace-kanban.js?v=1" defer></script>
+
+</body>
+</html>
