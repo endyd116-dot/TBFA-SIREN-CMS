@@ -3,32 +3,19 @@
  *
  * 회원 내역 엑셀 내보내기 (효성 CMS+ 계약정보 양식 22컬럼)
  *
- * 기존 admin-members-export.ts(CSV)와 별개. 효성 양식 1:1 매핑.
+ * 안정성을 위해 JOIN 대신 separate query + JS map 매칭 방식.
  *
- * 데이터 소스:
- *   - members (주 테이블)
- *   - LEFT JOIN hyosungContracts (linkedMemberId 매칭) — 효성 등록 회원
- *
- * 효성에 등록된 회원은 효성 데이터 그대로, 미등록 회원은 빈 값 또는
- * 우리 시스템 데이터로 매핑.
- *
- * 필터 (현재 회원 관리 화면 필터와 동일):
- *   - type, status, category, subtype, source, q
- *
- * 응답: { items: [...22컬럼 객체...], total }
- * 클라이언트에서 SheetJS로 .xlsx 변환 후 다운로드.
+ * 필터: type, status, q
+ * 응답: { items: [...22컬럼...], total }
  */
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { members, hyosungContracts } from "../../db/schema";
-import { eq, and, or, like, desc } from "drizzle-orm";
+import { eq, and, or, like, desc, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import {
-  ok, methodNotAllowed, serverError,
-} from "../../lib/response";
+import { ok, methodNotAllowed } from "../../lib/response";
 import { logAudit } from "../../lib/audit";
 
-/* ─── 한글 매핑 ─── */
 const STATUS_KR: Record<string, string> = {
   active: "사용",
   suspended: "중지",
@@ -65,15 +52,16 @@ export default async (req: Request, _ctx: Context) => {
   const q = (url.searchParams.get("q") || "").trim();
 
   try {
-    const conds: any[] = [];
+    /* ─── 1. 회원 SELECT ─── */
+    const memberConds: any[] = [];
     if (["regular", "family", "volunteer", "admin"].includes(type)) {
-      conds.push(eq(members.type, type as any));
+      memberConds.push(eq(members.type, type as any));
     }
     if (["pending", "active", "suspended", "withdrawn"].includes(status)) {
-      conds.push(eq(members.status, status as any));
+      memberConds.push(eq(members.status, status as any));
     }
     if (q) {
-      conds.push(
+      memberConds.push(
         or(
           like(members.name, `%${q}%`),
           like(members.phone, `%${q}%`),
@@ -82,76 +70,71 @@ export default async (req: Request, _ctx: Context) => {
       );
     }
 
-    const rows: any = await db
+    const memberRows: any = await db
       .select({
-        m_id: members.id,
-        m_name: members.name,
-        m_phone: members.phone,
-        m_email: members.email,
-        m_type: members.type,
-        m_status: members.status,
-        m_createdAt: members.createdAt,
-        h_id: hyosungContracts.id,
-        h_memberNo: hyosungContracts.memberNo,
-        h_memberName: hyosungContracts.memberName,
-        h_phone: hyosungContracts.phone,
-        h_memberStatus: hyosungContracts.memberStatus,
-        h_contractStatus: hyosungContracts.contractStatus,
-        h_promiseDay: hyosungContracts.promiseDay,
-        h_paymentMethod: hyosungContracts.paymentMethod,
-        h_paymentTool: hyosungContracts.paymentTool,
-        h_paymentInfo: hyosungContracts.paymentInfo,
-        h_accountHolder: hyosungContracts.accountHolder,
-        h_registrationStatus: hyosungContracts.registrationStatus,
-        h_agreementStatus: hyosungContracts.agreementStatus,
-        h_electronicContract: hyosungContracts.electronicContract,
-        h_productName: hyosungContracts.productName,
-        h_productAmount: hyosungContracts.productAmount,
-        h_billingStart: hyosungContracts.billingStart,
-        h_billingEnd: hyosungContracts.billingEnd,
-        h_managerName: hyosungContracts.managerName,
-        h_memberType: hyosungContracts.memberType,
-        h_billingAuto: hyosungContracts.billingAuto,
-        h_sendMethod: hyosungContracts.sendMethod,
+        id: members.id,
+        name: members.name,
+        email: members.email,
+        phone: members.phone,
+        type: members.type,
+        status: members.status,
       })
       .from(members)
-      .leftJoin(hyosungContracts, eq(hyosungContracts.linkedMemberId, members.id))
-      .where(conds.length ? and(...conds) : undefined)
+      .where(memberConds.length ? and(...memberConds) : undefined)
       .orderBy(desc(members.createdAt))
       .limit(5000);
 
-    const items = rows.map((r: any, idx: number) => {
-      const isHyosung = !!r.h_memberNo;
-      const memberStatusKr = r.h_memberStatus
-        || STATUS_KR[r.m_status] || r.m_status || "";
-      const contractStatus = r.h_contractStatus || (isHyosung ? "사용" : "");
-      const billingEnd = r.h_billingEnd
-        ? fmtDate(r.h_billingEnd)
-        : (isHyosung ? "9999-12-31" : "");
+    /* ─── 2. 효성 계약 SELECT (linkedMemberId IS NOT NULL인 것만) ─── */
+    const contractRows: any = await db
+      .select()
+      .from(hyosungContracts)
+      .where(isNotNull(hyosungContracts.linkedMemberId))
+      .limit(10000);
+
+    /* ─── 3. JS map 매칭 ─── */
+    const contractByMemberId: Record<number, any> = {};
+    for (const c of contractRows) {
+      if (c.linkedMemberId) contractByMemberId[c.linkedMemberId] = c;
+    }
+
+    /* ─── 4. 22컬럼 매핑 ─── */
+    const items = memberRows.map((m: any, idx: number) => {
+      const c = contractByMemberId[m.id] || null;
+      const hasContract = !!c;
+      const memberStatusKr =
+        (hasContract && c.memberStatus) || STATUS_KR[m.status] || m.status || "";
+      const contractStatus = (hasContract && c.contractStatus) || "";
+      const billingEnd = hasContract && c.billingEnd
+        ? fmtDate(c.billingEnd)
+        : (hasContract ? "9999-12-31" : "");
 
       return {
         "NO.": idx + 1,
-        "회원번호": String(r.m_id || "").padStart(8, "0"),
-        "회원명": r.m_name || r.h_memberName || "",
-        "납부자 휴대전화": r.m_phone || r.h_phone || "",
+        "회원번호": String(m.id || "").padStart(8, "0"),
+        "회원명": m.name || (hasContract ? c.memberName : "") || "",
+        "납부자 휴대전화": m.phone || (hasContract ? c.phone : "") || "",
         "회원상태": memberStatusKr,
         "계약상태": contractStatus,
-        "약정일": r.h_promiseDay != null ? String(r.h_promiseDay).padStart(2, "0") : "",
-        "결제방식": r.h_paymentMethod || (isHyosung ? "자동결제" : "미등록"),
-        "결제수단": r.h_paymentTool || "",
-        "결제정보": r.h_paymentInfo || "",
-        "예금주/명의자명": r.h_accountHolder || "",
-        "결제등록상태": r.h_registrationStatus || "",
-        "동의여부": r.h_agreementStatus || "",
-        "전자계약": r.h_electronicContract || "",
-        "상품목록": r.h_productName || "",
-        "상품금액합": r.h_productAmount != null ? Number(r.h_productAmount) : "",
-        "청구시작일": fmtDate(r.h_billingStart),
+        "약정일": hasContract && c.promiseDay != null
+          ? String(c.promiseDay).padStart(2, "0")
+          : "",
+        "결제방식": (hasContract && c.paymentMethod) || (hasContract ? "자동결제" : "미등록"),
+        "결제수단": (hasContract && c.paymentTool) || "",
+        "결제정보": (hasContract && c.paymentInfo) || "",
+        "예금주/명의자명": (hasContract && c.accountHolder) || "",
+        "결제등록상태": (hasContract && c.registrationStatus) || "",
+        "동의여부": (hasContract && c.agreementStatus) || "",
+        "전자계약": (hasContract && c.electronicContract) || "",
+        "상품목록": (hasContract && c.productName) || "",
+        "상품금액합": hasContract && c.productAmount != null
+          ? Number(c.productAmount)
+          : "",
+        "청구시작일": fmtDate(hasContract ? c.billingStart : null),
         "청구종료일": billingEnd,
-        "담당관리자": r.h_managerName || "교사유가족협의회",
-        "회원구분": r.h_memberType || "미지정",
-        "청구자동생성": r.h_billingAuto || (isHyosung ? "자동" : ""),
-        "발송방식": r.h_sendMethod || (isHyosung ? "미발송" : ""),
+        "담당관리자": (hasContract && c.managerName) || "교사유가족협의회",
+        "회원구분": (hasContract && c.memberType) || "미지정",
+        "청구자동생성": (hasContract && c.billingAuto) || (hasContract ? "자동" : ""),
+        "발송방식": (hasContract && c.sendMethod) || (hasContract ? "미발송" : ""),
       };
     });
 
@@ -166,7 +149,14 @@ export default async (req: Request, _ctx: Context) => {
     return ok({ items, total: items.length });
   } catch (err: any) {
     console.error("[admin-members-contract-export]", err);
-    return serverError("회원 내역 내보내기 실패", err);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "회원 내역 내보내기 실패",
+        detail: String(err?.message || err).slice(0, 500),
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 };
 
