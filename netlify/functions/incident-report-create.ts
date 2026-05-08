@@ -8,7 +8,7 @@ import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { incidents, incidentReports, members } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeIncidentReport } from "../../lib/ai-incident";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
@@ -31,9 +31,10 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  /* A안: 로그인 필수 */
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* A안: 로그인 필수 + 차단 검증 (5순위 #1) */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return _r.res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);

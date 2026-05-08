@@ -8,7 +8,7 @@
  */
 import { eq, and } from "drizzle-orm";
 import { db, supportRequests, members, generateRequestNo } from "../../db";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { supportRequestSchema, safeValidate } from "../../lib/validation";
 import {
   created, badRequest, unauthorized, forbidden, serverError,
@@ -25,9 +25,10 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
-    /* 1. 인증 */
-    const auth = authenticateUser(req);
-    if (!auth) return unauthorized("로그인이 필요합니다");
+    /* 1. 인증 + 차단 검증 (5순위 #1) */
+    const _r = await requireActiveUser(req);
+    if (!_r.ok) return _r.res;
+    const auth = _r.user;
 
     /* 2. 회원 상태 */
     const [user] = await db
