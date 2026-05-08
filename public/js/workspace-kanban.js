@@ -688,6 +688,12 @@
     bind();
     await ensureSortable();
     await Promise.all([loadMe(), loadTasks()]);
+
+    // URL 해시 #task=N 자동 열기 (대시보드 미니 위젯에서 진입)
+    const m = location.hash.match(/#task=(\d+)/);
+    if (m) {
+      setTimeout(() => openCardModal(Number(m[1])), 100);
+    }
   }
 
   if (document.readyState === 'loading') {

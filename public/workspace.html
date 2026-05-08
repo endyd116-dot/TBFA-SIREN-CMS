@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 CSS -->
-<link rel="stylesheet" href="/css/workspace.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=4">
 </head>
 
 <body class="ws-body">
@@ -227,6 +227,19 @@
   </section>
 
   <!-- ─────────────────────────────────────────────────
+       우선 작업 TOP 5 미니 위젯 (Phase 3 Step 7-A 하이브리드)
+  ───────────────────────────────────────────────── -->
+  <section class="ws-priority-widget" id="wsPriorityWidget">
+    <div class="ws-priority-header">
+      <h2>🎯 우선 작업 TOP 5</h2>
+      <a href="/workspace-kanban.html" class="ws-priority-more" onclick="window.location.href='/workspace-kanban.html';return false;">칸반 전체 보기 →</a>
+    </div>
+    <div class="ws-priority-cards" id="wsPriorityCards">
+      <div class="ws-priority-loading">불러오는 중...</div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────
        2x2 메인 그리드
   ───────────────────────────────────────────────── -->
   <section class="ws-grid-2x2">
@@ -392,6 +405,6 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace.js?v=3" defer></script>
+<script src="/js/workspace.js?v=4" defer></script>
 </body>
 </html>

@@ -756,6 +756,97 @@
 })();
 
 /* ═══════════════════════════════════════════════════════
+   우선 작업 TOP 5 미니 위젯 (Phase 3 Step 7-A 하이브리드)
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  const wrap = document.getElementById('wsPriorityWidget');
+  const cards = document.getElementById('wsPriorityCards');
+  if (!wrap || !cards) return;
+
+  const STATUS_LABEL = {
+    todo: '📋 준비중',
+    doing: '🔄 진행중',
+    blocked: '⏸ 보류',
+    done: '✅ 완료',
+    archived: '📦 보관',
+  };
+  const PRIORITY_RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+  function formatDue(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const diffDays = Math.ceil((date.getTime() - Date.now()) / 86400000);
+    const dStr = `${date.getMonth() + 1}/${date.getDate()}`;
+    if (diffDays < 0) return `${dStr} (지연 ${-diffDays}일)`;
+    if (diffDays === 0) return `${dStr} (오늘)`;
+    if (diffDays === 1) return `${dStr} (내일)`;
+    if (diffDays <= 7) return `${dStr} (D-${diffDays})`;
+    return dStr;
+  }
+  function dueClass(d) {
+    if (!d) return '';
+    const diffDays = Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+    if (diffDays < 0) return 'ws-priority-card-due-overdue';
+    if (diffDays === 0) return 'ws-priority-card-due-today';
+    return '';
+  }
+
+  async function loadTop5() {
+    try {
+      const res = await fetch('/api/admin-workspace-tasks?list=1&mine=1&limit=200', {
+        credentials: 'include'
+      });
+      if (res.status === 401) return;
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      const items = json.data?.items || json.items || (Array.isArray(json.data) ? json.data : []) || [];
+
+      const active = items.filter(t => t.status !== 'done' && t.status !== 'archived');
+      active.sort((a, b) => {
+        const pa = PRIORITY_RANK[a.priority] ?? 9;
+        const pb = PRIORITY_RANK[b.priority] ?? 9;
+        if (pa !== pb) return pa - pb;
+        const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        return da - db;
+      });
+
+      const top5 = active.slice(0, 5);
+      if (!top5.length) {
+        cards.innerHTML = '<div class="ws-priority-empty">진행 중인 작업이 없습니다.</div>';
+        return;
+      }
+      cards.innerHTML = top5.map(t => `
+<div class="ws-priority-card wp-priority-${escapeHtml(t.priority || 'normal')}" data-task-id="${t.id}">
+  <span class="ws-priority-card-status">${STATUS_LABEL[t.status] || t.status}</span>
+  <div class="ws-priority-card-title">${escapeHtml(t.title || '제목 없음')}</div>
+  <div class="ws-priority-card-meta">
+    ${t.dueDate ? `<span class="${dueClass(t.dueDate)}">📅 ${escapeHtml(formatDue(t.dueDate))}</span>` : ''}
+    ${t.assignedBy ? '<span title="지시받음">📥</span>' : ''}
+  </div>
+</div>`).join('');
+
+      cards.querySelectorAll('[data-task-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          location.href = `/workspace-kanban.html#task=${el.dataset.taskId}`;
+        });
+      });
+    } catch (err) {
+      console.warn('[ws-priority] 로드 실패:', err);
+      cards.innerHTML = '<div class="ws-priority-empty">로드 실패</div>';
+    }
+  }
+  loadTop5();
+})();
+
+/* ═══════════════════════════════════════════════════════
    AI 브리핑 표시 (Phase 3 Step 5 — Agent-8)
 ═══════════════════════════════════════════════════════ */
 (function () {
