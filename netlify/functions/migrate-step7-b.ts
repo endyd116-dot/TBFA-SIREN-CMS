@@ -73,6 +73,68 @@ const QUERIES: string[] = [
 export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
 
+  /* ─── GET = 진단 모드 (키 검증 없음, 스키마 상태만 확인) ─── */
+  if (req.method === "GET") {
+    try {
+      // Step 7-A 컬럼 9개 존재 여부
+      const colRows: any = await db.execute(sql`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'workspace_tasks'
+          AND column_name IN (
+            'estimated_hours','actual_hours','hold_reason','hold_started_at',
+            'archived_at','bookmarked_by','ai_summary','ai_risk_score','ai_risk_updated_at'
+          )
+      `);
+      const cols = (Array.isArray(colRows) ? colRows : (colRows as any).rows || []).map((r: any) => r.column_name);
+      const expectedCols = [
+        "estimated_hours","actual_hours","hold_reason","hold_started_at",
+        "archived_at","bookmarked_by","ai_summary","ai_risk_score","ai_risk_updated_at"
+      ];
+
+      // Step 7-B 테이블 3개 존재 여부
+      const tblRows: any = await db.execute(sql`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name IN ('workspace_task_comments','workspace_task_reports','workspace_task_attachments')
+      `);
+      const tbls = (Array.isArray(tblRows) ? tblRows : (tblRows as any).rows || []).map((r: any) => r.table_name);
+      const expectedTbls = ["workspace_task_comments","workspace_task_reports","workspace_task_attachments"];
+
+      // 환경변수 키 존재 여부 (값은 노출 안 함, 길이만)
+      const keyHints = {
+        ADMIN_MIGRATION_KEY: process.env.ADMIN_MIGRATION_KEY ? `설정됨 (길이: ${process.env.ADMIN_MIGRATION_KEY.length})` : "없음",
+        ADMIN_JWT_SECRET: process.env.ADMIN_JWT_SECRET ? `설정됨 (길이: ${process.env.ADMIN_JWT_SECRET.length})` : "없음",
+        JWT_SECRET: process.env.JWT_SECRET ? `설정됨 (길이: ${process.env.JWT_SECRET.length})` : "없음",
+      };
+
+      return new Response(JSON.stringify({
+        ok: true,
+        mode: "diagnose",
+        step7a: {
+          status: cols.length === 9 ? "✅ 완료" : `⚠️ 미완료 (${cols.length}/9)`,
+          existing: cols,
+          missing: expectedCols.filter(c => !cols.includes(c)),
+        },
+        step7b: {
+          status: tbls.length === 3 ? "✅ 완료" : `⚠️ 미완료 (${tbls.length}/3)`,
+          existing: tbls,
+          missing: expectedTbls.filter(t => !tbls.includes(t)),
+        },
+        keyEnvironment: keyHints,
+        howToMigrate: "POST /api/migrate-step7-b?key=<ADMIN_MIGRATION_KEY 또는 ADMIN_JWT_SECRET 또는 JWT_SECRET 값>",
+      }, null, 2), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      return new Response(JSON.stringify({
+        ok: false,
+        mode: "diagnose",
+        error: err?.message || String(err),
+      }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ ok: false, error: "POST 만 허용" }),
