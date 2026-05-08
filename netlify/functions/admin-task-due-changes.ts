@@ -347,3 +347,5 @@ export default async (req: Request, _ctx: Context) => {
     return serverError("마감일 변경 처리 중 오류", err);
   }
 };
+
+export const config = { path: "/api/admin-task-due-changes" };

@@ -216,3 +216,5 @@ export default async (req: Request, _ctx: Context) => {
     return serverError("브리핑 처리 중 오류", err);
   }
 };
+
+export const config = { path: "/api/admin-daily-briefing" };

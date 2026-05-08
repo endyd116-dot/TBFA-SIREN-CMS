@@ -493,3 +493,5 @@ export default async (req: Request, _ctx: Context) => {
     return serverError("이벤트 처리 중 오류", err);
   }
 };
+
+export const config = { path: "/api/admin-workspace-events" };
