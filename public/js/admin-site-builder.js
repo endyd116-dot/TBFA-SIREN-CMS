@@ -243,6 +243,15 @@
     'footer.related_sites': function () {
       renderRelatedSitesEditor();
     },
+    /* ★ 5순위 #10: 정기 후원 해지 안내 편집 */
+    'mypage.cancellationGuide': function () {
+      if (window.SIREN_MYPAGE_CANCELLATION && window.SIREN_MYPAGE_CANCELLATION.render) {
+        window.SIREN_MYPAGE_CANCELLATION.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>해지 안내 편집 모듈 로드 실패 — admin-mypage-cancellation.js 스크립트 태그 확인</p></div>';
+      }
+    },
         /* ★ Step 6-F: 섹션 제목 편집 (캠페인/공지/FAQ) */
     'home.sections': function () {
       if (window.SIREN_HOME_SECTIONS && window.SIREN_HOME_SECTIONS.render) {
