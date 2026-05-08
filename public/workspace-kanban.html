@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=3">
-<link rel="stylesheet" href="/css/workspace-kanban.css?v=1">
+<link rel="stylesheet" href="/css/workspace-kanban.css?v=2">
 </head>
 
 <body class="ws-body">
@@ -169,72 +169,190 @@
 </main>
 
 <!-- ════════════════════════════════════════════════════
-     모달: 카드 상세
+     모달: 카드 상세 (Step 7-B.3 — 7개 탭)
 ═════════════════════════════════════════════════════ -->
 <div class="wk-modal" id="wkCardModal" aria-hidden="true">
   <div class="wk-modal-backdrop" data-close-modal="wkCardModal"></div>
-  <div class="wk-modal-dialog">
+  <div class="wk-modal-dialog wk-modal-lg">
     <header class="wk-modal-header">
       <h2 id="wkCardModalTitle">작업 상세</h2>
       <button class="wk-modal-close" data-close-modal="wkCardModal" type="button">✕</button>
     </header>
+
+    <nav class="wk-tabs" role="tablist">
+      <button class="wk-tab is-active" data-tab="overview" type="button">📝 개요</button>
+      <button class="wk-tab" data-tab="comments" type="button">💬 댓글 <span class="wk-tab-count" id="wkTabCountComments"></span></button>
+      <button class="wk-tab" data-tab="files" type="button">📎 파일 <span class="wk-tab-count" id="wkTabCountFiles"></span></button>
+      <button class="wk-tab" data-tab="reports" type="button">📊 보고 <span class="wk-tab-count" id="wkTabCountReports"></span></button>
+      <button class="wk-tab" data-tab="checklist" type="button">✅ 체크리스트</button>
+      <button class="wk-tab" data-tab="history" type="button">📜 히스토리</button>
+      <button class="wk-tab" data-tab="ai" type="button">🤖 AI</button>
+    </nav>
+
     <div class="wk-modal-body">
       <input type="hidden" id="wkCardId">
 
-      <label class="wk-field-label">제목</label>
-      <input type="text" id="wkCardTitle" class="wk-input" maxlength="300">
+      <!-- 탭: 개요 -->
+      <section class="wk-tab-panel" data-panel="overview">
+        <label class="wk-field-label">제목</label>
+        <input type="text" id="wkCardTitle" class="wk-input" maxlength="300">
 
-      <label class="wk-field-label">설명</label>
-      <textarea id="wkCardDescription" class="wk-textarea" rows="4"></textarea>
+        <label class="wk-field-label">설명</label>
+        <textarea id="wkCardDescription" class="wk-textarea" rows="4"></textarea>
 
-      <div class="wk-row">
-        <div class="wk-col">
-          <label class="wk-field-label">우선순위</label>
-          <select id="wkCardPriority" class="wk-input">
-            <option value="urgent">🔴 긴급</option>
-            <option value="high">🟠 높음</option>
-            <option value="normal">🟢 보통</option>
-            <option value="low">⚪ 낮음</option>
-          </select>
+        <div class="wk-row">
+          <div class="wk-col">
+            <label class="wk-field-label">우선순위</label>
+            <select id="wkCardPriority" class="wk-input">
+              <option value="urgent">🔴 긴급</option>
+              <option value="high">🟠 높음</option>
+              <option value="normal">🟢 보통</option>
+              <option value="low">⚪ 낮음</option>
+            </select>
+          </div>
+          <div class="wk-col">
+            <label class="wk-field-label">마감일</label>
+            <input type="datetime-local" id="wkCardDueDate" class="wk-input" disabled>
+            <small class="wk-hint">변경은 마감일 변경 요청으로</small>
+          </div>
         </div>
-        <div class="wk-col">
-          <label class="wk-field-label">마감일</label>
-          <input type="datetime-local" id="wkCardDueDate" class="wk-input" disabled>
-          <small class="wk-hint">변경은 마감일 변경 요청으로</small>
+
+        <div class="wk-row">
+          <div class="wk-col">
+            <label class="wk-field-label">예상 시간 (h)</label>
+            <input type="number" id="wkCardEstHours" class="wk-input" step="0.5" min="0">
+          </div>
+          <div class="wk-col">
+            <label class="wk-field-label">실제 시간 (h)</label>
+            <input type="number" id="wkCardActHours" class="wk-input" step="0.5" min="0">
+          </div>
         </div>
-      </div>
 
-      <div class="wk-row">
-        <div class="wk-col">
-          <label class="wk-field-label">예상 시간 (h)</label>
-          <input type="number" id="wkCardEstHours" class="wk-input" step="0.5" min="0">
+        <label class="wk-field-label">진행률 (%)</label>
+        <input type="range" id="wkCardProgress" class="wk-range" min="0" max="100" step="5">
+        <span id="wkCardProgressVal">0%</span>
+
+        <label class="wk-field-label">태그 (쉼표 구분)</label>
+        <input type="text" id="wkCardTags" class="wk-input" placeholder="예: 운영, 긴급, 외부">
+      </section>
+
+      <!-- 탭: 댓글 -->
+      <section class="wk-tab-panel" data-panel="comments" hidden>
+        <ul class="wk-comment-list" id="wkCommentList">
+          <li class="wk-comment-loading">불러오는 중...</li>
+        </ul>
+        <div class="wk-comment-form">
+          <textarea id="wkCommentInput" class="wk-textarea" rows="3" placeholder="댓글 입력 ( @이름 으로 멘션 )"></textarea>
+          <input type="hidden" id="wkCommentReplyTo">
+          <div class="wk-comment-form-actions">
+            <span id="wkCommentReplyHint" class="wk-hint" style="display:none">답글 모드 — <button type="button" id="wkCommentReplyCancel" class="wk-link">취소</button></span>
+            <span class="wk-spacer"></span>
+            <button type="button" id="wkCommentSubmit" class="wk-btn-primary">댓글 작성</button>
+          </div>
         </div>
-        <div class="wk-col">
-          <label class="wk-field-label">실제 시간 (h)</label>
-          <input type="number" id="wkCardActHours" class="wk-input" step="0.5" min="0">
+      </section>
+
+      <!-- 탭: 파일 -->
+      <section class="wk-tab-panel" data-panel="files" hidden>
+        <div class="wk-file-actions">
+          <button type="button" id="wkFileAttach" class="wk-btn-secondary">＋ 파일 연결</button>
+          <small class="wk-hint">파일함의 파일을 카드에 연결합니다. 파일 자체는 파일함에 보존됩니다.</small>
         </div>
-      </div>
+        <ul class="wk-file-list" id="wkFileList">
+          <li class="wk-file-loading">불러오는 중...</li>
+        </ul>
+      </section>
 
-      <label class="wk-field-label">진행률 (%)</label>
-      <input type="range" id="wkCardProgress" class="wk-range" min="0" max="100" step="5">
-      <span id="wkCardProgressVal">0%</span>
+      <!-- 탭: 보고 -->
+      <section class="wk-tab-panel" data-panel="reports" hidden>
+        <div class="wk-report-form">
+          <div class="wk-row">
+            <div class="wk-col">
+              <label class="wk-field-label">보고 종류</label>
+              <select id="wkReportType" class="wk-input">
+                <option value="progress">중간 보고</option>
+                <option value="completion">완료 보고</option>
+              </select>
+            </div>
+            <div class="wk-col">
+              <label class="wk-field-label">제목 (선택)</label>
+              <input type="text" id="wkReportTitle" class="wk-input" maxlength="300">
+            </div>
+          </div>
+          <label class="wk-field-label">내용 *</label>
+          <textarea id="wkReportContent" class="wk-textarea" rows="3" placeholder="보고 내용 작성..."></textarea>
+          <div class="wk-comment-form-actions">
+            <span class="wk-spacer"></span>
+            <button type="button" id="wkReportSubmit" class="wk-btn-primary">보고서 등록</button>
+          </div>
+        </div>
+        <ul class="wk-report-list" id="wkReportList">
+          <li class="wk-comment-loading">불러오는 중...</li>
+        </ul>
+      </section>
 
-      <label class="wk-field-label">체크리스트</label>
-      <ul id="wkCardChecklist" class="wk-checklist"></ul>
-      <div class="wk-checklist-add">
-        <input type="text" id="wkCardChecklistInput" class="wk-input" placeholder="새 항목 추가...">
-        <button type="button" id="wkCardChecklistAdd" class="wk-btn-secondary">＋</button>
-      </div>
+      <!-- 탭: 체크리스트 -->
+      <section class="wk-tab-panel" data-panel="checklist" hidden>
+        <ul id="wkCardChecklist" class="wk-checklist"></ul>
+        <div class="wk-checklist-add">
+          <input type="text" id="wkCardChecklistInput" class="wk-input" placeholder="새 항목 추가...">
+          <button type="button" id="wkCardChecklistAdd" class="wk-btn-secondary">＋</button>
+        </div>
+        <small class="wk-hint">체크리스트 변경은 [저장] 버튼을 눌러야 반영됩니다.</small>
+      </section>
 
-      <label class="wk-field-label">태그 (쉼표 구분)</label>
-      <input type="text" id="wkCardTags" class="wk-input" placeholder="예: 운영, 긴급, 외부">
+      <!-- 탭: 히스토리 -->
+      <section class="wk-tab-panel" data-panel="history" hidden>
+        <p class="wk-hint">활동 로그 표시 (Step 7-C에서 본격 연동 예정)</p>
+        <ul class="wk-history-list" id="wkHistoryList">
+          <li class="wk-history-empty">아직 표시할 활동이 없습니다.</li>
+        </ul>
+      </section>
+
+      <!-- 탭: AI -->
+      <section class="wk-tab-panel" data-panel="ai" hidden>
+        <h3 class="wk-ai-section-title">🤖 AI 요약</h3>
+        <div class="wk-ai-summary" id="wkAiSummaryBox">
+          <span class="wk-ai-empty">아직 AI 요약이 없습니다.</span>
+        </div>
+        <h3 class="wk-ai-section-title">⚠️ 리스크 점수</h3>
+        <div class="wk-ai-risk" id="wkAiRiskBox">
+          <span class="wk-ai-empty">아직 분석되지 않았습니다.</span>
+        </div>
+        <small class="wk-hint">AI 자동 생성·재분석은 Step 7-C cron에서 본격 동작합니다.</small>
+      </section>
     </div>
+
     <footer class="wk-modal-footer">
       <button id="wkCardBookmark" class="wk-btn-icon" type="button" title="북마크">⭐</button>
       <span class="wk-spacer"></span>
       <button id="wkCardArchive" class="wk-btn-secondary" type="button">📦 보관</button>
       <button id="wkCardDelete" class="wk-btn-danger" type="button">🗑 삭제</button>
       <button id="wkCardSave" class="wk-btn-primary" type="button">저장</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 파일 선택 (파일함에서 첨부할 파일 고르기)
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wkFilePickerModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wkFilePickerModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2>📎 파일 선택</h2>
+      <button class="wk-modal-close" data-close-modal="wkFilePickerModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="search" id="wkFilePickerSearch" class="wk-input" placeholder="파일명 검색...">
+      <ul id="wkFilePickerList" class="wk-file-list" style="margin-top:12px;max-height:360px;overflow-y:auto;">
+        <li class="wk-file-loading">불러오는 중...</li>
+      </ul>
+    </div>
+    <footer class="wk-modal-footer">
+      <a href="/workspace-files.html" class="wk-link">파일함에서 업로드 →</a>
+      <span class="wk-spacer"></span>
+      <button class="wk-btn-secondary" data-close-modal="wkFilePickerModal" type="button">닫기</button>
     </footer>
   </div>
 </div>
@@ -310,7 +428,7 @@
 
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
-<script src="/js/workspace-kanban.js?v=1" defer></script>
+<script src="/js/workspace-kanban.js?v=2" defer></script>
 
 </body>
 </html>

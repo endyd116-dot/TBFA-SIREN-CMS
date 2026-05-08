@@ -390,6 +390,11 @@
     bookmarkBtn.classList.toggle('is-marked', !!isMarked);
 
     openModal('wkCardModal');
+
+    // 탭 모듈 hook (Step 7-B.3)
+    if (window.wkOnCardOpen) {
+      try { window.wkOnCardOpen(t, STATE.me); } catch (e) { console.warn('[kanban-tabs hook]', e); }
+    }
   }
 
   function renderChecklistInModal(items) {
@@ -700,5 +705,527 @@
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════
+   카드 모달 7개 탭 (Step 7-B.3) — 독립 모듈
+   메인 IIFE의 openCardModal에서 window.wkOnCardOpen(task, me) 호출 시 발동
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const TAB_STATE = {
+    currentTask: null,
+    me: null,
+    loadedTabs: new Set(),  // 한 카드당 캐시
+    members: [],            // 멘션용
+  };
+
+  function $(s, root = document) { return root.querySelector(s); }
+  function $$(s, root = document) { return Array.from(root.querySelectorAll(s)); }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  function formatTime(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const diff = Date.now() - date.getTime();
+    if (diff < 60000) return '방금 전';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+    if (diff < 86400000 * 7) return `${Math.floor(diff / 86400000)}일 전`;
+    return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  }
+
+  function formatSize(b) {
+    const n = Number(b);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 1024) return n + 'B';
+    if (n < 1048576) return (n / 1024).toFixed(0) + 'KB';
+    return (n / 1048576).toFixed(1) + 'MB';
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      ...opts,
+      body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body
+    });
+    if (res.status === 401) { location.href = '/admin.html'; throw new Error('인증 만료'); }
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error((data && (data.error || data.message)) || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function toast(msg, type) {
+    const root = $('#wkToastRoot');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'wk-toast' + (type === 'success' ? ' is-success' : type === 'error' ? ' is-error' : '');
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  /* ═══════════════════ 탭 전환 ═══════════════════ */
+  function switchTab(tabName) {
+    $$('.wk-tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabName));
+    $$('.wk-tab-panel').forEach(p => {
+      p.hidden = p.dataset.panel !== tabName;
+    });
+    if (TAB_STATE.currentTask && !TAB_STATE.loadedTabs.has(tabName)) {
+      TAB_STATE.loadedTabs.add(tabName);
+      lazyLoadTab(tabName);
+    }
+  }
+
+  function lazyLoadTab(tabName) {
+    const id = TAB_STATE.currentTask?.id;
+    if (!id) return;
+    if (tabName === 'comments') loadComments(id);
+    if (tabName === 'files') loadFiles(id);
+    if (tabName === 'reports') loadReports(id);
+    if (tabName === 'ai') renderAi();
+    // history는 placeholder
+  }
+
+  /* ═══════════════════ 카드 모달 hook ═══════════════════ */
+  window.wkOnCardOpen = function (task, me) {
+    TAB_STATE.currentTask = task;
+    TAB_STATE.me = me;
+    TAB_STATE.loadedTabs.clear();
+
+    // 탭 카운트 미리 갱신용 — 첫 진입 시 탭 클릭하면 로드
+    $('#wkTabCountComments').textContent = '';
+    $('#wkTabCountFiles').textContent = '';
+    $('#wkTabCountReports').textContent = '';
+
+    // 활성 탭 = 개요로 초기화
+    switchTab('overview');
+
+    // 댓글 폼 초기화
+    $('#wkCommentInput').value = '';
+    $('#wkCommentReplyTo').value = '';
+    $('#wkCommentReplyHint').style.display = 'none';
+
+    // 보고 폼 초기화
+    $('#wkReportType').value = 'progress';
+    $('#wkReportTitle').value = '';
+    $('#wkReportContent').value = '';
+
+    // 백그라운드로 멤버 목록 로드 (멘션용)
+    loadMembers();
+  };
+
+  async function loadMembers() {
+    if (TAB_STATE.members.length > 0) return;
+    try {
+      const res = await api('/api/admin-workspace-members');
+      const items = res.data?.items || res.data || res.items || [];
+      TAB_STATE.members = Array.isArray(items) ? items : [];
+    } catch (_) { /* 실패 무시 — 멘션 자동완성만 비활성 */ }
+  }
+
+  /* ═══════════════════ 댓글 탭 ═══════════════════ */
+  async function loadComments(taskId) {
+    const list = $('#wkCommentList');
+    list.innerHTML = '<li class="wk-comment-loading">불러오는 중...</li>';
+    try {
+      const res = await api(`/api/admin-workspace-task-comments?taskId=${taskId}`);
+      const items = res.data?.items || res.data || [];
+      $('#wkTabCountComments').textContent = items.length;
+      if (!items.length) {
+        list.innerHTML = '<li class="wk-comment-empty">아직 댓글이 없습니다. 첫 댓글을 작성해보세요.</li>';
+        return;
+      }
+      // 부모/대댓글 정렬
+      const parents = items.filter(c => !c.parentCommentId).reverse();  // 오래된 순으로 표시
+      const replies = items.filter(c => c.parentCommentId).reverse();
+      const repliesByParent = {};
+      replies.forEach(r => {
+        const k = r.parentCommentId;
+        (repliesByParent[k] = repliesByParent[k] || []).push(r);
+      });
+
+      const html = parents.map(c => {
+        const childHtml = (repliesByParent[c.id] || []).map(r => renderCommentItem(r, true)).join('');
+        return renderCommentItem(c, false) + childHtml;
+      }).join('');
+      list.innerHTML = html;
+      bindCommentItemActions();
+    } catch (err) {
+      list.innerHTML = `<li class="wk-comment-empty">로드 실패: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  function renderCommentItem(c, isReply) {
+    const meId = TAB_STATE.me?.id;
+    const isMine = meId && c.memberId === meId;
+    const mentions = Array.isArray(c.mentions) ? c.mentions : [];
+    let content = escapeHtml(c.content || '');
+    // @멘션 하이라이트 (단순)
+    if (mentions.length) {
+      const memberMap = Object.fromEntries(TAB_STATE.members.map(m => [m.id, m.name || m.email]));
+      mentions.forEach(mid => {
+        const name = memberMap[mid];
+        if (name) {
+          content = content.replace(
+            new RegExp('@' + escapeRegex(name), 'g'),
+            `<span class="wk-comment-mention">@${escapeHtml(name)}</span>`
+          );
+        }
+      });
+    }
+    return `
+<li class="wk-comment-item${isReply ? ' is-reply' : ''}" data-comment-id="${c.id}" data-author-id="${c.memberId}">
+  <div>
+    <span class="wk-comment-author">${escapeHtml(c.authorName || ('회원 #' + c.memberId))}</span>
+    <span class="wk-comment-time">${escapeHtml(formatTime(c.createdAt))}</span>
+  </div>
+  <div class="wk-comment-content">${content}</div>
+  <div class="wk-comment-actions">
+    ${!isReply ? `<button data-comment-reply="${c.id}">↩ 답글</button>` : ''}
+    ${isMine ? `<button data-comment-delete="${c.id}">🗑 삭제</button>` : ''}
+  </div>
+</li>`;
+  }
+
+  function escapeRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function bindCommentItemActions() {
+    $$('[data-comment-reply]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.commentReply;
+        $('#wkCommentReplyTo').value = id;
+        $('#wkCommentReplyHint').style.display = '';
+        $('#wkCommentInput').focus();
+      });
+    });
+    $$('[data-comment-delete]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+        const id = btn.dataset.commentDelete;
+        try {
+          await api(`/api/admin-workspace-task-comments?id=${id}`, { method: 'DELETE' });
+          toast('댓글 삭제됨', 'success');
+          loadComments(TAB_STATE.currentTask.id);
+        } catch (err) {
+          toast('삭제 실패: ' + err.message, 'error');
+        }
+      });
+    });
+  }
+
+  async function submitComment() {
+    const taskId = TAB_STATE.currentTask?.id;
+    if (!taskId) return;
+    const content = $('#wkCommentInput').value.trim();
+    if (!content) { toast('내용을 입력하세요', 'error'); return; }
+    const parentId = $('#wkCommentReplyTo').value;
+    const mentions = extractMentions(content);
+
+    try {
+      await api('/api/admin-workspace-task-comments', {
+        method: 'POST',
+        body: {
+          taskId,
+          content,
+          mentions,
+          parentCommentId: parentId ? Number(parentId) : null,
+        }
+      });
+      $('#wkCommentInput').value = '';
+      $('#wkCommentReplyTo').value = '';
+      $('#wkCommentReplyHint').style.display = 'none';
+      toast('댓글 작성됨', 'success');
+      loadComments(taskId);
+    } catch (err) {
+      toast('작성 실패: ' + err.message, 'error');
+    }
+  }
+
+  function extractMentions(content) {
+    const found = [];
+    const memberMap = TAB_STATE.members;
+    if (!memberMap.length) return found;
+    for (const m of memberMap) {
+      const name = m.name || m.email;
+      if (!name) continue;
+      const re = new RegExp('@' + escapeRegex(name) + '(?=\\b|\\s|$)', 'g');
+      if (re.test(content)) found.push(m.id);
+    }
+    return found.slice(0, 20);
+  }
+
+  /* ═══════════════════ 파일 탭 ═══════════════════ */
+  async function loadFiles(taskId) {
+    const list = $('#wkFileList');
+    list.innerHTML = '<li class="wk-file-loading">불러오는 중...</li>';
+    try {
+      const res = await api(`/api/admin-workspace-task-attachments?taskId=${taskId}`);
+      const items = res.data?.items || res.data || [];
+      $('#wkTabCountFiles').textContent = items.length;
+      if (!items.length) {
+        list.innerHTML = '<li class="wk-file-loading">연결된 파일이 없습니다.</li>';
+        return;
+      }
+      list.innerHTML = items.map(it => `
+<li data-attach-id="${it.id}">
+  <span class="wk-file-icon">📄</span>
+  <span class="wk-file-name">
+    ${escapeHtml(it.fileName || ('파일 #' + it.fileId))}
+    ${it.fileDeletedAt ? '<span class="wk-file-deleted"> (삭제됨)</span>' : ''}
+  </span>
+  <span class="wk-file-size">${escapeHtml(formatSize(it.fileSize))}</span>
+  <button class="wk-file-remove" data-file-remove="${it.id}" title="연결 해제">✕</button>
+</li>`).join('');
+      $$('[data-file-remove]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('이 파일 연결을 해제하시겠습니까? (파일함의 파일 자체는 삭제되지 않습니다)')) return;
+          try {
+            await api(`/api/admin-workspace-task-attachments?id=${btn.dataset.fileRemove}`, { method: 'DELETE' });
+            toast('연결 해제됨', 'success');
+            loadFiles(taskId);
+          } catch (err) {
+            toast('해제 실패: ' + err.message, 'error');
+          }
+        });
+      });
+    } catch (err) {
+      list.innerHTML = `<li class="wk-file-loading">로드 실패: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  async function openFilePicker() {
+    const list = $('#wkFilePickerList');
+    const search = $('#wkFilePickerSearch');
+    search.value = '';
+    list.innerHTML = '<li class="wk-file-loading">불러오는 중...</li>';
+    document.getElementById('wkFilePickerModal').classList.add('is-open');
+    document.getElementById('wkFilePickerModal').setAttribute('aria-hidden', 'false');
+    await renderFilePickerList('');
+  }
+
+  async function renderFilePickerList(searchQ) {
+    const list = $('#wkFilePickerList');
+    const taskId = TAB_STATE.currentTask?.id;
+    if (!taskId) return;
+    try {
+      // 현재 task의 첨부 ID 목록 (중복 비활성화용)
+      const attachRes = await api(`/api/admin-workspace-task-attachments?taskId=${taskId}`);
+      const attachedIds = new Set((attachRes.data?.items || []).map(it => it.fileId));
+
+      // 파일함 검색 또는 전체 (root)
+      const url = searchQ
+        ? `/api/admin-workspace-files?search=${encodeURIComponent(searchQ)}&limit=50`
+        : `/api/admin-workspace-files?folderId=0&limit=50`;
+      const res = await api(url);
+      const items = res.data?.items || res.data || [];
+      if (!items.length) {
+        list.innerHTML = '<li class="wk-file-loading">파일이 없습니다.</li>';
+        return;
+      }
+      list.innerHTML = items.map(f => {
+        const isAttached = attachedIds.has(f.id);
+        return `
+<li>
+  <span class="wk-file-icon">📄</span>
+  <span class="wk-file-name">${escapeHtml(f.name)}</span>
+  <span class="wk-file-size">${escapeHtml(formatSize(f.sizeBytes))}</span>
+  <button class="wk-file-pick-btn ${isAttached ? 'is-attached' : ''}" data-pick-file="${f.id}" ${isAttached ? 'disabled' : ''}>
+    ${isAttached ? '연결됨' : '연결'}
+  </button>
+</li>`;
+      }).join('');
+      $$('[data-pick-file]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (btn.classList.contains('is-attached')) return;
+          const fileId = Number(btn.dataset.pickFile);
+          try {
+            await api('/api/admin-workspace-task-attachments', {
+              method: 'POST',
+              body: { taskId, fileId }
+            });
+            toast('파일 연결됨', 'success');
+            btn.textContent = '연결됨';
+            btn.classList.add('is-attached');
+            btn.disabled = true;
+            loadFiles(taskId);
+          } catch (err) {
+            toast('연결 실패: ' + err.message, 'error');
+          }
+        });
+      });
+    } catch (err) {
+      list.innerHTML = `<li class="wk-file-loading">로드 실패: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  /* ═══════════════════ 보고 탭 ═══════════════════ */
+  async function loadReports(taskId) {
+    const list = $('#wkReportList');
+    list.innerHTML = '<li class="wk-comment-loading">불러오는 중...</li>';
+    try {
+      const res = await api(`/api/admin-workspace-task-reports?taskId=${taskId}`);
+      const items = res.data?.items || res.data || [];
+      $('#wkTabCountReports').textContent = items.length;
+      if (!items.length) {
+        list.innerHTML = '<li class="wk-comment-empty">아직 보고서가 없습니다.</li>';
+        return;
+      }
+      list.innerHTML = items.map(renderReportItem).join('');
+      bindReportActions();
+    } catch (err) {
+      list.innerHTML = `<li class="wk-comment-empty">로드 실패: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  function renderReportItem(r) {
+    const meId = TAB_STATE.me?.id;
+    const isMine = r.memberId === meId;
+    const task = TAB_STATE.currentTask;
+    const canReview = task && (
+      (TAB_STATE.me && (task.memberId === meId || task.assignedBy === meId))
+      || (TAB_STATE.me && TAB_STATE.me.role === 'super_admin')
+    );
+    const reviewBlock = r.reviewStatus === 'pending'
+      ? (canReview && !isMine
+          ? `<div class="wk-report-actions">
+              <button class="wk-btn-secondary" data-report-review="${r.id}" data-status="approved">✅ 승인</button>
+              <button class="wk-btn-danger" data-report-review="${r.id}" data-status="rejected">❌ 반려</button>
+            </div>`
+          : `<div class="wk-report-meta">검토 대기 중</div>`)
+      : `<div class="wk-report-review${r.reviewStatus === 'approved' ? ' is-approved' : ' is-rejected'}">
+          ${r.reviewStatus === 'approved' ? '✅ 승인됨' : '❌ 반려됨'} · ${escapeHtml(formatTime(r.reviewedAt))}
+          ${r.reviewReason ? `<div style="margin-top:4px">${escapeHtml(r.reviewReason)}</div>` : ''}
+        </div>`;
+
+    return `
+<li class="wk-report-item" data-report-id="${r.id}">
+  <div class="wk-report-header">
+    <span class="wk-report-type-badge wk-report-type-${escapeHtml(r.type)}">${r.type === 'completion' ? '✅ 완료 보고' : '🔄 중간 보고'}</span>
+    <span class="wk-comment-author">${escapeHtml(r.authorName || ('회원 #' + r.memberId))}</span>
+    <span class="wk-comment-time">${escapeHtml(formatTime(r.createdAt))}</span>
+    <span class="wk-report-status wk-report-status-${escapeHtml(r.reviewStatus)}">${
+      r.reviewStatus === 'pending' ? '검토 대기' : r.reviewStatus === 'approved' ? '승인됨' : '반려됨'
+    }</span>
+  </div>
+  ${r.title ? `<div class="wk-report-title">${escapeHtml(r.title)}</div>` : ''}
+  <div class="wk-report-content">${escapeHtml(r.content || '')}</div>
+  ${reviewBlock}
+  ${isMine && r.reviewStatus === 'pending' ? `<div class="wk-report-actions"><button class="wk-btn-danger" data-report-delete="${r.id}">🗑 삭제</button></div>` : ''}
+</li>`;
+  }
+
+  function bindReportActions() {
+    $$('[data-report-review]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.reportReview;
+        const status = btn.dataset.status;
+        let reason = null;
+        if (status === 'rejected') {
+          reason = prompt('반려 사유 (선택, 1000자 이내):');
+          if (reason === null) return;
+        }
+        try {
+          await api(`/api/admin-workspace-task-reports?id=${id}&action=review`, {
+            method: 'PATCH',
+            body: { reviewStatus: status, reviewReason: reason }
+          });
+          toast(status === 'approved' ? '승인됨' : '반려됨', 'success');
+          loadReports(TAB_STATE.currentTask.id);
+        } catch (err) {
+          toast('처리 실패: ' + err.message, 'error');
+        }
+      });
+    });
+    $$('[data-report-delete]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('이 보고서를 삭제하시겠습니까?')) return;
+        try {
+          await api(`/api/admin-workspace-task-reports?id=${btn.dataset.reportDelete}`, { method: 'DELETE' });
+          toast('삭제됨', 'success');
+          loadReports(TAB_STATE.currentTask.id);
+        } catch (err) {
+          toast('삭제 실패: ' + err.message, 'error');
+        }
+      });
+    });
+  }
+
+  async function submitReport() {
+    const taskId = TAB_STATE.currentTask?.id;
+    if (!taskId) return;
+    const type = $('#wkReportType').value;
+    const title = $('#wkReportTitle').value.trim();
+    const content = $('#wkReportContent').value.trim();
+    if (!content) { toast('내용 필수', 'error'); return; }
+    try {
+      await api('/api/admin-workspace-task-reports', {
+        method: 'POST',
+        body: { taskId, type, title: title || null, content }
+      });
+      $('#wkReportTitle').value = '';
+      $('#wkReportContent').value = '';
+      toast('보고서 등록됨', 'success');
+      loadReports(taskId);
+    } catch (err) {
+      toast('등록 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* ═══════════════════ AI 탭 ═══════════════════ */
+  function renderAi() {
+    const t = TAB_STATE.currentTask;
+    if (!t) return;
+    const sumBox = $('#wkAiSummaryBox');
+    if (t.aiSummary) {
+      sumBox.innerHTML = escapeHtml(t.aiSummary);
+    } else {
+      sumBox.innerHTML = '<span class="wk-ai-empty">아직 AI 요약이 없습니다. (Step 7-C에서 자동 생성)</span>';
+    }
+    const riskBox = $('#wkAiRiskBox');
+    if (t.aiRiskScore != null) {
+      const score = Number(t.aiRiskScore);
+      const level = score >= 70 ? 'high' : score >= 40 ? 'mid' : 'low';
+      const label = score >= 70 ? '높음 — 지연 가능성 큼' : score >= 40 ? '보통 — 주의' : '낮음 — 안정적';
+      riskBox.className = `wk-ai-risk is-${level}`;
+      riskBox.textContent = `리스크 점수 ${score}/100 — ${label}`;
+    } else {
+      riskBox.className = 'wk-ai-risk';
+      riskBox.innerHTML = '<span class="wk-ai-empty">아직 분석되지 않았습니다.</span>';
+    }
+  }
+
+  /* ═══════════════════ 이벤트 바인딩 ═══════════════════ */
+  document.addEventListener('DOMContentLoaded', bindTabs);
+  if (document.readyState !== 'loading') bindTabs();
+
+  function bindTabs() {
+    $$('.wk-tab').forEach(b => {
+      b.addEventListener('click', () => switchTab(b.dataset.tab));
+    });
+    $('#wkCommentSubmit')?.addEventListener('click', submitComment);
+    $('#wkCommentReplyCancel')?.addEventListener('click', () => {
+      $('#wkCommentReplyTo').value = '';
+      $('#wkCommentReplyHint').style.display = 'none';
+    });
+    $('#wkFileAttach')?.addEventListener('click', openFilePicker);
+    $('#wkReportSubmit')?.addEventListener('click', submitReport);
+
+    // 파일 선택 모달 검색
+    let pickerTimer;
+    $('#wkFilePickerSearch')?.addEventListener('input', e => {
+      clearTimeout(pickerTimer);
+      pickerTimer = setTimeout(() => renderFilePickerList(e.target.value.trim()), 300);
+    });
   }
 })();
