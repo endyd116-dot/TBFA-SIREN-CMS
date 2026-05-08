@@ -793,8 +793,76 @@
     if (tabName === 'comments') loadComments(id);
     if (tabName === 'files') loadFiles(id);
     if (tabName === 'reports') loadReports(id);
+    if (tabName === 'history') loadHistory(id);
     if (tabName === 'ai') renderAi();
-    // history는 placeholder
+  }
+
+  /* ═══════════════════ 히스토리 탭 (Step 7-C.4.a) ═══════════════════ */
+  const ACTION_LABELS = {
+    'task.create':              { icon: '📋', label: '작업 생성' },
+    'task.update':              { icon: '✏️', label: '작업 수정' },
+    'task.delete':              { icon: '🗑', label: '작업 삭제' },
+    'task.status':              { icon: '🔄', label: '상태 변경' },
+    'task.complete':            { icon: '✅', label: '작업 완료' },
+    'task.reopen':              { icon: '↻', label: '재개' },
+    'task.assign':              { icon: '📥', label: '작업 지시' },
+    'task.unassign':            { icon: '↩', label: '지시 취소' },
+    'task.archive':             { icon: '📦', label: '보관' },
+    'task.unarchive':           { icon: '📂', label: '보관 해제' },
+    'task.hold':                { icon: '⏸', label: '보류 시작' },
+    'task.unhold':              { icon: '▶', label: '보류 해제' },
+    'task.checklist.add':       { icon: '➕', label: '체크리스트 추가' },
+    'task.checklist.toggle':    { icon: '✓', label: '체크리스트 토글' },
+    'task.attachment.add':      { icon: '📎', label: '파일 첨부' },
+    'task.attachment.remove':   { icon: '✂', label: '첨부 해제' },
+  };
+
+  async function loadHistory(taskId) {
+    const list = $('#wkHistoryList');
+    list.innerHTML = '<li class="wk-history-empty">불러오는 중...</li>';
+    try {
+      const res = await api(`/api/admin-workspace-tasks?feed=1&taskId=${taskId}&limit=100`);
+      const items = res.data?.items || res.items || [];
+      if (!items.length) {
+        list.innerHTML = '<li class="wk-history-empty">아직 활동 기록이 없습니다.</li>';
+        return;
+      }
+      list.innerHTML = items.map(it => {
+        const map = ACTION_LABELS[it.actionType] || { icon: '📌', label: it.actionType };
+        const sub = it.metadata?.subType ? ` · ${escapeHtml(it.metadata.subType)}` : '';
+        const detail = formatHistoryDetail(it);
+        return `
+<li class="wk-history-item">
+  <span>${map.icon} <strong>${escapeHtml(map.label)}</strong>${sub}</span>
+  ${detail ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">${detail}</div>` : ''}
+  <span class="wk-history-time" style="display:block;margin-top:2px">
+    ${escapeHtml(it.actorName || '시스템')} · ${escapeHtml(formatTime(it.createdAt))}
+  </span>
+</li>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = `<li class="wk-history-empty">로드 실패: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  function formatHistoryDetail(item) {
+    const m = item.metadata || {};
+    if (item.actionType === 'task.status') {
+      return `${escapeHtml(m.prevStatus || '?')} → ${escapeHtml(m.newStatus || '?')}`;
+    }
+    if (item.actionType === 'task.assign') {
+      return m.newAssignee ? `대상자 #${escapeHtml(String(m.newAssignee))}` : '';
+    }
+    if (item.actionType === 'task.update' && m.subType) {
+      return m.subType;
+    }
+    if (item.actionType === 'task.attachment.add' && m.fileName) {
+      return `📄 ${escapeHtml(m.fileName)}`;
+    }
+    if (item.actionType === 'task.checklist.toggle') {
+      return m.done ? '체크 ✓' : '체크 해제';
+    }
+    return '';
   }
 
   /* ═══════════════════ 카드 모달 hook ═══════════════════ */
