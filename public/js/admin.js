@@ -5532,15 +5532,24 @@ const OPERATOR_CATEGORIES = [
       tbody.innerHTML = items.map(function (m) {
         const at = m.blacklistedAt ? new Date(m.blacklistedAt).toLocaleString('ko-KR') : '';
         const reason = (m.blacklistReason || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return '<tr>' +
+        return '<tr data-blk-row="' + m.id + '" style="cursor:pointer" title="클릭하면 회원 상세 정보가 열립니다">' +
           '<td>' + at + '</td>' +
-          '<td><strong>' + (m.name || '') + '</strong></td>' +
+          '<td><strong style="color:#2563eb;text-decoration:underline">' + (m.name || '') + '</strong></td>' +
           '<td>' + (m.email || '') + '</td>' +
           '<td>' + (m.phone || '') + '</td>' +
           '<td style="white-space:pre-wrap;word-break:break-all">' + reason + '</td>' +
-          '<td><button class="btn-sm btn-sm-ghost" data-blk-remove="' + m.id + '" data-name="' + (m.name || '') + '" type="button">✓ 해제</button></td>' +
+          '<td><button class="btn-sm btn-sm-ghost" data-blk-remove="' + m.id + '" data-name="' + (m.name || '') + '" type="button" onclick="event.stopPropagation()">✓ 해제</button></td>' +
           '</tr>';
       }).join('');
+
+      // 행 클릭 → 회원 상세 모달 열기 (해제 버튼은 stopPropagation으로 제외)
+      tbody.querySelectorAll('[data-blk-row]').forEach(function (tr) {
+        tr.addEventListener('click', function (e) {
+          if (e.target.closest('[data-blk-remove]')) return;
+          const id = Number(tr.dataset.blkRow);
+          if (id) openMemberInfoModal(id);
+        });
+      });
     } catch (err) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#b91c1c">로드 실패: ' + (err.message || '오류') + '</td></tr>';
     }
