@@ -128,7 +128,7 @@
   async function loadFolders() {
     try {
       const res = await api('/api/admin-workspace-folders?list=1');
-      state.folders = res.data || [];
+      state.folders = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       renderFolderTree();
     } catch (err) {
       console.error('[folders] load failed:', err);
@@ -274,7 +274,7 @@
       if (state.searchKeyword) params.set('q', state.searchKeyword);
 
       const res = await api(`/api/admin-workspace-files?${params}`);
-      state.files = res.data || res.items || [];
+      state.files = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       renderFileList();
     } catch (err) {
       console.error('[files] load failed:', err);
@@ -419,7 +419,7 @@
   async function downloadFile(fileId) {
     try {
       const res = await api(`/api/admin-workspace-file-download?fileId=${fileId}`);
-      const url = res.data?.downloadUrl || res.downloadUrl;
+      const url = res.data?.downloadUrl || res.data?.url || res.downloadUrl;
       if (!url) throw new Error('다운로드 URL 없음');
       window.open(url, '_blank');
     } catch (err) {
@@ -507,7 +507,7 @@
           folderId: state.currentFolderId,
         }
       });
-      const { uploadUrl, r2Key, fileId } = presignRes.data || presignRes;
+      const { uploadUrl, r2Key, fileId } = presignRes.data || presignRes || {};
       if (!uploadUrl) throw new Error('업로드 URL 없음');
 
       // 2. PUT to R2
@@ -588,7 +588,7 @@
   async function loadMembers() {
     try {
       const res = await api('/api/admin-workspace-members');
-      state.members = res.data || [];
+      state.members = res.data?.data || res.data?.items || (Array.isArray(res.data) ? res.data : []) || [];
     } catch (err) {
       console.error('[members] load failed:', err);
       state.members = [];
@@ -622,7 +622,7 @@
       if (type === 'folder') params.set('folderId', String(id));
       else params.set('fileId', String(id));
       const res = await api(`/api/admin-workspace-file-share?${params}`);
-      const shares = res.data || [];
+      const shares = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       const isPublic = res.isShared || false;
 
       const publicToggle = document.getElementById('wfSharePublic');
