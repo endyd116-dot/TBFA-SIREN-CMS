@@ -754,3 +754,47 @@
     }
   }
 })();
+
+/* ═══════════════════════════════════════════════════════
+   AI 브리핑 표시 (Phase 3 Step 5 — Agent-8)
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  const wrap = document.getElementById('wsAiSuggestion');
+  const list = document.getElementById('wsAiList');
+  if (!wrap || !list) return;
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  async function loadBriefing() {
+    try {
+      const res = await fetch('/api/admin-daily-briefing?today=1', { credentials: 'include' });
+      if (res.status === 401 || !res.ok) return;
+      const json = await res.json();
+      const data = json.data || json;
+      if (!data || data.exists === false) {
+        wrap.style.display = 'none';
+        return;
+      }
+      const suggestions = Array.isArray(data.aiSuggestions) ? data.aiSuggestions : [];
+      const alerts = Array.isArray(data.riskAlerts) ? data.riskAlerts : [];
+      if (!suggestions.length && !alerts.length) {
+        wrap.style.display = 'none';
+        return;
+      }
+      const items = [
+        ...alerts.map(a => `<li class="ws-ai-item ws-ai-alert ws-ai-${escapeHtml(a.severity || 'medium')}">⚠️ ${escapeHtml(a.message || '')}</li>`),
+        ...suggestions.map(s => `<li class="ws-ai-item ws-ai-${escapeHtml(s.severity || 'medium')}"><strong>${escapeHtml(s.title || '')}</strong>${s.reason ? ` <span class="ws-ai-reason">— ${escapeHtml(s.reason)}</span>` : ''}</li>`)
+      ];
+      list.innerHTML = items.join('');
+      wrap.style.display = '';
+    } catch (err) {
+      console.warn('[ws] briefing today 실패:', err);
+    }
+  }
+  loadBriefing();
+})();

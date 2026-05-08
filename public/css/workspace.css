@@ -318,6 +318,13 @@ body.ws-body {
 .ws-ai-icon { margin-right: 6px; }
 .ws-ai-text { font-weight: 600; color: var(--ws-ink); }
 .ws-ai-list { margin: 8px 0 0; padding-left: 24px; color: var(--ws-text-2); }
+.ws-ai-item { margin-bottom: 4px; line-height: 1.5; }
+.ws-ai-item strong { color: var(--ws-ink); font-weight: 600; }
+.ws-ai-reason { color: var(--ws-text-3); font-size: 12px; }
+.ws-ai-alert { color: #b45309; }
+.ws-ai-high { font-weight: 600; }
+.ws-ai-medium { font-weight: 500; }
+.ws-ai-low { color: var(--ws-text-3); }
 
 /* ═══ 2x2 Grid ═══ */
 .ws-grid-2x2 {
