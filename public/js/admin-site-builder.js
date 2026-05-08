@@ -359,10 +359,14 @@
     if (!/^https?:\/\//i.test(url)) { toast('URL은 http:// 또는 https://로 시작해야 합니다'); return; }
 
     try {
-      await api('/api/admin/related-sites', {
+      const res = await api('/api/admin/related-sites', {
         method: 'POST',
-        body: JSON.stringify({ name, url, description: description || null }),
+        body: { name, url, description: description || null },
       });
+      if (!res.ok) {
+        const msg = (res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
       toast('관련 사이트가 추가되었습니다');
       document.getElementById('rsNewName').value = '';
       document.getElementById('rsNewUrl').value = '';
@@ -390,10 +394,14 @@
     if (!data.url) { toast('URL이 비어있습니다'); return; }
 
     try {
-      await api('/api/admin/related-sites', {
+      const res = await api('/api/admin/related-sites', {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: data,
       });
+      if (!res.ok) {
+        const msg = (res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
       toast('저장되었습니다');
     } catch (err) {
       toast('저장 실패: ' + (err.message || '오류'));
@@ -409,7 +417,11 @@
     const name = nameInput ? nameInput.value : '';
     if (!confirm('관련 사이트 "' + name + '"을(를) 삭제하시겠습니까?')) return;
     try {
-      await api('/api/admin/related-sites?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      const res = await api('/api/admin/related-sites?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!res.ok) {
+        const msg = (res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status);
+        throw new Error(msg);
+      }
       toast('삭제되었습니다');
       await loadRelatedSitesList();
     } catch (err) {
