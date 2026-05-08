@@ -195,12 +195,10 @@ export const members = pgTable("members", {
   withdrawnAt: timestamp("withdrawn_at"),
   withdrawnReason: varchar("withdrawn_reason", { length: 500 }),
 
-  /* ───────── ★ 5순위 #1: 블랙 처리 통합 — DB 적용 후 활성화 예정 ─────────
-     마이그레이션 호출 후 다시 컬럼 정의 추가 예정. 현재 schema·DB 일치 위해 주석 처리.
-  ───────── */
-  // blacklistedAt: timestamp("blacklisted_at"),
-  // blacklistedBy: integer("blacklisted_by"),
-  // blacklistReason: text("blacklist_reason"),
+  /* ───────── ★ 5순위 #1: 블랙 처리 통합 (status='suspended'와 함께 사용) ───────── */
+  blacklistedAt: timestamp("blacklisted_at"),
+  blacklistedBy: integer("blacklisted_by"),                                     // 처리한 운영자 members.id
+  blacklistReason: text("blacklist_reason"),
 
   /* ───────── ★ M-12: 회원 4분류 + 가입경로 ───────── */
   memberCategory: varchar("member_category", { length: 20 }),
