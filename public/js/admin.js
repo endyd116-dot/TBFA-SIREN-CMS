@@ -2562,6 +2562,18 @@ const OPERATOR_CATEGORIES = [
         return;
       }
 
+      /* ─── 수납내역 엑셀 내보내기 (Phase 4순위 #2) ─── */
+      var donationsExportBtn = e.target.closest('#dmBtnExportDonations');
+      if (donationsExportBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        exportDonationsExcel(donationsExportBtn).catch(function (err) {
+          console.error('[donations-export]', err);
+          toast('내보내기 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'), 'error');
+        });
+        return;
+      }
+
       /* ─── ★ M-13: CSV 업로드 (자동 회원 생성 옵션 추가) ─── */
       var importBtn = e.target.closest('[data-demo-action="hyosung-csv-import"]');
       if (importBtn) {
@@ -5622,6 +5634,88 @@ const OPERATOR_CATEGORIES = [
       }
     } else {
       showLogin();
+    }
+  }
+
+  /* ============ 수납내역 엑셀 내보내기 헬퍼 (Phase 4순위 #2) ============ */
+  async function ensureSheetJS() {
+    if (typeof window.XLSX !== 'undefined') return;
+    const cdns = [
+      'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+      'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    ];
+    let lastErr;
+    for (const url of cdns) {
+      try {
+        await new Promise(function (resolve, reject) {
+          const s = document.createElement('script');
+          s.src = url;
+          s.onload = resolve;
+          s.onerror = function () { reject(new Error('load fail: ' + url)); };
+          document.head.appendChild(s);
+        });
+        if (typeof window.XLSX !== 'undefined') return;
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error('SheetJS 로드 실패');
+  }
+
+  async function exportDonationsExcel(btn) {
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ 처리 중...';
+
+    try {
+      // 현재 결제 내역 화면 필터 수집
+      const params = new URLSearchParams();
+      const fType = document.getElementById('dmFilterType')?.value;
+      const fStatus = document.getElementById('dmFilterStatus')?.value;
+      const fFrom = document.getElementById('dmFilterFrom')?.value;
+      const fTo = document.getElementById('dmFilterTo')?.value;
+      if (fType) params.set('type', fType);
+      if (fStatus) params.set('status', fStatus);
+      if (fFrom) params.set('from', fFrom);
+      if (fTo) params.set('to', fTo);
+
+      // 데이터 수신
+      const res = await fetch('/api/admin-donations-export?' + params.toString(), { credentials: 'include' });
+      if (res.status === 401) { location.href = '/admin.html'; return; }
+      if (!res.ok) {
+        const err = await res.json().catch(function () { return {}; });
+        throw new Error(err.error || ('HTTP ' + res.status));
+      }
+      const json = await res.json();
+      const items = (json.data && json.data.items) || json.items || [];
+      if (!items.length) {
+        toast('내보낼 수납내역이 없습니다', 'warning');
+        return;
+      }
+
+      // SheetJS 로드 + 변환
+      await ensureSheetJS();
+      const ws = XLSX.utils.json_to_sheet(items);
+      // 컬럼 폭 자동 (대략)
+      const headers = Object.keys(items[0] || {});
+      ws['!cols'] = headers.map(function (h) {
+        const wRaw = Math.max(h.length, 8);
+        return { wch: Math.min(wRaw + 4, 30) };
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '수납내역');
+
+      const today = new Date();
+      const ymd =
+        today.getFullYear() +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        String(today.getDate()).padStart(2, '0');
+      const filename = '수납내역_' + ymd + '.xlsx';
+      XLSX.writeFile(wb, filename);
+
+      toast('수납내역 ' + items.length + '건 다운로드', 'success');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
     }
   }
 
