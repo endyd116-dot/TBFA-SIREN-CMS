@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, varchar, integer, text, timestamp,
-  boolean, index, uniqueIndex, pgEnum, jsonb, bigint
+  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -1471,7 +1471,7 @@ export const workspaceTasks = pgTable("workspace_tasks", {
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(), // 소유자(실행자)
   title: varchar("title", { length: 300 }).notNull(),
   description: text("description"),
-  status: varchar("status", { length: 20 }).default("todo").notNull(),       // todo | doing | done | blocked
+  status: varchar("status", { length: 20 }).default("todo").notNull(),       // todo | doing(=in_progress) | blocked(=on_hold) | done | archived
   priority: varchar("priority", { length: 20 }).default("normal").notNull(), // low | normal | high | urgent
   dueDate: timestamp("due_date").notNull(),                                  // ★ 필수
   assignedBy: integer("assigned_by").references(() => members.id, { onDelete: "set null" }),
@@ -1483,6 +1483,16 @@ export const workspaceTasks = pgTable("workspace_tasks", {
   progress: integer("progress").default(0).notNull(),                        // ⭐ 0~100
   completedAt: timestamp("completed_at"),
   completedBy: integer("completed_by").references(() => members.id, { onDelete: "set null" }),
+  // ★ Phase 3 Step 7-A — 칸반 5컬럼 + 보류/보관 + 타임 트래킹 + 북마크 + AI
+  estimatedHours: numeric("estimated_hours", { precision: 5, scale: 1 }),
+  actualHours: numeric("actual_hours", { precision: 5, scale: 1 }),
+  holdReason: text("hold_reason"),
+  holdStartedAt: timestamp("hold_started_at"),
+  archivedAt: timestamp("archived_at"),
+  bookmarkedBy: jsonb("bookmarked_by").default(sql`'[]'::jsonb`),            // [memberId, ...]
+  aiSummary: text("ai_summary"),
+  aiRiskScore: integer("ai_risk_score"),                                     // 0~100, 지연 확률
+  aiRiskUpdatedAt: timestamp("ai_risk_updated_at"),
   // ⭐ 외부 리소스 연결 (AI 에이전트 맥락 추적)
   sourceType: varchar("source_type", { length: 30 }),                        // 'incident' | 'donation' | 'support' | 'campaign' | 'member' | 'manual' | 'recurring' | 'ai_agent'
   sourceId: integer("source_id"),
