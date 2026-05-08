@@ -527,6 +527,59 @@
   }
 
   /* ═══════════════════ 새 작업 모달 ═══════════════════ */
+  let TEMPLATES_CACHE = null;
+  let SELECTED_TEMPLATE_ID = null;
+
+  async function loadTemplatesIntoSelect() {
+    const sel = $('#wkNewTemplate');
+    if (!sel) return;
+    if (TEMPLATES_CACHE) return;  // 한 번만 로드, 모달 재오픈 시 재사용
+    try {
+      const res = await api('/api/admin-workspace-task-templates?list=1');
+      const items = res.data?.items || res.items || [];
+      TEMPLATES_CACHE = items;
+      const opts = ['<option value="">— 템플릿 없이 직접 입력 —</option>']
+        .concat(items.map(t =>
+          `<option value="${t.id}">${escapeHtmlGlobal(t.name)} (사용 ${t.usageCount}회${t.isShared ? '' : ' · 비공개'})</option>`
+        ));
+      sel.innerHTML = opts.join('');
+    } catch (err) {
+      sel.innerHTML = '<option value="">템플릿 로드 실패</option>';
+    }
+  }
+
+  function escapeHtmlGlobal(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  async function applySelectedTemplate() {
+    const sel = $('#wkNewTemplate');
+    const id = sel.value;
+    if (!id) {
+      SELECTED_TEMPLATE_ID = null;
+      $('#wkNewTemplateHint').textContent = '템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.';
+      return;
+    }
+    SELECTED_TEMPLATE_ID = Number(id);
+    const tmpl = (TEMPLATES_CACHE || []).find(t => t.id === SELECTED_TEMPLATE_ID);
+    if (!tmpl) return;
+    if (tmpl.description && !$('#wkNewDescription').value) {
+      $('#wkNewDescription').value = tmpl.description;
+    }
+    if (tmpl.priority) {
+      $('#wkNewPriority').value = tmpl.priority;
+    }
+    if (!$('#wkNewTitle').value && tmpl.name) {
+      $('#wkNewTitle').value = tmpl.name;
+    }
+    const subN = Array.isArray(tmpl.defaultSubtasks) ? tmpl.defaultSubtasks.length : 0;
+    const tagN = Array.isArray(tmpl.defaultTags) ? tmpl.defaultTags.length : 0;
+    $('#wkNewTemplateHint').textContent = `✅ 적용됨 — 제목·설명·우선순위 미리보기 채움. 체크리스트 ${subN}개, 태그 ${tagN}개는 생성 후 자동 적용됩니다.`;
+    toast(`템플릿 "${tmpl.name}" 적용`, 'success');
+  }
+
   async function createNewTask() {
     const title = $('#wkNewTitle').value.trim();
     const description = $('#wkNewDescription').value;
@@ -536,16 +589,19 @@
     if (!title) { toast('제목 필수', 'error'); return; }
     if (!dueDate) { toast('마감일 필수', 'error'); return; }
 
+    const body = { title, description, priority, dueDate: new Date(dueDate).toISOString() };
+    if (SELECTED_TEMPLATE_ID) body.templateId = SELECTED_TEMPLATE_ID;
+
     try {
-      await api('/api/admin-workspace-tasks', {
-        method: 'POST',
-        body: { title, description, priority, dueDate: new Date(dueDate).toISOString() }
-      });
+      await api('/api/admin-workspace-tasks', { method: 'POST', body });
       toast('생성됨', 'success');
       closeModal('wkNewModal');
       $('#wkNewTitle').value = '';
       $('#wkNewDescription').value = '';
       $('#wkNewDueDate').value = '';
+      $('#wkNewTemplate').value = '';
+      SELECTED_TEMPLATE_ID = null;
+      $('#wkNewTemplateHint').textContent = '템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.';
       await loadTasks();
     } catch (err) {
       toast('생성 실패: ' + err.message, 'error');
@@ -592,10 +648,25 @@
       $('#wkNewDescription').value = '';
       $('#wkNewPriority').value = 'normal';
       $('#wkNewDueDate').value = '';
+      $('#wkNewTemplate').value = '';
+      SELECTED_TEMPLATE_ID = null;
+      $('#wkNewTemplateHint').textContent = '템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.';
       openModal('wkNewModal');
+      loadTemplatesIntoSelect();  // 첫 호출 시 템플릿 로드
       setTimeout(() => $('#wkNewTitle').focus(), 50);
     });
     $('#wkNewConfirm')?.addEventListener('click', createNewTask);
+    $('#wkNewTemplateApply')?.addEventListener('click', applySelectedTemplate);
+    $('#wkNewTemplate')?.addEventListener('change', () => {
+      // 사용자가 셀렉트 변경 시 hint만 업데이트, 적용은 버튼 또는 즉시 적용
+      const sel = $('#wkNewTemplate');
+      if (sel.value) {
+        $('#wkNewTemplateHint').textContent = '"적용" 버튼을 누르면 폼에 자동 입력됩니다.';
+      } else {
+        SELECTED_TEMPLATE_ID = null;
+        $('#wkNewTemplateHint').textContent = '템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.';
+      }
+    });
 
     // 카드 모달
     $('#wkCardSave')?.addEventListener('click', saveCardModal);

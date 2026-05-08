@@ -411,6 +411,15 @@
       <button class="wk-modal-close" data-close-modal="wkNewModal" type="button">✕</button>
     </header>
     <div class="wk-modal-body">
+      <label class="wk-field-label">📋 템플릿에서 시작 (선택)</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="wkNewTemplate" class="wk-input" style="flex:1">
+          <option value="">— 템플릿 없이 직접 입력 —</option>
+        </select>
+        <button type="button" id="wkNewTemplateApply" class="wk-btn-secondary" style="white-space:nowrap">적용</button>
+      </div>
+      <small class="wk-hint" id="wkNewTemplateHint">템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.</small>
+
       <label class="wk-field-label">제목 *</label>
       <input type="text" id="wkNewTitle" class="wk-input" maxlength="300">
 
@@ -448,7 +457,7 @@
 
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
-<script src="/js/workspace-kanban.js?v=4" defer></script>
+<script src="/js/workspace-kanban.js?v=5" defer></script>
 
 </body>
 </html>

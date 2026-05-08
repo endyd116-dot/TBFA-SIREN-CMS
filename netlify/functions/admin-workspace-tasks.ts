@@ -17,6 +17,7 @@ import { db } from "../../db";
 import {
   workspaceTasks,
   workspaceActivityLog,
+  workspaceTaskTemplates,
   members,
 } from "../../db/schema";
 import { eq, and, or, desc, asc, sql, lte, gte, isNull, isNotNull } from "drizzle-orm";
@@ -242,6 +243,45 @@ export default async (req: Request, _ctx: Context) => {
     if (req.method === "POST") {
       const body: any = await parseJson(req);
       if (!body) return badRequest("JSON body 필요");
+
+      // ★ Step 7-C.4 — 템플릿 적용 (사용자 입력이 우선, 빈 값만 템플릿으로 채움)
+      if (body.templateId) {
+        const tid = Number(body.templateId);
+        if (Number.isFinite(tid) && tid > 0) {
+          const [tmpl]: any = await db
+            .select()
+            .from(workspaceTaskTemplates)
+            .where(eq(workspaceTaskTemplates.id, tid))
+            .limit(1);
+          // 권한: 공유 또는 본인 또는 super_admin만 적용
+          const canUse = tmpl && (tmpl.isShared || tmpl.createdBy === meId || isSuperAdmin);
+          if (canUse) {
+            if (!body.description) body.description = tmpl.description || "";
+            if (!body.priority) body.priority = tmpl.priority || "normal";
+            if (body.estimatedHours == null && tmpl.estimatedHours != null) {
+              body.estimatedHours = tmpl.estimatedHours;
+            }
+            if (!body.tags || !body.tags.length) body.tags = tmpl.defaultTags || [];
+            const subtasks = Array.isArray(tmpl.defaultSubtasks) ? tmpl.defaultSubtasks : [];
+            if (subtasks.length && (!body.checklistItems || !body.checklistItems.length)) {
+              body.checklistItems = subtasks.map((s: any, i: number) => ({
+                id: `cl_${Date.now()}_${i}`,
+                text: String(s.text || "").slice(0, 200),
+                done: false,
+                doneAt: null,
+              }));
+            }
+            // usageCount++ (실패해도 무시)
+            try {
+              await db
+                .update(workspaceTaskTemplates)
+                .set({ usageCount: sql`${workspaceTaskTemplates.usageCount} + 1`, updatedAt: new Date() })
+                .where(eq(workspaceTaskTemplates.id, tid));
+            } catch (_) {}
+          }
+        }
+      }
+
       if (!body.title || typeof body.title !== "string") return badRequest("title 필수");
       if (!body.dueDate) return badRequest("dueDate 필수");
 
