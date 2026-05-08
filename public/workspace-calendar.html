@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>캘린더 - SIREN 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=4">
+<link rel="stylesheet" href="/css/workspace-calendar.css?v=1">
+</head>
+
+<body class="ws-body">
+
+<!-- 슬림 사이드바 -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li>
+          <a href="/workspace.html" title="대시보드">
+            <span class="ws-nav-icon">📊</span>
+            <span class="ws-nav-text">대시보드</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace-kanban.html" title="칸반">
+            <span class="ws-nav-icon">📋</span>
+            <span class="ws-nav-text">칸반</span>
+          </a>
+        </li>
+        <li class="ws-nav-active">
+          <a href="/workspace-calendar.html" title="캘린더">
+            <span class="ws-nav-icon">📅</span>
+            <span class="ws-nav-text">캘린더</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#my-tasks" title="내 작업">
+            <span class="ws-nav-icon">✅</span>
+            <span class="ws-nav-text">내 작업</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#inbox" title="지시받은 작업">
+            <span class="ws-nav-icon">📥</span>
+            <span class="ws-nav-text">지시함</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace.html#memos" title="메모">
+            <span class="ws-nav-icon">📝</span>
+            <span class="ws-nav-text">메모</span>
+          </a>
+        </li>
+        <li>
+          <a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함">
+            <span class="ws-nav-icon">📁</span>
+            <span class="ws-nav-text">파일함</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-hubs">
+      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
+      <ul>
+        <li><a href="/admin.html" title="SIREN 어드민"><span class="ws-nav-icon">🚨</span><span class="ws-nav-text">SIREN 어드민</span></a></li>
+        <li><a href="/cms-tbfa.html" title="TBFA CMS"><span class="ws-nav-icon">🏦</span><span class="ws-nav-text">TBFA CMS</span></a></li>
+      </ul>
+    </div>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
+      </a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- 메인 -->
+<main class="wc-main">
+  <header class="wc-header">
+    <div class="wc-header-left">
+      <h1 class="wc-title">📅 캘린더</h1>
+      <span class="wc-subtitle">작업 마감일 + 일정 통합 보기</span>
+    </div>
+    <div class="wc-header-right">
+      <label class="wc-filter-label">
+        <input type="checkbox" id="wcFilterTasks" checked> 작업 표시
+      </label>
+      <label class="wc-filter-label">
+        <input type="checkbox" id="wcFilterEvents" checked> 일정 표시
+      </label>
+      <select id="wcFilterScope" class="wc-select" aria-label="범위">
+        <option value="mine">내 항목만</option>
+        <option value="all">전체</option>
+      </select>
+      <button id="wcBtnRefresh" class="wc-btn-icon" type="button" title="새로고침">🔄</button>
+    </div>
+  </header>
+
+  <section class="wc-board">
+    <div id="wcCalendar" class="wc-calendar"></div>
+  </section>
+
+  <div id="wcLoading" class="wc-loading" style="display:none">불러오는 중...</div>
+</main>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 일정 상세 (간단)
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wcEventModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wcEventModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2 id="wcEventModalTitle">일정</h2>
+      <button class="wk-modal-close" data-close-modal="wcEventModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <div id="wcEventContent">
+        <p id="wcEventTime" class="wc-event-time"></p>
+        <p id="wcEventLocation" class="wc-event-loc"></p>
+        <p id="wcEventDesc" class="wc-event-desc"></p>
+      </div>
+    </div>
+    <footer class="wk-modal-footer">
+      <span class="wk-spacer"></span>
+      <button class="wk-btn-secondary" data-close-modal="wcEventModal" type="button">닫기</button>
+    </footer>
+  </div>
+</div>
+
+<div id="wcToastRoot" class="wk-toast-root"></div>
+
+<!-- FullCalendar 6 (3-tier CDN fallback) -->
+<script id="wcFcScript" src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/common.js?v=3"></script>
+<script src="/js/workspace-calendar.js?v=1" defer></script>
+
+</body>
+</html>
