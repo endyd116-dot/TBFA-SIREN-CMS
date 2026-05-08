@@ -51,18 +51,31 @@ export default async (req: Request, _ctx: Context) => {
       const statsFlag = url.searchParams.get("stats");
       const feedFlag = url.searchParams.get("feed");
 
-      // ─── 팀 활동 피드 ───
+      // ─── 팀 활동 피드 (전체 또는 task별, Step 7-C.1 확장) ───
       if (feedFlag === "1") {
         const limit = Math.min(Number(url.searchParams.get("limit") || 30), 100);
+        const taskIdRaw = url.searchParams.get("taskId");
+        const taskId = taskIdRaw ? Number(taskIdRaw) : null;
+
+        let conds: any;
+        if (taskId) {
+          // 특정 task의 활동 로그 — visibility 무관 (카드 모달 히스토리 탭용)
+          conds = and(
+            eq(workspaceActivityLog.targetType, "task"),
+            eq(workspaceActivityLog.targetId, taskId)
+          );
+        } else {
+          // 팀 피드 — 공개 또는 팀 visibility만
+          conds = or(
+            eq(workspaceActivityLog.visibility, "team"),
+            eq(workspaceActivityLog.visibility, "public")
+          );
+        }
+
         const feed: any = await db
           .select()
           .from(workspaceActivityLog)
-          .where(
-            or(
-              eq(workspaceActivityLog.visibility, "team"),
-              eq(workspaceActivityLog.visibility, "public")
-            )
-          )
+          .where(conds)
           .orderBy(desc(workspaceActivityLog.createdAt))
           .limit(limit);
         return ok({ items: feed });

@@ -1813,3 +1813,27 @@ export type NewWorkspaceTaskReport = typeof workspaceTaskReports.$inferInsert;
 export type WorkspaceTaskAttachment = typeof workspaceTaskAttachments.$inferSelect;
 export type NewWorkspaceTaskAttachment = typeof workspaceTaskAttachments.$inferInsert;
 
+// ═══════════════════════════════════════════════════════
+// Phase 3 Step 7-C — 업무 템플릿 (반복 업무 양식)
+// ═══════════════════════════════════════════════════════
+export const workspaceTaskTemplates = pgTable("workspace_task_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),                                      // 마크다운, 작업 description 기본값
+  priority: varchar("priority", { length: 20 }).default("normal").notNull(),
+  estimatedHours: numeric("estimated_hours", { precision: 5, scale: 1 }),
+  defaultSubtasks: jsonb("default_subtasks").default(sql`'[]'::jsonb`).notNull(),  // [{text, done:false}, ...]
+  defaultTags: jsonb("default_tags").default(sql`'[]'::jsonb`).notNull(),          // [tag1, tag2, ...]
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  usageCount: integer("usage_count").default(0).notNull(),
+  isShared: boolean("is_shared").default(true).notNull(),                // false면 본인만
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  nameIdx: index("task_templates_name_idx").on(t.name),
+  createdByIdx: index("task_templates_created_by_idx").on(t.createdBy),
+}));
+
+export type WorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferSelect;
+export type NewWorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferInsert;
+
