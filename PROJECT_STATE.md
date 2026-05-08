@@ -25,6 +25,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-09 | 메인 채팅 | worktree 분리 (`../tbfa-mis-A`, `../tbfa-mis-B`), §4.5·§6.5 추가 |
 | 2026-05-09 | main 채팅 | 5순위 #10 완료, PROJECT_STATE.md 신설 (구 PARALLEL_PLAN.md 흡수) |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
@@ -217,6 +218,18 @@ CREATE TABLE pending_donations (
 
 각 머지 전: `git fetch origin && git rebase origin/main` 충돌 해결.
 
+### 4.5 작업 환경 (worktree)
+
+| 채팅 호칭 | 작업 폴더 | 브랜치 | 작업 식별자 |
+|---|---|---|---|
+| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | (조율용) |
+| A 채팅 | `../tbfa-mis-A` | `feature/eligibility-change` | 작업 A (#6) |
+| B 채팅 | `../tbfa-mis-B` | `feature/csv-donation-mapping` | 작업 C (#15) |
+
+⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**
+⚠️ 메인 폴더(`tbfa-mis`)는 `main` 브랜치 전용, **직접 작업 X**
+⚠️ 같은 working directory 공유 **절대 X** (사고 사례 §6.5 참고)
+
 ---
 
 ## 5. 진행 상황 (직전 ~ 현재)
@@ -296,6 +309,14 @@ CREATE TABLE pending_donations (
 | Phase 19~22 | 품질·안정성 |
 
 → 6순위 3건 머지 후 별도 설계 세션에서 본 문서 v2 작성.
+
+### 6.5 worktree 사고 사례 (2026-05-09)
+
+병렬 작업 시 worktree 사용 필수.
+같은 working directory 공유 시 `git checkout`으로 인한 HEAD 변경 발생.
+
+**사고**: 2026-05-09 `b5167bf` → `0453071` cherry-pick 정리.
+**대응**: `../tbfa-mis-A`, `../tbfa-mis-B` 별도 폴더 사용 (§4.5).
 
 ---
 
