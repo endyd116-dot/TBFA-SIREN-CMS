@@ -25,11 +25,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-09 | 메인 채팅 | 작업 C 최종 머지 완료 — main에 반영 (705296d), schema 회귀 복구 검증 통과 |
 | 2026-05-09 | C 채팅 | 작업 C 95% — 마이그 success 8/8, 마이그 파일 삭제 완료, 사용자 검증 대기 |
 | 2026-05-09 | C 채팅 | 작업 C 마일스톤 1 — 백엔드+프론트 완성, 80% (마이그 호출 대기) |
 | 2026-05-09 | 메인 채팅 | 작업 A 머지 완료 — main에 반영 (91f4e2f) |
 | 2026-05-09 | A 채팅 | 작업 A ✅ 100% — 마이그 success 6/6, schema 활성화 + 마이그 파일 삭제, 메인 채팅 머지 대기 |
-| 2026-05-09 | A 채팅 | 작업 A 75% — 코드 완료(마이그+API4+프론트2+HTML/JS 라우터), 사용자 ?run=1 호출 대기 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -169,10 +169,10 @@ ALTER TABLE chat_rooms ADD COLUMN expert_id int REFERENCES members(id);
 |---|---|
 | 브랜치 | `feature/csv-donation-mapping` |
 | 베이스 | `origin/main` |
-| 진행률 | 🟢 95% — 마이그 success 8/8, 마이그 파일 삭제 완료, 사용자 검증 대기 |
-| 담당 채팅 | C (csv-mapping) |
+| 진행률 | 🟢 95% — main 머지 완료 (705296d), 사용자 검증 대기 → 검증 통과 시 100% |
+| 담당 채팅 | C (csv-mapping) → 메인 채팅(머지 완료) |
 | 예상 시간 | 10~13h |
-| 다음 할 일 | 사용자 검증(어드민 → CSV 자동 매핑 탭 → 효성/IBK CSV 업로드 → 자동 매칭 점수 확인 → 1건/일괄 확정) → 메인 채팅이 main 머지(최종) |
+| 다음 할 일 | 사용자 검증(어드민 → CSV 자동 매핑 탭 → 효성/IBK CSV 업로드 → 자동 매칭 점수 확인 → 1건/일괄 확정) → 검증 통과 시 ✅ 100% |
 
 **기존 인프라 활용**
 - `lib/hyosung-parser.ts` 존재 (Phase 1 완료) → 신규 ibk-parser와 인터페이스 통일
@@ -221,7 +221,8 @@ CREATE TABLE pending_donations (
 
 각 머지 전: `git fetch origin && git rebase origin/main` 충돌 해결.
 
-> ※ 2026-05-09: A가 마이그 호출을 위해 먼저 머지. 실제 순서: A → B
+> ※ 2026-05-09: A 먼저 머지(91f4e2f) → B 머지 완료(705296d). 실제 순서: A → B (둘 다 main 안착, 사용자 검증 진행 중)
+> ※ B 1차 push에서 schema 회귀(A의 eligibilityType + eligibilityChangeRequests 삭제) 발견 → 메인 채팅이 push 보류 → B가 fix(schema) 커밋(b45d0fa)으로 복구 후 재머지·검증 통과. 교훈: schema.ts는 append-only + 본인 섹션 헤더(CLAUDE.md §6.3) 엄격 준수
 
 ### 4.5 작업 환경 (worktree)
 
