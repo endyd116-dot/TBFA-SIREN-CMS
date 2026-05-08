@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>템플릿 - SIREN 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=5">
+<link rel="stylesheet" href="/css/workspace-kanban.css?v=3">
+<link rel="stylesheet" href="/css/workspace-templates.css?v=1">
+</head>
+
+<body class="ws-body">
+
+<!-- 슬림 사이드바 -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li><a href="/workspace.html" title="대시보드"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">대시보드</span></a></li>
+        <li><a href="/workspace-kanban.html" title="칸반"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">칸반</span></a></li>
+        <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+        <li class="ws-nav-active"><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+        <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-hubs">
+      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
+      <ul>
+        <li><a href="/admin.html" title="SIREN 어드민"><span class="ws-nav-icon">🚨</span><span class="ws-nav-text">SIREN 어드민</span></a></li>
+        <li><a href="/cms-tbfa.html" title="TBFA CMS"><span class="ws-nav-icon">🏦</span><span class="ws-nav-text">TBFA CMS</span></a></li>
+      </ul>
+    </div>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" id="wsSidebarUser"><span class="ws-user-avatar">👤</span><span class="ws-nav-text" id="wsSidebarUserName">사용자</span></a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃"><span class="ws-nav-icon">🚪</span><span class="ws-nav-text">로그아웃</span></button>
+    </div>
+  </div>
+</aside>
+
+<main class="wt-main">
+  <header class="wt-header">
+    <div class="wt-header-left">
+      <h1 class="wt-title">📑 업무 템플릿</h1>
+      <span class="wt-subtitle">반복 업무 양식을 저장해 새 작업 생성을 빠르게</span>
+    </div>
+    <div class="wt-header-right">
+      <input type="search" id="wtSearch" class="wt-search" placeholder="이름·설명 검색...">
+      <select id="wtFilter" class="wt-select">
+        <option value="all">전체 템플릿</option>
+        <option value="shared">공유만</option>
+        <option value="mine">내 템플릿</option>
+      </select>
+      <button id="wtBtnNew" class="wt-btn-primary" type="button">＋ 새 템플릿</button>
+    </div>
+  </header>
+
+  <section class="wt-board">
+    <ul class="wt-list" id="wtList">
+      <li class="wt-loading">불러오는 중...</li>
+    </ul>
+  </section>
+</main>
+
+<!-- 신규/편집 모달 -->
+<div class="wk-modal" id="wtEditModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wtEditModal"></div>
+  <div class="wk-modal-dialog">
+    <header class="wk-modal-header">
+      <h2 id="wtEditTitle">새 템플릿</h2>
+      <button class="wk-modal-close" data-close-modal="wtEditModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="wtEditId">
+
+      <label class="wk-field-label">이름 *</label>
+      <input type="text" id="wtEditName" class="wk-input" maxlength="200" placeholder="예: 월간 후원 보고서 작성">
+
+      <label class="wk-field-label">설명 (마크다운)</label>
+      <textarea id="wtEditDescription" class="wk-textarea" rows="4" placeholder="작업 description의 기본값으로 들어갑니다"></textarea>
+
+      <div class="wk-row">
+        <div class="wk-col">
+          <label class="wk-field-label">기본 우선순위</label>
+          <select id="wtEditPriority" class="wk-input">
+            <option value="urgent">🔴 긴급</option>
+            <option value="high">🟠 높음</option>
+            <option value="normal" selected>🟢 보통</option>
+            <option value="low">⚪ 낮음</option>
+          </select>
+        </div>
+        <div class="wk-col">
+          <label class="wk-field-label">기본 예상 시간 (h)</label>
+          <input type="number" id="wtEditEstHours" class="wk-input" step="0.5" min="0">
+        </div>
+      </div>
+
+      <label class="wk-field-label">기본 체크리스트 (한 줄에 하나씩)</label>
+      <textarea id="wtEditSubtasks" class="wk-textarea" rows="4" placeholder="자료 수집&#10;초안 작성&#10;검토 요청&#10;최종 발송"></textarea>
+
+      <label class="wk-field-label">기본 태그 (쉼표 구분)</label>
+      <input type="text" id="wtEditTags" class="wk-input" placeholder="예: 운영, 월간, 외부보고">
+
+      <label style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px">
+        <input type="checkbox" id="wtEditShared" checked>
+        🌐 공유 템플릿 (다른 운영자도 사용 가능)
+      </label>
+    </div>
+    <footer class="wk-modal-footer">
+      <button id="wtEditDelete" class="wk-btn-danger" type="button" style="display:none">🗑 삭제</button>
+      <span class="wk-spacer"></span>
+      <button class="wk-btn-secondary" data-close-modal="wtEditModal" type="button">취소</button>
+      <button id="wtEditSave" class="wk-btn-primary" type="button">저장</button>
+    </footer>
+  </div>
+</div>
+
+<div id="wtToastRoot" class="wk-toast-root"></div>
+
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/common.js?v=3"></script>
+<script src="/js/workspace-templates.js?v=1" defer></script>
+
+</body>
+</html>
