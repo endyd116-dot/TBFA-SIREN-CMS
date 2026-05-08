@@ -756,6 +756,165 @@
 })();
 
 /* ═══════════════════════════════════════════════════════
+   통합 검색 (Phase 3 Step 7-C.4.b.2)
+   tasks(q) + memos(q) + files(search) → dropdown
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  const wrap = document.getElementById('wsSearchWrap');
+  const input = document.getElementById('wsSearchInput');
+  const results = document.getElementById('wsSearchResults');
+  if (!wrap || !input || !results) return;
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+  function formatSize(b) {
+    const n = Number(b);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 1024) return n + 'B';
+    if (n < 1048576) return (n / 1024).toFixed(0) + 'KB';
+    return (n / 1048576).toFixed(1) + 'MB';
+  }
+
+  let searchTimer;
+  let lastQuery = '';
+
+  function open() { results.hidden = false; }
+  function close() { results.hidden = true; }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) { close(); return; }
+    searchTimer = setTimeout(() => runSearch(q), 300);
+  });
+  input.addEventListener('focus', () => {
+    if (input.value.trim()) open();
+  });
+
+  // 외부 클릭 닫기
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) close();
+  });
+  // ESC 닫기
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !results.hidden) {
+      close();
+      input.blur();
+    }
+    // Ctrl+K / Cmd+K 단축키
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  async function runSearch(q) {
+    if (q === lastQuery) return;
+    lastQuery = q;
+    open();
+    results.innerHTML = '<div class="ws-search-loading">검색 중...</div>';
+
+    const [tasks, memos, files] = await Promise.allSettled([
+      fetchTasks(q),
+      fetchMemos(q),
+      fetchFiles(q),
+    ]);
+
+    const taskList = tasks.status === 'fulfilled' ? tasks.value : [];
+    const memoList = memos.status === 'fulfilled' ? memos.value : [];
+    const fileList = files.status === 'fulfilled' ? files.value : [];
+
+    if (q !== lastQuery) return;  // 더 새로운 검색이 도착했으면 무시
+
+    if (!taskList.length && !memoList.length && !fileList.length) {
+      results.innerHTML = '<div class="ws-search-empty">"' + escapeHtml(q) + '"에 대한 결과가 없습니다.</div>';
+      return;
+    }
+
+    const sections = [];
+    if (taskList.length) {
+      sections.push(`<div class="ws-search-section">
+        <div class="ws-search-section-title">📋 작업 (${taskList.length})</div>
+        ${taskList.slice(0, 8).map(t => `
+          <div class="ws-search-item" data-href="/workspace-kanban.html#task=${t.id}">
+            <span class="ws-search-item-icon">${t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : t.priority === 'low' ? '⚪' : '🟢'}</span>
+            <span class="ws-search-item-title">${escapeHtml(t.title || '')}</span>
+            <span class="ws-search-item-meta">${escapeHtml(t.status || '')}</span>
+          </div>
+        `).join('')}
+      </div>`);
+    }
+    if (memoList.length) {
+      sections.push(`<div class="ws-search-section">
+        <div class="ws-search-section-title">📝 메모 (${memoList.length})</div>
+        ${memoList.slice(0, 5).map(m => `
+          <div class="ws-search-item" data-href="/workspace.html#memos">
+            <span class="ws-search-item-icon">📝</span>
+            <span class="ws-search-item-title">${escapeHtml((m.title || '(제목 없음)').slice(0, 80))}</span>
+            <span class="ws-search-item-meta">${m.isPinned ? '📌' : ''}</span>
+          </div>
+        `).join('')}
+      </div>`);
+    }
+    if (fileList.length) {
+      sections.push(`<div class="ws-search-section">
+        <div class="ws-search-section-title">📎 파일 (${fileList.length})</div>
+        ${fileList.slice(0, 8).map(f => `
+          <div class="ws-search-item" data-href="/workspace-files.html?search=${encodeURIComponent(q)}">
+            <span class="ws-search-item-icon">📄</span>
+            <span class="ws-search-item-title">${escapeHtml(f.name || '')}</span>
+            <span class="ws-search-item-meta">${escapeHtml(formatSize(f.sizeBytes))}</span>
+          </div>
+        `).join('')}
+      </div>`);
+    }
+    results.innerHTML = sections.join('');
+
+    results.querySelectorAll('[data-href]').forEach(el => {
+      el.addEventListener('click', () => {
+        location.href = el.dataset.href;
+      });
+    });
+  }
+
+  async function fetchTasks(q) {
+    try {
+      const res = await fetch(`/api/admin-workspace-tasks?list=1&mine=1&q=${encodeURIComponent(q)}&limit=10`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data?.items || json.items || [];
+    } catch (_) { return []; }
+  }
+  async function fetchMemos(q) {
+    try {
+      const res = await fetch(`/api/admin-workspace-memos?q=${encodeURIComponent(q)}&limit=10`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data?.items || json.items || [];
+    } catch (_) { return []; }
+  }
+  async function fetchFiles(q) {
+    try {
+      const res = await fetch(`/api/admin-workspace-files?search=${encodeURIComponent(q)}&limit=10`, {
+        credentials: 'include',
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data?.items || json.items || [];
+    } catch (_) { return []; }
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════
    우선 작업 TOP 5 미니 위젯 (Phase 3 Step 7-A 하이브리드)
 ═══════════════════════════════════════════════════════ */
 (function () {

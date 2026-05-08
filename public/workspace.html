@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 CSS -->
-<link rel="stylesheet" href="/css/workspace.css?v=4">
+<link rel="stylesheet" href="/css/workspace.css?v=5">
 </head>
 
 <body class="ws-body">
@@ -146,6 +146,13 @@
     <div class="ws-topbar-left">
       <h1 class="ws-page-title">📅 워크스페이스</h1>
       <span class="ws-greeting" id="wsGreeting">안녕하세요 👋</span>
+    </div>
+
+    <!-- 통합 검색 (Step 7-C.4.b.2) -->
+    <div class="ws-search-wrap" id="wsSearchWrap">
+      <input type="search" id="wsSearchInput" class="ws-search-input"
+             placeholder="🔍 작업·일정·메모·파일 통합 검색 (Ctrl+K)" autocomplete="off">
+      <div class="ws-search-results" id="wsSearchResults" hidden></div>
     </div>
     <div class="ws-topbar-right">
       <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task">
@@ -411,6 +418,6 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace.js?v=4" defer></script>
+<script src="/js/workspace.js?v=5" defer></script>
 </body>
 </html>

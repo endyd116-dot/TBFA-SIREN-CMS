@@ -326,6 +326,84 @@ body.ws-body {
 .ws-ai-medium { font-weight: 500; }
 .ws-ai-low { color: var(--ws-text-3); }
 
+/* ═══ 통합 검색 (Phase 3 Step 7-C.4) ═══ */
+.ws-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 16px;
+}
+.ws-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.ws-search-input:focus { border-color: #2563eb; }
+.ws-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 460px;
+  overflow-y: auto;
+  z-index: 100;
+  padding: 8px 0;
+}
+.ws-search-section {
+  padding: 4px 0 8px;
+}
+.ws-search-section + .ws-search-section {
+  border-top: 1px solid #f3f4f6;
+}
+.ws-search-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 14px 4px;
+}
+.ws-search-item {
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #111827;
+}
+.ws-search-item:hover { background: #f3f4f6; }
+.ws-search-item-icon { font-size: 15px; flex-shrink: 0; }
+.ws-search-item-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-search-item-meta {
+  font-size: 11px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+.ws-search-empty,
+.ws-search-loading {
+  padding: 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  font-style: italic;
+}
+
 /* ═══ 우선 작업 TOP 5 미니 위젯 (Phase 3 Step 7-A 하이브리드) ═══ */
 .ws-priority-widget {
   padding: 0 28px 16px;
