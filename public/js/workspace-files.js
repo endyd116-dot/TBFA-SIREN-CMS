@@ -337,7 +337,7 @@
           <td class="wf-col-name">${escapeHtml(f.name)}${shareIcon}</td>
           <td class="wf-col-owner">${escapeHtml(ownerName)}</td>
           <td class="wf-col-size">${formatSize(f.sizeBytes)}</td>
-          <td class="wf-col-date">${formatDate(f.updatedAt || f.createdAt)}</td>
+          <td class="wf-col-date">${isTrash ? renderDday(f.deletedAt) : formatDate(f.updatedAt || f.createdAt)}</td>
           <td class="wf-col-actions">
             <div class="wf-row-actions">
               ${isTrash ? `
@@ -404,9 +404,11 @@
   function updateBulkButtons() {
     const zipBtn = document.getElementById('wfBtnZipDownload');
     const delBtn = document.getElementById('wfBtnDelete');
+    const restoreBtn = document.getElementById('wfBtnRestoreAll');
     const hasSelection = state.selectedFileIds.size > 0;
     if (zipBtn) zipBtn.disabled = !hasSelection;
     if (delBtn) delBtn.disabled = !hasSelection;
+    if (restoreBtn) restoreBtn.disabled = !hasSelection;
   }
 
   /* ───────── 파일 액션 ───────── */
@@ -417,7 +419,7 @@
       case 'download': await downloadFile(fileId); break;
       case 'rename':   openRenameModal('file', fileId, file.name); break;
       case 'delete':
-        if (!confirm(`"${file.name}" 파일을 휴지통으로 이동하시겠습니까?`)) return;
+        if (!confirm(`"${file.name}" 파일을 휴지통으로 이동하시겠습니까?\n\n📅 30일 후 자동으로 영구 삭제됩니다.\n그 전까지는 휴지통에서 ↩ 복원할 수 있습니다.`)) return;
         await deleteFile(fileId); break;
       case 'share':    openShareModal('file', fileId, file.name); break;
       case 'restore':
@@ -464,7 +466,7 @@
 
   async function purgeFile(fileId) {
     try {
-      await api(`/api/admin-workspace-files?fileId=${fileId}&purge=1`, { method: 'DELETE' });
+      await api(`/api/admin-workspace-file-purge?fileId=${fileId}`, { method: 'DELETE' });
       toast('영구 삭제됨', 'success');
       closeModal('wfDeleteConfirmModal');
       await loadFiles();
@@ -592,7 +594,7 @@
   }
 
   async function deleteFolder(id, name) {
-    if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n(폴더 내 모든 파일도 함께 이동)`)) return;
+    if (!confirm(`폴더 "${name}"을(를) 휴지통으로 이동하시겠습니까?\n폴더 내 모든 파일도 함께 이동됩니다.\n\n📅 30일 후 자동으로 영구 삭제됩니다.`)) return;
     try {
       await api(`/api/admin-workspace-folders?folderId=${id}`, { method: 'DELETE' });
       toast('폴더가 휴지통으로 이동됨', 'success');
@@ -768,14 +770,73 @@
 
   function openPurgeConfirm(type, id, name) {
     const detail = document.getElementById('wfDeleteConfirmDetail');
-    if (detail) detail.innerHTML = `<strong>${escapeHtml(name)}</strong> ${type === 'folder' ? '폴더' : '파일'}`;
+    if (detail) {
+      detail.innerHTML = `
+        <div style="margin-bottom:10px;font-size:14px;">
+          <strong>${escapeHtml(name)}</strong> ${type === 'folder' ? '폴더' : '파일'}
+        </div>
+        <div class="wf-purge-warning">
+          <strong style="color:#991b1b;font-size:13px;">영구 삭제하면 다음과 같이 처리됩니다:</strong>
+          <ul>
+            <li class="danger">✗ 복원할 수 없습니다</li>
+            <li class="danger">✗ R2 저장소에서도 완전히 제거됩니다</li>
+            ${type === 'folder' ? '<li class="danger">✗ 폴더 안 모든 파일이 함께 영구 삭제됩니다</li>' : ''}
+            <li class="info">✓ 삭제 내역만 감사 로그에 남습니다</li>
+          </ul>
+        </div>
+      `;
+    }
     const btn = document.getElementById('wfBtnConfirmDelete');
     if (btn) {
       btn.onclick = () => {
         if (type === 'file') purgeFile(id);
+        else if (type === 'folder') purgeFolder(id);
       };
     }
     openModal('wfDeleteConfirmModal');
+  }
+
+  async function purgeFolder(folderId) {
+    try {
+      const res = await api(`/api/admin-workspace-folder-purge?folderId=${folderId}`, { method: 'DELETE' });
+      const d = res.data || {};
+      toast(`영구 삭제 완료 (폴더 ${d.foldersDeleted || 1}개, 파일 ${d.filesDeleted || 0}개)`, 'success');
+      closeModal('wfDeleteConfirmModal');
+      await loadFolders();
+      await loadFiles();
+    } catch (err) {
+      toast('폴더 영구 삭제 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* D-day 계산 (휴지통 모드) */
+  function renderDday(deletedAt) {
+    if (!deletedAt) return '-';
+    const deleted = new Date(deletedAt);
+    if (isNaN(deleted.getTime())) return '-';
+    const purgeDate = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const remainingMs = purgeDate.getTime() - Date.now();
+    const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+    if (remainingDays <= 0) return '<span class="wf-dday-urgent">곧 삭제</span>';
+    const cls = remainingDays <= 7 ? 'wf-dday-urgent' : (remainingDays <= 14 ? 'wf-dday-warn' : 'wf-dday-safe');
+    return `<span class="${cls}">D-${remainingDays}</span>`;
+  }
+
+  /* 일괄 복원 (휴지통 모드) */
+  async function bulkRestore() {
+    if (!state.selectedFileIds.size) return;
+    if (!confirm(`선택된 ${state.selectedFileIds.size}개 파일을 복원하시겠습니까?`)) return;
+    let success = 0, failed = 0;
+    for (const fid of state.selectedFileIds) {
+      try {
+        await api('/api/admin-workspace-files', { method: 'PATCH', body: { fileId: fid, action: 'restore' } });
+        success++;
+      } catch (err) { failed++; console.error('bulk restore:', err); }
+    }
+    state.selectedFileIds.clear();
+    updateBulkButtons();
+    toast(`복원 ${success}건${failed > 0 ? ` / 실패 ${failed}건` : ''}`, success > 0 ? 'success' : 'error');
+    await loadFiles();
   }
 
   /* ───────── 우클릭 컨텍스트 메뉴 ───────── */
@@ -1085,8 +1146,69 @@
     document.querySelectorAll('.wf-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.view === view);
     });
+    applyTrashModeUI(view === 'trash');
     updateBulkButtons();
     loadFiles();
+  }
+
+  function applyTrashModeUI(isTrash) {
+    /* 1. 안내 배너 */
+    let banner = document.getElementById('wfTrashBanner');
+    if (isTrash) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'wfTrashBanner';
+        banner.className = 'wf-trash-banner';
+        banner.innerHTML = `
+          <span style="font-size:20px;">⚠️</span>
+          <div>
+            <strong>휴지통 안내</strong>
+            <p style="margin:0;font-size:12px;line-height:1.5;">
+              휴지통의 항목은 <strong>삭제 후 30일</strong>이 지나면 자동으로 영구 삭제됩니다.<br />
+              복원하려면 기한 내에 ↩ 복원 버튼을 눌러주세요.
+            </p>
+          </div>
+        `;
+        const bc = document.getElementById('wfBreadcrumb');
+        if (bc && bc.parentNode) bc.parentNode.insertBefore(banner, bc.nextSibling);
+      }
+      banner.style.display = 'flex';
+    } else if (banner) {
+      banner.style.display = 'none';
+    }
+
+    /* 2. 일괄 복원 버튼 (휴지통일 때만) */
+    let restoreBtn = document.getElementById('wfBtnRestoreAll');
+    const delBtn = document.getElementById('wfBtnDelete');
+    if (isTrash) {
+      if (!restoreBtn && delBtn && delBtn.parentNode) {
+        restoreBtn = document.createElement('button');
+        restoreBtn.id = 'wfBtnRestoreAll';
+        restoreBtn.className = 'wf-btn wf-btn-default';
+        restoreBtn.disabled = true;
+        restoreBtn.innerHTML = '↩ 일괄 복원';
+        restoreBtn.addEventListener('click', bulkRestore);
+        delBtn.parentNode.insertBefore(restoreBtn, delBtn);
+      }
+      if (restoreBtn) restoreBtn.style.display = '';
+    } else if (restoreBtn) {
+      restoreBtn.style.display = 'none';
+    }
+
+    /* 3. ZIP 버튼은 휴지통에서 숨김 */
+    const zipBtn = document.getElementById('wfBtnZipDownload');
+    if (zipBtn) zipBtn.style.display = isTrash ? 'none' : '';
+
+    /* 4. [🗑 삭제] 버튼 → [✕ 일괄 영구 삭제]로 변경 */
+    if (delBtn) {
+      if (isTrash) {
+        delBtn.innerHTML = '✕ 일괄 영구 삭제';
+        delBtn.dataset.bulkMode = 'purge';
+      } else {
+        delBtn.innerHTML = '🗑 삭제';
+        delBtn.dataset.bulkMode = 'trash';
+      }
+    }
   }
 
   /* ───────── 이벤트 바인딩 ───────── */
@@ -1131,14 +1253,22 @@
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
         if (!state.selectedFileIds.size) return;
-        if (!confirm(`선택된 ${state.selectedFileIds.size}개 파일을 휴지통으로 이동하시겠습니까?`)) return;
+        const isPurge = btnDelete.dataset.bulkMode === 'purge';
+        const msg = isPurge
+          ? `선택된 ${state.selectedFileIds.size}개 파일을 영구 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\n⚠️ R2 저장소에서도 완전히 제거됩니다.`
+          : `선택된 ${state.selectedFileIds.size}개 파일을 휴지통으로 이동하시겠습니까?\n\n📅 30일 후 자동으로 영구 삭제됩니다.`;
+        if (!confirm(msg)) return;
+        let success = 0, failed = 0;
         for (const fid of state.selectedFileIds) {
-          try { await api(`/api/admin-workspace-files?fileId=${fid}`, { method: 'DELETE' }); }
-          catch (err) { console.error('bulk delete:', err); }
+          try {
+            if (isPurge) await api(`/api/admin-workspace-file-purge?fileId=${fid}`, { method: 'DELETE' });
+            else await api(`/api/admin-workspace-files?fileId=${fid}`, { method: 'DELETE' });
+            success++;
+          } catch (err) { failed++; console.error('bulk delete:', err); }
         }
         state.selectedFileIds.clear();
         updateBulkButtons();
-        toast('선택 항목 삭제 완료', 'success');
+        toast(`${isPurge ? '영구 삭제' : '휴지통 이동'} ${success}건${failed > 0 ? ` / 실패 ${failed}건` : ''}`, success > 0 ? 'success' : 'error');
         await loadFiles();
       });
     }
@@ -1258,7 +1388,7 @@
     try {
       await Promise.all([loadFolders(), loadMembers()]);
       await loadFiles();
-      console.log('[workspace-files] Step 7 초기화 완료');
+      console.log('[workspace-files] Step 8 초기화 완료');
     } catch (err) {
       console.error('[workspace-files] 초기화 실패:', err);
     }
