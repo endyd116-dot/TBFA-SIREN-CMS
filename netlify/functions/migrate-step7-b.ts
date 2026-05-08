@@ -21,7 +21,18 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
 const QUERIES: string[] = [
-  // workspace_task_comments
+  // ─── Step 7-A: workspace_tasks 컬럼 9개 (이전 마이그레이션 실패로 재실행) ───
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS estimated_hours numeric(5,1)`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS actual_hours numeric(5,1)`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS hold_reason text`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS hold_started_at timestamp`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS archived_at timestamp`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS bookmarked_by jsonb DEFAULT '[]'::jsonb`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS ai_summary text`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS ai_risk_score integer`,
+  `ALTER TABLE workspace_tasks ADD COLUMN IF NOT EXISTS ai_risk_updated_at timestamp`,
+
+  // ─── Step 7-B: workspace_task_comments ───
   `CREATE TABLE IF NOT EXISTS workspace_task_comments (
     id serial PRIMARY KEY,
     task_id integer NOT NULL REFERENCES workspace_tasks(id) ON DELETE CASCADE,
