@@ -1,12 +1,6 @@
 /**
  * GET /api/admin-donations-export
- *
- * 수납내역 엑셀 내보내기 (효성 양식 28컬럼)
- *
- * 안정성: JOIN 체인 대신 separate query + JS map 매칭.
- *
- * 필터: type, status, from, to
- * 응답: { items: [...28컬럼...], total }
+ * 수납내역 엑셀 내보내기 — 단계별 진단 강화 버전.
  */
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
@@ -15,26 +9,15 @@ import {
 } from "../../db/schema";
 import { eq, and, gte, lte, desc, inArray, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import { ok, methodNotAllowed } from "../../lib/response";
-import { logAudit } from "../../lib/audit";
 
-const TYPE_KR: Record<string, string> = {
-  regular: "정기후원",
-  onetime: "일시후원",
-};
+const TYPE_KR: Record<string, string> = { regular: "정기후원", onetime: "일시후원" };
 const STATUS_KR: Record<string, string> = {
-  pending: "대기",
-  completed: "완료",
-  failed: "실패",
-  cancelled: "취소",
-  refunded: "환불",
+  pending: "대기", completed: "완료", failed: "실패", cancelled: "취소", refunded: "환불",
 };
 const MEMBER_TYPE_KR: Record<string, string> = {
-  regular: "일반",
-  family: "유가족",
-  volunteer: "봉사자",
-  admin: "관리자",
+  regular: "일반", family: "유가족", volunteer: "봉사자", admin: "관리자",
 };
+
 function payMethodKr(method: string | null | undefined, isHyosung: boolean): string {
   if (isHyosung) return "CMS";
   const m = (method || "").toLowerCase();
@@ -43,26 +26,46 @@ function payMethodKr(method: string | null | undefined, isHyosung: boolean): str
   if (m.includes("cms") || m.includes("hyosung")) return "CMS";
   return method || "";
 }
-function toYM(d: Date | string | null | undefined): string {
+function toYM(d: any): string {
   if (!d) return "";
   const dt = d instanceof Date ? d : new Date(d);
   if (isNaN(dt.getTime())) return "";
   return `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
 }
-function toYMD(d: Date | string | null | undefined): string {
+function toYMD(d: any): string {
   if (!d) return "";
   const dt = d instanceof Date ? d : new Date(d);
   if (isNaN(dt.getTime())) return "";
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 }
 
-export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "GET") return methodNotAllowed();
+function jsonError(step: string, err: any) {
+  const message = err?.message || String(err);
+  const stack = err?.stack ? String(err.stack).slice(0, 1000) : null;
+  console.error(`[donations-export][${step}]`, err);
+  return new Response(JSON.stringify({
+    ok: false,
+    error: "수납내역 내보내기 실패",
+    step,
+    detail: message.slice(0, 500),
+    stack,
+  }, null, 2), { status: 500, headers: { "Content-Type": "application/json" } });
+}
 
-  const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
-  const adminMember = auth.ctx.member as any;
-  const meId = adminMember.id as number;
+export default async (req: Request, _ctx: Context) => {
+  if (req.method !== "GET") {
+    return new Response(JSON.stringify({ ok: false, error: "GET 만 허용" }),
+      { status: 405, headers: { "Content-Type": "application/json" } });
+  }
+
+  /* Step 1: 인증 */
+  let auth;
+  try {
+    auth = await requireAdmin(req);
+    if (!auth.ok) return auth.res;
+  } catch (err: any) {
+    return jsonError("auth", err);
+  }
 
   const url = new URL(req.url);
   const type = url.searchParams.get("type") || "";
@@ -70,8 +73,9 @@ export default async (req: Request, _ctx: Context) => {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
+  /* Step 2: donations SELECT */
+  let donationRows: any[] = [];
   try {
-    /* ─── 1. donations SELECT ─── */
     const conds: any[] = [];
     if (type === "regular" || type === "onetime") {
       conds.push(eq(donations.type, type as any));
@@ -91,47 +95,88 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
 
-    const donationRows: any = await db
-      .select()
+    donationRows = await db
+      .select({
+        id: donations.id,
+        memberId: donations.memberId,
+        donorName: donations.donorName,
+        donorPhone: donations.donorPhone,
+        amount: donations.amount,
+        type: donations.type,
+        payMethod: donations.payMethod,
+        status: donations.status,
+        memo: donations.memo,
+        failureReason: donations.failureReason,
+        createdAt: donations.createdAt,
+        updatedAt: donations.updatedAt,
+        hyosungContractNo: donations.hyosungContractNo,
+      })
       .from(donations)
       .where(conds.length ? and(...conds) : undefined)
       .orderBy(desc(donations.createdAt))
       .limit(5000);
+  } catch (err: any) {
+    return jsonError("select_donations", err);
+  }
 
-    if (!donationRows.length) {
-      return ok({ items: [], total: 0 });
+  if (!donationRows.length) {
+    return new Response(JSON.stringify({ ok: true, data: { items: [], total: 0 } }),
+      { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
+  /* Step 3: 보조 SELECT (실패해도 빈 배열로 계속) */
+  const memberIds = Array.from(new Set(donationRows.map((d) => d.memberId).filter(Boolean)));
+  const donationIds = donationRows.map((d) => d.id);
+
+  let memberRows: any[] = [];
+  try {
+    if (memberIds.length) {
+      memberRows = await db
+        .select({
+          id: members.id,
+          name: members.name,
+          phone: members.phone,
+          type: members.type,
+        })
+        .from(members)
+        .where(inArray(members.id, memberIds as any));
     }
+  } catch (err: any) {
+    console.warn("[donations-export][select_members] 실패, 빈:", err?.message);
+    memberRows = [];
+  }
 
-    /* ─── 2. 관련 데이터 SELECT (필요한 ID만) ─── */
-    const memberIds = Array.from(new Set(donationRows.map((d: any) => d.memberId).filter(Boolean)));
-    const donationIds = donationRows.map((d: any) => d.id);
+  let billingRows: any[] = [];
+  try {
+    if (donationIds.length) {
+      billingRows = await db
+        .select()
+        .from(hyosungBillings)
+        .where(inArray(hyosungBillings.linkedDonationId, donationIds as any));
+    }
+  } catch (err: any) {
+    console.warn("[donations-export][select_billings] 실패, 빈:", err?.message);
+    billingRows = [];
+  }
 
-    const memberRows: any = memberIds.length
-      ? await db
-          .select({
-            id: members.id,
-            name: members.name,
-            phone: members.phone,
-            type: members.type,
-          })
-          .from(members)
-          .where(inArray(members.id, memberIds as any))
-      : [];
-
-    const billingRows: any = donationIds.length
-      ? await db
-          .select()
-          .from(hyosungBillings)
-          .where(inArray(hyosungBillings.linkedDonationId, donationIds as any))
-      : [];
-
-    const contractRows: any = await db
-      .select()
+  let contractRows: any[] = [];
+  try {
+    contractRows = await db
+      .select({
+        memberNo: hyosungContracts.memberNo,
+        managerName: hyosungContracts.managerName,
+        promiseDay: hyosungContracts.promiseDay,
+      })
       .from(hyosungContracts)
       .where(isNotNull(hyosungContracts.memberNo))
       .limit(10000);
+  } catch (err: any) {
+    console.warn("[donations-export][select_contracts] 실패, 빈:", err?.message);
+    contractRows = [];
+  }
 
-    /* ─── 3. JS map 매칭 ─── */
+  /* Step 4: 매핑 */
+  try {
     const memberById: Record<number, any> = {};
     for (const m of memberRows) memberById[m.id] = m;
 
@@ -145,7 +190,6 @@ export default async (req: Request, _ctx: Context) => {
       if (c.memberNo) contractByMemberNo[c.memberNo] = c;
     }
 
-    /* ─── 4. 28컬럼 매핑 ─── */
     const items = donationRows.map((d: any, idx: number) => {
       const m = d.memberId ? memberById[d.memberId] : null;
       const b = billingByDonationId[d.id] || null;
@@ -176,22 +220,14 @@ export default async (req: Request, _ctx: Context) => {
         "청구금액": Number((b && b.billingAmount) ?? amount),
         "공급가액": Number((b && b.supplyAmount) ?? amount),
         "부가세": Number((b && b.vatAmount) ?? 0),
-        "수납금액": Number(
-          b && b.receivedAmount != null ? b.receivedAmount :
-          (dStatus === "completed" ? amount : 0)
-        ),
-        "미납금액": Number(
-          b && b.unpaidAmount != null ? b.unpaidAmount :
-          (["pending", "failed"].includes(dStatus) ? amount : 0)
-        ),
-        "취소금액": Number(
-          b && b.cancelAmount != null ? b.cancelAmount :
-          (dStatus === "cancelled" ? amount : 0)
-        ),
-        "환불금액": Number(
-          b && b.refundAmount != null ? b.refundAmount :
-          (dStatus === "refunded" ? amount : 0)
-        ),
+        "수납금액": Number(b && b.receivedAmount != null ? b.receivedAmount :
+          (dStatus === "completed" ? amount : 0)),
+        "미납금액": Number(b && b.unpaidAmount != null ? b.unpaidAmount :
+          (["pending", "failed"].includes(dStatus) ? amount : 0)),
+        "취소금액": Number(b && b.cancelAmount != null ? b.cancelAmount :
+          (dStatus === "cancelled" ? amount : 0)),
+        "환불금액": Number(b && b.refundAmount != null ? b.refundAmount :
+          (dStatus === "refunded" ? amount : 0)),
         "청구완납일자": b && b.billingCompletionDate
           ? toYMD(b.billingCompletionDate)
           : (dStatus === "completed" ? toYMD(d.updatedAt) : ""),
@@ -202,25 +238,12 @@ export default async (req: Request, _ctx: Context) => {
       };
     });
 
-    await logAudit({
-      userId: meId, userType: "admin", userName: adminMember.name,
-      action: "donations.export",
-      target: `count:${items.length}`,
-      detail: { type, status, from, to, count: items.length },
-      req,
-    });
-
-    return ok({ items, total: items.length });
+    return new Response(JSON.stringify({
+      ok: true,
+      data: { items, total: items.length },
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
-    console.error("[admin-donations-export]", err);
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "수납내역 내보내기 실패",
-        detail: String(err?.message || err).slice(0, 500),
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return jsonError("map", err);
   }
 };
 
