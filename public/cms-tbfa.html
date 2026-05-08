@@ -237,6 +237,7 @@
             <i>🏦</i><span>효성 CMS+</span>
           </a></li>
                   <li><a href="#toss-billing" data-tab="toss-billing">💳 토스 빌링 (자동 청구)</a></li>
+          <li><a href="#csv-import" data-tab="csv-import">📥 CSV 자동 매핑</a></li>
         </ul>
       </li>
       <li><a href="#members" data-tab="members">
@@ -1097,6 +1098,122 @@
         </div>
       </section>
 
+      <!-- ============ ★ 작업 C(#15): CSV 자동 매핑 ============ -->
+      <section class="cms-page" id="page-csv-import">
+        <div class="cms-card" style="padding:18px">
+          <h3 style="margin:0 0 6px;font-size:16px">📥 CSV 자동 매핑 — 효성 + 기업은행</h3>
+          <p style="margin:0 0 14px;color:#666;font-size:12.5px;line-height:1.6">
+            효성 CMS+ 또는 기업은행(IBK) 거래내역 CSV를 업로드하면 입금 행을 추출해 자동 매칭(이름·금액·날짜·계좌끝4)을 시도하고,
+            <strong>미확정 후원</strong> 목록에 적재합니다. 검토 후 1건 또는 일괄로 확정하면 정식 후원 내역에 반영됩니다.
+          </p>
+
+          <!-- 업로드 폼 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+            <div style="border:1px dashed #cee0f2;border-radius:8px;padding:14px;background:#f7faff">
+              <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">1) CSV 업로드</div>
+              <form id="csvImportForm" style="display:flex;flex-direction:column;gap:10px">
+                <label style="font-size:12.5px;color:#525252">출처
+                  <select id="csvSource" style="width:100%;padding:8px;border:1px solid #d0d4dc;border-radius:5px;font-size:13px;margin-top:4px">
+                    <option value="auto">자동 감지 (권장)</option>
+                    <option value="hyosung_billings">효성 — 수납내역</option>
+                    <option value="hyosung_contracts">효성 — 계약정보</option>
+                    <option value="ibk">기업은행 — 거래내역</option>
+                  </select>
+                </label>
+                <label style="font-size:12.5px;color:#525252">CSV 파일 (5MB 이하)
+                  <input type="file" id="csvFile" accept=".csv,text/csv"
+                    style="width:100%;padding:8px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px;margin-top:4px;background:#fff">
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#525252">
+                  <input type="checkbox" id="csvAutoMatch" checked> 업로드 시 자동 매칭 점수 계산
+                </label>
+                <button type="submit" id="csvImportBtn" class="cms-btn cms-btn-primary" style="padding:10px;font-size:13px">
+                  📥 업로드 + 매칭
+                </button>
+                <div id="csvImportResult" style="font-size:12px;color:#666;line-height:1.6;min-height:18px"></div>
+              </form>
+            </div>
+
+            <div style="border:1px solid #e0e3e8;border-radius:8px;padding:14px;background:#fff">
+              <div style="font-weight:600;font-size:13.5px;margin-bottom:8px">📊 미확정 / 매칭 / 확정 / 무시</div>
+              <div id="csvSummary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+                <div style="padding:12px 6px;background:#fff7e6;border-radius:6px">
+                  <div style="font-size:18px;font-weight:700;color:#c47a00" id="csvSumPending">-</div>
+                  <div style="font-size:11px;color:#666">미확정</div>
+                </div>
+                <div style="padding:12px 6px;background:#e6f0ff;border-radius:6px">
+                  <div style="font-size:18px;font-weight:700;color:#1a5ec4" id="csvSumMatched">-</div>
+                  <div style="font-size:11px;color:#666">매칭됨</div>
+                </div>
+                <div style="padding:12px 6px;background:#e6fff0;border-radius:6px">
+                  <div style="font-size:18px;font-weight:700;color:#0a8a4f" id="csvSumConfirmed">-</div>
+                  <div style="font-size:11px;color:#666">확정</div>
+                </div>
+                <div style="padding:12px 6px;background:#f0f0f0;border-radius:6px">
+                  <div style="font-size:18px;font-weight:700;color:#666" id="csvSumIgnored">-</div>
+                  <div style="font-size:11px;color:#666">무시</div>
+                </div>
+              </div>
+              <p style="margin:14px 0 0;font-size:11.5px;color:#888;line-height:1.6">
+                자동 매칭은 회원명·금액·날짜·계좌끝4자리를 종합해 점수(0~1)로 산출합니다.
+                점수 0.50 이상만 자동 매칭, 미만은 미확정으로 보관 → 관리자가 직접 회원 지정.
+              </p>
+            </div>
+          </div>
+
+          <!-- 필터 -->
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+            <select id="csvFilterStatus" style="padding:7px 10px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px">
+              <option value="pending,matched">미확정 + 매칭됨</option>
+              <option value="pending">미확정만</option>
+              <option value="matched">매칭됨만</option>
+              <option value="confirmed">확정됨</option>
+              <option value="ignored">무시됨</option>
+              <option value="all">전체</option>
+            </select>
+            <select id="csvFilterSource" style="padding:7px 10px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px">
+              <option value="all">전체 출처</option>
+              <option value="hyosung">효성</option>
+              <option value="ibk">기업은행</option>
+            </select>
+            <input type="search" id="csvFilterSearch" placeholder="이름·메모 검색"
+              style="flex:1;min-width:160px;padding:7px 10px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px">
+            <button type="button" id="csvRefreshBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px">🔄 새로고침</button>
+            <button type="button" id="csvBatchConfirmBtn" class="cms-btn cms-btn-primary" style="padding:7px 14px;font-size:12.5px" disabled>
+              ✅ 선택 일괄 확정 (<span id="csvSelectedCount">0</span>)
+            </button>
+            <button type="button" id="csvBatchIgnoreBtn" class="cms-btn cms-btn-ghost" style="padding:7px 14px;font-size:12.5px" disabled>
+              🗑 선택 일괄 무시
+            </button>
+          </div>
+
+          <!-- 테이블 -->
+          <div style="overflow:auto;border:1px solid #e0e3e8;border-radius:6px;background:#fff">
+            <table class="cms-tbl" style="width:100%;font-size:12.5px;min-width:1100px">
+              <thead style="background:#fafbfc">
+                <tr>
+                  <th style="width:34px"><input type="checkbox" id="csvSelectAll"></th>
+                  <th>출처</th>
+                  <th>입금자(파싱)</th>
+                  <th style="text-align:right">금액</th>
+                  <th>거래일</th>
+                  <th>매칭 회원</th>
+                  <th style="text-align:right">점수</th>
+                  <th>매칭 사유</th>
+                  <th>상태</th>
+                  <th>액션</th>
+                </tr>
+              </thead>
+              <tbody id="csvPendingBody">
+                <tr><td colspan="10" style="text-align:center;padding:30px;color:#999">불러오는 중…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="csvPagination" style="margin-top:10px;font-size:12px;color:#666;text-align:right"></div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -1108,6 +1225,8 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-09-c1"></script>
+  <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
+  <script src="/js/cms-tbfa-import.js?v=2026-05-09-c1"></script>
 </body>
 </html>

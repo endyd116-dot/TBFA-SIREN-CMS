@@ -25,11 +25,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-09 | C 채팅 | 작업 C 마일스톤 1 — 백엔드+프론트 완성, 80% (마이그 호출 대기) |
 | 2026-05-09 | 메인 채팅 | 작업 A 머지 완료 — main에 반영 (91f4e2f) |
 | 2026-05-09 | A 채팅 | 작업 A ✅ 100% — 마이그 success 6/6, schema 활성화 + 마이그 파일 삭제, 메인 채팅 머지 대기 |
 | 2026-05-09 | A 채팅 | 작업 A 75% — 코드 완료(마이그+API4+프론트2+HTML/JS 라우터), 사용자 ?run=1 호출 대기 |
 | 2026-05-09 | A 채팅 | 작업 A 시작 — 마이그레이션 함수 작성 단계 |
-| 2026-05-09 | 메인 채팅 | worktree 분리 (`../tbfa-mis-A`, `../tbfa-mis-B`), §4.5·§6.5 추가 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -169,10 +169,10 @@ ALTER TABLE chat_rooms ADD COLUMN expert_id int REFERENCES members(id);
 |---|---|
 | 브랜치 | `feature/csv-donation-mapping` |
 | 베이스 | `origin/main` |
-| 진행률 | ⬜ 0% (미착수) |
-| 담당 채팅 | 미배정 |
+| 진행률 | 🟡 진행중 80% (백엔드+프론트 완성, 마이그 호출 대기) |
+| 담당 채팅 | C (csv-mapping) |
 | 예상 시간 | 10~13h |
-| 다음 할 일 | 채팅 시작 → 브랜치 생성 → ibk-parser + pending_donations 마이그 |
+| 다음 할 일 | 사용자 `/api/migrate-add-pending-donations?run=1` 호출 → 결과 확인 → 마이그 파일 삭제 → 사용자 검증 → 100% |
 
 **기존 인프라 활용**
 - `lib/hyosung-parser.ts` 존재 (Phase 1 완료) → 신규 ibk-parser와 인터페이스 통일

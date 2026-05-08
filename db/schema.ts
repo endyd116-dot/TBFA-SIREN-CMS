@@ -249,9 +249,6 @@ export const members = pgTable("members", {
   billingRetryCount: integer("billing_retry_count").default(0).notNull(),
   billingLastFailedAt: timestamp("billing_last_failed_at"),
 
-  /* ───────── ★ 6순위 #6: 교원 회원 자격 (현직/은퇴/예비/일반) ───────── */
-  eligibilityType: varchar("eligibility_type", { length: 30 }),
-
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1846,31 +1843,67 @@ export type WorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferSelect;
 export type NewWorkspaceTaskTemplate = typeof workspaceTaskTemplates.$inferInsert;
 
 /* =========================================================
-   ★ 6순위 #6 — 교원 회원 자격 변경 신청 (작업 A)
+   === 작업 C: CSV 자동 매핑 (#15) ===
+   효성 + 기업은행 CSV → pending_donations 적재 → 자동 매칭 → 확정
+   마이그레이션: migrate-add-pending-donations
    ========================================================= */
-export const eligibilityChangeRequests = pgTable("eligibility_change_requests", {
+
+export const pendingDonations = pgTable("pending_donations", {
   id: serial("id").primaryKey(),
-  memberId: integer("member_id")
-    .references(() => members.id, { onDelete: "cascade" })
-    .notNull(),
-  currentType: varchar("current_type", { length: 30 }),
-  requestedType: varchar("requested_type", { length: 30 }).notNull(),
-  reason: text("reason"),
-  evidenceBlobId: integer("evidence_blob_id")
-    .references(() => blobUploads.id, { onDelete: "set null" }),
+
+  /* 출처 */
+  source: varchar("source", { length: 20 }).notNull(),          // 'hyosung' | 'ibk'
+  sourceFileName: varchar("source_file_name", { length: 200 }),
+  sourceRowIndex: integer("source_row_index"),
+  rawData: jsonb("raw_data").default(sql`'{}'::jsonb`),
+
+  /* 파싱 결과 */
+  parsedName: varchar("parsed_name", { length: 100 }),
+  parsedAmount: integer("parsed_amount"),
+  parsedDate: timestamp("parsed_date", { mode: "date" }),
+  parsedMemo: text("parsed_memo"),
+  parsedAccountTail4: varchar("parsed_account_tail4", { length: 4 }),  // 기업은행 입금 계좌 끝4자리
+
+  /* 매칭 */
+  matchedMemberId: integer("matched_member_id").references(() => members.id, { onDelete: "set null" }),
+  matchScore: numeric("match_score", { precision: 4, scale: 2 }),
+  matchReason: varchar("match_reason", { length: 200 }),
+
+  /* 상태 */
   status: varchar("status", { length: 20 }).default("pending").notNull(),
-  adminNote: text("admin_note"),
-  reviewedBy: integer("reviewed_by")
-    .references(() => members.id, { onDelete: "set null" }),
-  reviewedAt: timestamp("reviewed_at"),
+    // 'pending' | 'matched' | 'confirmed' | 'ignored'
+  confirmedDonationId: integer("confirmed_donation_id").references(() => donations.id, { onDelete: "set null" }),
+
+  importedBy: integer("imported_by").references(() => members.id, { onDelete: "set null" }),
+  confirmedBy: integer("confirmed_by").references(() => members.id, { onDelete: "set null" }),
+  confirmedAt: timestamp("confirmed_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
-  memberIdx: index("eligibility_req_member_idx").on(t.memberId),
-  statusIdx: index("eligibility_req_status_idx").on(t.status),
-  createdIdx: index("eligibility_req_created_idx").on(t.createdAt),
+  sourceIdx: index("pending_donations_source_idx").on(t.source),
+  statusIdx: index("pending_donations_status_idx").on(t.status),
+  matchedIdx: index("pending_donations_matched_idx").on(t.matchedMemberId),
+  dateIdx: index("pending_donations_date_idx").on(t.parsedDate),
+  createdIdx: index("pending_donations_created_idx").on(t.createdAt),
 }));
 
-export type EligibilityChangeRequest = typeof eligibilityChangeRequests.$inferSelect;
-export type NewEligibilityChangeRequest = typeof eligibilityChangeRequests.$inferInsert;
+export type PendingDonation = typeof pendingDonations.$inferSelect;
+export type NewPendingDonation = typeof pendingDonations.$inferInsert;
+
+/* 매칭 룰 가중치 (어드민이 조정 가능, 기본값 시드) */
+export const donationMatchingRules = pgTable("donation_matching_rules", {
+  id: serial("id").primaryKey(),
+  ruleKey: varchar("rule_key", { length: 30 }).notNull().unique(),
+    // 'name_exact' | 'name_partial' | 'amount_exact' | 'date_window' | 'account_tail4'
+  weight: numeric("weight", { precision: 4, scale: 2 }).default(sql`1.00`).notNull(),
+  threshold: numeric("threshold", { precision: 4, scale: 2 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  description: varchar("description", { length: 200 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type DonationMatchingRule = typeof donationMatchingRules.$inferSelect;
+export type NewDonationMatchingRule = typeof donationMatchingRules.$inferInsert;
 

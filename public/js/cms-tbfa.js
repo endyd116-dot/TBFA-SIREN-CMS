@@ -129,6 +129,7 @@
           'receipt-settings': '영수증 설정', /* ★ STEP H-2d-4 */
           hyosung: '효성 CMS+ 관리', /* ★ Phase 1 */
           'toss-billing': '💳 토스 빌링 (자동 청구)', /* ★ Phase 2 */
+          'csv-import': '📥 CSV 자동 매핑 (효성 + 기업은행)', /* ★ 작업 C(#15) */
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -141,6 +142,12 @@
         else if (tab === 'receipt-settings') loadReceiptSettings(); /* ★ STEP H-2d-4 */
         else if (tab === 'hyosung') loadHyosungContracts(); /* ★ Phase 1 */
         else if (tab === 'toss-billing') loadTbKeys(); /* ★ Phase 2 */
+        else if (tab === 'csv-import') {
+          /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
+          if (window.CsvImport && typeof window.CsvImport.init === 'function') {
+            window.CsvImport.init();
+          }
+        }
       });
     });
 
