@@ -307,6 +307,9 @@ import { requireAdmin } from "../../lib/admin-guard";
 3. **차단 미들웨어**: `requireActiveUser` 적용 시 영향 범위 사전 점검 (지금은 핵심 CREATE 6개만 적용)
 4. **API 응답 키**: 클라이언트에서 다중 fallback 사용 (`data.data.X || data.X`)
 5. **드리즐 leftJoin 체인**: 안정성 위험 → separate query + Map 매칭
+6. **schema.ts append-only 원칙 (병렬 작업 핵심)**: 여러 작업이 schema.ts를 동시에 수정 시 다른 작업 영역을 덮어쓰지 말 것. 본인 섹션은 반드시 파일 끝에 헤더 명시 후 추가 (`/* === 작업 X === */`). 2026-05-09 사고 사례: 작업 C가 schema 영역에 자기 정의를 적으면서 작업 A의 정의(eligibilityType + eligibilityChangeRequests)를 함께 삭제 → 머지 후 회귀 발견 → fix 커밋(b45d0fa)으로 복구
+7. **병렬 작업은 worktree 필수**: 같은 working directory를 두 채팅이 공유하면 git checkout이 다른 채팅의 워킹 트리에 영향. `git worktree add ../tbfa-mis-{식별자} feature/{브랜치}`로 폴더 분리 (사고 사례: 2026-05-09 b5167bf → 0453071 cherry-pick 정리)
+8. **헬퍼 함수 도입 직후 모든 사용처 1회 검증**: 5순위 #1에서 도입한 `requireActiveUser`가 `user.id` (실제 필드명은 `uid`) 참조 → 1회용 검증 누락으로 9개 API 동작 불능 잠재. 2026-05-09 검증 단계에서 발견 (#BUG-1 — `docs/issues/2026-05-09-requireActiveUser-uid-bug.md`)
 
 ### 9.2 마이그레이션 호출 흐름 (사용자 액션)
 ```
@@ -334,30 +337,39 @@ import { requireAdmin } from "../../lib/admin-guard";
 ### ✅ 완료
 - **Phase 1** 효성 CMS+ 연동 (100%)
 - **Phase 2** 토스 빌링 자동청구 (100%)
-- **Phase 3** 워크스페이스 본체 (100%)
-  - Step 1~3 (이전 세션) + Step 5 Agent-8 cron + Step 7-A 칸반 + 7-B 카드 7탭 + 7-C 캘린더·AI·검색·템플릿
+- **Phase 3** 워크스페이스 본체 (100%) — Step 7-A 칸반 + 7-B 카드 7탭 + 7-C 캘린더·AI·검색·템플릿 + Agent-8 cron
 - **Phase 3-extra** 파일함 (100%, 9/9 Step + 통합 라우팅)
-- **4순위 자잘한 버그 3건**:
-  - 14번 후원 모달 3초 딜레이 (프리페치)
-  - 1번 회원 내역 엑셀 (22컬럼 효성 양식)
-  - 2번 수납내역 엑셀 (28컬럼 효성+토스 통합)
-- **5순위 진행 중** (#1·#9 완료):
-  - #1·#4 블랙 통합 (DB 컬럼 + API + UI + 차단 미들웨어 + CREATE 6곳 적용)
+- **4순위 자잘한 버그 3건**: 후원 모달 딜레이 / 회원 엑셀 / 수납내역 엑셀
+- **5순위 (모두 완료)**:
+  - #1 블랙 통합 (DB 컬럼 + API + UI + 차단 미들웨어 + CREATE 6곳 적용)
   - #9 관련 사이트 메인 헤더 동적 로드 + 사이트 빌더 CRUD UI + 6개 교원단체 시드
+  - #10 정기후원 해지 안내 CRUD (RENDERER 등록 + 5키 site_settings 시드)
+- **6순위 (코드 100% main 안착, 사용자 검증은 #BUG-1 차단으로 보류)**:
+  - #6 교원 회원 자격 변경 시스템 (마이그·API 4·프론트 2 + members.eligibilityType + eligibilityChangeRequests)
+  - #15 효성 + 기업은행 CSV 자동 매핑 (lib/ibk-parser·donation-matcher + API 3 + cms-tbfa import + pendingDonations·donationMatchingRules)
+
+### 🛠 인프라 변경 (2026-05-09)
+- **PROJECT_STATE.md** 신설 (병렬 작업 휘발성 상태 통합 — 구 PARALLEL_PLAN 흡수)
+- **worktree 분리** 도입: `../tbfa-mis-A`, `../tbfa-mis-B` (병렬 작업 충돌 방지)
+- **`.claude/settings.json`** 권한 정책 도입: deny `git push origin main`, deny `git reset --hard`, deny `lib/auth.ts·admin-guard.ts·hyosung-parser.ts` 편집 등 안전 가드
+- **`docs/issues/`** 폴더 신설: 오류 리포트 별도 파일 + PROJECT_STATE §6.6 인덱스
+
+### 🔴 미해결 이슈 (다음 세션 우선 처리)
+- **#BUG-1** `lib/auth.ts:128` `user.id` → `user.uid` 한 줄 버그 (UNDEFINED_VALUE)
+  - 영향: `requireActiveUser` 사용 9개 API (eligibility, board, support, incident/harassment/legal-create, admin-blacklist) 동작 불능
+  - 수정 권한: settings.json deny → **사용자 직접 처리**
+  - 상세: [docs/issues/2026-05-09-requireActiveUser-uid-bug.md](docs/issues/2026-05-09-requireActiveUser-uid-bug.md)
+  - 해결 후 작업 A 사용자 검증 재개 → §4.1 진행률 ✅ 100%
 
 ### ⏸ 진행 예정
-- **5순위 #10** 정기후원 해지 안내 CRUD (인프라 90% 완성, RENDERER 등록 + 시드 + 검증 남음)
-- **6순위 큰 기능 3건** (38~50h):
-  - #6 교원 회원 자격 변경 시스템
-  - #8 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅
-  - #15 효성 + 기업은행 CSV 자동 매핑 + 후원 확정 워크플로
-- **Phase 4~22** (19개)
+- **6순위 #8** 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅 (15~18h, 미착수 — 신규 worktree 채팅 필요)
+- **Phase 4~22** (19개) — 스펙 미정, 별도 설계 세션 필요
 
 ### 누적
-- 마스터플랜 진행률: 약 28~29% (5.5/22 Phase + 4·5순위 일부)
-- 누적 작업 시간: 약 400h+
-- 페이지: 5개 신규 (workspace, kanban, calendar, templates, files)
-- DB 테이블: 70+ (워크스페이스 + 파일함 + 카드 고도화 + 효성 + 토스 등)
+- 마스터플랜 진행률: 약 32% (5.5/22 Phase + 4·5순위 + 6순위 #6·#15 코드)
+- 누적 작업 시간: 약 430h+
+- 페이지: 5개 신규 (workspace, kanban, calendar, templates, files) + 자격 변경 탭 + CSV 자동 매핑 메뉴
+- DB 테이블: 73+ (eligibilityChangeRequests, pendingDonations, donationMatchingRules 신규)
 
 ---
 
@@ -387,9 +399,20 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ## 12. 참고 문서
 
-- 인수인계서 v20 (통합): [docs/handover/v20.md](docs/handover/v20.md)
-- 인수인계서 v17 확장판 (v15+증분): [docs/handover/v17-expanded.md](docs/handover/v17-expanded.md)
-- 메모리: `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/`
+- **PROJECT_STATE.md** (병렬 작업 휘발성 상태 통합): [PROJECT_STATE.md](PROJECT_STATE.md)
+  - §2 마지막 업데이트 표 / §4 작업별 진행률·다음할일 / §4.5 worktree 환경표 / §6.5 worktree 사고 사례 / §6.6 미해결 이슈 인덱스 / §7 채팅별 시작 프롬프트
+- **오류 리포트** 폴더: [docs/issues/](docs/issues/)
+  - 신규 이슈 발견 시 `docs/issues/{날짜}-{키워드}.md` 별도 파일 + PROJECT_STATE.md §6.6에 한 줄 인덱스
+- **인수인계서 (영구 참조, 자발적 안 읽음)**:
+  - v20 통합: [docs/handover/v20.md](docs/handover/v20.md)
+  - v17 확장판: [docs/handover/v17-expanded.md](docs/handover/v17-expanded.md)
+  - 작업 C 인계서: [docs/handover/chat-c-handover-20260509.md](docs/handover/chat-c-handover-20260509.md)
+- **권한 정책**: [.claude/settings.json](.claude/settings.json) — main 폴더에서 자동 적용 (모든 채팅 공통)
+- **worktree 구조**:
+  - `tbfa-mis` (메인 폴더, main 브랜치 전용 — 머지·조율)
+  - `../tbfa-mis-A` (작업 A — feature/eligibility-change)
+  - `../tbfa-mis-B` (작업 C — feature/csv-donation-mapping)
+- **메모리**: `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/`
 
 ---
 
@@ -402,12 +425,15 @@ import { requireAdmin } from "../../lib/admin-guard";
 - [ ] 신규 API라면 단계별 try/catch + step·detail·stack 응답?
 - [ ] 응답 키 다중 fallback?
 - [ ] 캐시버스터 일괄 갱신?
-- [ ] schema 변경 시 마이그레이션 함수 동시 작성?
+- [ ] schema 변경 시 마이그레이션 함수 동시 작성? (append-only + 본인 섹션 헤더)
 - [ ] requireAdmin 반환은 `auth.res` (response 아님)?
 - [ ] `/api/*` 함수에 `export const config = { path }`?
+- [ ] 병렬 작업이면 worktree 폴더에서 시작? (같은 working directory 공유 금지)
+- [ ] 헬퍼 함수 도입 직후 모든 사용처 1회 검증? (#BUG-1 사례 — §9.1.8)
+- [ ] PROJECT_STATE.md §2 갱신 + §4.X 진행률 갱신 후 push?
 - [ ] 컨텍스트 80%·90% 알림 체크?
 - [ ] 푸시 후 사용자에게 검증 권장 + 다음 단계 안내?
 
 ---
 
-**마지막 업데이트**: 2026-05-09 (5순위 #1·#9 완료 직후)
+**마지막 업데이트**: 2026-05-09 (6순위 #6·#15 코드 안착 + worktree·settings.json 도입 + #BUG-1 발견)
