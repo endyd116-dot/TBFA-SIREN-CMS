@@ -27,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | **Phase 1 설계 확정** — DESIGN_PHASE1.md 본격 11섹션 (A/B 분담 + Mock 전략 + API 계약 옵션 (a) 채택). tag `phase1-design-complete-20260510`. A·B 채팅 코드 작업 대기 |
 | 2026-05-10 | 메인 채팅 | Phase 분류 시나리오 B 채택 — 이번 사이클에 #16 B·C·D 처리, PHASE_PROPOSAL.md / DESIGN_PHASE1.md 신설 |
 | 2026-05-10 | 메인 채팅 | 문서 정비 — `docs/HANDOFF.md` 신설(단일 최신) + `docs/REMAINING_WORK.md` 신설 + CLAUDE.md §12.1 문서 갱신 정책 + 권한 정책 정비(`.claude/settings.json` deny 14건 정리) |
 | 2026-05-10 | 메인 채팅 | 마일스톤 #16 설계 합의 + #BUG-2 등록 (cms-tbfa 더미) — §4.6 신설 |
 | 2026-05-10 | 메인 채팅 | 단계 A 완료 — 사이드바 그룹화, 통합 일반 회원 이름 변경, 후원 관리 강화 (42fd6c6) |
-| 2026-05-09 | 메인 채팅 | #BUG-1 fix 적용(bb529f9) + 엑셀 업로드 지원(55417f5) |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -251,7 +251,7 @@ CREATE TABLE pending_donations (
 | 항목 | 값 |
 |---|---|
 | 식별자 | 6순위 #16 |
-| 진행률 | 🟡 단계 A ✅ 완료 (42fd6c6) / **B·C·D 이번 사이클 처리 예정 (시나리오 B)** |
+| 진행률 | 🟡 단계 A ✅ / **단계 B 설계 ✅ (ed49056 + tag phase1-design-complete-20260510)** / 코드 미착수 (A·B 채팅 대기) / C·D 이번 사이클 후속 |
 | 추정 시간 | 8~12h (B 1.5~2.5h + C 3~4h + D 3~5h) |
 | 우선순위 | 6순위 #8보다 우선 (운영 핵심) |
 | 시나리오·분담 | [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md) / [docs/DESIGN_PHASE1.md](docs/DESIGN_PHASE1.md) |
