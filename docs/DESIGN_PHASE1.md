@@ -299,7 +299,7 @@ async function fetchMembers(query) {
     await new Promise(r => setTimeout(r, 200)); // 네트워크 시뮬
     return __MOCK_ADMIN_MEMBERS__;
   }
-  const res = await api('/api/admin-members?' + new URLSearchParams(query));
+  const res = await api('/api/admin/members?' + new URLSearchParams(query));
   if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
   return res.data;
 }
