@@ -47,6 +47,20 @@ export interface AdminDonorRegular {
   cumulativeMonths: number;
   cumulativeAmount: number;
   donorEvaluatedAt: string;
+  /** Phase 3 §6.3: 효성 계약 상세 (없으면 null) */
+  hyosungContract?: {
+    memberNo: number;
+    memberStatus: string | null;
+    contractStatus: string | null;
+    promiseDay: number | null;
+    paymentMethod: string | null;
+    paymentTool: string | null;
+    registrationStatus: string | null;
+    productName: string | null;
+    productAmount: number | null;
+    billingStart: string | null;
+    billingEnd: string | null;
+  } | null;
 }
 
 export interface AdminDonorRegularResponse {
@@ -252,6 +266,28 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-regular-list] hyosung_contracts 조회 실패 — 0 fallback", err);
   }
 
+  /* 4-2b. 효성 contracts 상세 (Phase 3 §6.3 — hyosungContract 객체용) */
+  const hyosungDetailMap = new Map<number, any>();
+  try {
+    const hcDetailRes: any = await db.execute(sql`
+      SELECT
+        hc.linked_member_id,
+        hc.member_no, hc.member_status, hc.contract_status,
+        hc.promise_day, hc.payment_method, hc.payment_tool,
+        hc.registration_status, hc.product_name, hc.product_amount,
+        hc.billing_start, hc.billing_end
+      FROM hyosung_contracts hc
+      WHERE hc.linked_member_id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+    `);
+    const hcRows: any[] = Array.isArray(hcDetailRes) ? hcDetailRes : (hcDetailRes as any).rows || [];
+    for (const hc of hcRows) {
+      if (!hc.linked_member_id) continue;
+      hyosungDetailMap.set(Number(hc.linked_member_id), hc);
+    }
+  } catch (err) {
+    console.warn("[admin-donor-regular-list] hyosung_contracts 상세 조회 실패 — null fallback", err);
+  }
+
   /* 4-3. donations regular completed (count + sum) */
   const donationStatsMap = new Map<number, { count: number; sum: number }>();
   try {
@@ -294,6 +330,7 @@ export default async (req: Request, _ctx: Context) => {
       const tossNextCharge = tossInfo?.nextChargeAt || null;
       const nextBillingDate = memberNextBilling || tossNextCharge;
 
+      const hcDetail = hyosungDetailMap.get(id) ?? null;
       return {
         id,
         name: r.name || "",
@@ -307,6 +344,21 @@ export default async (req: Request, _ctx: Context) => {
         donorEvaluatedAt: r.donor_evaluated_at
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),
+        hyosungContract: hcDetail
+          ? {
+              memberNo: Number(hcDetail.member_no),
+              memberStatus: hcDetail.member_status ?? null,
+              contractStatus: hcDetail.contract_status ?? null,
+              promiseDay: hcDetail.promise_day != null ? Number(hcDetail.promise_day) : null,
+              paymentMethod: hcDetail.payment_method ?? null,
+              paymentTool: hcDetail.payment_tool ?? null,
+              registrationStatus: hcDetail.registration_status ?? null,
+              productName: hcDetail.product_name ?? null,
+              productAmount: hcDetail.product_amount != null ? Number(hcDetail.product_amount) : null,
+              billingStart: hcDetail.billing_start ? new Date(hcDetail.billing_start).toISOString().slice(0, 10) : null,
+              billingEnd: hcDetail.billing_end ? new Date(hcDetail.billing_end).toISOString().slice(0, 10) : null,
+            }
+          : null,
       };
     });
   } catch (err) {

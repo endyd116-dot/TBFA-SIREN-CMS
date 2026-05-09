@@ -17,7 +17,7 @@
  * - 회원당 1개 활성 빌링키 (중복 방지)
  * - 멱등성 (같은 customerKey + authKey 재호출 시 안전)
  */
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { z } from "zod";
 import { db, billingKeys, donations, members } from "../../db";
@@ -375,6 +375,24 @@ export default async (req: Request) => {
         }
       } catch (e) {
         console.error("[billing-confirm] 등급 재계산 실패:", e);
+      }
+    }
+
+    /* ★ D6 Phase 3: SIREN 자체 약정일·약정금액 직접 기록
+     * 빌링키 등록 시각의 날짜를 약정일(billingDay)로, 다음 달을 nextBillingDate로 기록.
+     * 효성 SOT와 대등한 SIREN 자체 정기 후원 정보 — fire-and-forget */
+    if (memberId) {
+      const billingDayOfMonth = now.getDate(); // 1~31
+      try {
+        await db.execute(sql`
+          UPDATE members
+          SET billing_day = ${billingDayOfMonth},
+              next_billing_date = ${nextCharge.toISOString().slice(0, 10)}::date,
+              updated_at = NOW()
+          WHERE id = ${memberId}
+        `);
+      } catch (d6Err) {
+        console.warn("[billing-confirm] D6 billingDay/nextBillingDate 갱신 실패 (무시):", d6Err);
       }
     }
 

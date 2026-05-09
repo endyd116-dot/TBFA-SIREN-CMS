@@ -64,6 +64,20 @@ export interface AdminMember {
   donorType: DonorType;
   status: string;
   createdAt: string;
+  /** Phase 3 §6.3: 효성 계약 정보 (hyosung_contracts JOIN — 없으면 null) */
+  hyosung?: {
+    memberNo: number;
+    memberStatus: string | null;
+    contractStatus: string | null;
+    promiseDay: number | null;
+    paymentMethod: string | null;
+    paymentTool: string | null;
+    registrationStatus: string | null;
+    productName: string | null;
+    productAmount: number | null;
+    billingStart: string | null;
+    billingEnd: string | null;
+  } | null;
 }
 
 export interface AdminMembersResponse {
@@ -340,10 +354,36 @@ export default async (req: Request) => {
       const catRows: any[] = Array.isArray(catStats) ? catStats : (catStats?.rows || []);
       for (const r of catRows) categoryCounts[r.category] = Number(r.count);
 
+      /* ★ Phase 3 §6.3: hyosung_contracts 별도 쿼리 + Map 매칭 (drizzle 다중 leftJoin 금지) */
+      const memberIds = (list as any[]).map((r) => Number(r.id)).filter(Boolean);
+      const hyosungMap = new Map<number, any>();
+      if (memberIds.length > 0) {
+        try {
+          const hcRes: any = await db.execute(sql`
+            SELECT
+              hc.linked_member_id,
+              hc.member_no, hc.member_status, hc.contract_status,
+              hc.promise_day, hc.payment_method, hc.payment_tool,
+              hc.registration_status, hc.product_name, hc.product_amount,
+              hc.billing_start, hc.billing_end
+            FROM hyosung_contracts hc
+            WHERE hc.linked_member_id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+          `);
+          const hcRows: any[] = Array.isArray(hcRes) ? hcRes : (hcRes as any).rows || [];
+          for (const hc of hcRows) {
+            if (!hc.linked_member_id) continue;
+            hyosungMap.set(Number(hc.linked_member_id), hc);
+          }
+        } catch (hcErr) {
+          console.warn("[admin-members] hyosung_contracts 별도 조회 실패 — null fallback", hcErr);
+        }
+      }
+
       /* ★ Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
        *  매핑 표 5종 외 코드(또는 NULL) → signupSource=null, label=null (DESIGN §6.2 명시) */
       const adminMembers: AdminMember[] = (list as any[]).map((r) => {
         const code: string = r.sourceCode || "";
+        const hc = hyosungMap.get(Number(r.id)) ?? null;
         return {
           id: Number(r.id),
           name: r.name,
@@ -352,13 +392,27 @@ export default async (req: Request) => {
           signupSourceId: r.signupSourceId ?? null,
           signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
           signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
-          /* Phase 1: schema에 donor_type 컬럼 없음 → 모두 'none'. 단계 C에서 컬럼 적용 후 본격 */
-          donorType: "none" as DonorType,
+          donorType: (r as any).donorType ?? "none" as DonorType,
           status: r.status,
           createdAt:
             r.createdAt instanceof Date
               ? r.createdAt.toISOString()
               : String(r.createdAt ?? ""),
+          hyosung: hc
+            ? {
+                memberNo: Number(hc.member_no),
+                memberStatus: hc.member_status ?? null,
+                contractStatus: hc.contract_status ?? null,
+                promiseDay: hc.promise_day != null ? Number(hc.promise_day) : null,
+                paymentMethod: hc.payment_method ?? null,
+                paymentTool: hc.payment_tool ?? null,
+                registrationStatus: hc.registration_status ?? null,
+                productName: hc.product_name ?? null,
+                productAmount: hc.product_amount != null ? Number(hc.product_amount) : null,
+                billingStart: hc.billing_start ? new Date(hc.billing_start).toISOString().slice(0, 10) : null,
+                billingEnd: hc.billing_end ? new Date(hc.billing_end).toISOString().slice(0, 10) : null,
+              }
+            : null,
         };
       });
 
