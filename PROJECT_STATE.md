@@ -27,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 채팅 | **Phase 2 (#16 단계 C) 완료** — schema 4컬럼·마이그·후크 4건·야간 cron·조회 API 2건·정기/잠재 화면 모두 안착(c3d2249). Swain 화면 검증 통과(양식만 효성과 차이). tag `phase2-complete-20260510`. 다음: Phase 3 단계 D — 효성 양식 정합성 본격 |
+| 2026-05-10 | 메인 채팅 | **§10 효성 SOT 원칙 신설** (`milestones/2026-05-10-donor-system.md` §10) — Swain 효성 PDF 양식 SOT 합의. 회원·정기 후원자=효성 진실, SIREN 일방향 흡수+고유 컬럼 보존, 토스=SIREN 직속 자동 매핑. 단계 D 추정 5~7h(확장). **컨텍스트 한계 도달, 새 메인 채팅 시작** |
+| 2026-05-10 | 메인 채팅 | **Phase 2 (#16 단계 C) 완료** — schema 4컬럼·마이그·후크 4건·야간 cron·조회 API 2건·정기/잠재 화면 모두 안착(c3d2249). Swain 화면 검증 통과(양식만 효성과 차이). tag `phase2-complete-20260510` |
 | 2026-05-10 | 메인 채팅 | **Phase 1 (#16 단계 B) 완료** — A·B 채팅 코드 머지(0917e67·f026c6b) + Swain 화면 검증 통과. **#BUG-2 해소**. tag `phase1-complete-20260510` |
 | 2026-05-10 | 메인 채팅 | CLAUDE.md §6.14 절대명제 신설 — 검증·설명은 로직·기능 위주(함수·변수 코드 용어 회피) |
 | 2026-05-10 | 메인 채팅 | **Phase 1 설계 확정** — DESIGN_PHASE1.md 본격 11섹션, A/B 분담 + Mock + API 계약 옵션 (a). tag `phase1-design-complete-20260510` |
-| 2026-05-10 | 메인 채팅 | Phase 분류 시나리오 B 채택 — 이번 사이클에 #16 B·C·D 처리, PHASE_PROPOSAL.md / DESIGN_PHASE1.md 신설 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -251,7 +251,8 @@ CREATE TABLE pending_donations (
 | 항목 | 값 |
 |---|---|
 | 식별자 | 6순위 #16 |
-| 진행률 | 🟡 단계 A ✅ / 단계 B ✅ (tag phase1-complete-20260510) / **단계 C ✅ 완료** (c3d2249 + Swain 검증 통과 + tag phase2-complete-20260510) / 단계 D 다음 진입 (효성 양식 정합성 SOT) |
+| 진행률 | 🟡 단계 A ✅ / 단계 B ✅ / 단계 C ✅ (tag phase2-complete-20260510) / **단계 D 다음 진입 — §10 효성 SOT 원칙 적용 (5~7h)** |
+| 단계 D 입력 SOT | [milestones §10](docs/milestones/2026-05-10-donor-system.md) 효성 SOT 원칙 + Swain 제공 효성 PDF 양식(계약정보·수납내역) |
 | 추정 시간 | 8~12h (B 1.5~2.5h + C 3~4h + D 3~5h) |
 | 우선순위 | 6순위 #8보다 우선 (운영 핵심) |
 | 시나리오·분담 | [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md) / [docs/DESIGN_PHASE1.md](docs/DESIGN_PHASE1.md) |
