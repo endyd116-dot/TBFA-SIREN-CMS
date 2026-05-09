@@ -58,91 +58,32 @@
   }
 
   /* =========================================================
-     Phase 1 단계 B — 진짜 회원 데이터 연동
+     Phase 1 단계 B — 진짜 회원 데이터 연동 (B 머지 후 mock 제거 완료)
      - DEMO_MEMBERS·DEMO_WEB_DONORS·DEMO_TAGS 제거 (#BUG-2 해결 지점)
-     - USE_MOCK=true 동안은 임시 mock JSON 사용 (B 머지 후 false → mock 블록 삭제)
      - API 계약: docs/DESIGN_PHASE1.md §6.2
+     - 응답 구조: ok() 헬퍼 wrap → res.data = { ok, message, data: { ... payload ... } }
      ========================================================= */
-  const USE_MOCK = true; // ★ B 머지 후 false 또는 아래 mock 블록 통째 삭제
-
-  // ─── B 머지 전 임시 mock (DESIGN_PHASE1.md §7.2 — 5종 enum + 병행 키) ─────
-  const __MOCK_ADMIN_MEMBERS__ = {
-    ok: true,
-    // §6.2 키 (A 채팅이 사용)
-    data: [
-      { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
-        signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
-        donorType: 'none', status: 'active', createdAt: '2026-04-15T09:30:00.000Z' },
-      { id: 102, name: '박두용', email: null, phone: '010-3333-4444',
-        signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
-        donorType: 'none', status: 'active', createdAt: '2026-04-22T14:10:00.000Z' },
-      { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
-        signupSourceId: 1, signupSource: 'siren', signupSourceLabel: '싸이렌',
-        donorType: 'none', status: 'active', createdAt: '2026-03-08T18:45:00.000Z' },
-      { id: 104, name: '강자원', email: null, phone: '010-7777-8888',
-        signupSourceId: 3, signupSource: 'manual', signupSourceLabel: '수기',
-        donorType: 'none', status: 'active', createdAt: '2026-04-30T10:00:00.000Z' },
-      { id: 105, name: '정행사', email: 'event@example.com', phone: null,
-        signupSourceId: 4, signupSource: 'event', signupSourceLabel: '이벤트',
-        donorType: 'none', status: 'active', createdAt: '2026-05-05T16:20:00.000Z' },
-      { id: 106, name: '박기타', email: null, phone: '010-9999-0000',
-        signupSourceId: 5, signupSource: 'etc', signupSourceLabel: '기타',
-        donorType: 'none', status: 'active', createdAt: '2026-05-08T11:15:00.000Z' },
-    ],
-    page: 1, pageSize: 50, total: 6,
-    // 기존 키 (admin.html 호환 별칭) — A 채팅은 안 씀, fallback 검증용으로만 유지
-    list: null,
-    pagination: { page: 1, pageSize: 50, total: 6 },
-  };
-
-  const __MOCK_ADMIN_MEMBER_DONATIONS__ = {
-    ok: true,
-    member: { id: 101, name: '지주은' },
-    data: [
-      { id: 5001, kind: 'regular', channel: 'hyosung', amount: 30000,
-        paidAt: '2026-05-01T00:00:00.000Z', status: 'paid', memo: '효성 5월분' },
-      { id: 4982, kind: 'regular', channel: 'hyosung', amount: 30000,
-        paidAt: '2026-04-01T00:00:00.000Z', status: 'paid', memo: '효성 4월분' },
-      { id: 4801, kind: 'onetime', channel: 'toss', amount: 100000,
-        paidAt: '2026-02-14T11:20:00.000Z', status: 'paid', memo: '명절 일시' },
-    ],
-    totalCount: 3, totalAmount: 160000, page: 1, pageSize: 30,
-  };
 
   /* ============ 회원 명단 fetch (DESIGN_PHASE1.md §6.2) ============ */
-  async function fetchMembers(query = {}) {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 150));
-      // mock은 필터/검색을 클라이언트에서 흉내내어 페이지네이션 UI 검증 가능하게
-      const all = __MOCK_ADMIN_MEMBERS__.data;
-      let filtered = all;
-      if (query.source && query.source !== 'all') {
-        filtered = filtered.filter(m => m.signupSource === query.source);
-      }
-      if (query.q) {
-        const q = String(query.q).toLowerCase();
-        filtered = filtered.filter(m =>
-          (m.name || '').toLowerCase().includes(q) ||
-          (m.email || '').toLowerCase().includes(q) ||
-          (m.phone || '').includes(q)
-        );
-      }
-      const page = Number(query.page) || 1;
-      const pageSize = Number(query.pageSize) || 50;
-      const start = (page - 1) * pageSize;
-      return {
-        ok: true,
-        data: filtered.slice(start, start + pageSize),
-        page, pageSize, total: filtered.length,
-      };
+  // 응답 페이로드 unwrap — ok() 헬퍼 wrap이면 한 단계 더 내려감.
+  // 직접 페이로드(미래 변경)에도 호환되도록 마커(target keys) 검사 fallback.
+  function unwrap(resData, markerKeys) {
+    const outer = resData || {};
+    if (outer.data && typeof outer.data === 'object') {
+      const inner = outer.data;
+      const hasMarker = markerKeys.some(k => inner[k] !== undefined);
+      if (hasMarker) return inner;
     }
+    return outer;
+  }
+
+  async function fetchMembers(query = {}) {
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
-    // DESIGN_PHASE1.md §6.2 (4be39f4): 슬래시 path 통일 — 기존 admin.html 호환
     const res = await api('/api/admin/members?' + qs.toString());
     if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
-    // 다중 fallback (§6.2 병행 응답: data + list, page/pageSize/total + pagination)
-    const payload = res.data?.data !== undefined || res.data?.list !== undefined ? res.data : res;
+    // §6.2 병행 응답: data·list 둘 다 동일 데이터, page/pageSize/total + pagination
+    const payload = unwrap(res.data, ['data', 'list', 'pagination', 'total']);
     const items = payload.data || payload.list || [];
     const pg = payload.pagination || {};
     return {
@@ -156,29 +97,12 @@
 
   /* ============ 회원별 후원 이력 fetch ============ */
   async function fetchMemberDonations(memberId, query = {}) {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 150));
-      const m = __MOCK_ADMIN_MEMBERS__.data.find(x => x.id === memberId);
-      if (memberId === 101 || !m) {
-        return { ...__MOCK_ADMIN_MEMBER_DONATIONS__,
-          member: m ? { id: m.id, name: m.name } : __MOCK_ADMIN_MEMBER_DONATIONS__.member };
-      }
-      // 다른 mock 회원은 0건
-      return {
-        ok: true,
-        member: { id: m.id, name: m.name },
-        data: [],
-        totalCount: 0, totalAmount: 0,
-        page: 1, pageSize: 30,
-      };
-    }
     const qs = new URLSearchParams({ memberId: String(memberId) });
     if (query.page) qs.set('page', String(query.page));
     if (query.pageSize) qs.set('pageSize', String(query.pageSize));
-    // DESIGN_PHASE1.md §6.2 (331ff59): 슬래시 컨벤션 통일
     const res = await api('/api/admin/member-donations?' + qs.toString());
     if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
-    const payload = res.data?.data !== undefined ? res.data : res;
+    const payload = unwrap(res.data, ['data', 'member', 'totalCount', 'totalAmount']);
     return {
       ok: true,
       member: payload.member || { id: memberId, name: '' },
