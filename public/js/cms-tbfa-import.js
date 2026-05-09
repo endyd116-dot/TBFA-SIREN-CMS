@@ -94,6 +94,23 @@
     return { status: r.status, ok: r.ok && data.ok !== false, data };
   }
 
+  /* ─── 엑셀 → CSV 클라이언트 변환 (SheetJS, 프로젝트 표준) ─── */
+  async function excelToCsvFile(file) {
+    if (typeof XLSX === 'undefined') {
+      throw new Error('SheetJS 미로드 — 페이지 새로고침 후 재시도');
+    }
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheetName = wb.SheetNames[0];
+    if (!sheetName) throw new Error('엑셀 파일에 시트가 없습니다');
+    const ws = wb.Sheets[sheetName];
+    const csvText = XLSX.utils.sheet_to_csv(ws);
+    if (!csvText || !csvText.trim()) throw new Error('엑셀 첫 시트가 비어 있습니다');
+    /* 서버 파서가 .csv 확장자 기준으로 분기할 수 있어 이름·MIME 모두 csv로 변환 */
+    const newName = file.name.replace(/\.(xlsx|xls)$/i, '.csv');
+    return new File([csvText], newName, { type: 'text/csv' });
+  }
+
   /* ─── 업로드 ─── */
   async function handleUpload(e) {
     e.preventDefault();
@@ -105,7 +122,7 @@
 
     const file = fileInput?.files?.[0];
     if (!file) {
-      toast('CSV 파일을 선택하세요');
+      toast('CSV 또는 엑셀 파일을 선택하세요');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -113,8 +130,27 @@
       return;
     }
 
+    /* 엑셀(.xlsx/.xls) → CSV 변환 */
+    let uploadFile = file;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'xlsx' || ext === 'xls') {
+      btn.disabled = true;
+      btn.textContent = '엑셀 → CSV 변환 중…';
+      try {
+        uploadFile = await excelToCsvFile(file);
+      } catch (err) {
+        toast('엑셀 변환 실패: ' + (err.message || ''));
+        btn.disabled = false;
+        btn.textContent = '📥 업로드 + 매칭';
+        if (resultDiv) {
+          resultDiv.innerHTML = `<span style="color:#c5293a">❌ 엑셀 변환 실패: ${escapeHtml(err.message || '')}</span>`;
+        }
+        return;
+      }
+    }
+
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', uploadFile);
     fd.append('source', sourceSel?.value || 'auto');
     fd.append('autoMatch', autoMatch?.checked ? 'true' : 'false');
 

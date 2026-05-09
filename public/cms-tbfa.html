@@ -1120,9 +1120,10 @@
                     <option value="ibk">기업은행 — 거래내역</option>
                   </select>
                 </label>
-                <label style="font-size:12.5px;color:#525252">CSV 파일 (5MB 이하)
-                  <input type="file" id="csvFile" accept=".csv,text/csv"
+                <label style="font-size:12.5px;color:#525252">CSV / 엑셀 파일 (5MB 이하)
+                  <input type="file" id="csvFile" accept=".csv,.xlsx,.xls,text/csv"
                     style="width:100%;padding:8px;border:1px solid #d0d4dc;border-radius:5px;font-size:12.5px;margin-top:4px;background:#fff">
+                  <div style="font-size:11px;color:#888;margin-top:3px">.csv / .xlsx / .xls 모두 가능 (엑셀은 첫 시트만 사용, 클라이언트에서 CSV로 변환 후 업로드)</div>
                 </label>
                 <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#525252">
                   <input type="checkbox" id="csvAutoMatch" checked> 업로드 시 자동 매칭 점수 계산
@@ -1227,6 +1228,6 @@
   <!-- Our code -->
   <script src="/js/cms-tbfa.js?v=2026-05-09-c1"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
-  <script src="/js/cms-tbfa-import.js?v=2026-05-09-c1"></script>
+  <script src="/js/cms-tbfa-import.js?v=2026-05-10-c2"></script>
 </body>
 </html>
