@@ -194,7 +194,7 @@ export interface AdminMembersErrorResponse {
   detail?: string;
 }
 
-/* ─── B8: GET /api/admin-member-donations?memberId=N ─── */
+/* ─── B8: GET /api/admin/member-donations?memberId=N ─── */
 
 export type DonationKind    = 'regular' | 'onetime';
 export type DonationChannel = 'toss' | 'hyosung' | 'ibk' | 'manual';
@@ -329,7 +329,7 @@ A는 B 머지 알림 받으면:
 - `admin-member-donations.ts`:
   - `members.id` 존재 확인 → 없으면 404
   - `requireAdmin` 가드 (`auth.res` 패턴)
-  - `export const config = { path: "/api/admin-member-donations" }` 누락 금지
+  - `export const config = { path: "/api/admin/member-donations" }` 누락 금지
 - 단계별 try/catch + step·detail·stack
 - 빈 결과 (회원은 있지만 후원 0건) 정상 응답 (`data: []`, `totalCount: 0`)
 - 페이지네이션 limit 안전 상한 (max 200)
