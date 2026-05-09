@@ -690,3 +690,80 @@
 /* 채널 뱃지 여백 — 두 채널(toss+hyosung) 동시 표시 시 간격 */
 #drBody td:nth-child(4) .cms-badge + .cms-badge { margin-left: 4px; }
 #dpBody td:nth-child(4) .cms-badge + .cms-badge { margin-left: 4px; }
+
+/* ============================================================
+   ★ Phase 3 (마일스톤 #16 단계 D) — 효성 SOT 컬럼 + 종합 검증 대시보드
+   ============================================================ */
+
+/* ─── D3: 회원 상세 모달 효성 계약 탭 ─── */
+.hy-modal-section {
+  padding: 4px 0;
+}
+.hy-modal-section dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: #525252;
+}
+.hy-modal-section dd {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+/* ─── D7: 종합 검증 대시보드 ─── */
+.dd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+@media (max-width: 1200px) {
+  .dd-kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .dd-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* alert 카드 */
+.dd-alert-card {
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-left: 4px solid transparent;
+}
+.dd-alert-card:last-child { margin-bottom: 0; }
+.dd-alert-warn   { background: #fff9ec; border-left-color: #c47a00; }
+.dd-alert-danger { background: #fff0f0; border-left-color: #c5293a; }
+.dd-alert-info   { background: #f0f5fc; border-left-color: #1a5ec4; }
+
+.dd-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+.dd-alert-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.06);
+  border-radius: 12px;
+  padding: 1px 8px;
+}
+.dd-alert-samples {
+  margin: 6px 0 0 0;
+  padding: 0 0 0 16px;
+  font-size: 11.5px;
+  color: #525252;
+  line-height: 1.7;
+}
+.dd-alert-action {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #1a5ec4;
+  background: rgba(26, 94, 196, 0.06);
+  border-radius: 6px;
+  padding: 6px 10px;
+}

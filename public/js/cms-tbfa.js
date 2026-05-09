@@ -77,7 +77,118 @@
     return outer;
   }
 
+  /* ============================================================
+     ★ Phase 3 (마일스톤 #16 단계 D) — 효성 SOT 컬럼 보강 + 종합 검증 대시보드
+     - DESIGN_PHASE3.md §7 mock 전략
+     - B 머지 후: USE_MOCK_PHASE3 = false + 아래 mock 상수 블록 삭제
+     ============================================================ */
+  const USE_MOCK_PHASE3 = true;
+
+  /* §7.1 통합 회원 — 효성 보강 mock */
+  const __MOCK_MEMBERS_HYOSUNG__ = {
+    ok: true,
+    data: [
+      { id: 7, name: '유인자', phone: '010-2434-1756', email: 'yuinja@test.com',
+        status: 'active', signupSource: 'hyosung', signupSourceLabel: '효성',
+        donorType: 'regular', createdAt: '2024-07-18T00:00:00Z',
+        hyosung: {
+          memberNo: 7, memberStatus: '사용', contractStatus: '사용',
+          promiseDay: 20, paymentMethod: 'CMS', paymentTool: '자동결제',
+          registrationStatus: '신청완료', productName: '후원회비', productAmount: 20000,
+          billingStart: '2024-07-18', billingEnd: '9999-12-31',
+        },
+      },
+      { id: 8, name: '황숙현', phone: '010-9074-2613', email: 'hwang@test.com',
+        status: 'active', signupSource: 'hyosung', signupSourceLabel: '효성',
+        donorType: 'prospect', createdAt: '2024-07-18T00:00:00Z',
+        hyosung: {
+          memberNo: 8, memberStatus: '사용', contractStatus: '중지',
+          promiseDay: 20, paymentMethod: null, paymentTool: '미등록',
+          registrationStatus: null, productName: '후원회비', productAmount: 10000,
+          billingStart: '2024-07-18', billingEnd: '9999-12-31',
+        },
+      },
+      { id: 22, name: '박정민', phone: '010-3421-6688', email: 'parkjm@test.com',
+        status: 'active', signupSource: 'siren', signupSourceLabel: '싸이렌',
+        donorType: 'regular', createdAt: '2025-03-10T00:00:00Z',
+        hyosung: null,
+      },
+      { id: 35, name: '최현우', phone: '010-8821-4405', email: '',
+        status: 'active', signupSource: 'manual', signupSourceLabel: '수기',
+        donorType: 'none', createdAt: '2025-09-01T00:00:00Z',
+        hyosung: null,
+      },
+    ],
+    page: 1, pageSize: 50, total: 4,
+  };
+
+  /* §7 (확장) 정기 후원자 — 효성 계약 mock */
+  const __MOCK_DONOR_REGULAR_HYOSUNG__ = {
+    ok: true,
+    data: [
+      { id: 7, name: '유인자', phone: '010-2434-1756', channels: ['hyosung'],
+        regularAmount: 20000, nextBillingDate: '2026-05-20',
+        cumulativeMonths: 22, cumulativeAmount: 440000,
+        donorEvaluatedAt: '2026-05-10T03:00:00Z',
+        hyosungContract: {
+          memberNo: 7, contractStatus: '사용', promiseDay: 20,
+          paymentMethod: 'CMS', paymentTool: '자동결제',
+          registrationStatus: '신청완료', productName: '후원회비', productAmount: 20000,
+          billingStart: '2024-07-18', billingEnd: '9999-12-31',
+        },
+      },
+      { id: 15, name: '김상훈', phone: '010-5872-3341', channels: ['hyosung'],
+        regularAmount: 30000, nextBillingDate: '2026-05-15',
+        cumulativeMonths: 18, cumulativeAmount: 540000,
+        donorEvaluatedAt: '2026-05-10T03:00:00Z',
+        hyosungContract: {
+          memberNo: 15, contractStatus: '사용', promiseDay: 15,
+          paymentMethod: 'CMS', paymentTool: '자동결제',
+          registrationStatus: '신청완료', productName: '정기후원', productAmount: 30000,
+          billingStart: '2024-11-01', billingEnd: '9999-12-31',
+        },
+      },
+      { id: 22, name: '박정민', phone: '010-3421-6688', channels: ['toss'],
+        regularAmount: 50000, nextBillingDate: '2026-05-25',
+        cumulativeMonths: 8, cumulativeAmount: 400000,
+        donorEvaluatedAt: '2026-05-10T03:00:00Z',
+        hyosungContract: null,
+      },
+    ],
+    kpi: { regularTotal: 41, tossCount: 0, hyosungCount: 41, bothCount: 0, monthlyAmountSum: 820000 },
+    page: 1, pageSize: 50, total: 41,
+  };
+
+  /* §7.2 종합 검증 대시보드 mock */
+  const __MOCK_DASHBOARD__ = {
+    ok: true,
+    generatedAt: '2026-05-10T03:00:00.000Z',
+    kpi: {
+      membersTotal: 54,
+      regularTotal: 41,
+      regularByChannel: { toss: 0, hyosung: 41, both: 0 },
+      prospectTotal: 13,
+      prospectBySubtype: { onetime: 5, cancelled: 8 },
+      nonDonor: 0,
+    },
+    alerts: [
+      { type: 'recentCancellation', count: 2, samples: [
+        { memberId: 38, memberNo: 46, description: '효성 계약 중지로 잠재 후원자 이동' },
+      ]},
+      { type: 'unmatchedHyosungContract', count: 0, samples: [] },
+    ],
+    recentCsvImports: [
+      { source: 'hyosung_contracts', uploadedAt: '2026-05-08T10:00:00.000Z',
+        totalRows: 54, matched: 50, created: 4 },
+    ],
+  };
+
   async function fetchMembers(query = {}) {
+    if (USE_MOCK_PHASE3) {
+      await new Promise(r => setTimeout(r, 180));
+      const d = __MOCK_MEMBERS_HYOSUNG__;
+      return { ok: true, data: d.data, page: d.page, pageSize: d.pageSize, total: d.total };
+    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/members?' + qs.toString());
@@ -112,6 +223,20 @@
       page: payload.page || 1,
       pageSize: payload.pageSize || 30,
     };
+  }
+
+  /* ★ Phase 3 D3: 통합 회원 효성 계약 셀 렌더 */
+  function renderHyosungContractCell(m) {
+    const hy = m.hyosung;
+    if (!hy) return '<span style="color:#d0d0d0;font-size:12px">—</span>';
+    const contractBadge = hy.contractStatus === '사용'
+      ? '<span class="cms-badge cms-b-success" style="font-size:10.5px">사용</span>'
+      : hy.contractStatus === '중지'
+      ? '<span class="cms-badge cms-b-mute" style="font-size:10.5px">중지</span>'
+      : `<span class="cms-badge cms-b-warn" style="font-size:10.5px">${escapeHtml(hy.contractStatus || '?')}</span>`;
+    const method = hy.paymentMethod ? `·${escapeHtml(hy.paymentMethod)}` : '';
+    const day = hy.promiseDay ? `·${hy.promiseDay}일` : '';
+    return `${contractBadge}<span style="font-size:10.5px;color:#888;margin-left:3px">${method}${day}</span>`;
   }
 
   /* ============ 가입경로/후원 상태 라벨 (5종 enum + null — §6.2) ============ */
@@ -194,6 +319,7 @@
           hyosung: '효성 CMS+ 관리', /* ★ Phase 1 */
           'toss-billing': '💳 토스 빌링 (자동 청구)', /* ★ Phase 2 */
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)', /* ★ 작업 C(#15) */
+          'donation-dashboard': '🔍 종합 검증 대시보드', /* ★ Phase 3 D7 */
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -214,6 +340,7 @@
             window.CsvImport.init();
           }
         }
+        else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
       });
     });
 
@@ -334,7 +461,7 @@
     const tbody = document.getElementById('membersBody');
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
 
     let resp;
     try {
@@ -347,7 +474,7 @@
       });
     } catch (err) {
       console.error('[members] fetch fail', err);
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
       renderMembersPagination(0);
       return;
     }
@@ -356,7 +483,7 @@
     memberTotal = resp.total;
 
     if (allMembers.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
       renderMembersPagination(0);
       return;
     }
@@ -377,6 +504,7 @@
           <td style="font-family:Inter;font-size:11.5px">${escapeHtml(m.phone || '—')}</td>
           <td>${renderDonorTypeBadge(m)}</td>
           <td style="font-family:Inter;font-size:11.5px;color:#8a8a8a">${formatDate(m.createdAt)}</td>
+          <td>${renderHyosungContractCell(m)}</td>
           <td>
             <button class="cms-btn-link" data-action="view" data-id="${m.id}">상세</button>
           </td>
@@ -532,6 +660,59 @@
     if (tab === 'donations' && modalCurrentMember) {
       loadModalDonations(modalCurrentMember.id);
     }
+    if (tab === 'hyosung' && modalCurrentMember) {
+      loadModalHyosung(modalCurrentMember);
+    }
+  }
+
+  /* ★ Phase 3 D3: 회원 상세 모달 — 효성 계약 탭 */
+  function loadModalHyosung(m) {
+    const content = document.querySelector('#memberDetailModal #mdmHyosungContent');
+    if (!content) return;
+    const hy = m.hyosung;
+    if (!hy) {
+      content.innerHTML = `
+        <div style="text-align:center;padding:36px;color:#888">
+          <div style="font-size:36px;margin-bottom:12px">🏦</div>
+          이 회원의 효성 CMS+ 계약 정보가 없습니다.<br>
+          <span style="font-size:11.5px;color:#aaa;margin-top:6px;display:block">효성 CSV 업로드 후 매칭되면 여기에 표시됩니다.</span>
+        </div>`;
+      return;
+    }
+    const row = (label, valueHtml) =>
+      `<dt>${escapeHtml(label)}</dt><dd>${valueHtml}</dd>`;
+    const contractBadge = hy.contractStatus === '사용'
+      ? '<span class="cms-badge cms-b-success">사용</span>'
+      : hy.contractStatus === '중지'
+      ? '<span class="cms-badge cms-b-mute">중지</span>'
+      : `<span class="cms-badge cms-b-warn">${escapeHtml(hy.contractStatus || '?')}</span>`;
+    const memberBadge = hy.memberStatus === '사용'
+      ? '<span class="cms-badge cms-b-success">사용</span>'
+      : hy.memberStatus === '중지'
+      ? '<span class="cms-badge cms-b-mute">중지</span>'
+      : `<span style="color:#888">${escapeHtml(hy.memberStatus || '—')}</span>`;
+    const regBadge = hy.registrationStatus === '신청완료'
+      ? '<span class="cms-badge cms-b-success">신청완료</span>'
+      : hy.registrationStatus === '신청중'
+      ? '<span class="cms-badge cms-b-warn">신청중</span>'
+      : hy.registrationStatus === '기간만료'
+      ? '<span class="cms-badge cms-b-mute">기간만료</span>'
+      : `<span style="color:#aaa">${escapeHtml(hy.registrationStatus || '—')}</span>`;
+    const billingEnd = hy.billingEnd === '9999-12-31' ? '무기한' : escapeHtml(hy.billingEnd || '—');
+    content.innerHTML = `
+      <dl class="mdm-info-grid hy-modal-section">
+        ${row('효성 회원번호', `<strong>${escapeHtml(String(hy.memberNo || '—'))}</strong>`)}
+        ${row('회원 상태', memberBadge)}
+        ${row('계약 상태', contractBadge)}
+        ${row('약정일', hy.promiseDay ? `매월 ${hy.promiseDay}일` : '—')}
+        ${row('결제 방식', escapeHtml(hy.paymentTool || '—'))}
+        ${row('결제 수단', escapeHtml(hy.paymentMethod || '—'))}
+        ${row('결제 등록 상태', regBadge)}
+        ${row('상품', escapeHtml(hy.productName || '—'))}
+        ${row('월 약정금액', hy.productAmount != null ? '₩' + Number(hy.productAmount).toLocaleString() : '—')}
+        ${row('청구 시작일', escapeHtml(hy.billingStart || '—'))}
+        ${row('청구 종료일', billingEnd)}
+      </dl>`;
   }
 
   async function loadModalDonations(memberId) {
@@ -1649,7 +1830,39 @@
   let donorRegularQuery = { channel: 'all', q: '' };
   let donorRegularSearchTimer = null;
 
+  /* ★ Phase 3 D4: 정기 후원자 효성 컬럼 헬퍼 */
+  function renderDrHyosungPayment(d) {
+    const hy = d.hyosungContract;
+    if (!hy) {
+      // 토스 전용이면 "토스 자동" 표시
+      if (d.channels && d.channels.includes('toss') && !d.channels.includes('hyosung')) {
+        return '<span style="font-size:11px;color:#1a5ec4">토스 자동</span>';
+      }
+      return '<span style="color:#d0d0d0;font-size:12px">—</span>';
+    }
+    return `<span style="font-size:11.5px">${escapeHtml(hy.paymentMethod || '—')}</span>`;
+  }
+  function renderDrHyosungRegStatus(d) {
+    const hy = d.hyosungContract;
+    if (!hy) return '<span style="color:#d0d0d0;font-size:12px">—</span>';
+    const s = hy.registrationStatus;
+    if (s === '신청완료') return '<span class="cms-badge cms-b-success" style="font-size:10.5px">신청완료</span>';
+    if (s === '신청중')   return '<span class="cms-badge cms-b-warn" style="font-size:10.5px">신청중</span>';
+    if (s === '기간만료') return '<span class="cms-badge cms-b-mute" style="font-size:10.5px">기간만료</span>';
+    return `<span style="color:#888;font-size:11px">${escapeHtml(s || '—')}</span>`;
+  }
+  function renderDrBillingLifecycle(d) {
+    const hy = d.hyosungContract;
+    if (!hy || !hy.billingStart) return '<span style="color:#d0d0d0;font-size:12px">—</span>';
+    const end = hy.billingEnd === '9999-12-31' ? '무기한' : (hy.billingEnd || '—');
+    return `<span style="font-size:10.5px;color:#525252">${escapeHtml(hy.billingStart)}<br><span style="color:#aaa">~${escapeHtml(end)}</span></span>`;
+  }
+
   async function fetchDonorRegular(query) {
+    if (USE_MOCK_PHASE3) {
+      await new Promise(r => setTimeout(r, 180));
+      return __MOCK_DONOR_REGULAR_HYOSUNG__;
+    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/donor-regular-list?' + qs.toString());
@@ -1699,7 +1912,9 @@
         <td style="font-family:Inter;font-size:11.5px">${formatDate(d.nextBillingDate)}</td>
         <td style="text-align:right;font-family:Inter;font-size:11.5px">${(d.cumulativeMonths ?? 0).toLocaleString()}개월</td>
         <td style="text-align:right;font-family:Inter;font-size:11.5px">₩${Number(d.cumulativeAmount || 0).toLocaleString()}</td>
-        <td style="color:#8a8a8a;font-size:11px">${formatDate(d.donorEvaluatedAt)}</td>
+        <td>${renderDrHyosungPayment(d)}</td>
+        <td>${renderDrHyosungRegStatus(d)}</td>
+        <td>${renderDrBillingLifecycle(d)}</td>
       </tr>
     `).join('');
 
@@ -1887,6 +2102,106 @@
       toast('잠재 후원자 목록을 새로고침합니다');
       renderDonorProspect();
     });
+  }
+
+  /* ============ ★ Phase 3 D7: 종합 검증 대시보드 ============ */
+
+  async function fetchDonationDashboard() {
+    if (USE_MOCK_PHASE3) {
+      await new Promise(r => setTimeout(r, 220));
+      return __MOCK_DASHBOARD__;
+    }
+    const res = await api('/api/admin/donation-dashboard');
+    if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
+    return unwrap(res.data, ['kpi', 'alerts', 'recentCsvImports']);
+  }
+
+  async function renderDonationDashboard() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const alertPanel = document.getElementById('ddAlertPanel');
+    const csvHistory = document.getElementById('ddCsvHistory');
+    const generatedAt = document.getElementById('ddGeneratedAt');
+
+    let resp;
+    try {
+      resp = await fetchDonationDashboard();
+    } catch (err) {
+      console.error('[donation-dashboard] fetch fail', err);
+      if (alertPanel) alertPanel.innerHTML = `<div style="color:#c5293a;padding:20px">불러오기 실패: ${escapeHtml(err?.message || err)}</div>`;
+      return;
+    }
+
+    const kpi = resp.kpi || {};
+    const ch = kpi.regularByChannel || {};
+    const ps = kpi.prospectBySubtype || {};
+    set('ddKpiTotal',          (kpi.membersTotal ?? 0).toLocaleString() + '명');
+    set('ddKpiRegular',        (kpi.regularTotal ?? 0).toLocaleString() + '명');
+    set('ddKpiRegularDetail',  `효성 ${ch.hyosung ?? 0}·토스 ${ch.toss ?? 0}·둘다 ${ch.both ?? 0}`);
+    set('ddKpiHyosung',        (ch.hyosung ?? 0).toLocaleString() + '명');
+    set('ddKpiToss',           (ch.toss ?? 0).toLocaleString() + '명');
+    set('ddKpiProspect',       (kpi.prospectTotal ?? 0).toLocaleString() + '명');
+    set('ddKpiProspectDetail', `일시 ${ps.onetime ?? 0}·중단 ${ps.cancelled ?? 0}`);
+    set('ddKpiNon',            (kpi.nonDonor ?? 0).toLocaleString() + '명');
+    if (generatedAt) {
+      generatedAt.textContent = resp.generatedAt ? '기준: ' + formatDate(resp.generatedAt) : '';
+    }
+
+    const ALERT_META = {
+      unmatchedHyosungContract: { icon: '⚠️', label: '미매칭 효성 계약', cls: 'dd-alert-warn' },
+      unmatchedHyosungBilling:  { icon: '⚠️', label: '미매칭 효성 수납', cls: 'dd-alert-warn' },
+      donorTypeConflict:        { icon: '🔴', label: '후원 상태 충돌',    cls: 'dd-alert-danger' },
+      recentCancellation:       { icon: '📉', label: '최근 해지',         cls: 'dd-alert-info' },
+    };
+    const alerts = resp.alerts || [];
+    if (alertPanel) {
+      if (alerts.length === 0 || alerts.every(a => a.count === 0)) {
+        alertPanel.innerHTML = '<div style="text-align:center;color:#1a8b46;padding:24px">✅ 검증 alert 없음 — 데이터 정합성 양호</div>';
+      } else {
+        alertPanel.innerHTML = alerts.filter(a => a.count > 0).map(a => {
+          const meta = ALERT_META[a.type] || { icon: '•', label: a.type, cls: 'dd-alert-info' };
+          const samples = (a.samples || []).slice(0, 3).map(s =>
+            `<li>${escapeHtml(s.description)}</li>`
+          ).join('');
+          const action = a.type === 'unmatchedHyosungContract'
+            ? '<div class="dd-alert-action">💡 효성 CMS+ 관리 탭에서 미매칭 계약을 확인하고, 수동 매칭하거나 신규 회원 자동 생성하세요.</div>'
+            : '';
+          return `
+            <div class="dd-alert-card ${meta.cls}">
+              <div class="dd-alert-header">
+                <span>${meta.icon} ${escapeHtml(meta.label)}</span>
+                <span class="dd-alert-count">${a.count.toLocaleString()}건</span>
+              </div>
+              ${samples ? `<ul class="dd-alert-samples">${samples}</ul>` : ''}
+              ${action}
+            </div>`;
+        }).join('') || '<div style="text-align:center;color:#1a8b46;padding:24px">✅ 검증 alert 없음 — 데이터 정합성 양호</div>';
+      }
+    }
+
+    const SOURCE_LABEL = {
+      hyosung_contracts: '📋 효성 계약정보',
+      hyosung_billings:  '📅 효성 수납내역',
+      ibk:               '🏛 IBK 거래',
+      toss:              '💳 토스',
+    };
+    const imports = resp.recentCsvImports || [];
+    if (csvHistory) {
+      csvHistory.innerHTML = imports.length === 0
+        ? `<tr><td colspan="5" style="text-align:center;padding:30px;color:#888">CSV import 이력이 없습니다</td></tr>`
+        : imports.map(imp => `
+          <tr>
+            <td style="font-family:Inter;font-size:11.5px">${formatDate(imp.uploadedAt)}</td>
+            <td>${escapeHtml(SOURCE_LABEL[imp.source] || imp.source)}</td>
+            <td style="text-align:right">${(imp.totalRows || 0).toLocaleString()}</td>
+            <td style="text-align:right">${(imp.matched || 0).toLocaleString()}</td>
+            <td style="text-align:right">${(imp.created || 0).toLocaleString()}</td>
+          </tr>`).join('');
+    }
+
+    document.getElementById('ddBtnRefresh')?.addEventListener('click', () => {
+      toast('종합 검증 대시보드를 새로고침합니다');
+      renderDonationDashboard();
+    }, { once: true });
   }
 
   /* ============ 초기화 ============ */
