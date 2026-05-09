@@ -27,7 +27,7 @@ import { db, members, donations } from "../../db";
 import { signupSources, memberGrades } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { hashPassword, checkPasswordStrength } from "../../lib/auth";
-import { classifyForSignup } from "../../lib/member-classifier";
+import { classifyForSignup, getSignupSourceId, type SignupSourceCode } from "../../lib/member-classifier";
 import { setMemberGradeManual } from "../../lib/grade-calculator";
 import {
   ok, created, badRequest, notFound, serverError,
@@ -35,6 +35,79 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { z } from "zod";
+
+/* =========================================================
+   Phase 1 §6.2 — 공개 API 계약 (DESIGN_PHASE1.md §6.2 SOT, 2026-05-10 보강 7fb1b77)
+   admin-members.ts 안에 export interface로 정의 (옵션 (a) 채택)
+   ========================================================= */
+
+/** 5종 enum (Swain 합의 2026-05-10): DB의 signup_sources.code 5개 모두 노출 */
+export type SignupSource = "siren" | "hyosung" | "manual" | "event" | "etc";
+export type DonorType = "regular" | "prospect" | "none";
+
+export interface AdminMembersQuery {
+  source?: SignupSource | "all";
+  donorType?: DonorType | "all";
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminMember {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  signupSourceId: number | null;
+  signupSource: SignupSource | null;          // 5종 또는 null(매핑되지 않은 코드 또는 NULL)
+  signupSourceLabel: string | null;            // '싸이렌'|'효성'|'수기'|'이벤트'|'기타'|null
+  donorType: DonorType;
+  status: string;
+  createdAt: string;
+}
+
+export interface AdminMembersResponse {
+  ok: true;
+  data: AdminMember[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface AdminMembersErrorResponse {
+  ok: false;
+  error: string;
+  step?: string;
+  detail?: string;
+}
+
+/** DESIGN §6.2 enum ↔ 실제 signup_sources.code 매핑
+ *  (Swain 합의 2026-05-10, 7fb1b77 보강): 5종 1:1 매핑.
+ *  매핑 표 외의 code 또는 NULL → signupSource=null, label=null */
+const SOURCE_ENUM_TO_CODE: Record<SignupSource, SignupSourceCode> = {
+  siren: "website",
+  hyosung: "hyosung_csv",
+  manual: "admin",
+  event: "event",
+  etc: "etc",
+};
+const SOURCE_CODE_TO_ENUM: Record<string, SignupSource> = {
+  website: "siren",
+  hyosung_csv: "hyosung",
+  admin: "manual",
+  event: "event",
+  etc: "etc",
+};
+const SOURCE_CODE_TO_LABEL: Record<string, string> = {
+  website: "싸이렌",
+  hyosung_csv: "효성",
+  admin: "수기",
+  event: "이벤트",
+  etc: "기타",
+};
+const VALID_SOURCE_ENUMS = new Set<SignupSource>([
+  "siren", "hyosung", "manual", "event", "etc",
+]);
 
 /* ───────── POST 검증 스키마 ───────── */
 const addMemberSchema = z.object({
@@ -115,16 +188,49 @@ export default async (req: Request) => {
         });
       }
 
-      /* 목록 조회 (★ M-12: 4분류 + 가입경로 / ★ M-19-1: 등급 추가) */
+      /* 목록 조회 (★ M-12: 4분류 + 가입경로 / ★ M-19-1: 등급 추가 / ★ Phase 1: ?source enum + ?donorType + ?pageSize) */
       const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-      const limit = Math.min(100, Number(url.searchParams.get("limit") || 20));
+      /* ★ Phase 1: pageSize 명시 시 우선, 없으면 limit fallback. max 200 (DESIGN §6.2 안전 상한) */
+      const pageSizeRaw = url.searchParams.get("pageSize");
+      const limitRaw = url.searchParams.get("limit");
+      const limit = Math.min(
+        200,
+        Math.max(1, Number(pageSizeRaw ?? limitRaw ?? 20)),
+      );
       const type = url.searchParams.get("type");
       const status = url.searchParams.get("status");
       const category = url.searchParams.get("category");
       const subtype = url.searchParams.get("subtype");
-      const sourceId = url.searchParams.get("source");
+      const sourceParam = (url.searchParams.get("source") || "").trim();
+      const donorTypeParam = (url.searchParams.get("donorType") || "").trim();
       const gradeIdParam = url.searchParams.get("grade");
       const q = (url.searchParams.get("q") || "").trim();
+
+      /* ★ Phase 1: ?source enum(siren/hyosung/manual/event/etc) → signup_sources.id 매핑.
+       *           숫자(기존 호환) 또는 'all'(미필터) 도 지원.
+       *           매핑 실패 시 폴백: 필터 미적용 (메인 SELECT 보존) */
+      let resolvedSourceId: number | null = null;
+      let sourceEnumApplied: SignupSource | null = null;
+      if (sourceParam && sourceParam !== "all") {
+        if (/^\d+$/.test(sourceParam)) {
+          resolvedSourceId = Number(sourceParam);
+        } else if (VALID_SOURCE_ENUMS.has(sourceParam as SignupSource)) {
+          sourceEnumApplied = sourceParam as SignupSource;
+          try {
+            resolvedSourceId = await getSignupSourceId(SOURCE_ENUM_TO_CODE[sourceEnumApplied]);
+          } catch (err) {
+            console.warn("[admin-members] getSignupSourceId 실패, 필터 미적용", err);
+            resolvedSourceId = null;
+          }
+        }
+        /* 그 외 값(잘못된 입력)은 무시 — 필터 미적용 */
+      }
+
+      /* ★ Phase 1: donorType fast-path.
+       *  schema에 donor_type 컬럼이 아직 없음 → 모든 회원 'none' 디폴트.
+       *  'regular'/'prospect' 요청은 Phase 1에서 빈 결과 즉시 반환 (DB 쿼리 스킵). */
+      const donorTypeFastEmpty =
+        donorTypeParam === "regular" || donorTypeParam === "prospect";
 
       const conditions: any[] = [];
       if (type && ["regular", "family", "volunteer", "admin"].includes(type)) {
@@ -143,8 +249,8 @@ export default async (req: Request) => {
           conditions.push(eq((members as any).memberSubtype, subtype));
         }
       }
-      if (sourceId && /^\d+$/.test(sourceId)) {
-        conditions.push(eq((members as any).signupSourceId, Number(sourceId)));
+      if (resolvedSourceId !== null) {
+        conditions.push(eq((members as any).signupSourceId, resolvedSourceId));
       }
       /* ★ M-19-1: 등급 필터 */
       if (gradeIdParam && /^\d+$/.test(gradeIdParam)) {
@@ -166,6 +272,20 @@ export default async (req: Request) => {
           : conditions.length === 1
             ? conditions[0]
             : and(...conditions);
+
+      /* ★ Phase 1: donorType=regular|prospect → 빈 결과 fast-path (Phase 1 컬럼 없음) */
+      if (donorTypeFastEmpty) {
+        return ok({
+          list: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+          categoryCounts: {},
+          /* ── DESIGN_PHASE1 §6.2 키 (top-level 미러링은 클라이언트 fallback 처리) ── */
+          data: [],
+          page,
+          pageSize: limit,
+          total: 0,
+        });
+      }
 
       const [{ total }] = await db.select({ total: count() }).from(members).where(where);
 
@@ -220,10 +340,37 @@ export default async (req: Request) => {
       const catRows: any[] = Array.isArray(catStats) ? catStats : (catStats?.rows || []);
       for (const r of catRows) categoryCounts[r.category] = Number(r.count);
 
+      /* ★ Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
+       *  매핑 표 5종 외 코드(또는 NULL) → signupSource=null, label=null (DESIGN §6.2 명시) */
+      const adminMembers: AdminMember[] = (list as any[]).map((r) => {
+        const code: string = r.sourceCode || "";
+        return {
+          id: Number(r.id),
+          name: r.name,
+          email: r.email ?? null,
+          phone: r.phone ?? null,
+          signupSourceId: r.signupSourceId ?? null,
+          signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
+          signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
+          /* Phase 1: schema에 donor_type 컬럼 없음 → 모두 'none'. 단계 C에서 컬럼 적용 후 본격 */
+          donorType: "none" as DonorType,
+          status: r.status,
+          createdAt:
+            r.createdAt instanceof Date
+              ? r.createdAt.toISOString()
+              : String(r.createdAt ?? ""),
+        };
+      });
+
       return ok({
         list,
         pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
         categoryCounts,
+        /* ── DESIGN_PHASE1 §6.2 키 (cms-tbfa.js 가 fallback 으로 접근) ── */
+        data: adminMembers,
+        page,
+        pageSize: limit,
+        total: Number(total),
       });
     }
 
