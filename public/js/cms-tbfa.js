@@ -65,9 +65,10 @@
      ========================================================= */
   const USE_MOCK = true; // ★ B 머지 후 false 또는 아래 mock 블록 통째 삭제
 
-  // ─── B 머지 전 임시 mock (DESIGN_PHASE1.md §7.2) ───────────────
+  // ─── B 머지 전 임시 mock (DESIGN_PHASE1.md §7.2 — 5종 enum + 병행 키) ─────
   const __MOCK_ADMIN_MEMBERS__ = {
     ok: true,
+    // §6.2 키 (A 채팅이 사용)
     data: [
       { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
         signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
@@ -78,8 +79,20 @@
       { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
         signupSourceId: 1, signupSource: 'siren', signupSourceLabel: '싸이렌',
         donorType: 'none', status: 'active', createdAt: '2026-03-08T18:45:00.000Z' },
+      { id: 104, name: '강자원', email: null, phone: '010-7777-8888',
+        signupSourceId: 3, signupSource: 'manual', signupSourceLabel: '수기',
+        donorType: 'none', status: 'active', createdAt: '2026-04-30T10:00:00.000Z' },
+      { id: 105, name: '정행사', email: 'event@example.com', phone: null,
+        signupSourceId: 4, signupSource: 'event', signupSourceLabel: '이벤트',
+        donorType: 'none', status: 'active', createdAt: '2026-05-05T16:20:00.000Z' },
+      { id: 106, name: '박기타', email: null, phone: '010-9999-0000',
+        signupSourceId: 5, signupSource: 'etc', signupSourceLabel: '기타',
+        donorType: 'none', status: 'active', createdAt: '2026-05-08T11:15:00.000Z' },
     ],
-    page: 1, pageSize: 50, total: 3,
+    page: 1, pageSize: 50, total: 6,
+    // 기존 키 (admin.html 호환 별칭) — A 채팅은 안 씀, fallback 검증용으로만 유지
+    list: null,
+    pagination: { page: 1, pageSize: 50, total: 6 },
   };
 
   const __MOCK_ADMIN_MEMBER_DONATIONS__ = {
@@ -125,16 +138,19 @@
     }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
-    const res = await api('/api/admin-members?' + qs.toString());
+    // DESIGN_PHASE1.md §6.2 (4be39f4): 슬래시 path 통일 — 기존 admin.html 호환
+    const res = await api('/api/admin/members?' + qs.toString());
     if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
-    // 다중 fallback (CLAUDE.md §6.1)
-    const payload = res.data?.data !== undefined ? res.data : res;
+    // 다중 fallback (§6.2 병행 응답: data + list, page/pageSize/total + pagination)
+    const payload = res.data?.data !== undefined || res.data?.list !== undefined ? res.data : res;
+    const items = payload.data || payload.list || [];
+    const pg = payload.pagination || {};
     return {
       ok: true,
-      data: payload.data || [],
-      page: payload.page || 1,
-      pageSize: payload.pageSize || 50,
-      total: payload.total || 0,
+      data: items,
+      page: payload.page ?? pg.page ?? 1,
+      pageSize: payload.pageSize ?? pg.pageSize ?? 50,
+      total: payload.total ?? pg.total ?? 0,
     };
   }
 
@@ -159,7 +175,8 @@
     const qs = new URLSearchParams({ memberId: String(memberId) });
     if (query.page) qs.set('page', String(query.page));
     if (query.pageSize) qs.set('pageSize', String(query.pageSize));
-    const res = await api('/api/admin-member-donations?' + qs.toString());
+    // DESIGN_PHASE1.md §6.2 (331ff59): 슬래시 컨벤션 통일
+    const res = await api('/api/admin/member-donations?' + qs.toString());
     if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
     const payload = res.data?.data !== undefined ? res.data : res;
     return {
@@ -173,11 +190,13 @@
     };
   }
 
-  /* ============ 가입경로/후원 상태 라벨 ============ */
+  /* ============ 가입경로/후원 상태 라벨 (5종 enum + null — §6.2) ============ */
   const SIGNUP_SOURCE_LABEL = {
     siren:   { icon: '🌐', text: '싸이렌', cls: 'cms-b-info' },
     hyosung: { icon: '🏦', text: '효성',   cls: 'cms-b-warn' },
     manual:  { icon: '✍️', text: '수기',   cls: 'cms-b-mute' },
+    event:   { icon: '🎪', text: '이벤트', cls: 'cms-b-success' },
+    etc:     { icon: '📦', text: '기타',   cls: 'cms-b-mute' },
   };
   const DONOR_TYPE_LABEL = {
     regular:  { icon: '🔁', text: '정기',   cls: 'cms-b-success' },
@@ -187,9 +206,12 @@
 
   function renderSignupSourceBadge(member) {
     const src = member.signupSource;
+    if (!src) {
+      // DB 코드 자체 없는 경우 — DESIGN §6.2 라인 153: 회색 '─'
+      return `<span class="cms-badge cms-b-mute" title="가입경로 미상" style="color:#8a8a8a">─</span>`;
+    }
     const meta = SIGNUP_SOURCE_LABEL[src];
-    const label = member.signupSourceLabel
-      || (meta ? meta.text : '—');
+    const label = member.signupSourceLabel || (meta ? meta.text : src);
     const icon = meta ? meta.icon : '·';
     const cls = meta ? meta.cls : 'cms-b-mute';
     return `<span class="cms-badge ${cls}" title="${escapeHtml(label)}">${icon} ${escapeHtml(label)}</span>`;
@@ -322,15 +344,16 @@
     set('kpiOnetime', '—');
     set('kpiVolunteer', '—');
 
-    const srcSiren   = rows.filter(m => m.signupSource === 'siren').length;
-    const srcHyo     = rows.filter(m => m.signupSource === 'hyosung').length;
-    const srcManual  = rows.filter(m => m.signupSource === 'manual').length;
-    set('srcWeb',    srcSiren + '명');     // 라벨은 HTML에 '싸이렌 웹사이트'
-    set('srcExcel',  srcHyo + '명');       // 라벨은 HTML에 '효성'으로 변경됨
-    set('srcManual', srcManual + '명');
+    const srcSiren  = rows.filter(m => m.signupSource === 'siren').length;
+    const srcHyo    = rows.filter(m => m.signupSource === 'hyosung').length;
+    // 'manual' + 'event' + 'etc' 합산 (5종 enum 도입 후 분류)
+    const srcOther  = rows.filter(m => ['manual', 'event', 'etc'].includes(m.signupSource)).length;
+    set('srcWeb',    srcSiren + '명');
+    set('srcExcel',  srcHyo + '명');
+    set('srcManual', srcOther + '명');
 
     // 차트 (Phase 1: 가입경로 분포로 임시 — 회원 유형 차원 없음)
-    renderMemberTypeChart([srcSiren, srcHyo, srcManual]);
+    renderMemberTypeChart([srcSiren, srcHyo, srcOther]);
 
     // 최근 회원 활동: 현재 페이지의 가장 최신 5명
     const tbody = document.getElementById('recentActivityBody');
@@ -355,11 +378,11 @@
     if (!ctx || typeof Chart === 'undefined') return;
 
     if (window._chart1) window._chart1.destroy();
-    // Phase 1 임시: 가입경로 분포 (싸이렌 / 효성 / 수기) — 단계 C에서 회원 유형 차원 추가 후 복원
+    // Phase 1 임시: 가입경로 분포 (싸이렌 / 효성 / 기타: 수기·이벤트·기타) — 단계 C에서 회원 유형 차원 추가 후 복원
     window._chart1 = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['🌐 싸이렌', '🏦 효성', '✍️ 수기'],
+        labels: ['🌐 싸이렌', '🏦 효성', '🤝 기타(수기·이벤트·기타)'],
         datasets: [{
           data,
           backgroundColor: ['#1a5ec4', '#c47a00', '#8a8a8a'],
