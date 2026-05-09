@@ -25,6 +25,8 @@ import {
   getCurrentYearMonth,
   type ChargeResult,
 } from "../../lib/toss-billing";
+// ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
+import { safeReevaluate } from "../../lib/donor-status";
 
 export const config: Config = {
   schedule: "0 15 * * *",  // UTC 15:00 = KST 00:00
@@ -336,6 +338,10 @@ async function handleSuccess(
 
   // 4-5. 영수증/알림 발송 (Phase 8에서 실제 연결)
   // TODO(phase8): await sendBillingSuccessNotifications(target, donationId);
+
+  // ★ Phase 2 단계 C: donor_type 재평가 (fire-and-forget)
+  // 정기 결제 성공 → channel='toss' 유지 보장
+  await safeReevaluate(target.memberId, "cron-toss-billing/success");
 }
 
 /* =========================================================
@@ -392,6 +398,10 @@ async function handleFailure(
 
     // 5-4-B. 해지 알림 (Phase 8)
     // TODO(phase8): await sendBillingCancelNotifications(target, result);
+
+    // ★ Phase 2 단계 C: 자동 해지 → donor_type 재평가
+    // (다른 채널 없으면 prospect/cancelled로 강등)
+    await safeReevaluate(target.memberId, "cron-toss-billing/auto-cancel");
 
     return true;
   } else {

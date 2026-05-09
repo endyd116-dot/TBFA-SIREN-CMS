@@ -27,6 +27,8 @@ import {
   ok, badRequest, serverError, methodNotAllowed, corsPreflight, parseJson,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+// ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
+import { safeReevaluate } from "../../lib/donor-status";
 
 interface Body {
   ids?: number[];
@@ -211,6 +213,26 @@ export default async (req: Request, _ctx: Context) => {
         detail: { processed: results.length, succeeded, failed, memberIdOverride },
       });
     } catch {}
+
+    /* ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
+     * 효성 CSV / IBK 입금 확정으로 신규 donations 생성 → 회원 분류 갱신
+     * 효성 정기(type='regular')는 hyosung_contract_status가 별도 import에서 'active'로 갱신되며,
+     * 본 후크는 donations 변경분에 따른 재분류(특히 onetime → prospect/onetime, regular → regular 보강)를 보장.
+     * 회원별 1회씩 fire-and-forget. */
+    const reevalIds = Array.from(
+      new Set(
+        results
+          .filter(r => r.ok)
+          .map(r => {
+            const p = pendings.find(x => x.id === r.id);
+            return memberIdOverride || p?.matchedMemberId || null;
+          })
+          .filter((v): v is number => Number.isInteger(v) && (v as number) > 0),
+      ),
+    );
+    for (const mid of reevalIds) {
+      await safeReevaluate(mid, "admin-donation-confirm");
+    }
 
     return ok(
       { processed: results.length, succeeded, failed, results, action: "confirm" },

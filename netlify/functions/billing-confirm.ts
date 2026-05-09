@@ -31,6 +31,8 @@ import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
 // netlify/functions/billing-confirm.ts — import 추가
 import { recalculateGrade } from "../../lib/grade-calculator";
+// ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
+import { safeReevaluate } from "../../lib/donor-status";
 
 
 const TOSS_MODE = (process.env.TOSS_MODE || "test").toLowerCase();
@@ -375,6 +377,11 @@ export default async (req: Request) => {
         console.error("[billing-confirm] 등급 재계산 실패:", e);
       }
     }
+
+    /* ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
+     * 빌링키 신규 등록 → 정기 후원자(channel='toss') 자동 분류
+     * fire-and-forget — 실패해도 결제 자체에 영향 0 */
+    await safeReevaluate(memberId, "billing-confirm");
 
     /* 14. 응답 */
     const donationNo = `D-${String(donation.id).padStart(7, "0")}`;

@@ -112,7 +112,14 @@
 # ★ Phase M-19-7: 매일 새벽 05:00 KST 기념일 축하 메일
 [functions."cron-anniversary-check"]
   schedule = "0 20 * * *"
-  
+
+# ★ Phase 2 (마일스톤 #16 단계 C): 후원 분류 야간 동기화 (매일 새벽 03:00 KST = UTC 18:00)
+# - members.donor_type / donor_channels / prospect_subtype 일괄 재평가 (안전망)
+# - 후크 누락분(외부 시스템 변경, 수동 변경 등) 매일 보정
+[functions."cron-donor-status-sync"]
+  schedule = "0 18 * * *"
+
+
 # ============================================================
 # Dev 설정
 # ============================================================

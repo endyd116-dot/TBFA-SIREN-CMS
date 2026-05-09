@@ -19,6 +19,8 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
+// ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
+import { safeReevaluate } from "../../lib/donor-status";
 
 const cancelSchema = z.object({
   billingKeyId: z.number().int().positive(),
@@ -110,6 +112,10 @@ export default async (req: Request) => {
         reasonProvided: !!reason,
       },
     });
+
+    /* ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가
+     * 토스 채널 제거 → 다른 채널(효성) 있으면 regular 유지, 없으면 prospect/cancelled */
+    await safeReevaluate(user.id, "billing-cancel");
 
     return ok(
       { billingKeyId: updated.id },
