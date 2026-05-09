@@ -77,118 +77,7 @@
     return outer;
   }
 
-  /* ============================================================
-     ★ Phase 3 (마일스톤 #16 단계 D) — 효성 SOT 컬럼 보강 + 종합 검증 대시보드
-     - DESIGN_PHASE3.md §7 mock 전략
-     - B 머지 후: USE_MOCK_PHASE3 = false + 아래 mock 상수 블록 삭제
-     ============================================================ */
-  const USE_MOCK_PHASE3 = true;
-
-  /* §7.1 통합 회원 — 효성 보강 mock */
-  const __MOCK_MEMBERS_HYOSUNG__ = {
-    ok: true,
-    data: [
-      { id: 7, name: '유인자', phone: '010-2434-1756', email: 'yuinja@test.com',
-        status: 'active', signupSource: 'hyosung', signupSourceLabel: '효성',
-        donorType: 'regular', createdAt: '2024-07-18T00:00:00Z',
-        hyosung: {
-          memberNo: 7, memberStatus: '사용', contractStatus: '사용',
-          promiseDay: 20, paymentMethod: 'CMS', paymentTool: '자동결제',
-          registrationStatus: '신청완료', productName: '후원회비', productAmount: 20000,
-          billingStart: '2024-07-18', billingEnd: '9999-12-31',
-        },
-      },
-      { id: 8, name: '황숙현', phone: '010-9074-2613', email: 'hwang@test.com',
-        status: 'active', signupSource: 'hyosung', signupSourceLabel: '효성',
-        donorType: 'prospect', createdAt: '2024-07-18T00:00:00Z',
-        hyosung: {
-          memberNo: 8, memberStatus: '사용', contractStatus: '중지',
-          promiseDay: 20, paymentMethod: null, paymentTool: '미등록',
-          registrationStatus: null, productName: '후원회비', productAmount: 10000,
-          billingStart: '2024-07-18', billingEnd: '9999-12-31',
-        },
-      },
-      { id: 22, name: '박정민', phone: '010-3421-6688', email: 'parkjm@test.com',
-        status: 'active', signupSource: 'siren', signupSourceLabel: '싸이렌',
-        donorType: 'regular', createdAt: '2025-03-10T00:00:00Z',
-        hyosung: null,
-      },
-      { id: 35, name: '최현우', phone: '010-8821-4405', email: '',
-        status: 'active', signupSource: 'manual', signupSourceLabel: '수기',
-        donorType: 'none', createdAt: '2025-09-01T00:00:00Z',
-        hyosung: null,
-      },
-    ],
-    page: 1, pageSize: 50, total: 4,
-  };
-
-  /* §7 (확장) 정기 후원자 — 효성 계약 mock */
-  const __MOCK_DONOR_REGULAR_HYOSUNG__ = {
-    ok: true,
-    data: [
-      { id: 7, name: '유인자', phone: '010-2434-1756', channels: ['hyosung'],
-        regularAmount: 20000, nextBillingDate: '2026-05-20',
-        cumulativeMonths: 22, cumulativeAmount: 440000,
-        donorEvaluatedAt: '2026-05-10T03:00:00Z',
-        hyosungContract: {
-          memberNo: 7, contractStatus: '사용', promiseDay: 20,
-          paymentMethod: 'CMS', paymentTool: '자동결제',
-          registrationStatus: '신청완료', productName: '후원회비', productAmount: 20000,
-          billingStart: '2024-07-18', billingEnd: '9999-12-31',
-        },
-      },
-      { id: 15, name: '김상훈', phone: '010-5872-3341', channels: ['hyosung'],
-        regularAmount: 30000, nextBillingDate: '2026-05-15',
-        cumulativeMonths: 18, cumulativeAmount: 540000,
-        donorEvaluatedAt: '2026-05-10T03:00:00Z',
-        hyosungContract: {
-          memberNo: 15, contractStatus: '사용', promiseDay: 15,
-          paymentMethod: 'CMS', paymentTool: '자동결제',
-          registrationStatus: '신청완료', productName: '정기후원', productAmount: 30000,
-          billingStart: '2024-11-01', billingEnd: '9999-12-31',
-        },
-      },
-      { id: 22, name: '박정민', phone: '010-3421-6688', channels: ['toss'],
-        regularAmount: 50000, nextBillingDate: '2026-05-25',
-        cumulativeMonths: 8, cumulativeAmount: 400000,
-        donorEvaluatedAt: '2026-05-10T03:00:00Z',
-        hyosungContract: null,
-      },
-    ],
-    kpi: { regularTotal: 41, tossCount: 0, hyosungCount: 41, bothCount: 0, monthlyAmountSum: 820000 },
-    page: 1, pageSize: 50, total: 41,
-  };
-
-  /* §7.2 종합 검증 대시보드 mock */
-  const __MOCK_DASHBOARD__ = {
-    ok: true,
-    generatedAt: '2026-05-10T03:00:00.000Z',
-    kpi: {
-      membersTotal: 54,
-      regularTotal: 41,
-      regularByChannel: { toss: 0, hyosung: 41, both: 0 },
-      prospectTotal: 13,
-      prospectBySubtype: { onetime: 5, cancelled: 8 },
-      nonDonor: 0,
-    },
-    alerts: [
-      { type: 'recentCancellation', count: 2, samples: [
-        { memberId: 38, memberNo: 46, description: '효성 계약 중지로 잠재 후원자 이동' },
-      ]},
-      { type: 'unmatchedHyosungContract', count: 0, samples: [] },
-    ],
-    recentCsvImports: [
-      { source: 'hyosung_contracts', uploadedAt: '2026-05-08T10:00:00.000Z',
-        totalRows: 54, matched: 50, created: 4 },
-    ],
-  };
-
   async function fetchMembers(query = {}) {
-    if (USE_MOCK_PHASE3) {
-      await new Promise(r => setTimeout(r, 180));
-      const d = __MOCK_MEMBERS_HYOSUNG__;
-      return { ok: true, data: d.data, page: d.page, pageSize: d.pageSize, total: d.total };
-    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/members?' + qs.toString());
@@ -1859,10 +1748,6 @@
   }
 
   async function fetchDonorRegular(query) {
-    if (USE_MOCK_PHASE3) {
-      await new Promise(r => setTimeout(r, 180));
-      return __MOCK_DONOR_REGULAR_HYOSUNG__;
-    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/donor-regular-list?' + qs.toString());
@@ -2107,10 +1992,6 @@
   /* ============ ★ Phase 3 D7: 종합 검증 대시보드 ============ */
 
   async function fetchDonationDashboard() {
-    if (USE_MOCK_PHASE3) {
-      await new Promise(r => setTimeout(r, 220));
-      return __MOCK_DASHBOARD__;
-    }
     const res = await api('/api/admin/donation-dashboard');
     if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
     return unwrap(res.data, ['kpi', 'alerts', 'recentCsvImports']);
