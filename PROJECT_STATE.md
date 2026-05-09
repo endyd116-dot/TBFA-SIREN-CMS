@@ -27,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | **Phase 1 (#16 단계 B) 완료** — A·B 채팅 코드 머지(0917e67·f026c6b) + Swain 화면 검증 통과. **#BUG-2 해소**. tag `phase1-complete-20260510`. 다음: Phase 2(#16 단계 C) 진입 준비 |
+| 2026-05-10 | 메인 채팅 | CLAUDE.md §6.14 절대명제 신설 — 검증·설명은 로직·기능 위주(함수·변수 코드 용어 회피) |
 | 2026-05-10 | 메인 채팅 | **Phase 1 설계 확정** — DESIGN_PHASE1.md 본격 11섹션 (A/B 분담 + Mock 전략 + API 계약 옵션 (a) 채택). tag `phase1-design-complete-20260510`. A·B 채팅 코드 작업 대기 |
 | 2026-05-10 | 메인 채팅 | Phase 분류 시나리오 B 채택 — 이번 사이클에 #16 B·C·D 처리, PHASE_PROPOSAL.md / DESIGN_PHASE1.md 신설 |
 | 2026-05-10 | 메인 채팅 | 문서 정비 — `docs/HANDOFF.md` 신설(단일 최신) + `docs/REMAINING_WORK.md` 신설 + CLAUDE.md §12.1 문서 갱신 정책 + 권한 정책 정비(`.claude/settings.json` deny 14건 정리) |
-| 2026-05-10 | 메인 채팅 | 마일스톤 #16 설계 합의 + #BUG-2 등록 (cms-tbfa 더미) — §4.6 신설 |
-| 2026-05-10 | 메인 채팅 | 단계 A 완료 — 사이드바 그룹화, 통합 일반 회원 이름 변경, 후원 관리 강화 (42fd6c6) |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -40,10 +40,10 @@
 ## 3. 현재 작업 모드
 
 ```
-🟡 시나리오 B (균형형) — 이번 사이클(1주, 20~30h)에 마일스톤 #16 B·C·D 모두 처리
-   Phase 1 = Main 단독 (#16 단계 B + #6/#15 검증)
-   Phase 2 = Main + A 보조 (#16 단계 C: schema·migrate)
-   Phase 3 = Main + B 채팅 (#16 단계 D: 효성 billings·cron)
+🟢 시나리오 B (균형형) — 마일스톤 #16 B·C·D
+   Phase 1 ✅ 완료 (단계 B: 통합 일반 회원 + 상세 모달 + #BUG-2 해소)
+   Phase 2 진입 준비 (단계 C: 후원 회원 분류 — 정기/잠재/비후원 컬럼 + 화면)
+   Phase 3 (단계 D: CSV 종합 검증 + 효성 일괄 갱신)
 ```
 
 - 시나리오 채택 근거: [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md)
@@ -251,7 +251,7 @@ CREATE TABLE pending_donations (
 | 항목 | 값 |
 |---|---|
 | 식별자 | 6순위 #16 |
-| 진행률 | 🟡 단계 A ✅ / **단계 B 설계 ✅ (ed49056 + tag phase1-design-complete-20260510)** / 코드 미착수 (A·B 채팅 대기) / C·D 이번 사이클 후속 |
+| 진행률 | 🟡 단계 A ✅ / **단계 B ✅ 완료** (코드 0917e67·f026c6b + Swain 검증 통과 + tag phase1-complete-20260510) / C·D 이번 사이클 후속 진행 예정 |
 | 추정 시간 | 8~12h (B 1.5~2.5h + C 3~4h + D 3~5h) |
 | 우선순위 | 6순위 #8보다 우선 (운영 핵심) |
 | 시나리오·분담 | [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md) / [docs/DESIGN_PHASE1.md](docs/DESIGN_PHASE1.md) |
@@ -288,7 +288,7 @@ CREATE TABLE pending_donations (
 | 5순위 중간 작업 | ✅ #1 / #9 / #10 모두 완료 |
 | 6순위 #6 자격 변경 | ✅ 코드 100% 안착 (`feature/eligibility-change`), 사용자 검증 가능 |
 | 6순위 #15 CSV 자동 매핑 + 엑셀 업로드 | ✅ 코드 100% 안착 (`feature/csv-donation-mapping`), admin.html 회원 관리에서 검증 가능 |
-| **6순위 #16 통합 회원·후원 시스템** | 🟡 단계 A ✅ / **B·C·D 이번 사이클 (시나리오 B 채택)** |
+| **6순위 #16 통합 회원·후원 시스템** | 🟢 단계 A ✅ / **단계 B ✅** / C·D 이번 사이클 후속 |
 | 6순위 #8 1:1 매칭 채팅 | ⏸ 다음 사이클 (15~18h, 한 사이클 안 어려움) |
 | TypeScript 타입 에러 149건 | ⏸ 다음 사이클 자투리 (운영 영향 0) |
 | Phase 4~22 (19개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
@@ -409,7 +409,7 @@ git worktree add ../tbfa-mis-D feature/donor-step-b origin/main
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
-| **#BUG-2** | 2026-05-10 | `cms-tbfa.js:60-90` | 🟠 High | 진행 예정 (마일스톤 #16 단계 B) | [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md) |
+| ~~#BUG-2~~ | 2026-05-10 | `cms-tbfa.js:60-90` | 🟠 High | ✅ 해결 (마일스톤 #16 단계 B 머지 — 545b523/f026c6b로 더미 제거) | [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md) |
 | ~~#BUG-1~~ | 2026-05-09 | `lib/auth.ts:128` | 🔴 Critical | ✅ 해결 (bb529f9) | [docs/issues/2026-05-09-requireActiveUser-uid-bug.md](docs/issues/2026-05-09-requireActiveUser-uid-bug.md) |
 
 **처리 원칙**:
