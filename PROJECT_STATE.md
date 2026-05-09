@@ -27,6 +27,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | **A·B Sonnet 4.6 자동 설정** — `tbfa-mis-A`/`tbfa-mis-B`의 `.claude/settings.local.json`에 `"model": "claude-sonnet-4-6"` 추가. CLAUDE.local.md 두 개 Phase 3 전용으로 갱신. DESIGN_PHASE3.md §2.0 모델 분배 표·§9.4·§9.5 모델 표기 추가. §4.5 worktree 표에 모델 컬럼 추가 |
 | 2026-05-10 | 메인 채팅 | **DESIGN_PHASE3.md 신설** — Swain 효성 PDF 양식(계약정보 22컬럼·수납내역 28컬럼) 매핑 검증 결과 **schema 변경 0건** 확인. 기존 `hyosungContracts`·`hyosungBillings` 테이블이 효성 양식과 1:1 대응. 시나리오 b'(Main M1·M2 라이브러리 선행 → A·B 분담) 채택. 추정 ~5.2h. 검증 후 A·B 새 채팅 분배 가능 |
 | 2026-05-10 | 메인 채팅 | **§10 효성 SOT 원칙 신설** (`milestones/2026-05-10-donor-system.md` §10) — Swain 효성 PDF 양식 SOT 합의. 회원·정기 후원자=효성 진실, SIREN 일방향 흡수+고유 컬럼 보존, 토스=SIREN 직속 자동 매핑. 단계 D 추정 5~7h(확장). **컨텍스트 한계 도달, 새 메인 채팅 시작** |
 | 2026-05-10 | 메인 채팅 | **Phase 2 (#16 단계 C) 완료** — schema 4컬럼·마이그·후크 4건·야간 cron·조회 API 2건·정기/잠재 화면 모두 안착(c3d2249). Swain 화면 검증 통과(양식만 효성과 차이). tag `phase2-complete-20260510` |
@@ -235,11 +236,11 @@ CREATE TABLE pending_donations (
 
 ### 4.5 작업 환경 (worktree)
 
-| 채팅 호칭 | 작업 폴더 | 브랜치 | 작업 식별자 |
-|---|---|---|---|
-| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | (조율용) |
-| A 채팅 | `../tbfa-mis-A` | `feature/eligibility-change` | 작업 A (#6) |
-| B 채팅 | `../tbfa-mis-B` | `feature/csv-donation-mapping` | 작업 C (#15) |
+| 채팅 호칭 | 작업 폴더 | 브랜치 | 모델 (자동) | 작업 식별자 |
+|---|---|---|---|---|
+| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Opus 4.7 (1M) | 조율·머지·M1·M2 |
+| A 채팅 | `../tbfa-mis-A` | (Phase 3) `feature/phase3-frontend` | **Sonnet 4.6** (settings.local.json) | Phase 3 D3·D4·D7 프론트 |
+| B 채팅 | `../tbfa-mis-B` | (Phase 3) `feature/phase3-backend` | **Sonnet 4.6** (settings.local.json) | Phase 3 D1·D2·D5·D6·D7 백엔드 |
 
 ⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**
 ⚠️ 메인 폴더(`tbfa-mis`)는 `main` 브랜치 전용, **직접 작업 X**
