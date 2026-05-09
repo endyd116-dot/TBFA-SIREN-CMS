@@ -27,6 +27,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | **M1·M2 라이브러리 신설** (커밋 ebe4435) — `lib/hyosung-mapper.ts` + `lib/hyosung-merge.ts`. Phase 3 b' 시나리오 1단계 완료. **A·B 채팅 지금 바로 활성화 가능** (DESIGN_PHASE3.md §9.4·§9.5 지시문 복붙) |
 | 2026-05-10 | 메인 채팅 | **A·B Sonnet 4.6 자동 설정** — `tbfa-mis-A`/`tbfa-mis-B`의 `.claude/settings.local.json`에 `"model": "claude-sonnet-4-6"` 추가. CLAUDE.local.md 두 개 Phase 3 전용으로 갱신. DESIGN_PHASE3.md §2.0 모델 분배 표·§9.4·§9.5 모델 표기 추가. §4.5 worktree 표에 모델 컬럼 추가 |
 | 2026-05-10 | 메인 채팅 | **DESIGN_PHASE3.md 신설** — Swain 효성 PDF 양식(계약정보 22컬럼·수납내역 28컬럼) 매핑 검증 결과 **schema 변경 0건** 확인. 기존 `hyosungContracts`·`hyosungBillings` 테이블이 효성 양식과 1:1 대응. 시나리오 b'(Main M1·M2 라이브러리 선행 → A·B 분담) 채택. 추정 ~5.2h. 검증 후 A·B 새 채팅 분배 가능 |
 | 2026-05-10 | 메인 채팅 | **§10 효성 SOT 원칙 신설** (`milestones/2026-05-10-donor-system.md` §10) — Swain 효성 PDF 양식 SOT 합의. 회원·정기 후원자=효성 진실, SIREN 일방향 흡수+고유 컬럼 보존, 토스=SIREN 직속 자동 매핑. 단계 D 추정 5~7h(확장). **컨텍스트 한계 도달, 새 메인 채팅 시작** |
