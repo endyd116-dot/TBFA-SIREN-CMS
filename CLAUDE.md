@@ -454,11 +454,13 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ## 12. 참고 문서
 
+- **단일 최신 인수인계** (한 화면, 새 사람·새 채팅이 처음 보는 곳): [docs/HANDOFF.md](docs/HANDOFF.md)
+- **잔여 작업 인벤토리** (우선순위별 카탈로그): [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)
 - **PROJECT_STATE.md** (병렬 작업 휘발성 상태 통합): [PROJECT_STATE.md](PROJECT_STATE.md)
   - §2 마지막 업데이트 표 / §4 작업별 진행률·다음할일 / §4.5 worktree 환경표 / §6.5 worktree 사고 사례 / §6.6 미해결 이슈 인덱스 / §7 채팅별 시작 프롬프트
 - **오류 리포트** 폴더: [docs/issues/](docs/issues/)
   - 신규 이슈 발견 시 `docs/issues/{날짜}-{키워드}.md` 별도 파일 + PROJECT_STATE.md §6.6에 한 줄 인덱스
-- **인수인계서 (영구 참조, 자발적 안 읽음)**:
+- **이전 시점 영구 스냅샷** (자발적 안 읽음, 마일스톤 단위 archive):
   - v20 통합: [docs/handover/v20.md](docs/handover/v20.md)
   - v17 확장판: [docs/handover/v17-expanded.md](docs/handover/v17-expanded.md)
   - 작업 C 인계서: [docs/handover/chat-c-handover-20260509.md](docs/handover/chat-c-handover-20260509.md)
@@ -468,6 +470,18 @@ import { requireAdmin } from "../../lib/admin-guard";
   - `../tbfa-mis-A` (작업 A — feature/eligibility-change)
   - `../tbfa-mis-B` (작업 C — feature/csv-donation-mapping)
 - **메모리**: `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/`
+
+### 12.1 문서 갱신 정책 (역할 분담)
+
+| 문서 | 갱신 빈도 | 역할 |
+|---|---|---|
+| `CLAUDE.md` | 정책 변경 시 | 자동 로드, 코딩 컨벤션·권한·자율성 원칙 |
+| `PROJECT_STATE.md` | 매 세션 | 휘발성 상태(채팅·worktree·진행률·이슈) |
+| `docs/HANDOFF.md` | **항상 단일 최신** | 한 화면 인수인계 |
+| `docs/REMAINING_WORK.md` | 우선순위 합의 시 재생성 | 잔여 작업 인벤토리 |
+| `docs/handover/v*.md` | **마일스톤 단위 영구 스냅샷** | 자발적 안 읽음, 역사 기록 |
+| `docs/milestones/*.md` | 마일스톤 신설 시 | 단일 마일스톤 설계서 |
+| `docs/issues/*.md` | 이슈 발견 시 | 상세 분석 + PROJECT_STATE §6.6에 한 줄 인덱스 |
 
 ---
 
@@ -491,4 +505,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-10 (단계 A 메뉴 재배치 + 엑셀 업로드 + #BUG-1 해결 + 마일스톤 #16 설계 + #BUG-2 등록 + §6.10~6.12 자율성/질문/보고 원칙 신설)
+**마지막 업데이트**: 2026-05-10 (HANDOFF.md/REMAINING_WORK.md 신설 + §12.1 문서 갱신 정책 + 권한 정책 정비 + §6.10~6.12 자율성 원칙 + 마일스톤 #16 단계 A + #BUG-1 해결)

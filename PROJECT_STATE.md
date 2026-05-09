@@ -15,7 +15,9 @@
 | 스택 | Vanilla JS + Netlify Functions v2 + Neon PG + Drizzle + R2 |
 | 베이스 브랜치 | `main` |
 | 자동 로드 문서 | `CLAUDE.md` (코딩 컨벤션·구조·자율 권한) |
-| 영구 참조 | `docs/handover/v20.md`, `docs/handover/v17-expanded.md` (인수인계 역사 기록) |
+| 단일 최신 인수인계 | `docs/HANDOFF.md` (한 화면, 새 사람·새 채팅이 처음 보는 곳) |
+| 잔여 작업 인벤토리 | `docs/REMAINING_WORK.md` (우선순위별 카탈로그) |
+| 영구 스냅샷 | `docs/handover/v20.md`, `docs/handover/v17-expanded.md` (자발적 안 읽음, 역사 기록) |
 
 상세 스택·환경변수·폴더 구조는 `CLAUDE.md` §2~5 참조.
 
@@ -25,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | 문서 정비 — `docs/HANDOFF.md` 신설(단일 최신) + `docs/REMAINING_WORK.md` 신설 + CLAUDE.md §12.1 문서 갱신 정책 + 권한 정책 정비(`.claude/settings.json` deny 14건 정리) |
 | 2026-05-10 | 메인 채팅 | 마일스톤 #16 설계 합의 + #BUG-2 등록 (cms-tbfa 더미) — §4.6 신설 |
 | 2026-05-10 | 메인 채팅 | 단계 A 완료 — 사이드바 그룹화, 통합 일반 회원 이름 변경, 후원 관리 강화 (42fd6c6) |
 | 2026-05-09 | 메인 채팅 | #BUG-1 fix 적용(bb529f9) + 엑셀 업로드 지원(55417f5) |
 | 2026-05-09 | 메인 채팅 | 작업 C 최종 머지 완료 — main에 반영 (705296d), schema 회귀 복구 검증 통과 |
-| 2026-05-09 | 메인 채팅 | A 검증 중 #BUG-1 발견 → 검증 보류 + 오류 리포트 작성 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
