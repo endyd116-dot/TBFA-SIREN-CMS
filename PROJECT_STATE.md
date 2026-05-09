@@ -275,24 +275,68 @@ CREATE TABLE pending_donations (
 | Phase 2 토스 빌링 자동청구 | ✅ 100% |
 | Phase 3 워크스페이스 본체 | ✅ 100% |
 | Phase 3-extra 파일함 | ✅ 100% (9/9 Step + 통합 라우팅) |
-| 4순위 자잘한 버그 3건 | ✅ 100% (모달 딜레이/회원엑셀/수납내역엑셀) |
-| 5순위 중간 작업 | ✅ #1 블랙·#9 관련사이트·#10 정기후원해지 안내 모두 완료 |
-| **6순위 큰 기능 3건** | ⬜ 0% — **§4에서 분배 시작** |
+| 4순위 자잘한 버그 3건 | ✅ 100% |
+| 5순위 중간 작업 | ✅ #1 / #9 / #10 모두 완료 |
+| 6순위 #6 자격 변경 | ✅ 코드 100% 안착 (`feature/eligibility-change`), 사용자 검증 가능 |
+| 6순위 #15 CSV 자동 매핑 + 엑셀 업로드 | ✅ 코드 100% 안착 (`feature/csv-donation-mapping`), admin.html 회원 관리에서 검증 가능 |
+| **6순위 #16 통합 회원·후원 시스템** | 🟡 단계 A ✅ 완료 / B·C·D 미착수 (1/4) |
+| 6순위 #8 1:1 매칭 채팅 | ⬜ 미착수 (#16 후 진행 권장) |
 | Phase 4~22 (19개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
 
-**누적**: 약 28~29% (5.5/22 Phase + 4·5순위) / 약 400h+
+**누적**: 약 33% / 약 440h+
 
-### 5.2 직전 7개 커밋 (참고)
+### 5.2 직전 7개 커밋 (오늘 작업 포함)
 
 | 커밋 | 요약 |
 |---|---|
-| `682bf5f` | docs: PARALLEL_PLAN.md 신설 (PROJECT_STATE.md 흡수 예정) |
-| `1bda417` | chore: 5순위 #10 시드 마이그레이션 파일 삭제 (1회용) |
-| `e58dac0` | feat: 5순위 #10 RENDERER 등록 + 시드 마이그레이션 |
-| `bb402c4` | docs: CLAUDE.md 신규 (자동 로드용) |
-| `dc15f06` | fix: 관련 사이트 캐시버스터 갱신 |
-| `260df6a` | feat: 5순위 #9 관련 사이트 메인 헤더 + CRUD UI |
-| `b20092a` | feat: 5순위 #1 후속 — 핵심 CREATE API 6개 차단 검증 |
+| `87a034c` | docs(claude): 세션 마무리 — 2026-05-10 작업 인수인계 갱신 |
+| `67e04cf` | docs(milestone): #16 통합 회원·후원 회원 시스템 설계 + #BUG-2 등록 |
+| `42fd6c6` | feat(menu): 단계 A — 사이드바 그룹화 + 통합 일반 회원 + 후원 관리 강화 |
+| `55417f5` | feat(csv-mapping): 엑셀(xlsx/xls) 업로드 지원 — 클라이언트 SheetJS 변환 |
+| `bb529f9` | fix(auth): #BUG-1 requireActiveUser user.id → user.uid (UNDEFINED_VALUE 해결) |
+| `4c25685` | docs(issue): #BUG-1 오류 리포트 — requireActiveUser user.id undefined 버그 |
+| `4872a36` | docs: 작업 C 머지 완료 — §2·§4.3·§4.4 갱신 |
+
+### 5.3 인수인계 — 다음 세션·다른 채팅이 알아야 할 공통 변경 (2026-05-10)
+
+#### A. DB·스키마·마이그레이션
+| 항목 | 상태 |
+|---|---|
+| 오늘 schema.ts 변경 | ❌ 0건 (코드 머지·문서·UI만) |
+| 오늘 신규 마이그레이션 | ❌ 0건 |
+| **다음 단계 C 예정** (마일스톤 #16) | `members` 테이블 4개 컬럼 추가: `donor_type`, `donor_channels`(jsonb), `prospect_subtype`, `donor_evaluated_at` + 1회용 마이그 `migrate-add-members-donor-type.ts` |
+
+#### B. 코드 변경 영역 (다른 채팅 fetch·rebase 시 흡수)
+| 영역 | 변경 내용 |
+|---|---|
+| `lib/auth.ts:128` | #BUG-1 fix — `user.id` → `user.uid` (requireActiveUser 사용 9개 API 정상화) |
+| `public/cms-tbfa.html` | 사이드바 4개 그룹화 (워크스페이스/운영/후원관리/운영도구) + CSV 입력 accept(.csv,.xlsx,.xls) + 정기/잠재 후원자 placeholder + 캐시버스터 |
+| `public/admin.html` | 사이드바 워크스페이스 그룹화 (워크툴/칸반/캘린더/템플릿/파일함) |
+| `public/js/cms-tbfa.js` | 페이지 타이틀 매핑 갱신 (`통합 일반 회원`, 정기/잠재, CSV 종합 검증) |
+| `public/js/cms-tbfa-import.js` | `excelToCsvFile()` 신규 + handleUpload 분기 (xlsx/xls → CSV 변환 후 업로드) |
+
+#### C. 워크트리 현황
+| 폴더 | 브랜치 | 상태 |
+|---|---|---|
+| `tbfa-mis` (메인) | `main` @ `87a034c` | 모든 변경 origin 반영 완료 |
+| `../tbfa-mis-A` | `feature/eligibility-change` @ `91f4e2f` | 작업 A 완료, 머지됨 — 정리 가능 또는 유지 |
+| `../tbfa-mis-B` | `feature/csv-donation-mapping` @ `705296d` | 작업 C 완료, 머지됨 — 정리 가능 또는 유지 |
+| `../tbfa-mis-D` (예정) | `feature/donor-step-b` | 단계 B 시작 시 신규 생성 |
+
+#### D. 미해결·진행 중
+- ✅ #BUG-1 해결 (`bb529f9`)
+- 🟠 #BUG-2 진행 예정 (마일스톤 #16 단계 B에서 해결)
+- 🟡 사용자 검증 보류:
+  - 작업 A(#6 자격 변경) — #BUG-1 fix 적용됨, 마이페이지 → 자격 변경 탭 정상 로드 확인 필요
+  - 작업 C(#15 CSV) — admin.html 회원 관리에서 매칭 결과 검증 가능 (cms-tbfa는 #BUG-2로 보류)
+
+#### E. 다음 세션 시작 절차
+**단계 B (마일스톤 #16) 시작 권장**:
+```bash
+git worktree add ../tbfa-mis-D feature/donor-step-b origin/main
+# 새 VS Code 창에서 ../tbfa-mis-D 열기
+# Claude Code 새 채팅 → docs/milestones/2026-05-10-donor-system.md §8의 첫 메시지 복붙
+```
 
 ---
 
