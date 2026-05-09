@@ -1,0 +1,199 @@
+# SIREN 남은 작업 정리 (REMAINING_WORK)
+
+> **생성**: 2026-05-10
+> **작성자**: 메인 채팅(Main 역할)
+> **목적**: 인수인계 문서(CLAUDE.md / PROJECT_STATE.md / docs/handover/v20.md / milestones / issues)를 1차 소스로,
+>   코드베이스 빠른 검증을 2차 보완으로 묶어 **현재 시점의 실제 잔여 작업**을 한 화면에 정리.
+> **갱신 정책**: 작업 완료·이관 시 본 문서를 직접 수정하기보다 PROJECT_STATE.md·해당 마일스톤 문서를 먼저 갱신하고,
+>   본 문서는 주기적으로(또는 새 우선순위 합의 시) 재생성.
+> **본 문서는 현황 정리만 — 설계·재우선순위는 별도 세션**.
+
+---
+
+## 0. 한눈에 보기
+
+| 분류 | 항목 수 | 상태 |
+|---|---:|---|
+| ✅ 완료 (1차 소스 주장 + 코드 일치 확인) | 7묶음 | Phase 1·2·3·3-extra, 4순위(3), 5순위(#1·#9·#10), 6순위 #6·#15 코드 머지, 마일스톤 #16 단계 A |
+| 🟡 검증 보류 | 2 | 6순위 #6 자격 변경 / 6순위 #15 CSV 자동 매핑 |
+| 🟠 진행 예정 (설계 합의됨) | 3 | 마일스톤 #16 단계 B·C·D |
+| ⬜ 미착수 (스펙 있음) | 1 | 6순위 #8 1:1 매칭 채팅 |
+| ⏸ 미정 (별도 설계 세션 필요) | 19 | Phase 4 ~ Phase 22 |
+| 🔴 미해결 이슈 | 1 | #BUG-2 (cms-tbfa 더미) — 단계 B에서 해결 예정 |
+| 🟣 [신규] 인수인계 미명시 잔여 | 4 | TODO 주석 7건, 타입 에러 149건, stale 이슈 문서, admin-donation-policy 누락 |
+
+---
+
+## 1. 완료된 작업 (검증 통과)
+
+> 아래 항목은 인수인계 문서가 "완료"라고 적은 것을 코드 샘플로 재확인한 결과 일치.
+
+| 묶음 | 인수인계 출처 | 코드 검증 |
+|---|---|---|
+| Phase 1 효성 CMS+ | CLAUDE.md §10, v20 §2 | `lib/hyosung-parser.ts` 존재 |
+| Phase 2 토스 빌링 자동청구 | CLAUDE.md §10 | `lib/toss-billing.ts`, `cron-toss-billing.ts` 존재 |
+| Phase 3 워크스페이스 본체 | CLAUDE.md §10 | `workspace.html`, `workspace-kanban.html` 등 존재 |
+| Phase 3-extra 파일함 | CLAUDE.md §10 | `admin-workspace-folders/files/file-*` 8개 존재, `cron-workspace-trash-cleanup.ts` 존재 |
+| 4순위 자잘한 버그 3건 | CLAUDE.md §10 | (스팟 검증 생략) |
+| 5순위 #1 블랙 통합 / #9 관련 사이트 / #10 정기 해지 안내 | CLAUDE.md §10 | `requireActiveUser` 통합, 관련 안내 페이지 |
+| 6순위 #6 자격 변경 (코드 머지) | PROJECT_STATE §4.1 | `eligibility-{request,status}.ts` + `admin-eligibility-{list,review}.ts` 4개 모두 존재 / schema.ts에 `eligibilityType`, `eligibilityChangeRequests` 정의(라인 253, 1851) |
+| 6순위 #15 CSV 자동 매핑 (코드 머지) | PROJECT_STATE §4.3 | `admin-donation-{import,confirm,pending-list}.ts` + `lib/{ibk-parser,donation-matcher}.ts` 모두 존재 / `pendingDonations` schema 정의(라인 1883) |
+| 마일스톤 #16 단계 A (메뉴 재배치) | docs/milestones §1, PROJECT_STATE §4.6 | 커밋 `42fd6c6` |
+| 마이그레이션 1회용 정리 원칙 | CLAUDE.md §6.8 | `netlify/functions/migrate-*.ts` 0건 (모두 호출 후 삭제됨) |
+| #BUG-1 fix | PROJECT_STATE §6.6 | `lib/auth.ts:128 user.uid` 적용됨 |
+
+---
+
+## 2. 미해결 작업 — 우선순위별
+
+> 우선순위 체계는 인수인계 그대로 유지(4·5·6순위 + Phase). 추정 시간은 PROJECT_STATE 기준.
+
+### 2.1 검증 보류 (코드는 main에 있음, 사용자 시나리오 검증만 남음)
+
+| ID | 항목 | 상태 | 추정 | 원본 출처 | 비고 |
+|---|---|---|---:|---|---|
+| **6순위 #6** | 교원 회원 자격 변경 시스템 | 🟡 검증 보류 | 0.5h | PROJECT_STATE §4.1 | #BUG-1 해결됨(`bb529f9`). 마이페이지→자격 변경→어드민 승인 한 사이클 검증만 |
+| **6순위 #15** | 효성 + 기업은행 CSV 자동 매핑 | 🟡 검증 보류 | 1h | PROJECT_STATE §4.3 | 어드민 회원 관리에서 매칭 검증 가능. cms-tbfa는 #BUG-2로 보류 |
+
+### 2.2 진행 예정 (설계 합의 완료)
+
+| ID | 항목 | 상태 | 추정 | 원본 출처 | 비고 |
+|---|---|---|---:|---|---|
+| **6순위 #16-B** | 통합 일반 회원 실제 API + 상세 모달 | ⬜ 미착수 | 1.5~2.5h | docs/milestones §2 | DEMO_* 제거 + admin-members 필터 확장 + 회원 상세 모달. 완료 시 #BUG-2 자동 해결 |
+| **6순위 #16-C** | donor_type 컬럼 + 정기/잠재 화면 + 토스 즉시 반영 | ⬜ 미착수 | 3~4h | docs/milestones §3 | members 4개 컬럼 추가 + 마이그 1회 |
+| **6순위 #16-D** | CSV 종합 검증 강화 + 효성 일괄 갱신 + 자동 상태 전이 | ⬜ 미착수 | 3~5h | docs/milestones §4 | 효성 billings 파서 신규 + cron-donor-status-sync |
+
+### 2.3 미착수 (스펙은 있음)
+
+| ID | 항목 | 상태 | 추정 | 원본 출처 | 비고 |
+|---|---|---|---:|---|---|
+| **6순위 #8** | 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅 | ⬜ 0% | 15~18h | PROJECT_STATE §4.2 | 마일스톤 #16 후 진행 권장. chat_rooms 확장 방향(신규 시스템 X) |
+
+### 2.4 Phase 4 ~ 22 (별도 설계 세션 필요)
+
+| 묶음 | 그룹명 | 원본 출처 |
+|---|---|---|
+| Phase 4 | 대표 보고 시스템 + Agent-9 | PROJECT_STATE §6.4 |
+| Phase 5~7 | 재정 관리 (3개) | PROJECT_STATE §6.4 |
+| Phase 8~11 | 커뮤니케이션 (4개) | PROJECT_STATE §6.4 (★ 본 문서 §3.1 TODO 주석 다수 연결) |
+| Phase 12~15 | SIREN 서비스 고도화 (4개) | PROJECT_STATE §6.4 |
+| Phase 16~18 | 분석·경영 (3개) | PROJECT_STATE §6.4 |
+| Phase 19~22 | 품질·안정성 (4개) | PROJECT_STATE §6.4 |
+
+→ 19개 모두 스펙 미정. 6순위 3건 머지·검증 후 별도 설계 세션 권장.
+
+### 2.5 미해결 이슈
+
+| ID | 항목 | 위치 | 심각도 | 상태 | 원본 출처 |
+|---|---|---|---|---|---|
+| **#BUG-2** | cms-tbfa 통합 회원·웹후원자·태그 더미 데이터 | `public/js/cms-tbfa.js:61, 71, 78` (사용처 92, 546) | 🟠 High | 진행 예정 (마일스톤 #16-B에서 해결) | docs/issues/2026-05-10-cms-tbfa-demo-data.md |
+| ~~#BUG-1~~ | requireActiveUser user.id → user.uid | `lib/auth.ts:128` | 🔴 Critical | ✅ 해결 (`bb529f9`) | PROJECT_STATE §6.6 |
+
+---
+
+## 3. [신규] 인수인계 미명시 잔여 (코드 스캔으로 발견)
+
+> 인수인계 어디에도 명시되지 않았지만 코드에 남아 있는 작업 항목. **새로 합의해 우선순위에 편입할지** 결정 필요.
+
+### 3.1 [신규] TODO 주석 7건 — Phase 8 알림 발송
+
+| 파일·라인 | 내용 | 출처 |
+|---|---|---|
+| `lib/workspace-logger.ts:131` | TODO(Step 5): channel별 실제 발송 로직 (인앱 외 SMS/이메일/알림톡 미구현) | 코드 스캔 |
+| `netlify/functions/cron-billing-card-expiry.ts:233, 235` | TODO(phase8): 알림톡 채널 추가 / 실제 발송 함수 호출 | 코드 스캔 |
+| `netlify/functions/cron-toss-billing.ts:338, 394, 414` | TODO(phase8): 빌링 성공·해지·실패 알림 발송 | 코드 스캔 |
+
+→ 4개 파일 모두 "Phase 8 (커뮤니케이션)"에서 활성화 예정 명시. **6순위 미명시이므로 별도 카탈로그 필요**.
+
+### 3.2 [신규] TypeScript 타입 에러 149건
+
+| 카테고리 | 건수 | 비고 |
+|---|---:|---|
+| TS2353 (schema.ts 컬럼 누락) | 72 | drizzle insert/update 객체에 schema에 없는 컬럼 사용 |
+| TS2339 (requireAdmin narrowing 누락) | 49 | `auth.ok` 체크 없이 `auth.res` 접근하는 함수 다수 |
+| TS2769 (drizzle insert 키 불일치) | 21 | schema 누락과 동일 원인 |
+| 기타 (TS2322·2345·2559·2561) | 7 | |
+| **합계** | **149** | |
+
+- **출처**: 2026-05-10 어제 세션의 `tsc --noEmit` 진단 결과 (typescript devDep 추가 후 실행)
+- **운영 영향**: 0 (Netlify Functions는 esbuild로 처리되어 런타임 차단 없음)
+- **장기 위험**: 자동완성 누락·회귀 잠재. 향후 안전한 리팩토링을 위해 정리 필요
+- **우선순위 미합의**: 새 합의 필요 — Phase 19~22(품질·안정성) 산하로 둘지, 별도 즉시 정리 항목으로 둘지
+
+### 3.3 [신규] admin-donation-policy.ts — 인수인계 누락 파일
+
+| 항목 | 내용 |
+|---|---|
+| 파일 | `netlify/functions/admin-donation-policy.ts` |
+| 용도 | 후원 정책(GET/PATCH) — 효성 카운트다운 메시지/초수 등 |
+| 인수인계 표기 | PROJECT_STATE §4.3 작업 C 신규 파일 목록에 **명시 안 됨** (파일 4개만 적힘) |
+| 실제 상태 | 코드 머지 완료, 운영중으로 추정 (super_admin 권한, donation_policies 테이블 사용) |
+
+→ 도메인 인접 작업이지만 PROJECT_STATE 갱신 누락. **단순 문서 패치로 처리 가능**.
+
+### 3.4 [신규] docs/issues/2026-05-09 — stale 문서
+
+| 항목 | 내용 |
+|---|---|
+| 파일 | `docs/issues/2026-05-09-requireActiveUser-uid-bug.md` |
+| 헤더 표기 | "🔴 미해결 (수정 보류 — 추후 별도 처리)" |
+| 실제 상태 | ✅ 해결 (`bb529f9`로 fix 적용, `lib/auth.ts:128` 검증 완료) |
+| 다른 출처 | CLAUDE.md §10·PROJECT_STATE §6.6은 "✅ 해결"로 정확히 표기 |
+
+→ 이슈 파일 1줄 헤더 갱신 필요. **단순 문서 패치**.
+
+---
+
+## 4. 인프라·운영 잔여 (휘발성)
+
+> 코드 작업과 별개로 운영 환경에서 처리해야 할 항목.
+
+| 항목 | 상태 | 비고 |
+|---|---|---|
+| 로컬 main → origin/main push | ⏸ 차단 (`.claude/settings.json` deny) | 어제 두 커밋(`66f93a5`, `1ef315a`)이 ahead 상태. Swain 직접 push 또는 worktree 경유 |
+| 도메인 마이그레이션 | ⏸ 미착수 | `tbfa.co.kr` 메인 + `yoonsiren.com` 리다이렉트 (CLAUDE.md §1) |
+| 안전 의존성 갱신 (patch/minor 4건) | ⏸ 미결정 | aws-sdk·@types/node·resend (어제 점검) |
+| Major 의존성 갱신 (7건) | ⏸ 미결정 | netlify/blobs·functions, drizzle, typescript, zod, bcryptjs 등 |
+
+---
+
+## 5. 권장 머지·진행 순서 (현재 시점)
+
+> PROJECT_STATE §4.4 + 마일스톤 #16 우선 권장 정책 반영. **이 순서는 합의된 우선순위가 아닌 정리자 추정**.
+
+```
+[즉시] 검증 보류 2건 정리
+   └─ 6순위 #6 / #15 사용자 검증 (1.5h)
+
+[직전 다음] 마일스톤 #16
+   ├─ B: 통합 회원 실제 API + 상세 모달 (1.5~2.5h)  → #BUG-2 동시 해결
+   ├─ C: donor_type 컬럼 + 정기/잠재 + 토스 즉시 (3~4h)
+   └─ D: CSV 종합 검증 강화 (3~5h)
+
+[그 다음] 6순위 #8 1:1 매칭 채팅 (15~18h)
+
+[중기] [신규 합의 필요]
+   ├─ TypeScript 149건 정리
+   ├─ TODO 주석 7건 (Phase 8 일부 선반영 가능)
+   └─ stale 문서 패치 (이슈 헤더 + admin-donation-policy 보강)
+
+[장기] Phase 4~22 19개 — 별도 설계 세션
+```
+
+---
+
+## 6. 인수인계와 코드의 괴리 (별도 보고)
+
+본 문서 §3.3·§3.4 항목 + 다음 사항을 **§7 별도 괴리 보고**로 같이 묶어 메인 채팅에서 보고함.
+
+- v20 인수인계서 §1 "완성도 약 99.999%" 표기 vs PROJECT_STATE §5.1 "마스터플랜 약 33%" — v20은 옛날 시점(Phase 4~22 미정 인지 전) 그대로.
+  운영 가이드는 **PROJECT_STATE.md + CLAUDE.md §10**가 최신.
+- v17/v20 인수인계서는 **영구 참조용 역사 기록**이며 "자발적 안 읽음" 정책(CLAUDE.md §12). 새 채팅의 1차 소스는 PROJECT_STATE.md.
+
+---
+
+## 7. 변경 이력
+
+| 일시 | 작성 | 내용 |
+|---|---|---|
+| 2026-05-10 | 메인 채팅 | 신설. 1차 소스 통합 + 코드 검증 결과 + 신규 4건 발견 반영 |
