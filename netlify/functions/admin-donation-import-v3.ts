@@ -145,10 +145,10 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 4. 소스별 분기 */
   if (source === "hyosung_contracts") {
-    return handleContractsImport(csvText, fileName || "contracts.csv", admin, adminMember);
+    return handleContractsImport(req, csvText, fileName || "contracts.csv", admin, adminMember);
   }
   if (source === "hyosung_billings") {
-    return handleBillingsImport(csvText, fileName || "billings.csv", admin, adminMember);
+    return handleBillingsImport(req, csvText, fileName || "billings.csv", admin, adminMember);
   }
 
   return badRequest("ibk 소스는 기존 /api/admin-donation-import 엔드포인트를 사용하세요");
@@ -163,6 +163,7 @@ export const config = { path: "/api/admin/donation-import" };
    ========================================================= */
 
 async function handleContractsImport(
+  req: Request,
   csvText: string,
   fileName: string,
   admin: any,
@@ -452,6 +453,7 @@ async function handleContractsImport(
    ========================================================= */
 
 async function handleBillingsImport(
+  req: Request,
   csvText: string,
   fileName: string,
   admin: any,
