@@ -1625,45 +1625,8 @@
   /* =========================================================
      ★ Phase 2 (마일스톤 #16 단계 C) — 정기/잠재 후원자 화면
      - API 계약: docs/DESIGN_PHASE2.md §6.2·§6.3
-     - mock: docs/DESIGN_PHASE2.md §7.1·§7.2 (B 머지 후 USE_MOCK_DONOR=false)
+     - 응답: ok() 헬퍼 wrap → unwrap(res.data, marker) 한 단계 unwrap
      ========================================================= */
-
-  // ★ B 머지 후 false 또는 블록 통째 삭제
-  const USE_MOCK_DONOR = true;
-
-  const __MOCK_DONOR_REGULAR__ = {
-    ok: true,
-    data: [
-      { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
-        channels: ['hyosung'], regularAmount: 30000,
-        nextBillingDate: '2026-06-01T00:00:00.000Z',
-        cumulativeMonths: 6, cumulativeAmount: 180000,
-        donorEvaluatedAt: '2026-05-10T03:00:00.000Z' },
-      { id: 102, name: '박두용', email: null, phone: '010-3333-4444',
-        channels: ['toss', 'hyosung'], regularAmount: 50000,
-        nextBillingDate: '2026-05-15T00:00:00.000Z',
-        cumulativeMonths: 12, cumulativeAmount: 600000,
-        donorEvaluatedAt: '2026-05-10T03:00:00.000Z' }
-    ],
-    page: 1, pageSize: 50, total: 2,
-    kpi: { regularTotal: 2, tossCount: 1, hyosungCount: 1, bothCount: 1, monthlyAmountSum: 80000 }
-  };
-
-  const __MOCK_DONOR_PROSPECT__ = {
-    ok: true,
-    data: [
-      { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
-        subtype: 'onetime', lastDonationDate: '2026-02-14T11:20:00.000Z',
-        lastDonationAmount: 100000, totalDonationCount: 1, totalDonationAmount: 100000,
-        cancelledChannel: null, donorEvaluatedAt: '2026-05-10T03:00:00.000Z' },
-      { id: 104, name: '강자원', email: null, phone: '010-7777-8888',
-        subtype: 'cancelled', lastDonationDate: '2025-12-10T00:00:00.000Z',
-        lastDonationAmount: 30000, totalDonationCount: 8, totalDonationAmount: 240000,
-        cancelledChannel: 'toss', donorEvaluatedAt: '2026-05-10T03:00:00.000Z' }
-    ],
-    page: 1, pageSize: 50, total: 2,
-    kpi: { prospectTotal: 2, onetimeCount: 1, cancelledCount: 1 }
-  };
 
   /* ---------- 채널 뱃지 (toss/hyosung) ---------- */
   const CHANNEL_LABEL = {
@@ -1687,10 +1650,6 @@
   let donorRegularSearchTimer = null;
 
   async function fetchDonorRegular(query) {
-    if (USE_MOCK_DONOR) {
-      await new Promise(r => setTimeout(r, 200));
-      return __MOCK_DONOR_REGULAR__;
-    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/donor-regular-list?' + qs.toString());
@@ -1804,10 +1763,6 @@
   let donorProspectSearchTimer = null;
 
   async function fetchDonorProspect(query) {
-    if (USE_MOCK_DONOR) {
-      await new Promise(r => setTimeout(r, 200));
-      return __MOCK_DONOR_PROSPECT__;
-    }
     const qs = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
     const res = await api('/api/admin/donor-prospect-list?' + qs.toString());
