@@ -183,8 +183,8 @@
         const titles = {
           dashboard: '대시보드',
           members: '통합 일반 회원',
-          'donor-regular': '🔁 정기 후원자 관리 (준비 중)',
-          'donor-prospect': '💡 잠재 후원자 관리 (준비 중)',
+          'donor-regular': '🔁 정기 후원자 관리',
+          'donor-prospect': '💡 잠재 후원자 관리',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
@@ -206,6 +206,8 @@
         else if (tab === 'receipt-settings') loadReceiptSettings(); /* ★ STEP H-2d-4 */
         else if (tab === 'hyosung') loadHyosungContracts(); /* ★ Phase 1 */
         else if (tab === 'toss-billing') loadTbKeys(); /* ★ Phase 2 */
+        else if (tab === 'donor-regular') renderDonorRegular(); /* ★ Phase 2 C10 */
+        else if (tab === 'donor-prospect') renderDonorProspect(); /* ★ Phase 2 C11 */
         else if (tab === 'csv-import') {
           /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
           if (window.CsvImport && typeof window.CsvImport.init === 'function') {
@@ -1620,6 +1622,318 @@
     setupReceiptSettingsActions();
   }
 
+  /* =========================================================
+     ★ Phase 2 (마일스톤 #16 단계 C) — 정기/잠재 후원자 화면
+     - API 계약: docs/DESIGN_PHASE2.md §6.2·§6.3
+     - mock: docs/DESIGN_PHASE2.md §7.1·§7.2 (B 머지 후 USE_MOCK_DONOR=false)
+     ========================================================= */
+
+  // ★ B 머지 후 false 또는 블록 통째 삭제
+  const USE_MOCK_DONOR = true;
+
+  const __MOCK_DONOR_REGULAR__ = {
+    ok: true,
+    data: [
+      { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
+        channels: ['hyosung'], regularAmount: 30000,
+        nextBillingDate: '2026-06-01T00:00:00.000Z',
+        cumulativeMonths: 6, cumulativeAmount: 180000,
+        donorEvaluatedAt: '2026-05-10T03:00:00.000Z' },
+      { id: 102, name: '박두용', email: null, phone: '010-3333-4444',
+        channels: ['toss', 'hyosung'], regularAmount: 50000,
+        nextBillingDate: '2026-05-15T00:00:00.000Z',
+        cumulativeMonths: 12, cumulativeAmount: 600000,
+        donorEvaluatedAt: '2026-05-10T03:00:00.000Z' }
+    ],
+    page: 1, pageSize: 50, total: 2,
+    kpi: { regularTotal: 2, tossCount: 1, hyosungCount: 1, bothCount: 1, monthlyAmountSum: 80000 }
+  };
+
+  const __MOCK_DONOR_PROSPECT__ = {
+    ok: true,
+    data: [
+      { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
+        subtype: 'onetime', lastDonationDate: '2026-02-14T11:20:00.000Z',
+        lastDonationAmount: 100000, totalDonationCount: 1, totalDonationAmount: 100000,
+        cancelledChannel: null, donorEvaluatedAt: '2026-05-10T03:00:00.000Z' },
+      { id: 104, name: '강자원', email: null, phone: '010-7777-8888',
+        subtype: 'cancelled', lastDonationDate: '2025-12-10T00:00:00.000Z',
+        lastDonationAmount: 30000, totalDonationCount: 8, totalDonationAmount: 240000,
+        cancelledChannel: 'toss', donorEvaluatedAt: '2026-05-10T03:00:00.000Z' }
+    ],
+    page: 1, pageSize: 50, total: 2,
+    kpi: { prospectTotal: 2, onetimeCount: 1, cancelledCount: 1 }
+  };
+
+  /* ---------- 채널 뱃지 (toss/hyosung) ---------- */
+  const CHANNEL_LABEL = {
+    toss:    { icon: '💳', text: '토스', cls: 'cms-b-info' },
+    hyosung: { icon: '🏦', text: '효성', cls: 'cms-b-warn' },
+  };
+  function renderChannelBadges(channels) {
+    if (!Array.isArray(channels) || channels.length === 0) {
+      return `<span class="cms-badge cms-b-mute" style="color:#8a8a8a">─</span>`;
+    }
+    return channels.map(ch => {
+      const meta = CHANNEL_LABEL[ch] || { icon: '·', text: ch, cls: 'cms-b-mute' };
+      return `<span class="cms-badge ${meta.cls}" title="${escapeHtml(meta.text)}">${meta.icon} ${escapeHtml(meta.text)}</span>`;
+    }).join(' ');
+  }
+
+  /* ============ C10. 정기 후원자 ============ */
+  let donorRegularPage = 1;
+  let donorRegularPageSize = 50;
+  let donorRegularQuery = { channel: 'all', q: '' };
+  let donorRegularSearchTimer = null;
+
+  async function fetchDonorRegular(query) {
+    if (USE_MOCK_DONOR) {
+      await new Promise(r => setTimeout(r, 200));
+      return __MOCK_DONOR_REGULAR__;
+    }
+    const qs = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
+    const res = await api('/api/admin/donor-regular-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
+    // ok() 헬퍼 wrap → 한 단계 unwrap (Phase 1과 동일 패턴)
+    return unwrap(res.data, ['data', 'kpi', 'total']);
+  }
+
+  async function renderDonorRegular() {
+    const tbody = document.getElementById('drBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
+
+    let resp;
+    try {
+      resp = await fetchDonorRegular({
+        channel: donorRegularQuery.channel,
+        q: donorRegularQuery.q,
+        page: donorRegularPage,
+        pageSize: donorRegularPageSize,
+      });
+    } catch (err) {
+      console.error('[donor-regular] fetch fail', err);
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      renderDonorRegularKpi(null);
+      renderDonorRegularPagination(0);
+      return;
+    }
+
+    const rows = resp.data || [];
+    const total = resp.total ?? rows.length;
+    renderDonorRegularKpi(resp.kpi || null);
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      renderDonorRegularPagination(0);
+      return;
+    }
+
+    tbody.innerHTML = rows.map(d => `
+      <tr>
+        <td>M-${String(d.id).padStart(5,'0')}</td>
+        <td><strong>${escapeHtml(d.name || '')}</strong></td>
+        <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
+        <td>${renderChannelBadges(d.channels)}</td>
+        <td style="text-align:right;font-weight:600">${d.regularAmount != null ? '₩' + Number(d.regularAmount).toLocaleString() : '—'}</td>
+        <td style="font-family:Inter;font-size:11.5px">${formatDate(d.nextBillingDate)}</td>
+        <td style="text-align:right;font-family:Inter;font-size:11.5px">${(d.cumulativeMonths ?? 0).toLocaleString()}개월</td>
+        <td style="text-align:right;font-family:Inter;font-size:11.5px">₩${Number(d.cumulativeAmount || 0).toLocaleString()}</td>
+        <td style="color:#8a8a8a;font-size:11px">${formatDate(d.donorEvaluatedAt)}</td>
+      </tr>
+    `).join('');
+
+    renderDonorRegularPagination(total);
+  }
+
+  function renderDonorRegularKpi(kpi) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (!kpi) { ['drKpiTotal','drKpiToss','drKpiHyosung','drKpiBoth','drKpiSum'].forEach(id => set(id, '—')); return; }
+    set('drKpiTotal',   (kpi.regularTotal ?? 0).toLocaleString() + '명');
+    set('drKpiToss',    (kpi.tossCount ?? 0).toLocaleString() + '명');
+    set('drKpiHyosung', (kpi.hyosungCount ?? 0).toLocaleString() + '명');
+    set('drKpiBoth',    (kpi.bothCount ?? 0).toLocaleString() + '명');
+    set('drKpiSum',     '₩' + Number(kpi.monthlyAmountSum || 0).toLocaleString());
+  }
+
+  function renderDonorRegularPagination(total) {
+    const pager = document.getElementById('drPagination');
+    if (!pager) return;
+    if (total === 0) { pager.innerHTML = ''; return; }
+    const totalPages = Math.max(1, Math.ceil(total / donorRegularPageSize));
+    const prev = donorRegularPage > 1
+      ? `<button class="cms-btn cms-btn-ghost" data-drp="${donorRegularPage - 1}">← 이전</button>` : '';
+    const next = donorRegularPage < totalPages
+      ? `<button class="cms-btn cms-btn-ghost" data-drp="${donorRegularPage + 1}">다음 →</button>` : '';
+    pager.innerHTML = prev
+      + `<span class="cms-donor-pagination-info">${donorRegularPage} / ${totalPages} · 총 ${total.toLocaleString()}명</span>`
+      + next;
+    pager.querySelectorAll('[data-drp]').forEach(b => {
+      b.addEventListener('click', () => { donorRegularPage = Number(b.dataset.drp); renderDonorRegular(); });
+    });
+  }
+
+  function setupDonorRegularFilters() {
+    const ch = document.getElementById('drFilterChannel');
+    if (ch) ch.addEventListener('change', () => {
+      donorRegularQuery.channel = ch.value || 'all';
+      donorRegularPage = 1;
+      renderDonorRegular();
+    });
+    const search = document.getElementById('drFilterSearch');
+    if (search) search.addEventListener('input', () => {
+      clearTimeout(donorRegularSearchTimer);
+      donorRegularSearchTimer = setTimeout(() => {
+        donorRegularQuery.q = search.value.trim();
+        donorRegularPage = 1;
+        renderDonorRegular();
+      }, 250);
+    });
+    const btn = document.getElementById('drBtnRefresh');
+    if (btn) btn.addEventListener('click', () => {
+      toast('정기 후원자 목록을 새로고침합니다');
+      renderDonorRegular();
+    });
+  }
+
+  /* ============ C11. 잠재 후원자 ============ */
+  let donorProspectPage = 1;
+  let donorProspectPageSize = 50;
+  let donorProspectQuery = { subtype: 'all', q: '' };
+  let donorProspectSearchTimer = null;
+
+  async function fetchDonorProspect(query) {
+    if (USE_MOCK_DONOR) {
+      await new Promise(r => setTimeout(r, 200));
+      return __MOCK_DONOR_PROSPECT__;
+    }
+    const qs = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
+    const res = await api('/api/admin/donor-prospect-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
+    return unwrap(res.data, ['data', 'kpi', 'total']);
+  }
+
+  const SUBTYPE_LABEL = {
+    onetime:   { icon: '🎁', text: '일시',   cls: 'cms-b-info' },
+    cancelled: { icon: '⏸',  text: '중단',   cls: 'cms-b-danger' },
+  };
+  function renderProspectSubtypeBadge(d) {
+    const meta = SUBTYPE_LABEL[d.subtype] || { icon: '—', text: d.subtype || '—', cls: 'cms-b-mute' };
+    let html = `<span class="cms-badge ${meta.cls}">${meta.icon} ${escapeHtml(meta.text)}</span>`;
+    if (d.subtype === 'cancelled' && d.cancelledChannel) {
+      const ch = CHANNEL_LABEL[d.cancelledChannel];
+      if (ch) html += ` <span class="cms-badge cms-b-mute" title="${escapeHtml(ch.text)} 해지">${ch.icon} ${escapeHtml(ch.text)}</span>`;
+    }
+    return html;
+  }
+
+  async function renderDonorProspect() {
+    const tbody = document.getElementById('dpBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
+
+    let resp;
+    try {
+      resp = await fetchDonorProspect({
+        subtype: donorProspectQuery.subtype,
+        q: donorProspectQuery.q,
+        page: donorProspectPage,
+        pageSize: donorProspectPageSize,
+      });
+    } catch (err) {
+      console.error('[donor-prospect] fetch fail', err);
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      renderDonorProspectKpi(null);
+      renderDonorProspectPagination(0);
+      return;
+    }
+
+    const rows = resp.data || [];
+    const total = resp.total ?? rows.length;
+    renderDonorProspectKpi(resp.kpi || null);
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      renderDonorProspectPagination(0);
+      return;
+    }
+
+    tbody.innerHTML = rows.map(d => `
+      <tr>
+        <td>M-${String(d.id).padStart(5,'0')}</td>
+        <td><strong>${escapeHtml(d.name || '')}</strong></td>
+        <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
+        <td>${renderProspectSubtypeBadge(d)}</td>
+        <td style="font-family:Inter;font-size:11.5px">${formatDate(d.lastDonationDate)}</td>
+        <td style="text-align:right;font-weight:600">${d.lastDonationAmount != null ? '₩' + Number(d.lastDonationAmount).toLocaleString() : '—'}</td>
+        <td style="text-align:right;font-family:Inter;font-size:11.5px">${(d.totalDonationCount ?? 0).toLocaleString()}건</td>
+        <td style="text-align:right;font-family:Inter;font-size:11.5px">₩${Number(d.totalDonationAmount || 0).toLocaleString()}</td>
+        <td>
+          <button class="cms-btn-link" data-dp-action="email" data-id="${d.id}" title="재유치 (준비 중)">📨 이메일</button>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('[data-dp-action="email"]').forEach(btn => {
+      btn.addEventListener('click', () => toast('재유치 이메일 기능은 준비 중입니다'));
+    });
+
+    renderDonorProspectPagination(total);
+  }
+
+  function renderDonorProspectKpi(kpi) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    if (!kpi) { ['dpKpiTotal','dpKpiOnetime','dpKpiCancelled'].forEach(id => set(id, '—')); return; }
+    set('dpKpiTotal',     (kpi.prospectTotal ?? 0).toLocaleString() + '명');
+    set('dpKpiOnetime',   (kpi.onetimeCount ?? 0).toLocaleString() + '명');
+    set('dpKpiCancelled', (kpi.cancelledCount ?? 0).toLocaleString() + '명');
+  }
+
+  function renderDonorProspectPagination(total) {
+    const pager = document.getElementById('dpPagination');
+    if (!pager) return;
+    if (total === 0) { pager.innerHTML = ''; return; }
+    const totalPages = Math.max(1, Math.ceil(total / donorProspectPageSize));
+    const prev = donorProspectPage > 1
+      ? `<button class="cms-btn cms-btn-ghost" data-dpp="${donorProspectPage - 1}">← 이전</button>` : '';
+    const next = donorProspectPage < totalPages
+      ? `<button class="cms-btn cms-btn-ghost" data-dpp="${donorProspectPage + 1}">다음 →</button>` : '';
+    pager.innerHTML = prev
+      + `<span class="cms-donor-pagination-info">${donorProspectPage} / ${totalPages} · 총 ${total.toLocaleString()}명</span>`
+      + next;
+    pager.querySelectorAll('[data-dpp]').forEach(b => {
+      b.addEventListener('click', () => { donorProspectPage = Number(b.dataset.dpp); renderDonorProspect(); });
+    });
+  }
+
+  function setupDonorProspectFilters() {
+    document.querySelectorAll('.dp-subtab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.dp-subtab').forEach(x => x.classList.remove('on'));
+        tab.classList.add('on');
+        donorProspectQuery.subtype = tab.dataset.dpSubtype || 'all';
+        donorProspectPage = 1;
+        renderDonorProspect();
+      });
+    });
+    const search = document.getElementById('dpFilterSearch');
+    if (search) search.addEventListener('input', () => {
+      clearTimeout(donorProspectSearchTimer);
+      donorProspectSearchTimer = setTimeout(() => {
+        donorProspectQuery.q = search.value.trim();
+        donorProspectPage = 1;
+        renderDonorProspect();
+      }, 250);
+    });
+    const btn = document.getElementById('dpBtnRefresh');
+    if (btn) btn.addEventListener('click', () => {
+      toast('잠재 후원자 목록을 새로고침합니다');
+      renderDonorProspect();
+    });
+  }
+
   /* ============ 초기화 ============ */
   async function init() {
     const auth = await checkAuth();
@@ -1642,6 +1956,8 @@
     setupReceiptSettings(); /* ★ STEP H-2d-4 */
     setupHyosung(); /* ★ Phase 1 */
     setupTossBilling(); /* ★ Phase 2 */
+    setupDonorRegularFilters(); /* ★ Phase 2 C10 */
+    setupDonorProspectFilters(); /* ★ Phase 2 C11 */
 
     renderDashboard();
   }

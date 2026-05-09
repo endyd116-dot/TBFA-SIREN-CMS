@@ -1240,33 +1240,148 @@
         </div>
       </section>
 
-      <!-- ============ 후원 관리 — 정기 후원자 (placeholder) ============ -->
+      <!-- ============ ★ Phase 2 C10: 후원 관리 — 정기 후원자 ============ -->
       <section class="cms-page" id="page-donor-regular">
-        <div style="background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;padding:32px;text-align:center">
-          <div style="font-size:48px;margin-bottom:12px">🔁</div>
-          <h2 style="margin:0 0 8px;font-size:18px;font-weight:700">정기 후원자 관리</h2>
-          <p style="color:#666;font-size:13.5px;margin:0 0 16px;line-height:1.6">
-            토스 빌링 또는 효성 CMS+로 정기 이체를 진행 중인 회원 목록입니다.<br>
-            현재 화면은 준비 중이며, 다음 마일스톤에서 활성화됩니다.
-          </p>
-          <div style="display:inline-block;padding:8px 14px;background:#fff7e6;border-radius:6px;font-size:12px;color:#c47a00">
-            📌 식별 기준: <code>members.hyosung_contract_status='active'</code> OR <code>next_billing_date IS NOT NULL</code>
+        <!-- KPI 5종 -->
+        <div class="cms-kpi-grid donor-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🔁</div>
+            <div class="cms-kpi-label">정기 후원자 총수</div>
+            <div class="cms-kpi-value" id="drKpiTotal">-</div>
+            <div class="cms-kpi-delta">활성 정기 회원</div>
           </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">💳</div>
+            <div class="cms-kpi-label">토스</div>
+            <div class="cms-kpi-value" id="drKpiToss">-</div>
+            <div class="cms-kpi-delta">토스 빌링 활성</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
+            <div class="cms-kpi-label">효성</div>
+            <div class="cms-kpi-value" id="drKpiHyosung">-</div>
+            <div class="cms-kpi-delta">효성 CMS+ 활성</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252">⚡</div>
+            <div class="cms-kpi-label">두 채널 모두</div>
+            <div class="cms-kpi-value" id="drKpiBoth">-</div>
+            <div class="cms-kpi-delta">토스 + 효성 동시</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">💰</div>
+            <div class="cms-kpi-label">정기금액 월 합계</div>
+            <div class="cms-kpi-value" id="drKpiSum">-</div>
+            <div class="cms-kpi-delta">매월 청구 예정</div>
+          </div>
+        </div>
+
+        <!-- 본문 패널 -->
+        <div class="cms-panel" style="margin-top:14px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">정기 후원자 명단</div>
+          </div>
+          <div class="cms-filter-bar">
+            <div class="cms-filter-group">
+              <select id="drFilterChannel">
+                <option value="all">전체 채널</option>
+                <option value="toss">토스만</option>
+                <option value="hyosung">효성만</option>
+              </select>
+              <input type="text" id="drFilterSearch" placeholder="이름·연락처 검색...">
+            </div>
+            <div class="cms-filter-actions">
+              <button class="cms-btn cms-btn-ghost" id="drBtnRefresh">새로고침</button>
+            </div>
+          </div>
+
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>회원번호</th>
+                <th>이름</th>
+                <th>연락처</th>
+                <th>채널</th>
+                <th style="text-align:right">정기금액</th>
+                <th>다음 결제일</th>
+                <th style="text-align:right">누적 개월</th>
+                <th style="text-align:right">누적 합계</th>
+                <th>평가</th>
+              </tr>
+            </thead>
+            <tbody id="drBody">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+          <div class="cms-donor-pagination" id="drPagination"></div>
         </div>
       </section>
 
-      <!-- ============ 후원 관리 — 잠재 후원자 (placeholder) ============ -->
+      <!-- ============ ★ Phase 2 C11: 후원 관리 — 잠재 후원자 ============ -->
       <section class="cms-page" id="page-donor-prospect">
-        <div style="background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;padding:32px;text-align:center">
-          <div style="font-size:48px;margin-bottom:12px">💡</div>
-          <h2 style="margin:0 0 8px;font-size:18px;font-weight:700">잠재 후원자 관리</h2>
-          <p style="color:#666;font-size:13.5px;margin:0 0 16px;line-height:1.6">
-            일시 후원만 했거나 정기 후원을 중단한 회원 목록입니다.<br>
-            현재 화면은 준비 중이며, 다음 마일스톤에서 활성화됩니다.
-          </p>
-          <div style="display:inline-block;padding:8px 14px;background:#fff7e6;border-radius:6px;font-size:12px;color:#c47a00">
-            📌 식별 기준: 일시 후원 이력 있음 OR 정기 → 중단 (next_billing_date 없음 + 과거 contract 이력)
+        <!-- KPI 3종 -->
+        <div class="cms-kpi-grid donor-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">💡</div>
+            <div class="cms-kpi-label">잠재 후원자 총수</div>
+            <div class="cms-kpi-value" id="dpKpiTotal">-</div>
+            <div class="cms-kpi-delta">재유치 대상</div>
           </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">🎁</div>
+            <div class="cms-kpi-label">일시 후원자</div>
+            <div class="cms-kpi-value" id="dpKpiOnetime">-</div>
+            <div class="cms-kpi-delta">정기 미가입 + 일시 1회+</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">⏸</div>
+            <div class="cms-kpi-label">정기 중단자</div>
+            <div class="cms-kpi-value" id="dpKpiCancelled">-</div>
+            <div class="cms-kpi-delta">토스/효성 해지 회원</div>
+          </div>
+        </div>
+
+        <!-- 본문 패널 -->
+        <div class="cms-panel" style="margin-top:14px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title">잠재 후원자 명단</div>
+          </div>
+
+          <!-- 분류 탭 -->
+          <div class="cms-tabs-bar dp-subtype-tabs">
+            <button class="dp-subtab on" data-dp-subtype="all" type="button">전체</button>
+            <button class="dp-subtab" data-dp-subtype="onetime" type="button">🎁 일시</button>
+            <button class="dp-subtab" data-dp-subtype="cancelled" type="button">⏸ 중단</button>
+          </div>
+
+          <div class="cms-filter-bar">
+            <div class="cms-filter-group">
+              <input type="text" id="dpFilterSearch" placeholder="이름·연락처 검색...">
+            </div>
+            <div class="cms-filter-actions">
+              <button class="cms-btn cms-btn-ghost" id="dpBtnRefresh">새로고침</button>
+            </div>
+          </div>
+
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>회원번호</th>
+                <th>이름</th>
+                <th>연락처</th>
+                <th>분류</th>
+                <th>마지막 후원일</th>
+                <th style="text-align:right">마지막 금액</th>
+                <th style="text-align:right">누적 건수</th>
+                <th style="text-align:right">누적 합계</th>
+                <th>재유치</th>
+              </tr>
+            </thead>
+            <tbody id="dpBody">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+          <div class="cms-donor-pagination" id="dpPagination"></div>
         </div>
       </section>
 
@@ -1342,7 +1457,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-10-c4"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-10-c5"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-c2"></script>
 </body>
