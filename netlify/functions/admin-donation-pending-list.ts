@@ -43,7 +43,12 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
     if (sourceParam !== "all") {
-      conds.push(sql`source = ${sourceParam}`);
+      /* 'hyosung' 필터는 'hyosung'·'hyosung_contracts'·'hyosung_billings' 3종 모두 매칭 */
+      if (sourceParam === "hyosung") {
+        conds.push(sql`source IN ('hyosung', 'hyosung_contracts', 'hyosung_billings')`);
+      } else {
+        conds.push(sql`source = ${sourceParam}`);
+      }
     }
     if (search) {
       const pattern = `%${search}%`;

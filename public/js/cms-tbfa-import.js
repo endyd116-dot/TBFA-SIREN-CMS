@@ -63,8 +63,10 @@
   }
 
   function sourceBadge(source) {
+    if (source === 'hyosung_contracts') return '<span style="color:#1a5ec4;font-weight:600">효성 계약</span>';
+    if (source === 'hyosung_billings') return '<span style="color:#0a8a4f;font-weight:600">효성 수납</span>';
     if (source === 'hyosung') return '<span style="color:#1a5ec4;font-weight:600">효성</span>';
-    if (source === 'ibk') return '<span style="color:#0a8a4f;font-weight:600">기업은행</span>';
+    if (source === 'ibk') return '<span style="color:#c47a00;font-weight:600">기업은행</span>';
     return escapeHtml(source);
   }
 
@@ -264,13 +266,21 @@
 
   function renderActions(r) {
     if (r.status === 'confirmed') {
+      if (r.source === 'hyosung_contracts') {
+        return `<span style="color:#0a8a4f;font-size:11.5px">✓ 회원 등록됨</span>`;
+      }
       return `<a href="#" data-action="open-donation" data-id="${r.confirmedDonationId || ''}" style="color:#1a5ec4;font-size:11.5px">후원 보기</a>`;
     }
     if (r.status === 'ignored') {
       return `<button data-action="restore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">↩ 복원</button>`;
     }
-    /* pending / matched */
-    const confirmBtn = `<button data-action="confirm" data-id="${r.id}" class="cms-btn cms-btn-primary" style="padding:3px 8px;font-size:11.5px;margin-right:4px"${r.matchedMemberId ? '' : ' disabled title="회원 매칭 후 가능"'}>✅ 확정</button>`;
+    /* pending / matched — 효성 계약은 매칭 없어도 통과 가능 (신규 회원 자동 생성) */
+    const isContract = r.source === 'hyosung_contracts';
+    const canConfirm = isContract || !!r.matchedMemberId;
+    const confirmTitle = isContract
+      ? '효성 계약 — 통과 시 신규 회원 자동 등록 또는 기존 회원 연결'
+      : (r.matchedMemberId ? '' : '회원 매칭 후 가능');
+    const confirmBtn = `<button data-action="confirm" data-id="${r.id}" class="cms-btn cms-btn-primary" style="padding:3px 8px;font-size:11.5px;margin-right:4px"${canConfirm ? '' : ' disabled'}${confirmTitle ? ` title="${confirmTitle}"` : ''}>✅ 통과</button>`;
     const rematchBtn = `<button data-action="rematch" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px">🔍 매칭 변경</button>`;
     const ignoreBtn = `<button data-action="ignore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">🗑 무시</button>`;
     return confirmBtn + rematchBtn + ignoreBtn;
@@ -284,7 +294,7 @@
     if (!id) return;
 
     if (action === 'confirm') {
-      if (!confirm('이 항목을 확정 처리하시겠습니까? (donations 내역이 생성됩니다)')) return;
+      if (!confirm('이 항목을 통과 처리하시겠습니까?\n효성 계약: 회원·계약 정식 반영\n효성 수납: 후원 내역 생성\n기업은행: 후원 내역 생성')) return;
       const res = await apiPost('/api/admin-donation-confirm', { ids: [id], action: 'confirm' });
       handleConfirmResult(res);
     } else if (action === 'ignore') {
@@ -327,21 +337,31 @@
     if (cntEl) cntEl.textContent = String(ids.length);
     const cb = document.getElementById('csvBatchConfirmBtn');
     const ib = document.getElementById('csvBatchIgnoreBtn');
-    if (cb) cb.disabled = ids.length === 0;
+    /* 효성 계약은 매칭 없어도 통과 가능 (신규 회원 자동 생성) */
+    const eligible = currentRows.filter(r => {
+      if (!ids.includes(r.id)) return false;
+      if (r.source === 'hyosung_contracts') return true;
+      return !!r.matchedMemberId;
+    });
+    if (cb) cb.disabled = eligible.length === 0;
     if (ib) ib.disabled = ids.length === 0;
   }
 
   async function batchConfirm() {
     const ids = selectedIds();
     if (ids.length === 0) return;
-    /* matched 상태(매칭 회원 있음)만 확정 가능 */
-    const eligible = currentRows.filter(r => ids.includes(r.id) && r.matchedMemberId);
+    /* 효성 계약은 매칭이 없어도(신규 회원 자동 생성) 통과 가능 */
+    const eligible = currentRows.filter(r => {
+      if (!ids.includes(r.id)) return false;
+      if (r.source === 'hyosung_contracts') return true;
+      return !!r.matchedMemberId;
+    });
     const skipped = ids.length - eligible.length;
     if (eligible.length === 0) {
-      toast('매칭된 항목이 없습니다 (rematch 후 시도)');
+      toast('통과 가능한 항목이 없습니다 (수납내역·기업은행은 매칭 필요)');
       return;
     }
-    if (!confirm(`${eligible.length}건을 일괄 확정 처리합니다.${skipped > 0 ? ` (매칭 미완료 ${skipped}건은 제외)` : ''}\n정식 후원 내역에 추가됩니다. 진행하시겠습니까?`)) return;
+    if (!confirm(`${eligible.length}건을 일괄 통과 처리합니다.${skipped > 0 ? ` (매칭 미완료 ${skipped}건은 제외)` : ''}\n효성 계약은 회원·계약 정식 반영, 효성 수납·기업은행은 후원 내역이 생성됩니다.\n진행하시겠습니까?`)) return;
 
     const res = await apiPost('/api/admin-donation-confirm', {
       ids: eligible.map(r => r.id),
