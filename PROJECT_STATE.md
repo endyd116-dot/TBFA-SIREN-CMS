@@ -27,7 +27,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 채팅 | **Phase 3 A 프론트 머지** — `feature/phase3-frontend` (46047a5) main 머지 완료. D3·D4 효성 컬럼 보강 + D7 대시보드 프론트 + 가짜 데이터 완전 제거 + 실제 API 직결. CSS 캐시버스터 d2 보완. **Swain V1·V2·V3 검증 대기** |
+| 2026-05-10 | 메인 채팅 | **D1·D2 핵심 버그 수정** (89d3547) — 효성 파일 업로드가 임시 보관함 대신 hyosungContracts·hyosungBillings에 직접 적재. **Swain V1·V2·V3 검증 대기. 인수인계 완료 → 새 메인 채팅으로 전환** |
+| 2026-05-10 | 메인 채팅 | **Phase 3 A 프론트 머지** — `feature/phase3-frontend` (46047a5) main 머지 완료. D3·D4 효성 컬럼 보강 + D7 대시보드 프론트 + 가짜 데이터 제거 + 실제 API 직결. CSS 캐시버스터 d2 보완 |
 | 2026-05-10 | 메인 채팅 | **Phase 3 B 백엔드 머지** (838e356 + d607b7d fix) — D1·D7 효성 SOT 정합성 + 토스 정밀화 + 검증 대시보드 백엔드 완료 |
 | 2026-05-10 | 메인 채팅 | **M1·M2 라이브러리 신설** (ebe4435) — `lib/hyosung-mapper.ts` + `lib/hyosung-merge.ts`. Phase 3 1단계 완료. A·B 채팅 활성화 가능 |
 | 2026-05-10 | 메인 채팅 | **Phase 2 (#16 단계 C) 완료** — schema 4컬럼·마이그·후크 4건·야간 cron·조회 API 2건·정기/잠재 화면 안착(c3d2249). tag `phase2-complete-20260510` |
