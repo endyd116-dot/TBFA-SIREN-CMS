@@ -186,6 +186,7 @@ ALTER TABLE chat_rooms ADD COLUMN expert_id int REFERENCES members(id);
 - `netlify/functions/admin-donation-import.ts` — multipart 업로드 → pending_donations 적재
 - `netlify/functions/admin-donation-pending-list.ts`
 - `netlify/functions/admin-donation-confirm.ts` — 확정(1건/일괄)
+- `netlify/functions/admin-donation-policy.ts` — 후원 정책 GET/PATCH (효성 카운트다운 등, super_admin 전용)
 - `netlify/functions/migrate-add-pending-donations.ts`
 - `public/js/cms-tbfa-import.js` — CSV 업로드·매핑 UI
 
