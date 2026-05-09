@@ -341,35 +341,49 @@ import { requireAdmin } from "../../lib/admin-guard";
 - **Phase 3-extra** 파일함 (100%, 9/9 Step + 통합 라우팅)
 - **4순위 자잘한 버그 3건**: 후원 모달 딜레이 / 회원 엑셀 / 수납내역 엑셀
 - **5순위 (모두 완료)**:
-  - #1 블랙 통합 (DB 컬럼 + API + UI + 차단 미들웨어 + CREATE 6곳 적용)
-  - #9 관련 사이트 메인 헤더 동적 로드 + 사이트 빌더 CRUD UI + 6개 교원단체 시드
-  - #10 정기후원 해지 안내 CRUD (RENDERER 등록 + 5키 site_settings 시드)
-- **6순위 (코드 100% main 안착, 사용자 검증은 #BUG-1 차단으로 보류)**:
-  - #6 교원 회원 자격 변경 시스템 (마이그·API 4·프론트 2 + members.eligibilityType + eligibilityChangeRequests)
-  - #15 효성 + 기업은행 CSV 자동 매핑 (lib/ibk-parser·donation-matcher + API 3 + cms-tbfa import + pendingDonations·donationMatchingRules)
+  - #1 블랙 통합 / #9 관련 사이트 / #10 정기후원 해지 안내
+- **6순위 (코드 100% main 안착, 사용자 검증 진행 가능 단계)**:
+  - #6 교원 회원 자격 변경 시스템 (코드 머지 완료, #BUG-1 fix 후 검증 가능)
+  - #15 효성 + 기업은행 CSV 자동 매핑 + 엑셀 업로드 지원 (코드 머지 완료, admin.html 회원 관리에서 검증 가능)
 
-### 🛠 인프라 변경 (2026-05-09)
-- **PROJECT_STATE.md** 신설 (병렬 작업 휘발성 상태 통합 — 구 PARALLEL_PLAN 흡수)
-- **worktree 분리** 도입: `../tbfa-mis-A`, `../tbfa-mis-B` (병렬 작업 충돌 방지)
-- **`.claude/settings.json`** 권한 정책 도입: deny `git push origin main`, deny `git reset --hard`, deny `lib/auth.ts·admin-guard.ts·hyosung-parser.ts` 편집 등 안전 가드
-- **`docs/issues/`** 폴더 신설: 오류 리포트 별도 파일 + PROJECT_STATE §6.6 인덱스
+### 🛠 인프라 변경
+**2026-05-09**:
+- PROJECT_STATE.md 신설 (구 PARALLEL_PLAN 흡수)
+- worktree 분리: `../tbfa-mis-A`, `../tbfa-mis-B` (병렬 작업 충돌 방지)
+- `.claude/settings.json` 권한 정책 도입 (deny: `git push origin main`, `lib/auth.ts·admin-guard.ts` 편집 등)
+- `docs/issues/` 폴더 (오류 리포트)
+
+**2026-05-10 (이번 세션)**:
+- 단계 A 사이드바 재배치 — 워크스페이스 그룹화(워크툴/칸반/캘린더/템플릿/파일함), 후원 관리 그룹 강화(정기/잠재 placeholder), "통합 회원" → "통합 일반 회원"
+- 엑셀(xlsx/xls) 업로드 지원 (CSV 자동 매핑, 클라이언트 SheetJS 변환)
+- `docs/milestones/` 폴더 신설 (마일스톤 본격 설계 문서)
+
+### ✅ 해결된 이슈
+- **#BUG-1** ✅ 해결 (커밋 `bb529f9`) — `lib/auth.ts:128` user.id → user.uid 한 줄 수정. requireActiveUser 사용 9개 API 정상화
 
 ### 🔴 미해결 이슈 (다음 세션 우선 처리)
-- **#BUG-1** `lib/auth.ts:128` `user.id` → `user.uid` 한 줄 버그 (UNDEFINED_VALUE)
-  - 영향: `requireActiveUser` 사용 9개 API (eligibility, board, support, incident/harassment/legal-create, admin-blacklist) 동작 불능
-  - 수정 권한: settings.json deny → **사용자 직접 처리**
-  - 상세: [docs/issues/2026-05-09-requireActiveUser-uid-bug.md](docs/issues/2026-05-09-requireActiveUser-uid-bug.md)
-  - 해결 후 작업 A 사용자 검증 재개 → §4.1 진행률 ✅ 100%
+- **#BUG-2** cms-tbfa 통합 회원·웹후원자·태그 더미 데이터
+  - 위치: `public/js/cms-tbfa.js:60-90`
+  - 영향: cms-tbfa 화면이 진짜 회원 안 보임 (admin.html 회원 관리는 정상)
+  - 해결 절차: 마일스톤 #16 단계 B에서 처리
+  - 상세: [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md)
 
-### ⏸ 진행 예정
-- **6순위 #8** 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅 (15~18h, 미착수 — 신규 worktree 채팅 필요)
+### 🔵 진행 예정 (마일스톤 #16 신설)
+- **6순위 #16 통합 회원·후원 회원 시스템 + CSV 종합 검증** (8~12h, 우선 권장)
+  - 도메인 모델 합의 완료 (사용자 결정 6개 → docs/milestones)
+  - 단계 A ✅ 완료 / 단계 B·C·D 미착수
+  - **다음 세션 우선**: 단계 B (통합 일반 회원 실제 API + 회원 상세 모달 + 후원 내역 탭, 1.5~2.5h)
+  - 단계 C: members.donor_type 컬럼 + 정기/잠재 화면 + 토스 즉시 반영 (3~4h)
+  - 단계 D: CSV 종합 검증 강화 + 효성 일괄 갱신 + 자동 상태 전이 (3~5h)
+  - 상세: [docs/milestones/2026-05-10-donor-system.md](docs/milestones/2026-05-10-donor-system.md)
+- **6순위 #8** 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅 (15~18h, #16 후 진행 권장)
 - **Phase 4~22** (19개) — 스펙 미정, 별도 설계 세션 필요
 
 ### 누적
-- 마스터플랜 진행률: 약 32% (5.5/22 Phase + 4·5순위 + 6순위 #6·#15 코드)
-- 누적 작업 시간: 약 430h+
+- 마스터플랜 진행률: 약 33% (5.5/22 Phase + 4·5순위 + 6순위 #6·#15 코드 + #16 단계 A)
+- 누적 작업 시간: 약 440h+
 - 페이지: 5개 신규 (workspace, kanban, calendar, templates, files) + 자격 변경 탭 + CSV 자동 매핑 메뉴
-- DB 테이블: 73+ (eligibilityChangeRequests, pendingDonations, donationMatchingRules 신규)
+- DB 테이블: 73+ (eligibilityChangeRequests, pendingDonations, donationMatchingRules 신규 / 단계 C에서 members 컬럼 4개 추가 예정)
 
 ---
 
@@ -436,4 +450,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-09 (6순위 #6·#15 코드 안착 + worktree·settings.json 도입 + #BUG-1 발견)
+**마지막 업데이트**: 2026-05-10 (단계 A 메뉴 재배치 + 엑셀 업로드 + #BUG-1 해결 + 마일스톤 #16 설계 + #BUG-2 등록)
