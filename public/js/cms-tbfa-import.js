@@ -322,7 +322,17 @@
       toast(res.data?.error || '처리 실패');
       return;
     }
-    toast(res.data?.message || '처리 완료');
+    const d = res.data?.data || {};
+    const failed = Number(d.failed || 0);
+    const succeeded = Number(d.succeeded || 0);
+    if (failed > 0) {
+      const errs = (d.results || []).filter(r => !r.ok).slice(0, 5)
+        .map(r => `· #${r.id}: ${r.error}`).join('\n');
+      const more = failed > 5 ? `\n... 외 ${failed - 5}건` : '';
+      alert(`성공 ${succeeded}건 / 실패 ${failed}건\n\n실패 사유:\n${errs}${more}`);
+    } else {
+      toast(res.data?.message || '처리 완료');
+    }
     refreshList();
   }
 

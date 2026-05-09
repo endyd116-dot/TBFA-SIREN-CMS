@@ -61,10 +61,15 @@ async function confirmHyosungContract(
   memberIdOverride: number | null,
   hyosungSourceId: number | null,
 ): Promise<{ ok: true; memberId: number; contractId: number | null } | { ok: false; error: string }> {
-  const raw = (p.rawData || {}) as any;
+  let raw: any = p.rawData || {};
+  /* 방어적 파싱: jsonb가 문자열로 올 가능성 대비 */
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { raw = {}; }
+  }
   const row = raw._hyosungContractRow as HyosungContractRow | undefined;
   if (!row || !row.memberNo) {
-    return { ok: false, error: "효성 계약 행 데이터를 복원할 수 없음 (rawData 손상)" };
+    const keys = raw && typeof raw === "object" ? Object.keys(raw).slice(0, 5).join(",") : "(empty)";
+    return { ok: false, error: `효성 계약 행 데이터를 복원할 수 없음 — rawData keys: [${keys}]` };
   }
 
   /* 1. hyosungContracts UPSERT (memberNo unique) */
@@ -83,7 +88,7 @@ async function confirmHyosungContract(
   let memberId: number;
 
   /* 우선순위: 관리자 강제 지정 > 임시 보관함 매칭 > 효성번호 재조회 */
-  let targetMemberId: number | null = memberIdOverride || p.matched_member_id || null;
+  let targetMemberId: number | null = memberIdOverride || p.matchedMemberId || null;
   if (!targetMemberId) {
     const found = await db.select({ id: members.id })
       .from(members)
@@ -143,14 +148,18 @@ async function confirmHyosungBilling(
   p: any,
   memberIdOverride: number | null,
 ): Promise<{ ok: true; memberId: number; billingId: number | null; donationId: number | null } | { ok: false; error: string }> {
-  const raw = (p.rawData || {}) as any;
+  let raw: any = p.rawData || {};
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { raw = {}; }
+  }
   const row = raw._hyosungBillingRow as HyosungBillingRow | undefined;
   if (!row || !row.memberNo || !row.billingMonth) {
-    return { ok: false, error: "효성 수납 행 데이터를 복원할 수 없음 (rawData 손상)" };
+    const keys = raw && typeof raw === "object" ? Object.keys(raw).slice(0, 5).join(",") : "(empty)";
+    return { ok: false, error: `효성 수납 행 데이터를 복원할 수 없음 — rawData keys: [${keys}]` };
   }
 
   /* 회원 찾기 — 강제지정 > 매칭 > 효성번호 재조회 */
-  let targetMemberId: number | null = memberIdOverride || p.matched_member_id || null;
+  let targetMemberId: number | null = memberIdOverride || p.matchedMemberId || null;
   if (!targetMemberId) {
     const found = await db.select({ id: members.id })
       .from(members)
@@ -235,7 +244,7 @@ async function confirmIbkOrLegacy(
   p: any,
   memberIdOverride: number | null,
 ): Promise<{ ok: true; memberId: number; donationId: number } | { ok: false; error: string }> {
-  const targetMemberId = memberIdOverride || p.matched_member_id;
+  const targetMemberId = memberIdOverride || p.matchedMemberId;
   if (!targetMemberId) {
     return { ok: false, error: "매칭된 회원이 없음 (수동 매칭 후 재시도)" };
   }
@@ -245,34 +254,34 @@ async function confirmIbkOrLegacy(
     .from(members).where(eq(members.id, targetMemberId)).limit(1);
   if (!m) return { ok: false, error: "회원이 존재하지 않음" };
 
-  if (!p.parsed_amount || p.parsed_amount <= 0) {
+  if (!p.parsedAmount || p.parsedAmount <= 0) {
     return { ok: false, error: "파싱된 금액이 0 이하" };
   }
 
   const isHyosung = p.source === "hyosung";
   const payMethod = isHyosung ? "cms" : "bank";
   const pgProvider = isHyosung ? "hyosung_cms" : "ibk_bank";
-  const memoBase = p.parsed_memo || (isHyosung ? "효성 CSV 확정" : "기업은행 입금 확정");
+  const memoBase = p.parsedMemo || (isHyosung ? "효성 CSV 확정" : "기업은행 입금 확정");
   const memo = `[${isHyosung ? "효성" : "기업은행"} CSV 확정] ${memoBase}`.slice(0, 1000);
 
-  const raw = (p.rawData || p.raw_data || {}) as any;
+  const raw = (p.rawData || {}) as any;
   const hyosungMemberNo = isHyosung && raw._hyosungMemberNo ? Number(raw._hyosungMemberNo) || null : null;
   const hyosungContractNo = isHyosung && raw._contractNo ? String(raw._contractNo).slice(0, 20) : null;
   const hyosungBillingMonth = isHyosung && raw._billingMonth ? String(raw._billingMonth).slice(0, 10) : null;
 
   const [inserted] = await db.insert(donations).values({
     memberId: m.id,
-    donorName: p.parsed_name || m.name || "(이름 없음)",
+    donorName: p.parsedName || m.name || "(이름 없음)",
     donorPhone: m.phone,
     donorEmail: m.email,
-    amount: p.parsed_amount,
+    amount: p.parsedAmount,
     type: isHyosung ? "regular" : "onetime",
     payMethod, pgProvider,
     status: "completed",
     hyosungMemberNo, hyosungContractNo, hyosungBillingMonth,
-    bankDepositorName: !isHyosung ? p.parsed_name : null,
+    bankDepositorName: !isHyosung ? p.parsedName : null,
     memo,
-    createdAt: p.parsed_date || new Date(),
+    createdAt: p.parsedDate || new Date(),
   } as any).returning({ id: donations.id });
 
   return { ok: true, memberId: m.id, donationId: inserted.id };
@@ -312,19 +321,11 @@ export default async (req: Request, _ctx: Context) => {
       return badRequest("memberIdOverride는 ids가 1건일 때만 사용 가능합니다");
     }
 
-    /* 1. pending 행 로드 (raw 컬럼명 보존을 위해 raw SQL 사용) */
-    const rowsRaw: any = await db.execute(sql`
-      SELECT id, source, source_file_name, source_row_index, raw_data,
-             parsed_name, parsed_amount, parsed_date, parsed_memo, parsed_account_tail4,
-             matched_member_id, match_score, match_reason, status,
-             confirmed_donation_id, imported_by, confirmed_by, confirmed_at,
-             created_at, updated_at
-      FROM pending_donations
-      WHERE id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
-    `);
-    const pendings = (Array.isArray(rowsRaw) ? rowsRaw : (rowsRaw as any).rows || []) as any[];
-    /* drizzle execute 결과는 raw_data가 이미 객체로 파싱됨 — 호환 위해 rawData alias */
-    pendings.forEach(p => { p.rawData = p.raw_data; });
+    /* 1. pending 행 로드 — drizzle select로 jsonb 자동 파싱 + camelCase 필드 보장 */
+    const pendings = await db
+      .select()
+      .from(pendingDonations)
+      .where(inArray(pendingDonations.id, ids));
 
     if (pendings.length === 0) return badRequest("해당 미확정 항목을 찾을 수 없습니다");
 
