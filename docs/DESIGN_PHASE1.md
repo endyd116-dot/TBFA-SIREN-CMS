@@ -15,7 +15,7 @@
 | **B1** | `cms-tbfa.js` DEMO_MEMBERS·DEMO_WEB_DONORS·DEMO_TAGS 제거 | 프론트 | #BUG-2 직접 해결 지점 |
 | **B2** | `admin-members.ts` `?source=siren\|hyosung\|manual\|all` 필터 추가 | 백엔드 | 가입경로 분류 |
 | **B3** | `admin-members.ts` `?donorType=regular\|prospect\|none\|all` 필터 추가 | 백엔드 | Phase 1에서는 'none' 디폴트 (단계 C에서 컬럼 본격 활용) |
-| **B4** | 가입경로 뱃지 UI (🌐싸이렌 / 🏦효성 / ✍️수기) | 프론트 | `members.signup_source_id` 기반 |
+| **B4** | 가입경로 뱃지 UI (🌐싸이렌 / 🏦효성 / ✍️수기 / 🎪이벤트 / 📦기타 / null은 '─' 회색) | 프론트 | `members.signup_source_id` 기반, 5종 enum + null |
 | **B5** | 후원 상태 뱃지 UI (🔁정기 / 💡잠재 / —비후원) | 프론트 | Phase 1은 placeholder, C 컬럼 적용 후 본격 |
 | **B6** | 검색·필터 드롭다운·페이지네이션 (50/페이지) | 프론트 | |
 | **B7** | 회원 상세 모달 — 기본 정보 + 후원 내역 탭 | 프론트 | 핵심 |
@@ -132,14 +132,28 @@
 
 ### 6.2 인터페이스 정의 (모든 옵션 공통 — 본 문서가 합의의 SOT)
 
-```typescript
-/* ─── B2·B3: GET /api/admin-members (확장) ─── */
+> 🟢 **2026-05-10 보강 (B 채팅 발견 + Swain 합의)**:
+> - **API path 슬래시 유지** — 기존 `admin.html` 호환을 위해 `/api/admin/members` (하이픈 X)
+> - **응답 schema 병행** — 기존 `{list, pagination, categoryCounts}` + §6.2 `{data, page, pageSize, total}` 동시 응답 (회귀 0)
+> - **SignupSource enum 5종 확장** — DB의 5개 코드 모두 노출 + 라벨 매핑 명시
 
-export type SignupSource = 'siren' | 'hyosung' | 'manual';
+```typescript
+/* ─── B2·B3: GET /api/admin/members (확장, 슬래시 path 유지) ─── */
+
+// SignupSource: DB의 signup_sources.code → API enum 매핑
+export type SignupSource = 'siren' | 'hyosung' | 'manual' | 'event' | 'etc';
 export type DonorType    = 'regular' | 'prospect' | 'none';
 
+// DB code → API enum 매핑 표 (B 채팅이 변환 책임)
+//   'website'      → 'siren'      라벨 '싸이렌' 이모지 🌐
+//   'hyosung_csv'  → 'hyosung'    라벨 '효성'   이모지 🏦
+//   'admin'        → 'manual'     라벨 '수기'   이모지 ✍️
+//   'event'        → 'event'      라벨 '이벤트' 이모지 🎪
+//   'etc'          → 'etc'        라벨 '기타'   이모지 📦
+//   (코드 없음·null) → null        라벨 null    이모지 (UI에서 '─' 처리)
+
 export interface AdminMembersQuery {
-  source?:    SignupSource | 'all';   // default 'all'
+  source?:    SignupSource | 'all';   // default 'all'. 5종 + 'all'
   donorType?: DonorType    | 'all';   // default 'all' (Phase 1: 'none' 위주)
   q?:         string;                  // 검색(이름·이메일·연락처 like)
   page?:      number;                  // 1-base
@@ -152,19 +166,25 @@ export interface AdminMember {
   email:              string | null;
   phone:              string | null;
   signupSourceId:     number | null;
-  signupSource:       SignupSource | null;   // 'siren' | 'hyosung' | 'manual' | null(미분류)
-  signupSourceLabel:  string | null;          // 한글 라벨 (UI 직접 사용 가능): '싸이렌' | '효성' | '수기'
+  signupSource:       SignupSource | null;   // 5종 enum 또는 null(코드 자체 없는 경우)
+  signupSourceLabel:  string | null;          // 한글: '싸이렌' | '효성' | '수기' | '이벤트' | '기타' | null
   donorType:          DonorType;              // Phase 1은 'none' 디폴트
   status:             string;                 // 'active' | 'blacklist' | 'withdrawn' 등
   createdAt:          string;                 // ISO8601
 }
 
+// 응답 — 기존 키 + §6.2 키 병행 (admin.html과 cms-tbfa.js 모두 호환)
 export interface AdminMembersResponse {
   ok:    true;
+  // [§6.2 키 — cms-tbfa.js(A 채팅) 사용]
   data:  AdminMember[];
   page:  number;
   pageSize: number;
   total: number;
+  // [기존 키 — admin.html 호환 유지, 동일 데이터 별칭]
+  list:  AdminMember[];                  // = data
+  pagination: { page: number; pageSize: number; total: number };  // = { page, pageSize, total }
+  categoryCounts?: Record<string, number>;  // 기존 그대로 (있으면)
 }
 
 export interface AdminMembersErrorResponse {
@@ -219,31 +239,39 @@ export interface AdminMemberDonationsResponse {
 ### 7.1 위치
 A 채팅이 본인 worktree의 `public/js/cms-tbfa.js` 안에 **임시 상수**로 mock 응답을 박는다. B 머지 후 A가 이 상수를 제거하면서 실제 fetch로 교체.
 
-### 7.2 mock 응답 샘플 (그대로 사용 가능)
+### 7.2 mock 응답 샘플 (그대로 사용 가능, 5종 enum + 병행 키 반영)
 
 ```javascript
 // public/js/cms-tbfa.js — A 채팅 임시 mock (B 머지 후 제거)
 const __MOCK_ADMIN_MEMBERS__ = {
   ok: true,
+  // §6.2 키
   data: [
-    {
-      id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
+    { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
       signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
-      donorType: 'none', status: 'active', createdAt: '2026-04-15T09:30:00.000Z'
-    },
-    {
-      id: 102, name: '박두용', email: null, phone: '010-3333-4444',
+      donorType: 'none', status: 'active', createdAt: '2026-04-15T09:30:00.000Z' },
+    { id: 102, name: '박두용', email: null, phone: '010-3333-4444',
       signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
-      donorType: 'none', status: 'active', createdAt: '2026-04-22T14:10:00.000Z'
-    },
-    {
-      id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
+      donorType: 'none', status: 'active', createdAt: '2026-04-22T14:10:00.000Z' },
+    { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
       signupSourceId: 1, signupSource: 'siren', signupSourceLabel: '싸이렌',
-      donorType: 'none', status: 'active', createdAt: '2026-03-08T18:45:00.000Z'
-    }
+      donorType: 'none', status: 'active', createdAt: '2026-03-08T18:45:00.000Z' },
+    { id: 104, name: '강자원', email: null, phone: '010-7777-8888',
+      signupSourceId: 3, signupSource: 'manual', signupSourceLabel: '수기',
+      donorType: 'none', status: 'active', createdAt: '2026-04-30T10:00:00.000Z' },
+    { id: 105, name: '정행사', email: 'event@example.com', phone: null,
+      signupSourceId: 4, signupSource: 'event', signupSourceLabel: '이벤트',
+      donorType: 'none', status: 'active', createdAt: '2026-05-05T16:20:00.000Z' },
+    { id: 106, name: '박기타', email: null, phone: '010-9999-0000',
+      signupSourceId: 5, signupSource: 'etc', signupSourceLabel: '기타',
+      donorType: 'none', status: 'active', createdAt: '2026-05-08T11:15:00.000Z' }
   ],
-  page: 1, pageSize: 50, total: 3
+  page: 1, pageSize: 50, total: 6,
+  // 기존 키 (admin.html 호환, 동일 데이터 별칭)
+  list: null,  // 실제 응답은 data와 동일 — A 채팅은 data만 사용
+  pagination: { page: 1, pageSize: 50, total: 6 }
 };
+// 주: list 필드는 실제 B 응답에선 data와 동일 객체. mock에서는 A가 안 쓰니 null로 둬도 무방.
 
 const __MOCK_ADMIN_MEMBER_DONATIONS__ = {
   ok: true,
