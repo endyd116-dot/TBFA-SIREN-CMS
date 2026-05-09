@@ -252,6 +252,18 @@ export const members = pgTable("members", {
   /* ───────── ★ 6순위 #6: 교원 회원 자격 (현직/은퇴/예비/일반) ───────── */
   eligibilityType: varchar("eligibility_type", { length: 30 }),
 
+  /* ───────── ★ Phase 2 (마일스톤 #16 단계 C): 후원 회원 분류 ─────────
+   * 마이그레이션: 5451547 (호출 후 삭제)
+   * donor_type: 'regular' | 'prospect' | 'none' | NULL(미평가)
+   * donor_channels: jsonb 배열 — ['toss'] | ['hyosung'] | ['toss','hyosung'] | []
+   * prospect_subtype: 'onetime' | 'cancelled' | NULL
+   * donor_evaluated_at: 마지막 평가 시각 (cron-donor-status-sync 또는 후크)
+   */
+  donorType: varchar("donor_type", { length: 20 }),
+  donorChannels: jsonb("donor_channels").default(sql`'[]'::jsonb`),
+  prospectSubtype: varchar("prospect_subtype", { length: 20 }),
+  donorEvaluatedAt: timestamp("donor_evaluated_at"),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -266,6 +278,9 @@ export const members = pgTable("members", {
   signupSourceIdx: index("members_signup_source_idx").on(t.signupSourceId),
   hyosungNoIdx: index("members_hyosung_no_idx").on(t.hyosungMemberNo),
   nextBillingIdx: index("idx_members_next_billing").on(t.nextBillingDate),
+  /* Phase 2 */
+  donorTypeIdx: index("members_donor_type_idx").on(t.donorType),
+  prospectSubtypeIdx: index("members_prospect_subtype_idx").on(t.prospectSubtype),
 }));
 
 /* =========================================================
