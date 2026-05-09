@@ -57,42 +57,158 @@
       String(d.getMinutes()).padStart(2, '0');
   }
 
-  /* ============ 데모 데이터 ============ */
-  const DEMO_MEMBERS = [
-    { id: 1, name: '김유족', phone: '010-1111-2222', email: 'family1@test.com', type: 'family', source: 'excel', tags: ['유족1기', '서울'], createdAt: '2025-01-15' },
-    { id: 2, name: '이후원', phone: '010-3333-4444', email: 'donor1@test.com', type: 'donor', source: 'web', tags: ['월정기', '50,000원'], createdAt: '2025-03-20' },
-    { id: 3, name: '박봉사', phone: '010-5555-6666', email: 'vol1@test.com', type: 'volunteer', source: 'manual', tags: ['심리상담사'], createdAt: '2025-02-10' },
-    { id: 4, name: '최일반', phone: '010-7777-8888', email: '', type: 'regular', source: 'excel', tags: ['경기'], createdAt: '2024-12-05' },
-    { id: 5, name: '정유족', phone: '010-9999-0000', email: 'family2@test.com', type: 'family', source: 'manual', tags: ['유족2기', '부산'], createdAt: '2025-04-01' },
-    { id: 6, name: '한후원', phone: '010-1234-5678', email: 'donor2@test.com', type: 'donor', source: 'web', tags: ['연정기', '100,000원'], createdAt: '2025-05-12' },
-    { id: 7, name: '강봉사', phone: '010-8765-4321', email: 'vol2@test.com', type: 'volunteer', source: 'manual', tags: ['변호사'], createdAt: '2025-01-08' },
-  ];
+  /* =========================================================
+     Phase 1 단계 B — 진짜 회원 데이터 연동
+     - DEMO_MEMBERS·DEMO_WEB_DONORS·DEMO_TAGS 제거 (#BUG-2 해결 지점)
+     - USE_MOCK=true 동안은 임시 mock JSON 사용 (B 머지 후 false → mock 블록 삭제)
+     - API 계약: docs/DESIGN_PHASE1.md §6.2
+     ========================================================= */
+  const USE_MOCK = true; // ★ B 머지 후 false 또는 아래 mock 블록 통째 삭제
 
-  const DEMO_WEB_DONORS = [
-    { id: 101, name: '웹후원자A', email: 'wd1@test.com', phone: '010-2222-1111', totalAmount: 150000, type: 'regular', firstDonation: '2025-03-10', transferred: false },
-    { id: 102, name: '웹후원자B', email: 'wd2@test.com', phone: '010-4444-3333', totalAmount: 50000, type: 'onetime', firstDonation: '2025-04-15', transferred: false },
-    { id: 103, name: '웹후원자C', email: 'wd3@test.com', phone: '010-6666-5555', totalAmount: 300000, type: 'regular', firstDonation: '2025-02-22', transferred: false },
-    { id: 104, name: '웹후원자D', email: 'wd4@test.com', phone: '010-8888-7777', totalAmount: 100000, type: 'onetime', firstDonation: '2025-05-01', transferred: false },
-  ];
+  // ─── B 머지 전 임시 mock (DESIGN_PHASE1.md §7.2) ───────────────
+  const __MOCK_ADMIN_MEMBERS__ = {
+    ok: true,
+    data: [
+      { id: 101, name: '지주은', email: 'jiju@example.com', phone: '010-1111-2222',
+        signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
+        donorType: 'none', status: 'active', createdAt: '2026-04-15T09:30:00.000Z' },
+      { id: 102, name: '박두용', email: null, phone: '010-3333-4444',
+        signupSourceId: 2, signupSource: 'hyosung', signupSourceLabel: '효성',
+        donorType: 'none', status: 'active', createdAt: '2026-04-22T14:10:00.000Z' },
+      { id: 103, name: '김유족', email: 'kim@example.com', phone: '010-5555-6666',
+        signupSourceId: 1, signupSource: 'siren', signupSourceLabel: '싸이렌',
+        donorType: 'none', status: 'active', createdAt: '2026-03-08T18:45:00.000Z' },
+    ],
+    page: 1, pageSize: 50, total: 3,
+  };
 
-  const DEMO_TAGS = [
-    { name: '유족1기', count: 15, category: 'family' },
-    { name: '유족2기', count: 8, category: 'family' },
-    { name: '유족3기', count: 12, category: 'family' },
-    { name: '월정기', count: 42, category: 'donation' },
-    { name: '연정기', count: 18, category: 'donation' },
-    { name: '서울', count: 35, category: 'region' },
-    { name: '경기', count: 22, category: 'region' },
-    { name: '부산', count: 11, category: 'region' },
-    { name: '심리상담사', count: 6, category: 'volunteer' },
-    { name: '변호사', count: 4, category: 'volunteer' },
-  ];
+  const __MOCK_ADMIN_MEMBER_DONATIONS__ = {
+    ok: true,
+    member: { id: 101, name: '지주은' },
+    data: [
+      { id: 5001, kind: 'regular', channel: 'hyosung', amount: 30000,
+        paidAt: '2026-05-01T00:00:00.000Z', status: 'paid', memo: '효성 5월분' },
+      { id: 4982, kind: 'regular', channel: 'hyosung', amount: 30000,
+        paidAt: '2026-04-01T00:00:00.000Z', status: 'paid', memo: '효성 4월분' },
+      { id: 4801, kind: 'onetime', channel: 'toss', amount: 100000,
+        paidAt: '2026-02-14T11:20:00.000Z', status: 'paid', memo: '명절 일시' },
+    ],
+    totalCount: 3, totalAmount: 160000, page: 1, pageSize: 30,
+  };
 
-  /* 상태 */
-  let allMembers = [...DEMO_MEMBERS];
-  let allWebDonors = [...DEMO_WEB_DONORS];
+  /* ============ 회원 명단 fetch (DESIGN_PHASE1.md §6.2) ============ */
+  async function fetchMembers(query = {}) {
+    if (USE_MOCK) {
+      await new Promise(r => setTimeout(r, 150));
+      // mock은 필터/검색을 클라이언트에서 흉내내어 페이지네이션 UI 검증 가능하게
+      const all = __MOCK_ADMIN_MEMBERS__.data;
+      let filtered = all;
+      if (query.source && query.source !== 'all') {
+        filtered = filtered.filter(m => m.signupSource === query.source);
+      }
+      if (query.q) {
+        const q = String(query.q).toLowerCase();
+        filtered = filtered.filter(m =>
+          (m.name || '').toLowerCase().includes(q) ||
+          (m.email || '').toLowerCase().includes(q) ||
+          (m.phone || '').includes(q)
+        );
+      }
+      const page = Number(query.page) || 1;
+      const pageSize = Number(query.pageSize) || 50;
+      const start = (page - 1) * pageSize;
+      return {
+        ok: true,
+        data: filtered.slice(start, start + pageSize),
+        page, pageSize, total: filtered.length,
+      };
+    }
+    const qs = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => { if (v !== '' && v != null) qs.set(k, v); });
+    const res = await api('/api/admin-members?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
+    // 다중 fallback (CLAUDE.md §6.1)
+    const payload = res.data?.data !== undefined ? res.data : res;
+    return {
+      ok: true,
+      data: payload.data || [],
+      page: payload.page || 1,
+      pageSize: payload.pageSize || 50,
+      total: payload.total || 0,
+    };
+  }
+
+  /* ============ 회원별 후원 이력 fetch ============ */
+  async function fetchMemberDonations(memberId, query = {}) {
+    if (USE_MOCK) {
+      await new Promise(r => setTimeout(r, 150));
+      const m = __MOCK_ADMIN_MEMBERS__.data.find(x => x.id === memberId);
+      if (memberId === 101 || !m) {
+        return { ...__MOCK_ADMIN_MEMBER_DONATIONS__,
+          member: m ? { id: m.id, name: m.name } : __MOCK_ADMIN_MEMBER_DONATIONS__.member };
+      }
+      // 다른 mock 회원은 0건
+      return {
+        ok: true,
+        member: { id: m.id, name: m.name },
+        data: [],
+        totalCount: 0, totalAmount: 0,
+        page: 1, pageSize: 30,
+      };
+    }
+    const qs = new URLSearchParams({ memberId: String(memberId) });
+    if (query.page) qs.set('page', String(query.page));
+    if (query.pageSize) qs.set('pageSize', String(query.pageSize));
+    const res = await api('/api/admin-member-donations?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || ('HTTP ' + res.status));
+    const payload = res.data?.data !== undefined ? res.data : res;
+    return {
+      ok: true,
+      member: payload.member || { id: memberId, name: '' },
+      data: payload.data || [],
+      totalCount: payload.totalCount || 0,
+      totalAmount: payload.totalAmount || 0,
+      page: payload.page || 1,
+      pageSize: payload.pageSize || 30,
+    };
+  }
+
+  /* ============ 가입경로/후원 상태 라벨 ============ */
+  const SIGNUP_SOURCE_LABEL = {
+    siren:   { icon: '🌐', text: '싸이렌', cls: 'cms-b-info' },
+    hyosung: { icon: '🏦', text: '효성',   cls: 'cms-b-warn' },
+    manual:  { icon: '✍️', text: '수기',   cls: 'cms-b-mute' },
+  };
+  const DONOR_TYPE_LABEL = {
+    regular:  { icon: '🔁', text: '정기',   cls: 'cms-b-success' },
+    prospect: { icon: '💡', text: '잠재',   cls: 'cms-b-warn' },
+    none:     { icon: '—',  text: '비후원', cls: 'cms-b-mute' },
+  };
+
+  function renderSignupSourceBadge(member) {
+    const src = member.signupSource;
+    const meta = SIGNUP_SOURCE_LABEL[src];
+    const label = member.signupSourceLabel
+      || (meta ? meta.text : '—');
+    const icon = meta ? meta.icon : '·';
+    const cls = meta ? meta.cls : 'cms-b-mute';
+    return `<span class="cms-badge ${cls}" title="${escapeHtml(label)}">${icon} ${escapeHtml(label)}</span>`;
+  }
+  function renderDonorTypeBadge(member) {
+    const meta = DONOR_TYPE_LABEL[member.donorType] || DONOR_TYPE_LABEL.none;
+    return `<span class="cms-badge ${meta.cls}" title="${escapeHtml(meta.text)}">${meta.icon} ${escapeHtml(meta.text)}</span>`;
+  }
+
+  /* 상태 — Phase 1: 서버 페이지네이션·필터 */
+  let allMembers = [];      // 현재 페이지 회원만 보관 (리스트 렌더용)
+  let allWebDonors = [];    // 단계 B 영역 외 — 빈 상태로 둠 (placeholder)
   let selectedTransferIds = new Set();
   let importedData = null;
+  let memberPage = 1;
+  let memberPageSize = 50;
+  let memberTotal = 0;
+  let memberQuery = { source: 'all', donorType: 'all', q: '' };
+  let memberSearchTimer = null;
 
   /* ============ 관리자 인증 확인 ============ */
   async function checkAuth() {
@@ -179,59 +295,74 @@
     });
   }
 
-  /* ============ 1. 대시보드 ============ */
-  function renderDashboard() {
-    const total = allMembers.length;
-    const family = allMembers.filter(m => m.type === 'family').length;
-    const donor = allMembers.filter(m => m.type === 'donor').length;
-    const volunteer = allMembers.filter(m => m.type === 'volunteer').length;
-    const srcWeb = allMembers.filter(m => m.source === 'web').length;
-    const srcExcel = allMembers.filter(m => m.source === 'excel').length;
-    const srcManual = allMembers.filter(m => m.source === 'manual').length;
-
+  /* ============ 1. 대시보드 (Phase 1: 진짜 회원 기반 단순 KPI) ============ */
+  async function renderDashboard() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+    // 전체 회원 카운트 + 첫 페이지 데이터로 가입경로 분포 추정
+    let resp;
+    try {
+      resp = await fetchMembers({ source: 'all', donorType: 'all', page: 1, pageSize: memberPageSize });
+    } catch (err) {
+      console.warn('[dashboard] members fetch fail', err);
+      ['kpiTotal','kpiNew','kpiFamily','kpiDonor','kpiRegular','kpiOnetime','kpiVolunteer','srcWeb','srcExcel','srcManual']
+        .forEach(id => set(id, '—'));
+      return;
+    }
+
+    const rows = resp.data || [];
+    const total = resp.total || 0;
+    memberTotal = total;
+
     set('kpiTotal', total.toLocaleString() + '명');
-    set('kpiNew', Math.floor(total * 0.08));
-    set('kpiFamily', family.toLocaleString() + '명');
-    set('kpiDonor', donor.toLocaleString() + '명');
-    set('kpiRegular', Math.floor(donor * 0.7));
-    set('kpiOnetime', Math.floor(donor * 0.3));
-    set('kpiVolunteer', volunteer.toLocaleString() + '명');
-    set('srcWeb', srcWeb + '명');
-    set('srcExcel', srcExcel + '명');
+    set('kpiNew', '—');                 // Phase 1: 별도 집계 API 없음
+    set('kpiFamily', '—');               // 단계 C에서 본격
+    set('kpiDonor', '—');
+    set('kpiRegular', '—');
+    set('kpiOnetime', '—');
+    set('kpiVolunteer', '—');
+
+    const srcSiren   = rows.filter(m => m.signupSource === 'siren').length;
+    const srcHyo     = rows.filter(m => m.signupSource === 'hyosung').length;
+    const srcManual  = rows.filter(m => m.signupSource === 'manual').length;
+    set('srcWeb',    srcSiren + '명');     // 라벨은 HTML에 '싸이렌 웹사이트'
+    set('srcExcel',  srcHyo + '명');       // 라벨은 HTML에 '효성'으로 변경됨
     set('srcManual', srcManual + '명');
 
-    /* 차트 */
-    renderMemberTypeChart([family, donor, allMembers.filter(m=>m.type==='regular').length, volunteer]);
+    // 차트 (Phase 1: 가입경로 분포로 임시 — 회원 유형 차원 없음)
+    renderMemberTypeChart([srcSiren, srcHyo, srcManual]);
 
-    /* 최근 활동 */
+    // 최근 회원 활동: 현재 페이지의 가장 최신 5명
     const tbody = document.getElementById('recentActivityBody');
     if (tbody) {
-      const recent = [...allMembers].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
-      tbody.innerHTML = recent.map(m => {
-        const typeMap = { family:'유족', donor:'후원', regular:'일반', volunteer:'봉사' };
-        return `<tr>
-          <td>${formatDate(m.createdAt)}</td>
-          <td><span class="cms-badge cms-b-info">${typeMap[m.type] || m.type}</span></td>
-          <td>${escapeHtml(m.name)}</td>
-          <td>신규 등록 (${m.source === 'web' ? '웹' : m.source === 'excel' ? 'Excel' : '수기'})</td>
-        </tr>`;
-      }).join('');
+      const recent = [...rows].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+      if (recent.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:#888">최근 활동이 없습니다</td></tr>`;
+      } else {
+        tbody.innerHTML = recent.map(m => `
+          <tr>
+            <td>${formatDate(m.createdAt)}</td>
+            <td>${renderSignupSourceBadge(m)}</td>
+            <td>${escapeHtml(m.name || '')}</td>
+            <td>신규 등록 (${escapeHtml(m.signupSourceLabel || SIGNUP_SOURCE_LABEL[m.signupSource]?.text || '—')})</td>
+          </tr>`).join('');
+      }
     }
   }
 
   function renderMemberTypeChart(data) {
     const ctx = document.getElementById('chartMemberType');
     if (!ctx || typeof Chart === 'undefined') return;
-    
+
     if (window._chart1) window._chart1.destroy();
+    // Phase 1 임시: 가입경로 분포 (싸이렌 / 효성 / 수기) — 단계 C에서 회원 유형 차원 추가 후 복원
     window._chart1 = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['유족', '후원', '일반', '봉사'],
+        labels: ['🌐 싸이렌', '🏦 효성', '✍️ 수기'],
         datasets: [{
           data,
-          backgroundColor: ['#c5293a', '#c47a00', '#1a5ec4', '#1a8b46'],
+          backgroundColor: ['#1a5ec4', '#c47a00', '#8a8a8a'],
           borderWidth: 0,
         }],
       },
@@ -249,80 +380,271 @@
     });
   }
 
-  /* ============ 2. 통합 회원 ============ */
-  function renderMembers() {
+  /* ============ 2. 통합 일반 회원 (Phase 1 단계 B) ============ */
+  async function renderMembers() {
     const tbody = document.getElementById('membersBody');
     if (!tbody) return;
 
-    const typeFilter = document.getElementById('filterType')?.value || '';
-    const sourceFilter = document.getElementById('filterSource')?.value || '';
-    const search = (document.getElementById('filterSearch')?.value || '').toLowerCase();
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
 
-    let filtered = allMembers;
-    if (typeFilter) filtered = filtered.filter(m => m.type === typeFilter);
-    if (sourceFilter) filtered = filtered.filter(m => m.source === sourceFilter);
-    if (search) {
-      filtered = filtered.filter(m =>
-        m.name.toLowerCase().includes(search) ||
-        (m.email && m.email.toLowerCase().includes(search)) ||
-        m.phone.includes(search)
-      );
-    }
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+    let resp;
+    try {
+      resp = await fetchMembers({
+        source: memberQuery.source,
+        donorType: memberQuery.donorType,
+        q: memberQuery.q,
+        page: memberPage,
+        pageSize: memberPageSize,
+      });
+    } catch (err) {
+      console.error('[members] fetch fail', err);
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      renderMembersPagination(0);
       return;
     }
 
-    const typeMap = {
-      family: '<span class="cms-badge cms-b-danger">유족</span>',
-      donor: '<span class="cms-badge cms-b-warn">후원</span>',
-      regular: '<span class="cms-badge cms-b-info">일반</span>',
-      volunteer: '<span class="cms-badge cms-b-success">봉사</span>',
-    };
-    const sourceMap = {
-      web: '🌐 웹', excel: '📋 Excel', manual: '📞 수기',
-    };
+    allMembers = resp.data;
+    memberTotal = resp.total;
 
-    tbody.innerHTML = filtered.map(m => `
-      <tr>
-        <td><input type="checkbox" data-member-id="${m.id}"></td>
-        <td>M-${String(m.id).padStart(5,'0')}</td>
-        <td><strong>${escapeHtml(m.name)}</strong></td>
-        <td>${typeMap[m.type] || m.type}</td>
-        <td style="color:#525252;font-size:11.5px">${sourceMap[m.source] || m.source}</td>
-        <td style="font-family:Inter;font-size:11.5px">${escapeHtml(m.phone)}</td>
-        <td>
-          <div class="cms-tags-cell">
-            ${m.tags.map(t => `<span class="cms-tag-chip">${escapeHtml(t)}</span>`).join('')}
-          </div>
-        </td>
-        <td style="font-family:Inter;font-size:11.5px;color:#8a8a8a">${formatDate(m.createdAt)}</td>
-        <td>
-          <button class="cms-btn-link" data-action="view" data-id="${m.id}">상세</button>
-          <button class="cms-btn-link" data-action="edit" data-id="${m.id}">수정</button>
-        </td>
-      </tr>
-    `).join('');
+    if (allMembers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      renderMembersPagination(0);
+      return;
+    }
+
+    tbody.innerHTML = allMembers.map(m => {
+      const status = m.status === 'blacklist'
+        ? '<span class="cms-badge cms-b-danger" title="차단됨">🚫 차단</span>'
+        : (m.status === 'withdrawn'
+            ? '<span class="cms-badge cms-b-mute">탈퇴</span>'
+            : '<span class="cms-badge cms-b-success">활성</span>');
+      return `
+        <tr data-member-row="${m.id}">
+          <td><input type="checkbox" data-member-id="${m.id}"></td>
+          <td>M-${String(m.id).padStart(5,'0')}</td>
+          <td><strong>${escapeHtml(m.name || '')}</strong></td>
+          <td>${status}</td>
+          <td>${renderSignupSourceBadge(m)}</td>
+          <td style="font-family:Inter;font-size:11.5px">${escapeHtml(m.phone || '—')}</td>
+          <td>${renderDonorTypeBadge(m)}</td>
+          <td style="font-family:Inter;font-size:11.5px;color:#8a8a8a">${formatDate(m.createdAt)}</td>
+          <td>
+            <button class="cms-btn-link" data-action="view" data-id="${m.id}">상세</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // 회원 상세 모달 열기 — 행 클릭(체크박스/버튼 제외) 또는 [상세] 버튼
+    tbody.querySelectorAll('button[data-action="view"]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = Number(btn.dataset.id);
+        openMemberDetailModal(id);
+      });
+    });
+    tbody.querySelectorAll('tr[data-member-row]').forEach(tr => {
+      tr.style.cursor = 'pointer';
+      tr.addEventListener('click', e => {
+        if (e.target.closest('input, button, a, label')) return;
+        const id = Number(tr.dataset.memberRow);
+        openMemberDetailModal(id);
+      });
+    });
+
+    renderMembersPagination(memberTotal);
+  }
+
+  function renderMembersPagination(total) {
+    const tbody = document.getElementById('membersBody');
+    if (!tbody) return;
+    const tableWrap = tbody.closest('.cms-panel');
+    if (!tableWrap) return;
+    let pager = tableWrap.querySelector('.cms-members-pagination');
+    if (!pager) {
+      pager = document.createElement('div');
+      pager.className = 'cms-members-pagination';
+      tableWrap.appendChild(pager);
+    }
+    const totalPages = Math.max(1, Math.ceil(total / memberPageSize));
+    if (total === 0) { pager.innerHTML = ''; return; }
+
+    const prev = memberPage > 1
+      ? `<button class="cms-btn cms-btn-ghost" data-mp="${memberPage - 1}">← 이전</button>` : '';
+    const next = memberPage < totalPages
+      ? `<button class="cms-btn cms-btn-ghost" data-mp="${memberPage + 1}">다음 →</button>` : '';
+    const info = `<span class="cms-members-pagination-info">${memberPage} / ${totalPages} · 총 ${total.toLocaleString()}명</span>`;
+    pager.innerHTML = prev + info + next;
+    pager.querySelectorAll('[data-mp]').forEach(b => {
+      b.addEventListener('click', () => {
+        memberPage = Number(b.dataset.mp);
+        renderMembers();
+      });
+    });
   }
 
   function setupMembersFilter() {
-    ['filterType', 'filterSource'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', renderMembers);
-    });
+    const sourceEl = document.getElementById('filterSource');
+    if (sourceEl) {
+      sourceEl.addEventListener('change', () => {
+        memberQuery.source = sourceEl.value || 'all';
+        memberPage = 1;
+        renderMembers();
+      });
+    }
+    const donorEl = document.getElementById('filterDonorType');
+    if (donorEl) {
+      donorEl.addEventListener('change', () => {
+        memberQuery.donorType = donorEl.value || 'all';
+        memberPage = 1;
+        renderMembers();
+      });
+    }
     const search = document.getElementById('filterSearch');
     if (search) {
-      let timer;
       search.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = setTimeout(renderMembers, 200);
+        clearTimeout(memberSearchTimer);
+        memberSearchTimer = setTimeout(() => {
+          memberQuery.q = search.value.trim();
+          memberPage = 1;
+          renderMembers();
+        }, 250);
       });
     }
     const btn = document.getElementById('btnRefreshMembers');
     if (btn) btn.addEventListener('click', () => {
       toast('회원 목록을 새로고침합니다');
       renderMembers();
+    });
+  }
+
+  /* ============ 회원 상세 모달 ============ */
+  let modalActiveTab = 'info';
+  let modalCurrentMember = null;
+
+  function openMemberDetailModal(memberId) {
+    const m = allMembers.find(x => x.id === memberId);
+    if (!m) { toast('회원 정보를 찾을 수 없습니다'); return; }
+    modalCurrentMember = m;
+    modalActiveTab = 'info';
+
+    const modal = document.getElementById('memberDetailModal');
+    if (!modal) { console.warn('memberDetailModal markup missing'); return; }
+
+    // 헤더
+    const setText = (id, val) => {
+      const el = modal.querySelector(id);
+      if (el) el.textContent = val;
+    };
+    const setHTML = (id, html) => {
+      const el = modal.querySelector(id);
+      if (el) el.innerHTML = html;
+    };
+
+    setText('#mdmName', m.name || '—');
+    setText('#mdmId', 'M-' + String(m.id).padStart(5, '0'));
+    setHTML('#mdmBadges',
+      renderSignupSourceBadge(m) + ' ' + renderDonorTypeBadge(m));
+
+    // 기본 정보 탭
+    setText('#mdmInfoEmail', m.email || '—');
+    setText('#mdmInfoPhone', m.phone || '—');
+    setText('#mdmInfoStatus', m.status || '—');
+    setText('#mdmInfoSource', m.signupSourceLabel
+      || (SIGNUP_SOURCE_LABEL[m.signupSource]?.text || '—'));
+    setText('#mdmInfoDonor', DONOR_TYPE_LABEL[m.donorType]?.text || '비후원');
+    setText('#mdmInfoCreated', formatDate(m.createdAt));
+
+    // 기본 정보 탭으로 시작
+    switchModalTab('info');
+
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMemberDetailModal() {
+    const modal = document.getElementById('memberDetailModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    modalCurrentMember = null;
+  }
+
+  function switchModalTab(tab) {
+    modalActiveTab = tab;
+    const modal = document.getElementById('memberDetailModal');
+    if (!modal) return;
+    modal.querySelectorAll('.mdm-tab').forEach(t => {
+      t.classList.toggle('on', t.dataset.mdmTab === tab);
+    });
+    modal.querySelectorAll('.mdm-pane').forEach(p => {
+      p.style.display = p.dataset.mdmPane === tab ? 'block' : 'none';
+    });
+    if (tab === 'donations' && modalCurrentMember) {
+      loadModalDonations(modalCurrentMember.id);
+    }
+  }
+
+  async function loadModalDonations(memberId) {
+    const body = document.querySelector('#memberDetailModal #mdmDonationsBody');
+    const summary = document.querySelector('#memberDetailModal #mdmDonationsSummary');
+    if (!body) return;
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>`;
+    if (summary) summary.textContent = '';
+
+    let resp;
+    try {
+      resp = await fetchMemberDonations(memberId);
+    } catch (err) {
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      return;
+    }
+
+    if (summary) {
+      summary.textContent =
+        `총 ${resp.totalCount.toLocaleString()}건 · ₩${(resp.totalAmount || 0).toLocaleString()}`;
+    }
+
+    if (!resp.data.length) {
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">후원 이력이 없습니다</td></tr>`;
+      return;
+    }
+
+    const channelLabel = { toss: '💳 토스', hyosung: '🏦 효성', ibk: '🏛 IBK', manual: '✍️ 수기' };
+    const kindLabel    = { regular: '🔁 정기', onetime: '💡 일시' };
+
+    body.innerHTML = resp.data.map(d => `
+      <tr>
+        <td>${formatDate(d.paidAt)}</td>
+        <td>${kindLabel[d.kind] || d.kind || '—'}</td>
+        <td>${channelLabel[d.channel] || d.channel || '—'}</td>
+        <td style="text-align:right;font-weight:600">₩${(d.amount || 0).toLocaleString()}</td>
+        <td>${escapeHtml(d.status || '—')}</td>
+        <td style="color:#666;font-size:11.5px">${escapeHtml(d.memo || '')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function setupMemberDetailModal() {
+    const modal = document.getElementById('memberDetailModal');
+    if (!modal) return;
+    // 닫기 버튼
+    modal.querySelectorAll('[data-mdm-close]').forEach(b => {
+      b.addEventListener('click', closeMemberDetailModal);
+    });
+    // 백드롭 클릭 닫기
+    modal.addEventListener('click', e => {
+      if (e.target === modal) closeMemberDetailModal();
+    });
+    // 탭 전환
+    modal.querySelectorAll('.mdm-tab').forEach(t => {
+      t.addEventListener('click', () => switchModalTab(t.dataset.mdmTab));
+    });
+    // ESC 닫기
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeMemberDetailModal();
+      }
     });
   }
 
@@ -539,21 +861,16 @@
     document.getElementById('btnTransferRefresh')?.addEventListener('click', renderTransfer);
   }
 
-  /* ============ 5. 태그 ============ */
+  /* ============ 5. 태그 (Phase 1: 별도 API 미배포 — placeholder) ============ */
   function renderTags() {
     const grid = document.getElementById('tagGrid');
     if (!grid) return;
-    grid.innerHTML = DEMO_TAGS.map(t => `
-      <div class="cms-tag-card">
-        <div class="cms-tag-info-wrap">
-          <div class="cms-tag-name">🏷️ ${escapeHtml(t.name)}</div>
-          <div class="cms-tag-count">${t.count}명</div>
-        </div>
-        <div class="cms-tag-actions">
-          <button class="cms-btn-link">필터</button>
-        </div>
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;background:#fff7e6;border:1px dashed #f0c785;border-radius:8px;padding:24px;text-align:center;color:#c47a00;font-size:13px;line-height:1.7">
+        🏷️ 회원 태그 시스템은 다음 마일스톤에서 활성화됩니다.<br>
+        <span style="font-size:12px;color:#8a6500">통합 회원 명단의 가입경로/후원 상태 뱃지는 이미 적용되어 있습니다.</span>
       </div>
-    `).join('');
+    `;
   }
 
   /* ============ 6. 알림 ============ */
@@ -1369,6 +1686,7 @@
 
     setupTabs();
     setupMembersFilter();
+    setupMemberDetailModal(); /* ★ Phase 1 단계 B */
     setupManualForm();
     setupFileUpload();
     setupTransferActions();

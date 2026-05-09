@@ -699,18 +699,21 @@
       <section class="cms-page" id="page-members">
         <div class="cms-filter-bar">
           <div class="cms-filter-group">
-            <select id="filterType">
+            <!-- Phase 1: 회원 유형 차원은 단계 C에서 복원 (signup_source/donor_type 으로 대체) -->
+            <select id="filterType" style="display:none" disabled>
               <option value="">전체 유형</option>
-              <option value="family">유족 회원</option>
-              <option value="donor">후원 회원</option>
-              <option value="regular">일반 회원</option>
-              <option value="volunteer">봉사 회원</option>
             </select>
             <select id="filterSource">
-              <option value="">전체 가입경로</option>
-              <option value="web">웹사이트</option>
-              <option value="excel">Excel 등록</option>
-              <option value="manual">수기 접수</option>
+              <option value="all">전체 가입경로</option>
+              <option value="siren">🌐 싸이렌</option>
+              <option value="hyosung">🏦 효성</option>
+              <option value="manual">✍️ 수기</option>
+            </select>
+            <select id="filterDonorType">
+              <option value="all">후원 상태 전체</option>
+              <option value="regular">🔁 정기</option>
+              <option value="prospect">💡 잠재</option>
+              <option value="none">— 비후원</option>
             </select>
             <input type="text" id="filterSearch" placeholder="이름·이메일·전화번호 검색...">
           </div>
@@ -739,10 +742,10 @@
                 <th><input type="checkbox" id="selectAll"></th>
                 <th>ID</th>
                 <th>이름</th>
-                <th>유형</th>
+                <th>상태</th>
                 <th>가입경로</th>
                 <th>연락처</th>
-                <th>태그</th>
+                <th>후원 상태</th>
                 <th>등록일</th>
                 <th>관리</th>
               </tr>
@@ -1270,6 +1273,67 @@
     </div>
   </main>
 
+  <!-- ============ ★ Phase 1 단계 B: 회원 상세 모달 ============ -->
+  <div id="memberDetailModal" class="mdm-modal" aria-hidden="true">
+    <div class="mdm-dialog" role="dialog" aria-modal="true" aria-labelledby="mdmName">
+      <header class="mdm-header">
+        <div class="mdm-header-main">
+          <div class="mdm-title-row">
+            <h2 id="mdmName" class="mdm-name">—</h2>
+            <span id="mdmId" class="mdm-id">—</span>
+          </div>
+          <div id="mdmBadges" class="mdm-badges"></div>
+        </div>
+        <button type="button" class="mdm-close" data-mdm-close aria-label="닫기">×</button>
+      </header>
+
+      <nav class="mdm-tabs">
+        <button type="button" class="mdm-tab on" data-mdm-tab="info">📋 기본 정보</button>
+        <button type="button" class="mdm-tab" data-mdm-tab="donations">💰 후원 내역</button>
+      </nav>
+
+      <div class="mdm-body">
+        <!-- 기본 정보 탭 -->
+        <section class="mdm-pane" data-mdm-pane="info" style="display:block">
+          <dl class="mdm-info-grid">
+            <dt>이메일</dt>     <dd id="mdmInfoEmail">—</dd>
+            <dt>연락처</dt>     <dd id="mdmInfoPhone">—</dd>
+            <dt>회원 상태</dt>  <dd id="mdmInfoStatus">—</dd>
+            <dt>가입경로</dt>   <dd id="mdmInfoSource">—</dd>
+            <dt>후원 상태</dt>  <dd id="mdmInfoDonor">—</dd>
+            <dt>등록일</dt>     <dd id="mdmInfoCreated">—</dd>
+          </dl>
+        </section>
+
+        <!-- 후원 내역 탭 -->
+        <section class="mdm-pane" data-mdm-pane="donations" style="display:none">
+          <div class="mdm-donations-summary" id="mdmDonationsSummary"></div>
+          <div class="mdm-donations-table-wrap">
+            <table class="cms-tbl mdm-donations-table">
+              <thead>
+                <tr>
+                  <th>결제일</th>
+                  <th>유형</th>
+                  <th>채널</th>
+                  <th style="text-align:right">금액</th>
+                  <th>상태</th>
+                  <th>메모</th>
+                </tr>
+              </thead>
+              <tbody id="mdmDonationsBody">
+                <tr><td colspan="6" style="text-align:center;padding:30px;color:#888">탭을 열어 불러오기</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <footer class="mdm-footer">
+        <button type="button" class="cms-btn cms-btn-ghost" data-mdm-close>닫기</button>
+      </footer>
+    </div>
+  </div>
+
   <!-- 토스트 -->
   <div id="cmsToast" class="cms-toast"></div>
 
@@ -1278,7 +1342,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-10-c3"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-10-c4"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-c2"></script>
 </body>
