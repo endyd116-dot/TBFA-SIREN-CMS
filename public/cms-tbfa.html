@@ -219,30 +219,52 @@
     </div>
 
     <nav class="cms-menu">
-      <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;">📅 워크스페이스</a></li>
-      <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;">📋 칸반</a></li>
-      <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;">🗓 캘린더</a></li>
-      <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;">📑 템플릿</a></li>
-      <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;">📁 파일함</a></li>
+      <!-- ───── 1뎁스 그룹: 🛠 워크스페이스 (협업 도구) ───── -->
+      <li class="cms-menu-section">
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase">🛠 워크스페이스</div>
+      </li>
+      <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
+      <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
+      <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
+      <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
+      <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
+
+      <!-- ───── 1뎁스 그룹: 📊 운영 ───── -->
+      <li class="cms-menu-section">
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">📊 운영</div>
+      </li>
       <li><a href="#dashboard" class="on" data-tab="dashboard">
-        <i>📊</i><span>대시보드</span>
+        <i>📈</i><span>대시보드</span>
       </a></li>
+      <li><a href="#members" data-tab="members">
+        <i>👥</i><span>통합 일반 회원</span>
+      </a></li>
+
+      <!-- ───── 1뎁스 그룹: 💰 후원 관리 ───── -->
       <li class="cms-menu-group" data-group="donation">
         <a href="#" data-toggle="donation">
           <i>💰</i><span>후원 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
-        <ul class="cms-submenu" data-submenu="donation" style="display:none">
+        <ul class="cms-submenu" data-submenu="donation" style="display:block">
+          <li><a href="#donor-regular" data-tab="donor-regular">
+            <i>🔁</i><span>정기 후원자 관리</span>
+          </a></li>
+          <li><a href="#donor-prospect" data-tab="donor-prospect">
+            <i>💡</i><span>잠재 후원자 관리</span>
+          </a></li>
           <li><a href="#hyosung" data-tab="hyosung">
             <i>🏦</i><span>효성 CMS+</span>
           </a></li>
-                  <li><a href="#toss-billing" data-tab="toss-billing">💳 토스 빌링 (자동 청구)</a></li>
-          <li><a href="#csv-import" data-tab="csv-import">📥 CSV 자동 매핑</a></li>
+          <li><a href="#toss-billing" data-tab="toss-billing">💳 토스 빌링 (자동 청구)</a></li>
+          <li><a href="#csv-import" data-tab="csv-import">📥 CSV 종합 검증 매핑</a></li>
         </ul>
       </li>
-      <li><a href="#members" data-tab="members">
-        <i>👥</i><span>통합 회원</span>
-      </a></li>
+
+      <!-- ───── 1뎁스 그룹: 🛎 운영 도구 ───── -->
+      <li class="cms-menu-section">
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
+      </li>
       <li><a href="#import" data-tab="import">
         <i>📤</i><span>외부 등록</span>
       </a></li>
@@ -1215,6 +1237,36 @@
         </div>
       </section>
 
+      <!-- ============ 후원 관리 — 정기 후원자 (placeholder) ============ -->
+      <section class="cms-page" id="page-donor-regular">
+        <div style="background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;padding:32px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">🔁</div>
+          <h2 style="margin:0 0 8px;font-size:18px;font-weight:700">정기 후원자 관리</h2>
+          <p style="color:#666;font-size:13.5px;margin:0 0 16px;line-height:1.6">
+            토스 빌링 또는 효성 CMS+로 정기 이체를 진행 중인 회원 목록입니다.<br>
+            현재 화면은 준비 중이며, 다음 마일스톤에서 활성화됩니다.
+          </p>
+          <div style="display:inline-block;padding:8px 14px;background:#fff7e6;border-radius:6px;font-size:12px;color:#c47a00">
+            📌 식별 기준: <code>members.hyosung_contract_status='active'</code> OR <code>next_billing_date IS NOT NULL</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 후원 관리 — 잠재 후원자 (placeholder) ============ -->
+      <section class="cms-page" id="page-donor-prospect">
+        <div style="background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;padding:32px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">💡</div>
+          <h2 style="margin:0 0 8px;font-size:18px;font-weight:700">잠재 후원자 관리</h2>
+          <p style="color:#666;font-size:13.5px;margin:0 0 16px;line-height:1.6">
+            일시 후원만 했거나 정기 후원을 중단한 회원 목록입니다.<br>
+            현재 화면은 준비 중이며, 다음 마일스톤에서 활성화됩니다.
+          </p>
+          <div style="display:inline-block;padding:8px 14px;background:#fff7e6;border-radius:6px;font-size:12px;color:#c47a00">
+            📌 식별 기준: 일시 후원 이력 있음 OR 정기 → 중단 (next_billing_date 없음 + 과거 contract 이력)
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -1226,7 +1278,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-09-c1"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-10-c3"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-c2"></script>
 </body>

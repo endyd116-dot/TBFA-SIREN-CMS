@@ -120,7 +120,9 @@
 
         const titles = {
           dashboard: '대시보드',
-          members: '통합 회원',
+          members: '통합 일반 회원',
+          'donor-regular': '🔁 정기 후원자 관리 (준비 중)',
+          'donor-prospect': '💡 잠재 후원자 관리 (준비 중)',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
@@ -129,7 +131,7 @@
           'receipt-settings': '영수증 설정', /* ★ STEP H-2d-4 */
           hyosung: '효성 CMS+ 관리', /* ★ Phase 1 */
           'toss-billing': '💳 토스 빌링 (자동 청구)', /* ★ Phase 2 */
-          'csv-import': '📥 CSV 자동 매핑 (효성 + 기업은행)', /* ★ 작업 C(#15) */
+          'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)', /* ★ 작업 C(#15) */
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
