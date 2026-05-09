@@ -27,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 채팅 | Phase 분류 시나리오 B 채택 — 이번 사이클에 #16 B·C·D 처리, PHASE_PROPOSAL.md / DESIGN_PHASE1.md 신설 |
 | 2026-05-10 | 메인 채팅 | 문서 정비 — `docs/HANDOFF.md` 신설(단일 최신) + `docs/REMAINING_WORK.md` 신설 + CLAUDE.md §12.1 문서 갱신 정책 + 권한 정책 정비(`.claude/settings.json` deny 14건 정리) |
 | 2026-05-10 | 메인 채팅 | 마일스톤 #16 설계 합의 + #BUG-2 등록 (cms-tbfa 더미) — §4.6 신설 |
 | 2026-05-10 | 메인 채팅 | 단계 A 완료 — 사이드바 그룹화, 통합 일반 회원 이름 변경, 후원 관리 강화 (42fd6c6) |
 | 2026-05-09 | 메인 채팅 | #BUG-1 fix 적용(bb529f9) + 엑셀 업로드 지원(55417f5) |
-| 2026-05-09 | 메인 채팅 | 작업 C 최종 머지 완료 — main에 반영 (705296d), schema 회귀 복구 검증 통과 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -40,9 +40,14 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 병렬 (parallel) — 6순위 #6 / #8 / #15 동시 진행 가능 단계
+🟡 시나리오 B (균형형) — 이번 사이클(1주, 20~30h)에 마일스톤 #16 B·C·D 모두 처리
+   Phase 1 = Main 단독 (#16 단계 B + #6/#15 검증)
+   Phase 2 = Main + A 보조 (#16 단계 C: schema·migrate)
+   Phase 3 = Main + B 채팅 (#16 단계 D: 효성 billings·cron)
 ```
 
+- 시나리오 채택 근거: [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md)
+- Phase 1 분담 상세: [docs/DESIGN_PHASE1.md](docs/DESIGN_PHASE1.md)
 - 단일(serial) 모드: main 채팅 하나만 작업
 - 병렬(parallel) 모드: 작업별 브랜치 + 별도 채팅으로 분배
 
@@ -246,9 +251,10 @@ CREATE TABLE pending_donations (
 | 항목 | 값 |
 |---|---|
 | 식별자 | 6순위 #16 |
-| 진행률 | 🟢 단계 A ✅ 완료 (메뉴 재배치, 42fd6c6) / B·C·D 미착수 |
+| 진행률 | 🟡 단계 A ✅ 완료 (42fd6c6) / **B·C·D 이번 사이클 처리 예정 (시나리오 B)** |
 | 추정 시간 | 8~12h (B 1.5~2.5h + C 3~4h + D 3~5h) |
 | 우선순위 | 6순위 #8보다 우선 (운영 핵심) |
+| 시나리오·분담 | [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md) / [docs/DESIGN_PHASE1.md](docs/DESIGN_PHASE1.md) |
 | 상세 설계 | [docs/milestones/2026-05-10-donor-system.md](docs/milestones/2026-05-10-donor-system.md) |
 | 관련 이슈 | [#BUG-2](docs/issues/2026-05-10-cms-tbfa-demo-data.md) (단계 B에서 해결) |
 
@@ -282,8 +288,9 @@ CREATE TABLE pending_donations (
 | 5순위 중간 작업 | ✅ #1 / #9 / #10 모두 완료 |
 | 6순위 #6 자격 변경 | ✅ 코드 100% 안착 (`feature/eligibility-change`), 사용자 검증 가능 |
 | 6순위 #15 CSV 자동 매핑 + 엑셀 업로드 | ✅ 코드 100% 안착 (`feature/csv-donation-mapping`), admin.html 회원 관리에서 검증 가능 |
-| **6순위 #16 통합 회원·후원 시스템** | 🟡 단계 A ✅ 완료 / B·C·D 미착수 (1/4) |
-| 6순위 #8 1:1 매칭 채팅 | ⬜ 미착수 (#16 후 진행 권장) |
+| **6순위 #16 통합 회원·후원 시스템** | 🟡 단계 A ✅ / **B·C·D 이번 사이클 (시나리오 B 채택)** |
+| 6순위 #8 1:1 매칭 채팅 | ⏸ 다음 사이클 (15~18h, 한 사이클 안 어려움) |
+| TypeScript 타입 에러 149건 | ⏸ 다음 사이클 자투리 (운영 영향 0) |
 | Phase 4~22 (19개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
 
 **누적**: 약 33% / 약 440h+
