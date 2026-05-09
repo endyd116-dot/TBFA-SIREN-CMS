@@ -125,7 +125,7 @@ export async function requireActiveUser(req: Request): Promise<
         withdrawnAt: members.withdrawnAt,
       })
       .from(members)
-      .where(eq(members.id, user.id))
+      .where(eq(members.id, user.uid))
       .limit(1);
     const m = rows[0];
     if (!m) {
