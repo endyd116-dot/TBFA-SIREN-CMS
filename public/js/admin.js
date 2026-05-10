@@ -21,6 +21,7 @@
   'finance-income': '수입 현황',
   'finance-budget': '예산·지출 관리',
   'finance-report': '재무 보고서',
+  'notification-logs': '알림 발송 로그',
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
@@ -5795,6 +5796,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'finance-report') {
       /* Phase 7: 재무 보고서 */
       if (window.SIREN_FINANCE_REPORT) window.SIREN_FINANCE_REPORT.load();
+    } else if (page === 'notification-logs') {
+      /* Phase 8 C: 알림 발송 로그 */
+      if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();
     }
   }
 
