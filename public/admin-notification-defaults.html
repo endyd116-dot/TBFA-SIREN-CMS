@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>알림 기본 정책 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/admin-base.css?v=9">
+<link rel="stylesheet" href="/css/admin-components.css?v=9">
+
+<style>
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc { color: #64748b; font-size: 0.875rem; margin-bottom: 28px; }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+.tab-btn {
+  padding: 10px 20px; font-size: 0.875rem; font-weight: 500;
+  border: none; background: none; cursor: pointer; color: #64748b;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all 0.15s;
+}
+.tab-btn.active { color: #1e40af; border-bottom-color: #1e40af; font-weight: 600; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.kpi-card .kpi-val { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+.kpi-card .kpi-lbl { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+.policy-table-wrap {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.policy-table { width: 100%; border-collapse: collapse; }
+.policy-table thead th {
+  background: #f8fafc;
+  padding: 11px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+.policy-table thead th:first-child { text-align: left; }
+.policy-table tbody tr { border-bottom: 1px solid #e2e8f0; }
+.policy-table tbody tr:last-child { border-bottom: none; }
+.policy-table tbody tr:hover { background: #f8fafc; }
+.policy-table td { padding: 13px 14px; vertical-align: middle; }
+.event-name { font-size: 0.875rem; font-weight: 500; }
+.event-meta { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+
+.ch-cell { text-align: center; }
+.ch-check-wrap {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.ch-check-wrap input[type="checkbox"] {
+  width: 17px; height: 17px; accent-color: #1e40af; cursor: pointer;
+}
+.ch-check-wrap input[type="checkbox"]:disabled { opacity: 0.45; cursor: not-allowed; }
+.forced-label { font-size: 0.62rem; background: #fee2e2; color: #b91c1c;
+  padding: 1px 5px; border-radius: 4px; }
+
+.action-cell { text-align: center; white-space: nowrap; }
+.btn-save {
+  padding: 6px 14px; background: #1e40af; color: #fff; border: none;
+  border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-save:hover { background: #1d3fa8; }
+.btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.custom-cnt {
+  font-size: 0.72rem; color: #64748b; margin-top: 4px;
+  display: block;
+}
+
+/* 이력 탭 */
+.history-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.history-table th, .history-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.history-table th { background: #f8fafc; font-weight: 600; color: #64748b; font-size: 0.78rem; }
+.history-empty { color: #9ca3af; text-align: center; padding: 32px; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 0.875rem;
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.25s; z-index: 9999;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { background: #b91c1c; }
+
+.skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  border-radius: 6px; height: 44px; margin-bottom: 4px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+
+<div id="admin-header-placeholder"></div>
+
+<main class="page-wrap">
+  <div class="page-title">알림 기본 정책 관리</div>
+  <p class="page-desc">사용자가 알림 수신 설정을 하지 않았을 때 적용되는 채널별 기본값을 관리합니다.
+    강제 표시(필수)된 채널은 법적·결제 의무 알림으로 사용자도 해제할 수 없습니다.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="policy">기본 정책</button>
+    <button class="tab-btn" data-tab="history">변경 이력</button>
+  </div>
+
+  <!-- 기본 정책 탭 -->
+  <div id="tab-policy">
+    <div id="kpiGrid" class="kpi-grid" style="display:none;"></div>
+
+    <div id="loadingArea">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+
+    <div id="policyContent" style="display:none;">
+      <div class="policy-table-wrap">
+        <table class="policy-table">
+          <thead>
+            <tr>
+              <th style="width:220px;">알림 유형</th>
+              <th>인앱</th>
+              <th>이메일</th>
+              <th>SMS</th>
+              <th>알림톡</th>
+              <th style="width:90px;">수정</th>
+            </tr>
+          </thead>
+          <tbody id="policyTbody"></tbody>
+        </table>
+      </div>
+      <p style="font-size:0.78rem;color:#94a3b8;">
+        * 강제(필수) 채널 변경은 코드(`lib/notify-events.ts`)에서만 가능합니다.<br>
+        * 변경 사항은 다음 발송부터 즉시 적용됩니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- 변경 이력 탭 -->
+  <div id="tab-history" style="display:none;">
+    <div id="historyContent">
+      <p style="color:#94a3b8;text-align:center;padding:40px;">불러오는 중…</p>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="/js/admin-common.js?v=9"></script>
+<script src="/js/admin-notification-defaults.js?v=1"></script>
+</body>
+</html>

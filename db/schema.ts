@@ -2105,3 +2105,41 @@ export const notificationDispatchLogs = pgTable("notification_dispatch_logs", {
 export type NotificationDispatchLog = typeof notificationDispatchLogs.$inferSelect;
 export type NewNotificationDispatchLog = typeof notificationDispatchLogs.$inferInsert;
 
+/* =========================================================
+   === Phase 9-B: 사용자 알림 수신 설정 ===
+   migrate-phase9-notify-prefs 호출 후 활성화됨
+   C 채팅 소유. 타 채팅에서 본 섹션 변경 금지.
+   ========================================================= */
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id:         bigserial("id", { mode: "number" }).primaryKey(),
+  memberId:   integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  eventType:  text("event_type").notNull(),
+  channels:   jsonb("channels").default(sql`'[]'::jsonb`).notNull(),
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx:  index("notification_prefs_member_idx").on(t.memberId),
+  uniquePref: uniqueIndex("notification_prefs_unique").on(t.memberId, t.eventType),
+}));
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type NewNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+export const notificationAdminSettings = pgTable("notification_admin_settings", {
+  eventType:       text("event_type").primaryKey(),
+  defaultChannels: jsonb("default_channels").default(sql`'[]'::jsonb`).notNull(),
+  forcedChannels:  jsonb("forced_channels").default(sql`'[]'::jsonb`).notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+  updatedBy:       integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+});
+
+export type NotificationAdminSetting = typeof notificationAdminSettings.$inferSelect;
+export type NewNotificationAdminSetting = typeof notificationAdminSettings.$inferInsert;
+
+/* ── Phase 9-B: members 신규 컬럼 (migrate-phase9-notify-prefs 적용 후 활성화) ──
+   phoneVerifiedAt:           timestamp("phone_verified_at")
+   kakaoMarketingConsentAt:   timestamp("kakao_marketing_consent_at")
+   위 컬럼은 마이그레이션 성공 확인 후 members 테이블 정의에 추가할 것.
+   ────────────────────────────────────────────────────────────────────── */
+
