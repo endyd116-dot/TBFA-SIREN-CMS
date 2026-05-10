@@ -101,8 +101,21 @@ C 새 세션은 **세션당 Q1~Q2 처리** 정도로 분할 운영. 매번 PROJE
 - 신규 테이블 1개(`recipient_groups`) + 시드 5종 + API 8개 + 화면 2개
 - `lib/recipient-resolve.ts` 헬퍼 (criteria → 회원 ID, 화이트리스트 검증, 한 줄 요약)
 - 필터 화이트리스트 9개 필드 × 6개 op (§2.4)
-- B 5~7h / A 5~6h / C 1~2h / 평행 모드 (PARALLEL_GUIDE §2 정책)
+- B 5~7h / A 5~6h / C 1~2h / 평행 모드
 - 4채팅 시작 프롬프트 §6에 작성 완료 (Swain 복붙용)
+
+### 3.7 Phase 10 R3 설계 완료 — R2 머지 후 트리거 (2026-05-11, 예고 작성)
+
+**설계서**: [`docs/milestones/2026-05-11-phase10-r3-send-queue.md`](milestones/2026-05-11-phase10-r3-send-queue.md)
+
+내용 요약:
+- 통합 발송 시스템 R3 = 발송 예약 큐 + 즉시 발송 (실 발송)
+- 신규 테이블 2개(`communication_send_jobs`, `communication_send_recipients`) — 작업 메타 + 수신자 스냅샷
+- API 7개 + cron 1개(1분 단위 dispatcher, chunk 50건/회 + 동시 작업 5개) + 1회용 마이그
+- `lib/communication-send.ts` 헬퍼 (어댑터 직접 호출, Phase 8 이벤트 라우팅 우회)
+- 화면 3개 (목록·생성·상세 폴링)
+- B 7~9h / A 6~7h / C 2~3h / 평행 모드
+- R2 머지 후 트리거 (R3 schema가 recipientGroups FK 의존)
 
 ### 3.6 정책 변경 (2026-05-11 도입)
 
