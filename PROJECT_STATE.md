@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **C 채팅** | **Phase 10 R3 라이브 검증 통과 + bug 1건 fix** — 페이지 3종 200(배포 지연 폴링 후), 백엔드 7개 API + cron 1개 모두 정상. **BUG 발견**: `admin-send-job-create`에서 어드민 ID NULL 저장(BUG-5 회귀 클래스) → 1줄 fix 적용. Q1~Q12 시나리오 모두 PASS. cron 1분 단위 디스패처(1단계 픽업·2단계 chunk·3단계 cancelled 정리) 정합성 양호. 어댑터 직접 호출(이메일·SMS·인앱) + 카카오 자동 스킵. baseline ~0.6s. 회귀 0. 보고서 `docs/verify/2026-05-11-phase10-r3.md` |
 | 2026-05-11 | 메인 | **Phase 10 R3 코드 100% 머지 + #BACKFILL-1 ✅ 해결** — R3 마이그 호출 success → schema 활성화·마이그 파일 삭제(897cad4) + A 프론트 7파일 머지(857674d) / #BACKFILL-1: 자동 백필 3차 모두 키 부족 → Swain 결정으로 옛 자료 삭제(donations 44·billings 41·contracts 54) 후 운영자가 계약→수납 순서 재 import 예정. 마이그 파일 삭제. 이슈 종료 |
 | 2026-05-11 | 메인 | **R3 B·A push 흡수 + Q6 흡수** — R3 백 11파일(5f11c5e) main 머지 / R3 프론트(857674d) push / Q6 Phase 5~7 100% 흡수 / B 설계 변경 인지 (어댑터 직접 호출 → lib/email·aligo·notify, 카카오 skipped) |
 | 2026-05-11 | **C 채팅** | **Phase 10 R2 라이브 검증 통과** — 페이지 4종 200, 백엔드 7개 API 모두 401 정상 (500 0건). Q1~Q9 시나리오 모두 PASS — 시드 4건 표시·필터/수동 명단·미리보기·동적 그룹·화이트리스트·페이지네이션·soft delete·필터 0개 거부. baseline 응답 ~0.6s (R1 동등). Phase 4·8·9·10 R1·6순위 #8 회귀 0. bug 0건. 보고서 `docs/verify/2026-05-11-phase10-r2.md` |
 | 2026-05-11 | 메인 | **Phase 10 R2 코드 100% 머지 완료** — Swain 마이그 호출 응답 success(시드 4건, grade_code 자동 보정) → schema recipientGroups 활성화 + 마이그 파일 삭제(7f2163b) + A 프론트 5파일 머지(b969bb2) → 라이브 진입 점검 + C R2 검증 트리거 대기 |
-| 2026-05-11 | 메인 | **R2 백 + C Q4·Q5 통합 머지 + 설계 모호성 즉시 질문 정책 추가** — R2 백 10파일(B `90b3b26`) main 머지 / Q4·Q5 verify 흡수 / PARALLEL_GUIDE §1.7 신규 |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -102,7 +102,7 @@
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / 🟡 #BACKFILL-1 호출 대기·카카오 심사 대기 (Q7·Q8) |
 | **Phase 10 R1 템플릿 빌더** | ✅ 100% — 코드 머지 (8db8ffb·cef0f69) + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 (보고서 §6) |
 | **Phase 10 R2 수신자 그룹** | ✅ 100% — 코드 머지 (7f2163b·b969bb2) + C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r2.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
-| **Phase 10 R3 발송 예약 큐** | ✅ 코드 100% 머지 (897cad4·857674d) — schema·cron 활성화 / 🟡 C R3 라이브 검증 대기 |
+| **Phase 10 R3 발송 예약 큐** | ✅ 100% — 코드 머지 (897cad4·857674d) + C 라이브 검증 통과 + bug 1건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r3.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 10 R4~R5 통합 발송** | ✅ 카탈로그 / ⏸ R3 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
@@ -126,6 +126,7 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
+| ~~#BUG-8~~ | 2026-05-11 | `admin-send-job-create.ts:38` 어드민 ID NULL 저장 (BUG-5 회귀 클래스) | 🟠 High | ✅ 해결 (C verify R3 세션, 1줄 fix) | docs/verify/2026-05-11-phase10-r3.md §3 |
 | ~~#BACKFILL-1~~ | 2026-05-10 | 효성 후원 결제일 NULL (44건) | 🟡 Medium | ✅ 해결 (2026-05-11) — 옛 자료 삭제 후 운영자 재 import 진행 (계약→수납 순서) | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
 | ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
@@ -146,7 +147,7 @@
 | `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 10 R1 라운드 마감 (Q9 verify 흡수) → R2 설계 |
 | `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
 | `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ Q4·Q5·R2·Q6 통과 (2026-05-11) — 다음 세션은 Q-진단-2(약정일 마이그 호출 후) 또는 R3 검증(A·B 머지 후) |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ Q4·Q5·R2·Q6·R3(+BUG-8 fix) 통과 (2026-05-11) — 다음 세션은 Q7·Q8(외부 발송, 환경변수 후) 또는 R4 검증 |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.

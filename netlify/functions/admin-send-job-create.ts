@@ -35,7 +35,9 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
-  const adminId = (auth as any).admin?.id ?? (auth as any).user?.id ?? null;
+  /* fix(R3): BUG-5 패턴 회귀 — auth.admin?.id / user?.id는 항상 undefined.
+     실제 어드민 ID는 auth.ctx.admin.uid에 있음. silent NULL 저장 방지. */
+  const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
   let body: any;
   try {
