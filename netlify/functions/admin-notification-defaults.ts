@@ -45,7 +45,7 @@ export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
 
-  const adminId: number = auth.admin.id;
+  const adminId: number = auth.ctx.admin.uid;
   const url = new URL(req.url);
 
   /* ── GET: 전체 기본 정책 조회 ── */
