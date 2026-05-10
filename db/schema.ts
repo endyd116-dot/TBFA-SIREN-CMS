@@ -1,7 +1,7 @@
 // db/schema.ts — ★ M-19-11 V2: expertProfiles/expertTypeEnum/expertStatusEnum 제거
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
-  pgTable, serial, varchar, integer, text, timestamp,
+  pgTable, serial, bigserial, varchar, integer, text, timestamp,
   boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
