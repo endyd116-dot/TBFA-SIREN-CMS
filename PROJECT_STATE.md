@@ -27,7 +27,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | B 채팅 | **6순위 #8 프론트 100% 완료** — mypage-expert-match.js(신청폼+내역+채팅진입) + admin-expert.js(목록+배정모달+세션종료) + mypage.html·admin.html·admin.js 확장. 캐시버스터 ?v=2026-05-10-em1. A 백엔드 병렬 진행중 — 메인 머지 대기 |
+| 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (17827cd)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착. Swain V1·V2·V3 검증 대기 |
+| 2026-05-10 | B 채팅 | **6순위 #8 프론트 100% 완료** — mypage-expert-match.js(신청폼+내역+채팅진입) + admin-expert.js(목록+배정모달+세션종료) + mypage.html·admin.html·admin.js 확장. 캐시버스터 ?v=2026-05-10-em1 |
 | 2026-05-10 | 메인 채팅 | **6순위 #8 1:1 매칭 채팅 시작 — 메인 1차 푸시** — Netlify 빌드 복구 완료(라이브 정상). 설계서(docs/DESIGN_EXPERT_MATCHING.md) + 마이그 함수(migrate-expert-matching.ts) 작성. 분담: 메인(schema·핵심 트랜잭션·머지) / A(백엔드 4개+가드) / B(프론트 전체). Swain 마이그 호출 대기 |
 | 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix — 한국어/영문 매핑·약정일 fallback·hyosung_billings 직접 합산(123c27c+60f9fb2) ④ 통합 회원 가입경로 KPI 카드(123c27c) |
 | 2026-05-10 | 메인 채팅 | **효성 CSV 검토 단계 복원 + DB 정합성 2회 마이그 (455f992)** — 직전 D1·D2가 검토 단계를 통째로 건너뛰던 문제를 되돌림(업로드 → 미확정 목록 → 통과 → 효성 저장소 적재 흐름 부활). v14↔schema.ts 컬럼 어긋남 9개+ + timestamp 1개 = **2차례 1회용 마이그 호출·삭제 완료**. 두 효성 테이블이 schema.ts와 100% 정합. **Swain V1 통과 재검증 대기 → 다음 메인 채팅이 검증부터 이어감** |
@@ -123,10 +124,10 @@ ALTER TABLE members ADD COLUMN eligibility_type varchar(30);
 |---|---|
 | 브랜치 | A: `feature/expert-matching-backend` / B: `feature/expert-matching-frontend` (분담 분리) |
 | 베이스 | `origin/main` |
-| 진행률 | 🟡 B 프론트 100% 완료 — A 백엔드 병렬 진행중 / 메인 머지 대기 |
-| 담당 채팅 | 메인(조율·schema·핵심 매칭 트랜잭션) / A(백엔드 4개+가드) / B(프론트 전체 ✅) |
+| 진행률 | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
+| 담당 채팅 | 메인(조율·schema·핵심 매칭 트랜잭션) / A(백엔드 4개+가드 ✅) / B(프론트 전체 ✅) |
 | 예상 시간 | 15~18h (병렬) |
-| 다음 할 일 | A 백엔드 완료 → 메인이 A·B 머지 → Swain V1·V2·V3 검증 |
+| 다음 할 일 | Swain V1(신청→배정→채팅방) → V2(양측 채팅) → V3(세션 종료) 검증 → ✅ 100% |
 | 설계서 | [docs/DESIGN_EXPERT_MATCHING.md](docs/DESIGN_EXPERT_MATCHING.md) |
 
 **기존 인프라 활용** (신규 채팅 시스템 만들지 말 것)
