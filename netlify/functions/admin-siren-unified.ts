@@ -29,6 +29,8 @@ export default async function handler(req: Request, _ctx: Context) {
   const auth: any = await requireAdmin(req);
   if (!auth.ok) return auth.res;
 
+  const isSuperAdmin = auth.ctx.member.role === "super_admin";
+
   const url = new URL(req.url);
   const period    = url.searchParams.get("period") || "30d";
   const limitParam = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
@@ -134,26 +136,28 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[admin-siren-unified] boardPosts 조회 실패:", (err as any)?.message);
   }
 
-  // ── 익명 신원 열람 이력 ──────────────────────────────────
+  // ── 익명 신원 열람 이력 — super_admin만 조회 ────────────
   let anonRevealCases: any[] = [];
-  try {
-    const rows = await db
-      .select({
-        id:          anonymousRevealLogs.id,
-        reportType:  anonymousRevealLogs.reportType,
-        reportId:    anonymousRevealLogs.reportId,
-        revealLevel: anonymousRevealLogs.revealLevel,
-        revealedBy:  anonymousRevealLogs.revealedBy,
-        reason:      anonymousRevealLogs.reason,
-        createdAt:   anonymousRevealLogs.createdAt,
-      })
-      .from(anonymousRevealLogs)
-      .where(fromDate ? gte(anonymousRevealLogs.createdAt, fromDate) : undefined)
-      .orderBy(desc(anonymousRevealLogs.createdAt))
-      .limit(100);
-    anonRevealCases = rows;
-  } catch (err) {
-    console.warn("[admin-siren-unified] anonymousRevealLogs 조회 실패:", (err as any)?.message);
+  if (isSuperAdmin) {
+    try {
+      const rows = await db
+        .select({
+          id:          anonymousRevealLogs.id,
+          reportType:  anonymousRevealLogs.reportType,
+          reportId:    anonymousRevealLogs.reportId,
+          revealLevel: anonymousRevealLogs.revealLevel,
+          revealedBy:  anonymousRevealLogs.revealedBy,
+          reason:      anonymousRevealLogs.reason,
+          createdAt:   anonymousRevealLogs.createdAt,
+        })
+        .from(anonymousRevealLogs)
+        .where(fromDate ? gte(anonymousRevealLogs.createdAt, fromDate) : undefined)
+        .orderBy(desc(anonymousRevealLogs.createdAt))
+        .limit(100);
+      anonRevealCases = rows;
+    } catch (err) {
+      console.warn("[admin-siren-unified] anonymousRevealLogs 조회 실패:", (err as any)?.message);
+    }
   }
 
   return ok({
