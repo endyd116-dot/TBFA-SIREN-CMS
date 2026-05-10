@@ -2194,4 +2194,64 @@ export const recipientGroups = pgTable("recipient_groups", {
 export type RecipientGroup    = typeof recipientGroups.$inferSelect;
 export type NewRecipientGroup = typeof recipientGroups.$inferInsert;
 
+/* =========================================================
+   === Phase 10 R3 — 발송 큐 (communication_send_jobs / communication_send_recipients) ===
+   주석 처리 상태 — migrate-phase10-send-jobs ?run=1 호출 후 메인이 활성화.
+   활성화 절차: 아래 두 블록의 주석 해제 + 마이그 파일 삭제 + push.
+
+export const communicationSendJobs = pgTable("communication_send_jobs", {
+  id:                bigserial("id", { mode: "number" }).primaryKey(),
+  name:              varchar("name", { length: 200 }).notNull(),
+  templateId:        integer("template_id").notNull()
+                       .references(() => communicationTemplates.id, { onDelete: "restrict" }),
+  recipientGroupId:  integer("recipient_group_id").notNull()
+                       .references(() => recipientGroups.id, { onDelete: "restrict" }),
+  channel:           text("channel").notNull(),
+  scheduleType:      text("schedule_type").notNull(),
+  scheduledAt:       timestamp("scheduled_at"),
+  status:            text("status").notNull().default("pending"),
+  totalRecipients:   integer("total_recipients").notNull().default(0),
+  successCount:      integer("success_count").notNull().default(0),
+  failureCount:      integer("failure_count").notNull().default(0),
+  lastError:         text("last_error"),
+  startedAt:         timestamp("started_at"),
+  completedAt:       timestamp("completed_at"),
+  createdBy:         integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:         timestamp("created_at").defaultNow().notNull(),
+  updatedAt:         timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  statusIdx:    index("send_jobs_status_idx").on(t.status),
+  scheduledIdx: index("send_jobs_scheduled_idx").on(t.scheduledAt),
+  templateIdx:  index("send_jobs_template_idx").on(t.templateId),
+  groupIdx:     index("send_jobs_group_idx").on(t.recipientGroupId),
+}));
+
+export type CommunicationSendJob    = typeof communicationSendJobs.$inferSelect;
+export type NewCommunicationSendJob = typeof communicationSendJobs.$inferInsert;
+
+export const communicationSendRecipients = pgTable("communication_send_recipients", {
+  id:              bigserial("id", { mode: "number" }).primaryKey(),
+  jobId:           integer("job_id").notNull()
+                     .references(() => communicationSendJobs.id, { onDelete: "cascade" }),
+  memberId:        integer("member_id").notNull()
+                     .references(() => members.id, { onDelete: "set null" }),
+  channel:         text("channel").notNull(),
+  status:          text("status").notNull().default("pending"),
+  sentAt:          timestamp("sent_at"),
+  error:           text("error"),
+  retryCount:      integer("retry_count").notNull().default(0),
+  renderedSubject: text("rendered_subject"),
+  renderedBody:    text("rendered_body").notNull(),
+  createdAt:       timestamp("created_at").defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  jobIdx:       index("send_recipients_job_idx").on(t.jobId),
+  jobStatusIdx: index("send_recipients_job_status_idx").on(t.jobId, t.status),
+  memberIdx:    index("send_recipients_member_idx").on(t.memberId),
+}));
+
+export type CommunicationSendRecipient    = typeof communicationSendRecipients.$inferSelect;
+export type NewCommunicationSendRecipient = typeof communicationSendRecipients.$inferInsert;
+
+   === Phase 10 R3 정의 끝 === */
 
