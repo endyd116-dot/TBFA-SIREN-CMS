@@ -112,8 +112,8 @@
 | **Phase 15 전문가 매칭 고도화** | 🔵 B+A 실API 연결 완료 / ⏸ C 라이브 검증 대기 |
 | **Phase 16 통합 분석 대시보드** | ✅ 설계서 완성 ([2026-05-11-phase16-unified-dashboard.md](docs/milestones/2026-05-11-phase16-unified-dashboard.md)) / ⏸ A·B 대기 |
 | **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
-| **Phase 18 성능 최적화** | ✅ 카탈로그 / ⏸ |
-| **Phase 19 자동 테스트 보강** | ✅ 카탈로그 (큰 묶음, 단독) / ⏸ |
+| **Phase 18 성능 최적화** | ✅ 설계서 완성 ([2026-05-11-phase18-performance.md](docs/milestones/2026-05-11-phase18-performance.md)) / ⏸ B 대기 |
+| **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ B 대기 |
 | **Phase 20 운영 안정성 (모니터링+백업)** | ✅ 카탈로그 / ⏸ |
 | Phase 21~22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 
