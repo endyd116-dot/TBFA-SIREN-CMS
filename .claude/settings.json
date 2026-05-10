@@ -79,7 +79,8 @@
       "Bash(awk 'NR>=2195 && NR<=2260' db/schema.ts)",
       "Bash(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis\" && rm netlify/functions/migrate-phase10-r4-tracking-ai.ts)",
       "Bash(python3)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis\" && rm netlify/functions/migrate-phase11-12.ts && git add -A && git commit -m \"chore: migrate-phase11-12 삭제 \\(4테이블 생성 완료\\)\" && git push origin main)"
     ],
     "deny": [
       "Bash(git push --force:*)",
