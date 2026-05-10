@@ -512,7 +512,7 @@
 
     var res = await api('/api/admin-report-send-email', {
       method: 'POST',
-      body: { id: id },
+      body: { reportId: id },
     });
 
     if (!res.ok) {

@@ -204,7 +204,7 @@
 
   /* ─── 탭 버튼 활성화 ─── */
   function setActiveTab(status) {
-    document.querySelectorAll('#adm-expert [data-em-adm-tab]').forEach(function (b) {
+    document.querySelectorAll('#adm-expert-match [data-em-adm-tab]').forEach(function (b) {
       b.classList.toggle('btn-sm-primary', b.dataset.emAdmTab === status);
       b.classList.toggle('btn-sm-ghost',   b.dataset.emAdmTab !== status);
     });
@@ -588,7 +588,7 @@
   /* ─── 이벤트 위임 ─── */
   document.addEventListener('click', async function (e) {
     /* 탭 전환 */
-    var tabBtn = e.target.closest && e.target.closest('#adm-expert [data-em-adm-tab]');
+    var tabBtn = e.target.closest && e.target.closest('#adm-expert-match [data-em-adm-tab]');
     if (tabBtn) { e.preventDefault(); load(tabBtn.dataset.emAdmTab); return; }
 
     /* 새로고침 */
