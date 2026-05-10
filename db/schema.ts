@@ -2514,3 +2514,36 @@ export type NewMatchingFeedback = typeof matchingFeedbacks.$inferInsert;
 
 /* === Phase 15 정의 끝 === */
 
+/* === Phase 20 === */
+
+export const adminFavorites = pgTable("admin_favorites", {
+  id:       serial("id").primaryKey(),
+  memberId: integer("member_id").notNull()
+              .references(() => members.id, { onDelete: "cascade" }),
+  menuKey:  varchar("menu_key", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx:    index("admin_favorites_member_idx").on(t.memberId),
+  uniqueFav:    uniqueIndex("admin_favorites_unique").on(t.memberId, t.menuKey),
+}));
+
+export type AdminFavorite    = typeof adminFavorites.$inferSelect;
+export type NewAdminFavorite = typeof adminFavorites.$inferInsert;
+
+export const adminRecentViews = pgTable("admin_recent_views", {
+  id:       serial("id").primaryKey(),
+  memberId: integer("member_id").notNull()
+              .references(() => members.id, { onDelete: "cascade" }),
+  menuKey:  varchar("menu_key", { length: 100 }).notNull(),
+  viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+  count:    integer("count").notNull().default(1),
+}, (t) => ({
+  memberIdx:     index("admin_recent_views_member_idx").on(t.memberId),
+  uniqueView:    uniqueIndex("admin_recent_views_unique").on(t.memberId, t.menuKey),
+  viewedAtIdx:   index("admin_recent_views_viewed_at_idx").on(t.viewedAt),
+}));
+
+export type AdminRecentView    = typeof adminRecentViews.$inferSelect;
+export type NewAdminRecentView = typeof adminRecentViews.$inferInsert;
+
+/* === Phase 20 정의 끝 === */
