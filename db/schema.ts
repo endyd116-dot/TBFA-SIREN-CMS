@@ -2072,3 +2072,36 @@ export const expenditures = pgTable("expenditures", {
 export type Expenditure = typeof expenditures.$inferSelect;
 export type NewExpenditure = typeof expenditures.$inferInsert;
 
+/* =========================================================
+   === Phase 8: 알림 채널 통합 디스패처 ===
+   migrate-notification-dispatch-logs 호출 후 활성화됨
+   메인 채팅·A 채팅 소유. B·C 채팅에서 본 섹션 정의 변경 금지.
+   ========================================================= */
+
+export const notificationDispatchLogs = pgTable("notification_dispatch_logs", {
+  id:                serial("id").primaryKey(),
+  notificationId:    integer("notification_id"),           // FK → notifications.id (인앱 채널 생성 시)
+  eventType:         text("event_type").notNull(),         // NotifyEvent enum 값 (예: "billing.success")
+  targetType:        text("target_type").notNull(),        // "member" | "admin"
+  targetId:          integer("target_id").notNull(),       // members.id
+  channel:           text("channel").notNull(),            // "inapp" | "email" | "sms" | "kakao"
+  status:            text("status").notNull().default("pending"), // "pending" | "sent" | "failed" | "dead"
+  attempt:           integer("attempt").notNull().default(0),    // 재시도 횟수 (0~3)
+  providerMessageId: text("provider_message_id"),          // Resend message ID 등
+  paramsSnapshot:    jsonb("params_snapshot"),             // 템플릿 파라미터 스냅샷 (디버깅용)
+  error:             text("error"),                        // 실패 사유 (500자)
+  latencyMs:         integer("latency_ms"),                // 발송 소요시간 ms
+  createdAt:         timestamp("created_at").defaultNow().notNull(),
+  nextRetryAt:       timestamp("next_retry_at"),           // 재시도 예정 시각 (cron 폴링)
+  sentAt:            timestamp("sent_at"),                 // 최종 성공 시각
+}, (t) => ({
+  targetIdx:      index("dispatch_logs_target_idx").on(t.targetType, t.targetId, t.createdAt),
+  // 부분 인덱스(WHERE status='pending')는 SQL에서만 지원 — migrate 함수에서 생성
+  pendingRetryIdx: index("dispatch_logs_pending_retry_idx").on(t.status, t.nextRetryAt),
+  eventTypeIdx:    index("dispatch_logs_event_type_idx").on(t.eventType, t.createdAt),
+  channelStatusIdx: index("dispatch_logs_channel_status_idx").on(t.channel, t.status, t.createdAt),
+}));
+
+export type NotificationDispatchLog = typeof notificationDispatchLogs.$inferSelect;
+export type NewNotificationDispatchLog = typeof notificationDispatchLogs.$inferInsert;
+
