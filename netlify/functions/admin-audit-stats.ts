@@ -67,10 +67,21 @@ export default async function handler(req: Request) {
   const ipSet = new Set<string>();
   let failedLogins = 0;
 
+  // 실제 로그인 실패 시 기록되는 액션명 (auth-login: login_failed, admin-login: admin_login_failed/admin_login_blocked)
+  const FAILED_LOGIN_ACTIONS = new Set([
+    "login_failed",
+    "admin_login_failed",
+    "admin_login_blocked",
+    "login_locked",
+    "login_blocked",
+  ]);
+
   for (const row of allRows) {
     actionMap.set(row.action, (actionMap.get(row.action) ?? 0) + 1);
     if (row.ipAddress) ipSet.add(row.ipAddress);
-    if (row.action === "login" && row.success === false) failedLogins++;
+    if (FAILED_LOGIN_ACTIONS.has(row.action) || (row.action === "login" && row.success === false)) {
+      failedLogins++;
+    }
   }
 
   const byAction = Array.from(actionMap.entries())

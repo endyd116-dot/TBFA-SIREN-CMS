@@ -34,6 +34,7 @@
   eligibility: '🎓 자격 변경 심사',
   'expert-match': '⚖️ 1:1 매칭 관리',
   report: '📊 주간 보고서',
+  'security-audit': '🔒 보안·감사 로그',
   };
 
   const SUPPORT_CAT_LABEL = {
