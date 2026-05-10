@@ -469,12 +469,17 @@ export const chatRooms = pgTable("chat_rooms", {
   closedAt: timestamp("closed_at"),
   closedBy: integer("closed_by").references(() => members.id, { onDelete: "set null" }),
   archivedAt: timestamp("archived_at"),
+  /* ★ 6순위 #8 (2026-05-10): 1:1 매칭 채팅 식별 */
+  roomType: varchar("room_type", { length: 20 }).default("general").notNull(),
+  expertId: integer("expert_id").references(() => members.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("chat_rooms_member_idx").on(t.memberId),
   statusIdx: index("chat_rooms_status_idx").on(t.status),
   lastMsgIdx: index("chat_rooms_last_msg_idx").on(t.lastMessageAt),
+  roomTypeIdx: index("chat_rooms_room_type_idx").on(t.roomType),
+  expertIdx: index("chat_rooms_expert_idx").on(t.expertId),
 }));
 
 export const chatMessages = pgTable("chat_messages", {
@@ -1953,4 +1958,36 @@ export const donationMatchingRules = pgTable("donation_matching_rules", {
 
 export type DonationMatchingRule = typeof donationMatchingRules.$inferSelect;
 export type NewDonationMatchingRule = typeof donationMatchingRules.$inferInsert;
+
+/* =========================================================
+   ★ 6순위 #8: 변호사·심리상담사 1:1 매칭 채팅 (2026-05-10)
+   - DESIGN_EXPERT_MATCHING.md 참조
+   - 메인 채팅 소유. A·B 채팅에서 본 섹션 정의 변경 금지
+   ========================================================= */
+export const expertMatches = pgTable("expert_matches", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  expertId: integer("expert_id").references(() => members.id, { onDelete: "set null" }),
+  matchType: varchar("match_type", { length: 20 }),       // 'lawyer' | 'counselor'
+  sourceDomain: varchar("source_domain", { length: 30 }), // 'incident'|'harassment'|'legal'|'support'
+  sourceId: integer("source_id"),
+  chatRoomId: integer("chat_room_id").references(() => chatRooms.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+    // 'pending' | 'matched' | 'active' | 'closed' | 'rejected'
+  reason: text("reason"),
+  adminNote: text("admin_note"),
+  assignedBy: integer("assigned_by").references(() => members.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at"),
+  closedAt: timestamp("closed_at"),
+  closedReason: varchar("closed_reason", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index("expert_matches_user_idx").on(t.userId),
+  expertIdx: index("expert_matches_expert_idx").on(t.expertId),
+  statusIdx: index("expert_matches_status_idx").on(t.status),
+}));
+
+export type ExpertMatch = typeof expertMatches.$inferSelect;
+export type NewExpertMatch = typeof expertMatches.$inferInsert;
 
