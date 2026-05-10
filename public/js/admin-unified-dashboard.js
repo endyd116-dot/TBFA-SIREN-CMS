@@ -56,6 +56,8 @@
 
   /* ---- 진입점 ---- */
 
+  var _currentPeriod = '30d';
+
   function getContainer() {
     return document.getElementById('adm-unified-dashboard');
   }
@@ -64,8 +66,9 @@
     var c = getContainer();
     if (!c) return;
     destroyCharts();
+    _currentPeriod = '30d';
     renderShell(c);
-    await Promise.all([loadKpi(), loadCohort(), loadChurn()]);
+    await Promise.all([loadKpi(_currentPeriod), loadCohort(), loadChurn()]);
   }
 
   /* ---- 셸 레이아웃 ---- */
@@ -74,6 +77,12 @@
     c.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">' +
         '<h2 style="font-size:20px;font-weight:700;margin:0">📈 통합 분석 대시보드</h2>' +
+        '<div style="display:flex;gap:6px" id="ud-period-btns">' +
+          '<button class="btn-sm ud-period-btn active" data-period="30d" type="button">30일</button>' +
+          '<button class="btn-sm ud-period-btn" data-period="90d" type="button">90일</button>' +
+          '<button class="btn-sm ud-period-btn" data-period="180d" type="button">180일</button>' +
+          '<button class="btn-sm ud-period-btn" data-period="365d" type="button">365일</button>' +
+        '</div>' +
       '</div>' +
 
       /* KPI 카드 영역 */
@@ -108,8 +117,9 @@
 
   /* ---- KPI 카드 로드 ---- */
 
-  async function loadKpi() {
-    var res = await apiCall('/api/admin-dashboard-kpi?period=30d');
+  async function loadKpi(period) {
+    period = period || '30d';
+    var res = await apiCall('/api/admin-dashboard-kpi?period=' + encodeURIComponent(period));
     if (!res.ok) {
       document.getElementById('ud-kpi').innerHTML =
         '<p style="color:var(--danger,#ef4444);font-size:13px">KPI 데이터를 불러오지 못했습니다: ' +
@@ -364,6 +374,22 @@
       toast('발송 실패: ' + (data.error || '알 수 없는 오류'));
     }
   }
+
+  /* ---- 기간 선택 버튼 이벤트 ---- */
+
+  document.addEventListener('click', function (e) {
+    var periodBtn = e.target.closest && e.target.closest('.ud-period-btn[data-period]');
+    if (!periodBtn) return;
+    var period = periodBtn.dataset.period;
+    if (!period) return;
+    _currentPeriod = period;
+    /* 버튼 active 상태 갱신 */
+    document.querySelectorAll('.ud-period-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.period === period);
+    });
+    destroyCharts();
+    loadKpi(period);
+  });
 
   /* ---- 페이지 전환 수신 ---- */
 

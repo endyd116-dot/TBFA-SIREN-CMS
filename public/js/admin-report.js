@@ -128,9 +128,19 @@
   async function loadBoardReport(type) {
     var el = document.getElementById('rptBoardContent');
     if (!el) return;
+
+    /* 월간 탭은 admin-report-board API 미지원 — 안내 메시지만 표시 */
+    if (type === 'monthly') {
+      el.innerHTML = '<p style="color:var(--text-3,#6b7280);font-size:13px">월간 집계는 이 패널에서 지원되지 않습니다. 위 보고서 목록을 참고하세요.</p>';
+      return;
+    }
+
     el.innerHTML = '<p style="color:var(--text-3,#6b7280)">불러오는 중...</p>';
 
-    var res = await api('/api/admin-report-board?type=' + encodeURIComponent(type));
+    /* yearly(프론트 탭값) → annual(백엔드 API 파라미터) */
+    var apiType = type === 'yearly' ? 'annual' : type;
+
+    var res = await api('/api/admin-report-board?type=' + encodeURIComponent(apiType));
     if (!res.ok) {
       el.innerHTML = '<p style="color:var(--danger,#ef4444)">집계 불러오기 실패: ' +
         escapeHtml((res.data && res.data.error) || '알 수 없는 오류') + '</p>';
