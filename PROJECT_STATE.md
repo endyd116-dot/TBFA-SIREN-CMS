@@ -24,10 +24,10 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 새 메인 채팅 | **컨텍스트 다이어트 시나리오 B 적용** — PROJECT_STATE 정적 부분(§4.0·§4.5·§6.1~§6.5·§7·§8) → docs/PARALLEL_GUIDE.md 이전. CLAUDE.md §11 → docs/PAGES.md 이전. 메모리 중복 3개 제거. 자동 로드 ~28% 절감. 진단·기록 [docs/CONTEXT_OPTIMIZATION.md](docs/CONTEXT_OPTIMIZATION.md) |
-| 2026-05-10 | 새 메인 채팅 | **Phase 4 A·B 머지 완료** — A(0d8a206): admin-report.js+admin.html 탭+admin.js 라우터. B(5f70b7a): 이메일재발송 API+인쇄 CSS. admin-report-print.css admin.html `<head>` 추가(media=print). main 푸시 → Swain V1·V2·V3 검증 대기 |
-| 2026-05-10 | 새 메인 채팅 | **6순위 #8 재설계 + 버그 수정 (89555cb)** — 화면 안 보이는 버그(div ID 불일치) 수정. 하이브리드 배치: 어드민 유가족지원·법률지원 목록에 직접 배정 버튼 + 통합 매칭 관리는 모니터링 겸용 유지. 마이페이지 신청 내역(유가족/법률)에 배정 시 채팅 버튼 추가. Swain V1 재검증 필요 |
-| 2026-05-10 | 메인 채팅 | **Phase 4 병렬 시작 (94a725c)** — 설계서(DESIGN_PHASE4_REPORT.md) + 마이그 호출 완료 + 백엔드 5개(report-collector/list/detail/generate/cron-agent-9) + A(feature/phase4-frontend) + B(feature/phase4-email-print) 워크트리 준비 완료 |
+| 2026-05-10 | 메인 채팅 | **3-way 병렬 정책 도입 + C 워크트리 신설** — A·B(신규 개발) + **C(검증·수정 전담)** 분리. C 워크트리 `../tbfa-mis-C` @ `verify/phase4-and-pending` 생성. 첫 작업 큐: Phase 4·6순위 #8/#6/#15 검증 + stale 문서 패치 + TypeScript 정리. C 시작 가이드 [docs/HANDOFF_C.md](docs/HANDOFF_C.md). A·B는 6순위 #16 단계 B·C 분배 예정 |
+| 2026-05-10 | 새 메인 채팅 | **컨텍스트 다이어트 시나리오 B 적용** — PROJECT_STATE 정적 부분 → docs/PARALLEL_GUIDE.md 이전. 자동 로드 ~28% 절감. [docs/CONTEXT_OPTIMIZATION.md](docs/CONTEXT_OPTIMIZATION.md) |
+| 2026-05-10 | 새 메인 채팅 | **Phase 4 A·B 머지 완료** — A(0d8a206): admin-report.js+admin.html 탭+admin.js 라우터. B(5f70b7a): 이메일재발송 API+인쇄 CSS. main 푸시 → C 검증 대기 |
+| 2026-05-10 | 새 메인 채팅 | **6순위 #8 재설계 + 버그 수정 (89555cb)** — 화면 안 보이는 버그(div ID 불일치) 수정. 하이브리드 배치 + 마이페이지 채팅 버튼. C 검증 대기 |
 | 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (fe84ed9)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
@@ -37,9 +37,11 @@
 ## 3. 현재 작업 모드
 
 ```
-🔵 Phase 4 코드 100% main 안착 — Swain V1·V2·V3 검증 대기
-   6순위 #6·#8·#15 검증 병행 가능
-   다음 작업: Phase 5~22 설계 세션 (Swain 우선순위 합의 후)
+🔵 3-way 병렬 모드 진입
+   ├─ A: 6순위 #16 단계 B (통합회원 실제 API + 상세 모달) — 시작 대기
+   ├─ B: 6순위 #16 단계 C (donor_type 컬럼 + 정기/잠재 화면) — 시작 대기
+   └─ C: Phase 4·6순위 #8/#6/#15 검증 + stale 문서 패치 — 시작 대기
+   메인: 조율·머지·다음 Phase 설계
 ```
 
 ---
@@ -95,15 +97,23 @@
 
 ---
 
-## 7. worktree 현황
+## 7. worktree 현황 (3-way 병렬)
 
-| 폴더 | 브랜치 | 상태 |
-|---|---|---|
-| `tbfa-mis` (메인) | `main` | 머지·조율 전용 |
-| `../tbfa-mis-A` | `feature/phase4-frontend` @ `0d8a206` | ✅ 완료, 머지됨 — 정리 가능 |
-| `../tbfa-mis-B` | `feature/phase4-email-print` @ `5f70b7a` | ✅ 완료, 머지됨 — 정리 가능 |
+| 폴더 | 브랜치 | 역할 | 상태 |
+|---|---|---|---|
+| `tbfa-mis` (메인) | `main` | 머지·조율·설계 | 활성 |
+| `../tbfa-mis-A` | `feature/m16-step-b` (예정) | 신규 개발 — 통합회원 실제 API + 상세 모달 | 시작 대기 (이전 폴더 잔여 — 새 채팅 시 worktree add) |
+| `../tbfa-mis-B` | `feature/m16-step-c` (예정) | 신규 개발 — donor_type 컬럼 + 정기/잠재 화면 | 시작 대기 (이전 폴더 잔여 — 새 채팅 시 worktree add) |
+| **`../tbfa-mis-C`** | **`verify/phase4-and-pending`** @ `81a124b` | **검증·수정 전담** | **활성 — 시작 대기** |
 
-새 병렬 작업 시작 절차는 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §2 참조.
+**3-way 정책 핵심**:
+- A·B: 신규 기능 개발 (새 파일 위주)
+- C: 기존 코드 검증·fix·문서 패치 (신규 기능 추가 X)
+- 머지 순서: A·B 신규 → C fix (역순 시 fix 묻힘)
+- 충돌 회피: A·B 작업 영역 = §7 표 확인 후 C가 회피
+
+C 시작 가이드: [`docs/HANDOFF_C.md`](docs/HANDOFF_C.md)
+새 병렬 작업 시작 절차: [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §2
 
 ---
 
