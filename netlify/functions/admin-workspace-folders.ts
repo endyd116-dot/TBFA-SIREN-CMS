@@ -98,7 +98,7 @@ export default async (req: Request, _context: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -236,17 +236,16 @@ export default async (req: Request, _context: Context) => {
           depth: pathInfo.depth,
           isShared: false,
           description: body.description || null
-        })
+        } as any)
         .returning();
 
       const newFolder = inserted[0];
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.folder.create",
-        targetType: "workspace_folder",
-        targetId: newFolder.id,
-        meta: { name, parentId, path: newFolder.path }
+        target: `workspace_folder:${newFolder.id}`,
+        detail: { name, parentId, path: newFolder.path }
       });
 
       return ok(newFolder, "폴더가 생성되었습니다");
@@ -271,14 +270,13 @@ export default async (req: Request, _context: Context) => {
         if (!folder.deletedAt) return badRequest("이미 활성 상태입니다");
         await db
           .update(workspaceFolders)
-          .set({ deletedAt: null, updatedAt: new Date() })
+          .set({ deletedAt: null, updatedAt: new Date() } as any)
           .where(eq(workspaceFolders.id, id));
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.folder.restore",
-          targetType: "workspace_folder",
-          targetId: id,
-          meta: { name: folder.name }
+          target: `workspace_folder:${id}`,
+          detail: { name: folder.name }
         });
         return ok({ id }, "폴더가 복원되었습니다");
       }
@@ -288,14 +286,13 @@ export default async (req: Request, _context: Context) => {
         const newVal = !folder.isShared;
         await db
           .update(workspaceFolders)
-          .set({ isShared: newVal, updatedAt: new Date() })
+          .set({ isShared: newVal, updatedAt: new Date() } as any)
           .where(eq(workspaceFolders.id, id));
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.folder.toggle_public",
-          targetType: "workspace_folder",
-          targetId: id,
-          meta: { name: folder.name, isShared: newVal }
+          target: `workspace_folder:${id}`,
+          detail: { name: folder.name, isShared: newVal }
         });
         return ok({ id, isShared: newVal }, newVal ? "공개로 전환" : "비공개로 전환");
       }
@@ -386,16 +383,15 @@ export default async (req: Request, _context: Context) => {
 
       const updated: any = await db
         .update(workspaceFolders)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(workspaceFolders.id, id))
         .returning();
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.folder.update",
-        targetType: "workspace_folder",
-        targetId: id,
-        meta: { renamed, moved, newName, newParentId }
+        target: `workspace_folder:${id}`,
+        detail: { renamed, moved, newName, newParentId }
       });
 
       return ok(updated[0], "폴더가 수정되었습니다");
@@ -431,11 +427,10 @@ export default async (req: Request, _context: Context) => {
           await db.delete(workspaceFolders).where(inArray(workspaceFolders.id, allIds));
         }
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.folder.delete.hard",
-          targetType: "workspace_folder",
-          targetId: id,
-          meta: { name: folder.name, descendantCount: allIds.length }
+          target: `workspace_folder:${id}`,
+          detail: { name: folder.name, descendantCount: allIds.length }
         });
         return ok({ id, deletedFolders: allIds.length }, "영구 삭제되었습니다");
       }
@@ -445,20 +440,19 @@ export default async (req: Request, _context: Context) => {
       if (allIds.length > 0) {
         await db
           .update(workspaceFolders)
-          .set({ deletedAt: now, updatedAt: now })
+          .set({ deletedAt: now, updatedAt: now } as any)
           .where(inArray(workspaceFolders.id, allIds));
         await db
           .update(workspaceFiles)
-          .set({ deletedAt: now, updatedAt: now })
+          .set({ deletedAt: now, updatedAt: now } as any)
           .where(inArray(workspaceFiles.folderId, allIds));
       }
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.folder.delete.soft",
-        targetType: "workspace_folder",
-        targetId: id,
-        meta: { name: folder.name, descendantCount: allIds.length }
+        target: `workspace_folder:${id}`,
+        detail: { name: folder.name, descendantCount: allIds.length }
       });
 
       return ok({ id, softDeleted: allIds.length }, "휴지통으로 이동되었습니다");

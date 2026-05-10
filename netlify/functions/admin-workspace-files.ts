@@ -56,7 +56,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -177,14 +177,13 @@ export default async (req: Request, _ctx: Context) => {
         if (!file.deletedAt) return badRequest("이미 활성 상태입니다");
         await db
           .update(workspaceFiles)
-          .set({ deletedAt: null, updatedAt: new Date() })
+          .set({ deletedAt: null, updatedAt: new Date() } as any)
           .where(eq(workspaceFiles.id, id));
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.file.restore",
-          targetType: "workspace_file",
-          targetId: id,
-          meta: { name: file.name }
+          target: `workspace_file:${id}`,
+          detail: { name: file.name }
         });
         return ok({ id }, "파일이 복원되었습니다");
       }
@@ -194,14 +193,13 @@ export default async (req: Request, _ctx: Context) => {
         const newVal = !file.isShared;
         await db
           .update(workspaceFiles)
-          .set({ isShared: newVal, updatedAt: new Date() })
+          .set({ isShared: newVal, updatedAt: new Date() } as any)
           .where(eq(workspaceFiles.id, id));
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.file.toggle_public",
-          targetType: "workspace_file",
-          targetId: id,
-          meta: { name: file.name, isShared: newVal }
+          target: `workspace_file:${id}`,
+          detail: { name: file.name, isShared: newVal }
         });
         return ok({ id, isShared: newVal }, newVal ? "공개로 전환" : "비공개로 전환");
       }
@@ -240,16 +238,15 @@ export default async (req: Request, _ctx: Context) => {
 
       const updated: any = await db
         .update(workspaceFiles)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(workspaceFiles.id, id))
         .returning();
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.file.update",
-        targetType: "workspace_file",
-        targetId: id,
-        meta: { name: file.name, changes: Object.keys(updateData) }
+        target: `workspace_file:${id}`,
+        detail: { name: file.name, changes: Object.keys(updateData) }
       });
 
       return ok(updated[0], "파일이 수정되었습니다");
@@ -291,11 +288,10 @@ export default async (req: Request, _ctx: Context) => {
         // DB 삭제
         await db.delete(workspaceFiles).where(eq(workspaceFiles.id, id));
         await logAudit({
-          actorMemberId: meId,
+          userId: meId,
           action: "workspace.file.delete.hard",
-          targetType: "workspace_file",
-          targetId: id,
-          meta: { name: file.name, r2Key: file.r2Key }
+          target: `workspace_file:${id}`,
+          detail: { name: file.name, r2Key: file.r2Key }
         });
         return ok({ id }, "영구 삭제되었습니다");
       }
@@ -303,14 +299,13 @@ export default async (req: Request, _ctx: Context) => {
       // soft
       await db
         .update(workspaceFiles)
-        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .set({ deletedAt: new Date(), updatedAt: new Date() } as any)
         .where(eq(workspaceFiles.id, id));
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.file.delete.soft",
-        targetType: "workspace_file",
-        targetId: id,
-        meta: { name: file.name }
+        target: `workspace_file:${id}`,
+        detail: { name: file.name }
       });
       return ok({ id }, "휴지통으로 이동되었습니다");
     }
