@@ -2473,3 +2473,37 @@ export type NewReferralLog    = typeof referralLogs.$inferInsert;
 
 /* === Phase 14 정의 끝 === */
 
+/* === Phase 15 — 전문가 매칭 고도화 === */
+
+export const expertProfiles = pgTable("expert_profiles", {
+  id:              serial("id").primaryKey(),
+  memberId:        integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull().unique(),
+  specialties:     text("specialties"),
+  languages:       text("languages"),
+  availableDays:   varchar("available_days", { length: 50 }),
+  availableHours:  varchar("available_hours", { length: 50 }),
+  regionCoverage:  varchar("region_coverage", { length: 100 }),
+  bio:             text("bio"),
+  avgRating:       numeric("avg_rating", { precision: 3, scale: 2 }).default("0"),
+  ratingCount:     integer("rating_count").default(0).notNull(),
+  isAcceptingCase: boolean("is_accepting_case").default(true).notNull(),
+  createdAt:       timestamp("created_at").defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const matchingFeedbacks = pgTable("matching_feedbacks", {
+  id:        serial("id").primaryKey(),
+  matchId:   integer("match_id").notNull().unique(),
+  memberId:  integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  rating:    integer("rating").notNull(),
+  comment:   text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ExpertProfile    = typeof expertProfiles.$inferSelect;
+export type NewExpertProfile = typeof expertProfiles.$inferInsert;
+export type MatchingFeedback    = typeof matchingFeedbacks.$inferSelect;
+export type NewMatchingFeedback = typeof matchingFeedbacks.$inferInsert;
+
+/* === Phase 15 정의 끝 === */
+
