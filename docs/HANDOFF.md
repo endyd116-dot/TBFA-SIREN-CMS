@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-11 / Phase 10 R1·R2·R3 모두 코드 100% 머지 / R4 통합 마무리 설계 완료 / #BACKFILL-1 해결 / A·B 작업량 ↑ 정책
+> **마지막 갱신**: 2026-05-11 / Phase 10 R3 100% 완료 + BUG-8 fix / R4 설계 완료 + B·A 트리거 메시지 제공
 
 ---
 
@@ -13,7 +13,7 @@
 **SIREN(싸이렌)** = (사)교사유가족협의회 통합 NPO 플랫폼.
 
 - 라이브: <https://tbfa-siren-cms.netlify.app>
-- 베이스 브랜치: `main` (최신은 push 시점 확인)
+- 베이스 브랜치: `main` (최신 커밋 `a8845ae` — verify/phase10-r3 머지)
 - 상세 스택·환경·구조: [`CLAUDE.md`](../CLAUDE.md) §1~5
 
 ---
@@ -22,222 +22,220 @@
 
 ```
 1) 본 HANDOFF.md 정독 (지금 읽고 있음)
-2) PROJECT_STATE.md §1·§2·§3·§5·§7·§8 정독
-3) docs/PARALLEL_GUIDE.md §1~§3 정독 (4채팅 새 구조 핵심)
-4) docs/PARALLEL_TEMPLATE.md 존재 인지 (라운드 설계서 표준 양식)
-5) 본 §3 (지금 진행 중인 일) + §4 (즉시 트리거 가능한 작업) 확인
-6) Swain에 "어떤 작업부터 진행할지" 선택지 제시
+2) PROJECT_STATE.md §2·§3·§5·§7 정독
+3) docs/PARALLEL_GUIDE.md §1~§3 정독 (4채팅 구조 핵심)
+4) 본 §3 (지금 진행 중인 일) 확인
+5) B·A 채팅 진행 상황을 Swain께 확인 (트리거 메시지 이미 제공됨)
+6) B 보고 있으면 1차 머지 → 마이그 호출 안내 → schema 활성화 순서 진행
 ```
 
 ---
 
 ## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
 
-### 3.1 Phase 9 외부 API 실연동 + 수신 설정 UI — 코드 100%
+### 3.1 Phase 10 R4 — 통합 발송 시스템 마무리 (추적·AI·분석·재발송·이력)
 
-| 영역 | 상태 |
-|---|---|
-| 9-A SMS 어댑터 (Aligo) | ✅ main 머지 (`45c9e20`) — A 채팅 종료 |
-| 9-B 카카오 알림톡 어댑터 (Aligo) | ✅ main 머지 — B 채팅 종료 / 카카오 심사 통과 대기 (영업일 3~5일) |
-| 9-B 사용자 수신 설정 화면 | ✅ main 머지 1차 + 2차(`56f95a1`) — schema·마이그·UI 완료 |
-| 9-B 어드민 전역 정책 화면 | ✅ main 머지 — `/admin-notification-defaults.html` |
-| 9-A SMS 실 발송 검증 | ⏸ C 큐 Q7 대기 |
-| 9-B 카카오 실 발송 검증 | ⏸ C 큐 Q8 — 심사 통과 + 환경변수 등록 후 |
-| 9-B 화면 라이브 검증 | 🟢 C 큐 Q1 — **현재 C 새 세션이 처리 중일 가능성** |
+**현재 상태**: B·A 트리거 메시지를 Swain에게 제공한 직후. B·A 작업 시작 또는 진행 중일 수 있음.
 
-**카카오 심사 통과 시 액션** (Swain):
-- Netlify 환경변수 2개 추가:
-  - `ALIGO_TEMPLATE_BILLING_FAILED`
-  - `ALIGO_TEMPLATE_CARD_EXPIRING`
-- 등록 즉시 카카오 어댑터가 placeholder → 실 발송으로 자동 전환
+**설계서**: [`docs/milestones/2026-05-11-phase10-r4-tracking-ai-analytics.md`](milestones/2026-05-11-phase10-r4-tracking-ai-analytics.md)
 
-### 3.2 4채팅 새 구조 (2026-05-10 도입)
+#### 머지 순서 (강제)
 
-| 채팅 | 모델 | 역할 |
+```
+1. B feature/phase10-r4-back-1 push (추적·재발송·이력) → 메인 머지 → push
+2. Netlify 배포 1~3분 대기
+3. 메인이 Swain께 마이그 호출 안내:
+   https://tbfa-siren-cms.netlify.app/api/migrate-phase10-r4-tracking-ai?run=1
+4. Swain success 응답 → 메인:
+   - schema.ts R4 정의 주석 해제 (3테이블 + 5컬럼)
+   - migrate 파일 삭제
+   → push
+5. B feature/phase10-r4-back-2 push (AI 트리거·분석 — 1차 머지 후 시작) → 메인 머지 → push
+6. A feature/phase10-r4-front push → 메인 머지 → push
+7. C verify/phase10-r4 트리거 → Q1~Q18 검증
+```
+
+#### R4 범위 요약
+
+| # | 영역 | 담당 | 파일 수 |
+|---|---|---|---|
+| A | 이메일 추적 (open pixel + click redirect) | B | lib + 2 함수 |
+| B | AI 트리거 자동 발송 + 5종 시드 | B | lib + 11 함수 + cron 2개 |
+| C | 트리거 관리 화면 | A | 2 HTML + 2 JS |
+| D | 발송 분석 대시보드 | A | 1 HTML + 1 JS |
+| E | 실패 수신자 재발송 | B+A | 2 함수 + 기존 화면 보강 |
+| F | 발송 이력 검색 (회원별·사용자 본인) | B+A | 2 함수 + 2 HTML + 2 JS |
+
+#### B 1차 작업 (feature/phase10-r4-back-1)
+
+| 순번 | 파일 | 역할 |
 |---|---|---|
-| 메인 | **Opus 4.7** | 로직·DB 설계 + 머지·조율 |
-| A | Sonnet 4.6 | 프론트 구현 (`public/`) |
-| B | Sonnet 4.6 | 백 구현 (`netlify/functions/`, `lib/`, `db/`) |
-| C | **Opus 4.7** | 라이브 검증 + fix + 백필 |
+| 1 | `lib/communication-tracking.ts` | token 생성 + open pixel/click URL 생성 + HTML 삽입 |
+| 2 | `netlify/functions/migrate-phase10-r4-tracking-ai.ts` | 3테이블 + 5컬럼 + 시드 5건 |
+| 3 | `db/schema.ts` (주석 상태) | R4 3테이블 + 5컬럼 정의 |
+| 4 | `netlify/functions/track-open.ts` | 1×1 PNG + open 이벤트 기록 |
+| 5 | `netlify/functions/track-click.ts` | 302 redirect + click 이벤트 기록 (오픈 redirect 방지) |
+| 6 | `netlify/functions/admin-send-job-retry.ts` | 개별 재발송 |
+| 7 | `netlify/functions/admin-send-job-retry-failed.ts` | 실패만 재발송 |
+| 8 | `netlify/functions/admin-member-send-history.ts` | 어드민 회원 발송 이력 |
+| 9 | `netlify/functions/user-my-send-history.ts` | 사용자 본인 이력 |
+| 10 | R3 cron 1줄 수정 | recipient INSERT 시 tracking_token 자동 생성 |
+| 11 | R3 어댑터 수정 | 이메일 발송 직전 injectTrackingIntoHtml 호출 |
 
-상세: [`docs/PARALLEL_GUIDE.md`](PARALLEL_GUIDE.md) §1.
+#### B 2차 작업 (feature/phase10-r4-back-2, 1차 머지 후)
 
-머지 순서 강제: **B → 마이그 호출 → schema 활성화 → A → C**.
-
-### 3.3 C 대기열 큐 (PROJECT_STATE §8)
-
-C(Opus 4.7)가 라이브 검증·fix·백필을 순서대로 처리. 8건 등록.
-
-| # | 작업 | 선행 |
+| 순번 | 파일 | 역할 |
 |---|---|---|
-| Q1 | Phase 9-B 수신 설정 화면 라이브 검증 | 즉시 (이전 메인이 새 C 세션 트리거 메시지 발송함) |
-| Q2 | #BACKFILL-1 옛 효성 결제일 7건 백필 | 즉시 |
-| Q3 | 6순위 #16 단계 D 라이브 검증 | 즉시 |
-| Q4 | 6순위 #8 1:1 매칭 라이브 검증 | 즉시 |
-| Q5 | Phase 4 대표 보고 V1·V2·V3 라이브 검증 | 즉시 |
-| Q6 | Phase 5~7 재정 라이브 검증 | 즉시 |
-| Q7 | Phase 9-A SMS 실 발송 검증 | 즉시 |
-| Q8 | Phase 9-B 카카오 실 발송 검증 | 카카오 심사 통과 + 환경변수 등록 |
+| 12 | `lib/communication-auto-trigger.ts` | evaluateTrigger + executeTrigger |
+| 13~20 | `admin-auto-triggers-list/detail/create/update/delete/toggle/runs.ts` | AI 트리거 CRUD |
+| 21~23 | `admin-send-analytics-overview/job/channel.ts` | 분석 대시보드 API |
+| 24 | `cron-auto-trigger-evaluator.ts` | 30분 단위 트리거 평가 |
+| 25 | `cron-tracking-stats-rollup.ts` | 6시간 단위 통계 롤업 |
 
-C 새 세션은 **세션당 Q1~Q2 처리** 정도로 분할 운영. 매번 PROJECT_STATE §8에서 큐 상태 확인.
+#### A 작업 (feature/phase10-r4-front, B와 평행 시작 가능)
 
-### 3.4 Phase 10 R1 — 코드 100% 머지 완료 (2026-05-11)
+| 순번 | 파일 | 역할 |
+|---|---|---|
+| 1~2 | `admin-auto-triggers.html + .js` | 트리거 목록 (토글·삭제·이력) |
+| 3~4 | `admin-auto-trigger-edit.html + .js` | 트리거 편집 (종류별 동적 조건) |
+| 5~6 | `admin-send-analytics.html + .js` | 분석 대시보드 (Chart.js) |
+| 7~8 | `admin-member-send-history.html + .js` | 회원 이력 |
+| 9~10 | `my-send-history.html + .js` | 사용자 본인 이력 |
+| 11~12 | R3 상세 화면 보강 | 재발송 버튼 추가 |
+| 13 | 사이드바 2줄 추가 | AI 자동 발송·발송 분석 메뉴 |
+| 14~15 | 기존 화면 버튼 추가 | 회원 상세·마이페이지 |
 
-**설계서**: [`docs/milestones/2026-05-10-phase10-r1-template-builder.md`](milestones/2026-05-10-phase10-r1-template-builder.md)
+#### C 검증 시나리오 (B·A 머지 후)
 
-- DB: `communication_templates` 테이블 + 시드 3건 (Swain 마이그 호출 success 확인)
-- API 7개 + lib/template-render.ts (변수 치환 헬퍼)
-- 화면 2개: `/admin-templates.html` + `/admin-template-edit.html` (사이드바 [📝 발송 템플릿] 메뉴)
-- schema 활성화·마이그 파일 삭제 완료 (`8db8ffb`)
-- A 머지 완료 (`cef0f69` 포함)
-- ⏸ C Q9 라이브 검증 트리거 대기
-
-### 3.5 Phase 10 R2 설계 완료 — B·A 트리거 대기 (2026-05-11)
-
-**설계서**: [`docs/milestones/2026-05-11-phase10-r2-recipient-groups.md`](milestones/2026-05-11-phase10-r2-recipient-groups.md)
-
-내용 요약:
-- 통합 발송 시스템 R2 = 수신자 그룹 선택 (필터 조건 또는 수동 명단)
-- 신규 테이블 1개(`recipient_groups`) + 시드 5종 + API 8개 + 화면 2개
-- `lib/recipient-resolve.ts` 헬퍼 (criteria → 회원 ID, 화이트리스트 검증, 한 줄 요약)
-- 필터 화이트리스트 9개 필드 × 6개 op (§2.4)
-- B 5~7h / A 5~6h / C 1~2h / 평행 모드
-- 4채팅 시작 프롬프트 §6에 작성 완료 (Swain 복붙용)
-
-### 3.7 Phase 10 R3 설계 완료 — R2 머지 후 트리거 (2026-05-11, 예고 작성)
-
-**설계서**: [`docs/milestones/2026-05-11-phase10-r3-send-queue.md`](milestones/2026-05-11-phase10-r3-send-queue.md)
-
-내용 요약:
-- 통합 발송 시스템 R3 = 발송 예약 큐 + 즉시 발송 (실 발송)
-- 신규 테이블 2개(`communication_send_jobs`, `communication_send_recipients`) — 작업 메타 + 수신자 스냅샷
-- API 7개 + cron 1개(1분 단위 dispatcher, chunk 50건/회 + 동시 작업 5개) + 1회용 마이그
-- `lib/communication-send.ts` 헬퍼 (어댑터 직접 호출, Phase 8 이벤트 라우팅 우회)
-- 화면 3개 (목록·생성·상세 폴링)
-- B 7~9h / A 6~7h / C 2~3h / 평행 모드
-- R2 머지 후 트리거 (R3 schema가 recipientGroups FK 의존)
-
-### 3.6 정책 변경 (2026-05-11 도입)
-
-- **평행 전제** — 모든 라운드 무조건 평행, 직렬 옵션 제거 (PARALLEL_GUIDE §2)
-- **자동 진행 우선** — 로직·DB 마이그레이션 외 결정은 묻지 말고 판단해서 진행 (§1.5)
-- **중간 진행률 % 보고** — 큰 단계 끝날 때 1회 (§1.6)
+Q1~Q18 + cron 2종 + 성능 + 보안 체크. 설계서 §4 참조.
 
 ---
 
-## 4. 즉시 트리거 가능한 작업 (새 메인이 선택)
+### 3.2 완료된 Phase 10 라운드 (참조용)
 
-### 옵션 A — C 큐 진행 상황 점검 + Phase 10 R1 트리거
+| 라운드 | 상태 | 커밋 |
+|---|---|---|
+| R1 템플릿 빌더 | ✅ 100% | `8db8ffb`·`cef0f69` |
+| R2 수신자 그룹 | ✅ 100% | `7f2163b`·`b969bb2` |
+| R3 발송 예약 큐 | ✅ 100% + BUG-8 fix | `897cad4`·`857674d`·`a8845ae` |
 
-1. C 채팅이 Q1·Q2 보고 보내왔나 Swain께 확인
-2. 보고가 있으면 C 보고 흡수 + main 머지 + PROJECT_STATE 갱신
-3. C에게 다음 큐(Q3) 메시지 또는 새 세션 트리거
-4. Phase 10 R1 B·A 동시 트리거 (영역 분리, A는 직렬이므로 B 먼저 → 머지 후 A)
-5. B 트리거 메시지: 설계서 §6.2 그대로 복붙
+---
 
-### 옵션 B — Phase 10 R1만 트리거 (C는 별도 진행)
+### 3.3 4채팅 구조 (현재)
 
-1. B 채팅 새 세션 시작 + 설계서 §6.2 메시지 발송
-2. 동시에 A는 mock 모드로 시작 가능 (설계서 §5.1 모드는 직렬이지만 A가 먼저 화면만 만들어둠)
-3. C 큐 처리는 새 메인이 별도 트리거
+| 채팅 | 모델 | 역할 | 현재 상태 |
+|---|---|---|---|
+| 메인 | Opus 4.7 | 설계·머지·조율 | 이 채팅 — 종료 직전 |
+| A | Sonnet 4.6 | 프론트 (`public/`) | R4 트리거 메시지 제공됨 |
+| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | R4 트리거 메시지 제공됨 |
+| C | Opus 4.7 | 검증·fix | R3 완료 — R4 검증 대기 |
 
-### 옵션 C — Swain이 라이브 검증 직접 진행 후 결정
+**worktree 폴더**:
+```
+tbfa-mis        (메인) — 머지·조율 전용
+../tbfa-mis-A  (A 채팅)
+../tbfa-mis-B  (B 채팅)
+../tbfa-mis-C  (C 채팅)
+```
 
-1. 새 메인이 Swain께 다음 안내:
-   - https://tbfa-siren-cms.netlify.app/settings-notifications.html (회원 로그인)
-   - https://tbfa-siren-cms.netlify.app/admin-notification-defaults.html (어드민 로그인)
-2. 회원·어드민 로그인 회귀 점검 결과를 받은 후 다음 단계 결정
-3. 단, C가 같은 작업을 큐 Q1로 갖고 있으므로 중복 가능성 — 새 메인이 조율
+---
 
-**추천**: 옵션 A. C 큐 처리와 Phase 10 R1 평행 진행이 가장 효율적. 영역이 완전 분리되어 머지 충돌 0.
+### 3.4 Swain 운영 액션 대기 (코드 외)
+
+| 액션 | 상태 |
+|---|---|
+| 효성 자료 재 import (계약 관리 → 수납 파일 순서) | ⏸ Swain 직접 — 옛 자료 삭제 완료(`897cad4`) |
+| 카카오 알림톡 심사 통과 후 환경변수 2개 등록 | ⏸ 대기 (심사 영업일 3~5일) — 등록 시 Q8 진입 |
+
+카카오 환경변수:
+- `ALIGO_TEMPLATE_BILLING_FAILED`
+- `ALIGO_TEMPLATE_CARD_EXPIRING`
+
+---
+
+## 4. 즉시 해야 할 일 (새 메인 선택)
+
+### 옵션 A — B 보고 없음 → 대기 + 설계 리뷰
+
+1. B·A 진행 상황 Swain께 확인
+2. 아직 시작 안 했으면 트리거 메시지 재전달 (설계서 §6.2·§6.3)
+3. 진행 중이면 진행률 보고 받기
+
+### 옵션 B — B 1차 보고 왔음 → 머지 + 마이그
+
+1. B feature/phase10-r4-back-1 main 머지
+2. push → 배포 대기 1~3분
+3. Swain에게 마이그 호출 안내:
+   `https://tbfa-siren-cms.netlify.app/api/migrate-phase10-r4-tracking-ai?run=1`
+4. success 응답 → schema 활성화 (3테이블 + 5컬럼 주석 해제) + 마이그 파일 삭제 + push
+
+### 옵션 C — B 2차 + A 보고 모두 왔음 → 머지 + C 검증 트리거
+
+1. B 2차 머지 → push
+2. A 머지 → push
+3. C verify/phase10-r4 트리거
 
 ---
 
 ## 5. 핵심 정보 (자주 참조)
 
-### 5.1 환경변수 — Aligo (이미 등록됨)
+### 5.1 반복 사고 패턴 방지
+
+| 날짜 | 사고 | 클래스 | 방지 |
+|---|---|---|---|
+| 2026-05-09 | worktree 미분리 충돌 | 구조 | worktree 강제 |
+| 2026-05-09 | schema 영역 덮어쓰기 | 충돌 | B만 schema 작성, append-only |
+| 2026-05-09 | #BUG-1 `uid` 필드명 오류 | 헬퍼 | 도입 직후 사용처 1회 검증 |
+| 2026-05-10 | `bigserial` import 누락 502 | tsc | B push 전 `npx tsc --noEmit` 의무 |
+| 2026-05-11 | #BUG-8 `auth.admin?.id` → 항상 undefined | BUG-5 회귀 | `auth.ctx?.admin?.uid` 직접 참조 |
+
+**BUG-5/8 패턴** (Phase 5~7·R3에서 반복):
+- 틀림: `auth.admin?.id` / `auth.user?.id`
+- 맞음: `auth.ctx?.admin?.uid` (requireAdmin 반환 구조)
+
+### 5.2 환경변수 — Aligo (이미 등록됨)
 
 - `ALIGO_API_KEY` ✅
 - `ALIGO_USER_ID` ✅
-- `ALIGO_SENDER` ✅ (협회 대표번호)
+- `ALIGO_SENDER` ✅
 - `ALIGO_KAKAO_CHANNEL_ID` ✅
 - `NOTIFICATION_TEST_MODE` ✅
+- `SITE_URL` ✅ (R4 추적 URL 생성에도 사용)
 
-심사 통과 후 추가:
-- `ALIGO_TEMPLATE_BILLING_FAILED` ⏸
-- `ALIGO_TEMPLATE_CARD_EXPIRING` ⏸
+### 5.3 R4 신규 환경변수
 
-### 5.2 worktree 폴더
-
-```
-tbfa-mis      (메인) — 머지·조율 전용. 직접 작업 X.
-../tbfa-mis-A         — A 채팅 (Sonnet 4.6, 프론트)
-../tbfa-mis-B         — B 채팅 (Sonnet 4.6, 백)
-../tbfa-mis-C         — C 채팅 (Opus 4.7, 검증·fix·백필)
-../tbfa-mis-D         — 휴면 (큰 단독 라운드 시 가동)
-```
-
-### 5.3 회귀 사고 누적 (반복 방지)
-
-| 날짜 | 사고 | 대응 |
-|---|---|---|
-| 2026-05-09 | 같은 working dir 공유 충돌 | worktree 강제 |
-| 2026-05-09 | schema 영역 덮어쓰기 | B만 schema 작성 |
-| 2026-05-09 | `requireActiveUser` uid 필드명 오류 (#BUG-1) | 헬퍼 도입 직후 사용처 1회 검증 |
-| 2026-05-10 | `bigserial` import 누락 → 라이브 502 | B는 push 전 `npx tsc --noEmit` 의무 |
-
-### 5.4 미해결 이슈 (PROJECT_STATE §6)
-
-- #BACKFILL-1 — 옛 효성 후원 7건 결제일 NULL → C 큐 Q2
+- 없음. SITE_URL 재사용.
+- 선택: `TRACKING_DOMAIN_WHITELIST` (외부 redirect 허용 도메인 목록 — 운영 시 필요 시 등록)
 
 ---
 
-## 6. Phase 진행률 스냅샷 (PROJECT_STATE §5 발췌)
+## 6. Phase 진행률 스냅샷 (PROJECT_STATE §5 기준)
 
 | 묶음 | 상태 |
 |---|---|
 | Phase 1~3, 3-extra | ✅ 100% |
 | 4·5·6순위 (#1~#16) | ✅ 100% |
-| Phase 4 대표 보고 | ✅ 코드 100% / 🟡 라이브 검증 대기 (큐 Q5) |
-| Phase 5~7 재정 | ✅ 100% / 🟡 라이브 검증 대기 (큐 Q6) |
+| Phase 4 대표 보고 | ✅ 100% |
+| Phase 5~7 재정 | ✅ 100% |
 | Phase 8 알림 인프라 | ✅ 100% |
-| **Phase 9 외부 API + 수신 설정** | ✅ 코드 100% / 🟡 라이브 검증·심사·#BACKFILL 대기 |
-| **Phase 10 통합 발송** | 🟢 R1 설계 완료 — B·A 트리거 대기 |
+| Phase 9 외부 API + 수신 설정 | ✅ 코드 100% / 🟡 Q7(SMS)·Q8(카카오 심사 대기) |
+| **Phase 10 R1·R2·R3** | ✅ 각 100% |
+| **Phase 10 R4** | 🟢 설계 완료 — B·A 트리거 진행 중 |
 | Phase 11~22 | ⏸ 카탈로그만 |
 
 누적 약 47% / 약 450h+
 
 ---
 
-## 7. 다음 라운드 예고 (Phase 10 이후)
-
-PARALLEL_GUIDE 새 구조에서 Phase별 라운드 분해는 [`docs/milestones/2026-05-10-phase10-22-catalog.md`](milestones/2026-05-10-phase10-22-catalog.md) 참조.
-
-다음 메인이 Phase 10 R1 마감 후 R2(수신자 그룹 선택) 설계 시작 → R3(발송 예약 큐) → R4(추적) → R5(AI 트리거) 순.
-
----
-
-## 8. 새 메인 첫 메시지 권장
-
-새 메인 채팅이 시작될 때 Swain에게 보낼 첫 메시지 예시:
+## 7. 새 메인 첫 메시지 권장
 
 ```
 인수인계 정독 완료.
 
 현재 상태:
-- Phase 9 코드 100% 머지 완료 (9-A SMS·9-B 카카오·9-B 수신 설정 UI)
-- 4채팅 새 구조 도입 — 메인(Opus 4.7) / A·B(Sonnet 4.6) / C(Opus 4.7)
-- C 큐 8건 등록, C 새 세션이 Q1·Q2 처리 중일 수 있음
-- Phase 10 R1 설계서 작성 완료 — B·A 트리거 대기
+- Phase 10 R3 발송 예약 큐 ✅ 100% 완료 (코드 + C 라이브 검증 + BUG-8 fix)
+- Phase 10 R4 설계 완료 — B·A 트리거 메시지 제공됨
 
-다음 진행 옵션:
-1) C Q1·Q2 보고 받은 적 있나요? 있으면 흡수해야 함
-2) Phase 10 R1 B 채팅 트리거할까요? (영역 분리, C와 평행 가능)
-3) 카카오 심사 통과 알림 왔나요? 왔으면 환경변수 2개 등록 안내
-
-어디서부터 시작할까요?
+B·A 진행 상황 알려주시면 즉시 이어서 진행합니다.
+(B 1차 보고 왔으면 머지 + 마이그 호출 안내 / 아직이면 대기)
 ```
-
----
-
-**최종 정독 권장**: 본 HANDOFF + PROJECT_STATE §1~§5·§7·§8 + PARALLEL_GUIDE §1~§3.
