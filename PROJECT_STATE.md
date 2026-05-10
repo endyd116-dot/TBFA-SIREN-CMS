@@ -24,13 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 | **Phase 9-B 100% — C 2차 머지 (56f95a1)** — schema members 컬럼 2개 활성화 / 마이그 파일 삭제 / admin-notification-defaults auth 반환 구조 수정 / 1·2차 통합 검증: bigserial 회귀 0, 타입 에러 0 / 라이브 화면 검증 대기 |
+| 2026-05-10 | 메인 | **4채팅 새 구조 도입** — 메인(Opus 4.7 설계) / A(Sonnet 4.6 프론트) / B(Sonnet 4.6 백) / C(Opus 4.7 검증·fix·백필) / PARALLEL_GUIDE 갱신 + PARALLEL_TEMPLATE 신규 + §8 C 대기열 큐(8건) / Phase 10 R1 설계 준비 |
+| 2026-05-10 | 메인 | **Phase 9-B 100% — C 2차 머지 (56f95a1)** — schema members 컬럼 2개 활성화 / 마이그 파일 삭제 / admin-notification-defaults auth 반환 구조 수정 / 1·2차 통합 검증: bigserial 회귀 0, 타입 에러 0 |
 | 2026-05-10 | 메인 | **Phase 9-B C 1차 머지** — notification_preferences + admin_settings 테이블 마이그 / FORCED_CHANNELS / 디스패처 사용자 설정 조회 통합 / 사용자·어드민 화면 |
 | 2026-05-10 | 메인 | **Phase 9 A·B 머지 완료 (45c9e20)** — A: Aligo SMS 실연동 / B: 알림톡 실연동 / dispatcher SMS+카카오 통합 / placeholder 2종 삭제. 카카오 심사 통과 후 템플릿 ID 2개 환경변수 등록하면 실발송 활성화 |
 | 2026-05-10 | **C 채팅** | **Phase 8 C 머지 — 알림 발송 로그 어드민 화면 + Q24~Q27 라이브 통과** — 백엔드/프론트/SPA 통합 470줄. 4개 이벤트 7건 sent, 채널 정책·KPI·Top5 차트 모두 정상. cleanup 완료. Q28 강제 실패는 정적(A 영역). Phase 8 100% |
-| 2026-05-10 | 메인 | **Phase 9 외부 서비스 결정 완료 (Aligo 통합)** — 협회 대표번호·메인 위임·선결제 / 알림톡 템플릿 2종(billing.failed·card.expiring) 초안 작성 |
-| 2026-05-10 | **C 채팅** | **Q12 fix 머지 — 수입 집계·표시 기준일을 실제 결제일로** — 9개 함수 통합. 옛 효성 데이터 백필은 별도 라운드 |
-
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -118,24 +116,60 @@
 
 ---
 
-## 7. worktree 현황 (3-way 병렬)
+## 7. worktree 현황 (4채팅 새 구조)
 
-| 폴더 | 브랜치 | 역할 | 상태 |
-|---|---|---|---|
-| `tbfa-mis` (메인) | `main` | 머지·조율·설계 | 활성 |
-| `../tbfa-mis-A` | `feature/phase8-notify-dispatcher` | ✅ Phase 8 디스패처 완료 — Phase 9 SMS 어댑터 라운드 대기 |
-| `../tbfa-mis-B` | `feature/phase8-notify-integration` | ✅ Phase 8 7자리 통합 완료 — Phase 9 카카오 어댑터 라운드 대기 |
-| **`../tbfa-mis-C`** | **`verify/live-comprehensive`** | **✅ Q12 fix + Phase 8 어드민 화면+Q24~Q27 통과 / Phase 9 9-B 또는 #BACKFILL-1 라운드 대기 / Q15~Q23 큐 보관** |
-| **`../tbfa-mis-D`** | **`feature/finance-phase5-7`** | **Phase 5~7** | ✅ 머지 완료 — 다음 라운드 대기 |
+> 2026-05-10 적용. 모델·역할 분배는 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §1.
 
-**3-way 정책 핵심**:
-- A·B: 신규 기능 개발 (새 파일 위주)
-- C: 기존 코드 검증·fix·문서 패치 (신규 기능 추가 X)
-- 머지 순서: A·B 신규 → C fix (역순 시 fix 묻힘)
-- 충돌 회피: A·B 작업 영역 = §7 표 확인 후 C가 회피
+| 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
+|---|---|---|---|---|---|
+| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 9 마무리 + Phase 10 라운드 설계 준비 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ⏸ 대기 — Phase 10 R1 트리거 시 시작 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ⏸ 대기 — Phase 10 R1 트리거 시 시작 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | 🟢 활성 — §9 대기열 처리 중 |
+| `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
-C 시작 가이드: [`docs/HANDOFF_C.md`](docs/HANDOFF_C.md)
-새 병렬 작업 시작 절차: [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §2
+**충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
+
+**머지 순서 강제**: B → 마이그 → schema 활성화 → A → C. [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §5.
+
+라운드 설계서 표준 양식: [`docs/PARALLEL_TEMPLATE.md`](docs/PARALLEL_TEMPLATE.md).
+
+---
+
+## 8. C 대기열 (Live-Verify Queue)
+
+C(Opus 4.7)가 라이브 검증·fix·백필 대기 중인 작업. C는 매 세션 시작 시 큐에서 **가장 위 항목 1건**을 처리.
+
+| # | 작업 | 종류 | 선행 조건 | 비고 |
+|---|---|---|---|---|
+| Q1 | Phase 9-B 사용자/어드민 수신 설정 화면 라이브 검증 | 라이브 검증 | (없음 — 즉시 가능) | `/settings-notifications.html` + `/admin-notification-defaults.html` 9개 이벤트 매트릭스·KPI·변경 이력 |
+| Q2 | #BACKFILL-1 옛 효성 결제일 7건 백필 | 1회용 마이그 | (없음) | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
+| Q3 | 6순위 #16 단계 D 라이브 검증 | 라이브 검증 (지연된 검증) | (없음) | 효성 CSV import + 매월 수납·미리보기 화면 |
+| Q4 | 6순위 #8 1:1 매칭 채팅 라이브 검증 | 라이브 검증 (지연된 검증) | (없음) | 매칭·채팅 흐름 |
+| Q5 | Phase 4 대표 보고 시스템 V1·V2·V3 라이브 검증 | 라이브 검증 (지연된 검증) | (없음) | 보고서 생성·이메일 재발송·인쇄 |
+| Q6 | Phase 5~7 재정 관리 라이브 검증 | 라이브 검증 (지연된 검증) | (없음) | 예산·지출·승인 흐름 |
+| Q7 | Phase 9-A SMS 실 발송 검증 | 외부 발송 검증 | Aligo 발신번호 등록 완료(✅) | 결제 실패 강제 → SMS 수신 확인 |
+| Q8 | Phase 9-B 카카오 알림톡 실 발송 검증 | 외부 발송 검증 | 카카오 심사 통과 + 환경변수 2개 등록 | 영업일 3~5일 후 |
+
+처리 정책:
+- 큐는 선입선출 + 선행 조건 충족된 것 우선
+- 새 라운드의 검증 작업은 큐에 추가, 단 라운드 마감 우선순위는 메인 판단
+- 지연된 검증(Q3~Q6)은 새 라운드 검증과 분리 (다른 영역 회귀 발견 시 별도 fix)
+- 큐 갱신 의무: C가 작업 완료 시 본 표에서 제거 + §2 마지막 업데이트 행 추가
+
+---
+
+## 9. 참고 문서
+
+- [`CLAUDE.md`](CLAUDE.md) — 자동 로드, 코딩 컨벤션·자율성 원칙
+- [`docs/HANDOFF.md`](docs/HANDOFF.md) — 단일 최신 인수인계 (한 화면)
+- [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) — 4채팅 병렬 작업 가이드 (2026-05-10 갱신)
+- [`docs/PARALLEL_TEMPLATE.md`](docs/PARALLEL_TEMPLATE.md) — 라운드 설계서 표준 양식 (신규)
+- [`docs/PAGES.md`](docs/PAGES.md) — 페이지 진입점 카탈로그
+- [`docs/REMAINING_WORK.md`](docs/REMAINING_WORK.md) — 잔여 작업 인벤토리
+- [`docs/CONTEXT_OPTIMIZATION.md`](docs/CONTEXT_OPTIMIZATION.md) — 컨텍스트 다이어트 진단·결정 기록
+- [`docs/issues/`](docs/issues/) — 오류 리포트
+- 영구 스냅샷: [`docs/handover/v20.md`](docs/handover/v20.md), [`docs/handover/v17-expanded.md`](docs/handover/v17-expanded.md)
 
 ---
 

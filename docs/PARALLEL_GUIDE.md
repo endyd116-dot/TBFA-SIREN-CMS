@@ -1,135 +1,231 @@
-# PARALLEL_GUIDE.md — 병렬 작업·머지·충돌 회피 가이드
+# PARALLEL_GUIDE.md — 4채팅 병렬 작업 가이드
 
-> **정적 가이드**. 병렬 작업을 새로 시작하거나 머지 충돌이 우려될 때 참조.
-> 메인 채팅 시작 시 자동 정독 X (필요할 때만).
-> 휘발성 상태(현재 진행률·worktree 현황)는 [`PROJECT_STATE.md`](../PROJECT_STATE.md).
+> **정적 가이드**. 새 라운드 시작 시 메인이 정독.
+> 휘발성 상태(현재 진행률·worktree 현황·C 대기열)는 [`PROJECT_STATE.md`](../PROJECT_STATE.md).
+> 라운드 설계서 빈 양식: [`PARALLEL_TEMPLATE.md`](PARALLEL_TEMPLATE.md).
+
+> 적용 시점: **2026-05-10** (Phase 9 마무리 직후 도입). 이전 3-way 정책은 history 참고.
 
 ---
 
-## 1. 병렬 작업 의존성
+## 1. 4채팅 역할·모델 분배
 
-새 병렬 작업을 분배할 때 의존성 매트릭스를 작성한다. 도메인이 독립이면 동시 시작 가능. 의존이 있으면 직렬화.
+| 채팅 | 모델 | 역할 | 변경 가능 영역 | 절대 금지 영역 |
+|---|---|---|---|---|
+| **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/milestones/`, `PROJECT_STATE.md`, 머지 커밋 | 코드 직접 작성 (설계만) |
+| **A** | Sonnet 4.6 | 프론트 구현 | `public/**` (HTML·CSS·JS), `assets/**` | `lib/`, `netlify/functions/`, `db/`, `drizzle/` |
+| **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/schema.ts`, `drizzle/`, `.env.example` | `public/`, `assets/` |
+| **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (단 fix·백필·검증 보고서 한정) | 신규 기능 추가 |
 
-| 예시 매트릭스 | A | B | C |
+### 핵심 원칙
+
+1. **메인이 설계를 못박는다** — Sonnet이 헤매지 않도록 라운드 설계서에 모든 결정을 미리 적는다 (DB·API·화면·검증 시나리오).
+2. **A·B는 평행 가능, 영역이 폴더 단위로 분리** — 머지 충돌 거의 0.
+3. **C는 항상 마지막** — 라이브 검증·회귀 점검·bug fix·1회용 백필 마이그.
+4. **D는 휴면** — 큰 단독 작업(Phase 19 자동 테스트 등) 발생 시에만 임시 가동.
+
+---
+
+## 2. 표준 라운드 6단계
+
+한 Phase는 4~5개 기능 라운드로 쪼개고, 매 라운드는 같은 6단계를 반복.
+
+```
+[0] 메인 설계 (Opus 4.7, 1~3h)
+       ↓ 설계서 작성
+[1] B 백 구현 (Sonnet 4.6, 2~6h)
+       ↓ push
+[2] A 프론트 구현 (Sonnet 4.6, 2~6h, B와 평행 가능)
+       ↓ push
+[3] 메인 머지 (Opus 4.7)
+       B 머지 → Swain 마이그 호출 → schema 활성화·마이그 파일 삭제 → A 머지
+       ↓
+[4] C 검증·fix (Opus 4.7, 1~3h)
+       ↓ 보고서 + 필요 시 fix push
+[5] 메인 라운드 마감 (Opus 4.7)
+       PROJECT_STATE 갱신 → 다음 라운드 0단계로
+```
+
+### A·B 평행 vs 직렬
+
+| 라운드 규모 | 권장 모드 | 이유 |
+|---|---|---|
+| 작은 라운드 (B 4h 미만) | **직렬**: B 머지 → A 시작 | A가 실 API로 바로 작성, mock 불필요 |
+| 중간 라운드 (4~8h) | **평행**: A는 mock으로 시작 | B 머지 후 A는 mock만 실 API로 교체 |
+| 큰 라운드 (8h+) | **평행 + 단계 머지** | B를 2회 머지(스키마 → API), A는 mock 평행 |
+
+라운드 설계서 §5에 어느 모드인지 명시.
+
+---
+
+## 3. 영역 분담 표 (충돌 회피)
+
+A·B 영역이 폴더 단위로 분리되므로 이전의 복잡한 매트릭스가 필요 없음.
+
+| 폴더·파일 | A 가능 | B 가능 | C 가능 (fix) |
 |---|---|---|---|
-| **A** | — | 독립 | 독립 |
-| **B** | 독립 | — | 독립 |
-| **C** | 독립 | 독립 | — |
+| `public/**` | ✅ | ❌ | ✅ |
+| `assets/**` | ✅ | ❌ | ✅ |
+| `netlify/functions/**` | ❌ | ✅ | ✅ |
+| `lib/**` | ❌ | ✅ | ✅ |
+| `db/schema.ts` | ❌ | ✅ | ✅ |
+| `drizzle/**` | ❌ | ✅ | ✅ |
+| `package.json`, `package-lock.json` | ❌ | ✅ | ✅ |
+| `.env.example` | ❌ | ✅ | ✅ |
+| `PROJECT_STATE.md`, `docs/` | 메인·C만 | 메인·C만 | ✅ (보고서) |
 
-→ 도메인 독립이면 머지 충돌만 §3에서 회피.
+### 회귀 위험 영역 (B·C 모두 주의)
+
+- `lib/auth.ts`, `lib/admin-guard.ts` — **수정 금지** (회귀 사고 최다)
+- `db/schema.ts` import 라인 — 새 컬럼 타입 추가 시 import 누락 점검 (2026-05-10 `bigserial` 사고)
+- 마이그레이션 파일 — 1회용. Swain 호출 성공 후 즉시 삭제 + 커밋.
 
 ---
 
-## 2. worktree 환경 (병렬 작업 필수)
+## 4. worktree 정책
 
-병렬 작업은 반드시 worktree로 폴더를 분리한다.
-같은 working directory를 두 채팅이 공유하면 `git checkout`이 다른 채팅의 워킹 트리에 영향.
+병렬 작업은 반드시 worktree로 폴더 분리. 같은 working directory를 두 채팅이 공유하면 `git checkout`이 다른 채팅 워킹 트리에 영향(2026-05-09 사고 사례).
 
 ```bash
-git worktree add ../tbfa-mis-A feature/{브랜치-A} origin/main
-git worktree add ../tbfa-mis-B feature/{브랜치-B} origin/main
+git worktree add ../tbfa-mis-A feature/{branch-A} origin/main
+git worktree add ../tbfa-mis-B feature/{branch-B} origin/main
+git worktree add ../tbfa-mis-C verify/{branch-C}  origin/main
 ```
 
-| 폴더 | 브랜치 | 용도 |
+| 폴더 | 채팅 | 브랜치 명명 |
 |---|---|---|
-| `tbfa-mis` | `main` | 메인 폴더 — 머지·조율 전용. **직접 작업 X** |
-| `../tbfa-mis-A` | feature/* | 작업 A 채팅 |
-| `../tbfa-mis-B` | feature/* | 작업 B 채팅 |
-| `../tbfa-mis-D` 등 | feature/* | 추가 작업 시 신설 |
+| `tbfa-mis` | 메인 | `main` (직접 작업 X — 머지·조율만) |
+| `../tbfa-mis-A` | A | `feature/phase{N}-r{M}-front` |
+| `../tbfa-mis-B` | B | `feature/phase{N}-r{M}-back` |
+| `../tbfa-mis-C` | C | `verify/phase{N}-r{M}` 또는 `fix/{이름}` |
 
-⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**.
-
-### 2.1 worktree 사고 사례 (2026-05-09)
-
-같은 working directory 공유 시 `git checkout`으로 인한 HEAD 변경 발생.
-**사고**: `b5167bf` → `0453071` cherry-pick 정리.
-**대응**: `../tbfa-mis-{식별자}` 별도 폴더 사용.
+새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**.
 
 ---
 
-## 3. 공유 파일 충돌 매트릭스
-
-| 파일 | 위험 | 회피 전략 |
-|---|---|---|
-| `db/schema.ts` | 🔴 | **파일 끝**에 본인 섹션 헤더(`/* === 작업 X === */`) 추가, append-only. 다른 작업 영역 절대 손대지 말 것 |
-| `public/admin.html` | 🟡 | 사이드바 `<nav>` 끝에 추가, emoji 라벨로 식별 |
-| `public/admin.js` | 🟡 | 신규 모듈은 별도 `admin-{도메인}.js`로 분리, 라우터 1줄만 객체 끝에 추가 (중간 삽입 금지) |
-| `public/mypage.html` | 🟡 | 탭 영역 끝에 추가 |
-| `public/cms-tbfa.html` | 🟢 | 영역 분리되면 단독 |
-| `netlify/functions/chat-*.ts` | 🟡 | 가드 추가 시 본인 영역만 |
-| `lib/audit.ts` | 🟢 | append-only(호출만) |
-| `lib/auth.ts`, `lib/admin-guard.ts` | ⛔🔴 | **변경 금지** (회귀 위험 최고) |
-
-### 3.1 충돌 회피 7대 원칙
-
-1. **schema.ts**: 파일 끝 append-only + 섹션 헤더 (`/* === 작업 X === */`)
-2. **admin.html / mypage.html / cms-tbfa.html**: 메뉴/탭 영역 끝에 추가
-3. **admin.js**: 신규 모듈은 별도 `admin-{도메인}.js`로 분리, 라우터 1줄만
-4. **마이그레이션**: 함수명 prefix 강제, 호출 순서 = 머지 순서, 멱등 보장
-5. **캐시버스터**: 본인 파일만 갱신, 머지 시점 일괄 검증
-6. **package.json**: 가능하면 신규 dep 없이 진행, 추가 시 lock 충돌 = `npm install` 재실행
-7. **lib/auth·admin-guard**: 절대 변경 금지
-
----
-
-## 4. 채팅별 시작 프롬프트 — 템플릿
-
-새 병렬 작업 채팅에 첫 메시지로 아래를 채워서 붙여넣는다.
+## 5. 머지 순서 (강제)
 
 ```
-[작업 {X} — {우선순위 #N}: {제목}]
+B 백 머지 → Swain 마이그 호출 → schema 활성화·마이그 파일 삭제 → A 프론트 머지 → C 검증 → C fix(있으면) 머지
+```
 
-PROJECT_STATE.md 와 CLAUDE.md 를 먼저 읽고 작업해줘.
+이 순서를 어기면:
+- A 먼저 머지: 프론트가 호출할 백이 없음 → 라이브 깨짐
+- 마이그 전 schema 활성화: drizzle SELECT 깨짐 → 어드민 로그인 불가 등 광범위 회귀
+- C 먼저 검증: 검증할 코드가 없음
 
-## 읽어야 할 섹션
-- CLAUDE.md 전체 (자동 로드)
-- PROJECT_STATE.md §4.{X} (본인 작업 정의), §6.6 미해결 이슈
-- docs/PARALLEL_GUIDE.md §3 (충돌 매트릭스)
-- {추가로 읽을 코드 파일·라인}
+### 마이그 호출 흐름 (Swain 액션 포함)
 
-## 작업 범위 (이 채팅에서만 작업)
-PROJECT_STATE.md §4.{X} 의 신규/확장 파일 목록만. 다른 작업 영역 절대 건드리지 말 것.
-
-## 금지 영역
-- public/admin.html / public/mypage.html / public/admin.js / db/schema.ts: 본인 섹션 끝에만 추가
-- lib/auth.ts, lib/admin-guard.ts: 변경 금지
-- 다른 작업의 신규/확장 파일: 일체 손대지 말 것
-
-## 완료 조건
-1. 마이그레이션 호출 성공(사용자 ?run=1) → schema.ts 활성화 → 함수 삭제 + 커밋
-2. {기능별 검증 시나리오 — 사용자가 검증 가능}
-3. 사용자 검증 완료 보고
-4. PROJECT_STATE.md §4.{X} 진행률 100% 갱신 + §2 마지막 업데이트 행 추가
-
-## 갱신 의무
-- 시작 시: §4.{X} 진행률 ⬜0% → 🟡 진행중
-- 마일스톤마다: 다음 할 일 갱신
-- 종료 시: ✅ 100% + §2 행 추가 + git push
-
-## 브랜치 / worktree
-- 브랜치: feature/{브랜치명} (베이스: origin/main)
-- 폴더: ../tbfa-mis-{X} (없으면 docs/PARALLEL_GUIDE.md §2 참고하여 생성)
-
-자, CLAUDE.md + PROJECT_STATE.md 읽고 시작 보고해줘.
+```
+1. B push
+2. 메인이 B 브랜치 → main 머지 → push
+3. Netlify 자동 배포 (1~3분)
+4. 메인이 Swain께 마이그 URL 안내: /api/migrate-{이름}?run=1
+5. Swain 어드민 로그인 후 주소창 입력
+6. {"ok":true,...} 응답 확인 → 메인에 보고
+7. 메인 또는 C가 schema 정의 활성화 + 마이그 파일 삭제 → push
+8. A 머지 가능
 ```
 
 ---
 
-## 5. 머지·검증 체크리스트 (모든 채팅 공통)
+## 6. 4채팅 시작 프롬프트 (라운드 설계서 §6에 자동 포함)
 
-### 머지 전
-- [ ] `git fetch origin && git rebase origin/main` 충돌 해결
-- [ ] CLAUDE.md §13 체크리스트 통과
-- [ ] 마이그레이션 호출 성공 → schema 정의 활성화 → 함수 삭제 완료
-- [ ] 캐시버스터 갱신
-- [ ] 로컬 동작 확인 (`npm run dev` → 핵심 시나리오)
+매 라운드 메인이 설계서를 작성하면 §6에 4종 프롬프트가 자동으로 채워진다. Swain은 복붙만.
 
-### 머지 후
-- [ ] Netlify 배포 확인 (1~2분)
-- [ ] 사용자 검증 시나리오 안내
-- [ ] PROJECT_STATE.md §4.{X} 진행률 100% + §2 마지막 업데이트 행 추가 후 push
+표준 양식은 [`PARALLEL_TEMPLATE.md`](PARALLEL_TEMPLATE.md) §6 참고.
 
-### 머지 순서 권장
-- 의존성 있는 작업: A → B → C 순서로 직렬
-- 독립 작업: 임의 순서, 단 매 머지 직전 `git fetch origin && git merge origin/main` (또는 rebase) 후 충돌 해결
-- schema.ts append-only 위반 시 즉시 push 보류 → 본인 섹션 헤더 누락 여부 검증 → 재푸시
+---
+
+## 7. 검증 책임 분배
+
+### B·A의 자체 검증 (push 전)
+
+| 채팅 | 자체 검증 항목 |
+|---|---|
+| **B** | `npx tsc --noEmit` 통과 / curl 또는 단위 테스트로 API 동작 확인 / schema import 누락 점검 |
+| **A** | 화면 진입·버튼·폼 제출 흐름 동작 / 캐시버스터 갱신 / 콘솔 에러 0 |
+
+### C의 라이브 검증 (대행)
+
+이전엔 Swain이 라이브 클릭 검증. 새 구조에서는 **C가 Opus 4.7로 라이브 검증 대행**.
+
+C 검증 시나리오:
+1. 라운드 설계서 §4 Q1~Qn 시나리오 라이브 실행
+2. 회귀 점검 — 어드민 로그인·기존 화면·핵심 흐름 깨짐 여부
+3. bug 발견 시 fix 커밋 (verify 브랜치 그대로) → 메인 보고 → 머지
+4. 백필 필요 시 1회용 마이그 작성·Swain 호출·삭제
+5. 보고서 `docs/verify/{날짜}-phase{N}-r{M}.md`
+
+### Swain 검증 (외부 시스템 한정)
+
+다음만 Swain이 직접:
+- 외부 API 실 발송 (SMS·카카오 알림톡 수신 확인)
+- 결제 PG 라이브 흐름
+- 외부 콘솔 작업 (Netlify 환경변수·DB 백업)
+
+---
+
+## 8. C 대기열 (Live-Verify Queue)
+
+C가 라이브 검증·백필 대기 중인 작업 목록은 [`PROJECT_STATE.md §9`](../PROJECT_STATE.md)에서 관리. C는 매 세션 시작 시 큐에서 가장 위 항목 1건을 처리.
+
+큐 우선순위 정책:
+1. 머지된 코드의 라이브 검증 (선입선출)
+2. 발견된 bug fix
+3. 백필·1회용 마이그
+4. 외부 시스템 검증 대행 (SMS·알림톡 등 환경변수 등록 후)
+
+---
+
+## 9. 머지·검증 체크리스트 (메인용)
+
+### B 머지 전
+- [ ] B 브랜치 `npx tsc --noEmit` 통과 보고 받음
+- [ ] `git fetch origin` 후 conflict 없음 확인
+- [ ] schema.ts import 라인 점검 (사용 타입 모두 import)
+- [ ] 마이그 파일 1회용 정책(GET ?run=1·requireAdmin·멱등) 확인
+
+### B 머지 후 (마이그 흐름)
+- [ ] Netlify 배포 1~3분 대기
+- [ ] Swain께 마이그 URL 안내
+- [ ] 응답 success 확인 후 schema 활성화·마이그 파일 삭제 push
+
+### A 머지 전
+- [ ] A 브랜치 화면 진입 동작 보고 받음
+- [ ] 캐시버스터 갱신 확인
+- [ ] B와 영역 충돌 0 확인 (`git diff main...A -- lib db netlify` = empty)
+
+### C 트리거
+- [ ] 라운드 설계서 §4 검증 시나리오 그대로 전달
+- [ ] 회귀 점검 영역 명시
+- [ ] 백필 필요 여부 명시
+
+### 라운드 마감
+- [ ] PROJECT_STATE §2 마지막 업데이트 행 추가
+- [ ] PROJECT_STATE §5 마일스톤 진행률 갱신
+- [ ] 다음 라운드 설계 또는 다음 Phase 진입
+
+---
+
+## 10. 사고 사례 학습
+
+### 2026-05-09 — 같은 working directory 공유 충돌
+**원인**: 두 채팅이 같은 폴더 사용. `git checkout`이 다른 채팅 워킹 트리 변경.
+**대응**: worktree 폴더 분리 강제 (§4).
+
+### 2026-05-09 — schema 영역 덮어쓰기
+**원인**: C가 자기 섹션 추가하면서 다른 작업 정의 함께 삭제.
+**대응**: B만 schema 작성. C는 fix 시에만 예외(파일 끝 헤더 명시).
+
+### 2026-05-09 — `requireActiveUser` uid 필드명 오류 (#BUG-1)
+**원인**: 헬퍼 도입 후 9개 사용처 1회 검증 누락.
+**대응**: 헬퍼 도입 직후 모든 사용처 1회 검증 의무화.
+
+### 2026-05-10 — `bigserial` import 누락
+**원인**: schema.ts에 신규 타입 사용하면서 상단 import 라인 갱신 누락 → 함수 임포트 시점에 깨짐 → 라이브 광범위 502.
+**대응**: B는 push 전 `npx tsc --noEmit` 의무 통과.
+
+---
+
+**최종 갱신**: 2026-05-10 (4채팅 새 구조 도입)
