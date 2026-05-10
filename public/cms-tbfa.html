@@ -198,7 +198,7 @@
 
   <!-- ============ 사이드바 ============ -->
   <aside class="cms-side">
-    <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+    <!-- 퀵이동 (최상단 고정) -->
     <div class="quick-jump" data-quick-jump></div>
 
     <div class="cms-logo">
@@ -210,13 +210,14 @@
         </svg>
       </div>
       <div>
-        교유협 CMS
-        <span>TBFA UNIFIED</span>
+        교유협 통합 CMS
+        <span>NPO MANAGEMENT</span>
       </div>
     </div>
 
     <nav class="cms-menu">
-      <!-- ───── 1뎁스: 🛠 워크스페이스 (토글, 기본 접힘) ───── -->
+
+      <!-- ── 🛠 워크스페이스 ── -->
       <li class="cms-menu-group">
         <a href="#" data-sidebar-group="workspace" aria-expanded="false">
           <i>🛠</i><span>워크스페이스</span>
@@ -231,61 +232,45 @@
         </ul>
       </li>
 
-      <!-- ───── 1뎁스 그룹: 📊 운영 ───── -->
+      <!-- ── 📈 대시보드 ── -->
       <li class="cms-menu-section">
-        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">📊 운영</div>
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">대시보드</div>
       </li>
-      <li><a href="#dashboard" class="on" data-tab="dashboard">
-        <i>📈</i><span>대시보드</span>
-      </a></li>
-      <li><a href="#members" data-tab="members">
-        <i>👥</i><span>통합 일반 회원</span>
-      </a></li>
+      <li><a href="#dashboard" class="on" data-tab="dashboard"><i>📈</i><span>대시보드</span></a></li>
 
-      <!-- ───── 1뎁스 그룹: 💰 후원 관리 ───── -->
+      <!-- ── 👥 회원·유가족 관리 ── -->
+      <li class="cms-menu-section">
+        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">👥 회원·유가족</div>
+      </li>
+      <li><a href="#members" data-tab="members"><i>👥</i><span>통합 일반 회원</span></a></li>
+      <li><a href="#import" data-tab="import"><i>📤</i><span>외부 등록</span></a></li>
+      <li><a href="#transfer" data-tab="transfer"><i>🔄</i><span>웹 → 이관</span></a></li>
+      <li><a href="#tags" data-tab="tags"><i>🏷️</i><span>태그 관리</span></a></li>
+
+      <!-- ── 💰 후원·재정 관리 ── -->
       <li class="cms-menu-group" data-group="donation">
         <a href="#" data-toggle="donation">
-          <i>💰</i><span>후원 관리</span>
+          <i>💰</i><span>후원·재정 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="donation" style="display:block">
-          <li><a href="#donor-regular" data-tab="donor-regular">
-            <i>🔁</i><span>정기 후원자 관리</span>
-          </a></li>
-          <li><a href="#donor-prospect" data-tab="donor-prospect">
-            <i>💡</i><span>잠재 후원자 관리</span>
-          </a></li>
-          <li><a href="#hyosung" data-tab="hyosung">
-            <i>🏦</i><span>효성 CMS+</span>
-          </a></li>
-          <li><a href="#toss-billing" data-tab="toss-billing">💳 토스 빌링 (자동 청구)</a></li>
-          <li><a href="#csv-import" data-tab="csv-import">📥 CSV 종합 검증 매핑</a></li>
-          <li><a href="#donation-dashboard" data-tab="donation-dashboard">🔍 종합 검증 대시보드</a></li>
+          <li><a href="#donor-regular" data-tab="donor-regular"><i>🔁</i><span>정기 후원자 관리</span></a></li>
+          <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>잠재 후원자 관리</span></a></li>
+          <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 CMS+</span></a></li>
+          <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>토스 빌링</span></a></li>
+          <li><a href="#donation-dashboard" data-tab="donation-dashboard"><i>🔍</i><span>종합 검증 대시보드</span></a></li>
         </ul>
       </li>
 
-      <!-- ───── 1뎁스 그룹: 🛎 운영 도구 ───── -->
+      <!-- ── 🛎 운영 도구 ── -->
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
       </li>
-      <li><a href="#import" data-tab="import">
-        <i>📤</i><span>외부 등록</span>
-      </a></li>
-      <li><a href="#transfer" data-tab="transfer">
-        <i>🔄</i><span>웹 → 이관</span>
-      </a></li>
-      <li><a href="#tags" data-tab="tags">
-        <i>🏷️</i><span>태그 관리</span>
-      </a></li>
-      <li><a href="#notify" data-tab="notify">
-        <i>📨</i><span>알림 발송</span>
-      </a></li>
-      <li><a href="#export" data-tab="export">
-        <i>📥</i><span>데이터 추출</span>
-      </a></li>
-      <li><a href="#receipt-settings" data-tab="receipt-settings">
-        <i>📄</i><span>영수증 설정</span>
-      </a></li>
+      <li><a href="#notify" data-tab="notify"><i>📨</i><span>알림 발송</span></a></li>
+      <li><a href="#csv-import" data-tab="csv-import"><i>📥</i><span>CSV 검증 매핑</span></a></li>
+      <li><a href="#export" data-tab="export"><i>📤</i><span>데이터 추출</span></a></li>
+      <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
+
     </nav>
   </aside>
 

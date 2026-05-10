@@ -2674,11 +2674,14 @@
   <div id="adminWrap" class="admin-wrap">
 
     <aside class="adm-side">
-      <!-- 퀵이동 (좌측 상단 고정) -->
+      <!-- 퀵이동 (최상단 고정) -->
       <div class="quick-jump" data-quick-jump></div>
-      <div class="adm-logo">싸이렌 ADMIN<span>NPO MANAGEMENT v1.0</span></div>
+
+      <div class="adm-logo">싸이렌 ADMIN<span>WEB MANAGEMENT</span></div>
+
       <ul class="adm-menu">
-        <!-- ───── 1뎁스: 🛠 워크스페이스 (토글, 기본 접힘) ───── -->
+
+        <!-- ── 🛠 워크스페이스 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="false">
             <i>🛠</i><span>워크스페이스</span>
@@ -2693,165 +2696,135 @@
           </ul>
         </li>
 
-        <!-- ───── 1뎁스 그룹: 📊 운영 (싸이렌 ADMIN 본체) ───── -->
+        <!-- ── 📈 대시보드 ── -->
         <li class="adm-menu-group">
-          <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line);margin-top:6px">📊 운영</div>
+          <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line);margin-top:6px">대시보드</div>
         </li>
         <li><a class="on" data-page="dashboard"><i>📈</i><span>대시보드</span></a></li>
-        <li><a data-page="members"><i>👥</i><span>회원 관리</span><span class="adm-badge" id="membersApprovalsBadge" style="display:none">0</span></a></li>
-        <li><a data-page="donations"><i>💰</i><span>후원금 관리</span></a></li>
-        <li>
-          <a data-page="support">
-            <i>🤝</i><span>유가족 지원 관리</span>
-            <span class="adm-badge" id="supportNewBadge" style="display:none">0</span>
+        <li><a data-page="unified-dashboard"><i>📊</i><span>통합 분석</span></a></li>
+
+        <!-- ── 🌐 홈페이지 관리 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="homepage" aria-expanded="false">
+            <i>🌐</i><span>홈페이지 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul class="adm-submenu" data-sidebar-submenu="homepage" aria-hidden="true" style="display:none">
+            <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i>🎨</i><span>메인 화면 편집</span></a></li>
+            <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
+            <li><a data-page="report"><i>📋</i><span>주간 보고서</span></a></li>
+          </ul>
         </li>
 
-        <!-- ★ M-10: 사이렌 관리 (4개 통합) -->
-        <li class="adm-menu-group">
-          <div style="padding:14px 18px 8px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;border-top:1px solid var(--line);margin-top:8px">
-            🚨 사이렌 관리 (교원 전용)
-          </div>
-        </li>
-        <!-- Phase 12: 익명 신원 식별 -->
-        <li>
-          <a href="/admin-anon-reveal.html"
-             onclick="window.location.href='/admin-anon-reveal.html';return false;">
-            <i>🕵️</i><span>익명 신원 식별</span>
+        <!-- ── 🚨 사이렌 신고 관리 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="siren" aria-expanded="false">
+            <i>🚨</i><span>사이렌 신고 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
-        </li>
-        <li>
-          <a href="/admin-anon-audit.html"
-             onclick="window.location.href='/admin-anon-audit.html';return false;">
-            <i>📋</i><span>익명 감사 로그</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="siren-incidents">
-            <i>🔍</i><span>사건 제보 관리</span>
-            <span class="adm-badge" id="sirenIncidentBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="siren-harassment">
-            <i>⚠️</i><span>악성민원 관리</span>
-            <span class="adm-badge" id="sirenHarassmentBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="siren-legal">
-            <i>⚖️</i><span>법률지원 관리</span>
-            <span class="adm-badge" id="sirenLegalBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="siren-board">
-            <i>💬</i><span>자유게시판 관리</span>
-            <span class="adm-badge" id="sirenBoardBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="siren-stats">
-            <i>📊</i><span>신고 통계</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="agency-mgmt">
-            <i>🏛️</i><span>외부 기관 관리</span>
-          </a>
-        </li>
-        <li>
-          <a data-page="referral-history">
-            <i>📤</i><span>인계 이력</span>
-          </a>
-        </li>
-        <li class="adm-menu-group">
-          <div style="padding:8px 18px 4px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.5px;border-top:1px solid var(--line);margin-top:8px"></div>
+          <ul class="adm-submenu" data-sidebar-submenu="siren" aria-hidden="true" style="display:none">
+            <li>
+              <a data-page="siren-incidents">
+                <i>🔍</i><span>사건 제보 관리</span>
+                <span class="adm-badge" id="sirenIncidentBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li>
+              <a data-page="siren-harassment">
+                <i>⚠️</i><span>악성민원 관리</span>
+                <span class="adm-badge" id="sirenHarassmentBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li>
+              <a data-page="siren-legal">
+                <i>⚖️</i><span>법률지원 관리</span>
+                <span class="adm-badge" id="sirenLegalBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li>
+              <a data-page="siren-board">
+                <i>💬</i><span>자유게시판 관리</span>
+                <span class="adm-badge" id="sirenBoardBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li><a data-page="siren-stats"><i>📊</i><span>신고 통계</span></a></li>
+            <li><a data-page="agency-mgmt"><i>🏛️</i><span>외부 기관 관리</span></a></li>
+            <li><a data-page="referral-history"><i>📤</i><span>인계 이력</span></a></li>
+            <li><a href="/admin-anon-reveal.html" onclick="window.location.href='/admin-anon-reveal.html';return false;"><i>🕵️</i><span>익명 신원 식별</span></a></li>
+            <li><a href="/admin-anon-audit.html" onclick="window.location.href='/admin-anon-audit.html';return false;"><i>📋</i><span>익명 감사 로그</span></a></li>
+          </ul>
         </li>
 
-<!-- public/admin.html — 사이드바 메뉴에 추가 -->
-<li><a data-page="operators">👨‍💼 운영자 관리</a></li>
-        <li>
-          <a data-page="chat">
-            <i>💬</i><span>문의 관리</span>
-            <span class="adm-badge" id="chatNewBadge" style="display:none">0</span>
+        <!-- ── 💬 회원·문의 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="members" aria-expanded="false">
+            <i>👥</i><span>회원·문의</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul class="adm-submenu" data-sidebar-submenu="members" aria-hidden="true" style="display:none">
+            <li>
+              <a data-page="members">
+                <i>👤</i><span>회원 관리</span>
+                <span class="adm-badge" id="membersApprovalsBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li>
+              <a data-page="chat">
+                <i>💬</i><span>문의 관리</span>
+                <span class="adm-badge" id="chatNewBadge" style="display:none">0</span>
+              </a>
+            </li>
+            <li>
+              <a data-page="eligibility">
+                <i>🎓</i><span>자격 변경 심사</span>
+                <span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span>
+              </a>
+            </li>
+          </ul>
         </li>
-        <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
-        <li><a href="/admin-site-builder.html" target="_self"><i>🎨</i><span>메인 화면 편집</span></a></li>
-        <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
-        <li><a data-page="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
-        <li>
-          <a data-page="hyosung">
-            <i>🏦</i><span>효성 CMS+ 관리</span>
-            <span class="adm-badge" id="hyosungPendingBadge" style="display:none">0</span>
+
+        <!-- ── 📨 알림·발송 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="send" aria-expanded="false">
+            <i>📨</i><span>알림·발송</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul class="adm-submenu" data-sidebar-submenu="send" aria-hidden="true" style="display:none">
+            <li><a href="/admin-send-jobs.html" onclick="window.location.href='/admin-send-jobs.html';return false;"><i>📤</i><span>발송 작업</span></a></li>
+            <li><a href="/admin-templates.html" onclick="window.location.href='/admin-templates.html';return false;"><i>📝</i><span>발송 템플릿</span></a></li>
+            <li><a href="/admin-recipient-groups.html" onclick="window.location.href='/admin-recipient-groups.html';return false;"><i>👥</i><span>수신자 그룹</span></a></li>
+            <li><a href="/admin-auto-triggers.html" onclick="window.location.href='/admin-auto-triggers.html';return false;"><i>🤖</i><span>AI 자동 발송</span></a></li>
+            <li><a href="/admin-send-analytics.html" onclick="window.location.href='/admin-send-analytics.html';return false;"><i>📊</i><span>발송 분석</span></a></li>
+            <li><a data-page="notification-logs"><i>📨</i><span>알림 발송 로그</span></a></li>
+          </ul>
         </li>
-        <!-- ★ M-16 STEP A: super_admin 전용 -->
-         <!-- public/admin.html — audit 메뉴 위에 1줄 추가 -->
-        <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
-        <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
-        <li data-super-only="1"><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
-        <li><a data-page="security-audit"><i>🔒</i><span>보안·감사 로그</span></a></li>
-        <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
-        <!-- 6순위 #6: 교원 자격 변경 심사 -->
-        <li><a data-page="eligibility"><i>🎓</i><span>자격 변경 심사</span><span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span></a></li>
-        <!-- 6순위 #8: 1:1 매칭 관리 -->
-        <li><a data-page="expert-match"><i>⚖️</i><span>1:1 매칭 관리</span><span class="adm-badge" id="expertMatchMenuBadge" style="display:none">0</span></a></li>
-        <!-- Phase 15: 전문가 프로필 관리 -->
-        <li><a data-page="expert-profiles"><i>👤</i><span>전문가 프로필 관리</span></a></li>
-        <!-- ★ 작업 C(#15): CSV 자동 매핑 (cms-tbfa.html#csv-import 외부 이동) -->
-        <li>
-          <a href="/cms-tbfa.html#csv-import"
-             onclick="window.location.href='/cms-tbfa.html#csv-import';return false;">
-            <i>📥</i><span>CSV 자동 매핑</span>
+
+        <!-- ── 🤖 AI·분석 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="ai" aria-expanded="false">
+            <i>🤖</i><span>AI·분석</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul class="adm-submenu" data-sidebar-submenu="ai" aria-hidden="true" style="display:none">
+            <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
+            <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
+          </ul>
         </li>
-        <!-- Phase 4: 대표 보고 시스템 -->
-        <li><a data-page="report"><i>📊</i><span>주간 보고서</span></a></li>
-        <!-- Phase 16: 통합 분석 대시보드 -->
-        <li><a data-page="unified-dashboard"><i>📈</i><span>통합 분석 대시보드</span></a></li>
-        <!-- Phase 5~7: 재정 관리 -->
-        <li class="adm-menu-group"><span class="adm-menu-group-label">재정 관리</span></li>
-        <li><a data-page="finance-income"><i>💵</i><span>수입 현황</span></a></li>
-        <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
-        <li><a data-page="finance-report"><i>🗂</i><span>재무 보고서</span></a></li>
-        <li><a data-page="notification-logs"><i>📨</i><span>알림 발송 로그</span></a></li>
-        <!-- Phase 10 R1: 발송 템플릿 관리 (별도 페이지) -->
-        <li>
-          <a href="/admin-templates.html"
-             onclick="window.location.href='/admin-templates.html';return false;">
-            <i>📝</i><span>발송 템플릿</span>
+
+        <!-- ── ⚙️ 시스템 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="system" aria-expanded="false">
+            <i>⚙️</i><span>시스템</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul class="adm-submenu" data-sidebar-submenu="system" aria-hidden="true" style="display:none">
+            <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
+            <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
+            <li data-super-only="1"><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
+            <li><a data-page="security-audit"><i>🔒</i><span>보안·감사 로그</span></a></li>
+          </ul>
         </li>
-        <!-- Phase 10 R2: 수신자 그룹 관리 (별도 페이지) -->
-        <li>
-          <a href="/admin-recipient-groups.html"
-             onclick="window.location.href='/admin-recipient-groups.html';return false;">
-            <i>👥</i><span>수신자 그룹</span>
-          </a>
-        </li>
-        <!-- Phase 10 R3: 발송 작업 (즉시·예약 발송 큐) -->
-        <li>
-          <a href="/admin-send-jobs.html"
-             onclick="window.location.href='/admin-send-jobs.html';return false;">
-            <i>📤</i><span>발송 작업</span>
-          </a>
-        </li>
-        <!-- Phase 10 R4: AI 자동 발송 트리거 -->
-        <li>
-          <a href="/admin-auto-triggers.html"
-             onclick="window.location.href='/admin-auto-triggers.html';return false;">
-            <i>🤖</i><span>AI 자동 발송</span>
-          </a>
-        </li>
-        <!-- Phase 10 R4: 발송 분석 대시보드 -->
-        <li>
-          <a href="/admin-send-analytics.html"
-             onclick="window.location.href='/admin-send-analytics.html';return false;">
-            <i>📊</i><span>발송 분석</span>
-          </a>
-        </li>
+
       </ul>
     </aside>
 
