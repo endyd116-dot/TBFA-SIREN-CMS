@@ -2146,28 +2146,27 @@ export type NotificationAdminSetting = typeof notificationAdminSettings.$inferSe
 export type NewNotificationAdminSetting = typeof notificationAdminSettings.$inferInsert;
 
 /* === Phase 10 R1 — 템플릿 빌더 === */
-// ※ 마이그레이션(/api/migrate-phase10-templates?run=1) 호출 확인 후 주석 해제
 
-// export const communicationTemplates = pgTable("communication_templates", {
-//   id:           bigserial("id", { mode: "number" }).primaryKey(),
-//   name:         varchar("name", { length: 100 }).notNull(),
-//   channel:      text("channel").notNull(),
-//   category:     text("category").notNull(),
-//   subject:      text("subject"),
-//   bodyTemplate: text("body_template").notNull(),
-//   variables:    jsonb("variables").default(sql`'[]'::jsonb`).notNull(),
-//   isActive:     boolean("is_active").default(true).notNull(),
-//   createdBy:    integer("created_by").references(() => members.id, { onDelete: "set null" }),
-//   updatedBy:    integer("updated_by").references(() => members.id, { onDelete: "set null" }),
-//   createdAt:    timestamp("created_at").defaultNow().notNull(),
-//   updatedAt:    timestamp("updated_at").defaultNow().notNull(),
-// }, (t) => ({
-//   channelIdx:  index("comm_templates_channel_idx").on(t.channel),
-//   categoryIdx: index("comm_templates_category_idx").on(t.category),
-//   activeIdx:   index("comm_templates_active_idx").on(t.isActive),
-// }));
-//
-// export type CommunicationTemplate    = typeof communicationTemplates.$inferSelect;
-// export type NewCommunicationTemplate = typeof communicationTemplates.$inferInsert;
+export const communicationTemplates = pgTable("communication_templates", {
+  id:           bigserial("id", { mode: "number" }).primaryKey(),
+  name:         varchar("name", { length: 100 }).notNull(),
+  channel:      text("channel").notNull(),
+  category:     text("category").notNull(),
+  subject:      text("subject"),
+  bodyTemplate: text("body_template").notNull(),
+  variables:    jsonb("variables").default(sql`'[]'::jsonb`).notNull(),
+  isActive:     boolean("is_active").default(true).notNull(),
+  createdBy:    integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  updatedBy:    integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  channelIdx:  index("comm_templates_channel_idx").on(t.channel),
+  categoryIdx: index("comm_templates_category_idx").on(t.category),
+  activeIdx:   index("comm_templates_active_idx").on(t.isActive),
+}));
+
+export type CommunicationTemplate    = typeof communicationTemplates.$inferSelect;
+export type NewCommunicationTemplate = typeof communicationTemplates.$inferInsert;
 
 
