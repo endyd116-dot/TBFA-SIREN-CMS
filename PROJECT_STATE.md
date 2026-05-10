@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 13 B+A 머지 완료 (618033b)** — admin-incident-stats.ts 신규 / admin-siren-stats.js 신규 / admin.html 메뉴+섹션 추가 / A 실 API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 11+12 A 머지 완료 (API 경로 11개 불일치 수정 후)** — feature/phase11-12-front 머지(e1ba80f) / my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit 등 17파일 |
 | 2026-05-11 | **A 채팅** | **Phase 11·12 프론트 구현 완료** — 신규 10파일(@멘션·구독버튼·my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit) + 기존 7파일 수정. 브랜치 feature/phase11-12-front (8cd1492) |
 | 2026-05-11 | **메인** | **Phase 11+12 B 머지 완료 + 마이그 4테이블 성공** — feature/phase11-12-back 머지(d5beb76) / 4테이블 생성 / 마이그 파일 삭제(ef63481) |
@@ -100,7 +101,7 @@
 | **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | ✅ 100% — 코드 머지 완료 + C 라이브 검증 PASS + BUG-9 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r4.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 11 멘션·구독** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
 | **Phase 12 신고 진행 공개 + 익명 강화** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
-| **Phase 13 신고 통계 대시보드** | ✅ 설계서 완료 ([2026-05-11-phase13-incident-stats.md](docs/milestones/2026-05-11-phase13-incident-stats.md)) / ⏸ B·A·C 대기 |
+| **Phase 13 신고 통계 대시보드** | 🟢 B+A 머지 완료 (618033b) / A 실 API 연결 진행 중 / ⏸ C 검증 대기 |
 | **Phase 14 외부 기관 인계** | ✅ 카탈로그 (신규) / ⏸ |
 | **Phase 15 전문가 매칭 고도화** | ✅ 카탈로그 / ⏸ |
 | **Phase 16 통합 분석 대시보드** | ✅ 카탈로그 (ANL-A+B+C+D 통합 + Phase 4 인계 보강) / ⏸ |
