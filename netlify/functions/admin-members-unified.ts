@@ -29,6 +29,8 @@ export default async function handler(req: Request, _ctx: Context) {
   const auth: any = await requireAdmin(req);
   if (!auth.ok) return auth.res;
 
+  const isSuperAdmin = auth.ctx.member.role === "super_admin";
+
   const url = new URL(req.url);
   const page      = Math.max(parseInt(url.searchParams.get("page")  || "1",  10), 1);
   const pageSize  = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
@@ -103,30 +105,32 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[admin-members-unified] memberGrades 조회 실패:", (err as any)?.message);
   }
 
-  // ── 운영자(role 있는 회원) 목록 ───────────────────────────
+  // ── 운영자(role 있는 회원) 목록 — super_admin만 조회 ─────
   let operators: any[] = [];
-  try {
-    operators = await db
-      .select({
-        id:              members.id,
-        name:            members.name,
-        email:           members.email,
-        role:            members.role,
-        operatorActive:  members.operatorActive,
-        notifyOnSupport: members.notifyOnSupport,
-        assignedCategories: members.assignedCategories,
-        lastLoginAt:     members.lastLoginAt,
-      })
-      .from(members)
-      .where(sql`${members.role} IS NOT NULL AND ${members.role} != ''`)
-      .orderBy(asc(members.name));
-  } catch (err) {
-    console.warn("[admin-members-unified] operators 조회 실패:", (err as any)?.message);
+  if (isSuperAdmin) {
+    try {
+      operators = await db
+        .select({
+          id:              members.id,
+          name:            members.name,
+          email:           members.email,
+          role:            members.role,
+          operatorActive:  members.operatorActive,
+          notifyOnSupport: members.notifyOnSupport,
+          assignedCategories: members.assignedCategories,
+          lastLoginAt:     members.lastLoginAt,
+        })
+        .from(members)
+        .where(sql`${members.role} IS NOT NULL AND ${members.role} != ''`)
+        .orderBy(asc(members.name));
+    } catch (err) {
+      console.warn("[admin-members-unified] operators 조회 실패:", (err as any)?.message);
+    }
   }
 
-  // ── 자격 변경 신청 목록 ───────────────────────────────────
+  // ── 자격 변경 신청 목록 — super_admin만 조회 ────────────
   let eligibility: any[] = [];
-  try {
+  if (isSuperAdmin) try {
     const eligRows = await db
       .select({
         id:            eligibilityChangeRequests.id,
@@ -177,5 +181,6 @@ export default async function handler(req: Request, _ctx: Context) {
     totalCount,
     page,
     pageSize,
+    isSuperAdmin,
   });
 }
