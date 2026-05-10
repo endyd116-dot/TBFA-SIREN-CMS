@@ -2659,11 +2659,11 @@
         </svg>
       </div>
       <h2 class="serif">관리자 로그인</h2>
-      <p class="login-sub">관리자 페이지 접속을 위해 인증이 필요합니다.<br />최초 접속 정보 : <code>admin / admin1234</code></p>
+      <p class="login-sub">관리자 페이지 접속을 위해 인증이 필요합니다.</p>
 
-      <form id="adminLoginForm">
-        <div class="fg"><label>관리자 ID</label><input id="adm_id" type="text" required value="admin"></div>
-        <div class="fg"><label>비밀번호</label><input id="adm_pw" type="password" required value="admin1234"></div>
+      <form id="adminLoginForm" autocomplete="off">
+        <div class="fg"><label>관리자 ID</label><input id="adm_id" type="text" required autocomplete="username"></div>
+        <div class="fg"><label>비밀번호</label><input id="adm_pw" type="password" required autocomplete="current-password"></div>
         <div class="fg"><label>OTP 인증 코드 <span class="hint">(2단계 인증)</span></label><input type="text" id="adm_otp" placeholder="000000" maxlength="6"></div>
         <button type="submit" class="btn btn-primary btn-block">인증 후 접속</button>
         <p class="form-link"><a href="/" data-action="admin-exit">← 사용자 사이트로 돌아가기</a></p>
