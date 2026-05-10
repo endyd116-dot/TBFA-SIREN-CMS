@@ -27,11 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 새 메인 채팅 | **6순위 #8 재설계 + 버그 수정 (89555cb)** — 화면 안 보이는 버그(div ID 불일치) 수정. 하이브리드 배치: 어드민 유가족지원·법률지원 목록에 직접 배정 버튼 + 통합 매칭 관리는 모니터링 겸용 유지. 마이페이지 신청 내역(유가족/법률)에 배정 시 채팅 버튼 추가. Swain V1 재검증 필요 |
 | 2026-05-10 | 메인 채팅 | **Phase 4 병렬 시작 (94a725c)** — 설계서(DESIGN_PHASE4_REPORT.md) + 마이그 호출 완료 + 백엔드 5개(report-collector/list/detail/generate/cron-agent-9) + A(feature/phase4-frontend) + B(feature/phase4-email-print) 워크트리 준비 완료. 컨텍스트 한계 → 새 메인 채팅 예정 |
 | 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (fe84ed9)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착. Swain V1·V2·V3 검증 대기 |
-| 2026-05-10 | 메인 채팅 | **6순위 #8 1:1 매칭 채팅 시작 — 메인 1차 푸시** — Netlify 빌드 복구 완료(라이브 정상). 설계서(docs/DESIGN_EXPERT_MATCHING.md) + 마이그 함수(migrate-expert-matching.ts) 작성. 분담: 메인(schema·핵심 트랜잭션·머지) / A(백엔드 4개+가드) / B(프론트 전체). Swain 마이그 호출 대기 |
-| 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix — 한국어/영문 매핑·약정일 fallback·hyosung_billings 직접 합산(123c27c+60f9fb2) ④ 통합 회원 가입경로 KPI 카드(123c27c) |
-| 2026-05-10 | 메인 채팅 | **효성 CSV 검토 단계 복원 + DB 정합성 2회 마이그 (455f992)** — 직전 D1·D2가 검토 단계를 통째로 건너뛰던 문제를 되돌림(업로드 → 미확정 목록 → 통과 → 효성 저장소 적재 흐름 부활). v14↔schema.ts 컬럼 어긋남 9개+ + timestamp 1개 = **2차례 1회용 마이그 호출·삭제 완료**. 두 효성 테이블이 schema.ts와 100% 정합. **Swain V1 통과 재검증 대기 → 다음 메인 채팅이 검증부터 이어감** |
+| 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix ④ 통합 회원 가입경로 KPI 카드 |
+| 2026-05-10 | 메인 채팅 | **Phase 1·2 (#16 단계 B·C) 완료** — A·B·C 채팅 머지 + Swain 검증. tag `phase1-complete-20260510` + `phase2-complete-20260510`. #BUG-2 해소. 정기/잠재 화면 안착 |
 | 2026-05-10 | 메인 채팅 | **Phase 3 A 프론트·B 백엔드 머지 + M1·M2 라이브러리 신설** — `feature/phase3-frontend`(46047a5) + `feature/phase3-backend`(838e356+d607b7d) main 머지. D3·D4 효성 컬럼 보강 + D1·D7 정합성 + 검증 대시보드. lib/hyosung-mapper·hyosung-merge 신설(ebe4435) |
 | 2026-05-10 | 메인 채팅 | **Phase 1·2 (#16 단계 B·C) 완료** — A·B·C 채팅 머지 + Swain 검증. tag `phase1-complete-20260510` + `phase2-complete-20260510`. #BUG-2 해소. 정기/잠재 화면 안착 |
 
