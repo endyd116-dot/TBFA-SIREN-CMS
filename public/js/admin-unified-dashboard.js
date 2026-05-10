@@ -1,56 +1,9 @@
 /* =========================================================
    SIREN — admin-unified-dashboard.js
-   Phase 16: 통합 분석 대시보드 (mock 모드 — B 머지 후 실 API 전환)
+   Phase 16: 통합 분석 대시보드 (실 API 연결)
    ========================================================= */
 (function () {
   'use strict';
-
-  /* ---- mock 데이터 (B 머지 전 사용) ---- */
-  var USE_MOCK = true;
-
-  var MOCK_KPI = {
-    ok: true, period: '30d',
-    donation: {
-      totalAmount: 4500000, totalCount: 38, newDonors: 12, regularRetentionRate: 0.87,
-      monthlyTrend: [
-        { month: '2026-03', amount: 2100000, count: 18 },
-        { month: '2026-04', amount: 2400000, count: 20 }
-      ]
-    },
-    member: {
-      newCount: 25, activeCount: 312, withdrawnCount: 3,
-      monthlyTrend: [{ month: '2026-03', newCount: 14, withdrawnCount: 1 }]
-    },
-    siren: {
-      totalNew: 17, resolvedRate: 0.71,
-      byType: [
-        { type: 'incident', count: 7 },
-        { type: 'harassment', count: 6 },
-        { type: 'legal', count: 4 }
-      ]
-    },
-    send: { totalJobs: 8, successRate: 0.94, openRate: 0.42 }
-  };
-
-  var MOCK_COHORT = {
-    ok: true,
-    cohorts: [
-      { month: '2026-01', newMembers: 22, firstDonationRate: 0.45, regularConvertRate: 0.18, churnRate: 0.09, avgDaysToFirstDonation: 12 },
-      { month: '2026-02', newMembers: 18, firstDonationRate: 0.39, regularConvertRate: 0.22, churnRate: 0.06, avgDaysToFirstDonation: 9 }
-    ]
-  };
-
-  var MOCK_CHURN = {
-    ok: true,
-    summary: { highRisk: 14, mediumRisk: 38, total: 52 },
-    members: [
-      {
-        id: 42, name: '홍길동', churnRiskScore: 85, churnRiskLevel: 'high',
-        lastLoginAt: '2026-03-10T08:00:00Z', lastDonationAt: '2026-02-01T00:00:00Z',
-        totalDonationAmount: 360000
-      }
-    ]
-  };
 
   /* ---- Chart 인스턴스 관리 ---- */
   var _chartTrend = null;
@@ -121,7 +74,6 @@
     c.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">' +
         '<h2 style="font-size:20px;font-weight:700;margin:0">📈 통합 분석 대시보드</h2>' +
-        (USE_MOCK ? '<span style="font-size:12px;color:#f59e0b;background:#fef3c7;padding:2px 8px;border-radius:4px;font-weight:600">MOCK 데이터</span>' : '') +
       '</div>' +
 
       /* KPI 카드 영역 */
@@ -157,31 +109,29 @@
   /* ---- KPI 카드 로드 ---- */
 
   async function loadKpi() {
-    var data;
-    if (USE_MOCK) {
-      data = MOCK_KPI;
-    } else {
-      var res = await apiCall('/api/admin-dashboard-kpi?period=30d');
-      if (!res.ok) {
-        document.getElementById('ud-kpi').innerHTML =
-          '<p style="color:var(--danger,#ef4444);font-size:13px">KPI 데이터를 불러오지 못했습니다.</p>';
-        return;
-      }
-      data = res.data.data || res.data;
+    var res = await apiCall('/api/admin-dashboard-kpi?period=30d');
+    if (!res.ok) {
+      document.getElementById('ud-kpi').innerHTML =
+        '<p style="color:var(--danger,#ef4444);font-size:13px">KPI 데이터를 불러오지 못했습니다: ' +
+        escapeHtml((res.data && res.data.error) || '') + '</p>';
+      return;
     }
+    var data = res.data.data || res.data;
     renderKpi(data);
-    renderTrendChart(data.donation);
-    renderSirenChart(data.siren);
+    renderTrendChart(data.donation || {});
+    renderSirenChart(data.siren || {});
   }
 
   function renderKpi(d) {
     var el = document.getElementById('ud-kpi');
     if (!el) return;
+    var donation = d.donation || {};
+    var member = d.member || {};
     var cards = [
-      { label: '월간 후원 수입', value: fmtAmount(d.donation.totalAmount), icon: '💰', color: '#10b981' },
-      { label: '신규 후원자', value: fmtNum(d.donation.newDonors) + '명', icon: '🙋', color: '#3b82f6' },
-      { label: '정기 유지율', value: fmtPct(d.donation.regularRetentionRate), icon: '🔄', color: '#8b5cf6' },
-      { label: '신규 회원', value: fmtNum(d.member.newCount) + '명', icon: '👤', color: '#f59e0b' }
+      { label: '월간 후원 수입', value: fmtAmount(donation.totalAmount), icon: '💰', color: '#10b981' },
+      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '🙋', color: '#3b82f6' },
+      { label: '정기 유지율', value: fmtPct(donation.regularRetentionRate), icon: '🔄', color: '#8b5cf6' },
+      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '👤', color: '#f59e0b' }
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div style="background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:20px;text-align:center">' +
@@ -262,18 +212,14 @@
   /* ---- 코호트 분석 테이블 ---- */
 
   async function loadCohort() {
-    var data;
-    if (USE_MOCK) {
-      data = MOCK_COHORT;
-    } else {
-      var res = await apiCall('/api/admin-cohort-analysis');
-      if (!res.ok) {
-        document.getElementById('ud-cohort').innerHTML =
-          '<p style="color:var(--danger,#ef4444);font-size:13px">코호트 데이터를 불러오지 못했습니다.</p>';
-        return;
-      }
-      data = res.data.data || res.data;
+    var res = await apiCall('/api/admin-dashboard-cohort?months=6');
+    if (!res.ok) {
+      document.getElementById('ud-cohort').innerHTML =
+        '<p style="color:var(--danger,#ef4444);font-size:13px">코호트 데이터를 불러오지 못했습니다: ' +
+        escapeHtml((res.data && res.data.error) || '') + '</p>';
+      return;
     }
+    var data = res.data.data || res.data;
     renderCohortTable(data.cohorts || []);
   }
 
@@ -316,18 +262,14 @@
   /* ---- 이탈 위험 회원 목록 ---- */
 
   async function loadChurn() {
-    var data;
-    if (USE_MOCK) {
-      data = MOCK_CHURN;
-    } else {
-      var res = await apiCall('/api/admin-churn-members');
-      if (!res.ok) {
-        document.getElementById('ud-churn').innerHTML =
-          '<p style="color:var(--danger,#ef4444);font-size:13px">이탈 위험 데이터를 불러오지 못했습니다.</p>';
-        return;
-      }
-      data = res.data.data || res.data;
+    var res = await apiCall('/api/admin-dashboard-churn?level=all');
+    if (!res.ok) {
+      document.getElementById('ud-churn').innerHTML =
+        '<p style="color:var(--danger,#ef4444);font-size:13px">이탈 위험 데이터를 불러오지 못했습니다: ' +
+        escapeHtml((res.data && res.data.error) || '') + '</p>';
+      return;
     }
+    var data = res.data.data || res.data;
     renderChurnList(data);
   }
 
@@ -408,11 +350,7 @@
   }
 
   async function sendReengageMessage(memberId, memberName) {
-    if (!confirm(escapeHtml(memberName) + ' 님에게 재참여 메시지를 발송할까요?')) return;
-    if (USE_MOCK) {
-      toast('(MOCK) ' + memberName + ' 님에게 재참여 메시지를 발송했습니다.');
-      return;
-    }
+    if (!confirm(memberName + ' 님에게 재참여 메시지를 발송할까요?')) return;
     var res = await fetch('/api/admin-send-reengage', {
       method: 'POST',
       credentials: 'include',
@@ -431,12 +369,10 @@
 
   window.SIREN_UNIFIED_DASHBOARD = { load: load };
 
-  /* admin.html의 페이지 전환 이벤트 수신 */
   document.addEventListener('siren:page', function (e) {
     if (e.detail && e.detail.page === 'unified-dashboard') load();
   });
 
-  /* data-page 클릭 기반 페이지 전환 폴백 */
   document.addEventListener('click', function (e) {
     var link = e.target.closest('[data-page="unified-dashboard"]');
     if (link) setTimeout(load, 80);
