@@ -257,7 +257,155 @@ A·B 코드 머지 시점에 다음 환경변수 추가:
 
 ---
 
-## 11. 참고
+---
+
+## 11. 환경변수 등록 가이드 (Swain 직접 / Netlify 콘솔)
+
+A·B Phase 9 코드 머지 후 즉시 작동하려면 다음 환경변수를 Netlify 콘솔에 등록해야 한다. 보안상 키 값은 메인·코드 채팅에 공유하지 말고 Swain이 콘솔에 직접 입력.
+
+### 필수 키 5개
+
+| 환경변수 키 | 용도 | 출처 |
+|---|---|---|
+| `ALIGO_API_KEY` | Aligo API 인증 키 | Aligo 콘솔 → API Key 발급 |
+| `ALIGO_USER_ID` | Aligo 계정 ID | Aligo 가입 시 ID |
+| `ALIGO_SENDER` | 등록 발신번호 (협회 대표번호) | Aligo 콘솔 → 발신번호 등록 후 |
+| `ALIGO_KAKAO_CHANNEL_ID` | 협회 카카오톡 채널 ID | 카카오 채널 연동 후 |
+| `NOTIFICATION_TEST_MODE` | 테스트 모드 (true/false) | 운영 시 `false`, 개발 시 `true` 권장 |
+
+### 알림톡 템플릿 ID (심사 통과 후)
+
+| 환경변수 키 | 매핑 이벤트 | 등록 시점 |
+|---|---|---|
+| `ALIGO_TEMPLATE_BILLING_FAILED` | `billing.failed` | 카카오 심사 통과 시 |
+| `ALIGO_TEMPLATE_CARD_EXPIRING` | `card.expiring` | 카카오 심사 통과 시 |
+
+심사 통과 전에는 위 두 키를 빈 값 또는 미등록 상태로 두면 B 어댑터가 placeholder로 fallback (콘솔 로그만, 실 발송 X). 통과 후 값 입력하면 즉시 실 발송 작동.
+
+### Netlify 콘솔 경로
+
+1. https://app.netlify.com → tbfa-siren-cms 프로젝트
+2. Site settings → Environment variables → Add new variable
+3. 위 7개 키·값 입력 (필수 5개 즉시 + 템플릿 2개는 심사 통과 시)
+4. 저장 → 다음 배포 시 자동 적용 (또는 수동 재배포)
+
+---
+
+## 12. A 채팅 — Phase 9 SMS 어댑터 (C 1번 머지 후 발송)
+
+```
+[A 채팅 — Phase 9 SMS 어댑터 실연동 (Aligo)]
+
+워크트리: ../tbfa-mis-A
+브랜치: 새로 분기 — feature/phase9-sms-aligo (베이스 main @ 9aacc48 또는 그 이후)
+설계서 정독 (필수): docs/milestones/2026-05-10-phase9-external-services.md
+선행: ✅ Aligo 가입·발신번호 등록 완료 / ✅ Phase 8 100% (C 1번 머지 후)
+추정: 3~5h (Aligo SDK 단순 → 자체 TypeScript 래퍼 1~2h 포함)
+
+작업:
+  1) lib/aligo-client.ts (신규) — Aligo SMS API 자체 래퍼
+     - POST https://apis.aligo.in/send/ (또는 공식 엔드포인트)
+     - 인증: ALIGO_API_KEY + ALIGO_USER_ID
+     - 응답 파싱 + providerMessageId(msg_id) 추출
+     - 에러 처리·재시도 책임은 디스패처에 위임 (단일 호출 1회)
+     - TypeScript 타입 정의 — Aligo 응답 스키마
+
+  2) lib/notify-adapters/sms-aligo.ts (신규) — sms-placeholder.ts 대체
+     - send(opts) 인터페이스 그대로 (디스패처 변경 0)
+     - aligo-client 호출 + AdapterResult 매핑
+     - NOTIFICATION_TEST_MODE=true 시 콘솔 로그 + DB sent 기록만
+
+  3) lib/notify-dispatcher.ts — sms 어댑터 등록 변경
+     - sms-placeholder import 제거 → sms-aligo import
+     - 다른 채널(인앱·이메일·카카오)는 변경 없음
+
+  4) lib/notify-adapters/sms-placeholder.ts — 삭제
+
+  5) 환경변수 검증 (.env.example 갱신)
+     - ALIGO_API_KEY, ALIGO_USER_ID, ALIGO_SENDER
+
+  6) 단위 검증
+     - 빌링 실패 케이스 강제 → SMS 어댑터 호출 → Aligo 라이브 응답 → dispatch_logs sent
+     - 한 번 실제 발송 (테스트 번호)
+     - 잘못된 발신번호 케이스 → 에러 로그 + status=failed
+
+영역 회피:
+  - lib/notify-adapters/kakao-* (B 영역, 변경 없음)
+  - lib/notify-events.ts (이벤트 카탈로그, 변경 없음)
+  - 디스패처 본체는 어댑터 등록만 변경
+
+머지 전 체크 (CLAUDE.md §6 사전 점검):
+  - 응답 키 다중 fallback (Aligo 응답 구조 확인)
+  - 발신번호 잘못 입력 시 에러 메시지 명확
+  - 1회 실제 발송 검증 결과 메인 보고
+```
+
+---
+
+## 13. B 채팅 — Phase 9 카카오 알림톡 어댑터 (C 1번 머지 후 발송)
+
+```
+[B 채팅 — Phase 9 카카오 알림톡 어댑터 실연동 (Aligo)]
+
+워크트리: ../tbfa-mis-B
+브랜치: 새로 분기 — feature/phase9-kakao-aligo (베이스 main @ 9aacc48 또는 그 이후)
+설계서 정독 (필수): docs/milestones/2026-05-10-phase9-external-services.md
+선행: ✅ Aligo 가입·카카오 채널 연동 완료 / ⏸ 카카오 심사 진행 중 (코드 작업은 가능, 실 발송은 심사 통과 후)
+추정: 4~6h
+
+작업:
+  1) lib/aligo-kakao-client.ts (신규) — Aligo 알림톡 API 래퍼
+     - A의 lib/aligo-client.ts와 분리 (공통 인증만 공유 가능, 호출 엔드포인트 다름)
+     - POST 알림톡 엔드포인트
+     - 템플릿 ID + 변수 치환 페이로드 구성
+     - 응답 파싱 + providerMessageId 추출
+
+  2) lib/notify-adapters/kakao-aligo.ts (신규) — kakao-placeholder.ts 대체
+     - send(opts) 인터페이스 그대로
+     - 이벤트 → 템플릿 ID 매핑:
+        NotifyEvent.BILLING_FAILED   → process.env.ALIGO_TEMPLATE_BILLING_FAILED
+        NotifyEvent.CARD_EXPIRING    → process.env.ALIGO_TEMPLATE_CARD_EXPIRING
+     - 변수 치환 (params → 템플릿 변수)
+        billing.failed: 회원이름·금액·실패사유·연속실패횟수·재시도일자
+        card.expiring: 회원이름·카드만료일·잔여일수
+     - 템플릿 ID 환경변수가 비었거나 undefined면 placeholder 동작 (콘솔 로그만, status=sent로 기록)
+        → 카카오 심사 통과 전에도 전체 흐름 검증 가능
+     - NOTIFICATION_TEST_MODE=true 시 동일 placeholder 동작
+
+  3) lib/notify-dispatcher.ts — kakao 어댑터 등록 변경
+     - kakao-placeholder import 제거 → kakao-aligo import
+
+  4) lib/notify-adapters/kakao-placeholder.ts — 삭제
+
+  5) 환경변수 검증 (.env.example 갱신)
+     - ALIGO_API_KEY (A와 공유), ALIGO_KAKAO_CHANNEL_ID
+     - ALIGO_TEMPLATE_BILLING_FAILED (심사 통과 후 등록)
+     - ALIGO_TEMPLATE_CARD_EXPIRING (심사 통과 후 등록)
+
+  6) 단위 검증
+     - 카드 만료 d-1 케이스 강제 → 카카오 어댑터 호출
+     - 템플릿 ID 미등록 상태 → placeholder fallback 동작 확인 (콘솔 로그)
+     - 템플릿 ID 등록 상태 (심사 통과 시) → 실 발송 라이브 검증
+
+영역 회피:
+  - lib/notify-adapters/sms-* (A 영역, 변경 없음)
+  - lib/aligo-client.ts (A 작성, B는 사용만 가능 — 알림톡 엔드포인트는 별도 클라이언트)
+
+머지 전 체크:
+  - 템플릿 ID 미등록 fallback 검증 (회귀 보장)
+  - 변수 치환 결과 카카오 심사 문구와 정확히 일치
+  - 1회 실제 발송 (심사 통과 후) 결과 메인 보고
+```
+
+---
+
+## 14. C 채팅 — Phase 9 9-B 사용자 수신 설정 UI (B 머지 후 또는 C 1번 머지 후)
+
+C 1번 끝나면 다음 작업으로 9-B 사용자 수신 설정 UI 또는 #BACKFILL-1 옛 효성 백필 중 선택. 9-B 메시지는 시점에 별도 작성.
+
+---
+
+## 15. 참고
 
 - Phase 8·9 통합 설계서: [2026-05-10-notifications.md](2026-05-10-notifications.md)
 - Phase 10~22 카탈로그: [2026-05-10-phase10-22-catalog.md](2026-05-10-phase10-22-catalog.md)
