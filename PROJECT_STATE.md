@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 11+12 B 머지 완료 + 마이그 4테이블 성공** — feature/phase11-12-back 머지(d5beb76) / post_subscriptions·mentions·report_status_logs·anonymous_reveal_logs 생성 / 마이그 파일 삭제(ef63481) / A 트리거 발송 |
 | 2026-05-11 | **C 채팅** | **Phase 10 R4 라이브 검증 PASS + BUG-9 fix** — 영역1~6 전 시나리오 통과. schema.ts 컬럼 누락(tracking_token 등 5개+triggeredByAutoId) 수정. 보고서 `docs/verify/2026-05-11-phase10-r4.md` |
 | 2026-05-11 | 메인 | **Phase 10 R4 B 2차 머지 + A 머지** — AI 트리거·분석 백 13파일(8ecb46f) + 프론트 14파일 머지 |
 | 2026-05-11 | **A 채팅** | **Phase 10 R4 프론트 구현 완료** — 신규 5페이지(AI 트리거·발송 분석·회원 이력·사용자 이력) + R3 재발송 버튼 보강 + 사이드바 2메뉴 추가. 브랜치 feature/phase10-r4-front |
