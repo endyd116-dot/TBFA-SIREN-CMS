@@ -28,7 +28,6 @@
 | 2026-05-10 | 메인 | **Phase 9 외부 서비스 결정 완료 (Aligo 통합)** — 협회 대표번호·메인 위임·선결제 / 알림톡 템플릿 2종(billing.failed·card.expiring) 초안 작성 / [결정 문서](docs/milestones/2026-05-10-phase9-external-services.md) |
 | 2026-05-10 | **C 채팅** | **Q12 fix 머지 — 수입 집계·표시 기준일을 실제 결제일로** — 9개 함수 통합(어드민 6 + 효성 import 1 + 마이페이지·영수증 2). DB 마이그 0. 옛 효성 데이터 백필은 별도 라운드 |
 | 2026-05-10 | 메인 | **Phase 8 B 7자리 통합 머지 완료** (1b23ed5) — 4개 파일·158줄 / 워크스페이스·토스 빌링 3·카드 만료·일일 브리핑 모두 디스패처 호출 / C 어드민 화면+라이브 검증 트리거 |
-| 2026-05-10 | 메인 | **Phase 8 A 디스패처 머지 + 마이그 완료** (5fd603a) — 11개 신규 파일·769줄 / 디스패처·9종 이벤트·4채널 어댑터·재시도 cron / 운영 DB에 발송 로그 테이블 생성 / B 즉시 착수 트리거 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -37,12 +36,12 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 8 라운드 마무리 단계 (2026-05-10)
-   ├─ A: ✅ 디스패처 머지 + 마이그 + cleanup 완료
-   ├─ B: ✅ 7자리 통합 머지 완료 (1b23ed5)
-   ├─ C: 🟢 Q12 fix 진행 + Phase 8 어드민 화면·라이브 검증 트리거됨
+✅ Phase 8 100% 달성 (2026-05-10) → 🟢 Phase 9 라운드 시작
+   ├─ A: ⏸ Phase 9 SMS 어댑터 (Aligo) 트리거 대기
+   ├─ B: ⏸ Phase 9 카카오 알림톡 어댑터 (Aligo) 트리거 대기
+   ├─ C: ⏸ Phase 9 9-B 사용자 수신 설정 UI 또는 #BACKFILL-1 옛 효성 백필 — 시점 결정 필요
    └─ D: 휴면
-   메인: C 어드민 화면 + Q24~Q28 라이브 보고 대기 → Phase 8 100% / Phase 9 외부 서비스 세션
+   메인: A·B 분배 메시지 발송 → Phase 9 코드 시작 / 알림톡 심사 통과 대기 (영업일 3~5일)
 ```
 
 ---
@@ -81,7 +80,7 @@
 | **Phase 4 대표 보고 시스템** | ✅ 코드 100% + C 검증 완료 (BUG-3·4 fix) |
 | **Phase 5~7 재정 관리** | ✅ 100% 코드+마이그+schema 활성화 (8023057) + C 정적 검증 통과 (BUG-5 fix) / 🟡 Swain 라이브 검증 대기 |
 | TypeScript 타입 에러 149건 | ⏸ C 채팅 진행 예정 |
-| **Phase 8 알림 채널 통합 인프라** | 🟢 진행 중 — A 디스패처 머지·마이그 ✅ / B 7자리 통합 착수 / C 어드민 화면 대기 |
+| **Phase 8 알림 채널 통합 인프라** | ✅ 100% — A 디스패처+마이그+cleanup / B 7자리 통합 / C 어드민 화면+Q24~Q27 라이브 통과 (Q28 정적) |
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 설계 + Aligo 결정 + 템플릿 검토 통과 + Swain API 키 발급 완료 / A·B 분배 메시지 준비 완료 / ⏸ C 1번 머지 후 A·B 동시 트리거 |
 | **Phase 10 통합 발송 시스템** | ✅ 카탈로그 (CMM-A+B+D 흡수) / ⏸ Phase 8·9 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ Phase 8 후 |
@@ -122,9 +121,9 @@
 | 폴더 | 브랜치 | 역할 | 상태 |
 |---|---|---|---|
 | `tbfa-mis` (메인) | `main` | 머지·조율·설계 | 활성 |
-| `../tbfa-mis-A` | `feature/phase8-notify-dispatcher` | ✅ 디스패처 머지 완료 (5fd603a) + 마이그 OK / 마이그 파일 cleanup push 대기 |
-| `../tbfa-mis-B` | `feature/phase8-notify-integration` | ✅ 7자리 통합 머지 완료 (1b23ed5) — Phase 9 9-A·B 라운드 대기 |
-| **`../tbfa-mis-C`** | **`verify/live-comprehensive`** | **🟢 Q12 fix(수입 집계 기준일) 즉시 + Phase 8 어드민 화면 대기 / Q15~Q23 큐 보관** |
+| `../tbfa-mis-A` | `feature/phase8-notify-dispatcher` | ✅ Phase 8 디스패처 완료 — Phase 9 SMS 어댑터 라운드 대기 |
+| `../tbfa-mis-B` | `feature/phase8-notify-integration` | ✅ Phase 8 7자리 통합 완료 — Phase 9 카카오 어댑터 라운드 대기 |
+| **`../tbfa-mis-C`** | **`verify/live-comprehensive`** | **✅ Q12 fix + Phase 8 어드민 화면+Q24~Q27 통과 / Phase 9 9-B 또는 #BACKFILL-1 라운드 대기 / Q15~Q23 큐 보관** |
 | **`../tbfa-mis-D`** | **`feature/finance-phase5-7`** | **Phase 5~7** | ✅ 머지 완료 — 다음 라운드 대기 |
 
 **3-way 정책 핵심**:
