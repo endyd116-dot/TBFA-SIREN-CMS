@@ -36,6 +36,13 @@ export interface AdminDonorRegularQuery {
   pageSize?: number;
 }
 
+export interface MonthlyBillingEntry {
+  month: string;        // "2026/04" 형식
+  amount: number;
+  channel: DonorChannel;
+  status: string;       // "완납" | "미납" | "수납대기" | "completed" 등
+}
+
 export interface AdminDonorRegular {
   id: number;
   name: string;
@@ -61,6 +68,8 @@ export interface AdminDonorRegular {
     billingStart: string | null;
     billingEnd: string | null;
   } | null;
+  /** 단계 D: 매월 수납 현황 — 최근 6개월, 내림차순 */
+  monthlyBillings: MonthlyBillingEntry[];
 }
 
 export interface AdminDonorRegularResponse {
@@ -351,6 +360,75 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-regular-list] hyosung_billings 합산 실패 — 0 fallback", err);
   }
 
+  /* 4-5. 효성 수납 월별 내역 (최근 6개월) */
+  const hyosungMonthlyMap = new Map<number, MonthlyBillingEntry[]>();
+  try {
+    const sixMonthsAgo = (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 6);
+      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    })();
+    const rs: any = await db.execute(sql`
+      SELECT
+        m.id AS member_id,
+        hb.billing_month,
+        COALESCE(hb.received_amount, 0)::int AS received_amount,
+        COALESCE(hb.receipt_status, '—') AS receipt_status
+      FROM members m
+      INNER JOIN hyosung_billings hb ON hb.member_no = m.hyosung_member_no
+      WHERE m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+        AND hb.billing_month >= ${sixMonthsAgo}
+      ORDER BY hb.billing_month DESC
+    `);
+    const rows = Array.isArray(rs) ? rs : (rs as any).rows || [];
+    for (const r of rows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      if (!hyosungMonthlyMap.has(mid)) hyosungMonthlyMap.set(mid, []);
+      hyosungMonthlyMap.get(mid)!.push({
+        month: String(r.billing_month),
+        amount: Number(r.received_amount) || 0,
+        channel: "hyosung",
+        status: String(r.receipt_status || "—"),
+      });
+    }
+  } catch (err) {
+    console.warn("[admin-donor-regular-list] hyosung_billings 월별 조회 실패 — [] fallback", err);
+  }
+
+  /* 4-6. 토스 donations 월별 내역 (최근 6개월, hyosung 제외) */
+  const tossMonthlyMap = new Map<number, MonthlyBillingEntry[]>();
+  try {
+    const rs: any = await db.execute(sql`
+      SELECT
+        d.member_id,
+        to_char(d.created_at, 'YYYY/MM') AS billing_month,
+        COALESCE(SUM(d.amount), 0)::int AS amount
+      FROM donations d
+      WHERE d.member_id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+        AND d.type = 'regular'
+        AND d.status = 'completed'
+        AND (d.hyosung_member_no IS NULL OR d.pg_provider != 'hyosung')
+        AND d.created_at >= NOW() - INTERVAL '6 months'
+      GROUP BY d.member_id, billing_month
+      ORDER BY billing_month DESC
+    `);
+    const rows = Array.isArray(rs) ? rs : (rs as any).rows || [];
+    for (const r of rows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      if (!tossMonthlyMap.has(mid)) tossMonthlyMap.set(mid, []);
+      tossMonthlyMap.get(mid)!.push({
+        month: String(r.billing_month),
+        amount: Number(r.amount) || 0,
+        channel: "toss",
+        status: "completed",
+      });
+    }
+  } catch (err) {
+    console.warn("[admin-donor-regular-list] toss donations 월별 조회 실패 — [] fallback", err);
+  }
+
   /* 5. 응답 매핑 */
   let data: AdminDonorRegular[] = [];
   try {
@@ -374,6 +452,13 @@ export default async (req: Request, _ctx: Context) => {
       const hyosungActive = String(r.hyosung_contract_status || "").toLowerCase() === "active";
       const hyosungNext = (hyosungActive && promiseDay) ? computeHyosungNextBilling(promiseDay) : null;
       const nextBillingDate = memberNextBilling || tossNextCharge || hyosungNext;
+
+      /* 월별 수납 — 효성 + 토스 병합, 최근 6개월 내림차순 */
+      const hyosungMonthly = hyosungMonthlyMap.get(id) || [];
+      const tossMonthly = tossMonthlyMap.get(id) || [];
+      const monthlyBillings: MonthlyBillingEntry[] = [...hyosungMonthly, ...tossMonthly]
+        .sort((a, b) => b.month.localeCompare(a.month))
+        .slice(0, 6);
 
       const hcDetail = hyosungDetailMap.get(id) ?? null;
       return {
@@ -404,6 +489,7 @@ export default async (req: Request, _ctx: Context) => {
               billingEnd: hcDetail.billing_end ? new Date(hcDetail.billing_end).toISOString().slice(0, 10) : null,
             }
           : null,
+        monthlyBillings,
       };
     });
   } catch (err) {
