@@ -1,89 +1,9 @@
 /* =========================================================
    SIREN — admin-siren-stats.js (Phase 13)
-   신고 통계 대시보드 (mock 모드 → 실 API 교체 예정)
+   신고 통계 대시보드 — 실 API(/api/admin-incident-stats) 연결
    ========================================================= */
 (function () {
   'use strict';
-
-  /* ============ Mock 데이터 (§5.4) ============ */
-  var MOCK = {
-    period: { from: '2026-01-01', to: '2026-05-11' },
-    summary: {
-      total:      { count: 124 },
-      incidents:  { count: 47 },
-      harassment: { count: 52 },
-      legal:      { count: 25 },
-    },
-    incidents: {
-      byStatus: [
-        { status: 'submitted',   label: '접수',    count: 12 },
-        { status: 'reviewing',   label: '검토 중', count: 18 },
-        { status: 'in_progress', label: '처리 중', count: 10 },
-        { status: 'resolved',    label: '완료',    count: 5  },
-        { status: 'closed',      label: '종료',    count: 2  },
-      ],
-      bySeverity: [
-        { level: 'critical',   label: '매우 심각', count: 8  },
-        { level: 'high',       label: '심각',      count: 15 },
-        { level: 'medium',     label: '보통',      count: 14 },
-        { level: 'low',        label: '낮음',      count: 6  },
-        { level: 'unanalyzed', label: '미분석',    count: 4  },
-      ],
-      monthlyTrend: [
-        { month: '2026-01', count: 6  },
-        { month: '2026-02', count: 8  },
-        { month: '2026-03', count: 11 },
-        { month: '2026-04', count: 14 },
-        { month: '2026-05', count: 8  },
-      ],
-    },
-    harassment: {
-      byStatus: [
-        { status: 'submitted',   label: '접수',    count: 15 },
-        { status: 'reviewing',   label: '검토 중', count: 20 },
-        { status: 'in_progress', label: '처리 중', count: 12 },
-        { status: 'resolved',    label: '완료',    count: 3  },
-        { status: 'closed',      label: '종료',    count: 2  },
-      ],
-      bySeverity: [
-        { level: 'critical',   label: '매우 심각', count: 10 },
-        { level: 'high',       label: '심각',      count: 20 },
-        { level: 'medium',     label: '보통',      count: 15 },
-        { level: 'low',        label: '낮음',      count: 4  },
-        { level: 'unanalyzed', label: '미분석',    count: 3  },
-      ],
-      monthlyTrend: [
-        { month: '2026-01', count: 8  },
-        { month: '2026-02', count: 10 },
-        { month: '2026-03', count: 13 },
-        { month: '2026-04', count: 15 },
-        { month: '2026-05', count: 6  },
-      ],
-    },
-    legal: {
-      byStatus: [
-        { status: 'submitted',   label: '접수',    count: 5  },
-        { status: 'reviewing',   label: '검토 중', count: 8  },
-        { status: 'in_progress', label: '처리 중', count: 7  },
-        { status: 'resolved',    label: '완료',    count: 4  },
-        { status: 'closed',      label: '종료',    count: 1  },
-      ],
-      byUrgency: [
-        { level: 'critical',   label: '매우 긴급', count: 3  },
-        { level: 'high',       label: '긴급',      count: 8  },
-        { level: 'medium',     label: '보통',      count: 9  },
-        { level: 'low',        label: '여유',      count: 3  },
-        { level: 'unanalyzed', label: '미분석',    count: 2  },
-      ],
-      monthlyTrend: [
-        { month: '2026-01', count: 3  },
-        { month: '2026-02', count: 5  },
-        { month: '2026-03', count: 6  },
-        { month: '2026-04', count: 7  },
-        { month: '2026-05', count: 4  },
-      ],
-    },
-  };
 
   /* ============ 색상 팔레트 ============ */
   var SEVERITY_COLORS = {
@@ -122,6 +42,8 @@
   }
 
   /* ============ 기간 계산 ============ */
+  var PRESET_PERIOD = { '1m': '30d', '3m': '90d', '6m': '180d', '1y': '365d' };
+
   function getPresetRange(preset) {
     var now = new Date();
     var to  = toDateInput(now);
@@ -139,16 +61,37 @@
       var d = new Date(now); d.setFullYear(d.getFullYear() - 1);
       from = toDateInput(d);
     }
-    return { from: from, to: to };
+    return { from: from, to: to, period: PRESET_PERIOD[preset] || '365d' };
+  }
+
+  /* ============ API 호출 ============ */
+  async function fetchStats(period) {
+    var res = await fetch('/api/admin-incident-stats?period=' + period, {
+      credentials: 'include',
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || 'HTTP ' + res.status);
+    }
+    return data.data || data;
   }
 
   /* ============ 상태 ============ */
   var _state = {
-    from:       '2026-01-01',
-    to:         '2026-05-11',
+    from:       '',
+    to:         '',
+    period:     '365d',
     activeTab:  'all',
     data:       null,
   };
+
+  /* 초기 날짜 범위 설정 (1년) */
+  (function () {
+    var r = getPresetRange('1y');
+    _state.from   = r.from;
+    _state.to     = r.to;
+    _state.period = r.period;
+  })();
 
   /* ============ 진입점 ============ */
   function init() {
@@ -204,8 +147,9 @@
     c.querySelectorAll('.stats-preset').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var range = getPresetRange(btn.dataset.preset);
-        _state.from = range.from;
-        _state.to   = range.to;
+        _state.from   = range.from;
+        _state.to     = range.to;
+        _state.period = range.period;
         var fi = document.getElementById('statsFrom');
         var ti = document.getElementById('statsTo');
         if (fi) fi.value = range.from;
@@ -224,8 +168,9 @@
       qBtn.addEventListener('click', function () {
         var f = document.getElementById('statsFrom');
         var t = document.getElementById('statsTo');
-        _state.from = (f && f.value) || _state.from;
-        _state.to   = (t && t.value) || _state.to;
+        _state.from   = (f && f.value) || _state.from;
+        _state.to     = (t && t.value) || _state.to;
+        _state.period = 'all';
         loadData();
       });
     }
@@ -246,12 +191,20 @@
     });
   }
 
-  /* ============ 데이터 로드 (mock) ============ */
-  function loadData() {
-    /* TODO: 실 API 연결 시 아래 mock 블록을 fetch('/api/admin-incident-stats?from=...') 로 교체 */
-    _state.data = MOCK;
-    renderSummaryCards();
-    renderCharts();
+  /* ============ 데이터 로드 ============ */
+  async function loadData() {
+    var area = document.getElementById('stats-charts-area');
+    if (area) area.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;font-size:13px">불러오는 중...</div>';
+
+    try {
+      var data = await fetchStats(_state.period);
+      _state.data = data;
+      renderSummaryCards();
+      renderCharts();
+    } catch (err) {
+      toast('통계를 불러오지 못했습니다: ' + (err.message || err));
+      if (area) area.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;font-size:13px">데이터 조회 실패 — 다시 시도해주세요.</div>';
+    }
   }
 
   /* ============ 요약 카드 ============ */
