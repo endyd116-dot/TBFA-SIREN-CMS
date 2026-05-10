@@ -19,6 +19,9 @@ export default async (req: Request) => {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
+    /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
+
     /* KPI: 금월 후원금, 신규 정기후원, 대기 중 지원, 전체 회원 */
     const [donStats] = await db
       .select({
@@ -29,7 +32,7 @@ export default async (req: Request) => {
       .where(
         and(
           eq(donations.status, "completed"),
-          gte(donations.createdAt, startOfMonth)
+          sql`${paidAt} >= ${startOfMonth.toISOString()}`
         )
       );
 
@@ -40,7 +43,7 @@ export default async (req: Request) => {
         and(
           eq(donations.type, "regular"),
           eq(donations.status, "completed"),
-          gte(donations.createdAt, startOfMonth)
+          sql`${paidAt} >= ${startOfMonth.toISOString()}`
         )
       );
 

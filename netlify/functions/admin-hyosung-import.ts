@@ -262,6 +262,8 @@ export default async (req: Request) => {
           hyosungMemberNo: row.hyosungMemberNo,
           hyosungContractNo: row.contractNo,
           hyosungBillNo: row.billNo,
+          /* ★ Q12: 자료의 실제 결제일을 컬럼에 저장 (수입 그래프·영수증·마이페이지 정합) */
+          hyosungPaidDate: row.paymentDate ? new Date(row.paymentDate) : null,
           receiptRequested: true,
           memo: `${memoPrefix} ${row.product} ₩${totalAmount.toLocaleString()} (약정일: ${row.appointDay}일, 결제일: ${row.paymentDate})`,
         };

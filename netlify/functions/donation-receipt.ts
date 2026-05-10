@@ -136,7 +136,8 @@ export default async (req: Request, _ctx: Context) => {
         donorEmail: (d as any).donorEmail,
         donorPhone: (d as any).donorPhone,
         amount: (d as any).amount,
-        donationDate: new Date((d as any).createdAt),
+        /* ★ Q12: 영수증의 후원일은 실제 결제일 (효성은 자료의 결제일, 그 외는 createdAt) */
+        donationDate: new Date((d as any).hyosungPaidDate ?? (d as any).createdAt),
         payMethod: (d as any).payMethod,
         donationType: (d as any).type,
       });

@@ -7,7 +7,7 @@ import { db } from "../../db";
 import {
   donations, members, hyosungBillings, hyosungContracts,
 } from "../../db/schema";
-import { eq, and, gte, lte, desc, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, desc, inArray, isNotNull, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
 const TYPE_KR: Record<string, string> = { regular: "정기후원", onetime: "일시후원" };
@@ -83,15 +83,17 @@ export default async (req: Request, _ctx: Context) => {
     if (["pending", "completed", "failed", "cancelled", "refunded"].includes(status)) {
       conds.push(eq(donations.status, status as any));
     }
+    /* ★ Q12: 기간 필터·정렬 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
     if (from) {
       const fromDate = new Date(from);
-      if (!isNaN(fromDate.getTime())) conds.push(gte(donations.createdAt, fromDate));
+      if (!isNaN(fromDate.getTime())) conds.push(sql`${paidAt} >= ${fromDate.toISOString()}`);
     }
     if (to) {
       const toDate = new Date(to);
       if (!isNaN(toDate.getTime())) {
         toDate.setHours(23, 59, 59, 999);
-        conds.push(lte(donations.createdAt, toDate));
+        conds.push(sql`${paidAt} <= ${toDate.toISOString()}`);
       }
     }
 
@@ -113,7 +115,7 @@ export default async (req: Request, _ctx: Context) => {
       })
       .from(donations)
       .where(conds.length ? and(...conds) : undefined)
-      .orderBy(desc(donations.createdAt))
+      .orderBy(sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}) DESC`)
       .limit(5000);
   } catch (err: any) {
     return jsonError("select_donations", err);

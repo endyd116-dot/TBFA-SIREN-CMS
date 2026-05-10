@@ -30,6 +30,9 @@ export default async function handler(req: Request, _ctx: Context) {
     endDate = new Date(year, 11, 31, 23, 59, 59);
   }
 
+  /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+  const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
+
   try {
     // 수입 집계
     let income = { total: 0, byChannel: {} as Record<string, number>, monthly: [] as any[] };
@@ -43,8 +46,8 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(
           and(
             eq(donations.status, "completed"),
-            gte(donations.createdAt, startDate),
-            lte(donations.createdAt, endDate)
+            sql`${paidAt} >= ${startDate.toISOString()}`,
+            sql`${paidAt} <= ${endDate.toISOString()}`
           )
         )
         .groupBy(donations.pgProvider);
@@ -58,18 +61,18 @@ export default async function handler(req: Request, _ctx: Context) {
 
       const monthRows = await db
         .select({
-          m: sql<number>`extract(month from ${donations.createdAt})::int`,
+          m: sql<number>`extract(month from ${paidAt})::int`,
           amount: sql<number>`coalesce(sum(${donations.amount}),0)::int`,
         })
         .from(donations)
         .where(
           and(
             eq(donations.status, "completed"),
-            gte(donations.createdAt, startDate),
-            lte(donations.createdAt, endDate)
+            sql`${paidAt} >= ${startDate.toISOString()}`,
+            sql`${paidAt} <= ${endDate.toISOString()}`
           )
         )
-        .groupBy(sql`extract(month from ${donations.createdAt})`);
+        .groupBy(sql`extract(month from ${paidAt})`);
       income.monthly = monthRows.map((r) => ({ month: r.m, amount: r.amount }));
     } catch (err) {
       console.warn("[finance-report] income 집계 실패:", err);

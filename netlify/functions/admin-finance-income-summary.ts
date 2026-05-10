@@ -23,6 +23,9 @@ export default async function handler(req: Request, _ctx: Context) {
       ? new Date(year, month, 0, 23, 59, 59)
       : new Date(year, 11, 31, 23, 59, 59);
 
+    /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
+
     // pgProvider 기준 채널별 집계
     let channelRows: { provider: string | null; count: number; amount: number }[] = [];
     try {
@@ -36,8 +39,8 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(
           and(
             eq(donations.status, "completed"),
-            gte(donations.createdAt, startDate),
-            lte(donations.createdAt, endDate)
+            sql`${paidAt} >= ${startDate.toISOString()}`,
+            sql`${paidAt} <= ${endDate.toISOString()}`
           )
         )
         .groupBy(donations.pgProvider);
@@ -51,18 +54,18 @@ export default async function handler(req: Request, _ctx: Context) {
       try {
         const trendRows = await db
           .select({
-            m: sql<number>`extract(month from ${donations.createdAt})::int`,
+            m: sql<number>`extract(month from ${paidAt})::int`,
             amount: sql<number>`coalesce(sum(${donations.amount}),0)::int`,
           })
           .from(donations)
           .where(
             and(
               eq(donations.status, "completed"),
-              gte(donations.createdAt, startDate),
-              lte(donations.createdAt, endDate)
+              sql`${paidAt} >= ${startDate.toISOString()}`,
+              sql`${paidAt} <= ${endDate.toISOString()}`
             )
           )
-          .groupBy(sql`extract(month from ${donations.createdAt})`);
+          .groupBy(sql`extract(month from ${paidAt})`);
         monthlyTrend = trendRows.map((r) => ({ month: r.m, amount: r.amount }));
       } catch (err) {
         console.warn("[finance-income] monthlyTrend 집계 실패:", err);
@@ -78,8 +81,8 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(
           and(
             eq(donations.status, "completed"),
-            gte(donations.createdAt, startDate),
-            lte(donations.createdAt, endDate)
+            sql`${paidAt} >= ${startDate.toISOString()}`,
+            sql`${paidAt} <= ${endDate.toISOString()}`
           )
         );
       const [newMemberCount] = await db
