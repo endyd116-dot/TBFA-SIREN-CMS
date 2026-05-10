@@ -2766,6 +2766,8 @@
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
         <!-- 6순위 #6: 교원 자격 변경 심사 -->
         <li><a data-page="eligibility"><i>🎓</i><span>자격 변경 심사</span><span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span></a></li>
+        <!-- 6순위 #8: 1:1 매칭 관리 -->
+        <li><a data-page="expert-match"><i>⚖️</i><span>1:1 매칭 관리</span><span class="adm-badge" id="expertMatchMenuBadge" style="display:none">0</span></a></li>
         <!-- ★ 작업 C(#15): CSV 자동 매핑 (cms-tbfa.html#csv-import 외부 이동) -->
         <li>
           <a href="/cms-tbfa.html#csv-import"
@@ -4527,6 +4529,9 @@
         <!-- 6순위 #6: 교원 자격 변경 심사 (admin-eligibility.js가 동적 렌더) -->
         <div id="adm-eligibility" class="adm-page"></div>
 
+        <!-- 6순위 #8: 1:1 매칭 관리 (admin-expert.js가 동적 렌더) -->
+        <div id="adm-expert" class="adm-page"></div>
+
       </div>
     </main>
   </div>
@@ -5597,6 +5602,8 @@
 <script src="/js/admin-approvals.js?v=m19-11-v2"></script>
 <!-- 6순위 #6: 교원 자격 변경 심사 -->
 <script src="/js/admin-eligibility.js?v=2026-05-09-1"></script>
+<!-- 6순위 #8: 1:1 매칭 관리 -->
+<script src="/js/admin-expert.js?v=2026-05-10-em1"></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */
