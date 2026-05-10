@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 16+17 설계서 완성** — 통합 분석 대시보드·보안 감사 강화. A·B 트리거 §6 준비 완료. |
 | 2026-05-11 | **메인** | **Phase 13 실 API 연결 + TS 0건 머지 완료** — A mock→실API(61f13fe) + C TS에러 149→0(8e283dd) 머지 |
 | 2026-05-11 | **메인** | **Phase 13 B+A 머지 완료 (618033b)** — admin-incident-stats.ts 신규 / admin-siren-stats.js 신규 / admin.html 메뉴+섹션 추가 / A 실 API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 11+12 A 머지 완료 (API 경로 11개 불일치 수정 후)** — feature/phase11-12-front 머지(e1ba80f) / my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit 등 17파일 |
@@ -104,8 +105,8 @@
 | **Phase 13 신고 통계 대시보드** | 🟢 B+A+실API 머지 완료 / ⏸ C 검증 대기 |
 | **Phase 14 외부 기관 인계** | ✅ 카탈로그 (신규) / ⏸ |
 | **Phase 15 전문가 매칭 고도화** | ✅ 카탈로그 / ⏸ |
-| **Phase 16 통합 분석 대시보드** | ✅ 카탈로그 (ANL-A+B+C+D 통합 + Phase 4 인계 보강) / ⏸ |
-| **Phase 17 보안·감사 강화** | ✅ 카탈로그 / ⏸ |
+| **Phase 16 통합 분석 대시보드** | ✅ 설계서 완성 ([2026-05-11-phase16-unified-dashboard.md](docs/milestones/2026-05-11-phase16-unified-dashboard.md)) / ⏸ A·B 대기 |
+| **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
 | **Phase 18 성능 최적화** | ✅ 카탈로그 / ⏸ |
 | **Phase 19 자동 테스트 보강** | ✅ 카탈로그 (큰 묶음, 단독) / ⏸ |
 | **Phase 20 운영 안정성 (모니터링+백업)** | ✅ 카탈로그 / ⏸ |
