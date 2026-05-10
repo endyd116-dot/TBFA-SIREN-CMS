@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 | **C 라이브 검증 큐 보관 + Phase 8 역할 전환** — A 인터페이스 OK 컨펌 / C는 Q12 fix(수입 집계 기준일 실제 결제일로) 즉시 + Phase 8 어드민 화면 대기 / Q15~Q23 큐 보관 |
 | 2026-05-10 | **C 채팅** | **라이브 검증 대행 첫 적용 — Q11~Q14 통과 + BUG-6·7 fix** — 지출 목록 마비(admins→members JOIN) + 승인 멱등성 차단(409). Phase 5~7 라이브 완료, 운영 DB cleanup 완료 |
 | 2026-05-10 | 메인 | **A·B 단계 D 보강 머지 완료** — A: D4 매월 수납 현황 6개월 점등 / B: D7 자동 매칭 미리보기(3-버킷 + 상태 전이) |
 | 2026-05-10 | 메인 | **Phase 8·9 설계 합의 완료** — 알림 채널 통합 인프라(8) + 외부 API 실연동·수신 설정(9) 묶음 / [설계서](docs/milestones/2026-05-10-notifications.md) |
 | 2026-05-10 | 메인 | **A·B 단계 D 머지 완료 (3a932c3)** — A: 효성 import Gap 보강 / B: D3·D4·D7 화면 폴리시 |
-| 2026-05-10 | 메인 | **사용자 검증 대행 정책 도입 (549f0b8)** — C 역할 재정의 (다음 병렬 라운드부터 적용) |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -37,12 +37,13 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 모든 병렬 작업 main 머지 완료 (3a932c3)
-   ├─ A: ✅ 단계 D 파서 머지 (D1 lib/hyosung-members-parser + D2 safeReevaluate)
-   ├─ B: ✅ 단계 D 화면 머지 (D3·D4·D7 폴리시 보강)
-   ├─ C: ✅ Phase 5~7 정적 검증 + BUG-5 fix (a3f58ef) / 다음: stale·TS·라이브 검증
-   └─ D: ✅ Phase 5~7 main 머지 + schema 활성화
-   메인: 라이브 검증 대기 + Phase 8~22 설계 가능
+🟢 Phase 8 라운드 시작 (2026-05-10)
+   ├─ A: 🟢 디스패처 인터페이스 OK 컨펌 — 코드 착수 단계
+   ├─ B: ⏸ A 머지 후 시작 (7개 미구현 자리 통합)
+   ├─ C: 🟢 Q12 fix(수입 집계 기준일) 즉시 + Phase 8 어드민 화면 대기
+   │     라이브 검증 큐(Q15~Q23) 보관 — Phase 8·9 완료 후 재개
+   └─ D: 휴면 (Phase 9 또는 Phase 10~22 라운드 대기)
+   메인: A 머지·C Q12 fix 보고 대기 / Phase 10~22 설계 합의 가능
 ```
 
 ---
@@ -110,9 +111,9 @@
 | 폴더 | 브랜치 | 역할 | 상태 |
 |---|---|---|---|
 | `tbfa-mis` (메인) | `main` | 머지·조율·설계 | 활성 |
-| `../tbfa-mis-A` | `feature/m16-step-d-monthly-billing` | ✅ D4 매월 수납 현황 머지 완료 — Phase 8 라운드 대기 |
-| `../tbfa-mis-B` | `feature/m16-step-d-csv-preview` | ✅ D7 자동 매칭 미리보기 머지 완료 — Phase 8 라운드 대기 |
-| **`../tbfa-mis-C`** | **`verify/phase4-and-pending`** | **검증·수정 전담** | Q1~Q4·Q7~Q10 완료·BUG-3·4·5 fix / 다음: stale·TS·Q11~ 라이브 |
+| `../tbfa-mis-A` | `feature/phase8-notify-dispatcher` | 🟢 Phase 8 디스패처 인터페이스 OK 컨펌 — 코드 착수 |
+| `../tbfa-mis-B` | (분기 대기) `feature/phase8-notify-integration` | ⏸ A 머지 후 시작 — 7개 자리 통합 |
+| **`../tbfa-mis-C`** | **`verify/live-comprehensive`** | **🟢 Q12 fix(수입 집계 기준일) 즉시 + Phase 8 어드민 화면 대기 / Q15~Q23 큐 보관** |
 | **`../tbfa-mis-D`** | **`feature/finance-phase5-7`** | **Phase 5~7** | ✅ 머지 완료 — 다음 라운드 대기 |
 
 **3-way 정책 핵심**:
