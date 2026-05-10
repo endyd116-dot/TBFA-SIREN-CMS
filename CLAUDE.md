@@ -396,115 +396,34 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-## 10. Phase·작업 진행 상황 (이번 세션 기준 누적)
+## 10. Phase·작업 진행 상황
 
-### ✅ 완료
-- **Phase 1** 효성 CMS+ 연동 (100%)
-- **Phase 2** 토스 빌링 자동청구 (100%)
-- **Phase 3** 워크스페이스 본체 (100%) — Step 7-A 칸반 + 7-B 카드 7탭 + 7-C 캘린더·AI·검색·템플릿 + Agent-8 cron
-- **Phase 3-extra** 파일함 (100%, 9/9 Step + 통합 라우팅)
-- **4순위 자잘한 버그 3건**: 후원 모달 딜레이 / 회원 엑셀 / 수납내역 엑셀
-- **5순위 (모두 완료)**:
-  - #1 블랙 통합 / #9 관련 사이트 / #10 정기후원 해지 안내
-- **6순위 (코드 100% main 안착, 사용자 검증 진행 가능 단계)**:
-  - #6 교원 회원 자격 변경 시스템 (코드 머지 완료, #BUG-1 fix 후 검증 가능)
-  - #15 효성 + 기업은행 CSV 자동 매핑 + 엑셀 업로드 지원 (코드 머지 완료, admin.html 회원 관리에서 검증 가능)
-
-### 🛠 인프라 변경
-**2026-05-09**:
-- PROJECT_STATE.md 신설 (구 PARALLEL_PLAN 흡수)
-- worktree 분리: `../tbfa-mis-A`, `../tbfa-mis-B` (병렬 작업 충돌 방지)
-- `.claude/settings.json` 권한 정책 도입 (deny: `git push origin main`, `lib/auth.ts·admin-guard.ts` 편집 등)
-- `docs/issues/` 폴더 (오류 리포트)
-
-**2026-05-10 (이번 세션)**:
-- 단계 A 사이드바 재배치 — 워크스페이스 그룹화(워크툴/칸반/캘린더/템플릿/파일함), 후원 관리 그룹 강화(정기/잠재 placeholder), "통합 회원" → "통합 일반 회원"
-- 엑셀(xlsx/xls) 업로드 지원 (CSV 자동 매핑, 클라이언트 SheetJS 변환)
-- `docs/milestones/` 폴더 신설 (마일스톤 본격 설계 문서)
-
-### ✅ 해결된 이슈
-- **#BUG-1** ✅ 해결 (커밋 `bb529f9`) — `lib/auth.ts:128` user.id → user.uid 한 줄 수정. requireActiveUser 사용 9개 API 정상화
-
-### 🔴 미해결 이슈 (다음 세션 우선 처리)
-- **#BUG-2** cms-tbfa 통합 회원·웹후원자·태그 더미 데이터
-  - 위치: `public/js/cms-tbfa.js:60-90`
-  - 영향: cms-tbfa 화면이 진짜 회원 안 보임 (admin.html 회원 관리는 정상)
-  - 해결 절차: 마일스톤 #16 단계 B에서 처리
-  - 상세: [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md)
-
-### 🔵 진행 예정 (마일스톤 #16 신설)
-- **6순위 #16 통합 회원·후원 회원 시스템 + CSV 종합 검증** (8~12h, 우선 권장)
-  - 도메인 모델 합의 완료 (사용자 결정 6개 → docs/milestones)
-  - 단계 A ✅ 완료 / 단계 B·C·D 미착수
-  - **다음 세션 우선**: 단계 B (통합 일반 회원 실제 API + 회원 상세 모달 + 후원 내역 탭, 1.5~2.5h)
-  - 단계 C: members.donor_type 컬럼 + 정기/잠재 화면 + 토스 즉시 반영 (3~4h)
-  - 단계 D: CSV 종합 검증 강화 + 효성 일괄 갱신 + 자동 상태 전이 (3~5h)
-  - 상세: [docs/milestones/2026-05-10-donor-system.md](docs/milestones/2026-05-10-donor-system.md)
-- **6순위 #8** 변호사·심리상담사 ↔ 사용자 1:1 매칭 채팅 (15~18h, #16 후 진행 권장)
-- **Phase 4~22** (19개) — 스펙 미정, 별도 설계 세션 필요
-
-### 누적
-- 마스터플랜 진행률: 약 33% (5.5/22 Phase + 4·5순위 + 6순위 #6·#15 코드 + #16 단계 A)
-- 누적 작업 시간: 약 440h+
-- 페이지: 5개 신규 (workspace, kanban, calendar, templates, files) + 자격 변경 탭 + CSV 자동 매핑 메뉴
-- DB 테이블: 73+ (eligibilityChangeRequests, pendingDonations, donationMatchingRules 신규 / 단계 C에서 members 컬럼 4개 추가 예정)
+진행률·완료 현황·미해결 이슈는 [PROJECT_STATE.md](PROJECT_STATE.md) §5(마일스톤) + §6(미해결 이슈) 단일 출처로 관리. 본 문서에는 누적하지 않음.
 
 ---
 
-## 11. 사용자 페이지 진입점 요약
+## 11. 페이지 진입점
 
-### 사용자
-- `/` (index) — 홈, 후원, 캠페인
-- `/about`, `/news`, `/support`, `/report`
-- `/incidents`, `/report-harassment`, `/legal-support` — SIREN 3개
-- `/board` — 자유게시판
-- `/mypage` — 마이페이지
-
-### 어드민
-- `/admin.html` — SPA, 모든 어드민 기능
-- `/cms-tbfa.html` — TBFA CMS (기부 통합 관리)
-- `/admin-hub.html` — 허브
-- `/admin-site-builder.html` — 메인 화면 편집
-
-### 워크스페이스 (어드민용)
-- `/workspace.html` — 대시보드 + 통합 검색바 + 우선 5개 위젯 + AI 브리핑
-- `/workspace-kanban.html` — 5컬럼 칸반 + 카드 7탭 + 템플릿 셀렉터
-- `/workspace-calendar.html` — FullCalendar (tasks·events 통합)
-- `/workspace-templates.html` — 템플릿 CRUD
-- `/workspace-files.html` — 파일함 + 휴지통 cron
+[docs/PAGES.md](docs/PAGES.md) — 사용자·어드민·워크스페이스 진입점 카탈로그.
 
 ---
 
 ## 12. 참고 문서
 
-- **단일 최신 인수인계** (한 화면, 새 사람·새 채팅이 처음 보는 곳): [docs/HANDOFF.md](docs/HANDOFF.md)
-- **잔여 작업 인벤토리** (우선순위별 카탈로그): [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)
-- **PROJECT_STATE.md** (병렬 작업 휘발성 상태 통합): [PROJECT_STATE.md](PROJECT_STATE.md)
-  - §2 마지막 업데이트 표 / §4 작업별 진행률·다음할일 / §4.5 worktree 환경표 / §6.5 worktree 사고 사례 / §6.6 미해결 이슈 인덱스 / §7 채팅별 시작 프롬프트
-- **오류 리포트** 폴더: [docs/issues/](docs/issues/)
-  - 신규 이슈 발견 시 `docs/issues/{날짜}-{키워드}.md` 별도 파일 + PROJECT_STATE.md §6.6에 한 줄 인덱스
-- **이전 시점 영구 스냅샷** (자발적 안 읽음, 마일스톤 단위 archive):
-  - v20 통합: [docs/handover/v20.md](docs/handover/v20.md)
-  - v17 확장판: [docs/handover/v17-expanded.md](docs/handover/v17-expanded.md)
-  - 작업 C 인계서: [docs/handover/chat-c-handover-20260509.md](docs/handover/chat-c-handover-20260509.md)
-- **권한 정책**: [.claude/settings.json](.claude/settings.json) — main 폴더에서 자동 적용 (모든 채팅 공통)
-- **worktree 구조**:
-  - `tbfa-mis` (메인 폴더, main 브랜치 전용 — 머지·조율)
-  - `../tbfa-mis-A` (작업 A — feature/eligibility-change)
-  - `../tbfa-mis-B` (작업 C — feature/csv-donation-mapping)
-- **메모리**: `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/`
-
-### 12.1 문서 갱신 정책 (역할 분담)
-
-| 문서 | 갱신 빈도 | 역할 |
+| 문서 | 역할 | 갱신 빈도 |
 |---|---|---|
-| `CLAUDE.md` | 정책 변경 시 | 자동 로드, 코딩 컨벤션·권한·자율성 원칙 |
-| `PROJECT_STATE.md` | 매 세션 | 휘발성 상태(채팅·worktree·진행률·이슈) |
-| `docs/HANDOFF.md` | **항상 단일 최신** | 한 화면 인수인계 |
-| `docs/REMAINING_WORK.md` | 우선순위 합의 시 재생성 | 잔여 작업 인벤토리 |
-| `docs/handover/v*.md` | **마일스톤 단위 영구 스냅샷** | 자발적 안 읽음, 역사 기록 |
-| `docs/milestones/*.md` | 마일스톤 신설 시 | 단일 마일스톤 설계서 |
-| `docs/issues/*.md` | 이슈 발견 시 | 상세 분석 + PROJECT_STATE §6.6에 한 줄 인덱스 |
+| [`CLAUDE.md`](CLAUDE.md) | **자동 로드** — 코딩 컨벤션·권한·자율성 원칙 | 정책 변경 시 |
+| [`PROJECT_STATE.md`](PROJECT_STATE.md) | 휘발성 상태(진행률·worktree·이슈) | 매 세션 |
+| [`docs/HANDOFF.md`](docs/HANDOFF.md) | 단일 최신 인수인계 (한 화면) | 항상 단일 최신 |
+| [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) | 병렬 작업·머지·충돌 회피 가이드 | 정책 변경 시 |
+| [`docs/PAGES.md`](docs/PAGES.md) | 페이지 진입점 카탈로그 | 페이지 추가 시 |
+| [`docs/REMAINING_WORK.md`](docs/REMAINING_WORK.md) | 잔여 작업 인벤토리 | 우선순위 합의 시 |
+| [`docs/CONTEXT_OPTIMIZATION.md`](docs/CONTEXT_OPTIMIZATION.md) | 컨텍스트 다이어트 진단·결정 | 다이어트 정책 변경 시 |
+| [`docs/issues/`](docs/issues/) | 오류 리포트 | 이슈 발견 시 (PROJECT_STATE §6에 한 줄 인덱스) |
+| [`docs/milestones/`](docs/milestones/) | 단일 마일스톤 설계서 | 마일스톤 신설 시 |
+| [`docs/handover/v*.md`](docs/handover/) | 영구 스냅샷 (자발적 안 읽음, 역사) | 마일스톤 완료 시 |
+| [`.claude/settings.json`](.claude/settings.json) | 권한 정책 — main 폴더 자동 적용 | 정책 변경 시 |
+| 메모리 | `~/.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/` | 학습 시 |
 
 ---
 
@@ -528,4 +447,46 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-10 (§6.14 검증·설명 로직·기능 위주 절대명제 신설 + Phase 1 단계 B 코드 머지 완료 + HANDOFF/REMAINING_WORK + §12.1 문서 갱신 정책 + 권한 정책 정비 + §6.10~6.12 자율성 원칙)
+## 14. 컨텍스트 관리 정책 (다이어트보다 효과 큰 행동 변화)
+
+세션 컨텍스트가 빠르게 차오르는 진짜 원인은 자동 로드(전체의 3~5%)가 아니라 **누적 도구 호출 결과**와 **중복 정독**. 다음 3가지 행동 변화를 우선 적용한다.
+
+### 14.1 정독 정책 (메인 채팅 시작 시)
+
+| 문서 | 정독 여부 |
+|---|---|
+| `CLAUDE.md` | 자동 로드 (다시 Read 금지 — 컨텍스트 이중 부담) |
+| `PROJECT_STATE.md` | **정독** (§1~§7) |
+| `docs/HANDOFF.md` | **§3·§5·§7만 발췌** (limit/offset 사용, 전체 정독 X) |
+| `docs/PARALLEL_GUIDE.md` | **새 병렬 작업 분배 시에만** |
+| `docs/PAGES.md` | 페이지 위치 헷갈릴 때만 |
+| `docs/handover/v*.md` | **자발적 안 읽음** (영구 archive) |
+
+### 14.2 Subagent 활용
+
+큰 문서 정독·다중 파일 조사·코드베이스 검색은 Subagent에 위임하고 메인은 결과 요약만 받는다. 메인 컨텍스트에 원본 텍스트가 누적되지 않음.
+
+- **Explore agent**: 코드베이스 검색 ("X 정의 위치", "Y 사용처"), 큰 문서 정독 (200~400자 요약 요청)
+- **Plan agent**: 구현 전 설계 — 메인은 결정만 받음
+- 메인이 직접 Read 하기 전에 "Subagent에 위임해서 요약 받으면 충분한가?" 자문
+
+### 14.3 Read 정책
+
+- 큰 파일은 `limit`/`offset` 발췌. 전체 Read는 마지막 수단
+- 같은 파일 두 번 Read 금지 — 한 번 읽으면 컨텍스트에 남아있으니 재독 불필요
+- Edit 후 결과 확인을 위한 Read 금지 (Edit 실패 시 자체 에러)
+- 검색은 `Glob`(파일명) → `Grep`(내용) 우선, Read는 최종 단계
+
+### 14.4 세션 분할
+
+- 한 작업 단위(머지·검증·설계·디버깅 등 하나)가 끝나면 새 채팅 시작
+- 1M 컨텍스트 80% 도달 전에 능동적으로 인수인계
+- 인수인계는 [`docs/HANDOFF.md`](docs/HANDOFF.md) 갱신 후 새 채팅 시작 메시지로 위치 안내
+
+### 14.5 다이어트 결과 요약
+
+본 정책 도입 시점(2026-05-10) 자동 로드 약 28% 절감. 자세한 진단·결정 [docs/CONTEXT_OPTIMIZATION.md](docs/CONTEXT_OPTIMIZATION.md).
+
+---
+
+**마지막 업데이트**: 2026-05-10 (§10·§11 외부 위임 + §12 참조 갱신 + §14 컨텍스트 관리 정책 신설)

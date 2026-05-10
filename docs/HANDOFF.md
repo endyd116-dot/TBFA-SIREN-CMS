@@ -159,9 +159,11 @@ A·B 머지 완료. Swain V1·V2·V3 검증 진행:
 
 ## 9. 작업 시 필독
 
-- [CLAUDE.md](../CLAUDE.md) — 자동 로드, 코딩 컨벤션·권한·자율성 원칙(§6.10~6.12)
-- [PROJECT_STATE.md](../PROJECT_STATE.md) — 휘발성 상태, 채팅·worktree·진행률
-- [docs/DESIGN_EXPERT_MATCHING.md](DESIGN_EXPERT_MATCHING.md) — 6순위 #8 설계서
+- [CLAUDE.md](../CLAUDE.md) — 자동 로드, 코딩 컨벤션·권한·자율성 원칙(§6.10~6.12), §14 컨텍스트 관리 정책
+- [PROJECT_STATE.md](../PROJECT_STATE.md) — 휘발성 상태(진행률·worktree·이슈)
+- [docs/PARALLEL_GUIDE.md](PARALLEL_GUIDE.md) — 병렬 작업·머지·충돌 회피 가이드 (필요 시만)
+- [docs/PAGES.md](PAGES.md) — 페이지 진입점 카탈로그
+- [docs/CONTEXT_OPTIMIZATION.md](CONTEXT_OPTIMIZATION.md) — 컨텍스트 다이어트 진단·결정
 - [.claude/settings.json](../.claude/settings.json) — 권한 정책
 
 ---
