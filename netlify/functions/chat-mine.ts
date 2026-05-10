@@ -2,10 +2,13 @@
  * GET  /api/chat/mine    — 내 채팅방 목록
  * POST /api/chat/mine    — 새 채팅방 생성
  *                          body: { category, title? }
+ *
+ * ★ 6순위 #8: GET 시 전문가(expert_id)로 배정된 expert_1on1 룸도 함께 반환
  */
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import { db, chatRooms, chatBlacklist } from "../../db";
 import { authenticateUser } from "../../lib/auth";
+import { ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 import {
   ok, badRequest, unauthorized, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -34,6 +37,7 @@ export default async (req: Request) => {
   try {
     /* ===== GET — 내 채팅방 목록 ===== */
     if (req.method === "GET") {
+      /* ★ 6순위 #8: memberId 또는 expertId(전문가로 배정된 룸)까지 포함 */
       const rooms = await db
         .select({
           id: chatRooms.id,
@@ -43,11 +47,22 @@ export default async (req: Request) => {
           lastMessageAt: chatRooms.lastMessageAt,
           lastMessagePreview: chatRooms.lastMessagePreview,
           unreadForUser: chatRooms.unreadForUser,
+          unreadForAdmin: chatRooms.unreadForAdmin,
+          roomType: chatRooms.roomType,
+          expertId: chatRooms.expertId,
           createdAt: chatRooms.createdAt,
           closedAt: chatRooms.closedAt,
         })
         .from(chatRooms)
-        .where(eq(chatRooms.memberId, auth.uid))
+        .where(
+          or(
+            eq(chatRooms.memberId, auth.uid),
+            and(
+              eq(chatRooms.roomType, ROOM_TYPE_EXPERT),
+              eq(chatRooms.expertId, auth.uid),
+            ),
+          ),
+        )
         .orderBy(desc(chatRooms.lastMessageAt))
         .limit(50);
 
