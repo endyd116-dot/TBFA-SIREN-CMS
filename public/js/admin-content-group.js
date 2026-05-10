@@ -133,9 +133,9 @@
     wrapEl.innerHTML = '';
 
     try {
-      const res = await api({ url: '/api/admin-content-list' });
+      const res = await api({ url: '/api/admin/activity-posts?limit=50' });
       if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
-      const rows = res.data?.data || res.data || [];
+      const rows = res.data?.data?.list || res.data?.list || res.data?.data || res.data || [];
       wrapEl.innerHTML = buildContentTable(Array.isArray(rows) ? rows : []);
     } catch (err) {
       showToast('콘텐츠 목록 조회 실패: ' + err.message);
@@ -154,9 +154,9 @@
     wrapEl.innerHTML = '';
 
     try {
-      const res = await api({ url: '/api/admin-weekly-report-list' });
+      const res = await api({ url: '/api/admin/activity-posts?category=report&limit=50' });
       if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
-      const rows = res.data?.data || res.data || [];
+      const rows = res.data?.data?.list || res.data?.list || res.data?.data || res.data || [];
       wrapEl.innerHTML = buildWeeklyTable(Array.isArray(rows) ? rows : []);
     } catch (err) {
       showToast('주간 보고서 목록 조회 실패: ' + err.message);
@@ -171,14 +171,16 @@
     if (!rows.length) {
       return '<p style="padding:20px;text-align:center;color:var(--tok-text-3,#999)">등록된 콘텐츠가 없습니다.</p>';
     }
-    const ths = ['ID', '제목', '카테고리', '상태', '등록일'];
+    const ths = ['ID', '제목', '카테고리', '연도', '공개', '조회', '등록일'];
     const head = ths.map(t => `<th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--tok-text-3,#999);border-bottom:1px solid var(--line,#eee)">${t}</th>`).join('');
     const body = rows.map(r => `
       <tr style="border-bottom:1px solid var(--line,#eee)">
         <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${r.id ?? ''}</td>
-        <td style="padding:9px 12px;font-size:12.5px">${esc(r.title ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.title ?? '')}</td>
         <td style="padding:9px 12px;font-size:12.5px">${esc(r.category ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px">${esc(r.status ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.year ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.isPublished ? '✅' : '—'}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.views ?? 0}</td>
         <td style="padding:9px 12px;font-size:12px;color:var(--tok-text-3,#999)">${fmtDate(r.createdAt)}</td>
       </tr>`).join('');
     return `
@@ -195,13 +197,15 @@
     if (!rows.length) {
       return '<p style="padding:20px;text-align:center;color:var(--tok-text-3,#999)">등록된 주간 보고서가 없습니다.</p>';
     }
-    const ths = ['ID', '제목', '기간', '등록일'];
+    const ths = ['ID', '제목', '연도', '월', '공개', '등록일'];
     const head = ths.map(t => `<th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--tok-text-3,#999);border-bottom:1px solid var(--line,#eee)">${t}</th>`).join('');
     const body = rows.map(r => `
       <tr style="border-bottom:1px solid var(--line,#eee)">
         <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${r.id ?? ''}</td>
-        <td style="padding:9px 12px;font-size:12.5px">${esc(r.title ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px">${esc(r.period ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.title ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.year ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.month ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.isPublished ? '✅' : '—'}</td>
         <td style="padding:9px 12px;font-size:12px;color:var(--tok-text-3,#999)">${fmtDate(r.createdAt)}</td>
       </tr>`).join('');
     return `

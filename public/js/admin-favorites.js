@@ -44,11 +44,11 @@
         api({ url: '/api/admin-recent-views-list' }),
       ]);
       if (favRes.ok) {
-        const d = favRes.data?.data || favRes.data || [];
+        const d = favRes.data?.data?.favorites || favRes.data?.favorites || favRes.data?.data || favRes.data || [];
         favs = Array.isArray(d) ? d.slice(0, 5) : [];
       }
       if (recRes.ok) {
-        const d = recRes.data?.data || recRes.data || [];
+        const d = recRes.data?.data?.recentViews || recRes.data?.recentViews || recRes.data?.data || recRes.data || [];
         recents = Array.isArray(d) ? d.slice(0, 5) : [];
       }
     } catch (err) {

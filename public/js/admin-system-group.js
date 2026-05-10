@@ -146,9 +146,9 @@
     wrapEl.innerHTML = '';
 
     try {
-      const res = await api({ url: '/api/admin-system-settings' });
+      const res = await api({ url: '/api/admin/site-settings' });
       if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
-      const rows = res.data?.data || res.data || [];
+      const rows = res.data?.data?.list || res.data?.list || res.data?.data || res.data || [];
       wrapEl.innerHTML = buildSettingsTable(Array.isArray(rows) ? rows : []);
     } catch (err) {
       showToast('시스템 설정 조회 실패: ' + err.message);
@@ -169,9 +169,9 @@
     wrapEl.innerHTML = '';
 
     try {
-      const res = await api({ url: '/api/admin-audit-log' });
+      const res = await api({ url: '/api/admin/audit?limit=50' });
       if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
-      const rows = res.data?.data || res.data || [];
+      const rows = res.data?.data?.list || res.data?.list || res.data?.logs || res.data?.data || res.data || [];
       wrapEl.innerHTML = buildAuditTable(Array.isArray(rows) ? rows : []);
     } catch (err) {
       showToast('감사 로그 조회 실패: ' + err.message);
@@ -190,9 +190,9 @@
     wrapEl.innerHTML = '';
 
     try {
-      const res = await api({ url: '/api/admin-anonymous-audit' });
+      const res = await api({ url: '/api/admin-anonymous-reveal-logs?limit=50' });
       if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
-      const rows = res.data?.data || res.data || [];
+      const rows = res.data?.items || res.data?.data?.items || res.data?.data || res.data || [];
       wrapEl.innerHTML = buildAnonTable(Array.isArray(rows) ? rows : []);
     } catch (err) {
       showToast('보안·감사 로그 조회 실패: ' + err.message);
@@ -207,12 +207,14 @@
     if (!rows.length) {
       return '<p style="padding:20px;text-align:center;color:var(--tok-text-3,#999)">시스템 설정 항목이 없습니다.</p>';
     }
-    const ths = ['설정 키', '값', '수정일'];
+    const ths = ['범위', '설정 키', '값', '임시저장', '수정일'];
     const head = ths.map(t => `<th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--tok-text-3,#999);border-bottom:1px solid var(--line,#eee)">${t}</th>`).join('');
     const body = rows.map(r => `
       <tr style="border-bottom:1px solid var(--line,#eee)">
+        <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${esc(r.scope ?? '')}</td>
         <td style="padding:9px 12px;font-size:12.5px;font-family:monospace;font-weight:600">${esc(r.key ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.value ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.valueText ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.hasDraft ? '📝' : '—'}</td>
         <td style="padding:9px 12px;font-size:12px;color:var(--tok-text-3,#999)">${fmtDate(r.updatedAt)}</td>
       </tr>`).join('');
     return `
@@ -228,14 +230,15 @@
     if (!rows.length) {
       return '<p style="padding:20px;text-align:center;color:var(--tok-text-3,#999)">감사 로그가 없습니다.</p>';
     }
-    const ths = ['관리자ID', '액션', '대상유형', '대상ID', '일시'];
+    const ths = ['사용자', '유형', '액션', '대상', '성공', '일시'];
     const head = ths.map(t => `<th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--tok-text-3,#999);border-bottom:1px solid var(--line,#eee)">${t}</th>`).join('');
     const body = rows.map(r => `
       <tr style="border-bottom:1px solid var(--line,#eee)">
-        <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${r.adminId ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${esc(r.userName ?? r.adminId ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${esc(r.userType ?? '')}</td>
         <td style="padding:9px 12px;font-size:12.5px;font-family:monospace;font-weight:600">${esc(r.action ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px">${esc(r.targetType ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${r.targetId ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.target ?? r.targetType ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${r.success !== undefined ? (r.success ? '✅' : '❌') : '—'}</td>
         <td style="padding:9px 12px;font-size:12px;color:var(--tok-text-3,#999)">${fmtDate(r.createdAt)}</td>
       </tr>`).join('');
     return `
@@ -251,13 +254,15 @@
     if (!rows.length) {
       return '<p style="padding:20px;text-align:center;color:var(--tok-text-3,#999)">익명 감사 로그가 없습니다.</p>';
     }
-    const ths = ['익명ID', '액션', '상세', '일시'];
+    const ths = ['담당자', '신고유형', '신고제목', '식별수준', '사유', '조회일시'];
     const head = ths.map(t => `<th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--tok-text-3,#999);border-bottom:1px solid var(--line,#eee)">${t}</th>`).join('');
     const body = rows.map(r => `
       <tr style="border-bottom:1px solid var(--line,#eee)">
-        <td style="padding:9px 12px;font-size:12.5px;font-family:monospace">${esc(r.anonymousId ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12.5px;font-family:monospace;font-weight:600">${esc(r.action ?? '')}</td>
-        <td style="padding:9px 12px;font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.detail ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${esc(r.revealedByName ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px">${esc(r.reportType ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.reportTitle ?? '')}</td>
+        <td style="padding:9px 12px;font-size:12.5px;text-align:center">${r.revealLevel ?? ''}</td>
+        <td style="padding:9px 12px;font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.reason ?? '')}</td>
         <td style="padding:9px 12px;font-size:12px;color:var(--tok-text-3,#999)">${fmtDate(r.createdAt)}</td>
       </tr>`).join('');
     return `
