@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-11 | **C 채팅** | **Q6 Phase 5~7 재정 관리 라이브 검증 통과** — 7개 API 모두 401·405 정상 (500 0건). BUG-5(감사 추적 NULL)·BUG-6(존재하지 않는 admins 테이블 JOIN)·BUG-7(이미 처리된 지출 거짓 성공 응답) fix 모두 그대로 유지. 예산 집계·편성·지출 기안·승인·반려·수입 요약·재무 보고서 정합성 양호. Q12 fix 흔적(효성 결제일 fallback) 정상. Phase 4·8·9·10 R1·R2·6순위 #8 회귀 0. bug 0건. 보고서 `docs/verify/2026-05-11-phase5-7-finance.md` |
+| 2026-05-11 | 메인 | **R3 B·A push 흡수 + Q6 흡수 + #BACKFILL-1 raw 시퀀스 마이그 (3차)** — R3 백 11파일(B 5f11c5e) main 머지·R3 프론트 7파일(A 857674d) push 완료(머지 대기) / Q6 Phase 5~7 재정 100% 통과 흡수 / #BACKFILL-1 약정일 NULL이라 raw 시퀀스 매칭 방식으로 마이그 재작성(72a4b0b). Swain 마이그 호출 2건 대기 (R3·BACKFILL 진단). B 설계 변경: 어댑터 직접 호출 → lib/email·aligo·notify 직접 호출(이벤트 인터페이스 한계, 카카오 skipped) |
+| 2026-05-11 | **C 채팅** | **Q6 Phase 5~7 재정 관리 라이브 검증 통과** — 7개 API 모두 401·405 정상 (500 0건). BUG-5·BUG-6·BUG-7 fix 모두 그대로 유지. 예산 집계·편성·지출 기안·승인·반려·수입 요약·재무 보고서 정합성 양호. Q12 fix 흔적(효성 결제일 fallback) 정상. 회귀 0, bug 0건 |
 | 2026-05-11 | **C 채팅** | **Phase 10 R2 라이브 검증 통과** — 페이지 4종 200, 백엔드 7개 API 모두 401 정상 (500 0건). Q1~Q9 시나리오 모두 PASS — 시드 4건 표시·필터/수동 명단·미리보기·동적 그룹·화이트리스트·페이지네이션·soft delete·필터 0개 거부. baseline 응답 ~0.6s (R1 동등). Phase 4·8·9·10 R1·6순위 #8 회귀 0. bug 0건. 보고서 `docs/verify/2026-05-11-phase10-r2.md` |
 | 2026-05-11 | 메인 | **Phase 10 R2 코드 100% 머지 완료** — Swain 마이그 호출 응답 success(시드 4건, grade_code 자동 보정) → schema recipientGroups 활성화 + 마이그 파일 삭제(7f2163b) + A 프론트 5파일 머지(b969bb2) → 라이브 진입 점검 + C R2 검증 트리거 대기 |
 | 2026-05-11 | 메인 | **R2 백 + C Q4·Q5 통합 머지 + 설계 모호성 즉시 질문 정책 추가** — R2 백 10파일(B `90b3b26`) main 머지 / Q4·Q5 verify 흡수 / PARALLEL_GUIDE §1.7 신규 |
-| 2026-05-11 | **C 채팅** | **Q4 + Q5 통합 라이브 검증 통과** — Q4 6순위 #8 매칭 채팅: 페이지 4종 200·백엔드 13개 401/405 정상·BUG-4 fix 유지·매칭 트랜잭션 정합성. Q5 Phase 4 대표 보고: SPA 200·백엔드 4개 401/405·BUG-3 fix 유지·통계·AI 요약·이메일·인쇄. cron-agent-9 매주 월요일 06:00 정상. 양 세션 회귀 0, bug 0건. 보고서 2종 |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -36,15 +36,17 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R2 100% 마감 — R3 B·A 트리거 대기 + #BACKFILL-1 약정일 마이그 작성
-   ├─ A: ⏸ R3 트리거 대기 (설계서 §6.3 복붙)
-   ├─ B: ⏸ R3 트리거 대기 (설계서 §6.2 복붙)
-   ├─ C: ⏸ 다음 세션 — R3 검증 또는 Q6 / Q-진단-2 (#BACKFILL-1 약정일 마이그 호출 후)
+🟢 Phase 10 R3 B·A push 완료 — Swain 마이그 호출 2건 대기
+   ├─ A: ✅ R3 프론트 push 완료 (857674d) / ⏸ schema 활성화 후 머지
+   ├─ B: ✅ R3 백 main 머지 완료 — 세션 종료
+   ├─ C: ⏸ 다음 세션 — R3 검증(메인 트리거) 또는 Q-진단-2(#BACKFILL-1 적용 후)
    └─ D: 휴면
-   메인: R3 트리거 대기 + #BACKFILL-1 약정일 시퀀스 마이그 작성 진행 중
+   메인: 마이그 응답 2건 대기 → schema 활성화 + 마이그 파일 삭제 → A 머지 → C R3 검증 트리거
 ```
 
-**Swain 합의**: #BACKFILL-1은 **약정일 + 계약 시작일 시퀀스 방식**으로 1회용 마이그 처리 (Swain 의견 반영). 자동 매칭 시스템 별도 라운드 X.
+**Swain 액션 2건**:
+1. `/api/migrate-phase10-send-jobs?run=1` — Phase 10 R3 신규 테이블 2종 (Netlify 배포 1~3분 후)
+2. `/api/migrate-hyosung-paid-date-backfill` (GET, 인증 X) — 진단 본문 메인 채팅에 전달 → 검토 후 적용 호출 안내
 
 ---
 
@@ -53,22 +55,28 @@
 > 완료된 병렬 작업 분담 정의는 git history + `docs/handover/v20.md` 참고.
 > 새 병렬 작업 시작 시 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §4 템플릿 사용.
 
-### 4.1 Phase 10 R2 — 통합 발송 시스템: 수신자 그룹 선택
+### 4.1 Phase 10 R3 — 통합 발송 시스템: 발송 예약 큐
 
 | 항목 | 값 |
 |---|---|
-| 진행률 | ✅ 100% — 코드 100% 머지 + C 라이브 검증 통과 (2026-05-11) |
-| 담당 | 메인(라운드 마감 진행) / B(완료) / A(완료) / C(완료) |
-| 다음 할 일 | 메인이 verify 보고 흡수 → 라운드 마감 → Phase 10 R3 B·A 트리거 |
-| 설계서 | [docs/milestones/2026-05-11-phase10-r2-recipient-groups.md](docs/milestones/2026-05-11-phase10-r2-recipient-groups.md) |
+| 진행률 | 🟢 60% — B 백 머지 ✅·A 프론트 push ✅ / 마이그·schema·A 머지·C 검증 잔여 |
+| 담당 | 메인(머지·조율) / B(완료) / A(push 완료, 머지 대기) / C(다음 세션 R3 검증) |
+| 다음 할 일 | Swain R3 마이그 응답 → schema 활성화 + 마이그 삭제 → A 머지 → C 검증 트리거 |
+| 설계서 | [docs/milestones/2026-05-11-phase10-r3-send-queue.md](docs/milestones/2026-05-11-phase10-r3-send-queue.md) |
+| B 설계 변경 | 어댑터 직접 호출 → `lib/email`·`lib/aligo-client`·`lib/notify` 직접 호출 (어댑터 인터페이스가 NotifyEvent enum 기반이라 마케팅성 자유 본문 부적합). 카카오는 사전 심사 통과 템플릿만 발송 가능 → R3에서 skipped 반환 + preflight 경고 |
 
-### 4.2 Phase 10 R1 — 템플릿 빌더 (✅ 100% 마감)
+### 4.2 Phase 10 R2 — 수신자 그룹 (✅ 100% 마감)
 
-코드 100% 머지 + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 검증 항목 (보고서 §6).
+코드 100% 머지 + C Q1~Q9 라이브 검증 통과. 업무 시나리오 클릭 테스트는 Swain 직접.
 
-### 4.3 Phase 4 — 대표 보고 시스템 + Agent-9 (✅ 100% 마감)
+### 4.3 Phase 10 R1·Phase 4·Phase 5~7 (✅ 100% 마감)
 
-코드 + BUG-3 fix + C V1·V2·V3 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 검증 항목.
+이번 세션 마감된 마일스톤:
+- Phase 10 R1 템플릿 빌더 (보고서 docs/verify/2026-05-11-phase10-r1.md)
+- Phase 10 R2 수신자 그룹 (보고서 docs/verify/2026-05-11-phase10-r2.md)
+- Phase 4 대표 보고 V1·V2·V3 (보고서 docs/verify/2026-05-11-phase4-report.md)
+- Phase 5~7 재정 관리 (보고서 docs/verify/2026-05-11-phase5-7-finance.md)
+- 6순위 #16 단계 D / 6순위 #8 1:1 매칭 채팅
 
 ---
 
@@ -94,7 +102,7 @@
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / 🟡 #BACKFILL-1 호출 대기·카카오 심사 대기 (Q7·Q8) |
 | **Phase 10 R1 템플릿 빌더** | ✅ 100% — 코드 머지 (8db8ffb·cef0f69) + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 (보고서 §6) |
 | **Phase 10 R2 수신자 그룹** | ✅ 100% — 코드 머지 (7f2163b·b969bb2) + C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r2.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
-| **Phase 10 R3 발송 예약 큐** | 🟢 설계서 작성 완료 ([R3 설계서](docs/milestones/2026-05-11-phase10-r3-send-queue.md)) — R2 머지 후 트리거 |
+| **Phase 10 R3 발송 예약 큐** | 🟢 60% — B 백 머지 ✅·A 프론트 push ✅ ([R3 설계서](docs/milestones/2026-05-11-phase10-r3-send-queue.md)) / 마이그·schema·A 머지·C 검증 잔여 |
 | **Phase 10 R4~R5 통합 발송** | ✅ 카탈로그 / ⏸ R3 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
@@ -118,7 +126,7 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
-| #BACKFILL-1 | 2026-05-10 | 효성 후원 결제일 NULL (44건) | 🟡 Medium | 🟢 약정일 + 계약 시작일 시퀀스 방식 결정 (Swain 합의 2026-05-11) — 메인이 1회용 마이그 작성 중 | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
+| #BACKFILL-1 | 2026-05-10 | 효성 후원 결제일 NULL (44건) | 🟡 Medium | 🟢 raw 시퀀스 매칭 마이그 작성 완료 (3차, 72a4b0b) — Swain 진단 호출 본문 대기 → 검토 후 적용 | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
 | ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-5~~ | 2026-05-10 | `admin-finance-{budget-upsert,expenditure-create,expenditure-approve}.ts` | 🔴 High | ✅ 해결 | [docs/issues/2026-05-10-finance-audit-columns-null.md](docs/issues/2026-05-10-finance-audit-columns-null.md) |
