@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>회원 발송 이력 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.filter-bar label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.825rem; color: #475569;
+}
+.filter-bar select,
+.filter-bar input[type="date"] {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+.member-info {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 16px; font-size: 0.875rem; color: #334155;
+  display: flex; align-items: center; gap: 12px;
+}
+.member-info strong { font-size: 1rem; }
+
+.table-wrap {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+  background: #f8fafc; padding: 11px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tbl tbody tr {
+  border-bottom: 1px solid #f1f5f9; cursor: pointer;
+}
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl tbody td { padding: 11px 12px; font-size: 0.85rem; vertical-align: middle; }
+.tbl tbody tr:hover { background: #f0f9ff; }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;
+}
+.badge-sent    { background: #dcfce7; color: #166534; }
+.badge-failed  { background: #fee2e2; color: #b91c1c; }
+.badge-pending { background: #f1f5f9; color: #64748b; }
+
+.track-icon { font-size: 0.85rem; }
+
+.pagination {
+  display: flex; align-items: center; gap: 8px; justify-content: center; padding: 12px;
+}
+.pagination span { font-size: 0.85rem; color: #475569; }
+
+.empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.9rem; }
+
+/* 본문 모달 */
+.modal-bg {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 14px; width: 680px; max-width: 95vw;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.modal-close {
+  background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #64748b;
+}
+.modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.mail-subject { font-weight: 600; margin-bottom: 10px; color: #1e293b; }
+.mail-body { white-space: pre-wrap; font-size: 0.875rem; line-height: 1.7; color: #334155; }
+
+/* 토스트 */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 8px;
+  font-size: 0.9rem; opacity: 0; transition: opacity .25s; z-index: 9999; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.error { background: #b91c1c; }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <a class="back-link" id="backLink" href="/admin.html" onclick="window.location.href='/admin.html';return false;">← 어드민 홈</a>
+  <div class="page-title" id="pageTitle">회원 발송 이력</div>
+  <div class="page-desc">이 회원에게 발송된 메시지 전체 이력을 확인합니다. 행을 클릭하면 발송 본문을 볼 수 있습니다.</div>
+
+  <div class="member-info" id="memberInfo" style="display:none"></div>
+
+  <div class="filter-bar">
+    <label>채널
+      <select id="filterChannel">
+        <option value="">전체</option>
+        <option value="email">이메일</option>
+        <option value="sms">SMS</option>
+        <option value="kakao">카카오</option>
+        <option value="inapp">인앱</option>
+      </select>
+    </label>
+    <label>시작일 <input type="date" id="filterFrom" /></label>
+    <label>종료일 <input type="date" id="filterTo" /></label>
+  </div>
+
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>발송 작업</th>
+          <th>채널</th>
+          <th>발송 시각</th>
+          <th>상태</th>
+          <th>열람</th>
+          <th>클릭</th>
+          <th>실패 사유</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- 본문 모달 -->
+<div class="modal-bg" id="bodyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">발송 본문</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mail-subject" id="modalSubject"></div>
+      <div class="mail-body" id="modalBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin-member-send-history.js?v=1"></script>
+</body>
+</html>
