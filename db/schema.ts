@@ -272,6 +272,9 @@ export const members = pgTable("members", {
   prospectSubtype: varchar("prospect_subtype", { length: 20 }),
   donorEvaluatedAt: timestamp("donor_evaluated_at"),
 
+  /* ───────── ★ Phase 17 — 보안·감사 고도화 ───────── */
+  loginFailStreak: integer("login_fail_streak").default(0),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -575,11 +578,15 @@ export const auditLogs = pgTable("audit_logs", {
   userAgent: varchar("user_agent", { length: 500 }),
   success: boolean("success").default(true),
   errorMessage: text("error_message"),
+  /* ───────── ★ Phase 17 — 보안·감사 고도화 ───────── */
+  sessionId: varchar("session_id", { length: 128 }),
+  riskLevel: varchar("risk_level", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   userIdx: index("audit_user_idx").on(t.userId),
   actionIdx: index("audit_action_idx").on(t.action),
   createdIdx: index("audit_created_idx").on(t.createdAt),
+  riskIdx: index("audit_risk_idx").on(t.riskLevel),
 }));
 
 /* =========================================================
