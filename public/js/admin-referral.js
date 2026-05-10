@@ -7,7 +7,7 @@
   'use strict';
 
   /* ── mock 스위치 ── */
-  var USE_MOCK = true;
+  var USE_MOCK = false;
 
   var MOCK_AGENCIES = {
     ok: true,
@@ -52,6 +52,7 @@
   };
 
   var STATUS_LABELS = {
+    pending: '대기 중',
     sent: '발송됨',
     reviewing: '검토 중',
     in_progress: '처리 중',
@@ -60,6 +61,7 @@
   };
 
   var STATUS_COLORS = {
+    pending: '#6c757d',
     sent: '#6c757d',
     reviewing: '#007bff',
     in_progress: '#fd7e14',
@@ -171,6 +173,7 @@
       '      <div>',
       '        <label style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">상태</label>',
       '        <select id="refFldStatus" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px">',
+      '          <option value="pending">대기 중</option>',
       '          <option value="sent">발송됨</option>',
       '          <option value="reviewing">검토 중</option>',
       '          <option value="in_progress">처리 중</option>',
@@ -237,7 +240,7 @@
       if (callback) callback();
       return;
     }
-    api({ url: '/api/admin-agency-list?isActive=true' }).then(function (res) {
+    api({ url: '/api/admin-agency-list?active=1' }).then(function (res) {
       var d = res.data.data || res.data;
       agencies = d.agencies || [];
     }).catch(function () {
@@ -424,24 +427,36 @@
       credentials: 'include',
       body: JSON.stringify({ agencyId: agencyId, sourceType: sourceType, sourceId: sourceId })
     }).then(function (res) {
-      if (!res.ok) {
-        return res.json().then(function (d) { throw new Error(d.error || 'HTTP ' + res.status); });
-      }
-      /* PDF blob 다운로드 */
-      return res.blob().then(function (blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'referral-' + sourceType + '-' + sourceId + '.pdf';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+      return res.json().then(function (d) {
+        if (!res.ok) throw new Error(d.error || 'HTTP ' + res.status);
+        return d;
       });
-    }).then(function () {
+    }).then(function (d) {
+      var logId = d.logId;
       closeCreateModal();
       currentPage = 1;
       loadLogs();
-      showToast('인계가 완료되었습니다. PDF가 다운로드됩니다.', 'success');
+      showToast('인계 기록이 저장되었습니다. PDF를 다운로드합니다.', 'success');
+      /* PDF 별도 다운로드 */
+      if (logId) {
+        fetch('/api/admin-referral-pdf?referralId=' + logId, { credentials: 'include' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('PDF HTTP ' + r.status);
+            return r.blob();
+          })
+          .then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'referral-' + sourceType + '-' + sourceId + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+          })
+          .catch(function (err) {
+            showToast('PDF 다운로드 실패: ' + err.message, 'error');
+          });
+      }
     }).catch(function (err) {
       showToast('인계 실패: ' + err.message, 'error');
     }).finally(function () {
