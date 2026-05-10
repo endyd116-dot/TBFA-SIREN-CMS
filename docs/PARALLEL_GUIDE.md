@@ -82,7 +82,10 @@ A·B 영역이 폴더 단위로 분리되므로 이전의 복잡한 매트릭스
 | `drizzle/**` | ❌ | ✅ | ✅ |
 | `package.json`, `package-lock.json` | ❌ | ✅ | ✅ |
 | `.env.example` | ❌ | ✅ | ✅ |
-| `PROJECT_STATE.md`, `docs/` | 메인·C만 | 메인·C만 | ✅ (보고서) |
+| `PROJECT_STATE.md`, `docs/HANDOFF.md` | ❌ **절대 금지** | ❌ **절대 금지** | ✅ (보고서만) |
+| `docs/**` (그 외) | ❌ | ❌ | ✅ |
+
+> **A·B가 PROJECT_STATE.md / HANDOFF.md를 수정하면 반드시 머지 충돌 발생** — 메인이 B 머지 기록을 먼저 쓰고, A가 이전 베이스로 덮어쓰기 때문. 상태 기록은 push 후 메인에 보고 텍스트로 전달하는 것으로 충분. (2026-05-11 사고 사례: A가 자발적으로 PROJECT_STATE.md 갱신 → 메인 머지 2회 충돌)
 
 ### 회귀 위험 영역 (B·C 모두 주의)
 

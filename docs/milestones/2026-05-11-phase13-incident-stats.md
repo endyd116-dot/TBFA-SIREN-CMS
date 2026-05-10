@@ -394,7 +394,7 @@ admin.html 하단에 `<script src="/js/admin-siren-stats.js?v=1">` 추가.
 참고: docs/PARALLEL_GUIDE.md §3 (영역 분담)
 
 영역: netlify/functions/, lib/, db/schema.ts, drizzle/, .env.example
-금지: public/, assets/
+금지: public/, assets/, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 핵심 정보:
 - DB 변경 없음 — 마이그 파일 작성 불필요
@@ -429,7 +429,7 @@ push 후 메인에 보고: 브랜치명·커밋 해시·변경 파일 요약.
 참고: docs/PARALLEL_GUIDE.md §3 (영역 분담)
 
 영역: public/, assets/
-금지: lib/, netlify/functions/, db/, drizzle/
+금지: lib/, netlify/functions/, db/, drizzle/, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 모드: 평행 mock — §5.4의 mock JSON 객체를 변수에 담아 먼저 차트 구현.
 B 머지 후 메인이 "실 API 연결" 신호 주면 mock → /api/admin-incident-stats 호출로 교체.

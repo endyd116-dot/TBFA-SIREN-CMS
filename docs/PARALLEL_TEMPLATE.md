@@ -229,7 +229,7 @@ INSERT INTO {table_name} (...) VALUES (...) ON CONFLICT DO NOTHING;
 참고: docs/PARALLEL_GUIDE.md §3 (영역 분담), §7 (자체 검증)
 
 영역: netlify/functions/, lib/, db/schema.ts, drizzle/, .env.example, package.json
-금지: public/, assets/
+금지: public/, assets/, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 작업 순서:
   1) 마이그레이션 함수 작성 (1회용·requireAdmin·GET ?run=1·멱등)
@@ -261,7 +261,7 @@ push 후 메인에 보고: 브랜치명·커밋 해시·변경 파일 요약.
 참고: docs/PARALLEL_GUIDE.md §3 (영역 분담)
 
 영역: public/, assets/
-금지: lib/, netlify/functions/, db/, drizzle/, .env.example
+금지: lib/, netlify/functions/, db/, drizzle/, .env.example, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 모드: {직렬 / 평행 mock / 평행 단계머지}
 {평행 mock인 경우} 다음 mock 응답 사용 (B 머지 후 메인이 실 API 안내):
