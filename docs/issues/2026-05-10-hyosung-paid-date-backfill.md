@@ -2,7 +2,54 @@
 
 > **발견**: 2026-05-10 / C 채팅 (Q12 fix 완료 보고)
 > **심각도**: 🟡 Medium — 기능 동작은 정상, 그래프 정확도만 영향
-> **상태**: 🟡 1차 마이그 가정 어긋남 → 진단 보강 + import 코드 분석 (Q-진단 1차 완료, Swain 재호출 대기)
+> **상태**: 🔴 자동 백필 불가 — Swain 결정 대기 (D안 백필 포기 / 수동 매핑 / created_at 동등 채우기)
+
+---
+
+## 2026-05-11 보강 진단 응답 (Swain 재호출)
+
+```json
+{
+  "state": {"hyosung_total":44, "hyosung_null_total":44,
+            "regex_v1_match":0, "regex_v2_match":0, "regex_any_date_match":1},
+  "join_via_billing_id":   {"join_match_via_billing_id":0, "join_match_with_paydate":0},
+  "join_via_member_month": {"join_match_via_member_month":0, "join_match_with_paydate":0},
+  "provider_distribution": [{"pg_provider":"hyosung_cms","cnt":44}],
+  "hyosung_billings_state": {"total":41, "with_paydate":41, "linked":0},
+  "samples": [10건 — billing_id·billing_month·member_no 거의 NULL]
+}
+```
+
+### 핵심 분석
+
+- **효성 결제 후원 행 44건** — 전부 결제일 NULL
+- **정규식 매칭** — v1 0건 / v2 0건 / 어떤 날짜 패턴이라도 1건 (실질 0)
+- **billing_id로 raw 연결** — 0건 (후원 행에 billing_id 안 채워짐)
+- **회원번호+청구월로 raw 연결** — 0건 (둘 다 안 채워짐)
+- **효성 청구 raw 테이블** — 41건 존재, 결제일 41건 모두 채워짐, 후원과 연결된 건 **0건**
+- **샘플 10건** — `memo_excerpt` 빈 문자열 또는 "[효성 CSV 확정]" 텍스트만, 회원번호 일부만(62번 등)
+
+### 결론
+
+**자동 백필 경로 없음**.
+- 정규식: 매칭 0
+- billing_id join: 매칭 0
+- member_no + month join: month가 NULL이라 불가
+- raw 테이블에 결제일은 있지만 후원 행과의 연결고리(billing_id)가 끊어져 있음
+
+원인 추정: 옛 효성 import 흐름에서 raw 테이블 INSERT 후 후원 행 INSERT 시 billing_id를 FK로 안 적었음. 또는 두 INSERT가 별도 트랜잭션이라 매칭 키가 없음.
+
+### 처리 옵션
+
+| 안 | 내용 | 영향 |
+|---|---|---|
+| **D안 (백필 포기)** | 본 이슈 닫기, 현재 fallback(시스템 입력 시각)을 paid_date로 영구 사용. 마이그 파일 삭제 | 그래프 분산 정확도 약간 손실 (44건만, 사용자 영향 0). 코드 단순 |
+| **수동 매핑** | 운영자가 raw 41건과 후원 44건을 회원·금액·시기 기준으로 직접 매칭, 매칭 결과 수동 INSERT | 시간 소요 1~2시간, 매칭 가능성도 낮음 (raw 41 vs 후원 44 차이) |
+| **created_at 동등 채우기** | 후원 행의 created_at을 paid_date에 복사 | fallback과 동일 — 의미 없는 백필. 이름만 paid_date라 헷갈림 유발 |
+
+**메인 추천 — D안**. 자동 백필 경로 0이고, 운영자가 손으로 매칭해도 raw·후원 건수 차이로 100% 매칭 불가. 사용자 영향 0(fallback이 그래프 그리는 데 충분히 가까움). 옛 효성 데이터 분석 정확도 손실은 인정.
+
+다음 라운드(R3 또는 별도)에서 효성 import 코드에 billing_id FK 추가하여 신규 import는 정상 join 가능하게 조치.
 
 ---
 

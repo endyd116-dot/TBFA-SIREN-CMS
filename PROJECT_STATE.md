@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-11 | 메인 | **R2 백 + C Q4·Q5 통합 머지 + 설계 모호성 즉시 질문 정책 추가** — R2 백 10파일(B `90b3b26`) main 머지 / Q4·Q5 verify 흡수 (보고서 2종) / PARALLEL_GUIDE §1.7 신규(설계 단계 로직 모호 시 함수명 X·로직·기능 위주로 즉시 질문) / Swain 마이그 호출 대기 (`/api/migrate-phase10-recipient-groups?run=1`) / A `b969bb2` push된 채로 schema 활성화 후 머지 |
+| 2026-05-11 | 메인 | **Phase 10 R2 코드 100% 머지 완료** — Swain 마이그 호출 응답 success(시드 4건, grade_code 자동 보정) → schema recipientGroups 활성화 + 마이그 파일 삭제(7f2163b) + A 프론트 5파일 머지(b969bb2) → 라이브 진입 점검 + C R2 검증 트리거 대기 |
+| 2026-05-11 | 메인 | **R2 백 + C Q4·Q5 통합 머지 + 설계 모호성 즉시 질문 정책 추가** — R2 백 10파일(B `90b3b26`) main 머지 / Q4·Q5 verify 흡수 / PARALLEL_GUIDE §1.7 신규 |
 | 2026-05-11 | **C 채팅** | **Q4 + Q5 통합 라이브 검증 통과** — Q4 6순위 #8 매칭 채팅: 페이지 4종 200·백엔드 13개 401/405 정상·BUG-4 fix 유지·매칭 트랜잭션 정합성. Q5 Phase 4 대표 보고: SPA 200·백엔드 4개 401/405·BUG-3 fix 유지·통계·AI 요약·이메일·인쇄. cron-agent-9 매주 월요일 06:00 정상. 양 세션 회귀 0, bug 0건. 보고서 2종 |
 | 2026-05-11 | 메인 | **Phase 10 R3 설계서 작성 완료 (발송 예약 큐 + 즉시 발송)** — DB(send_jobs + send_recipients 2테이블) / API 7개 + cron 1개(1분 단위 dispatcher, chunk 50건/회) / 화면 3개 / 어댑터 직접 호출 / 검증 Q1~Q12 + cron + 성능 / 평행 모드 / R2 머지 후 트리거 |
 | 2026-05-11 | 메인 | **Phase 10 R2 설계서 작성 완료 (수신자 그룹 선택)** — DB(recipient_groups 1테이블 + 시드 5종) / API 8개(헬퍼 lib/recipient-resolve.ts + filter·manual 분기) / 화면 2개 / 검증 Q1~Q9 + 성능 / 평행 모드 |
-| 2026-05-11 | 메인 | **Phase 10 R1 100% 라운드 마감** — C Q9 통과 흡수 (페이지·API 200/401 정상, Q1~Q8 PASS, 회귀 0, bug 0). schema 활성화·시드 3건 운영 |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -36,17 +36,16 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R2 — B·A 모두 push 완료, B 백 머지 완료 / 마이그·schema·A 머지·검증 잔여
-   ├─ A: ✅ 프론트 push 완료 (b969bb2) / ⏸ schema 활성화 후 메인이 머지
-   ├─ B: ✅ 백 main 머지 완료 (Phase 10 R2) — 세션 종료
-   ├─ C: ✅ Q4·Q5 main 머지 완료 (2026-05-11) — 세션 종료. 다음 세션은 Q-진단-2(Swain 응답 후) 또는 Q6
+🟢 Phase 10 R2 코드 100% 머지 완료 — C R2 검증(Q1~Q9) + 라운드 마감만 잔여
+   ├─ A: ✅ R2 프론트 main 머지 완료 — 세션 종료
+   ├─ B: ✅ R2 백 main 머지 완료 — 세션 종료
+   ├─ C: ⏸ R2 검증(Q-신규) 트리거 대기. 또는 Q-진단-2(#BACKFILL-1 D안 결정 후)·Q6
    └─ D: 휴면
-   메인: 마이그 호출 응답 대기 → schema 활성화 + 마이그 파일 삭제 push → A 머지 → C에게 R2 검증 트리거
+   메인: 라이브 진입 1차 점검 → C R2 검증 트리거 → R2 마감 → R3 트리거
 ```
 
-**대기 중 Swain 액션 2건**:
-1. `/api/migrate-phase10-recipient-groups?run=1` — Phase 10 R2 신규 테이블 + 시드 5종 (Netlify 배포 1~3분 후)
-2. `/api/migrate-hyosung-paid-date-backfill` (GET, 인증 불필요) — #BACKFILL-1 보강된 진단 응답 본문 메인 채팅에 전달
+**Swain 결정 대기 1건**:
+- #BACKFILL-1 진단 결과 분석 — 결제일 백필 가능성 0 (raw 41건·linked 0·정규식 0). D안(백필 포기)·수동 매핑·created_at 채우기 중 선택 필요
 
 ---
 
@@ -59,9 +58,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 진행률 | 🟢 60% — B 머지 ✅ / A push ✅ / 마이그·schema·A 머지·C 검증 잔여 |
-| 담당 | 메인(설계 ✅·머지 진행 중) / B(완료) / A(push 완료, 머지 대기) / C(다음 세션 R2 검증) |
-| 다음 할 일 | Swain 마이그 응답 → schema 활성화 + 마이그 파일 삭제 → A 머지 → C 검증 트리거 |
+| 진행률 | 🟢 88% — 코드 100% 머지 (B+schema+A) / C 검증(Q-신규) + 라운드 마감 잔여 |
+| 담당 | 메인(완료, C 트리거 대기) / B(완료) / A(완료) / C(다음 세션 R2 검증) |
+| 다음 할 일 | C R2 검증 트리거 → 보고 흡수 → 라운드 마감 → R3 B·A 트리거 |
 | 설계서 | [docs/milestones/2026-05-11-phase10-r2-recipient-groups.md](docs/milestones/2026-05-11-phase10-r2-recipient-groups.md) |
 
 ### 4.2 Phase 10 R1 — 템플릿 빌더 (✅ 100% 마감)
@@ -95,7 +94,7 @@
 | **Phase 8 알림 채널 통합 인프라** | ✅ 100% — A 디스패처+마이그+cleanup / B 7자리 통합 / C 어드민 화면+Q24~Q27 라이브 통과 |
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / 🟡 #BACKFILL-1 호출 대기·카카오 심사 대기 (Q7·Q8) |
 | **Phase 10 R1 템플릿 빌더** | ✅ 100% — 코드 머지 (8db8ffb·cef0f69) + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 (보고서 §6) |
-| **Phase 10 R2 수신자 그룹** | 🟢 설계서 작성 완료 ([R2 설계서](docs/milestones/2026-05-11-phase10-r2-recipient-groups.md)) — B·A 트리거 대기 |
+| **Phase 10 R2 수신자 그룹** | ✅ 코드 100% 머지 (7f2163b·b969bb2) — schema 활성화·시드 4건 / 🟡 C R2 라이브 검증 대기 |
 | **Phase 10 R3 발송 예약 큐** | 🟢 설계서 작성 완료 ([R3 설계서](docs/milestones/2026-05-11-phase10-r3-send-queue.md)) — R2 머지 후 트리거 |
 | **Phase 10 R4~R5 통합 발송** | ✅ 카탈로그 / ⏸ R3 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
