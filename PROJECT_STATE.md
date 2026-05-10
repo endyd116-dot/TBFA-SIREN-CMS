@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | 메인 | **Phase 10 R1 100% 머지 완료** — Swain 마이그 호출 응답 `total:3` 확인 → schema communicationTemplates 활성화 + 마이그 파일 삭제(8db8ffb) + A 프론트 5파일 머지(cef0f69) → 라이브 진입 점검 + C Q9 트리거 대기 |
 | 2026-05-11 | 메인 | **C verify-2 main 머지 (Q-진단 1차 + Q3 통과)** — 진단 함수 보강(6항목) + import 4경로 정독 + Q3 라이브 통과 흡수. Swain 진단 재호출 + Phase 10 R1 마이그 호출 2건 대기 |
 | 2026-05-11 | **C 채팅** | **Q-진단 1차 완료 + Q3 6순위 #16 단계 D 통과** — 백필 진단 함수 보강(memo 샘플 + 효성 청구 raw join 점검 6항목) + 효성 import 4경로 정독으로 NULL 원인 진단 (자료의 결제일 누락). Q3 단계 D 화면·API·인증 가드 모두 정상, 회귀 0. 보고서 2종 + 이슈 문서 보강. 메인 머지 후 Swain 진단 재호출 → 다음 세션에서 백필 경로 결정 |
 | 2026-05-10 | 메인 | **Phase 10 R1 B 백 main 머지 (18586dd) + 자동 진행·진행률 보고 정책 추가** — B 9파일(API 7+lib+마이그) 머지 / schema 주석 상태 유지 / Swain 마이그 호출 대기 (`/api/migrate-phase10-templates?run=1`) / A는 cef0f69 push된 채로 schema 활성화 후 머지 / PARALLEL_GUIDE §1.5·§1.6 신규 추가 |
 | 2026-05-10 | 메인 | **C verify Q1·Q2 main 머지 + Phase 10 R1 B·A 평행 트리거 + 평행 전제 정책 반영** — Q1 통과 흡수 / Q2 #BACKFILL-1 마이그 main 안착 (1차 진단 가정 어긋남, Q-진단 추가) / PARALLEL_GUIDE §2 직렬 옵션 제거하고 평행 전제로 갱신 / Phase 10 R1 B·A 동시 시작 |
-| 2026-05-10 | **C 채팅** | **Q1 Phase 9-B 라이브 검증 통과 + Q2 #BACKFILL-1 마이그 푸시** — 사용자/어드민 수신 설정 화면 인증 거부 401·페이지 200·코드 정합성 양호, bigserial 회복 확인 (회원/후원/발송로그 401 정상). bug 0건. 보고서 `docs/verify/2026-05-10-phase9-b-live.md`. 효성 결제일 백필 1회용 마이그 작성·verify 브랜치 푸시 (797576c) |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -36,17 +36,16 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R1 진행 중 — 템플릿 빌더 (B 백 머지 완료, A 머지 대기, schema 활성화 대기)
-   ├─ A: ✅ 프론트 push 완료 (cef0f69) / ⏸ schema 활성화 후 메인이 머지
-   ├─ B: ✅ 백 main 머지 완료 (18586dd) — 세션 종료
-   ├─ C: ✅ Q-진단 1차 + Q3 통과 main 머지 / ⏸ 다음 세션 — Q-진단 2차(백필 경로 결정·실행) 또는 Q9 Phase 10 R1 검증
+🟢 Phase 10 R1 코드 100% 머지 완료 — 라이브 진입 점검 + C Q9 검증 대기
+   ├─ A: ✅ 프론트 main 머지 완료 — 세션 종료
+   ├─ B: ✅ 백 main 머지 완료 — 세션 종료
+   ├─ C: ⏸ 다음 세션 — Q-진단 2차(Swain 진단 응답 받으면) 또는 Q9 Phase 10 R1 검증
    └─ D: 휴면
-   메인: 마이그 응답 2건 대기 → schema 활성화 + 마이그 파일 삭제 push → A 머지 → C 다음 세션 트리거
+   메인: 라이브 진입 1차 점검 → C Q9 트리거 메시지 제공 → Phase 10 R2 설계 시작
 ```
 
-**대기 중 마이그 호출 2건** (Swain 액션 필요):
-1. `/api/migrate-phase10-templates?run=1` — Phase 10 R1 신규 테이블 + 시드 3건 (Netlify 배포 1~3분 후)
-2. `/api/migrate-hyosung-paid-date-backfill` — #BACKFILL-1 보강된 진단 (GET, 인증 불필요) — 응답 본문 전체 메인 채팅에 전달 → 백필 경로 결정
+**대기 중 Swain 액션 1건**:
+- `/api/migrate-hyosung-paid-date-backfill` (GET, 인증 불필요) — #BACKFILL-1 보강된 진단 응답 본문 전체 메인 채팅에 전달 → 백필 경로 결정 → 다음 C 세션에서 Q-진단-2 처리
 
 ---
 
@@ -59,9 +58,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 진행률 | 🟡 60% — B 머지 ✅ / A push 대기 ✅ / 마이그·schema·A 머지·C 검증 잔여 |
-| 담당 | 메인(설계 ✅·머지 진행 중) / B(백 머지 ✅) / A(프론트 push 완료, 머지 대기) / C(검증 — 다음 세션) |
-| 다음 할 일 | Swain 마이그 응답 → schema 활성화 + 마이그 파일 삭제 push → A 머지 → C 검증 트리거 |
+| 진행률 | 🟢 88% — 코드 100% 머지 완료 / C 라이브 검증(Q9) + 라운드 마감만 잔여 |
+| 담당 | 메인(머지 완료·Q9 트리거 대기) / B(완료) / A(완료) / C(다음 세션 Q9) |
+| 다음 할 일 | 라이브 진입 1차 점검 → C Q9 트리거 → 검증 보고 흡수 → 라운드 마감 → R2 설계 |
 | 설계서 | [docs/milestones/2026-05-10-phase10-r1-template-builder.md](docs/milestones/2026-05-10-phase10-r1-template-builder.md) |
 
 ### 4.2 Phase 4 — 대표 보고 시스템 + Agent-9
@@ -93,7 +92,7 @@
 | TypeScript 타입 에러 149건 | ⏸ C 채팅 진행 예정 |
 | **Phase 8 알림 채널 통합 인프라** | ✅ 100% — A 디스패처+마이그+cleanup / B 7자리 통합 / C 어드민 화면+Q24~Q27 라이브 통과 |
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / 🟡 #BACKFILL-1 호출 대기·카카오 심사 대기 (Q7·Q8) |
-| **Phase 10 R1 템플릿 빌더** | 🟢 B·A 평행 진행 중 |
+| **Phase 10 R1 템플릿 빌더** | ✅ 코드 100% 머지 (8db8ffb·A 머지) — schema 활성화·시드 3건 / 🟡 C Q9 라이브 검증 대기 |
 | **Phase 10 R2~R5 통합 발송** | ✅ 카탈로그 / ⏸ R1 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
@@ -134,9 +133,9 @@
 
 | 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
 |---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 10 R1 마이그 응답 대기 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 10 R1 프론트 push 완료 (`feature/phase10-r1-front` @ cef0f69) — main 머지 대기 |
-| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 10 R1 백 main 머지 완료 — 세션 종료 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 10 R1 라운드 마감 진행 (라이브 점검·C Q9 트리거 대기) |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
 | `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ⏸ 대기 — 다음 세션은 Q-진단 2차(Swain 응답 후) 또는 Q9 Phase 10 R1 검증 |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
