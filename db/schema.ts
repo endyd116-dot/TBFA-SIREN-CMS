@@ -2427,3 +2427,49 @@ export type NewAnonymousRevealLog = typeof anonymousRevealLogs.$inferInsert;
 
 /* === Phase 12 정의 끝 === */
 
+/* === Phase 14 — 외부 기관 인계 === */
+
+export const externalAgencies = pgTable("external_agencies", {
+  id:           serial("id").primaryKey(),
+  name:         varchar("name", { length: 100 }).notNull(),
+  agencyType:   varchar("agency_type", { length: 30 }).notNull(),
+  contactName:  varchar("contact_name", { length: 50 }),
+  contactPhone: varchar("contact_phone", { length: 20 }),
+  contactEmail: varchar("contact_email", { length: 100 }),
+  jurisdiction: varchar("jurisdiction", { length: 100 }),
+  templateBody: text("template_body"),
+  isActive:     boolean("is_active").default(true).notNull(),
+  createdBy:    integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const referralLogs = pgTable("referral_logs", {
+  id:              serial("id").primaryKey(),
+  agencyId:        integer("agency_id").references(() => externalAgencies.id, { onDelete: "set null" }),
+  agencyName:      varchar("agency_name", { length: 100 }).notNull(),
+  sourceType:      varchar("source_type", { length: 20 }).notNull(),
+  sourceId:        integer("source_id").notNull(),
+  sourceNo:        varchar("source_no", { length: 30 }).notNull(),
+  referredBy:      integer("referred_by").references(() => members.id, { onDelete: "set null" }),
+  referredAt:      timestamp("referred_at").defaultNow().notNull(),
+  pdfStorageKey:   varchar("pdf_storage_key", { length: 300 }),
+  status:          varchar("status", { length: 20 }).default("sent").notNull(),
+  statusMemo:      text("status_memo"),
+  statusUpdatedBy: integer("status_updated_by").references(() => members.id, { onDelete: "set null" }),
+  statusUpdatedAt: timestamp("status_updated_at"),
+  createdAt:       timestamp("created_at").defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  agencyIdx:    index("rl_agency_idx").on(t.agencyId),
+  sourceIdx:    index("rl_source_idx").on(t.sourceType, t.sourceId),
+  statusIdx:    index("rl_status_idx").on(t.status),
+}));
+
+export type ExternalAgency    = typeof externalAgencies.$inferSelect;
+export type NewExternalAgency = typeof externalAgencies.$inferInsert;
+export type ReferralLog       = typeof referralLogs.$inferSelect;
+export type NewReferralLog    = typeof referralLogs.$inferInsert;
+
+/* === Phase 14 정의 끝 === */
+
