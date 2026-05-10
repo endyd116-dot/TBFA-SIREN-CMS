@@ -6,20 +6,6 @@
 (function () {
   'use strict';
 
-  var USE_MOCK = true; // B 머지 후 false로 전환
-
-  var MOCK_RECOMMEND = {
-    ok: true,
-    recommendations: [
-      { expertId: 1, name: '김변호사', memberSubtype: 'lawyer', score: 85,
-        reason: '학교폭력 전문 + 평점 4.8', specialties: ['학교폭력', '노동법'],
-        avgRating: 4.8, ratingCount: 12, availableDays: '월,화,수,목,금', isAcceptingCase: true },
-      { expertId: 2, name: '이변호사', memberSubtype: 'lawyer', score: 62,
-        reason: '분야 일치하나 평점 낮음', specialties: ['민사'],
-        avgRating: 3.9, ratingCount: 5, availableDays: '화,목', isAcceptingCase: true },
-    ],
-  };
-
   /* ─── 헬퍼 ─── */
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -148,19 +134,13 @@
     var recs = [];
     var success = false;
 
-    if (USE_MOCK) {
-      await new Promise(function (r) { setTimeout(r, 1200); }); // mock 딜레이
-      recs    = MOCK_RECOMMEND.recommendations;
+    var r = await api('/api/admin-ai-expert-recommend', {
+      method: 'POST',
+      body: { matchId: Number(matchId), matchType: matchType },
+    });
+    if (r.ok) {
+      recs    = (r.data && r.data.recommendations) || (r.data && r.data.data && r.data.data.recommendations) || [];
       success = true;
-    } else {
-      var r = await api('/api/admin-ai-expert-recommend', {
-        method: 'POST',
-        body: { matchId: Number(matchId), matchType: matchType },
-      });
-      if (r.ok) {
-        recs    = (r.data && r.data.recommendations) || (r.data && r.data.data && r.data.data.recommendations) || [];
-        success = true;
-      }
     }
 
     if (btn)     { btn.disabled = false; btn.textContent = '🤖 AI 추천받기'; }

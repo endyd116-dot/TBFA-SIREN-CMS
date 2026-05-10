@@ -6,20 +6,6 @@
 (function () {
   'use strict';
 
-  var USE_MOCK = true; // B 머지 후 false로 전환
-
-  var MOCK_PROFILES = {
-    ok: true,
-    profiles: [
-      { memberId: 1, name: '김변호사', memberSubtype: 'lawyer',
-        specialties: ['학교폭력'], avgRating: 4.8, ratingCount: 12, isAcceptingCase: true },
-      { memberId: 2, name: '이변호사', memberSubtype: 'lawyer',
-        specialties: ['민사'], avgRating: 3.9, ratingCount: 5, isAcceptingCase: true },
-      { memberId: 3, name: '박상담사', memberSubtype: 'counselor',
-        specialties: ['외상심리'], avgRating: 4.5, ratingCount: 8, isAcceptingCase: false },
-    ],
-  };
-
   var SUBTYPE_LABEL = { lawyer: '⚖️ 변호사', counselor: '💗 심리상담사' };
 
   /* ─── 헬퍼 ─── */
@@ -170,20 +156,13 @@
     var typeFilter = (document.getElementById('profTypeFilter') || {}).value || '';
     var profiles = [];
 
-    if (USE_MOCK) {
-      await new Promise(function (r) { setTimeout(r, 200); });
-      profiles = MOCK_PROFILES.profiles.filter(function (p) {
-        return !typeFilter || p.memberSubtype === typeFilter;
-      });
-    } else {
-      var r = await api('/api/admin-expert-profile-get' + (typeFilter ? '?type=' + encodeURIComponent(typeFilter) : ''));
-      if (!r.ok) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#b91c1c">로드 실패: ' +
-          escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</td></tr>';
-        return;
-      }
-      profiles = (r.data && r.data.profiles) || (r.data && r.data.data && r.data.data.profiles) || [];
+    var r = await api('/api/admin-expert-profile-get' + (typeFilter ? '?type=' + encodeURIComponent(typeFilter) : ''));
+    if (!r.ok) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#b91c1c">로드 실패: ' +
+        escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</td></tr>';
+      return;
     }
+    profiles = (r.data && r.data.profiles) || (r.data && r.data.data && r.data.data.profiles) || [];
 
     if (!profiles.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">등록된 전문가가 없습니다.</td></tr>';
@@ -229,24 +208,19 @@
     var btn = document.getElementById('btnProfSave');
     if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
 
-    if (USE_MOCK) {
-      await new Promise(function (r) { setTimeout(r, 400); });
-      toast('프로필이 수정되었습니다. (mock)');
-    } else {
-      var r = await api('/api/admin-expert-profile-update', {
-        method: 'POST',
-        body: {
-          memberId:       _editTarget.memberId,
-          specialties:    specialties.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
-          isAcceptingCase: isAccepting,
-        },
-      });
-      if (!r.ok) {
-        if (btn) { btn.disabled = false; btn.textContent = '저장'; }
-        return toast('저장 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
-      }
-      toast('프로필이 수정되었습니다.');
+    var r = await api('/api/admin-expert-profile-update', {
+      method: 'POST',
+      body: {
+        memberId:       _editTarget.memberId,
+        specialties:    specialties.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+        isAcceptingCase: isAccepting,
+      },
+    });
+    if (!r.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+      return toast('저장 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
     }
+    toast('프로필이 수정되었습니다.');
 
     if (btn) { btn.disabled = false; btn.textContent = '저장'; }
     closeEditModal();
