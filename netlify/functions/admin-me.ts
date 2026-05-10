@@ -61,7 +61,7 @@ export default async (req: Request) => {
         id: guard.ctx.member.id,
         email: guard.ctx.member.email,
         name: guard.ctx.member.name,
-        role: "super_admin",
+        role: guard.ctx.member.role,
       },
       kpi: {
         monthlyDonation: Number(donStats?.totalAmount ?? 0),

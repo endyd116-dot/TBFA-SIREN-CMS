@@ -143,6 +143,72 @@
     });
   }
 
+  /* ─── 실 API 응답 → 화면 구조 변환 ─── */
+  function transformFinanceData(raw) {
+    const expRows = Array.isArray(raw.income) ? raw.income : [];
+    const budRows = Array.isArray(raw.budget) ? raw.budget : [];
+    const rep = raw.report || {};
+
+    const approvedExp = expRows.filter(function (r) { return r.status === 'approved'; });
+    const totalSpent = approvedExp.reduce(function (s, r) { return s + Number(r.amount || 0); }, 0);
+
+    var byCategoryMap = {};
+    approvedExp.forEach(function (r) {
+      var cat = r.categoryName || '기타';
+      byCategoryMap[cat] = (byCategoryMap[cat] || 0) + Number(r.amount || 0);
+    });
+    var byCategory = Object.keys(byCategoryMap).map(function (k) { return { category: k, amount: byCategoryMap[k] }; });
+
+    var totalBudget = rep.totalBudget || budRows.reduce(function (s, r) { return s + Number(r.plannedAmount || 0); }, 0);
+    var categories = Object.keys(rep.byCategory || {}).map(function (name) {
+      var vals = rep.byCategory[name];
+      return { name: name, budget: vals.planned || 0, spent: vals.spent || 0 };
+    });
+
+    return {
+      income: {
+        total: totalSpent,
+        monthly: [],
+        byCategory: byCategory,
+        recentRows: expRows.slice(0, 10).map(function (r) {
+          return {
+            date: String(r.spentAt || r.createdAt || '').slice(0, 10),
+            desc: r.description || '-',
+            category: r.categoryName || '기타',
+            amount: Number(r.amount || 0),
+          };
+        }),
+      },
+      budget: {
+        year: (budRows[0] && budRows[0].fiscalYear) || new Date().getFullYear(),
+        totalBudget: totalBudget,
+        totalSpent: rep.totalSpent || 0,
+        categories: categories,
+        recentExpenses: expRows.slice(0, 10).map(function (r) {
+          return {
+            date: String(r.spentAt || r.createdAt || '').slice(0, 10),
+            desc: r.description || '-',
+            category: r.categoryName || '기타',
+            amount: Number(r.amount || 0),
+            status: r.status || '-',
+          };
+        }),
+      },
+      report: {
+        period: ((budRows[0] && budRows[0].fiscalYear) || new Date().getFullYear()) + '년',
+        totalIncome: totalBudget,
+        totalExpense: rep.totalSpent || 0,
+        netBalance: rep.remaining || 0,
+        sections: [
+          { title: '총 예산', value: totalBudget, note: '예산 계획 합계' },
+          { title: '총 지출', value: rep.totalSpent || 0, note: '승인된 지출 합계' },
+          { title: '잔여 예산', value: rep.remaining || 0, note: '예산 - 지출' },
+          { title: '집행률', value: (rep.utilizationRate || 0) + '%', note: '예산 대비 지출 비율' },
+        ],
+      },
+    };
+  }
+
   /* ─── 데이터 로드 ─── */
   async function loadData() {
     let d;
@@ -154,7 +220,8 @@
         showToast((res.data?.error || res.data?.data?.error || '재정 데이터를 불러오지 못했습니다.') + (res.data?.detail ? ' — ' + res.data.detail : ''));
         d = {};
       } else {
-        d = res.data?.data || res.data || {};
+        const raw = res.data?.data || res.data || {};
+        d = transformFinanceData(raw);
       }
     }
     finData = d;
