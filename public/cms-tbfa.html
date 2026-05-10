@@ -7,7 +7,7 @@
 <meta name="description" content="교사유가족협의회 통합 회원 관리 시스템">
 
 <link rel="stylesheet" href="/css/base.css">
-<link rel="stylesheet" href="/css/cms-common.css?v=2">
+<link rel="stylesheet" href="/css/cms-common.css?v=3">
 <link rel="stylesheet" href="/css/cms-tbfa.css?v=2026-05-10-d2">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 
@@ -257,9 +257,9 @@
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">👥 회원·유가족</div>
       </li>
       <li><a href="#members" data-tab="members"><i>👥</i><span>통합 일반 회원</span></a></li>
-      <li><a href="#import" data-tab="import"><i>📤</i><span>외부 등록</span></a></li>
-      <li><a href="#transfer" data-tab="transfer"><i>🔄</i><span>웹 → 이관</span></a></li>
-      <li><a href="#tags" data-tab="tags"><i>🏷️</i><span>태그 관리</span></a></li>
+      <li><a href="#import" data-tab="import"><i>📤</i><span>회원 등록 · 수납 매핑</span></a></li>
+      <!-- 웹→이관: 메뉴 비표시, 기능 코드 유지 -->
+      <!-- <li><a href="#transfer" data-tab="transfer"><i>🔄</i><span>웹 → 이관</span></a></li> -->
 
       <!-- ── 💰 후원·재정 관리 ── -->
       <li class="cms-menu-group" data-group="donation">
@@ -280,8 +280,9 @@
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
       </li>
-      <li><a href="#notify" data-tab="notify"><i>📨</i><span>알림 발송</span></a></li>
-      <li><a href="#csv-import" data-tab="csv-import"><i>📥</i><span>CSV 검증 매핑</span></a></li>
+      <!-- 알림발송: 더미 섹션 비표시 -->
+      <!-- <li><a href="#notify" data-tab="notify"><i>📨</i><span>알림 발송</span></a></li> -->
+      <!-- CSV 검증 매핑: 회원 등록·수납 매핑으로 통합됨 -->
       <li><a href="#export" data-tab="export"><i>📤</i><span>데이터 추출</span></a></li>
       <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
 
@@ -733,6 +734,15 @@
           </div>
         </div>
 
+        <!-- 회원 관리 서브탭 -->
+        <div class="content-tabs" id="membersCmsTabs" style="margin-bottom:16px">
+          <button type="button" class="ct-tab on" data-mstab="list">👥 회원 목록</button>
+          <button type="button" class="ct-tab" data-mstab="tags">🏷️ 태그 관리</button>
+        </div>
+
+        <!-- 탭: 회원 목록 -->
+        <div data-mstab-pane="list">
+
         <div class="cms-filter-bar">
           <div class="cms-filter-group">
             <!-- Phase 1: 회원 유형 차원은 단계 C에서 복원 (signup_source/donor_type 으로 대체) -->
@@ -792,14 +802,45 @@
             </tbody>
           </table>
         </div>
+        </div><!-- /mstab-pane:list -->
+
+        <!-- 탭: 태그 관리 -->
+        <div data-mstab-pane="tags" style="display:none">
+          <div class="cms-panel">
+            <div class="cms-panel-head">
+              <div class="cms-panel-title">🏷️ 회원 태그 관리</div>
+              <button class="cms-btn cms-btn-primary" id="btnAddTag">+ 태그 추가</button>
+            </div>
+            <p class="cms-panel-desc">
+              회원을 분류하는 태그를 만들고 관리합니다. 태그로 발송 대상 지정이나 필터링에 활용할 수 있습니다.
+            </p>
+            <div class="cms-tag-grid" id="tagGrid"><!-- JS로 렌더 --></div>
+          </div>
+        </div><!-- /mstab-pane:tags -->
+
       </section>
 
-      <!-- ============ 3. 외부 등록 (Excel) ============ -->
+      <!-- ============ 3. 회원 등록 · 수납 매핑 (통합) ============ -->
       <section class="cms-page" id="page-import">
+
+        <!-- 탭 선택 -->
+        <div class="content-tabs" id="importTabs" style="margin-bottom:20px">
+          <button type="button" class="ct-tab on" data-itab="bulk">📤 일괄 등록 <small style="font-weight:400;font-size:11px;margin-left:4px">(신규 회원 추가)</small></button>
+          <button type="button" class="ct-tab" data-itab="csv">📥 수납 매핑 <small style="font-weight:400;font-size:11px;margin-left:4px">(입금 내역 확인)</small></button>
+        </div>
+
+        <!-- 탭 1: 일괄 등록 -->
+        <div data-itab-pane="bulk">
+
         <div class="cms-panel">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">📤 Excel 일괄 등록</div>
-            <span class="cms-panel-tag">CSV · XLSX 지원</span>
+            <div class="cms-panel-title">📤 Excel / CSV 일괄 등록</div>
+            <span class="cms-panel-tag">신규 회원을 파일로 한 번에 추가</span>
+          </div>
+          <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7">
+            💡 <strong>언제 사용하나요?</strong> 기존에 관리하던 명단(Excel 등)을 CMS에 처음 등록하거나,
+            오프라인 신규 회원을 한꺼번에 추가할 때 사용합니다.
+            후원 입금 내역 확인은 <strong>수납 매핑 탭</strong>을 사용하세요.
           </div>
 
           <div class="cms-import-grid">
@@ -893,6 +934,21 @@
             </div>
           </form>
         </div>
+        </div><!-- /itab-pane:bulk -->
+
+        <!-- 탭 2: 수납 매핑 -->
+        <div data-itab-pane="csv" style="display:none">
+          <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7">
+            💡 <strong>언제 사용하나요?</strong> 효성 CMS+ 또는 은행 통장(기업은행 등)의 입금 내역 파일을 올려서
+            기존 회원과 자동 매칭하고 후원 수납을 확인할 때 사용합니다.<br>
+            ⚠️ <strong>업로드 순서:</strong> ① 회원 명단이 먼저 등록되어 있어야 매칭이 됩니다.
+            회원이 없다면 <strong>일괄 등록 탭</strong>에서 먼저 등록해주세요.<br>
+            입금 내역 파일만 지원합니다: <strong>효성 수납내역 CSV</strong>, <strong>효성 계약정보 CSV</strong>, <strong>기업은행 통장 거래내역 CSV</strong>
+          </div>
+          <!-- CSV 매핑 컨텐츠 — id는 그대로 유지 (JS 참조) -->
+          <div id="csv-import-inner"></div>
+        </div><!-- /itab-pane:csv -->
+
       </section>
 
       <!-- ============ 4. 웹 후원자 이관 ============ -->
@@ -956,19 +1012,11 @@
         </div>
       </section>
 
-      <!-- ============ 5. 태그 관리 ============ -->
-      <section class="cms-page" id="page-tags">
+      <!-- 5. 태그 관리: 통합 일반 회원 탭으로 이동됨 — 섹션 비활성 유지 -->
+      <section class="cms-page" id="page-tags" style="display:none!important">
         <div class="cms-panel">
           <div class="cms-panel-head">
             <div class="cms-panel-title">🏷️ 회원 태그 관리</div>
-            <button class="cms-btn cms-btn-primary" id="btnAddTag">+ 태그 추가</button>
-          </div>
-          <p class="cms-panel-desc">
-            회원을 분류하는 태그를 만들고 관리합니다. 태그로 필터링/발송 대상 지정이 가능합니다.
-          </p>
-
-          <div class="cms-tag-grid" id="tagGrid">
-            <!-- JS로 렌더 -->
           </div>
         </div>
       </section>
@@ -1602,6 +1650,46 @@
 
   <!-- 토스트 -->
   <div id="cmsToast" class="cms-toast"></div>
+
+  <script>
+  /* ── 통합 일반 회원 서브탭 (목록 / 태그 관리) ── */
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('[data-mstab]');
+    if (!tab) return;
+    var key = tab.getAttribute('data-mstab');
+    document.querySelectorAll('[data-mstab]').forEach(function(t){ t.classList.remove('on'); });
+    tab.classList.add('on');
+    document.querySelectorAll('[data-mstab-pane]').forEach(function(p){ p.style.display = 'none'; });
+    var pane = document.querySelector('[data-mstab-pane="' + key + '"]');
+    if (pane) pane.style.display = '';
+    if (key === 'tags' && window.CMS_TBFA_TAGS && typeof window.CMS_TBFA_TAGS.load === 'function') {
+      window.CMS_TBFA_TAGS.load();
+    }
+  });
+
+  /* ── 회원 등록·수납 매핑 탭 (일괄 등록 / 수납 매핑) ── */
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('[data-itab]');
+    if (!tab) return;
+    var key = tab.getAttribute('data-itab');
+    document.querySelectorAll('[data-itab]').forEach(function(t){ t.classList.remove('on'); });
+    tab.classList.add('on');
+    document.querySelectorAll('[data-itab-pane]').forEach(function(p){ p.style.display = 'none'; });
+    var pane = document.querySelector('[data-itab-pane="' + key + '"]');
+    if (pane) pane.style.display = '';
+    /* 수납 매핑 탭 최초 진입 시 page-csv-import 내용을 inner로 이동 */
+    if (key === 'csv') {
+      var inner = document.getElementById('csv-import-inner');
+      var orig = document.getElementById('page-csv-import');
+      if (inner && orig && !inner.children.length) {
+        while (orig.firstChild) inner.appendChild(orig.firstChild);
+        if (window.CMS_CSV_IMPORT && typeof window.CMS_CSV_IMPORT.init === 'function') {
+          window.CMS_CSV_IMPORT.init();
+        }
+      }
+    }
+  });
+  </script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
