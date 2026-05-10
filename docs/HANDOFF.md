@@ -3,7 +3,7 @@
 > **단일 최신 파일**. "지금 어디까지 왔는지" 한 화면에 들어오게 유지.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/)에 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-10 / 새 메인 채팅 / Phase 4 A·B 머지 완료 — Swain V1·V2·V3 검증 대기 + 6순위 #8 검증 병행
+> **마지막 갱신**: 2026-05-10 / 새 메인 채팅 / 컨텍스트 다이어트 적용(`0ac32df`) + Phase 4 A·B 머지 완료 — Swain V1·V2·V3 검증 대기 + 6순위 #8 검증 병행
 
 ---
 
@@ -172,7 +172,8 @@ A·B 머지 완료. Swain V1·V2·V3 검증 진행:
 
 | 일시 | 내용 |
 |---|---|
-| 2026-05-10 | **Phase 4 A·B 머지 완료** — A(`0d8a206`): admin-report.js+admin.html탭+admin.js. B(`5f70b7a`): 이메일재발송API+인쇄CSS. admin-report-print.css head 추가. Swain V1·V2·V3 검증 대기 |
+| 2026-05-10 | **컨텍스트 다이어트 적용** (`0ac32df`) — 시나리오 B + §14 행동 변화. 자동·명시 로드 38% 절감. PROJECT_STATE 79% 슬림. CLAUDE.md §14 정독·Subagent·Read·세션 분할 정책 신설. 메모리 12→8개 |
+| 2026-05-10 | **Phase 4 A·B 머지 완료** (`fdf3133`) — A(`0d8a206`): admin-report.js+admin.html탭+admin.js. B(`5f70b7a`): 이메일재발송API+인쇄CSS. admin-report-print.css head 추가. Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | **6순위 #8 재설계·버그수정** (`89555cb`) — 어드민 화면 ID 불일치 수정 / 서비스 목록 직접 배정 버튼(유가족·법률) / 신규 배정 API / 마이페이지 채팅 버튼 / expert_matches separate query |
 | 2026-05-10 | **Phase 4 병렬 시작 + HANDOFF 현행화** — 메인 2차(`94a725c`). A(phase4-frontend) + B(phase4-email-print) 개발 중. 새 메인 채팅 대기 |
 | 2026-05-10 | **6순위 #8 코드 완료** — A·B 머지(`fe84ed9`). Swain V1·V2·V3 검증 대기 |
