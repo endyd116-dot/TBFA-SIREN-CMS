@@ -121,7 +121,7 @@ export default async (req: Request, _ctx: Context) => {
         status          varchar(20) NOT NULL DEFAULT 'pending',
         reason          text,
         admin_note      text,
-        assigned_by     int REFERENCES admins(id),
+        assigned_by     int REFERENCES members(id) ON DELETE SET NULL,
         assigned_at     timestamp,
         closed_at       timestamp,
         closed_reason   varchar(50),

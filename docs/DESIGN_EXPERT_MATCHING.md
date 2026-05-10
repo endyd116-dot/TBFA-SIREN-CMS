@@ -71,7 +71,7 @@ CREATE TABLE expert_matches (
   status          varchar(20) NOT NULL DEFAULT 'pending',
   reason          text,                      -- 사용자 신청 사유
   admin_note      text,                      -- 어드민 메모
-  assigned_by     int REFERENCES admins(id),
+  assigned_by     int REFERENCES members(id) ON DELETE SET NULL,  -- 어드민도 members 통합 모델
   assigned_at     timestamp,
   closed_at       timestamp,
   closed_reason   varchar(50),               -- 'completed'|'expert_unavailable'|'user_canceled' 등
