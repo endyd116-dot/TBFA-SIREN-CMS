@@ -17,7 +17,7 @@
   /* 강제 로그아웃 */
   async function forceLogout() {
     try {
-      await fetch('/api/auth-admin-logout', { method: 'POST', credentials: 'include' });
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
     } catch (_) { /* 실패해도 이동 */ }
     window.location.href = '/login-admin.html?reason=idle';
   }
