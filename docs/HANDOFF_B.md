@@ -1,101 +1,75 @@
-# B 채팅 시작 프롬프트 — 6순위 #16 단계 C (donor_type 컬럼 + 정기/잠재 화면)
+# B 채팅 시작 프롬프트 — 6순위 #16 단계 D (화면·대시보드 담당)
 
-> **워크트리**: `../tbfa-mis-B` @ `feature/m16-step-c`
-> **베이스**: `main` @ `aa7305d`
-> **추정**: 3~4h
-> **설계서**: [docs/milestones/2026-05-10-donor-system.md](milestones/2026-05-10-donor-system.md) §3
+> **워크트리**: `../tbfa-mis-B` @ `feature/m16-step-d-ui`
+> **베이스**: `main` @ `62f540c`
+> **추정**: 2~3h (D3·D4·D7)
+> **설계서**: [docs/milestones/2026-05-10-donor-system.md](milestones/2026-05-10-donor-system.md) §4
 
 ---
 
-## 작업 영역 (B 전담)
+## 작업 영역 (B 전담 — 화면·대시보드)
 
-### 1. 데이터 모델 (마이그레이션)
+| 항목 | 파일 | 내용 |
+|---|---|---|
+| **D3** | `public/cms-tbfa.html` + `public/js/cms-tbfa.js` | 통합 일반 회원 화면에 효성 양식 컬럼 추가 표시 (약정일·결제수단·계약상태) |
+| **D4** | 정기 후원자 화면 (cms-tbfa.js 내) | 효성 양식 컬럼 보강 — 약정일·결제수단·매월 수납 현황 |
+| **D7** | CSV 자동 매핑 화면 강화 (cms-tbfa.html 내 섹션) | KPI 상단 + 검증 alert 패널 + 자동 매칭 상태 전이 미리보기 |
 
-`migrate-add-members-donor-type.ts` 신규:
-```sql
-ALTER TABLE members ADD COLUMN donor_type varchar(20);       -- regular|prospect|none
-ALTER TABLE members ADD COLUMN donor_channels jsonb;          -- ['toss']|['hyosung']|['toss','hyosung']
-ALTER TABLE members ADD COLUMN prospect_subtype varchar(20); -- onetime|cancelled
-ALTER TABLE members ADD COLUMN donor_evaluated_at timestamp;
-```
+### D3 상세
+- 통합 회원 목록에 컬럼 추가: 약정일 / 결제수단(CMS이체·카드) / 결제등록상태 / 계약상태 / 상품분류
+- 데이터 소스: `hyosung_contract_status`, `hyosung_member_no` (이미 members 테이블 존재)
 
-마이그 호출 흐름 (CLAUDE.md §6.8):
-1. 마이그 함수 작성 + 푸시
-2. Swain 어드민 로그인 → `https://tbfa-siren-cms.netlify.app/api/migrate-add-members-donor-type?run=1`
-3. 응답 success 확인 → schema.ts 정의 활성화 + 마이그 파일 삭제 + 푸시
+### D4 상세
+- 정기 후원자 목록: 채널(토스/효성) 뱃지 + 약정일 + 결제수단 + 다음 결제일 + 최근 수납 현황
+- 데이터 소스: `donor_channels`, `donor_type` (단계 C 컬럼 이미 존재)
 
-마이그 적용 전에는 schema.ts 컬럼 정의 추가 금지 (CLAUDE.md §9.1.1).
-
-### 2. 토스 즉시 반영 후크
-
-| 파일 | 작업 |
-|---|---|
-| `auth-toss-billing-issued.ts` | 빌링키 등록 시 donor_type='regular' + channels에 'toss' 추가 |
-| `cron-toss-billing.ts` | 결제 성공 시 재평가 |
-| 토스 해지 처리 (마이페이지) | channels에서 'toss' 제거 → 잔여 채널로 재평가 |
-
-### 3. cron 안전망
-
-`cron-donor-status-sync.ts` 신규 — KST 03:00, 식별 SQL 4종 일괄 실행 + 누락 케이스 자동 보정.
-
-### 4. API + 화면 (정기/잠재)
-
-| 파일 | 작업 |
-|---|---|
-| `admin-donor-regular-list.ts` (신규) | 정기 후원자 + 채널별 KPI |
-| `admin-donor-prospect-list.ts` (신규) | 잠재 후원자 (`?subtype=onetime\|cancelled\|all`) |
-| 정기/잠재 화면 (placeholder → 본격) | 채널 뱃지·다음 결제일·재유치 액션 등 |
+### D7 상세
+- 상단 KPI 3개: 정기 활성(CMS분리/토스분리) / 잠재(일시·중단) / 검증 alert 건수
+- 검증 alert 패널: 정기→중단 자동감지 / 충돌 케이스 / 미매칭 일시 후원
+- 자동 매칭 미리보기: 확정 시 어떤 회원이 어떤 donor_type으로 바뀌는지 표시
 
 ---
 
 ## A 영역 회피 (중요)
 
-A 채팅(`feature/m16-step-b`)이 동시에 작업하는 영역:
-- `public/js/cms-tbfa.js` (DEMO 제거)
-- `netlify/functions/admin-members.ts` 필터 확장
-- `admin-member-donations.ts` 신규 (회원별 후원 이력)
-- 회원 상세 모달
+A 채팅(`feature/m16-step-d-parser`)이 동시에 작업하는 영역:
+- `lib/hyosung-members-parser.ts` (신규)
+- `lib/hyosung-billings-parser.ts` (신규)
+- `netlify/functions/cron-donor-status-sync.ts`
+- 토스 빌링 후크
 
-**B는 위 영역 건드리지 말 것**. `schema.ts` members 컬럼 추가는 B 영역 — append-only + 본인 섹션 헤더 (`/* === B: m16-step-c === */`) 원칙 (CLAUDE.md §9.1.6).
+**B는 위 파일 건드리지 말 것.** 화면에서 A가 만드는 파서를 호출하는 API 엔드포인트가 있다면 함수 시그니처만 가정하고 작성 (A 완료 후 연결).
 
 ---
 
 ## 머지 전 체크
 
-- [ ] 마이그 함수 작성 → Swain 호출 → success 확인
-- [ ] schema.ts 정의 활성화 + 마이그 파일 삭제 + 푸시
-- [ ] 토스 후크 3개 즉시 반영 검증
-- [ ] cron-donor-status-sync 동작 검증 (식별 SQL 4종)
-- [ ] 정기/잠재 API 2개 응답 키 일관성
-- [ ] 정기/잠재 화면 동작
+- [ ] D3: 통합 회원 목록 효성 컬럼 렌더 정상
+- [ ] D4: 정기 후원자 화면 채널 뱃지 + 수납 현황 정상
+- [ ] D7: KPI + alert 패널 + 미리보기 동작 확인
 - [ ] A 영역 파일 미수정
-- [ ] 응답 키 다중 fallback
-- [ ] `requireAdmin` 가드 + `auth.res` 반환
+- [ ] 캐시버스터 갱신 (`cms-tbfa.js?v=2026-05-10-d3`)
 
 ---
 
-## 머지 순서 (A보다 먼저 또는 후?)
+## 머지 순서
 
-- **B 먼저 머지 권장**: schema.ts members 컬럼이 추가되면 A의 `admin-members.ts`에서 donor_type 컬럼을 즉시 SELECT 가능 (fallback 'none' 불필요)
-- 단, A·B 동시 진행 시 A는 컬럼 미존재 fallback 처리 → 머지 순서 무관
-- C(검증)는 A·B 모두 머지 후 검증 시작
+A(파서) 완료 후 B(화면)가 A의 파서를 연결하는 부분 있으면 A 먼저 머지. 화면만 독립적이면 동시 머지 가능.
 
 ---
 
 ## 시작 메시지 템플릿
 
 ```
-[B 채팅 — 6순위 #16 단계 C 시작]
+[B 채팅 — 6순위 #16 단계 D 화면·대시보드 시작]
 
-워크트리: ../tbfa-mis-B @ feature/m16-step-c @ aa7305d
-역할: donor_type 컬럼 + 토스 즉시 반영 후크 + 정기/잠재 화면 + cron 안전망
-설계서: docs/milestones/2026-05-10-donor-system.md §3 정독
+워크트리: ../tbfa-mis-B @ feature/m16-step-d-ui @ 62f540c
+역할: D3(통합회원 효성컬럼) + D4(정기후원자 화면 보강) + D7(종합 검증 대시보드)
+설계서: docs/milestones/2026-05-10-donor-system.md §4.3·§4.4 정독
 가이드: docs/HANDOFF_B.md 정독
 
-CLAUDE.md §14 컨텍스트 다이어트 정책 준수.
-PROJECT_STATE §3·§7만 발췌 정독.
-A 영역 (cms-tbfa.js, admin-members.ts 필터, admin-member-donations.ts, 회원 상세 모달) 회피.
+A 영역(파서 신규·cron·토스 후크) 회피.
+cms-tbfa.js·cms-tbfa.html 집중.
 
-작업 순서: 마이그 작성 → 호출 요청 → schema 활성화 → 토스 후크 → cron → API → 화면.
-첫 보고: 마이그 함수 작성 완료 시점.
+작업 시작 전: 현재 cms-tbfa.html·js 구조 파악 후 D3·D4·D7 순서로 진행.
 ```
