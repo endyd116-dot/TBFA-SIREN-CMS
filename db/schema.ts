@@ -2254,11 +2254,7 @@ export type NewCommunicationSendRecipient = typeof communicationSendRecipients.$
 
 /* === Phase 10 R3 정의 끝 === */
 
-/* =========================================================
-   === Phase 10 R4 — 추적·자동 트리거·분석 ===
-   마이그 호출(migrate-phase10-r4-tracking-ai?run=1) 전까지 주석 유지.
-   마이그 성공 후 메인 채팅이 주석 해제 + 이 헤더 제거.
-   =========================================================
+/* === Phase 10 R4 === */
 
 // 추적 이벤트 로그 (오픈/클릭)
 export const communicationSendTracking = pgTable("communication_send_tracking", {
@@ -2329,6 +2325,5 @@ export const communicationAutoTriggerRuns = pgTable("communication_auto_trigger_
 export type CommunicationAutoTriggerRun    = typeof communicationAutoTriggerRuns.$inferSelect;
 export type NewCommunicationAutoTriggerRun = typeof communicationAutoTriggerRuns.$inferInsert;
 
-=== Phase 10 R4 정의 끝 (마이그 후 주석 해제) ===
-*/
+/* === Phase 10 R4 정의 끝 === */
 
