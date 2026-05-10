@@ -27,6 +27,15 @@ export type ChannelName = "inapp" | "email" | "sms" | "kakao";
      Phase 9에서 카카오 알림톡 API 어댑터로 교체.
    ========================================================= */
 
+/* =========================================================
+   강제 채널 (사용자가 해제 불가 — 결제·법적 의무 알림)
+   Phase 9-B: UI에서 disabled 처리, 디스패처에서 항상 포함
+   ========================================================= */
+export const FORCED_CHANNELS: Partial<Record<NotifyEvent, ChannelName[]>> = {
+  [NotifyEvent.BILLING_FAILED]:  ["inapp", "email"],
+  [NotifyEvent.CARD_EXPIRING]:   ["inapp", "email"],
+};
+
 export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.BILLING_SUCCESS]:            ["inapp", "email"],
   [NotifyEvent.BILLING_FAILED]:             ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
