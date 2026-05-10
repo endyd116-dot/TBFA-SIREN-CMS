@@ -2169,4 +2169,31 @@ export const communicationTemplates = pgTable("communication_templates", {
 export type CommunicationTemplate    = typeof communicationTemplates.$inferSelect;
 export type NewCommunicationTemplate = typeof communicationTemplates.$inferInsert;
 
+/* =========================================================
+   === Phase 10 R2 — 수신자 그룹 (recipient_groups) ===
+   ※ 주석 상태 — 마이그 호출(migrate-phase10-recipient-groups?run=1) 후
+     메인 채팅이 활성화 + 마이그 파일 삭제 → push.
+   criteria 구조:
+     { "type": "filter", "logic": "and"|"or",
+       "filters": [{field, op, value 또는 values}, ...] }
+     { "type": "manual", "memberIds": [1,2,3,...] }
+   ========================================================= */
+// export const recipientGroups = pgTable("recipient_groups", {
+//   id:          bigserial("id", { mode: "number" }).primaryKey(),
+//   name:        varchar("name", { length: 100 }).notNull(),
+//   description: text("description"),
+//   criteria:    jsonb("criteria").notNull(),
+//   isActive:    boolean("is_active").default(true).notNull(),
+//   createdBy:   integer("created_by").references(() => members.id, { onDelete: "set null" }),
+//   updatedBy:   integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+//   createdAt:   timestamp("created_at").defaultNow().notNull(),
+//   updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+// }, (t) => ({
+//   activeIdx: index("recipient_groups_active_idx").on(t.isActive),
+//   nameIdx:   index("recipient_groups_name_idx").on(t.name),
+// }));
+//
+// export type RecipientGroup    = typeof recipientGroups.$inferSelect;
+// export type NewRecipientGroup = typeof recipientGroups.$inferInsert;
+
 
