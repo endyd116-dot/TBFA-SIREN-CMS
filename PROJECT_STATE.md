@@ -36,16 +36,15 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R2 100% 통과 — C R2 verify 흡수 후 라운드 마감 → R3 트리거
-   ├─ A: ✅ R2 프론트 main 머지 완료 — 세션 종료
-   ├─ B: ✅ R2 백 main 머지 완료 — 세션 종료
-   ├─ C: ✅ R2 통과 (2026-05-11) — 다음 세션은 Q-진단-2(#BACKFILL-1 D안 결정 후)·Q6
+🟢 Phase 10 R2 100% 마감 — R3 B·A 트리거 대기 + #BACKFILL-1 약정일 마이그 작성
+   ├─ A: ⏸ R3 트리거 대기 (설계서 §6.3 복붙)
+   ├─ B: ⏸ R3 트리거 대기 (설계서 §6.2 복붙)
+   ├─ C: ⏸ 다음 세션 — R3 검증 또는 Q6 / Q-진단-2 (#BACKFILL-1 약정일 마이그 호출 후)
    └─ D: 휴면
-   메인: R2 verify 보고 흡수 → 라운드 마감 → Phase 10 R3 B·A 트리거
+   메인: R3 트리거 대기 + #BACKFILL-1 약정일 시퀀스 마이그 작성 진행 중
 ```
 
-**Swain 결정 대기 1건**:
-- #BACKFILL-1 진단 결과 분석 — 결제일 백필 가능성 0 (raw 41건·linked 0·정규식 0). D안(백필 포기)·수동 매핑·created_at 채우기 중 선택 필요
+**Swain 합의**: #BACKFILL-1은 **약정일 + 계약 시작일 시퀀스 방식**으로 1회용 마이그 처리 (Swain 의견 반영). 자동 매칭 시스템 별도 라운드 X.
 
 ---
 
@@ -119,7 +118,7 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
-| #BACKFILL-1 | 2026-05-10 | 효성 후원 결제일 NULL (실제 44건 전체) | 🟡 Medium | 🟡 진단 보강 + import 코드 분석 완료 (2026-05-11). 메인 머지 후 Swain 진단 재호출 대기 → 다음 세션에서 백필 경로 결정 | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
+| #BACKFILL-1 | 2026-05-10 | 효성 후원 결제일 NULL (44건) | 🟡 Medium | 🟢 약정일 + 계약 시작일 시퀀스 방식 결정 (Swain 합의 2026-05-11) — 메인이 1회용 마이그 작성 중 | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
 | ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-5~~ | 2026-05-10 | `admin-finance-{budget-upsert,expenditure-create,expenditure-approve}.ts` | 🔴 High | ✅ 해결 | [docs/issues/2026-05-10-finance-audit-columns-null.md](docs/issues/2026-05-10-finance-audit-columns-null.md) |
