@@ -1,6 +1,26 @@
-/* admin-shell.js — Phase 20-A 사이드바 호버·라우팅·테마 */
+/* admin-shell.js — Phase 20-A 사이드바 호버·라우팅·테마 (실 API) */
 (function () {
   'use strict';
+
+  /* ─── API 헬퍼 ─── */
+  async function api({ method = 'GET', url, body } = {}) {
+    try {
+      if (typeof window.adminApi === 'function') return await window.adminApi({ method, url, body });
+      if (typeof window.api === 'function')      return await window.api({ method, url, body });
+      const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      if (r.status === 401) { window.location.href = '/admin.html'; return { ok: false, status: 401, data: {} }; }
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (err) {
+      return { ok: false, data: { error: String(err) } };
+    }
+  }
+
+  /* ─── 즐겨찾기·최근 본 메뉴 상태 ─── */
+  let favoritesSet = new Set();   /* menuKey 집합 */
+  let recentViews  = [];          /* [{ menuKey, viewedAt, count }] */
 
   /* ─── 9그룹 IA 정의 ─── */
   const NAV_GROUPS = [
@@ -134,6 +154,39 @@
   /* ─── 현재 활성 view ─── */
   let currentViewId = null;
 
+  /* ─── 즐겨찾기 로드 ─── */
+  async function loadFavorites() {
+    try {
+      const res = await api({ url: '/api/admin-favorites-list' });
+      if (!res.ok) return;
+      const raw = res.data;
+      const payload = raw?.data || raw;
+      const list = payload?.favorites || [];
+      favoritesSet = new Set(list.map(f => f.menuKey));
+    } catch (e) {
+      /* 즐겨찾기 실패는 조용히 무시 */
+    }
+  }
+
+  /* ─── 최근 본 메뉴 로드 ─── */
+  async function loadRecentViews() {
+    try {
+      const res = await api({ url: '/api/admin-recent-views-list' });
+      if (!res.ok) return;
+      const raw = res.data;
+      const payload = raw?.data || raw;
+      recentViews = payload?.recentViews || [];
+    } catch (e) {
+      /* 최근 본 메뉴 실패는 조용히 무시 */
+    }
+  }
+
+  /* ─── 최근 본 메뉴 기록 (fire-and-forget) ─── */
+  function recordRecentView(menuKey) {
+    api({ method: 'POST', url: '/api/admin-recent-views-record', body: { menuKey } })
+      .catch(() => {});
+  }
+
   /* ─── 초기화 ─── */
   function init() {
     sidebar    = document.getElementById('adm20-sidebar');
@@ -147,6 +200,10 @@
     setupMobileToggle();
     routeFromHash(location.hash);
     window.addEventListener('hashchange', () => routeFromHash(location.hash));
+
+    /* 즐겨찾기·최근 목록 비동기 로드 (20-C UI에서 활용) */
+    loadFavorites();
+    loadRecentViews();
   }
 
   /* ─── 사이드바 HTML 생성 ─── */
@@ -235,6 +292,9 @@
 
     currentViewId = viewId;
     closeMobileSidebar();
+
+    /* 최근 본 메뉴 기록 (hash를 menuKey로 사용) */
+    if (hash) recordRecentView(hash);
   }
 
   /* ─── Hash → viewId 매핑 ─── */
@@ -302,6 +362,20 @@
   window.AdminShell = {
     navigate,
     getCurrentView: () => currentViewId,
+    /* 즐겨찾기 토글 (20-C에서 UI 연결) */
+    toggleFavorite: async (menuKey) => {
+      const res = await api({ method: 'POST', url: '/api/admin-favorites-toggle', body: { menuKey } });
+      if (!res.ok) return null;
+      const raw = res.data;
+      const payload = raw?.data || raw;
+      const action = payload?.action || (payload?.ok ? 'toggled' : null);
+      if (action === 'added')   favoritesSet.add(menuKey);
+      if (action === 'removed') favoritesSet.delete(menuKey);
+      return action;
+    },
+    isFavorite: (menuKey) => favoritesSet.has(menuKey),
+    getFavorites: () => Array.from(favoritesSet),
+    getRecentViews: () => recentViews.slice(),
   };
 
   /* DOMContentLoaded 또는 즉시 */

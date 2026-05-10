@@ -1,33 +1,36 @@
-/* admin-members-group.js — Phase 20-A 회원·운영자 그룹 4탭 (mock 모드) */
+/* admin-members-group.js — Phase 20-A 회원·운영자 그룹 4탭 (실 API) */
 (function () {
   'use strict';
 
-  const USE_MOCK = true;
+  const USE_MOCK = false;
 
-  /* mock 데이터 — 응답 키: { ok, members[], operators[], eligibility[], totalCount } */
-  const MOCK_MEMBERS_UNIFIED = {
-    ok: true,
-    totalCount: 12,
-    members: [
-      { id: 1,  name: '김철수', email: 'kim@example.com',  phone: '010-1234-5678', grade: '정회원',   status: 'active',   joinedAt: '2024-03-01', donateTotal: 120000 },
-      { id: 2,  name: '이영희', email: 'lee@example.com',  phone: '010-2345-6789', grade: '후원회원',  status: 'active',   joinedAt: '2024-05-15', donateTotal: 60000 },
-      { id: 3,  name: '박민준', email: 'park@example.com', phone: '010-3456-7890', grade: '일반회원',  status: 'inactive', joinedAt: '2023-11-20', donateTotal: 0 },
-      { id: 4,  name: '최수진', email: 'choi@example.com', phone: '010-4567-8901', grade: '정회원',   status: 'active',   joinedAt: '2024-01-10', donateTotal: 360000 },
-      { id: 5,  name: '정지훈', email: 'jung@example.com', phone: '010-5678-9012', grade: '정회원',   status: 'black',    joinedAt: '2023-08-07', donateTotal: 0 },
-    ],
-    operators: [
-      { id: 101, name: '관리자A', email: 'admin-a@tbfa.kr', role: 'admin',       createdAt: '2023-01-01', lastLogin: '2026-05-11' },
-      { id: 102, name: '슈퍼관리자', email: 'super@tbfa.kr', role: 'super_admin', createdAt: '2022-12-01', lastLogin: '2026-05-11' },
-    ],
-    eligibility: [
-      { id: 201, memberName: '홍길동', email: 'hong@example.com', currentGrade: '일반회원', requestedGrade: '정회원', status: 'pending',  requestedAt: '2026-05-10' },
-      { id: 202, memberName: '신사임당', email: 'shin@example.com', currentGrade: '후원회원', requestedGrade: '정회원', status: 'approved', requestedAt: '2026-05-08' },
-    ],
-    approvals: [
-      { id: 301, name: '가입신청자A', email: 'new-a@example.com', phone: '010-9999-1111', requestedAt: '2026-05-11', status: 'pending' },
-      { id: 302, name: '가입신청자B', email: 'new-b@example.com', phone: '010-8888-2222', requestedAt: '2026-05-10', status: 'pending' },
-    ],
-  };
+  /* ─── API 헬퍼 ─── */
+  async function api({ method = 'GET', url, body } = {}) {
+    try {
+      if (typeof window.adminApi === 'function') return await window.adminApi({ method, url, body });
+      if (typeof window.api === 'function')      return await window.api({ method, url, body });
+      const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      if (r.status === 401) { window.location.href = '/admin.html'; return { ok: false, status: 401, data: {} }; }
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (err) {
+      return { ok: false, data: { error: String(err) } };
+    }
+  }
+
+  /* ─── 토스트 ─── */
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast') || document.getElementById('admToast');
+    if (el) {
+      el.textContent = msg;
+      el.className = 'toast show' + (type === 'error' ? ' toast-error' : '');
+      setTimeout(() => el.classList.remove('show'), 3500);
+    } else {
+      console.warn('[MembersGroup toast]', msg);
+    }
+  }
 
   /* ─── 상태 ─── */
   let currentTab = 'members';
@@ -121,19 +124,23 @@
   /* ─── 데이터 로드 ─── */
   async function loadData() {
     try {
-      let data;
-      if (USE_MOCK) {
-        data = MOCK_MEMBERS_UNIFIED;
-      } else {
-        const res = await fetch('/api/admin-members-unified');
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || '응답 오류');
-        data = json.data || json;
-      }
-      membersData = data;
+      const res = await api({ url: '/api/admin-members-unified' });
+      if (res.status === 401) return;
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+      /* 다중 fallback: data.data.X || data.X */
+      const raw = res.data;
+      const payload = raw?.data || raw;
+      membersData = {
+        members:     payload?.members     || [],
+        operators:   payload?.operators   || [],
+        eligibility: payload?.eligibility || [],
+        approvals:   payload?.approvals   || [],
+        totalCount:  payload?.totalCount  ?? 0,
+      };
       renderTab(currentTab);
     } catch (err) {
       console.error('[MembersGroup]', err);
+      showToast('회원 데이터를 불러오지 못했습니다: ' + err.message);
       showError('회원 데이터를 불러오지 못했습니다: ' + err.message);
     }
   }

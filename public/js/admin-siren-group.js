@@ -1,34 +1,36 @@
-/* admin-siren-group.js — Phase 20-A 사이렌 신고 그룹 4탭 + 익명 식별 사건 탭 흡수 (mock 모드) */
+/* admin-siren-group.js — Phase 20-A 사이렌 신고 그룹 4탭 + 익명 식별 사건 탭 흡수 (실 API) */
 (function () {
   'use strict';
 
-  const USE_MOCK = true;
+  const USE_MOCK = false;
 
-  /* mock 데이터 — 응답 키: { ok, incidents[], harassment[], legal[], board[], anonRevealCases[] } */
-  const MOCK_SIREN_UNIFIED = {
-    ok: true,
-    incidents: [
-      { id: 1,  title: '학교 내 괴롭힘 신고', category: '학교폭력', status: 'processing', reporterMask: '신고자-A', createdAt: '2026-05-10', isAnon: false },
-      { id: 2,  title: '익명 제보 — 부당해고', category: '노동', status: 'pending',    reporterMask: '익명-2XK', createdAt: '2026-05-11', isAnon: true },
-      { id: 3,  title: '교원 상담 요청',       category: '상담',  status: 'closed',     reporterMask: '신고자-B', createdAt: '2026-05-09', isAnon: false },
-    ],
-    harassment: [
-      { id: 101, title: '민원인 반복 전화 민원', status: 'processing', reporterMask: '민원-C',   createdAt: '2026-05-08', count: 12 },
-      { id: 102, title: '온라인 악성 댓글',      status: 'pending',    reporterMask: '민원-D',   createdAt: '2026-05-11', count: 3 },
-    ],
-    legal: [
-      { id: 201, title: '산재 법률 지원 요청', status: 'in_review', lawyerName: '김변호사', createdAt: '2026-05-07', category: '산업재해' },
-      { id: 202, title: '학폭 소송 지원',       status: 'pending',   lawyerName: null,      createdAt: '2026-05-11', category: '학교폭력' },
-    ],
-    board: [
-      { id: 301, title: '협의회 공지사항 게시',  author: '관리자A', createdAt: '2026-05-11', views: 142, isNotice: true },
-      { id: 302, title: '5월 활동 보고 게시글', author: '김철수',  createdAt: '2026-05-10', views: 58,  isNotice: false },
-    ],
-    anonRevealCases: [
-      { id: 401, incidentTitle: '익명 제보 — 부당해고', requestedBy: '관리자A', reason: '수사 협조 요청', status: 'pending',  requestedAt: '2026-05-11' },
-      { id: 402, incidentTitle: '익명 학교폭력 제보',   requestedBy: '관리자A', reason: '피해자 동의 확인', status: 'approved', requestedAt: '2026-05-09' },
-    ],
-  };
+  /* ─── API 헬퍼 ─── */
+  async function api({ method = 'GET', url, body } = {}) {
+    try {
+      if (typeof window.adminApi === 'function') return await window.adminApi({ method, url, body });
+      if (typeof window.api === 'function')      return await window.api({ method, url, body });
+      const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      if (r.status === 401) { window.location.href = '/admin.html'; return { ok: false, status: 401, data: {} }; }
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (err) {
+      return { ok: false, data: { error: String(err) } };
+    }
+  }
+
+  /* ─── 토스트 ─── */
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast') || document.getElementById('admToast');
+    if (el) {
+      el.textContent = msg;
+      el.className = 'toast show' + (type === 'error' ? ' toast-error' : '');
+      setTimeout(() => el.classList.remove('show'), 3500);
+    } else {
+      console.warn('[SirenGroup toast]', msg);
+    }
+  }
 
   /* ─── 상태 ─── */
   let currentTab = 'incidents';
@@ -121,20 +123,24 @@
   /* ─── 데이터 로드 ─── */
   async function loadData() {
     try {
-      let data;
-      if (USE_MOCK) {
-        data = MOCK_SIREN_UNIFIED;
-      } else {
-        const res = await fetch('/api/admin-siren-unified');
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || '응답 오류');
-        data = json.data || json;
-      }
-      sirenData = data;
+      const res = await api({ url: '/api/admin-siren-unified' });
+      if (res.status === 401) return;
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+      /* 다중 fallback: data.data.X || data.X */
+      const raw = res.data;
+      const payload = raw?.data || raw;
+      sirenData = {
+        incidents:       payload?.incidents       || [],
+        harassment:      payload?.harassment      || [],
+        legal:           payload?.legal           || [],
+        board:           payload?.board           || [],
+        anonRevealCases: payload?.anonRevealCases || [],
+      };
       renderTab(currentTab);
-      renderAnonReveal(data.anonRevealCases);
+      renderAnonReveal(sirenData.anonRevealCases);
     } catch (err) {
       console.error('[SirenGroup]', err);
+      showToast('사이렌 데이터를 불러오지 못했습니다: ' + err.message);
       showError('사이렌 데이터를 불러오지 못했습니다: ' + err.message);
     }
   }
