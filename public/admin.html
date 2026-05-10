@@ -2792,6 +2792,7 @@
         <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
         <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
         <li data-super-only="1"><a data-page="audit"><i>🔍</i><span>감사 로그</span></a></li>
+        <li><a data-page="security-audit"><i>🔒</i><span>보안·감사 로그</span></a></li>
         <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
         <!-- 6순위 #6: 교원 자격 변경 심사 -->
         <li><a data-page="eligibility"><i>🎓</i><span>자격 변경 심사</span><span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span></a></li>
@@ -4451,6 +4452,9 @@
         <!-- ★ C안 Step 3: AI 활동보고서 -->
         <div id="adm-activity-report" class="adm-page"></div>
 
+        <!-- Phase 17: 보안·감사 로그 -->
+        <div id="adm-security-audit" class="adm-page"></div>
+
         <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
                 <!-- ★ C안 Step 3: AI 활동보고서 목록 (모듈에서 동적 렌더) -->
@@ -5843,5 +5847,8 @@
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <!-- Phase 16: 통합 분석 대시보드 -->
   <script src="/js/admin-unified-dashboard.js?v=2"></script>
+  <!-- Phase 17: 보안·감사 로그 -->
+  <script src="/js/admin-security-audit.js?v=1"></script>
+  <script src="/js/admin-idle-guard.js?v=1"></script>
 </body>
 </html>
