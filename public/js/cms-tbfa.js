@@ -1733,20 +1733,55 @@
   let donorRegularQuery = { channel: 'all', q: '' };
   let donorRegularSearchTimer = null;
 
-  /* ★ Phase 3 D4: 정기 후원자 효성 컬럼 헬퍼 (결제수단 + 약정일 보강) */
+  /* ★ Phase 3 D4 + D보강: 정기 후원자 효성 컬럼 헬퍼 (결제수단 + 약정일 + 최근 3개월 수납 점등) */
+
+  /* 최근 N개월 YYYY/MM 배열 생성 (내림차순) */
+  function recentMonthKeys(n) {
+    const now = new Date();
+    const keys = [];
+    for (let i = 0; i < n; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0'));
+    }
+    return keys;
+  }
+
+  /* 수납 상태 → 점등 HTML */
+  function monthlyDot(entry) {
+    if (!entry) return '<span title="데이터 없음" style="color:#d0d0d0;font-size:11px">—</span>';
+    const s = entry.status || '';
+    if (s === '완납' || s === 'completed') {
+      return `<span title="${escapeHtml(entry.month)} 완납 ₩${Number(entry.amount||0).toLocaleString()}" style="color:#2e9744;font-size:12px;font-weight:600">✓</span>`;
+    }
+    if (s === '미납') {
+      return `<span title="${escapeHtml(entry.month)} 미납" style="color:#c5293a;font-size:12px;font-weight:600">✗</span>`;
+    }
+    return `<span title="${escapeHtml(entry.month)} ${escapeHtml(s)}" style="color:#e09400;font-size:11px">△</span>`;
+  }
+
+  function renderDrMonthlyDots(d, n) {
+    const billings = (d.monthlyBillings && Array.isArray(d.monthlyBillings)) ? d.monthlyBillings : [];
+    if (billings.length === 0) return '';
+    const months = recentMonthKeys(n || 3);
+    const byMonth = {};
+    billings.forEach(e => { byMonth[e.month] = e; });
+    const dots = months.map(m => monthlyDot(byMonth[m])).join('<span style="color:#d8d8d8;margin:0 1px">·</span>');
+    return `<div style="margin-top:2px;line-height:1">${dots}</div>`;
+  }
+
   function renderDrHyosungPayment(d) {
     const hy = d.hyosungContract;
+    const dots = renderDrMonthlyDots(d, 3);
     if (!hy) {
-      // 토스 전용이면 "토스 자동" 표시
       if (d.channels && d.channels.includes('toss') && !d.channels.includes('hyosung')) {
-        return '<span style="font-size:11px;color:#1a5ec4">토스 자동</span>';
+        return `<div style="line-height:1.3"><span style="font-size:11px;color:#1a5ec4">토스 자동</span>${dots}</div>`;
       }
       return '<span style="color:#d0d0d0;font-size:12px">—</span>';
     }
     const method = hy.paymentMethod ? escapeHtml(hy.paymentMethod) : '—';
     const day = hy.promiseDay
-      ? `<div style="font-size:10px;color:#888;margin-top:1px">매월 ${hy.promiseDay}일</div>`
-      : '';
+      ? `<div style="font-size:10px;color:#888;margin-top:1px">매월 ${hy.promiseDay}일${dots}</div>`
+      : dots ? `<div>${dots}</div>` : '';
     return `<div style="line-height:1.3"><div style="font-size:11.5px">${method}</div>${day}</div>`;
   }
   function renderDrHyosungRegStatus(d) {
