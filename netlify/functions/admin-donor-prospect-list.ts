@@ -258,6 +258,69 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-prospect-list] donations 통계 조회 실패 — 0 fallback", err);
   }
 
+  /* 4-1b. 효성 hyosung_billings 직접 합산 (donations 적재 누락 보정 fallback)
+   * confirmHyosungBilling은 received_amount > 0인 행만 donations에 INSERT.
+   * 효성 CSV 받은금액이 비어있거나 0이면 donations에 안 들어감 → 누적 0으로 표시.
+   * 보정: hyosung_billings 자체에서 직접 합산 + 마지막 결제일/금액 추출.
+   */
+  const hyosungBillingStatsMap = new Map<
+    number,
+    { count: number; sum: number; lastDate: Date | null; lastAmount: number | null }
+  >();
+  try {
+    /* 합산 */
+    const rs: any = await db.execute(sql`
+      SELECT
+        m.id AS member_id,
+        COUNT(*)::int AS cnt,
+        COALESCE(SUM(hb.received_amount), 0)::bigint AS sum
+      FROM members m
+      INNER JOIN hyosung_billings hb ON hb.member_no = m.hyosung_member_no
+      WHERE m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+        AND hb.received_amount IS NOT NULL
+        AND hb.received_amount > 0
+      GROUP BY m.id
+    `);
+    const rows = Array.isArray(rs) ? rs : (rs as any).rows || [];
+    for (const r of rows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      hyosungBillingStatsMap.set(mid, {
+        count: Number(r.cnt) || 0,
+        sum: Number(r.sum) || 0,
+        lastDate: null,
+        lastAmount: null,
+      });
+    }
+
+    /* 마지막 효성 수납 (DISTINCT ON) */
+    const lastRs: any = await db.execute(sql`
+      SELECT DISTINCT ON (m.id)
+        m.id AS member_id,
+        hb.payment_date,
+        hb.received_amount
+      FROM members m
+      INNER JOIN hyosung_billings hb ON hb.member_no = m.hyosung_member_no
+      WHERE m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+        AND hb.received_amount IS NOT NULL
+        AND hb.received_amount > 0
+      ORDER BY m.id, hb.payment_date DESC NULLS LAST, hb.id DESC
+    `);
+    const lastRows = Array.isArray(lastRs) ? lastRs : (lastRs as any).rows || [];
+    for (const r of lastRows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      const prev = hyosungBillingStatsMap.get(mid) || {
+        count: 0, sum: 0, lastDate: null, lastAmount: null,
+      };
+      prev.lastDate = r.payment_date ? new Date(r.payment_date) : null;
+      prev.lastAmount = r.received_amount != null ? Number(r.received_amount) : null;
+      hyosungBillingStatsMap.set(mid, prev);
+    }
+  } catch (err) {
+    console.warn("[admin-donor-prospect-list] hyosung_billings 합산 실패 — 0 fallback", err);
+  }
+
   /* 4-2. cancelledChannel 결정용 — 토스 deactivated 정보 */
   const tossDeactMap = new Map<number, Date | null>();
   try {
@@ -283,12 +346,26 @@ export default async (req: Request, _ctx: Context) => {
   try {
     data = memberRows.map((r): AdminDonorProspect => {
       const id = Number(r.id);
-      const stats = donationStatsMap.get(id) || {
-        count: 0,
-        sum: 0,
-        lastDate: null,
-        lastAmount: null,
+      const donationsStats = donationStatsMap.get(id) || {
+        count: 0, sum: 0, lastDate: null, lastAmount: null,
       };
+      const hyosungStats = hyosungBillingStatsMap.get(id) || {
+        count: 0, sum: 0, lastDate: null, lastAmount: null,
+      };
+      /* 누적은 donations와 효성 수납내역 중 큰 값 채택 — donations 적재 누락 보정.
+       * 마지막 후원일/금액도 더 최근 쪽 채택. */
+      const stats = (hyosungStats.count > donationsStats.count) ? hyosungStats : donationsStats;
+      if (donationsStats.lastDate && hyosungStats.lastDate) {
+        stats.lastDate = donationsStats.lastDate >= hyosungStats.lastDate
+          ? donationsStats.lastDate
+          : hyosungStats.lastDate;
+        stats.lastAmount = donationsStats.lastDate >= hyosungStats.lastDate
+          ? donationsStats.lastAmount
+          : hyosungStats.lastAmount;
+      } else {
+        stats.lastDate = donationsStats.lastDate || hyosungStats.lastDate;
+        stats.lastAmount = donationsStats.lastAmount ?? hyosungStats.lastAmount;
+      }
       const subtypeVal = (r.prospect_subtype === "onetime" || r.prospect_subtype === "cancelled")
         ? r.prospect_subtype
         : "onetime"; // 안전 폴백 (cron이 NULL을 남기지 않지만, 만약 NULL이면 onetime으로 간주)

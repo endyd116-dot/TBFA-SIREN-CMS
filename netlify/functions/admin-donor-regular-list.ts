@@ -318,6 +318,39 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-regular-list] donations 통계 조회 실패 — 0 fallback", err);
   }
 
+  /* 4-4. 효성 hyosung_billings 직접 합산 (donations 적재 누락 보정 fallback)
+   * confirmHyosungBilling은 received_amount > 0인 행만 donations에 INSERT.
+   * 효성 CSV 받은금액이 비어있거나 0이면 donations에 안 들어감 → 누적이 0으로 표시.
+   * 보정: hyosung_billings 자체에서 received_amount > 0 행을 회원별 직접 합산.
+   * donations와 hyosung_billings는 1:1 연결(linked_donation_id)이라 중복 없음 — 한쪽이 비어 있을 때만 보충.
+   */
+  const hyosungBillingStatsMap = new Map<number, { count: number; sum: number }>();
+  try {
+    const rs: any = await db.execute(sql`
+      SELECT
+        m.id AS member_id,
+        COUNT(*)::int AS cnt,
+        COALESCE(SUM(hb.received_amount), 0)::bigint AS sum
+      FROM members m
+      INNER JOIN hyosung_billings hb ON hb.member_no = m.hyosung_member_no
+      WHERE m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+        AND hb.received_amount IS NOT NULL
+        AND hb.received_amount > 0
+      GROUP BY m.id
+    `);
+    const rows = Array.isArray(rs) ? rs : (rs as any).rows || [];
+    for (const r of rows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      hyosungBillingStatsMap.set(mid, {
+        count: Number(r.cnt) || 0,
+        sum: Number(r.sum) || 0,
+      });
+    }
+  } catch (err) {
+    console.warn("[admin-donor-regular-list] hyosung_billings 합산 실패 — 0 fallback", err);
+  }
+
   /* 5. 응답 매핑 */
   let data: AdminDonorRegular[] = [];
   try {
@@ -327,7 +360,12 @@ export default async (req: Request, _ctx: Context) => {
       const tossInfo = tossMap.get(id);
       const hyosungAmount = hyosungAmountMap.get(id) || 0;
       const regularAmount = (tossInfo?.amount || 0) + hyosungAmount;
-      const stats = donationStatsMap.get(id) || { count: 0, sum: 0 };
+      const donationsStats = donationStatsMap.get(id) || { count: 0, sum: 0 };
+      const hyosungBillingStats = hyosungBillingStatsMap.get(id) || { count: 0, sum: 0 };
+      /* 누적은 donations와 효성 수납내역 중 큰 값 채택 — donations 적재 누락 보정 */
+      const stats = (hyosungBillingStats.count > donationsStats.count)
+        ? hyosungBillingStats
+        : donationsStats;
 
       const memberNextBilling = r.next_billing_date ? new Date(r.next_billing_date) : null;
       const tossNextCharge = tossInfo?.nextChargeAt || null;
