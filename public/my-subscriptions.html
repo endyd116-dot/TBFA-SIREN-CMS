@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>내 구독 관리 | 교사유가족협의회</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+.sub-wrap { max-width: 900px; margin: 0 auto; }
+
+.sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sub-title { font-size: 1.2rem; font-weight: 700; color: var(--ink); }
+.sub-desc  { font-size: 0.875rem; color: var(--text-3); margin-top: 4px; }
+
+.sub-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--line);
+}
+.sub-tab {
+  padding: 9px 20px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-weight: 500;
+}
+.sub-tab.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+  font-weight: 700;
+}
+
+.sub-list { display: flex; flex-direction: column; gap: 10px; }
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: box-shadow 0.15s;
+}
+.sub-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.sub-item-icon { font-size: 22px; flex-shrink: 0; }
+.sub-item-body { flex: 1; min-width: 0; }
+.sub-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub-item-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.sub-item-title a:hover { color: var(--brand); text-decoration: underline; }
+.sub-item-meta {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+.sub-unread-badge {
+  display: inline-block;
+  background: var(--danger, #c5293a);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.sub-unsub-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-2);
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.sub-unsub-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.sub-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+.sub-empty .icon { font-size: 40px; margin-bottom: 12px; }
+
+.sub-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.sub-notif-item.unread { background: #fffaf5; border-color: var(--brand-soft, #f5dcc8); }
+.sub-notif-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.sub-notif-body { flex: 1; min-width: 0; }
+.sub-notif-text { font-size: 13.5px; color: var(--ink); line-height: 1.6; }
+.sub-notif-text a { color: var(--brand); text-decoration: none; }
+.sub-notif-text a:hover { text-decoration: underline; }
+.sub-notif-meta { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+.sub-notif-read-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 18px;
+  padding: 2px 6px;
+}
+.sub-notif-read-btn:hover { color: var(--brand); }
+
+.sub-bulk-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  justify-content: flex-end;
+}
+.sub-bulk-bar button {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-2);
+}
+.sub-bulk-bar button:hover { background: var(--bg-soft); }
+</style>
+</head>
+<body data-page="my-subscriptions">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>🔔 내 구독 관리</h1>
+        <p>구독 중인 게시글과 새 알림을 관리하세요</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; <a href="/mypage.html">마이페이지</a> &nbsp;›&nbsp; <span>구독 관리</span>
+    </div>
+
+    <section class="block">
+      <div class="container">
+        <div class="sub-wrap">
+
+          <div class="sub-tabs">
+            <button class="sub-tab active" data-tab="posts">📋 구독 게시글</button>
+            <button class="sub-tab" data-tab="notifications">🔔 새 알림</button>
+          </div>
+
+          <!-- 구독 게시글 탭 -->
+          <div id="paneSubPosts">
+            <div class="sub-header">
+              <div>
+                <div class="sub-title">구독 중인 게시글</div>
+                <div class="sub-desc">새 댓글이 달리면 알림을 받습니다</div>
+              </div>
+            </div>
+            <div id="subPostsList" class="sub-list">
+              <div class="sub-empty"><div class="icon">📭</div>로딩 중...</div>
+            </div>
+            <div id="subPostsPagination" style="display:none;margin-top:16px"></div>
+          </div>
+
+          <!-- 알림 탭 -->
+          <div id="paneSubNotifications" style="display:none">
+            <div class="sub-header">
+              <div>
+                <div class="sub-title">구독 알림</div>
+                <div class="sub-desc">내가 구독한 게시글의 새 댓글·멘션 알림</div>
+              </div>
+            </div>
+            <div class="sub-bulk-bar">
+              <button onclick="markAllRead()">✅ 전체 읽음 처리</button>
+            </div>
+            <div id="subNotifList" class="sub-list">
+              <div class="sub-empty"><div class="icon">📭</div>로딩 중...</div>
+            </div>
+            <div id="subNotifPagination" style="display:none;margin-top:16px"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=5"></script>
+  <script src="/js/auth.js?v=6"></script>
+  <script src="/js/my-subscriptions.js?v=1"></script>
+</body>
+</html>
