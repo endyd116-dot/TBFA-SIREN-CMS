@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 16 B+A mock 머지 완료** — feature/phase16-back(47df959)+front(ea50344) 머지 / 신규 API 4개·대시보드 JS 1개 / A 실API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 14·15 실API 연결 머지 완료** — feature/phase14-15-live(3ed3671) 머지 / 5개 JS 실API 직결·mock 제거 / C 검증 트리거 예정 |
 | 2026-05-11 | **메인** | **Phase 15 B 머지 + 마이그 완료 + schema 활성화** — feature/phase15-back(7d8bbc2) 머지 / expert_profiles·matching_feedbacks 생성 |
 | 2026-05-11 | **메인** | **Phase 14 front 머지 완료** — feature/phase14-front(8dad0fd) / 기관관리·인계이력 화면 mock 상태 / C 검증 트리거 예정 |
@@ -110,7 +111,7 @@
 | **Phase 13 신고 통계 대시보드** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 2건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase13.md`) |
 | **Phase 14 외부 기관 인계** | 🔵 B+A 실API 연결 완료 / ⏸ C 라이브 검증 대기 |
 | **Phase 15 전문가 매칭 고도화** | 🔵 B+A 실API 연결 완료 / ⏸ C 라이브 검증 대기 |
-| **Phase 16 통합 분석 대시보드** | ✅ 설계서 완성 ([2026-05-11-phase16-unified-dashboard.md](docs/milestones/2026-05-11-phase16-unified-dashboard.md)) / ⏸ A·B 대기 |
+| **Phase 16 통합 분석 대시보드** | 🔵 B+A mock 머지 완료 / ⏸ A 실API 연결 + C 라이브 검증 대기 |
 | **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
 | **Phase 18 성능 최적화** | ✅ 설계서 완성 ([2026-05-11-phase18-performance.md](docs/milestones/2026-05-11-phase18-performance.md)) / ⏸ B 대기 |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ B 대기 |
