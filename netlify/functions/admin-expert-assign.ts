@@ -126,7 +126,7 @@ export default async (req: Request, _ctx: Context) => {
       .where(eq(members.id, match.userId))
       .limit(1);
     if (rows.length === 0) return badRequest("매칭의 사용자가 존재하지 않음");
-    if (rows[0].status === "blacklist" || rows[0].status === "withdrawn") {
+    if (rows[0].status === "suspended" || rows[0].status === "withdrawn") {
       return badRequest(`사용자 상태가 ${rows[0].status}임 — 배정 불가`);
     }
     userName = rows[0].name;

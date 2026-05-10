@@ -12,7 +12,7 @@ export const config = { path: "/api/user-my-send-history" };
 
 export default async function handler(req: Request) {
   const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const uid = auth.user.uid;
 
   const url = new URL(req.url);

@@ -38,7 +38,7 @@ const ALLOWED_REVIEW = new Set(["pending", "approved", "rejected"]);
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
   const isSuperAdmin = (adminMember.role || "") === "super_admin";
@@ -143,7 +143,7 @@ export default async (req: Request, _ctx: Context) => {
           content,
           attachedFileIds: attachedFileIds as any,
           reviewStatus: "pending",
-        })
+        } as any)
         .returning();
       const newReport = inserted[0];
 
@@ -235,7 +235,7 @@ export default async (req: Request, _ctx: Context) => {
             reviewedAt: new Date(),
             reviewReason,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTaskReports.id, id))
           .returning();
 

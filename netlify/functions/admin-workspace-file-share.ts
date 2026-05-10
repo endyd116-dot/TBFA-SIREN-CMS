@@ -34,7 +34,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -119,7 +119,7 @@ export default async (req: Request, _ctx: Context) => {
         // 기존 업데이트
         const updated: any = await db
           .update(workspaceFileShares)
-          .set({ permission, expiresAt })
+          .set({ permission, expiresAt } as any)
           .where(eq(workspaceFileShares.id, dupRows[0].id))
           .returning();
         return ok(updated[0], "공유 정보가 업데이트되었습니다");
@@ -134,15 +134,14 @@ export default async (req: Request, _ctx: Context) => {
           sharedWith,
           permission,
           expiresAt
-        })
+        } as any)
         .returning();
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.share.create",
-        targetType: `workspace_${targetType}`,
-        targetId,
-        meta: { sharedWith, permission, expiresAt: expiresAt?.toISOString() }
+        target: `workspace_${targetType}:${targetId}`,
+        detail: { sharedWith, permission, expiresAt: expiresAt?.toISOString() }
       });
 
       return ok(inserted[0], "공유가 생성되었습니다");
@@ -179,16 +178,15 @@ export default async (req: Request, _ctx: Context) => {
 
       const updated: any = await db
         .update(workspaceFileShares)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(workspaceFileShares.id, id))
         .returning();
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.share.update",
-        targetType: `workspace_${share.targetType}`,
-        targetId: share.targetId,
-        meta: { shareId: id, changes: Object.keys(updateData) }
+        target: `workspace_${share.targetType}:${share.targetId}`,
+        detail: { shareId: id, changes: Object.keys(updateData) }
       });
 
       return ok(updated[0], "공유가 수정되었습니다");
@@ -213,11 +211,10 @@ export default async (req: Request, _ctx: Context) => {
       await db.delete(workspaceFileShares).where(eq(workspaceFileShares.id, id));
 
       await logAudit({
-        actorMemberId: meId,
+        userId: meId,
         action: "workspace.share.delete",
-        targetType: `workspace_${share.targetType}`,
-        targetId: share.targetId,
-        meta: { shareId: id }
+        target: `workspace_${share.targetType}:${share.targetId}`,
+        detail: { shareId: id }
       });
 
       return ok({ id }, "공유가 해제되었습니다");

@@ -21,7 +21,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -65,15 +65,14 @@ export default async (req: Request, _ctx: Context) => {
     // download_count++
     await db
       .update(workspaceFiles)
-      .set({ downloadCount: sql`${workspaceFiles.downloadCount} + 1` })
+      .set({ downloadCount: sql`${workspaceFiles.downloadCount} + 1` } as any)
       .where(eq(workspaceFiles.id, id));
 
     await logAudit({
-      actorMemberId: meId,
+      userId: meId,
       action: "workspace.file.download",
-      targetType: "workspace_file",
-      targetId: id,
-      meta: { name: file.name }
+      target: `workspace_file:${id}`,
+      detail: { name: file.name }
     });
 
     return ok({

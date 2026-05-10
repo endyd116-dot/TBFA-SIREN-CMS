@@ -67,7 +67,7 @@ export default async (req: Request) => {
 
   /* 1. 어드민 인증 */
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const adminMemberId = (auth as any).ctx?.member?.id ?? (auth as any).ctx?.admin?.uid ?? null;
   if (!adminMemberId) return badRequest("어드민 식별자 누락");
 
@@ -134,7 +134,7 @@ export default async (req: Request) => {
       .where(eq(members.id, userId))
       .limit(1);
     if (rows.length === 0) return badRequest("해당 사용자가 존재하지 않음");
-    if (rows[0].status === "blacklist" || rows[0].status === "withdrawn") {
+    if (rows[0].status === "suspended" || rows[0].status === "withdrawn") {
       return badRequest(`사용자 상태가 ${rows[0].status}임 — 배정 불가`);
     }
     userName = rows[0].name;

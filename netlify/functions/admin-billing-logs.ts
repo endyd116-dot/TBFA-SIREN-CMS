@@ -15,7 +15,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const admin = guard.ctx.admin;
   const adminMember = guard.ctx.member;
 
@@ -151,7 +151,7 @@ export default async (req: Request, _ctx: Context) => {
         if ((target.attemptNumber ?? 1) >= 3) return badRequest("3회 도달 — 재시도 불가");
 
         await db.update(billingLogs)
-          .set({ nextRetryAt: new Date() })
+          .set({ nextRetryAt: new Date() } as any)
           .where(eq(billingLogs.id, logId));
 
         // members.next_billing_date 도 오늘로 당기기

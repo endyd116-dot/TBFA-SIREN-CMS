@@ -7,7 +7,7 @@ export const config = { path: "/api/admin-finance-expenditure-list" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "all";
@@ -60,7 +60,7 @@ export default async function handler(req: Request, _ctx: Context) {
       JSON.stringify({
         ok: true,
         data: {
-          items: rows.rows || rows,
+          items: (rows as any).rows || rows as any[],
           total,
           page,
           totalPages: Math.ceil(total / limit),

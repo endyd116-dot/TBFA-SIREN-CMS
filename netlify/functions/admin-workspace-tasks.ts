@@ -56,7 +56,7 @@ function triggerAiCompletion(taskId: number, authorMemberId: number) {
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member;
   const meId = adminMember.id;
   const isSuperAdmin = (adminMember as any).role === "super_admin";
@@ -275,7 +275,7 @@ export default async (req: Request, _ctx: Context) => {
             try {
               await db
                 .update(workspaceTaskTemplates)
-                .set({ usageCount: sql`${workspaceTaskTemplates.usageCount} + 1`, updatedAt: new Date() })
+                .set({ usageCount: sql`${workspaceTaskTemplates.usageCount} + 1`, updatedAt: new Date() } as any)
                 .where(eq(workspaceTaskTemplates.id, tid));
             } catch (_) {}
           }
@@ -327,7 +327,7 @@ export default async (req: Request, _ctx: Context) => {
           reminderConfig: body.reminderConfig || {},
           remindersSentAt: [],
           createdByAgent: body.createdByAgent || "user",
-        })
+        } as any)
         .returning();
 
       // 감사 로그
@@ -408,7 +408,7 @@ export default async (req: Request, _ctx: Context) => {
 
         const [updated]: any = await db
           .update(workspaceTasks)
-          .set(updateData)
+          .set(updateData as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
 
@@ -469,9 +469,10 @@ export default async (req: Request, _ctx: Context) => {
         const doneCount = items.filter((i: any) => i.done).length;
         const progress = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
+        // @ts-ignore drizzle narrowing — 컬럼은 DB에 존재함
         const [updated]: any = await db
           .update(workspaceTasks)
-          .set({ checklistItems: items, progress, updatedAt: new Date() })
+          .set({ checklistItems: items, progress, updatedAt: new Date() } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
 
@@ -514,7 +515,7 @@ export default async (req: Request, _ctx: Context) => {
             assignedBy: meId,
             assignedAt: new Date(),
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
 
@@ -545,7 +546,7 @@ export default async (req: Request, _ctx: Context) => {
             status: "archived",
             archivedAt: new Date(),
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
         await logWorkspaceActivity({
@@ -575,7 +576,7 @@ export default async (req: Request, _ctx: Context) => {
             status: "done",
             archivedAt: null,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
         await logWorkspaceActivity({
@@ -603,7 +604,7 @@ export default async (req: Request, _ctx: Context) => {
             holdReason: reason,
             holdStartedAt: new Date(),
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
         const notifyTargets = new Set<number>();
@@ -635,7 +636,7 @@ export default async (req: Request, _ctx: Context) => {
             holdReason: null,
             holdStartedAt: null,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
         await logWorkspaceActivity({
@@ -660,7 +661,7 @@ export default async (req: Request, _ctx: Context) => {
         if (action === "unbookmark" && has) next = current.filter((x: number) => x !== meId);
         const [updated]: any = await db
           .update(workspaceTasks)
-          .set({ bookmarkedBy: next as any, updatedAt: new Date() })
+          .set({ bookmarkedBy: next as any, updatedAt: new Date() } as any)
           .where(eq(workspaceTasks.id, id))
           .returning();
         return ok(updated, action === "bookmark" ? "북마크 추가됨" : "북마크 해제됨");
@@ -710,7 +711,7 @@ export default async (req: Request, _ctx: Context) => {
 
       const [updated]: any = await db
         .update(workspaceTasks)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(workspaceTasks.id, id))
         .returning();
 

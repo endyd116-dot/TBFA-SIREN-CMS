@@ -27,7 +27,7 @@ import { logWorkspaceActivity } from "../../lib/workspace-logger";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member;
   const meId = adminMember.id;
 
@@ -119,7 +119,7 @@ export default async (req: Request, _ctx: Context) => {
           relatedTaskId: body.relatedTaskId || null,
           relatedEventId: body.relatedEventId || null,
           attachments: Array.isArray(body.attachments) ? body.attachments : [],
-        })
+        } as any)
         .returning();
 
       await logAudit({
@@ -163,7 +163,7 @@ export default async (req: Request, _ctx: Context) => {
         const isPinned = body.isPinned !== undefined ? !!body.isPinned : !memo.isPinned;
         const [updated]: any = await db
           .update(workspaceMemos)
-          .set({ isPinned, updatedAt: new Date() })
+          .set({ isPinned, updatedAt: new Date() } as any)
           .where(eq(workspaceMemos.id, id))
           .returning();
 

@@ -110,7 +110,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 1. 인증 */
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const { admin, member: adminMember } = auth.ctx;
 
   /* 2. 요청 파싱 */

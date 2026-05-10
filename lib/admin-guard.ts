@@ -1,4 +1,4 @@
-// lib/admin-guard.ts
+﻿// lib/admin-guard.ts
 import { eq } from "drizzle-orm";
 import { db, members } from "../db";
 import { authenticateAdmin, AdminPayload } from "./auth";
@@ -27,4 +27,11 @@ export async function requireAdmin(req: Request): Promise<
   if (member.status !== "active") return { ok: false, res: forbidden("이용할 수 없는 계정입니다") };
 
   return { ok: true, ctx: { admin: auth, member } };
+}
+export type AdminGuardResult =
+  | { ok: true; ctx: AdminContext }
+  | { ok: false; res: Response };
+
+export function guardFailed(g: AdminGuardResult): g is { ok: false; res: Response } {
+  return !g.ok;
 }

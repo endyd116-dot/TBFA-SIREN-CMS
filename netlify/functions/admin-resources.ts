@@ -171,7 +171,7 @@ export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin, member: adminMember } = guard.ctx;
 
   try {
@@ -394,7 +394,7 @@ export default async (req: Request) => {
       if (!body) return badRequest("요청 본문이 비어있습니다");
 
       const v = validateInput(body, true);
-      if (!v.ok) return badRequest(v.error);
+      if (!v.ok) return badRequest((v as { ok: false; error: string }).error);
 
       /* 카테고리 존재 확인 */
       if (v.data.categoryId) {
@@ -481,7 +481,7 @@ export default async (req: Request) => {
       if (!existing) return notFound("자료를 찾을 수 없습니다");
 
       const v = validateInput(body, false);
-      if (!v.ok) return badRequest(v.error);
+      if (!v.ok) return badRequest((v as { ok: false; error: string }).error);
 
       /* 카테고리 변경 시 존재 확인 */
       if (v.data.categoryId) {

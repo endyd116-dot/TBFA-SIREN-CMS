@@ -55,7 +55,7 @@ export default async (req: Request) => {
     const ext = file.name.split(".").pop() || "jpg";
     const key = `chat/${roomId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const buffer = await file.arrayBuffer();
-    await store.set(key, new Uint8Array(buffer), { metadata: { contentType: file.type } });
+    await store.set(key, Buffer.from(new Uint8Array(buffer)) as any, { metadata: { contentType: file.type } });
 
     /* DB 기록 */
     const oneYear = new Date();

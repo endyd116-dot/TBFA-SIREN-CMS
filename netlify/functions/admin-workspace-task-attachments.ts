@@ -28,7 +28,7 @@ import { logWorkspaceActivity } from "../../lib/workspace-logger";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
   const isSuperAdmin = (adminMember.role || "") === "super_admin";

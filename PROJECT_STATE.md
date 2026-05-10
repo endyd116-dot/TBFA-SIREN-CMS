@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 13 실 API 연결 + TS 0건 머지 완료** — A mock→실API(61f13fe) + C TS에러 149→0(8e283dd) 머지 |
 | 2026-05-11 | **메인** | **Phase 13 B+A 머지 완료 (618033b)** — admin-incident-stats.ts 신규 / admin-siren-stats.js 신규 / admin.html 메뉴+섹션 추가 / A 실 API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 11+12 A 머지 완료 (API 경로 11개 불일치 수정 후)** — feature/phase11-12-front 머지(e1ba80f) / my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit 등 17파일 |
-| 2026-05-11 | **A 채팅** | **Phase 11·12 프론트 구현 완료** — 신규 10파일(@멘션·구독버튼·my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit) + 기존 7파일 수정. 브랜치 feature/phase11-12-front (8cd1492) |
 | 2026-05-11 | **메인** | **Phase 11+12 B 머지 완료 + 마이그 4테이블 성공** — feature/phase11-12-back 머지(d5beb76) / 4테이블 생성 / 마이그 파일 삭제(ef63481) |
-| 2026-05-11 | **C 채팅** | **Phase 10 R4 라이브 검증 PASS + BUG-9 fix** — 영역1~6 전 시나리오 통과. schema 컬럼 누락 수정. 보고서 `docs/verify/2026-05-11-phase10-r4.md` |
+| 2026-05-11 | **C 채팅** | **TypeScript 에러 149건 → 0건 완료** — 타입 전용 수정. 브랜치 fix/typescript-errors (8e283dd). 로직 변경 없음. |
 | 2026-05-11 | 메인 | **Phase 10 R4 B 2차 머지 + A 머지** — AI 트리거·분석 백 13파일(8ecb46f) + 프론트 14파일 머지 |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -92,7 +92,7 @@
 | 6순위 #8 1:1 매칭 채팅 | ✅ 100% — 코드+BUG-4 fix+C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-rank6-08-matching-chat.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 4 대표 보고 시스템** | ✅ 100% — 코드+BUG-3 fix+C V1·V2·V3 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase4-report.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 5~7 재정 관리** | ✅ 100% — 코드+BUG-5/6/7 fix+C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase5-7-finance.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
-| TypeScript 타입 에러 149건 | ⏸ C 채팅 진행 예정 |
+| TypeScript 타입 에러 149건 | ✅ 100% — C 에러 149→0건 달성 (8e283dd, 로직 변경 없음) |
 | **Phase 8 알림 채널 통합 인프라** | ✅ 100% — A 디스패처+마이그+cleanup / B 7자리 통합 / C 어드민 화면+Q24~Q27 라이브 통과 |
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / C Q7-Q8 코드 정합성 PASS / 실발송은 환경변수 등록 후 자동 |
 | **Phase 10 R1 템플릿 빌더** | ✅ 100% — 코드 머지 (8db8ffb·cef0f69) + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 (보고서 §6) |
@@ -101,7 +101,7 @@
 | **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | ✅ 100% — 코드 머지 완료 + C 라이브 검증 PASS + BUG-9 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r4.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 11 멘션·구독** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
 | **Phase 12 신고 진행 공개 + 익명 강화** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
-| **Phase 13 신고 통계 대시보드** | 🟢 B+A 머지 완료 (618033b) / A 실 API 연결 진행 중 / ⏸ C 검증 대기 |
+| **Phase 13 신고 통계 대시보드** | 🟢 B+A+실API 머지 완료 / ⏸ C 검증 대기 |
 | **Phase 14 외부 기관 인계** | ✅ 카탈로그 (신규) / ⏸ |
 | **Phase 15 전문가 매칭 고도화** | ✅ 카탈로그 / ⏸ |
 | **Phase 16 통합 분석 대시보드** | ✅ 카탈로그 (ANL-A+B+C+D 통합 + Phase 4 인계 보강) / ⏸ |

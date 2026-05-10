@@ -31,7 +31,7 @@ import {
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member;
   const meId = adminMember.id;
   const isSuperAdmin = (adminMember as any).role === "super_admin";
@@ -254,7 +254,7 @@ export default async (req: Request, _ctx: Context) => {
           reminderConfig: body.reminderConfig || {},
           remindersSentAt: [],
           createdByAgent: body.createdByAgent || "user",
-        })
+        } as any)
         .returning();
 
       // 감사 로그
@@ -341,7 +341,7 @@ export default async (req: Request, _ctx: Context) => {
 
         const [updated]: any = await db
           .update(workspaceEvents)
-          .set({ attendees, updatedAt: new Date() })
+          .set({ attendees, updatedAt: new Date() } as any)
           .where(eq(workspaceEvents.id, id))
           .returning();
 

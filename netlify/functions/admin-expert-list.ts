@@ -46,7 +46,7 @@ export default async (req: Request) => {
 
   /* 1. 어드민 인증 */
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   /* 2. 쿼리 파라미터 파싱 */
   const url = new URL(req.url);

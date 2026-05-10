@@ -10,6 +10,7 @@ import { db } from "../../db";
 import {
   hyosungContracts,
   hyosungImportLogs,
+  members,
 } from "../../db/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -20,7 +21,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const admin = guard.ctx.admin;
   const adminMember = guard.ctx.member;
 
@@ -220,7 +221,7 @@ export default async (req: Request, ctx: Context) => {
               linkedMemberId,
               rawData: row.rawData,
               updatedAt: new Date(),
-            })
+            } as any)
             .where(eq(hyosungContracts.memberNo, row.memberNo));
           report.updated++;
         } else {
@@ -249,7 +250,7 @@ export default async (req: Request, ctx: Context) => {
             sendMethod: row.sendMethod,
             linkedMemberId,
             rawData: row.rawData,
-          });
+          } as any);
           report.imported++;
         }
       }

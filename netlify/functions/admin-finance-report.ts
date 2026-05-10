@@ -8,7 +8,7 @@ export const config = { path: "/api/admin-finance-report" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
@@ -94,7 +94,7 @@ export default async function handler(req: Request, _ctx: Context) {
         GROUP BY bc.id, bc.name, bc.code
         ORDER BY amount DESC
       `);
-      const expItems = expRows.rows || expRows;
+      const expItems = (expRows as any).rows || expRows as any[];
       expenditure.byCategory = expItems as any[];
       expenditure.total = (expItems as any[]).reduce((s, r) => s + (r.amount || 0), 0);
 
@@ -108,7 +108,7 @@ export default async function handler(req: Request, _ctx: Context) {
         GROUP BY EXTRACT(MONTH FROM spent_at)
         ORDER BY month
       `);
-      expenditure.monthly = (expMonthly.rows || expMonthly) as any[];
+      expenditure.monthly = ((expMonthly as any).rows || expMonthly) as any[];
     } catch (err) {
       console.warn("[finance-report] expenditure 집계 실패 (테이블 미생성일 수 있음):", err);
     }
@@ -138,7 +138,7 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE bc.is_active = TRUE
         ORDER BY bc.id
       `);
-      budgetVsActual = (bvaRows.rows || bvaRows) as any[];
+      budgetVsActual = ((bvaRows as any).rows || bvaRows) as any[];
     } catch (err) {
       console.warn("[finance-report] budgetVsActual 집계 실패:", err);
     }

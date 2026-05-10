@@ -10,7 +10,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return new Response(JSON.stringify({ ok: false, error: "PATCH only" }), { status: 405 });
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   let body: any;
   try { body = await req.json(); } catch { body = {}; }

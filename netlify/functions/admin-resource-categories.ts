@@ -83,7 +83,7 @@ export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin, member: adminMember } = guard.ctx;
 
   try {
@@ -151,7 +151,7 @@ export default async (req: Request) => {
       if (!body) return badRequest("요청 본문이 비어있습니다");
 
       const v = validateInput(body, true);
-      if (!v.ok) return badRequest(v.error);
+      if (!v.ok) return badRequest((v as { ok: false; error: string }).error);
 
       /* code 중복 체크 */
       const [dup] = await db
@@ -191,7 +191,7 @@ export default async (req: Request) => {
       if (!existing) return notFound("카테고리를 찾을 수 없습니다");
 
       const v = validateInput(body, false);
-      if (!v.ok) return badRequest(v.error);
+      if (!v.ok) return badRequest((v as { ok: false; error: string }).error);
 
       /* code 변경 시 중복 체크 */
       if (v.data.code && v.data.code !== existing.code) {

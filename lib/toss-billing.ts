@@ -268,7 +268,7 @@ export async function chargeWithBillingKey(
  * @returns billing_logs.id
  */
 export async function logBillingAttempt(params: LogParams): Promise<number> {
-  const insertData: NewBillingLog = {
+  const result: any = await db.insert(billingLogs).values({
     memberId: params.memberId,
     billingKey: params.billingKey,
     attemptType: params.attemptType,
@@ -276,9 +276,7 @@ export async function logBillingAttempt(params: LogParams): Promise<number> {
     amount: params.amount,
     status: "pending",
     tossOrderId: params.tossOrderId,
-  };
-
-  const result: any = await db.insert(billingLogs).values(insertData).returning({ id: billingLogs.id });
+  } as any).returning({ id: billingLogs.id });
   const rows = Array.isArray(result) ? result : (result as any).rows || [];
   const logId = rows[0]?.id;
   if (!logId) {
@@ -312,7 +310,7 @@ export async function logBillingResult(
       donationId: donationId,
       completedAt: now,
       nextRetryAt: nextRetryAt,
-    })
+    } as any)
     .where(eq(billingLogs.id, logId));
 }
 
@@ -342,7 +340,7 @@ export async function logBillingResultWithRetry(
       donationId: donationId,
       completedAt: now,
       nextRetryAt: nextRetryAt,
-    })
+    } as any)
     .where(eq(billingLogs.id, logId));
 }
 

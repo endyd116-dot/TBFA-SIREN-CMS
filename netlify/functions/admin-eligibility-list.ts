@@ -25,7 +25,7 @@ import {
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") return methodNotAllowed();
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
 
   try {
     const url = new URL(req.url);

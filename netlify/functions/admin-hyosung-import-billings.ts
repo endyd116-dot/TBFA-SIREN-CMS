@@ -27,7 +27,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const admin = guard.ctx.admin;
   const adminMember = guard.ctx.member;
 
@@ -221,7 +221,7 @@ export default async (req: Request, ctx: Context) => {
 
         if (existing.length > 0) {
           await db.update(hyosungBillings)
-            .set(billingFields)
+            .set(billingFields as any)
             .where(eq(hyosungBillings.id, existing[0].id));
           billingRowId = existing[0].id;
           report.updated++;
@@ -230,7 +230,7 @@ export default async (req: Request, ctx: Context) => {
             memberNo: row.memberNo,
             billingMonth: row.billingMonth,
             ...billingFields,
-          }).returning({ id: hyosungBillings.id });
+          } as any).returning({ id: hyosungBillings.id });
           billingRowId = inserted[0].id;
           report.imported++;
         }
@@ -263,8 +263,8 @@ export default async (req: Request, ctx: Context) => {
         if (existingDonation.length > 0) {
           /* 이미 있으면 linkedDonationId만 보장 */
           if (!existing[0]?.linkedDonationId) {
-            await db.update(hyosungBillings)
-              .set({ linkedDonationId: existingDonation[0].id })
+              await db.update(hyosungBillings)
+              .set({ linkedDonationId: existingDonation[0].id } as any)
               .where(eq(hyosungBillings.id, billingRowId));
           }
           report.skippedDuplicate++;
@@ -292,18 +292,18 @@ export default async (req: Request, ctx: Context) => {
           hyosungReceiptStatus: row.receiptStatus,
           hyosungPaidDate: row.paymentDate ? new Date(row.paymentDate) : null,
           campaignTag: row.productName,
-        }).returning({ id: donations.id });
+        } as any).returning({ id: donations.id });
 
         const donationId = insertedDonation[0].id;
 
         /* hyosungBillings.linkedDonationId 갱신 */
         await db.update(hyosungBillings)
-          .set({ linkedDonationId: donationId, hyosungBillingId: undefined as any })
+          .set({ linkedDonationId: donationId } as any)
           .where(eq(hyosungBillings.id, billingRowId));
 
         /* donations에 hyosungBillingId 역참조 */
         await db.update(donations)
-          .set({ hyosungBillingId: billingRowId })
+          .set({ hyosungBillingId: billingRowId } as any)
           .where(eq(donations.id, donationId));
 
         report.autoConfirmed++;

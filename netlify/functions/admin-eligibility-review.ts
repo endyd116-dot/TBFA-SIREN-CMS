@@ -33,7 +33,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const adminId = adminMember.id as number;
 
@@ -124,7 +124,7 @@ export default async (req: Request, _ctx: Context) => {
         link: "/mypage.html#eligibility",
         refTable: "eligibility_change_requests",
         refId: id,
-      });
+      } as any);
     } catch (notifyErr: any) {
       console.warn("[admin-eligibility-review] 알림 적재 실패:", notifyErr?.message);
     }

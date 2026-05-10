@@ -88,7 +88,7 @@ export default async (req: Request) => {
       stack: String(err?.stack || "").slice(0, 1000),
     });
   }
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
 
   /* 2. body 파싱 */
   let reportId: number;

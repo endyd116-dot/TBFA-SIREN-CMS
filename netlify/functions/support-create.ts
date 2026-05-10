@@ -27,7 +27,7 @@ export default async (req: Request) => {
   try {
     /* 1. 인증 + 차단 검증 (5순위 #1) */
     const _r = await requireActiveUser(req);
-    if (!_r.ok) return _r.res;
+    if (!_r.ok) return (_r as { ok: false; res: Response }).res;
     const auth = _r.user;
 
     /* 2. 회원 상태 */

@@ -67,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   try {
     const url = new URL(req.url);

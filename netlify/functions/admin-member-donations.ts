@@ -103,7 +103,7 @@ export default async (req: Request) => {
   } catch (err) {
     return jsonError("auth", err);
   }
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   try {
     const url = new URL(req.url);

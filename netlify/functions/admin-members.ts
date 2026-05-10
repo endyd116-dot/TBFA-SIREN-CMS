@@ -168,7 +168,7 @@ export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin, member: adminMember } = guard.ctx;
 
   try {

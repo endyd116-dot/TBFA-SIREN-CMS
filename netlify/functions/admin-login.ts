@@ -112,7 +112,7 @@ export default async (req: Request) => {
       lastLoginAt: new Date(),
       /* ★ B-5: null 가드 */
       lastLoginIp: (getClientIp(req) || "").slice(0, 45),
-    }).where(eq(members.id, user.id));
+    } as any).where(eq(members.id, user.id));
 
     /* ★ E: 관리자 토큰은 2시간(JWT) + 세션 쿠키 (브라우저 종료 시 즉시 만료) */
     const token = signAdminToken({

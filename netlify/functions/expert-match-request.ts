@@ -41,7 +41,7 @@ export default async (req: Request) => {
 
   /* 1. 사용자 인증 (블랙 차단 포함) */
   const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const uid = auth.user.uid;
 
   /* 2. body 파싱 */

@@ -33,7 +33,7 @@ export default async (req: Request) => {
 
   /* 1. 사용자 인증 */
   const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const uid = auth.user.uid;
 
   /* 2. 본인이 신청자(userId) 또는 배정 전문가(expertId)인 매칭 조회 */

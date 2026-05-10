@@ -214,7 +214,7 @@ async function processOneMember(memberId: number, memberName: string, briefingDa
       riskAlerts: ai.riskAlerts as any,
       aiSuggestions: ai.aiSuggestions as any,
       summaryMd: ai.summaryMd,
-    }).onConflictDoUpdate({
+    } as any).onConflictDoUpdate({
       target: [dailyBriefings.memberId, dailyBriefings.briefingDate],
       set: {
         urgentCount: stats.urgentCount,
@@ -229,7 +229,7 @@ async function processOneMember(memberId: number, memberName: string, briefingDa
         aiSuggestions: ai.aiSuggestions as any,
         summaryMd: ai.summaryMd,
         readAt: null,
-      },
+      } as any,
     });
     /* Phase 8 — 어드민 일일 브리핑 이메일 발송 (통합 디스패처)
        정책: ADMIN_DAILY_BRIEFING = ['email'] (인앱은 daily_briefings UPSERT로 이미 표시)
