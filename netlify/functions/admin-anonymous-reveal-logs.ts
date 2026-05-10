@@ -3,7 +3,7 @@
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { anonymousRevealLogs, members } from "../../db/schema";
-import { and, eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-anonymous-reveal-logs" };
 
@@ -28,17 +28,22 @@ export default async (req: Request) => {
   const url = new URL(req.url);
   const reportType = url.searchParams.get("reportType");
   const reportId = url.searchParams.get("reportId") ? Number(url.searchParams.get("reportId")) : undefined;
+  const levelParam = url.searchParams.get("level") ? Number(url.searchParams.get("level")) : undefined;
+  const dateFrom = url.searchParams.get("dateFrom") || "";
+  const dateTo = url.searchParams.get("dateTo") || "";
   const page = Math.max(1, Number(url.searchParams.get("page") || 1));
   const limit = 30;
   const offset = (page - 1) * limit;
 
   let rows: any[] = [];
   try {
-    const cond = reportType && reportId
-      ? and(eq(anonymousRevealLogs.reportType, reportType), eq(anonymousRevealLogs.reportId, reportId))
-      : reportType
-        ? eq(anonymousRevealLogs.reportType, reportType)
-        : undefined;
+    const conds: any[] = [];
+    if (reportType) conds.push(eq(anonymousRevealLogs.reportType, reportType));
+    if (reportId) conds.push(eq(anonymousRevealLogs.reportId, reportId));
+    if (levelParam) conds.push(eq(anonymousRevealLogs.revealLevel, levelParam));
+    if (dateFrom) conds.push(sql`${anonymousRevealLogs.createdAt} >= ${dateFrom}::timestamptz`);
+    if (dateTo) conds.push(sql`${anonymousRevealLogs.createdAt} < (${dateTo}::date + interval '1 day')`);
+    const cond = conds.length > 0 ? (conds.length === 1 ? conds[0] : and(...conds)) : undefined;
 
     rows = await db.select({
       id: anonymousRevealLogs.id,
@@ -73,9 +78,33 @@ export default async (req: Request) => {
     }
   }
 
+  // KPI 통계 집계
+  let stats = { totalCount: 0, todayCount: 0, level2Count: 0, monthCount: 0 };
+  try {
+    const statsRes: any = await db.execute(sql`
+      SELECT
+        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE)::int AS today_count,
+        COUNT(*) FILTER (WHERE reveal_level = 2)::int AS level2_count,
+        COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW()))::int AS month_count
+      FROM anonymous_reveal_logs
+    `);
+    const s = (statsRes.rows || statsRes)[0] || {};
+    stats = {
+      totalCount: s.total_count || 0,
+      todayCount: s.today_count || 0,
+      level2Count: s.level2_count || 0,
+      monthCount: s.month_count || 0,
+    };
+  } catch (err) {
+    console.warn("[admin-anonymous-reveal-logs] stats 집계 실패", err);
+  }
+
   return new Response(JSON.stringify({
     ok: true,
     page,
+    total: stats.totalCount,
+    stats,
     items: rows.map((r) => ({ ...r, revealedByName: nameMap.get(r.revealedBy) || "" })),
   }), { headers: { "Content-Type": "application/json" } });
 };

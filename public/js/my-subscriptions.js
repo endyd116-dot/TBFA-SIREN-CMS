@@ -61,8 +61,8 @@
         return;
       }
 
-      const rows = json.data?.rows || json.rows || [];
-      const total = json.data?.total || json.total || 0;
+      const rows = json.postSubscriptions || json.data?.postSubscriptions || json.data?.rows || json.rows || [];
+      const total = rows.length;
       const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
       if (!rows.length) {
@@ -114,11 +114,9 @@
     if (!confirm('이 게시글 구독을 해제하시겠습니까?')) return;
     btn.disabled = true;
     try {
-      const res = await fetch('/api/user-post-subscribe', {
-        method: 'POST',
+      const res = await fetch('/api/user-post-subscribe?postId=' + encodeURIComponent(postId), {
+        method: 'DELETE',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, subscribe: false }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
@@ -154,8 +152,8 @@
         return;
       }
 
-      const rows = json.data?.rows || json.rows || [];
-      const total = json.data?.total || json.total || 0;
+      const rows = json.items || json.data?.items || json.data?.rows || json.rows || [];
+      const total = rows.length;
       const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
       if (!rows.length) {
@@ -166,16 +164,18 @@
 
       let html = '';
       rows.forEach((n) => {
-        const icon = n.type === 'mention' ? '📣' : '💬';
-        const linkHtml = n.postId
-          ? `<a href="/board-view.html?id=${escapeHtml(String(n.postId))}">${escapeHtml(n.postTitle || '게시글')}</a>`
+        const srcType = n.sourceType || n.type || '';
+        const icon = srcType === 'post' ? '📣' : '💬';
+        const actorName = n.mentionerName || n.actorName || '누군가';
+        const linkHtml = n.sourceId
+          ? `<a href="/board-view.html?id=${escapeHtml(String(n.sourceId))}">${escapeHtml(n.postTitle || '게시글')}</a>`
           : escapeHtml(n.postTitle || '게시글');
 
         let msg = '';
-        if (n.type === 'mention') {
-          msg = `<strong>${escapeHtml(n.actorName || '누군가')}</strong>님이 댓글에서 회원님을 멘션했습니다 → ${linkHtml}`;
+        if (srcType === 'post' || srcType === 'comment') {
+          msg = `<strong>${escapeHtml(actorName)}</strong>님이 게시글에서 회원님을 멘션했습니다 → ${linkHtml}`;
         } else {
-          msg = `<strong>${escapeHtml(n.actorName || '누군가')}</strong>님이 구독 중인 게시글에 댓글을 달았습니다 → ${linkHtml}`;
+          msg = `<strong>${escapeHtml(actorName)}</strong>님이 회원님을 멘션했습니다`;
         }
 
         html += `

@@ -63,8 +63,8 @@
       return;
     }
 
-    const rows = res.data?.rows || res.data?.data?.rows || [];
-    const total = res.data?.total || res.data?.data?.total || 0;
+    const rows = res.data?.items || res.data?.data?.items || res.data?.rows || res.data?.data?.rows || [];
+    const total = res.data?.total || res.data?.data?.total || rows.length;
     const stats = res.data?.stats || res.data?.data?.stats || {};
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
@@ -84,11 +84,13 @@
 
     tbody.innerHTML = rows.map((r) => {
       const typeBadge = `<span class="badge ${escapeHtml(TYPE_BADGE[r.reportType] || '')}">${escapeHtml(TYPE_LABEL[r.reportType] || r.reportType)}</span>`;
-      const levelBadge = `<span class="badge badge-level-${r.level || 1}">${r.level || 1}단계</span>`;
+      const lvl = r.revealLevel || r.level || 1;
+      const adminName = r.revealedByName || r.adminName || '—';
+      const levelBadge = `<span class="badge badge-level-${lvl}">${lvl}단계</span>`;
       return `
         <tr>
           <td>${escapeHtml(String(r.id))}</td>
-          <td class="admin-name">👤 ${escapeHtml(r.adminName || '—')}</td>
+          <td class="admin-name">👤 ${escapeHtml(adminName)}</td>
           <td>${typeBadge}</td>
           <td class="report-title" title="${escapeHtml(r.reportTitle || '')}">${escapeHtml(r.reportTitle || '(제목 없음)')}</td>
           <td>${levelBadge}</td>
@@ -138,12 +140,14 @@
     const headers = ['로그ID', '담당자', '신고유형', '신고제목', '식별수준', '사유', '조회일시'];
     const csvRows = [headers.join(',')];
     _rows.forEach((r) => {
+      const csvAdminName = r.revealedByName || r.adminName || '';
+      const csvLevel = r.revealLevel || r.level || '';
       csvRows.push([
         r.id,
-        '"' + (r.adminName || '').replace(/"/g, '""') + '"',
+        '"' + csvAdminName.replace(/"/g, '""') + '"',
         TYPE_LABEL[r.reportType] || r.reportType,
         '"' + (r.reportTitle || '').replace(/"/g, '""') + '"',
-        r.level + '단계',
+        csvLevel + '단계',
         '"' + (r.reason || '').replace(/"/g, '""') + '"',
         fmtDateTime(r.createdAt),
       ].join(','));
