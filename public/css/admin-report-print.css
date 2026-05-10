@@ -1,0 +1,216 @@
+/* admin-report-print.css — 대표 보고서 인쇄 전용 스타일 (window.print() 호출 시 적용) */
+
+/* ────────────────────────────────────────────────
+   화면에서는 이 파일의 규칙이 거의 무효 (print only)
+   ──────────────────────────────────────────────── */
+
+@media print {
+
+  /* ── A4 페이지 기준 ── */
+  @page {
+    size: A4 portrait;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+
+  /* ── 전역 리셋 ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 11pt;
+    color: #1a202c;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ── 숨길 UI 영역 ── */
+  .sidebar,
+  .nav-sidebar,
+  #sidebar,
+  [class*="sidebar"],
+  .admin-sidebar,
+  header,
+  .admin-header,
+  #header,
+  .topbar,
+  .top-bar,
+  nav,
+  .navbar,
+  footer,
+  .admin-footer,
+  #footer,
+  /* 버튼·액션 영역 */
+  button,
+  .btn,
+  [class*="btn-"],
+  .action-bar,
+  .actions,
+  .report-actions,
+  .print-hide,
+  /* 모달·토스트·알림 */
+  .modal,
+  .modal-backdrop,
+  .toast,
+  .toast-container,
+  .notification,
+  /* 기타 */
+  .quick-jump,
+  .floating-btn,
+  .back-btn {
+    display: none !important;
+  }
+
+  /* ── 보고서 본문 레이아웃 ── */
+  .report-content,
+  .report-container,
+  #report-print-area,
+  main,
+  .main-content,
+  .content-area {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* ── 보고서 헤더 ── */
+  .report-header,
+  .report-title-area {
+    margin-bottom: 12pt;
+    border-bottom: 2pt solid #2b6cb0;
+    padding-bottom: 8pt;
+  }
+
+  .report-header h1,
+  .report-header h2,
+  .report-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #2b6cb0;
+    margin: 0 0 4pt 0;
+  }
+
+  .report-period,
+  .report-subtitle {
+    font-size: 10pt;
+    color: #4a5568;
+    margin: 0;
+  }
+
+  /* ── AI 요약 박스 ── */
+  .ai-summary-box,
+  .report-summary {
+    background: #ebf8ff !important;
+    border: 1pt solid #bee3f8;
+    border-radius: 4pt;
+    padding: 10pt;
+    margin-bottom: 12pt;
+    white-space: pre-wrap;
+    font-size: 10pt;
+    line-height: 1.6;
+    page-break-inside: avoid;
+  }
+
+  /* ── 위험경보 목록 ── */
+  .alert-list,
+  .report-alerts {
+    margin-bottom: 12pt;
+    page-break-inside: avoid;
+  }
+
+  .alert-list li,
+  .report-alerts li {
+    font-size: 10pt;
+    margin-bottom: 3pt;
+  }
+
+  /* ── 통계 테이블 ── */
+  .report-stats-table,
+  table.report-table,
+  .stats-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 12pt;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+
+  .report-stats-table th,
+  .report-stats-table td,
+  table.report-table th,
+  table.report-table td,
+  .stats-table th,
+  .stats-table td {
+    border: 0.5pt solid #cbd5e0;
+    padding: 5pt 7pt;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .report-stats-table th,
+  table.report-table th,
+  .stats-table th {
+    background: #edf2f7 !important;
+    font-weight: 600;
+    width: 30%;
+  }
+
+  /* 홀짝 행 교차 배경 (zebra) */
+  .report-stats-table tr:nth-child(even) td,
+  table.report-table tr:nth-child(even) td,
+  .stats-table tr:nth-child(even) td {
+    background: #f7fafc !important;
+  }
+
+  /* ── 섹션 제목 ── */
+  .report-section-title,
+  .section-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 14pt 0 6pt 0;
+    border-left: 3pt solid #2b6cb0;
+    padding-left: 6pt;
+  }
+
+  /* ── 페이지 나눔 제어 ── */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .no-break {
+    page-break-inside: avoid;
+  }
+
+  /* ── 링크 처리 ── */
+  a,
+  a:visited {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* ── 인쇄 푸터 ── */
+  .report-print-footer {
+    margin-top: 20pt;
+    padding-top: 8pt;
+    border-top: 0.5pt solid #e2e8f0;
+    font-size: 8pt;
+    color: #a0aec0;
+    text-align: center;
+  }
+}
