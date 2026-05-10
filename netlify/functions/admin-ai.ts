@@ -93,7 +93,8 @@ async function predictChurn() {
         and(
           eq(donations.memberId, d.memberId),
           eq(donations.status, "completed"),
-          gte(donations.createdAt, ninetyDaysAgo)
+          /* ★ Q12: 실제 결제일 기준 — 효성 늦장 업로드로 신호가 묻히지 않게 */
+          sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}) >= ${ninetyDaysAgo.toISOString()}`
         )
       )
       .limit(1);

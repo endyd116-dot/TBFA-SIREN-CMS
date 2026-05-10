@@ -22,7 +22,8 @@ export default async (req: Request) => {
     const limit = Math.min(Number(url.searchParams.get("limit") || 50), 100);
     const offset = Number(url.searchParams.get("offset") || 0);
 
-    /* 1. 후원 목록 */
+    /* 1. 후원 목록
+       ★ Q12: 마이페이지에 표시되는 후원 날짜는 실제 결제일 (효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt) */
     const list = await db
       .select({
         id: donations.id,
@@ -35,10 +36,11 @@ export default async (req: Request) => {
         receiptIssuedAt: donations.receiptIssuedAt,       // ★ STEP H-2c 신규
         campaignTag: donations.campaignTag,
         createdAt: donations.createdAt,
+        hyosungPaidDate: donations.hyosungPaidDate,
       })
       .from(donations)
       .where(eq(donations.memberId, auth.uid))
-      .orderBy(desc(donations.createdAt))
+      .orderBy(sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}) DESC`)
       .limit(limit)
       .offset(offset);
 
@@ -70,6 +72,8 @@ export default async (req: Request) => {
         receiptNumber: d.receiptNumber,                   // ★ STEP H-2c 신규
         receiptIssuedAt: d.receiptIssuedAt,               // ★ STEP H-2c 신규
         campaignTag: d.campaignTag,
+        /* ★ Q12: paidDate는 표시용 결제일 (효성은 자료의 실제 결제일, 그 외는 createdAt) */
+        paidDate: (d as any).hyosungPaidDate ?? d.createdAt,
         createdAt: d.createdAt,
       })),
       stats: {

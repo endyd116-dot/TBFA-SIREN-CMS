@@ -20,15 +20,18 @@ export default async (req: Request) => {
     twelveMonthsAgo.setDate(1);
     twelveMonthsAgo.setHours(0, 0, 0, 0);
 
+    /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
+    const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
+
     const monthlyRows = await db
       .select({
-        ym: sql<string>`TO_CHAR(${donations.createdAt}, 'YYYY-MM')`,
+        ym: sql<string>`TO_CHAR(${paidAt}, 'YYYY-MM')`,
         total: sql<number>`COALESCE(SUM(${donations.amount}), 0)`,
       })
       .from(donations)
-      .where(and(eq(donations.status, "completed"), gte(donations.createdAt, twelveMonthsAgo)))
-      .groupBy(sql`TO_CHAR(${donations.createdAt}, 'YYYY-MM')`)
-      .orderBy(sql`TO_CHAR(${donations.createdAt}, 'YYYY-MM')`);
+      .where(and(eq(donations.status, "completed"), sql`${paidAt} >= ${twelveMonthsAgo.toISOString()}`))
+      .groupBy(sql`TO_CHAR(${paidAt}, 'YYYY-MM')`)
+      .orderBy(sql`TO_CHAR(${paidAt}, 'YYYY-MM')`);
 
     /* 12개월 빈 곳 0으로 채우기 */
     const monthlyMap = new Map(monthlyRows.map(r => [r.ym, Number(r.total)]));
