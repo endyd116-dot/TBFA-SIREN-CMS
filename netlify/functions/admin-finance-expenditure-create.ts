@@ -30,7 +30,7 @@ export default async function handler(req: Request, _ctx: Context) {
       VALUES
         (${categoryId}, ${amount}, ${spentAt}, ${description},
          ${payee || null}, ${receiptUrl || null}, ${note || null},
-         ${auth.admin?.id || null}, 'draft')
+         ${auth.ctx.admin.uid}, 'draft')
       RETURNING id
     `);
     return new Response(

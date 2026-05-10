@@ -23,7 +23,7 @@ export default async function handler(req: Request, _ctx: Context) {
   try {
     await db.execute(sql`
       INSERT INTO budgets (fiscal_year, category_id, planned_amount, note, created_by)
-      VALUES (${fiscalYear}, ${categoryId}, ${plannedAmount}, ${note || null}, ${auth.admin?.id || null})
+      VALUES (${fiscalYear}, ${categoryId}, ${plannedAmount}, ${note || null}, ${auth.ctx.admin.uid})
       ON CONFLICT (fiscal_year, category_id)
       DO UPDATE SET planned_amount = EXCLUDED.planned_amount, note = EXCLUDED.note
     `);

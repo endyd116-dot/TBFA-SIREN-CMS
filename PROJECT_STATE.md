@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | **C 채팅** | **Phase 5~7 정적 검증 통과 + BUG-5 fix** — 감사 추적 컬럼(created_by/approved_by) 영구 NULL 버그 3곳 수정. Q7~Q10 모두 통과 |
 | 2026-05-10 | 메인 | **A·B 단계 D 재배정** — 단계 B·C 이전 세션 완료 확인. A→D-parser(D1·D2·D5·D6), B→D-ui(D3·D4·D7) 브랜치 전환 완료 |
-| 2026-05-10 | 메인(D) | **Phase 5~7 재정 관리 코드 100% 완성** — API 8개 + 프론트 3개 + 마이그. Swain 마이그 호출 대기 |
+| 2026-05-10 | 메인(D) | **Phase 5~7 재정 관리 코드 100% 완성** — API 7개 + 프론트 3개 + 마이그. Swain 마이그 호출 대기 |
 | 2026-05-10 | **C 채팅** | **Q1~Q4 검증 완료 + BUG-3·4 fix 머지 (d0b72f7)** — Phase4 이메일·#8 탭 버그 수정. Q3(#6)·Q4(#15) 정상 |
 | 2026-05-10 | 메인 채팅 | **4-way 병렬 모드 진입** — A·B·C·D 워크트리 분리 |
-| 2026-05-10 | 새 메인 채팅 | **Phase 4 A·B 머지 완료** — 이메일재발송 API + 인쇄 CSS |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -79,7 +79,7 @@
 | 6순위 #16 단계 D | 🔵 진행 중 — A(파서·백엔드) B(화면) 병렬 |
 | 6순위 #8 1:1 매칭 채팅 | ✅ 코드 100% + BUG-4 fix (C 검증 완료) / 🟡 Swain 라이브 검증 대기 |
 | **Phase 4 대표 보고 시스템** | ✅ 코드 100% + C 검증 완료 (BUG-3·4 fix) |
-| **Phase 5~7 재정 관리** | ✅ 코드 100% / 🟡 마이그 호출 → schema 활성화 → main 머지 대기 |
+| **Phase 5~7 재정 관리** | ✅ 코드 100% + C 정적 검증 통과 (BUG-5 fix) / 🟡 Swain 마이그 호출 → schema 활성화 대기 |
 | TypeScript 타입 에러 149건 | ⏸ C 채팅 진행 예정 |
 | Phase 8~22 (15개) | ⏸ 스펙 미정 — Phase 5~7 머지 후 설계 세션 |
 
@@ -93,6 +93,7 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
+| ~~#BUG-5~~ | 2026-05-10 | `admin-finance-{budget-upsert,expenditure-create,expenditure-approve}.ts` | 🔴 High | ✅ 해결 (이번 세션) | [docs/issues/2026-05-10-finance-audit-columns-null.md](docs/issues/2026-05-10-finance-audit-columns-null.md) |
 | ~~#BUG-2~~ | 2026-05-10 | `cms-tbfa.js:60-90` | 🟠 High | ✅ 해결 (마일스톤 #16 단계 B 545b523/f026c6b) | [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md) |
 | ~~#BUG-1~~ | 2026-05-09 | `lib/auth.ts:128` | 🔴 Critical | ✅ 해결 (bb529f9) | [docs/issues/2026-05-09-requireActiveUser-uid-bug.md](docs/issues/2026-05-09-requireActiveUser-uid-bug.md) |
 
