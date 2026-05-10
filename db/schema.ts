@@ -2336,3 +2336,94 @@ export type NewCommunicationAutoTriggerRun = typeof communicationAutoTriggerRuns
 
 /* === Phase 10 R4 정의 끝 === */
 
+/* =========================================================
+   === Phase 11 — 멘션·구독 ===
+   ========================================================= */
+
+// 게시글 구독 (게시글·게시판 두 레벨)
+export const postSubscriptions = pgTable("post_subscriptions", {
+  id:         serial("id").primaryKey(),
+  memberId:   integer("member_id").notNull()
+                .references(() => members.id, { onDelete: "cascade" }),
+  postId:     integer("post_id")
+                .references(() => boardPosts.id, { onDelete: "cascade" }),
+  boardCategory: varchar("board_category", { length: 30 }),  // boardCategoryEnum 값 (게시판 전체 구독)
+  // postId XOR boardCategory — 둘 중 하나만 세팅
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberPostIdx:  uniqueIndex("post_sub_member_post_idx").on(t.memberId, t.postId),
+  memberBoardIdx: index("post_sub_member_board_idx").on(t.memberId, t.boardCategory),
+  postIdx:        index("post_sub_post_idx").on(t.postId),
+}));
+
+export type PostSubscription    = typeof postSubscriptions.$inferSelect;
+export type NewPostSubscription = typeof postSubscriptions.$inferInsert;
+
+// @멘션 기록 (게시글·댓글·채팅 공통)
+export const mentions = pgTable("mentions", {
+  id:           serial("id").primaryKey(),
+  mentionedId:  integer("mentioned_id").notNull()
+                  .references(() => members.id, { onDelete: "cascade" }),
+  mentionerId:  integer("mentioner_id")
+                  .references(() => members.id, { onDelete: "set null" }),
+  sourceType:   varchar("source_type", { length: 20 }).notNull(),  // 'post'|'comment'|'chat'
+  sourceId:     integer("source_id").notNull(),
+  isRead:       boolean("is_read").notNull().default(false),
+  readAt:       timestamp("read_at"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  mentionedIdx: index("mentions_mentioned_idx").on(t.mentionedId),
+  sourceIdx:    index("mentions_source_idx").on(t.sourceType, t.sourceId),
+  unreadIdx:    index("mentions_unread_idx").on(t.mentionedId, t.isRead),
+}));
+
+export type Mention    = typeof mentions.$inferSelect;
+export type NewMention = typeof mentions.$inferInsert;
+
+/* === Phase 11 정의 끝 === */
+
+/* =========================================================
+   === Phase 12 — 신고 진행 상황 공개 + 익명 신고 강화 ===
+   ========================================================= */
+
+// 신고 단계 변경 이력 (3종 신고 공통)
+export const reportStatusLogs = pgTable("report_status_logs", {
+  id:           serial("id").primaryKey(),
+  reportType:   varchar("report_type", { length: 20 }).notNull(),  // 'incident'|'harassment'|'legal'
+  reportId:     integer("report_id").notNull(),
+  fromStatus:   varchar("from_status", { length: 30 }),
+  toStatus:     varchar("to_status", { length: 30 }).notNull(),
+  changedBy:    integer("changed_by")
+                  .references(() => members.id, { onDelete: "set null" }),
+  note:         text("note"),
+  notifiedAt:   timestamp("notified_at"),   // 사용자 알림 발송 시각
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  reportIdx: index("rsl_report_idx").on(t.reportType, t.reportId),
+  timeIdx:   index("rsl_time_idx").on(t.createdAt),
+}));
+
+export type ReportStatusLog    = typeof reportStatusLogs.$inferSelect;
+export type NewReportStatusLog = typeof reportStatusLogs.$inferInsert;
+
+// 익명 신원 식별 감사 로그 (어드민이 익명 신고자 신원을 열람한 이력)
+export const anonymousRevealLogs = pgTable("anonymous_reveal_logs", {
+  id:          serial("id").primaryKey(),
+  reportType:  varchar("report_type", { length: 20 }).notNull(),  // 'incident'|'harassment'|'legal'
+  reportId:    integer("report_id").notNull(),
+  revealLevel: integer("reveal_level").notNull(),   // 1=기본 정보, 2=모든 정보
+  revealedBy:  integer("revealed_by").notNull()
+                 .references(() => members.id, { onDelete: "restrict" }),
+  reason:      text("reason"),
+  ipAddress:   varchar("ip_address", { length: 45 }),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  reportIdx:   index("arl_report_idx").on(t.reportType, t.reportId),
+  adminIdx:    index("arl_admin_idx").on(t.revealedBy),
+}));
+
+export type AnonymousRevealLog    = typeof anonymousRevealLogs.$inferSelect;
+export type NewAnonymousRevealLog = typeof anonymousRevealLogs.$inferInsert;
+
+/* === Phase 12 정의 끝 === */
+
