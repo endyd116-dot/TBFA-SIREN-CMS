@@ -18,6 +18,9 @@ import { db } from "../../db";
 import { members, dailyBriefings } from "../../db/schema";
 import { and, sql, isNull, inArray } from "drizzle-orm";
 import { callGeminiJSON } from "../../lib/ai-gemini";
+// ★ Phase 8: 통합 알림 디스패처 (어드민 일일 브리핑 이메일)
+import { dispatch } from "../../lib/notify-dispatcher";
+import { NotifyEvent } from "../../lib/notify-events";
 
 interface BriefingStats {
   overdueCount: number;
@@ -228,6 +231,39 @@ async function processOneMember(memberId: number, memberName: string, briefingDa
         readAt: null,
       },
     });
+    /* Phase 8 — 어드민 일일 브리핑 이메일 발송 (통합 디스패처)
+       정책: ADMIN_DAILY_BRIEFING = ['email'] (인앱은 daily_briefings UPSERT로 이미 표시)
+       fire-and-forget — 발송 실패는 dispatch_logs에 기록되며 cron-notification-retry가 처리 */
+    const briefingDateStr =
+      `${briefingDate.getFullYear()}-${String(briefingDate.getMonth() + 1).padStart(2, "0")}-${String(briefingDate.getDate()).padStart(2, "0")}`;
+    const emailBody = (ai.summaryMd || "")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br/>");
+    const suggestionsHtml = ai.aiSuggestions.length
+      ? `<h3 style="margin-top:24px">우선순위 추천</h3><ul>${ai.aiSuggestions
+          .map(s => `<li><strong>${s.title}</strong> — ${s.reason}</li>`)
+          .join("")}</ul>`
+      : "";
+    const alertsHtml = ai.riskAlerts.length
+      ? `<h3 style="margin-top:24px;color:#c0392b">위험 알림</h3><ul>${ai.riskAlerts
+          .map(a => `<li>[${a.severity || "medium"}] ${a.message}</li>`)
+          .join("")}</ul>`
+      : "";
+
+    dispatch({
+      event: NotifyEvent.ADMIN_DAILY_BRIEFING,
+      target: { type: "admin", id: memberId },
+      params: {
+        title:        `[Agent-8] ${briefingDateStr} 일일 브리핑 — ${memberName || "어드민"}`,
+        emailBody:    `${emailBody}${suggestionsHtml}${alertsHtml}`,
+        message:      ai.summaryMd?.slice(0, 200),
+        link:         "/admin.html",
+        category:     "briefing",
+        severity:     ai.riskAlerts.some(a => a.severity === "high") ? "warning" : "info",
+        briefingDate: briefingDateStr,
+      },
+    });
+
     return { ok: true };
   } catch (err: any) {
     console.error(`[agent-8] member ${memberId} 처리 실패:`, err?.message || err);

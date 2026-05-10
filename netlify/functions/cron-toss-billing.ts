@@ -27,6 +27,9 @@ import {
 } from "../../lib/toss-billing";
 // ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
 import { safeReevaluate } from "../../lib/donor-status";
+// ★ Phase 8: 통합 알림 디스패처
+import { dispatch } from "../../lib/notify-dispatcher";
+import { NotifyEvent } from "../../lib/notify-events";
 
 export const config: Config = {
   schedule: "0 15 * * *",  // UTC 15:00 = KST 00:00
@@ -336,8 +339,26 @@ async function handleSuccess(
 
   console.log(`[cron-billing] ✅ 성공: 회원 #${target.memberId} (${target.memberName}) — ${target.amount.toLocaleString()}원`);
 
-  // 4-5. 영수증/알림 발송 (Phase 8에서 실제 연결)
-  // TODO(phase8): await sendBillingSuccessNotifications(target, donationId);
+  // 4-5. 영수증/알림 발송 (Phase 8 — 통합 디스패처)
+  dispatch({
+    event: NotifyEvent.BILLING_SUCCESS,
+    target: { type: "member", id: target.memberId },
+    params: {
+      memberName:   target.memberName,
+      amount:       target.amount,
+      donationId,
+      chargedAt:    new Date(),
+      nextChargeAt: nextDate,
+      orderId:      result.orderId,
+      title:        "정기 후원 결제 완료",
+      message:      `${target.amount.toLocaleString()}원 결제가 완료되었습니다. 다음 결제일: ${nextDateStr}`,
+      link:         "/mypage.html",
+      category:     "billing",
+      severity:     "info",
+      refTable:     "donations",
+      refId:        donationId,
+    },
+  });
 
   // ★ Phase 2 단계 C: donor_type 재평가 (fire-and-forget)
   // 정기 결제 성공 → channel='toss' 유지 보장
@@ -396,8 +417,23 @@ async function handleFailure(
 
     console.log(`[cron-billing] ⛔ 자동해지: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode}`);
 
-    // 5-4-B. 해지 알림 (Phase 8)
-    // TODO(phase8): await sendBillingCancelNotifications(target, result);
+    // 5-4-B. 해지 알림 (Phase 8 — 통합 디스패처)
+    dispatch({
+      event: NotifyEvent.BILLING_CANCELED,
+      target: { type: "member", id: target.memberId },
+      params: {
+        memberName:    target.memberName,
+        amount:        target.amount,
+        canceledAt:    new Date(),
+        cancelReason:  `${newRetryCount}회 연속 실패: ${result.errorCode}`,
+        title:         "정기 후원 자동 해지 안내",
+        message:       `결제 실패가 ${newRetryCount}회 누적되어 정기 후원이 자동 해지되었습니다.`,
+        emailBody:     `정기 후원이 자동 해지되었습니다.<br/>사유: ${newRetryCount}회 연속 실패 (${result.errorCode})<br/><br/>재구독을 원하시면 마이페이지에서 다시 신청하실 수 있습니다.`,
+        link:          "/mypage.html",
+        category:      "billing",
+        severity:      "warning",
+      },
+    });
 
     // ★ Phase 2 단계 C: 자동 해지 → donor_type 재평가
     // (다른 채널 없으면 prospect/cancelled로 강등)
@@ -420,8 +456,25 @@ async function handleFailure(
 
     console.log(`[cron-billing] ⚠️ 실패: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode} (재시도 ${nextRetryStr})`);
 
-    // 5-6. 실패 알림 (Phase 8)
-    // TODO(phase8): await sendBillingFailureNotifications(target, result);
+    // 5-6. 실패 알림 (Phase 8 — 통합 디스패처)
+    dispatch({
+      event: NotifyEvent.BILLING_FAILED,
+      target: { type: "member", id: target.memberId },
+      params: {
+        memberName:           target.memberName,
+        amount:                target.amount,
+        failureReason:         result.errorMessage || result.errorCode || "결제 실패",
+        consecutiveFailCount:  newRetryCount,
+        willRetryAt:           nextRetry,
+        title:                 "정기 후원 결제 실패",
+        message:               `${target.amount.toLocaleString()}원 결제가 실패했습니다. 재시도 예정: ${nextRetryStr}`,
+        link:                  "/mypage.html",
+        category:              "billing",
+        severity:              "warning",
+        refTable:              "billing_logs",
+        refId:                 logId,
+      },
+    });
 
     return false;
   }

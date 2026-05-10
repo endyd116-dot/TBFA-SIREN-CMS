@@ -19,6 +19,8 @@
 import { db } from "../db";
 import { workspaceActivityLog, workspaceNotifications, members } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { dispatch } from "./notify-dispatcher";
+import { NotifyEvent } from "./notify-events";
 
 /* ════════════════════════════════════════════════
    Type 정의
@@ -128,11 +130,25 @@ export async function sendWorkspaceNotification(params: NotifParams): Promise<nu
       })
       .returning({ id: workspaceNotifications.id });
 
-    // TODO(Step 5): channel별 실제 발송 로직
-    //   - 'bell' → 인앱 알림 벨 (이미 DB 저장으로 처리)
-    //   - 'email' → lib/email.ts의 sendMail 호출
-    //   - 'sms' → Phase 10에서 연동
-    //   - 'kakao' → Phase 10에서 연동
+    /* Phase 8 — 통합 디스패처 호출 (fire-and-forget)
+       workspace_notifications INSERT는 워크스페이스 UI 벨용으로 유지하고,
+       추가로 통합 알림(notifications 테이블) 및 채널 정책(현재 inapp 단일)을 따른다. */
+    dispatch({
+      event: NotifyEvent.WORKSPACE_ACTIVITY,
+      target: { type: "member", id: params.memberId },
+      params: {
+        title:    params.title,
+        message:  params.body,
+        link:     params.actionUrl,
+        category: "workspace",
+        severity: "info",
+        refTable: "workspace_notifications",
+        refId:    row?.id,
+        sourceType: params.sourceType,
+        sourceId:   params.sourceId,
+        notifType:  params.notifType,
+      },
+    });
 
     return row?.id ?? null;
   } catch (err) {

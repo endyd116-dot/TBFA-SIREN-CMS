@@ -14,6 +14,9 @@ import {
   type NewCardExpiryAlert,
 } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
+// ★ Phase 8: 통합 알림 디스패처
+import { dispatch } from "../../lib/notify-dispatcher";
+import { NotifyEvent } from "../../lib/notify-events";
 
 export const config: Config = {
   schedule: "0 0 * * *",  // UTC 00:00 = KST 09:00
@@ -226,14 +229,46 @@ async function processExpiryTarget(
       return;
     }
 
-    // 알림 발송 (Phase 8 Stub)
-    const channels: string[] = [];
-    if (target.memberEmail) channels.push("email");
-    if (target.memberPhone) channels.push("sms");
-    // TODO(phase8): 알림톡 채널 추가
+    // 알림 발송 (Phase 8 — 통합 디스패처)
+    // 채널 정책 자체는 EVENT_CHANNEL_POLICY[CARD_EXPIRING] = inapp + email + kakao
+    // (kakao는 Phase 8 단계 placeholder, Phase 9에서 실 발송 교체)
+    const daysUntilExpiry =
+      target.alertType === "expiry_30d" ? 30
+      : target.alertType === "expiry_14d" ? 14
+      : 0;
+    const subjectLabel =
+      target.alertType === "expired"     ? "결제 카드 만료 — 갱신 필요"
+      : target.alertType === "expiry_14d" ? "결제 카드 만료 14일 전 — 갱신 안내"
+                                          : "결제 카드 만료 30일 전 — 갱신 안내";
+    const bodyText =
+      target.alertType === "expired"
+        ? "등록하신 결제 카드가 만료되어 정기 결제가 중단될 수 있습니다. 마이페이지에서 카드를 갱신해주세요."
+        : `등록하신 결제 카드가 ${daysUntilExpiry}일 후 만료됩니다. 정기 후원이 끊기지 않도록 마이페이지에서 카드를 미리 갱신해주세요.`;
 
-    // TODO(phase8): 실제 발송 함수 호출
-    // await sendCardExpiryNotifications(target, channels);
+    dispatch({
+      event: NotifyEvent.CARD_EXPIRING,
+      target: { type: "member", id: target.memberId },
+      params: {
+        memberName:       target.memberName,
+        cardCompany:      target.cardCompany,
+        cardNumberMasked: target.cardNumberMasked,
+        cardExpiryMonth:  target.cardExpiryMonth,
+        daysUntilExpiry,
+        alertType:        target.alertType,
+        title:            subjectLabel,
+        message:          bodyText,
+        emailBody:        bodyText,
+        link:             "/mypage.html",
+        category:         "billing",
+        severity:         target.alertType === "expired" ? "warning" : "info",
+        refTable:         "billing_keys",
+        refId:            target.billingKeyId,
+      },
+    });
+
+    const channels: string[] = ["inapp"];
+    if (target.memberEmail) channels.push("email");
+    channels.push("kakao");
 
     console.log(`[cron-card-expiry] 📧 알림: 회원 #${target.memberId} (${target.memberName}) — ${target.alertType} (${target.cardExpiryMonth})`);
 
