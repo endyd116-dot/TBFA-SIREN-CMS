@@ -249,6 +249,13 @@
         ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">📤 보완 제출</button>`
         : '';
 
+      /* 전문가 채팅방 버튼 — family(유가족지원) / legal(법률지원) 에서 배정 시 표시 */
+      const chatRoomId = item.chatRoomId;
+      const expertChatBtn = (tabKey === 'family' || tabKey === 'legal') && chatRoomId
+        ? `<button type="button" class="btn-detail" data-act="open-expert-chat" data-room-id="${chatRoomId}"
+             style="background:var(--brand);border-color:var(--brand);color:#fff">💬 전문가 채팅</button>`
+        : '';
+
       html += `
         <li class="app-card" data-card-id="${id}">
           <div class="app-card-head">
@@ -267,6 +274,7 @@
           <div class="app-card-actions">
             ${detailBtn}
             ${supplementBtn}
+            ${expertChatBtn}
             ${deleteBtn}
           </div>
         </li>
@@ -286,6 +294,17 @@
     /* ★ v11 묶음 B-11: 보완 제출 버튼 (목록에서) */
     pane.querySelectorAll('[data-act="supplement-open"]').forEach((btn) => {
       btn.addEventListener('click', () => openSupplementModal(Number(btn.dataset.id), btn.dataset.no));
+    });
+    /* 전문가 채팅방 열기 */
+    pane.querySelectorAll('[data-act="open-expert-chat"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const roomId = Number(btn.dataset.roomId);
+        if (roomId && window.SIREN_CHAT && typeof window.SIREN_CHAT.openChatWindow === 'function') {
+          window.SIREN_CHAT.openChatWindow(roomId);
+        } else {
+          window.SIREN && window.SIREN.toast('채팅 모듈이 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+        }
+      });
     });
   }
 

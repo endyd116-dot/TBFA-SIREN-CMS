@@ -65,7 +65,7 @@
 
   /* ─── 패널 컨테이너 ─── */
   function ensureContainer() {
-    return document.getElementById('adm-expert');
+    return document.getElementById('adm-expert-match');
   }
 
   /* ─── 패널 껍데기 (1회 렌더) ─── */
@@ -364,6 +364,213 @@
     load(_currentStatus);
   }
 
+  /* ─── 직접 배정 모달 (유가족지원/법률지원 신청에서 바로 배정) ─── */
+  var _directTarget = null; /* { sourceType, sourceId, userId, defaultMatchType } */
+
+  async function openDirectAssignModal(sourceType, sourceId, userId, defaultMatchType) {
+    _directTarget = {
+      sourceType: sourceType,
+      sourceId: Number(sourceId),
+      userId: Number(userId),
+      defaultMatchType: defaultMatchType || 'counselor',
+    };
+
+    /* 모달 재활용 — renderShell이 한 번 이상 실행됐을 때만 사용 가능 */
+    var modal = document.getElementById('emAssignModal');
+    if (!modal) {
+      /* 아직 패널이 렌더되지 않은 경우 — 임시 모달을 body에 직접 붙임 */
+      var tmp = document.createElement('div');
+      tmp.id = 'emDirectModal';
+      tmp.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto';
+      tmp.innerHTML =
+        '<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">' +
+          '<div style="padding:16px 22px;background:var(--ink);color:#fff;display:flex;justify-content:space-between;align-items:center">' +
+            '<div style="font-weight:700;font-size:15px">⚖️ 전문가 직접 배정</div>' +
+            '<button id="btnEmDirectClose" style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>' +
+          '</div>' +
+          '<div style="padding:20px 24px">' +
+            '<div id="emDirectInfo" style="background:var(--bg-soft);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7"></div>' +
+            '<div class="fg">' +
+              '<label>상담 유형 <span style="color:var(--danger)">*</span></label>' +
+              '<select id="emDirectTypeSelect">' +
+                '<option value="lawyer">⚖️ 변호사</option>' +
+                '<option value="counselor">💗 심리상담사</option>' +
+              '</select>' +
+            '</div>' +
+            '<div class="fg" style="margin-top:12px">' +
+              '<label>전문가 선택 <span style="color:var(--danger)">*</span></label>' +
+              '<select id="emDirectExpertSelect"><option value="">상담 유형을 먼저 선택하세요</option></select>' +
+            '</div>' +
+            '<div class="fg" style="margin-top:12px">' +
+              '<label>어드민 메모 <span class="hint">(선택)</span></label>' +
+              '<textarea id="emDirectNote" rows="3" maxlength="1000" placeholder="배정 관련 메모 (내부용)"></textarea>' +
+            '</div>' +
+            '<div style="display:flex;gap:10px;margin-top:14px">' +
+              '<button class="btn btn-primary" id="btnEmDirectAssign" type="button">배정하기</button>' +
+              '<button class="btn" id="btnEmDirectCancel" type="button" style="background:transparent;border:1px solid var(--line);color:var(--text-2)">취소</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(tmp);
+
+      tmp.querySelector('#btnEmDirectClose').addEventListener('click', closeDirectModal);
+      tmp.querySelector('#btnEmDirectCancel').addEventListener('click', closeDirectModal);
+      tmp.addEventListener('click', function (e) { if (e.target === tmp) closeDirectModal(); });
+
+      var typeSelect = tmp.querySelector('#emDirectTypeSelect');
+      typeSelect.value = _directTarget.defaultMatchType;
+      typeSelect.addEventListener('change', function () { loadDirectExperts(typeSelect.value); });
+
+      tmp.querySelector('#btnEmDirectAssign').addEventListener('click', doDirectAssign);
+
+      loadDirectExperts(_directTarget.defaultMatchType);
+      updateDirectInfo();
+      return;
+    }
+
+    /* 기존 배정 모달 재활용 */
+    modal.style.display = 'flex';
+    var info = document.getElementById('emAssignInfo');
+    if (info) {
+      info.innerHTML =
+        '<strong>직접 배정</strong> — ' +
+        (sourceType === 'support' ? '유가족지원' : '법률지원') + ' 신청 #' + sourceId +
+        '<br><span style="font-size:12px;color:var(--text-3);margin-top:4px;display:block">전문가를 선택하면 즉시 1:1 채팅방이 생성됩니다.</span>';
+    }
+    var sel = document.getElementById('emExpertSelect');
+    if (sel) {
+      sel.innerHTML = '<option value="">⏳ 전문가 목록 불러오는 중...</option>';
+      sel.disabled = true;
+    }
+    var r = await api('/api/admin/experts-for-match?type=' + encodeURIComponent(defaultMatchType || 'counselor'));
+    if (sel) {
+      sel.disabled = false;
+      var experts = (r.ok && ((r.data && r.data.experts) || (r.data && r.data.data && r.data.data.experts))) || [];
+      sel.innerHTML = experts.length
+        ? '<option value="">전문가를 선택하세요</option>' + experts.map(function (ex) {
+            return '<option value="' + ex.id + '">' + escapeHtml(ex.memberName || ex.name || '') +
+              (ex.memberEmail || ex.email ? ' (' + escapeHtml(ex.memberEmail || ex.email) + ')' : '') + '</option>';
+          }).join('')
+        : '<option value="">배정 가능한 전문가가 없습니다</option>';
+    }
+    var note = document.getElementById('emAdminNote');
+    if (note) note.value = '';
+
+    /* 배정 버튼 핸들러 임시 교체 */
+    var doBtn = document.getElementById('btnEmDoAssign');
+    if (doBtn) {
+      doBtn.onclick = function () { doDirectAssignViaMainModal(); };
+    }
+  }
+
+  function updateDirectInfo() {
+    var info = document.getElementById('emDirectInfo');
+    if (!info || !_directTarget) return;
+    info.innerHTML =
+      '<strong>직접 배정</strong> — ' +
+      (_directTarget.sourceType === 'support' ? '유가족지원' : '법률지원') + ' 신청 #' + _directTarget.sourceId +
+      '<br><span style="font-size:12px;color:var(--text-3);margin-top:4px;display:block">전문가를 선택하면 즉시 1:1 채팅방이 생성됩니다.</span>';
+  }
+
+  async function loadDirectExperts(matchType) {
+    var sel = document.getElementById('emDirectExpertSelect');
+    if (!sel) return;
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">⏳ 목록 불러오는 중...</option>';
+    var r = await api('/api/admin/experts-for-match?type=' + encodeURIComponent(matchType || 'counselor'));
+    sel.disabled = false;
+    var experts = (r.ok && ((r.data && r.data.experts) || (r.data && r.data.data && r.data.data.experts))) || [];
+    sel.innerHTML = experts.length
+      ? '<option value="">전문가를 선택하세요</option>' + experts.map(function (ex) {
+          return '<option value="' + ex.id + '">' + escapeHtml(ex.memberName || ex.name || '') +
+            (ex.memberEmail || ex.email ? ' (' + escapeHtml(ex.memberEmail || ex.email) + ')' : '') + '</option>';
+        }).join('')
+      : '<option value="">배정 가능한 전문가가 없습니다</option>';
+  }
+
+  function closeDirectModal() {
+    var tmp = document.getElementById('emDirectModal');
+    if (tmp) tmp.remove();
+    _directTarget = null;
+    /* 기존 배정 모달도 닫기 */
+    var modal = document.getElementById('emAssignModal');
+    if (modal) modal.style.display = 'none';
+    /* 배정 버튼 핸들러 원복 */
+    var doBtn = document.getElementById('btnEmDoAssign');
+    if (doBtn) doBtn.onclick = null;
+  }
+
+  async function doDirectAssign() {
+    if (!_directTarget) return;
+    var typeSelect = document.getElementById('emDirectTypeSelect');
+    var expertSelect = document.getElementById('emDirectExpertSelect');
+    var noteEl = document.getElementById('emDirectNote');
+    var matchType = (typeSelect && typeSelect.value) || _directTarget.defaultMatchType;
+    var expertId = Number((expertSelect && expertSelect.value) || 0);
+    var adminNote = ((noteEl && noteEl.value) || '').trim();
+
+    if (!expertId) return toast('전문가를 선택해 주세요');
+
+    var btn = document.getElementById('btnEmDirectAssign');
+    if (btn) { btn.disabled = true; btn.textContent = '배정 중...'; }
+
+    var r = await api('/api/admin-expert-direct-assign', {
+      method: 'POST',
+      body: {
+        sourceType:  _directTarget.sourceType,
+        sourceId:    _directTarget.sourceId,
+        userId:      _directTarget.userId,
+        matchType:   matchType,
+        expertId:    expertId,
+        adminNote:   adminNote || undefined,
+      },
+    });
+
+    if (btn) { btn.disabled = false; btn.textContent = '배정하기'; }
+
+    if (!r.ok) {
+      return toast('배정 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
+    }
+    var d = (r.data && r.data.data) || {};
+    toast('전문가 배정 완료! 채팅방 #' + (d.chatRoomId || '?') + ' 이(가) 자동 생성되었습니다.');
+    closeDirectModal();
+  }
+
+  async function doDirectAssignViaMainModal() {
+    if (!_directTarget) { doAssign(); return; }
+    var expertSel = document.getElementById('emExpertSelect');
+    var noteEl    = document.getElementById('emAdminNote');
+    var expertId  = Number((expertSel && expertSel.value) || 0);
+    var adminNote = ((noteEl && noteEl.value) || '').trim();
+
+    if (!expertId) return toast('전문가를 선택해 주세요');
+
+    var btn = document.getElementById('btnEmDoAssign');
+    if (btn) { btn.disabled = true; btn.textContent = '배정 중...'; }
+
+    var r = await api('/api/admin-expert-direct-assign', {
+      method: 'POST',
+      body: {
+        sourceType:  _directTarget.sourceType,
+        sourceId:    _directTarget.sourceId,
+        userId:      _directTarget.userId,
+        matchType:   _directTarget.defaultMatchType,
+        expertId:    expertId,
+        adminNote:   adminNote || undefined,
+      },
+    });
+
+    if (btn) { btn.disabled = false; btn.textContent = '배정하기'; btn.onclick = null; }
+
+    if (!r.ok) {
+      return toast('배정 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
+    }
+    var d = (r.data && r.data.data) || {};
+    toast('전문가 배정 완료! 채팅방 #' + (d.chatRoomId || '?') + ' 이(가) 자동 생성되었습니다.');
+    closeAssignModal();
+    _directTarget = null;
+  }
+
   /* ─── 사이드바 배지 갱신 (admin.js 초기화 시 호출) ─── */
   async function refreshBadge() {
     var r = await api('/api/admin-expert-list?status=pending&limit=1');
@@ -423,5 +630,9 @@
     }
   });
 
-  window.SIREN_ADMIN_EXPERT = { load: load, refreshBadge: refreshBadge };
+  window.SIREN_ADMIN_EXPERT = {
+    load: load,
+    refreshBadge: refreshBadge,
+    openDirectAssignModal: openDirectAssignModal,
+  };
 })();

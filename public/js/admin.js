@@ -3608,6 +3608,14 @@ const OPERATOR_CATEGORIES = [
 
       const priorityCellHtml = priorityCellLabel(s.priority, s.priorityReason);
 
+      const expertAssignBtn = s.assignedExpertName
+        ? '<span style="font-size:11px;color:var(--success);display:block;margin-top:3px">✅ ' + escapeHtml(s.assignedExpertName) + '</span>'
+        : '<button class="btn-link" style="color:var(--brand);display:block;margin-top:3px" ' +
+            'data-expert-direct-support ' +
+            'data-source-id="' + s.id + '" ' +
+            'data-user-id="' + s.memberId + '" ' +
+            'data-match-type="counselor">⚕️ 전문가 배정</button>';
+
       return '<tr' + rowAttr + '>' +
         '<td>' + priorityCellHtml + '</td>' +
         '<td style="font-family:Inter;font-size:12px">' + escapeHtml(s.requestNo) + '</td>' +
@@ -3618,7 +3626,10 @@ const OPERATOR_CATEGORIES = [
         '<td>' + buildStatusSelect(s.status, s.id) + '</td>' +
         '<td>' + answererName + '</td>' +
         '<td style="font-family:Inter;font-size:12px">' + answeredAt + '</td>' +
-        '<td><button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button></td>' +
+        '<td>' +
+          '<button class="btn-link" data-support-action="open" data-id="' + s.id + '">📝 상세/답변</button>' +
+          expertAssignBtn +
+        '</td>' +
         '</tr>';
     }).join('');
 
@@ -3636,6 +3647,20 @@ const OPERATOR_CATEGORIES = [
       }
     }
   }
+
+  /* 유가족지원 목록 — 전문가 직접 배정 버튼 클릭 */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-expert-direct-support]');
+    if (!btn) return;
+    e.preventDefault();
+    if (!window.SIREN_ADMIN_EXPERT) return toast('전문가 배정 모듈이 아직 로드되지 않았습니다');
+    window.SIREN_ADMIN_EXPERT.openDirectAssignModal(
+      'support',
+      Number(btn.dataset.sourceId),
+      Number(btn.dataset.userId),
+      btn.dataset.matchType || 'counselor',
+    );
+  });
 
   function setupInlineStatusChange() {
     document.addEventListener('change', async (e) => {

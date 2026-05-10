@@ -312,6 +312,16 @@
     const lawyerCell = r.assignedLawyerName
       ? `<strong style="color:#5a4d8c">${escapeHtml(r.assignedLawyerName)}</strong>`
       : (r.sirenReportRequested ? '<span style="color:var(--text-3)">매칭 대기</span>' : '<span style="color:var(--text-3)">—</span>');
+
+    const expertAssignBtn = r.assignedLawyerName || r.isAnonymous
+      ? ''
+      : `<button type="button" class="srn-btn-expert-assign"
+            data-expert-direct-legal
+            data-source-id="${r.id}"
+            data-user-id="${r.memberId || ''}"
+            data-match-type="lawyer"
+            style="font-size:11px;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;display:block;margin-top:3px">⚖️ 변호사 배정</button>`;
+
     return `<tr>
       <td>${sevPill(r.aiUrgency)}</td>
       <td style="font-family:Inter;font-size:12px">${escapeHtml(r.consultationNo)}</td>
@@ -320,7 +330,7 @@
       <td>${summaryCell(r.title, r.aiSummary)}<div style="font-size:11px;color:var(--text-3);margin-top:2px">${reporterCell(reporterName, r.isAnonymous)}</div></td>
       <td>${lawyerCell}</td>
       <td>${statusPill(r.status)}</td>
-      <td><div class="srn-row-actions">${detailBtn('legal', r.id)}</div></td>
+      <td><div class="srn-row-actions">${detailBtn('legal', r.id)}${expertAssignBtn}</div></td>
     </tr>`;
   }
 
@@ -1007,6 +1017,22 @@
       }
     });
   }
+
+  /* 법률지원 목록 — 변호사 직접 배정 버튼 클릭 */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-expert-direct-legal]');
+    if (!btn) return;
+    e.preventDefault();
+    if (!window.SIREN_ADMIN_EXPERT) return window.SIREN && window.SIREN.toast('전문가 배정 모듈이 아직 로드되지 않았습니다');
+    const userId = Number(btn.dataset.userId);
+    if (!userId) return window.SIREN && window.SIREN.toast('신청자 정보를 불러올 수 없습니다 (익명 신청)');
+    window.SIREN_ADMIN_EXPERT.openDirectAssignModal(
+      'legal',
+      Number(btn.dataset.sourceId),
+      userId,
+      'lawyer',
+    );
+  });
 
   /* ============ 외부 노출 ============ */
   window.SIREN_ADMIN_SIREN = {

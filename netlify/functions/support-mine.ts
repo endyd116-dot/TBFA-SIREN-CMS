@@ -7,8 +7,8 @@
  *   - list 응답에 content / priority / priorityReason 등 카드 표시용 필드 보강
  *   - adminNote/answeredAt → adminResponse/respondedAt 별칭 추가 (클라이언트 호환)
  */
-import { eq, desc } from "drizzle-orm";
-import { db, supportRequests } from "../../db";
+import { eq, desc, inArray, and } from "drizzle-orm";
+import { db, supportRequests, expertMatches } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import {
   ok, badRequest, unauthorized, notFound, forbidden, serverError,
@@ -98,11 +98,42 @@ export default async (req: Request) => {
       .orderBy(desc(supportRequests.createdAt))
       .limit(limit);
 
-    /* 카드 표시용 별칭 부여 (답변 완료 표시에 사용) */
+    /* expert_matches 별도 조회 — chatRoomId 포함 */
+    const ids = (Array.isArray(list) ? list : []).map((r: any) => Number(r.id)).filter(Boolean);
+    const matchMap = new Map<number, { chatRoomId: number | null; expertMatchStatus: string }>();
+    if (ids.length > 0) {
+      try {
+        const matchRows = await db
+          .select({
+            sourceId: expertMatches.sourceId,
+            chatRoomId: expertMatches.chatRoomId,
+            status: expertMatches.status,
+          })
+          .from(expertMatches)
+          .where(
+            and(
+              inArray(expertMatches.sourceId, ids),
+              eq(expertMatches.sourceDomain, "support"),
+              eq(expertMatches.userId, auth.uid),
+            ),
+          );
+        for (const m of matchRows) {
+          if (m.sourceId != null && !["closed", "rejected"].includes(m.status)) {
+            matchMap.set(m.sourceId, { chatRoomId: m.chatRoomId ?? null, expertMatchStatus: m.status });
+          }
+        }
+      } catch (e) {
+        console.warn("[support-mine] expert_matches 조회 실패:", e);
+      }
+    }
+
+    /* 카드 표시용 별칭 부여 + chatRoomId 주입 */
     const enriched = (Array.isArray(list) ? list : []).map((r: any) => ({
       ...r,
       adminResponse: r.adminNote || "",
       respondedAt: r.answeredAt || null,
+      chatRoomId: matchMap.get(r.id)?.chatRoomId ?? null,
+      expertMatchStatus: matchMap.get(r.id)?.expertMatchStatus ?? null,
     }));
 
     return ok({ list: enriched });
