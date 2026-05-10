@@ -6,6 +6,27 @@ import { db, auditLogs, NewAuditLog } from "../db";
 import { getClientIp, getUserAgent } from "./response";
 
 export type AuditUserType = "admin" | "user" | "system" | "anonymous";
+export type RiskLevel = "critical" | "high" | "medium" | "low";
+
+/** riskLevel 기준 상수 */
+export const RISK_LEVEL_MAP: Record<string, RiskLevel> = {
+  // critical
+  member_blacklist: "critical",
+  donation_refund: "critical",
+  admin_permission_change: "critical",
+  // high
+  member_delete: "high",
+  bulk_operation: "high",
+  // medium
+  member_update: "medium",
+  donation_update: "medium",
+  report_status_change: "medium",
+};
+
+export function resolveRiskLevel(action: string, loginFailCount?: number): RiskLevel {
+  if (action === "login_fail" && loginFailCount != null && loginFailCount >= 5) return "high";
+  return RISK_LEVEL_MAP[action] ?? "low";
+}
 
 export interface AuditLogParams {
   req?: Request;
@@ -19,6 +40,8 @@ export interface AuditLogParams {
   errorMessage?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
+  sessionId?: string | null;   // Phase 17: 세션 ID (optional)
+  riskLevel?: RiskLevel | null; // Phase 17: 위험 등급 (optional, 미제공 시 자동 계산)
 }
 
 /**
@@ -44,6 +67,9 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       userAgent: params.userAgent ?? (params.req ? getUserAgent(params.req) : null),
       success: params.success ?? true,
       errorMessage: params.errorMessage ?? null,
+      // Phase 17 필드 (DB 마이그레이션 후 활성화)
+      // sessionId: params.sessionId ?? null,
+      // riskLevel: params.riskLevel ?? resolveRiskLevel(params.action),
     } as any);
   } catch (err) {
     // 감사 로그 실패는 콘솔에만 기록 (메인 흐름 방해 X)
