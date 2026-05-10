@@ -1434,7 +1434,7 @@
             <div class="cms-kpi-label">전체 회원</div>
             <div class="cms-kpi-value" id="ddKpiTotal">-</div>
           </div>
-          <div class="cms-kpi">
+          <div class="cms-kpi" data-dd-jump="donor-regular" style="cursor:pointer" title="정기 후원자 관리 탭으로 이동">
             <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">🔁</div>
             <div class="cms-kpi-label">정기 후원자</div>
             <div class="cms-kpi-value" id="ddKpiRegular">-</div>
@@ -1450,7 +1450,7 @@
             <div class="cms-kpi-label">토스 채널</div>
             <div class="cms-kpi-value" id="ddKpiToss">-</div>
           </div>
-          <div class="cms-kpi">
+          <div class="cms-kpi" data-dd-jump="donor-prospect" style="cursor:pointer" title="잠재 후원자 관리 탭으로 이동">
             <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">💡</div>
             <div class="cms-kpi-label">잠재 후원자</div>
             <div class="cms-kpi-value" id="ddKpiProspect">-</div>
@@ -1466,7 +1466,7 @@
         <!-- Alert 패널 -->
         <div class="cms-panel" style="margin-top:14px">
           <div class="cms-panel-head">
-            <div class="cms-panel-title">🔔 검증 Alert</div>
+            <div class="cms-panel-title">🔔 검증 Alert <span id="ddAlertTotalBadge" class="cms-badge cms-b-mute" style="margin-left:6px;font-size:10.5px">-</span></div>
             <button class="cms-btn cms-btn-ghost" id="ddBtnRefresh">새로고침</button>
           </div>
           <div id="ddAlertPanel" style="padding:18px">
@@ -1577,7 +1577,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-10-d2"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-10-d3"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d3"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

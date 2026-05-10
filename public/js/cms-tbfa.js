@@ -114,18 +114,32 @@
     };
   }
 
-  /* ★ Phase 3 D3: 통합 회원 효성 계약 셀 렌더 */
+  /* ★ Phase 3 D3: 통합 회원 효성 계약 셀 렌더 (2줄 보강 — 약정일·결제수단·등록상태·계약상태·상품분류) */
   function renderHyosungContractCell(m) {
     const hy = m.hyosung;
     if (!hy) return '<span style="color:#d0d0d0;font-size:12px">—</span>';
+
     const contractBadge = hy.contractStatus === '사용'
       ? '<span class="cms-badge cms-b-success" style="font-size:10.5px">사용</span>'
       : hy.contractStatus === '중지'
       ? '<span class="cms-badge cms-b-mute" style="font-size:10.5px">중지</span>'
       : `<span class="cms-badge cms-b-warn" style="font-size:10.5px">${escapeHtml(hy.contractStatus || '?')}</span>`;
-    const method = hy.paymentMethod ? `·${escapeHtml(hy.paymentMethod)}` : '';
-    const day = hy.promiseDay ? `·${hy.promiseDay}일` : '';
-    return `${contractBadge}<span style="font-size:10.5px;color:#888;margin-left:3px">${method}${day}</span>`;
+
+    const reg = hy.registrationStatus
+      ? `<span class="cms-badge cms-b-info" style="font-size:10px;margin-left:3px" title="결제 등록 상태">${escapeHtml(hy.registrationStatus)}</span>`
+      : '';
+
+    const day = hy.promiseDay ? `${hy.promiseDay}일 약정` : '';
+    const method = hy.paymentMethod ? escapeHtml(hy.paymentMethod) : '';
+    const product = hy.productName ? escapeHtml(hy.productName) : '';
+    const line2Parts = [day, method, product].filter(Boolean).join(' · ');
+
+    return `
+      <div style="line-height:1.4">
+        <div>${contractBadge}${reg}</div>
+        ${line2Parts ? `<div style="font-size:10.5px;color:#666;margin-top:2px">${line2Parts}</div>` : ''}
+      </div>
+    `;
   }
 
   /* ============ 가입경로/후원 상태 라벨 (5종 enum + null — §6.2) ============ */
@@ -1719,7 +1733,7 @@
   let donorRegularQuery = { channel: 'all', q: '' };
   let donorRegularSearchTimer = null;
 
-  /* ★ Phase 3 D4: 정기 후원자 효성 컬럼 헬퍼 */
+  /* ★ Phase 3 D4: 정기 후원자 효성 컬럼 헬퍼 (결제수단 + 약정일 보강) */
   function renderDrHyosungPayment(d) {
     const hy = d.hyosungContract;
     if (!hy) {
@@ -1729,7 +1743,11 @@
       }
       return '<span style="color:#d0d0d0;font-size:12px">—</span>';
     }
-    return `<span style="font-size:11.5px">${escapeHtml(hy.paymentMethod || '—')}</span>`;
+    const method = hy.paymentMethod ? escapeHtml(hy.paymentMethod) : '—';
+    const day = hy.promiseDay
+      ? `<div style="font-size:10px;color:#888;margin-top:1px">매월 ${hy.promiseDay}일</div>`
+      : '';
+    return `<div style="line-height:1.3"><div style="font-size:11.5px">${method}</div>${day}</div>`;
   }
   function renderDrHyosungRegStatus(d) {
     const hy = d.hyosungContract;
@@ -2034,6 +2052,16 @@
       recentCancellation:       { icon: '📉', label: '최근 해지',         cls: 'dd-alert-info' },
     };
     const alerts = resp.alerts || [];
+    const alertTotal = alerts.reduce((sum, a) => sum + (a.count || 0), 0);
+    const alertBadge = document.getElementById('ddAlertTotalBadge');
+    if (alertBadge) {
+      alertBadge.textContent = `총 ${alertTotal.toLocaleString()}건`;
+      alertBadge.className = alertTotal === 0
+        ? 'cms-badge cms-b-success'
+        : (alerts.some(a => a.type === 'donorTypeConflict' && a.count > 0) ? 'cms-badge cms-b-danger' : 'cms-badge cms-b-warn');
+      alertBadge.style.marginLeft = '6px';
+      alertBadge.style.fontSize = '10.5px';
+    }
     if (alertPanel) {
       if (alerts.length === 0 || alerts.every(a => a.count === 0)) {
         alertPanel.innerHTML = '<div style="text-align:center;color:#1a8b46;padding:24px">✅ 검증 alert 없음 — 데이터 정합성 양호</div>';
@@ -2083,6 +2111,15 @@
       toast('종합 검증 대시보드를 새로고침합니다');
       renderDonationDashboard();
     }, { once: true });
+
+    // KPI 카드 클릭 → 정기/잠재 탭 점프 (D7 폴리시)
+    document.querySelectorAll('[data-dd-jump]').forEach(card => {
+      card.addEventListener('click', () => {
+        const tab = card.dataset.ddJump;
+        const link = document.querySelector(`.cms-menu a[data-tab="${tab}"]`);
+        if (link) link.click();
+      }, { once: true });
+    });
   }
 
   /* ============ 초기화 ============ */
