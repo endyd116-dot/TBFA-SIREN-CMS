@@ -2215,9 +2215,11 @@ export const communicationSendJobs = pgTable("communication_send_jobs", {
   lastError:         text("last_error"),
   startedAt:         timestamp("started_at"),
   completedAt:       timestamp("completed_at"),
-  createdBy:         integer("created_by").references(() => members.id, { onDelete: "set null" }),
-  createdAt:         timestamp("created_at").defaultNow().notNull(),
-  updatedAt:         timestamp("updated_at").defaultNow().notNull(),
+  createdBy:            integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:            timestamp("created_at").defaultNow().notNull(),
+  updatedAt:            timestamp("updated_at").defaultNow().notNull(),
+  // Phase 10 R4 — AI 트리거가 생성한 작업 표시 (FK는 마이그로 DB에 적용됨)
+  triggeredByAutoId:    integer("triggered_by_auto_id"),
 }, (t) => ({
   statusIdx:    index("send_jobs_status_idx").on(t.status),
   scheduledIdx: index("send_jobs_scheduled_idx").on(t.scheduledAt),
@@ -2243,10 +2245,17 @@ export const communicationSendRecipients = pgTable("communication_send_recipient
   renderedBody:    text("rendered_body").notNull(),
   createdAt:       timestamp("created_at").defaultNow().notNull(),
   updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+  // Phase 10 R4 — 이메일 오픈/클릭 추적 (track-open·track-click·dispatcher에서 사용)
+  trackingToken:   varchar("tracking_token", { length: 64 }),
+  openedAt:        timestamp("opened_at"),
+  clickedAt:       timestamp("clicked_at"),
+  openCount:       integer("open_count").notNull().default(0),
+  clickCount:      integer("click_count").notNull().default(0),
 }, (t) => ({
-  jobIdx:       index("send_recipients_job_idx").on(t.jobId),
-  jobStatusIdx: index("send_recipients_job_status_idx").on(t.jobId, t.status),
-  memberIdx:    index("send_recipients_member_idx").on(t.memberId),
+  jobIdx:           index("send_recipients_job_idx").on(t.jobId),
+  jobStatusIdx:     index("send_recipients_job_status_idx").on(t.jobId, t.status),
+  memberIdx:        index("send_recipients_member_idx").on(t.memberId),
+  trackingTokenIdx: index("send_recipients_tracking_token_idx").on(t.trackingToken),
 }));
 
 export type CommunicationSendRecipient    = typeof communicationSendRecipients.$inferSelect;
