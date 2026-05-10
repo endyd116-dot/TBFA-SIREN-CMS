@@ -102,10 +102,11 @@
 
 ## 6. 미해결 이슈 (Open Issues)
 
-현재 미해결 0건.
+현재 미해결 1건 (#BACKFILL-1 별도 라운드 대기).
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
+| #BACKFILL-1 | 2026-05-10 | 효성 후원 7건 결제일 NULL | 🟡 Medium | ⏸ 별도 라운드 대기 | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
 | ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-5~~ | 2026-05-10 | `admin-finance-{budget-upsert,expenditure-create,expenditure-approve}.ts` | 🔴 High | ✅ 해결 (이번 세션) | [docs/issues/2026-05-10-finance-audit-columns-null.md](docs/issues/2026-05-10-finance-audit-columns-null.md) |
