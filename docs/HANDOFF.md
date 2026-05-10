@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-10 / Phase 9 코드 100% + 4채팅 새 구조 도입 + Phase 10 R1 설계 완료
+> **마지막 갱신**: 2026-05-11 / Phase 10 R1 코드 100% 머지 + R2 설계 완료 + 평행 전제·자동 진행·진행률 보고 정책 도입
 
 ---
 
@@ -81,17 +81,34 @@ C(Opus 4.7)가 라이브 검증·fix·백필을 순서대로 처리. 8건 등록
 
 C 새 세션은 **세션당 Q1~Q2 처리** 정도로 분할 운영. 매번 PROJECT_STATE §8에서 큐 상태 확인.
 
-### 3.4 Phase 10 R1 설계 완료 — 트리거 대기
+### 3.4 Phase 10 R1 — 코드 100% 머지 완료 (2026-05-11)
 
 **설계서**: [`docs/milestones/2026-05-10-phase10-r1-template-builder.md`](milestones/2026-05-10-phase10-r1-template-builder.md)
 
+- DB: `communication_templates` 테이블 + 시드 3건 (Swain 마이그 호출 success 확인)
+- API 7개 + lib/template-render.ts (변수 치환 헬퍼)
+- 화면 2개: `/admin-templates.html` + `/admin-template-edit.html` (사이드바 [📝 발송 템플릿] 메뉴)
+- schema 활성화·마이그 파일 삭제 완료 (`8db8ffb`)
+- A 머지 완료 (`cef0f69` 포함)
+- ⏸ C Q9 라이브 검증 트리거 대기
+
+### 3.5 Phase 10 R2 설계 완료 — B·A 트리거 대기 (2026-05-11)
+
+**설계서**: [`docs/milestones/2026-05-11-phase10-r2-recipient-groups.md`](milestones/2026-05-11-phase10-r2-recipient-groups.md)
+
 내용 요약:
-- Phase 10 통합 발송 시스템의 첫 라운드 = 발송 템플릿 빌더
-- 신규 테이블 1개 (`communication_templates`) + API 7개 + 화면 2개
-- B 4~6h / A 4~5h / C 1~2h / 직렬 모드
+- 통합 발송 시스템 R2 = 수신자 그룹 선택 (필터 조건 또는 수동 명단)
+- 신규 테이블 1개(`recipient_groups`) + 시드 5종 + API 8개 + 화면 2개
+- `lib/recipient-resolve.ts` 헬퍼 (criteria → 회원 ID, 화이트리스트 검증, 한 줄 요약)
+- 필터 화이트리스트 9개 필드 × 6개 op (§2.4)
+- B 5~7h / A 5~6h / C 1~2h / 평행 모드 (PARALLEL_GUIDE §2 정책)
 - 4채팅 시작 프롬프트 §6에 작성 완료 (Swain 복붙용)
 
-**상태**: 설계서 push 완료. **아직 B·A 채팅 트리거 안 함** (C가 큐 처리 중이므로 마무리 후 진행).
+### 3.6 정책 변경 (2026-05-11 도입)
+
+- **평행 전제** — 모든 라운드 무조건 평행, 직렬 옵션 제거 (PARALLEL_GUIDE §2)
+- **자동 진행 우선** — 로직·DB 마이그레이션 외 결정은 묻지 말고 판단해서 진행 (§1.5)
+- **중간 진행률 % 보고** — 큰 단계 끝날 때 1회 (§1.6)
 
 ---
 
