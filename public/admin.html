@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
@@ -10,16 +10,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/css/base.css?v=3">
-<link rel="stylesheet" href="/css/components.css?v=3">
-<link rel="stylesheet" href="/css/pages.css?v=3">
-<link rel="stylesheet" href="/css/admin.css?v=3">
-<link rel="stylesheet" href="/css/attachment.css?v=m2">
-<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
-<link rel="stylesheet" href="/css/admin-report-print.css?v=20260510p4" media="print">
+<link rel="stylesheet" href="/css/base.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/components.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/pages.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/admin.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/attachment.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/admin-report-print.css?v=2026-05-11-phase20c-front" media="print">
 <!-- Phase 20-A: 새 어드민 셸 -->
-<link rel="stylesheet" href="/css/admin-tokens.css?v=2026-05-11-phase20b-live">
-<link rel="stylesheet" href="/css/admin-shell.css?v=2026-05-11-phase20b-live">
+<link rel="stylesheet" href="/css/admin-tokens.css?v=2026-05-11-phase20c-front">
+<link rel="stylesheet" href="/css/admin-shell.css?v=2026-05-11-phase20c-front">
 
 <style>
   /* ===== ★ K-3: 지원 모달 — 전문가 배정 / 보완 / 완료 입력칸 ===== */
@@ -2691,6 +2691,8 @@
           <span class="adm-sidebar__logo-icon">🚨</span>
           <span class="adm-sidebar__logo-text">싸이렌 ADMIN</span>
         </div>
+        <!-- Phase 20-C: 즐겨찾기·최근 본 메뉴 위젯 -->
+        <div id="sidebar-favorites-widget"></div>
         <div class="adm-sidebar__nav" id="adm20-nav">
           <!-- admin-shell.js가 동적으로 채움 -->
         </div>
@@ -5893,34 +5895,34 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=m24-direct"></script>
-  <script src="/js/admin-chat.js?v=1"></script>
-  <script src="/js/admin-siren.js?v=2026-05-11-phase14"></script>
-  <script src="/js/editor.js?v=2026-05"></script>
-  <script src="/js/attachment.js?v=2026-05"></script>
-  <script src="/js/admin-content.js?v=2026-05"></script>
-  <script src="/js/admin-signup-sources.js?v=m12"></script>
+  <script src="/js/admin.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-chat.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-siren.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/editor.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/attachment.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-content.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-signup-sources.js?v=2026-05-11-phase20c-front"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
 <!-- public/admin.html — 스크립트 영역에 1줄 추가 -->
-<script src="/js/admin-campaigns.js?v=2026-05"></script>
-<script src="/js/admin-activity-report.js?v=m19-3"></script>
-<script src="/js/admin-activity-report-list.js?v=c-step3"></script>
+<script src="/js/admin-campaigns.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-activity-report.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-activity-report-list.js?v=2026-05-11-phase20c-front"></script>
 <!-- public/admin.html — 마지막 스크립트 영역에 추가 -->
-<script src="/js/admin-resources.js?v=m19-8"></script>
-<script src="/js/admin-incidents-crud.js?v=2026-05"></script>
-<script src="/js/admin-stats-edit.js?v=2026-05"></script>
-<script src="/js/admin-approvals.js?v=m19-11-v2"></script>
+<script src="/js/admin-resources.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-incidents-crud.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-stats-edit.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-approvals.js?v=2026-05-11-phase20c-front"></script>
 <!-- 6순위 #6: 교원 자격 변경 심사 -->
-<script src="/js/admin-eligibility.js?v=2026-05-09-1"></script>
+<script src="/js/admin-eligibility.js?v=2026-05-11-phase20c-front"></script>
 <!-- 6순위 #8: 1:1 매칭 관리 -->
-<script src="/js/admin-expert.js?v=2026-05-10-direct2"></script>
-<script src="/js/admin-siren-stats.js?v=2"></script>
+<script src="/js/admin-expert.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-siren-stats.js?v=2026-05-11-phase20c-front"></script>
 <!-- Phase 14: 외부 기관 관리 + 인계 이력 -->
-<script src="/js/admin-agency-mgmt.js?v=2"></script>
-<script src="/js/admin-referral.js?v=3"></script>
+<script src="/js/admin-agency-mgmt.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-referral.js?v=2026-05-11-phase20c-front"></script>
 <!-- Phase 15: 전문가 프로필 관리 + AI 추천 -->
-<script src="/js/admin-expert-profiles.js?v=2026-05-11-phase15"></script>
-<script src="/js/admin-ai-recommend.js?v=2026-05-11-phase15"></script>
+<script src="/js/admin-expert-profiles.js?v=2026-05-11-phase20c-front"></script>
+<script src="/js/admin-ai-recommend.js?v=2026-05-11-phase20c-front"></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */
@@ -5972,36 +5974,43 @@
   })();
   </script>
 
-  <script src="/js/admin-report.js?v=2026-05-11-phase16"></script>
+  <script src="/js/admin-report.js?v=2026-05-11-phase20c-front"></script>
   <!-- Phase 5~7: 재정 관리 -->
-  <script src="/js/admin-finance-income.js?v=20260510f1"></script>
-  <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
-  <script src="/js/admin-finance-report.js?v=20260510f1"></script>
+  <script src="/js/admin-finance-income.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-finance-budget.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-finance-report.js?v=2026-05-11-phase20c-front"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
-  <script src="/js/admin-notification-logs.js?v=20260510n1"></script>
+  <script src="/js/admin-notification-logs.js?v=2026-05-11-phase20c-front"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.init();
     });
   </script>
-  <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
-  <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
+  <script src="/js/quick-jump.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/sidebar-group.js?v=2026-05-11-phase20c-front"></script>
   <!-- Phase 16: 통합 분석 대시보드 -->
-  <script src="/js/admin-unified-dashboard.js?v=2026-05-11-phase16"></script>
+  <script src="/js/admin-unified-dashboard.js?v=2026-05-11-phase20c-front"></script>
   <!-- Phase 17: 보안·감사 로그 -->
-  <script src="/js/admin-security-audit.js?v=2"></script>
-  <script src="/js/admin-idle-guard.js?v=1"></script>
+  <script src="/js/admin-security-audit.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-idle-guard.js?v=2026-05-11-phase20c-front"></script>
 
   <!-- Phase 20-A: 새 어드민 셸 + 회원·사이렌 그룹 -->
-  <script src="/js/admin-shell.js?v=2026-05-11-phase20b-live"></script>
-  <script src="/js/admin-members-group.js?v=2026-05-11-phase20b-live"></script>
-  <script src="/js/admin-siren-group.js?v=2026-05-11-phase20b-live"></script>
+  <script src="/js/admin-shell.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-members-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-siren-group.js?v=2026-05-11-phase20c-front"></script>
 
   <!-- Phase 20-B: 후원·재정·발송·AI 에이전트 그룹 -->
-  <script src="/js/admin-donations-group.js?v=2026-05-11-phase20b-live"></script>
-  <script src="/js/admin-finance-group.js?v=2026-05-11-phase20b-live"></script>
-  <script src="/js/admin-send-group.js?v=2026-05-11-phase20b-live"></script>
-  <script src="/js/admin-ai-group.js?v=2026-05-11-phase20b-live"></script>
+  <script src="/js/admin-donations-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-finance-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-send-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-ai-group.js?v=2026-05-11-phase20c-front"></script>
+
+  <!-- Phase 20-C: 유가족·콘텐츠·시스템 그룹 + Cmd+K + 즐겨찾기 -->
+  <script src="/js/admin-support-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-content-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-system-group.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-cmdk.js?v=2026-05-11-phase20c-front"></script>
+  <script src="/js/admin-favorites.js?v=2026-05-11-phase20c-front"></script>
   <script>
   /* Phase 20-A: 로그인 성공 후 새 셸 활성화 */
   (function () {
