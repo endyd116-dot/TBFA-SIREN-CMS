@@ -1,8 +1,8 @@
-/* admin-ai-group.js — Phase 20-B AI 에이전트 그룹 (추천·활동보고서·자동 트리거 3메뉴) mock */
+/* admin-ai-group.js — Phase 20-B AI 에이전트 그룹 (추천·활동보고서·자동 트리거 3메뉴) */
 (function () {
   'use strict';
 
-  const USE_MOCK = true;
+  const USE_MOCK = false;
 
   /* ─── mock 데이터 ─── */
   const MOCK = {
@@ -109,6 +109,18 @@
     }
   }
 
+  /* ─── 토스트 ─── */
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast') || document.getElementById('admToast');
+    if (el) {
+      el.textContent = msg;
+      el.className = 'toast show' + (type === 'error' ? ' toast-error' : '');
+      setTimeout(() => el.classList.remove('show'), 3500);
+    } else {
+      console.warn('[AiGroup]', msg);
+    }
+  }
+
   /* ─── 상태 ─── */
   let currentTab = 'recommend';
   let aiData = null;
@@ -169,7 +181,12 @@
       d = MOCK;
     } else {
       const res = await api({ url: '/api/admin-ai-unified' });
-      d = res.data?.data || res.data || {};
+      if (!res.ok) {
+        showToast((res.data?.error || res.data?.data?.error || 'AI 에이전트 데이터를 불러오지 못했습니다.') + (res.data?.detail ? ' — ' + res.data.detail : ''));
+        d = {};
+      } else {
+        d = res.data?.data || res.data || {};
+      }
     }
     aiData = d;
     renderTab(currentTab, d);
