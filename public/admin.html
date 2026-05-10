@@ -2778,6 +2778,11 @@
         </li>
         <!-- Phase 4: 대표 보고 시스템 -->
         <li><a data-page="report"><i>📊</i><span>주간 보고서</span></a></li>
+        <!-- Phase 5~7: 재정 관리 -->
+        <li class="adm-menu-group"><span class="adm-menu-group-label">재정 관리</span></li>
+        <li><a data-page="finance-income"><i>💵</i><span>수입 현황</span></a></li>
+        <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
+        <li><a data-page="finance-report"><i>🗂</i><span>재무 보고서</span></a></li>
       </ul>
     </aside>
 
@@ -4538,6 +4543,71 @@
         <!-- Phase 4: 대표 보고 시스템 (admin-report.js가 동적 렌더) -->
         <div id="adm-report" class="adm-page"></div>
 
+        <!-- Phase 5: 수입 집계 대시보드 -->
+        <div id="adm-finance-income" class="adm-page">
+          <div class="panel">
+            <div class="p-head">
+              <div class="p-title">수입 현황</div>
+              <div class="p-actions" style="gap:8px;display:flex;align-items:center">
+                <select id="fiYearSelect" class="input-sm" style="width:90px"></select>
+                <div style="display:flex;gap:4px">
+                  <button class="btn-sm btn-sm-ghost fi-month-btn active" data-month="all">연간</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="1">1월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="2">2월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="3">3월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="4">4월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="5">5월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="6">6월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="7">7월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="8">8월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="9">9월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="10">10월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="11">11월</button>
+                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="12">12월</button>
+                </div>
+              </div>
+            </div>
+            <div id="fiError" style="color:var(--danger);padding:8px;display:none"></div>
+
+            <!-- KPI 카드 -->
+            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+              <div class="kpi"><div class="kpi-label">총 수입</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
+              <div class="kpi"><div class="kpi-label">결제 건수</div><div class="kpi-value" id="fiKpiCount">—</div></div>
+              <div class="kpi"><div class="kpi-label">후원 활성 회원</div><div class="kpi-value" id="fiKpiDonors">—</div></div>
+              <div class="kpi"><div class="kpi-label">신규 가입</div><div class="kpi-value" id="fiKpiNewMembers">—</div></div>
+            </div>
+
+            <!-- 차트 2개 -->
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 수입 추이</div>
+                <canvas id="fiTrendChart" height="120"></canvas>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">채널 분포</div>
+                <canvas id="fiChannelChart" height="180"></canvas>
+              </div>
+            </div>
+
+            <!-- 채널별 테이블 -->
+            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">채널별 상세</div>
+            <table class="data-table" style="width:100%">
+              <thead>
+                <tr><th>채널</th><th class="num">건수</th><th class="num">금액</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
+              </thead>
+              <tbody id="fiChannelTbody">
+                <tr><td colspan="5" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Phase 6: 예산·지출 관리 (admin-finance-budget.js가 동적 렌더) -->
+        <div id="adm-finance-budget" class="adm-page"></div>
+
+        <!-- Phase 7: 재무 보고서 (admin-finance-report.js가 동적 렌더) -->
+        <div id="adm-finance-report" class="adm-page"></div>
+
       </div>
     </main>
   </div>
@@ -5662,6 +5732,15 @@
   </script>
 
   <script src="/js/admin-report.js?v=20260510p4"></script>
+  <!-- Phase 5~7: 재정 관리 -->
+  <script src="/js/admin-finance-income.js?v=20260510f1"></script>
+  <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
+  <script src="/js/admin-finance-report.js?v=20260510f1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.init();
+    });
+  </script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>

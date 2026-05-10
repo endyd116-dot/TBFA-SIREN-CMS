@@ -17,7 +17,10 @@
   'siren-board': '💬 자유게시판 관리',
   operators: '운영자 관리',
   chat: '문의 관리',   
-  'activity-report': 'AI 활동보고서', 
+  'activity-report': 'AI 활동보고서',
+  'finance-income': '수입 현황',
+  'finance-budget': '예산·지출 관리',
+  'finance-report': '재무 보고서',
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
@@ -5783,6 +5786,15 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'report') {
       /* Phase 4: 대표 보고 시스템 */
       if (window.SIREN_ADMIN_REPORT) window.SIREN_ADMIN_REPORT.load();
+    } else if (page === 'finance-income') {
+      /* Phase 5: 수입 집계 대시보드 */
+      if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.load();
+    } else if (page === 'finance-budget') {
+      /* Phase 6: 예산·지출 관리 */
+      if (window.SIREN_FINANCE_BUDGET) window.SIREN_FINANCE_BUDGET.load();
+    } else if (page === 'finance-report') {
+      /* Phase 7: 재무 보고서 */
+      if (window.SIREN_FINANCE_REPORT) window.SIREN_FINANCE_REPORT.load();
     }
   }
 
