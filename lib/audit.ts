@@ -2,6 +2,7 @@
  * SIREN — 감사 로그 헬퍼
  * 모든 중요 활동을 audit_logs 테이블에 기록합니다.
  */
+import { createHash } from "crypto";
 import { db, auditLogs, NewAuditLog } from "../db";
 import { getClientIp, getUserAgent } from "./response";
 
@@ -26,6 +27,20 @@ export const RISK_LEVEL_MAP: Record<string, RiskLevel> = {
 export function resolveRiskLevel(action: string, loginFailCount?: number): RiskLevel {
   if (action === "login_fail" && loginFailCount != null && loginFailCount >= 5) return "high";
   return RISK_LEVEL_MAP[action] ?? "low";
+}
+
+/**
+ * 요청 쿠키에서 토큰을 추출해 SHA-256 앞 32자를 세션 식별자로 사용.
+ * - 같은 토큰(=같은 로그인 세션) → 같은 세션 ID
+ * - 토큰 자체는 저장하지 않음 (해시만)
+ * - 쿠키 미존재·요청 미제공 시 null
+ */
+export function deriveSessionId(req?: Request): string | null {
+  if (!req) return null;
+  const cookie = req.headers.get("cookie") ?? "";
+  const m = cookie.match(/siren_(?:admin_)?token=([^;\s]+)/);
+  if (!m) return null;
+  return createHash("sha256").update(m[1]).digest("hex").slice(0, 32);
 }
 
 export interface AuditLogParams {
@@ -67,9 +82,8 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       userAgent: params.userAgent ?? (params.req ? getUserAgent(params.req) : null),
       success: params.success ?? true,
       errorMessage: params.errorMessage ?? null,
-      // Phase 17 필드 (DB 마이그레이션 후 활성화)
-      // sessionId: params.sessionId ?? null,
-      // riskLevel: params.riskLevel ?? resolveRiskLevel(params.action),
+      sessionId: params.sessionId ?? deriveSessionId(params.req),
+      riskLevel: params.riskLevel ?? resolveRiskLevel(params.action),
     } as any);
   } catch (err) {
     // 감사 로그 실패는 콘솔에만 기록 (메인 흐름 방해 X)
