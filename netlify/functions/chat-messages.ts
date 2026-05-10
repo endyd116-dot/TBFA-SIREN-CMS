@@ -6,10 +6,12 @@
  *                                                  body: { roomId }
  *
  * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
+ * ★ 6순위 #8: expert_1on1 룸 — canEnterExpertRoom 가드 추가
  */
 import { eq, and, gt, asc, inArray } from "drizzle-orm";
 import { db, chatRooms, chatMessages, chatBlacklist, chatAttachments } from "../../db";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, authenticateAdmin } from "../../lib/auth";
+import { canEnterExpertRoom, ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 import {
   ok, badRequest, unauthorized, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -51,8 +53,23 @@ async function enrichWithAttachments(messages: any[]): Promise<any[]> {
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
-  const auth = authenticateUser(req);
-  if (!auth) return unauthorized("로그인이 필요합니다");
+  /* 인증 — 어드민 JWT 우선, 없으면 사용자 JWT (전문가 포함) */
+  const adminToken = authenticateAdmin(req);
+  const userToken = authenticateUser(req);
+
+  let viewerMemberId: number;
+  let isAdmin = false;
+  let senderBaseRole: "admin" | "user" = "user";
+
+  if (adminToken) {
+    viewerMemberId = adminToken.uid;
+    isAdmin = true;
+    senderBaseRole = "admin";
+  } else if (userToken) {
+    viewerMemberId = userToken.uid;
+  } else {
+    return unauthorized("로그인이 필요합니다");
+  }
 
   try {
     /* ===== GET — 메시지 조회 (폴링) ===== */
@@ -70,7 +87,15 @@ export default async (req: Request) => {
         .limit(1);
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
-      if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
+
+      /* ★ expert_1on1 룸 — 사용자·전문가·어드민만 입장 가능 */
+      if (room.roomType === ROOM_TYPE_EXPERT) {
+        if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
+          return forbidden("접근 권한이 없습니다");
+        }
+      } else if (!isAdmin && room.memberId !== viewerMemberId) {
+        return forbidden("접근 권한이 없습니다");
+      }
 
       let whereClause: any = eq(chatMessages.roomId, roomId);
       if (since) {
@@ -107,15 +132,17 @@ export default async (req: Request) => {
       if (!content && !attachmentId) return badRequest("내용 또는 첨부파일이 필요합니다");
       if (!["text", "image"].includes(messageType)) return badRequest("유효하지 않은 메시지 타입");
 
-      /* 블랙리스트 체크 */
-      const [black] = await db
-        .select({ reason: chatBlacklist.reason })
-        .from(chatBlacklist)
-        .where(and(eq(chatBlacklist.memberId, auth.uid), eq(chatBlacklist.isActive, true)))
-        .limit(1);
+      /* 블랙리스트 체크 (사용자만, 어드민·전문가 제외) */
+      if (!isAdmin) {
+        const [black] = await db
+          .select({ reason: chatBlacklist.reason })
+          .from(chatBlacklist)
+          .where(and(eq(chatBlacklist.memberId, viewerMemberId), eq(chatBlacklist.isActive, true)))
+          .limit(1);
 
-      if (black) {
-        return forbidden(`채팅 이용이 제한되었습니다. 사유: ${black.reason}`);
+        if (black) {
+          return forbidden(`채팅 이용이 제한되었습니다. 사유: ${black.reason}`);
+        }
       }
 
       const [room] = await db
@@ -125,13 +152,28 @@ export default async (req: Request) => {
         .limit(1);
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
-      if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
+
+      /* ★ expert_1on1 룸 권한 */
+      if (room.roomType === ROOM_TYPE_EXPERT) {
+        if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
+          return forbidden("접근 권한이 없습니다");
+        }
+      } else if (!isAdmin && room.memberId !== viewerMemberId) {
+        return forbidden("접근 권한이 없습니다");
+      }
+
       if (room.status !== "active") return forbidden("종료된 채팅방입니다");
+
+      /* ★ senderRole 결정 — 어드민·전문가·일반 사용자 분기 */
+      let senderRole: string = senderBaseRole;
+      if (!isAdmin && room.roomType === ROOM_TYPE_EXPERT && room.expertId === viewerMemberId) {
+        senderRole = "expert";
+      }
 
       const insertData: any = {
         roomId,
-        senderId: auth.uid,
-        senderRole: "user",
+        senderId: viewerMemberId,
+        senderRole,
         messageType,
         content: content || null,
         attachmentId,
@@ -143,10 +185,18 @@ export default async (req: Request) => {
         .returning();
 
       const preview = (content || "[이미지]").slice(0, 200);
+
+      /* ★ 읽음 카운터 — 보낸 역할에 따라 상대방 카운터 증가 */
+      const isUserSender = senderRole === "user";
       const updateMeta: any = {
         lastMessageAt: new Date(),
         lastMessagePreview: preview,
-        unreadForAdmin: (room.unreadForAdmin || 0) + 1,
+        unreadForAdmin: isUserSender
+          ? (room.unreadForAdmin || 0) + 1  // 사용자 발신 → 전문가/어드민 측 미읽음
+          : room.unreadForAdmin,
+        unreadForUser: !isUserSender
+          ? (room.unreadForUser || 0) + 1   // 전문가/어드민 발신 → 사용자 측 미읽음
+          : room.unreadForUser,
         updatedAt: new Date(),
       };
       await db
@@ -159,22 +209,40 @@ export default async (req: Request) => {
       return ok({ message: enriched }, "메시지가 전송되었습니다");
     }
 
-    /* ===== PATCH — 사용자 측 읽음 처리 ===== */
+    /* ===== PATCH — 읽음 처리 ===== */
     if (req.method === "PATCH") {
       const body = await parseJson(req);
       const roomId = Number(body?.roomId);
       if (!Number.isFinite(roomId)) return badRequest("roomId가 필요합니다");
 
       const [room] = await db
-        .select({ id: chatRooms.id, memberId: chatRooms.memberId })
+        .select({
+          id: chatRooms.id,
+          memberId: chatRooms.memberId,
+          expertId: chatRooms.expertId,
+          roomType: chatRooms.roomType,
+        })
         .from(chatRooms)
         .where(eq(chatRooms.id, roomId))
         .limit(1);
 
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
-      if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
 
-      const updateRead: any = { unreadForUser: 0 };
+      /* ★ expert_1on1 룸 권한 */
+      if (room.roomType === ROOM_TYPE_EXPERT) {
+        if (!canEnterExpertRoom(room as any, viewerMemberId, isAdmin)) {
+          return forbidden("접근 권한이 없습니다");
+        }
+      } else if (!isAdmin && room.memberId !== viewerMemberId) {
+        return forbidden("접근 권한이 없습니다");
+      }
+
+      /* 사용자(memberId)는 unreadForUser 리셋, 전문가·어드민은 unreadForAdmin 리셋 */
+      const isUserSide = !isAdmin && room.memberId === viewerMemberId;
+      const updateRead: any = isUserSide
+        ? { unreadForUser: 0 }
+        : { unreadForAdmin: 0 };
+
       await db
         .update(chatRooms)
         .set(updateRead)
