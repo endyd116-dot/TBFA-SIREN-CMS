@@ -28,6 +28,7 @@
   settings: '시스템 설정',
   eligibility: '🎓 자격 변경 심사',
   'expert-match': '⚖️ 1:1 매칭 관리',
+  report: '📊 주간 보고서',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -5779,6 +5780,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'expert-match') {
       /* 6순위 #8: 1:1 매칭 관리 */
       if (window.SIREN_ADMIN_EXPERT) window.SIREN_ADMIN_EXPERT.load('pending');
+    } else if (page === 'report') {
+      /* Phase 4: 대표 보고 시스템 */
+      if (window.SIREN_ADMIN_REPORT) window.SIREN_ADMIN_REPORT.load();
     }
   }
 
