@@ -160,6 +160,9 @@
   /* ─── 현재 활성 view ─── */
   let currentViewId = null;
 
+  /* ─── 초기화 완료 플래그 (reinit 중복 방지) ─── */
+  let _initialized = false;
+
   /* ─── 즐겨찾기 로드 ─── */
   async function loadFavorites() {
     try {
@@ -232,6 +235,24 @@
 
     if (!sidebar || !navEl) return;
 
+    /* 로그인 전(adminWrap이 show 아닌 상태)이면 라우팅 건너뜀.
+       로그인 성공 후 adminWrap.show 클래스 추가 시 MutationObserver가 reinit() 호출 */
+    const adminWrap = document.getElementById('adminWrap');
+    if (!adminWrap || !adminWrap.classList.contains('show')) {
+      /* 로그인 완료를 감지해서 그때 초기화 */
+      if (adminWrap) {
+        const loginObs = new MutationObserver(function (mutations, obs) {
+          if (adminWrap.classList.contains('show')) {
+            obs.disconnect();
+            reinit();
+          }
+        });
+        loginObs.observe(adminWrap, { attributes: true, attributeFilter: ['class'] });
+      }
+      return;
+    }
+
+    _initialized = true;
     buildNav();
     setupMobileToggle();
     routeFromHash(location.hash);
@@ -242,6 +263,26 @@
     loadRecentViews();
 
     /* role 기반 메뉴 가시성 적용 (BUG-20A-04) */
+    loadRoleAndApply();
+  }
+
+  /* ─── 로그인 후 지연 초기화 (sidebar/nav는 이미 DOM에 있음) ─── */
+  function reinit() {
+    if (_initialized) return;
+    _initialized = true;
+
+    sidebar    = document.getElementById('adm20-sidebar');
+    navEl      = document.getElementById('adm20-nav');
+    headerTitle = document.getElementById('adm20-header-title');
+    contentEl  = document.getElementById('adm20-content');
+    if (!sidebar || !navEl) return;
+
+    buildNav();
+    setupMobileToggle();
+    routeFromHash(location.hash);
+    window.addEventListener('hashchange', () => routeFromHash(location.hash));
+    loadFavorites();
+    loadRecentViews();
     loadRoleAndApply();
   }
 
