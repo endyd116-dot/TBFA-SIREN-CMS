@@ -51,6 +51,36 @@
     return `<span style="color:${color};font-weight:600">${pct}%</span>`;
   }
 
+  /* ★ Phase 3 D 보강: 통과 시 donor_type 전이 표시 */
+  function donorTypeLabel(t) {
+    if (t === 'regular') return ['정기', '#0a8a4f', '#e6fff0'];
+    if (t === 'prospect') return ['잠재', '#c47a00', '#fff7e6'];
+    if (t === 'none') return ['없음', '#666', '#f0f0f0'];
+    return ['—', '#aaa', '#fafafa'];
+  }
+  function transitionCell(row) {
+    const predicted = row.predictedDonorType;
+    if (predicted == null) {
+      return '<span style="color:#bbb;font-size:11px">—</span>';
+    }
+    const cur = row.currentDonorType;
+    const [pLabel, pFg, pBg] = donorTypeLabel(predicted);
+    const pBadge = `<span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.5px;background:${pBg};color:${pFg};font-weight:600">${pLabel}</span>`;
+    if (!row.matchedMember) {
+      /* 매칭 없음 — hyosung_contracts는 신규 생성, 나머지는 미정 */
+      if (row.previewCategory === 'new') {
+        return `<span style="font-size:10.5px;color:#0a8a4f">＋신규</span> → ${pBadge}`;
+      }
+      return `<span style="color:#c47a00;font-size:10.5px">매칭필요</span>`;
+    }
+    if (!row.willChange) {
+      return `<span style="font-size:10.5px;color:#888">유지</span> ${pBadge}`;
+    }
+    const [cLabel, cFg, cBg] = donorTypeLabel(cur);
+    const cBadge = `<span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.5px;background:${cBg};color:${cFg}">${cLabel}</span>`;
+    return `${cBadge} <span style="color:#1a5ec4;font-weight:600">→</span> ${pBadge}`;
+  }
+
   function statusBadge(status) {
     const map = {
       pending:   ['미확정', '#fff7e6', '#c47a00'],
@@ -174,12 +204,25 @@
         return;
       }
       const d = data.data || data;
-      resultDiv.innerHTML =
-        `<span style="color:#0a8a4f">✅ ${escapeHtml(data.message || '적재 완료')}</span><br>` +
-        `<small style="color:#666">출처: ${escapeHtml(d.source || '-')} · ` +
-        `적재 ${d.importedRows || 0}건 / 자동매칭 ${d.autoMatchedRows || 0}건 / ` +
-        `파싱오류 ${(d.parseErrors || []).length}건</small>`;
-      toast(data.message || `${d.importedRows || 0}건 적재 완료`);
+      const imported = Number(d.importedRows || 0);
+      const errCount = (d.parseErrors || []).length;
+      if (imported === 0) {
+        /* 빈 CSV / 모든 행 파싱 실패 케이스 가드 */
+        const firstErr = d.parseErrors?.[0]?.error || '';
+        resultDiv.innerHTML =
+          `<span style="color:#c47a00">⚠ 적재된 행이 없습니다.</span><br>` +
+          `<small style="color:#666">출처: ${escapeHtml(d.source || '-')} · ` +
+          `파싱오류 ${errCount}건${firstErr ? ' (' + escapeHtml(firstErr).slice(0, 100) + ')' : ''}</small><br>` +
+          `<small style="color:#888">CSV 헤더가 예상과 다르거나 모든 행이 입금 데이터가 아닐 수 있습니다.</small>`;
+        toast('적재된 행이 없습니다 — CSV 형식을 확인하세요');
+      } else {
+        resultDiv.innerHTML =
+          `<span style="color:#0a8a4f">✅ ${escapeHtml(data.message || '적재 완료')}</span><br>` +
+          `<small style="color:#666">출처: ${escapeHtml(d.source || '-')} · ` +
+          `적재 ${imported}건 / 자동매칭 ${d.autoMatchedRows || 0}건 / ` +
+          `파싱오류 ${errCount}건</small>`;
+        toast(data.message || `${imported}건 적재 완료`);
+      }
       /* 파일 입력 초기화 */
       if (fileInput) fileInput.value = '';
       /* 목록 새로고침 */
@@ -212,7 +255,7 @@
 
     const res = await apiGet('/api/admin-donation-pending-list?' + params.toString());
     if (!res.ok) {
-      body.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:30px;color:#c5293a">❌ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:30px;color:#c5293a">❌ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;
     }
     const d = res.data.data || {};
@@ -220,14 +263,48 @@
     currentTotal = d.total || 0;
     renderRows();
     renderSummary(d.summary || {});
+    renderPreviewBuckets(d.previewBuckets || { auto: 0, manual: 0, new: 0 });
     renderPagination();
+  }
+
+  /* ★ Phase 3 D 보강: 미리보기 분류 카드 렌더 */
+  function renderPreviewBuckets(b) {
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v).toLocaleString ? Number(v).toLocaleString() : v; };
+    setText('csvBucketAuto', b.auto || 0);
+    setText('csvBucketManual', b.manual || 0);
+    setText('csvBucketNew', b.new || 0);
+    const total = (b.auto || 0) + (b.manual || 0) + (b.new || 0);
+    const hint = document.getElementById('csvPreviewHint');
+    if (hint) hint.style.display = total > 0 ? 'block' : 'none';
+  }
+
+  /* 분류 카드 클릭 시 해당 필터로 이동 */
+  function onBucketClick(e) {
+    const card = e.currentTarget;
+    const bucket = card.dataset.bucket;
+    const statusSel = document.getElementById('csvFilterStatus');
+    const sourceSel = document.getElementById('csvFilterSource');
+    if (!statusSel) return;
+    if (bucket === 'auto') {
+      statusSel.value = 'matched';
+      if (sourceSel) sourceSel.value = 'all';
+    } else if (bucket === 'manual') {
+      statusSel.value = 'pending';
+      if (sourceSel) sourceSel.value = 'all';
+    } else if (bucket === 'new') {
+      statusSel.value = 'pending,matched';
+      if (sourceSel) sourceSel.value = 'hyosung';
+    }
+    currentOffset = 0;
+    refreshList();
+    toast(`'${card.querySelector('div')?.textContent?.trim() || bucket}' 필터 적용`);
   }
 
   function renderRows() {
     const body = document.getElementById('csvPendingBody');
     if (!body) return;
     if (currentRows.length === 0) {
-      body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#999">조회된 항목이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:#999">조회된 항목이 없습니다.</td></tr>';
       updateBatchButtons();
       return;
     }
@@ -247,7 +324,8 @@
           <td>${fmtDate(r.parsedDate)}</td>
           <td>${matchedName}${r.matchedMember?.phone ? `<br><small style="color:#888">${escapeHtml(r.matchedMember.phone)}</small>` : ''}</td>
           <td style="text-align:right">${fmtScore(r.matchScore)}</td>
-          <td style="font-size:11.5px;color:#666;max-width:180px">${escapeHtml(r.matchReason || '-')}</td>
+          <td style="font-size:11.5px;color:#666;max-width:160px">${escapeHtml(r.matchReason || '-')}</td>
+          <td style="white-space:nowrap">${transitionCell(r)}</td>
           <td>${statusBadge(r.status)}</td>
           <td>${actions}</td>
         </tr>
@@ -428,6 +506,7 @@
     initialized = true;
 
     document.getElementById('csvImportForm')?.addEventListener('submit', handleUpload);
+    document.querySelectorAll('.csv-bucket-card').forEach(card => card.addEventListener('click', onBucketClick));
     document.getElementById('csvRefreshBtn')?.addEventListener('click', () => { currentOffset = 0; refreshList(); });
     document.getElementById('csvFilterStatus')?.addEventListener('change', () => { currentOffset = 0; refreshList(); });
     document.getElementById('csvFilterSource')?.addEventListener('change', () => { currentOffset = 0; refreshList(); });
