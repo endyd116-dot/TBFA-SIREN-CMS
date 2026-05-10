@@ -14,6 +14,7 @@
   };
 
   var STATUS_LABELS = {
+    pending: '대기 중',
     sent: '발송됨',
     reviewing: '검토 중',
     in_progress: '처리 중',
@@ -22,6 +23,7 @@
   };
 
   var STATUS_COLORS = {
+    pending: '#6c757d',
     sent: '#6c757d',
     reviewing: '#007bff',
     in_progress: '#fd7e14',
@@ -113,6 +115,10 @@
       '          <input id="refFldSourceId" type="number" min="1" placeholder="신고 레코드 ID 입력" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;box-sizing:border-box">',
       '          <p style="font-size:11.5px;color:var(--text-3);margin:4px 0 0">신고 관리 목록에서 확인할 수 있는 숫자 ID입니다.</p>',
       '        </div>',
+      '        <div id="refPreviewWrap" style="display:none">',
+      '          <label style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">양식 미리보기 <span style="font-weight:400;color:var(--text-3)">(실제 PDF는 서버에서 사건 정보로 치환)</span></label>',
+      '          <textarea id="refFldPreview" rows="8" readonly style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;box-sizing:border-box;resize:vertical;font-family:inherit;line-height:1.6;background:#f9f9f9;color:var(--text-2)"></textarea>',
+      '        </div>',
       '      </div>',
       '    </div>',
       '    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--line)">',
@@ -133,6 +139,7 @@
       '      <div>',
       '        <label style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">상태</label>',
       '        <select id="refFldStatus" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px">',
+      '          <option value="pending">대기 중</option>',
       '          <option value="sent">발송됨</option>',
       '          <option value="reviewing">검토 중</option>',
       '          <option value="in_progress">처리 중</option>',
@@ -187,14 +194,35 @@
         currentPage = 1;
         loadLogs();
       }
+      /* 기관 선택 시 양식 미리보기 갱신 */
+      if (e.target.id === 'refFldAgency') {
+        updatePreview();
+      }
     });
+  }
+
+  function updatePreview() {
+    var agencyId = parseInt((document.getElementById('refFldAgency') || {}).value || '0', 10);
+    var wrapEl = document.getElementById('refPreviewWrap');
+    var previewEl = document.getElementById('refFldPreview');
+    if (!wrapEl || !previewEl) return;
+    if (!agencyId) {
+      wrapEl.style.display = 'none';
+      previewEl.value = '';
+      return;
+    }
+    var ag = agencies.find(function (a) { return a.id === agencyId; });
+    if (!ag) { wrapEl.style.display = 'none'; return; }
+    var template = ag.templateBody || '수신: {{기관명}}\n발신: (사)교사유가족협의회\n제목: 사건 인계 요청\n\n사건번호: {{신고번호}}\n피해자: {{피해자명}}\n발생일시: {{발생일시}}\n\n사건 내용:\n{{사건내용}}\n\nAI 요약: {{AI요약}}\nAI 심각도: {{AI심각도}}\n\n인계일시: {{인계일시}}\n인계담당자: {{인계담당자}}\n\n위 사건을 귀 기관에 인계하오니 검토 부탁드립니다.';
+    previewEl.value = template;
+    wrapEl.style.display = '';
   }
 
   /* ────────────────────────────────────────────────
      기관 목록 로드 (인계 실행 모달용)
   ──────────────────────────────────────────────── */
   function loadAgencies(callback) {
-    api({ url: '/api/admin-agency-list?isActive=true' }).then(function (res) {
+    api({ url: '/api/admin-agency-list?active=1' }).then(function (res) {
       var d = res.data.data || res.data;
       agencies = d.agencies || [];
     }).catch(function () {
@@ -327,6 +355,12 @@
     if (stEl) stEl.value = '';
     if (siEl) siEl.value = '';
 
+    /* 미리보기 초기화 */
+    var wrapEl = document.getElementById('refPreviewWrap');
+    var previewEl = document.getElementById('refFldPreview');
+    if (wrapEl) wrapEl.style.display = 'none';
+    if (previewEl) previewEl.value = '';
+
     modal.classList.add('show');
   }
 
@@ -354,24 +388,36 @@
       credentials: 'include',
       body: JSON.stringify({ agencyId: agencyId, sourceType: sourceType, sourceId: sourceId })
     }).then(function (res) {
-      if (!res.ok) {
-        return res.json().then(function (d) { throw new Error(d.error || 'HTTP ' + res.status); });
-      }
-      /* PDF blob 다운로드 */
-      return res.blob().then(function (blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'referral-' + sourceType + '-' + sourceId + '.pdf';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+      return res.json().then(function (d) {
+        if (!res.ok) throw new Error(d.error || 'HTTP ' + res.status);
+        return d;
       });
-    }).then(function () {
+    }).then(function (d) {
+      var logId = d.logId;
       closeCreateModal();
       currentPage = 1;
       loadLogs();
-      showToast('인계가 완료되었습니다. PDF가 다운로드됩니다.', 'success');
+      showToast('인계 기록이 저장되었습니다. PDF를 다운로드합니다.', 'success');
+      /* PDF 별도 다운로드 */
+      if (logId) {
+        fetch('/api/admin-referral-pdf?referralId=' + logId, { credentials: 'include' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('PDF HTTP ' + r.status);
+            return r.blob();
+          })
+          .then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'referral-' + sourceType + '-' + sourceId + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+          })
+          .catch(function (err) {
+            showToast('PDF 다운로드 실패: ' + err.message, 'error');
+          });
+      }
     }).catch(function (err) {
       showToast('인계 실패: ' + err.message, 'error');
     }).finally(function () {
@@ -501,5 +547,32 @@
   });
 
   window.adminReferral = { init: init, reload: loadLogs };
+
+  /* ────────────────────────────────────────────────
+     신고 상세 화면에서 직접 인계 모달 열기
+     openReferralFromDetail('incident', 42) 형태로 호출
+  ──────────────────────────────────────────────── */
+  window.openReferralFromDetail = function (sourceType, sourceId) {
+    /* 섹션 미초기화 시 먼저 초기화 */
+    if (!$section) {
+      $section = document.getElementById('adm-referral-history');
+      if ($section) { renderShell(); bindEvents(); }
+    }
+    if (!agencies.length) {
+      loadAgencies(function () {
+        _openCreateModalWithSource(sourceType, sourceId);
+      });
+    } else {
+      _openCreateModalWithSource(sourceType, sourceId);
+    }
+  };
+
+  function _openCreateModalWithSource(sourceType, sourceId) {
+    openCreateModal();
+    var stEl = document.getElementById('refFldSourceType');
+    var siEl = document.getElementById('refFldSourceId');
+    if (stEl) stEl.value = sourceType || '';
+    if (siEl) siEl.value = sourceId ? String(sourceId) : '';
+  }
 
 })();

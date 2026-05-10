@@ -454,6 +454,14 @@
       ${attachBlock}
 
       ${renderResponseForm('incident', r)}
+
+      <div class="srn-modal-section" style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
+        <button type="button"
+          style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
+          onclick="window.openReferralFromDetail('incident', ${Number(r.id)})">
+          🏛️ 외부 기관 인계
+        </button>
+      </div>
     `;
 
     bindResponseFormEvents();
@@ -509,6 +517,14 @@
       ${attachBlock}
 
       ${renderResponseForm('harassment', r)}
+
+      <div class="srn-modal-section" style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
+        <button type="button"
+          style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
+          onclick="window.openReferralFromDetail('harassment', ${Number(r.id)})">
+          🏛️ 외부 기관 인계
+        </button>
+      </div>
     `;
 
     bindResponseFormEvents();
@@ -566,6 +582,14 @@
       ${attachBlock}
 
       ${renderResponseForm('legal', r)}
+
+      <div class="srn-modal-section" style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
+        <button type="button"
+          style="padding:8px 16px;border:1px solid #6c757d;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"
+          onclick="window.openReferralFromDetail('legal', ${Number(r.id)})">
+          🏛️ 외부 기관 인계
+        </button>
+      </div>
     `;
 
     bindResponseFormEvents();

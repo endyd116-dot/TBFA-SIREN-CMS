@@ -155,8 +155,9 @@
     var type = (document.getElementById('amgFilterType') || {}).value || '';
     var active = (document.getElementById('amgFilterActive') || {}).value;
     var qs = [];
-    if (type) qs.push('agencyType=' + encodeURIComponent(type));
-    if (active !== '') qs.push('isActive=' + encodeURIComponent(active));
+    if (type) qs.push('type=' + encodeURIComponent(type));
+    if (active === 'true') qs.push('active=1');
+    else if (active === 'false') qs.push('active=0');
     var url = '/api/admin-agency-list' + (qs.length ? '?' + qs.join('&') : '');
 
     api({ url: url }).then(function (res) {
