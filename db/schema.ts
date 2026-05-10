@@ -252,6 +252,14 @@ export const members = pgTable("members", {
   /* ───────── ★ 6순위 #6: 교원 회원 자격 (현직/은퇴/예비/일반) ───────── */
   eligibilityType: varchar("eligibility_type", { length: 30 }),
 
+  /* ───────── ★ Phase 9-B: 알림 수신 채널 게이팅 (2026-05-10) ─────────
+   * phoneVerifiedAt: SMS·알림톡 발송 가능 여부 (null = 미인증)
+   * kakaoMarketingConsentAt: 광고성 알림톡 동의 시각 (정보통신망법)
+   * 마이그레이션: migrate-phase9-notify-prefs (호출 후 삭제)
+   */
+  phoneVerifiedAt:         timestamp("phone_verified_at"),
+  kakaoMarketingConsentAt: timestamp("kakao_marketing_consent_at"),
+
   /* ───────── ★ Phase 2 (마일스톤 #16 단계 C): 후원 회원 분류 ─────────
    * 마이그레이션: 5451547 (호출 후 삭제)
    * donor_type: 'regular' | 'prospect' | 'none' | NULL(미평가)
@@ -2137,9 +2145,4 @@ export const notificationAdminSettings = pgTable("notification_admin_settings", 
 export type NotificationAdminSetting = typeof notificationAdminSettings.$inferSelect;
 export type NewNotificationAdminSetting = typeof notificationAdminSettings.$inferInsert;
 
-/* ── Phase 9-B: members 신규 컬럼 (migrate-phase9-notify-prefs 적용 후 활성화) ──
-   phoneVerifiedAt:           timestamp("phone_verified_at")
-   kakaoMarketingConsentAt:   timestamp("kakao_marketing_consent_at")
-   위 컬럼은 마이그레이션 성공 확인 후 members 테이블 정의에 추가할 것.
-   ────────────────────────────────────────────────────────────────────── */
 
