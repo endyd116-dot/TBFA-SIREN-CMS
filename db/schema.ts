@@ -1991,3 +1991,33 @@ export const expertMatches = pgTable("expert_matches", {
 export type ExpertMatch = typeof expertMatches.$inferSelect;
 export type NewExpertMatch = typeof expertMatches.$inferInsert;
 
+/* =========================================================
+   ★ Phase 4: 대표 보고 시스템 + Agent-9 (2026-05-10)
+   - DESIGN_PHASE4_REPORT.md 참조
+   - 메인 채팅 소유. A·B 채팅에서 본 섹션 정의 변경 금지
+   ========================================================= */
+export const reportSnapshots = pgTable("report_snapshots", {
+  id: serial("id").primaryKey(),
+  reportType: varchar("report_type", { length: 20 }).default("weekly").notNull(),
+    // 'weekly' | 'custom'
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd:   timestamp("period_end").notNull(),
+  stats:       jsonb("stats").default(sql`'{}'::jsonb`).notNull(),
+    // ReportStats 구조 — DESIGN_PHASE4_REPORT.md §4
+  aiSummary:   text("ai_summary"),
+  aiAlerts:    jsonb("ai_alerts").default(sql`'[]'::jsonb`),
+    // [{type: string, message: string, severity: 'low'|'medium'|'high'}]
+  generatedBy: integer("generated_by").references(() => members.id, { onDelete: "set null" }),
+    // null = cron 자동 생성
+  sentEmailAt: timestamp("sent_email_at"),
+  sentTo:      jsonb("sent_to").default(sql`'[]'::jsonb`),
+    // [{ email: string, name: string }]
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  typePeriodIdx: index("report_snapshots_type_period_idx").on(t.reportType, t.periodStart),
+  createdIdx:    index("report_snapshots_created_idx").on(t.createdAt),
+}));
+
+export type ReportSnapshot = typeof reportSnapshots.$inferSelect;
+export type NewReportSnapshot = typeof reportSnapshots.$inferInsert;
+
