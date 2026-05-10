@@ -160,11 +160,25 @@
   .cms-submenu li a {
     padding: 10px 22px 10px 48px !important;
     font-size: 12.5px !important;
+    color: #777 !important;
+  }
+  .cms-submenu li a:hover {
+    background: #141414 !important;
+    color: #ccc !important;
   }
   .cms-submenu li a.on {
     background: #141414 !important;
     color: #fff !important;
     border-left-color: #b8935a !important;
+  }
+  .sidebar-group-chevron {
+    margin-left: auto;
+    font-size: 11px;
+    transition: transform 0.2s;
+    font-style: normal;
+  }
+  [data-sidebar-group][aria-expanded="true"] .sidebar-group-chevron {
+    transform: rotate(180deg);
   }
 
   /* ★ Phase 1: 효성 관리 탭 hover */
