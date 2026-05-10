@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 | **C verify Q1·Q2 main 머지 + Phase 10 R1 B·A 평행 트리거 + 평행 전제 정책 반영** — Q1 통과 흡수 / Q2 #BACKFILL-1 마이그 main 안착 (Swain 호출 대기) / PARALLEL_GUIDE §2 직렬 옵션 제거하고 평행 전제로 갱신 / Phase 10 R1 B·A 동시 시작 |
+| 2026-05-10 | 메인 | **Phase 10 R1 B 백 main 머지 (18586dd) + 자동 진행·진행률 보고 정책 추가** — B 9파일(API 7+lib+마이그) 머지 / schema 주석 상태 유지 / Swain 마이그 호출 대기 (`/api/migrate-phase10-templates?run=1`) / A는 cef0f69 push된 채로 schema 활성화 후 머지 / PARALLEL_GUIDE §1.5·§1.6 신규 추가 |
+| 2026-05-10 | 메인 | **C verify Q1·Q2 main 머지 + Phase 10 R1 B·A 평행 트리거 + 평행 전제 정책 반영** — Q1 통과 흡수 / Q2 #BACKFILL-1 마이그 main 안착 (1차 진단 가정 어긋남, Q-진단 추가) / PARALLEL_GUIDE §2 직렬 옵션 제거하고 평행 전제로 갱신 / Phase 10 R1 B·A 동시 시작 |
 | 2026-05-10 | **C 채팅** | **Q1 Phase 9-B 라이브 검증 통과 + Q2 #BACKFILL-1 마이그 푸시** — 사용자/어드민 수신 설정 화면 인증 거부 401·페이지 200·코드 정합성 양호, bigserial 회복 확인 (회원/후원/발송로그 401 정상). bug 0건. 보고서 `docs/verify/2026-05-10-phase9-b-live.md`. 효성 결제일 백필 1회용 마이그 작성·verify 브랜치 푸시 (797576c) |
 | 2026-05-10 | 메인 | **Phase 10 R1 설계서 작성 완료 + HANDOFF 인수인계 갱신** — docs/milestones/2026-05-10-phase10-r1-template-builder.md (DB·API 7개·화면 2개·검증 시나리오 8건·4채팅 프롬프트) / HANDOFF.md 새 메인 채팅용 전면 재작성 |
 | 2026-05-10 | 메인 | **4채팅 새 구조 도입** — 메인(Opus 4.7 설계) / A(Sonnet 4.6 프론트) / B(Sonnet 4.6 백) / C(Opus 4.7 검증·fix·백필) / PARALLEL_GUIDE 갱신 + PARALLEL_TEMPLATE 신규 + §8 C 대기열 큐(8건) |
-| 2026-05-10 | 메인 | **Phase 9-B 100% — C 2차 머지 (56f95a1)** — schema members 컬럼 2개 활성화 / 마이그 파일 삭제 / admin-notification-defaults auth 반환 구조 수정 / 1·2차 통합 검증: bigserial 회귀 0, 타입 에러 0 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -37,17 +37,19 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R1 진행 중 — 템플릿 빌더 (B·A 평행 트리거됨, C는 큐 처리 중)
-   ├─ A: 🟢 Phase 10 R1 프론트 진행 중 (feature/phase10-r1-front, 평행)
-   ├─ B: 🟢 Phase 10 R1 백 진행 중 (feature/phase10-r1-back, 평행)
-   ├─ C: ✅ Q1·Q2 main 머지 완료 / ⏸ Q3 (6순위 #16 단계 D 라이브 검증) 다음 세션 대기
+🟢 Phase 10 R1 진행 중 — 템플릿 빌더 (B 백 머지 완료, A 머지 대기, schema 활성화 대기)
+   ├─ A: ✅ 프론트 push 완료 (cef0f69) / ⏸ schema 활성화 후 메인이 머지
+   ├─ B: ✅ 백 main 머지 완료 (18586dd) — 세션 종료 가능
+   ├─ C: 🟢 Q-진단 #BACKFILL-1 + Q3 6순위 #16 단계 D (트리거됨) / ⏸ Q9 Phase 10 R1 검증 다음 세션
    └─ D: 휴면
-   메인: B push 대기 → main 머지 → 마이그 호출(phase10-templates + #BACKFILL-1) → schema 활성화 → A 머지 → C 트리거
+   메인: 마이그 호출 응답 대기 → schema 활성화 + 마이그 파일 삭제 push → A 머지 → C에게 Q9 트리거
 ```
 
-**대기 중 마이그 호출 2건** (Swain 액션 필요):
-1. `/api/migrate-hyosung-paid-date-backfill?run=1` — Q2 백필 (즉시 가능)
-2. `/api/migrate-phase10-templates?run=1` — Phase 10 R1 (B push·머지 후)
+**대기 중 마이그 호출** (Swain 액션 필요):
+- `/api/migrate-phase10-templates?run=1` — Phase 10 R1 신규 테이블 + 시드 3건 (즉시 — Netlify 배포 1~3분 후)
+
+**관찰 보류**:
+- #BACKFILL-1 — Q-진단 결과 후 정규식·컬럼 보강 마이그 갱신 필요 (C 작업 중)
 
 ---
 
