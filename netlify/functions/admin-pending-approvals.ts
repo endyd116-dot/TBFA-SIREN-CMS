@@ -15,6 +15,7 @@ import { db } from "../../db";
 import { members, blobUploads } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 import { sendEmail, tplMemberApproved, tplMemberRejected } from "../../lib/email";
 import { createNotification } from "../../lib/notify";
 import {
@@ -172,7 +173,7 @@ export default async (req: Request) => {
           id: m.id,
           email: m.email,
           name: m.name,
-          phone: m.phone,
+          phone: maskPhone(m.phone),
           type: m.type,
           memberSubtype: m.memberSubtype,
           subtypeKey,

@@ -16,6 +16,7 @@ import {
   ok, badRequest, forbidden, serverError,
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
+import { maskPhone } from "../../lib/masking";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -73,7 +74,7 @@ export default async (req: Request) => {
       expertType: m.memberSubtype,
       memberName: m.name,
       memberEmail: m.email,
-      memberPhone: m.phone,
+      memberPhone: maskPhone(m.phone),
       /* V1 잔재 필드는 null/0 으로 (호환용) */
       specialty: null,
       affiliation: null,

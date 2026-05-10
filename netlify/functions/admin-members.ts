@@ -34,6 +34,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 import { z } from "zod";
 
 /* =========================================================
@@ -388,7 +389,7 @@ export default async (req: Request) => {
           id: Number(r.id),
           name: r.name,
           email: r.email ?? null,
-          phone: r.phone ?? null,
+          phone: maskPhone(r.phone),
           signupSourceId: r.signupSourceId ?? null,
           signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
           signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
@@ -771,7 +772,7 @@ export default async (req: Request) => {
         detail: { name: updated.name, changedFields },
       });
 
-      return ok({ member: updated }, "회원 정보가 변경되었습니다");
+      return ok({ member: { ...updated, phone: maskPhone(updated.phone) } }, "회원 정보가 변경되었습니다");
     }
 
     return methodNotAllowed();

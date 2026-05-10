@@ -8,6 +8,7 @@ import {
   anonymousRevealLogs, members,
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { logAudit, deriveSessionId } from "../../lib/audit";
 
 export const config = { path: "/api/admin-anonymous-reveal" };
 
@@ -117,6 +118,24 @@ export default async (req: Request) => {
     });
   } catch (err) {
     return jsonError("insert_audit_log", err);
+  }
+
+  // 표준 감사 로그 추가
+  try {
+    await logAudit({
+      req,
+      userId: adminId,
+      userType: "admin",
+      userName: auth.ctx.member.name,
+      action: "anonymous_reveal",
+      target: `${reportType}:${reportId}`,
+      detail: { reportType, reportId, revealLevel, reason },
+      success: true,
+      riskLevel: "high",
+      sessionId: deriveSessionId(req),
+    });
+  } catch (e) {
+    console.warn("[admin-anonymous-reveal] logAudit 실패:", e);
   }
 
   // 공개 범위 결정

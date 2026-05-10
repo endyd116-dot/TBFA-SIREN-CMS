@@ -19,6 +19,7 @@ import { db, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { ok, serverError, methodNotAllowed, corsPreflight } from "../../lib/response";
 import { evaluateDonorTypeFromContract } from "../../lib/hyosung-merge";
+import { maskPhone } from "../../lib/masking";
 
 /* ★ Phase 3 D 보강: 통과 시 회원 donor_type 전이 예측
  * - hyosung_contracts: rawData._hyosungContractRow.contractStatus → regular/prospect/none
@@ -154,6 +155,7 @@ export default async (req: Request, _ctx: Context) => {
         ms.forEach(m => {
           memberMap[m.id] = {
             ...m,
+            phone: maskPhone(m.phone),
             donorChannels: Array.isArray(m.donorChannels) ? (m.donorChannels as string[]) : null,
           };
         });

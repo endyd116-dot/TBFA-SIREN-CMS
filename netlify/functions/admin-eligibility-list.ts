@@ -21,6 +21,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import {
   ok, badRequest, methodNotAllowed, serverError,
 } from "../../lib/response";
+import { maskPhone } from "../../lib/masking";
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "GET") return methodNotAllowed();
@@ -105,7 +106,7 @@ export default async (req: Request, _ctx: Context) => {
       return {
         ...r,
         member: m
-          ? { id: m.id, name: m.name, email: m.email, phone: m.phone, type: m.type }
+          ? { id: m.id, name: m.name, email: m.email, phone: maskPhone(m.phone), type: m.type }
           : null,
         reviewer: reviewer ? { id: reviewer.id, name: reviewer.name } : null,
       };

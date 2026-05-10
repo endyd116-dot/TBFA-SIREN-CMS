@@ -7,6 +7,7 @@ import { eq, desc, count, sql, and, isNotNull } from "drizzle-orm";
 import { db, members, donations, supportRequests, chatBlacklist, chatRooms } from "../../db";
 import { memberGrades } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { maskPhone } from "../../lib/masking";
 import {
   ok, badRequest, notFound, serverError,
   corsPreflight, methodNotAllowed,
@@ -149,7 +150,7 @@ export default async (req: Request) => {
     );
 
     return ok({
-      member,
+      member: { ...member, phone: maskPhone(member.phone) },
       donationSummary: {
         totalAmount: Number(donationStats?.totalAmount ?? 0),
         totalCount: Number(donationStats?.totalCount ?? 0),

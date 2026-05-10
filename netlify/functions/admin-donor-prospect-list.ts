@@ -27,6 +27,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { maskPhone } from "../../lib/masking";
 
 /* =========================================================
    API 계약 (DESIGN_PHASE2.md §6.3)
@@ -394,7 +395,7 @@ export default async (req: Request, _ctx: Context) => {
         id,
         name: r.name || "",
         email: r.email || null,
-        phone: r.phone || null,
+        phone: maskPhone(r.phone),
         subtype: subtypeVal as ProspectSubtype,
         lastDonationDate: stats.lastDate ? stats.lastDate.toISOString() : null,
         lastDonationAmount: stats.lastAmount,

@@ -19,6 +19,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 
 /* ===== ★ M-15: 카테고리 화이트리스트 + 정규화 헬퍼 ===== */
 const VALID_CATEGORIES = [
@@ -91,7 +92,8 @@ export default async (req: Request) => {
           .orderBy(desc(members.createdAt))
           .limit(50);
 
-        return ok({ candidates });
+        const maskedCandidates = (candidates as any[]).map((c) => ({ ...c, phone: maskPhone(c.phone) }));
+        return ok({ candidates: maskedCandidates });
       }
 
   // admin-operators.ts — GET 운영자 목록 select 부분
@@ -115,13 +117,14 @@ export default async (req: Request) => {
         .where(eq(members.type, "admin"))
         .orderBy(desc(members.createdAt));
 
+      const maskedOperators = (operators as any[]).map((o) => ({ ...o, phone: maskPhone(o.phone) }));
       return ok({
-        operators,
+        operators: maskedOperators,
         stats: {
-          total: operators.length,
-          superAdmins: operators.filter((o: any) => o.role === "super_admin").length,
-          regular: operators.filter((o: any) => o.role !== "super_admin").length,
-          active: operators.filter((o: any) => o.operatorActive !== false).length,
+          total: maskedOperators.length,
+          superAdmins: maskedOperators.filter((o: any) => o.role === "super_admin").length,
+          regular: maskedOperators.filter((o: any) => o.role !== "super_admin").length,
+          active: maskedOperators.filter((o: any) => o.operatorActive !== false).length,
         },
       });
     }

@@ -12,6 +12,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 import { sendEmail, tplSupportAnsweredUser } from "../../lib/email";
 
 export default async (req: Request) => {
@@ -64,7 +65,7 @@ const { admin } = guard.ctx;
           answerer = a || null;
         }
 
-        return ok({ request: item, requester, answerer });
+        return ok({ request: item, requester: requester ? { ...requester, phone: maskPhone((requester as any).phone) } : requester, answerer });
       }
 
       /* ─── 목록 조회 ─── */
@@ -123,6 +124,7 @@ const { admin } = guard.ctx;
 
       const enrichedList = list.map((r: any) => ({
         ...r,
+        requesterPhone: maskPhone(r.requesterPhone),
         answererName: r.answeredBy ? (answererMap.get(r.answeredBy) || null) : null,
       }));
 

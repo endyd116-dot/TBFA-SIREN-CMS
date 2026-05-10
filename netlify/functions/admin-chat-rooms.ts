@@ -19,6 +19,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -114,7 +115,7 @@ export default async (req: Request) => {
 
         return ok({
           room,
-          member,
+          member: member ? { ...member, phone: maskPhone((member as any).phone) } : member,
           summary: {
             donationTotal: Number(donationStats[0]?.total ?? 0),
             donationCount: Number(donationStats[0]?.cnt ?? 0),

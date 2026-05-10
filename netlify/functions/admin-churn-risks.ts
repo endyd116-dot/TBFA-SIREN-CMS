@@ -18,6 +18,7 @@ import {
 } from "../../lib/response";
 import { evaluateAndPersist } from "../../lib/churn-predictor";
 import { logAdminAction } from "../../lib/audit";
+import { maskPhone } from "../../lib/masking";
 
 const VALID_LEVELS = ["critical", "warning", "stable"];
 
@@ -120,7 +121,7 @@ export default async (req: Request) => {
             id: m.id,
             name: m.name,
             email: m.email,
-            phone: m.phone,
+            phone: maskPhone(m.phone),
             type: m.type,
             status: m.status,
             createdAt: m.createdAt,
@@ -207,6 +208,7 @@ export default async (req: Request) => {
         const signalCodes: string[] = Array.isArray(signalsRaw.codes) ? signalsRaw.codes : [];
         return {
           ...row,
+          phone: maskPhone(row.phone),
           signalCodes,
           signalCount: signalCodes.length,
           aiSummary: signalsRaw.summary || null,

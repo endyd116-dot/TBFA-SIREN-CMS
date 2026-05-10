@@ -14,6 +14,7 @@ import { db } from "../../db";
 import { members } from "../../db/schema";
 import { eq, and, desc, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { maskPhone } from "../../lib/masking";
 import {
   ok, badRequest, forbidden, notFound, methodNotAllowed,
   serverError, parseJson,
@@ -56,7 +57,8 @@ export default async (req: Request, _ctx: Context) => {
         .orderBy(desc(members.blacklistedAt))
         .limit(500);
 
-      return ok({ items, total: items.length });
+      const masked = (items as any[]).map((r) => ({ ...r, phone: maskPhone(r.phone) }));
+      return ok({ items: masked, total: masked.length });
     }
 
     /* ════════ POST — 블랙 처리 ════════ */
