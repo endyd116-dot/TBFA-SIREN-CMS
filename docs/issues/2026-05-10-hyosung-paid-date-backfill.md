@@ -2,7 +2,7 @@
 
 > **발견**: 2026-05-10 / C 채팅 (Q12 fix 완료 보고)
 > **심각도**: 🟡 Medium — 기능 동작은 정상, 그래프 정확도만 영향
-> **상태**: 🟡 1차 마이그 가정 어긋남 — 추가 진단 필요 (C 큐 Q-진단)
+> **상태**: 🟡 1차 마이그 가정 어긋남 → 진단 보강 + import 코드 분석 (Q-진단 1차 완료, Swain 재호출 대기)
 
 ---
 
@@ -30,6 +30,66 @@
   - 다른 컬럼(`created_at`, `donated_at`, 효성 CSV 별도 컬럼)에서 추출 가능 → 마이그 정규식 대신 컬럼 매핑 변경
 
 마이그 파일 자체는 보존(멱등). 진단 마치면 정규식·소스 컬럼 결정 후 갱신.
+
+---
+
+## 2026-05-10 진단 보강 + import 코드 분석 (C 채팅 Q-진단)
+
+### 보강된 진단 함수 (메인 머지 후 Swain 재호출 필요)
+
+`/api/migrate-hyosung-paid-date-backfill` (GET, 인증 불필요) 응답을 다음으로 보강:
+
+| 필드 | 의미 |
+|---|---|
+| `state.hyosung_total` | 효성 결제 전체 (`hyosung_cms` + `hyosung` 두 분류 합집합) |
+| `state.hyosung_null_total` | 그 중 결제일 컬럼 비어있는 행 수 |
+| `state.regex_v1_match` | 1차 정규식 `결제일: YYYY-MM-DD` 매칭 행 수 (이미 0 확인됨) |
+| `state.regex_v2_match` | 2차 정규식 — 한글 콜론·공백·구분자 변형 허용 |
+| `state.regex_any_date_match` | memo에 어떤 날짜 패턴이라도 있는 행 수 |
+| `join_via_billing_id` | 효성 청구 raw 테이블 직접 연결로 결제일을 끌어올 수 있는 행 수 |
+| `join_via_member_month` | 회원번호+청구월 조합으로 효성 청구 raw에서 결제일을 끌어올 수 있는 행 수 |
+| `provider_distribution` | 옛 `hyosung` 분류와 신 `hyosung_cms` 분류의 행 수 (옛 데이터일수록 분류 다를 수 있음) |
+| `hyosung_billings_state` | 효성 청구 raw 테이블 자체 상태 (전체·결제일 채워진 수·후원 행 연결된 수) |
+| `samples` | 결제일 비어있는 행 10건 샘플 — id, 회원번호, 청구월, memo 200자, 효성 청구 연결 ID, 입력시각 |
+
+이 응답을 받으면 다음 3가지가 결정 가능:
+1. memo 형식이 어떻게 생겼는지 (정규식 보강 가능 여부)
+2. 효성 청구 raw 테이블 직접 연결로 결제일을 가져올 수 있는지 (가장 안전한 경로)
+3. 옛 데이터와 신 데이터의 분류명이 다른지 (마이그 WHERE 조건 보강)
+
+### import 코드 분석 결과
+
+효성 후원이 실제로 SIREN DB에 들어가는 경로 4가지를 모두 정독한 결과:
+
+| 경로 | 동작 | 결제일 컬럼 채움 |
+|---|---|---|
+| 신 import (D2 파서) | CSV → 효성 청구 raw → 후원 행 직접 INSERT | 자료에 결제일 텍스트가 있을 때만 채움 |
+| 신 import (D2-별경로) | CSV → 효성 청구 raw → 매칭 후 별도 확정 흐름 | 확정 시 자료의 결제일 그대로 복사 |
+| 구 import (수납 일괄) | 효성 자동등록·수납 묶음 → 후원 행 직접 INSERT | 자료에 결제일 텍스트가 있을 때만 채움 + memo에도 "결제일: YYYY-MM-DD" 적음 |
+| 구 import (계약·청구) | CSV → 효성 청구 raw 적재 → 별도 확정으로 후원 행 생성 | 확정 시 자료의 결제일 그대로 복사 |
+
+→ 모든 경로가 **자료의 결제일 텍스트가 있을 때만** 결제일 컬럼을 채운다. 옛 효성 자료에 결제일이 비어있는 채로 import된 게 44건 NULL의 원인.
+
+→ 코드 결함은 없음. 자료 자체의 결제일이 누락되었거나, 효성이 결제일을 다른 컬럼·다른 표현으로 제공했을 가능성이 큼.
+
+→ 핵심 회복 경로는 **효성 청구 raw 테이블에 결제일이 별도 컬럼으로 살아있는지**. 보강된 진단 응답의 `hyosung_billings_state.with_paydate`와 `join_via_*.join_match_with_paydate`를 보면 결정 가능.
+
+### 다음 액션 (C 다음 세션, Swain 응답 받은 후)
+
+응답 시나리오별 처리:
+
+| 응답 패턴 | 결정 |
+|---|---|
+| `join_via_billing_id.with_paydate` 또는 `join_via_member_month.with_paydate`가 ≥1 | **A안 (권장)**: 마이그 본문을 정규식 → 효성 청구 raw join 으로 교체. 가장 안전 |
+| 위가 0이고 `regex_v2_match` 또는 `regex_any_date_match`가 ≥1 | **B안**: 보강된 정규식으로 마이그 본문 교체 |
+| 모두 0이고 `samples`에서 다른 패턴이 보임 | **C안**: 샘플을 보고 실제 텍스트 형식에 맞춘 정규식 결정 |
+| 모두 0이고 텍스트도 없음 | **D안**: 백필 불가 결정. 그래프 fallback(시스템 입력 시각) 그대로 두기로 합의 |
+
+### 보강 마이그 호출 URL
+
+`https://tbfa-siren-cms.netlify.app/api/migrate-hyosung-paid-date-backfill` (GET, 인증 불필요)
+
+응답이 길어졌으니 Swain은 응답 본문 전체를 메인 채팅에 전달. 메인이 다음 세션에서 위 시나리오대로 결정.
 
 ---
 
