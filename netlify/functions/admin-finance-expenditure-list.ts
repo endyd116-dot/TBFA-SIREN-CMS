@@ -36,8 +36,8 @@ export default async function handler(req: Request, _ctx: Context) {
         approver.name AS approved_by_name
       FROM expenditures e
       LEFT JOIN budget_categories bc ON bc.id = e.category_id
-      LEFT JOIN admins creator ON creator.id = e.created_by
-      LEFT JOIN admins approver ON approver.id = e.approved_by
+      LEFT JOIN members creator ON creator.id = e.created_by
+      LEFT JOIN members approver ON approver.id = e.approved_by
       WHERE (${status} = 'all' OR e.status = ${status})
         AND (${category} = 'all' OR bc.code = ${category})
         AND EXTRACT(YEAR FROM e.spent_at) = ${year}::int

@@ -26,14 +26,22 @@ export default async function handler(req: Request, _ctx: Context) {
   const newStatus = action === "approve" ? "approved" : "rejected";
 
   try {
-    await db.execute(sql`
+    const result: any = await db.execute(sql`
       UPDATE expenditures
       SET status = ${newStatus},
           approved_by = ${auth.ctx.admin.uid},
           approved_at = NOW(),
           note = COALESCE(${note || null}, note)
       WHERE id = ${id} AND status = 'draft'
+      RETURNING id
     `);
+    const updatedRows = result?.rows ?? result;
+    if (!Array.isArray(updatedRows) || updatedRows.length === 0) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "대기 상태가 아니거나 존재하지 않는 지출입니다" }),
+        { status: 409, headers: { "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ ok: true, message: action === "approve" ? "승인 완료" : "반려 완료" }),
       { status: 200, headers: { "Content-Type": "application/json" } }
