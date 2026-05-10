@@ -21,6 +21,12 @@ import {
   buildMemberRenderData,
   type SendChannel,
 } from "../../lib/communication-send";
+import {
+  generateTrackingToken,
+  injectTrackingIntoHtml,
+} from "../../lib/communication-tracking";
+
+const BASE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
 
 export const config = { schedule: "* * * * *" };
 
@@ -197,7 +203,7 @@ async function startJob(job: any) {
   const variables = Array.isArray(template.variables) ? template.variables : [];
   const channel: SendChannel = job.channel;
 
-  /* INSERT 성능 — 1000건씩 끊어서 multi-row INSERT */
+  /* INSERT 성능 — 500건씩 끊어서 multi-row INSERT */
   const INSERT_BATCH = 500;
   for (let i = 0; i < memberIds.length; i += INSERT_BATCH) {
     const batch = memberIds.slice(i, i + INSERT_BATCH);
@@ -213,14 +219,22 @@ async function startJob(job: any) {
       const subjectStr = template.subject
         ? renderTemplate(template.subject, variables, data).rendered
         : null;
-      const bodyStr = renderTemplate(template.body_template, variables, data).rendered;
+      let bodyStr = renderTemplate(template.body_template, variables, data).rendered;
 
-      valuesFragments.push(sql`(${job.id}, ${mid}, ${channel}, 'pending', ${subjectStr}, ${bodyStr})`);
+      /* 이메일 채널: 추적 픽셀 + 클릭 추적 URL 주입 */
+      const trackingToken = generateTrackingToken();
+      if (channel === "email") {
+        bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
+      }
+
+      valuesFragments.push(
+        sql`(${job.id}, ${mid}, ${channel}, 'pending', ${subjectStr}, ${bodyStr}, ${trackingToken})`
+      );
     }
     const valuesJoined = valuesFragments.reduce((a, b, idx) => (idx === 0 ? b : sql`${a}, ${b}`));
     await db.execute(sql`
       INSERT INTO communication_send_recipients
-        (job_id, member_id, channel, status, rendered_subject, rendered_body)
+        (job_id, member_id, channel, status, rendered_subject, rendered_body, tracking_token)
       VALUES ${valuesJoined}
     `);
   }
