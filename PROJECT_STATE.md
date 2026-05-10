@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **C 채팅** | **Phase 11+12 라이브 검증 PASS + BUG 7건 fix** — 응답키 불일치·신원식별 필드명·구독해제 메서드·감사로그 KPI 수정. 브랜치 `verify/phase11-12`. 보고서 `docs/verify/2026-05-11-phase11-12.md` |
 | 2026-05-11 | **메인** | **Phase 13 실 API 연결 + TS 0건 머지 완료** — A mock→실API(61f13fe) + C TS에러 149→0(8e283dd) 머지 |
 | 2026-05-11 | **메인** | **Phase 13 B+A 머지 완료 (618033b)** — admin-incident-stats.ts 신규 / admin-siren-stats.js 신규 / admin.html 메뉴+섹션 추가 / A 실 API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 11+12 A 머지 완료 (API 경로 11개 불일치 수정 후)** — feature/phase11-12-front 머지(e1ba80f) / my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit 등 17파일 |

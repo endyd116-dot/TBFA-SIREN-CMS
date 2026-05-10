@@ -67,8 +67,14 @@
       return;
     }
 
-    const rows = res.data?.rows || res.data?.data?.rows || [];
-    const total = res.data?.total || res.data?.data?.total || 0;
+    let allRows = res.data?.items || res.data?.data?.items || res.data?.rows || res.data?.data?.rows || [];
+    // 익명 신고만 필터링 (onlyAnonymous=1)
+    const onlyAnon = params.get('onlyAnonymous') === '1';
+    const anonLevelParam = params.get('anonLevel');
+    if (onlyAnon) allRows = allRows.filter((r) => r.isAnonymous);
+    // anonLevel은 현재 DB에 미존재 — 필터 스킵 (UI는 항상 0단계 표시)
+    const rows = allRows;
+    const total = rows.length;
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
     if (!rows.length) {
@@ -190,7 +196,7 @@
         body: {
           reportId: _selectedReport.id,
           reportType: _selectedReport.type,
-          level: _selectedLevel,
+          revealLevel: _selectedLevel,
           reason,
         },
       });
@@ -200,7 +206,7 @@
         return;
       }
 
-      const identity = res.data?.identity || res.data?.data?.identity || {};
+      const identity = res.data?.reporter || res.data?.data?.reporter || res.data?.identity || {};
       renderIdentityResult(identity);
       window.SIREN && window.SIREN.toast('신원이 확인되었습니다. 감사 로그에 기록됩니다.');
     } catch (e) {
