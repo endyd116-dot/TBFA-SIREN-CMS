@@ -2196,8 +2196,7 @@ export type NewRecipientGroup = typeof recipientGroups.$inferInsert;
 
 /* =========================================================
    === Phase 10 R3 — 발송 큐 (communication_send_jobs / communication_send_recipients) ===
-   주석 처리 상태 — migrate-phase10-send-jobs ?run=1 호출 후 메인이 활성화.
-   활성화 절차: 아래 두 블록의 주석 해제 + 마이그 파일 삭제 + push.
+   ========================================================= */
 
 export const communicationSendJobs = pgTable("communication_send_jobs", {
   id:                bigserial("id", { mode: "number" }).primaryKey(),
@@ -2253,5 +2252,5 @@ export const communicationSendRecipients = pgTable("communication_send_recipient
 export type CommunicationSendRecipient    = typeof communicationSendRecipients.$inferSelect;
 export type NewCommunicationSendRecipient = typeof communicationSendRecipients.$inferInsert;
 
-   === Phase 10 R3 정의 끝 === */
+/* === Phase 10 R3 정의 끝 === */
 
