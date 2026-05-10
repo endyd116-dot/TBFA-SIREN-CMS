@@ -200,6 +200,10 @@
     const canCancel = (status === "pending" || status === "processing");
     $("btnCancel").style.display = canCancel ? "" : "none";
 
+    // 재발송 버튼: 완료·실패 상태에서 실패자 있을 때
+    const canRetry = isTerminal(status) && Number(job.failureCount || 0) > 0;
+    $("btnRetryFailed").style.display = canRetry ? "" : "none";
+
     // 라이브 표시
     $("liveDot").style.display = (status === "processing") ? "" : "none";
 
@@ -305,7 +309,7 @@
     });
     if (!res.ok) {
       const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
-      $("recBody").innerHTML = `<tr><td colspan="6" class="empty-state" style="color:#b91c1c;">${escapeHtml(detail)}</td></tr>`;
+      $("recBody").innerHTML = `<tr><td colspan="7" class="empty-state" style="color:#b91c1c;">${escapeHtml(detail)}</td></tr>`;
       return;
     }
     const payload = res.data?.data ?? res.data ?? {};
@@ -317,12 +321,15 @@
 
   function renderRecipients(rows) {
     if (!rows.length) {
-      $("recBody").innerHTML = `<tr><td colspan="6" class="empty-state">조건에 맞는 수신자가 없습니다.</td></tr>`;
+      $("recBody").innerHTML = `<tr><td colspan="7" class="empty-state">조건에 맞는 수신자가 없습니다.</td></tr>`;
     } else {
       $("recBody").innerHTML = rows.map(r => {
         const st = String(r.status || "pending");
         const stLabel = REC_STATUS_LABEL[st] || st;
         const sentAt  = r.sentAt ? formatLocalDateTime(r.sentAt) : "-";
+        const retryBtn = (st === "failed")
+          ? `<button class="btn btn-sm" onclick="doRetryOne(${r.id})">재발송</button>`
+          : "";
         return `
           <tr>
             <td class="col-id">#${r.memberId ?? "-"}</td>
@@ -331,6 +338,7 @@
             <td class="col-stat"><span class="badge badge-${st === "sent" ? "completed" : st === "failed" ? "failed" : st === "cancelled" ? "cancelled" : "pending"}">${escapeHtml(stLabel)}</span></td>
             <td class="col-time">${escapeHtml(sentAt)}</td>
             <td class="col-err">${escapeHtml(r.error || "")}</td>
+            <td>${retryBtn}</td>
           </tr>
         `;
       }).join("");
@@ -341,6 +349,32 @@
     $("recPrev").disabled = recState.page <= 1;
     $("recNext").disabled = recState.page >= totalPages;
   }
+
+  /* ── 재발송 ── */
+  async function doRetryFailed() {
+    if (!confirm("실패한 수신자에게만 재발송하겠습니까?")) return;
+    $("btnRetryFailed").disabled = true;
+    const res = await api({ method: "POST", url: `/api/admin-send-job-retry-failed?id=${encodeURIComponent(jobId)}` });
+    $("btnRetryFailed").disabled = false;
+    if (!res.ok) {
+      showToast("재발송 실패: " + (res.data?.error || res.data?.detail || "오류"), "error");
+      return;
+    }
+    const n = res.data?.recipientsCreated || res.data?.data?.recipientsCreated || "?";
+    showToast(`${n}명에게 재발송이 등록되었습니다.`);
+  }
+
+  async function doRetryOne(recipientId) {
+    if (!confirm("이 수신자에게 개별 재발송하겠습니까?")) return;
+    const res = await api({ method: "POST", url: `/api/admin-send-job-retry?id=${encodeURIComponent(jobId)}`, body: { recipientId } });
+    if (!res.ok) {
+      showToast("재발송 실패: " + (res.data?.error || res.data?.detail || "오류"), "error");
+      return;
+    }
+    showToast("1명에게 재발송이 등록되었습니다.");
+  }
+
+  window.doRetryOne = doRetryOne;
 
   /* ── 취소 ── */
   async function doCancel() {
@@ -370,6 +404,7 @@
   /* ── 이벤트 ── */
   function bindEvents() {
     $("btnCancel").addEventListener("click", doCancel);
+    $("btnRetryFailed").addEventListener("click", doRetryFailed);
 
     document.querySelectorAll(".filter-tabs button").forEach(btn => {
       btn.addEventListener("click", () => {

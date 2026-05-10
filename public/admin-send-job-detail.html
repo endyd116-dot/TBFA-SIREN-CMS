@@ -204,6 +204,8 @@ body {
 
     <div class="btn-bar">
       <button class="btn btn-danger" id="btnCancel" style="display:none;">발송 취소</button>
+      <button class="btn" id="btnRetryFailed" style="display:none;">실패만 재발송</button>
+      <button class="btn" id="btnRetryAll" style="display:none; display:none;">전체 재발송</button>
     </div>
   </div>
 
@@ -228,6 +230,7 @@ body {
             <th class="col-stat">상태</th>
             <th class="col-time">발송 시각</th>
             <th class="col-err">실패 사유</th>
+            <th style="width:80px"></th>
           </tr>
         </thead>
         <tbody id="recBody">
@@ -247,6 +250,6 @@ body {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-send-job-detail.js?v=1"></script>
+<script src="/js/admin-send-job-detail.js?v=2"></script>
 </body>
 </html>

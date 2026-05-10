@@ -4356,6 +4356,15 @@ const OPERATOR_CATEGORIES = [
       '<div class="mi-section">' +
       '<div class="support-detail-label">최근 지원 신청</div>' +
       '<div class="mini-list">' + recentSupportHtml + '</div>' +
+      '</div>' +
+
+      /* Phase 10 R4: 메시지 이력 진입 버튼 */
+      '<div class="mi-action-row" style="margin-top:12px">' +
+        '<a href="/admin-member-send-history.html?memberId=' + member.id + '" ' +
+           'onclick="window.location.href=\'/admin-member-send-history.html?memberId=' + member.id + '\';return false;" ' +
+           'style="display:inline-block;padding:7px 14px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;text-decoration:none;color:#1e293b;background:#fff">' +
+          '📬 이 회원에게 보낸 메시지 이력' +
+        '</a>' +
       '</div>';
   }
 

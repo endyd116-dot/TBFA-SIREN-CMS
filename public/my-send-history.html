@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>받은 메시지 | SIREN</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f8fafc; color: #1e293b;
+}
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 16px;
+}
+.filter-bar label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.825rem; color: #475569;
+}
+.filter-bar select,
+.filter-bar input[type="date"] {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+
+.btn { padding: 6px 12px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
+.btn:hover { background: #f8fafc; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+.msg-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+.msg-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 16px 20px; cursor: pointer; transition: border-color .15s;
+}
+.msg-card:hover { border-color: #93c5fd; }
+.msg-card-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.msg-card-title { font-weight: 600; font-size: 0.92rem; }
+.msg-card-meta  { font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 8px; }
+.msg-card-preview { font-size: 0.84rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.73rem; font-weight: 500;
+}
+.badge-email { background: #eff6ff; color: #1e40af; }
+.badge-sms   { background: #f0fdf4; color: #166534; }
+.badge-kakao { background: #fefce8; color: #854d0e; }
+.badge-inapp { background: #faf5ff; color: #6d28d9; }
+.badge-sent  { background: #dcfce7; color: #166534; }
+.badge-failed{ background: #fee2e2; color: #b91c1c; }
+
+.pagination {
+  display: flex; align-items: center; gap: 8px; justify-content: center; padding: 8px;
+}
+.pagination span { font-size: 0.85rem; color: #475569; }
+
+.empty { text-align: center; padding: 48px; color: #94a3b8; font-size: 0.9rem; }
+
+/* 본문 모달 */
+.modal-bg {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 14px; width: 640px; max-width: 95vw;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #64748b; }
+.modal-body { flex: 1; overflow-y: auto; padding: 18px 20px; }
+.mail-subject { font-weight: 600; margin-bottom: 10px; color: #1e293b; font-size: 0.95rem; }
+.mail-body { white-space: pre-wrap; font-size: 0.875rem; line-height: 1.75; color: #334155; }
+.mail-meta { font-size: 0.78rem; color: #94a3b8; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+
+/* 토스트 */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 8px;
+  font-size: 0.9rem; opacity: 0; transition: opacity .25s; z-index: 9999; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.error { background: #b91c1c; }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <a class="back-link" href="/my.html" onclick="window.location.href='/my.html';return false;">← 마이페이지</a>
+  <div class="page-title">📬 받은 메시지</div>
+  <div class="page-desc">협회에서 보낸 메시지를 확인합니다.</div>
+
+  <div class="filter-bar">
+    <label>채널
+      <select id="filterChannel">
+        <option value="">전체</option>
+        <option value="email">이메일</option>
+        <option value="sms">SMS</option>
+        <option value="kakao">카카오</option>
+        <option value="inapp">인앱</option>
+      </select>
+    </label>
+    <label>시작일 <input type="date" id="filterFrom" /></label>
+    <label>종료일 <input type="date" id="filterTo" /></label>
+  </div>
+
+  <div class="msg-list" id="msgList">
+    <div class="empty">불러오는 중…</div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- 본문 모달 -->
+<div class="modal-bg" id="bodyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>메시지 내용</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mail-meta" id="modalMeta"></div>
+      <div class="mail-subject" id="modalSubject"></div>
+      <div class="mail-body" id="modalBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/my-send-history.js?v=1"></script>
+</body>
+</html>
