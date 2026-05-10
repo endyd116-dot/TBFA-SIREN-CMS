@@ -167,7 +167,8 @@ export default async (req: Request, _ctx: Context) => {
         m.donor_channels,
         m.next_billing_date,
         m.donor_evaluated_at,
-        m.hyosung_contract_status
+        m.hyosung_contract_status,
+        m.hyosung_promise_day
       FROM members m
       WHERE m.donor_type = 'regular'
         ${channelFilter}
@@ -243,7 +244,9 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-regular-list] billing_keys 조회 실패 — 0 fallback", err);
   }
 
-  /* 4-2. 효성 contracts active (product_amount) */
+  /* 4-2. 효성 contracts active (product_amount)
+   * hc.contract_status는 한국어 원본("사용") 그대로 보존 — 영문 코드 비교만 하면 매치 안 됨.
+   * 양쪽(한국어/영문) 모두 허용하여 운영 안정성 확보. */
   const hyosungAmountMap = new Map<number, number>();
   try {
     const rs: any = await db.execute(sql`
@@ -251,7 +254,7 @@ export default async (req: Request, _ctx: Context) => {
       FROM members m
       LEFT JOIN hyosung_contracts hc
         ON hc.member_no = m.hyosung_member_no
-       AND LOWER(COALESCE(hc.contract_status,'')) = 'active'
+       AND (hc.contract_status = '사용' OR LOWER(COALESCE(hc.contract_status,'')) = 'active')
       WHERE m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
         AND LOWER(COALESCE(m.hyosung_contract_status,'')) = 'active'
       GROUP BY m.id
@@ -328,7 +331,11 @@ export default async (req: Request, _ctx: Context) => {
 
       const memberNextBilling = r.next_billing_date ? new Date(r.next_billing_date) : null;
       const tossNextCharge = tossInfo?.nextChargeAt || null;
-      const nextBillingDate = memberNextBilling || tossNextCharge;
+      /* 효성 회원은 토스 빌링키 없음 → hyosung_promise_day(약정일) 기반으로 다음 청구일 계산 */
+      const promiseDay = Number(r.hyosung_promise_day) || null;
+      const hyosungActive = String(r.hyosung_contract_status || "").toLowerCase() === "active";
+      const hyosungNext = (hyosungActive && promiseDay) ? computeHyosungNextBilling(promiseDay) : null;
+      const nextBillingDate = memberNextBilling || tossNextCharge || hyosungNext;
 
       const hcDetail = hyosungDetailMap.get(id) ?? null;
       return {
@@ -388,6 +395,24 @@ export default async (req: Request, _ctx: Context) => {
    헬퍼
    ========================================================= */
 
+/**
+ * 효성 약정일(promise_day) 기반 다음 청구일 계산.
+ * 효성 회원은 토스 빌링키가 없어 next_charge_at가 비어있음 — 약정일로 보정.
+ * - 오늘이 약정일 이전이면 이번달 약정일
+ * - 오늘이 약정일 당일/이후면 다음달 약정일
+ * - 약정일이 그달 마지막 일자보다 크면 마지막 일자(예: 2월 31일 → 2월 28/29일)
+ */
+function computeHyosungNextBilling(promiseDay: number): Date | null {
+  const day = Math.floor(Number(promiseDay) || 0);
+  if (day < 1 || day > 31) return null;
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (now.getDate() >= day) target.setMonth(target.getMonth() + 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDay));
+  return target;
+}
+
 function normalizeChannels(raw: any): DonorChannel[] {
   if (!raw) return [];
   let arr: any[] = [];
@@ -432,7 +457,7 @@ async function fetchRegularKpi() {
       COALESCE((
         SELECT SUM(hc.product_amount) FROM hyosung_contracts hc
         INNER JOIN members m ON m.hyosung_member_no = hc.member_no
-        WHERE LOWER(COALESCE(hc.contract_status,'')) = 'active'
+        WHERE (hc.contract_status = '사용' OR LOWER(COALESCE(hc.contract_status,'')) = 'active')
           AND LOWER(COALESCE(m.hyosung_contract_status,'')) = 'active'
           AND m.donor_type = 'regular'
       ), 0)

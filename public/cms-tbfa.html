@@ -700,6 +700,40 @@
       </section>
 
       <section class="cms-page" id="page-members">
+        <!-- 가입경로별 인원수 KPI (Phase 2 단계 D 후속) -->
+        <div class="cms-kpi-grid donor-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252">👥</div>
+            <div class="cms-kpi-label">전체 회원</div>
+            <div class="cms-kpi-value" id="msKpiTotal">-</div>
+            <div class="cms-kpi-delta">통합 풀 전체</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">🌐</div>
+            <div class="cms-kpi-label">싸이렌</div>
+            <div class="cms-kpi-value" id="msKpiSiren">-</div>
+            <div class="cms-kpi-delta">웹 직접 가입</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
+            <div class="cms-kpi-label">효성</div>
+            <div class="cms-kpi-value" id="msKpiHyosung">-</div>
+            <div class="cms-kpi-delta">효성 CMS+ 흡수</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5ed;color:#1a8b46">✍️</div>
+            <div class="cms-kpi-label">수기</div>
+            <div class="cms-kpi-value" id="msKpiManual">-</div>
+            <div class="cms-kpi-delta">관리자 수동 등록</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">🤝</div>
+            <div class="cms-kpi-label">기타</div>
+            <div class="cms-kpi-value" id="msKpiOther">-</div>
+            <div class="cms-kpi-delta">이벤트·기타·미분류</div>
+          </div>
+        </div>
+
         <div class="cms-filter-bar">
           <div class="cms-filter-group">
             <!-- Phase 1: 회원 유형 차원은 단계 C에서 복원 (signup_source/donor_type 으로 대체) -->
@@ -1548,5 +1582,6 @@
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d3"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
+  <script src="/js/cms-tbfa-source-kpi.js?v=2026-05-10-q4"></script>
 </body>
 </html>
