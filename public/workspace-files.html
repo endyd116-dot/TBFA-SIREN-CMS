@@ -6,6 +6,7 @@
   <title>파일함 - SIREN 워크스페이스</title>
   <link rel="stylesheet" href="/css/base.css?v=1" />
   <link rel="stylesheet" href="/css/workspace-files.css?v=1" />
+  <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1" />
 </head>
 <body class="wf-page">
 
@@ -20,6 +21,8 @@
       <h1 class="wf-title">📁 파일함</h1>
     </div>
     <div class="wf-topbar-right">
+      <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+      <div class="quick-jump" data-quick-jump style="margin:0"></div>
       <span id="wfUserName" class="wf-user-name">—</span>
     </div>
   </header>
@@ -286,5 +289,6 @@
 
   <!-- placeholder JS (Step 6에서 본격 구현) -->
   <script src="/js/workspace-files.js?v=1"></script>
+  <script src="/js/quick-jump.js?v=2026-05-10-q1"></script>
 </body>
 </html>

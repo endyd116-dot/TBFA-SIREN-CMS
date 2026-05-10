@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 CSS -->
 <link rel="stylesheet" href="/css/workspace.css?v=5">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
 </head>
 
 <body class="ws-body">
@@ -109,24 +110,8 @@
       </ul>
     </nav>
 
-    <!-- 허브 이동 -->
-    <div class="ws-sidebar-hubs">
-      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
-      <ul>
-        <li>
-          <a href="/admin.html" title="SIREN 어드민">
-            <span class="ws-nav-icon">🚨</span>
-            <span class="ws-nav-text">SIREN 어드민</span>
-          </a>
-        </li>
-        <li>
-          <a href="/cms-tbfa.html" title="TBFA CMS">
-            <span class="ws-nav-icon">🏦</span>
-            <span class="ws-nav-text">TBFA CMS</span>
-          </a>
-        </li>
-      </ul>
-    </div>
+    <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+    <div class="quick-jump" data-quick-jump></div>
 
     <!-- 하단 사용자 영역 -->
     <div class="ws-sidebar-user">
@@ -425,5 +410,6 @@
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
 <script src="/js/workspace.js?v=5" defer></script>
+<script src="/js/quick-jump.js?v=2026-05-10-q1"></script>
 </body>
 </html>

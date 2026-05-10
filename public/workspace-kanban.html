@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=3">
 <link rel="stylesheet" href="/css/workspace-kanban.css?v=3">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
 </head>
 
 <body class="ws-body">
@@ -85,13 +86,8 @@
         </li>
       </ul>
     </nav>
-    <div class="ws-sidebar-hubs">
-      <div class="ws-hubs-title"><span class="ws-nav-text">허브 이동</span></div>
-      <ul>
-        <li><a href="/admin.html" title="SIREN 어드민"><span class="ws-nav-icon">🚨</span><span class="ws-nav-text">SIREN 어드민</span></a></li>
-        <li><a href="/cms-tbfa.html" title="TBFA CMS"><span class="ws-nav-icon">🏦</span><span class="ws-nav-text">TBFA CMS</span></a></li>
-      </ul>
-    </div>
+    <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+    <div class="quick-jump" data-quick-jump></div>
     <div class="ws-sidebar-user">
       <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
         <span class="ws-user-avatar">👤</span>
@@ -464,6 +460,7 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/workspace-kanban.js?v=5" defer></script>
+<script src="/js/quick-jump.js?v=2026-05-10-q1"></script>
 
 </body>
 </html>

@@ -1,0 +1,156 @@
+/* ===========================================================
+   퀵이동 (quick-jump) — 어드민·워크스페이스 공통 화면 전환 컴포넌트
+   1뎁스: "🚀 퀵이동" 토글 (평상시 보임)
+   2뎁스: 싸이렌 어드민 / 통합 CMS / 허브 / 사용자 홈페이지 / 워크스페이스
+          (평상시 숨김, 1뎁스 클릭 시 펼침, 현재 페이지 자기 자신은 영구 숨김)
+   =========================================================== */
+
+.quick-jump {
+  margin: 12px 14px 14px;
+  padding: 0;
+  position: relative;
+}
+
+.quick-jump-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #e3e6eb);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f7f8fb);
+  color: var(--text-1, #1a1f2b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-align: left;
+  font-family: inherit;
+}
+.quick-jump-toggle:hover {
+  background: linear-gradient(180deg, #fafbff, #eef1f7);
+  border-color: var(--brand, #7a1f2b);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.quick-jump-toggle .quick-jump-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.quick-jump-toggle .quick-jump-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-jump-toggle .quick-jump-chevron {
+  font-size: 11px;
+  color: var(--text-3, #94a0b3);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.quick-jump[aria-expanded="true"] .quick-jump-toggle .quick-jump-chevron {
+  transform: rotate(180deg);
+}
+
+.quick-jump-menu {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px;
+  border: 1px solid var(--line, #e3e6eb);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  display: none;
+}
+.quick-jump[aria-expanded="true"] .quick-jump-menu {
+  display: block;
+}
+
+.quick-jump-menu li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.quick-jump-menu li[data-current] {
+  display: none !important;
+}
+
+.quick-jump-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 6px;
+  color: var(--text-1, #1a1f2b);
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+}
+.quick-jump-menu a:hover {
+  background: #f3f5fa;
+  color: var(--brand, #7a1f2b);
+}
+.quick-jump-menu a .quick-jump-item-icon {
+  width: 18px;
+  font-size: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ===========================================================
+   워크스페이스 슬림 사이드바 전용 변형
+   - 평상시 60px일 때는 라벨/메뉴 숨김, 호버 시 펼침
+   =========================================================== */
+.ws-sidebar .quick-jump {
+  margin: 10px 8px 12px;
+}
+.ws-sidebar .quick-jump-toggle {
+  padding: 9px 8px;
+  justify-content: center;
+}
+.ws-sidebar:hover .quick-jump-toggle,
+.ws-sidebar.is-open .quick-jump-toggle {
+  justify-content: flex-start;
+  padding: 9px 12px;
+}
+.ws-sidebar .quick-jump-toggle .quick-jump-label,
+.ws-sidebar .quick-jump-toggle .quick-jump-chevron {
+  display: none;
+}
+.ws-sidebar:hover .quick-jump-toggle .quick-jump-label,
+.ws-sidebar.is-open .quick-jump-toggle .quick-jump-label,
+.ws-sidebar:hover .quick-jump-toggle .quick-jump-chevron,
+.ws-sidebar.is-open .quick-jump-toggle .quick-jump-chevron {
+  display: inline;
+}
+/* 슬림 상태에서는 펼쳐진 메뉴를 절대위치 팝아웃으로 */
+.ws-sidebar .quick-jump-menu {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 0;
+  min-width: 220px;
+  z-index: 50;
+}
+.ws-sidebar:hover .quick-jump-menu,
+.ws-sidebar.is-open .quick-jump-menu {
+  position: static;
+  left: auto;
+  top: auto;
+  min-width: 0;
+}
+
+/* ===========================================================
+   cms-tbfa 사이드바 변형 — 메뉴 폭에 자연스럽게 정렬
+   =========================================================== */
+.cms-side .quick-jump {
+  margin: 10px 14px 14px;
+}
+
+/* ===========================================================
+   admin.html 사이드바 변형 — adm-side 색상 톤에 맞춤
+   =========================================================== */
+.adm-side .quick-jump {
+  margin: 10px 14px 14px;
+}

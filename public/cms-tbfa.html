@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/cms-common.css">
 <link rel="stylesheet" href="/css/cms-tbfa.css?v=2026-05-10-d2">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
 
 <style>
   /* ★ STEP H-2d-4: 영수증 설정 페이지 전용 (교유협 CMS) */
@@ -197,13 +198,9 @@
 
   <!-- ============ 사이드바 ============ -->
   <aside class="cms-side">
-    <a href="/admin-hub.html" class="cms-back">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-      허브로 돌아가기
-    </a>
-    
+    <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+    <div class="quick-jump" data-quick-jump></div>
+
     <div class="cms-logo">
       <div class="cms-logo-icon" style="background:linear-gradient(135deg,#1a5ec4,#0d3d8a)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -1544,5 +1541,6 @@
   <script src="/js/cms-tbfa.js?v=2026-05-10-d2"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d3"></script>
+  <script src="/js/quick-jump.js?v=2026-05-10-q1"></script>
 </body>
 </html>
