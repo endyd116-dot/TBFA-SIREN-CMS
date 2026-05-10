@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-11 | 메인 | **Phase 10 R4 설계서 작성 완료 (통합 마무리 — 추적·AI·분석·재발송·이력)** — 6개 영역 통합 / 신규 테이블 3종 + 기존 5컬럼 추가 / API 17개 + cron 2개 + 마이그 / 화면 5개 + R3 보강 / 검증 Q1~Q18 + cron + 성능 + 보안 / B 13~14h(2차 머지) + A 13~15h / 평행+단계머지 / Swain 정책: A·B 작업량 ↑로 메인 대기 ↓ |
-| 2026-05-11 | 메인 | **Phase 10 R3 코드 100% 머지 + #BACKFILL-1 ✅ 해결** — R3 마이그 호출 success → schema 활성화·마이그 파일 삭제(897cad4) + A 프론트 7파일 머지(857674d) / #BACKFILL-1: 자동 백필 3차 모두 키 부족 → Swain 결정으로 옛 자료 삭제(donations 44·billings 41·contracts 54) 후 운영자가 계약→수납 순서 재 import 예정 |
-| 2026-05-11 | **C 채팅** | **Phase 10 R2 라이브 검증 통과** — 페이지 4종 200, 백엔드 7개 API 모두 401 정상 (500 0건). Q1~Q9 시나리오 모두 PASS — 시드 4건 표시·필터/수동 명단·미리보기·동적 그룹·화이트리스트·페이지네이션·soft delete·필터 0개 거부. baseline 응답 ~0.6s (R1 동등). Phase 4·8·9·10 R1·6순위 #8 회귀 0. bug 0건. 보고서 `docs/verify/2026-05-11-phase10-r2.md` |
-| 2026-05-11 | 메인 | **Phase 10 R2 코드 100% 머지 완료** — Swain 마이그 호출 응답 success(시드 4건, grade_code 자동 보정) → schema recipientGroups 활성화 + 마이그 파일 삭제(7f2163b) + A 프론트 5파일 머지(b969bb2) → 라이브 진입 점검 + C R2 검증 트리거 대기 |
-| 2026-05-11 | 메인 | **R2 백 + C Q4·Q5 통합 머지 + 설계 모호성 즉시 질문 정책 추가** — R2 백 10파일(B `90b3b26`) main 머지 / Q4·Q5 verify 흡수 / PARALLEL_GUIDE §1.7 신규 |
+| 2026-05-11 | 메인 | **Phase 10 R3 100% 마감 + BUG-8 fix 흡수** — C verify/phase10-r3(d408006) main 머지 / R3 ✅ 완료 / R4 B·A·C 트리거 시작 |
+| 2026-05-11 | **C 채팅** | **Phase 10 R3 라이브 검증 통과 + BUG-8 fix** — Q1~Q12 모두 PASS. 발송 작업 등록자 NULL 저장 버그(BUG-8, BUG-5 회귀 클래스) 발견·1줄 fix. cron 디스패처 정합성 양호. 어댑터 직접 호출 + 카카오 자동 스킵. baseline ~0.6s. 회귀 0. 보고서 `docs/verify/2026-05-11-phase10-r3.md` |
+| 2026-05-11 | 메인 | **Phase 10 R4 설계서 작성 완료 (통합 마무리 — 추적·AI·분석·재발송·이력)** — 6개 영역 통합 / 신규 테이블 3종 + 기존 5컬럼 추가 / API 17개 + cron 2개 + 마이그 / B 13~14h(2차 머지) + A 13~15h |
+| 2026-05-11 | 메인 | **Phase 10 R3 코드 100% 머지 + #BACKFILL-1 ✅ 해결** — schema·cron 활성화(897cad4) + 프론트 7파일(857674d) / 옛 효성 자료 삭제 완료 — 운영자 재 import 예정 |
+| 2026-05-11 | **C 채팅** | **Phase 10 R2 라이브 검증 통과** — Q1~Q9 PASS, bug 0. 보고서 `docs/verify/2026-05-11-phase10-r2.md` |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -36,12 +36,12 @@
 ## 3. 현재 작업 모드
 
 ```
-🟢 Phase 10 R3 코드 100% 머지 완료 — C R3 검증(Q-신규) + 라운드 마감만 잔여
-   ├─ A: ✅ R3 프론트 main 머지 완료 — 세션 종료
-   ├─ B: ✅ R3 백 main 머지 완료 — 세션 종료
-   ├─ C: ⏸ R3 검증 트리거 대기. 또는 Q7 SMS·Q8 카카오(외부 발송 환경변수 후)
+🟢 Phase 10 R3 100% 완료 — R4 B·A·C 평행 트리거 진행 중
+   ├─ A: ✅ R3 완료 — R4 프론트 트리거 대기
+   ├─ B: ✅ R3 완료 — R4 백 1차 트리거 대기
+   ├─ C: ✅ R3 검증 완료(BUG-8 fix 포함) — R4 검증 트리거 대기(B·A 머지 후)
    └─ D: 휴면
-   메인: 라이브 진입 1차 점검 → C R3 검증 트리거 → 라운드 마감 → R4 설계
+   메인: R3 100% 마감 완료 → R4 B·A 트리거 → 작업 진행 대기
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
@@ -55,15 +55,9 @@
 > 완료된 병렬 작업 분담 정의는 git history + `docs/handover/v20.md` 참고.
 > 새 병렬 작업 시작 시 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §4 템플릿 사용.
 
-### 4.1 Phase 10 R3 — 통합 발송 시스템: 발송 예약 큐
+### 4.1 Phase 10 R3 — 통합 발송 시스템: 발송 예약 큐 (✅ 100% 마감)
 
-| 항목 | 값 |
-|---|---|
-| 진행률 | 🟢 88% — 코드 100% 머지 / C 검증(Q-신규) + 라운드 마감 잔여 |
-| 담당 | 메인(C 트리거 대기) / B(완료) / A(완료) / C(다음 세션 R3 검증) |
-| 다음 할 일 | C R3 검증 트리거 → 보고 흡수 → 라운드 마감 → R4 설계 |
-| 설계서 | [docs/milestones/2026-05-11-phase10-r3-send-queue.md](docs/milestones/2026-05-11-phase10-r3-send-queue.md) |
-| B 설계 변경 | 어댑터 직접 호출 → `lib/email`·`lib/aligo-client`·`lib/notify` 직접 호출. 카카오는 사전 심사 통과 템플릿만 발송 가능 → R3에서 skipped 반환 + preflight 경고 |
+코드 100% 머지 + C Q1~Q12 라이브 검증 통과 + BUG-8 fix. R4 진입.
 
 ### 4.2 Phase 10 R2 — 수신자 그룹 (✅ 100% 마감)
 
@@ -102,8 +96,8 @@
 | **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 코드 100% — 9-A SMS·9-B 카카오 어댑터·9-B 수신 설정 UI / 9-B 라이브 검증 통과 (Q1) / 🟡 #BACKFILL-1 호출 대기·카카오 심사 대기 (Q7·Q8) |
 | **Phase 10 R1 템플릿 빌더** | ✅ 100% — 코드 머지 (8db8ffb·cef0f69) + C Q9 라이브 검증 통과 (2026-05-11). 업무 시나리오 클릭 테스트는 Swain 직접 (보고서 §6) |
 | **Phase 10 R2 수신자 그룹** | ✅ 100% — 코드 머지 (7f2163b·b969bb2) + C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r2.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
-| **Phase 10 R3 발송 예약 큐** | ✅ 코드 100% 머지 (897cad4·857674d) — schema·cron 활성화 / 🟡 C R3 라이브 검증 대기 |
-| **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | 🟢 설계서 완료 ([R4 설계서](docs/milestones/2026-05-11-phase10-r4-tracking-ai-analytics.md)) — R3 검증 후 또는 평행 트리거 |
+| **Phase 10 R3 발송 예약 큐** | ✅ 100% — 코드 머지 (897cad4·857674d) + C 라이브 검증 통과 + BUG-8 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r3.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
+| **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | 🟢 설계서 완료 ([R4 설계서](docs/milestones/2026-05-11-phase10-r4-tracking-ai-analytics.md)) — B·A·C 트리거 진행 중 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
 | **Phase 13 신고 통계 대시보드** | ✅ 카탈로그 / ⏸ |
@@ -126,6 +120,7 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
+| ~~#BUG-8~~ | 2026-05-11 | `admin-send-job-create.ts:38` 어드민 ID NULL 저장 (BUG-5 회귀 클래스) | 🟠 High | ✅ 해결 (C verify R3 세션, 1줄 fix) | docs/verify/2026-05-11-phase10-r3.md §3 |
 | ~~#BACKFILL-1~~ | 2026-05-10 | 효성 후원 결제일 NULL (44건) | 🟡 Medium | ✅ 해결 (2026-05-11) — 옛 자료 삭제 후 운영자 재 import 진행 (계약→수납 순서) | [docs/issues/2026-05-10-hyosung-paid-date-backfill.md](docs/issues/2026-05-10-hyosung-paid-date-backfill.md) |
 | ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
@@ -146,7 +141,7 @@
 | `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 10 R1 라운드 마감 (Q9 verify 흡수) → R2 설계 |
 | `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
 | `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ Q4·Q5·R2·Q6 통과 (2026-05-11) — 다음 세션은 Q-진단-2(약정일 마이그 호출 후) 또는 R3 검증(A·B 머지 후) |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ Q4·Q5·R2·Q6·R3(+BUG-8 fix) 통과 (2026-05-11) — 다음 세션은 Q7·Q8(외부 발송, 환경변수 후) 또는 R4 검증 |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
