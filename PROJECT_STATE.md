@@ -112,7 +112,7 @@
 | **Phase 13 신고 통계 대시보드** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 2건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase13.md`) |
 | **Phase 14 외부 기관 인계** | ✅ 100% — C 라이브 검증 PASS + BUG-14-07/08 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase14.md`) |
 | **Phase 15 전문가 매칭 고도화** | 🟣 C 라이브 검증 진행 중 |
-| **Phase 16 통합 분석 대시보드** | 🔵 B+A mock 머지 완료 / ⏸ A 실API 연결 + C 라이브 검증 대기 |
+| **Phase 16 통합 분석 대시보드** | 🔵 B+A 실API 연결 완료 / ⏸ C 라이브 검증 대기 |
 | **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
 | **Phase 18 성능 최적화** | ✅ 설계서 완성 ([2026-05-11-phase18-performance.md](docs/milestones/2026-05-11-phase18-performance.md)) / ⏸ B 대기 |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ B 대기 |
