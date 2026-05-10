@@ -2,7 +2,34 @@
 
 > **발견**: 2026-05-10 / C 채팅 (Q12 fix 완료 보고)
 > **심각도**: 🟡 Medium — 기능 동작은 정상, 그래프 정확도만 영향
-> **상태**: ⏸ 별도 라운드 대기
+> **상태**: 🟡 1차 마이그 가정 어긋남 — 추가 진단 필요 (C 큐 Q-진단)
+
+---
+
+## 2026-05-10 진단 결과 (Swain 호출)
+
+`/api/migrate-hyosung-paid-date-backfill` 진단 모드 응답:
+
+```json
+{"ok":true,"mode":"diagnostic","state":{"candidates":0,"hyosung_null_total":44,"hyosung_total":44}}
+```
+
+**해석**: 효성 결제 전체 44건 모두 `hyosung_paid_date` NULL. 그 중 memo 컬럼에 "결제일: YYYY-MM-DD" 패턴 매칭되는 행 0건. 본 이슈 리포트가 가정한 "옛 7건" 범위가 아니라 효성 데이터 전체에 NULL — 가정 자체가 잘못됨.
+
+**원인 후보 3가지**:
+1. memo 형식이 다름 — "결제일:" 텍스트 자체가 없거나 다른 표현
+2. 최근 import도 paid_date를 안 채우고 있을 가능성 — import 코드 자체 fix 필요
+3. C가 Q12 fix 시점에 본 "7건"은 다른 조건 또는 다른 시점
+
+**다음 액션** (옵션 A — C 다음 세션):
+- memo 컬럼 샘플 10건 조회 → 실제 텍스트 형식 파악
+- 효성 import 코드(`netlify/functions/admin-finance-hyosung-import-*` 또는 동급) 검증 — paid_date 채우기 로직 존재 여부
+- 결과에 따라:
+  - memo 패턴 다름 → 정규식 보강 + 마이그 갱신 + 재호출
+  - import 코드 누락 → 코드 fix + 백필 마이그 별도
+  - 다른 컬럼(`created_at`, `donated_at`, 효성 CSV 별도 컬럼)에서 추출 가능 → 마이그 정규식 대신 컬럼 매핑 변경
+
+마이그 파일 자체는 보존(멱등). 진단 마치면 정규식·소스 컬럼 결정 후 갱신.
 
 ---
 
