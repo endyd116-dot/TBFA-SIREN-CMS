@@ -21,6 +21,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { getCache, setCache } from "../../lib/cache";
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(
@@ -57,6 +58,18 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
+  const CACHE_KEY = "members-source-kpi-v1";
+  const CACHE_TTL = 10 * 60; // 10분
+
+  /* 캐시 히트 시 즉시 반환 */
+  const cachedData = await getCache<{ total: number; siren: number; hyosung: number; manual: number; event: number; etc: number; other: number }>(CACHE_KEY);
+  if (cachedData) {
+    return new Response(
+      JSON.stringify({ ok: true, message: null, data: cachedData }),
+      { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
+    );
+  }
+
   /* 가입경로 코드별 회원 수 — signup_sources 와 LEFT JOIN, 매핑 누락은 'other' */
   try {
     const rs: any = await db.execute(sql`
@@ -85,6 +98,9 @@ export default async (req: Request, _ctx: Context) => {
       etc:     Number(row.etc)     || 0,
       other:   Number(row.other)   || 0,
     };
+
+    /* 캐시 저장 (실패해도 응답에 영향 없음) */
+    await setCache(CACHE_KEY, data, CACHE_TTL);
 
     return new Response(
       JSON.stringify({ ok: true, message: null, data }),
