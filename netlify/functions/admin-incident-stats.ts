@@ -279,10 +279,41 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[admin-incident-stats] legalConsultations 집계 실패:", err?.message);
   }
 
+  // A 프론트가 기대하는 구조로 변환
+  function toArray(obj: Record<string, number>, keyName: string) {
+    return Object.entries(obj).map(([k, v]) => ({ [keyName]: k, count: v }));
+  }
+  function toMonthlyTrend(trend: { ym: string; count: number }[]) {
+    return trend.map(r => ({ month: r.ym, count: r.count }));
+  }
+
+  const totalCount =
+    (incidentStats.total || 0) +
+    (harassmentStats.total || 0) +
+    (legalStats.total || 0);
+
   return ok({
     period,
-    incidentReports: incidentStats,
-    harassmentReports: harassmentStats,
-    legalConsultations: legalStats,
+    summary: {
+      total:      { count: totalCount },
+      incidents:  { count: incidentStats.total || 0 },
+      harassment: { count: harassmentStats.total || 0 },
+      legal:      { count: legalStats.total || 0 },
+    },
+    incidents: {
+      byStatus:     toArray(incidentStats.byStatus || {}, "status"),
+      bySeverity:   toArray(incidentStats.bySeverity || {}, "level"),
+      monthlyTrend: toMonthlyTrend(incidentStats.trend || []),
+    },
+    harassment: {
+      byStatus:     toArray(harassmentStats.byStatus || {}, "status"),
+      bySeverity:   toArray(harassmentStats.bySeverity || {}, "level"),
+      monthlyTrend: toMonthlyTrend(harassmentStats.trend || []),
+    },
+    legal: {
+      byStatus:     toArray(legalStats.byStatus || {}, "status"),
+      byUrgency:    toArray(legalStats.byUrgency || {}, "level"),
+      monthlyTrend: toMonthlyTrend(legalStats.trend || []),
+    },
   });
 }
