@@ -18,8 +18,8 @@
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 <link rel="stylesheet" href="/css/admin-report-print.css?v=20260510p4" media="print">
 <!-- Phase 20-A: 새 어드민 셸 -->
-<link rel="stylesheet" href="/css/admin-tokens.css?v=2026-05-11-phase20a">
-<link rel="stylesheet" href="/css/admin-shell.css?v=2026-05-11-phase20a">
+<link rel="stylesheet" href="/css/admin-tokens.css?v=2026-05-11-phase20b">
+<link rel="stylesheet" href="/css/admin-shell.css?v=2026-05-11-phase20b">
 
 <style>
   /* ===== ★ K-3: 지원 모달 — 전문가 배정 / 보완 / 완료 입력칸 ===== */
@@ -2735,15 +2735,15 @@
             <!-- admin-members-group.js가 채움 -->
           </div>
 
-          <!-- ─── 후원·재정 그룹 (20-B에서 채워짐) ─── -->
+          <!-- ─── 후원·재정 그룹 (20-B) ─── -->
           <div class="adm-view" id="adm20-donations">
-            <div class="adm-card"><div class="adm-card__title">💰 후원금 관리</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-donations-group.js가 채움 -->
           </div>
           <div class="adm-view" id="adm20-finance">
-            <div class="adm-card"><div class="adm-card__title">📊 재정 관리</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-finance-group.js가 채움 -->
           </div>
           <div class="adm-view" id="adm20-campaigns">
-            <div class="adm-card"><div class="adm-card__title">📢 캠페인 관리</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <div class="adm-card"><div class="adm-card__title">📢 캠페인 관리</div><p style="color:var(--tok-text-3);font-size:13px">20-C 단계 구현 예정</p></div>
           </div>
 
           <!-- ─── 사이렌 신고 ─── -->
@@ -2765,18 +2765,18 @@
             <div class="adm-card"><div class="adm-card__title">💬 문의 채팅</div><p style="color:var(--tok-text-3);font-size:13px">20-C 단계 구현 예정</p></div>
           </div>
 
-          <!-- ─── 알림·발송 (20-B에서 채워짐) ─── -->
+          <!-- ─── 알림·발송 (20-B) ─── -->
           <div class="adm-view" id="adm20-send-jobs">
-            <div class="adm-card"><div class="adm-card__title">📤 발송 작업</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-send-group.js가 채움 (발송 작업·템플릿·그룹·분석·로그 5탭) -->
           </div>
           <div class="adm-view" id="adm20-send-templates">
-            <div class="adm-card"><div class="adm-card__title">📝 발송 템플릿</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-send-group.js에서 탭 전환으로 처리 -->
           </div>
           <div class="adm-view" id="adm20-send-groups">
-            <div class="adm-card"><div class="adm-card__title">👥 수신자 그룹</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-send-group.js에서 탭 전환으로 처리 -->
           </div>
           <div class="adm-view" id="adm20-send-analytics">
-            <div class="adm-card"><div class="adm-card__title">📊 발송 분석·로그</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-send-group.js에서 탭 전환으로 처리 -->
           </div>
 
           <!-- ─── 콘텐츠 (20-C에서 채워짐) ─── -->
@@ -2790,15 +2790,15 @@
             <div class="adm-card"><div class="adm-card__title">📊 주간 보고서</div><p style="color:var(--tok-text-3);font-size:13px">20-C 단계 구현 예정</p></div>
           </div>
 
-          <!-- ─── AI 에이전트 (20-B에서 채워짐) ─── -->
+          <!-- ─── AI 에이전트 (20-B) ─── -->
           <div class="adm-view" id="adm20-ai-recommend">
-            <div class="adm-card"><div class="adm-card__title">🤖 AI 추천 센터</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-ai-group.js가 채움 (추천·활동보고서·자동 트리거 3탭) -->
           </div>
           <div class="adm-view" id="adm20-ai-activity">
-            <div class="adm-card"><div class="adm-card__title">📊 AI 활동보고서</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-ai-group.js에서 탭 전환으로 처리 -->
           </div>
           <div class="adm-view" id="adm20-ai-triggers">
-            <div class="adm-card"><div class="adm-card__title">⚡ AI 자동 발송 트리거</div><p style="color:var(--tok-text-3);font-size:13px">20-B 단계 구현 예정</p></div>
+            <!-- admin-ai-group.js에서 탭 전환으로 처리 -->
           </div>
 
           <!-- ─── 시스템·보안 (20-C에서 채워짐) ─── -->
@@ -5993,9 +5993,15 @@
   <script src="/js/admin-idle-guard.js?v=1"></script>
 
   <!-- Phase 20-A: 새 어드민 셸 + 회원·사이렌 그룹 -->
-  <script src="/js/admin-shell.js?v=2026-05-11-phase20a-live"></script>
-  <script src="/js/admin-members-group.js?v=2026-05-11-phase20a-live"></script>
-  <script src="/js/admin-siren-group.js?v=2026-05-11-phase20a-live"></script>
+  <script src="/js/admin-shell.js?v=2026-05-11-phase20b"></script>
+  <script src="/js/admin-members-group.js?v=2026-05-11-phase20b"></script>
+  <script src="/js/admin-siren-group.js?v=2026-05-11-phase20b"></script>
+
+  <!-- Phase 20-B: 후원·재정·발송·AI 에이전트 그룹 -->
+  <script src="/js/admin-donations-group.js?v=2026-05-11-phase20b"></script>
+  <script src="/js/admin-finance-group.js?v=2026-05-11-phase20b"></script>
+  <script src="/js/admin-send-group.js?v=2026-05-11-phase20b"></script>
+  <script src="/js/admin-ai-group.js?v=2026-05-11-phase20b"></script>
   <script>
   /* Phase 20-A: 로그인 성공 후 새 셸 활성화 */
   (function () {
