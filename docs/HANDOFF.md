@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-11 / Phase 11+12 B+A 머지 완료 / C 검증 대기 / Phase 13 라운드 병행 작업 추가 예정
+> **마지막 갱신**: 2026-05-11 / Phase 15+16 C 검증 완료 / 메인 머지 대기
 
 ---
 
@@ -13,7 +13,7 @@
 **SIREN(싸이렌)** = (사)교사유가족협의회 통합 NPO 플랫폼.
 
 - 라이브: <https://tbfa-siren-cms.netlify.app>
-- 베이스 브랜치: `main` (최신 커밋 `bc43cd3`)
+- 베이스 브랜치: `main`
 - 상세 스택·환경·구조: [`CLAUDE.md`](../CLAUDE.md) §1~5
 
 ---
@@ -33,77 +33,83 @@
 
 ## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
 
-### 3.1 Phase 11+12 — B+A 머지 완료, C 검증 대기
+### 3.1 Phase 15 — 전문가 매칭 고도화 C 검증 완료, 머지 대기
 
-**상태**: B(`feature/phase11-12-back`) + A(`feature/phase11-12-front`) 모두 main 머지 완료 (`bc43cd3`).
+**상태**: C 검증 브랜치 `verify/phase15` 완료 (`43a7aa6`). 메인 머지 필요.
 
-- C 채팅이 현재 `fix/typescript-errors` (TS 149건 정리) 작업 중
-- C 완료 보고 오면 → Phase 11+12 검증 트리거로 전환
+**검증 결과**: Q1~Q9 모두 PASS. 버그 6건 발견·수정.
 
-**주의 — API 경로 불일치 이미 수정 완료**:
-A가 사용하는 경로와 B 구현 경로가 달랐던 문제를 메인이 직접 수정 후 머지. 아래가 실제 연결된 경로:
+| BUG | 심각도 | 내용 |
+|---|---|---|
+| BUG-15-01 | Critical | AI 추천 백엔드가 존재하지 않는 테이블명(`legal_reports`) 사용 → `legal_consultations`로 수정 |
+| BUG-15-02 | High | AI 추천 백엔드가 잘못된 컬럼명(`content`) 사용 → 테이블별 실제 컬럼명(`content_html` / `content`) 분리 |
+| BUG-15-03 | Critical | 전문가 프로필 저장 API 경로 오타 → 올바른 경로로 수정 |
+| BUG-15-04 | Medium | 전문가 프로필 목록 조회 시 필터 파라미터를 백엔드가 미지원 → 전체 조회 후 화면에서 필터링으로 변경 |
+| BUG-15-05 | Critical | 매칭 후기 작성 화면이 matchId 없이 초기화돼 항상 오류 → 완료 카드에 [⭐ 후기 작성] 버튼 추가, matchId 연동 |
+| BUG-15-06 | High | AI 추천 화면이 matchId만 보내는데 백엔드는 sourceType·sourceId가 없으면 처리 불가 → 백엔드에서 matchId로 원본 정보 자동 조회 |
 
-| A 호출 | B 실제 경로 |
-|---|---|
-| `/api/user-post-subscriptions` | `user-post-subscriptions.ts` |
-| `/api/user-post-subscribe` | `user-post-subscribe.ts` |
-| `/api/user-mentions` (알림 탭) | `user-mentions.ts` |
-| `/api/user-mention-read` | `user-mention-read.ts` |
-| `/api/user-my-reports?type=X` | `user-my-reports.ts` |
-| `/api/admin-report-list-by-status` | `admin-report-list-by-status.ts` |
-| `/api/admin-anonymous-reveal` | `admin-anonymous-reveal.ts` |
-| `/api/admin-anonymous-reveal-logs` | `admin-anonymous-reveal-logs.ts` |
+**보고서**: [`docs/verify/2026-05-11-phase15.md`](verify/2026-05-11-phase15.md)
 
-### 3.2 Phase 13 + 병행 작업 — 다음 라운드 (설계 진행 중)
+---
 
-**배경**: Phase 13(신고 통계 대시보드)만 하면 B는 API 1개·A는 SPA 섹션 1개라 작업량이 너무 작아 대기 시간이 길어짐. 병행 작업을 추가해야 함.
+### 3.2 Phase 16 — 통합 분석 대시보드 C 검증 완료, 머지 대기
 
-**새 메인이 해야 할 일**: Phase 13과 병행할 작업을 선정·설계 후 B·A 트리거 발송.
+**상태**: C 검증 브랜치 `verify/phase16` 완료 (`21f6222`). 메인 머지 필요.
 
-병행 후보 (작업량 관점):
-- **Phase 16 일부** — 통합 분석 대시보드 중 이탈 위험 회원 목록 + KPI 위젯 (B: 집계 API 2~3개 / A: 대시보드 섹션)
-- **6순위 #6 자격 변경 사용자 검증 화면 보강** — 마이페이지 자격변경 신청·진행 상태 화면 (A만, B 불필요)
-- **mypage.html 접근 차단 해제** — A 보고에서 deny 목록 확인됨, settings.json 정책 검토 필요
+**검증 결과**: Q1~Q10 모두 PASS. 버그 2건 발견·수정.
 
-**설계서 위치**: [docs/milestones/2026-05-11-phase13-incident-stats.md](docs/milestones/2026-05-11-phase13-incident-stats.md) (Phase 13 단독분)
+| BUG | 심각도 | 내용 |
+|---|---|---|
+| BUG-16-01 | High | 통합 분석 대시보드 화면에 기간 선택 버튼이 없어 30일 고정 → [30일][90일][180일][365일] 버튼 추가 및 클릭 시 KPI 재조회 |
+| BUG-16-02 | High | 대표 보고서 [연간] 탭 클릭 시 분기 데이터 반환 → 화면 탭값(`yearly`)을 백엔드 인식값(`annual`)으로 매핑 추가 |
 
-### 3.3 충돌 재발 방지 정책 (2026-05-11 적용)
+**보고서**: [`docs/verify/2026-05-11-phase16.md`](verify/2026-05-11-phase16.md)
 
-**A·B 채팅은 `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 절대 금지.**
-원인: A가 자발적으로 PROJECT_STATE.md 갱신 → 메인 머지 2회 충돌.
-트리거 프롬프트 `금지:` 항목에 명시 완료 (PARALLEL_TEMPLATE.md §6.2·§6.3, PARALLEL_GUIDE.md §3).
+---
 
-### 3.4 4채팅 구조 (현재)
+### 3.3 새 C 채팅에게 (다음 작업)
+
+새 C 채팅은 Swain(사용자)이 다음 검증 작업 트리거를 보낼 때까지 대기.
+
+**C 작업 규칙 (반드시 준수)**:
+- 표현 규칙: 함수명·변수명·코드 용어 없이 사용자 동작·결과 위주로 설명
+- 금지: `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 (C는 검증 보고서만 작성)
+- worktree: `../tbfa-mis-C` / 현재 브랜치: `verify/phase16`
+
+---
+
+### 3.4 충돌 재발 방지 정책
+
+**A·B·C 채팅은 `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 절대 금지.**
+
+---
+
+### 3.5 4채팅 구조 (현재)
 
 | 채팅 | 모델 | 역할 | 현재 상태 |
 |---|---|---|---|
-| 메인 | Opus 4.7 | 설계·머지·조율 | 컨텍스트 한계 — 새 메인으로 인수인계 |
-| A | Sonnet 4.6 | 프론트 (`public/`) | Phase 11+12 완료, 대기 중 |
-| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | Phase 11+12 완료, 대기 중 |
-| C | Opus 4.7 | 검증·fix | `fix/typescript-errors` 작업 중 |
+| 메인 | Opus 4.7 | 설계·머지·조율 | 인수인계 진행 중 |
+| A | Sonnet 4.6 | 프론트 (`public/`) | Phase 15+16 완료 후 대기 |
+| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | Phase 15+16 완료 후 대기 |
+| C | Opus 4.7 | 검증·fix | Phase 15+16 검증 완료 / 머지 대기 |
 
 **worktree 폴더:**
 ```
 tbfa-mis        (메인) — 머지·조율 전용
 ../tbfa-mis-A  (A 채팅)
 ../tbfa-mis-B  (B 채팅)
-../tbfa-mis-C  (C 채팅)
+../tbfa-mis-C  (C 채팅) — 현재 verify/phase16
 ```
 
 ---
 
-### 3.5 머지 순서 (Phase 11+12 C 검증 후)
+### 3.6 머지 순서 (즉시)
 
 ```
-1. C fix/typescript-errors 완료 보고
-   → 메인 머지 → push
-
-2. C에게 Phase 11+12 검증 트리거
-   브랜치: verify/phase11-12 (베이스 main 최신)
-   설계서: docs/HANDOFF.md §3.1 API 경로 표 참고
-
-3. C 검증 PASS → Phase 11+12 마감
-   → Phase 13 + 병행 작업 B·A 동시 트리거
+1. verify/phase15 → main 머지 (C BUG-15-01~06 fix 포함)
+2. verify/phase16 → main 머지 (C BUG-16-01~02 fix 포함)
+3. PROJECT_STATE.md §5 Phase 15·16 상태 갱신
+4. 다음 단계: Phase 17 보안·감사 강화 (또는 Swain과 협의)
 ```
 
 ---
@@ -111,9 +117,11 @@ tbfa-mis        (메인) — 머지·조율 전용
 ## 4. 즉시 해야 할 일 (새 메인)
 
 ```
-1. Swain께 C 진행 상황 확인 (TS 정리 완료 여부)
-2. Phase 13 병행 작업 선정·설계 (Swain과 합의)
-3. C 완료 보고 오면 머지 → Phase 11+12 검증 트리거
+1. verify/phase15 머지 → main push
+2. verify/phase16 머지 → main push
+3. PROJECT_STATE.md §5 Phase 15·16 ✅ 표시
+4. Swain과 Phase 17 일정 협의 후 A·B 트리거
+5. C에게 Phase 17 검증 트리거 (A·B 완료 후)
 ```
 
 ---
@@ -130,7 +138,9 @@ tbfa-mis        (메인) — 머지·조율 전용
 | 2026-05-10 | bigserial import 누락 502 | B push 전 `npx tsc --noEmit` 의무 |
 | 2026-05-11 | #BUG-8 `auth.admin?.id` undefined | `auth.ctx?.admin?.uid` 직접 참조 |
 | 2026-05-11 | #BUG-9 schema 컬럼 누락 (마이그 후 미반영) | 마이그 직후 schema 전수 대조 필수 |
-| 2026-05-11 | A가 PROJECT_STATE.md 자발 수정 → 머지 2회 충돌 | A·B 트리거 프롬프트 `금지:` 항목에 명시 |
+| 2026-05-11 | A가 PROJECT_STATE.md 자발 수정 → 머지 2회 충돌 | A·B·C 트리거 프롬프트 `금지:` 항목에 명시 |
+| 2026-05-11 | BUG-15-01 존재하지 않는 테이블명 사용 | 백엔드 테이블명은 schema.ts에서 직접 확인 |
+| 2026-05-11 | BUG-15-05 matchId 미연결로 후기 기능 동작 불가 | 기능 단위 end-to-end 흐름 추적 필수 |
 
 ### 5.2 마이그레이션 호출 표준
 
@@ -162,13 +172,15 @@ const adminUid = auth.ctx?.admin?.uid;  // id 아님
 | Phase 8 알림 인프라 | ✅ 100% |
 | Phase 9 외부 API | ✅ 코드 100% / 🟡 실발송 환경변수 등록 후 자동 |
 | Phase 10 R1~R4 | ✅ 100% |
-| **Phase 11 멘션·구독** | 🟢 B+A 머지 완료 / ⏸ C 검증 대기 |
-| **Phase 12 신고 공개·익명** | 🟢 B+A 머지 완료 / ⏸ C 검증 대기 |
-| TypeScript 149건 | 🟢 C 작업 중 (`fix/typescript-errors`) |
-| **Phase 13 신고 통계** | ✅ 설계서 완료 / ⏸ 병행 작업 추가 후 B·A 트리거 |
-| Phase 14~22 | ⏸ 카탈로그만 |
+| Phase 11 멘션·구독 | ✅ B+A 머지 / ✅ C 검증 PASS |
+| Phase 12 신고 공개·익명 | ✅ B+A 머지 / ✅ C 검증 PASS |
+| Phase 13 신고 통계 | ✅ B+A 머지 / ✅ C 검증 PASS |
+| Phase 14 AI 어시스턴트 | ✅ B+A 머지 / ✅ C 검증 PASS |
+| **Phase 15 전문가 매칭** | ✅ B+A 머지 / 🟣 verify/phase15 머지 대기 |
+| **Phase 16 통합 분석** | ✅ B+A 머지 / 🟣 verify/phase16 머지 대기 |
+| Phase 17~22 | ⏸ 카탈로그만 |
 
-누적 약 **52%** / 약 490h+
+누적 약 **62%** / 약 580h+
 
 ---
 
@@ -178,9 +190,9 @@ const adminUid = auth.ctx?.admin?.uid;  // id 아님
 인수인계 정독 완료.
 
 현재 상태:
-- Phase 11+12: B+A 머지 완료, C 검증 대기
-- C: fix/typescript-errors 작업 중
-- Phase 13: 설계서 완료, 병행 작업 추가 필요
+- Phase 15: C 검증 PASS (verify/phase15 머지 대기)
+- Phase 16: C 검증 PASS (verify/phase16 머지 대기)
+- 다음: 두 브랜치 머지 후 Phase 17 일정 협의
 
-B·A·C 진행 상황 알려주시면 즉시 이어서 처리합니다.
+머지 순서대로 처리 후 Swain께 보고드립니다.
 ```
