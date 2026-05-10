@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>수신자 그룹 편집 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 20px 22px; margin-bottom: 16px;
+}
+.card h3 {
+  margin: 0 0 12px; font-size: 0.95rem; font-weight: 600; color: #1e293b;
+}
+
+.form-row { margin-bottom: 14px; }
+.form-row label.lbl {
+  display: block; font-size: 0.8rem; color: #475569;
+  margin-bottom: 6px; font-weight: 500;
+}
+.form-row .req { color: #b91c1c; margin-left: 2px; }
+
+.input, .textarea, .select {
+  width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1;
+  border-radius: 6px; font-size: 0.875rem; font-family: inherit;
+  background: #fff; color: #1e293b;
+}
+.textarea { min-height: 60px; resize: vertical; }
+
+.radio-group { display: flex; gap: 16px; align-items: center; }
+.radio-group label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.875rem; cursor: pointer;
+}
+.radio-group input[type="radio"] { accent-color: #1e40af; }
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.btn-primary:hover { background: #1d3fa8; }
+.btn-danger  { color: #b91c1c; border-color: #fecaca; }
+.btn-danger:hover { background: #fef2f2; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+.btn-ghost { background: none; border: 1px dashed #cbd5e1; color: #475569; }
+.btn-ghost:hover { background: #f8fafc; border-style: solid; }
+
+/* 필터 빌더 */
+.filter-builder {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 14px 16px;
+}
+.logic-row { margin-bottom: 12px; }
+.filter-table { width: 100%; border-collapse: collapse; }
+.filter-table th {
+  background: #fff; border-bottom: 1px solid #e2e8f0;
+  padding: 8px 10px; font-size: 0.75rem; color: #64748b;
+  font-weight: 600; text-align: left;
+}
+.filter-table td {
+  padding: 8px 6px; border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+.filter-table .col-field { width: 32%; }
+.filter-table .col-op    { width: 18%; }
+.filter-table .col-val   { }
+.filter-table .col-x     { width: 50px; text-align: right; }
+.filter-table select, .filter-table input {
+  width: 100%; padding: 6px 8px; border: 1px solid #cbd5e1;
+  border-radius: 6px; font-size: 0.825rem; font-family: inherit; background: #fff;
+}
+.filter-add-row { padding-top: 10px; }
+
+/* 수동 명단 */
+.manual-builder {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 14px 16px;
+}
+.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-row input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem; font-family: inherit; }
+.search-results {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+  margin-bottom: 12px; max-height: 200px; overflow-y: auto;
+}
+.search-result-item {
+  padding: 8px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+  font-size: 0.85rem; display: flex; justify-content: space-between;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: #f1f5f9; }
+.search-result-item .meta { color: #94a3b8; font-size: 0.78rem; }
+
+.member-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  min-height: 40px; padding: 8px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+}
+.member-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #dbeafe; color: #1e40af;
+  padding: 4px 8px 4px 10px; border-radius: 999px;
+  font-size: 0.8rem;
+}
+.member-chip button {
+  background: none; border: none; color: #1e40af;
+  cursor: pointer; font-size: 0.95rem; padding: 0; line-height: 1;
+}
+.empty-chips { color: #94a3b8; font-size: 0.82rem; padding: 4px 8px; }
+
+.action-bar {
+  display: flex; gap: 10px; justify-content: space-between;
+  padding: 14px 0;
+}
+.action-bar .right { display: flex; gap: 8px; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 0.875rem;
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.25s; z-index: 9999;
+  max-width: 420px;
+}
+.toast.show  { opacity: 1; transform: translateY(0); }
+.toast.error { background: #b91c1c; }
+
+/* 미리보기 모달 */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 9000; padding: 20px;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 12px; max-width: 640px; width: 100%;
+  max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-header {
+  padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 1.05rem; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #64748b; }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  padding: 12px 20px; border-top: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+}
+
+.preview-summary {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 10px 12px; margin-bottom: 12px;
+  font-size: 0.875rem; color: #1e293b;
+}
+.preview-count {
+  font-size: 1.4rem; font-weight: 700; color: #1e40af;
+  margin: 4px 0 12px;
+}
+.preview-warn {
+  background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px;
+  padding: 10px 12px; margin-bottom: 12px;
+  font-size: 0.85rem; color: #92400e;
+}
+.sample-list {
+  list-style: none; padding: 0; margin: 0;
+  border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;
+}
+.sample-list li {
+  padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+}
+.sample-list li:last-child { border-bottom: none; }
+.sample-list .meta { color: #94a3b8; margin-left: 6px; font-size: 0.78rem; }
+
+.help-text { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<main class="page-wrap">
+  <a class="back-link" href="/admin-recipient-groups.html"
+     onclick="window.location.href='/admin-recipient-groups.html';return false;">← 수신자 그룹 목록</a>
+
+  <div class="page-title" id="pageTitle">수신자 그룹 신규</div>
+  <p class="page-desc">발송 대상 회원 묶음을 정의합니다. 저장 전에 [미리보기]로 인원 수와 샘플을 확인하세요.</p>
+
+  <div class="card">
+    <h3>기본 정보</h3>
+    <div class="form-row">
+      <label class="lbl" for="fName">이름<span class="req">*</span></label>
+      <input class="input" id="fName" type="text" maxlength="100" placeholder="예: 5월 캠페인 대상자" />
+    </div>
+    <div class="form-row">
+      <label class="lbl" for="fDescription">설명</label>
+      <textarea class="textarea" id="fDescription" placeholder="이 그룹의 용도·기준을 간단히 적어주세요."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>방식</h3>
+    <div class="radio-group">
+      <label><input type="radio" name="ctype" value="filter" checked /> 필터 조건 (동적)</label>
+      <label><input type="radio" name="ctype" value="manual" /> 수동 명단 (고정)</label>
+    </div>
+    <div class="help-text">
+      필터: 회원 상태·등급·후원 이력 등 조건으로 자동 매칭. 발송 시점의 최신 회원이 반영됩니다.<br/>
+      수동: 직접 회원을 추가한 고정 명단. 회원 변동과 무관하게 같은 사람들에게 발송됩니다.
+    </div>
+  </div>
+
+  <!-- 필터 빌더 -->
+  <div class="card" id="filterCard">
+    <h3>필터 조건</h3>
+    <div class="filter-builder">
+      <div class="logic-row">
+        <span style="font-size:0.825rem;color:#475569;margin-right:12px;">결합:</span>
+        <label style="margin-right:14px;font-size:0.875rem;">
+          <input type="radio" name="logic" value="and" checked /> 모두 만족 (AND)
+        </label>
+        <label style="font-size:0.875rem;">
+          <input type="radio" name="logic" value="or" /> 하나라도 (OR)
+        </label>
+      </div>
+
+      <table class="filter-table">
+        <thead>
+          <tr>
+            <th class="col-field">필드</th>
+            <th class="col-op">비교</th>
+            <th class="col-val">값</th>
+            <th class="col-x"></th>
+          </tr>
+        </thead>
+        <tbody id="filterRows"></tbody>
+      </table>
+
+      <div class="filter-add-row">
+        <button class="btn btn-ghost btn-sm" id="btnAddFilter">+ 조건 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 수동 명단 -->
+  <div class="card" id="manualCard" style="display:none;">
+    <h3>수동 명단</h3>
+    <div class="manual-builder">
+      <div class="search-row">
+        <input type="text" id="memberSearchInput" placeholder="회원 이름·이메일·전화 부분 일치" />
+        <button class="btn" id="btnMemberSearch">검색</button>
+      </div>
+      <div id="searchResults" class="search-results" style="display:none;"></div>
+
+      <div style="font-size:0.825rem;color:#475569;margin-bottom:6px;">
+        추가된 회원 (<span id="memberCount">0</span>명)
+      </div>
+      <div id="memberChips" class="member-chips">
+        <span class="empty-chips">검색 결과를 클릭해 회원을 추가하세요.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-danger" id="btnDelete" style="display:none;">삭제 (비활성)</button>
+    <div class="right">
+      <button class="btn" id="btnPreview">미리보기</button>
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</main>
+
+<!-- 미리보기 모달 -->
+<div id="previewModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">미리보기</div>
+      <button class="modal-close" id="pmClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="pmLoading" style="text-align:center;color:#94a3b8;padding:20px;">불러오는 중…</div>
+      <div id="pmContent" style="display:none;">
+        <div class="preview-summary" id="pmSummary"></div>
+        <div style="font-size:0.825rem;color:#475569;">대상 회원</div>
+        <div class="preview-count" id="pmCount">-</div>
+        <div id="pmWarnArea"></div>
+        <div style="font-size:0.825rem;color:#475569;margin-bottom:6px;">샘플 (최대 5명)</div>
+        <ul class="sample-list" id="pmSamples"></ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="pmCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/js/admin-recipient-group-edit.js?v=1"></script>
+</body>
+</html>
