@@ -57,7 +57,7 @@
 }
 .adm-menu li a{
   display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;
-  color:#999;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
+  color:#c8c8c8;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
 }
 .adm-menu li a:hover{background:#141414;color:#fff}
 .adm-menu li a.on{background:#141414;color:#fff;border-left-color:var(--brand)}
@@ -66,7 +66,7 @@
 /* 사이드바 토글 그룹 */
 .adm-menu-toggle-group > a{
   display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;
-  color:#999;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
+  color:#c8c8c8;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
   text-decoration:none;
 }
 .adm-menu-toggle-group > a:hover{background:#141414;color:#fff}
@@ -74,14 +74,14 @@
 .adm-menu-toggle-group > a[aria-expanded="true"]{color:#fff}
 .sidebar-group-chevron{margin-left:auto;font-size:11px;transition:transform .2s;font-style:normal}
 .adm-menu-toggle-group > a[aria-expanded="true"] .sidebar-group-chevron{transform:rotate(180deg)}
-.adm-submenu{list-style:none;padding:0;margin:0;background:#050505}
+.adm-submenu{list-style:none;padding:0;margin:0;background:#111}
 .adm-submenu li a{
   display:flex;align-items:center;gap:10px;padding:10px 24px 10px 36px;
-  font-size:12.5px;color:#777;border-left:2px solid transparent;
+  font-size:12.5px;color:#bbb;border-left:2px solid transparent;
   transition:all var(--t);cursor:pointer;text-decoration:none;
 }
-.adm-submenu li a:hover{background:#141414;color:#ccc}
-.adm-submenu li a.on{background:#141414;color:#fff;border-left-color:var(--brand)}
+.adm-submenu li a:hover{background:#1a1a1a;color:#fff}
+.adm-submenu li a.on{background:#1a1a1a;color:#fff;border-left-color:var(--brand)}
 .adm-menu-group{list-style:none}
 
 .adm-main{flex:1;min-width:0}
