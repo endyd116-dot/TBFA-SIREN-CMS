@@ -27,6 +27,7 @@
   audit: '감사 로그',
   settings: '시스템 설정',
   eligibility: '🎓 자격 변경 심사',
+  'expert-match': '⚖️ 1:1 매칭 관리',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -5750,6 +5751,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'eligibility') {
       /* 6순위 #6: 교원 자격 변경 심사 */
       if (window.SIREN_ADMIN_ELIGIBILITY) window.SIREN_ADMIN_ELIGIBILITY.load('pending');
+    } else if (page === 'expert-match') {
+      /* 6순위 #8: 1:1 매칭 관리 */
+      if (window.SIREN_ADMIN_EXPERT) window.SIREN_ADMIN_EXPERT.load('pending');
     }
   }
 

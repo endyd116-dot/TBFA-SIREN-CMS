@@ -831,6 +831,7 @@
               <li data-mp="consult">💬 1:1 상담 내역</li>
               <li data-mp="profile">회원 정보 수정</li>
               <li data-mp="eligibility">🎓 자격 변경</li>
+              <li data-mp="expertMatch">⚖️ 전문가 상담</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
             </ul>
           </aside>
@@ -1052,6 +1053,11 @@
               <p style="color:var(--text-3);padding:24px">불러오는 중...</p>
             </div>
 
+            <!-- 6순위 #8: 전문가 상담 (mypage-expert-match.js가 동적 렌더) -->
+            <div class="mp-panel" data-mp-panel="expertMatch" style="display:none">
+              <p style="color:var(--text-3);padding:24px">불러오는 중...</p>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1194,6 +1200,8 @@
   <script src="/js/chat-user.js?v=1"></script>
   <script src="/js/mypage-applications.js?v=2026-05"></script>
   <script src="/js/mypage-eligibility.js?v=2026-05-09-1"></script>
+  <!-- 6순위 #8: 전문가 상담 -->
+  <script src="/js/mypage-expert-match.js?v=2026-05-10-em1"></script>
 
   <script>
     const __mpPrevInit = window.SIREN_PAGE_INIT;
@@ -1216,6 +1224,10 @@
         /* 1:1 상담 탭 활성 시 채팅 목록 로드 */
         if (key === 'consult' && window.SIREN_CHAT && typeof window.SIREN_CHAT.loadRooms === 'function') {
           window.SIREN_CHAT.loadRooms();
+        }
+        /* 6순위 #8: 전문가 상담 탭 활성 시 모듈 로드 */
+        if (key === 'expertMatch' && window.SIREN_MYPAGE_EXPERT_MATCH && typeof window.SIREN_MYPAGE_EXPERT_MATCH.load === 'function') {
+          window.SIREN_MYPAGE_EXPERT_MATCH.load();
         }
         return true;
       }
