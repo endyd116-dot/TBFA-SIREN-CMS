@@ -24,12 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **A 채팅** | **Phase 11·12 프론트 구현 완료** — 신규 10파일: @멘션 파싱·하이라이팅, 게시글 구독 버튼(🔔), my-subscriptions.html(구독 관리+알림), my-reports.html(신고 단계 타임라인 3탭), admin-anon-reveal.html(익명 신원 단계별 식별), admin-anon-audit.html(감사 로그+KPI+CSV), header.html 메뉴 추가, admin.html 메뉴 추가. 브랜치 feature/phase11-12-front |
 | 2026-05-11 | **A 채팅** | **Phase 10 R4 프론트 구현 완료** — 신규 5페이지(AI 트리거 목록·편집·발송 분석·회원 이력·사용자 이력) + R3 발송 상세 재발송 버튼 보강 + 사이드바 2메뉴(🤖 AI 자동 발송·📊 발송 분석) + 회원 상세 모달 메시지 이력 진입 버튼 추가. 신규 14파일. 브랜치 feature/phase10-r4-front |
 | 2026-05-11 | 메인 | **Phase 10 R3 100% 마감 + BUG-8 fix 흡수** — C verify/phase10-r3(d408006) main 머지 / R3 ✅ 완료 / R4 B·A·C 트리거 시작 |
 | 2026-05-11 | **C 채팅** | **Phase 10 R3 라이브 검증 통과 + BUG-8 fix** — Q1~Q12 모두 PASS. 발송 작업 등록자 NULL 저장 버그(BUG-8, BUG-5 회귀 클래스) 발견·1줄 fix. cron 디스패처 정합성 양호. 어댑터 직접 호출 + 카카오 자동 스킵. baseline ~0.6s. 회귀 0. 보고서 `docs/verify/2026-05-11-phase10-r3.md` |
 | 2026-05-11 | 메인 | **Phase 10 R4 설계서 작성 완료 (통합 마무리 — 추적·AI·분석·재발송·이력)** — 6개 영역 통합 / 신규 테이블 3종 + 기존 5컬럼 추가 / API 17개 + cron 2개 + 마이그 / B 13~14h(2차 머지) + A 13~15h |
-| 2026-05-11 | 메인 | **Phase 10 R3 코드 100% 머지 + #BACKFILL-1 ✅ 해결** — schema·cron 활성화(897cad4) + 프론트 7파일(857674d) / 옛 효성 자료 삭제 완료 — 운영자 재 import 예정 |
-| 2026-05-11 | **C 채팅** | **Phase 10 R2 라이브 검증 통과** — Q1~Q9 PASS, bug 0. 보고서 `docs/verify/2026-05-11-phase10-r2.md` |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -99,8 +98,8 @@
 | **Phase 10 R2 수신자 그룹** | ✅ 100% — 코드 머지 (7f2163b·b969bb2) + C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r2.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 10 R3 발송 예약 큐** | ✅ 100% — 코드 머지 (897cad4·857674d) + C 라이브 검증 통과 + BUG-8 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r3.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | 🟢 설계서 완료 ([R4 설계서](docs/milestones/2026-05-11-phase10-r4-tracking-ai-analytics.md)) — B·A·C 트리거 진행 중 |
-| **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
-| **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
+| **Phase 11 멘션·구독** | 🟢 프론트 완료 (A, feature/phase11-12-front) — @멘션·구독버튼·my-subscriptions.html / ⏸ 백엔드 API 대기 |
+| **Phase 12 신고 진행 공개 + 익명 강화** | 🟢 프론트 완료 (A, feature/phase11-12-front) — my-reports.html·admin-anon-reveal.html·admin-anon-audit.html / ⏸ 백엔드 API 대기 |
 | **Phase 13 신고 통계 대시보드** | ✅ 카탈로그 / ⏸ |
 | **Phase 14 외부 기관 인계** | ✅ 카탈로그 (신규) / ⏸ |
 | **Phase 15 전문가 매칭 고도화** | ✅ 카탈로그 / ⏸ |
