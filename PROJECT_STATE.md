@@ -24,13 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | **C 채팅** | **라이브 검증 대행 첫 적용 — Q11~Q14 통과 + BUG-6·7 fix** — 지출 목록 마비(admins→members JOIN) + 승인 멱등성 차단(409). Phase 5~7 라이브 완료, 운영 DB cleanup 완료 |
 | 2026-05-10 | 메인 | **A·B 단계 D 보강 머지 완료** — A: D4 매월 수납 현황 6개월 점등 / B: D7 자동 매칭 미리보기(3-버킷 + 상태 전이) |
 | 2026-05-10 | 메인 | **Phase 8·9 설계 합의 완료** — 알림 채널 통합 인프라(8) + 외부 API 실연동·수신 설정(9) 묶음 / [설계서](docs/milestones/2026-05-10-notifications.md) |
 | 2026-05-10 | 메인 | **A·B 단계 D 머지 완료 (3a932c3)** — A: 효성 import Gap 보강 / B: D3·D4·D7 화면 폴리시 |
 | 2026-05-10 | 메인 | **사용자 검증 대행 정책 도입 (549f0b8)** — C 역할 재정의 (다음 병렬 라운드부터 적용) |
-| 2026-05-10 | **C 채팅** | **Phase 5~7 정적 검증 통과 + BUG-5 fix (a3f58ef)** — 감사 추적 컬럼 영구 NULL 3곳 수정 |
-| 2026-05-10 | 메인 | **Phase 5~7 마이그 + schema 활성화 (8023057)** — 3개 테이블 + 초기 카테고리 5개 |
-| 2026-05-10 | 메인 | **Phase 5~7 D 브랜치 main 머지 (b0a6279)** — API 7개 + 프론트 3개 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -97,6 +95,8 @@
 
 | ID | 발견 | 위치 | 심각도 | 상태 | 리포트 |
 |---|---|---|---|---|---|
+| ~~#BUG-7~~ | 2026-05-10 | `admin-finance-expenditure-approve.ts` | 🟠 High | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
+| ~~#BUG-6~~ | 2026-05-10 | `admin-finance-expenditure-list.ts` | 🔴 Critical | ✅ 해결 (라이브 검증 대행 1차) | [docs/issues/2026-05-10-finance-expenditure-bugs.md](docs/issues/2026-05-10-finance-expenditure-bugs.md) |
 | ~~#BUG-5~~ | 2026-05-10 | `admin-finance-{budget-upsert,expenditure-create,expenditure-approve}.ts` | 🔴 High | ✅ 해결 (이번 세션) | [docs/issues/2026-05-10-finance-audit-columns-null.md](docs/issues/2026-05-10-finance-audit-columns-null.md) |
 | ~~#BUG-2~~ | 2026-05-10 | `cms-tbfa.js:60-90` | 🟠 High | ✅ 해결 (마일스톤 #16 단계 B 545b523/f026c6b) | [docs/issues/2026-05-10-cms-tbfa-demo-data.md](docs/issues/2026-05-10-cms-tbfa-demo-data.md) |
 | ~~#BUG-1~~ | 2026-05-09 | `lib/auth.ts:128` | 🔴 Critical | ✅ 해결 (bb529f9) | [docs/issues/2026-05-09-requireActiveUser-uid-bug.md](docs/issues/2026-05-09-requireActiveUser-uid-bug.md) |
