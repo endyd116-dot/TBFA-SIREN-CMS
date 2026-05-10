@@ -3,7 +3,7 @@
 > **단일 최신 파일**. "지금 어디까지 왔는지" 한 화면에 들어오게 유지.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/)에 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-10 / 메인 채팅 / Phase 4 A·B 머지 대기 + 6순위 #8 재설계·버그수정 완료 (`89555cb`)
+> **마지막 갱신**: 2026-05-10 / 새 메인 채팅 / Phase 4 A·B 머지 완료 — Swain V1·V2·V3 검증 대기 + 6순위 #8 검증 병행
 
 ---
 
@@ -47,11 +47,10 @@
 - ✅ 6순위 #8 (1:1 매칭 채팅) UX 재설계 + 버그수정 완료 (`89555cb`) — Swain 검증 대기
 - ✅ UI 개선 4건 라이브 반영: 자동 허브 리다이렉트 제거 / 퀵이동 컴포넌트 / 효성 표시 버그 fix / KPI 카드
 - ✅ #BUG-1·#BUG-2 모두 해결, Netlify Neon Extension 빌드 이슈 해결
-- 🔵 **Phase 4 대표 보고 시스템 + Agent-9 병렬 진행 중** (`94a725c`)
-  - 메인: report_snapshots DB + 통계 수집 + 보고서 API 3개 + cron-agent-9 완료
-  - A 채팅: `feature/phase4-frontend` (admin-report.js + admin.html 탭)
-  - B 채팅: `feature/phase4-email-print` (send-email API + print CSS)
-  - **새 메인 채팅이 A·B 완료 후 머지 담당**
+- ✅ **Phase 4 대표 보고 시스템 + Agent-9 코드 100% main 안착** — Swain V1·V2·V3 검증 대기
+  - 백엔드: report_snapshots DB + 통계 수집 + 보고서 API 3개 + cron-agent-9
+  - A(`0d8a206`): admin-report.js + admin.html 탭 + admin.js 라우터
+  - B(`5f70b7a`): 이메일 재발송 API + 인쇄 CSS (admin-report-print.css head 추가)
 
 **누적 마스터플랜 진행률 약 45%** (6/22 Phase + 4·5순위 전체 + 6순위 #6·#8·#15·#16 + Phase 4 진행중)
 
@@ -90,15 +89,15 @@
 
 ## 5. ★ 새 메인 채팅이 즉시 해야 할 일
 
-### 현재 진행 중: Phase 4 A·B 머지 대기
+### 현재: Phase 4 코드 main 안착 — Swain 검증 대기
 
-A 채팅(`feature/phase4-frontend`) + B 채팅(`feature/phase4-email-print`) 완료 보고 오면:
-1. `git fetch origin feature/phase4-frontend && git merge origin/feature/phase4-frontend --no-ff`
-2. `git fetch origin feature/phase4-email-print && git merge origin/feature/phase4-email-print --no-ff`
-3. 충돌 해결 후 `git push origin main`
-4. Swain 검증 안내 (V1: 수동 생성 + 조회 / V2: 이메일 / V3: 인쇄)
+A·B 머지 완료. Swain V1·V2·V3 검증 진행:
 
-충돌 예상 파일: `public/admin.html`, `public/js/admin.js` (A가 탭 추가, B는 무관)
+**V1 (보고서 생성 + 조회)** — 어드민 → 사이드바 "📊 주간 보고서" → "보고서 생성" 버튼 → 날짜 범위 선택 → 생성 확인 → 목록에서 행 클릭 → 5개 영역 통계 + 차트 + AI 요약 표시 확인
+
+**V2 (이메일 재발송)** — 보고서 상세 화면 → "📧 이메일 재발송" 버튼 → 발송 성공 메시지 확인
+
+**V3 (인쇄)** — 보고서 상세 화면 → "🖨️ 인쇄" 버튼 → 인쇄 미리보기에서 사이드바·버튼 숨겨지고 보고서 본문만 A4 형식으로 표시 확인
 
 ### 병행: 6순위 #6·#8·#15 검증 (Swain 직접)
 - #6 교원 자격 변경: 마이페이지 → 자격 변경 탭 → 신청 → 어드민 승인
@@ -153,8 +152,8 @@ A 채팅(`feature/phase4-frontend`) + B 채팅(`feature/phase4-email-print`) 완
 | 폴더 | 브랜치 | 상태 |
 |---|---|---|
 | `tbfa-mis` (메인) | `main` @ `35ff775` | 6순위 #8 재설계·버그수정(`89555cb`) + PROJECT_STATE 갱신(`35ff775`) |
-| `../tbfa-mis-A` | `feature/phase4-frontend` | A 채팅 개발 중 |
-| `../tbfa-mis-B` | `feature/phase4-email-print` | B 채팅 개발 중 |
+| `../tbfa-mis-A` | `feature/phase4-frontend` @ `0d8a206` | ✅ 완료, main 머지됨 — 정리 가능 |
+| `../tbfa-mis-B` | `feature/phase4-email-print` @ `5f70b7a` | ✅ 완료, main 머지됨 — 정리 가능 |
 
 ---
 
@@ -171,6 +170,7 @@ A 채팅(`feature/phase4-frontend`) + B 채팅(`feature/phase4-email-print`) 완
 
 | 일시 | 내용 |
 |---|---|
+| 2026-05-10 | **Phase 4 A·B 머지 완료** — A(`0d8a206`): admin-report.js+admin.html탭+admin.js. B(`5f70b7a`): 이메일재발송API+인쇄CSS. admin-report-print.css head 추가. Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | **6순위 #8 재설계·버그수정** (`89555cb`) — 어드민 화면 ID 불일치 수정 / 서비스 목록 직접 배정 버튼(유가족·법률) / 신규 배정 API / 마이페이지 채팅 버튼 / expert_matches separate query |
 | 2026-05-10 | **Phase 4 병렬 시작 + HANDOFF 현행화** — 메인 2차(`94a725c`). A(phase4-frontend) + B(phase4-email-print) 개발 중. 새 메인 채팅 대기 |
 | 2026-05-10 | **6순위 #8 코드 완료** — A·B 머지(`fe84ed9`). Swain V1·V2·V3 검증 대기 |

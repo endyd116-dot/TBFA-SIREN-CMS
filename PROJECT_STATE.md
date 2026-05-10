@@ -27,13 +27,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 새 메인 채팅 | **Phase 4 A·B 머지 완료** — A(0d8a206): admin-report.js+admin.html 탭+admin.js 라우터. B(5f70b7a): 이메일재발송 API+인쇄 CSS. admin-report-print.css admin.html `<head>` 추가(media=print). main 푸시 → Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | 새 메인 채팅 | **6순위 #8 재설계 + 버그 수정 (89555cb)** — 화면 안 보이는 버그(div ID 불일치) 수정. 하이브리드 배치: 어드민 유가족지원·법률지원 목록에 직접 배정 버튼 + 통합 매칭 관리는 모니터링 겸용 유지. 마이페이지 신청 내역(유가족/법률)에 배정 시 채팅 버튼 추가. Swain V1 재검증 필요 |
 | 2026-05-10 | 메인 채팅 | **Phase 4 병렬 시작 (94a725c)** — 설계서(DESIGN_PHASE4_REPORT.md) + 마이그 호출 완료 + 백엔드 5개(report-collector/list/detail/generate/cron-agent-9) + A(feature/phase4-frontend) + B(feature/phase4-email-print) 워크트리 준비 완료. 컨텍스트 한계 → 새 메인 채팅 예정 |
 | 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (fe84ed9)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착. Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix ④ 통합 회원 가입경로 KPI 카드 |
-| 2026-05-10 | 메인 채팅 | **Phase 1·2 (#16 단계 B·C) 완료** — A·B·C 채팅 머지 + Swain 검증. tag `phase1-complete-20260510` + `phase2-complete-20260510`. #BUG-2 해소. 정기/잠재 화면 안착 |
-| 2026-05-10 | 메인 채팅 | **Phase 3 A 프론트·B 백엔드 머지 + M1·M2 라이브러리 신설** — `feature/phase3-frontend`(46047a5) + `feature/phase3-backend`(838e356+d607b7d) main 머지. D3·D4 효성 컬럼 보강 + D1·D7 정합성 + 검증 대시보드. lib/hyosung-mapper·hyosung-merge 신설(ebe4435) |
-| 2026-05-10 | 메인 채팅 | **Phase 1·2 (#16 단계 B·C) 완료** — A·B·C 채팅 머지 + Swain 검증. tag `phase1-complete-20260510` + `phase2-complete-20260510`. #BUG-2 해소. 정기/잠재 화면 안착 |
 
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
@@ -232,10 +230,10 @@ CREATE TABLE pending_donations (
 |---|---|
 | 브랜치 | A: `feature/phase4-frontend` / B: `feature/phase4-email-print` |
 | 베이스 | `origin/main` @ `94a725c` |
-| 진행률 | 🔵 메인 2차 완료 — A·B 병렬 개발 중 |
-| 담당 채팅 | 메인(schema+마이그+백엔드 5개 ✅) / A(프론트엔드 JS+HTML) / B(이메일API+인쇄CSS) |
-| 예상 시간 | 10~14h (병렬) |
-| 다음 할 일 | A·B 완료 → 새 메인이 머지 → Swain V1·V2·V3 검증 |
+| 진행률 | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
+| 담당 채팅 | 메인(schema+마이그+백엔드 5개 ✅) / A(프론트엔드 JS+HTML ✅) / B(이메일API+인쇄CSS ✅) |
+| 예상 시간 | 10~14h (병렬) ✅ |
+| 다음 할 일 | Swain V1(보고서 생성+조회) → V2(이메일 발송) → V3(인쇄) 검증 → ✅ 100% |
 | 설계서 | [docs/DESIGN_PHASE4_REPORT.md](docs/DESIGN_PHASE4_REPORT.md) |
 
 **메인이 완료한 파일** (94a725c):
@@ -268,8 +266,8 @@ CREATE TABLE pending_donations (
 | 채팅 호칭 | 작업 폴더 | 브랜치 | 작업 식별자 |
 |---|---|---|---|
 | 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Phase 4 — 머지·조율 (새 메인 채팅 대기) |
-| A 채팅 | `../tbfa-mis-A` | `feature/phase4-frontend` | Phase 4 — admin-report.js + admin.html |
-| B 채팅 | `../tbfa-mis-B` | `feature/phase4-email-print` | Phase 4 — send-email API + print CSS |
+| A 채팅 | `../tbfa-mis-A` | `feature/phase4-frontend` @ `0d8a206` | ✅ 완료, main 머지됨 — 정리 가능 |
+| B 채팅 | `../tbfa-mis-B` | `feature/phase4-email-print` @ `5f70b7a` | ✅ 완료, main 머지됨 — 정리 가능 |
 
 ⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**
 ⚠️ 메인 폴더(`tbfa-mis`)는 `main` 브랜치 전용, **직접 작업 X**
@@ -322,7 +320,7 @@ CREATE TABLE pending_donations (
 | 6순위 #15 CSV 자동 매핑 + 엑셀 업로드 | ✅ 코드 100% 안착 (`feature/csv-donation-mapping`), admin.html 회원 관리에서 검증 가능 |
 | **6순위 #16 통합 회원·후원 시스템** | ✅ 단계 A·B·C·D 검증 완료 (V1·V2·V3 통과) |
 | 6순위 #8 1:1 매칭 채팅 | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
-| **Phase 4 대표 보고 시스템** | 🔵 진행중 — 메인 2차 완료(94a725c), A·B 병렬 개발 중 |
+| **Phase 4 대표 보고 시스템** | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
 | TypeScript 타입 에러 149건 | ⏸ 자투리 (운영 영향 0) |
 | Phase 5~22 (18개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
 
