@@ -27,7 +27,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix — 한국어/영문 매핑·약정일 fallback·hyosung_billings 직접 합산(123c27c+60f9fb2) ④ 통합 회원 가입경로 KPI 카드(123c27c). **Netlify Neon Extension 인프라 이슈로 빌드 4회 연속 실패** — 지원팀 티켓 진행. 라이브 반영 대기 |
+| 2026-05-10 | 메인 채팅 | **6순위 #8 1:1 매칭 채팅 시작 — 메인 1차 푸시** — Netlify 빌드 복구 완료(라이브 정상). 설계서(docs/DESIGN_EXPERT_MATCHING.md) + 마이그 함수(migrate-expert-matching.ts) 작성. 분담: 메인(schema·핵심 트랜잭션·머지) / A(백엔드 4개+가드) / B(프론트 전체). Swain 마이그 호출 대기 |
+| 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix — 한국어/영문 매핑·약정일 fallback·hyosung_billings 직접 합산(123c27c+60f9fb2) ④ 통합 회원 가입경로 KPI 카드(123c27c) |
 | 2026-05-10 | 메인 채팅 | **효성 CSV 검토 단계 복원 + DB 정합성 2회 마이그 (455f992)** — 직전 D1·D2가 검토 단계를 통째로 건너뛰던 문제를 되돌림(업로드 → 미확정 목록 → 통과 → 효성 저장소 적재 흐름 부활). v14↔schema.ts 컬럼 어긋남 9개+ + timestamp 1개 = **2차례 1회용 마이그 호출·삭제 완료**. 두 효성 테이블이 schema.ts와 100% 정합. **Swain V1 통과 재검증 대기 → 다음 메인 채팅이 검증부터 이어감** |
 | 2026-05-10 | 메인 채팅 | **Phase 3 A 프론트·B 백엔드 머지 + M1·M2 라이브러리 신설** — `feature/phase3-frontend`(46047a5) + `feature/phase3-backend`(838e356+d607b7d) main 머지. D3·D4 효성 컬럼 보강 + D1·D7 정합성 + 검증 대시보드. lib/hyosung-mapper·hyosung-merge 신설(ebe4435) |
 | 2026-05-10 | 메인 채팅 | **Phase 1·2 (#16 단계 B·C) 완료** — A·B·C 채팅 머지 + Swain 검증. tag `phase1-complete-20260510` + `phase2-complete-20260510`. #BUG-2 해소. 정기/잠재 화면 안착 |
@@ -119,12 +120,13 @@ ALTER TABLE members ADD COLUMN eligibility_type varchar(30);
 
 | 항목 | 값 |
 |---|---|
-| 브랜치 | `feature/expert-matching-chat` |
+| 브랜치 | A: `feature/expert-matching-backend` / B: `feature/expert-matching-frontend` (분담 분리) |
 | 베이스 | `origin/main` |
-| 진행률 | ⬜ 0% (미착수) |
-| 담당 채팅 | 미배정 |
-| 예상 시간 | 15~18h |
-| 다음 할 일 | 채팅 시작 → 브랜치 생성 → expert_matches 테이블 + chat_rooms.room_type 마이그 |
+| 진행률 | 🟡 진행중 — 메인 1차 푸시(설계+마이그) 완료, Swain 마이그 호출 대기 |
+| 담당 채팅 | 메인(조율·schema·핵심 매칭 트랜잭션) / A(백엔드 4개+가드) / B(프론트 전체) |
+| 예상 시간 | 15~18h (병렬) |
+| 다음 할 일 | Swain 마이그 호출 → 메인 2차 푸시(schema+lib+admin-expert-assign) → A·B 시작 |
+| 설계서 | [docs/DESIGN_EXPERT_MATCHING.md](docs/DESIGN_EXPERT_MATCHING.md) |
 
 **기존 인프라 활용** (신규 채팅 시스템 만들지 말 것)
 - 전문가는 `members.type='volunteer'` + `member_subtype='lawyer'/'counselor'`로 관리됨 (`db/schema.ts:1069-1071`)
@@ -235,9 +237,9 @@ CREATE TABLE pending_donations (
 
 | 채팅 호칭 | 작업 폴더 | 브랜치 | 모델 (자동) | 작업 식별자 |
 |---|---|---|---|---|
-| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Opus 4.7 (1M) | 조율·머지·M1·M2 |
-| A 채팅 | `../tbfa-mis-A` | (Phase 3) `feature/phase3-frontend` | **Sonnet 4.6** (settings.local.json) | Phase 3 D3·D4·D7 프론트 |
-| B 채팅 | `../tbfa-mis-B` | (Phase 3) `feature/phase3-backend` | **Sonnet 4.6** (settings.local.json) | Phase 3 D1·D2·D5·D6·D7 백엔드 |
+| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Opus 4.7 (1M) | 6순위 #8 — 조율·schema·핵심 매칭 트랜잭션·머지 |
+| A 채팅 | `../tbfa-mis-A` | `feature/expert-matching-backend` | **Sonnet 4.6** (settings.local.json) | 6순위 #8 — 백엔드 4개 + chat-* 가드 |
+| B 채팅 | `../tbfa-mis-B` | `feature/expert-matching-frontend` | **Sonnet 4.6** (settings.local.json) | 6순위 #8 — 마이페이지·어드민 모듈·HTML |
 
 ⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**
 ⚠️ 메인 폴더(`tbfa-mis`)는 `main` 브랜치 전용, **직접 작업 X**
