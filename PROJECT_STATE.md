@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | **C 채팅** | **Q1~Q4 검증 완료 + 버그 2건 수정·main 머지 (d0b72f7)** — BUG-3: Phase4 이메일 재발송 필드명 불일치 수정. BUG-4: #8 매칭관리 탭버튼 div ID 불일치 수정. Q3(#6)·Q4(#15) 정상 확인. Netlify 자동배포 중. |
 | 2026-05-10 | 메인 채팅 | **3-way 병렬 정책 도입 + C 워크트리 신설** — A·B(신규 개발) + **C(검증·수정 전담)** 분리. C 워크트리 `../tbfa-mis-C` @ `verify/phase4-and-pending` 생성. 첫 작업 큐: Phase 4·6순위 #8/#6/#15 검증 + stale 문서 패치 + TypeScript 정리. C 시작 가이드 [docs/HANDOFF_C.md](docs/HANDOFF_C.md). A·B는 6순위 #16 단계 B·C 분배 예정 |
 | 2026-05-10 | 새 메인 채팅 | **컨텍스트 다이어트 시나리오 B 적용** — PROJECT_STATE 정적 부분 → docs/PARALLEL_GUIDE.md 이전. 자동 로드 ~28% 절감. [docs/CONTEXT_OPTIMIZATION.md](docs/CONTEXT_OPTIMIZATION.md) |
 | 2026-05-10 | 새 메인 채팅 | **Phase 4 A·B 머지 완료** — A(0d8a206): admin-report.js+admin.html 탭+admin.js 라우터. B(5f70b7a): 이메일재발송 API+인쇄 CSS. main 푸시 → C 검증 대기 |
@@ -37,11 +38,9 @@
 ## 3. 현재 작업 모드
 
 ```
-🔵 3-way 병렬 모드 진입
-   ├─ A: 6순위 #16 단계 B (통합회원 실제 API + 상세 모달) — 시작 대기
-   ├─ B: 6순위 #16 단계 C (donor_type 컬럼 + 정기/잠재 화면) — 시작 대기
-   └─ C: Phase 4·6순위 #8/#6/#15 검증 + stale 문서 패치 — 시작 대기
-   메인: 조율·머지·다음 Phase 설계
+🟢 C 채팅 검증 완료 — main 머지 완료 (d0b72f7), Netlify 자동배포 중
+   Swain: Phase 4 V1·V2·V3 검증 + #6·#8·#15 검증 후 다음 작업 방향 합의 필요
+   다음 작업: Phase 5 설계 세션 또는 자투리(TS 에러 149건)
 ```
 
 ---
@@ -55,9 +54,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 진행률 | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
-| 담당 | 메인(백엔드 5개 ✅) / A(`0d8a206` 프론트엔드 ✅) / B(`5f70b7a` 이메일+인쇄 ✅) |
-| 다음 할 일 | Swain V1(보고서 생성+조회) → V2(이메일 발송) → V3(인쇄) 검증 → ✅ 100% |
+| 진행률 | ✅ 코드+버그수정 100% main 안착 — Swain V1·V2·V3 검증 대기 |
+| 담당 | 메인(백엔드) / A(프론트엔드) / B(이메일+인쇄) / **C(BUG-3 수정 ✅)** |
+| 다음 할 일 | Swain V1(보고서 생성+조회) → V2(이메일 재발송, BUG-3 수정됨) → V3(인쇄) 검증 → ✅ 100% |
 | 설계서 | [docs/DESIGN_PHASE4_REPORT.md](docs/DESIGN_PHASE4_REPORT.md) |
 
 ---
