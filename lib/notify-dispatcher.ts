@@ -27,7 +27,7 @@ import type { NotifyAdapter } from "./notify-adapters/types";
 import { inappAdapter }           from "./notify-adapters/inapp";
 import { emailAdapter }           from "./notify-adapters/email";
 import { smsAligoAdapter }        from "./notify-adapters/sms-aligo";
-import { kakaoPlaceholderAdapter } from "./notify-adapters/kakao-placeholder";
+import { kakaoAligoAdapter }      from "./notify-adapters/kakao-aligo";
 
 /* =========================================================
    재시도 백오프 딜레이 (ms)
@@ -44,7 +44,7 @@ const ADAPTERS: Record<ChannelName, NotifyAdapter> = {
   inapp: inappAdapter,
   email: emailAdapter,
   sms:   smsAligoAdapter,
-  kakao: kakaoPlaceholderAdapter,
+  kakao: kakaoAligoAdapter,
 };
 
 /* =========================================================
