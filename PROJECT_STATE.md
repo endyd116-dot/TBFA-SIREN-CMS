@@ -24,11 +24,12 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 | **4채팅 새 구조 도입** — 메인(Opus 4.7 설계) / A(Sonnet 4.6 프론트) / B(Sonnet 4.6 백) / C(Opus 4.7 검증·fix·백필) / PARALLEL_GUIDE 갱신 + PARALLEL_TEMPLATE 신규 + §8 C 대기열 큐(8건) / Phase 10 R1 설계 준비 |
+| 2026-05-10 | 메인 | **Phase 10 R1 설계서 작성 완료 + HANDOFF 인수인계 갱신** — docs/milestones/2026-05-10-phase10-r1-template-builder.md (DB·API 7개·화면 2개·검증 시나리오 8건·4채팅 프롬프트) / HANDOFF.md 새 메인 채팅용 전면 재작성 / 컨텍스트 한계로 메인 세션 종료 예정 |
+| 2026-05-10 | 메인 | **4채팅 새 구조 도입** — 메인(Opus 4.7 설계) / A(Sonnet 4.6 프론트) / B(Sonnet 4.6 백) / C(Opus 4.7 검증·fix·백필) / PARALLEL_GUIDE 갱신 + PARALLEL_TEMPLATE 신규 + §8 C 대기열 큐(8건) |
 | 2026-05-10 | 메인 | **Phase 9-B 100% — C 2차 머지 (56f95a1)** — schema members 컬럼 2개 활성화 / 마이그 파일 삭제 / admin-notification-defaults auth 반환 구조 수정 / 1·2차 통합 검증: bigserial 회귀 0, 타입 에러 0 |
 | 2026-05-10 | 메인 | **Phase 9-B C 1차 머지** — notification_preferences + admin_settings 테이블 마이그 / FORCED_CHANNELS / 디스패처 사용자 설정 조회 통합 / 사용자·어드민 화면 |
-| 2026-05-10 | 메인 | **Phase 9 A·B 머지 완료 (45c9e20)** — A: Aligo SMS 실연동 / B: 알림톡 실연동 / dispatcher SMS+카카오 통합 / placeholder 2종 삭제. 카카오 심사 통과 후 템플릿 ID 2개 환경변수 등록하면 실발송 활성화 |
-| 2026-05-10 | **C 채팅** | **Phase 8 C 머지 — 알림 발송 로그 어드민 화면 + Q24~Q27 라이브 통과** — 백엔드/프론트/SPA 통합 470줄. 4개 이벤트 7건 sent, 채널 정책·KPI·Top5 차트 모두 정상. cleanup 완료. Q28 강제 실패는 정적(A 영역). Phase 8 100% |
+| 2026-05-10 | 메인 | **Phase 9 A·B 머지 완료 (45c9e20)** — A: Aligo SMS 실연동 / B: 알림톡 실연동 / dispatcher SMS+카카오 통합 / placeholder 2종 삭제 |
+
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
