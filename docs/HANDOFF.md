@@ -3,7 +3,7 @@
 > **단일 최신 파일**. "지금 어디까지 왔는지" 한 화면에 들어오게 유지.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/)에 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-10 / 메인 채팅 / 6순위 #8 코드 완료 (A·B 머지) + HANDOFF 현행화
+> **마지막 갱신**: 2026-05-10 / 메인 채팅 / Phase 4 병렬 시작 (메인 2차 완료, A·B 개발 중) + 새 메인 채팅 대기
 
 ---
 
@@ -44,14 +44,16 @@
 - ✅ 4순위·5순위 모두 완료
 - ✅ 마일스톤 #16 전 단계(A·B·C·D) 검증 완료 — 통합 회원·후원 회원 시스템
 - ✅ 6순위 #6 (자격 변경) + #15 (CSV 자동 매핑) 코드 main 머지
-- ✅ 6순위 #8 (1:1 매칭 채팅) **코드 main 머지 완료 (`fe84ed9`)**
-  - 매칭 신청·내역·어드민 목록·세션 종료 API + 채팅 가드 + 마이페이지·어드민 프론트엔드
-  - Swain V1·V2·V3 검증 대기 중
+- ✅ 6순위 #8 (1:1 매칭 채팅) 코드 main 머지 완료 — Swain V1·V2·V3 검증 대기
 - ✅ UI 개선 4건 라이브 반영: 자동 허브 리다이렉트 제거 / 퀵이동 컴포넌트 / 효성 표시 버그 fix / KPI 카드
-- ✅ #BUG-1·#BUG-2 모두 해결
-- ✅ Netlify Neon Extension 빌드 이슈 해결 (빌드 정상 동작 중)
+- ✅ #BUG-1·#BUG-2 모두 해결, Netlify Neon Extension 빌드 이슈 해결
+- 🔵 **Phase 4 대표 보고 시스템 + Agent-9 병렬 진행 중** (`94a725c`)
+  - 메인: report_snapshots DB + 통계 수집 + 보고서 API 3개 + cron-agent-9 완료
+  - A 채팅: `feature/phase4-frontend` (admin-report.js + admin.html 탭)
+  - B 채팅: `feature/phase4-email-print` (send-email API + print CSS)
+  - **새 메인 채팅이 A·B 완료 후 머지 담당**
 
-**누적 마스터플랜 진행률 약 42%** (5.5/22 Phase + 4·5순위 전체 + 6순위 #6·#8·#15 코드 + #16 완료 + UI 개선)
+**누적 마스터플랜 진행률 약 45%** (6/22 Phase + 4·5순위 전체 + 6순위 #6·#8·#15·#16 + Phase 4 진행중)
 
 ---
 
@@ -80,7 +82,22 @@
 
 ## 5. ★ 새 메인 채팅이 즉시 해야 할 일
 
-### 옵션 1: Phase 4~22 설계 시작 (Swain 방향 합의 필요)
+### 현재 진행 중: Phase 4 A·B 머지 대기
+
+A 채팅(`feature/phase4-frontend`) + B 채팅(`feature/phase4-email-print`) 완료 보고 오면:
+1. `git fetch origin feature/phase4-frontend && git merge origin/feature/phase4-frontend --no-ff`
+2. `git fetch origin feature/phase4-email-print && git merge origin/feature/phase4-email-print --no-ff`
+3. 충돌 해결 후 `git push origin main`
+4. Swain 검증 안내 (V1: 수동 생성 + 조회 / V2: 이메일 / V3: 인쇄)
+
+충돌 예상 파일: `public/admin.html`, `public/js/admin.js` (A가 탭 추가, B는 무관)
+
+### 병행: 6순위 #6·#8·#15 검증 (Swain 직접)
+- #6 교원 자격 변경: 마이페이지 → 자격 변경 탭 → 신청 → 어드민 승인
+- #8 1:1 매칭 채팅: V1(신청→배정→채팅방) → V2(양측채팅) → V3(세션종료)
+- #15 CSV 자동 매핑: 어드민 → CSV 업로드 → 자동 매칭 → 확정
+
+### 옵션: Phase 5 설계 (Phase 4 머지 후)
 
 6순위 코드 작업 전체 완료. 남은 코드 작업은 Phase 4~22 (19개, 모두 스펙 미정).
 
@@ -126,11 +143,9 @@
 
 | 폴더 | 브랜치 | 상태 |
 |---|---|---|
-| `tbfa-mis` (메인) | `main` @ `fe84ed9` | 모든 변경 origin 반영 완료 |
-| `../tbfa-mis-A` | — | 빈 폴더 (git 레지스트리 해제됨) |
-| `../tbfa-mis-B` | — | 미생성 |
-
-다음 병렬 작업 시작 시 `git worktree add`로 재구성 예정.
+| `tbfa-mis` (메인) | `main` @ `94a725c` | Phase 4 메인 2차 완료. 새 메인 채팅 대기 |
+| `../tbfa-mis-A` | `feature/phase4-frontend` | A 채팅 개발 중 |
+| `../tbfa-mis-B` | `feature/phase4-email-print` | B 채팅 개발 중 |
 
 ---
 
@@ -147,7 +162,8 @@
 
 | 일시 | 내용 |
 |---|---|
-| 2026-05-10 | **6순위 #8 코드 완료 + HANDOFF 현행화** — A·B 머지(`fe84ed9`). Swain V1·V2·V3 검증 대기. §3~§8 전면 갱신 |
+| 2026-05-10 | **Phase 4 병렬 시작 + HANDOFF 현행화** — 메인 2차(`94a725c`). A(phase4-frontend) + B(phase4-email-print) 개발 중. 새 메인 채팅 대기 |
+| 2026-05-10 | **6순위 #8 코드 완료** — A·B 머지(`fe84ed9`). Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | **Phase 3 검증 완료 + 후속 개선 4건 + Netlify 빌드 복구** |
 | 2026-05-10 | **효성 CSV 흐름 복원 + DB 정합성 2회 마이그** |
 | 2026-05-10 | **Phase 1·2 완료** — 단계 B·C 머지·검증 통과 |

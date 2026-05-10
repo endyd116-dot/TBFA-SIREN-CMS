@@ -27,8 +27,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (17827cd)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착. Swain V1·V2·V3 검증 대기 |
-| 2026-05-10 | B 채팅 | **6순위 #8 프론트 100% 완료** — mypage-expert-match.js(신청폼+내역+채팅진입) + admin-expert.js(목록+배정모달+세션종료) + mypage.html·admin.html·admin.js 확장. 캐시버스터 ?v=2026-05-10-em1 |
+| 2026-05-10 | 메인 채팅 | **Phase 4 병렬 시작 (94a725c)** — 설계서(DESIGN_PHASE4_REPORT.md) + 마이그 호출 완료 + 백엔드 5개(report-collector/list/detail/generate/cron-agent-9) + A(feature/phase4-frontend) + B(feature/phase4-email-print) 워크트리 준비 완료. 컨텍스트 한계 → 새 메인 채팅 예정 |
+| 2026-05-10 | 메인 채팅 | **6순위 #8 A·B 머지 완료 (fe84ed9)** — 백엔드 4개 API + chat 가드 + 프론트엔드 전체 main 안착. Swain V1·V2·V3 검증 대기 |
 | 2026-05-10 | 메인 채팅 | **6순위 #8 1:1 매칭 채팅 시작 — 메인 1차 푸시** — Netlify 빌드 복구 완료(라이브 정상). 설계서(docs/DESIGN_EXPERT_MATCHING.md) + 마이그 함수(migrate-expert-matching.ts) 작성. 분담: 메인(schema·핵심 트랜잭션·머지) / A(백엔드 4개+가드) / B(프론트 전체). Swain 마이그 호출 대기 |
 | 2026-05-10 | 메인 채팅 | **Phase 3 검증 완료 + 후속 개선 4건 푸시 (60f9fb2)** — V1·V2·V3 통과. 후속 4건: ① admin.html 자동 허브 리다이렉트 제거(344500b) ② 퀵이동·1뎁스 토글 UI(ca9f39e) ③ 효성 정기·잠재 표시 버그 fix — 한국어/영문 매핑·약정일 fallback·hyosung_billings 직접 합산(123c27c+60f9fb2) ④ 통합 회원 가입경로 KPI 카드(123c27c) |
 | 2026-05-10 | 메인 채팅 | **효성 CSV 검토 단계 복원 + DB 정합성 2회 마이그 (455f992)** — 직전 D1·D2가 검토 단계를 통째로 건너뛰던 문제를 되돌림(업로드 → 미확정 목록 → 통과 → 효성 저장소 적재 흐름 부활). v14↔schema.ts 컬럼 어긋남 9개+ + timestamp 1개 = **2차례 1회용 마이그 호출·삭제 완료**. 두 효성 테이블이 schema.ts와 100% 정합. **Swain V1 통과 재검증 대기 → 다음 메인 채팅이 검증부터 이어감** |
@@ -42,10 +42,10 @@
 ## 3. 현재 작업 모드
 
 ```
-✅ 시나리오 B (균형형) — 마일스톤 #16 B·C·D 모두 검증 완료
-   Phase 1 ✅ 완료 (단계 B: 통합 일반 회원 + 상세 모달 + #BUG-2 해소)
-   Phase 2 ✅ 완료 (단계 C: 정기/잠재/비후원 분류 정착 + 자동 갱신)
-   Phase 3 ✅ 검증 완료 (V1·V2·V3 통과) — 후속 4건 푸시, 라이브 반영 대기 (Netlify 인프라 이슈)
+🔵 Phase 4 병렬 진행 중
+   마일스톤 #16 + 6순위 #6·#8·#15 코드 100% main 안착 (검증 일부 대기)
+   Phase 4 메인 2차 푸시 완료 (94a725c) — A(프론트엔드) + B(이메일+인쇄) 병렬 개발 중
+   Swain: 6순위 #6·#8·#15 검증 병행 예정
 ```
 
 - 시나리오 채택 근거: [docs/PHASE_PROPOSAL.md](docs/PHASE_PROPOSAL.md)
@@ -226,9 +226,37 @@ CREATE TABLE pending_donations (
 );
 ```
 
-### 4.4 권장 머지 순서
+### 4.4 작업 D — Phase 4: 대표 보고 시스템 + Agent-9
 
-**C → A → B** (변경량 작은 → 큰)
+| 항목 | 값 |
+|---|---|
+| 브랜치 | A: `feature/phase4-frontend` / B: `feature/phase4-email-print` |
+| 베이스 | `origin/main` @ `94a725c` |
+| 진행률 | 🔵 메인 2차 완료 — A·B 병렬 개발 중 |
+| 담당 채팅 | 메인(schema+마이그+백엔드 5개 ✅) / A(프론트엔드 JS+HTML) / B(이메일API+인쇄CSS) |
+| 예상 시간 | 10~14h (병렬) |
+| 다음 할 일 | A·B 완료 → 새 메인이 머지 → Swain V1·V2·V3 검증 |
+| 설계서 | [docs/DESIGN_PHASE4_REPORT.md](docs/DESIGN_PHASE4_REPORT.md) |
+
+**메인이 완료한 파일** (94a725c):
+- `db/schema.ts` — `reportSnapshots` 테이블 append (`/* === Phase 4 === */`)
+- `lib/report-collector.ts` — 5개 영역 통계 수집 헬퍼
+- `netlify/functions/admin-report-list.ts` — GET /api/admin-report-list
+- `netlify/functions/admin-report-detail.ts` — GET /api/admin-report-detail?id=N
+- `netlify/functions/admin-report-generate.ts` — POST /api/admin-report-generate
+- `netlify/functions/cron-agent-9.ts` — 주간 자동 생성 cron (UTC 일 21:00)
+- `netlify.toml` — cron-agent-9 스케줄 등록
+
+**A 담당**: `public/js/admin-report.js` (목록+상세+차트+AI요약) + `admin.html` 탭 + `admin.js` 라우터
+**B 담당**: `netlify/functions/admin-report-send-email.ts` + `public/css/admin-report-print.css`
+
+---
+
+### 4.5 권장 머지 순서 (Phase 4)
+
+**A → B** (프론트엔드 → 이메일+인쇄)
+
+각 머지 전: `git fetch origin && git merge origin/main` 충돌 해결.
 
 각 머지 전: `git fetch origin && git rebase origin/main` 충돌 해결.
 
@@ -237,11 +265,11 @@ CREATE TABLE pending_donations (
 
 ### 4.5 작업 환경 (worktree)
 
-| 채팅 호칭 | 작업 폴더 | 브랜치 | 모델 (자동) | 작업 식별자 |
-|---|---|---|---|---|
-| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Opus 4.7 (1M) | 6순위 #8 — 조율·schema·핵심 매칭 트랜잭션·머지 |
-| A 채팅 | `../tbfa-mis-A` | `feature/expert-matching-backend` | **Sonnet 4.6** (settings.local.json) | 6순위 #8 — 백엔드 4개 + chat-* 가드 |
-| B 채팅 | `../tbfa-mis-B` | `feature/expert-matching-frontend` | **Sonnet 4.6** (settings.local.json) | 6순위 #8 — 마이페이지·어드민 모듈·HTML |
+| 채팅 호칭 | 작업 폴더 | 브랜치 | 작업 식별자 |
+|---|---|---|---|
+| 메인 채팅 | `tbfa-mis` (현재 폴더) | `main` | Phase 4 — 머지·조율 (새 메인 채팅 대기) |
+| A 채팅 | `../tbfa-mis-A` | `feature/phase4-frontend` | Phase 4 — admin-report.js + admin.html |
+| B 채팅 | `../tbfa-mis-B` | `feature/phase4-email-print` | Phase 4 — send-email API + print CSS |
 
 ⚠️ 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**
 ⚠️ 메인 폴더(`tbfa-mis`)는 `main` 브랜치 전용, **직접 작업 X**
@@ -292,10 +320,11 @@ CREATE TABLE pending_donations (
 | 5순위 중간 작업 | ✅ #1 / #9 / #10 모두 완료 |
 | 6순위 #6 자격 변경 | ✅ 코드 100% 안착 (`feature/eligibility-change`), 사용자 검증 가능 |
 | 6순위 #15 CSV 자동 매핑 + 엑셀 업로드 | ✅ 코드 100% 안착 (`feature/csv-donation-mapping`), admin.html 회원 관리에서 검증 가능 |
-| **6순위 #16 통합 회원·후원 시스템** | ✅ 단계 A·B·C·**D 검증 완료** (V1·V2·V3 통과). 후속 개선 4건 푸시 — Netlify 빌드 인프라 이슈로 라이브 반영 대기 |
-| 6순위 #8 1:1 매칭 채팅 | ⏸ 다음 사이클 (15~18h, 한 사이클 안 어려움) |
-| TypeScript 타입 에러 149건 | ⏸ 다음 사이클 자투리 (운영 영향 0) |
-| Phase 4~22 (19개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
+| **6순위 #16 통합 회원·후원 시스템** | ✅ 단계 A·B·C·D 검증 완료 (V1·V2·V3 통과) |
+| 6순위 #8 1:1 매칭 채팅 | ✅ 코드 100% main 안착 — Swain V1·V2·V3 검증 대기 |
+| **Phase 4 대표 보고 시스템** | 🔵 진행중 — 메인 2차 완료(94a725c), A·B 병렬 개발 중 |
+| TypeScript 타입 에러 149건 | ⏸ 자투리 (운영 영향 0) |
+| Phase 5~22 (18개) | ⏸ 스펙 미정 (별도 설계 세션 필요) |
 
 **누적**: 약 33% / 약 440h+
 
