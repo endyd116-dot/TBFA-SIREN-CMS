@@ -53,6 +53,7 @@ export interface AdminDonorProspect {
   totalDonationCount: number;
   totalDonationAmount: number;
   cancelledChannel: DonorChannel | null;
+  cancelledAt: string | null;
   donorEvaluatedAt: string;
 }
 
@@ -371,6 +372,7 @@ export default async (req: Request, _ctx: Context) => {
         : "onetime"; // 안전 폴백 (cron이 NULL을 남기지 않지만, 만약 NULL이면 onetime으로 간주)
 
       let cancelledChannel: DonorChannel | null = null;
+      let cancelledAt: string | null = null;
       if (subtypeVal === "cancelled") {
         const tossDeact = tossDeactMap.get(id) || null;
         const hyosungStatus = (r.hyosung_contract_status || "").toLowerCase();
@@ -379,14 +381,22 @@ export default async (req: Request, _ctx: Context) => {
 
         if (tossDeact && hyosungCancelled) {
           /* 둘 다 — 가장 최근 변경 채널 우선 */
-          cancelledChannel =
-            !hyosungSyncedAt || tossDeact >= hyosungSyncedAt ? "toss" : "hyosung";
+          if (!hyosungSyncedAt || tossDeact >= hyosungSyncedAt) {
+            cancelledChannel = "toss";
+            cancelledAt = tossDeact.toISOString();
+          } else {
+            cancelledChannel = "hyosung";
+            cancelledAt = hyosungSyncedAt.toISOString();
+          }
         } else if (tossDeact) {
           cancelledChannel = "toss";
+          cancelledAt = tossDeact.toISOString();
         } else if (hyosungCancelled) {
           cancelledChannel = "hyosung";
+          cancelledAt = hyosungSyncedAt ? hyosungSyncedAt.toISOString() : null;
         } else {
           cancelledChannel = null;
+          cancelledAt = null;
         }
       }
 
@@ -401,6 +411,7 @@ export default async (req: Request, _ctx: Context) => {
         totalDonationCount: stats.count,
         totalDonationAmount: stats.sum,
         cancelledChannel,
+        cancelledAt,
         donorEvaluatedAt: r.donor_evaluated_at
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),

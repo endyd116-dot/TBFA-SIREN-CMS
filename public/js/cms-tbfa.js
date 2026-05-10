@@ -1940,7 +1940,7 @@
   async function renderDonorProspect() {
     const tbody = document.getElementById('dpBody');
     if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>`;
 
     let resp;
     try {
@@ -1952,7 +1952,7 @@
       });
     } catch (err) {
       console.error('[donor-prospect] fetch fail', err);
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ${escapeHtml(err?.message || err)}</td></tr>`;
       renderDonorProspectKpi(null);
       renderDonorProspectPagination(0);
       return;
@@ -1963,7 +1963,7 @@
     renderDonorProspectKpi(resp.kpi || null);
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
       renderDonorProspectPagination(0);
       return;
     }
@@ -1974,6 +1974,7 @@
         <td><strong>${escapeHtml(d.name || '')}</strong></td>
         <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
         <td>${renderProspectSubtypeBadge(d)}</td>
+        <td style="font-family:Inter;font-size:11.5px;color:${d.cancelledAt ? '#c5293a' : '#aaa'}">${d.cancelledAt ? formatDate(d.cancelledAt) : '—'}</td>
         <td style="font-family:Inter;font-size:11.5px">${formatDate(d.lastDonationDate)}</td>
         <td style="text-align:right;font-weight:600">${d.lastDonationAmount != null ? '₩' + Number(d.lastDonationAmount).toLocaleString() : '—'}</td>
         <td style="text-align:right;font-family:Inter;font-size:11.5px">${(d.totalDonationCount ?? 0).toLocaleString()}건</td>

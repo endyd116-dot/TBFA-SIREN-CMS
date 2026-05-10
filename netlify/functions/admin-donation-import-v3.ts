@@ -657,6 +657,16 @@ async function handleBillingsImport(
     }
   }
 
+  /* donor_type 즉시 재평가 — billings import 후 donations가 생성됐으므로 cron 기다리지 않고 즉시 갱신 */
+  const memberIdsToReevaluate = [...new Set(
+    parseResult.rows
+      .map((row: any) => memberNoToId.get(row.memberNo) ?? null)
+      .filter((id: any): id is number => typeof id === "number" && id > 0)
+  )];
+  for (const mid of memberIdsToReevaluate) {
+    await safeReevaluate(mid, "billings-import").catch(() => {});
+  }
+
   /* import 로그 */
   try {
     await db.insert(hyosungImportLogs).values({

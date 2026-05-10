@@ -445,6 +445,29 @@ export default async (req: Request, _ctx: Context) => {
         ? hyosungBillingStats
         : donationsStats;
 
+      const hcDetail = hyosungDetailMap.get(id) ?? null;
+
+      /* 효성 회원 누적개월 역산:
+       * 약정일(promise_day) + 최초청구시작일(billing_start)로 첫 실청구월을 계산하고
+       * 오늘까지 몇 달인지 역산. donations/billings COUNT보다 크면 역산값 우선.
+       * (약정일이 billing_start 이후면 다음달부터 실청구 시작 — Swain 요구사항) */
+      const hcBillingStart = hcDetail?.billing_start ? new Date(hcDetail.billing_start) : null;
+      const hcPromiseDay = hcDetail?.promise_day != null ? Number(hcDetail.promise_day) : null;
+      const hyosungInferredMonths = computeHyosungCumulativeMonths(hcBillingStart, hcPromiseDay);
+      const cumulativeMonths = (hyosungInferredMonths != null && hyosungInferredMonths > stats.count)
+        ? hyosungInferredMonths
+        : stats.count;
+
+      /* 효성 누적금액: 역산 개월 × 약정금액 (billings/donations 합산보다 크면 역산 우선)
+       * billings 수납내역이 아직 전부 import 안 된 경우 보정 */
+      const hcProductAmount = hcDetail?.product_amount != null ? Number(hcDetail.product_amount) : 0;
+      const hyosungInferredAmount = (hyosungInferredMonths != null && hcProductAmount > 0)
+        ? hyosungInferredMonths * hcProductAmount
+        : null;
+      const cumulativeAmount = (hyosungInferredAmount != null && hyosungInferredAmount > stats.sum)
+        ? hyosungInferredAmount
+        : stats.sum;
+
       const memberNextBilling = r.next_billing_date ? new Date(r.next_billing_date) : null;
       const tossNextCharge = tossInfo?.nextChargeAt || null;
       /* 효성 회원은 토스 빌링키 없음 → hyosung_promise_day(약정일) 기반으로 다음 청구일 계산 */
@@ -460,7 +483,6 @@ export default async (req: Request, _ctx: Context) => {
         .sort((a, b) => b.month.localeCompare(a.month))
         .slice(0, 6);
 
-      const hcDetail = hyosungDetailMap.get(id) ?? null;
       return {
         id,
         name: r.name || "",
@@ -469,8 +491,8 @@ export default async (req: Request, _ctx: Context) => {
         channels,
         regularAmount: regularAmount > 0 ? regularAmount : null,
         nextBillingDate: nextBillingDate ? nextBillingDate.toISOString() : null,
-        cumulativeMonths: stats.count,
-        cumulativeAmount: stats.sum,
+        cumulativeMonths,
+        cumulativeAmount,
         donorEvaluatedAt: r.donor_evaluated_at
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),
@@ -526,6 +548,42 @@ export default async (req: Request, _ctx: Context) => {
  * - 오늘이 약정일 당일/이후면 다음달 약정일
  * - 약정일이 그달 마지막 일자보다 크면 마지막 일자(예: 2월 31일 → 2월 28/29일)
  */
+/**
+ * 효성 계약의 약정일(promise_day) + 최초청구시작일(billing_start)로 누적 후원 개월 수 계산.
+ *
+ * 로직:
+ *   1. billing_start 월에서 약정일 날짜를 구성 (첫 청구 예정일)
+ *   2. 첫 청구 예정일이 billing_start 이전이면 → 다음달로 넘김 (아직 청구 안 된 것)
+ *   3. 오늘까지 몇 개월 지났는지 = 누적개월
+ *
+ * 예: billing_start=2월18일, promise_day=15
+ *   → 2월15일 < 2월18일 → 첫 실청구월=3월 → 오늘이 5월이면 누적=3개월(3/4/5)
+ */
+function computeHyosungCumulativeMonths(billingStart: Date | null, promiseDay: number | null): number | null {
+  if (!billingStart || !promiseDay) return null;
+  const day = Math.floor(Number(promiseDay) || 0);
+  if (day < 1 || day > 31) return null;
+
+  /* 첫 청구 예정일: billing_start 월의 약정일 */
+  const firstChargeCandidate = new Date(billingStart.getFullYear(), billingStart.getMonth(), day);
+  /* 약정일이 그달 말일보다 크면 말일로 클램프 */
+  const lastDayOfMonth = new Date(billingStart.getFullYear(), billingStart.getMonth() + 1, 0).getDate();
+  firstChargeCandidate.setDate(Math.min(day, lastDayOfMonth));
+
+  /* billing_start 당일 또는 이후여야 첫 청구 — 이전이면 다음달로 */
+  let firstChargeMonth = new Date(firstChargeCandidate);
+  if (firstChargeCandidate < billingStart) {
+    firstChargeMonth = new Date(billingStart.getFullYear(), billingStart.getMonth() + 1, 1);
+  }
+
+  /* 오늘 기준 누적 개월 (firstChargeMonth가 포함된 달부터 이번달까지) */
+  const now = new Date();
+  const months =
+    (now.getFullYear() - firstChargeMonth.getFullYear()) * 12 +
+    (now.getMonth() - firstChargeMonth.getMonth()) + 1;
+  return months > 0 ? months : 0;
+}
+
 function computeHyosungNextBilling(promiseDay: number): Date | null {
   const day = Math.floor(Number(promiseDay) || 0);
   if (day < 1 || day > 31) return null;
