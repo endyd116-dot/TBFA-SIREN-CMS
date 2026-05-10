@@ -212,17 +212,18 @@
           dashboard: '대시보드',
           members: '통합 일반 회원',
           'donor-regular': '🔁 정기 후원자 관리',
-          'donor-prospect': '💡 잠재 후원자 관리',
+          'donor-prospect': '💡 예비 후원자 관리',
+          'donor-potential': '🌱 잠재 후원자 관리',
+          'notify-send': '📨 알림 발송',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
-          notify: '알림 발송',
           export: '데이터 추출',
-          'receipt-settings': '영수증 설정', /* ★ STEP H-2d-4 */
-          hyosung: '효성 CMS+ 관리', /* ★ Phase 1 */
-          'toss-billing': '💳 토스 빌링 (자동 청구)', /* ★ Phase 2 */
-          'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)', /* ★ 작업 C(#15) */
-          'donation-dashboard': '🔍 종합 검증 대시보드', /* ★ Phase 3 D7 */
+          'receipt-settings': '영수증 설정',
+          hyosung: '효성 CMS+ 관리',
+          'toss-billing': '💳 토스 빌링 (자동 청구)',
+          'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
+          'donation-dashboard': '🔍 종합 검증 대시보드',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -236,7 +237,9 @@
         else if (tab === 'hyosung') loadHyosungContracts(); /* ★ Phase 1 */
         else if (tab === 'toss-billing') loadTbKeys(); /* ★ Phase 2 */
         else if (tab === 'donor-regular') renderDonorRegular(); /* ★ Phase 2 C10 */
-        else if (tab === 'donor-prospect') renderDonorProspect(); /* ★ Phase 2 C11 */
+        else if (tab === 'donor-prospect') renderDonorProspect();
+        else if (tab === 'donor-potential') renderPotentialDonor();
+        else if (tab === 'notify-send') renderNotifySend();
         else if (tab === 'csv-import') {
           /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
           if (window.CsvImport && typeof window.CsvImport.init === 'function') {
@@ -2560,3 +2563,266 @@ function setupTossBilling() {
    ★ Phase 2: 토스 빌링 자동 청구 관리
    ============================================================ */
 
+
+/* ============================================================
+   ★ 잠재 후원자 관리 (potential_donors) — 이벤트·활동 참여자
+   ============================================================ */
+
+let potentialDonorQuery = { q: '', eventName: '', linked: 'all' };
+let potentialDonorPage = 1;
+const potentialDonorPageSize = 50;
+let potentialDonorSearchTimer = null;
+
+async function renderPotentialDonor() {
+  const tbody = document.getElementById('pdBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">불러오는 중…</td></tr>';
+
+  let resp;
+  try {
+    const qs = new URLSearchParams();
+    if (potentialDonorQuery.q) qs.set('q', potentialDonorQuery.q);
+    if (potentialDonorQuery.eventName) qs.set('eventName', potentialDonorQuery.eventName);
+    if (potentialDonorQuery.linked !== 'all') qs.set('linked', potentialDonorQuery.linked);
+    qs.set('page', String(potentialDonorPage));
+    qs.set('pageSize', String(potentialDonorPageSize));
+    const res = await api('/api/admin/potential-donor-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    resp = unwrap(res.data, ['data', 'kpi', 'total']);
+  } catch (err) {
+    console.error('[potential-donor] fetch fail', err);
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
+    return;
+  }
+
+  const rows = resp.data || [];
+  const total = resp.total != null ? resp.total : rows.length;
+  const kpi = resp.kpi || {};
+  const set = function(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('pdKpiTotal', (kpi.total != null ? kpi.total : 0).toLocaleString() + '명');
+  set('pdKpiLinked', (kpi.linked != null ? kpi.linked : 0).toLocaleString() + '명');
+  set('pdKpiUnlinked', (kpi.unlinked != null ? kpi.unlinked : 0).toLocaleString() + '명');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>';
+    renderPotentialDonorPagination(0);
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(d) {
+    const linkedBadge = d.linkedMemberId
+      ? '<span class="cms-badge cms-b-success">🔗 M-' + String(d.linkedMemberId).padStart(5,'0') + ' ' + escapeHtml(d.linkedMemberName || '') + '</span>'
+      : '<span class="cms-badge cms-b-mute">미연결</span>';
+    const mapBtn = d.linkedMemberId
+      ? '<button class="cms-btn-link" style="color:#888" onclick="pdUnmap(' + d.id + ')">연결해제</button>'
+      : '<button class="cms-btn-link" style="color:#1a5ec4" onclick="pdMapMember(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">회원연결</button>';
+    return '<tr>'
+      + '<td style="font-family:Inter;font-size:11.5px">PD-' + String(d.id).padStart(5,'0') + '</td>'
+      + '<td><strong>' + escapeHtml(d.name || '') + '</strong></td>'
+      + '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.phone || '—') + '</td>'
+      + '<td style="font-size:12px">' + escapeHtml(d.eventName || '—') + '</td>'
+      + '<td style="font-family:Inter;font-size:11.5px">' + formatDate(d.participatedAt) + '</td>'
+      + '<td style="font-size:12px;color:#666">' + escapeHtml(d.entryPath || '—') + '</td>'
+      + '<td>' + linkedBadge + '</td>'
+      + '<td style="font-size:12px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.memo || '') + '">' + escapeHtml(d.memo || '—') + '</td>'
+      + '<td><button class="cms-btn-link" onclick="pdEditRow(' + d.id + ')">수정</button> ' + mapBtn + ' <button class="cms-btn-link" style="color:#c5293a" onclick="pdDeleteRow(' + d.id + ', \'' + escapeHtml(d.name || '').replace(/'/g,'&#39;') + '\')">삭제</button></td>'
+      + '</tr>';
+  }).join('');
+
+  renderPotentialDonorPagination(total);
+}
+
+function renderPotentialDonorPagination(total) {
+  const pager = document.getElementById('pdPagination');
+  if (!pager) return;
+  if (!total) { pager.innerHTML = ''; return; }
+  const totalPages = Math.ceil(total / potentialDonorPageSize);
+  const prev = potentialDonorPage > 1 ? '<button class="cms-donor-pagination-btn" data-pdp="' + (potentialDonorPage - 1) + '">‹ 이전</button>' : '';
+  const next = potentialDonorPage < totalPages ? '<button class="cms-donor-pagination-btn" data-pdp="' + (potentialDonorPage + 1) + '">다음 ›</button>' : '';
+  pager.innerHTML = prev + '<span class="cms-donor-pagination-info">' + potentialDonorPage + ' / ' + totalPages + ' · 총 ' + total.toLocaleString() + '명</span>' + next;
+  pager.querySelectorAll('[data-pdp]').forEach(function(b) {
+    b.addEventListener('click', function() { potentialDonorPage = Number(b.dataset.pdp); renderPotentialDonor(); });
+  });
+}
+
+function pdEditRow(id) {
+  const name = prompt('이름:');
+  if (!name) return;
+  const phone = prompt('연락처:', '');
+  const address = prompt('주소:', '');
+  const birthdate = prompt('생년월일 (YYYY-MM-DD):', '');
+  const eventName = prompt('이벤트·활동명:', '');
+  const entryPath = prompt('유입 경로:', '');
+  const memo = prompt('메모:', '');
+  api('/api/admin/potential-donor-crud', { method: 'PUT', body: { id, name, phone, address, birthdate, eventName, entryPath, memo } })
+    .then(function(res) { if (!res.ok) return toast('수정 실패: ' + (res.data?.error || '')); toast('수정 완료'); renderPotentialDonor(); });
+}
+
+function pdDeleteRow(id, name) {
+  if (!confirm('"' + name + '"을(를) 삭제하시겠습니까?')) return;
+  api('/api/admin/potential-donor-crud', { method: 'DELETE', body: { id } })
+    .then(function(res) { if (!res.ok) return toast('삭제 실패: ' + (res.data?.error || '')); toast('삭제 완료'); renderPotentialDonor(); });
+}
+
+function pdMapMember(id, name) {
+  const memberIdInput = prompt('"' + name + '"을(를) 연결할 회원번호(숫자)를 입력하세요:');
+  const memberId = parseInt(memberIdInput, 10);
+  if (!memberId) return;
+  api('/api/admin/potential-donor-crud?action=map-member', { method: 'POST', body: { id, memberId } })
+    .then(function(res) { if (!res.ok) return toast('매핑 실패: ' + (res.data?.error || '')); toast('정식 회원으로 연결 완료'); renderPotentialDonor(); });
+}
+
+function pdUnmap(id) {
+  if (!confirm('회원 연결을 해제하시겠습니까?')) return;
+  api('/api/admin/potential-donor-crud?action=unmap', { method: 'POST', body: { id } })
+    .then(function(res) { if (!res.ok) return toast('해제 실패: ' + (res.data?.error || '')); toast('연결 해제 완료'); renderPotentialDonor(); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('pdFilterSearch')?.addEventListener('input', function(e) {
+    clearTimeout(potentialDonorSearchTimer);
+    potentialDonorSearchTimer = setTimeout(function() { potentialDonorQuery.q = e.target.value.trim(); potentialDonorPage = 1; renderPotentialDonor(); }, 300);
+  });
+  document.getElementById('pdFilterEvent')?.addEventListener('input', function(e) {
+    clearTimeout(potentialDonorSearchTimer);
+    potentialDonorSearchTimer = setTimeout(function() { potentialDonorQuery.eventName = e.target.value.trim(); potentialDonorPage = 1; renderPotentialDonor(); }, 300);
+  });
+  document.getElementById('pdFilterLinked')?.addEventListener('change', function(e) {
+    potentialDonorQuery.linked = e.target.value; potentialDonorPage = 1; renderPotentialDonor();
+  });
+  document.getElementById('pdBtnRefresh')?.addEventListener('click', function() { renderPotentialDonor(); });
+  document.getElementById('pdBtnAdd')?.addEventListener('click', function() {
+    const name = prompt('이름 (필수):');
+    if (!name?.trim()) return;
+    const phone = prompt('연락처:', '');
+    const address = prompt('주소:', '');
+    const birthdate = prompt('생년월일 (YYYY-MM-DD):', '');
+    const eventName = prompt('이벤트·활동명:', '');
+    const entryPath = prompt('유입 경로:', '');
+    const memo = prompt('메모:', '');
+    api('/api/admin/potential-donor-crud', { method: 'POST', body: { name: name.trim(), phone, address, birthdate, eventName, entryPath, memo } })
+      .then(function(res) { if (!res.ok) return toast('등록 실패: ' + (res.data?.error || '')); toast('등록 완료'); renderPotentialDonor(); });
+  });
+});
+
+/* ============================================================
+   ★ 알림 발송 탭 통합 (notify-send)
+   ============================================================ */
+
+let notifySendInitialized = false;
+let sjPage = 1;
+const SJ_PAGE_SIZE = 20;
+let rgPage = 1;
+const RG_PAGE_SIZE = 20;
+
+async function renderNotifySend() {
+  if (!notifySendInitialized) {
+    notifySendInitialized = true;
+    document.querySelectorAll('[data-ns-tab]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-ns-tab]').forEach(function(b) {
+          b.style.borderBottom = 'none'; b.style.color = 'var(--text-2,#4a5568)';
+        });
+        btn.style.borderBottom = '2px solid #1a5ec4'; btn.style.color = '#1a5ec4';
+        const tab = btn.dataset.nsTab;
+        document.getElementById('nsTabJobs').style.display  = tab === 'jobs'   ? '' : 'none';
+        document.getElementById('nsTabGroups').style.display = tab === 'groups' ? '' : 'none';
+        if (tab === 'jobs') loadNotifyJobs(); else loadNotifyGroups();
+      });
+    });
+    document.getElementById('sjFilterStatus')?.addEventListener('change', function() { sjPage = 1; loadNotifyJobs(); });
+    document.getElementById('sjBtnRefresh')?.addEventListener('click', function() { sjPage = 1; loadNotifyJobs(); });
+    document.getElementById('sjBtnCreate')?.addEventListener('click', function() { window.open('/admin-send-job-create.html', '_blank'); });
+    document.getElementById('rgBtnRefresh')?.addEventListener('click', function() { rgPage = 1; loadNotifyGroups(); });
+    document.getElementById('rgBtnCreate')?.addEventListener('click', function() { window.open('/admin-recipient-group-edit.html', '_blank'); });
+    document.getElementById('rgFilterSearch')?.addEventListener('input', function() { rgPage = 1; loadNotifyGroups(); });
+  }
+  loadNotifyJobs();
+}
+
+async function loadNotifyJobs() {
+  const tbody = document.getElementById('sjBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  const status = document.getElementById('sjFilterStatus')?.value || '';
+  const qs = new URLSearchParams({ limit: String(SJ_PAGE_SIZE), offset: String((sjPage - 1) * SJ_PAGE_SIZE) });
+  if (status) qs.set('status', status);
+  try {
+    const res = await api('/api/admin-send-jobs-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    const payload = res.data?.data != null ? res.data.data : (res.data != null ? res.data : {});
+    const rows = payload.rows != null ? payload.rows : [];
+    const total = payload.total != null ? payload.total : rows.length;
+    const STATUS_LABEL = { pending:'대기', processing:'진행 중', completed:'완료', failed:'실패', cancelled:'취소됨' };
+    const CHAN_LABEL = { email:'이메일', sms:'SMS', kakao:'카카오', inapp:'인앱' };
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">발송 작업이 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        const sl = STATUS_LABEL[r.status] || r.status;
+        const sc = r.status === 'completed' ? 'cms-b-success' : r.status === 'failed' ? 'cms-b-danger' : 'cms-b-mute';
+        return '<tr>'
+          + '<td style="font-family:Inter;font-size:11.5px">#' + r.id + '</td>'
+          + '<td><strong>' + escapeHtml(r.name || '') + '</strong></td>'
+          + '<td>' + escapeHtml(CHAN_LABEL[r.channel] || r.channel || '—') + '</td>'
+          + '<td><span class="cms-badge ' + sc + '">' + sl + '</span></td>'
+          + '<td style="text-align:right;font-family:Inter">' + (r.totalRecipients || 0).toLocaleString() + '</td>'
+          + '<td style="text-align:right;font-family:Inter;color:#2e7d32">' + (r.successCount || 0).toLocaleString() + '</td>'
+          + '<td style="text-align:right;font-family:Inter;color:#c5293a">' + (r.failureCount || 0).toLocaleString() + '</td>'
+          + '<td style="font-family:Inter;font-size:11.5px">' + formatDate(r.scheduledAt || r.createdAt) + '</td>'
+          + '<td><a href="/admin-send-job-detail.html?id=' + r.id + '" target="_blank" class="cms-btn-link">상세</a></td>'
+          + '</tr>';
+      }).join('');
+    }
+    const pager = document.getElementById('sjPagination');
+    if (pager) {
+      const tp = Math.max(1, Math.ceil(total / SJ_PAGE_SIZE));
+      const prev = sjPage > 1 ? '<button class="cms-donor-pagination-btn" data-sjp="' + (sjPage-1) + '">‹ 이전</button>' : '';
+      const next = sjPage < tp ? '<button class="cms-donor-pagination-btn" data-sjp="' + (sjPage+1) + '">다음 ›</button>' : '';
+      pager.innerHTML = prev + '<span class="cms-donor-pagination-info">' + sjPage + ' / ' + tp + ' · 총 ' + total.toLocaleString() + '건</span>' + next;
+      pager.querySelectorAll('[data-sjp]').forEach(function(b) { b.addEventListener('click', function() { sjPage = Number(b.dataset.sjp); loadNotifyJobs(); }); });
+    }
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
+  }
+}
+
+async function loadNotifyGroups() {
+  const tbody = document.getElementById('rgBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  const q = document.getElementById('rgFilterSearch')?.value.trim() || '';
+  const qs = new URLSearchParams({ limit: String(RG_PAGE_SIZE), offset: String((rgPage - 1) * RG_PAGE_SIZE) });
+  if (q) qs.set('q', q);
+  try {
+    const res = await api('/api/admin-recipient-groups-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    const payload = res.data?.data != null ? res.data.data : (res.data != null ? res.data : {});
+    const rows = payload.rows != null ? payload.rows : (payload.data != null ? payload.data : []);
+    const total = payload.total != null ? payload.total : rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">수신자 그룹이 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        return '<tr>'
+          + '<td style="font-family:Inter;font-size:11.5px">#' + r.id + '</td>'
+          + '<td><strong>' + escapeHtml(r.name || '') + '</strong></td>'
+          + '<td style="font-size:12px;color:#666">' + escapeHtml(r.description || '—') + '</td>'
+          + '<td>' + (r.isActive ? '<span class="cms-badge cms-b-success">활성</span>' : '<span class="cms-badge cms-b-mute">비활성</span>') + '</td>'
+          + '<td style="font-family:Inter;font-size:11.5px">' + formatDate(r.createdAt) + '</td>'
+          + '<td><a href="/admin-recipient-group-edit.html?id=' + r.id + '" target="_blank" class="cms-btn-link">편집</a></td>'
+          + '</tr>';
+      }).join('');
+    }
+    const pager = document.getElementById('rgPagination');
+    if (pager) {
+      const tp = Math.max(1, Math.ceil(total / RG_PAGE_SIZE));
+      const prev = rgPage > 1 ? '<button class="cms-donor-pagination-btn" data-rgp="' + (rgPage-1) + '">‹ 이전</button>' : '';
+      const next = rgPage < tp ? '<button class="cms-donor-pagination-btn" data-rgp="' + (rgPage+1) + '">다음 ›</button>' : '';
+      pager.innerHTML = prev + '<span class="cms-donor-pagination-info">' + rgPage + ' / ' + tp + ' · 총 ' + total.toLocaleString() + '개</span>' + next;
+      pager.querySelectorAll('[data-rgp]').forEach(function(b) { b.addEventListener('click', function() { rgPage = Number(b.dataset.rgp); loadNotifyGroups(); }); });
+    }
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
+  }
+}

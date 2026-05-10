@@ -229,7 +229,8 @@
         </a>
         <ul class="cms-submenu" data-submenu="donation" style="display:block">
           <li><a href="#donor-regular" data-tab="donor-regular"><i>🔁</i><span>정기 후원자 관리</span></a></li>
-          <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>잠재 후원자 관리</span></a></li>
+          <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>예비 후원자 관리</span></a></li>
+          <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자 관리</span></a></li>
           <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 CMS+</span></a></li>
           <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>토스 빌링</span></a></li>
           <li><a href="#donation-dashboard" data-tab="donation-dashboard"><i>🔍</i><span>종합 검증 대시보드</span></a></li>
@@ -240,9 +241,7 @@
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
       </li>
-      <!-- 알림발송: 더미 섹션 비표시 -->
-      <!-- <li><a href="#notify" data-tab="notify"><i>📨</i><span>알림 발송</span></a></li> -->
-      <!-- CSV 검증 매핑: 회원 등록·수납 매핑으로 통합됨 -->
+      <li><a href="#notify-send" data-tab="notify-send"><i>📨</i><span>알림 발송</span></a></li>
       <li><a href="#export" data-tab="export"><i>📤</i><span>데이터 추출</span></a></li>
       <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
 
@@ -1465,6 +1464,144 @@
         </div>
       </section>
 
+      <!-- ============ 잠재 후원자 관리 (이벤트·활동 참여자) ============ -->
+      <section class="cms-page" id="page-donor-potential">
+        <!-- KPI 3종 -->
+        <div class="cms-kpi-grid donor-kpi-grid">
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e8f5e9;color:#2e7d32">🌱</div>
+            <div class="cms-kpi-label">잠재 후원자 총수</div>
+            <div class="cms-kpi-value" id="pdKpiTotal">-</div>
+            <div class="cms-kpi-delta">이벤트·활동 참여자</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#e3f2fd;color:#1565c0">🔗</div>
+            <div class="cms-kpi-label">정식 회원 연결됨</div>
+            <div class="cms-kpi-value" id="pdKpiLinked">-</div>
+            <div class="cms-kpi-delta">싸이렌 회원 매핑</div>
+          </div>
+          <div class="cms-kpi">
+            <div class="cms-kpi-icon" style="background:#fff8e1;color:#e65100">⏳</div>
+            <div class="cms-kpi-label">미연결 (잠재군)</div>
+            <div class="cms-kpi-value" id="pdKpiUnlinked">-</div>
+            <div class="cms-kpi-delta">후원 전환 대상</div>
+          </div>
+        </div>
+
+        <!-- 필터 + 등록 버튼 -->
+        <div class="cms-filter-bar" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="pdFilterSearch" class="cms-input" placeholder="이름·연락처 검색" style="width:200px">
+          <input type="text" id="pdFilterEvent" class="cms-input" placeholder="이벤트명 검색" style="width:180px">
+          <select id="pdFilterLinked" class="cms-input" style="width:130px">
+            <option value="all">전체</option>
+            <option value="no">미연결</option>
+            <option value="yes">연결됨</option>
+          </select>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnRefresh">새로고침</button>
+          <button class="cms-btn cms-btn-primary" id="pdBtnAdd" style="margin-left:auto">＋ 등록</button>
+        </div>
+
+        <div class="cms-table-wrap">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>이름</th>
+                <th>연락처</th>
+                <th>이벤트·활동</th>
+                <th>참여일</th>
+                <th>유입경로</th>
+                <th>정식 회원 연결</th>
+                <th>메모</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="pdBody">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+          <div class="cms-donor-pagination" id="pdPagination"></div>
+        </div>
+      </section>
+
+      <!-- ============ 알림 발송 관리 ============ -->
+      <section class="cms-page" id="page-notify-send">
+        <div style="padding:0 0 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">📨 알림 발송 관리</span>
+          <span style="font-size:12px;color:var(--text-3,#94a0b3)">정기·예비·잠재 후원자 전체 대상 알림 발송</span>
+        </div>
+
+        <!-- 알림 발송 서브탭 -->
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--line,#e3e6eb);margin-bottom:18px" id="notifySendTabs">
+          <button class="cms-subtab on" data-ns-tab="jobs" style="padding:8px 22px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid #1a5ec4;color:#1a5ec4;margin-bottom:-2px">발송 작업</button>
+          <button class="cms-subtab" data-ns-tab="groups" style="padding:8px 22px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-2,#4a5568)">수신자 그룹</button>
+        </div>
+
+        <!-- 발송 작업 영역 -->
+        <div id="nsTabJobs">
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+            <select id="sjFilterStatus" class="cms-input" style="width:130px">
+              <option value="">전체 상태</option>
+              <option value="pending">대기</option>
+              <option value="processing">진행 중</option>
+              <option value="completed">완료</option>
+              <option value="failed">실패</option>
+              <option value="cancelled">취소됨</option>
+            </select>
+            <button class="cms-btn cms-btn-ghost" id="sjBtnRefresh">새로고침</button>
+            <button class="cms-btn cms-btn-primary" id="sjBtnCreate" style="margin-left:auto">＋ 새 발송 작업</button>
+          </div>
+          <div class="cms-table-wrap">
+            <table class="cms-tbl">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>작업명</th>
+                  <th>채널</th>
+                  <th>상태</th>
+                  <th>수신자</th>
+                  <th style="text-align:right">성공</th>
+                  <th style="text-align:right">실패</th>
+                  <th>예약 시각</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="sjBody">
+                <tr><td colspan="9" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+              </tbody>
+            </table>
+            <div class="cms-donor-pagination" id="sjPagination"></div>
+          </div>
+        </div>
+
+        <!-- 수신자 그룹 영역 -->
+        <div id="nsTabGroups" style="display:none">
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+            <input type="text" id="rgFilterSearch" class="cms-input" placeholder="그룹명 검색" style="width:220px">
+            <button class="cms-btn cms-btn-ghost" id="rgBtnRefresh">새로고침</button>
+            <button class="cms-btn cms-btn-primary" id="rgBtnCreate" style="margin-left:auto">＋ 새 그룹</button>
+          </div>
+          <div class="cms-table-wrap">
+            <table class="cms-tbl">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>그룹명</th>
+                  <th>설명</th>
+                  <th>활성</th>
+                  <th>생성일</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="rgBody">
+                <tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+              </tbody>
+            </table>
+            <div class="cms-donor-pagination" id="rgPagination"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ============ ★ Phase 3 D7: 종합 검증 대시보드 ============ -->
       <section class="cms-page" id="page-donation-dashboard">
         <!-- KPI 6종 -->
@@ -1657,11 +1794,14 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-11-a1"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-11-a2"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <script src="/js/cms-tbfa-source-kpi.js?v=2026-05-10-q4"></script>
+  <!-- 알림 발송 모듈 (Phase 10 R3) -->
+  <script src="/js/admin-send-jobs.js?v=2026-05-11-a1"></script>
+  <script src="/js/admin-recipient-groups.js?v=2026-05-11-a1"></script>
 </body>
 </html>

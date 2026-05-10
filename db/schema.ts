@@ -2514,3 +2514,38 @@ export type NewMatchingFeedback = typeof matchingFeedbacks.$inferInsert;
 
 /* === Phase 15 정의 끝 === */
 
+/* =========================================================
+   === 잠재 후원자 관리 (potential_donors) ===
+   싸이렌 정식 회원·후원자가 아니지만 이벤트·활동에 참여한 사람
+   마이그레이션: migrate-potential-donors
+   ========================================================= */
+export const potentialDonors = pgTable("potential_donors", {
+  id:             serial("id").primaryKey(),
+  name:           varchar("name", { length: 50 }).notNull(),
+  phone:          varchar("phone", { length: 20 }),
+  address:        varchar("address", { length: 200 }),
+  birthdate:      varchar("birthdate", { length: 10 }),
+  eventName:      varchar("event_name", { length: 100 }),
+  participatedAt: timestamp("participated_at"),
+  entryPath:      varchar("entry_path", { length: 100 }),
+  memo:           text("memo"),
+  linkedMemberId: integer("linked_member_id")
+                    .references(() => members.id, { onDelete: "set null" }),
+  linkedAt:       timestamp("linked_at"),
+  linkedBy:       integer("linked_by")
+                    .references(() => members.id, { onDelete: "set null" }),
+  createdBy:      integer("created_by")
+                    .references(() => members.id, { onDelete: "set null" }),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  nameIdx:         index("potential_donors_name_idx").on(t.name),
+  phoneIdx:        index("potential_donors_phone_idx").on(t.phone),
+  linkedMemberIdx: index("potential_donors_linked_member_idx").on(t.linkedMemberId),
+  eventIdx:        index("potential_donors_event_idx").on(t.eventName),
+  createdIdx:      index("potential_donors_created_idx").on(t.createdAt),
+}));
+
+export type PotentialDonor    = typeof potentialDonors.$inferSelect;
+export type NewPotentialDonor = typeof potentialDonors.$inferInsert;
+
