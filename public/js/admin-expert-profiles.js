@@ -156,13 +156,17 @@
     var typeFilter = (document.getElementById('profTypeFilter') || {}).value || '';
     var profiles = [];
 
-    var r = await api('/api/admin-expert-profile-get' + (typeFilter ? '?type=' + encodeURIComponent(typeFilter) : ''));
+    var r = await api('/api/admin-expert-profile-get?all=true');
     if (!r.ok) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#b91c1c">로드 실패: ' +
         escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</td></tr>';
       return;
     }
     profiles = (r.data && r.data.profiles) || (r.data && r.data.data && r.data.data.profiles) || [];
+
+    if (typeFilter) {
+      profiles = profiles.filter(function (p) { return p.memberSubtype === typeFilter; });
+    }
 
     if (!profiles.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">등록된 전문가가 없습니다.</td></tr>';
@@ -208,7 +212,7 @@
     var btn = document.getElementById('btnProfSave');
     if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
 
-    var r = await api('/api/admin-expert-profile-update', {
+    var r = await api('/api/admin-expert-profile-upsert', {
       method: 'POST',
       body: {
         memberId:       _editTarget.memberId,
