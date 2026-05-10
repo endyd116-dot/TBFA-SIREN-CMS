@@ -1,48 +1,6 @@
-/* Phase 17 — 보안·감사 로그 화면 (mock 모드) */
+/* Phase 17 — 보안·감사 로그 화면 */
 (function () {
   'use strict';
-
-  /* ── mock 데이터 (B 머지 후 실 API로 교체) ── */
-  const USE_MOCK = true;
-
-  const MOCK_AUDIT_LIST = {
-    ok: true, total: 1240, page: 1,
-    logs: [
-      { id: 891, userName: '관리자1', userType: 'admin', action: 'member_blacklist',
-        target: 'M-08423', detail: '블랙 처리: 규정 위반', ipAddress: '1.2.3.4',
-        riskLevel: 'high', success: true, createdAt: '2026-05-11T10:30:00Z' },
-      { id: 890, userName: '관리자1', userType: 'admin', action: 'login',
-        target: null, detail: null, ipAddress: '1.2.3.4',
-        riskLevel: 'low', success: true, createdAt: '2026-05-11T09:00:00Z' },
-      { id: 889, userName: '관리자2', userType: 'admin', action: 'donation_refund',
-        target: 'D-00341', detail: '환불 승인', ipAddress: '5.6.7.8',
-        riskLevel: 'critical', success: true, createdAt: '2026-05-10T15:20:00Z' },
-      { id: 888, userName: '관리자1', userType: 'admin', action: 'member_update',
-        target: 'M-00219', detail: '회원 정보 수정', ipAddress: '1.2.3.4',
-        riskLevel: 'medium', success: true, createdAt: '2026-05-10T11:00:00Z' },
-      { id: 887, userName: '시스템', userType: 'system', action: 'login',
-        target: null, detail: '로그인 실패', ipAddress: '9.9.9.9',
-        riskLevel: 'high', success: false, createdAt: '2026-05-10T08:45:00Z' },
-    ]
-  };
-
-  const MOCK_AUDIT_STATS = {
-    ok: true, period: '30d',
-    byAction: [
-      { action: 'login', count: 450 },
-      { action: 'member_update', count: 38 },
-      { action: 'member_blacklist', count: 3 },
-      { action: 'donation_refund', count: 7 },
-    ],
-    byRiskLevel: [
-      { level: 'critical', count: 2 },
-      { level: 'high', count: 18 },
-      { level: 'medium', count: 95 },
-      { level: 'low', count: 1125 },
-    ],
-    failedLogins: 12,
-    uniqueIps: 8
-  };
 
   /* ── 상수 ── */
   const RISK_COLOR = {
@@ -110,14 +68,12 @@
 
   /* ── API ── */
   async function fetchStats() {
-    if (USE_MOCK) return MOCK_AUDIT_STATS;
     const res = await api('/api/admin-audit-stats?period=' + state.period);
     if (!res.ok) throw new Error(res.data?.error || 'stats 조회 실패');
     return res.data;
   }
 
   async function fetchList() {
-    if (USE_MOCK) return MOCK_AUDIT_LIST;
     const params = new URLSearchParams({
       page: state.page,
       limit: 50,
@@ -277,7 +233,6 @@
       <div class="p-title">🔒 보안·감사 로그</div>
       <p style="font-size:13px;color:var(--text-3);margin-bottom:16px">
         관리자 활동과 보안 이벤트를 모니터링합니다.
-        ${USE_MOCK ? '<span style="color:#ca8a04;font-size:12px">[목업 데이터]</span>' : ''}
       </p>
       <div id="saStatCards"><div class="loading">통계 불러오는 중…</div></div>
       <div class="row-1-1" style="margin-bottom:20px">
