@@ -358,7 +358,7 @@
   /* ────────────────────────────────────────────────
      SPA 페이지 전환 감지
   ──────────────────────────────────────────────── */
-  document.addEventListener('adm:page', function (e) {
+  document.addEventListener('siren:page', function (e) {
     if (e.detail && e.detail.page === 'agency-mgmt') {
       if (!$section) init();
       else loadAgencies();

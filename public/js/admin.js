@@ -5812,6 +5812,16 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'notification-logs') {
       /* Phase 8 C: 알림 발송 로그 */
       if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();
+    } else if (page === 'unified-dashboard') {
+      if (window.SIREN_UNIFIED_DASHBOARD) window.SIREN_UNIFIED_DASHBOARD.load();
+    } else if (page === 'agency-mgmt') {
+      if (window.adminAgencyMgmt) window.adminAgencyMgmt.reload();
+      else document.dispatchEvent(new CustomEvent('siren:page', { detail: { page: 'agency-mgmt' } }));
+    } else if (page === 'referral-history') {
+      document.dispatchEvent(new CustomEvent('siren:page', { detail: { page: 'referral-history' } }));
+    } else if (page === 'security-audit') {
+      /* Phase 17: 보안·감사 로그 */
+      document.dispatchEvent(new CustomEvent('siren:page', { detail: { page: 'security-audit' } }));
     }
   }
 

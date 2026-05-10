@@ -354,6 +354,13 @@
     });
   }
 
+  document.addEventListener('siren:page', function (e) {
+    if (e.detail && e.detail.page === 'security-audit') {
+      const sec = document.getElementById('adm-security-audit');
+      if (sec) { render(); }
+    }
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
