@@ -99,6 +99,43 @@ body {
   font-size: 14px;
 }
 
+/* 토글 그룹 (워크스페이스 등 1뎁스 접힘) */
+.cms-menu-group > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  font-size: 13px;
+  color: #c8c8c8 !important;
+  border-left: 2px solid transparent;
+  transition: all 0.25s;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cms-menu-group > a:hover { background: #141414; color: #fff !important; }
+.cms-menu-group > a[aria-expanded="true"] { color: #fff !important; }
+.sidebar-group-chevron {
+  margin-left: auto;
+  font-size: 11px;
+  transition: transform 0.2s;
+  font-style: normal;
+}
+.cms-menu-group > a[aria-expanded="true"] .sidebar-group-chevron { transform: rotate(180deg); }
+.cms-submenu { list-style: none; padding: 0; margin: 0; background: #111; }
+.cms-submenu li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px 10px 36px !important;
+  font-size: 12.5px !important;
+  color: #bbb !important;
+  border-left: 2px solid transparent;
+  transition: all 0.25s;
+  text-decoration: none;
+}
+.cms-submenu li a:hover { background: #1a1a1a !important; color: #fff !important; }
+.cms-submenu li a.on { background: #1a1a1a !important; color: #fff !important; border-left-color: #b8935a !important; }
+
 .cms-main {
   flex: 1;
   min-width: 0;
