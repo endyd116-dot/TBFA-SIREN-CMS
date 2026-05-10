@@ -22,6 +22,12 @@
   let favoritesSet = new Set();   /* menuKey 집합 */
   let recentViews  = [];          /* [{ menuKey, viewedAt, count }] */
 
+  /* ─── 현재 운영자 역할 ─── */
+  let currentRole = null;         /* 'super_admin' | 'admin' | null */
+
+  /* super_admin 전용 메뉴 키 목록 */
+  const SUPER_ADMIN_ONLY_KEYS = ['anon-audit'];
+
   /* ─── 9그룹 IA 정의 ─── */
   const NAV_GROUPS = [
     {
@@ -187,6 +193,36 @@
       .catch(() => {});
   }
 
+  /* ─── 운영자 role 로드 → super_admin 전용 메뉴 숨김 ─── */
+  async function loadRoleAndApply() {
+    try {
+      /* admin.js가 이미 /api/admin/me를 호출했을 수 있으나,
+         shell은 독립적으로 role을 파악해 메뉴 가시성을 보장 */
+      const res = await api({ url: '/api/admin/me' });
+      if (res.ok) {
+        const payload = res.data?.data || res.data || {};
+        currentRole = (payload.admin || payload)?.role || null;
+      }
+    } catch (e) {
+      /* role 조회 실패 시 일반 admin으로 간주 (super_admin 메뉴 숨김) */
+    }
+    applyRoleVisibility();
+  }
+
+  /* super_admin 전용 메뉴 표시/숨김 */
+  function applyRoleVisibility() {
+    const isSuperAdmin = currentRole === 'super_admin';
+    SUPER_ADMIN_ONLY_KEYS.forEach(key => {
+      navEl.querySelectorAll('[data-key="' + key + '"]').forEach(el => {
+        el.style.display = isSuperAdmin ? '' : 'none';
+      });
+      /* 서브메뉴 버튼 숨김 */
+      navEl.querySelectorAll('.adm-nav-sub__item[data-hash="adm20-' + key + '"]').forEach(el => {
+        el.style.display = isSuperAdmin ? '' : 'none';
+      });
+    });
+  }
+
   /* ─── 초기화 ─── */
   function init() {
     sidebar    = document.getElementById('adm20-sidebar');
@@ -204,6 +240,9 @@
     /* 즐겨찾기·최근 목록 비동기 로드 (20-C UI에서 활용) */
     loadFavorites();
     loadRecentViews();
+
+    /* role 기반 메뉴 가시성 적용 (BUG-20A-04) */
+    loadRoleAndApply();
   }
 
   /* ─── 사이드바 HTML 생성 ─── */

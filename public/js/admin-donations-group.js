@@ -1,8 +1,8 @@
-/* admin-donations-group.js — Phase 20-B 후원·재정 그룹 (후원 4탭) mock */
+/* admin-donations-group.js — Phase 20-B 후원·재정 그룹 (후원 4탭) */
 (function () {
   'use strict';
 
-  const USE_MOCK = true;
+  const USE_MOCK = false;
 
   /* ─── mock 데이터 ─── */
   const MOCK = {
@@ -158,7 +158,12 @@
       d = MOCK;
     } else {
       const res = await api({ url: '/api/admin-donations-unified' });
-      d = res.data?.data || res.data || {};
+      if (!res.ok) {
+        showToast((res.data?.error || res.data?.data?.error || '후원 데이터를 불러오지 못했습니다.') + (res.data?.detail ? ' — ' + res.data.detail : ''));
+        d = {};
+      } else {
+        d = res.data?.data || res.data || {};
+      }
     }
     donData = d;
     renderTab(currentTab, d);

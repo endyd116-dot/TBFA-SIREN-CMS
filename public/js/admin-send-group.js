@@ -1,8 +1,8 @@
-/* admin-send-group.js — Phase 20-B 발송 그룹 (발송 5메뉴) mock */
+/* admin-send-group.js — Phase 20-B 발송 그룹 (발송 5메뉴) */
 (function () {
   'use strict';
 
-  const USE_MOCK = true;
+  const USE_MOCK = false;
 
   /* ─── mock 데이터 ─── */
   const MOCK = {
@@ -58,6 +58,18 @@
       return { ok: r.ok, status: r.status, data };
     } catch (err) {
       return { ok: false, data: { error: String(err) } };
+    }
+  }
+
+  /* ─── 토스트 ─── */
+  function showToast(msg, type = 'error') {
+    const el = document.getElementById('toast') || document.getElementById('admToast');
+    if (el) {
+      el.textContent = msg;
+      el.className = 'toast show' + (type === 'error' ? ' toast-error' : '');
+      setTimeout(() => el.classList.remove('show'), 3500);
+    } else {
+      console.warn('[SendGroup]', msg);
     }
   }
 
@@ -131,7 +143,12 @@
       d = MOCK;
     } else {
       const res = await api({ url: '/api/admin-send-unified' });
-      d = res.data?.data || res.data || {};
+      if (!res.ok) {
+        showToast((res.data?.error || res.data?.data?.error || '발송 데이터를 불러오지 못했습니다.') + (res.data?.detail ? ' — ' + res.data.detail : ''));
+        d = {};
+      } else {
+        d = res.data?.data || res.data || {};
+      }
     }
     sendData = d;
     renderTab(currentTab, d);
