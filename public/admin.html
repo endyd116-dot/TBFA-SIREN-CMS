@@ -2808,6 +2808,8 @@
         </li>
         <!-- Phase 4: 대표 보고 시스템 -->
         <li><a data-page="report"><i>📊</i><span>주간 보고서</span></a></li>
+        <!-- Phase 16: 통합 분석 대시보드 -->
+        <li><a data-page="unified-dashboard"><i>📈</i><span>통합 분석 대시보드</span></a></li>
         <!-- Phase 5~7: 재정 관리 -->
         <li class="adm-menu-group"><span class="adm-menu-group-label">재정 관리</span></li>
         <li><a data-page="finance-income"><i>💵</i><span>수입 현황</span></a></li>
@@ -4624,6 +4626,9 @@
         <!-- Phase 4: 대표 보고 시스템 (admin-report.js가 동적 렌더) -->
         <div id="adm-report" class="adm-page"></div>
 
+        <!-- Phase 16: 통합 분석 대시보드 (admin-unified-dashboard.js가 동적 렌더) -->
+        <div id="adm-unified-dashboard" class="adm-page"></div>
+
         <!-- Phase 5: 수입 집계 대시보드 -->
         <div id="adm-finance-income" class="adm-page">
           <div class="panel">
@@ -5836,5 +5841,7 @@
   </script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
+  <!-- Phase 16: 통합 분석 대시보드 -->
+  <script src="/js/admin-unified-dashboard.js?v=1"></script>
 </body>
 </html>
