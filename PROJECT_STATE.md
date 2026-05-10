@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-11 | **메인** | **Phase 16 ✅ 100% + Phase 17 실API 연결 머지** — verify/phase16(21f6222) BUG-16-01/02 fix / feature/phase17-live(ea904f8) 머지 / Phase 17 schema 활성화 + 마이그 파일 삭제 (f906616) |
+| 2026-05-11 | **메인** | **Phase 18 B 트리거 + A Phase 20 후보 발굴 트리거** — B Phase 18 캐싱·쿼리튜닝 진행 / A Opus 4.7 전환 후 Phase 20 후보 4개 발굴 / C Phase 17 검증 대기 |
 | 2026-05-11 | **메인** | **Phase 15 verify + Phase 17 back 머지** — BUG-15-01~06 fix 흡수 / Phase 17 마이그 호출 필요 |
 | 2026-05-11 | **메인** | **Phase 17 B·A 트리거 발송** — B back·A front 동시 작업 시작 / C Phase 14 완료→Phase 15 검증 진행 중 |
 | 2026-05-11 | **메인** | **Phase 16 B+A mock 머지 완료** — feature/phase16-back(47df959)+front(ea50344) 머지 / 신규 API 4개·대시보드 JS 1개 / A 실API 연결 신호 발송 |
-| 2026-05-11 | **메인** | **Phase 14·15 실API 연결 머지 완료** — feature/phase14-15-live(3ed3671) 머지 / 5개 JS 실API 직결·mock 제거 / C 검증 트리거 예정 |
-| 2026-05-11 | **메인** | **Phase 15 B 머지 + 마이그 완료 + schema 활성화** — feature/phase15-back(7d8bbc2) 머지 / expert_profiles·matching_feedbacks 생성 |
 | 2026-05-11 | **메인** | **Phase 14 front 머지 완료** — feature/phase14-front(8dad0fd) / 기관관리·인계이력 화면 mock 상태 / C 검증 트리거 예정 |
 | 2026-05-11 | **메인** | **Phase 13 검증 머지 + Phase 15 front mock 머지** — verify/phase13(e12d65f) BUG 2건 fix 흡수 / feature/phase15-front(8c5bb38) mock 상태 머지 |
 | 2026-05-11 | **메인** | **Phase 14 B 머지 완료** — feature/phase14-back(3c0f081) 머지 / 신규 함수 8개 (기관·인계 7개 + 마이그) / ⏸ Swain 마이그 호출 + A front 재요청 필요 |
@@ -113,11 +113,11 @@
 | **Phase 13 신고 통계 대시보드** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 2건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase13.md`) |
 | **Phase 14 외부 기관 인계** | ✅ 100% — C 라이브 검증 PASS + BUG-14-07/08 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase14.md`) |
 | **Phase 15 전문가 매칭 고도화** | ✅ 100% — C 라이브 검증 PASS + BUG-15-01~06 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase15.md`) |
-| **Phase 16 통합 분석 대시보드** | 🔵 B+A 실API 연결 완료 / ⏸ C 라이브 검증 대기 |
-| **Phase 17 보안·감사 강화** | 🟡 B back 머지 완료 / ⏸ Swain 마이그 호출 + A front mock 대기 |
-| **Phase 18 성능 최적화** | ✅ 설계서 완성 ([2026-05-11-phase18-performance.md](docs/milestones/2026-05-11-phase18-performance.md)) / ⏸ B 대기 |
-| **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ B 대기 |
-| **Phase 20 운영 안정성 (모니터링+백업)** | ✅ 카탈로그 / ⏸ |
+| **Phase 16 통합 분석 대시보드** | ✅ 100% — C 라이브 검증 PASS + BUG-16-01/02 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase16.md`) |
+| **Phase 17 보안·감사 강화** | 🔵 B back + A front + 실API 연결 머지 완료 (마이그+schema 활성화 완료) / ⏸ C 라이브 검증 대기 |
+| **Phase 18 성능 최적화** | 🟡 설계서 완성 / B 구현 진행 중 (feature/phase18-performance) |
+| **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
+| **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
 | Phase 21~22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 
 **누적**: 약 47% / 약 450h+
