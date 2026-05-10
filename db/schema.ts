@@ -2254,3 +2254,81 @@ export type NewCommunicationSendRecipient = typeof communicationSendRecipients.$
 
 /* === Phase 10 R3 정의 끝 === */
 
+/* =========================================================
+   === Phase 10 R4 — 추적·자동 트리거·분석 ===
+   마이그 호출(migrate-phase10-r4-tracking-ai?run=1) 전까지 주석 유지.
+   마이그 성공 후 메인 채팅이 주석 해제 + 이 헤더 제거.
+   =========================================================
+
+// 추적 이벤트 로그 (오픈/클릭)
+export const communicationSendTracking = pgTable("communication_send_tracking", {
+  id:          bigserial("id", { mode: "number" }).primaryKey(),
+  recipientId: bigint("recipient_id", { mode: "number" }).notNull()
+                 .references(() => communicationSendRecipients.id, { onDelete: "cascade" }),
+  jobId:       bigint("job_id", { mode: "number" }).notNull()
+                 .references(() => communicationSendJobs.id, { onDelete: "cascade" }),
+  eventType:   text("event_type").notNull(),    // 'open' | 'click'
+  clickedUrl:  text("clicked_url"),
+  ip:          varchar("ip", { length: 45 }),
+  userAgent:   text("user_agent"),
+  trackedAt:   timestamp("tracked_at").defaultNow().notNull(),
+}, (t) => ({
+  recipientIdx: index("send_tracking_recipient_idx").on(t.recipientId),
+  jobIdx:       index("send_tracking_job_idx").on(t.jobId),
+  eventIdx:     index("send_tracking_event_idx").on(t.eventType),
+  timeIdx:      index("send_tracking_time_idx").on(t.trackedAt),
+}));
+
+export type CommunicationSendTracking    = typeof communicationSendTracking.$inferSelect;
+export type NewCommunicationSendTracking = typeof communicationSendTracking.$inferInsert;
+
+// 자동 발송 트리거 규칙
+export const communicationAutoTriggers = pgTable("communication_auto_triggers", {
+  id:                bigserial("id", { mode: "number" }).primaryKey(),
+  name:              varchar("name", { length: 200 }).notNull(),
+  description:       text("description"),
+  triggerType:       text("trigger_type").notNull(),   // 'new_member'|'donation_complete'|'support_approved'|'birthday'|'anniversary'
+  templateId:        integer("template_id").notNull()
+                       .references(() => communicationTemplates.id, { onDelete: "restrict" }),
+  recipientGroupId:  integer("recipient_group_id"),
+  channel:           text("channel").notNull(),
+  delayHours:        integer("delay_hours").notNull().default(0),
+  isActive:          boolean("is_active").notNull().default(true),
+  cooldownDays:      integer("cooldown_days").notNull().default(30),
+  conditions:        jsonb("conditions"),
+  createdBy:         integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  updatedBy:         integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+  deletedAt:         timestamp("deleted_at"),
+  createdAt:         timestamp("created_at").defaultNow().notNull(),
+  updatedAt:         timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  typeIdx:    index("auto_triggers_type_idx").on(t.triggerType),
+  activeIdx:  index("auto_triggers_active_idx").on(t.isActive),
+  deletedIdx: index("auto_triggers_deleted_idx").on(t.deletedAt),
+}));
+
+export type CommunicationAutoTrigger    = typeof communicationAutoTriggers.$inferSelect;
+export type NewCommunicationAutoTrigger = typeof communicationAutoTriggers.$inferInsert;
+
+// 트리거 실행 이력
+export const communicationAutoTriggerRuns = pgTable("communication_auto_trigger_runs", {
+  id:          bigserial("id", { mode: "number" }).primaryKey(),
+  triggerId:   bigint("trigger_id", { mode: "number" }).notNull()
+                 .references(() => communicationAutoTriggers.id, { onDelete: "cascade" }),
+  jobId:       bigint("job_id", { mode: "number" }),
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+  memberCount: integer("member_count").notNull().default(0),
+  status:      text("status").notNull().default("ok"),   // 'ok'|'skipped'|'error'
+  error:       text("error"),
+  meta:        jsonb("meta"),
+}, (t) => ({
+  triggerIdx: index("auto_trigger_runs_trigger_idx").on(t.triggerId),
+  timeIdx:    index("auto_trigger_runs_time_idx").on(t.triggeredAt),
+}));
+
+export type CommunicationAutoTriggerRun    = typeof communicationAutoTriggerRuns.$inferSelect;
+export type NewCommunicationAutoTriggerRun = typeof communicationAutoTriggerRuns.$inferInsert;
+
+=== Phase 10 R4 정의 끝 (마이그 후 주석 해제) ===
+*/
+
