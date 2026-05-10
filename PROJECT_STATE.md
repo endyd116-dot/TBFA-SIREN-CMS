@@ -24,7 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-11 | **메인** | **Phase 13 검증 머지 + Phase 15 front mock 머지** — verify/phase13(e12d65f) BUG 2건 fix 흡수 / feature/phase15-front(8c5bb38) mock 상태 머지 / ⚠️ Phase 14 front 누락 — A에 재요청 필요 |
+| 2026-05-11 | **메인** | **Phase 14 front 머지 완료** — feature/phase14-front(8dad0fd) / 기관관리·인계이력 화면 mock 상태 / C 검증 트리거 예정 |
+| 2026-05-11 | **메인** | **Phase 13 검증 머지 + Phase 15 front mock 머지** — verify/phase13(e12d65f) BUG 2건 fix 흡수 / feature/phase15-front(8c5bb38) mock 상태 머지 |
 | 2026-05-11 | **메인** | **Phase 14 B 머지 완료** — feature/phase14-back(3c0f081) 머지 / 신규 함수 8개 (기관·인계 7개 + 마이그) / ⏸ Swain 마이그 호출 + A front 재요청 필요 |
 | 2026-05-11 | **메인** | **Phase 11+12 검증 머지 완료 + Phase 16+17 설계서 완성** — C verify BUG 7건 fix 흡수 / 통합 분석·보안 설계서 push |
 | 2026-05-11 | **C 채팅** | **Phase 11+12 라이브 검증 PASS + BUG 7건 fix** — 응답키 불일치·신원식별 필드명·구독해제 메서드·감사로그 KPI 수정. 보고서 `docs/verify/2026-05-11-phase11-12.md` |
@@ -105,7 +106,7 @@
 | **Phase 11 멘션·구독** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 4건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase11-12.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 3건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase11-12.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 13 신고 통계 대시보드** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 2건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase13.md`) |
-| **Phase 14 외부 기관 인계** | 🟢 B 머지 완료 / ⚠️ A front 누락 (Phase 14 front 재구현 필요) / ⏸ Swain 마이그 호출 대기 |
+| **Phase 14 외부 기관 인계** | 🟢 B+A mock 머지 완료 / ⏸ C 라이브 검증 대기 |
 | **Phase 15 전문가 매칭 고도화** | 🟡 A front mock 머지 완료 / ⏸ B back 대기 |
 | **Phase 16 통합 분석 대시보드** | ✅ 설계서 완성 ([2026-05-11-phase16-unified-dashboard.md](docs/milestones/2026-05-11-phase16-unified-dashboard.md)) / ⏸ A·B 대기 |
 | **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
