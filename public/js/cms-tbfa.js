@@ -404,7 +404,7 @@
           <td><strong>${escapeHtml(m.name || '')}</strong></td>
           <td>${status}</td>
           <td>${renderSignupSourceBadge(m)}</td>
-          <td style="font-family:Inter;font-size:11.5px">${escapeHtml(m.phone || '—')}</td>
+          <td style="font-family:Inter;font-size:11.5px" data-phone-type="member" data-phone-id="${m.id}">${escapeHtml(m.phone || '—')}</td>
           <td>${renderDonorTypeBadge(m)}</td>
           <td style="font-family:Inter;font-size:11.5px;color:#8a8a8a">${formatDate(m.createdAt)}</td>
           <td>${renderHyosungContractCell(m)}</td>
@@ -414,6 +414,8 @@
         </tr>
       `;
     }).join('');
+
+    if (typeof attachRevealButtons === 'function') attachRevealButtons(tbody);
 
     // 회원 상세 모달 열기 — 행 클릭(체크박스/버튼 제외) 또는 [상세] 버튼
     tbody.querySelectorAll('button[data-action="view"]').forEach(btn => {
@@ -529,6 +531,18 @@
     // 기본 정보 탭
     setText('#mdmInfoEmail', m.email || '—');
     setText('#mdmInfoPhone', m.phone || '—');
+    const phoneEl = modal.querySelector('#mdmInfoPhone');
+    if (phoneEl && typeof createRevealButton === 'function') {
+      phoneEl.style.display = 'inline';
+      const existing = phoneEl.parentElement.querySelector('.adm-phone-reveal-btn');
+      if (existing) existing.remove();
+      const span = document.createElement('span');
+      span.className = 'adm-phone-text';
+      span.textContent = phoneEl.textContent;
+      phoneEl.textContent = '';
+      phoneEl.appendChild(span);
+      phoneEl.appendChild(createRevealButton('member', m.id, phoneEl));
+    }
     setText('#mdmInfoStatus', m.status || '—');
     setText('#mdmInfoSource', m.signupSourceLabel
       || (SIGNUP_SOURCE_LABEL[m.signupSource]?.text || '—'));
@@ -1844,7 +1858,7 @@
       <tr>
         <td>M-${String(d.id).padStart(5,'0')}</td>
         <td><strong>${escapeHtml(d.name || '')}</strong></td>
-        <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
+        <td style="font-family:Inter;font-size:11.5px" data-phone-type="donor" data-phone-id="${d.id}">${escapeHtml(d.phone || '—')}</td>
         <td>${renderChannelBadges(d.channels)}</td>
         <td style="text-align:right;font-weight:600">${d.regularAmount != null ? '₩' + Number(d.regularAmount).toLocaleString() : '—'}</td>
         <td style="font-family:Inter;font-size:11.5px">${formatDate(d.nextBillingDate)}</td>
@@ -1856,6 +1870,7 @@
       </tr>
     `).join('');
 
+    if (typeof attachRevealButtons === 'function') attachRevealButtons(tbody);
     renderDonorRegularPagination(total);
   }
 
@@ -1972,7 +1987,7 @@
       <tr>
         <td>M-${String(d.id).padStart(5,'0')}</td>
         <td><strong>${escapeHtml(d.name || '')}</strong></td>
-        <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
+        <td style="font-family:Inter;font-size:11.5px" data-phone-type="donor" data-phone-id="${d.id}">${escapeHtml(d.phone || '—')}</td>
         <td>${renderProspectSubtypeBadge(d)}</td>
         <td style="font-family:Inter;font-size:11.5px">${formatDate(d.lastDonationDate)}</td>
         <td style="text-align:right;font-weight:600">${d.lastDonationAmount != null ? '₩' + Number(d.lastDonationAmount).toLocaleString() : '—'}</td>
@@ -1988,6 +2003,7 @@
       btn.addEventListener('click', () => toast('재유치 이메일 기능은 준비 중입니다'));
     });
 
+    if (typeof attachRevealButtons === 'function') attachRevealButtons(tbody);
     renderDonorProspectPagination(total);
   }
 

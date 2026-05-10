@@ -177,7 +177,7 @@
                 <tr>
                   <td><strong>${esc(m.name)}</strong></td>
                   <td>${esc(m.email)}</td>
-                  <td>${esc(m.phone)}</td>
+                  <td data-phone-type="member" data-phone-id="${m.id}">${esc(m.phone)}</td>
                   <td>${esc(m.grade?.nameKo)}</td>
                   <td>${statusBadge(m.status)}</td>
                   <td>${esc(m.joinedAt)}</td>
@@ -187,7 +187,9 @@
         </table>
       </div>
       <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${rows.length}명</p>`;
-    document.getElementById('mg-members-table-wrap').innerHTML = html;
+    const wrap = document.getElementById('mg-members-table-wrap');
+    wrap.innerHTML = html;
+    if (typeof attachRevealButtons === 'function') attachRevealButtons(wrap);
   }
 
   /* ─── 운영자 목록 ─── */
@@ -257,7 +259,7 @@
                 <tr>
                   <td>${esc(a.name)}</td>
                   <td>${esc(a.email)}</td>
-                  <td>${esc(a.phone)}</td>
+                  <td data-phone-type="member" data-phone-id="${a.id}">${esc(a.phone)}</td>
                   <td>${esc(a.requestedAt)}</td>
                   <td>${approvalBadge(a.status)}</td>
                   <td>
@@ -268,7 +270,9 @@
           </tbody>
         </table>
       </div>`;
-    document.getElementById('mg-approvals-table-wrap').innerHTML = html;
+    const approvalsWrap = document.getElementById('mg-approvals-table-wrap');
+    approvalsWrap.innerHTML = html;
+    if (typeof attachRevealButtons === 'function') attachRevealButtons(approvalsWrap);
   }
 
   /* ─── 유틸 ─── */
