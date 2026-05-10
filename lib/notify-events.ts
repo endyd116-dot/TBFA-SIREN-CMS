@@ -29,9 +29,9 @@ export type ChannelName = "inapp" | "email" | "sms" | "kakao";
 
 export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.BILLING_SUCCESS]:            ["inapp", "email"],
-  [NotifyEvent.BILLING_FAILED]:             ["inapp", "email", "kakao"],  // kakao: placeholder
+  [NotifyEvent.BILLING_FAILED]:             ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
   [NotifyEvent.BILLING_CANCELED]:           ["inapp", "email"],
-  [NotifyEvent.CARD_EXPIRING]:              ["inapp", "email", "kakao"],  // kakao: placeholder
+  [NotifyEvent.CARD_EXPIRING]:              ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
   [NotifyEvent.WORKSPACE_ACTIVITY]:         ["inapp"],
   [NotifyEvent.ADMIN_DAILY_BRIEFING]:       ["email"],
   [NotifyEvent.SUPPORT_REPLY]:              ["inapp", "email"],
