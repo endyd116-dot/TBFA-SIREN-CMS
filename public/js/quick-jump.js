@@ -19,7 +19,7 @@
 
   function buildItems(currentKey) {
     return [
-      { key: 'admin',    href: '/admin.html?service=siren', icon: '🚨', label: '싸이렌 어드민' },
+      { key: 'admin',    href: '/admin.html',                icon: '🚨', label: '싸이렌 어드민' },
       { key: 'cms-tbfa', href: '/cms-tbfa.html',            icon: '🏦', label: '통합 CMS 어드민' },
       { key: 'workspace',href: '/workspace.html',           icon: '📊', label: '워크스페이스' },
       { key: 'hub',      href: '/admin-hub.html',           icon: '🏠', label: '허브' },

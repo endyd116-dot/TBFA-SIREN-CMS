@@ -5829,15 +5829,7 @@ const OPERATOR_CATEGORIES = [
     const isLogged = await fetchAdminMe();
 
     if (isLogged) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const service = urlParams.get('service');
-
-      if (service === 'siren') {
-        await showAdminPanel();
-      } else {
-        window.location.href = '/admin-hub.html';
-        return;
-      }
+      await showAdminPanel();
     } else {
       showLogin();
     }
