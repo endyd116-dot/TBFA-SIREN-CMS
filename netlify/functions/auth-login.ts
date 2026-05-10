@@ -80,7 +80,8 @@ export default async (req: Request) => {
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       const newFailCount = (user.loginFailCount ?? 0) + 1;
-      const updateData: any = { loginFailCount: newFailCount };
+      const newStreak = (user.loginFailStreak ?? 0) + 1;
+      const updateData: any = { loginFailCount: newFailCount, loginFailStreak: newStreak };
 
       if (newFailCount >= MAX_FAIL) {
         updateData.lockedUntil = new Date(Date.now() + LOCK_MIN * 60 * 1000);
@@ -126,6 +127,7 @@ export default async (req: Request) => {
       .update(members)
       .set({
         loginFailCount: 0,
+        loginFailStreak: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
         /* ★ B-5: null 가드 */
