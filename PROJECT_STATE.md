@@ -102,8 +102,8 @@
 | 폴더 | 브랜치 | 역할 | 상태 |
 |---|---|---|---|
 | `tbfa-mis` (메인) | `main` | 머지·조율·설계 | 활성 |
-| `../tbfa-mis-A` | `feature/m16-step-b` (예정) | 신규 개발 — 통합회원 실제 API + 상세 모달 | 시작 대기 (이전 폴더 잔여 — 새 채팅 시 worktree add) |
-| `../tbfa-mis-B` | `feature/m16-step-c` (예정) | 신규 개발 — donor_type 컬럼 + 정기/잠재 화면 | 시작 대기 (이전 폴더 잔여 — 새 채팅 시 worktree add) |
+| `../tbfa-mis-A` | `feature/m16-step-b` @ `aa7305d` | 신규 개발 — 통합회원 실제 API + 상세 모달 ([HANDOFF_A](docs/HANDOFF_A.md)) | 활성 — 시작 대기 |
+| `../tbfa-mis-B` | `feature/m16-step-c` @ `aa7305d` | 신규 개발 — donor_type 컬럼 + 정기/잠재 화면 ([HANDOFF_B](docs/HANDOFF_B.md)) | 활성 — 시작 대기 |
 | **`../tbfa-mis-C`** | **`verify/phase4-and-pending`** @ `81a124b` | **검증·수정 전담** | **활성 — 시작 대기** |
 
 **3-way 정책 핵심**:
