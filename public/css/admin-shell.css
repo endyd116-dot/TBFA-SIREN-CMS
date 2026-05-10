@@ -1,0 +1,471 @@
+/* admin-shell.css — Phase 20-A 사이드바·헤더·콘텐츠 래퍼 */
+
+/* ─── 전체 레이아웃 ─── */
+.adm-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--tok-canvas);
+}
+
+/* ─── 사이드바 ─── */
+.adm-sidebar {
+  width: var(--tok-sidebar-w);
+  min-width: var(--tok-sidebar-w);
+  height: 100vh;
+  background: var(--tok-sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--tok-ease-slow), min-width var(--tok-ease-slow);
+  overflow: hidden;
+  z-index: 200;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.adm-sidebar:hover,
+.adm-sidebar.is-open {
+  width: var(--tok-sidebar-w-open);
+  min-width: var(--tok-sidebar-w-open);
+}
+
+/* 로고 영역 */
+.adm-sidebar__logo {
+  height: var(--tok-header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.adm-sidebar__logo-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+.adm-sidebar__logo-text {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--tok-ease);
+  white-space: nowrap;
+}
+.adm-sidebar:hover .adm-sidebar__logo-text,
+.adm-sidebar.is-open .adm-sidebar__logo-text {
+  opacity: 1;
+}
+
+/* 내비게이션 */
+.adm-sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  scrollbar-width: none;
+}
+.adm-sidebar__nav::-webkit-scrollbar { display: none; }
+
+/* 그룹 */
+.adm-nav-group {
+  margin-bottom: 2px;
+}
+
+/* 그룹 헤더 버튼 */
+.adm-nav-group__btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  background: transparent;
+  color: var(--tok-sidebar-text);
+  cursor: pointer;
+  transition: background var(--tok-ease), color var(--tok-ease);
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+}
+.adm-nav-group__btn:hover {
+  background: var(--tok-sidebar-hover);
+  color: #fff;
+}
+.adm-nav-group__btn.is-active {
+  background: var(--tok-sidebar-active);
+  color: #fff;
+}
+.adm-nav-group__icon {
+  font-size: 17px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.adm-nav-group__label {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity var(--tok-ease);
+  white-space: nowrap;
+  flex: 1;
+}
+.adm-sidebar:hover .adm-nav-group__label,
+.adm-sidebar.is-open .adm-nav-group__label {
+  opacity: 1;
+}
+.adm-nav-group__arrow {
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity var(--tok-ease), transform var(--tok-ease);
+  flex-shrink: 0;
+}
+.adm-sidebar:hover .adm-nav-group__arrow,
+.adm-sidebar.is-open .adm-nav-group__arrow {
+  opacity: 0.6;
+}
+.adm-nav-group.is-expanded .adm-nav-group__arrow {
+  transform: rotate(90deg);
+}
+
+/* 서브메뉴 */
+.adm-nav-group__sub {
+  display: none;
+  flex-direction: column;
+  padding: 2px 0 4px 0;
+}
+.adm-nav-group.is-expanded .adm-nav-group__sub {
+  display: flex;
+}
+.adm-nav-sub__item {
+  display: flex;
+  align-items: center;
+  padding: 7px 14px 7px 38px;
+  font-size: 12.5px;
+  color: var(--tok-sidebar-text);
+  cursor: pointer;
+  transition: background var(--tok-ease), color var(--tok-ease);
+  white-space: nowrap;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+.adm-nav-sub__item:hover {
+  background: var(--tok-sidebar-hover);
+  color: #fff;
+}
+.adm-nav-sub__item.is-active {
+  color: #f0a8b0;
+  font-weight: 600;
+}
+
+/* 사이드바 하단 */
+.adm-sidebar__footer {
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+/* ─── 메인 영역 (헤더 + 콘텐츠) ─── */
+.adm-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ─── 헤더 ─── */
+.adm-header {
+  height: var(--tok-header-h);
+  min-height: var(--tok-header-h);
+  background: var(--tok-header-bg);
+  border-bottom: 1px solid var(--tok-header-border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.adm-header__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tok-ink);
+  flex: 1;
+}
+.adm-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adm-header__btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--tok-line);
+  border-radius: var(--tok-r-md);
+  background: transparent;
+  color: var(--tok-text-2);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background var(--tok-ease), border-color var(--tok-ease);
+}
+.adm-header__btn:hover {
+  background: var(--tok-surface-2);
+  border-color: var(--tok-line-2);
+}
+.adm-header__cmdk-hint {
+  font-size: 11px;
+  color: var(--tok-text-4);
+  font-family: 'Inter', monospace;
+}
+
+/* ─── 콘텐츠 ─── */
+.adm-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  background: var(--tok-canvas);
+}
+
+/* ─── 섹션 (뷰) ─── */
+.adm-view {
+  display: none;
+}
+.adm-view.is-active {
+  display: block;
+}
+
+/* ─── Cmd+K 마운트 자리 ─── */
+#adm-cmdk-mount {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ─── 모바일 햄버거 (768px 미만) ─── */
+.adm-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--tok-text-2);
+  padding: 4px;
+}
+
+/* ─── 반응형 ─── */
+@media (max-width: 768px) {
+  .adm-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform var(--tok-ease-slow), width var(--tok-ease-slow);
+    width: var(--tok-sidebar-w-open) !important;
+    min-width: var(--tok-sidebar-w-open) !important;
+  }
+  .adm-sidebar.is-open {
+    transform: translateX(0);
+  }
+  .adm-sidebar:hover {
+    transform: translateX(-100%);
+  }
+  .adm-sidebar:hover.is-open,
+  .adm-sidebar.is-open {
+    transform: translateX(0);
+  }
+  .adm-sidebar .adm-sidebar__logo-text,
+  .adm-sidebar .adm-nav-group__label,
+  .adm-sidebar .adm-nav-group__arrow {
+    opacity: 1;
+  }
+  .adm-mobile-toggle {
+    display: flex;
+  }
+  .adm-main {
+    width: 100%;
+  }
+  .adm-content {
+    padding: 16px;
+  }
+  /* 사이드바 열릴 때 오버레이 */
+  .adm-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 199;
+  }
+  .adm-sidebar-overlay.is-visible {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .adm-content {
+    padding: 12px;
+  }
+  .adm-header {
+    padding: 0 12px;
+  }
+}
+
+/* ─── 그룹 뷰 탭 공통 ─── */
+.adm-group-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--tok-line);
+  margin-bottom: 20px;
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+.adm-group-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tok-text-2);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color var(--tok-ease), border-color var(--tok-ease);
+  white-space: nowrap;
+}
+.adm-group-tab:hover {
+  color: var(--tok-ink);
+}
+.adm-group-tab.is-active {
+  color: var(--tok-brand);
+  border-bottom-color: var(--tok-brand);
+  font-weight: 600;
+}
+.adm-group-panel {
+  display: none;
+}
+.adm-group-panel.is-active {
+  display: block;
+}
+
+/* ─── 카드 ─── */
+.adm-card {
+  background: var(--tok-white);
+  border: 1px solid var(--tok-line);
+  border-radius: var(--tok-r-lg);
+  padding: 20px;
+  box-shadow: var(--tok-shadow-sm);
+}
+.adm-card + .adm-card {
+  margin-top: 16px;
+}
+.adm-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tok-ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── 테이블 공통 ─── */
+.adm-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--tok-r-md);
+  border: 1px solid var(--tok-line);
+}
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.adm-table thead th {
+  background: var(--tok-surface-2);
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tok-text-2);
+  border-bottom: 1px solid var(--tok-line);
+  white-space: nowrap;
+}
+.adm-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--tok-line);
+  color: var(--tok-ink);
+}
+.adm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.adm-table tbody tr:hover {
+  background: var(--tok-surface-2);
+  cursor: pointer;
+}
+
+/* ─── 뱃지 ─── */
+.adm-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.adm-badge--green  { background: var(--tok-success-bg); color: var(--tok-success); }
+.adm-badge--red    { background: var(--tok-danger-bg);  color: var(--tok-danger); }
+.adm-badge--yellow { background: var(--tok-warn-bg);    color: var(--tok-warn); }
+.adm-badge--blue   { background: var(--tok-info-bg);    color: var(--tok-info); }
+.adm-badge--gray   { background: #f0f0f0; color: #525252; }
+
+/* ─── 도구 바 ─── */
+.adm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.adm-toolbar input[type="search"],
+.adm-toolbar select {
+  padding: 7px 12px;
+  border: 1px solid var(--tok-line);
+  border-radius: var(--tok-r-md);
+  font-size: 12.5px;
+  background: var(--tok-white);
+  color: var(--tok-ink);
+}
+.adm-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 180px;
+}
+.adm-btn {
+  padding: 7px 14px;
+  border-radius: var(--tok-r-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--tok-ease), border-color var(--tok-ease);
+}
+.adm-btn--primary {
+  background: var(--tok-brand);
+  color: #fff;
+  border-color: var(--tok-brand);
+}
+.adm-btn--primary:hover { background: var(--tok-brand-light); }
+.adm-btn--secondary {
+  background: var(--tok-white);
+  color: var(--tok-text-2);
+  border-color: var(--tok-line);
+}
+.adm-btn--secondary:hover { background: var(--tok-surface-2); }

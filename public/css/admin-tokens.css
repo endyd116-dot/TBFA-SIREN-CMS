@@ -1,0 +1,79 @@
+/* admin-tokens.css — Phase 20-A 디자인 토큰 (public용) */
+:root {
+  /* ─── 브랜드 컬러 ─── */
+  --tok-brand:        #7b1b28;
+  --tok-brand-light:  #a02135;
+  --tok-brand-deep:   #5a1620;
+  --tok-brand-bg:     #fdf5f6;
+  --tok-brand-tint:   #f8e8eb;
+
+  /* ─── 중립 팔레트 ─── */
+  --tok-white:        #ffffff;
+  --tok-canvas:       #f6f5f3;
+  --tok-surface:      #fdfcfb;
+  --tok-surface-2:    #f8f7f5;
+  --tok-line:         #e4e2de;
+  --tok-line-2:       #d0cec9;
+
+  /* ─── 텍스트 ─── */
+  --tok-ink:          #1c1b1a;
+  --tok-text-2:       #5a5855;
+  --tok-text-3:       #8f8c88;
+  --tok-text-4:       #b8b5b0;
+
+  /* ─── 상태 컬러 ─── */
+  --tok-success:      #1a8b46;
+  --tok-success-bg:   #f0f9f3;
+  --tok-warn:         #c17d00;
+  --tok-warn-bg:      #fffbec;
+  --tok-danger:       #c5293a;
+  --tok-danger-bg:    #fdf0f1;
+  --tok-info:         #1a5ec4;
+  --tok-info-bg:      #e6f0ff;
+
+  /* ─── 사이드바 ─── */
+  --tok-sidebar-bg:   #1e1c1b;
+  --tok-sidebar-w:    52px;
+  --tok-sidebar-w-open: 220px;
+  --tok-sidebar-text: #c8c4be;
+  --tok-sidebar-hover: rgba(255,255,255,0.07);
+  --tok-sidebar-active: rgba(123,27,40,0.85);
+  --tok-sidebar-icon: #9e9890;
+
+  /* ─── 헤더 ─── */
+  --tok-header-h:     52px;
+  --tok-header-bg:    #ffffff;
+  --tok-header-border: #e4e2de;
+
+  /* ─── 여백 ─── */
+  --tok-space-1:      4px;
+  --tok-space-2:      8px;
+  --tok-space-3:      12px;
+  --tok-space-4:      16px;
+  --tok-space-5:      20px;
+  --tok-space-6:      24px;
+  --tok-space-8:      32px;
+
+  /* ─── 폰트 ─── */
+  --tok-font-xs:      11px;
+  --tok-font-sm:      12.5px;
+  --tok-font-base:    14px;
+  --tok-font-md:      15px;
+  --tok-font-lg:      17px;
+  --tok-font-xl:      20px;
+
+  /* ─── 라운드 ─── */
+  --tok-r-sm:         4px;
+  --tok-r-md:         6px;
+  --tok-r-lg:         10px;
+  --tok-r-xl:         14px;
+
+  /* ─── 섀도 ─── */
+  --tok-shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
+  --tok-shadow-md:    0 2px 8px rgba(0,0,0,0.10);
+  --tok-shadow-lg:    0 4px 16px rgba(0,0,0,0.12);
+
+  /* ─── 전환 ─── */
+  --tok-ease:         0.18s ease;
+  --tok-ease-slow:    0.28s ease;
+}
