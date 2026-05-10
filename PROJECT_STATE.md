@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-10 | 메인 | **Phase 9 A·B 머지 완료 (45c9e20)** — A: Aligo SMS 실연동(lib/aligo-client+sms-aligo) / B: 알림톡 실연동(lib/aligo-kakao-client+kakao-aligo) / dispatcher SMS+카카오 통합 / placeholder 2종 삭제. 카카오 심사 통과 후 템플릿 ID 2개 환경변수 등록하면 실발송 활성화. C #BACKFILL-1 → Phase 9-B 순 대기 |
 | 2026-05-10 | **C 채팅** | **Phase 8 C 머지 — 알림 발송 로그 어드민 화면 + Q24~Q27 라이브 통과** — 백엔드/프론트/SPA 통합 470줄. 4개 이벤트 7건 sent, 채널 정책·KPI·Top5 차트 모두 정상. cleanup 완료. Q28 강제 실패는 정적(A 영역). Phase 8 100% |
 | 2026-05-10 | 메인 | **Phase 9 외부 서비스 결정 완료 (Aligo 통합)** — 협회 대표번호·메인 위임·선결제 / 알림톡 템플릿 2종(billing.failed·card.expiring) 초안 작성 / [결정 문서](docs/milestones/2026-05-10-phase9-external-services.md) |
 | 2026-05-10 | **C 채팅** | **Q12 fix 머지 — 수입 집계·표시 기준일을 실제 결제일로** — 9개 함수 통합(어드민 6 + 효성 import 1 + 마이페이지·영수증 2). DB 마이그 0. 옛 효성 데이터 백필은 별도 라운드 |
@@ -36,12 +37,12 @@
 ## 3. 현재 작업 모드
 
 ```
-✅ Phase 8 100% 달성 (2026-05-10) → 🟢 Phase 9 라운드 시작
-   ├─ A: ⏸ Phase 9 SMS 어댑터 (Aligo) 트리거 대기
-   ├─ B: ⏸ Phase 9 카카오 알림톡 어댑터 (Aligo) 트리거 대기
-   ├─ C: ⏸ Phase 9 9-B 사용자 수신 설정 UI 또는 #BACKFILL-1 옛 효성 백필 — 시점 결정 필요
+🟢 Phase 9 진행 중
+   ├─ A: ✅ SMS 어댑터 머지 완료 (Aligo, 45c9e20)
+   ├─ B: ✅ 카카오 알림톡 어댑터 머지 완료 (Aligo, 45c9e20) / ⏸ 카카오 심사 통과 후 템플릿 ID 2개 환경변수 등록 → 실발송 활성화
+   ├─ C: ⏸ #BACKFILL-1 (옛 효성 결제일 백필) → Phase 9-B 수신 설정 UI 순
    └─ D: 휴면
-   메인: A·B 분배 메시지 발송 → Phase 9 코드 시작 / 알림톡 심사 통과 대기 (영업일 3~5일)
+   메인: C #BACKFILL-1 메시지 발송 대기 / 카카오 심사 통과 알림 수신 대기
 ```
 
 ---
@@ -81,7 +82,7 @@
 | **Phase 5~7 재정 관리** | ✅ 100% 코드+마이그+schema 활성화 (8023057) + C 정적 검증 통과 (BUG-5 fix) / 🟡 Swain 라이브 검증 대기 |
 | TypeScript 타입 에러 149건 | ⏸ C 채팅 진행 예정 |
 | **Phase 8 알림 채널 통합 인프라** | ✅ 100% — A 디스패처+마이그+cleanup / B 7자리 통합 / C 어드민 화면+Q24~Q27 라이브 통과 (Q28 정적) |
-| **Phase 9 외부 API 실연동 + 수신 설정 UI** | ✅ 설계 + Aligo 결정 + 템플릿 검토 통과 + Swain API 키 발급 완료 / A·B 분배 메시지 준비 완료 / ⏸ C 1번 머지 후 A·B 동시 트리거 |
+| **Phase 9 외부 API 실연동 + 수신 설정 UI** | 🟡 A SMS·B 카카오 어댑터 main 머지 완료 / ⏸ 카카오 심사 통과 후 환경변수 2개 등록 → 실발송 / C #BACKFILL-1 + 9-B 대기 |
 | **Phase 10 통합 발송 시스템** | ✅ 카탈로그 (CMM-A+B+D 흡수) / ⏸ Phase 8·9 후 |
 | **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ Phase 8 후 |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
