@@ -2783,6 +2783,7 @@
         <li><a data-page="finance-income"><i>💵</i><span>수입 현황</span></a></li>
         <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
         <li><a data-page="finance-report"><i>🗂</i><span>재무 보고서</span></a></li>
+        <li><a data-page="notification-logs"><i>📨</i><span>알림 발송 로그</span></a></li>
       </ul>
     </aside>
 
@@ -4608,6 +4609,9 @@
         <!-- Phase 7: 재무 보고서 (admin-finance-report.js가 동적 렌더) -->
         <div id="adm-finance-report" class="adm-page"></div>
 
+        <!-- Phase 8 C: 알림 발송 로그 (admin-notification-logs.js가 동적 렌더) -->
+        <div id="adm-notification-logs" class="adm-page"></div>
+
       </div>
     </main>
   </div>
@@ -5736,6 +5740,8 @@
   <script src="/js/admin-finance-income.js?v=20260510f1"></script>
   <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
   <script src="/js/admin-finance-report.js?v=20260510f1"></script>
+  <!-- Phase 8 C: 알림 발송 로그 -->
+  <script src="/js/admin-notification-logs.js?v=20260510n1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.init();
