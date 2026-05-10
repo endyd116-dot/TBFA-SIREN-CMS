@@ -6,39 +6,6 @@
 (function () {
   'use strict';
 
-  /* ── mock 스위치 ── */
-  var USE_MOCK = true;
-
-  var MOCK_AGENCIES = {
-    ok: true,
-    agencies: [
-      {
-        id: 1,
-        name: '서울강남경찰서',
-        agencyType: 'police',
-        contactName: '김철수',
-        contactPhone: '02-1234-5678',
-        contactEmail: 'contact@police.go.kr',
-        jurisdiction: '서울 강남구',
-        hasTemplate: true,
-        isActive: true,
-        createdAt: '2026-05-01T00:00:00Z'
-      },
-      {
-        id: 2,
-        name: '서울시교육청',
-        agencyType: 'education',
-        contactName: '이영희',
-        contactPhone: '02-9876-5432',
-        contactEmail: 'edu@seoul.go.kr',
-        jurisdiction: '서울 전체',
-        hasTemplate: false,
-        isActive: true,
-        createdAt: '2026-05-02T00:00:00Z'
-      }
-    ]
-  };
-
   /* ── 기관 유형 레이블 ── */
   var AGENCY_TYPE_LABELS = {
     police: '경찰',
@@ -185,12 +152,6 @@
     if (!listEl) return;
     listEl.innerHTML = '<p style="text-align:center;color:var(--text-3);padding:30px">로딩 중…</p>';
 
-    if (USE_MOCK) {
-      agencies = MOCK_AGENCIES.agencies.slice();
-      renderList();
-      return;
-    }
-
     var type = (document.getElementById('amgFilterType') || {}).value || '';
     var active = (document.getElementById('amgFilterActive') || {}).value;
     var qs = [];
@@ -330,22 +291,6 @@
     };
     if (editingAgencyId !== null) body.id = editingAgencyId;
 
-    if (USE_MOCK) {
-      if (editingAgencyId !== null) {
-        var idx = agencies.findIndex(function (a) { return a.id === editingAgencyId; });
-        if (idx >= 0) {
-          agencies[idx] = Object.assign({}, agencies[idx], body, { hasTemplate: !!body.templateBody });
-        }
-      } else {
-        var newId = Math.max.apply(null, agencies.map(function (a) { return a.id; }).concat([0])) + 1;
-        agencies.push(Object.assign({ id: newId, isActive: true, hasTemplate: !!body.templateBody, createdAt: new Date().toISOString() }, body));
-      }
-      closeModal();
-      renderList();
-      showToast(editingAgencyId !== null ? '기관 정보를 수정했습니다.' : '기관을 등록했습니다.', 'success');
-      return;
-    }
-
     var saveBtn = document.getElementById('amgBtnSave');
     if (saveBtn) saveBtn.disabled = true;
 
@@ -368,14 +313,6 @@
     var ag = agencies.find(function (a) { return a.id === id; });
     if (!ag) return;
     if (!confirm('"' + ag.name + '"을(를) 비활성화하시겠습니까?')) return;
-
-    if (USE_MOCK) {
-      var idx = agencies.findIndex(function (a) { return a.id === id; });
-      if (idx >= 0) agencies[idx].isActive = false;
-      renderList();
-      showToast('기관을 비활성화했습니다.', 'success');
-      return;
-    }
 
     api({ url: '/api/admin-agency-delete', method: 'POST', body: { id: id } }).then(function (res) {
       if (!res.ok) throw new Error(res.data && res.data.error || 'HTTP ' + res.status);

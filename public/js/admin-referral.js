@@ -6,44 +6,6 @@
 (function () {
   'use strict';
 
-  /* ── mock 스위치 ── */
-  var USE_MOCK = true;
-
-  var MOCK_AGENCIES = {
-    ok: true,
-    agencies: [
-      { id: 1, name: '서울강남경찰서', agencyType: 'police', contactName: '김철수',
-        contactPhone: '02-1234-5678', jurisdiction: '서울 강남구', hasTemplate: true, isActive: true }
-    ]
-  };
-
-  var MOCK_REFERRAL_LIST = {
-    ok: true,
-    total: 2,
-    logs: [
-      {
-        id: 1,
-        agencyName: '서울강남경찰서',
-        sourceType: 'incident',
-        sourceNo: 'IR-20260501-001',
-        referredAt: '2026-05-01T10:00:00Z',
-        status: 'reviewing',
-        statusMemo: '담당자 배정 완료',
-        statusUpdatedAt: '2026-05-03T14:00:00Z'
-      },
-      {
-        id: 2,
-        agencyName: '서울시교육청',
-        sourceType: 'harassment',
-        sourceNo: 'HR-20260503-005',
-        referredAt: '2026-05-03T09:00:00Z',
-        status: 'sent',
-        statusMemo: null,
-        statusUpdatedAt: null
-      }
-    ]
-  };
-
   /* ── 상수 ── */
   var SOURCE_TYPE_LABELS = {
     incident: '사건 신고',
@@ -232,11 +194,6 @@
      기관 목록 로드 (인계 실행 모달용)
   ──────────────────────────────────────────────── */
   function loadAgencies(callback) {
-    if (USE_MOCK) {
-      agencies = MOCK_AGENCIES.agencies.filter(function (a) { return a.isActive; });
-      if (callback) callback();
-      return;
-    }
     api({ url: '/api/admin-agency-list?isActive=true' }).then(function (res) {
       var d = res.data.data || res.data;
       agencies = d.agencies || [];
@@ -256,13 +213,6 @@
     if (!listEl) return;
     listEl.innerHTML = '<p style="text-align:center;color:var(--text-3);padding:30px">로딩 중…</p>';
     if (pagerEl) pagerEl.innerHTML = '';
-
-    if (USE_MOCK) {
-      logs = MOCK_REFERRAL_LIST.logs.slice();
-      logTotal = MOCK_REFERRAL_LIST.total;
-      renderLogs();
-      return;
-    }
 
     var sourceType = (document.getElementById('refFilterSource') || {}).value || '';
     var status = (document.getElementById('refFilterStatus') || {}).value || '';
@@ -395,26 +345,6 @@
       return;
     }
 
-    if (USE_MOCK) {
-      closeCreateModal();
-      var newId = logs.length ? Math.max.apply(null, logs.map(function (l) { return l.id; })) + 1 : 1;
-      var ag = agencies.find(function (a) { return a.id === agencyId; }) || {};
-      logs.unshift({
-        id: newId,
-        agencyName: ag.name || '알 수 없음',
-        sourceType: sourceType,
-        sourceNo: (sourceType === 'incident' ? 'IR' : sourceType === 'harassment' ? 'HR' : 'LC') + '-MOCK-' + sourceId,
-        referredAt: new Date().toISOString(),
-        status: 'sent',
-        statusMemo: null,
-        statusUpdatedAt: null
-      });
-      logTotal++;
-      renderLogs();
-      showToast('(Mock) 인계가 기록되었습니다. 실 API 연결 후 PDF가 다운로드됩니다.', 'success');
-      return;
-    }
-
     var submitBtn = document.getElementById('refCreateSubmit');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '처리 중…'; }
 
@@ -481,19 +411,6 @@
 
     if (!status) { showToast('상태를 선택하세요.', 'error'); return; }
 
-    if (USE_MOCK) {
-      var log = logs.find(function (l) { return l.id === selectedLogId; });
-      if (log) {
-        log.status = status;
-        log.statusMemo = memo || null;
-        log.statusUpdatedAt = new Date().toISOString();
-      }
-      closeStatusModal();
-      renderLogs();
-      showToast('상태를 갱신했습니다.', 'success');
-      return;
-    }
-
     var saveBtn = document.getElementById('refStatusSave');
     if (saveBtn) saveBtn.disabled = true;
 
@@ -517,11 +434,6 @@
      PDF 재다운로드
   ──────────────────────────────────────────────── */
   function downloadPdf(logId) {
-    if (USE_MOCK) {
-      showToast('(Mock) 실 API 연결 후 PDF를 다운로드할 수 있습니다.', 'info');
-      return;
-    }
-
     fetch('/api/admin-referral-pdf?referralId=' + logId, { credentials: 'include' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);

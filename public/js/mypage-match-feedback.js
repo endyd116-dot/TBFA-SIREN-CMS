@@ -8,14 +8,6 @@
 (function () {
   'use strict';
 
-  var USE_MOCK = true; // B 머지 후 false로 전환
-
-  var MOCK_FEEDBACK_STATUS = {
-    ok: true,
-    submitted: false,
-    match: { id: 7, status: 'closed', expertName: '김변호사', closedAt: '2026-05-10T15:00:00Z' },
-  };
-
   var _selectedRating = 0;
 
   /* ─── 헬퍼 ─── */
@@ -49,10 +41,6 @@
 
   /* ─── 피드백 상태 확인 ─── */
   async function checkFeedbackStatus() {
-    if (USE_MOCK) {
-      await new Promise(function (r) { setTimeout(r, 150); });
-      return MOCK_FEEDBACK_STATUS;
-    }
     var r = await api('/api/user-match-feedback-status');
     if (!r.ok) return null;
     return (r.data && r.data.data) || r.data || null;
@@ -165,13 +153,6 @@
     var comment = ((document.getElementById('feedbackComment') || {}).value || '').trim();
     var btn = document.getElementById('btnSubmitFeedback');
     if (btn) { btn.disabled = true; btn.textContent = '제출 중...'; }
-
-    if (USE_MOCK) {
-      await new Promise(function (r) { setTimeout(r, 600); });
-      toast('후기가 제출되었습니다. 감사합니다!');
-      hideFeedbackUI();
-      return;
-    }
 
     var r = await api('/api/user-match-feedback', {
       method: 'POST',
