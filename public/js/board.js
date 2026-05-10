@@ -278,6 +278,9 @@
       const delBtn = document.getElementById('btnBoardDelete');
       if (delBtn) delBtn.addEventListener('click', () => deletePost(post.id));
 
+      /* 구독 버튼 */
+      await renderSubscribeBtn(post.id);
+
       /* 댓글 영역 */
       cmtContainer.style.display = '';
       renderComments(post.id, comments);
@@ -301,7 +304,7 @@
     if (isLoggedIn) {
       html += `
         <div class="board-comment-form">
-          <textarea id="commentInput" maxlength="1000" placeholder="댓글을 입력하세요... (1000자 이내)"></textarea>
+          <textarea id="commentInput" maxlength="1000" placeholder="댓글을 입력하세요... (1000자 이내, @닉네임으로 멘션 가능)"></textarea>
           <div class="form-bottom">
             <label><input type="checkbox" id="commentAnonymous"> 익명으로 작성</label>
             <button type="button" id="btnCommentSubmit">댓글 등록</button>
@@ -333,7 +336,7 @@
                 ${delBtn}
               </span>
             </div>
-            <div class="board-comment-content">${escapeHtml(c.content)}</div>
+            <div class="board-comment-content">${highlightMentions(c.content)}</div>
           </li>
         `;
       });
@@ -375,6 +378,7 @@
     submitBtn.textContent = '등록 중...';
 
     try {
+      const mentions = parseMentions(content);
       const res = await fetch('/api/board/comment-create', {
         method: 'POST',
         credentials: 'include',
@@ -383,6 +387,7 @@
           postId,
           content,
           isAnonymous: anon ? !!anon.checked : false,
+          mentions,
         }),
       });
       const json = await res.json();
@@ -453,6 +458,82 @@
       console.error('[post-delete]', e);
       window.SIREN.toast('네트워크 오류');
     }
+  }
+
+  /* ============ 구독 기능 ============ */
+
+  async function renderSubscribeBtn(postId) {
+    const auth = window.SIREN_AUTH;
+    if (!auth || !auth.isLoggedIn()) return;
+
+    /* 구독 버튼 삽입 위치: .board-view-actions .left */
+    const leftDiv = document.querySelector('.board-view-actions .left');
+    if (!leftDiv) return;
+
+    /* 현재 구독 상태 조회 */
+    let subscribed = false;
+    try {
+      const res = await fetch('/api/board-subscription-status?postId=' + postId, { credentials: 'include' });
+      if (res.ok) {
+        const json = await res.json();
+        subscribed = !!(json.data?.subscribed || json.subscribed);
+      }
+    } catch (_) {}
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'btnBoardSubscribe';
+    btn.className = 'board-subscribe-btn' + (subscribed ? ' subscribed' : '');
+    btn.textContent = subscribed ? '🔔 구독 중' : '🔕 구독하기';
+    btn.title = subscribed ? '새 댓글 알림 수신 중 (클릭하면 해제)' : '새 댓글 알림 받기';
+    btn.addEventListener('click', () => toggleSubscribe(postId, btn));
+    leftDiv.appendChild(btn);
+  }
+
+  async function toggleSubscribe(postId, btn) {
+    const isSubscribed = btn.classList.contains('subscribed');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/board-subscription-toggle', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, subscribe: !isSubscribed }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        window.SIREN.toast(json.error || '처리 실패');
+        return;
+      }
+      const nowSubscribed = !isSubscribed;
+      btn.classList.toggle('subscribed', nowSubscribed);
+      btn.textContent = nowSubscribed ? '🔔 구독 중' : '🔕 구독하기';
+      btn.title = nowSubscribed ? '새 댓글 알림 수신 중 (클릭하면 해제)' : '새 댓글 알림 받기';
+      window.SIREN.toast(nowSubscribed ? '구독이 시작되었습니다. 새 댓글 알림을 받습니다.' : '구독을 해제했습니다.');
+    } catch (e) {
+      console.error('[subscribe]', e);
+      window.SIREN.toast('네트워크 오류');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ============ @멘션 파싱 헬퍼 ============ */
+
+  function parseMentions(text) {
+    /* @닉네임 형식 파싱: 한글·영문·숫자·언더스코어 포함 */
+    const re = /@([가-힣\w]+)/g;
+    const mentions = [];
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      mentions.push(m[1]);
+    }
+    return [...new Set(mentions)];
+  }
+
+  function highlightMentions(text) {
+    return escapeHtml(text).replace(/@([가-힣\w]+)/g,
+      '<span class="mention-tag">@$1</span>');
   }
 
   /* ============ 작성/수정 페이지 ============ */

@@ -24,13 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-11 | **메인** | **Phase 11+12 B 머지 완료 + 마이그 4테이블 성공** — feature/phase11-12-back 머지(d5beb76) / post_subscriptions·mentions·report_status_logs·anonymous_reveal_logs 생성 / 마이그 파일 삭제(ef63481) / A 트리거 발송 |
-| 2026-05-11 | **C 채팅** | **Phase 10 R4 라이브 검증 PASS + BUG-9 fix** — 영역1~6 전 시나리오 통과. schema.ts 컬럼 누락(tracking_token 등 5개+triggeredByAutoId) 수정. 보고서 `docs/verify/2026-05-11-phase10-r4.md` |
+| 2026-05-11 | **메인** | **Phase 11+12 A 머지 완료 (API 경로 11개 불일치 수정 후)** — feature/phase11-12-front 머지(e1ba80f) / my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit 등 17파일 |
+| 2026-05-11 | **A 채팅** | **Phase 11·12 프론트 구현 완료** — 신규 10파일(@멘션·구독버튼·my-subscriptions·my-reports·admin-anon-reveal·admin-anon-audit) + 기존 7파일 수정. 브랜치 feature/phase11-12-front (8cd1492) |
+| 2026-05-11 | **메인** | **Phase 11+12 B 머지 완료 + 마이그 4테이블 성공** — feature/phase11-12-back 머지(d5beb76) / 4테이블 생성 / 마이그 파일 삭제(ef63481) |
+| 2026-05-11 | **C 채팅** | **Phase 10 R4 라이브 검증 PASS + BUG-9 fix** — 영역1~6 전 시나리오 통과. schema 컬럼 누락 수정. 보고서 `docs/verify/2026-05-11-phase10-r4.md` |
 | 2026-05-11 | 메인 | **Phase 10 R4 B 2차 머지 + A 머지** — AI 트리거·분석 백 13파일(8ecb46f) + 프론트 14파일 머지 |
-| 2026-05-11 | **A 채팅** | **Phase 10 R4 프론트 구현 완료** — 신규 5페이지(AI 트리거·발송 분석·회원 이력·사용자 이력) + R3 재발송 버튼 보강 + 사이드바 2메뉴 추가. 브랜치 feature/phase10-r4-front |
-| 2026-05-11 | 메인 | **Phase 10 R4 1차 백 머지 + 마이그 완료 + schema 활성화** — feature/phase10-r4-back-1 머지(03207d5) / 마이그 6항목 성공 / 3테이블 schema 활성화 (32e245f) |
-| 2026-05-11 | **C 채팅** | **Phase 9 Q7-Q8 코드 정합성 검증 PASS** — SMS/카카오 3계층 정합 확인. 실발송은 환경변수 등록 후 자동. 이슈 0건 |
-| 2026-05-11 | 메인 | **Phase 10 R3 100% 마감 + BUG-8 fix 흡수** — C verify/phase10-r3(d408006) main 머지 / R3 ✅ 완료 / R4 B·A·C 트리거 시작 |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -100,8 +98,8 @@
 | **Phase 10 R2 수신자 그룹** | ✅ 100% — 코드 머지 (7f2163b·b969bb2) + C 라이브 검증 통과 (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r2.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 10 R3 발송 예약 큐** | ✅ 100% — 코드 머지 (897cad4·857674d) + C 라이브 검증 통과 + BUG-8 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r3.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 10 R4 통합 마무리 (추적·AI·분석·재발송·이력)** | ✅ 100% — 코드 머지 완료 + C 라이브 검증 PASS + BUG-9 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase10-r4.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
-| **Phase 11 멘션·구독** | ✅ 카탈로그 / ⏸ |
-| **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 카탈로그 (SRN-A+B 통합) / ⏸ |
+| **Phase 11 멘션·구독** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
+| **Phase 12 신고 진행 공개 + 익명 강화** | 🟢 B 백 + A 프론트 머지 완료 / ⏸ C 검증 대기 |
 | **Phase 13 신고 통계 대시보드** | ✅ 설계서 완료 ([2026-05-11-phase13-incident-stats.md](docs/milestones/2026-05-11-phase13-incident-stats.md)) / ⏸ B·A·C 대기 |
 | **Phase 14 외부 기관 인계** | ✅ 카탈로그 (신규) / ⏸ |
 | **Phase 15 전문가 매칭 고도화** | ✅ 카탈로그 / ⏸ |

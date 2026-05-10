@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>익명 신원 식별 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+/* 필터바 */
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.filter-bar label { font-size: 0.825rem; color: #475569; display: flex; align-items: center; gap: 6px; }
+.filter-bar select, .filter-bar input {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+.filter-bar .spacer { flex: 1; }
+
+/* 버튼 */
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+.btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.btn-primary:hover { background: #1d3fa8; }
+.btn-warning { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn-warning:hover { background: #b91c1c; }
+
+/* 테이블 */
+.table-wrap {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+  background: #f8fafc; padding: 11px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left; border-bottom: 1px solid #e2e8f0;
+}
+.tbl tbody tr { border-bottom: 1px solid #f1f5f9; }
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl tbody td { padding: 11px 12px; font-size: 0.85rem; vertical-align: middle; }
+.tbl tbody tr:hover { background: #f8fafc; }
+
+/* 배지 */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;
+}
+.badge-anon-0 { background: #f1f5f9; color: #64748b; }
+.badge-anon-1 { background: #fef3c7; color: #92400e; }
+.badge-anon-2 { background: #fee2e2; color: #991b1b; }
+.badge-revealed { background: #dcfce7; color: #14532d; }
+.badge-incident  { background: #eff6ff; color: #1e40af; }
+.badge-harassment { background: #fff7ed; color: #c2410c; }
+.badge-legal     { background: #f5f3ff; color: #6d28d9; }
+
+/* 신원 식별 모달 */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 9999; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 14px; width: 100%; max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-header {
+  padding: 18px 24px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #64748b; }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 14px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
+
+.reveal-level-btn {
+  display: block; width: 100%; text-align: left;
+  padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px;
+  background: #fff; cursor: pointer; font-family: inherit; margin-bottom: 10px;
+  transition: all 0.15s;
+}
+.reveal-level-btn:hover { border-color: #3b82f6; background: #eff6ff; }
+.reveal-level-btn.selected { border-color: #1e40af; background: #eff6ff; }
+.reveal-level-btn .level-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #1e293b; }
+.reveal-level-btn .level-desc { font-size: 12.5px; color: #64748b; }
+
+.reveal-warning {
+  background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;
+  padding: 12px 14px; font-size: 13px; color: #991b1b; margin-bottom: 14px;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+
+.reason-field {
+  width: 100%; margin-top: 14px;
+  padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px;
+  font-family: inherit; font-size: 13.5px; resize: vertical; min-height: 72px;
+}
+.reason-field:focus { outline: none; border-color: #1e40af; }
+
+/* 신원 결과 패널 */
+.identity-result {
+  background: #fff7ed; border: 1px solid #fdba74; border-radius: 10px;
+  padding: 14px 16px; margin-top: 12px;
+}
+.identity-result .identity-label { font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 6px; }
+.identity-row { display: flex; gap: 8px; font-size: 13.5px; margin-bottom: 4px; }
+.identity-row .field { color: #64748b; width: 90px; flex-shrink: 0; }
+.identity-row .value { color: #1e293b; font-weight: 500; }
+
+/* 페이지네이션 */
+.pagination { display: flex; justify-content: center; gap: 4px; }
+.pagination button {
+  padding: 6px 12px; border: 1px solid #e2e8f0; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+}
+.pagination button.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.empty-msg {
+  text-align: center; padding: 48px 20px; color: #94a3b8; font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <a href="/admin.html" class="back-link">← 어드민 홈</a>
+
+  <div class="page-title">🕵️ 익명 신원 식별</div>
+  <div class="page-desc">익명 신고의 신원을 단계적으로 식별합니다. 모든 조회 기록은 감사 로그에 저장됩니다.</div>
+
+  <div class="filter-bar">
+    <label>
+      신고 유형
+      <select id="filterType">
+        <option value="">전체</option>
+        <option value="incident">사건 제보</option>
+        <option value="harassment">악성민원</option>
+        <option value="legal">법률지원</option>
+      </select>
+    </label>
+    <label>
+      공개 수준
+      <select id="filterLevel">
+        <option value="">전체</option>
+        <option value="0">0단계 (완전 익명)</option>
+        <option value="1">1단계 (기본 정보)</option>
+        <option value="2">2단계 (모든 정보)</option>
+      </select>
+    </label>
+    <label>
+      검색
+      <input type="text" id="filterKeyword" placeholder="신고 제목 검색..." style="width:180px">
+    </label>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="loadList(1)">🔍 조회</button>
+    <a href="/admin-anon-audit.html" class="btn">📋 감사 로그 보기</a>
+  </div>
+
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>유형</th>
+          <th>제목</th>
+          <th>접수일</th>
+          <th>현재 상태</th>
+          <th>공개 수준</th>
+          <th>동작</th>
+        </tr>
+      </thead>
+      <tbody id="listBody">
+        <tr><td colspan="7" class="empty-msg">조회 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="pagination" class="pagination"></div>
+</div>
+
+<!-- 신원 식별 모달 -->
+<div id="revealModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🔍 익명 신원 식별</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="revealWarning" class="reveal-warning" style="display:none">
+        ⚠️ <span id="revealWarningText"></span>
+      </div>
+
+      <p style="font-size:13.5px;color:#1e293b;margin-bottom:14px">공개할 신원 정보 수준을 선택하세요.</p>
+
+      <button class="reveal-level-btn" data-level="1" onclick="selectLevel(1, this)">
+        <div class="level-title">1단계 — 기본 정보</div>
+        <div class="level-desc">이름·이메일만 확인 (상담 연락 목적)</div>
+      </button>
+      <button class="reveal-level-btn" data-level="2" onclick="selectLevel(2, this)">
+        <div class="level-title">2단계 — 모든 정보</div>
+        <div class="level-desc">전화번호·주소·가입 정보 전체 공개 (법적 조치 목적)</div>
+      </button>
+
+      <textarea class="reason-field" id="revealReason" placeholder="신원 식별 사유를 입력하세요 (필수, 감사 로그에 기록됩니다)"></textarea>
+
+      <div id="identityResult" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-warning" id="btnReveal" onclick="doReveal()">🔓 신원 확인</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js?v=5"></script>
+<script src="/js/auth.js?v=6"></script>
+<script src="/js/admin-anon-reveal.js?v=1"></script>
+</body>
+</html>

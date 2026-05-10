@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>내 신고 현황 | 교사유가족협의회</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+<style>
+.reports-wrap { max-width: 960px; margin: 0 auto; }
+
+/* 탭 */
+.report-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--line);
+  margin-bottom: 24px;
+}
+.report-tab {
+  padding: 10px 22px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+.report-tab.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+  font-weight: 700;
+}
+
+/* 신고 카드 */
+.report-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  transition: box-shadow 0.15s;
+}
+.report-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+.report-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.report-card-icon { font-size: 26px; flex-shrink: 0; }
+.report-card-info { flex: 1; min-width: 0; }
+.report-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.report-card-meta {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.report-status-badge {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.status-submitted    { background: #eff6ff; color: #1d4ed8; }
+.status-ai_analyzed  { background: #fefce8; color: #854d0e; }
+.status-reviewing    { background: #fff7ed; color: #c2410c; }
+.status-matching     { background: #f0fdf4; color: #15803d; }
+.status-matched      { background: #f0fdf4; color: #166534; }
+.status-in_progress  { background: #eff6ff; color: #1e40af; }
+.status-responded    { background: #f5f3ff; color: #6d28d9; }
+.status-completed    { background: #dcfce7; color: #14532d; }
+.status-closed       { background: #f1f5f9; color: #475569; }
+.status-rejected     { background: #fef2f2; color: #b91c1c; }
+
+/* 진행 타임라인 */
+.timeline {
+  position: relative;
+  padding-left: 28px;
+  margin-top: 14px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--line);
+  border-radius: 2px;
+}
+.tl-item {
+  position: relative;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.tl-item:last-child { margin-bottom: 0; }
+.tl-dot {
+  position: absolute;
+  left: -22px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--line);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--line);
+}
+.tl-dot.active {
+  background: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand);
+}
+.tl-dot.completed {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px #22c55e;
+}
+.tl-label {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.tl-label.dimmed { color: var(--text-3); font-weight: 400; }
+.tl-desc { color: var(--text-3); font-size: 12px; line-height: 1.6; }
+.tl-date { color: var(--text-3); font-size: 11px; margin-top: 2px; }
+
+.report-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+.report-empty .icon { font-size: 40px; margin-bottom: 12px; }
+.report-empty a {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.toggle-tl-btn {
+  background: none;
+  border: none;
+  font-size: 12.5px;
+  color: var(--brand);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  margin-top: 6px;
+}
+.toggle-tl-btn:hover { text-decoration: underline; }
+
+.anon-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+</style>
+</head>
+<body data-page="my-reports">
+
+  <div id="header-slot"></div>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>🚨 내 신고 현황</h1>
+        <p>접수된 신고의 처리 단계를 실시간으로 확인하세요</p>
+      </div>
+    </section>
+
+    <div class="container breadcrumb">
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; <a href="/mypage.html">마이페이지</a> &nbsp;›&nbsp; <span>내 신고 현황</span>
+    </div>
+
+    <section class="block">
+      <div class="container">
+        <div class="reports-wrap">
+
+          <div class="report-tabs">
+            <button class="report-tab active" data-tab="incident">🔍 사건 제보</button>
+            <button class="report-tab" data-tab="harassment">⚠️ 악성민원</button>
+            <button class="report-tab" data-tab="legal">⚖️ 법률지원</button>
+          </div>
+
+          <div id="reportsList">
+            <div class="report-empty"><div class="icon">⏳</div>불러오는 중...</div>
+          </div>
+
+          <div id="reportsPagination" style="display:none;margin-top:16px"></div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=5"></script>
+  <script src="/js/auth.js?v=6"></script>
+  <script src="/js/my-reports.js?v=1"></script>
+</body>
+</html>

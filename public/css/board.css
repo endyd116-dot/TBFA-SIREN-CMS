@@ -534,6 +534,41 @@
 .board-write-actions .btn-submit:hover:not(:disabled) { background: #5a1620; }
 .board-write-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ===== Phase 11: 구독 버튼 ===== */
+.board-subscribe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-2);
+  transition: all 0.15s;
+  margin-left: 8px;
+}
+.board-subscribe-btn:hover { border-color: var(--brand); color: var(--brand); }
+.board-subscribe-btn.subscribed {
+  background: var(--brand-soft, #fef9f5);
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: 600;
+}
+.board-subscribe-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== Phase 11: @멘션 태그 ===== */
+.mention-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
 /* ===== 반응형 ===== */
 @media (max-width: 700px) {
   .board-table th.col-views,
