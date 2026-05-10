@@ -40,8 +40,8 @@
   }
 
   /* ─── 피드백 상태 확인 ─── */
-  async function checkFeedbackStatus() {
-    var r = await api('/api/user-match-feedback-status');
+  async function checkFeedbackStatus(matchId) {
+    var r = await api('/api/user-match-feedback-status?matchId=' + encodeURIComponent(matchId));
     if (!r.ok) return null;
     return (r.data && r.data.data) || r.data || null;
   }
@@ -179,32 +179,30 @@
     }
   }
 
-  /* ─── 초기화: expertMatch 패널 활성화 시 피드백 상태 확인 ─── */
-  async function init() {
+  /* ─── 초기화: 특정 matchId에 대한 피드백 상태 확인 ─── */
+  async function init(matchId) {
+    if (!matchId) return;
     var container = document.getElementById('matchFeedbackContainer');
     if (!container) return;
     container.style.display = 'none';
 
-    var status = await checkFeedbackStatus();
-    if (!status) return; // 오류 시 숨김 유지
+    var status = await checkFeedbackStatus(matchId);
+    if (!status) return;
 
     var match = status.match || {};
-    // 종결 매칭이고 아직 미제출인 경우에만 UI 표시
     if (match.status === 'closed' && !status.submitted) {
       renderFeedbackUI(match.id, match.expertName || '전문가');
     }
   }
 
-  /* expertMatch 메뉴 클릭 감지 → init */
+  /* 후기 작성 버튼 클릭 (mypage-expert-match.js 카드에서 data-em-feedback 속성으로 matchId 전달) */
   document.addEventListener('click', function (e) {
-    var li = e.target.closest && e.target.closest('li[data-mp="expertMatch"]');
-    if (li) setTimeout(init, 200); // mypage-expert-match.js 렌더 후
-  });
-
-  /* hash 직접 진입 */
-  document.addEventListener('DOMContentLoaded', function () {
-    if ((location.hash || '').replace('#', '') === 'expertMatch') {
-      setTimeout(init, 300);
+    var feedbackBtn = e.target.closest && e.target.closest('[data-em-feedback]');
+    if (feedbackBtn) {
+      e.preventDefault();
+      var matchId = Number(feedbackBtn.dataset.emFeedback);
+      if (matchId) setTimeout(function () { init(matchId); }, 50);
+      return;
     }
   });
 

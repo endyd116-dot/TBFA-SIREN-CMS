@@ -30,12 +30,26 @@ export default async (req: Request) => {
     const body = await parseJson(req);
 
     step = "validate";
-    const sourceType = String(body?.sourceType || "");
-    const sourceId   = Number(body?.sourceId);
-    const matchType  = String(body?.matchType || "");
+    let sourceType = String(body?.sourceType || "");
+    let sourceId   = Number(body?.sourceId);
+    let matchType  = String(body?.matchType || "");
 
-    if (!sourceType) return badRequest("sourceType이 필요합니다");
-    if (!Number.isFinite(sourceId) || sourceId <= 0) return badRequest("유효한 sourceId가 필요합니다");
+    // matchId로 sourceType/sourceId 자동 조회 지원 (프론트가 matchId + matchType으로 보내는 경우)
+    const matchIdParam = Number(body?.matchId);
+    if ((!sourceType || !sourceId) && Number.isFinite(matchIdParam) && matchIdParam > 0) {
+      step = "select_match";
+      const matchRows = await db.execute(sql`
+        SELECT source_domain AS "sourceDomain", source_id AS "sourceId", match_type AS "matchType"
+        FROM expert_matches WHERE id = ${matchIdParam} LIMIT 1
+      `);
+      const m = ((matchRows as any).rows || matchRows as any[])[0];
+      if (m) {
+        sourceType = sourceType || (m.sourceDomain ?? "");
+        sourceId   = sourceId   || Number(m.sourceId ?? 0);
+        matchType  = matchType  || (m.matchType ?? "");
+      }
+    }
+
     if (!matchType) return badRequest("matchType이 필요합니다");
 
     // 소스 내용 조회 (sourceType별 테이블)
@@ -44,18 +58,18 @@ export default async (req: Request) => {
     let contentText = "";
     let aiSummary = "";
 
-    const tableMap: Record<string, string> = {
-      incident:   "incident_reports",
-      harassment: "harassment_reports",
-      legal:      "legal_reports",
-      support:    "support_requests",
+    const tableMap: Record<string, { table: string; contentCol: string }> = {
+      incident:   { table: "incident_reports",   contentCol: "content_html" },
+      harassment: { table: "harassment_reports",  contentCol: "content_html" },
+      legal:      { table: "legal_consultations", contentCol: "content_html" },
+      support:    { table: "support_requests",    contentCol: "content" },
     };
-    const tableName = tableMap[sourceType];
+    const tableInfo = tableMap[sourceType];
 
-    if (tableName) {
+    if (tableInfo) {
       const result = await db.execute(sql.raw(`
-        SELECT title, content, ai_summary
-        FROM ${tableName}
+        SELECT title, ${tableInfo.contentCol} AS content, ai_summary
+        FROM ${tableInfo.table}
         WHERE id = ${sourceId}
         LIMIT 1
       `));

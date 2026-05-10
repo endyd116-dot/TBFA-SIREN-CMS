@@ -133,9 +133,16 @@
         '" type="button" style="padding:7px 16px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">💬 채팅방 입장</button>'
       : '';
 
+    var feedbackBtn = it.status === 'closed'
+      ? '<button type="button" data-em-feedback="' + it.id +
+        '" style="padding:7px 14px;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">⭐ 후기 작성</button>'
+      : '';
+
     var expertInfo = it.expertName
       ? '<span style="font-size:12px;color:var(--text-2)">배정 전문가: ' + escapeHtml(it.expertName) + '</span>'
       : '';
+
+    var actionBtns = (chatBtn || feedbackBtn) ? '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' + chatBtn + feedbackBtn + '</div>' : '';
 
     return '' +
       '<div class="app-card">' +
@@ -155,7 +162,7 @@
           (it.assignedAt ? '<span>배정: ' + escapeHtml(fmtDate(it.assignedAt)) + '</span>' : '') +
           expertInfo +
         '</div>' +
-        (chatBtn ? '<div style="margin-top:12px">' + chatBtn + '</div>' : '') +
+        actionBtns +
       '</div>';
   }
 
