@@ -18,6 +18,49 @@ import { sql, inArray, eq } from "drizzle-orm";
 import { db, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { ok, serverError, methodNotAllowed, corsPreflight } from "../../lib/response";
+import { evaluateDonorTypeFromContract } from "../../lib/hyosung-merge";
+
+/* ★ Phase 3 D 보강: 통과 시 회원 donor_type 전이 예측
+ * - hyosung_contracts: rawData._hyosungContractRow.contractStatus → regular/prospect/none
+ * - hyosung_billings: 수납 발생 → regular (계약 active 가정)
+ * - ibk: 일시 입금 → 회원이 이미 regular면 유지, 아니면 prospect
+ * - hyosung(legacy): regular
+ *
+ * 분류(category)는 미리보기 카드용 3-버킷:
+ *   'auto'    매칭 완료(matched_member_id 있음)
+ *   'manual'  수동 매칭 필요(매칭 없음, ibk/billings/legacy)
+ *   'new'     신규 회원 생성 후보(hyosung_contracts + 매칭 없음)
+ */
+function predictTransition(row: any, currentMember: { donorType: string | null } | null) {
+  const source = row.source as string;
+  const matched = !!row.matched_member_id;
+  const currentType = currentMember?.donorType || null;
+
+  let predicted: "regular" | "prospect" | "none" | null = null;
+  let category: "auto" | "manual" | "new" = matched ? "auto" : "manual";
+
+  if (source === "hyosung_contracts") {
+    let raw: any = row.raw_data || {};
+    if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { raw = {}; } }
+    const status = raw?._hyosungContractRow?.contractStatus ?? null;
+    const ev = evaluateDonorTypeFromContract(status);
+    predicted = ev.donorType;
+    if (!matched) category = "new";
+  } else if (source === "hyosung_billings") {
+    predicted = "regular";
+  } else if (source === "ibk") {
+    predicted = currentType === "regular" ? "regular" : "prospect";
+  } else if (source === "hyosung") {
+    predicted = "regular";
+  }
+
+  return {
+    predictedDonorType: predicted,
+    currentDonorType: currentType,
+    willChange: predicted !== null && currentType !== predicted,
+    category,
+  };
+}
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -59,14 +102,15 @@ export default async (req: Request, _ctx: Context) => {
       ? sql`WHERE ${sql.join(conds, sql` AND `)}`
       : sql``;
 
-    /* 메인 SELECT */
+    /* 메인 SELECT — raw_data 포함 (전이 예측에 contractStatus 필요) */
     const rowsRaw: any = await db.execute(sql`
       SELECT
         id, source, source_file_name, source_row_index,
         parsed_name, parsed_amount, parsed_date, parsed_memo, parsed_account_tail4,
         matched_member_id, match_score, match_reason,
         status, confirmed_donation_id, confirmed_at,
-        imported_by, confirmed_by, created_at, updated_at
+        imported_by, confirmed_by, created_at, updated_at,
+        raw_data
       FROM pending_donations
       ${whereSql}
       ORDER BY created_at DESC
@@ -92,43 +136,72 @@ export default async (req: Request, _ctx: Context) => {
     };
     sumList.forEach(s => { summary[s.status] = s.c; });
 
-    /* 매칭 회원 정보 합치기 (JS Map) */
+    /* 매칭 회원 정보 합치기 (JS Map) — donor_type/donorChannels도 합쳐 전이 예측 */
     const memberIds = Array.from(new Set(rows.map(r => r.matched_member_id).filter((x: any) => x != null)));
-    let memberMap: Record<number, { id: number; name: string | null; phone: string | null; email: string | null }> = {};
+    let memberMap: Record<number, {
+      id: number; name: string | null; phone: string | null; email: string | null;
+      donorType: string | null; donorChannels: string[] | null;
+    }> = {};
     if (memberIds.length > 0) {
       try {
         const ms = await db
-          .select({ id: members.id, name: members.name, phone: members.phone, email: members.email })
+          .select({
+            id: members.id, name: members.name, phone: members.phone, email: members.email,
+            donorType: members.donorType, donorChannels: members.donorChannels,
+          })
           .from(members)
           .where(inArray(members.id, memberIds as number[]));
-        ms.forEach(m => { memberMap[m.id] = m; });
+        ms.forEach(m => {
+          memberMap[m.id] = {
+            ...m,
+            donorChannels: Array.isArray(m.donorChannels) ? (m.donorChannels as string[]) : null,
+          };
+        });
       } catch (e) { console.warn("[pending-list] member fetch failed", e); }
     }
 
-    const enriched = rows.map(r => ({
-      id: r.id,
-      source: r.source,
-      sourceFileName: r.source_file_name,
-      sourceRowIndex: r.source_row_index,
-      parsedName: r.parsed_name,
-      parsedAmount: r.parsed_amount,
-      parsedDate: r.parsed_date,
-      parsedMemo: r.parsed_memo,
-      parsedAccountTail4: r.parsed_account_tail4,
-      matchedMemberId: r.matched_member_id,
-      matchedMember: r.matched_member_id ? (memberMap[r.matched_member_id] || null) : null,
-      matchScore: r.match_score === null ? null : Number(r.match_score),
-      matchReason: r.match_reason,
-      status: r.status,
-      confirmedDonationId: r.confirmed_donation_id,
-      confirmedAt: r.confirmed_at,
-      createdAt: r.created_at,
-    }));
+    /* ★ 미리보기 분류 집계 (현재 페이지 기준) */
+    const previewBuckets = { auto: 0, manual: 0, new: 0 };
+
+    const enriched = rows.map(r => {
+      const matched = r.matched_member_id ? (memberMap[r.matched_member_id] || null) : null;
+      const transition = predictTransition(r, matched);
+      if (r.status === "pending" || r.status === "matched") {
+        previewBuckets[transition.category]++;
+      }
+      return {
+        id: r.id,
+        source: r.source,
+        sourceFileName: r.source_file_name,
+        sourceRowIndex: r.source_row_index,
+        parsedName: r.parsed_name,
+        parsedAmount: r.parsed_amount,
+        parsedDate: r.parsed_date,
+        parsedMemo: r.parsed_memo,
+        parsedAccountTail4: r.parsed_account_tail4,
+        matchedMemberId: r.matched_member_id,
+        matchedMember: matched
+          ? { id: matched.id, name: matched.name, phone: matched.phone, email: matched.email,
+              donorType: matched.donorType, donorChannels: matched.donorChannels }
+          : null,
+        matchScore: r.match_score === null ? null : Number(r.match_score),
+        matchReason: r.match_reason,
+        status: r.status,
+        confirmedDonationId: r.confirmed_donation_id,
+        confirmedAt: r.confirmed_at,
+        createdAt: r.created_at,
+        predictedDonorType: transition.predictedDonorType,
+        currentDonorType: transition.currentDonorType,
+        willChange: transition.willChange,
+        previewCategory: transition.category,
+      };
+    });
 
     return ok({
       rows: enriched,
       total,
       summary,
+      previewBuckets,
       page: { limit, offset },
     });
   } catch (err: any) {
