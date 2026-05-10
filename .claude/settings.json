@@ -76,7 +76,10 @@
       "PowerShell(Resolve-Path:*)",
       "PowerShell($pwd)",
       "PowerShell($pwd.Path)",
-      "Bash(awk 'NR>=2195 && NR<=2260' db/schema.ts)"
+      "Bash(awk 'NR>=2195 && NR<=2260' db/schema.ts)",
+      "Bash(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis\" && rm netlify/functions/migrate-phase10-r4-tracking-ai.ts)",
+      "Bash(python3)",
+      "Bash(python -c ' *)"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -94,11 +97,9 @@
       "Write(**/lib/auth.ts)",
       "Write(**/lib/admin-guard.ts)",
       "Write(**/lib/hyosung-parser.ts)",
-      "Edit(**/public/mypage.html)",
       "Edit(**/public/js/auth.js)",
       "Edit(**/public/js/admin-mypage-cancellation.js)",
       "Edit(**/public/js/admin-eligibility.js)",
-      "Write(**/public/mypage.html)",
       "Write(**/public/js/auth.js)",
       "Write(**/public/js/admin-mypage-cancellation.js)",
       "Write(**/public/js/admin-eligibility.js)"
@@ -126,6 +127,9 @@
       "PowerShell(curl:*)",
       "PowerShell(Invoke-WebRequest:*)",
       "PowerShell(Invoke-RestMethod:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Administrator\\Desktop\\작업\\dev\\tbfa-mis\\netlify\\functions"
     ]
   }
 }
