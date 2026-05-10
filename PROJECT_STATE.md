@@ -110,7 +110,7 @@
 | **Phase 11 멘션·구독** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 4건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase11-12.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 12 신고 진행 공개 + 익명 강화** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 3건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase11-12.md`). 업무 시나리오 클릭 테스트는 Swain 직접 |
 | **Phase 13 신고 통계 대시보드** | ✅ 100% — 코드 머지 + C 라이브 검증 PASS + BUG 2건 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase13.md`) |
-| **Phase 14 외부 기관 인계** | 🟣 C 라이브 검증 완료 / ⏸ verify/phase14 머지 대기 |
+| **Phase 14 외부 기관 인계** | ✅ 100% — C 라이브 검증 PASS + BUG-14-07/08 fix (2026-05-11, 보고서 `docs/verify/2026-05-11-phase14.md`) |
 | **Phase 15 전문가 매칭 고도화** | 🟣 C 라이브 검증 진행 중 |
 | **Phase 16 통합 분석 대시보드** | 🔵 B+A mock 머지 완료 / ⏸ A 실API 연결 + C 라이브 검증 대기 |
 | **Phase 17 보안·감사 강화** | ✅ 설계서 완성 ([2026-05-11-phase17-security-audit.md](docs/milestones/2026-05-11-phase17-security-audit.md)) / ⏸ A·B 대기 |
