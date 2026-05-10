@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-11 / Phase 10 R4 100% 완료 / Phase 11+12 B·A 트리거 발송 + C TypeScript 정리 트리거 발송
+> **마지막 갱신**: 2026-05-11 / Phase 11+12 B+A 머지 완료 / C 검증 대기 / Phase 13 라운드 병행 작업 추가 예정
 
 ---
 
@@ -13,7 +13,7 @@
 **SIREN(싸이렌)** = (사)교사유가족협의회 통합 NPO 플랫폼.
 
 - 라이브: <https://tbfa-siren-cms.netlify.app>
-- 베이스 브랜치: `main` (최신 커밋 `a729561` — HANDOFF 갱신)
+- 베이스 브랜치: `main` (최신 커밋 `bc43cd3`)
 - 상세 스택·환경·구조: [`CLAUDE.md`](../CLAUDE.md) §1~5
 
 ---
@@ -33,98 +33,54 @@
 
 ## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
 
-### 3.1 Phase 11 + 12 — 진행 중 (B·A 작업 중)
+### 3.1 Phase 11+12 — B+A 머지 완료, C 검증 대기
 
-**시작 시점**: 2026-05-11, 트리거 메시지 전달 완료
+**상태**: B(`feature/phase11-12-back`) + A(`feature/phase11-12-front`) 모두 main 머지 완료 (`bc43cd3`).
 
-#### B 채팅 — feature/phase11-12-back
+- C 채팅이 현재 `fix/typescript-errors` (TS 149건 정리) 작업 중
+- C 완료 보고 오면 → Phase 11+12 검증 트리거로 전환
 
-**Phase 12 백엔드 (먼저 구현):**
+**주의 — API 경로 불일치 이미 수정 완료**:
+A가 사용하는 경로와 B 구현 경로가 달랐던 문제를 메인이 직접 수정 후 머지. 아래가 실제 연결된 경로:
 
-| 파일 | 경로 | 역할 |
-|---|---|---|
-| `admin-incident-anonymity-update.ts` | `/api/admin-incident-anonymity-update?id=X` | POST — 익명 단계 변경 (0=완전익명·1=기본·2=전체) + 로그 기록 |
-| `admin-incident-anonymity-logs.ts` | `/api/admin-incident-anonymity-logs?incidentId=X` | GET — 익명 변경 이력 조회 |
-| `user-incident-list.ts` | `/api/user-incident-list` | GET — 사용자 본인 신고 목록 (사건·괴롭힘·법률 통합) |
-| `user-incident-timeline.ts` | `/api/user-incident-timeline?type=&id=X` | GET — 특정 신고 단계별 진행 이력 |
-| `admin-incident-status-notify.ts` | `/api/admin-incident-status-notify?id=X` | POST — 신고자에게 Phase 10 발송 시스템으로 알림 |
-| `migrate-phase12-incident-anonymity.ts` | `/api/migrate-phase12-incident-anonymity?run=1` | 1회용 마이그 — incident_anonymity_logs 테이블 + 3테이블 anonymity_level 컬럼 추가 |
+| A 호출 | B 실제 경로 |
+|---|---|
+| `/api/user-post-subscriptions` | `user-post-subscriptions.ts` |
+| `/api/user-post-subscribe` | `user-post-subscribe.ts` |
+| `/api/user-mentions` (알림 탭) | `user-mentions.ts` |
+| `/api/user-mention-read` | `user-mention-read.ts` |
+| `/api/user-my-reports?type=X` | `user-my-reports.ts` |
+| `/api/admin-report-list-by-status` | `admin-report-list-by-status.ts` |
+| `/api/admin-anonymous-reveal` | `admin-anonymous-reveal.ts` |
+| `/api/admin-anonymous-reveal-logs` | `admin-anonymous-reveal-logs.ts` |
 
-**Phase 11 백엔드 (Phase 12 후):**
+### 3.2 Phase 13 + 병행 작업 — 다음 라운드 (설계 진행 중)
 
-| 파일 | 경로 | 역할 |
-|---|---|---|
-| `user-subscription-toggle.ts` | `/api/user-subscription-toggle` | POST — 게시글 구독/해제 토글 |
-| `user-subscriptions.ts` | `/api/user-subscriptions` | GET — 본인 구독 목록 |
-| `admin-mention-search.ts` | `/api/admin-mention-search?q=&limit=5` | GET — 어드민 멘션 자동완성 |
-| `user-mention-search.ts` | `/api/user-mention-search?q=&limit=5` | GET — 사용자 멘션 자동완성 |
-| `admin-board-post-notify.ts` | `/api/admin-board-post-notify` | POST — 새 댓글 시 구독자·멘션 대상 알림 |
-| `migrate-phase11-subscription.ts` | `/api/migrate-phase11-subscription?run=1` | 1회용 마이그 — board_subscriptions 테이블 |
-| `cron-chat-unread-notify.ts` | schedule `0 */2 * * *` | 채팅 안 읽음 2시간 누적 시 알림 |
+**배경**: Phase 13(신고 통계 대시보드)만 하면 B는 API 1개·A는 SPA 섹션 1개라 작업량이 너무 작아 대기 시간이 길어짐. 병행 작업을 추가해야 함.
 
-**schema.ts 추가 예정 (마이그 후 활성화):**
-```typescript
-// Phase 12
-incidentAnonymityLogs — incident_anonymity_logs 테이블
+**새 메인이 해야 할 일**: Phase 13과 병행할 작업을 선정·설계 후 B·A 트리거 발송.
 
-// Phase 11
-boardSubscriptions — board_subscriptions 테이블
-```
+병행 후보 (작업량 관점):
+- **Phase 16 일부** — 통합 분석 대시보드 중 이탈 위험 회원 목록 + KPI 위젯 (B: 집계 API 2~3개 / A: 대시보드 섹션)
+- **6순위 #6 자격 변경 사용자 검증 화면 보강** — 마이페이지 자격변경 신청·진행 상태 화면 (A만, B 불필요)
+- **mypage.html 접근 차단 해제** — A 보고에서 deny 목록 확인됨, settings.json 정책 검토 필요
 
-#### A 채팅 — feature/phase11-12-front
+**설계서 위치**: [docs/milestones/2026-05-11-phase13-incident-stats.md](docs/milestones/2026-05-11-phase13-incident-stats.md) (Phase 13 단독분)
 
-**Phase 12 프론트:**
-- `public/my-incident-status.html` + `public/js/my-incident-status.js` — 사용자 신고 현황 + 단계 타임라인 모달
-- `public/mypage.html` — "📋 내 신고 현황" 메뉴 추가
-- `public/js/admin-incidents-crud.js` 보강 — 익명 단계 제어 드롭다운 + 변경 이력 + 알림 발송 버튼
+### 3.3 충돌 재발 방지 정책 (2026-05-11 적용)
 
-**Phase 11 프론트:**
-- `public/board-view.html` + `public/js/board.js` 보강 — "🔔 구독" 토글 버튼
-- `public/js/board-mention.js` 신규 — `@` 멘션 자동완성 드롭다운
-- `public/my-subscriptions.html` + `public/js/my-subscriptions.js` 신규 — 구독 목록
-- `public/mypage.html` — "📌 구독 목록" 메뉴 추가
+**A·B 채팅은 `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 절대 금지.**
+원인: A가 자발적으로 PROJECT_STATE.md 갱신 → 메인 머지 2회 충돌.
+트리거 프롬프트 `금지:` 항목에 명시 완료 (PARALLEL_TEMPLATE.md §6.2·§6.3, PARALLEL_GUIDE.md §3).
 
-#### C 채팅 — fix/typescript-errors (B·A와 독립)
-
-TypeScript 타입 에러 149건 정리:
-- TS2353 (schema 컬럼 누락) 72건
-- TS2339 (requireAdmin narrowing) 49건
-- TS2769 (insert 키 불일치) 21건
-- 기타 7건
-
-`npx tsc --noEmit` → 0건 달성 후 push
-
----
-
-### 3.2 머지 순서 (강제)
-
-```
-1. B feature/phase11-12-back push 보고
-   → B 머지 → push
-   → Swain: /api/migrate-phase12-incident-anonymity?run=1 호출
-   → schema 활성화 (incidentAnonymityLogs) + 마이그 파일 삭제 + push
-   → Swain: /api/migrate-phase11-subscription?run=1 호출
-   → schema 활성화 (boardSubscriptions) + 마이그 파일 삭제 + push
-
-2. A feature/phase11-12-front push 보고
-   → A 머지 → push
-
-3. C fix/typescript-errors push 보고 (B·A와 독립, 언제든 머지 가능)
-   → C 머지 → push
-
-4. 메인이 C에게 Phase 11+12 검증 트리거
-```
-
----
-
-### 3.3 4채팅 구조 (현재)
+### 3.4 4채팅 구조 (현재)
 
 | 채팅 | 모델 | 역할 | 현재 상태 |
 |---|---|---|---|
 | 메인 | Opus 4.7 | 설계·머지·조율 | 컨텍스트 한계 — 새 메인으로 인수인계 |
-| A | Sonnet 4.6 | 프론트 (`public/`) | feature/phase11-12-front 작업 중 |
-| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | feature/phase11-12-back 작업 중 |
-| C | Opus 4.7 | 검증·fix | fix/typescript-errors 작업 중 |
+| A | Sonnet 4.6 | 프론트 (`public/`) | Phase 11+12 완료, 대기 중 |
+| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | Phase 11+12 완료, 대기 중 |
+| C | Opus 4.7 | 검증·fix | `fix/typescript-errors` 작업 중 |
 
 **worktree 폴더:**
 ```
@@ -136,21 +92,28 @@ tbfa-mis        (메인) — 머지·조율 전용
 
 ---
 
-### 3.4 Swain 운영 액션 대기
+### 3.5 머지 순서 (Phase 11+12 C 검증 후)
 
-| 액션 | 상태 |
-|---|---|
-| 카카오 알림톡 심사 후 환경변수 2개 등록 | ⏸ 대기 (ALIGO_TEMPLATE_BILLING_FAILED, ALIGO_TEMPLATE_CARD_EXPIRING) |
-| SMS 실발송 확인 (결제 실패 시 알림 로그) | ⏸ Swain 직접 |
+```
+1. C fix/typescript-errors 완료 보고
+   → 메인 머지 → push
+
+2. C에게 Phase 11+12 검증 트리거
+   브랜치: verify/phase11-12 (베이스 main 최신)
+   설계서: docs/HANDOFF.md §3.1 API 경로 표 참고
+
+3. C 검증 PASS → Phase 11+12 마감
+   → Phase 13 + 병행 작업 B·A 동시 트리거
+```
 
 ---
 
 ## 4. 즉시 해야 할 일 (새 메인)
 
 ```
-1. Swain께 B·A·C 진행 상황 확인
-2. 보고 온 채팅 있으면 §3.2 머지 순서대로 즉시 처리
-3. 아직 없으면 대기
+1. Swain께 C 진행 상황 확인 (TS 정리 완료 여부)
+2. Phase 13 병행 작업 선정·설계 (Swain과 합의)
+3. C 완료 보고 오면 머지 → Phase 11+12 검증 트리거
 ```
 
 ---
@@ -167,6 +130,7 @@ tbfa-mis        (메인) — 머지·조율 전용
 | 2026-05-10 | bigserial import 누락 502 | B push 전 `npx tsc --noEmit` 의무 |
 | 2026-05-11 | #BUG-8 `auth.admin?.id` undefined | `auth.ctx?.admin?.uid` 직접 참조 |
 | 2026-05-11 | #BUG-9 schema 컬럼 누락 (마이그 후 미반영) | 마이그 직후 schema 전수 대조 필수 |
+| 2026-05-11 | A가 PROJECT_STATE.md 자발 수정 → 머지 2회 충돌 | A·B 트리거 프롬프트 `금지:` 항목에 명시 |
 
 ### 5.2 마이그레이션 호출 표준
 
@@ -197,15 +161,14 @@ const adminUid = auth.ctx?.admin?.uid;  // id 아님
 | Phase 5~7 재정 | ✅ 100% |
 | Phase 8 알림 인프라 | ✅ 100% |
 | Phase 9 외부 API | ✅ 코드 100% / 🟡 실발송 환경변수 등록 후 자동 |
-| Phase 10 R1~R4 | ✅ 100% (R4: `0f98042`) |
-| **Phase 11 멘션·구독** | 🟢 B·A 작업 중 |
-| **Phase 12 신고 공개·익명** | 🟢 B·A 작업 중 (Phase 11과 동시) |
-| TypeScript 149건 | 🟢 C 작업 중 |
-| Phase 13 신고 통계 | ⏸ Phase 11+12 완료 후 |
-| Phase 16 통합 분석 | ⏸ Phase 11+12 완료 후 |
-| Phase 14~15·17~22 | ⏸ 카탈로그만 |
+| Phase 10 R1~R4 | ✅ 100% |
+| **Phase 11 멘션·구독** | 🟢 B+A 머지 완료 / ⏸ C 검증 대기 |
+| **Phase 12 신고 공개·익명** | 🟢 B+A 머지 완료 / ⏸ C 검증 대기 |
+| TypeScript 149건 | 🟢 C 작업 중 (`fix/typescript-errors`) |
+| **Phase 13 신고 통계** | ✅ 설계서 완료 / ⏸ 병행 작업 추가 후 B·A 트리거 |
+| Phase 14~22 | ⏸ 카탈로그만 |
 
-누적 약 **50%** / 약 470h+
+누적 약 **52%** / 약 490h+
 
 ---
 
@@ -215,10 +178,9 @@ const adminUid = auth.ctx?.admin?.uid;  // id 아님
 인수인계 정독 완료.
 
 현재 상태:
-- Phase 10 R4 ✅ 100% 완료
-- B: feature/phase11-12-back 작업 중 (Phase 12→11 백엔드)
-- A: feature/phase11-12-front 작업 중 (Phase 12→11 프론트)
-- C: fix/typescript-errors 작업 중 (149건 타입 정리)
+- Phase 11+12: B+A 머지 완료, C 검증 대기
+- C: fix/typescript-errors 작업 중
+- Phase 13: 설계서 완료, 병행 작업 추가 필요
 
 B·A·C 진행 상황 알려주시면 즉시 이어서 처리합니다.
 ```
