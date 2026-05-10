@@ -22,7 +22,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -53,7 +53,7 @@ export default async (req: Request, _ctx: Context) => {
       if (code === 404) {
         await db
           .update(workspaceFiles)
-          .set({ uploadStatus: "failed", updatedAt: new Date() })
+          .set({ uploadStatus: "failed", updatedAt: new Date() } as any)
           .where(eq(workspaceFiles.id, fileId));
         return badRequest("R2에 파일이 업로드되지 않았습니다");
       }
@@ -75,11 +75,10 @@ export default async (req: Request, _ctx: Context) => {
       .returning();
 
     await logAudit({
-      actorMemberId: meId,
+      userId: meId,
       action: "workspace.file.upload.confirm",
-      targetType: "workspace_file",
-      targetId: fileId,
-      meta: { name: file.name, sizeBytes: actualSize }
+      target: `workspace_file:${fileId}`,
+      detail: { name: file.name, sizeBytes: actualSize }
     });
 
     return ok(updated[0], "업로드 완료");

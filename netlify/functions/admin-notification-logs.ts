@@ -10,7 +10,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return new Response(JSON.stringify({ ok: false, error: "GET only" }), { status: 405 });
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const from = url.searchParams.get("from");

@@ -17,7 +17,7 @@
 //   });
 
 import { db } from "../db";
-import { workspaceActivityLog, workspaceNotifications, members } from "../db/schema";
+import { workspaceActivityLog, workspaceNotifications, members, NewWorkspaceActivityLog, NewWorkspaceNotification } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { dispatch } from "./notify-dispatcher";
 import { NotifyEvent } from "./notify-events";
@@ -33,6 +33,7 @@ export type ActivityActionType =
   | "task.assign" | "task.unassign"
   | "task.checklist.add" | "task.checklist.toggle"
   | "task.attachment.add" | "task.attachment.remove"
+  | "task.hold" | "task.unhold" | "task.archive" | "task.unarchive"
   // Event
   | "event.create" | "event.update" | "event.delete"
   | "event.rsvp.accept" | "event.rsvp.decline"
@@ -102,7 +103,7 @@ export async function logWorkspaceActivity(params: LogActivityParams): Promise<v
       targetTitle: params.targetTitle ?? null,
       metadata: params.metadata ?? {},
       visibility: params.visibility ?? "team",
-    });
+    } as any);
   } catch (err) {
     // 로그 실패는 메인 흐름 방해 X
     console.error("[WorkspaceActivityLog Failed]", err, params);
@@ -127,7 +128,7 @@ export async function sendWorkspaceNotification(params: NotifParams): Promise<nu
         body: params.body ?? null,
         actionUrl: params.actionUrl ?? null,
         deliveryStatus: "sent",
-      })
+      } as any)
       .returning({ id: workspaceNotifications.id });
 
     /* Phase 8 — 통합 디스패처 호출 (fire-and-forget)
@@ -277,6 +278,10 @@ export const ACTION_LABELS: Record<ActivityActionType, string> = {
   "task.checklist.toggle": "체크리스트 완료",
   "task.attachment.add": "첨부 추가",
   "task.attachment.remove": "첨부 제거",
+  "task.hold": "작업 보류",
+  "task.unhold": "보류 해제",
+  "task.archive": "작업 보관",
+  "task.unarchive": "보관 해제",
   "event.create": "일정 등록",
   "event.update": "일정 수정",
   "event.delete": "일정 삭제",

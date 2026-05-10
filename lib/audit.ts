@@ -2,7 +2,7 @@
  * SIREN — 감사 로그 헬퍼
  * 모든 중요 활동을 audit_logs 테이블에 기록합니다.
  */
-import { db, auditLogs } from "../db";
+import { db, auditLogs, NewAuditLog } from "../db";
 import { getClientIp, getUserAgent } from "./response";
 
 export type AuditUserType = "admin" | "user" | "system" | "anonymous";
@@ -17,6 +17,8 @@ export interface AuditLogParams {
   detail?: any;              // 객체나 문자열
   success?: boolean;
   errorMessage?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 /**
@@ -38,11 +40,11 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       action: params.action,
       target: params.target ?? null,
       detail: detailStr,
-      ipAddress: params.req ? getClientIp(params.req) : null,
-      userAgent: params.req ? getUserAgent(params.req) : null,
+      ipAddress: params.ipAddress ?? (params.req ? getClientIp(params.req) : null),
+      userAgent: params.userAgent ?? (params.req ? getUserAgent(params.req) : null),
       success: params.success ?? true,
       errorMessage: params.errorMessage ?? null,
-    });
+    } as any);
   } catch (err) {
     // 감사 로그 실패는 콘솔에만 기록 (메인 흐름 방해 X)
     console.error("[AuditLog Failed]", err, params);

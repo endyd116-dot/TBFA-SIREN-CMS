@@ -11,7 +11,7 @@ export const config = { path: "/api/admin-member-send-history" };
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const memberId = Number(url.searchParams.get("memberId"));

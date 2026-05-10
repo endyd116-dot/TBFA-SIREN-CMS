@@ -22,7 +22,7 @@ export default async (req: Request) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { member: adminMember } = guard.ctx;
 
   /* 권한: super_admin 또는 'all'/'legal' 카테고리 담당 */

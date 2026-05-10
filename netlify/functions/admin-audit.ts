@@ -30,7 +30,7 @@ export default async (req: Request) => {
 
   /* 1. 관리자 인증 */
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   /* ★ M-16: member.role 사용 (DB 최신값 + AdminPayload 타입 안정성) */
   const { member } = guard.ctx;
 

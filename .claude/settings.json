@@ -79,7 +79,15 @@
       "Bash(awk 'NR>=2195 && NR<=2260' db/schema.ts)",
       "Bash(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis\" && rm netlify/functions/migrate-phase10-r4-tracking-ai.ts)",
       "Bash(python3)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "PowerShell(git checkout -b fix/typescript-errors a729561)",
+      "Bash(sed \"s/\\([0-9]*,[0-9]*\\).*//\")",
+      "Bash(python3 -c ' *)",
+      "Bash(cat > *)",
+      "Bash(sed \"s/\\([0-9]*//\")",
+      "Bash(sed 's/\\([0-9]*,[0-9]*\\).*//')",
+      "PowerShell(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis-C\"; npx tsc --noEmit 2>&1 | Select-String \"admin-login|admin-members-blacklist|admin-task-due|admin-workspace-events|admin-workspace-file-confirm|admin-workspace-file-download|admin-workspace-file-presign|admin-workspace-memos|admin-workspace-task-comments|admin-workspace-task-reports|admin-workspace-task-templates|auth-password-reset|campaigns|chat-upload|cron-agent|cron-billing-card|cron-toss|donate|notices|resources\" | ForEach-Object { $_.ToString\\(\\) })",
+      "PowerShell(cd \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\작업\\\\dev\\\\tbfa-mis-C\"; npx tsc --noEmit 2>&1 | Select-String \"error TS\" | ForEach-Object { $_.ToString\\(\\) })"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -129,7 +137,8 @@
       "PowerShell(Invoke-RestMethod:*)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\Administrator\\Desktop\\작업\\dev\\tbfa-mis\\netlify\\functions"
+      "c:\\Users\\Administrator\\Desktop\\작업\\dev\\tbfa-mis\\netlify\\functions",
+      "\\tmp"
     ]
   }
 }

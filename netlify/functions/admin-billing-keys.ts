@@ -15,7 +15,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const admin = guard.ctx.admin;
   const adminMember = guard.ctx.member;
 
@@ -64,7 +64,6 @@ export default async (req: Request, _ctx: Context) => {
             cardCompany: billingKeys.cardCompany,
             cardNumberMasked: billingKeys.cardNumberMasked,
             cardType: billingKeys.cardType,
-            cardExpiryMonth: billingKeys.cardExpiryMonth,
             amount: billingKeys.amount,
             isActive: billingKeys.isActive,
             nextChargeAt: billingKeys.nextChargeAt,
@@ -122,7 +121,6 @@ export default async (req: Request, _ctx: Context) => {
             cardCompany: billingKeys.cardCompany,
             cardNumberMasked: billingKeys.cardNumberMasked,
             cardType: billingKeys.cardType,
-            cardExpiryMonth: billingKeys.cardExpiryMonth,
             amount: billingKeys.amount,
             isActive: billingKeys.isActive,
             nextChargeAt: billingKeys.nextChargeAt,
@@ -215,7 +213,7 @@ export default async (req: Request, _ctx: Context) => {
           deactivatedAt: new Date(),
           deactivatedReason: reason,
           updatedAt: new Date(),
-        })
+        } as any)
         .where(eq(billingKeys.id, id));
 
       // members.next_billing_date 비우기

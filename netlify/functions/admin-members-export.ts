@@ -58,7 +58,7 @@ export default async (req: Request) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin } = guard.ctx;
 
   try {

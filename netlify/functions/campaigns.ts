@@ -49,7 +49,7 @@ export default async (req: Request) => {
       /* 조회수 증가 (실패해도 무시) */
       try {
         await db.update(campaigns)
-          .set({ views: sql`${campaigns.views} + 1` as any })
+          .set({ views: sql`${campaigns.views} + 1` } as any)
           .where(eq(campaigns.id, c.id));
       } catch (_) {}
 

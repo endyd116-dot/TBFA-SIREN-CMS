@@ -28,7 +28,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member;
   const meId = adminMember.id;
 
@@ -196,7 +196,7 @@ export default async (req: Request, _ctx: Context) => {
 
       const [updated]: any = await db
         .update(dailyBriefings)
-        .set({ readAt: new Date() })
+        .set({ readAt: new Date() } as any)
         .where(eq(dailyBriefings.id, id))
         .returning();
 

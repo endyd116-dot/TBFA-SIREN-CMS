@@ -22,7 +22,7 @@ import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
 
@@ -95,7 +95,7 @@ export default async (req: Request, _ctx: Context) => {
           blacklistedBy: meId,
           blacklistReason: reason,
           updatedAt: new Date(),
-        })
+        } as any)
         .where(eq(members.id, memberId))
         .returning();
 
@@ -134,7 +134,7 @@ export default async (req: Request, _ctx: Context) => {
           blacklistedBy: null,
           blacklistReason: null,
           updatedAt: new Date(),
-        })
+        } as any)
         .where(eq(members.id, id))
         .returning();
 

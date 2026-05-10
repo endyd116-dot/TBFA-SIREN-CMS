@@ -30,7 +30,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 인증 + 차단 검증 (5순위 #1) */
   const _r = await requireActiveUser(req);
-  if (!_r.ok) return _r.res;
+  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
   const user = _r.user;
 
   try {

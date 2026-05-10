@@ -32,7 +32,7 @@ export default async (req: Request) => {
 
       /* 조회수 증가 (실패해도 무시) */
         db.update(notices)
-        .set({ views: sql`${notices.views} + 1` as any })
+        .set({ views: sql`${notices.views} + 1` } as any)
         .where(eq(notices.id, noticeId))
         .catch(() => {});
 

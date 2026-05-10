@@ -273,14 +273,13 @@ async function processExpiryTarget(
     console.log(`[cron-card-expiry] 📧 알림: 회원 #${target.memberId} (${target.memberName}) — ${target.alertType} (${target.cardExpiryMonth})`);
 
     // 이력 기록
-    const alertData: NewCardExpiryAlert = {
+    await db.insert(cardExpiryAlerts).values({
       memberId: target.memberId,
       billingKey: target.billingKey,
       cardExpiryMonth: target.cardExpiryMonth,
       alertType: target.alertType,
       channelsSent: channels.join(","),
-    };
-    await db.insert(cardExpiryAlerts).values(alertData);
+    } as any);
 
     summary.sentCount++;
   } catch (error: any) {

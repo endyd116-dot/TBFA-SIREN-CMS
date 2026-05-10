@@ -25,7 +25,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 1. 인증 + 차단 검증 */
   const _r = await requireActiveUser(req);
-  if (!_r.ok) return _r.res;
+  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
   const auth = _r.user;
   const meId = (auth as any).uid as number;
 

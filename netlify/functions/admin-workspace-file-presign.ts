@@ -49,7 +49,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const auth = await requireAdmin(req);
-    if (!auth.ok) return auth.res;
+    if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
 
@@ -95,7 +95,7 @@ export default async (req: Request, _ctx: Context) => {
         description,
         tags: tags as any,
         isShared: false
-      })
+      } as any)
       .returning();
     const newFile = inserted[0];
 
@@ -109,11 +109,10 @@ export default async (req: Request, _ctx: Context) => {
     const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 900 });
 
     await logAudit({
-      actorMemberId: meId,
+      userId: meId,
       action: "workspace.file.presign",
-      targetType: "workspace_file",
-      targetId: newFile.id,
-      meta: { name, sizeBytes, mimeType, folderId }
+      target: `workspace_file:${newFile.id}`,
+      detail: { name, sizeBytes, mimeType, folderId }
     });
 
     return ok({

@@ -286,7 +286,7 @@ async function handleSuccess(
   result: ChargeResult
 ): Promise<void> {
   // 4-1. donations INSERT
-  const donationData: NewDonation = {
+  const donationResult: any = await db.insert(donations).values({
     memberId: target.memberId,
     donorName: target.memberName,
     donorEmail: target.memberEmail,
@@ -302,9 +302,7 @@ async function handleSuccess(
     isAnonymous: false,
     receiptRequested: true,
     billingLogId: logId,
-  };
-
-  const donationResult: any = await db.insert(donations).values(donationData).returning({ id: donations.id });
+  } as any).returning({ id: donations.id });
   const donationRows = Array.isArray(donationResult) ? donationResult : (donationResult as any).rows || [];
   const donationId = donationRows[0]?.id;
 
@@ -334,7 +332,7 @@ async function handleSuccess(
       lastChargedAt: new Date(),
       consecutiveFailCount: 0,
       lastFailureReason: null,
-    })
+    } as any)
     .where(eq(billingKeys.id, target.billingKeyId));
 
   console.log(`[cron-billing] ✅ 성공: 회원 #${target.memberId} (${target.memberName}) — ${target.amount.toLocaleString()}원`);
@@ -394,7 +392,7 @@ async function handleFailure(
     .set({
       consecutiveFailCount: newRetryCount,
       lastFailureReason: `${result.errorCode}: ${result.errorMessage}`,
-    })
+    } as any)
     .where(eq(billingKeys.id, target.billingKeyId));
 
   if (shouldCancel) {
@@ -404,7 +402,7 @@ async function handleFailure(
         isActive: false,
         deactivatedAt: new Date(),
         deactivatedReason: `자동 해지 (${newRetryCount}회 연속 실패: ${result.errorCode})`,
-      })
+      } as any)
       .where(eq(billingKeys.id, target.billingKeyId));
 
     // next_billing_date 비우기

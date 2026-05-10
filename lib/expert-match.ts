@@ -99,7 +99,7 @@ export async function checkExpertEligibility(
     return { ok: false, reason: "전문가 회원이 존재하지 않음" };
   }
   const m = rows[0];
-  if (m.status === "blacklist" || m.status === "withdrawn") {
+  if (m.status === "suspended" || m.status === "withdrawn") {
     return { ok: false, reason: `전문가 상태가 ${m.status}임`, member: m };
   }
   if (m.type !== "volunteer") {

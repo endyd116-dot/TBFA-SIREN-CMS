@@ -11,7 +11,7 @@ export default async (req: Request) => {
   if (req.method !== "GET") return methodNotAllowed();
 
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
 
   try {
     /* 1. 최근 12개월 후원금 추이 */

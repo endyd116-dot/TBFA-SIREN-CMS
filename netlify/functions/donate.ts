@@ -24,7 +24,7 @@ export default async (req: Request) => {
     if (!body) return badRequest("요청 본문이 비어있습니다");
 
     const v = safeValidate(donateSchema, body);
-    if (!v.ok) return badRequest("입력값을 확인해주세요", v.errors);
+    if (!v.ok) return badRequest("입력값을 확인해주세요", (v as any).errors);
 
     const { name, phone, email, amount, type, payMethod, isAnonymous, campaignTag } = v.data;
 
@@ -55,7 +55,7 @@ export default async (req: Request) => {
         isAnonymous: isAnonymous ?? false,
         campaignTag: campaignTag || null,
         receiptRequested: !!email,
-      })
+      } as any)
       .returning();
 
     /* 5. 감사 로그 */

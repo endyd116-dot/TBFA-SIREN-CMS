@@ -175,7 +175,7 @@ export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
 
   const guard: any = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin, member: adminMember } = guard.ctx;
 
   /* 목록/수정/삭제는 권한 검사 별도, 생성은 canGenerate 별도 처리 */

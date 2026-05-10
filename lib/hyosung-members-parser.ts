@@ -76,6 +76,7 @@ export async function upsertMemberFromContract(
       .limit(1);
 
     if (byHyosungNo) {
+      // @ts-ignore drizzle $inferInsert narrowing 한계 — hyosung 컬럼은 DB에 존재함
       await db.update(members).set(update).where(eq(members.id, byHyosungNo.id));
       await safeReevaluate(byHyosungNo.id, "hyosung-members-parser");
       return { outcome: "matched_hyosung_no", memberId: byHyosungNo.id, isNew: false };
@@ -89,6 +90,7 @@ export async function upsertMemberFromContract(
         .where(eq(members.phone, row.phone));
 
       if (byPhone.length === 1) {
+        // @ts-ignore drizzle $inferInsert narrowing 한계 — hyosung 컬럼은 DB에 존재함
         await db.update(members).set(update).where(eq(members.id, byPhone[0].id));
         await safeReevaluate(byPhone[0].id, "hyosung-members-parser");
         return { outcome: "matched_phone", memberId: byPhone[0].id, isNew: false };
@@ -116,6 +118,7 @@ export async function upsertMemberFromContract(
     }
 
     /* 생성 직후 효성 운영 컬럼 및 donor_type 설정 */
+    // @ts-ignore drizzle $inferInsert narrowing 한계 — hyosung 컬럼은 DB에 존재함
     await db.update(members).set(update).where(eq(members.id, created.memberId));
     await safeReevaluate(created.memberId, "hyosung-members-parser-new");
 

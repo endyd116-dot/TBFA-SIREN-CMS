@@ -33,7 +33,7 @@ import {
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member;
   const meId = adminMember.id;
   const isSuperAdmin = (adminMember as any).role === "super_admin";
@@ -193,7 +193,7 @@ export default async (req: Request, _ctx: Context) => {
           newDue,
           reason: body.reason.trim(),
           status: "pending",
-        })
+        } as any)
         .returning();
 
       await logAudit({
@@ -284,7 +284,7 @@ export default async (req: Request, _ctx: Context) => {
           reviewedBy: meId,
           reviewedAt: new Date(),
           reviewNote: body.reviewNote || null,
-        })
+        } as any)
         .where(eq(taskDueChangeRequests.id, id))
         .returning();
 
@@ -295,7 +295,7 @@ export default async (req: Request, _ctx: Context) => {
           .set({
             dueDate: request.newDue,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(workspaceTasks.id, request.taskId));
       }
 

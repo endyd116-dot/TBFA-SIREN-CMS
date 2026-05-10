@@ -7,7 +7,7 @@ export const config = { path: "/api/admin-finance-budget-list" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
@@ -39,7 +39,7 @@ export default async function handler(req: Request, _ctx: Context) {
       ORDER BY bc.id
     `);
 
-    const items = (rows.rows || rows).map((r: any) => ({
+    const items = ((rows as any).rows || rows as any[]).map((r: any) => ({
       id: r.id,
       name: r.name,
       code: r.code,

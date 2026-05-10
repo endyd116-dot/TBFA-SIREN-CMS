@@ -57,7 +57,7 @@ export default async (req: Request) => {
     isAdmin = true;
   } else {
     const userAuth = await requireActiveUser(req);
-    if (!userAuth.ok) return userAuth.res;
+    if (!userAuth.ok) return (userAuth as { ok: false; res: Response }).res;
     viewerMemberId = userAuth.user.uid;
   }
 

@@ -43,7 +43,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const adminId: number = auth.ctx.admin.uid;
   const url = new URL(req.url);

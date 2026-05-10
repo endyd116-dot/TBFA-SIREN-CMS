@@ -8,7 +8,7 @@ export const config = { path: "/api/admin-finance-income-summary" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
   const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));

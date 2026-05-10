@@ -15,7 +15,7 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
   const meId = (auth.ctx.member as any).id as number;
 
   const url = new URL(req.url);

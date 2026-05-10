@@ -35,7 +35,7 @@ function jsonBad(msg: string) {
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const memberId: number = auth.user.uid;
 

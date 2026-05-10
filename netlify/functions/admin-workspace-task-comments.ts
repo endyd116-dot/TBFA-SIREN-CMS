@@ -32,7 +32,7 @@ const MAX_MENTIONS = 20;
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
   const isSuperAdmin = (adminMember.role || "") === "super_admin";
@@ -147,7 +147,7 @@ export default async (req: Request, _ctx: Context) => {
           content,
           mentions: mentions as any,
           parentCommentId,
-        })
+        } as any)
         .returning();
       const newComment = inserted[0];
 
@@ -283,7 +283,7 @@ export default async (req: Request, _ctx: Context) => {
 
       await db
         .update(workspaceTaskComments)
-        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .set({ deletedAt: new Date(), updatedAt: new Date() } as any)
         .where(eq(workspaceTaskComments.id, id));
 
       await logAudit({

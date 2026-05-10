@@ -71,7 +71,7 @@ export async function generateTaskSummary(taskId: number): Promise<{ ok: boolean
 
     await db
       .update(workspaceTasks)
-      .set({ aiSummary: summary, updatedAt: new Date() })
+      .set({ aiSummary: summary, updatedAt: new Date() } as Partial<typeof workspaceTasks.$inferInsert>)
       .where(eq(workspaceTasks.id, taskId));
 
     return { ok: true, summary };
@@ -162,7 +162,7 @@ ${task.holdReason ? `- 보류 사유: ${task.holdReason}` : ""}
         aiRiskScore: aiAdjusted,
         aiRiskUpdatedAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as Partial<typeof workspaceTasks.$inferInsert>)
       .where(eq(workspaceTasks.id, taskId));
 
     return { ok: true, score: aiAdjusted, reason };
@@ -260,9 +260,9 @@ ${commentSummary || "(댓글 없음)"}
         type: "completion",
         title: String(result.data.title || `${task.title} - 완료 보고서 (AI 초안)`).slice(0, 300),
         content: String(result.data.content).slice(0, 10000),
-        attachedFileIds: [] as any,
+        attachedFileIds: [],
         reviewStatus: "pending",
-      })
+      } as any)
       .returning();
 
     return { ok: true, reportId: inserted[0]?.id };

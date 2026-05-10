@@ -58,7 +58,7 @@ function normalizeTags(input: any): string[] {
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
-  if (!guard.ok) return guard.res;
+  if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
   const isSuperAdmin = (adminMember.role || "") === "super_admin";
@@ -164,7 +164,7 @@ export default async (req: Request, _ctx: Context) => {
           createdBy: meId,
           usageCount: 0,
           isShared,
-        })
+        } as any)
         .returning();
 
       await logAudit({

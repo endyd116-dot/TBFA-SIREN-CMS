@@ -123,7 +123,7 @@ export default async (req: Request) => {
       expiresAt,
       ipAddress: (getClientIp(req) || "").slice(0, 45),
       userAgent: (getUserAgent(req) || "").slice(0, 500),
-    });
+    } as any);
 
     /* 7. 메일 발송 */
     const tpl = tplPasswordReset({

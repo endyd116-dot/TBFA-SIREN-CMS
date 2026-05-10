@@ -157,7 +157,7 @@ export default async (req: Request) => {
       try {
         await db
           .update(resources)
-          .set({ downloadCount: sql`${resources.downloadCount} + 1` as any })
+          .set({ downloadCount: sql`${resources.downloadCount} + 1` } as any)
           .where(eq(resources.id, id));
       } catch (e) {
         console.warn("[resources] downloadCount 증가 실패:", e);
@@ -221,7 +221,7 @@ export default async (req: Request) => {
       try {
         await db
           .update(resources)
-          .set({ views: sql`${resources.views} + 1` as any })
+          .set({ views: sql`${resources.views} + 1` } as any)
           .where(eq(resources.id, r.id));
       } catch (_) {}
 

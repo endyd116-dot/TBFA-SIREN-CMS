@@ -15,7 +15,7 @@ const VALID_CHANNELS = ["email","sms","kakao","inapp"];
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }),
