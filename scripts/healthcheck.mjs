@@ -54,20 +54,22 @@ if (!BASE_URL || !ADMIN_ID || !ADMIN_PW) {
 const baseUrl = BASE_URL.replace(/\/+$/, "");
 
 /* ───────── 체크 대상 ───────── */
+// 각 항목의 path는 해당 함수가 export const config = { path } 로 등록한 실제 경로.
+// 함수마다 슬래시(/api/admin/X) 또는 하이픈(/api/admin-X) 스타일이 섞여 있으므로 구현부 기준으로 맞춤.
 const PROTECTED_ENDPOINTS = [
-  { name: "GET /api/admin-me",                       path: "/api/admin-me" },
-  { name: "GET /api/admin-members",                  path: "/api/admin-members" },
-  { name: "GET /api/admin-donations",                path: "/api/admin-donations" },
-  { name: "GET /api/admin-donation-dashboard",       path: "/api/admin-donation-dashboard" },
-  { name: "GET /api/admin-members-source-kpi",       path: "/api/admin-members-source-kpi" },
-  { name: "GET /api/admin-incidents-list",           path: "/api/admin-incidents-list" },
-  { name: "GET /api/admin-harassment-list",          path: "/api/admin-harassment-list" },
-  { name: "GET /api/admin-support-list",             path: "/api/admin-support-list" },
-  { name: "GET /api/admin-agency-list",              path: "/api/admin-agency-list" },
-  { name: "GET /api/admin-expert-profile-get",       path: "/api/admin-expert-profile-get?all=true" },
-  { name: "GET /api/admin-dashboard-kpi",            path: "/api/admin-dashboard-kpi" },
-  { name: "GET /api/admin-audit-list",               path: "/api/admin-audit-list" },
-  { name: "GET /api/admin-send-jobs-list",           path: "/api/admin-send-jobs-list" },
+  { name: "GET /api/admin/me",                  path: "/api/admin/me" },
+  { name: "GET /api/admin/members",             path: "/api/admin/members" },
+  { name: "GET /api/admin/donations",           path: "/api/admin/donations" },
+  { name: "GET /api/admin/donation-dashboard",  path: "/api/admin/donation-dashboard" },
+  { name: "GET /api/admin-members-source-kpi",  path: "/api/admin-members-source-kpi" },
+  { name: "GET /api/admin/incident-reports",    path: "/api/admin/incident-reports" },
+  { name: "GET /api/admin/harassment-reports",  path: "/api/admin/harassment-reports" },
+  { name: "GET /api/admin/support",             path: "/api/admin/support" },
+  { name: "GET /api/admin-agency-list",         path: "/api/admin-agency-list" },
+  { name: "GET /api/admin-expert-profile-get",  path: "/api/admin-expert-profile-get?all=true" },
+  { name: "GET /api/admin-dashboard-kpi",       path: "/api/admin-dashboard-kpi" },
+  { name: "GET /api/admin-audit-list",          path: "/api/admin-audit-list" },
+  { name: "GET /api/admin-send-jobs-list",      path: "/api/admin-send-jobs-list" },
 ];
 
 /* ───────── HTTP 헬퍼 ───────── */
@@ -133,7 +135,8 @@ try {
   const loginRes = await fetch(`${baseUrl}/api/admin/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ email: ADMIN_ID, password: ADMIN_PW }),
+    // 어드민 로그인 검증 스키마는 { id, password }를 받음 (id에는 어드민 이메일도 사용 가능)
+    body: JSON.stringify({ id: ADMIN_ID, password: ADMIN_PW }),
     redirect: "manual",
   });
   const loginElapsed = Date.now() - loginStart;

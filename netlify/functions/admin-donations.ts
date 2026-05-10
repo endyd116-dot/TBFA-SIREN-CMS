@@ -101,16 +101,20 @@ export default async (req: Request) => {
         .offset((page - 1) * limit);
 
       /* 3. 통계 — 단일 CASE WHEN 쿼리로 통합 */
+      // Date 객체를 sql 템플릿에 그대로 넘기면 postgres-js가 string 변환 단계에서 깨짐 (TypeError).
+      // ISO 문자열로 변환 후 ::timestamp 캐스팅으로 안전 처리.
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
+      const todayStartIso = todayStart.toISOString();
+      const monthStartIso = monthStart.toISOString();
 
       const statsRes: any = await db.execute(sql`
         SELECT
-          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${todayStart} THEN amount ELSE 0 END), 0)::bigint AS today_amount,
-          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${monthStart} THEN amount ELSE 0 END), 0)::bigint AS month_amount,
+          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${todayStartIso}::timestamp THEN amount ELSE 0 END), 0)::bigint AS today_amount,
+          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${monthStartIso}::timestamp THEN amount ELSE 0 END), 0)::bigint AS month_amount,
           COUNT(CASE WHEN status = 'failed' THEN 1 END)::int AS failed_count,
           COUNT(CASE WHEN status = 'completed' AND receipt_issued = false THEN 1 END)::int AS receipt_pending_count,
           COUNT(CASE WHEN status = 'refunded' THEN 1 END)::int AS refunded_count,

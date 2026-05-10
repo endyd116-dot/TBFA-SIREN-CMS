@@ -195,16 +195,18 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 3. SIREN 신고 KPI ── */
   let siren: any;
   try {
+    // status 컬럼은 테이블별로 별개 enum 타입(incident_report_status / harassment_report_status / 등)이라
+    // UNION ALL 시 PostgreSQL 자동 변환 실패 → 모두 text로 캐스팅
     const sirenRes = await db.execute(sql`
       SELECT type, COUNT(*)::int AS cnt, COUNT(*) FILTER (WHERE status = 'resolved' OR status = 'closed')::int AS resolved
       FROM (
-        SELECT 'incident' AS type, status, created_at FROM incident_reports
+        SELECT 'incident' AS type, status::text AS status, created_at FROM incident_reports
           WHERE created_at >= NOW() - (${days} || ' days')::interval
         UNION ALL
-        SELECT 'harassment' AS type, status, created_at FROM harassment_reports
+        SELECT 'harassment' AS type, status::text AS status, created_at FROM harassment_reports
           WHERE created_at >= NOW() - (${days} || ' days')::interval
         UNION ALL
-        SELECT 'legal' AS type, status, created_at FROM legal_consultations
+        SELECT 'legal' AS type, status::text AS status, created_at FROM legal_consultations
           WHERE created_at >= NOW() - (${days} || ' days')::interval
       ) t
       GROUP BY type
