@@ -2787,6 +2787,8 @@
         <li><a data-page="eligibility"><i>🎓</i><span>자격 변경 심사</span><span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span></a></li>
         <!-- 6순위 #8: 1:1 매칭 관리 -->
         <li><a data-page="expert-match"><i>⚖️</i><span>1:1 매칭 관리</span><span class="adm-badge" id="expertMatchMenuBadge" style="display:none">0</span></a></li>
+        <!-- Phase 15: 전문가 프로필 관리 -->
+        <li><a data-page="expert-profiles"><i>👤</i><span>전문가 프로필 관리</span></a></li>
         <!-- ★ 작업 C(#15): CSV 자동 매핑 (cms-tbfa.html#csv-import 외부 이동) -->
         <li>
           <a href="/cms-tbfa.html#csv-import"
@@ -4598,6 +4600,9 @@
         <!-- 6순위 #8: 1:1 매칭 관리 (admin-expert.js가 동적 렌더) -->
         <div id="adm-expert-match" class="adm-page"></div>
 
+        <!-- Phase 15: 전문가 프로필 관리 (admin-expert-profiles.js가 동적 렌더) -->
+        <div id="adm-expert-profiles" class="adm-page"></div>
+
         <!-- Phase 4: 대표 보고 시스템 (admin-report.js가 동적 렌더) -->
         <div id="adm-report" class="adm-page"></div>
 
@@ -5742,6 +5747,9 @@
 <!-- 6순위 #8: 1:1 매칭 관리 -->
 <script src="/js/admin-expert.js?v=2026-05-10-direct2"></script>
 <script src="/js/admin-siren-stats.js?v=2"></script>
+<!-- Phase 15: 전문가 프로필 관리 + AI 추천 -->
+<script src="/js/admin-expert-profiles.js?v=1"></script>
+<script src="/js/admin-ai-recommend.js?v=1"></script>
   <script>
   (function () {
     /* 모달 닫기 — 통합 처리 */
