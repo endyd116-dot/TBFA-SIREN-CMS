@@ -66,12 +66,12 @@
 /* 사이드바 토글 그룹 */
 .adm-menu-toggle-group > a{
   display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;
-  color:#c8c8c8;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
+  color:#c8c8c8 !important;border-left:2px solid transparent;transition:all var(--t);cursor:pointer;
   text-decoration:none;
 }
-.adm-menu-toggle-group > a:hover{background:#141414;color:#fff}
-.adm-menu-toggle-group > a.on{background:#141414;color:#fff;border-left-color:var(--brand)}
-.adm-menu-toggle-group > a[aria-expanded="true"]{color:#fff}
+.adm-menu-toggle-group > a:hover{background:#141414;color:#fff !important}
+.adm-menu-toggle-group > a.on{background:#141414;color:#fff !important;border-left-color:var(--brand)}
+.adm-menu-toggle-group > a[aria-expanded="true"]{color:#fff !important}
 .sidebar-group-chevron{margin-left:auto;font-size:11px;transition:transform .2s;font-style:normal}
 .adm-menu-toggle-group > a[aria-expanded="true"] .sidebar-group-chevron{transform:rotate(180deg)}
 .adm-submenu{list-style:none;padding:0;margin:0;background:#111}
