@@ -18,7 +18,7 @@
  *   * pending → cancelled (결제 전 취소)
  *   * 이미 refunded/cancelled/failed면 차단
  */
-import { eq, desc, and, or, like, count, sql, inArray, gte } from "drizzle-orm";
+import { eq, desc, and, or, like, count, sql, inArray } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
@@ -100,53 +100,34 @@ export default async (req: Request) => {
         .limit(limit)
         .offset((page - 1) * limit);
 
-      /* 3. 통계 */
+      /* 3. 통계 — 단일 CASE WHEN 쿼리로 통합 */
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
-      const todayRows = await db
-        .select({ sum: sql<number>`COALESCE(SUM(${donations.amount}), 0)` })
-        .from(donations)
-        .where(and(eq(donations.status, "completed"), gte(donations.createdAt, todayStart)));
-
-      const monthRows = await db
-        .select({ sum: sql<number>`COALESCE(SUM(${donations.amount}), 0)` })
-        .from(donations)
-        .where(and(eq(donations.status, "completed"), gte(donations.createdAt, monthStart)));
-
-      const failedRows = await db
-        .select({ c: count() })
-        .from(donations)
-        .where(eq(donations.status, "failed"));
-
-      const receiptPendingRows = await db
-        .select({ c: count() })
-        .from(donations)
-        .where(and(eq(donations.status, "completed"), eq(donations.receiptIssued, false)));
-
-      /* ★ K-8: 환불/취소 통계 추가 */
-      const refundedRows = await db
-        .select({ c: count() })
-        .from(donations)
-        .where(eq(donations.status, "refunded"));
-
-      const cancelledRows = await db
-        .select({ c: count() })
-        .from(donations)
-        .where(eq(donations.status, "cancelled"));
+      const statsRes: any = await db.execute(sql`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${todayStart} THEN amount ELSE 0 END), 0)::bigint AS today_amount,
+          COALESCE(SUM(CASE WHEN status = 'completed' AND created_at >= ${monthStart} THEN amount ELSE 0 END), 0)::bigint AS month_amount,
+          COUNT(CASE WHEN status = 'failed' THEN 1 END)::int AS failed_count,
+          COUNT(CASE WHEN status = 'completed' AND receipt_issued = false THEN 1 END)::int AS receipt_pending_count,
+          COUNT(CASE WHEN status = 'refunded' THEN 1 END)::int AS refunded_count,
+          COUNT(CASE WHEN status = 'cancelled' THEN 1 END)::int AS cancelled_count
+        FROM donations
+      `);
+      const statsRow = (Array.isArray(statsRes) ? statsRes[0] : (statsRes as any).rows?.[0]) || {};
 
       return ok({
         list,
         stats: {
-          today: Number(todayRows[0]?.sum ?? 0),
-          month: Number(monthRows[0]?.sum ?? 0),
-          failedCount: Number(failedRows[0]?.c ?? 0),
-          receiptPendingCount: Number(receiptPendingRows[0]?.c ?? 0),
-          refundedCount: Number(refundedRows[0]?.c ?? 0),
-          cancelledCount: Number(cancelledRows[0]?.c ?? 0),
+          today: Number(statsRow.today_amount ?? 0),
+          month: Number(statsRow.month_amount ?? 0),
+          failedCount: Number(statsRow.failed_count ?? 0),
+          receiptPendingCount: Number(statsRow.receipt_pending_count ?? 0),
+          refundedCount: Number(statsRow.refunded_count ?? 0),
+          cancelledCount: Number(statsRow.cancelled_count ?? 0),
         },
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       });

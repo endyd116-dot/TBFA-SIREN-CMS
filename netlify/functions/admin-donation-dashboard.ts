@@ -13,6 +13,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { getCache, setCache } from "../../lib/cache";
 
 /* =========================================================
    API 계약 (DESIGN_PHASE3.md §6.4)
@@ -89,6 +90,18 @@ export default async (req: Request, _ctx: Context) => {
   /* 1. 인증 */
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
+
+  const CACHE_KEY = "donation-dashboard-v1";
+  const CACHE_TTL = 5 * 60; // 5분
+
+  /* 캐시 히트 시 즉시 반환 */
+  const cached = await getCache<AdminDonationDashboard & { cached?: boolean }>(CACHE_KEY);
+  if (cached) {
+    return new Response(
+      JSON.stringify({ ok: true, data: { ...cached, cached: true } }),
+      { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } },
+    );
+  }
 
   const generatedAt = new Date().toISOString();
 
@@ -304,6 +317,9 @@ export default async (req: Request, _ctx: Context) => {
     alerts,
     recentCsvImports,
   };
+
+  /* 캐시 저장 (실패해도 응답에 영향 없음) */
+  await setCache(CACHE_KEY, dashboard, CACHE_TTL);
 
   return new Response(
     JSON.stringify({ ok: true, data: dashboard }),
