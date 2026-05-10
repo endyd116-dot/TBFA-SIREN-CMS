@@ -80,10 +80,10 @@
       icon: '📨',
       label: '알림·발송',
       items: [
-        { key: 'send-jobs',      label: '발송 작업',    hash: 'adm20-send-jobs',      viewId: 'adm20-send-jobs' },
-        { key: 'send-templates', label: '발송 템플릿',  hash: 'adm20-send-templates', viewId: 'adm20-send-templates' },
-        { key: 'send-groups',    label: '수신자 그룹',  hash: 'adm20-send-groups',    viewId: 'adm20-send-groups' },
-        { key: 'send-analytics', label: '발송 분석·로그', hash: 'adm20-send-analytics', viewId: 'adm20-send-analytics' },
+        { key: 'send-jobs',      label: '발송 작업',      hash: 'adm20-send-jobs',      viewId: 'adm20-send-jobs', tab: 'jobs' },
+        { key: 'send-templates', label: '발송 템플릿',    hash: 'adm20-send-templates', viewId: 'adm20-send-jobs', tab: 'templates' },
+        { key: 'send-groups',    label: '수신자 그룹',    hash: 'adm20-send-groups',    viewId: 'adm20-send-jobs', tab: 'groups' },
+        { key: 'send-analytics', label: '발송 분석·로그', hash: 'adm20-send-analytics', viewId: 'adm20-send-jobs', tab: 'analytics' },
       ],
     },
     {
@@ -101,9 +101,9 @@
       icon: '🤖',
       label: 'AI 에이전트',
       items: [
-        { key: 'ai-recommend',  label: 'AI 추천 센터',       hash: 'adm20-ai-recommend',  viewId: 'adm20-ai-recommend' },
-        { key: 'ai-activity',   label: 'AI 활동보고서',      hash: 'adm20-ai-activity',   viewId: 'adm20-ai-activity' },
-        { key: 'ai-triggers',   label: 'AI 자동 발송 트리거', hash: 'adm20-ai-triggers',   viewId: 'adm20-ai-triggers' },
+        { key: 'ai-recommend',  label: 'AI 추천 센터',        hash: 'adm20-ai-recommend',  viewId: 'adm20-ai-recommend', tab: 'recommend' },
+        { key: 'ai-activity',   label: 'AI 활동보고서',       hash: 'adm20-ai-activity',   viewId: 'adm20-ai-recommend', tab: 'activity' },
+        { key: 'ai-triggers',   label: 'AI 자동 발송 트리거', hash: 'adm20-ai-triggers',   viewId: 'adm20-ai-recommend', tab: 'triggers' },
       ],
     },
     {
@@ -266,7 +266,7 @@
       } else {
         /* 그룹 + 서브메뉴 */
         const subHtml = group.items.map(item => `
-          <button class="adm-nav-sub__item" data-view="${item.viewId}" data-hash="${item.hash}" data-label="${item.label}">
+          <button class="adm-nav-sub__item" data-view="${item.viewId}" data-hash="${item.hash}" data-label="${item.label}"${item.tab ? ` data-tab="${item.tab}"` : ''}>
             ${item.label}
           </button>`).join('');
 
@@ -283,7 +283,7 @@
         });
         groupEl.querySelectorAll('.adm-nav-sub__item').forEach(btn => {
           btn.addEventListener('click', function () {
-            navigate(this.dataset.view, this.dataset.hash, this.dataset.label);
+            navigate(this.dataset.view, this.dataset.hash, this.dataset.label, this.dataset.tab || null);
           });
         });
       }
@@ -303,12 +303,21 @@
   }
 
   /* ─── 라우팅 ─── */
-  function navigate(viewId, hash, label) {
+  function navigate(viewId, hash, label, tab) {
     /* 모든 view 숨기기 */
     document.querySelectorAll('.adm-view').forEach(el => el.classList.remove('is-active'));
     /* 활성 view 표시 */
     const view = document.getElementById(viewId);
     if (view) view.classList.add('is-active');
+
+    /* 그룹 내 탭 전환 (발송·AI 그룹) */
+    if (tab) {
+      if (viewId === 'adm20-send-jobs' && window.AdminSendGroup && window.AdminSendGroup.switchTab) {
+        window.AdminSendGroup.switchTab(tab);
+      } else if (viewId === 'adm20-ai-recommend' && window.AdminAiGroup && window.AdminAiGroup.switchTab) {
+        window.AdminAiGroup.switchTab(tab);
+      }
+    }
 
     /* 활성 메뉴 스타일 */
     document.querySelectorAll('.adm-nav-group__btn, .adm-nav-sub__item').forEach(el => {
@@ -340,14 +349,14 @@
   function routeFromHash(hash) {
     const h = hash ? hash.replace('#', '') : '';
     if (!h) {
-      navigate('adm20-dashboard', 'adm20-dashboard', '대시보드');
+      navigate('adm20-dashboard', 'adm20-dashboard', '대시보드', null);
       return;
     }
     /* 새 hash 직접 매핑 */
     const allItems = flatItems();
     const direct = allItems.find(i => i.hash === h);
     if (direct) {
-      navigate(direct.viewId, direct.hash, direct.label);
+      navigate(direct.viewId, direct.hash, direct.label, direct.tab || null);
       return;
     }
     /* 레거시 hash 매핑 */
@@ -355,18 +364,18 @@
     if (legacyTarget) {
       const item = allItems.find(i => i.viewId === legacyTarget);
       if (item) {
-        navigate(item.viewId, item.hash, item.label);
+        navigate(item.viewId, item.hash, item.label, item.tab || null);
         return;
       }
     }
     /* 기본: 대시보드 */
-    navigate('adm20-dashboard', 'adm20-dashboard', '대시보드');
+    navigate('adm20-dashboard', 'adm20-dashboard', '대시보드', null);
   }
 
   function flatItems() {
     const result = [];
     NAV_GROUPS.forEach(g => {
-      if (g.single) result.push({ viewId: g.viewId, hash: g.hash, label: g.label });
+      if (g.single) result.push({ viewId: g.viewId, hash: g.hash, label: g.label, tab: null });
       else (g.items || []).forEach(i => result.push(i));
     });
     return result;

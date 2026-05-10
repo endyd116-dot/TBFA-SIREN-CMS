@@ -182,23 +182,23 @@
           <tbody>
             ${jobs.map(j => `
               <tr>
-                <td style="font-weight:600">${j.title}</td>
-                <td><span style="background:#f0f4ff;color:${channelColor[j.type]};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[j.type] || j.type}</span></td>
-                <td style="font-size:12px;white-space:nowrap">${j.scheduledAt}</td>
-                <td style="font-weight:600;color:#1a8b46">${j.sentCount.toLocaleString()}</td>
-                <td style="font-weight:600;color:${j.failCount > 0 ? '#c5293a' : 'var(--tok-text-3)'}">
-                  ${j.failCount > 0 ? j.failCount : '-'}
+                <td style="font-weight:600">${j.name || j.title || '-'}</td>
+                <td><span style="background:#f0f4ff;color:${channelColor[j.channel || j.type]};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[j.channel || j.type] || j.channel || '-'}</span></td>
+                <td style="font-size:12px;white-space:nowrap">${j.scheduledAt || '-'}</td>
+                <td style="font-weight:600;color:#1a8b46">${(j.successCount ?? j.sentCount ?? 0).toLocaleString()}</td>
+                <td style="font-weight:600;color:${(j.failureCount ?? j.failCount ?? 0) > 0 ? '#c5293a' : 'var(--tok-text-3)'}">
+                  ${(j.failureCount ?? j.failCount ?? 0) > 0 ? (j.failureCount ?? j.failCount) : '-'}
                 </td>
                 <td><span style="color:${statusColor[j.status]};font-weight:600;font-size:12.5px">${statusLabel[j.status] || j.status}</span></td>
-                <td style="font-size:12.5px;color:var(--tok-text-3)">${j.createdBy}</td>
+                <td style="font-size:12.5px;color:var(--tok-text-3)">${j.createdBy || '-'}</td>
                 <td>
-                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('[mock] 상세 보기')">상세</button>
+                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('상세 보기 (20-C 구현 예정)')">상세</button>
                 </td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${jobs.length}건 (mock 데이터)</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${jobs.length}건</p>`;
   }
 
   /* ─── 발송 템플릿 ─── */
@@ -218,20 +218,20 @@
           <tbody>
             ${templates.map(t => `
               <tr>
-                <td style="font-weight:600">${t.name}</td>
-                <td><span style="background:#f0f4ff;color:${channelColor[t.channel]};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[t.channel] || t.channel}</span></td>
+                <td style="font-weight:600">${t.name || '-'}</td>
+                <td><span style="background:#f0f4ff;color:${channelColor[t.channel]};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[t.channel] || t.channel || '-'}</span></td>
                 <td style="font-size:12.5px;color:var(--tok-text-2)">${t.subject || '-'}</td>
-                <td style="text-align:center">${t.usedCount}회</td>
-                <td style="font-size:12px;color:var(--tok-text-3)">${t.updatedAt}</td>
+                <td style="text-align:center">${t.usedCount != null ? t.usedCount + '회' : '-'}</td>
+                <td style="font-size:12px;color:var(--tok-text-3)">${t.updatedAt || t.createdAt || '-'}</td>
                 <td>
-                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('[mock] 편집')">편집</button>
-                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px;color:#c5293a" onclick="alert('[mock] 삭제')">삭제</button>
+                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('편집 (20-C 구현 예정)')">편집</button>
+                  <button class="btn-sm btn-sm-ghost" style="font-size:11.5px;color:#c5293a" onclick="alert('삭제 (20-C 구현 예정)')">삭제</button>
                 </td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${templates.length}건 (mock 데이터)</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${templates.length}건</p>`;
   }
 
   /* ─── 수신자 그룹 ─── */
@@ -248,22 +248,27 @@
         ${groups.map(g => `
           <div style="border:1px solid var(--tok-line);border-radius:8px;padding:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-              <div style="font-weight:600;font-size:14px">${g.name}</div>
-              <div style="font-size:20px;font-weight:700;color:var(--tok-brand)">${g.memberCount.toLocaleString()}</div>
+              <div style="font-weight:600;font-size:14px">${g.name || '-'}</div>
+              <div style="font-size:20px;font-weight:700;color:var(--tok-brand)">${g.memberCount != null ? g.memberCount.toLocaleString() : '-'}</div>
             </div>
+            <div style="margin-bottom:8px;font-size:12.5px;color:var(--tok-text-2)">${g.description || ''}</div>
             <div style="margin-bottom:10px">
-              ${g.channels.map(c => `<span style="background:#f0f4ff;color:#1a5ec4;padding:2px 8px;border-radius:10px;font-size:11.5px;margin-right:4px">${channelLabel[c] || c}</span>`).join('')}
+              ${Array.isArray(g.channels)
+                ? g.channels.map(c => `<span style="background:#f0f4ff;color:#1a5ec4;padding:2px 8px;border-radius:10px;font-size:11.5px;margin-right:4px">${channelLabel[c] || c}</span>`).join('')
+                : g.isActive != null
+                  ? `<span style="background:${g.isActive ? '#f0f9f3' : '#f5f5f5'};color:${g.isActive ? '#1a8b46' : '#888'};padding:2px 8px;border-radius:10px;font-size:11.5px">${g.isActive ? '활성' : '비활성'}</span>`
+                  : ''}
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:12px;color:var(--tok-text-3)">갱신: ${g.updatedAt}</span>
+              <span style="font-size:12px;color:var(--tok-text-3)">갱신: ${g.updatedAt || g.createdAt || '-'}</span>
               <div style="display:flex;gap:6px">
-                <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('[mock] 편집')">편집</button>
-                <button class="btn-sm btn-sm-primary" style="font-size:11.5px" onclick="alert('[mock] 이 그룹으로 발송')">발송</button>
+                <button class="btn-sm btn-sm-ghost" style="font-size:11.5px" onclick="alert('편집 (20-C 구현 예정)')">편집</button>
+                <button class="btn-sm btn-sm-primary" style="font-size:11.5px" onclick="alert('발송 (20-C 구현 예정)')">발송</button>
               </div>
             </div>
           </div>`).join('')}
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:12px">총 ${groups.length}개 그룹 (mock 데이터)</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:12px">총 ${groups.length}개 그룹</p>`;
   }
 
   /* ─── 발송 분석 ─── */
@@ -279,7 +284,7 @@
         </div>
         <div class="kpi" style="border-left:3px solid #c5293a">
           <div class="kpi-label">실패</div>
-          <div class="kpi-value" style="color:#c5293a">${analytics.totalFailed || 0}</div>
+          <div class="kpi-value" style="color:#c5293a">${analytics.failedSent ?? analytics.totalFailed ?? 0}</div>
         </div>
         <div class="kpi" style="border-left:3px solid #1a8b46">
           <div class="kpi-label">열람율 (이메일)</div>
@@ -339,17 +344,34 @@
           <tbody>
             ${logs.map(l => `
               <tr>
-                <td><span style="background:#f0f4ff;color:#1a5ec4;padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[l.channel] || l.channel}</span></td>
-                <td style="font-size:12.5px;color:var(--tok-text-2)">${l.recipient}</td>
-                <td style="font-size:12.5px">${l.subject}</td>
-                <td style="font-size:12px;white-space:nowrap;color:var(--tok-text-3)">${l.sentAt}</td>
-                <td><span style="color:${statusColor[l.status]};font-weight:600;font-size:12.5px">${statusLabel[l.status] || l.status}</span></td>
+                <td><span style="background:#f0f4ff;color:#1a5ec4;padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[l.channel] || l.channel || '-'}</span></td>
+                <td style="font-size:12.5px;color:var(--tok-text-2)">${l.recipient || (l.memberId ? '회원 #' + l.memberId : '-')}</td>
+                <td style="font-size:12.5px">${l.subject || l.error || '-'}</td>
+                <td style="font-size:12px;white-space:nowrap;color:var(--tok-text-3)">${l.sentAt || l.createdAt || '-'}</td>
+                <td><span style="color:${statusColor[l.status]};font-weight:600;font-size:12.5px">${statusLabel[l.status] || l.status || '-'}</span></td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${logs.length}건 (mock 데이터)</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${logs.length}건</p>`;
   }
+
+  /* ─── 탭 전환 공개 API (admin-shell.js에서 호출) ─── */
+  function switchTab(tabKey) {
+    const container = document.getElementById('adm20-send-jobs');
+    if (!container) return;
+    const btn = container.querySelector('[data-tab="' + tabKey + '"]');
+    if (!btn) return;
+    container.querySelectorAll('.adm-group-tab').forEach(b => b.classList.remove('is-active'));
+    container.querySelectorAll('.adm-group-panel').forEach(p => p.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    const panel = container.querySelector('[data-panel="' + tabKey + '"]');
+    if (panel) panel.classList.add('is-active');
+    currentTab = tabKey;
+    if (sendData) renderTab(tabKey, sendData);
+  }
+
+  window.AdminSendGroup = { switchTab };
 
   /* ─── 진입점 ─── */
   function tryInit() {

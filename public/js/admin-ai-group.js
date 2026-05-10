@@ -203,13 +203,13 @@
   function renderRecommend(recs) {
     const wrap = document.getElementById('ag-recommend-wrap');
     if (!wrap) return;
-    const priorityLabel = { high: '높음', medium: '보통', low: '낮음' };
-    const priorityColor = { high: '#c5293a', medium: '#c47a00', low: '#1a8b46' };
-    const typeIcon = { churn_risk: '⚠️', upgrade: '⬆️', followup: '🔄', campaign: '📢' };
 
-    const highCount = recs.filter(r => r.priority === 'high').length;
-    const medCount  = recs.filter(r => r.priority === 'medium').length;
+    if (!recs.length) {
+      wrap.innerHTML = '<p style="text-align:center;padding:30px;color:var(--tok-text-3)">AI 추천 데이터가 없습니다.</p>';
+      return;
+    }
 
+    /* 실 API 형식: { triggerId, triggerName, triggerType, isActive, successRate, totalRuns, lastRun, suggestion } */
     wrap.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
         <div class="kpi">
@@ -217,39 +217,43 @@
           <div class="kpi-value">${recs.length}건</div>
         </div>
         <div class="kpi" style="border-left:3px solid #c5293a">
-          <div class="kpi-label">높음</div>
-          <div class="kpi-value" style="color:#c5293a">${highCount}건</div>
+          <div class="kpi-label">성공률 낮음 (&lt;80%)</div>
+          <div class="kpi-value" style="color:#c5293a">${recs.filter(r => r.successRate != null && r.successRate < 80).length}건</div>
         </div>
         <div class="kpi" style="border-left:3px solid #c47a00">
-          <div class="kpi-label">보통</div>
-          <div class="kpi-value" style="color:#c47a00">${medCount}건</div>
+          <div class="kpi-label">실행 이력 없음</div>
+          <div class="kpi-value" style="color:#c47a00">${recs.filter(r => r.totalRuns === 0).length}건</div>
         </div>
       </div>
 
       <div style="font-size:12px;color:var(--tok-text-3);margin-bottom:12px">
-        🤖 매일 오전 6:30 AI가 자동으로 분석·생성합니다 (mock 데이터)
+        🤖 자동 트리거 실행 이력 기반 AI 분석 결과
       </div>
 
       <div style="display:flex;flex-direction:column;gap:12px">
-        ${recs.map(r => `
-          <div style="border:1px solid var(--tok-line);border-radius:8px;padding:16px;border-left:3px solid ${priorityColor[r.priority]}">
+        ${recs.map(r => {
+          const hasLowRate = r.successRate != null && r.successRate < 80;
+          const borderColor = hasLowRate ? '#c5293a' : '#c47a00';
+          return `
+          <div style="border:1px solid var(--tok-line);border-radius:8px;padding:16px;border-left:3px solid ${borderColor}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
               <div>
-                <span style="font-size:16px;margin-right:6px">${typeIcon[r.type] || '💡'}</span>
-                <span style="font-weight:600;font-size:14px">${r.title}</span>
-                ${r.memberName ? `<span style="margin-left:8px;font-size:12.5px;color:var(--tok-text-3)">— ${r.memberName}</span>` : ''}
+                <span style="font-weight:600;font-size:14px">${r.triggerName || r.title || '-'}</span>
+                <span style="margin-left:8px;font-size:12px;color:var(--tok-text-3)">${r.triggerType || ''}</span>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:20px;font-weight:700;color:${priorityColor[r.priority]}">${r.score}</span>
-                <span style="background:${priorityColor[r.priority]}20;color:${priorityColor[r.priority]};padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:600">${priorityLabel[r.priority]}</span>
+                ${r.successRate != null
+                  ? `<span style="font-size:18px;font-weight:700;color:${borderColor}">${r.successRate}%</span>`
+                  : `<span style="font-size:13px;color:var(--tok-text-3)">이력 없음</span>`}
+                <span style="background:${r.isActive ? '#f0f9f3' : '#f5f5f5'};color:${r.isActive ? '#1a8b46' : '#888'};padding:2px 8px;border-radius:10px;font-size:11.5px">${r.isActive ? '활성' : '비활성'}</span>
               </div>
             </div>
-            <p style="font-size:13px;color:var(--tok-text-2);margin-bottom:12px;line-height:1.6">${r.summary}</p>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${r.actions.map(a => `<button class="btn-sm btn-sm-ghost" style="font-size:12px" onclick="alert('[mock] ' + '${a}')">${a}</button>`).join('')}
+            <p style="font-size:13px;color:var(--tok-text-2);margin-bottom:10px;line-height:1.6">${r.suggestion || r.summary || '-'}</p>
+            <div style="font-size:11.5px;color:var(--tok-text-3)">
+              총 실행 ${r.totalRuns || 0}회 · 마지막 실행: ${r.lastRun ? String(r.lastRun).slice(0, 16) : '없음'}
             </div>
-            <div style="font-size:11.5px;color:var(--tok-text-3);margin-top:8px">생성: ${r.createdAt}</div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
   }
 
@@ -257,40 +261,51 @@
   function renderActivity(reports) {
     const wrap = document.getElementById('ag-activity-wrap');
     if (!wrap) return;
+
+    if (!reports.length) {
+      wrap.innerHTML = `
+        <p style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:12px">자동 트리거 실행 이력 기반 일별 활동 집계입니다.</p>
+        <p style="text-align:center;padding:30px;color:var(--tok-text-3)">활동 데이터가 없습니다.</p>`;
+      return;
+    }
+
+    /* 실 API 형식: { date, total, ok, skipped, error } */
     wrap.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:600;color:var(--tok-text-1)">AI 생성 활동보고서</div>
-        <button class="btn-sm btn-sm-primary" onclick="alert('[mock] 보고서 수동 재생성')">🔄 재생성</button>
+        <div style="font-size:13px;font-weight:600;color:var(--tok-text-1)">자동 트리거 일별 실행 현황</div>
       </div>
       <p style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:16px">
-        매월 1일 자동으로 AI가 전월 활동을 분석하여 보고서 초안을 생성합니다.
+        자동 발송 트리거 실행 이력을 일별로 집계합니다. (최근 30일)
       </p>
-      <div style="display:flex;flex-direction:column;gap:16px">
-        ${reports.map(rep => `
-          <div style="border:1px solid var(--tok-line);border-radius:8px;padding:20px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-              <div>
-                <div style="font-weight:700;font-size:15px">${rep.period} 활동보고서</div>
-                <div style="font-size:12px;color:var(--tok-text-3);margin-top:2px">생성: ${rep.generatedAt}</div>
-              </div>
-              <div style="display:flex;gap:6px">
-                <span style="background:#f0f9f3;color:#1a8b46;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600">
-                  ${rep.status === 'finalized' ? '✅ 확정' : '✏️ 초안'}
-                </span>
-                <button class="btn-sm btn-sm-ghost" style="font-size:12px" onclick="alert('[mock] 보고서 편집')">편집</button>
-                <button class="btn-sm btn-sm-ghost" style="font-size:12px" onclick="window.print()">인쇄</button>
-              </div>
-            </div>
-            <p style="font-size:13.5px;color:var(--tok-text-1);line-height:1.7;margin-bottom:14px">${rep.summary}</p>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              ${rep.highlights.map(h => `
-                <div style="background:#f5f5f0;border-radius:6px;padding:6px 12px;font-size:12.5px;color:var(--tok-text-2)">
-                  ✦ ${h}
-                </div>`).join('')}
-            </div>
-          </div>`).join('')}
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>날짜</th>
+            <th style="text-align:right">전체</th>
+            <th style="text-align:right;color:#1a8b46">성공</th>
+            <th style="text-align:right;color:#888">스킵</th>
+            <th style="text-align:right;color:#c5293a">오류</th>
+            <th style="text-align:right">성공률</th>
+          </tr></thead>
+          <tbody>
+            ${reports.map(rep => {
+              const rate = rep.total > 0 ? Math.round((rep.ok / rep.total) * 100) : null;
+              return `
+              <tr>
+                <td style="font-weight:600;font-size:12.5px">${rep.date || '-'}</td>
+                <td style="text-align:right">${rep.total || 0}</td>
+                <td style="text-align:right;color:#1a8b46;font-weight:600">${rep.ok || 0}</td>
+                <td style="text-align:right;color:#888">${rep.skipped || 0}</td>
+                <td style="text-align:right;color:#c5293a">${rep.error || 0}</td>
+                <td style="text-align:right;font-weight:600;color:${rate != null && rate < 80 ? '#c5293a' : '#1a8b46'}">
+                  ${rate != null ? rate + '%' : '-'}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:12px">mock 데이터</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:8px">총 ${reports.length}일 집계</p>`;
   }
 
   /* ─── 자동 발송 트리거 ─── */
@@ -299,48 +314,66 @@
     if (!wrap) return;
     const channelLabel = { email: '이메일', sms: 'SMS', kakao: '카카오' };
     const channelColor = { email: '#1a5ec4', sms: '#1a8b46', kakao: '#c47a00' };
+    /* 실 API 형식: { id, name, description, triggerType, channel, isActive, delayHours, cooldownDays, conditions, createdAt, updatedAt } */
     wrap.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;color:var(--tok-text-1)">자동 발송 트리거</div>
-        <button class="btn-sm btn-sm-primary" onclick="alert('[mock] 새 트리거 생성')">+ 새 트리거</button>
+        <button class="btn-sm btn-sm-primary" onclick="alert('새 트리거 생성 (20-C 구현 예정)')">+ 새 트리거</button>
       </div>
       <p style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:16px">
         조건이 충족되면 자동으로 지정된 채널로 발송합니다.
       </p>
       <div style="display:flex;flex-direction:column;gap:10px">
-        ${triggers.map(t => `
+        ${triggers.length === 0
+          ? '<p style="text-align:center;padding:30px;color:var(--tok-text-3)">등록된 자동 발송 트리거가 없습니다.</p>'
+          : triggers.map(t => `
           <div style="border:1px solid var(--tok-line);border-radius:8px;padding:16px;opacity:${t.isActive ? 1 : 0.6}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
               <div style="flex:1">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                  <span style="font-weight:600;font-size:14px">${t.name}</span>
-                  <span style="background:#f0f4ff;color:${channelColor[t.channel]};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[t.channel] || t.channel}</span>
+                  <span style="font-weight:600;font-size:14px">${t.name || '-'}</span>
+                  <span style="background:#f0f4ff;color:${channelColor[t.channel] || '#666'};padding:2px 8px;border-radius:10px;font-size:11.5px">${channelLabel[t.channel] || t.channel || '-'}</span>
                   <span style="background:${t.isActive ? '#f0f9f3' : '#f5f5f5'};color:${t.isActive ? '#1a8b46' : '#888'};padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:600">
                     ${t.isActive ? '활성' : '비활성'}
                   </span>
                 </div>
                 <div style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:4px">
-                  <span style="font-weight:600">조건:</span> ${t.condition}
+                  <span style="font-weight:600">트리거 유형:</span> ${t.triggerType || '-'}
                 </div>
-                <div style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:4px">
-                  <span style="font-weight:600">템플릿:</span> ${t.templateName}
-                </div>
+                ${t.description ? `<div style="font-size:12.5px;color:var(--tok-text-2);margin-bottom:4px">${t.description}</div>` : ''}
                 <div style="font-size:12px;color:var(--tok-text-3)">
-                  총 발송 ${t.firedCount}회 · 마지막 발송: ${t.lastFiredAt}
+                  ${t.delayHours ? '지연: ' + t.delayHours + '시간 · ' : ''}수정: ${t.updatedAt ? String(t.updatedAt).slice(0, 10) : '-'}
                 </div>
               </div>
               <div style="display:flex;gap:6px;margin-left:12px">
-                <button class="btn-sm btn-sm-ghost" style="font-size:12px" onclick="alert('[mock] 편집')">편집</button>
+                <button class="btn-sm btn-sm-ghost" style="font-size:12px" onclick="alert('편집 (20-C 구현 예정)')">편집</button>
                 <button class="btn-sm btn-sm-ghost" style="font-size:12px;color:${t.isActive ? '#c5293a' : '#1a8b46'}"
-                  onclick="alert('[mock] ${t.isActive ? '비활성화' : '활성화'}')">
+                  onclick="alert('${t.isActive ? '비활성화' : '활성화'} (20-C 구현 예정)')">
                   ${t.isActive ? '비활성화' : '활성화'}
                 </button>
               </div>
             </div>
           </div>`).join('')}
       </div>
-      <p style="font-size:12px;color:var(--tok-text-3);margin-top:12px">총 ${triggers.length}개 트리거 (mock 데이터)</p>`;
+      <p style="font-size:12px;color:var(--tok-text-3);margin-top:12px">총 ${triggers.length}개 트리거</p>`;
   }
+
+  /* ─── 탭 전환 공개 API (admin-shell.js에서 호출) ─── */
+  function switchTab(tabKey) {
+    const container = document.getElementById('adm20-ai-recommend');
+    if (!container) return;
+    const btn = container.querySelector('[data-tab="' + tabKey + '"]');
+    if (!btn) return;
+    container.querySelectorAll('.adm-group-tab').forEach(function (b) { b.classList.remove('is-active'); });
+    container.querySelectorAll('.adm-group-panel').forEach(function (p) { p.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+    var panel = container.querySelector('[data-panel="' + tabKey + '"]');
+    if (panel) panel.classList.add('is-active');
+    currentTab = tabKey;
+    if (aiData) renderTab(tabKey, aiData);
+  }
+
+  window.AdminAiGroup = { switchTab };
 
   /* ─── 진입점 ─── */
   function tryInit() {
