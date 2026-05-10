@@ -2,6 +2,7 @@
 // ★ Phase 1: 효성 CMS+ 청구/수납 내역 CSV Import API
 // POST: CSV → parse → UPSERT hyosungBillings + 완납 row 자동 donations 생성
 // GET:  hyosungBillings 월별 목록 조회
+// ★ D2 (Phase 3): 완납 donations 생성 후 donor_type 즉시 재평가 (safeReevaluate)
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
@@ -21,6 +22,7 @@ import {
   serverError,
 } from "../../lib/response";
 import { parseBillingsCsv } from "../../lib/hyosung-parser";
+import { safeReevaluate } from "../../lib/donor-status";
 import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
@@ -305,6 +307,8 @@ export default async (req: Request, ctx: Context) => {
           .where(eq(donations.id, donationId));
 
         report.autoConfirmed++;
+        /* ★ D2: 새 donation 생성 → donor_type 잠재 후원자 즉시 반영 */
+        await safeReevaluate(linkedMemberId, "hyosung-billings-import");
       }
 
       /* 4. Import 로그 */

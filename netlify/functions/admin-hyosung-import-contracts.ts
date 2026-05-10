@@ -1,19 +1,21 @@
 // netlify/functions/admin-hyosung-import-contracts.ts
 // ★ Phase 1: 효성 CMS+ 계약정보 CSV Import API
-// POST: CSV 업로드 → parse → UPSERT hyosungContracts + phone 매칭
+// POST: CSV 업로드 → parse → UPSERT hyosungContracts + 회원 매핑·신규 생성
 // GET:  hyosungContracts 목록 조회
+// ★ D1 (Phase 3): hyosung_member_no 우선 매칭 + 미매칭 시 신규 회원 자동 생성
+//                  toContractStatusCode 영문 코드 즉시 반영 (cron 의존 제거)
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
 import {
   hyosungContracts,
-  members,
   hyosungImportLogs,
 } from "../../db/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { ok, badRequest, unauthorized, methodNotAllowed, serverError } from "../../lib/response";
 import { parseContractsCsv } from "../../lib/hyosung-parser";
+import { upsertMemberFromContract } from "../../lib/hyosung-members-parser";
 import { logAudit } from "../../lib/audit";
 
 export default async (req: Request, ctx: Context) => {
@@ -131,10 +133,11 @@ export default async (req: Request, ctx: Context) => {
       }
 
       const report = {
-        imported: 0,       // 신규 INSERT
-        updated: 0,        // 기존 UPDATE
-        linked: 0,         // members와 연결됨
-        unlinked: 0,       // 매칭 없음
+        imported: 0,        // hyosungContracts 신규 INSERT
+        updated: 0,         // hyosungContracts 기존 UPDATE
+        linked: 0,          // 기존 회원 매칭 성공 (hyosung_no 또는 phone)
+        autoCreated: 0,     // 미매칭 → 신규 회원 자동 생성
+        unlinked: 0,        // conflict 또는 오류로 연결 불가
         conflicts: [] as Array<{ memberNo: number; phone: string; matches: number }>,
         parseErrors: parsed.errors,
         dryRun,
@@ -163,38 +166,24 @@ export default async (req: Request, ctx: Context) => {
 
       /* 2. 실제 Import (트랜잭션 없이 row별 처리 - Netlify Functions 환경) */
       for (const row of parsed.rows) {
-        /* 2-1. phone 매칭 */
-        let linkedMemberId: number | null = null;
+        /* 2-1. 회원 매핑·생성 (D1: hyosung_no 우선 → phone → 신규 생성) */
+        const upsert = await upsertMemberFromContract(row);
+        const linkedMemberId: number | null = upsert.memberId ?? null;
 
-        if (row.phone) {
-          const matched = await db
-            .select({ id: members.id })
-            .from(members)
-            .where(eq(members.phone, row.phone));
-
-          if (matched.length === 1) {
-            linkedMemberId = matched[0].id;
-            report.linked++;
-
-            /* members 테이블 hyosung_* 7컬럼 갱신 */
-            await db.update(members)
-              .set({
-                hyosungMemberNo: row.memberNo,
-                hyosungContractStatus: row.contractStatus,
-                hyosungPaymentMethod: row.paymentMethod,
-                hyosungPaymentTool: row.paymentTool,
-                hyosungBankInfo: row.paymentInfo,
-                hyosungPromiseDay: row.promiseDay,
-                hyosungSyncedAt: new Date(),
-              })
-              .where(eq(members.id, linkedMemberId));
-          } else if (matched.length > 1) {
-            report.conflicts.push({ memberNo: row.memberNo, phone: row.phone, matches: matched.length });
-            report.unlinked++;
-          } else {
-            report.unlinked++;
-          }
+        if (upsert.outcome === "matched_hyosung_no" || upsert.outcome === "matched_phone") {
+          report.linked++;
+        } else if (upsert.outcome === "created") {
+          report.autoCreated++;
+        } else if (upsert.outcome === "conflict") {
+          report.conflicts.push({
+            memberNo: row.memberNo,
+            phone: row.phone ?? "",
+            matches: upsert.conflictCount ?? 2,
+          });
+          report.unlinked++;
         } else {
+          /* outcome === "error" */
+          console.warn(`[hyosung-contracts] 회원 매핑 오류 memberNo=${row.memberNo}:`, upsert.error);
           report.unlinked++;
         }
 
@@ -272,13 +261,14 @@ export default async (req: Request, ctx: Context) => {
         fileName: body.fileName || "contracts.csv",
         fileSize: csvText.length,
         totalRows: parsed.totalCount,
-        matchedCount: report.linked,
+        matchedCount: report.linked + report.autoCreated,
         createdCount: report.imported,
         updatedCount: report.updated,
-        skippedCount: 0,
+        skippedCount: report.unlinked,
         failedCount: parsed.errors.length,
         detail: JSON.stringify({
           type: "contracts",
+          autoCreated: report.autoCreated,
           conflicts: report.conflicts,
           parseErrors: parsed.errors,
         }).slice(0, 5000),
