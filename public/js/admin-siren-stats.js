@@ -12,9 +12,35 @@
     medium:     '#eab308',
     low:        '#22c55e',
     unanalyzed: '#9ca3af',
+    unknown:    '#9ca3af',
   };
 
   var STATUS_COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#22c55e', '#9ca3af'];
+
+  var STATUS_LABEL_MAP = {
+    submitted:    '접수',
+    ai_analyzed:  'AI분석',
+    reviewing:    '검토중',
+    matching:     '배정중',
+    matched:      '배정완료',
+    in_progress:  '처리중',
+    responded:    '답변완료',
+    completed:    '완료',
+    closed:       '종결',
+    rejected:     '반려',
+  };
+
+  var SEVERITY_LABEL_MAP = {
+    critical:   '매우 심각',
+    high:       '심각',
+    medium:     '보통',
+    low:        '낮음',
+    unanalyzed: '미분석',
+    unknown:    '미분석',
+  };
+
+  function statusLabel(s) { return STATUS_LABEL_MAP[s] || s || '기타'; }
+  function severityLabel(s) { return SEVERITY_LABEL_MAP[s] || s || '기타'; }
 
   /* ============ 차트 인스턴스 저장 ============ */
   var _charts = {};
@@ -271,10 +297,25 @@
     setTimeout(function () {
       var barCtx = document.getElementById('chart-all-bar');
       if (!barCtx) return;
-      var labels = ['접수', '검토 중', '처리 중', '완료', '종료'];
-      var incidentsCounts  = d.incidents.byStatus.map(function (x) { return x.count; });
-      var harassmentCounts = d.harassment.byStatus.map(function (x) { return x.count; });
-      var legalCounts      = d.legal.byStatus.map(function (x) { return x.count; });
+      /* 실제 반환된 status 키 기반으로 레이블·값 정렬 */
+      var STATUS_ORDER = ['submitted', 'ai_analyzed', 'reviewing', 'matching', 'matched', 'in_progress', 'responded', 'completed', 'closed', 'rejected'];
+      function byStatusToMap(arr) {
+        var m = {};
+        (arr || []).forEach(function (x) { m[x.status] = x.count; });
+        return m;
+      }
+      var allStatuses = [];
+      ['incidents', 'harassment', 'legal'].forEach(function (t) {
+        (d[t].byStatus || []).forEach(function (x) { if (allStatuses.indexOf(x.status) < 0) allStatuses.push(x.status); });
+      });
+      allStatuses.sort(function (a, b) { return STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b); });
+      var labels = allStatuses.map(statusLabel);
+      var im = byStatusToMap(d.incidents.byStatus);
+      var hm = byStatusToMap(d.harassment.byStatus);
+      var lm = byStatusToMap(d.legal.byStatus);
+      var incidentsCounts  = allStatuses.map(function (s) { return im[s] || 0; });
+      var harassmentCounts = allStatuses.map(function (s) { return hm[s] || 0; });
+      var legalCounts      = allStatuses.map(function (s) { return lm[s] || 0; });
       _charts.bar = new Chart(barCtx, {
         type: 'bar',
         data: {
@@ -345,7 +386,7 @@
         _charts.bar = new Chart(barCtx, {
           type: 'bar',
           data: {
-            labels: d.byStatus.map(function (x) { return x.label; }),
+            labels: d.byStatus.map(function (x) { return statusLabel(x.status || x.label); }),
             datasets: [{
               label: '건수',
               data: d.byStatus.map(function (x) { return x.count; }),
@@ -368,7 +409,7 @@
         _charts.donut = new Chart(donutCtx, {
           type: 'doughnut',
           data: {
-            labels: severityRows.map(function (x) { return x.label; }),
+            labels: severityRows.map(function (x) { return severityLabel(x.level || x.label); }),
             datasets: [{
               data: severityRows.map(function (x) { return x.count; }),
               backgroundColor: severityRows.map(function (x) { return SEVERITY_COLORS[x.level] || '#9ca3af'; }),
