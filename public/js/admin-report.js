@@ -82,12 +82,33 @@
         '<h2 style="font-size:20px;font-weight:700;margin:0">📊 주간 보고서</h2>' +
         '<button class="btn-sm btn-sm-primary" id="rptBtnGenerate" type="button">+ 보고서 생성</button>' +
       '</div>' +
+
+      /* 대표 보고서 탭 (월간 / 분기 / 연간) */
+      '<div class="panel" style="padding:20px;margin-bottom:24px">' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📋 대표 보고서</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:16px" id="rptBoardTabs">' +
+          '<button class="btn-sm rpt-board-tab active" data-board-type="monthly" type="button">월간</button>' +
+          '<button class="btn-sm rpt-board-tab" data-board-type="quarterly" type="button">분기</button>' +
+          '<button class="btn-sm rpt-board-tab" data-board-type="yearly" type="button">연간</button>' +
+        '</div>' +
+        '<div id="rptBoardContent" style="color:var(--text-3,#6b7280);font-size:13px">탭을 선택하면 집계를 불러옵니다.</div>' +
+      '</div>' +
+
       '<div id="rptList"></div>' +
       '<div id="rptDetail" style="display:none"></div>';
 
     /* 이벤트: 생성 버튼 */
     c.querySelector('#rptBtnGenerate').addEventListener('click', function () {
       showGenerateModal();
+    });
+
+    /* 이벤트: 대표 보고서 탭 */
+    c.querySelector('#rptBoardTabs').addEventListener('click', function (e) {
+      var btn = e.target.closest('.rpt-board-tab[data-board-type]');
+      if (!btn) return;
+      c.querySelectorAll('.rpt-board-tab').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      loadBoardReport(btn.dataset.boardType);
     });
 
     /* 이벤트 위임: 목록 클릭 (목록 재렌더 후에도 살아있음) */
@@ -100,6 +121,57 @@
       var row = e.target.closest('.rpt-row[data-rpt-id]');
       if (row) loadDetail(parseInt(row.dataset.rptId, 10));
     });
+  }
+
+  /* ---- 대표 보고서 집계 (월간 / 분기 / 연간) ---- */
+
+  async function loadBoardReport(type) {
+    var el = document.getElementById('rptBoardContent');
+    if (!el) return;
+    el.innerHTML = '<p style="color:var(--text-3,#6b7280)">불러오는 중...</p>';
+
+    var res = await api('/api/admin-report-board?type=' + encodeURIComponent(type));
+    if (!res.ok) {
+      el.innerHTML = '<p style="color:var(--danger,#ef4444)">집계 불러오기 실패: ' +
+        escapeHtml((res.data && res.data.error) || '알 수 없는 오류') + '</p>';
+      return;
+    }
+
+    var d = res.data.data || res.data;
+    renderBoardReport(el, d, type);
+  }
+
+  function renderBoardReport(el, d, type) {
+    var TYPE_LABEL = { monthly: '월간', quarterly: '분기', yearly: '연간' };
+    var typeLabel = TYPE_LABEL[type] || type;
+    var period = d.period || '';
+    var donation = d.donation || {};
+    var member = d.member || {};
+    var siren = d.siren || {};
+    var beneficiary = d.beneficiary || {};
+
+    var cards = [
+      { label: typeLabel + ' 총 후원', value: fmtAmount(donation.totalAmount), icon: '💰' },
+      { label: '정기 후원', value: fmtAmount(donation.regularAmount), icon: '🔄' },
+      { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '🙋' },
+      { label: '활성 회원', value: fmtNum(member.totalActive) + '명', icon: '👥' },
+      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '📈' },
+      { label: '사이렌 처리', value: fmtNum(siren.resolvedCount) + '/' + fmtNum(siren.totalHandled) + '건', icon: '🚨' },
+      { label: '상담 지원', value: fmtNum(beneficiary.counselingCount) + '건', icon: '🤝' },
+      { label: '법률 지원', value: fmtNum(beneficiary.legalCount) + '건', icon: '⚖️' }
+    ];
+
+    el.innerHTML =
+      (period ? '<div style="font-size:13px;color:var(--text-3,#6b7280);margin-bottom:12px">기준 기간: ' + escapeHtml(period) + '</div>' : '') +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">' +
+      cards.map(function (c) {
+        return '<div style="background:var(--bg-2,#f9fafb);border-radius:8px;padding:14px;text-align:center">' +
+          '<div style="font-size:20px;margin-bottom:6px">' + c.icon + '</div>' +
+          '<div style="font-size:18px;font-weight:700;color:var(--text-1,#111)">' + escapeHtml(c.value) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-3,#6b7280);margin-top:3px">' + escapeHtml(c.label) + '</div>' +
+          '</div>';
+      }).join('') +
+      '</div>';
   }
 
   /* ---- 목록 ---- */
