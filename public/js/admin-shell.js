@@ -86,7 +86,7 @@
       label: '콘텐츠',
       items: [
         { key: 'site-builder', label: '메인 화면 편집', hash: 'adm20-site-builder', viewId: 'adm20-site-builder' },
-        { key: 'content-mgmt', label: '콘텐츠 관리',   hash: 'adm20-content',       viewId: 'adm20-content' },
+        { key: 'content-mgmt', label: '콘텐츠 관리',   hash: 'adm20-content',       viewId: 'adm20-content-mgmt' },
         { key: 'weekly-report', label: '주간 보고서',   hash: 'adm20-weekly-report', viewId: 'adm20-weekly-report' },
       ],
     },

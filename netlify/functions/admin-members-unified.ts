@@ -127,7 +127,7 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── 자격 변경 신청 목록 ───────────────────────────────────
   let eligibility: any[] = [];
   try {
-    eligibility = await db
+    const eligRows = await db
       .select({
         id:            eligibilityChangeRequests.id,
         memberId:      eligibilityChangeRequests.memberId,
@@ -141,6 +141,25 @@ export default async function handler(req: Request, _ctx: Context) {
       .where(eq(eligibilityChangeRequests.status, "pending"))
       .orderBy(desc(eligibilityChangeRequests.createdAt))
       .limit(100);
+
+    // 신청자 이름·이메일 별도 조회 (separate query + Map 매칭)
+    const eligMemberIds = [...new Set(eligRows.map((e) => e.memberId).filter(Boolean))] as number[];
+    const eligMemberMap = new Map<number, { name: string; email: string }>();
+    if (eligMemberIds.length > 0) {
+      try {
+        const nameRows = await db
+          .select({ id: members.id, name: members.name, email: members.email })
+          .from(members)
+          .where(inArray(members.id, eligMemberIds));
+        for (const m of nameRows) eligMemberMap.set(m.id, { name: m.name, email: m.email });
+      } catch { /* 보조 조회 실패 시 빈 이름으로 진행 */ }
+    }
+
+    eligibility = eligRows.map((e) => ({
+      ...e,
+      memberName:  eligMemberMap.get(e.memberId)?.name  ?? "(알 수 없음)",
+      memberEmail: eligMemberMap.get(e.memberId)?.email ?? "-",
+    }));
   } catch (err) {
     console.warn("[admin-members-unified] eligibility 조회 실패:", (err as any)?.message);
   }

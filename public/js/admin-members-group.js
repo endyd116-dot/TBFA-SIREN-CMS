@@ -178,7 +178,7 @@
                   <td><strong>${esc(m.name)}</strong></td>
                   <td>${esc(m.email)}</td>
                   <td>${esc(m.phone)}</td>
-                  <td>${esc(m.grade)}</td>
+                  <td>${esc(m.grade?.nameKo)}</td>
                   <td>${statusBadge(m.status)}</td>
                   <td>${esc(m.joinedAt)}</td>
                   <td>${(m.donateTotal || 0).toLocaleString()}원</td>
@@ -229,11 +229,11 @@
               : rows.map(e => `
                 <tr>
                   <td>${esc(e.memberName)}</td>
-                  <td>${esc(e.email)}</td>
-                  <td>${esc(e.currentGrade)}</td>
-                  <td><strong>${esc(e.requestedGrade)}</strong></td>
+                  <td>${esc(e.memberEmail)}</td>
+                  <td>${esc(e.currentType)}</td>
+                  <td><strong>${esc(e.requestedType)}</strong></td>
                   <td>${eligibilityBadge(e.status)}</td>
-                  <td>${esc(e.requestedAt)}</td>
+                  <td>${esc(e.createdAt)}</td>
                 </tr>`).join('')}
           </tbody>
         </table>
