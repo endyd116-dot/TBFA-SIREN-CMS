@@ -29,7 +29,7 @@ export default async function handler(req: Request, _ctx: Context) {
     await db.execute(sql`
       UPDATE expenditures
       SET status = ${newStatus},
-          approved_by = ${auth.admin?.id || null},
+          approved_by = ${auth.ctx.admin.uid},
           approved_at = NOW(),
           note = COALESCE(${note || null}, note)
       WHERE id = ${id} AND status = 'draft'
