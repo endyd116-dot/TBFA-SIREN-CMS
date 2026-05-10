@@ -57,7 +57,7 @@
     if (from)   params.set('dateFrom', from);
     if (to)     params.set('dateTo', to);
 
-    const res = await api({ url: '/api/admin-anon-audit-log?' + params });
+    const res = await api({ url: '/api/admin-anonymous-reveal-logs?' + params });
     if (!res.ok) {
       tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">⚠️ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;

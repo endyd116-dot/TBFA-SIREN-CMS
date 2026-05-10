@@ -11,9 +11,9 @@
 
   /* ── 상수 ── */
   const TAB_CONFIG = {
-    incident:   { label: '사건 제보',   api: '/api/incidents-mine',   icon: '🔍', typeLabel: '사건 제보' },
-    harassment: { label: '악성민원',    api: '/api/harassment-reports-mine', icon: '⚠️', typeLabel: '악성민원 신고' },
-    legal:      { label: '법률지원',    api: '/api/legal-consultations-mine', icon: '⚖️', typeLabel: '법률 지원' },
+    incident:   { label: '사건 제보',   api: '/api/user-my-reports?type=incident',   icon: '🔍', typeLabel: '사건 제보' },
+    harassment: { label: '악성민원',    api: '/api/user-my-reports?type=harassment', icon: '⚠️', typeLabel: '악성민원 신고' },
+    legal:      { label: '법률지원',    api: '/api/user-my-reports?type=legal',      icon: '⚖️', typeLabel: '법률 지원' },
   };
 
   const STATUS_LABEL = {

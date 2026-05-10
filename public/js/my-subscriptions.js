@@ -49,7 +49,7 @@
 
     try {
       const params = new URLSearchParams({ page: _postsPage, limit: PAGE_SIZE });
-      const res = await fetch('/api/board-subscriptions?' + params, { credentials: 'include' });
+      const res = await fetch('/api/user-post-subscriptions?' + params, { credentials: 'include' });
       const json = await res.json();
 
       if (!res.ok || !json.ok) {
@@ -114,7 +114,7 @@
     if (!confirm('이 게시글 구독을 해제하시겠습니까?')) return;
     btn.disabled = true;
     try {
-      const res = await fetch('/api/board-subscription-toggle', {
+      const res = await fetch('/api/user-post-subscribe', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -141,8 +141,8 @@
     list.innerHTML = '<div class="sub-empty"><div class="icon">⏳</div>불러오는 중...</div>';
 
     try {
-      const params = new URLSearchParams({ page: _notifPage, limit: PAGE_SIZE, type: 'board' });
-      const res = await fetch('/api/my-notifications?' + params, { credentials: 'include' });
+      const params = new URLSearchParams({ page: _notifPage, limit: PAGE_SIZE });
+      const res = await fetch('/api/user-mentions?' + params, { credentials: 'include' });
       const json = await res.json();
 
       if (!res.ok || !json.ok) {
@@ -205,7 +205,7 @@
   window.markRead = async function (id, btn) {
     btn.disabled = true;
     try {
-      const res = await fetch('/api/my-notification-read', {
+      const res = await fetch('/api/user-mention-read', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -226,11 +226,11 @@
 
   window.markAllRead = async function () {
     try {
-      const res = await fetch('/api/my-notification-read-all', {
+      const res = await fetch('/api/user-mention-read', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'board' }),
+        body: JSON.stringify({ all: true }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {

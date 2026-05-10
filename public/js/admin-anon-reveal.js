@@ -61,7 +61,7 @@
     if (level !== '') params.set('anonLevel', level);
     if (keyword) params.set('q', keyword);
 
-    const res = await api({ url: '/api/admin-anon-reports?' + params });
+    const res = await api({ url: '/api/admin-report-list-by-status?' + params });
     if (!res.ok) {
       tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">⚠️ ${escapeHtml(res.data?.error || '조회 실패')}</td></tr>`;
       return;
@@ -186,7 +186,7 @@
     try {
       const res = await api({
         method: 'POST',
-        url: '/api/admin-anon-reveal',
+        url: '/api/admin-anonymous-reveal',
         body: {
           reportId: _selectedReport.id,
           reportType: _selectedReport.type,
