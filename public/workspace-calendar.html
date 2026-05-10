@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=4">
 <link rel="stylesheet" href="/css/workspace-calendar.css?v=1">
-<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 </head>
 
 <body class="ws-body">
@@ -24,36 +24,31 @@
 <!-- 슬림 사이드바 -->
 <aside class="ws-sidebar" id="wsSidebar">
   <div class="ws-sidebar-inner">
+    <!-- 퀵이동 (좌측 상단 고정) -->
+    <div class="quick-jump" data-quick-jump></div>
+
     <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
       <span class="ws-logo-icon">🏠</span>
       <span class="ws-logo-text">허브</span>
     </a>
     <nav class="ws-sidebar-nav">
       <ul>
-        <li>
-          <a href="/workspace.html" title="대시보드">
-            <span class="ws-nav-icon">📊</span>
-            <span class="ws-nav-text">대시보드</span>
+        <!-- 1뎁스: 워크스페이스 (페이지 이동 토글, 기본 접힘) -->
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="false">
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="칸반"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">칸반</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+          </ul>
         </li>
-        <li>
-          <a href="/workspace-kanban.html" title="칸반">
-            <span class="ws-nav-icon">📋</span>
-            <span class="ws-nav-text">칸반</span>
-          </a>
-        </li>
-        <li class="ws-nav-active">
-          <a href="/workspace-calendar.html" title="캘린더">
-            <span class="ws-nav-icon">📅</span>
-            <span class="ws-nav-text">캘린더</span>
-          </a>
-        </li>
-        <li>
-          <a href="/workspace-templates.html" title="템플릿">
-            <span class="ws-nav-icon">📑</span>
-            <span class="ws-nav-text">템플릿</span>
-          </a>
-        </li>
+
         <li>
           <a href="/workspace.html#my-tasks" title="내 작업">
             <span class="ws-nav-icon">✅</span>
@@ -72,16 +67,8 @@
             <span class="ws-nav-text">메모</span>
           </a>
         </li>
-        <li>
-          <a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함">
-            <span class="ws-nav-icon">📁</span>
-            <span class="ws-nav-text">파일함</span>
-          </a>
-        </li>
       </ul>
     </nav>
-    <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
-    <div class="quick-jump" data-quick-jump></div>
     <div class="ws-sidebar-user">
       <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
         <span class="ws-user-avatar">👤</span>
@@ -156,7 +143,8 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/workspace-calendar.js?v=1" defer></script>
-<script src="/js/quick-jump.js?v=2026-05-10-q2"></script>
+<script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
+<script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 
 </body>
 </html>

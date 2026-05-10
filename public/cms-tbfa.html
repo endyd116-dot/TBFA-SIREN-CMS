@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/cms-common.css">
 <link rel="stylesheet" href="/css/cms-tbfa.css?v=2026-05-10-d2">
-<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 
 <style>
   /* ★ STEP H-2d-4: 영수증 설정 페이지 전용 (교유협 CMS) */
@@ -216,15 +216,20 @@
     </div>
 
     <nav class="cms-menu">
-      <!-- ───── 1뎁스 그룹: 🛠 워크스페이스 (협업 도구) ───── -->
-      <li class="cms-menu-section">
-        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase">🛠 워크스페이스</div>
+      <!-- ───── 1뎁스: 🛠 워크스페이스 (토글, 기본 접힘) ───── -->
+      <li class="cms-menu-group">
+        <a href="#" data-sidebar-group="workspace" aria-expanded="false">
+          <i>🛠</i><span>워크스페이스</span>
+          <span class="sidebar-group-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
+          <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
+          <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
+          <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
+          <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
+          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
+        </ul>
       </li>
-      <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
-      <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
-      <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
-      <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
-      <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
 
       <!-- ───── 1뎁스 그룹: 📊 운영 ───── -->
       <li class="cms-menu-section">
@@ -1541,6 +1546,7 @@
   <script src="/js/cms-tbfa.js?v=2026-05-10-d2"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d3"></script>
-  <script src="/js/quick-jump.js?v=2026-05-10-q2"></script>
+  <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
+  <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>
 </html>

@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/attachment.css?v=m2">
-<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 
 <style>
   /* ===== ★ K-3: 지원 모달 — 전문가 배정 / 보완 / 완료 입력칸 ===== */
@@ -2673,19 +2673,24 @@
   <div id="adminWrap" class="admin-wrap">
 
     <aside class="adm-side">
-      <div class="adm-logo">싸이렌 ADMIN<span>NPO MANAGEMENT v1.0</span></div>
-      <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
+      <!-- 퀵이동 (좌측 상단 고정) -->
       <div class="quick-jump" data-quick-jump></div>
+      <div class="adm-logo">싸이렌 ADMIN<span>NPO MANAGEMENT v1.0</span></div>
       <ul class="adm-menu">
-        <!-- ───── 1뎁스 그룹: 🛠 워크스페이스 (협업 도구) ───── -->
-        <li class="adm-menu-group">
-          <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase">🛠 워크스페이스</div>
+        <!-- ───── 1뎁스: 🛠 워크스페이스 (토글, 기본 접힘) ───── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="false">
+            <i>🛠</i><span>워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul class="adm-submenu" data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
+            <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
+            <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
+          </ul>
         </li>
-        <li><a href="/workspace.html" onclick="window.location.href='/workspace.html';return false;"><i>📊</i><span>워크툴</span></a></li>
-        <li><a href="/workspace-kanban.html" onclick="window.location.href='/workspace-kanban.html';return false;"><i>📋</i><span>칸반</span></a></li>
-        <li><a href="/workspace-calendar.html" onclick="window.location.href='/workspace-calendar.html';return false;"><i>🗓</i><span>캘린더</span></a></li>
-        <li><a href="/workspace-templates.html" onclick="window.location.href='/workspace-templates.html';return false;"><i>📑</i><span>템플릿</span></a></li>
-        <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;"><i>📁</i><span>파일함</span></a></li>
 
         <!-- ───── 1뎁스 그룹: 📊 운영 (싸이렌 ADMIN 본체) ───── -->
         <li class="adm-menu-group">
@@ -5643,6 +5648,7 @@
   })();
   </script>
 
-  <script src="/js/quick-jump.js?v=2026-05-10-q2"></script>
+  <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
+  <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>
 </html>

@@ -6,23 +6,35 @@
   <title>파일함 - SIREN 워크스페이스</title>
   <link rel="stylesheet" href="/css/base.css?v=1" />
   <link rel="stylesheet" href="/css/workspace-files.css?v=1" />
-  <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q1" />
+  <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3" />
 </head>
 <body class="wf-page">
 
   <!-- ═══════════ 상단 헤더 ═══════════ -->
   <header class="wf-topbar">
     <div class="wf-topbar-left">
-      <a href="/workspace.html"
-         onclick="window.location.href='/workspace.html';return false;"
-         class="wf-back-btn" title="워크스페이스로 돌아가기">
-        ← 워크스페이스
-      </a>
+      <!-- 퀵이동 (좌측 상단 고정) -->
+      <div class="quick-jump" data-quick-jump style="margin:0 8px 0 0"></div>
+      <!-- 워크스페이스 1뎁스 (페이지 이동 토글, 기본 접힘) -->
+      <div class="wf-ws-group" style="position:relative;margin-right:10px">
+        <a href="#" data-sidebar-group="workspace" aria-expanded="false"
+           style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line,#e3e6eb);border-radius:8px;background:#fff;color:#1a1f2b;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">
+          <span>🛠</span>
+          <span>워크스페이스</span>
+          <span class="sidebar-group-chevron" style="font-size:11px">▾</span>
+        </a>
+        <ul data-sidebar-submenu="workspace" aria-hidden="true"
+            style="display:none;position:absolute;left:0;top:calc(100% + 4px);min-width:200px;list-style:none;margin:0;padding:6px;background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.08);z-index:50">
+          <li><a href="/workspace.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📊</span><span>워크툴</span></a></li>
+          <li><a href="/workspace-kanban.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📋</span><span>칸반</span></a></li>
+          <li><a href="/workspace-calendar.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>🗓</span><span>캘린더</span></a></li>
+          <li><a href="/workspace-templates.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📑</span><span>템플릿</span></a></li>
+          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📁</span><span>파일함</span></a></li>
+        </ul>
+      </div>
       <h1 class="wf-title">📁 파일함</h1>
     </div>
     <div class="wf-topbar-right">
-      <!-- 퀵이동 (어드민 ↔ CMS ↔ 워크스페이스 ↔ 허브 ↔ 사용자 홈) -->
-      <div class="quick-jump" data-quick-jump style="margin:0"></div>
       <span id="wfUserName" class="wf-user-name">—</span>
     </div>
   </header>
@@ -289,6 +301,7 @@
 
   <!-- placeholder JS (Step 6에서 본격 구현) -->
   <script src="/js/workspace-files.js?v=1"></script>
-  <script src="/js/quick-jump.js?v=2026-05-10-q2"></script>
+  <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
+  <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>
 </html>

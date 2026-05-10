@@ -154,3 +154,113 @@
 .adm-side .quick-jump {
   margin: 10px 14px 14px;
 }
+
+/* ===========================================================
+   사이드바 그룹 토글 — 1뎁스 "🛠 워크스페이스" 클릭 시 2뎁스 펼침
+   =========================================================== */
+[data-sidebar-group] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+[data-sidebar-group] .sidebar-group-chevron {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-3, #94a0b3);
+  transition: transform 0.18s;
+  flex-shrink: 0;
+}
+[data-sidebar-group][aria-expanded="true"] .sidebar-group-chevron {
+  transform: rotate(180deg);
+}
+[data-sidebar-submenu] {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+}
+[data-sidebar-submenu][aria-hidden="true"] {
+  display: none !important;
+}
+
+/* admin.html 사이드바 — 1뎁스를 li.adm-menu-toggle-group 안 a로 표현 */
+.adm-side [data-sidebar-group] {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #1a1f2b);
+  background: transparent;
+  border: 0;
+  text-decoration: none;
+}
+.adm-side [data-sidebar-group]:hover {
+  background: rgba(122, 31, 43, 0.05);
+  color: var(--brand, #7a1f2b);
+}
+.adm-side [data-sidebar-group] i {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+.adm-side [data-sidebar-submenu] {
+  background: rgba(0,0,0,0.02);
+  border-left: 2px solid var(--brand, #7a1f2b);
+  margin: 2px 12px 6px;
+}
+.adm-side [data-sidebar-submenu] li a {
+  padding-left: 28px;
+}
+
+/* cms-tbfa 사이드바 — 동일 톤 (cms-menu-group + data-sidebar-group) */
+.cms-side [data-sidebar-group] {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #1a1f2b);
+  text-decoration: none;
+}
+.cms-side [data-sidebar-group]:hover {
+  background: rgba(26, 94, 196, 0.06);
+  color: #1a5ec4;
+}
+.cms-side [data-sidebar-submenu] {
+  background: rgba(0,0,0,0.02);
+  border-left: 2px solid #1a5ec4;
+  margin: 2px 12px 6px;
+  padding: 0;
+}
+.cms-side [data-sidebar-submenu] li a {
+  padding-left: 28px;
+}
+
+/* workspace 사이드바 (슬림) — 1뎁스도 슬림 형태, 2뎁스는 펼치면 절대 위치 */
+.ws-sidebar [data-sidebar-group] {
+  padding: 10px 14px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+.ws-sidebar [data-sidebar-group]:hover {
+  background: rgba(255,255,255,0.06);
+}
+.ws-sidebar [data-sidebar-submenu] {
+  background: rgba(0,0,0,0.04);
+  margin: 0;
+  padding: 2px 0;
+}
+.ws-sidebar [data-sidebar-submenu] li a {
+  padding-left: 30px;
+}
+
+/* ===========================================================
+   퀵이동 좌측 상단 고정 — 모든 어드민·워크스페이스 사이드바 공통
+   =========================================================== */
+.adm-side > .quick-jump:first-child,
+.cms-side > .quick-jump:first-child,
+.ws-sidebar .ws-sidebar-inner > .quick-jump:first-child {
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
