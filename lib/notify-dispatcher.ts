@@ -26,7 +26,7 @@ import { NotifyEvent, EVENT_CHANNEL_POLICY, ChannelName } from "./notify-events"
 import type { NotifyAdapter } from "./notify-adapters/types";
 import { inappAdapter }           from "./notify-adapters/inapp";
 import { emailAdapter }           from "./notify-adapters/email";
-import { smsPlaceholderAdapter }  from "./notify-adapters/sms-placeholder";
+import { smsAligoAdapter }        from "./notify-adapters/sms-aligo";
 import { kakaoPlaceholderAdapter } from "./notify-adapters/kakao-placeholder";
 
 /* =========================================================
@@ -43,7 +43,7 @@ const RETRY_DELAYS_MS = [1_000, 5_000, 25_000] as const;
 const ADAPTERS: Record<ChannelName, NotifyAdapter> = {
   inapp: inappAdapter,
   email: emailAdapter,
-  sms:   smsPlaceholderAdapter,
+  sms:   smsAligoAdapter,
   kakao: kakaoPlaceholderAdapter,
 };
 
