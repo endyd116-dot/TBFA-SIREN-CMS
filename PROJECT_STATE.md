@@ -25,6 +25,7 @@
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
 | 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
+| 2026-05-12 | **메인** | **R4 B·A 트리거 동시 발송 (R2+R3 C 검증과 평행)** — worktree A·B를 feature/phase21-r4-{front,back}으로 전환 (베이스 c00d530) / 설계서 §6.2·§6.3 체크박스+mock 임베드 적용 / 영역 분리로 R2+R3 C 검증과 충돌 위험 미미 / R2+R3 C fix 시 R4 브랜치 main rebase 안내 |
 | 2026-05-12 | **메인** | **Phase 21 R2+R3 B 2차 + A 머지 완료 → C 트리거** — B 2차(007ce58): lib/workspace-sync 6함수 + API 7개 + 4종 hook + cron / A(b7b072a): 신규 6 + 수정 10 / fix(3e2b8d8): admin-service-rnr.js `data.mappings`→`data.items` 정합 / 응답 키 5개 1:1 일치 확인 / C 검증 트리거 가능 |
 | 2026-05-12 | **메인** | **메타 정책 4종 정착** — §9.1.9 사전 정독(2190c92) / §6 체크박스 패턴(37d55db) / memory §4와 mock 트리거 임베드 정합(d45d290) / R4 설계서 사전 정정 (adminUsers→members + 템플릿 멱등) — 다음 라운드부터 schema 격차 패턴 차단 |
 | 2026-05-12 | **메인** | **Phase 21 R1 ✅ 100% 마감 + R2+R3 트리거 준비 완료** — C 검증(e0bc08c) Q1~Q10 PASS + BUG-21R1-01/02 fix 흡수(e714fd7) / 회귀 0 / 보고서 `docs/verify/2026-05-12-phase21-r1.md` / R2+R3 통합 설계서(0ec11c9) + R4 결정 4건 완료 / A·B 신규 워크트리 전환·트리거 가능 |
@@ -65,10 +66,12 @@
    └─ D: 휴면
    메인: C 검증 PASS → 마감 → R4 트리거 (체크박스 패턴·mock 임베드 적용)
 
-🟡 R4 — 정식 설계서 작성 완료 (R2+R3 마감 후 트리거)
-   설계서: docs/milestones/2026-05-12-phase21-r4-calendar-search.md
-   범위: 캘린더 YIQ·빈 셀 3옵션·메모 미러링 / 메모 시간 필드 / 활동 피드 자연어·그룹핑 / 업무 템플릿 10종 시드 / 자연어 검색(키워드+AI 하이브리드) / 사용자별 기본 보기 모드(WBS)
-   모드: 평행 (단계머지 불필요)
+🔵 R4 — B·A 동시 트리거 (R2+R3 C 검증과 평행)
+   설계서: docs/milestones/2026-05-12-phase21-r4-calendar-search.md (체크박스+mock 임베드 적용)
+   베이스: main @ c00d530
+   ├─ A: ⏳ 시작 가능 (feature/phase21-r4-front)
+   ├─ B: ⏳ 시작 가능 (feature/phase21-r4-back)
+   └─ C(R4): ⏸ R4 B·A 머지 + R2+R3 C 마감 후 트리거
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
