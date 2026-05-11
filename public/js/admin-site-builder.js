@@ -279,7 +279,484 @@
         inner.innerHTML = '<div class="sb-placeholder"><p>효과 편집 모듈 로드 실패 — admin-home-effects.js 스크립트 태그 확인</p></div>';
       }
     },
+
+    /* ★ 2026-05-11: 누락 영역 일괄 RENDERER 등록 — site_settings generic editor + nav-menus editor */
+    'header.brand': function () {
+      renderSettingsEditor({
+        title: '🏠 헤더 — 로고 / 협회명 / 부제',
+        scope: 'header',
+        intro: '메인 페이지 상단 헤더의 로고 이미지·기관명·부제 문구를 편집합니다. 변경 사항은 임시저장(Draft)되며, 우측 상단 "모든 변경사항 배포"를 눌러야 운영에 반영됩니다.',
+      });
+    },
+    'header.menus': function () {
+      renderNavMenusEditor({
+        title: '🧭 헤더 메뉴 관리',
+        location: 'header',
+        intro: '메인 페이지 상단 헤더의 네비게이션 메뉴를 관리합니다. 라벨·링크·정렬은 임시저장 후 배포, 활성/비활성·아이콘은 즉시 반영됩니다.',
+      });
+    },
+    'notices_faq': function () {
+      renderSettingsEditor({
+        title: '📰 공지 / FAQ 표시 설정',
+        scope: 'notices_faq',
+        intro: '메인 페이지의 공지·FAQ 영역의 노출 개수·정렬·고정 여부 등을 설정합니다.',
+      });
+    },
+    'footer.org': function () {
+      renderSettingsEditor({
+        title: '📌 푸터 — 회사 정보',
+        scope: 'footer',
+        keyPrefix: 'org.',
+        intro: '푸터에 노출되는 단체명·주소·대표자·고유번호·연락처 등을 편집합니다.',
+      });
+    },
+    'footer.sns': function () {
+      renderSettingsEditor({
+        title: '📌 푸터 — 소셜 미디어 링크',
+        scope: 'footer',
+        keyPrefix: 'sns.',
+        intro: '푸터의 SNS(인스타그램·유튜브·페이스북 등) 링크를 편집합니다. 빈 값으로 두면 해당 아이콘이 숨겨집니다.',
+      });
+    },
+    'footer.menus': function () {
+      renderNavMenusEditor({
+        title: '📌 푸터 메뉴 관리',
+        location: 'footer',
+        intro: '푸터의 메뉴(이용약관·개인정보처리방침 등) 링크를 관리합니다.',
+      });
+    },
+    'siren_menu': function () {
+      renderNavMenusEditor({
+        title: '🚨 사이렌 메뉴 관리',
+        location: 'siren',
+        intro: '메인 헤더의 "🚨 사이렌" 드롭다운 메뉴(사건 신고·악성민원·법률지원·자유게시판 등)를 관리합니다.',
+      });
+    },
+    'page.terms': function () {
+      renderPageContentEditor({
+        title: '📄 이용약관',
+        scope: 'page.terms',
+        intro: '/terms.html 또는 푸터의 "이용약관" 링크에 노출되는 본문을 편집합니다. HTML 입력 가능.',
+      });
+    },
+    'page.privacy': function () {
+      renderPageContentEditor({
+        title: '📄 개인정보처리방침',
+        scope: 'page.privacy',
+        intro: '/privacy.html 본문을 편집합니다. HTML 입력 가능.',
+      });
+    },
+    'page.email_reject': function () {
+      renderPageContentEditor({
+        title: '📄 이메일 무단수집 거부',
+        scope: 'page.email_reject',
+        intro: '이메일 무단수집 거부 안내 본문을 편집합니다.',
+      });
+    },
+    'page.ethics': function () {
+      renderPageContentEditor({
+        title: '📄 윤리경영',
+        scope: 'page.ethics',
+        intro: '윤리경영 안내 본문을 편집합니다.',
+      });
+    },
   };
+
+  /* =========================================================
+     ★ 2026-05-11: site_settings generic editor
+     scope/keyPrefix 기준으로 row를 받아 valueType 별 input을 자동 생성.
+     변경 시 PATCH /api/admin/site-settings → Draft 저장.
+     ========================================================= */
+  async function renderSettingsEditor(opts) {
+    const inner = $('#sbContentInner');
+    const titleHtml = '<h2 style="margin:0 0 8px;font-family:\'Noto Serif KR\',serif">' + escapeHtml(opts.title) + '</h2>';
+    const introHtml = opts.intro
+      ? '<p style="color:var(--text-3,#6b7280);font-size:13px;margin:0 0 18px;line-height:1.6">' + escapeHtml(opts.intro) + '</p>'
+      : '';
+    inner.innerHTML =
+      '<div class="sb-section" style="max-width:880px">' + titleHtml + introHtml +
+      '<div id="ssEditorWrap"><div style="padding:24px;text-align:center;color:var(--text-3,#6b7280)">불러오는 중...</div></div>' +
+      '</div>';
+
+    const wrap = document.getElementById('ssEditorWrap');
+    if (!wrap) return;
+
+    let listRes;
+    try {
+      listRes = await api('/api/admin/site-settings?scope=' + encodeURIComponent(opts.scope || ''));
+    } catch (err) {
+      wrap.innerHTML = '<div style="padding:18px;background:#fee;border:1px solid #fbb;border-radius:6px;color:#a00">로드 실패: ' + escapeHtml(String(err && err.message || err)) + '</div>';
+      return;
+    }
+    const rows =
+      (listRes && listRes.data && listRes.data.data && listRes.data.data.list) ||
+      (listRes && listRes.data && listRes.data.list) ||
+      [];
+
+    /* keyPrefix 필터 */
+    let filtered = rows;
+    if (opts.keyPrefix) {
+      filtered = rows.filter(function (r) { return String(r.key || '').indexOf(opts.keyPrefix) === 0; });
+    }
+
+    if (!filtered.length) {
+      wrap.innerHTML =
+        '<div style="padding:18px;background:#fef9f5;border:1px solid #f5d97a;border-radius:6px;color:#7a5e00;line-height:1.6;font-size:13px">' +
+          '<strong>이 영역에 등록된 설정이 없습니다.</strong><br>' +
+          'site_settings 테이블에 <code>scope=' + escapeHtml(opts.scope || '') + '</code>' +
+          (opts.keyPrefix ? ' / <code>key LIKE \'' + escapeHtml(opts.keyPrefix) + '%\'</code>' : '') +
+          ' 행이 시드되지 않았거나, 다른 scope로 저장되어 있을 수 있습니다.<br>' +
+          '<small style="color:#a08800">개발자에게 시드 추가를 요청하면 즉시 편집 폼이 활성화됩니다.</small>' +
+        '</div>';
+      return;
+    }
+
+    /* Form 렌더 */
+    let html = '<form id="ssEditorForm" style="display:flex;flex-direction:column;gap:14px;background:#fff;padding:18px 20px;border:1px solid #e5e7eb;border-radius:10px">';
+    filtered.forEach(function (r) {
+      html += renderSettingFieldRow(r);
+    });
+    html +=
+      '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0f0f0;padding-top:14px;margin-top:6px">' +
+        '<button type="button" id="ssReloadBtn" style="padding:8px 14px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;cursor:pointer">↻ 다시 불러오기</button>' +
+        '<button type="button" id="ssSaveAllBtn" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">💾 변경사항 임시저장</button>' +
+      '</div>' +
+      '</form>';
+    wrap.innerHTML = html;
+
+    document.getElementById('ssReloadBtn').addEventListener('click', function () { renderSettingsEditor(opts); });
+    document.getElementById('ssSaveAllBtn').addEventListener('click', function () { saveSettingsForm(filtered); });
+  }
+
+  function renderSettingFieldRow(r) {
+    const id = Number(r.id);
+    const type = r.valueType || 'text';
+    const label = (r.description && String(r.description).trim()) || (r.scope + '.' + r.key);
+    const draftBadge = r.hasDraft
+      ? '<span style="margin-left:6px;padding:2px 7px;background:#fef9f5;border:1px solid #f5d97a;border-radius:4px;font-size:11px;color:#7a5e00">📝 Draft</span>'
+      : '';
+    const keyHint = '<small style="color:#999;font-family:Inter;font-size:11px;margin-left:6px">[' + escapeHtml(r.scope + '.' + r.key) + ']</small>';
+    const labelHtml = '<label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">' + escapeHtml(label) + draftBadge + keyHint + '</label>';
+
+    /* 현재 값 (draft 있으면 우선 표시) */
+    const draftText = r.draftValueText != null ? r.draftValueText : null;
+    const draftJson = r.draftValueJson != null ? r.draftValueJson : null;
+    const currentText = draftText != null ? draftText : (r.valueText || '');
+
+    let inputHtml = '';
+    if (type === 'image_blob') {
+      const blobId = r.draftValueBlobId != null ? r.draftValueBlobId : (r.valueBlobId || null);
+      const preview = blobId
+        ? '<img src="/api/blob-image?id=' + blobId + '" style="max-width:200px;max-height:80px;display:block;margin:6px 0 8px;border:1px solid #e5e7eb;border-radius:4px" alt="">'
+        : '<div style="padding:14px;background:#f5f5f7;border-radius:4px;text-align:center;color:#888;font-size:12px;margin:6px 0">이미지 없음</div>';
+      inputHtml = preview +
+        '<input type="file" data-ss-id="' + id + '" data-ss-kind="image" accept="image/*" style="font-size:12px">';
+    } else if (type === 'json') {
+      const jsonStr = (draftJson != null) ? JSON.stringify(draftJson, null, 2) : (r.valueJson != null ? JSON.stringify(r.valueJson, null, 2) : '');
+      inputHtml =
+        '<textarea data-ss-id="' + id + '" data-ss-kind="json" rows="6" style="width:100%;font-family:Inter;font-size:12px;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;resize:vertical">' +
+        escapeHtml(jsonStr) +
+        '</textarea>' +
+        '<small style="color:#888;font-size:11px">JSON 형식. 잘못된 JSON은 저장 시 거부됩니다.</small>';
+    } else if (type === 'html') {
+      inputHtml =
+        '<textarea data-ss-id="' + id + '" data-ss-kind="text" rows="6" style="width:100%;font-family:Inter;font-size:13px;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;resize:vertical">' +
+        escapeHtml(currentText) +
+        '</textarea>' +
+        '<small style="color:#888;font-size:11px">HTML 입력 가능.</small>';
+    } else if (type === 'number') {
+      inputHtml =
+        '<input type="number" data-ss-id="' + id + '" data-ss-kind="text" value="' + escapeHtml(currentText) + '"' +
+        ' style="width:200px;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">';
+    } else {
+      /* text */
+      const isLong = currentText.length > 80 || /\n/.test(currentText);
+      if (isLong) {
+        inputHtml =
+          '<textarea data-ss-id="' + id + '" data-ss-kind="text" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;resize:vertical">' +
+          escapeHtml(currentText) +
+          '</textarea>';
+      } else {
+        inputHtml =
+          '<input type="text" data-ss-id="' + id + '" data-ss-kind="text" value="' + escapeHtml(currentText) + '"' +
+          ' style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">';
+      }
+    }
+
+    return '<div class="ss-field-row" data-ss-row="' + id + '">' + labelHtml + inputHtml + '</div>';
+  }
+
+  async function saveSettingsForm(originalRows) {
+    const fields = document.querySelectorAll('[data-ss-id]');
+    if (!fields.length) { toast('저장할 항목이 없습니다'); return; }
+
+    const btn = document.getElementById('ssSaveAllBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+    let saved = 0, skipped = 0, failed = 0;
+    const failedDetails = [];
+
+    for (const f of fields) {
+      const id = Number(f.dataset.ssId);
+      const kind = f.dataset.ssKind;
+      const orig = originalRows.find(function (r) { return Number(r.id) === id; });
+      if (!orig) continue;
+
+      let body = { id };
+      if (kind === 'image') {
+        const file = f.files && f.files[0];
+        if (!file) continue; // 변경 없음
+        try {
+          const blobId = await uploadImageBlob(file);
+          body.valueBlobId = blobId;
+        } catch (err) {
+          failed++;
+          failedDetails.push((orig.scope + '.' + orig.key) + ' (이미지 업로드 실패: ' + (err.message || '오류') + ')');
+          continue;
+        }
+      } else if (kind === 'json') {
+        const txt = f.value || '';
+        try {
+          body.valueJson = txt ? JSON.parse(txt) : null;
+        } catch (err) {
+          failed++;
+          failedDetails.push((orig.scope + '.' + orig.key) + ' (JSON 파싱 오류)');
+          continue;
+        }
+        /* 변경 없음 검사 */
+        const before = orig.draftValueJson != null ? orig.draftValueJson : orig.valueJson;
+        if (JSON.stringify(before) === JSON.stringify(body.valueJson)) { skipped++; continue; }
+      } else {
+        const txt = f.value || '';
+        const before = orig.draftValueText != null ? orig.draftValueText : (orig.valueText || '');
+        if (before === txt) { skipped++; continue; }
+        body.valueText = txt;
+      }
+
+      try {
+        const res = await api('/api/admin/site-settings', { method: 'PATCH', body });
+        if (!res.ok) throw new Error((res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status));
+        saved++;
+      } catch (err) {
+        failed++;
+        failedDetails.push((orig.scope + '.' + orig.key) + ' (' + (err.message || '오류') + ')');
+      }
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '💾 변경사항 임시저장'; }
+
+    let msg = '';
+    if (saved) msg += saved + '건 저장 (Draft) ';
+    if (skipped) msg += '· ' + skipped + '건 변경 없음';
+    if (failed) msg += '\n실패 ' + failed + '건:\n' + failedDetails.join('\n');
+    toast(msg || '변경사항이 없습니다');
+
+    if (saved && typeof refreshDraftCount === 'function') refreshDraftCount();
+    if (saved && typeof reloadPreview === 'function') reloadPreview();
+  }
+
+  /* 이미지 업로드 — Blob ID 반환 */
+  async function uploadImageBlob(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/admin/blob-upload', {
+      method: 'POST', credentials: 'include', body: formData,
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok || data.ok === false) {
+      throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
+    }
+    const blobId = (data.data && data.data.id) || data.id || data.blobId;
+    if (!blobId) throw new Error('업로드 응답에 blobId 없음');
+    return Number(blobId);
+  }
+
+  /* =========================================================
+     ★ 정적 페이지 본문 편집 — site_settings에 단일 키로 저장된 HTML
+     scope에 해당하는 모든 row를 그대로 generic editor로 표시
+     ========================================================= */
+  function renderPageContentEditor(opts) {
+    /* generic settings editor를 그대로 사용 (scope의 모든 키 표시) */
+    renderSettingsEditor({
+      title: opts.title,
+      scope: opts.scope,
+      intro: opts.intro,
+    });
+  }
+
+  /* =========================================================
+     ★ 2026-05-11: nav_menu_items 편집기
+     /api/admin/nav-menus?location=X 로 트리 조회 → 인라인 편집
+     ========================================================= */
+  async function renderNavMenusEditor(opts) {
+    const inner = $('#sbContentInner');
+    inner.innerHTML =
+      '<div class="sb-section" style="max-width:980px">' +
+        '<h2 style="margin:0 0 8px;font-family:\'Noto Serif KR\',serif">' + escapeHtml(opts.title) + '</h2>' +
+        (opts.intro ? '<p style="color:var(--text-3,#6b7280);font-size:13px;margin:0 0 16px;line-height:1.6">' + escapeHtml(opts.intro) + '</p>' : '') +
+        '<div id="nmListWrap"><div style="padding:24px;text-align:center;color:var(--text-3,#6b7280)">불러오는 중...</div></div>' +
+        '<div style="margin-top:18px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">' +
+          '<h3 style="margin:0 0 10px;font-size:13.5px;font-weight:700">＋ 새 메뉴 항목 추가</h3>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end">' +
+            '<input type="text" id="nmNewLabel" placeholder="라벨 (예: 자주 묻는 질문)" maxlength="200" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
+            '<input type="text" id="nmNewHref" placeholder="링크 URL (예: /faq.html)" maxlength="500" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">' +
+            '<input type="number" id="nmNewSort" placeholder="순서" value="100" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;width:80px">' +
+          '</div>' +
+          '<button type="button" id="nmAddBtn" style="margin-top:10px;padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">＋ 추가 (즉시 활성)</button>' +
+        '</div>' +
+      '</div>';
+
+    await loadNavMenusList(opts);
+
+    const addBtn = document.getElementById('nmAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function () { addNavMenu(opts); });
+  }
+
+  async function loadNavMenusList(opts) {
+    const wrap = document.getElementById('nmListWrap');
+    if (!wrap) return;
+    let res;
+    try {
+      res = await api('/api/admin/nav-menus?location=' + encodeURIComponent(opts.location || ''));
+    } catch (err) {
+      wrap.innerHTML = '<div style="padding:18px;background:#fee;border:1px solid #fbb;border-radius:6px;color:#a00">로드 실패: ' + escapeHtml(String(err && err.message || err)) + '</div>';
+      return;
+    }
+    const items =
+      (res && res.data && res.data.data && (res.data.data.items || res.data.data.list)) ||
+      (res && res.data && (res.data.items || res.data.list)) ||
+      [];
+
+    if (!items.length) {
+      wrap.innerHTML = '<div style="padding:24px;text-align:center;color:#6b7280;font-style:italic">등록된 메뉴 항목이 없습니다. 아래에서 추가하세요.</div>';
+      return;
+    }
+    wrap.innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff">' +
+        '<thead>' +
+          '<tr style="background:#f3f4f6;text-align:left">' +
+            '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:60px">순서</th>' +
+            '<th style="padding:8px 10px;border:1px solid #e5e7eb">라벨</th>' +
+            '<th style="padding:8px 10px;border:1px solid #e5e7eb">링크</th>' +
+            '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:70px;text-align:center">활성</th>' +
+            '<th style="padding:8px 10px;border:1px solid #e5e7eb;width:160px;text-align:center">관리</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+          items.map(function (m) {
+            const draftBadge = m.hasDraft ? '<span style="margin-left:4px;padding:1px 6px;background:#fef9f5;border:1px solid #f5d97a;border-radius:3px;font-size:10px;color:#7a5e00">📝</span>' : '';
+            const label = (m.draftLabel != null ? m.draftLabel : (m.label || ''));
+            const href = (m.draftHref != null ? m.draftHref : (m.href || ''));
+            const sort = (m.draftSortOrder != null ? m.draftSortOrder : (m.sortOrder || 0));
+            return '<tr data-nm-id="' + m.id + '">' +
+              '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="number" class="nm-field" data-field="sortOrder" value="' + sort + '" style="width:60px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px"></td>' +
+              '<td style="padding:6px 8px;border:1px solid #e5e7eb">' + draftBadge + '<input type="text" class="nm-field" data-field="label" value="' + escapeHtml(label) + '" maxlength="200" style="width:calc(100% - 30px);padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
+              '<td style="padding:6px 8px;border:1px solid #e5e7eb"><input type="text" class="nm-field" data-field="href" value="' + escapeHtml(href) + '" maxlength="500" style="width:100%;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;box-sizing:border-box"></td>' +
+              '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center"><input type="checkbox" class="nm-meta" data-meta="isActive" ' + (m.isActive ? 'checked' : '') + '></td>' +
+              '<td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center;white-space:nowrap">' +
+                '<button type="button" class="nm-save-btn" style="padding:4px 8px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px">💾 저장</button>' +
+                '<button type="button" class="nm-del-btn" style="padding:4px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:4px;font-size:11px;cursor:pointer">🗑</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('') +
+        '</tbody>' +
+      '</table>' +
+      '<div style="margin-top:8px;font-size:11.5px;color:#666">📝 라벨·링크·정렬은 임시저장(Draft) 후 배포가 필요합니다. 활성 체크박스는 즉시 반영됩니다.</div>';
+
+    /* 활성 체크박스: 즉시 반영 */
+    wrap.querySelectorAll('.nm-meta[data-meta="isActive"]').forEach(function (cb) {
+      cb.addEventListener('change', function () { updateMenuMetaInline(cb, opts); });
+    });
+    wrap.querySelectorAll('.nm-save-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { saveNavMenuRow(btn, opts); });
+    });
+    wrap.querySelectorAll('.nm-del-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { deleteNavMenuRow(btn, opts); });
+    });
+  }
+
+  async function addNavMenu(opts) {
+    const label = (document.getElementById('nmNewLabel').value || '').trim();
+    const href = (document.getElementById('nmNewHref').value || '').trim();
+    const sortOrder = Number(document.getElementById('nmNewSort').value || 0);
+    if (!label) { toast('라벨을 입력하세요'); return; }
+    try {
+      const res = await api('/api/admin/nav-menus', {
+        method: 'POST',
+        body: { menuLocation: opts.location, label, href: href || null, sortOrder },
+      });
+      if (!res.ok) throw new Error((res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status));
+      toast('메뉴 항목이 추가되었습니다');
+      document.getElementById('nmNewLabel').value = '';
+      document.getElementById('nmNewHref').value = '';
+      await loadNavMenusList(opts);
+    } catch (err) {
+      toast('추가 실패: ' + (err.message || '오류'));
+    }
+  }
+
+  async function saveNavMenuRow(btn, opts) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const id = Number(tr.dataset.nmId);
+    if (!id) return;
+    const fields = tr.querySelectorAll('.nm-field');
+    const data = { id };
+    fields.forEach(function (f) {
+      const k = f.dataset.field;
+      if (k === 'sortOrder') data[k] = Number(f.value || 0);
+      else data[k] = String(f.value || '').trim();
+    });
+    try {
+      const res = await api('/api/admin/nav-menus', { method: 'PATCH', body: data });
+      if (!res.ok) throw new Error((res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status));
+      toast('Draft로 저장되었습니다 (운영 적용은 배포 필요)');
+      if (typeof refreshDraftCount === 'function') refreshDraftCount();
+    } catch (err) {
+      toast('저장 실패: ' + (err.message || '오류'));
+    }
+  }
+
+  async function updateMenuMetaInline(cb, opts) {
+    const tr = cb.closest('tr');
+    if (!tr) return;
+    const id = Number(tr.dataset.nmId);
+    if (!id) return;
+    const meta = cb.dataset.meta;
+    const value = meta === 'isActive' ? cb.checked : cb.value;
+    /* 서버는 PATCH ?action=meta 에서 body.isActive 등을 직접 읽음 */
+    const body = { id };
+    body[meta] = value;
+    try {
+      const res = await api('/api/admin/nav-menus?action=meta', {
+        method: 'PATCH', body,
+      });
+      if (!res.ok) throw new Error((res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status));
+      toast('즉시 반영되었습니다');
+      if (typeof reloadPreview === 'function') reloadPreview();
+    } catch (err) {
+      toast('변경 실패: ' + (err.message || '오류'));
+      cb.checked = !cb.checked; // 롤백
+    }
+  }
+
+  async function deleteNavMenuRow(btn, opts) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+    const id = Number(tr.dataset.nmId);
+    if (!id) return;
+    const labelEl = tr.querySelector('.nm-field[data-field="label"]');
+    const label = labelEl ? labelEl.value : '';
+    if (!confirm('"' + label + '" 메뉴 항목을 삭제하시겠습니까?\n(자식 항목도 함께 삭제됩니다)')) return;
+    try {
+      const res = await api('/api/admin/nav-menus?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!res.ok) throw new Error((res.data && (res.data.error || res.data.message)) || ('HTTP ' + res.status));
+      toast('삭제되었습니다');
+      await loadNavMenusList(opts);
+    } catch (err) {
+      toast('삭제 실패: ' + (err.message || '오류'));
+    }
+  }
 
 
   /* ============ 관련 사이트 CRUD (5순위 #9) ============ */

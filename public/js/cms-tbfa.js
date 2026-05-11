@@ -2787,6 +2787,300 @@ async function loadNotifyJobs() {
   }
 }
 
+/* ============================================================
+   ★ 2026-05-11: 회원 추가 모달 + 4개 탭 CSV·엑셀 내보내기
+   - 통합 일반 회원 / 정기 후원자 / 예비 후원자 / 잠재 후원자
+   ============================================================ */
+(function() {
+  'use strict';
+
+  function _toast(msg) {
+    var t = document.getElementById('cmsToast');
+    if (!t) return alert(msg);
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._addmemberT);
+    window._addmemberT = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+
+  /* ── 회원 추가 모달 ── */
+  function openAddMember() {
+    var modal = document.getElementById('addMemberModal');
+    if (!modal) return;
+    var form = document.getElementById('addMemberForm');
+    if (form) form.reset();
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ form?.querySelector('input[name=name]')?.focus(); }, 50);
+  }
+  function closeAddMember() {
+    var modal = document.getElementById('addMemberModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#btnAddMember')) {
+      e.preventDefault(); openAddMember(); return;
+    }
+    if (e.target.closest('[data-am-close]')) {
+      closeAddMember(); return;
+    }
+    var modal = document.getElementById('addMemberModal');
+    if (modal && modal.classList.contains('show') && e.target === modal) {
+      closeAddMember();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var submitBtn = document.getElementById('amBtnSubmit');
+    if (submitBtn) submitBtn.addEventListener('click', submitAddMember);
+  });
+
+  async function submitAddMember() {
+    var form = document.getElementById('addMemberForm');
+    if (!form) return;
+    var fd = new FormData(form);
+    var body = {
+      name: String(fd.get('name') || '').trim(),
+      email: String(fd.get('email') || '').trim().toLowerCase(),
+      phone: String(fd.get('phone') || '').trim(),
+      type: String(fd.get('type') || 'regular'),
+    };
+    var memo = String(fd.get('memo') || '').trim();
+    if (memo) body.memo = memo;
+    var category = String(fd.get('memberCategory') || '').trim();
+    if (category) body.memberCategory = category;
+
+    if (!body.name || body.name.length < 2) { _toast('이름은 2자 이상 입력하세요'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { _toast('이메일 형식을 확인하세요'); return; }
+    if (!/^[0-9\-+\s()]{8,20}$/.test(body.phone)) { _toast('연락처 형식을 확인하세요 (숫자·하이픈)'); return; }
+
+    var btn = document.getElementById('amBtnSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
+    try {
+      var res = await fetch('/api/admin/members', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok || data.ok === false) {
+        var err = data.error || data.message || ('HTTP ' + res.status);
+        if (Array.isArray(data.errors) && data.errors.length) {
+          err = data.errors.map(function(x){ return x.field + ': ' + x.message; }).join('\n');
+        } else if (data.data && Array.isArray(data.data.errors)) {
+          err = data.data.errors.map(function(x){ return x.field + ': ' + x.message; }).join('\n');
+        }
+        throw new Error(err);
+      }
+      _toast('회원이 추가되었습니다');
+      closeAddMember();
+      var refreshBtn = document.getElementById('btnRefreshMembers');
+      if (refreshBtn) refreshBtn.click();
+    } catch (err) {
+      alert('회원 추가 실패\n\n' + (err && err.message || err));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '등록'; }
+    }
+  }
+
+  /* ── 내보내기 헬퍼 ── */
+  function _today() { return new Date().toISOString().slice(0, 10); }
+  function _csvCell(v) {
+    var s = (v == null) ? '' : String(v);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function _downloadCsv(rows, headers, filename) {
+    var lines = [headers.map(_csvCell).join(',')];
+    rows.forEach(function(r){ lines.push(r.map(_csvCell).join(',')); });
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.parentNode && a.parentNode.removeChild(a); }, 100);
+  }
+  function _downloadXlsx(rows, headers, filename, sheet) {
+    if (typeof XLSX === 'undefined') { _toast('엑셀 라이브러리(SheetJS) 로드 실패'); return; }
+    var aoa = [headers].concat(rows);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheet || 'Sheet1');
+    XLSX.writeFile(wb, filename);
+  }
+  async function _fetchAllPages(path, baseQs) {
+    var all = [];
+    var page = 1;
+    var pageSize = 500;
+    while (true) {
+      var qs = new URLSearchParams(baseQs || {});
+      qs.set('page', String(page));
+      qs.set('pageSize', String(pageSize));
+      qs.set('limit', String(pageSize));
+      var res = await fetch(path + '?' + qs.toString(), { credentials: 'include' });
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok || data.ok === false) {
+        throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
+      }
+      var payload = (data && data.data) ? data.data : data;
+      var list = payload.list || payload.data || payload.rows || [];
+      all = all.concat(list);
+      var total = payload.total || (payload.pagination && payload.pagination.total) || all.length;
+      if (all.length >= total || !list.length) break;
+      page++;
+      if (page > 100) break;
+    }
+    return all;
+  }
+
+  /* ── 통합 일반 회원 ── */
+  async function exportMembers(format) {
+    var btnCsv = document.getElementById('btnExportMembersCsv');
+    var btnXl = document.getElementById('btnExportMembersXlsx');
+    [btnCsv, btnXl].forEach(function(b){ if (b) b.disabled = true; });
+    try {
+      var qs = {};
+      var src = document.getElementById('filterSource')?.value || '';
+      if (src && src !== 'all') qs.source = src;
+      var dt = document.getElementById('filterDonorType')?.value || '';
+      if (dt && dt !== 'all') qs.donorType = dt;
+      var q = (document.getElementById('filterSearch')?.value || '').trim();
+      if (q) qs.q = q;
+      _toast('회원 데이터 추출 중...');
+      var rows = await _fetchAllPages('/api/admin/members', qs);
+      var headers = ['ID','이름','이메일','연락처','회원유형','상태','후원상태','가입경로','등록일'];
+      var data = rows.map(function(m){
+        return [
+          'M-' + String(m.id).padStart(5,'0'),
+          m.name || '', m.email || '', m.phone || '',
+          m.type || '', m.status || '',
+          m.donorType || (m.donorState || ''),
+          (m.sourceLabel || m.signupSourceLabel || m.signupSource || ''),
+          m.createdAt ? String(m.createdAt).slice(0,10) : '',
+        ];
+      });
+      var name = 'TBFA_통합회원_' + _today();
+      if (format === 'csv') _downloadCsv(data, headers, name + '.csv');
+      else _downloadXlsx(data, headers, name + '.xlsx', '통합회원');
+      _toast(rows.length.toLocaleString() + '명 내보내기 완료');
+    } catch (err) {
+      alert('내보내기 실패\n\n' + (err && err.message || err));
+    } finally {
+      [btnCsv, btnXl].forEach(function(b){ if (b) b.disabled = false; });
+    }
+  }
+
+  /* ── 정기 후원자 ── */
+  async function exportDonorRegular(format) {
+    try {
+      var qs = {};
+      var ch = document.getElementById('drFilterChannel')?.value || '';
+      if (ch && ch !== 'all') qs.channel = ch;
+      var q = (document.getElementById('drFilterSearch')?.value || '').trim();
+      if (q) qs.q = q;
+      _toast('정기 후원자 데이터 추출 중...');
+      var rows = await _fetchAllPages('/api/admin/donor-regular-list', qs);
+      var headers = ['회원번호','이름','연락처','채널','정기금액','다음결제일','누적개월','누적합계'];
+      var data = rows.map(function(d){
+        return [
+          'M-' + String(d.id).padStart(5,'0'),
+          d.name || '', d.phone || '',
+          Array.isArray(d.channels) ? d.channels.join('+') : (d.channels || ''),
+          d.regularAmount != null ? Number(d.regularAmount) : '',
+          d.nextBillingDate ? String(d.nextBillingDate).slice(0,10) : '',
+          d.cumulativeMonths || 0,
+          d.cumulativeAmount || 0,
+        ];
+      });
+      var name = 'TBFA_정기후원자_' + _today();
+      if (format === 'csv') _downloadCsv(data, headers, name + '.csv');
+      else _downloadXlsx(data, headers, name + '.xlsx', '정기후원자');
+      _toast(rows.length.toLocaleString() + '명 내보내기 완료');
+    } catch (err) {
+      alert('내보내기 실패\n\n' + (err && err.message || err));
+    }
+  }
+
+  /* ── 예비 후원자 ── */
+  async function exportDonorProspect(format) {
+    try {
+      var qs = {};
+      var sub = document.querySelector('.dp-subtab.on')?.dataset.dpSubtype || 'all';
+      if (sub && sub !== 'all') qs.subtype = sub;
+      var q = (document.getElementById('dpFilterSearch')?.value || '').trim();
+      if (q) qs.q = q;
+      _toast('예비 후원자 데이터 추출 중...');
+      var rows = await _fetchAllPages('/api/admin/donor-prospect-list', qs);
+      var headers = ['회원번호','이름','연락처','분류','중단일','마지막후원일','마지막금액','누적건수','누적합계'];
+      var data = rows.map(function(d){
+        return [
+          'M-' + String(d.id).padStart(5,'0'),
+          d.name || '', d.phone || '',
+          d.subtype || '',
+          d.cancelledAt ? String(d.cancelledAt).slice(0,10) : '',
+          d.lastDonationDate ? String(d.lastDonationDate).slice(0,10) : '',
+          d.lastDonationAmount || 0,
+          d.totalDonationCount || 0,
+          d.totalDonationAmount || 0,
+        ];
+      });
+      var name = 'TBFA_예비후원자_' + _today();
+      if (format === 'csv') _downloadCsv(data, headers, name + '.csv');
+      else _downloadXlsx(data, headers, name + '.xlsx', '예비후원자');
+      _toast(rows.length.toLocaleString() + '명 내보내기 완료');
+    } catch (err) {
+      alert('내보내기 실패\n\n' + (err && err.message || err));
+    }
+  }
+
+  /* ── 잠재 후원자 ── */
+  async function exportDonorPotential(format) {
+    try {
+      var qs = {};
+      var q = (document.getElementById('pdFilterSearch')?.value || '').trim();
+      if (q) qs.q = q;
+      var ev = (document.getElementById('pdFilterEvent')?.value || '').trim();
+      if (ev) qs.eventName = ev;
+      var lk = document.getElementById('pdFilterLinked')?.value || 'all';
+      if (lk && lk !== 'all') qs.linked = lk;
+      _toast('잠재 후원자 데이터 추출 중...');
+      var rows = await _fetchAllPages('/api/admin/potential-donor-list', qs);
+      var headers = ['번호','이름','연락처','이벤트·활동','참여일','유입경로','연결회원ID','연결회원명','메모'];
+      var data = rows.map(function(d){
+        return [
+          'PD-' + String(d.id).padStart(5,'0'),
+          d.name || '', d.phone || '',
+          d.eventName || '',
+          d.participatedAt ? String(d.participatedAt).slice(0,10) : '',
+          d.entryPath || '',
+          d.linkedMemberId || '',
+          d.linkedMemberName || '',
+          d.memo || '',
+        ];
+      });
+      var name = 'TBFA_잠재후원자_' + _today();
+      if (format === 'csv') _downloadCsv(data, headers, name + '.csv');
+      else _downloadXlsx(data, headers, name + '.xlsx', '잠재후원자');
+      _toast(rows.length.toLocaleString() + '명 내보내기 완료');
+    } catch (err) {
+      alert('내보내기 실패\n\n' + (err && err.message || err));
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btnExportMembersCsv')?.addEventListener('click', function(){ exportMembers('csv'); });
+    document.getElementById('btnExportMembersXlsx')?.addEventListener('click', function(){ exportMembers('xlsx'); });
+    document.getElementById('drBtnExportCsv')?.addEventListener('click', function(){ exportDonorRegular('csv'); });
+    document.getElementById('drBtnExportXlsx')?.addEventListener('click', function(){ exportDonorRegular('xlsx'); });
+    document.getElementById('dpBtnExportCsv')?.addEventListener('click', function(){ exportDonorProspect('csv'); });
+    document.getElementById('dpBtnExportXlsx')?.addEventListener('click', function(){ exportDonorProspect('xlsx'); });
+    document.getElementById('pdBtnExportCsv')?.addEventListener('click', function(){ exportDonorPotential('csv'); });
+    document.getElementById('pdBtnExportXlsx')?.addEventListener('click', function(){ exportDonorPotential('xlsx'); });
+  });
+})();
+
 async function loadNotifyGroups() {
   const tbody = document.getElementById('rgBody');
   if (!tbody) return;

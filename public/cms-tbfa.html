@@ -217,9 +217,7 @@
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">👥 회원·유가족</div>
       </li>
       <li><a href="#members" data-tab="members"><i>👥</i><span>통합 일반 회원</span></a></li>
-      <li><a href="#import" data-tab="import"><i>📤</i><span>회원 등록 · 수납 매핑</span></a></li>
-      <!-- 웹→이관: 메뉴 비표시, 기능 코드 유지 -->
-      <!-- <li><a href="#transfer" data-tab="transfer"><i>🔄</i><span>웹 → 이관</span></a></li> -->
+      <li><a href="#import" data-tab="import"><i>📤</i><span>회원 등록 · 검증</span></a></li>
 
       <!-- ── 💰 후원·재정 관리 ── -->
       <li class="cms-menu-group" data-group="donation">
@@ -233,7 +231,21 @@
           <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자 관리</span></a></li>
           <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 CMS+</span></a></li>
           <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>토스 빌링</span></a></li>
-          <li><a href="#donation-dashboard" data-tab="donation-dashboard"><i>🔍</i><span>종합 검증 대시보드</span></a></li>
+        </ul>
+      </li>
+
+      <!-- ── 📨 알림·발송 (싸이렌에서 이관 — 2026-05-11) ── -->
+      <li class="cms-menu-group" data-group="send">
+        <a href="#" data-toggle="send">
+          <i>📨</i><span>알림·발송</span>
+          <span class="cms-menu-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-submenu="send" style="display:block">
+          <li><a href="/admin-send-jobs.html" onclick="window.location.href='/admin-send-jobs.html';return false;"><i>📤</i><span>발송 작업</span></a></li>
+          <li><a href="/admin-templates.html" onclick="window.location.href='/admin-templates.html';return false;"><i>📝</i><span>발송 템플릿</span></a></li>
+          <li><a href="/admin-recipient-groups.html" onclick="window.location.href='/admin-recipient-groups.html';return false;"><i>👥</i><span>수신자 그룹</span></a></li>
+          <li><a href="/admin-auto-triggers.html" onclick="window.location.href='/admin-auto-triggers.html';return false;"><i>🤖</i><span>AI 자동 발송</span></a></li>
+          <li><a href="/admin-send-analytics.html" onclick="window.location.href='/admin-send-analytics.html';return false;"><i>📊</i><span>발송 분석</span></a></li>
         </ul>
       </li>
 
@@ -241,8 +253,6 @@
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
       </li>
-      <li><a href="#notify-send" data-tab="notify-send"><i>📨</i><span>알림 발송</span></a></li>
-      <li><a href="#export" data-tab="export"><i>📤</i><span>데이터 추출</span></a></li>
       <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
 
     </nav>
@@ -693,13 +703,7 @@
           </div>
         </div>
 
-        <!-- 회원 관리 서브탭 -->
-        <div class="content-tabs" id="membersCmsTabs" style="margin-bottom:16px">
-          <button type="button" class="ct-tab on" data-mstab="list">👥 회원 목록</button>
-          <button type="button" class="ct-tab" data-mstab="tags">🏷️ 태그 관리</button>
-        </div>
-
-        <!-- 탭: 회원 목록 -->
+        <!-- 탭: 회원 목록 (단일 — 태그 관리 서브탭은 2026-05-11 정비 시 더미 제거) -->
         <div data-mstab-pane="list">
 
         <div class="cms-filter-bar">
@@ -730,6 +734,8 @@
               </svg>
               새로고침
             </button>
+            <button class="cms-btn cms-btn-ghost" id="btnExportMembersCsv" type="button">📥 CSV</button>
+            <button class="cms-btn cms-btn-ghost" id="btnExportMembersXlsx" type="button">📊 엑셀</button>
             <button class="cms-btn cms-btn-primary" id="btnAddMember">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -763,20 +769,6 @@
         </div>
         </div><!-- /mstab-pane:list -->
 
-        <!-- 탭: 태그 관리 -->
-        <div data-mstab-pane="tags" style="display:none">
-          <div class="cms-panel">
-            <div class="cms-panel-head">
-              <div class="cms-panel-title">🏷️ 회원 태그 관리</div>
-              <button class="cms-btn cms-btn-primary" id="btnAddTag">+ 태그 추가</button>
-            </div>
-            <p class="cms-panel-desc">
-              회원을 분류하는 태그를 만들고 관리합니다. 태그로 발송 대상 지정이나 필터링에 활용할 수 있습니다.
-            </p>
-            <div class="cms-tag-grid" id="tagGrid"><!-- JS로 렌더 --></div>
-          </div>
-        </div><!-- /mstab-pane:tags -->
-
       </section>
 
       <!-- ============ 3. 회원 등록 · 수납 매핑 (통합) ============ -->
@@ -786,6 +778,7 @@
         <div class="content-tabs" id="importTabs" style="margin-bottom:20px">
           <button type="button" class="ct-tab on" data-itab="bulk">📤 일괄 등록 <small style="font-weight:400;font-size:11px;margin-left:4px">(신규 회원 추가)</small></button>
           <button type="button" class="ct-tab" data-itab="csv">📥 수납 매핑 <small style="font-weight:400;font-size:11px;margin-left:4px">(입금 내역 확인)</small></button>
+          <button type="button" class="ct-tab" data-itab="verify">🔍 검증 대시보드 <small style="font-weight:400;font-size:11px;margin-left:4px">(KPI · Alert · 이력)</small></button>
         </div>
 
         <!-- 탭 1: 일괄 등록 -->
@@ -908,192 +901,14 @@
           <div id="csv-import-inner"></div>
         </div><!-- /itab-pane:csv -->
 
+        <!-- 탭 3: 검증 대시보드 (종합 검증을 #import 안으로 통합 — 2026-05-11) -->
+        <div data-itab-pane="verify" style="display:none">
+          <div id="donation-dashboard-inner"></div>
+        </div><!-- /itab-pane:verify -->
+
       </section>
 
-      <!-- ============ 4. 웹 후원자 이관 ============ -->
-      <section class="cms-page" id="page-transfer">
-        <div class="cms-panel">
-          <div class="cms-panel-head">
-            <div class="cms-panel-title">🔄 싸이렌 웹 후원자 → TBFA 이관</div>
-            <span class="cms-panel-tag cms-tag-info">수동 이관</span>
-          </div>
-          <p class="cms-panel-desc">
-            싸이렌 웹사이트에서 후원한 분들 중, TBFA 통합 회원으로 등록할 대상을 선택하세요.<br />
-            <strong>이미 이관된 회원은 목록에서 자동 제외</strong>됩니다.
-          </p>
-
-          <div class="cms-transfer-stats">
-            <div class="cms-ts-item">
-              <span class="cms-ts-label">웹 후원자</span>
-              <span class="cms-ts-value" id="tsWebDonors">-</span>
-            </div>
-            <div class="cms-ts-arrow">→</div>
-            <div class="cms-ts-item">
-              <span class="cms-ts-label">이관 대기</span>
-              <span class="cms-ts-value" id="tsPending">-</span>
-            </div>
-            <div class="cms-ts-arrow">→</div>
-            <div class="cms-ts-item">
-              <span class="cms-ts-label">이관 완료</span>
-              <span class="cms-ts-value" id="tsDone">-</span>
-            </div>
-          </div>
-
-          <div class="cms-transfer-toolbar">
-            <label class="cms-check-line">
-              <input type="checkbox" id="transferSelectAll"> 전체 선택
-            </label>
-            <div>
-              <button class="cms-btn cms-btn-ghost" id="btnTransferRefresh">새로고침</button>
-              <button class="cms-btn cms-btn-primary" id="btnTransferExecute" disabled>
-                선택 회원 이관 (<span id="transferCount">0</span>)
-              </button>
-            </div>
-          </div>
-
-          <table class="cms-tbl">
-            <thead>
-              <tr>
-                <th style="width:40px"></th>
-                <th>ID</th>
-                <th>이름</th>
-                <th>이메일</th>
-                <th>전화</th>
-                <th>첫 후원일</th>
-                <th>총 후원액</th>
-                <th>후원 유형</th>
-              </tr>
-            </thead>
-            <tbody id="transferBody">
-              <tr><td colspan="8" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- 5. 태그 관리: 통합 일반 회원 탭으로 이동됨 — 섹션 비활성 유지 -->
-      <section class="cms-page" id="page-tags" style="display:none!important">
-        <div class="cms-panel">
-          <div class="cms-panel-head">
-            <div class="cms-panel-title">🏷️ 회원 태그 관리</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============ 6. 알림 발송 ============ -->
-      <section class="cms-page" id="page-notify">
-        <div class="cms-panel">
-          <div class="cms-panel-head">
-            <div class="cms-panel-title">📨 대량 알림 발송</div>
-          </div>
-
-          <form id="notifyForm" class="cms-notify-form">
-            <div class="cms-notify-step">
-              <div class="cms-step-num">1</div>
-              <div class="cms-step-body">
-                <label>발송 채널 선택</label>
-                <div class="cms-radio-group">
-                  <input type="radio" name="channel" id="ch1" value="sms" checked>
-                  <label for="ch1">📱 알림톡/SMS</label>
-                  <input type="radio" name="channel" id="ch2" value="email">
-                  <label for="ch2">📧 이메일</label>
-                  <input type="radio" name="channel" id="ch3" value="both">
-                  <label for="ch3">🔔 둘 다</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="cms-notify-step">
-              <div class="cms-step-num">2</div>
-              <div class="cms-step-body">
-                <label>수신자 선택</label>
-                <div class="cms-radio-group cms-radio-stack">
-                  <input type="radio" name="target" id="tg1" value="all" checked>
-                  <label for="tg1">전체 회원</label>
-                  <input type="radio" name="target" id="tg2" value="type">
-                  <label for="tg2">유형별 (유족/후원/봉사/일반)</label>
-                  <input type="radio" name="target" id="tg3" value="tag">
-                  <label for="tg3">태그로 선택</label>
-                  <input type="radio" name="target" id="tg4" value="custom">
-                  <label for="tg4">수동 선택</label>
-                </div>
-                <div id="targetDetail" class="cms-target-detail">
-                  <span id="targetPreview">예상 수신자: -명</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="cms-notify-step">
-              <div class="cms-step-num">3</div>
-              <div class="cms-step-body">
-                <label>메시지 작성</label>
-                <input type="text" name="title" placeholder="제목 (이메일 발송 시)" maxlength="100">
-                <textarea name="content" rows="6" placeholder="내용을 입력하세요.&#10;&#10;#{이름}님, 안녕하세요. 교유협입니다.&#10;&#10;치환 변수: #{이름}, #{유형}" required></textarea>
-                <div class="cms-char-count">0 / 2000자</div>
-              </div>
-            </div>
-
-            <div class="cms-notify-actions">
-              <button type="button" class="cms-btn cms-btn-ghost" id="btnTestSend">테스트 발송</button>
-              <button type="submit" class="cms-btn cms-btn-primary">전체 발송 예약</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- 발송 이력 -->
-        <div class="cms-panel" style="margin-top:20px">
-          <div class="cms-panel-head">
-            <div class="cms-panel-title">📜 최근 발송 이력</div>
-          </div>
-          <table class="cms-tbl">
-            <thead>
-              <tr>
-                <th>발송일시</th><th>채널</th><th>수신자 수</th><th>제목</th><th>상태</th>
-              </tr>
-            </thead>
-            <tbody id="notifyHistoryBody">
-              <tr><td colspan="5" style="text-align:center;padding:30px;color:#888">발송 이력이 없습니다</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ============ 7. 데이터 추출 ============ -->
-      <section class="cms-page" id="page-export">
-        <div class="cms-panel">
-          <div class="cms-panel-head">
-            <div class="cms-panel-title">📥 데이터 추출</div>
-          </div>
-          <p class="cms-panel-desc">원하는 조건으로 회원 데이터를 Excel로 다운로드하세요.</p>
-
-          <div class="cms-export-grid">
-            <div class="cms-export-card" data-export="all">
-              <div class="cms-export-icon">👥</div>
-              <h4>전체 회원</h4>
-              <p>모든 회원 정보를 일괄 추출</p>
-              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
-            </div>
-            <div class="cms-export-card" data-export="family">
-              <div class="cms-export-icon">🎗</div>
-              <h4>유족 회원</h4>
-              <p>유족 회원만 별도 추출</p>
-              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
-            </div>
-            <div class="cms-export-card" data-export="donors">
-              <div class="cms-export-icon">💰</div>
-              <h4>후원 회원 + 이력</h4>
-              <p>후원자 + 결제 내역 포함</p>
-              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
-            </div>
-            <div class="cms-export-card" data-export="tax">
-              <div class="cms-export-icon">🧾</div>
-              <h4>기부금 영수증용</h4>
-              <p>국세청 연말정산 간소화 양식</p>
-              <button class="cms-btn cms-btn-primary cms-btn-block">XLSX 다운로드</button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- 6/7번 섹션(더미 알림 발송 + 데이터 추출)은 2026-05-11 정비 시 제거 — 알림발송은 싸이렌의 본 기능을 사이드바에서 직접 링크, 데이터 추출은 각 회원/후원 탭의 'CSV/엑셀 내보내기' 버튼으로 대체 -->
 
       <!-- ============ ★ 8. STEP H-2d-4: 영수증 설정 ============ -->
       <section class="cms-page" id="page-receipt-settings">
@@ -1367,6 +1182,8 @@
               <input type="text" id="drFilterSearch" placeholder="이름·연락처 검색...">
             </div>
             <div class="cms-filter-actions">
+              <button class="cms-btn cms-btn-ghost" id="drBtnExportCsv" type="button">📥 CSV</button>
+              <button class="cms-btn cms-btn-ghost" id="drBtnExportXlsx" type="button">📊 엑셀</button>
               <button class="cms-btn cms-btn-ghost" id="drBtnRefresh">새로고침</button>
             </div>
           </div>
@@ -1437,6 +1254,8 @@
               <input type="text" id="dpFilterSearch" placeholder="이름·연락처 검색...">
             </div>
             <div class="cms-filter-actions">
+              <button class="cms-btn cms-btn-ghost" id="dpBtnExportCsv" type="button">📥 CSV</button>
+              <button class="cms-btn cms-btn-ghost" id="dpBtnExportXlsx" type="button">📊 엑셀</button>
               <button class="cms-btn cms-btn-ghost" id="dpBtnRefresh">새로고침</button>
             </div>
           </div>
@@ -1497,6 +1316,8 @@
             <option value="no">미연결</option>
             <option value="yes">연결됨</option>
           </select>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnExportCsv" type="button">📥 CSV</button>
+          <button class="cms-btn cms-btn-ghost" id="pdBtnExportXlsx" type="button">📊 엑셀</button>
           <button class="cms-btn cms-btn-ghost" id="pdBtnRefresh">새로고침</button>
           <button class="cms-btn cms-btn-primary" id="pdBtnAdd" style="margin-left:auto">＋ 등록</button>
         </div>
@@ -1746,26 +1567,73 @@
     </div>
   </div>
 
+  <!-- ============ 회원 추가 모달 (2026-05-11 신설) ============ -->
+  <div id="addMemberModal" class="mdm-modal" aria-hidden="true">
+    <div class="mdm-dialog" role="dialog" aria-modal="true" aria-labelledby="amTitle" style="max-width:520px">
+      <header class="mdm-header">
+        <div class="mdm-header-main">
+          <h2 id="amTitle" class="mdm-name">＋ 회원 직접 추가</h2>
+          <div style="font-size:12px;color:#666;margin-top:4px">
+            관리자 수기 등록 — 가입경로는 자동으로 <strong>'수기(admin)'</strong>로 분류됩니다.
+          </div>
+        </div>
+        <button type="button" class="mdm-close" data-am-close aria-label="닫기">×</button>
+      </header>
+
+      <div class="mdm-body" style="padding:20px 24px">
+        <form id="addMemberForm" class="cms-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="cms-fg cms-fg-full" style="grid-column:1/-1">
+            <label>이름 <span style="color:#c5293a">*</span></label>
+            <input type="text" name="name" required minlength="2" maxlength="50" placeholder="홍길동" autocomplete="off">
+          </div>
+          <div class="cms-fg">
+            <label>이메일 <span style="color:#c5293a">*</span></label>
+            <input type="email" name="email" required placeholder="example@domain.com" autocomplete="off">
+          </div>
+          <div class="cms-fg">
+            <label>연락처 <span style="color:#c5293a">*</span></label>
+            <input type="tel" name="phone" required placeholder="010-0000-0000" autocomplete="off">
+          </div>
+          <div class="cms-fg">
+            <label>회원 유형 <span style="color:#c5293a">*</span></label>
+            <select name="type" required>
+              <option value="regular">👤 일반 회원</option>
+              <option value="family">🎗 유족 회원</option>
+              <option value="volunteer">🤝 봉사 회원</option>
+            </select>
+          </div>
+          <div class="cms-fg">
+            <label>분류 (선택)</label>
+            <select name="memberCategory">
+              <option value="">자동 분류</option>
+              <option value="sponsor">💝 후원 회원</option>
+              <option value="regular">👤 일반</option>
+              <option value="family">🎗 유족</option>
+              <option value="etc">🤝 기타</option>
+            </select>
+          </div>
+          <div class="cms-fg cms-fg-full" style="grid-column:1/-1">
+            <label>메모 (선택)</label>
+            <textarea name="memo" rows="3" maxlength="2000" placeholder="특이사항·등록 사유 등"></textarea>
+          </div>
+          <div class="cms-fg cms-fg-full" style="grid-column:1/-1;background:#f0f7ff;border:1px solid #c5daf5;padding:10px 12px;border-radius:6px;font-size:12px;color:#1a5ec4">
+            ℹ️ 임시 비밀번호가 자동 생성되며, 회원이 첫 로그인 시 변경하도록 안내해주세요.
+          </div>
+        </form>
+      </div>
+
+      <footer class="mdm-footer" style="padding:14px 22px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--line,#e3e6eb)">
+        <button type="button" class="cms-btn cms-btn-ghost" data-am-close>취소</button>
+        <button type="button" class="cms-btn cms-btn-primary" id="amBtnSubmit">등록</button>
+      </footer>
+    </div>
+  </div>
+
   <!-- 토스트 -->
   <div id="cmsToast" class="cms-toast"></div>
 
   <script>
-  /* ── 통합 일반 회원 서브탭 (목록 / 태그 관리) ── */
-  document.addEventListener('click', function (e) {
-    var tab = e.target.closest('[data-mstab]');
-    if (!tab) return;
-    var key = tab.getAttribute('data-mstab');
-    document.querySelectorAll('[data-mstab]').forEach(function(t){ t.classList.remove('on'); });
-    tab.classList.add('on');
-    document.querySelectorAll('[data-mstab-pane]').forEach(function(p){ p.style.display = 'none'; });
-    var pane = document.querySelector('[data-mstab-pane="' + key + '"]');
-    if (pane) pane.style.display = '';
-    if (key === 'tags' && window.CMS_TBFA_TAGS && typeof window.CMS_TBFA_TAGS.load === 'function') {
-      window.CMS_TBFA_TAGS.load();
-    }
-  });
-
-  /* ── 회원 등록·수납 매핑 탭 (일괄 등록 / 수납 매핑) ── */
+  /* ── 회원 등록·검증 탭 (일괄 등록 / 수납 매핑 / 검증 대시보드) ── */
   document.addEventListener('click', function (e) {
     var tab = e.target.closest('[data-itab]');
     if (!tab) return;
@@ -1786,6 +1654,19 @@
         }
       }
     }
+    /* 검증 대시보드 서브탭 최초 진입 시 page-donation-dashboard 내용을 inner로 이동 */
+    if (key === 'verify') {
+      var ddInner = document.getElementById('donation-dashboard-inner');
+      var ddOrig = document.getElementById('page-donation-dashboard');
+      if (ddInner && ddOrig && !ddInner.children.length) {
+        while (ddOrig.firstChild) ddInner.appendChild(ddOrig.firstChild);
+      }
+      if (window.CMS_TBFA_DASHBOARD && typeof window.CMS_TBFA_DASHBOARD.load === 'function') {
+        window.CMS_TBFA_DASHBOARD.load();
+      } else if (typeof window.loadDonationDashboard === 'function') {
+        window.loadDonationDashboard();
+      }
+    }
   });
   </script>
 
@@ -1794,7 +1675,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-11-a2"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-11-b1"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

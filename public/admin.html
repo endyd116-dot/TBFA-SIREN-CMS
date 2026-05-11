@@ -2746,7 +2746,17 @@
             </li>
             <li><a data-page="agency-mgmt"><i>🏛️</i><span>외부 기관 관리</span></a></li>
             <li><a data-page="referral-history"><i>📤</i><span>인계 이력</span></a></li>
-            <li><a data-page="expert-match"><i>🤝</i><span>전문가 매칭 관리</span></a></li>
+          </ul>
+        </li>
+
+        <!-- ── 🤝 전문가 관리 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="expert" aria-expanded="false">
+            <i>🤝</i><span>전문가 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul class="adm-submenu" data-sidebar-submenu="expert" aria-hidden="true" style="display:none">
+            <li><a data-page="expert-match"><i>🧩</i><span>전문가 매칭 관리</span></a></li>
             <li><a data-page="ai"><i>🤖</i><span>AI 추천 센터</span></a></li>
             <li><a href="/admin-anon-reveal.html" onclick="window.location.href='/admin-anon-reveal.html';return false;"><i>🕵️</i><span>익명 신원 식별</span></a></li>
             <li><a href="/admin-anon-audit.html" onclick="window.location.href='/admin-anon-audit.html';return false;"><i>📋</i><span>익명 감사 로그</span></a></li>
@@ -2778,22 +2788,6 @@
                 <span class="adm-badge" id="eligibilityMenuBadge" style="display:none">0</span>
               </a>
             </li>
-          </ul>
-        </li>
-
-        <!-- ── 📨 알림·발송 ── -->
-        <li class="adm-menu-toggle-group">
-          <a href="#" data-sidebar-group="send" aria-expanded="false">
-            <i>📨</i><span>알림·발송</span>
-            <span class="sidebar-group-chevron">▾</span>
-          </a>
-          <ul class="adm-submenu" data-sidebar-submenu="send" aria-hidden="true" style="display:none">
-            <li><a href="/admin-send-jobs.html" onclick="window.location.href='/admin-send-jobs.html';return false;"><i>📤</i><span>발송 작업</span></a></li>
-            <li><a href="/admin-templates.html" onclick="window.location.href='/admin-templates.html';return false;"><i>📝</i><span>발송 템플릿</span></a></li>
-            <li><a href="/admin-recipient-groups.html" onclick="window.location.href='/admin-recipient-groups.html';return false;"><i>👥</i><span>수신자 그룹</span></a></li>
-            <li><a href="/admin-auto-triggers.html" onclick="window.location.href='/admin-auto-triggers.html';return false;"><i>🤖</i><span>AI 자동 발송</span></a></li>
-            <li><a href="/admin-send-analytics.html" onclick="window.location.href='/admin-send-analytics.html';return false;"><i>📊</i><span>발송 분석</span></a></li>
-            <li><a data-page="notification-logs"><i>📨</i><span>알림 발송 로그</span></a></li>
           </ul>
         </li>
 
@@ -2956,11 +2950,15 @@
                   <option value="lawyer">변호사</option>
                   <option value="counselor">심리상담사</option>
                 </select>
-                <select id="mmFilterSource">
+                <!-- 2026-05-11: 싸이렌 어드민은 홈페이지(siren) 가입자만 표시. 가입경로 필터는 숨김. -->
+                <select id="mmFilterSource" style="display:none">
                   <option value="">전체 가입경로</option>
                 </select>
                 <input type="search" id="mmFilterQ" placeholder="🔍 이름·이메일·연락처 검색 (2자 이상)">
                 <span class="mm-count" id="mmCount">—</span>
+                <span style="font-size:11.5px;color:var(--text-3,#888);background:#f0f7ff;border:1px solid #c5daf5;padding:4px 9px;border-radius:4px;margin-left:auto" title="효성·수기 등록 회원은 교유협 통합 CMS(/cms-tbfa.html)에서 관리합니다">
+                  🌐 홈페이지 가입자만 표시
+                </span>
               </div>
 
               <table class="tbl">
@@ -5732,7 +5730,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=m24-direct"></script>
+  <script src="/js/admin.js?v=2026-05-11-c1"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-11-phase14"></script>
   <script src="/js/editor.js?v=2026-05"></script>
@@ -5810,23 +5808,41 @@
       var pane = document.querySelector('[data-dtab-pane="' + key + '"]');
       if (pane) pane.style.display = '';
       // 탭별 데이터 로드
+      // ★ 2026-05-11 fix: 첫 클릭 시 원본 #adm-unified-dashboard / #adm-siren-stats div를
+      //   inner로 통째 이동(class='adm-page' 제거 + display:block 강제) 후 load() 호출.
+      //   기존 코드는 load 후 children 비교로 옮겨 첫 진입 시 '회색 빈 화면'으로 보였음.
       if (key === 'unified') {
         var inner = document.getElementById('adm-unified-dashboard-inner');
-        if (inner && !inner.dataset.loaded) {
-          inner.dataset.loaded = '1';
-          if (window.SIREN_UNIFIED_DASHBOARD) window.SIREN_UNIFIED_DASHBOARD.load();
-          // unified-dashboard JS가 #adm-unified-dashboard 를 찾으면 inner로 이동
+        if (inner) {
           var orig = document.getElementById('adm-unified-dashboard');
-          if (orig && !inner.children.length) inner.appendChild(orig);
+          if (orig && orig.parentNode !== inner) {
+            inner.appendChild(orig);
+            orig.classList.remove('adm-page');
+            orig.style.display = 'block';
+          }
+          if (!inner.dataset.loaded) {
+            inner.dataset.loaded = '1';
+            if (window.SIREN_UNIFIED_DASHBOARD && typeof window.SIREN_UNIFIED_DASHBOARD.load === 'function') {
+              window.SIREN_UNIFIED_DASHBOARD.load();
+            }
+          }
         }
       }
       if (key === 'siren-stats') {
         var inner2 = document.getElementById('adm-siren-stats-inner');
-        if (inner2 && !inner2.dataset.loaded) {
-          inner2.dataset.loaded = '1';
+        if (inner2) {
           var orig2 = document.getElementById('adm-siren-stats');
-          if (orig2 && !inner2.children.length) inner2.appendChild(orig2);
-          if (window.SIREN_STATS && typeof window.SIREN_STATS.load === 'function') window.SIREN_STATS.load();
+          if (orig2 && orig2.parentNode !== inner2) {
+            inner2.appendChild(orig2);
+            orig2.classList.remove('adm-page');
+            orig2.style.display = 'block';
+          }
+          if (!inner2.dataset.loaded) {
+            inner2.dataset.loaded = '1';
+            if (window.SIREN_STATS && typeof window.SIREN_STATS.load === 'function') {
+              window.SIREN_STATS.load();
+            }
+          }
         }
       }
     });

@@ -574,13 +574,15 @@ const OPERATOR_CATEGORIES = [
     const s = document.getElementById('mmFilterStatus')?.value || '';
     const cat = document.getElementById('mmFilterCategory')?.value || '';
     const sub = document.getElementById('mmFilterSubtype')?.value || '';
-    const src = document.getElementById('mmFilterSource')?.value || '';
     const q = (document.getElementById('mmFilterQ')?.value || '').trim();
     if (t) params.set('type', t);
     if (s) params.set('status', s);
     if (cat) params.set('category', cat);
     if (sub) params.set('subtype', sub);
-    if (src) params.set('source', src);
+    /* ★ 2026-05-11: 싸이렌 어드민 가입회원 관리는 '홈페이지(siren) 가입자'만 표시.
+       효성·수기·이벤트 등 외부 가입자는 교유협 통합 CMS(/cms-tbfa.html)에서 관리.
+       사용자 선택과 무관하게 source='siren'으로 강제. */
+    params.set('source', 'siren');
     if (q && q.length >= 2) params.set('q', q);
 
     const res = await api('/api/admin/members?' + params.toString());
