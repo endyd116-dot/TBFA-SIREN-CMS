@@ -49,22 +49,11 @@
           </ul>
         </li>
 
+        <!-- 2026-05-12 정비: '내작업/지시함/메모' 사이드바 메뉴 제거 — 워크툴 메인의 전체보기 탭으로 통합 -->
         <li>
-          <a href="/workspace.html#my-tasks" title="내 작업">
-            <span class="ws-nav-icon">✅</span>
-            <span class="ws-nav-text">내 작업</span>
-          </a>
-        </li>
-        <li>
-          <a href="/workspace.html#inbox" title="지시받은 작업">
-            <span class="ws-nav-icon">📥</span>
-            <span class="ws-nav-text">지시함</span>
-          </a>
-        </li>
-        <li>
-          <a href="/workspace.html#memos" title="메모">
-            <span class="ws-nav-icon">📝</span>
-            <span class="ws-nav-text">메모</span>
+          <a href="/workspace.html" title="워크툴 메인" onclick="window.location.href='/workspace.html';return false;">
+            <span class="ws-nav-icon">📊</span>
+            <span class="ws-nav-text">워크툴 메인</span>
           </a>
         </li>
       </ul>
@@ -100,6 +89,9 @@
         <option value="mine">내 항목만</option>
         <option value="all">전체</option>
       </select>
+      <button class="ws-btn-quick ws-btn-event" data-ws-action="new-event" title="새 일정 빠른 추가">+ 새 일정</button>
+      <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task" title="새 작업 빠른 추가">+ 작업</button>
+      <button class="ws-btn-quick ws-btn-memo" data-ws-action="new-memo" title="새 메모">+ 메모</button>
       <button id="wcBtnRefresh" class="wc-btn-icon" type="button" title="새로고침">🔄</button>
     </div>
   </header>
@@ -142,7 +134,8 @@
 
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
-<script src="/js/workspace-calendar.js?v=1" defer></script>
+<script src="/js/workspace-calendar.js?v=2026-05-12-v2" defer></script>
+<script src="/js/workspace-modals.js?v=2026-05-12-v2" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 

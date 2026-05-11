@@ -223,6 +223,27 @@
       navLinks: true,
       dayMaxEventRows: 4,
       eventClick: onEventClick,
+      /* ★ 2026-05-12 v2 — 셀 클릭 → 빠른 추가 모달 (작업/메모/일정 선택) */
+      dateClick: (info) => onDateClick(info),
+      selectable: true,
+      /* ★ 2026-05-12 v2 — 텍스트 자동 대비 (배경색 밝기 계산) */
+      eventDidMount: (info) => {
+        try {
+          const el = info.el;
+          const bg = window.getComputedStyle(el).backgroundColor || '';
+          const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (m) {
+            const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+            /* 인지 밝기 (W3C 공식) */
+            const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+            el.style.color = yiq >= 150 ? '#1a1a1a' : '#ffffff';
+            /* 내부 텍스트 요소도 강제 */
+            el.querySelectorAll('.fc-event-title, .fc-event-time, .fc-event-main, .fc-list-event-title').forEach(t => {
+              t.style.color = 'inherit';
+            });
+          }
+        } catch (_) {}
+      },
       events: async (info, success, failure) => {
         try {
           const items = await fetchEvents(info.start, info.end);
@@ -234,6 +255,93 @@
     });
 
     STATE.calendar.render();
+  }
+
+  /* ─────── 셀 클릭 → 빠른 추가 모달 (2026-05-12 v2) ─────── */
+  function onDateClick(info) {
+    const dateStr = info.dateStr; // 'yyyy-MM-dd' 또는 'yyyy-MM-ddTHH:mm:ss'
+    const isTimedView = /T\d/.test(dateStr);
+    const baseDate = info.date || new Date(dateStr);
+
+    /* 시간 정보가 없으면 09:00 기본 */
+    const start = new Date(baseDate);
+    if (!isTimedView) start.setHours(9, 0, 0, 0);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    showQuickAddPicker(start, end);
+  }
+
+  function showQuickAddPicker(start, end) {
+    /* 작업/메모/일정 중 선택하는 작은 메뉴 */
+    const existing = document.getElementById('wcQuickAddOverlay');
+    if (existing) existing.remove();
+
+    const ov = document.createElement('div');
+    ov.id = 'wcQuickAddOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const pad = (n) => String(n).padStart(2, '0');
+    const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    ov.innerHTML = `
+      <div style="background:#fff;border-radius:12px;width:100%;max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden">
+        <div style="padding:14px 18px;background:linear-gradient(135deg,#7a1f2b,#a3303f);color:#fff;display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:14px">＋ ${fmt(start)}</strong>
+          <button data-close style="background:rgba(255,255,255,.2);border:none;color:#fff;width:26px;height:26px;border-radius:5px;cursor:pointer">×</button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <button data-type="event" style="padding:12px;text-align:left;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-size:13.5px;font-weight:600">
+            📅 새 일정 만들기
+            <div style="font-size:11.5px;color:#888;margin-top:2px;font-weight:400">회의·약속·이벤트</div>
+          </button>
+          <button data-type="memo" style="padding:12px;text-align:left;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-size:13.5px;font-weight:600">
+            📝 새 메모 (캘린더 노출)
+            <div style="font-size:11.5px;color:#888;margin-top:2px;font-weight:400">시간 지정된 메모로 자동 노출</div>
+          </button>
+          <button data-type="task" style="padding:12px;text-align:left;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-size:13.5px;font-weight:600">
+            📋 새 작업 (마감일 = 이 날짜)
+            <div style="font-size:11.5px;color:#888;margin-top:2px;font-weight:400">처리해야 할 업무 카드</div>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    function close() { ov.remove(); }
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov || e.target.matches('[data-close]')) { close(); return; }
+      const btn = e.target.closest('[data-type]');
+      if (!btn) return;
+      const type = btn.dataset.type;
+      close();
+      if (type === 'event' && window.WS_MODALS) {
+        window.WS_MODALS.openNewEventModal({ startAt: start.toISOString(), endAt: end.toISOString() });
+      } else if (type === 'memo' && window.WS_MODALS) {
+        window.WS_MODALS.openNewMemoModal();
+        /* 모달이 열린 후 시간 필드 자동 채움 */
+        setTimeout(() => {
+          const showChk = document.querySelector('#wsmMemoShow');
+          if (showChk && !showChk.checked) { showChk.checked = true; showChk.dispatchEvent(new Event('change')); }
+          const pad2 = (n) => String(n).padStart(2, '0');
+          const fmtLocal = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+          const sIn = document.querySelector('input[name=startAt]');
+          const eIn = document.querySelector('input[name=endAt]');
+          if (sIn) sIn.value = fmtLocal(start);
+          if (eIn) eIn.value = fmtLocal(end);
+        }, 200);
+      } else if (type === 'task' && window.WS_MODALS) {
+        window.WS_MODALS.openNewTaskModal();
+        /* 마감일 자동 채움 */
+        setTimeout(() => {
+          const dueIn = document.querySelector('input[name=dueDate]');
+          if (dueIn) {
+            const pad2 = (n) => String(n).padStart(2, '0');
+            dueIn.value = `${start.getFullYear()}-${pad2(start.getMonth()+1)}-${pad2(start.getDate())}T${pad2(start.getHours())}:${pad2(start.getMinutes())}`;
+          }
+        }, 200);
+      }
+    });
+    /* 모달 닫힌 후 캘린더 새로고침 (workspace:reload 이벤트 활용) */
+    window.addEventListener('workspace:reload', () => {
+      try { STATE.calendar?.refetchEvents(); } catch (_) {}
+    }, { once: true });
   }
 
   /* ═══════════════════ 이벤트 바인딩 ═══════════════════ */
