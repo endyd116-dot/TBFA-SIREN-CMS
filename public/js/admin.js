@@ -604,7 +604,7 @@ const OPERATOR_CATEGORIES = [
     /* 검색 결과 카운트 */
     const countEl = document.getElementById('mmCount');
     if (countEl) {
-      if (q || t || s || cat || sub || src) {
+      if (q || t || s || cat || sub) {
         countEl.textContent = `필터: ${_currentMembers.length}건 / 전체 ${_currentMembersTotal.toLocaleString()}명`;
       } else {
         countEl.textContent = `전체 ${_currentMembersTotal.toLocaleString()}명`;
