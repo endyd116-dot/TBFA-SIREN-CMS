@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
 | 2026-05-12 | **메인** | **Phase 21 R1 ✅ 100% 마감 + R2+R3 트리거 준비 완료** — C 검증(e0bc08c) Q1~Q10 PASS + BUG-21R1-01/02 fix 흡수(e714fd7) / 회귀 0 / 보고서 `docs/verify/2026-05-12-phase21-r1.md` / R2+R3 통합 설계서(0ec11c9) + R4 결정 4건 완료 / A·B 신규 워크트리 전환·트리거 가능 |
 | 2026-05-12 | **메인** | **Phase 21 R1 B·A 머지 완료 → C 트리거** — B(b044382: admin-workspace-tasks activityLog 50건) 머지(2e62ee3) / A(db0a8c0: 5페이지 사이드바·칸반→WBS·통합 모달·BroadcastChannel·#task hash·타임라인) 머지(88d9b38) / 충돌 0 / R2·R3 결정 7건 확정(설계서는 R1 마감 후 작성) |
 | 2026-05-12 | **메인** | **Phase 21 R1 설계서 push + B·A 트리거 준비 완료** — 카탈로그(2026-05-12-phase21-workspace-v3-catalog.md) + R1 설계서(2026-05-12-phase21-r1-wbs-bridge.md) push (36d5dec) / 옛 phase21-front·back 백업(backup/phase21-phone-mask-*) + worktree A·B를 feature/phase21-r1-{front,back}으로 전환 / 베이스 main @ 36d5dec |
@@ -63,7 +64,10 @@
    └─ D: 휴면
    메인: A·B 트리거 → B 1차 머지 → Swain 마이그 호출 → B 2차 + A 머지 → C 검증
 
-🟡 R3'(원래 R4) — R4 결정 4건 완료 / 정식 설계서는 R2+R3 마감 후 작성
+🟡 R4 — 정식 설계서 작성 완료 (R2+R3 마감 후 트리거)
+   설계서: docs/milestones/2026-05-12-phase21-r4-calendar-search.md
+   범위: 캘린더 YIQ·빈 셀 3옵션·메모 미러링 / 메모 시간 필드 / 활동 피드 자연어·그룹핑 / 업무 템플릿 10종 시드 / 자연어 검색(키워드+AI 하이브리드) / 사용자별 기본 보기 모드(WBS)
+   모드: 평행 (단계머지 불필요)
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
@@ -130,7 +134,7 @@
 | **Phase 18 성능 최적화** | 🟡 설계서 완성 / B 구현 진행 중 (feature/phase18-performance) |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
 | **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
-| **Phase 21 워크스페이스 v3 + 서비스 연동** | 🔵 R1 ✅ 100% (Q1~Q10 PASS + BUG-21R1-01/02 fix, 보고서 `docs/verify/2026-05-12-phase21-r1.md`) / R2+R3 통합 설계서 완성([R2R3](docs/milestones/2026-05-12-phase21-r2-r3-assign-sync.md)) — A·B 트리거 가능 / R3'(원래 R4) 결정 4건 완료 |
+| **Phase 21 워크스페이스 v3 + 서비스 연동** | 🔵 R1 ✅ 100% (Q1~Q10 PASS + BUG-21R1-01/02 fix, 보고서 `docs/verify/2026-05-12-phase21-r1.md`) / R2+R3 통합 설계서([R2R3](docs/milestones/2026-05-12-phase21-r2-r3-assign-sync.md)) — A·B 트리거 가능 / R4 정식 설계서([R4](docs/milestones/2026-05-12-phase21-r4-calendar-search.md)) 사전 작성 완료 |
 | Phase 22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 
 **누적**: 약 47% / 약 450h+
