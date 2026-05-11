@@ -275,6 +275,16 @@ export const members = pgTable("members", {
   /* ───────── ★ Phase 17 — 보안·감사 고도화 ───────── */
   loginFailStreak: integer("login_fail_streak").default(0),
 
+  /* ───────── ★ Phase 21 R2+R3 — 운영자 부재 토글 ─────────
+   * outOfOffice: 현재 부재 여부 (마이그·쿼리 시점 계산으로도 가능)
+   * outOfOfficeStart/End: 부재 예약 기간 (포함 ~ 포함)
+   * outOfOfficeNote: "휴가/교육/병가" 등 사유 자유 메모
+   */
+  outOfOffice: boolean("out_of_office").default(false).notNull(),
+  outOfOfficeStart: date("out_of_office_start"),
+  outOfOfficeEnd: date("out_of_office_end"),
+  outOfOfficeNote: text("out_of_office_note"),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -410,6 +420,14 @@ export const supportRequests = pgTable("support_requests", {
   answeredAt: timestamp("answered_at"),
   priority: varchar("priority", { length: 10 }),
   priorityReason: text("priority_reason"),
+
+  /* ───────── ★ Phase 21 R2+R3 — 워크스페이스 연동 (assignedMemberId와 별개) ─────────
+   * assignedAdminId: 운영자 풀에서 R&R 기반 자동 할당된 1차 담당자
+   * 사용자/전문가 매칭은 기존 assignedMemberId가 그대로 담당
+   */
+  assignedAdminId: integer("assigned_admin_id").references(() => members.id, { onDelete: "set null" }),
+  workspaceTaskId: integer("workspace_task_id"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -418,6 +436,7 @@ export const supportRequests = pgTable("support_requests", {
   categoryIdx: index("support_category_idx").on(t.category),
   requestNoIdx: index("support_request_no_idx").on(t.requestNo),
   priorityIdx: index("support_priority_idx").on(t.priority),
+  assignedAdminIdx: index("support_assigned_admin_idx").on(t.assignedAdminId),
 }));
 
 /* =========================================================
@@ -789,6 +808,16 @@ export const incidentReports = pgTable("incident_reports", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+
+  /* ───────── ★ Phase 21 R2+R3 — 워크스페이스 연동 + 카테고리 ─────────
+   * assignedTo: R&R 기반 자동 할당된 운영자
+   * workspaceTaskId: 자동 생성된 카드 (양방향 동기화)
+   * category: "school_violence" | "neighborhood_conflict" | "traffic_accident" | "other"
+   */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  workspaceTaskId: integer("workspace_task_id"),
+  category: varchar("category", { length: 30 }),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -797,6 +826,7 @@ export const incidentReports = pgTable("incident_reports", {
   memberIdx: index("incident_reports_member_idx").on(t.memberId),
   statusIdx: index("incident_reports_status_idx").on(t.status),
   severityIdx: index("incident_reports_severity_idx").on(t.aiSeverity),
+  assignedToIdx: index("incident_reports_assigned_idx").on(t.assignedTo),
 }));
 
 /* =========================================================
@@ -831,6 +861,11 @@ export const harassmentReports = pgTable("harassment_reports", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+
+  /* ───────── ★ Phase 21 R2+R3 — 워크스페이스 연동 ───────── */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  workspaceTaskId: integer("workspace_task_id"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -839,6 +874,7 @@ export const harassmentReports = pgTable("harassment_reports", {
   statusIdx: index("harassment_reports_status_idx").on(t.status),
   severityIdx: index("harassment_reports_severity_idx").on(t.aiSeverity),
   categoryIdx: index("harassment_reports_category_idx").on(t.category),
+  assignedToIdx: index("harassment_reports_assigned_idx").on(t.assignedTo),
 }));
 
 /* =========================================================
@@ -877,6 +913,14 @@ export const legalConsultations = pgTable("legal_consultations", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+
+  /* ───────── ★ Phase 21 R2+R3 — 워크스페이스 연동 (assignedLawyerId와 별개) ─────────
+   * assignedTo: 운영자 풀에서 R&R 기반 자동 할당된 1차 담당자 (변호사 X)
+   * 변호사 매칭은 기존 assignedLawyerId가 그대로 담당
+   */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  workspaceTaskId: integer("workspace_task_id"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -885,6 +929,7 @@ export const legalConsultations = pgTable("legal_consultations", {
   statusIdx: index("legal_consultations_status_idx").on(t.status),
   urgencyIdx: index("legal_consultations_urgency_idx").on(t.aiUrgency),
   categoryIdx: index("legal_consultations_category_idx").on(t.category),
+  assignedToIdx: index("legal_consultations_assigned_idx").on(t.assignedTo),
 }));
 
 /* =========================================================
@@ -1694,10 +1739,17 @@ export const workspaceNotifications = pgTable("workspace_notifications", {
   deliveryStatus: varchar("delivery_status", { length: 20 }).default("sent").notNull(),
     // 'sent' | 'delivered' | 'failed'
   errorMessage: text("error_message"),
+
+  /* ───────── ★ Phase 21 R2+R3 — 알림 분류 ─────────
+   * category: 'assign' | 'due' | 'mention' | 'transfer' | 'watcher' | 'system'
+   * (notifType과 별개 의미 — notifType은 알림 발송 종류, category는 UI 분류용)
+   */
+  category: varchar("category", { length: 20 }),
 }, (t) => ({
   memberIdx: index("ws_notifs_member_idx").on(t.memberId, t.readAt),
   sourceIdx: index("ws_notifs_source_idx").on(t.sourceType, t.sourceId),
   typeIdx: index("ws_notifs_type_idx").on(t.notifType),
+  categoryIdx: index("ws_notifs_category_idx").on(t.category),
 }));
 
 export type WorkspaceNotification = typeof workspaceNotifications.$inferSelect;
@@ -2565,7 +2617,7 @@ export type NewPotentialDonor = typeof potentialDonors.$inferInsert;
    ⚠️ 아래 신규 테이블·컬럼 정의는 마이그(migrate-phase21-r2r3) 호출 후 활성화.
    ========================================================= */
 
-/* ----- 1) 카드 이관 이력 (토스) -----
+/* ----- 1) 카드 이관 이력 (토스) ----- */
 export const workspaceTaskTransfers = pgTable("workspace_task_transfers", {
   id:            bigserial("id", { mode: "number" }).primaryKey(),
   taskId:        integer("task_id").notNull().references(() => workspaceTasks.id, { onDelete: "cascade" }),
@@ -2581,9 +2633,8 @@ export const workspaceTaskTransfers = pgTable("workspace_task_transfers", {
 }));
 export type WorkspaceTaskTransfer    = typeof workspaceTaskTransfers.$inferSelect;
 export type NewWorkspaceTaskTransfer = typeof workspaceTaskTransfers.$inferInsert;
-*/
 
-/* ----- 2) 카드 워처 (관찰자) -----
+/* ----- 2) 카드 워처 (관찰자) ----- */
 export const workspaceTaskWatchers = pgTable("workspace_task_watchers", {
   id:        bigserial("id", { mode: "number" }).primaryKey(),
   taskId:    integer("task_id").notNull().references(() => workspaceTasks.id, { onDelete: "cascade" }),
@@ -2596,11 +2647,10 @@ export const workspaceTaskWatchers = pgTable("workspace_task_watchers", {
 }));
 export type WorkspaceTaskWatcher    = typeof workspaceTaskWatchers.$inferSelect;
 export type NewWorkspaceTaskWatcher = typeof workspaceTaskWatchers.$inferInsert;
-*/
 
 /* ----- 3) R&R 매핑 (서비스 유형 × 1차+백업) -----
    serviceKind: "incident" | "harassment" | "legal" | "support" | "_global"
-   serviceCategory: enum 값, null(대분류), 또는 "_fallback"(Fallback 슬롯)
+   serviceCategory: enum 값, null(대분류), 또는 "_fallback"(Fallback 슬롯) */
 export const serviceRnr = pgTable("service_rnr", {
   id:               bigserial("id", { mode: "number" }).primaryKey(),
   serviceKind:      varchar("service_kind", { length: 20 }).notNull(),
@@ -2617,7 +2667,6 @@ export const serviceRnr = pgTable("service_rnr", {
 }));
 export type ServiceRnr    = typeof serviceRnr.$inferSelect;
 export type NewServiceRnr = typeof serviceRnr.$inferInsert;
-*/
 
 /* ----- 4) 기존 테이블 신규 컬럼 (마이그로 추가, schema 활성화 후 별도 PR로 컬럼 반영) -----
    members:
