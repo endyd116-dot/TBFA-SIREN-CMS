@@ -244,7 +244,8 @@
           assignedTo: fd.get('assignedTo') ? Number(fd.get('assignedTo')) : null,
           estimatedHours: fd.get('estimatedHours') ? Number(fd.get('estimatedHours')) : null,
         };
-        const res = await api(API_BASE + '/workspace-tasks', { method: 'POST', body });
+        /* 기존 API는 하이픈 명명 규칙(/api/admin-workspace-tasks) */
+        const res = await api('/api/admin-workspace-tasks', { method: 'POST', body });
         if (!res.ok) {
           toast('작업 생성 실패: ' + (res.data?.error || ''));
           return;
@@ -324,7 +325,7 @@
           location: String(fd.get('location') || '').trim() || null,
           description: String(fd.get('description') || '').trim() || null,
         };
-        const res = await api(API_BASE + '/workspace-events', { method: 'POST', body });
+        const res = await api('/api/admin-workspace-events', { method: 'POST', body });
         if (!res.ok) {
           toast('일정 등록 실패: ' + (res.data?.error || ''));
           return;
@@ -412,7 +413,7 @@
         };
         if (!body.contentHtml) { toast('내용을 입력하세요'); return; }
         if (body.showInCalendar && !body.startAt) { toast('캘린더 표시하려면 시작 시간이 필요해요'); return; }
-        const res = await api(API_BASE + '/workspace-memos', { method: 'POST', body });
+        const res = await api('/api/admin-workspace-memos', { method: 'POST', body });
         if (!res.ok) {
           toast('메모 저장 실패: ' + (res.data?.error || ''));
           return;
@@ -537,7 +538,8 @@
     const stat = document.getElementById('wsStatOutbox');
     if (!list) return;
     list.innerHTML = '<li class="ws-loading">불러오는 중...</li>';
-    const res = await api(API_BASE + '/workspace-tasks?filter=assigned-by-me&limit=10');
+    /* 기존 API는 list=1 + 하이픈 경로 */
+    const res = await api('/api/admin-workspace-tasks?list=1&filter=assigned-by-me&limit=10');
     if (!res.ok) {
       list.innerHTML = '<li class="ws-empty">조회 실패</li>';
       return;

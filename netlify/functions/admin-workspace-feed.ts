@@ -27,6 +27,7 @@ export const config = { path: "/api/admin/workspace-feed" };
 const ACTION_TEMPLATES: Record<string, { icon: string; verb: string }> = {
   "task.create":       { icon: "📝", verb: "{actor}님이 「{target}」 작업을 만들었어요" },
   "task.update":       { icon: "✏️", verb: "{actor}님이 「{target}」을 수정했어요" },
+  "task.status":       { icon: "🔄", verb: "{actor}님이 「{target}」 상태를 변경했어요" },
   "task.complete":     { icon: "✅", verb: "{actor}님이 「{target}」을 완료했어요" },
   "task.reopen":       { icon: "↩️", verb: "{actor}님이 「{target}」을 다시 진행 중으로 되돌렸어요" },
   "task.assign":       { icon: "🎯", verb: "{actor}님이 「{target}」을 {assignee}님에게 할당했어요" },
@@ -38,6 +39,10 @@ const ACTION_TEMPLATES: Record<string, { icon: string; verb: string }> = {
   "task.comment":      { icon: "💬", verb: "{actor}님이 「{target}」에 댓글을 남겼어요" },
   "task.mention":      { icon: "📣", verb: "{actor}님이 「{target}」에서 {assignee}님을 언급했어요" },
   "task.watch":        { icon: "👀", verb: "{actor}님이 「{target}」을 관전 중이에요" },
+  "task.bookmark":     { icon: "⭐", verb: "{actor}님이 「{target}」을 북마크했어요" },
+  "task.checklist.toggle": { icon: "✓", verb: "{actor}님이 「{target}」 체크리스트를 갱신했어요" },
+  "task.attachment":   { icon: "📎", verb: "{actor}님이 「{target}」에 파일을 연결했어요" },
+  "task.report":       { icon: "📊", verb: "{actor}님이 「{target}」에 보고서를 등록했어요" },
 
   "event.create":      { icon: "📅", verb: "{actor}님이 「{target}」 일정을 등록했어요" },
   "event.update":      { icon: "🗓", verb: "{actor}님이 「{target}」 일정을 수정했어요" },
