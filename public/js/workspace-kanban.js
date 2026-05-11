@@ -816,6 +816,11 @@
     openCardModal(Number(taskId));
   };
 
+  // R2 — 외부에서 보드 리로드 트리거 (토스 후 등)
+  window.wkReloadTasks = function () {
+    return loadTasks().catch(function (err) { console.warn('[wkReloadTasks]', err); });
+  };
+
   // loadTemplatesIntoSelect를 WorkspaceTaskModal에서 호출할 수 있도록 전역 노출
   window.wkLoadTemplatesIntoSelect = function () {
     loadTemplatesIntoSelect();
@@ -1098,6 +1103,27 @@
 
     // 백그라운드로 멤버 목록 로드 (멘션용)
     loadMembers();
+
+    // R2 — 담당자·워처·원본 서비스 영역 마운트 (task 자체 정보 + 워처 비동기 보강)
+    if (window.WorkspaceTaskModal && WorkspaceTaskModal.mountAssignBar) {
+      WorkspaceTaskModal._me = me;
+      WorkspaceTaskModal.mountAssignBar(task);
+
+      // 워처 상태를 별도 API로 확인 (task에 없을 수 있음)
+      if (task && task.id) {
+        api('/api/admin-workspace-task-watchers?taskId=' + task.id)
+          .then(function (res) {
+            const items = (res && res.data && res.data.items) || (res && res.items) || [];
+            const meId = me && me.id;
+            const isWatching = meId && Array.isArray(items) && items.some(function (w) {
+              return Number(w.watcherUid || w.uid) === Number(meId);
+            });
+            task.isWatchedByMe = !!isWatching;
+            WorkspaceTaskModal.mountAssignBar(task);
+          })
+          .catch(function (_) { /* mock 시점에는 실패 — 무시 */ });
+      }
+    }
   };
 
   async function loadMembers() {

@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=3">
 <link rel="stylesheet" href="/css/workspace-kanban.css?v=3">
+<link rel="stylesheet" href="/css/workspace-notifications.css?v=1">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 </head>
 
@@ -159,6 +160,26 @@
       <button class="wk-tab" data-tab="history" type="button">📜 히스토리</button>
       <button class="wk-tab" data-tab="ai" type="button">🤖 AI</button>
     </nav>
+
+    <!-- ─── Phase 21 R2: 담당자·워처·원본 서비스 영역 (개요 위 고정) ─── -->
+    <div class="wk-assign-bar" id="wkAssignBar" style="display:none">
+      <div class="wk-assign-info">
+        <span class="wk-assign-label">담당자</span>
+        <span class="wk-assign-name" id="wkAssignName">—</span>
+        <span class="wk-assign-chain" id="wkAssignChain"></span>
+      </div>
+      <div class="wk-assign-actions">
+        <button type="button" id="wkBtnWatcher" class="wk-btn-secondary wk-btn-watcher" title="이 작업 관찰하기">
+          <span id="wkBtnWatcherIcon">👁</span> <span id="wkBtnWatcherLabel">관찰하기</span>
+        </button>
+        <button type="button" id="wkBtnTransfer" class="wk-btn-secondary" title="다른 운영자에게 토스">
+          🔁 토스
+        </button>
+        <button type="button" id="wkBtnSourceService" class="wk-btn-secondary" style="display:none">
+          🔗 원본 서비스 보기
+        </button>
+      </div>
+    </div>
 
     <div class="wk-modal-body">
       <input type="hidden" id="wkCardId">
@@ -414,6 +435,35 @@
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════
+     모달: 작업 토스 (Phase 21 R2 — 다른 운영자에게 인계)
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wkTransferModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wkTransferModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2>🔁 작업 토스</h2>
+      <button class="wk-modal-close" data-close-modal="wkTransferModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="wkTransferTaskId">
+
+      <label class="wk-field-label">받는 사람 *</label>
+      <select id="wkTransferToUid" class="wk-input">
+        <option value="">— 운영자 선택 —</option>
+      </select>
+      <small class="wk-hint" id="wkTransferAwayHint" style="display:none;color:#a01e2c">부재 중 운영자에게 토스됩니다 ⚠️</small>
+
+      <label class="wk-field-label" style="margin-top:12px">사유 (선택)</label>
+      <textarea id="wkTransferReason" class="wk-textarea" rows="3" maxlength="500" placeholder="예: 휴가라 다른 분이 처리"></textarea>
+    </div>
+    <footer class="wk-modal-footer">
+      <button class="wk-btn-secondary" data-close-modal="wkTransferModal" type="button">취소</button>
+      <button id="wkTransferConfirm" class="wk-btn-primary" type="button">토스</button>
+    </footer>
+  </div>
+</div>
+
 <!-- 토스트 -->
 <div id="wkToastRoot" class="wk-toast-root"></div>
 
@@ -422,9 +472,9 @@
 
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
-<script src="/js/workspace-sync-channel.js?v=1" defer></script>
-<script src="/js/workspace-task-modal.js?v=2" defer></script>
-<script src="/js/workspace-kanban.js?v=7" defer></script>
+<script src="/js/workspace-sync-channel.js?v=2" defer></script>
+<script src="/js/workspace-task-modal.js?v=3" defer></script>
+<script src="/js/workspace-kanban.js?v=8" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 

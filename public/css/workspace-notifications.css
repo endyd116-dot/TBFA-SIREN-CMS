@@ -1,0 +1,313 @@
+/* Phase 21 R2/R3 — 워크스페이스 알림 드롭다운·페이지 + 토스·워처 UI 공통 스타일 */
+
+/* ─── 알림 벨 드롭다운 (workspace.html 우측상단) ─── */
+.ws-notif-bell { cursor: pointer; position: relative; }
+.ws-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+  overflow: hidden;
+}
+.ws-notif-dropdown[hidden] { display: none; }
+
+.ws-notif-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+.ws-notif-dropdown-title { font-weight: 600; font-size: 14px; color: #0f172a; }
+.ws-notif-mark-all {
+  background: none;
+  border: none;
+  font-size: 12.5px;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.ws-notif-mark-all:hover { background: #eff6ff; }
+
+.ws-notif-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.ws-notif-dropdown-empty,
+.ws-notif-item {
+  padding: 12px 16px;
+  font-size: 13px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+  border-bottom: 1px solid #f8fafc;
+}
+.ws-notif-dropdown-empty {
+  cursor: default;
+  color: #94a3b8;
+  text-align: center;
+  padding: 24px;
+}
+.ws-notif-item:hover { background: #f8fafc; }
+.ws-notif-item.is-unread { background: #fefce8; }
+.ws-notif-item.is-unread:hover { background: #fef9c3; }
+
+.ws-notif-dot {
+  width: 10px;
+  flex-shrink: 0;
+  color: #f59e0b;
+  font-size: 10px;
+  line-height: 18px;
+}
+.ws-notif-item.is-read .ws-notif-dot { color: #cbd5e1; }
+
+.ws-notif-body { flex: 1; min-width: 0; }
+.ws-notif-title {
+  font-weight: 500;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-notif-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+.ws-notif-time { white-space: nowrap; }
+.ws-notif-cat {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.ws-notif-cat-assign   { background: #dbeafe; color: #1e3a8a; }
+.ws-notif-cat-due      { background: #fee2e2; color: #991b1b; }
+.ws-notif-cat-mention  { background: #dcfce7; color: #14532d; }
+.ws-notif-cat-transfer { background: #ffedd5; color: #9a3412; }
+.ws-notif-cat-watcher  { background: #f1f5f9; color: #334155; }
+.ws-notif-cat-system   { background: #f5f5f4; color: #44403c; }
+
+.ws-notif-dropdown-footer {
+  padding: 10px 16px;
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+.ws-notif-dropdown-footer a {
+  font-size: 12.5px;
+  color: #2563eb;
+  text-decoration: none;
+}
+.ws-notif-dropdown-footer a:hover { text-decoration: underline; }
+
+/* ─── 알림 전체 보기 페이지 ─── */
+.wsn-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+.wsn-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.wsn-filter {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.15s;
+}
+.wsn-filter:hover { border-color: #94a3b8; }
+.wsn-filter.is-active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.wsn-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.wsn-toggle {
+  font-size: 12.5px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.wsn-btn-secondary {
+  padding: 7px 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.wsn-btn-secondary:hover { background: #f8fafc; }
+
+.wsn-list-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.wsn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.wsn-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+.wsn-item:last-child { border-bottom: none; }
+.wsn-item:hover { background: #f8fafc; }
+.wsn-item.is-unread { background: #fefce8; }
+.wsn-item.is-unread:hover { background: #fef9c3; }
+
+.wsn-dot {
+  width: 12px;
+  flex-shrink: 0;
+  color: #f59e0b;
+  font-size: 11px;
+  line-height: 20px;
+}
+.wsn-item.is-read .wsn-dot { color: #cbd5e1; }
+
+.wsn-body { flex: 1; min-width: 0; }
+.wsn-title { font-weight: 500; color: #0f172a; font-size: 14px; }
+.wsn-sub { font-size: 12.5px; color: #64748b; margin-top: 4px; }
+.wsn-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.wsn-empty {
+  list-style: none;
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.wsn-more {
+  padding: 16px;
+  text-align: center;
+}
+
+/* ─── 카드 모달 담당자·워처·원본 서비스 영역 ─── */
+.wk-assign-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+.wk-assign-info {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+  color: #0f172a;
+}
+.wk-assign-label { color: #64748b; font-weight: 500; }
+.wk-assign-name { font-weight: 600; }
+.wk-assign-chain {
+  font-size: 12px;
+  color: #475569;
+}
+.wk-chain-label { color: #94a3b8; }
+.wk-chain-step {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #0f172a;
+}
+.wk-chain-arrow { color: #94a3b8; margin: 0 2px; }
+
+.wk-assign-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.wk-btn-watcher[data-watching="1"] {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e3a8a;
+}
+
+/* ─── 미할당 패널 (워크툴) ─── */
+.ws-panel-unassigned .ws-panel-header h3 { color: #b91c1c; }
+.ws-panel-badge-alert {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ─── R&R 매핑 패널 (admin.html) ─── */
+.rnr-groups table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.rnr-groups th {
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 운영자 관리 R&R 탭 — 탭 호버 효과 */
+.op-tab:hover { color: #0f172a !important; }
+
+/* ─── 토스 모달 부재 안내 ─── */
+#wkTransferAwayHint {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  margin-top: 4px;
+  font-size: 12px;
+}
