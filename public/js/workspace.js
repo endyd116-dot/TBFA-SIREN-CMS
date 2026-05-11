@@ -323,11 +323,12 @@
       return;
     }
     ul.innerHTML = items.map(t => `
-      <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
+      <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}" data-source-type="${escapeHtml(t.sourceType || '')}" data-status="${escapeHtml(t.status || '')}">
         <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || '⚪'}</span>
         <div class="ws-task-body">
           <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
           <div class="ws-task-meta">
+            ${renderSourceBadge(t.sourceType)}
             ${fmtDueDate(t.dueDate)}
             ${t.status ? `<span class="ws-task-status ws-status-${escapeHtml(t.status)}">${STATUS_LABEL[t.status] || t.status}</span>` : ''}
             ${t.progress > 0 ? `<span class="ws-task-progress">${t.progress}%</span>` : ''}
@@ -335,6 +336,25 @@
         </div>
       </li>
     `).join('');
+  }
+
+  /* ★ 2026-05-12 v2 — 출처 배지 + 컬러 매핑 */
+  const SOURCE_META = {
+    incident:   { color: '#dc2626', bg: '#fee2e2', label: '🚨 SIREN-사건' },
+    harassment: { color: '#ea580c', bg: '#ffedd5', label: '⚠️ 악성민원' },
+    legal:      { color: '#7c3aed', bg: '#ede9fe', label: '⚖️ 법률' },
+    support:    { color: '#0891b2', bg: '#cffafe', label: '🎗 유족지원' },
+    donation:   { color: '#ca8a04', bg: '#fef9c3', label: '💝 후원' },
+    campaign:   { color: '#0d9488', bg: '#ccfbf1', label: '📣 캠페인' },
+    member:     { color: '#475569', bg: '#e2e8f0', label: '👤 회원' },
+    manual:     { color: '#71717a', bg: '#f4f4f5', label: '✍️ 수기' },
+    ai_agent:   { color: '#9333ea', bg: '#f3e8ff', label: '🤖 AI' },
+    recurring:  { color: '#16a34a', bg: '#dcfce7', label: '🔁 반복' },
+  };
+  function renderSourceBadge(sourceType) {
+    const m = SOURCE_META[sourceType];
+    if (!m) return '';
+    return `<span class="ws-src-badge" style="background:${m.bg};color:${m.color};border:1px solid ${m.color};padding:1px 6px;border-radius:8px;font-size:10.5px;font-weight:700">${m.label}</span>`;
   }
 
   function renderMyTasksError() {
@@ -353,11 +373,12 @@
       return;
     }
     ul.innerHTML = items.map(t => `
-      <li class="ws-task-card ws-inbox-card" data-id="${t.id}">
+      <li class="ws-task-card ws-inbox-card" data-id="${t.id}" data-source-type="${escapeHtml(t.sourceType || '')}">
         <span class="ws-task-priority">${PRIORITY_ICON[t.priority] || '⚪'}</span>
         <div class="ws-task-body">
           <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
           <div class="ws-task-meta">
+            ${renderSourceBadge(t.sourceType)}
             ${t.assignedByName ? `<span class="ws-task-from">📤 ${escapeHtml(t.assignedByName)}</span>` : ''}
             ${fmtDueDate(t.dueDate)}
           </div>

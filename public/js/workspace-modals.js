@@ -70,6 +70,20 @@
       #wsPanelOutbox .ws-task-main { flex:1;min-width:0 }
       #wsPanelOutbox .ws-task-title { font-size:13px;color:#1f2937;margin-bottom:2px }
       #wsPanelOutbox .ws-task-meta { font-size:11.5px;color:#6b7280 }
+      /* ★ 2026-05-12 v2 — 좌측 컬러 바 (sourceType/status 기반) */
+      .ws-task-card { position:relative;padding-left:14px !important }
+      .ws-task-card::before { content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;border-radius:2px;background:#d1d5db }
+      .ws-task-card[data-source-type=incident]::before { background:#dc2626 }
+      .ws-task-card[data-source-type=harassment]::before { background:#ea580c }
+      .ws-task-card[data-source-type=legal]::before { background:#7c3aed }
+      .ws-task-card[data-source-type=support]::before { background:#0891b2 }
+      .ws-task-card[data-source-type=donation]::before { background:#ca8a04 }
+      .ws-task-card[data-source-type=member]::before { background:#475569 }
+      .ws-task-card[data-source-type=manual]::before { background:#71717a }
+      .ws-task-card[data-source-type=ai_agent]::before { background:#9333ea }
+      .ws-task-card[data-status=done]::before { background:#10b981 !important;opacity:.5 }
+      .ws-inbox-card::before { background:#2563eb }
+      .ws-src-badge { display:inline-flex;align-items:center;margin-right:5px }
     `;
     const style = document.createElement('style');
     style.id = 'ws-modals-css';
