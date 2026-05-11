@@ -285,6 +285,12 @@ export const members = pgTable("members", {
   outOfOfficeEnd: date("out_of_office_end"),
   outOfOfficeNote: text("out_of_office_note"),
 
+  /* ───────── ★ Phase 21 R4 — WBS 기본 보기 모드 ─────────
+   * 'board' | 'list' | 'calendar' (기본값 'board')
+   * 운영자가 WBS 진입 시 자동 선택되는 보기 모드
+   */
+  defaultWbsView: varchar("default_wbs_view", { length: 20 }).default("board"),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1621,11 +1627,21 @@ export const workspaceMemos = pgTable("workspace_memos", {
   relatedTaskId: integer("related_task_id"),
   relatedEventId: integer("related_event_id"),
   attachments: jsonb("attachments").default(sql`'[]'::jsonb`),
+
+  /* ───────── ★ Phase 21 R4 — 캘린더 미러링 ─────────
+   * eventDate/eventTime: 메모를 캘린더에 표시할 때의 날짜·시각
+   * showInCalendar: 캘린더 표시 여부 (false면 메모 탭에만 보임)
+   */
+  eventDate: date("event_date"),
+  eventTime: time("event_time"),
+  showInCalendar: boolean("show_in_calendar").default(false).notNull(),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("workspace_memos_member_idx").on(t.memberId, t.sortOrder),
   pinnedIdx: index("workspace_memos_pinned_idx").on(t.isPinned),
+  calendarIdx: index("ws_memos_calendar_idx").on(t.showInCalendar, t.eventDate),
 }));
 
 // 3. 일정/이벤트
