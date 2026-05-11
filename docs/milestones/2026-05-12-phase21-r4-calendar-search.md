@@ -557,7 +557,74 @@ push 후 메인에 보고:
 영역: public/, assets/
 금지: lib/, netlify/functions/, db/, drizzle/, PROJECT_STATE.md, docs/HANDOFF.md, docs/
 
-모드: 평행 (B 머지 전이라도 mock 없이 빈 응답·기본값 fallback로 작업)
+모드: 평행 (B 머지 전이라도 mock 사용해 작업, B 머지 후 자동 동작)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+mock 데이터 (B 머지 전 사용 — 응답 키는 1글자도 안 바꿈)
+※ memory/feedback_design_routine.md §4 강제 — Sonnet은 설계서 끝까지 안 읽음. mock은 트리거에 직접 임베드해야 함.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/admin-workspace-memos?list=1
+{
+  "ok": true,
+  "data": {
+    "items": [
+      { "id": 12, "title": "예시 메모", "contentHtml": "<p>...</p>",
+        "showInCalendar": true, "eventDate": "2026-05-15", "eventTime": "14:00:00",
+        "color": "#fff3cd", "isPinned": false, "createdAt": "2026-05-12T03:00:00Z" }
+    ]
+  }
+}
+
+GET /api/admin-workspace-events?list=1&from=2026-05-01&to=2026-05-31&includeMemos=1
+{
+  "ok": true,
+  "data": {
+    "items": [
+      { "type": "event", "id": 7,  "title": "운영회의", "startAt": "2026-05-13T10:00:00", "endAt": "2026-05-13T11:00:00", "allDay": false },
+      { "type": "memo",  "id": 12, "title": "예시 메모", "startAt": "2026-05-15T14:00:00", "endAt": null, "allDay": false, "color": "#fff3cd", "isPinned": false }
+    ]
+  }
+}
+
+POST /api/admin-workspace-task-search  body: { "query": "이번주 마감 + 박OO 담당" }
+{
+  "ok": true,
+  "data": {
+    "items": [{ "id": 42, "title": "월간 보고서 작성", "assignedTo": 7, "assignedToName": "박OO", "dueDate": "2026-05-16", "status": "doing", "priority": "high" }],
+    "interpretedFilter": { "assigneeName": "박OO", "dueWithin": "thisweek" },
+    "aiCallDurationMs": 1234
+  }
+}
+
+GET /api/admin-user-preferences
+{
+  "ok": true,
+  "data": {
+    "outOfOffice": false, "outOfOfficeStart": null, "outOfOfficeEnd": null, "outOfOfficeNote": null,
+    "defaultWbsView": "board"
+  }
+}
+
+GET /api/admin-workspace-tasks?list=1&feed=1
+{
+  "ok": true,
+  "data": {
+    "items": [
+      { "id": 4567, "actionType": "task.transfer", "actorId": 7, "actorName": "김운영",
+        "targetType": "task", "targetId": 42, "targetTitle": "월간 보고서 작성",
+        "metadata": { "toName": "박OO" }, "groupKey": "today", "actionUrl": "/workspace-kanban.html#task=42",
+        "createdAt": "2026-05-12T05:10:00Z" }
+    ]
+  }
+}
+
+AI 검색 실패 시 응답:
+{
+  "ok": false,
+  "error": "AI 검색에 실패했어요. 키워드 검색을 사용해주세요.",
+  "step": "call_ai"
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §3 화면 체크리스트 (설계서 §3.1·§3.2·§3.3·§3.4·§3.5)

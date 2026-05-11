@@ -460,8 +460,11 @@ import { requireAdmin } from "../../lib/admin-guard";
 |---|---|
 | `CLAUDE.md` | 자동 로드 (다시 Read 금지 — 컨텍스트 이중 부담) |
 | `PROJECT_STATE.md` | **정독** (§1~§7) |
+| `MEMORY.md` 인덱스 | 자동 로드 — 인덱스에서 본인 작업과 관련된 메모는 **본문도 정독** (특히 `feedback_*.md`·`project_critical_*.md`) |
+| `memory/feedback_design_routine.md` | **새 라운드 설계 시작 시 정독 필수** — 트리거 작성 규칙·체크박스 패턴·mock 임베드 정책. 인덱스만 보면 패턴 빠뜨림(2026-05-12 사고 사례) |
 | `docs/HANDOFF.md` | **§3·§5·§7만 발췌** (limit/offset 사용, 전체 정독 X) |
 | `docs/PARALLEL_GUIDE.md` | **새 병렬 작업 분배 시에만** |
+| `docs/PARALLEL_TEMPLATE.md` | 새 라운드 설계 시 정독 |
 | `docs/PAGES.md` | 페이지 위치 헷갈릴 때만 |
 | `docs/handover/v*.md` | **자발적 안 읽음** (영구 archive) |
 
@@ -492,4 +495,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-12 (§9.1.9 메인 설계 사전 정독 의무화 + §13 체크리스트 2개 추가 — schema 격차 차단 + A·B 시작 프롬프트 체크박스 패턴 강제)
+**마지막 업데이트**: 2026-05-12 (§9.1.9 사전 정독 + §13 체크리스트 2개 + §14.1 memory 정독 정책 추가 — schema 격차 차단·체크박스 패턴·mock 트리거 임베드, memory/feedback_design_routine.md §4와 정합)
