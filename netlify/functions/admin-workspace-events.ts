@@ -174,6 +174,7 @@ export default async (req: Request, _ctx: Context) => {
         const mine = url.searchParams.get("mine") === "1";
         const attending = url.searchParams.get("attending") === "1";
         const type = url.searchParams.get("type");
+        const includeMemos = url.searchParams.get("includeMemos") === "1";
         const limit = Math.min(Number(url.searchParams.get("limit") || 200), 500);
 
         const conds: any[] = [];
@@ -194,13 +195,52 @@ export default async (req: Request, _ctx: Context) => {
         if (to) conds.push(lte(workspaceEvents.startAt, new Date(to)));
         if (type) conds.push(eq(workspaceEvents.eventType, type));
 
-        const items: any = await db
+        const eventItems: any = await db
           .select()
           .from(workspaceEvents)
           .where(and(...conds))
           .orderBy(asc(workspaceEvents.startAt))
           .limit(limit);
 
+        const typedEvents = eventItems.map((e: any) => ({ type: "event", ...e }));
+
+        // Phase 21 R4 — 메모 미러링 (includeMemos=1 + from/to 기간 내 showInCalendar=true 메모)
+        let memoItems: any[] = [];
+        if (includeMemos && from && to) {
+          try {
+            const memoRows: any = await db.execute(sql`
+              SELECT
+                id,
+                title,
+                color,
+                is_pinned AS "isPinned",
+                show_in_calendar AS "showInCalendar",
+                TO_CHAR(event_date, 'YYYY-MM-DD') AS "eventDate",
+                TO_CHAR(event_time, 'HH24:MI:SS') AS "eventTime"
+              FROM workspace_memos
+              WHERE member_id = ${meId}
+                AND show_in_calendar = TRUE
+                AND event_date BETWEEN ${from}::date AND ${to}::date
+              ORDER BY event_date ASC
+              LIMIT 500
+            `);
+            const rows = Array.isArray(memoRows) ? memoRows : (memoRows as any).rows || [];
+            memoItems = rows.map((m: any) => ({
+              type: "memo",
+              id: m.id,
+              title: m.title,
+              startAt: m.eventTime
+                ? `${m.eventDate}T${m.eventTime}`
+                : m.eventDate,
+              endAt: null,
+              allDay: !m.eventTime,
+              color: m.color || null,
+              isPinned: !!m.isPinned,
+            }));
+          } catch { /* 컬럼 미생성 시 빈 배열 */ }
+        }
+
+        const items = [...typedEvents, ...memoItems];
         return ok({ items, total: items.length });
       }
 

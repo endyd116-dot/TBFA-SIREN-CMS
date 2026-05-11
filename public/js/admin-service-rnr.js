@@ -127,6 +127,8 @@
       STATE.fallback = data.fallback || null;
       // B 응답: data.items[] (다른 API와 표준 일관)
       STATE.mappings = Array.isArray(data.items) ? data.items : (Array.isArray(data.mappings) ? data.mappings : []);
+      // B의 canEdit 응답을 안전망으로 사용 (admin/me 401·404 대비)
+      if (typeof data.canEdit === 'boolean') STATE.isEditor = data.canEdit;
     } catch (err) {
       console.warn('[rnr] load 실패:', err);
       STATE.fallback = null;
@@ -136,7 +138,8 @@
 
   async function detectEditor() {
     try {
-      const res = await api('/api/admin-me');
+      // 실제 라우트는 /api/admin/me (슬래시) — admin-me.ts:80
+      const res = await api('/api/admin/me');
       const me = (res && res.data) || res || {};
       STATE.isEditor = !!(me && (me.role === 'super_admin'));
     } catch (_) {

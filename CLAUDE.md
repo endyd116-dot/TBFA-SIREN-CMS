@@ -324,6 +324,17 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 **Why**: Swain은 비즈니스 결정자이지 코드 작성자가 아님. 함수·변수 용어로 설명받으면 무엇을 검증해야 하는지 한 번 더 번역해야 함 → 비효율·오해 위험.
 
+### 6.15 진행 중 채팅 알림 의무 (2026-05-12 Swain 추가)
+
+메인이 main에 commit·push할 때마다 진행 중인 A·B·C 채팅에 영향이 있으면 **알림 메시지(Swain 복붙용)를 응답에 포함**:
+
+- **알림 대상**: 해당 fix·정책이 A·B·C 영역과 관련된 모든 채팅
+- **알림 내용**: 커밋 해시·변경 영역·각 채팅 액션(fetch + merge origin/main / 회귀 영향 / 작업 계속)
+- **타이밍**: push 직후 같은 응답에 메시지 박아서 Swain이 즉시 복붙 가능하게
+- **예외**: 메인 자체 docs 갱신(PROJECT_STATE·HANDOFF)으로 A·B·C 코드 영향 0이면 생략 가능
+
+**Why**: 메인이 main에 fix push해도 A·B·C는 자기 worktree·브랜치에서 작업 중이라 main 갱신 모름 → push 시점에 잘못된 베이스로 충돌·회귀. C는 이미 fix된 BUG를 다시 보고할 위험. 2026-05-12 R&R 권한 fix(0dcb5e4) 사건이 계기.
+
 ---
 
 ## 7. AI 호출 정책
@@ -495,4 +506,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-12 (§9.1.9 사전 정독 + §13 체크리스트 2개 + §14.1 memory 정독 정책 추가 — schema 격차 차단·체크박스 패턴·mock 트리거 임베드, memory/feedback_design_routine.md §4와 정합)
+**마지막 업데이트**: 2026-05-12 (§9.1.9 사전 정독 + §13 체크리스트 2개 + §14.1 memory 정독 + §6.15 진행 중 채팅 알림 의무 — schema 격차·체크박스·mock 임베드·main fix 알림 4종 메타 정책 정착)
