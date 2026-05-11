@@ -17,12 +17,14 @@
 
 ### 1.2 기존 테이블 컬럼 추가
 
+> ⚠️ **R2+R3 마이그 적용 후 확인된 실제 schema 명명**: 별도 `admin_users` 테이블이 없고 `members` 테이블이 운영자 역할 겸함 (`members.role` + `members.operatorActive`). 모든 운영자 컬럼은 `members`에 추가.
+
 | 테이블 | 컬럼 | 타입 | 제약 | 용도 |
 |---|---|---|---|---|
 | `workspaceMemos` | `eventDate` | date | NULL | 캘린더 미러링용 날짜 (`showInCalendar=true`일 때만 의미) |
 | `workspaceMemos` | `eventTime` | time | NULL | 캘린더 미러링용 시각 (NULL이면 "종일" 표시) |
 | `workspaceMemos` | `showInCalendar` | boolean | default false NOT NULL | 캘린더에 표시 여부 |
-| `adminUsers` | `defaultWbsView` | varchar(20) | NULL · default 'board' | WBS 진입 시 기본 보기 모드: `'board'` / `'list'` / `'calendar'` |
+| `members` | `defaultWbsView` | varchar(20) | NULL · default `'board'` | WBS 진입 시 기본 보기 모드: `'board'` / `'list'` / `'calendar'` |
 
 ### 1.3 마이그레이션 SQL
 
@@ -35,31 +37,39 @@ ALTER TABLE workspace_memos ADD COLUMN IF NOT EXISTS event_time TIME;
 ALTER TABLE workspace_memos ADD COLUMN IF NOT EXISTS show_in_calendar BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS ws_memos_calendar_idx ON workspace_memos(show_in_calendar, event_date);
 
--- 2) admin_users 기본 보기 모드
-ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS default_wbs_view VARCHAR(20) DEFAULT 'board';
+-- 2) members.default_wbs_view (admin_users 없음 — members가 운영자 역할 겸함)
+ALTER TABLE members ADD COLUMN IF NOT EXISTS default_wbs_view VARCHAR(20) DEFAULT 'board';
 
--- 3) 업무 템플릿 10종 시드 (NPO 운영용 — 어드민이 마감 후 수정 가능)
+-- 3) 업무 템플릿 10종 시드 — name에 UNIQUE 제약 없으므로 ON CONFLICT 사용 불가
+--    멱등 보장 패턴: 같은 이름의 row가 없을 때만 INSERT
+--    defaultSubtasks/defaultTags는 NOT NULL이나 default '[]'이라 명시 시드 그대로 OK
+--    priority는 NOT NULL이지만 default 'normal' 적용
 INSERT INTO workspace_task_templates (name, default_subtasks, default_tags, estimated_hours)
-VALUES
-  ('회원 가입 검증',         '["증빙 자료 확인", "신원 대조", "승인 또는 반려 사유 기록"]'::jsonb, ARRAY['회원','검증'],     2),
-  ('후원자 감사 응대',       '["수납 확인", "감사 메일 작성", "발송"]'::jsonb,                  ARRAY['후원자','응대'],   1),
-  ('SIREN 신고 1차 검토',   '["신고 내용 정독", "심각도 분류", "담당 배정"]'::jsonb,           ARRAY['신고','검토'],     3),
-  ('법률 상담 매칭',         '["사건 유형 파악", "전문 변호사 추천", "연결 확정"]'::jsonb,     ARRAY['법률','매칭'],     2),
-  ('심리상담 매칭',         '["내담자 상태 파악", "상담사 추천", "예약 확정"]'::jsonb,        ARRAY['심리','매칭'],     2),
-  ('행사 기획',             '["일정 확정", "장소 섭외", "예산 작성", "참가자 안내"]'::jsonb,  ARRAY['행사','기획'],     8),
-  ('자료집 제작',           '["원고 정리", "디자인 의뢰", "교정", "인쇄"]'::jsonb,             ARRAY['자료집','제작'],  16),
-  ('정기 후원자 카드 만료', '["만료 카드 대상자 목록", "안내 발송", "재등록 확인"]'::jsonb,   ARRAY['후원자','카드'],   2),
-  ('CMS+ 이체 결과 확인',  '["실패 목록 추출", "원인 분류", "재청구 또는 응대"]'::jsonb,     ARRAY['CMS+','후원'],     3),
-  ('월간 보고서 작성',       '["KPI 집계", "이슈 정리", "다음 달 계획", "검토"]'::jsonb,       ARRAY['보고서'],          4)
-ON CONFLICT DO NOTHING;
+SELECT v.name, v.subtasks::jsonb, v.tags::jsonb, v.hours
+FROM (VALUES
+  ('회원 가입 검증',         '["증빙 자료 확인", "신원 대조", "승인 또는 반려 사유 기록"]', '["회원","검증"]',     2),
+  ('후원자 감사 응대',       '["수납 확인", "감사 메일 작성", "발송"]',                       '["후원자","응대"]',   1),
+  ('SIREN 신고 1차 검토',   '["신고 내용 정독", "심각도 분류", "담당 배정"]',                 '["신고","검토"]',     3),
+  ('법률 상담 매칭',         '["사건 유형 파악", "전문 변호사 추천", "연결 확정"]',           '["법률","매칭"]',     2),
+  ('심리상담 매칭',         '["내담자 상태 파악", "상담사 추천", "예약 확정"]',              '["심리","매칭"]',     2),
+  ('행사 기획',             '["일정 확정", "장소 섭외", "예산 작성", "참가자 안내"]',         '["행사","기획"]',     8),
+  ('자료집 제작',           '["원고 정리", "디자인 의뢰", "교정", "인쇄"]',                   '["자료집","제작"]',  16),
+  ('정기 후원자 카드 만료', '["만료 카드 대상자 목록", "안내 발송", "재등록 확인"]',         '["후원자","카드"]',   2),
+  ('CMS+ 이체 결과 확인',  '["실패 목록 추출", "원인 분류", "재청구 또는 응대"]',           '["CMS+","후원"]',     3),
+  ('월간 보고서 작성',       '["KPI 집계", "이슈 정리", "다음 달 계획", "검토"]',             '["보고서"]',          4)
+) AS v(name, subtasks, tags, hours)
+WHERE NOT EXISTS (
+  SELECT 1 FROM workspace_task_templates t WHERE t.name = v.name
+);
 ```
 
 ### 1.4 schema.ts import 점검
 
-- [ ] `time` 타입 import 누락 점검 (없으면 추가 — `import { time } from "drizzle-orm/pg-core"`)
+- [ ] `time` 타입 import 누락 점검 (`date`는 R2+R3에서 이미 import 추가됨)
 - [ ] DB 적용 전 schema 정의는 **주석 처리** (마이그 후 활성화)
-- [ ] append-only — 파일 끝에 `/* === Phase 21 R4 === */` 헤더 후 추가
-- [ ] 템플릿 시드 후 `workspace_task_templates` count 확인 (R2+R3에서 변경 없으면 0건 → 10건)
+- [ ] append-only — 파일 끝에 `/* === Phase 21 R4 === */` 헤더 후 추가 (R2+R3 섹션 아래)
+- [ ] 신규 컬럼은 기존 `members` / `workspaceMemos` 정의 안에 직접 추가
+- [ ] 템플릿 시드 후 `workspace_task_templates` count 확인 (R2+R3 시점에 1건이었음 → +10건 = 11건 기대. 기존 1건과 이름 겹치지 않게 주의)
 
 ---
 
