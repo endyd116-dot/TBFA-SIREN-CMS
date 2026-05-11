@@ -130,7 +130,7 @@
             <div class="wsn-title">${escapeHtml(n.title || n.message || '알림')}</div>
             ${n.subtitle ? `<div class="wsn-sub">${escapeHtml(n.subtitle)}</div>` : ''}
             <div class="wsn-meta">
-              <span class="wsn-time">${escapeHtml(timeAgo(n.createdAt))}</span>
+              <span class="wsn-time">${escapeHtml(timeAgo(n.sentAt || n.createdAt))}</span>
               <span class="ws-notif-cat ${cat.cls}">${escapeHtml(cat.label)}</span>
             </div>
           </div>

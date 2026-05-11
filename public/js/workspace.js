@@ -1259,7 +1259,7 @@
             <div class="ws-notif-body">
               <div class="ws-notif-title">${escapeHtml(n.title || n.message || '알림')}</div>
               <div class="ws-notif-meta">
-                <span class="ws-notif-time">${escapeHtml(timeAgo(n.createdAt))}</span>
+                <span class="ws-notif-time">${escapeHtml(timeAgo(n.sentAt || n.createdAt))}</span>
                 <span class="ws-notif-cat ${cat.cls}">${escapeHtml(cat.label)}</span>
               </div>
             </div>
