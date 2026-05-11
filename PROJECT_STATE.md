@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-12 | **메인** | **싸이렌 어드민 4건 fix ✅ 완료** — Bug-A1(src 미정의 ReferenceError·bea850a) / Bug-A2(증빙파일 컬럼 추가·2509d79) / Bug-A3(외부기관 init+SQL fix·2509d79) / Bug-A4(page.* 시드 완료·진단함수 삭제·89f158c) / Swain 검증 대기 |
 | 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
 | 2026-05-12 | **메인** | **싸이렌 어드민 4건 fix 설계서 작성** — 메인 단독 작업용 / docs/milestones/2026-05-12-siren-admin-fixes.md / 4건(가입회원 멈춤·자격승인 증빙·외부기관 무반응·정적페이지) 사전 진단 완료 (Subagent) / 새 세션에서 진행 |
 | 2026-05-12 | **메인** | **🎉 Phase 21 워크스페이스 v3 + 서비스 연동 ✅ 100% 마감** — R1·R2+R3·R4 3개 라운드 완료 / R4 C 검증(545644d) Q1~Q18 PASS + BUG-21R4-01(활동 피드 클릭 이동) fix 흡수(c1d8d16) / 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1.md·r2r3.md·r4.md / Phase 21 전체 약 23h (메인 5h / B 13.5h / A 17h / C 7h, 추정 대비 정확) |
 | 2026-05-12 | **메인** | **Phase 21 R2+R3 ✅ 100% 마감 + §6.15 진행 중 채팅 알림 의무 신설** — C 검증(4ca61df) Q1~Q16 PASS + BUG-21R2R3-01(알림 시간 표시) fix 흡수(cb68157) / 메인 사전 fix BUG-R2R3-01(R&R 권한, 0dcb5e4) 흡수 / 회귀 0 / 보고서 `docs/verify/2026-05-12-phase21-r2r3.md` / CLAUDE §6.15 메인 push 알림 의무 정착 |
-| 2026-05-12 | **메인** | **R4 B·A 트리거 동시 발송 (R2+R3 C 검증과 평행)** — worktree A·B를 feature/phase21-r4-{front,back}으로 전환 (베이스 c00d530) / 설계서 §6.2·§6.3 체크박스+mock 임베드 적용 / 영역 분리로 R2+R3 C 검증과 충돌 위험 미미 / R2+R3 C fix 시 R4 브랜치 main rebase 안내 |
 | 2026-05-12 | **메인** | **Phase 21 R2+R3 B 2차 + A 머지 완료 → C 트리거** — B 2차(007ce58): lib/workspace-sync 6함수 + API 7개 + 4종 hook + cron / A(b7b072a): 신규 6 + 수정 10 / fix(3e2b8d8): admin-service-rnr.js `data.mappings`→`data.items` 정합 / 응답 키 5개 1:1 일치 확인 / C 검증 트리거 가능 |
 | 2026-05-12 | **메인** | **메타 정책 4종 정착** — §9.1.9 사전 정독(2190c92) / §6 체크박스 패턴(37d55db) / memory §4와 mock 트리거 임베드 정합(d45d290) / R4 설계서 사전 정정 (adminUsers→members + 템플릿 멱등) — 다음 라운드부터 schema 격차 패턴 차단 |
 | 2026-05-12 | **메인** | **Phase 21 R1 ✅ 100% 마감 + R2+R3 트리거 준비 완료** — C 검증(e0bc08c) Q1~Q10 PASS + BUG-21R1-01/02 fix 흡수(e714fd7) / 회귀 0 / 보고서 `docs/verify/2026-05-12-phase21-r1.md` / R2+R3 통합 설계서(0ec11c9) + R4 결정 4건 완료 / A·B 신규 워크트리 전환·트리거 가능 |
@@ -70,12 +70,11 @@
    - 어드민이 운영자 관리 → R&R 매핑 탭에서 Fallback 담당자 + 카테고리별 1차/백업 시드
    - 마이페이지에서 본인 부재 일정·WBS 기본 보기 모드 설정 가능
 
-⏸ 다음 작업 — 싸이렌 어드민 4건 fix (메인 단독)
-   설계서: docs/milestones/2026-05-12-siren-admin-fixes.md
-   범위: Bug-A1 가입회원 멈춤 / Bug-A2 자격승인 증빙 / Bug-A3 외부기관 무반응 / Bug-A4 정적페이지
-   모드: 메인 단독 (A·B·C 미사용), 새 세션에서 진행
-   추정: 1~3h
-   §1에 4건 사전 진단 결과 정리 — 새 세션이 정독 후 바로 작업
+✅ 싸이렌 어드민 4건 fix — 완료 (2026-05-12, Swain 검증 대기)
+   Bug-A1: src 미정의 ReferenceError 제거 (bea850a)
+   Bug-A2: 증빙파일 다운로드 컬럼 추가 (2509d79)
+   Bug-A3: 외부기관 init+SQL 정상화 (2509d79)
+   Bug-A4: page.* 시드 완료 + 진단함수 삭제 (89f158c)
 
 ⏸ 다른 후보 (별도 세션·합의 필요)
    - Phase 17 C 검증 미진행 (2026-05-11 잔재)
@@ -156,7 +155,7 @@
 | **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | Phase 22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
-| **싸이렌 어드민 4건 fix** | ⏸ 메인 단독 작업 / 설계서 완성 ([2026-05-12-siren-admin-fixes.md](docs/milestones/2026-05-12-siren-admin-fixes.md)) / 새 세션에서 진행 / Bug-A1~A4 사전 진단 완료 |
+| **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
 
 **누적**: 약 47% / 약 450h+
 
