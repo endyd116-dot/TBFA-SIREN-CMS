@@ -842,6 +842,9 @@
           <!-- Phase 21 R3: 운영자 부재 토글 카드 (운영자에게만 자동 표시 — mypage-out-of-office.js가 마운트) -->
           <div id="mpOutOfOfficeCard" style="display:none"></div>
 
+          <!-- Phase 21 R4: WBS 기본 보기 모드 카드 (운영자에게만 자동 표시) -->
+          <div id="mpWbsViewCard" style="display:none"></div>
+
           <!-- 1. 내 후원 내역 -->
             <div class="mp-panel" data-mp-panel="donations">
                  <h3 class="serif">내 후원 내역</h3>
@@ -1211,8 +1214,8 @@
   <script src="/js/mypage-expert-match.js?v=2026-05-11-phase15"></script>
   <!-- Phase 15: 매칭 종결 별점 피드백 -->
   <script src="/js/mypage-match-feedback.js?v=2026-05-11-phase15"></script>
-  <!-- Phase 21 R3: 운영자 부재 토글 카드 (운영자만 자동 마운트) -->
-  <script src="/js/mypage-out-of-office.js?v=1" defer></script>
+  <!-- Phase 21 R3+R4: 운영자 부재 토글 + WBS 기본 보기 모드 카드 (운영자만 자동 마운트) -->
+  <script src="/js/mypage-out-of-office.js?v=2" defer></script>
 
   <script>
     const __mpPrevInit = window.SIREN_PAGE_INIT;

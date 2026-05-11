@@ -1,20 +1,34 @@
 /**
- * Phase 3 Step 7-C.3 — 캘린더 뷰
+ * Phase 21 R4 — 캘린더 뷰 (v3)
  *
- * 작업 마감일(workspace_tasks.dueDate)과 일정(workspace_events)을 통합 표시.
+ * 작업 마감일(workspace_tasks.dueDate) + 일정(workspace_events) + 메모(showInCalendar=true) 통합 표시.
  * FullCalendar 6 (3중 CDN fallback) 기반.
+ *
+ * R4 추가:
+ *  - YIQ 명도 대비 자동 텍스트 색상
+ *  - dateClick → 3옵션 팝업 (업무/일정/메모)
+ *  - loadEvents에 includeMemos=1 파라미터
  */
 (function () {
   'use strict';
+
+  // mock 데이터 (B 머지 전 사용 — B 머지 후 실제 API 응답으로 자동 대체)
+  const MOCK_EVENTS = [
+    { type: 'event', id: 7,  title: '운영회의', startAt: '2026-05-13T10:00:00', endAt: '2026-05-13T11:00:00', allDay: false },
+    { type: 'memo',  id: 12, title: '예시 메모', startAt: '2026-05-15T14:00:00', endAt: null, allDay: false, color: '#fff3cd', isPinned: false },
+  ];
 
   const STATE = {
     calendar: null,
     me: null,
     showTasks: true,
     showEvents: true,
+    showMemos: true,
     scope: 'mine',     // mine | all
     rangeStart: null,
     rangeEnd: null,
+    // 빈 셀 클릭 팝업 DOM
+    datePopup: null,
   };
 
   function $(s, root = document) { return root.querySelector(s); }
@@ -71,6 +85,18 @@
     });
   }
 
+  /* ═══════════════════ YIQ 텍스트 색상 ═══════════════════ */
+  function yiqTextColor(bgHex) {
+    if (!bgHex || bgHex.length < 7) return '#fff';
+    try {
+      const r = parseInt(bgHex.slice(1, 3), 16);
+      const g = parseInt(bgHex.slice(3, 5), 16);
+      const b = parseInt(bgHex.slice(5, 7), 16);
+      const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+      return yiq >= 128 ? '#000' : '#fff';
+    } catch (_) { return '#fff'; }
+  }
+
   /* ═══════════════════ 데이터 로드 ═══════════════════ */
   async function fetchEvents(start, end) {
     STATE.rangeStart = start;
@@ -78,7 +104,7 @@
     const promises = [];
 
     if (STATE.showTasks) promises.push(loadTasks(start, end));
-    if (STATE.showEvents) promises.push(loadEvents(start, end));
+    promises.push(loadEventsAndMemos(start, end));  // 일정 + 메모 통합 (showEvents / showMemos 내부 적용)
 
     const results = await Promise.allSettled(promises);
     const all = [];
@@ -121,7 +147,7 @@
     }
   }
 
-  async function loadEvents(start, end) {
+  async function loadEventsAndMemos(start, end) {
     const startDate = (start instanceof Date ? start : new Date(start)).toISOString().slice(0, 10);
     const endDate = (end instanceof Date ? end : new Date(end)).toISOString().slice(0, 10);
     const params = new URLSearchParams();
@@ -129,32 +155,161 @@
     params.set('from', startDate);
     params.set('to', endDate);
     if (STATE.scope === 'mine') params.set('mine', '1');
+    if (STATE.showMemos) params.set('includeMemos', '1');
+
     try {
       const res = await api(`/api/admin-workspace-events?${params}`);
       const items = res.data?.items || res.data || [];
-      return items.map(ev => {
-        const cls = ev.eventType && ev.eventType !== 'general'
-          ? `wc-ev-event-${ev.eventType}`
-          : 'wc-ev-event';
-        return {
-          id: `event-${ev.id}`,
-          title: `[일정] ${ev.title}`,
-          start: ev.startAt,
-          end: ev.endAt,
-          allDay: !!ev.allDay,
-          classNames: [cls],
-          extendedProps: {
-            type: 'event',
-            eventId: ev.id,
-            location: ev.location,
-            description: ev.description,
-            eventType: ev.eventType,
-          },
-        };
-      });
+      const result = [];
+
+      for (const row of items) {
+        if (row.type === 'memo') {
+          // 메모 미러링 row — B 머지 후 실제 row, 전/mock 데이터
+          if (!STATE.showMemos) continue;
+          const bgColor = row.color || '#fff3cd';
+          result.push({
+            id: `memo-${row.id}`,
+            title: `📝 ${row.title || '(메모)'}`,
+            start: row.startAt,
+            end: row.endAt || undefined,
+            allDay: !!row.allDay,
+            backgroundColor: bgColor,
+            borderColor: bgColor,
+            textColor: yiqTextColor(bgColor),
+            classNames: ['wc-ev-memo'],
+            extendedProps: {
+              type: 'memo',
+              memoId: row.id,
+              isPinned: row.isPinned,
+              color: bgColor,
+            },
+          });
+        } else {
+          // 일정 row
+          if (!STATE.showEvents) continue;
+          const cls = row.eventType && row.eventType !== 'general'
+            ? `wc-ev-event-${row.eventType}`
+            : 'wc-ev-event';
+          result.push({
+            id: `event-${row.id}`,
+            title: `[일정] ${row.title}`,
+            start: row.startAt,
+            end: row.endAt,
+            allDay: !!row.allDay,
+            classNames: [cls],
+            extendedProps: {
+              type: 'event',
+              eventId: row.id,
+              location: row.location,
+              description: row.description,
+              eventType: row.eventType,
+            },
+          });
+        }
+      }
+      return result;
     } catch (err) {
-      console.warn('[calendar] events 로드 실패:', err);
-      return [];
+      // API 미존재(B 머지 전) 시 mock 데이터로 폴백
+      console.warn('[calendar] events/memos 로드 실패 — mock 사용:', err);
+      return MOCK_EVENTS.map(row => {
+        if (row.type === 'memo') {
+          if (!STATE.showMemos) return null;
+          const bgColor = row.color || '#fff3cd';
+          return {
+            id: `memo-${row.id}`,
+            title: `📝 ${row.title}`,
+            start: row.startAt,
+            allDay: !!row.allDay,
+            backgroundColor: bgColor,
+            borderColor: bgColor,
+            textColor: yiqTextColor(bgColor),
+            classNames: ['wc-ev-memo'],
+            extendedProps: { type: 'memo', memoId: row.id, color: bgColor },
+          };
+        }
+        if (!STATE.showEvents) return null;
+        return {
+          id: `event-${row.id}`,
+          title: `[일정] ${row.title}`,
+          start: row.startAt,
+          end: row.endAt,
+          allDay: !!row.allDay,
+          classNames: ['wc-ev-event'],
+          extendedProps: { type: 'event', eventId: row.id },
+        };
+      }).filter(Boolean);
+    }
+  }
+
+  /* ═══════════════════ 날짜 팝업 (빈 셀 클릭 3옵션) ═══════════════════ */
+  function showDatePopup(dateStr, anchorEl) {
+    closeDatePopup();
+
+    const popup = document.createElement('div');
+    popup.id = 'wcDatePopup';
+    popup.style.cssText = `
+      position:absolute;z-index:8000;background:#fff;border:1px solid #e2e8f0;
+      border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:8px 0;min-width:160px;
+    `;
+    popup.innerHTML = `
+      <div style="padding:6px 14px;font-size:11.5px;color:#94a3b8;font-weight:600;border-bottom:1px solid #f1f5f9;margin-bottom:4px">
+        이 날짜에 추가
+      </div>
+      <button class="wc-popup-btn" data-action="task"  style="${popBtnStyle()}">➕ 업무</button>
+      <button class="wc-popup-btn" data-action="event" style="${popBtnStyle()}">📅 일정</button>
+      <button class="wc-popup-btn" data-action="memo"  style="${popBtnStyle()}">📝 메모</button>
+    `;
+
+    // anchorEl 기준 위치
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      popup.style.left = Math.min(rect.left, window.innerWidth - 180) + 'px';
+      popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    }
+
+    document.body.appendChild(popup);
+    STATE.datePopup = popup;
+
+    popup.querySelectorAll('.wc-popup-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        closeDatePopup();
+        if (action === 'task') {
+          if (window.WorkspaceTaskModal) WorkspaceTaskModal.openCreate({ dueDate: dateStr });
+          else location.href = `/workspace-kanban.html?newTask=1&date=${dateStr}`;
+        } else if (action === 'event') {
+          openEventModal({ startDate: dateStr });
+        } else if (action === 'memo') {
+          if (window.WorkspaceMemoModal) WorkspaceMemoModal.openCreate({ showInCalendar: true, eventDate: dateStr });
+        }
+      });
+    });
+
+    setTimeout(() => {
+      document.addEventListener('click', outsidePopupClose);
+    }, 10);
+  }
+
+  function popBtnStyle() {
+    return 'display:block;width:100%;text-align:left;padding:9px 16px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;transition:background .1s';
+  }
+
+  function closeDatePopup() {
+    if (STATE.datePopup) { STATE.datePopup.remove(); STATE.datePopup = null; }
+    document.removeEventListener('click', outsidePopupClose);
+  }
+
+  function outsidePopupClose(e) {
+    if (STATE.datePopup && !STATE.datePopup.contains(e.target)) closeDatePopup();
+  }
+
+  function openEventModal(opts) {
+    // R2+R3에서 만든 일정 모달 연결 (있으면 사용, 없으면 기본 네비)
+    if (window.WorkspaceEventModal) {
+      WorkspaceEventModal.openCreate(opts);
+    } else {
+      const url = '/workspace-calendar.html' + (opts && opts.startDate ? '?newEvent=1&date=' + opts.startDate : '');
+      location.href = url;
     }
   }
 
@@ -164,8 +319,15 @@
     if (!ext) return;
 
     if (ext.type === 'task') {
-      // 작업 → 칸반 카드 모달
       location.href = `/workspace-kanban.html#task=${ext.taskId}`;
+      return;
+    }
+
+    if (ext.type === 'memo') {
+      // 메모 → 수정 모달
+      if (window.WorkspaceMemoModal) {
+        WorkspaceMemoModal.openEdit(ext.memoId);
+      }
       return;
     }
 
@@ -217,12 +379,28 @@
         list: '목록',
       },
       height: 'auto',
-      firstDay: 0,                 // 일요일 시작
+      firstDay: 0,
       weekends: true,
       nowIndicator: true,
       navLinks: true,
       dayMaxEventRows: 4,
       eventClick: onEventClick,
+      // YIQ 텍스트 색상 자동 적용
+      eventDidMount(info) {
+        const bgColor = info.event.backgroundColor;
+        if (bgColor) {
+          const textColor = yiqTextColor(bgColor);
+          info.el.style.color = textColor;
+          const titleEl = info.el.querySelector('.fc-event-title');
+          if (titleEl) titleEl.style.color = textColor;
+        }
+      },
+      // 빈 셀 클릭 → 3옵션 팝업
+      dateClick(info) {
+        // 이벤트 클릭과 충돌 방지 — 이벤트 있는 날짜 클릭은 eventClick이 먼저 처리
+        const dateStr = info.dateStr;  // YYYY-MM-DD
+        showDatePopup(dateStr, info.dayEl);
+      },
       events: async (info, success, failure) => {
         try {
           const items = await fetchEvents(info.start, info.end);
@@ -244,6 +422,10 @@
     });
     $('#wcFilterEvents')?.addEventListener('change', e => {
       STATE.showEvents = e.target.checked;
+      STATE.calendar?.refetchEvents();
+    });
+    $('#wcFilterMemos')?.addEventListener('change', e => {
+      STATE.showMemos = e.target.checked;
       STATE.calendar?.refetchEvents();
     });
     $('#wcFilterScope')?.addEventListener('change', e => {
@@ -293,7 +475,7 @@
     await Promise.all([loadMe(), Promise.resolve()]);
     initCalendar();
 
-    // WorkspaceSync: 작업 변경 시 캘린더 자동 갱신
+    // WorkspaceSync: 작업·메모 변경 시 캘린더 자동 갱신
     if (window.WorkspaceSync) {
       const refetch = () => { try { STATE.calendar?.refetchEvents(); } catch (_) {} };
       WorkspaceSync.on('task:updated', refetch);
@@ -301,7 +483,14 @@
       WorkspaceSync.on('task:deleted', refetch);
       WorkspaceSync.on('task:status',  refetch);
       WorkspaceSync.on('page:visible', refetch);
+      WorkspaceSync.on('memo:created', refetch);
+      WorkspaceSync.on('memo:updated', refetch);
     }
+
+    // 메모 모달 저장 이벤트 → 캘린더 갱신
+    window.addEventListener('wmm:saved', () => {
+      try { STATE.calendar?.refetchEvents(); } catch (_) {}
+    });
   }
 
   if (document.readyState === 'loading') {

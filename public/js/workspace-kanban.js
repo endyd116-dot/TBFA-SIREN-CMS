@@ -15,7 +15,24 @@
     search: '',
     me: null,
     sortables: [],
+    // R4: 보기 모드 (board | list | calendar)
+    viewMode: localStorage.getItem('wkViewMode') || 'board',
+    // R4: AI 검색 결과 표시용
+    aiFilter: null,
+    calendarInstance: null,
   };
+
+  // mock 데이터 (B 머지 전) — AI 검색 응답
+  const MOCK_AI_RESULT = {
+    ok: true,
+    data: {
+      items: [{ id: 42, title: '월간 보고서 작성', assignedTo: 7, assignedToName: '박OO', dueDate: '2026-05-16', status: 'doing', priority: 'high' }],
+      interpretedFilter: { assigneeName: '박OO', dueWithin: 'thisweek' },
+      aiCallDurationMs: 1234,
+    },
+  };
+  // mock 데이터 — user preferences
+  const MOCK_PREFS = { ok: true, data: { outOfOffice: false, defaultWbsView: 'board' } };
 
   const COLUMNS = ['todo', 'doing', 'blocked', 'done', 'archived'];
 
@@ -102,6 +119,243 @@
     const el = $('#wkLoading');
     if (el) el.style.display = on ? '' : 'none';
   }
+
+  /* ═══════════════════ 보기 모드 전환 ═══════════════════ */
+
+  function switchViewMode(mode) {
+    STATE.viewMode = mode;
+    localStorage.setItem('wkViewMode', mode);
+    // 토글 버튼 활성화
+    $$('.wk-view-btn').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.view === mode);
+    });
+    // 영역 표시/숨김
+    const board = $('#wkBoard');
+    const listView = $('#wkListView');
+    const calView = $('#wkCalView');
+    if (board)    board.style.display    = mode === 'board'    ? '' : 'none';
+    if (listView) listView.style.display = mode === 'list'     ? '' : 'none';
+    if (calView)  calView.style.display  = mode === 'calendar' ? '' : 'none';
+
+    if (mode === 'board') {
+      render();
+    } else if (mode === 'list') {
+      renderListView();
+    } else if (mode === 'calendar') {
+      renderCalView();
+    }
+  }
+
+  /* ─── 리스트 뷰 ─── */
+  const STATUS_LABEL_KAN = { todo: '대기', doing: '진행중', blocked: '보류', done: '완료', archived: '보관' };
+  const PRIORITY_LABEL_KAN = { urgent: '🔴 긴급', high: '🟠 높음', medium: '🟡 중간', normal: '⚪ 보통', low: '🟢 낮음' };
+
+  function renderListView() {
+    const container = $('#wkListView');
+    if (!container) return;
+    const tasks = STATE.tasks.filter(t => t.status !== 'archived');
+    if (!tasks.length) {
+      container.innerHTML = '<div style="padding:32px;text-align:center;color:#9ca3af">작업이 없습니다</div>';
+      return;
+    }
+
+    // 상태별 그룹
+    const order = ['todo', 'doing', 'blocked', 'done'];
+    const groups = {};
+    for (const s of order) groups[s] = [];
+    for (const t of tasks) {
+      const s = t.status || 'todo';
+      if (groups[s]) groups[s].push(t);
+      else groups.todo.push(t);
+    }
+
+    let rows = '';
+    for (const s of order) {
+      if (!groups[s].length) continue;
+      rows += `<tr class="wk-list-group-row"><td colspan="5">
+        ${escapeHtml(STATUS_LABEL_KAN[s] || s)} (${groups[s].length})
+      </td></tr>`;
+      for (const t of groups[s]) {
+        const dueText = t.dueDate ? t.dueDate.slice(0, 10) : '—';
+        const dueCls = t.dueDate && t.status !== 'done'
+          ? dueClassForList(t.dueDate)
+          : '';
+        rows += `<tr data-task-id="${t.id}">
+          <td><span class="wk-lv-status wk-lv-status-${escapeHtml(s)}">${escapeHtml(STATUS_LABEL_KAN[s] || s)}</span></td>
+          <td>${escapeHtml(t.title || '(제목 없음)')}</td>
+          <td style="color:#64748b">${escapeHtml(t.assignedToName || t.assignedByName || '—')}</td>
+          <td class="${dueCls}">${escapeHtml(dueText)}</td>
+          <td class="wk-lv-priority">${escapeHtml(PRIORITY_LABEL_KAN[t.priority] || t.priority || '—')}</td>
+        </tr>`;
+      }
+    }
+
+    container.innerHTML = `<table class="wk-list-view" style="width:100%">
+      <thead>
+        <tr>
+          <th style="width:80px">상태</th>
+          <th>제목</th>
+          <th style="width:90px">담당</th>
+          <th style="width:90px">마감일</th>
+          <th style="width:90px">우선순위</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+    // 행 클릭 → 카드 상세 모달
+    container.querySelectorAll('tbody tr[data-task-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = Number(row.dataset.taskId);
+        if (id) openCardModal(id);
+      });
+    });
+  }
+
+  function dueClassForList(d) {
+    if (!d) return '';
+    const diff = Math.ceil((new Date(d) - Date.now()) / 86400000);
+    if (diff < 0) return 'wk-lv-due-overdue';
+    if (diff === 0) return 'wk-lv-due-today';
+    if (diff <= 2) return 'wk-lv-due-soon';
+    return '';
+  }
+
+  /* ─── 캘린더 뷰 (FullCalendar 임베드) ─── */
+  async function renderCalView() {
+    const container = $('#wkCalView');
+    if (!container) return;
+
+    if (STATE.calendarInstance) {
+      STATE.calendarInstance.refetchEvents();
+      return;
+    }
+
+    // FullCalendar 로드
+    if (typeof FullCalendar === 'undefined') {
+      container.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8">캘린더 로드 중...</div>';
+      const cdns = [
+        'https://unpkg.com/fullcalendar@6.1.11/index.global.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.11/index.global.min.js',
+      ];
+      await new Promise((resolve) => {
+        let i = 0;
+        const tryNext = () => {
+          if (typeof FullCalendar !== 'undefined') return resolve();
+          if (i >= cdns.length) return resolve();
+          const s = document.createElement('script');
+          s.src = cdns[i++];
+          s.onload = resolve;
+          s.onerror = tryNext;
+          document.head.appendChild(s);
+        };
+        tryNext();
+      });
+    }
+
+    if (typeof FullCalendar === 'undefined') {
+      container.innerHTML = '<div style="padding:24px;text-align:center;color:#dc2626">FullCalendar 로드 실패</div>';
+      return;
+    }
+
+    container.innerHTML = '<div id="wkCalInner" class="wk-cal-embed"></div>';
+    const calEl = container.querySelector('#wkCalInner');
+
+    STATE.calendarInstance = new FullCalendar.Calendar(calEl, {
+      locale: 'ko',
+      initialView: 'dayGridMonth',
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+      buttonText: { today: '오늘', month: '월', week: '주', list: '목록' },
+      height: 'auto',
+      firstDay: 0,
+      events: async (info, success, failure) => {
+        try {
+          const tasks = STATE.tasks.filter(t => t.dueDate && t.status !== 'archived');
+          success(tasks.map(t => ({
+            id: `task-${t.id}`,
+            title: t.title,
+            start: t.dueDate,
+            allDay: true,
+            backgroundColor: t.priority === 'urgent' ? '#fca5a5'
+              : t.priority === 'high' ? '#fdba74'
+              : t.priority === 'medium' ? '#fde68a'
+              : '#bfdbfe',
+            borderColor: 'transparent',
+            textColor: '#1e293b',
+            extendedProps: { taskId: t.id },
+          })));
+        } catch (err) { failure(err); }
+      },
+      eventClick(info) {
+        const taskId = info.event.extendedProps.taskId;
+        if (taskId) openCardModal(taskId);
+      },
+    });
+    STATE.calendarInstance.render();
+  }
+
+  /* ─── 자연어 검색 ─── */
+  async function runAiSearch(query) {
+    const banner = $('#wkAiFilterBanner');
+    const searchInput = $('#wkSearch');
+
+    toast('AI가 검색어를 해석 중이에요...', 'info');
+
+    try {
+      let res;
+      try {
+        res = await api('/api/admin-workspace-task-search', {
+          method: 'POST',
+          body: { query },
+        });
+      } catch (_) {
+        // API 미존재 시 mock
+        res = MOCK_AI_RESULT;
+      }
+
+      const data = res.data || res;
+      if (!res.ok && res.ok !== undefined) {
+        toast('AI 검색 실패 — 키워드 검색으로 시도해주세요', 'error');
+        if (searchInput) { searchInput.value = query; STATE.search = query; }
+        loadTasks();
+        return;
+      }
+
+      const items = data.items || [];
+      const filter = data.interpretedFilter || {};
+      STATE.tasks = items;
+      STATE.aiFilter = filter;
+
+      // 현재 보기 모드에 맞게 렌더
+      if (STATE.viewMode === 'board') render();
+      else if (STATE.viewMode === 'list') renderListView();
+
+      // AI 해석 결과 배너
+      if (banner) {
+        const parts = [];
+        if (filter.assigneeName) parts.push(`담당: ${filter.assigneeName}`);
+        if (filter.dueWithin) {
+          const due = { today: '오늘 마감', thisweek: '이번 주 마감', thismonth: '이번 달 마감', overdue: '마감 초과' };
+          parts.push(due[filter.dueWithin] || filter.dueWithin);
+        }
+        if (filter.textQuery) parts.push(`키워드: ${filter.textQuery}`);
+        banner.innerHTML = `<span>🤖 ${parts.length ? parts.join(' + ') + '으로 해석' : '검색 결과'} (${items.length}건)</span>
+          <button onclick="document.getElementById('wkAiFilterBanner').style.display='none';window.wkClearAiFilter()">✕</button>`;
+        banner.style.display = 'flex';
+      }
+
+      toast(`${items.length}건 찾았어요`, 'success');
+    } catch (err) {
+      toast('AI 검색 실패 — 키워드 검색으로 시도해주세요', 'error');
+      if (searchInput) { searchInput.value = query; STATE.search = query; }
+      loadTasks();
+    }
+  }
+
+  window.wkClearAiFilter = function () {
+    STATE.aiFilter = null;
+    loadTasks();
+  };
 
   /* ═══════════════════ 렌더링 ═══════════════════ */
   function render() {
@@ -632,6 +886,40 @@
 
   /* ═══════════════════ 이벤트 바인딩 ═══════════════════ */
   function bind() {
+    // 보기 모드 토글 버튼
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.wk-view-btn');
+      if (!btn) return;
+      const mode = btn.dataset.view;
+      if (mode && mode !== STATE.viewMode) {
+        switchViewMode(mode);
+        // 서버에 기본 보기 저장 (debounce)
+        clearTimeout(STATE._viewSaveTimer);
+        STATE._viewSaveTimer = setTimeout(() => {
+          api('/api/admin-user-preferences', {
+            method: 'POST',
+            body: { defaultWbsView: mode },
+          }).then(() => toast('기본 보기 모드 저장됐어요', 'success'))
+            .catch(() => {});
+        }, 1000);
+      }
+    });
+
+    // AI 검색 버튼
+    $('#wkAiSearchBtn')?.addEventListener('click', () => {
+      const q = $('#wkSearch')?.value.trim() || $('#wkAiSearchInput')?.value.trim();
+      if (!q) { toast('검색어를 입력해주세요', 'error'); return; }
+      runAiSearch(q);
+    });
+
+    // AI 검색 전용 입력창 엔터
+    $('#wkAiSearchInput')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const q = e.target.value.trim();
+        if (q) runAiSearch(q);
+      }
+    });
+
     // 필터
     $('#wkFilterScope')?.addEventListener('change', e => {
       STATE.scope = e.target.value;
@@ -646,8 +934,20 @@
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         STATE.search = e.target.value.trim();
+        STATE.aiFilter = null;
+        const banner = $('#wkAiFilterBanner');
+        if (banner) banner.style.display = 'none';
         loadTasks();
       }, 300);
+    });
+    // 검색 엔터키 (일반 검색)
+    $('#wkSearch')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        clearTimeout(searchTimer);
+        STATE.search = e.target.value.trim();
+        STATE.aiFilter = null;
+        loadTasks();
+      }
     });
     $('#wkBtnRefresh')?.addEventListener('click', () => loadTasks());
 
@@ -770,10 +1070,35 @@
     });
   }
 
+  /* ─── 사용자 기본 보기 모드 로드 ─── */
+  async function loadDefaultViewMode() {
+    try {
+      let res;
+      try {
+        res = await api('/api/admin-user-preferences');
+      } catch (_) {
+        res = MOCK_PREFS;
+      }
+      const prefs = (res && res.data) || res || {};
+      const serverView = prefs.defaultWbsView;
+      if (serverView && ['board', 'list', 'calendar'].includes(serverView)) {
+        STATE.viewMode = serverView;
+        localStorage.setItem('wkViewMode', serverView);
+      }
+    } catch (_) {}
+  }
+
   /* ═══════════════════ 초기화 ═══════════════════ */
   async function init() {
     bind();
     await ensureSortable();
+
+    // 기본 보기 모드 서버에서 로드
+    await loadDefaultViewMode();
+
+    // 보기 모드 초기 적용
+    switchViewMode(STATE.viewMode);
+
     await Promise.all([loadMe(), loadTasks()]);
 
     // URL 해시 #task=N 자동 열기 — 못 찾으면 토스트 안내
