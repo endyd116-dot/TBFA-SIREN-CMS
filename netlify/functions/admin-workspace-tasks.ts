@@ -131,6 +131,9 @@ export default async (req: Request, _ctx: Context) => {
           ...r,
           actorName: r.actorName || actorNameMap[r.actorId] || null,
           groupKey: getGroupKey(r.createdAt),
+          actionUrl: r.actionUrl || (r.targetType === "task" && r.targetId
+            ? `/workspace-kanban.html#task=${r.targetId}`
+            : null),
         }));
 
         return ok({ items });
