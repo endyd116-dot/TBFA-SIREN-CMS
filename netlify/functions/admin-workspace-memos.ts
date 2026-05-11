@@ -1,5 +1,6 @@
 // netlify/functions/admin-workspace-memos.ts
 // ★ Phase 3 Step 2-A — 워크스페이스 Memo CRUD API
+// ★ Phase 21 R4 — eventDate / eventTime / showInCalendar 캘린더 미러링 필드 추가
 //
 // ⚠️ 메모는 완전 개인 — 본인(memberId = meId)만 접근 가능 (super_admin도 조회 불가)
 //
@@ -46,12 +47,16 @@ export default async (req: Request, _ctx: Context) => {
         const rowId = Number(id);
         if (!rowId) return badRequest("id가 유효하지 않습니다");
 
-        const [memo]: any = await db
-          .select()
-          .from(workspaceMemos)
-          .where(and(eq(workspaceMemos.id, rowId), eq(workspaceMemos.memberId, meId)))
-          .limit(1);
-
+        const rows: any = await db.execute(sql`
+          SELECT *,
+            show_in_calendar AS "showInCalendar",
+            TO_CHAR(event_date, 'YYYY-MM-DD') AS "eventDate",
+            TO_CHAR(event_time, 'HH24:MI:SS') AS "eventTime"
+          FROM workspace_memos
+          WHERE id = ${rowId} AND member_id = ${meId}
+          LIMIT 1
+        `);
+        const memo = (Array.isArray(rows) ? rows[0] : (rows as any).rows?.[0]);
         if (!memo) return notFound("메모를 찾을 수 없습니다");
         return ok(memo);
       }
@@ -66,7 +71,6 @@ export default async (req: Request, _ctx: Context) => {
         const limit = Math.min(Number(url.searchParams.get("limit") || 200), 500);
 
         const conds: any[] = [eq(workspaceMemos.memberId, meId)];
-
         if (pinned === "1") conds.push(eq(workspaceMemos.isPinned, true));
         if (color) conds.push(eq(workspaceMemos.color, color));
         if (taskId) conds.push(eq(workspaceMemos.relatedTaskId, Number(taskId)));
@@ -76,7 +80,8 @@ export default async (req: Request, _ctx: Context) => {
                        OR ${workspaceMemos.contentHtml} ILIKE ${"%" + q + "%"})`);
         }
 
-        const items: any = await db
+        // 신규 캘린더 컬럼은 raw SQL로 추가 SELECT (마이그 전 drizzle schema에 없음)
+        const baseItems: any = await db
           .select()
           .from(workspaceMemos)
           .where(and(...conds))
@@ -86,6 +91,33 @@ export default async (req: Request, _ctx: Context) => {
             desc(workspaceMemos.updatedAt)
           )
           .limit(limit);
+
+        // 캘린더 컬럼 보강 (별도 쿼리로 안전하게)
+        const ids: number[] = baseItems.map((r: any) => r.id).filter(Boolean);
+        let calMap: Record<number, { showInCalendar: boolean; eventDate: string | null; eventTime: string | null }> = {};
+        if (ids.length > 0) {
+          try {
+            const calRows: any = await db.execute(sql`
+              SELECT id,
+                show_in_calendar AS "showInCalendar",
+                TO_CHAR(event_date, 'YYYY-MM-DD') AS "eventDate",
+                TO_CHAR(event_time, 'HH24:MI:SS') AS "eventTime"
+              FROM workspace_memos
+              WHERE id = ANY(${ids})
+            `);
+            const rows = Array.isArray(calRows) ? calRows : (calRows as any).rows || [];
+            for (const r of rows) {
+              calMap[r.id] = { showInCalendar: !!r.showInCalendar, eventDate: r.eventDate || null, eventTime: r.eventTime || null };
+            }
+          } catch { /* 컬럼 미생성 시 무시 */ }
+        }
+
+        const items = baseItems.map((r: any) => ({
+          ...r,
+          showInCalendar: calMap[r.id]?.showInCalendar ?? false,
+          eventDate: calMap[r.id]?.eventDate ?? null,
+          eventTime: calMap[r.id]?.eventTime ?? null,
+        }));
 
         return ok({ items, total: items.length });
       }
@@ -107,6 +139,15 @@ export default async (req: Request, _ctx: Context) => {
         return badRequest("title 또는 contentHtml 중 하나는 필수입니다");
       }
 
+      // Phase 21 R4 — 캘린더 미러링 필드
+      const showInCalendar = !!body.showInCalendar;
+      const eventDate: string | null = showInCalendar && body.eventDate ? String(body.eventDate) : null;
+      const eventTime: string | null = showInCalendar && body.eventTime ? String(body.eventTime) : null;
+
+      if (showInCalendar && !eventDate) {
+        return badRequest("캘린더에 표시하려면 날짜가 필요해요");
+      }
+
       const [newMemo]: any = await db
         .insert(workspaceMemos)
         .values({
@@ -122,6 +163,19 @@ export default async (req: Request, _ctx: Context) => {
         } as any)
         .returning();
 
+      // 캘린더 컬럼 업데이트 (마이그 후 컬럼이 존재할 때만 작동)
+      if (newMemo?.id) {
+        try {
+          await db.execute(sql`
+            UPDATE workspace_memos
+            SET show_in_calendar = ${showInCalendar},
+                event_date = ${eventDate ? sql`${eventDate}::date` : sql`NULL`},
+                event_time = ${eventTime ? sql`${eventTime}::time` : sql`NULL`}
+            WHERE id = ${newMemo.id}
+          `);
+        } catch { /* 컬럼 미생성 시 무시 */ }
+      }
+
       await logAudit({
         userId: meId, userType: "admin", userName: adminMember.name,
         action: "workspace.memo.create", target: `memo:${newMemo.id}`,
@@ -135,11 +189,11 @@ export default async (req: Request, _ctx: Context) => {
         targetType: "memo",
         targetId: newMemo.id,
         targetTitle: newMemo.title || "(제목 없음)",
-        metadata: { color: newMemo.color, pinned: newMemo.isPinned },
+        metadata: { color: newMemo.color, pinned: newMemo.isPinned, showInCalendar },
         visibility: "private",
       });
 
-      return ok(newMemo, "메모가 생성되었습니다");
+      return ok({ ...newMemo, showInCalendar, eventDate, eventTime }, "메모가 생성되었습니다");
     }
 
     /* ════════════════════════════════════════════
@@ -195,11 +249,37 @@ export default async (req: Request, _ctx: Context) => {
         updateData.attachments = body.attachments;
       }
 
+      // Phase 21 R4 — 캘린더 미러링 필드
+      let showInCalendar: boolean | undefined;
+      let eventDate: string | null = null;
+      let eventTime: string | null = null;
+      if (body.showInCalendar !== undefined) {
+        showInCalendar = !!body.showInCalendar;
+        if (showInCalendar) {
+          eventDate = body.eventDate ? String(body.eventDate) : null;
+          eventTime = body.eventTime ? String(body.eventTime) : null;
+          if (!eventDate) return badRequest("캘린더에 표시하려면 날짜가 필요해요");
+        }
+      }
+
       const [updated]: any = await db
         .update(workspaceMemos)
         .set(updateData)
         .where(eq(workspaceMemos.id, id))
         .returning();
+
+      // 캘린더 컬럼 업데이트 (마이그 후 컬럼이 존재할 때만 작동)
+      if (showInCalendar !== undefined) {
+        try {
+          await db.execute(sql`
+            UPDATE workspace_memos
+            SET show_in_calendar = ${showInCalendar},
+                event_date = ${eventDate ? sql`${eventDate}::date` : sql`NULL`},
+                event_time = ${eventTime ? sql`${eventTime}::time` : sql`NULL`}
+            WHERE id = ${id}
+          `);
+        } catch { /* 컬럼 미생성 시 무시 */ }
+      }
 
       await logAudit({
         userId: meId, userType: "admin", userName: adminMember.name,
@@ -218,7 +298,12 @@ export default async (req: Request, _ctx: Context) => {
         visibility: "private",
       });
 
-      return ok(updated, "메모가 수정되었습니다");
+      return ok({
+        ...updated,
+        showInCalendar: showInCalendar ?? false,
+        eventDate: eventDate ?? null,
+        eventTime: eventTime ?? null,
+      }, "메모가 수정되었습니다");
     }
 
     /* ════════════════════════════════════════════

@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, bigserial, varchar, integer, text, timestamp,
-  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric, date
+  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric, date, time
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -2689,5 +2689,33 @@ export type NewServiceRnr = typeof serviceRnr.$inferInsert;
    supportRequests:
      - assignedAdminId   INTEGER REFERENCES members(id) ON DELETE SET NULL   (assignedMemberId와 별개)
      - workspaceTaskId   INTEGER REFERENCES workspace_tasks(id) ON DELETE SET NULL
+*/
+
+/* =========================================================
+   === Phase 21 R4 === (2026-05-12)
+   캘린더·메모 미러링·기본보기·자연어 검색·템플릿 시드
+   ---------------------------------------------------------
+   ⚠️ 아래 컬럼 정의는 migrate-phase21-r4 호출 후 주석 해제.
+   마이그 전 활성화 시 drizzle SELECT 실패 → 운영 즉시 깨짐.
+   ========================================================= */
+
+/* ----- 5) workspaceMemos 캘린더 미러링 컬럼 (마이그 후 활성화) -----
+   workspaceMemos 테이블에 직접 추가:
+     - eventDate        DATE       (NULL — showInCalendar=true일 때만 의미)
+     - eventTime        TIME       (NULL — NULL이면 "종일" 표시)
+     - showInCalendar   BOOLEAN NOT NULL DEFAULT FALSE
+
+   schema 활성화 후 workspaceMemos 정의 안에 아래 3줄 추가:
+     eventDate:       date("event_date"),
+     eventTime:       time("event_time"),
+     showInCalendar:  boolean("show_in_calendar").default(false).notNull(),
+*/
+
+/* ----- 6) members.defaultWbsView (마이그 후 활성화) -----
+   members 테이블에 직접 추가:
+     - defaultWbsView   VARCHAR(20) DEFAULT 'board'
+
+   schema 활성화 후 members 정의 안에 아래 1줄 추가:
+     defaultWbsView:  varchar("default_wbs_view", { length: 20 }).default("board"),
 */
 
