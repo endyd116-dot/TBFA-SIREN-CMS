@@ -429,25 +429,140 @@
     if (grid) grid.innerHTML = '<div class="ws-error">불러오기 실패 <button class="ws-retry" data-action="reload-memos">재시도</button></div>';
   }
 
+  /* ─── 피드 항목 → 자연어 텍스트 변환 ─── */
+  function feedNaturalText(f) {
+    const actor = escapeHtml(f.actorName || '시스템');
+    const title = f.targetTitle ? `"${escapeHtml(f.targetTitle)}"` : '';
+    const meta = f.metadata || {};
+
+    switch (f.actionType) {
+      case 'task.created':        return `${actor}이 작업 ${title}을 만들었어요`;
+      case 'task.updated':        return `${actor}이 작업 ${title}을 수정했어요`;
+      case 'task.deleted':        return `${actor}이 작업 ${title}을 삭제했어요`;
+      case 'task.status.changed': return `${actor}이 작업 ${title} 상태를 변경했어요`;
+      case 'task.assigned':       return `${actor}이 작업 ${title}을 지시했어요`;
+      case 'task.completed':      return `${actor}이 작업 ${title}을 완료했어요`;
+      case 'task.checklist.toggle': return `${actor}이 작업 ${title} 체크리스트를 업데이트했어요`;
+      case 'task.transfer': {
+        const to = escapeHtml(meta.toName || meta.assigneeName || '');
+        return `${actor}이 작업 ${title}을 ${to ? to + '에게 ' : ''}토스했어요`;
+      }
+      case 'task.assign': {
+        const to = escapeHtml(meta.toName || meta.assigneeName || '');
+        return `${actor}이 작업 ${title}을 ${to ? to + '에게 ' : ''}배정했어요`;
+      }
+      case 'service.assignee_change': {
+        const newName = escapeHtml(meta.newName || meta.toName || '');
+        const kind = escapeHtml(meta.serviceKind || '');
+        const id = f.targetId || '';
+        return `${actor}이 ${kind} 신고 #${id} 담당을 ${newName ? newName + '에게 ' : ''}인계했어요`;
+      }
+      case 'service.closed': {
+        const kind = escapeHtml(meta.serviceKind || '');
+        const id = f.targetId || '';
+        return `${actor}이 ${kind} 신고 #${id}를 종결 처리했어요`;
+      }
+      case 'memo.created':  return `${actor}이 메모 ${title}를 작성했어요`;
+      case 'memo.updated':  return `${actor}이 메모 ${title}를 수정했어요`;
+      case 'memo.pinned':   return `${actor}이 메모 ${title}를 상단 고정했어요`;
+      case 'event.created': return `${actor}이 일정 ${title}을 등록했어요`;
+      case 'event.updated': return `${actor}이 일정 ${title}을 수정했어요`;
+      default:              return `${actor} — ${ACTION_LABEL[f.actionType] || f.actionType || '활동'}`;
+    }
+  }
+
+  /* ─── 상대 시간 텍스트 ─── */
+  function relativeTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+      const diff = Date.now() - new Date(isoStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1)  return '방금 전';
+      if (mins < 60) return `${mins}분 전`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24)  return `${hrs}시간 전`;
+      const days = Math.floor(hrs / 24);
+      return `${days}일 전`;
+    } catch (_) { return ''; }
+  }
+
+  /* ─── 그룹 키 계산 ─── */
+  function calcGroupKey(isoStr) {
+    if (!isoStr) return 'older';
+    try {
+      const now = new Date();
+      const todayYmd = now.toISOString().slice(0, 10);
+      const d = new Date(isoStr);
+      const dYmd = d.toISOString().slice(0, 10);
+      if (dYmd === todayYmd) return 'today';
+
+      const yest = new Date(now);
+      yest.setDate(yest.getDate() - 1);
+      if (dYmd === yest.toISOString().slice(0, 10)) return 'yesterday';
+
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      if (d >= weekAgo) return 'thisweek';
+    } catch (_) {}
+    return 'older';
+  }
+
+  const GROUP_LABEL = {
+    today:     '오늘',
+    yesterday: '어제',
+    thisweek:  '이번 주',
+    older:     '이전',
+  };
+  const GROUP_ORDER = ['today', 'yesterday', 'thisweek', 'older'];
+
   function renderFeed() {
-    const ul = $('#wsFeedList');
-    if (!ul) return;
+    const container = $('#wsFeedList');
+    if (!container) return;
     let items = STATE.feed;
     if (STATE.filterFeedType !== 'all') {
       items = items.filter(f => (f.actionType || '').startsWith(STATE.filterFeedType));
     }
     if (!items.length) {
-      ul.innerHTML = '<li class="ws-empty">아직 활동이 없습니다</li>';
+      container.innerHTML = '<li class="ws-empty">아직 활동이 없습니다</li>';
       return;
     }
-    ul.innerHTML = items.map(f => `
-      <li class="ws-feed-item">
-        <span class="ws-feed-actor">${escapeHtml(f.actorName || '시스템')}</span>
-        <span class="ws-feed-action">${ACTION_LABEL[f.actionType] || f.actionType || '-'}</span>
-        ${f.targetTitle ? `<span class="ws-feed-target">"${escapeHtml(f.targetTitle)}"</span>` : ''}
-        <span class="ws-feed-time">${fmtDateTime(f.createdAt)}</span>
-      </li>
-    `).join('');
+
+    // 그룹 분류 — 서버가 groupKey 보내면 우선 사용, 없으면 직접 계산
+    const groups = { today: [], yesterday: [], thisweek: [], older: [] };
+    for (const f of items) {
+      const key = f.groupKey && groups[f.groupKey] ? f.groupKey : calcGroupKey(f.createdAt);
+      groups[key].push(f);
+    }
+
+    let html = '';
+    for (const key of GROUP_ORDER) {
+      const arr = groups[key];
+      if (!arr.length) continue;
+      html += `<li class="ws-feed-group">
+        <div class="ws-feed-group-header">
+          <span>${escapeHtml(GROUP_LABEL[key])}</span>
+          <span class="ws-feed-group-count">(${arr.length}건)</span>
+        </div>
+        <ul class="ws-feed-group-body">`;
+      for (const f of arr) {
+        const url = f.actionUrl || f.linkUrl || '';
+        const canClick = !!url;
+        html += `<li class="ws-feed-item-v2${canClick ? ' is-clickable' : ''}" ${canClick ? `data-feed-url="${escapeHtml(url)}"` : ''}>
+          <span class="ws-feed-text">${feedNaturalText(f)}</span>
+          <span class="ws-feed-time">${relativeTime(f.createdAt)}</span>
+        </li>`;
+      }
+      html += `</ul></li>`;
+    }
+    container.innerHTML = html;
+
+    // 클릭 이벤트 위임
+    container.querySelectorAll('.ws-feed-item-v2.is-clickable').forEach(li => {
+      li.addEventListener('click', () => {
+        const url = li.dataset.feedUrl;
+        if (url) location.href = url;
+      });
+    });
   }
 
   function renderFeedError() {
@@ -513,6 +628,18 @@
         location.href = '/workspace-kanban.html';
       }
     });
+
+    // "새 메모" 버튼 → WorkspaceMemoModal 연결
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ws-action="new-memo"]');
+      if (!btn) return;
+      if (window.WorkspaceMemoModal) {
+        WorkspaceMemoModal.openCreate();
+      }
+    });
+
+    // 메모 모달 저장 → 목록 갱신
+    window.addEventListener('wmm:saved', () => { loadMemos().catch(() => {}); });
 
     // 내 작업 패널 카드 클릭 → WBS #task=id 이동
     document.addEventListener('click', (e) => {

@@ -1,0 +1,279 @@
+/* Phase 21 R4 — WBS 리스트·캘린더 뷰 스타일 */
+
+/* ─── 보기 모드 토글 바 ─── */
+.wk-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.wk-view-btn {
+  padding: 7px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+
+.wk-view-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.wk-view-btn.is-active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #2563eb;
+  font-weight: 600;
+}
+
+/* ─── 검색 바 ─── */
+.wk-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wk-search-input {
+  padding: 7px 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 13px;
+  width: 200px;
+  outline: none;
+  transition: border-color .15s;
+}
+
+.wk-search-input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+.wk-search-btn {
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.wk-search-btn:hover { background: #f1f5f9; }
+
+.wk-ai-search-btn {
+  padding: 7px 12px;
+  border: 1px solid #a78bfa;
+  border-radius: 7px;
+  background: #f5f3ff;
+  color: #6d28d9;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+
+.wk-ai-search-btn:hover { background: #ede9fe; }
+
+/* AI 해석 결과 배너 */
+.wk-ai-filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #166534;
+  margin-bottom: 12px;
+}
+
+.wk-ai-filter-banner button {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: #4b5563;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ─── 리스트 뷰 ─── */
+.wk-list-view {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.wk-list-view th {
+  text-align: left;
+  padding: 9px 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.wk-list-view td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.wk-list-view tbody tr {
+  cursor: pointer;
+  transition: background .1s;
+}
+
+.wk-list-view tbody tr:hover {
+  background: #f8fafc;
+}
+
+.wk-list-view .wk-lv-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wk-lv-status-todo    { background: #f1f5f9; color: #475569; }
+.wk-lv-status-doing   { background: #dbeafe; color: #1d4ed8; }
+.wk-lv-status-blocked { background: #fef3c7; color: #92400e; }
+.wk-lv-status-done    { background: #d1fae5; color: #065f46; }
+.wk-lv-status-archived{ background: #e5e7eb; color: #6b7280; }
+
+.wk-list-view .wk-lv-priority {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.wk-list-view .wk-lv-due-overdue { color: #dc2626; font-weight: 600; }
+.wk-list-view .wk-lv-due-today   { color: #d97706; font-weight: 600; }
+.wk-list-view .wk-lv-due-soon    { color: #0284c7; }
+
+/* 리스트 뷰 그룹 헤더 */
+.wk-list-group-row td {
+  padding: 6px 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  border-top: 2px solid #e2e8f0;
+  cursor: default;
+}
+
+.wk-list-group-row:hover { background: #f8fafc !important; }
+
+/* ─── 리스트 뷰 내 캘린더 모드 ─── */
+.wk-cal-embed {
+  min-height: 520px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 12px;
+  background: #fff;
+}
+
+/* ─── 메모 모달 색상 dot ─── */
+.wmm-color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: transform .1s, border-color .1s;
+  padding: 0;
+}
+
+.wmm-color-dot:hover {
+  transform: scale(1.2);
+}
+
+.wmm-color-dot.is-selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,.35);
+  transform: scale(1.15);
+}
+
+/* ─── 활동 피드 그룹핑 ─── */
+.ws-feed-group {
+  margin-bottom: 18px;
+}
+
+.ws-feed-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ws-feed-group-header .ws-feed-group-count {
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.ws-feed-group-body {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ws-feed-item-v2 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 13px;
+  color: #374151;
+}
+
+.ws-feed-item-v2.is-clickable {
+  cursor: pointer;
+}
+
+.ws-feed-item-v2.is-clickable:hover {
+  background: #f8fafc;
+  border-radius: 6px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.ws-feed-item-v2.is-disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.ws-feed-item-v2 .ws-feed-text {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.ws-feed-item-v2 .ws-feed-time {
+  font-size: 11.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

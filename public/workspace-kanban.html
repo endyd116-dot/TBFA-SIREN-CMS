@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=3">
 <link rel="stylesheet" href="/css/workspace-kanban.css?v=3">
+<link rel="stylesheet" href="/css/workspace-kanban-views.css?v=1">
 <link rel="stylesheet" href="/css/workspace-notifications.css?v=1">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 </head>
@@ -91,6 +92,20 @@
     </div>
   </header>
 
+  <!-- R4: 보기 모드 토글 + 검색 바 -->
+  <div class="wk-view-bar" style="padding:0 4px;margin-bottom:12px">
+    <button class="wk-view-btn is-active" data-view="board"    type="button">📋 보드</button>
+    <button class="wk-view-btn"           data-view="list"     type="button">📃 리스트</button>
+    <button class="wk-view-btn"           data-view="calendar" type="button">📅 캘린더</button>
+    <div class="wk-search-bar">
+      <input type="text" id="wkAiSearchInput" class="wk-search-input" placeholder="AI 자연어 검색..." style="width:230px">
+      <button id="wkAiSearchBtn" class="wk-ai-search-btn" type="button">🤖 AI 검색</button>
+    </div>
+  </div>
+
+  <!-- AI 해석 결과 배너 (숨김 상태로 시작) -->
+  <div id="wkAiFilterBanner" class="wk-ai-filter-banner" style="display:none"></div>
+
   <!-- 5컬럼 그리드 -->
   <section class="wk-board" id="wkBoard">
     <div class="wk-column" data-status="todo">
@@ -138,6 +153,12 @@
   <!-- 로딩/빈 상태 -->
   <div id="wkLoading" class="wk-loading" style="display:none">불러오는 중...</div>
   <div id="wkEmpty" class="wk-empty" style="display:none">조건에 맞는 작업이 없습니다.</div>
+
+  <!-- R4: 리스트 뷰 컨테이너 (보드 모드 아닐 때 표시) -->
+  <div id="wkListView" style="display:none;overflow-x:auto"></div>
+
+  <!-- R4: 캘린더 뷰 컨테이너 -->
+  <div id="wkCalView" style="display:none"></div>
 </main>
 
 <!-- ════════════════════════════════════════════════════
@@ -474,7 +495,9 @@
 <script src="/js/common.js?v=3"></script>
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
-<script src="/js/workspace-kanban.js?v=8" defer></script>
+<script src="/js/workspace-memo-modal.js?v=1" defer></script>
+<script src="/js/workspace-activity-render.js?v=1" defer></script>
+<script src="/js/workspace-kanban.js?v=9" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 

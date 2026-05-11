@@ -170,14 +170,95 @@
       const state = (res && res.data) || res || {};
       card.style.display = '';
       renderCard(card, state);
+      // WBS 기본 보기 카드도 함께 렌더
+      renderWbsViewCard(state);
     } catch (err) {
-      // 401/403 → 일반 회원 (운영자 아님) — 카드 숨김
       if (err.status === 401 || err.status === 403) {
         card.style.display = 'none';
+        const wbsCard = document.getElementById('mpWbsViewCard');
+        if (wbsCard) wbsCard.style.display = 'none';
       } else {
         console.warn('[mp-ooo] 로드 실패:', err);
         card.style.display = 'none';
+        const wbsCard = document.getElementById('mpWbsViewCard');
+        if (wbsCard) wbsCard.style.display = 'none';
       }
+    }
+  }
+
+  /* ─── WBS 기본 보기 모드 카드 ─── */
+  function renderWbsViewCard(state) {
+    const card = document.getElementById('mpWbsViewCard');
+    if (!card) return;
+
+    const currentView = state && state.defaultWbsView ? state.defaultWbsView : 'board';
+
+    card.innerHTML = `
+      <h3 class="serif">📋 WBS 기본 보기 모드</h3>
+      <p class="sub">WBS 업무 보드 페이지를 처음 열 때 보여줄 보기 방식을 설정하세요.</p>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='board'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='board'?'#eff6ff':'#fff'}">
+          <input type="radio" name="mpWbsView" value="board" ${currentView==='board'?'checked':''} style="accent-color:#3b82f6">
+          <span>
+            <strong style="font-size:13.5px">📋 보드 (기본)</strong>
+            <span style="display:block;font-size:12px;color:#64748b">5컬럼 칸반 형식</span>
+          </span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='list'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='list'?'#eff6ff':'#fff'}">
+          <input type="radio" name="mpWbsView" value="list" ${currentView==='list'?'checked':''} style="accent-color:#3b82f6">
+          <span>
+            <strong style="font-size:13.5px">📃 리스트</strong>
+            <span style="display:block;font-size:12px;color:#64748b">표 형식 목록</span>
+          </span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border:2px solid ${currentView==='calendar'?'#3b82f6':'#e2e8f0'};border-radius:8px;background:${currentView==='calendar'?'#eff6ff':'#fff'}">
+          <input type="radio" name="mpWbsView" value="calendar" ${currentView==='calendar'?'checked':''} style="accent-color:#3b82f6">
+          <span>
+            <strong style="font-size:13.5px">📅 캘린더</strong>
+            <span style="display:block;font-size:12px;color:#64748b">마감일 기준 월별 달력</span>
+          </span>
+        </label>
+      </div>
+      <button type="button" id="mpWbsViewSave" class="btn btn-primary" style="padding:9px 18px;font-size:13px">저장</button>
+    `;
+
+    card.style.cssText = 'background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px 24px;margin-bottom:18px;display:block';
+
+    // 라디오 변경 시 border 색상 갱신
+    card.querySelectorAll('input[name="mpWbsView"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        card.querySelectorAll('label').forEach(label => {
+          const r = label.querySelector('input');
+          const selected = r && r.checked;
+          label.style.borderColor = selected ? '#3b82f6' : '#e2e8f0';
+          label.style.background   = selected ? '#eff6ff' : '#fff';
+        });
+      });
+    });
+
+    // 저장 버튼
+    const saveBtn = card.querySelector('#mpWbsViewSave');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const selected = card.querySelector('input[name="mpWbsView"]:checked');
+        if (!selected) { toast('보기 모드를 선택해주세요', 'error'); return; }
+        const val = selected.value;
+        saveBtn.disabled = true;
+        try {
+          await api('/api/admin-user-preferences', {
+            method: 'POST',
+            body: { defaultWbsView: val },
+          });
+          toast('기본 보기 모드 저장됐어요', 'success');
+          // localStorage도 동기화
+          localStorage.setItem('wkViewMode', val);
+        } catch (err) {
+          toast('저장 실패: ' + err.message, 'error');
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
     }
   }
 
