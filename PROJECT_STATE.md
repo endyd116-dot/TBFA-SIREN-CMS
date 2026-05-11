@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-12 | **메인** | **Phase 21 R1 설계서 push + B·A 트리거 준비 완료** — 카탈로그(2026-05-12-phase21-workspace-v3-catalog.md) + R1 설계서(2026-05-12-phase21-r1-wbs-bridge.md) push (36d5dec) / 옛 phase21-front·back 백업(backup/phase21-phone-mask-*) + worktree A·B를 feature/phase21-r1-{front,back}으로 전환 / 베이스 main @ 36d5dec |
 | 2026-05-11 | **메인** | **Phase 16 ✅ 100% + Phase 17 실API 연결 머지** — verify/phase16(21f6222) BUG-16-01/02 fix / feature/phase17-live(ea904f8) 머지 / Phase 17 schema 활성화 + 마이그 파일 삭제 (f906616) |
 | 2026-05-11 | **메인** | **Phase 18 B 트리거 + A Phase 20 후보 발굴 트리거** — B Phase 18 캐싱·쿼리튜닝 진행 / A Opus 4.7 전환 후 Phase 20 후보 4개 발굴 / C Phase 17 검증 대기 |
 | 2026-05-11 | **메인** | **Phase 15 verify + Phase 17 back 머지** — BUG-15-01~06 fix 흡수 / Phase 17 마이그 호출 필요 |
 | 2026-05-11 | **메인** | **Phase 17 B·A 트리거 발송** — B back·A front 동시 작업 시작 / C Phase 14 완료→Phase 15 검증 진행 중 |
-| 2026-05-11 | **메인** | **Phase 16 B+A mock 머지 완료** — feature/phase16-back(47df959)+front(ea50344) 머지 / 신규 API 4개·대시보드 JS 1개 / A 실API 연결 신호 발송 |
 | 2026-05-11 | **메인** | **Phase 14 front 머지 완료** — feature/phase14-front(8dad0fd) / 기관관리·인계이력 화면 mock 상태 / C 검증 트리거 예정 |
 | 2026-05-11 | **메인** | **Phase 13 검증 머지 + Phase 15 front mock 머지** — verify/phase13(e12d65f) BUG 2건 fix 흡수 / feature/phase15-front(8c5bb38) mock 상태 머지 |
 | 2026-05-11 | **메인** | **Phase 14 B 머지 완료** — feature/phase14-back(3c0f081) 머지 / 신규 함수 8개 (기관·인계 7개 + 마이그) / ⏸ Swain 마이그 호출 + A front 재요청 필요 |
@@ -46,12 +46,14 @@
 ## 3. 현재 작업 모드
 
 ```
-✅ Phase 10 R4 검증 완료 — 메인 머지 대기
-   ├─ A: ✅ R4 프론트 머지 완료
-   ├─ B: ✅ R4 1차+2차 머지 완료
-   ├─ C: ✅ R4 검증 PASS + BUG-9 fix (verify/phase10-r4 브랜치)
+🔵 Phase 21 R1 — WBS↔워크툴 연동 기반 (트리거 준비 완료)
+   설계서: docs/milestones/2026-05-12-phase21-r1-wbs-bridge.md
+   베이스: main @ 36d5dec
+   ├─ A: ⏸ 트리거 대기 (feature/phase21-r1-front 워크트리 준비됨)
+   ├─ B: ⏸ 트리거 대기 (feature/phase21-r1-back 워크트리 준비됨)
+   ├─ C: ⏸ B·A 머지 후 트리거 (verify/phase21-r1 — 현재 verify/phase20c 잔여)
    └─ D: 휴면
-   메인: verify/phase10-r4 브랜치 머지 후 R4 마감
+   메인: B·A 머지 → C 검증 → R1 마감 → R2 설계 시작
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
@@ -118,7 +120,8 @@
 | **Phase 18 성능 최적화** | 🟡 설계서 완성 / B 구현 진행 중 (feature/phase18-performance) |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
 | **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
-| Phase 21~22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
+| **Phase 21 워크스페이스 v3 + 서비스 연동** | 🔵 카탈로그 + R1 설계서 완성 ([catalog](docs/milestones/2026-05-12-phase21-workspace-v3-catalog.md) · [R1](docs/milestones/2026-05-12-phase21-r1-wbs-bridge.md)) / R1 B·A 트리거 준비 완료 / R2~R4 R1 마감 후 작성 |
+| Phase 22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 
 **누적**: 약 47% / 약 450h+
 
@@ -149,10 +152,10 @@
 
 | 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
 |---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 10 R1 라운드 마감 (Q9 verify 흡수) → R2 설계 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
-| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 10 R1 main 머지 완료 — 세션 종료 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ R4 검증 PASS + BUG-9 fix (2026-05-11) — verify/phase10-r4 브랜치 메인 머지 대기 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — Phase 21 R1 설계서 push 완료 / B·A 트리거 대기 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ⏸ Phase 21 R1 트리거 대기 / 브랜치: `feature/phase21-r1-front` (베이스 main @ 36d5dec) |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ⏸ Phase 21 R1 트리거 대기 / 브랜치: `feature/phase21-r1-back` (베이스 main @ 36d5dec) |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ⏸ Phase 21 R1 B·A 머지 후 트리거 / 현재 브랜치 `verify/phase20c` (잔여) |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
