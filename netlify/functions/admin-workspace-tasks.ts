@@ -441,6 +441,19 @@ export default async (req: Request, _ctx: Context) => {
         // ★ Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
         if (newStatus === "done" && task.status !== "done") {
           triggerAiCompletion(id, meId);
+
+          /* ★ 2026-05-12 워크스페이스 v2 — 카드 완료 → 원본 서비스 자동 close */
+          try {
+            const { closeServiceFromTask } = await import("../../lib/workspace-sync");
+            await closeServiceFromTask({
+              taskId: id,
+              sourceType: task.sourceType,
+              sourceId: task.sourceId,
+              closedBy: meId,
+            });
+          } catch (e) {
+            console.warn("[task.status=done] 서비스 close 동기화 실패", e);
+          }
         }
 
         return ok(updated, "상태가 변경되었습니다");

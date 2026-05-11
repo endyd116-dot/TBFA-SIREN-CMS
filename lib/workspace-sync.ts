@@ -27,17 +27,18 @@ export type ServiceType =
   | "member_signup"
   | "expert_application";
 
-/** 서비스 테이블별 정보 — sourceType / table / 담당자 컬럼 / SLA 컬럼 */
+/** 서비스 테이블별 정보 — sourceType / table / 담당자 컬럼 / SLA 컬럼 / 완료 상태값 */
 const SERVICE_TABLE_INFO: Record<string, {
   table: string;
   assignedCol: string;
   slaCol: string;
   taskRefCol: string;
+  closedStatus: string;
 }> = {
-  incident_report: { table: "incident_reports", assignedCol: "assigned_to", slaCol: "sla_due_at", taskRefCol: "workspace_task_id" },
-  harassment_report: { table: "harassment_reports", assignedCol: "assigned_to", slaCol: "sla_due_at", taskRefCol: "workspace_task_id" },
-  legal_consultation: { table: "legal_consultations", assignedCol: "assigned_to", slaCol: "sla_due_at", taskRefCol: "workspace_task_id" },
-  support_request: { table: "support_requests", assignedCol: "assigned_member_id", slaCol: "sla_due_at", taskRefCol: "workspace_task_id" },
+  incident_report:    { table: "incident_reports",    assignedCol: "assigned_to",        slaCol: "sla_due_at", taskRefCol: "workspace_task_id", closedStatus: "closed" },
+  harassment_report:  { table: "harassment_reports",  assignedCol: "assigned_to",        slaCol: "sla_due_at", taskRefCol: "workspace_task_id", closedStatus: "closed" },
+  legal_consultation: { table: "legal_consultations", assignedCol: "assigned_to",        slaCol: "sla_due_at", taskRefCol: "workspace_task_id", closedStatus: "closed" },
+  support_request:    { table: "support_requests",    assignedCol: "assigned_member_id", slaCol: "sla_due_at", taskRefCol: "workspace_task_id", closedStatus: "completed" },
 };
 
 /** sourceType (workspace_tasks의 sourceType) → SERVICE_TABLE_INFO 키 매핑 */
@@ -296,6 +297,57 @@ export async function syncAssigneeFromService(params: {
     return { ok: true, taskId: taskId ? Number(taskId) : undefined };
   } catch (e: any) {
     console.error("[syncAssigneeFromService]", e);
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+
+/**
+ * ④ 카드 완료 → 원본 서비스도 자동 close
+ *
+ * 워크스페이스 카드가 'done' 상태로 변경되면 sourceType/sourceId가 있는 경우
+ * 해당 서비스 테이블의 status도 'closed' 또는 'completed'로 자동 갱신.
+ *
+ * 사용처: admin-workspace-tasks.ts의 PATCH 처리에서 status='done' 전환 시 호출.
+ *
+ * 역방향(서비스 close → 카드 done)은 별도. (서비스 단일 권위가 아님)
+ */
+export async function closeServiceFromTask(params: {
+  taskId: number;
+  sourceType: string | null | undefined;
+  sourceId: number | null | undefined;
+  closedBy: number;
+}): Promise<{ ok: boolean; updated?: boolean; error?: string }> {
+  try {
+    if (!params.sourceType || !params.sourceId) return { ok: true, updated: false };
+    const serviceKey = SOURCE_TYPE_TO_SERVICE[params.sourceType];
+    const info = serviceKey ? SERVICE_TABLE_INFO[serviceKey] : null;
+    if (!info) return { ok: true, updated: false };
+
+    /* 이미 closed면 skip */
+    const current: any = await db.execute(sql`
+      SELECT status FROM ${sql.identifier(info.table)} WHERE id = ${params.sourceId} LIMIT 1
+    `);
+    const rows = Array.isArray(current) ? current : (current?.rows || []);
+    if (!rows.length) return { ok: true, updated: false };
+    const status = String(rows[0].status || "");
+    if (status === info.closedStatus || status === "rejected") return { ok: true, updated: false };
+
+    /* status 갱신 + completedAt(있으면) */
+    await db.execute(sql`
+      UPDATE ${sql.identifier(info.table)}
+      SET status = ${info.closedStatus},
+          updated_at = NOW()
+      WHERE id = ${params.sourceId}
+    `);
+    /* completed_at 컬럼이 있는 테이블만 별도 갱신 (support_requests) */
+    if (info.table === "support_requests") {
+      try {
+        await db.execute(sql`UPDATE support_requests SET completed_at = NOW() WHERE id = ${params.sourceId} AND completed_at IS NULL`);
+      } catch (_) {}
+    }
+    return { ok: true, updated: true };
+  } catch (e: any) {
+    console.error("[closeServiceFromTask]", e);
     return { ok: false, error: String(e?.message || e) };
   }
 }
