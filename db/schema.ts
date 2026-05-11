@@ -2,7 +2,7 @@
 // (M-19-1 grade 시스템 유지, members.pendingExpertReview 컬럼 보존)
 import {
   pgTable, serial, bigserial, varchar, integer, text, timestamp,
-  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric
+  boolean, index, uniqueIndex, pgEnum, jsonb, bigint, numeric, date
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -2548,4 +2548,97 @@ export const potentialDonors = pgTable("potential_donors", {
 
 export type PotentialDonor    = typeof potentialDonors.$inferSelect;
 export type NewPotentialDonor = typeof potentialDonors.$inferInsert;
+
+/* =========================================================
+   === Phase 21 R2+R3 === (2026-05-12)
+   할당·이관·알림 + 서비스↔카드 동기화 + R&R 통합
+   ---------------------------------------------------------
+   현실 적응: 본 프로젝트는 별도 admin_users 테이블이 없고
+   members 테이블이 운영자 역할을 겸함 (members.role / members.operatorActive).
+   설계서의 adminUsers 참조는 모두 members 참조로 변환했음.
+
+   기존 컬럼 활용 (추가 X):
+   - workspaceTasks.assignedBy / assignedTo  → 이미 존재
+   - workspaceTasks.sourceType / sourceId    → "incident"|"harassment"|... 저장 가능
+   - workspaceNotifications.actionUrl        → linkUrl 대체
+
+   ⚠️ 아래 신규 테이블·컬럼 정의는 마이그(migrate-phase21-r2r3) 호출 후 활성화.
+   ========================================================= */
+
+/* ----- 1) 카드 이관 이력 (토스) -----
+export const workspaceTaskTransfers = pgTable("workspace_task_transfers", {
+  id:            bigserial("id", { mode: "number" }).primaryKey(),
+  taskId:        integer("task_id").notNull().references(() => workspaceTasks.id, { onDelete: "cascade" }),
+  fromUid:       integer("from_uid").references(() => members.id, { onDelete: "set null" }),
+  toUid:         integer("to_uid").references(() => members.id, { onDelete: "set null" }),
+  reason:        text("reason"),
+  transferredBy: integer("transferred_by").references(() => members.id, { onDelete: "set null" }),
+  transferredAt: timestamp("transferred_at").defaultNow().notNull(),
+}, (t) => ({
+  taskIdx: index("ws_task_transfers_task_idx").on(t.taskId),
+  fromIdx: index("ws_task_transfers_from_idx").on(t.fromUid),
+  toIdx:   index("ws_task_transfers_to_idx").on(t.toUid),
+}));
+export type WorkspaceTaskTransfer    = typeof workspaceTaskTransfers.$inferSelect;
+export type NewWorkspaceTaskTransfer = typeof workspaceTaskTransfers.$inferInsert;
+*/
+
+/* ----- 2) 카드 워처 (관찰자) -----
+export const workspaceTaskWatchers = pgTable("workspace_task_watchers", {
+  id:        bigserial("id", { mode: "number" }).primaryKey(),
+  taskId:    integer("task_id").notNull().references(() => workspaceTasks.id, { onDelete: "cascade" }),
+  watcherUid: integer("watcher_uid").notNull().references(() => members.id, { onDelete: "cascade" }),
+  addedAt:   timestamp("added_at").defaultNow().notNull(),
+}, (t) => ({
+  uniq:       uniqueIndex("ws_task_watchers_uniq").on(t.taskId, t.watcherUid),
+  taskIdx:    index("ws_task_watchers_task_idx").on(t.taskId),
+  watcherIdx: index("ws_task_watchers_watcher_idx").on(t.watcherUid),
+}));
+export type WorkspaceTaskWatcher    = typeof workspaceTaskWatchers.$inferSelect;
+export type NewWorkspaceTaskWatcher = typeof workspaceTaskWatchers.$inferInsert;
+*/
+
+/* ----- 3) R&R 매핑 (서비스 유형 × 1차+백업) -----
+   serviceKind: "incident" | "harassment" | "legal" | "support" | "_global"
+   serviceCategory: enum 값, null(대분류), 또는 "_fallback"(Fallback 슬롯)
+export const serviceRnr = pgTable("service_rnr", {
+  id:               bigserial("id", { mode: "number" }).primaryKey(),
+  serviceKind:      varchar("service_kind", { length: 20 }).notNull(),
+  serviceCategory:  varchar("service_category", { length: 50 }),
+  primaryUid:       integer("primary_uid").references(() => members.id, { onDelete: "set null" }),
+  backupUid:        integer("backup_uid").references(() => members.id, { onDelete: "set null" }),
+  isFallback:       boolean("is_fallback").default(false).notNull(),
+  updatedBy:        integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+  updatedAt:        timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  uniq:        uniqueIndex("service_rnr_uniq").on(t.serviceKind, t.serviceCategory),
+  kindIdx:     index("service_rnr_kind_idx").on(t.serviceKind),
+  fallbackIdx: index("service_rnr_fallback_idx").on(t.isFallback),
+}));
+export type ServiceRnr    = typeof serviceRnr.$inferSelect;
+export type NewServiceRnr = typeof serviceRnr.$inferInsert;
+*/
+
+/* ----- 4) 기존 테이블 신규 컬럼 (마이그로 추가, schema 활성화 후 별도 PR로 컬럼 반영) -----
+   members:
+     - outOfOffice       BOOLEAN NOT NULL DEFAULT FALSE
+     - outOfOfficeStart  DATE
+     - outOfOfficeEnd    DATE
+     - outOfOfficeNote   TEXT
+   workspaceNotifications:
+     - category          VARCHAR(20)   // "assign" | "due" | "mention" | "transfer" | "watcher" | "system"
+   incidentReports:
+     - assignedTo        INTEGER REFERENCES members(id) ON DELETE SET NULL
+     - workspaceTaskId   INTEGER REFERENCES workspace_tasks(id) ON DELETE SET NULL
+     - category          VARCHAR(30)   // "school_violence" | "neighborhood_conflict" | "traffic_accident" | "other"
+   harassmentReports:
+     - assignedTo        INTEGER REFERENCES members(id) ON DELETE SET NULL
+     - workspaceTaskId   INTEGER REFERENCES workspace_tasks(id) ON DELETE SET NULL
+   legalConsultations:
+     - assignedTo        INTEGER REFERENCES members(id) ON DELETE SET NULL   (assignedLawyerId와 별개)
+     - workspaceTaskId   INTEGER REFERENCES workspace_tasks(id) ON DELETE SET NULL
+   supportRequests:
+     - assignedAdminId   INTEGER REFERENCES members(id) ON DELETE SET NULL   (assignedMemberId와 별개)
+     - workspaceTaskId   INTEGER REFERENCES workspace_tasks(id) ON DELETE SET NULL
+*/
 
