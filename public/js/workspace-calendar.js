@@ -292,6 +292,16 @@
     }
     await Promise.all([loadMe(), Promise.resolve()]);
     initCalendar();
+
+    // WorkspaceSync: 작업 변경 시 캘린더 자동 갱신
+    if (window.WorkspaceSync) {
+      const refetch = () => { try { STATE.calendar?.refetchEvents(); } catch (_) {} };
+      WorkspaceSync.on('task:updated', refetch);
+      WorkspaceSync.on('task:created', refetch);
+      WorkspaceSync.on('task:deleted', refetch);
+      WorkspaceSync.on('task:status',  refetch);
+      WorkspaceSync.on('page:visible', refetch);
+    }
   }
 
   if (document.readyState === 'loading') {

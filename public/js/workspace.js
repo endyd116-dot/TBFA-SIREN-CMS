@@ -509,6 +509,42 @@
       else if (action === 'reload-memos') loadMemos();
       else if (action === 'reload-feed') loadFeed();
     });
+
+    // "새 작업" 버튼 — 통합 작업 모달 연결
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ws-action="new-task"]');
+      if (!btn) return;
+      if (window.WorkspaceTaskModal) {
+        WorkspaceTaskModal.openCreate({ source: 'worktool' });
+      } else {
+        location.href = '/workspace-kanban.html';
+      }
+    });
+
+    // 내 작업 패널 카드 클릭 → WBS #task=id 이동
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('#wsMyTaskList .ws-task-card');
+      if (card && card.dataset.id) {
+        location.href = '/workspace-kanban.html#task=' + card.dataset.id;
+      }
+    });
+
+    // 지시함 패널 카드 클릭 → WBS #task=id 이동
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('#wsInboxList .ws-task-card');
+      if (card && card.dataset.id) {
+        location.href = '/workspace-kanban.html#task=' + card.dataset.id;
+      }
+    });
+
+    // WorkspaceSync: 다른 탭에서 변경 시 내 작업/지시함 패널 자동 갱신
+    if (window.WorkspaceSync) {
+      WorkspaceSync.on('task:updated', () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
+      WorkspaceSync.on('task:created', () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
+      WorkspaceSync.on('task:deleted', () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
+      WorkspaceSync.on('task:status',  () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
+      WorkspaceSync.on('page:visible', () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
+    }
   }
 
   // ────────────────────────────────────────────
