@@ -197,6 +197,8 @@ export default async (req: Request, _ctx: Context) => {
               : `💬 ${adminMember.name}님 댓글: ${task.title}`,
             body: content.slice(0, 200),
             actionUrl: `/workspace-kanban.html#task=${taskId}`,
+            // ⭐ Phase 21 R2+R3 — 멘션이면 category="mention", 일반 댓글이면 "system"
+            category: isMentioned(targetId) ? "mention" : "system",
           });
         } catch (err) {
           console.warn("[task-comments] 알림 발송 실패:", err);

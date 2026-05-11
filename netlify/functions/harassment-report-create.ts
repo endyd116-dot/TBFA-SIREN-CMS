@@ -108,6 +108,32 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[harassment-report-create] AI 예외:", aiErr);
     }
 
+    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    try {
+      const { createWorkspaceTaskFromService, resolveAssigneeByService } = await import("../../lib/workspace-sync");
+      const reporterDisplay = isAnonymous ? "익명" : (reporterName || "회원");
+      const priority: "high" | "normal" =
+        (aiResult?.severity === "high" || aiResult?.severity === "critical") ? "high" : "normal";
+      const taskId = await createWorkspaceTaskFromService({
+        serviceKind: "harassment",
+        serviceId: reportId,
+        category: String(category || ""),
+        title: `[괴롭힘] ${title} - ${reporterDisplay}`,
+        description: aiResult?.summary ? String(aiResult.summary).slice(0, 500) : null,
+        priority,
+        sourceRefUrl: `/admin-siren.html#harassment-${reportId}`,
+      });
+      if (taskId) {
+        const resolved = await resolveAssigneeByService({ serviceKind: "harassment", serviceCategory: String(category || "") });
+        await db.update(harassmentReports).set({
+          workspaceTaskId: taskId,
+          assignedTo: resolved?.uid ?? null,
+        } as any).where(eq(harassmentReports.id, reportId));
+      }
+    } catch (hookErr) {
+      console.warn("[harassment-report-create] 카드 생성 훅 실패:", hookErr);
+    }
+
     // netlify/functions/harassment-report-create.ts — 감사 로그 + return 블록 교체
     /* ★ M-17: 후원자 검증 */
     const donorCheck = await hasAnyCompletedDonation(user.uid);

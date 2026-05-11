@@ -220,6 +220,8 @@ export default async (req: Request, _ctx: Context) => {
         const status = url.searchParams.get("status");
         const mine = url.searchParams.get("mine") === "1";
         const assignedToMe = url.searchParams.get("assignedToMe") === "1";
+        const assignedByMe = url.searchParams.get("assignedByMe") === "1";
+        const unassigned = url.searchParams.get("unassigned") === "1";
         const dueBefore = url.searchParams.get("dueBefore");
         const q = url.searchParams.get("q");
         const sourceType = url.searchParams.get("sourceType");
@@ -230,7 +232,21 @@ export default async (req: Request, _ctx: Context) => {
         const conds: any[] = [];
 
         // 스코프: 기본은 본인 관련
-        if (assignedToMe) {
+        if (assignedByMe) {
+          // 내가 다른 사람에게 시킨 것 (Phase 21 R2 — 할당한 작업 패널)
+          conds.push(and(
+            eq(workspaceTasks.assignedBy, meId),
+            isNotNull(workspaceTasks.assignedTo),
+            sql`${workspaceTasks.assignedTo} != ${meId}`,
+          ));
+        } else if (unassigned) {
+          // 미할당 풀 (Phase 21 R2 — 어드민만 노출)
+          if (!isSuperAdmin) return ok({ items: [], total: 0 });
+          conds.push(and(
+            isNull(workspaceTasks.assignedTo),
+            isNotNull(workspaceTasks.sourceType),
+          ));
+        } else if (assignedToMe) {
           conds.push(and(eq(workspaceTasks.assignedTo, meId), isNotNull(workspaceTasks.assignedBy)));
         } else if (mine || !isSuperAdmin) {
           conds.push(or(eq(workspaceTasks.memberId, meId), eq(workspaceTasks.assignedTo, meId)));
@@ -470,6 +486,16 @@ export default async (req: Request, _ctx: Context) => {
         // ★ Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
         if (newStatus === "done" && task.status !== "done") {
           triggerAiCompletion(id, meId);
+        }
+
+        // ★ Phase 21 R3 — 카드 done → 원본 서비스 closed 동기화 (양방향)
+        if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
+          try {
+            const { closeServiceFromTask } = await import("../../lib/workspace-sync");
+            await closeServiceFromTask({ taskId: id, closedBy: meId });
+          } catch (err) {
+            console.warn("[workspace-sync] closeServiceFromTask 실패:", err);
+          }
         }
 
         return ok(updated, "상태가 변경되었습니다");

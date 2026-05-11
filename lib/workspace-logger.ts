@@ -66,6 +66,11 @@ export type NotifType =
   | "overdue" | "assigned" | "approved" | "rejected"
   | "invited" | "status_changed" | "completed";
 
+/** ⭐ Phase 21 R2+R3 — 알림 카테고리 (분류 — 드롭다운 색·필터용)
+ *  assign / due / mention / transfer / watcher / system
+ *  notifType (reminder/assigned 등)와 별개 개념 */
+export type NotifCategory = "assign" | "due" | "mention" | "transfer" | "watcher" | "system";
+
 export interface NotifParams {
   memberId: number;
   sourceType: NotifSourceType;
@@ -73,8 +78,9 @@ export interface NotifParams {
   notifType: NotifType;
   channel: NotifChannel;
   title: string;
-  body?: string;
+  body?: string | null;
   actionUrl?: string;
+  category?: NotifCategory | null;
 }
 
 /* ════════════════════════════════════════════════
@@ -127,6 +133,7 @@ export async function sendWorkspaceNotification(params: NotifParams): Promise<nu
         title: params.title,
         body: params.body ?? null,
         actionUrl: params.actionUrl ?? null,
+        category: params.category ?? null,
         deliveryStatus: "sent",
       } as any)
       .returning({ id: workspaceNotifications.id });
@@ -178,6 +185,7 @@ export async function broadcastNotification(
       title: params.title,
       body: params.body ?? null,
       actionUrl: params.actionUrl ?? null,
+      category: params.category ?? null,
       deliveryStatus: "sent" as const,
     }));
 
