@@ -172,6 +172,34 @@ export default async (req: Request, _ctx: Context) => {
         const memberMap: Record<number, string> = {};
         for (const m of memberList) memberMap[m.id] = m.name;
 
+        // 활동 로그 50건 조회 (별도 query — leftJoin 체인 금지)
+        let activityLog: any[] = [];
+        try {
+          const logRows = await db
+            .select()
+            .from(workspaceActivityLog)
+            .where(
+              and(
+                eq(workspaceActivityLog.targetType, "task"),
+                eq(workspaceActivityLog.targetId, rowId)
+              )
+            )
+            .orderBy(desc(workspaceActivityLog.createdAt))
+            .limit(50);
+          activityLog = logRows.map((r: any) => ({
+            id: r.id,
+            actionType: r.actionType,
+            actorId: r.actorId,
+            actorName: r.actorName,
+            targetType: r.targetType,
+            targetId: r.targetId,
+            metadata: r.metadata,
+            createdAt: r.createdAt,
+          }));
+        } catch (err) {
+          console.warn("[select_activity] 활동 로그 조회 실패 — 빈 배열 fallback", err);
+        }
+
         return ok({
           ...task,
           _computed: {
@@ -183,6 +211,7 @@ export default async (req: Request, _ctx: Context) => {
             isAssignedToMe: task.assignedTo === meId && !!task.assignedBy,
             canEditDueDate: task.memberId === meId && !task.assignedBy,
           },
+          activityLog,
         });
       }
 
