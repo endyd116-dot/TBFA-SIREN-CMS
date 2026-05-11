@@ -3723,6 +3723,20 @@ const OPERATOR_CATEGORIES = [
     document.getElementById('replyNote').value = '';
     document.getElementById('replySendEmail').checked = false;
 
+    /* ★ 2026-05-12 워크스페이스 v2 — 유족지원 담당자 박스 자동 마운트 (detail-box 상단에) */
+    try {
+      const detailBox = document.querySelector('.support-detail-box');
+      if (detailBox && window.SIREN_ASSIGNEE) {
+        let mount = document.getElementById('supportAssigneeMount');
+        if (!mount) {
+          mount = document.createElement('div');
+          mount.id = 'supportAssigneeMount';
+          detailBox.insertBefore(mount, detailBox.firstChild);
+        }
+        window.SIREN_ASSIGNEE.renderInline(mount, 'support_request', id);
+      }
+    } catch (e) { console.warn('[support-detail] 담당자 마운트 실패', e); }
+
     /* ★ K-3: 새 입력칸 초기화 */
     const expertEl = document.getElementById('replyAssignedExpert');
     const supplementEl = document.getElementById('replySupplement');

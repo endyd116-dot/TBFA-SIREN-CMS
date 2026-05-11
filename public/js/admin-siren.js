@@ -404,6 +404,21 @@
     else if (kind === 'harassment') renderHarassmentDetail(body, data.report);
     else if (kind === 'legal') renderLegalDetail(body, data.consultation);
     else if (kind === 'board') renderBoardDetail(body, data.post, data.comments || []);
+
+    /* ★ 2026-05-12 워크스페이스 v2 — 담당자 박스 자동 마운트 (board 제외) */
+    if (kind !== 'board' && window.SIREN_ASSIGNEE) {
+      const serviceType = {
+        incident: 'incident_report',
+        harassment: 'harassment_report',
+        legal: 'legal_consultation',
+      }[kind];
+      if (serviceType) {
+        const mount = document.createElement('div');
+        mount.id = 'srnAssigneeMount';
+        body.insertBefore(mount, body.firstChild);
+        window.SIREN_ASSIGNEE.renderInline(mount, serviceType, id);
+      }
+    }
   }
 
   /* ============ 상세 — 사건제보 ============ */
