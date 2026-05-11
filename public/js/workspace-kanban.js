@@ -776,10 +776,29 @@
     await ensureSortable();
     await Promise.all([loadMe(), loadTasks()]);
 
-    // URL 해시 #task=N 자동 열기 (대시보드 미니 위젯에서 진입)
+    // URL 해시 #task=N 자동 열기 — 못 찾으면 토스트 안내
     const m = location.hash.match(/#task=(\d+)/);
     if (m) {
-      setTimeout(() => openCardModal(Number(m[1])), 100);
+      const wantId = Number(m[1]);
+      setTimeout(() => {
+        const found = STATE.tasks.find(x => x.id === wantId);
+        if (found) {
+          openCardModal(wantId);
+        } else {
+          toast('작업을 찾을 수 없어요. 삭제됐을 수 있습니다.', 'error');
+          history.replaceState(null, '', '/workspace-kanban.html');
+        }
+      }, 100);
+    }
+
+    // URL 해시 #new-task 자동 새 작업 모달 (워크툴·다른 페이지에서 새 작업 진입)
+    if (location.hash === '#new-task') {
+      setTimeout(() => {
+        if (window.WorkspaceTaskModal) {
+          WorkspaceTaskModal.openCreate({ source: 'hash' });
+        }
+        history.replaceState(null, '', '/workspace-kanban.html');
+      }, 100);
     }
 
     // WorkspaceSync: 다른 탭에서 변경 시 자동 갱신
