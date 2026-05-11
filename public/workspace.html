@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 CSS -->
 <link rel="stylesheet" href="/css/workspace.css?v=5">
+<link rel="stylesheet" href="/css/workspace-notifications.css?v=1">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 </head>
 
@@ -106,9 +107,22 @@
       <button class="ws-btn-refresh" data-ws-action="refresh" title="새로고침">
         <span>🔄</span>
       </button>
-      <span class="ws-notif-bell" id="wsNotifBell" title="알림">
+      <span class="ws-notif-bell" id="wsNotifBell" title="알림" style="position:relative">
         <span>🔔</span>
         <span class="ws-notif-count" id="wsNotifCount" style="display:none">0</span>
+        <!-- Phase 21 R2 — 워크스페이스 알림 드롭다운 -->
+        <div class="ws-notif-dropdown" id="wsNotifDropdown" hidden>
+          <div class="ws-notif-dropdown-header">
+            <span class="ws-notif-dropdown-title">알림</span>
+            <button type="button" class="ws-notif-mark-all" id="wsNotifMarkAll">모두 읽음</button>
+          </div>
+          <ul class="ws-notif-dropdown-list" id="wsNotifDropdownList">
+            <li class="ws-notif-dropdown-empty">불러오는 중...</li>
+          </ul>
+          <div class="ws-notif-dropdown-footer">
+            <a href="/workspace-notifications.html">전체 보기 →</a>
+          </div>
+        </div>
       </span>
     </div>
   </header>
@@ -218,10 +232,10 @@
       </div>
     </div>
 
-    <!-- [2] 지시받은 작업 -->
+    <!-- [2] 할당받은 작업 (구 지시받은 작업) -->
     <div class="ws-panel" id="wsPanelInbox">
       <div class="ws-panel-header">
-        <h3>📥 지시받은 작업</h3>
+        <h3>📥 할당받은 작업</h3>
         <div class="ws-panel-controls">
           <span class="ws-panel-badge" id="wsInboxBadge">0</span>
         </div>
@@ -269,6 +283,36 @@
       </div>
       <div class="ws-panel-footer">
         <a href="#memos-all" class="ws-panel-more" data-ws-action="view-all-memos">전체 보기 →</a>
+      </div>
+    </div>
+
+    <!-- [5] 할당한 작업 (Phase 21 R2) — 내가 다른 사람에게 토스·할당한 카드 -->
+    <div class="ws-panel" id="wsPanelAssignedByMe">
+      <div class="ws-panel-header">
+        <h3>📤 할당한 작업</h3>
+        <div class="ws-panel-controls">
+          <span class="ws-panel-badge" id="wsAssignedByMeBadge">0</span>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-task-list" id="wsAssignedByMeList">
+          <li class="ws-loading">불러오는 중...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- [6] 🚨 미할당 서비스 (Phase 21 R2) — 어드민만 노출 -->
+    <div class="ws-panel ws-panel-unassigned" id="wsPanelUnassigned" style="display:none">
+      <div class="ws-panel-header">
+        <h3>🚨 미할당 서비스</h3>
+        <div class="ws-panel-controls">
+          <span class="ws-panel-badge ws-panel-badge-alert" id="wsUnassignedBadge">0</span>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-task-list" id="wsUnassignedList">
+          <li class="ws-empty">미할당 카드가 없습니다</li>
+        </ul>
       </div>
     </div>
 
@@ -354,9 +398,9 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace-sync-channel.js?v=1" defer></script>
-<script src="/js/workspace-task-modal.js?v=2" defer></script>
-<script src="/js/workspace.js?v=6" defer></script>
+<script src="/js/workspace-sync-channel.js?v=2" defer></script>
+<script src="/js/workspace-task-modal.js?v=3" defer></script>
+<script src="/js/workspace.js?v=7" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>

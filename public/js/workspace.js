@@ -489,14 +489,7 @@
       });
     }
 
-    // 알림 벨 (블록 14는 placeholder)
-    const bell = $('#wsNotifBell');
-    if (bell) {
-      bell.addEventListener('click', () => {
-        console.log('[ws] 알림 벨 — Step 5에서 구현 예정');
-        showToast('알림 기능은 곧 추가됩니다', 'info');
-      });
-    }
+    // 알림 벨 — Phase 21 R2 IIFE에서 처리 (드롭다운 마운트)
 
     // 재시도 버튼 (이벤트 위임)
     document.addEventListener('click', (e) => {
@@ -1083,4 +1076,329 @@
     }
   }
   loadBriefing();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   Phase 21 R2 — 할당한 작업·미할당 서비스 + 알림 벨 드롭다운
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const t = new Date(ts).getTime();
+    if (!t) return '';
+    const sec = Math.floor((Date.now() - t) / 1000);
+    if (sec < 60) return '방금 전';
+    if (sec < 3600) return Math.floor(sec / 60) + '분 전';
+    if (sec < 86400) return Math.floor(sec / 3600) + '시간 전';
+    if (sec < 604800) return Math.floor(sec / 86400) + '일 전';
+    return new Date(ts).toLocaleDateString('ko-KR');
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    const res = await fetch(path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      method: opts.method || 'GET',
+      body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body
+    });
+    if (res.status === 401) { location.href = '/admin.html'; throw new Error('UNAUTHORIZED'); }
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error((data && (data.error || data.message)) || 'HTTP ' + res.status);
+    return data;
+  }
+
+  function showToast(msg, type) {
+    const root = $('#wsToastRoot');
+    if (!root) { console.warn('[ws-r2]', msg); return; }
+    const el = document.createElement('div');
+    el.className = `ws-toast ws-toast-${type || 'info'}`;
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('ws-toast-out');
+      setTimeout(() => el.remove(), 300);
+    }, 3000);
+  }
+
+  /* ─────────── 할당한 작업 패널 ─────────── */
+  async function loadAssignedByMe() {
+    const ul = $('#wsAssignedByMeList');
+    const badge = $('#wsAssignedByMeBadge');
+    if (!ul) return;
+    try {
+      const res = await api('/api/admin-workspace-tasks?list=1&assignedByMe=1');
+      const data = (res && res.data) || res || {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (badge) badge.textContent = String(items.length);
+      if (!items.length) {
+        ul.innerHTML = '<li class="ws-empty">📤 할당한 작업이 없습니다</li>';
+        return;
+      }
+      ul.innerHTML = items.map(t => {
+        const assigneeUid = t.assignedTo != null ? t.assignedTo : t.assigneeUid;
+        const assigneeName = t.assignedToName || t.assigneeName;
+        return `
+        <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
+          <span class="ws-task-priority">${t.priority === 'urgent' ? '🔴' : t.priority === 'high' ? '🟠' : t.priority === 'low' ? '⚪' : '🟢'}</span>
+          <div class="ws-task-body">
+            <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
+            <div class="ws-task-meta">
+              <span class="ws-task-assignee">현재 담당자: ${escapeHtml(assigneeName || ('#' + (assigneeUid || '?')))}</span>
+              ${t.progress != null ? `<span class="ws-task-progress">${Number(t.progress) || 0}%</span>` : ''}
+            </div>
+          </div>
+        </li>`;
+      }).join('');
+    } catch (err) {
+      console.warn('[ws-r2] assignedByMe 실패:', err);
+      ul.innerHTML = '<li class="ws-error">불러오기 실패</li>';
+    }
+  }
+
+  /* ─────────── 미할당 서비스 패널 (어드민만) ─────────── */
+  async function loadUnassigned(isAdmin) {
+    const panel = $('#wsPanelUnassigned');
+    const ul = $('#wsUnassignedList');
+    const badge = $('#wsUnassignedBadge');
+    if (!panel || !ul) return;
+
+    if (!isAdmin) {
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = '';
+
+    try {
+      const res = await api('/api/admin-workspace-tasks?list=1&unassigned=1');
+      const data = (res && res.data) || res || {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (badge) badge.textContent = String(items.length);
+      if (!items.length) {
+        ul.innerHTML = '<li class="ws-empty">✅ 미할당 카드가 없습니다</li>';
+        return;
+      }
+      ul.innerHTML = items.map(t => {
+        const sourceKind = t.sourceType || t.sourceServiceKind;
+        return `
+        <li class="ws-task-card" data-id="${t.id}" data-priority="${escapeHtml(t.priority || 'normal')}">
+          <span class="ws-task-priority">🚨</span>
+          <div class="ws-task-body">
+            <div class="ws-task-title">${escapeHtml(t.title || '(제목 없음)')}</div>
+            <div class="ws-task-meta">
+              ${sourceKind ? `<span class="ws-task-source">${escapeHtml(sourceKind)}</span>` : ''}
+              <span class="ws-task-status">미할당</span>
+            </div>
+          </div>
+        </li>`;
+      }).join('');
+    } catch (err) {
+      console.warn('[ws-r2] unassigned 실패:', err);
+      ul.innerHTML = '<li class="ws-error">불러오기 실패</li>';
+    }
+  }
+
+  /* ─────────── 알림 벨 드롭다운 ─────────── */
+  const CATEGORY_BADGE = {
+    assign: { label: '할당', cls: 'ws-notif-cat-assign' },
+    due:    { label: '마감', cls: 'ws-notif-cat-due' },
+    mention:{ label: '멘션', cls: 'ws-notif-cat-mention' },
+    transfer:{ label: '토스', cls: 'ws-notif-cat-transfer' },
+    watcher:{ label: '관찰', cls: 'ws-notif-cat-watcher' },
+    system: { label: '시스템', cls: 'ws-notif-cat-system' },
+  };
+
+  let dropdownOpen = false;
+  let lastFetchTs = 0;
+
+  async function loadNotifications() {
+    const list = $('#wsNotifDropdownList');
+    if (!list) return;
+    try {
+      const res = await api('/api/admin-workspace-notifications?limit=10');
+      const data = (res && res.data) || res || {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      const unread = Number(data.unreadCount || 0);
+
+      // 벨 카운트 갱신
+      const count = $('#wsNotifCount');
+      if (count) {
+        if (unread > 0) {
+          count.textContent = unread > 99 ? '99+' : String(unread);
+          count.style.display = '';
+        } else {
+          count.style.display = 'none';
+        }
+      }
+
+      if (!items.length) {
+        list.innerHTML = '<li class="ws-notif-dropdown-empty">알림이 없습니다</li>';
+        return;
+      }
+
+      list.innerHTML = items.map(n => {
+        const cat = CATEGORY_BADGE[n.category] || { label: n.category || '-', cls: 'ws-notif-cat-system' };
+        const isRead = !!n.readAt;
+        // B 명세: 알림 클릭 시 이동 경로 = actionUrl (옛 linkUrl)
+        const url = n.actionUrl || n.linkUrl || '';
+        return `
+          <li class="ws-notif-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${n.id}" data-url="${escapeHtml(url)}">
+            <span class="ws-notif-dot">${isRead ? '○' : '●'}</span>
+            <div class="ws-notif-body">
+              <div class="ws-notif-title">${escapeHtml(n.title || n.message || '알림')}</div>
+              <div class="ws-notif-meta">
+                <span class="ws-notif-time">${escapeHtml(timeAgo(n.createdAt))}</span>
+                <span class="ws-notif-cat ${cat.cls}">${escapeHtml(cat.label)}</span>
+              </div>
+            </div>
+          </li>`;
+      }).join('');
+    } catch (err) {
+      console.warn('[ws-r2] notifications 실패:', err);
+      list.innerHTML = '<li class="ws-notif-dropdown-empty">불러오기 실패</li>';
+    }
+  }
+
+  function openDropdown() {
+    const dd = $('#wsNotifDropdown');
+    if (!dd) return;
+    dd.hidden = false;
+    dropdownOpen = true;
+    // 마지막 호출에서 충분히 시간이 지났으면 새로 로드
+    if (Date.now() - lastFetchTs > 5000) {
+      lastFetchTs = Date.now();
+      loadNotifications();
+    }
+  }
+
+  function closeDropdown() {
+    const dd = $('#wsNotifDropdown');
+    if (!dd) return;
+    dd.hidden = true;
+    dropdownOpen = false;
+  }
+
+  function bindNotifBell() {
+    const bell = $('#wsNotifBell');
+    if (!bell) return;
+
+    // 기존 placeholder 핸들러를 무력화 — 이벤트 위임으로 처리
+    bell.addEventListener('click', (e) => {
+      // 드롭다운 내부 클릭은 별도 처리 (외부 클릭 닫기와 분리)
+      if (e.target.closest('#wsNotifDropdown')) return;
+      e.stopPropagation();
+      if (dropdownOpen) closeDropdown(); else openDropdown();
+    });
+
+    // 알림 항목 클릭 → 읽음 + 이동
+    document.addEventListener('click', async (e) => {
+      const item = e.target.closest('#wsNotifDropdownList .ws-notif-item');
+      if (!item) return;
+      e.stopPropagation();
+      const id = Number(item.dataset.id);
+      const url = item.dataset.url;
+      try {
+        await api('/api/admin-workspace-notifications', { method: 'POST', body: { id } });
+      } catch (_) { /* 읽음 실패는 무시 */ }
+      if (url) location.href = url;
+    });
+
+    // 모두 읽음
+    const markAll = $('#wsNotifMarkAll');
+    if (markAll) {
+      markAll.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await api('/api/admin-workspace-notifications', { method: 'POST', body: { all: true } });
+          showToast('모든 알림을 읽음 처리했어요', 'success');
+          await loadNotifications();
+        } catch (err) {
+          showToast('처리 실패: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // 외부 클릭 닫기
+    document.addEventListener('click', (e) => {
+      if (!dropdownOpen) return;
+      if (e.target.closest('#wsNotifBell')) return;
+      closeDropdown();
+    });
+
+    // ESC 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dropdownOpen) closeDropdown();
+    });
+  }
+
+  /* ─────────── 카드 클릭 → WBS 이동 ─────────── */
+  function bindPanelClicks() {
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('#wsAssignedByMeList .ws-task-card');
+      if (a && a.dataset.id) {
+        location.href = '/workspace-kanban.html#task=' + a.dataset.id;
+        return;
+      }
+      const u = e.target.closest('#wsUnassignedList .ws-task-card');
+      if (u && u.dataset.id) {
+        location.href = '/workspace-kanban.html#task=' + u.dataset.id;
+      }
+    });
+  }
+
+  /* ─────────── 권한 조회 + 초기화 ─────────── */
+  async function detectAdmin() {
+    try {
+      const res = await api('/api/admin-me');
+      const me = (res && res.data) || res || {};
+      return !!(me && (me.role === 'super_admin' || me.role === 'admin' || me.isAdmin));
+    } catch (_) {
+      // 실패 시 false (안전)
+      return false;
+    }
+  }
+
+  async function init() {
+    bindNotifBell();
+    bindPanelClicks();
+
+    const isAdmin = await detectAdmin();
+
+    await Promise.allSettled([
+      loadAssignedByMe(),
+      loadUnassigned(isAdmin),
+      loadNotifications(),
+    ]);
+
+    // WorkspaceSync 채널로 알림 갱신 트리거
+    if (window.WorkspaceSync) {
+      WorkspaceSync.on('notification:new', () => loadNotifications().catch(() => {}));
+      WorkspaceSync.on('task:updated',     () => { loadAssignedByMe().catch(() => {}); loadUnassigned(isAdmin).catch(() => {}); });
+      WorkspaceSync.on('task:created',     () => { loadAssignedByMe().catch(() => {}); loadUnassigned(isAdmin).catch(() => {}); });
+      WorkspaceSync.on('page:visible',     () => loadNotifications().catch(() => {}));
+    }
+
+    // 폴링 (60초)
+    setInterval(() => {
+      loadNotifications().catch(() => {});
+    }, 60000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
