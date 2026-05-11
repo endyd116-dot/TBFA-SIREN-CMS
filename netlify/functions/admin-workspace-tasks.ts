@@ -100,7 +100,40 @@ export default async (req: Request, _ctx: Context) => {
           .where(conds)
           .orderBy(desc(workspaceActivityLog.createdAt))
           .limit(limit);
-        return ok({ items: feed });
+
+        // Phase 21 R4 — actorName 보강 + groupKey 계산
+        const actorIds = [...new Set(feed.map((r: any) => r.actorId).filter(Boolean))] as number[];
+        let actorNameMap: Record<number, string> = {};
+        if (actorIds.length > 0) {
+          try {
+            const memberList: any = await db
+              .select({ id: members.id, name: members.name })
+              .from(members)
+              .where(sql`${members.id} = ANY(${actorIds})`);
+            for (const m of memberList) actorNameMap[m.id] = m.name;
+          } catch { /* 보조 쿼리 실패 시 무시 */ }
+        }
+
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+        const weekStart = new Date(todayStart.getTime() - (todayStart.getDay() || 7) * 86400000);
+
+        function getGroupKey(createdAt: any): string {
+          const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
+          if (d >= todayStart) return "today";
+          if (d >= yesterdayStart) return "yesterday";
+          if (d >= weekStart) return "thisweek";
+          return "older";
+        }
+
+        const items = feed.map((r: any) => ({
+          ...r,
+          actorName: r.actorName || actorNameMap[r.actorId] || null,
+          groupKey: getGroupKey(r.createdAt),
+        }));
+
+        return ok({ items });
       }
 
       // ─── 통계 ───
