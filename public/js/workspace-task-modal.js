@@ -143,8 +143,8 @@
       if (IS_KANBAN) {
         _openCreateOnKanban(opts || {});
       } else {
-        // 다른 페이지: WBS 페이지로 이동 (모달은 거기서 자동 열림 불가 — 직접 이동)
-        location.href = '/workspace-kanban.html';
+        // 다른 페이지: WBS 페이지로 #new-task hash와 함께 이동 → 도착 후 자동 오픈
+        location.href = '/workspace-kanban.html#new-task';
       }
     },
 
