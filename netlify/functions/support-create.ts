@@ -107,6 +107,33 @@ export default async (req: Request) => {
         createdAt: supportRequests.createdAt,
       });
 
+    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    try {
+      const { createWorkspaceTaskFromService, resolveAssigneeByService } = await import("../../lib/workspace-sync");
+      const taskPriority: "low" | "normal" | "high" | "urgent" =
+        priority === "urgent" ? "urgent" :
+        priority === "high"   ? "high"   :
+        priority === "low"    ? "low"    : "normal";
+      const taskId = await createWorkspaceTaskFromService({
+        serviceKind: "support",
+        serviceId: record.id,
+        category: String(category || ""),
+        title: `[지원] ${title} - ${user.name || "회원"}`,
+        description: priorityReason || null,
+        priority: taskPriority,
+        sourceRefUrl: `/admin-support.html#support-${record.id}`,
+      });
+      if (taskId) {
+        const resolved = await resolveAssigneeByService({ serviceKind: "support", serviceCategory: String(category || "") });
+        await db.update(supportRequests).set({
+          workspaceTaskId: taskId,
+          assignedAdminId: resolved?.uid ?? null,
+        } as any).where(eq(supportRequests.id, record.id));
+      }
+    } catch (hookErr) {
+      console.warn("[support-create] 카드 생성 훅 실패:", hookErr);
+    }
+
     /* 7. ★ 메일 수신자 결정 (STEP F-3) */
     const recipientEmails = new Set<string>();
 

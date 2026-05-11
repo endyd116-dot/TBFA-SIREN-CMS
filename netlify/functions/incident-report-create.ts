@@ -110,6 +110,34 @@ export default async (req: Request, _ctx: Context) => {
       console.error("[incident-report-create] AI 분석 예외:", aiErr);
     }
 
+    /* ★ Phase 21 R2+R3 — 워크스페이스 카드 자동 생성 + 담당자 할당 (fire-and-forget) */
+    try {
+      const { createWorkspaceTaskFromService } = await import("../../lib/workspace-sync");
+      const reporterDisplay = isAnonymous ? "익명" : (reporterName || "회원");
+      const priority: "high" | "normal" =
+        (aiResult?.severity === "high" || aiResult?.severity === "critical") ? "high" : "normal";
+      const taskId = await createWorkspaceTaskFromService({
+        serviceKind: "incident",
+        serviceId: reportId,
+        category: body?.category ?? null,
+        title: `[신고] ${title} - ${reporterDisplay}`,
+        description: aiResult?.summary ? String(aiResult.summary).slice(0, 500) : null,
+        priority,
+        sourceRefUrl: `/admin-siren.html#incident-${reportId}`,
+      });
+      if (taskId) {
+        const resolved = await import("../../lib/workspace-sync")
+          .then(m => m.resolveAssigneeByService({ serviceKind: "incident", serviceCategory: body?.category ?? null }));
+        await db.update(incidentReports).set({
+          workspaceTaskId: taskId,
+          assignedTo: resolved?.uid ?? null,
+          category: body?.category ?? null,
+        } as any).where(eq(incidentReports.id, reportId));
+      }
+    } catch (hookErr) {
+      console.warn("[incident-report-create] 카드 생성 훅 실패:", hookErr);
+    }
+
     /* 감사 로그 */
 // netlify/functions/incident-report-create.ts — 감사 로그 + return 블록 교체
     /* ★ M-17: 후원자 검증 — AI 결과 응답 제한 */

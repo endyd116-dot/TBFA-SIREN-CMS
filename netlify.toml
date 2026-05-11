@@ -129,6 +129,13 @@
 [functions."cron-notification-retry"]
   schedule = "* * * * *"
 
+# ★ Phase 21 R2+R3: 워크스페이스 카드 마감 24h/72h 알림 (매일 KST 09:00 = UTC 00:00)
+# - status NOT IN ('done','archived') 카드 중 마감 시각이 23~25h 또는 71~73h 후인 카드
+# - 담당자(assigned_to) + 워처(workspace_task_watchers) 에게 알림 (category="due")
+# - 같은 카드·같은 단계(D-1/D-3) 중복 발송 방지 (24h 윈도우)
+[functions."cron-workspace-due-reminder"]
+  schedule = "0 0 * * *"
+
 # ============================================================
 # Dev 설정
 # ============================================================
