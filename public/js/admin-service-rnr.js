@@ -2,7 +2,7 @@
  * Phase 21 R3 — 운영자 관리 R&R 탭
  *
  * API:
- *   GET    /api/admin-service-rnr      → { ok, data: { fallback: {primaryUid, primaryName}, mappings: [...] } }
+ *   GET    /api/admin-service-rnr      → { ok, data: { fallback: {...}, items: [...], total, canEdit } }
  *   POST   /api/admin-service-rnr      { serviceKind, serviceCategory, primaryUid, backupUid, isFallback? }
  *   DELETE /api/admin-service-rnr?id=X
  *
@@ -125,7 +125,8 @@
       const res = await api('/api/admin-service-rnr');
       const data = (res && res.data) || res || {};
       STATE.fallback = data.fallback || null;
-      STATE.mappings = Array.isArray(data.mappings) ? data.mappings : [];
+      // B 응답: data.items[] (다른 API와 표준 일관)
+      STATE.mappings = Array.isArray(data.items) ? data.items : (Array.isArray(data.mappings) ? data.mappings : []);
     } catch (err) {
       console.warn('[rnr] load 실패:', err);
       STATE.fallback = null;
