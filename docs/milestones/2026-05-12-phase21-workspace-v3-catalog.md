@@ -84,11 +84,12 @@
 | R | 제목 | 산출 핵심 | 추정 | 의존 |
 |---|---|---|---|---|
 | **R1** | WBS↔워크툴 연동 기반 | 칸반→WBS 리네이밍, 사이드바 정리, 통합 작업 모달 공용 모듈, BroadcastChannel 동기화, 워크툴 작업 클릭→WBS#task hash, 카드 모달 타임라인 활성화 | 메인 1h / B 1.5h / A 5h / C 1.5h | — |
-| **R2** | 할당·이관·알림 인프라 | `workspaceTaskTransfers`·`workspaceTaskWatchers` 테이블, 토스 API + 사유 입력 모달 + 거쳐온 담당자 체인, 할당한 작업 탭, 워처 추가/제거, `admin-workspace-notifications.ts` + 우측상단 드롭다운, 마감 cron 24h/72h, 멘션 알림 발송 보강 | 메인 1.5h / B 4h / A 4h / C 2h | R1 |
-| **R3** | 서비스↔카드 동기화 + R&R | `serviceRnr` 테이블 + 1차/백업, `lib/workspace-sync.ts`, 4종 서비스 create hook, `admin-service-rnr.ts` CRUD, 운영자 관리 R&R 탭(어드민 전용), `adminUsers`에 부재 컬럼 3종 + 마이페이지 토글, 서비스 상세 담당자 박스 자동 마운트 | 메인 2h / B 5h / A 4h / C 3h | R2 |
-| **R4** | 캘린더·메모·피드·템플릿·검색 마무리 | 캘린더 YIQ + 빈 셀 3옵션 + 메모 미러링, `workspaceMemos`에 `eventDate`/`eventTime`/`showInCalendar` 컬럼, 활동 피드 자연어 강화·시간 그룹핑·클릭 이동, 업무 템플릿 10종 시드, 자연어 검색 AI 함수, 사용자별 기본 보기 모드, 카드 모달 "원본 서비스 보기" 버튼 | 메인 1.5h / B 3h / A 4h / C 2h | R3 |
+| **R2+R3 통합** | 할당·이관·알림 + 서비스↔카드 동기화 + R&R | (R2) transfers·watchers·notifications 테이블·API·UI + 할당한 작업 탭 + 토스 모달 + 알림 드롭다운 + 마감 cron / (R3) serviceRnr + 부재 컬럼 + 4종 서비스 hook + R&R 탭 + 마이페이지 부재 토글 + 미할당 풀 | 메인 2.5h / B 9h / A 8h / C 3.5h | R1 |
+| **R3'**(원래 R4) | 캘린더·메모·피드·템플릿·검색 마무리 | 캘린더 YIQ + 빈 셀 3옵션 + 메모 미러링, `workspaceMemos`에 `eventDate`/`eventTime`/`showInCalendar`, 활동 피드 자연어 강화·시간 그룹핑·클릭 이동, 업무 템플릿 10종 시드, 자연어 검색 AI, 사용자별 기본 보기 모드, 카드 모달 "원본 서비스 보기" | 메인 1.5h / B 3h / A 4h / C 2h | R2+R3 |
 
-총 추정: 약 45h (메인 6h / B 13.5h / A 17h / C 8.5h)
+> **R2+R3 통합 결정 (2026-05-12)**: Swain 지시로 두 라운드를 하나의 큰 라운드로 통합 진행. 영역 분리(B=백 / A=프론트)는 그대로 유지되어 평행 가능. 머지 모드는 **평행 + 단계 머지** (B는 schema 머지 → 마이그 → API 머지 2단계로 분리해 schema 안정성 확보).
+
+총 추정: 약 45h (메인 5h / B 13.5h / A 17h / C 7h)
 
 ## 5. 별도 작업 — 싸이렌 어드민 4건
 
