@@ -197,12 +197,19 @@ export default async (req: Request, _ctx: Context) => {
         const sourceId = url.searchParams.get("sourceId");
         const priority = url.searchParams.get("priority");
         const limit = Math.min(Number(url.searchParams.get("limit") || 100), 500);
+        /* ★ 2026-05-12 워크스페이스 v2 — 단일 filter 파라미터 (assigned-by-me 추가) */
+        const filter = (url.searchParams.get("filter") || "").toLowerCase();
 
         const conds: any[] = [];
 
         // 스코프: 기본은 본인 관련
-        if (assignedToMe) {
+        if (filter === "assigned-to-me" || assignedToMe) {
           conds.push(and(eq(workspaceTasks.assignedTo, meId), isNotNull(workspaceTasks.assignedBy)));
+        } else if (filter === "assigned-by-me") {
+          /* 내가 만든(또는 토스한) + 현재 담당자가 본인이 아닌 카드 */
+          conds.push(and(eq(workspaceTasks.assignedBy, meId), sql`(${workspaceTasks.assignedTo} IS NULL OR ${workspaceTasks.assignedTo} != ${meId})`));
+        } else if (filter === "created-by-me") {
+          conds.push(eq(workspaceTasks.memberId, meId));
         } else if (mine || !isSuperAdmin) {
           conds.push(or(eq(workspaceTasks.memberId, meId), eq(workspaceTasks.assignedTo, meId)));
         }

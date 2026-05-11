@@ -189,7 +189,14 @@
         <span class="ws-stat-icon">📥</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatInbox">-</strong>
-          <small class="ws-stat-label">지시받은 작업</small>
+          <small class="ws-stat-label">할당받은 작업</small>
+        </div>
+      </a>
+      <a href="#outbox" class="ws-stat-card" data-ws-filter="outbox">
+        <span class="ws-stat-icon">📤</span>
+        <div class="ws-stat-body">
+          <strong class="ws-stat-num" id="wsStatOutbox">-</strong>
+          <small class="ws-stat-label">할당한 작업</small>
         </div>
       </a>
       <a href="#urgent" class="ws-stat-card" data-ws-filter="urgent">
@@ -259,10 +266,10 @@
       </div>
     </div>
 
-    <!-- [2] 지시받은 작업 -->
+    <!-- [2] 할당받은 작업 -->
     <div class="ws-panel" id="wsPanelInbox">
       <div class="ws-panel-header">
-        <h3>📥 지시받은 작업</h3>
+        <h3>📥 할당받은 작업</h3>
         <div class="ws-panel-controls">
           <span class="ws-panel-badge" id="wsInboxBadge">0</span>
         </div>
@@ -274,6 +281,24 @@
       </div>
       <div class="ws-panel-footer">
         <a href="#inbox-all" class="ws-panel-more" data-ws-action="view-all-inbox">전체 보기 →</a>
+      </div>
+    </div>
+
+    <!-- [2-2] 할당한 작업 (2026-05-12 신설) -->
+    <div class="ws-panel" id="wsPanelOutbox">
+      <div class="ws-panel-header">
+        <h3>📤 할당한 작업</h3>
+        <div class="ws-panel-controls">
+          <span class="ws-panel-badge" id="wsOutboxBadge">0</span>
+        </div>
+      </div>
+      <div class="ws-panel-body">
+        <ul class="ws-task-list" id="wsOutboxList">
+          <li class="ws-loading">불러오는 중...</li>
+        </ul>
+      </div>
+      <div class="ws-panel-footer">
+        <a href="#outbox-all" class="ws-panel-more" data-ws-action="view-all-outbox">전체 보기 →</a>
       </div>
     </div>
 
@@ -395,7 +420,8 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace.js?v=5" defer></script>
+<script src="/js/workspace.js?v=2026-05-12-v2" defer></script>
+<script src="/js/workspace-modals.js?v=2026-05-12-v2" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>
