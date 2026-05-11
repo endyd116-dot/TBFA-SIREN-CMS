@@ -374,6 +374,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 6. **schema.ts append-only 원칙 (병렬 작업 핵심)**: 여러 작업이 schema.ts를 동시에 수정 시 다른 작업 영역을 덮어쓰지 말 것. 본인 섹션은 반드시 파일 끝에 헤더 명시 후 추가 (`/* === 작업 X === */`). 2026-05-09 사고 사례: 작업 C가 schema 영역에 자기 정의를 적으면서 작업 A의 정의(eligibilityType + eligibilityChangeRequests)를 함께 삭제 → 머지 후 회귀 발견 → fix 커밋(b45d0fa)으로 복구
 7. **병렬 작업은 worktree 필수**: 같은 working directory를 두 채팅이 공유하면 git checkout이 다른 채팅의 워킹 트리에 영향. `git worktree add ../tbfa-mis-{식별자} feature/{브랜치}`로 폴더 분리 (사고 사례: 2026-05-09 b5167bf → 0453071 cherry-pick 정리)
 8. **헬퍼 함수 도입 직후 모든 사용처 1회 검증**: 5순위 #1에서 도입한 `requireActiveUser`가 `user.id` (실제 필드명은 `uid`) 참조 → 1회용 검증 누락으로 9개 API 동작 불능 잠재. 2026-05-09 검증 단계에서 발견 (#BUG-1 — `docs/issues/2026-05-09-requireActiveUser-uid-bug.md`)
+9. **메인 설계 §1·§2 작성 전 사전 정독 의무화** (2026-05-12 R2+R3·R4 격차 사고 패턴 — 메인이 `adminUsers`/`assigneeUid`/`linkUrl` 등 일반 가정으로 설계 → B가 schema 정독 후 적응 보고): 새 라운드 설계서 작성 전 ① `db/schema.ts` 영향 테이블 전후 정독 + 명명 후보 키 grep(`assigneeUid` vs `assignedTo` 등 둘 다 검색) ② `lib/auth.ts`·`lib/admin-guard.ts`로 사용자/관리자 모델 확정 (이 프로젝트는 `admin_users` 없이 `members.role`+`operatorActive`로 운영자 식별) ③ 영향 받는 4종 서비스 API 본문 단편 정독으로 기존 FK 패턴 확인 ④ `drizzle/` 폴더 ls로 컬럼 진화 추적 ⑤ `docs/issues/` 최근 3건 정독으로 회귀 패턴 학습. 누락 시 B가 schema 격차 적응 보고로 메인 결정 폭증 + 머지 후 키 정정 코드 변경 폭증.
 
 ### 9.2 마이그레이션 호출 흐름 (사용자 액션)
 ```
@@ -441,6 +442,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 - [ ] `/api/*` 함수에 `export const config = { path }`?
 - [ ] 병렬 작업이면 worktree 폴더에서 시작? (같은 working directory 공유 금지)
 - [ ] 헬퍼 함수 도입 직후 모든 사용처 1회 검증? (#BUG-1 사례 — §9.1.8)
+- [ ] **메인 설계 시작 전 schema·lib·기존 API 본문 사전 정독 완료?** (§9.1.9 — `adminUsers`/`assigneeUid`/`linkUrl` 같은 일반 가정 금지)
 - [ ] PROJECT_STATE.md §2 갱신 + §4.X 진행률 갱신 후 push?
 - [ ] 컨텍스트 80%·90% 알림 체크?
 - [ ] 푸시 후 사용자에게 검증 권장 + 다음 단계 안내?
@@ -489,4 +491,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-10 (§10·§11 외부 위임 + §12 참조 갱신 + §14 컨텍스트 관리 정책 신설)
+**마지막 업데이트**: 2026-05-12 (§9.1.9 메인 설계 사전 정독 의무화 + §13 체크리스트 한 줄 추가 — R2+R3·R4 schema 격차 사고 패턴 차단)
