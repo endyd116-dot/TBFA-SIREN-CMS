@@ -49,52 +49,11 @@
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="true" style="display:none">
             <li><a href="/workspace.html" data-ws-nav="dashboard" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
-            <li><a href="/workspace-kanban.html" title="칸반"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">칸반</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
             <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
             <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
             <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
           </ul>
-        </li>
-
-        <li>
-          <a href="#my-tasks" data-ws-nav="my-tasks" title="내 작업">
-            <span class="ws-nav-icon">📋</span>
-            <span class="ws-nav-text">내 작업</span>
-            <span class="ws-nav-badge" id="wsNavMyTasksBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a href="#inbox" data-ws-nav="inbox" title="지시받은 작업">
-            <span class="ws-nav-icon">📥</span>
-            <span class="ws-nav-text">지시함</span>
-            <span class="ws-nav-badge" id="wsNavInboxBadge" style="display:none">0</span>
-          </a>
-        </li>
-        <li>
-          <a href="#calendar" data-ws-nav="calendar" title="일정">
-            <span class="ws-nav-icon">📅</span>
-            <span class="ws-nav-text">일정</span>
-          </a>
-        </li>
-        <li>
-          <a href="#memos" data-ws-nav="memos" title="메모">
-            <span class="ws-nav-icon">📝</span>
-            <span class="ws-nav-text">메모</span>
-          </a>
-        </li>
-        <li>
-          <a href="#feed" data-ws-nav="feed" title="팀 피드">
-            <span class="ws-nav-icon">🔔</span>
-            <span class="ws-nav-text">피드</span>
-          </a>
-        </li>
-        <li class="ws-nav-divider"></li>
-        <li>
-          <a href="#due-changes" data-ws-nav="due-changes" title="마감일 변경 요청">
-            <span class="ws-nav-icon">⏰</span>
-            <span class="ws-nav-text">마감일 요청</span>
-            <span class="ws-nav-badge" id="wsNavDueBadge" style="display:none">0</span>
-          </a>
         </li>
       </ul>
     </nav>
@@ -395,7 +354,9 @@
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
-<script src="/js/workspace.js?v=5" defer></script>
+<script src="/js/workspace-sync-channel.js?v=1" defer></script>
+<script src="/js/workspace-task-modal.js?v=1" defer></script>
+<script src="/js/workspace.js?v=6" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 </body>

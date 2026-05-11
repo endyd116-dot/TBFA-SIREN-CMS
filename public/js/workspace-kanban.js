@@ -311,6 +311,7 @@
       const t = STATE.tasks.find(x => x.id === taskId);
       if (t) t.status = newCol;
       card.dataset.status = newCol;
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:status', { id: taskId, status: newCol });
     } catch (err) {
       toast('상태 변경 실패: ' + err.message, 'error');
       await loadTasks();
@@ -447,6 +448,8 @@
       await api(`/api/admin-workspace-tasks?id=${id}`, { method: 'PATCH', body });
       toast('저장됨', 'success');
       closeModal('wkCardModal');
+      history.replaceState(null, '', '/workspace-kanban.html');
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:updated', { id });
       await loadTasks();
     } catch (err) {
       toast('저장 실패: ' + err.message, 'error');
@@ -461,6 +464,8 @@
       await api(`/api/admin-workspace-tasks?id=${id}&action=archive`, { method: 'PATCH', body: {} });
       toast('보관됨', 'success');
       closeModal('wkCardModal');
+      history.replaceState(null, '', '/workspace-kanban.html');
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:updated', { id });
       await loadTasks();
     } catch (err) {
       toast('보관 실패: ' + err.message, 'error');
@@ -475,6 +480,8 @@
       await api(`/api/admin-workspace-tasks?id=${id}`, { method: 'DELETE' });
       toast('삭제됨', 'success');
       closeModal('wkCardModal');
+      history.replaceState(null, '', '/workspace-kanban.html');
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:deleted', { id });
       await loadTasks();
     } catch (err) {
       toast('삭제 실패: ' + err.message, 'error');
@@ -593,8 +600,8 @@
     if (SELECTED_TEMPLATE_ID) body.templateId = SELECTED_TEMPLATE_ID;
 
     try {
-      await api('/api/admin-workspace-tasks', { method: 'POST', body });
-      toast('생성됨', 'success');
+      const result = await api('/api/admin-workspace-tasks', { method: 'POST', body });
+      toast('작업이 추가됐어요', 'success');
       closeModal('wkNewModal');
       $('#wkNewTitle').value = '';
       $('#wkNewDescription').value = '';
@@ -602,6 +609,8 @@
       $('#wkNewTemplate').value = '';
       SELECTED_TEMPLATE_ID = null;
       $('#wkNewTemplateHint').textContent = '템플릿을 선택하면 설명·우선순위·태그·체크리스트가 자동 채워집니다.';
+      const newId = result?.data?.id || result?.id;
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:created', { id: newId });
       await loadTasks();
     } catch (err) {
       toast('생성 실패: ' + err.message, 'error');
@@ -708,6 +717,7 @@
         const id = close.dataset.closeModal;
         closeModal(id);
         if (id === 'wkHoldModal') rollbackPendingHold();
+        if (id === 'wkCardModal') history.replaceState(null, '', '/workspace-kanban.html');
       }
     });
 
@@ -718,6 +728,7 @@
         if (open) {
           closeModal(open.id);
           if (open.id === 'wkHoldModal') rollbackPendingHold();
+          if (open.id === 'wkCardModal') history.replaceState(null, '', '/workspace-kanban.html');
         }
       }
     });
@@ -770,7 +781,26 @@
     if (m) {
       setTimeout(() => openCardModal(Number(m[1])), 100);
     }
+
+    // WorkspaceSync: 다른 탭에서 변경 시 자동 갱신
+    if (window.WorkspaceSync) {
+      WorkspaceSync.on('task:updated', () => loadTasks().catch(() => {}));
+      WorkspaceSync.on('task:created', () => loadTasks().catch(() => {}));
+      WorkspaceSync.on('task:deleted', () => loadTasks().catch(() => {}));
+      WorkspaceSync.on('task:status',  () => loadTasks().catch(() => {}));
+      WorkspaceSync.on('page:visible', () => loadTasks().catch(() => {}));
+    }
   }
+
+  // openCardModal을 WorkspaceTaskModal에서 호출할 수 있도록 전역 노출
+  window.wkOpenCardById = function (taskId) {
+    openCardModal(Number(taskId));
+  };
+
+  // loadTemplatesIntoSelect를 WorkspaceTaskModal에서 호출할 수 있도록 전역 노출
+  window.wkLoadTemplatesIntoSelect = function () {
+    loadTemplatesIntoSelect();
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -868,7 +898,7 @@
     if (tabName === 'ai') renderAi();
   }
 
-  /* ═══════════════════ 히스토리 탭 (Step 7-C.4.a) ═══════════════════ */
+  /* ═══════════════════ 히스토리·타임라인 탭 (Step 7-C.4.a + Phase 21 R1) ═══════════════════ */
   const ACTION_LABELS = {
     'task.create':              { icon: '📋', label: '작업 생성' },
     'task.update':              { icon: '✏️', label: '작업 수정' },
@@ -886,31 +916,118 @@
     'task.checklist.toggle':    { icon: '✓', label: '체크리스트 토글' },
     'task.attachment.add':      { icon: '📎', label: '파일 첨부' },
     'task.attachment.remove':   { icon: '✂', label: '첨부 해제' },
+    'task.move':                { icon: '🔀', label: '컬럼 이동' },
+    'task.comment':             { icon: '💬', label: '댓글' },
+    'task.attachment':          { icon: '📎', label: '파일 첨부' },
   };
+
+  const STATUS_LABEL_KR = {
+    todo: '할 일', doing: '진행 중', blocked: '차단', done: '완료', archived: '보관'
+  };
+
+  const FIELD_LABEL_KR = {
+    title: '제목', description: '설명', priority: '우선순위',
+    dueDate: '마감일', estimatedHours: '예상시간', actualHours: '실제시간',
+    progress: '진행률', tags: '태그'
+  };
+
+  function formatActivityNatural(item) {
+    const actor = escapeHtml(item.actorName || '시스템');
+    const m = item.metadata || {};
+    switch (item.actionType) {
+      case 'task.create':
+        return `${actor}이(가) 이 작업을 만들었어요`;
+      case 'task.update': {
+        const fields = Array.isArray(m.fields) ? m.fields.map(f => FIELD_LABEL_KR[f] || f).join(', ') : '';
+        return fields ? `${actor}이(가) ${escapeHtml(fields)} 수정했어요` : `${actor}이(가) 작업을 수정했어요`;
+      }
+      case 'task.status': {
+        const from = STATUS_LABEL_KR[m.from] || STATUS_LABEL_KR[m.prevStatus] || m.from || m.prevStatus || '?';
+        const to   = STATUS_LABEL_KR[m.to]   || STATUS_LABEL_KR[m.newStatus]  || m.to   || m.newStatus  || '?';
+        return `${actor}이(가) 상태를 ${escapeHtml(from)}→${escapeHtml(to)}로 변경했어요`;
+      }
+      case 'task.assign':
+        return m.assigneeName
+          ? `${actor}이(가) ${escapeHtml(m.assigneeName)}에게 할당했어요`
+          : `${actor}이(가) 작업을 지시했어요`;
+      case 'task.move': {
+        const from = m.from || '?';
+        const to   = m.to   || '?';
+        return `${actor}이(가) ${escapeHtml(from)}에서 ${escapeHtml(to)}으로 이동했어요`;
+      }
+      case 'task.comment':
+        return `${actor}이(가) 댓글을 달았어요`;
+      case 'task.attachment':
+      case 'task.attachment.add':
+        return m.fileName
+          ? `${actor}이(가) 파일을 첨부했어요 (${escapeHtml(m.fileName)})`
+          : `${actor}이(가) 파일을 첨부했어요`;
+      default:
+        return `${actor}이(가) 작업을 갱신했어요`;
+    }
+  }
+
+  function formatActivityTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH   = Math.floor(diffMs / 3600000);
+    const diffD   = Math.floor(diffMs / 86400000);
+    if (diffMin < 1)  return '방금 전';
+    if (diffMin < 60) return `${diffMin}분 전`;
+    if (diffH < 24)   return `${diffH}시간 전`;
+    if (diffD === 1)  return '어제';
+    if (diffD < 7)    return `${diffD}일 전`;
+    return d.toLocaleDateString('ko-KR');
+  }
+
+  function renderActivityItems(items, listEl) {
+    if (!items || !items.length) {
+      listEl.innerHTML = '<li class="wk-history-empty">활동 기록이 없어요</li>';
+      return;
+    }
+    listEl.innerHTML = items.map(it => {
+      const natural = formatActivityNatural(it);
+      const relTime = formatActivityTime(it.createdAt);
+      const absTime = it.createdAt ? new Date(it.createdAt).toLocaleString('ko-KR') : '';
+      return `
+<li class="wk-history-item">
+  <span>${natural}</span>
+  <span class="wk-history-time" style="display:block;margin-top:2px" title="${escapeHtml(absTime)}">
+    ${escapeHtml(relTime)}
+  </span>
+</li>`;
+    }).join('');
+  }
 
   async function loadHistory(taskId) {
     const list = $('#wkHistoryList');
+    if (!list) return;
     list.innerHTML = '<li class="wk-history-empty">불러오는 중...</li>';
+
+    // R1: 단건 조회로 activityLog 포함 응답 시도 (B 작업 머지 후 동작)
+    try {
+      const res = await api(`/api/admin-workspace-tasks?id=${taskId}`);
+      const task = res.data || res;
+      const activityLog = Array.isArray(task?.activityLog) ? task.activityLog : null;
+      if (activityLog !== null) {
+        renderActivityItems(activityLog, list);
+        return;
+      }
+    } catch (_) { /* activityLog 키 없음 — fallback으로 진행 */ }
+
+    // fallback: 기존 feed API
     try {
       const res = await api(`/api/admin-workspace-tasks?feed=1&taskId=${taskId}&limit=100`);
       const items = res.data?.items || res.items || [];
       if (!items.length) {
-        list.innerHTML = '<li class="wk-history-empty">아직 활동 기록이 없습니다.</li>';
+        list.innerHTML = '<li class="wk-history-empty">활동 기록이 없어요</li>';
         return;
       }
-      list.innerHTML = items.map(it => {
-        const map = ACTION_LABELS[it.actionType] || { icon: '📌', label: it.actionType };
-        const sub = it.metadata?.subType ? ` · ${escapeHtml(it.metadata.subType)}` : '';
-        const detail = formatHistoryDetail(it);
-        return `
-<li class="wk-history-item">
-  <span>${map.icon} <strong>${escapeHtml(map.label)}</strong>${sub}</span>
-  ${detail ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">${detail}</div>` : ''}
-  <span class="wk-history-time" style="display:block;margin-top:2px">
-    ${escapeHtml(it.actorName || '시스템')} · ${escapeHtml(formatTime(it.createdAt))}
-  </span>
-</li>`;
-      }).join('');
+      // feed API 응답도 자연어 렌더러 사용
+      renderActivityItems(items, list);
     } catch (err) {
       list.innerHTML = `<li class="wk-history-empty">로드 실패: ${escapeHtml(err.message)}</li>`;
     }
