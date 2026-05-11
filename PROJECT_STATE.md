@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-12 | **메인** | **Phase 21 R1 B·A 머지 완료 → C 트리거** — B(b044382: admin-workspace-tasks activityLog 50건) 머지(2e62ee3) / A(db0a8c0: 5페이지 사이드바·칸반→WBS·통합 모달·BroadcastChannel·#task hash·타임라인) 머지(88d9b38) / 충돌 0 / R2·R3 결정 7건 확정(설계서는 R1 마감 후 작성) |
 | 2026-05-12 | **메인** | **Phase 21 R1 설계서 push + B·A 트리거 준비 완료** — 카탈로그(2026-05-12-phase21-workspace-v3-catalog.md) + R1 설계서(2026-05-12-phase21-r1-wbs-bridge.md) push (36d5dec) / 옛 phase21-front·back 백업(backup/phase21-phone-mask-*) + worktree A·B를 feature/phase21-r1-{front,back}으로 전환 / 베이스 main @ 36d5dec |
 | 2026-05-11 | **메인** | **Phase 16 ✅ 100% + Phase 17 실API 연결 머지** — verify/phase16(21f6222) BUG-16-01/02 fix / feature/phase17-live(ea904f8) 머지 / Phase 17 schema 활성화 + 마이그 파일 삭제 (f906616) |
 | 2026-05-11 | **메인** | **Phase 18 B 트리거 + A Phase 20 후보 발굴 트리거** — B Phase 18 캐싱·쿼리튜닝 진행 / A Opus 4.7 전환 후 Phase 20 후보 4개 발굴 / C Phase 17 검증 대기 |
@@ -46,14 +47,14 @@
 ## 3. 현재 작업 모드
 
 ```
-🔵 Phase 21 R1 — WBS↔워크툴 연동 기반 (트리거 준비 완료)
+🔵 Phase 21 R1 — B·A 머지 완료 → C 검증 트리거 대기
    설계서: docs/milestones/2026-05-12-phase21-r1-wbs-bridge.md
-   베이스: main @ 36d5dec
-   ├─ A: ⏸ 트리거 대기 (feature/phase21-r1-front 워크트리 준비됨)
-   ├─ B: ⏸ 트리거 대기 (feature/phase21-r1-back 워크트리 준비됨)
-   ├─ C: ⏸ B·A 머지 후 트리거 (verify/phase21-r1 — 현재 verify/phase20c 잔여)
+   main HEAD: 88d9b38
+   ├─ A: ✅ 머지 완료 (db0a8c0 → 88d9b38)
+   ├─ B: ✅ 머지 완료 (b044382 → 2e62ee3)
+   ├─ C: ⏸ 검증 트리거 대기 (verify/phase21-r1 신규 브랜치 필요)
    └─ D: 휴면
-   메인: B·A 머지 → C 검증 → R1 마감 → R2 설계 시작
+   메인: C 검증 PASS or fix 머지 → R1 마감 → R2 설계서 작성
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
