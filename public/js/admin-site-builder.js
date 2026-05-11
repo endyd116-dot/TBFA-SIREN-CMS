@@ -47,8 +47,6 @@
       children: [
         { key: 'page.terms', label: '이용약관' },
         { key: 'page.privacy', label: '개인정보처리방침' },
-        { key: 'page.email_reject', label: '이메일 무단수집 거부' },
-        { key: 'page.ethics', label: '윤리경영' },
       ],
     },
     { key: 'publish', label: '🚀 배포 관리', leaf: true },

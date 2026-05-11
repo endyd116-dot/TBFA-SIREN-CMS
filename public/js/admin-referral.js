@@ -58,29 +58,37 @@
   function renderShell() {
     $section.innerHTML = [
       '<div class="adm-page-header">',
-      '  <h2 class="serif" style="margin:0">📤 인계 이력</h2>',
-      '  <button id="refBtnCreate" class="btn-primary" style="margin-left:auto">+ 인계 실행</button>',
+      '  <h2 class="serif" style="margin:0">인계 이력</h2>',
+      '  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">',
+      '    <button id="refBtnCreate" class="btn-primary">+ 인계 실행</button>',
+      '  </div>',
       '</div>',
 
-      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">',
-      '  <select id="refFilterSource" style="padding:7px 12px;border:1px solid var(--line);border-radius:6px;font-size:12.5px">',
-      '    <option value="">전체 신고 유형</option>',
-      '    <option value="incident">사건 신고</option>',
-      '    <option value="harassment">괴롭힘 신고</option>',
-      '    <option value="legal">법률 상담</option>',
-      '  </select>',
-      '  <select id="refFilterStatus" style="padding:7px 12px;border:1px solid var(--line);border-radius:6px;font-size:12.5px">',
-      '    <option value="">전체 상태</option>',
-      '    <option value="sent">발송됨</option>',
-      '    <option value="reviewing">검토 중</option>',
-      '    <option value="in_progress">처리 중</option>',
-      '    <option value="completed">완료</option>',
-      '    <option value="rejected">반려</option>',
-      '  </select>',
-      '  <button id="refBtnRefresh" style="padding:7px 14px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12.5px;cursor:pointer">새로고침</button>',
+      '<div class="panel" style="padding:14px 16px;margin-bottom:16px">',
+      '  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">',
+      '    <label style="font-size:12px;font-weight:600;color:var(--text-2)">신고 유형</label>',
+      '    <select id="refFilterSource" style="padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;min-width:130px">',
+      '      <option value="">전체</option>',
+      '      <option value="incident">사건 신고</option>',
+      '      <option value="harassment">괴롭힘 신고</option>',
+      '      <option value="legal">법률 상담</option>',
+      '    </select>',
+      '    <label style="font-size:12px;font-weight:600;color:var(--text-2);margin-left:8px">상태</label>',
+      '    <select id="refFilterStatus" style="padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;min-width:110px">',
+      '      <option value="">전체</option>',
+      '      <option value="sent">발송됨</option>',
+      '      <option value="reviewing">검토 중</option>',
+      '      <option value="in_progress">처리 중</option>',
+      '      <option value="completed">완료</option>',
+      '      <option value="rejected">반려</option>',
+      '    </select>',
+      '    <button id="refBtnRefresh" class="btn-sm btn-sm-ghost" style="margin-left:4px">새로고침</button>',
+      '  </div>',
       '</div>',
 
-      '<div id="refList"></div>',
+      '<div class="panel" style="overflow:hidden">',
+      '  <div id="refList"></div>',
+      '</div>',
       '<div id="refPager" style="text-align:center;margin-top:16px"></div>',
 
       /* ── 인계 실행 모달 ── */
@@ -262,6 +270,15 @@
   /* ────────────────────────────────────────────────
      이력 목록 렌더
   ──────────────────────────────────────────────── */
+  var STATUS_BADGE_CLASS = {
+    pending:     'b-mute',
+    sent:        'b-mute',
+    reviewing:   'b-warn',
+    in_progress: 'b-warn',
+    completed:   'b-success',
+    rejected:    'b-danger'
+  };
+
   function renderLogs() {
     var listEl = document.getElementById('refList');
     var pagerEl = document.getElementById('refPager');
@@ -275,42 +292,42 @@
     var rows = logs.map(function (log) {
       var typeLabel = SOURCE_TYPE_LABELS[log.sourceType] || log.sourceType;
       var statusLabel = STATUS_LABELS[log.status] || log.status;
-      var color = STATUS_COLORS[log.status] || '#6c757d';
-      var statusBadge = '<span style="background:' + color + '1a;color:' + color + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">' + esc(statusLabel) + '</span>';
+      var badgeCls = STATUS_BADGE_CLASS[log.status] || 'b-mute';
+      var statusBadge = '<span class="badge ' + badgeCls + '">' + esc(statusLabel) + '</span>';
       var referredAt = formatDate(log.referredAt);
       var updatedAt = log.statusUpdatedAt ? formatDate(log.statusUpdatedAt) : '-';
 
       return [
-        '<tr style="border-bottom:1px solid var(--line)">',
-        '  <td style="padding:11px 10px;font-size:12px;color:var(--text-3)">#' + log.id + '</td>',
-        '  <td style="padding:11px 10px;font-weight:600">' + esc(log.agencyName) + '</td>',
-        '  <td style="padding:11px 10px">' + esc(typeLabel) + '</td>',
-        '  <td style="padding:11px 10px;font-size:12px;color:var(--text-2)">' + esc(log.sourceNo) + '</td>',
-        '  <td style="padding:11px 10px;font-size:12px">' + esc(referredAt) + '</td>',
-        '  <td style="padding:11px 10px">' + statusBadge + '</td>',
-        '  <td style="padding:11px 10px;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(log.statusMemo || '') + '">' + esc(log.statusMemo || '-') + '</td>',
-        '  <td style="padding:11px 10px;font-size:12px">' + esc(updatedAt) + '</td>',
-        '  <td style="padding:11px 10px;white-space:nowrap">',
-        '    <button data-ref-status="' + log.id + '" style="padding:4px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;font-size:11.5px;margin-right:4px">상태 변경</button>',
-        '    <button data-ref-pdf="' + log.id + '" style="padding:4px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;font-size:11.5px">PDF</button>',
+        '<tr>',
+        '  <td style="color:var(--text-3);font-size:12px">#' + log.id + '</td>',
+        '  <td style="font-weight:600">' + esc(log.agencyName) + '</td>',
+        '  <td>' + esc(typeLabel) + '</td>',
+        '  <td style="font-size:12px;color:var(--text-2)">' + esc(log.sourceNo) + '</td>',
+        '  <td style="font-size:12px">' + esc(referredAt) + '</td>',
+        '  <td>' + statusBadge + '</td>',
+        '  <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(log.statusMemo || '') + '">' + esc(log.statusMemo || '-') + '</td>',
+        '  <td style="font-size:12px">' + esc(updatedAt) + '</td>',
+        '  <td style="white-space:nowrap">',
+        '    <button data-ref-status="' + log.id + '" class="btn-sm btn-sm-ghost" style="margin-right:4px">상태 변경</button>',
+        '    <button data-ref-pdf="' + log.id + '" class="btn-sm btn-sm-ghost">PDF</button>',
         '  </td>',
         '</tr>'
       ].join('');
     });
 
     listEl.innerHTML = [
-      '<table style="width:100%;border-collapse:collapse;font-size:13px">',
+      '<table class="tbl">',
       '  <thead>',
-      '    <tr style="background:var(--surface);text-align:left">',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">#</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">기관</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">유형</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">신고번호</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">인계일시</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">상태</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">메모</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">상태 갱신일</th>',
-      '      <th style="padding:10px;font-weight:600;border-bottom:2px solid var(--line)">관리</th>',
+      '    <tr>',
+      '      <th>#</th>',
+      '      <th>기관</th>',
+      '      <th>유형</th>',
+      '      <th>신고번호</th>',
+      '      <th>인계일시</th>',
+      '      <th>상태</th>',
+      '      <th>메모</th>',
+      '      <th>상태 갱신일</th>',
+      '      <th>관리</th>',
       '    </tr>',
       '  </thead>',
       '  <tbody>' + rows.join('') + '</tbody>',
@@ -324,7 +341,7 @@
         var pages = [];
         for (var p = 1; p <= totalPages; p++) {
           var active = p === currentPage;
-          pages.push('<button data-ref-page="' + p + '" style="padding:5px 10px;border:1px solid ' + (active ? 'var(--primary)' : 'var(--line)') + ';border-radius:5px;background:' + (active ? 'var(--primary)' : '#fff') + ';color:' + (active ? '#fff' : 'inherit') + ';cursor:pointer;font-size:12px;margin:2px">' + p + '</button>');
+          pages.push('<button data-ref-page="' + p + '" class="btn-sm ' + (active ? 'btn-sm-primary' : 'btn-sm-ghost') + '">' + p + '</button>');
         }
         pagerEl.innerHTML = '<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">' + pages.join('') + '</div>';
       }
