@@ -3514,40 +3514,82 @@
           </div>
         </div>
 
-        <!-- 5. 운영자 관리 -->
+        <!-- 5. 운영자 관리 (2026-05-12 v2: 업무별 R&R 탭 신설) -->
         <div id="adm-operators" class="adm-page">
-          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-            <div class="kpi"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="opKpiTotal">0 명</div></div>
-            <div class="kpi"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="opKpiSuper">0 명</div></div>
-            <div class="kpi"><div class="kpi-label">일반 운영자</div><div class="kpi-value" id="opKpiOperator">0 명</div></div>
-            <div class="kpi"><div class="kpi-label">활성 운영자</div><div class="kpi-value" id="opKpiActive">0 명</div></div>
+
+          <div class="content-tabs" id="opSubTabs" style="margin-bottom:16px">
+            <button type="button" class="ct-tab on" data-optab="list">👨‍💼 운영자 목록</button>
+            <button type="button" class="ct-tab" data-optab="rnr">🎯 업무별 R&amp;R</button>
           </div>
 
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">👨‍💼 운영자 목록</div>
-              <div class="p-actions">
-                <button class="btn-sm btn-sm-primary" data-op-action="open-promote">+ 회원 승급</button>
-              </div>
+          <!-- 탭 1: 기존 운영자 목록 -->
+          <div data-optab-pane="list">
+            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+              <div class="kpi"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="opKpiTotal">0 명</div></div>
+              <div class="kpi"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="opKpiSuper">0 명</div></div>
+              <div class="kpi"><div class="kpi-label">일반 운영자</div><div class="kpi-value" id="opKpiOperator">0 명</div></div>
+              <div class="kpi"><div class="kpi-label">활성 운영자</div><div class="kpi-value" id="opKpiActive">0 명</div></div>
             </div>
-            <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-              💡 운영자는 백오피스에 접근할 수 있으며, "알림 수신"이 켜진 운영자는 새 지원 신청 시 이메일을 받습니다.<br />
-              긴급(🔴) 신청은 모든 운영자에게 자동 발송됩니다.
-            </p>
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>이름</th>
-                  <th>이메일</th>
-                  <th>역할</th>
-                  <th>알림 수신</th>
-                  <th>상태</th>
-                  <th>최종 로그인</th>
-                  <th style="width:140px">관리</th>
-                </tr>
-              </thead>
-              <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-            </table>
+
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">👨‍💼 운영자 목록</div>
+                <div class="p-actions">
+                  <button class="btn-sm btn-sm-primary" data-op-action="open-promote">+ 회원 승급</button>
+                </div>
+              </div>
+              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
+                💡 운영자는 백오피스에 접근할 수 있으며, "알림 수신"이 켜진 운영자는 새 지원 신청 시 이메일을 받습니다.<br />
+                긴급(🔴) 신청은 모든 운영자에게 자동 발송됩니다. <strong>운영자 추가/수정/삭제는 super_admin만 가능</strong>합니다.
+              </p>
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>이메일</th>
+                    <th>역할</th>
+                    <th>알림 수신</th>
+                    <th>상태</th>
+                    <th>최종 로그인</th>
+                    <th style="width:140px">관리</th>
+                  </tr>
+                </thead>
+                <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 탭 2: 업무별 R&R 매핑 (2026-05-12 신설) -->
+          <div data-optab-pane="rnr" style="display:none">
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">🎯 서비스별 기본 담당자 매핑 (R&amp;R)</div>
+                <div class="p-actions">
+                  <button class="btn-sm btn-sm-ghost" id="rnrBtnReload">🔄 새로고침</button>
+                </div>
+              </div>
+              <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;line-height:1.7;color:#1a5ec4">
+                💡 <strong>각 서비스가 접수되면 여기서 지정한 담당자에게 자동으로 워크스페이스 카드가 만들어집니다.</strong><br>
+                • 주 담당자가 휴가/퇴사 등으로 비활성 상태면 백업 담당자에게 자동 폴백됩니다.<br>
+                • SLA(시간)는 응답 시한 — 초과 시 담당자·관전자에게 자동 알림이 발송됩니다.<br>
+                • <strong>운영자(role 부여 + 활성)만</strong> 담당자로 지정 가능합니다. 변호사·심리상담사 등 전문가는 담당 운영자가 [전문가 관리]에서 별도 매칭합니다.<br>
+                • 본 매핑 수정은 <strong>super_admin만</strong> 가능합니다.
+              </div>
+              <table class="tbl" id="rnrTbl">
+                <thead>
+                  <tr>
+                    <th style="width:24%">서비스</th>
+                    <th style="width:24%">주 담당자</th>
+                    <th style="width:24%">백업 담당자</th>
+                    <th style="width:10%;text-align:right">SLA (시간)</th>
+                    <th style="width:18%">최종 수정</th>
+                  </tr>
+                </thead>
+                <tbody id="rnrTbody">
+                  <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -5730,7 +5772,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=2026-05-11-c2"></script>
+  <script src="/js/admin.js?v=2026-05-12-ws-v2"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-11-phase14"></script>
   <script src="/js/editor.js?v=2026-05"></script>
@@ -5880,5 +5922,7 @@
   <!-- Phase 17: 보안·감사 로그 -->
   <script src="/js/admin-security-audit.js?v=2"></script>
   <script src="/js/admin-idle-guard.js?v=1"></script>
+  <!-- 2026-05-12 워크스페이스 v2 — 서비스별 R&R 매핑 -->
+  <script src="/js/admin-service-rnr.js?v=2026-05-12-v2"></script>
 </body>
 </html>
