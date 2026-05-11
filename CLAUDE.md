@@ -443,6 +443,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 - [ ] 병렬 작업이면 worktree 폴더에서 시작? (같은 working directory 공유 금지)
 - [ ] 헬퍼 함수 도입 직후 모든 사용처 1회 검증? (#BUG-1 사례 — §9.1.8)
 - [ ] **메인 설계 시작 전 schema·lib·기존 API 본문 사전 정독 완료?** (§9.1.9 — `adminUsers`/`assigneeUid`/`linkUrl` 같은 일반 가정 금지)
+- [ ] **A·B 시작 프롬프트는 체크박스 패턴으로 작성?** (PARALLEL_TEMPLATE §6.2·§6.3 양식 — 설계서 §N 항목을 1:1 체크박스로 매핑. Sonnet 4.6은 일반 지시보다 체크박스에 훨씬 충실)
 - [ ] PROJECT_STATE.md §2 갱신 + §4.X 진행률 갱신 후 push?
 - [ ] 컨텍스트 80%·90% 알림 체크?
 - [ ] 푸시 후 사용자에게 검증 권장 + 다음 단계 안내?
@@ -491,4 +492,4 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 ---
 
-**마지막 업데이트**: 2026-05-12 (§9.1.9 메인 설계 사전 정독 의무화 + §13 체크리스트 한 줄 추가 — R2+R3·R4 schema 격차 사고 패턴 차단)
+**마지막 업데이트**: 2026-05-12 (§9.1.9 메인 설계 사전 정독 의무화 + §13 체크리스트 2개 추가 — schema 격차 차단 + A·B 시작 프롬프트 체크박스 패턴 강제)
