@@ -9,6 +9,7 @@ import { legalConsultations, members } from "../../db/schema";
 import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeLegalConsultation } from "../../lib/ai-legal";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
+import { createWorkspaceTaskFromService } from "../../lib/workspace-sync";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -79,6 +80,21 @@ export default async (req: Request, _ctx: Context) => {
 
     const [record] = await db.insert(legalConsultations).values(insertData).returning();
     const consultationId = (record as any).id;
+
+    /* ★ 2026-05-12 워크스페이스 v2 — 자동 카드 생성 */
+    try {
+      await createWorkspaceTaskFromService({
+        creatorId: user.uid,
+        serviceType: "legal_consultation",
+        sourceType: "legal",
+        sourceId: consultationId,
+        title: `⚖️ [SIREN-법률상담] ${title}`,
+        description: `상담번호: ${consultationNo}\n신청자: ${isAnonymous ? "익명" : (me as any)?.name || "-"}\n\n${contentHtml.replace(/<[^>]+>/g, "").slice(0, 500)}`,
+        sourceRefUrl: `/admin.html?page=siren-legal&consultationId=${consultationId}`,
+      });
+    } catch (taskErr) {
+      console.error("[legal-consultation-create] 워크스페이스 카드 생성 예외 (격리):", taskErr);
+    }
 
     /* AI 분석 — skipAi=true면 건너뜀 */
     let aiResult: any = null;

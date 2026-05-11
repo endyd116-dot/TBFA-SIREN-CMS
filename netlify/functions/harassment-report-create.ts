@@ -9,6 +9,7 @@ import { harassmentReports, members } from "../../db/schema";
 import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeHarassmentReport } from "../../lib/ai-harassment";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
+import { createWorkspaceTaskFromService } from "../../lib/workspace-sync";
 import {
   created, badRequest, unauthorized, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -80,6 +81,21 @@ export default async (req: Request, _ctx: Context) => {
 
     const [record] = await db.insert(harassmentReports).values(insertData).returning();
     const reportId = (record as any).id;
+
+    /* ★ 2026-05-12 워크스페이스 v2 — 자동 카드 생성 */
+    try {
+      await createWorkspaceTaskFromService({
+        creatorId: user.uid,
+        serviceType: "harassment_report",
+        sourceType: "harassment",
+        sourceId: reportId,
+        title: `⚠️ [SIREN-악성민원] ${title}`,
+        description: `신고번호: ${reportNo}\n신고자: ${isAnonymous ? "익명" : (me as any)?.name || "-"}\n\n${contentHtml.replace(/<[^>]+>/g, "").slice(0, 500)}`,
+        sourceRefUrl: `/admin.html?page=siren-harassment&reportId=${reportId}`,
+      });
+    } catch (taskErr) {
+      console.error("[harassment-report-create] 워크스페이스 카드 생성 예외 (격리):", taskErr);
+    }
 
     /* AI 분석 (격리) — skipAi=true면 건너뜀 */
     let aiResult: any = null;

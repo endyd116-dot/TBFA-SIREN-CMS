@@ -17,6 +17,7 @@ import {
 import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplSupportReceivedAdmin, tplSupportReceiptUser } from "../../lib/email";
 import { analyzePriority } from "../../lib/ai-priority";
+import { createWorkspaceTaskFromService } from "../../lib/workspace-sync";
 
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || "";
 
@@ -106,6 +107,21 @@ export default async (req: Request) => {
         priority: supportRequests.priority,
         createdAt: supportRequests.createdAt,
       });
+
+    /* ★ 2026-05-12 워크스페이스 v2 — 자동 카드 생성 (담당자 배정 + SLA + 카드 ID 동기화) */
+    try {
+      await createWorkspaceTaskFromService({
+        creatorId: user.id,
+        serviceType: "support_request",
+        sourceType: "support",
+        sourceId: record.id,
+        title: `🎗 [유족지원] ${record.title}`,
+        description: `신청번호: ${record.requestNo}\n카테고리: ${record.category}\n\n${content.replace(/<[^>]+>/g, "").slice(0, 500)}`,
+        sourceRefUrl: `/admin.html?page=support&requestId=${record.id}`,
+      });
+    } catch (taskErr) {
+      console.error("[support-create] 워크스페이스 카드 생성 예외 (격리):", taskErr);
+    }
 
     /* 7. ★ 메일 수신자 결정 (STEP F-3) */
     const recipientEmails = new Set<string>();

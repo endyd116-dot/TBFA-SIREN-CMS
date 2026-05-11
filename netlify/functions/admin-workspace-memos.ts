@@ -15,7 +15,7 @@
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { workspaceMemos } from "../../db/schema";
+import { workspaceMemos, workspaceEvents } from "../../db/schema";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
@@ -24,6 +24,53 @@ import {
 } from "../../lib/response";
 import { logAudit } from "../../lib/audit";
 import { logWorkspaceActivity } from "../../lib/workspace-logger";
+
+/* ★ 2026-05-12 메모↔캘린더 미러링 헬퍼 */
+async function syncMemoToCalendar(memoId: number, memo: any, meId: number) {
+  const show = !!memo.showInCalendar;
+  const startAt = memo.startAt ? new Date(memo.startAt) : null;
+  const endAt = memo.endAt ? new Date(memo.endAt) : (startAt ? new Date(startAt.getTime() + 60 * 60 * 1000) : null);
+  const existingEventId = memo.mirroredEventId;
+
+  /* CASE 1: 캘린더 표시 해제 → 미러 이벤트 삭제 */
+  if (!show || !startAt) {
+    if (existingEventId) {
+      try { await db.delete(workspaceEvents).where(eq(workspaceEvents.id, existingEventId)); } catch (_) {}
+      await db.update(workspaceMemos).set({ mirroredEventId: null } as any).where(eq(workspaceMemos.id, memoId));
+    }
+    return;
+  }
+
+  /* CASE 2: 미러 이벤트 신규 생성 */
+  if (!existingEventId) {
+    const [evt]: any = await db.insert(workspaceEvents).values({
+      memberId: meId,
+      title: memo.title || "(메모)",
+      startAt,
+      endAt: endAt as Date,
+      allDay: false,
+      color: memo.color || "yellow",
+      description: memo.contentHtml ? String(memo.contentHtml).replace(/<[^>]+>/g, "").slice(0, 500) : null,
+      eventType: "general",
+      sourceType: "memo",
+      sourceId: memoId,
+    } as any).returning({ id: workspaceEvents.id });
+    if (evt?.id) {
+      await db.update(workspaceMemos).set({ mirroredEventId: evt.id } as any).where(eq(workspaceMemos.id, memoId));
+    }
+    return;
+  }
+
+  /* CASE 3: 기존 미러 이벤트 갱신 */
+  await db.update(workspaceEvents).set({
+    title: memo.title || "(메모)",
+    startAt,
+    endAt: endAt as Date,
+    color: memo.color || "yellow",
+    description: memo.contentHtml ? String(memo.contentHtml).replace(/<[^>]+>/g, "").slice(0, 500) : null,
+    updatedAt: new Date(),
+  } as any).where(eq(workspaceEvents.id, existingEventId));
+}
 
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
@@ -107,6 +154,11 @@ export default async (req: Request, _ctx: Context) => {
         return badRequest("title 또는 contentHtml 중 하나는 필수입니다");
       }
 
+      /* ★ 2026-05-12 캘린더 미러링 필드 — 체크 + 시작시간이 있어야 캘린더 노출 */
+      const showInCalendar = !!body.showInCalendar;
+      const startAt = showInCalendar && body.startAt ? new Date(body.startAt) : null;
+      const endAt = showInCalendar && body.endAt ? new Date(body.endAt) : null;
+
       const [newMemo]: any = await db
         .insert(workspaceMemos)
         .values({
@@ -119,8 +171,14 @@ export default async (req: Request, _ctx: Context) => {
           relatedTaskId: body.relatedTaskId || null,
           relatedEventId: body.relatedEventId || null,
           attachments: Array.isArray(body.attachments) ? body.attachments : [],
+          showInCalendar,
+          startAt,
+          endAt,
         } as any)
         .returning();
+
+      /* 미러 이벤트 동기화 (캘린더 표시 ON이면 자동 생성) */
+      try { await syncMemoToCalendar(newMemo.id, newMemo, meId); } catch (e) { console.warn("[memo POST] mirror sync fail", e); }
 
       await logAudit({
         userId: meId, userType: "admin", userName: adminMember.name,
@@ -194,12 +252,19 @@ export default async (req: Request, _ctx: Context) => {
       if (body.attachments !== undefined && Array.isArray(body.attachments)) {
         updateData.attachments = body.attachments;
       }
+      /* ★ 2026-05-12 캘린더 미러링 필드 */
+      if (body.showInCalendar !== undefined) updateData.showInCalendar = !!body.showInCalendar;
+      if (body.startAt !== undefined) updateData.startAt = body.startAt ? new Date(body.startAt) : null;
+      if (body.endAt !== undefined) updateData.endAt = body.endAt ? new Date(body.endAt) : null;
 
       const [updated]: any = await db
         .update(workspaceMemos)
         .set(updateData)
         .where(eq(workspaceMemos.id, id))
         .returning();
+
+      /* 미러 이벤트 동기화 (표시 토글 또는 시간 변경 시 자동 처리) */
+      try { await syncMemoToCalendar(id, updated, meId); } catch (e) { console.warn("[memo PATCH] mirror sync fail", e); }
 
       await logAudit({
         userId: meId, userType: "admin", userName: adminMember.name,
@@ -234,6 +299,11 @@ export default async (req: Request, _ctx: Context) => {
         .where(and(eq(workspaceMemos.id, id), eq(workspaceMemos.memberId, meId)))
         .limit(1);
       if (!memo) return notFound("메모를 찾을 수 없습니다");
+
+      /* ★ 2026-05-12 미러 캘린더 이벤트도 함께 삭제 */
+      if (memo.mirroredEventId) {
+        try { await db.delete(workspaceEvents).where(eq(workspaceEvents.id, memo.mirroredEventId)); } catch (_) {}
+      }
 
       await db.delete(workspaceMemos).where(eq(workspaceMemos.id, id));
 
