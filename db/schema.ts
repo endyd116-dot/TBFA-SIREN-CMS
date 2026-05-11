@@ -410,6 +410,9 @@ export const supportRequests = pgTable("support_requests", {
   answeredAt: timestamp("answered_at"),
   priority: varchar("priority", { length: 10 }),
   priorityReason: text("priority_reason"),
+  /* ★ 2026-05-12 워크스페이스 v2 — SLA + 카드 연결 (담당자는 기존 assignedMemberId 활용) */
+  slaDueAt: timestamp("sla_due_at"),
+  workspaceTaskId: integer("workspace_task_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -418,6 +421,7 @@ export const supportRequests = pgTable("support_requests", {
   categoryIdx: index("support_category_idx").on(t.category),
   requestNoIdx: index("support_request_no_idx").on(t.requestNo),
   priorityIdx: index("support_priority_idx").on(t.priority),
+  slaIdx: index("support_sla_idx").on(t.slaDueAt),
 }));
 
 /* =========================================================
@@ -789,6 +793,11 @@ export const incidentReports = pgTable("incident_reports", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+  /* ★ 2026-05-12 워크스페이스 v2 — 담당자/SLA/워크스페이스 카드 연결 */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at"),
+  slaDueAt: timestamp("sla_due_at"),
+  workspaceTaskId: integer("workspace_task_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -797,6 +806,8 @@ export const incidentReports = pgTable("incident_reports", {
   memberIdx: index("incident_reports_member_idx").on(t.memberId),
   statusIdx: index("incident_reports_status_idx").on(t.status),
   severityIdx: index("incident_reports_severity_idx").on(t.aiSeverity),
+  assignedToIdx: index("incident_reports_assigned_to_idx").on(t.assignedTo),
+  slaIdx: index("incident_reports_sla_idx").on(t.slaDueAt),
 }));
 
 /* =========================================================
@@ -831,6 +842,11 @@ export const harassmentReports = pgTable("harassment_reports", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+  /* ★ 2026-05-12 워크스페이스 v2 — 담당자/SLA/워크스페이스 카드 연결 */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at"),
+  slaDueAt: timestamp("sla_due_at"),
+  workspaceTaskId: integer("workspace_task_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -839,6 +855,8 @@ export const harassmentReports = pgTable("harassment_reports", {
   statusIdx: index("harassment_reports_status_idx").on(t.status),
   severityIdx: index("harassment_reports_severity_idx").on(t.aiSeverity),
   categoryIdx: index("harassment_reports_category_idx").on(t.category),
+  assignedToIdx: index("harassment_reports_assigned_to_idx").on(t.assignedTo),
+  slaIdx: index("harassment_reports_sla_idx").on(t.slaDueAt),
 }));
 
 /* =========================================================
@@ -877,6 +895,10 @@ export const legalConsultations = pgTable("legal_consultations", {
   adminResponse: text("admin_response"),
   respondedBy: integer("responded_by").references(() => members.id, { onDelete: "set null" }),
   respondedAt: timestamp("responded_at"),
+  /* ★ 2026-05-12 워크스페이스 v2 — 운영자 담당자(변호사 assigned_lawyer_id와 별개) + SLA + 카드 연결 */
+  assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }),
+  slaDueAt: timestamp("sla_due_at"),
+  workspaceTaskId: integer("workspace_task_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -885,6 +907,8 @@ export const legalConsultations = pgTable("legal_consultations", {
   statusIdx: index("legal_consultations_status_idx").on(t.status),
   urgencyIdx: index("legal_consultations_urgency_idx").on(t.aiUrgency),
   categoryIdx: index("legal_consultations_category_idx").on(t.category),
+  assignedToIdx: index("legal_consultations_assigned_to_idx").on(t.assignedTo),
+  slaIdx: index("legal_consultations_sla_idx").on(t.slaDueAt),
 }));
 
 /* =========================================================
@@ -1576,11 +1600,17 @@ export const workspaceMemos = pgTable("workspace_memos", {
   relatedTaskId: integer("related_task_id"),
   relatedEventId: integer("related_event_id"),
   attachments: jsonb("attachments").default(sql`'[]'::jsonb`),
+  /* ★ 2026-05-12 워크스페이스 v2 — 캘린더 미러링 */
+  showInCalendar: boolean("show_in_calendar").default(false).notNull(),
+  startAt: timestamp("start_at"),
+  endAt: timestamp("end_at"),
+  mirroredEventId: integer("mirrored_event_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("workspace_memos_member_idx").on(t.memberId, t.sortOrder),
   pinnedIdx: index("workspace_memos_pinned_idx").on(t.isPinned),
+  calendarIdx: index("workspace_memos_calendar_idx").on(t.showInCalendar, t.startAt),
 }));
 
 // 3. 일정/이벤트
@@ -2548,4 +2578,81 @@ export const potentialDonors = pgTable("potential_donors", {
 
 export type PotentialDonor    = typeof potentialDonors.$inferSelect;
 export type NewPotentialDonor = typeof potentialDonors.$inferInsert;
+
+/* =========================================================
+   ★ 2026-05-12 워크스페이스 재설계 v2 (append-only)
+   ─────────────────────────────────────────────────────────
+   - workspace_task_transfers : 토스/할당 이력 통합
+   - service_rnr             : 서비스별 기본·백업 담당자 + SLA
+   - workspace_task_watchers : 카드 관전자
+   - workspace_task_mentions : 카드/댓글 멘션
+   ========================================================= */
+
+export const workspaceTaskTransfers = pgTable("workspace_task_transfers", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull(),                // workspace_tasks.id (FK는 SQL에만)
+  fromMemberId: integer("from_member_id"),             // null = 시스템(자동 생성)
+  toMemberId: integer("to_member_id").notNull(),
+  message: text("message"),                            // 토스 시 남기는 메모
+  transferType: varchar("transfer_type", { length: 30 }).default("manual").notNull(),
+    // 'auto_create' (서비스 접수 시 자동), 'manual' (운영자 토스), 'fallback_backup' (주 담당자 부재 자동 폴백)
+  snapshotProgress: integer("snapshot_progress"),      // 토스 시점 진행률
+  snapshotStatus: varchar("snapshot_status", { length: 20 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  taskIdx: index("workspace_task_transfers_task_idx").on(t.taskId),
+  fromIdx: index("workspace_task_transfers_from_idx").on(t.fromMemberId),
+  toIdx: index("workspace_task_transfers_to_idx").on(t.toMemberId),
+  createdIdx: index("workspace_task_transfers_created_idx").on(t.createdAt),
+}));
+
+export type WorkspaceTaskTransfer = typeof workspaceTaskTransfers.$inferSelect;
+export type NewWorkspaceTaskTransfer = typeof workspaceTaskTransfers.$inferInsert;
+
+export const serviceRnr = pgTable("service_rnr", {
+  id: serial("id").primaryKey(),
+  serviceType: varchar("service_type", { length: 50 }).notNull().unique(),
+    // 'incident_report' | 'harassment_report' | 'legal_consultation' | 'support_request' | 'donation_inquiry' | 'member_signup' | 'expert_application'
+  serviceLabel: varchar("service_label", { length: 100 }).notNull(),
+  primaryAssigneeId: integer("primary_assignee_id").references(() => members.id, { onDelete: "set null" }),
+  backupAssigneeId: integer("backup_assignee_id").references(() => members.id, { onDelete: "set null" }),
+  slaHours: integer("sla_hours"),                       // 서비스 응답 시한 (시간 단위)
+  updatedBy: integer("updated_by").references(() => members.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  typeIdx: index("service_rnr_type_idx").on(t.serviceType),
+}));
+
+export type ServiceRnr = typeof serviceRnr.$inferSelect;
+export type NewServiceRnr = typeof serviceRnr.$inferInsert;
+
+export const workspaceTaskWatchers = pgTable("workspace_task_watchers", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull(),                 // workspace_tasks.id
+  memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("workspace_task_watchers_member_idx").on(t.memberId),
+  uqTaskMember: uniqueIndex("workspace_task_watchers_uq_task_member").on(t.taskId, t.memberId),
+}));
+
+export type WorkspaceTaskWatcher = typeof workspaceTaskWatchers.$inferSelect;
+export type NewWorkspaceTaskWatcher = typeof workspaceTaskWatchers.$inferInsert;
+
+export const workspaceTaskMentions = pgTable("workspace_task_mentions", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id"),                           // workspace_tasks.id (카드 본문 멘션이면)
+  commentId: integer("comment_id"),                     // workspace_task_comments.id (댓글 멘션이면)
+  mentionedMemberId: integer("mentioned_member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
+  mentionedBy: integer("mentioned_by").references(() => members.id, { onDelete: "set null" }),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("workspace_task_mentions_member_idx").on(t.mentionedMemberId, t.readAt),
+  taskIdx: index("workspace_task_mentions_task_idx").on(t.taskId),
+}));
+
+export type WorkspaceTaskMention = typeof workspaceTaskMentions.$inferSelect;
+export type NewWorkspaceTaskMention = typeof workspaceTaskMentions.$inferInsert;
 
