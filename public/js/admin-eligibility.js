@@ -51,6 +51,9 @@
     var m = it.member || {};
     var rev = it.reviewer ? '<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">처리: ' + escapeHtml(it.reviewer.name || '-') + ' / ' + escapeHtml(fmtDate(it.reviewedAt)) + '</div>' : '';
     var note = it.adminNote ? '<div style="margin-top:6px;color:var(--text-2);font-size:12px;background:#f8fafc;border-left:3px solid #cbd5e1;padding:6px 8px;border-radius:4px">메모: ' + escapeHtml(it.adminNote) + '</div>' : '';
+    var evidence = it.evidenceBlobId
+      ? '<a href="/api/blob-download?id=' + encodeURIComponent(it.evidenceBlobId) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;color:var(--primary,#2563eb);font-size:12px;text-decoration:none">📎 증빙 다운로드</a>'
+      : '<span style="color:var(--text-3);font-size:12px">파일 없음</span>';
     var actions = '';
     if (it.status === 'pending') {
       actions = '' +
@@ -68,7 +71,8 @@
           (m.phone ? '<div style="font-size:12px;color:var(--text-3)">' + escapeHtml(m.phone) + '</div>' : '') +
         '</td>' +
         '<td>' + escapeHtml(it.currentType || '—') + ' → <strong>' + escapeHtml(it.requestedType) + '</strong></td>' +
-        '<td style="max-width:340px"><div style="white-space:pre-wrap;word-break:break-word">' + escapeHtml(it.reason || '') + '</div>' + note + '</td>' +
+        '<td style="max-width:280px"><div style="white-space:pre-wrap;word-break:break-word">' + escapeHtml(it.reason || '') + '</div>' + note + '</td>' +
+        '<td style="white-space:nowrap">' + evidence + '</td>' +
         '<td>' + (STATUS_LABEL[it.status] || it.status) + rev + '</td>' +
         '<td style="white-space:nowrap">' + actions + '</td>' +
       '</tr>';
@@ -96,8 +100,8 @@
           '</div>' +
         '</div>' +
         '<table class="tbl">' +
-          '<thead><tr><th style="width:120px">ID/일자</th><th style="width:200px">신청자</th><th style="width:160px">변경 내용</th><th>사유 / 메모</th><th style="width:140px">상태</th><th style="width:170px">작업</th></tr></thead>' +
-          '<tbody id="eligTbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>' +
+          '<thead><tr><th style="width:120px">ID/일자</th><th style="width:180px">신청자</th><th style="width:140px">변경 내용</th><th>사유 / 메모</th><th style="width:120px">증빙 파일</th><th style="width:120px">상태</th><th style="width:160px">작업</th></tr></thead>' +
+          '<tbody id="eligTbody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>' +
         '</table>' +
       '</div>';
   }
@@ -115,11 +119,11 @@
     setActiveTab(_currentStatus);
 
     var tbody = document.getElementById('eligTbody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3)">불러오는 중...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-3)">불러오는 중...</td></tr>';
 
     var r = await api('/api/admin-eligibility-list?status=' + encodeURIComponent(_currentStatus));
     if (!r.ok) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#b91c1c">로드 실패: ' + escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#b91c1c">로드 실패: ' + escapeHtml((r.data && r.data.error) || ('HTTP ' + r.status)) + '</td></tr>';
       return;
     }
     var data = (r.data && r.data.data) || r.data || {};
@@ -140,7 +144,7 @@
     }
 
     if (!items.length) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-3)">해당 상태의 신청이 없습니다.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">해당 상태의 신청이 없습니다.</td></tr>';
       return;
     }
     if (tbody) tbody.innerHTML = items.map(renderRow).join('');

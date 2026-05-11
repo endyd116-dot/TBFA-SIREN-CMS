@@ -371,6 +371,13 @@
   });
 
   /* 전역 노출 (SPA 라우터가 호출할 수 있도록) */
-  window.adminAgencyMgmt = { init: init, reload: loadAgencies };
+  function reload() {
+    if (!$section || !document.getElementById('amgList')) {
+      init();
+    } else {
+      loadAgencies();
+    }
+  }
+  window.adminAgencyMgmt = { init: init, reload: reload };
 
 })();

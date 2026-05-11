@@ -38,7 +38,15 @@ export default async (req: Request, _ctx: Context) => {
     const { db } = await import("../../db");
     const { sql } = await import("drizzle-orm");
 
-    let query = `
+    const typeCondition = typeFilter
+      ? sql` AND agency_type = ${typeFilter}`
+      : sql``;
+    const activeCondition =
+      activeParam === "1" ? sql` AND is_active = TRUE`
+      : activeParam === "0" ? sql` AND is_active = FALSE`
+      : sql``;
+
+    const result = await db.execute(sql`
       SELECT
         id,
         name,
@@ -53,29 +61,12 @@ export default async (req: Request, _ctx: Context) => {
         updated_at       AS "updatedAt"
       FROM external_agencies
       WHERE 1=1
-    `;
-    const params: any[] = [];
-    let idx = 1;
+      ${typeCondition}
+      ${activeCondition}
+      ORDER BY name ASC
+    `);
 
-    if (typeFilter) {
-      query += ` AND agency_type = $${idx++}`;
-      params.push(typeFilter);
-    }
-    if (activeParam === "1") {
-      query += ` AND is_active = TRUE`;
-    } else if (activeParam === "0") {
-      query += ` AND is_active = FALSE`;
-    }
-    query += ` ORDER BY name ASC`;
-
-    const result = await (db as any).execute(
-      params.length > 0
-        ? sql.raw(query + " -- params: " + JSON.stringify(params))
-        : query
-    );
-
-    // drizzle neon-http execute 반환 형식 처리
-    rows = Array.isArray(result) ? result : (result?.rows ?? []);
+    rows = Array.isArray(result) ? result : ((result as any)?.rows ?? []);
   } catch (err: any) {
     return jsonError("select_agencies", err);
   }
