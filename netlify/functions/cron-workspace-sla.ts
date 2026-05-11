@@ -15,9 +15,10 @@ import { db } from "../../db";
 import { workspaceTasks, workspaceTaskWatchers } from "../../db/schema";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
-/* Netlify Scheduled Functions: 매 30분 */
+/* Netlify Scheduled Functions: 매 30분
+   주의: schedule 함수는 path를 지정하면 안 됨 (Netlify 제약).
+   함수 이름(cron-workspace-sla)으로 자동 라우팅됨 */
 export const config = {
-  path: "/api/cron-workspace-sla",
   schedule: "*/30 * * * *",
 };
 
