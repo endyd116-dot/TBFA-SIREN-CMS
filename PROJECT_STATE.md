@@ -25,6 +25,7 @@
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
 | 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
+| 2026-05-12 | **메인** | **🎉 Phase 21 워크스페이스 v3 + 서비스 연동 ✅ 100% 마감** — R1·R2+R3·R4 3개 라운드 완료 / R4 C 검증(545644d) Q1~Q18 PASS + BUG-21R4-01(활동 피드 클릭 이동) fix 흡수(c1d8d16) / 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1.md·r2r3.md·r4.md / Phase 21 전체 약 23h (메인 5h / B 13.5h / A 17h / C 7h, 추정 대비 정확) |
 | 2026-05-12 | **메인** | **Phase 21 R2+R3 ✅ 100% 마감 + §6.15 진행 중 채팅 알림 의무 신설** — C 검증(4ca61df) Q1~Q16 PASS + BUG-21R2R3-01(알림 시간 표시) fix 흡수(cb68157) / 메인 사전 fix BUG-R2R3-01(R&R 권한, 0dcb5e4) 흡수 / 회귀 0 / 보고서 `docs/verify/2026-05-12-phase21-r2r3.md` / CLAUDE §6.15 메인 push 알림 의무 정착 |
 | 2026-05-12 | **메인** | **R4 B·A 트리거 동시 발송 (R2+R3 C 검증과 평행)** — worktree A·B를 feature/phase21-r4-{front,back}으로 전환 (베이스 c00d530) / 설계서 §6.2·§6.3 체크박스+mock 임베드 적용 / 영역 분리로 R2+R3 C 검증과 충돌 위험 미미 / R2+R3 C fix 시 R4 브랜치 main rebase 안내 |
 | 2026-05-12 | **메인** | **Phase 21 R2+R3 B 2차 + A 머지 완료 → C 트리거** — B 2차(007ce58): lib/workspace-sync 6함수 + API 7개 + 4종 hook + cron / A(b7b072a): 신규 6 + 수정 10 / fix(3e2b8d8): admin-service-rnr.js `data.mappings`→`data.items` 정합 / 응답 키 5개 1:1 일치 확인 / C 검증 트리거 가능 |
@@ -58,11 +59,20 @@
    보고서: docs/verify/2026-05-12-phase21-r1.md (Q1~Q10 PASS + BUG-21R1-01/02 fix)
    main HEAD: e714fd7
 
-✅ Phase 21 R2+R3 — 100% 마감 (2026-05-12)
-   설계서: docs/milestones/2026-05-12-phase21-r2-r3-assign-sync.md
-   보고서: docs/verify/2026-05-12-phase21-r2r3.md (Q1~Q16 PASS + BUG 2건 fix)
-   main HEAD: cb68157
-   사전 준비: 어드민이 R&R 탭에서 Fallback + 카테고리별 1차/백업 시드 필요
+🎉 Phase 21 워크스페이스 v3 + 서비스 연동 ✅ 100% 마감 (2026-05-12)
+   ├─ R1 WBS↔워크툴 연동 기반 ✅ (Q1~Q10 + BUG 2건 fix)
+   ├─ R2+R3 할당·이관·알림 + 서비스 동기화 + R&R ✅ (Q1~Q16 + BUG 2건 fix)
+   └─ R4 캘린더·메모·피드·템플릿·검색 ✅ (Q1~Q18 + BUG 1건 fix)
+   main HEAD: c1d8d16
+
+🛡 사전 준비 (Swain 직접 액션)
+   - 어드민이 운영자 관리 → R&R 매핑 탭에서 Fallback 담당자 + 카테고리별 1차/백업 시드
+   - 마이페이지에서 본인 부재 일정·WBS 기본 보기 모드 설정 가능
+
+⏸ 다음 작업 후보
+   - 싸이렌 어드민 4건 (가입 회원·자격 승인·외부 기관·정적 페이지) — 별도 작업
+   - Phase 17 C 검증 미진행 (PROJECT_STATE §5)
+   - Phase 18 성능 최적화 진행 중
 
 🔵 R4 — B·A 동시 트리거 (R2+R3 C 검증과 평행)
    설계서: docs/milestones/2026-05-12-phase21-r4-calendar-search.md (체크박스+mock 임베드 적용)
@@ -136,7 +146,7 @@
 | **Phase 18 성능 최적화** | 🟡 설계서 완성 / B 구현 진행 중 (feature/phase18-performance) |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
 | **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
-| **Phase 21 워크스페이스 v3 + 서비스 연동** | 🔵 R1 ✅ 100% (Q1~Q10 PASS + BUG 2건 fix) / R2+R3 ✅ 100% (Q1~Q16 PASS + BUG-R2R3-01 R&R권한·BUG-21R2R3-01 알림시간 fix, 보고서 `docs/verify/2026-05-12-phase21-r2r3.md`) / R4 B·A 작업 중 (베이스 cb68157) |
+| **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | Phase 22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 
 **누적**: 약 47% / 약 450h+
@@ -168,10 +178,10 @@
 
 | 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
 |---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 활성 — R1 ✅ 마감 / R2+R3 트리거 준비 완료 / R3' 설계서 R2+R3 마감 후 작성 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ R1 완료(db0a8c0 → 88d9b38) / ⏸ R2+R3 트리거 대기 (워크트리 새 브랜치 `feature/phase21-r2r3-front` 전환 필요) |
-| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ R1 완료(b044382 → 2e62ee3) / ⏸ R2+R3 트리거 대기 (워크트리 새 브랜치 `feature/phase21-r2r3-back` 전환 필요) |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ R1 + R2+R3 검증 완료 (4ca61df → cb68157) / ⏸ R4 B·A 머지 후 트리거 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | ✅ Phase 21 마감 / 다음 작업 결정 대기 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ✅ Phase 21 전체 완료 (R1·R2+R3·R4) / ⏸ 다음 라운드 대기 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ✅ Phase 21 전체 완료 / ⏸ 다음 라운드 대기 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (검증·fix 한정) | ✅ Phase 21 R1·R2+R3·R4 검증 완료 (3개 보고서) |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
