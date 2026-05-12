@@ -35,6 +35,9 @@ import { tryCacheGet, cacheSet, invalidateRelated } from "../../lib/ai-cache";
 import { checkRateLimit } from "../../lib/ai-rate-limit";
 import { ensurePromptCache } from "../../lib/ai-prompt-cache";
 
+/* === Phase B AI 비서 설정 === */
+import { getSystemPrompt, checkToolAllowed } from "../../lib/ai-agent-config";
+
 const AGENT_FEATURE_KEY = "ai_agent_chat";
 
 export const config = { path: "/api/admin-ai-agent" };
@@ -136,7 +139,8 @@ function selectRelevantTools(userMessage: string): string[] | null {
 
 async function callGeminiWithTools(
   contents: GeminiContent[],
-  toolDeclarations: any[]
+  toolDeclarations: any[],
+  systemPrompt: string,
 ): Promise<{ data: any; model: string }> {
   /* === Phase 4: Context Caching 시도 (32k 미달 시 자동 폴백) === */
   let lastError = "";
@@ -146,7 +150,7 @@ async function callGeminiWithTools(
 
     const cachedName = await ensurePromptCache({
       model,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt,
       tools: [{ functionDeclarations: toolDeclarations }],
     });
 
@@ -158,7 +162,7 @@ async function callGeminiWithTools(
         }
       : {
           contents,
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          systemInstruction: { parts: [{ text: systemPrompt }] },
           tools: [{ functionDeclarations: toolDeclarations }],
           generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
         };
@@ -268,6 +272,10 @@ export default async (req: Request, _ctx: Context) => {
     console.info(`[ai-agent] 동적 도구 ${toolDeclarations.length}/${(TOOL_DECLARATIONS as any[]).length}개 선택: ${selectedToolNames.join(", ")}`);
   }
 
+  /* === Phase B: DB에서 시스템 프롬프트 + 운영자 권한 로드 === */
+  const systemPrompt = await getSystemPrompt();
+  const adminRole = (auth as any).ctx?.admin?.role ?? null;
+
   /* 2. 사용자 메시지 추가 */
   if (userMessage) {
     messages.push({ role: "user", parts: [{ text: userMessage }] });
@@ -300,7 +308,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
-      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations);
+      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations, systemPrompt);
 
       /* === Phase 1.5: 토큰 사용량 기록 (Gemini 응답 직후) === */
       try {
@@ -368,20 +376,27 @@ export default async (req: Request, _ctx: Context) => {
 
         const tStart = Date.now();
 
-        /* === Phase 2: 캐시 hit 시 executeTool 우회 === */
+        /* === Phase B: 도구 권한·토글 체크 === */
+        const allow = await checkToolAllowed(toolName, adminRole);
         let result: any;
-        const cachedOutput = tryCacheGet(toolName, toolArgs);
-        if (cachedOutput !== null) {
-          result = { ok: true, output: cachedOutput, _cached: true };
-          console.info(`[ai-agent] 캐시 hit: ${toolName}`);
+        if (!allow.ok) {
+          console.warn(`[ai-agent] 도구 차단: ${toolName} — ${allow.reason}`);
+          result = { ok: false, error: allow.message || "도구 호출 차단" };
         } else {
-          result = await executeTool(toolName, toolArgs, adminId);
-          /* 성공한 읽기 도구만 캐시 저장 (cacheSet 내부에서 화이트리스트 체크) */
-          if (result.ok && (result.output !== undefined || result.preview !== undefined)) {
-            cacheSet(toolName, toolArgs, result.output ?? result.preview);
+          /* === Phase 2: 캐시 hit 시 executeTool 우회 === */
+          const cachedOutput = tryCacheGet(toolName, toolArgs);
+          if (cachedOutput !== null) {
+            result = { ok: true, output: cachedOutput, _cached: true };
+            console.info(`[ai-agent] 캐시 hit: ${toolName}`);
+          } else {
+            result = await executeTool(toolName, toolArgs, adminId);
+            /* 성공한 읽기 도구만 캐시 저장 (cacheSet 내부에서 화이트리스트 체크) */
+            if (result.ok && (result.output !== undefined || result.preview !== undefined)) {
+              cacheSet(toolName, toolArgs, result.output ?? result.preview);
+            }
+            /* 변경 도구면 관련 캐시 청소 */
+            if (result.ok) invalidateRelated(toolName);
           }
-          /* 변경 도구면 관련 캐시 청소 */
-          if (result.ok) invalidateRelated(toolName);
         }
 
         const durationMs = Date.now() - tStart;
