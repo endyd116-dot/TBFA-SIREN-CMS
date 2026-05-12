@@ -230,6 +230,18 @@
   .pd-ai-preview-wrap .cms-tbl th {
     position: sticky; top: 0; background: #f8fafc; z-index: 1;
   }
+
+  /* ============ 알림 발송 5탭 iframe 통합 ============ */
+  .nf-iframe-page {
+    padding: 0 !important;
+    margin: -16px -20px 0;       /* cms-content padding 상쇄 */
+    height: calc(100vh - 80px);  /* 헤더 높이 제외 */
+    overflow: hidden;
+  }
+  .nf-iframe {
+    width: 100%; height: 100%;
+    border: 0; display: block; background: #f1f5f9;
+  }
 </style>
 </head>
 <body data-page="cms-tbfa">
@@ -1531,379 +1543,26 @@
 
       <!-- ============ 알림 발송 관리 ============ -->
       <!-- ============ 📤 발송 작업 ============ -->
-      <section class="cms-page" id="page-send-jobs">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">📤 발송 작업</span>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-          <select id="sjFilterStatus" class="cms-input" style="width:130px">
-            <option value="">전체 상태</option>
-            <option value="pending">대기</option>
-            <option value="processing">진행 중</option>
-            <option value="completed">완료</option>
-            <option value="failed">실패</option>
-            <option value="cancelled">취소됨</option>
-          </select>
-          <input type="date" id="sjFilterFrom" class="cms-input" style="width:140px" title="시작일">
-          <input type="date" id="sjFilterTo" class="cms-input" style="width:140px" title="종료일">
-          <input type="text" id="sjFilterSearch" class="cms-input" placeholder="작업명 검색" style="width:180px">
-          <button class="cms-btn cms-btn-ghost" id="sjBtnRefresh">새로고침</button>
-          <button class="cms-btn cms-btn-primary" id="sjBtnCreate" style="margin-left:auto">＋ 새 발송 작업</button>
-        </div>
-        <div class="cms-table-wrap">
-          <table class="cms-tbl">
-            <thead><tr>
-              <th style="width:60px">번호</th><th>작업명</th><th>채널</th>
-              <th>템플릿</th><th>수신 그룹</th><th>상태</th>
-              <th style="text-align:right">수신자</th><th style="text-align:right">성공</th>
-              <th style="text-align:right">실패</th><th>예약 시각</th><th style="width:80px">관리</th>
-            </tr></thead>
-            <tbody id="sjBody"><tr><td colspan="11" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr></tbody>
-          </table>
-          <div class="cms-donor-pagination" id="sjPagination"></div>
-        </div>
-        <!-- 발송 작업 상세 패널 (인라인) -->
-        <div id="sjDetailPanel" style="display:none;margin-top:20px;padding:20px;background:#f8fafc;border:1px solid var(--line,#e3e6eb);border-radius:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-            <strong id="sjDetailTitle" style="font-size:14px">발송 작업 상세</strong>
-            <button class="cms-btn cms-btn-ghost" id="sjDetailClose">✕ 닫기</button>
-          </div>
-          <div id="sjDetailContent">불러오는 중…</div>
-        </div>
+
+      <!-- ============ 알림 발송 5탭 (원본 페이지를 iframe으로 통합) ============ -->
+      <section class="cms-page nf-iframe-page" id="page-send-jobs">
+        <iframe class="nf-iframe" data-nf-src="/admin-send-jobs.html" title="발송 작업"></iframe>
       </section>
 
-      <!-- ============ 📝 발송 템플릿 ============ -->
-      <section class="cms-page" id="page-send-template">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">📝 발송 템플릿</span>
-        </div>
-        <!-- 목록 뷰 -->
-        <div id="stListView">
-          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-            <select id="stFilterChannel" class="cms-input" style="width:120px">
-              <option value="">전체 채널</option>
-              <option value="email">이메일</option>
-              <option value="sms">SMS</option>
-              <option value="kakao">카카오</option>
-              <option value="inapp">인앱</option>
-            </select>
-            <select id="stFilterCategory" class="cms-input" style="width:130px">
-              <option value="">전체 유형</option>
-              <option value="newsletter">뉴스레터</option>
-              <option value="announcement">공지</option>
-              <option value="auto_trigger">AI 트리거</option>
-              <option value="campaign">캠페인</option>
-              <option value="system">시스템</option>
-            </select>
-            <input type="text" id="stFilterSearch" class="cms-input" placeholder="템플릿명 검색" style="width:180px">
-            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-              <input type="checkbox" id="stFilterInactive"> 비활성 포함
-            </label>
-            <button class="cms-btn cms-btn-ghost" id="stBtnRefresh">새로고침</button>
-            <button class="cms-btn cms-btn-primary" id="stBtnCreate" style="margin-left:auto">＋ 새 템플릿</button>
-          </div>
-          <div class="cms-table-wrap">
-            <table class="cms-tbl">
-              <thead><tr>
-                <th style="width:60px">번호</th><th>템플릿명</th><th style="width:80px">채널</th>
-                <th style="width:100px">유형</th><th style="width:90px">수정일</th><th style="width:80px">관리</th>
-              </tr></thead>
-              <tbody id="stBody"><tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr></tbody>
-            </table>
-            <div class="cms-donor-pagination" id="stPagination"></div>
-          </div>
-        </div>
-        <!-- 편집 뷰 (인라인) -->
-        <div id="stEditView" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-            <strong id="stEditTitle" style="font-size:14px">템플릿 작성</strong>
-            <button class="cms-btn cms-btn-ghost" id="stEditCancel">← 목록으로</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">템플릿명 <span style="color:#e53e3e">*</span></label>
-              <input type="text" id="stFldName" class="cms-input" style="width:100%" placeholder="예: 정기 후원자 감사 이메일">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">채널 <span style="color:#e53e3e">*</span></label>
-              <select id="stFldChannel" class="cms-input" style="width:100%">
-                <option value="email">이메일</option><option value="sms">SMS</option>
-                <option value="kakao">카카오</option><option value="inapp">인앱</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">유형</label>
-              <select id="stFldCategory" class="cms-input" style="width:100%">
-                <option value="newsletter">뉴스레터</option><option value="announcement">공지</option>
-                <option value="auto_trigger">AI 트리거</option><option value="campaign">캠페인</option>
-                <option value="system">시스템</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">제목 (이메일)</label>
-              <input type="text" id="stFldSubject" class="cms-input" style="width:100%" placeholder="{{이름}}님께 드리는 감사 인사">
-            </div>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">
-              본문 <span style="color:#e53e3e">*</span>
-              <span style="font-weight:400;color:var(--text-3,#94a0b3);margin-left:6px">사용 가능 변수: {{이름}} {{이메일}} {{후원금액}} {{후원날짜}} {{단체명}}</span>
-            </label>
-            <textarea id="stFldBody" rows="12" class="cms-input" style="width:100%;font-family:inherit;resize:vertical;line-height:1.6" placeholder="본문 내용을 입력하세요."></textarea>
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="cms-btn cms-btn-ghost" id="stEditCancel2">취소</button>
-            <button class="cms-btn cms-btn-primary" id="stBtnSave">저장</button>
-          </div>
-          <input type="hidden" id="stEditId">
-        </div>
+      <section class="cms-page nf-iframe-page" id="page-send-template">
+        <iframe class="nf-iframe" data-nf-src="/admin-templates.html" title="발송 템플릿"></iframe>
       </section>
 
-      <!-- ============ 👥 수신자 그룹 ============ -->
-      <section class="cms-page" id="page-recipient-groups">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">👥 수신자 그룹</span>
-        </div>
-        <!-- 목록 뷰 -->
-        <div id="rgListView">
-          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-            <input type="text" id="rgFilterSearch" class="cms-input" placeholder="그룹명 검색" style="width:220px">
-            <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">
-              <input type="checkbox" id="rgFilterInactive"> 비활성 포함
-            </label>
-            <button class="cms-btn cms-btn-ghost" id="rgBtnRefresh">새로고침</button>
-            <button class="cms-btn cms-btn-primary" id="rgBtnCreate" style="margin-left:auto">＋ 새 그룹</button>
-          </div>
-          <div class="cms-table-wrap">
-            <table class="cms-tbl">
-              <thead><tr>
-                <th style="width:60px">번호</th><th>그룹명</th><th>조건 요약</th>
-                <th style="width:80px">회원 수</th><th style="width:60px">활성</th>
-                <th style="width:90px">생성일</th><th style="width:100px">관리</th>
-              </tr></thead>
-              <tbody id="rgBody"><tr><td colspan="7" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr></tbody>
-            </table>
-            <div class="cms-donor-pagination" id="rgPagination"></div>
-          </div>
-        </div>
-        <!-- 편집 뷰 (인라인) -->
-        <div id="rgEditView" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-            <strong id="rgEditTitle" style="font-size:14px">수신자 그룹 정의</strong>
-            <button class="cms-btn cms-btn-ghost" id="rgEditCancel">← 목록으로</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">그룹명 <span style="color:#e53e3e">*</span></label>
-              <input type="text" id="rgFldName" class="cms-input" style="width:100%" placeholder="예: 정기 후원자 전체">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">설명</label>
-              <input type="text" id="rgFldDesc" class="cms-input" style="width:100%" placeholder="그룹 용도 설명">
-            </div>
-          </div>
-
-          <!-- 조건 유형 선택 -->
-          <div style="margin-bottom:18px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:8px">수신자 정의 방식</label>
-            <div style="display:flex;gap:10px">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:2px solid var(--line,#e3e6eb);border-radius:6px;font-size:13px" id="rgCriteriaTypeFilterLabel">
-                <input type="radio" name="rgCriteriaType" value="filter" checked id="rgCriteriaTypeFilter"> 🔍 조건 필터
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:2px solid var(--line,#e3e6eb);border-radius:6px;font-size:13px" id="rgCriteriaTypeManualLabel">
-                <input type="radio" name="rgCriteriaType" value="manual" id="rgCriteriaTypeManual"> 📋 개별 지정
-              </label>
-            </div>
-          </div>
-
-          <!-- 조건 필터 빌더 -->
-          <div id="rgFilterBuilder">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568)">조건 논리</label>
-              <select id="rgFilterLogic" class="cms-input" style="width:100px">
-                <option value="and">AND (모두)</option>
-                <option value="or">OR (하나라도)</option>
-              </select>
-              <button class="cms-btn cms-btn-ghost" id="rgAddFilter" style="font-size:12px">＋ 조건 추가</button>
-            </div>
-
-            <!-- 빠른 선택 버튼 -->
-            <div style="margin-bottom:14px;padding:12px;background:#f0f4ff;border-radius:6px">
-              <div style="font-size:11.5px;font-weight:600;color:var(--text-2,#4a5568);margin-bottom:8px">⚡ 빠른 선택</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="donor-regular">정기 후원자 전체</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="donor-prospect">예비 후원자 전체</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="donor-potential">잠재 후원자 전체</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="hyosung-regular">효성 CMS 정기</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="toss-regular">토스 정기</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="manual-regular">수기 정기</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="all-active">전체 활성 회원</button>
-                <button class="cms-btn cms-btn-ghost" style="font-size:11.5px" data-quick="family">유가족 회원</button>
-              </div>
-            </div>
-
-            <div id="rgFilterClauses" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
-          </div>
-
-          <!-- 개별 지정 -->
-          <div id="rgManualBuilder" style="display:none">
-            <div style="margin-bottom:8px">
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">회원 ID 목록 (쉼표 또는 줄바꿈 구분)</label>
-              <textarea id="rgManualIds" rows="6" class="cms-input" style="width:100%;font-family:Inter;resize:vertical" placeholder="예: 1, 5, 23, 47&#10;또는&#10;1&#10;5&#10;23"></textarea>
-            </div>
-            <div style="font-size:12px;color:var(--text-3,#94a0b3)">최대 1,000명까지 지정 가능합니다.</div>
-          </div>
-
-          <!-- 미리보기 -->
-          <div id="rgPreviewArea" style="margin-bottom:18px;padding:12px;background:#f8fafc;border:1px solid var(--line,#e3e6eb);border-radius:6px;display:none">
-            <div style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);margin-bottom:6px">📊 대상 회원 미리보기</div>
-            <div id="rgPreviewContent" style="font-size:13px"></div>
-          </div>
-
-          <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
-            <button class="cms-btn cms-btn-ghost" id="rgBtnPreview">👁 미리보기</button>
-            <button class="cms-btn cms-btn-ghost" id="rgEditCancel2">취소</button>
-            <button class="cms-btn cms-btn-primary" id="rgBtnSave">저장</button>
-          </div>
-          <input type="hidden" id="rgEditId">
-        </div>
+      <section class="cms-page nf-iframe-page" id="page-recipient-groups">
+        <iframe class="nf-iframe" data-nf-src="/admin-recipient-groups.html" title="수신자 그룹"></iframe>
       </section>
 
-      <!-- ============ 🤖 AI 자동 발송 ============ -->
-      <section class="cms-page" id="page-auto-trigger">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">🤖 AI 자동 발송 트리거</span>
-          <span style="font-size:12px;color:var(--text-3,#94a0b3)">조건 충족 시 자동으로 알림을 발송합니다</span>
-          <button class="cms-btn cms-btn-primary" id="atBtnCreate" style="margin-left:auto">＋ 트리거 추가</button>
-        </div>
-
-        <!-- 트리거 목록 -->
-        <div id="atListView">
-          <div class="cms-table-wrap">
-            <table class="cms-tbl">
-              <thead><tr>
-                <th style="width:60px">번호</th><th>트리거명</th><th>발동 조건</th>
-                <th>대상 그룹</th><th>템플릿</th><th style="width:70px">지연</th>
-                <th style="width:60px">활성</th><th style="width:80px">관리</th>
-              </tr></thead>
-              <tbody id="atBody"><tr><td colspan="8" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 편집 뷰 (인라인) -->
-        <div id="atEditView" style="display:none;margin-top:20px;padding:20px;background:#f8fafc;border:1px solid var(--line,#e3e6eb);border-radius:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-            <strong id="atEditTitle" style="font-size:14px">트리거 설정</strong>
-            <button class="cms-btn cms-btn-ghost" id="atEditCancel">← 목록으로</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">트리거명 <span style="color:#e53e3e">*</span></label>
-              <input type="text" id="atFldName" class="cms-input" style="width:100%" placeholder="예: 신규 가입 환영 이메일">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">발동 조건 <span style="color:#e53e3e">*</span></label>
-              <select id="atFldType" class="cms-input" style="width:100%">
-                <optgroup label="가입·탈퇴">
-                  <option value="new_member">신규 가입</option>
-                  <option value="member_withdrawn">회원 탈퇴</option>
-                  <option value="member_approved">가입 승인</option>
-                </optgroup>
-                <optgroup label="후원">
-                  <option value="first_donation">첫 후원 완료</option>
-                  <option value="donation_complete">후원 결제 완료</option>
-                  <option value="donation_failed">후원 결제 실패</option>
-                  <option value="regular_started">정기 후원 시작</option>
-                  <option value="regular_cancelled">정기 후원 취소</option>
-                  <option value="regular_resumed">정기 후원 재개</option>
-                  <option value="donation_anniversary">후원 기념일 (연간)</option>
-                  <option value="upgrade_to_regular">예비→정기 전환</option>
-                  <option value="downgrade_from_regular">정기→예비 전환</option>
-                </optgroup>
-                <optgroup label="기념일·알림">
-                  <option value="birthday">생일 당일</option>
-                  <option value="anniversary">협의회 기념일</option>
-                  <option value="inactive_60d">60일 미접속 (비활성 위험)</option>
-                  <option value="inactive_180d">180일 미후원 (이탈 위험)</option>
-                  <option value="one_year_no_donation">1년 무후원</option>
-                </optgroup>
-                <optgroup label="지원·행정">
-                  <option value="support_approved">유족 지원 승인</option>
-                  <option value="support_rejected">유족 지원 반려</option>
-                  <option value="grade_upgrade">등급 상향</option>
-                  <option value="grade_downgrade">등급 하향</option>
-                  <option value="receipt_issued">기부금 영수증 발급</option>
-                  <option value="campaign_end">캠페인 종료 감사</option>
-                </optgroup>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">발송 템플릿 <span style="color:#e53e3e">*</span></label>
-              <select id="atFldTemplate" class="cms-input" style="width:100%">
-                <option value="">템플릿 선택…</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">대상 그룹</label>
-              <select id="atFldGroup" class="cms-input" style="width:100%">
-                <option value="">전체 (조건 해당자)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">발동 후 지연 (시간)</label>
-              <input type="number" id="atFldDelay" class="cms-input" style="width:100%" value="0" min="0" max="720" placeholder="0 = 즉시">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">재발동 방지 (일)</label>
-              <input type="number" id="atFldCooldown" class="cms-input" style="width:100%" value="30" min="0" max="365" placeholder="같은 회원 재발동 방지 일수">
-            </div>
-          </div>
-          <div style="margin-bottom:14px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-2,#4a5568);display:block;margin-bottom:4px">
-              <input type="checkbox" id="atFldActive" checked style="margin-right:4px"> 활성화
-            </label>
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="cms-btn cms-btn-ghost" id="atEditCancel2">취소</button>
-            <button class="cms-btn cms-btn-primary" id="atBtnSave">저장</button>
-          </div>
-          <input type="hidden" id="atEditId">
-        </div>
+      <section class="cms-page nf-iframe-page" id="page-auto-trigger">
+        <iframe class="nf-iframe" data-nf-src="/admin-auto-triggers.html" title="AI 자동 발송"></iframe>
       </section>
 
-      <!-- ============ 📊 발송 분석 ============ -->
-      <section class="cms-page" id="page-send-analytics">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700;color:var(--text-1,#1a2236)">📊 발송 분석</span>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
-          <select id="saFilterPeriod" class="cms-input" style="width:120px">
-            <option value="7d">최근 7일</option>
-            <option value="30d" selected>최근 30일</option>
-            <option value="90d">최근 90일</option>
-          </select>
-          <button class="cms-btn cms-btn-ghost" id="saBtnRefresh">새로고침</button>
-        </div>
-        <!-- KPI 카드 -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="saKpiRow">
-          <div class="cms-kpi-card"><div class="cms-kpi-label">총 발송 건수</div><div class="cms-kpi-val" id="saKpiTotal">—</div></div>
-          <div class="cms-kpi-card"><div class="cms-kpi-label">발송 성공</div><div class="cms-kpi-val" id="saKpiSuccess">—</div></div>
-          <div class="cms-kpi-card"><div class="cms-kpi-label">발송 실패</div><div class="cms-kpi-val" id="saKpiFail">—</div></div>
-          <div class="cms-kpi-card"><div class="cms-kpi-label">성공률</div><div class="cms-kpi-val" id="saKpiRate">—</div></div>
-        </div>
-        <!-- 최근 발송 로그 -->
-        <div class="cms-table-wrap">
-          <table class="cms-tbl">
-            <thead><tr>
-              <th>발송 작업</th><th>채널</th><th>상태</th>
-              <th style="text-align:right">수신자</th><th style="text-align:right">성공</th>
-              <th style="text-align:right">실패</th><th>완료 시각</th>
-            </tr></thead>
-            <tbody id="saLogBody"><tr><td colspan="7" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr></tbody>
-          </table>
-          <div class="cms-donor-pagination" id="saPagination"></div>
-        </div>
+      <section class="cms-page nf-iframe-page" id="page-send-analytics">
+        <iframe class="nf-iframe" data-nf-src="/admin-send-analytics.html" title="발송 분석"></iframe>
       </section>
 
       <!-- ============ ★ Phase 3 D7: 종합 검증 대시보드 ============ -->
@@ -2158,7 +1817,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-13-pd-ai"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-13-iframe"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 자동 발송 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.filter-bar label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.825rem; color: #475569;
+}
+.filter-bar select {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+.filter-bar .spacer { flex: 1; }
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.btn-primary:hover { background: #1d3fa8; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+.btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.btn-danger:hover { background: #fecaca; }
+
+.table-wrap {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+  background: #f8fafc; padding: 11px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tbl tbody tr { border-bottom: 1px solid #f1f5f9; }
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl tbody td { padding: 11px 12px; font-size: 0.85rem; vertical-align: middle; }
+.tbl tbody tr:hover { background: #f8fafc; }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 500;
+}
+.badge-on  { background: #dcfce7; color: #166534; }
+.badge-off { background: #f1f5f9; color: #64748b; }
+
+/* 활성 토글 체크박스 */
+.toggle-wrap { display: flex; align-items: center; gap: 6px; }
+.toggle-switch {
+  appearance: none; -webkit-appearance: none;
+  width: 38px; height: 20px; background: #cbd5e1; border-radius: 10px;
+  cursor: pointer; position: relative; transition: background .2s;
+}
+.toggle-switch:checked { background: #22c55e; }
+.toggle-switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; background: #fff; border-radius: 50%;
+  transition: left .2s;
+}
+.toggle-switch:checked::after { left: 21px; }
+
+.pagination {
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+  padding: 12px;
+}
+.pagination span { font-size: 0.85rem; color: #475569; }
+
+.info-box {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+  padding: 14px 18px; font-size: 0.85rem; color: #1e40af; margin-bottom: 16px;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+
+.empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.9rem; }
+
+/* 이력 모달 */
+.modal-bg {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 14px; width: 780px; max-width: 95vw;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.modal-close {
+  background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #64748b;
+}
+.modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+
+.trigger-type-label {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.8rem; font-weight: 500; padding: 2px 8px;
+  border-radius: 4px; background: #ede9fe; color: #6d28d9;
+}
+
+/* 토스트 */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 8px;
+  font-size: 0.9rem; opacity: 0; transition: opacity .25s; z-index: 9999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.success { background: #166534; }
+.toast.error   { background: #b91c1c; }
+</style>
+</head>
+<body>
+
+<div class="page-wrap"><div class="page-title">🤖 AI 자동 발송 트리거</div>
+  <div class="page-desc">조건에 맞는 회원에게 30분마다 자동으로 평가하고 발송합니다.</div>
+
+  <div class="info-box">
+    💡 AI 트리거는 <strong>30분마다 자동 평가</strong>됩니다.
+    활성화된 트리거의 조건을 만족하는 회원에게 자동 발송되며, 쿨다운 기간 내 동일 회원에게 중복 발송되지 않습니다.
+  </div>
+
+  <div class="filter-bar">
+    <label>종류
+      <select id="filterType">
+        <option value="">전체</option>
+        <option value="churn_risk">이탈 위험</option>
+        <option value="campaign_slump">캠페인 부진</option>
+        <option value="welcome">신규 환영</option>
+        <option value="anniversary">후원 기념</option>
+        <option value="birthday">생일</option>
+        <option value="custom_filter">운영자 정의</option>
+      </select>
+    </label>
+    <label>활성
+      <select id="filterActive">
+        <option value="">모두</option>
+        <option value="true">활성만</option>
+        <option value="false">비활성만</option>
+      </select>
+    </label>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="goEdit(null)">+ 신규 트리거</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>이름</th>
+          <th>종류</th>
+          <th>채널</th>
+          <th>쿨다운</th>
+          <th>누적 발송</th>
+          <th>마지막 평가</th>
+          <th>활성</th>
+          <th>동작</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"><tr><td colspan="9" class="empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- 이력 모달 -->
+<div class="modal-bg" id="historyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="historyModalTitle">실행 이력</h3>
+      <button class="modal-close" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="historyContent"><p style="color:#94a3b8;text-align:center">불러오는 중…</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin-auto-triggers.js?v=1"></script>
+</body>
+</html>

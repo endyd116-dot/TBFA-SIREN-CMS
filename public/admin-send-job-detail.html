@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>발송 상세 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 22px 24px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 1rem; font-weight: 600; margin-bottom: 14px; color: #1e293b;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.info-grid {
+  display: grid; grid-template-columns: 130px 1fr; gap: 8px 16px;
+  font-size: 0.9rem; color: #334155;
+}
+.info-grid .label { color: #64748b; font-size: 0.85rem; }
+
+.badge {
+  display: inline-block; padding: 3px 12px; border-radius: 4px;
+  font-size: 0.78rem; font-weight: 500;
+}
+.badge-pending    { background: #f1f5f9; color: #64748b; }
+.badge-processing { background: #dbeafe; color: #1e40af; }
+.badge-completed  { background: #dcfce7; color: #166534; }
+.badge-failed     { background: #fee2e2; color: #b91c1c; }
+.badge-cancelled  { background: #fef9c3; color: #854d0e; }
+
+/* 진행률 */
+.progress-section { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.progress-bar { flex: 1; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+.progress-fill {
+  height: 100%; background: #1e40af; transition: width 0.4s;
+}
+.progress-fill.completed { background: #16a34a; }
+.progress-fill.failed    { background: #b91c1c; }
+.progress-fill.cancelled { background: #ca8a04; }
+.progress-num {
+  min-width: 70px; text-align: right; font-size: 0.95rem;
+  font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;
+}
+
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 14px 16px;
+}
+.stats-grid .stat-item { text-align: center; }
+.stats-grid .stat-label { font-size: 0.78rem; color: #64748b; margin-bottom: 4px; }
+.stats-grid .stat-value { font-size: 1.05rem; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums; }
+.stats-grid .stat-pct   { font-size: 0.78rem; color: #64748b; }
+
+.alert-error {
+  margin-top: 12px; padding: 10px 14px; border-radius: 6px;
+  background: #fef2f2; border-left: 3px solid #b91c1c;
+  font-size: 0.85rem; color: #991b1b;
+}
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-danger { color: #b91c1c; border-color: #fecaca; }
+.btn-danger:hover { background: #fef2f2; }
+.btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+.btn-bar { display: flex; gap: 10px; margin-top: 14px; }
+
+/* 수신자 표 */
+.filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-tabs button {
+  padding: 6px 14px; border: 1px solid #e2e8f0; background: #fff;
+  border-radius: 999px; font-size: 0.82rem; cursor: pointer;
+  color: #475569;
+}
+.filter-tabs button.active {
+  background: #1e40af; color: #fff; border-color: #1e40af;
+}
+
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+  background: #f8fafc; padding: 10px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tbl tbody tr { border-bottom: 1px solid #f1f5f9; }
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl td { padding: 10px 12px; font-size: 0.85rem; vertical-align: middle; }
+.tbl .col-id    { width: 60px; color: #94a3b8; font-family: 'Inter', monospace; }
+.tbl .col-name  { font-weight: 500; }
+.tbl .col-mail  { color: #475569; font-size: 0.825rem; }
+.tbl .col-stat  { width: 90px; }
+.tbl .col-time  { width: 150px; color: #64748b; font-size: 0.82rem; white-space: nowrap; }
+.tbl .col-err   { color: #b91c1c; font-size: 0.82rem; }
+
+.empty-state { padding: 32px 20px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-top: 14px; font-size: 0.85rem; color: #475569;
+}
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 0.875rem;
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.25s; z-index: 9999;
+  max-width: 420px;
+}
+.toast.show  { opacity: 1; transform: translateY(0); }
+.toast.error { background: #b91c1c; }
+
+.live-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: #1e40af; margin-left: 6px; animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+
+<main class="page-wrap"><div class="page-title" id="pageTitle">발송 상세</div>
+  <p class="page-desc" id="pageDesc">불러오는 중…</p>
+
+  <!-- 작업 정보 -->
+  <div class="card">
+    <div class="card-title">📋 작업 정보</div>
+    <div id="infoBox">
+      <div class="empty-state">불러오는 중…</div>
+    </div>
+  </div>
+
+  <!-- 진행률 -->
+  <div class="card">
+    <div class="card-title">
+      📊 진행률
+      <span id="liveDot" class="live-dot" style="display:none;"></span>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      상태: <span id="statusBadge" class="badge badge-pending">-</span>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-bar">
+        <div id="progressFill" class="progress-fill" style="width:0%;"></div>
+      </div>
+      <div id="progressNum" class="progress-num">0%</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label">전체 수신자</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">발송 성공</div>
+        <div class="stat-value" id="statSent" style="color:#16a34a;">0</div>
+        <div class="stat-pct" id="statSentPct">0%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">발송 실패</div>
+        <div class="stat-value" id="statFailed" style="color:#b91c1c;">0</div>
+        <div class="stat-pct" id="statFailedPct">0%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">대기 중</div>
+        <div class="stat-value" id="statPending">0</div>
+        <div class="stat-pct" id="statPendingPct">0%</div>
+      </div>
+    </div>
+
+    <div id="errorBox" class="alert-error" style="display:none;"></div>
+
+    <div class="btn-bar">
+      <button class="btn btn-danger" id="btnCancel" style="display:none;">발송 취소</button>
+      <button class="btn" id="btnRetryFailed" style="display:none;">실패만 재발송</button>
+      <button class="btn" id="btnRetryAll" style="display:none; display:none;">전체 재발송</button>
+    </div>
+  </div>
+
+  <!-- 수신자 목록 -->
+  <div class="card">
+    <div class="card-title">📨 수신자 목록</div>
+
+    <div class="filter-tabs">
+      <button class="active" data-filter="">전체</button>
+      <button data-filter="sent">성공만</button>
+      <button data-filter="failed">실패만</button>
+      <button data-filter="pending">대기 중</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th>회원</th>
+            <th>이메일</th>
+            <th class="col-stat">상태</th>
+            <th class="col-time">발송 시각</th>
+            <th class="col-err">실패 사유</th>
+            <th style="width:80px"></th>
+          </tr>
+        </thead>
+        <tbody id="recBody">
+          <tr><td colspan="6" class="empty-state">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="btn btn-sm" id="recPrev">‹ 이전</button>
+      <span id="recPageInfo">1 / 1</span>
+      <button class="btn btn-sm" id="recNext">다음 ›</button>
+      <span style="margin-left:12px;color:#94a3b8;">총 <span id="recTotal">0</span>명</span>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="/js/admin-send-job-detail.js?v=2"></script>
+</body>
+</html>

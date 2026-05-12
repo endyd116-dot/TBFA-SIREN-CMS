@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>발송 분석 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.filter-bar label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.825rem; color: #475569;
+}
+.filter-bar select,
+.filter-bar input[type="date"] {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+.filter-bar .custom-range { display: none; align-items: center; gap: 6px; }
+.filter-bar .custom-range.show { display: flex; }
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+.btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.btn-primary:hover { background: #1d3fa8; }
+
+/* 지표 카드 그리드 */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+}
+.kpi-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 18px 20px;
+}
+.kpi-card .kpi-label { font-size: 0.78rem; color: #64748b; margin-bottom: 6px; font-weight: 500; }
+.kpi-card .kpi-val   { font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+.kpi-card .kpi-sub   { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 20px 22px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 1rem; font-weight: 600; margin-bottom: 14px; color: #1e293b;
+}
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+  background: #f8fafc; padding: 10px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tbl tbody tr { border-bottom: 1px solid #f1f5f9; }
+.tbl tbody td { padding: 10px 12px; font-size: 0.84rem; vertical-align: middle; }
+
+.empty { text-align: center; padding: 30px; color: #94a3b8; font-size: 0.9rem; }
+
+.chart-wrap { position: relative; height: 260px; }
+
+.badge-ch {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 500; background: #eff6ff; color: #1e40af;
+}
+
+.trigger-stat {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+}
+.trigger-stat:last-child { border-bottom: none; }
+
+/* 토스트 */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 10px 22px; border-radius: 8px;
+  font-size: 0.9rem; opacity: 0; transition: opacity .25s; z-index: 9999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.toast.error { background: #b91c1c; }
+</style>
+</head>
+<body>
+
+<div class="page-wrap"><div class="page-title">📊 발송 분석 대시보드</div>
+  <div class="page-desc">발송 작업의 전송·열람·클릭 통계를 기간별로 확인합니다.</div>
+
+  <div class="filter-bar">
+    <label>기간
+      <select id="periodSelect">
+        <option value="30">최근 30일</option>
+        <option value="90">최근 90일</option>
+        <option value="365">최근 1년</option>
+        <option value="custom">직접 선택</option>
+      </select>
+    </label>
+    <div class="custom-range" id="customRange">
+      <input type="date" id="fromDate" />
+      <span style="font-size:.85rem;color:#64748b">~</span>
+      <input type="date" id="toDate" />
+      <button class="btn btn-primary" onclick="loadAll()">조회</button>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">발송 작업 수</div>
+      <div class="kpi-val" id="kpiJobs">—</div>
+      <div class="kpi-sub">건</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">총 대상자</div>
+      <div class="kpi-val" id="kpiRecipients">—</div>
+      <div class="kpi-sub">명</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">전송 성공률</div>
+      <div class="kpi-val" id="kpiDelivery">—</div>
+      <div class="kpi-sub" id="kpiDeliverySub"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">열람률 / 클릭률</div>
+      <div class="kpi-val" id="kpiOpen">—</div>
+      <div class="kpi-sub" id="kpiOpenSub"></div>
+    </div>
+  </div>
+
+  <!-- 일별 추이 차트 -->
+  <div class="card">
+    <div class="card-title">📈 일별 발송 추이</div>
+    <div class="chart-wrap">
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div id="trendEmpty" class="empty" style="display:none">선택한 기간에 발송 이력이 없습니다.</div>
+  </div>
+
+  <!-- 채널별 + Top 작업 -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">📡 채널별 통계</div>
+      <table class="tbl" id="channelTable">
+        <thead>
+          <tr>
+            <th>채널</th><th>발송</th><th>전송</th><th>열람률</th><th>클릭률</th><th>실패</th>
+          </tr>
+        </thead>
+        <tbody id="channelBody"><tr><td colspan="6" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 Top 발송 작업 (열람률 기준)</div>
+      <div id="topJobsList"><p class="empty">불러오는 중…</p></div>
+    </div>
+  </div>
+
+  <!-- AI 트리거 효과 -->
+  <div class="card">
+    <div class="card-title">🤖 AI 트리거 효과</div>
+    <div id="triggerEffectList"><p class="empty">불러오는 중…</p></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin-send-analytics.js?v=1"></script>
+</body>
+</html>
