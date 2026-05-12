@@ -16,17 +16,20 @@ body {
   background: #f1f5f9; color: #1e293b;
 }
 
-.page-wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+.page-wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
 .page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
 .page-desc  { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
-.back-link  { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
-.back-link:hover { text-decoration: underline; }
 
 .card {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
   padding: 22px 24px; margin-bottom: 16px;
 }
 .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #1e293b; }
+.card-title .badge-tip {
+  display: inline-block; font-size: 0.7rem; font-weight: 500;
+  background: #eff6ff; color: #1e40af; padding: 2px 8px;
+  border-radius: 999px; margin-left: 8px; vertical-align: middle;
+}
 
 .form-row { margin-bottom: 18px; }
 .form-row:last-child { margin-bottom: 0; }
@@ -38,12 +41,15 @@ body {
 .form-hint { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
 
 .form-input,
-.form-select {
+.form-select,
+.form-textarea {
   width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
   font-size: 0.9rem; font-family: inherit; background: #fff; color: #1e293b;
 }
+.form-textarea { resize: vertical; min-height: 240px; line-height: 1.55; font-family: 'Inter', monospace; }
 .form-input:focus,
-.form-select:focus { outline: none; border-color: #1e40af; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1); }
+.form-select:focus,
+.form-textarea:focus { outline: none; border-color: #1e40af; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1); }
 
 .radio-group { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .radio-group label {
@@ -51,6 +57,29 @@ body {
   font-size: 0.9rem; cursor: pointer;
 }
 .radio-group input[type="radio"] { accent-color: #1e40af; }
+
+/* 채널 다중 체크박스 */
+.channel-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.channel-item {
+  position: relative; cursor: pointer;
+  border: 2px solid #e2e8f0; border-radius: 10px; padding: 14px 12px;
+  text-align: center; background: #fff;
+  transition: all 0.15s;
+}
+.channel-item input { position: absolute; opacity: 0; pointer-events: none; }
+.channel-item .ch-icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+.channel-item .ch-name { font-size: 0.85rem; font-weight: 500; color: #475569; }
+.channel-item:hover { border-color: #94a3b8; }
+.channel-item.checked {
+  border-color: #1e40af; background: #eff6ff;
+}
+.channel-item.checked .ch-name { color: #1e40af; font-weight: 600; }
+.channel-item.disabled { opacity: 0.4; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .channel-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 .btn {
   padding: 8px 16px; border: 1px solid #cbd5e1; background: #fff;
@@ -61,43 +90,60 @@ body {
 .btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
 .btn-primary:hover { background: #1d3fa8; }
 .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
+.btn-sm { padding: 5px 11px; font-size: 0.8rem; }
 
 .btn-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
 
-/* 미리보기 */
-.preview-box {
-  border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;
-  background: #f8fafc;
+/* 편집 영역 */
+.edit-meta {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 0.825rem; color: #64748b;
+  padding: 10px 14px; background: #f8fafc;
+  border-radius: 6px; margin-bottom: 12px;
 }
+.edit-meta .label { color: #94a3b8; margin-right: 4px; }
+
+/* 수신자 목록 */
+.rcpt-meta {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+}
+.rcpt-meta .total {
+  font-weight: 700; color: #1e40af; font-size: 1rem;
+}
+.rcpt-table-wrap {
+  border: 1px solid #e2e8f0; border-radius: 8px;
+  max-height: 380px; overflow-y: auto;
+  background: #fff;
+}
+.rcpt-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.rcpt-table thead th {
+  background: #f8fafc; padding: 9px 10px;
+  text-align: left; font-size: 0.75rem; font-weight: 600;
+  color: #64748b; border-bottom: 1px solid #e2e8f0;
+  position: sticky; top: 0; z-index: 1;
+}
+.rcpt-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+.rcpt-table tbody tr:last-child { border-bottom: none; }
+.rcpt-table tbody tr:hover { background: #f8fafc; }
+.rcpt-table td { padding: 8px 10px; vertical-align: middle; color: #334155; }
+.rcpt-table .col-id { color: #94a3b8; font-family: 'Inter', monospace; width: 60px; }
+.rcpt-table .col-status { width: 70px; }
+
+.rcpt-paging {
+  display: flex; align-items: center; gap: 12px;
+  justify-content: center; margin-top: 10px;
+  font-size: 0.85rem; color: #475569;
+}
+
 .preview-empty { color: #94a3b8; font-size: 0.875rem; padding: 24px 0; text-align: center; }
-.preview-meta {
-  display: flex; flex-wrap: wrap; gap: 18px;
-  font-size: 0.875rem; color: #475569;
-  padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px;
-}
-.preview-meta .label { color: #94a3b8; margin-right: 4px; }
-.preview-sample-title {
-  font-size: 0.82rem; color: #64748b; margin-bottom: 6px;
-}
-.preview-sample {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
-  padding: 12px 14px; font-size: 0.875rem;
-}
-.preview-sample .subject {
-  font-weight: 600; color: #1e293b; margin-bottom: 8px;
-  padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;
-}
-.preview-sample .body {
-  white-space: pre-wrap; color: #334155; line-height: 1.55;
-  max-height: 240px; overflow-y: auto;
-}
 .preview-warnings {
   margin-top: 12px; padding: 10px 12px;
   background: #fef9c3; border-left: 3px solid #ca8a04;
   font-size: 0.825rem; color: #854d0e; border-radius: 4px;
 }
 .preview-warnings ul { margin: 4px 0 0 0; padding-left: 20px; }
-.preview-warnings li { margin-bottom: 2px; }
 
 .toast {
   position: fixed; bottom: 24px; right: 24px;
@@ -124,17 +170,18 @@ body {
 
 <main class="page-wrap"><div class="page-title">새 발송 만들기</div>
   <p class="page-desc">
-    템플릿과 수신자 그룹을 골라 즉시 또는 예약 발송을 등록합니다.
-    둘 다 선택하면 자동으로 미리보기가 표시됩니다.
+    템플릿을 불러온 뒤 제목·본문을 그대로 보내거나 이번 발송에 한해 수정해서 보낼 수 있습니다.
+    템플릿 원본은 변경되지 않습니다. 채널은 여러 개 동시 선택 가능합니다.
   </p>
 
+  <!-- 1. 발송 정보 -->
   <div class="card">
     <div class="card-title">발송 정보</div>
 
     <div class="form-row">
       <label class="form-label" for="fName">발송 이름<span class="req">*</span></label>
       <input class="form-input" type="text" id="fName" maxlength="200" placeholder="예) 월간 뉴스레터 5월호" />
-      <div class="form-hint">관리자 식별용 — 수신자에게 노출되지 않습니다.</div>
+      <div class="form-hint">관리자 식별용 — 수신자에게 노출되지 않습니다. 채널을 여러 개 고르면 각 채널별로 자동으로 (이메일)/(SMS) 등 접미사가 붙습니다.</div>
     </div>
 
     <div class="form-row">
@@ -142,7 +189,30 @@ body {
       <select class="form-select" id="fTemplate">
         <option value="">불러오는 중…</option>
       </select>
-      <div class="form-hint">활성 상태인 템플릿만 표시됩니다. 채널은 템플릿이 결정합니다.</div>
+      <div class="form-hint">활성 상태인 템플릿만 표시됩니다.</div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">발송 채널<span class="req">*</span></label>
+      <div class="channel-grid" id="channelGrid">
+        <label class="channel-item" data-ch="email">
+          <input type="checkbox" value="email">
+          <span class="ch-icon">📧</span><span class="ch-name">이메일</span>
+        </label>
+        <label class="channel-item" data-ch="sms">
+          <input type="checkbox" value="sms">
+          <span class="ch-icon">📱</span><span class="ch-name">SMS</span>
+        </label>
+        <label class="channel-item" data-ch="kakao">
+          <input type="checkbox" value="kakao">
+          <span class="ch-icon">💬</span><span class="ch-name">카카오</span>
+        </label>
+        <label class="channel-item" data-ch="inapp">
+          <input type="checkbox" value="inapp">
+          <span class="ch-icon">🔔</span><span class="ch-name">앱 알림</span>
+        </label>
+      </div>
+      <div class="form-hint">템플릿 선택 시 기본 채널이 자동으로 체크됩니다. 여러 채널을 동시에 선택하면 각 채널마다 개별 발송 작업이 등록됩니다.</div>
     </div>
 
     <div class="form-row">
@@ -156,14 +226,8 @@ body {
     <div class="form-row">
       <label class="form-label">발송 시간<span class="req">*</span></label>
       <div class="radio-group">
-        <label>
-          <input type="radio" name="scheduleType" value="now" checked />
-          즉시 발송
-        </label>
-        <label>
-          <input type="radio" name="scheduleType" value="scheduled" />
-          예약
-        </label>
+        <label><input type="radio" name="scheduleType" value="now" checked /> 즉시 발송</label>
+        <label><input type="radio" name="scheduleType" value="scheduled" /> 예약</label>
       </div>
       <div id="scheduledRow" style="display:none; margin-top:10px;">
         <input class="form-input" type="datetime-local" id="fScheduledAt" style="max-width:280px;" />
@@ -172,10 +236,21 @@ body {
     </div>
   </div>
 
+  <!-- 2. 본문 편집 -->
   <div class="card">
-    <div class="card-title">미리보기</div>
-    <div id="previewBox" class="preview-box">
-      <div class="preview-empty">템플릿과 그룹을 모두 선택하면 자동으로 미리보기가 표시됩니다.</div>
+    <div class="card-title">
+      본문 편집 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>
+    </div>
+    <div id="editArea">
+      <div class="preview-empty">템플릿을 선택하면 제목과 본문이 여기에 표시됩니다.</div>
+    </div>
+  </div>
+
+  <!-- 3. 수신자 미리보기 -->
+  <div class="card">
+    <div class="card-title">수신자 미리보기</div>
+    <div id="rcptArea">
+      <div class="preview-empty">수신자 그룹을 선택하면 발송 대상 회원 목록이 표시됩니다.</div>
     </div>
   </div>
 
@@ -187,6 +262,6 @@ body {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-send-job-create.js?v=1"></script>
+<script src="/js/admin-send-job-create.js?v=2026-05-13-ed"></script>
 </body>
 </html>

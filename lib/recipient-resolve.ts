@@ -61,6 +61,7 @@ export interface ResolvedMember {
   id: number;
   name: string;
   email: string;
+  phone: string | null;
   type: string;
   status: string;
 }
@@ -278,7 +279,7 @@ export async function resolveRecipients(
 
     const lim = limit && limit > 0 ? limit : null;
     const rowsRes: any = await db.execute(sql`
-      SELECT id, name, email, type, status
+      SELECT id, name, email, phone, type, status
       FROM members
       WHERE id = ANY(${ids}::int[])
       ORDER BY id ASC
@@ -293,6 +294,7 @@ export async function resolveRecipients(
         id: r.id,
         name: r.name,
         email: r.email,
+        phone: r.phone || null,
         type: r.type,
         status: r.status,
       })),
@@ -324,7 +326,7 @@ export async function resolveRecipients(
 
   const lim = limit && limit > 0 ? limit : null;
   const rowsRes: any = await db.execute(sql`
-    SELECT id, name, email, type, status
+    SELECT id, name, email, phone, type, status
     FROM members
     ${whereFragment}
     ORDER BY id ASC
@@ -339,6 +341,7 @@ export async function resolveRecipients(
       id: r.id,
       name: r.name,
       email: r.email,
+      phone: r.phone || null,
       type: r.type,
       status: r.status,
     })),

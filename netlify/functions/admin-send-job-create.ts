@@ -52,6 +52,19 @@ export default async function handler(req: Request, _ctx: Context) {
   const scheduleType = body?.scheduleType === "now" ? "now" : "scheduled";
   const scheduledAtRaw = body?.scheduledAt || null;
 
+  /* 신규: 임시 수정 본문/제목 (템플릿 원본 변경 없음) */
+  const subjectOverrideRaw = typeof body?.subjectOverride === "string" ? body.subjectOverride.trim() : "";
+  const bodyOverrideRaw    = typeof body?.bodyOverride === "string" ? body.bodyOverride.trim() : "";
+  const subjectOverride = subjectOverrideRaw.length > 0 ? subjectOverrideRaw.slice(0, 4000) : null;
+  const bodyOverride    = bodyOverrideRaw.length > 0 ? bodyOverrideRaw.slice(0, 100000) : null;
+
+  /* 신규: 채널 다중 선택 — 각 채널마다 별도 job 생성 */
+  const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"];
+  let channels: string[] = Array.isArray(body?.channels)
+    ? body.channels.map((c: any) => String(c)).filter((c: string) => VALID_CHANNELS.includes(c))
+    : [];
+  channels = Array.from(new Set(channels));
+
   if (name.length < 1 || name.length > 200) {
     return new Response(
       JSON.stringify({ ok: false, error: "발송 이름은 1~200자여야 합니다.", step: "validate_name" }),
@@ -84,29 +97,38 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   }
 
-  const channel = validation.template!.channel;
+  /* 채널 미지정 시 템플릿 기본 채널 사용 */
+  if (channels.length === 0) channels = [validation.template!.channel];
+
   const effectiveAt = validation.effectiveScheduledAt!;
 
-  /* INSERT */
-  let newId: number = 0;
+  const CHANNEL_LABEL: Record<string,string> = { email:"이메일", sms:"SMS", kakao:"카카오", inapp:"앱 알림" };
+
+  /* INSERT — 채널마다 1개 job */
+  const createdIds: number[] = [];
   try {
-    const r: any = await db.execute(sql`
-      INSERT INTO communication_send_jobs
-        (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
-         status, total_recipients, success_count, failure_count, created_by)
-      VALUES
-        (${name}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
-         ${effectiveAt}, 'pending', 0, 0, 0, ${adminId})
-      RETURNING id
-    `);
-    const row = (r?.rows ?? r ?? [])[0];
-    newId = row?.id ?? 0;
+    for (const channel of channels) {
+      const jobName = channels.length > 1 ? `${name} (${CHANNEL_LABEL[channel] || channel})` : name;
+      const r: any = await db.execute(sql`
+        INSERT INTO communication_send_jobs
+          (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
+           status, total_recipients, success_count, failure_count, created_by,
+           subject_override, body_override)
+        VALUES
+          (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
+           ${effectiveAt}, 'pending', 0, 0, 0, ${adminId},
+           ${subjectOverride}, ${bodyOverride})
+        RETURNING id
+      `);
+      const row = (r?.rows ?? r ?? [])[0];
+      if (row?.id) createdIds.push(Number(row.id));
+    }
   } catch (err: any) {
     return jsonError("insert_job", err);
   }
 
   return new Response(
-    JSON.stringify({ ok: true, id: newId }),
+    JSON.stringify({ ok: true, id: createdIds[0] || 0, ids: createdIds, channels }),
     { status: 200, headers: JSON_HEADER },
   );
 }

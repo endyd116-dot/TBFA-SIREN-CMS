@@ -49,7 +49,8 @@ export default async function handler(_req: Request) {
      ============================================================ */
   try {
     const r: any = await db.execute(sql`
-      SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name
+      SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
+             j.subject_override, j.body_override
         FROM communication_send_jobs j
        WHERE j.status = 'pending'
          AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
@@ -216,10 +217,18 @@ async function startJob(job: any) {
         email: member.email,
         phone: member.phone,
       });
-      const subjectStr = template.subject
-        ? renderTemplate(template.subject, variables, data).rendered
+      /* job에 임시 수정(override)이 있으면 그것을 우선 사용 — 템플릿 원본 유지 */
+      const effectiveSubjectTpl = (job.subject_override && String(job.subject_override).trim().length > 0)
+        ? job.subject_override
+        : template.subject;
+      const effectiveBodyTpl    = (job.body_override && String(job.body_override).trim().length > 0)
+        ? job.body_override
+        : template.body_template;
+
+      const subjectStr = effectiveSubjectTpl
+        ? renderTemplate(effectiveSubjectTpl, variables, data).rendered
         : null;
-      let bodyStr = renderTemplate(template.body_template, variables, data).rendered;
+      let bodyStr = renderTemplate(effectiveBodyTpl, variables, data).rendered;
 
       /* 이메일 채널: 추적 픽셀 + 클릭 추적 URL 주입 */
       const trackingToken = generateTrackingToken();
