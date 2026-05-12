@@ -128,21 +128,34 @@
     if (el) el.classList.toggle('d-none', !show);
   }
   async function refreshHeaderAuthUI() {
+    var loggedIn = false;
+    var canAdmin = false;
+    /* 1차: 일반 사용자 토큰 (siren_token) */
     try {
       var r = await fetch('/api/auth/me', { credentials: 'include' });
-      var loggedIn = r.ok;
-      var u = null;
-      if (loggedIn) {
+      if (r.ok) {
+        loggedIn = true;
         var j = await r.json().catch(function(){ return {}; });
-        u = (j && j.data && j.data.user) || (j && j.user) || null;
+        var u = (j && j.data && j.data.user) || (j && j.user) || null;
+        canAdmin = !!(u && (u.canAdminMode || u.isAdmin || u.isOperator || u.type === 'admin'));
       }
-      var canAdmin = !!(u && (u.canAdminMode || u.isAdmin || u.isOperator || u.type === 'admin'));
-      _toggle('topbarLogin',     !loggedIn);
-      _toggle('topbarSignup',    !loggedIn);
-      _toggle('topbarMypage',    loggedIn);
-      _toggle('topbarLogout',    loggedIn);
-      _toggle('topbarAdminMode', loggedIn && canAdmin);
-    } catch (_) { /* 네트워크 오류 시 기본 (비로그인) 표시 유지 */ }
+    } catch (_) {}
+    /* 2차 fallback: admin 토큰만 있는 경우 (auth/me는 401이지만 admin/me는 200) */
+    if (!loggedIn) {
+      try {
+        var r2 = await fetch('/api/admin/me', { credentials: 'include' });
+        if (r2.ok) {
+          /* admin 토큰만 있어도 로그인 상태로 인식 + 관리자 모드 버튼 표시 */
+          loggedIn = true;
+          canAdmin = true;
+        }
+      } catch (_) {}
+    }
+    _toggle('topbarLogin',     !loggedIn);
+    _toggle('topbarSignup',    !loggedIn);
+    _toggle('topbarMypage',    loggedIn);
+    _toggle('topbarLogout',    loggedIn);
+    _toggle('topbarAdminMode', loggedIn && canAdmin);
   }
   function bindHeaderAuthUI() {
     var logoutBtn = document.getElementById('topbarLogout');
