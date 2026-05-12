@@ -31,6 +31,8 @@ import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
 /* === Phase 1~4 비용 안전장치 === */
 import { recordFeatureUsage, checkFeatureBeforeCall } from "../../lib/ai-feature";
 import { checkMonthlyBudget } from "../../lib/ai-cost-monitor";
+import { tryCacheGet, cacheSet, invalidateRelated } from "../../lib/ai-cache";
+import { checkRateLimit } from "../../lib/ai-rate-limit";
 
 const AGENT_FEATURE_KEY = "ai_agent_chat";
 
@@ -150,6 +152,16 @@ export default async (req: Request, _ctx: Context) => {
       limit: featureCheck.limit,
     }), { status: 429, headers: JSON_HEADER });
   }
+
+  /* === Phase 3: 사용자별 Rate Limit (분 10 / 시간 50 / 일 500) === */
+  const rl = await checkRateLimit(adminId);
+  if (!rl.ok) {
+    return new Response(JSON.stringify({
+      ok: false, error: "AI 호출 횟수 한도 초과", step: "rate_limit",
+      detail: rl.message, retryAtMs: rl.retryAtMs,
+    }), { status: 429, headers: JSON_HEADER });
+  }
+
   /* 응답 끝에서 경고 임계($80) 안내용 — 차단은 위에서 이미 처리 */
   const budget = await checkMonthlyBudget();
 
@@ -285,7 +297,23 @@ export default async (req: Request, _ctx: Context) => {
         }
 
         const tStart = Date.now();
-        const result = await executeTool(toolName, toolArgs, adminId);
+
+        /* === Phase 2: 캐시 hit 시 executeTool 우회 === */
+        let result: any;
+        const cachedOutput = tryCacheGet(toolName, toolArgs);
+        if (cachedOutput !== null) {
+          result = { ok: true, output: cachedOutput, _cached: true };
+          console.info(`[ai-agent] 캐시 hit: ${toolName}`);
+        } else {
+          result = await executeTool(toolName, toolArgs, adminId);
+          /* 성공한 읽기 도구만 캐시 저장 (cacheSet 내부에서 화이트리스트 체크) */
+          if (result.ok && (result.output !== undefined || result.preview !== undefined)) {
+            cacheSet(toolName, toolArgs, result.output ?? result.preview);
+          }
+          /* 변경 도구면 관련 캐시 청소 */
+          if (result.ok) invalidateRelated(toolName);
+        }
+
         const durationMs = Date.now() - tStart;
         totalToolCallsThisRequest++;
 
