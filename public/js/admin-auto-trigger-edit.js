@@ -63,9 +63,12 @@
   }
 
   async function loadTemplates() {
-    const res = await api({ url: "/api/admin-communication-templates-list?isActive=true&limit=200" });
-    templates = res.data?.templates || res.data?.data?.templates
-              || res.data?.rows     || res.data?.data?.rows || [];
+    /* admin-templates-list 정식 엔드포인트. 응답: { ok, rows, total } */
+    const res = await api({ url: "/api/admin-templates-list?limit=200" });
+    templates = res.data?.rows || res.data?.data?.rows
+              || res.data?.templates || res.data?.data?.templates || [];
+    /* 활성만 필터 (서버에 includeInactive 미전송 시 기본 활성만) */
+    templates = templates.filter(t => t.isActive !== false);
     renderTemplateOptions();
   }
 

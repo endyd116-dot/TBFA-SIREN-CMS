@@ -267,14 +267,32 @@
       // 첫 op로 자동 설정
       const def = FIELDS[row.field];
       row.op = def?.ops?.[0] || "";
-      row.value = "";
-      row.values = [];
+      /* selectMulti면 첫 옵션을 row.value에 자동 세팅 (사용자가 값 안 만져도 유효한 값 보장) */
+      if (def?.valueType === "selectMulti" && Array.isArray(def.options) && def.options.length > 0) {
+        row.value  = def.options[0].value;
+        row.values = [def.options[0].value];
+      } else if (def?.valueType === "bool") {
+        row.value = true;
+        row.values = [];
+      } else {
+        row.value = "";
+        row.values = [];
+      }
       renderFilterRows();
     } else if (role === "op") {
       row.op = e.target.value;
-      // op 변경 시 값 초기화 (single↔multi 전환 가능)
-      row.value = "";
-      row.values = [];
+      const def2 = FIELDS[row.field];
+      /* op 변경 후에도 selectMulti는 첫 옵션 유지 */
+      if (def2?.valueType === "selectMulti" && Array.isArray(def2.options) && def2.options.length > 0) {
+        row.value  = def2.options[0].value;
+        row.values = [def2.options[0].value];
+      } else if (def2?.valueType === "bool") {
+        row.value = true;
+        row.values = [];
+      } else {
+        row.value = "";
+        row.values = [];
+      }
       renderFilterRows();
     } else if (role === "value") {
       row.value = e.target.value;
