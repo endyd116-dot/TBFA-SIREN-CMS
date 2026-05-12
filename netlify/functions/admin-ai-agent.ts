@@ -33,66 +33,42 @@ export const config = { path: "/api/admin-ai-agent" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-/* 모델 폴백 체인 — 복잡 추론용 (AI 에이전트는 멀티스텝 + 도구 선택)
- * 1) gemini-3-flash-preview  : 최고 성능
- * 2) gemini-3.1-flash-lite   : 차세대 경량
- * 3) gemini-2.5-flash        : 안정 폴백 */
+/* ★ 비용 최적화 정책 (월 $100 이내 목표)
+ *   AI 비서는 빈번 호출 → 가장 저렴한 lite 우선
+ *   1) gemini-3.1-flash-lite : 1순위 (대부분의 단순한 응답·도구 선택)
+ *   2) gemini-2.5-flash      : 폴백 (lite 실패 시만)
+ *   복잡한 분석은 cron-agent-8/9 같은 빈도 낮은 곳에서만 2.5-flash 사용 */
 const MODEL_CHAIN: string[] = Array.from(new Set([
-  "gemini-3-flash-preview",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
 ].filter(Boolean)));
 
-const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회의 통합 관리 시스템 SIREN의 AI 비서입니다.
+/* ★ 무한루프·비용 폭발 방지 한도 */
+const MAX_STEPS = 3;                /* 멀티스텝 최대 횟수 (5 → 3 축소) */
+const MAX_TOOLS_PER_CONV = 10;      /* 대화당 누적 도구 호출 상한 */
+const MAX_SAME_TOOL_CONSECUTIVE = 2;/* 같은 도구 연속 호출 차단 */
+const MAX_OUTPUT_TOKENS = 1024;     /* 응답당 토큰 (2048 → 1024) */
+const MAX_MESSAGES_KEEP = 20;       /* 대화 이력 유지 메시지 수 (앞쪽 트리밍) */
 
-## 역할
-관리자(super_admin/operator)가 자연어로 명령하면, 적절한 SIREN 도구를 호출해 작업을 수행합니다.
+/* 시스템 프롬프트 — 단축 버전 (토큰 비용 절감) */
+const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의 AI 비서입니다. 관리자 명령을 받아 적절한 도구를 호출하세요.
 
-## 사용 가능한 도구 (총 22개)
+## 도구 22개 카테고리
+- 콘텐츠·관리(5): content_pages_list/update, notice_create, campaign_create, nav_menus_list
+- 회원(4): members_search/detail/stats/recent
+- 후원(3): donations_recent/stats/by_member
+- SIREN 신고(4): incidents_list/detail, harassment_reports_list, legal_consultations_list
+- 게시판·캠페인(3): board_posts_list, campaigns_list/detail
+- 워크스페이스·KPI(3): tasks_list, notifications_recent, kpi_summary
 
-### 콘텐츠·관리 (5개)
-- content_pages_list / content_pages_update — 메인·about 등 페이지 본문
-- notice_create — 공지사항 등록
-- campaign_create — 새 후원 캠페인 등록
-- nav_menus_list — 헤더/푸터 메뉴 조회
+## 핵심 규칙
+1. 변경 작업(*_update, *_create)은 dry-run(requireApproval=true) 우선 → 사용자 승인 후 requireApproval=false로 재호출.
+2. 의도 모호하면 도구 호출 전 한국어로 다시 묻기.
+3. 결과는 한국어 자연어 + 핵심 숫자만 (raw JSON 금지).
+4. 한 번에 필요한 도구만 호출 (불필요한 반복 금지).
+5. 같은 도구를 반복 호출하지 마세요 — 결과가 같으면 그대로 사용.
 
-### 회원 (4개)
-- members_search — 이름·이메일·전화로 회원 검색
-- members_detail — 특정 회원 상세
-- members_stats — 유형별·상태별 통계
-- members_recent — 최근 가입자
-
-### 후원 (3개)
-- donations_recent — 최근 후원 내역
-- donations_stats — 월별·총합 통계
-- donations_by_member — 특정 회원 후원 이력
-
-### SIREN 신고 (4개)
-- incidents_list / incidents_detail — 사건 제보
-- harassment_reports_list — 악성 민원 신고
-- legal_consultations_list — 법률 상담 요청
-
-### 게시판·캠페인 (3개)
-- board_posts_list — 자유게시판
-- campaigns_list / campaigns_detail — 캠페인 진행 상황
-
-### 워크스페이스·알림·KPI (3개)
-- tasks_list — 워크스페이스 태스크
-- notifications_recent — 특정 회원 알림
-- kpi_summary — 전체 핵심 지표 한 번에
-
-## 원칙
-
-1. **변경 작업은 항상 dry-run 우선**: content_pages_update, notice_create, campaign_create는 처음 호출 시 requireApproval=true(기본). 사용자가 미리보기 보고 명시 승인하면 requireApproval=false로 다시 호출.
-2. **의도 모호하면 다시 물어보기**: "어떤 회원이요?" "기간은요?" 등 한국어로.
-3. **여러 도구 조합 가능**: 예 "정기 후원자 통계 + 최근 가입자 보여줘" → members_stats + members_recent + donations_stats 동시 호출.
-4. **결과는 한국어 자연어로**: raw JSON 덤프 금지. 핵심 숫자·이름은 굵게 표시 가능.
-5. **권한 우선**: 도구가 에러 반환하면 사용자에게 정중히 안내. 우회 시도 금지.
-
-## 답변 스타일
-- 한국어 존댓말, 친근·전문 톤
-- 이모지는 결과 표시에만 (📊 통계, ✅ 완료, ⚠️ 경고)
-- 간결하게 — 표·리스트 활용`;
+답변: 존댓말, 간결, 이모지 절제.`;
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(JSON.stringify({
@@ -111,7 +87,8 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<any> {
     contents,
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
     tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+    /* ★ 비용 절감 — maxOutputTokens 보수적 + temperature 낮춤(일관성) */
+    generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
   };
 
   let lastError = "";
@@ -198,9 +175,28 @@ export default async (req: Request, _ctx: Context) => {
   let pendingApproval: any = null;
   let finalReply = "";
 
+  /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
+  let totalToolCallsThisRequest = 0;
+  const recentToolNames: string[] = [];  /* 같은 도구 연속 호출 차단용 */
+
+  /* 대화당 누적 도구 호출 수 (이전 누적 + 이번 요청) 체크
+   * messages에서 이전 functionResponse 카운트 */
+  const priorToolCount = messages.reduce((n, m) => {
+    if (m.role === "user" && Array.isArray(m.parts)) {
+      return n + m.parts.filter((p: any) => p.functionResponse).length;
+    }
+    return n;
+  }, 0);
+  if (priorToolCount >= MAX_TOOLS_PER_CONV) {
+    return new Response(JSON.stringify({
+      ok: true, conversationId,
+      reply: `이 대화에서 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)를 초과했습니다. 새 대화를 시작해주세요.`,
+      toolCalls: [], pendingApproval: null,
+    }), { status: 200, headers: JSON_HEADER });
+  }
+
   try {
-    for (let step = 0; step < 5; step++) {
-      const t0 = Date.now();
+    for (let step = 0; step < MAX_STEPS; step++) {
       const geminiRes = await callGeminiWithTools(messages);
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
@@ -221,14 +217,40 @@ export default async (req: Request, _ctx: Context) => {
       /* 함수 호출 없으면 종료 */
       if (fnCalls.length === 0) break;
 
+      /* 누적 한도 초과 차단 */
+      if (priorToolCount + totalToolCallsThisRequest + fnCalls.length > MAX_TOOLS_PER_CONV) {
+        finalReply += (finalReply ? "\n\n" : "") +
+          `⚠️ 대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
+        break;
+      }
+
       /* 함수 호출 처리 */
       const fnResponses: any[] = [];
+      let blockedSameTool = false;
       for (const fc of fnCalls) {
         const toolName = fc.functionCall?.name;
         const toolArgs = fc.functionCall?.args || {};
+
+        /* ★ 같은 도구 연속 호출 차단 — 동일 도구가 N회 연속이면 fake error 반환 */
+        recentToolNames.push(toolName);
+        if (recentToolNames.length > MAX_SAME_TOOL_CONSECUTIVE + 1) recentToolNames.shift();
+        const consecutive = recentToolNames.filter(n => n === toolName).length;
+        if (consecutive > MAX_SAME_TOOL_CONSECUTIVE) {
+          console.warn(`[ai-agent] 같은 도구 ${toolName} ${consecutive}회 연속 — 차단`);
+          fnResponses.push({
+            functionResponse: {
+              name: toolName,
+              response: { output: { error: `같은 도구 '${toolName}'를 연속 ${consecutive}회 호출했습니다. 다른 접근 시도하거나 사용자에게 응답을 정리해 보고하세요.` } },
+            },
+          });
+          blockedSameTool = true;
+          continue;
+        }
+
         const tStart = Date.now();
         const result = await executeTool(toolName, toolArgs, adminId);
         const durationMs = Date.now() - tStart;
+        totalToolCallsThisRequest++;
 
         /* 도구 로그 저장 */
         try {
@@ -248,7 +270,6 @@ export default async (req: Request, _ctx: Context) => {
 
         executedTools.push({ name: toolName, args: toolArgs, result });
 
-        /* dry-run 미리보기면 사용자 승인 대기로 표시 */
         if (result.preview) {
           pendingApproval = { toolName, args: toolArgs, preview: result.preview };
         }
@@ -261,11 +282,20 @@ export default async (req: Request, _ctx: Context) => {
         });
       }
 
-      /* 함수 응답을 user role로 추가 → 다음 step에서 AI가 결과 보고 응답 */
       messages.push({ role: "user", parts: fnResponses });
+
+      /* 같은 도구 차단됐으면 1회 더 진행해서 AI가 정리 보고하게 */
+      if (blockedSameTool && step >= MAX_STEPS - 2) break;
     }
   } catch (err) {
     return jsonError("gemini_call", err);
+  }
+
+  /* ★ 메시지 이력 트리밍 — 너무 길어지면 앞쪽 잘라냄 (토큰·비용 절감) */
+  if (messages.length > MAX_MESSAGES_KEEP) {
+    /* 첫 N개 잘라내되 user→model 페어를 유지 */
+    const overflow = messages.length - MAX_MESSAGES_KEEP;
+    messages.splice(0, overflow);
   }
 
   /* 4. 대화 저장 */

@@ -22,19 +22,22 @@ const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
-/* 모델 폴백 체인 — 두 모드:
- *   pro    (복잡 추론·멀티스텝·도구 선택): gemini-3-flash-preview → gemini-3.1-flash-lite → gemini-2.5-flash
- *   flash  (단순 작업·요약·짧은 호출):     gemini-3.1-flash-lite → gemini-2.5-flash-lite
- * env GEMINI_MODEL_PRO / GEMINI_MODEL_FLASH가 설정돼 있으면 1순위로 시도. */
+/* ★ 비용 최적화 정책 (월 $100 이내 목표)
+ *   pro   (복잡 분석 — 일일 브리핑·주간 보고서·심층 추론):
+ *           gemini-2.5-flash → gemini-3.1-flash-lite (폴백)
+ *   flash (단순 작업 — 요약·평가·짧은 응답):
+ *           gemini-3.1-flash-lite → gemini-2.5-flash-lite (폴백)
+ *   = 비용 폭발 방지를 위해 가장 비싼 모델(2.5-flash)은 cron 깊은 분석에만,
+ *     나머지(작업 요약·트리거 평가·AI 추출)는 모두 lite 사용.
+ *   env로 override 가능. */
 function buildFallbackChain(mode: "pro" | "flash"): string[] {
   const chain: string[] = [];
   const push = (m: string) => { if (m && !chain.includes(m)) chain.push(m); };
 
   if (mode === "pro") {
     push(PRO_MODEL);
-    push("gemini-3-flash-preview");
-    push("gemini-3.1-flash-lite");
     push("gemini-2.5-flash");
+    push("gemini-3.1-flash-lite");
   } else {
     push(EFFECTIVE_FLASH);
     push("gemini-3.1-flash-lite");
@@ -118,7 +121,8 @@ async function callSingleModel(
     contents: [{ role: "user", parts }],
     generationConfig: {
       temperature: opts.temperature ?? 0.7,
-      maxOutputTokens: opts.maxOutputTokens ?? 2000,
+      /* 비용 절감 — 기본 2000 → 1024로 축소. 호출처에서 필요시 명시적으로 늘림 */
+      maxOutputTokens: opts.maxOutputTokens ?? 1024,
       topP: 0.95,
       topK: 40,
     },
