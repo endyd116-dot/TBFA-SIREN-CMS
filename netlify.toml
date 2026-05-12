@@ -125,6 +125,10 @@
 [functions."cron-agent-9"]
   schedule = "0 21 * * 0"
 
+# ★ AI 비용 안전장치: 매일 KST 09:00 (UTC 00:00) 임계 알림 + 이상 패턴 감지
+[functions."cron-ai-cost-alert"]
+  schedule = "0 0 * * *"
+
 # ★ Phase 8: 알림 발송 실패 재시도 cron (1분 주기)
 [functions."cron-notification-retry"]
   schedule = "* * * * *"

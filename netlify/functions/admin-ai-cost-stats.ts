@@ -22,6 +22,9 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { getCostStats, checkMonthlyBudget } from "../../lib/ai-cost-monitor";
 import { getFeatureStats } from "../../lib/ai-feature";
+import { getCacheStats } from "../../lib/ai-cache";
+import { getRateLimitStats } from "../../lib/ai-rate-limit";
+import { getPromptCacheStats } from "../../lib/ai-prompt-cache";
 
 export const config = { path: "/api/admin-ai-cost-stats" };
 
@@ -35,18 +38,27 @@ export default async (req: Request, _ctx: Context) => {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
   try {
     const url = new URL(req.url);
     const includeFeatures = url.searchParams.get("features") === "1";
+    const includeInfra    = url.searchParams.get("infra") === "1";
 
-    const [stats, budget, features] = await Promise.all([
+    const [stats, budget, features, rl] = await Promise.all([
       getCostStats(),
       checkMonthlyBudget(),
       includeFeatures ? getFeatureStats() : Promise.resolve([]),
+      includeInfra ? getRateLimitStats(adminId) : Promise.resolve(null),
     ]);
 
     const percentUsed = stats.limit > 0 ? (stats.month.cost / stats.limit) * 100 : 0;
+
+    const infra = includeInfra ? {
+      toolCache:   getCacheStats(),
+      promptCache: getPromptCacheStats(),
+      rateLimit:   rl,
+    } : undefined;
 
     return new Response(JSON.stringify({
       ok: true,
@@ -60,6 +72,7 @@ export default async (req: Request, _ctx: Context) => {
       recentDays: stats.recentDays,
       message: budget.message || "",
       ...(includeFeatures ? { features } : {}),
+      ...(infra ? { infra } : {}),
     }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
     return new Response(JSON.stringify({
