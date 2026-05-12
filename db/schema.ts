@@ -2821,3 +2821,27 @@ export const aiPromptCache = pgTable("ai_prompt_cache", {
   createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/* =========================================================
+   === Phase B AI 비서 설정 === (2026-05-13)
+   migrate-ai-agent-settings 호출 후 활성화
+   ai_agent_settings:    key/value (system_prompt, assistant_name 등)
+   ai_tool_permissions:  도구별 enabled + required_role
+   ========================================================= */
+
+export const aiAgentSettings = pgTable("ai_agent_settings", {
+  key:        varchar("key", { length: 60 }).primaryKey(),     // 'system_prompt' | 'assistant_name' | 'max_steps' 등
+  value:      text("value").notNull(),
+  updatedAt:  timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedBy:  integer("updated_by"),                            // members.id 참조 (FK 없이 가벼움)
+});
+
+export const aiToolPermissions = pgTable("ai_tool_permissions", {
+  toolName:      varchar("tool_name", { length: 100 }).primaryKey(),
+  enabled:       boolean("enabled").default(true).notNull(),
+  requiredRole:  varchar("required_role", { length: 20 }),       // NULL=모든 어드민, 'super_admin'=슈퍼만
+  description:   text("description"),
+  isMutation:    boolean("is_mutation").default(false).notNull(),
+  category:      varchar("category", { length: 30 }),            // 'content'|'members'|'donations'|'siren'|'board'|'workspace'|'kpi'|'nav'
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
