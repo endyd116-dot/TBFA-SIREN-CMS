@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🤖 AI 비서 설정 | 관리자</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b; min-height: 100vh;
+}
+
+.topbar {
+  background: #1e293b; color: #fff;
+  padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+}
+.topbar h1 { margin: 0; font-size: 18px; font-weight: 700; }
+.topbar a { color: #cbd5e1; text-decoration: none; font-size: 13px; }
+.topbar a:hover { color: #fff; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+.section {
+  background: #fff; border-radius: 10px; padding: 22px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+.section h2 {
+  margin: 0 0 6px; font-size: 15px; font-weight: 600;
+}
+.section .hint {
+  font-size: 12px; color: #64748b; margin-bottom: 14px;
+}
+
+/* ─ 시스템 프롬프트 편집 ─ */
+.prompt-textarea {
+  width: 100%; min-height: 280px; padding: 14px;
+  border: 1px solid #cbd5e1; border-radius: 6px;
+  font-family: 'Consolas', 'Monaco', monospace; font-size: 13px;
+  line-height: 1.6; resize: vertical;
+}
+.prompt-textarea:focus { outline: 2px solid #2563eb; outline-offset: -1px; border-color: transparent; }
+
+.prompt-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px; font-size: 12px; color: #64748b;
+}
+
+.btn {
+  background: #2563eb; color: #fff; border: none;
+  padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover { background: #1d4ed8; }
+.btn:disabled { background: #94a3b8; cursor: not-allowed; }
+.btn-sec { background: #e2e8f0; color: #475569; }
+.btn-sec:hover { background: #cbd5e1; }
+
+/* ─ 도구 표 ─ */
+.category-tabs {
+  display: flex; gap: 4px; margin-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+}
+.category-tabs button {
+  background: transparent; border: none; padding: 6px 14px; font-size: 12.5px;
+  color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;
+}
+.category-tabs button.active { color: #1e293b; border-bottom-color: #2563eb; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+th {
+  font-size: 11px; color: #64748b; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.04em; background: #f8fafc;
+}
+.tool-mutation { color: #b45309; font-weight: 600; }
+
+.cat-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 9999px;
+  font-size: 10.5px; font-weight: 500;
+}
+.cat-badge.content    { background: #dbeafe; color: #1e40af; }
+.cat-badge.members    { background: #d1fae5; color: #065f46; }
+.cat-badge.donations  { background: #fef3c7; color: #92400e; }
+.cat-badge.siren      { background: #fee2e2; color: #991b1b; }
+.cat-badge.board      { background: #e0e7ff; color: #3730a3; }
+.cat-badge.workspace  { background: #fce7f3; color: #9d174d; }
+.cat-badge.kpi        { background: #ecfccb; color: #365314; }
+.cat-badge.nav        { background: #f3e8ff; color: #6b21a8; }
+
+/* 토글 스위치 */
+.toggle {
+  position: relative; display: inline-block; width: 38px; height: 22px;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: #cbd5e1; border-radius: 22px; transition: .2s;
+}
+.slider:before {
+  position: absolute; content: ""; height: 16px; width: 16px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s;
+}
+.toggle input:checked + .slider { background: #2563eb; }
+.toggle input:checked + .slider:before { transform: translateX(16px); }
+.toggle input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+.role-select {
+  padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px;
+  font-size: 12px; background: #fff;
+}
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff; padding: 12px 18px;
+  border-radius: 6px; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0; transform: translateY(8px); transition: .25s;
+  pointer-events: none; z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { background: #b91c1c; }
+.toast.success { background: #047857; }
+
+.loading { text-align: center; color: #64748b; padding: 40px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🤖 AI 비서 설정</h1>
+  <div>
+    <a href="/admin-ai-cost.html">💰 비용 관리 →</a>
+    &nbsp;&nbsp;
+    <a href="/admin-ai-assistant.html">AI 비서 채팅 →</a>
+    &nbsp;&nbsp;
+    <a href="/admin-hub.html">← 관리자 허브</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 시스템 프롬프트 편집 -->
+  <div class="section">
+    <h2>시스템 프롬프트</h2>
+    <div class="hint">
+      AI 비서가 모든 대화에서 따르는 기본 지침. 호출당 한 번 전송됩니다.
+      변경은 즉시 반영(60초 이내 모든 인스턴스).
+    </div>
+
+    <textarea id="systemPrompt" class="prompt-textarea" placeholder="불러오는 중…"></textarea>
+
+    <div class="prompt-meta">
+      <span id="promptStats">— 자 / 30~8,000자</span>
+      <span>
+        <button class="btn-sec btn" id="btnReset">변경 취소</button>
+        <button class="btn" id="btnSavePrompt" disabled>저장</button>
+      </span>
+    </div>
+  </div>
+
+  <!-- 도구 권한 표 -->
+  <div class="section">
+    <h2>도구 ON/OFF · 권한</h2>
+    <div class="hint">
+      AI 비서가 사용할 수 있는 도구. 비활성화하면 즉시 차단됨.
+      <strong style="color:#b45309">변경 도구</strong>(생성·수정)는 슈퍼관리자 권한 권장.
+    </div>
+
+    <div class="category-tabs" id="categoryTabs">
+      <button data-cat="all" class="active">전체</button>
+      <button data-cat="content">콘텐츠</button>
+      <button data-cat="members">회원</button>
+      <button data-cat="donations">후원</button>
+      <button data-cat="siren">SIREN</button>
+      <button data-cat="board">게시판</button>
+      <button data-cat="workspace">워크</button>
+      <button data-cat="kpi">KPI</button>
+      <button data-cat="nav">네비</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>도구</th>
+          <th>카테고리</th>
+          <th>유형</th>
+          <th>필요 권한</th>
+          <th style="text-align:center">활성</th>
+        </tr>
+      </thead>
+      <tbody id="toolsTbody">
+        <tr><td colspan="5" class="loading">불러오는 중…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = "/api/admin-ai-config";
+let originalPrompt = "";
+let currentCategory = "all";
+let allTools = [];
+
+function toast(msg, type = "") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show " + type;
+  setTimeout(() => el.classList.remove("show"), 2400);
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch(API);
+    if (res.status === 401 || res.status === 403) {
+      document.body.innerHTML =
+        '<div style="text-align:center;padding:80px 20px;color:#64748b">' +
+        '<h2>관리자 로그인이 필요합니다</h2>' +
+        '<a href="/" style="color:#2563eb">메인 홈페이지로 이동</a></div>';
+      return;
+    }
+    const data = await res.json();
+    if (!data.ok) { toast("불러오기 실패: " + (data.error || ""), "error"); return; }
+
+    /* 시스템 프롬프트 */
+    originalPrompt = data.systemPrompt || "";
+    document.getElementById("systemPrompt").value = originalPrompt;
+    updatePromptStats();
+
+    /* 도구 */
+    allTools = data.tools || [];
+    renderTools();
+  } catch (e) {
+    toast("네트워크 오류", "error");
+  }
+}
+
+/* ─ 시스템 프롬프트 편집 ─ */
+const ta = document.getElementById("systemPrompt");
+const btnSave = document.getElementById("btnSavePrompt");
+const btnReset = document.getElementById("btnReset");
+
+ta.addEventListener("input", () => {
+  updatePromptStats();
+  btnSave.disabled = ta.value === originalPrompt;
+});
+
+function updatePromptStats() {
+  const len = ta.value.length;
+  const stats = document.getElementById("promptStats");
+  stats.textContent = `${len.toLocaleString()} 자 / 30~8,000자`;
+  if (len < 30 || len > 8000) stats.style.color = "#b91c1c";
+  else stats.style.color = "#64748b";
+}
+
+btnReset.addEventListener("click", () => {
+  ta.value = originalPrompt;
+  updatePromptStats();
+  btnSave.disabled = true;
+});
+
+btnSave.addEventListener("click", async () => {
+  const value = ta.value.trim();
+  if (value.length < 30 || value.length > 8000) {
+    toast("30~8,000자 범위에 맞춰주세요", "error"); return;
+  }
+  btnSave.disabled = true;
+  try {
+    const r = await fetch(API, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ systemPrompt: value })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      toast("시스템 프롬프트 저장됨", "success");
+      originalPrompt = value;
+    } else {
+      toast("저장 실패: " + (d.error || ""), "error");
+      btnSave.disabled = false;
+    }
+  } catch (e) {
+    toast("네트워크 오류", "error");
+    btnSave.disabled = false;
+  }
+});
+
+/* ─ 도구 표 ─ */
+document.getElementById("categoryTabs").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-cat]");
+  if (!btn) return;
+  document.querySelectorAll("#categoryTabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentCategory = btn.dataset.cat;
+  renderTools();
+});
+
+function renderTools() {
+  const tbody = document.getElementById("toolsTbody");
+  const filtered = currentCategory === "all"
+    ? allTools
+    : allTools.filter(t => t.category === currentCategory);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">해당 카테고리 도구 없음</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(t => `
+    <tr data-name="${t.toolName}">
+      <td>
+        <div style="font-weight:500">${escapeHtml(t.toolName)}</div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-top:2px">${escapeHtml(t.description || "")}</div>
+      </td>
+      <td><span class="cat-badge ${t.category || ''}">${t.category || '-'}</span></td>
+      <td>${t.isMutation ? '<span class="tool-mutation">변경</span>' : '읽기'}</td>
+      <td>
+        <select class="role-select">
+          <option value="" ${!t.requiredRole ? 'selected' : ''}>모든 어드민</option>
+          <option value="admin" ${t.requiredRole === 'admin' ? 'selected' : ''}>관리자</option>
+          <option value="super_admin" ${t.requiredRole === 'super_admin' ? 'selected' : ''}>슈퍼관리자</option>
+        </select>
+      </td>
+      <td style="text-align:center">
+        <label class="toggle">
+          <input type="checkbox" ${t.enabled ? "checked" : ""} />
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("tr").forEach(tr => {
+    const name = tr.dataset.name;
+    const toggle = tr.querySelector('input[type="checkbox"]');
+    const sel = tr.querySelector(".role-select");
+
+    toggle.addEventListener("change", async () => {
+      toggle.disabled = true;
+      try {
+        const r = await fetch(API, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toolName: name, enabled: toggle.checked })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast((toggle.checked ? "활성화 " : "비활성화 ") + name, "success");
+          const t = allTools.find(x => x.toolName === name);
+          if (t) t.enabled = toggle.checked;
+        } else {
+          toggle.checked = !toggle.checked;
+          toast("변경 실패: " + (d.error || ""), "error");
+        }
+      } catch (e) {
+        toggle.checked = !toggle.checked;
+        toast("네트워크 오류", "error");
+      }
+      toggle.disabled = false;
+    });
+
+    sel.addEventListener("change", async () => {
+      const oldVal = sel.dataset.orig || "";
+      sel.disabled = true;
+      try {
+        const r = await fetch(API, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ toolName: name, requiredRole: sel.value || null })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast("권한 변경: " + name + " → " + (sel.options[sel.selectedIndex].text), "success");
+          sel.dataset.orig = sel.value;
+          const t = allTools.find(x => x.toolName === name);
+          if (t) t.requiredRole = sel.value || null;
+        } else {
+          sel.value = oldVal;
+          toast("변경 실패: " + (d.error || ""), "error");
+        }
+      } catch (e) {
+        sel.value = oldVal;
+        toast("네트워크 오류", "error");
+      }
+      sel.disabled = false;
+    });
+
+    sel.dataset.orig = sel.value;
+  });
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+}
+
+loadConfig();
+</script>
+
+</body>
+</html>
