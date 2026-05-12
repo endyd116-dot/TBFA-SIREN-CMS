@@ -269,11 +269,19 @@ async function startJob(job: any) {
         bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
       }
 
+      /* 명시 타입 변환 — postgres-js bytes.str → byteLength(number) 에러 회피 */
+      const safeJobId   = Number(job.id) || 0;
+      const safeMid     = Number(mid) || 0;
+      const safeChannel = String(channel);
+      const safeSubj    = subjectStr == null ? null : String(subjectStr);
+      const safeBody    = bodyStr == null ? "" : String(bodyStr);
+      const safeToken   = String(trackingToken || "");
       valuesFragments.push(
-        sql`(${job.id}, ${mid}, ${channel}, 'pending', ${subjectStr}, ${bodyStr}, ${trackingToken})`
+        sql`(${safeJobId}, ${safeMid}, ${safeChannel}, 'pending', ${safeSubj}, ${safeBody}, ${safeToken})`
       );
     }
-    const valuesJoined = valuesFragments.reduce((a, b, idx) => (idx === 0 ? b : sql`${a}, ${b}`));
+    /* drizzle 표준 sql.join 사용 — reduce 방식은 parameter binding 인덱스 꼬임 발생 */
+    const valuesJoined = sql.join(valuesFragments, sql`, `);
     await db.execute(sql`
       INSERT INTO communication_send_recipients
         (job_id, member_id, channel, status, rendered_subject, rendered_body, tracking_token)
