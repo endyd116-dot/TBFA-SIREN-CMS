@@ -353,18 +353,23 @@
     try {
       const params = new URLSearchParams(location.search);
       const previewParam = params.get('preview') === '1' ? '?preview=1' : '';
+      const navUrl = '/api/public/nav-menus' + previewParam;
 
-      const res = await fetch('/api/public/nav-menus' + previewParam, {
-        credentials: 'include',
-        cache: 'no-cache',
-      });
-
-      if (!res.ok) {
-        console.warn('[Header] /api/public/nav-menus 응답 실패, 정적 폴백 사용:', res.status);
-        return;
+      /* 캐시 확인 — 프리뷰 모드는 캐시 건너뜀 */
+      let json;
+      const cached = !previewParam && window.__sirenCache && window.__sirenCache.get(navUrl);
+      if (cached) {
+        json = cached;
+      } else {
+        const res = await fetch(navUrl, { credentials: 'include', cache: 'no-cache' });
+        if (!res.ok) {
+          console.warn('[Header] /api/public/nav-menus 응답 실패, 정적 폴백 사용:', res.status);
+          return;
+        }
+        json = await res.json();
+        if (!previewParam && window.__sirenCache) window.__sirenCache.set(navUrl, json);
       }
 
-      const json = await res.json();
       let menus = extractMenusFromResponse(json);
 
       if (!menus) {
@@ -608,4 +613,57 @@
   };
 
   console.log('[K-9] 401 자동 처리 핸들러 활성화');
+})();
+
+/* ============================================================
+   ★ SIREN 클라이언트 캐시 레이어
+   - GET 요청 결과를 메모리에 TTL 기반으로 저장
+   - 자주 바뀌지 않는 데이터(메뉴·설정·통계) 재요청 방지
+   - window.__sirenCache.get(url) / .set(url, data, ttlMs) / .clear()
+   ============================================================ */
+(function () {
+  var _store = new Map();
+
+  /* TTL(ms) 기본값 — 엔드포인트 패턴별 */
+  var TTL_MAP = [
+    { pattern: /public-nav-menus/,        ttl: 5 * 60 * 1000  }, /* 5분  */
+    { pattern: /public-home-stats/,        ttl: 3 * 60 * 1000  }, /* 3분  */
+    { pattern: /admin-dashboard-summary/,  ttl: 2 * 60 * 1000  }, /* 2분  */
+    { pattern: /admin-members-list/,       ttl: 60 * 1000       }, /* 1분  */
+    { pattern: /admin-send-jobs-list/,     ttl: 60 * 1000       }, /* 1분  */
+    { pattern: /content-pages/,            ttl: 10 * 60 * 1000 }, /* 10분 */
+    { pattern: /public-related-sites/,     ttl: 10 * 60 * 1000 }, /* 10분 */
+  ];
+  var DEFAULT_TTL = 30 * 1000; /* 기본 30초 */
+
+  function getTtl(url) {
+    for (var i = 0; i < TTL_MAP.length; i++) {
+      if (TTL_MAP[i].pattern.test(url)) return TTL_MAP[i].ttl;
+    }
+    return DEFAULT_TTL;
+  }
+
+  window.__sirenCache = {
+    get: function (url) {
+      var entry = _store.get(url);
+      if (!entry) return null;
+      if (Date.now() > entry.exp) { _store.delete(url); return null; }
+      return entry.data;
+    },
+    set: function (url, data, ttlMs) {
+      _store.set(url, { data: data, exp: Date.now() + (ttlMs || getTtl(url)) });
+    },
+    clear: function (pattern) {
+      if (!pattern) { _store.clear(); return; }
+      _store.forEach(function (_, key) {
+        if (pattern.test(key)) _store.delete(key);
+      });
+    },
+    /* POST 등 데이터 변경 시 관련 캐시 무효화 */
+    invalidate: function (urlPattern) {
+      var re = typeof urlPattern === 'string' ? new RegExp(urlPattern) : urlPattern;
+      _store.forEach(function (_, key) { if (re.test(key)) _store.delete(key); });
+    },
+    getTtl: getTtl,
+  };
 })();
