@@ -33,9 +33,9 @@ export const config = { path: "/api/admin-ai-agent" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-/* 모델 폴백 체인 — 환경변수 모델 → 안정 production 모델 → 경량 폴백
- * 일부 모델은 v1beta API에서 404 가능 → 자동 다음 모델로 재시도 */
+/* 모델 폴백 체인 — 정확한 모델명 우선 + 환경변수 + 안정 폴백 */
 const MODEL_CHAIN: string[] = Array.from(new Set([
+  "gemini-3-flash-preview",          /* ★ 1순위 — 정확한 production 모델명 */
   process.env.GEMINI_MODEL_FLASH || "",
   "gemini-2.0-flash",
   "gemini-2.0-flash-001",
