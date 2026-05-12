@@ -2301,6 +2301,8 @@ export const communicationSendJobs = pgTable("communication_send_jobs", {
   // 새 발송 만들기 시 사용자가 임시 수정한 제목·본문 (템플릿 원본 유지) — migrate-send-job-overrides
   subjectOverride:      text("subject_override"),
   bodyOverride:         text("body_override"),
+  // 미리보기에서 사용자가 체크 해제한 회원 ID 배열 — cron 발송 시 그룹 resolve 결과에서 제외
+  excludedMemberIds:    jsonb("excluded_member_ids").default(sql`'[]'::jsonb`),
 }, (t) => ({
   statusIdx:    index("send_jobs_status_idx").on(t.status),
   scheduledIdx: index("send_jobs_scheduled_idx").on(t.scheduledAt),
