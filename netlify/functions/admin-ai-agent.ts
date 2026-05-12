@@ -82,7 +82,8 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<any> {
   });
   if (!r.ok) {
     const errText = await r.text().catch(() => "");
-    throw new Error(`Gemini API ${r.status}: ${errText.slice(0, 200)}`);
+    console.error("[ai-agent] Gemini API 실패", r.status, errText.slice(0, 1500));
+    throw new Error(`Gemini API ${r.status}: ${errText.slice(0, 600)}`);
   }
   return await r.json();
 }

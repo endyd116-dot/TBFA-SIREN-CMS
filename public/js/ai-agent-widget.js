@@ -307,7 +307,7 @@
       });
       var j = await res.json().catch(function () { return {}; });
       thinking.remove();
-      if (!res.ok) throw new Error(j.error || ('HTTP ' + res.status));
+      if (!res.ok) throw new Error((j.error || 'HTTP ' + res.status) + (j.detail ? ' — ' + j.detail : '') + (j.step ? ' [step:' + j.step + ']' : ''));
       conversationId = j.conversationId || conversationId;
       appendMsg('ai', j.reply || '(응답 없음)');
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
@@ -337,7 +337,7 @@
       });
       var j = await res.json().catch(function () { return {}; });
       thinking.remove();
-      if (!res.ok) throw new Error(j.error || ('HTTP ' + res.status));
+      if (!res.ok) throw new Error((j.error || 'HTTP ' + res.status) + (j.detail ? ' — ' + j.detail : '') + (j.step ? ' [step:' + j.step + ']' : ''));
       appendMsg('ai', j.reply || '(응답 없음)');
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
     } catch (err) {

@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db";
 
 /* =========================================================
-   Gemini Function Declaration 형식 — JSONSchema 부분집합
+   Gemini Function Declaration — OpenAPI 3.0 schema (type 대문자)
    ========================================================= */
 
 export const TOOL_DECLARATIONS = [
@@ -14,13 +14,10 @@ export const TOOL_DECLARATIONS = [
     name: "content_pages_list",
     description: "협의회 콘텐츠 페이지(메인·about·소개 등)의 현재 본문을 조회합니다. 페이지 키 일부 또는 전체 목록.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        keyFilter: {
-          type: "string",
-          description: "페이지 키 부분 일치 검색 (예: 'home_hero'). 비우면 전체 목록 반환.",
-        },
-        limit: { type: "integer", description: "최대 반환 개수 (기본 30)" },
+        keyFilter: { type: "STRING", description: "페이지 키 부분 일치 검색 (예: 'home_hero'). 비우면 전체 목록 반환." },
+        limit:     { type: "INTEGER", description: "최대 반환 개수 (기본 30)" },
       },
     },
   },
@@ -28,14 +25,11 @@ export const TOOL_DECLARATIONS = [
     name: "content_pages_update",
     description: "특정 콘텐츠 페이지의 본문을 수정합니다. 변경 전 값을 자동 백업합니다. 사용자 명시 승인 후에만 호출하세요.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        pageKey: { type: "string", description: "페이지 키 (예: 'home_hero_title')" },
-        newContent: { type: "string", description: "새 본문 (HTML 또는 텍스트)" },
-        requireApproval: {
-          type: "boolean",
-          description: "true면 dry-run으로 미리보기만 반환. false면 실제 적용. 기본 true.",
-        },
+        pageKey:         { type: "STRING",  description: "페이지 키 (예: 'home_hero_title')" },
+        newContent:      { type: "STRING",  description: "새 본문 (HTML 또는 텍스트)" },
+        requireApproval: { type: "BOOLEAN", description: "true면 dry-run으로 미리보기만 반환. false면 실제 적용. 기본 true." },
       },
       required: ["pageKey", "newContent"],
     },
@@ -44,15 +38,12 @@ export const TOOL_DECLARATIONS = [
     name: "notice_create",
     description: "공지사항을 새로 등록합니다. 사용자 승인 후 호출하세요.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        title: { type: "string", description: "공지 제목 (최대 200자)" },
-        body: { type: "string", description: "공지 본문 (HTML 또는 마크다운)" },
-        category: {
-          type: "string",
-          description: "분류: notice|event|press 중 하나. 기본 notice.",
-        },
-        requireApproval: { type: "boolean", description: "true면 dry-run, false면 즉시 등록. 기본 true." },
+        title:           { type: "STRING",  description: "공지 제목 (최대 200자)" },
+        body:            { type: "STRING",  description: "공지 본문 (HTML 또는 마크다운)" },
+        category:        { type: "STRING",  description: "분류: notice|event|press 중 하나. 기본 notice." },
+        requireApproval: { type: "BOOLEAN", description: "true면 dry-run, false면 즉시 등록. 기본 true." },
       },
       required: ["title", "body"],
     },
@@ -61,13 +52,13 @@ export const TOOL_DECLARATIONS = [
     name: "campaign_create",
     description: "새 후원 캠페인을 등록합니다. 사용자 승인 후 호출하세요.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        name: { type: "string", description: "캠페인명 (최대 100자)" },
-        description: { type: "string", description: "캠페인 설명" },
-        goalAmount: { type: "integer", description: "목표 금액 (원)" },
-        endDate: { type: "string", description: "종료일 YYYY-MM-DD (선택)" },
-        requireApproval: { type: "boolean", description: "true면 dry-run. 기본 true." },
+        name:            { type: "STRING",  description: "캠페인명 (최대 100자)" },
+        description:     { type: "STRING",  description: "캠페인 설명" },
+        goalAmount:      { type: "INTEGER", description: "목표 금액 (원)" },
+        endDate:         { type: "STRING",  description: "종료일 YYYY-MM-DD (선택)" },
+        requireApproval: { type: "BOOLEAN", description: "true면 dry-run. 기본 true." },
       },
       required: ["name", "description", "goalAmount"],
     },
@@ -76,12 +67,9 @@ export const TOOL_DECLARATIONS = [
     name: "nav_menus_list",
     description: "네비게이션 메뉴 트리(헤더/푸터)를 조회합니다. 메뉴 수정 전 현재 상태 확인용.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        location: {
-          type: "string",
-          description: "위치: header|footer. 기본 header.",
-        },
+        location: { type: "STRING", description: "위치: header|footer. 기본 header." },
       },
     },
   },
