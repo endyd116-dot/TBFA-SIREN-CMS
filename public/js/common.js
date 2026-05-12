@@ -516,6 +516,7 @@
     '/api/auth/password-reset',
     '/api/auth/email-verify',
     '/api/admin/login',
+    '/api/auth/me',
   ];
 
   function isExcluded(url) {
