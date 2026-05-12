@@ -264,8 +264,10 @@
       renderActionList(stats);
       document.getElementById('saLogTable').innerHTML = renderTable(state.logs, state.total);
     } catch (e) {
-      document.getElementById('saStatCards').innerHTML =
-        `<div class="err-box">데이터 불러오기 실패: ${e.message}</div>`;
+      const errHtml = `<div class="err-box" style="padding:16px;color:var(--danger)">데이터 불러오기 실패: ${e.message}</div>`;
+      document.getElementById('saStatCards').innerHTML = errHtml;
+      const logTableEl = document.getElementById('saLogTable');
+      if (logTableEl) logTableEl.innerHTML = errHtml;
     }
   }
 

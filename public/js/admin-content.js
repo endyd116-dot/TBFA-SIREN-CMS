@@ -275,12 +275,13 @@
 
     try {
       const res = await api('/api/admin/activity-report-ai?list=1&limit=3');
-      if (!res.ok || !res.data?.list) {
+      const _arData = res.data?.data || res.data;
+      if (!res.ok || !_arData?.list) {
         listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">불러오지 못했습니다</div>';
         return;
       }
 
-      const list = res.data.list || [];
+      const list = _arData.list || [];
       if (list.length === 0) {
         listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);text-align:center;padding:8px 0">아직 생성된 보고서가 없습니다. 상단 "🤖 AI 보고서 생성" 버튼으로 시작하세요.</div>';
         return;

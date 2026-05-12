@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { desc, eq, and, sql, ilike } from "drizzle-orm";
+import { desc, eq, and, sql, ilike, gte } from "drizzle-orm";
 
 export const config = { path: "/api/admin-audit-list" };
 
@@ -32,19 +32,25 @@ export default async function handler(req: Request) {
   const action = url.searchParams.get("action") || "";
   const riskLevel = url.searchParams.get("riskLevel") || "";
   const userId = url.searchParams.get("userId") || "";
+  const periodParam = url.searchParams.get("period") || "30d";
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "50")));
   const offset = (page - 1) * limit;
+
+  const validPeriods: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+  const days = validPeriods[periodParam] ?? 30;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   let rows: any[] = [];
   let total = 0;
 
   try {
     const conditions: any[] = [];
+    conditions.push(gte(auditLogs.createdAt, since));
     if (action) conditions.push(ilike(auditLogs.action, `%${action}%`));
     if (userId) conditions.push(eq(auditLogs.userId, parseInt(userId)));
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [countResult, rawRows] = await Promise.all([
       db.select({ cnt: sql<number>`count(*)` })

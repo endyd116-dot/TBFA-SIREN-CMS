@@ -135,7 +135,7 @@
       /* 헤더 */
       '<div class="p-head no-print" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">',
         '<div class="p-title">📊 신고 통계 대시보드</div>',
-        '<button onclick="window.print()" class="btn-sm" style="background:#1e3a5f;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">🖨️ PDF 출력</button>',
+        '<button id="statsPrintBtn" class="btn-sm" style="background:#1e3a5f;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">🖨️ PDF 출력</button>',
       '</div>',
 
       /* 기간 필터 */
@@ -198,6 +198,17 @@
         _state.to     = (t && t.value) || _state.to;
         _state.period = 'all';
         loadData();
+      });
+    }
+
+    var printBtn = document.getElementById('statsPrintBtn');
+    if (printBtn) {
+      printBtn.addEventListener('click', function () {
+        if (!_state.data) {
+          toast('데이터를 먼저 불러온 후 PDF 출력해주세요.');
+          return;
+        }
+        window.print();
       });
     }
 
