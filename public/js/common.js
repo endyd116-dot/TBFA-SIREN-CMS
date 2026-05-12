@@ -26,9 +26,21 @@
     const target = $(slot);
     if (!target) return;
     try {
-      const res = await fetch(file, { cache: 'no-cache' });
+      /* ★ 캐시 강제 무력화 — 헤더/푸터/모달 변경 시 즉시 반영 */
+      const res = await fetch(file + (file.includes('?') ? '&' : '?') + 'cb=' + Date.now(),
+                              { cache: 'no-store' });
       if (!res.ok) throw new Error(`${file} ${res.status}`);
       target.innerHTML = await res.text();
+      /* ★ 핵심: innerHTML로 삽입된 <script> 태그는 브라우저 보안 정책상 실행 안 됨.
+       * 새 script 요소를 만들어 다시 추가해야 inline script가 실행됨. */
+      target.querySelectorAll('script').forEach(function(oldScript) {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(function(a){
+          newScript.setAttribute(a.name, a.value);
+        });
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
     } catch (e) {
       console.error('[Partial Load Failed]', file, e);
     }
