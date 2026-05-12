@@ -110,11 +110,15 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const CHANNEL_LABEL: Record<string,string> = { email:"이메일", sms:"SMS", kakao:"카카오", inapp:"앱 알림" };
 
-  /* INSERT — 채널마다 1개 job */
+  /* INSERT — 채널마다 1개 job. 새 컬럼(override·excluded) 미존재 시 자동 폴백.
+   * scheduledAt도 'now'면 NULL로 보내야 함 (DB가 'now' 문자열을 timestamp로 파싱 못함). */
+  const effectiveAtForDb = scheduleType === "now" ? null : effectiveAt;
   const createdIds: number[] = [];
-  try {
-    for (const channel of channels) {
-      const jobName = channels.length > 1 ? `${name} (${CHANNEL_LABEL[channel] || channel})` : name;
+  let lastInsertError: any = null;
+  for (const channel of channels) {
+    const jobName = channels.length > 1 ? `${name} (${CHANNEL_LABEL[channel] || channel})` : name;
+    try {
+      /* 1차: 새 컬럼 포함 */
       const r: any = await db.execute(sql`
         INSERT INTO communication_send_jobs
           (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
@@ -122,15 +126,36 @@ export default async function handler(req: Request, _ctx: Context) {
            subject_override, body_override, excluded_member_ids)
         VALUES
           (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
-           ${effectiveAt}, 'pending', 0, 0, 0, ${adminId},
+           ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId},
            ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb)
         RETURNING id
       `);
       const row = (r?.rows ?? r ?? [])[0];
       if (row?.id) createdIds.push(Number(row.id));
+    } catch (err1: any) {
+      lastInsertError = err1;
+      console.error("[send-job-create] 1차 INSERT 실패", err1?.message);
+      try {
+        /* 2차 폴백: 새 컬럼 없이 기본 컬럼만 (마이그레이션 미적용 환경 대비) */
+        const r2: any = await db.execute(sql`
+          INSERT INTO communication_send_jobs
+            (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
+             status, total_recipients, success_count, failure_count, created_by)
+          VALUES
+            (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
+             ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId})
+          RETURNING id
+        `);
+        const row2 = (r2?.rows ?? r2 ?? [])[0];
+        if (row2?.id) createdIds.push(Number(row2.id));
+        lastInsertError = null;
+      } catch (err2: any) {
+        return jsonError("insert_job_fallback", err2);
+      }
     }
-  } catch (err: any) {
-    return jsonError("insert_job", err);
+  }
+  if (createdIds.length === 0) {
+    return jsonError("insert_job_no_id", lastInsertError || "INSERT는 성공했으나 id를 받지 못함");
   }
 
   return new Response(
