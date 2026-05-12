@@ -214,14 +214,14 @@ body {
   </div>
 
   <div class="card">
-    <h3>방식</h3>
-    <div class="radio-group">
-      <label><input type="radio" name="ctype" value="filter" checked /> 필터 조건 (동적)</label>
-      <label><input type="radio" name="ctype" value="manual" /> 수동 명단 (고정)</label>
+    <h3>방식 선택</h3>
+    <div class="radio-group" style="gap:24px">
+      <label><input type="radio" name="ctype" value="filter" checked /> 🎯 필터 조건 (동적)</label>
+      <label><input type="radio" name="ctype" value="manual" /> 👥 수동 명단 (고정·직접 선택)</label>
     </div>
-    <div class="help-text">
-      필터: 회원 상태·등급·후원 이력 등 조건으로 자동 매칭. 발송 시점의 최신 회원이 반영됩니다.<br/>
-      수동: 직접 회원을 추가한 고정 명단. 회원 변동과 무관하게 같은 사람들에게 발송됩니다.
+    <div class="help-text" style="margin-top:10px">
+      <strong>🎯 필터:</strong> 정기/예비/잠재 후원자, 효성/토스 채널, 회원 상태 등 조건으로 자동 매칭. 발송 시점에 조건에 맞는 최신 회원이 반영됩니다.<br/>
+      <strong>👥 수동 명단:</strong> 통합 회원 목록에서 이름·이메일·전화로 검색해 원하는 사람만 직접 골라 고정 명단으로 만듭니다. 회원 변동과 무관하게 같은 사람들에게 발송됩니다.
     </div>
   </div>
 
@@ -312,6 +312,6 @@ body {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-recipient-group-edit.js?v=1"></script>
+<script src="/js/admin-recipient-group-edit.js?v=2026-05-13-cms"></script>
 </body>
 </html>

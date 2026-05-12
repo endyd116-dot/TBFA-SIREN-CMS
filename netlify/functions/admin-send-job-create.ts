@@ -65,6 +65,12 @@ export default async function handler(req: Request, _ctx: Context) {
     : [];
   channels = Array.from(new Set(channels));
 
+  /* 신규: 미리보기에서 사용자가 체크 해제한 회원 ID 배열 (발송 제외) */
+  const excludedMemberIds: number[] = Array.isArray(body?.excludedMemberIds)
+    ? body.excludedMemberIds.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
+    : [];
+  const excludedJson = JSON.stringify(excludedMemberIds);
+
   if (name.length < 1 || name.length > 200) {
     return new Response(
       JSON.stringify({ ok: false, error: "발송 이름은 1~200자여야 합니다.", step: "validate_name" }),
@@ -113,11 +119,11 @@ export default async function handler(req: Request, _ctx: Context) {
         INSERT INTO communication_send_jobs
           (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
            status, total_recipients, success_count, failure_count, created_by,
-           subject_override, body_override)
+           subject_override, body_override, excluded_member_ids)
         VALUES
           (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
            ${effectiveAt}, 'pending', 0, 0, 0, ${adminId},
-           ${subjectOverride}, ${bodyOverride})
+           ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb)
         RETURNING id
       `);
       const row = (r?.rows ?? r ?? [])[0];

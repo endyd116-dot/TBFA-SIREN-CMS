@@ -64,7 +64,7 @@ export default async function handler(req: Request, _ctx: Context) {
         : sql``;
 
     const rowsRes: any = await db.execute(
-      sql`SELECT id, name, channel, category, subject, is_active, created_at, updated_at
+      sql`SELECT id, name, channel, category, subject, body_template, variables, is_active, created_at, updated_at
           FROM communication_templates
           ${whereFragment}
           ORDER BY updated_at DESC
@@ -76,14 +76,16 @@ export default async function handler(req: Request, _ctx: Context) {
     );
 
     const rows = (rowsRes?.rows ?? rowsRes ?? []).map((r: any) => ({
-      id:        r.id,
-      name:      r.name,
-      channel:   r.channel,
-      category:  r.category,
-      subject:   r.subject ?? null,
-      isActive:  r.is_active,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
+      id:           r.id,
+      name:         r.name,
+      channel:      r.channel,
+      category:     r.category,
+      subject:      r.subject ?? null,
+      bodyTemplate: r.body_template ?? "",
+      variables:    r.variables ?? [],
+      isActive:     r.is_active,
+      createdAt:    r.created_at,
+      updatedAt:    r.updated_at,
     }));
 
     const total = ((countRes?.rows ?? countRes)[0] ?? {}).n ?? 0;

@@ -11,17 +11,36 @@
   //   number: 숫자 입력
   //   bool: true/false 셀렉트
   //   intIds: 정수 또는 정수 배열 (텍스트 — 콤마)
+  /* CMS 도메인 기준 — 정기/예비/잠재 후원자 + 효성/토스/수기 채널 + 회원 상태/유형 */
   const FIELDS = {
+    donorType: {
+      label: "후원자 분류",
+      ops: ["eq", "in"],
+      valueType: "selectMulti",
+      options: [
+        { value: "regular",  label: "🔁 정기 후원자" },
+        { value: "prospect", label: "💡 예비 후원자 (일시·중단)" },
+        { value: "none",     label: "🌱 미평가 (일반 회원)" },
+      ],
+    },
+    donorChannels: {
+      label: "후원 채널",
+      ops: ["eq", "in"],
+      valueType: "selectMulti",
+      options: [
+        { value: "hyosung", label: "효성 CMS+" },
+        { value: "toss",    label: "토스 빌링" },
+        { value: "manual",  label: "수기 등록" },
+      ],
+    },
     type: {
       label: "회원 유형",
       ops: ["eq", "in"],
       valueType: "selectMulti",
       options: [
-        { value: "regular",  label: "일반" },
-        { value: "honor",    label: "명예" },
-        { value: "lifetime", label: "평생" },
-        { value: "admin",    label: "관리자" },
-        { value: "staff",    label: "직원" },
+        { value: "regular",   label: "일반 회원" },
+        { value: "family",    label: "유가족" },
+        { value: "volunteer", label: "자원봉사자" },
       ],
     },
     status: {
@@ -35,34 +54,22 @@
         { value: "pending",   label: "대기" },
       ],
     },
-    gradeId: {
-      label: "등급 ID",
-      ops: ["eq", "in"],
-      valueType: "intIds",
-      placeholder: "정수 (콤마 구분: 1,2,3)",
-    },
-    gradeCode: {
-      label: "등급 코드",
-      ops: ["eq", "in"],
-      valueType: "text",
-      placeholder: "예: honor / lifetime (콤마 구분 가능)",
-    },
     hasActiveRegularDonation: {
-      label: "활성 정기 후원 보유",
+      label: "활성 정기 후원 보유 여부",
       ops: ["eq"],
       valueType: "bool",
     },
     hadOneTimeDonationDays: {
-      label: "최근 일시 후원 (일수)",
+      label: "최근 일시 후원 (N일 이내)",
       ops: ["lte", "gte"],
       valueType: "number",
       placeholder: "예: 90",
     },
     campaignId: {
-      label: "캠페인 ID",
+      label: "참여 캠페인 ID",
       ops: ["eq", "in"],
       valueType: "intIds",
-      placeholder: "정수 (콤마 구분)",
+      placeholder: "정수 (콤마 구분: 1,2,3)",
     },
     donationStatus: {
       label: "후원 상태",
@@ -77,7 +84,7 @@
       ],
     },
     blacklisted: {
-      label: "블랙 처리",
+      label: "블랙리스트",
       ops: ["eq"],
       valueType: "bool",
     },
@@ -301,11 +308,11 @@
   async function searchMembers() {
     const q = $("memberSearchInput").value.trim();
     if (!q) {
-      $("searchResults").style.display = "none";
-      $("searchResults").innerHTML = "";
+      showToast("이름·이메일·전화번호 일부를 입력하세요", "error");
       return;
     }
-    const url = "/api/admin-members-search?" + new URLSearchParams({ q }).toString();
+    /* 통합회원 전체에서 부분 일치 검색 — 최대 50명까지 표시 */
+    const url = "/api/admin-members-search?" + new URLSearchParams({ q, limit: "50" }).toString();
     const res = await api({ method: "GET", url });
     if (!res.ok) {
       const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
@@ -321,18 +328,65 @@
       $("searchResults").innerHTML = `<div class="search-result-item" style="cursor:default;color:#94a3b8;">검색 결과 없음</div>`;
       return;
     }
-    const top5 = rows.slice(0, 5);
+    const top = rows.slice(0, 50);
+    /* 이미 추가된 회원 ID 표시용 */
+    const addedSet = new Set(manualMembers.map(x => Number(x.id)));
+
     $("searchResults").style.display = "";
-    $("searchResults").innerHTML = top5.map(m => `
-      <div class="search-result-item" data-act="add-member" data-id="${m.id}"
-           data-name="${escapeHtml(m.name || "")}" data-email="${escapeHtml(m.email || "")}">
-        <div>
-          <b>${escapeHtml(m.name || "(이름 없음)")}</b>
-          <span class="meta">#${m.id}</span>
-        </div>
-        <div class="meta">${escapeHtml(m.email || m.phone || "")}</div>
+    $("searchResults").innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:0.82rem">
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="searchSelectAll" /> 전체 선택
+        </label>
+        <button class="btn btn-sm" id="btnSearchAddSelected" style="margin-left:auto">＋ 선택 항목 일괄 추가</button>
+        <span style="color:#94a3b8">총 ${top.length}명${rows.length > top.length ? " (50명 표시)" : ""}</span>
       </div>
-    `).join("");
+      <div style="max-height:340px;overflow-y:auto">
+        ${top.map(m => {
+          const already = addedSet.has(Number(m.id));
+          return `
+            <div class="search-result-item" style="display:flex;align-items:center;gap:8px;${already?'opacity:.55':''}">
+              <input type="checkbox" class="search-cb" data-id="${m.id}"
+                     data-name="${escapeHtml(m.name || "")}"
+                     data-email="${escapeHtml(m.email || "")}"
+                     ${already ? "disabled" : ""}>
+              <div style="flex:1">
+                <b>${escapeHtml(m.name || "(이름 없음)")}</b>
+                <span class="meta" style="margin-left:6px">#${m.id}</span>
+                ${already ? '<span class="meta" style="margin-left:8px;color:#1e40af">이미 추가됨</span>' : ""}
+              </div>
+              <div class="meta" style="font-size:0.82rem">${escapeHtml(m.email || "")}</div>
+              <div class="meta" style="font-size:0.82rem">${escapeHtml(m.phone || "")}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+
+    /* 전체 선택 토글 */
+    $("searchSelectAll")?.addEventListener("change", e => {
+      $("searchResults").querySelectorAll(".search-cb:not(:disabled)").forEach(cb => { cb.checked = e.target.checked; });
+    });
+    /* 일괄 추가 */
+    $("btnSearchAddSelected")?.addEventListener("click", () => {
+      const checks = $("searchResults").querySelectorAll(".search-cb:checked");
+      let added = 0;
+      checks.forEach(cb => {
+        const id = Number(cb.dataset.id);
+        if (manualMembers.some(x => Number(x.id) === id)) return;
+        if (manualMembers.length >= 1000) return;
+        manualMembers.push({ id, name: cb.dataset.name || "", email: cb.dataset.email || "" });
+        added++;
+      });
+      if (added > 0) {
+        renderMemberChips();
+        showToast(`${added}명 추가됨 (총 ${manualMembers.length}명)`);
+        $("searchResults").style.display = "none";
+        $("memberSearchInput").value = "";
+      } else {
+        showToast("선택된 항목이 없거나 이미 모두 추가되어 있습니다");
+      }
+    });
   }
 
   function addMember(id, name, email) {

@@ -50,7 +50,7 @@ export default async function handler(_req: Request) {
   try {
     const r: any = await db.execute(sql`
       SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
-             j.subject_override, j.body_override
+             j.subject_override, j.body_override, j.excluded_member_ids
         FROM communication_send_jobs j
        WHERE j.status = 'pending'
          AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
@@ -173,7 +173,17 @@ async function startJob(job: any) {
   /* 그룹 resolve — 모든 회원 (limit 없음) */
   const resolved = await resolveRecipients(group.criteria, { limit: 0 });
   /* limit=0이면 전체 — resolveRecipients가 limit 양수일 때만 LIMIT 적용 */
-  const memberIds = resolved.memberIds || [];
+  let memberIds = resolved.memberIds || [];
+
+  /* job에 excluded_member_ids가 있으면 그룹 resolve 결과에서 제외 */
+  const excluded: number[] = Array.isArray(job.excluded_member_ids)
+    ? job.excluded_member_ids.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n))
+    : [];
+  if (excluded.length > 0) {
+    const exSet = new Set(excluded);
+    memberIds = memberIds.filter((id: number) => !exSet.has(id));
+  }
+
   const totalRecipients = memberIds.length;
 
   /* 수신자 0명이면 즉시 completed */

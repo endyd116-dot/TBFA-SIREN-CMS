@@ -18,6 +18,8 @@
   let rcptPage = 1;
   let rcptTotal = 0;
   let lastGroupId = null;
+  /* 사용자가 미리보기에서 발송 제외한 회원 ID (Set) — 그룹 변경 시 초기화 */
+  let excludedIds = new Set();
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(s) {
@@ -98,32 +100,23 @@
     $("fGroup").innerHTML = opts.join("");
   }
 
-  /* ── 템플릿 상세 + 본문 편집 영역 렌더 ── */
-  async function loadTemplateDetail(tplId) {
+  /* ── 템플릿 선택 → 본문 편집 영역 렌더 (이미 list에서 받은 데이터 사용) ── */
+  function loadTemplateDetail(tplId) {
     if (!tplId) {
       currentTemplate = null;
       $("editArea").innerHTML = `<div class="preview-empty">템플릿을 선택하면 제목과 본문이 여기에 표시됩니다.</div>`;
       return;
     }
-    $("editArea").innerHTML = `<div class="preview-empty"><span class="spinner"></span>템플릿을 불러오는 중…</div>`;
-    const res = await api({ method: "GET", url: "/api/admin-template-detail?id=" + encodeURIComponent(tplId) });
-    if (!res.ok) {
-      const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
-      $("editArea").innerHTML = `<div class="preview-empty" style="color:#b91c1c;">템플릿 상세 불러오기 실패: ${escapeHtml(detail)}</div>`;
-      currentTemplate = null;
-      return;
-    }
-    const payload = res.data?.data ?? res.data ?? {};
-    const tpl = payload.template ?? payload ?? null;
+    /* admin-templates-list 응답에 bodyTemplate·variables 모두 포함 → 별도 detail API 호출 불필요 */
+    const tpl = templates.find(t => String(t.id) === String(tplId));
     if (!tpl) {
-      $("editArea").innerHTML = `<div class="preview-empty">템플릿 데이터가 없습니다.</div>`;
+      $("editArea").innerHTML = `<div class="preview-empty" style="color:#b91c1c;">템플릿을 찾을 수 없습니다.</div>`;
       currentTemplate = null;
       return;
     }
     currentTemplate = tpl;
     editorDirty = false;
     renderEditArea();
-    /* 템플릿의 기본 채널 자동 체크 (사용자가 이미 선택 안 한 경우만) */
     autoCheckTemplateChannel(tpl.channel);
   }
 
@@ -211,7 +204,7 @@
       lastGroupId = null;
       return;
     }
-    if (groupId !== lastGroupId) { rcptPage = 1; rcptTotal = 0; }
+    if (groupId !== lastGroupId) { rcptPage = 1; rcptTotal = 0; excludedIds.clear(); }
     lastGroupId = groupId;
     const offset = (page - 1) * RCPT_PAGE_SIZE;
 
@@ -249,29 +242,38 @@
     }
 
     const totalPages = Math.max(1, Math.ceil(rcptTotal / RCPT_PAGE_SIZE));
+    const STATUS_LABEL = { active: "활성", inactive: "비활성", withdrawn: "탈퇴", suspended: "정지", pending: "대기" };
 
-    const STATUS_LABEL = { active: "활성", inactive: "비활성", withdrawn: "탈퇴" };
+    const rows = members.map(m => {
+      const checked = !excludedIds.has(Number(m.id));
+      const trCls = checked ? "" : "rcpt-excluded";
+      return `
+        <tr class="${trCls}" data-mid="${m.id}">
+          <td><input type="checkbox" class="rcpt-cb" data-id="${m.id}" ${checked ? "checked" : ""}></td>
+          <td class="col-id">#${m.id}</td>
+          <td>${escapeHtml(m.name || "-")}</td>
+          <td>${escapeHtml(m.email || "-")}</td>
+          <td>${escapeHtml(m.phone || "-")}</td>
+          <td>${escapeHtml(m.type || "-")}</td>
+          <td class="col-status">${escapeHtml(STATUS_LABEL[m.status] || m.status || "-")}</td>
+        </tr>
+      `;
+    }).join("");
 
-    const rows = members.map(m => `
-      <tr>
-        <td class="col-id">#${m.id}</td>
-        <td>${escapeHtml(m.name || "-")}</td>
-        <td>${escapeHtml(m.email || "-")}</td>
-        <td>${escapeHtml(m.phone || "-")}</td>
-        <td>${escapeHtml(m.type || "-")}</td>
-        <td class="col-status">${escapeHtml(STATUS_LABEL[m.status] || m.status || "-")}</td>
-      </tr>
-    `).join("");
+    const includedCount = rcptTotal - excludedIds.size;
 
     $("rcptArea").innerHTML = `
       <div class="rcpt-meta">
-        <div>총 발송 대상: <span class="total">${rcptTotal.toLocaleString()}명</span></div>
-        <div style="color:#94a3b8">· 페이지당 ${RCPT_PAGE_SIZE}명 표시</div>
+        <div>총 그룹 인원: <strong>${rcptTotal.toLocaleString()}명</strong></div>
+        <div>실제 발송: <span class="total">${includedCount.toLocaleString()}명</span></div>
+        ${excludedIds.size > 0 ? `<div style="color:#b91c1c">제외: ${excludedIds.size.toLocaleString()}명</div>` : ""}
+        <div style="color:#94a3b8;margin-left:auto">· 체크 해제 시 이번 발송에서 제외</div>
       </div>
       <div class="rcpt-table-wrap">
         <table class="rcpt-table">
           <thead>
             <tr>
+              <th style="width:36px"><input type="checkbox" id="rcptSelectAllPage" title="현재 페이지 모두 선택/해제" checked></th>
               <th>ID</th><th>이름</th><th>이메일</th><th>연락처</th><th>유형</th><th>상태</th>
             </tr>
           </thead>
@@ -282,8 +284,31 @@
         <button class="btn btn-sm" id="rcptPrev" ${rcptPage <= 1 ? "disabled" : ""}>‹ 이전</button>
         <span>${rcptPage} / ${totalPages}</span>
         <button class="btn btn-sm" id="rcptNext" ${rcptPage >= totalPages ? "disabled" : ""}>다음 ›</button>
+        ${excludedIds.size > 0 ? `<button class="btn btn-sm" id="rcptResetExclude" style="margin-left:14px">↺ 제외 ${excludedIds.size}명 모두 복원</button>` : ""}
       </div>
     `;
+
+    /* 체크박스 이벤트 */
+    document.querySelectorAll(".rcpt-cb").forEach(cb => {
+      cb.addEventListener("change", e => {
+        const id = Number(e.target.dataset.id);
+        if (e.target.checked) excludedIds.delete(id);
+        else excludedIds.add(id);
+        renderRecipients(members);
+      });
+    });
+    $("rcptSelectAllPage")?.addEventListener("change", e => {
+      const all = e.target.checked;
+      members.forEach(m => {
+        if (all) excludedIds.delete(Number(m.id));
+        else excludedIds.add(Number(m.id));
+      });
+      renderRecipients(members);
+    });
+    $("rcptResetExclude")?.addEventListener("click", () => {
+      excludedIds.clear();
+      renderRecipients(members);
+    });
 
     $("rcptPrev")?.addEventListener("click", () => {
       if (rcptPage > 1) { rcptPage--; loadRecipients(lastGroupId, rcptPage); }
@@ -350,6 +375,7 @@
         ...(scheduledAt ? { scheduledAt } : {}),
         ...(subjectOverride ? { subjectOverride } : {}),
         ...(bodyOverride ? { bodyOverride } : {}),
+        ...(excludedIds.size > 0 ? { excludedMemberIds: Array.from(excludedIds) } : {}),
       },
     };
   }
