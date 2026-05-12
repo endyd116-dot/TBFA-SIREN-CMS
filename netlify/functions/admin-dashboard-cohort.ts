@@ -52,63 +52,70 @@ export default async (req: Request, _ctx: Context) => {
   /* 가입월 기준 코호트 분석 */
   let cohorts: any[];
   try {
-    const cohortRes = await db.execute(sql`
-      WITH cohort_base AS (
-        SELECT
-          id AS member_id,
-          DATE_TRUNC('month', created_at) AS cohort_month
-        FROM members
-        WHERE created_at >= ${sinceStr}::timestamptz
-          AND type NOT IN ('admin', 'operator')
-      ),
-      first_donations AS (
-        SELECT
-          d.member_id,
-          MIN(d.created_at) AS first_donation_at,
-          BOOL_OR(d.type = 'regular') AS has_regular
-        FROM donations d
-        WHERE d.status = 'completed'
-          AND d.member_id IS NOT NULL
-        GROUP BY d.member_id
-      ),
-      churn_data AS (
-        SELECT id AS member_id
-        FROM members
-        WHERE status = 'withdrawn'
-      )
-      SELECT
-        TO_CHAR(c.cohort_month, 'YYYY-MM')          AS month,
-        COUNT(c.member_id)::int                      AS new_members,
-        COUNT(fd.member_id)::int                     AS donated_cnt,
-        COUNT(fd.member_id) FILTER (WHERE fd.has_regular)::int AS regular_cnt,
-        COUNT(ch.member_id)::int                     AS churned_cnt,
-        ROUND(
-          AVG(
-            EXTRACT(EPOCH FROM (fd.first_donation_at - m.created_at)) / 86400.0
-          ) FILTER (WHERE fd.first_donation_at IS NOT NULL)
-        )::int                                       AS avg_days_to_first_donation
-      FROM cohort_base c
-      JOIN members m ON m.id = c.member_id
-      LEFT JOIN first_donations fd ON fd.member_id = c.member_id
-      LEFT JOIN churn_data ch ON ch.member_id = c.member_id
-      GROUP BY c.cohort_month
-      ORDER BY c.cohort_month
+    /* step1: 코호트 기간 내 신규 회원 목록 */
+    const memberRes = await db.execute(sql`
+      SELECT id, DATE_TRUNC('month', created_at) AS cohort_month, created_at, status
+      FROM members
+      WHERE created_at >= ${sinceStr}::timestamptz
+        AND type NOT IN ('admin', 'operator')
+      ORDER BY cohort_month
     `);
+    const memberRows = rows(memberRes);
 
-    cohorts = rows(cohortRes).map((r: any) => {
-      const newMembers = Number(r.new_members ?? 0);
-      const donatedCnt = Number(r.donated_cnt ?? 0);
-      const regularCnt = Number(r.regular_cnt ?? 0);
-      const churnedCnt = Number(r.churned_cnt ?? 0);
-      return {
-        month: r.month,
-        newMembers,
-        firstDonationRate: newMembers > 0 ? Math.round((donatedCnt / newMembers) * 100) / 100 : 0,
-        regularConvertRate: newMembers > 0 ? Math.round((regularCnt / newMembers) * 100) / 100 : 0,
-        churnRate: newMembers > 0 ? Math.round((churnedCnt / newMembers) * 100) / 100 : 0,
-        avgDaysToFirstDonation: r.avg_days_to_first_donation !== null ? Number(r.avg_days_to_first_donation) : null,
-      };
-    });
+    if (memberRows.length === 0) {
+      cohorts = [];
+    } else {
+      const memberIds = memberRows.map((r: any) => r.id);
+
+      /* step2: 해당 회원들의 후원 이력 */
+      const donRows: any[] = [];
+      try {
+        const donRes = await db.execute(sql`
+          SELECT member_id, MIN(created_at) AS first_at,
+                 BOOL_OR(donation_type = 'regular' OR type = 'regular') AS has_regular
+          FROM donations
+          WHERE status = 'completed'
+            AND member_id IS NOT NULL
+          GROUP BY member_id
+        `);
+        donRows.push(...rows(donRes));
+      } catch (_e) { /* donations 테이블 없거나 컬럼명 달라도 계속 */ }
+
+      const donMap = new Map<string, any>();
+      for (const d of donRows) donMap.set(String(d.member_id), d);
+
+      /* step3: 월별 집계 */
+      const byMonth = new Map<string, { members: any[]; month: string }>();
+      for (const m of memberRows) {
+        const key = String(m.cohort_month).slice(0, 7).replace('T', ' ').slice(0, 7);
+        const monthKey = new Date(m.cohort_month).toISOString().slice(0, 7);
+        if (!byMonth.has(monthKey)) byMonth.set(monthKey, { month: monthKey, members: [] });
+        byMonth.get(monthKey)!.members.push(m);
+      }
+
+      cohorts = Array.from(byMonth.values()).sort((a, b) => a.month.localeCompare(b.month)).map(({ month, members }) => {
+        const newMembers = members.length;
+        let donatedCnt = 0, regularCnt = 0, churnedCnt = 0, totalDays = 0, daysCount = 0;
+        for (const m of members) {
+          const don = donMap.get(String(m.id));
+          if (don) {
+            donatedCnt++;
+            if (don.has_regular) regularCnt++;
+            const diff = (new Date(don.first_at).getTime() - new Date(m.created_at).getTime()) / 86400000;
+            if (diff >= 0) { totalDays += diff; daysCount++; }
+          }
+          if (m.status === 'withdrawn') churnedCnt++;
+        }
+        return {
+          month,
+          newMembers,
+          firstDonationRate: newMembers > 0 ? Math.round((donatedCnt / newMembers) * 100) / 100 : 0,
+          regularConvertRate: newMembers > 0 ? Math.round((regularCnt / newMembers) * 100) / 100 : 0,
+          churnRate: newMembers > 0 ? Math.round((churnedCnt / newMembers) * 100) / 100 : 0,
+          avgDaysToFirstDonation: daysCount > 0 ? Math.round(totalDays / daysCount) : null,
+        };
+      });
+    }
   } catch (err) {
     return jsonError("select_cohort", err);
   }

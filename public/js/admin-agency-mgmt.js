@@ -28,11 +28,15 @@
     $section = document.getElementById('adm-agency-mgmt');
     if (!$section) return;
 
-    if (!document.getElementById('amgList')) {
-      renderShell();
-      bindEvents();
+    try {
+      if (!document.getElementById('amgList')) {
+        renderShell();
+        bindEvents();
+      }
+      loadAgencies();
+    } catch (e) {
+      $section.innerHTML = '<div style="padding:20px;color:var(--danger)">외부기관 관리 초기화 오류: ' + e.message + '</div>';
     }
-    loadAgencies();
   }
 
   /* ── 빈 HTML 골격 렌더 ── */

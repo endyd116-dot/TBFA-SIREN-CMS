@@ -224,9 +224,11 @@
   async function loadCohort() {
     var res = await apiCall('/api/admin-dashboard-cohort?months=6');
     if (!res.ok) {
+      var errMsg = (res.data && res.data.error) || '';
+      var errDetail = (res.data && res.data.detail) || '';
       document.getElementById('ud-cohort').innerHTML =
         '<p style="color:var(--danger,#ef4444);font-size:13px">코호트 데이터를 불러오지 못했습니다: ' +
-        escapeHtml((res.data && res.data.error) || '') + '</p>';
+        escapeHtml(errMsg) + (errDetail ? '<br><small style="font-size:11px;opacity:.7">' + escapeHtml(errDetail) + '</small>' : '') + '</p>';
       return;
     }
     var data = res.data.data || res.data;
