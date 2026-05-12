@@ -22,18 +22,23 @@ const EFFECTIVE_FLASH = LEGACY_MODEL && LEGACY_MODEL.includes("flash") ? LEGACY_
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
+/* 모델 폴백 체인 — 두 모드:
+ *   pro    (복잡 추론·멀티스텝·도구 선택): gemini-3-flash-preview → gemini-3.1-flash-lite → gemini-2.5-flash
+ *   flash  (단순 작업·요약·짧은 호출):     gemini-3.1-flash-lite → gemini-2.5-flash-lite
+ * env GEMINI_MODEL_PRO / GEMINI_MODEL_FLASH가 설정돼 있으면 1순위로 시도. */
 function buildFallbackChain(mode: "pro" | "flash"): string[] {
   const chain: string[] = [];
-  const push = (m: string) => { if (!chain.includes(m)) chain.push(m); };
+  const push = (m: string) => { if (m && !chain.includes(m)) chain.push(m); };
 
   if (mode === "pro") {
     push(PRO_MODEL);
-    push("gemini-3.0-flash");
-    push("gemini-3.1-flash-lite-preview");
+    push("gemini-3-flash-preview");
+    push("gemini-3.1-flash-lite");
+    push("gemini-2.5-flash");
   } else {
     push(EFFECTIVE_FLASH);
-    push("gemini-3.0-flash");
-    push("gemini-3.1-flash-lite-preview");
+    push("gemini-3.1-flash-lite");
+    push("gemini-2.5-flash-lite");
   }
   return chain;
 }

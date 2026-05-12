@@ -33,14 +33,14 @@ export const config = { path: "/api/admin-ai-agent" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-/* 모델 폴백 체인 — 정확한 모델명 우선 + 환경변수 + 안정 폴백 */
+/* 모델 폴백 체인 — 복잡 추론용 (AI 에이전트는 멀티스텝 + 도구 선택)
+ * 1) gemini-3-flash-preview  : 최고 성능
+ * 2) gemini-3.1-flash-lite   : 차세대 경량
+ * 3) gemini-2.5-flash        : 안정 폴백 */
 const MODEL_CHAIN: string[] = Array.from(new Set([
-  "gemini-3-flash-preview",          /* ★ 1순위 — 정확한 production 모델명 */
-  process.env.GEMINI_MODEL_FLASH || "",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-001",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
 ].filter(Boolean)));
 
 const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회의 통합 관리 시스템 SIREN의 AI 비서입니다.
