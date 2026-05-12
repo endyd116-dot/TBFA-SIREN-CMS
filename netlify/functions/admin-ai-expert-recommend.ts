@@ -146,6 +146,7 @@ ${experts.map((e) => `ID:${e.id} 이름:${e.name} 전문분야:${e.specialties.j
       temperature: 0.3,
       maxOutputTokens: 800,
       mode: "flash",
+      featureKey: "expert_recommendation",
     });
 
     step = "map";

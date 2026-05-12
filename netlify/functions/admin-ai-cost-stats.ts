@@ -21,6 +21,7 @@
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { getCostStats, checkMonthlyBudget } from "../../lib/ai-cost-monitor";
+import { getFeatureStats } from "../../lib/ai-feature";
 
 export const config = { path: "/api/admin-ai-cost-stats" };
 
@@ -36,8 +37,14 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
 
   try {
-    const stats = await getCostStats();
-    const budget = await checkMonthlyBudget();
+    const url = new URL(req.url);
+    const includeFeatures = url.searchParams.get("features") === "1";
+
+    const [stats, budget, features] = await Promise.all([
+      getCostStats(),
+      checkMonthlyBudget(),
+      includeFeatures ? getFeatureStats() : Promise.resolve([]),
+    ]);
 
     const percentUsed = stats.limit > 0 ? (stats.month.cost / stats.limit) * 100 : 0;
 
@@ -52,6 +59,7 @@ export default async (req: Request, _ctx: Context) => {
       percentUsed: Math.round(percentUsed * 10) / 10,
       recentDays: stats.recentDays,
       message: budget.message || "",
+      ...(includeFeatures ? { features } : {}),
     }), { status: 200, headers: JSON_HEADER });
   } catch (err: any) {
     return new Response(JSON.stringify({

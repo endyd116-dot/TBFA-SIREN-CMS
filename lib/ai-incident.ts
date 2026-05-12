@@ -103,7 +103,7 @@ const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
 
     const result = await callGeminiJSON<{ severity: string; summary: string; suggestion: string }>(
       fullPrompt,
-      { temperature: 0.3, maxOutputTokens: 2000, inlineFiles: attach.files }
+      { temperature: 0.3, maxOutputTokens: 2000, inlineFiles: attach.files, featureKey: "incident_analysis" }
     );
 
     if (!result.ok || !result.data) {

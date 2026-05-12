@@ -78,6 +78,7 @@ const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
       temperature: 0.2,
       maxOutputTokens: 500,
       inlineFiles: attach.files,
+      featureKey: "support_priority_analysis",
     });
 
     if (result.ok && result.data) {

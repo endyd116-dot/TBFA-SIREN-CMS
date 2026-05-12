@@ -107,6 +107,7 @@ export default async (req: Request) => {
     const r = await callGemini(prompt, {
       temperature: 0.8,
       maxOutputTokens: 4000,
+      featureKey: "campaign_ai_copy",
     });
 
     if (!r.ok || !r.text) {

@@ -1,17 +1,24 @@
 // lib/ai-gemini.ts
 /**
- * Google Gemini API 래퍼 (★ 2026-05 v3.5 — PDF 첨부 분석 정확도 강화)
+ * Google Gemini API 래퍼 (★ 2026-05 v3.6 — 기능별 비용 집계·토글 통합)
  *
  * 모델 정책:
  *   1차 (디폴트): GEMINI_MODEL_PRO / FLASH (기본 gemini-3-flash)
  *   2차: gemini-3.0-flash
  *   3차: gemini-3.1-flash-lite-preview (단, 첨부 있으면 자동 스킵)
  *
+ * v3.6 변경 (Phase 1.5):
+ *   - GeminiOptions.featureKey 필수 — 어드민이 끈 기능이면 즉시 차단,
+ *     성공 응답 직후 ai_usage_logs INSERT + ai_cost_summary UPSERT 자동
+ *   - featureKey 누락 시 런타임 경고만 + "unknown" 폴백 (운영 깨짐 방지)
+ *
  * v3.5 변경:
  *   - parts 순서: 파일 먼저, 텍스트 나중에 (Gemini 공식 권장)
  *   - base64 'data:' prefix 자동 정리 (방어 코드)
  *   - 첨부 전송 직전 진단 로그 강화
  */
+
+import { checkFeatureBeforeCall, recordFeatureUsage, isKnownFeature } from "./ai-feature";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
@@ -58,6 +65,13 @@ export interface GeminiOptions {
   systemInstruction?: string;
   mode?: "pro" | "flash";
   inlineFiles?: InlineFile[];
+  /** ★ Phase 1.5 — 어떤 AI 기능이 호출했는지 식별 (15개 feature_key 중 하나).
+   *  생략하면 'unknown'으로 기록되며 토글·한도 적용 안 됨. 호출자가 명시할 것. */
+  featureKey?: string;
+  /** 운영자/사용자 식별 (admin-action 계열) */
+  adminId?: number | null;
+  /** ai_agent_chat용 — 대화 ID 연결 */
+  conversationId?: number | null;
 }
 
 interface GeminiResult {
@@ -70,6 +84,10 @@ interface GeminiResult {
     totalTokens: number;
   };
   modelUsed?: string;
+  /** ★ Phase 1.5 — 어드민이 기능을 끄거나 한도를 넘긴 경우 true */
+  disabled?: boolean;
+  /** disabled=true일 때 사유 */
+  disabledReason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded";
 }
 
 async function callSingleModel(
@@ -185,6 +203,25 @@ export async function callGemini(
     return { ok: false, error: "GEMINI_API_KEY not configured" };
   }
 
+  /* ★ Phase 1.5 — featureKey 확인 + 어드민 토글·한도 체크 */
+  let featureKey = opts.featureKey || "";
+  if (!featureKey) {
+    console.warn(`[Gemini] featureKey 누락 — 'unknown'으로 기록. 호출 스택 확인 필요.`);
+    featureKey = "unknown";
+  } else if (!isKnownFeature(featureKey)) {
+    console.warn(`[Gemini] 등록되지 않은 featureKey='${featureKey}' — 그대로 기록`);
+  }
+
+  const featureCheck = await checkFeatureBeforeCall(featureKey);
+  if (!featureCheck.ok) {
+    return {
+      ok: false,
+      disabled: true,
+      disabledReason: featureCheck.reason,
+      error: featureCheck.message || "AI 기능이 비활성화되었습니다.",
+    };
+  }
+
   const mode = opts.mode || "flash";
   const chain = buildFallbackChain(mode);
   let lastError = "";
@@ -194,6 +231,7 @@ export async function callGemini(
       opts.inlineFiles.map(f => f.mimeType).join(", "));
   }
 
+  const callStart = Date.now();
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];
     const result = await callSingleModel(model, prompt, opts);
@@ -202,6 +240,21 @@ export async function callGemini(
       if (i > 0) {
         console.info(`[Gemini-${mode}] 폴백 #${i + 1} 성공: ${model} 사용 (1차 ${chain[0]} 실패)`);
       }
+      /* ★ Phase 1.5 — 성공 응답 직후 사용량 기록 (fire-and-forget) */
+      try {
+        if (result.usage) {
+          await recordFeatureUsage({
+            featureKey,
+            model: result.modelUsed || model,
+            inputTokens: result.usage.promptTokens || 0,
+            outputTokens: result.usage.completionTokens || 0,
+            adminId: opts.adminId ?? null,
+            conversationId: opts.conversationId ?? null,
+            durationMs: Date.now() - callStart,
+            success: true,
+          });
+        }
+      } catch (_) { /* 기록 실패는 응답에 영향 없음 */ }
       return result;
     }
 
@@ -219,6 +272,20 @@ export async function callGemini(
 
     if (!isRetryable) break;
   }
+
+  /* 실패도 기록 (success=false) — 비용 0이지만 호출 시도 카운트는 남김 */
+  try {
+    await recordFeatureUsage({
+      featureKey,
+      model: chain[chain.length - 1] || "unknown",
+      inputTokens: 0, outputTokens: 0,
+      adminId: opts.adminId ?? null,
+      conversationId: opts.conversationId ?? null,
+      durationMs: Date.now() - callStart,
+      success: false,
+      error: lastError.slice(0, 200),
+    });
+  } catch (_) { /* noop */ }
 
   if (lastError.includes("503") || lastError.includes("UNAVAILABLE")) {
     return {

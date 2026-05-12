@@ -91,6 +91,7 @@ async function generateAiMessage(
     const r = await callGeminiJSON(prompt, {
       temperature: 0.7,
       maxOutputTokens: 600,
+      featureKey: "churn_reengage_ai",
     });
     if (r.ok && r.data?.messageBody) {
       const body = String(r.data.messageBody).trim();

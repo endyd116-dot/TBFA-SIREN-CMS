@@ -148,6 +148,7 @@ ${text}
       temperature: 0.3,
       maxOutputTokens: 3000,
       inlineFiles: attach.files,
+      featureKey: "legal_consultation_analysis",
     });
 
     if (!result.ok || !result.data) {

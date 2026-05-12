@@ -114,6 +114,7 @@ ${parsedText || "(파일 첨부 본문 분석)"}
       temperature: 0.2,
       maxOutputTokens: 4096,
       inlineFiles,
+      featureKey: "donor_data_extraction",
     });
 
     if (!aiRes.ok || !aiRes.data) {

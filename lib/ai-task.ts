@@ -61,6 +61,7 @@ export async function generateTaskSummary(taskId: number): Promise<{ ok: boolean
       mode: "flash",
       temperature: 0.3,
       maxOutputTokens: 400,
+      featureKey: "task_auto_summary",
     });
 
     if (!result.ok || !result.data?.summary) {
@@ -144,6 +145,7 @@ ${task.holdReason ? `- 보류 사유: ${task.holdReason}` : ""}
           mode: "flash",
           temperature: 0.2,
           maxOutputTokens: 200,
+          featureKey: "task_daily_risk_evaluation",
         });
         if (aiResult.ok && aiResult.data && Number.isFinite(Number(aiResult.data.score))) {
           // 휴리스틱과 AI 점수의 평균 (안정성)
@@ -246,6 +248,7 @@ ${commentSummary || "(댓글 없음)"}
       mode: "flash",
       temperature: 0.4,
       maxOutputTokens: 1200,
+      featureKey: "task_completion_report",
     });
 
     if (!result.ok || !result.data?.content) {

@@ -2758,16 +2758,48 @@ export type NewServiceRnr = typeof serviceRnr.$inferInsert;
        현재는 raw SQL(db.execute)로만 쓰이므로 안전.
    ========================================================= */
 
-/* ----- 1) ai_cost_summary — 일·월 비용 집계 ----- */
+/* ----- 1) ai_cost_summary — 일·월 비용 집계
+              feature_key가 NULL이면 전체 합계 (기존 호환), NOT NULL이면 기능별 합계 ----- */
 export const aiCostSummary = pgTable("ai_cost_summary", {
   id:                  bigserial("id", { mode: "number" }).primaryKey(),
   periodType:          varchar("period_type", { length: 10 }).notNull(),   // 'daily' | 'monthly'
   periodKey:           varchar("period_key", { length: 20 }).notNull(),     // '2026-05-13' | '2026-05'
+  featureKey:          varchar("feature_key", { length: 60 }),              // NULL = 전체 합계
   totalInputTokens:    bigint("total_input_tokens", { mode: "number" }).default(0).notNull(),
   totalOutputTokens:   bigint("total_output_tokens", { mode: "number" }).default(0).notNull(),
   totalCostUsd:        numeric("total_cost_usd", { precision: 12, scale: 6 }).default("0").notNull(),
   callCount:           integer("call_count").default(0).notNull(),
   updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* ----- 1-b) ai_usage_logs — 모든 AI 호출 통합 로그 ----- */
+export const aiUsageLogs = pgTable("ai_usage_logs", {
+  id:              bigserial("id", { mode: "number" }).primaryKey(),
+  featureKey:      varchar("feature_key", { length: 60 }).notNull(),
+  model:           varchar("model", { length: 60 }),
+  adminId:         integer("admin_id"),
+  conversationId:  bigint("conversation_id", { mode: "number" }),
+  inputTokens:     integer("input_tokens").default(0).notNull(),
+  outputTokens:    integer("output_tokens").default(0).notNull(),
+  cachedTokens:    integer("cached_tokens").default(0).notNull(),
+  costUsd:         numeric("cost_usd", { precision: 10, scale: 6 }).default("0").notNull(),
+  durationMs:      integer("duration_ms"),
+  success:         boolean("success").default(true).notNull(),
+  error:           text("error"),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* ----- 1-c) ai_feature_settings — 기능 메타·토글·기능별 월 한도 ----- */
+export const aiFeatureSettings = pgTable("ai_feature_settings", {
+  featureKey:        varchar("feature_key", { length: 60 }).primaryKey(),
+  featureName:       varchar("feature_name", { length: 120 }).notNull(),
+  category:          varchar("category", { length: 30 }).notNull(),
+  description:       text("description"),
+  enabled:           boolean("enabled").default(true).notNull(),
+  monthlyBudgetUsd:  numeric("monthly_budget_usd", { precision: 10, scale: 2 }),
+  sortOrder:         integer("sort_order").default(100).notNull(),
+  createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 /* ----- 2) ai_rate_limit_log — 분/시간/일 카운터 DB 백업 ----- */

@@ -47,6 +47,7 @@ export async function parseNaturalSearchQuery(
     temperature: 0.1,
     maxOutputTokens: 300,
     mode: "flash",
+    featureKey: "natural_search",
   });
 
   if (!result.ok || !result.data) {

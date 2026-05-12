@@ -93,7 +93,7 @@ JSON 형식으로만 응답:
   "summary": ["핵심 1줄","핵심 2줄","핵심 3줄","핵심 4줄","핵심 5줄"],
   "alerts": [{"type":"유형","message":"내용","severity":"low|medium|high"}]
 }`;
-    const r = await callGeminiJSON<AiReportOutput>(prompt, { maxOutputTokens: 800 });
+    const r = await callGeminiJSON<AiReportOutput>(prompt, { maxOutputTokens: 800, featureKey: "weekly_report_generation" });
     if (r.ok && r.data) {
       aiSummary = Array.isArray(r.data.summary) ? r.data.summary.join("\n") : String(r.data.summary);
       aiAlerts  = r.data.alerts ?? [];

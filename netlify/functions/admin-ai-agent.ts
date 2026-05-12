@@ -29,7 +29,10 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
 
 /* === Phase 1~4 비용 안전장치 === */
-import { recordTokenUsage, checkMonthlyBudget } from "../../lib/ai-cost-monitor";
+import { recordFeatureUsage, checkFeatureBeforeCall } from "../../lib/ai-feature";
+import { checkMonthlyBudget } from "../../lib/ai-cost-monitor";
+
+const AGENT_FEATURE_KEY = "ai_agent_chat";
 
 export const config = { path: "/api/admin-ai-agent" };
 
@@ -135,14 +138,20 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
-  /* === Phase 1: 월 비용 한도 체크 === */
-  const budget = await checkMonthlyBudget();
-  if (!budget.ok) {
+  /* === Phase 1.5: 'AI 비서 채팅' 기능 토글 + 기능별·전체 월 한도 체크 === */
+  const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);
+  if (!featureCheck.ok) {
     return new Response(JSON.stringify({
-      ok: false, error: "월 AI 비용 한도 초과", step: "budget_exceeded",
-      detail: budget.message, used: budget.used, limit: budget.limit,
+      ok: false,
+      error: featureCheck.reason === "disabled" ? "AI 비서가 비활성화되었습니다" : "AI 비용 한도 초과",
+      step: featureCheck.reason || "feature_blocked",
+      detail: featureCheck.message,
+      used: featureCheck.used,
+      limit: featureCheck.limit,
     }), { status: 429, headers: JSON_HEADER });
   }
+  /* 응답 끝에서 경고 임계($80) 안내용 — 차단은 위에서 이미 처리 */
+  const budget = await checkMonthlyBudget();
 
   let body: any = {};
   try { body = await req.json(); } catch { return jsonError("parse", "JSON 파싱 실패", 400); }
@@ -211,14 +220,15 @@ export default async (req: Request, _ctx: Context) => {
     for (let step = 0; step < MAX_STEPS; step++) {
       const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages);
 
-      /* === Phase 1: 토큰 사용량 기록 (Gemini 응답 직후) === */
+      /* === Phase 1.5: 토큰 사용량 기록 (Gemini 응답 직후) === */
       try {
         const usage = geminiRes?.usageMetadata || {};
         const inputTok = Number(usage.promptTokenCount) || 0;
         const outputTok = Number(usage.candidatesTokenCount) || 0;
         const cachedTok = Number(usage.cachedContentTokenCount) || 0;
         if (inputTok > 0 || outputTok > 0) {
-          await recordTokenUsage({
+          await recordFeatureUsage({
+            featureKey: AGENT_FEATURE_KEY,
             adminId, conversationId, model: usedModel,
             inputTokens: inputTok, outputTokens: outputTok, cachedTokens: cachedTok,
           });

@@ -168,6 +168,7 @@ async function generateBriefing(memberName: string, s: BriefingStats): Promise<A
       mode: "flash",
       temperature: 0.4,
       maxOutputTokens: 800,
+      featureKey: "daily_briefing_generation",
     });
     if (result.ok && result.data) {
       return {

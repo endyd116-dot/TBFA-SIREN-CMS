@@ -97,6 +97,7 @@ JSON 객체로만 응답하세요. 다른 설명 없이 JSON만:
     const result = await callGeminiJSON<{ recommendations: ExpertRec[] }>(prompt, {
       temperature: 0.7,
       maxOutputTokens: 700,
+      featureKey: "expert_match_generation",
     });
 
     if (!result.ok || !result.data?.recommendations) {
