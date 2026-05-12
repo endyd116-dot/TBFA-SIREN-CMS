@@ -271,6 +271,9 @@ export const members = pgTable("members", {
   donorChannels: jsonb("donor_channels").default(sql`'[]'::jsonb`),
   prospectSubtype: varchar("prospect_subtype", { length: 20 }),
   donorEvaluatedAt: timestamp("donor_evaluated_at"),
+  /* 예비 후원자가 어떤 캠페인·이벤트로 들어왔는지 구분 (migrate-prospect-event-name) */
+  prospectEventName: varchar("prospect_event_name", { length: 150 }),
+  prospectEntryPath: varchar("prospect_entry_path", { length: 50 }),
 
   /* ───────── ★ Phase 17 — 보안·감사 고도화 ───────── */
   loginFailStreak: integer("login_fail_streak").default(0),
@@ -2295,6 +2298,9 @@ export const communicationSendJobs = pgTable("communication_send_jobs", {
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
   // Phase 10 R4 — AI 트리거가 생성한 작업 표시 (FK는 마이그로 DB에 적용됨)
   triggeredByAutoId:    integer("triggered_by_auto_id"),
+  // 새 발송 만들기 시 사용자가 임시 수정한 제목·본문 (템플릿 원본 유지) — migrate-send-job-overrides
+  subjectOverride:      text("subject_override"),
+  bodyOverride:         text("body_override"),
 }, (t) => ({
   statusIdx:    index("send_jobs_status_idx").on(t.status),
   scheduledIdx: index("send_jobs_scheduled_idx").on(t.scheduledAt),
