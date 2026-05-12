@@ -61,7 +61,7 @@ export default async (req: Request, _ctx: Context) => {
           id AS member_id,
           DATE_TRUNC('month', created_at) AS cohort_month
         FROM members
-        WHERE created_at >= NOW() - make_interval(months => ${months})
+        WHERE created_at >= NOW() - (${months} * interval '1 month')
           AND type NOT IN ('admin', 'operator')
       ),
       first_donations AS (

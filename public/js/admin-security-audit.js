@@ -2,6 +2,23 @@
 (function () {
   'use strict';
 
+  /* ── 자체 API 헬퍼 (admin.js 클로저 외부이므로 독립 선언) ── */
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, {
+      method: opts.method || 'GET',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        return { status: r.status, ok: r.ok && d.ok !== false, data: d };
+      });
+    }).catch(function () {
+      return { status: 0, ok: false, data: { error: '네트워크 오류' } };
+    });
+  }
+
   /* ── 상수 ── */
   const RISK_COLOR = {
     critical: '#dc2626',
