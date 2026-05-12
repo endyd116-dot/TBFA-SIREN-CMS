@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>💰 AI 비용 관리 | 관리자</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b; min-height: 100vh;
+}
+
+.topbar {
+  background: #1e293b; color: #fff;
+  padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+}
+.topbar h1 { margin: 0; font-size: 18px; font-weight: 700; }
+.topbar a { color: #cbd5e1; text-decoration: none; font-size: 13px; }
+.topbar a:hover { color: #fff; }
+
+.container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+/* ─ 상단 카드 ─ */
+.summary-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.card {
+  background: #fff; border-radius: 10px; padding: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+}
+.card .label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+.card .value { font-size: 24px; font-weight: 700; color: #1e293b; }
+.card .value.warn { color: #d97706; }
+.card .value.blocked { color: #dc2626; }
+.card .sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+.usage-bar { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.usage-bar > div { height: 100%; background: #2563eb; transition: width .3s; }
+.usage-bar.warn > div { background: #d97706; }
+.usage-bar.blocked > div { background: #dc2626; }
+
+/* ─ 차트 ─ */
+.chart-section {
+  background: #fff; border-radius: 10px; padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+.chart-section h2 { margin: 0 0 16px; font-size: 14px; font-weight: 600; }
+#costChart { max-height: 220px; }
+
+/* ─ 기능 표 ─ */
+.features-section {
+  background: #fff; border-radius: 10px; padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+}
+.features-section h2 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.features-section .hint { font-size: 11.5px; color: #64748b; margin-bottom: 14px; }
+
+.category-tabs {
+  display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+}
+.category-tabs button {
+  background: transparent; border: none; padding: 6px 14px; font-size: 12.5px;
+  color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;
+}
+.category-tabs button.active { color: #1e293b; border-bottom-color: #2563eb; }
+
+table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+th, td { padding: 9px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+th {
+  font-size: 11px; color: #64748b; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  background: #f8fafc;
+}
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.cat-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 9999px;
+  font-size: 10.5px; font-weight: 500;
+}
+.cat-badge.user_request   { background: #dbeafe; color: #1e40af; }
+.cat-badge.admin_action   { background: #d1fae5; color: #065f46; }
+.cat-badge.cron_daily     { background: #fce7f3; color: #9d174d; }
+.cat-badge.agent_chat     { background: #fef3c7; color: #92400e; }
+
+/* 토글 스위치 */
+.toggle {
+  position: relative; display: inline-block; width: 38px; height: 22px;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: #cbd5e1; border-radius: 22px; transition: .2s;
+}
+.slider:before {
+  position: absolute; content: ""; height: 16px; width: 16px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s;
+}
+.toggle input:checked + .slider { background: #2563eb; }
+.toggle input:checked + .slider:before { transform: translateX(16px); }
+.toggle input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+/* 한도 입력 */
+.budget-input {
+  width: 80px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px;
+  font-size: 12px; font-family: inherit;
+}
+.budget-input:focus { outline: 2px solid #2563eb; outline-offset: -1px; border-color: transparent; }
+.budget-save {
+  margin-left: 6px; padding: 4px 10px; background: #2563eb; color: #fff;
+  border: none; border-radius: 4px; font-size: 11.5px; cursor: pointer;
+}
+.budget-save:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff; padding: 12px 18px;
+  border-radius: 6px; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0; transform: translateY(8px); transition: .25s;
+  pointer-events: none; z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { background: #b91c1c; }
+.toast.success { background: #047857; }
+
+.loading { text-align: center; color: #64748b; padding: 40px; font-size: 13px; }
+
+.warning-banner {
+  background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+  padding: 10px 16px; border-radius: 6px; margin-bottom: 16px;
+  font-size: 13px; display: none;
+}
+.warning-banner.show { display: block; }
+.warning-banner.danger { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>💰 AI 비용 관리</h1>
+  <div>
+    <a href="/admin-ai-assistant.html">AI 비서 채팅 →</a>
+    &nbsp;&nbsp;
+    <a href="/admin-hub.html">← 관리자 허브</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div id="warningBanner" class="warning-banner"></div>
+
+  <!-- 상단 요약 카드 -->
+  <div class="summary-cards">
+    <div class="card">
+      <div class="label">오늘 누적 비용</div>
+      <div class="value" id="todayCost">—</div>
+      <div class="sub" id="todayCalls">— 호출</div>
+    </div>
+    <div class="card">
+      <div class="label">이번 달 누적 비용</div>
+      <div class="value" id="monthCost">—</div>
+      <div class="sub" id="monthCalls">— 호출</div>
+    </div>
+    <div class="card">
+      <div class="label">월 한도</div>
+      <div class="value" id="limitValue">—</div>
+      <div class="sub" id="warnThreshold">경고 임계 —</div>
+    </div>
+    <div class="card">
+      <div class="label">한도 사용률</div>
+      <div class="value" id="percentUsed">—%</div>
+      <div class="usage-bar" id="usageBar"><div style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- 14일 추이 차트 -->
+  <div class="chart-section">
+    <h2>최근 14일 일별 비용</h2>
+    <canvas id="costChart"></canvas>
+  </div>
+
+  <!-- 기능 목록 -->
+  <div class="features-section">
+    <h2>AI 기능 토글 · 한도 설정</h2>
+    <div class="hint">기능별 켜기/끄기 · 월 한도(USD) 설정. 한도 초과 시 해당 기능만 자동 차단.</div>
+
+    <div class="category-tabs" id="categoryTabs">
+      <button data-cat="all" class="active">전체</button>
+      <button data-cat="user_request">사용자 신청 자동 분석</button>
+      <button data-cat="admin_action">운영자 즉시 호출</button>
+      <button data-cat="cron_daily">Cron 자동 실행</button>
+      <button data-cat="agent_chat">AI 비서 채팅</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>기능</th>
+          <th>카테고리</th>
+          <th class="num">오늘 호출</th>
+          <th class="num">오늘 비용</th>
+          <th class="num">이번달 호출</th>
+          <th class="num">이번달 비용</th>
+          <th class="num">월 한도(USD)</th>
+          <th style="text-align:center">활성</th>
+        </tr>
+      </thead>
+      <tbody id="featuresTbody">
+        <tr><td colspan="8" class="loading">불러오는 중…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = "/api/admin-ai-features";
+let currentCategory = "all";
+let allFeatures = [];
+let chart = null;
+
+function toast(msg, type = "") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show " + type;
+  setTimeout(() => el.classList.remove("show"), 2400);
+}
+
+function fmtUsd(n) {
+  if (n == null || n === 0) return "$0.00";
+  if (n < 0.01) return "$" + Number(n).toFixed(6);
+  return "$" + Number(n).toFixed(4);
+}
+
+function fmtCalls(n) {
+  return Number(n).toLocaleString("ko-KR");
+}
+
+async function loadStats() {
+  const res = await fetch(API);
+  if (res.status === 401 || res.status === 403) {
+    document.body.innerHTML =
+      '<div style="text-align:center;padding:80px 20px;color:#64748b">' +
+      '<h2>관리자 로그인이 필요합니다</h2>' +
+      '<p>메인 홈페이지에서 로그인 후 관리자 모드로 전환하세요.</p>' +
+      '<a href="/" style="color:#2563eb">메인 홈페이지로 이동</a></div>';
+    return;
+  }
+  const data = await res.json();
+  if (!data.ok) {
+    toast("불러오기 실패: " + (data.error || ""), "error");
+    return;
+  }
+
+  /* 상단 카드 */
+  document.getElementById("todayCost").textContent  = fmtUsd(data.totals.today.cost);
+  document.getElementById("todayCalls").textContent = fmtCalls(data.totals.today.calls) + " 호출";
+  document.getElementById("monthCost").textContent  = fmtUsd(data.totals.month.cost);
+  document.getElementById("monthCalls").textContent = fmtCalls(data.totals.month.calls) + " 호출";
+  document.getElementById("limitValue").textContent = "$" + Number(data.totals.limit).toFixed(2);
+  document.getElementById("warnThreshold").textContent = "경고 임계 $" + Number(data.totals.warnThreshold).toFixed(2);
+
+  const pct = Number(data.totals.percentUsed || 0);
+  document.getElementById("percentUsed").textContent = pct.toFixed(1) + "%";
+  const bar = document.getElementById("usageBar");
+  bar.firstElementChild.style.width = Math.min(100, pct) + "%";
+
+  const valueEl = document.getElementById("percentUsed");
+  valueEl.classList.remove("warn", "blocked");
+  bar.classList.remove("warn", "blocked");
+
+  const warnPctRatio = (data.totals.warnThreshold / data.totals.limit) * 100;
+  if (pct >= 100) {
+    valueEl.classList.add("blocked");
+    bar.classList.add("blocked");
+    showBanner("월 한도($" + data.totals.limit + ")를 초과했습니다. 모든 AI 호출이 차단됐습니다.", "danger");
+  } else if (pct >= warnPctRatio) {
+    valueEl.classList.add("warn");
+    bar.classList.add("warn");
+    showBanner("경고 임계($" + data.totals.warnThreshold + ")를 넘었습니다. 곧 차단됩니다.", "");
+  } else {
+    hideBanner();
+  }
+
+  /* 14일 추이 */
+  drawChart(data);
+
+  /* 기능 표 */
+  allFeatures = data.features || [];
+  renderTable();
+}
+
+function showBanner(msg, kind) {
+  const el = document.getElementById("warningBanner");
+  el.textContent = msg;
+  el.className = "warning-banner show" + (kind ? " " + kind : "");
+}
+function hideBanner() {
+  document.getElementById("warningBanner").classList.remove("show");
+}
+
+function drawChart(data) {
+  /* recentDays는 admin-ai-cost-stats에서만 옴 — 빠른 화면용 별도 호출 */
+  fetch("/api/admin-ai-cost-stats").then(r => r.json()).then(s => {
+    if (!s.ok) return;
+    const days = (s.recentDays || []).slice().reverse();   // 오래된 → 최신
+    const labels = days.map(d => (d.date || "").slice(5));  // MM-DD
+    const costs = days.map(d => Number(d.cost) || 0);
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("costChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "USD",
+          data: costs,
+          backgroundColor: "#2563eb",
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: v => "$" + Number(v).toFixed(4) }
+          }
+        }
+      }
+    });
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById("featuresTbody");
+  const filtered = currentCategory === "all"
+    ? allFeatures
+    : allFeatures.filter(f => f.category === currentCategory);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">해당 카테고리 기능 없음</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(f => `
+    <tr data-key="${f.key}">
+      <td>
+        <div style="font-weight:500">${escapeHtml(f.name)}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${escapeHtml(f.description || "")}</div>
+      </td>
+      <td><span class="cat-badge ${f.category}">${catLabel(f.category)}</span></td>
+      <td class="num">${fmtCalls(f.todayCalls)}</td>
+      <td class="num">${fmtUsd(f.todayCost)}</td>
+      <td class="num">${fmtCalls(f.monthCalls)}</td>
+      <td class="num">${fmtUsd(f.monthCost)}</td>
+      <td class="num">
+        <input type="number" class="budget-input" min="0" step="1" placeholder="제한 없음"
+               value="${f.monthlyBudgetUsd != null ? f.monthlyBudgetUsd : ''}"
+               data-orig="${f.monthlyBudgetUsd != null ? f.monthlyBudgetUsd : ''}" />
+        <button class="budget-save" disabled>저장</button>
+      </td>
+      <td style="text-align:center">
+        <label class="toggle">
+          <input type="checkbox" ${f.enabled ? "checked" : ""} />
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+  `).join("");
+
+  /* 이벤트 위임 */
+  tbody.querySelectorAll("tr").forEach(tr => {
+    const key = tr.dataset.key;
+    const toggle = tr.querySelector('input[type="checkbox"]');
+    const budgetInput = tr.querySelector(".budget-input");
+    const saveBtn = tr.querySelector(".budget-save");
+
+    toggle.addEventListener("change", async () => {
+      toggle.disabled = true;
+      try {
+        const r = await fetch(API, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ featureKey: key, enabled: toggle.checked })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast((toggle.checked ? "활성화 " : "비활성화 ") + key, "success");
+          /* 메모리 상태 갱신 */
+          const f = allFeatures.find(x => x.key === key);
+          if (f) f.enabled = toggle.checked;
+        } else {
+          toggle.checked = !toggle.checked;
+          toast("변경 실패: " + (d.error || ""), "error");
+        }
+      } catch (e) {
+        toggle.checked = !toggle.checked;
+        toast("네트워크 오류", "error");
+      }
+      toggle.disabled = false;
+    });
+
+    budgetInput.addEventListener("input", () => {
+      saveBtn.disabled = budgetInput.value === budgetInput.dataset.orig;
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      const raw = budgetInput.value.trim();
+      const monthlyBudgetUsd = raw === "" ? null : Number(raw);
+      if (raw !== "" && (!Number.isFinite(monthlyBudgetUsd) || monthlyBudgetUsd < 0)) {
+        toast("0 이상 숫자 또는 비움", "error"); return;
+      }
+      saveBtn.disabled = true;
+      try {
+        const r = await fetch(API, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ featureKey: key, monthlyBudgetUsd })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast("월 한도 저장: " + (monthlyBudgetUsd == null ? "제한 없음" : "$" + monthlyBudgetUsd), "success");
+          budgetInput.dataset.orig = raw;
+          const f = allFeatures.find(x => x.key === key);
+          if (f) f.monthlyBudgetUsd = monthlyBudgetUsd;
+        } else {
+          toast("저장 실패: " + (d.error || ""), "error");
+          saveBtn.disabled = false;
+        }
+      } catch (e) {
+        toast("네트워크 오류", "error");
+        saveBtn.disabled = false;
+      }
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+}
+
+function catLabel(c) {
+  return ({
+    user_request: "사용자 신청",
+    admin_action: "운영자 호출",
+    cron_daily:   "Cron 자동",
+    agent_chat:   "AI 비서"
+  })[c] || c;
+}
+
+/* 카테고리 탭 */
+document.getElementById("categoryTabs").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-cat]");
+  if (!btn) return;
+  document.querySelectorAll("#categoryTabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentCategory = btn.dataset.cat;
+  renderTable();
+});
+
+/* 초기 로드 + 60초마다 새로고침 */
+loadStats();
+setInterval(loadStats, 60_000);
+</script>
+
+</body>
+</html>
