@@ -32,7 +32,16 @@ export const config = { path: "/api/admin-ai-agent" };
 
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const MODEL = process.env.GEMINI_MODEL_FLASH || "gemini-3-flash";
+
+/* 모델 폴백 체인 — 환경변수 모델 → 안정 production 모델 → 경량 폴백
+ * 일부 모델은 v1beta API에서 404 가능 → 자동 다음 모델로 재시도 */
+const MODEL_CHAIN: string[] = Array.from(new Set([
+  process.env.GEMINI_MODEL_FLASH || "",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-001",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+].filter(Boolean)));
 
 const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회의 통합 관리 시스템 SIREN의 AI 비서입니다.
 
@@ -65,27 +74,39 @@ interface GeminiContent {
 }
 
 async function callGeminiWithTools(contents: GeminiContent[]): Promise<any> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     contents,
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
     tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 2048,
-    },
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
   };
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) {
-    const errText = await r.text().catch(() => "");
-    console.error("[ai-agent] Gemini API 실패", r.status, errText.slice(0, 1500));
-    throw new Error(`Gemini API ${r.status}: ${errText.slice(0, 600)}`);
+
+  let lastError = "";
+  for (let i = 0; i < MODEL_CHAIN.length; i++) {
+    const model = MODEL_CHAIN[i];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        if (i > 0) console.info(`[ai-agent] 폴백 #${i + 1} 성공: ${model}`);
+        return await r.json();
+      }
+      const errText = await r.text().catch(() => "");
+      lastError = `${model} → ${r.status}: ${errText.slice(0, 300)}`;
+      console.warn(`[ai-agent] ${model} 실패`, r.status, errText.slice(0, 400));
+      /* 404/NOT_FOUND/UNSUPPORTED는 다음 모델 시도, 그 외는 즉시 종료 */
+      const isRetryable = r.status === 404 || errText.includes("NOT_FOUND") || errText.includes("not supported");
+      if (!isRetryable) break;
+    } catch (e: any) {
+      lastError = `${model} → ${e?.message || e}`;
+      console.warn(`[ai-agent] ${model} 네트워크 오류`, e?.message);
+    }
   }
-  return await r.json();
+  throw new Error(`모든 Gemini 모델 호출 실패: ${lastError}`);
 }
 
 export default async (req: Request, _ctx: Context) => {
