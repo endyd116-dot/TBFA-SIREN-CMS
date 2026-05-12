@@ -57,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
       SELECT id, DATE_TRUNC('month', created_at) AS cohort_month, created_at, status
       FROM members
       WHERE created_at >= ${sinceStr}::timestamptz
-        AND type NOT IN ('admin', 'operator')
+        AND type != 'admin'
       ORDER BY cohort_month
     `);
     const memberRows = rows(memberRes);
