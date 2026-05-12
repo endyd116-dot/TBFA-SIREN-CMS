@@ -33,6 +33,7 @@ import { recordFeatureUsage, checkFeatureBeforeCall } from "../../lib/ai-feature
 import { checkMonthlyBudget } from "../../lib/ai-cost-monitor";
 import { tryCacheGet, cacheSet, invalidateRelated } from "../../lib/ai-cache";
 import { checkRateLimit } from "../../lib/ai-rate-limit";
+import { ensurePromptCache } from "../../lib/ai-prompt-cache";
 
 const AGENT_FEATURE_KEY = "ai_agent_chat";
 
@@ -91,18 +92,31 @@ interface GeminiContent {
 }
 
 async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: any; model: string }> {
-  const body = {
-    contents,
-    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-    /* ★ 비용 절감 — maxOutputTokens 보수적 + temperature 낮춤(일관성) */
-    generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
-  };
-
+  /* === Phase 4: Context Caching 시도 (32k 미달 시 자동 폴백) === */
   let lastError = "";
   for (let i = 0; i < MODEL_CHAIN.length; i++) {
     const model = MODEL_CHAIN[i];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const cachedName = await ensurePromptCache({
+      model,
+      systemPrompt: SYSTEM_PROMPT,
+      tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+    });
+
+    const body: any = cachedName
+      ? {
+          contents,
+          cachedContent: cachedName,
+          generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
+        }
+      : {
+          contents,
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
+        };
+
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -111,6 +125,7 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: a
       });
       if (r.ok) {
         if (i > 0) console.info(`[ai-agent] 폴백 #${i + 1} 성공: ${model}`);
+        if (cachedName) console.info(`[ai-agent] 프롬프트 캐시 사용: ${cachedName}`);
         return { data: await r.json(), model };
       }
       const errText = await r.text().catch(() => "");

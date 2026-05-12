@@ -19,6 +19,7 @@
  */
 
 import { checkFeatureBeforeCall, recordFeatureUsage, isKnownFeature } from "./ai-feature";
+import { ensurePromptCache } from "./ai-prompt-cache";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const PRO_MODEL = process.env.GEMINI_MODEL_PRO || "gemini-3-flash";
@@ -146,7 +147,20 @@ async function callSingleModel(
     },
   };
 
+  /* === Phase 4: Context Caching (systemInstruction이 있고 32k 이상이면) === */
+  let cachedName: string | null = null;
   if (opts.systemInstruction) {
+    cachedName = await ensurePromptCache({
+      model: modelName,
+      systemPrompt: opts.systemInstruction,
+      tools: [],   // lib/ai-gemini는 tool calling 미사용 (admin-ai-agent만 별도 사용)
+    });
+  }
+
+  if (cachedName) {
+    body.cachedContent = cachedName;
+    /* systemInstruction은 캐시에 포함됨 → body에 다시 안 넣음 */
+  } else if (opts.systemInstruction) {
     body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
   }
 
