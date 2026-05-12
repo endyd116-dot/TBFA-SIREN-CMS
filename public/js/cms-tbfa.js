@@ -215,6 +215,11 @@
           'donor-prospect': '💡 예비 후원자 관리',
           'donor-potential': '🌱 잠재 후원자 관리',
           'notify-send': '📨 알림 발송',
+          'send-jobs': '📤 발송 작업',
+          'send-template': '📝 발송 템플릿',
+          'recipient-groups': '👥 수신자 그룹',
+          'auto-trigger': '🤖 AI 자동 발송',
+          'send-analytics': '📊 발송 분석',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
@@ -240,6 +245,11 @@
         else if (tab === 'donor-prospect') renderDonorProspect();
         else if (tab === 'donor-potential') renderPotentialDonor();
         else if (tab === 'notify-send') renderNotifySend();
+        else if (tab === 'send-jobs') renderSendJobs();
+        else if (tab === 'send-template') renderSendTemplate();
+        else if (tab === 'recipient-groups') renderRecipientGroups();
+        else if (tab === 'auto-trigger') renderAutoTrigger();
+        else if (tab === 'send-analytics') renderSendAnalytics();
         else if (tab === 'csv-import') {
           /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
           if (window.CsvImport && typeof window.CsvImport.init === 'function') {
@@ -2703,6 +2713,11 @@ document.addEventListener('DOMContentLoaded', function() {
     api('/api/admin/potential-donor-crud', { method: 'POST', body: { name: name.trim(), phone, address, birthdate, eventName, entryPath, memo } })
       .then(function(res) { if (!res.ok) return toast('등록 실패: ' + (res.data?.error || '')); toast('등록 완료'); renderPotentialDonor(); });
   });
+  /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 */
+  window._cmsApi   = api;
+  window._cmsToast = toast;
+  window._cmsEsc   = escapeHtml;
+  window._cmsFmt   = formatDate;
 });
 
 /* ============================================================
@@ -3119,4 +3134,814 @@ async function loadNotifyGroups() {
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
   }
+}
+
+/* ================================================================
+   ★ 알림·발송 5개 탭 (CMS 내부 SPA — 별도 페이지 완전 대체)
+   ================================================================ */
+
+/* IIFE 내부 헬퍼 참조 (window 노출 경유) */
+function api(path, opts) { return window._cmsApi(path, opts); }
+function toast(msg, ms)  { return window._cmsToast(msg, ms); }
+function cmsToast(msg, ms) { return window._cmsToast(msg, ms); }
+function escapeHtml(s)   { return window._cmsEsc(s); }
+function formatDate(s)   { return window._cmsFmt(s); }
+
+/* ---- 공통 상태 ---- */
+var _sjState = { page: 1, total: 0, init: false };
+var _stState = { page: 1, total: 0, init: false };
+var _rgState = { page: 1, total: 0, init: false };
+var _atState = { init: false };
+var _saState = { page: 1, init: false };
+var SJ2_PAGE = 20, ST_PAGE = 20, RG2_PAGE = 20, SA_PAGE = 20;
+
+var CH_LABEL = { email:'이메일', sms:'SMS', kakao:'카카오', inapp:'인앱' };
+var SJ_STATUS = { pending:'대기', processing:'진행 중', completed:'완료', failed:'실패', cancelled:'취소됨' };
+var ST_CAT = { newsletter:'뉴스레터', announcement:'공지', auto_trigger:'AI 트리거', campaign:'캠페인', system:'시스템' };
+
+/* ================================================================
+   📤 발송 작업
+   ================================================================ */
+function renderSendJobs() {
+  if (!_sjState.init) {
+    _sjState.init = true;
+    var el = function(id){ return document.getElementById(id); };
+    el('sjFilterStatus')?.addEventListener('change', function(){ _sjState.page=1; _loadSendJobs(); });
+    el('sjFilterFrom')?.addEventListener('change', function(){ _sjState.page=1; _loadSendJobs(); });
+    el('sjFilterTo')?.addEventListener('change', function(){ _sjState.page=1; _loadSendJobs(); });
+    el('sjFilterSearch')?.addEventListener('keydown', function(e){ if(e.key==='Enter'){_sjState.page=1;_loadSendJobs();} });
+    el('sjBtnRefresh')?.addEventListener('click', function(){ _sjState.page=1; _loadSendJobs(); });
+    el('sjBtnCreate')?.addEventListener('click', function(){ _sjOpenCreate(); });
+    el('sjDetailClose')?.addEventListener('click', function(){ document.getElementById('sjDetailPanel').style.display='none'; });
+    document.getElementById('sjBody')?.addEventListener('click', function(e) {
+      var tr = e.target.closest('tr[data-id]');
+      if (tr) _sjOpenDetail(tr.dataset.id);
+    });
+  }
+  _loadSendJobs();
+}
+
+async function _loadSendJobs() {
+  var tbody = document.getElementById('sjBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  var qs = new URLSearchParams({
+    limit: String(SJ2_PAGE),
+    offset: String((_sjState.page-1)*SJ2_PAGE)
+  });
+  var status = document.getElementById('sjFilterStatus')?.value;
+  var from   = document.getElementById('sjFilterFrom')?.value;
+  var to     = document.getElementById('sjFilterTo')?.value;
+  var q      = document.getElementById('sjFilterSearch')?.value?.trim();
+  if (status) qs.set('status', status);
+  if (from)   qs.set('from', from);
+  if (to)     qs.set('to', to);
+  if (q)      qs.set('q', q);
+  try {
+    var res = await api('/api/admin-send-jobs-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var rows = d.rows ?? [];
+    _sjState.total = d.total ?? rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:#888">발송 작업이 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        var sl = SJ_STATUS[r.status] || r.status;
+        var sc = r.status==='completed'?'cms-b-success':r.status==='failed'?'cms-b-danger':'cms-b-mute';
+        return '<tr data-id="'+r.id+'" style="cursor:pointer">'
+          +'<td style="font-family:Inter;font-size:11px">#'+r.id+'</td>'
+          +'<td><strong>'+escapeHtml(r.name||'')+'</strong></td>'
+          +'<td>'+escapeHtml(CH_LABEL[r.channel]||r.channel||'—')+'</td>'
+          +'<td style="font-size:12px">'+escapeHtml(r.templateName||'—')+'</td>'
+          +'<td style="font-size:12px">'+escapeHtml(r.groupName||'—')+'</td>'
+          +'<td><span class="cms-badge '+sc+'">'+sl+'</span></td>'
+          +'<td style="text-align:right;font-family:Inter">'+Number(r.totalRecipients||0).toLocaleString()+'</td>'
+          +'<td style="text-align:right;font-family:Inter;color:#2e7d32">'+Number(r.successCount||0).toLocaleString()+'</td>'
+          +'<td style="text-align:right;font-family:Inter;color:#c5293a">'+Number(r.failureCount||0).toLocaleString()+'</td>'
+          +'<td style="font-family:Inter;font-size:11px">'+formatDate(r.scheduledAt||r.createdAt)+'</td>'
+          +'<td><button class="cms-btn-link" onclick="event.stopPropagation();_sjOpenDetail('+r.id+')">상세</button></td>'
+          +'</tr>';
+      }).join('');
+    }
+    _sjRenderPager();
+  } catch(err) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</td></tr>';
+  }
+}
+
+function _sjRenderPager() {
+  var pager = document.getElementById('sjPagination');
+  if (!pager) return;
+  var tp = Math.max(1, Math.ceil(_sjState.total/SJ2_PAGE));
+  var prev = _sjState.page>1?'<button class="cms-donor-pagination-btn" data-sj2p="'+(_sjState.page-1)+'">‹ 이전</button>':'';
+  var next = _sjState.page<tp?'<button class="cms-donor-pagination-btn" data-sj2p="'+(_sjState.page+1)+'">다음 ›</button>':'';
+  pager.innerHTML = prev+'<span class="cms-donor-pagination-info">'+_sjState.page+' / '+tp+' · 총 '+_sjState.total.toLocaleString()+'건</span>'+next;
+  pager.querySelectorAll('[data-sj2p]').forEach(function(b){ b.addEventListener('click', function(){ _sjState.page=Number(b.dataset.sj2p); _loadSendJobs(); }); });
+}
+
+async function _sjOpenDetail(id) {
+  var panel = document.getElementById('sjDetailPanel');
+  var content = document.getElementById('sjDetailContent');
+  var title = document.getElementById('sjDetailTitle');
+  if (!panel||!content) return;
+  panel.style.display = '';
+  content.innerHTML = '불러오는 중…';
+  title.textContent = '발송 작업 #'+id+' 상세';
+  panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  try {
+    var res = await api('/api/admin-send-job-detail?id='+id);
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var job = d.job ?? d;
+    var sl = SJ_STATUS[job.status]||job.status;
+    var sc = job.status==='completed'?'#2e7d32':job.status==='failed'?'#c5293a':'#888';
+    var total = Number(job.totalRecipients||0);
+    var done  = Number(job.successCount||0)+Number(job.failureCount||0);
+    var pct   = total>0 ? Math.round(done/total*100) : 0;
+    content.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">'
+      +'<div><span style="font-size:11px;color:#888;display:block">채널</span><strong>'+escapeHtml(CH_LABEL[job.channel]||job.channel||'—')+'</strong></div>'
+      +'<div><span style="font-size:11px;color:#888;display:block">상태</span><strong style="color:'+sc+'">'+escapeHtml(sl)+'</strong></div>'
+      +'<div><span style="font-size:11px;color:#888;display:block">진행률</span><strong>'+pct+'%</strong> ('+done.toLocaleString()+'/'+total.toLocaleString()+')</div>'
+      +'<div><span style="font-size:11px;color:#888;display:block">성공</span><strong style="color:#2e7d32">'+Number(job.successCount||0).toLocaleString()+'</strong></div>'
+      +'<div><span style="font-size:11px;color:#888;display:block">실패</span><strong style="color:#c5293a">'+Number(job.failureCount||0).toLocaleString()+'</strong></div>'
+      +'<div><span style="font-size:11px;color:#888;display:block">예약</span>'+escapeHtml(formatDate(job.scheduledAt||job.createdAt))+'</div>'
+      +'</div>'
+      +(job.status==='failed'?'<button class="cms-btn cms-btn-ghost" onclick="_sjRetry('+id+')" style="font-size:12px">🔄 실패 건 재발송</button>':'');
+  } catch(err) {
+    content.innerHTML = '<span style="color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</span>';
+  }
+}
+
+function _sjOpenCreate() {
+  var name = prompt('발송 작업명을 입력하세요:');
+  if (!name) return;
+  cmsToast('발송 작업 생성은 템플릿·수신자 그룹을 먼저 설정하세요. (기능 준비 중)');
+}
+
+async function _sjRetry(id) {
+  if (!confirm('실패한 발송을 재시도할까요?')) return;
+  try {
+    var res = await api('/api/admin-send-job-retry-failed', { method:'POST', body:{ jobId:id } });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast('재발송 요청 완료');
+    _sjOpenDetail(id);
+  } catch(err) { cmsToast('재발송 실패: '+String(err?.message||err)); }
+}
+
+/* ================================================================
+   📝 발송 템플릿
+   ================================================================ */
+function renderSendTemplate() {
+  if (!_stState.init) {
+    _stState.init = true;
+    var el = function(id){ return document.getElementById(id); };
+    el('stFilterChannel')?.addEventListener('change', function(){ _stState.page=1; _loadTemplates(); });
+    el('stFilterCategory')?.addEventListener('change', function(){ _stState.page=1; _loadTemplates(); });
+    el('stFilterInactive')?.addEventListener('change', function(){ _stState.page=1; _loadTemplates(); });
+    el('stFilterSearch')?.addEventListener('keydown', function(e){ if(e.key==='Enter'){_stState.page=1;_loadTemplates();} });
+    el('stBtnRefresh')?.addEventListener('click', function(){ _stState.page=1; _loadTemplates(); });
+    el('stBtnCreate')?.addEventListener('click', function(){ _stOpenEdit(null); });
+    el('stEditCancel')?.addEventListener('click', _stShowList);
+    el('stEditCancel2')?.addEventListener('click', _stShowList);
+    el('stBtnSave')?.addEventListener('click', _stSave);
+    el('stBody')?.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (btn.dataset.act==='edit') _stOpenEdit(btn.dataset.id);
+      else if (btn.dataset.act==='delete') _stDelete(btn.dataset.id, btn.dataset.name);
+    });
+  }
+  _stShowList();
+  _loadTemplates();
+}
+
+function _stShowList() {
+  document.getElementById('stListView').style.display = '';
+  document.getElementById('stEditView').style.display = 'none';
+}
+function _stShowEdit() {
+  document.getElementById('stListView').style.display = 'none';
+  document.getElementById('stEditView').style.display = '';
+}
+
+async function _loadTemplates() {
+  var tbody = document.getElementById('stBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  var qs = new URLSearchParams({ limit:String(ST_PAGE), offset:String((_stState.page-1)*ST_PAGE) });
+  var ch  = document.getElementById('stFilterChannel')?.value;
+  var cat = document.getElementById('stFilterCategory')?.value;
+  var q   = document.getElementById('stFilterSearch')?.value?.trim();
+  var inc = document.getElementById('stFilterInactive')?.checked;
+  if (ch)  qs.set('channel', ch);
+  if (cat) qs.set('category', cat);
+  if (q)   qs.set('q', q);
+  if (inc) qs.set('includeInactive','1');
+  try {
+    var res = await api('/api/admin-templates-list?' + qs.toString());
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var rows = d.rows ?? [];
+    _stState.total = d.total ?? rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">템플릿이 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        var inactive = r.isActive===false;
+        var chLbl = CH_LABEL[r.channel]||r.channel||'—';
+        var catLbl = ST_CAT[r.category]||r.category||'—';
+        return '<tr'+(inactive?' style="opacity:.6"':'')+'>'
+          +'<td style="font-family:Inter;font-size:11px">#'+r.id+'</td>'
+          +'<td>'+escapeHtml(r.name||'')+(inactive?'<span class="cms-badge cms-b-mute" style="margin-left:4px">비활성</span>':'')+'</td>'
+          +'<td><span class="cms-badge cms-b-info">'+escapeHtml(chLbl)+'</span></td>'
+          +'<td><span class="cms-badge cms-b-mute">'+escapeHtml(catLbl)+'</span></td>'
+          +'<td style="font-family:Inter;font-size:11px">'+formatDate(r.updatedAt)+'</td>'
+          +'<td>'
+            +'<button class="cms-btn-link" data-act="edit" data-id="'+r.id+'">수정</button> '
+            +'<button class="cms-btn-link" style="color:#c5293a" data-act="delete" data-id="'+r.id+'" data-name="'+escapeHtml(r.name||'')+'">삭제</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('');
+    }
+    var pager = document.getElementById('stPagination');
+    if (pager) {
+      var tp = Math.max(1, Math.ceil(_stState.total/ST_PAGE));
+      var prev = _stState.page>1?'<button class="cms-donor-pagination-btn" data-stp="'+(_stState.page-1)+'">‹ 이전</button>':'';
+      var next = _stState.page<tp?'<button class="cms-donor-pagination-btn" data-stp="'+(_stState.page+1)+'">다음 ›</button>':'';
+      pager.innerHTML = prev+'<span class="cms-donor-pagination-info">'+_stState.page+' / '+tp+' · 총 '+_stState.total.toLocaleString()+'개</span>'+next;
+      pager.querySelectorAll('[data-stp]').forEach(function(b){ b.addEventListener('click', function(){ _stState.page=Number(b.dataset.stp); _loadTemplates(); }); });
+    }
+  } catch(err) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</td></tr>';
+  }
+}
+
+async function _stOpenEdit(id) {
+  document.getElementById('stEditTitle').textContent = id ? '템플릿 수정 #'+id : '새 템플릿 작성';
+  document.getElementById('stEditId').value = id || '';
+  var flds = ['stFldName','stFldChannel','stFldCategory','stFldSubject','stFldBody'];
+  flds.forEach(function(f){ var el=document.getElementById(f); if(el) el.value=''; });
+  _stShowEdit();
+  if (id) {
+    try {
+      var res = await api('/api/admin-template-detail?id='+id);
+      if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+      var t = res.data?.data ?? res.data ?? {};
+      document.getElementById('stFldName').value = t.name||'';
+      document.getElementById('stFldChannel').value = t.channel||'email';
+      document.getElementById('stFldCategory').value = t.category||'newsletter';
+      document.getElementById('stFldSubject').value = t.subjectTemplate||'';
+      document.getElementById('stFldBody').value = t.bodyTemplate||'';
+    } catch(err) { cmsToast('템플릿 조회 실패: '+String(err?.message||err)); }
+  }
+}
+
+async function _stSave() {
+  var id      = document.getElementById('stEditId').value;
+  var name    = document.getElementById('stFldName')?.value?.trim();
+  var channel = document.getElementById('stFldChannel')?.value;
+  var category= document.getElementById('stFldCategory')?.value;
+  var subject = document.getElementById('stFldSubject')?.value?.trim();
+  var body    = document.getElementById('stFldBody')?.value?.trim();
+  if (!name||!body) { cmsToast('템플릿명과 본문은 필수입니다.'); return; }
+  var url = id ? '/api/admin-template-update?id='+id : '/api/admin-template-create';
+  try {
+    var res = await api(url, { method:'POST', body:{ name, channel, category, subjectTemplate:subject, bodyTemplate:body } });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast(id?'템플릿이 수정됐습니다.':'새 템플릿이 생성됐습니다.');
+    _stShowList();
+    _stState.page=1; _loadTemplates();
+  } catch(err) { cmsToast('저장 실패: '+String(err?.message||err)); }
+}
+
+async function _stDelete(id, name) {
+  if (!confirm('"'+name+'" 템플릿을 삭제합니다. 계속할까요?')) return;
+  try {
+    var res = await api('/api/admin-template-delete?id='+id, { method:'POST' });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast('템플릿이 삭제됐습니다.');
+    _loadTemplates();
+  } catch(err) { cmsToast('삭제 실패: '+String(err?.message||err)); }
+}
+
+/* ================================================================
+   👥 수신자 그룹
+   ================================================================ */
+
+/* 빠른 선택 프리셋 */
+var RG_QUICK_PRESETS = {
+  'donor-regular':   { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'regular' }] },
+  'donor-prospect':  { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'prospect' }] },
+  'donor-potential': { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'none' }, { field:'status', op:'eq', value:'active' }] },
+  'hyosung-regular': { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'regular' }, { field:'donorChannels', op:'eq', value:'hyosung' }] },
+  'toss-regular':    { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'regular' }, { field:'donorChannels', op:'eq', value:'toss' }] },
+  'manual-regular':  { type:'filter', logic:'and', filters:[{ field:'donorType', op:'eq', value:'regular' }, { field:'donorChannels', op:'eq', value:'manual' }] },
+  'all-active':      { type:'filter', logic:'and', filters:[{ field:'status', op:'eq', value:'active' }] },
+  'family':          { type:'filter', logic:'and', filters:[{ field:'type', op:'eq', value:'family' }, { field:'status', op:'eq', value:'active' }] },
+};
+
+var RG_FIELD_OPTIONS = [
+  { value:'donorType',    label:'후원자 분류', ops:[{v:'eq',l:'='},{v:'ne',l:'≠'},{v:'in',l:'포함'}],
+    values:[{v:'regular',l:'정기'},{v:'prospect',l:'예비'},{v:'none',l:'잠재'}] },
+  { value:'donorChannels',label:'후원 채널',   ops:[{v:'eq',l:'='},{v:'in',l:'포함'}],
+    values:[{v:'toss',l:'토스'},{v:'hyosung',l:'효성 CMS'},{v:'manual',l:'수기'}] },
+  { value:'type',         label:'회원 유형',   ops:[{v:'eq',l:'='},{v:'in',l:'포함'}],
+    values:[{v:'regular',l:'일반'},{v:'family',l:'유가족'},{v:'volunteer',l:'봉사자'},{v:'admin',l:'관리자'}] },
+  { value:'status',       label:'회원 상태',   ops:[{v:'eq',l:'='},{v:'in',l:'포함'}],
+    values:[{v:'active',l:'활성'},{v:'pending',l:'대기'},{v:'suspended',l:'정지'},{v:'withdrawn',l:'탈퇴'}] },
+  { value:'hasActiveRegularDonation', label:'활성 정기 후원', ops:[{v:'eq',l:'여부'}], valueType:'boolean' },
+  { value:'blacklisted',  label:'블랙 처리',   ops:[{v:'eq',l:'여부'}], valueType:'boolean' },
+];
+
+var _rgClauses = [];
+
+function renderRecipientGroups() {
+  if (!_rgState.init) {
+    _rgState.init = true;
+    document.getElementById('rgFilterSearch')?.addEventListener('keydown', function(e){ if(e.key==='Enter'){_rgState.page=1;_loadRgList();} });
+    document.getElementById('rgFilterInactive')?.addEventListener('change', function(){ _rgState.page=1;_loadRgList(); });
+    document.getElementById('rgBtnRefresh')?.addEventListener('click', function(){ _rgState.page=1;_loadRgList(); });
+    document.getElementById('rgBtnCreate')?.addEventListener('click', function(){ _rgOpenEdit(null); });
+    document.getElementById('rgEditCancel')?.addEventListener('click', _rgShowList);
+    document.getElementById('rgEditCancel2')?.addEventListener('click', _rgShowList);
+    document.getElementById('rgAddFilter')?.addEventListener('click', function(){ _rgClauses.push({field:'donorType',op:'eq',value:'regular'}); _rgRenderClauses(); });
+    document.getElementById('rgBtnPreview')?.addEventListener('click', _rgPreview);
+    document.getElementById('rgBtnSave')?.addEventListener('click', _rgSave);
+    document.querySelectorAll('[data-quick]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var preset = RG_QUICK_PRESETS[btn.dataset.quick];
+        if (!preset) return;
+        document.getElementById('rgCriteriaTypeFilter').checked = true;
+        document.getElementById('rgFilterBuilder').style.display = '';
+        document.getElementById('rgManualBuilder').style.display = 'none';
+        _rgClauses = preset.filters.map(function(f){ return Object.assign({}, f); });
+        document.getElementById('rgFilterLogic').value = preset.logic;
+        _rgRenderClauses();
+      });
+    });
+    document.querySelectorAll('input[name="rgCriteriaType"]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var isFilter = document.getElementById('rgCriteriaTypeFilter').checked;
+        document.getElementById('rgFilterBuilder').style.display = isFilter ? '' : 'none';
+        document.getElementById('rgManualBuilder').style.display = isFilter ? 'none' : '';
+      });
+    });
+    document.getElementById('rgBody')?.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (btn.dataset.act==='edit')   _rgOpenEdit(btn.dataset.id);
+      if (btn.dataset.act==='delete') _rgDelete(btn.dataset.id, btn.dataset.name);
+    });
+  }
+  _rgShowList();
+  _loadRgList();
+}
+
+function _rgShowList() {
+  document.getElementById('rgListView').style.display = '';
+  document.getElementById('rgEditView').style.display = 'none';
+  document.getElementById('rgPreviewArea').style.display = 'none';
+}
+function _rgShowEdit() {
+  document.getElementById('rgListView').style.display = 'none';
+  document.getElementById('rgEditView').style.display = '';
+}
+
+async function _loadRgList() {
+  var tbody = document.getElementById('rgBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  var qs = new URLSearchParams({ limit:String(RG2_PAGE), offset:String((_rgState.page-1)*RG2_PAGE) });
+  var q   = document.getElementById('rgFilterSearch')?.value?.trim();
+  var inc = document.getElementById('rgFilterInactive')?.checked;
+  if (q)   qs.set('q', q);
+  if (inc) qs.set('includeInactive','1');
+  try {
+    var res = await api('/api/admin-recipient-groups-list?'+qs.toString());
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var rows = d.rows ?? [];
+    _rgState.total = d.total ?? rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#888">수신자 그룹이 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        return '<tr>'
+          +'<td style="font-family:Inter;font-size:11px">#'+r.id+'</td>'
+          +'<td><strong>'+escapeHtml(r.name||'')+'</strong></td>'
+          +'<td style="font-size:12px;color:#666">'+escapeHtml(r.criteriaSummary||'—')+'</td>'
+          +'<td style="text-align:right;font-family:Inter">'+((r.memberCount!=null)?Number(r.memberCount).toLocaleString():'—')+'</td>'
+          +'<td>'+(r.isActive?'<span class="cms-badge cms-b-success">활성</span>':'<span class="cms-badge cms-b-mute">비활성</span>')+'</td>'
+          +'<td style="font-family:Inter;font-size:11px">'+formatDate(r.createdAt)+'</td>'
+          +'<td>'
+            +'<button class="cms-btn-link" data-act="edit" data-id="'+r.id+'">수정</button> '
+            +'<button class="cms-btn-link" style="color:#c5293a" data-act="delete" data-id="'+r.id+'" data-name="'+escapeHtml(r.name||'')+'">삭제</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('');
+    }
+    var pager = document.getElementById('rgPagination');
+    if (pager) {
+      var tp = Math.max(1,Math.ceil(_rgState.total/RG2_PAGE));
+      var prev = _rgState.page>1?'<button class="cms-donor-pagination-btn" data-rg2p="'+(_rgState.page-1)+'">‹ 이전</button>':'';
+      var next = _rgState.page<tp?'<button class="cms-donor-pagination-btn" data-rg2p="'+(_rgState.page+1)+'">다음 ›</button>':'';
+      pager.innerHTML = prev+'<span class="cms-donor-pagination-info">'+_rgState.page+' / '+tp+' · 총 '+_rgState.total.toLocaleString()+'개</span>'+next;
+      pager.querySelectorAll('[data-rg2p]').forEach(function(b){ b.addEventListener('click', function(){ _rgState.page=Number(b.dataset.rg2p); _loadRgList(); }); });
+    }
+  } catch(err) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</td></tr>';
+  }
+}
+
+async function _rgOpenEdit(id) {
+  _rgClauses = [];
+  document.getElementById('rgFldName').value = '';
+  document.getElementById('rgFldDesc').value = '';
+  document.getElementById('rgEditId').value = id||'';
+  document.getElementById('rgEditTitle').textContent = id ? '수신자 그룹 수정 #'+id : '새 수신자 그룹';
+  document.getElementById('rgCriteriaTypeFilter').checked = true;
+  document.getElementById('rgFilterBuilder').style.display = '';
+  document.getElementById('rgManualBuilder').style.display = 'none';
+  document.getElementById('rgPreviewArea').style.display = 'none';
+  _rgRenderClauses();
+  _rgShowEdit();
+  if (id) {
+    try {
+      var res = await api('/api/admin-recipient-group-detail?id='+id);
+      if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+      var g = res.data?.data ?? res.data ?? {};
+      document.getElementById('rgFldName').value = g.name||'';
+      document.getElementById('rgFldDesc').value = g.description||'';
+      var c = g.criteria;
+      if (c && c.type==='manual') {
+        document.getElementById('rgCriteriaTypeManual').checked = true;
+        document.getElementById('rgFilterBuilder').style.display = 'none';
+        document.getElementById('rgManualBuilder').style.display = '';
+        document.getElementById('rgManualIds').value = (c.memberIds||[]).join('\n');
+      } else if (c && c.type==='filter') {
+        _rgClauses = (c.filters||[]).map(function(f){ return Object.assign({},f); });
+        document.getElementById('rgFilterLogic').value = c.logic||'and';
+        _rgRenderClauses();
+      }
+    } catch(err) { cmsToast('그룹 조회 실패: '+String(err?.message||err)); }
+  }
+}
+
+function _rgRenderClauses() {
+  var container = document.getElementById('rgFilterClauses');
+  if (!container) return;
+  if (!_rgClauses.length) {
+    container.innerHTML = '<div style="font-size:12px;color:#94a0b3;padding:8px">조건을 추가하거나 위 빠른 선택 버튼을 클릭하세요.</div>';
+    return;
+  }
+  container.innerHTML = _rgClauses.map(function(clause, idx) {
+    var fieldSpec = RG_FIELD_OPTIONS.find(function(f){ return f.value===clause.field; }) || RG_FIELD_OPTIONS[0];
+    var fieldSel = '<select class="cms-input rg-clause-field" data-idx="'+idx+'" style="width:130px">'
+      + RG_FIELD_OPTIONS.map(function(f){ return '<option value="'+f.value+'"'+(f.value===clause.field?' selected':'')+'>'+f.label+'</option>'; }).join('')
+      + '</select>';
+    var opSel = '<select class="cms-input rg-clause-op" data-idx="'+idx+'" style="width:80px">'
+      + (fieldSpec.ops||[]).map(function(o){ return '<option value="'+o.v+'"'+(o.v===clause.op?' selected':'')+'>'+o.l+'</option>'; }).join('')
+      + '</select>';
+    var valEl;
+    if (fieldSpec.valueType==='boolean') {
+      valEl = '<select class="cms-input rg-clause-val" data-idx="'+idx+'" style="width:90px">'
+        +'<option value="true"'+(clause.value===true?' selected':'')+'>예</option>'
+        +'<option value="false"'+(clause.value===false?' selected':'')+'>아니오</option>'
+        +'</select>';
+    } else {
+      valEl = '<select class="cms-input rg-clause-val" data-idx="'+idx+'" style="width:110px">'
+        + (fieldSpec.values||[]).map(function(v){ return '<option value="'+v.v+'"'+((clause.value===v.v||Array.isArray(clause.values)&&clause.values.includes(v.v))?' selected':'')+'>'+v.l+'</option>'; }).join('')
+        + '</select>';
+    }
+    return '<div style="display:flex;gap:8px;align-items:center;padding:8px;background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:6px">'
+      + fieldSel + opSel + valEl
+      + '<button class="cms-btn cms-btn-ghost rg-clause-del" data-idx="'+idx+'" style="font-size:12px;padding:4px 8px;color:#c5293a">✕</button>'
+      + '</div>';
+  }).join('');
+  container.querySelectorAll('.rg-clause-field').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var idx = Number(sel.dataset.idx);
+      var newSpec = RG_FIELD_OPTIONS.find(function(f){ return f.value===sel.value; });
+      _rgClauses[idx] = { field:sel.value, op:(newSpec?.ops?.[0]?.v||'eq'), value: newSpec?.values?.[0]?.v ?? true };
+      _rgRenderClauses();
+    });
+  });
+  container.querySelectorAll('.rg-clause-op').forEach(function(sel) {
+    sel.addEventListener('change', function() { _rgClauses[Number(sel.dataset.idx)].op = sel.value; });
+  });
+  container.querySelectorAll('.rg-clause-val').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var idx = Number(sel.dataset.idx);
+      var val = sel.value;
+      if (val==='true') val=true; else if(val==='false') val=false;
+      _rgClauses[idx].value = val;
+    });
+  });
+  container.querySelectorAll('.rg-clause-del').forEach(function(btn) {
+    btn.addEventListener('click', function() { _rgClauses.splice(Number(btn.dataset.idx),1); _rgRenderClauses(); });
+  });
+}
+
+async function _rgPreview() {
+  var criteria = _rgBuildCriteria();
+  if (!criteria) return;
+  var area = document.getElementById('rgPreviewArea');
+  var content = document.getElementById('rgPreviewContent');
+  area.style.display = '';
+  content.innerHTML = '계산 중…';
+  try {
+    var res = await api('/api/admin-recipient-group-preview', { method:'POST', body:{ criteria } });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var p = d.preview ?? d;
+    var sample = (p.sampleMembers||[]).map(function(m){ return escapeHtml(m.name||'#'+m.id); }).join(', ');
+    content.innerHTML = '<strong style="font-size:14px;color:#1a5ec4">'+Number(p.memberCount||0).toLocaleString()+'명</strong>'
+      +(sample?' <span style="font-size:12px;color:#666">— 예시: '+sample+'</span>':'');
+  } catch(err) {
+    content.innerHTML = '<span style="color:#c5293a">미리보기 실패: '+escapeHtml(String(err?.message||err))+'</span>';
+  }
+}
+
+function _rgBuildCriteria() {
+  var isManual = document.getElementById('rgCriteriaTypeManual')?.checked;
+  if (isManual) {
+    var raw = document.getElementById('rgManualIds')?.value||'';
+    var ids = raw.split(/[\s,]+/).map(Number).filter(function(n){ return Number.isInteger(n)&&n>0; });
+    if (!ids.length) { cmsToast('회원 ID를 입력하세요.'); return null; }
+    return { type:'manual', memberIds:ids };
+  }
+  if (!_rgClauses.length) { cmsToast('최소 1개 이상의 조건을 추가하세요.'); return null; }
+  return {
+    type:'filter',
+    logic: document.getElementById('rgFilterLogic')?.value || 'and',
+    filters: _rgClauses.map(function(c){ return Object.assign({},c); })
+  };
+}
+
+async function _rgSave() {
+  var id   = document.getElementById('rgEditId').value;
+  var name = document.getElementById('rgFldName')?.value?.trim();
+  var desc = document.getElementById('rgFldDesc')?.value?.trim();
+  if (!name) { cmsToast('그룹명은 필수입니다.'); return; }
+  var criteria = _rgBuildCriteria();
+  if (!criteria) return;
+  var url = id ? '/api/admin-recipient-group-update?id='+id : '/api/admin-recipient-group-create';
+  try {
+    var res = await api(url, { method:'POST', body:{ name, description:desc, criteria } });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast(id?'그룹이 수정됐습니다.':'새 그룹이 생성됐습니다.');
+    _rgShowList();
+    _rgState.page=1; _loadRgList();
+  } catch(err) { cmsToast('저장 실패: '+String(err?.message||err)); }
+}
+
+async function _rgDelete(id, name) {
+  if (!confirm('"'+name+'" 그룹을 삭제합니다. 계속할까요?')) return;
+  try {
+    var res = await api('/api/admin-recipient-group-delete?id='+id, { method:'POST' });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast('그룹이 삭제됐습니다.');
+    _loadRgList();
+  } catch(err) { cmsToast('삭제 실패: '+String(err?.message||err)); }
+}
+
+/* ================================================================
+   🤖 AI 자동 발송 트리거
+   ================================================================ */
+var AT_TRIGGER_LABELS = {
+  new_member:'신규 가입', member_withdrawn:'회원 탈퇴', member_approved:'가입 승인',
+  first_donation:'첫 후원 완료', donation_complete:'후원 결제 완료', donation_failed:'후원 결제 실패',
+  regular_started:'정기 후원 시작', regular_cancelled:'정기 후원 취소', regular_resumed:'정기 후원 재개',
+  donation_anniversary:'후원 기념일', upgrade_to_regular:'예비→정기 전환', downgrade_from_regular:'정기→예비 전환',
+  birthday:'생일 당일', anniversary:'협의회 기념일',
+  inactive_60d:'60일 미접속', inactive_180d:'180일 미후원', one_year_no_donation:'1년 무후원',
+  support_approved:'유족 지원 승인', support_rejected:'유족 지원 반려',
+  grade_upgrade:'등급 상향', grade_downgrade:'등급 하향',
+  receipt_issued:'영수증 발급', campaign_end:'캠페인 종료 감사',
+};
+
+function renderAutoTrigger() {
+  if (!_atState.init) {
+    _atState.init = true;
+    document.getElementById('atBtnCreate')?.addEventListener('click', function(){ _atOpenEdit(null); });
+    document.getElementById('atEditCancel')?.addEventListener('click', _atShowList);
+    document.getElementById('atEditCancel2')?.addEventListener('click', _atShowList);
+    document.getElementById('atBtnSave')?.addEventListener('click', _atSave);
+    document.getElementById('atBody')?.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (btn.dataset.act==='edit') _atOpenEdit(btn.dataset.id);
+      if (btn.dataset.act==='toggle') _atToggle(btn.dataset.id, btn.dataset.active==='true');
+      if (btn.dataset.act==='delete') _atDelete(btn.dataset.id, btn.dataset.name);
+    });
+  }
+  _atShowList();
+  _loadTriggers();
+}
+
+function _atShowList() {
+  document.getElementById('atListView').style.display = '';
+  document.getElementById('atEditView').style.display = 'none';
+}
+function _atShowEdit() {
+  document.getElementById('atListView').style.display = 'none';
+  document.getElementById('atEditView').style.display = '';
+}
+
+async function _loadTriggers() {
+  var tbody = document.getElementById('atBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  try {
+    var res = await api('/api/admin-auto-triggers-list');
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var rows = Array.isArray(d) ? d : (d.rows ?? d.triggers ?? []);
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#888">등록된 트리거가 없습니다</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function(r) {
+        var active = r.isActive !== false;
+        return '<tr>'
+          +'<td style="font-family:Inter;font-size:11px">#'+r.id+'</td>'
+          +'<td><strong>'+escapeHtml(r.name||'')+'</strong></td>'
+          +'<td><span class="cms-badge cms-b-info">'+escapeHtml(AT_TRIGGER_LABELS[r.triggerType]||r.triggerType||'—')+'</span></td>'
+          +'<td style="font-size:12px;color:#666">'+escapeHtml(r.groupName||'전체 해당자')+'</td>'
+          +'<td style="font-size:12px">'+escapeHtml(r.templateName||'—')+'</td>'
+          +'<td style="font-family:Inter;font-size:12px">'+(r.delayHours>0?r.delayHours+'시간':'즉시')+'</td>'
+          +'<td>'+(active?'<span class="cms-badge cms-b-success">활성</span>':'<span class="cms-badge cms-b-mute">비활성</span>')+'</td>'
+          +'<td>'
+            +'<button class="cms-btn-link" data-act="edit" data-id="'+r.id+'">수정</button> '
+            +'<button class="cms-btn-link" data-act="toggle" data-id="'+r.id+'" data-active="'+active+'">'+(active?'비활성화':'활성화')+'</button> '
+            +'<button class="cms-btn-link" style="color:#c5293a" data-act="delete" data-id="'+r.id+'" data-name="'+escapeHtml(r.name||'')+'">삭제</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('');
+    }
+  } catch(err) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</td></tr>';
+  }
+}
+
+async function _atOpenEdit(id) {
+  document.getElementById('atEditTitle').textContent = id ? '트리거 수정 #'+id : '새 트리거 설정';
+  document.getElementById('atEditId').value = id||'';
+  ['atFldName','atFldType','atFldTemplate','atFldGroup','atFldDelay','atFldCooldown'].forEach(function(f){
+    var el=document.getElementById(f); if(el) el.value = f==='atFldDelay'?'0':f==='atFldCooldown'?'30':'';
+  });
+  document.getElementById('atFldActive').checked = true;
+  _atShowEdit();
+  /* 템플릿·그룹 목록 로드 */
+  _atLoadSelects();
+  if (id) {
+    try {
+      var res = await api('/api/admin-auto-trigger-detail?id='+id);
+      if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+      var t = res.data?.data ?? res.data ?? {};
+      document.getElementById('atFldName').value = t.name||'';
+      document.getElementById('atFldType').value = t.triggerType||'new_member';
+      document.getElementById('atFldDelay').value = t.delayHours??0;
+      document.getElementById('atFldCooldown').value = t.cooldownDays??30;
+      document.getElementById('atFldActive').checked = t.isActive!==false;
+      setTimeout(function(){
+        document.getElementById('atFldTemplate').value = t.templateId||'';
+        document.getElementById('atFldGroup').value = t.recipientGroupId||'';
+      }, 500);
+    } catch(err) { cmsToast('트리거 조회 실패: '+String(err?.message||err)); }
+  }
+}
+
+async function _atLoadSelects() {
+  try {
+    var [tRes, gRes] = await Promise.all([
+      api('/api/admin-templates-list?limit=100'),
+      api('/api/admin-recipient-groups-list?limit=100')
+    ]);
+    var tRows = (tRes.data?.data ?? tRes.data ?? {}).rows ?? [];
+    var gRows = (gRes.data?.data ?? gRes.data ?? {}).rows ?? [];
+    var tSel = document.getElementById('atFldTemplate');
+    var gSel = document.getElementById('atFldGroup');
+    if (tSel) tSel.innerHTML = '<option value="">템플릿 선택…</option>' + tRows.map(function(r){ return '<option value="'+r.id+'">'+escapeHtml(r.name)+'</option>'; }).join('');
+    if (gSel) gSel.innerHTML = '<option value="">전체 (조건 해당자)</option>' + gRows.map(function(r){ return '<option value="'+r.id+'">'+escapeHtml(r.name)+'</option>'; }).join('');
+  } catch(e) {}
+}
+
+async function _atSave() {
+  var id       = document.getElementById('atEditId').value;
+  var name     = document.getElementById('atFldName')?.value?.trim();
+  var type     = document.getElementById('atFldType')?.value;
+  var tplId    = document.getElementById('atFldTemplate')?.value;
+  var grpId    = document.getElementById('atFldGroup')?.value;
+  var delay    = Number(document.getElementById('atFldDelay')?.value||0);
+  var cooldown = Number(document.getElementById('atFldCooldown')?.value||30);
+  var active   = document.getElementById('atFldActive')?.checked;
+  if (!name||!type||!tplId) { cmsToast('트리거명·발동 조건·템플릿은 필수입니다.'); return; }
+  var url = id ? '/api/admin-auto-trigger-update?id='+id : '/api/admin-auto-trigger-create';
+  try {
+    var res = await api(url, { method:'POST', body:{
+      name, triggerType:type, templateId:Number(tplId),
+      recipientGroupId: grpId ? Number(grpId) : null,
+      delayHours:delay, cooldownDays:cooldown, isActive:active
+    }});
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast(id?'트리거가 수정됐습니다.':'새 트리거가 생성됐습니다.');
+    _atShowList(); _loadTriggers();
+  } catch(err) { cmsToast('저장 실패: '+String(err?.message||err)); }
+}
+
+async function _atToggle(id, currentActive) {
+  try {
+    var res = await api('/api/admin-auto-trigger-update?id='+id, { method:'POST', body:{ isActive:!currentActive } });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast(currentActive?'트리거가 비활성화됐습니다.':'트리거가 활성화됐습니다.');
+    _loadTriggers();
+  } catch(err) { cmsToast('변경 실패: '+String(err?.message||err)); }
+}
+
+async function _atDelete(id, name) {
+  if (!confirm('"'+name+'" 트리거를 삭제합니다. 계속할까요?')) return;
+  try {
+    var res = await api('/api/admin-auto-trigger-delete?id='+id, { method:'POST' });
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    cmsToast('트리거가 삭제됐습니다.');
+    _loadTriggers();
+  } catch(err) { cmsToast('삭제 실패: '+String(err?.message||err)); }
+}
+
+/* ================================================================
+   📊 발송 분석
+   ================================================================ */
+function renderSendAnalytics() {
+  if (!_saState.init) {
+    _saState.init = true;
+    document.getElementById('saFilterPeriod')?.addEventListener('change', function(){ _saState.page=1; _loadSendAnalytics(); });
+    document.getElementById('saBtnRefresh')?.addEventListener('click', function(){ _saState.page=1; _loadSendAnalytics(); });
+  }
+  _loadSendAnalytics();
+}
+
+async function _loadSendAnalytics() {
+  var period = document.getElementById('saFilterPeriod')?.value || '30d';
+  var qs = new URLSearchParams({ period, limit:String(SA_PAGE), offset:String((_saState.page-1)*SA_PAGE) });
+  /* KPI 초기화 */
+  ['saKpiTotal','saKpiSuccess','saKpiFail','saKpiRate'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
+  var tbody = document.getElementById('saLogBody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  try {
+    var res = await api('/api/admin-notification-logs?'+qs.toString());
+    if (!res.ok) throw new Error(res.data?.error||'HTTP '+res.status);
+    var d = res.data?.data ?? res.data ?? {};
+    var rows = d.rows ?? d.logs ?? [];
+    var stats = d.stats ?? {};
+    var total = Number(stats.total||0);
+    var succ  = Number(stats.success||0);
+    var fail  = Number(stats.failed||0);
+    var rate  = total>0 ? Math.round(succ/total*100)+'%' : '—';
+    var set = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    set('saKpiTotal', total.toLocaleString()+'건');
+    set('saKpiSuccess', succ.toLocaleString()+'건');
+    set('saKpiFail', fail.toLocaleString()+'건');
+    set('saKpiRate', rate);
+    if (tbody) {
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#888">발송 이력이 없습니다</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(function(r) {
+          var sl = SJ_STATUS[r.status]||r.status;
+          var sc = r.status==='completed'?'cms-b-success':r.status==='failed'?'cms-b-danger':'cms-b-mute';
+          return '<tr>'
+            +'<td>'+escapeHtml(r.jobName||r.name||'#'+r.jobId||r.id)+'</td>'
+            +'<td>'+escapeHtml(CH_LABEL[r.channel]||r.channel||'—')+'</td>'
+            +'<td><span class="cms-badge '+sc+'">'+sl+'</span></td>'
+            +'<td style="text-align:right;font-family:Inter">'+Number(r.totalRecipients||0).toLocaleString()+'</td>'
+            +'<td style="text-align:right;font-family:Inter;color:#2e7d32">'+Number(r.successCount||0).toLocaleString()+'</td>'
+            +'<td style="text-align:right;font-family:Inter;color:#c5293a">'+Number(r.failureCount||0).toLocaleString()+'</td>'
+            +'<td style="font-family:Inter;font-size:11px">'+formatDate(r.completedAt||r.updatedAt||r.createdAt)+'</td>'
+            +'</tr>';
+        }).join('');
+      }
+    }
+    var pager = document.getElementById('saPagination');
+    if (pager) {
+      var saTotal = d.total ?? rows.length;
+      var tp = Math.max(1,Math.ceil(saTotal/SA_PAGE));
+      var prev = _saState.page>1?'<button class="cms-donor-pagination-btn" data-sap="'+(_saState.page-1)+'">‹ 이전</button>':'';
+      var next = _saState.page<tp?'<button class="cms-donor-pagination-btn" data-sap="'+(_saState.page+1)+'">다음 ›</button>':'';
+      pager.innerHTML = prev+'<span class="cms-donor-pagination-info">'+_saState.page+' / '+tp+' · 총 '+saTotal.toLocaleString()+'건</span>'+next;
+      pager.querySelectorAll('[data-sap]').forEach(function(b){ b.addEventListener('click', function(){ _saState.page=Number(b.dataset.sap); _loadSendAnalytics(); }); });
+    }
+  } catch(err) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#c5293a">조회 실패: '+escapeHtml(String(err?.message||err))+'</td></tr>';
+  }
+}
+
+/* ---- cmsToast 헬퍼 (없으면 생성) ---- */
+function cmsToast(msg) {
+  var t = document.getElementById('cmsToast');
+  if (!t) { alert(msg); return; }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._cmsToastT);
+  window._cmsToastT = setTimeout(function(){ t.classList.remove('show'); }, 2800);
 }

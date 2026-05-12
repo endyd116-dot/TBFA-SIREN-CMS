@@ -25,7 +25,9 @@ export type FilterField =
   | "hadOneTimeDonationDays"
   | "campaignId"
   | "donationStatus"
-  | "blacklisted";
+  | "blacklisted"
+  | "donorType"
+  | "donorChannels";
 
 export type FilterOp = "eq" | "ne" | "in" | "notIn" | "lte" | "gte";
 
@@ -75,6 +77,8 @@ export interface ResolveResult {
 
 const VALID_MEMBER_TYPES = ["regular", "family", "volunteer", "admin"];
 const VALID_MEMBER_STATUSES = ["pending", "active", "suspended", "withdrawn"];
+const VALID_DONOR_TYPES = ["regular", "prospect", "none"];
+const VALID_DONOR_CHANNELS = ["toss", "hyosung", "manual"];
 const VALID_DONATION_STATUSES = [
   "pending",
   "completed",
@@ -101,6 +105,8 @@ const FIELD_SPECS: Record<FilterField, FieldSpec> = {
   campaignId:                 { ops: ["eq", "in"],            valueType: "int" },
   donationStatus:             { ops: ["eq", "in"],            valueType: "stringEnum", enumValues: VALID_DONATION_STATUSES },
   blacklisted:                { ops: ["eq"],                  valueType: "boolean" },
+  donorType:                  { ops: ["eq", "in", "ne"],     valueType: "stringEnum", enumValues: VALID_DONOR_TYPES },
+  donorChannels:              { ops: ["eq", "in"],            valueType: "stringEnum", enumValues: VALID_DONOR_CHANNELS },
 };
 
 /* =========================================================
@@ -207,6 +213,8 @@ const FIELD_LABEL: Record<FilterField, string> = {
   campaignId: "캠페인",
   donationStatus: "후원 상태",
   blacklisted: "블랙 처리 여부",
+  donorType: "후원자 분류",
+  donorChannels: "후원 채널",
 };
 
 const OP_LABEL: Record<FilterOp, string> = {
@@ -431,6 +439,21 @@ function filterClauseToSql(f: FilterClause): ReturnType<typeof sql> | null {
       return want
         ? sql`(status = 'suspended' AND blacklist_reason IS NOT NULL)`
         : sql`(status <> 'suspended' OR blacklist_reason IS NULL)`;
+    }
+    case "donorType": {
+      if (f.op === "eq")  return sql`donor_type = ${f.value}`;
+      if (f.op === "ne")  return sql`(donor_type <> ${f.value} OR donor_type IS NULL)`;
+      if (f.op === "in")  return sql`donor_type = ANY(${f.values}::text[])`;
+      return null;
+    }
+    case "donorChannels": {
+      /* donor_channels는 JSONB 배열 — 특정 채널 포함 여부 */
+      if (f.op === "eq")  return sql`donor_channels @> ${JSON.stringify([f.value])}::jsonb`;
+      if (f.op === "in") {
+        const parts = (f.values as string[]).map(v => sql`donor_channels @> ${JSON.stringify([v])}::jsonb`);
+        return parts.reduce((a, b) => sql`${a} OR ${b}`);
+      }
+      return null;
     }
     default:
       return null;
