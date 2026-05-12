@@ -126,7 +126,7 @@
   function renderTable() {
     const tbody = $("tblBody");
     if (!state.rows.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">조건에 맞는 발송 작업이 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">조건에 맞는 발송 작업이 없습니다.</td></tr>`;
     } else {
       tbody.innerHTML = state.rows.map(r => {
         const status = String(r.status || "pending");
@@ -141,6 +141,13 @@
         const numLine = total > 0
           ? `${done.toLocaleString()} / ${total.toLocaleString()} (${pct.toFixed(1)}%)`
           : (status === "pending" ? "대기 중" : "-");
+        /* 실패/취소 시 [재시도] 버튼, 일부 실패 시 [실패만 재발송] 버튼 */
+        let actionBtn = "";
+        if (status === "failed" || status === "cancelled") {
+          actionBtn = `<button class="btn btn-sm" data-act="restart" data-id="${r.id}" title="작업 전체를 다시 시작 (대기열로 되돌림)">🔄 재시도</button>`;
+        } else if (status === "completed" && Number(r.failureCount || 0) > 0) {
+          actionBtn = `<button class="btn btn-sm" data-act="retry-failed" data-id="${r.id}" title="실패 수신자만 다시 발송">🔄 실패만 재발송</button>`;
+        }
         return `
           <tr data-id="${r.id}">
             <td class="col-id">#${r.id}</td>
@@ -157,6 +164,7 @@
                 <div class="progress-fill ${fillCls}" style="width:${pct}%;"></div>
               </div>
             </td>
+            <td class="col-action" style="white-space:nowrap">${actionBtn}</td>
           </tr>
         `;
       }).join("");
@@ -190,7 +198,50 @@
       if (state.page < totalPages) { state.page++; load(); }
     });
 
-    $("tblBody").addEventListener("click", (e) => {
+    $("tblBody").addEventListener("click", async (e) => {
+      /* 액션 버튼 클릭이면 row navigation 차단 */
+      const actBtn = e.target.closest("button[data-act]");
+      if (actBtn) {
+        e.stopPropagation();
+        const id = actBtn.dataset.id;
+        const act = actBtn.dataset.act;
+        if (act === "restart") {
+          if (!confirm("이 작업을 다시 시작하시겠습니까? 기존 수신자 기록이 초기화됩니다.")) return;
+          actBtn.disabled = true; actBtn.textContent = "재시도 중…";
+          try {
+            const res = await api({ method: "POST", url: "/api/admin-send-job-restart?id=" + encodeURIComponent(id) });
+            if (!res.ok) {
+              const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
+              showToast("재시도 실패: " + detail, "error");
+              actBtn.disabled = false; actBtn.textContent = "🔄 재시도";
+              return;
+            }
+            showToast(res.data?.message || "재시도 대기열에 등록되었습니다 (1분 내 자동 시작)");
+            setTimeout(() => load(), 800);
+          } catch (err) {
+            showToast("재시도 실패: " + (err.message || err), "error");
+            actBtn.disabled = false; actBtn.textContent = "🔄 재시도";
+          }
+        } else if (act === "retry-failed") {
+          if (!confirm("실패한 수신자에게만 다시 발송하시겠습니까?")) return;
+          actBtn.disabled = true; actBtn.textContent = "재시도 중…";
+          try {
+            const res = await api({ method: "POST", url: "/api/admin-send-job-retry-failed", body: { jobId: Number(id) } });
+            if (!res.ok) {
+              const detail = res.data?.error || res.data?.detail || ("HTTP " + res.status);
+              showToast("재시도 실패: " + detail, "error");
+              actBtn.disabled = false; actBtn.textContent = "🔄 실패만 재발송";
+              return;
+            }
+            showToast("재시도 요청 완료");
+            setTimeout(() => load(), 800);
+          } catch (err) {
+            showToast("재시도 실패: " + (err.message || err), "error");
+            actBtn.disabled = false; actBtn.textContent = "🔄 실패만 재발송";
+          }
+        }
+        return;
+      }
       const tr = e.target.closest("tr[data-id]");
       if (!tr) return;
       const id = tr.dataset.id;
