@@ -44,12 +44,27 @@ export default async (req: Request) => {
     const { email, password, remember } = (v as any).data;
     const wantRemember = remember === true;
 
-    /* 2. 이메일로 회원 조회 */
-    const [user] = await db
-      .select()
-      .from(members)
-      .where(eq(members.email, email))
-      .limit(1);
+    /* 2. 이메일/admin ID로 회원 조회
+     * - 입력에 '@' 포함 → 그대로 lookup
+     * - '@' 없으면 → 입력 그대로 1차 lookup, 없으면 '{id}@siren-org.kr' 2차 lookup
+     *   (admin-login.ts와 동일 매핑 — 'admin' 같은 비-이메일 ID 호환) */
+    const ADMIN_EMAIL_DOMAIN = process.env.ADMIN_EMAIL_DOMAIN || "siren-org.kr";
+    let user: any = null;
+    if (email.includes("@")) {
+      const [u] = await db.select().from(members).where(eq(members.email, email)).limit(1);
+      user = u;
+    } else {
+      /* 1차: 입력 그대로 (members.email에 'admin' 같은 비-이메일이 저장된 경우) */
+      const [u1] = await db.select().from(members).where(eq(members.email, email)).limit(1);
+      if (u1) {
+        user = u1;
+      } else {
+        /* 2차: '{id}@{ADMIN_EMAIL_DOMAIN}' 매핑 */
+        const adminEmail = `${email}@${ADMIN_EMAIL_DOMAIN}`;
+        const [u2] = await db.select().from(members).where(eq(members.email, adminEmail)).limit(1);
+        user = u2;
+      }
+    }
 
     /* ★ A-4: 이메일 미존재 시 더미 verify로 타이밍 공격 방어
        (실제 비밀번호와 절대 매칭되지 않는 해시이며, 단순히 시간 균일화 목적) */
