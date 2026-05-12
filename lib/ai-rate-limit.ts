@@ -54,62 +54,67 @@ export interface RateLimitResult {
   retryAtMs?: number;
 }
 
-/** 호출 직전에 한도 확인 + 통과 시 카운터 증가까지 한 번에 처리 */
+/** 호출 직전에 한도 확인 + 통과 시 카운터 증가까지 한 번에 처리.
+ *  multi-instance 안전 — DB가 진짜 카운트 보유, 메모리는 빠른 경로용. */
 export async function checkRateLimit(adminId: number | null | undefined): Promise<RateLimitResult> {
   const key = adminId == null ? "anon" : String(adminId);
   const now = Date.now();
   const arr = buckets.get(key) || [];
   pruneTimestamps(arr, 24 * 3600 * 1000);  /* 24h 초과분 정리 */
 
-  /* 메모리 카운터 ─ 분/시간/일 */
-  const lastMin   = arr.filter(t => t >= now - 60 * 1000).length;
-  const lastHour  = arr.filter(t => t >= now - 3600 * 1000).length;
-  const lastDay   = arr.length;
+  /* 메모리 카운터 — 이 인스턴스 한정 */
+  const memMin   = arr.filter(t => t >= now - 60 * 1000).length;
+  const memHour  = arr.filter(t => t >= now - 3600 * 1000).length;
+  const memDay   = arr.length;
 
-  /* DB 백업 (콜드 스타트 후에도 일 한도 유지) — 메모리가 낮을 때만 보조 확인 */
-  let dbDayCount = 0;
-  if (adminId != null && lastDay < RATE_PER_DAY) {
+  /* DB 카운터 — 모든 인스턴스 공유 (multi-instance 차단의 핵심) */
+  let dbMin = 0, dbHour = 0, dbDay = 0;
+  if (adminId != null) {
     try {
       const r: any = await db.execute(sql`
-        SELECT COALESCE(SUM(call_count), 0)::int AS cnt
-          FROM ai_rate_limit_log
-         WHERE admin_id = ${adminId}
-           AND window_type = 'day'
-           AND window_start >= NOW() - INTERVAL '24 hours'
+        SELECT
+          COALESCE(SUM(CASE WHEN window_type = 'minute' AND window_start >= NOW() - INTERVAL '1 minute' THEN call_count ELSE 0 END), 0)::int AS min_cnt,
+          COALESCE(SUM(CASE WHEN window_type = 'hour'   AND window_start >= NOW() - INTERVAL '1 hour'   THEN call_count ELSE 0 END), 0)::int AS hour_cnt,
+          COALESCE(SUM(CASE WHEN window_type = 'day'    AND window_start >= NOW() - INTERVAL '24 hours' THEN call_count ELSE 0 END), 0)::int AS day_cnt
+        FROM ai_rate_limit_log
+        WHERE admin_id = ${adminId}
       `);
-      dbDayCount = Number((r?.rows ?? r ?? [])[0]?.cnt) || 0;
-    } catch { /* 테이블 없으면 무시 */ }
+      const row = (r?.rows ?? r ?? [])[0] || {};
+      dbMin  = Number(row.min_cnt)  || 0;
+      dbHour = Number(row.hour_cnt) || 0;
+      dbDay  = Number(row.day_cnt)  || 0;
+    } catch { /* 테이블 없으면 메모리만 사용 */ }
   }
-  const effectiveDay = Math.max(lastDay, dbDayCount);
 
-  if (lastMin >= RATE_PER_MIN) {
-    const oldestInMin = arr.find(t => t >= now - 60 * 1000) ?? now;
-    return rateBlock("분당", RATE_PER_MIN, oldestInMin + 60 * 1000);
+  const effectiveMin  = Math.max(memMin,  dbMin);
+  const effectiveHour = Math.max(memHour, dbHour);
+  const effectiveDay  = Math.max(memDay,  dbDay);
+
+  if (effectiveMin >= RATE_PER_MIN) {
+    return rateBlock("분당", RATE_PER_MIN, now + 60 * 1000);
   }
-  if (lastHour >= RATE_PER_HOUR) {
-    const oldestInHour = arr.find(t => t >= now - 3600 * 1000) ?? now;
-    return rateBlock("시간당", RATE_PER_HOUR, oldestInHour + 3600 * 1000);
+  if (effectiveHour >= RATE_PER_HOUR) {
+    return rateBlock("시간당", RATE_PER_HOUR, now + 3600 * 1000);
   }
   if (effectiveDay >= RATE_PER_DAY) {
-    const oldestInDay = arr[0] ?? now;
-    return rateBlock("일", RATE_PER_DAY, oldestInDay + 24 * 3600 * 1000);
+    return rateBlock("일", RATE_PER_DAY, now + 24 * 3600 * 1000);
   }
 
-  /* 통과 — 카운터 증가 */
+  /* 통과 — 카운터 증가 (메모리 즉시 + DB는 백업) */
   arr.push(now);
   buckets.set(key, arr);
 
-  /* DB 백업 INSERT (fire-and-forget) — 일 단위 윈도우 시작은 자정 KST 대신 단순 UTC */
   if (adminId != null) {
-    void recordCallToDb(adminId, now);
+    /* DB 기록은 await — race condition에서도 다음 호출이 정확한 카운트 보게 */
+    await recordCallToDb(adminId, now);
   }
 
   return {
     ok: true,
     remaining: Math.min(
-      RATE_PER_MIN - lastMin - 1,
-      RATE_PER_HOUR - lastHour - 1,
-      RATE_PER_DAY - effectiveDay - 1,
+      RATE_PER_MIN  - effectiveMin  - 1,
+      RATE_PER_HOUR - effectiveHour - 1,
+      RATE_PER_DAY  - effectiveDay  - 1,
     ),
   };
 }
