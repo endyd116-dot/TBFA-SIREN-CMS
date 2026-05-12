@@ -109,7 +109,15 @@ export default async (req: Request, ctx: Context) => {
       });
     } catch (err: any) {
       console.error("[hyosung-contracts GET]", err);
-      return serverError("계약 목록 조회 실패", err);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "계약 목록 조회 실패",
+          detail: String(err?.message || err).slice(0, 500),
+          stack: String(err?.stack || "").slice(0, 800),
+        }),
+        { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
     }
   }
 

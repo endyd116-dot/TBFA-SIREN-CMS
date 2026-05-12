@@ -322,6 +322,39 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[admin-donor-prospect-list] hyosung_billings 합산 실패 — 0 fallback", err);
   }
 
+  /* 4-1c. 효성 hyosung_contracts fallback (member_no 또는 linked_member_id 매칭)
+   * hyosung_billings에 결제 기록이 없거나 m.hyosung_member_no 가 비어있어도
+   * contracts의 약정금액·약정 시작일은 표시 가능 — "장기 후원자 관리" 패턴 동일.
+   */
+  const hyosungContractFallbackMap = new Map<
+    number,
+    { lastDate: Date | null; lastAmount: number | null }
+  >();
+  try {
+    const rs: any = await db.execute(sql`
+      SELECT
+        COALESCE(hc.linked_member_id, m.id) AS member_id,
+        MAX(hc.billing_start) AS last_billing_start,
+        MAX(hc.product_amount) AS last_amount
+      FROM hyosung_contracts hc
+      LEFT JOIN members m ON m.hyosung_member_no = hc.member_no
+      WHERE (hc.linked_member_id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+         OR  m.id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)}))
+      GROUP BY COALESCE(hc.linked_member_id, m.id)
+    `);
+    const rows = Array.isArray(rs) ? rs : (rs as any).rows || [];
+    for (const r of rows) {
+      const mid = Number(r.member_id);
+      if (!mid) continue;
+      hyosungContractFallbackMap.set(mid, {
+        lastDate: r.last_billing_start ? new Date(r.last_billing_start) : null,
+        lastAmount: r.last_amount != null ? Number(r.last_amount) : null,
+      });
+    }
+  } catch (err) {
+    console.warn("[admin-donor-prospect-list] hyosung_contracts fallback 조회 실패", err);
+  }
+
   /* 4-2. cancelledChannel 결정용 — 토스 deactivated 정보 */
   const tossDeactMap = new Map<number, Date | null>();
   try {
@@ -366,6 +399,14 @@ export default async (req: Request, _ctx: Context) => {
       } else {
         stats.lastDate = donationsStats.lastDate || hyosungStats.lastDate;
         stats.lastAmount = donationsStats.lastAmount ?? hyosungStats.lastAmount;
+      }
+      /* donations·billings 모두 비었으면 hyosung_contracts 약정 정보로 폴백 */
+      if (!stats.lastDate) {
+        const cFallback = hyosungContractFallbackMap.get(id);
+        if (cFallback) {
+          stats.lastDate = cFallback.lastDate;
+          stats.lastAmount = cFallback.lastAmount;
+        }
       }
       const subtypeVal = (r.prospect_subtype === "onetime" || r.prospect_subtype === "cancelled")
         ? r.prospect_subtype

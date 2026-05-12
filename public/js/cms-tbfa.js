@@ -1032,7 +1032,11 @@
 
     const res = await api('/api/admin/hyosung-import-contracts?' + params.toString());
     if (!res.ok || !res.data?.data) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + (res.data?.error || '알 수 없음') + '</td></tr>';
+      var detailMsg = (res.data?.error || '알 수 없음');
+      if (res.data?.detail) detailMsg += ' — ' + res.data.detail;
+      if (res.status) detailMsg += ' (HTTP ' + res.status + ')';
+      console.error('[hyosung-contracts] 조회 실패', res);
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#c5293a">조회 실패: ' + detailMsg + '</td></tr>';
       return;
     }
 
@@ -2204,6 +2208,12 @@
   } else {
     init();
   }
+
+  /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 (★ 진짜 IIFE 내부) */
+  window._cmsApi   = api;
+  window._cmsToast = toast;
+  window._cmsEsc   = escapeHtml;
+  window._cmsFmt   = formatDate;
 })();
 /* ============================================================
    ★ Phase 2: 토스 빌링 자동 청구 관리
@@ -2701,24 +2711,193 @@ document.addEventListener('DOMContentLoaded', function() {
     potentialDonorQuery.linked = e.target.value; potentialDonorPage = 1; renderPotentialDonor();
   });
   document.getElementById('pdBtnRefresh')?.addEventListener('click', function() { renderPotentialDonor(); });
-  document.getElementById('pdBtnAdd')?.addEventListener('click', function() {
-    const name = prompt('이름 (필수):');
-    if (!name?.trim()) return;
-    const phone = prompt('연락처:', '');
-    const address = prompt('주소:', '');
-    const birthdate = prompt('생년월일 (YYYY-MM-DD):', '');
-    const eventName = prompt('이벤트·활동명:', '');
-    const entryPath = prompt('유입 경로:', '');
-    const memo = prompt('메모:', '');
-    api('/api/admin/potential-donor-crud', { method: 'POST', body: { name: name.trim(), phone, address, birthdate, eventName, entryPath, memo } })
-      .then(function(res) { if (!res.ok) return toast('등록 실패: ' + (res.data?.error || '')); toast('등록 완료'); renderPotentialDonor(); });
+  document.getElementById('pdBtnAdd')?.addEventListener('click', function() { openPdAddModal(); });
+
+  /* ── 모달 기본 동작 ── */
+  document.getElementById('pdAddModalClose')?.addEventListener('click', closePdAddModal);
+  document.getElementById('pdfBtnCancel')?.addEventListener('click', closePdAddModal);
+  document.getElementById('pdAddModal')?.addEventListener('click', function(e){
+    if (e.target.id === 'pdAddModal') closePdAddModal();
   });
-  /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 */
-  window._cmsApi   = api;
-  window._cmsToast = toast;
-  window._cmsEsc   = escapeHtml;
-  window._cmsFmt   = formatDate;
+
+  /* ── 탭 전환 ── */
+  document.querySelectorAll('.pd-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.pd-tab').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      var name = t.dataset.pdTab;
+      document.querySelectorAll('[data-pd-panel]').forEach(function(p){
+        p.style.display = p.dataset.pdPanel === name ? '' : 'none';
+      });
+    });
+  });
+
+  /* ── 직접 입력 폼 제출 ── */
+  document.getElementById('pdAddForm')?.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var payload = {
+      name:           document.getElementById('pdfName').value.trim(),
+      phone:          document.getElementById('pdfPhone').value.trim(),
+      birthdate:      document.getElementById('pdfBirthdate').value,
+      address:        document.getElementById('pdfAddress').value.trim(),
+      eventName:      document.getElementById('pdfEventName').value.trim(),
+      participatedAt: document.getElementById('pdfParticipatedAt').value,
+      entryPath:      document.getElementById('pdfEntryPath').value,
+      memo:           document.getElementById('pdfMemo').value.trim(),
+    };
+    if (!payload.name) { (window._cmsToast||alert)('이름은 필수입니다'); return; }
+    var btn = document.getElementById('pdfBtnSubmit');
+    btn.disabled = true; btn.textContent = '등록 중…';
+    try {
+      var res = await (window._cmsApi||api)('/api/admin/potential-donor-crud', { method:'POST', body: payload });
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP '+res.status);
+      (window._cmsToast||alert)('등록 완료');
+      closePdAddModal();
+      renderPotentialDonor();
+    } catch(err) {
+      (window._cmsToast||alert)('등록 실패: '+(err.message||err));
+    } finally {
+      btn.disabled = false; btn.textContent = '등록';
+    }
+  });
+
+  /* ── AI 자동 분석 흐름 ── */
+  document.getElementById('pdAiFile')?.addEventListener('change', function(e){
+    var f = e.target.files?.[0];
+    var info = document.getElementById('pdAiFileInfo');
+    if (info) info.textContent = f ? (f.name + ' · ' + Math.round(f.size/1024) + 'KB') : '';
+  });
+
+  document.getElementById('pdAiBtnExtract')?.addEventListener('click', async function(){
+    var fileInput = document.getElementById('pdAiFile');
+    var f = fileInput?.files?.[0];
+    if (!f) { (window._cmsToast||alert)('파일을 선택해주세요'); return; }
+
+    var btn = document.getElementById('pdAiBtnExtract');
+    btn.disabled = true; btn.textContent = '🤖 AI 분석 중…';
+
+    var eventNameHint = document.getElementById('pdAiEventHint').value.trim();
+    var entryPathHint = document.getElementById('pdAiEntryHint').value;
+
+    try {
+      var ext = (f.name.split('.').pop()||'').toLowerCase();
+      var body = { eventNameHint: eventNameHint, entryPathHint: entryPathHint };
+
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+        /* 엑셀·CSV: 클라이언트에서 SheetJS로 텍스트 변환 */
+        if (typeof XLSX === 'undefined') throw new Error('SheetJS 미로드');
+        var arrayBuf = await f.arrayBuffer();
+        var wb = XLSX.read(arrayBuf, { type: 'array' });
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        body.parsedText = rows.slice(0, 200).map(function(r){ return r.join(' | '); }).join('\n');
+      } else {
+        /* 사진·PDF: base64로 변환해서 AI에 직접 첨부 */
+        var b64 = await new Promise(function(resolve, reject){
+          var r = new FileReader();
+          r.onload = function(){ resolve(r.result); };
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        body.fileBase64 = b64;
+        body.mimeType   = f.type || (ext==='pdf'?'application/pdf':'image/jpeg');
+      }
+
+      var res = await (window._cmsApi||api)('/api/admin/potential-donor-ai-extract', { method:'POST', body: body });
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP '+res.status);
+      var items = res.data?.items || [];
+      _pdRenderAiPreview(items);
+    } catch(err) {
+      (window._cmsToast||alert)('AI 분석 실패: '+(err.message||err));
+    } finally {
+      btn.disabled = false; btn.textContent = '🤖 AI로 추출 시작';
+    }
+  });
+
+  document.getElementById('pdAiBtnReset')?.addEventListener('click', function(){
+    var prev = document.getElementById('pdAiPreview'); if (prev) prev.style.display = 'none';
+    var fileInput = document.getElementById('pdAiFile'); if (fileInput) fileInput.value = '';
+    var info = document.getElementById('pdAiFileInfo'); if (info) info.textContent = '';
+  });
+
+  document.getElementById('pdAiSelectAll')?.addEventListener('change', function(e){
+    document.querySelectorAll('#pdAiPreviewBody input[type=checkbox]').forEach(function(cb){ cb.checked = e.target.checked; });
+  });
+
+  document.getElementById('pdAiBtnImport')?.addEventListener('click', async function(){
+    var checks = document.querySelectorAll('#pdAiPreviewBody input[type=checkbox]:checked');
+    if (!checks.length) { (window._cmsToast||alert)('등록할 항목을 선택하세요'); return; }
+    var btn = document.getElementById('pdAiBtnImport');
+    btn.disabled = true; btn.textContent = '등록 중… (0/' + checks.length + ')';
+    var ok = 0, fail = 0;
+    for (var i = 0; i < checks.length; i++) {
+      try {
+        var data = JSON.parse(checks[i].dataset.item);
+        var res = await (window._cmsApi||api)('/api/admin/potential-donor-crud', { method:'POST', body: data });
+        if (res.ok) ok++; else fail++;
+      } catch { fail++; }
+      btn.textContent = '등록 중… (' + (i+1) + '/' + checks.length + ')';
+    }
+    (window._cmsToast||alert)('등록 완료: 성공 '+ok+'건 / 실패 '+fail+'건');
+    btn.disabled = false; btn.textContent = '선택 항목 일괄 등록';
+    closePdAddModal();
+    renderPotentialDonor();
+  });
 });
+
+/* ── 잠재 후원자 모달 헬퍼 (전역) ── */
+function openPdAddModal() {
+  var m = document.getElementById('pdAddModal');
+  if (!m) return;
+  /* 폼 초기화 */
+  ['pdfName','pdfPhone','pdfBirthdate','pdfAddress','pdfEventName','pdfParticipatedAt','pdfMemo','pdAiEventHint'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var sel = document.getElementById('pdfEntryPath'); if (sel) sel.value = '';
+  var sel2 = document.getElementById('pdAiEntryHint'); if (sel2) sel2.value = '';
+  var fileInput = document.getElementById('pdAiFile'); if (fileInput) fileInput.value = '';
+  var info = document.getElementById('pdAiFileInfo'); if (info) info.textContent = '';
+  var prev = document.getElementById('pdAiPreview'); if (prev) prev.style.display = 'none';
+  /* 직접 입력 탭으로 시작 */
+  document.querySelectorAll('.pd-tab').forEach(function(x){ x.classList.remove('active'); });
+  document.querySelector('.pd-tab[data-pd-tab="manual"]')?.classList.add('active');
+  document.querySelectorAll('[data-pd-panel]').forEach(function(p){
+    p.style.display = p.dataset.pdPanel === 'manual' ? '' : 'none';
+  });
+  m.style.display = 'flex';
+}
+
+function closePdAddModal() {
+  var m = document.getElementById('pdAddModal');
+  if (m) m.style.display = 'none';
+}
+
+function _pdRenderAiPreview(items) {
+  var prev = document.getElementById('pdAiPreview');
+  var body = document.getElementById('pdAiPreviewBody');
+  var cnt  = document.getElementById('pdAiPreviewCount');
+  if (!prev || !body) return;
+  if (cnt) cnt.textContent = items.length;
+  if (!items.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">추출된 항목이 없습니다</td></tr>';
+  } else {
+    var esc = window._cmsEsc || function(s){ return String(s||''); };
+    body.innerHTML = items.map(function(it){
+      var conf = Math.round((it.confidence||0)*100);
+      var confColor = conf >= 80 ? '#2e7d32' : conf >= 50 ? '#e65100' : '#c5293a';
+      return '<tr>'
+        +'<td><input type="checkbox" checked data-item="'+esc(JSON.stringify(it)).replace(/"/g,'&quot;')+'"></td>'
+        +'<td><strong>'+esc(it.name)+'</strong></td>'
+        +'<td>'+esc(it.phone||'—')+'</td>'
+        +'<td style="font-size:11.5px;color:#666">'+esc(it.address||'—')+'</td>'
+        +'<td style="font-size:11.5px">'+esc(it.eventName||'—')+'</td>'
+        +'<td style="font-family:Inter;color:'+confColor+';font-weight:600">'+conf+'%</td>'
+        +'</tr>';
+    }).join('');
+  }
+  prev.style.display = '';
+  var sel = document.getElementById('pdAiSelectAll'); if (sel) sel.checked = true;
+}
 
 /* ============================================================
    ★ 알림 발송 탭 통합 (notify-send)

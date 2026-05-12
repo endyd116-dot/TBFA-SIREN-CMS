@@ -166,6 +166,70 @@
     background: #e6f0ff;
     transform: scale(1.01);
   }
+
+  /* ============ 잠재 후원자 등록 모달 ============ */
+  .pd-modal-bg {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+    z-index: 9999; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px); padding: 20px;
+  }
+  .pd-modal-card {
+    background: #fff; border-radius: 14px; width: 100%; max-width: 720px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+  }
+  .pd-modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 24px; border-bottom: 1px solid #e8ecf3;
+    font-size: 15px; color: #1a2236;
+  }
+  .pd-modal-close {
+    background: none; border: none; font-size: 26px; cursor: pointer;
+    color: #94a3b8; line-height: 1; padding: 0 6px;
+  }
+  .pd-modal-close:hover { color: #c5293a; }
+  .pd-tabs {
+    display: flex; border-bottom: 1px solid #e8ecf3; padding: 0 24px;
+    background: #f8fafc;
+  }
+  .pd-tab {
+    background: none; border: none; padding: 12px 16px; font-size: 13px;
+    cursor: pointer; color: #64748b; border-bottom: 2px solid transparent;
+    font-weight: 500;
+  }
+  .pd-tab.active { color: #1a5ec4; border-bottom-color: #1a5ec4; font-weight: 700; }
+  .pd-form { padding: 22px 24px; }
+  .pd-form-grid {
+    display: grid; grid-template-columns: 110px 1fr; gap: 14px 16px;
+    align-items: center; margin-bottom: 18px;
+  }
+  .pd-form-grid label {
+    font-size: 12.5px; font-weight: 600; color: #475569; text-align: right;
+  }
+  .pd-form-grid input[type="text"],
+  .pd-form-grid input[type="tel"],
+  .pd-form-grid input[type="date"],
+  .pd-form-grid select,
+  .pd-form-grid textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1;
+    border-radius: 6px; font-size: 13px; font-family: inherit; background: #fff;
+    transition: border-color 0.15s;
+  }
+  .pd-form-grid input:focus, .pd-form-grid select:focus, .pd-form-grid textarea:focus {
+    outline: none; border-color: #1a5ec4; box-shadow: 0 0 0 3px rgba(26,94,196,0.1);
+  }
+  .pd-form-grid textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+  .pd-required { color: #c5293a; }
+  .pd-form-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding-top: 8px; border-top: 1px solid #f1f5f9;
+  }
+  .pd-ai-preview-wrap {
+    max-height: 320px; overflow-y: auto; border: 1px solid #e8ecf3;
+    border-radius: 8px; margin-bottom: 14px;
+  }
+  .pd-ai-preview-wrap .cms-tbl th {
+    position: sticky; top: 0; background: #f8fafc; z-index: 1;
+  }
 </style>
 </head>
 <body data-page="cms-tbfa">
@@ -1343,6 +1407,126 @@
           </table>
           <div class="cms-donor-pagination" id="pdPagination"></div>
         </div>
+
+        <!-- ============ 잠재 후원자 등록 모달 (디자인 폼 + AI 자동 분석) ============ -->
+        <div id="pdAddModal" class="pd-modal-bg" style="display:none">
+          <div class="pd-modal-card">
+            <div class="pd-modal-head">
+              <strong>🌱 잠재 후원자 등록</strong>
+              <button type="button" class="pd-modal-close" id="pdAddModalClose" aria-label="닫기">&times;</button>
+            </div>
+
+            <!-- 탭: 직접 입력 / AI 자동 분석 -->
+            <div class="pd-tabs">
+              <button type="button" class="pd-tab active" data-pd-tab="manual">📝 직접 입력</button>
+              <button type="button" class="pd-tab" data-pd-tab="ai">🤖 AI 자동 분석 (사진·PDF·엑셀)</button>
+            </div>
+
+            <!-- ── 직접 입력 폼 ── -->
+            <form id="pdAddForm" class="pd-form" data-pd-panel="manual">
+              <div class="pd-form-grid">
+                <label>이름 <span class="pd-required">*</span></label>
+                <input type="text" id="pdfName" required maxlength="50" placeholder="예) 홍길동">
+
+                <label>연락처</label>
+                <input type="tel" id="pdfPhone" maxlength="20" placeholder="010-1234-5678">
+
+                <label>생년월일</label>
+                <input type="date" id="pdfBirthdate">
+
+                <label>주소</label>
+                <input type="text" id="pdfAddress" maxlength="200" placeholder="서울특별시 강서구 ...">
+
+                <label>이벤트·활동명</label>
+                <input type="text" id="pdfEventName" maxlength="100" placeholder="예) 2026 봄 행사">
+
+                <label>참여일</label>
+                <input type="date" id="pdfParticipatedAt">
+
+                <label>유입 경로</label>
+                <select id="pdfEntryPath">
+                  <option value="">선택 안 함</option>
+                  <option value="event">이벤트·행사</option>
+                  <option value="referral">지인 추천</option>
+                  <option value="social">SNS</option>
+                  <option value="search">검색</option>
+                  <option value="offline">오프라인 홍보물</option>
+                  <option value="other">기타</option>
+                </select>
+
+                <label>메모</label>
+                <textarea id="pdfMemo" maxlength="300" rows="3" placeholder="특이사항·관계 등"></textarea>
+              </div>
+
+              <div class="pd-form-actions">
+                <button type="button" class="cms-btn cms-btn-ghost" id="pdfBtnCancel">취소</button>
+                <button type="submit" class="cms-btn cms-btn-primary" id="pdfBtnSubmit">등록</button>
+              </div>
+            </form>
+
+            <!-- ── AI 자동 분석 패널 ── -->
+            <div class="pd-form" data-pd-panel="ai" style="display:none">
+              <div style="background:#f0f7ff;border-left:3px solid #1a5ec4;padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:12.5px;color:#1a2236;line-height:1.6">
+                💡 <strong>이렇게 사용하세요:</strong><br>
+                · <strong>사진</strong> (참가자 명단 사진·명함·방명록 등) → 이미지 직접 업로드<br>
+                · <strong>PDF</strong> (행사 참가자 PDF) → 직접 업로드<br>
+                · <strong>엑셀</strong> (.xlsx, .xls, .csv) → 시트 내용을 자동 텍스트로 변환 후 AI 분석<br>
+                <span style="color:#666">AI가 이름·연락처·주소를 자동 추출해 미리보기로 보여줍니다. 확인 후 일괄 등록.</span>
+              </div>
+
+              <div class="pd-form-grid">
+                <label>파일</label>
+                <div>
+                  <input type="file" id="pdAiFile" accept="image/*,.pdf,.xlsx,.xls,.csv" style="font-size:13px">
+                  <div id="pdAiFileInfo" style="font-size:11.5px;color:#666;margin-top:4px"></div>
+                </div>
+
+                <label>이벤트·활동명</label>
+                <input type="text" id="pdAiEventHint" maxlength="100" placeholder="(선택) 추출된 모든 항목에 적용">
+
+                <label>유입 경로</label>
+                <select id="pdAiEntryHint">
+                  <option value="">선택 안 함</option>
+                  <option value="event">이벤트·행사</option>
+                  <option value="referral">지인 추천</option>
+                  <option value="social">SNS</option>
+                  <option value="offline">오프라인 홍보물</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+
+              <div class="pd-form-actions" style="margin-top:6px">
+                <button type="button" class="cms-btn cms-btn-primary" id="pdAiBtnExtract">🤖 AI로 추출 시작</button>
+              </div>
+
+              <!-- 추출 결과 미리보기 -->
+              <div id="pdAiPreview" style="display:none;margin-top:18px">
+                <div style="font-size:12.5px;font-weight:700;margin-bottom:8px;color:#1a2236">
+                  추출 결과 미리보기 (<span id="pdAiPreviewCount">0</span>건) — 체크된 항목만 등록됩니다
+                </div>
+                <div class="pd-ai-preview-wrap">
+                  <table class="cms-tbl" style="font-size:12px">
+                    <thead>
+                      <tr>
+                        <th style="width:36px"><input type="checkbox" id="pdAiSelectAll" checked></th>
+                        <th>이름</th>
+                        <th>연락처</th>
+                        <th>주소</th>
+                        <th>이벤트</th>
+                        <th style="width:60px">신뢰도</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pdAiPreviewBody"></tbody>
+                  </table>
+                </div>
+                <div class="pd-form-actions">
+                  <button type="button" class="cms-btn cms-btn-ghost" id="pdAiBtnReset">다시 분석</button>
+                  <button type="button" class="cms-btn cms-btn-primary" id="pdAiBtnImport">선택 항목 일괄 등록</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ============ 알림 발송 관리 ============ -->
@@ -1974,7 +2158,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-12-send"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-13-pd-ai"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
