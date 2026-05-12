@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-13 | **ai-cost** | **AI 비용 안전장치 Phase 1~4 + 어드민 UI ✅ 완료** — feature/ai-cost-safety @ ed651d4 / 20개 AI 기능 토글·기능별 한도·통합 로그 / lib(ai-feature·ai-cache·ai-rate-limit·ai-prompt-cache·ai-cost-monitor) / cron-ai-cost-alert(매일 09:00 임계·이상 패턴 이메일) / public/admin-ai-cost.html / 22개 호출 지점 featureKey 부착 / 미리보기 URL에서 검증 완료 / 다음: feature/ai-agent 머지 |
 | 2026-05-12 | **메인** | **싸이렌 어드민 4건 fix ✅ 완료** — Bug-A1(src 미정의 ReferenceError·bea850a) / Bug-A2(증빙파일 컬럼 추가·2509d79) / Bug-A3(외부기관 init+SQL fix·2509d79) / Bug-A4(page.* 시드 완료·진단함수 삭제·89f158c) / Swain 검증 대기 |
 | 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
 | 2026-05-12 | **메인** | **싸이렌 어드민 4건 fix 설계서 작성** — 메인 단독 작업용 / docs/milestones/2026-05-12-siren-admin-fixes.md / 4건(가입회원 멈춤·자격승인 증빙·외부기관 무반응·정적페이지) 사전 진단 완료 (Subagent) / 새 세션에서 진행 |
