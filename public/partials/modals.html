@@ -149,6 +149,59 @@
 </div>
 
 <!-- ============================================================
+     SirenEditor.uploadFile stub — editor.js 미로드 페이지에서
+     회원가입 모달의 증빙 업로드가 동작하도록 fallback 제공
+     ============================================================ -->
+<script>
+(function() {
+  if (window.SirenEditor && typeof window.SirenEditor.uploadFile === 'function') return;
+  window.SirenEditor = window.SirenEditor || {};
+  window.SirenEditor.uploadFile = async function(file, context) {
+    context = context || 'general';
+    /* 1. presign */
+    var presignRes = await fetch('/api/blob-presign', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalName: file.name,
+        mimeType:     file.type || 'application/octet-stream',
+        sizeBytes:    file.size,
+        context:      context,
+        isPublic:     false,
+      }),
+    });
+    if (!presignRes.ok) {
+      var e1 = await presignRes.json().catch(function(){return{};});
+      throw new Error('presign 실패: ' + (e1.error || presignRes.status));
+    }
+    var presignJ = await presignRes.json();
+    var presignData = presignJ.data || presignJ;
+
+    /* 2. R2 PUT */
+    var putRes = await fetch(presignData.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error('R2 업로드 실패 (' + putRes.status + ')');
+
+    /* 3. confirm */
+    var confirmRes = await fetch('/api/blob-confirm', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: presignData.id }),
+    });
+    if (!confirmRes.ok) {
+      var e2 = await confirmRes.json().catch(function(){return{};});
+      throw new Error('confirm 실패: ' + (e2.error || confirmRes.status));
+    }
+    var confirmJ = await confirmRes.json();
+    return confirmJ.data || confirmJ;
+  };
+})();
+</script>
+
+<!-- ============================================================
      PASSWORD RESET REQUEST MODAL (★ K-1)
      ============================================================ -->
 <div id="passwordResetModal" class="modal-bg" data-modal>
