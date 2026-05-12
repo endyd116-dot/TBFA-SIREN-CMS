@@ -157,8 +157,9 @@
   <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=5"></script>
   <script src="/js/about.js?v=m11"></script>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=6082d30d107baf30d2fd17f14a2f48e7&autoload=false"></script>
   <script>
-    function initKakaoMap() {
+    kakao.maps.load(function () {
       var container = document.getElementById('kakao-map');
       if (!container) return;
       var options = { center: new kakao.maps.LatLng(37.5596, 126.8018), level: 4 };
@@ -168,8 +169,7 @@
         content: '<div style="padding:6px 10px;font-size:13px;white-space:nowrap;">(사)교사유가족협의회<br>공항대로 426 VIP오피스텔 618호</div>'
       });
       infowindow.open(map, marker);
-    }
+    });
   </script>
-  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=6082d30d107baf30d2fd17f14a2f48e7&onload=initKakaoMap"></script>
 </body>
 </html>
