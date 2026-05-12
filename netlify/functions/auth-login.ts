@@ -167,22 +167,9 @@ export default async (req: Request) => {
       maxAge: wantRemember ? REMEMBER_MAX_AGE : null,
     });
 
-    /* 7-b. admin 또는 operator 계정이면 admin 토큰도 함께 발급
-     * → 헤더의 '관리자 모드 들어가기' 버튼 클릭 시 별도 인증 없이 즉시 진입 */
-    let adminCookie: string | null = null;
+    /* 7-b. admin 또는 operator 식별 (admin 토큰은 별도 elevate API로 발급) */
     const isAdmin    = user.type === "admin";
     const isOperator = (user as any).operatorActive === true;
-    if (isAdmin || isOperator) {
-      const adminToken = signAdminToken({
-        uid:   user.id,
-        email: user.email,
-        role:  isAdmin ? "super_admin" : "operator",
-        name:  user.name,
-      });
-      adminCookie = buildCookie("siren_admin_token", adminToken, {
-        maxAge: wantRemember ? REMEMBER_MAX_AGE : null,
-      });
-    }
 
     /* 8. 감사 로그 */
     await logUserAction(req, user.id, user.name, "login_success", {
@@ -202,13 +189,11 @@ export default async (req: Request) => {
           isOperator,
           canAdminMode: isAdmin || isOperator,
         },
-        /* token 필드 제거 — 인증은 httpOnly 쿠키로만 */
       },
       "로그인되었습니다. 환영합니다 :)"
     );
-    /* Set-Cookie 헤더는 두 번 추가 가능 — append 사용 */
-    res.headers.append("Set-Cookie", cookie);
-    if (adminCookie) res.headers.append("Set-Cookie", adminCookie);
+    /* siren_token만 발급 — admin 토큰은 '관리자 모드' 클릭 시 /api/auth/admin-elevate 호출 */
+    res.headers.set("Set-Cookie", cookie);
     return res;
   } catch (err) {
     console.error("[auth-login]", err);

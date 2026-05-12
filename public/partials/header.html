@@ -11,7 +11,7 @@
       <a href="#" data-action="open-modal" data-target="loginModal" id="topbarLogin">로그인</a>
       <a href="#" data-action="open-modal" data-target="signupModal" id="topbarSignup">회원가입</a>
       <a href="/mypage.html" id="topbarMypage">마이페이지</a>
-      <a href="/cms-tbfa.html" id="topbarAdminMode" class="d-none"
+      <a href="#" id="topbarAdminMode" class="d-none"
          style="background:#7a1f2b;color:#fff;padding:4px 10px;border-radius:4px;font-weight:600;margin:0 4px">
         🛡 관리자 모드
       </a>
@@ -152,6 +152,29 @@
         e.preventDefault();
         try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
         location.href = '/index.html';
+      });
+    }
+    /* '관리자 모드' 클릭 시 admin 토큰 발급 후 cms 진입 */
+    var adminBtn = document.getElementById('topbarAdminMode');
+    if (adminBtn && !adminBtn.dataset.bound) {
+      adminBtn.dataset.bound = '1';
+      adminBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        adminBtn.style.opacity = '0.6';
+        try {
+          var r = await fetch('/api/auth/admin-elevate', { method: 'POST', credentials: 'include' });
+          var j = await r.json().catch(function(){ return {}; });
+          if (!r.ok) {
+            alert('관리자 모드 진입 실패: ' + (j.error || ('HTTP ' + r.status)));
+            adminBtn.style.opacity = '1';
+            return;
+          }
+          var redirect = (j.data && j.data.redirect) || j.redirect || '/cms-tbfa.html';
+          location.href = redirect;
+        } catch (err) {
+          alert('관리자 모드 진입 실패: ' + (err && err.message || err));
+          adminBtn.style.opacity = '1';
+        }
       });
     }
     refreshHeaderAuthUI();
