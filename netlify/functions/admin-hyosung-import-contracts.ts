@@ -88,14 +88,16 @@ export default async (req: Request, ctx: Context) => {
       const total = countRes.rows?.[0]?.c ?? countRes[0]?.c ?? 0;
 
       /* linked_member_id 존재하는 row의 members 이름 JOIN */
-      const linkedIds = list.map((r: any) => r.linkedMemberId).filter(Boolean);
+      const linkedIds = list.map((r: any) => Number(r.linkedMemberId)).filter(n => Number.isInteger(n) && n > 0);
       let memberNameMap: Record<number, string> = {};
       if (linkedIds.length > 0) {
-        const memberRows = await db
-          .select({ id: members.id, name: members.name })
-          .from(members)
-          .where(sql`${members.id} = ANY(${linkedIds})`);
-        memberNameMap = Object.fromEntries(memberRows.map(m => [m.id, m.name]));
+        /* drizzle이 number[]를 PG int[]로 자동 캐스팅 못 해서 ANY 에러 발생 → 명시 캐스팅 */
+        const memberRowsRes: any = await db.execute(sql`
+          SELECT id, name FROM members
+          WHERE id = ANY(${sql.raw(`ARRAY[${linkedIds.join(",")}]::int[]`)})
+        `);
+        const memberRows = memberRowsRes?.rows ?? memberRowsRes ?? [];
+        memberNameMap = Object.fromEntries(memberRows.map((m: any) => [Number(m.id), m.name]));
       }
 
       const enriched = list.map((r: any) => ({

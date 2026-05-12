@@ -20,6 +20,7 @@ const SUPPORTED_MIME = ["image/jpeg", "image/png", "image/webp", "application/pd
 
 interface ExtractedItem {
   name: string;
+  email?: string;
   phone?: string;
   address?: string;
   birthdate?: string;
@@ -90,6 +91,7 @@ ${parsedText || "(파일 첨부 본문 분석)"}
   "items": [
     {
       "name": "홍길동",
+      "email": "hong@example.com",
       "phone": "010-1234-5678",
       "address": "서울특별시 강남구 ...",
       "birthdate": "1985-03-15",
@@ -123,6 +125,7 @@ ${parsedText || "(파일 첨부 본문 분석)"}
       .filter((i) => i.name && i.name.trim().length > 0)
       .map((i) => ({
         name: String(i.name).trim().slice(0, 50),
+        email: i.email ? String(i.email).trim().slice(0, 200) : "",
         phone: i.phone ? String(i.phone).trim().slice(0, 30) : "",
         address: i.address ? String(i.address).trim().slice(0, 200) : "",
         birthdate: i.birthdate ? String(i.birthdate).trim().slice(0, 10) : "",

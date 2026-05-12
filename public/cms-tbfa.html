@@ -1333,6 +1333,7 @@
               <button class="cms-btn cms-btn-ghost" id="dpBtnExportCsv" type="button">📥 CSV</button>
               <button class="cms-btn cms-btn-ghost" id="dpBtnExportXlsx" type="button">📊 엑셀</button>
               <button class="cms-btn cms-btn-ghost" id="dpBtnRefresh">새로고침</button>
+              <button class="cms-btn cms-btn-primary" id="dpBtnAdd" type="button">＋ 등록</button>
             </div>
           </div>
 
@@ -1342,6 +1343,8 @@
                 <th>회원번호</th>
                 <th>이름</th>
                 <th>연락처</th>
+                <th>이벤트·캠페인</th>
+                <th>채널</th>
                 <th>분류</th>
                 <th>중단일</th>
                 <th>마지막 후원일</th>
@@ -1352,10 +1355,123 @@
               </tr>
             </thead>
             <tbody id="dpBody">
-              <tr><td colspan="10" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+              <tr><td colspan="12" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
             </tbody>
           </table>
           <div class="cms-donor-pagination" id="dpPagination"></div>
+        </div>
+
+        <!-- ============ 예비 후원자 등록 모달 (디자인 폼 + AI 자동 분석) ============ -->
+        <div id="dpAddModal" class="pd-modal-bg" style="display:none">
+          <div class="pd-modal-card">
+            <div class="pd-modal-head">
+              <strong>💡 예비 후원자 등록</strong>
+              <button type="button" class="pd-modal-close" id="dpAddModalClose" aria-label="닫기">&times;</button>
+            </div>
+
+            <div class="pd-tabs">
+              <button type="button" class="pd-tab active" data-dp-tab="manual">📝 직접 입력</button>
+              <button type="button" class="pd-tab" data-dp-tab="ai">🤖 AI 자동 분석 (사진·PDF·엑셀)</button>
+            </div>
+
+            <!-- ── 직접 입력 폼 ── -->
+            <form id="dpAddForm" class="pd-form" data-dp-panel="manual">
+              <div class="pd-form-grid">
+                <label>이름 <span class="pd-required">*</span></label>
+                <input type="text" id="dpfName" required maxlength="50" placeholder="예) 홍길동">
+
+                <label>이메일</label>
+                <input type="email" id="dpfEmail" maxlength="200" placeholder="example@email.com">
+
+                <label>연락처</label>
+                <input type="tel" id="dpfPhone" maxlength="20" placeholder="010-1234-5678">
+
+                <label>이벤트·캠페인</label>
+                <input type="text" id="dpfEventName" maxlength="150" placeholder="예) 2026 봄 캠페인 / 5월 기부 행사">
+
+                <label>유입 경로</label>
+                <select id="dpfEntryPath">
+                  <option value="">선택 안 함</option>
+                  <option value="event">이벤트·행사</option>
+                  <option value="campaign">캠페인</option>
+                  <option value="referral">지인 추천</option>
+                  <option value="social">SNS</option>
+                  <option value="search">검색</option>
+                  <option value="offline">오프라인 홍보물</option>
+                  <option value="other">기타</option>
+                </select>
+
+                <label>메모</label>
+                <textarea id="dpfMemo" maxlength="500" rows="3" placeholder="특이사항·참여 내역 등"></textarea>
+              </div>
+
+              <div class="pd-form-actions">
+                <button type="button" class="cms-btn cms-btn-ghost" id="dpfBtnCancel">취소</button>
+                <button type="submit" class="cms-btn cms-btn-primary" id="dpfBtnSubmit">등록</button>
+              </div>
+            </form>
+
+            <!-- ── AI 자동 분석 패널 ── -->
+            <div class="pd-form" data-dp-panel="ai" style="display:none">
+              <div style="background:#fff7e6;border-left:3px solid #c47a00;padding:12px 14px;border-radius:6px;margin-bottom:14px;font-size:12.5px;color:#1a2236;line-height:1.6">
+                💡 <strong>이렇게 사용하세요:</strong><br>
+                · <strong>사진·PDF</strong> (캠페인 후원자 명단·기부 신청서) → 직접 업로드<br>
+                · <strong>엑셀</strong> (.xlsx, .xls, .csv) → 시트 자동 텍스트 변환 후 AI 분석<br>
+                <span style="color:#666">AI가 이름·연락처·이메일을 자동 추출 → 미리보기 → 일괄 등록 (donor_type='prospect')</span>
+              </div>
+
+              <div class="pd-form-grid">
+                <label>파일</label>
+                <div>
+                  <input type="file" id="dpAiFile" accept="image/*,.pdf,.xlsx,.xls,.csv" style="font-size:13px">
+                  <div id="dpAiFileInfo" style="font-size:11.5px;color:#666;margin-top:4px"></div>
+                </div>
+
+                <label>이벤트·캠페인</label>
+                <input type="text" id="dpAiEventHint" maxlength="150" placeholder="(선택) 추출된 모든 항목에 적용 — 예: 2026 봄 캠페인">
+
+                <label>유입 경로</label>
+                <select id="dpAiEntryHint">
+                  <option value="">선택 안 함</option>
+                  <option value="event">이벤트·행사</option>
+                  <option value="campaign">캠페인</option>
+                  <option value="referral">지인 추천</option>
+                  <option value="social">SNS</option>
+                  <option value="offline">오프라인 홍보물</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+
+              <div class="pd-form-actions" style="margin-top:6px">
+                <button type="button" class="cms-btn cms-btn-primary" id="dpAiBtnExtract">🤖 AI로 추출 시작</button>
+              </div>
+
+              <div id="dpAiPreview" style="display:none;margin-top:18px">
+                <div style="font-size:12.5px;font-weight:700;margin-bottom:8px;color:#1a2236">
+                  추출 결과 미리보기 (<span id="dpAiPreviewCount">0</span>건) — 체크된 항목만 등록됩니다
+                </div>
+                <div class="pd-ai-preview-wrap">
+                  <table class="cms-tbl" style="font-size:12px">
+                    <thead>
+                      <tr>
+                        <th style="width:36px"><input type="checkbox" id="dpAiSelectAll" checked></th>
+                        <th>이름</th>
+                        <th>연락처</th>
+                        <th>이메일</th>
+                        <th>캠페인</th>
+                        <th style="width:60px">신뢰도</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dpAiPreviewBody"></tbody>
+                  </table>
+                </div>
+                <div class="pd-form-actions">
+                  <button type="button" class="cms-btn cms-btn-ghost" id="dpAiBtnReset">다시 분석</button>
+                  <button type="button" class="cms-btn cms-btn-primary" id="dpAiBtnImport">선택 항목 일괄 등록</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1817,7 +1933,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-13-iframe"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-13-prosp"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

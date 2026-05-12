@@ -55,6 +55,11 @@ export interface AdminDonorProspect {
   cancelledChannel: DonorChannel | null;
   cancelledAt: string | null;
   donorEvaluatedAt: string;
+  /* 캠페인·이벤트 구분 — migrate-prospect-event-name 적용 후 활성 */
+  eventName: string | null;
+  entryPath: string | null;
+  /* 어떤 채널 데이터로 누적이 채워졌는지 표시용 */
+  donorChannel: "donations" | "hyosung" | "contract" | null;
 }
 
 export interface AdminDonorProspectResponse {
@@ -204,6 +209,25 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 4. 보조 조회 */
   const memberIds = memberRows.map((r) => Number(r.id)).filter((n) => Number.isInteger(n) && n > 0);
+
+  /* 4-0. prospect_event_name·entry_path 별도 조회 (마이그레이션 미적용 시 빈 맵 폴백) */
+  const eventInfoMap = new Map<number, { eventName: string | null; entryPath: string | null }>();
+  if (memberIds.length > 0) {
+    try {
+      const r: any = await db.execute(sql`
+        SELECT id, prospect_event_name, prospect_entry_path
+        FROM members
+        WHERE id = ANY(${sql.raw(`ARRAY[${memberIds.join(",")}]::int[]`)})
+      `);
+      const rows = Array.isArray(r) ? r : (r as any).rows || [];
+      for (const x of rows) {
+        eventInfoMap.set(Number(x.id), {
+          eventName: x.prospect_event_name || null,
+          entryPath: x.prospect_entry_path || null,
+        });
+      }
+    } catch (_e) { /* 컬럼 미존재 시 무시 — 마이그레이션 호출 전에는 빈 값 */ }
+  }
 
   /* 4-1. donations 통계 + 마지막 후원 */
   const donationStatsMap = new Map<
@@ -441,6 +465,14 @@ export default async (req: Request, _ctx: Context) => {
         }
       }
 
+      /* 어떤 채널로 누적이 채워졌는지 표시용 */
+      let donorChannel: "donations" | "hyosung" | "contract" | null = null;
+      if (donationsStats.count > 0)        donorChannel = "donations";
+      else if (hyosungStats.count > 0)     donorChannel = "hyosung";
+      else if (hyosungContractFallbackMap.has(id)) donorChannel = "contract";
+
+      const eventInfo = eventInfoMap.get(id) || { eventName: null, entryPath: null };
+
       return {
         id,
         name: r.name || "",
@@ -456,6 +488,9 @@ export default async (req: Request, _ctx: Context) => {
         donorEvaluatedAt: r.donor_evaluated_at
           ? new Date(r.donor_evaluated_at).toISOString()
           : new Date(0).toISOString(),
+        eventName: eventInfo.eventName,
+        entryPath: eventInfo.entryPath,
+        donorChannel,
       };
     });
   } catch (err) {

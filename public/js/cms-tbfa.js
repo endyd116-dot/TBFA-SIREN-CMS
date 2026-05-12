@@ -1980,16 +1980,25 @@
     renderDonorProspectKpi(resp.kpi || null);
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>`;
       renderDonorProspectPagination(0);
       return;
     }
+
+    const channelBadge = (ch) => {
+      if (ch === 'hyosung')   return '<span class="cms-badge cms-b-info" title="효성 CMS+">효성</span>';
+      if (ch === 'donations') return '<span class="cms-badge cms-b-success" title="토스/일반 후원">토스</span>';
+      if (ch === 'contract')  return '<span class="cms-badge cms-b-warn" title="효성 약정만 등록 (수납 기록 없음)">약정</span>';
+      return '<span style="color:#bbb">—</span>';
+    };
 
     tbody.innerHTML = rows.map(d => `
       <tr>
         <td>M-${String(d.id).padStart(5,'0')}</td>
         <td><strong>${escapeHtml(d.name || '')}</strong></td>
         <td style="font-family:Inter;font-size:11.5px">${escapeHtml(d.phone || '—')}</td>
+        <td style="font-size:12px">${escapeHtml(d.eventName || '—')}</td>
+        <td>${channelBadge(d.donorChannel)}</td>
         <td>${renderProspectSubtypeBadge(d)}</td>
         <td style="font-family:Inter;font-size:11.5px;color:${d.cancelledAt ? '#c5293a' : '#aaa'}">${d.cancelledAt ? formatDate(d.cancelledAt) : '—'}</td>
         <td style="font-family:Inter;font-size:11.5px">${formatDate(d.lastDonationDate)}</td>
@@ -2843,7 +2852,204 @@ document.addEventListener('DOMContentLoaded', function() {
     closePdAddModal();
     renderPotentialDonor();
   });
+
+  /* ============================================================
+     예비 후원자 등록 모달 (members INSERT donor_type=prospect)
+     ============================================================ */
+  document.getElementById('dpBtnAdd')?.addEventListener('click', function() { openDpAddModal(); });
+  document.getElementById('dpAddModalClose')?.addEventListener('click', closeDpAddModal);
+  document.getElementById('dpfBtnCancel')?.addEventListener('click', closeDpAddModal);
+  document.getElementById('dpAddModal')?.addEventListener('click', function(e){
+    if (e.target.id === 'dpAddModal') closeDpAddModal();
+  });
+
+  /* 탭 전환 */
+  document.querySelectorAll('#dpAddModal .pd-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('#dpAddModal .pd-tab').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      var name = t.dataset.dpTab;
+      document.querySelectorAll('#dpAddModal [data-dp-panel]').forEach(function(p){
+        p.style.display = p.dataset.dpPanel === name ? '' : 'none';
+      });
+    });
+  });
+
+  /* 직접 입력 폼 제출 */
+  document.getElementById('dpAddForm')?.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var payload = {
+      name:      document.getElementById('dpfName').value.trim(),
+      email:     document.getElementById('dpfEmail').value.trim(),
+      phone:     document.getElementById('dpfPhone').value.trim(),
+      eventName: document.getElementById('dpfEventName').value.trim(),
+      entryPath: document.getElementById('dpfEntryPath').value,
+      memo:      document.getElementById('dpfMemo').value.trim(),
+    };
+    if (!payload.name) { (window._cmsToast||alert)('이름은 필수입니다'); return; }
+    var btn = document.getElementById('dpfBtnSubmit');
+    btn.disabled = true; btn.textContent = '등록 중…';
+    try {
+      var res = await (window._cmsApi||api)('/api/admin/prospect-donor-create', { method:'POST', body: payload });
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP '+res.status);
+      (window._cmsToast||alert)(res.data?.message || '등록 완료');
+      closeDpAddModal();
+      renderDonorProspect();
+    } catch(err) {
+      (window._cmsToast||alert)('등록 실패: '+(err.message||err));
+    } finally {
+      btn.disabled = false; btn.textContent = '등록';
+    }
+  });
+
+  /* AI 자동 분석 */
+  document.getElementById('dpAiFile')?.addEventListener('change', function(e){
+    var f = e.target.files?.[0];
+    var info = document.getElementById('dpAiFileInfo');
+    if (info) info.textContent = f ? (f.name + ' · ' + Math.round(f.size/1024) + 'KB') : '';
+  });
+
+  document.getElementById('dpAiBtnExtract')?.addEventListener('click', async function(){
+    var fileInput = document.getElementById('dpAiFile');
+    var f = fileInput?.files?.[0];
+    if (!f) { (window._cmsToast||alert)('파일을 선택해주세요'); return; }
+
+    var btn = document.getElementById('dpAiBtnExtract');
+    btn.disabled = true; btn.textContent = '🤖 AI 분석 중…';
+
+    var eventNameHint = document.getElementById('dpAiEventHint').value.trim();
+    var entryPathHint = document.getElementById('dpAiEntryHint').value;
+
+    try {
+      var ext = (f.name.split('.').pop()||'').toLowerCase();
+      var body = { eventNameHint: eventNameHint, entryPathHint: entryPathHint };
+
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+        if (typeof XLSX === 'undefined') throw new Error('SheetJS 미로드');
+        var arrayBuf = await f.arrayBuffer();
+        var wb = XLSX.read(arrayBuf, { type: 'array' });
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        body.parsedText = rows.slice(0, 200).map(function(r){ return r.join(' | '); }).join('\n');
+      } else {
+        var b64 = await new Promise(function(resolve, reject){
+          var r = new FileReader();
+          r.onload = function(){ resolve(r.result); };
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        body.fileBase64 = b64;
+        body.mimeType   = f.type || (ext==='pdf'?'application/pdf':'image/jpeg');
+      }
+
+      /* 잠재 후원자용 추출 API 재사용 (범용 — 이름·연락처·이메일 추출) */
+      var res = await (window._cmsApi||api)('/api/admin/potential-donor-ai-extract', { method:'POST', body: body });
+      if (!res.ok) throw new Error(res.data?.error || 'HTTP '+res.status);
+      var items = res.data?.items || [];
+      _dpRenderAiPreview(items);
+    } catch(err) {
+      (window._cmsToast||alert)('AI 분석 실패: '+(err.message||err));
+    } finally {
+      btn.disabled = false; btn.textContent = '🤖 AI로 추출 시작';
+    }
+  });
+
+  document.getElementById('dpAiBtnReset')?.addEventListener('click', function(){
+    var prev = document.getElementById('dpAiPreview'); if (prev) prev.style.display = 'none';
+    var fileInput = document.getElementById('dpAiFile'); if (fileInput) fileInput.value = '';
+    var info = document.getElementById('dpAiFileInfo'); if (info) info.textContent = '';
+  });
+
+  document.getElementById('dpAiSelectAll')?.addEventListener('change', function(e){
+    document.querySelectorAll('#dpAiPreviewBody input[type=checkbox]').forEach(function(cb){ cb.checked = e.target.checked; });
+  });
+
+  document.getElementById('dpAiBtnImport')?.addEventListener('click', async function(){
+    var checks = document.querySelectorAll('#dpAiPreviewBody input[type=checkbox]:checked');
+    if (!checks.length) { (window._cmsToast||alert)('등록할 항목을 선택하세요'); return; }
+    var btn = document.getElementById('dpAiBtnImport');
+    btn.disabled = true; btn.textContent = '등록 중… (0/' + checks.length + ')';
+    var ok = 0, fail = 0, dup = 0;
+    for (var i = 0; i < checks.length; i++) {
+      try {
+        var item = JSON.parse(checks[i].dataset.item);
+        /* potential_donor_ai_extract 응답을 prospect-donor-create 형식으로 변환 */
+        var payload = {
+          name:      item.name,
+          email:     item.email || '',
+          phone:     item.phone,
+          eventName: item.eventName,
+          entryPath: item.entryPath,
+          memo:      item.memo,
+        };
+        var res = await (window._cmsApi||api)('/api/admin/prospect-donor-create', { method:'POST', body: payload });
+        if (res.ok) ok++;
+        else if (res.status === 409 || res.data?.step === 'duplicate') dup++;
+        else fail++;
+      } catch { fail++; }
+      btn.textContent = '등록 중… (' + (i+1) + '/' + checks.length + ')';
+    }
+    var msg = '등록 완료: 성공 '+ok+'건';
+    if (dup > 0)  msg += ' / 중복 '+dup+'건';
+    if (fail > 0) msg += ' / 실패 '+fail+'건';
+    (window._cmsToast||alert)(msg);
+    btn.disabled = false; btn.textContent = '선택 항목 일괄 등록';
+    closeDpAddModal();
+    renderDonorProspect();
+  });
 });
+
+/* ── 예비 후원자 모달 헬퍼 (전역) ── */
+function openDpAddModal() {
+  var m = document.getElementById('dpAddModal');
+  if (!m) return;
+  ['dpfName','dpfEmail','dpfPhone','dpfEventName','dpfMemo','dpAiEventHint'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var sel = document.getElementById('dpfEntryPath'); if (sel) sel.value = '';
+  var sel2 = document.getElementById('dpAiEntryHint'); if (sel2) sel2.value = '';
+  var fileInput = document.getElementById('dpAiFile'); if (fileInput) fileInput.value = '';
+  var info = document.getElementById('dpAiFileInfo'); if (info) info.textContent = '';
+  var prev = document.getElementById('dpAiPreview'); if (prev) prev.style.display = 'none';
+  document.querySelectorAll('#dpAddModal .pd-tab').forEach(function(x){ x.classList.remove('active'); });
+  document.querySelector('#dpAddModal .pd-tab[data-dp-tab="manual"]')?.classList.add('active');
+  document.querySelectorAll('#dpAddModal [data-dp-panel]').forEach(function(p){
+    p.style.display = p.dataset.dpPanel === 'manual' ? '' : 'none';
+  });
+  m.style.display = 'flex';
+}
+
+function closeDpAddModal() {
+  var m = document.getElementById('dpAddModal');
+  if (m) m.style.display = 'none';
+}
+
+function _dpRenderAiPreview(items) {
+  var prev = document.getElementById('dpAiPreview');
+  var body = document.getElementById('dpAiPreviewBody');
+  var cnt  = document.getElementById('dpAiPreviewCount');
+  if (!prev || !body) return;
+  if (cnt) cnt.textContent = items.length;
+  if (!items.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">추출된 항목이 없습니다</td></tr>';
+  } else {
+    var esc = window._cmsEsc || function(s){ return String(s||''); };
+    body.innerHTML = items.map(function(it){
+      var conf = Math.round((it.confidence||0)*100);
+      var confColor = conf >= 80 ? '#2e7d32' : conf >= 50 ? '#e65100' : '#c5293a';
+      return '<tr>'
+        +'<td><input type="checkbox" checked data-item="'+esc(JSON.stringify(it)).replace(/"/g,'&quot;')+'"></td>'
+        +'<td><strong>'+esc(it.name)+'</strong></td>'
+        +'<td>'+esc(it.phone||'—')+'</td>'
+        +'<td style="font-size:11.5px;color:#666">'+esc(it.email||'—')+'</td>'
+        +'<td style="font-size:11.5px">'+esc(it.eventName||'—')+'</td>'
+        +'<td style="font-family:Inter;color:'+confColor+';font-weight:600">'+conf+'%</td>'
+        +'</tr>';
+    }).join('');
+  }
+  prev.style.display = '';
+  var sel = document.getElementById('dpAiSelectAll'); if (sel) sel.checked = true;
+}
 
 /* ── 잠재 후원자 모달 헬퍼 (전역) ── */
 function openPdAddModal() {
