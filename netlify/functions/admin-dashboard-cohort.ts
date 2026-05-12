@@ -44,24 +44,21 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const months = Math.min(24, Math.max(1, Number(url.searchParams.get("months") || "6")));
 
+  /* JS에서 기준 날짜 계산 → 문자열로 SQL에 직접 삽입 (interval 파라미터 바인딩 문제 회피) */
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+  const sinceStr = since.toISOString();
+
   /* 가입월 기준 코호트 분석 */
   let cohorts: any[];
   try {
-    /*
-      각 가입 코호트(월)별:
-      - newMembers: 해당 월 신규 가입자
-      - firstDonationRate: 기간 내 첫 후원 전환율
-      - regularConvertRate: 정기 후원 전환율
-      - churnRate: 이탈(탈퇴) 비율
-      - avgDaysToFirstDonation: 첫 후원까지 평균 일수
-    */
     const cohortRes = await db.execute(sql`
       WITH cohort_base AS (
         SELECT
           id AS member_id,
           DATE_TRUNC('month', created_at) AS cohort_month
         FROM members
-        WHERE created_at >= NOW() - (${months} * interval '1 month')
+        WHERE created_at >= ${sinceStr}::timestamptz
           AND type NOT IN ('admin', 'operator')
       ),
       first_donations AS (

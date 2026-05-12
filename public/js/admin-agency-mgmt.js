@@ -28,8 +28,10 @@
     $section = document.getElementById('adm-agency-mgmt');
     if (!$section) return;
 
-    renderShell();
-    bindEvents();
+    if (!document.getElementById('amgList')) {
+      renderShell();
+      bindEvents();
+    }
     loadAgencies();
   }
 
@@ -356,8 +358,7 @@
   ──────────────────────────────────────────────── */
   document.addEventListener('siren:page', function (e) {
     if (e.detail && e.detail.page === 'agency-mgmt') {
-      if (!$section) init();
-      else loadAgencies();
+      init();
     }
   });
 
@@ -367,15 +368,7 @@
   });
 
   /* 전역 노출 (SPA 라우터가 호출할 수 있도록) */
-  function reload() {
-    $section = document.getElementById('adm-agency-mgmt');
-    if (!$section) return;
-    if (!document.getElementById('amgList')) {
-      renderShell();
-      bindEvents();
-    }
-    loadAgencies();
-  }
+  function reload() { init(); }
   window.adminAgencyMgmt = { init: init, reload: reload };
 
 })();

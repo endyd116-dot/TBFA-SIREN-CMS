@@ -209,13 +209,31 @@
           return;
         }
         var wrap = document.querySelector('.siren-stats-wrap');
-        var content = wrap ? wrap.innerHTML : document.getElementById('stats-charts-area').innerHTML;
+        var source = wrap || document.getElementById('stats-charts-area');
+        if (!source) return;
+
+        /* canvas → img 변환 후 복제 */
+        var clone = source.cloneNode(true);
+        var origCanvases = source.querySelectorAll('canvas');
+        var cloneCanvases = clone.querySelectorAll('canvas');
+        origCanvases.forEach(function (cv, i) {
+          try {
+            var img = document.createElement('img');
+            img.src = cv.toDataURL('image/png');
+            img.style.cssText = 'width:100%;max-width:' + cv.width + 'px;height:auto;display:block;margin:8px 0';
+            var cloneCv = cloneCanvases[i];
+            if (cloneCv && cloneCv.parentNode) cloneCv.parentNode.replaceChild(img, cloneCv);
+          } catch (e) {}
+        });
+
+        var content = clone.innerHTML;
         var w = window.open('', '_blank', 'width=1000,height=800');
         if (!w) { toast('팝업이 차단됐습니다. 팝업 허용 후 다시 시도해주세요.'); return; }
         w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>신고 통계 PDF</title>'
           + '<style>body{font-family:sans-serif;padding:24px;color:#1e293b}'
           + 'table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:8px 12px;font-size:13px}'
           + '.no-print{display:none!important}'
+          + 'img{max-width:100%;height:auto}'
           + '</style></head><body>' + content + '<script>window.onload=function(){window.print();window.close();}<\/script></body></html>');
         w.document.close();
       });
