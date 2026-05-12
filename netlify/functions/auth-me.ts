@@ -37,6 +37,7 @@ export default async (req: Request) => {
         agreeEmail: members.agreeEmail,
         agreeSms: members.agreeSms,
         agreeMail: members.agreeMail,
+        operatorActive: members.operatorActive, /* 운영자 토글 */
         lastLoginAt: members.lastLoginAt,
         createdAt: members.createdAt,
       })
@@ -66,7 +67,9 @@ export default async (req: Request) => {
         )
       );
 
-    /* 5. 응답 */
+    /* 5. 응답 — admin/operator 식별 필드 포함 */
+    const isAdmin    = user.type === "admin";
+    const isOperator = (user as any).operatorActive === true;
     return ok({
       user: {
         id: user.id,
@@ -81,6 +84,9 @@ export default async (req: Request) => {
         agreeMail: user.agreeMail,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
+        isAdmin,
+        isOperator,
+        canAdminMode: isAdmin || isOperator,
       },
       stats: {
         totalAmount: Number(stats?.totalAmount ?? 0),

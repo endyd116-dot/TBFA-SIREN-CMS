@@ -1,15 +1,21 @@
 <!-- ============================================================
      TOP BAR
      ============================================================ -->
+<style>.d-none{display:none !important;}</style>
 <div class="topbar">
   <div class="container row">
     <select class="related-select" id="relatedSitesSelect" aria-label="관련 사이트 바로가기">
       <option value="">관련 사이트 바로가기</option>
     </select>
     <div class="top-right">
-      <a href="#" data-action="open-modal" data-target="loginModal">로그인</a>
-      <a href="#" data-action="open-modal" data-target="signupModal">회원가입</a>
-      <a href="/mypage.html">마이페이지</a>
+      <a href="#" data-action="open-modal" data-target="loginModal" id="topbarLogin">로그인</a>
+      <a href="#" data-action="open-modal" data-target="signupModal" id="topbarSignup">회원가입</a>
+      <a href="/mypage.html" id="topbarMypage">마이페이지</a>
+      <a href="/cms-tbfa.html" id="topbarAdminMode" class="d-none"
+         style="background:#7a1f2b;color:#fff;padding:4px 10px;border-radius:4px;font-weight:600;margin:0 4px">
+        🛡 관리자 모드
+      </a>
+      <a href="#" id="topbarLogout" class="d-none">로그아웃</a>
       <!-- ★ M-3: 알림 벨 -->
       <div id="siren-notification-bell" style="margin: 0 8px;"></div>
 
@@ -111,3 +117,49 @@
     </button>
   </div>
 </header>
+
+<!-- ============================================================
+     상단 헤더 토글 — 로그인 상태 + 관리자 모드 버튼 (inline script)
+     ============================================================ -->
+<script>
+(function() {
+  function _toggle(id, show) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('d-none', !show);
+  }
+  async function refreshHeaderAuthUI() {
+    try {
+      var r = await fetch('/api/auth/me', { credentials: 'include' });
+      var loggedIn = r.ok;
+      var u = null;
+      if (loggedIn) {
+        var j = await r.json().catch(function(){ return {}; });
+        u = (j && j.data && j.data.user) || (j && j.user) || null;
+      }
+      var canAdmin = !!(u && (u.canAdminMode || u.isAdmin || u.isOperator || u.type === 'admin'));
+      _toggle('topbarLogin',     !loggedIn);
+      _toggle('topbarSignup',    !loggedIn);
+      _toggle('topbarMypage',    loggedIn);
+      _toggle('topbarLogout',    loggedIn);
+      _toggle('topbarAdminMode', loggedIn && canAdmin);
+    } catch (_) { /* 네트워크 오류 시 기본 (비로그인) 표시 유지 */ }
+  }
+  function bindHeaderAuthUI() {
+    var logoutBtn = document.getElementById('topbarLogout');
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = '1';
+      logoutBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+        location.href = '/index.html';
+      });
+    }
+    refreshHeaderAuthUI();
+  }
+  /* 헤더가 partial로 로드되는 페이지 + 직접 인라인된 페이지 모두 지원 */
+  document.addEventListener('partials:loaded', bindHeaderAuthUI);
+  if (document.readyState !== 'loading') setTimeout(bindHeaderAuthUI, 600);
+  else document.addEventListener('DOMContentLoaded', function() { setTimeout(bindHeaderAuthUI, 600); });
+  window.refreshHeaderAuthUI = refreshHeaderAuthUI;
+})();
+</script>

@@ -36,8 +36,10 @@ export type SignupInput = z.infer<typeof signupSchema>;
 /* =========================================================
    로그인
    ========================================================= */
+/* 통합 로그인 — email 필드는 일반 회원의 이메일 또는 admin의 ID 모두 허용
+ * (이메일 형식 강제 제거 — admin 계정이 'admin' 같은 비-이메일 ID여도 로그인 가능) */
 export const loginSchema = z.object({
-  email: emailField,
+  email: z.string().trim().toLowerCase().min(1, "ID를 입력해주세요").max(200),
   password: z.string().min(1, "비밀번호를 입력해주세요"),
   remember: z.boolean().optional(),
 });
