@@ -28,6 +28,9 @@ import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
 
+/* === Phase 1~4 비용 안전장치 === */
+import { recordTokenUsage, checkMonthlyBudget } from "../../lib/ai-cost-monitor";
+
 export const config = { path: "/api/admin-ai-agent" };
 
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
@@ -82,7 +85,7 @@ interface GeminiContent {
   parts: any[];
 }
 
-async function callGeminiWithTools(contents: GeminiContent[]): Promise<any> {
+async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: any; model: string }> {
   const body = {
     contents,
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -103,7 +106,7 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<any> {
       });
       if (r.ok) {
         if (i > 0) console.info(`[ai-agent] 폴백 #${i + 1} 성공: ${model}`);
-        return await r.json();
+        return { data: await r.json(), model };
       }
       const errText = await r.text().catch(() => "");
       lastError = `${model} → ${r.status}: ${errText.slice(0, 300)}`;
@@ -131,6 +134,15 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
+
+  /* === Phase 1: 월 비용 한도 체크 === */
+  const budget = await checkMonthlyBudget();
+  if (!budget.ok) {
+    return new Response(JSON.stringify({
+      ok: false, error: "월 AI 비용 한도 초과", step: "budget_exceeded",
+      detail: budget.message, used: budget.used, limit: budget.limit,
+    }), { status: 429, headers: JSON_HEADER });
+  }
 
   let body: any = {};
   try { body = await req.json(); } catch { return jsonError("parse", "JSON 파싱 실패", 400); }
@@ -197,7 +209,22 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
-      const geminiRes = await callGeminiWithTools(messages);
+      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages);
+
+      /* === Phase 1: 토큰 사용량 기록 (Gemini 응답 직후) === */
+      try {
+        const usage = geminiRes?.usageMetadata || {};
+        const inputTok = Number(usage.promptTokenCount) || 0;
+        const outputTok = Number(usage.candidatesTokenCount) || 0;
+        const cachedTok = Number(usage.cachedContentTokenCount) || 0;
+        if (inputTok > 0 || outputTok > 0) {
+          await recordTokenUsage({
+            adminId, conversationId, model: usedModel,
+            inputTokens: inputTok, outputTokens: outputTok, cachedTokens: cachedTok,
+          });
+        }
+      } catch (_) { /* 비용 기록 실패는 무시 — 응답은 정상 진행 */ }
+
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
         finalReply = "AI가 응답하지 않았습니다.";
@@ -308,11 +335,17 @@ export default async (req: Request, _ctx: Context) => {
     `);
   } catch (_) { /* 저장 실패는 무시 — 응답은 정상 */ }
 
+  /* === Phase 1: 경고 임계 도달 시 응답에 안내 메시지 동봉 === */
+  const replyWithWarn = budget.warn
+    ? `${finalReply || "(응답 없음)"}\n\n${budget.message}`
+    : (finalReply || "(응답 없음)");
+
   return new Response(JSON.stringify({
     ok: true,
     conversationId,
-    reply: finalReply || "(응답 없음)",
+    reply: replyWithWarn,
     toolCalls: executedTools,
     pendingApproval,
+    costWarning: budget.warn ? budget.message : undefined,
   }), { status: 200, headers: JSON_HEADER });
 };

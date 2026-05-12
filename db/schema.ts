@@ -2743,3 +2743,49 @@ export type NewServiceRnr = typeof serviceRnr.$inferInsert;
      defaultWbsView:  varchar("default_wbs_view", { length: 20 }).default("board"),
 */
 
+/* =========================================================
+   === Phase 1~4 AI 비용 안전장치 === (2026-05-13)
+   migrate-ai-cost-tracking 호출 후 활성화
+   ---------------------------------------------------------
+   ai_agent_logs에 추가될 컬럼 (마이그 후 schema에 정의 추가):
+     inputTokens:  integer("input_tokens"),
+     outputTokens: integer("output_tokens"),
+     costUsd:      numeric("cost_usd", { precision: 10, scale: 6 }),
+     model:        varchar("model", { length: 60 }),
+
+   ⚠️ ai_agent_logs 정의가 schema.ts에 없음(생짜 SQL로 운영 중).
+       drizzle SELECT를 쓰지 않으므로 컬럼 정의 추가는 선택사항.
+       현재는 raw SQL(db.execute)로만 쓰이므로 안전.
+   ========================================================= */
+
+/* ----- 1) ai_cost_summary — 일·월 비용 집계 ----- */
+export const aiCostSummary = pgTable("ai_cost_summary", {
+  id:                  bigserial("id", { mode: "number" }).primaryKey(),
+  periodType:          varchar("period_type", { length: 10 }).notNull(),   // 'daily' | 'monthly'
+  periodKey:           varchar("period_key", { length: 20 }).notNull(),     // '2026-05-13' | '2026-05'
+  totalInputTokens:    bigint("total_input_tokens", { mode: "number" }).default(0).notNull(),
+  totalOutputTokens:   bigint("total_output_tokens", { mode: "number" }).default(0).notNull(),
+  totalCostUsd:        numeric("total_cost_usd", { precision: 12, scale: 6 }).default("0").notNull(),
+  callCount:           integer("call_count").default(0).notNull(),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/* ----- 2) ai_rate_limit_log — 분/시간/일 카운터 DB 백업 ----- */
+export const aiRateLimitLog = pgTable("ai_rate_limit_log", {
+  id:           bigserial("id", { mode: "number" }).primaryKey(),
+  adminId:      integer("admin_id"),
+  windowStart:  timestamp("window_start", { withTimezone: true }).notNull(),
+  windowType:   varchar("window_type", { length: 10 }).notNull(),  // 'minute' | 'hour' | 'day'
+  callCount:    integer("call_count").default(0).notNull(),
+});
+
+/* ----- 3) ai_prompt_cache — Gemini Context Caching id 보존 (Phase 4) ----- */
+export const aiPromptCache = pgTable("ai_prompt_cache", {
+  id:         bigserial("id", { mode: "number" }).primaryKey(),
+  cacheKey:   varchar("cache_key", { length: 120 }).notNull(),
+  cacheName:  text("cache_name").notNull(),
+  model:      varchar("model", { length: 60 }).notNull(),
+  expiresAt:  timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
