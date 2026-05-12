@@ -163,7 +163,13 @@
       logoutBtn.dataset.bound = '1';
       logoutBtn.addEventListener('click', async function(e) {
         e.preventDefault();
-        try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+        /* 일반 토큰 + admin 토큰 둘 다 삭제 (병렬) */
+        try {
+          await Promise.allSettled([
+            fetch('/api/auth/logout',  { method: 'POST', credentials: 'include' }),
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }),
+          ]);
+        } catch (_) {}
         location.href = '/index.html';
       });
     }
