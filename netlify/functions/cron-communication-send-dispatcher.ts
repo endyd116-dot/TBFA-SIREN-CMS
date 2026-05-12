@@ -64,6 +64,26 @@ export default async function handler(_req: Request) {
         await startJob(job);
         stats.pendingPicked++;
       } catch (err: any) {
+        console.error(`[cron-dispatcher] startJob 실패 jobId=${job.id}`, err);
+        stats.pendingFailed++;
+        try {
+          const detail = String(err?.message || err).slice(0, 200);
+          const stackLine = String(err?.stack || "").split("\n").slice(0, 6).join(" | ").slice(0, 300);
+          await db.execute(sql`
+            UPDATE communication_send_jobs
+               SET status = 'failed',
+                   last_error = ${"[startJob] " + detail + " | STACK: " + stackLine},
+                   updated_at = NOW()
+             WHERE id = ${job.id}
+          `);
+        } catch (_) {}
+        continue;
+      }
+      try {
+        /* startJob 직후 즉시 1차 chunk 처리 (즉시 발송) */
+        await processChunk(job);
+        stats.chunksSent++;
+      } catch (err: any) {
         console.error(`[cron-dispatcher] pending 시작 실패 jobId=${job.id}`, err);
         stats.pendingFailed++;
         try {
@@ -105,9 +125,12 @@ export default async function handler(_req: Request) {
         console.error(`[cron-dispatcher] processing chunk 실패 jobId=${job.id}`, err);
         stats.chunksFailed++;
         try {
+          /* stack 일부 포함 — 정확한 위치 파악 */
+          const detail = String(err?.message || err).slice(0, 200);
+          const stackLine = String(err?.stack || "").split("\n").slice(0, 6).join(" | ").slice(0, 300);
           await db.execute(sql`
             UPDATE communication_send_jobs
-               SET last_error = ${String(err?.message || err).slice(0, 500)},
+               SET last_error = ${detail + " | STACK: " + stackLine},
                    updated_at = NOW()
              WHERE id = ${job.id}
           `);
@@ -318,12 +341,15 @@ async function processChunk(job: any) {
     const result = await sendViaAdapter(
       channel,
       {
-        id: rec.member_id,
-        name: rec.member_name,
-        email: rec.member_email,
-        phone: rec.member_phone,
+        id:    Number(rec.member_id) || 0,
+        name:  rec.member_name == null ? null : String(rec.member_name),
+        email: rec.member_email == null ? null : String(rec.member_email),
+        phone: rec.member_phone == null ? null : String(rec.member_phone),
       },
-      { subject: rec.rendered_subject || undefined, body: rec.rendered_body || "" },
+      {
+        subject: rec.rendered_subject == null ? undefined : String(rec.rendered_subject),
+        body:    rec.rendered_body == null ? "" : String(rec.rendered_body),
+      },
     );
 
     if (result.ok) {
