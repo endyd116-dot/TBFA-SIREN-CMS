@@ -91,7 +91,53 @@ interface GeminiContent {
   parts: any[];
 }
 
-async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: any; model: string }> {
+/* === 동적 도구 로딩 — 의도별 도구 그룹 === */
+interface ToolGroup { name: string; tools: string[]; keywords: string[] }
+
+const TOOL_GROUPS: ToolGroup[] = [
+  { name: "members",  tools: ["members_search", "members_stats", "members_recent", "members_detail"],
+    keywords: ["회원", "가입", "유족", "유가족", "후원회원", "신규", "탈퇴"] },
+  { name: "donations", tools: ["donations_recent", "donations_stats", "donations_by_member"],
+    keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제"] },
+  { name: "siren",    tools: ["incidents_list", "incidents_detail", "harassment_reports_list", "legal_consultations_list"],
+    keywords: ["사건", "신고", "악성", "민원", "법률", "상담", "siren", "SIREN", "교권", "괴롭힘"] },
+  { name: "board",    tools: ["board_posts_list", "notice_create"],
+    keywords: ["게시판", "공지", "공고", "글", "포스트", "알림글"] },
+  { name: "campaign", tools: ["campaigns_list", "campaigns_detail", "campaign_create"],
+    keywords: ["캠페인", "카피", "광고", "모금"] },
+  { name: "workspace", tools: ["tasks_list", "notifications_recent"],
+    keywords: ["작업", "할 일", "할일", "태스크", "워크스페이스", "투두", "todo"] },
+  { name: "notifications", tools: ["notifications_recent"],
+    keywords: ["알림", "안내", "공지"] },
+  { name: "kpi",      tools: ["kpi_summary"],
+    keywords: ["지표", "통계", "KPI", "현황", "요약", "대시보드"] },
+  { name: "content",  tools: ["content_pages_list", "content_pages_update"],
+    keywords: ["페이지", "콘텐츠", "정적", "내용"] },
+  { name: "nav",      tools: ["nav_menus_list"],
+    keywords: ["메뉴", "네비", "내비게이션"] },
+];
+
+/** 의도 분류 — 키워드 매칭. 매칭 0개 또는 4개 이상이면 전체 도구 (null) */
+function selectRelevantTools(userMessage: string): string[] | null {
+  const text = userMessage || "";
+  const matched: ToolGroup[] = [];
+  for (const g of TOOL_GROUPS) {
+    for (const kw of g.keywords) {
+      if (text.includes(kw)) { matched.push(g); break; }
+    }
+  }
+  if (matched.length === 0) return null;   // 의도 불명 → 안전하게 전체
+  if (matched.length >= 4) return null;    // 너무 광범위 → 전체
+
+  const set = new Set<string>();
+  for (const g of matched) for (const t of g.tools) set.add(t);
+  return Array.from(set);
+}
+
+async function callGeminiWithTools(
+  contents: GeminiContent[],
+  toolDeclarations: any[]
+): Promise<{ data: any; model: string }> {
   /* === Phase 4: Context Caching 시도 (32k 미달 시 자동 폴백) === */
   let lastError = "";
   for (let i = 0; i < MODEL_CHAIN.length; i++) {
@@ -101,7 +147,7 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: a
     const cachedName = await ensurePromptCache({
       model,
       systemPrompt: SYSTEM_PROMPT,
-      tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+      tools: [{ functionDeclarations: toolDeclarations }],
     });
 
     const body: any = cachedName
@@ -113,7 +159,7 @@ async function callGeminiWithTools(contents: GeminiContent[]): Promise<{ data: a
       : {
           contents,
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+          tools: [{ functionDeclarations: toolDeclarations }],
           generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
         };
 
@@ -213,6 +259,15 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err) { return jsonError("create_conv", err); }
   }
 
+  /* === 동적 도구 로딩 — 첫 사용자 메시지로 의도 분류 → 관련 도구만 전송 === */
+  const selectedToolNames = userMessage ? selectRelevantTools(userMessage) : null;
+  const toolDeclarations: any[] = selectedToolNames
+    ? (TOOL_DECLARATIONS as any[]).filter((t: any) => selectedToolNames.includes(t.name))
+    : (TOOL_DECLARATIONS as any[]);
+  if (selectedToolNames) {
+    console.info(`[ai-agent] 동적 도구 ${toolDeclarations.length}/${(TOOL_DECLARATIONS as any[]).length}개 선택: ${selectedToolNames.join(", ")}`);
+  }
+
   /* 2. 사용자 메시지 추가 */
   if (userMessage) {
     messages.push({ role: "user", parts: [{ text: userMessage }] });
@@ -245,7 +300,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
-      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages);
+      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations);
 
       /* === Phase 1.5: 토큰 사용량 기록 (Gemini 응답 직후) === */
       try {
