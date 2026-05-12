@@ -229,6 +229,10 @@
           'toss-billing': '💳 토스 빌링 (자동 청구)',
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
           'donation-dashboard': '🔍 종합 검증 대시보드',
+          'ai-chat':    '🤖 AI 비서 — 대화 시작',
+          'ai-history': '📜 AI 비서 — 대화 이력',
+          'ai-logs':    '📊 AI 비서 — 도구 사용 로그',
+          'ai-config':  '⚙️ AI 비서 — 설정·도구 관리',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -257,6 +261,11 @@
           }
         }
         else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
+        /* ★ AI 에이전트 4개 섹션 */
+        else if (tab === 'ai-chat')    renderAiChat();
+        else if (tab === 'ai-history') renderAiHistory();
+        else if (tab === 'ai-logs')    renderAiLogs();
+        else if (tab === 'ai-config')  renderAiConfig();
       });
     });
 
@@ -3542,3 +3551,176 @@ function renderSendTemplate()    { _nfLoadIframe('page-send-template'); }
 function renderRecipientGroups() { _nfLoadIframe('page-recipient-groups'); }
 function renderAutoTrigger()     { _nfLoadIframe('page-auto-trigger'); }
 function renderSendAnalytics()   { _nfLoadIframe('page-send-analytics'); }
+
+/* ================================================================
+   ★ AI 에이전트 4개 섹션 (Phase A)
+   ================================================================ */
+function renderAiChat() { _nfLoadIframe('page-ai-chat'); }
+
+async function renderAiHistory() {
+  var tbody = document.getElementById('aiHistoryBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  try {
+    var res = await (window._cmsApi || api)('/api/admin-ai-conversations-list?limit=50');
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    var rows = res.data?.rows || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#888">아직 AI 대화 기록이 없습니다</td></tr>';
+      return;
+    }
+    var esc = window._cmsEsc || function(s){ return String(s||''); };
+    var fmt = window._cmsFmt || function(s){ return String(s||''); };
+    tbody.innerHTML = rows.map(function(r){
+      return '<tr>'
+        + '<td style="font-family:Inter;font-size:11px">#'+r.id+'</td>'
+        + '<td><strong>'+esc(r.title || '제목 없음')+'</strong></td>'
+        + '<td>'+esc(r.admin_name || '#'+r.admin_id)+'</td>'
+        + '<td style="text-align:right;font-family:Inter">'+(r.message_count||0)+'</td>'
+        + '<td style="font-family:Inter;font-size:11px">'+fmt(r.updated_at)+'</td>'
+        + '<td><button class="cms-btn-link" data-aih-detail="'+r.id+'">상세</button></td>'
+        + '</tr>';
+    }).join('');
+
+    /* 상세 버튼 이벤트 */
+    tbody.querySelectorAll('[data-aih-detail]').forEach(function(b){
+      b.addEventListener('click', function(){
+        _aiHistoryOpenDetail(Number(b.dataset.aihDetail));
+      });
+    });
+  } catch(err) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#c5293a">조회 실패: '+(err.message||err)+'</td></tr>';
+  }
+}
+
+async function _aiHistoryOpenDetail(id) {
+  var panel = document.getElementById('aiHistoryDetail');
+  var titleEl = document.getElementById('aiHistoryDetailTitle');
+  var body = document.getElementById('aiHistoryDetailBody');
+  if (!panel || !body) return;
+  panel.style.display = '';
+  body.innerHTML = '<div style="padding:20px;color:#888">불러오는 중…</div>';
+
+  try {
+    var res = await (window._cmsApi || api)('/api/admin-ai-conversation-detail?id=' + id);
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    var conv = res.data?.conversation || {};
+    var logs = res.data?.logs || [];
+    var msgs = Array.isArray(conv.messages) ? conv.messages : [];
+    titleEl.textContent = '대화 #' + id + ' — ' + (conv.title || '');
+
+    var esc = window._cmsEsc || function(s){ return String(s||''); };
+    var msgHtml = msgs.map(function(m){
+      var who = m.role === 'user' ? '👤 사용자' : (m.role === 'model' ? '🤖 AI' : m.role);
+      var bg = m.role === 'user' ? '#eff6ff' : '#f8fafc';
+      var text = (m.parts || []).filter(function(p){ return p.text; }).map(function(p){ return p.text; }).join('\n');
+      var fnCalls = (m.parts || []).filter(function(p){ return p.functionCall; });
+      var fnHtml = fnCalls.map(function(p){
+        return '<div style="background:#fff8e1;padding:6px 10px;border-radius:4px;margin-top:4px;font-size:11px;font-family:monospace">🔧 '+esc(p.functionCall.name)+'('+esc(JSON.stringify(p.functionCall.args).slice(0,200))+')</div>';
+      }).join('');
+      return '<div style="background:'+bg+';padding:10px 14px;border-radius:6px;margin-bottom:8px">'
+        + '<div style="font-size:11px;color:#64748b;margin-bottom:4px">'+who+'</div>'
+        + '<div style="white-space:pre-wrap;font-size:13px">'+esc(text)+'</div>'
+        + fnHtml
+        + '</div>';
+    }).join('');
+
+    var logsHtml = logs.length ? '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12px;color:#64748b">🔍 도구 호출 로그 '+logs.length+'건</summary><div style="margin-top:8px">' +
+      logs.map(function(l){
+        var color = l.status === 'ok' ? '#16a34a' : '#c5293a';
+        return '<div style="padding:6px 10px;border-left:3px solid '+color+';background:#fafafa;margin-bottom:4px;font-size:11.5px;font-family:monospace">'
+          + '<b>'+esc(l.tool_name)+'</b> ['+l.status+'] '+l.duration_ms+'ms'
+          + (l.error ? '<br><span style="color:#c5293a">'+esc(l.error)+'</span>' : '')
+          + '</div>';
+      }).join('') + '</div></details>' : '';
+
+    body.innerHTML = msgHtml + logsHtml;
+  } catch(err) {
+    body.innerHTML = '<div style="padding:20px;color:#c5293a">조회 실패: '+(err.message||err)+'</div>';
+  }
+}
+
+async function renderAiLogs() {
+  /* 통계 + 최근 50건 동시 */
+  var statsBody = document.getElementById('aiToolStatsBody');
+  var logsBody  = document.getElementById('aiLogsBody');
+  if (statsBody) statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+  if (logsBody)  logsBody.innerHTML  = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888">불러오는 중…</td></tr>';
+
+  var esc = window._cmsEsc || function(s){ return String(s||''); };
+  var fmt = window._cmsFmt || function(s){ return String(s||''); };
+
+  try {
+    var statsRes = await (window._cmsApi || api)('/api/admin-ai-logs-list?stats=1');
+    if (statsRes.ok && statsBody) {
+      var stats = statsRes.data?.stats || [];
+      if (!stats.length) statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#888">아직 도구 호출이 없습니다</td></tr>';
+      else statsBody.innerHTML = stats.map(function(s){
+        return '<tr>'
+          + '<td style="font-family:monospace"><b>'+esc(s.tool_name)+'</b></td>'
+          + '<td style="text-align:right;font-family:Inter">'+s.total_count+'</td>'
+          + '<td style="text-align:right;font-family:Inter;color:#16a34a">'+s.ok_count+'</td>'
+          + '<td style="text-align:right;font-family:Inter;color:#c5293a">'+s.error_count+'</td>'
+          + '<td style="text-align:right;font-family:Inter">'+(s.avg_duration_ms||0)+'</td>'
+          + '<td style="font-family:Inter;font-size:11px">'+fmt(s.last_called_at)+'</td>'
+          + '</tr>';
+      }).join('');
+    }
+  } catch(err) {
+    if (statsBody) statsBody.innerHTML = '<tr><td colspan="6" style="color:#c5293a;padding:30px;text-align:center">'+(err.message||err)+'</td></tr>';
+  }
+
+  try {
+    var logsRes = await (window._cmsApi || api)('/api/admin-ai-logs-list?limit=50');
+    if (logsRes.ok && logsBody) {
+      var rows = logsRes.data?.rows || [];
+      if (!rows.length) logsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로그 없음</td></tr>';
+      else logsBody.innerHTML = rows.map(function(l){
+        var color = l.status === 'ok' ? '#16a34a' : '#c5293a';
+        return '<tr>'
+          + '<td style="font-family:Inter;font-size:11px">'+fmt(l.created_at)+'</td>'
+          + '<td>'+esc(l.admin_name || '#'+l.admin_id)+'</td>'
+          + '<td style="font-family:monospace;font-size:11.5px">'+esc(l.tool_name)+'</td>'
+          + '<td style="color:'+color+';font-weight:600">'+esc(l.status)+'</td>'
+          + '<td style="font-family:monospace;font-size:11px;color:#64748b">'+esc(JSON.stringify(l.input_args||{}).slice(0,120))+'</td>'
+          + '<td style="text-align:right;font-family:Inter">'+(l.duration_ms||0)+'</td>'
+          + '</tr>';
+      }).join('');
+    }
+  } catch(err) {
+    if (logsBody) logsBody.innerHTML = '<tr><td colspan="6" style="color:#c5293a;padding:30px;text-align:center">'+(err.message||err)+'</td></tr>';
+  }
+}
+
+function renderAiConfig() {
+  /* 시스템 프롬프트 미리보기 — 정적 (admin-ai-agent.ts의 프롬프트와 동기화) */
+  var pre = document.getElementById('aiSystemPromptPreview');
+  if (!pre) return;
+  pre.textContent = `당신은 (사)교사유가족협의회의 통합 관리 시스템 SIREN의 AI 비서입니다.
+
+## 역할
+관리자(super_admin/operator)가 자연어로 명령하면, 적절한 SIREN 도구를 호출해 작업을 수행합니다.
+
+## 사용 가능한 도구 (총 22개)
+... (콘텐츠·관리 5 / 회원 4 / 후원 3 / SIREN 신고 4 / 게시판·캠페인 3 / 워크스페이스·KPI 3)
+
+## 원칙
+1. 변경 작업은 항상 dry-run 우선 → 사용자 명시 승인 후 적용
+2. 의도 모호하면 다시 물어보기
+3. 여러 도구 조합 가능
+4. 결과는 한국어 자연어로 (raw JSON 덤프 금지)
+5. 권한 우선
+
+## 답변 스타일
+- 한국어 존댓말, 친근·전문 톤
+- 이모지는 결과 표시에만
+- 간결하게 — 표·리스트 활용
+
+(전체 프롬프트는 netlify/functions/admin-ai-agent.ts 의 SYSTEM_PROMPT 상수에서 관리합니다)`;
+
+  document.getElementById('aiHistoryRefresh')?.addEventListener('click', renderAiHistory);
+  document.getElementById('aiHistoryDetailClose')?.addEventListener('click', function(){
+    var p = document.getElementById('aiHistoryDetail');
+    if (p) p.style.display = 'none';
+  });
+}

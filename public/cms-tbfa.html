@@ -325,6 +325,20 @@
         </ul>
       </li>
 
+      <!-- ── 🤖 AI 에이전트 ── -->
+      <li class="cms-menu-group open" data-group="ai">
+        <a href="#" data-toggle="ai">
+          <i>🤖</i><span>AI 에이전트</span>
+          <span class="cms-menu-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-submenu="ai" style="display:block">
+          <li><a href="#ai-chat" data-tab="ai-chat"><i>💬</i><span>대화 시작</span></a></li>
+          <li><a href="#ai-history" data-tab="ai-history"><i>📜</i><span>대화 이력</span></a></li>
+          <li><a href="#ai-logs" data-tab="ai-logs"><i>📊</i><span>도구 사용 로그</span></a></li>
+          <li><a href="#ai-config" data-tab="ai-config"><i>⚙️</i><span>설정·도구 관리</span></a></li>
+        </ul>
+      </li>
+
       <!-- ── 🛎 운영 도구 ── -->
       <li class="cms-menu-section">
         <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
@@ -1753,6 +1767,157 @@
         <div style="padding:8px 0 4px;font-size:11px;color:#aaa;text-align:right" id="ddGeneratedAt"></div>
       </section>
 
+      <!-- ============ 🤖 AI 에이전트 4개 섹션 ============ -->
+
+      <!-- 1. 대화 시작 — iframe으로 풀스크린 페이지 임베드 -->
+      <section class="cms-page nf-iframe-page" id="page-ai-chat">
+        <iframe class="nf-iframe" data-nf-src="/admin-ai-assistant.html" title="AI 비서"></iframe>
+      </section>
+
+      <!-- 2. 대화 이력 -->
+      <section class="cms-page" id="page-ai-history">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <span style="font-size:15px;font-weight:700">📜 AI 비서 대화 이력</span>
+          <span style="color:#94a3b8;font-size:12px">전체 관리자의 AI 사용 기록</span>
+        </div>
+        <div class="cms-filter-bar">
+          <div class="cms-filter-group">
+            <label>관리자 필터:
+              <select id="aiHistoryAdminFilter" class="cms-input" style="width:160px">
+                <option value="">전체</option>
+              </select>
+            </label>
+          </div>
+          <div class="cms-filter-actions">
+            <button class="cms-btn cms-btn-ghost" id="aiHistoryRefresh">새로고침</button>
+          </div>
+        </div>
+        <div class="cms-table-wrap">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th style="width:60px">ID</th>
+                <th>제목</th>
+                <th style="width:140px">관리자</th>
+                <th style="width:80px;text-align:right">메시지</th>
+                <th style="width:140px">최근 활동</th>
+                <th style="width:80px">동작</th>
+              </tr>
+            </thead>
+            <tbody id="aiHistoryBody">
+              <tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+          <div class="cms-donor-pagination" id="aiHistoryPagination"></div>
+        </div>
+        <!-- 단일 대화 상세 패널 -->
+        <div id="aiHistoryDetail" class="cms-panel" style="display:none;margin-top:14px">
+          <div class="cms-panel-head">
+            <div class="cms-panel-title" id="aiHistoryDetailTitle">대화 상세</div>
+            <button class="cms-btn cms-btn-ghost" id="aiHistoryDetailClose">닫기</button>
+          </div>
+          <div id="aiHistoryDetailBody" style="padding:14px"></div>
+        </div>
+      </section>
+
+      <!-- 3. 도구 사용 로그 -->
+      <section class="cms-page" id="page-ai-logs">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <span style="font-size:15px;font-weight:700">📊 도구 사용 통계 (최근 30일)</span>
+        </div>
+        <div class="cms-table-wrap" style="margin-bottom:24px">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th>도구명</th>
+                <th style="width:80px;text-align:right">총 호출</th>
+                <th style="width:80px;text-align:right">성공</th>
+                <th style="width:80px;text-align:right">실패</th>
+                <th style="width:100px;text-align:right">평균(ms)</th>
+                <th style="width:140px">최근 호출</th>
+              </tr>
+            </thead>
+            <tbody id="aiToolStatsBody">
+              <tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span style="font-size:15px;font-weight:700">최근 호출 로그 50건</span>
+        </div>
+        <div class="cms-table-wrap">
+          <table class="cms-tbl">
+            <thead>
+              <tr>
+                <th style="width:140px">시각</th>
+                <th style="width:140px">관리자</th>
+                <th style="width:160px">도구명</th>
+                <th style="width:60px">상태</th>
+                <th>인자</th>
+                <th style="width:80px;text-align:right">소요(ms)</th>
+              </tr>
+            </thead>
+            <tbody id="aiLogsBody">
+              <tr><td colspan="6" style="text-align:center;padding:40px;color:#888">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. 설정·도구 관리 -->
+      <section class="cms-page" id="page-ai-config">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <span style="font-size:15px;font-weight:700">⚙️ AI 에이전트 설정</span>
+        </div>
+
+        <div class="cms-panel" style="margin-bottom:14px">
+          <div class="cms-panel-head"><div class="cms-panel-title">현재 사용 모델 (폴백 체인)</div></div>
+          <div style="padding:14px 18px;font-size:13px;line-height:1.8">
+            <div><b>1순위:</b> <code>gemini-3-flash-preview</code> (복잡 추론·도구 선택)</div>
+            <div><b>2순위:</b> <code>gemini-3.1-flash-lite</code></div>
+            <div><b>3순위:</b> <code>gemini-2.5-flash</code> (안정 폴백)</div>
+            <div style="margin-top:10px;color:#64748b;font-size:12px">
+              ※ 1순위 모델 호출 실패 시 자동으로 다음 모델 시도. 변경하려면 Netlify 환경변수 <code>GEMINI_MODEL_PRO</code> 수정.
+            </div>
+          </div>
+        </div>
+
+        <div class="cms-panel" style="margin-bottom:14px">
+          <div class="cms-panel-head"><div class="cms-panel-title">사용 가능 도구 22개</div></div>
+          <div style="padding:14px 18px">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:12.5px">
+              <div><b>📄 콘텐츠·관리 (5)</b><br>
+                <span style="color:#64748b">content_pages_list, content_pages_update, notice_create, campaign_create, nav_menus_list</span>
+              </div>
+              <div><b>👥 회원 (4)</b><br>
+                <span style="color:#64748b">members_search, members_detail, members_stats, members_recent</span>
+              </div>
+              <div><b>💰 후원 (3)</b><br>
+                <span style="color:#64748b">donations_recent, donations_stats, donations_by_member</span>
+              </div>
+              <div><b>🚨 SIREN 신고 (4)</b><br>
+                <span style="color:#64748b">incidents_list, incidents_detail, harassment_reports_list, legal_consultations_list</span>
+              </div>
+              <div><b>💬 게시판·캠페인 (3)</b><br>
+                <span style="color:#64748b">board_posts_list, campaigns_list, campaigns_detail</span>
+              </div>
+              <div><b>📊 워크스페이스·KPI (3)</b><br>
+                <span style="color:#64748b">tasks_list, notifications_recent, kpi_summary</span>
+              </div>
+            </div>
+            <div style="margin-top:14px;padding:10px 12px;background:#fff8e1;border-left:3px solid #ca8a04;border-radius:4px;font-size:12px;color:#713f12">
+              ⚠️ 변경 작업(content_pages_update, notice_create, campaign_create)은 항상 dry-run 미리보기 → 사용자 명시 승인 후에만 실제 적용됩니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="cms-panel">
+          <div class="cms-panel-head"><div class="cms-panel-title">시스템 프롬프트 미리보기</div></div>
+          <pre id="aiSystemPromptPreview" style="margin:0;padding:14px 18px;font-size:11.5px;line-height:1.6;background:#f8fafc;color:#475569;white-space:pre-wrap;max-height:400px;overflow-y:auto;font-family:'Inter',monospace">로딩 중...</pre>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -1933,7 +2098,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-13-prosp"></script>
+  <script src="/js/cms-tbfa.js?v=2026-05-13-aiagent"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
