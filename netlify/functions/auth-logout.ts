@@ -21,9 +21,11 @@ export default async (req: Request) => {
     });
   }
 
-  /* 쿠키 삭제 응답 */
+  /* 쿠키 삭제 응답 — 일반 토큰 + admin 토큰 둘 다
+   * (admin/operator 통합 로그인 시 두 쿠키 발급되었을 수 있음) */
   const res = ok(null, "로그아웃되었습니다");
-  res.headers.set("Set-Cookie", clearCookie("siren_token"));
+  res.headers.append("Set-Cookie", clearCookie("siren_token"));
+  res.headers.append("Set-Cookie", clearCookie("siren_admin_token"));
   return res;
 };
 

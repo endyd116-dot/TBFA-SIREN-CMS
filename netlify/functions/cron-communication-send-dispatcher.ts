@@ -223,11 +223,16 @@ async function startJob(job: any) {
     return;
   }
 
-  /* 회원 정보 조회 — 변수 치환에 필요한 name/email/phone */
+  /* 회원 정보 조회 — 변수 치환에 필요한 name/email/phone
+   * sql.raw로 명시 array literal — drizzle/postgres-js array binding의
+   * byteLength(number) 에러 회피 */
+  const idsLiteral = memberIds.length > 0
+    ? `ARRAY[${memberIds.map((n: number) => Number(n) || 0).join(",")}]::int[]`
+    : `ARRAY[]::int[]`;
   const membersRes: any = await db.execute(sql`
     SELECT id, name, email, phone
       FROM members
-     WHERE id = ANY(${memberIds}::int[])
+     WHERE id = ANY(${sql.raw(idsLiteral)})
   `);
   const memberRows = membersRes?.rows ?? membersRes ?? [];
   const memberMap = new Map<number, any>();

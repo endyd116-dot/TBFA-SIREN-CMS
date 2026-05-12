@@ -42,8 +42,8 @@ export default async (req: Request, _ctx: Context) => {
 
   const user = authenticateUser(req);
   const admin = !user ? authenticateAdmin(req) : null;
-  if (!user && !admin) return unauthorized("로그인이 필요합니다");
 
+  /* context를 먼저 파싱 — 회원가입(비로그인) 흐름은 인증 면제 */
   const body = await parseJson<any>(req);
   if (!body) return badRequest("JSON 파싱 실패");
 
@@ -52,6 +52,11 @@ export default async (req: Request, _ctx: Context) => {
   const sizeBytes = Number(body.sizeBytes || 0);
   const context = String(body.context || "editor").slice(0, 50);
   const isPublic = body.isPublic !== false;
+
+  /* 비로그인 허용 컨텍스트 (회원가입 증빙 등) */
+  const PUBLIC_SIGNUP_CONTEXTS = ["expert_certificate", "family_evidence", "signup_evidence"];
+  const allowAnonymous = PUBLIC_SIGNUP_CONTEXTS.includes(context);
+  if (!user && !admin && !allowAnonymous) return unauthorized("로그인이 필요합니다");
 
   if (!originalName) return badRequest("originalName 필수");
   if (!mimeType) return badRequest("mimeType 필수");

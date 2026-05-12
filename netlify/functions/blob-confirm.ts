@@ -24,7 +24,6 @@ export default async (req: Request, _ctx: Context) => {
 
   const user = authenticateUser(req);
   const admin = !user ? authenticateAdmin(req) : null;
-  if (!user && !admin) return unauthorized("로그인이 필요합니다");
 
   const body = await parseJson<any>(req);
   if (!body || !Number.isFinite(Number(body.id))) return badRequest("id 필수");
@@ -35,8 +34,13 @@ export default async (req: Request, _ctx: Context) => {
     const [row] = await db.select().from(blobUploads).where(eq(blobUploads.id, id)).limit(1);
     if (!row) return notFound("업로드 레코드를 찾을 수 없습니다");
 
-    /* 본인 업로드만 확인 가능 (관리자는 무제한) */
-    if (!admin) {
+    /* 비로그인 허용 컨텍스트 (회원가입 증빙 등 — 본인 검증 면제) */
+    const PUBLIC_SIGNUP_CONTEXTS = ["expert_certificate", "family_evidence", "signup_evidence"];
+    const isAnonymousContext = PUBLIC_SIGNUP_CONTEXTS.includes(String((row as any).context || ""));
+    if (!user && !admin && !isAnonymousContext) return unauthorized("로그인이 필요합니다");
+
+    /* 본인 업로드만 확인 가능 (관리자/회원가입 익명 컨텍스트는 무제한) */
+    if (!admin && !isAnonymousContext) {
       const ownerId = (user as any)?.uid;
       if ((row as any).uploadedBy !== ownerId) return forbidden("권한 없음");
     }

@@ -8,14 +8,13 @@
       <option value="">관련 사이트 바로가기</option>
     </select>
     <div class="top-right">
-      <a href="#" data-action="open-modal" data-target="loginModal" id="topbarLogin">로그인</a>
-      <a href="#" data-action="open-modal" data-target="signupModal" id="topbarSignup">회원가입</a>
-      <a href="/mypage.html" id="topbarMypage">마이페이지</a>
+      <a href="#" data-action="open-modal" data-target="loginModal">로그인</a>
+      <a href="#" data-action="open-modal" data-target="signupModal">회원가입</a>
+      <a href="/mypage.html">마이페이지</a>
       <a href="#" id="topbarAdminMode" class="d-none"
          style="background:#7a1f2b;color:#fff;padding:4px 10px;border-radius:4px;font-weight:600;margin:0 4px">
         🛡 관리자 모드
       </a>
-      <a href="#" id="topbarLogout" class="d-none">로그아웃</a>
       <!-- ★ M-3: 알림 벨 -->
       <div id="siren-notification-bell" style="margin: 0 8px;"></div>
 
@@ -123,57 +122,29 @@
      ============================================================ -->
 <script>
 (function() {
-  function _toggle(id, show) {
-    var el = document.getElementById(id);
-    if (el) el.classList.toggle('d-none', !show);
-  }
+  /* '관리자 모드' 버튼만 담당 — 로그인·로그아웃·마이페이지는 auth.js syncHeader가 처리 */
   async function refreshHeaderAuthUI() {
-    var loggedIn = false;
     var canAdmin = false;
-    /* 1차: 일반 사용자 토큰 (siren_token) */
+    /* 1차: 일반 사용자 토큰 → admin/operator 여부 */
     try {
       var r = await fetch('/api/auth/me', { credentials: 'include' });
       if (r.ok) {
-        loggedIn = true;
         var j = await r.json().catch(function(){ return {}; });
         var u = (j && j.data && j.data.user) || (j && j.user) || null;
         canAdmin = !!(u && (u.canAdminMode || u.isAdmin || u.isOperator || u.type === 'admin'));
       }
     } catch (_) {}
-    /* 2차 fallback: admin 토큰만 있는 경우 (auth/me는 401이지만 admin/me는 200) */
-    if (!loggedIn) {
+    /* 2차 fallback: admin 토큰만 있는 경우 */
+    if (!canAdmin) {
       try {
         var r2 = await fetch('/api/admin/me', { credentials: 'include' });
-        if (r2.ok) {
-          /* admin 토큰만 있어도 로그인 상태로 인식 + 관리자 모드 버튼 표시 */
-          loggedIn = true;
-          canAdmin = true;
-        }
+        if (r2.ok) canAdmin = true;
       } catch (_) {}
     }
-    _toggle('topbarLogin',     !loggedIn);
-    _toggle('topbarSignup',    !loggedIn);
-    _toggle('topbarMypage',    loggedIn);
-    _toggle('topbarLogout',    loggedIn);
-    _toggle('topbarAdminMode', loggedIn && canAdmin);
+    var btn = document.getElementById('topbarAdminMode');
+    if (btn) btn.classList.toggle('d-none', !canAdmin);
   }
   function bindHeaderAuthUI() {
-    var logoutBtn = document.getElementById('topbarLogout');
-    if (logoutBtn && !logoutBtn.dataset.bound) {
-      logoutBtn.dataset.bound = '1';
-      logoutBtn.addEventListener('click', async function(e) {
-        e.preventDefault();
-        /* 일반 토큰 + admin 토큰 둘 다 삭제 (병렬) */
-        try {
-          await Promise.allSettled([
-            fetch('/api/auth/logout',  { method: 'POST', credentials: 'include' }),
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }),
-          ]);
-        } catch (_) {}
-        location.href = '/index.html';
-      });
-    }
-    /* '관리자 모드' 클릭 시 admin 토큰 발급 후 cms 진입 */
     var adminBtn = document.getElementById('topbarAdminMode');
     if (adminBtn && !adminBtn.dataset.bound) {
       adminBtn.dataset.bound = '1';
