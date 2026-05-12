@@ -245,4 +245,26 @@ C가 라이브 검증·백필 대기 중인 작업 목록은 [`PROJECT_STATE.md 
 
 ---
 
-**최종 갱신**: 2026-05-10 (4채팅 새 구조 도입)
+---
+
+## 11. 배포 흐름 — dev → main 2단계 규칙 (2026-05-12 도입)
+
+`tbfa.co.kr` 도메인이 운영에 연결된 이후부터 **main 직접 머지 금지**.
+
+```
+feature/xxx (A·B·C 작업) → dev (테스트 서버 검증) → main (운영 자동 배포)
+```
+
+- **dev 테스트 서버**: `dev--tbfa-siren-cms.netlify.app`
+- **운영**: `tbfa.co.kr` (main 브랜치)
+
+**머지 순서 변경:**
+- 기존: B→A→C fix → **main** 머지
+- 변경: B→A→C fix → **dev** 머지 → Swain 검증 → **main** 머지
+
+**바뀌지 않는 것:**
+- 로컬 작업 폴더 (`tbfa-mis`, `tbfa-mis-A`, `tbfa-mis-B`, `tbfa-mis-C`)
+- worktree 병렬 구조
+- A·B·C 브랜치 명명 규칙
+
+**최종 갱신**: 2026-05-12 (dev→main 2단계 배포 규칙 추가)
