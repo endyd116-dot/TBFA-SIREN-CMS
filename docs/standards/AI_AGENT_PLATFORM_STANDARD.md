@@ -4,9 +4,18 @@
 >
 > **적용 범위**: 어드민 페이지에 AI 챗봇 기능을 도입하는 모든 NPO/B2B/SaaS 프로젝트.
 >
-> **버전**: **1.1** (2026-05-14, SIREN Phase 1·2·3·4 확장 + 라이브 검증 fix 7건 반영)
+> **버전**: **1.2** (2026-05-14 새벽, V4 검증 라운드 + BUG 5건 fix 누적 반영)
 >
-> **레퍼런스 구현**: `main` 브랜치, 약 60개 커밋. 도구 84개(읽기 30 + 변경 38 + 그 외 16).
+> **레퍼런스 구현**: `main` 브랜치, 약 70개 커밋. 도구 84개(읽기 30 + 변경 38 + 그 외 16).
+
+## 1.1 → 1.2 변경 요약 (V4 검증 라운드)
+
+| 영역 | 변경 |
+|---|---|
+| §6 권한 | **C6 신규** — role hierarchy 표준 (`super_admin > admin > null`, 정확 일치만 비교하면 안 됨) |
+| §9 UX | **F10 신규** — 시스템 프롬프트에 **현재 KST 날짜 동적 주입** (자연어 "내일/모레" 정확 변환) |
+| §15 운영 절차 | **15.5 신규** — 신규 변경 도구 추가 시 schema 컬럼·테이블명 사전 검증 의무 |
+| §18 회귀 사례 | **18.8~18.10 신규** — BUG-04(권한 hierarchy 없음), BUG-Phase2-02(잘못된 테이블 INSERT), BUG-06(도구 선택 모호) |
 
 ## 1.0 → 1.1 변경 요약
 
@@ -401,6 +410,26 @@ function selectRelevantTools(userMessage) {
 - **흐름**: dry-run preview → 사용자 명시 승인 → `requireApproval=false`로 재호출 → 실제 적용
 - **UI**: 위젯에 자동 승인 버튼 (preview 받으면 표시)
 
+### C6. Role hierarchy (v1.2 신규)
+- **목적**: 권한 비교는 단순 `===` 일치가 아니라 hierarchy. 상위 role은 하위 권한 자동 포함
+- **표준 hierarchy**: `super_admin > admin > null`
+- **반례 (안티 패턴)**:
+  ```typescript
+  if (p.requiredRole && p.requiredRole !== adminRole) return { ok: false, ... };
+  // ↑ super_admin이 'admin' 요구 도구 거부 (BUG-04)
+  ```
+- **표준 패턴**:
+  ```typescript
+  function isRoleAllowed(adminRole, requiredRole) {
+    if (!requiredRole) return true;
+    if (!adminRole) return false;
+    if (adminRole === requiredRole) return true;
+    if (adminRole === "super_admin") return true;  // 모든 하위 권한 포함
+    return false;
+  }
+  ```
+- **운영 영향**: 도구 권한 시드 시 `required_role` 결정 시 정확 일치 의도가 아닌지 한 번 더 확인
+
 ---
 
 ## 7. 안전·보안 정책 (4개)
@@ -569,6 +598,19 @@ function selectRelevantTools(userMessage) {
   if (isEmptyOk && i < modelChain.length - 1) continue;  // 다음 모델 시도
   ```
 - **추정 원인**: Context Caching 활성 시 캐시된 컨텍스트 + 함수 declarations 다수 조합에서 빈 응답 빈발. 정확한 원인 미규명 — 폴백으로 우회
+
+### F10. 시스템 프롬프트에 현재 날짜 동적 주입 (v1.2 신규)
+- **목적**: 자연어 "내일", "모레", "이번 주", "다음 달 15일" 같은 표현을 정확한 날짜로 변환
+- **반례 (안티 패턴)**: 고정 시스템 프롬프트만 사용 → LLM 학습 시점 기준 추측 → "내일=2025-05-15" 같이 1년 어긋남 (BUG-05)
+- **표준 패턴 — 매 호출 동적 prefix**:
+  ```typescript
+  const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayIso = nowKst.toISOString().slice(0, 10);
+  const dayName = ["일","월","화","수","목","금","토"][nowKst.getUTCDay()];
+  const tomorrowIso = new Date(nowKst.getTime() + 86400000).toISOString().slice(0, 10);
+  const systemPrompt = `현재 한국 시간(KST) 기준 오늘 날짜: ${todayIso} (${dayName}요일). 내일: ${tomorrowIso}.\n날짜 인자(dueDate·startAt 등)는 이 정보 기준으로 정확히 계산하세요.\n\n${baseSystemPrompt}`;
+  ```
+- **캐시 영향**: Context Caching 키가 일 단위로 갱신 (같은 날 내에선 hit). 비용 영향 미미.
 
 ---
 
@@ -826,6 +868,34 @@ public/
 - **도구 사용 패턴** — 자주 안 쓰이는 도구는 declaration에서 제외 고려
 - **시스템 프롬프트 다듬기** — 운영 중 발견된 비효율 패턴 반영
 
+### 15.5 신규 변경 도구 추가 시 schema 사전 검증 (v1.2 신규)
+
+도구 핸들러가 SQL INSERT/UPDATE 작성 전 다음 3가지 사전 검증 의무:
+
+1. **테이블명 정확성**
+   ```bash
+   grep "^export const \(테이블명\) = pgTable" db/schema.ts
+   ```
+   예: 공지는 `notices`, 게시판은 `board_posts`, 워크 작업은 `workspace_tasks` (혼동 금지)
+
+2. **컬럼명 일치**
+   ```bash
+   grep -A 20 "테이블명 = pgTable" db/schema.ts
+   ```
+   - `notices.content` (X `notices.body`)
+   - `board_posts.content_html` (X `board_posts.content`)
+   - `budget_categories.name` (X `name_ko` — 다른 카테고리와 혼동 빈발)
+   - NOT NULL·UNIQUE 컬럼 확인 (예: `board_posts.post_no` 필수)
+
+3. **enum 값 일치**
+   ```bash
+   grep -A 8 "테이블의 status enum" db/schema.ts
+   ```
+   - `harassment_report_status`: submitted/ai_analyzed/reviewing/responded/closed/rejected (X `pending`)
+   - `legal_consultation_status`: 별도 값 8개
+
+이 3단계 누락 시 라이브에서 SQL 에러 (BUG-Phase2-02, kpi_summary enum, budget_categories.name_ko 사례).
+
 ---
 
 ## 16. 도입 체크리스트
@@ -1011,10 +1081,41 @@ public/
 - **원인**: 기본 한도(분 10·시 50·일 500)가 일반 사용엔 안전하지만 디버깅엔 빡빡
 - **fix**: 기본값 2배 완화 (B9 참조). 또는 임시 환경변수 토글
 
+### 18.8 권한 hierarchy 없음 — super_admin 거부 (v1.2 신규)
+- **증상**: super_admin으로 로그인했는데 `task_create` 도구가 "관리자 권한 필요" 거부
+- **원인**: 권한 비교가 정확 일치(`===`)만 함. role hierarchy 없음
+  - task_create의 required_role 시드 = 'admin'
+  - 사용자 role = 'super_admin'
+  - 'admin' !== 'super_admin' → 거부
+- **fix**: C6 표준 — `isRoleAllowed()` 함수에 hierarchy 적용. super_admin은 admin 권한 자동 포함
+
+### 18.9 잘못된 테이블·컬럼 INSERT (v1.2 신규)
+- **증상**: 공지 생성 100% 실패 — `board_posts.content does not exist` 에러
+- **원인**: `tool_noticeCreate`가 잘못된 테이블·컬럼 사용
+  - 테이블: `board_posts` (실제는 `notices`)
+  - 컬럼: `content` (`board_posts`는 `content_html`)
+  - 누락: `post_no` (NOT NULL)
+- **fix**: schema 정독 후 정정 — `notices.title`, `notices.content`, `notices.author_id`, `notices.author_name`
+- **예방**: §15.5 신규 변경 도구 추가 시 schema 사전 검증 3단계 의무
+
+### 18.10 도구 선택 모호 (v1.2 신규)
+- **증상**: "공지글 작성" → AI 헷갈림 (notice_create vs board_post_create). "캠페인 종료" → campaigns_update 잘못 호출 (campaign_archive 기대)
+- **원인**: 시스템 프롬프트 매핑 표가 일부 명령에 대한 명확한 매핑 누락
+- **fix**: 매핑 표에 헷갈리는 명령 직접 추가
+  - "공지글 작성" → notice_create
+  - "캠페인 종료/아카이브" → campaign_archive
+- **예방**: 도구 추가 시 사용자가 쓸 자연어 변형 3~5개 매핑 표에 명시
+
+### 18.11 BUG-05 현재 날짜 추측 어긋남 (v1.2 신규)
+- **증상**: "내일까지 작업 만들어줘" → dueDate를 "2025-05-15"로 설정 (실제 현재 2026년, 1년 어긋남)
+- **원인**: 시스템 프롬프트에 현재 날짜 안 박혀서 LLM이 학습 시점 추측
+- **fix**: F10 표준 — 매 호출 systemPrompt prefix에 KST 오늘·내일 동적 주입
+
 ---
 
 **문서 버전 이력**:
-- **v1.1 (2026-05-14)**: SIREN Phase 1·2·3·4 확장 (도구 42→84) + 라이브 검증 fix 7건 + 알려진 한계 4건 반영
+- **v1.2 (2026-05-14 새벽)**: V4 검증 라운드 — C 보고 BUG 5건 fix + role hierarchy + 현재 날짜 주입 + 신규 변경 도구 schema 사전 검증 의무
+- v1.1 (2026-05-14): SIREN Phase 1·2·3·4 확장 (도구 42→84) + 라이브 검증 fix 7건 + 알려진 한계 4건 반영
 - v1.0 (2026-05-13): SIREN 프로젝트 실증 기반 초안
 
-**참고 코드 (v1.1 기준)**: SIREN `main` 브랜치, 약 60개 커밋. 라이브 검증으로 8/8 도메인 도구 호출 정확도 100% 달성.
+**참고 코드 (v1.2 기준)**: SIREN `main` 브랜치, 약 70개 커밋. V4 검증 거의 100% (BUG-03 toolApproval 자연어는 §17.1 알려진 한계).
