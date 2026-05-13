@@ -142,6 +142,10 @@
 [functions."cron-ai-cost-alert"]
   schedule = "0 0 * * *"
 
+# ★ AI 비용 로그 자동 청소: 매일 KST 03:00 (UTC 18:00)
+[functions."cron-ai-logs-cleanup"]
+  schedule = "0 18 * * *"
+
 # ★ Phase 8: 알림 발송 실패 재시도 cron (1분 주기)
 [functions."cron-notification-retry"]
   schedule = "* * * * *"
