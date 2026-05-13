@@ -328,12 +328,17 @@ async function callGeminiWithTools(
           generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
         };
 
+    /* ★ Gemini 호출 자체 timeout — Netlify 26초 한도 - 여유 마진 = 모델당 12초 */
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12_000);
     try {
       const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (r.ok) {
         if (i > 0) console.info(`[ai-agent] 폴백 #${i + 1} 성공: ${model}`);
         if (cachedName) console.info(`[ai-agent] 프롬프트 캐시 사용: ${cachedName}`);
@@ -342,16 +347,22 @@ async function callGeminiWithTools(
       const errText = await r.text().catch(() => "");
       lastError = `${model} → ${r.status}: ${errText.slice(0, 300)}`;
       console.warn(`[ai-agent] ${model} 실패`, r.status, errText.slice(0, 400));
-      /* 404/NOT_FOUND/UNSUPPORTED는 다음 모델 시도, 그 외는 즉시 종료 */
-      /* 다음 모델로 폴백할 케이스: 404·503·429·UNAVAILABLE·thought_signature 등 */
+      /* 폴백 케이스: 404·503·429·UNAVAILABLE·thought_signature·timeout 등 */
       const isRetryable =
         r.status === 404 || r.status === 503 || r.status === 429 ||
         errText.includes("NOT_FOUND") || errText.includes("not supported") ||
         errText.includes("UNAVAILABLE") || errText.includes("high demand") ||
         errText.includes("RESOURCE_EXHAUSTED") ||
-        errText.includes("thought_signature");   /* Gemini 3.x lite 가끔 누락 → flash로 폴백 */
+        errText.includes("thought_signature");
       if (!isRetryable) break;
     } catch (e: any) {
+      clearTimeout(timeoutId);
+      /* AbortError = 우리 timeout — 다음 모델 시도 */
+      if (e?.name === "AbortError") {
+        lastError = `${model} → timeout 12s (다음 모델 시도)`;
+        console.warn(`[ai-agent] ${model} timeout 12초`);
+        continue;
+      }
       lastError = `${model} → ${e?.message || e}`;
       console.warn(`[ai-agent] ${model} 네트워크 오류`, e?.message);
     }
