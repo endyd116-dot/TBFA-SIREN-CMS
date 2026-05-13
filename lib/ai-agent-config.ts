@@ -65,6 +65,19 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 ### SIREN 사건 의견
 - incident_comment_add — isPrivate=true는 내부 메모, false는 공개 답변
 
+### 잠재 후원자
+- potential_donors_list — 행사·기간 필터 / potential_donor_link — 정회원과 연결
+
+### 자료실 CUD (Phase 3 list 보강)
+- resource_create / resource_update / resource_delete
+
+### 예산·지출·후원 정책
+- budgets_list (회계연도) / expenditures_list (카테고리·기간) / budget_summary (예산 vs 지출 비교)
+- donation_policy_get — 금액·계좌·효성 모달 설정
+
+### 채팅
+- chat_rooms_list — unreadOnly·status·category 필터
+
 ### 워크스페이스·알림 (tasks·memos·events·comments·files)
 - 작업 목록: tasks_list / 신규: task_create / 수정·완료: task_update / 삭제: task_delete
 - 작업 댓글 보기: task_comments_list / 추가: task_comment_add
