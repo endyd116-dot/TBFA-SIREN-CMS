@@ -20,6 +20,7 @@
   chat: '문의 관리',   
   'activity-report': 'AI 활동보고서',
   'finance-income': '수입 현황',
+  'other-revenues': '후원 외 매출',
   'finance-budget': '예산·지출 관리',
   'finance-report': '재무 보고서',
   'notification-logs': '알림 발송 로그',
@@ -5806,11 +5807,22 @@ const OPERATOR_CATEGORIES = [
       /* Phase 5: 수입 집계 대시보드 */
       if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.load();
     } else if (page === 'finance-budget') {
-      /* Phase 6: 예산·지출 관리 */
-      if (window.SIREN_FINANCE_BUDGET) window.SIREN_FINANCE_BUDGET.load();
+      /* Phase 6: 예산·지출 관리 (동적 렌더 모듈) */
+      if (window.SIREN_FINANCE_BUDGET) {
+        const _fb = document.getElementById('adm-finance-budget');
+        if (_fb && !_fb.firstElementChild) window.SIREN_FINANCE_BUDGET.init();
+        else window.SIREN_FINANCE_BUDGET.load();
+      }
     } else if (page === 'finance-report') {
-      /* Phase 7: 재무 보고서 */
-      if (window.SIREN_FINANCE_REPORT) window.SIREN_FINANCE_REPORT.load();
+      /* Phase 7+22A: 재무 보고서 (동적 렌더 모듈) */
+      if (window.SIREN_FINANCE_REPORT) {
+        const _fr = document.getElementById('adm-finance-report');
+        if (_fr && !_fr.firstElementChild) window.SIREN_FINANCE_REPORT.init();
+        else window.SIREN_FINANCE_REPORT.load();
+      }
+    } else if (page === 'other-revenues') {
+      /* Phase 22-A: 후원 외 매출 */
+      if (window.SIREN_OTHER_REVENUES) window.SIREN_OTHER_REVENUES.load();
     } else if (page === 'notification-logs') {
       /* Phase 8 C: 알림 발송 로그 */
       if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();

@@ -4720,22 +4720,20 @@
             </div>
             <div id="fiError" style="color:var(--danger);padding:8px;display:none"></div>
 
-            <!-- KPI 카드 6개 (Phase 22-A 확장) -->
-            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
-              <div class="kpi"><div class="kpi-label">총 매출 (net)</div><div class="kpi-value" id="fiKpiTotalNet">—</div></div>
-              <div class="kpi"><div class="kpi-label">후원금 (net)</div><div class="kpi-value" id="fiKpiDonationNet">—</div></div>
-              <div class="kpi"><div class="kpi-label">후원 외 (net)</div><div class="kpi-value" id="fiKpiOtherNet">—</div></div>
-            </div>
+            <!-- KPI 카드 6개 (init에서 동적 교체) -->
             <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-              <div class="kpi"><div class="kpi-label">총 환불</div><div class="kpi-value" id="fiKpiRefund" style="color:var(--danger)">—</div></div>
-              <div class="kpi"><div class="kpi-label">지출</div><div class="kpi-value" id="fiKpiExpenditure" style="color:var(--danger)">—</div></div>
-              <div class="kpi"><div class="kpi-label">순이익</div><div class="kpi-value" id="fiKpiNetIncome">—</div></div>
+              <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
+              <div class="kpi"><div class="kpi-label">후원 순 수입</div><div class="kpi-value" id="fiKpiDonation">—</div></div>
+              <div class="kpi"><div class="kpi-label">후원 외 순 매출</div><div class="kpi-value" id="fiKpiOther">—</div></div>
+              <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="fiKpiRefund">—</div></div>
+              <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" id="fiKpiExpend">—</div></div>
+              <div class="kpi"><div class="kpi-label" id="fiKpiNetLabel">당기 순이익</div><div class="kpi-value" id="fiKpiNet">—</div></div>
             </div>
 
             <!-- 차트 2개 -->
             <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
               <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 추이 (후원 + 기타 vs 지출 vs 순이익)</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 추이 (매출·지출·순이익)</div>
                 <canvas id="fiTrendChart" height="120"></canvas>
               </div>
               <div>

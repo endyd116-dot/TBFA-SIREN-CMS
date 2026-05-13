@@ -147,14 +147,36 @@
     renderChannelChart(ch);
   }
 
-  /* ── 통합 월별 차트 (후원+기타+지출+순이익) ── */
+  /* ── 후원 외 카테고리 테이블 ── */
+  function renderOtherCats(other) {
+    const tbody = document.getElementById('fiOtherCatTbody');
+    if (!tbody) return;
+    const byCategory = (other && other.byCategory) ? other.byCategory : [];
+    const totalNet   = (other && other.net) ? other.net : 1;
+    if (!byCategory.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">데이터 없음</td></tr>';
+      return;
+    }
+    tbody.innerHTML = byCategory.map(cat => {
+      const pct = totalNet > 0 ? Math.round((cat.net / totalNet) * 100) : 0;
+      return `<tr>
+        <td>${cat.name}</td>
+        <td class="num">${fmtKRW(cat.net)}</td>
+        <td><div class="pct-bar"><div class="pct-fill" style="width:${pct}%"></div></div></td>
+        <td class="num">${pct}%</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── 통합 월별 차트 (매출·지출·순이익 — fiTrendChart 캔버스 사용) ── */
   function renderCombinedChart(monthly) {
-    const ctx = document.getElementById('fiCombinedChart');
+    const ctx = document.getElementById('fiTrendChart');
     if (!ctx || !window.Chart) return;
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
     if (combinedChart) combinedChart.destroy();
 
     const labels = monthly.map(m => m.month + '월');
-    combinedChart = new Chart(ctx, {
+    trendChart = combinedChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
@@ -251,44 +273,14 @@
     renderKpi6(donRes, plData);
     renderDonationDetail(donRes);
     if (plData && plData.monthly) renderCombinedChart(plData.monthly);
+    if (plData && plData.revenue && plData.revenue.other) renderOtherCats(plData.revenue.other);
   }
 
   /* ── 초기화 ── */
   function init() {
-    /* KPI 그리드를 6칸으로 교체 */
-    const kpiGrid = document.querySelector('#adm-finance-income .kpi-grid');
-    if (kpiGrid) {
-      kpiGrid.style.gridTemplateColumns = 'repeat(3,1fr)';
-      kpiGrid.innerHTML = `
-        <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
-        <div class="kpi"><div class="kpi-label">후원 순 수입</div><div class="kpi-value" id="fiKpiDonation">—</div></div>
-        <div class="kpi"><div class="kpi-label">후원 외 순 매출</div><div class="kpi-value" id="fiKpiOther">—</div></div>
-        <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="fiKpiRefund">—</div></div>
-        <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" id="fiKpiExpend">—</div></div>
-        <div class="kpi">
-          <div class="kpi-label" id="fiKpiNetLabel">당기 순이익</div>
-          <div class="kpi-value" id="fiKpiNet">—</div>
-        </div>
-      `;
-    }
-
-    /* 통합 차트 캔버스 삽입 (차트 2개 아래) */
-    const chartArea = document.querySelector('#adm-finance-income .kpi-grid + div + div');
-    /* 좀더 안정적인 방법: 채널 테이블 바로 앞에 삽입 */
-    const channelSection = document.querySelector('#adm-finance-income [style*="font-size:13px"]');
-    if (channelSection && !document.getElementById('fiCombinedChart')) {
-      const wrap = document.createElement('div');
-      wrap.style.marginBottom = '24px';
-      wrap.innerHTML = `
-        <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 통합 현황 (매출·지출·순이익)</div>
-        <canvas id="fiCombinedChart" height="100"></canvas>
-      `;
-      channelSection.parentNode.insertBefore(wrap, channelSection);
-    }
-
     /* 연도 선택 */
     const yearSel = document.getElementById('fiYearSelect');
-    if (yearSel) {
+    if (yearSel && !yearSel.options.length) {
       const ty = new Date().getFullYear();
       for (let y = ty + 1; y >= ty - 5; y--) {
         const opt = document.createElement('option');
