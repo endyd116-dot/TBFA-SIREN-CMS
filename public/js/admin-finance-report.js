@@ -6,49 +6,6 @@
   let lastPlData = null;
   let currentTab = 'report'; // 'report' | 'pl'
 
-  /* ── mock 손익 데이터 (B 머지 전) ── */
-  const MOCK_PL_SUMMARY = {
-    fiscalYear: 2026,
-    revenue: {
-      donations: { gross: 50000000, refund: 500000, net: 49500000 },
-      other: {
-        gross: 12500000, refund: 200000, net: 12300000,
-        byCategory: [
-          { code: 'lecture',      name: '강연·교육 수익',                    net: 3000000 },
-          { code: 'govgrant',     name: '정부·지자체 지원금',                net: 5000000 },
-          { code: 'corp_sponsor', name: '기업 협찬·제휴 수익',               net: 2000000 },
-          { code: 'twork_on',     name: '함께워크_On (사업지원·자리대여)', net: 1500000 },
-          { code: 'twork_si',     name: '함께워크_SI (AI·AX·SI)',           net:  800000 },
-          { code: 'etc',          name: '기타',                              net:        0 },
-        ],
-      },
-      totalNet: 61800000,
-    },
-    expenditure: {
-      total: 55000000,
-      byCategory: [
-        { code: 'ops',     name: '운영비', total: 20000000 },
-        { code: 'program', name: '사업비', total: 25000000 },
-        { code: 'admin',   name: '관리비', total: 10000000 },
-      ],
-    },
-    netIncome: 6800000,
-    monthly: [
-      { month:  1, revenue: 5000000, expenditure: 4500000, net:  500000 },
-      { month:  2, revenue: 5200000, expenditure: 4600000, net:  600000 },
-      { month:  3, revenue: 5100000, expenditure: 4700000, net:  400000 },
-      { month:  4, revenue: 5500000, expenditure: 4800000, net:  700000 },
-      { month:  5, revenue: 6000000, expenditure: 4900000, net: 1100000 },
-      { month:  6, revenue: 0, expenditure: 0, net: 0 },
-      { month:  7, revenue: 0, expenditure: 0, net: 0 },
-      { month:  8, revenue: 0, expenditure: 0, net: 0 },
-      { month:  9, revenue: 0, expenditure: 0, net: 0 },
-      { month: 10, revenue: 0, expenditure: 0, net: 0 },
-      { month: 11, revenue: 0, expenditure: 0, net: 0 },
-      { month: 12, revenue: 0, expenditure: 0, net: 0 },
-    ],
-  };
-
   function apiFetch(url) {
     return fetch(url, { credentials: 'include' }).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
   }
@@ -306,8 +263,13 @@
 
   async function loadPl() {
     const year = document.getElementById('frYearSelect')?.value || new Date().getFullYear();
-    const res  = await apiFetch(`/api/admin-finance-pl-summary?year=${year}`);
-    const pl   = res.ok ? (res.data || res) : MOCK_PL_SUMMARY;
+    const res  = await apiFetch(`/api/admin-finance-pl-summary?fiscalYear=${year}`);
+    if (!res.ok) {
+      const pane = document.getElementById('frPane-pl');
+      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">손익 집계 조회 실패: ${res.data?.error || res.error || ''}</div>`;
+      return;
+    }
+    const pl = res.data?.data || res.data || res;
     renderPl(pl);
   }
 

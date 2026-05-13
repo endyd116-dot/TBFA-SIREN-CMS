@@ -2,80 +2,47 @@
 (function () {
   'use strict';
 
-  /* ── mock 데이터 (B 머지 전 사용) ── */
-  const MOCK_REVENUE_CATEGORIES = [
-    { id: 1, code: 'lecture',      name: '강연·교육 수익',                    sortOrder: 10,  isActive: true },
-    { id: 2, code: 'govgrant',     name: '정부·지자체 지원금',                sortOrder: 20,  isActive: true },
-    { id: 3, code: 'corp_sponsor', name: '기업 협찬·제휴 수익',               sortOrder: 30,  isActive: true },
-    { id: 4, code: 'twork_on',     name: '함께워크_On (사업지원·자리대여)', sortOrder: 40,  isActive: true },
-    { id: 5, code: 'twork_si',     name: '함께워크_SI (AI·AX·SI)',           sortOrder: 50,  isActive: true },
-    { id: 6, code: 'etc',          name: '기타',                              sortOrder: 999, isActive: true },
-  ];
-
-  const MOCK_REVENUE_LIST = {
-    items: [
-      { id: 1, fiscalYear: 2026, recognizedAt: '2026-05-14', categoryId: 1, categoryName: '강연·교육 수익',
-        amount: 500000, refundAmount: 0, payerName: '○○고등학교', description: '5월 교사 연수 강연료',
-        status: 'draft', recordedAt: '2026-05-14T10:00:00Z', approvedAt: null },
-      { id: 2, fiscalYear: 2026, recognizedAt: '2026-05-10', categoryId: 5, categoryName: '함께워크_SI (AI·AX·SI)',
-        amount: 1500000, refundAmount: 0, payerName: '□□회사', description: 'AI 컨설팅',
-        status: 'approved', recordedAt: '2026-05-10T14:00:00Z', approvedAt: '2026-05-11T09:00:00Z' },
-      { id: 3, fiscalYear: 2026, recognizedAt: '2026-04-22', categoryId: 2, categoryName: '정부·지자체 지원금',
-        amount: 5000000, refundAmount: 0, payerName: '서울특별시 교육청', description: '2026년 1차 사업비',
-        status: 'approved', recordedAt: '2026-04-22T11:00:00Z', approvedAt: '2026-04-23T10:00:00Z' },
-    ],
-    total: 3,
-    summary: { totalAmount: 7000000, totalRefund: 0, netAmount: 7000000 },
-  };
-
-  const USE_MOCK = true; // B 머지 후 false로 전환
-
   /* ── 상태 ── */
-  let currentYear  = new Date().getFullYear();
-  let currentCat   = '';
+  let currentYear   = new Date().getFullYear();
+  let currentCat    = '';
   let currentStatus = '';
-  let categories   = [];
-  let currentPage  = 1;
-  const PAGE_SIZE  = 20;
-  let detailItem   = null;
+  let categories    = [];
+  let currentPage   = 1;
+  const PAGE_SIZE   = 20;
+  let detailItem    = null;
 
-  /* ── 헬퍼 ── */
+  /* ── API 헬퍼 ── */
   function api(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     return fetch(path, opts).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
   }
 
+  /* ── 포맷 헬퍼 ── */
   function fmtKRW(n) {
     if (!n && n !== 0) return '—';
     return Number(n).toLocaleString('ko-KR') + '원';
   }
-
   function fmtDate(s) {
     if (!s) return '—';
     return s.slice(0, 10);
   }
-
   function statusLabel(s) {
     return { draft: '초안', approved: '승인', rejected: '반려', refunded: '환불' }[s] || s;
   }
-
   function statusColor(s) {
     return { draft: '#6b7280', approved: 'var(--success)', rejected: 'var(--danger)', refunded: '#f59e0b' }[s] || '#6b7280';
   }
-
-  function isSuperAdmin() {
-    return document.body.dataset.role === 'super_admin';
-  }
+  function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 
   /* ── 카테고리 로드 ── */
   async function loadCategories() {
-    if (USE_MOCK) { categories = MOCK_REVENUE_CATEGORIES; return; }
-    const res = await api('GET', '/api/admin-other-revenue-categories');
-    categories = (res.data || res.items || []).filter(c => c.isActive);
+    const res = await api('GET', '/api/admin-revenue-categories-list');
+    if (!res.ok) { console.warn('[other-revenues] 카테고리 조회 실패', res.error); return; }
+    const raw = res.data?.data || res.data || res.items || [];
+    categories = raw.filter(c => c.isActive !== false);
   }
 
-  /* ── 카테고리 select 옵션 ── */
   function buildCatOptions(selectedId) {
     return categories.map(c =>
       `<option value="${c.id}" ${String(c.id) === String(selectedId) ? 'selected' : ''}>${c.name}</option>`
@@ -88,40 +55,40 @@
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>';
 
-    let items, summary;
-    if (USE_MOCK) {
-      let filtered = MOCK_REVENUE_LIST.items.filter(item => {
-        if (currentYear && item.fiscalYear !== Number(currentYear)) return false;
-        if (currentCat && String(item.categoryId) !== String(currentCat)) return false;
-        if (currentStatus && item.status !== currentStatus) return false;
-        return true;
-      });
-      items = filtered;
-      const totalAmt = filtered.reduce((a, i) => a + i.amount, 0);
-      const totalRef = filtered.reduce((a, i) => a + (i.refundAmount || 0), 0);
-      summary = { totalAmount: totalAmt, totalRefund: totalRef, netAmount: totalAmt - totalRef };
-    } else {
-      let qs = `?year=${currentYear}&page=${currentPage}&limit=${PAGE_SIZE}`;
-      if (currentCat)    qs += `&categoryId=${currentCat}`;
-      if (currentStatus) qs += `&status=${currentStatus}`;
-      const res = await api('GET', '/api/admin-other-revenues' + qs);
-      if (!res.ok) {
-        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger);text-align:center">${res.error || '조회 실패'}</td></tr>`;
-        return;
-      }
-      items   = (res.data || res).items || [];
-      summary = (res.data || res).summary || {};
+    const qs = new URLSearchParams({
+      fiscalYear: currentYear,
+      page:       currentPage,
+      limit:      PAGE_SIZE,
+    });
+    if (currentCat)    qs.set('categoryId', currentCat);
+    if (currentStatus) qs.set('status',     currentStatus);
+
+    const res = await api('GET', '/api/admin-revenue-list?' + qs);
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger);text-align:center">${res.data?.error || res.error || '조회 실패'}</td></tr>`;
+      return;
     }
+
+    const payload = res.data?.data || res.data || res;
+    const items   = payload.items || [];
+    /* summary는 서버가 주면 사용, 없으면 items에서 직접 집계 */
+    const summary = payload.summary || computeSummary(items);
 
     renderSummary(summary);
     renderTable(items, tbody);
   }
 
-  function renderSummary(summary) {
+  function computeSummary(items) {
+    const totalAmount = items.reduce((a, i) => a + (i.amount || 0), 0);
+    const totalRefund = items.reduce((a, i) => a + (i.refundAmount || 0), 0);
+    return { totalAmount, totalRefund, netAmount: totalAmount - totalRefund };
+  }
+
+  function renderSummary(s) {
     const el = id => document.getElementById(id);
-    if (el('orSumTotal'))  el('orSumTotal').textContent  = fmtKRW(summary.totalAmount);
-    if (el('orSumRefund')) el('orSumRefund').textContent = fmtKRW(summary.totalRefund);
-    if (el('orSumNet'))    el('orSumNet').textContent    = fmtKRW(summary.netAmount);
+    if (el('orSumTotal'))  el('orSumTotal').textContent  = fmtKRW(s.totalAmount);
+    if (el('orSumRefund')) el('orSumRefund').textContent = fmtKRW(s.totalRefund);
+    if (el('orSumNet'))    el('orSumNet').textContent    = fmtKRW(s.netAmount);
   }
 
   function renderTable(items, tbody) {
@@ -136,11 +103,11 @@
         <td>${item.categoryName || '—'}</td>
         <td>${item.payerName || '—'}</td>
         <td class="num">${fmtKRW(item.amount)}</td>
-        <td class="num" style="color:${item.refundAmount > 0 ? 'var(--danger)' : 'var(--text-3)'}">${item.refundAmount > 0 ? fmtKRW(item.refundAmount) : '—'}</td>
-        <td><span style="color:${statusColor(item.status)};font-weight:600">${statusLabel(item.status)}</span></td>
-        <td>
-          <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_OTHER_REVENUES.openDetail(${item.id})">상세</button>
+        <td class="num" style="color:${(item.refundAmount || 0) > 0 ? 'var(--danger)' : 'var(--text-3)'}">
+          ${(item.refundAmount || 0) > 0 ? fmtKRW(item.refundAmount) : '—'}
         </td>
+        <td><span style="color:${statusColor(item.status)};font-weight:600">${statusLabel(item.status)}</span></td>
+        <td><button class="btn-sm btn-sm-ghost" onclick="window.SIREN_OTHER_REVENUES.openDetail(${item.id})">상세</button></td>
       </tr>
     `).join('');
   }
@@ -154,7 +121,7 @@
     }).join('');
   }
 
-  /* ── 초기 HTML 렌더 ── */
+  /* ── 화면 골격 렌더 (최초 1회) ── */
   function renderShell(container) {
     const catOpts = `<option value="">전체 카테고리</option>` +
       categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
@@ -178,7 +145,7 @@
           </div>
         </div>
 
-        <!-- 요약 박스 -->
+        <!-- 요약 KPI -->
         <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
           <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="orSumTotal">—</div></div>
           <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="orSumRefund" style="color:var(--danger)">—</div></div>
@@ -189,14 +156,8 @@
         <table class="data-table" style="width:100%">
           <thead>
             <tr>
-              <th>회계연도</th>
-              <th>인식일</th>
-              <th>카테고리</th>
-              <th>납입자</th>
-              <th class="num">매출액</th>
-              <th class="num">환불액</th>
-              <th>상태</th>
-              <th></th>
+              <th>회계연도</th><th>인식일</th><th>카테고리</th><th>납입자</th>
+              <th class="num">매출액</th><th class="num">환불액</th><th>상태</th><th></th>
             </tr>
           </thead>
           <tbody id="orTbody">
@@ -254,16 +215,12 @@
             <span class="modal-title">매출 상세</span>
             <button class="modal-close" onclick="window.SIREN_OTHER_REVENUES.closeDetail()">×</button>
           </div>
-          <div class="modal-body" id="orDetailBody">
-            <!-- 동적 렌더 -->
-          </div>
-          <div class="modal-foot" id="orDetailFoot">
-            <!-- 동적 버튼 -->
-          </div>
+          <div class="modal-body" id="orDetailBody"></div>
+          <div class="modal-foot" id="orDetailFoot"></div>
         </div>
       </div>
 
-      <!-- ── 환불 등록 모달 (approved 상태에서만) ── -->
+      <!-- ── 환불 등록 모달 ── -->
       <div id="orRefundModal" class="modal-backdrop" style="display:none">
         <div class="modal" style="max-width:400px">
           <div class="modal-head">
@@ -290,19 +247,20 @@
       </div>
     `;
 
-    /* 이벤트 바인딩 */
-    document.getElementById('orYearSelect').addEventListener('change', e => { currentYear = Number(e.target.value); loadList(); });
-    document.getElementById('orCatSelect').addEventListener('change',    e => { currentCat = e.target.value;         loadList(); });
-    document.getElementById('orStatusSelect').addEventListener('change', e => { currentStatus = e.target.value;      loadList(); });
+    /* 필터 이벤트 */
+    document.getElementById('orYearSelect').addEventListener('change',   e => { currentYear   = Number(e.target.value); currentPage = 1; loadList(); });
+    document.getElementById('orCatSelect').addEventListener('change',    e => { currentCat    = e.target.value;         currentPage = 1; loadList(); });
+    document.getElementById('orStatusSelect').addEventListener('change', e => { currentStatus = e.target.value;         currentPage = 1; loadList(); });
 
-    /* 추가 모달 카테고리 채우기 */
+    /* 추가 모달 카테고리 */
     const addCat = document.getElementById('orAddCat');
     if (addCat) addCat.innerHTML = `<option value="">선택하세요</option>` + buildCatOptions('');
 
-    /* 파일 선택 미리보기 */
+    /* 파일 미리보기 */
     document.getElementById('orAddFile').addEventListener('change', e => {
       const f = e.target.files[0];
-      document.getElementById('orAddFilePreview').textContent = f ? `선택: ${f.name} (${(f.size/1024).toFixed(1)} KB)` : '';
+      document.getElementById('orAddFilePreview').textContent =
+        f ? `선택: ${f.name} (${(f.size / 1024).toFixed(1)} KB)` : '';
     });
   }
 
@@ -331,10 +289,9 @@
     const desc   = document.getElementById('orAddDesc').value.trim();
     const file   = document.getElementById('orAddFile').files[0];
 
-    if (!date)   { showErr(errEl, '인식일을 선택하세요.'); return; }
-    if (!catId)  { showErr(errEl, '카테고리를 선택하세요.'); return; }
+    if (!date)              { showErr(errEl, '인식일을 선택하세요.');       return; }
+    if (!catId)             { showErr(errEl, '카테고리를 선택하세요.');      return; }
     if (!amount || amount <= 0) { showErr(errEl, '금액을 올바르게 입력하세요.'); return; }
-
     errEl.style.display = 'none';
 
     let attachmentUrl = null;
@@ -343,33 +300,15 @@
       if (!attachmentUrl) return;
     }
 
-    if (USE_MOCK) {
-      const cat = categories.find(c => String(c.id) === String(catId));
-      const newItem = {
-        id: MOCK_REVENUE_LIST.items.length + 1,
-        fiscalYear: new Date(date).getFullYear(),
-        recognizedAt: date,
-        categoryId: Number(catId),
-        categoryName: cat ? cat.name : '—',
-        amount,
-        refundAmount: 0,
-        payerName: payer,
-        description: desc,
-        status: 'draft',
-        recordedAt: new Date().toISOString(),
-        approvedAt: null,
-      };
-      MOCK_REVENUE_LIST.items.unshift(newItem);
-      MOCK_REVENUE_LIST.total++;
-      closeAdd();
-      await loadList();
-      return;
-    }
-
-    const res = await api('POST', '/api/admin-other-revenues', {
-      recognizedAt: date, categoryId: Number(catId), amount, payerName: payer, description: desc, attachmentUrl,
+    const res = await api('POST', '/api/admin-revenue-create', {
+      fiscalYear:   new Date(date).getFullYear(),
+      recognizedAt: date,
+      categoryId:   Number(catId),
+      amount,
+      payerName:    payer   || undefined,
+      description:  desc    || undefined,
     });
-    if (!res.ok) { showErr(errEl, res.error || '저장 실패'); return; }
+    if (!res.ok) { showErr(errEl, res.data?.error || res.error || '저장 실패'); return; }
     closeAdd();
     await loadList();
   }
@@ -381,22 +320,30 @@
     const res = await fetch('/api/r2-upload', { method: 'POST', credentials: 'include', body: formData })
       .then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
     if (!res.ok) { showErr(errEl, '파일 업로드 실패: ' + (res.error || '')); return null; }
-    return res.url || res.data?.url;
+    return res.data?.url || res.url || null;
   }
 
   /* ── 상세 모달 ── */
   async function openDetail(id) {
-    let item;
-    if (USE_MOCK) {
-      item = MOCK_REVENUE_LIST.items.find(i => i.id === id);
-    } else {
-      const res = await api('GET', `/api/admin-other-revenues/${id}`);
-      if (!res.ok) { alert('조회 실패: ' + (res.error || '')); return; }
-      item = res.data || res;
+    /* 목록에서 먼저 찾고, 없으면 목록 재조회로 대체 (상세 전용 API 없음) */
+    const tbody = document.getElementById('orTbody');
+    let item = null;
+    if (tbody) {
+      /* 현재 렌더된 행에서 id 매칭 — fallback: 전체 목록 재요청 */
+    }
+    /* 목록 API로 단건 조회 */
+    const res = await api('GET', `/api/admin-revenue-list?fiscalYear=${currentYear}&page=1&limit=200`);
+    if (res.ok) {
+      const payload = res.data?.data || res.data || res;
+      item = (payload.items || []).find(i => i.id === id);
     }
     if (!item) { alert('내역을 찾을 수 없습니다.'); return; }
     detailItem = item;
+    renderDetailModal(item);
+    document.getElementById('orDetailModal').style.display = 'flex';
+  }
 
+  function renderDetailModal(item) {
     const body = document.getElementById('orDetailBody');
     const foot = document.getElementById('orDetailFoot');
 
@@ -408,9 +355,13 @@
           <tr><td style="color:var(--text-3)">카테고리</td><td>${item.categoryName || '—'}</td></tr>
           <tr><td style="color:var(--text-3)">납입자</td><td>${item.payerName || '—'}</td></tr>
           <tr><td style="color:var(--text-3)">매출액</td><td><strong>${fmtKRW(item.amount)}</strong></td></tr>
-          <tr><td style="color:var(--text-3)">환불액</td><td style="color:${item.refundAmount > 0 ? 'var(--danger)' : 'var(--text-3)'}">${item.refundAmount > 0 ? fmtKRW(item.refundAmount) : '—'}</td></tr>
+          <tr><td style="color:var(--text-3)">환불액</td>
+            <td style="color:${(item.refundAmount || 0) > 0 ? 'var(--danger)' : 'var(--text-3)'}">
+              ${(item.refundAmount || 0) > 0 ? fmtKRW(item.refundAmount) : '—'}
+            </td></tr>
           <tr><td style="color:var(--text-3)">비고</td><td>${item.description || '—'}</td></tr>
-          <tr><td style="color:var(--text-3)">상태</td><td><span style="color:${statusColor(item.status)};font-weight:600">${statusLabel(item.status)}</span></td></tr>
+          <tr><td style="color:var(--text-3)">상태</td>
+            <td><span style="color:${statusColor(item.status)};font-weight:600">${statusLabel(item.status)}</span></td></tr>
           <tr><td style="color:var(--text-3)">등록일</td><td>${fmtDate(item.recordedAt)}</td></tr>
           <tr><td style="color:var(--text-3)">승인일</td><td>${item.approvedAt ? fmtDate(item.approvedAt) : '—'}</td></tr>
         </tbody>
@@ -418,35 +369,30 @@
       ${item.status === 'draft' ? renderEditSection(item) : ''}
     `;
 
-    /* 하단 버튼: 상태별 */
     let btns = `<button class="btn-sm btn-sm-ghost" onclick="window.SIREN_OTHER_REVENUES.closeDetail()">닫기</button>`;
     if (item.status === 'draft') {
       btns += `<button class="btn-sm btn-sm-primary" onclick="window.SIREN_OTHER_REVENUES.submitEdit()">수정 저장</button>`;
-      if (isSuperAdmin()) {
-        btns += `<button class="btn-sm btn-sm-success" onclick="window.SIREN_OTHER_REVENUES.approve(${item.id})">승인</button>`;
-        btns += `<button class="btn-sm btn-sm-danger"  onclick="window.SIREN_OTHER_REVENUES.reject(${item.id})">반려</button>`;
-      }
+      /* super_admin 여부는 서버가 최종 판정. 프론트에서는 항상 버튼 노출하고 서버가 거부. */
+      btns += `<button class="btn-sm btn-sm-success" onclick="window.SIREN_OTHER_REVENUES.doApprove(${item.id},'approve')">승인</button>`;
+      btns += `<button class="btn-sm btn-sm-danger"  onclick="window.SIREN_OTHER_REVENUES.doApprove(${item.id},'reject')">반려</button>`;
     }
     if (item.status === 'approved') {
       btns += `<button class="btn-sm btn-sm-danger" onclick="window.SIREN_OTHER_REVENUES.openRefund()">환불 등록</button>`;
     }
     foot.innerHTML = btns;
-
-    document.getElementById('orDetailModal').style.display = 'flex';
   }
 
   function renderEditSection(item) {
-    const catOpts = buildCatOptions(item.categoryId);
     return `
       <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-2)">✏️ 초안 편집</div>
       <div class="form-row">
         <label class="form-label">인식일</label>
-        <input type="date" id="orEditDate" class="input" style="width:160px" value="${item.recognizedAt ? item.recognizedAt.slice(0,10) : ''}">
+        <input type="date" id="orEditDate" class="input" style="width:160px" value="${item.recognizedAt ? item.recognizedAt.slice(0, 10) : ''}">
       </div>
       <div class="form-row">
         <label class="form-label">카테고리</label>
-        <select id="orEditCat" class="input">${catOpts}</select>
+        <select id="orEditCat" class="input">${buildCatOptions(item.categoryId)}</select>
       </div>
       <div class="form-row">
         <label class="form-label">금액 (원)</label>
@@ -476,52 +422,31 @@
     const payer  = document.getElementById('orEditPayer')?.value.trim();
     const desc   = document.getElementById('orEditDesc')?.value.trim();
 
-    if (USE_MOCK) {
-      const cat = categories.find(c => String(c.id) === String(catId));
-      Object.assign(detailItem, {
-        recognizedAt: date, categoryId: Number(catId),
-        categoryName: cat ? cat.name : detailItem.categoryName,
-        amount, payerName: payer, description: desc,
-      });
-      closeDetail();
-      await loadList();
-      return;
-    }
-
-    const res = await api('PATCH', `/api/admin-other-revenues/${detailItem.id}`, {
-      recognizedAt: date, categoryId: Number(catId), amount, payerName: payer, description: desc,
+    const res = await api('PUT', '/api/admin-revenue-update', {
+      id:           detailItem.id,
+      recognizedAt: date        || undefined,
+      categoryId:   catId ? Number(catId) : undefined,
+      amount:       amount || undefined,
+      payerName:    payer  || undefined,
+      description:  desc   || undefined,
     });
-    if (!res.ok) { alert('수정 실패: ' + (res.error || '')); return; }
+    if (!res.ok) { alert('수정 실패: ' + (res.data?.error || res.error || '')); return; }
     closeDetail();
     await loadList();
   }
 
-  async function approve(id) {
-    if (!confirm('이 매출을 승인하시겠습니까?')) return;
-    if (USE_MOCK) {
-      const item = MOCK_REVENUE_LIST.items.find(i => i.id === id);
-      if (item) { item.status = 'approved'; item.approvedAt = new Date().toISOString(); }
-      closeDetail();
-      await loadList();
-      return;
-    }
-    const res = await api('POST', `/api/admin-other-revenues/${id}/approve`);
-    if (!res.ok) { alert('승인 실패: ' + (res.error || '')); return; }
-    closeDetail();
-    await loadList();
-  }
+  async function doApprove(id, action) {
+    const label = action === 'approve' ? '승인' : '반려';
+    if (!confirm(`이 매출을 ${label}하시겠습니까?`)) return;
 
-  async function reject(id) {
-    if (!confirm('이 매출을 반려하시겠습니까?')) return;
-    if (USE_MOCK) {
-      const item = MOCK_REVENUE_LIST.items.find(i => i.id === id);
-      if (item) { item.status = 'rejected'; }
-      closeDetail();
-      await loadList();
-      return;
+    const body = { id, action };
+    if (action === 'reject') {
+      const reason = prompt('반려 사유를 입력하세요 (선택)');
+      if (reason !== null) body.rejectionReason = reason;
     }
-    const res = await api('POST', `/api/admin-other-revenues/${id}/reject`);
-    if (!res.ok) { alert('반려 실패: ' + (res.error || '')); return; }
+
+    const res = await api('POST', '/api/admin-revenue-approve', body);
+    if (!res.ok) { alert(`${label} 실패: ` + (res.data?.error || res.error || '')); return; }
     closeDetail();
     await loadList();
   }
@@ -542,32 +467,19 @@
     if (!detailItem) return;
     const errEl  = document.getElementById('orRefundError');
     const amount = Number(document.getElementById('orRefundAmount').value);
-    const reason = document.getElementById('orRefundReason').value.trim();
 
     if (!amount || amount <= 0) { showErr(errEl, '환불 금액을 입력하세요.'); return; }
     if (amount > detailItem.amount) { showErr(errEl, `매출액(${fmtKRW(detailItem.amount)})을 초과할 수 없습니다.`); return; }
-
     errEl.style.display = 'none';
 
-    if (USE_MOCK) {
-      detailItem.refundAmount = amount;
-      detailItem.status = 'refunded';
-      closeRefund();
-      closeDetail();
-      await loadList();
-      return;
-    }
-
-    const res = await api('POST', `/api/admin-other-revenues/${detailItem.id}/refund`, { refundAmount: amount, reason });
-    if (!res.ok) { showErr(errEl, res.error || '환불 등록 실패'); return; }
+    const res = await api('POST', '/api/admin-revenue-refund', {
+      id:           detailItem.id,
+      refundAmount: amount,
+    });
+    if (!res.ok) { showErr(errEl, res.data?.error || res.error || '환불 등록 실패'); return; }
     closeRefund();
     closeDetail();
     await loadList();
-  }
-
-  function showErr(el, msg) {
-    el.textContent = msg;
-    el.style.display = 'block';
   }
 
   /* ── 초기화 / 재진입 통합 ── */
@@ -581,5 +493,11 @@
     await loadList();
   }
 
-  window.SIREN_OTHER_REVENUES = { init, load: init, openAdd, closeAdd, submitAdd, openDetail, closeDetail, submitEdit, approve, reject, openRefund, closeRefund, submitRefund };
+  window.SIREN_OTHER_REVENUES = {
+    init, load: init,
+    openAdd, closeAdd, submitAdd,
+    openDetail, closeDetail, submitEdit,
+    doApprove,
+    openRefund, closeRefund, submitRefund,
+  };
 })();
