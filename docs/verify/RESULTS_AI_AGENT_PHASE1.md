@@ -301,7 +301,63 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 
 ---
 
-## 2. 최종 집계 (V6 라운드 기준 — V4·V5·V6 누적)
+## 1-E. 재검증 라운드 V7 (2026-05-14, BUG-05b enum 도메인 전체 동기화 fix 후)
+
+**전제**: main 70dce59 (BUG-05b fix + 표준 v1.4 §18.13) + verify 머지 2dda675.
+
+### V7 enum 4종 dry-run 재검증
+
+| 카테고리 | V6 | V7 | 호출 도구 | 비고 |
+|---|---|---|---|---|
+| general | PASS | **PASS** | notice_create | dry-run preview category="general" |
+| member | FAIL | **PASS** | notice_create | dry-run preview category="member" — V6 옛 화이트리스트 거부 해소 |
+| event | PASS | **PASS** | notice_create | dry-run preview category="event" |
+| media | FAIL | **PASS** | notice_create | dry-run preview category="media" — V6 옛 화이트리스트 거부 해소 |
+
+→ **BUG-05b 완전 해소**. V6에서는 toolCalls=[]로 LLM이 도구 호출 전에 직접 거부 응답 생성(옛 enum 학습 잔존). V7에서는 4종 모두 도구 호출까지 진입 → preview 정상.
+
+### V7 회귀 확인 (다른 도메인 옛 enum 잔존 여부)
+
+| # | 명령 | 결과 | 비고 |
+|---|---|---|---|
+| 회귀-A | "공지에 어떤 카테고리가 있어?" | **PASS** | reply "공지사항 카테고리는 `member`, `general`, `event`, `media`가 있습니다." — LLM 학습 정확 |
+| 회귀-B | "공지 notice 카테고리로 ... 작성해줘" (옛 잘못된 enum) | **부분 PASS** | 도구는 general로 fallback하여 preview category="general"로 정정. 그러나 args.category="notice" 그대로 + reply에는 "notice 카테고리로 작성"이라 안내 → 사용자 오해 가능. minor 약점 |
+| 회귀-C | "게시글 1번 댓글 보여줘" | **PASS** | board_comments_list 정상 (count=1, "박새로이" 댓글) |
+| 회귀-D | "공지 목록 보여줘" | **PASS** | LLM이 새 enum 한국어 라벨링 정확 (member→"회원", general→"일반", event→"이벤트", media→"미디어") |
+
+### V7 거부 응답 메커니즘 분석 (메인 요청)
+
+- **V6 패턴 (회귀 원인)**: LLM이 도구 description의 옛 enum(`notice/event/press`)을 학습 → member·media 입력에 **도구 호출 전 직접 거부 응답 생성** (toolCalls=[], 옛 화이트리스트 문자열 reply에 노출)
+- **V7 fix 효과**: 도구 description·핸들러 화이트리스트·필터 상수 일괄 정정 → LLM이 새 enum(`general/member/event/media`) 학습 → 4종 모두 도구 호출까지 진입 → 거부 응답 사라짐
+- **결론**: 표준 §18.13 명시대로 "같은 도메인의 모든 도구 정의·상수 일괄 동기화 의무"가 LLM 학습 패턴 차단의 핵심 — fix 검증 효과 확인
+
+### V7 minor 약점 발견 (회귀-B 기반)
+
+사용자가 잘못된 enum(예: "notice")으로 입력 시:
+- 도구 핸들러: general로 fallback → preview에 정정된 값 노출
+- 그러나 reply 텍스트: LLM이 args.category 기준으로 잘못된 안내 ("notice 카테고리로 작성")
+- 영향: 사용자가 어떤 카테고리로 저장됐는지 오해. 승인 후 INSERT는 general로 정상 진행하나 안내가 misleading
+- 회피책: 사용자가 preview 검토하여 실제 카테고리 확인
+
+### V7 집계
+
+| 영역 | 통과 | 실패 | 비고 |
+|---|---|---|---|
+| enum 4종 (BUG-05b 해소 확인) | **4/4** | 0/4 | member·media 모두 PASS |
+| 회귀 확인 (다른 도메인) | **3/4** | 1/4 부분 | 회귀-B minor 약점 (reply 안내) |
+| **합계** | **7/8** | **1/8** | BUG-05b 완전 해소 + 도메인 전체 회귀 없음 |
+
+### V7 결론
+
+**verify/ai-agent-phase1 → main 머지 가능 상태**.
+- BUG-05b 완전 해소
+- 도메인 전체 동기화 효과 확인 (회귀-A·D)
+- 잔존 BUG: 회귀-B reply 안내 (minor — 데이터는 정확, 안내만 misleading)
+- 사용자 데이터 영향 없음 (V7 모두 dry-run, INSERT 안 함)
+
+---
+
+## 2. 최종 집계 (V7 라운드 기준 — V4·V5·V6·V7 누적)
 
 | 영역 | 통과 | 실패 | 스킵 | 비고 |
 |---|---|---|---|---|
@@ -321,7 +377,8 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 | BUG-AI-AGENT-PHASE1-01 (해소) | M1·M2·SC-1 V2 | 자연어 의도 분류 회귀 — UTF-8 cp949 인코딩 원인 | — | V4에서 UTF-8 표준 적용 후 모두 PASS | `docs/issues/2026-05-13-ai-agent-phase1-memos-list-no-call.md` |
 | BUG-AI-AGENT-PHASE1-02 (잔존) | V3 M1 회피책 | Gemini API 503 high demand (외부 일시 장애) | — | 일시 — 재시도 | `docs/issues/2026-05-13-ai-agent-phase1-gemini-timeout.md` |
 | BUG-AI-AGENT-PHASE1-03 (해소) | M3 V4 | toolApproval 양식 → V6에서 F11 short-circuit으로 자연어 "진행/응" 직접 실행 fix | — | V6 PASS (721ms, LLM 0회, memo_id=4 생성) + 취소 분기 (857ms) | F11 §AI_AGENT_PLATFORM_STANDARD.md |
-| BUG-AI-AGENT-PHASE1-05b (V6 신규) | enum member·media | notice_category enum fix 부분 적용 — general·event 통과, member·media는 옛 화이트리스트(`notice/event/press`) 그대로 거부 | 2/2 | 임시: general·event만 사용 | 핸들러·도구 description 화이트리스트 정정 필요 (메인 fix 영역) |
+| BUG-AI-AGENT-PHASE1-05b (해소) | enum member·media | notice_category enum 도메인 전체 동기화 fix — V7에서 4종 모두 PASS | — | V7 모두 PASS (member·media 도구 호출까지 진입) | `docs/issues/2026-05-14-ai-agent-notice-enum-partial-fix.md` |
+| BUG-AI-AGENT-PHASE1-05c (V7 신규 minor) | 회귀-B | 잘못된 enum 입력 시 도구 핸들러는 general로 fallback하나 reply 안내가 args 기준 misleading | 1/1 | 사용자가 preview 검토하여 실제 카테고리 확인 | (RESULTS §1-E 비고 참고) |
 | BUG-AI-AGENT-PHASE1-04 (해소) | T1·T2 V4 | task_create / task_update 권한 매핑 — V5에서 role hierarchy fix로 PASS | — | V5 PASS | `docs/issues/2026-05-14-ai-agent-task-permission-mapping.md` |
 | BUG-AI-AGENT-PHASE1-05 (해소) | E1·E2·T1 V4 | 인자 자동 추출 — V5에서 현재 날짜 동적 주입 + 부풀림 fix로 PASS | — | V5 PASS (E1 fromDate 2026-05-12 정확, T1 1개만 생성·dueDate +7d) | `docs/issues/2026-05-14-ai-agent-arg-extraction.md` |
 | BUG-AI-AGENT-PHASE1-05a (V5 신규 잔존) | P2-3.1 V5 | notice_create category 인자 enum 부정확 — AI 임의 추측 → invalid enum | 1/1 | 도구 description에 enum 허용값 명시 + 미지정 시 사용자에게 묻기 | (BUG-05 후속 — issues 추가 분리 미작성, RESULTS §1-C 비고 참고) |
@@ -332,7 +389,41 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 
 ## 4. 메인 채팅 인계 메시지 (Swain 복붙용)
 
-### V6 라운드 (2026-05-14, BUG-03 short-circuit + BUG-05a enum fix 후 — 최종)
+### V7 라운드 (2026-05-14, BUG-05b enum 도메인 전체 동기화 fix 후 — 최종)
+
+```
+[C 채팅 → 메인 채팅] V7 재검증 완료. BUG-05b 완전 해소. verify → main 머지 가능.
+
+V7 enum 4종 (V6 FAIL 재검증):
+- general: PASS, event: PASS (변동 없음)
+- member: V6 FAIL → V7 PASS — 도구 호출까지 진입, dry-run preview category="member"
+- media: V6 FAIL → V7 PASS — 도구 호출까지 진입, preview category="media"
+
+V7 회귀 확인 (다른 도메인 옛 enum 잔존 여부):
+- 회귀-A "공지 카테고리 알려줘": PASS — LLM reply "member, general, event, media" 정확
+- 회귀-B "notice 카테고리로 작성"(옛 잘못된 enum 입력): 부분 PASS
+  * 도구는 general fallback하여 preview 정정 ✓
+  * 그러나 reply 안내가 args 기준 "notice 카테고리로 작성"이라 misleading
+  * → V7 신규 minor BUG-05c (reply 안내, 데이터는 정확)
+- 회귀-C "게시글 댓글 보여줘": PASS (board_comments_list 정상)
+- 회귀-D "공지 목록 보여줘": PASS — 새 enum 한국어 라벨 정확(member→"회원" 등)
+
+거부 응답 메커니즘 분석 (메인 요청):
+- V6 패턴: LLM이 도구 description 옛 enum 학습 → 도구 호출 전 직접 거부 응답 생성 (toolCalls=[])
+- V7 fix: 도구 description·핸들러·필터 상수 일괄 정정 → LLM 새 enum 학습 → 거부 응답 사라짐, 도구 호출까지 진입
+- 결론: 표준 §18.13 "도메인 전체 동기화 의무" 효과 확인 — LLM 학습 패턴 차단
+
+집계: 통과 7/8, 부분 1/8 (회귀-B minor)
+사용자 데이터 영향: 없음 (V7 모두 dry-run, INSERT 안 함)
+
+머지 권고: verify/ai-agent-phase1 → main 머지 가능 상태.
+잔존 minor BUG-05c는 데이터 정확성에는 영향 없음 (reply 안내만 개선 필요).
+
+상세: docs/verify/RESULTS_AI_AGENT_PHASE1.md §1-E
+브랜치: verify/ai-agent-phase1 push 곧
+```
+
+### V6 라운드 (2026-05-14, BUG-03 short-circuit + BUG-05a enum fix 후)
 
 ```
 [C 채팅 → 메인 채팅] V6 재검증 완료. BUG-03 완전 해소, BUG-05a 부분 해소.
