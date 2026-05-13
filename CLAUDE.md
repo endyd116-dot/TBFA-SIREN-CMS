@@ -335,6 +335,30 @@ import { requireAdmin } from "../../lib/admin-guard";
 
 **Why**: 메인이 main에 fix push해도 A·B·C는 자기 worktree·브랜치에서 작업 중이라 main 갱신 모름 → push 시점에 잘못된 베이스로 충돌·회귀. C는 이미 fix된 BUG를 다시 보고할 위험. 2026-05-12 R&R 권한 fix(0dcb5e4) 사건이 계기.
 
+### 6.16 진행률 % 보고 의무 (2026-05-14 Swain 추가)
+
+A·B·C·메인 모두 작업 도중 **현재 진행률(100% 기준)을 가끔 한 줄로 보고**.
+
+- **빈도**: 큰 단계(체크박스 1개) 완료마다 + 30분 이상 작업 시 중간 1회 이상. 매 응답마다 ❌
+- **형식**: `📊 진행률 35% (3/9 항목 완료) — 다음: ...` 한 줄
+- **분모**: 트리거의 체크박스 항목 수 (예: API 9개 + 도구 6개 = 15개)
+- **분자**: 완료된 체크박스 수
+- **메인**: 라운드 4단계(설계·머지·검증·문서) 중 진행 단계 기준
+
+**Why**: 큰 작업이 묶음으로 가면 Swain이 중간 상태(막혔는지·진행 중인지) 파악 불가 → 잘못된 시점에 개입. 진행률 보고로 해결.
+
+### 6.17 A·B·C 채팅 자율주행 (2026-05-14 Swain 추가)
+
+A·B·C 서브 채팅은 **push와 애매한 로직만 묻고 나머지는 자율 진행**.
+
+- **묻기 (ask)**: `git push`, 설계·로직 결정, package.json/lock 수정, npm uninstall/update, netlify/curl
+- **자율 (allow)**: Read·Edit·Write 모든 파일, git status/log/diff/fetch/add/commit/rebase, bash·PowerShell 일반 명령, npm install/run
+- **금지 (deny)**: force push, hard reset, rm -rf, lib/auth.ts·admin-guard.ts·hyosung-parser.ts 수정, public/js/auth.js·admin-mypage-cancellation.js·admin-eligibility.js 수정
+
+정책 위치: `.claude/settings.json` (메인+A+B+C 워크트리 4곳 동일 배포) + 트리거 본문 `[자율주행 정책]` 조항
+
+**Why**: 매 Edit/Read마다 허락 묻기 → 작업 흐름 끊김. A·B 효율 급감. 2026-05-14 Swain "허락 맡지마" 명시 지시.
+
 ---
 
 ## 7. AI 호출 정책
