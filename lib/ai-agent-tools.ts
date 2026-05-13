@@ -23,7 +23,7 @@ export const TOOL_DECLARATIONS = [
   { name: "notice_create", description: "공지사항 등록 (dry-run 우선)",
     parameters: { type: "OBJECT", properties: {
       title: { type: "STRING" }, body: { type: "STRING" },
-      category: { type: "STRING", description: "notice|event|press" }, requireApproval: { type: "BOOLEAN" },
+      category: { type: "STRING", description: "general|member|event|media (기본 general)" }, requireApproval: { type: "BOOLEAN" },
     }, required: ["title", "body"] }},
   { name: "campaign_create", description: "캠페인 등록 (dry-run 우선)",
     parameters: { type: "OBJECT", properties: {
@@ -653,8 +653,9 @@ async function tool_contentPagesUpdate(args: any, adminId: number | null): Promi
 async function tool_noticeCreate(args: any, adminId: number | null): Promise<ToolResult> {
   const title = String(args?.title || "").trim().slice(0, 200);
   const body  = String(args?.body  || "").trim();
-  /* notice_category_enum: general|event|press 등 (board_posts와 별개 enum) */
-  const category = ["general","notice","event","press"].includes(String(args?.category)) ? String(args.category) : "general";
+  /* notice_category enum (db/schema.ts): general / member / event / media (4개만).
+     2026-05-14 BUG-05a fix: 'notice'·'press'는 enum에 없음. 잘못 시드 → invalid enum 에러. */
+  const category = ["general","member","event","media"].includes(String(args?.category)) ? String(args.category) : "general";
   const requireApproval = args?.requireApproval !== false;
   if (!title) return { ok: false, error: "title 필수" };
   if (!body)  return { ok: false, error: "body 필수" };

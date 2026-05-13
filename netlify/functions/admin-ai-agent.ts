@@ -524,6 +524,69 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err) { return jsonError("create_conv", err); }
   }
 
+  /* === BUG-03 fix (2026-05-14): 자연어 dry-run 승인 short-circuit ===
+     직전 turn에 dry-run preview(pendingApproval)가 있고 사용자가 짧은 승인어로 답하면
+     LLM 호출 건너뛰고 같은 도구를 requireApproval=false로 직접 재호출.
+     "응", "OK", "진행" 같은 자연어도 toolApproval 객체와 동일 효과. */
+  const APPROVE_RE = /^(응|네|예|어|그래|좋아|좋|맞아|맞다|ok|오케이|진행|진행해|확인|가자|시작|해|해줘|등록|생성|저장|승인|진행해줘)$/i;
+  const REJECT_RE  = /^(아니|아니오|취소|안돼|그만|멈춰|스톱|패스|넘어가|건너|취소해)$/i;
+  const isShortApprove = userMessage && APPROVE_RE.test(userMessage);
+  const isShortReject  = userMessage && REJECT_RE.test(userMessage);
+
+  if ((isShortApprove || isShortReject) && messages.length > 0) {
+    /* 직전 model turn의 마지막 functionCall + 그 결과 dry_run:true 찾기 */
+    let pendingCall: { name: string; args: any } | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== "model") continue;
+      const fnCallPart = (m.parts || []).find((p: any) => p.functionCall);
+      if (!fnCallPart) continue;
+      /* 그 다음 user turn (functionResponse)에서 dry_run 결과 확인 */
+      const nextUser = messages[i + 1];
+      if (!nextUser || nextUser.role !== "user") break;
+      const fnResp = (nextUser.parts || []).find((p: any) => p.functionResponse);
+      const output = fnResp?.functionResponse?.response?.output;
+      const isDryRun = output && (output.dry_run === true || (typeof output === "object" && output.message?.includes?.("승인 대기")));
+      if (isDryRun) {
+        pendingCall = { name: fnCallPart.functionCall.name, args: fnCallPart.functionCall.args || {} };
+      }
+      break;
+    }
+
+    if (pendingCall) {
+      if (isShortReject) {
+        /* 거부 — pendingApproval 없음으로 정리, 친근한 응답 */
+        const reply = `'${pendingCall.name}' 작업을 취소했습니다.`;
+        return new Response(JSON.stringify({
+          ok: true, conversationId, reply, toolCalls: [], pendingApproval: null,
+        }), { status: 200, headers: JSON_HEADER });
+      }
+      /* 승인 — requireApproval=false로 직접 실행 */
+      const finalArgs = { ...pendingCall.args, requireApproval: false };
+      console.info(`[ai-agent] short-circuit 승인: ${pendingCall.name}`);
+      const result = await executeTool(pendingCall.name, finalArgs, adminId);
+      /* messages에 새 turn 추가 (감사 로그 일관성) */
+      messages.push({ role: "user", parts: [{ text: userMessage }] });
+      messages.push({ role: "model", parts: [{ functionCall: { name: pendingCall.name, args: finalArgs } }] });
+      messages.push({ role: "user", parts: [{ functionResponse: { name: pendingCall.name, response: { output: result.output } } }] });
+      const reply = result.ok
+        ? (result.output?.message || `'${pendingCall.name}' 실행 완료.`)
+        : `'${pendingCall.name}' 실행 실패: ${result.error || "알 수 없는 오류"}`;
+      /* 대화 저장 */
+      try {
+        await db.execute(sql`
+          UPDATE ai_agent_conversations SET messages = ${JSON.stringify(messages)}::jsonb, updated_at = NOW()
+           WHERE id = ${conversationId}
+        `);
+      } catch (_) {}
+      return new Response(JSON.stringify({
+        ok: true, conversationId, reply,
+        toolCalls: [{ name: pendingCall.name, args: finalArgs, result }],
+        pendingApproval: null,
+      }), { status: 200, headers: JSON_HEADER });
+    }
+  }
+
   /* === 동적 도구 로딩 — 첫 사용자 메시지로 의도 분류 → 관련 도구만 전송 === */
   const selectedToolNames = userMessage ? selectRelevantTools(userMessage) : null;
   let toolDeclarations: any[] = selectedToolNames
