@@ -252,7 +252,56 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 
 ---
 
-## 2. 최종 집계 (V5 라운드 기준 — V4·V5 누적)
+## 1-D. 재검증 라운드 V6 (2026-05-14, BUG-03 short-circuit + BUG-05a enum fix 후)
+
+**전제**: main 3ba204c (F11 short-circuit + enum 정정 fix) + verify 머지 7ca92f2. 표준 v1.3 §F11·§18.12.
+
+### V6 시나리오 결과
+
+#### F11 — 자연어 "진행/응/OK/취소" short-circuit
+
+| # | 입력 | 결과 | 응답 시간 | LLM 호출 |
+|---|---|---|---|---|
+| F11-A | "노란 메모로 V6 진행 테스트 만들어줘" (dry-run) | **PASS** | 4049ms | 1회 (정상) |
+| F11-B | "진행" (같은 conversationId) | **PASS** — memo_id=4 생성, reply "'memo_create' 실행 완료." | **721ms** | **0회** (응답에 inputTokenEstimate 누락 → short-circuit 활성) |
+| F11-C | "파란 메모로 V6 취소 테스트 만들어줘" (dry-run) | **PASS** | 3104ms | 1회 (정상) |
+| F11-D | "취소" (같은 conversationId) | **PASS** — toolCalls=[], reply "'memo_create' 작업을 취소했습니다." | **857ms** | **0회** |
+| F11-E | "내 메모 보여줘" (취소 검증) | **PASS** — count=1 (V6 진행 테스트만 존재, V6 취소 테스트 INSERT 안 됨) |
+
+**F11 결론**: BUG-03 fix 완료. 자연어 "진행" → 같은 도구 requireApproval=false 직접 실행, "취소" → 친근한 취소 응답. LLM 호출 0회 + 평균 750ms (표준 §F11 명시 ~300ms와 실측 차이는 네트워크 왕복 포함).
+
+#### BUG-05a notice_category enum 4종
+
+| # | 카테고리 | 결과 | 응답 |
+|---|---|---|---|
+| ENUM-1 | `general` | **PASS** | dry-run preview에 category="general" 정상 |
+| ENUM-2 | `member` | **FAIL** | "'member' 카테고리는 유효하지 않습니다. 공지사항 카테고리는 'notice', 'event', 'press' 중 하나" |
+| ENUM-3 | `event` | **PASS** | dry-run preview에 category="event" 정상 |
+| ENUM-4 | `media` | **FAIL** | "'media' 카테고리는 사용할 수 없습니다. 'notice', 'event', 'press' 중 선택" |
+
+**enum 결론**: 표준 §18.12에 명시된 정확 enum(general/member/event/media)과 실제 코드 불일치. fix 부분 적용:
+- general·event는 통과 (정정됨)
+- member·media는 거부 — **핸들러·도구 description 화이트리스트 미정정**
+- 거부 메시지에는 옛 화이트리스트(`notice, event, press`) 그대로 노출 → fix 미완
+
+**신규 BUG**: BUG-AI-AGENT-PHASE1-05b — notice_category enum fix 부분 적용 (member/media 누락 + 거부 메시지 옛 값 노출)
+
+### V6 집계
+
+| 영역 | 통과 | 실패 | 비고 |
+|---|---|---|---|
+| F11 (BUG-03 short-circuit) | **5/5** | 0/5 | 진행·취소 분기 + 데이터 영향 검증 모두 PASS |
+| enum 4종 (BUG-05a) | **2/4** | 2/4 | general·event PASS / member·media FAIL — fix 부분 적용 |
+| **합계** | **7/9** | **2/9** | BUG-03 완전 해소, BUG-05a 부분 해소 |
+
+### V6 사용자 데이터 영향
+
+- `workspace_memos` id=4 추가 (F11-B 진행으로 생성) — rollbackData `{table:"workspace_memos",id:4}` 보존
+- enum 검증은 모두 dry-run으로만 — DB 영향 없음
+
+---
+
+## 2. 최종 집계 (V6 라운드 기준 — V4·V5·V6 누적)
 
 | 영역 | 통과 | 실패 | 스킵 | 비고 |
 |---|---|---|---|---|
@@ -271,7 +320,8 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 |---|---|---|---|---|---|
 | BUG-AI-AGENT-PHASE1-01 (해소) | M1·M2·SC-1 V2 | 자연어 의도 분류 회귀 — UTF-8 cp949 인코딩 원인 | — | V4에서 UTF-8 표준 적용 후 모두 PASS | `docs/issues/2026-05-13-ai-agent-phase1-memos-list-no-call.md` |
 | BUG-AI-AGENT-PHASE1-02 (잔존) | V3 M1 회피책 | Gemini API 503 high demand (외부 일시 장애) | — | 일시 — 재시도 | `docs/issues/2026-05-13-ai-agent-phase1-gemini-timeout.md` |
-| BUG-AI-AGENT-PHASE1-03 (잔존) | M3 V4 | 표준 §17.1 `toolApproval` 양식 미구현 — admin-ai-agent.ts validation 체크만 있고 처리 로직 없음 | 1/1 | 회피책 — 명시적 자연어 "requireApproval false로 진행" | 메인이 D안 설계로 fix 중 |
+| BUG-AI-AGENT-PHASE1-03 (해소) | M3 V4 | toolApproval 양식 → V6에서 F11 short-circuit으로 자연어 "진행/응" 직접 실행 fix | — | V6 PASS (721ms, LLM 0회, memo_id=4 생성) + 취소 분기 (857ms) | F11 §AI_AGENT_PLATFORM_STANDARD.md |
+| BUG-AI-AGENT-PHASE1-05b (V6 신규) | enum member·media | notice_category enum fix 부분 적용 — general·event 통과, member·media는 옛 화이트리스트(`notice/event/press`) 그대로 거부 | 2/2 | 임시: general·event만 사용 | 핸들러·도구 description 화이트리스트 정정 필요 (메인 fix 영역) |
 | BUG-AI-AGENT-PHASE1-04 (해소) | T1·T2 V4 | task_create / task_update 권한 매핑 — V5에서 role hierarchy fix로 PASS | — | V5 PASS | `docs/issues/2026-05-14-ai-agent-task-permission-mapping.md` |
 | BUG-AI-AGENT-PHASE1-05 (해소) | E1·E2·T1 V4 | 인자 자동 추출 — V5에서 현재 날짜 동적 주입 + 부풀림 fix로 PASS | — | V5 PASS (E1 fromDate 2026-05-12 정확, T1 1개만 생성·dueDate +7d) | `docs/issues/2026-05-14-ai-agent-arg-extraction.md` |
 | BUG-AI-AGENT-PHASE1-05a (V5 신규 잔존) | P2-3.1 V5 | notice_create category 인자 enum 부정확 — AI 임의 추측 → invalid enum | 1/1 | 도구 description에 enum 허용값 명시 + 미지정 시 사용자에게 묻기 | (BUG-05 후속 — issues 추가 분리 미작성, RESULTS §1-C 비고 참고) |
@@ -282,7 +332,38 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 
 ## 4. 메인 채팅 인계 메시지 (Swain 복붙용)
 
-### V5 라운드 (2026-05-14, BUG-04·05·06·Phase2-02 fix 후 — 최종)
+### V6 라운드 (2026-05-14, BUG-03 short-circuit + BUG-05a enum fix 후 — 최종)
+
+```
+[C 채팅 → 메인 채팅] V6 재검증 완료. BUG-03 완전 해소, BUG-05a 부분 해소.
+
+V6 결과:
+- F11 short-circuit (BUG-03 fix):
+  * 진행: PASS (721ms, LLM 0회) — memo_id=4 생성, reply "memo_create 실행 완료"
+  * 취소: PASS (857ms, LLM 0회) — toolCalls=[], reply "memo_create 작업을 취소했습니다"
+  * 데이터 영향 검증: V6 진행 INSERT 확인, V6 취소 INSERT 안 됨 ✓
+
+- BUG-05a notice_category enum 4종:
+  * general: PASS, event: PASS
+  * member: FAIL — "'member' 카테고리는 유효하지 않습니다. 'notice', 'event', 'press' 중 하나"
+  * media: FAIL — 동일 거부
+
+신규 BUG: BUG-AI-AGENT-PHASE1-05b — enum fix 부분 적용
+- 표준 §18.12 명시: general/member/event/media 4개
+- 실제 코드: general·event만 통과, member·media는 옛 화이트리스트(notice/event/press)로 거부
+- 회피: general 또는 event만 사용
+- 상세: docs/issues/2026-05-14-ai-agent-notice-enum-partial-fix.md
+
+집계: 통과 7/9, 실패 2/9 (enum member·media)
+
+사용자 데이터 영향: workspace_memos id=4 추가 (F11-B 진행) — rollbackData 보존
+
+상세: docs/verify/RESULTS_AI_AGENT_PHASE1.md §1-D
+브랜치: verify/ai-agent-phase1 push 곧
+다음 라운드(BUG-05b fix 후) 대기.
+```
+
+### V5 라운드 (2026-05-14, BUG-04·05·06·Phase2-02 fix 후)
 
 ```
 [C 채팅 → 메인 채팅] Phase 1·2 V5 재검증 완료. fix 4건 모두 효과 확인.
