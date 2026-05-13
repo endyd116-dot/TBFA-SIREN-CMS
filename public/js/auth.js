@@ -169,6 +169,14 @@
       if (userBox) userBox.remove();
       stopChatAlarmPolling();
     }
+
+    /* ★ 로그인·로그아웃 직후 헤더의 '관리자 모드' 버튼도 즉시 갱신
+       (이전엔 페이지 새로고침해야 보임 — 2026-05-13 fix) */
+    try {
+      if (typeof window.refreshHeaderAuthUI === 'function') {
+        window.refreshHeaderAuthUI();
+      }
+    } catch (_) {}
   }
 // public/js/auth.js — 회원가입 관련 코드 영역에 추가
 

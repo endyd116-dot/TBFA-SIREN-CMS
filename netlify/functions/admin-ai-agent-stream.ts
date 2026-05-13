@@ -151,7 +151,12 @@ export default async (req: Request, _ctx: Context) => {
           } catch (e: any) {
             lastError = String(e?.message || e);
             console.warn(`[ai-agent-stream] ${usedModel} 실패`, lastError.slice(0, 200));
-            const isRetryable = lastError.includes("404") || lastError.includes("NOT_FOUND") || lastError.includes("not supported");
+            /* 다음 모델 폴백 케이스 — 503(과부하)·429(quota) 포함 */
+            const isRetryable =
+              lastError.includes("404") || lastError.includes("503") || lastError.includes("429") ||
+              lastError.includes("NOT_FOUND") || lastError.includes("not supported") ||
+              lastError.includes("UNAVAILABLE") || lastError.includes("high demand") ||
+              lastError.includes("RESOURCE_EXHAUSTED");
             if (!isRetryable) break;
           }
         }
