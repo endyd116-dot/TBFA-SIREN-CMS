@@ -481,6 +481,53 @@ export const TOOL_DECLARATIONS = [
       unreadOnly: { type: "BOOLEAN", description: "true=관리자 미확인 메시지 있는 방만" },
       limit: { type: "INTEGER" },
     }}},
+
+  /* === Phase 22-A 매출 (6개) === */
+  { name: "revenue_categories_list", description: "후원 외 수입 카테고리 목록 조회",
+    parameters: { type: "OBJECT", properties: {} }},
+
+  { name: "revenue_create", description: "후원 외 수입 항목 등록 (draft 상태로 생성, 승인 별도)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear:   { type: "INTEGER", description: "회계연도 (예: 2026)" },
+      recognizedAt: { type: "STRING",  description: "수입 인식일 YYYY-MM-DD" },
+      categoryId:   { type: "INTEGER", description: "revenue_categories.id" },
+      amount:       { type: "INTEGER", description: "금액 (원)" },
+      payerName:    { type: "STRING",  description: "지급인·기관명 (선택)" },
+      description:  { type: "STRING",  description: "상세 내용 (선택)" },
+      receiptUrl:   { type: "STRING",  description: "영수증 URL (선택)" },
+    }, required: ["fiscalYear", "recognizedAt", "categoryId", "amount"] }},
+
+  { name: "revenue_list", description: "후원 외 수입 목록 조회 (회계연도·상태 필터)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear: { type: "INTEGER", description: "회계연도 (필수)" },
+      status:     { type: "STRING",  description: "draft|approved|rejected|all (기본 all)" },
+      page:       { type: "INTEGER" },
+      limit:      { type: "INTEGER" },
+    }, required: ["fiscalYear"] }},
+
+  { name: "revenue_update", description: "수입 항목 수정 (draft 상태·등록자 또는 super_admin만 가능)",
+    parameters: { type: "OBJECT", properties: {
+      id:           { type: "INTEGER", description: "수입 항목 ID" },
+      fiscalYear:   { type: "INTEGER" },
+      recognizedAt: { type: "STRING" },
+      categoryId:   { type: "INTEGER" },
+      amount:       { type: "INTEGER" },
+      payerName:    { type: "STRING" },
+      description:  { type: "STRING" },
+      receiptUrl:   { type: "STRING" },
+    }, required: ["id"] }},
+
+  { name: "revenue_approve", description: "수입 항목 승인 또는 반려 (super_admin 전용)",
+    parameters: { type: "OBJECT", properties: {
+      id:              { type: "INTEGER", description: "수입 항목 ID" },
+      action:          { type: "STRING",  description: "approve|reject" },
+      rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
+    }, required: ["id", "action"] }},
+
+  { name: "pl_summary", description: "손익계산서 요약 — 후원+기타 매출·지출·순이익 (월별 포함)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
+    }}},
 ];
 
 /* =========================================================
@@ -600,6 +647,13 @@ export async function executeTool(
       case "budget_summary":           return await tool_budgetSummary(args);
       case "donation_policy_get":      return await tool_donationPolicyGet();
       case "chat_rooms_list":          return await tool_chatRoomsList(args);
+      /* Phase 22-A 매출 */
+      case "revenue_categories_list": return await tool_revenueCategoriesList();
+      case "revenue_create":          return await tool_revenueCreate(args, adminId);
+      case "revenue_list":            return await tool_revenueList(args);
+      case "revenue_update":          return await tool_revenueUpdate(args, adminId);
+      case "revenue_approve":         return await tool_revenueApprove(args, adminId);
+      case "pl_summary":              return await tool_plSummary(args);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -2998,5 +3052,185 @@ async function tool_chatRoomsList(args: any): Promise<ToolResult> {
     return { ok: true, output: { count: rows.length, chatRooms: rows } };
   } catch (e: any) {
     return { ok: false, error: `채팅방 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* === Phase 22-A 매출 (6개) === */
+
+async function tool_revenueCategoriesList(): Promise<ToolResult> {
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, code, name, description, sort_order, is_active
+        FROM revenue_categories
+       ORDER BY sort_order ASC, id ASC
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, categories: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `카테고리 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_revenueCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  const { fiscalYear, recognizedAt, categoryId, amount, payerName, description, receiptUrl } = args || {};
+  if (!fiscalYear || !recognizedAt || !categoryId || !amount) {
+    return { ok: false, error: "fiscalYear, recognizedAt, categoryId, amount 필수" };
+  }
+  const dryRun = args?.requireApproval !== false;
+  const preview = {
+    fiscalYear: Number(fiscalYear),
+    recognizedAt: String(recognizedAt),
+    categoryId: Number(categoryId),
+    amount: Number(amount),
+    payerName: payerName || null,
+    description: description || null,
+    status: "draft",
+  };
+  if (dryRun) {
+    return { ok: true, preview, output: { dryRun: true, message: "확인 후 진행하시겠습니까?" } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO other_revenues (fiscal_year, recognized_at, category_id, amount, payer_name, description, receipt_url, status, refund_amount, recorded_by, recorded_at)
+      VALUES (${Number(fiscalYear)}, ${String(recognizedAt)}::date, ${Number(categoryId)}, ${Number(amount)},
+              ${payerName || null}, ${description || null}, ${receiptUrl || null}, 'draft', 0, ${adminId}, NOW())
+      RETURNING id, fiscal_year, recognized_at, category_id, amount, status
+    `);
+    const row = (r?.rows ?? r ?? [])[0];
+    return { ok: true, output: { revenue: row, message: "수입 항목이 등록되었습니다 (draft 상태 — 승인 필요)." } };
+  } catch (e: any) {
+    return { ok: false, error: `수입 등록 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_revenueList(args: any): Promise<ToolResult> {
+  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  const status = args?.status || "all";
+  const limit = Math.min(Number(args?.limit) || 50, 100);
+  const page = Math.max(1, Number(args?.page) || 1);
+  const offset = (page - 1) * limit;
+  const statusCond = status !== "all" ? sql`AND r.status = ${status}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT r.id, r.fiscal_year, r.recognized_at, r.category_id, c.name AS category_name,
+             r.amount, r.refund_amount, r.payer_name, r.status, r.description
+        FROM other_revenues r
+        LEFT JOIN revenue_categories c ON c.id = r.category_id
+       WHERE r.fiscal_year = ${Number(fiscalYear)} ${statusCond}
+       ORDER BY r.recognized_at DESC, r.id DESC
+       LIMIT ${limit} OFFSET ${offset}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    const sumR: any = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) AS gross, COALESCE(SUM(refund_amount), 0) AS refund
+        FROM other_revenues
+       WHERE fiscal_year = ${Number(fiscalYear)} ${statusCond}
+    `);
+    const sumRow = (sumR?.rows ?? sumR ?? [])[0] || {};
+    const gross = Number(sumRow.gross || 0);
+    const refund = Number(sumRow.refund || 0);
+    return { ok: true, output: { count: rows.length, items: rows, summary: { gross, refund, net: gross - refund } } };
+  } catch (e: any) {
+    return { ok: false, error: `수입 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_revenueUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const { id, ...rest } = args || {};
+  if (!id) return { ok: false, error: "id 필수" };
+  const dryRun = args?.requireApproval !== false;
+  if (dryRun) {
+    return { ok: true, preview: { id, ...rest }, output: { dryRun: true, message: "이대로 수정할까요?" } };
+  }
+  try {
+    const setParts: any[] = [];
+    if (rest.fiscalYear   !== undefined) setParts.push(sql`fiscal_year = ${Number(rest.fiscalYear)}`);
+    if (rest.recognizedAt !== undefined) setParts.push(sql`recognized_at = ${String(rest.recognizedAt)}::date`);
+    if (rest.categoryId   !== undefined) setParts.push(sql`category_id = ${Number(rest.categoryId)}`);
+    if (rest.amount       !== undefined) setParts.push(sql`amount = ${Number(rest.amount)}`);
+    if (rest.payerName    !== undefined) setParts.push(sql`payer_name = ${rest.payerName || null}`);
+    if (rest.description  !== undefined) setParts.push(sql`description = ${rest.description || null}`);
+    if (rest.receiptUrl   !== undefined) setParts.push(sql`receipt_url = ${rest.receiptUrl || null}`);
+    if (setParts.length === 0) return { ok: false, error: "수정할 필드가 없습니다" };
+    setParts.push(sql`updated_at = NOW()`);
+    await db.execute(sql`UPDATE other_revenues SET ${sql.join(setParts, sql`, `)} WHERE id = ${Number(id)} AND status = 'draft'`);
+    return { ok: true, output: { message: `수입 항목 ${id}번이 수정되었습니다.` } };
+  } catch (e: any) {
+    return { ok: false, error: `수입 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_revenueApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  const { id, action, rejectionReason } = args || {};
+  if (!id || !action) return { ok: false, error: "id, action 필수" };
+  if (!["approve", "reject"].includes(action)) return { ok: false, error: "action은 approve 또는 reject" };
+  if (action === "reject" && !rejectionReason) return { ok: false, error: "반려 시 rejectionReason 필수" };
+  const dryRun = args?.requireApproval !== false;
+  if (dryRun) {
+    return { ok: true, preview: { id, action, rejectionReason }, output: { dryRun: true, message: `${action === "approve" ? "승인" : "반려"}하시겠습니까?` } };
+  }
+  const newStatus = action === "approve" ? "approved" : "rejected";
+  try {
+    await db.execute(sql`
+      UPDATE other_revenues
+         SET status = ${newStatus},
+             approved_by = ${adminId},
+             approved_at = NOW(),
+             rejection_reason = ${rejectionReason || null},
+             updated_at = NOW()
+       WHERE id = ${Number(id)} AND status = 'draft'
+    `);
+    return { ok: true, output: { message: `수입 항목 ${id}번이 ${action === "approve" ? "승인" : "반려"}되었습니다.` } };
+  } catch (e: any) {
+    return { ok: false, error: `승인/반려 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_plSummary(args: any): Promise<ToolResult> {
+  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  try {
+    const donR: any = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) AS gross
+        FROM donations
+       WHERE status = 'completed'
+         AND EXTRACT(YEAR FROM COALESCE(hyosung_paid_date, created_at)) = ${Number(fiscalYear)}
+    `);
+    const donGross = Number((donR?.rows ?? donR ?? [])[0]?.gross || 0);
+
+    const othR: any = await db.execute(sql`
+      SELECT c.code, c.name,
+             COALESCE(SUM(r.amount), 0) AS gross,
+             COALESCE(SUM(r.refund_amount), 0) AS refund
+        FROM other_revenues r
+        LEFT JOIN revenue_categories c ON c.id = r.category_id
+       WHERE r.status = 'approved'
+         AND r.recognized_at::date BETWEEN ${`${fiscalYear}-01-01`}::date AND ${`${fiscalYear}-12-31`}::date
+       GROUP BY c.code, c.name
+    `);
+    const othRows = othR?.rows ?? othR ?? [];
+    let othGross = 0; let othRefund = 0;
+    const byCategory = othRows.map((row: any) => {
+      const g = Number(row.gross); const rf = Number(row.refund);
+      othGross += g; othRefund += rf;
+      return { code: row.code, name: row.name, gross: g, refund: rf, net: g - rf };
+    });
+
+    const totalNet = donGross + othGross - othRefund;
+    return {
+      ok: true,
+      output: {
+        fiscalYear: Number(fiscalYear),
+        revenue: {
+          donations: { gross: donGross, refund: 0, net: donGross },
+          other: { gross: othGross, refund: othRefund, net: othGross - othRefund, byCategory },
+          totalNet,
+        },
+        expenditure: { total: 0, byCategory: [] },
+        netIncome: totalNet,
+        summary: `${fiscalYear}년 총 순수익: ${totalNet.toLocaleString("ko-KR")}원 (후원 ${donGross.toLocaleString("ko-KR")}원 + 기타 ${(othGross - othRefund).toLocaleString("ko-KR")}원)`,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `손익 요약 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }

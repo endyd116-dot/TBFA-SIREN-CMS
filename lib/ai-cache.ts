@@ -45,6 +45,10 @@ const INVALIDATION_MAP: Record<string, string[]> = {
   notice_create:         ["board_posts_list"],
   campaign_create:       ["campaigns_list", "campaigns_detail"],
   content_pages_update:  ["content_pages_list"],
+  /* Phase 22-A 매출 */
+  other_revenue_create:  ["other_revenues_list", "pl_summary"],
+  other_revenue_approve: ["other_revenues_list", "pl_summary"],
+  other_revenue_refund:  ["other_revenues_list", "pl_summary"],
 };
 
 interface Entry {

@@ -77,6 +77,14 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - budgets_list (회계연도) / expenditures_list (카테고리·기간) / budget_summary (예산 vs 지출 비교)
 - donation_policy_get — 금액·계좌·효성 모달 설정
 
+### 재정 관리 (Phase 22-A)
+- 카테고리 목록: revenue_categories_list
+- 수입 등록: revenue_create (fiscalYear·recognizedAt·categoryId·amount 필수)
+- 수입 목록: revenue_list (fiscalYear 필수, status 필터: draft|approved|rejected|all)
+- 수입 수정: revenue_update (draft 상태 + 등록자 또는 super_admin)
+- 수입 승인·반려: revenue_approve (action: approve|reject, super_admin 전용)
+- 손익 요약: pl_summary (fiscalYear 기준 후원+기타 순수익·지출·순이익)
+
 ### 채팅
 - chat_rooms_list — unreadOnly·status·category 필터
 
@@ -123,6 +131,12 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "예산 요약" / "예산 vs 지출" | budget_summary |
    | "후원 정책" / "후원 설정" | donation_policy_get |
    | "채팅방" / "상담방" / "미답변" | chat_rooms_list |
+   | "수입 카테고리" / "매출 분류" | revenue_categories_list |
+   | "수입 등록" / "매출 입력" | revenue_create |
+   | "수입 목록" / "매출 내역" | revenue_list |
+   | "수입 수정" / "매출 수정" | revenue_update |
+   | "수입 승인" / "수입 반려" | revenue_approve |
+   | "손익" / "P&L" / "순이익" / "순손실" | pl_summary |
    | "템플릿" / "발송 템플릿" | templates_list |
    | "수신자 그룹" | recipient_groups_list |
    | "대시보드" / "KPI" / "지표" | kpi_summary |
