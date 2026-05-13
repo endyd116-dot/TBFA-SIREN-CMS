@@ -198,6 +198,83 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {} },
   },
 
+  /* ───── X-2: 신고·캠페인·게시판·작업 변경 도구 (7개) — 모두 dry-run 우선 ───── */
+  {
+    name: "incidents_status_update",
+    description: "사건 제보 상태 변경 (reviewing/responded/closed/rejected).",
+    parameters: { type: "OBJECT", properties: {
+      incidentId:      { type: "INTEGER", description: "사건 ID (필수)" },
+      status:          { type: "STRING",  description: "reviewing|responded|closed|rejected" },
+      adminNote:       { type: "STRING",  description: "처리 메모 (선택)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["incidentId", "status"] },
+  },
+  {
+    name: "harassment_status_update",
+    description: "악성민원 신고 상태 변경.",
+    parameters: { type: "OBJECT", properties: {
+      reportId:        { type: "INTEGER", description: "신고 ID (필수)" },
+      status:          { type: "STRING",  description: "reviewing|responded|closed|rejected" },
+      adminNote:       { type: "STRING",  description: "처리 메모" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["reportId", "status"] },
+  },
+  {
+    name: "legal_status_update",
+    description: "법률 상담 상태 변경.",
+    parameters: { type: "OBJECT", properties: {
+      consultationId:  { type: "INTEGER", description: "상담 ID (필수)" },
+      status:          { type: "STRING",  description: "matching|matched|in_progress|responded|closed|rejected" },
+      adminNote:       { type: "STRING",  description: "처리 메모" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["consultationId", "status"] },
+  },
+  {
+    name: "campaigns_update",
+    description: "캠페인 정보 수정 (제목·요약·목표·종료일·게시 여부).",
+    parameters: { type: "OBJECT", properties: {
+      campaignId:      { type: "INTEGER", description: "캠페인 ID (필수)" },
+      title:           { type: "STRING" },
+      summary:         { type: "STRING" },
+      goalAmount:      { type: "INTEGER" },
+      endDate:         { type: "STRING", description: "종료일 YYYY-MM-DD" },
+      isPublished:     { type: "BOOLEAN" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["campaignId"] },
+  },
+  {
+    name: "notice_update",
+    description: "공지사항 본문·제목 수정.",
+    parameters: { type: "OBJECT", properties: {
+      noticeId:        { type: "INTEGER", description: "공지 ID (필수)" },
+      title:           { type: "STRING" },
+      body:            { type: "STRING" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["noticeId"] },
+  },
+  {
+    name: "board_post_delete",
+    description: "게시판 글 soft delete (deletedAt 설정).",
+    parameters: { type: "OBJECT", properties: {
+      postId:          { type: "INTEGER", description: "게시글 ID (필수)" },
+      reason:          { type: "STRING",  description: "삭제 사유 (감사 로그용)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["postId"] },
+  },
+  {
+    name: "task_update",
+    description: "워크 작업 카드 수정 (상태·진행률·우선순위·담당자·마감).",
+    parameters: { type: "OBJECT", properties: {
+      taskId:          { type: "INTEGER", description: "작업 ID (필수)" },
+      status:          { type: "STRING",  description: "todo|doing|blocked|done|archived" },
+      progress:        { type: "INTEGER", description: "0~100" },
+      priority:        { type: "STRING",  description: "low|normal|high|urgent" },
+      assignedTo:      { type: "INTEGER", description: "담당자 회원 ID" },
+      dueDate:         { type: "STRING",  description: "YYYY-MM-DD" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true" },
+    }, required: ["taskId"] },
+  },
+
   /* ───── X-1: 회원·후원 변경 도구 (4개) — 모두 dry-run 우선 ───── */
   {
     name: "members_update",
@@ -331,6 +408,14 @@ export async function executeTool(
       case "members_block":           return await tool_membersBlock(args, adminId);
       case "members_unblock":         return await tool_membersUnblock(args, adminId);
       case "donations_status_update": return await tool_donationsStatusUpdate(args, adminId);
+      /* X-2: 신고·캠페인·게시판·작업 변경 도구 */
+      case "incidents_status_update":   return await tool_incidentsStatusUpdate(args, adminId);
+      case "harassment_status_update":  return await tool_harassmentStatusUpdate(args, adminId);
+      case "legal_status_update":       return await tool_legalStatusUpdate(args, adminId);
+      case "campaigns_update":          return await tool_campaignsUpdate(args, adminId);
+      case "notice_update":             return await tool_noticeUpdate(args, adminId);
+      case "board_post_delete":         return await tool_boardPostDelete(args, adminId);
+      case "task_update":               return await tool_taskUpdate(args, adminId);
       /* F-7: 변경 도구 3종 */
       case "task_create":          return await tool_taskCreate(args, adminId);
       case "email_send":           return await tool_emailSend(args, adminId);
@@ -799,6 +884,221 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
     }
   }
   return { ok: true, output: results };
+}
+
+/* =========================================================
+   X-2: 신고·캠페인·게시판·작업 변경 도구 7종 — dry-run 우선
+
+   공통 패턴: before 조회 → preview → (dry-run) 또는 UPDATE + rollbackData
+   ========================================================= */
+
+const ALLOWED_INCIDENT_STATUSES = new Set(["reviewing", "responded", "closed", "rejected"]);
+const ALLOWED_HARASSMENT_STATUSES = new Set(["reviewing", "responded", "closed", "rejected"]);
+const ALLOWED_LEGAL_STATUSES = new Set(["matching", "matched", "in_progress", "responded", "closed", "rejected"]);
+const ALLOWED_TASK_STATUSES = new Set(["todo", "doing", "blocked", "done", "archived"]);
+const ALLOWED_TASK_PRIORITIES = new Set(["low", "normal", "high", "urgent"]);
+
+/** 공통 status update — 단순 status·adminNote 변경 패턴용 */
+async function genericStatusUpdate(opts: {
+  args: any; adminId: number | null;
+  tableLabel: string;          // "사건" 등 사용자 메시지용
+  table: string;               // "incident_reports" 등 SQL 식별자
+  idArg: string;               // "incidentId" 등 args 필드
+  allowed: Set<string>;
+  hasAdminNote?: boolean;
+}): Promise<ToolResult> {
+  const { args, adminId, tableLabel, table, idArg, allowed, hasAdminNote } = opts;
+  const id = Number(args?.[idArg] || 0);
+  const status = String(args?.status || "").trim();
+  if (!id) return { ok: false, error: `${idArg} 필수` };
+  if (!allowed.has(status)) return { ok: false, error: `status는 ${Array.from(allowed).join("|")}` };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const adminNote = hasAdminNote ? (String(args?.adminNote || "").trim() || null) : null;
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status FROM ${sql.identifier(table)} WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: `${tableLabel} 없음` };
+  if (before.status === status) return { ok: false, error: `이미 ${status} 상태` };
+
+  const preview = { id, table: tableLabel, before: before.status, after: status, adminNote };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    if (hasAdminNote && adminNote) {
+      await db.execute(sql`UPDATE ${sql.identifier(table)} SET status = ${status}, admin_note = ${adminNote} WHERE id = ${id}`);
+    } else {
+      await db.execute(sql`UPDATE ${sql.identifier(table)} SET status = ${status} WHERE id = ${id}`);
+    }
+    return { ok: true, output: { updated: true, id, status }, rollbackData: { table, id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `${tableLabel} 상태 변경 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_incidentsStatusUpdate(args: any, adminId: number | null) {
+  return genericStatusUpdate({ args, adminId, tableLabel: "사건", table: "incident_reports", idArg: "incidentId", allowed: ALLOWED_INCIDENT_STATUSES, hasAdminNote: true });
+}
+async function tool_harassmentStatusUpdate(args: any, adminId: number | null) {
+  return genericStatusUpdate({ args, adminId, tableLabel: "악성민원", table: "harassment_reports", idArg: "reportId", allowed: ALLOWED_HARASSMENT_STATUSES, hasAdminNote: true });
+}
+async function tool_legalStatusUpdate(args: any, adminId: number | null) {
+  return genericStatusUpdate({ args, adminId, tableLabel: "법률상담", table: "legal_consultations", idArg: "consultationId", allowed: ALLOWED_LEGAL_STATUSES, hasAdminNote: true });
+}
+
+async function tool_campaignsUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const id = Number(args?.campaignId || 0);
+  if (!id) return { ok: false, error: "campaignId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.title === "string" && args.title.trim()) patch.title = args.title.trim().slice(0, 200);
+  if (typeof args?.summary === "string") patch.summary = args.summary.slice(0, 500);
+  if (Number.isFinite(Number(args?.goalAmount))) patch.goal_amount = Math.max(0, Math.floor(Number(args.goalAmount)));
+  if (typeof args?.endDate === "string" && args.endDate.trim()) {
+    const d = new Date(args.endDate);
+    if (isNaN(d.getTime())) return { ok: false, error: "endDate 형식 오류 (YYYY-MM-DD)" };
+    patch.end_date = d;
+  }
+  if (typeof args?.isPublished === "boolean") patch.is_published = args.isPublished;
+
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, title, summary, goal_amount, end_date, is_published FROM campaigns WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "캠페인 없음" };
+
+  const preview = { campaignId: id, before, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE campaigns SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, campaignId: id, changes: patch }, rollbackData: { table: "campaigns", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `캠페인 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_noticeUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const id = Number(args?.noticeId || 0);
+  if (!id) return { ok: false, error: "noticeId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const patch: Record<string, any> = {};
+  if (typeof args?.title === "string" && args.title.trim()) patch.title = args.title.trim().slice(0, 200);
+  if (typeof args?.body === "string") patch.body = args.body;
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, title, body FROM notices WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "공지 없음" };
+
+  const preview = { noticeId: id, before: { title: before.title, bodyPreview: String(before.body || "").slice(0, 200) }, changes: { title: patch.title, bodyPreview: typeof patch.body === "string" ? patch.body.slice(0, 200) : undefined } };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    await db.execute(sql`UPDATE notices SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, noticeId: id }, rollbackData: { table: "notices", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `공지 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_boardPostDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  const id = Number(args?.postId || 0);
+  if (!id) return { ok: false, error: "postId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const reason = String(args?.reason || "").trim() || null;
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, title, deleted_at FROM board_posts WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "게시글 없음" };
+  if (before.deleted_at) return { ok: false, error: "이미 삭제된 글" };
+
+  const preview = { postId: id, title: before.title, reason };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기 — soft delete." } };
+  }
+
+  try {
+    await db.execute(sql`UPDATE board_posts SET deleted_at = NOW() WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, postId: id, reason }, rollbackData: { table: "board_posts", id, action: "soft_delete" } };
+  } catch (e: any) {
+    return { ok: false, error: `게시글 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_taskUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const id = Number(args?.taskId || 0);
+  if (!id) return { ok: false, error: "taskId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.status === "string") {
+    if (!ALLOWED_TASK_STATUSES.has(args.status)) return { ok: false, error: `status는 ${Array.from(ALLOWED_TASK_STATUSES).join("|")}` };
+    patch.status = args.status;
+    if (args.status === "done") patch.completed_at = new Date();
+  }
+  if (Number.isFinite(Number(args?.progress))) {
+    const p = Math.max(0, Math.min(100, Math.floor(Number(args.progress))));
+    patch.progress = p;
+  }
+  if (typeof args?.priority === "string") {
+    if (!ALLOWED_TASK_PRIORITIES.has(args.priority)) return { ok: false, error: `priority는 ${Array.from(ALLOWED_TASK_PRIORITIES).join("|")}` };
+    patch.priority = args.priority;
+  }
+  if (Number.isFinite(Number(args?.assignedTo))) patch.assigned_to = Number(args.assignedTo);
+  if (typeof args?.dueDate === "string" && args.dueDate.trim()) {
+    const d = new Date(args.dueDate);
+    if (isNaN(d.getTime())) return { ok: false, error: "dueDate 형식 오류" };
+    patch.due_date = d;
+  }
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, title, status, progress, priority, assigned_to, due_date FROM workspace_tasks WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "작업 없음" };
+
+  const preview = { taskId: id, title: before.title, before, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE workspace_tasks SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, taskId: id, changes: patch }, rollbackData: { table: "workspace_tasks", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `작업 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
 }
 
 /* =========================================================
