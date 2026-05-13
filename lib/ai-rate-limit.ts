@@ -22,9 +22,11 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 
-const RATE_PER_MIN  = numEnv("AI_RATE_LIMIT_PER_MINUTE", 10);
-const RATE_PER_HOUR = numEnv("AI_RATE_LIMIT_PER_HOUR",   50);
-const RATE_PER_DAY  = numEnv("AI_RATE_LIMIT_PER_DAY",   500);
+/* 2026-05-14: 라이브 검증·디버깅 시 보수치 너무 빡빡 → 2배로 완화.
+   Gemini API 자체엔 한도 없음 (월 한도 $100은 Layer 3에서 별도 제어). */
+const RATE_PER_MIN  = numEnv("AI_RATE_LIMIT_PER_MINUTE",  20);
+const RATE_PER_HOUR = numEnv("AI_RATE_LIMIT_PER_HOUR",   100);
+const RATE_PER_DAY  = numEnv("AI_RATE_LIMIT_PER_DAY",   1000);
 
 function numEnv(key: string, defaultVal: number): number {
   const n = Number(process.env[key]);
