@@ -334,6 +334,7 @@
         <ul class="cms-submenu" data-submenu="ai" style="display:block">
           <li><a href="#ai-chat" data-tab="ai-chat"><i>💬</i><span>대화 시작</span></a></li>
           <li><a href="#ai-history" data-tab="ai-history"><i>📜</i><span>대화 이력</span></a></li>
+          <li><a href="#ai-cost" data-tab="ai-cost"><i>💰</i><span>비용 관리</span></a></li>
           <li><a href="#ai-logs" data-tab="ai-logs"><i>📊</i><span>도구 사용 로그</span></a></li>
           <li><a href="#ai-config" data-tab="ai-config"><i>⚙️</i><span>설정·도구 관리</span></a></li>
         </ul>
@@ -1865,10 +1866,20 @@
         </div>
       </section>
 
-      <!-- 4. 설정·도구 관리 -->
-      <section class="cms-page" id="page-ai-config">
+      <!-- 3-b. 비용 관리 (admin-ai-cost.html iframe) -->
+      <section class="cms-page nf-iframe-page" id="page-ai-cost">
+        <iframe class="nf-iframe" data-nf-src="/admin-ai-cost.html" title="AI 비용 관리"></iframe>
+      </section>
+
+      <!-- 4. 설정·도구 관리 (실시간 편집 UI — admin-ai-config.html iframe) -->
+      <section class="cms-page nf-iframe-page" id="page-ai-config">
+        <iframe class="nf-iframe" data-nf-src="/admin-ai-config.html" title="AI 비서 설정"></iframe>
+      </section>
+
+      <!-- 옛 정적 안내 (참고용 — 보이지 않음) -->
+      <section class="cms-page" id="page-ai-config-legacy" style="display:none">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span style="font-size:15px;font-weight:700">⚙️ AI 에이전트 설정</span>
+          <span style="font-size:15px;font-weight:700">⚙️ AI 에이전트 설정 (레거시)</span>
         </div>
 
         <div class="cms-panel" style="margin-bottom:14px">
