@@ -151,12 +151,13 @@ export default async (req: Request, _ctx: Context) => {
           } catch (e: any) {
             lastError = String(e?.message || e);
             console.warn(`[ai-agent-stream] ${usedModel} 실패`, lastError.slice(0, 200));
-            /* 다음 모델 폴백 케이스 — 503(과부하)·429(quota) 포함 */
+            /* 다음 모델 폴백 케이스 */
             const isRetryable =
               lastError.includes("404") || lastError.includes("503") || lastError.includes("429") ||
               lastError.includes("NOT_FOUND") || lastError.includes("not supported") ||
               lastError.includes("UNAVAILABLE") || lastError.includes("high demand") ||
-              lastError.includes("RESOURCE_EXHAUSTED");
+              lastError.includes("RESOURCE_EXHAUSTED") ||
+              lastError.includes("thought_signature");   /* Gemini 3.x lite 가끔 누락 */
             if (!isRetryable) break;
           }
         }

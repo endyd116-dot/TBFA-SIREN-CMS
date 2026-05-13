@@ -333,12 +333,13 @@ async function callGeminiWithTools(
       lastError = `${model} → ${r.status}: ${errText.slice(0, 300)}`;
       console.warn(`[ai-agent] ${model} 실패`, r.status, errText.slice(0, 400));
       /* 404/NOT_FOUND/UNSUPPORTED는 다음 모델 시도, 그 외는 즉시 종료 */
-      /* 다음 모델로 폴백할 케이스: 404·NOT_FOUND·not supported·503(과부하)·429(quota)·UNAVAILABLE·timeout */
+      /* 다음 모델로 폴백할 케이스: 404·503·429·UNAVAILABLE·thought_signature 등 */
       const isRetryable =
         r.status === 404 || r.status === 503 || r.status === 429 ||
         errText.includes("NOT_FOUND") || errText.includes("not supported") ||
         errText.includes("UNAVAILABLE") || errText.includes("high demand") ||
-        errText.includes("RESOURCE_EXHAUSTED");
+        errText.includes("RESOURCE_EXHAUSTED") ||
+        errText.includes("thought_signature");   /* Gemini 3.x lite 가끔 누락 → flash로 폴백 */
       if (!isRetryable) break;
     } catch (e: any) {
       lastError = `${model} → ${e?.message || e}`;
