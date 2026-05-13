@@ -92,6 +92,45 @@ export const TOOL_DECLARATIONS = [
   { name: "campaigns_detail", description: "캠페인 상세 + 진행률",
     parameters: { type: "OBJECT", properties: { campaignId: { type: "INTEGER" }}, required: ["campaignId"] }},
 
+  /* 보안·감사 (Phase 추가 — 읽기) */
+  { name: "audit_logs_recent", description: "감사 로그 최근 조회 (누가·언제·뭐 했나)",
+    parameters: { type: "OBJECT", properties: {
+      action: { type: "STRING", description: "action 부분 일치 (예: login, member_block)" },
+      userId: { type: "INTEGER" },
+      riskLevel: { type: "STRING", description: "low|medium|high|critical" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "members_recent_logins", description: "최근 로그인한 회원 (last_login_at 역순)",
+    parameters: { type: "OBJECT", properties: {
+      hours: { type: "INTEGER", description: "최근 N시간 (기본 24)" },
+      limit: { type: "INTEGER" },
+    }}},
+
+  /* 발송·트리거 (Phase 추가 — 읽기) */
+  { name: "dispatch_logs_recent", description: "알림 발송 이력 (이메일·SMS·카카오·푸시)",
+    parameters: { type: "OBJECT", properties: {
+      channel: { type: "STRING", description: "email|sms|kakao|push" },
+      status: { type: "STRING", description: "sent|failed|delivered" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "auto_triggers_recent", description: "자동 트리거 실행 이력",
+    parameters: { type: "OBJECT", properties: {
+      status: { type: "STRING", description: "ok|skipped|error" },
+      limit: { type: "INTEGER" },
+    }}},
+
+  /* 후원자 분석 (Phase 추가 — 읽기) */
+  { name: "donors_top", description: "고액 후원자 상위 N명 (누적 후원금)",
+    parameters: { type: "OBJECT", properties: {
+      months: { type: "INTEGER", description: "최근 N개월 (기본 12)" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "donors_at_risk", description: "이탈 위험 후원자 (churn_risk_level)",
+    parameters: { type: "OBJECT", properties: {
+      level: { type: "STRING", description: "high|critical (기본 high+critical)" },
+      limit: { type: "INTEGER" },
+    }}},
+
   /* 워크스페이스·알림·KPI */
   { name: "tasks_list", description: "워크 작업 목록",
     parameters: { type: "OBJECT", properties: {
@@ -246,6 +285,13 @@ export async function executeTool(
       case "tasks_list":           return await tool_tasksList(args);
       case "notifications_recent": return await tool_notificationsRecent(args);
       case "kpi_summary":          return await tool_kpiSummary();
+      /* 추가 읽기 도구 (보안·발송·후원자 분석) */
+      case "audit_logs_recent":     return await tool_auditLogsRecent(args);
+      case "members_recent_logins": return await tool_membersRecentLogins(args);
+      case "dispatch_logs_recent":  return await tool_dispatchLogsRecent(args);
+      case "auto_triggers_recent":  return await tool_autoTriggersRecent(args);
+      case "donors_top":            return await tool_donorsTop(args);
+      case "donors_at_risk":        return await tool_donorsAtRisk(args);
       /* X-1: 회원·후원 변경 도구 */
       case "members_update":          return await tool_membersUpdate(args, adminId);
       case "members_block":           return await tool_membersBlock(args, adminId);
@@ -1164,5 +1210,130 @@ async function tool_notificationSend(args: any, adminId: number | null): Promise
     return { ok: true, output: { inserted, total: ids.length } };
   } catch (e: any) {
     return { ok: false, error: `알림 발송 실패: ${e?.message?.slice(0, 200)} (성공 ${inserted}/${ids.length})` };
+  }
+}
+
+/* =========================================================
+   추가 읽기 도구 6종 — 보안·발송·후원자 분석
+   ========================================================= */
+
+async function tool_auditLogsRecent(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 10, 50);
+  const conds: any[] = [];
+  if (args?.action) conds.push(sql`action ILIKE ${`%${String(args.action)}%`}`);
+  if (Number.isFinite(Number(args?.userId))) conds.push(sql`user_id = ${Number(args.userId)}`);
+  if (args?.riskLevel) conds.push(sql`risk_level = ${String(args.riskLevel)}`);
+  const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, user_id, user_name, action, target, success, risk_level, created_at
+        FROM audit_logs ${where}
+       ORDER BY created_at DESC LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, logs: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `감사 로그 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_membersRecentLogins(args: any): Promise<ToolResult> {
+  const hours = Math.min(Math.max(Number(args?.hours) || 24, 1), 168);  /* 1h ~ 7d */
+  const limit = Math.min(Number(args?.limit) || 10, 50);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, email, type, last_login_at, last_login_ip
+        FROM members
+       WHERE last_login_at > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+       ORDER BY last_login_at DESC LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, hours, members: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `로그인 이력 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_dispatchLogsRecent(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 10, 50);
+  const conds: any[] = [];
+  if (args?.channel) conds.push(sql`channel = ${String(args.channel)}`);
+  if (args?.status) conds.push(sql`status = ${String(args.status)}`);
+  const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, channel, recipient_email, recipient_phone, subject, status, error_message, sent_at
+        FROM notification_dispatch_logs ${where}
+       ORDER BY sent_at DESC LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, logs: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `발송 이력 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_autoTriggersRecent(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 10, 50);
+  const where = args?.status ? sql`WHERE r.status = ${String(args.status)}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT r.id, r.trigger_id, t.name AS trigger_name, r.job_id,
+             r.triggered_at, r.member_count, r.status, r.error
+        FROM communication_auto_trigger_runs r
+        LEFT JOIN communication_auto_triggers t ON t.id = r.trigger_id
+        ${where}
+       ORDER BY r.triggered_at DESC LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, runs: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `트리거 이력 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_donorsTop(args: any): Promise<ToolResult> {
+  const months = Math.min(Math.max(Number(args?.months) || 12, 1), 36);
+  const limit = Math.min(Number(args?.limit) || 10, 30);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT d.member_id, m.name, m.email,
+             COUNT(*)::int AS donation_count,
+             COALESCE(SUM(d.amount), 0)::bigint AS total_amount
+        FROM donations d
+        LEFT JOIN members m ON m.id = d.member_id
+       WHERE d.status = 'completed'
+         AND d.created_at > NOW() - INTERVAL '${sql.raw(String(months))} months'
+         AND d.member_id IS NOT NULL
+       GROUP BY d.member_id, m.name, m.email
+       ORDER BY total_amount DESC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, months, top_donors: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `고액 후원자 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_donorsAtRisk(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 10, 50);
+  const level = String(args?.level || "").trim();
+  const where = level && (level === "high" || level === "critical")
+    ? sql`WHERE churn_risk_level = ${level}`
+    : sql`WHERE churn_risk_level IN ('high', 'critical')`;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, email, type, churn_risk_score, churn_risk_level,
+             donor_type, last_login_at
+        FROM members
+        ${where}
+       ORDER BY churn_risk_score DESC NULLS LAST
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, at_risk: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `이탈 위험 후원자 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }

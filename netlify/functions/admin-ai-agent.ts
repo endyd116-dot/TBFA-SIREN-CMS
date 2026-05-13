@@ -242,10 +242,14 @@ async function summarizeOldMessages(
 interface ToolGroup { name: string; tools: string[]; keywords: string[] }
 
 const TOOL_GROUPS: ToolGroup[] = [
-  { name: "members",  tools: ["members_search", "members_stats", "members_recent", "members_detail"],
-    keywords: ["회원", "가입", "유족", "유가족", "후원회원", "신규", "탈퇴"] },
-  { name: "donations", tools: ["donations_recent", "donations_stats", "donations_by_member"],
-    keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제"] },
+  { name: "members",  tools: ["members_search", "members_stats", "members_recent", "members_detail", "members_recent_logins"],
+    keywords: ["회원", "가입", "유족", "유가족", "후원회원", "신규", "탈퇴", "로그인"] },
+  { name: "donations", tools: ["donations_recent", "donations_stats", "donations_by_member", "donors_top", "donors_at_risk"],
+    keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제", "고액", "이탈", "위험"] },
+  { name: "audit",    tools: ["audit_logs_recent"],
+    keywords: ["감사", "이력", "로그", "audit", "기록"] },
+  { name: "dispatch", tools: ["dispatch_logs_recent", "auto_triggers_recent"],
+    keywords: ["발송", "전송", "트리거", "자동", "이메일 이력", "sms 이력"] },
   { name: "siren",    tools: ["incidents_list", "incidents_detail", "harassment_reports_list", "legal_consultations_list"],
     keywords: ["사건", "신고", "악성", "민원", "법률", "상담", "siren", "SIREN", "교권", "괴롭힘"] },
   { name: "board",    tools: ["board_posts_list", "notice_create"],
