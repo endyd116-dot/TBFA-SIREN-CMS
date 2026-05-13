@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (심야) | **메인** | **🎉 22-A C 검증 + 22-C B·A 머지 완료** (main @ `a616772`) — C 검증 BUG 12건 발견(Critical 2 + High 3 + Medium·Low 7) → C 직접 fix 흡수(`b8180a6`): BUG-001 환불 누적·BUG-002 후원 환불 차감·BUG-003 권한 시드 정정 마이그·BUG-004 fiscalYear 자동·BUG-005 매출 목록 필터. **충돌 해결 2건** (lib/ai-agent-tools·admin-finance-pl-summary — C BUG-002 fix + B 22-C 지출 통합 = donNet 사용 + expense 집계 통합). **머지 3건**: C BUG fix → B 22-C 백엔드 9 API+AI 도구 5 → A 22-C 프론트 (admin-expenses.html 신규 + finance-income/report 확장). **1회용 마이그 1건 대기**: `tbfa.co.kr/api/migrate-phase22a-ai-perms-rename?run=1` (BUG-003 권한 시드 이름 정정). 다음: 22-A 검증 R2 라운드 (UI 3건 + BUG-001~005 재검증 + Medium·Low 7건). |
 | 2026-05-14 (심야) | **메인** | **Phase 22-C 마이그레이션 ✅ 실행 완료 + 1단계 진입** — `tbfa.co.kr/api/migrate-phase22c-expense?run=1` 호출 성공: expense_categories(2 인덱스) + expenses(4 인덱스) 테이블 + NPO 표준 4분류 시드 + ai_tool_permissions 5개 시드. 마이그 파일 즉시 삭제. **B 채팅(Opus, feature/phase22c-back) + A 채팅(feature/phase22c-front) 동시 평행 트리거 발송**: B는 API 9개 + AI 도구 5개 + pl_summary 핸들러 expenses 실데이터 교체 / A는 admin-expenses.html(신규) + admin-finance-income/report 업데이트 + 사이드바 |
 | 2026-05-14 (심야) | **메인** | **Phase 22-A 1단계 ✅ 완료 (B 머지)** — B `feature/phase22a-back @ 232bad4` push 받아 **선택적 체크아웃 머지**(main @ `160e560`): B가 옛 main 베이스라 옛 문서 12개를 다시 등장시키려 했지만 차단. B 신규 10개 파일만(REST API 7개·lib 3개) 통합. **메인 보강 2건**: ① revenue_refund AI 도구 추가(B 누락, Q11 환불 검증 필수) ② `lib/ai-cache.ts INVALIDATION_MAP` 키가 `other_revenue_*`로 잘못됨 → 실제 도구명 `revenue_*`로 정정(§18.13 패턴 재발 fix). A는 `feature/phase22a-front @ 6c71d1b`로 실 API 교체 완료 상태라 별도 머지 불필요(같은 응답 키 구조). **다음: 22-A C 검증 또는 22-C 진행 병렬** |
 | 2026-05-14 (밤) | **메인** | **docs/ 옛 문서 12개 정리** — 단일 출처 통합 완료. 삭제: DESIGN_PHASE1~4·DESIGN_PHASE4_REPORT·DESIGN_EXPERT_MATCHING(milestones/로 대체) / HANDOFF_A·B·C·chat-c-handover-20260509·v17-expanded(HANDOFF.md·handover/v20.md로 대체) / PHASE_PROPOSAL(시나리오 B 채택 종료) / proposals/admin-ui-inventory(Phase 20-A 거부 후 무가치). 빈 proposals/ 폴더 제거. 총 ~3,700줄 정리. 참조: CLAUDE.md / PROJECT_STATE.md / phase20-admin-renewal.md 업데이트. **다음: issues/verify/ 폴더 압축 정책 결정** |
@@ -170,9 +171,9 @@
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
 | **Phase 20 어드민 UI/UX 리뉴얼** | Phase 20-A(완전 리뉴얼) ❌ 거부·폐기(2026-05-14 브랜치 3개 삭제) / Phase 20-B·20-C ✅ 점진 적용 완료(Cmd+K 검색·즐겨찾기 위젯·유가족·콘텐츠·시스템 그룹 등 main 머지·운영 중) / Phase 20 운영 안정성(모니터링+백업)은 별도 합의 필요 |
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
-| **Phase 22-A 매출 통합 관리 + 재정 그룹 사이드바** | 🟡 1단계 진행 — A `feature/phase22a-front @ 6c71d1b` ✅ (실 API 교체 완료) / B 백엔드 재시작(Opus, 트리거 오발송 사고 복구) / 카테고리 6종 + 손익계산서 + 재정 그룹 사이드바 / 설계서 `docs/milestones/2026-05-14-phase22a-revenue-management.md` |
+| **Phase 22-A 매출 통합 관리 + 재정 그룹 사이드바** | 🟢 거의 마감 — 백+프론트 머지 완료(main @ `a616772`) / C 검증 BUG 12건 발견 → C 직접 fix BUG-001~005 (Critical 2 + High 3) 흡수 / 1회용 마이그 대기(권한 시드 이름 정정) / 다음: R2 라운드 (UI 3건 + Medium·Low 7건) |
 | Phase 22-B 차년도 예산·다단계 결재·풀세트 회계 | ⏸ Phase 22-A 마감 후 합의 |
-| **Phase 22-C 지출 관리** | 🟡 1단계 진행 — 0단계 ✅(schema·마이그 실행 완료 2026-05-14) / B `feature/phase22c-back` 백엔드 9 API + AI 도구 5개 + pl_summary 핸들러 갱신 (Opus) / A `feature/phase22c-front` admin-expenses.html(신규) + finance-income/report 업데이트 + R2 영수증 업로드 / 설계서: `docs/milestones/2026-05-14-phase22c-expense-management.md` |
+| **Phase 22-C 지출 관리** | 🟢 머지 완료 — 0단계 ✅ / 1단계 B 백엔드 9 API + AI 도구 5개 + pl_summary 지출 통합 머지(`e46f69f`) / A 프론트 admin-expenses.html 신규 + finance-income·report 확장 머지(`a616772`) / 검증 R2 대기 |
 | **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
 
 **누적**: 약 47% / 약 450h+
