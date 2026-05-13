@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (밤) | **메인** | **Phase 22-C 지출 관리 설계 + 0단계 schema 추가** — `docs/milestones/2026-05-14-phase22c-expense-management.md` 완성 (§-1~§11). expense_categories(NPO 4분류 isSystem, 사용자 추가) + expenses(draft→approved, R2 증빙) schema.ts append. 마이그 migrate-phase22c-expense.ts 대기 중. Phase 22-A 완료 후 착수. |
 | 2026-05-14 (밤) | **메인** | **Phase 22-A 0단계 ✅ 완료** (main @ `9604207` + 마이그 파일 삭제 push 예정) — schema.ts append-only(revenueCategories·otherRevenues 6+4 인덱스) + 마이그 호출 성공(`tbfa.co.kr/api/migrate-phase22a-revenue?run=1`, adminUid=1) → 테이블 2 + 인덱스 6 + 시드 13(revenue_categories 6·ai_tool_permissions 6·ai_feature 1) 적용. 마이그 파일 삭제·CLAUDE.md tbfa.co.kr 메인 표기 정정. **다음: 1단계 — B·A 평행 트리거** |
 | 2026-05-14 (저녁) | **메인** | **Phase 22-A 설계서 보강 — 4채팅 분담 + AI 에이전트 통합** — §-1 분담표(메인 schema·마이그·머지 / B 백+AI 도구 6개 / A 프론트 / C 검증) + §10 AI 도구 6개(revenue_categories_list·other_revenues_list/create/approve/refund·pl_summary) + §11 표준 v1.4 준수 + §4 Q13~Q18 + §7 4단계 + §9 시간 갱신(20~28h, 평행 10~14h). Swain 검토 대기 |
 | 2026-05-14 (저녁) | **메인** | **Phase 22-A 매출 통합 관리 설계서 초안** — `docs/milestones/2026-05-14-phase22a-revenue-management.md` push. Swain 결정 4건 반영(범위 22-A 단독·카테고리 6종·회계연도 1~12월·환불 net) / B·A·C 시작 프롬프트 §6 포함 |
@@ -167,6 +168,7 @@
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | **Phase 22-A 매출 통합 관리 + 재정 그룹 사이드바** | 📝 설계서 완성(2026-05-14) — `docs/milestones/2026-05-14-phase22a-revenue-management.md` / Swain 검토 대기 / 후원금(정기·일시) 데이터 활용 + 후원 외 매출 6종 카테고리(강연·교육·정부지자체·기업협찬·함께워크_On·함께워크_SI·기타) + 손익계산서 + 재정 그룹 사이드바 신설 |
 | Phase 22-B 차년도 예산·다단계 결재·풀세트 회계 | ⏸ Phase 22-A 마감 후 합의 |
+| **Phase 22-C 지출 관리** | 📝 설계서 완성(2026-05-14) — `docs/milestones/2026-05-14-phase22c-expense-management.md` / 0단계 schema 추가 완료·마이그 대기 / NPO 표준 4분류 + 관리자 자유 추가 + R2 증빙파일 + draft→approved + AI 도구 5개 / Phase 22-A 완료 후 착수 |
 | **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
 
 **누적**: 약 47% / 약 450h+

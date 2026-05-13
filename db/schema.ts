@@ -2891,3 +2891,50 @@ export const otherRevenues = pgTable("other_revenues", {
   recognizedAtIdx:  index("other_revenues_recognized_idx").on(t.recognizedAt),
 }));
 
+/* =========================================================
+   === Phase 22-C 지출 관리 === (2026-05-14, 메인 0단계)
+   설계서: docs/milestones/2026-05-14-phase22c-expense-management.md
+   - expense_categories: NPO 표준 4분류 시드 + 관리자 자유 추가
+   - expenses:           지출 기록 (draft → approved/rejected, 환불 누적)
+   ========================================================= */
+
+export const expenseCategories = pgTable("expense_categories", {
+  id:           serial("id").primaryKey(),
+  code:         varchar("code", { length: 32 }).unique().notNull(),  // 'personnel'|'program'|'admin_ops'|'fundraising' + 사용자 정의
+  name:         varchar("name", { length: 100 }).notNull(),
+  description:  text("description"),
+  isSystem:     boolean("is_system").default(false).notNull(),       // true = NPO 기본값, code·name 수정 불가
+  sortOrder:    integer("sort_order").default(0).notNull(),
+  isActive:     boolean("is_active").default(true).notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  codeIdx:    index("expense_categories_code_idx").on(t.code),
+  activeIdx:  index("expense_categories_active_idx").on(t.isActive),
+}));
+
+export const expenses = pgTable("expenses", {
+  id:               serial("id").primaryKey(),
+  fiscalYear:       integer("fiscal_year").notNull(),
+  occurredAt:       date("occurred_at").notNull(),                                       // 지출 발생일
+  categoryId:       integer("category_id").notNull().references(() => expenseCategories.id),
+  amount:           bigint("amount", { mode: "number" }).notNull(),                      // 원 단위
+  payeeName:        varchar("payee_name", { length: 200 }),                              // 지급처
+  description:      text("description"),
+  receiptUrl:       varchar("receipt_url", { length: 500 }),                             // R2 증빙파일 URL
+  status:           varchar("status", { length: 20 }).default("draft").notNull(),        // 'draft'|'approved'|'rejected'
+  refundAmount:     bigint("refund_amount", { mode: "number" }).default(0).notNull(),    // 환불·취소 누적
+  recordedBy:       integer("recorded_by"),                                              // members.id (작성자)
+  recordedAt:       timestamp("recorded_at", { withTimezone: true }).defaultNow().notNull(),
+  approvedBy:       integer("approved_by"),                                              // members.id (승인자)
+  approvedAt:       timestamp("approved_at", { withTimezone: true }),
+  rejectionReason:  text("rejection_reason"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  fiscalYearIdx:  index("expenses_fy_idx").on(t.fiscalYear),
+  categoryIdx:    index("expenses_category_idx").on(t.categoryId),
+  statusIdx:      index("expenses_status_idx").on(t.status),
+  occurredAtIdx:  index("expenses_occurred_idx").on(t.occurredAt),
+}));
+
