@@ -24,7 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-14 (저녁) | **메인** | **Phase 22-A 매출 통합 관리 설계서 완성** — `docs/milestones/2026-05-14-phase22a-revenue-management.md` push. Swain 결정 4건 반영(범위 22-A 단독·카테고리 6종·회계연도 1~12월·환불 net) / B·A·C 시작 프롬프트 §6 포함 / Swain 설계서 검토 대기 |
+| 2026-05-14 (저녁) | **메인** | **Phase 22-A 설계서 보강 — 4채팅 분담 + AI 에이전트 통합** — §-1 분담표(메인 schema·마이그·머지 / B 백+AI 도구 6개 / A 프론트 / C 검증) + §10 AI 도구 6개(revenue_categories_list·other_revenues_list/create/approve/refund·pl_summary) + §11 표준 v1.4 준수 + §4 Q13~Q18 + §7 4단계 + §9 시간 갱신(20~28h, 평행 10~14h). Swain 검토 대기 |
+| 2026-05-14 (저녁) | **메인** | **Phase 22-A 매출 통합 관리 설계서 초안** — `docs/milestones/2026-05-14-phase22a-revenue-management.md` push. Swain 결정 4건 반영(범위 22-A 단독·카테고리 6종·회계연도 1~12월·환불 net) / B·A·C 시작 프롬프트 §6 포함 |
 | 2026-05-14 (저녁) | **메인** | **🎉 AI 에이전트 Phase 1 검증 라운드 ✅ 완전 종료** — V7 PASS, BUG-05b 완전 해소 (member·media 도구 호출 진입 확인), 표준 §18.13 도메인 동기화 효과 입증. verify/ai-agent-phase1 → main 머지 (RESULTS·issues 12개 문서 흡수). 잔존: minor BUG-05c (옛 enum 입력 시 reply 안내 misleading — 데이터 정확성 무영향) |
 | 2026-05-14 (오후) | **메인** | **Phase 20-A 거부된 어드민 UI 완전 리뉴얼 브랜치 3개 폐기** — feature/phase20a-back·front·live 로컬+원격 삭제. Swain이 옛 리뉴얼 시도를 거부했고 점진 수정 방향(Phase 20-B·20-C 머지)으로 진행한 작업물의 잔재. 운영 DB 잔여 테이블(`admin_favorites`·`admin_recent_views`)은 무해해서 일단 보류. Phase 17 검증 보고서는 별도 경로로 이미 main에 존재(docs/verify/2026-05-11-phase17.md) |
 | 2026-05-14 (오후) | **메인** | **BUG-05b notice enum 도메인 전체 동기화 fix** (main @ `4e370ba`) — C V6 보고 `notices_list` description·`ALLOWED_NOTICE_CATEGORIES` 상수에 옛 enum 잔존 → LLM 학습으로 member/media 자체 거부. fix: 두 위치 일괄 정정. 표준 v1.3→v1.4 갱신 §18.13 신규(도메인 전체 동기화 의무). C V7 검증 대기 |
