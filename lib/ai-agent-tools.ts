@@ -532,11 +532,12 @@ async function tool_navMenusList(args: any): Promise<ToolResult> {
 async function tool_membersSearch(args: any): Promise<ToolResult> {
   const q = String(args?.query || "").trim();
   if (!q) return { ok: false, error: "query 필수" };
-  const limit = Math.min(Number(args?.limit) || 20, 30);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 기본 20 → 10 */
   const typeFilter = ["regular","family","volunteer","admin"].includes(String(args?.type))
     ? sql`AND type = ${args.type}` : sql``;
+  /* X-3: created_at 제거 — AI가 거의 안 씀 */
   const r: any = await db.execute(sql`
-    SELECT id, name, email, phone, type, status, created_at FROM members
+    SELECT id, name, email, phone, type, status FROM members
      WHERE (name ILIKE ${`%${q}%`} OR email ILIKE ${`%${q}%`} OR phone ILIKE ${`%${q}%`})
        ${typeFilter}
      ORDER BY id DESC LIMIT ${limit}
@@ -575,7 +576,8 @@ async function tool_membersStats(): Promise<ToolResult> {
 }
 
 async function tool_membersRecent(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 10, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 최대 50 → 30 */
+  /* "최근" 도구라 created_at 유지 */
   const r: any = await db.execute(sql`
     SELECT id, name, email, type, status, created_at FROM members
      ORDER BY created_at DESC LIMIT ${limit}
@@ -589,11 +591,12 @@ async function tool_membersRecent(args: any): Promise<ToolResult> {
    ───────────────────────────────────────── */
 
 async function tool_donationsRecent(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 기본 20 → 10, 최대 50 → 30 */
   const status = args?.status ? String(args.status) : null;
   const where = status ? sql`WHERE status = ${status}` : sql``;
+  /* X-3: pay_method 제거 — 자주 안 쓰임 */
   const r: any = await db.execute(sql`
-    SELECT id, member_id, donor_name, amount, type, status, pay_method, created_at FROM donations
+    SELECT id, member_id, donor_name, amount, type, status, created_at FROM donations
       ${where}
      ORDER BY created_at DESC LIMIT ${limit}
   `);
@@ -639,7 +642,7 @@ async function tool_donationsByMember(args: any): Promise<ToolResult> {
    ───────────────────────────────────────── */
 
 async function tool_incidentsList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 20→10, 50→30 */
   const conds: any[] = [];
   if (args?.status) conds.push(sql`status = ${String(args.status)}`);
   if (args?.category) conds.push(sql`category = ${String(args.category)}`);
@@ -647,7 +650,7 @@ async function tool_incidentsList(args: any): Promise<ToolResult> {
     ? sql`WHERE ${conds.reduce((a, b, i) => i === 0 ? b : sql`${a} AND ${b}`)}`
     : sql``;
   const r: any = await db.execute(sql`
-    SELECT id, slug, title, category, status, occurred_at, location, created_at
+    SELECT id, slug, title, category, status, occurred_at, created_at
       FROM incidents ${where}
      ORDER BY created_at DESC LIMIT ${limit}
   `);
@@ -658,8 +661,11 @@ async function tool_incidentsList(args: any): Promise<ToolResult> {
 async function tool_incidentsDetail(args: any): Promise<ToolResult> {
   const id = Number(args?.incidentId);
   if (!id) return { ok: false, error: "incidentId 필수" };
+  /* X-3: SELECT * → 핵심 필드만 (content_html 등 큰 필드 제외) */
   const r: any = await db.execute(sql`
-    SELECT * FROM incidents WHERE id = ${id} LIMIT 1
+    SELECT id, slug, title, category, status, occurred_at, location,
+           description, member_id, ai_severity, ai_summary, created_at
+      FROM incidents WHERE id = ${id} LIMIT 1
   `);
   const row = (r?.rows ?? r ?? [])[0];
   if (!row) return { ok: false, error: `사건 #${id} 없음` };
@@ -667,7 +673,7 @@ async function tool_incidentsDetail(args: any): Promise<ToolResult> {
 }
 
 async function tool_harassmentList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);
   const conds: any[] = [];
   if (args?.status) conds.push(sql`status = ${String(args.status)}`);
   if (args?.severity) conds.push(sql`ai_severity = ${String(args.severity)}`);
@@ -684,7 +690,7 @@ async function tool_harassmentList(args: any): Promise<ToolResult> {
 }
 
 async function tool_legalList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);
   const where = args?.status ? sql`WHERE status = ${String(args.status)}` : sql``;
   const r: any = await db.execute(sql`
     SELECT id, consultation_no, member_id, category, title, status, created_at
@@ -700,14 +706,15 @@ async function tool_legalList(args: any): Promise<ToolResult> {
    ───────────────────────────────────────── */
 
 async function tool_boardPostsList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 20→10, 50→30 */
   const sortBy = String(args?.sortBy || "recent");
   const orderBy = sortBy === "views" ? sql`views DESC, id DESC`
                 : sortBy === "likes" ? sql`like_count DESC, id DESC`
                 : sql`id DESC`;
   const where = args?.category ? sql`WHERE category = ${String(args.category)}` : sql``;
+  /* X-3: post_no 제거 (id로 식별 충분), is_pinned는 정렬 시만 의미있어 제거 */
   const r: any = await db.execute(sql`
-    SELECT id, post_no, member_id, title, category, views, like_count, is_pinned, created_at
+    SELECT id, member_id, title, category, views, like_count, created_at
       FROM board_posts ${where}
      ORDER BY ${orderBy} LIMIT ${limit}
   `);
@@ -716,7 +723,7 @@ async function tool_boardPostsList(args: any): Promise<ToolResult> {
 }
 
 async function tool_campaignsList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 30);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 20→10 */
   const where = args?.status ? sql`WHERE status = ${String(args.status)}` : sql``;
   const r: any = await db.execute(sql`
     SELECT id, slug, type, title, status, goal_amount, raised_amount, created_at
@@ -730,7 +737,12 @@ async function tool_campaignsList(args: any): Promise<ToolResult> {
 async function tool_campaignsDetail(args: any): Promise<ToolResult> {
   const id = Number(args?.campaignId);
   if (!id) return { ok: false, error: "campaignId 필수" };
-  const r: any = await db.execute(sql`SELECT * FROM campaigns WHERE id = ${id} LIMIT 1`);
+  /* X-3: SELECT * → 핵심 필드만 (content_html 등 큰 본문 제외, 요약만) */
+  const r: any = await db.execute(sql`
+    SELECT id, slug, type, title, summary, status, goal_amount, raised_amount,
+           donor_count, start_date, end_date, is_published, views, created_at
+      FROM campaigns WHERE id = ${id} LIMIT 1
+  `);
   const row = (r?.rows ?? r ?? [])[0];
   if (!row) return { ok: false, error: `캠페인 #${id} 없음` };
   const progress = row.goal_amount > 0
@@ -743,15 +755,16 @@ async function tool_campaignsDetail(args: any): Promise<ToolResult> {
    ───────────────────────────────────────── */
 
 async function tool_tasksList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 20, 50);
+  const limit = Math.min(Number(args?.limit) || 10, 30);   /* X-3: 20→10, 50→30 */
   const conds: any[] = [];
   if (args?.status) conds.push(sql`status = ${String(args.status)}`);
   if (args?.memberId) conds.push(sql`member_id = ${Number(args.memberId)}`);
   const where = conds.length > 0
     ? sql`WHERE ${conds.reduce((a, b, i) => i === 0 ? b : sql`${a} AND ${b}`)}`
     : sql``;
+  /* X-3: created_at 제거 (id로 정렬 충분) */
   const r: any = await db.execute(sql`
-    SELECT id, member_id, title, status, priority, due_date, progress, created_at
+    SELECT id, member_id, title, status, priority, due_date, progress
       FROM workspace_tasks ${where}
      ORDER BY due_date ASC NULLS LAST, id DESC LIMIT ${limit}
   `);
