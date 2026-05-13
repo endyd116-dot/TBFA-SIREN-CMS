@@ -129,7 +129,7 @@ JSON 객체로만 응답:
 
     const result = await callGeminiJSON<{ cases: Array<{ idx: number; similarity: number; summary: string }> }>(
       prompt,
-      { temperature: 0.3, maxOutputTokens: 4000, featureKey: "similar_cases" }
+      { temperature: 0.3, maxOutputTokens: 6000, featureKey: "similar_cases" }
     );
 
     if (!result.ok || !result.data?.cases) {

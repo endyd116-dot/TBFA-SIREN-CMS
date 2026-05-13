@@ -60,7 +60,7 @@ export async function generateTaskSummary(taskId: number): Promise<{ ok: boolean
     const result = await callGeminiJSON<{ summary: string }>(prompt, {
       mode: "flash",
       temperature: 0.3,
-      maxOutputTokens: 400,
+      maxOutputTokens: 700,
       featureKey: "task_auto_summary",
     });
 
@@ -144,7 +144,7 @@ ${task.holdReason ? `- 보류 사유: ${task.holdReason}` : ""}
         const aiResult = await callGeminiJSON<{ score: number; reason: string }>(prompt, {
           mode: "flash",
           temperature: 0.2,
-          maxOutputTokens: 200,
+          maxOutputTokens: 300,
           featureKey: "task_daily_risk_evaluation",
         });
         if (aiResult.ok && aiResult.data && Number.isFinite(Number(aiResult.data.score))) {
@@ -247,7 +247,7 @@ ${commentSummary || "(댓글 없음)"}
     const result = await callGeminiJSON<{ title: string; content: string }>(prompt, {
       mode: "flash",
       temperature: 0.4,
-      maxOutputTokens: 1200,
+      maxOutputTokens: 2400,
       featureKey: "task_completion_report",
     });
 

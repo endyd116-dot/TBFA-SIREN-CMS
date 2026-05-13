@@ -112,7 +112,7 @@ ${parsedText || "(파일 첨부 본문 분석)"}
     const aiRes = await callGeminiJSON<{ items: ExtractedItem[] }>(prompt, {
       mode: "flash",
       temperature: 0.2,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 6000,
       inlineFiles,
       featureKey: "donor_data_extraction",
     });

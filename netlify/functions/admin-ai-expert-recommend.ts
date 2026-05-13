@@ -144,7 +144,7 @@ ${experts.map((e) => `ID:${e.id} 이름:${e.name} 전문분야:${e.specialties.j
 
     const aiResult = await callGeminiJSON<AiRecommendItem[]>(prompt, {
       temperature: 0.3,
-      maxOutputTokens: 800,
+      maxOutputTokens: 1500,
       mode: "flash",
       featureKey: "expert_recommendation",
     });

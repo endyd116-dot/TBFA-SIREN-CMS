@@ -97,20 +97,20 @@ function pickModelChain(userMessage: string): string[] {
   return LOW_MODEL_CHAIN;
 }
 
-/* ★ 무한루프·비용 폭발 방지 한도 */
-const MAX_STEPS = 2;                /* 멀티스텝 최대 횟수 (5 → 3 → 2 축소 — 응답 속도 ↑) */
-const MAX_TOOLS_PER_CONV = 10;      /* 대화당 누적 도구 호출 상한 */
+/* ★ 무한루프·비용 폭발 방지 한도 (적정 수준 — 보수치 ×1.5~2) */
+const MAX_STEPS = 4;                /* 멀티스텝 최대 횟수 — 검색→상세→수정 3단계 + 보고 1단계 여유 */
+const MAX_TOOLS_PER_CONV = 20;      /* 대화당 누적 도구 호출 상한 */
 const MAX_SAME_TOOL_CONSECUTIVE = 2;/* 같은 도구 연속 호출 차단 */
-const MAX_OUTPUT_TOKENS = 768;      /* 응답당 토큰 (1024 → 768 절감) */
-const MAX_MESSAGES_KEEP = 20;       /* 대화 이력 유지 메시지 수 (앞쪽 트리밍) */
+const MAX_OUTPUT_TOKENS = 1500;     /* 응답당 토큰 — 회원·작업 목록 잘림 방지 */
+const MAX_MESSAGES_KEEP = 30;       /* 대화 이력 유지 메시지 수 (앞쪽 트리밍) */
 
 /* ★ 비용 폭탄 방지 — 대화당 누적 input 토큰 한도 (estimate)
    초과 시 새 대화 강제. 메시지 누적·도구 결과 누적 모두 통제 */
-const MAX_INPUT_TOKENS_PER_CONV = 50_000;
-const WARN_INPUT_TOKENS_PER_CONV = 40_000;
+const MAX_INPUT_TOKENS_PER_CONV = 100_000;
+const WARN_INPUT_TOKENS_PER_CONV = 80_000;
 
 /* ★ 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
-const TOOL_RESULT_COMPRESS_THRESHOLD = 800;   /* 문자 수 */
+const TOOL_RESULT_COMPRESS_THRESHOLD = 1200;  /* 문자 수 — 너무 작으면 본문 요약돼서 후속 답 빈약 */
 
 /* 시스템 프롬프트 — 단축 버전 (토큰 비용 절감) */
 const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의 AI 비서입니다. 관리자 명령을 받아 적절한 도구를 호출하세요.
@@ -238,16 +238,16 @@ async function summarizeOldMessages(
   }).join("\n");
 
   const prompt =
-    `다음 ${toSummarize.length}개 메시지를 200자 이내로 한국어 요약하세요. ` +
+    `다음 ${toSummarize.length}개 메시지를 400자 이내로 한국어 요약하세요. ` +
     `핵심 결정·진행 상황·확정 사실 위주. 인사·잡담 제외.\n\n` +
-    (existingSummary ? `이전 요약:\n${existingSummary.slice(SUMMARY_MARKER.length).slice(0, 400)}\n\n새 메시지:\n` : "") +
-    conversationText.slice(0, 6000);
+    (existingSummary ? `이전 요약:\n${existingSummary.slice(SUMMARY_MARKER.length).slice(0, 600)}\n\n새 메시지:\n` : "") +
+    conversationText.slice(0, 8000);
 
   try {
     const r = await callGemini(prompt, {
       mode: "flash",
       temperature: 0.3,
-      maxOutputTokens: 300,
+      maxOutputTokens: 600,
       featureKey: AGENT_FEATURE_KEY,
       adminId: adminId ?? undefined,
       conversationId: conversationId ?? undefined,

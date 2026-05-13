@@ -76,7 +76,7 @@ JSON 객체로만 응답하세요. 설명 없이 JSON만 출력:
 const fullPrompt = attach.instructionPrefix + prompt + attach.summary;
     const result = await callGeminiJSON<PriorityAnalysis>(fullPrompt, {
       temperature: 0.2,
-      maxOutputTokens: 500,
+      maxOutputTokens: 1000,
       inlineFiles: attach.files,
       featureKey: "support_priority_analysis",
     });

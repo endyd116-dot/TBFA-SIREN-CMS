@@ -167,7 +167,7 @@ async function generateBriefing(memberName: string, s: BriefingStats): Promise<A
     const result = await callGeminiJSON<AiBriefingOutput>(prompt, {
       mode: "flash",
       temperature: 0.4,
-      maxOutputTokens: 800,
+      maxOutputTokens: 1500,
       featureKey: "daily_briefing_generation",
     });
     if (result.ok && result.data) {

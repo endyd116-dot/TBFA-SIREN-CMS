@@ -200,7 +200,7 @@ async function evaluateWithAI(
   try {
     const r = await callGeminiJSON(prompt, {
       temperature: 0.4,
-      maxOutputTokens: 4000,
+      maxOutputTokens: 6000,
       featureKey: "donor_churn_daily_evaluation",
     });
     if (r.ok && r.data) {

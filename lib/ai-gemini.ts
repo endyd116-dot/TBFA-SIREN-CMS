@@ -140,8 +140,8 @@ async function callSingleModel(
     contents: [{ role: "user", parts }],
     generationConfig: {
       temperature: opts.temperature ?? 0.7,
-      /* 비용 절감 — 기본 2000 → 1024로 축소. 호출처에서 필요시 명시적으로 늘림 */
-      maxOutputTokens: opts.maxOutputTokens ?? 1024,
+      /* 적정 수준 — 보수치(1024)에서 상향. 호출처에서 명시 시 그 값 우선. */
+      maxOutputTokens: opts.maxOutputTokens ?? 2000,
       topP: 0.95,
       topK: 40,
     },

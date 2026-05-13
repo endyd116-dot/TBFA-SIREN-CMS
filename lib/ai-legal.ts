@@ -146,7 +146,7 @@ ${text}
 
     const result = await callGeminiJSON<any>(fullPrompt, {
       temperature: 0.3,
-      maxOutputTokens: 3000,
+      maxOutputTokens: 4500,
       inlineFiles: attach.files,
       featureKey: "legal_consultation_analysis",
     });

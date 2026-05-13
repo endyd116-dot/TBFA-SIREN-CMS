@@ -41,11 +41,11 @@ export const config = { path: "/api/admin-ai-agent-stream" };
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const MODEL_CHAIN = ["gemini-3.1-flash-lite", "gemini-2.5-flash"];
-const MAX_STEPS = 3;
-const MAX_TOOLS_PER_CONV = 10;
+const MAX_STEPS = 4;
+const MAX_TOOLS_PER_CONV = 20;
 const MAX_SAME_TOOL_CONSECUTIVE = 2;
-const MAX_OUTPUT_TOKENS = 768;
-const MAX_INPUT_TOKENS_PER_CONV = 50_000;
+const MAX_OUTPUT_TOKENS = 1500;
+const MAX_INPUT_TOKENS_PER_CONV = 100_000;
 const AGENT_FEATURE_KEY = "ai_agent_chat";
 
 interface GeminiContent { role: "user" | "model"; parts: any[] }

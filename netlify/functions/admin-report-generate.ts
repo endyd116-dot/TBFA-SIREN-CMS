@@ -46,7 +46,7 @@ ${JSON.stringify(stats, null, 2)}
 - severity: high=즉각 조치 필요, medium=모니터링 필요, low=참고사항.
 - 한국어로만 작성.`;
 
-  const result = await callGeminiJSON<AiReportOutput>(prompt, { maxOutputTokens: 1000, featureKey: "report_ai_summary" });
+  const result = await callGeminiJSON<AiReportOutput>(prompt, { maxOutputTokens: 2000, featureKey: "report_ai_summary" });
   if (!result.ok || !result.data) {
     const s = stats as any;
     return {
