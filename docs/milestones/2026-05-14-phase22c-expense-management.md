@@ -393,9 +393,14 @@ featureKey='finance' (22-A에서 이미 시드됨)
   parameters (required: id, refundAmount):
     id (number), refundAmount (number)
 
-pl_summary 핸들러 업데이트:
-  - 기존 totalExpense=0 → expenses 테이블 실데이터 조회
-  - expenseByCategory 배열 추가
+pl_summary 핸들러 업데이트 (22-A에서 결정된 실제 응답 키 구조 기준):
+  - lib/ai-agent-tools.ts의 tool_plSummary + netlify/functions/admin-finance-pl-summary.ts 양쪽 모두
+  - 22-A 현재: expenditure.total = 0, expenditure.byCategory = [] (하드코딩)
+  - 22-C 후: expenses 테이블 실데이터로 교체
+    · expenditure.total = SUM(amount - refund_amount) WHERE status='approved' AND fiscal_year=?
+    · expenditure.byCategory = JOIN expense_categories GROUP BY → [{ code, name, total }]
+  - netIncome 자동 갱신 (revenue.totalNet - expenditure.total)
+  - monthly[].expenditure 도 월별 합산 반영
 
 표준 v1.4 체크리스트 (§10.7):
 - [ ] §3.1 description 간결 (50자 이내 첫 문장)
