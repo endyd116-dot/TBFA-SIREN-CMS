@@ -67,7 +67,7 @@ const MODEL_CHAIN: string[] = Array.from(new Set([
 ].filter(Boolean)));
 
 /* ★ 무한루프·비용 폭발 방지 한도 */
-const MAX_STEPS = 3;                /* 멀티스텝 최대 횟수 (5 → 3 축소) */
+const MAX_STEPS = 2;                /* 멀티스텝 최대 횟수 (5 → 3 → 2 축소 — 응답 속도 ↑) */
 const MAX_TOOLS_PER_CONV = 10;      /* 대화당 누적 도구 호출 상한 */
 const MAX_SAME_TOOL_CONSECUTIVE = 2;/* 같은 도구 연속 호출 차단 */
 const MAX_OUTPUT_TOKENS = 768;      /* 응답당 토큰 (1024 → 768 절감) */
@@ -271,17 +271,26 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["메뉴", "네비", "내비게이션"] },
 ];
 
-/** 의도 분류 — 키워드 매칭. 매칭 0개 또는 4개 이상이면 전체 도구 (null) */
+/** 의도 분류 — 키워드 매칭.
+ *  - 매우 짧은 메시지(8자↓) 또는 인사·확인 → 빈 배열 (도구 0개, 빠른 응답)
+ *  - 매칭 0개 (의도 불명, 8자↑) → 전체 도구 (null) — 안전망
+ *  - 매칭 4개↑ (광범위) → 전체 도구
+ *  - 그 외 → 관련 도구만 */
+const GREETING_PATTERNS = /^(야|응|네|예|아니|아니오|ok|오케이|안녕|하이|hi|hello|뭐해|왜|진행|확인|취소|좋아|싫어|괜찮)/i;
+
 function selectRelevantTools(userMessage: string): string[] | null {
-  const text = userMessage || "";
+  const text = (userMessage || "").trim();
+  /* 짧은 메시지(8자↓) 또는 인사·확인 → 도구 안 보냄 */
+  if (text.length <= 8 || GREETING_PATTERNS.test(text)) return [];
+
   const matched: ToolGroup[] = [];
   for (const g of TOOL_GROUPS) {
     for (const kw of g.keywords) {
       if (text.includes(kw)) { matched.push(g); break; }
     }
   }
-  if (matched.length === 0) return null;   // 의도 불명 → 안전하게 전체
-  if (matched.length >= 4) return null;    // 너무 광범위 → 전체
+  if (matched.length === 0) return null;
+  if (matched.length >= 4) return null;
 
   const set = new Set<string>();
   for (const g of matched) for (const t of g.tools) set.add(t);
@@ -314,7 +323,8 @@ async function callGeminiWithTools(
       : {
           contents,
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          tools: [{ functionDeclarations: toolDeclarations }],
+          /* 도구 0개면 tools 자체 생략 (단순 응답 빠르게) */
+          ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
           generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
         };
 
