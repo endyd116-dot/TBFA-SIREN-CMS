@@ -421,6 +421,14 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
+  /* 도구가 같은 배포의 admin API를 호출할 때 필요한 컨텍스트
+     (cookie 통해 동일 세션 인증, origin은 자기 자신의 URL) */
+  const toolCtx = {
+    adminId,
+    cookie: req.headers.get("cookie") || "",
+    origin: new URL(req.url).origin,
+  };
+
   /* === Phase 1.5: 'AI 비서 채팅' 기능 토글 + 기능별·전체 월 한도 체크 === */
   const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);
   if (!featureCheck.ok) {
@@ -659,7 +667,7 @@ export default async (req: Request, _ctx: Context) => {
             result = { ok: true, output: cachedOutput, _cached: true };
             console.info(`[ai-agent] 캐시 hit: ${toolName}`);
           } else {
-            result = await executeTool(toolName, toolArgs, adminId);
+            result = await executeTool(toolName, toolArgs, toolCtx);
             /* 성공한 읽기 도구만 캐시 저장 (cacheSet 내부에서 화이트리스트 체크) */
             if (result.ok && (result.output !== undefined || result.preview !== undefined)) {
               cacheSet(toolName, toolArgs, result.output ?? result.preview);
