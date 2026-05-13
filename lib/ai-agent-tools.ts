@@ -11,349 +11,192 @@ import { sendEmail } from "./email";
    ========================================================= */
 
 export const TOOL_DECLARATIONS = [
-  /* ───── 콘텐츠·관리 (5개) ───── */
-  {
-    name: "content_pages_list",
-    description: "협의회 콘텐츠 페이지(메인·about·소개 등)의 현재 본문을 조회합니다.",
+  /* 콘텐츠·관리 */
+  { name: "content_pages_list", description: "콘텐츠 페이지 본문 조회",
     parameters: { type: "OBJECT", properties: {
-      keyFilter: { type: "STRING", description: "페이지 키 부분 일치 검색" },
-      limit:     { type: "INTEGER", description: "최대 반환 개수 (기본 30)" },
-    }},
-  },
-  {
-    name: "content_pages_update",
-    description: "콘텐츠 페이지 본문 수정. 변경 전 값 자동 백업. 사용자 명시 승인 후에만 호출하세요.",
+      keyFilter: { type: "STRING" }, limit: { type: "INTEGER" },
+    }}},
+  { name: "content_pages_update", description: "콘텐츠 페이지 본문 수정 (dry-run 우선)",
     parameters: { type: "OBJECT", properties: {
-      pageKey:         { type: "STRING",  description: "페이지 키" },
-      newContent:      { type: "STRING",  description: "새 본문" },
-      requireApproval: { type: "BOOLEAN", description: "true면 dry-run, false면 적용. 기본 true." },
-    }, required: ["pageKey", "newContent"] },
-  },
-  {
-    name: "notice_create",
-    description: "공지사항 새로 등록. 사용자 승인 후 호출하세요.",
+      pageKey: { type: "STRING" }, newContent: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["pageKey", "newContent"] }},
+  { name: "notice_create", description: "공지사항 등록 (dry-run 우선)",
     parameters: { type: "OBJECT", properties: {
-      title:           { type: "STRING",  description: "공지 제목" },
-      body:            { type: "STRING",  description: "공지 본문" },
-      category:        { type: "STRING",  description: "분류: notice|event|press" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["title", "body"] },
-  },
-  {
-    name: "campaign_create",
-    description: "새 후원 캠페인 등록. 사용자 승인 후 호출하세요.",
+      title: { type: "STRING" }, body: { type: "STRING" },
+      category: { type: "STRING", description: "notice|event|press" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["title", "body"] }},
+  { name: "campaign_create", description: "캠페인 등록 (dry-run 우선)",
     parameters: { type: "OBJECT", properties: {
-      name:            { type: "STRING",  description: "캠페인명" },
-      description:     { type: "STRING",  description: "캠페인 설명" },
-      goalAmount:      { type: "INTEGER", description: "목표 금액 (원)" },
-      endDate:         { type: "STRING",  description: "종료일 YYYY-MM-DD" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["name", "description", "goalAmount"] },
-  },
-  {
-    name: "nav_menus_list",
-    description: "네비게이션 메뉴 트리 조회.",
-    parameters: { type: "OBJECT", properties: {
-      location: { type: "STRING", description: "header|footer (기본 header)" },
-    }},
-  },
+      name: { type: "STRING" }, description: { type: "STRING" },
+      goalAmount: { type: "INTEGER", description: "원 단위" },
+      endDate: { type: "STRING", description: "YYYY-MM-DD" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["name", "description", "goalAmount"] }},
+  { name: "nav_menus_list", description: "네비 메뉴 트리 조회",
+    parameters: { type: "OBJECT", properties: { location: { type: "STRING", description: "header|footer" }}}},
 
-  /* ───── 회원 (4개) ───── */
-  {
-    name: "members_search",
-    description: "회원을 이름/이메일/전화번호로 부분 일치 검색합니다. 발송·상담 대상 찾을 때 사용.",
+  /* 회원 */
+  { name: "members_search", description: "회원 이름·이메일·전화 검색",
     parameters: { type: "OBJECT", properties: {
-      query: { type: "STRING",  description: "검색어 (이름·이메일·전화)" },
-      type:  { type: "STRING",  description: "회원 유형 필터: regular|family|volunteer|admin" },
-      limit: { type: "INTEGER", description: "최대 30 (기본 20)" },
-    }, required: ["query"] },
-  },
-  {
-    name: "members_detail",
-    description: "특정 회원의 상세 정보 조회 (id로).",
-    parameters: { type: "OBJECT", properties: {
-      memberId: { type: "INTEGER", description: "회원 ID" },
-    }, required: ["memberId"] },
-  },
-  {
-    name: "members_stats",
-    description: "회원 유형별·상태별 카운트 통계. 대시보드 요약용.",
-    parameters: { type: "OBJECT", properties: {} },
-  },
-  {
-    name: "members_recent",
-    description: "최근 가입 회원 목록 (가입일 역순).",
-    parameters: { type: "OBJECT", properties: {
-      limit: { type: "INTEGER", description: "최대 50 (기본 10)" },
-    }},
-  },
+      query: { type: "STRING" },
+      type: { type: "STRING", description: "regular|family|volunteer|admin" },
+      limit: { type: "INTEGER" },
+    }, required: ["query"] }},
+  { name: "members_detail", description: "회원 상세 (ID로 단건)",
+    parameters: { type: "OBJECT", properties: { memberId: { type: "INTEGER" }}, required: ["memberId"] }},
+  { name: "members_stats", description: "회원 유형·상태별 통계",
+    parameters: { type: "OBJECT", properties: {} }},
+  { name: "members_recent", description: "최근 가입 회원 목록",
+    parameters: { type: "OBJECT", properties: { limit: { type: "INTEGER" }}}},
 
-  /* ───── 후원 (3개) ───── */
-  {
-    name: "donations_recent",
-    description: "최근 후원 내역 (최신순).",
+  /* 후원 */
+  { name: "donations_recent", description: "최근 후원 내역",
     parameters: { type: "OBJECT", properties: {
-      limit:  { type: "INTEGER", description: "최대 50 (기본 20)" },
-      status: { type: "STRING",  description: "completed|pending|failed (기본 모두)" },
-    }},
-  },
-  {
-    name: "donations_stats",
-    description: "후원 통계 — 이번 달·올해 누적 금액·건수, 정기·일시 비율.",
+      limit: { type: "INTEGER" }, status: { type: "STRING", description: "completed|pending|failed|refunded" },
+    }}},
+  { name: "donations_stats", description: "후원 통계 (월·정기·일시)",
+    parameters: { type: "OBJECT", properties: { months: { type: "INTEGER" }}}},
+  { name: "donations_by_member", description: "특정 회원의 후원 이력",
     parameters: { type: "OBJECT", properties: {
-      months: { type: "INTEGER", description: "최근 N개월 (기본 1)" },
-    }},
-  },
-  {
-    name: "donations_by_member",
-    description: "특정 회원의 후원 이력 전체 조회.",
-    parameters: { type: "OBJECT", properties: {
-      memberId: { type: "INTEGER", description: "회원 ID" },
-      limit:    { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }, required: ["memberId"] },
-  },
+      memberId: { type: "INTEGER" }, limit: { type: "INTEGER" },
+    }, required: ["memberId"] }},
 
-  /* ───── SIREN 신고·악성민원·법률 (4개) ───── */
-  {
-    name: "incidents_list",
-    description: "사이렌 사건 제보 목록. 카테고리·상태로 필터링.",
+  /* SIREN 신고·악성민원·법률 */
+  { name: "incidents_list", description: "사건 제보 목록",
     parameters: { type: "OBJECT", properties: {
-      status:   { type: "STRING",  description: "pending|reviewing|resolved|rejected" },
-      category: { type: "STRING",  description: "카테고리 필터" },
-      limit:    { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }},
-  },
-  {
-    name: "incidents_detail",
-    description: "특정 사건 제보 상세 조회.",
+      status: { type: "STRING" }, category: { type: "STRING" }, limit: { type: "INTEGER" },
+    }}},
+  { name: "incidents_detail", description: "사건 상세",
+    parameters: { type: "OBJECT", properties: { incidentId: { type: "INTEGER" }}, required: ["incidentId"] }},
+  { name: "harassment_reports_list", description: "악성민원 신고 목록",
     parameters: { type: "OBJECT", properties: {
-      incidentId: { type: "INTEGER", description: "사건 ID" },
-    }, required: ["incidentId"] },
-  },
-  {
-    name: "harassment_reports_list",
-    description: "악성 민원 신고 목록. 심각도(ai_severity)·상태로 필터.",
+      status: { type: "STRING" },
+      severity: { type: "STRING", description: "low|medium|high|critical" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "legal_consultations_list", description: "법률 상담 목록",
     parameters: { type: "OBJECT", properties: {
-      status:   { type: "STRING",  description: "pending|reviewing|resolved" },
-      severity: { type: "STRING",  description: "low|medium|high|critical" },
-      limit:    { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }},
-  },
-  {
-    name: "legal_consultations_list",
-    description: "법률 상담 요청 목록.",
-    parameters: { type: "OBJECT", properties: {
-      status: { type: "STRING",  description: "pending|matched|completed" },
-      limit:  { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }},
-  },
+      status: { type: "STRING" }, limit: { type: "INTEGER" },
+    }}},
 
-  /* ───── 게시판·캠페인 (4개) ───── */
-  {
-    name: "board_posts_list",
-    description: "자유게시판 글 목록. 카테고리·인기순 필터.",
+  /* 게시판·캠페인 */
+  { name: "board_posts_list", description: "게시판 글 목록",
     parameters: { type: "OBJECT", properties: {
-      category: { type: "STRING",  description: "카테고리" },
-      sortBy:   { type: "STRING",  description: "recent|views|likes (기본 recent)" },
-      limit:    { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }},
-  },
-  {
-    name: "campaigns_list",
-    description: "캠페인 목록 — 상태별 필터.",
+      category: { type: "STRING" },
+      sortBy: { type: "STRING", description: "recent|views|likes" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "campaigns_list", description: "캠페인 목록",
     parameters: { type: "OBJECT", properties: {
-      status: { type: "STRING",  description: "draft|active|ended|cancelled" },
-      limit:  { type: "INTEGER", description: "최대 30 (기본 20)" },
-    }},
-  },
-  {
-    name: "campaigns_detail",
-    description: "특정 캠페인 상세 (목표·모금 진행률).",
-    parameters: { type: "OBJECT", properties: {
-      campaignId: { type: "INTEGER", description: "캠페인 ID" },
-    }, required: ["campaignId"] },
-  },
+      status: { type: "STRING", description: "draft|active|ended|cancelled" }, limit: { type: "INTEGER" },
+    }}},
+  { name: "campaigns_detail", description: "캠페인 상세 + 진행률",
+    parameters: { type: "OBJECT", properties: { campaignId: { type: "INTEGER" }}, required: ["campaignId"] }},
 
-  /* ───── 워크스페이스·알림 (3개) ───── */
-  {
-    name: "tasks_list",
-    description: "워크스페이스 태스크 목록 — 본인 또는 특정 회원 담당.",
+  /* 워크스페이스·알림·KPI */
+  { name: "tasks_list", description: "워크 작업 목록",
     parameters: { type: "OBJECT", properties: {
-      status:   { type: "STRING",  description: "todo|in_progress|done|archived" },
-      memberId: { type: "INTEGER", description: "담당자 ID (선택)" },
-      limit:    { type: "INTEGER", description: "최대 50 (기본 20)" },
-    }},
-  },
-  {
-    name: "notifications_recent",
-    description: "특정 회원의 최근 알림 조회.",
+      status: { type: "STRING", description: "todo|doing|blocked|done|archived" },
+      memberId: { type: "INTEGER" }, limit: { type: "INTEGER" },
+    }}},
+  { name: "notifications_recent", description: "특정 회원의 최근 알림",
     parameters: { type: "OBJECT", properties: {
-      memberId: { type: "INTEGER", description: "회원 ID" },
-      limit:    { type: "INTEGER", description: "최대 30 (기본 10)" },
-    }, required: ["memberId"] },
-  },
-  {
-    name: "kpi_summary",
-    description: "전체 KPI 요약 — 회원·후원·신고·게시판 핵심 숫자 한 번에.",
-    parameters: { type: "OBJECT", properties: {} },
-  },
+      memberId: { type: "INTEGER" }, limit: { type: "INTEGER" },
+    }, required: ["memberId"] }},
+  { name: "kpi_summary", description: "전체 KPI 요약 (회원·후원·신고·게시판)",
+    parameters: { type: "OBJECT", properties: {} }},
 
-  /* ───── X-2: 신고·캠페인·게시판·작업 변경 도구 (7개) — 모두 dry-run 우선 ───── */
-  {
-    name: "incidents_status_update",
-    description: "사건 제보 상태 변경 (reviewing/responded/closed/rejected).",
+  /* X-2: 신고·캠페인·게시판·작업 변경 (dry-run 우선) */
+  { name: "incidents_status_update", description: "사건 상태 변경",
     parameters: { type: "OBJECT", properties: {
-      incidentId:      { type: "INTEGER", description: "사건 ID (필수)" },
-      status:          { type: "STRING",  description: "reviewing|responded|closed|rejected" },
-      adminNote:       { type: "STRING",  description: "처리 메모 (선택)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["incidentId", "status"] },
-  },
-  {
-    name: "harassment_status_update",
-    description: "악성민원 신고 상태 변경.",
+      incidentId: { type: "INTEGER" },
+      status: { type: "STRING", description: "reviewing|responded|closed|rejected" },
+      adminNote: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["incidentId", "status"] }},
+  { name: "harassment_status_update", description: "악성민원 상태 변경",
     parameters: { type: "OBJECT", properties: {
-      reportId:        { type: "INTEGER", description: "신고 ID (필수)" },
-      status:          { type: "STRING",  description: "reviewing|responded|closed|rejected" },
-      adminNote:       { type: "STRING",  description: "처리 메모" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["reportId", "status"] },
-  },
-  {
-    name: "legal_status_update",
-    description: "법률 상담 상태 변경.",
+      reportId: { type: "INTEGER" },
+      status: { type: "STRING", description: "reviewing|responded|closed|rejected" },
+      adminNote: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["reportId", "status"] }},
+  { name: "legal_status_update", description: "법률 상담 상태 변경",
     parameters: { type: "OBJECT", properties: {
-      consultationId:  { type: "INTEGER", description: "상담 ID (필수)" },
-      status:          { type: "STRING",  description: "matching|matched|in_progress|responded|closed|rejected" },
-      adminNote:       { type: "STRING",  description: "처리 메모" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["consultationId", "status"] },
-  },
-  {
-    name: "campaigns_update",
-    description: "캠페인 정보 수정 (제목·요약·목표·종료일·게시 여부).",
+      consultationId: { type: "INTEGER" },
+      status: { type: "STRING", description: "matching|matched|in_progress|responded|closed|rejected" },
+      adminNote: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["consultationId", "status"] }},
+  { name: "campaigns_update", description: "캠페인 정보 수정 (제목·목표·종료·게시)",
     parameters: { type: "OBJECT", properties: {
-      campaignId:      { type: "INTEGER", description: "캠페인 ID (필수)" },
-      title:           { type: "STRING" },
-      summary:         { type: "STRING" },
-      goalAmount:      { type: "INTEGER" },
-      endDate:         { type: "STRING", description: "종료일 YYYY-MM-DD" },
-      isPublished:     { type: "BOOLEAN" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["campaignId"] },
-  },
-  {
-    name: "notice_update",
-    description: "공지사항 본문·제목 수정.",
+      campaignId: { type: "INTEGER" },
+      title: { type: "STRING" }, summary: { type: "STRING" },
+      goalAmount: { type: "INTEGER" },
+      endDate: { type: "STRING", description: "YYYY-MM-DD" },
+      isPublished: { type: "BOOLEAN" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["campaignId"] }},
+  { name: "notice_update", description: "공지 제목·본문 수정",
     parameters: { type: "OBJECT", properties: {
-      noticeId:        { type: "INTEGER", description: "공지 ID (필수)" },
-      title:           { type: "STRING" },
-      body:            { type: "STRING" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["noticeId"] },
-  },
-  {
-    name: "board_post_delete",
-    description: "게시판 글 soft delete (deletedAt 설정).",
+      noticeId: { type: "INTEGER" }, title: { type: "STRING" }, body: { type: "STRING" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["noticeId"] }},
+  { name: "board_post_delete", description: "게시판 글 삭제 (soft)",
     parameters: { type: "OBJECT", properties: {
-      postId:          { type: "INTEGER", description: "게시글 ID (필수)" },
-      reason:          { type: "STRING",  description: "삭제 사유 (감사 로그용)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["postId"] },
-  },
-  {
-    name: "task_update",
-    description: "워크 작업 카드 수정 (상태·진행률·우선순위·담당자·마감).",
+      postId: { type: "INTEGER" }, reason: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["postId"] }},
+  { name: "task_update", description: "워크 작업 수정 (상태·진행률·우선순위·담당자·마감)",
     parameters: { type: "OBJECT", properties: {
-      taskId:          { type: "INTEGER", description: "작업 ID (필수)" },
-      status:          { type: "STRING",  description: "todo|doing|blocked|done|archived" },
-      progress:        { type: "INTEGER", description: "0~100" },
-      priority:        { type: "STRING",  description: "low|normal|high|urgent" },
-      assignedTo:      { type: "INTEGER", description: "담당자 회원 ID" },
-      dueDate:         { type: "STRING",  description: "YYYY-MM-DD" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true" },
-    }, required: ["taskId"] },
-  },
+      taskId: { type: "INTEGER" },
+      status: { type: "STRING", description: "todo|doing|blocked|done|archived" },
+      progress: { type: "INTEGER", description: "0~100" },
+      priority: { type: "STRING", description: "low|normal|high|urgent" },
+      assignedTo: { type: "INTEGER" },
+      dueDate: { type: "STRING", description: "YYYY-MM-DD" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["taskId"] }},
 
-  /* ───── X-1: 회원·후원 변경 도구 (4개) — 모두 dry-run 우선 ───── */
-  {
-    name: "members_update",
-    description: "회원 정보 부분 수정 (이름·전화·이메일·유형·동의·카테고리). 비밀번호·블랙·탈퇴는 별도 도구 사용.",
+  /* X-1: 회원·후원 변경 (dry-run 우선) */
+  { name: "members_update", description: "회원 정보 수정 (이름·전화·이메일·유형·동의·카테고리)",
     parameters: { type: "OBJECT", properties: {
-      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
-      name:            { type: "STRING",  description: "이름" },
-      phone:           { type: "STRING",  description: "전화번호" },
-      email:           { type: "STRING",  description: "이메일 (UNIQUE — 중복 시 실패)" },
-      type:            { type: "STRING",  description: "regular|family|volunteer|admin" },
-      agreeEmail:      { type: "BOOLEAN", description: "이메일 수신 동의" },
-      agreeSms:        { type: "BOOLEAN", description: "SMS 수신 동의" },
-      agreeMail:       { type: "BOOLEAN", description: "우편 수신 동의" },
-      memberCategory:  { type: "STRING",  description: "회원 분류" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["memberId"] },
-  },
-  {
-    name: "members_block",
-    description: "회원 차단 (status=suspended + blacklist). 부적절 행동·신뢰 위반 시.",
+      memberId: { type: "INTEGER" },
+      name: { type: "STRING" }, phone: { type: "STRING" },
+      email: { type: "STRING", description: "UNIQUE" },
+      type: { type: "STRING", description: "regular|family|volunteer|admin" },
+      agreeEmail: { type: "BOOLEAN" }, agreeSms: { type: "BOOLEAN" }, agreeMail: { type: "BOOLEAN" },
+      memberCategory: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memberId"] }},
+  { name: "members_block", description: "회원 차단 (status=suspended + blacklist)",
     parameters: { type: "OBJECT", properties: {
-      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
-      reason:          { type: "STRING",  description: "차단 사유 (필수)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["memberId", "reason"] },
-  },
-  {
-    name: "members_unblock",
-    description: "회원 차단 해제 (status=active, blacklist 클리어).",
+      memberId: { type: "INTEGER" }, reason: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memberId", "reason"] }},
+  { name: "members_unblock", description: "회원 차단 해제",
     parameters: { type: "OBJECT", properties: {
-      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["memberId"] },
-  },
-  {
-    name: "donations_status_update",
-    description: "후원 상태 변경 (pending → completed / refunded / failed). 환불 처리·결제 정정 시.",
+      memberId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memberId"] }},
+  { name: "donations_status_update", description: "후원 상태 변경 (환불·실패 등)",
     parameters: { type: "OBJECT", properties: {
-      donationId:      { type: "INTEGER", description: "후원 ID (필수)" },
-      status:          { type: "STRING",  description: "pending|completed|refunded|failed (필수)" },
-      reason:          { type: "STRING",  description: "변경 사유 (refunded·failed 시 권장)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["donationId", "status"] },
-  },
+      donationId: { type: "INTEGER" },
+      status: { type: "STRING", description: "pending|completed|refunded|failed" },
+      reason: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["donationId", "status"] }},
 
-  /* ───── F-7: 변경 도구 추가 (3개) — 모두 dry-run 우선 ───── */
-  {
-    name: "task_create",
-    description: "워크스페이스 작업 카드 생성. 운영자 To-Do 등록 시 사용. 승인 후 호출.",
+  /* F-7: 워크 카드·이메일·알림 발송 (dry-run 우선) */
+  { name: "task_create", description: "워크 작업 카드 생성",
     parameters: { type: "OBJECT", properties: {
-      title:           { type: "STRING",  description: "작업 제목 (필수)" },
-      description:     { type: "STRING",  description: "작업 설명" },
-      priority:        { type: "STRING",  description: "low|medium|high|urgent (기본 medium)" },
-      assignedTo:      { type: "INTEGER", description: "담당자 회원 ID (선택)" },
-      dueDate:         { type: "STRING",  description: "마감일 YYYY-MM-DD (선택)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["title"] },
-  },
-  {
-    name: "email_send",
-    description: "회원에게 이메일 발송 (단일 또는 다수). Resend 사용. 승인 후 호출.",
+      title: { type: "STRING" }, description: { type: "STRING" },
+      priority: { type: "STRING", description: "low|medium|high|urgent" },
+      assignedTo: { type: "INTEGER" },
+      dueDate: { type: "STRING", description: "YYYY-MM-DD" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["title"] }},
+  { name: "email_send", description: "회원에게 이메일 발송 (1~50명, Resend)",
     parameters: { type: "OBJECT", properties: {
-      memberIds:       { type: "ARRAY",   items: { type: "INTEGER" }, description: "수신 회원 ID 배열 (1~50명)" },
-      subject:         { type: "STRING",  description: "이메일 제목 (필수)" },
-      body:            { type: "STRING",  description: "이메일 본문 (HTML 또는 텍스트)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["memberIds", "subject", "body"] },
-  },
-  {
-    name: "notification_send",
-    description: "특정 회원에게 사이트 알림 발송 (workspace_notifications). 승인 후 호출.",
+      memberIds: { type: "ARRAY", items: { type: "INTEGER" }},
+      subject: { type: "STRING" }, body: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memberIds", "subject", "body"] }},
+  { name: "notification_send", description: "회원에게 사이트 알림 발송 (1~100명)",
     parameters: { type: "OBJECT", properties: {
-      memberIds:       { type: "ARRAY",   items: { type: "INTEGER" }, description: "수신 회원 ID 배열" },
-      title:           { type: "STRING",  description: "알림 제목 (필수)" },
-      body:            { type: "STRING",  description: "알림 본문" },
-      linkUrl:         { type: "STRING",  description: "클릭 시 이동 URL (선택)" },
-      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
-    }, required: ["memberIds", "title"] },
-  },
+      memberIds: { type: "ARRAY", items: { type: "INTEGER" }},
+      title: { type: "STRING" }, body: { type: "STRING" }, linkUrl: { type: "STRING" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["memberIds", "title"] }},
 ];
 
 /* =========================================================
