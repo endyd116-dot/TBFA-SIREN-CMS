@@ -518,6 +518,134 @@
     });
   }
 
+  /* === #8 SSE 스트림 모드 — 첨부 없을 때만 사용 ===
+     성공: true 반환 / 실패(API 404·SSE 미지원 등): false 반환 (호출자가 JSON fallback) */
+  async function trySendStream(userText) {
+    var bubble = appendMsg('ai', '');  /* 빈 bubble로 시작 → text 이벤트마다 누적 */
+    var bubbleEl = bubble.querySelector('.aiw-bubble');
+    var accumulated = '';
+    var hadAnyEvent = false;
+    var sawDone = false;
+    try {
+      var res = await fetch('/api/admin-ai-agent-stream', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+        body: JSON.stringify({ conversationId: conversationId, userMessage: userText }),
+      });
+      if (!res.ok) {
+        /* 사전 검증 거부(429 등) — JSON 응답으로 처리 */
+        var errJson = await res.json().catch(function () { return {}; });
+        bubble.remove();
+        appendMsg('ai', '❌ ' + (errJson.error || 'HTTP ' + res.status) + (errJson.detail ? '\n' + errJson.detail : ''));
+        return true;  /* 처리 완료 — JSON fallback 안 함 */
+      }
+      var ct = res.headers.get('content-type') || '';
+      if (ct.indexOf('text/event-stream') < 0) {
+        /* stream API가 비활성·404일 가능성 — JSON fallback */
+        bubble.remove();
+        return false;
+      }
+
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+
+        var sep;
+        while ((sep = buffer.indexOf('\n\n')) >= 0) {
+          var message = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          hadAnyEvent = true;
+          var ev = parseSSEMessage(message);
+          if (!ev) continue;
+
+          if (ev.event === 'start') {
+            conversationId = ev.data.conversationId || conversationId;
+          } else if (ev.event === 'text') {
+            accumulated += ev.data.text || '';
+            bubbleEl.innerHTML = renderMarkdown(accumulated);
+            scrollMsgs();
+          } else if (ev.event === 'tool_start') {
+            var hint = document.createElement('div');
+            hint.className = 'aiw-tools';
+            hint.textContent = '🔧 ' + ev.data.name + ' 호출 중...';
+            hint.dataset.toolName = ev.data.name;
+            bubble.parentNode.parentNode.appendChild(hint);
+            scrollMsgs();
+          } else if (ev.event === 'tool_done') {
+            var hints = document.querySelectorAll('.aiw-tools[data-tool-name="' + ev.data.name + '"]');
+            if (hints.length > 0) {
+              var last = hints[hints.length - 1];
+              last.textContent = '🔧 ' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '');
+            }
+          } else if (ev.event === 'approval') {
+            appendPendingApproval(ev.data);
+          } else if (ev.event === 'done') {
+            sawDone = true;
+            /* 마지막 finalReply가 있으면(마스킹 적용) 갈음 */
+            if (ev.data.finalReply && ev.data.finalReply !== accumulated) {
+              bubbleEl.innerHTML = renderMarkdown(ev.data.finalReply);
+            }
+            if (ev.data.piiRedacted > 0) {
+              var pii = document.createElement('div');
+              pii.className = 'aiw-tools';
+              pii.style.background = '#fef3c7';
+              pii.style.borderLeftColor = '#f59e0b';
+              pii.textContent = '🔒 개인정보 ' + ev.data.piiRedacted + '건 자동 마스킹';
+              bubble.parentNode.parentNode.appendChild(pii);
+            }
+            if (ev.data.costWarning) {
+              var cw = document.createElement('div');
+              cw.className = 'aiw-tools';
+              cw.style.background = '#fef3c7';
+              cw.textContent = ev.data.costWarning;
+              bubble.parentNode.parentNode.appendChild(cw);
+            }
+            scrollMsgs();
+          } else if (ev.event === 'error') {
+            bubbleEl.innerHTML = '❌ ' + escapeHtml(ev.data.message || '오류');
+          }
+        }
+      }
+
+      if (!hadAnyEvent) {
+        bubble.remove();
+        return false;
+      }
+      if (!sawDone && !accumulated) {
+        bubble.remove();
+        appendMsg('ai', '⚠️ 응답 끊김 (재시도 권장)');
+      }
+      return true;
+    } catch (e) {
+      bubble.remove();
+      console.warn('[stream] 실패, JSON fallback', e);
+      return false;
+    }
+  }
+
+  function parseSSEMessage(message) {
+    var lines = message.split('\n');
+    var eventName = 'message';
+    var dataLines = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line.indexOf('event:') === 0) eventName = line.slice(6).trim();
+      else if (line.indexOf('data:') === 0) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return null;
+    try { return { event: eventName, data: JSON.parse(dataLines.join('\n')) }; }
+    catch { return null; }
+  }
+
+  function scrollMsgs() {
+    var m = document.querySelector('.aiw-msgs');
+    if (m) m.scrollTop = m.scrollHeight;
+  }
+
   async function sendMsg() {
     var input = document.querySelector('.aiw-input');
     var text = input.value.trim();
@@ -532,7 +660,7 @@
     }
     appendMsg('user', userDisplay);
 
-    /* 전송용 파일 복사 후 pendingFiles 비움 (재첨부 가능) */
+    /* 전송용 파일 복사 후 pendingFiles 비움 */
     var filesToSend = pendingFiles.map(function (f) {
       return { mimeType: f.mimeType, data: f.data };
     });
@@ -542,6 +670,14 @@
 
     var sendBtn = document.querySelector('.aiw-send');
     sendBtn.disabled = true;
+
+    /* === Stream 모드: 첨부 없으면 SSE 시도 (첨부 있으면 stream API 안 받음) === */
+    if (filesToSend.length === 0) {
+      var streamOk = await trySendStream(text);
+      if (streamOk) { sendBtn.disabled = false; input.focus(); return; }
+      /* 실패 시 아래 JSON 흐름으로 fallback */
+    }
+
     var thinking = appendMsg('ai', '🤔 생각 중…');
 
     /* === F-2: 단계 상태 시각화 — 시간 흐름에 따라 메시지 자동 갱신 === */
