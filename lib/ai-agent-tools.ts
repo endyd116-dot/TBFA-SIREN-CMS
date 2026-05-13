@@ -967,6 +967,11 @@ async function tool_notificationsRecent(args: any): Promise<ToolResult> {
 
 async function tool_kpiSummary(): Promise<ToolResult> {
   try {
+    /* 2026-05-14 fix: 'pending'은 어느 status enum에도 없음. 각 도메인 실제 enum 사용.
+       - incidents.status: varchar (active|closed|archived 등) → 'active'를 미처리로
+       - harassment_reports: 'submitted'·'ai_analyzed'·'reviewing'을 미응답
+       - legal_consultations: 'submitted'·'ai_analyzed'·'matching'·'in_progress'를 진행중
+       - campaigns: 'active' 그대로 */
     const r: any = await db.execute(sql`
       SELECT
         (SELECT COUNT(*)::int FROM members WHERE status = 'active') AS active_members,
@@ -975,9 +980,11 @@ async function tool_kpiSummary(): Promise<ToolResult> {
            WHERE status = 'completed' AND created_at >= DATE_TRUNC('month', NOW())) AS donation_sum_this_month,
         (SELECT COUNT(*)::int FROM donations
            WHERE status = 'completed' AND created_at >= DATE_TRUNC('month', NOW())) AS donation_count_this_month,
-        (SELECT COUNT(*)::int FROM incidents WHERE status = 'pending') AS incidents_pending,
-        (SELECT COUNT(*)::int FROM harassment_reports WHERE status = 'pending') AS harassment_pending,
-        (SELECT COUNT(*)::int FROM legal_consultations WHERE status = 'pending') AS legal_pending,
+        (SELECT COUNT(*)::int FROM incidents WHERE status = 'active') AS incidents_active,
+        (SELECT COUNT(*)::int FROM harassment_reports
+           WHERE status IN ('submitted', 'ai_analyzed', 'reviewing')) AS harassment_pending,
+        (SELECT COUNT(*)::int FROM legal_consultations
+           WHERE status IN ('submitted', 'ai_analyzed', 'matching', 'in_progress')) AS legal_pending,
         (SELECT COUNT(*)::int FROM campaigns WHERE status = 'active') AS active_campaigns
     `);
     const row = (r?.rows ?? r ?? [])[0] || {};
@@ -1016,7 +1023,7 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
       INSERT INTO workspace_tasks
         (member_id, title, description, status, priority, due_date, assigned_by, assigned_to, source_type, source_id)
       VALUES
-        (${adminId}, ${title}, ${description || null}, 'todo', ${priority}, ${dueDate},
+        (${adminId}, ${title}, ${description || null}, 'todo', ${priority}, ${dueDate.toISOString()}::timestamptz,
          ${adminId}, ${assignedTo}, 'ai_agent', NULL)
       RETURNING id
     `);
@@ -1771,17 +1778,20 @@ async function tool_eventsList(args: any, adminId: number | null): Promise<ToolR
   const to = toStr ? new Date(toStr) : new Date(Date.now() + 30 * 86400000);
   if (isNaN(from.getTime()) || isNaN(to.getTime())) return { ok: false, error: "날짜 형식 오류 (YYYY-MM-DD)" };
   const limit = Math.min(Number(args?.limit) || 50, 200);
+  /* neon postgres-js는 Date 객체 직접 바인딩 시 string 변환 실패 — ISO string + ::timestamptz cast */
+  const fromIso = from.toISOString();
+  const toIso = to.toISOString();
   try {
     const r: any = await db.execute(sql`
       SELECT id, title, start_at, end_at, all_day, color, location, event_type, description
         FROM workspace_events
        WHERE member_id = ${adminId}
-         AND start_at <= ${to} AND end_at >= ${from}
+         AND start_at <= ${toIso}::timestamptz AND end_at >= ${fromIso}::timestamptz
        ORDER BY start_at ASC
        LIMIT ${limit}
     `);
     const rows = r?.rows ?? r ?? [];
-    return { ok: true, output: { count: rows.length, from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10), events: rows } };
+    return { ok: true, output: { count: rows.length, from: fromIso.slice(0, 10), to: toIso.slice(0, 10), events: rows } };
   } catch (e: any) {
     return { ok: false, error: `일정 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -1820,7 +1830,7 @@ async function tool_eventCreate(args: any, adminId: number | null): Promise<Tool
       INSERT INTO workspace_events
         (member_id, title, start_at, end_at, all_day, color, location, description, event_type, created_by_agent)
       VALUES
-        (${adminId}, ${title}, ${startAt}, ${endAt}, ${allDay}, ${color},
+        (${adminId}, ${title}, ${startAt.toISOString()}::timestamptz, ${endAt.toISOString()}::timestamptz, ${allDay}, ${color},
          ${location}, ${description}, ${eventType}, 'ai_agent')
       RETURNING id
     `);
@@ -2861,11 +2871,11 @@ async function tool_expendituresList(args: any): Promise<ToolResult> {
   }
   if (typeof args?.fromDate === "string" && args.fromDate.trim()) {
     const d = new Date(args.fromDate);
-    if (!isNaN(d.getTime())) conds.push(sql`spent_at >= ${d}`);
+    if (!isNaN(d.getTime())) conds.push(sql`spent_at >= ${d.toISOString()}::timestamptz`);
   }
   if (typeof args?.toDate === "string" && args.toDate.trim()) {
     const d = new Date(args.toDate);
-    if (!isNaN(d.getTime())) conds.push(sql`spent_at <= ${d}`);
+    if (!isNaN(d.getTime())) conds.push(sql`spent_at <= ${d.toISOString()}::timestamptz`);
   }
   const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
   try {
@@ -2887,8 +2897,8 @@ async function tool_expendituresList(args: any): Promise<ToolResult> {
 
 async function tool_budgetSummary(args: any): Promise<ToolResult> {
   const year = Number(args?.fiscalYear) || new Date().getFullYear();
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year + 1, 0, 1);
+  const yearStartIso = new Date(year, 0, 1).toISOString();
+  const yearEndIso = new Date(year + 1, 0, 1).toISOString();
   try {
     const r: any = await db.execute(sql`
       SELECT
@@ -2900,7 +2910,7 @@ async function tool_budgetSummary(args: any): Promise<ToolResult> {
         COALESCE(SUM(CASE WHEN e.status = 'approved' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS approved_pending
         FROM budget_categories c
         LEFT JOIN budgets b ON b.category_id = c.id AND b.fiscal_year = ${year}
-        LEFT JOIN expenditures e ON e.category_id = c.id AND e.spent_at >= ${yearStart} AND e.spent_at < ${yearEnd}
+        LEFT JOIN expenditures e ON e.category_id = c.id AND e.spent_at >= ${yearStartIso}::timestamptz AND e.spent_at < ${yearEndIso}::timestamptz
        WHERE c.is_active = TRUE
        GROUP BY c.id, c.name_ko, c.code, b.planned_amount, c.sort_order
        ORDER BY c.sort_order ASC NULLS LAST, c.id ASC
