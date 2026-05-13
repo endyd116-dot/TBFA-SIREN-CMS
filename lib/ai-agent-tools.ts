@@ -653,20 +653,25 @@ async function tool_contentPagesUpdate(args: any, adminId: number | null): Promi
 async function tool_noticeCreate(args: any, adminId: number | null): Promise<ToolResult> {
   const title = String(args?.title || "").trim().slice(0, 200);
   const body  = String(args?.body  || "").trim();
-  const category = ["notice","event","press"].includes(String(args?.category)) ? String(args.category) : "notice";
+  /* notice_category_enum: general|event|press 등 (board_posts와 별개 enum) */
+  const category = ["general","notice","event","press"].includes(String(args?.category)) ? String(args.category) : "general";
   const requireApproval = args?.requireApproval !== false;
   if (!title) return { ok: false, error: "title 필수" };
   if (!body)  return { ok: false, error: "body 필수" };
   if (requireApproval) return { ok: true, preview: { title, category, bodyPreview: body.slice(0, 500),
     message: "승인 후 requireApproval=false로 다시 호출하세요." } };
   try {
+    /* 2026-05-14 BUG-Phase2-02 fix: board_posts → notices 테이블 정정.
+       이전 코드는 board_posts.content 컬럼 사용 → 실제 board_posts.content_html.
+       공지는 notices 테이블이 맞음 (title, content, category, author_id, author_name). */
     const r: any = await db.execute(sql`
-      INSERT INTO board_posts (member_id, title, content, category, created_at, updated_at)
-      VALUES (${adminId}, ${title}, ${body}, ${category}, NOW(), NOW())
+      INSERT INTO notices (category, title, content, author_id, author_name, is_published, published_at)
+      VALUES (${category}, ${title}, ${body}, ${adminId}, '관리자', TRUE, NOW())
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
-    return { ok: true, output: { id, title, category, message: `공지 #${id} 등록 완료` } };
+    return { ok: true, output: { id, title, category, message: `공지 #${id} 등록 완료` },
+      rollbackData: { table: "notices", id } };
   } catch (err: any) { return { ok: false, error: `공지 등록 실패: ${err?.message?.slice(0, 200)}` }; }
 }
 
@@ -1197,19 +1202,21 @@ async function tool_noticeUpdate(args: any, adminId: number | null): Promise<Too
   const id = Number(args?.noticeId || 0);
   if (!id) return { ok: false, error: "noticeId 필수" };
   if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  /* 2026-05-14 BUG-Phase2-02 fix: notices.body → notices.content (실제 컬럼명) */
   const patch: Record<string, any> = {};
   if (typeof args?.title === "string" && args.title.trim()) patch.title = args.title.trim().slice(0, 200);
-  if (typeof args?.body === "string") patch.body = args.body;
+  if (typeof args?.body === "string") patch.content = args.body;
+  if (typeof args?.content === "string") patch.content = args.content;
   if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
 
   let before: any = null;
   try {
-    const r: any = await db.execute(sql`SELECT id, title, body FROM notices WHERE id = ${id} LIMIT 1`);
+    const r: any = await db.execute(sql`SELECT id, title, content FROM notices WHERE id = ${id} LIMIT 1`);
     before = (r?.rows ?? r ?? [])[0];
   } catch {}
   if (!before) return { ok: false, error: "공지 없음" };
 
-  const preview = { noticeId: id, before: { title: before.title, bodyPreview: String(before.body || "").slice(0, 200) }, changes: { title: patch.title, bodyPreview: typeof patch.body === "string" ? patch.body.slice(0, 200) : undefined } };
+  const preview = { noticeId: id, before: { title: before.title, contentPreview: String(before.content || "").slice(0, 200) }, changes: { title: patch.title, contentPreview: typeof patch.content === "string" ? patch.content.slice(0, 200) : undefined } };
   if (args?.requireApproval !== false) {
     return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
   }
@@ -1217,6 +1224,7 @@ async function tool_noticeUpdate(args: any, adminId: number | null): Promise<Too
   try {
     const setFragments: any[] = [];
     for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
     await db.execute(sql`UPDATE notices SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
     return { ok: true, output: { updated: true, noticeId: id }, rollbackData: { table: "notices", id, before } };
   } catch (e: any) {
@@ -2847,13 +2855,14 @@ async function tool_resourceDelete(args: any, adminId: number | null): Promise<T
 async function tool_budgetsList(args: any): Promise<ToolResult> {
   const year = Number(args?.fiscalYear) || new Date().getFullYear();
   try {
+    /* 2026-05-14 fix: budget_categories 실제 컬럼 = id/name/code/description/is_active (name_ko·sort_order 없음) */
     const r: any = await db.execute(sql`
       SELECT b.id, b.fiscal_year, b.category_id, b.planned_amount, b.note, b.created_at,
-             c.name_ko AS category_name, c.code AS category_code
+             c.name AS category_name, c.code AS category_code
         FROM budgets b
         LEFT JOIN budget_categories c ON c.id = b.category_id
        WHERE b.fiscal_year = ${year}
-       ORDER BY c.sort_order ASC NULLS LAST, b.id ASC
+       ORDER BY c.id ASC NULLS LAST, b.id ASC
     `);
     const rows = r?.rows ?? r ?? [];
     return { ok: true, output: { fiscalYear: year, count: rows.length, budgets: rows } };
@@ -2881,7 +2890,7 @@ async function tool_expendituresList(args: any): Promise<ToolResult> {
   try {
     const r: any = await db.execute(sql`
       SELECT e.id, e.category_id, e.amount, e.spent_at, e.description, e.payee, e.status,
-             e.approved_at, c.name_ko AS category_name
+             e.approved_at, c.name AS category_name
         FROM expenditures e
         LEFT JOIN budget_categories c ON c.id = e.category_id
         ${where}
@@ -2903,7 +2912,7 @@ async function tool_budgetSummary(args: any): Promise<ToolResult> {
     const r: any = await db.execute(sql`
       SELECT
         c.id AS category_id,
-        c.name_ko AS category_name,
+        c.name AS category_name,
         c.code AS category_code,
         COALESCE(b.planned_amount::numeric, 0)::numeric AS planned,
         COALESCE(SUM(CASE WHEN e.status = 'paid' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS spent,
@@ -2912,8 +2921,8 @@ async function tool_budgetSummary(args: any): Promise<ToolResult> {
         LEFT JOIN budgets b ON b.category_id = c.id AND b.fiscal_year = ${year}
         LEFT JOIN expenditures e ON e.category_id = c.id AND e.spent_at >= ${yearStartIso}::timestamptz AND e.spent_at < ${yearEndIso}::timestamptz
        WHERE c.is_active = TRUE
-       GROUP BY c.id, c.name_ko, c.code, b.planned_amount, c.sort_order
-       ORDER BY c.sort_order ASC NULLS LAST, c.id ASC
+       GROUP BY c.id, c.name, c.code, b.planned_amount
+       ORDER BY c.id ASC
     `);
     const rows: any[] = r?.rows ?? r ?? [];
     const summary = rows.map((r: any) => {

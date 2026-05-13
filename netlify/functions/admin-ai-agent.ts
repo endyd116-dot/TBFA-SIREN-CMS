@@ -534,7 +534,14 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   /* === Phase B: DB에서 시스템 프롬프트 + 운영자 권한 로드 === */
-  const systemPrompt = await getSystemPrompt();
+  const baseSystemPrompt = await getSystemPrompt();
+  /* BUG-05 fix (2026-05-14): "내일/모레/이번 주" 자연어를 정확한 날짜로 변환하도록
+     현재 KST 날짜를 시스템 프롬프트 맨 앞에 동적 주입. 캐시 키는 일 단위로 갱신. */
+  const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayIso = nowKst.toISOString().slice(0, 10);
+  const dayName = ["일", "월", "화", "수", "목", "금", "토"][nowKst.getUTCDay()];
+  const tomorrowIso = new Date(nowKst.getTime() + 86400000).toISOString().slice(0, 10);
+  const systemPrompt = `현재 한국 시간(KST) 기준 오늘 날짜: ${todayIso} (${dayName}요일). 내일: ${tomorrowIso}.\n날짜 인자(dueDate·startAt 등)는 이 정보 기준으로 정확히 계산하세요.\n\n${baseSystemPrompt}`;
   const adminRole = (auth as any).ctx?.admin?.role ?? null;
 
   /* === 의도별 모델 체인 선택 (변경 키워드 → HIGH, 그 외 → LOW) === */

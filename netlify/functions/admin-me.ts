@@ -14,6 +14,20 @@ export default async (req: Request) => {
   const guard = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
 
+  /* 2026-05-14: ?light=1 이면 KPI 쿼리 건너뛰고 admin 정보만 즉시 반환.
+     auth.js fetchMe 폴백 등 헤더 갱신용으로 사용. 5초 지연 해소. */
+  const url = new URL(req.url);
+  if (url.searchParams.get("light") === "1") {
+    return ok({
+      admin: {
+        id: guard.ctx.member.id,
+        email: guard.ctx.member.email,
+        name: guard.ctx.member.name,
+        role: "super_admin",
+      },
+    });
+  }
+
   try {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);

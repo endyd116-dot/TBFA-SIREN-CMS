@@ -32,10 +32,28 @@
     stats: null,
 
     async fetchMe() {
+      /* 1) 일반 사용자 토큰 (siren_token) 우선 */
       const res = await api('/api/auth/me');
-      if (res.ok && res.data.data) {
+      if (res.ok && res.data?.data) {
         this.user = res.data.data.user;
         this.stats = res.data.data.stats;
+        return true;
+      }
+      /* 2) 일반 토큰 없음 → admin 토큰(siren_admin_token) 폴백.
+         어드민으로만 로그인한 경우에도 헤더가 로그인 상태로 정상 표시되도록.
+         2026-05-14 fix: 헤더에 "로그인/회원가입" 잘못 표시 + 5초 지연 해소.
+         ?light=1로 KPI 쿼리 건너뛰어 빠른 응답. */
+      const r2 = await api('/api/admin/me?light=1');
+      if (r2.ok && r2.data?.data?.admin) {
+        const a = r2.data.data.admin;
+        this.user = {
+          id: a.id,
+          name: a.name || '관리자',
+          email: a.email,
+          type: 'admin',
+          isAdmin: true,
+        };
+        this.stats = null;
         return true;
       }
       this.user = null;

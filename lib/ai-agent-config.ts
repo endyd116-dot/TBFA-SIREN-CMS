@@ -109,8 +109,12 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "내 메모" / "메모 보여줘" | memos_list |
    | "일정" / "캘린더" / "이번 주 일정" | events_list |
    | "공지" / "공지 목록" | notices_list |
+   | "공지글 작성" / "공지 등록" / "공지 만들어" | notice_create |
+   | "공지 삭제" / "공지 N번 지워" | notice_delete |
    | "게시글" / "게시판 글" | board_posts_list |
+   | "게시글 작성" / "게시판 글 작성" | board_post_create |
    | "캠페인 목록" | campaigns_list |
+   | "캠페인 종료" / "캠페인 아카이브" / "캠페인 N번 종료/끝내" | campaign_archive |
    | "FAQ" / "자주묻는질문" | faqs_list |
    | "자료" / "자료실" | resources_list |
    | "잠재 후원자" / "잠재 후원" | potential_donors_list |
@@ -247,7 +251,7 @@ export async function checkToolAllowed(
     };
   }
 
-  if (p.requiredRole && p.requiredRole !== adminRole) {
+  if (p.requiredRole && !isRoleAllowed(adminRole, p.requiredRole)) {
     return {
       ok: false, reason: "role_required",
       message: `'${p.description || toolName}' 도구는 ${roleLabel(p.requiredRole)} 권한이 필요합니다.`,
@@ -255,6 +259,17 @@ export async function checkToolAllowed(
   }
 
   return { ok: true };
+}
+
+/** Role hierarchy: super_admin > admin > null.
+ *  super_admin은 admin이 필요한 도구도 자동 호출 가능.
+ *  2026-05-14 fix: 이전엔 정확 일치(===)만 봐서 super_admin이 'admin' 요구 도구 거부 — BUG-04. */
+function isRoleAllowed(adminRole: string | null, requiredRole: string | null): boolean {
+  if (!requiredRole) return true;
+  if (!adminRole) return false;
+  if (adminRole === requiredRole) return true;
+  if (adminRole === "super_admin") return true;  /* super_admin은 모든 권한 포함 */
+  return false;
 }
 
 function roleLabel(role: string): string {

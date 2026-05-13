@@ -134,10 +134,10 @@
         canAdmin = !!(u && (u.canAdminMode || u.isAdmin || u.isOperator || u.type === 'admin'));
       }
     } catch (_) {}
-    /* 2차 fallback: admin 토큰만 있는 경우 */
+    /* 2차 fallback: admin 토큰만 있는 경우. ?light=1로 KPI 건너뛰기 (5초 지연 해소) */
     if (!canAdmin) {
       try {
-        var r2 = await fetch('/api/admin/me', { credentials: 'include' });
+        var r2 = await fetch('/api/admin/me?light=1', { credentials: 'include' });
         if (r2.ok) canAdmin = true;
       } catch (_) {}
     }
