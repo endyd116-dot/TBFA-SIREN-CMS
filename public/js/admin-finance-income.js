@@ -29,6 +29,7 @@
   let trendChart   = null;
   let channelChart = null;
   let combinedChart = null;
+  let expenseChart = null;
 
   /* ── KPI 6개 렌더 (Phase 22A 확장) ── */
   function renderKpi6(donationData, plData) {
@@ -102,6 +103,63 @@
 
     if (d.monthlyTrend && d.monthlyTrend.length > 0) renderTrendChart(d.monthlyTrend);
     renderChannelChart(ch);
+  }
+
+  /* ── Phase 22C: 지출 카테고리 분해 (바 차트 + 테이블) ── */
+  function renderExpenseCats(expenditure) {
+    const exp        = expenditure || {};
+    const byCategory = exp.byCategory || [];
+    const totalExp   = Number(exp.total || byCategory.reduce((a, c) => a + Number(c.total || c.amount || 0), 0));
+
+    /* 테이블 */
+    const tbody = document.getElementById('fiExpenseCatTbody');
+    if (tbody) {
+      if (!byCategory.length) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-3)">지출 내역 없음</td></tr>';
+      } else {
+        tbody.innerHTML = byCategory.map(cat => {
+          const amt = Number(cat.total || cat.amount || 0);
+          const pct = totalExp > 0 ? Math.round((amt / totalExp) * 100) : 0;
+          return `<tr>
+            <td>${cat.name || cat.code || '—'}</td>
+            <td class="num">${fmtKRW(amt)}</td>
+            <td class="num">${pct}%</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    /* 바 차트 */
+    const ctx = document.getElementById('fiExpenseChart');
+    if (!ctx || !window.Chart) return;
+    if (expenseChart) { expenseChart.destroy(); expenseChart = null; }
+    if (!byCategory.length) return;
+
+    expenseChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: byCategory.map(c => c.name || c.code),
+        datasets: [{
+          label: '지출액',
+          data: byCategory.map(c => Number(c.total || c.amount || 0)),
+          backgroundColor: ['#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#ec4899'],
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: ctx => fmtKRW(ctx.parsed.x) },
+          },
+        },
+        scales: {
+          x: { ticks: { callback: v => (Number(v) / 10000).toFixed(0) + '만' } },
+        },
+      },
+    });
   }
 
   /* ── 후원 외 카테고리 테이블 ── */
@@ -228,6 +286,7 @@
     renderDonationDetail(donRes);
     if (plData.monthly && plData.monthly.length) renderCombinedChart(plData.monthly);
     if (plData.revenue && plData.revenue.other)  renderOtherCats(plData.revenue.other);
+    renderExpenseCats(plData.expenditure);
   }
 
   /* ── 초기화 ── */

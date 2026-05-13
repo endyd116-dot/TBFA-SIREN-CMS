@@ -2814,6 +2814,7 @@
             <li><a data-page="donations"><i>💳</i><span>후원금 관리</span></a></li>
             <li><a data-page="finance-income"><i>📈</i><span>수입 현황</span></a></li>
             <li><a data-page="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
+            <li><a data-page="expenses"><i>💸</i><span>지출 관리</span></a></li>
             <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
             <li><a data-page="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
           </ul>
@@ -4753,6 +4754,25 @@
               </tbody>
             </table>
 
+            <!-- Phase 22C: 지출 카테고리 분해 + 바 차트 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (바 차트)</div>
+                <canvas id="fiExpenseChart" height="180"></canvas>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (테이블)</div>
+                <table class="data-table" style="width:100%">
+                  <thead>
+                    <tr><th>카테고리</th><th class="num">지출액</th><th class="num">비율</th></tr>
+                  </thead>
+                  <tbody id="fiExpenseCatTbody">
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-3)">데이터 없음</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <!-- 채널별 테이블 -->
             <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 채널별 상세</div>
             <table class="data-table" style="width:100%">
@@ -4774,6 +4794,9 @@
 
         <!-- Phase 22A: 후원 외 매출 (admin-other-revenues.js가 동적 렌더) -->
         <div id="adm-other-revenues" class="adm-page"></div>
+
+        <!-- Phase 22C: 지출 관리 (admin-expenses.js가 동적 렌더) -->
+        <div id="adm-expenses" class="adm-page"></div>
 
         <!-- Phase 8 C: 알림 발송 로그 (admin-notification-logs.js가 동적 렌더) -->
         <div id="adm-notification-logs" class="adm-page"></div>
@@ -5829,7 +5852,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=2026-05-12-a1fix"></script>
+  <script src="/js/admin.js?v=20260515p22c"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-11-phase14"></script>
   <script src="/js/editor.js?v=2026-05"></script>
@@ -5964,11 +5987,12 @@
   </script>
 
   <script src="/js/admin-report.js?v=2026-05-11-phase16"></script>
-  <!-- Phase 5~7 + 22A: 재정 관리 -->
-  <script src="/js/admin-finance-income.js?v=20260514p22a"></script>
+  <!-- Phase 5~7 + 22A + 22C: 재정 관리 -->
+  <script src="/js/admin-finance-income.js?v=20260515p22c"></script>
   <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
-  <script src="/js/admin-finance-report.js?v=20260514p22a"></script>
+  <script src="/js/admin-finance-report.js?v=20260515p22c"></script>
   <script src="/js/admin-other-revenues.js?v=20260514p22a"></script>
+  <script src="/js/admin-expenses.js?v=20260515p22c"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
   <script src="/js/admin-notification-logs.js?v=20260510n1"></script>
   <script>

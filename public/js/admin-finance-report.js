@@ -106,13 +106,16 @@
       </tr>`
     ).join('');
 
-    const expRows = (exp.byCategory || []).map(cat =>
-      `<tr>
-        <td style="padding-left:20px;color:var(--text-2)">${cat.name}</td>
-        <td></td>
-        <td class="num" style="color:var(--danger)">${fmtKRW(cat.total)}</td>
-      </tr>`
-    ).join('');
+    const expByCat = exp.byCategory || [];
+    const expRows = expByCat.length
+      ? expByCat.map(cat =>
+          `<tr>
+            <td style="padding-left:20px;color:var(--text-2)">${cat.name || cat.code || '—'}</td>
+            <td></td>
+            <td class="num" style="color:var(--danger)">${fmtKRW(cat.total != null ? cat.total : cat.amount)}</td>
+          </tr>`
+        ).join('')
+      : `<tr><td colspan="3" style="padding-left:20px;color:var(--text-3);font-style:italic">지출 내역 없음</td></tr>`;
 
     const netColor = net >= 0 ? 'var(--success)' : 'var(--danger)';
     const netLabel = net >= 0 ? '당기 순이익' : '당기 순손실';
@@ -233,7 +236,7 @@
         ['수익 합계', '', rev.totalNet || 0],
         ['', '', ''],
         ['Ⅱ. 지출', '', ''],
-        ...(exp.byCategory || []).map(c => [c.name, c.total, '']),
+        ...(exp.byCategory || []).map(c => [c.name || c.code, (c.total != null ? c.total : c.amount) || 0, '']),
         ['지출 합계', '', exp.total || 0],
         ['', '', ''],
         [pl.netIncome >= 0 ? '당기 순이익' : '당기 순손실', '', Math.abs(pl.netIncome || 0)],
