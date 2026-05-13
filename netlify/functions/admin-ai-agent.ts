@@ -290,8 +290,23 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["잠재", "후원자 후보", "행사 참가자", "연결"] },
   { name: "resources_cud", tools: ["resource_create", "resource_update", "resource_delete"],
     keywords: ["자료 등록", "자료 수정", "자료 삭제"] },
-  { name: "finance", tools: ["budgets_list", "expenditures_list", "budget_summary", "donation_policy_get"],
-    keywords: ["예산", "지출", "결산", "회계", "정책", "계좌"] },
+  { name: "finance", tools: [
+      "budgets_list", "expenditures_list", "budget_summary", "donation_policy_get",
+      /* Phase 22-A 매출 */
+      "revenue_categories_list", "revenue_list", "revenue_create", "revenue_update", "revenue_approve", "revenue_refund",
+      /* Phase 22-C 지출 */
+      "expense_categories_list", "expenses_list", "expense_create", "expense_approve", "expense_refund",
+      "pl_summary",
+    ],
+    keywords: [
+      "예산", "지출", "결산", "회계", "정책", "계좌",
+      /* 22-A 매출 */
+      "수입", "매출", "후원외", "강연료", "정부지원금", "기업협찬",
+      /* 22-C 지출 */
+      "비용", "경비", "인건비", "사업비", "관리운영비", "모금비", "지급처", "영수증",
+      /* 손익 */
+      "손익", "순이익", "순손실", "P&L", "pl",
+    ] },
   { name: "chat", tools: ["chat_rooms_list"],
     keywords: ["채팅", "상담", "1:1", "메시지", "대화방"] },
   { name: "workspace", tools: ["tasks_list", "task_create", "task_update", "task_delete", "task_comments_list", "task_comment_add", "notifications_recent"],
