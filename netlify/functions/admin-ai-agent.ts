@@ -92,14 +92,6 @@ const HIGH_INTENT_KEYWORDS = [
 ];
 
 function pickModelChain(userMessage: string): string[] {
-  /* ⚠️ TEMP TEST (2026-05-14): lite 모델의 도구 호출 약점이 회귀 원인인지 확인 위해
-     모든 호출을 HIGH 체인(gemini-3-flash-preview 우선)으로 강제 라우팅.
-     검증 후 결정:
-     - 도구 호출 성공률↑ + SC-1 어긋남 해소 → 영구 적용 (또는 환경변수 토글로 구조화)
-     - 변화 없음 → 원래 분기 복구 후 다른 원인 진단
-     원상복구: 아래 강제 return 1줄 삭제, 기존 분기 활성화. */
-  return HIGH_MODEL_CHAIN;
-  /* eslint-disable-next-line no-unreachable */
   const t = (userMessage || "").trim();
   if (HIGH_INTENT_KEYWORDS.some(k => t.includes(k))) return HIGH_MODEL_CHAIN;
   return LOW_MODEL_CHAIN;
