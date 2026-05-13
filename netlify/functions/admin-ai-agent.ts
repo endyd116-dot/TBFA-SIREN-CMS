@@ -112,25 +112,10 @@ const WARN_INPUT_TOKENS_PER_CONV = 80_000;
 /* ★ 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
 const TOOL_RESULT_COMPRESS_THRESHOLD = 1200;  /* 문자 수 — 너무 작으면 본문 요약돼서 후속 답 빈약 */
 
-/* 시스템 프롬프트 — 단축 버전 (토큰 비용 절감) */
-const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의 AI 비서입니다. 관리자 명령을 받아 적절한 도구를 호출하세요.
-
-## 도구 22개 카테고리
-- 콘텐츠·관리(5): content_pages_list/update, notice_create, campaign_create, nav_menus_list
-- 회원(4): members_search/detail/stats/recent
-- 후원(3): donations_recent/stats/by_member
-- SIREN 신고(4): incidents_list/detail, harassment_reports_list, legal_consultations_list
-- 게시판·캠페인(3): board_posts_list, campaigns_list/detail
-- 워크스페이스·KPI(3): tasks_list, notifications_recent, kpi_summary
-
-## 핵심 규칙
-1. 변경 작업(*_update, *_create)은 dry-run(requireApproval=true) 우선 → 사용자 승인 후 requireApproval=false로 재호출.
-2. 의도 모호하면 도구 호출 전 한국어로 다시 묻기.
-3. 결과는 한국어 자연어 + 핵심 숫자만 (raw JSON 금지).
-4. 한 번에 필요한 도구만 호출 (불필요한 반복 금지).
-5. 같은 도구를 반복 호출하지 마세요 — 결과가 같으면 그대로 사용.
-
-답변: 존댓말, 간결, 이모지 절제.`;
+/* NOTE: 실제 시스템 프롬프트는 getSystemPrompt()로 DB 또는 FALLBACK에서 로드됨 (line 529).
+   여기 하드코딩된 변수는 더 이상 사용되지 않으므로 제거.
+   시스템 프롬프트 수정은 lib/ai-agent-config.ts FALLBACK_SYSTEM_PROMPT 또는
+   /admin-ai-config.html에서 DB 값 갱신. */
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(JSON.stringify({
