@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (밤) | **메인** | **Phase 22-A 0단계 ✅ 완료** (main @ `9604207` + 마이그 파일 삭제 push 예정) — schema.ts append-only(revenueCategories·otherRevenues 6+4 인덱스) + 마이그 호출 성공(`tbfa.co.kr/api/migrate-phase22a-revenue?run=1`, adminUid=1) → 테이블 2 + 인덱스 6 + 시드 13(revenue_categories 6·ai_tool_permissions 6·ai_feature 1) 적용. 마이그 파일 삭제·CLAUDE.md tbfa.co.kr 메인 표기 정정. **다음: 1단계 — B·A 평행 트리거** |
 | 2026-05-14 (저녁) | **메인** | **Phase 22-A 설계서 보강 — 4채팅 분담 + AI 에이전트 통합** — §-1 분담표(메인 schema·마이그·머지 / B 백+AI 도구 6개 / A 프론트 / C 검증) + §10 AI 도구 6개(revenue_categories_list·other_revenues_list/create/approve/refund·pl_summary) + §11 표준 v1.4 준수 + §4 Q13~Q18 + §7 4단계 + §9 시간 갱신(20~28h, 평행 10~14h). Swain 검토 대기 |
 | 2026-05-14 (저녁) | **메인** | **Phase 22-A 매출 통합 관리 설계서 초안** — `docs/milestones/2026-05-14-phase22a-revenue-management.md` push. Swain 결정 4건 반영(범위 22-A 단독·카테고리 6종·회계연도 1~12월·환불 net) / B·A·C 시작 프롬프트 §6 포함 |
 | 2026-05-14 (저녁) | **메인** | **🎉 AI 에이전트 Phase 1 검증 라운드 ✅ 완전 종료** — V7 PASS, BUG-05b 완전 해소 (member·media 도구 호출 진입 확인), 표준 §18.13 도메인 동기화 효과 입증. verify/ai-agent-phase1 → main 머지 (RESULTS·issues 12개 문서 흡수). 잔존: minor BUG-05c (옛 enum 입력 시 reply 안내 misleading — 데이터 정확성 무영향) |
