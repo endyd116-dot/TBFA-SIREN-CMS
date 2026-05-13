@@ -312,6 +312,11 @@ const MOCK_PL_SUMMARY_WITH_EXPENSE = {
 이 트리거는 백엔드 + AI 도구 작업 전용입니다.
 화면·HTML·JS 작업이 포함된 트리거를 받았다면 잘못 받은 것이니 즉시 메인에 문의.
 
+[자율주행 정책]
+- push와 애매한 로직만 묻고 나머지는 자율 진행
+- 파일 읽기·수정·git 명령·bash·PowerShell·npm install은 묻지 말 것
+- 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
+
 전제: Phase 22-A feature/phase22a-back 작업 완료 후 신규 브랜치 시작
 
 워크트리 준비:
@@ -423,6 +428,11 @@ pl_summary 핸들러 업데이트:
 
 이 트리거는 화면·HTML·JS 작업 전용입니다.
 REST API 함수·AI 도구가 포함된 트리거를 받았다면 잘못 받은 것이니 즉시 메인에 문의.
+
+[자율주행 정책]
+- push와 애매한 로직만 묻고 나머지는 자율 진행
+- 파일 읽기·수정·git 명령·bash·PowerShell·npm install은 묻지 말 것
+- 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
 
 전제: Phase 22-A feature/phase22a-front 작업 완료 후 신규 브랜치 시작
 
