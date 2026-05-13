@@ -77,6 +77,9 @@ const HIGH_MODEL_CHAIN: string[] = Array.from(new Set([
   "gemini-2.5-flash-lite",
 ].filter(Boolean)));
 const LOW_MODEL_CHAIN: string[] = Array.from(new Set([
+  /* 2026-05-14: lite가 7,411 토큰 시스템 프롬프트 + 84개 도구 declarations를
+     소화 못 해 도구 호출을 거의 안 함 → flash로 승격. lite는 폴백으로 보존. */
+  "gemini-2.5-flash",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash-lite",
 ].filter(Boolean)));
