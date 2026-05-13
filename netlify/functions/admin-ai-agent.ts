@@ -112,25 +112,10 @@ const WARN_INPUT_TOKENS_PER_CONV = 80_000;
 /* ★ 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
 const TOOL_RESULT_COMPRESS_THRESHOLD = 1200;  /* 문자 수 — 너무 작으면 본문 요약돼서 후속 답 빈약 */
 
-/* 시스템 프롬프트 — 단축 버전 (토큰 비용 절감) */
-const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의 AI 비서입니다. 관리자 명령을 받아 적절한 도구를 호출하세요.
-
-## 도구 22개 카테고리
-- 콘텐츠·관리(5): content_pages_list/update, notice_create, campaign_create, nav_menus_list
-- 회원(4): members_search/detail/stats/recent
-- 후원(3): donations_recent/stats/by_member
-- SIREN 신고(4): incidents_list/detail, harassment_reports_list, legal_consultations_list
-- 게시판·캠페인(3): board_posts_list, campaigns_list/detail
-- 워크스페이스·KPI(3): tasks_list, notifications_recent, kpi_summary
-
-## 핵심 규칙
-1. 변경 작업(*_update, *_create)은 dry-run(requireApproval=true) 우선 → 사용자 승인 후 requireApproval=false로 재호출.
-2. 의도 모호하면 도구 호출 전 한국어로 다시 묻기.
-3. 결과는 한국어 자연어 + 핵심 숫자만 (raw JSON 금지).
-4. 한 번에 필요한 도구만 호출 (불필요한 반복 금지).
-5. 같은 도구를 반복 호출하지 마세요 — 결과가 같으면 그대로 사용.
-
-답변: 존댓말, 간결, 이모지 절제.`;
+/* NOTE: 실제 시스템 프롬프트는 getSystemPrompt()로 DB 또는 FALLBACK에서 로드됨 (line 529).
+   여기 하드코딩된 변수는 더 이상 사용되지 않으므로 제거.
+   시스템 프롬프트 수정은 lib/ai-agent-config.ts FALLBACK_SYSTEM_PROMPT 또는
+   /admin-ai-config.html에서 DB 값 갱신. */
 
 function jsonError(step: string, err: any, status = 500) {
   return new Response(JSON.stringify({
@@ -286,10 +271,26 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["발송", "전송", "트리거", "자동", "이메일 이력", "sms 이력"] },
   { name: "siren",    tools: ["incidents_list", "incidents_detail", "harassment_reports_list", "legal_consultations_list"],
     keywords: ["사건", "신고", "악성", "민원", "법률", "상담", "siren", "SIREN", "교권", "괴롭힘"] },
-  { name: "board",    tools: ["board_posts_list", "notice_create"],
-    keywords: ["게시판", "공지", "공고", "글", "포스트", "알림글"] },
-  { name: "campaign", tools: ["campaigns_list", "campaigns_detail", "campaign_create"],
-    keywords: ["캠페인", "카피", "광고", "모금"] },
+  { name: "board",    tools: ["board_posts_list", "board_post_create", "board_post_update", "board_comments_list", "board_comment_hide", "notice_create", "notice_update", "notice_delete", "notices_list"],
+    keywords: ["게시판", "공지", "공고", "글", "포스트", "알림글", "댓글", "숨김"] },
+  { name: "campaign", tools: ["campaigns_list", "campaigns_detail", "campaign_create", "campaigns_update", "campaign_archive"],
+    keywords: ["캠페인", "카피", "광고", "모금", "아카이브", "종료"] },
+  { name: "faq",      tools: ["faqs_list", "faq_create", "faq_update", "faq_delete"],
+    keywords: ["faq", "FAQ", "자주묻", "자주 묻는", "질의응답"] },
+  { name: "resources", tools: ["resources_list", "resource_categories_list"],
+    keywords: ["자료", "자료실", "다운로드", "문서", "양식"] },
+  { name: "templates", tools: ["templates_list", "template_create", "template_update", "recipient_groups_list"],
+    keywords: ["템플릿", "양식문", "수신자", "발송 그룹", "타겟"] },
+  { name: "siren_admin", tools: ["incident_comment_add"],
+    keywords: ["사건 답변", "사건 의견", "내부 메모", "코멘트", "운영자 의견"] },
+  { name: "potential_donors", tools: ["potential_donors_list", "potential_donor_link"],
+    keywords: ["잠재", "후원자 후보", "행사 참가자", "연결"] },
+  { name: "resources_cud", tools: ["resource_create", "resource_update", "resource_delete"],
+    keywords: ["자료 등록", "자료 수정", "자료 삭제"] },
+  { name: "finance", tools: ["budgets_list", "expenditures_list", "budget_summary", "donation_policy_get"],
+    keywords: ["예산", "지출", "결산", "회계", "정책", "계좌"] },
+  { name: "chat", tools: ["chat_rooms_list"],
+    keywords: ["채팅", "상담", "1:1", "메시지", "대화방"] },
   { name: "workspace", tools: ["tasks_list", "task_create", "task_update", "task_delete", "task_comments_list", "task_comment_add", "notifications_recent"],
     keywords: ["작업", "할 일", "할일", "태스크", "워크스페이스", "투두", "todo", "카드", "댓글", "보고서"] },
   { name: "memos",     tools: ["memos_list", "memo_create", "memo_update", "memo_delete"],
@@ -302,7 +303,7 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["알림", "안내", "공지"] },
   { name: "kpi",      tools: ["kpi_summary"],
     keywords: ["지표", "통계", "KPI", "현황", "요약", "대시보드"] },
-  { name: "content",  tools: ["content_pages_list", "content_pages_update"],
+  { name: "content",  tools: ["content_pages_list", "content_pages_update", "page_create", "page_delete"],
     keywords: ["페이지", "콘텐츠", "정적", "내용"] },
   { name: "nav",      tools: ["nav_menus_list"],
     keywords: ["메뉴", "네비", "내비게이션"] },
