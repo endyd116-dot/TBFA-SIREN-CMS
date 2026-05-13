@@ -2804,6 +2804,21 @@
           </ul>
         </li>
 
+        <!-- ── 💰 재정 관리 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="finance" aria-expanded="false">
+            <i>💰</i><span>재정 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul class="adm-submenu" data-sidebar-submenu="finance" aria-hidden="true" style="display:none">
+            <li><a data-page="donations"><i>💳</i><span>후원금 관리</span></a></li>
+            <li><a data-page="finance-income"><i>📈</i><span>수입 현황</span></a></li>
+            <li><a data-page="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
+            <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
+            <li><a data-page="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
+          </ul>
+        </li>
+
         <!-- ── ⚙️ 시스템 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="system" aria-expanded="false">
@@ -4705,28 +4720,43 @@
             </div>
             <div id="fiError" style="color:var(--danger);padding:8px;display:none"></div>
 
-            <!-- KPI 카드 -->
-            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-              <div class="kpi"><div class="kpi-label">총 수입</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
-              <div class="kpi"><div class="kpi-label">결제 건수</div><div class="kpi-value" id="fiKpiCount">—</div></div>
-              <div class="kpi"><div class="kpi-label">후원 활성 회원</div><div class="kpi-value" id="fiKpiDonors">—</div></div>
-              <div class="kpi"><div class="kpi-label">신규 가입</div><div class="kpi-value" id="fiKpiNewMembers">—</div></div>
+            <!-- KPI 카드 6개 (Phase 22-A 확장) -->
+            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+              <div class="kpi"><div class="kpi-label">총 매출 (net)</div><div class="kpi-value" id="fiKpiTotalNet">—</div></div>
+              <div class="kpi"><div class="kpi-label">후원금 (net)</div><div class="kpi-value" id="fiKpiDonationNet">—</div></div>
+              <div class="kpi"><div class="kpi-label">후원 외 (net)</div><div class="kpi-value" id="fiKpiOtherNet">—</div></div>
+            </div>
+            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+              <div class="kpi"><div class="kpi-label">총 환불</div><div class="kpi-value" id="fiKpiRefund" style="color:var(--danger)">—</div></div>
+              <div class="kpi"><div class="kpi-label">지출</div><div class="kpi-value" id="fiKpiExpenditure" style="color:var(--danger)">—</div></div>
+              <div class="kpi"><div class="kpi-label">순이익</div><div class="kpi-value" id="fiKpiNetIncome">—</div></div>
             </div>
 
             <!-- 차트 2개 -->
             <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
               <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 수입 추이</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 추이 (후원 + 기타 vs 지출 vs 순이익)</div>
                 <canvas id="fiTrendChart" height="120"></canvas>
               </div>
               <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">채널 분포</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">매출 구성</div>
                 <canvas id="fiChannelChart" height="180"></canvas>
               </div>
             </div>
 
+            <!-- 후원 외 카테고리 분해 -->
+            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 외 매출 카테고리별</div>
+            <table class="data-table" style="width:100%;margin-bottom:24px">
+              <thead>
+                <tr><th>카테고리</th><th class="num">순매출</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
+              </thead>
+              <tbody id="fiOtherCatTbody">
+                <tr><td colspan="4" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
+              </tbody>
+            </table>
+
             <!-- 채널별 테이블 -->
-            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">채널별 상세</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 채널별 상세</div>
             <table class="data-table" style="width:100%">
               <thead>
                 <tr><th>채널</th><th class="num">건수</th><th class="num">금액</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
@@ -4743,6 +4773,9 @@
 
         <!-- Phase 7: 재무 보고서 (admin-finance-report.js가 동적 렌더) -->
         <div id="adm-finance-report" class="adm-page"></div>
+
+        <!-- Phase 22A: 후원 외 매출 (admin-other-revenues.js가 동적 렌더) -->
+        <div id="adm-other-revenues" class="adm-page"></div>
 
         <!-- Phase 8 C: 알림 발송 로그 (admin-notification-logs.js가 동적 렌더) -->
         <div id="adm-notification-logs" class="adm-page"></div>
@@ -5933,15 +5966,18 @@
   </script>
 
   <script src="/js/admin-report.js?v=2026-05-11-phase16"></script>
-  <!-- Phase 5~7: 재정 관리 -->
-  <script src="/js/admin-finance-income.js?v=20260510f1"></script>
+  <!-- Phase 5~7 + 22A: 재정 관리 -->
+  <script src="/js/admin-finance-income.js?v=20260514p22a"></script>
   <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
-  <script src="/js/admin-finance-report.js?v=20260510f1"></script>
+  <script src="/js/admin-finance-report.js?v=20260514p22a"></script>
+  <script src="/js/admin-other-revenues.js?v=20260514p22a"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
   <script src="/js/admin-notification-logs.js?v=20260510n1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.init();
+      if (window.SIREN_FINANCE_INCOME)   window.SIREN_FINANCE_INCOME.init();
+      if (window.SIREN_FINANCE_REPORT)   window.SIREN_FINANCE_REPORT.init();
+      if (window.SIREN_OTHER_REVENUES)   window.SIREN_OTHER_REVENUES.init();
     });
   </script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
