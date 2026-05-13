@@ -59,8 +59,16 @@ const MODEL_CHAIN: string[] = Array.from(new Set([
 const MAX_STEPS = 3;                /* 멀티스텝 최대 횟수 (5 → 3 축소) */
 const MAX_TOOLS_PER_CONV = 10;      /* 대화당 누적 도구 호출 상한 */
 const MAX_SAME_TOOL_CONSECUTIVE = 2;/* 같은 도구 연속 호출 차단 */
-const MAX_OUTPUT_TOKENS = 1024;     /* 응답당 토큰 (2048 → 1024) */
+const MAX_OUTPUT_TOKENS = 768;      /* 응답당 토큰 (1024 → 768 절감) */
 const MAX_MESSAGES_KEEP = 20;       /* 대화 이력 유지 메시지 수 (앞쪽 트리밍) */
+
+/* ★ 비용 폭탄 방지 — 대화당 누적 input 토큰 한도 (estimate)
+   초과 시 새 대화 강제. 메시지 누적·도구 결과 누적 모두 통제 */
+const MAX_INPUT_TOKENS_PER_CONV = 50_000;
+const WARN_INPUT_TOKENS_PER_CONV = 40_000;
+
+/* ★ 도구 결과 압축 임계 — 저장 시점에 큰 결과는 요약본으로 대체 */
+const TOOL_RESULT_COMPRESS_THRESHOLD = 800;   /* 문자 수 */
 
 /* 시스템 프롬프트 — 단축 버전 (토큰 비용 절감) */
 const SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의 AI 비서입니다. 관리자 명령을 받아 적절한 도구를 호출하세요.
@@ -92,6 +100,65 @@ function jsonError(step: string, err: any, status = 500) {
 interface GeminiContent {
   role: "user" | "model";
   parts: any[];
+}
+
+/* === 입력 토큰 추정 (1 토큰 ≈ 3.5자 — 한·영 혼합 기준) === */
+function estimateInputTokens(messages: GeminiContent[], systemPrompt: string, toolDeclarations: any[]): number {
+  let total = systemPrompt.length / 3.5;
+  try { total += JSON.stringify(toolDeclarations).length / 3.5; } catch {}
+  for (const m of messages) {
+    for (const p of (m.parts || [])) {
+      if (p.text) total += String(p.text).length / 3.5;
+      else if (p.inlineData) total += (p.inlineData.data?.length || 0) / 4;  /* base64 → 토큰 비율 */
+      else if (p.functionCall) total += JSON.stringify(p.functionCall).length / 3.5;
+      else if (p.functionResponse) total += JSON.stringify(p.functionResponse).length / 3.5;
+    }
+  }
+  return Math.round(total);
+}
+
+/* === 도구 결과 압축 — messages 저장 시점에 호출 ===
+   현재 step의 functionResponse는 그대로 두고, 이전 step의 큰 결과만 압축 */
+function compressOldToolResults(messages: GeminiContent[]): GeminiContent[] {
+  /* 마지막 user functionResponse 묶음은 유지 (현재 step), 그 외 functionResponse는 압축 */
+  let lastFnResponseIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user" && (messages[i].parts || []).some((p: any) => p.functionResponse)) {
+      lastFnResponseIdx = i;
+      break;
+    }
+  }
+  return messages.map((m, idx) => {
+    if (idx === lastFnResponseIdx) return m;     /* 현재 step의 결과는 유지 */
+    if (m.role !== "user" || !Array.isArray(m.parts)) return m;
+    const newParts = m.parts.map((p: any) => {
+      if (!p.functionResponse) return p;
+      const raw = p.functionResponse.response?.output;
+      if (raw == null) return p;
+      const str = typeof raw === "string" ? raw : (() => { try { return JSON.stringify(raw); } catch { return ""; } })();
+      if (str.length <= TOOL_RESULT_COMPRESS_THRESHOLD) return p;
+      /* 압축 */
+      const summary = summarizeToolOutput(raw, str.length);
+      return {
+        functionResponse: {
+          name: p.functionResponse.name,
+          response: { output: summary },
+        },
+      };
+    });
+    return { role: m.role, parts: newParts };
+  });
+}
+
+function summarizeToolOutput(raw: any, byteLen: number): string {
+  if (Array.isArray(raw)) {
+    return `[이전 호출 결과: ${raw.length}개 항목 — 약 ${byteLen.toLocaleString()}자. 필요 시 도구 재호출]`;
+  }
+  if (typeof raw === "object" && raw !== null) {
+    const keys = Object.keys(raw).slice(0, 8);
+    return `[이전 호출 결과 객체: ${keys.join(", ")} ... — 약 ${byteLen.toLocaleString()}자. 필요 시 도구 재호출]`;
+  }
+  return String(raw).slice(0, 200) + " ... (이전 결과 생략 — 필요 시 도구 재호출)";
 }
 
 /* === 동적 도구 로딩 — 의도별 도구 그룹 === */
@@ -339,6 +406,18 @@ export default async (req: Request, _ctx: Context) => {
     }), { status: 200, headers: JSON_HEADER });
   }
 
+  /* === 비용 폭탄 방지 — 누적 input 토큰 추정 한도 === */
+  const estimatedInputTokens = estimateInputTokens(messages, systemPrompt, toolDeclarations);
+  if (estimatedInputTokens > MAX_INPUT_TOKENS_PER_CONV) {
+    return new Response(JSON.stringify({
+      ok: true, conversationId,
+      reply: `이 대화의 누적 입력이 한도(${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()} 토큰, 추정 ${estimatedInputTokens.toLocaleString()})를 초과해 비용 폭증 위험이 있습니다. 새 대화를 시작해주세요.`,
+      toolCalls: [], pendingApproval: null,
+      tokenWarning: { estimated: estimatedInputTokens, limit: MAX_INPUT_TOKENS_PER_CONV },
+    }), { status: 200, headers: JSON_HEADER });
+  }
+  const inputTokenWarn = estimatedInputTokens >= WARN_INPUT_TOKENS_PER_CONV;
+
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
       const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations, systemPrompt);
@@ -481,20 +560,25 @@ export default async (req: Request, _ctx: Context) => {
     messages.splice(0, overflow);
   }
 
+  /* === 도구 결과 압축 — 이전 step의 큰 결과는 요약본으로 대체 (현재 step은 유지) === */
+  const messagesToStore = compressOldToolResults(messages);
+
   /* 4. 대화 저장 */
   try {
     await db.execute(sql`
       UPDATE ai_agent_conversations
-         SET messages = ${JSON.stringify(messages)}::jsonb,
+         SET messages = ${JSON.stringify(messagesToStore)}::jsonb,
              updated_at = NOW()
        WHERE id = ${conversationId}
     `);
   } catch (_) { /* 저장 실패는 무시 — 응답은 정상 */ }
 
   /* === Phase 1: 경고 임계 도달 시 응답에 안내 메시지 동봉 === */
-  const replyWithWarn = budget.warn
-    ? `${finalReply || "(응답 없음)"}\n\n${budget.message}`
-    : (finalReply || "(응답 없음)");
+  let replyWithWarn = finalReply || "(응답 없음)";
+  if (budget.warn) replyWithWarn += `\n\n${budget.message}`;
+  if (inputTokenWarn) {
+    replyWithWarn += `\n\n💡 이 대화의 누적 입력이 ${estimatedInputTokens.toLocaleString()} 토큰입니다 (한도 ${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()}). 새 대화를 시작하면 비용·속도가 개선됩니다.`;
+  }
 
   return new Response(JSON.stringify({
     ok: true,
@@ -503,5 +587,7 @@ export default async (req: Request, _ctx: Context) => {
     toolCalls: executedTools,
     pendingApproval,
     costWarning: budget.warn ? budget.message : undefined,
+    inputTokenEstimate: estimatedInputTokens,
+    inputTokenWarn,
   }), { status: 200, headers: JSON_HEADER });
 };
