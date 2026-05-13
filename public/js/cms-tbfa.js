@@ -231,6 +231,7 @@
           'donation-dashboard': '🔍 종합 검증 대시보드',
           'ai-chat':    '🤖 AI 비서 — 대화 시작',
           'ai-history': '📜 AI 비서 — 대화 이력',
+          'ai-cost':    '💰 AI 비서 — 비용 관리',
           'ai-logs':    '📊 AI 비서 — 도구 사용 로그',
           'ai-config':  '⚙️ AI 비서 — 설정·도구 관리',
         };
@@ -261,11 +262,12 @@
           }
         }
         else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
-        /* ★ AI 에이전트 4개 섹션 */
+        /* ★ AI 에이전트 5개 섹션 (ai-cost 추가) */
         else if (tab === 'ai-chat')    renderAiChat();
         else if (tab === 'ai-history') renderAiHistory();
+        else if (tab === 'ai-cost')    _nfLoadIframe('page-ai-cost');
         else if (tab === 'ai-logs')    renderAiLogs();
-        else if (tab === 'ai-config')  renderAiConfig();
+        else if (tab === 'ai-config')  _nfLoadIframe('page-ai-config');  /* iframe으로 교체됨 */
       });
     });
 
