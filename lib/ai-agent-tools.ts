@@ -198,6 +198,51 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {} },
   },
 
+  /* ───── X-1: 회원·후원 변경 도구 (4개) — 모두 dry-run 우선 ───── */
+  {
+    name: "members_update",
+    description: "회원 정보 부분 수정 (이름·전화·이메일·유형·동의·카테고리). 비밀번호·블랙·탈퇴는 별도 도구 사용.",
+    parameters: { type: "OBJECT", properties: {
+      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
+      name:            { type: "STRING",  description: "이름" },
+      phone:           { type: "STRING",  description: "전화번호" },
+      email:           { type: "STRING",  description: "이메일 (UNIQUE — 중복 시 실패)" },
+      type:            { type: "STRING",  description: "regular|family|volunteer|admin" },
+      agreeEmail:      { type: "BOOLEAN", description: "이메일 수신 동의" },
+      agreeSms:        { type: "BOOLEAN", description: "SMS 수신 동의" },
+      agreeMail:       { type: "BOOLEAN", description: "우편 수신 동의" },
+      memberCategory:  { type: "STRING",  description: "회원 분류" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["memberId"] },
+  },
+  {
+    name: "members_block",
+    description: "회원 차단 (status=suspended + blacklist). 부적절 행동·신뢰 위반 시.",
+    parameters: { type: "OBJECT", properties: {
+      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
+      reason:          { type: "STRING",  description: "차단 사유 (필수)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["memberId", "reason"] },
+  },
+  {
+    name: "members_unblock",
+    description: "회원 차단 해제 (status=active, blacklist 클리어).",
+    parameters: { type: "OBJECT", properties: {
+      memberId:        { type: "INTEGER", description: "회원 ID (필수)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["memberId"] },
+  },
+  {
+    name: "donations_status_update",
+    description: "후원 상태 변경 (pending → completed / refunded / failed). 환불 처리·결제 정정 시.",
+    parameters: { type: "OBJECT", properties: {
+      donationId:      { type: "INTEGER", description: "후원 ID (필수)" },
+      status:          { type: "STRING",  description: "pending|completed|refunded|failed (필수)" },
+      reason:          { type: "STRING",  description: "변경 사유 (refunded·failed 시 권장)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["donationId", "status"] },
+  },
+
   /* ───── F-7: 변경 도구 추가 (3개) — 모두 dry-run 우선 ───── */
   {
     name: "task_create",
@@ -281,6 +326,11 @@ export async function executeTool(
       case "tasks_list":           return await tool_tasksList(args);
       case "notifications_recent": return await tool_notificationsRecent(args);
       case "kpi_summary":          return await tool_kpiSummary();
+      /* X-1: 회원·후원 변경 도구 */
+      case "members_update":          return await tool_membersUpdate(args, adminId);
+      case "members_block":           return await tool_membersBlock(args, adminId);
+      case "members_unblock":         return await tool_membersUnblock(args, adminId);
+      case "donations_status_update": return await tool_donationsStatusUpdate(args, adminId);
       /* F-7: 변경 도구 3종 */
       case "task_create":          return await tool_taskCreate(args, adminId);
       case "email_send":           return await tool_emailSend(args, adminId);
@@ -749,6 +799,182 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
     }
   }
   return { ok: true, output: results };
+}
+
+/* =========================================================
+   X-1: 회원·후원 변경 도구 4종 — dry-run 우선
+   ========================================================= */
+
+const ALLOWED_MEMBER_TYPES = new Set(["regular", "family", "volunteer", "admin"]);
+
+async function tool_membersUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const memberId = Number(args?.memberId || 0);
+  if (!memberId) return { ok: false, error: "memberId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  /* 변경 가능 필드만 화이트리스트 */
+  const patch: Record<string, any> = {};
+  if (typeof args?.name === "string" && args.name.trim()) patch.name = args.name.trim().slice(0, 50);
+  if (typeof args?.phone === "string") patch.phone = args.phone.trim().slice(0, 20) || null;
+  if (typeof args?.email === "string" && args.email.trim()) patch.email = args.email.trim().toLowerCase().slice(0, 100);
+  if (typeof args?.type === "string" && ALLOWED_MEMBER_TYPES.has(args.type)) patch.type = args.type;
+  if (typeof args?.agreeEmail === "boolean") patch.agree_email = args.agreeEmail;
+  if (typeof args?.agreeSms === "boolean") patch.agree_sms = args.agreeSms;
+  if (typeof args?.agreeMail === "boolean") patch.agree_mail = args.agreeMail;
+  if (typeof args?.memberCategory === "string") patch.member_category = args.memberCategory.slice(0, 20);
+
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  /* 변경 전 값 조회 (rollbackData용) */
+  let beforeRow: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, phone, email, type, agree_email, agree_sms, agree_mail, member_category
+        FROM members WHERE id = ${memberId} LIMIT 1
+    `);
+    beforeRow = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!beforeRow) return { ok: false, error: "회원 없음" };
+
+  const preview = { memberId, before: beforeRow, changes: patch };
+
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. requireApproval=false로 재호출하면 실제 적용." } };
+  }
+
+  /* 동적 SET 절 조립 */
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) {
+      setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    }
+    setFragments.push(sql`updated_at = NOW()` as any);
+    /* updated_at 컬럼이 members에 있는지 모르므로 무해하게 try, 실패 시 그것만 빼고 재시도 */
+    try {
+      await db.execute(sql`UPDATE members SET ${sql.join(setFragments, sql`, `)} WHERE id = ${memberId}`);
+    } catch {
+      setFragments.pop();  /* updated_at 빼고 재시도 */
+      await db.execute(sql`UPDATE members SET ${sql.join(setFragments, sql`, `)} WHERE id = ${memberId}`);
+    }
+    return { ok: true, output: { updated: true, memberId, changes: patch }, rollbackData: { table: "members", id: memberId, before: beforeRow } };
+  } catch (e: any) {
+    return { ok: false, error: `회원 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_membersBlock(args: any, adminId: number | null): Promise<ToolResult> {
+  const memberId = Number(args?.memberId || 0);
+  if (!memberId) return { ok: false, error: "memberId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const reason = String(args?.reason || "").trim();
+  if (!reason) return { ok: false, error: "reason 필수" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, status, blacklisted_at FROM members WHERE id = ${memberId} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "회원 없음" };
+  if (before.status === "suspended" && before.blacklisted_at) {
+    return { ok: false, error: "이미 차단된 회원" };
+  }
+
+  const preview = { memberId, name: before.name, reason };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    await db.execute(sql`
+      UPDATE members
+         SET status = 'suspended',
+             blacklisted_at = NOW(),
+             blacklisted_by = ${adminId},
+             blacklist_reason = ${reason}
+       WHERE id = ${memberId}
+    `);
+    return { ok: true, output: { blocked: true, memberId, reason }, rollbackData: { table: "members", id: memberId, before } };
+  } catch (e: any) {
+    return { ok: false, error: `차단 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_membersUnblock(args: any, adminId: number | null): Promise<ToolResult> {
+  const memberId = Number(args?.memberId || 0);
+  if (!memberId) return { ok: false, error: "memberId 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, status, blacklisted_at, blacklist_reason FROM members WHERE id = ${memberId} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "회원 없음" };
+  if (!before.blacklisted_at) return { ok: false, error: "차단 상태 아님" };
+
+  const preview = { memberId, name: before.name, currentReason: before.blacklist_reason };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    await db.execute(sql`
+      UPDATE members
+         SET status = 'active',
+             blacklisted_at = NULL,
+             blacklisted_by = NULL,
+             blacklist_reason = NULL
+       WHERE id = ${memberId}
+    `);
+    return { ok: true, output: { unblocked: true, memberId }, rollbackData: { table: "members", id: memberId, before } };
+  } catch (e: any) {
+    return { ok: false, error: `차단 해제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+const ALLOWED_DONATION_STATUSES = new Set(["pending", "completed", "refunded", "failed"]);
+
+async function tool_donationsStatusUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  const donationId = Number(args?.donationId || 0);
+  const status = String(args?.status || "").trim();
+  if (!donationId) return { ok: false, error: "donationId 필수" };
+  if (!ALLOWED_DONATION_STATUSES.has(status)) return { ok: false, error: "status는 pending|completed|refunded|failed" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const reason = String(args?.reason || "").trim() || null;
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, donor_name, amount, status, failure_reason FROM donations WHERE id = ${donationId} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "후원 없음" };
+  if (before.status === status) return { ok: false, error: `이미 ${status} 상태` };
+
+  const preview = { donationId, donor: before.donor_name, amount: before.amount, before: before.status, after: status, reason };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+
+  try {
+    if (reason && (status === "refunded" || status === "failed")) {
+      await db.execute(sql`
+        UPDATE donations SET status = ${status}, failure_reason = ${reason} WHERE id = ${donationId}
+      `);
+    } else {
+      await db.execute(sql`
+        UPDATE donations SET status = ${status} WHERE id = ${donationId}
+      `);
+    }
+    return { ok: true, output: { updated: true, donationId, status, reason }, rollbackData: { table: "donations", id: donationId, before } };
+  } catch (e: any) {
+    return { ok: false, error: `후원 상태 변경 실패: ${e?.message?.slice(0, 200)}` };
+  }
 }
 
 async function tool_notificationSend(args: any, adminId: number | null): Promise<ToolResult> {
