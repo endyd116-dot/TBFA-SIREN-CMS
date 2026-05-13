@@ -24,6 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (심야) | **메인** | **Phase 22-C 마이그레이션 ✅ 실행 완료 + 1단계 진입** — `tbfa.co.kr/api/migrate-phase22c-expense?run=1` 호출 성공: expense_categories(2 인덱스) + expenses(4 인덱스) 테이블 + NPO 표준 4분류 시드 + ai_tool_permissions 5개 시드. 마이그 파일 즉시 삭제. **B 채팅(Opus, feature/phase22c-back) + A 채팅(feature/phase22c-front) 동시 평행 트리거 발송**: B는 API 9개 + AI 도구 5개 + pl_summary 핸들러 expenses 실데이터 교체 / A는 admin-expenses.html(신규) + admin-finance-income/report 업데이트 + 사이드바 |
+| 2026-05-14 (심야) | **메인** | **Phase 22-A 1단계 ✅ 완료 (B 머지)** — B `feature/phase22a-back @ 232bad4` push 받아 **선택적 체크아웃 머지**(main @ `160e560`): B가 옛 main 베이스라 옛 문서 12개를 다시 등장시키려 했지만 차단. B 신규 10개 파일만(REST API 7개·lib 3개) 통합. **메인 보강 2건**: ① revenue_refund AI 도구 추가(B 누락, Q11 환불 검증 필수) ② `lib/ai-cache.ts INVALIDATION_MAP` 키가 `other_revenue_*`로 잘못됨 → 실제 도구명 `revenue_*`로 정정(§18.13 패턴 재발 fix). A는 `feature/phase22a-front @ 6c71d1b`로 실 API 교체 완료 상태라 별도 머지 불필요(같은 응답 키 구조). **다음: 22-A C 검증 또는 22-C 진행 병렬** |
 | 2026-05-14 (밤) | **메인** | **docs/ 옛 문서 12개 정리** — 단일 출처 통합 완료. 삭제: DESIGN_PHASE1~4·DESIGN_PHASE4_REPORT·DESIGN_EXPERT_MATCHING(milestones/로 대체) / HANDOFF_A·B·C·chat-c-handover-20260509·v17-expanded(HANDOFF.md·handover/v20.md로 대체) / PHASE_PROPOSAL(시나리오 B 채택 종료) / proposals/admin-ui-inventory(Phase 20-A 거부 후 무가치). 빈 proposals/ 폴더 제거. 총 ~3,700줄 정리. 참조: CLAUDE.md / PROJECT_STATE.md / phase20-admin-renewal.md 업데이트. **다음: issues/verify/ 폴더 압축 정책 결정** |
 | 2026-05-14 (밤) | **메인** | **Phase 22-A 1단계 진행 중 — A 완료·B 재시작** — A `feature/phase22a-front @ 6c71d1b` push (mock→실 API 교체 완료, USE_MOCK 플래그 제거). **B는 트리거 오발송 사고로 프론트 작업 → 재시작 (Opus 교체, feature/phase22a-back 백엔드 7 API + AI 도구 6개)**. 메인 작업: C 검증 시드 함수 작성(`migrate-phase22a-c-seed.ts`, 7건 INSERT/cleanup), 22-C 트리거 라벨 명확화(§6.1 🔧백엔드 / §6.2 🎨프론트), `feedback_trigger_role_labels` 메모리 신규 |
 | 2026-05-14 (밤) | **메인** | **Phase 22-C 지출 관리 설계 + 0단계 schema 추가** — `docs/milestones/2026-05-14-phase22c-expense-management.md` 완성 (§-1~§11). expense_categories(NPO 4분류 isSystem, 사용자 추가) + expenses(draft→approved, R2 증빙) schema.ts append. 마이그 migrate-phase22c-expense.ts 대기 중. Phase 22-A 완료 후 착수. |
@@ -170,7 +172,7 @@
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | **Phase 22-A 매출 통합 관리 + 재정 그룹 사이드바** | 🟡 1단계 진행 — A `feature/phase22a-front @ 6c71d1b` ✅ (실 API 교체 완료) / B 백엔드 재시작(Opus, 트리거 오발송 사고 복구) / 카테고리 6종 + 손익계산서 + 재정 그룹 사이드바 / 설계서 `docs/milestones/2026-05-14-phase22a-revenue-management.md` |
 | Phase 22-B 차년도 예산·다단계 결재·풀세트 회계 | ⏸ Phase 22-A 마감 후 합의 |
-| **Phase 22-C 지출 관리** | 📝 설계서 완성(2026-05-14) — `docs/milestones/2026-05-14-phase22c-expense-management.md` / 0단계 schema 추가 완료·마이그 대기 / NPO 표준 4분류 + 관리자 자유 추가 + R2 증빙파일 + draft→approved + AI 도구 5개 / Phase 22-A 완료 후 착수 |
+| **Phase 22-C 지출 관리** | 🟡 1단계 진행 — 0단계 ✅(schema·마이그 실행 완료 2026-05-14) / B `feature/phase22c-back` 백엔드 9 API + AI 도구 5개 + pl_summary 핸들러 갱신 (Opus) / A `feature/phase22c-front` admin-expenses.html(신규) + finance-income/report 업데이트 + R2 영수증 업로드 / 설계서: `docs/milestones/2026-05-14-phase22c-expense-management.md` |
 | **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
 
 **누적**: 약 47% / 약 450h+
