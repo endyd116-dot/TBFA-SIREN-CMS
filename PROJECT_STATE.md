@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (오후) | **메인** | **Phase 20-A 거부된 어드민 UI 완전 리뉴얼 브랜치 3개 폐기** — feature/phase20a-back·front·live 로컬+원격 삭제. Swain이 옛 리뉴얼 시도를 거부했고 점진 수정 방향(Phase 20-B·20-C 머지)으로 진행한 작업물의 잔재. 운영 DB 잔여 테이블(`admin_favorites`·`admin_recent_views`)은 무해해서 일단 보류. Phase 17 검증 보고서는 별도 경로로 이미 main에 존재(docs/verify/2026-05-11-phase17.md) |
 | 2026-05-14 (오후) | **메인** | **BUG-05b notice enum 도메인 전체 동기화 fix** (main @ `4e370ba`) — C V6 보고 `notices_list` description·`ALLOWED_NOTICE_CATEGORIES` 상수에 옛 enum 잔존 → LLM 학습으로 member/media 자체 거부. fix: 두 위치 일괄 정정. 표준 v1.3→v1.4 갱신 §18.13 신규(도메인 전체 동기화 의무). C V7 검증 대기 |
 | 2026-05-14 (새벽 05:30) | **메인** | **🎉 AI 에이전트 v3 ✅ 개발 종료** (main @ `3ba204c`) — 도구 84개(Phase 1·2·3·4 종료) + 표준 v1.3 + BUG 6건 fix 누적 + 헤더 인증 fix + 라이브 검증 거의 100%. Phase 5는 미진행 (1주 운영 후 결정). 상세는 [HANDOFF.md §3.0] / 메모리 `project_ai_cost_safety.md` v3 |
 | 2026-05-13 | **ai-cost** | **AI 비용 안전장치 + AI 에이전트 v2 ✅ 완료** (main @ `16b0b48`) — 5층 안전장치 + 도구 36개(읽기 17·변경 17) + 어드민 UI 3개 + 자동 알림 cron / 다음 세션에서 v3로 확장됨 |
@@ -81,9 +82,11 @@
    Bug-A4: page.* 시드 완료 + 진단함수 삭제 (89f158c)
 
 ⏸ 다른 후보 (별도 세션·합의 필요)
-   - Phase 17 C 검증 미진행 (2026-05-11 잔재)
-   - Phase 18 성능 최적화 (B 진행 중인 feature/phase18-performance)
-   - Phase 19·20 (설계서 완성·B·A 트리거 대기)
+   - Phase 17 보안·감사 강화 — 코드 머지 완료, C 검증 보고서도 main에 존재(docs/verify/2026-05-11-phase17.md). BUG-17-04·05는 후속 권고, BUG-17-06 전화번호 마스킹은 Phase 21에서 부분 처리
+   - Phase 18 성능 최적화 (feature/phase18-performance 빈 브랜치)
+   - Phase 19 자동 테스트 보강 (설계서만 완성·빈 브랜치)
+   - Phase 20-A 어드민 UI 완전 리뉴얼 — ❌ 거부·폐기됨(2026-05-14). Phase 20-B·20-C 점진 적용 main 머지·운영 중
+   - Phase 22 미정 슬롯
 
 🔵 R4 — B·A 동시 트리거 (R2+R3 C 검증과 평행)
    설계서: docs/milestones/2026-05-12-phase21-r4-calendar-search.md (체크박스+mock 임베드 적용)
@@ -156,7 +159,7 @@
 | **Phase 17 보안·감사 강화** | 🔵 B back + A front + 실API 연결 머지 완료 (마이그+schema 활성화 완료) / ⏸ C 라이브 검증 대기 |
 | **Phase 18 성능 최적화** | 🟡 설계서 완성 / B 구현 진행 중 (feature/phase18-performance) |
 | **Phase 19 자동 테스트 보강** | ✅ 설계서 완성 ([2026-05-11-phase19-healthcheck.md](docs/milestones/2026-05-11-phase19-healthcheck.md)) / ⏸ Phase 18 완료 후 B 트리거 |
-| **Phase 20 운영 안정성 (모니터링+백업)** | 🟡 A(Opus 4.7) 후보 4개 발굴 진행 중 → Swain 선택 후 메인이 정식 설계서 작성 |
+| **Phase 20 어드민 UI/UX 리뉴얼** | Phase 20-A(완전 리뉴얼) ❌ 거부·폐기(2026-05-14 브랜치 3개 삭제) / Phase 20-B·20-C ✅ 점진 적용 완료(Cmd+K 검색·즐겨찾기 위젯·유가족·콘텐츠·시스템 그룹 등 main 머지·운영 중) / Phase 20 운영 안정성(모니터링+백업)은 별도 합의 필요 |
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | Phase 22 | ⏸ 여유 슬롯 — 미래 기능 합의 시 채움 |
 | **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
