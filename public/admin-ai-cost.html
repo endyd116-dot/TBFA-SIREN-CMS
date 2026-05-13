@@ -221,6 +221,46 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
     </table>
   </div>
 
+  <!-- 호출 로그 상세 (#4) -->
+  <div class="features-section" style="margin-top:20px">
+    <h2>호출 로그 상세</h2>
+    <div class="hint">비용 폭증·이상 패턴 추적용. 기본 최근 50건.</div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <select id="logFeature" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px">
+        <option value="">모든 기능</option>
+      </select>
+      <label style="font-size:12px;color:#64748b">최소 비용($):
+        <input id="logMinCost" type="number" step="0.001" placeholder="0" style="width:80px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px"/>
+      </label>
+      <select id="logSort" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px">
+        <option value="recent">최신순</option>
+        <option value="cost">비용 큰 순</option>
+      </select>
+      <button id="logRefresh" class="budget-save" style="margin-left:auto">조회</button>
+    </div>
+
+    <div id="logTotals" style="margin-bottom:8px;font-size:12px;color:#64748b"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>시간</th>
+          <th>기능</th>
+          <th>모델</th>
+          <th>어드민</th>
+          <th class="num">입력</th>
+          <th class="num">출력</th>
+          <th class="num">비용</th>
+          <th>상태</th>
+        </tr>
+      </thead>
+      <tbody id="logsTbody">
+        <tr><td colspan="8" class="loading">필터 설정 후 [조회] 클릭</td></tr>
+      </tbody>
+    </table>
+  </div>
+
 </div>
 
 <div id="toast" class="toast"></div>
@@ -469,6 +509,67 @@ document.getElementById("categoryTabs").addEventListener("click", e => {
   currentCategory = btn.dataset.cat;
   renderTable();
 });
+
+/* === #4: 호출 로그 상세 조회 === */
+async function loadLogs() {
+  const params = new URLSearchParams();
+  const f = document.getElementById("logFeature").value;
+  if (f) params.set("feature", f);
+  const mc = document.getElementById("logMinCost").value;
+  if (mc && Number(mc) > 0) params.set("minCost", mc);
+  params.set("sort", document.getElementById("logSort").value);
+  params.set("limit", "50");
+
+  const tbody = document.getElementById("logsTbody");
+  tbody.innerHTML = '<tr><td colspan="8" class="loading">불러오는 중…</td></tr>';
+
+  try {
+    const r = await fetch("/api/admin-ai-usage-logs?" + params.toString());
+    const d = await r.json();
+    if (!d.ok) { tbody.innerHTML = '<tr><td colspan="8" class="loading">' + escapeHtml(d.error || "조회 실패") + '</td></tr>'; return; }
+
+    document.getElementById("logTotals").textContent =
+      `필터 매칭: ${d.totals.calls}건, 비용 ${fmtUsd(d.totals.cost)}, ` +
+      `입력 ${d.totals.inputTokens.toLocaleString()} / 출력 ${d.totals.outputTokens.toLocaleString()} 토큰`;
+
+    if (d.rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="loading">결과 없음</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.rows.map(r => `
+      <tr>
+        <td>${new Date(r.created_at).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+        <td>${escapeHtml(r.feature_key || "-")}</td>
+        <td style="font-size:11px;color:#64748b">${escapeHtml(r.model || "-")}</td>
+        <td style="font-size:11px">${escapeHtml(r.admin_name || (r.admin_id ? "#" + r.admin_id : "-"))}</td>
+        <td class="num">${(r.input_tokens || 0).toLocaleString()}</td>
+        <td class="num">${(r.output_tokens || 0).toLocaleString()}</td>
+        <td class="num">${fmtUsd(r.cost_usd)}</td>
+        <td>${r.success ? '<span style="color:#047857">✓</span>' : '<span style="color:#b91c1c" title="' + escapeHtml(r.error || "") + '">✗</span>'}</td>
+      </tr>
+    `).join("");
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">네트워크 오류</td></tr>';
+  }
+}
+
+document.getElementById("logRefresh").addEventListener("click", loadLogs);
+
+/* allFeatures 로드 후 feature select 옵션 채우기 (loadStats가 호출 후 한 번만) */
+function fillLogFeatureSelect() {
+  const sel = document.getElementById("logFeature");
+  if (!sel || sel.options.length > 1) return;
+  allFeatures.forEach(f => {
+    const o = document.createElement("option");
+    o.value = f.key; o.textContent = f.name;
+    sel.appendChild(o);
+  });
+}
+const origLoadStats = loadStats;
+loadStats = async function () {
+  await origLoadStats();
+  fillLogFeatureSelect();
+};
 
 /* 초기 로드 + 60초마다 새로고침 */
 loadStats();
