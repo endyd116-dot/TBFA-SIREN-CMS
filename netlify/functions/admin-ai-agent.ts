@@ -319,35 +319,12 @@ const TOOL_GROUPS: ToolGroup[] = [
  *  - 그 외 → 관련 도구만 */
 const GREETING_PATTERNS = /^(야|응|네|예|아니|아니오|ok|오케이|안녕|하이|hi|hello|뭐해|왜|진행|확인|취소|좋아|싫어|괜찮)/i;
 
-/* TEMP DEBUG (2026-05-14): selectRelevantTools 내부 진단 결과 보존 */
-let SELECT_DEBUG: {
-  text?: string;
-  textLen?: number;
-  charCodes?: number[];
-  greetingMatch?: boolean;
-  groupCount?: number;
-  matchedGroups?: string[];
-  returnPath?: string;
-} = {};
-
 function selectRelevantTools(userMessage: string): string[] | null {
   const text = (userMessage || "").trim();
-  SELECT_DEBUG = {
-    text: text.slice(0, 50),
-    textLen: text.length,
-    charCodes: Array.from(text.slice(0, 20)).map((c: string) => c.charCodeAt(0)),
-    greetingMatch: GREETING_PATTERNS.test(text),
-    groupCount: TOOL_GROUPS.length,
-    matchedGroups: [],
-  };
-
   /* 짧은 메시지(4자↓) 또는 인사·확인 → 도구 안 보냄.
-     2026-05-14: 8자 → 4자 완화 — "내 메모 보여줘"(8자) 같은 짧은 도메인 명령 잘림 해소.
+     2026-05-14: 8자 → 4자 완화 — "내 메모"(5자) 같은 짧은 도메인 명령도 도구 받음.
      진짜 인사(응/OK/안녕)는 GREETING_PATTERNS에서 별도 잡음. */
-  if (text.length <= 4 || GREETING_PATTERNS.test(text)) {
-    SELECT_DEBUG.returnPath = "short_or_greeting";
-    return [];
-  }
+  if (text.length <= 4 || GREETING_PATTERNS.test(text)) return [];
 
   const matched: ToolGroup[] = [];
   for (const g of TOOL_GROUPS) {
@@ -355,14 +332,10 @@ function selectRelevantTools(userMessage: string): string[] | null {
       if (text.includes(kw)) { matched.push(g); break; }
     }
   }
-  SELECT_DEBUG.matchedGroups = matched.map(g => g.name);
+  if (matched.length === 0) return null;
+  /* 2026-05-14: 'matched.length >= 4 → ALL' 임계 제거.
+     매칭 그룹 도구만 합쳐서 보냄 (라이브 검증 8/8 PASS). */
 
-  if (matched.length === 0) {
-    SELECT_DEBUG.returnPath = "no_match_null";
-    return null;
-  }
-
-  SELECT_DEBUG.returnPath = "matched";
   const set = new Set<string>();
   for (const g of matched) for (const t of g.tools) set.add(t);
   return Array.from(set);
@@ -380,12 +353,11 @@ async function callGeminiWithTools(
     const model = modelChain[i];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-    /* F (2026-05-14 TEMP TEST): Context Caching이 도구 매칭 정확도 떨어뜨릴 가능성 진단.
-       임시로 cachedName=null 강제 → 매 호출 fresh systemPrompt + tools 전송. */
+    /* Context Caching — 환경변수 AI_PROMPT_CACHE=off로 비활성화 가능.
+       2026-05-14: F9 빈 응답 자동 폴백 추가됐으니 재활성화. 캐시 영향 의심 시 즉시 off. */
     const ENABLE_PROMPT_CACHE = process.env.AI_PROMPT_CACHE !== "off"
-      && process.env.AI_PROMPT_CACHE !== "false";  /* 환경변수로 토글 가능 */
-    const CACHE_TEMP_DISABLED = true;  /* TEMP: 진단 끝나면 false로 되돌리거나 이 줄 제거 */
-    const cachedName = (CACHE_TEMP_DISABLED || !ENABLE_PROMPT_CACHE) ? null : await ensurePromptCache({
+      && process.env.AI_PROMPT_CACHE !== "false";
+    const cachedName = !ENABLE_PROMPT_CACHE ? null : await ensurePromptCache({
       model,
       systemPrompt,
       tools: [{ functionDeclarations: toolDeclarations }],
@@ -807,14 +779,5 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
-    /* D (2026-05-14 TEMP): 동적 도구 로딩·체인·캐시 상태 진단 */
-    _debug: {
-      selectedToolCount: toolDeclarations.length,
-      totalTools: (TOOL_DECLARATIONS as any[]).length,
-      selectedTools: selectedToolNames || "ALL",
-      chain: modelChain.map(m => m.split("-").slice(0, 3).join("-")),
-      promptCacheUsed: false,  /* F: TEMP false */
-      selectInternal: SELECT_DEBUG,  /* selectRelevantTools 내부 상태 */
-    },
   }), { status: 200, headers: JSON_HEADER });
 };
