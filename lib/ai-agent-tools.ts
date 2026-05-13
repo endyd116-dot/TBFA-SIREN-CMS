@@ -3610,8 +3610,18 @@ async function tool_expenseRefund(args: any, adminId: number | null): Promise<To
   }
   if (!row) return { ok: false, error: "존재하지 않는 지출 항목" };
   if (row.status !== "approved") return { ok: false, error: `status='approved'인 항목만 환불 가능 (현재: ${row.status})` };
-  if (Number(refundAmount) > Number(row.amount)) {
-    return { ok: false, error: `환불금액(${refundAmount})은 원래 금액(${row.amount}) 이하여야 합니다` };
+
+  // BUG-015 fix: 누적 환불 — 기존 + 신규 = 누적합
+  const currentRefund = Number(row.refund_amount) || 0;
+  const incremental   = Number(refundAmount);
+  const newTotalRefund = currentRefund + incremental;
+  const amount = Number(row.amount);
+
+  if (newTotalRefund > amount) {
+    return {
+      ok: false,
+      error: `누적 환불액(${newTotalRefund.toLocaleString("ko-KR")}원 = 기존 ${currentRefund.toLocaleString("ko-KR")}원 + 신규 ${incremental.toLocaleString("ko-KR")}원)이 원금(${amount.toLocaleString("ko-KR")}원)을 초과합니다`,
+    };
   }
 
   const dryRun = args?.requireApproval !== false;
@@ -3619,27 +3629,34 @@ async function tool_expenseRefund(args: any, adminId: number | null): Promise<To
     return {
       ok: true,
       preview: {
-        id, refundAmount,
-        currentAmount: Number(row.amount),
-        currentRefund: Number(row.refund_amount),
+        id, refundAmount: incremental,
+        currentAmount: amount,
+        currentRefund,
+        newTotalRefund,
         payee: row.payee_name,
       },
       output: {
         dryRun: true,
-        message: `지출 ${id}번(${row.payee_name || "지급처 없음"})에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록할까요?`,
+        message: `지출 ${id}번(${row.payee_name || "지급처 없음"})에 환불 ${incremental.toLocaleString("ko-KR")}원 누적 기록 (기존 ${currentRefund.toLocaleString("ko-KR")}원 → 합계 ${newTotalRefund.toLocaleString("ko-KR")}원) 하시겠습니까?`,
       },
-      rollbackData: { id: Number(id), refund_amount: Number(row.refund_amount) },
+      rollbackData: { id: Number(id), refund_amount: currentRefund },
     };
   }
 
   try {
     await db.execute(sql`
       UPDATE expenses
-         SET refund_amount = ${Number(refundAmount)},
+         SET refund_amount = ${newTotalRefund},
              updated_at = NOW()
        WHERE id = ${Number(id)} AND status = 'approved'
     `);
-    return { ok: true, output: { message: `지출 ${id}번에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록 완료.` } };
+    return {
+      ok: true,
+      output: {
+        message: `지출 ${id}번에 환불 ${incremental.toLocaleString("ko-KR")}원 누적 기록 완료 (합계 ${newTotalRefund.toLocaleString("ko-KR")}원).`,
+        newTotalRefund,
+      },
+    };
   } catch (e: any) {
     return { ok: false, error: `환불 처리 실패: ${e?.message?.slice(0, 200)}` };
   }
