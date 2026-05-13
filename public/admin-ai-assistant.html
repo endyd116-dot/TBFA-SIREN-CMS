@@ -162,6 +162,8 @@ body {
     </div>
     <div class="sb-actions">
       <button class="btn-new" id="btnNewConv">+ 새 대화</button>
+      <input id="convSearch" type="search" placeholder="🔍 대화 검색…"
+             style="width:100%;margin-top:8px;padding:8px 10px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;border-radius:6px;font-size:12px;font-family:inherit" />
     </div>
     <div class="sb-list" id="convList">
       <div style="padding:24px;color:#94a3b8;font-size:12px;text-align:center">대화 이력 로딩 중…</div>
@@ -204,6 +206,8 @@ body {
 (function () {
   'use strict';
   var conversationId = null;
+  /* F-5: 사이드바 검색에서 대화 클릭 시 외부에서 conversationId 설정 가능 */
+  window.__setConversationId = function (id) { conversationId = id; };
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(s) {
@@ -350,9 +354,88 @@ body {
     b.addEventListener('click', function () { $('input').value = b.dataset.prompt; $('input').focus(); });
   });
 
-  /* ── 대화 이력 로드 (간이) ── */
-  /* 추후 별도 API로 분리 — 현재는 placeholder */
-  $('convList').innerHTML = '<div style="padding:24px;color:#94a3b8;font-size:12px;text-align:center">대화 이력은 곧 표시됩니다</div>';
+  /* ── F-5: 대화 이력 로드 + 검색 ── */
+  var currentConvId = null;
+  var searchTimer = null;
+
+  async function loadConvs(q) {
+    var url = '/api/admin-ai-conversations-list?limit=50';
+    if (q) url += '&q=' + encodeURIComponent(q);
+    var res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) {
+      $('convList').innerHTML = '<div style="padding:16px;color:#fca5a5;font-size:12px">대화 이력 로드 실패</div>';
+      return;
+    }
+    var data = await res.json();
+    var rows = data.rows || [];
+    if (rows.length === 0) {
+      $('convList').innerHTML = '<div style="padding:24px;color:#94a3b8;font-size:12px;text-align:center">' +
+        (q ? '검색 결과 없음' : '대화 이력 없음') + '</div>';
+      return;
+    }
+    $('convList').innerHTML = rows.map(function (r) {
+      var when = new Date(r.updated_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+      return '<a class="sb-conv" data-id="' + r.id + '" href="#">' +
+        escapeText(r.title || '제목 없음') +
+        '<span class="sb-conv-time">' + when + ' · 메시지 ' + (r.message_count || 0) + '</span>' +
+        '</a>';
+    }).join('');
+    document.querySelectorAll('.sb-conv').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var id = Number(el.dataset.id);
+        loadConvDetail(id);
+        document.querySelectorAll('.sb-conv').forEach(function (a) { a.classList.remove('active'); });
+        el.classList.add('active');
+      });
+    });
+  }
+
+  async function loadConvDetail(id) {
+    var res = await fetch('/api/admin-ai-conversation-detail?id=' + id, { credentials: 'include' });
+    if (!res.ok) return;
+    var data = await res.json();
+    if (!data.ok || !data.conversation) return;
+    currentConvId = id;
+    /* 외부 conversationId 설정 — sendMsg가 이 대화 이어가게 */
+    if (typeof window.__setConversationId === 'function') window.__setConversationId(id);
+    $('convTitle').textContent = data.conversation.title || '대화';
+    /* 메시지 화면에 렌더 */
+    var msgsEl = $('msgs');
+    msgsEl.innerHTML = '';
+    (data.conversation.messages || []).forEach(function (m) {
+      var role = m.role === 'user' ? 'user' : 'ai';
+      var text = (m.parts || []).map(function (p) {
+        if (p.text) return p.text;
+        if (p.functionCall) return '🔧 ' + p.functionCall.name + ' 호출';
+        if (p.functionResponse) return '📥 ' + p.functionResponse.name + ' 결과';
+        if (p.inlineData) return '📎 첨부 ' + p.inlineData.mimeType;
+        return '';
+      }).filter(Boolean).join('\n');
+      if (!text) return;
+      var div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = '<div class="bubble"></div>';
+      div.querySelector('.bubble').textContent = text;
+      msgsEl.appendChild(div);
+    });
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function escapeText(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+
+  /* 검색 입력 — 300ms debounce */
+  $('convSearch').addEventListener('input', function (e) {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { loadConvs(e.target.value.trim()); }, 300);
+  });
+
+  /* 초기 로드 */
+  loadConvs('');
 
   $('input').focus();
 })();

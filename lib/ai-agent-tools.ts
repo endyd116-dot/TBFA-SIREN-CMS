@@ -4,6 +4,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "../db";
+import { sendEmail } from "./email";
 
 /* =========================================================
    Gemini Function Declaration — OpenAPI 3.0 schema (대문자 type)
@@ -196,6 +197,41 @@ export const TOOL_DECLARATIONS = [
     description: "전체 KPI 요약 — 회원·후원·신고·게시판 핵심 숫자 한 번에.",
     parameters: { type: "OBJECT", properties: {} },
   },
+
+  /* ───── F-7: 변경 도구 추가 (3개) — 모두 dry-run 우선 ───── */
+  {
+    name: "task_create",
+    description: "워크스페이스 작업 카드 생성. 운영자 To-Do 등록 시 사용. 승인 후 호출.",
+    parameters: { type: "OBJECT", properties: {
+      title:           { type: "STRING",  description: "작업 제목 (필수)" },
+      description:     { type: "STRING",  description: "작업 설명" },
+      priority:        { type: "STRING",  description: "low|medium|high|urgent (기본 medium)" },
+      assignedTo:      { type: "INTEGER", description: "담당자 회원 ID (선택)" },
+      dueDate:         { type: "STRING",  description: "마감일 YYYY-MM-DD (선택)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["title"] },
+  },
+  {
+    name: "email_send",
+    description: "회원에게 이메일 발송 (단일 또는 다수). Resend 사용. 승인 후 호출.",
+    parameters: { type: "OBJECT", properties: {
+      memberIds:       { type: "ARRAY",   items: { type: "INTEGER" }, description: "수신 회원 ID 배열 (1~50명)" },
+      subject:         { type: "STRING",  description: "이메일 제목 (필수)" },
+      body:            { type: "STRING",  description: "이메일 본문 (HTML 또는 텍스트)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["memberIds", "subject", "body"] },
+  },
+  {
+    name: "notification_send",
+    description: "특정 회원에게 사이트 알림 발송 (workspace_notifications). 승인 후 호출.",
+    parameters: { type: "OBJECT", properties: {
+      memberIds:       { type: "ARRAY",   items: { type: "INTEGER" }, description: "수신 회원 ID 배열" },
+      title:           { type: "STRING",  description: "알림 제목 (필수)" },
+      body:            { type: "STRING",  description: "알림 본문" },
+      linkUrl:         { type: "STRING",  description: "클릭 시 이동 URL (선택)" },
+      requireApproval: { type: "BOOLEAN", description: "기본 true (dry-run)" },
+    }, required: ["memberIds", "title"] },
+  },
 ];
 
 /* =========================================================
@@ -245,6 +281,10 @@ export async function executeTool(
       case "tasks_list":           return await tool_tasksList(args);
       case "notifications_recent": return await tool_notificationsRecent(args);
       case "kpi_summary":          return await tool_kpiSummary();
+      /* F-7: 변경 도구 3종 */
+      case "task_create":          return await tool_taskCreate(args, adminId);
+      case "email_send":           return await tool_emailSend(args, adminId);
+      case "notification_send":    return await tool_notificationSend(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -615,4 +655,132 @@ async function tool_kpiSummary(): Promise<ToolResult> {
     const row = (r?.rows ?? r ?? [])[0] || {};
     return { ok: true, output: { kpi: row } };
   } catch (err: any) { return { ok: false, error: `KPI 조회 실패: ${err?.message?.slice(0, 200)}` }; }
+}
+
+/* =========================================================
+   F-7: 변경 도구 3종 — 모두 dry-run 우선
+   ========================================================= */
+
+const PRIORITY_MAP: Record<string, string> = {
+  low: "low", medium: "normal", high: "high", urgent: "urgent",
+};
+
+async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  const title = String(args?.title || "").trim();
+  if (!title) return { ok: false, error: "title 필수" };
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  const description = String(args?.description || "").slice(0, 5000);
+  const priority = PRIORITY_MAP[String(args?.priority || "medium")] || "normal";
+  const assignedTo = args?.assignedTo ? Number(args.assignedTo) : null;
+  const dueDateStr = String(args?.dueDate || "").trim();
+  const dueDate = dueDateStr ? new Date(dueDateStr) : new Date(Date.now() + 7 * 86400000);
+  if (isNaN(dueDate.getTime())) return { ok: false, error: "dueDate 형식 오류 (YYYY-MM-DD)" };
+
+  const preview = { title, description: description.slice(0, 200), priority, assignedTo, dueDate: dueDate.toISOString().slice(0, 10) };
+
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. requireApproval=false로 재호출하면 실제 생성." } };
+  }
+
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO workspace_tasks
+        (member_id, title, description, status, priority, due_date, assigned_by, assigned_to, source_type, source_id)
+      VALUES
+        (${adminId}, ${title}, ${description || null}, 'todo', ${priority}, ${dueDate},
+         ${adminId}, ${assignedTo}, 'ai_agent', NULL)
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { task_id: id, ...preview }, rollbackData: { table: "workspace_tasks", id } };
+  } catch (e: any) {
+    return { ok: false, error: `작업 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_emailSend(args: any, adminId: number | null): Promise<ToolResult> {
+  const ids: number[] = Array.isArray(args?.memberIds) ? args.memberIds.map((n: any) => Number(n)).filter(Boolean) : [];
+  if (ids.length === 0) return { ok: false, error: "memberIds 필수" };
+  if (ids.length > 50) return { ok: false, error: "한 번에 최대 50명까지" };
+  const subject = String(args?.subject || "").trim();
+  const body = String(args?.body || "").trim();
+  if (!subject) return { ok: false, error: "subject 필수" };
+  if (!body) return { ok: false, error: "body 필수" };
+
+  /* 수신자 조회 — 이름·이메일 */
+  let recipients: any[] = [];
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, email FROM members
+       WHERE id = ANY(${ids}) AND email IS NOT NULL AND email <> ''
+       LIMIT 50
+    `);
+    recipients = r?.rows ?? r ?? [];
+  } catch (e: any) {
+    return { ok: false, error: `수신자 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+  if (recipients.length === 0) return { ok: false, error: "유효한 수신자 없음 (이메일 등록된 회원만)" };
+
+  const preview = {
+    recipientCount: recipients.length,
+    recipientNames: recipients.slice(0, 5).map((r: any) => r.name),
+    subject, bodyPreview: body.slice(0, 200),
+  };
+
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. ${recipients.length}명에게 발송 예정. requireApproval=false로 재호출하면 실제 발송.` } };
+  }
+
+  /* 실제 발송 — 한 명씩 (실패해도 다음 진행) */
+  const results = { sent: 0, failed: 0, errors: [] as string[] };
+  const isHtml = /<[a-z][\s\S]*>/i.test(body);
+  for (const rcpt of recipients) {
+    try {
+      await sendEmail({
+        to: String(rcpt.email),
+        subject,
+        html: isHtml ? body : `<div style="white-space:pre-wrap">${body.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</div>`,
+      });
+      results.sent++;
+    } catch (e: any) {
+      results.failed++;
+      results.errors.push(`${rcpt.name}: ${(e?.message || "").slice(0, 80)}`);
+    }
+  }
+  return { ok: true, output: results };
+}
+
+async function tool_notificationSend(args: any, adminId: number | null): Promise<ToolResult> {
+  const ids: number[] = Array.isArray(args?.memberIds) ? args.memberIds.map((n: any) => Number(n)).filter(Boolean) : [];
+  if (ids.length === 0) return { ok: false, error: "memberIds 필수" };
+  if (ids.length > 100) return { ok: false, error: "한 번에 최대 100명까지" };
+  const title = String(args?.title || "").trim();
+  if (!title) return { ok: false, error: "title 필수" };
+  const body = String(args?.body || "").trim();
+  const linkUrl = String(args?.linkUrl || "").trim() || null;
+
+  const preview = { recipientCount: ids.length, title, bodyPreview: body.slice(0, 200), linkUrl };
+
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. ${ids.length}명에게 알림 예정.` } };
+  }
+
+  /* 일괄 INSERT */
+  let inserted = 0;
+  try {
+    for (const memberId of ids) {
+      await db.execute(sql`
+        INSERT INTO workspace_notifications
+          (member_id, source_type, source_id, notif_type, channel, title, body, action_url, category)
+        VALUES
+          (${memberId}, 'system', ${adminId || 0}, 'system', 'bell',
+           ${title}, ${body || null}, ${linkUrl}, 'system')
+      `);
+      inserted++;
+    }
+    return { ok: true, output: { inserted, total: ids.length } };
+  } catch (e: any) {
+    return { ok: false, error: `알림 발송 실패: ${e?.message?.slice(0, 200)} (성공 ${inserted}/${ids.length})` };
+  }
 }

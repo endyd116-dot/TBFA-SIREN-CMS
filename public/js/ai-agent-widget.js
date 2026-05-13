@@ -137,6 +137,20 @@
       }
       .aiw-empty .aiw-suggest:hover { border-color: #1e40af; color: #1e40af; }
 
+      /* === F-6: 계획 진행 버튼 === */
+      .aiw-plan-bar {
+        display: flex; gap: 8px; padding: 8px 12px;
+        background: #fef3c7; border-left: 3px solid #f59e0b;
+        margin: 4px 0; font-size: 12.5px; color: #92400e;
+      }
+      .aiw-plan-bar button {
+        padding: 6px 14px; border: none; border-radius: 4px;
+        font-size: 12px; cursor: pointer; font-weight: 500;
+      }
+      .aiw-plan-bar .ok { background: #10b981; color: #fff; }
+      .aiw-plan-bar .ok:hover { background: #059669; }
+      .aiw-plan-bar .edit { background: #fff; color: #92400e; border: 1px solid #f59e0b; }
+
       /* === F-4: AI 응답 마크다운 표 === */
       .aiw-tbl { border-collapse: collapse; font-size: 12px; margin: 6px 0; width: 100%; }
       .aiw-tbl th, .aiw-tbl td { padding: 5px 8px; border: 1px solid #e2e8f0; text-align: left; }
@@ -451,6 +465,30 @@
     msgs.scrollTop = msgs.scrollHeight;
   }
 
+  /* === F-6: 계획 모드 진행 버튼 === */
+  function appendPlanProceedBtn() {
+    var msgs = document.querySelector('.aiw-msgs');
+    var box = document.createElement('div');
+    box.className = 'aiw-plan-bar';
+    box.innerHTML = '<span style="flex:1">↑ 위 계획대로 진행하시겠습니까?</span>' +
+      '<button class="ok">▶ 진행</button>' +
+      '<button class="edit">✏️ 수정 요청</button>';
+    msgs.appendChild(box);
+    msgs.scrollTop = msgs.scrollHeight;
+    box.querySelector('.ok').addEventListener('click', function () {
+      box.remove();
+      var input = document.querySelector('.aiw-input');
+      input.value = '진행해주세요';
+      sendMsg();
+    });
+    box.querySelector('.edit').addEventListener('click', function () {
+      box.remove();
+      var input = document.querySelector('.aiw-input');
+      input.value = '계획 수정: ';
+      input.focus();
+    });
+  }
+
   function appendPendingApproval(p) {
     lastPendingApproval = p;
     var msgs = document.querySelector('.aiw-msgs');
@@ -538,6 +576,10 @@
       appendMsg('ai', j.reply || '(응답 없음)');
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
       if (j.pendingApproval) appendPendingApproval(j.pendingApproval);
+      /* === F-6: 계획 모드 감지 — 응답에 "실행 계획" 있고 도구 미호출이면 진행 버튼 === */
+      if ((j.reply || '').indexOf('## 실행 계획') >= 0 && (!j.toolCalls || j.toolCalls.length === 0)) {
+        appendPlanProceedBtn();
+      }
     } catch (err) {
       clearStages();
       thinking.remove();

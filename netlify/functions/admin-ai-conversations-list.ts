@@ -29,9 +29,18 @@ export default async (req: Request, _ctx: Context) => {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
   const adminFilter = url.searchParams.get("adminId");
+  const q = (url.searchParams.get("q") || "").trim();  /* F-5: 검색어 */
 
-  const where = adminFilter
-    ? sql`WHERE c.admin_id = ${Number(adminFilter)}`
+  /* 조건 동적 조립 */
+  const conds: any[] = [];
+  if (adminFilter) conds.push(sql`c.admin_id = ${Number(adminFilter)}`);
+  if (q) {
+    /* 제목 부분 일치 + messages 텍스트 안에 검색어 포함 (jsonb 텍스트 검색) */
+    const pattern = `%${q}%`;
+    conds.push(sql`(c.title ILIKE ${pattern} OR c.messages::text ILIKE ${pattern})`);
+  }
+  const where = conds.length > 0
+    ? sql`WHERE ${sql.join(conds, sql` AND `)}`
     : sql``;
 
   try {
@@ -47,9 +56,9 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const rows = r?.rows ?? r ?? [];
 
-    const cntRes: any = await db.execute(adminFilter
-      ? sql`SELECT COUNT(*)::int AS n FROM ai_agent_conversations WHERE admin_id = ${Number(adminFilter)}`
-      : sql`SELECT COUNT(*)::int AS n FROM ai_agent_conversations`);
+    const cntRes: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM ai_agent_conversations c ${where}
+    `);
     const total = Number((cntRes?.rows ?? cntRes)[0]?.n) || 0;
 
     return new Response(JSON.stringify({ ok: true, total, rows }),
