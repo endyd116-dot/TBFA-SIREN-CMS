@@ -319,10 +319,33 @@ const TOOL_GROUPS: ToolGroup[] = [
  *  - 그 외 → 관련 도구만 */
 const GREETING_PATTERNS = /^(야|응|네|예|아니|아니오|ok|오케이|안녕|하이|hi|hello|뭐해|왜|진행|확인|취소|좋아|싫어|괜찮)/i;
 
+/* TEMP DEBUG (2026-05-14): selectRelevantTools 내부 진단 결과 보존 */
+let SELECT_DEBUG: {
+  text?: string;
+  textLen?: number;
+  charCodes?: number[];
+  greetingMatch?: boolean;
+  groupCount?: number;
+  matchedGroups?: string[];
+  returnPath?: string;
+} = {};
+
 function selectRelevantTools(userMessage: string): string[] | null {
   const text = (userMessage || "").trim();
+  SELECT_DEBUG = {
+    text: text.slice(0, 50),
+    textLen: text.length,
+    charCodes: Array.from(text.slice(0, 20)).map((c: string) => c.charCodeAt(0)),
+    greetingMatch: GREETING_PATTERNS.test(text),
+    groupCount: TOOL_GROUPS.length,
+    matchedGroups: [],
+  };
+
   /* 짧은 메시지(8자↓) 또는 인사·확인 → 도구 안 보냄 */
-  if (text.length <= 8 || GREETING_PATTERNS.test(text)) return [];
+  if (text.length <= 8 || GREETING_PATTERNS.test(text)) {
+    SELECT_DEBUG.returnPath = "short_or_greeting";
+    return [];
+  }
 
   const matched: ToolGroup[] = [];
   for (const g of TOOL_GROUPS) {
@@ -330,11 +353,14 @@ function selectRelevantTools(userMessage: string): string[] | null {
       if (text.includes(kw)) { matched.push(g); break; }
     }
   }
-  if (matched.length === 0) return null;
-  /* 2026-05-14: 이전 'matched.length >= 4 → ALL' 임계 제거.
-     매칭 그룹 도구만 합쳐서 보냄. 도구 84개 중 매칭 도구만 보내야
-     lite·flash가 정확 선택. ALL 보내면 헛침(라이브 데이터로 확인). */
+  SELECT_DEBUG.matchedGroups = matched.map(g => g.name);
 
+  if (matched.length === 0) {
+    SELECT_DEBUG.returnPath = "no_match_null";
+    return null;
+  }
+
+  SELECT_DEBUG.returnPath = "matched";
   const set = new Set<string>();
   for (const g of matched) for (const t of g.tools) set.add(t);
   return Array.from(set);
@@ -786,6 +812,7 @@ export default async (req: Request, _ctx: Context) => {
       selectedTools: selectedToolNames || "ALL",
       chain: modelChain.map(m => m.split("-").slice(0, 3).join("-")),
       promptCacheUsed: false,  /* F: TEMP false */
+      selectInternal: SELECT_DEBUG,  /* selectRelevantTools 내부 상태 */
     },
   }), { status: 200, headers: JSON_HEADER });
 };
