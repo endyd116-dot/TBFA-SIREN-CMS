@@ -78,7 +78,28 @@
 
 ---
 
-## 2. 최종 집계
+## 1-C. 재검증 라운드 V5 (2026-05-14, fix 4건 후)
+
+### V5 시나리오 결과
+
+| # | 결과 | 호출 도구 | 비고 |
+|---|---|---|---|
+| P2-3.1 (1차) | 부분 PASS | notice_create | dry-run PASS (DB 컬럼 fix ✓), 승인 단계 enum 부정확 — AI category="notice" 추측, 유효: general/event/press |
+| P2-3.1 (본문·카테고리 명시 회피) | **PASS** | notice_create | notice id=8 생성, rollbackData |
+| P2-3.2 | **SKIP** | — | P2-3.1이 notice 카테고리로 분기 → board_post_update 의존성 깨짐. board_post_create 별도 검증 권장 |
+| P2-4.1 (dry-run) | **PASS** | campaign_archive | 정확 호출 ✓ (V4 campaigns_update → V5 campaign_archive — BUG-06 fix). 캠페인 1번 currentStatus=active. 승인 SKIP — 실 캠페인 보호 |
+
+### V5 사용자 데이터 영향
+
+- `notices` id=8 추가 (P2-3.1 회피 PASS) — rollbackData 보존
+
+### V5 신규 잔존 한계
+
+**notice_create category enum 부정확**: AI가 사용자 미명시 카테고리를 임의 추측 → invalid enum 에러. 도구 description에 enum 허용값(`general/event/press`) 명시 필요. BUG-05의 인자 자동 추출 한계 후속 사례.
+
+---
+
+## 2. 최종 집계 (V4·V5 누적)
 
 | 영역 | 통과 | 실패 | 스킵 | 비고 |
 |---|---|---|---|---|

@@ -218,7 +218,41 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 
 ---
 
-## 2. 최종 집계 (V4 라운드 기준)
+## 1-C. 재검증 라운드 V5 (2026-05-14, BUG-04·05·06·Phase2-02 fix 후)
+
+**전제**: main e74c3f0 (BUG 4건 fix 누적) + verify 머지 8e26f7e. 메인이 마이그 호출 완료 (potential_donors·budget_categories 정상화).
+
+### V5 시나리오 결과 (이전 FAIL 우선 재검증)
+
+| # | 결과 | 호출 도구 | 비고 |
+|---|---|---|---|
+| T1 더미 작업 생성 | **PASS** | task_create | dry-run + 승인 → task_id=6, dueDate=2026-05-20(+7d 정확), 1개만 생성(부풀림 없음). BUG-04+05 동시 fix 확인 |
+| T4 작업 6번 삭제 | **PASS** | task_delete | dry-run "작업+댓글 0건+보고서 0건+첨부연결 0건 영구 삭제됩니다" 메시지 정상 + 승인 → cascaded 정상. BUG-04 fix 확인 |
+| P2-3.1 공지글 작성 (1차) | **부분 PASS** | notice_create | dry-run 정상 호출 + DB 컬럼 fix 확인. 승인 단계 실패 — AI가 category="notice" enum 임의 추측 (유효: general/event/press). BUG-Phase2-02 DB fix는 ✓ |
+| P2-3.1 (본문·카테고리 명시 회피) | **PASS** | notice_create | dry-run + 승인 → notice id=8 생성, rollbackData 포함 |
+| P2-3.2 게시글 고정 | **SKIP** | — | P2-3.1이 notice_create로 분기됐으므로 board_post_update 의존성 깨짐. board_post_create 별도 검증 권장 |
+| P2-4.1 캠페인 1번 종료 (dry-run) | **PASS** | campaign_archive | 정확 호출 (BUG-06 fix 확인) — currentStatus=active → changes={status:archived, is_published:false}. 승인 SKIP (실 캠페인 archive 위험) |
+| E1 이번 주 일정 (재확인) | **PASS** | events_list | fromDate=2026-05-12, toDate=2026-05-18 정확. V4에선 2023-11-20~26로 잘못 인식 → BUG-05 fix 완료 |
+
+### V5 라운드 신규 발견 (BUG-05 한계 추가 사례)
+
+- **notice_create category 인자 enum 부정확**: AI가 사용자 명시 없을 때 임의 추측 → enum 미스. 도구 description에 enum 허용값 명시 또는 사용자에게 enum 값 물어보기 필요. BUG-05 인자 자동 추출 한계의 새 사례.
+
+### V5 집계
+
+| 영역 | 통과 | 실패 | 스킵 | 비고 |
+|---|---|---|---|---|
+| Phase 1 (V4 FAIL 재검증) | **3/3** (T1·T4·E1) | 0/3 | 0/3 | BUG-04·05 fix 모두 확인 |
+| Phase 2 (V4 FAIL 재검증) | **2/4** (P2-3.1 회피·P2-4.1 dry-run) | 0/4 | 2/4 | P2-3.2 의존성 SKIP, P2-4.1 승인 SKIP(실 캠페인 보호) |
+| **합계** | **5/7** | **0/7** | **2/7** | fix 효과 모두 확인 |
+
+### V5 사용자 데이터 영향
+
+- `notices` id=8 "V5 검증" 추가됨 (P2-3.1 회피 PASS) — rollbackData `{table:"notices",id:8}` 보존
+
+---
+
+## 2. 최종 집계 (V5 라운드 기준 — V4·V5 누적)
 
 | 영역 | 통과 | 실패 | 스킵 | 비고 |
 |---|---|---|---|---|
@@ -237,17 +271,46 @@ curl -b cookies.txt -H "Content-Type: application/json; charset=utf-8" \
 |---|---|---|---|---|---|
 | BUG-AI-AGENT-PHASE1-01 (해소) | M1·M2·SC-1 V2 | 자연어 의도 분류 회귀 — UTF-8 cp949 인코딩 원인 | — | V4에서 UTF-8 표준 적용 후 모두 PASS | `docs/issues/2026-05-13-ai-agent-phase1-memos-list-no-call.md` |
 | BUG-AI-AGENT-PHASE1-02 (잔존) | V3 M1 회피책 | Gemini API 503 high demand (외부 일시 장애) | — | 일시 — 재시도 | `docs/issues/2026-05-13-ai-agent-phase1-gemini-timeout.md` |
-| BUG-AI-AGENT-PHASE1-03 (신규) | M3 V4 | 표준 §17.1 `toolApproval` 양식 미구현 — admin-ai-agent.ts validation 체크만 있고 처리 로직 없음 | 1/1 | 같은 conversationId + 명시적 자연어 "requireApproval false로 진행" | `docs/issues/2026-05-14-ai-agent-toolapproval-not-implemented.md` |
-| BUG-AI-AGENT-PHASE1-04 (신규) | T1·T2 V4 | task_create / task_update 권한 매핑 — admin(super_admin) 로그인에도 "관리자 권한 필요" 거부 | 2/2 | task_comment_add는 OK — task_*만 영향 | `docs/issues/2026-05-14-ai-agent-task-permission-mapping.md` |
-| BUG-AI-AGENT-PHASE1-05 (신규) | E1·E2·T1 V4 | 인자 자동 추출 부정확 — 현재 날짜 모름(2023/2024로 인식) + 단일 명령 자동 부풀림(T1 → 3개 작업) | 3/3 | 시스템 프롬프트에 현재 날짜 주입 + 도구 description 강화 | `docs/issues/2026-05-14-ai-agent-arg-extraction.md` |
-| BUG-AI-AGENT-PHASE1-06 (신규) | T2·P2-3.1·P2-4.1 V4 | 의도 분류 — 도구 선택 오류 3건 패턴: 작업 댓글→task_update, 게시글 작성→notice_create, 캠페인 종료→campaigns_update | 3/3 | 도구명 명시 (T2에서 검증) | `docs/issues/2026-05-14-ai-agent-tool-misselection.md` |
-| BUG-AI-AGENT-PHASE2-02 (신규) | P2-3.1 | notice_create 도구 SQL이 board_posts.content 컬럼 참조 → 컬럼 없음 DB 에러 | 1/1 | 도구 정의 또는 DB 스키마 fix 필요 | `docs/issues/2026-05-14-ai-agent-board-posts-content-column.md` |
+| BUG-AI-AGENT-PHASE1-03 (잔존) | M3 V4 | 표준 §17.1 `toolApproval` 양식 미구현 — admin-ai-agent.ts validation 체크만 있고 처리 로직 없음 | 1/1 | 회피책 — 명시적 자연어 "requireApproval false로 진행" | 메인이 D안 설계로 fix 중 |
+| BUG-AI-AGENT-PHASE1-04 (해소) | T1·T2 V4 | task_create / task_update 권한 매핑 — V5에서 role hierarchy fix로 PASS | — | V5 PASS | `docs/issues/2026-05-14-ai-agent-task-permission-mapping.md` |
+| BUG-AI-AGENT-PHASE1-05 (해소) | E1·E2·T1 V4 | 인자 자동 추출 — V5에서 현재 날짜 동적 주입 + 부풀림 fix로 PASS | — | V5 PASS (E1 fromDate 2026-05-12 정확, T1 1개만 생성·dueDate +7d) | `docs/issues/2026-05-14-ai-agent-arg-extraction.md` |
+| BUG-AI-AGENT-PHASE1-05a (V5 신규 잔존) | P2-3.1 V5 | notice_create category 인자 enum 부정확 — AI 임의 추측 → invalid enum | 1/1 | 도구 description에 enum 허용값 명시 + 미지정 시 사용자에게 묻기 | (BUG-05 후속 — issues 추가 분리 미작성, RESULTS §1-C 비고 참고) |
+| BUG-AI-AGENT-PHASE1-06 (해소) | T2·P2-3.1·P2-4.1 V4 | 도구 선택 오류 3건 — V5에서 도구 선택 매핑 강화로 fix | — | V5 P2-4.1 campaign_archive 정확 호출 확인 | `docs/issues/2026-05-14-ai-agent-tool-misselection.md` |
+| BUG-AI-AGENT-PHASE2-02 (해소) | P2-3.1 V4 | notice_create의 board_posts.content 컬럼 → notices 테이블 정정 fix | — | V5 P2-3.1 PASS (notice id=8 생성) | `docs/issues/2026-05-14-ai-agent-board-posts-content-column.md` |
 
 ---
 
 ## 4. 메인 채팅 인계 메시지 (Swain 복붙용)
 
-### V4 라운드 (2026-05-14, UTF-8 fix 후 — 최종)
+### V5 라운드 (2026-05-14, BUG-04·05·06·Phase2-02 fix 후 — 최종)
+
+```
+[C 채팅 → 메인 채팅] Phase 1·2 V5 재검증 완료. fix 4건 모두 효과 확인.
+
+V5 결과:
+- T1 task_create: PASS (권한 fix ✓ + 부풀림 fix ✓ + 날짜 fix ✓ → dueDate=2026-05-20 정확)
+- T4 task_delete: PASS (권한 fix ✓ — cascade 메시지 정상)
+- P2-3.1 notice_create: PASS (DB 컬럼 fix ✓ — notice id=8 생성)
+- P2-4.1 campaign_archive: PASS dry-run (도구 선택 fix ✓ — 정확 호출)
+- E1 events_list: PASS (날짜 fix ✓ — fromDate=2026-05-12, toDate=2026-05-18)
+
+해소 BUG: 04·05·06·Phase2-02 (V5 PASS)
+잔존 BUG:
+- BUG-03 toolApproval 양식 (메인 D안 설계 중) — 회피책으로 운영 가능
+- BUG-05a (V5 신규) notice_category enum 부정확 — AI 임의 추측. 도구 description에 enum 허용값 명시 필요
+
+P2-3.2 SKIP — P2-3.1이 notice_create로 분기되어 board_post_update 의존성 깨짐. board_post_create 별도 검증 권장.
+P2-4.1 승인 SKIP — 실 캠페인 1번 archive 위험 (dry-run으로 fix 효과만 확인).
+
+사용자 데이터 영향 (rollback 권장):
+- notices id=8 "V5 검증" 추가 (P2-3.1 회피 PASS)
+
+상세: docs/verify/RESULTS_AI_AGENT_PHASE1.md §1-C + RESULTS_AI_AGENT_PHASE2.md §1-C
+브랜치: verify/ai-agent-phase1 push 곧
+표준 v1.2 정독 완료. 다음 라운드(BUG-03 fix 후) 대기.
+```
+
+### V4 라운드 (2026-05-14, UTF-8 fix 후)
 
 ```
 [C 채팅 → 메인 채팅] Phase 1 V4 재검증 완료. UTF-8 진단 정확, 도구 호출 정상화.
