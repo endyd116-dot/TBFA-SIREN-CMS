@@ -38,7 +38,15 @@ import { ensurePromptCache } from "../../lib/ai-prompt-cache";
 /* === Phase B AI 비서 설정 === */
 import { getSystemPrompt, checkToolAllowed } from "../../lib/ai-agent-config";
 
+/* === 대화 요약용 (별도 가벼운 호출) === */
+import { callGemini } from "../../lib/ai-gemini";
+
 const AGENT_FEATURE_KEY = "ai_agent_chat";
+
+/* === 대화 요약 임계 === */
+const SUMMARIZE_THRESHOLD = 20;   /* messages 개수 (10턴 이상) */
+const SUMMARIZE_KEEP = 10;        /* 최신 N개는 그대로 유지 */
+const SUMMARY_MARKER = "[이전 대화 요약]";
 
 export const config = { path: "/api/admin-ai-agent" };
 
@@ -159,6 +167,75 @@ function summarizeToolOutput(raw: any, byteLen: number): string {
     return `[이전 호출 결과 객체: ${keys.join(", ")} ... — 약 ${byteLen.toLocaleString()}자. 필요 시 도구 재호출]`;
   }
   return String(raw).slice(0, 200) + " ... (이전 결과 생략 — 필요 시 도구 재호출)";
+}
+
+/* === 대화 요약 — 메시지 누적 시 앞부분을 AI 요약으로 압축 ===
+   비용 ↑ 1회(요약 호출) vs 비용 ↓ 후속 N회(짧은 input) — 보통 5회 이상이면 이득 */
+async function summarizeOldMessages(
+  messages: GeminiContent[],
+  adminId: number | null,
+  conversationId: number | null,
+): Promise<GeminiContent[]> {
+  if (messages.length <= SUMMARIZE_THRESHOLD) return messages;
+
+  /* 첫 메시지가 이미 SUMMARY_MARKER로 시작하는지 */
+  const firstText = messages[0]?.parts?.[0]?.text || "";
+  const alreadySummarized = typeof firstText === "string" && firstText.startsWith(SUMMARY_MARKER);
+
+  const toSummarize = alreadySummarized
+    ? messages.slice(1, messages.length - SUMMARIZE_KEEP)
+    : messages.slice(0, messages.length - SUMMARIZE_KEEP);
+  const toKeep = messages.slice(messages.length - SUMMARIZE_KEEP);
+  const existingSummary = alreadySummarized ? firstText : "";
+
+  /* 충분히 모이지 않으면 그냥 둠 (요약 비용이 이득 안 됨) */
+  if (toSummarize.length < 4) return messages;
+
+  /* 직렬화 — 각 메시지를 한 줄로 (max 300자) */
+  const conversationText = toSummarize.map(m => {
+    const partsText = (m.parts || []).map((p: any) => {
+      if (p.text) return String(p.text).slice(0, 300);
+      if (p.functionCall) return `[도구 호출: ${p.functionCall.name}]`;
+      if (p.functionResponse) return `[도구 결과]`;
+      if (p.inlineData) return `[파일 첨부: ${p.inlineData.mimeType}]`;
+      return "";
+    }).filter(Boolean).join(" ");
+    return `${m.role === "user" ? "관리자" : "AI"}: ${partsText}`;
+  }).join("\n");
+
+  const prompt =
+    `다음 ${toSummarize.length}개 메시지를 200자 이내로 한국어 요약하세요. ` +
+    `핵심 결정·진행 상황·확정 사실 위주. 인사·잡담 제외.\n\n` +
+    (existingSummary ? `이전 요약:\n${existingSummary.slice(SUMMARY_MARKER.length).slice(0, 400)}\n\n새 메시지:\n` : "") +
+    conversationText.slice(0, 6000);
+
+  try {
+    const r = await callGemini(prompt, {
+      mode: "flash",
+      temperature: 0.3,
+      maxOutputTokens: 300,
+      featureKey: AGENT_FEATURE_KEY,
+      adminId: adminId ?? undefined,
+      conversationId: conversationId ?? undefined,
+    });
+    if (!r.ok || !r.text) {
+      console.warn("[ai-agent] 대화 요약 실패", r.error);
+      return messages;
+    }
+    const summary = r.text.trim();
+    console.info(`[ai-agent] 대화 요약 성공 (${toSummarize.length}개 → 1개): ${summary.slice(0, 80)}...`);
+
+    return [
+      {
+        role: "user" as const,
+        parts: [{ text: `${SUMMARY_MARKER}\n${summary}\n\n(위는 이전 대화 요약입니다. 아래부터 최근 대화입니다.)` }],
+      },
+      ...toKeep,
+    ];
+  } catch (e) {
+    console.warn("[ai-agent] 대화 요약 호출 오류", (e as any)?.message);
+    return messages;
+  }
 }
 
 /* === 동적 도구 로딩 — 의도별 도구 그룹 === */
@@ -404,6 +481,11 @@ export default async (req: Request, _ctx: Context) => {
       reply: `이 대화에서 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)를 초과했습니다. 새 대화를 시작해주세요.`,
       toolCalls: [], pendingApproval: null,
     }), { status: 200, headers: JSON_HEADER });
+  }
+
+  /* === 대화 요약 — 메시지 누적 시 앞부분 압축 (한도 체크 전 적용) === */
+  if (messages.length > SUMMARIZE_THRESHOLD) {
+    messages = await summarizeOldMessages(messages, adminId, conversationId);
   }
 
   /* === 비용 폭탄 방지 — 누적 input 토큰 추정 한도 === */
