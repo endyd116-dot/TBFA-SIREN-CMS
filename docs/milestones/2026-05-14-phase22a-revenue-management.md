@@ -19,6 +19,10 @@
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. schema.ts는 **메인이 작성** (B는 마이그 호출 후 추가 정의 없음 — 메인이 schema·마이그 모두 담당).
 
+**병렬 작업 worktree 분리 의무**: A·B·C는 **반드시 분리된 worktree(`tbfa-mis-A`·`tbfa-mis-B`·`tbfa-mis-C`)에서 작업**. 같은 폴더 공유 시 git checkout이 다른 채팅 워킹 트리에 영향 (2026-05-09 b5167bf 사고 사례 — 가이드 §9.1.7). worktree 미생성 채팅은 `git worktree add ../tbfa-mis-{식별자} feature/{브랜치}`로 폴더 분리.
+
+**A·B·C 문서 수정 금지 (가이드 §3, 2026-05-11 사고 사례)**: A·B·C는 `PROJECT_STATE.md`·`docs/HANDOFF.md`·`docs/milestones/`·`docs/standards/`·`docs/PARALLEL_GUIDE.md` **절대 수정 금지**. 메인만 갱신. 위반 시 머지 충돌 + 메인 중복 기록 발생.
+
 **머지 순서 강제**: 메인 schema·마이그 push → Swain 마이그 호출 → B push → 메인 머지 → A push → 메인 머지 → C 검증 → BUG fix → 머지.
 
 ---
@@ -528,6 +532,8 @@ worktree: ../tbfa-mis-B (이미 있음)
 □ npx tsc --noEmit 통과 (신규 파일 0 에러)
 □ AI 도구 6개 — TOOL_DECLARATIONS·executeTool case·핸들러·시스템 프롬프트 매핑 4지점 모두 추가
 □ 카테고리 6코드 grep 일관성 (lecture/govgrant/corp_sponsor/twork_on/twork_si/etc) — 도구 6개·핸들러·매핑 표 모두 동일
+❌ PROJECT_STATE.md·docs/HANDOFF.md·docs/milestones/·docs/standards/ 절대 수정 금지 (메인만 갱신)
+❌ db/schema.ts 추가 정의 절대 X (메인이 0단계에 작성 완료. B는 SELECT만 사용)
 
 push 완료 보고 시 메인이 키 대조 후 main 머지.
 ```
@@ -573,6 +579,8 @@ const MOCK_REVENUE_CATEGORIES = [
 □ [+ 매출 추가] 모달에서 카테고리 selector가 카테고리 목록 API 사용 (mock 폴백)
 □ 환불 등록 UI 포함 (approved 상태에서만 노출)
 □ 회귀 — 기존 Phase 5~7 화면 동작 유지
+❌ PROJECT_STATE.md·docs/HANDOFF.md·docs/milestones/·docs/standards/ 절대 수정 금지 (메인만 갱신)
+❌ db/schema.ts·netlify/functions/ 수정 X (A는 public/ 영역만)
 ```
 
 ### §6.3 C 트리거 (라이브 검증)
@@ -817,14 +825,36 @@ ON CONFLICT (tool_name) DO NOTHING;
 
 ### 10.7 표준 v1.4 준수 체크리스트 (B 의무)
 
+**§3 도구 설계**
 - [ ] §3.1 도구 description 정확·enum 명시 — 카테고리 6코드 도구 description에 그대로 명시 (`lecture|govgrant|corp_sponsor|twork_on|twork_si|etc`)
-- [ ] §3.3 직접 DB + dry-run + rollbackData (변경 도구 4개 모두)
-- [ ] §C6 role hierarchy — `other_revenue_approve`는 super_admin 요구, admin 거부
-- [ ] §F10 KST 동적 주입 — 매출 인식일 "오늘"/"어제" 자연어 해석은 systemPrompt prefix의 KST 날짜 활용
-- [ ] §F11 short-circuit — 자연어 "진행"/"취소" 응답 시 LLM 0회로 dry-run 실행/취소
-- [ ] §15.5 schema 사전 검증 — 도구 description의 enum과 `revenue_categories` 테이블 시드 6개 일치
-- [ ] §18.13 도메인 전체 동기화 — 카테고리 코드 6개를 모든 도구 description에 일관되게 명시 (BUG-05b 패턴 차단)
-- [ ] `featureKey` 부착 — 새 wrapper 호출 시 ai_feature_settings에 'finance' featureKey 시드 (월 한도 분리 가능)
+- [ ] §3.3 직접 DB + dry-run + rollbackData (변경 도구 3개: create·approve·refund)
+
+**§A 동적 도구 로딩·압축·요약**
+- [ ] §A1 동적 도구 로딩 — selectRelevantTools에 `finance` 키워드 분류 추가 (매출·수입·손익·순이익·강연·정부·기업·협찬·함께워크 → 6개 도구 + budgets·expenditures·donations 관련 도구 함께 로딩)
+- [ ] §A2 도구 결과 압축 — `other_revenues_list`·`pl_summary` 응답 800자 초과 시 다음 호출에서 "N건 매출 ... 재호출" 한 줄로 압축 (lib/ai-cache·ai-prompt-cache 활용)
+- [ ] §A3 대화 요약 — 10턴 초과 시 앞 절반을 gemini-3.1-flash-lite로 200자 요약 (기존 인프라 그대로 동작 확인)
+- [ ] §A7 폴백 체인 — `finance` 분류 호출 시 lite → flash → pro 폴백 체인 자동 적용
+
+**§C 권한·역할**
+- [ ] §C6 role hierarchy — `other_revenue_approve`는 super_admin 요구, admin 거부 (`isRoleAllowed` 함수 사용)
+
+**§D 안전장치 (감사·로그·featureKey)**
+- [ ] §D2 rollbackData 자동 기록 — 변경 도구 3개 모두 `ai_agent_logs.rollback_data` 보존 (revenueId·이전 status·refundAmount 등)
+- [ ] §D4 ai_usage_logs INSERT 자동 — `lib/ai-gemini.ts` wrapper에 `featureKey='finance'` 부착해서 호출
+- [ ] ai_feature_settings에 `finance` featureKey 시드 (메인 마이그에 포함). 월 한도·기능 토글 분리 가능
+
+**§F 진단·UX (자연어 처리)**
+- [ ] §F10 KST 동적 주입 — 매출 인식일 "오늘"/"어제"/"이번 주" 자연어 해석은 systemPrompt prefix의 KST 날짜 활용 (기존 인프라 그대로 동작 확인)
+- [ ] §F11 short-circuit — 자연어 "진행"/"응"/"OK"/"네"/"취소" 응답 시 LLM 0회로 직전 functionCall을 `requireApproval=false`로 직접 실행 (기존 admin-ai-agent 핸들러가 자동 처리하므로 변경 도구가 dry-run 시 마지막 functionCall 기록되도록 확인)
+
+**§15.5 schema 사전 검증**
+- [ ] 도구 description의 enum과 `revenue_categories` 테이블 시드 6개 일치
+  ```bash
+  grep -n "lecture\|govgrant\|corp_sponsor\|twork_on\|twork_si" lib/ai-agent-tools.ts db/schema.ts drizzle/*.sql
+  ```
+
+**§18.13 도메인 전체 동기화 (BUG-05b 차단)**
+- [ ] 카테고리 코드 6개를 도구 6개 description + 핸들러 화이트리스트 + 시스템 프롬프트 매핑 표에 일관되게 명시. 부분 적용 금지
 
 ### 10.8 AI 도구 검증 시나리오 (C 분담, §4 Q13~Q15 추가)
 
