@@ -73,8 +73,21 @@
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions"
-  included_files = ["db/**/*", "lib/**/*", "assets/fonts/**"]
+  # ★ 빌드 시간 단축: 폰트(6MB) 전역 포함 제거 — 영수증·증명서 5개 함수에만 포함
+  included_files = ["db/**/*", "lib/**/*"]
   external_node_modules = ["postgres"]
+
+# ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)
+[functions."donation-receipt"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-receipt-preview"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-activity-report-ai"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-referral-create"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-referral-pdf"]
+  included_files = ["assets/fonts/**"]
 
 # ★ STEP I-2: 채팅 이미지 자동 정리 (매일 새벽 3시 KST = UTC 18:00)
 [functions."cleanup-chat-images"]

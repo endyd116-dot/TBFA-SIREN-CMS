@@ -33,6 +33,34 @@
 
 ## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
 
+### 3.0 ✅ AI 비용 안전장치 + AI 에이전트 고도화 — 완료 머지 (2026-05-13)
+
+**브랜치**: `feature/ai-cost-safety` = `feature/ai-agent` = `main` @ `16b0b48` (ff 머지)
+
+**완성된 시스템**:
+- **5층 비용 안전장치**: 기능 토글 → Rate Limit → 월 한도 → 도구 캐싱 → Context Caching
+- **AI 도구 36개**: 읽기 17 + 변경 17 + 기타 2 (모든 도메인 CRUD)
+- **어드민 UI 3개**: `/admin-ai-cost.html` (비용·기능 토글) / `/admin-ai-config.html` (도구·시스템 프롬프트) / `/admin-ai-assistant.html` (대화 검색·계획 모드)
+- **자동 알림**: `cron-ai-cost-alert` 매일 09:00 KST — $80 도달·비용 급증 이메일
+- **빌드 시간 단축**: `assets/fonts/**`를 영수증 5개 함수에만 포함 (전역 제거)
+
+**신규 lib 모듈 6개**: ai-cost-monitor / ai-feature / ai-cache / ai-rate-limit / ai-prompt-cache / ai-agent-config
+**신규 DB 8개**: ai_usage_logs / ai_cost_summary(feature 차원) / ai_feature_settings(20개 시드) / ai_rate_limit_log / ai_prompt_cache / ai_agent_settings / ai_tool_permissions(36개 시드) / ai_agent_logs(컬럼 4개 추가)
+**신규 API 4개**: admin-ai-features / admin-ai-cost-stats / admin-ai-config / admin-ai-conversations-list(검색 추가)
+
+**커밋 인덱스**: 09cecbf → f1fc9ba → 5d02db0 → d8ad5e0 → c7bfed3 → 922fb89 → ed651d4 → 90a1878 → e270fc8 → 267ca3c → a8c785e → c92255c → 9fe74db → ab41a07 → b25ca81 → e3f4e8a → 8f94231 → 4c41e8a → 16b0b48 → (next)
+
+**Swain 운영 액션 필요** (배포 끝나면):
+- `/api/migrate-ai-cost-tracking?run=1` (이미 호출됨)
+- `/api/migrate-ai-agent-settings?run=1` (이미 호출됨)
+- `/api/migrate-ai-tools-f7?run=1` (이미 호출됨)
+- `/api/migrate-ai-tools-x?run=1` (이미 호출됨)
+- 1주 운영 후 `/admin-ai-cost.html`에서 기능별 사용량 보고 기능별 한도 조정
+
+상세 정책: 메모리 `project_ai_cost_safety.md` 참조.
+
+---
+
 ### 3.1 Phase 15 — 전문가 매칭 고도화 C 검증 완료, 머지 대기
 
 **상태**: C 검증 브랜치 `verify/phase15` 완료 (`43a7aa6`). 메인 머지 필요.
