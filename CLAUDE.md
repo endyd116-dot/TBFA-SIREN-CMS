@@ -2,7 +2,7 @@
 
 > 새 대화 시작 시 자동으로 컨텍스트에 로드됩니다.
 > Claude Code(또는 Claude Agent)가 이 프로젝트를 작업할 때 따라야 하는 정책·구조·관습입니다.
-> 상세 인수인계서는 [`docs/handover/v20.md`](docs/handover/v20.md) 및 [`docs/handover/v17-expanded.md`](docs/handover/v17-expanded.md) 참고.
+> 상세 인수인계서는 [`docs/handover/v20.md`](docs/handover/v20.md) 참고.
 
 ---
 
@@ -88,9 +88,8 @@ tbfa-mis/
 │
 ├── drizzle/                        ← 마이그레이션 SQL
 ├── assets/fonts/NotoSansKR-Regular.ttf (6MB)
-└── docs/handover/                  ← 인수인계서 보관
-    ├── v20.md (통합 최종본)
-    └── v17-expanded.md (v15+세션증분)
+└── docs/handover/                  ← 인수인계서 영구 archive
+    └── v20.md (통합 최종본)
 ```
 
 ---
