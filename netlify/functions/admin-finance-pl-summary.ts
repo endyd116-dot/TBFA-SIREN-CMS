@@ -18,7 +18,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund, 월별 분해) ──
   let donationGross = 0;
-  const donationRefund = 0;
+  let donationRefund = 0;
   const donationByMonth: Record<number, { gross: number; refund: number }> = {};
   for (let m = 1; m <= 12; m++) donationByMonth[m] = { gross: 0, refund: 0 };
 
