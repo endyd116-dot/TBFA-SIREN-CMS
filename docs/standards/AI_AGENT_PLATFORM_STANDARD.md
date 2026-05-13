@@ -4,9 +4,23 @@
 >
 > **적용 범위**: 어드민 페이지에 AI 챗봇 기능을 도입하는 모든 NPO/B2B/SaaS 프로젝트.
 >
-> **버전**: 1.0 (2026-05-13, SIREN 프로젝트 실증 기반)
+> **버전**: **1.1** (2026-05-14, SIREN Phase 1·2·3·4 확장 + 라이브 검증 fix 7건 반영)
 >
-> **레퍼런스 구현**: `feature/ai-cost-safety` 브랜치, 약 28개 커밋.
+> **레퍼런스 구현**: `main` 브랜치, 약 60개 커밋. 도구 84개(읽기 30 + 변경 38 + 그 외 16).
+
+## 1.0 → 1.1 변경 요약
+
+| 영역 | 변경 |
+|---|---|
+| 도구 개수 | 42 → **84** (Phase 1 워크 12 + Phase 2 콘텐츠·게시판 10 + Phase 3 자료·템플릿·FAQ CUD 10 + Phase 4 운영 10) |
+| §4 비용 절감 | A10 신규 — `selectRelevantTools` 'ALL fallback 임계' 금지 (라이브 검증으로 정확도 30% → 100% 향상) |
+| §4 비용 절감 | A11 신규 — 짧은 메시지 임계 권장 4자 이하 (8자는 짧은 도메인 명령 잘림) |
+| §5 한도 | B9 권장 기본값 — 라이브 검증·디버깅 부담 해소 위해 2배 완화 (10/50/500 → 20/100/1000) |
+| §7 보안 | D5 신규 — 검증 환경 UTF-8 인코딩 강제 (curl 등 클라이언트는 `--data-binary @파일` + `charset=utf-8`) |
+| §9 UX | F8 신규 — 시스템 프롬프트 작성 가이드: **❌ 금지 응답 예시 금지** (prompt injection 자기학습 위험) |
+| §9 UX | F9 신규 — 빈 응답(STOP + parts 없음) 자동 폴백 — Gemini 3.x flash/preview 안정성 보강 |
+| §17 신규 | **알려진 한계** — 멀티턴 dry-run, 인자 매핑 약점, lite/flash/preview trade-off |
+| §18 신규 | **회귀·진단 사례 7건** (학습 자료) |
 
 ---
 
@@ -15,12 +29,12 @@
 1. [용어 정의](#1-용어-정의)
 2. [핵심 아키텍처 — 5층 안전장치](#2-핵심-아키텍처--5층-안전장치)
 3. [도구(Tool) 시스템 표준](#3-도구tool-시스템-표준)
-4. [비용 절감 정책 (9개)](#4-비용-절감-정책-9개)
-5. [차단·한도 정책 (8개)](#5-차단한도-정책-8개)
+4. [비용 절감 정책 (11개 — v1.1 확장)](#4-비용-절감-정책-11개--v11-확장)
+5. [차단·한도 정책 (9개 — v1.1 확장)](#5-차단한도-정책-9개--v11-확장)
 6. [권한·통제 정책 (5개)](#6-권한통제-정책-5개)
-7. [안전·보안 정책 (4개)](#7-안전보안-정책-4개)
+7. [안전·보안 정책 (5개 — v1.1 확장)](#7-안전보안-정책-5개--v11-확장)
 8. [가시성·로깅 정책 (6개)](#8-가시성로깅-정책-6개)
-9. [AI 기능·UX 표준 (7개)](#9-ai-기능ux-표준-7개)
+9. [AI 기능·UX 표준 (9개 — v1.1 확장)](#9-ai-기능ux-표준-9개--v11-확장)
 10. [운영 자동화 (3개)](#10-운영-자동화-3개)
 11. [DB 스키마 표준](#11-db-스키마-표준)
 12. [API 엔드포인트 표준](#12-api-엔드포인트-표준)
@@ -28,6 +42,8 @@
 14. [환경변수 표준](#14-환경변수-표준)
 15. [운영 절차](#15-운영-절차)
 16. [도입 체크리스트](#16-도입-체크리스트)
+17. [**알려진 한계 (v1.1 신규)**](#17-알려진-한계-v11-신규)
+18. [**회귀·진단 사례 (v1.1 신규)**](#18-회귀진단-사례-v11-신규)
 
 ---
 
@@ -95,7 +111,9 @@
 | **응답 크기 제한** | list 도구는 `limit` 기본 10, 최대 30 | 200건 한 번에 반환 X |
 | **핵심 필드만** | `SELECT *` 금지. AI가 쓸 필드만 명시 | content_html 같은 큰 필드 제외 |
 
-### 3.2 도구 카테고리 (참고: SIREN 42개 도구)
+### 3.2 도구 카테고리 (참고: SIREN 84개 도구 — v1.1)
+
+#### 코어 (42개 — v1.0 기준)
 
 | 카테고리 | 개수 | 예시 |
 |---|---|---|
@@ -112,6 +130,46 @@
 | **변경 — 신고** | 3 | incidents/harassment/legal_status_update |
 | **변경 — 게시판·작업** | 3 | board_post_delete, task_create/update |
 | **변경 — 발송** | 2 | email_send, notification_send |
+| **변경 — 워크 신규** | 1 | task_create |
+
+#### Phase 1 — 워크스페이스 확장 (12개)
+
+| 카테고리 | 개수 | 예시 |
+|---|---|---|
+| 메모 CRUD | 4 | memos_list, memo_create/update/delete |
+| 캘린더 일정 CRUD | 4 | events_list, event_create/update/delete |
+| 작업 댓글 | 2 | task_comments_list, task_comment_add |
+| 작업 삭제 + 파일 목록 | 2 | task_delete, files_list |
+
+#### Phase 2 — 콘텐츠·게시판·캠페인 보강 (10개)
+
+| 카테고리 | 개수 | 예시 |
+|---|---|---|
+| 공지 (R/D) | 2 | notices_list, notice_delete |
+| 콘텐츠 페이지 (C/D) | 2 | page_create, page_delete |
+| 게시판 글·댓글 | 4 | board_post_create/update, board_comments_list, board_comment_hide |
+| 캠페인 아카이브 | 1 | campaign_archive |
+| FAQ 조회 | 1 | faqs_list |
+
+#### Phase 3 — FAQ CUD·자료·템플릿·그룹·사건 의견 (10개)
+
+| 카테고리 | 개수 | 예시 |
+|---|---|---|
+| FAQ CUD | 3 | faq_create/update/delete |
+| 자료실 | 2 | resources_list, resource_categories_list |
+| 알림 템플릿 | 3 | templates_list, template_create/update |
+| 수신자 그룹 + 사건 의견 | 2 | recipient_groups_list, incident_comment_add |
+
+#### Phase 4 — 잠재후원·자료CUD·예산·정책·채팅 (10개)
+
+| 카테고리 | 개수 | 예시 |
+|---|---|---|
+| 잠재 후원자 | 2 | potential_donors_list, potential_donor_link |
+| 자료 CUD | 3 | resource_create/update/delete |
+| 예산·지출·정책 | 4 | budgets_list, expenditures_list, budget_summary, donation_policy_get |
+| 채팅 | 1 | chat_rooms_list |
+
+**누적: 84개**. CRUD 균형: 읽기 30 / 변경 38 / 그 외 16.
 
 ### 3.3 변경 도구 표준 — dry-run + 승인
 
@@ -235,9 +293,31 @@ function selectRelevantTools(userMessage) {
   - "압축된 이전 결과는 정말 필요할 때만 재호출"
 - **효과**: output 토큰 + 불필요한 도구 호출 감소
 
+### A10. 동적 도구 로딩 — 'ALL fallback 임계' 금지 (v1.1 신규)
+- **목적**: A1의 동적 도구 로딩에서 매칭이 많거나 부정확할 때 전체 도구로 폴백하는 패턴은 LLM 정확도·비용 양쪽에서 손해
+- **반례 (안티 패턴)**:
+  ```typescript
+  if (matched.length >= 4) return null;  // ← 전체 도구로 폴백 (헛침 유발)
+  ```
+- **표준 패턴**:
+  ```typescript
+  if (matched.length === 0) return null;  // 정말 매칭 0개일 때만 fallback
+  // 매칭 N개면 모두 합쳐서 전송 (4·5·6개여도 OK)
+  ```
+- **이유**: SIREN 라이브 검증에서 동적 도구 4~10개 받은 명령은 LLM(lite·flash)이 100% 정확 호출, 84개 받은 명령은 30% 정확도 (헛침). 도구 많을수록 LLM 추론 부담↑
+- **효과**: 정확도 30% → 100% (실측 8/8 도메인 통과)
+
+### A11. 짧은 메시지 임계 — 권장 4자 이하 (v1.1 신규)
+- **목적**: 인사·확인은 도구 호출 불필요. 단 도구 명령은 짧아도 도구 받아야
+- **반례 (안티 패턴)**: `text.length <= 8` — "내 메모 보여줘"(정확히 8자) 같은 짧은 도메인 명령까지 잘림
+- **표준**: `text.length <= 4` + 진짜 인사는 `GREETING_PATTERNS` 별도 정규식
+  - "응", "OK", "안녕"은 4자 이하 또는 GREETING으로 잡힘
+  - "내 메모"(5자), "FAQ 봐"(6자) 같은 짧은 도구 명령은 도구 받음
+- **효과**: 짧은 한국어 명령도 정상 도구 호출. 인사 처리는 영향 없음
+
 ---
 
-## 5. 차단·한도 정책 (8개)
+## 5. 차단·한도 정책 (9개 — v1.1 확장)
 
 ### B1. 전체 월 한도
 - **목적**: 시스템 전체 월 LLM 비용 상한
@@ -278,6 +358,19 @@ function selectRelevantTools(userMessage) {
 - **목적**: 코드 버그·악용으로 5분 안에 비용 폭증 시 즉시 차단
 - **동작**: 매 호출 직후 최근 5분 비용 SUM. 임계 (예: $1) 초과 시 5분 cooldown
 - **환경변수**: `AI_SURGE_THRESHOLD_USD` (기본 $1)
+
+### B9. Rate Limit 권장 기본값 (v1.1 갱신)
+- **목적**: 일반 사용엔 안전, 라이브 검증·디버깅엔 부담 없도록 균형
+- **v1.0 기본값 → v1.1 권장값**:
+  - 분: 10 → **20**
+  - 시간: 50 → **100**
+  - 일: 500 → **1000**
+- **이유**: SIREN 라이브 검증에서 50/시 한도가 디버깅 흐름 차단 빈발. Gemini API 자체엔 한도 없고 Layer 3(월 한도 $100)가 별도 제어하므로 안전망 중복
+- **환경변수로 즉시 조정 가능**: `AI_RATE_LIMIT_PER_MINUTE/HOUR/DAY`
+- **운영 정책**:
+  - 신규 도입 시 v1.1 권장값(20/100/1000) 사용
+  - 1개월 운영 후 실제 사용 패턴 분석하여 미세 조정
+  - 라이브 검증 진행 중엔 임시 2배(40/200/2000)로 토글 후 검증 끝나면 원복
 
 ---
 
@@ -335,6 +428,27 @@ function selectRelevantTools(userMessage) {
   - input_tokens, output_tokens, cached_tokens, cost_usd
   - duration_ms, success, error
 - **변경 도구는 추가로 ai_agent_logs에 rollback_data**
+
+### D5. 검증 환경 UTF-8 강제 (v1.1 신규)
+- **목적**: 한글 입력의 인코딩 깨짐 방지 — 디버깅·검증 시 가장 흔한 함정
+- **문제 사례 (SIREN 라이브 검증 2026-05-14)**:
+  - 윈도우 git-bash에서 `curl -d '{"userMessage":"이번 주 일정 보여줘"}'` 호출 시
+  - 한글이 CP949로 인코딩돼 서버에 깨진 채 도달
+  - `text.includes("일정")` false → 키워드 매칭 실패 → 도구 선택 헛침
+  - AI 비서 자체 버그로 오인하고 5시간 fix 사이클 진행 (실제 코드는 정상)
+- **표준 — 검증 환경 클라이언트**:
+  ```bash
+  # ❌ 안티 패턴 (한글 깨짐)
+  curl -d '{"userMessage":"이번 주 일정"}' ...
+
+  # ✅ 표준 패턴 (UTF-8 보장)
+  printf '{"userMessage":"%s"}' "이번 주 일정 보여줘" > /tmp/req.json
+  curl -H "Content-Type: application/json; charset=utf-8" \
+       --data-binary @/tmp/req.json ...
+  ```
+- **검증 체크포인트**: 응답의 디버그 정보에 입력 문자열을 그대로 노출하면 인코딩 깨짐 즉시 감지 가능
+  - 첫 20자 char codes 출력 — 65533(U+FFFD replacement char)이 보이면 인코딩 깨짐 확정
+- **운영 영향**: 실제 웹 UI(브라우저)는 UTF-8 보장이므로 라이브 사용엔 영향 없음. 검증·자동화 스크립트만 주의
 
 ---
 
@@ -410,6 +524,51 @@ function selectRelevantTools(userMessage) {
 - **효과**: 첫 글자 표시 0.5~1초 (vs 응답 완료 대기 5초)
 - **이벤트**: start / text / tool_start / tool_done / approval / done / error
 - **첨부 파일 있을 때는 일반 JSON으로 폴백** (stream에서 base64 전송 부담)
+- **알려진 한계**: Netlify HTTP/2 환경에서 ERR_HTTP2_PROTOCOL_ERROR 빈발 — 환경별 활성화 토글 필요
+
+### F8. 시스템 프롬프트 작성 가이드 — 'prompt injection 자기학습' 회피 (v1.1 신규)
+- **목적**: 시스템 프롬프트의 ❌ 금지 응답 예시가 LLM에게 거꾸로 학습됨 (응답 패턴 후보로 사용)
+- **반례 (안티 패턴)**:
+  ```markdown
+  ❌ 금지 응답: "어떤 메모를 수정?", "무엇을 도와드릴까요?", "어떤 정보가 필요하세요?"
+  ```
+  → SIREN 라이브 검증에서 lite·flash가 이 금지 예시를 그대로 답변으로 사용 ("어떤 메모를 수정?" 응답)
+- **표준 패턴 — 긍정 매핑만 명시**:
+  ```markdown
+  ## 명령 → 도구 매핑
+  - "회원 통계" → members_stats
+  - "내 메모" → memos_list
+  - "이번 주 일정" → events_list
+  ...
+  ```
+- **원칙**: "하지 마라" 대신 "이렇게 해라". LLM은 부정 표현(금지·말라) 학습이 약함
+- **다양화 필수**: 매핑 예시 한 도메인 편향 X. 회원·후원·메모·일정·게시판 등 골고루 (메모만 4개 예시면 모델이 anchor돼서 다른 도메인 명령에도 메모 응답)
+
+### F9. 빈 응답 자동 폴백 (v1.1 신규)
+- **목적**: LLM이 200 OK 반환하지만 `candidate.content.parts` 누락하는 빈 응답 발생 시 다음 모델로 자동 폴백
+- **현상 (Gemini 2.5 flash / 3-flash-preview 관측)**:
+  ```json
+  {
+    "candidates": [{
+      "content": {"role": "model"},  // ← parts 자체 없음
+      "finishReason": "STOP",
+      "index": 0
+    }],
+    "usageMetadata": {
+      "promptTokenCount": 9592,
+      "totalTokenCount": 9592,   // ← 출력 토큰 0
+      "cachedContentTokenCount": 8832
+    }
+  }
+  ```
+  → 정상 종료(STOP)지만 응답 자체가 없음. 사용자엔 "(응답 없음)"으로 표시
+- **표준 — 폴백 트리거 조건 추가**:
+  ```typescript
+  const hasParts = Array.isArray(cand?.content?.parts) && cand.content.parts.length > 0;
+  const isEmptyOk = cand?.finishReason === "STOP" && !hasParts;
+  if (isEmptyOk && i < modelChain.length - 1) continue;  // 다음 모델 시도
+  ```
+- **추정 원인**: Context Caching 활성 시 캐시된 컨텍스트 + 함수 declarations 다수 조합에서 빈 응답 빈발. 정확한 원인 미규명 — 폴백으로 우회
 
 ---
 
@@ -765,7 +924,97 @@ public/
 
 ---
 
+---
+
+## 17. 알려진 한계 (v1.1 신규)
+
+### 17.1 멀티턴 dry-run "진행" 자연어 작동 X
+- **현상**: 변경 도구 dry-run preview 후 사용자가 "진행"·"응" 답하면 같은 도구를 `requireApproval=false`로 재호출해야 정상 흐름
+- **문제**: 자연어 "진행"은 `text.length <= 4` 또는 `GREETING_PATTERNS` 매칭으로 도구 0개 전송 → LLM이 호출할 도구 없음 → 빈 응답
+- **표준 우회**: 클라이언트(UI)가 명시적 `toolApproval` 객체 전달:
+  ```typescript
+  POST /api/admin-ai-agent
+  {
+    "conversationId": 123,
+    "toolApproval": {
+      "toolName": "memo_create",
+      "args": { "title": "...", "content": "...", "requireApproval": false }
+    }
+  }
+  ```
+- **운영 영향**: 웹 UI에선 승인 버튼이 명시적 toolApproval 보내야 정상 작동. curl·자동화 시 자연어 "진행"만으론 안 됨
+
+### 17.2 인자 자동 추출 정확도 ~70%
+- **현상**: "노란 메모로 '오늘 검증 테스트' 만들어줘" → AI가 title을 "오늘 검증 테스트"로 정확히 뽑지 않고 "테스트 메모" 같이 임의 작명
+- **원인**: lite·flash 모델의 자연어 → 구조화 인자 변환 능력 한계
+- **회피책**:
+  - 도구 description에 인자 매핑 힌트 명시 ("title: 사용자가 따옴표로 묶은 문자열 우선 사용")
+  - 사용자에게 명확한 형식 가이드 ("'테스트' 메모 만들어줘" 처럼 따옴표)
+  - dry-run preview에서 사용자 확인 단계로 보완
+
+### 17.3 lite vs flash vs preview trade-off
+| 모델 | 도구 호출 정확도 | 응답 속도 | 안정성 | 비용 |
+|---|---|---|---|---|
+| Gemini 3.1 flash lite | 도구 적으면 OK | 3초 | 안정 | $0.025/1M (1×) |
+| Gemini 2.5 flash | 더 정확 | 5~7초 | 안정 | $0.075/1M (3×) |
+| Gemini 3 flash preview | 최고 정확 | 10초 | 503 빈발 | ~$0.30/1M (12×) |
+
+- **표준**: 단순 조회는 LOW chain (lite 우선), 변경·복잡 작업은 HIGH chain (preview 우선). 빈 응답 시 자동 폴백 (F9)
+
+### 17.4 도구 description 매칭 키워드 누락 가능성
+- **현상**: 사용자 자연어가 도구 description 키워드와 정확히 매칭 안 되면 LLM이 도구 못 찾음
+- **회피책**:
+  - 도구 description에 동의어 함께 ("회원 통계: 회원수·유형별·상태별 합계")
+  - 시스템 프롬프트에 명령→도구 매핑 테이블 명시 (F8)
+
+---
+
+## 18. 회귀·진단 사례 (v1.1 신규)
+
+도입 시 흔히 마주칠 함정·진단 경험 7건. SIREN 라이브 검증 과정에서 실제 발생.
+
+### 18.1 DB에 옛 시스템 프롬프트 잔존 → FALLBACK 무시
+- **증상**: 코드의 FALLBACK 시스템 프롬프트 갱신했는데 라이브 동작은 옛날 그대로
+- **원인**: 어드민이 한 번 저장한 옛 프롬프트가 DB(`ai_agent_settings.system_prompt`)에 남아 우선 사용됨
+- **fix**: 마이그 함수로 DB 행 DELETE → FALLBACK 자동 복귀 + `invalidatePromptCache()` 즉시 무효화
+- **예방**: 어드민 UI에 "FALLBACK으로 되돌리기" 버튼 추가
+
+### 18.2 시스템 프롬프트 ❌ 금지 응답 예시 → prompt injection 자기학습 (F8 참조)
+- **증상**: "회원 통계 보여줘"에 "어떤 메모를 수정?" 답변 (시스템 프롬프트 ❌ 예시 문구 그대로)
+- **원인**: lite 모델이 "금지" 의미 인식 못 하고 예시 문구를 답변 후보로 학습
+- **fix**: 금지 응답 예시 제거. 긍정 매핑 (명령→도구) 위주로 작성
+
+### 18.3 `selectRelevantTools` 'ALL fallback 임계' (A10 참조)
+- **증상**: 도메인 명령 대부분이 잘못된 도구 호출
+- **원인**: `matched.length >= 4 → null (ALL 전송)` 코드로 80%+ 명령이 84개 도구 받음 → LLM 헛침
+- **fix**: 임계 제거. 매칭 N개면 그 도구만 전송
+- **효과**: 정확도 30% → 100%
+
+### 18.4 짧은 메시지 임계 8 → 4자 (A11 참조)
+- **증상**: "내 메모 보여줘"(정확히 8자) 도구 호출 안 됨
+- **원인**: `text.length <= 8` 임계가 짧은 도메인 명령까지 잘림
+- **fix**: 8 → 4
+
+### 18.5 빈 응답(STOP + parts 없음) (F9 참조)
+- **증상**: Gemini 2.5 flash·3 preview가 200 OK + `(응답 없음)` 빈 응답
+- **원인 (추정)**: Context Caching + 함수 declarations 다수 조합
+- **fix**: `finishReason === "STOP" && !hasParts` 조건을 retryable로 추가
+
+### 18.6 클라이언트 한글 인코딩 깨짐 (D5 참조)
+- **증상**: curl 등 클라이언트에서 한글 명령이 서버에서 깨진 채 도달
+- **원인**: 윈도우 git-bash 환경에서 `-d` 인자가 CP949로 인코딩됨
+- **fix**: `--data-binary @파일` + `Content-Type: ...; charset=utf-8`
+- **운영 영향**: 웹 UI(브라우저)는 UTF-8 보장이라 영향 없음. 검증 스크립트만 주의
+
+### 18.7 Rate Limit이 검증·디버깅 흐름 차단
+- **증상**: 라이브 디버깅 중 시간당 50회 도달로 1시간 대기
+- **원인**: 기본 한도(분 10·시 50·일 500)가 일반 사용엔 안전하지만 디버깅엔 빡빡
+- **fix**: 기본값 2배 완화 (B9 참조). 또는 임시 환경변수 토글
+
+---
+
 **문서 버전 이력**:
+- **v1.1 (2026-05-14)**: SIREN Phase 1·2·3·4 확장 (도구 42→84) + 라이브 검증 fix 7건 + 알려진 한계 4건 반영
 - v1.0 (2026-05-13): SIREN 프로젝트 실증 기반 초안
 
-**참고 코드**: https://github.com/{org}/{repo} `feature/ai-cost-safety` 브랜치 약 28개 커밋
+**참고 코드 (v1.1 기준)**: SIREN `main` 브랜치, 약 60개 커밋. 라이브 검증으로 8/8 도메인 도구 호출 정확도 100% 달성.
