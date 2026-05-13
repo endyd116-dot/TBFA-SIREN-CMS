@@ -24,7 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-13 | **ai-cost** | **AI 비용 안전장치 + AI 에이전트 고도화 ✅ 완료 머지** (main @ 16b0b48) — 5층 안전장치(Phase 1~4) + AI 도구 36개(읽기 17·변경 17) + 어드민 UI 3개 + 자동 알림 cron + 빌드 시간 단축 / Swain 마이그 4회 호출 완료 / 다음: 1주 운영 후 기능별 한도 조정. 상세는 [HANDOFF.md §3.0] 또는 메모리 `project_ai_cost_safety.md` |
+| 2026-05-14 (새벽 05:30) | **메인** | **🎉 AI 에이전트 v3 ✅ 개발 종료** (main @ `3ba204c`) — 도구 84개(Phase 1·2·3·4 종료) + 표준 v1.3 + BUG 6건 fix 누적 + 헤더 인증 fix + 라이브 검증 거의 100%. Phase 5는 미진행 (1주 운영 후 결정). 상세는 [HANDOFF.md §3.0] / 메모리 `project_ai_cost_safety.md` v3 |
+| 2026-05-13 | **ai-cost** | **AI 비용 안전장치 + AI 에이전트 v2 ✅ 완료** (main @ `16b0b48`) — 5층 안전장치 + 도구 36개(읽기 17·변경 17) + 어드민 UI 3개 + 자동 알림 cron / 다음 세션에서 v3로 확장됨 |
 | 2026-05-13 | **ai-cost** | **AI 비용 안전장치 Phase 1~4 + 어드민 UI ✅ 완료** — feature/ai-cost-safety @ ed651d4 / 20개 AI 기능 토글·기능별 한도·통합 로그 / lib(ai-feature·ai-cache·ai-rate-limit·ai-prompt-cache·ai-cost-monitor) / cron-ai-cost-alert(매일 09:00 임계·이상 패턴 이메일) / public/admin-ai-cost.html / 22개 호출 지점 featureKey 부착 / 미리보기 URL에서 검증 완료 / 다음: feature/ai-agent 머지 |
 | 2026-05-12 | **메인** | **싸이렌 어드민 4건 fix ✅ 완료** — Bug-A1(src 미정의 ReferenceError·bea850a) / Bug-A2(증빙파일 컬럼 추가·2509d79) / Bug-A3(외부기관 init+SQL fix·2509d79) / Bug-A4(page.* 시드 완료·진단함수 삭제·89f158c) / Swain 검증 대기 |
 | 2026-05-12 | **메인** | **R4 정식 설계서 작성 완료** — `docs/milestones/2026-05-12-phase21-r4-calendar-search.md` push / 카탈로그 §4 R3'→R4 명명 통일·설계서 링크 추가 / R2+R3 진행 중 사전 설계 완료 / B·A·C 시작 프롬프트 §6 포함 |
