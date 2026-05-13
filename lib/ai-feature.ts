@@ -115,14 +115,60 @@ export function invalidateFeatureCache(key?: string) {
 export interface FeatureCheck {
   ok: boolean;
   enabled: boolean;
-  reason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded";
+  reason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded" | "surge_cooldown";
   message?: string;
   used?: number;
   limit?: number;
 }
 
-/** 호출 직전 체크 — 비활성·기능별 한도·전체 월 한도 */
+/* === 분 단위 이상 패턴 — 최근 5분 비용 급증 시 5분 cooldown === */
+const SURGE_THRESHOLD_USD = Number(process.env.AI_SURGE_THRESHOLD_USD || "1.00");
+const SURGE_WINDOW_MIN = 5;
+const SURGE_COOLDOWN_MS = 5 * 60 * 1000;
+let surgeCooldownUntil = 0;
+
+function nowMs() { return Date.now(); }
+
+/** 호출 직후 fire-and-forget — 5분 합계 임계 초과 시 cooldown 발동 */
+export async function checkAndSetSurge(): Promise<void> {
+  /* cooldown 중이면 추가 체크 안 함 (낭비 X) */
+  if (surgeCooldownUntil > nowMs()) return;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT COALESCE(SUM(cost_usd::float), 0) AS total
+        FROM ai_usage_logs
+       WHERE created_at > NOW() - INTERVAL '${sql.raw(String(SURGE_WINDOW_MIN))} minutes'
+    `);
+    const total = Number((r?.rows ?? r ?? [])[0]?.total) || 0;
+    if (total > SURGE_THRESHOLD_USD) {
+      surgeCooldownUntil = nowMs() + SURGE_COOLDOWN_MS;
+      console.warn(`[ai-feature] 비용 급증 감지: 최근 ${SURGE_WINDOW_MIN}분 누계 $${total.toFixed(4)} > 임계 $${SURGE_THRESHOLD_USD}. ${SURGE_COOLDOWN_MS / 1000}초 cooldown 시작.`);
+    }
+  } catch { /* SUM 실패는 무시 */ }
+}
+
+/** 호출 직전 — cooldown 중이면 차단 */
+function checkSurgeCooldown(): { blocked: boolean; secondsRemaining: number; message: string } {
+  const remain = Math.max(0, surgeCooldownUntil - nowMs());
+  if (remain > 0) {
+    const secs = Math.ceil(remain / 1000);
+    return {
+      blocked: true,
+      secondsRemaining: secs,
+      message: `최근 ${SURGE_WINDOW_MIN}분 AI 비용이 급증해 일시 차단 중입니다. ${secs}초 후 다시 시도해주세요.`,
+    };
+  }
+  return { blocked: false, secondsRemaining: 0, message: "" };
+}
+
+/** 호출 직전 체크 — 비활성·기능별 한도·전체 월 한도 + 분 단위 cooldown */
 export async function checkFeatureBeforeCall(featureKey: string): Promise<FeatureCheck> {
+  /* 0) 분 단위 비용 급증 cooldown */
+  const surge = checkSurgeCooldown();
+  if (surge.blocked) {
+    return { ok: false, enabled: true, reason: "surge_cooldown", message: surge.message };
+  }
+
   /* 1) 토글 + 기능별 한도 */
   const state = await loadFeatureState(featureKey);
   if (!state.enabled) {
@@ -223,6 +269,9 @@ export async function recordFeatureUsage(args: RecordFeatureUsageArgs): Promise<
   await upsertSummary("daily", dKey, featureKey, inputTokens, outputTokens, cost);
   await upsertSummary("monthly", mKey, null, inputTokens, outputTokens, cost);
   await upsertSummary("monthly", mKey, featureKey, inputTokens, outputTokens, cost);
+
+  /* 3) 비용 급증 감지 (fire-and-forget) */
+  void checkAndSetSurge();
 
   return { cost };
 }
