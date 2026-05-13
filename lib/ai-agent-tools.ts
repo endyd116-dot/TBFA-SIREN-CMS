@@ -2847,13 +2847,14 @@ async function tool_resourceDelete(args: any, adminId: number | null): Promise<T
 async function tool_budgetsList(args: any): Promise<ToolResult> {
   const year = Number(args?.fiscalYear) || new Date().getFullYear();
   try {
+    /* 2026-05-14 fix: budget_categories 실제 컬럼 = id/name/code/description/is_active (name_ko·sort_order 없음) */
     const r: any = await db.execute(sql`
       SELECT b.id, b.fiscal_year, b.category_id, b.planned_amount, b.note, b.created_at,
-             c.name_ko AS category_name, c.code AS category_code
+             c.name AS category_name, c.code AS category_code
         FROM budgets b
         LEFT JOIN budget_categories c ON c.id = b.category_id
        WHERE b.fiscal_year = ${year}
-       ORDER BY c.sort_order ASC NULLS LAST, b.id ASC
+       ORDER BY c.id ASC NULLS LAST, b.id ASC
     `);
     const rows = r?.rows ?? r ?? [];
     return { ok: true, output: { fiscalYear: year, count: rows.length, budgets: rows } };
@@ -2881,7 +2882,7 @@ async function tool_expendituresList(args: any): Promise<ToolResult> {
   try {
     const r: any = await db.execute(sql`
       SELECT e.id, e.category_id, e.amount, e.spent_at, e.description, e.payee, e.status,
-             e.approved_at, c.name_ko AS category_name
+             e.approved_at, c.name AS category_name
         FROM expenditures e
         LEFT JOIN budget_categories c ON c.id = e.category_id
         ${where}
@@ -2903,7 +2904,7 @@ async function tool_budgetSummary(args: any): Promise<ToolResult> {
     const r: any = await db.execute(sql`
       SELECT
         c.id AS category_id,
-        c.name_ko AS category_name,
+        c.name AS category_name,
         c.code AS category_code,
         COALESCE(b.planned_amount::numeric, 0)::numeric AS planned,
         COALESCE(SUM(CASE WHEN e.status = 'paid' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS spent,
@@ -2912,8 +2913,8 @@ async function tool_budgetSummary(args: any): Promise<ToolResult> {
         LEFT JOIN budgets b ON b.category_id = c.id AND b.fiscal_year = ${year}
         LEFT JOIN expenditures e ON e.category_id = c.id AND e.spent_at >= ${yearStartIso}::timestamptz AND e.spent_at < ${yearEndIso}::timestamptz
        WHERE c.is_active = TRUE
-       GROUP BY c.id, c.name_ko, c.code, b.planned_amount, c.sort_order
-       ORDER BY c.sort_order ASC NULLS LAST, c.id ASC
+       GROUP BY c.id, c.name, c.code, b.planned_amount
+       ORDER BY c.id ASC
     `);
     const rows: any[] = r?.rows ?? r ?? [];
     const summary = rows.map((r: any) => {
