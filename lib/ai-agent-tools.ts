@@ -368,6 +368,62 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {
       category: { type: "STRING" }, isActive: { type: "BOOLEAN" }, limit: { type: "INTEGER" },
     }}},
+
+  /* === Phase 3 — FAQ CUD·자료실·알림 템플릿·수신자 그룹·사건 의견 (10개) === */
+  { name: "faq_create", description: "FAQ 생성 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      question: { type: "STRING" }, answer: { type: "STRING" },
+      category: { type: "STRING" }, sortOrder: { type: "INTEGER" },
+      isActive: { type: "BOOLEAN" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["question", "answer"] }},
+  { name: "faq_update", description: "FAQ 수정 (질문·답변·카테고리·정렬·활성여부, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      faqId: { type: "INTEGER" },
+      question: { type: "STRING" }, answer: { type: "STRING" },
+      category: { type: "STRING" }, sortOrder: { type: "INTEGER" }, isActive: { type: "BOOLEAN" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["faqId"] }},
+  { name: "faq_delete", description: "FAQ 영구 삭제 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      faqId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["faqId"] }},
+
+  { name: "resources_list", description: "자료실 자료 목록 (카테고리·게시 필터)",
+    parameters: { type: "OBJECT", properties: {
+      categoryId: { type: "INTEGER" }, isPublished: { type: "BOOLEAN" },
+      accessLevel: { type: "STRING", description: "public|member|family" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "resource_categories_list", description: "자료실 카테고리 목록",
+    parameters: { type: "OBJECT", properties: { isActive: { type: "BOOLEAN" } }}},
+
+  { name: "templates_list", description: "알림 발송 템플릿 목록 (채널·카테고리·활성여부 필터)",
+    parameters: { type: "OBJECT", properties: {
+      channel: { type: "STRING", description: "email|sms|kakao" },
+      category: { type: "STRING" }, isActive: { type: "BOOLEAN" }, limit: { type: "INTEGER" },
+    }}},
+  { name: "template_create", description: "알림 템플릿 생성 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      name: { type: "STRING" }, channel: { type: "STRING", description: "email|sms|kakao" },
+      category: { type: "STRING" }, subject: { type: "STRING" }, bodyTemplate: { type: "STRING" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["name", "channel", "category", "bodyTemplate"] }},
+  { name: "template_update", description: "알림 템플릿 수정 (이름·제목·본문·활성여부, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      templateId: { type: "INTEGER" },
+      name: { type: "STRING" }, subject: { type: "STRING" }, bodyTemplate: { type: "STRING" },
+      isActive: { type: "BOOLEAN" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["templateId"] }},
+
+  { name: "recipient_groups_list", description: "수신자 그룹 목록 (활성여부 필터)",
+    parameters: { type: "OBJECT", properties: { isActive: { type: "BOOLEAN" }, limit: { type: "INTEGER" }}}},
+
+  { name: "incident_comment_add", description: "사건 제보에 운영자 의견·답변 추가 (dry-run 우선). isPrivate=true는 내부 메모.",
+    parameters: { type: "OBJECT", properties: {
+      incidentId: { type: "INTEGER" }, content: { type: "STRING" },
+      isPrivate: { type: "BOOLEAN", description: "true=내부 메모(신고자 안 보임), false=공개 답변" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["incidentId", "content"] }},
 ];
 
 /* =========================================================
@@ -465,6 +521,17 @@ export async function executeTool(
       case "board_comment_hide":   return await tool_boardCommentHide(args, adminId);
       case "campaign_archive":     return await tool_campaignArchive(args, adminId);
       case "faqs_list":            return await tool_faqsList(args);
+      /* Phase 3: FAQ CUD·자료실·템플릿·그룹·사건 의견 (10개) */
+      case "faq_create":               return await tool_faqCreate(args, adminId);
+      case "faq_update":               return await tool_faqUpdate(args, adminId);
+      case "faq_delete":               return await tool_faqDelete(args, adminId);
+      case "resources_list":           return await tool_resourcesList(args);
+      case "resource_categories_list": return await tool_resourceCategoriesList(args);
+      case "templates_list":           return await tool_templatesList(args);
+      case "template_create":          return await tool_templateCreate(args, adminId);
+      case "template_update":          return await tool_templateUpdate(args, adminId);
+      case "recipient_groups_list":    return await tool_recipientGroupsList(args);
+      case "incident_comment_add":     return await tool_incidentCommentAdd(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -2222,5 +2289,303 @@ async function tool_faqsList(args: any): Promise<ToolResult> {
     })) } };
   } catch (e: any) {
     return { ok: false, error: `FAQ 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   Phase 3 — FAQ CUD·자료실·템플릿·수신자그룹·사건 의견 (10개)
+   표준 §3.3 — 직접 DB + dry-run + rollbackData
+   ========================================================= */
+
+const ALLOWED_TEMPLATE_CHANNELS = new Set(["email", "sms", "kakao", "push"]);
+const ALLOWED_RESOURCE_ACCESS  = new Set(["public", "member", "family"]);
+
+/* ─── FAQ CUD ────────────────────────────────────────── */
+async function tool_faqCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const question = String(args?.question || "").trim().slice(0, 300);
+  if (!question) return { ok: false, error: "question 필수" };
+  const answer = String(args?.answer || "").trim();
+  if (!answer) return { ok: false, error: "answer 필수" };
+  const category = String(args?.category || "general").slice(0, 30);
+  const sortOrder = Number.isFinite(Number(args?.sortOrder)) ? Number(args.sortOrder) : 0;
+  const isActive = args?.isActive !== false;
+
+  const preview = { question, answerPreview: answer.slice(0, 200), category, sortOrder, isActive };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO faqs (category, question, answer, sort_order, is_active)
+      VALUES (${category}, ${question}, ${answer}, ${sortOrder}, ${isActive})
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { faq_id: id, question, category }, rollbackData: { table: "faqs", id } };
+  } catch (e: any) {
+    return { ok: false, error: `FAQ 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_faqUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.faqId || 0);
+  if (!id) return { ok: false, error: "faqId 필수" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.question === "string" && args.question.trim()) patch.question = args.question.trim().slice(0, 300);
+  if (typeof args?.answer === "string" && args.answer.trim()) patch.answer = args.answer.trim();
+  if (typeof args?.category === "string") patch.category = args.category.slice(0, 30);
+  if (Number.isFinite(Number(args?.sortOrder))) patch.sort_order = Number(args.sortOrder);
+  if (typeof args?.isActive === "boolean") patch.is_active = args.isActive;
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, category, question, answer, sort_order, is_active FROM faqs WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "FAQ 없음" };
+
+  const preview = { faqId: id, before, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE faqs SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, faqId: id, changes: patch },
+      rollbackData: { table: "faqs", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `FAQ 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_faqDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.faqId || 0);
+  if (!id) return { ok: false, error: "faqId 필수" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, category, question, answer, sort_order, is_active FROM faqs WHERE id = ${id} LIMIT 1`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "FAQ 없음" };
+
+  const preview = { faqId: id, question: before.question, answerPreview: String(before.answer || "").slice(0, 150) };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. 영구 삭제됩니다." } };
+  }
+  try {
+    await db.execute(sql`DELETE FROM faqs WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, faqId: id },
+      rollbackData: { table: "faqs", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `FAQ 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 자료실 ─────────────────────────────────────────── */
+async function tool_resourcesList(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 30, 200);
+  const conds: any[] = [];
+  if (Number.isFinite(Number(args?.categoryId))) conds.push(sql`category_id = ${Number(args.categoryId)}`);
+  if (typeof args?.isPublished === "boolean") conds.push(sql`is_published = ${args.isPublished}`);
+  if (typeof args?.accessLevel === "string" && ALLOWED_RESOURCE_ACCESS.has(args.accessLevel)) {
+    conds.push(sql`access_level = ${args.accessLevel}`);
+  }
+  const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, category_id, title, slug, access_level, is_published, is_pinned, views, download_count, created_at
+        FROM resources ${where}
+       ORDER BY is_pinned DESC, sort_order ASC, created_at DESC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, resources: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `자료 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_resourceCategoriesList(args: any): Promise<ToolResult> {
+  const where = typeof args?.isActive === "boolean" ? sql`WHERE is_active = ${args.isActive}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, code, name_ko, description, icon, sort_order, is_active
+        FROM resource_categories ${where}
+       ORDER BY sort_order ASC, id ASC
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, categories: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `카테고리 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 알림 템플릿 ───────────────────────────────────── */
+async function tool_templatesList(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 30, 200);
+  const conds: any[] = [];
+  if (typeof args?.channel === "string" && ALLOWED_TEMPLATE_CHANNELS.has(args.channel)) {
+    conds.push(sql`channel = ${args.channel}`);
+  }
+  if (typeof args?.category === "string" && args.category.trim()) {
+    conds.push(sql`category = ${args.category.trim()}`);
+  }
+  if (typeof args?.isActive === "boolean") conds.push(sql`is_active = ${args.isActive}`);
+  const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, channel, category, subject, is_active, updated_at
+        FROM communication_templates ${where}
+       ORDER BY channel, category, name
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, templates: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_templateCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const name = String(args?.name || "").trim().slice(0, 100);
+  if (!name) return { ok: false, error: "name 필수" };
+  if (!ALLOWED_TEMPLATE_CHANNELS.has(args?.channel)) {
+    return { ok: false, error: `channel은 ${Array.from(ALLOWED_TEMPLATE_CHANNELS).join("|")}` };
+  }
+  const channel = args.channel;
+  const category = String(args?.category || "").trim();
+  if (!category) return { ok: false, error: "category 필수" };
+  const bodyTemplate = String(args?.bodyTemplate || "");
+  if (!bodyTemplate) return { ok: false, error: "bodyTemplate 필수" };
+  const subject = args?.subject ? String(args.subject) : null;
+
+  const preview = { name, channel, category, subject, bodyPreview: bodyTemplate.slice(0, 200) };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO communication_templates (name, channel, category, subject, body_template, is_active, created_by)
+      VALUES (${name}, ${channel}, ${category}, ${subject}, ${bodyTemplate}, TRUE, ${adminId})
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { template_id: id, name, channel, category },
+      rollbackData: { table: "communication_templates", id } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_templateUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.templateId || 0);
+  if (!id) return { ok: false, error: "templateId 필수" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.name === "string" && args.name.trim()) patch.name = args.name.trim().slice(0, 100);
+  if (typeof args?.subject === "string") patch.subject = args.subject || null;
+  if (typeof args?.bodyTemplate === "string" && args.bodyTemplate.trim()) patch.body_template = args.bodyTemplate;
+  if (typeof args?.isActive === "boolean") patch.is_active = args.isActive;
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, channel, category, subject, body_template, is_active
+        FROM communication_templates WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "템플릿 없음" };
+
+  const preview = { templateId: id, name: before.name, channel: before.channel, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_by = ${adminId}` as any);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE communication_templates SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, templateId: id, changes: patch },
+      rollbackData: { table: "communication_templates", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 수신자 그룹 ───────────────────────────────────── */
+async function tool_recipientGroupsList(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 30, 100);
+  const where = typeof args?.isActive === "boolean" ? sql`WHERE is_active = ${args.isActive}` : sql``;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, description, criteria, is_active, created_at, updated_at
+        FROM recipient_groups ${where}
+       ORDER BY name ASC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, groups: rows.map((g: any) => ({
+      id: g.id, name: g.name, description: g.description,
+      criteriaType: g.criteria?.type || "filter",
+      isActive: g.is_active,
+    })) } };
+  } catch (e: any) {
+    return { ok: false, error: `수신자 그룹 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 사건 의견 추가 ────────────────────────────────── */
+async function tool_incidentCommentAdd(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const incidentId = Number(args?.incidentId || 0);
+  if (!incidentId) return { ok: false, error: "incidentId 필수" };
+  const content = String(args?.content || "").trim();
+  if (!content) return { ok: false, error: "content 필수" };
+  if (content.length > 1000) return { ok: false, error: "content 최대 1000자" };
+  const isPrivate = args?.isPrivate === true;
+
+  /* 사건 존재 + 관리자 이름 조회 */
+  let incident: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, title FROM incidents WHERE id = ${incidentId} LIMIT 1`);
+    incident = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!incident) return { ok: false, error: "사건 없음" };
+  let authorName = "관리자";
+  try {
+    const r: any = await db.execute(sql`SELECT name FROM members WHERE id = ${adminId} LIMIT 1`);
+    authorName = (r?.rows ?? r ?? [])[0]?.name || "관리자";
+  } catch {}
+
+  const preview = { incidentId, incidentTitle: incident.title,
+    contentPreview: content.slice(0, 200), isPrivate, authorName,
+    visibility: isPrivate ? "내부 메모 (신고자에게 안 보임)" : "공개 답변 (신고자에게 보임)" };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO incident_comments (incident_id, member_id, author_name, content, is_anonymous, is_private)
+      VALUES (${incidentId}, ${adminId}, ${authorName}, ${content}, FALSE, ${isPrivate})
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { comment_id: id, incidentId, isPrivate },
+      rollbackData: { table: "incident_comments", id } };
+  } catch (e: any) {
+    return { ok: false, error: `사건 의견 추가 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
