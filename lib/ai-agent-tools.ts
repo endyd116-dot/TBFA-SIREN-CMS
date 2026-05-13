@@ -320,7 +320,7 @@ export const TOOL_DECLARATIONS = [
   /* === Phase 2 — 콘텐츠·게시판·캠페인·공지·FAQ (10개) === */
   { name: "notices_list", description: "공지 목록 (최신순)",
     parameters: { type: "OBJECT", properties: {
-      category: { type: "STRING", description: "general|event|press" },
+      category: { type: "STRING", description: "general|member|event|media" },
       isPublished: { type: "BOOLEAN" },
       limit: { type: "INTEGER" },
     }}},
@@ -2068,7 +2068,9 @@ async function tool_filesList(args: any, adminId: number | null): Promise<ToolRe
    표준 §3.3 — 직접 DB + dry-run + rollbackData
    ========================================================= */
 
-const ALLOWED_NOTICE_CATEGORIES = new Set(["general", "event", "press", "notice"]);
+/* notice_category enum (db/schema.ts:58): general / member / event / media.
+   2026-05-14 BUG-05b fix: 옛 값 'press'·'notice'는 enum에 없음 — LLM이 도구 description의 옛 enum을 학습해 member/media 거부 응답 생성. */
+const ALLOWED_NOTICE_CATEGORIES = new Set(["general", "member", "event", "media"]);
 const ALLOWED_BOARD_CATEGORIES  = new Set(["general", "notice", "qna", "free", "share"]);
 const ALLOWED_CAMPAIGN_STATUSES = new Set(["draft", "active", "ended", "archived"]);
 
