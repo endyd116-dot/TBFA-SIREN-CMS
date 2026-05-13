@@ -341,8 +341,10 @@ function selectRelevantTools(userMessage: string): string[] | null {
     matchedGroups: [],
   };
 
-  /* 짧은 메시지(8자↓) 또는 인사·확인 → 도구 안 보냄 */
-  if (text.length <= 8 || GREETING_PATTERNS.test(text)) {
+  /* 짧은 메시지(4자↓) 또는 인사·확인 → 도구 안 보냄.
+     2026-05-14: 8자 → 4자 완화 — "내 메모 보여줘"(8자) 같은 짧은 도메인 명령 잘림 해소.
+     진짜 인사(응/OK/안녕)는 GREETING_PATTERNS에서 별도 잡음. */
+  if (text.length <= 4 || GREETING_PATTERNS.test(text)) {
     SELECT_DEBUG.returnPath = "short_or_greeting";
     return [];
   }
