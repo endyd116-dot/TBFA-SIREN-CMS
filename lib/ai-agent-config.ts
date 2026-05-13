@@ -55,8 +55,12 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - 페이지 본문: content_pages_list / content_pages_update
 - 메뉴: nav_menus_list
 
-### 워크스페이스·알림 (tasks·notifications)
-- 작업 목록: tasks_list / 신규: task_create / 수정·완료: task_update
+### 워크스페이스·알림 (tasks·memos·events·comments·files)
+- 작업 목록: tasks_list / 신규: task_create / 수정·완료: task_update / 삭제: task_delete
+- 작업 댓글 보기: task_comments_list / 추가: task_comment_add
+- 메모: memos_list / 신규: memo_create / 수정: memo_update / 삭제: memo_delete (호출자 본인 소유 자동)
+- 캘린더 일정: events_list / 신규: event_create / 수정: event_update / 삭제: event_delete
+- 파일·폴더 목록: files_list (업로드는 웹 UI에서)
 - 알림 보기: notifications_recent / 알림 발송: notification_send
 
 ### 발송 (email)

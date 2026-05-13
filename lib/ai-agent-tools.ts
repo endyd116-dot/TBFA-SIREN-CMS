@@ -236,6 +236,86 @@ export const TOOL_DECLARATIONS = [
       title: { type: "STRING" }, body: { type: "STRING" }, linkUrl: { type: "STRING" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["memberIds", "title"] }},
+
+  /* === Phase 1 워크스페이스 확장 (12개) === */
+  /* 메모 */
+  { name: "memos_list", description: "내 메모 목록 (호출자 본인)",
+    parameters: { type: "OBJECT", properties: {
+      limit: { type: "INTEGER" }, pinnedFirst: { type: "BOOLEAN" },
+    }}},
+  { name: "memo_create", description: "메모 생성 (dry-run 우선). 호출자 본인 소유.",
+    parameters: { type: "OBJECT", properties: {
+      title: { type: "STRING" }, content: { type: "STRING" },
+      color: { type: "STRING", description: "yellow|pink|blue|green|gray" },
+      isPinned: { type: "BOOLEAN" },
+      eventDate: { type: "STRING", description: "YYYY-MM-DD (캘린더 표시 시)" },
+      showInCalendar: { type: "BOOLEAN" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["content"] }},
+  { name: "memo_update", description: "메모 수정 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      memoId: { type: "INTEGER" },
+      title: { type: "STRING" }, content: { type: "STRING" }, color: { type: "STRING" },
+      isPinned: { type: "BOOLEAN" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memoId"] }},
+  { name: "memo_delete", description: "메모 삭제 (영구, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      memoId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["memoId"] }},
+
+  /* 캘린더 일정 */
+  { name: "events_list", description: "캘린더 일정 목록 (날짜 범위)",
+    parameters: { type: "OBJECT", properties: {
+      fromDate: { type: "STRING", description: "YYYY-MM-DD (기본: 오늘)" },
+      toDate: { type: "STRING", description: "YYYY-MM-DD (기본: 30일 후)" },
+      limit: { type: "INTEGER" },
+    }}},
+  { name: "event_create", description: "일정 생성 (dry-run 우선). 호출자 본인 소유.",
+    parameters: { type: "OBJECT", properties: {
+      title: { type: "STRING" },
+      startAt: { type: "STRING", description: "YYYY-MM-DDTHH:mm 또는 YYYY-MM-DD (allDay)" },
+      endAt: { type: "STRING", description: "YYYY-MM-DDTHH:mm (생략 시 startAt+1h)" },
+      allDay: { type: "BOOLEAN" }, location: { type: "STRING" },
+      color: { type: "STRING", description: "blue|red|green|yellow|purple" },
+      description: { type: "STRING" },
+      eventType: { type: "STRING", description: "general|meeting|board_meeting|counseling|deadline" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["title", "startAt"] }},
+  { name: "event_update", description: "일정 수정 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      eventId: { type: "INTEGER" },
+      title: { type: "STRING" }, startAt: { type: "STRING" }, endAt: { type: "STRING" },
+      allDay: { type: "BOOLEAN" }, location: { type: "STRING" },
+      color: { type: "STRING" }, description: { type: "STRING" },
+      eventType: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["eventId"] }},
+  { name: "event_delete", description: "일정 삭제 (영구, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      eventId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["eventId"] }},
+
+  /* 작업 댓글 + 작업 삭제 */
+  { name: "task_comments_list", description: "작업 카드의 댓글 목록",
+    parameters: { type: "OBJECT", properties: {
+      taskId: { type: "INTEGER" }, limit: { type: "INTEGER" },
+    }, required: ["taskId"] }},
+  { name: "task_comment_add", description: "작업 카드에 댓글 추가 (dry-run 우선). 본문에 @이름 포함 시 멘션 알림.",
+    parameters: { type: "OBJECT", properties: {
+      taskId: { type: "INTEGER" }, content: { type: "STRING" },
+      mentions: { type: "ARRAY", items: { type: "INTEGER" }, description: "멘션할 회원 ID 배열 (옵션)" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["taskId", "content"] }},
+  { name: "task_delete", description: "작업 카드 삭제 (영구, 댓글·보고서·첨부 cascade. dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      taskId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["taskId"] }},
+
+  /* 파일함 (읽기 전용 — 업로드는 멀티파트라 AI 도구 X) */
+  { name: "files_list", description: "워크스페이스 파일·폴더 목록 (호출자 본인 소유 또는 공유받은 것)",
+    parameters: { type: "OBJECT", properties: {
+      folderId: { type: "INTEGER", description: "폴더 ID (생략 시 루트)" },
+      limit: { type: "INTEGER" },
+    }}},
 ];
 
 /* =========================================================
@@ -309,6 +389,19 @@ export async function executeTool(
       case "task_create":          return await tool_taskCreate(args, adminId);
       case "email_send":           return await tool_emailSend(args, adminId);
       case "notification_send":    return await tool_notificationSend(args, adminId);
+      /* Phase 1: 워크스페이스 확장 (메모·캘린더·댓글·작업삭제·파일목록) */
+      case "memos_list":           return await tool_memosList(args, adminId);
+      case "memo_create":          return await tool_memoCreate(args, adminId);
+      case "memo_update":          return await tool_memoUpdate(args, adminId);
+      case "memo_delete":          return await tool_memoDelete(args, adminId);
+      case "events_list":          return await tool_eventsList(args, adminId);
+      case "event_create":         return await tool_eventCreate(args, adminId);
+      case "event_update":         return await tool_eventUpdate(args, adminId);
+      case "event_delete":         return await tool_eventDelete(args, adminId);
+      case "task_comments_list":   return await tool_taskCommentsList(args);
+      case "task_comment_add":     return await tool_taskCommentAdd(args, adminId);
+      case "task_delete":          return await tool_taskDelete(args, adminId);
+      case "files_list":           return await tool_filesList(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -1335,5 +1428,420 @@ async function tool_donorsAtRisk(args: any): Promise<ToolResult> {
     return { ok: true, output: { count: rows.length, at_risk: rows } };
   } catch (e: any) {
     return { ok: false, error: `이탈 위험 후원자 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   Phase 1 — 워크스페이스 확장 (메모·캘린더·댓글·작업삭제·파일목록)
+   모든 변경 도구는 dry-run 우선 + rollbackData
+   ========================================================= */
+
+const ALLOWED_MEMO_COLORS = new Set(["yellow", "pink", "blue", "green", "gray", "purple", "orange"]);
+const ALLOWED_EVENT_COLORS = new Set(["blue", "red", "green", "yellow", "purple", "orange", "gray"]);
+const ALLOWED_EVENT_TYPES = new Set(["general", "meeting", "board_meeting", "counseling", "deadline", "recurring"]);
+
+/* ─── 메모 ─────────────────────────────────────────── */
+async function tool_memosList(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const limit = Math.min(Number(args?.limit) || 30, 100);
+  const pinnedFirst = args?.pinnedFirst !== false;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, title, content_html, color, is_pinned, event_date, show_in_calendar,
+             created_at, updated_at
+        FROM workspace_memos
+       WHERE member_id = ${adminId}
+       ORDER BY ${pinnedFirst ? sql`is_pinned DESC,` : sql``} updated_at DESC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, memos: rows.map((m: any) => ({
+      id: m.id, title: m.title, contentPreview: String(m.content_html || "").replace(/<[^>]+>/g, "").slice(0, 200),
+      color: m.color, isPinned: m.is_pinned,
+      eventDate: m.event_date, showInCalendar: m.show_in_calendar,
+      updatedAt: m.updated_at,
+    })) } };
+  } catch (e: any) {
+    return { ok: false, error: `메모 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_memoCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const content = String(args?.content || "").trim();
+  if (!content) return { ok: false, error: "content 필수" };
+  const title = String(args?.title || "").trim().slice(0, 200) || null;
+  const color = ALLOWED_MEMO_COLORS.has(args?.color) ? args.color : "yellow";
+  const isPinned = args?.isPinned === true;
+  const eventDateStr = String(args?.eventDate || "").trim();
+  const eventDate = eventDateStr ? new Date(eventDateStr) : null;
+  if (eventDate && isNaN(eventDate.getTime())) return { ok: false, error: "eventDate 형식 오류 (YYYY-MM-DD)" };
+  const showInCalendar = args?.showInCalendar === true || !!eventDate;
+
+  const preview = { title, contentPreview: content.slice(0, 200), color, isPinned, eventDate: eventDateStr || null, showInCalendar };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. requireApproval=false로 재호출 시 생성." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO workspace_memos
+        (member_id, title, content_html, color, is_pinned, event_date, show_in_calendar)
+      VALUES
+        (${adminId}, ${title}, ${content}, ${color}, ${isPinned},
+         ${eventDate ? eventDate.toISOString().slice(0, 10) : null}, ${showInCalendar})
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { memo_id: id, ...preview }, rollbackData: { table: "workspace_memos", id } };
+  } catch (e: any) {
+    return { ok: false, error: `메모 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_memoUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.memoId || 0);
+  if (!id) return { ok: false, error: "memoId 필수" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.title === "string") patch.title = args.title.slice(0, 200) || null;
+  if (typeof args?.content === "string") patch.content_html = args.content;
+  if (typeof args?.color === "string" && ALLOWED_MEMO_COLORS.has(args.color)) patch.color = args.color;
+  if (typeof args?.isPinned === "boolean") patch.is_pinned = args.isPinned;
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, member_id, title, content_html, color, is_pinned
+        FROM workspace_memos WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "메모 없음" };
+  if (Number(before.member_id) !== adminId) return { ok: false, error: "타인의 메모는 수정할 수 없습니다" };
+
+  const preview = { memoId: id, before, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE workspace_memos SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, memoId: id, changes: patch }, rollbackData: { table: "workspace_memos", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `메모 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_memoDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.memoId || 0);
+  if (!id) return { ok: false, error: "memoId 필수" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, member_id, title, content_html, color, is_pinned, event_date, show_in_calendar
+        FROM workspace_memos WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "메모 없음" };
+  if (Number(before.member_id) !== adminId) return { ok: false, error: "타인의 메모는 삭제할 수 없습니다" };
+
+  const preview = { memoId: id, title: before.title, contentPreview: String(before.content_html || "").replace(/<[^>]+>/g, "").slice(0, 150) };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. 영구 삭제됩니다." } };
+  }
+  try {
+    await db.execute(sql`DELETE FROM workspace_memos WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, memoId: id }, rollbackData: { table: "workspace_memos", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `메모 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 캘린더 일정 ─────────────────────────────────────────── */
+async function tool_eventsList(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const fromStr = String(args?.fromDate || "").trim();
+  const toStr = String(args?.toDate || "").trim();
+  const from = fromStr ? new Date(fromStr) : new Date(Date.now() - 1 * 86400000);
+  const to = toStr ? new Date(toStr) : new Date(Date.now() + 30 * 86400000);
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) return { ok: false, error: "날짜 형식 오류 (YYYY-MM-DD)" };
+  const limit = Math.min(Number(args?.limit) || 50, 200);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, title, start_at, end_at, all_day, color, location, event_type, description
+        FROM workspace_events
+       WHERE member_id = ${adminId}
+         AND start_at <= ${to} AND end_at >= ${from}
+       ORDER BY start_at ASC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10), events: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `일정 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_eventCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const title = String(args?.title || "").trim();
+  if (!title) return { ok: false, error: "title 필수" };
+  const startStr = String(args?.startAt || "").trim();
+  if (!startStr) return { ok: false, error: "startAt 필수" };
+  const startAt = new Date(startStr);
+  if (isNaN(startAt.getTime())) return { ok: false, error: "startAt 형식 오류" };
+  const allDay = args?.allDay === true || !/T\d/.test(startStr);
+  let endAt: Date;
+  if (args?.endAt) {
+    endAt = new Date(args.endAt);
+    if (isNaN(endAt.getTime())) return { ok: false, error: "endAt 형식 오류" };
+  } else {
+    endAt = allDay ? new Date(startAt.getTime() + 86400000) : new Date(startAt.getTime() + 60 * 60 * 1000);
+  }
+  const color = ALLOWED_EVENT_COLORS.has(args?.color) ? args.color : "blue";
+  const eventType = ALLOWED_EVENT_TYPES.has(args?.eventType) ? args.eventType : "general";
+  const location = String(args?.location || "").slice(0, 300) || null;
+  const description = String(args?.description || "").slice(0, 2000) || null;
+
+  const preview = {
+    title, startAt: startAt.toISOString(), endAt: endAt.toISOString(),
+    allDay, color, eventType, location, descriptionPreview: description?.slice(0, 150) || null,
+  };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO workspace_events
+        (member_id, title, start_at, end_at, all_day, color, location, description, event_type, created_by_agent)
+      VALUES
+        (${adminId}, ${title}, ${startAt}, ${endAt}, ${allDay}, ${color},
+         ${location}, ${description}, ${eventType}, 'ai_agent')
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { event_id: id, ...preview }, rollbackData: { table: "workspace_events", id } };
+  } catch (e: any) {
+    return { ok: false, error: `일정 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_eventUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.eventId || 0);
+  if (!id) return { ok: false, error: "eventId 필수" };
+
+  const patch: Record<string, any> = {};
+  if (typeof args?.title === "string" && args.title.trim()) patch.title = args.title.trim().slice(0, 300);
+  if (typeof args?.startAt === "string" && args.startAt.trim()) {
+    const d = new Date(args.startAt);
+    if (isNaN(d.getTime())) return { ok: false, error: "startAt 형식 오류" };
+    patch.start_at = d;
+  }
+  if (typeof args?.endAt === "string" && args.endAt.trim()) {
+    const d = new Date(args.endAt);
+    if (isNaN(d.getTime())) return { ok: false, error: "endAt 형식 오류" };
+    patch.end_at = d;
+  }
+  if (typeof args?.allDay === "boolean") patch.all_day = args.allDay;
+  if (typeof args?.color === "string" && ALLOWED_EVENT_COLORS.has(args.color)) patch.color = args.color;
+  if (typeof args?.location === "string") patch.location = args.location.slice(0, 300) || null;
+  if (typeof args?.description === "string") patch.description = args.description.slice(0, 2000) || null;
+  if (typeof args?.eventType === "string" && ALLOWED_EVENT_TYPES.has(args.eventType)) patch.event_type = args.eventType;
+  if (Object.keys(patch).length === 0) return { ok: false, error: "변경할 필드 없음" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, member_id, title, start_at, end_at, all_day, color, location, description, event_type
+        FROM workspace_events WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "일정 없음" };
+  if (Number(before.member_id) !== adminId) return { ok: false, error: "타인의 일정은 수정할 수 없습니다" };
+
+  const preview = { eventId: id, title: before.title, before, changes: patch };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const setFragments: any[] = [];
+    for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
+    setFragments.push(sql`updated_at = NOW()` as any);
+    await db.execute(sql`UPDATE workspace_events SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+    return { ok: true, output: { updated: true, eventId: id, changes: patch }, rollbackData: { table: "workspace_events", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `일정 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_eventDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.eventId || 0);
+  if (!id) return { ok: false, error: "eventId 필수" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, member_id, title, start_at, end_at, all_day, color, location, description, event_type
+        FROM workspace_events WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "일정 없음" };
+  if (Number(before.member_id) !== adminId) return { ok: false, error: "타인의 일정은 삭제할 수 없습니다" };
+
+  const preview = { eventId: id, title: before.title, startAt: before.start_at };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기. 영구 삭제됩니다." } };
+  }
+  try {
+    await db.execute(sql`DELETE FROM workspace_events WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, eventId: id }, rollbackData: { table: "workspace_events", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `일정 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 작업 댓글 ─────────────────────────────────────────── */
+async function tool_taskCommentsList(args: any): Promise<ToolResult> {
+  const taskId = Number(args?.taskId || 0);
+  if (!taskId) return { ok: false, error: "taskId 필수" };
+  const limit = Math.min(Number(args?.limit) || 20, 100);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT c.id, c.member_id, m.name AS member_name, c.content, c.mentions,
+             c.parent_comment_id, c.created_at, c.updated_at
+        FROM workspace_task_comments c
+        LEFT JOIN members m ON m.id = c.member_id
+       WHERE c.task_id = ${taskId} AND c.deleted_at IS NULL
+       ORDER BY c.created_at ASC
+       LIMIT ${limit}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, taskId, comments: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `댓글 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_taskCommentAdd(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const taskId = Number(args?.taskId || 0);
+  if (!taskId) return { ok: false, error: "taskId 필수" };
+  const content = String(args?.content || "").trim();
+  if (!content) return { ok: false, error: "content 필수" };
+  const mentions: number[] = Array.isArray(args?.mentions)
+    ? args.mentions.map((n: any) => Number(n)).filter(Boolean) : [];
+
+  /* 작업 존재 확인 */
+  let task: any = null;
+  try {
+    const r: any = await db.execute(sql`SELECT id, title FROM workspace_tasks WHERE id = ${taskId} LIMIT 1`);
+    task = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!task) return { ok: false, error: "작업 없음" };
+
+  const preview = { taskId, taskTitle: task.title, contentPreview: content.slice(0, 200), mentionCount: mentions.length };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: "승인 대기." } };
+  }
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO workspace_task_comments
+        (task_id, member_id, content, mentions)
+      VALUES
+        (${taskId}, ${adminId}, ${content}, ${JSON.stringify(mentions)}::jsonb)
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { comment_id: id, ...preview }, rollbackData: { table: "workspace_task_comments", id } };
+  } catch (e: any) {
+    return { ok: false, error: `댓글 추가 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 작업 삭제 ─────────────────────────────────────────── */
+async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.taskId || 0);
+  if (!id) return { ok: false, error: "taskId 필수" };
+
+  let before: any = null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, member_id, assigned_to, title, status, due_date, priority, progress
+        FROM workspace_tasks WHERE id = ${id} LIMIT 1
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch {}
+  if (!before) return { ok: false, error: "작업 없음" };
+  /* 소유자(member_id) 또는 배정자(assigned_to)만 삭제 가능 */
+  if (Number(before.member_id) !== adminId && Number(before.assigned_to) !== adminId) {
+    return { ok: false, error: "본인이 소유하거나 배정받은 작업만 삭제 가능합니다" };
+  }
+
+  /* 종속 카운트 표시 */
+  let commentCount = 0; let reportCount = 0; let attachmentCount = 0;
+  try {
+    const cr: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM workspace_task_comments WHERE task_id = ${id}`);
+    commentCount = Number((cr?.rows ?? cr ?? [])[0]?.n) || 0;
+    const rr: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM workspace_task_reports WHERE task_id = ${id}`);
+    reportCount = Number((rr?.rows ?? rr ?? [])[0]?.n) || 0;
+    const ar: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM workspace_task_attachments WHERE task_id = ${id}`);
+    attachmentCount = Number((ar?.rows ?? ar ?? [])[0]?.n) || 0;
+  } catch {}
+
+  const preview = { taskId: id, title: before.title, status: before.status, commentCount, reportCount, attachmentCount };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 작업 + 댓글 ${commentCount}건 + 보고서 ${reportCount}건 + 첨부연결 ${attachmentCount}건 영구 삭제됩니다.` } };
+  }
+  try {
+    await db.execute(sql`DELETE FROM workspace_tasks WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, taskId: id, cascaded: { comments: commentCount, reports: reportCount, attachments: attachmentCount } }, rollbackData: { table: "workspace_tasks", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `작업 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─── 파일 목록 (읽기 전용) ─────────────────────────────────────────── */
+async function tool_filesList(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const folderId = args?.folderId != null ? Number(args.folderId) : null;
+  const limit = Math.min(Number(args?.limit) || 30, 100);
+  try {
+    /* 폴더 */
+    const folderR: any = await db.execute(sql`
+      SELECT id, name, parent_id, depth, is_shared, created_at
+        FROM workspace_folders
+       WHERE deleted_at IS NULL
+         AND (owner_id = ${adminId} OR is_shared = true)
+         AND parent_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
+       ORDER BY name
+       LIMIT ${limit}
+    `);
+    const folders = folderR?.rows ?? folderR ?? [];
+    /* 파일 */
+    const fileR: any = await db.execute(sql`
+      SELECT id, name, ext, mime_type, size_bytes, is_shared, download_count, created_at
+        FROM workspace_files
+       WHERE deleted_at IS NULL
+         AND (owner_id = ${adminId} OR is_shared = true)
+         AND folder_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
+       ORDER BY created_at DESC
+       LIMIT ${limit}
+    `);
+    const files = fileR?.rows ?? fileR ?? [];
+    return { ok: true, output: { folderId, folderCount: folders.length, fileCount: files.length, folders, files } };
+  } catch (e: any) {
+    return { ok: false, error: `파일 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
