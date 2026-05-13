@@ -542,6 +542,8 @@ export default async (req: Request, _ctx: Context) => {
   const executedTools: any[] = [];
   let pendingApproval: any = null;
   let finalReply = "";
+  /* TEMP DEBUG (2026-05-14 B+): flash·preview 빈 응답 원인 진단용 */
+  let lastDebugInfo: any = null;
 
   /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
   let totalToolCallsThisRequest = 0;
@@ -602,11 +604,33 @@ export default async (req: Request, _ctx: Context) => {
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
         finalReply = "AI가 응답하지 않았습니다.";
+        /* TEMP DEBUG (B+) */
+        lastDebugInfo = { phase: "no_candidate", model: usedModel,
+          promptFeedback: geminiRes?.promptFeedback,
+          usageMetadata: geminiRes?.usageMetadata,
+          rawTop: geminiRes };
         break;
       }
       const parts = candidate.content?.parts || [];
       const textParts = parts.filter((p: any) => typeof p.text === "string");
       const fnCalls = parts.filter((p: any) => p.functionCall);
+
+      /* TEMP DEBUG (B+): parts 비어있을 때 candidate 전체 보존 */
+      if (parts.length === 0 && step === 0) {
+        lastDebugInfo = { phase: "empty_parts", model: usedModel,
+          finishReason: candidate.finishReason,
+          safetyRatings: candidate.safetyRatings,
+          rawCandidate: candidate,
+          promptFeedback: geminiRes?.promptFeedback,
+          usageMetadata: geminiRes?.usageMetadata };
+      }
+      /* TEMP DEBUG (B+): 응답은 있지만 도구 호출 0인 경우도 진단 (lite·flash 도구 호출 회피 원인) */
+      if (fnCalls.length === 0 && textParts.length > 0 && step === 0 && !lastDebugInfo) {
+        lastDebugInfo = { phase: "text_only_no_tool", model: usedModel,
+          finishReason: candidate.finishReason,
+          textPreview: textParts.map((p: any) => p.text).join(" ").slice(0, 300),
+          rawCandidate: candidate };
+      }
 
       /* 텍스트 응답 누적 */
       const textChunk = textParts.map((p: any) => p.text).join("\n").trim();
@@ -759,5 +783,7 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
+    /* TEMP DEBUG (B+): 진단 후 제거. */
+    ...(lastDebugInfo ? { _debug: lastDebugInfo } : {}),
   }), { status: 200, headers: JSON_HEADER });
 };
