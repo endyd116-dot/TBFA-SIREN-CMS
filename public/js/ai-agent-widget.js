@@ -671,11 +671,13 @@
     var sendBtn = document.querySelector('.aiw-send');
     sendBtn.disabled = true;
 
-    /* === Stream 모드: 첨부 없으면 SSE 시도 (첨부 있으면 stream API 안 받음) === */
-    if (filesToSend.length === 0) {
+    /* === Stream 모드 임시 비활성 (Netlify HTTP/2 SSE 불안정) ===
+       2026-05-13: ERR_HTTP2_PROTOCOL_ERROR 빈발 → 일반 JSON으로 폴백.
+       향후 Netlify 환경에서 SSE 안정화되면 다시 활성. */
+    var ENABLE_STREAM = false;
+    if (ENABLE_STREAM && filesToSend.length === 0) {
       var streamOk = await trySendStream(text);
       if (streamOk) { sendBtn.disabled = false; input.focus(); return; }
-      /* 실패 시 아래 JSON 흐름으로 fallback */
     }
 
     var thinking = appendMsg('ai', '🤔 생각 중…');
