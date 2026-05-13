@@ -539,8 +539,6 @@ export default async (req: Request, _ctx: Context) => {
   const executedTools: any[] = [];
   let pendingApproval: any = null;
   let finalReply = "";
-  /* TEMP DEBUG (2026-05-14) — 빈 candidate·parts 진단용. fix 후 제거. */
-  let lastDebugInfo: any = null;
 
   /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
   let totalToolCallsThisRequest = 0;
@@ -601,30 +599,11 @@ export default async (req: Request, _ctx: Context) => {
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
         finalReply = "AI가 응답하지 않았습니다.";
-        /* TEMP DEBUG (2026-05-14) */
-        (lastDebugInfo as any) = {
-          phase: "no_candidate", model: usedModel,
-          promptFeedback: geminiRes?.promptFeedback,
-          usageMetadata: geminiRes?.usageMetadata,
-        };
         break;
       }
       const parts = candidate.content?.parts || [];
       const textParts = parts.filter((p: any) => typeof p.text === "string");
       const fnCalls = parts.filter((p: any) => p.functionCall);
-
-      /* TEMP DEBUG (2026-05-14): parts 비어있으면 finishReason·safetyRatings 보존 */
-      if (parts.length === 0) {
-        (lastDebugInfo as any) = {
-          phase: "empty_parts", model: usedModel,
-          finishReason: candidate.finishReason,
-          safetyRatings: candidate.safetyRatings,
-          tokenCount: candidate.tokenCount,
-          rawCandidate: candidate,
-          promptFeedback: geminiRes?.promptFeedback,
-          usageMetadata: geminiRes?.usageMetadata,
-        };
-      }
 
       /* 텍스트 응답 누적 */
       const textChunk = textParts.map((p: any) => p.text).join("\n").trim();
@@ -777,7 +756,5 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
-    /* TEMP DEBUG (2026-05-14): 빈 응답 진단용. fix 후 제거. */
-    ...(lastDebugInfo ? { _debug: lastDebugInfo } : {}),
   }), { status: 200, headers: JSON_HEADER });
 };
