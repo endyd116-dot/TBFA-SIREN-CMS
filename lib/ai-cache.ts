@@ -45,6 +45,11 @@ const INVALIDATION_MAP: Record<string, string[]> = {
   notice_create:         ["board_posts_list"],
   campaign_create:       ["campaigns_list", "campaigns_detail"],
   content_pages_update:  ["content_pages_list"],
+  /* Phase 22-A 매출 — 실제 도구 이름은 revenue_* (도구 키 = INVALIDATION_MAP 키 = 캐시 대상 도구 이름) */
+  revenue_create:  ["revenue_list", "pl_summary"],
+  revenue_update:  ["revenue_list", "pl_summary"],
+  revenue_approve: ["revenue_list", "pl_summary"],
+  revenue_refund:  ["revenue_list", "pl_summary"],
 };
 
 interface Entry {
