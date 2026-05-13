@@ -56,15 +56,46 @@ export const config = { path: "/api/admin-ai-agent" };
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-/* ★ 비용 최적화 정책 (월 $100 이내 목표)
- *   AI 비서는 빈번 호출 → 가장 저렴한 lite 우선
- *   1) gemini-3.1-flash-lite : 1순위 (대부분의 단순한 응답·도구 선택)
- *   2) gemini-2.5-flash      : 폴백 (lite 실패 시만)
- *   복잡한 분석은 cron-agent-8/9 같은 빈도 낮은 곳에서만 2.5-flash 사용 */
-const MODEL_CHAIN: string[] = Array.from(new Set([
+/* ★ 비용 최적화 정책 — 의도별 모델 체인 분리 (2026-05-13 업데이트)
+ *
+ * HIGH (변경 CRUD·복잡 작업) — 정확도 우선
+ *   1) gemini-3-flash-preview (최신·정확)
+ *   2) gemini-3.1-flash-lite  (폴백)
+ *   3) gemini-2.5-flash       (안정 폴백)
+ *   4) gemini-2.5-flash-lite  (최후 폴백)
+ *
+ * LOW (단순 조회·통계) — 속도·비용 우선
+ *   1) gemini-3.1-flash-lite  (저렴·충분)
+ *   2) gemini-2.5-flash-lite  (폴백)
+ *
+ * NONE (인사·확인 8자↓) — 도구 없이 lite로 즉시 (selectRelevantTools에서 처리)
+ */
+const HIGH_MODEL_CHAIN: string[] = Array.from(new Set([
+  "gemini-3-flash-preview",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
 ].filter(Boolean)));
+const LOW_MODEL_CHAIN: string[] = Array.from(new Set([
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+].filter(Boolean)));
+
+/* 변경 의도 키워드 — 매칭 시 HIGH 체인 사용 */
+const HIGH_INTENT_KEYWORDS = [
+  "추가", "등록", "생성", "만들", "넣어",
+  "수정", "변경", "바꿔", "고쳐", "업데이트",
+  "삭제", "지워", "제거", "없애",
+  "차단", "해제", "정지",
+  "발송", "보내", "보내줘",
+  "환불", "복구", "롤백",
+];
+
+function pickModelChain(userMessage: string): string[] {
+  const t = (userMessage || "").trim();
+  if (HIGH_INTENT_KEYWORDS.some(k => t.includes(k))) return HIGH_MODEL_CHAIN;
+  return LOW_MODEL_CHAIN;
+}
 
 /* ★ 무한루프·비용 폭발 방지 한도 */
 const MAX_STEPS = 2;                /* 멀티스텝 최대 횟수 (5 → 3 → 2 축소 — 응답 속도 ↑) */
@@ -301,11 +332,12 @@ async function callGeminiWithTools(
   contents: GeminiContent[],
   toolDeclarations: any[],
   systemPrompt: string,
+  modelChain: string[] = HIGH_MODEL_CHAIN,
 ): Promise<{ data: any; model: string }> {
   /* === Phase 4: Context Caching 시도 (32k 미달 시 자동 폴백) === */
   let lastError = "";
-  for (let i = 0; i < MODEL_CHAIN.length; i++) {
-    const model = MODEL_CHAIN[i];
+  for (let i = 0; i < modelChain.length; i++) {
+    const model = modelChain[i];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
     const cachedName = await ensurePromptCache({
@@ -475,6 +507,10 @@ export default async (req: Request, _ctx: Context) => {
   const systemPrompt = await getSystemPrompt();
   const adminRole = (auth as any).ctx?.admin?.role ?? null;
 
+  /* === 의도별 모델 체인 선택 (변경 키워드 → HIGH, 그 외 → LOW) === */
+  const modelChain = pickModelChain(userMessage);
+  console.info(`[ai-agent] 체인 선택: ${modelChain === HIGH_MODEL_CHAIN ? "HIGH" : "LOW"} (${modelChain[0]} 1순위)`);
+
   /* === F-1: 첨부 파일이 있으면 toolDeclarations는 전체로 (분류 한계 회피) === */
   if (inlineFiles.length > 0) {
     toolDeclarations = TOOL_DECLARATIONS as any[];
@@ -536,7 +572,7 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
-      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations, systemPrompt);
+      const { data: geminiRes, model: usedModel } = await callGeminiWithTools(messages, toolDeclarations, systemPrompt, modelChain);
 
       /* === Phase 1.5: 토큰 사용량 기록 (Gemini 응답 직후) === */
       try {
