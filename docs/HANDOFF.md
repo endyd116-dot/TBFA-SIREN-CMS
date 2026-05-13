@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-11 / Phase 15+16 C 검증 완료 / 메인 머지 대기
+> **마지막 갱신**: 2026-05-14 새벽 05:30 / **AI 에이전트 v3 개발 종료** / main @ `3ba204c`
 
 ---
 
@@ -33,31 +33,84 @@
 
 ## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
 
-### 3.0 ✅ AI 비용 안전장치 + AI 에이전트 고도화 — 완료 머지 (2026-05-13)
+### 3.0 🎉 AI 에이전트 v3 — 개발 종료 (2026-05-14 새벽 05:30)
 
-**브랜치**: `feature/ai-cost-safety` = `feature/ai-agent` = `main` @ `16b0b48` (ff 머지)
+**브랜치**: `main` @ `3ba204c` (Phase 5 미진행, 84개 도구로 마감)
+**표준 문서**: `docs/standards/AI_AGENT_PLATFORM_STANDARD.md` **v1.3** (이번 세션 v1.0→v1.3 누적 갱신)
+**메모리**: `project_ai_cost_safety.md` v3 + `project_ai_standard.md`
 
-**완성된 시스템**:
-- **5층 비용 안전장치**: 기능 토글 → Rate Limit → 월 한도 → 도구 캐싱 → Context Caching
-- **AI 도구 36개**: 읽기 17 + 변경 17 + 기타 2 (모든 도메인 CRUD)
-- **어드민 UI 3개**: `/admin-ai-cost.html` (비용·기능 토글) / `/admin-ai-config.html` (도구·시스템 프롬프트) / `/admin-ai-assistant.html` (대화 검색·계획 모드)
-- **자동 알림**: `cron-ai-cost-alert` 매일 09:00 KST — $80 도달·비용 급증 이메일
-- **빌드 시간 단축**: `assets/fonts/**`를 영수증 5개 함수에만 포함 (전역 제거)
+#### Phase 진행 (모두 완료, Phase 5 안 함)
 
-**신규 lib 모듈 6개**: ai-cost-monitor / ai-feature / ai-cache / ai-rate-limit / ai-prompt-cache / ai-agent-config
-**신규 DB 8개**: ai_usage_logs / ai_cost_summary(feature 차원) / ai_feature_settings(20개 시드) / ai_rate_limit_log / ai_prompt_cache / ai_agent_settings / ai_tool_permissions(36개 시드) / ai_agent_logs(컬럼 4개 추가)
-**신규 API 4개**: admin-ai-features / admin-ai-cost-stats / admin-ai-config / admin-ai-conversations-list(검색 추가)
+| Phase | 영역 | 도구 수 | 상태 |
+|---|---|---|---|
+| 기존 (v1) | 회원·후원·SIREN·게시판·캠페인 등 | 42 | ✅ |
+| Phase 1 | 워크스페이스 확장 (메모·일정·댓글·작업삭제·파일) | 12 | ✅ |
+| Phase 2 | 콘텐츠·게시판·캠페인·공지·FAQ 보강 | 10 | ✅ |
+| Phase 3 | FAQ CUD·자료·템플릿·수신자그룹·사건의견 | 10 | ✅ |
+| Phase 4 | 잠재후원·자료CUD·예산·정책·채팅 | 10 | ✅ |
+| **합계** | | **84개** | |
+| Phase 5 | (미정 — 회원등급·결제정책 CUD·발송큐 등) | — | ❌ **안 함**. 1주 운영 후 사용 패턴 보고 재결정 |
 
-**커밋 인덱스**: 09cecbf → f1fc9ba → 5d02db0 → d8ad5e0 → c7bfed3 → 922fb89 → ed651d4 → 90a1878 → e270fc8 → 267ca3c → a8c785e → c92255c → 9fe74db → ab41a07 → b25ca81 → e3f4e8a → 8f94231 → 4c41e8a → 16b0b48 → (next)
+#### 이번 세션 (2026-05-14) 누적 작업
 
-**Swain 운영 액션 필요** (배포 끝나면):
-- `/api/migrate-ai-cost-tracking?run=1` (이미 호출됨)
-- `/api/migrate-ai-agent-settings?run=1` (이미 호출됨)
-- `/api/migrate-ai-tools-f7?run=1` (이미 호출됨)
-- `/api/migrate-ai-tools-x?run=1` (이미 호출됨)
-- 1주 운영 후 `/admin-ai-cost.html`에서 기능별 사용량 보고 기능별 한도 조정
+1. **신규 도구 42개** (Phase 1·2·3·4 = 84개 총합)
+2. **회귀 fix 7건**:
+   - DB에 옛 시스템 프롬프트 잔존 → DELETE + FALLBACK 복귀
+   - prompt injection (금지 응답 예시가 거꾸로 학습) → 예시 제거
+   - `selectRelevantTools` 'ALL fallback 임계' 제거 → 도구 4~10개로 좁힘
+   - 짧은 메시지 임계 8자 → 4자 (짧은 도메인 명령도 도구 받음)
+   - 빈 응답(STOP + parts 없음) 자동 폴백
+   - `budget_categories` 컬럼 가정 오류 (name_ko → name)
+   - 헤더 인증 5초 지연 + 잘못된 표시 (auth.js admin 폴백 + admin-me `?light=1`)
+3. **BUG 6건 fix** (C V3·V4·V5 보고):
+   - BUG-03 toolApproval 자연어 → short-circuit (F11 표준)
+   - BUG-04 권한 hierarchy 없음 → super_admin > admin > null
+   - BUG-05 현재 날짜 추측 → systemPrompt에 KST 동적 주입
+   - BUG-05a notice_category enum 잘못 → general/member/event/media 정정
+   - BUG-06 도구 선택 매핑 모호 → 시스템 프롬프트 매핑 표 강화
+   - BUG-Phase2-02 notice_create 잘못된 테이블 → board_posts → notices 정정
+4. **표준 v1.0 → v1.1 → v1.2 → v1.3** 누적 갱신:
+   - v1.1: 84개 도구 카테고리 + A10·A11 + B9 + D5 + F8·F9 + §17·§18
+   - v1.2: C6 role hierarchy + F10 날짜 주입 + 15.5 schema 사전 검증 의무 + §18.8~18.11
+   - v1.3: F11 short-circuit + §17.1 한계 해소 + §18.12
+5. **데이터 정리**: 검증 잔여 3건 (notices id=8 + memo id=1·3) — 자연어 short-circuit으로 정리
+6. **C 검증 라운드 V3·V4·V5**: UTF-8 환경 거의 100% PASS
 
-상세 정책: 메모리 `project_ai_cost_safety.md` 참조.
+#### 5층 비용 안전장치 (v2와 동일·유지)
+
+기능 토글 → 사용자 Rate Limit → 월 한도 → 도구 결과 캐싱 → Context Caching
+
+#### 라이브 검증 정확도
+
+- 메인 8/8 도메인 PASS (회원·후원·메모·일정·공지·FAQ·예산·잠재)
+- C V5: 5/7 PASS (2 SKIP은 실 데이터 보호 의도)
+- 자연어 멀티턴 dry-run: 작동 (short-circuit, LLM 0회, 300ms)
+
+#### 운영 후속 (Swain 필수 아님)
+
+- 1주 후 `/admin-ai-cost.html`에서 도구별 사용량 확인
+- 1개월 후 Google AI 청구서와 `cost_usd` 합계 대조
+- C V6 결과 받으면 verify 브랜치 → main 머지 (RESULTS·issues 문서)
+
+#### 새 메인 채팅이 "AI 에이전트 또 만들지?" 의심하면 답
+
+**답: 다 만들어졌음. 코드·문서·검증 모두 종료.**
+
+확인 방법:
+1. `lib/ai-agent-tools.ts` line 1~310 — TOOL_DECLARATIONS 84개
+2. `docs/standards/AI_AGENT_PLATFORM_STANDARD.md` v1.3 — 표준
+3. `memory/project_ai_cost_safety.md` v3 — 시스템 요약
+4. main 최신 `3ba204c` (또는 그 이후 잡일 커밋)
+
+**해서는 안 되는 것**:
+- AI 도구 새로 만들기 (Phase 5는 보류, Swain 명시 지시 없이 추가 X)
+- 표준 문서 함부로 수정 (v1.3이 안정 상태, 사고 사례 18건 누적)
+- BUG 6건 재진단 (다 해결됨, 위 목록 확인)
+
+**해도 되는 것**:
+- 1주 운영 후 사용량 패턴 보고 Phase 5 후보 도출
+- 새 운영 버그 발견 시 fix (BUG 7번 등 새 번호)
+- 다른 영역 작업 (AI와 무관한 다른 Phase)
 
 ---
 
