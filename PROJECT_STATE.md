@@ -197,6 +197,8 @@
 
 **처리 원칙**: 새 이슈 발견 시 `docs/issues/{날짜}-{키워드}.md` 별도 파일 + 본 표에 한 줄 인덱스. 해결 후 상태 갱신.
 
+**해결된 이슈 archive**: 2026-05-14 정리로 `docs/issues/` 12건은 [docs/issues-archive.md](docs/issues-archive.md)에 압축 통합 (147줄). 위 표의 옛 `docs/issues/X.md` 링크는 더 이상 존재하지 않음 — 본문은 git history 또는 archive 참조.
+
 ---
 
 ## 7. worktree 현황 (4채팅 새 구조)
