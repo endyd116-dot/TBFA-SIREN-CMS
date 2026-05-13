@@ -2841,7 +2841,53 @@ export const aiToolPermissions = pgTable("ai_tool_permissions", {
   requiredRole:  varchar("required_role", { length: 20 }),       // NULL=모든 어드민, 'super_admin'=슈퍼만
   description:   text("description"),
   isMutation:    boolean("is_mutation").default(false).notNull(),
-  category:      varchar("category", { length: 30 }),            // 'content'|'members'|'donations'|'siren'|'board'|'workspace'|'kpi'|'nav'
+  category:      varchar("category", { length: 30 }),            // 'content'|'members'|'donations'|'siren'|'board'|'workspace'|'kpi'|'nav'|'finance'
   updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/* =========================================================
+   === Phase 22-A 매출 통합 관리 === (2026-05-14, 메인 0단계)
+   설계서: docs/milestones/2026-05-14-phase22a-revenue-management.md
+   - revenue_categories: 후원 외 매출 카테고리 정의 (6종 시드)
+   - other_revenues:     후원 외 매출 기록 (draft → approved/rejected, 환불 누적)
+   ========================================================= */
+
+export const revenueCategories = pgTable("revenue_categories", {
+  id:           serial("id").primaryKey(),
+  code:         varchar("code", { length: 32 }).unique().notNull(),  // 'lecture'|'govgrant'|'corp_sponsor'|'twork_on'|'twork_si'|'etc'
+  name:         varchar("name", { length: 100 }).notNull(),          // 한글명
+  description:  text("description"),
+  sortOrder:    integer("sort_order").default(0).notNull(),
+  isActive:     boolean("is_active").default(true).notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  codeIdx:    index("revenue_categories_code_idx").on(t.code),
+  activeIdx:  index("revenue_categories_active_idx").on(t.isActive),
+}));
+
+export const otherRevenues = pgTable("other_revenues", {
+  id:               serial("id").primaryKey(),
+  fiscalYear:       integer("fiscal_year").notNull(),                                    // 2026 등 (recognizedAt 연도, 서버에서 자동)
+  recognizedAt:     date("recognized_at").notNull(),                                     // 매출 인식일 (입금일)
+  categoryId:       integer("category_id").notNull().references(() => revenueCategories.id),
+  amount:           bigint("amount", { mode: "number" }).notNull(),                      // 원 단위
+  payerName:        varchar("payer_name", { length: 200 }),                              // 납입자/거래처
+  description:      text("description"),
+  receiptUrl:       varchar("receipt_url", { length: 500 }),                             // R2 증빙파일
+  status:           varchar("status", { length: 20 }).default("draft").notNull(),        // 'draft'|'approved'|'rejected'
+  refundAmount:     bigint("refund_amount", { mode: "number" }).default(0).notNull(),    // 환불 누적 (net 계산용)
+  recordedBy:       integer("recorded_by"),                                              // members.id (작성자)
+  recordedAt:       timestamp("recorded_at", { withTimezone: true }).defaultNow().notNull(),
+  approvedBy:       integer("approved_by"),                                              // members.id (승인자)
+  approvedAt:       timestamp("approved_at", { withTimezone: true }),
+  rejectionReason:  text("rejection_reason"),
+  createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  fiscalYearIdx:    index("other_revenues_fy_idx").on(t.fiscalYear),
+  categoryIdx:      index("other_revenues_category_idx").on(t.categoryId),
+  statusIdx:        index("other_revenues_status_idx").on(t.status),
+  recognizedAtIdx:  index("other_revenues_recognized_idx").on(t.recognizedAt),
+}));
 
