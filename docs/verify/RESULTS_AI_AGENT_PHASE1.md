@@ -1,17 +1,19 @@
 # 검증 결과 — AI 에이전트 Phase 1 (워크스페이스 CRUD 12개)
 
 > 브리핑: [`AI_AGENT_PHASE1_BRIEFING.md`](AI_AGENT_PHASE1_BRIEFING.md)
-> 라이브 URL: https://feature-ai-cost-safety--tbfa-siren-cms.netlify.app
+> 라이브 URL: https://tbfa-siren-cms.netlify.app (production — 2026-05-13 main 머지)
 > 검증자: C 채팅
-> 시작일: (검증 시작 시 채워넣음)
+> 시작일: 2026-05-13
+> 코드 베이스: main 40ffebf (4f9fabf 리팩터링 → revert, 원래 직접 DB 패턴 복구) + verify 브랜치 머지(43b3a6c)
+> 비고: 표준 문서 §3.3은 직접 DB가 정답 패턴이므로 **활동 피드 자동 기록 확인 항목은 제외** (직접 DB라 활동피드 안 잡힘이 정상)
 
 ---
 
 ## 0. 사전 점검
 
-- [ ] 마이그 호출 완료 (`migrate-ai-tools-phase1ws?run=1`) — Swain 확인
-- [ ] 배포 완료 (`git log origin/feature/ai-cost-safety` 최신 = e87fbd1↑)
-- [ ] 어드민 로그인 OK (preview URL)
+- [x] 마이그 호출 완료 (`migrate-ai-tools-phase1ws?run=1`) — 1회용 마이그 a917ee2에서 삭제됨 (적용 완료 확인)
+- [x] main 최신 = 40ffebf, verify 브랜치에 머지 완료 (43b3a6c)
+- [ ] 어드민 로그인 OK (production URL)
 - [ ] AI 비서 채팅 진입 OK (`cms-tbfa.html` → AI 비서 메뉴)
 
 ---
@@ -21,71 +23,77 @@
 ### 메모 (M1~M6)
 
 #### M1 — 내 메모 보여줘
-- [ ] 호출 도구: `memos_list`
-- [ ] 모델 체인: (HIGH / LOW)
-- [ ] 응답 시간: __s
-- [ ] 결과: (PASS/FAIL/SKIP)
-- 비고:
+- [x] 1차 (사용자 입력): toolCalls=[], reply="어떤 메모를 찾으시나요?", 14초
+- [x] **C 직접 호출 재현 (curl)**: toolCalls=[], reply="어떤 메모를 수정하시겠어요? 메모 ID와 함께 수정할 내용을 알려주세요.", 19초, inputTokens=4342
+- [x] 결과: **FAIL** — `memos_list` 호출 안 됨. AI가 "보여줘"를 "수정"으로 오해석
+- 회피책 시도 ("내 워크스페이스 메모 목록 조회해줘"):
+  - 1차: 503 high demand, 20초
+  - C 직접 호출: 503 high demand, 2초 (Gemini API 일시 장애)
+- BUG: **BUG-AI-AGENT-PHASE1-01** (도구 호출 회귀 전반 — 자세한 분석 §1.5 참조)
+- BUG: **BUG-AI-AGENT-PHASE1-02** (Gemini API 일시 503 — 외부 인프라)
 
 #### M2 — 노란 메모 'Phase 1 검증 시작' 만들어줘 (dry-run)
-- [ ] 호출 도구: `memo_create`
-- [ ] dry-run 미리보기: (preview 응답 발췌)
-- [ ] 결과: (PASS/FAIL)
-- 비고:
+- [x] **C 직접 호출 (curl)**: toolCalls=[], reply="어떤 내용을 수정하시겠어요? 메모의 제목, 내용, 색상, 고정 여부, 캘린더 표시 여부 등을 변경할 수 있습니다.", 10초, inputTokens=5085
+- [x] 의도 분류: HIGH 체인 (키워드 "만들" 포함) → `gemini-3-flash-preview` 1순위
+- [x] 결과: **FAIL** — `memo_create` 호출 안 됨. HIGH 모델조차 명확한 생성 의도를 도구 호출로 연결 못함. AI가 memo_create 대신 memo_update 인자를 나열하며 되묻기
+- BUG: **BUG-AI-AGENT-PHASE1-01** (동일 원인 — 의도 분류 회귀 전반)
 
-#### M3 — M2 후 "응" / "진행"
-- [ ] 실제 INSERT: memo_id = ?
-- [ ] 워크스페이스 UI 확인: (메모 보임/안 보임)
-- [ ] 결과:
-- 비고:
+#### M3 ~ F2 — 검증 중단
+- [x] M3 ~ F2 (남은 15개 시나리오): **SKIP — 시스템 회귀로 진행 불가**
+- 사유: BUG-AI-AGENT-PHASE1-01 확정. 자연어 명령에서 모든 도구 호출 회귀(Phase 1 도구뿐 아니라 기존 도구 `members_stats`도 동일 패턴). 메인 채팅 fix 후 재검증 라운드 필요.
+
+### Sanity Check — 기존 도구 (Phase 1 외)
+
+회귀 범위 확정을 위한 기존 도구 검증:
+
+| # | 입력 | 결과 |
+|---|---|---|
+| SC-1 | `회원 통계 보여줘` | **FAIL** — toolCalls=[], reply="어떤 회원 정보를 조회해 드릴까요?", 5초 |
+| SC-2 | `members_stats 도구 호출해서 회원 통계 보여줘` (도구명 직접 지정) | **PASS** — toolCalls=[{name:"members_stats", args:{}, result:{...total:61명}}], reply 정상, 17초 |
+
+**해석**: 도구·인증·인프라·호출 경로는 모두 정상. **자연어 → 도구 호출 의도 분류만 회귀**. 사용자가 도구명을 직접 명시해야만 작동.
+
+---
 
 #### M4 — 분홍색으로 바꿔줘
 - [ ] 호출: `memo_update` color=pink
 - [ ] UI 새로고침 확인:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### M5 — 고정해줘
 - [ ] 호출: `memo_update` isPinned=true
 - [ ] UI pinned 최상단:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### M6 — 지워줘
 - [ ] dry-run 메시지 "영구 삭제됩니다" 포함:
 - [ ] DELETE 실행 후 UI에서 사라짐:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 ### 캘린더 일정 (E1~E5)
 
 #### E1 — 이번 주 일정 보여줘
 - [ ] 호출: `events_list`
 - [ ] 날짜 범위 정확:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### E2 — 내일 오후 3시 박두용 미팅 1시간 (dry-run)
 - [ ] 호출: `event_create` startAt=내일 15:00
 - [ ] eventType=meeting 자동 감지:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### E3 — E2 후 진행
 - [ ] event_id = ?
 - [ ] 캘린더 탭에 표시:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### E4 — 위치 '본부 회의실'로 추가
 - [ ] 호출: `event_update` location='본부 회의실'
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### E5 — 그 일정 지워줘
 - [ ] DELETE 실행:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 ### 작업 댓글·삭제 (T1~T4)
 
@@ -97,32 +105,27 @@
 #### T2 — 댓글 '검증 진행 중' 달아줘
 - [ ] 호출: `task_comment_add`
 - [ ] comment_id = ?
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### T3 — 댓글 보여줘
 - [ ] 호출: `task_comments_list`
 - [ ] 1건 표시:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### T4 — 작업 지워줘 (cascade 검증)
 - [ ] dry-run "작업 + 댓글 1건" 표시:
 - [ ] DELETE 후 작업·댓글 함께 사라짐:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 ### 파일함 (F1~F2)
 
 #### F1 — 내 파일함 보여줘
 - [ ] 호출: `files_list` folderId=null
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 #### F2 — 더미 폴더 1개 만든 후 다시 조회
 - [ ] folderCount=1:
-- [ ] 결과:
-- 비고:
+- [x] SKIP (BUG-AI-AGENT-PHASE1-01 — 자연어 의도 분류 회귀)
 
 ---
 
@@ -130,30 +133,53 @@
 
 | 영역 | 통과 | 실패 | 스킵 | 비고 |
 |---|---|---|---|---|
-| 메모 (M) | 0/6 | 0/6 | 0/6 |  |
-| 캘린더 (E) | 0/5 | 0/5 | 0/5 |  |
-| 댓글·삭제 (T) | 0/4 | 0/4 | 0/4 |  |
-| 파일 (F) | 0/2 | 0/2 | 0/2 |  |
-| **합계** | **0/17** | **0/17** | **0/17** |  |
+| 메모 (M) | 0/6 | 2/6 | 4/6 | M1·M2 FAIL, M3~M6 SKIP |
+| 캘린더 (E) | 0/5 | 0/5 | 5/5 | 전체 SKIP |
+| 댓글·삭제 (T) | 0/4 | 0/4 | 4/4 | 전체 SKIP |
+| 파일 (F) | 0/2 | 0/2 | 2/2 | 전체 SKIP |
+| Sanity (SC) | 1/2 | 1/2 | 0/2 | SC-1 자연어 FAIL / SC-2 도구명 직접 PASS |
+| **합계** | **1/19** | **3/19** | **15/19** | 회귀로 검증 중단 |
 
 ---
 
 ## 3. 발견 BUG 목록
 
-(없으면 "없음" 기재)
-
 | ID | 시나리오 | 제목 | 재현률 | 회피책 | 파일 |
 |---|---|---|---|---|---|
-| BUG-AI-AGENT-PHASE1-01 | — | — | — | — | `docs/issues/2026-05-13-...md` |
+| BUG-AI-AGENT-PHASE1-01 | M1·M2·SC-1 | AI 비서 자연어 의도 분류 회귀 — 도구 호출 전반 불능 (Phase 1 + 기존 도구 모두) | 4/4 | 도구명 직접 지정만 작동(SC-2) | `docs/issues/2026-05-13-ai-agent-phase1-memos-list-no-call.md` |
+| BUG-AI-AGENT-PHASE1-02 | M1 회피책 | Gemini API 503 high demand (Google 측 일시 장애) | 1/2 | 재시도 (일시) | `docs/issues/2026-05-13-ai-agent-phase1-gemini-timeout.md` |
 
 ---
 
 ## 4. 메인 채팅 인계 메시지 (Swain 복붙용)
 
 ```
-[C 채팅 → 메인 채팅] AI 에이전트 Phase 1 검증 완료.
-- 통과 X/17, 실패 Y/17, 스킵 Z/17
-- BUG-AI-AGENT-PHASE1-{NN} 보고 (자세한 내용 docs/issues/)
-- RESULTS·issues verify/ai-agent-phase1에 푸시
-- Phase 2 진행 가능 여부: (예/아니오 + 사유)
+[C 채팅 → 메인 채팅] AI 에이전트 Phase 1 검증 — 시스템 회귀로 중단.
+
+핵심: 자연어 명령에서 AI가 도구 호출 안 함 → 항상 되묻기로 응답.
+범위: Phase 1 신규 도구뿐 아니라 기존 도구(members_stats)도 동일 → AI 비서 의도 분류 전반 회귀.
+회피: 사용자가 도구명을 직접 지정해야만 작동 (실용 불가).
+
+근거:
+- M1 "내 메모 보여줘" → toolCalls=[], "어떤 메모를 수정?" (19s)
+- M2 "노란 메모 만들어줘" → toolCalls=[], "어떤 내용 수정?" (10s, HIGH 체인)
+- SC-1 "회원 통계 보여줘" → toolCalls=[], "어떤 회원 정보?" (5s)
+- SC-2 "members_stats 도구 호출해서 ..." → 정상 작동 ✓
+
+원인 후보 (점검 부탁):
+1) admin-ai-agent.ts:116-133 SYSTEM_PROMPT 규칙 #2 "의도 모호하면 되묻기" 과보수 + "도구 22개" 갱신 누락
+2) e87fbd1/a5e05d9/e5f8d45 중 회귀 의심
+3) lib/ai-agent-tools.ts memo/event/files description 강화
+
+결과:
+- 통과 1/19 (SC-2 도구명 직접 지정만)
+- 실패 3/19 (M1·M2·SC-1)
+- 스킵 15/19 (회귀 확정 후 진행 의미 없음)
+
+상세: docs/verify/RESULTS_AI_AGENT_PHASE1.md
+BUG: docs/issues/2026-05-13-ai-agent-phase1-memos-list-no-call.md (BUG-01)
+     docs/issues/2026-05-13-ai-agent-phase1-gemini-timeout.md (BUG-02 일시 503)
+브랜치: verify/ai-agent-phase1 (commit 곧)
+
+fix 후 동일 시나리오 재검증 라운드 시작 부탁드립니다.
 ```
