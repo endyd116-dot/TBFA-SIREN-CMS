@@ -137,6 +137,61 @@
       }
       .aiw-empty .aiw-suggest:hover { border-color: #1e40af; color: #1e40af; }
 
+      /* === F-4: AI 응답 마크다운 표 === */
+      .aiw-tbl { border-collapse: collapse; font-size: 12px; margin: 6px 0; width: 100%; }
+      .aiw-tbl th, .aiw-tbl td { padding: 5px 8px; border: 1px solid #e2e8f0; text-align: left; }
+      .aiw-tbl th { background: #f8fafc; font-weight: 600; }
+      .aiw-tbl tr:nth-child(even) td { background: #fafbfc; }
+      .aiw-bubble code {
+        background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px;
+        font-family: 'Consolas', 'Monaco', monospace; font-size: 11.5px;
+      }
+      .aiw-bubble strong { font-weight: 600; }
+
+      /* === F-3: 빠른 명령 칩 (input-bar 위) === */
+      .aiw-quick-bar {
+        display: flex; gap: 6px; padding: 6px 12px;
+        overflow-x: auto; overflow-y: hidden;
+        border-top: 1px solid #f1f5f9;
+        white-space: nowrap; scrollbar-width: thin;
+      }
+      .aiw-quick-bar::-webkit-scrollbar { height: 4px; }
+      .aiw-quick-bar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+      .aiw-quick-chip {
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9999px;
+        padding: 5px 12px; font-size: 11.5px; color: #475569; cursor: pointer;
+        flex-shrink: 0; white-space: nowrap;
+      }
+      .aiw-quick-chip:hover { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+      .aiw-quick-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* === F-1: 파일 첨부 === */
+      .aiw-attach-btn {
+        background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;
+        width: 36px; height: 36px; font-size: 16px; cursor: pointer; padding: 0;
+        flex-shrink: 0;
+      }
+      .aiw-attach-btn:hover { background: #e2e8f0; }
+      .aiw-attach-list {
+        padding: 6px 12px; display: flex; flex-wrap: wrap; gap: 6px;
+        border-top: 1px solid #f1f5f9;
+      }
+      .aiw-attach-list:empty { display: none; }
+      .aiw-attach-item {
+        background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px;
+        padding: 3px 8px; font-size: 11.5px; color: #1e40af;
+        display: flex; align-items: center; gap: 6px;
+        max-width: 200px;
+      }
+      .aiw-attach-item .name {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .aiw-attach-item .rm {
+        background: transparent; border: none; color: #1e40af; cursor: pointer;
+        font-size: 13px; padding: 0; line-height: 1;
+      }
+      .aiw-attach-item .rm:hover { color: #b91c1c; }
+
       @media (max-width: 600px) {
         .aiw-panel { width: 92vw; right: -100vw; }
         .aiw-panel.open { right: 0; }
@@ -167,7 +222,18 @@
         </div>
       </div>
       <div class="aiw-msgs"></div>
+      <div class="aiw-attach-list"></div>
+      <div class="aiw-quick-bar">
+        <button class="aiw-quick-chip" data-prompt="회원 유형별 통계 알려줘">📊 회원 통계</button>
+        <button class="aiw-quick-chip" data-prompt="이번달 후원 현황 요약해줘">💰 이번달 후원</button>
+        <button class="aiw-quick-chip" data-prompt="최근 SIREN 신고 5건 보여줘">🚨 최근 신고</button>
+        <button class="aiw-quick-chip" data-prompt="오늘 KPI 요약해줘">📋 오늘 KPI</button>
+        <button class="aiw-quick-chip" data-prompt="최근 알림 10건 보여줘">🔔 최근 알림</button>
+        <button class="aiw-quick-chip" data-prompt="진행 중 작업 목록 보여줘">⚠️ 미처리 작업</button>
+      </div>
       <div class="aiw-input-bar">
+        <button class="aiw-attach-btn" title="파일 첨부 (PDF·이미지, 최대 5MB)">📎</button>
+        <input type="file" class="aiw-file-input" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden>
         <textarea class="aiw-input" placeholder="명령을 입력하세요…  (Enter로 전송, Shift+Enter 줄바꿈)" rows="1"></textarea>
         <button class="aiw-send">보내기</button>
       </div>
@@ -196,6 +262,130 @@
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     });
+
+    /* === F-3: 빠른 명령 칩 — 클릭 즉시 전송 === */
+    panel.querySelectorAll('.aiw-quick-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        if (chip.disabled) return;
+        var prompt = chip.dataset.prompt || '';
+        if (!prompt) return;
+        input.value = prompt;
+        sendMsg();
+      });
+    });
+
+    /* === F-1: 파일 첨부 === */
+    var attachBtn = panel.querySelector('.aiw-attach-btn');
+    var fileInput = panel.querySelector('.aiw-file-input');
+    var attachList = panel.querySelector('.aiw-attach-list');
+    attachBtn.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', async function () {
+      for (var i = 0; i < fileInput.files.length; i++) {
+        var f = fileInput.files[i];
+        if (f.size > 5 * 1024 * 1024) {
+          alert('파일 ' + f.name + ' 크기가 5MB를 초과합니다.');
+          continue;
+        }
+        if (pendingFiles.length >= 4) {
+          alert('최대 4개까지 첨부 가능합니다.');
+          break;
+        }
+        try {
+          var data = await fileToBase64(f);
+          pendingFiles.push({ name: f.name, mimeType: f.type, data: data, sizeKB: Math.round(f.size / 1024) });
+        } catch (e) { console.warn('파일 읽기 실패', e); }
+      }
+      fileInput.value = '';
+      renderAttachList(attachList);
+    });
+  }
+
+  /* 첨부 파일 메모리 보관 — sendMsg 후 비움 */
+  var pendingFiles = [];
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () {
+        var s = String(r.result || '');
+        var idx = s.indexOf(',');
+        resolve(idx >= 0 ? s.slice(idx + 1) : s);
+      };
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function renderAttachList(el) {
+    el.innerHTML = pendingFiles.map(function (f, i) {
+      return '<span class="aiw-attach-item">' +
+        '<span class="name" title="' + escapeHtml(f.name) + '">' + escapeHtml(f.name) + ' (' + f.sizeKB + 'KB)</span>' +
+        '<button class="rm" data-i="' + i + '">×</button></span>';
+    }).join('');
+    el.querySelectorAll('.rm').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pendingFiles.splice(Number(btn.dataset.i), 1);
+        renderAttachList(el);
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+
+  /* === F-4: 가벼운 마크다운 → HTML (표 + inline) === */
+  function renderInline(s) {
+    s = escapeHtml(s);
+    s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/`([^`\n]+?)`/g, '<code>$1</code>');
+    return s;
+  }
+  function renderMarkdown(text) {
+    var lines = String(text || '').split('\n');
+    var out = [];
+    var tbl = [];
+
+    function flush() {
+      if (tbl.length === 0) return;
+      var isTable = tbl.length >= 2 && /^\s*\|?(?:\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?\s*$/.test(tbl[1]);
+      if (isTable) {
+        var header = tbl[0].split('|').map(function (c) { return c.trim(); }).filter(function (c, i, a) {
+          return !(i === 0 && c === '') && !(i === a.length - 1 && c === '');
+        });
+        var rows = tbl.slice(2).map(function (line) {
+          return line.split('|').map(function (c) { return c.trim(); }).filter(function (c, i, a) {
+            return !(i === 0 && c === '') && !(i === a.length - 1 && c === '');
+          });
+        });
+        var html = '<table class="aiw-tbl"><thead><tr>';
+        header.forEach(function (h) { html += '<th>' + renderInline(h) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        rows.forEach(function (row) {
+          html += '<tr>';
+          row.forEach(function (c) { html += '<td>' + renderInline(c) + '</td>'; });
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+        out.push(html);
+      } else {
+        tbl.forEach(function (l) { out.push(renderInline(l)); });
+      }
+      tbl = [];
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      if (/^\s*\|.*\|\s*$/.test(lines[i])) {
+        tbl.push(lines[i]);
+      } else {
+        flush();
+        out.push(renderInline(lines[i]));
+      }
+    }
+    flush();
+    return out.join('<br>');
   }
 
   function showEmpty(msgsEl) {
@@ -237,7 +427,13 @@
     var m = document.createElement('div');
     m.className = 'aiw-msg ' + role;
     m.innerHTML = '<div class="aiw-bubble"></div>';
-    m.querySelector('.aiw-bubble').textContent = text;
+    /* === F-4: AI 응답만 마크다운(표·굵게·코드) 렌더, user는 텍스트 그대로 === */
+    var bubble = m.querySelector('.aiw-bubble');
+    if (role === 'ai') {
+      bubble.innerHTML = renderMarkdown(text);
+    } else {
+      bubble.textContent = text;
+    }
     msgs.appendChild(m);
     msgs.scrollTop = msgs.scrollHeight;
     return m;
@@ -287,14 +483,42 @@
   async function sendMsg() {
     var input = document.querySelector('.aiw-input');
     var text = input.value.trim();
-    if (!text) return;
+    if (!text && pendingFiles.length === 0) return;
     input.value = '';
     input.style.height = 'auto';
-    appendMsg('user', text);
+
+    /* 사용자 메시지에 첨부 파일 표기 */
+    var userDisplay = text || '(파일 분석 요청)';
+    if (pendingFiles.length > 0) {
+      userDisplay += '\n📎 ' + pendingFiles.map(function (f) { return f.name; }).join(', ');
+    }
+    appendMsg('user', userDisplay);
+
+    /* 전송용 파일 복사 후 pendingFiles 비움 (재첨부 가능) */
+    var filesToSend = pendingFiles.map(function (f) {
+      return { mimeType: f.mimeType, data: f.data };
+    });
+    pendingFiles = [];
+    var attachList = document.querySelector('.aiw-attach-list');
+    if (attachList) renderAttachList(attachList);
 
     var sendBtn = document.querySelector('.aiw-send');
     sendBtn.disabled = true;
     var thinking = appendMsg('ai', '🤔 생각 중…');
+
+    /* === F-2: 단계 상태 시각화 — 시간 흐름에 따라 메시지 자동 갱신 === */
+    var stages = [
+      { delay: 2000,  text: '🔍 정보 조회 중…' },
+      { delay: 5000,  text: '📊 결과 정리 중…' },
+      { delay: 10000, text: '⏳ 거의 끝났습니다…' },
+      { delay: 18000, text: '⌛ 조금만 더 기다려주세요…' },
+    ];
+    var stageTimers = stages.map(function (st) {
+      return setTimeout(function () {
+        if (thinking && thinking.isConnected) thinking.textContent = st.text;
+      }, st.delay);
+    });
+    function clearStages() { stageTimers.forEach(clearTimeout); }
 
     try {
       var res = await fetch('/api/admin-ai-agent', {
@@ -303,9 +527,11 @@
         body: JSON.stringify({
           conversationId: conversationId,
           userMessage: text,
+          inlineFiles: filesToSend,
         }),
       });
       var j = await res.json().catch(function () { return {}; });
+      clearStages();
       thinking.remove();
       if (!res.ok) throw new Error((j.error || 'HTTP ' + res.status) + (j.detail ? ' — ' + j.detail : '') + (j.step ? ' [step:' + j.step + ']' : ''));
       conversationId = j.conversationId || conversationId;
@@ -313,6 +539,7 @@
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
       if (j.pendingApproval) appendPendingApproval(j.pendingApproval);
     } catch (err) {
+      clearStages();
       thinking.remove();
       appendMsg('ai', '❌ 오류: ' + (err.message || err));
     } finally {

@@ -236,8 +236,29 @@ export default async (req: Request, _ctx: Context) => {
   const userMessage = String(body?.userMessage || "").trim();
   let conversationId = body?.conversationId ? Number(body.conversationId) : null;
 
-  if (!userMessage && !body?.toolApproval) {
-    return jsonError("validate", "userMessage 또는 toolApproval 필요", 400);
+  /* === F-1: 첨부 파일 (PDF·이미지) 받기 ===
+     [{ mimeType: 'image/jpeg', data: base64 }, ...]
+     5MB 한도, 4개 이하 권장 */
+  const rawFiles: Array<{ mimeType?: string; data?: string }> = Array.isArray(body?.inlineFiles) ? body.inlineFiles : [];
+  const inlineFiles = rawFiles
+    .filter(f => f && typeof f.data === "string" && typeof f.mimeType === "string")
+    .map(f => {
+      let data = f.data || "";
+      if (data.startsWith("data:")) {
+        const idx = data.indexOf(",");
+        if (idx >= 0) data = data.slice(idx + 1);
+      }
+      return { mimeType: f.mimeType!, data };
+    })
+    .filter(f => /^(image\/(jpeg|png|webp)|application\/pdf)$/.test(f.mimeType))
+    .slice(0, 4);
+  const totalBase64KB = inlineFiles.reduce((s, f) => s + (f.data.length / 1024), 0);
+  if (totalBase64KB > 7000) {  /* base64 7000KB ≈ 원본 5MB */
+    return jsonError("validate", "첨부 파일 합계가 5MB를 초과합니다 (최대 4개 / 5MB)", 400);
+  }
+
+  if (!userMessage && !body?.toolApproval && inlineFiles.length === 0) {
+    return jsonError("validate", "userMessage 또는 toolApproval 또는 inlineFiles 필요", 400);
   }
 
   /* 1. 대화 로드 또는 신규 생성 */
@@ -265,7 +286,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* === 동적 도구 로딩 — 첫 사용자 메시지로 의도 분류 → 관련 도구만 전송 === */
   const selectedToolNames = userMessage ? selectRelevantTools(userMessage) : null;
-  const toolDeclarations: any[] = selectedToolNames
+  let toolDeclarations: any[] = selectedToolNames
     ? (TOOL_DECLARATIONS as any[]).filter((t: any) => selectedToolNames.includes(t.name))
     : (TOOL_DECLARATIONS as any[]);
   if (selectedToolNames) {
@@ -276,9 +297,21 @@ export default async (req: Request, _ctx: Context) => {
   const systemPrompt = await getSystemPrompt();
   const adminRole = (auth as any).ctx?.admin?.role ?? null;
 
-  /* 2. 사용자 메시지 추가 */
-  if (userMessage) {
-    messages.push({ role: "user", parts: [{ text: userMessage }] });
+  /* === F-1: 첨부 파일이 있으면 toolDeclarations는 전체로 (분류 한계 회피) === */
+  if (inlineFiles.length > 0) {
+    toolDeclarations = TOOL_DECLARATIONS as any[];
+    console.info(`[ai-agent] 첨부 파일 ${inlineFiles.length}개 — 전체 도구 사용`);
+  }
+
+  /* 2. 사용자 메시지 추가 — 첨부 있으면 파일 먼저, 텍스트 나중에 (Gemini 권장 순서) */
+  if (userMessage || inlineFiles.length > 0) {
+    const parts: any[] = [];
+    for (const f of inlineFiles) {
+      parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
+    }
+    if (userMessage) parts.push({ text: userMessage });
+    else if (inlineFiles.length > 0) parts.push({ text: "첨부된 파일을 분석해주세요." });
+    messages.push({ role: "user", parts });
   }
 
   /* 3. Gemini 호출 — 최대 5회 멀티스텝 (도구 호출 → 결과 반영 → 또 도구 호출) */
