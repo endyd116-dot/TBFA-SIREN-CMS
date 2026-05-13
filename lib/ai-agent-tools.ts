@@ -537,6 +537,43 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
     }}},
+
+  /* === Phase 22-C 지출 (5개) === */
+  { name: "expense_categories_list", description: "지출 카테고리 목록. NPO 표준 4분류(인건비/사업비/관리운영비/모금비) + 사용자 정의",
+    parameters: { type: "OBJECT", properties: {} }},
+
+  { name: "expenses_list", description: "지출 항목 목록 조회. 연도·상태·카테고리 필터 (status: draft|approved|rejected)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
+      status:     { type: "STRING",  description: "draft|approved|rejected|all (기본 all)" },
+      categoryId: { type: "INTEGER", description: "expense_categories.id (선택)" },
+      page:       { type: "INTEGER" },
+      limit:      { type: "INTEGER" },
+    }}},
+
+  { name: "expense_create", description: "지출 항목 등록 (draft 상태로 저장, 승인 별도)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear:  { type: "INTEGER", description: "회계연도 (예: 2026)" },
+      occurredAt:  { type: "STRING",  description: "지출 발생일 YYYY-MM-DD" },
+      categoryId:  { type: "INTEGER", description: "expense_categories.id" },
+      amount:      { type: "INTEGER", description: "금액 (원)" },
+      payeeName:   { type: "STRING",  description: "지급처 (선택)" },
+      description: { type: "STRING",  description: "상세 내용 (선택)" },
+      receiptUrl:  { type: "STRING",  description: "영수증 URL (선택)" },
+    }, required: ["fiscalYear", "occurredAt", "categoryId", "amount"] }},
+
+  { name: "expense_approve", description: "지출 항목 승인 또는 반려 (super_admin 전용, action: approve|reject)",
+    parameters: { type: "OBJECT", properties: {
+      id:              { type: "INTEGER", description: "지출 항목 ID" },
+      action:          { type: "STRING",  description: "approve|reject" },
+      rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
+    }, required: ["id", "action"] }},
+
+  { name: "expense_refund", description: "승인된 지출 항목 환불 기록 (super_admin 전용, status='approved'만 가능)",
+    parameters: { type: "OBJECT", properties: {
+      id:           { type: "INTEGER", description: "지출 항목 ID" },
+      refundAmount: { type: "INTEGER", description: "환불 금액 (원). 원래 금액 이하" },
+    }, required: ["id", "refundAmount"] }},
 ];
 
 /* =========================================================
@@ -664,6 +701,12 @@ export async function executeTool(
       case "revenue_approve":         return await tool_revenueApprove(args, adminId);
       case "revenue_refund":          return await tool_revenueRefund(args, adminId);
       case "pl_summary":              return await tool_plSummary(args);
+      /* Phase 22-C 지출 */
+      case "expense_categories_list": return await tool_expenseCategoriesList();
+      case "expenses_list":           return await tool_expensesList(args);
+      case "expense_create":          return await tool_expenseCreate(args, adminId);
+      case "expense_approve":         return await tool_expenseApprove(args, adminId);
+      case "expense_refund":          return await tool_expenseRefund(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -3332,7 +3375,29 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       return { code: row.code, name: row.name, gross: g, refund: rf, net: g - rf };
     });
 
+    // Phase 22-C 지출 집계 (status='approved')
+    const expR: any = await db.execute(sql`
+      SELECT c.code, c.name,
+             COALESCE(SUM(e.amount), 0) AS gross,
+             COALESCE(SUM(e.refund_amount), 0) AS refund
+        FROM expenses e
+        LEFT JOIN expense_categories c ON c.id = e.category_id
+       WHERE e.status = 'approved'
+         AND e.fiscal_year = ${Number(fiscalYear)}
+       GROUP BY c.code, c.name
+    `);
+    const expRows = expR?.rows ?? expR ?? [];
+    let expGross = 0; let expRefund = 0;
+    const expByCategory = expRows.map((row: any) => {
+      const g = Number(row.gross); const rf = Number(row.refund);
+      expGross += g; expRefund += rf;
+      return { code: row.code, name: row.name, gross: g, refund: rf, total: g - rf };
+    });
+
+    // BUG-002 fix: 후원 환불(donRefund)도 totalNet에 차감되도록 donNet 사용
     const totalNet = donNet + (othGross - othRefund);
+    const expenditureTotal = expGross - expRefund;
+    const netIncome = totalNet - expenditureTotal;
     return {
       ok: true,
       output: {
@@ -3342,12 +3407,240 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
           other: { gross: othGross, refund: othRefund, net: othGross - othRefund, byCategory },
           totalNet,
         },
-        expenditure: { total: 0, byCategory: [] },
-        netIncome: totalNet,
-        summary: `${fiscalYear}년 총 순수익: ${totalNet.toLocaleString("ko-KR")}원 (후원 net ${donNet.toLocaleString("ko-KR")}원 + 기타 net ${(othGross - othRefund).toLocaleString("ko-KR")}원)`,
+        expenditure: { total: expenditureTotal, gross: expGross, refund: expRefund, byCategory: expByCategory },
+        netIncome,
+        summary: `${fiscalYear}년 총수입 ${totalNet.toLocaleString("ko-KR")}원 - 총지출 ${expenditureTotal.toLocaleString("ko-KR")}원 = 순이익 ${netIncome.toLocaleString("ko-KR")}원`,
       },
     };
   } catch (e: any) {
     return { ok: false, error: `손익 요약 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* === Phase 22-C 지출 (5개) === */
+
+async function tool_expenseCategoriesList(): Promise<ToolResult> {
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, code, name, description, is_system, sort_order, is_active
+        FROM expense_categories
+       ORDER BY sort_order ASC, id ASC
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, categories: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `지출 카테고리 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_expensesList(args: any): Promise<ToolResult> {
+  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  const status = args?.status || "all";
+  const categoryId = args?.categoryId ? Number(args.categoryId) : null;
+  const limit = Math.min(Number(args?.limit) || 30, 100);
+  const page = Math.max(1, Number(args?.page) || 1);
+  const offset = (page - 1) * limit;
+
+  // §18.13 enum 동기화: status 검증 (ALLOWED 상수)
+  const ALLOWED_STATUS = ["draft", "approved", "rejected", "all"];
+  if (!ALLOWED_STATUS.includes(status)) {
+    return { ok: false, error: `status는 ${ALLOWED_STATUS.join("|")} 중 하나` };
+  }
+
+  const statusCond = status !== "all" ? sql`AND e.status = ${status}` : sql``;
+  const catCond = categoryId ? sql`AND e.category_id = ${categoryId}` : sql``;
+
+  try {
+    const r: any = await db.execute(sql`
+      SELECT e.id, e.fiscal_year, e.occurred_at, e.category_id, c.code AS category_code, c.name AS category_name,
+             e.amount, e.refund_amount, (e.amount - e.refund_amount) AS net_amount,
+             e.payee_name, e.description, e.receipt_url, e.status,
+             e.recorded_by, e.approved_by, e.approved_at, e.rejection_reason
+        FROM expenses e
+        LEFT JOIN expense_categories c ON c.id = e.category_id
+       WHERE e.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${catCond}
+       ORDER BY e.occurred_at DESC, e.id DESC
+       LIMIT ${limit} OFFSET ${offset}
+    `);
+    const rows = r?.rows ?? r ?? [];
+
+    const sumR: any = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) AS gross,
+             COALESCE(SUM(refund_amount), 0) AS refund
+        FROM expenses e
+       WHERE e.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${catCond}
+    `);
+    const sumRow = (sumR?.rows ?? sumR ?? [])[0] || {};
+    const gross = Number(sumRow.gross || 0);
+    const refund = Number(sumRow.refund || 0);
+
+    return {
+      ok: true,
+      output: {
+        count: rows.length,
+        items: rows,
+        summary: { gross, refund, net: gross - refund },
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `지출 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_expenseCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  const { fiscalYear, occurredAt, categoryId, amount, payeeName, description, receiptUrl } = args || {};
+  if (!fiscalYear || !occurredAt || !categoryId || amount === undefined) {
+    return { ok: false, error: "fiscalYear, occurredAt, categoryId, amount 필수" };
+  }
+  if (Number(amount) <= 0) {
+    return { ok: false, error: "금액은 0보다 커야 합니다" };
+  }
+
+  // §15.5 schema 사전 검증: categoryId FK 존재 확인
+  let catRow: any;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, is_active FROM expense_categories WHERE id = ${Number(categoryId)} LIMIT 1
+    `);
+    catRow = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) {
+    return { ok: false, error: `카테고리 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+  if (!catRow) return { ok: false, error: "존재하지 않는 카테고리" };
+  if (!catRow.is_active) return { ok: false, error: "비활성화된 카테고리입니다" };
+
+  const dryRun = args?.requireApproval !== false;
+  const preview = {
+    fiscalYear: Number(fiscalYear),
+    occurredAt: String(occurredAt),
+    categoryId: Number(categoryId),
+    categoryName: catRow.name,
+    amount: Number(amount),
+    payeeName: payeeName || null,
+    description: description || null,
+    status: "draft",
+  };
+  if (dryRun) {
+    return {
+      ok: true,
+      preview,
+      output: { dryRun: true, message: `지출 ${Number(amount).toLocaleString("ko-KR")}원 (${catRow.name}) 등록할까요?` },
+    };
+  }
+
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO expenses (fiscal_year, occurred_at, category_id, amount, payee_name, description, receipt_url, status, refund_amount, recorded_by, recorded_at)
+      VALUES (${Number(fiscalYear)}, ${String(occurredAt)}::date, ${Number(categoryId)}, ${Number(amount)},
+              ${payeeName || null}, ${description || null}, ${receiptUrl || null}, 'draft', 0, ${adminId}, NOW())
+      RETURNING id, fiscal_year, occurred_at, category_id, amount, status
+    `);
+    const row = (r?.rows ?? r ?? [])[0];
+    return { ok: true, output: { expense: row, message: "지출 항목이 등록되었습니다 (draft 상태 — 승인 필요)." } };
+  } catch (e: any) {
+    return { ok: false, error: `지출 등록 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_expenseApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  const { id, action, rejectionReason } = args || {};
+  if (!id || !action) return { ok: false, error: "id, action 필수" };
+  if (!["approve", "reject"].includes(action)) return { ok: false, error: "action은 approve 또는 reject" };
+  if (action === "reject" && !rejectionReason) return { ok: false, error: "반려 시 rejectionReason 필수" };
+
+  // 대상 존재·status 검증
+  let row: any;
+  try {
+    const result: any = await db.execute(sql`
+      SELECT id, amount, status, payee_name FROM expenses WHERE id = ${Number(id)} LIMIT 1
+    `);
+    row = (result?.rows ?? result ?? [])[0];
+  } catch (e: any) {
+    return { ok: false, error: `지출 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+  if (!row) return { ok: false, error: "존재하지 않는 지출 항목" };
+  if (row.status !== "draft") return { ok: false, error: `draft 상태만 승인·반려 가능 (현재: ${row.status})` };
+
+  const dryRun = args?.requireApproval !== false;
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: { id, action, rejectionReason, currentStatus: row.status, amount: Number(row.amount), payee: row.payee_name },
+      output: {
+        dryRun: true,
+        message: `지출 ${id}번 (${row.payee_name || "지급처 없음"}, ${Number(row.amount).toLocaleString("ko-KR")}원)을 ${action === "approve" ? "승인" : "반려"}할까요?`,
+      },
+      rollbackData: { id: Number(id), status: row.status },
+    };
+  }
+
+  const newStatus = action === "approve" ? "approved" : "rejected";
+  try {
+    await db.execute(sql`
+      UPDATE expenses
+         SET status = ${newStatus},
+             approved_by = ${adminId},
+             approved_at = NOW(),
+             rejection_reason = ${rejectionReason || null},
+             updated_at = NOW()
+       WHERE id = ${Number(id)} AND status = 'draft'
+    `);
+    return { ok: true, output: { message: `지출 ${id}번이 ${action === "approve" ? "승인" : "반려"}되었습니다.` } };
+  } catch (e: any) {
+    return { ok: false, error: `승인/반려 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_expenseRefund(args: any, adminId: number | null): Promise<ToolResult> {
+  const { id, refundAmount } = args || {};
+  if (!id || refundAmount === undefined) return { ok: false, error: "id, refundAmount 필수" };
+  if (Number(refundAmount) < 0) return { ok: false, error: "환불금액은 0 이상이어야 합니다" };
+
+  let row: any;
+  try {
+    const result: any = await db.execute(sql`
+      SELECT id, amount, refund_amount, status, payee_name
+        FROM expenses
+       WHERE id = ${Number(id)}
+       LIMIT 1
+    `);
+    row = (result?.rows ?? result ?? [])[0];
+  } catch (e: any) {
+    return { ok: false, error: `지출 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+  if (!row) return { ok: false, error: "존재하지 않는 지출 항목" };
+  if (row.status !== "approved") return { ok: false, error: `status='approved'인 항목만 환불 가능 (현재: ${row.status})` };
+  if (Number(refundAmount) > Number(row.amount)) {
+    return { ok: false, error: `환불금액(${refundAmount})은 원래 금액(${row.amount}) 이하여야 합니다` };
+  }
+
+  const dryRun = args?.requireApproval !== false;
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: {
+        id, refundAmount,
+        currentAmount: Number(row.amount),
+        currentRefund: Number(row.refund_amount),
+        payee: row.payee_name,
+      },
+      output: {
+        dryRun: true,
+        message: `지출 ${id}번(${row.payee_name || "지급처 없음"})에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록할까요?`,
+      },
+      rollbackData: { id: Number(id), refund_amount: Number(row.refund_amount) },
+    };
+  }
+
+  try {
+    await db.execute(sql`
+      UPDATE expenses
+         SET refund_amount = ${Number(refundAmount)},
+             updated_at = NOW()
+       WHERE id = ${Number(id)} AND status = 'approved'
+    `);
+    return { ok: true, output: { message: `지출 ${id}번에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록 완료.` } };
+  } catch (e: any) {
+    return { ok: false, error: `환불 처리 실패: ${e?.message?.slice(0, 200)}` };
   }
 }

@@ -37,6 +37,10 @@ export const CACHEABLE_TOOLS = new Set<string>([
   /* 콘텐츠·네비 */
   "content_pages_list",
   "nav_menus_list",
+  /* 재정 */
+  "revenue_categories_list", "revenue_list",
+  "expense_categories_list", "expenses_list",
+  "pl_summary",
 ]);
 
 /* 변경 도구 → 무효화할 캐시 키 prefix 매핑.
@@ -50,6 +54,10 @@ const INVALIDATION_MAP: Record<string, string[]> = {
   revenue_update:  ["revenue_list", "pl_summary"],
   revenue_approve: ["revenue_list", "pl_summary"],
   revenue_refund:  ["revenue_list", "pl_summary"],
+  /* Phase 22-C 지출 */
+  expense_create:  ["expenses_list", "pl_summary"],
+  expense_approve: ["expenses_list", "pl_summary"],
+  expense_refund:  ["expenses_list", "pl_summary"],
 };
 
 interface Entry {

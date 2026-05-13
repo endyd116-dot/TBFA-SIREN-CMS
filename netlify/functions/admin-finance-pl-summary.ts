@@ -1,7 +1,7 @@
 import { db } from "../../db";
-import { donations, otherRevenues, revenueCategories } from "../../db/schema";
+import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { eq, and, sql, between } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-finance-pl-summary" };
 
@@ -18,7 +18,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund, 월별 분해) ──
   let donationGross = 0;
-  let donationRefund = 0;
+  const donationRefund = 0;
   const donationByMonth: Record<number, { gross: number; refund: number }> = {};
   for (let m = 1; m <= 12; m++) donationByMonth[m] = { gross: 0, refund: 0 };
 
@@ -79,19 +79,17 @@ export default async function handler(req: Request): Promise<Response> {
   const otherByMonth: Record<number, { gross: number; refund: number }> = {};
   for (let m = 1; m <= 12; m++) otherByMonth[m] = { gross: 0, refund: 0 };
 
-  // 카테고리 맵 (separate query)
-  let catMap = new Map<number, { code: string; name: string }>();
+  const revCatMap = new Map<number, { code: string; name: string }>();
   try {
     const cats = await db
       .select({ id: revenueCategories.id, code: revenueCategories.code, name: revenueCategories.name })
       .from(revenueCategories);
-    for (const c of cats) catMap.set(c.id, { code: c.code, name: c.name });
+    for (const c of cats) revCatMap.set(c.id, { code: c.code, name: c.name });
   } catch (err: any) {
-    console.warn("[pl-summary] 카테고리 조회 실패", err);
+    console.warn("[pl-summary] 수입 카테고리 조회 실패", err);
   }
 
-  // 카테고리별 순수익 집계
-  const catNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
+  const otherCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
   try {
     const otherRows = await db
       .select({
@@ -120,11 +118,11 @@ export default async function handler(req: Request): Promise<Response> {
       otherGross += g;
       otherRefund += r;
 
-      const cat = catMap.get(catId) || { code: String(catId), name: "기타" };
-      if (!catNetMap.has(catId)) {
-        catNetMap.set(catId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
+      const cat = revCatMap.get(catId) || { code: String(catId), name: "기타" };
+      if (!otherCatNetMap.has(catId)) {
+        otherCatNetMap.set(catId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
       }
-      const entry = catNetMap.get(catId)!;
+      const entry = otherCatNetMap.get(catId)!;
       entry.gross += g;
       entry.refund += r;
     }
@@ -132,24 +130,85 @@ export default async function handler(req: Request): Promise<Response> {
     console.warn("[pl-summary] 후원 외 수입 집계 실패", err);
   }
 
-  const otherByCategory = Array.from(catNetMap.values())
+  const otherByCategory = Array.from(otherCatNetMap.values())
     .map(c => ({ code: c.code, name: c.name, gross: c.gross, refund: c.refund, net: c.gross - c.refund }))
     .sort((a, b) => b.net - a.net);
 
-  // ── 3. 월별 통합 (BUG-002 fix: 후원 환불도 월별 차감) ──
+  // ── 3. 지출 집계 (status='approved', 카테고리별·월별) — Phase 22-C ──
+  let expenseGross = 0;
+  let expenseRefund = 0;
+  const expenseByMonth: Record<number, { gross: number; refund: number }> = {};
+  for (let m = 1; m <= 12; m++) expenseByMonth[m] = { gross: 0, refund: 0 };
+
+  const expCatMap = new Map<number, { code: string; name: string }>();
+  try {
+    const cats = await db
+      .select({ id: expenseCategories.id, code: expenseCategories.code, name: expenseCategories.name })
+      .from(expenseCategories);
+    for (const c of cats) expCatMap.set(c.id, { code: c.code, name: c.name });
+  } catch (err: any) {
+    console.warn("[pl-summary] 지출 카테고리 조회 실패", err);
+  }
+
+  const expCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
+  try {
+    const expRows = await db
+      .select({
+        categoryId: expenses.categoryId,
+        month: sql<string>`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`,
+        gross: sql<string>`COALESCE(SUM(${expenses.amount}), 0)`,
+        refund: sql<string>`COALESCE(SUM(${expenses.refundAmount}), 0)`,
+      })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.status, "approved"),
+          eq(expenses.fiscalYear, fiscalYear)
+        )
+      )
+      .groupBy(expenses.categoryId, sql`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`);
+
+    for (const row of expRows) {
+      const catId = row.categoryId;
+      const m = Number(row.month);
+      const g = Number(row.gross);
+      const r = Number(row.refund);
+
+      expenseByMonth[m].gross += g;
+      expenseByMonth[m].refund += r;
+      expenseGross += g;
+      expenseRefund += r;
+
+      const cat = expCatMap.get(catId) || { code: String(catId), name: "기타" };
+      if (!expCatNetMap.has(catId)) {
+        expCatNetMap.set(catId, { code: cat.code, name: cat.name, gross: 0, refund: 0 });
+      }
+      const entry = expCatNetMap.get(catId)!;
+      entry.gross += g;
+      entry.refund += r;
+    }
+  } catch (err: any) {
+    console.warn("[pl-summary] 지출 집계 실패", err);
+  }
+
+  const expenseByCategory = Array.from(expCatNetMap.values())
+    .map(c => ({ code: c.code, name: c.name, gross: c.gross, refund: c.refund, total: c.gross - c.refund }))
+    .sort((a, b) => b.total - a.total);
+
+  // ── 4. 월별 통합 (BUG-002 fix: 후원 환불·기타 환불·지출 환불 모두 차감) ──
   const monthly = [];
   for (let m = 1; m <= 12; m++) {
     const revenue = (donationByMonth[m].gross - donationByMonth[m].refund)
                   + (otherByMonth[m].gross - otherByMonth[m].refund);
-    const expenditure = 0; // Phase 22-C에서 구현
+    const expenditure = expenseByMonth[m].gross - expenseByMonth[m].refund;
     monthly.push({ month: m, revenue, expenditure, net: revenue - expenditure });
   }
 
-  // ── 4. 응답 조립 ──
+  // ── 5. 응답 조립 ──
   const donationNet = donationGross - donationRefund;
   const otherNet = otherGross - otherRefund;
   const totalNet = donationNet + otherNet;
-  const expenditureTotal = 0; // Phase 22-C
+  const expenditureTotal = expenseGross - expenseRefund;
   const netIncome = totalNet - expenditureTotal;
 
   return new Response(JSON.stringify({
@@ -172,7 +231,9 @@ export default async function handler(req: Request): Promise<Response> {
       },
       expenditure: {
         total: expenditureTotal,
-        byCategory: [],
+        gross: expenseGross,
+        refund: expenseRefund,
+        byCategory: expenseByCategory,
       },
       netIncome,
       monthly,

@@ -77,7 +77,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - budgets_list (회계연도) / expenditures_list (카테고리·기간) / budget_summary (예산 vs 지출 비교)
 - donation_policy_get — 금액·계좌·효성 모달 설정
 
-### 재정 관리 (Phase 22-A)
+### 재정 관리 (Phase 22-A 매출)
 - 카테고리 목록: revenue_categories_list
 - 수입 등록: revenue_create (recognizedAt·categoryId·amount 필수, 회계연도는 recognizedAt 연도로 서버 자동 계산)
 - 수입 목록: revenue_list (fiscalYear 필수, status·categoryId·payerName·startDate·endDate 필터)
@@ -85,6 +85,13 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - 수입 승인·반려: revenue_approve (action: approve|reject, super_admin 전용)
 - 수입 환불: revenue_refund (id·refundAmount 필수, status='approved'만 가능, 누적 환불액이 원금 초과 불가)
 - 손익 요약: pl_summary (fiscalYear 기준 후원+기타 순수익·지출·순이익)
+
+### 지출 관리 (Phase 22-C)
+- 카테고리 목록: expense_categories_list (NPO 표준 4분류 + 사용자 정의)
+- 지출 등록: expense_create (fiscalYear·occurredAt·categoryId·amount 필수, draft 상태)
+- 지출 목록: expenses_list (status: draft|approved|rejected|all, categoryId·page·limit 필터)
+- 지출 승인·반려: expense_approve (action: approve|reject, super_admin 전용)
+- 지출 환불: expense_refund (id·refundAmount 필수, status='approved'만 가능, super_admin 전용)
 
 ### 채팅
 - chat_rooms_list — unreadOnly·status·category 필터
@@ -138,6 +145,11 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "수입 수정" / "매출 수정" | revenue_update |
    | "수입 승인" / "수입 반려" | revenue_approve |
    | "수입 환불" / "매출 환불" | revenue_refund |
+   | "지출 카테고리" / "지출 분류" | expense_categories_list |
+   | "지출 등록" / "지출 입력" / "비용 등록" / "경비 등록" | expense_create |
+   | "지출 목록" / "지출 내역" / "비용 내역" | expenses_list |
+   | "지출 승인" / "지출 반려" | expense_approve |
+   | "지출 환불" / "경비 환불" | expense_refund |
    | "손익" / "P&L" / "순이익" / "순손실" | pl_summary |
    | "템플릿" / "발송 템플릿" | templates_list |
    | "수신자 그룹" | recipient_groups_list |
