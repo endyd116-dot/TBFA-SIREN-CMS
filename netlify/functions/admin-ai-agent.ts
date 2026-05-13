@@ -331,7 +331,9 @@ function selectRelevantTools(userMessage: string): string[] | null {
     }
   }
   if (matched.length === 0) return null;
-  if (matched.length >= 4) return null;
+  /* 2026-05-14: 이전 'matched.length >= 4 → ALL' 임계 제거.
+     매칭 그룹 도구만 합쳐서 보냄. 도구 84개 중 매칭 도구만 보내야
+     lite·flash가 정확 선택. ALL 보내면 헛침(라이브 데이터로 확인). */
 
   const set = new Set<string>();
   for (const g of matched) for (const t of g.tools) set.add(t);
