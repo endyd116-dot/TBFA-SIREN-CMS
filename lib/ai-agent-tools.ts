@@ -217,12 +217,12 @@ export const TOOL_DECLARATIONS = [
     }, required: ["donationId", "status"] }},
 
   /* F-7: 워크 카드·이메일·알림 발송 (dry-run 우선) */
-  { name: "task_create", description: "워크 작업 카드 생성",
+  { name: "task_create", description: "워크 작업 카드 생성. owner는 호출자(=대화 상대) 자동. assignedTo 생략 시 호출자 본인이 담당.",
     parameters: { type: "OBJECT", properties: {
       title: { type: "STRING" }, description: { type: "STRING" },
       priority: { type: "STRING", description: "low|medium|high|urgent" },
-      assignedTo: { type: "INTEGER" },
-      dueDate: { type: "STRING", description: "YYYY-MM-DD" },
+      assignedTo: { type: "INTEGER", description: "타인에게 배정 시만 (생략 시 호출자 본인)" },
+      dueDate: { type: "STRING", description: "YYYY-MM-DD (생략 시 7일 후)" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["title"] }},
   { name: "email_send", description: "회원에게 이메일 발송 (1~50명, Resend)",
