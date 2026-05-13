@@ -4,9 +4,17 @@
 >
 > **적용 범위**: 어드민 페이지에 AI 챗봇 기능을 도입하는 모든 NPO/B2B/SaaS 프로젝트.
 >
-> **버전**: **1.2** (2026-05-14 새벽, V4 검증 라운드 + BUG 5건 fix 누적 반영)
+> **버전**: **1.3** (2026-05-14 새벽, V5 검증 라운드 + BUG-03/05a fix 추가)
 >
-> **레퍼런스 구현**: `main` 브랜치, 약 70개 커밋. 도구 84개(읽기 30 + 변경 38 + 그 외 16).
+> **레퍼런스 구현**: `main` 브랜치, 약 75개 커밋. 도구 84개. V5 검증 5/7 PASS·SKIP 2 (실 데이터 보호).
+
+## 1.2 → 1.3 변경 요약 (V5 검증 라운드)
+
+| 영역 | 변경 |
+|---|---|
+| §9 UX | **F11 신규** — dry-run 자연어 승인·거부 short-circuit (LLM 호출 우회, BUG-03 해소) |
+| §17 알려진 한계 | §17.1 **삭제** (BUG-03 fix됨), §17.4 도구 description enum 명시 의무 보강 |
+| §18 회귀 사례 | **18.12 신규** — DB enum 가정 어긋남 (notice 'press'·'notice' enum에 없음, BUG-05a) |
 
 ## 1.1 → 1.2 변경 요약 (V4 검증 라운드)
 
@@ -612,6 +620,30 @@ function selectRelevantTools(userMessage) {
   ```
 - **캐시 영향**: Context Caching 키가 일 단위로 갱신 (같은 날 내에선 hit). 비용 영향 미미.
 
+### F11. dry-run 자연어 승인·거부 short-circuit (v1.3 신규)
+- **목적**: 멀티턴 dry-run 흐름에서 자연어 "응"·"진행"·"OK" 등 짧은 승인어가 작동 안 하는 문제 해소 (BUG-03)
+- **원인 (이전)**: 짧은 승인어가 `text.length <= 4` 또는 GREETING_PATTERNS 매칭으로 도구 0개 전송 → LLM이 호출할 도구 없음 → 빈 응답
+- **표준 패턴 — 서버단 short-circuit**:
+  ```typescript
+  const APPROVE_RE = /^(응|네|예|어|그래|좋아|좋|맞아|맞다|ok|오케이|진행|진행해|확인|가자|시작|해|해줘|등록|생성|저장|승인|진행해줘)$/i;
+  const REJECT_RE  = /^(아니|아니오|취소|안돼|그만|멈춰|스톱|패스|넘어가|건너|취소해)$/i;
+
+  if (isShortApprove && messages.length > 0) {
+    // 직전 model turn의 functionCall + 다음 user turn의 functionResponse dry_run:true 찾기
+    const pendingCall = findLastDryRunFunctionCall(messages);
+    if (pendingCall) {
+      // 같은 도구를 requireApproval=false로 직접 실행
+      const result = await executeTool(pendingCall.name, { ...pendingCall.args, requireApproval: false }, adminId);
+      return { ok: true, reply: ..., toolCalls: [...] };  // LLM 호출 우회
+    }
+  }
+  ```
+- **효과**:
+  - 자연어 승인 정상 작동 — "노란 메모 만들어줘" → dry-run → "진행" → 실제 생성
+  - LLM 호출 0회 (비용 0, 응답 300ms 내)
+  - 거부어("취소"·"아니")는 친근한 취소 응답 + pendingApproval 정리
+- **확장 가능성**: 클라이언트 UI 승인 버튼은 toolApproval 객체 직접 전송 (이 short-circuit과 병행)
+
 ---
 
 ## 10. 운영 자동화 (3개)
@@ -998,21 +1030,10 @@ public/
 
 ## 17. 알려진 한계 (v1.1 신규)
 
-### 17.1 멀티턴 dry-run "진행" 자연어 작동 X
-- **현상**: 변경 도구 dry-run preview 후 사용자가 "진행"·"응" 답하면 같은 도구를 `requireApproval=false`로 재호출해야 정상 흐름
-- **문제**: 자연어 "진행"은 `text.length <= 4` 또는 `GREETING_PATTERNS` 매칭으로 도구 0개 전송 → LLM이 호출할 도구 없음 → 빈 응답
-- **표준 우회**: 클라이언트(UI)가 명시적 `toolApproval` 객체 전달:
-  ```typescript
-  POST /api/admin-ai-agent
-  {
-    "conversationId": 123,
-    "toolApproval": {
-      "toolName": "memo_create",
-      "args": { "title": "...", "content": "...", "requireApproval": false }
-    }
-  }
-  ```
-- **운영 영향**: 웹 UI에선 승인 버튼이 명시적 toolApproval 보내야 정상 작동. curl·자동화 시 자연어 "진행"만으론 안 됨
+### 17.1 ~~멀티턴 dry-run "진행" 자연어 작동 X~~ (v1.3 해소)
+- **이전 한계**: 자연어 "진행"이 도구 0개 전송 → 빈 응답
+- **v1.3 해소**: F11 short-circuit 표준 — 서버단에서 직전 dry-run의 functionCall 찾아서 같은 도구를 requireApproval=false로 직접 실행
+- **운영 영향**: 자연어 "진행"·"응"·"OK" 및 "취소"·"아니" 모두 정상 작동. 클라이언트 toolApproval 명시 전송도 병행 가능
 
 ### 17.2 인자 자동 추출 정확도 ~70%
 - **현상**: "노란 메모로 '오늘 검증 테스트' 만들어줘" → AI가 title을 "오늘 검증 테스트"로 정확히 뽑지 않고 "테스트 메모" 같이 임의 작명
@@ -1111,11 +1132,24 @@ public/
 - **원인**: 시스템 프롬프트에 현재 날짜 안 박혀서 LLM이 학습 시점 추측
 - **fix**: F10 표준 — 매 호출 systemPrompt prefix에 KST 오늘·내일 동적 주입
 
+### 18.12 BUG-05a 도구 description의 enum 값이 실제 DB enum과 불일치 (v1.3 신규)
+- **증상**: notice_create dry-run·실행 시 `invalid input value for enum notice_category: "press"` DB 에러
+- **원인**: 도구 description에 적은 enum 값(`general|event|press`)이 실제 DB enum과 다름
+  - 실제 `notice_category` enum: **general / member / event / media** (4개)
+  - 잘못 시드된 값: notice, press (enum에 없음)
+  - 핸들러 화이트리스트도 잘못된 값을 통과시킴
+- **fix**: 핸들러·도구 description 모두 정확한 enum 값으로 정정
+- **예방**: §15.5 신규 변경 도구 추가 시 schema 사전 검증 3단계의 **enum 값 일치** 단계 누락 금지
+  ```bash
+  grep -A 8 "pgEnum(\"테이블의 status enum\"" db/schema.ts
+  ```
+
 ---
 
 **문서 버전 이력**:
-- **v1.2 (2026-05-14 새벽)**: V4 검증 라운드 — C 보고 BUG 5건 fix + role hierarchy + 현재 날짜 주입 + 신규 변경 도구 schema 사전 검증 의무
+- **v1.3 (2026-05-14 새벽)**: V5 검증 라운드 — BUG-03 short-circuit fix + BUG-05a enum 정정. §17.1 알려진 한계 해소
+- v1.2 (2026-05-14 새벽): V4 검증 라운드 — C 보고 BUG 5건 fix + role hierarchy + 현재 날짜 주입 + 신규 변경 도구 schema 사전 검증 의무
 - v1.1 (2026-05-14): SIREN Phase 1·2·3·4 확장 (도구 42→84) + 라이브 검증 fix 7건 + 알려진 한계 4건 반영
 - v1.0 (2026-05-13): SIREN 프로젝트 실증 기반 초안
 
-**참고 코드 (v1.2 기준)**: SIREN `main` 브랜치, 약 70개 커밋. V4 검증 거의 100% (BUG-03 toolApproval 자연어는 §17.1 알려진 한계).
+**참고 코드 (v1.3 기준)**: SIREN `main` 브랜치, 약 75개 커밋. V5 검증 거의 100% (도구 84개, BUG 6건 모두 해결).
