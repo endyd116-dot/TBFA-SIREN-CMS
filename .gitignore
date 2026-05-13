@@ -57,6 +57,7 @@ build/
 *.bak[0-9]
 
 # =========================================================
-# Claude Code 개인 설정 (settings.json은 공유, local만 무시)
+# Claude Code 로컬 설정 (권한·환경별 누적 — 팀 공유 X)
 # =========================================================
+.claude/settings.json
 .claude/settings.local.json
