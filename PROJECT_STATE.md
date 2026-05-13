@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-14 (오후) | **메인** | **BUG-05b notice enum 도메인 전체 동기화 fix** (main @ `4e370ba`) — C V6 보고 `notices_list` description·`ALLOWED_NOTICE_CATEGORIES` 상수에 옛 enum 잔존 → LLM 학습으로 member/media 자체 거부. fix: 두 위치 일괄 정정. 표준 v1.3→v1.4 갱신 §18.13 신규(도메인 전체 동기화 의무). C V7 검증 대기 |
 | 2026-05-14 (새벽 05:30) | **메인** | **🎉 AI 에이전트 v3 ✅ 개발 종료** (main @ `3ba204c`) — 도구 84개(Phase 1·2·3·4 종료) + 표준 v1.3 + BUG 6건 fix 누적 + 헤더 인증 fix + 라이브 검증 거의 100%. Phase 5는 미진행 (1주 운영 후 결정). 상세는 [HANDOFF.md §3.0] / 메모리 `project_ai_cost_safety.md` v3 |
 | 2026-05-13 | **ai-cost** | **AI 비용 안전장치 + AI 에이전트 v2 ✅ 완료** (main @ `16b0b48`) — 5층 안전장치 + 도구 36개(읽기 17·변경 17) + 어드민 UI 3개 + 자동 알림 cron / 다음 세션에서 v3로 확장됨 |
 | 2026-05-13 | **ai-cost** | **AI 비용 안전장치 Phase 1~4 + 어드민 UI ✅ 완료** — feature/ai-cost-safety @ ed651d4 / 20개 AI 기능 토글·기능별 한도·통합 로그 / lib(ai-feature·ai-cache·ai-rate-limit·ai-prompt-cache·ai-cost-monitor) / cron-ai-cost-alert(매일 09:00 임계·이상 패턴 이메일) / public/admin-ai-cost.html / 22개 호출 지점 featureKey 부착 / 미리보기 URL에서 검증 완료 / 다음: feature/ai-agent 머지 |

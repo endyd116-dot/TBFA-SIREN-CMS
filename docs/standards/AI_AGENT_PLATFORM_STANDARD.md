@@ -1144,9 +1144,23 @@ public/
   grep -A 8 "pgEnum(\"테이블의 status enum\"" db/schema.ts
   ```
 
+### 18.13 BUG-05b enum fix 부분 적용 — 도메인 전체 동기화 누락 (v1.4 신규)
+- **증상**: V6 재검증에서 `notice_create`에 `member`·`media` 카테고리 요청 → LLM이 "'member' 카테고리는 유효하지 않습니다. 'notice','event','press' 중 하나" 거부 응답 자체 생성 (도구 호출 안 함, DB 도달 안 함)
+- **원인**: BUG-05a fix가 `notice_create` 핸들러·description만 정정. 같은 도메인의 **다른 도구 description**과 **상수 화이트리스트**에 옛 enum 잔존
+  - `notices_list` description: `"general|event|press"` (옛값)
+  - `ALLOWED_NOTICE_CATEGORIES = ["general","event","press","notice"]` (목록 필터 상수)
+  - LLM이 도구 정의 전체를 학습할 때 옛 enum을 표준으로 인식 → 새 enum 요청 거부 응답 자체 생성
+- **fix**: 도메인의 모든 도구 description·상수 화이트리스트를 새 enum으로 일괄 정정
+- **예방**: enum 정정 시 같은 enum을 참조하는 **모든 도구 description·상수** grep으로 찾아 일괄 정정 의무 (§3.1 도구 설계 + §15.5 schema 사전 검증 보강)
+  ```bash
+  grep -n "옛_enum_값1\|옛_enum_값2" lib/ai-agent-tools.ts
+  ```
+- **추가 진단 단서**: 거부 메시지가 코드에 안 박혀있는데 LLM이 자체 생성하면 → 도구 description의 enum 명시가 단서. DB·핸들러 분리해서 검증 외에 LLM 학습 단서 점검 필수
+
 ---
 
 **문서 버전 이력**:
+- **v1.4 (2026-05-14)**: V6 검증 라운드 — BUG-05b 신규(enum 부분 적용 → 도메인 전체 동기화 의무). §18.13 신규
 - **v1.3 (2026-05-14 새벽)**: V5 검증 라운드 — BUG-03 short-circuit fix + BUG-05a enum 정정. §17.1 알려진 한계 해소
 - v1.2 (2026-05-14 새벽): V4 검증 라운드 — C 보고 BUG 5건 fix + role hierarchy + 현재 날짜 주입 + 신규 변경 도구 schema 사전 검증 의무
 - v1.1 (2026-05-14): SIREN Phase 1·2·3·4 확장 (도구 42→84) + 라이브 검증 fix 7건 + 알려진 한계 4건 반영
