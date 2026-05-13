@@ -350,7 +350,12 @@ async function callGeminiWithTools(
     const model = modelChain[i];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-    const cachedName = await ensurePromptCache({
+    /* F (2026-05-14 TEMP TEST): Context Caching이 도구 매칭 정확도 떨어뜨릴 가능성 진단.
+       임시로 cachedName=null 강제 → 매 호출 fresh systemPrompt + tools 전송. */
+    const ENABLE_PROMPT_CACHE = process.env.AI_PROMPT_CACHE !== "off"
+      && process.env.AI_PROMPT_CACHE !== "false";  /* 환경변수로 토글 가능 */
+    const CACHE_TEMP_DISABLED = true;  /* TEMP: 진단 끝나면 false로 되돌리거나 이 줄 제거 */
+    const cachedName = (CACHE_TEMP_DISABLED || !ENABLE_PROMPT_CACHE) ? null : await ensurePromptCache({
       model,
       systemPrompt,
       tools: [{ functionDeclarations: toolDeclarations }],
@@ -772,5 +777,13 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
+    /* D (2026-05-14 TEMP): 동적 도구 로딩·체인·캐시 상태 진단 */
+    _debug: {
+      selectedToolCount: toolDeclarations.length,
+      totalTools: (TOOL_DECLARATIONS as any[]).length,
+      selectedTools: selectedToolNames || "ALL",
+      chain: modelChain.map(m => m.split("-").slice(0, 3).join("-")),
+      promptCacheUsed: false,  /* F: TEMP false */
+    },
   }), { status: 200, headers: JSON_HEADER });
 };
