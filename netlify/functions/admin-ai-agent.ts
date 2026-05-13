@@ -41,6 +41,9 @@ import { getSystemPrompt, checkToolAllowed } from "../../lib/ai-agent-config";
 /* === 대화 요약용 (별도 가벼운 호출) === */
 import { callGemini } from "../../lib/ai-gemini";
 
+/* === #9 개인정보 마스킹 === */
+import { maskPII } from "../../lib/pii-mask";
+
 const AGENT_FEATURE_KEY = "ai_agent_chat";
 
 /* === 대화 요약 임계 === */
@@ -659,11 +662,18 @@ export default async (req: Request, _ctx: Context) => {
     `);
   } catch (_) { /* 저장 실패는 무시 — 응답은 정상 */ }
 
+  /* === #9: 개인정보 마스킹 (주민번호·카드번호·계좌번호) === */
+  const piiResult = maskPII(finalReply || "");
+  let safeReply = piiResult.masked || "(응답 없음)";
+
   /* === Phase 1: 경고 임계 도달 시 응답에 안내 메시지 동봉 === */
-  let replyWithWarn = finalReply || "(응답 없음)";
+  let replyWithWarn = safeReply;
   if (budget.warn) replyWithWarn += `\n\n${budget.message}`;
   if (inputTokenWarn) {
     replyWithWarn += `\n\n💡 이 대화의 누적 입력이 ${estimatedInputTokens.toLocaleString()} 토큰입니다 (한도 ${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()}). 새 대화를 시작하면 비용·속도가 개선됩니다.`;
+  }
+  if (piiResult.redactCount > 0) {
+    replyWithWarn += `\n\n🔒 개인정보 ${piiResult.redactCount}건 자동 마스킹 처리됨 (주민번호·카드·계좌)`;
   }
 
   return new Response(JSON.stringify({
@@ -675,5 +685,6 @@ export default async (req: Request, _ctx: Context) => {
     costWarning: budget.warn ? budget.message : undefined,
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
+    piiRedacted: piiResult.redactCount,
   }), { status: 200, headers: JSON_HEADER });
 };
