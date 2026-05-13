@@ -382,9 +382,22 @@ async function callGeminiWithTools(
       });
       clearTimeout(timeoutId);
       if (r.ok) {
+        const data = await r.json();
+        /* ★ 2026-05-14 B+ fix: 200 OK인데 빈 응답(STOP + parts 없음)이면 다음 모델로 폴백.
+           Gemini 2.5 flash가 Context Caching + 함수 declarations 다수 조합에서
+           "할 말 없음"으로 정상 종료하는 패턴 발견 (debug log 2026-05-14 01:38).
+           응답 토큰 0 → 사용자에겐 "(응답 없음)"으로 보임 → 다음 모델 시도. */
+        const cand0 = data?.candidates?.[0];
+        const hasParts = Array.isArray(cand0?.content?.parts) && cand0.content.parts.length > 0;
+        const isEmptyOk = cand0?.finishReason === "STOP" && !hasParts;
+        if (isEmptyOk && i < modelChain.length - 1) {
+          lastError = `${model} → STOP with empty parts (Context Caching 추정). 다음 모델 시도.`;
+          console.warn(`[ai-agent] ${model} 빈 응답 (STOP/no-parts) — 다음 모델 시도`);
+          continue;
+        }
         if (i > 0) console.info(`[ai-agent] 폴백 #${i + 1} 성공: ${model}`);
         if (cachedName) console.info(`[ai-agent] 프롬프트 캐시 사용: ${cachedName}`);
-        return { data: await r.json(), model };
+        return { data, model };
       }
       const errText = await r.text().catch(() => "");
       lastError = `${model} → ${r.status}: ${errText.slice(0, 300)}`;
@@ -542,8 +555,6 @@ export default async (req: Request, _ctx: Context) => {
   const executedTools: any[] = [];
   let pendingApproval: any = null;
   let finalReply = "";
-  /* TEMP DEBUG (2026-05-14 B+): flash·preview 빈 응답 원인 진단용 */
-  let lastDebugInfo: any = null;
 
   /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
   let totalToolCallsThisRequest = 0;
@@ -604,33 +615,11 @@ export default async (req: Request, _ctx: Context) => {
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
         finalReply = "AI가 응답하지 않았습니다.";
-        /* TEMP DEBUG (B+) */
-        lastDebugInfo = { phase: "no_candidate", model: usedModel,
-          promptFeedback: geminiRes?.promptFeedback,
-          usageMetadata: geminiRes?.usageMetadata,
-          rawTop: geminiRes };
         break;
       }
       const parts = candidate.content?.parts || [];
       const textParts = parts.filter((p: any) => typeof p.text === "string");
       const fnCalls = parts.filter((p: any) => p.functionCall);
-
-      /* TEMP DEBUG (B+): parts 비어있을 때 candidate 전체 보존 */
-      if (parts.length === 0 && step === 0) {
-        lastDebugInfo = { phase: "empty_parts", model: usedModel,
-          finishReason: candidate.finishReason,
-          safetyRatings: candidate.safetyRatings,
-          rawCandidate: candidate,
-          promptFeedback: geminiRes?.promptFeedback,
-          usageMetadata: geminiRes?.usageMetadata };
-      }
-      /* TEMP DEBUG (B+): 응답은 있지만 도구 호출 0인 경우도 진단 (lite·flash 도구 호출 회피 원인) */
-      if (fnCalls.length === 0 && textParts.length > 0 && step === 0 && !lastDebugInfo) {
-        lastDebugInfo = { phase: "text_only_no_tool", model: usedModel,
-          finishReason: candidate.finishReason,
-          textPreview: textParts.map((p: any) => p.text).join(" ").slice(0, 300),
-          rawCandidate: candidate };
-      }
 
       /* 텍스트 응답 누적 */
       const textChunk = textParts.map((p: any) => p.text).join("\n").trim();
@@ -783,7 +772,5 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
-    /* TEMP DEBUG (B+): 진단 후 제거. */
-    ...(lastDebugInfo ? { _debug: lastDebugInfo } : {}),
   }), { status: 200, headers: JSON_HEADER });
 };
