@@ -21,6 +21,7 @@
   'activity-report': 'AI 활동보고서',
   'finance-income': '수입 현황',
   'other-revenues': '후원 외 매출',
+  expenses: '지출 관리',
   'finance-budget': '예산·지출 관리',
   'finance-report': '재무 보고서',
   'notification-logs': '알림 발송 로그',
@@ -5823,6 +5824,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'other-revenues') {
       /* Phase 22-A: 후원 외 매출 */
       if (window.SIREN_OTHER_REVENUES) window.SIREN_OTHER_REVENUES.load();
+    } else if (page === 'expenses') {
+      /* Phase 22-C: 지출 관리 */
+      if (window.SIREN_EXPENSES) window.SIREN_EXPENSES.load();
     } else if (page === 'notification-logs') {
       /* Phase 8 C: 알림 발송 로그 */
       if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();
