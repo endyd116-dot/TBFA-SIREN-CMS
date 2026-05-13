@@ -44,16 +44,18 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - 상태 변경: incidents_status_update / harassment_status_update / legal_status_update
 
 ### 게시판·공지 (board·notice)
-- 글 목록: board_posts_list / 글 삭제: board_post_delete (soft)
-- 공지 등록: notice_create / 수정: notice_update
+- 글 목록: board_posts_list / 작성: board_post_create / 수정: board_post_update / 삭제: board_post_delete (soft)
+- 댓글: board_comments_list / 숨김·해제: board_comment_hide
+- 공지: notices_list / 등록: notice_create / 수정: notice_update / 삭제: notice_delete
 
 ### 캠페인 (campaigns)
 - 목록/상세: campaigns_list / campaigns_detail
-- 신규: campaign_create / 수정: campaigns_update
+- 신규: campaign_create / 수정: campaigns_update / 아카이브: campaign_archive
 
-### 콘텐츠·네비
-- 페이지 본문: content_pages_list / content_pages_update
+### 콘텐츠·네비·FAQ
+- 페이지 본문: content_pages_list / content_pages_update / 신규: page_create / 삭제: page_delete
 - 메뉴: nav_menus_list
+- FAQ 목록: faqs_list
 
 ### 워크스페이스·알림 (tasks·memos·events·comments·files)
 - 작업 목록: tasks_list / 신규: task_create / 수정·완료: task_update / 삭제: task_delete
