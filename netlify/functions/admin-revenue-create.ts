@@ -20,14 +20,20 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
   }
 
-  const { fiscalYear, recognizedAt, categoryId, amount, payerName, description, receiptUrl } = body;
+  const { recognizedAt, categoryId, amount, payerName, description, receiptUrl } = body;
 
-  if (!fiscalYear || !recognizedAt || !categoryId || !amount) {
-    return new Response(JSON.stringify({ ok: false, error: "필수 항목 누락 (fiscalYear, recognizedAt, categoryId, amount)", step: "validate" }), { status: 400 });
+  if (!recognizedAt || !categoryId || !amount) {
+    return new Response(JSON.stringify({ ok: false, error: "필수 항목 누락 (recognizedAt, categoryId, amount)", step: "validate" }), { status: 400 });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(recognizedAt))) {
+    return new Response(JSON.stringify({ ok: false, error: "recognizedAt 형식 오류 (YYYY-MM-DD 필요)", step: "validate_date" }), { status: 400 });
   }
   if (Number(amount) <= 0) {
     return new Response(JSON.stringify({ ok: false, error: "금액은 0보다 커야 합니다", step: "validate" }), { status: 400 });
   }
+
+  // BUG-004 fix: fiscalYear는 recognizedAt 연도로 서버 자동 계산 — 클라이언트 입력값 무시
+  const fiscalYear = Number(String(recognizedAt).slice(0, 4));
 
   // 카테고리 존재 확인
   let catRows: typeof revenueCategories.$inferSelect[] = [];

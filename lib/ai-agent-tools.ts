@@ -486,21 +486,24 @@ export const TOOL_DECLARATIONS = [
   { name: "revenue_categories_list", description: "후원 외 수입 카테고리 목록 조회",
     parameters: { type: "OBJECT", properties: {} }},
 
-  { name: "revenue_create", description: "후원 외 수입 항목 등록 (draft 상태로 생성, 승인 별도)",
+  { name: "revenue_create", description: "후원 외 수입 항목 등록 (draft 상태로 생성, 승인 별도. 회계연도는 recognizedAt 연도로 서버 자동 계산)",
     parameters: { type: "OBJECT", properties: {
-      fiscalYear:   { type: "INTEGER", description: "회계연도 (예: 2026)" },
-      recognizedAt: { type: "STRING",  description: "수입 인식일 YYYY-MM-DD" },
-      categoryId:   { type: "INTEGER", description: "revenue_categories.id" },
+      recognizedAt: { type: "STRING",  description: "수입 인식일 YYYY-MM-DD (회계연도 자동 계산용)" },
+      categoryId:   { type: "INTEGER", description: "revenue_categories.id (lecture|govgrant|corp_sponsor|twork_on|twork_si|etc 중 하나의 id)" },
       amount:       { type: "INTEGER", description: "금액 (원)" },
       payerName:    { type: "STRING",  description: "지급인·기관명 (선택)" },
       description:  { type: "STRING",  description: "상세 내용 (선택)" },
       receiptUrl:   { type: "STRING",  description: "영수증 URL (선택)" },
-    }, required: ["fiscalYear", "recognizedAt", "categoryId", "amount"] }},
+    }, required: ["recognizedAt", "categoryId", "amount"] }},
 
-  { name: "revenue_list", description: "후원 외 수입 목록 조회 (회계연도·상태 필터)",
+  { name: "revenue_list", description: "후원 외 수입 목록 조회 (회계연도·카테고리·상태·납입자·기간 필터)",
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "회계연도 (필수)" },
       status:     { type: "STRING",  description: "draft|approved|rejected|all (기본 all)" },
+      categoryId: { type: "INTEGER", description: "카테고리 ID 필터 (선택)" },
+      payerName:  { type: "STRING",  description: "납입자·기관명 부분 일치 (선택)" },
+      startDate:  { type: "STRING",  description: "인식일 시작 YYYY-MM-DD (선택)" },
+      endDate:    { type: "STRING",  description: "인식일 종료 YYYY-MM-DD (선택)" },
       page:       { type: "INTEGER" },
       limit:      { type: "INTEGER" },
     }, required: ["fiscalYear"] }},
@@ -3079,13 +3082,19 @@ async function tool_revenueCategoriesList(): Promise<ToolResult> {
 }
 
 async function tool_revenueCreate(args: any, adminId: number | null): Promise<ToolResult> {
-  const { fiscalYear, recognizedAt, categoryId, amount, payerName, description, receiptUrl } = args || {};
-  if (!fiscalYear || !recognizedAt || !categoryId || !amount) {
-    return { ok: false, error: "fiscalYear, recognizedAt, categoryId, amount 필수" };
+  const { recognizedAt, categoryId, amount, payerName, description, receiptUrl } = args || {};
+  if (!recognizedAt || !categoryId || !amount) {
+    return { ok: false, error: "recognizedAt, categoryId, amount 필수" };
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(recognizedAt))) {
+    return { ok: false, error: "recognizedAt 형식 오류 (YYYY-MM-DD 필요)" };
+  }
+  // BUG-004 fix: fiscalYear는 recognizedAt 연도로 자동 계산
+  const fiscalYear = Number(String(recognizedAt).slice(0, 4));
+
   const dryRun = args?.requireApproval !== false;
   const preview = {
-    fiscalYear: Number(fiscalYear),
+    fiscalYear,
     recognizedAt: String(recognizedAt),
     categoryId: Number(categoryId),
     amount: Number(amount),
@@ -3099,7 +3108,7 @@ async function tool_revenueCreate(args: any, adminId: number | null): Promise<To
   try {
     const r: any = await db.execute(sql`
       INSERT INTO other_revenues (fiscal_year, recognized_at, category_id, amount, payer_name, description, receipt_url, status, refund_amount, recorded_by, recorded_at)
-      VALUES (${Number(fiscalYear)}, ${String(recognizedAt)}::date, ${Number(categoryId)}, ${Number(amount)},
+      VALUES (${fiscalYear}, ${String(recognizedAt)}::date, ${Number(categoryId)}, ${Number(amount)},
               ${payerName || null}, ${description || null}, ${receiptUrl || null}, 'draft', 0, ${adminId}, NOW())
       RETURNING id, fiscal_year, recognized_at, category_id, amount, status
     `);
@@ -3113,17 +3122,35 @@ async function tool_revenueCreate(args: any, adminId: number | null): Promise<To
 async function tool_revenueList(args: any): Promise<ToolResult> {
   const fiscalYear = args?.fiscalYear || new Date().getFullYear();
   const status = args?.status || "all";
+  const categoryId = args?.categoryId;
+  const payerName = (args?.payerName || "").trim();
+  const startDate = args?.startDate;
+  const endDate = args?.endDate;
   const limit = Math.min(Number(args?.limit) || 50, 100);
   const page = Math.max(1, Number(args?.page) || 1);
   const offset = (page - 1) * limit;
-  const statusCond = status !== "all" ? sql`AND r.status = ${status}` : sql``;
+
+  // BUG-005 fix: 카테고리·납입자·기간 동적 WHERE
+  const statusCond     = status !== "all"               ? sql`AND r.status = ${status}`                                                : sql``;
+  const categoryCond   = categoryId                     ? sql`AND r.category_id = ${Number(categoryId)}`                                : sql``;
+  const payerCond      = payerName                      ? sql`AND r.payer_name ILIKE ${`%${payerName}%`}`                               : sql``;
+  const startCond      = startDate                      ? sql`AND r.recognized_at >= ${startDate}::date`                                : sql``;
+  const endCond        = endDate                        ? sql`AND r.recognized_at <= ${endDate}::date`                                  : sql``;
+
+  // 요약(summary)은 페이지네이션 무관하게 같은 필터 — 별칭 없이 단순화 위해 같은 변수 재사용
+  const statusCondSum     = status !== "all"               ? sql`AND status = ${status}`                                                : sql``;
+  const categoryCondSum   = categoryId                     ? sql`AND category_id = ${Number(categoryId)}`                                : sql``;
+  const payerCondSum      = payerName                      ? sql`AND payer_name ILIKE ${`%${payerName}%`}`                               : sql``;
+  const startCondSum      = startDate                      ? sql`AND recognized_at >= ${startDate}::date`                                : sql``;
+  const endCondSum        = endDate                        ? sql`AND recognized_at <= ${endDate}::date`                                  : sql``;
+
   try {
     const r: any = await db.execute(sql`
       SELECT r.id, r.fiscal_year, r.recognized_at, r.category_id, c.name AS category_name,
              r.amount, r.refund_amount, r.payer_name, r.status, r.description
         FROM other_revenues r
         LEFT JOIN revenue_categories c ON c.id = r.category_id
-       WHERE r.fiscal_year = ${Number(fiscalYear)} ${statusCond}
+       WHERE r.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${categoryCond} ${payerCond} ${startCond} ${endCond}
        ORDER BY r.recognized_at DESC, r.id DESC
        LIMIT ${limit} OFFSET ${offset}
     `);
@@ -3131,7 +3158,7 @@ async function tool_revenueList(args: any): Promise<ToolResult> {
     const sumR: any = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) AS gross, COALESCE(SUM(refund_amount), 0) AS refund
         FROM other_revenues
-       WHERE fiscal_year = ${Number(fiscalYear)} ${statusCond}
+       WHERE fiscal_year = ${Number(fiscalYear)} ${statusCondSum} ${categoryCondSum} ${payerCondSum} ${startCondSum} ${endCondSum}
     `);
     const sumRow = (sumR?.rows ?? sumR ?? [])[0] || {};
     const gross = Number(sumRow.gross || 0);
@@ -3213,28 +3240,53 @@ async function tool_revenueRefund(args: any, adminId: number | null): Promise<To
   }
   if (!row) return { ok: false, error: "존재하지 않는 수입 항목" };
   if (row.status !== "approved") return { ok: false, error: `status='approved'인 항목만 환불 가능 (현재: ${row.status})` };
-  if (Number(refundAmount) > Number(row.amount)) {
-    return { ok: false, error: `환불금액(${refundAmount})은 원래 금액(${row.amount}) 이하여야 합니다` };
+
+  // BUG-001 fix: 누적 환불 — 기존 + 신규 = 누적합
+  const currentRefund = Number(row.refund_amount) || 0;
+  const incremental   = Number(refundAmount);
+  const newTotalRefund = currentRefund + incremental;
+  const amount = Number(row.amount);
+
+  if (newTotalRefund > amount) {
+    return {
+      ok: false,
+      error: `누적 환불액(${newTotalRefund.toLocaleString("ko-KR")}원 = 기존 ${currentRefund.toLocaleString("ko-KR")}원 + 신규 ${incremental.toLocaleString("ko-KR")}원)이 원금(${amount.toLocaleString("ko-KR")}원)을 초과합니다`,
+    };
   }
 
   const dryRun = args?.requireApproval !== false;
   if (dryRun) {
     return {
       ok: true,
-      preview: { id, refundAmount, currentAmount: Number(row.amount), currentRefund: Number(row.refund_amount), payer: row.payer_name },
-      output: { dryRun: true, message: `수입 ${id}번(${row.payer_name})에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록하시겠습니까?` },
-      rollbackData: { id: Number(id), refund_amount: Number(row.refund_amount) },
+      preview: {
+        id, refundAmount: incremental,
+        currentAmount: amount,
+        currentRefund,
+        newTotalRefund,
+        payer: row.payer_name,
+      },
+      output: {
+        dryRun: true,
+        message: `수입 ${id}번(${row.payer_name})에 환불 ${incremental.toLocaleString("ko-KR")}원 누적 기록 (기존 ${currentRefund.toLocaleString("ko-KR")}원 → 합계 ${newTotalRefund.toLocaleString("ko-KR")}원) 하시겠습니까?`,
+      },
+      rollbackData: { id: Number(id), refund_amount: currentRefund },
     };
   }
 
   try {
     await db.execute(sql`
       UPDATE other_revenues
-         SET refund_amount = ${Number(refundAmount)},
+         SET refund_amount = ${newTotalRefund},
              updated_at = NOW()
        WHERE id = ${Number(id)} AND status = 'approved'
     `);
-    return { ok: true, output: { message: `수입 ${id}번에 환불 ${Number(refundAmount).toLocaleString("ko-KR")}원 기록 완료.` } };
+    return {
+      ok: true,
+      output: {
+        message: `수입 ${id}번에 환불 ${incremental.toLocaleString("ko-KR")}원 누적 기록 완료 (합계 ${newTotalRefund.toLocaleString("ko-KR")}원).`,
+        newTotalRefund,
+      },
+    };
   } catch (e: any) {
     return { ok: false, error: `환불 처리 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -3243,6 +3295,7 @@ async function tool_revenueRefund(args: any, adminId: number | null): Promise<To
 async function tool_plSummary(args: any): Promise<ToolResult> {
   const fiscalYear = args?.fiscalYear || new Date().getFullYear();
   try {
+    // 후원 — completed gross
     const donR: any = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) AS gross
         FROM donations
@@ -3250,6 +3303,16 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
          AND EXTRACT(YEAR FROM COALESCE(hyosung_paid_date, created_at)) = ${Number(fiscalYear)}
     `);
     const donGross = Number((donR?.rows ?? donR ?? [])[0]?.gross || 0);
+
+    // BUG-002 fix: 후원 환불 (status='refunded') 별도 집계
+    const donRefR: any = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) AS refund
+        FROM donations
+       WHERE status = 'refunded'
+         AND EXTRACT(YEAR FROM COALESCE(hyosung_paid_date, created_at)) = ${Number(fiscalYear)}
+    `);
+    const donRefund = Number((donRefR?.rows ?? donRefR ?? [])[0]?.refund || 0);
+    const donNet = donGross - donRefund;
 
     const othR: any = await db.execute(sql`
       SELECT c.code, c.name,
@@ -3269,19 +3332,19 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       return { code: row.code, name: row.name, gross: g, refund: rf, net: g - rf };
     });
 
-    const totalNet = donGross + othGross - othRefund;
+    const totalNet = donNet + (othGross - othRefund);
     return {
       ok: true,
       output: {
         fiscalYear: Number(fiscalYear),
         revenue: {
-          donations: { gross: donGross, refund: 0, net: donGross },
+          donations: { gross: donGross, refund: donRefund, net: donNet },
           other: { gross: othGross, refund: othRefund, net: othGross - othRefund, byCategory },
           totalNet,
         },
         expenditure: { total: 0, byCategory: [] },
         netIncome: totalNet,
-        summary: `${fiscalYear}년 총 순수익: ${totalNet.toLocaleString("ko-KR")}원 (후원 ${donGross.toLocaleString("ko-KR")}원 + 기타 ${(othGross - othRefund).toLocaleString("ko-KR")}원)`,
+        summary: `${fiscalYear}년 총 순수익: ${totalNet.toLocaleString("ko-KR")}원 (후원 net ${donNet.toLocaleString("ko-KR")}원 + 기타 net ${(othGross - othRefund).toLocaleString("ko-KR")}원)`,
       },
     };
   } catch (e: any) {

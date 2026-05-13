@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import { otherRevenues, revenueCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, like, gte, lte } from "drizzle-orm";
 
 export const config = { path: "/api/admin-revenue-list" };
 
@@ -12,6 +12,10 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const fiscalYear = url.searchParams.get("fiscalYear");
   const status = url.searchParams.get("status"); // draft|approved|rejected|all
+  const categoryId = url.searchParams.get("categoryId");
+  const payerName = (url.searchParams.get("payerName") || "").trim();
+  const startDate = url.searchParams.get("startDate"); // YYYY-MM-DD
+  const endDate = url.searchParams.get("endDate");     // YYYY-MM-DD
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "50")));
   const offset = (page - 1) * limit;
@@ -29,10 +33,22 @@ export default async function handler(req: Request): Promise<Response> {
     console.warn("[revenue-list] 카테고리 조회 실패", err);
   }
 
-  // 조건 빌드
+  // BUG-005 fix: 카테고리·납입자·기간 필터 추가
   const conditions = [eq(otherRevenues.fiscalYear, Number(fiscalYear))];
   if (status && status !== "all") {
     conditions.push(eq(otherRevenues.status, status));
+  }
+  if (categoryId) {
+    conditions.push(eq(otherRevenues.categoryId, Number(categoryId)));
+  }
+  if (payerName) {
+    conditions.push(like(otherRevenues.payerName, `%${payerName}%`));
+  }
+  if (startDate) {
+    conditions.push(gte(otherRevenues.recognizedAt, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(otherRevenues.recognizedAt, endDate));
   }
   const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 

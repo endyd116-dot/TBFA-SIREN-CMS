@@ -57,15 +57,27 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "승인된 항목만 환불 처리 가능합니다", step: "validate_status" }), { status: 400 });
   }
 
-  if (Number(refundAmount) > Number(rev.amount)) {
-    return new Response(JSON.stringify({ ok: false, error: "환불금액이 원금을 초과할 수 없습니다", step: "validate_refund" }), { status: 400 });
+  // 누적 환불 계산 — BUG-001 fix: 기존 환불액에 신규 환불액을 더함
+  const currentRefund = Number(rev.refundAmount) || 0;
+  const incremental   = Number(refundAmount);
+  const newTotalRefund = currentRefund + incremental;
+
+  if (newTotalRefund > Number(rev.amount)) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: `누적 환불액이 원금을 초과합니다. 기존 환불 ${currentRefund.toLocaleString("ko-KR")}원 + 신규 ${incremental.toLocaleString("ko-KR")}원 = ${newTotalRefund.toLocaleString("ko-KR")}원 > 원금 ${Number(rev.amount).toLocaleString("ko-KR")}원`,
+      step: "validate_refund_total",
+      currentRefund,
+      incremental,
+      amount: Number(rev.amount),
+    }), { status: 400 });
   }
 
   let updated: typeof otherRevenues.$inferSelect[] = [];
   try {
     updated = await db
       .update(otherRevenues)
-      .set({ refundAmount: Number(refundAmount), updatedAt: new Date() } as any)
+      .set({ refundAmount: newTotalRefund, updatedAt: new Date() } as any)
       .where(eq(otherRevenues.id, Number(id)))
       .returning();
   } catch (err: any) {

@@ -16,7 +16,7 @@ export default async function handler(req: Request): Promise<Response> {
   const yearStart = `${fiscalYear}-01-01`;
   const yearEnd   = `${fiscalYear}-12-31`;
 
-  // ── 1. 후원 집계 (status='completed', 월별 분해) ──
+  // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund, 월별 분해) ──
   let donationGross = 0;
   let donationRefund = 0;
   const donationByMonth: Record<number, { gross: number; refund: number }> = {};
@@ -45,6 +45,32 @@ export default async function handler(req: Request): Promise<Response> {
     }
   } catch (err: any) {
     console.warn("[pl-summary] 후원 집계 실패", err);
+  }
+
+  // BUG-002 fix: 후원 환불(status='refunded') 별도 집계 → donations.refund 채움
+  try {
+    const refundRows = await db
+      .select({
+        month: sql<string>`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`,
+        total: sql<string>`COALESCE(SUM(${donations.amount}), 0)`,
+      })
+      .from(donations)
+      .where(
+        and(
+          eq(donations.status, "refunded"),
+          sql`EXTRACT(YEAR FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})) = ${fiscalYear}`
+        )
+      )
+      .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`);
+
+    for (const row of refundRows) {
+      const m = Number(row.month);
+      const t = Number(row.total);
+      donationByMonth[m].refund = t;
+      donationRefund += t;
+    }
+  } catch (err: any) {
+    console.warn("[pl-summary] 후원 환불 집계 실패", err);
   }
 
   // ── 2. 후원 외 수입 집계 (status='approved', 카테고리별) ──
@@ -110,10 +136,11 @@ export default async function handler(req: Request): Promise<Response> {
     .map(c => ({ code: c.code, name: c.name, gross: c.gross, refund: c.refund, net: c.gross - c.refund }))
     .sort((a, b) => b.net - a.net);
 
-  // ── 3. 월별 통합 ──
+  // ── 3. 월별 통합 (BUG-002 fix: 후원 환불도 월별 차감) ──
   const monthly = [];
   for (let m = 1; m <= 12; m++) {
-    const revenue = donationByMonth[m].gross + otherByMonth[m].gross - otherByMonth[m].refund;
+    const revenue = (donationByMonth[m].gross - donationByMonth[m].refund)
+                  + (otherByMonth[m].gross - otherByMonth[m].refund);
     const expenditure = 0; // Phase 22-C에서 구현
     monthly.push({ month: m, revenue, expenditure, net: revenue - expenditure });
   }

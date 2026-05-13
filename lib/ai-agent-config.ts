@@ -79,11 +79,11 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 
 ### 재정 관리 (Phase 22-A)
 - 카테고리 목록: revenue_categories_list
-- 수입 등록: revenue_create (fiscalYear·recognizedAt·categoryId·amount 필수)
-- 수입 목록: revenue_list (fiscalYear 필수, status 필터: draft|approved|rejected|all)
+- 수입 등록: revenue_create (recognizedAt·categoryId·amount 필수, 회계연도는 recognizedAt 연도로 서버 자동 계산)
+- 수입 목록: revenue_list (fiscalYear 필수, status·categoryId·payerName·startDate·endDate 필터)
 - 수입 수정: revenue_update (draft 상태 + 등록자 또는 super_admin)
 - 수입 승인·반려: revenue_approve (action: approve|reject, super_admin 전용)
-- 수입 환불: revenue_refund (id·refundAmount 필수, status='approved'만 가능, super_admin 전용)
+- 수입 환불: revenue_refund (id·refundAmount 필수, status='approved'만 가능, 누적 환불액이 원금 초과 불가)
 - 손익 요약: pl_summary (fiscalYear 기준 후원+기타 순수익·지출·순이익)
 
 ### 채팅
