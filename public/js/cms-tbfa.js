@@ -232,6 +232,7 @@
           'other-revenues': '💼 후원 외 매출',
           'expenses': '💸 지출 관리',
           'finance-budget': '📋 예산 관리',
+          'bank-transactions': '🏦 통장 거래내역',
           'finance-report': '📊 재무 보고서',
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
           'donation-dashboard': '🔍 종합 검증 대시보드',
@@ -293,6 +294,13 @@
             const _fr = document.getElementById('page-finance-report');
             if (_fr && !_fr.firstElementChild) window.SIREN_FINANCE_REPORT.init();
             else window.SIREN_FINANCE_REPORT.load();
+          }
+        }
+        else if (tab === 'bank-transactions') {
+          if (window.SIREN_BANK_TXN) {
+            const _bt = document.getElementById('page-bank-transactions');
+            if (_bt && !_bt.firstElementChild) window.SIREN_BANK_TXN.init();
+            else window.SIREN_BANK_TXN.load();
           }
         }
         /* ★ AI 에이전트 5개 섹션 (ai-cost 추가) */
