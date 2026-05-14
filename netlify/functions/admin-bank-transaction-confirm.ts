@@ -51,9 +51,9 @@ export default async function handler(req: Request, _ctx: Context) {
   const { transactionId, action } = body;
   const learnCp = body.learnCounterparty !== false;
 
-  if (!transactionId || !["donation", "revenue", "voucher", "ignored"].includes(action)) {
+  if (!transactionId || !["donation", "revenue", "voucher", "ignored", "unignore"].includes(action)) {
     return new Response(JSON.stringify({
-      ok: false, error: "transactionId, action(donation|revenue|voucher|ignored) 필수",
+      ok: false, error: "transactionId, action(donation|revenue|voucher|ignored|unignore) 필수",
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -88,6 +88,19 @@ export default async function handler(req: Request, _ctx: Context) {
           confirmed_at = NOW(), confirmed_by = ${adminEmail}
         WHERE id = ${txn.id}`);
       resultMessage = "거래를 무시 처리했습니다 (내부 이체 등)";
+
+    // ════════ action=unignore — 무시 해제 → 미처리(pending)로 복원 ════════
+    } else if (action === "unignore") {
+      if (txn.status !== "ignored") {
+        return new Response(JSON.stringify({ ok: false, error: "무시 상태인 거래만 해제할 수 있습니다" }),
+          { status: 422, headers: { "Content-Type": "application/json" } });
+      }
+      await db.execute(sql`
+        UPDATE bank_transactions SET
+          match_type = 'pending', status = 'pending',
+          confirmed_at = NULL, confirmed_by = NULL
+        WHERE id = ${txn.id}`);
+      resultMessage = "무시를 해제했습니다 — 미처리 상태로 복원";
 
     // ════════ action=donation ════════
     } else if (action === "donation") {

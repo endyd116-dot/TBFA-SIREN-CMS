@@ -595,10 +595,26 @@
       el.innerHTML = '<div style="color:var(--text-3);padding:16px;text-align:center">조회된 거래가 없습니다. 통장 엑셀을 업로드하세요.</div>';
       return;
     }
+    /* 일괄 전표 확정 대상: 미처리(pending) 출금 거래 */
+    const batchTarget = txnList.filter(t => {
+      const mt = t.matchType || t.match_type || 'pending';
+      const isOut = t.txnType ? t.txnType === 'debit' : Number(t.amount ?? 0) < 0;
+      return mt === 'pending' && isOut;
+    });
     el.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn-sm btn-sm-primary" type="button" id="btBatchVoucherBtn"
+          style="background:#7c3aed" ${batchTarget.length ? '' : 'disabled'}>
+          ✅ 선택 일괄 전표 확정 (<span id="btBatchSelCount">0</span>)
+        </button>
+        <span style="font-size:11.5px;color:var(--text-3,#94a0b3)">
+          미처리 출금 거래 중 추정 계정과목이 있는 건만 일괄 확정됩니다. 추정값 없는 건은 단건 '확인'으로 처리하세요.
+        </span>
+      </div>
       <table class="data-table" style="width:100%">
         <thead>
           <tr>
+            <th style="width:34px"><input type="checkbox" id="btSelectAllTxn"></th>
             <th>거래일시</th><th>입출</th><th class="num">금액</th>
             <th>거래내용</th><th>거래처</th><th>매칭상태</th><th>액션</th>
           </tr>
@@ -613,13 +629,22 @@
             const desc    = escapeHtml(t.description || '—');
             /* 거래처 마스터 매칭명 우선, 없으면 통장 예금주명 */
             const cpName  = escapeHtml(t.counterpartyMasterName || t.counterpartName || '—');
-            /* 확인필요(pending) 거래만 액션 버튼 노출 */
-            const actionBtn = matchType === 'pending'
-              ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">확인</button>`
-              : (matchType !== 'ignored'
-                ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">보기</button>`
-                : '');
+            /* 일괄 대상(미처리 출금)만 체크박스 노출 */
+            const isBatchable = matchType === 'pending' && !isIn;
+            const checkbox = isBatchable
+              ? `<input type="checkbox" class="bt-txn-chk" data-id="${id}">`
+              : '';
+            /* 액션 버튼: pending=확인 / ignored=무시 해제 / 그 외=보기 */
+            let actionBtn = '';
+            if (matchType === 'pending') {
+              actionBtn = `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">확인</button>`;
+            } else if (matchType === 'ignored') {
+              actionBtn = `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.unignore(${id})">무시 해제</button>`;
+            } else {
+              actionBtn = `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">보기</button>`;
+            }
             return `<tr>
+              <td>${checkbox}</td>
               <td style="white-space:nowrap">${fmtDateTime(t.txnDate)}</td>
               <td><span style="color:${isIn ? '#15803d' : '#b91c1c'};font-weight:600">${isIn ? '입금' : '출금'}</span></td>
               <td class="num" style="color:${isIn ? '#15803d' : '#b91c1c'};font-weight:600">${fmtSigned(amount)}</td>
@@ -631,6 +656,54 @@
           }).join('')}
         </tbody>
       </table>`;
+
+    /* 체크박스 이벤트 바인딩 */
+    const updateBatchCount = () => {
+      const n = el.querySelectorAll('.bt-txn-chk:checked').length;
+      const cntEl = document.getElementById('btBatchSelCount');
+      if (cntEl) cntEl.textContent = String(n);
+    };
+    el.querySelectorAll('.bt-txn-chk').forEach(cb => cb.addEventListener('change', updateBatchCount));
+    const selAll = document.getElementById('btSelectAllTxn');
+    if (selAll) {
+      selAll.addEventListener('change', () => {
+        el.querySelectorAll('.bt-txn-chk').forEach(cb => { cb.checked = selAll.checked; });
+        updateBatchCount();
+      });
+    }
+    const batchBtn = document.getElementById('btBatchVoucherBtn');
+    if (batchBtn) batchBtn.addEventListener('click', runBatchVoucher);
+  }
+
+  /* ── 무시 해제 ── */
+  async function unignore(txnId) {
+    if (!confirm('이 거래의 무시를 해제하고 미처리 상태로 되돌리시겠습니까?')) return;
+    const res = await api('POST', '/api/admin-bank-transaction-confirm', {
+      transactionId: txnId, action: 'unignore',
+    });
+    if (!res.ok) { alert('무시 해제 실패: ' + (res.data?.error || res.error || '')); return; }
+    loadSummary();
+    loadTransactions();
+  }
+
+  /* ── 일괄 전표 확정 ── */
+  async function runBatchVoucher() {
+    const ids = Array.from(document.querySelectorAll('.bt-txn-chk:checked'))
+      .map(cb => parseInt(cb.dataset.id, 10)).filter(Boolean);
+    if (ids.length === 0) { alert('일괄 확정할 거래를 선택하세요.'); return; }
+    if (!confirm(`${ids.length}건을 일괄 전표 확정합니다.\n추정 계정과목이 있는 건만 확정되며, 추정값 없는 건은 건너뜁니다.\n진행하시겠습니까?`)) return;
+    const btn = document.getElementById('btBatchVoucherBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중…'; }
+    const res = await api('POST', '/api/admin-bank-batch-voucher', { transactionIds: ids });
+    if (btn) { btn.disabled = false; }
+    if (!res.ok) { alert('일괄 전표 확정 실패: ' + (res.data?.error || res.error || '')); loadTransactions(); return; }
+    const d = unwrap(res);
+    const skippedReasons = (d.results || []).filter(r => !r.ok).slice(0, 5)
+      .map(r => `· #${r.id}: ${r.error}`).join('\n');
+    alert((d.message || '일괄 전표 확정 완료')
+      + (skippedReasons ? '\n\n[건너뜀/실패 상세]\n' + skippedReasons : ''));
+    loadSummary();
+    loadTransactions();
   }
 
   /* ════════════════════════════════════════════════
@@ -976,5 +1049,7 @@
     load,
     openConfirm,
     openCpEdit,
+    unignore,
+    runBatchVoucher,
   };
 })();
