@@ -577,7 +577,8 @@
   /* ── 전표 승인 ── */
   async function approveVoucher(id) {
     if (!confirm('전표를 승인하시겠습니까?')) return;
-    const res = await api('POST', '/api/admin-voucher-approve', { id });
+    // BUG-020 fix: admin-voucher-approve는 { id, action } 필수 — action 누락 시 400
+    const res = await api('POST', '/api/admin-voucher-approve', { id, action: 'approve' });
     if (!res.ok) { alert('승인 실패: ' + (res.data?.error || res.error || '')); return; }
     loadVoucherList();
   }
