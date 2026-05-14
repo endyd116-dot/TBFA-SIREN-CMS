@@ -33,6 +33,19 @@ export const config = { schedule: "* * * * *" };
 const PENDING_PICKUP_LIMIT = 10;
 const PROCESSING_JOB_LIMIT = 5;
 const CHUNK_SIZE = 50;
+/* 수신자 1건 발송 상한 — 외부 API(Resend/Aligo)가 응답 없이 멈추면
+   함수 전체가 타임아웃되어 수신자가 'sending'에 갇힘. 건별 상한으로 차단. */
+const SEND_TIMEOUT_MS = 15000;
+
+/** Promise에 타임아웃 — 초과 시 reject (원본 Promise는 함수 종료와 함께 폐기) */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} 타임아웃 (${ms}ms 초과)`)), ms),
+    ),
+  ]);
+}
 
 export default async function handler(_req: Request) {
   const t0 = Date.now();
@@ -48,6 +61,47 @@ export default async function handler(_req: Request) {
      같은 핸들러 실행 안에서 processChunk 가 중복 호출 → 한 쪽이 pending 0건을 보고
      job 을 completed 로 조기 마킹(성공/실패 0건인데 완료). 1단계 처리분을 2단계에서 제외. */
   const handledJobIds = new Set<number>();
+
+  /* ============================================================
+     0단계 — 고아 'sending' 수신자 복구 (버그픽스3 #14-B)
+       발송 도중 함수 타임아웃/중단 시 수신자가 'sending'에 영구히 갇힘.
+       processChunk는 'pending'만 재픽업 → 자력 복구 불가 → 작업이 영원히 'processing'.
+       5분 이상 'sending'이면 고아로 간주:
+         retry_count<3 → 'pending' 재시도 (retry_count++)
+         retry_count>=3 → 'failed' 종결 + 작업 failure_count 동기화
+     ============================================================ */
+  try {
+    const recovered: any = await db.execute(sql`
+      UPDATE communication_send_recipients
+         SET status = 'pending', retry_count = retry_count + 1, updated_at = NOW()
+       WHERE status = 'sending'
+         AND updated_at < NOW() - INTERVAL '5 minutes'
+         AND retry_count < 3
+    `);
+    const failedOut: any = await db.execute(sql`
+      WITH orphan_failed AS (
+        UPDATE communication_send_recipients
+           SET status = 'failed',
+               error = '발송 반복 타임아웃 — 3회 재시도 후 실패 처리',
+               updated_at = NOW()
+         WHERE status = 'sending'
+           AND updated_at < NOW() - INTERVAL '5 minutes'
+           AND retry_count >= 3
+         RETURNING job_id
+      )
+      UPDATE communication_send_jobs j
+         SET failure_count = failure_count + sub.cnt, updated_at = NOW()
+        FROM (SELECT job_id, COUNT(*)::int AS cnt FROM orphan_failed GROUP BY job_id) sub
+       WHERE j.id = sub.job_id
+    `);
+    const recCnt = recovered?.rowCount ?? 0;
+    const failCnt = failedOut?.rowCount ?? 0;
+    if (recCnt > 0 || failCnt > 0) {
+      console.warn(`[cron-dispatcher] 고아 sending 복구 — 재시도=${recCnt} 실패종결=${failCnt}`);
+    }
+  } catch (err) {
+    console.error("[cron-dispatcher] 0단계 고아 sending 복구 실패", err);
+  }
 
   /* ============================================================
      1단계 — pending 작업 픽업
@@ -369,19 +423,29 @@ async function processChunk(job: any) {
       continue;
     }
 
-    const result = await sendViaAdapter(
-      channel,
-      {
-        id:    Number(rec.member_id) || 0,
-        name:  rec.member_name == null ? null : String(rec.member_name),
-        email: rec.member_email == null ? null : String(rec.member_email),
-        phone: rec.member_phone == null ? null : String(rec.member_phone),
-      },
-      {
-        subject: rec.rendered_subject == null ? undefined : String(rec.rendered_subject),
-        body:    rec.rendered_body == null ? "" : String(rec.rendered_body),
-      },
-    );
+    let result: { ok: boolean; error?: string };
+    try {
+      result = await withTimeout(
+        sendViaAdapter(
+          channel,
+          {
+            id:    Number(rec.member_id) || 0,
+            name:  rec.member_name == null ? null : String(rec.member_name),
+            email: rec.member_email == null ? null : String(rec.member_email),
+            phone: rec.member_phone == null ? null : String(rec.member_phone),
+          },
+          {
+            subject: rec.rendered_subject == null ? undefined : String(rec.rendered_subject),
+            body:    rec.rendered_body == null ? "" : String(rec.rendered_body),
+          },
+        ),
+        SEND_TIMEOUT_MS,
+        "수신자 발송",
+      );
+    } catch (err: any) {
+      /* 타임아웃·예외 — 수신자를 'sending'에 남기지 않고 즉시 failed 처리 */
+      result = { ok: false, error: String(err?.message || err).slice(0, 500) };
+    }
 
     if (result.ok) {
       await db.execute(sql`
