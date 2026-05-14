@@ -20,7 +20,6 @@ import { getCache, setCache } from "../../lib/cache";
    ========================================================= */
 
 export interface AdminDonationDashboard {
-  ok: true;
   generatedAt: string;
   kpi: {
     membersTotal: number;
@@ -94,7 +93,10 @@ export default async (req: Request, _ctx: Context) => {
   const CACHE_KEY = "donation-dashboard-v1";
   const CACHE_TTL = 5 * 60; // 5분
 
-  /* 캐시 히트 시 즉시 반환 */
+  /* ★ 버그픽스2 #3: 캐시·신규 응답을 동일한 한 겹 구조로 통일.
+   *  기존엔 dashboard 객체 안에 ok:true 가 박혀 있어 응답이 { ok, data:{ ok, ... } } 형태 →
+   *  프론트 unwrap 이 data 안의 ok 를 보고 한 번 더 풀어 데이터가 통째로 사라짐(무한로딩).
+   *  이제 dashboard 에는 ok 를 넣지 않고 항상 { ok:true, data:{generatedAt,kpi,alerts,...} } 로만 응답. */
   const cached = await getCache<AdminDonationDashboard & { cached?: boolean }>(CACHE_KEY);
   if (cached) {
     return new Response(
@@ -127,9 +129,12 @@ export default async (req: Request, _ctx: Context) => {
                   AND d.pg_provider = 'hyosung_cms')                                    AS has_regular_hyosung,
           BOOL_OR(d.status = 'completed' AND d.type = 'regular'
                   AND COALESCE(d.pg_provider, '') <> 'hyosung_cms')                      AS has_regular_toss,
-          BOOL_OR(d.status = 'completed' AND d.type = 'regular' AND d.pg_provider = 'hyosung_cms')
-            AND BOOL_OR(d.status = 'completed' AND d.type = 'regular'
-                        AND COALESCE(d.pg_provider, '') <> 'hyosung_cms')                AS has_both,
+          COALESCE(
+            BOOL_OR(d.status = 'completed' AND d.type = 'regular' AND d.pg_provider = 'hyosung_cms')
+              AND BOOL_OR(d.status = 'completed' AND d.type = 'regular'
+                          AND COALESCE(d.pg_provider, '') <> 'hyosung_cms'),
+            false
+          )                                                                              AS has_both,
           BOOL_OR(d.status = 'completed' AND d.type = 'onetime')                        AS has_onetime,
           BOOL_OR(d.status IN ('cancelled', 'refunded'))                                AS has_cancelled
         FROM members m
@@ -331,7 +336,6 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 5. 응답 */
   const dashboard: AdminDonationDashboard = {
-    ok: true,
     generatedAt,
     kpi,
     alerts,

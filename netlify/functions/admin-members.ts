@@ -436,6 +436,26 @@ export default async (req: Request) => {
         }
       }
 
+      /* ★ 버그픽스2 #2: 효성 계약 보유 회원의 후원상태 보정.
+       *  효성 CMS 회원은 donations 행이 아니라 hyosung_contracts 로만 후원이 잡힐 수 있어
+       *  donations JOIN 만으로는 'none'(비후원)으로 잘못 분류됨.
+       *  → 유효한 효성 계약(해지·만료·중지·정지 아님)이 있으면 정기후원으로 간주. */
+      const HYOSUNG_INACTIVE = new Set([
+        "cancelled", "expired", "suspended", "terminated",
+        "해지", "중지", "만료", "정지",
+      ]);
+      const hyosungActiveContract = (hc: any): boolean => {
+        if (!hc) return false;
+        const cs = String(hc.contract_status ?? "").trim().toLowerCase();
+        if (!cs) return true; // 계약은 있으나 상태 미기재 → 후원 중으로 간주
+        return !HYOSUNG_INACTIVE.has(cs);
+      };
+      const resolveDonorType = (id: number): DonorType => {
+        const dt = donorTypeMap.get(id) ?? ("none" as DonorType);
+        if (dt === "none" && hyosungActiveContract(hyosungMap.get(id))) return "regular";
+        return dt;
+      };
+
       /* ★ Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
        *  매핑 표 5종 외 코드(또는 NULL) → signupSource=null, label=null (DESIGN §6.2 명시) */
       const adminMembers: AdminMember[] = (list as any[]).map((r) => {
@@ -449,7 +469,7 @@ export default async (req: Request) => {
           signupSourceId: r.signupSourceId ?? null,
           signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
           signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
-          donorType: donorTypeMap.get(Number(r.id)) ?? ("none" as DonorType),
+          donorType: resolveDonorType(Number(r.id)),
           status: r.status,
           createdAt:
             r.createdAt instanceof Date
@@ -481,14 +501,68 @@ export default async (req: Request) => {
           ...r,
           signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
           signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
-          donorType: donorTypeMap.get(Number(r.id)) ?? "none",
+          donorType: resolveDonorType(Number(r.id)),
         };
       });
+
+      /* ★ 버그픽스2 #1: 통합 CMS 대시보드 KPI 용 전체 집계 필드.
+       *  목록은 페이지 단위라 KPI 분모로 못 씀 → withdrawn 제외 전체 회원을
+       *  type / donorType 별로 집계해 응답에 동봉. 실패 시 빈 객체 fallback. */
+      let typeCounts: Record<string, number> = {};
+      try {
+        const tcRes: any = await db.execute(sql`
+          SELECT COALESCE(type::text, 'unknown') AS type, COUNT(*)::int AS count
+          FROM members
+          WHERE status <> 'withdrawn'
+          GROUP BY type
+        `);
+        const tcRows: any[] = Array.isArray(tcRes) ? tcRes : (tcRes?.rows || []);
+        for (const r of tcRows) typeCounts[r.type] = Number(r.count) || 0;
+      } catch (tcErr) {
+        console.warn("[admin-members] typeCounts 집계 실패 — 빈 객체 fallback", tcErr);
+      }
+
+      let donorTypeCounts: Record<string, number> = {};
+      try {
+        const dtcRes: any = await db.execute(sql`
+          WITH md AS (
+            SELECT m.id,
+              BOOL_OR(d.status = 'completed' AND d.type = 'regular') AS has_regular,
+              BOOL_OR(d.status = 'completed')                        AS has_any,
+              BOOL_OR(
+                hc.linked_member_id IS NOT NULL
+                AND COALESCE(LOWER(hc.contract_status), '') NOT IN
+                    ('cancelled', 'expired', 'suspended', 'terminated', '해지', '중지', '만료', '정지')
+              ) AS has_hyosung_active
+            FROM members m
+            LEFT JOIN donations d ON d.member_id = m.id
+            LEFT JOIN hyosung_contracts hc ON hc.linked_member_id = m.id
+            WHERE m.status <> 'withdrawn'
+            GROUP BY m.id
+          )
+          SELECT
+            COUNT(*) FILTER (WHERE has_regular OR has_hyosung_active)::int AS regular,
+            COUNT(*) FILTER (WHERE NOT (has_regular OR has_hyosung_active) AND has_any)::int AS prospect,
+            COUNT(*) FILTER (WHERE NOT (has_regular OR has_hyosung_active) AND NOT has_any)::int AS none
+          FROM md
+        `);
+        const dtcRow = (Array.isArray(dtcRes) ? dtcRes[0] : dtcRes?.rows?.[0]) || {};
+        donorTypeCounts = {
+          regular: Number(dtcRow.regular) || 0,
+          prospect: Number(dtcRow.prospect) || 0,
+          none: Number(dtcRow.none) || 0,
+        };
+      } catch (dtcErr) {
+        console.warn("[admin-members] donorTypeCounts 집계 실패 — 빈 객체 fallback", dtcErr);
+      }
 
       return ok({
         list: listEnriched,
         pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
         categoryCounts,
+        /* ★ 버그픽스2 #1: 대시보드 KPI 용 전체 집계 (페이지 무관) */
+        typeCounts,
+        donorTypeCounts,
         /* ── DESIGN_PHASE1 §6.2 키 (cms-tbfa.js 가 fallback 으로 접근) ── */
         data: adminMembers,
         page,
