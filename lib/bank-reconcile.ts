@@ -139,27 +139,32 @@ export function normalizeBankRows(rows: RawBankRow[]): {
    2) 거래내용 키워드 룰 — 출금 계정과목 추정 (AI 호출 전 1차 필터)
    ========================================================= */
 
-/** [키워드 정규식, account_code category, 신뢰도, 사유] */
-const KEYWORD_RULES: Array<{ re: RegExp; category: string; confidence: number; reason: string }> = [
-  { re: /청소|관리비|경비|미화/,            category: "admin_ops",   confidence: 0.85, reason: "거래내용 키워드: 청소·관리비 → 관리운영비" },
-  { re: /CMS|수수료|이체수수료|펌뱅킹/,      category: "admin_ops",   confidence: 0.85, reason: "거래내용 키워드: 수수료 → 관리운영비(수수료)" },
-  { re: /GS25|CU|세븐일레븐|이마트|다이소|문구|소모품/, category: "admin_ops", confidence: 0.80, reason: "거래내용 키워드: 편의점·소모품 → 관리운영비" },
-  { re: /통신|인터넷|KT|SKT|LG U|전화요금/,   category: "admin_ops",   confidence: 0.85, reason: "거래내용 키워드: 통신비 → 관리운영비" },
-  { re: /전기|가스|수도|공과금|한전/,        category: "admin_ops",   confidence: 0.85, reason: "거래내용 키워드: 공과금 → 관리운영비" },
-  { re: /임대료|임차료|월세|보증금/,         category: "admin_ops",   confidence: 0.85, reason: "거래내용 키워드: 임차료 → 관리운영비" },
-  { re: /급여|인건비|상여|임금|4대보험|국민연금|건강보험/, category: "personnel", confidence: 0.88, reason: "거래내용 키워드: 급여·인건비 → 인건비" },
-  { re: /강사료|강연료|자문료|용역|외주/,    category: "program",     confidence: 0.78, reason: "거래내용 키워드: 강사료·용역 → 사업비" },
-  { re: /후원|기부|장학|지원금 지급/,        category: "program",     confidence: 0.75, reason: "거래내용 키워드: 후원·장학 → 사업비" },
-  { re: /광고|홍보|모금|캠페인/,             category: "fundraising", confidence: 0.78, reason: "거래내용 키워드: 광고·모금 → 모금비" },
+/**
+ * [키워드 정규식, category, 구체 계정과목 code, 신뢰도, 사유]
+ * code: 세분 계정과목(예: 통신비 5032). 키워드가 큰 분류만 특정 가능하면 대분류 code(503 등).
+ * 순서 중요 — 위에서부터 첫 적중 룰이 적용되므로 세분 키워드를 먼저 둔다.
+ */
+const KEYWORD_RULES: Array<{ re: RegExp; category: string; code: string; confidence: number; reason: string }> = [
+  { re: /임대료|임차료|월세|보증금/,         category: "admin_ops",   code: "5031", confidence: 0.85, reason: "거래내용 키워드: 임차료 → 임차료(5031)" },
+  { re: /통신|인터넷|KT|SKT|LG ?U|전화요금/,  category: "admin_ops",   code: "5032", confidence: 0.85, reason: "거래내용 키워드: 통신비 → 통신비(5032)" },
+  { re: /GS25|CU|세븐일레븐|이마트|다이소|문구|소모품|사무용품/, category: "admin_ops", code: "5033", confidence: 0.80, reason: "거래내용 키워드: 편의점·소모품 → 사무용품비(5033)" },
+  { re: /전기|가스|수도|공과금|한전|광열/,    category: "admin_ops",   code: "5034", confidence: 0.85, reason: "거래내용 키워드: 공과금 → 공과금/광열수도(5034)" },
+  { re: /청소|관리비|경비|미화|CMS|수수료|이체수수료|펌뱅킹/, category: "admin_ops", code: "503", confidence: 0.78, reason: "거래내용 키워드: 청소·관리비·수수료 → 관리운영비(503)" },
+  { re: /급여|인건비|상여|임금|4대보험|국민연금|건강보험/, category: "personnel", code: "5011", confidence: 0.88, reason: "거래내용 키워드: 급여·인건비 → 급여(5011)" },
+  { re: /강사료|강연료|자문료|용역|외주|교육|상담/, category: "program",  code: "5021", confidence: 0.78, reason: "거래내용 키워드: 강사료·용역·교육 → 교육·상담비(5021)" },
+  { re: /장학금|장학/,                       category: "program",     code: "5023", confidence: 0.80, reason: "거래내용 키워드: 장학금 → 장학금(5023)" },
+  { re: /후원|기부|지원금 지급/,             category: "program",     code: "502",  confidence: 0.72, reason: "거래내용 키워드: 후원·기부 지급 → 사업비(502)" },
+  { re: /광고|홍보/,                         category: "fundraising", code: "5041", confidence: 0.78, reason: "거래내용 키워드: 광고·홍보 → 홍보비(5041)" },
+  { re: /모금|캠페인/,                       category: "fundraising", code: "5042", confidence: 0.75, reason: "거래내용 키워드: 모금·캠페인 → 모금행사비(5042)" },
 ];
 
-/** 출금 거래내용으로 계정과목 category 추정 (룰 기반). 미적중 시 null */
+/** 출금 거래내용으로 계정과목 추정 (룰 기반) — 구체 code 포함. 미적중 시 null */
 export function classifyByKeyword(description: string, counterpartName?: string | null):
-  { category: string; confidence: number; reason: string } | null {
+  { category: string; code: string; confidence: number; reason: string } | null {
   const text = `${description || ""} ${counterpartName || ""}`;
   for (const rule of KEYWORD_RULES) {
     if (rule.re.test(text)) {
-      return { category: rule.category, confidence: rule.confidence, reason: rule.reason };
+      return { category: rule.category, code: rule.code, confidence: rule.confidence, reason: rule.reason };
     }
   }
   return null;
@@ -511,7 +516,11 @@ export async function reconcileExpense(
   // ── ② 키워드 룰 ─────────────────────────────────────────
   const kw = classifyByKeyword(txn.description, txn.counterpartName);
   if (kw) {
-    const account = await pickAccountByCategory(kw.category);
+    // 키워드가 특정한 구체 계정과목 우선 — 없거나 비활성 코드면 대분류 대표 계정으로 폴백
+    let account: { code: string; name: string } | null = null;
+    const kwName = await lookupAccountName(kw.code);
+    if (kwName) account = { code: kw.code, name: kwName };
+    if (!account) account = await pickAccountByCategory(kw.category);
     const branch = kw.confidence >= threshold;
     return {
       matchType: "voucher",
