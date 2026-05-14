@@ -213,4 +213,129 @@
     color: #a0aec0;
     text-align: center;
   }
+
+  /* ── 재무 보고서 (Phase 22-B-R3) — NPO 표준 양식 ── */
+  .print-hide { display: none !important; }
+
+  .fr-report-header {
+    margin-bottom: 14pt;
+    border-bottom: 2pt solid #2b6cb0;
+    padding-bottom: 8pt;
+    text-align: center;
+  }
+  .fr-report-header .fr-org-name {
+    font-size: 12pt;
+    color: #4a5568;
+    margin-bottom: 4pt;
+  }
+  .fr-report-header .report-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #2b6cb0;
+    margin: 0 0 6pt 0;
+  }
+  .fr-report-header .report-period,
+  .fr-report-header .fr-generated {
+    font-size: 9.5pt;
+    color: #4a5568;
+    margin: 1pt 0;
+  }
+
+  table.fr-statement {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 10pt;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  table.fr-statement th,
+  table.fr-statement td {
+    border: 0.5pt solid #cbd5e0;
+    padding: 5pt 7pt;
+  }
+  table.fr-statement th {
+    background: #edf2f7 !important;
+    font-weight: 600;
+  }
+  table.fr-statement td.num,
+  table.fr-statement th.num {
+    text-align: right;
+  }
+  table.fr-statement .fr-section td {
+    background: #e2e8f0 !important;
+    font-weight: 700;
+  }
+  table.fr-statement .fr-subtotal td {
+    border-top: 1pt solid #2d3748;
+    font-weight: 700;
+  }
+  table.fr-statement .fr-result td {
+    border-top: 1.5pt solid #2d3748;
+    font-weight: 700;
+    background: #f7fafc !important;
+  }
+  .fr-indent1 { padding-left: 16pt !important; }
+  .fr-indent2 { padding-left: 28pt !important; color: #4a5568; }
+  .fr-note {
+    font-size: 8.5pt;
+    color: #718096;
+    margin-top: 4pt;
+  }
+  .fr-noplan {
+    text-align: center;
+    padding: 30pt 0;
+    color: #4a5568;
+  }
+}
+
+/* ── 화면 표시용 (재무 보고서 NPO 양식) ── */
+.fr-report-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border, #e2e8f0);
+}
+.fr-report-header .fr-org-name {
+  font-size: 14px;
+  color: var(--text-2, #4a5568);
+  margin-bottom: 4px;
+}
+.fr-report-header .report-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+.fr-report-header .report-period,
+.fr-report-header .fr-generated {
+  font-size: 12px;
+  color: var(--text-3, #718096);
+  margin: 2px 0;
+}
+table.fr-statement .fr-section td {
+  background: var(--bg-2, #f7fafc);
+  font-weight: 700;
+  color: var(--text-1, #1a202c);
+}
+table.fr-statement .fr-subtotal td {
+  border-top: 2px solid var(--border, #e2e8f0);
+  font-weight: 700;
+}
+table.fr-statement .fr-result td {
+  border-top: 2px solid var(--border, #e2e8f0);
+  font-weight: 700;
+}
+table.fr-statement td.num,
+table.fr-statement th.num {
+  text-align: right;
+}
+.fr-indent1 { padding-left: 20px !important; }
+.fr-indent2 { padding-left: 36px !important; color: var(--text-2, #4a5568); }
+.fr-note {
+  font-size: 12px;
+  color: var(--text-3, #718096);
+  margin-top: 8px;
+}
+.fr-noplan {
+  text-align: center;
+  padding: 48px 16px;
 }
