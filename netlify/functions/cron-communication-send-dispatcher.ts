@@ -44,6 +44,11 @@ export default async function handler(_req: Request) {
     cancelledCleaned: 0,
   };
 
+  /* ★ 버그픽스3 #14: 1단계에서 startJob+processChunk 한 job 을 2단계가 다시 픽업하면
+     같은 핸들러 실행 안에서 processChunk 가 중복 호출 → 한 쪽이 pending 0건을 보고
+     job 을 completed 로 조기 마킹(성공/실패 0건인데 완료). 1단계 처리분을 2단계에서 제외. */
+  const handledJobIds = new Set<number>();
+
   /* ============================================================
      1단계 — pending 작업 픽업
      ============================================================ */
@@ -79,6 +84,7 @@ export default async function handler(_req: Request) {
         } catch (_) {}
         continue;
       }
+      handledJobIds.add(Number(job.id));
       try {
         /* startJob 직후 즉시 1차 chunk 처리 (즉시 발송) */
         await processChunk(job);
@@ -118,6 +124,9 @@ export default async function handler(_req: Request) {
     const processingJobs = r?.rows ?? r ?? [];
 
     for (const job of processingJobs) {
+      /* 1단계에서 이미 processChunk 한 job 은 이번 tick에서 재처리 금지
+         (중복 processChunk → pending 0건 조기 completed 마킹 방지) */
+      if (handledJobIds.has(Number(job.id))) continue;
       try {
         await processChunk(job);
         stats.chunksSent++;
@@ -325,14 +334,23 @@ async function processChunk(job: any) {
   const chunk = r?.rows ?? r ?? [];
 
   if (chunk.length === 0) {
-    /* 잔여 0 → completed 마킹 */
-    await db.execute(sql`
-      UPDATE communication_send_jobs
-         SET status = 'completed',
-             completed_at = NOW(),
-             updated_at = NOW()
-       WHERE id = ${job.id} AND status = 'processing'
+    /* ★ 버그픽스3 #14: pending 0건이어도 sending 상태(다른 처리가 진행 중)가 남아있으면
+       아직 완료 아님. pending+sending 둘 다 0일 때만 completed 마킹. */
+    const remRes: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n
+        FROM communication_send_recipients
+       WHERE job_id = ${job.id} AND status IN ('pending', 'sending')
     `);
+    const remaining = ((remRes?.rows ?? remRes)[0] ?? {}).n ?? 0;
+    if (remaining === 0) {
+      await db.execute(sql`
+        UPDATE communication_send_jobs
+           SET status = 'completed',
+               completed_at = NOW(),
+               updated_at = NOW()
+         WHERE id = ${job.id} AND status = 'processing'
+      `);
+    }
     return;
   }
 
