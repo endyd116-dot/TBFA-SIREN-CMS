@@ -301,6 +301,8 @@ const TOOL_GROUPS: ToolGroup[] = [
       "budget_plan_list", "budget_plan_create", "budget_plan_approve",
       /* Phase 22-D-R1 전표 시스템 */
       "account_codes_list", "voucher_list", "voucher_create", "voucher_approve",
+      /* Phase 22-D-R2 통장 대사 */
+      "bank_reconcile_summary",
     ],
     keywords: [
       "예산", "지출", "결산", "회계", "정책", "계좌", "재정",
@@ -316,6 +318,8 @@ const TOOL_GROUPS: ToolGroup[] = [
       "예산안", "편성", "차년도", "내년 예산", "전년 실적",
       /* 22-D-R1 전표 — substring 매칭 */
       "전표", "계정과목", "계정", "세목", "증빙", "임차료", "공과금", "통신비",
+      /* 22-D-R2 통장 대사 — substring 매칭 */
+      "통장", "거래내역", "대사", "입출금", "입금", "출금", "묶음정산", "정산",
     ] },
   { name: "chat", tools: ["chat_rooms_list"],
     keywords: ["채팅", "상담", "1:1", "메시지", "대화방"] },

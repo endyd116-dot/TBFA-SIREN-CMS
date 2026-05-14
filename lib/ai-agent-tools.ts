@@ -646,6 +646,14 @@ export const TOOL_DECLARATIONS = [
       rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["voucherId", "action"] }},
+
+  /* === Phase 22-D-R2 통장 대사 (1개) === */
+  { name: "bank_reconcile_summary", description: "통장 입출금 대사 현황 요약 — 입금(개별후원 매칭/묶음정산/매출/미확인), 출금(전표생성/확인대기). 기간 지정 가능",
+    parameters: { type: "OBJECT", properties: {
+      startDate: { type: "STRING",  description: "기간 시작 YYYY-MM-DD (생략 시 전체)" },
+      endDate:   { type: "STRING",  description: "기간 종료 YYYY-MM-DD (생략 시 전체)" },
+      importId:  { type: "INTEGER", description: "특정 통장 업로드 건만 (선택)" },
+    }}},
 ];
 
 /* =========================================================
@@ -809,6 +817,8 @@ export async function executeTool(
       case "voucher_list":            return await tool_voucherList(args);
       case "voucher_create":          return await tool_voucherCreate(args, adminId);
       case "voucher_approve":         return await tool_voucherApprove(args, adminId);
+      /* Phase 22-D-R2 통장 대사 */
+      case "bank_reconcile_summary":  return await tool_bankReconcileSummary(args);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -4161,5 +4171,73 @@ async function tool_voucherApprove(args: any, adminId: number | null): Promise<T
     return { ok: true, output: { message: `전표 ${voucher.voucher_number}이 ${label}되었습니다.` } };
   } catch (e: any) {
     return { ok: false, error: `${label} 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* === Phase 22-D-R2 통장 대사 === */
+async function tool_bankReconcileSummary(args: any): Promise<ToolResult> {
+  const { startDate, endDate, importId } = args || {};
+  try {
+    const r: any = await db.execute(sql`
+      SELECT txn_type, match_type, status,
+             COUNT(*) AS cnt, COALESCE(SUM(ABS(amount)), 0) AS total
+      FROM bank_transactions
+      WHERE 1=1
+        ${startDate ? sql`AND txn_date >= ${startDate}` : sql``}
+        ${endDate   ? sql`AND txn_date <= ${endDate}` : sql``}
+        ${importId  ? sql`AND import_id = ${Number(importId)}` : sql``}
+      GROUP BY txn_type, match_type, status`);
+    const rows = (r?.rows ?? r ?? []) as any[];
+
+    const income  = { total: 0, totalAmount: 0, matched: 0, batch: 0, revenue: 0, pending: 0, ignored: 0 };
+    const expense = { total: 0, totalAmount: 0, voucherCreated: 0, pending: 0, ignored: 0 };
+
+    for (const x of rows) {
+      const cnt = Number(x.cnt);
+      const amt = Number(x.total);
+      const isCredit = x.txn_type === "credit";
+      const bucket = isCredit ? income : expense;
+      bucket.total += cnt;
+      bucket.totalAmount += amt;
+      if (x.status === "ignored") {
+        bucket.ignored += cnt;
+      } else if (x.status === "confirmed" || x.status === "voucher_created") {
+        if (isCredit) {
+          if (x.match_type === "donation_batch") income.batch += cnt;
+          else if (x.match_type === "revenue")   income.revenue += cnt;
+          else                                   income.matched += cnt;
+        } else {
+          expense.voucherCreated += cnt;
+        }
+      } else {
+        bucket.pending += cnt;
+      }
+    }
+
+    return {
+      ok: true,
+      output: {
+        period: { startDate: startDate || "전체", endDate: endDate || "전체" },
+        입금: {
+          건수: income.total,
+          총액: income.totalAmount,
+          개별후원매칭: income.matched,
+          묶음정산: income.batch,
+          매출확정: income.revenue,
+          확인대기: income.pending,
+          무시: income.ignored,
+        },
+        출금: {
+          건수: expense.total,
+          총액: expense.totalAmount,
+          전표생성: expense.voucherCreated,
+          확인대기: expense.pending,
+          무시: expense.ignored,
+        },
+        요약: `입금 ${income.total}건 중 ${income.matched + income.batch + income.revenue}건 확정·${income.pending}건 확인대기, 출금 ${expense.total}건 중 ${expense.voucherCreated}건 전표생성·${expense.pending}건 확인대기`,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `통장 대사 현황 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
