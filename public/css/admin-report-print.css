@@ -286,6 +286,98 @@
     padding: 30pt 0;
     color: #4a5568;
   }
+
+  /* ── 전표 인쇄 — 지출결의서 양식 (Phase 22-D-R3) ── */
+  /* 전표 인쇄 모드: #vc-print-area만 표시, 나머지 전부 숨김 */
+  body.vc-printing > *:not(#vc-print-area) {
+    display: none !important;
+  }
+  body.vc-printing #vc-print-area {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 일괄 인쇄 — 전표당 1페이지 */
+  .vc-form-page {
+    page-break-after: always;
+  }
+  .vc-form-page:last-child {
+    page-break-after: auto;
+  }
+
+  .vc-form {
+    page-break-inside: avoid;
+    padding: 4pt 0;
+  }
+  .vc-form-title {
+    font-size: 20pt;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 8pt;
+    margin-bottom: 6pt;
+    color: #1a202c;
+  }
+  .vc-form-org {
+    text-align: center;
+    font-size: 11pt;
+    color: #4a5568;
+    margin-bottom: 14pt;
+  }
+  table.vc-form-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 16pt;
+    font-size: 11pt;
+  }
+  table.vc-form-table th,
+  table.vc-form-table td {
+    border: 0.75pt solid #4a5568;
+    padding: 8pt 10pt;
+    text-align: left;
+    vertical-align: middle;
+  }
+  table.vc-form-table th {
+    background: #edf2f7 !important;
+    font-weight: 600;
+    width: 16%;
+    white-space: nowrap;
+  }
+  table.vc-form-table td.vc-form-amount {
+    font-weight: 700;
+    font-size: 13pt;
+  }
+  table.vc-form-sign {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 10pt;
+  }
+  table.vc-form-sign th,
+  table.vc-form-sign td {
+    border: 0.75pt solid #4a5568;
+    text-align: center;
+    padding: 6pt;
+  }
+  table.vc-form-sign th {
+    background: #edf2f7 !important;
+    font-weight: 600;
+    font-size: 10.5pt;
+    letter-spacing: 2pt;
+  }
+  table.vc-form-sign td.vc-sign-cell {
+    height: 56pt;
+  }
+  .vc-form-foot {
+    font-size: 8pt;
+    color: #a0aec0;
+    text-align: right;
+  }
+}
+
+/* ── 화면에서는 전표 인쇄 영역 숨김 ── */
+#vc-print-area {
+  display: none;
 }
 
 /* ── 화면 표시용 (재무 보고서 NPO 양식) ── */
