@@ -65,16 +65,33 @@
      ========================================================= */
 
   /* ============ 회원 명단 fetch (DESIGN_PHASE1.md §6.2) ============ */
-  // 응답 페이로드 unwrap — ok() 헬퍼 wrap이면 한 단계 더 내려감.
-  // 직접 페이로드(미래 변경)에도 호환되도록 마커(target keys) 검사 fallback.
+  /* 응답 페이로드 unwrap — ok() 헬퍼 wrap이 1~2단계 중첩돼도 정확히 풀어낸다.
+     ★ 버그픽스 20260515-2차 (#2·#3·#4): 1차 unwrap이 한 단계만 보고 마커 검사가 느슨해
+     이중 래핑(`{ ok, data:{ ...cached } }`)·배열 페이로드를 오해석 → donorType undefined,
+     검증 대시보드 무한로딩. 아래 형태를 모두 정확히 처리:
+       { ok, data: [...] }                        → 그 레벨 반환 (consumer가 .data로 배열 접근)
+       { ok, data: { data:[...], total } }         → 안쪽 객체 반환
+       { ok, data: { ...cached, cached:true } }    → 안쪽 cached 객체까지 내려감
+       { ok, data: { ok, data:{ kpi } } }          → 2단계 내려가 실제 페이로드 반환 */
   function unwrap(resData, markerKeys) {
-    const outer = resData || {};
-    if (outer.data && typeof outer.data === 'object') {
-      const inner = outer.data;
-      const hasMarker = markerKeys.some(k => inner[k] !== undefined);
-      if (hasMarker) return inner;
+    let cur = resData || {};
+    const keys = markerKeys || [];
+    for (let depth = 0; depth < 3; depth++) {
+      if (!cur || typeof cur !== 'object') break;
+      const inner = cur.data;
+      // data가 배열이면 현재 레벨이 페이로드 컨테이너 — 더 내려가지 않음
+      if (Array.isArray(inner)) break;
+      if (inner && typeof inner === 'object') {
+        const hasMarker = keys.some(k => inner[k] !== undefined);
+        // 안쪽이 마커를 갖거나, ok()/cached 래퍼 특징이 있으면 한 단계 더 내려감
+        if (hasMarker || inner.ok !== undefined || inner.cached !== undefined) {
+          cur = inner;
+          continue;
+        }
+      }
+      break;
     }
-    return outer;
+    return cur;
   }
 
   async function fetchMembers(query = {}) {
@@ -92,6 +109,10 @@
       page: payload.page ?? pg.page ?? 1,
       pageSize: payload.pageSize ?? pg.pageSize ?? 50,
       total: payload.total ?? pg.total ?? 0,
+      /* ★ 버그픽스 20260515-2차 (#1): 대시보드 KPI가 쓰는 전체 집계 필드 통과
+         (B가 admin-members 응답에 typeCounts·donorTypeCounts 추가 — 응답 키 다중 fallback) */
+      typeCounts: payload.typeCounts || payload.typeCount || pg.typeCounts || null,
+      donorTypeCounts: payload.donorTypeCounts || payload.donorTypeCount || pg.donorTypeCounts || null,
     };
   }
 
@@ -379,6 +400,18 @@
         }
       });
     });
+
+    /* ★ 버그픽스 20260515-2차 (#6): 모든 2뎁스 그룹은 기본 닫힘(HTML 인라인 display:none).
+       단 진입 시 현재 활성 탭이 속한 그룹만 자동 펼침. */
+    const activeLink = document.querySelector('.cms-menu a.on[data-tab]');
+    const activeGroup = activeLink && activeLink.closest('.cms-menu-group');
+    if (activeGroup) {
+      activeGroup.classList.add('open');
+      const sm = activeGroup.querySelector('.cms-submenu');
+      if (sm) sm.style.display = 'block';
+      const cv = activeGroup.querySelector('.cms-menu-chevron');
+      if (cv) cv.style.transform = 'rotate(180deg)';
+    }
   }
 
   /* ============ 1. 대시보드 (Phase 1: 진짜 회원 기반 단순 KPI) ============ */
@@ -402,11 +435,39 @@
 
     set('kpiTotal', total.toLocaleString() + '명');
     set('kpiNew', '—');                 // Phase 1: 별도 집계 API 없음
-    set('kpiFamily', '—');               // 단계 C에서 본격
-    set('kpiDonor', '—');
-    set('kpiRegular', '—');
-    set('kpiOnetime', '—');
-    set('kpiVolunteer', '—');
+
+    /* ★ 버그픽스 20260515-2차 (#1): 유족·후원·정기·일시 KPI를 실제 집계값으로.
+       1순위: B가 admin-members 응답에 넣는 전체 집계 필드(typeCounts·donorTypeCounts).
+       2순위(폴백): 현재 페이지 rows로 추정(첫 페이지만이라 부정확 — '~명*' 표기).
+       응답 키 다중 fallback (§6.2). */
+    const tc  = resp.typeCounts || {};
+    const dtc = resp.donorTypeCounts || {};
+    const rowFamily   = rows.filter(m => (m.type || m.memberType) === 'family').length;
+    const rowRegular  = rows.filter(m => m.donorType === 'regular').length;
+    const rowProspect = rows.filter(m => m.donorType === 'prospect').length;
+    const rowOnetime  = rows.filter(m => ['onetime','once','one_time'].includes(m.donorType)).length;
+    const rowVolunteer = rows.filter(m => (m.type || m.memberType) === 'volunteer').length;
+
+    // 집계 필드 우선, 없으면 페이지 추정값에 별표 — 어느 쪽이든 "—"는 면함
+    const pick = (aggVal, rowVal) =>
+      (aggVal != null) ? Number(aggVal).toLocaleString() + '명'
+                       : rowVal.toLocaleString() + '명*';
+
+    const aggFamily   = tc.family ?? tc['유족'] ?? tc['family'];
+    const aggRegular  = dtc.regular ?? dtc['정기'];
+    const aggProspect = dtc.prospect ?? dtc['잠재'];
+    const aggOnetime  = dtc.onetime ?? dtc.oneTime ?? dtc.once ?? dtc['일시'];
+    const aggVolunteer = tc.volunteer ?? tc['봉사'];
+    // 후원회원 = 정기 + 잠재(예비) — 집계 필드 둘 다 있으면 합, 아니면 페이지 추정
+    const aggDonor = (aggRegular != null || aggProspect != null)
+      ? (Number(aggRegular || 0) + Number(aggProspect || 0))
+      : null;
+
+    set('kpiFamily',   pick(aggFamily, rowFamily));
+    set('kpiDonor',    pick(aggDonor, rowRegular + rowProspect));
+    set('kpiRegular',  pick(aggRegular, rowRegular));
+    set('kpiOnetime',  pick(aggOnetime != null ? aggOnetime : aggProspect, rowOnetime || rowProspect));
+    set('kpiVolunteer', pick(aggVolunteer, rowVolunteer));
 
     /* ★ 버그픽스 20260515 (#2): signupSource 정규화 후 출처별 카운트 (전부 "기타" 떨어지던 문제) */
     const srcSiren  = rows.filter(m => resolveSignupSource(m) === 'siren').length;
@@ -2349,17 +2410,19 @@
   }
 
   /* 전역 노출 — IIFE 외부 발송 탭 함수들이 공유 사용 (★ 진짜 IIFE 내부) */
-  window._cmsApi   = api;
-  window._cmsToast = toast;
-  window._cmsEsc   = escapeHtml;
-  window._cmsFmt   = formatDate;
+  window._cmsApi    = api;
+  window._cmsToast  = toast;
+  window._cmsEsc    = escapeHtml;
+  window._cmsFmt    = formatDate;
+  window._cmsUnwrap = unwrap;   // ★ 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
 })();
 
 /* ★ 버그픽스 20260515 (#4): IIFE 바깥(모듈 스코프) 함수들이 쓰는 api/toast 별칭.
    잠재후원자·토스빌링 등 옛 코드가 bare api()/toast() 호출 → "api is not defined" 에러.
    IIFE가 window._cmsApi/_cmsToast로 노출한 것을 모듈 스코프 이름으로 받아둔다. */
-const api   = window._cmsApi   || (async function(){ return { ok:false, status:0, data:{ error:'api 미초기화' } }; });
-const toast = window._cmsToast || function(m){ alert(m); };
+const api    = window._cmsApi    || (async function(){ return { ok:false, status:0, data:{ error:'api 미초기화' } }; });
+const toast  = window._cmsToast  || function(m){ alert(m); };
+const unwrap = window._cmsUnwrap || function(d){ return (d && d.data) || d || {}; };
 
 /* ============================================================
    ★ Phase 2: 토스 빌링 자동 청구 관리

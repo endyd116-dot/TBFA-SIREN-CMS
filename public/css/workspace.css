@@ -117,6 +117,11 @@ body.ws-body {
 }
 .ws-nav-icon { font-size: 18px; flex-shrink: 0; width: 20px; text-align: center; }
 
+/* ★ 버그픽스 20260515-2차 (#6-1): 워크스페이스 사이드바 2뎁스 들여쓰기.
+   1뎁스 a는 padding-left 20 + 아이콘 20 + gap 14 ≈ 54px 지점에서 텍스트 시작.
+   2뎁스가 같은 padding이라 아이콘이 1뎁스처럼 좌측 정렬돼 보임 → 명시 들여쓰기. */
+.ws-sidebar-nav ul[data-sidebar-submenu] li a { padding-left: 54px; }
+
 .ws-nav-divider {
   height: 1px;
   background: #2a2a2a;
