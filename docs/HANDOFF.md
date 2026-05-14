@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-15 / **🎉🎉🎉 Phase 22 전체 완결 (22-A·B·C·D 재정 시리즈 마무리)** / main @ `9e73e98`
+> **마지막 갱신**: 2026-05-15 / **🎉 Phase 22 전체 완결 + 버그 픽스 라운드 마감** / main @ `dcfdc0f`
 
 ---
 
@@ -33,15 +33,19 @@
 
 ## 3. 지금 진행 중인 일
 
-### 3.1 🎉🎉🎉 Phase 22 전체 완결 — 진행 중 작업 없음 (2026-05-15)
+### 3.1 🎉 Phase 22 전체 완결 + 버그 픽스 라운드 마감 — 진행 중 작업 없음 (2026-05-15)
 
-**Phase 22 재정 시리즈(22-A 매출 / 22-B 재정 3부작 / 22-C 지출 / 22-D 전표 3부작) 전체 마감·운영 가능.**
+**Phase 22 재정 시리즈(22-A·B·C·D) 전체 마감 + 버그 픽스 라운드(재정 화면 깨짐·사이드바·대시보드·검증·발송·WBS 15건) 마감.**
 
 **다음 트랙**: 진행 중 작업 없음 — Swain 협의 대기. 후보는 §4.
-**라이브 확인 권장** (Swain 직접):
-- 22-B-R3 인쇄 CSS 풀폭 / Netlify PDF 폰트 경로
-- 22-D-R3 cron-voucher-recurring(KST 04:30) 실제 동작
-- **DNS**: www.tbfa.co.kr — 도메인 NS가 가비아인데 Netlify DNS 존과 어긋남. 가비아 DNS 관리에서 `www` CNAME → `tbfa-siren-cms.netlify.app` 추가 필요 (Netlify "propagating" 영원히 안 풀림)
+
+**★ Swain 직접 라이브 확인 필요** (AI 채팅은 브라우저 자동화·어드민 계정이 없어 SPA 렌더링 검증 물리적 불가 — C 정적 정독으로만 검증됨):
+- **버그 픽스 재정 화면 7개** — 실제 브라우저로 깨짐 없는지 확인
+- 22-B-R3 인쇄 CSS / 22-D-R3 cron-voucher-recurring(KST 04:30) 동작
+
+**정책 변경 (2026-05-15)**:
+- push 자동화 발효 — A·B·C `feature/`·`fix/` 브랜치 push는 자율(allow). `main` 직접·force push는 ask/deny
+- UI 검증 구조 — C 정적 정독 + Swain 라이브 확인 (메모리 `feedback_verification_rounds` 정정)
 
 ### 3.2 Phase 22 재정 시리즈 — 마감 상세 (참조용)
 
