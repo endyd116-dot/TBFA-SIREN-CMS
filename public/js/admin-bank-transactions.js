@@ -653,18 +653,26 @@
 
     if (isIn) {
       /* 미매칭 입금 → [후원 등록 / 매출 등록 / 무시]
-         후원: 입금자명을 donorName 기본값으로 (memberId 매칭 API 미제공 — donorName 경로)
+         후원: 입금자명으로 /api/admin/members 검색 → 회원 select. 선택 시 memberId,
+               미선택 시 donorName 텍스트 폴백
          매출: revenueCategoryId 필수 */
       const inName = escapeHtml(t.counterpartName || '');
       body.innerHTML = infoHtml + `
-        <div style="margin-bottom:10px">
-          <label class="form-label">후원자명 (후원 등록 시)</label>
-          <input type="text" id="btConfirmDonorName" class="input" value="${inName}" placeholder="입금자명">
+        <div style="margin-bottom:10px;border:1px solid var(--border,#e3e6eb);border-radius:8px;padding:10px 12px;background:#f6fbf7">
+          <label class="form-label" style="color:#15803d">후원 등록</label>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <input type="text" id="btConfirmDonorName" class="input" value="${inName}" placeholder="입금자명" style="flex:1">
+            <button class="btn-sm btn-sm-ghost" type="button" id="btConfirmMemberSearch">회원 검색</button>
+          </div>
+          <select id="btConfirmMemberSel" class="input" style="display:none;margin-bottom:4px"></select>
+          <div id="btConfirmMemberHint" style="font-size:11.5px;color:var(--text-3,#94a0b3)">
+            입금자명으로 회원을 검색해 연결할 수 있습니다. 미선택 시 입금자명 텍스트로 등록됩니다.
+          </div>
         </div>
-        <div style="margin-bottom:10px">
-          <label class="form-label">매출 분류 ID (매출 등록 시 필수)</label>
-          <input type="number" id="btConfirmRevenueCat" class="input" placeholder="후원 외 매출 분류 ID">
-          <input type="text" id="btConfirmPayerName" class="input" value="${inName}" placeholder="지급처명 (선택)" style="margin-top:6px">
+        <div style="margin-bottom:10px;border:1px solid var(--border,#e3e6eb);border-radius:8px;padding:10px 12px;background:#fffaf3">
+          <label class="form-label" style="color:#b45309">매출 등록</label>
+          <input type="number" id="btConfirmRevenueCat" class="input" placeholder="후원 외 매출 분류 ID (필수)" style="margin-bottom:6px">
+          <input type="text" id="btConfirmPayerName" class="input" value="${inName}" placeholder="지급처명 (선택)">
         </div>
         ${learnHtml}
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
@@ -673,10 +681,20 @@
           <button class="btn-sm btn-sm-primary" type="button" id="btConfirmDonation" style="background:#15803d">후원 등록</button>
         </div>`;
 
+      document.getElementById('btConfirmMemberSearch')?.addEventListener('click', () => {
+        const q = document.getElementById('btConfirmDonorName')?.value.trim();
+        searchMemberCandidates(q);
+      });
       document.getElementById('btConfirmDonation')?.addEventListener('click', () => {
+        const memberId  = document.getElementById('btConfirmMemberSel')?.value;
         const donorName = document.getElementById('btConfirmDonorName')?.value.trim();
-        if (!donorName) { alert('후원자명을 입력해 주세요.'); return; }
-        submitConfirm(txnId, 'donation', { donorName });
+        /* 회원 선택 시 memberId, 미선택 시 donorName 폴백 */
+        if (memberId) {
+          submitConfirm(txnId, 'donation', { memberId: Number(memberId) });
+        } else {
+          if (!donorName) { alert('후원자명을 입력하거나 회원을 검색·선택해 주세요.'); return; }
+          submitConfirm(txnId, 'donation', { donorName });
+        }
       });
       document.getElementById('btConfirmRevenue')?.addEventListener('click', () => {
         const catId = parseInt(document.getElementById('btConfirmRevenueCat')?.value, 10);
@@ -719,6 +737,42 @@
       });
       document.getElementById('btConfirmIgnore')?.addEventListener('click', () => submitConfirm(txnId, 'ignored', {}));
     }
+  }
+
+  /* 입금자명으로 회원 검색 → select 채우기 (기존 /api/admin/members 재사용) */
+  async function searchMemberCandidates(q) {
+    const sel  = document.getElementById('btConfirmMemberSel');
+    const hint = document.getElementById('btConfirmMemberHint');
+    if (!sel) return;
+    if (!q) {
+      if (hint) hint.textContent = '검색할 입금자명을 입력해 주세요.';
+      return;
+    }
+    if (hint) hint.textContent = '회원 검색 중…';
+    sel.style.display = 'none';
+    const res = await api('GET', '/api/admin/members?q=' + encodeURIComponent(q) + '&limit=30');
+    if (!res.ok) {
+      if (hint) hint.textContent = '회원 검색 실패: ' + (res.data?.error || res.error || '');
+      return;
+    }
+    const d = res.data || {};
+    const items = (d.data && (d.data.list || d.data.items || d.data.members))
+      || d.list || d.items || d.members || [];
+    /* 관리자 계정 제외 — 후원자 연결 대상 아님 */
+    const candidates = items.filter(m => m.type !== 'admin');
+    if (!candidates.length) {
+      if (hint) hint.textContent = `"${q}"와 일치하는 회원이 없습니다. 입금자명 텍스트로 등록됩니다.`;
+      sel.style.display = 'none';
+      sel.innerHTML = '';
+      return;
+    }
+    sel.innerHTML = '<option value="">— 회원 선택 안 함 (입금자명 텍스트로 등록) —</option>'
+      + candidates.map(m =>
+          `<option value="${m.id}">${escapeHtml(m.name || '(이름 없음)')} #${m.id}`
+          + `${m.phone ? ' · ' + escapeHtml(m.phone) : ''}${m.email ? ' · ' + escapeHtml(m.email) : ''}</option>`
+        ).join('');
+    sel.style.display = '';
+    if (hint) hint.textContent = `회원 후보 ${candidates.length}명 — 선택 시 해당 회원으로 후원 등록됩니다.`;
   }
 
   async function submitConfirm(txnId, action, extra) {
