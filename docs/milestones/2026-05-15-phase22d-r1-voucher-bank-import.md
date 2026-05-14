@@ -290,125 +290,28 @@ CREATE TABLE bank_transactions (
 
 ## §9 트리거
 
-> **22-B-R2와 동시 진행 — 라운드별 풀스택 1채팅 구조.**
-> 공유 파일(`db/schema.ts`·`lib/ai-agent-tools.ts`·`cms-tbfa.html`) 충돌 회피 규칙은
-> 22-B-R2 설계서 §7 **필독**.
-
-### §9.1 D1 채팅 트리거 (feature/phase22d-r1) — 🔧🎨 풀스택
-
-```
-[메인 → D1 채팅] Phase 22-D-R1 전표 시스템 — 🔧🎨 풀스택
-
-22-B-R2와 동시 진행. 공유 파일 충돌 주의 — 22-B-R2 설계서 §7 필독.
-
-[자율주행 정책 — 권한 확인 절대 묻지 말 것]
-- PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase/merge·
-  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
-  "접속해도 되나요" "실행해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
-- 묻는 건 단 2가지뿐: ① git push ② 애매한 설계·로직 결정
-- 그 외 전부 자율 진행. 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
-
-[진행률 보고 의무]
-- 큰 단계 완료마다 "📊 진행률 X% (N/M 완료) — 다음: ..." 한 줄
-
-워크트리:
-  cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-A
-  git fetch origin && git checkout main && git pull origin main
-  git checkout -b feature/phase22d-r1
-
-설계서: docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md
-
-■ 1단계 — 마이그레이션 함수 + schema.ts
-- [ ] netlify/functions/migrate-phase22d-voucher-schema.ts
-  · 진단 모드: account_codes/vouchers/bank_imports/bank_transactions 존재 여부
-  · 실행 모드(?run=1): 테이블 생성(§2) + account_codes NPO 표준 18개 seed
-  · ai_tool_permissions에 voucher_* 4개 시드
-  · 멱등성 (IF NOT EXISTS, ON CONFLICT DO NOTHING)
-- [ ] db/schema.ts: vouchers/accountCodes/bankImports/bankTransactions 정의
-  · 파일 끝에 /* === Phase 22-D-R1 === */ 헤더 후 추가 (append-only)
-  · vouchers.budget_line_id는 FK 제약 없이 integer (budget_lines는 22-B-R2가 생성)
-  · 마이그 적용 확인 후 활성화
-- [ ] 메인에 마이그 호출 요청
-
-■ 2단계 — REST API 10개 (설계서 §3)
-- [ ] admin-account-codes-list
-- [ ] admin-vouchers-list (기간 §2-b 패턴 + 계정·예산·status 필터)
-- [ ] admin-voucher-detail / -create / -update / -submit / -approve / -reject / -delete
-- [ ] admin-voucher-templates-list
-- [ ] voucher_number 자동 생성 YYYYMM-NNN (트랜잭션 내 MAX+1)
-- [ ] submit 시 승인 담당자 이메일 알림 (fire-and-forget)
-- [ ] §18.13 enum 동기화: status (draft|submitted|approved|rejected) 3곳
-
-■ 3단계 — AI 도구 4개 (설계서 §5)
-- [ ] account_codes_list / voucher_list / voucher_create / voucher_approve
-- [ ] ai-agent-config.ts 매핑 테이블에 '전표' → voucher_list 추가
-- [ ] ★ 충돌 주의: lib/ai-agent-tools.ts는 22-B-R2도 수정 중.
-      TOOL_DECLARATIONS 배열·executeTool switch는 **맨 끝**에만 추가,
-      핸들러 함수도 파일 맨 끝에. (22-B-R2 설계서 §7.1)
-
-■ 4단계 — UI (설계서 §4)
-- [ ] 지출 관리 패널에 "전표" 탭 추가 ("지출 목록" 탭 + "전표" 탭)
-- [ ] 전표 목록 렌더링 (전표번호·날짜·적요·거래처·계정과목·금액·예산·상태·액션)
-      · 기간 선택기(§2-b 재사용) + 계정과목 필터 + 상태 필터
-- [ ] 전표 작성 모달 (날짜·계정과목·세목·적요·거래처·금액·증빙종류·증빙파일·예산 항목)
-      · 예산 항목: budget_lines 드롭다운 (22-B-R2 마이그 후 채워짐, 없으면 빈 선택 허용)
-      · "자주 쓰는 전표로 저장" 체크박스
-- [ ] 전표 상태별 액션 (draft: 수정·제출·삭제 / submitted: 승인·반려 / rejected: 재제출)
-- [ ] 반복 템플릿 불러오기 드롭다운
-- [ ] cms-tbfa.html page-expenses 패널 **내부만** 수정 (다른 섹션·R2 영역 금지)
-- [ ] 캐시버스터 ?v=20260515p22d
-
-■ 5단계 — 검증
-- [ ] npx tsc --noEmit 통과
-- [ ] JS 구문 검사 (node -c)
-
-완료 후:
-- git add, commit, git push origin feature/phase22d-r1
-- PROJECT_STATE·docs 수정 금지
-- 완료 메시지: "[D1 → 메인] feature/phase22d-r1 push 완료. 머지 + 마이그 호출 요청."
-```
-
-### §9.2 C 통합 검증 트리거 — 🔍 두 라운드 (22-B-R2 + 22-D-R1)
-
-> R2·D1 둘 다 머지 + 마이그 호출 완료 후 메인이 발행.
-
-```
-[메인 → C 채팅] Phase 22-B-R2 + 22-D-R1 통합 검증 — 🔍
-
-베이스: main (R2·D1 머지 + 마이그 호출 완료 후)
-설계서: 22-B-R2 §5 (Q1~Q12) + 22-D-R1 §8 (Q1~Q16)
-
-[자율주행 정책 — 권한 확인 절대 묻지 말 것]
-- PowerShell·git bash·파일·git·npm 전부 settings.json 허용됨. 권한 질문 금지.
-- 묻는 건 git push와 애매한 로직뿐.
-
-[진행률 보고 의무]
-- "📊 진행률 X% (N/M 완료) — 다음: ..." 한 줄
-
-워크트리:
-  cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-C
-  git fetch origin && git checkout main && git pull origin main
-
-검증 URL: https://tbfa.co.kr/cms-tbfa.html (통합 CMS)
-
-■ 22-B-R2 예산 편성 — 22-B-R2 설계서 §5 Q1~Q12
-■ 22-D-R1 전표 시스템 — 22-D-R1 설계서 §8 Q1~Q16
-■ 교차 확인: 전표 작성 모달의 "예산 항목" 드롭다운에
-  22-B-R2에서 만든 예산안의 budget_lines가 정상 노출되는지
-
-BUG 발견 시 fix/phase22-parallel-bugs 브랜치 자체 fix.
-완료 메시지: "[C → 메인] 통합 검증 완료. R2 PASS X/Y, D1 PASS X/Y. BUG N건."
-```
+> **22-D-R1은 22-B-R2와 한 브랜치에서 동시 진행** — 채팅 구조 A(프론트)·B(백엔드)·C(검증).
+> 트리거는 두 라운드 통합으로 **22-B-R2 설계서 §6에 단일 관리**:
+>
+> | 채팅 | 트리거 위치 | 22-D-R1 해당 |
+> |---|---|---|
+> | B (백엔드) | 22-B-R2 설계서 §6.1 | Part B = 22-D-R1 백엔드 (마이그·API 10개·AI 도구 4개) |
+> | A (프론트) | 22-B-R2 설계서 §6.2 | Part B = 22-D-R1 전표 탭 UI |
+> | C (검증) | 22-B-R2 설계서 §6.3 | 22-D-R1 §8 Q1~Q16 + 교차 확인 |
+>
+> - 브랜치: `feature/phase22-r2d1-back`(B) · `feature/phase22-r2d1-front`(A)
+> - 워크트리: tbfa-mis-B(B) · tbfa-mis-A(A) · tbfa-mis-C(C)
+> - 22-D-R1 작업 항목 세부는 본 설계서 §2(스키마)·§3(API)·§4(UI)·§5(AI 도구) 참조
 
 ---
 
-## §10 라운드 마감 체크리스트 (R1)
+## §10 라운드 마감 체크리스트
 
-- [ ] D1: 풀스택 push → 메인 머지 → Swain 마이그 호출 → 마이그 파일 삭제
-- [ ] 22-B-R2도 머지 완료 → C 통합 검증 트리거 발행
-- [ ] C: 통합 검증 (22-B-R2 §5 + 22-D-R1 §8)
+- [ ] B: 두 라운드 백엔드 push (feature/phase22-r2d1-back) → 메인 머지 → Swain 마이그 2개 호출
+- [ ] A: 두 라운드 프론트 push (feature/phase22-r2d1-front) → 메인 머지
+- [ ] C: 통합 검증 (22-B-R2 §5 Q1~Q12 + 22-D-R1 §8 Q1~Q16)
 - [ ] 두 라운드 머지 후 메인: vouchers.budget_line_id FK 제약 추가 마이그 (선택, 운영 안정 후)
-- [ ] PROJECT_STATE §2 + §5 갱신 / HANDOFF.md 갱신
+- [ ] PROJECT_STATE + HANDOFF.md 갱신
 
 ---
 
@@ -421,18 +324,13 @@ BUG 발견 시 fix/phase22-parallel-bugs 브랜치 자체 fix.
 - **계정과목 seed 멱등성**: 같은 code INSERT 시 SKIP (ON CONFLICT DO NOTHING)
 - **이메일 알림**: 승인 요청 이메일 실패해도 전표 제출은 성공 (fire-and-forget 패턴)
 - **§18.13 enum 동기화**: status enum (draft|submitted|approved|rejected) 3곳 동기화
-- **ai-agent-tools.ts 충돌**: R2도 동시 수정 — 배열·switch 맨 끝에만 추가
+- **ai-agent-tools.ts**: B 한 채팅이 두 라운드 도구(budget_plan_* 3 + voucher_* 4)를 모두 담당 — 배열·switch·핸들러 전부 파일 끝에 추가 (채팅 내부 처리라 충돌 없음)
 
 ---
 
 ## §12 작업 시간 추정
 
-| 채팅 | 작업 | 시간 |
-|---|---|---|
-| D1 | 마이그 + schema + API 10개 + AI 도구 4개 + UI | 8~11h |
-| (R2) | 22-B-R2 설계서 §9 참고 | 8~11h |
-| C | 두 라운드 통합 검증 | 3~4h |
-| **합계 (병렬)** | | **11~15h** |
+두 라운드 통합 작업 시간 추정은 **22-B-R2 설계서 §9**에 단일 관리 (B 12~16h / A 10~14h / C 3~4h).
 
 ---
 
