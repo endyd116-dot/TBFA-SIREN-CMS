@@ -88,6 +88,8 @@
   included_files = ["assets/fonts/**"]
 [functions."admin-referral-pdf"]
   included_files = ["assets/fonts/**"]
+[functions."admin-finance-report-pdf"]
+  included_files = ["assets/fonts/**"]
 
 # ★ STEP I-2: 채팅 이미지 자동 정리 (매일 새벽 3시 KST = UTC 18:00)
 [functions."cleanup-chat-images"]

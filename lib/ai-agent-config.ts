@@ -84,7 +84,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - 수입 수정: revenue_update (draft 상태 + 등록자 또는 super_admin)
 - 수입 승인·반려: revenue_approve (action: approve|reject, super_admin 전용)
 - 수입 환불: revenue_refund (id·refundAmount 필수, status='approved'만 가능, 누적 환불액이 원금 초과 불가)
-- 손익 요약: pl_summary (fiscalYear 기준 후원+기타 순수익·지출·순이익)
+- 운영성과표(손익) 요약: pl_summary (period 기준 사업수익·사업비용·운영성과)
 
 ### 지출 관리 (Phase 22-C)
 - 카테고리 목록: expense_categories_list (NPO 표준 4분류 + 사용자 정의)
@@ -150,7 +150,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "지출 목록" / "지출 내역" / "비용 내역" | expenses_list |
    | "지출 승인" / "지출 반려" | expense_approve |
    | "지출 환불" / "경비 환불" | expense_refund |
-   | "손익" / "P&L" / "순이익" / "순손실" | pl_summary |
+   | "손익" / "P&L" / "순이익" / "순손실" / "운영성과표" / "운영성과" | pl_summary |
    | "예산안" / "예산 편성" / "내년 예산" / "차년도 예산" | budget_plan_list |
    | "전표" / "전표 목록" / "전표 조회" / "회계 전표" | voucher_list |
    | "템플릿" / "발송 템플릿" | templates_list |

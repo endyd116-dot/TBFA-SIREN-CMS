@@ -2108,55 +2108,12 @@ export type ReportSnapshot = typeof reportSnapshots.$inferSelect;
 export type NewReportSnapshot = typeof reportSnapshots.$inferInsert;
 
 /* =========================================================
-   === Phase 5~7: 재정 관리 (예산·지출) ===
-   2026-05-10 마이그레이션(migrate-finance-tables) 적용 후 정의 활성화
+   === Phase 5~7: 재정 관리 (예산·지출) — 옛 테이블 ===
+   Phase 22-B-R3(2026-05-15)에서 코드 정의 제거.
+   budget_categories·budgets·expenditures 는 22-B-R1·R2에서
+   expense_categories·budget_plans·budget_lines·expenses 로 단일화 완료.
+   ⚠️ DB 테이블·데이터는 롤백 대비 보존 — 코드 정의만 삭제.
    ========================================================= */
-
-export const budgetCategories = pgTable("budget_categories", {
-  id:          serial("id").primaryKey(),
-  name:        varchar("name", { length: 50 }).notNull(),
-  code:        varchar("code", { length: 20 }).notNull().unique(),
-  description: text("description"),
-  isActive:    boolean("is_active").default(true),
-  createdAt:   timestamp("created_at").defaultNow(),
-});
-
-export type BudgetCategory = typeof budgetCategories.$inferSelect;
-export type NewBudgetCategory = typeof budgetCategories.$inferInsert;
-
-export const budgets = pgTable("budgets", {
-  id:            serial("id").primaryKey(),
-  fiscalYear:    integer("fiscal_year").notNull(),
-  categoryId:    integer("category_id").references(() => budgetCategories.id),
-  plannedAmount: numeric("planned_amount", { precision: 12, scale: 0 }).notNull(),
-  note:          text("note"),
-  createdBy:     integer("created_by"),
-  createdAt:     timestamp("created_at").defaultNow(),
-}, (t) => ({
-  yearCategoryUq: uniqueIndex("budgets_year_category_uq").on(t.fiscalYear, t.categoryId),
-}));
-
-export type Budget = typeof budgets.$inferSelect;
-export type NewBudget = typeof budgets.$inferInsert;
-
-export const expenditures = pgTable("expenditures", {
-  id:          serial("id").primaryKey(),
-  categoryId:  integer("category_id").references(() => budgetCategories.id),
-  amount:      numeric("amount", { precision: 12, scale: 0 }).notNull(),
-  spentAt:     timestamp("spent_at", { mode: "date" }).notNull(),
-  description: varchar("description", { length: 500 }).notNull(),
-  payee:       varchar("payee", { length: 100 }),
-  status:      varchar("status", { length: 20 }).default("draft"),
-  receiptUrl:  text("receipt_url"),
-  createdBy:   integer("created_by"),
-  approvedBy:  integer("approved_by"),
-  approvedAt:  timestamp("approved_at"),
-  note:        text("note"),
-  createdAt:   timestamp("created_at").defaultNow(),
-});
-
-export type Expenditure = typeof expenditures.$inferSelect;
-export type NewExpenditure = typeof expenditures.$inferInsert;
 
 /* =========================================================
    === Phase 8: 알림 채널 통합 디스패처 ===
