@@ -41,6 +41,8 @@ export const CACHEABLE_TOOLS = new Set<string>([
   "revenue_categories_list", "revenue_list",
   "expense_categories_list", "expenses_list",
   "pl_summary",
+  /* Phase 22-D-R2 통장 대사 */
+  "bank_reconcile_summary",
 ]);
 
 /* 변경 도구 → 무효화할 캐시 키 prefix 매핑.

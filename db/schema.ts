@@ -3057,12 +3057,57 @@ export const bankTransactions = pgTable("bank_transactions", {
   confirmedBy:     varchar("confirmed_by", { length: 100 }),
   confirmedAt:     timestamp("confirmed_at", { withTimezone: true }),
   createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+
+  /* === Phase 22-D-R2 통장거래내역 자동화 === (2026-05-15)
+     마이그: migrate-phase22d-r2-bank-reconcile (적용 완료 후 활성) */
+  counterpartAccount: varchar("counterpart_account", { length: 50 }),  // 상대계좌번호
+  counterpartBank:    varchar("counterpart_bank", { length: 50 }),     // 상대은행
+  counterpartName:    varchar("counterpart_name", { length: 200 }),    // 상대계좌예금주명 — 거래처 매칭 핵심
+  txnMethod:          varchar("txn_method", { length: 50 }),           // 거래구분
+  memo:               text("memo"),
+  cmsCode:            varchar("cms_code", { length: 50 }),
+  counterpartyId:     integer("counterparty_id"),                      // → counterparties.id
+  donationId:         integer("donation_id"),                          // 입금 매칭: → donations.id
+  otherRevenueId:     integer("other_revenue_id"),                     // 입금 매칭: → other_revenues.id
+  matchType:          varchar("match_type", { length: 30 }),
+                      // 'donation'|'donation_batch'|'voucher'|'revenue'|'ignored'|'pending'
+  dedupHash:          varchar("dedup_hash", { length: 64 }),           // 중복 방지 해시
 }, (t) => ({
-  importIdx:  index("bank_txns_import_idx").on(t.importId),
-  dateIdx:    index("bank_txns_date_idx").on(t.txnDate),
-  statusIdx:  index("bank_txns_status_idx").on(t.status),
+  importIdx:    index("bank_txns_import_idx").on(t.importId),
+  dateIdx:      index("bank_txns_date_idx").on(t.txnDate),
+  statusIdx:    index("bank_txns_status_idx").on(t.status),
+  dedupIdx:     index("bank_txns_dedup_idx").on(t.dedupHash),
+  matchTypeIdx: index("bank_txns_match_type_idx").on(t.matchType),
 }));
 
 export type BankTransaction    = typeof bankTransactions.$inferSelect;
 export type NewBankTransaction = typeof bankTransactions.$inferInsert;
+
+/* =========================================================
+   === Phase 22-D-R2 거래처 마스터 === (2026-05-15)
+   설계서: docs/milestones/2026-05-15-phase22d-r2-bank-reconciliation.md §2.2
+   - counterparties: 거래처 자동 학습 — 한 번 분류하면 다음부터 자동 매핑
+   ========================================================= */
+
+export const counterparties = pgTable("counterparties", {
+  id:                  serial("id").primaryKey(),
+  name:                varchar("name", { length: 200 }).notNull(),      // 거래처명·예금주명
+  accountNo:           varchar("account_no", { length: 50 }),           // 상대계좌번호
+  bankName:            varchar("bank_name", { length: 50 }),            // 상대은행
+  defaultMatchType:    varchar("default_match_type", { length: 30 }),   // 'voucher'|'revenue'|'donation'
+  defaultAccountCode:  varchar("default_account_code", { length: 20 }), // → account_codes.code
+  defaultBudgetLineId: integer("default_budget_line_id"),               // → budget_lines.id (선택)
+  txnCount:            integer("txn_count").default(0).notNull(),       // 학습 횟수 (등장 빈도)
+  note:                text("note"),
+  learnedBy:           integer("learned_by"),                           // members.id (최초 분류한 관리자)
+  createdAt:           timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:           timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  nameIdx:        index("counterparties_name_idx").on(t.name),
+  accountIdx:     index("counterparties_account_idx").on(t.accountNo),
+  acctNameUnique: uniqueIndex("counterparties_account_name_unique").on(t.accountNo, t.name),
+}));
+
+export type Counterparty    = typeof counterparties.$inferSelect;
+export type NewCounterparty = typeof counterparties.$inferInsert;
 
