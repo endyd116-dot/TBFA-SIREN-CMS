@@ -53,17 +53,27 @@ export default async function handler(req: Request, _ctx: Context) {
     await sql`ALTER TABLE revenue_categories ADD COLUMN IF NOT EXISTS is_system boolean NOT NULL DEFAULT false`;
     await sql`CREATE INDEX IF NOT EXISTS revenue_categories_parent_idx ON revenue_categories (parent_id)`;
 
-    // 기존 6종 시드 보호 표시
+    // 기존 시드 보호 표시 — RETURNING 으로 실제 적중 행 확인
     const upd: any = await sql`
       UPDATE revenue_categories SET is_system = TRUE
-      WHERE code = ANY(${SEED_CODES}) AND is_system = FALSE`;
-    const protectedCount = (upd as any)?.count ?? 0;
+      WHERE code = ANY(${SEED_CODES}) AND is_system = FALSE
+      RETURNING code`;
+    const updatedNow = (upd as any[]).map((r) => r.code);
 
-    const [t] = await sql`SELECT COUNT(*) AS n FROM revenue_categories`;
+    // 정의적 검증 — 현재 전체 코드·is_system 상태
+    const rows: any = await sql`
+      SELECT code, is_system FROM revenue_categories ORDER BY sort_order, id`;
+    const allRows = rows as any[];
+    const allCodes = allRows.map((r) => r.code);
+    const systemCount = allRows.filter((r) => r.is_system === true).length;
+
     return new Response(JSON.stringify({
       ok: true, mode: "executed",
-      message: `매출 카테고리 계층 컬럼 추가 완료 — parent_id·is_system 생성, 시드 보호 ${protectedCount}건 (전체 ${Number(t.n)}건)`,
-      protectedCount, categoryCount: Number(t.n),
+      message: `매출 카테고리 계층 완료 — 이번 보호 표시 ${updatedNow.length}건 / 현재 시스템 분류 ${systemCount}건 / 전체 ${allCodes.length}건`,
+      updatedNow,
+      systemCount,
+      allCodes,
+      seedCodesExpected: SEED_CODES,
     }), { headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     return new Response(JSON.stringify({
