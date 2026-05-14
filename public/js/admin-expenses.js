@@ -947,19 +947,32 @@
     }
   }
 
-  /* ── 초기화 / 재진입 통합 ── */
+  /* ── 초기화 / 재진입 통합 ──
+     ★ 버그픽스: 사전 로드(권한·카테고리)가 실패해도 화면 골격은 반드시 그린다.
+        예전엔 중간 단계가 throw하면 renderShell이 안 돌아 빈 섹션 = 무한로딩. */
   async function init() {
     const container = document.getElementById('adm-expenses') || document.getElementById('page-expenses');
     if (!container) return;
     if (!container.querySelector('.panel')) {
-      await loadMyRole();
-      await loadCategories();
-      renderShell(container);
-      bindPeriodSelector('exp', () => { currentPage = 1; loadList(); });
-      const refreshBtn = document.getElementById('expRefreshBtn');
-      if (refreshBtn) refreshBtn.addEventListener('click', () => { currentPage = 1; loadList(); });
+      try { await loadMyRole(); }     catch (e) { console.warn('[expenses] 권한 조회 실패', e); myRole = myRole || 'admin'; }
+      try { await loadCategories(); } catch (e) { console.warn('[expenses] 카테고리 조회 실패', e); categories = categories || []; }
+      try {
+        renderShell(container);
+        bindPeriodSelector('exp', () => { currentPage = 1; loadList(); });
+        const refreshBtn = document.getElementById('expRefreshBtn');
+        if (refreshBtn) refreshBtn.addEventListener('click', () => { currentPage = 1; loadList(); });
+      } catch (e) {
+        console.error('[expenses] 화면 구성 실패', e);
+        container.innerHTML = `<div class="panel"><div style="color:var(--danger);padding:24px;text-align:center">지출 관리 화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.<br><small>${escapeHtml(String(e?.message || e))}</small></div></div>`;
+        return;
+      }
     }
-    await loadList();
+    try { await loadList(); }
+    catch (e) {
+      console.error('[expenses] 목록 조회 실패', e);
+      const tbody = document.getElementById('expTbody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger);text-align:center">목록 조회 실패: ${escapeHtml(String(e?.message || e))}</td></tr>`;
+    }
   }
 
   window.SIREN_EXPENSES = { init, load: init };

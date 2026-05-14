@@ -308,6 +308,18 @@
 }
 .wk-modal-sm { width: 420px; }
 
+/* ★ 버그픽스 20260515 (#15): WBS 작업카드 모달(7개 탭) 높이 고정.
+   탭마다 콘텐츠 높이가 달라 모달 외곽이 출렁이던 문제 →
+   dialog 높이를 고정하고 body만 스크롤되게 한다. */
+.wk-modal-lg {
+  height: 80vh;
+}
+.wk-modal-lg .wk-modal-body {
+  flex: 1;
+  min-height: 0;       /* flex 자식 스크롤 활성화 */
+  overflow-y: auto;
+}
+
 .wk-modal-header {
   display: flex;
   align-items: center;
