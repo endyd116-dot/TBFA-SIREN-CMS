@@ -29,8 +29,12 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const budRows: any[] = (budgetRows as any)?.rows ?? (budgetRows as any[]) ?? [];
 
-    // 2. expense_categories 코드 → ID 매핑 (budget_categories.code와 동일 코드 기준 매칭)
-    //    22-B-R1 마이그레이션 후 budget_categories.code = expense_categories.code 로 1:1 대응
+    // 2. expense_categories 코드 → ID 매핑 (budget_categories.code 기준)
+    //    NOTE: 옛 budget_categories(5개: psych/legal/scholar/ops/pr)와
+    //    expense_categories(NPO 4분류)는 코드 체계가 달라 현재 매칭되지 않음.
+    //    옛 지출 데이터 0건이라 동작은 정상(집행액 0으로 표시).
+    //    budget_categories → NPO 4분류 재편 + budgets.category_id 재매핑은
+    //    Phase 22-B-R2 예산 편성에서 처리. (2026-05-15 진단으로 데이터 0건 확인)
     const expCatR: any = await db.execute(sql`
       SELECT id, code FROM expense_categories WHERE is_active = TRUE
     `);

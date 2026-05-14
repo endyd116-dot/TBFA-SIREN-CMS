@@ -95,7 +95,23 @@ admin.html "후원금 관리"(data-page=donations)는 `admin.js loadDonations()`
 
 ## §2 지출 시스템 단일화 (B 담당 + 메인 0단계)
 
-### 2.1 메인 0단계 — 데이터 마이그레이션
+> **⚠️ 2026-05-15 진단 결과 — §2.1·§2.2 계획 변경**
+>
+> 마이그 진단 호출 결과 **옛 지출 데이터(`expenditures`)가 0건**으로 확인됨.
+> 옛 지출 시스템은 한 번도 사용되지 않은 빈 테이블.
+> - **데이터 마이그레이션 불필요** → 마이그 함수(`migrate-phase22b-expenditures-to-expenses.ts`) 삭제
+> - **카테고리 통일 결정 (Swain)**: NPO 표준 4분류로 통일.
+>   옛 `budget_categories` 5개(심리상담·법률지원·장학사업·운영비·홍보)는 폐기 대상.
+>   심리상담·법률지원·장학사업 → 사업비 / 운영비 → 관리운영비 / 홍보 → 모금비
+> - **budget_categories 재편 + budgets.category_id 재매핑은 Phase 22-B-R2 예산 편성에서 처리**
+>   (데이터 0건이라 R1에서는 예산 집행률 화면이 깨지지 않음 — 집행액 0 표시)
+> - R1 "지출 단일화" 실질 범위 = B가 완료한 코드 전환만:
+>   AI 도구 `expenditures_list` 제거, 옛 지출 API 3개 deprecated 처리,
+>   `admin-finance-budget-list.ts` expenses 기준 전환
+>
+> 아래 §2.1·§2.2는 진단 전 계획 — 히스토리로 보존, 실제는 위 박스 따름.
+
+### 2.1 메인 0단계 — 데이터 마이그레이션 (진단 결과 데이터 0건 → 폐기)
 
 `netlify/functions/migrate-phase22b-expenditures-to-expenses.ts` 작성:
 - 진단 모드: `expenditures` 행 수 + `expenses` 행 수 + 마이그 대상 카운트
@@ -148,6 +164,15 @@ admin.html "후원금 관리"(data-page=donations)는 `admin.js loadDonations()`
 - R1에서는 `expenses` / `expense_categories`만 사용하도록 코드 전환
 - `budgets` 테이블은 유지 (R2 예산 편성에서 사용)
 
+### 2.5 R2 인계 사항 (2026-05-15 진단 후 확정)
+
+R2 예산 편성 라운드에서 처리할 카테고리 재편 작업:
+- `budget_categories` 5개 → NPO 4분류로 재편 (또는 테이블 폐기 후 `expense_categories` 단일화)
+- `budgets.category_id`를 NPO 4분류 기준으로 재매핑 (현재 옛 5개 참조 중)
+- `admin-finance-budget-list.ts` 재작성 — 현재 `budget_categories` 기준 + `expense_categories` 코드 매칭 임시 구조
+  (데이터 0건이라 동작은 정상, 코드 주석에 R2 재편 예정 명시됨)
+- **R2 설계 착수 시 확인 필요**: `budgets` 테이블에 실제 편성된 예산 행이 있는지 (진단에서 미확인)
+
 ---
 
 ## §2-b 기간 필터 추가 범위 (원래 22-A 설계 의도 — 미구현)
@@ -197,10 +222,10 @@ admin.html "후원금 관리"(data-page=donations)는 `admin.js loadDonations()`
 - Q5: 통합 CMS에서 각 화면 데이터 로드 정상 (DB 공유라 데이터 동일)
 - Q6: 후원금 관리(donations) 중복 검토 결과 반영 확인
 
-### 지출 단일화
-- Q7: 마이그 후 옛 expenditures 데이터가 expenses에 정상 복사 (행 수·금액 합 일치)
-- Q8: 카테고리 매핑 정확성 (옛 budget_categories → expense_categories)
-- Q9: 예산 관리 화면의 집행률이 expenses 기준으로 정확히 계산
+### 지출 단일화 (2026-05-15 진단: 옛 지출 데이터 0건 — Q7·Q8 변경)
+- Q7: ~~마이그 후 데이터 복사~~ → **데이터 0건 확인, 마이그 불필요·함수 삭제됨** (검증: 마이그 함수 부재 + 옛 지출 0건)
+- Q8: ~~카테고리 매핑~~ → **NPO 4분류 통일 결정, budget_categories 재편은 R2로 이관** (검증: 결정 문서화 확인)
+- Q9: 예산 관리 화면 정상 로드 — 데이터 0건이라 집행액 0 표시, 화면 깨짐·콘솔 에러 0
 - Q10: 옛 지출 API 3개 호출 시 deprecated 경고 응답
 - Q11: AI 비서에 "지출 목록 보여줘" → expenses_list 호출 (expenditures_list 제거 확인)
 - Q12: 지출 등록·승인·환불 흐름이 expenses 단일 시스템으로 동작
@@ -385,10 +410,10 @@ BUG 발견 시 fix/phase22b-r1-bugs 브랜치 자체 fix.
 
 ## §5 라운드 마감 체크리스트
 
-- [ ] 0단계 메인: 카테고리 매핑표 확정 (B 진단 보고 받아)
-- [ ] B push → 메인 머지 → Swain 마이그 호출 → 마이그 파일 삭제
-- [ ] A push → 메인 머지 (donations 중복 검토 결과 반영)
-- [ ] C 검증 Q1~Q20 (Q15~Q20 기간 필터 포함)
+- [x] 0단계 메인: 마이그 진단 호출 → 옛 지출 데이터 0건 확인 → NPO 4분류 통일 결정 (Swain)
+- [x] B push → 메인 머지 (cdf8304) → 진단 결과 데이터 0건 → 마이그 함수 삭제 (실행 불필요)
+- [x] A push → 메인 머지 (f173389, donations 포함 6개 화면 — A 자율 완료)
+- [ ] C 검증 Q1~Q20 (Q7·Q8은 데이터 0건 반영, Q15~Q20 기간 필터)
 - [ ] PROJECT_STATE §2 + §5 갱신
 - [ ] HANDOFF.md 갱신
 
