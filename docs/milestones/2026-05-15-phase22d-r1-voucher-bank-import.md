@@ -97,7 +97,8 @@ CREATE TABLE vouchers (
                    -- 'tax_invoice'|'receipt'|'card_slip'|'transfer_confirm'|'none'
   evidence_number  TEXT,                   -- 세금계산서 번호 등
   evidence_url     TEXT,                   -- R2 파일 URL
-  budget_id        INTEGER REFERENCES budgets(id),
+  budget_line_id   INTEGER,                -- → budget_lines.id (22-B-R2 생성). 전표의 "어느 예산에서 지출".
+                                           -- FK 제약은 두 라운드 머지 후 메인이 별도 추가 (§7.2 22-B-R2 설계서)
   expense_id       INTEGER REFERENCES expenses(id),  -- 지출 연결 (선택)
   bank_txn_id      INTEGER,                -- FK → bank_transactions.id (R2에서 활성화)
   is_template      BOOLEAN DEFAULT FALSE, -- 반복 템플릿 여부
@@ -198,7 +199,8 @@ CREATE TABLE bank_transactions (
 | 상단 | 기간 선택기 (§2-b 공통 컴포넌트) + 계정과목 드롭다운 필터 + 상태 필터 |
 | 목록 | 전표번호·날짜·적요·거래처·계정·금액·예산·상태·액션 |
 | 신규 버튼 | 전표 작성 모달 (또는 슬라이드 패널) |
-| 전표 작성 폼 | 날짜·계정과목(검색+선택)·세목·적요·거래처·금액·증빙종류·증빙파일·예산 |
+| 전표 작성 폼 | 날짜·계정과목(검색+선택)·세목·적요·거래처·금액·증빙종류·증빙파일·예산 항목 |
+| 예산 항목 선택 | `budget_lines` 드롭다운 (22-B-R2 예산안의 카테고리별 편성 행). 승인된 예산안 기준. 데이터 없으면 "예산 미연결"로 빈 선택 허용 |
 | 반복 템플릿 | "자주 쓰는 전표로 저장" 체크박스 → 다음에 1클릭 재사용 |
 | 증빙 업로드 | R2 이미지 업로드 (admin-expense-create 패턴 재사용) |
 
@@ -271,7 +273,7 @@ CREATE TABLE bank_transactions (
 - Q4: 전표 제출 → submitted 상태 변경 + 승인 담당자에게 이메일 알림
 - Q5: super_admin이 승인 → approved 상태 변경
 - Q6: 반려 + 사유 입력 → rejected 상태 + 재제출 가능
-- Q7: 예산 연결 — budgets 목록에서 선택, 선택된 예산 전표에 표시
+- Q7: 예산 연결 — budget_lines 드롭다운(22-B-R2 예산안)에서 선택, 선택된 예산 항목 전표에 표시
 - Q8: 증빙 파일 첨부 후 R2 업로드, URL 전표에 저장
 - Q9: 반복 템플릿 저장 → 다음 전표 작성 시 1클릭 불러오기
 - Q10: 기간 필터 (§2-b) + 계정과목 필터 정상 동작
@@ -288,13 +290,16 @@ CREATE TABLE bank_transactions (
 
 ## §9 트리거
 
-### §9.1 B 트리거 (feature/phase22d-r1-back) — 🔧 백엔드 + AI 도구
+> **22-B-R2와 동시 진행 — 라운드별 풀스택 1채팅 구조.**
+> 공유 파일(`db/schema.ts`·`lib/ai-agent-tools.ts`·`cms-tbfa.html`) 충돌 회피 규칙은
+> 22-B-R2 설계서 §7 **필독**.
+
+### §9.1 D1 채팅 트리거 (feature/phase22d-r1) — 🔧🎨 풀스택
 
 ```
-[메인 → B 채팅] Phase 22-D-R1 전표 시스템 — 🔧 백엔드 + AI 도구 (프론트 ❌)
+[메인 → D1 채팅] Phase 22-D-R1 전표 시스템 — 🔧🎨 풀스택
 
-이 작업은 Phase 22-B-R1 완료 후 착수.
-베이스: main 최신 (git pull 필수)
+22-B-R2와 동시 진행. 공유 파일 충돌 주의 — 22-B-R2 설계서 §7 필독.
 
 [자율주행 정책 — 권한 확인 절대 묻지 말 것]
 - PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase/merge·
@@ -304,151 +309,119 @@ CREATE TABLE bank_transactions (
 - 그 외 전부 자율 진행. 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
 
 [진행률 보고 의무]
-- 큰 단계 완료마다 진행률 % 한 줄 보고
-- 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
-
-워크트리:
-  cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-B
-  git fetch origin && git checkout main && git pull origin main
-  git checkout -b feature/phase22d-r1-back
-베이스: main 최신 (반드시 git pull 후)
-
-설계서: docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md §2~§5
-
-■ 1단계 — 마이그레이션 함수 작성
-- [ ] netlify/functions/migrate-phase22d-voucher-schema.ts
-  · 진단 모드: account_codes/vouchers/bank_imports/bank_transactions 존재 여부
-  · 실행 모드(?run=1): 테이블 생성 + account_codes NPO 표준 18개 seed
-  · 멱등성 (IF NOT EXISTS, 중복 INSERT 방지)
-  · 완료 후 메인에 마이그 호출 요청
-
-■ 2단계 — REST API 9개 (설계서 §3)
-- [ ] admin-account-codes-list.ts
-- [ ] admin-vouchers-list.ts (기간·계정·예산·status 필터 + 기간 §2-b 패턴 그대로)
-- [ ] admin-voucher-detail.ts
-- [ ] admin-voucher-create.ts (voucher_number 자동 생성: YYYYMM-NNN)
-- [ ] admin-voucher-update.ts (draft 상태만 수정 가능)
-- [ ] admin-voucher-submit.ts (draft→submitted + 이메일 알림)
-- [ ] admin-voucher-approve.ts (submitted→approved, super_admin)
-- [ ] admin-voucher-reject.ts (반려 사유 필수)
-- [ ] admin-voucher-delete.ts (draft 상태만)
-- [ ] admin-voucher-templates-list.ts
-
-■ 3단계 — AI 도구 4개 (lib/ai-agent-tools.ts 추가)
-- [ ] account_codes_list: 계정과목 목록
-- [ ] voucher_list: 전표 목록 (기간·계정·예산·status 파라미터)
-- [ ] voucher_create: 전표 생성 (dry-run 우선 — requireApproval=true)
-- [ ] voucher_approve: 전표 승인 (dry-run 우선, super_admin)
-- [ ] ai_tool_permissions seed: 4개 도구 권한 등록 (마이그 함수에 포함)
-- [ ] ai-agent-config.ts 매핑 테이블에 '전표' → voucher_list 추가
-
-■ 4단계 — 검증
-- [ ] npx tsc --noEmit 통과
-
-완료 후:
-- git add, commit, git push origin feature/phase22d-r1-back
-- PROJECT_STATE·docs·public 수정 금지
-- 완료 메시지: "[B → 메인] feature/phase22d-r1-back push 완료. 마이그 호출 요청."
-```
-
-### §9.2 A 트리거 (feature/phase22d-r1-front) — 🎨 프론트엔드 전용
-
-```
-[메인 → A 채팅] Phase 22-D-R1 전표 탭 UI — 🎨 프론트엔드 (백엔드·AI 도구 ❌)
-
-이 작업은 Phase 22-B-R1 완료 후 착수 (지출 관리 패널이 cms-tbfa.html로 이전된 상태).
-베이스: main 최신 (22-B-R1 머지 완료 후 git pull)
-
-[자율주행 정책 — 권한 확인 절대 묻지 말 것]
-- PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase/merge·
-  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
-  "접속해도 되나요" "실행해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
-- 묻는 건 단 2가지뿐: ① git push ② 애매한 설계·로직 결정
-- 그 외 전부 자율 진행. 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
-
-[진행률 보고 의무]
-- 큰 단계 완료마다 진행률 % 한 줄 보고
-- 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
+- 큰 단계 완료마다 "📊 진행률 X% (N/M 완료) — 다음: ..." 한 줄
 
 워크트리:
   cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-A
   git fetch origin && git checkout main && git pull origin main
-  git checkout -b feature/phase22d-r1-front
+  git checkout -b feature/phase22d-r1
 
-설계서: docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md §4
+설계서: docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md
 
-■ 작업 — 지출 관리 패널에 "전표" 탭 추가
+■ 1단계 — 마이그레이션 함수 + schema.ts
+- [ ] netlify/functions/migrate-phase22d-voucher-schema.ts
+  · 진단 모드: account_codes/vouchers/bank_imports/bank_transactions 존재 여부
+  · 실행 모드(?run=1): 테이블 생성(§2) + account_codes NPO 표준 18개 seed
+  · ai_tool_permissions에 voucher_* 4개 시드
+  · 멱등성 (IF NOT EXISTS, ON CONFLICT DO NOTHING)
+- [ ] db/schema.ts: vouchers/accountCodes/bankImports/bankTransactions 정의
+  · 파일 끝에 /* === Phase 22-D-R1 === */ 헤더 후 추가 (append-only)
+  · vouchers.budget_line_id는 FK 제약 없이 integer (budget_lines는 22-B-R2가 생성)
+  · 마이그 적용 확인 후 활성화
+- [ ] 메인에 마이그 호출 요청
 
-[ ] admin-expenses.js (또는 이전된 지출 관리 JS)에 탭 전환 로직 추가
-    · "지출 목록" 탭 (기존) + "전표" 탭 (신규) — 탭 버튼 + 컨텐츠 영역 분리
-[ ] 전표 목록 렌더링
-    · 컬럼: 전표번호·날짜·적요·거래처·계정과목·금액·예산·상태·액션
-    · 기간 선택기 (§2-b 공통 컴포넌트 재사용) + 계정과목 필터 드롭다운 + 상태 필터
-[ ] 전표 작성 모달 (또는 슬라이드 패널)
-    · 날짜 / 계정과목(검색+선택 드롭다운, /api/admin-account-codes-list) /
-      세목(자유 입력) / 적요 / 거래처 / 금액 /
-      증빙종류(세금계산서·영수증·카드전표·이체확인서·무증빙) /
-      증빙파일(R2 업로드, admin-expense-create.js 패턴 재사용) /
-      예산(budgets 목록 드롭다운)
-    · "자주 쓰는 전표로 저장" 체크박스 → template_name 입력
-[ ] 전표 상태별 액션 버튼
-    · draft: 수정·제출·삭제
-    · submitted: 승인·반려 (super_admin 역할만 노출)
-    · rejected: 수정 후 재제출
-[ ] 반복 템플릿 불러오기
-    · 전표 작성 모달 상단에 "템플릿에서 불러오기" 드롭다운
-    · 선택 시 폼 자동 채우기
-[ ] 캐시버스터 ?v=20260515p22d
+■ 2단계 — REST API 10개 (설계서 §3)
+- [ ] admin-account-codes-list
+- [ ] admin-vouchers-list (기간 §2-b 패턴 + 계정·예산·status 필터)
+- [ ] admin-voucher-detail / -create / -update / -submit / -approve / -reject / -delete
+- [ ] admin-voucher-templates-list
+- [ ] voucher_number 자동 생성 YYYYMM-NNN (트랜잭션 내 MAX+1)
+- [ ] submit 시 승인 담당자 이메일 알림 (fire-and-forget)
+- [ ] §18.13 enum 동기화: status (draft|submitted|approved|rejected) 3곳
+
+■ 3단계 — AI 도구 4개 (설계서 §5)
+- [ ] account_codes_list / voucher_list / voucher_create / voucher_approve
+- [ ] ai-agent-config.ts 매핑 테이블에 '전표' → voucher_list 추가
+- [ ] ★ 충돌 주의: lib/ai-agent-tools.ts는 22-B-R2도 수정 중.
+      TOOL_DECLARATIONS 배열·executeTool switch는 **맨 끝**에만 추가,
+      핸들러 함수도 파일 맨 끝에. (22-B-R2 설계서 §7.1)
+
+■ 4단계 — UI (설계서 §4)
+- [ ] 지출 관리 패널에 "전표" 탭 추가 ("지출 목록" 탭 + "전표" 탭)
+- [ ] 전표 목록 렌더링 (전표번호·날짜·적요·거래처·계정과목·금액·예산·상태·액션)
+      · 기간 선택기(§2-b 재사용) + 계정과목 필터 + 상태 필터
+- [ ] 전표 작성 모달 (날짜·계정과목·세목·적요·거래처·금액·증빙종류·증빙파일·예산 항목)
+      · 예산 항목: budget_lines 드롭다운 (22-B-R2 마이그 후 채워짐, 없으면 빈 선택 허용)
+      · "자주 쓰는 전표로 저장" 체크박스
+- [ ] 전표 상태별 액션 (draft: 수정·제출·삭제 / submitted: 승인·반려 / rejected: 재제출)
+- [ ] 반복 템플릿 불러오기 드롭다운
+- [ ] cms-tbfa.html page-expenses 패널 **내부만** 수정 (다른 섹션·R2 영역 금지)
+- [ ] 캐시버스터 ?v=20260515p22d
+
+■ 5단계 — 검증
+- [ ] npx tsc --noEmit 통과
+- [ ] JS 구문 검사 (node -c)
 
 완료 후:
-- git add, commit, git push origin feature/phase22d-r1-front
-- PROJECT_STATE·docs·netlify/functions·lib·db 수정 금지
-- 완료 메시지: "[A → 메인] feature/phase22d-r1-front push 완료."
+- git add, commit, git push origin feature/phase22d-r1
+- PROJECT_STATE·docs 수정 금지
+- 완료 메시지: "[D1 → 메인] feature/phase22d-r1 push 완료. 머지 + 마이그 호출 요청."
 ```
 
-### §9.3 C 트리거 — 🔍 검증 전용
+### §9.2 C 통합 검증 트리거 — 🔍 두 라운드 (22-B-R2 + 22-D-R1)
+
+> R2·D1 둘 다 머지 + 마이그 호출 완료 후 메인이 발행.
 
 ```
-[메인 → C 채팅] Phase 22-D-R1 검증 — 🔍 전표 시스템
+[메인 → C 채팅] Phase 22-B-R2 + 22-D-R1 통합 검증 — 🔍
 
-베이스: main (B·A 머지 완료 후)
-설계서 §8 Q1~Q16
+베이스: main (R2·D1 머지 + 마이그 호출 완료 후)
+설계서: 22-B-R2 §5 (Q1~Q12) + 22-D-R1 §8 (Q1~Q16)
 
 [자율주행 정책 — 권한 확인 절대 묻지 말 것]
-- PowerShell·git bash·파일 읽기/수정·git 명령·npm은 settings.json에 이미 허용됨.
-  권한 질문 금지 — 바로 실행. 묻는 건 git push와 애매한 로직뿐.
+- PowerShell·git bash·파일·git·npm 전부 settings.json 허용됨. 권한 질문 금지.
+- 묻는 건 git push와 애매한 로직뿐.
 
 [진행률 보고 의무]
-- 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
+- "📊 진행률 X% (N/M 완료) — 다음: ..." 한 줄
+
+워크트리:
+  cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-C
+  git fetch origin && git checkout main && git pull origin main
 
 검증 URL: https://tbfa.co.kr/cms-tbfa.html (통합 CMS)
 
-Q1~Q12 전표 기능 / Q13~Q16 회귀
+■ 22-B-R2 예산 편성 — 22-B-R2 설계서 §5 Q1~Q12
+■ 22-D-R1 전표 시스템 — 22-D-R1 설계서 §8 Q1~Q16
+■ 교차 확인: 전표 작성 모달의 "예산 항목" 드롭다운에
+  22-B-R2에서 만든 예산안의 budget_lines가 정상 노출되는지
 
-BUG 발견 시 fix/phase22d-r1-bugs 브랜치 자체 fix.
-완료 메시지: "[C → 메인] 22-D-R1 검증 완료. PASS X / FAIL Y. BUG N건."
+BUG 발견 시 fix/phase22-parallel-bugs 브랜치 자체 fix.
+완료 메시지: "[C → 메인] 통합 검증 완료. R2 PASS X/Y, D1 PASS X/Y. BUG N건."
 ```
 
 ---
 
 ## §10 라운드 마감 체크리스트 (R1)
 
-- [ ] B: 마이그 함수 push → 메인 머지 → Swain 마이그 호출 → 파일 삭제
-- [ ] A: 전표 탭 UI push → 메인 머지
-- [ ] C: 검증 Q1~Q16
-- [ ] PROJECT_STATE §2 + §5 갱신
-- [ ] HANDOFF.md 갱신
+- [ ] D1: 풀스택 push → 메인 머지 → Swain 마이그 호출 → 마이그 파일 삭제
+- [ ] 22-B-R2도 머지 완료 → C 통합 검증 트리거 발행
+- [ ] C: 통합 검증 (22-B-R2 §5 + 22-D-R1 §8)
+- [ ] 두 라운드 머지 후 메인: vouchers.budget_line_id FK 제약 추가 마이그 (선택, 운영 안정 후)
+- [ ] PROJECT_STATE §2 + §5 갱신 / HANDOFF.md 갱신
 
 ---
 
 ## §11 리스크·주의
 
-- **22-B-R1 완료 전 착수 금지**: 지출 관리 패널 이전이 완료된 후 UI 작업 시작. DB·API는 병렬 가능
+- **22-B-R2와 동시 진행**: 공유 파일 충돌 회피 — 22-B-R2 설계서 §7 규칙 엄수
+- **budget_lines 의존**: `vouchers.budget_line_id`는 22-B-R2가 만드는 `budget_lines` 참조.
+  D1은 FK 제약 없이 integer 컬럼만. 예산 선택 UI는 R2 마이그 후 데이터 채워짐
 - **전표번호 중복**: YYYYMM-NNN 생성 시 트랜잭션 내 MAX+1 패턴 (race condition 방지)
-- **예산 FK 일치**: `budgets.id`가 `vouchers.budget_id` 참조 — 마이그 전 budgets 테이블 존재 확인
 - **계정과목 seed 멱등성**: 같은 code INSERT 시 SKIP (ON CONFLICT DO NOTHING)
 - **이메일 알림**: 승인 요청 이메일 실패해도 전표 제출은 성공 (fire-and-forget 패턴)
 - **§18.13 enum 동기화**: status enum (draft|submitted|approved|rejected) 3곳 동기화
+- **ai-agent-tools.ts 충돌**: R2도 동시 수정 — 배열·switch 맨 끝에만 추가
 
 ---
 
@@ -456,15 +429,15 @@ BUG 발견 시 fix/phase22d-r1-bugs 브랜치 자체 fix.
 
 | 채팅 | 작업 | 시간 |
 |---|---|---|
-| B | 마이그 + API 9개 + AI 도구 4개 | 6~8h |
-| A | 전표 탭 UI + 작성 폼 + 템플릿 | 6~8h |
-| C | 검증 Q1~Q16 + fix | 2~3h |
-| **합계 (병렬)** | | **8~11h** |
+| D1 | 마이그 + schema + API 10개 + AI 도구 4개 + UI | 8~11h |
+| (R2) | 22-B-R2 설계서 §9 참고 | 8~11h |
+| C | 두 라운드 통합 검증 | 3~4h |
+| **합계 (병렬)** | | **11~15h** |
 
 ---
 
 ## §13 후속 라운드 예고
 
-- **22-D-R2**: 통장거래내역 CSV/XLSX 업로드 + AI 자동 분류 + 관리자 확인 플로우 + 거래처 마스터 + 증빙 OCR
+- **22-D-R2**: 통장거래내역 CSV/XLSX 업로드 + AI 자동 분류 + 관리자 확인 플로우 + 거래처 마스터 + 증빙 OCR + 예산 잠금
 - **22-D-R3**: 월말 결산 보조 + 이상 패턴 감지 + 전표 인쇄 + 반복 전표 자동 cron
-- **22-B-R2**: 차년도 예산 편성 + 2단계 결재 (22-D-R1과 병렬 가능)
+- **22-B-R2**: 차년도 예산 편성 + 2단계 결재 — **현재 22-D-R1과 병렬 진행 중**
