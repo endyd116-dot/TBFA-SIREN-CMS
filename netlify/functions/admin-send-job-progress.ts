@@ -53,7 +53,21 @@ export default async function handler(req: Request, _ctx: Context) {
     /* ★ 버그픽스 #14: snake_case 컬럼을 camelCase 로 명시 정규화 + Number 강제
      *  (NULL 컬럼이 undefined 로 흘러 클라이언트 카운트가 0 으로 표시되던 문제 차단).
      *  pendingCount(미발송) 도 응답에 포함 — 설계서 표준 키. */
-    const totalRecipients = Number(row.total_recipients) || 0;
+    let totalRecipients = Number(row.total_recipients) || 0;
+    /* ★ 버그픽스2 #14: total_recipients 컬럼이 아직 갱신 안 됐거나 0 이면
+     *  실제 수신자 행을 COUNT 으로 보정 — "발송 상세 전부 0" 차단. */
+    if (totalRecipients === 0) {
+      try {
+        const cr: any = await db.execute(sql`
+          SELECT COUNT(*)::int AS n
+            FROM communication_send_recipients
+           WHERE job_id = ${id}
+        `);
+        totalRecipients = Number((cr?.rows ?? cr ?? [])[0]?.n) || 0;
+      } catch (e) {
+        console.warn("[admin-send-job-progress] 수신자 COUNT 보정 실패", e);
+      }
+    }
     const successCount = Number(row.success_count) || 0;
     const failureCount = Number(row.failure_count) || 0;
     const done = successCount + failureCount;

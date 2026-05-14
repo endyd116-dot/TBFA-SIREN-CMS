@@ -30,12 +30,16 @@ export default async function handler(req: Request, _ctx: Context) {
     /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
     const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
 
-    // pgProvider 기준 채널별 집계
-    let channelRows: { provider: string | null; count: number; amount: number }[] = [];
+    // pgProvider + type 기준 채널별 집계
+    // ★ 버그픽스2 #7·#8: 기존엔 provider 만으로 집계해 토스 정기(CMS)·토스 일시가
+    //   한 칸에 뭉쳐 4채널(효성정기·CMS정기·일시직접계좌·일시토스) 분해가 불가능했음.
+    //   provider 와 함께 type(regular/onetime) 도 묶어 4채널 분해 가능하게 한다.
+    let channelRows: { provider: string | null; type: string | null; count: number; amount: number }[] = [];
     try {
       channelRows = await db
         .select({
           provider: donations.pgProvider,
+          type: donations.type,
           count: sql<number>`count(*)::int`,
           amount: sql<number>`coalesce(sum(${donations.amount}),0)::int`,
         })
@@ -47,7 +51,7 @@ export default async function handler(req: Request, _ctx: Context) {
             sql`${paidAt} <= ${endDate.toISOString()}`
           )
         )
-        .groupBy(donations.pgProvider);
+        .groupBy(donations.pgProvider, donations.type);
     } catch (err) {
       console.warn("[finance-income] channelRows 집계 실패:", err);
     }
@@ -113,10 +117,19 @@ export default async function handler(req: Request, _ctx: Context) {
       bank: { count: 0, amount: 0 },
       other: { count: 0, amount: 0 },
     };
+    // ★ 버그픽스2 #7·#8: 4채널 분해 — 효성정기·CMS정기(토스 정기)·일시토스·일시직접계좌.
+    //   효성은 정기/일시 구분 없이 hyosung 으로, 그 외는 정기=토스빌링(CMS), 일시=토스/계좌로 분해.
+    const fourChannel = {
+      hyosungRegular: { count: 0, amount: 0 },   // 효성 CMS+ 정기
+      cmsRegular:     { count: 0, amount: 0 },   // 토스 빌링 정기 (CMS 정기)
+      onetimeToss:    { count: 0, amount: 0 },   // 일시 — 토스 결제
+      onetimeBank:    { count: 0, amount: 0 },   // 일시 — 직접 계좌이체
+    };
     let totalAmount = 0;
     let totalCount = 0;
     for (const row of channelRows) {
       const p = (row.provider ?? "").toLowerCase();
+      const isRegular = row.type === "regular";
       const key = p.includes("toss")
         ? "toss"
         : p.includes("hyosung")
@@ -126,6 +139,21 @@ export default async function handler(req: Request, _ctx: Context) {
         : "other";
       channelMap[key].count += row.count;
       channelMap[key].amount += row.amount;
+
+      // 4채널 분해
+      let fcKey: keyof typeof fourChannel;
+      if (key === "hyosung") {
+        fcKey = "hyosungRegular";
+      } else if (isRegular) {
+        fcKey = "cmsRegular";
+      } else if (key === "toss") {
+        fcKey = "onetimeToss";
+      } else {
+        fcKey = "onetimeBank"; // bank / other 일시 → 직접 계좌이체로 집계
+      }
+      fourChannel[fcKey].count += row.count;
+      fourChannel[fcKey].amount += row.amount;
+
       totalAmount += row.amount;
       totalCount += row.count;
     }
@@ -142,6 +170,13 @@ export default async function handler(req: Request, _ctx: Context) {
           totalAmount,
           totalCount,
           byChannel: channelMap,
+          // ★ 버그픽스2 #7: 금월 결제금액 4채널 분해 + 합계 (프론트가 그대로 사용)
+          fourChannel,
+          fourChannelTotal:
+            fourChannel.hyosungRegular.amount +
+            fourChannel.cmsRegular.amount +
+            fourChannel.onetimeToss.amount +
+            fourChannel.onetimeBank.amount,
           monthlyTrend,
           donorCount,
         },

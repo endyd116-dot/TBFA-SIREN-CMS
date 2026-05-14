@@ -67,13 +67,19 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   // ── 중복 차단 — 기존 dedup_hash 조회 ────────────────────────
+  // ★ 버그픽스2 #13: = ANY(${hashes}) 에 빈 배열/null 이 들어가면
+  //   "op ANY/ALL requires array" 500. null·빈 해시를 거른 뒤 빈 배열이면 조회 자체를 건너뜀.
   let existingHashes = new Set<string>();
   try {
-    const hashes = normalized.map(n => n.dedupHash);
-    const r: any = await db.execute(sql`
-      SELECT dedup_hash FROM bank_transactions
-      WHERE dedup_hash = ANY(${hashes})`);
-    existingHashes = new Set((r?.rows ?? r ?? []).map((x: any) => x.dedup_hash));
+    const hashes = normalized
+      .map(n => n.dedupHash)
+      .filter((h): h is string => typeof h === "string" && h.length > 0);
+    if (hashes.length > 0) {
+      const r: any = await db.execute(sql`
+        SELECT dedup_hash FROM bank_transactions
+        WHERE dedup_hash = ANY(${hashes})`);
+      existingHashes = new Set((r?.rows ?? r ?? []).map((x: any) => x.dedup_hash));
+    }
   } catch (err: any) {
     return jsonError("dedup_check", err);
   }

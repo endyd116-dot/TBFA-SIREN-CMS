@@ -110,6 +110,17 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("[admin-send-job-detail] recipient stats 실패", err);
   }
 
+  /* ★ 버그픽스2 #14: total_recipients 컬럼이 0/NULL 이면 수신자 상태 합계로 보정 —
+   *  "발송 상세 전부 0" 차단. 보정 시 progressPercent 도 재계산. */
+  if (job && (!job.totalRecipients || job.totalRecipients === 0)) {
+    const statsSum = (Object.values(stats) as any[]).reduce<number>((a, b) => a + (Number(b) || 0), 0);
+    if (statsSum > 0) {
+      job.totalRecipients = statsSum;
+      const done = (Number(job.successCount) || 0) + (Number(job.failureCount) || 0);
+      job.progressPercent = Math.round((done / statsSum) * 1000) / 10;
+    }
+  }
+
   return new Response(
     JSON.stringify({ ok: true, job: { ...job, recipientStats: stats } }),
     { status: 200, headers: JSON_HEADER },
