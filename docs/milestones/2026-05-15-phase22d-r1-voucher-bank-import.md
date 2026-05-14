@@ -296,11 +296,15 @@ CREATE TABLE bank_transactions (
 이 작업은 Phase 22-B-R1 완료 후 착수.
 베이스: main 최신 (git pull 필수)
 
-[자율주행 정책]
-- push와 애매한 로직만 묻고 나머지 자율 진행
-- 파일 읽기·수정·git·PowerShell·npm은 묻지 말 것
+[자율주행 정책 — 권한 확인 절대 묻지 말 것]
+- PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase/merge·
+  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
+  "접속해도 되나요" "실행해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
+- 묻는 건 단 2가지뿐: ① git push ② 애매한 설계·로직 결정
+- 그 외 전부 자율 진행. 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
 
 [진행률 보고 의무]
+- 큰 단계 완료마다 진행률 % 한 줄 보고
 - 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
 
 워크트리:
@@ -355,7 +359,16 @@ CREATE TABLE bank_transactions (
 이 작업은 Phase 22-B-R1 완료 후 착수 (지출 관리 패널이 cms-tbfa.html로 이전된 상태).
 베이스: main 최신 (22-B-R1 머지 완료 후 git pull)
 
-[자율주행 정책][진행률 보고 의무] (표준대로)
+[자율주행 정책 — 권한 확인 절대 묻지 말 것]
+- PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase/merge·
+  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
+  "접속해도 되나요" "실행해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
+- 묻는 건 단 2가지뿐: ① git push ② 애매한 설계·로직 결정
+- 그 외 전부 자율 진행. 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
+
+[진행률 보고 의무]
+- 큰 단계 완료마다 진행률 % 한 줄 보고
+- 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
 
 워크트리:
   cd C:\Users\Administrator\Desktop\작업\dev\tbfa-mis-A
@@ -400,6 +413,13 @@ CREATE TABLE bank_transactions (
 
 베이스: main (B·A 머지 완료 후)
 설계서 §8 Q1~Q16
+
+[자율주행 정책 — 권한 확인 절대 묻지 말 것]
+- PowerShell·git bash·파일 읽기/수정·git 명령·npm은 settings.json에 이미 허용됨.
+  권한 질문 금지 — 바로 실행. 묻는 건 git push와 애매한 로직뿐.
+
+[진행률 보고 의무]
+- 형식: "📊 진행률 X% (N/M 완료) — 다음: ..."
 
 검증 URL: https://tbfa.co.kr/cms-tbfa.html (통합 CMS)
 
