@@ -529,3 +529,24 @@ body {
   .cms-filter-actions { width: 100%; }
   .cms-filter-actions .cms-btn { flex: 1; justify-content: center; }
 }
+/* ===========================================================
+   ★ 버그픽스3 #6-1: 사이드바 2뎁스 항상 표시 + 1뎁스 좌측 이동
+   - 2뎁스(.cms-submenu)를 항상 펼친 상태로 (인라인 display:none 무력화)
+   - 1뎁스는 왼쪽으로 당기고, 2뎁스는 들여쓰기 줄여 중앙 가깝게
+   - 접기/펼치기 화살표(chevron)는 의미 없어져 숨김
+   =========================================================== */
+.cms-submenu {
+  display: block !important;
+}
+.cms-menu-group > a {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+.cms-submenu li a {
+  padding-left: 22px !important;
+  padding-right: 14px !important;
+}
+.sidebar-group-chevron,
+.cms-menu-chevron {
+  display: none !important;
+}
