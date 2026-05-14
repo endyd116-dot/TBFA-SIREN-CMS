@@ -177,8 +177,11 @@ export default async (req: Request, _ctx: Context) => {
 
   /* Alert 1: 효성 계약 미매칭 (hyosung_contracts.linked_member_id IS NULL) */
   try {
+    /* ARRAY_AGG 는 인자에 LIMIT 을 허용하지 않음 (PostgreSQL 문법 오류) →
+       전체 집계 후 슬라이스 [1:5] 로 앞 5개만 취함 */
     const unmatchedRes: any = await db.execute(sql`
-      SELECT COUNT(*)::int AS cnt, ARRAY_AGG(member_no ORDER BY member_no LIMIT 5) AS sample_nos
+      SELECT COUNT(*)::int AS cnt,
+             (ARRAY_AGG(member_no ORDER BY member_no))[1:5] AS sample_nos
       FROM hyosung_contracts
       WHERE linked_member_id IS NULL
     `);
