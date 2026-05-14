@@ -291,7 +291,7 @@ const TOOL_GROUPS: ToolGroup[] = [
   { name: "resources_cud", tools: ["resource_create", "resource_update", "resource_delete"],
     keywords: ["자료 등록", "자료 수정", "자료 삭제"] },
   { name: "finance", tools: [
-      "budgets_list", "expenditures_list", "budget_summary", "donation_policy_get",
+      "budgets_list", "budget_summary", "donation_policy_get",
       /* Phase 22-A 매출 */
       "revenue_categories_list", "revenue_list", "revenue_create", "revenue_update", "revenue_approve", "revenue_refund",
       /* Phase 22-C 지출 */
