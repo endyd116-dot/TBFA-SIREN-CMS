@@ -297,6 +297,10 @@ const TOOL_GROUPS: ToolGroup[] = [
       /* Phase 22-C 지출 */
       "expense_categories_list", "expenses_list", "expense_create", "expense_approve", "expense_refund",
       "pl_summary",
+      /* Phase 22-B-R2 예산 편성 */
+      "budget_plan_list", "budget_plan_create", "budget_plan_approve",
+      /* Phase 22-D-R1 전표 시스템 */
+      "account_codes_list", "voucher_list", "voucher_create", "voucher_approve",
     ],
     keywords: [
       "예산", "지출", "결산", "회계", "정책", "계좌", "재정",
@@ -308,6 +312,10 @@ const TOOL_GROUPS: ToolGroup[] = [
       "지급처", "영수증",
       /* 손익 */
       "손익", "순이익", "순손실", "P&L", "pl", "PL",
+      /* 22-B-R2 예산 편성 */
+      "예산안", "편성", "차년도", "내년 예산", "전년 실적",
+      /* 22-D-R1 전표 — substring 매칭 */
+      "전표", "계정과목", "계정", "세목", "증빙", "임차료", "공과금", "통신비",
     ] },
   { name: "chat", tools: ["chat_rooms_list"],
     keywords: ["채팅", "상담", "1:1", "메시지", "대화방"] },
