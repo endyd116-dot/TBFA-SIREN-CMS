@@ -159,6 +159,12 @@
 [functions."cron-workspace-due-reminder"]
   schedule = "0 0 * * *"
 
+# ★ Phase 22-D-R3: 반복 전표 자동 생성 (매일 KST 04:30 = UTC 19:30)
+# - recurring_active=true 템플릿 중 오늘(KST)이 recurring_day 인 것
+# - 이번 달 draft 전표 자동 생성 (같은 템플릿·같은 월 중복 방지, 알림 없음)
+[functions."cron-voucher-recurring"]
+  schedule = "30 19 * * *"
+
 # ============================================================
 # Dev 설정
 # ============================================================

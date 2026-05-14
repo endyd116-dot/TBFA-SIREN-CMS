@@ -1,10 +1,12 @@
 /**
  * GET /api/admin-finance-report-pdf
- *   ?type=pl     + period|startDate|endDate  → 운영성과표 PDF
- *   ?type=budget + year                      → 예산 대비 실적표 PDF
+ *   ?type=pl       + period|startDate|endDate  → 운영성과표 PDF
+ *   ?type=budget   + year                      → 예산 대비 실적표 PDF
+ *   ?type=balance  + asOf                      → 재정상태표 PDF        (Phase 22-D-R3)
+ *   ?type=cashflow + period|startDate|endDate  → 현금흐름표 PDF        (Phase 22-D-R3)
  *
- * Phase 22-B-R3 — NPO 표준 회계 보고서 PDF 생성
- * pl-summary / budget-list 집계 로직 재사용 → pdf-lib A4 PDF
+ * Phase 22-B-R3 / 22-D-R3 — NPO 표준 회계 보고서 PDF 생성
+ * pl-summary / budget-list / balance-sheet / cashflow 집계 로직 재사용 → pdf-lib A4 PDF
  * 한글 폰트: assets/fonts/NotoSansKR-Regular.ttf
  */
 import type { Context } from "@netlify/functions";
@@ -412,6 +414,237 @@ async function renderBudgetPdf(
   ctx.y -= 22;
 }
 
+/* ═══════════════ 재정상태표 데이터 (balance-sheet 로직 재사용) ═══════════════ */
+async function buildBalanceData(asOf: string) {
+  let cashAsset = 0;
+  let balanceTxnDate: string | null = null;
+  let hasBalanceData = false;
+  const r: any = await db.execute(sql`
+    SELECT balance_after, txn_date FROM bank_transactions
+    WHERE txn_date <= ${asOf} AND balance_after IS NOT NULL
+    ORDER BY txn_date DESC, id DESC LIMIT 1
+  `);
+  const row = (r?.rows ?? r ?? [])[0];
+  if (row) { cashAsset = Number(row.balance_after); balanceTxnDate = row.txn_date; hasBalanceData = true; }
+  return {
+    asOf, balanceTxnDate, hasBalanceData,
+    cashAsset, totalAsset: cashAsset, totalLiability: 0, netAsset: cashAsset,
+  };
+}
+
+/* ═══════════════ 현금흐름표 데이터 (cashflow 로직 재사용) ═══════════════ */
+const INCOME_LABEL: Record<string, string> = {
+  donation: "후원금", donation_batch: "후원금 (묶음정산)", revenue: "후원 외 매출",
+};
+const EXPENSE_LABEL: Record<string, string> = { voucher: "전표 연결 지출" };
+
+async function buildCashflowData(startDate: string, endDate: string) {
+  let openingBalance = 0, hasOpeningData = false;
+  {
+    const r: any = await db.execute(sql`
+      SELECT balance_after FROM bank_transactions
+      WHERE txn_date < ${startDate} AND balance_after IS NOT NULL
+      ORDER BY txn_date DESC, id DESC LIMIT 1
+    `);
+    const row = (r?.rows ?? r ?? [])[0];
+    if (row) { openingBalance = Number(row.balance_after); hasOpeningData = true; }
+  }
+
+  const aggR: any = await db.execute(sql`
+    SELECT txn_type, COALESCE(match_type, 'pending') AS match_type,
+           COUNT(*) AS cnt, COALESCE(SUM(ABS(amount)), 0)::bigint AS total
+    FROM bank_transactions
+    WHERE txn_date >= ${startDate} AND txn_date <= ${endDate} AND status != 'ignored'
+    GROUP BY txn_type, COALESCE(match_type, 'pending')
+  `);
+  const aggRows = (aggR?.rows ?? aggR ?? []) as any[];
+
+  let closingBalance: number | null = null, hasClosingData = false;
+  {
+    const r: any = await db.execute(sql`
+      SELECT balance_after FROM bank_transactions
+      WHERE txn_date >= ${startDate} AND txn_date <= ${endDate} AND balance_after IS NOT NULL
+      ORDER BY txn_date DESC, id DESC LIMIT 1
+    `);
+    const row = (r?.rows ?? r ?? [])[0];
+    if (row) { closingBalance = Number(row.balance_after); hasClosingData = true; }
+  }
+
+  const inflowByCategory: Array<{ label: string; amount: number }> = [];
+  const outflowByCategory: Array<{ label: string; amount: number }> = [];
+  let totalInflow = 0, totalOutflow = 0;
+  for (const x of aggRows) {
+    const amt = Number(x.total);
+    const mt = x.match_type as string;
+    if (x.txn_type === "credit") {
+      totalInflow += amt;
+      inflowByCategory.push({ label: INCOME_LABEL[mt] || (mt === "pending" ? "미분류 입금" : mt), amount: amt });
+    } else {
+      totalOutflow += amt;
+      outflowByCategory.push({ label: EXPENSE_LABEL[mt] || (mt === "pending" ? "미분류 출금" : mt), amount: amt });
+    }
+  }
+  inflowByCategory.sort((a, b) => b.amount - a.amount);
+  outflowByCategory.sort((a, b) => b.amount - a.amount);
+  const netCashFlow = totalInflow - totalOutflow;
+  const finalClosing = hasClosingData ? closingBalance! : openingBalance + netCashFlow;
+
+  return {
+    startDate, endDate, openingBalance, hasOpeningData,
+    totalInflow, inflowByCategory, totalOutflow, outflowByCategory,
+    netCashFlow, closingBalance: finalClosing, closingIsEstimated: !hasClosingData,
+  };
+}
+
+/* ═══════════════ 재정상태표 PDF ═══════════════ */
+async function renderBalancePdf(
+  pdfDoc: PDFDocument, font: PDFFont,
+  data: Awaited<ReturnType<typeof buildBalanceData>>, orgName: string
+): Promise<void> {
+  const ctx: DrawCtx = {
+    page: pdfDoc.addPage([595, 842]), font, pdfDoc,
+    y: 842 - 60, width: 595, height: 842, margin: 60,
+  };
+  const rightX = ctx.width - ctx.margin;
+  const genAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+
+  text(ctx, orgName, ctx.margin, 11, rgb(0.3, 0.3, 0.3));
+  ctx.y -= 26;
+  text(ctx, "재정상태표 (Statement of Financial Position)", ctx.margin, 18);
+  ctx.y -= 18;
+  text(ctx, `${data.asOf} 기준 (간이판)`, ctx.margin, 10, rgb(0.3, 0.3, 0.3));
+  textRight(ctx, `생성일시: ${genAt}`, rightX, 9, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 10;
+  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+  ctx.y -= 28;
+
+  if (!data.hasBalanceData) {
+    text(ctx, "통장 거래 내역이 없습니다.", ctx.margin, 12, rgb(0.5, 0.1, 0.1));
+    ctx.y -= 22;
+    text(ctx, "통장거래내역을 먼저 업로드해 주세요.", ctx.margin, 10, rgb(0.4, 0.4, 0.4));
+    return;
+  }
+
+  // 【자산】
+  text(ctx, "【자산】", ctx.margin, 13);
+  ctx.y -= 22;
+  text(ctx, "  현금성 자산 (통장 잔액)", ctx.margin, 11);
+  textRight(ctx, won(data.cashAsset), rightX, 11);
+  ctx.y -= 18;
+  text(ctx, "  ※ 비현금 자산은 데이터 없음 — 해당 없음", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 18;
+  hr(ctx);
+  ctx.y -= 18;
+  text(ctx, "  자산 총계", ctx.margin, 11.5, rgb(0.1, 0.1, 0.5));
+  textRight(ctx, won(data.totalAsset), rightX, 11.5, rgb(0.1, 0.1, 0.5));
+  ctx.y -= 32;
+
+  // 【부채】
+  text(ctx, "【부채】", ctx.margin, 13);
+  ctx.y -= 22;
+  text(ctx, "  ※ 부채 데이터 없음 — 해당 없음", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 18;
+  hr(ctx);
+  ctx.y -= 18;
+  text(ctx, "  부채 총계", ctx.margin, 11.5, rgb(0.5, 0.1, 0.1));
+  textRight(ctx, won(data.totalLiability), rightX, 11.5, rgb(0.5, 0.1, 0.1));
+  ctx.y -= 32;
+
+  // 【순자산】
+  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+  ctx.y -= 22;
+  const naColor = data.netAsset >= 0 ? rgb(0.1, 0.35, 0.1) : rgb(0.6, 0.1, 0.1);
+  text(ctx, "【순자산】 (자산 − 부채)", ctx.margin, 13, naColor);
+  textRight(ctx, won(data.netAsset), rightX, 13, naColor);
+  ctx.y -= 30;
+
+  text(ctx, "※ 간이 재정상태표 — 통장 잔액 기반 현금성 자산만 집계.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 13;
+  text(ctx, "   비현금 자산·부채는 SIREN 데이터 한계상 해당 없음.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
+}
+
+/* ═══════════════ 현금흐름표 PDF ═══════════════ */
+async function renderCashflowPdf(
+  pdfDoc: PDFDocument, font: PDFFont,
+  data: Awaited<ReturnType<typeof buildCashflowData>>,
+  periodLabel: string, orgName: string
+): Promise<void> {
+  const ctx: DrawCtx = {
+    page: pdfDoc.addPage([595, 842]), font, pdfDoc,
+    y: 842 - 60, width: 595, height: 842, margin: 60,
+  };
+  const rightX = ctx.width - ctx.margin;
+  const genAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+
+  text(ctx, orgName, ctx.margin, 11, rgb(0.3, 0.3, 0.3));
+  ctx.y -= 26;
+  text(ctx, "현금흐름표 (Statement of Cash Flows)", ctx.margin, 18);
+  ctx.y -= 18;
+  text(ctx, `기간: ${periodLabel}`, ctx.margin, 10, rgb(0.3, 0.3, 0.3));
+  textRight(ctx, `생성일시: ${genAt}`, rightX, 9, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 10;
+  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+  ctx.y -= 28;
+
+  // 기초 잔액
+  text(ctx, "기초 잔액", ctx.margin, 12);
+  textRight(ctx, won(data.openingBalance), rightX, 12);
+  ctx.y -= 24;
+
+  // 입금 합계
+  text(ctx, "  입금 합계 (+)", ctx.margin, 11, rgb(0.1, 0.35, 0.1));
+  textRight(ctx, won(data.totalInflow), rightX, 11, rgb(0.1, 0.35, 0.1));
+  ctx.y -= 18;
+  for (const c of data.inflowByCategory) {
+    ensureSpace(ctx, 16);
+    text(ctx, `      · ${c.label}`, ctx.margin, 9.5, rgb(0.35, 0.35, 0.35));
+    textRight(ctx, won(c.amount), rightX, 9.5, rgb(0.35, 0.35, 0.35));
+    ctx.y -= 15;
+  }
+  if (data.inflowByCategory.length === 0) {
+    text(ctx, "      · (입금 내역 없음)", ctx.margin, 9.5, rgb(0.5, 0.5, 0.5));
+    ctx.y -= 15;
+  }
+  ctx.y -= 6;
+
+  // 출금 합계
+  ensureSpace(ctx, 30);
+  text(ctx, "  출금 합계 (−)", ctx.margin, 11, rgb(0.6, 0.1, 0.1));
+  textRight(ctx, won(data.totalOutflow), rightX, 11, rgb(0.6, 0.1, 0.1));
+  ctx.y -= 18;
+  for (const c of data.outflowByCategory) {
+    ensureSpace(ctx, 16);
+    text(ctx, `      · ${c.label}`, ctx.margin, 9.5, rgb(0.35, 0.35, 0.35));
+    textRight(ctx, won(c.amount), rightX, 9.5, rgb(0.35, 0.35, 0.35));
+    ctx.y -= 15;
+  }
+  if (data.outflowByCategory.length === 0) {
+    text(ctx, "      · (출금 내역 없음)", ctx.margin, 9.5, rgb(0.5, 0.5, 0.5));
+    ctx.y -= 15;
+  }
+  ctx.y -= 8;
+
+  // 순현금흐름
+  ensureSpace(ctx, 50);
+  hr(ctx);
+  ctx.y -= 20;
+  const ncColor = data.netCashFlow >= 0 ? rgb(0.1, 0.35, 0.1) : rgb(0.6, 0.1, 0.1);
+  text(ctx, "순현금흐름 (입금 − 출금)", ctx.margin, 12, ncColor);
+  textRight(ctx, won(data.netCashFlow), rightX, 12, ncColor);
+  ctx.y -= 24;
+
+  // 기말 잔액
+  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
+  ctx.y -= 20;
+  text(ctx, `기말 잔액${data.closingIsEstimated ? " (추정)" : ""}`, ctx.margin, 13, rgb(0.1, 0.1, 0.5));
+  textRight(ctx, won(data.closingBalance), rightX, 13, rgb(0.1, 0.1, 0.5));
+  ctx.y -= 24;
+
+  if (data.closingIsEstimated) {
+    text(ctx, "※ 기말 잔액은 기간 내 통장 잔액 데이터가 없어 기초+순흐름으로 추정한 값입니다.", ctx.margin, 8.5, rgb(0.5, 0.5, 0.5));
+  }
+}
+
 /* ═══════════════ 핸들러 ═══════════════ */
 export default async function handler(req: Request, _ctx: Context): Promise<Response> {
   const auth = await requireAdmin(req);
@@ -421,9 +654,9 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
   const type = url.searchParams.get("type");
   const orgName = process.env.ORG_NAME || "(사)교사유가족협의회";
 
-  if (type !== "pl" && type !== "budget") {
+  if (type !== "pl" && type !== "budget" && type !== "balance" && type !== "cashflow") {
     return new Response(JSON.stringify({
-      ok: false, error: "type 파라미터는 pl 또는 budget 이어야 합니다",
+      ok: false, error: "type 파라미터는 pl, budget, balance, cashflow 중 하나여야 합니다",
     }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -451,7 +684,7 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
       const periodLabel = `${startDate} ~ ${endDate} (${period})`;
       await renderPlPdf(pdfDoc, font, data, periodLabel, orgName);
       fileName = `운영성과표_${startDate}_${endDate}.pdf`;
-    } else {
+    } else if (type === "budget") {
       const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
       let data;
       try {
@@ -461,6 +694,34 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
       }
       await renderBudgetPdf(pdfDoc, font, data, orgName);
       fileName = `예산대비실적표_${year}.pdf`;
+    } else if (type === "balance") {
+      const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const asOf = url.searchParams.get("asOf") || kstNow.toISOString().slice(0, 10);
+      let data;
+      try {
+        data = await buildBalanceData(asOf);
+      } catch (err) {
+        return jsonError("build_balance_data", err);
+      }
+      await renderBalancePdf(pdfDoc, font, data, orgName);
+      fileName = `재정상태표_${asOf}.pdf`;
+    } else {
+      // type === "cashflow"
+      const { startDate, endDate, period } = resolvePeriod({
+        period: url.searchParams.get("period"),
+        startDate: url.searchParams.get("startDate"),
+        endDate: url.searchParams.get("endDate"),
+        fiscalYear: url.searchParams.get("fiscalYear"),
+      });
+      let data;
+      try {
+        data = await buildCashflowData(startDate, endDate);
+      } catch (err) {
+        return jsonError("build_cashflow_data", err);
+      }
+      const periodLabel = `${startDate} ~ ${endDate} (${period})`;
+      await renderCashflowPdf(pdfDoc, font, data, periodLabel, orgName);
+      fileName = `현금흐름표_${startDate}_${endDate}.pdf`;
     }
 
     pdfBytes = await pdfDoc.save();
