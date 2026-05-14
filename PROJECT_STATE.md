@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-15 (새벽) | **메인** | **Phase 22-B-R1 설계서 작성** — `docs/milestones/2026-05-15-phase22b-r1-finance-relocation.md`. 조사로 발견: ① 옛 지출 시스템(expenditures·budgets, Phase 5~7)이 싸이렌 어드민에 작동 중 — Swain이 "지출 시스템 없다"고 한 건 admin.html에 묻혀서 ② 재정 화면 전체가 싸이렌 어드민(admin.html)에 잘못 위치 — 통합 CMS(cms-tbfa.html)에 회원·후원 데이터 있음 ③ expenditures vs expenses 지출 중복. Swain 결정 4건: 재정 화면 전부 통합 CMS 이전·22-C expenses 정본·2단계 결재·NPO 표준 보고서. 22-B를 R1(화면 이전+지출 단일화)·R2(예산 편성+결재)·R3(회계 보고서) 3라운드 분할. R1 트리거 §4 포함. |
 | 2026-05-15 (새벽) | **메인** | **🎉🎉 Phase 22-A·22-C ✅ 완전 마감** (main @ `76bf068`) — R3 8건 fix 머지 완료. C 라운드 R1·R2·R3 합산 BUG 15건 모두 해소: R1 5건(Critical 2·High 3)·R2 2건(회귀+신규)·R3 8건(Medium·Low). 마지막 R3는 ensureRole 헬퍼 도입(BUG-006 권한 안전망)·PUT/PATCH 둘 다 허용·키명 이중 지원·selectRelevantTools 키워드 13종·도구 description enum·categoryCode 자연어 친화·?all=1 페이지네이션 안전망. C 보고서 docs/HANDOFF·PARALLEL_GUIDE 옛 버전 되돌림 시도 차단(선택적 체크아웃). **Phase 22-A·22-C 운영 가능 상태 확정**. 다음: Phase 22-B (예산 편성·다단계 결재·풀세트 회계 보고서) 협의. |
 | 2026-05-14 (심야) | **메인** | **🎉 R2 검증 PASS 23/27 + BUG-015 fix 머지** (main @ next) — C R2 보고: PASS 23 / PARTIAL 1 / FAIL 3 / BUG 2건. **BUG-013(pl-summary const→let 회귀)은 메인이 이미 `ae09399`로 fix 완료(중복)**. BUG-015(지출 환불 누적 — 22-A BUG-001 패턴 재발)만 선택적 체크아웃 머지: `admin-expense-refund.ts` + `tool_expenseRefund` 누적 처리 + dry-run preview에 기존·신규·합계 명시. **BUG-003 권한 시드는 마이그 호출 완료 + revenue_refund admin UI super_admin 정정 완료**. C 보고서·이슈 파일은 docs 압축 정책에 따라 가져오지 않고 PROJECT_STATE만 갱신. 라운드 3 후보: Medium·Low 8건 (R1 6~12 + 22-C selectRelevantTools finance 지출 키워드 누락). |
 | 2026-05-14 (심야) | **메인** | **🎉 22-A C 검증 + 22-C B·A 머지 완료** (main @ `a616772`) — C 검증 BUG 12건 발견(Critical 2 + High 3 + Medium·Low 7) → C 직접 fix 흡수(`b8180a6`): BUG-001 환불 누적·BUG-002 후원 환불 차감·BUG-003 권한 시드 정정 마이그·BUG-004 fiscalYear 자동·BUG-005 매출 목록 필터. **충돌 해결 2건** (lib/ai-agent-tools·admin-finance-pl-summary — C BUG-002 fix + B 22-C 지출 통합 = donNet 사용 + expense 집계 통합). **머지 3건**: C BUG fix → B 22-C 백엔드 9 API+AI 도구 5 → A 22-C 프론트 (admin-expenses.html 신규 + finance-income/report 확장). **1회용 마이그 1건 대기**: `tbfa.co.kr/api/migrate-phase22a-ai-perms-rename?run=1` (BUG-003 권한 시드 이름 정정). 다음: 22-A 검증 R2 라운드 (UI 3건 + BUG-001~005 재검증 + Medium·Low 7건). |
@@ -175,7 +176,7 @@
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | **Phase 22-A 매출 통합 관리 + 재정 그룹 사이드바** | ✅ 100% 마감 (main @ `76bf068`, 2026-05-15) — R1·R2·R3 합산 BUG 15건 해소 / 6 카테고리·승인·환불 누적·손익계산서·AI 도구 7개·권한 안전망 / 운영 가능 |
 | **Phase 22-C 지출 관리** | ✅ 100% 마감 (main @ `76bf068`, 2026-05-15) — NPO 4분류 + 자유 추가·R2 영수증·승인·환불 누적·AI 도구 5개·selectRelevantTools 키워드 8종 / 운영 가능 |
-| Phase 22-B 차년도 예산·다단계 결재·풀세트 회계 | ⏸ Phase 22-A·22-C 마감 완료 → Swain 협의 시점 |
+| **Phase 22-B 재정 통합·예산·결재·회계** | 📝 R1 설계서 완성(2026-05-15) — `docs/milestones/2026-05-15-phase22b-r1-finance-relocation.md` / R1(재정 화면 통합 CMS 이전 + 지출 expenditures→expenses 단일화) / R2(차년도 예산 편성 + 2단계 결재) / R3(NPO 표준 회계 보고서) / R1 B·A·C 트리거 발송 대기 |
 | **싸이렌 어드민 4건 fix** | ✅ 코드 완료 / Swain 검증 대기 — Bug-A1 ReferenceError(bea850a) / Bug-A2 증빙파일(2509d79) / Bug-A3 외부기관 init+SQL(2509d79) / Bug-A4 page.* 시드(89f158c) |
 
 **누적**: 약 47% / 약 450h+
