@@ -2315,9 +2315,10 @@
       var orig = document.getElementById('page-csv-import');
       if (inner && orig && !inner.children.length) {
         while (orig.firstChild) inner.appendChild(orig.firstChild);
-        if (window.CMS_CSV_IMPORT && typeof window.CMS_CSV_IMPORT.init === 'function') {
-          window.CMS_CSV_IMPORT.init();
-        }
+      }
+      /* cms-tbfa-import.js는 window.CsvImport로 노출 — 매 진입 시 init/refresh */
+      if (window.CsvImport && typeof window.CsvImport.init === 'function') {
+        window.CsvImport.init();
       }
     }
     /* 검증 대시보드 서브탭 최초 진입 시 page-donation-dashboard 내용을 inner로 이동 */
@@ -2341,7 +2342,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260515bugfix2b"></script>
+  <script src="/js/cms-tbfa.js?v=20260515bugfix3"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
@@ -2355,7 +2356,7 @@
   <!-- Phase 22-B-R1: 재정 관리 (admin.html에서 이전) -->
   <script src="/js/admin-donations.js?v=20260515bugfix2"></script>
   <script src="/js/admin-finance-income.js?v=20260515p22r2d1"></script>
-  <script src="/js/admin-other-revenues.js?v=20260515bugfix2"></script>
+  <script src="/js/admin-other-revenues.js?v=20260515bugfix3"></script>
   <script src="/js/admin-expenses.js?v=20260515bugfix2"></script>
   <!-- Phase 22-D-R1: 전표 관리 -->
   <script src="/js/admin-expenses-voucher.js?v=20260515p22dr3b"></script>

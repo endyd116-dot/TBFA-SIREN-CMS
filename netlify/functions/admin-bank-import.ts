@@ -67,8 +67,10 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   // ── 중복 차단 — 기존 dedup_hash 조회 ────────────────────────
-  // ★ 버그픽스2 #13: = ANY(${hashes}) 에 빈 배열/null 이 들어가면
-  //   "op ANY/ALL requires array" 500. null·빈 해시를 거른 뒤 빈 배열이면 조회 자체를 건너뜀.
+  // ★ 버그픽스3 #13: = ANY(${hashes}) 는 빈 배열뿐 아니라 타입 캐스팅이 없어도
+  //   "op ANY/ALL (array) requires array on right side" 500.
+  //   postgres-js가 JS 배열을 바인딩할 때 Postgres가 배열 타입으로 인식하도록
+  //   ::text[] 캐스팅을 명시. 빈 배열이면 조회 자체를 건너뜀.
   let existingHashes = new Set<string>();
   try {
     const hashes = normalized
@@ -77,7 +79,7 @@ export default async function handler(req: Request, _ctx: Context) {
     if (hashes.length > 0) {
       const r: any = await db.execute(sql`
         SELECT dedup_hash FROM bank_transactions
-        WHERE dedup_hash = ANY(${hashes})`);
+        WHERE dedup_hash = ANY(${hashes}::text[])`);
       existingHashes = new Set((r?.rows ?? r ?? []).map((x: any) => x.dedup_hash));
     }
   } catch (err: any) {

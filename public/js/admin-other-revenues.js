@@ -318,10 +318,11 @@
       </div>
     `;
 
-    /* 필터 이벤트 */
-    document.getElementById('orYearSelect').addEventListener('change',   e => { currentYear   = Number(e.target.value); currentPage = 1; loadList(); });
-    document.getElementById('orCatSelect').addEventListener('change',    e => { currentCat    = e.target.value;         currentPage = 1; loadList(); });
-    document.getElementById('orStatusSelect').addEventListener('change', e => { currentStatus = e.target.value;         currentPage = 1; loadList(); });
+    /* 필터 이벤트 (기간 선택기는 periodSelectorHtml 내부에서 자체 바인딩) */
+    const orCatSel = document.getElementById('orCatSelect');
+    if (orCatSel) orCatSel.addEventListener('change', e => { currentCat = e.target.value; currentPage = 1; loadList(); });
+    const orStatusSel = document.getElementById('orStatusSelect');
+    if (orStatusSel) orStatusSel.addEventListener('change', e => { currentStatus = e.target.value; currentPage = 1; loadList(); });
 
     /* 추가 모달 카테고리 */
     const addCat = document.getElementById('orAddCat');

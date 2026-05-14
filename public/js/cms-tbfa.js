@@ -2414,6 +2414,11 @@
   window._cmsEsc    = escapeHtml;
   window._cmsFmt    = formatDate;
   window._cmsUnwrap = unwrap;   // ★ 버그픽스 20260515-2차 (#4): IIFE 바깥 모듈 스코프 코드가 참조
+  /* ★ 버그픽스 3차 (#3): 검증 대시보드 서브탭 진입 시 cms-tbfa.html이
+     window.CMS_TBFA_DASHBOARD.load() 를 호출하나 노출이 누락돼 무한로딩.
+     renderDonationDashboard 를 노출해 탭 진입 시 데이터 로드되게 함. */
+  window.CMS_TBFA_DASHBOARD = { load: renderDonationDashboard };
+  window.loadDonationDashboard = renderDonationDashboard;
 })();
 
 /* ★ 버그픽스 20260515 (#4): IIFE 바깥(모듈 스코프) 함수들이 쓰는 api/toast 별칭.
