@@ -531,7 +531,7 @@ export const TOOL_DECLARATIONS = [
       refundAmount: { type: "INTEGER", description: "환불 금액 (원). 원래 금액 이하" },
     }, required: ["id", "refundAmount"] }},
 
-  { name: "pl_summary", description: "손익계산서 요약 — 후원+기타 매출·지출·순이익. period로 기간 지정 (기본: 이번 달)",
+  { name: "pl_summary", description: "운영성과표(손익계산서) 요약 — 사업수익(후원금+후원 외)·사업비용·운영성과(순이익). NPO 표준 회계 보고서. period로 기간 지정 (기본: 이번 달)",
     parameters: { type: "OBJECT", properties: {
       period:    { type: "STRING",  description: "기간 단위", enum: ["day", "week", "month", "half_year", "year", "custom"] },
       startDate: { type: "STRING",  description: "custom일 때 시작일 YYYY-MM-DD" },
