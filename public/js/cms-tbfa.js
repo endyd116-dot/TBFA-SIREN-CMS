@@ -1223,7 +1223,7 @@
     /* 응답 키 다중 fallback */
     const d = res.data?.data?.data || res.data?.data || res.data || {};
     const family = d.familyCount ?? d.familyMembers ?? d.family ?? d.유족회원 ?? null;
-    const donor  = d.donorCount  ?? d.donorMembers  ?? d.donor  ?? d.후원회원 ?? null;
+    const donor  = d.donorCount  ?? d.donorMembers  ?? d.activeDonors ?? d.donor  ?? d.후원회원 ?? null;
     if (famEl && family != null) famEl.textContent = Number(family).toLocaleString() + '명';
     if (donEl && donor  != null) donEl.textContent = Number(donor).toLocaleString() + '명';
   }
