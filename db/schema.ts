@@ -2814,6 +2814,8 @@ export const revenueCategories = pgTable("revenue_categories", {
   code:         varchar("code", { length: 32 }).unique().notNull(),  // 'lecture'|'govgrant'|'corp_sponsor'|'twork_on'|'twork_si'|'etc'
   name:         varchar("name", { length: 100 }).notNull(),          // 한글명
   description:  text("description"),
+  parentId:     integer("parent_id"),                                // 상위 분류 id (NULL=대분류) — 2단계 계층 (#9/#11)
+  isSystem:     boolean("is_system").default(false).notNull(),        // true=기본 시드(이름변경·비활성 불가)
   sortOrder:    integer("sort_order").default(0).notNull(),
   isActive:     boolean("is_active").default(true).notNull(),
   createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -2821,6 +2823,7 @@ export const revenueCategories = pgTable("revenue_categories", {
 }, (t) => ({
   codeIdx:    index("revenue_categories_code_idx").on(t.code),
   activeIdx:  index("revenue_categories_active_idx").on(t.isActive),
+  parentIdx:  index("revenue_categories_parent_idx").on(t.parentId),
 }));
 
 export const otherRevenues = pgTable("other_revenues", {
