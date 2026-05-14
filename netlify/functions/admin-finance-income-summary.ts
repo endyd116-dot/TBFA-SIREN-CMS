@@ -3,6 +3,7 @@ import { db } from "../../db/index";
 import { donations, members } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { sql, and, gte, lte, eq } from "drizzle-orm";
+import { resolvePeriod } from "../../lib/period-filter";
 
 export const config = { path: "/api/admin-finance-income-summary" };
 
@@ -11,17 +12,20 @@ export default async function handler(req: Request, _ctx: Context) {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
-  const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
-  const monthParam = url.searchParams.get("month");
-  const month = monthParam ? parseInt(monthParam) : null;
+  // BUG-017 fix: 기간 필터(period) 지원 — 기존 year/month 호출은 하위호환 유지
+  const { startDate: sdStr, endDate: edStr, period, fiscalYear, includeMonthly } = resolvePeriod({
+    period:     url.searchParams.get("period"),
+    startDate:  url.searchParams.get("startDate"),
+    endDate:    url.searchParams.get("endDate"),
+    fiscalYear: url.searchParams.get("fiscalYear") ?? url.searchParams.get("year"),
+  });
+  const year = fiscalYear ?? new Date(sdStr + "T00:00:00").getFullYear();
+  // month 필드는 응답 호환용 — period 모드에서는 null
+  const month: number | null = null;
 
   try {
-    const startDate = month
-      ? new Date(year, month - 1, 1)
-      : new Date(year, 0, 1);
-    const endDate = month
-      ? new Date(year, month, 0, 23, 59, 59)
-      : new Date(year, 11, 31, 23, 59, 59);
+    const startDate = new Date(sdStr + "T00:00:00");
+    const endDate = new Date(edStr + "T23:59:59");
 
     /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
     const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
@@ -48,9 +52,9 @@ export default async function handler(req: Request, _ctx: Context) {
       console.warn("[finance-income] channelRows 집계 실패:", err);
     }
 
-    // 월별 추이 (연간 조회 시)
+    // 월별 추이 (year·half_year·custom 60일+ 일 때만 — includeMonthly 기준)
     let monthlyTrend: { month: number; amount: number }[] = [];
-    if (!month) {
+    if (includeMonthly) {
       try {
         const trendRows = await db
           .select({
@@ -132,6 +136,9 @@ export default async function handler(req: Request, _ctx: Context) {
         data: {
           year,
           month,
+          period,
+          startDate: sdStr,
+          endDate: edStr,
           totalAmount,
           totalCount,
           byChannel: channelMap,

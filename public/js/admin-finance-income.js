@@ -311,10 +311,11 @@
       return;
     }
 
-    /* 손익 집계 (Phase 22A) — 실패 시 빈 객체로 계속 */
+    /* 손익 집계 (Phase 22A) — 실패 시 빈 객체로 계속
+       BUG-017 fix: fiscalYear 단독 → period 기반 qs 전달 (기간 선택기 반영) */
     let plData = {};
     try {
-      const plRes = await apiFetch('/api/admin-finance-pl-summary?fiscalYear=' + pd.year);
+      const plRes = await apiFetch('/api/admin-finance-pl-summary' + qs);
       if (plRes.ok) plData = plRes.data?.data || plRes.data || plRes;
     } catch (e) { console.warn('[finance-income] P&L 조회 실패', e); }
 

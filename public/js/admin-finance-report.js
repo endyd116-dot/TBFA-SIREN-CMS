@@ -264,8 +264,12 @@
   }
 
   async function loadPl() {
-    const year = getFrPeriodQs().year;
-    const res  = await apiFetch(`/api/admin-finance-pl-summary?fiscalYear=${year}`);
+    // BUG-018 fix: fiscalYear 단독 → period 기반 전달 (기간 선택기 반영)
+    const pd = getFrPeriodQs();
+    const plParams = new URLSearchParams({ period: pd.period });
+    if (pd.startDate) plParams.set('startDate', pd.startDate);
+    if (pd.endDate)   plParams.set('endDate',   pd.endDate);
+    const res  = await apiFetch('/api/admin-finance-pl-summary?' + plParams);
     if (!res.ok) {
       const pane = document.getElementById('frPane-pl');
       if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">손익 집계 조회 실패: ${res.data?.error || res.error || ''}</div>`;
