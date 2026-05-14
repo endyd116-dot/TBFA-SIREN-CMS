@@ -227,6 +227,12 @@
           'receipt-settings': '영수증 설정',
           hyosung: '효성 CMS+ 관리',
           'toss-billing': '💳 토스 빌링 (자동 청구)',
+          'donations': '💳 후원 결제 내역',
+          'finance-income': '📈 수입 현황',
+          'other-revenues': '💼 후원 외 매출',
+          'expenses': '💸 지출 관리',
+          'finance-budget': '📋 예산 관리',
+          'finance-report': '📊 재무 보고서',
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
           'donation-dashboard': '🔍 종합 검증 대시보드',
           'ai-chat':    '🤖 AI 비서 — 대화 시작',
@@ -262,6 +268,33 @@
           }
         }
         else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
+        /* ★ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) */
+        else if (tab === 'donations') {
+          if (window.SIREN_DONATIONS) window.SIREN_DONATIONS.load();
+        }
+        else if (tab === 'finance-income') {
+          if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.load();
+        }
+        else if (tab === 'other-revenues') {
+          if (window.SIREN_OTHER_REVENUES) window.SIREN_OTHER_REVENUES.load();
+        }
+        else if (tab === 'expenses') {
+          if (window.SIREN_EXPENSES) window.SIREN_EXPENSES.load();
+        }
+        else if (tab === 'finance-budget') {
+          if (window.SIREN_FINANCE_BUDGET) {
+            const _fb = document.getElementById('page-finance-budget');
+            if (_fb && !_fb.firstElementChild) window.SIREN_FINANCE_BUDGET.init();
+            else window.SIREN_FINANCE_BUDGET.load();
+          }
+        }
+        else if (tab === 'finance-report') {
+          if (window.SIREN_FINANCE_REPORT) {
+            const _fr = document.getElementById('page-finance-report');
+            if (_fr && !_fr.firstElementChild) window.SIREN_FINANCE_REPORT.init();
+            else window.SIREN_FINANCE_REPORT.load();
+          }
+        }
         /* ★ AI 에이전트 5개 섹션 (ai-cost 추가) */
         else if (tab === 'ai-chat')    renderAiChat();
         else if (tab === 'ai-history') renderAiHistory();

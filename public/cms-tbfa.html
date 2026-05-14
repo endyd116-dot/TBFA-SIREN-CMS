@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="/css/cms-common.css?v=4">
 <link rel="stylesheet" href="/css/cms-tbfa.css?v=2026-05-10-d2">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
+<!-- Phase 22-B-R1: 재정 섹션 스타일 (admin.html 이전 — panel/kpi-grid/tbl 클래스 호환) -->
+<link rel="stylesheet" href="/css/admin.css?v=20260515p22b">
 
 <style>
   /* ★ STEP H-2d-4: 영수증 설정 페이지 전용 (교유협 CMS) */
@@ -307,6 +309,14 @@
           <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자 관리</span></a></li>
           <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 CMS+</span></a></li>
           <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>토스 빌링</span></a></li>
+          <!-- ── 재정 (Phase 22-B-R1 이전) ── -->
+          <li class="cms-submenu-divider"><span>재정</span></li>
+          <li><a href="#donations" data-tab="donations"><i>💳</i><span>후원 결제 내역</span></a></li>
+          <li><a href="#finance-income" data-tab="finance-income"><i>📈</i><span>수입 현황</span></a></li>
+          <li><a href="#other-revenues" data-tab="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
+          <li><a href="#expenses" data-tab="expenses"><i>💸</i><span>지출 관리</span></a></li>
+          <li><a href="#finance-budget" data-tab="finance-budget"><i>📋</i><span>예산 관리</span></a></li>
+          <li><a href="#finance-report" data-tab="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
         </ul>
       </li>
 
@@ -1072,6 +1082,89 @@
           </form>
         </div>
       </section>
+
+      <!-- ============ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) ============ -->
+      <section class="cms-page" id="page-donations"></section>
+      <section class="cms-page" id="page-finance-income">
+        <div class="panel">
+          <div class="p-head">
+            <div class="p-title">수입 현황</div>
+            <div class="p-actions" style="gap:8px;display:flex;align-items:center;flex-wrap:wrap">
+              <select id="fiPeriodSel" class="input-sm" style="width:120px">
+                <option value="day">오늘</option>
+                <option value="week">이번 주</option>
+                <option value="month" selected>이번 달</option>
+                <option value="half_year">반기</option>
+                <option value="year">올해</option>
+                <option value="custom">특정 기간</option>
+              </select>
+              <div id="fiCustomRange" style="display:none;align-items:center;gap:6px">
+                <input type="date" id="fiStartDate" class="input-sm">
+                <span>~</span>
+                <input type="date" id="fiEndDate" class="input-sm">
+              </div>
+            </div>
+          </div>
+          <div id="fiError" style="color:var(--danger);padding:8px;display:none"></div>
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+            <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
+            <div class="kpi"><div class="kpi-label">후원 순 수입</div><div class="kpi-value" id="fiKpiDonation">—</div></div>
+            <div class="kpi"><div class="kpi-label">후원 외 순 매출</div><div class="kpi-value" id="fiKpiOther">—</div></div>
+            <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="fiKpiRefund">—</div></div>
+            <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" id="fiKpiExpend">—</div></div>
+            <div class="kpi"><div class="kpi-label" id="fiKpiNetLabel">당기 순이익</div><div class="kpi-value" id="fiKpiNet">—</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 추이 (매출·지출·순이익)</div>
+              <canvas id="fiTrendChart" height="120"></canvas>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">매출 구성</div>
+              <canvas id="fiChannelChart" height="180"></canvas>
+            </div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 외 매출 카테고리별</div>
+          <table class="data-table" style="width:100%;margin-bottom:24px">
+            <thead>
+              <tr><th>카테고리</th><th class="num">순매출</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
+            </thead>
+            <tbody id="fiOtherCatTbody">
+              <tr><td colspan="4" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (바 차트)</div>
+              <canvas id="fiExpenseChart" height="180"></canvas>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (테이블)</div>
+              <table class="data-table" style="width:100%">
+                <thead>
+                  <tr><th>카테고리</th><th class="num">지출액</th><th class="num">비율</th></tr>
+                </thead>
+                <tbody id="fiExpenseCatTbody">
+                  <tr><td colspan="3" style="text-align:center;color:var(--text-3)">데이터 없음</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 채널별 상세</div>
+          <table class="data-table" style="width:100%">
+            <thead>
+              <tr><th>채널</th><th class="num">건수</th><th class="num">금액</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
+            </thead>
+            <tbody id="fiChannelTbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="cms-page" id="page-other-revenues"></section>
+      <section class="cms-page" id="page-expenses"></section>
+      <section class="cms-page" id="page-finance-budget"></section>
+      <section class="cms-page" id="page-finance-report"></section>
 
       <!-- ============ ★ 작업 C(#15): CSV 자동 매핑 ============ -->
       <section class="cms-page" id="page-csv-import">
@@ -2109,7 +2202,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=2026-05-13-aiagent"></script>
+  <script src="/js/cms-tbfa.js?v=20260515p22b"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
@@ -2120,5 +2213,12 @@
   <script src="/js/admin-recipient-groups.js?v=2026-05-11-a1"></script>
   <!-- ★ AI 에이전트 위젯 (admin/operator 전용 — 우하단 플로팅) -->
   <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+  <!-- Phase 22-B-R1: 재정 관리 (admin.html에서 이전) -->
+  <script src="/js/admin-donations.js?v=20260515p22b"></script>
+  <script src="/js/admin-finance-income.js?v=20260515p22b"></script>
+  <script src="/js/admin-other-revenues.js?v=20260515p22b"></script>
+  <script src="/js/admin-expenses.js?v=20260515p22b"></script>
+  <script src="/js/admin-finance-budget.js?v=20260515p22b"></script>
+  <script src="/js/admin-finance-report.js?v=20260515p22b"></script>
 </body>
 </html>

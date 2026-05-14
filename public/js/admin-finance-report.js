@@ -250,13 +250,12 @@
 
   /* ── 로드 ── */
   async function load() {
-    const year   = document.getElementById('frYearSelect')?.value   || new Date().getFullYear();
-    const period = document.getElementById('frPeriodSelect')?.value || 'annual';
-    let qs = `?year=${year}`;
-    if (period.startsWith('q'))  qs += `&quarter=${period.slice(1)}`;
-    else if (period !== 'annual') qs += `&month=${period}`;
+    const pd = getFrPeriodQs();
+    const params = new URLSearchParams({ year: pd.year, period: pd.period });
+    if (pd.startDate) params.set('startDate', pd.startDate);
+    if (pd.endDate)   params.set('endDate',   pd.endDate);
 
-    const res = await apiFetch('/api/admin-finance-report' + qs);
+    const res = await apiFetch('/api/admin-finance-report?' + params);
     if (!res.ok) { alert('보고서 조회 실패: ' + (res.error || '')); return; }
     render(res);
 
@@ -265,7 +264,7 @@
   }
 
   async function loadPl() {
-    const year = document.getElementById('frYearSelect')?.value || new Date().getFullYear();
+    const year = getFrPeriodQs().year;
     const res  = await apiFetch(`/api/admin-finance-pl-summary?fiscalYear=${year}`);
     if (!res.ok) {
       const pane = document.getElementById('frPane-pl');
@@ -276,30 +275,67 @@
     renderPl(pl);
   }
 
+  /* ── 기간 선택기 헬퍼 ── */
+  function frPeriodSelectorHtml() {
+    return `
+      <select id="frPeriodSel" class="input-sm" style="width:120px">
+        <option value="day">오늘</option>
+        <option value="week">이번 주</option>
+        <option value="month" selected>이번 달</option>
+        <option value="half_year">반기</option>
+        <option value="year">올해</option>
+        <option value="custom">특정 기간</option>
+      </select>
+      <div id="frCustomRange" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="frStartDate" class="input-sm">
+        <span>~</span>
+        <input type="date" id="frEndDate" class="input-sm">
+      </div>
+    `;
+  }
+
+  function getFrPeriodQs() {
+    const sel    = document.getElementById('frPeriodSel');
+    const period = sel?.value || 'month';
+    const today  = new Date();
+    const pad    = n => String(n).padStart(2, '0');
+    const fmt    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let startDate, endDate;
+    if (period === 'day') {
+      startDate = endDate = fmt(today);
+    } else if (period === 'week') {
+      const day = today.getDay();
+      const mon = new Date(today); mon.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+      const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+      startDate = fmt(mon); endDate = fmt(sun);
+    } else if (period === 'month') {
+      startDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+      endDate   = fmt(new Date(today.getFullYear(), today.getMonth()+1, 0));
+    } else if (period === 'half_year') {
+      const s = new Date(today); s.setMonth(today.getMonth() - 5); s.setDate(1);
+      startDate = fmt(s); endDate = fmt(today);
+    } else if (period === 'year') {
+      startDate = `${today.getFullYear()}-01-01`;
+      endDate   = `${today.getFullYear()}-12-31`;
+    } else {
+      startDate = document.getElementById('frStartDate')?.value || '';
+      endDate   = document.getElementById('frEndDate')?.value   || '';
+    }
+    return { period, startDate, endDate,
+      year: startDate ? new Date(startDate).getFullYear() : today.getFullYear() };
+  }
+
   /* ── 초기화 ── */
   function init() {
-    const container = document.getElementById('adm-finance-report');
+    const container = document.getElementById('adm-finance-report') || document.getElementById('page-finance-report');
     if (!container) return;
-
-    const ty = new Date().getFullYear();
-    const yearOpts = Array.from({ length: 6 }, (_, i) => `<option value="${ty - i}">${ty - i}년</option>`).join('');
-    const periodOpts = `
-      <option value="annual">연간</option>
-      <option value="q1">1분기</option><option value="q2">2분기</option>
-      <option value="q3">3분기</option><option value="q4">4분기</option>
-      <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
-      <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
-      <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
-      <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-    `;
 
     container.innerHTML = `
       <div class="panel">
         <div class="p-head">
           <div class="p-title">재무 보고서</div>
-          <div class="p-actions" style="gap:8px">
-            <select id="frYearSelect" class="input-sm" style="width:90px">${yearOpts}</select>
-            <select id="frPeriodSelect" class="input-sm" style="width:100px">${periodOpts}</select>
+          <div class="p-actions" style="gap:8px;flex-wrap:wrap">
+            ${frPeriodSelectorHtml()}
             <button class="btn-sm btn-sm-primary" onclick="window.SIREN_FINANCE_REPORT.load()">조회</button>
             <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportExcel()">📊 엑셀</button>
             <button class="btn-sm btn-sm-ghost" onclick="window.print()">🖨 인쇄</button>
@@ -345,6 +381,22 @@
         </div>
       </div>
     `;
+
+    const sel = document.getElementById('frPeriodSel');
+    if (sel) {
+      sel.addEventListener('change', () => {
+        const cr = document.getElementById('frCustomRange');
+        if (cr) cr.style.display = sel.value === 'custom' ? 'flex' : 'none';
+        if (sel.value !== 'custom') load();
+      });
+    }
+    const startEl = document.getElementById('frStartDate');
+    const endEl   = document.getElementById('frEndDate');
+    if (startEl && endEl) {
+      const check = () => { if (startEl.value && endEl.value) load(); };
+      startEl.addEventListener('change', check);
+      endEl.addEventListener('change', check);
+    }
 
     load();
   }

@@ -2804,22 +2804,6 @@
           </ul>
         </li>
 
-        <!-- ── 💰 재정 관리 ── -->
-        <li class="adm-menu-toggle-group">
-          <a href="#" data-sidebar-group="finance" aria-expanded="false">
-            <i>💰</i><span>재정 관리</span>
-            <span class="sidebar-group-chevron">▾</span>
-          </a>
-          <ul class="adm-submenu" data-sidebar-submenu="finance" aria-hidden="true" style="display:none">
-            <li><a data-page="donations"><i>💳</i><span>후원금 관리</span></a></li>
-            <li><a data-page="finance-income"><i>📈</i><span>수입 현황</span></a></li>
-            <li><a data-page="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
-            <li><a data-page="expenses"><i>💸</i><span>지출 관리</span></a></li>
-            <li><a data-page="finance-budget"><i>📋</i><span>예산·지출 관리</span></a></li>
-            <li><a data-page="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
-          </ul>
-        </li>
-
         <!-- ── ⚙️ 시스템 ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="system" aria-expanded="false">
@@ -3103,53 +3087,6 @@
             </div>
           </div>
 
-        </div>
-        <!-- 3. 기부 관리 -->
-        <div id="adm-donations" class="adm-page">
-          <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
-            <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value">₩ 0.0M</div></div>
-            <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value">₩ 0.0M</div></div>
-            <div class="kpi"><div class="kpi-label">실패 건</div><div class="kpi-value">0 건</div></div>
-            <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value">0 건</div></div>
-            <div class="kpi" style="border-left:3px solid #c47a00"><div class="kpi-label" style="color:#c47a00">환불</div><div class="kpi-value" id="dmKpiRefunded" style="color:#c47a00">0 건</div></div>
-            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">취소</div><div class="kpi-value" id="dmKpiCancelled" style="color:var(--danger)">0 건</div></div>
-          </div>
-
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">결제 내역</div>
-              <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" id="dmBtnExportDonations" type="button">📥 수납내역 엑셀 내보내기</button>
-                <button class="btn-sm btn-sm-primary" data-demo-action="bulk-receipt">📄 영수증 일괄 발행</button>
-              </div>
-            </div>
-
-            <!-- ★ K-8: 검색/필터 툴바 -->
-            <div class="dm-toolbar">
-              <select id="dmFilterType">
-                <option value="">전체 유형</option>
-                <option value="regular">정기 후원</option>
-                <option value="onetime">일시 후원</option>
-              </select>
-              <select id="dmFilterStatus">
-                <option value="">전체 상태</option>
-                <option value="completed">승인</option>
-                <option value="pending">대기</option>
-                <option value="failed">실패</option>
-                <option value="cancelled">취소</option>
-                <option value="refunded">환불</option>
-              </select>
-              <input type="search" id="dmFilterQ" placeholder="🔍 이름·이메일·승인번호·영수증번호 검색 (2자 이상)">
-              <span class="dm-count" id="dmCount">—</span>
-            </div>
-
-            <div style="overflow-x:auto">
-              <table class="tbl" style="min-width:1100px">
-                <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th><th style="width:160px">관리</th></tr></thead>
-                <tbody><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <!-- 4. 유가족 지원 관리 -->
@@ -4695,109 +4632,6 @@
         <!-- Phase 16: 통합 분석 대시보드 (admin-unified-dashboard.js가 동적 렌더) -->
         <div id="adm-unified-dashboard" class="adm-page"></div>
 
-        <!-- Phase 5: 수입 집계 대시보드 -->
-        <div id="adm-finance-income" class="adm-page">
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">수입 현황</div>
-              <div class="p-actions" style="gap:8px;display:flex;align-items:center">
-                <select id="fiYearSelect" class="input-sm" style="width:90px"></select>
-                <div style="display:flex;gap:4px">
-                  <button class="btn-sm btn-sm-ghost fi-month-btn active" data-month="all">연간</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="1">1월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="2">2월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="3">3월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="4">4월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="5">5월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="6">6월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="7">7월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="8">8월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="9">9월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="10">10월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="11">11월</button>
-                  <button class="btn-sm btn-sm-ghost fi-month-btn" data-month="12">12월</button>
-                </div>
-              </div>
-            </div>
-            <div id="fiError" style="color:var(--danger);padding:8px;display:none"></div>
-
-            <!-- KPI 카드 6개 (init에서 동적 교체) -->
-            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-              <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="fiKpiTotal">—</div></div>
-              <div class="kpi"><div class="kpi-label">후원 순 수입</div><div class="kpi-value" id="fiKpiDonation">—</div></div>
-              <div class="kpi"><div class="kpi-label">후원 외 순 매출</div><div class="kpi-value" id="fiKpiOther">—</div></div>
-              <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="fiKpiRefund">—</div></div>
-              <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" id="fiKpiExpend">—</div></div>
-              <div class="kpi"><div class="kpi-label" id="fiKpiNetLabel">당기 순이익</div><div class="kpi-value" id="fiKpiNet">—</div></div>
-            </div>
-
-            <!-- 차트 2개 -->
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">월별 추이 (매출·지출·순이익)</div>
-                <canvas id="fiTrendChart" height="120"></canvas>
-              </div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">매출 구성</div>
-                <canvas id="fiChannelChart" height="180"></canvas>
-              </div>
-            </div>
-
-            <!-- 후원 외 카테고리 분해 -->
-            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 외 매출 카테고리별</div>
-            <table class="data-table" style="width:100%;margin-bottom:24px">
-              <thead>
-                <tr><th>카테고리</th><th class="num">순매출</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
-              </thead>
-              <tbody id="fiOtherCatTbody">
-                <tr><td colspan="4" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
-              </tbody>
-            </table>
-
-            <!-- Phase 22C: 지출 카테고리 분해 + 바 차트 -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (바 차트)</div>
-                <canvas id="fiExpenseChart" height="180"></canvas>
-              </div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">지출 카테고리별 (테이블)</div>
-                <table class="data-table" style="width:100%">
-                  <thead>
-                    <tr><th>카테고리</th><th class="num">지출액</th><th class="num">비율</th></tr>
-                  </thead>
-                  <tbody id="fiExpenseCatTbody">
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-3)">데이터 없음</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- 채널별 테이블 -->
-            <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px">후원 채널별 상세</div>
-            <table class="data-table" style="width:100%">
-              <thead>
-                <tr><th>채널</th><th class="num">건수</th><th class="num">금액</th><th style="width:160px">비율 그래프</th><th class="num">비율</th></tr>
-              </thead>
-              <tbody id="fiChannelTbody">
-                <tr><td colspan="5" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Phase 6: 예산·지출 관리 (admin-finance-budget.js가 동적 렌더) -->
-        <div id="adm-finance-budget" class="adm-page"></div>
-
-        <!-- Phase 7: 재무 보고서 (admin-finance-report.js가 동적 렌더) -->
-        <div id="adm-finance-report" class="adm-page"></div>
-
-        <!-- Phase 22A: 후원 외 매출 (admin-other-revenues.js가 동적 렌더) -->
-        <div id="adm-other-revenues" class="adm-page"></div>
-
-        <!-- Phase 22C: 지출 관리 (admin-expenses.js가 동적 렌더) -->
-        <div id="adm-expenses" class="adm-page"></div>
-
         <!-- Phase 8 C: 알림 발송 로그 (admin-notification-logs.js가 동적 렌더) -->
         <div id="adm-notification-logs" class="adm-page"></div>
 
@@ -5213,85 +5047,6 @@
           • 회원이 첫 로그인 후 즉시 변경하도록 안내해 주세요
         </div>
         <button type="button" class="btn btn-primary btn-block" data-action="close-modal" style="margin-top:14px">확인 (모달 닫기)</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 후원 상세 -->
-  <div id="donationDetailModal" class="modal">
-    <div class="modal-content" style="max-width:680px">
-      <div class="modal-header">
-        <h3 class="serif">💝 후원 상세</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body" id="donationDetailBody">
-        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 환불 사유 -->
-  <div id="refundReasonModal" class="modal">
-    <div class="modal-content" style="max-width:520px">
-      <div class="modal-header">
-        <h3 class="serif">💸 후원 환불 처리</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="rc-warn-box">
-          ⚠️ <strong>주의 — 환불 처리 안내</strong><br />
-          • 이 작업은 시스템 상의 상태만 변경합니다 (DB)<br />
-          • <strong>실제 PG사 환불</strong>은 결제대행사를 통해 별도 진행해야 합니다<br />
-          • 환불 후 상태는 'refunded'로 변경되며 영수증 발급에 영향을 줄 수 있습니다<br />
-          • 사유는 후원 메모에 누적 기록됩니다 (감사 로그용)
-        </div>
-        <div class="rc-info-grid" id="rcRefundInfo"></div>
-        <form id="refundForm">
-          <input type="hidden" id="rcRefundId" value="">
-          <div class="fg">
-            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
-              환불 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
-            </label>
-            <textarea id="rcRefundReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 회원 요청, 중복 결제 등"></textarea>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" id="btnRefundConfirm" style="flex:1;background:#c47a00;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">💸 환불 처리 확정</button>
-            <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- 결제 취소 사유 -->
-  <div id="cancelReasonModal" class="modal">
-    <div class="modal-content" style="max-width:520px">
-      <div class="modal-header">
-        <h3 class="serif">❌ 후원 취소 처리</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="rc-warn-box danger">
-          ⚠️ <strong>관리자 강제 취소</strong><br />
-          • 결제 자체가 무효 처리됩니다 (cancelled)<br />
-          • 정기 후원은 다음 결제부터 자동 청구가 중단됩니다<br />
-          • 한 번 취소되면 되돌릴 수 없습니다<br />
-          • 사유는 후원 메모에 누적 기록됩니다
-        </div>
-        <div class="rc-info-grid" id="rcCancelInfo"></div>
-        <form id="cancelForm">
-          <input type="hidden" id="rcCancelId" value="">
-          <div class="fg">
-            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
-              취소 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
-            </label>
-            <textarea id="rcCancelReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 결제 실패 후 정리 등"></textarea>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" id="btnCancelConfirm" style="flex:1;background:var(--danger);color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">❌ 취소 처리 확정</button>
-            <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
-          </div>
-        </form>
       </div>
     </div>
   </div>
@@ -5852,7 +5607,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js"></script>
-  <script src="/js/admin.js?v=20260515p22c"></script>
+  <script src="/js/admin.js?v=20260515p22b"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-11-phase14"></script>
   <script src="/js/editor.js?v=2026-05"></script>
@@ -5987,21 +5742,8 @@
   </script>
 
   <script src="/js/admin-report.js?v=2026-05-11-phase16"></script>
-  <!-- Phase 5~7 + 22A + 22C: 재정 관리 -->
-  <script src="/js/admin-finance-income.js?v=20260515p22c"></script>
-  <script src="/js/admin-finance-budget.js?v=20260510f1"></script>
-  <script src="/js/admin-finance-report.js?v=20260515p22c"></script>
-  <script src="/js/admin-other-revenues.js?v=20260514p22a"></script>
-  <script src="/js/admin-expenses.js?v=20260515p22c"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
   <script src="/js/admin-notification-logs.js?v=20260510n1"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      if (window.SIREN_FINANCE_INCOME)   window.SIREN_FINANCE_INCOME.init();
-      if (window.SIREN_FINANCE_REPORT)   window.SIREN_FINANCE_REPORT.init();
-      if (window.SIREN_OTHER_REVENUES)   window.SIREN_OTHER_REVENUES.init();
-    });
-  </script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <!-- Phase 16: 통합 분석 대시보드 -->

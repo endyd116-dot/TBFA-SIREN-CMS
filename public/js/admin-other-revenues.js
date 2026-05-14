@@ -55,11 +55,15 @@
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-3)">불러오는 중…</td></tr>';
 
+    const pd = getPeriodQs('or');
     const qs = new URLSearchParams({
-      fiscalYear: currentYear,
+      fiscalYear: pd.fiscalYear,
       page:       currentPage,
       limit:      PAGE_SIZE,
+      period:     pd.period,
     });
+    if (pd.startDate) qs.set('startDate', pd.startDate);
+    if (pd.endDate)   qs.set('endDate',   pd.endDate);
     if (currentCat)    qs.set('categoryId', currentCat);
     if (currentStatus) qs.set('status',     currentStatus);
 
@@ -121,6 +125,73 @@
     }).join('');
   }
 
+  /* ── 기간 선택기 HTML ── */
+  function periodSelectorHtml(prefix) {
+    return `
+      <select id="${prefix}PeriodSel" class="input-sm" style="width:120px">
+        <option value="day">오늘</option>
+        <option value="week">이번 주</option>
+        <option value="month" selected>이번 달</option>
+        <option value="half_year">반기</option>
+        <option value="year">올해</option>
+        <option value="custom">특정 기간</option>
+      </select>
+      <div id="${prefix}CustomRange" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="${prefix}StartDate" class="input-sm">
+        <span>~</span>
+        <input type="date" id="${prefix}EndDate" class="input-sm">
+      </div>
+    `;
+  }
+
+  function bindPeriodSelector(prefix, onSearch) {
+    const sel = document.getElementById(prefix + 'PeriodSel');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      const cr = document.getElementById(prefix + 'CustomRange');
+      if (cr) cr.style.display = sel.value === 'custom' ? 'flex' : 'none';
+      if (sel.value !== 'custom') onSearch();
+    });
+    const startEl = document.getElementById(prefix + 'StartDate');
+    const endEl   = document.getElementById(prefix + 'EndDate');
+    if (startEl && endEl) {
+      const check = () => { if (startEl.value && endEl.value) onSearch(); };
+      startEl.addEventListener('change', check);
+      endEl.addEventListener('change', check);
+    }
+  }
+
+  function getPeriodQs(prefix) {
+    const sel    = document.getElementById(prefix + 'PeriodSel');
+    const period = sel?.value || 'month';
+    const today  = new Date();
+    const pad    = n => String(n).padStart(2, '0');
+    const fmt    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let startDate, endDate;
+    if (period === 'day') {
+      startDate = endDate = fmt(today);
+    } else if (period === 'week') {
+      const day = today.getDay();
+      const mon = new Date(today); mon.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+      const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+      startDate = fmt(mon); endDate = fmt(sun);
+    } else if (period === 'month') {
+      startDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+      endDate   = fmt(new Date(today.getFullYear(), today.getMonth()+1, 0));
+    } else if (period === 'half_year') {
+      const s = new Date(today); s.setMonth(today.getMonth() - 5); s.setDate(1);
+      startDate = fmt(s); endDate = fmt(today);
+    } else if (period === 'year') {
+      startDate = `${today.getFullYear()}-01-01`;
+      endDate   = `${today.getFullYear()}-12-31`;
+    } else {
+      startDate = document.getElementById(prefix + 'StartDate')?.value || '';
+      endDate   = document.getElementById(prefix + 'EndDate')?.value   || '';
+    }
+    return { period, startDate, endDate,
+      fiscalYear: startDate ? new Date(startDate).getFullYear() : today.getFullYear() };
+  }
+
   /* ── 화면 골격 렌더 (최초 1회) ── */
   function renderShell(container) {
     const catOpts = `<option value="">전체 카테고리</option>` +
@@ -130,8 +201,8 @@
       <div class="panel">
         <div class="p-head">
           <div class="p-title">후원 외 매출 관리</div>
-          <div class="p-actions" style="gap:8px">
-            <select id="orYearSelect" class="input-sm" style="width:90px">${buildYearOpts()}</select>
+          <div class="p-actions" style="gap:8px;flex-wrap:wrap">
+            ${periodSelectorHtml('or')}
             <select id="orCatSelect" class="input-sm" style="width:160px">${catOpts}</select>
             <select id="orStatusSelect" class="input-sm" style="width:100px">
               <option value="">전체 상태</option>
@@ -484,11 +555,12 @@
 
   /* ── 초기화 / 재진입 통합 ── */
   async function init() {
-    const container = document.getElementById('adm-other-revenues');
+    const container = document.getElementById('adm-other-revenues') || document.getElementById('page-other-revenues');
     if (!container) return;
     if (!container.querySelector('.panel')) {
       await loadCategories();
       renderShell(container);
+      bindPeriodSelector('or', () => { currentPage = 1; loadList(); });
     }
     await loadList();
   }
