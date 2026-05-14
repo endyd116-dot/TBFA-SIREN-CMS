@@ -3,13 +3,16 @@
   'use strict';
 
   /* ── 상태 ── */
-  let currentYear   = new Date().getFullYear();
-  let currentCat    = '';
-  let currentStatus = '';
-  let categories    = [];
-  let currentPage   = 1;
-  const PAGE_SIZE   = 20;
-  let detailItem    = null;
+  let currentYear    = new Date().getFullYear();
+  let currentCat     = '';
+  let currentStatus  = '';
+  let categories     = [];   // 활성 카테고리 (드롭다운용)
+  let allCategories  = [];   // 전체 카테고리 (관리 화면용 — 비활성 포함)
+  let currentTab     = 'list'; // list | categories
+  let currentPage    = 1;
+  const PAGE_SIZE    = 20;
+  let detailItem     = null;
+  let editingCatId   = null;
 
   /* ── API 헬퍼 ── */
   function api(method, path, body) {
@@ -34,19 +37,44 @@
     return { draft: '#6b7280', approved: 'var(--success)', rejected: 'var(--danger)', refunded: '#f59e0b' }[s] || '#6b7280';
   }
   function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
-
-  /* ── 카테고리 로드 ── */
-  async function loadCategories() {
-    const res = await api('GET', '/api/admin-revenue-categories-list');
-    if (!res.ok) { console.warn('[other-revenues] 카테고리 조회 실패', res.error); return; }
-    const raw = res.data?.data || res.data || res.items || [];
-    categories = raw.filter(c => c.isActive !== false);
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  /* ── 카테고리 로드 (전체 — 비활성 포함) ── */
+  async function loadCategories() {
+    const res = await api('GET', '/api/admin-revenue-categories-list?all=1');
+    if (!res.ok) { console.warn('[other-revenues] 카테고리 조회 실패', res.error); return; }
+    const payload = res.data?.data || res.data || {};
+    const raw = payload.items || res.items || [];
+    allCategories = Array.isArray(raw) ? raw : [];
+    categories = allCategories.filter(c => c.isActive !== false);
+  }
+
+  /* 대분류 → 소분류 계층 순서로 정렬된 활성 카테고리 (드롭다운·필터 공용) */
+  function hierarchicalCats() {
+    const parents = categories.filter(c => !c.parentId);
+    const parentIds = new Set(parents.map(p => p.id));
+    const out = [];
+    for (const p of parents) {
+      out.push({ ...p, depth: 0 });
+      categories.filter(c => c.parentId === p.id)
+        .forEach(ch => out.push({ ...ch, depth: 1 }));
+    }
+    // 부모가 비활성이라 목록에 없는 소분류 — 평면으로 뒤에 노출
+    categories.filter(c => c.parentId && !parentIds.has(c.parentId))
+      .forEach(ch => out.push({ ...ch, depth: 0 }));
+    return out;
+  }
+
+  /* 매출 등록·수정 모달용 카테고리 옵션 — 대·소분류 모두 선택 가능 */
   function buildCatOptions(selectedId) {
-    return categories.map(c =>
-      `<option value="${c.id}" ${String(c.id) === String(selectedId) ? 'selected' : ''}>${c.name}</option>`
-    ).join('');
+    return hierarchicalCats().map(c => {
+      const sel = String(c.id) === String(selectedId) ? 'selected' : '';
+      const label = c.depth === 1 ? '└ ' + escapeHtml(c.name) : escapeHtml(c.name);
+      return `<option value="${c.id}" ${sel}>${label}</option>`;
+    }).join('');
   }
 
   /* ── 목록 로드 ── */
@@ -195,15 +223,25 @@
   /* ── 화면 골격 렌더 (최초 1회) ── */
   function renderShell(container) {
     const catOpts = `<option value="">전체 카테고리</option>` +
-      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      hierarchicalCats().map(c =>
+        `<option value="${c.id}">${c.depth === 1 ? '└ ' : ''}${escapeHtml(c.name)}</option>`
+      ).join('');
 
     container.innerHTML = `
       <div class="panel">
         <div class="p-head">
           <div class="p-title">후원 외 매출 관리</div>
-          <div class="p-actions" style="gap:8px;flex-wrap:wrap">
+          <div class="p-actions">
+            <button class="btn-sm btn-sm-ghost" id="orTabList" type="button">매출 내역</button>
+            <button class="btn-sm btn-sm-ghost" id="orTabCat" type="button">카테고리 관리</button>
+          </div>
+        </div>
+
+        <!-- ── 매출 내역 뷰 ── -->
+        <div id="orViewList">
+          <div class="p-actions" style="gap:8px;flex-wrap:wrap;margin-bottom:16px">
             ${periodSelectorHtml('or')}
-            <select id="orCatSelect" class="input-sm" style="width:160px">${catOpts}</select>
+            <select id="orCatSelect" class="input-sm" style="width:180px">${catOpts}</select>
             <select id="orStatusSelect" class="input-sm" style="width:100px">
               <option value="">전체 상태</option>
               <option value="draft">초안</option>
@@ -214,27 +252,80 @@
             <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_OTHER_REVENUES.load()">조회</button>
             <button class="btn-sm btn-sm-primary" onclick="window.SIREN_OTHER_REVENUES.openAdd()">+ 매출 추가</button>
           </div>
+
+          <!-- 요약 KPI -->
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+            <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="orSumTotal">—</div></div>
+            <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="orSumRefund" style="color:var(--danger)">—</div></div>
+            <div class="kpi"><div class="kpi-label">순 매출</div><div class="kpi-value" id="orSumNet">—</div></div>
+          </div>
+
+          <!-- 목록 테이블 -->
+          <table class="data-table" style="width:100%">
+            <thead>
+              <tr>
+                <th>회계연도</th><th>인식일</th><th>카테고리</th><th>납입자</th>
+                <th class="num">매출액</th><th class="num">환불액</th><th>상태</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="orTbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--text-3)">조회 버튼을 눌러 데이터를 불러오세요.</td></tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- 요약 KPI -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-          <div class="kpi"><div class="kpi-label">총 매출</div><div class="kpi-value" id="orSumTotal">—</div></div>
-          <div class="kpi"><div class="kpi-label">환불 합계</div><div class="kpi-value" id="orSumRefund" style="color:var(--danger)">—</div></div>
-          <div class="kpi"><div class="kpi-label">순 매출</div><div class="kpi-value" id="orSumNet">—</div></div>
+        <!-- ── 카테고리 관리 뷰 ── -->
+        <div id="orViewCat" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <div style="font-size:13px;color:var(--text-2,#5b6577);flex:1">
+              후원 외 매출 분류입니다. 대분류 아래 소분류를 둘 수 있고(2단계), 매출 등록 시 대·소분류 어디든 선택할 수 있습니다.
+              비활성 처리하면 신규 등록 목록에서 숨겨집니다(기존 매출 기록은 유지). 기본 분류는 이름 변경·비활성이 제한됩니다.
+            </div>
+            <button class="btn-sm btn-sm-primary" type="button" id="orCatAddBtn">+ 카테고리 추가</button>
+          </div>
+          <div id="orCatList"></div>
         </div>
+      </div>
 
-        <!-- 목록 테이블 -->
-        <table class="data-table" style="width:100%">
-          <thead>
-            <tr>
-              <th>회계연도</th><th>인식일</th><th>카테고리</th><th>납입자</th>
-              <th class="num">매출액</th><th class="num">환불액</th><th>상태</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="orTbody">
-            <tr><td colspan="8" style="text-align:center;color:var(--text-3)">조회 버튼을 눌러 데이터를 불러오세요.</td></tr>
-          </tbody>
-        </table>
+      <!-- ── 카테고리 추가·수정 모달 ── -->
+      <div id="orCatModal" class="modal-backdrop" style="display:none">
+        <div class="modal" style="max-width:440px">
+          <div class="modal-head">
+            <span class="modal-title" id="orCatModalTitle">카테고리 추가</span>
+            <button class="modal-close" type="button" id="orCatCloseBtn">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label class="form-label">코드 <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="orCatCode" class="input" placeholder="예: corp_event (영문·숫자·밑줄 2~32자)">
+              <div style="font-size:11.5px;color:var(--text-3,#94a0b3);margin-top:3px">
+                코드는 추가 후 변경할 수 없습니다.
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">카테고리명 <span style="color:var(--danger)">*</span></label>
+              <input type="text" id="orCatName" class="input" placeholder="예: 법인 행사 수익">
+            </div>
+            <div class="form-row">
+              <label class="form-label">상위 분류</label>
+              <select id="orCatParent" class="input">
+                <option value="">— 대분류 (상위 없음) —</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">설명</label>
+              <textarea id="orCatDesc" class="input" rows="2" placeholder="분류 설명 (선택)"></textarea>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2,#5b6577)" id="orCatActiveRow">
+              <input type="checkbox" id="orCatActive" checked> 활성 (비활성 시 신규 등록 목록에서 숨김)
+            </label>
+            <div id="orCatModalError" style="color:var(--danger);font-size:13px;margin-top:8px;display:none"></div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-sm btn-sm-ghost" type="button" id="orCatCancelBtn">취소</button>
+            <button class="btn-sm btn-sm-primary" type="button" id="orCatSaveBtn">저장</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── 매출 추가 모달 ── -->
@@ -334,6 +425,241 @@
       document.getElementById('orAddFilePreview').textContent =
         f ? `선택: ${f.name} (${(f.size / 1024).toFixed(1)} KB)` : '';
     });
+
+    /* 탭 전환 */
+    document.getElementById('orTabList')?.addEventListener('click', () => switchTab('list'));
+    document.getElementById('orTabCat')?.addEventListener('click', () => switchTab('categories'));
+
+    /* 카테고리 관리 */
+    document.getElementById('orCatAddBtn')?.addEventListener('click', () => openCatModal(null));
+    document.getElementById('orCatCloseBtn')?.addEventListener('click', closeCatModal);
+    document.getElementById('orCatCancelBtn')?.addEventListener('click', closeCatModal);
+    document.getElementById('orCatSaveBtn')?.addEventListener('click', saveCat);
+  }
+
+  /* ── 탭 전환 ── */
+  function switchTab(tab) {
+    currentTab = tab;
+    const listView = document.getElementById('orViewList');
+    const catView  = document.getElementById('orViewCat');
+    const listBtn  = document.getElementById('orTabList');
+    const catBtn   = document.getElementById('orTabCat');
+    if (listView) listView.style.display = tab === 'list' ? '' : 'none';
+    if (catView)  catView.style.display  = tab === 'categories' ? '' : 'none';
+    if (listBtn)  listBtn.className = 'btn-sm ' + (tab === 'list' ? 'btn-sm-primary' : 'btn-sm-ghost');
+    if (catBtn)   catBtn.className  = 'btn-sm ' + (tab === 'categories' ? 'btn-sm-primary' : 'btn-sm-ghost');
+    if (tab === 'list') loadList();
+    else loadCategoryAdmin();
+  }
+
+  /* ════════════════════════════════════════════════
+     카테고리 관리 (대분류 → 소분류 2단계)
+  ════════════════════════════════════════════════ */
+  async function loadCategoryAdmin() {
+    const el = document.getElementById('orCatList');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-3);padding:12px">불러오는 중…</div>';
+    await loadCategories();
+    /* 매출 내역 화면의 필터/모달 드롭다운도 최신 카테고리로 동기화 */
+    refreshCatDropdowns();
+    renderCategoryAdmin(el);
+  }
+
+  /* 대분류 → 소분류 순서로 평탄화 (관리 화면용 — 비활성 포함) */
+  function hierarchicalAllCats() {
+    const parents = allCategories.filter(c => !c.parentId);
+    const parentIds = new Set(parents.map(p => p.id));
+    const out = [];
+    for (const p of parents) {
+      out.push({ ...p, depth: 0 });
+      allCategories.filter(c => c.parentId === p.id)
+        .forEach(ch => out.push({ ...ch, depth: 1 }));
+    }
+    allCategories.filter(c => c.parentId && !parentIds.has(c.parentId))
+      .forEach(ch => out.push({ ...ch, depth: 0 }));
+    return out;
+  }
+
+  function renderCategoryAdmin(el) {
+    const ordered = hierarchicalAllCats();
+    if (!ordered.length) {
+      el.innerHTML = '<div style="color:var(--text-3);padding:16px;text-align:center">등록된 카테고리가 없습니다. "+ 카테고리 추가"로 등록하세요.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="data-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>카테고리명</th><th style="width:130px">코드</th><th style="width:80px">구분</th>
+            <th style="width:70px">상태</th><th style="width:80px">순서</th><th style="width:170px">액션</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ordered.map((c, i) => {
+            const nameCell = c.depth === 1
+              ? `<span style="color:var(--text-2,#5b6577)">└ ${escapeHtml(c.name)}</span>`
+              : `<strong>${escapeHtml(c.name)}</strong>`;
+            const kind = c.isSystem ? '<span style="color:#0369a1">기본</span>' : '사용자';
+            const statusBadge = c.isActive
+              ? '<span style="color:#15803d;font-weight:600">활성</span>'
+              : '<span style="color:#94a0b3">비활성</span>';
+            const addSub = c.depth === 0
+              ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_OTHER_REVENUES.openCatSub(${c.id})">+소분류</button>`
+              : '';
+            const toggleBtn = c.isSystem
+              ? ''
+              : `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_OTHER_REVENUES.toggleCat(${c.id})">${c.isActive ? '비활성' : '활성'}</button>`;
+            return `<tr style="${c.isActive ? '' : 'opacity:.55'}">
+              <td>${nameCell}</td>
+              <td style="font-family:monospace;color:var(--text-3,#94a0b3)">${escapeHtml(c.code)}</td>
+              <td>${kind}</td>
+              <td>${statusBadge}</td>
+              <td style="white-space:nowrap">
+                <button class="btn-sm btn-sm-ghost" type="button" ${i === 0 ? 'disabled' : ''} onclick="window.SIREN_OTHER_REVENUES.moveCat(${i},-1)" title="위로">▲</button>
+                <button class="btn-sm btn-sm-ghost" type="button" ${i === ordered.length - 1 ? 'disabled' : ''} onclick="window.SIREN_OTHER_REVENUES.moveCat(${i},1)" title="아래로">▼</button>
+              </td>
+              <td style="white-space:nowrap">
+                <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_OTHER_REVENUES.openCatEdit(${c.id})">수정</button>
+                ${addSub}${toggleBtn}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  /* 상위 분류 select 채우기 — 대분류만 후보로 */
+  function fillCatParentSelect(selectedId) {
+    const sel = document.getElementById('orCatParent');
+    if (!sel) return;
+    const parents = allCategories.filter(c => !c.parentId);
+    sel.innerHTML = '<option value="">— 대분류 (상위 없음) —</option>'
+      + parents.map(p =>
+          `<option value="${p.id}" ${String(p.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+        ).join('');
+  }
+
+  /* cat=null → 대분류 추가 / {parentId} → 소분류 추가 / cat 객체 → 수정 */
+  function openCatModal(cat) {
+    editingCatId = cat && cat.id ? cat.id : null;
+    const isEdit = !!editingCatId;
+    const modal   = document.getElementById('orCatModal');
+    const title   = document.getElementById('orCatModalTitle');
+    const codeEl  = document.getElementById('orCatCode');
+    const nameEl  = document.getElementById('orCatName');
+    const descEl  = document.getElementById('orCatDesc');
+    const actEl   = document.getElementById('orCatActive');
+    const actRow  = document.getElementById('orCatActiveRow');
+    const errEl   = document.getElementById('orCatModalError');
+    if (errEl) errEl.style.display = 'none';
+    if (title) title.textContent = isEdit ? '카테고리 수정' : '카테고리 추가';
+    if (codeEl) {
+      codeEl.value = isEdit ? cat.code : '';
+      codeEl.disabled = isEdit;  // 코드는 추가 후 변경 불가
+    }
+    if (nameEl) {
+      nameEl.value = isEdit ? (cat.name || '') : '';
+      nameEl.disabled = isEdit && cat.isSystem;  // 기본 분류 이름 변경 불가
+    }
+    if (descEl) descEl.value = isEdit ? (cat.description || '') : '';
+    if (actEl)  actEl.checked = isEdit ? !!cat.isActive : true;
+    /* 활성 체크박스: 추가 시·기본 분류는 숨김 */
+    if (actRow) actRow.style.display = (isEdit && !cat.isSystem) ? 'flex' : 'none';
+    fillCatParentSelect(cat ? cat.parentId : '');
+    /* 기본 분류는 대분류 고정 — 상위 분류 선택 비활성 */
+    const parentSel = document.getElementById('orCatParent');
+    if (parentSel) parentSel.disabled = isEdit && cat.isSystem;
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function openCatEdit(id) {
+    const c = allCategories.find(x => x.id === id);
+    if (c) openCatModal(c);
+  }
+
+  /* 특정 대분류 아래 소분류 추가 — 모달을 추가 모드로 열고 상위 분류 미리 선택 */
+  function openCatSub(parentId) {
+    openCatModal(null);
+    const parentSel = document.getElementById('orCatParent');
+    if (parentSel) parentSel.value = String(parentId);
+  }
+
+  function closeCatModal() {
+    const modal = document.getElementById('orCatModal');
+    if (modal) modal.style.display = 'none';
+    editingCatId = null;
+  }
+
+  async function saveCat() {
+    const errEl = document.getElementById('orCatModalError');
+    const show  = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+    const code     = document.getElementById('orCatCode')?.value.trim();
+    const name     = document.getElementById('orCatName')?.value.trim();
+    const desc     = document.getElementById('orCatDesc')?.value.trim();
+    const parentId = document.getElementById('orCatParent')?.value || null;
+    const isActive = document.getElementById('orCatActive')?.checked;
+    if (!name) { show('카테고리명을 입력하세요.'); return; }
+    let res;
+    if (editingCatId) {
+      res = await api('POST', '/api/admin-revenue-category-update', {
+        id: editingCatId, name, description: desc,
+        parentId: parentId ? Number(parentId) : null, isActive,
+      });
+    } else {
+      if (!code || !/^[a-zA-Z0-9_]{2,32}$/.test(code)) {
+        show('코드는 영문·숫자·밑줄 2~32자여야 합니다.'); return;
+      }
+      res = await api('POST', '/api/admin-revenue-category-create', {
+        code, name, description: desc,
+        parentId: parentId ? Number(parentId) : null,
+      });
+    }
+    if (!res.ok) {
+      show('저장 실패: ' + (res.data?.error || res.error || '')
+        + (res.data?.detail ? ' — ' + res.data.detail : ''));
+      return;
+    }
+    closeCatModal();
+    await loadCategoryAdmin();
+  }
+
+  async function toggleCat(id) {
+    const c = allCategories.find(x => x.id === id);
+    if (!c) return;
+    const next = !c.isActive;
+    if (!confirm(`"${c.name}" 카테고리를 ${next ? '활성' : '비활성'} 처리하시겠습니까?`
+      + (next ? '' : '\n비활성 시 신규 매출 등록 목록에서 숨겨집니다. 기존 매출 기록은 그대로 유지됩니다.'))) return;
+    const res = await api('POST', '/api/admin-revenue-category-update', { id, isActive: next });
+    if (!res.ok) { alert('상태 변경 실패: ' + (res.data?.error || res.error || '')); return; }
+    await loadCategoryAdmin();
+  }
+
+  async function moveCat(index, dir) {
+    const ordered = hierarchicalAllCats();
+    const target = index + dir;
+    if (target < 0 || target >= ordered.length) return;
+    const arr = ordered.slice();
+    const tmp = arr[index]; arr[index] = arr[target]; arr[target] = tmp;
+    const res = await api('POST', '/api/admin-revenue-category-reorder', {
+      orderedIds: arr.map(c => c.id),
+    });
+    if (!res.ok) { alert('순서 변경 실패: ' + (res.data?.error || res.error || '')); return; }
+    await loadCategoryAdmin();
+  }
+
+  /* 카테고리 변경 후 매출 내역 화면의 필터·모달 드롭다운 동기화 */
+  function refreshCatDropdowns() {
+    const filterSel = document.getElementById('orCatSelect');
+    if (filterSel) {
+      const cur = filterSel.value;
+      filterSel.innerHTML = `<option value="">전체 카테고리</option>` +
+        hierarchicalCats().map(c =>
+          `<option value="${c.id}">${c.depth === 1 ? '└ ' : ''}${escapeHtml(c.name)}</option>`
+        ).join('');
+      filterSel.value = cur;
+    }
+    const addCat = document.getElementById('orAddCat');
+    if (addCat) addCat.innerHTML = `<option value="">선택하세요</option>` + buildCatOptions('');
   }
 
   /* ── 추가 모달 ── */
@@ -572,8 +898,8 @@
         return;
       }
     }
-    try { await loadList(); }
-    catch (e) { console.error('[other-revenues] 목록 조회 실패', e); }
+    try { switchTab(currentTab); }
+    catch (e) { console.error('[other-revenues] 화면 갱신 실패', e); }
   }
 
   window.SIREN_OTHER_REVENUES = {
@@ -582,5 +908,6 @@
     openDetail, closeDetail, submitEdit,
     doApprove,
     openRefund, closeRefund, submitRefund,
+    openCatEdit, openCatSub, toggleCat, moveCat,
   };
 })();
