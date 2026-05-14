@@ -179,8 +179,9 @@ CREATE TABLE counterparties (
 
 ### 3.3 신뢰도·설정
 
-- 임계값 기본 75%, `ai_feature_settings` 또는 별도 설정으로 관리자 조정
+- 임계값 기본 75%. **별도 저장 API 없이 대사 실행(`admin-bank-reconcile`) 시 `threshold` 파라미터로 조정** (UI에 기본값 75% 채워짐) — "조정 가능" 충족. 영구 저장은 22-D-R3로
 - 거래처 마스터 매칭은 신뢰도 100% 취급 (이미 사람이 분류한 룰)
+- **입금 확인 시 회원 후보**: 기존 `/api/admin/members` API 재사용 (신규 API 불필요). 입금자명으로 검색해 회원 select 제공 → `confirm` API에 `memberId` 전달
 
 ---
 
