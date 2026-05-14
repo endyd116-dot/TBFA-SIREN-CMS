@@ -10,7 +10,6 @@
   let importList   = [];
   let cpList       = [];
   let summaryData  = null;
-  let memberCandidates = {};          // { transactionId: [후보...] }
 
   /* ── API 헬퍼 ── */
   function api(method, path, body) {
@@ -21,11 +20,15 @@
       return { ok: r.ok && data && data.ok !== false, status: r.status, data, error: data?.error };
     }).catch(e => ({ ok: false, error: String(e) }));
   }
-  /* 응답 본문 다중 fallback */
+  /* 응답 본문 fallback — B 표준: { ok, data: {...} } */
   function unwrap(res) { return res.data?.data || res.data || {}; }
   function pickArr(res, key) {
     const d = res.data;
-    return d?.data?.[key] || d?.[key] || d?.data || (Array.isArray(d) ? d : []) || [];
+    const v = d?.data?.[key] ?? d?.[key];
+    if (Array.isArray(v)) return v;
+    if (Array.isArray(d?.data)) return d.data;
+    if (Array.isArray(d)) return d;
+    return [];
   }
 
   /* ── 포맷 ── */
@@ -220,20 +223,21 @@
       <div id="btSettingsModal" class="modal-backdrop" style="display:none">
         <div class="modal" style="max-width:420px">
           <div class="modal-head">
-            <span class="modal-title">통장 대사 설정</span>
+            <span class="modal-title">신뢰도 임계값 대사 실행</span>
             <button class="modal-close" type="button" id="btSettingsCloseBtn">×</button>
           </div>
           <div class="modal-body">
             <label class="form-label">AI 분류 신뢰도 임계값 (%)</label>
             <div style="font-size:12px;color:var(--text-3,#94a0b3);margin-bottom:6px">
               이 값 이상이면 전표가 자동 생성되고, 미만이면 관리자 확인 대기로 분류됩니다.
+              입력한 임계값으로 즉시 대사를 재실행합니다.
             </div>
             <input type="number" id="btThresholdInput" class="input" min="0" max="100" value="75">
             <div id="btSettingsError" style="color:var(--danger);font-size:13px;margin-top:6px;display:none"></div>
           </div>
           <div class="modal-foot">
             <button class="btn-sm btn-sm-ghost" type="button" id="btSettingsCancelBtn">취소</button>
-            <button class="btn-sm btn-sm-primary" type="button" id="btSettingsSaveBtn">저장</button>
+            <button class="btn-sm btn-sm-primary" type="button" id="btSettingsSaveBtn">이 임계값으로 대사 실행</button>
           </div>
         </div>
       </div>
@@ -359,8 +363,10 @@
       meta.periodEnd   = periodM[2].replace(/[.\/]/g, '-');
     }
 
-    /* 4) 데이터 행 파싱 (헤더 다음 행부터, 합계행 제외) */
-    const transactions = [];
+    /* 4) 데이터 행 파싱 (헤더 다음 행부터, 합계행 제외)
+       → B admin-bank-import rows 키 명세: txnDateTime, withdrawal, deposit, balanceAfter,
+         description, counterpartAccount, counterpartBank, memo, txnMethod, cmsCode, counterpartName */
+    const rowsOut = [];
     for (let i = headerIdx + 1; i < rows.length; i++) {
       const r = rows[i] || [];
       const cell = k => (colIdx[k] !== undefined ? r[colIdx[k]] : '');
@@ -372,27 +378,22 @@
       /* 거래일시가 날짜 형태가 아니면 스킵 (안내문 행 등) */
       if (!/\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}/.test(rawDate)) continue;
 
-      const withdraw = parseNum(cell('withdraw'));
-      const deposit  = parseNum(cell('deposit'));
-      /* 금액 정규화 1차: 출금→음수, 입금→양수, 단일 amount */
-      const amount = deposit > 0 ? deposit : -withdraw;
-
-      transactions.push({
-        txnDate:           rawDate.replace(/[.\/]/g, '-'),
-        amount,
-        balanceAfter:      parseNum(cell('balanceAfter')),
-        description:       String(cell('description') || '').trim(),
+      rowsOut.push({
+        txnDateTime:        rawDate.replace(/[.\/]/g, '-'),
+        withdrawal:         parseNum(cell('withdraw')),
+        deposit:            parseNum(cell('deposit')),
+        balanceAfter:       parseNum(cell('balanceAfter')),
+        description:        String(cell('description') || '').trim(),
         counterpartAccount: String(cell('counterpartAccount') || '').trim(),
-        counterpartBank:   String(cell('counterpartBank') || '').trim(),
-        memo:              String(cell('memo') || '').trim(),
-        txnMethod:         String(cell('txnMethod') || '').trim(),
-        noteAmount:        parseNum(cell('noteAmount')),
-        cmsCode:           String(cell('cmsCode') || '').trim(),
-        counterpartName:   String(cell('counterpartName') || '').trim(),
+        counterpartBank:    String(cell('counterpartBank') || '').trim(),
+        memo:               String(cell('memo') || '').trim(),
+        txnMethod:          String(cell('txnMethod') || '').trim(),
+        cmsCode:            String(cell('cmsCode') || '').trim(),
+        counterpartName:    String(cell('counterpartName') || '').trim(),
       });
     }
-    if (!transactions.length) throw new Error('파싱된 거래가 없습니다. 엑셀 내용을 확인해 주세요.');
-    return { transactions, meta };
+    if (!rowsOut.length) throw new Error('파싱된 거래가 없습니다. 엑셀 내용을 확인해 주세요.');
+    return { rows: rowsOut, meta };
   }
 
   /* ════════════════════════════════════════════════
@@ -417,13 +418,16 @@
       return;
     }
 
-    setStatus('#e0f2fe', '#0369a1', `📤 ${parsed.transactions.length}건 파싱 완료 — 서버 적재·대사 중…`);
+    setStatus('#e0f2fe', '#0369a1', `📤 ${parsed.rows.length}건 파싱 완료 — 서버 적재·대사 중…`);
 
-    /* 2) 정규화 거래 배열 JSON POST */
+    /* 2) 정규화 거래 배열 JSON POST — B admin-bank-import 명세:
+       { filename, bankName?, periodFrom?, periodTo?, rows:[...] } */
     const res = await api('POST', '/api/admin-bank-import', {
-      fileName:     file.name,
-      meta:         parsed.meta,
-      transactions: parsed.transactions,
+      filename:   file.name,
+      bankName:   'IBK기업은행',
+      periodFrom: parsed.meta.periodStart || undefined,
+      periodTo:   parsed.meta.periodEnd   || undefined,
+      rows:       parsed.rows,
     });
     if (!res.ok) {
       setStatus('#fee2e2', '#b91c1c', '업로드 실패: ' + escapeHtml(res.data?.error || res.error || '')
@@ -431,10 +435,14 @@
       return;
     }
     const d = unwrap(res);
-    const inserted = d.inserted ?? d.insertedCount ?? d.count ?? 0;
-    const skipped  = d.skipped  ?? d.duplicateCount ?? 0;
+    const inserted = d.insertedRows ?? d.inserted ?? 0;
+    const skipped  = d.duplicateCount ?? d.skipped ?? 0;
+    const invalid  = d.skippedInvalid ?? 0;
     setStatus('#dcfce7', '#15803d',
-      `✅ 업로드 완료 — 신규 ${inserted}건 적재${skipped ? `, 중복 ${skipped}건 제외` : ''}. 대사 결과를 확인하세요.`);
+      `✅ 업로드 완료 — 신규 ${inserted}건 적재`
+      + (skipped ? `, 중복 ${skipped}건 제외` : '')
+      + (invalid ? `, 무효 ${invalid}건 제외` : '')
+      + '. 대사 결과를 확인하세요.');
 
     const fileInput = document.getElementById('btFileInput');
     if (fileInput) fileInput.value = '';
@@ -449,9 +457,18 @@
     if (!confirm('미처리·확인필요 거래에 대해 입출금 대사 엔진을 다시 실행하시겠습니까?')) return;
     const btn = document.getElementById('btReconcileBtn');
     if (btn) { btn.disabled = true; btn.textContent = '대사 실행 중…'; }
+    /* threshold 미전달 시 서버 기본 0.75 적용 */
     const res = await api('POST', '/api/admin-bank-reconcile', {});
     if (btn) { btn.disabled = false; btn.textContent = '🔄 대사 재실행'; }
     if (!res.ok) { alert('대사 실행 실패: ' + (res.data?.error || res.error || '')); return; }
+    const d = unwrap(res);
+    if (d.message) {
+      const statusEl = document.getElementById('btUploadStatus');
+      if (statusEl) {
+        statusEl.style.display = '';
+        statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#dcfce7;color:#15803d;font-size:13px">🔄 ${escapeHtml(d.message)}</div>`;
+      }
+    }
     loadSummary();
     loadTransactions();
   }
@@ -472,12 +489,16 @@
     renderSummary(el);
   }
   function renderSummary(el) {
-    const s = summaryData || {};
-    const inMatched   = s.inMatched   ?? s.in_matched   ?? 0;
-    const inPending   = s.inPending   ?? s.in_pending   ?? 0;
-    const outVoucher  = s.outVoucher  ?? s.out_voucher  ?? 0;
-    const outPending  = s.outPending  ?? s.out_pending  ?? 0;
-    const batchCount  = s.batchCount  ?? s.batch_count  ?? 0;
+    /* B 명세: data.income{ matched, batch, revenue, pending, ignored },
+       data.expense{ voucherCreated, pending, ignored } */
+    const s   = summaryData || {};
+    const inc = s.income  || {};
+    const exp = s.expense || {};
+    const inMatched   = inc.matched       ?? 0;
+    const inPending   = inc.pending       ?? 0;
+    const outVoucher  = exp.voucherCreated ?? 0;
+    const outPending  = exp.pending       ?? 0;
+    const batchCount  = inc.batch         ?? 0;
     const card = (label, value, color) => `
       <div class="kpi" style="border:1px solid var(--border,#e3e6eb);border-radius:10px;padding:12px 14px;background:#fff">
         <div class="kpi-label" style="font-size:12px;color:var(--text-3,#94a0b3)">${label}</div>
@@ -505,17 +526,24 @@
     importList = pickArr(res, 'imports');
     if (!Array.isArray(importList)) importList = [];
     if (!importList.length) { el.innerHTML = '<div style="color:var(--text-3);padding:8px;font-size:13px">업로드 이력이 없습니다.</div>'; return; }
+    /* B 명세: { id, filename, bankName, periodFrom, periodTo, totalRows,
+       autoMatched, pendingReview, ignoredRows, importedBy, importedAt, status } */
     el.innerHTML = `
       <table class="data-table" style="width:100%;font-size:13px">
-        <thead><tr><th>업로드일시</th><th>파일명</th><th>계좌</th><th>조회기간</th><th class="num">건수</th></tr></thead>
+        <thead><tr>
+          <th>업로드일시</th><th>파일명</th><th>은행</th><th>조회기간</th>
+          <th class="num">건수</th><th class="num">자동매칭</th><th class="num">확인대기</th>
+        </tr></thead>
         <tbody>
           ${importList.map(im => `
             <tr>
-              <td>${fmtDateTime(im.created_at || im.createdAt || im.uploaded_at)}</td>
-              <td>${escapeHtml(im.file_name || im.fileName || im.filename || '—')}</td>
-              <td>${escapeHtml(im.account_no || im.accountNo || '—')}</td>
-              <td>${fmtDate(im.period_start || im.periodStart)} ~ ${fmtDate(im.period_end || im.periodEnd)}</td>
-              <td class="num">${im.txn_count ?? im.txnCount ?? im.row_count ?? '—'}</td>
+              <td>${fmtDateTime(im.importedAt || im.imported_at)}</td>
+              <td>${escapeHtml(im.filename || im.fileName || '—')}</td>
+              <td>${escapeHtml(im.bankName || im.bank_name || '—')}</td>
+              <td>${fmtDate(im.periodFrom || im.period_from)} ~ ${fmtDate(im.periodTo || im.period_to)}</td>
+              <td class="num">${im.totalRows ?? im.total_rows ?? '—'}</td>
+              <td class="num">${im.autoMatched ?? im.auto_matched ?? 0}</td>
+              <td class="num">${im.pendingReview ?? im.pending_review ?? 0}</td>
             </tr>`).join('')}
         </tbody>
       </table>`;
@@ -534,7 +562,9 @@
     if (pd.endDate)   qs.set('endDate', pd.endDate);
     const dir   = document.getElementById('btDirFilter')?.value;
     const match = document.getElementById('btMatchFilter')?.value;
-    if (dir)   qs.set('direction', dir);
+    /* B 명세: txnType=credit(입금)|debit(출금) */
+    if (dir === 'in')  qs.set('txnType', 'credit');
+    if (dir === 'out') qs.set('txnType', 'debit');
     if (match) qs.set('matchType', match);
     const res = await api('GET', '/api/admin-bank-transactions-list?' + qs.toString());
     if (!res.ok) { el.innerHTML = `<div style="color:var(--danger);padding:12px">거래 목록 조회 실패: ${escapeHtml(res.error || '')}</div>`; return; }
@@ -559,10 +589,12 @@
           ${txnList.map(t => {
             const id      = t.id;
             const amount  = Number(t.amount ?? 0);
-            const isIn    = amount >= 0;
-            const matchType = t.match_type || t.matchType || 'pending';
+            /* B 명세: txnType=credit(입금)|debit(출금) — 없으면 금액 부호로 폴백 */
+            const isIn    = t.txnType ? t.txnType === 'credit' : amount >= 0;
+            const matchType = t.matchType || t.match_type || 'pending';
             const desc    = escapeHtml(t.description || '—');
-            const cpName  = escapeHtml(t.counterpart_name || t.counterpartName || t.counterparty_name || '—');
+            /* 거래처 마스터 매칭명 우선, 없으면 통장 예금주명 */
+            const cpName  = escapeHtml(t.counterpartyMasterName || t.counterpartName || '—');
             /* 확인필요(pending) 거래만 액션 버튼 노출 */
             const actionBtn = matchType === 'pending'
               ? `<button class="btn-sm btn-sm-primary" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">확인</button>`
@@ -570,7 +602,7 @@
                 ? `<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.openConfirm(${id})">보기</button>`
                 : '');
             return `<tr>
-              <td style="white-space:nowrap">${fmtDateTime(t.txn_date || t.txnDate)}</td>
+              <td style="white-space:nowrap">${fmtDateTime(t.txnDate)}</td>
               <td><span style="color:${isIn ? '#15803d' : '#b91c1c'};font-weight:600">${isIn ? '입금' : '출금'}</span></td>
               <td class="num" style="color:${isIn ? '#15803d' : '#b91c1c'};font-weight:600">${fmtSigned(amount)}</td>
               <td>${desc}</td>
@@ -586,7 +618,7 @@
   /* ════════════════════════════════════════════════
      관리자 확인 모달
   ════════════════════════════════════════════════ */
-  async function openConfirm(txnId) {
+  function openConfirm(txnId) {
     const t = txnList.find(x => x.id === txnId);
     if (!t) return;
     const modal = document.getElementById('btConfirmModal');
@@ -595,43 +627,46 @@
     if (!modal || !body) return;
 
     const amount = Number(t.amount ?? 0);
-    const isIn   = amount >= 0;
+    /* B 명세: txnType=credit(입금)|debit(출금) — 없으면 금액 부호로 폴백 */
+    const isIn   = t.txnType ? t.txnType === 'credit' : amount >= 0;
     if (title) title.textContent = isIn ? '미매칭 입금 처리' : '미매칭 출금 처리';
 
     /* 거래 정보 요약 */
     const infoHtml = `
       <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.7">
-        <div><strong>거래일시</strong> ${fmtDateTime(t.txn_date || t.txnDate)}</div>
+        <div><strong>거래일시</strong> ${fmtDateTime(t.txnDate)}</div>
         <div><strong>금액</strong> <span style="color:${isIn ? '#15803d' : '#b91c1c'};font-weight:600">${fmtSigned(amount)}</span></div>
         <div><strong>거래내용</strong> ${escapeHtml(t.description || '—')}</div>
-        <div><strong>거래처</strong> ${escapeHtml(t.counterpart_name || t.counterpartName || '—')}</div>
-        ${t.ai_account_code || t.aiAccountCode ? `<div><strong>AI 추정 계정과목</strong> ${escapeHtml(t.ai_account_code || t.aiAccountCode)} (신뢰도 ${t.ai_confidence ?? t.aiConfidence ?? '—'}%)</div>` : ''}
+        <div><strong>거래처</strong> ${escapeHtml(t.counterpartyMasterName || t.counterpartName || '—')}</div>
+        ${t.aiAccountCode ? `<div><strong>AI 추정 계정과목</strong> ${escapeHtml(t.aiAccountCode)} (신뢰도 ${t.aiConfidence != null ? Math.round(t.aiConfidence * 100) + '%' : '—'})</div>` : ''}
+        ${t.aiReasoning ? `<div style="color:var(--text-3,#94a0b3);font-size:12px;margin-top:4px">${escapeHtml(t.aiReasoning)}</div>` : ''}
       </div>`;
 
-    body.innerHTML = infoHtml + '<div style="color:var(--text-3);font-size:13px">불러오는 중…</div>';
+    /* 거래처 자동 학습 체크박스 (기본 ON) */
+    const learnHtml = `
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2,#5b6577);margin-bottom:12px">
+        <input type="checkbox" id="btConfirmLearn" checked>
+        이 거래처 분류 룰을 저장해 다음부터 자동 매핑
+      </label>`;
+
     modal.style.display = 'flex';
 
     if (isIn) {
-      /* 미매칭 입금 → 회원 후보 조회 후 [후원 등록 / 매출 등록 / 무시] */
-      let candidates = memberCandidates[txnId];
-      if (!candidates) {
-        const cres = await api('GET', `/api/admin-bank-transaction-list?candidates=1&id=${txnId}`);
-        /* B가 transactions-list 또는 별도 후보 키로 줄 수 있음 — 다중 fallback */
-        const cd = unwrap(cres);
-        candidates = cd.memberCandidates || cd.candidates || cd.members || [];
-        memberCandidates[txnId] = candidates;
-      }
-      const candHtml = candidates.length
-        ? `<div style="margin-bottom:10px">
-             <label class="form-label">입금자명 일치 회원 후보</label>
-             <select id="btConfirmMemberSel" class="input">
-               <option value="">— 회원 선택 안 함 —</option>
-               ${candidates.map(m => `<option value="${m.id || m.memberId}">${escapeHtml(m.name || m.memberName || '')}${m.phone ? ' (' + escapeHtml(m.phone) + ')' : ''}</option>`).join('')}
-             </select>
-           </div>`
-        : '<div style="font-size:12px;color:var(--text-3);margin-bottom:10px">입금자명과 일치하는 회원 후보가 없습니다.</div>';
-
-      body.innerHTML = infoHtml + candHtml + `
+      /* 미매칭 입금 → [후원 등록 / 매출 등록 / 무시]
+         후원: 입금자명을 donorName 기본값으로 (memberId 매칭 API 미제공 — donorName 경로)
+         매출: revenueCategoryId 필수 */
+      const inName = escapeHtml(t.counterpartName || '');
+      body.innerHTML = infoHtml + `
+        <div style="margin-bottom:10px">
+          <label class="form-label">후원자명 (후원 등록 시)</label>
+          <input type="text" id="btConfirmDonorName" class="input" value="${inName}" placeholder="입금자명">
+        </div>
+        <div style="margin-bottom:10px">
+          <label class="form-label">매출 분류 ID (매출 등록 시 필수)</label>
+          <input type="number" id="btConfirmRevenueCat" class="input" placeholder="후원 외 매출 분류 ID">
+          <input type="text" id="btConfirmPayerName" class="input" value="${inName}" placeholder="지급처명 (선택)" style="margin-top:6px">
+        </div>
+        ${learnHtml}
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
           <button class="btn-sm btn-sm-ghost" type="button" id="btConfirmIgnore">무시</button>
           <button class="btn-sm btn-sm-primary" type="button" id="btConfirmRevenue" style="background:#b45309">매출 등록</button>
@@ -639,22 +674,33 @@
         </div>`;
 
       document.getElementById('btConfirmDonation')?.addEventListener('click', () => {
-        const memberId = document.getElementById('btConfirmMemberSel')?.value || null;
-        submitConfirm(txnId, 'donation', { memberId: memberId ? Number(memberId) : null });
+        const donorName = document.getElementById('btConfirmDonorName')?.value.trim();
+        if (!donorName) { alert('후원자명을 입력해 주세요.'); return; }
+        submitConfirm(txnId, 'donation', { donorName });
       });
-      document.getElementById('btConfirmRevenue')?.addEventListener('click', () => submitConfirm(txnId, 'revenue', {}));
+      document.getElementById('btConfirmRevenue')?.addEventListener('click', () => {
+        const catId = parseInt(document.getElementById('btConfirmRevenueCat')?.value, 10);
+        if (isNaN(catId)) { alert('매출 분류 ID를 입력해 주세요.'); return; }
+        const payerName = document.getElementById('btConfirmPayerName')?.value.trim() || undefined;
+        submitConfirm(txnId, 'revenue', { revenueCategoryId: catId, payerName });
+      });
       document.getElementById('btConfirmIgnore')?.addEventListener('click', () => submitConfirm(txnId, 'ignored', {}));
     } else {
-      /* 미매칭 출금 → [전표 확정 / 무시] */
+      /* 미매칭 출금 → [전표 확정 / 무시] — voucher: accountCode 필수 */
       body.innerHTML = infoHtml + `
         <div style="margin-bottom:10px">
-          <label class="form-label">계정과목 코드</label>
-          <input type="text" id="btConfirmAcctCode" class="input" value="${escapeHtml(t.ai_account_code || t.aiAccountCode || '')}" placeholder="예: admin_ops">
+          <label class="form-label">계정과목 코드 <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="btConfirmAcctCode" class="input" value="${escapeHtml(t.aiAccountCode || '')}" placeholder="예: admin_ops">
         </div>
         <div style="margin-bottom:10px">
-          <label class="form-label">적요 / 메모</label>
-          <input type="text" id="btConfirmVoucherNote" class="input" value="${escapeHtml(t.description || '')}">
+          <label class="form-label">예산 항목 ID (선택)</label>
+          <input type="number" id="btConfirmBudgetLine" class="input" placeholder="budget_line ID">
         </div>
+        <div style="margin-bottom:10px">
+          <label class="form-label">보조 계정 (선택)</label>
+          <input type="text" id="btConfirmSubAccount" class="input" placeholder="subAccount">
+        </div>
+        ${learnHtml}
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn-sm btn-sm-ghost" type="button" id="btConfirmIgnore">무시</button>
           <button class="btn-sm btn-sm-primary" type="button" id="btConfirmVoucher" style="background:#7c3aed">전표 확정</button>
@@ -662,24 +708,32 @@
 
       document.getElementById('btConfirmVoucher')?.addEventListener('click', () => {
         const accountCode = document.getElementById('btConfirmAcctCode')?.value.trim();
-        const note        = document.getElementById('btConfirmVoucherNote')?.value.trim();
         if (!accountCode) { alert('계정과목 코드를 입력해 주세요.'); return; }
-        submitConfirm(txnId, 'voucher', { accountCode, note });
+        const budgetLineId = parseInt(document.getElementById('btConfirmBudgetLine')?.value, 10);
+        const subAccount   = document.getElementById('btConfirmSubAccount')?.value.trim() || undefined;
+        submitConfirm(txnId, 'voucher', {
+          accountCode,
+          budgetLineId: isNaN(budgetLineId) ? undefined : budgetLineId,
+          subAccount,
+        });
       });
       document.getElementById('btConfirmIgnore')?.addEventListener('click', () => submitConfirm(txnId, 'ignored', {}));
     }
   }
 
   async function submitConfirm(txnId, action, extra) {
-    const res = await api('POST', '/api/admin-bank-transaction-confirm', {
+    /* B 명세: { transactionId, action, learnCounterparty?(기본 true), ...action별 }
+       무시는 거래처 학습 불필요 */
+    const learnEl = document.getElementById('btConfirmLearn');
+    const payload = {
       transactionId: txnId,
-      id: txnId,
       action,
       ...extra,
-    });
+    };
+    if (action !== 'ignored' && learnEl) payload.learnCounterparty = learnEl.checked;
+    const res = await api('POST', '/api/admin-bank-transaction-confirm', payload);
     if (!res.ok) { alert('처리 실패: ' + (res.data?.error || res.error || '')); return; }
     closeConfirmModal();
-    delete memberCandidates[txnId];
     loadSummary();
     loadTransactions();
   }
@@ -721,11 +775,11 @@
           ${cpList.map(c => `
             <tr>
               <td>${escapeHtml(c.name || '—')}</td>
-              <td>${escapeHtml(c.account_no || c.accountNo || '—')}</td>
-              <td>${escapeHtml(c.bank_name || c.bankName || '—')}</td>
-              <td>${cpMatchTypeLabel(c.default_match_type || c.defaultMatchType)}</td>
-              <td>${escapeHtml(c.default_account_code || c.defaultAccountCode || '—')}</td>
-              <td class="num">${c.txn_count ?? c.txnCount ?? 0}</td>
+              <td>${escapeHtml(c.accountNo || '—')}</td>
+              <td>${escapeHtml(c.bankName || '—')}</td>
+              <td>${cpMatchTypeLabel(c.defaultMatchType)}</td>
+              <td>${escapeHtml(c.defaultAccountName || c.defaultAccountCode || '—')}</td>
+              <td class="num">${c.txnCount ?? 0}</td>
               <td><button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.openCpEdit(${c.id})">수정</button></td>
             </tr>`).join('')}
         </tbody>
@@ -738,13 +792,13 @@
     const modal = document.getElementById('btCpModal');
     const body  = document.getElementById('btCpModalBody');
     if (!modal || !body) return;
-    const mt   = c.default_match_type || c.defaultMatchType || '';
-    const acct = c.default_account_code || c.defaultAccountCode || '';
+    const mt   = c.defaultMatchType || '';
+    const acct = c.defaultAccountCode || '';
     const note = c.note || '';
     body.innerHTML = `
       <div style="font-size:13px;margin-bottom:12px;color:var(--text-2,#5b6577)">
         <strong>${escapeHtml(c.name || '')}</strong>
-        ${c.account_no || c.accountNo ? ' · ' + escapeHtml(c.account_no || c.accountNo) : ''}
+        ${c.accountNo ? ' · ' + escapeHtml(c.accountNo) : ''}
       </div>
       <label class="form-label">기본 분류</label>
       <select id="btCpMatchType" class="input" style="margin-bottom:10px">
@@ -771,9 +825,9 @@
     const accountCode  = document.getElementById('btCpAcctCode')?.value.trim() || null;
     const note         = document.getElementById('btCpNote')?.value.trim() || null;
     const errEl        = document.getElementById('btCpModalError');
+    /* B 명세: { id(필수), ...전달 필드만 갱신 } */
     const res = await api('PUT', '/api/admin-counterparty-update', {
       id: cpId,
-      counterpartyId: cpId,
       defaultMatchType: matchType,
       defaultAccountCode: accountCode,
       note,
@@ -791,37 +845,36 @@
   }
 
   /* ════════════════════════════════════════════════
-     설정 (신뢰도 임계값)
+     설정 — 신뢰도 임계값 지정 대사 실행
+     (B admin-bank-reconcile threshold 0~1 파라미터. 별도 설정 저장 API 없음 →
+      입력한 임계값으로 즉시 대사 재실행)
   ════════════════════════════════════════════════ */
-  async function openSettingsModal() {
+  function openSettingsModal() {
     const modal = document.getElementById('btSettingsModal');
-    const input = document.getElementById('btThresholdInput');
     const errEl = document.getElementById('btSettingsError');
     if (errEl) errEl.style.display = 'none';
     if (modal) modal.style.display = 'flex';
-    /* 현재 임계값 조회 — reconcile-summary 응답에 포함될 수 있음 */
-    const res = await api('GET', '/api/admin-bank-reconcile-summary');
-    if (res.ok) {
-      const d = unwrap(res);
-      const th = d.confidenceThreshold ?? d.threshold ?? d.confidence_threshold;
-      if (input && th != null) input.value = th;
-    }
   }
   async function saveSettings() {
     const input = document.getElementById('btThresholdInput');
     const errEl = document.getElementById('btSettingsError');
-    const val   = parseInt(input?.value, 10);
-    if (isNaN(val) || val < 0 || val > 100) {
+    const pct   = parseInt(input?.value, 10);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
       if (errEl) { errEl.textContent = '0~100 사이의 값을 입력해 주세요.'; errEl.style.display = ''; }
       return;
     }
-    const res = await api('POST', '/api/admin-bank-reconcile', { confidenceThreshold: val, settingsOnly: true });
+    /* B 명세: threshold 0~1 — % 입력을 소수로 변환 */
+    const threshold = pct / 100;
+    const res = await api('POST', '/api/admin-bank-reconcile', { threshold });
     if (!res.ok) {
-      if (errEl) { errEl.textContent = '저장 실패: ' + (res.data?.error || res.error || ''); errEl.style.display = ''; }
+      if (errEl) { errEl.textContent = '대사 실행 실패: ' + (res.data?.error || res.error || ''); errEl.style.display = ''; }
       return;
     }
     closeSettingsModal();
-    alert('신뢰도 임계값이 저장되었습니다.');
+    const d = unwrap(res);
+    alert(`신뢰도 임계값 ${pct}% 기준으로 대사를 재실행했습니다.` + (d.message ? '\n' + d.message : ''));
+    loadSummary();
+    loadTransactions();
   }
   function closeSettingsModal() {
     const modal = document.getElementById('btSettingsModal');
