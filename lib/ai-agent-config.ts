@@ -151,6 +151,8 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "지출 승인" / "지출 반려" | expense_approve |
    | "지출 환불" / "경비 환불" | expense_refund |
    | "손익" / "P&L" / "순이익" / "순손실" | pl_summary |
+   | "예산안" / "예산 편성" / "내년 예산" / "차년도 예산" | budget_plan_list |
+   | "전표" / "전표 목록" / "전표 조회" / "회계 전표" | voucher_list |
    | "템플릿" / "발송 템플릿" | templates_list |
    | "수신자 그룹" | recipient_groups_list |
    | "대시보드" / "KPI" / "지표" | kpi_summary |

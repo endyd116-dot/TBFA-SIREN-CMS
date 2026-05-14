@@ -2938,3 +2938,174 @@ export const expenses = pgTable("expenses", {
   occurredAtIdx:  index("expenses_occurred_idx").on(t.occurredAt),
 }));
 
+/* =========================================================
+   === Phase 22-B-R2 예산 편성 === (2026-05-15)
+   설계서: docs/milestones/2026-05-15-phase22b-r2-budget-planning.md
+   - budget_plans: 예산안 (결재 단위, 연도당 1개)
+   - budget_lines: 예산안의 카테고리별 편성 행
+   ========================================================= */
+
+export const budgetPlans = pgTable("budget_plans", {
+  id:              serial("id").primaryKey(),
+  fiscalYear:      integer("fiscal_year").notNull().unique(),
+  title:           text("title").notNull(),
+  status:          varchar("status", { length: 20 }).notNull().default("draft"),
+                   // 'draft'|'submitted'|'approved'|'rejected'
+  totalPlanned:    bigint("total_planned", { mode: "number" }).notNull().default(0),
+  createdBy:       integer("created_by"),
+  submittedBy:     integer("submitted_by"),
+  submittedAt:     timestamp("submitted_at", { withTimezone: true }),
+  approvedBy:      integer("approved_by"),
+  approvedAt:      timestamp("approved_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  fiscalYearIdx: index("budget_plans_fy_idx").on(t.fiscalYear),
+  statusIdx:     index("budget_plans_status_idx").on(t.status),
+}));
+
+export type BudgetPlan    = typeof budgetPlans.$inferSelect;
+export type NewBudgetPlan = typeof budgetPlans.$inferInsert;
+
+export const budgetLines = pgTable("budget_lines", {
+  id:             serial("id").primaryKey(),
+  planId:         integer("plan_id").notNull().references(() => budgetPlans.id, { onDelete: "cascade" }),
+  categoryId:     integer("category_id").notNull().references(() => expenseCategories.id),
+  plannedAmount:  bigint("planned_amount", { mode: "number" }).notNull().default(0),
+  prevYearActual: bigint("prev_year_actual", { mode: "number" }).notNull().default(0),
+  note:           text("note"),
+}, (t) => ({
+  planCatUnique: uniqueIndex("budget_lines_plan_cat_unique").on(t.planId, t.categoryId),
+  planIdx:       index("budget_lines_plan_idx").on(t.planId),
+  categoryIdx:   index("budget_lines_category_idx").on(t.categoryId),
+}));
+
+export type BudgetLine    = typeof budgetLines.$inferSelect;
+export type NewBudgetLine = typeof budgetLines.$inferInsert;
+
+/* =========================================================
+   === Phase 22-D-R1 전표 시스템 === (2026-05-15)
+   설계서: docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md
+   - account_codes:    계정과목 마스터 (NPO 표준 코드)
+   - vouchers:         전표 (draft→submitted→approved/rejected)
+   - bank_imports:     통장 업로드 기록 (R2에서 기능 활성화)
+   - bank_transactions: 통장 거래 내역 (R2에서 기능 활성화)
+   ========================================================= */
+
+export const accountCodes = pgTable("account_codes", {
+  id:         serial("id").primaryKey(),
+  code:       varchar("code", { length: 20 }).notNull().unique(),
+  name:       varchar("name", { length: 100 }).notNull(),
+  parentCode: varchar("parent_code", { length: 20 }),
+  category:   varchar("category", { length: 30 }).notNull(),
+              // 'personnel'|'program'|'admin_ops'|'fundraising'|'income'
+  isActive:   boolean("is_active").default(true).notNull(),
+  sortOrder:  integer("sort_order").default(0).notNull(),
+}, (t) => ({
+  codeIdx:     index("account_codes_code_idx").on(t.code),
+  categoryIdx: index("account_codes_category_idx").on(t.category),
+  activeIdx:   index("account_codes_active_idx").on(t.isActive),
+}));
+
+export type AccountCode    = typeof accountCodes.$inferSelect;
+export type NewAccountCode = typeof accountCodes.$inferInsert;
+
+export const vouchers = pgTable("vouchers", {
+  id:             serial("id").primaryKey(),
+  voucherNumber:  varchar("voucher_number", { length: 20 }).notNull().unique(),
+                  // 자동 생성: 'YYYYMM-NNN'
+  voucherDate:    date("voucher_date").notNull(),
+  fiscalYear:     integer("fiscal_year").notNull(),
+  accountCode:    varchar("account_code", { length: 20 }).notNull(),
+  accountName:    varchar("account_name", { length: 100 }).notNull(),
+  subAccount:     varchar("sub_account", { length: 100 }),
+  description:    text("description").notNull(),
+  payeeName:      varchar("payee_name", { length: 200 }),
+  amount:         bigint("amount", { mode: "number" }).notNull(),
+  evidenceType:   varchar("evidence_type", { length: 30 }).notNull().default("none"),
+                  // 'tax_invoice'|'receipt'|'card_slip'|'transfer_confirm'|'none'
+  evidenceNumber: varchar("evidence_number", { length: 100 }),
+  evidenceUrl:    varchar("evidence_url", { length: 500 }),
+  budgetLineId:   integer("budget_line_id"),
+                  // → budget_lines.id (FK 제약은 22-B-R2+22-D-R1 머지 후 별도 추가)
+  expenseId:      integer("expense_id").references(() => expenses.id),
+  bankTxnId:      integer("bank_txn_id"),
+                  // → bank_transactions.id (R2에서 FK 활성화)
+  isTemplate:     boolean("is_template").default(false).notNull(),
+  templateName:   varchar("template_name", { length: 200 }),
+  status:         varchar("status", { length: 20 }).notNull().default("draft"),
+                  // 'draft'|'submitted'|'approved'|'rejected'
+  rejectionReason: text("rejection_reason"),
+  createdBy:      varchar("created_by", { length: 100 }).notNull(),
+                  // members.uid
+  submittedAt:    timestamp("submitted_at", { withTimezone: true }),
+  approvedBy:     varchar("approved_by", { length: 100 }),
+  approvedAt:     timestamp("approved_at", { withTimezone: true }),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  voucherNumberIdx: index("vouchers_number_idx").on(t.voucherNumber),
+  dateIdx:          index("vouchers_date_idx").on(t.voucherDate),
+  fiscalYearIdx:    index("vouchers_fy_idx").on(t.fiscalYear),
+  statusIdx:        index("vouchers_status_idx").on(t.status),
+  createdByIdx:     index("vouchers_created_by_idx").on(t.createdBy),
+  accountCodeIdx:   index("vouchers_account_code_idx").on(t.accountCode),
+}));
+
+export type Voucher    = typeof vouchers.$inferSelect;
+export type NewVoucher = typeof vouchers.$inferInsert;
+
+export const bankImports = pgTable("bank_imports", {
+  id:            serial("id").primaryKey(),
+  filename:      varchar("filename", { length: 300 }).notNull(),
+  bankName:      varchar("bank_name", { length: 50 }),
+  periodFrom:    date("period_from"),
+  periodTo:      date("period_to"),
+  totalRows:     integer("total_rows").default(0).notNull(),
+  autoMatched:   integer("auto_matched").default(0).notNull(),
+  pendingReview: integer("pending_review").default(0).notNull(),
+  ignoredRows:   integer("ignored_rows").default(0).notNull(),
+  importedBy:    varchar("imported_by", { length: 100 }).notNull(),
+  importedAt:    timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+  status:        varchar("status", { length: 20 }).default("processing").notNull(),
+                 // 'processing'|'review'|'completed'
+}, (t) => ({
+  importedByIdx: index("bank_imports_by_idx").on(t.importedBy),
+  statusIdx:     index("bank_imports_status_idx").on(t.status),
+}));
+
+export type BankImport    = typeof bankImports.$inferSelect;
+export type NewBankImport = typeof bankImports.$inferInsert;
+
+export const bankTransactions = pgTable("bank_transactions", {
+  id:              serial("id").primaryKey(),
+  importId:        integer("import_id").notNull().references(() => bankImports.id),
+  txnDate:         date("txn_date").notNull(),
+  amount:          bigint("amount", { mode: "number" }).notNull(),
+  description:     text("description").notNull(),
+  counterpart:     varchar("counterpart", { length: 200 }),
+  balanceAfter:    bigint("balance_after", { mode: "number" }),
+  txnType:         varchar("txn_type", { length: 10 }).notNull(),
+                   // 'debit'|'credit'
+  aiAccountCode:   varchar("ai_account_code", { length: 20 }),
+  aiBudgetId:      integer("ai_budget_id"),
+  aiConfidence:    numeric("ai_confidence", { precision: 4, scale: 3 }),
+  aiReasoning:     text("ai_reasoning"),
+  status:          varchar("status", { length: 20 }).default("pending").notNull(),
+                   // 'pending'|'confirmed'|'voucher_created'|'ignored'
+  adminAccountCode: varchar("admin_account_code", { length: 20 }),
+  adminBudgetId:   integer("admin_budget_id"),
+  voucherId:       integer("voucher_id").references(() => vouchers.id),
+  confirmedBy:     varchar("confirmed_by", { length: 100 }),
+  confirmedAt:     timestamp("confirmed_at", { withTimezone: true }),
+  createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  importIdx:  index("bank_txns_import_idx").on(t.importId),
+  dateIdx:    index("bank_txns_date_idx").on(t.txnDate),
+  statusIdx:  index("bank_txns_status_idx").on(t.status),
+}));
+
+export type BankTransaction    = typeof bankTransactions.$inferSelect;
+export type NewBankTransaction = typeof bankTransactions.$inferInsert;
+

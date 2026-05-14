@@ -580,6 +580,72 @@ export const TOOL_DECLARATIONS = [
       id:           { type: "INTEGER", description: "지출 항목 ID" },
       refundAmount: { type: "INTEGER", description: "환불 금액 (원). 기존 환불액에 가산되며, 누적합이 원금 이하여야 함" },
     }, required: ["id", "refundAmount"] }},
+
+  /* === Phase 22-B-R2 예산 편성 (3개) === */
+  { name: "budget_plan_list", description: "연도별 예산안 목록·상태 조회 (draft|submitted|approved|rejected)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear: { type: "INTEGER", description: "특정 연도만 (생략 시 전체)" },
+      status:     { type: "STRING",  description: "draft|submitted|approved|rejected|all (생략 시 전체)" },
+    }}},
+
+  { name: "budget_plan_create", description: "차년도 예산안 생성 — 전년 실적을 각 카테고리 기본값으로 자동 채움 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      fiscalYear:      { type: "INTEGER", description: "편성 대상 연도 (예: 2027)" },
+      title:           { type: "STRING",  description: "예산안 제목 (생략 시 자동: '2027년도 예산안')" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 후 생성 (기본 true)" },
+    }, required: ["fiscalYear"] }},
+
+  { name: "budget_plan_approve", description: "예산안 승인 또는 반려 (super_admin 전용, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      planId:          { type: "INTEGER", description: "예산안 ID" },
+      action:          { type: "STRING",  description: "approve(승인) 또는 reject(반려)", enum: ["approve", "reject"] },
+      rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["planId", "action"] }},
+
+  /* === Phase 22-D-R1 전표 시스템 (4개) === */
+  { name: "account_codes_list", description: "계정과목 마스터 목록 (NPO 표준 코드 — 인건비·사업비·관리운영비·모금비)",
+    parameters: { type: "OBJECT", properties: {
+      category: { type: "STRING", description: "personnel|program|admin_ops|fundraising|income (생략 시 전체)" },
+      activeOnly: { type: "BOOLEAN", description: "true=활성 항목만 (기본 true)" },
+    }}},
+
+  { name: "voucher_list", description: "전표 목록 조회 (기간·계정·예산·상태 필터)",
+    parameters: { type: "OBJECT", properties: {
+      period:      { type: "STRING",  description: "기간 단위", enum: ["day", "week", "month", "half_year", "year", "custom"] },
+      startDate:   { type: "STRING",  description: "custom일 때 시작일 YYYY-MM-DD" },
+      endDate:     { type: "STRING",  description: "custom일 때 종료일 YYYY-MM-DD" },
+      fiscalYear:  { type: "INTEGER", description: "연도만 (하위호환)" },
+      accountCode: { type: "STRING",  description: "계정과목 코드 필터 (예: '5031')" },
+      budgetLineId: { type: "INTEGER", description: "예산 항목 ID 필터" },
+      status:      { type: "STRING",  description: "draft|submitted|approved|rejected|all" },
+      isTemplate:  { type: "BOOLEAN", description: "true=반복 템플릿만" },
+      page:        { type: "INTEGER" },
+      limit:       { type: "INTEGER" },
+    }}},
+
+  { name: "voucher_create", description: "전표 작성 (draft 상태로 생성, 승인 별도. dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      voucherDate:  { type: "STRING",  description: "전표 일자 YYYY-MM-DD" },
+      accountCode:  { type: "STRING",  description: "계정과목 코드 (예: '5031')" },
+      subAccount:   { type: "STRING",  description: "세목 (자유 입력, 선택)" },
+      description:  { type: "STRING",  description: "적요" },
+      payeeName:    { type: "STRING",  description: "거래처 (선택)" },
+      amount:       { type: "INTEGER", description: "금액 (원)" },
+      evidenceType: { type: "STRING",  description: "증빙 종류", enum: ["tax_invoice", "receipt", "card_slip", "transfer_confirm", "none"] },
+      budgetLineId: { type: "INTEGER", description: "예산 항목 ID (선택)" },
+      isTemplate:   { type: "BOOLEAN", description: "true=반복 템플릿으로 저장" },
+      templateName: { type: "STRING",  description: "템플릿 이름 (isTemplate=true 시)" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["voucherDate", "accountCode", "description", "amount"] }},
+
+  { name: "voucher_approve", description: "전표 승인 또는 반려 (super_admin 전용, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      voucherId:       { type: "INTEGER", description: "전표 ID" },
+      action:          { type: "STRING",  description: "approve(승인) 또는 reject(반려)", enum: ["approve", "reject"] },
+      rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["voucherId", "action"] }},
 ];
 
 /* =========================================================
@@ -734,6 +800,15 @@ export async function executeTool(
       case "expense_create":          return await tool_expenseCreate(args, adminId);
       case "expense_approve":         return await tool_expenseApprove(args, adminId);
       case "expense_refund":          return await tool_expenseRefund(args, adminId);
+      /* Phase 22-B-R2 예산 편성 */
+      case "budget_plan_list":        return await tool_budgetPlanList(args);
+      case "budget_plan_create":      return await tool_budgetPlanCreate(args, adminId);
+      case "budget_plan_approve":     return await tool_budgetPlanApprove(args, adminId);
+      /* Phase 22-D-R1 전표 시스템 */
+      case "account_codes_list":      return await tool_accountCodesList(args);
+      case "voucher_list":            return await tool_voucherList(args);
+      case "voucher_create":          return await tool_voucherCreate(args, adminId);
+      case "voucher_approve":         return await tool_voucherApprove(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -3719,5 +3794,372 @@ async function tool_expenseRefund(args: any, adminId: number | null): Promise<To
     };
   } catch (e: any) {
     return { ok: false, error: `환불 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─────────────────────────────────────────
+   Phase 22-B-R2 예산 편성 도구
+   ───────────────────────────────────────── */
+
+async function tool_budgetPlanList(args: any): Promise<ToolResult> {
+  const { fiscalYear, status } = args || {};
+  let cond = sql`WHERE 1=1`;
+  if (fiscalYear) cond = sql`${cond} AND bp.fiscal_year = ${Number(fiscalYear)}`;
+  if (status && status !== "all") cond = sql`${cond} AND bp.status = ${status}`;
+
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, fiscal_year, title, status, total_planned, submitted_at, approved_at, created_at
+      FROM budget_plans bp
+      ${cond}
+      ORDER BY fiscal_year DESC LIMIT 20
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return {
+      ok: true,
+      output: {
+        count: rows.length,
+        plans: rows.map((p: any) => ({
+          id: Number(p.id),
+          fiscalYear: Number(p.fiscal_year),
+          title: p.title,
+          status: p.status,
+          totalPlanned: Number(p.total_planned),
+          submittedAt: p.submitted_at,
+          approvedAt: p.approved_at,
+        })),
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `예산안 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_budgetPlanCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  const { fiscalYear, title, requireApproval } = args || {};
+  if (!fiscalYear) return { ok: false, error: "fiscalYear 필수" };
+  const dryRun = requireApproval !== false;
+
+  // 중복 체크
+  try {
+    const dup: any = await db.execute(sql`SELECT id FROM budget_plans WHERE fiscal_year = ${Number(fiscalYear)} LIMIT 1`);
+    if ((dup?.rows ?? dup ?? []).length > 0) {
+      return { ok: false, error: `${fiscalYear}년도 예산안이 이미 존재합니다` };
+    }
+  } catch (e: any) {
+    return { ok: false, error: `중복 확인 실패: ${e?.message?.slice(0, 200)}` };
+  }
+
+  // 전년 실적 미리 집계
+  let prevTotal = 0;
+  let catCount = 0;
+  try {
+    const prevYear = Number(fiscalYear) - 1;
+    const cats: any = await db.execute(sql`SELECT COUNT(*) AS n FROM expense_categories WHERE is_active = TRUE`);
+    catCount = Number((cats?.rows ?? cats ?? [])[0]?.n ?? 0);
+    const prev: any = await db.execute(sql`
+      SELECT COALESCE(SUM(amount - refund_amount), 0)::bigint AS total
+      FROM expenses WHERE fiscal_year = ${prevYear} AND status = 'approved'
+    `);
+    prevTotal = Number((prev?.rows ?? prev ?? [])[0]?.total ?? 0);
+  } catch { /* 집계 실패 무시 */ }
+
+  const planTitle = title || `${fiscalYear}년도 예산안`;
+
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: { fiscalYear, title: planTitle, prevYearTotal: prevTotal, categoryCount: catCount },
+      output: {
+        dryRun: true,
+        message: `${fiscalYear}년도 예산안을 생성할까요? (카테고리 ${catCount}개, 전년 실적 합계 ${prevTotal.toLocaleString("ko-KR")}원을 기본값으로 채움)`,
+      },
+    };
+  }
+
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  try {
+    const res: any = await db.execute(sql`
+      INSERT INTO budget_plans (fiscal_year, title, status, total_planned, created_by, created_at, updated_at)
+      VALUES (${Number(fiscalYear)}, ${planTitle}, 'draft', 0, ${adminId}, NOW(), NOW())
+      RETURNING id
+    `);
+    const newId = Number((res?.rows ?? res ?? [])[0]?.id);
+
+    const prevYear = Number(fiscalYear) - 1;
+    const actuals: any = await db.execute(sql`
+      SELECT category_id, COALESCE(SUM(amount - refund_amount), 0)::bigint AS actual
+      FROM expenses WHERE fiscal_year = ${prevYear} AND status = 'approved' GROUP BY category_id
+    `);
+    const actualMap = new Map((actuals?.rows ?? actuals ?? []).map((r: any) => [Number(r.category_id), Number(r.actual)]));
+
+    const catRows: any = await db.execute(sql`SELECT id FROM expense_categories WHERE is_active = TRUE ORDER BY sort_order, id`);
+    let total = 0;
+    for (const c of (catRows?.rows ?? catRows ?? [])) {
+      const catId = Number(c.id);
+      const prev = (actualMap as Map<number, number>).get(catId) ?? 0;
+      total += prev;
+      await db.execute(sql`
+        INSERT INTO budget_lines (plan_id, category_id, planned_amount, prev_year_actual)
+        VALUES (${newId}, ${catId}, ${prev}, ${prev}) ON CONFLICT DO NOTHING
+      `);
+    }
+    await db.execute(sql`UPDATE budget_plans SET total_planned = ${total}, updated_at = NOW() WHERE id = ${newId}`);
+
+    return { ok: true, output: { message: `${fiscalYear}년도 예산안이 생성되었습니다. (ID: ${newId})`, planId: newId, totalPlanned: total } };
+  } catch (e: any) {
+    return { ok: false, error: `예산안 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_budgetPlanApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
+  const { planId, action, rejectionReason, requireApproval } = args || {};
+  if (!planId || !action) return { ok: false, error: "planId, action 필수" };
+  if (action === "reject" && !rejectionReason?.trim()) return { ok: false, error: "반려 사유 필수" };
+  const dryRun = requireApproval !== false;
+
+  let plan: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status, fiscal_year FROM budget_plans WHERE id = ${Number(planId)} LIMIT 1`);
+    plan = (r?.rows ?? r ?? [])[0];
+    if (!plan) return { ok: false, error: "예산안을 찾을 수 없습니다" };
+    if (plan.status !== "submitted") return { ok: false, error: `submitted 상태에서만 가능 (현재: ${plan.status})` };
+  } catch (e: any) {
+    return { ok: false, error: `예산안 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+
+  const label = action === "approve" ? "승인" : "반려";
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: { planId: Number(planId), action, fiscalYear: plan.fiscal_year, rejectionReason },
+      output: { dryRun: true, message: `${plan.fiscal_year}년도 예산안을 ${label}하시겠습니까?${rejectionReason ? ` 사유: ${rejectionReason}` : ""}` },
+    };
+  }
+
+  try {
+    if (action === "approve") {
+      await db.execute(sql`
+        UPDATE budget_plans SET status = 'approved', approved_by = ${adminId}, approved_at = NOW(), updated_at = NOW()
+        WHERE id = ${Number(planId)}
+      `);
+    } else {
+      await db.execute(sql`
+        UPDATE budget_plans SET status = 'rejected', approved_by = ${adminId}, approved_at = NOW(),
+        rejection_reason = ${rejectionReason}, updated_at = NOW() WHERE id = ${Number(planId)}
+      `);
+    }
+    return { ok: true, output: { message: `${plan.fiscal_year}년도 예산안이 ${label}되었습니다.` } };
+  } catch (e: any) {
+    return { ok: false, error: `${label} 처리 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* ─────────────────────────────────────────
+   Phase 22-D-R1 전표 시스템 도구
+   ───────────────────────────────────────── */
+
+async function tool_accountCodesList(args: any): Promise<ToolResult> {
+  const { category, activeOnly } = args || {};
+  const onlyActive = activeOnly !== false;
+  let cond = onlyActive ? sql`WHERE is_active = TRUE` : sql`WHERE 1=1`;
+  if (category) cond = sql`${cond} AND category = ${category}`;
+
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, code, name, parent_code, category, is_active, sort_order
+      FROM account_codes ${cond} ORDER BY sort_order, code
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return {
+      ok: true,
+      output: {
+        count: rows.length,
+        accountCodes: rows.map((c: any) => ({
+          id: Number(c.id), code: c.code, name: c.name,
+          parentCode: c.parent_code, category: c.category, isActive: c.is_active,
+        })),
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `계정과목 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_voucherList(args: any): Promise<ToolResult> {
+  const { period, startDate, endDate, fiscalYear, accountCode, budgetLineId, status, isTemplate, page, limit: lim } = args || {};
+
+  let dateStart: string | null = null;
+  let dateEnd: string | null = null;
+  if (fiscalYear) {
+    dateStart = `${fiscalYear}-01-01`;
+    dateEnd   = `${fiscalYear}-12-31`;
+  } else if (startDate && endDate) {
+    dateStart = startDate;
+    dateEnd   = endDate;
+  } else {
+    const now = new Date();
+    dateStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    dateEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  }
+
+  const pageNum  = Math.max(1, Number(page) || 1);
+  const pageSize = Math.min(Number(lim) || 30, 100);
+  const offset   = (pageNum - 1) * pageSize;
+
+  try {
+    const r: any = await db.execute(sql`
+      SELECT v.id, v.voucher_number, v.voucher_date, v.account_code, v.account_name,
+             v.description, v.payee_name, v.amount, v.status, v.evidence_type,
+             v.budget_line_id, v.is_template, v.template_name, v.created_by, v.created_at
+      FROM vouchers v
+      WHERE v.voucher_date BETWEEN ${dateStart} AND ${dateEnd}
+        ${accountCode ? sql`AND v.account_code = ${accountCode}` : sql``}
+        ${budgetLineId ? sql`AND v.budget_line_id = ${Number(budgetLineId)}` : sql``}
+        ${(status && status !== "all") ? sql`AND v.status = ${status}` : sql``}
+        ${(isTemplate !== undefined) ? sql`AND v.is_template = ${Boolean(isTemplate)}` : sql``}
+      ORDER BY v.voucher_date DESC, v.id DESC
+      LIMIT ${pageSize} OFFSET ${offset}
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return {
+      ok: true,
+      output: {
+        count: rows.length,
+        page: pageNum,
+        vouchers: rows.map((v: any) => ({
+          id: Number(v.id), voucherNumber: v.voucher_number, date: v.voucher_date,
+          accountCode: v.account_code, accountName: v.account_name,
+          description: v.description, payeeName: v.payee_name,
+          amount: Number(v.amount), status: v.status,
+        })),
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `전표 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_voucherCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  const { voucherDate, accountCode, subAccount, description, payeeName, amount,
+          evidenceType, budgetLineId, isTemplate, templateName, requireApproval } = args || {};
+
+  if (!voucherDate || !accountCode || !description || amount === undefined) {
+    return { ok: false, error: "voucherDate, accountCode, description, amount 필수" };
+  }
+  const dryRun = requireApproval !== false;
+
+  // 계정과목 존재 확인
+  let accountName = accountCode;
+  try {
+    const ac: any = await db.execute(sql`SELECT name FROM account_codes WHERE code = ${accountCode} AND is_active = TRUE LIMIT 1`);
+    const row = (ac?.rows ?? ac ?? [])[0];
+    if (!row) return { ok: false, error: `존재하지 않는 계정과목 코드: ${accountCode}` };
+    accountName = row.name;
+  } catch (e: any) {
+    return { ok: false, error: `계정과목 확인 실패: ${e?.message?.slice(0, 200)}` };
+  }
+
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: { voucherDate, accountCode, accountName, description, payeeName, amount, evidenceType: evidenceType || "none" },
+      output: {
+        dryRun: true,
+        message: `전표를 작성할까요? [${voucherDate}] ${accountName}(${accountCode}) ${payeeName ? `/ ${payeeName}` : ""} ${Number(amount).toLocaleString("ko-KR")}원 — ${description}`,
+      },
+    };
+  }
+
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  try {
+    // 어드민 email (created_by 용) 조회
+    const memberR: any = await db.execute(sql`SELECT email FROM members WHERE id = ${adminId} LIMIT 1`);
+    const memberUid = (memberR?.rows ?? memberR ?? [])[0]?.email;
+    if (!memberUid) return { ok: false, error: "관리자 이메일 조회 실패" };
+
+    // voucher_number: YYYYMM-NNN (트랜잭션 내 MAX+1)
+    const yyyymm = voucherDate.slice(0, 7).replace("-", "");
+    const maxR: any = await db.execute(sql`
+      SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
+      FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}
+    `);
+    const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
+    const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
+    const fiscalYear = parseInt(voucherDate.slice(0, 4));
+
+    const res: any = await db.execute(sql`
+      INSERT INTO vouchers (
+        voucher_number, voucher_date, fiscal_year, account_code, account_name,
+        sub_account, description, payee_name, amount, evidence_type,
+        budget_line_id, is_template, template_name, status, created_by, created_at, updated_at
+      ) VALUES (
+        ${voucherNumber}, ${voucherDate}, ${fiscalYear}, ${accountCode}, ${accountName},
+        ${subAccount || null}, ${description}, ${payeeName || null}, ${Number(amount)}, ${evidenceType || "none"},
+        ${budgetLineId ? Number(budgetLineId) : null}, ${Boolean(isTemplate)}, ${templateName || null},
+        'draft', ${String(memberUid)}, NOW(), NOW()
+      ) RETURNING id, voucher_number
+    `);
+    const created = (res?.rows ?? res ?? [])[0];
+    return { ok: true, output: { message: `전표가 작성되었습니다. 번호: ${created.voucher_number}`, voucherId: Number(created.id), voucherNumber: created.voucher_number } };
+  } catch (e: any) {
+    return { ok: false, error: `전표 작성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_voucherApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
+  const { voucherId, action, rejectionReason, requireApproval } = args || {};
+  if (!voucherId || !action) return { ok: false, error: "voucherId, action 필수" };
+  if (action === "reject" && !rejectionReason?.trim()) return { ok: false, error: "반려 사유 필수" };
+  const dryRun = requireApproval !== false;
+
+  let voucher: any;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, voucher_number, status, description, amount FROM vouchers WHERE id = ${Number(voucherId)} LIMIT 1
+    `);
+    voucher = (r?.rows ?? r ?? [])[0];
+    if (!voucher) return { ok: false, error: "전표를 찾을 수 없습니다" };
+    if (voucher.status !== "submitted") return { ok: false, error: `submitted 상태에서만 가능 (현재: ${voucher.status})` };
+  } catch (e: any) {
+    return { ok: false, error: `전표 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+
+  const label = action === "approve" ? "승인" : "반려";
+  if (dryRun) {
+    return {
+      ok: true,
+      preview: { voucherId: Number(voucherId), action, voucherNumber: voucher.voucher_number },
+      output: { dryRun: true, message: `전표 ${voucher.voucher_number}(${Number(voucher.amount).toLocaleString("ko-KR")}원)을 ${label}하시겠습니까?` },
+    };
+  }
+
+  try {
+    // 어드민 email (approved_by 용) 조회
+    const memberR: any = await db.execute(sql`SELECT email FROM members WHERE id = ${adminId} LIMIT 1`);
+    const memberUid = (memberR?.rows ?? memberR ?? [])[0]?.email;
+
+    if (action === "approve") {
+      await db.execute(sql`
+        UPDATE vouchers SET status = 'approved', approved_by = ${String(memberUid)},
+        approved_at = NOW(), updated_at = NOW() WHERE id = ${Number(voucherId)}
+      `);
+    } else {
+      await db.execute(sql`
+        UPDATE vouchers SET status = 'rejected', approved_by = ${String(memberUid)},
+        approved_at = NOW(), rejection_reason = ${rejectionReason}, updated_at = NOW()
+        WHERE id = ${Number(voucherId)}
+      `);
+    }
+    return { ok: true, output: { message: `전표 ${voucher.voucher_number}이 ${label}되었습니다.` } };
+  } catch (e: any) {
+    return { ok: false, error: `${label} 처리 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
