@@ -3088,53 +3088,6 @@
           </div>
 
         </div>
-        <!-- 3. 기부 관리 -->
-        <div id="adm-donations" class="adm-page">
-          <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
-            <div class="kpi"><div class="kpi-label">금일 결제</div><div class="kpi-value">₩ 0.0M</div></div>
-            <div class="kpi"><div class="kpi-label">금월 결제</div><div class="kpi-value">₩ 0.0M</div></div>
-            <div class="kpi"><div class="kpi-label">실패 건</div><div class="kpi-value">0 건</div></div>
-            <div class="kpi"><div class="kpi-label">영수증 대기</div><div class="kpi-value">0 건</div></div>
-            <div class="kpi" style="border-left:3px solid #c47a00"><div class="kpi-label" style="color:#c47a00">환불</div><div class="kpi-value" id="dmKpiRefunded" style="color:#c47a00">0 건</div></div>
-            <div class="kpi" style="border-left:3px solid var(--danger)"><div class="kpi-label" style="color:var(--danger)">취소</div><div class="kpi-value" id="dmKpiCancelled" style="color:var(--danger)">0 건</div></div>
-          </div>
-
-          <div class="panel">
-            <div class="p-head">
-              <div class="p-title">결제 내역</div>
-              <div class="p-actions">
-                <button class="btn-sm btn-sm-ghost" id="dmBtnExportDonations" type="button">📥 수납내역 엑셀 내보내기</button>
-                <button class="btn-sm btn-sm-primary" data-demo-action="bulk-receipt">📄 영수증 일괄 발행</button>
-              </div>
-            </div>
-
-            <!-- ★ K-8: 검색/필터 툴바 -->
-            <div class="dm-toolbar">
-              <select id="dmFilterType">
-                <option value="">전체 유형</option>
-                <option value="regular">정기 후원</option>
-                <option value="onetime">일시 후원</option>
-              </select>
-              <select id="dmFilterStatus">
-                <option value="">전체 상태</option>
-                <option value="completed">승인</option>
-                <option value="pending">대기</option>
-                <option value="failed">실패</option>
-                <option value="cancelled">취소</option>
-                <option value="refunded">환불</option>
-              </select>
-              <input type="search" id="dmFilterQ" placeholder="🔍 이름·이메일·승인번호·영수증번호 검색 (2자 이상)">
-              <span class="dm-count" id="dmCount">—</span>
-            </div>
-
-            <div style="overflow-x:auto">
-              <table class="tbl" style="min-width:1100px">
-                <thead><tr><th>결제일</th><th>회원</th><th>유형</th><th>금액</th><th>수단</th><th>승인번호</th><th>상태</th><th style="width:160px">관리</th></tr></thead>
-                <tbody><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
 
         <!-- 4. 유가족 지원 관리 -->
         <div id="adm-support" class="adm-page">
@@ -5094,85 +5047,6 @@
           • 회원이 첫 로그인 후 즉시 변경하도록 안내해 주세요
         </div>
         <button type="button" class="btn btn-primary btn-block" data-action="close-modal" style="margin-top:14px">확인 (모달 닫기)</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 후원 상세 -->
-  <div id="donationDetailModal" class="modal">
-    <div class="modal-content" style="max-width:680px">
-      <div class="modal-header">
-        <h3 class="serif">💝 후원 상세</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body" id="donationDetailBody">
-        <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 환불 사유 -->
-  <div id="refundReasonModal" class="modal">
-    <div class="modal-content" style="max-width:520px">
-      <div class="modal-header">
-        <h3 class="serif">💸 후원 환불 처리</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="rc-warn-box">
-          ⚠️ <strong>주의 — 환불 처리 안내</strong><br />
-          • 이 작업은 시스템 상의 상태만 변경합니다 (DB)<br />
-          • <strong>실제 PG사 환불</strong>은 결제대행사를 통해 별도 진행해야 합니다<br />
-          • 환불 후 상태는 'refunded'로 변경되며 영수증 발급에 영향을 줄 수 있습니다<br />
-          • 사유는 후원 메모에 누적 기록됩니다 (감사 로그용)
-        </div>
-        <div class="rc-info-grid" id="rcRefundInfo"></div>
-        <form id="refundForm">
-          <input type="hidden" id="rcRefundId" value="">
-          <div class="fg">
-            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
-              환불 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
-            </label>
-            <textarea id="rcRefundReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 회원 요청, 중복 결제 등"></textarea>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" id="btnRefundConfirm" style="flex:1;background:#c47a00;color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">💸 환불 처리 확정</button>
-            <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- 결제 취소 사유 -->
-  <div id="cancelReasonModal" class="modal">
-    <div class="modal-content" style="max-width:520px">
-      <div class="modal-header">
-        <h3 class="serif">❌ 후원 취소 처리</h3>
-        <button class="modal-close" data-action="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="rc-warn-box danger">
-          ⚠️ <strong>관리자 강제 취소</strong><br />
-          • 결제 자체가 무효 처리됩니다 (cancelled)<br />
-          • 정기 후원은 다음 결제부터 자동 청구가 중단됩니다<br />
-          • 한 번 취소되면 되돌릴 수 없습니다<br />
-          • 사유는 후원 메모에 누적 기록됩니다
-        </div>
-        <div class="rc-info-grid" id="rcCancelInfo"></div>
-        <form id="cancelForm">
-          <input type="hidden" id="rcCancelId" value="">
-          <div class="fg">
-            <label style="font-size:12.5px;font-weight:600;color:var(--text-2);display:block;margin-bottom:5px">
-              취소 사유 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(권장, 500자 이하)</span>
-            </label>
-            <textarea id="rcCancelReason" maxlength="500" style="width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;box-sizing:border-box" placeholder="예) 결제 실패 후 정리 등"></textarea>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:14px">
-            <button type="submit" id="btnCancelConfirm" style="flex:1;background:var(--danger);color:#fff;border:none;padding:11px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">❌ 취소 처리 확정</button>
-            <button type="button" data-action="close-modal" style="background:transparent;border:1px solid var(--line);color:var(--text-2);padding:11px 20px;border-radius:6px;cursor:pointer">취소</button>
-          </div>
-        </form>
       </div>
     </div>
   </div>

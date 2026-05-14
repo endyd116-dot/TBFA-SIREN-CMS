@@ -227,6 +227,7 @@
           'receipt-settings': '영수증 설정',
           hyosung: '효성 CMS+ 관리',
           'toss-billing': '💳 토스 빌링 (자동 청구)',
+          'donations': '💳 후원 결제 내역',
           'finance-income': '📈 수입 현황',
           'other-revenues': '💼 후원 외 매출',
           'expenses': '💸 지출 관리',
@@ -268,6 +269,9 @@
         }
         else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
         /* ★ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) */
+        else if (tab === 'donations') {
+          if (window.SIREN_DONATIONS) window.SIREN_DONATIONS.load();
+        }
         else if (tab === 'finance-income') {
           if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.load();
         }
