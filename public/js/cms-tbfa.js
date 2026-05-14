@@ -156,8 +156,23 @@
     none:     { icon: '—',  text: '비후원', cls: 'cms-b-mute' },
   };
 
+  /* ★ 버그픽스 20260515 (#2): 가입경로 enum 정규화.
+     서버가 signupSource enum을 안 줄 때 signupSourceLabel·signupSourceId로 폴백 추론. */
+  function resolveSignupSource(member) {
+    if (member.signupSource) return member.signupSource;
+    const label = (member.signupSourceLabel || '').toString();
+    if (label) {
+      if (label.includes('싸이렌') || label.toLowerCase().includes('siren')) return 'siren';
+      if (label.includes('효성') || label.toLowerCase().includes('hyosung')) return 'hyosung';
+      if (label.includes('수기') || label.toLowerCase().includes('manual')) return 'manual';
+      if (label.includes('이벤트') || label.toLowerCase().includes('event')) return 'event';
+      if (label.includes('기타')) return 'etc';
+    }
+    return null;
+  }
+
   function renderSignupSourceBadge(member) {
-    const src = member.signupSource;
+    const src = resolveSignupSource(member);
     if (!src) {
       // DB 코드 자체 없는 경우 — DESIGN §6.2 라인 153: 회색 '─'
       return `<span class="cms-badge cms-b-mute" title="가입경로 미상" style="color:#8a8a8a">─</span>`;
@@ -270,17 +285,31 @@
         }
         else if (tab === 'donation-dashboard') renderDonationDashboard(); /* ★ Phase 3 D7 */
         /* ★ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) */
+        /* ★ 버그픽스: 첫 진입 시 init() 호출 보장 — 빈 섹션 렌더 누락 방지 */
         else if (tab === 'donations') {
-          if (window.SIREN_DONATIONS) window.SIREN_DONATIONS.load();
+          if (window.SIREN_DONATIONS) {
+            const _dn = document.getElementById('page-donations');
+            if (_dn && !_dn.firstElementChild) window.SIREN_DONATIONS.init();
+            else window.SIREN_DONATIONS.load();
+          }
         }
         else if (tab === 'finance-income') {
-          if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.load();
+          /* page-finance-income은 HTML 사전정의 → 항상 init() (이벤트 바인딩은 멱등 가드됨) */
+          if (window.SIREN_FINANCE_INCOME) window.SIREN_FINANCE_INCOME.init();
         }
         else if (tab === 'other-revenues') {
-          if (window.SIREN_OTHER_REVENUES) window.SIREN_OTHER_REVENUES.load();
+          if (window.SIREN_OTHER_REVENUES) {
+            const _or = document.getElementById('page-other-revenues');
+            if (_or && !_or.firstElementChild) window.SIREN_OTHER_REVENUES.init();
+            else window.SIREN_OTHER_REVENUES.load();
+          }
         }
         else if (tab === 'expenses') {
-          if (window.SIREN_EXPENSES) window.SIREN_EXPENSES.load();
+          if (window.SIREN_EXPENSES) {
+            const _ex = document.getElementById('page-expenses');
+            if (_ex && !_ex.firstElementChild) window.SIREN_EXPENSES.init();
+            else window.SIREN_EXPENSES.load();
+          }
         }
         else if (tab === 'finance-budget') {
           if (window.SIREN_FINANCE_BUDGET) {
@@ -312,20 +341,32 @@
       });
     });
 
-    /* ★ Phase 1: 계층 메뉴 토글 */
+    /* ★ Phase 1: 계층 메뉴 토글 — 실제 표시 상태 기준 (open 클래스 불일치 방지) */
+    document.querySelectorAll('.cms-menu-group').forEach(group => {
+      /* 초기 open 클래스를 실제 인라인 표시 상태와 동기화 */
+      const submenu = group.querySelector('.cms-submenu');
+      if (submenu) {
+        const visible = submenu.style.display !== 'none';
+        group.classList.toggle('open', visible);
+        const chevron = group.querySelector('.cms-menu-chevron');
+        if (chevron) chevron.style.transform = visible ? 'rotate(180deg)' : '';
+      }
+    });
     document.querySelectorAll('[data-toggle]').forEach(toggle => {
       toggle.addEventListener('click', e => {
         e.preventDefault();
         const group = toggle.closest('.cms-menu-group');
         const submenu = group?.querySelector('.cms-submenu');
         if (!submenu) return;
-        const isOpen = group.classList.contains('open');
+        const isOpen = submenu.style.display !== 'none';
         group.classList.toggle('open', !isOpen);
         submenu.style.display = isOpen ? 'none' : 'block';
+        const chevron = toggle.querySelector('.cms-menu-chevron');
+        if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
       });
     });
 
-    /* ★ Phase 1: 서브메뉴 항목 클릭 시 상위 그룹도 active */
+    /* ★ Phase 1: 서브메뉴 항목 클릭 시 상위 그룹 자동 펼침 */
     document.querySelectorAll('.cms-submenu a[data-tab]').forEach(a => {
       a.addEventListener('click', () => {
         const group = a.closest('.cms-menu-group');
@@ -333,6 +374,8 @@
           group.classList.add('open');
           const submenu = group.querySelector('.cms-submenu');
           if (submenu) submenu.style.display = 'block';
+          const chevron = group.querySelector('.cms-menu-chevron');
+          if (chevron) chevron.style.transform = 'rotate(180deg)';
         }
       });
     });
@@ -365,10 +408,11 @@
     set('kpiOnetime', '—');
     set('kpiVolunteer', '—');
 
-    const srcSiren  = rows.filter(m => m.signupSource === 'siren').length;
-    const srcHyo    = rows.filter(m => m.signupSource === 'hyosung').length;
+    /* ★ 버그픽스 20260515 (#2): signupSource 정규화 후 출처별 카운트 (전부 "기타" 떨어지던 문제) */
+    const srcSiren  = rows.filter(m => resolveSignupSource(m) === 'siren').length;
+    const srcHyo    = rows.filter(m => resolveSignupSource(m) === 'hyosung').length;
     // 'manual' + 'event' + 'etc' 합산 (5종 enum 도입 후 분류)
-    const srcOther  = rows.filter(m => ['manual', 'event', 'etc'].includes(m.signupSource)).length;
+    const srcOther  = rows.filter(m => ['manual', 'event', 'etc'].includes(resolveSignupSource(m))).length;
     set('srcWeb',    srcSiren + '명');
     set('srcExcel',  srcHyo + '명');
     set('srcManual', srcOther + '명');
@@ -1103,6 +1147,13 @@
       linkedEl.textContent = linkedCount;
     }
 
+    /* ★ 버그픽스 20260515 (#1): KPI 영역 — 계약 총원·매칭은 즉시, 유족·후원회원은 집계 API */
+    const kpiTotalEl = document.getElementById('hyKpiContractTotal');
+    if (kpiTotalEl) kpiTotalEl.textContent = pagination.total.toLocaleString() + '명';
+    const kpiLinkedEl = document.getElementById('hyKpiLinked');
+    if (kpiLinkedEl) kpiLinkedEl.textContent = list.filter(c => c.linkedMemberId).length.toLocaleString() + '명';
+    loadHyosungMemberStats();
+
     if (list.length === 0) {
       body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#888">데이터가 없습니다. CSV 업로드 탭에서 먼저 계약정보를 import하세요.</td></tr>';
       return;
@@ -1148,6 +1199,33 @@
         }
       }
     }
+  }
+
+  /**
+   * ★ 버그픽스 20260515 (#1): 효성 회원 통계 (유족회원·후원회원)
+   * B가 만드는 집계 API 사용 — 응답 키 다중 fallback, API 없으면 조용히 "—" 유지
+   */
+  async function loadHyosungMemberStats() {
+    const famEl = document.getElementById('hyKpiFamily');
+    const donEl = document.getElementById('hyKpiDonor');
+    if (!famEl && !donEl) return;
+    let res;
+    try {
+      res = await api('/api/admin-hyosung-member-stats');
+    } catch (e) {
+      console.warn('[hyosung-member-stats] 호출 실패', e);
+      return;
+    }
+    if (!res || !res.ok) {
+      console.warn('[hyosung-member-stats] 응답 실패 — 집계 API 미배포 가능', res && res.status);
+      return;
+    }
+    /* 응답 키 다중 fallback */
+    const d = res.data?.data?.data || res.data?.data || res.data || {};
+    const family = d.familyCount ?? d.familyMembers ?? d.family ?? d.유족회원 ?? null;
+    const donor  = d.donorCount  ?? d.donorMembers  ?? d.donor  ?? d.후원회원 ?? null;
+    if (famEl && family != null) famEl.textContent = Number(family).toLocaleString() + '명';
+    if (donEl && donor  != null) donEl.textContent = Number(donor).toLocaleString() + '명';
   }
 
   /**
@@ -2276,6 +2354,13 @@
   window._cmsEsc   = escapeHtml;
   window._cmsFmt   = formatDate;
 })();
+
+/* ★ 버그픽스 20260515 (#4): IIFE 바깥(모듈 스코프) 함수들이 쓰는 api/toast 별칭.
+   잠재후원자·토스빌링 등 옛 코드가 bare api()/toast() 호출 → "api is not defined" 에러.
+   IIFE가 window._cmsApi/_cmsToast로 노출한 것을 모듈 스코프 이름으로 받아둔다. */
+const api   = window._cmsApi   || (async function(){ return { ok:false, status:0, data:{ error:'api 미초기화' } }; });
+const toast = window._cmsToast || function(m){ alert(m); };
+
 /* ============================================================
    ★ Phase 2: 토스 빌링 자동 청구 관리
    ============================================================ */
