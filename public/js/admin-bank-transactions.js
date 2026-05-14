@@ -438,15 +438,33 @@
     const inserted = d.insertedRows ?? d.inserted ?? 0;
     const skipped  = d.duplicateCount ?? d.skipped ?? 0;
     const invalid  = d.skippedInvalid ?? 0;
+
+    const fileInput = document.getElementById('btFileInput');
+    if (fileInput) fileInput.value = '';
+
+    /* 신규 적재분이 있으면 즉시 입출금 대사 실행 (UI 안내문 "업로드 시 대사 실행" 충족) */
+    let reconcileMsg = '';
+    if (inserted > 0) {
+      setStatus('#e0f2fe', '#0369a1',
+        `📤 신규 ${inserted}건 적재 완료 — 입출금 대사 실행 중…`);
+      /* threshold 미전달 시 서버 기본 0.75 적용. importId로 이번 업로드분만 대사 */
+      const recRes = await api('POST', '/api/admin-bank-reconcile',
+        d.importId ? { importId: d.importId } : {});
+      if (recRes.ok) {
+        const rd = unwrap(recRes);
+        reconcileMsg = rd.message ? ' · ' + rd.message : ' · 대사 완료';
+      } else {
+        reconcileMsg = ' · 대사 실행 실패 — "🔄 대사 재실행"으로 다시 시도하세요';
+      }
+    }
+
     setStatus('#dcfce7', '#15803d',
       `✅ 업로드 완료 — 신규 ${inserted}건 적재`
       + (skipped ? `, 중복 ${skipped}건 제외` : '')
       + (invalid ? `, 무효 ${invalid}건 제외` : '')
-      + '. 대사 결과를 확인하세요.');
+      + reconcileMsg);
 
-    const fileInput = document.getElementById('btFileInput');
-    if (fileInput) fileInput.value = '';
-    /* 업로드 후 자동 갱신 */
+    /* 업로드·대사 후 자동 갱신 */
     loadSummary();
     loadTransactions();
     loadImportList();
