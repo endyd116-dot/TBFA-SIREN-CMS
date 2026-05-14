@@ -67,19 +67,21 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   // ── 중복 차단 — 기존 dedup_hash 조회 ────────────────────────
-  // ★ 버그픽스3 #13: = ANY(${hashes}) 는 빈 배열뿐 아니라 타입 캐스팅이 없어도
-  //   "op ANY/ALL (array) requires array on right side" 500.
-  //   postgres-js가 JS 배열을 바인딩할 때 Postgres가 배열 타입으로 인식하도록
-  //   ::text[] 캐스팅을 명시. 빈 배열이면 조회 자체를 건너뜀.
+  // ★ 버그픽스3 #13: drizzle sql 템플릿에서 ${jsArray} 를 = ANY 에 직접 넣으면
+  //   postgres-js 가 record 로 바인딩 → "op ANY/ALL requires array" 또는
+  //   "cannot cast type record to text[]" 500.
+  //   startJob 의 검증된 패턴(sql.raw 로 명시 배열 리터럴)을 적용.
+  //   dedupHash 는 SHA-256 hex(영숫자만)이라 hex 외 문자를 거른 뒤 따옴표로 감싸 안전.
   let existingHashes = new Set<string>();
   try {
     const hashes = normalized
       .map(n => n.dedupHash)
-      .filter((h): h is string => typeof h === "string" && h.length > 0);
+      .filter((h): h is string => typeof h === "string" && /^[0-9a-f]+$/i.test(h));
     if (hashes.length > 0) {
+      const arrLiteral = `ARRAY[${hashes.map(h => `'${h}'`).join(",")}]::text[]`;
       const r: any = await db.execute(sql`
         SELECT dedup_hash FROM bank_transactions
-        WHERE dedup_hash = ANY(${hashes}::text[])`);
+        WHERE dedup_hash = ANY(${sql.raw(arrLiteral)})`);
       existingHashes = new Set((r?.rows ?? r ?? []).map((x: any) => x.dedup_hash));
     }
   } catch (err: any) {

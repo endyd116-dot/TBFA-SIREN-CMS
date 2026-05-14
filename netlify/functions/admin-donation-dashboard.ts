@@ -119,6 +119,9 @@ export default async (req: Request, _ctx: Context) => {
      *  - prospect : 완료 후원은 있으나 정기 후원 이력은 없는 회원 (일시후원만)
      *  - none     : 완료 후원 이력 전혀 없음
      *  - 채널(toss/hyosung)은 donations.pg_provider 로 구분 */
+    /* ★ 버그픽스3 #3: 효성 import(admin-hyosung-import-billings.ts:289)는
+     *  pg_provider 를 'hyosung' 으로 저장하는데 기존 쿼리는 'hyosung_cms' 로 비교 →
+     *  효성 채널 카운트가 항상 0. 실제 저장값 'hyosung' 으로 정정 (ILIKE 로 변형 흡수). */
     const kpiRes: any = await db.execute(sql`
       WITH member_donor AS (
         SELECT
@@ -126,13 +129,13 @@ export default async (req: Request, _ctx: Context) => {
           BOOL_OR(d.status = 'completed' AND d.type = 'regular')                        AS has_regular,
           BOOL_OR(d.status = 'completed')                                               AS has_any,
           BOOL_OR(d.status = 'completed' AND d.type = 'regular'
-                  AND d.pg_provider = 'hyosung_cms')                                    AS has_regular_hyosung,
+                  AND d.pg_provider ILIKE 'hyosung%')                                   AS has_regular_hyosung,
           BOOL_OR(d.status = 'completed' AND d.type = 'regular'
-                  AND COALESCE(d.pg_provider, '') <> 'hyosung_cms')                      AS has_regular_toss,
+                  AND COALESCE(d.pg_provider, '') NOT ILIKE 'hyosung%')                  AS has_regular_toss,
           COALESCE(
-            BOOL_OR(d.status = 'completed' AND d.type = 'regular' AND d.pg_provider = 'hyosung_cms')
+            BOOL_OR(d.status = 'completed' AND d.type = 'regular' AND d.pg_provider ILIKE 'hyosung%')
               AND BOOL_OR(d.status = 'completed' AND d.type = 'regular'
-                          AND COALESCE(d.pg_provider, '') <> 'hyosung_cms'),
+                          AND COALESCE(d.pg_provider, '') NOT ILIKE 'hyosung%'),
             false
           )                                                                              AS has_both,
           BOOL_OR(d.status = 'completed' AND d.type = 'onetime')                        AS has_onetime,
