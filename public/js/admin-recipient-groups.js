@@ -192,6 +192,7 @@
 
   /* ── 이벤트 ── */
   function bindEvents() {
+    if (!$("btnReload")) return;
     $("btnReload").addEventListener("click", () => { state.page = 1; load(); });
     $("fSearch").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { state.page = 1; load(); }
@@ -254,6 +255,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    if (!$("btnReload")) return;
     bindEvents();
     load();
   });
