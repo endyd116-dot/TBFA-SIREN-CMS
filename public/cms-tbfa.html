@@ -296,6 +296,64 @@
     background: #fff;
   }
   .input-sm:focus { outline: none; border-color: var(--brand); }
+
+  /* ============ 버그픽스 20260515-2차 (#7·#8·#11·#13): 재정 화면 폼·버튼·모달 클래스
+     (1차에서 pages.css만 추가 — panel/kpi/p-head만 커버. 버튼·모달·폼·탭바는
+      어디에도 정의 안 돼 화면 LOW 퀄리티·모달 깨짐. 여기서 일괄 보강) ============ */
+  .tabs-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  .input {
+    width: 100%; padding: 8px 11px; border: 1px solid var(--line);
+    border-radius: 6px; font-size: 13px; font-family: inherit;
+    color: var(--text-1, #1a1a1a); background: #fff; box-sizing: border-box;
+  }
+  .input:focus { outline: none; border-color: var(--brand); }
+  textarea.input { resize: vertical; min-height: 64px; }
+
+  .btn-sm {
+    padding: 7px 14px; border-radius: 6px; font-size: 12.5px;
+    font-weight: 600; font-family: inherit; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--text-2);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-sm:hover { border-color: var(--text-4); }
+  .btn-sm-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn-sm-primary:hover { filter: brightness(1.08); border-color: var(--brand); }
+  .btn-sm-ghost { background: #fff; color: var(--text-2); }
+  .btn-sm-ghost:hover { background: var(--bg); color: var(--brand); }
+  .btn-sm-danger { background: var(--danger, #c5293a); border-color: var(--danger, #c5293a); color: #fff; }
+  .btn-sm-danger:hover { filter: brightness(1.08); }
+  .btn-sm-success { background: var(--success, #16a34a); border-color: var(--success, #16a34a); color: #fff; }
+  .btn-sm-success:hover { filter: brightness(1.08); }
+
+  .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .form-help { font-size: 11.5px; color: var(--text-3); }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
+    align-items: center; justify-content: center; z-index: 9000; padding: 20px;
+  }
+  .modal {
+    background: #fff; border-radius: 12px; width: 100%;
+    max-height: 86vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .modal-head {
+    padding: 15px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--text-1, #1a1a1a); }
+  .modal-close {
+    background: none; border: none; font-size: 20px; line-height: 1;
+    cursor: pointer; color: var(--text-3); padding: 0;
+  }
+  .modal-close:hover { color: var(--text-1, #1a1a1a); }
+  .modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+  .modal-foot {
+    padding: 12px 20px; border-top: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  }
 </style>
 </head>
 <body data-page="cms-tbfa">
@@ -355,7 +413,7 @@
           <i>💰</i><span>후원자 관리</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
-        <ul class="cms-submenu" data-submenu="donation" style="display:block">
+        <ul class="cms-submenu" data-submenu="donation" style="display:none">
           <li><a href="#donor-regular" data-tab="donor-regular"><i>🔁</i><span>정기 후원자 관리</span></a></li>
           <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>예비 후원자 관리</span></a></li>
           <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자 관리</span></a></li>
@@ -382,12 +440,12 @@
       </li>
 
       <!-- ── 📨 알림·발송 (싸이렌에서 이관 — 2026-05-11) ── -->
-      <li class="cms-menu-group open" data-group="send">
+      <li class="cms-menu-group" data-group="send">
         <a href="#" data-toggle="send">
           <i>📨</i><span>알림·발송</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
-        <ul class="cms-submenu" data-submenu="send" style="display:block">
+        <ul class="cms-submenu" data-submenu="send" style="display:none">
           <li><a href="#send-jobs" data-tab="send-jobs"><i>📤</i><span>발송 작업</span></a></li>
           <li><a href="#send-template" data-tab="send-template"><i>📝</i><span>발송 템플릿</span></a></li>
           <li><a href="#recipient-groups" data-tab="recipient-groups"><i>👥</i><span>수신자 그룹</span></a></li>
@@ -397,12 +455,12 @@
       </li>
 
       <!-- ── 🤖 AI 에이전트 ── -->
-      <li class="cms-menu-group open" data-group="ai">
+      <li class="cms-menu-group" data-group="ai">
         <a href="#" data-toggle="ai">
           <i>🤖</i><span>AI 에이전트</span>
           <span class="cms-menu-chevron">▾</span>
         </a>
-        <ul class="cms-submenu" data-submenu="ai" style="display:block">
+        <ul class="cms-submenu" data-submenu="ai" style="display:none">
           <li><a href="#ai-chat" data-tab="ai-chat"><i>💬</i><span>대화 시작</span></a></li>
           <li><a href="#ai-history" data-tab="ai-history"><i>📜</i><span>대화 이력</span></a></li>
           <li><a href="#ai-cost" data-tab="ai-cost"><i>💰</i><span>비용 관리</span></a></li>
@@ -2283,7 +2341,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260515bugfix"></script>
+  <script src="/js/cms-tbfa.js?v=20260515bugfix2"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
@@ -2295,10 +2353,10 @@
   <!-- ★ AI 에이전트 위젯 (admin/operator 전용 — 우하단 플로팅) -->
   <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
   <!-- Phase 22-B-R1: 재정 관리 (admin.html에서 이전) -->
-  <script src="/js/admin-donations.js?v=20260515p22r2d1"></script>
+  <script src="/js/admin-donations.js?v=20260515bugfix2"></script>
   <script src="/js/admin-finance-income.js?v=20260515p22r2d1"></script>
-  <script src="/js/admin-other-revenues.js?v=20260515p22r2d1"></script>
-  <script src="/js/admin-expenses.js?v=20260515bugfix"></script>
+  <script src="/js/admin-other-revenues.js?v=20260515bugfix2"></script>
+  <script src="/js/admin-expenses.js?v=20260515bugfix2"></script>
   <!-- Phase 22-D-R1: 전표 관리 -->
   <script src="/js/admin-expenses-voucher.js?v=20260515p22dr3b"></script>
   <!-- Phase 22-B-R2: 예산 편성 + 결재 -->

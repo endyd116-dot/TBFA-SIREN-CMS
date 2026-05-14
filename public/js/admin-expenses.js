@@ -379,24 +379,28 @@
   }
 
   function bindShellEvents(container) {
+    /* ★ 버그픽스 20260515-2차 (#10): renderShell HTML에 없는 요소를 querySelector 후
+       null 체크 없이 addEventListener → "Cannot read properties of null" → renderShell
+       전체 throw → 빈 화면. 모든 참조에 null 가드. (#expYearSelect는 기간 선택기로
+       대체돼 더 이상 HTML에 없으므로 참조 제거 — 기간 필터는 bindPeriodSelector가 담당) */
+
     /* 탭 전환 */
     container.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
     /* 필터 */
-    container.querySelector('#expYearSelect').addEventListener('change',   e => { currentYear   = Number(e.target.value); currentPage = 1; loadList(); });
-    container.querySelector('#expCatSelect').addEventListener('change',    e => { currentCat    = e.target.value;         currentPage = 1; loadList(); });
-    container.querySelector('#expStatusSelect').addEventListener('change', e => { currentStatus = e.target.value;         currentPage = 1; loadList(); });
-    container.querySelector('#expRefreshBtn').addEventListener('click', () => loadList());
+    container.querySelector('#expCatSelect')?.addEventListener('change',    e => { currentCat    = e.target.value;         currentPage = 1; loadList(); });
+    container.querySelector('#expStatusSelect')?.addEventListener('change', e => { currentStatus = e.target.value;         currentPage = 1; loadList(); });
+    container.querySelector('#expRefreshBtn')?.addEventListener('click', () => loadList());
 
     /* 버튼 */
-    container.querySelector('#expAddBtn').addEventListener('click', openAdd);
-    container.querySelector('#expAddSubmit').addEventListener('click', submitAdd);
-    container.querySelector('#expRefundSubmit').addEventListener('click', submitRefund);
+    container.querySelector('#expAddBtn')?.addEventListener('click', openAdd);
+    container.querySelector('#expAddSubmit')?.addEventListener('click', submitAdd);
+    container.querySelector('#expRefundSubmit')?.addEventListener('click', submitRefund);
     if (isSuperAdmin()) {
-      container.querySelector('#expCatAddBtn').addEventListener('click', () => openCatModal(null));
-      container.querySelector('#expCatSubmit').addEventListener('click', submitCat);
+      container.querySelector('#expCatAddBtn')?.addEventListener('click', () => openCatModal(null));
+      container.querySelector('#expCatSubmit')?.addEventListener('click', submitCat);
     }
 
     /* 모달 닫기 (data-close 패턴) */
@@ -408,14 +412,16 @@
     });
 
     /* 파일 미리보기 */
-    container.querySelector('#expAddFile').addEventListener('change', e => {
+    container.querySelector('#expAddFile')?.addEventListener('change', e => {
       const f = e.target.files[0];
-      container.querySelector('#expAddFilePreview').textContent =
+      const preview = container.querySelector('#expAddFilePreview');
+      if (preview) preview.textContent =
         f ? `선택: ${f.name} (${(f.size / 1024).toFixed(1)} KB)` : '';
     });
 
     /* 등록 모달 내 카테고리·기본값 세팅 */
-    container.querySelector('#expAddCat').innerHTML = buildCatOptions('', true);
+    const addCat = container.querySelector('#expAddCat');
+    if (addCat) addCat.innerHTML = buildCatOptions('', true);
   }
 
   function switchTab(tab) {

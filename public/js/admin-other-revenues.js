@@ -553,16 +553,26 @@
     await loadList();
   }
 
-  /* ── 초기화 / 재진입 통합 ── */
+  /* ── 초기화 / 재진입 통합 ──
+     ★ 버그픽스 20260515-2차 (#9): 사전 로드(카테고리)가 실패해도 화면 골격은 반드시
+        그린다. 예전엔 중간 단계가 throw하면 renderShell이 안 돌아 빈 섹션 = 빈 화면. */
   async function init() {
     const container = document.getElementById('adm-other-revenues') || document.getElementById('page-other-revenues');
     if (!container) return;
     if (!container.querySelector('.panel')) {
-      await loadCategories();
-      renderShell(container);
-      bindPeriodSelector('or', () => { currentPage = 1; loadList(); });
+      try { await loadCategories(); }
+      catch (e) { console.warn('[other-revenues] 카테고리 조회 실패', e); categories = categories || []; }
+      try {
+        renderShell(container);
+        bindPeriodSelector('or', () => { currentPage = 1; loadList(); });
+      } catch (e) {
+        console.error('[other-revenues] 화면 구성 실패', e);
+        container.innerHTML = `<div class="panel"><div style="color:var(--danger);padding:24px;text-align:center">후원 외 매출 화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.<br><small>${String(e?.message || e)}</small></div></div>`;
+        return;
+      }
     }
-    await loadList();
+    try { await loadList(); }
+    catch (e) { console.error('[other-revenues] 목록 조회 실패', e); }
   }
 
   window.SIREN_OTHER_REVENUES = {
