@@ -102,11 +102,33 @@ export default async function handler(req: Request, _ctx: Context) {
     console.warn("expenses 집계 실패 (0으로 계속):", err?.message);
   }
 
+  // 3-b. Phase 22-D-R3 예산 잠금 — vouchers 집계 (budget_line_id 기준)
+  //   reserved = submitted 전표 합 (승인 전 예약), 보조 집계라 실패해도 0으로 계속
+  const reservedByLineId: Map<number, number> = new Map();
+  try {
+    const vRows: any = await db.execute(sql`
+      SELECT budget_line_id,
+             COALESCE(SUM(amount) FILTER (WHERE status = 'submitted'), 0)::bigint AS reserved
+      FROM vouchers
+      WHERE budget_line_id IS NOT NULL
+        AND fiscal_year = ${year}
+        AND is_template = FALSE
+      GROUP BY budget_line_id
+    `);
+    for (const r of (vRows?.rows ?? vRows ?? [])) {
+      reservedByLineId.set(Number(r.budget_line_id), Number(r.reserved));
+    }
+  } catch (err: any) {
+    console.warn("vouchers 예약액 집계 실패 (0으로 계속):", err?.message);
+  }
+
   // 4. 결합
   const items = lines.map((r: any) => {
     const planned  = Number(r.planned_amount);
     const executed = execByCatId.get(Number(r.category_id)) ?? 0;
     const remaining = planned - executed;
+    const reserved  = reservedByLineId.get(Number(r.id)) ?? 0;
+    const available = planned - reserved - executed;
     return {
       id:             Number(r.id),
       categoryId:     Number(r.category_id),
@@ -118,11 +140,16 @@ export default async function handler(req: Request, _ctx: Context) {
       rate:           planned > 0 ? Math.round((executed / planned) * 100) : 0,
       prevYearActual: Number(r.prev_year_actual),
       note:           r.note,
+      // Phase 22-D-R3 예산 잠금 (신규 키 — 기존 키 변경 없음)
+      reserved,
+      available,
+      overBudget:     available < 0,
     };
   });
 
   const totalPlanned  = items.reduce((s, i) => s + i.plannedAmount, 0);
   const totalExecuted = items.reduce((s, i) => s + i.executedAmount, 0);
+  const totalReserved = items.reduce((s, i) => s + i.reserved, 0);
 
   return new Response(JSON.stringify({
     ok: true,
@@ -141,6 +168,9 @@ export default async function handler(req: Request, _ctx: Context) {
       totalExecuted,
       totalRemaining: totalPlanned - totalExecuted,
       executionRate: totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0,
+      // Phase 22-D-R3 예산 잠금
+      totalReserved,
+      totalAvailable: totalPlanned - totalReserved - totalExecuted,
     },
   }), { status: 200, headers: { "Content-Type": "application/json" } });
 }

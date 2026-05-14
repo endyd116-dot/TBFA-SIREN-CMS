@@ -3001,6 +3001,11 @@ export const vouchers = pgTable("vouchers", {
   approvedAt:     timestamp("approved_at", { withTimezone: true }),
   createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+
+  /* === Phase 22-D-R3 반복 전표 자동 cron === (2026-05-15)
+     마이그: migrate-phase22d-r3-recurring (적용 완료 후 활성) */
+  recurringDay:    integer("recurring_day"),                                 // 매월 자동 생성일 (1~31, 0=말일)
+  recurringActive: boolean("recurring_active").default(false).notNull(),      // 자동 생성 ON/OFF
 }, (t) => ({
   voucherNumberIdx: index("vouchers_number_idx").on(t.voucherNumber),
   dateIdx:          index("vouchers_date_idx").on(t.voucherDate),
