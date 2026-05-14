@@ -873,8 +873,11 @@
           <input type="text" id="btConfirmAcctCode" class="input" value="${escapeHtml(t.aiAccountCode || '')}" placeholder="예: admin_ops">
         </div>
         <div style="margin-bottom:10px">
-          <label class="form-label">예산 항목 ID (선택)</label>
-          <input type="number" id="btConfirmBudgetLine" class="input" placeholder="budget_line ID">
+          <label class="form-label">예산 항목 (선택)</label>
+          <select id="btConfirmBudgetLine" class="input">
+            <option value="">— 불러오는 중… —</option>
+          </select>
+          <div id="btConfirmBudgetHint" style="font-size:11.5px;color:var(--text-3,#94a0b3);margin-top:3px"></div>
         </div>
         <div style="margin-bottom:10px">
           <label class="form-label">보조 계정 (선택)</label>
@@ -898,6 +901,48 @@
         });
       });
       document.getElementById('btConfirmIgnore')?.addEventListener('click', () => submitConfirm(txnId, 'ignored', {}));
+
+      /* 예산 항목 드롭다운 채우기 + AI 1차 추천 (거래일 회계연도의 승인 예산안 기준) */
+      loadBudgetLineOptions(t);
+    }
+  }
+
+  /* 출금 전표 확정 — 예산 항목을 항목명 드롭다운으로 채우고 AI 추천 항목 자동 선택 */
+  async function loadBudgetLineOptions(txn) {
+    const sel  = document.getElementById('btConfirmBudgetLine');
+    const hint = document.getElementById('btConfirmBudgetHint');
+    if (!sel) return;
+    const year = String(txn.txnDate || '').slice(0, 4);
+    if (!/^\d{4}$/.test(year)) {
+      sel.innerHTML = '<option value="">— 거래일 연도를 알 수 없음 —</option>';
+      return;
+    }
+    const qs = new URLSearchParams({ year });
+    if (txn.aiAccountCode) qs.set('accountCode', txn.aiAccountCode);
+    const res = await api('GET', '/api/admin-budget-lines-list?' + qs.toString());
+    if (!res.ok) {
+      sel.innerHTML = '<option value="">— 예산 항목 조회 실패 —</option>';
+      if (hint) hint.textContent = res.data?.error || res.error || '';
+      return;
+    }
+    const d = unwrap(res);
+    const lines = Array.isArray(d.lines) ? d.lines : [];
+    if (!lines.length) {
+      sel.innerHTML = '<option value="">— 예산 항목 미지정 —</option>';
+      if (hint) hint.textContent = `${year}년 승인된 예산안이 없습니다. 예산 항목 없이 전표를 확정할 수 있습니다.`;
+      return;
+    }
+    const suggested = d.suggestedLineId || null;
+    sel.innerHTML = '<option value="">— 예산 항목 미지정 —</option>'
+      + lines.map(l =>
+          `<option value="${l.id}" ${l.id === suggested ? 'selected' : ''}>`
+          + `${escapeHtml(l.categoryName)} (편성액 ${fmtKRW(l.plannedAmount)})`
+          + `${l.id === suggested ? ' · AI 추천' : ''}</option>`
+        ).join('');
+    if (hint) {
+      hint.textContent = suggested
+        ? 'AI가 계정과목 분류에 맞춰 예산 항목을 1차 선택했습니다. 필요 시 변경하세요.'
+        : `${(d.plan && d.plan.title) || year + '년 예산안'} 기준 — 적합한 예산 항목을 선택하세요.`;
     }
   }
 
@@ -935,6 +980,46 @@
         ).join('');
     sel.style.display = '';
     if (hint) hint.textContent = `회원 후보 ${candidates.length}명 — 선택 시 해당 회원으로 후원 등록됩니다.`;
+  }
+
+  /* 출금 전표 확정 — 예산 항목 드롭다운 채우기 + AI 1차 추천 선택
+     거래일이 속한 회계연도의 '승인된' 예산안 항목만 후보로. */
+  async function loadBudgetLineOptions(txn) {
+    const sel  = document.getElementById('btConfirmBudgetLine');
+    const hint = document.getElementById('btConfirmBudgetHint');
+    if (!sel) return;
+    const year = String(txn.txnDate || '').slice(0, 4);
+    if (!/^\d{4}$/.test(year)) {
+      sel.innerHTML = '<option value="">— 거래일 연도를 알 수 없음 —</option>';
+      return;
+    }
+    const qs = new URLSearchParams({ year });
+    if (txn.aiAccountCode) qs.set('accountCode', txn.aiAccountCode);
+    const res = await api('GET', '/api/admin-budget-lines-list?' + qs.toString());
+    if (!res.ok) {
+      sel.innerHTML = '<option value="">— 예산 항목 조회 실패 —</option>';
+      if (hint) hint.textContent = res.data?.error || res.error || '';
+      return;
+    }
+    const d = unwrap(res);
+    const lines = Array.isArray(d.lines) ? d.lines : [];
+    if (!lines.length) {
+      sel.innerHTML = '<option value="">— 예산 항목 미지정 —</option>';
+      if (hint) hint.textContent = `${year}년 승인된 예산안이 없습니다. 예산 항목 없이도 전표를 확정할 수 있습니다.`;
+      return;
+    }
+    const suggested = d.suggestedLineId || null;
+    sel.innerHTML = '<option value="">— 예산 항목 미지정 —</option>'
+      + lines.map(l =>
+          `<option value="${l.id}" ${l.id === suggested ? 'selected' : ''}>`
+          + `${escapeHtml(l.categoryName)} (편성액 ${fmtKRW(l.plannedAmount)})`
+          + `${l.id === suggested ? ' · AI 추천' : ''}</option>`
+        ).join('');
+    if (hint) {
+      hint.textContent = suggested
+        ? 'AI가 계정과목 분류에 맞춰 예산 항목을 1차 선택했습니다. 필요 시 변경하세요.'
+        : `${d.plan?.title || year + '년 예산안'} 기준 — 적합한 예산 항목을 선택하세요.`;
+    }
   }
 
   async function submitConfirm(txnId, action, extra) {
