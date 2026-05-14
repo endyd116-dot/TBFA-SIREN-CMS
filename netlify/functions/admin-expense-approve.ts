@@ -24,16 +24,19 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "요청 본문 파싱 실패", step: "parse" }), { status: 400 });
   }
 
-  const { id, action, rejectionReason } = body;
+  // BUG-008 fix (22-A 일관성): id/rejectionReason과 expenseId/reason 키명 이중 지원
+  const id              = body?.id              ?? body?.expenseId;
+  const action          = body?.action;
+  const rejectionReason = body?.rejectionReason ?? body?.reason;
 
   if (!id || !action) {
-    return new Response(JSON.stringify({ ok: false, error: "id, action 필수", step: "validate" }), { status: 400 });
+    return new Response(JSON.stringify({ ok: false, error: "id(또는 expenseId), action 필수", step: "validate" }), { status: 400 });
   }
   if (!["approve", "reject"].includes(action)) {
     return new Response(JSON.stringify({ ok: false, error: "action은 approve 또는 reject", step: "validate_action" }), { status: 400 });
   }
   if (action === "reject" && !rejectionReason) {
-    return new Response(JSON.stringify({ ok: false, error: "반려 시 rejectionReason 필수", step: "validate_reason" }), { status: 400 });
+    return new Response(JSON.stringify({ ok: false, error: "반려 시 rejectionReason(또는 reason) 필수", step: "validate_reason" }), { status: 400 });
   }
 
   let existing: typeof expenses.$inferSelect[] = [];

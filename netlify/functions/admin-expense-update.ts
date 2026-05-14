@@ -6,8 +6,9 @@ import { eq } from "drizzle-orm";
 export const config = { path: "/api/admin-expense-update" };
 
 export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "PUT") {
-    return new Response(JSON.stringify({ ok: false, error: "PUT만 허용" }), { status: 405 });
+  // BUG-007 fix: PUT·PATCH 둘 다 허용 (전체 교체·부분 수정 양쪽 지원)
+  if (req.method !== "PUT" && req.method !== "PATCH") {
+    return new Response(JSON.stringify({ ok: false, error: "PUT 또는 PATCH만 허용" }), { status: 405 });
   }
 
   const auth = await requireAdmin(req);

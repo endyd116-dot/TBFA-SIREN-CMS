@@ -489,18 +489,20 @@ export const TOOL_DECLARATIONS = [
   { name: "revenue_create", description: "후원 외 수입 항목 등록 (draft 상태로 생성, 승인 별도. 회계연도는 recognizedAt 연도로 서버 자동 계산)",
     parameters: { type: "OBJECT", properties: {
       recognizedAt: { type: "STRING",  description: "수입 인식일 YYYY-MM-DD (회계연도 자동 계산용)" },
-      categoryId:   { type: "INTEGER", description: "revenue_categories.id (lecture|govgrant|corp_sponsor|twork_on|twork_si|etc 중 하나의 id)" },
+      categoryId:   { type: "INTEGER", description: "revenue_categories.id (categoryCode와 둘 중 하나 필요)" },
+      categoryCode: { type: "STRING",  description: "카테고리 코드 (categoryId 대신 사용 가능)", enum: ["lecture", "govgrant", "corp_sponsor", "twork_on", "twork_si", "etc"] },
       amount:       { type: "INTEGER", description: "금액 (원)" },
       payerName:    { type: "STRING",  description: "지급인·기관명 (선택)" },
       description:  { type: "STRING",  description: "상세 내용 (선택)" },
       receiptUrl:   { type: "STRING",  description: "영수증 URL (선택)" },
-    }, required: ["recognizedAt", "categoryId", "amount"] }},
+    }, required: ["recognizedAt", "amount"] }},
 
   { name: "revenue_list", description: "후원 외 수입 목록 조회 (회계연도·카테고리·상태·납입자·기간 필터)",
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "회계연도 (필수)" },
-      status:     { type: "STRING",  description: "draft|approved|rejected|all (기본 all)" },
+      status:     { type: "STRING",  description: "수입 상태", enum: ["draft", "approved", "rejected", "all"] },
       categoryId: { type: "INTEGER", description: "카테고리 ID 필터 (선택)" },
+      categoryCode: { type: "STRING", description: "카테고리 코드 필터 (선택)", enum: ["lecture", "govgrant", "corp_sponsor", "twork_on", "twork_si", "etc"] },
       payerName:  { type: "STRING",  description: "납입자·기관명 부분 일치 (선택)" },
       startDate:  { type: "STRING",  description: "인식일 시작 YYYY-MM-DD (선택)" },
       endDate:    { type: "STRING",  description: "인식일 종료 YYYY-MM-DD (선택)" },
@@ -523,7 +525,7 @@ export const TOOL_DECLARATIONS = [
   { name: "revenue_approve", description: "수입 항목 승인 또는 반려 (super_admin 전용)",
     parameters: { type: "OBJECT", properties: {
       id:              { type: "INTEGER", description: "수입 항목 ID" },
-      action:          { type: "STRING",  description: "approve|reject" },
+      action:          { type: "STRING",  description: "approve(승인) 또는 reject(반려)", enum: ["approve", "reject"] },
       rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
     }, required: ["id", "action"] }},
 
@@ -542,11 +544,12 @@ export const TOOL_DECLARATIONS = [
   { name: "expense_categories_list", description: "지출 카테고리 목록. NPO 표준 4분류(인건비/사업비/관리운영비/모금비) + 사용자 정의",
     parameters: { type: "OBJECT", properties: {} }},
 
-  { name: "expenses_list", description: "지출 항목 목록 조회. 연도·상태·카테고리 필터 (status: draft|approved|rejected)",
+  { name: "expenses_list", description: "지출 항목 목록 조회. 연도·상태·카테고리 필터",
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
-      status:     { type: "STRING",  description: "draft|approved|rejected|all (기본 all)" },
+      status:     { type: "STRING",  description: "지출 상태", enum: ["draft", "approved", "rejected", "all"] },
       categoryId: { type: "INTEGER", description: "expense_categories.id (선택)" },
+      categoryCode: { type: "STRING", description: "카테고리 코드 필터 (선택)", enum: ["personnel", "program", "admin_ops", "fundraising"] },
       page:       { type: "INTEGER" },
       limit:      { type: "INTEGER" },
     }}},
@@ -555,24 +558,25 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {
       fiscalYear:  { type: "INTEGER", description: "회계연도 (예: 2026)" },
       occurredAt:  { type: "STRING",  description: "지출 발생일 YYYY-MM-DD" },
-      categoryId:  { type: "INTEGER", description: "expense_categories.id" },
+      categoryId:  { type: "INTEGER", description: "expense_categories.id (categoryCode와 둘 중 하나 필요)" },
+      categoryCode: { type: "STRING", description: "카테고리 코드 (categoryId 대신 사용 가능). 시스템 4분류:personnel(인건비)/program(사업비)/admin_ops(관리운영비)/fundraising(모금비)" },
       amount:      { type: "INTEGER", description: "금액 (원)" },
       payeeName:   { type: "STRING",  description: "지급처 (선택)" },
       description: { type: "STRING",  description: "상세 내용 (선택)" },
       receiptUrl:  { type: "STRING",  description: "영수증 URL (선택)" },
-    }, required: ["fiscalYear", "occurredAt", "categoryId", "amount"] }},
+    }, required: ["fiscalYear", "occurredAt", "amount"] }},
 
-  { name: "expense_approve", description: "지출 항목 승인 또는 반려 (super_admin 전용, action: approve|reject)",
+  { name: "expense_approve", description: "지출 항목 승인 또는 반려 (super_admin 전용)",
     parameters: { type: "OBJECT", properties: {
       id:              { type: "INTEGER", description: "지출 항목 ID" },
-      action:          { type: "STRING",  description: "approve|reject" },
+      action:          { type: "STRING",  description: "approve(승인) 또는 reject(반려)", enum: ["approve", "reject"] },
       rejectionReason: { type: "STRING",  description: "반려 사유 (action=reject 필수)" },
     }, required: ["id", "action"] }},
 
-  { name: "expense_refund", description: "승인된 지출 항목 환불 기록 (super_admin 전용, status='approved'만 가능)",
+  { name: "expense_refund", description: "승인된 지출 항목 환불 기록 (super_admin 전용, status='approved'만 가능, 누적 환불액이 원금 초과 불가)",
     parameters: { type: "OBJECT", properties: {
       id:           { type: "INTEGER", description: "지출 항목 ID" },
-      refundAmount: { type: "INTEGER", description: "환불 금액 (원). 원래 금액 이하" },
+      refundAmount: { type: "INTEGER", description: "환불 금액 (원). 기존 환불액에 가산되며, 누적합이 원금 이하여야 함" },
     }, required: ["id", "refundAmount"] }},
 ];
 
@@ -586,6 +590,28 @@ export interface ToolResult {
   preview?: any;
   rollbackData?: any;
   error?: string;
+}
+
+/**
+ * BUG-006 안전망: adminId 기반 role 조회 (members.role).
+ * ai_tool_permissions 권한 가드는 호출자에서 작동하지만, 시드 누락 시 우회 가능
+ * → 핸들러 자체에서 한 번 더 검증. allowedRoles에 현재 role 포함 시 통과.
+ */
+type RoleGuardResult = { ok: true; error?: undefined } | { ok: false; error: string };
+
+async function ensureRole(adminId: number | null, allowedRoles: string[]): Promise<RoleGuardResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증이 필요합니다" };
+  try {
+    const r: any = await db.execute(sql`SELECT role FROM members WHERE id = ${adminId} LIMIT 1`);
+    const row = (r?.rows ?? r ?? [])[0];
+    const role = row?.role ? String(row.role) : null;
+    // role hierarchy: super_admin > admin (super_admin은 admin 도구 자동 허용)
+    if (role === "super_admin") return { ok: true };
+    if (role && allowedRoles.includes(role)) return { ok: true };
+    return { ok: false, error: `${allowedRoles.join("/")} 권한이 필요합니다 (현재: ${role || "없음"})` };
+  } catch (e: any) {
+    return { ok: false, error: `권한 확인 실패: ${e?.message?.slice(0, 200)}` };
+  }
 }
 
 export async function executeTool(
@@ -3125,13 +3151,35 @@ async function tool_revenueCategoriesList(): Promise<ToolResult> {
 }
 
 async function tool_revenueCreate(args: any, adminId: number | null): Promise<ToolResult> {
-  const { recognizedAt, categoryId, amount, payerName, description, receiptUrl } = args || {};
-  if (!recognizedAt || !categoryId || !amount) {
-    return { ok: false, error: "recognizedAt, categoryId, amount 필수" };
+  const { recognizedAt, categoryId: rawCatId, categoryCode, amount, payerName, description, receiptUrl } = args || {};
+  if (!recognizedAt || !amount) {
+    return { ok: false, error: "recognizedAt, amount 필수" };
+  }
+  if (!rawCatId && !categoryCode) {
+    return { ok: false, error: "categoryId 또는 categoryCode 둘 중 하나 필수" };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(recognizedAt))) {
     return { ok: false, error: "recognizedAt 형식 오류 (YYYY-MM-DD 필요)" };
   }
+
+  // BUG-011 fix: categoryCode → categoryId 매핑 (AI 자연어 친화)
+  let categoryId = rawCatId ? Number(rawCatId) : null;
+  if (!categoryId && categoryCode) {
+    const ALLOWED = new Set(["lecture", "govgrant", "corp_sponsor", "twork_on", "twork_si", "etc"]);
+    const code = String(categoryCode).trim();
+    if (!ALLOWED.has(code)) {
+      return { ok: false, error: `categoryCode는 ${[...ALLOWED].join("|")} 중 하나` };
+    }
+    try {
+      const catR: any = await db.execute(sql`SELECT id FROM revenue_categories WHERE code = ${code} LIMIT 1`);
+      const catRow = (catR?.rows ?? catR ?? [])[0];
+      if (!catRow) return { ok: false, error: `카테고리 코드 '${code}'가 DB에 없음` };
+      categoryId = Number(catRow.id);
+    } catch (e: any) {
+      return { ok: false, error: `카테고리 코드 조회 실패: ${e?.message?.slice(0, 200)}` };
+    }
+  }
+
   // BUG-004 fix: fiscalYear는 recognizedAt 연도로 자동 계산
   const fiscalYear = Number(String(recognizedAt).slice(0, 4));
 
@@ -3139,7 +3187,8 @@ async function tool_revenueCreate(args: any, adminId: number | null): Promise<To
   const preview = {
     fiscalYear,
     recognizedAt: String(recognizedAt),
-    categoryId: Number(categoryId),
+    categoryId,
+    categoryCode: categoryCode || null,
     amount: Number(amount),
     payerName: payerName || null,
     description: description || null,
@@ -3151,7 +3200,7 @@ async function tool_revenueCreate(args: any, adminId: number | null): Promise<To
   try {
     const r: any = await db.execute(sql`
       INSERT INTO other_revenues (fiscal_year, recognized_at, category_id, amount, payer_name, description, receipt_url, status, refund_amount, recorded_by, recorded_at)
-      VALUES (${fiscalYear}, ${String(recognizedAt)}::date, ${Number(categoryId)}, ${Number(amount)},
+      VALUES (${fiscalYear}, ${String(recognizedAt)}::date, ${categoryId}, ${Number(amount)},
               ${payerName || null}, ${description || null}, ${receiptUrl || null}, 'draft', 0, ${adminId}, NOW())
       RETURNING id, fiscal_year, recognized_at, category_id, amount, status
     `);
@@ -3238,6 +3287,10 @@ async function tool_revenueUpdate(args: any, adminId: number | null): Promise<To
 }
 
 async function tool_revenueApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  // BUG-006 안전망: super_admin 가드 (ai_tool_permissions 시드 누락 대비)
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
   const { id, action, rejectionReason } = args || {};
   if (!id || !action) return { ok: false, error: "id, action 필수" };
   if (!["approve", "reject"].includes(action)) return { ok: false, error: "action은 approve 또는 reject" };
@@ -3264,6 +3317,10 @@ async function tool_revenueApprove(args: any, adminId: number | null): Promise<T
 }
 
 async function tool_revenueRefund(args: any, adminId: number | null): Promise<ToolResult> {
+  // BUG-006 안전망: super_admin 가드 (API admin-revenue-refund.ts와 동일 권한)
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
   const { id, refundAmount } = args || {};
   if (!id || refundAmount === undefined) return { ok: false, error: "id, refundAmount 필수" };
   if (Number(refundAmount) < 0) return { ok: false, error: "환불금액은 0 이상이어야 합니다" };
@@ -3488,26 +3545,44 @@ async function tool_expensesList(args: any): Promise<ToolResult> {
 }
 
 async function tool_expenseCreate(args: any, adminId: number | null): Promise<ToolResult> {
-  const { fiscalYear, occurredAt, categoryId, amount, payeeName, description, receiptUrl } = args || {};
-  if (!fiscalYear || !occurredAt || !categoryId || amount === undefined) {
-    return { ok: false, error: "fiscalYear, occurredAt, categoryId, amount 필수" };
+  const { fiscalYear, occurredAt, categoryId: rawCatId, categoryCode, amount, payeeName, description, receiptUrl } = args || {};
+  if (!fiscalYear || !occurredAt || amount === undefined) {
+    return { ok: false, error: "fiscalYear, occurredAt, amount 필수" };
+  }
+  if (!rawCatId && !categoryCode) {
+    return { ok: false, error: "categoryId 또는 categoryCode 둘 중 하나 필수" };
   }
   if (Number(amount) <= 0) {
     return { ok: false, error: "금액은 0보다 커야 합니다" };
   }
 
-  // §15.5 schema 사전 검증: categoryId FK 존재 확인
+  // BUG-011 fix: categoryCode → categoryId 매핑 (AI 자연어 친화)
+  // §15.5 schema 사전 검증: id 또는 code로 카테고리 행 조회 + is_active 확인
   let catRow: any;
   try {
-    const r: any = await db.execute(sql`
-      SELECT id, name, is_active FROM expense_categories WHERE id = ${Number(categoryId)} LIMIT 1
-    `);
-    catRow = (r?.rows ?? r ?? [])[0];
+    if (rawCatId) {
+      const r: any = await db.execute(sql`
+        SELECT id, name, is_active FROM expense_categories WHERE id = ${Number(rawCatId)} LIMIT 1
+      `);
+      catRow = (r?.rows ?? r ?? [])[0];
+    } else {
+      const ALLOWED = new Set(["personnel", "program", "admin_ops", "fundraising"]);
+      const code = String(categoryCode).trim();
+      // 시스템 4분류 외에도 사용자 정의 카테고리가 있을 수 있으므로 ALLOWED 검증은 경고만 (DB 조회에 의존)
+      const r: any = await db.execute(sql`
+        SELECT id, name, is_active FROM expense_categories WHERE code = ${code} LIMIT 1
+      `);
+      catRow = (r?.rows ?? r ?? [])[0];
+      if (!catRow && ALLOWED.has(code)) {
+        return { ok: false, error: `시스템 카테고리 코드 '${code}'가 DB에 없음 (마이그레이션 미실행 의심)` };
+      }
+    }
   } catch (e: any) {
     return { ok: false, error: `카테고리 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
   if (!catRow) return { ok: false, error: "존재하지 않는 카테고리" };
   if (!catRow.is_active) return { ok: false, error: "비활성화된 카테고리입니다" };
+  const categoryId = Number(catRow.id);
 
   const dryRun = args?.requireApproval !== false;
   const preview = {
@@ -3543,6 +3618,10 @@ async function tool_expenseCreate(args: any, adminId: number | null): Promise<To
 }
 
 async function tool_expenseApprove(args: any, adminId: number | null): Promise<ToolResult> {
+  // BUG-006 안전망: super_admin 가드
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
   const { id, action, rejectionReason } = args || {};
   if (!id || !action) return { ok: false, error: "id, action 필수" };
   if (!["approve", "reject"].includes(action)) return { ok: false, error: "action은 approve 또는 reject" };
@@ -3592,6 +3671,10 @@ async function tool_expenseApprove(args: any, adminId: number | null): Promise<T
 }
 
 async function tool_expenseRefund(args: any, adminId: number | null): Promise<ToolResult> {
+  // BUG-006 안전망: super_admin 가드 (API admin-expense-refund.ts와 동일 권한)
+  const roleGuard = await ensureRole(adminId, ["super_admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
   const { id, refundAmount } = args || {};
   if (!id || refundAmount === undefined) return { ok: false, error: "id, refundAmount 필수" };
   if (Number(refundAmount) < 0) return { ok: false, error: "환불금액은 0 이상이어야 합니다" };
