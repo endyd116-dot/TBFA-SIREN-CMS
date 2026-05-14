@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-15 / **Phase 22-B-R1 마감 + 22-B-R2·22-D-R1 동시 진행 착수** / main @ `d28c833`
+> **마지막 갱신**: 2026-05-15 / **Phase 22-B-R2·22-D-R1 마감 + 22-B-R3 착수 대기** / main @ `7d080b8`
 
 ---
 
@@ -26,37 +26,39 @@
 3) docs/PARALLEL_GUIDE.md §1~§19 정독
 4) memory/MEMORY.md 인덱스 + feedback_* 메모리 본문 정독
 5) 본 §3 (지금 진행 중인 일) 확인
-6) R2·D1 채팅 완료 보고 받으면 머지 진행
+6) 22-B-R3 B·A 완료 보고 받으면 머지 진행
 ```
 
 ---
 
 ## 3. 지금 진행 중인 일
 
-### 3.1 Phase 22-B-R2 + 22-D-R1 — 동시 진행 중 (2026-05-15 착수)
+### 3.1 Phase 22-B-R3 — NPO 표준 회계 보고서 (착수 대기, 2026-05-15 설계 완성)
 
-**구조**: 기존 A·B·C 구조 유지. 각 채팅이 두 라운드를 **한 브랜치에서** 담당
-(A=두 라운드 프론트, B=두 라운드 백엔드 — A↔B 영역 분리라 충돌 0, 라운드 조율은 채팅 내부).
+| 채팅 | 브랜치 | 담당 | 상태 |
+|---|---|---|---|
+| A | feature/phase22b-r3-front | 🎨 운영성과표·예산실적표 2탭 정식화 + 인쇄·엑셀·PDF | 트리거 발송 |
+| B | feature/phase22b-r3-back | 🔧 PDF 생성 함수 + 옛 테이블 코드 정리 | 트리거 발송 |
+| C | tbfa-mis-C | 🔍 검증 Q1~Q12 | B·A 머지 후 |
 
-| 채팅 | 워크트리 | 브랜치 | 담당 | 상태 |
-|---|---|---|---|---|
-| A | tbfa-mis-A | feature/phase22-r2d1-front | 🎨 22-B-R2 예산 패널 + 22-D-R1 전표 탭 | 트리거 발송 |
-| B | tbfa-mis-B | feature/phase22-r2d1-back | 🔧 두 라운드 백엔드 + AI 도구 | 트리거 발송 |
-| C | tbfa-mis-C | — | 🔍 두 라운드 통합 검증 | 대기 |
+**설계서**: [`docs/milestones/2026-05-15-phase22b-r3-accounting-reports.md`](milestones/2026-05-15-phase22b-r3-accounting-reports.md)
+**핵심**: 운영성과표 + 예산 대비 실적표 / 인쇄·엑셀·PDF / 22-B-R1 기간 필터 재사용 / 옛 테이블(budgets·budget_categories·expenditures) 코드 정의 제거.
+**재사용 중심**: 데이터 API는 `pl-summary`·`budget-list` 그대로, 신규는 PDF 생성 함수만.
 
-**설계서**:
-- [`docs/milestones/2026-05-15-phase22b-r2-budget-planning.md`](milestones/2026-05-15-phase22b-r2-budget-planning.md)
-- [`docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md`](milestones/2026-05-15-phase22d-r1-voucher-bank-import.md)
+### 3.2 Phase 22-B-R2 + 22-D-R1 — 마감 (2026-05-15)
 
-**핵심 결정 (Swain)**:
-- 22-B-R2: 전년 실적 자동 채움 / 작성→상신→승인 2단계 / expense_categories 단일화 / 예산 잠금은 22-D-R2로
-- 22-D-R1: 전표 탭(지출 관리 패널 내) / NPO 표준 계정과목 18개 / `vouchers.budget_line_id` → 22-B-R2 budget_lines 의존
+| 라운드 | 결과 |
+|---|---|
+| 22-B-R2 예산 편성 | budget_plans·budget_lines + API 9개 + 전년 실적 자동 채움 + 2단계 결재 / C 검증 11/12 |
+| 22-D-R1 전표 시스템 | vouchers·account_codes(18개)·bank_* + API 10개 + 반복 템플릿 / C 검증 13/16, 교차 확인 PASS |
+| BUG fix | BUG-019(AI 도구 그룹 누락)·BUG-020(전표 승인 action) 자체 fix 머지 |
+| 핵심 커밋 | `a239eb9`(B) `6548f2c`(A) `4251509`(마이그) `7d080b8`(BUG fix) |
+| 메타 경고 | AI 도구 그룹 갱신 3라운드 연속 누락 → 메모리에 갱신 의무 5곳 명문화 |
 
-**병렬 충돌 회피** (22-B-R2 설계서 §7): `schema.ts` append-only 섹션 헤더 / `ai-agent-tools.ts`는 배열·switch 맨 끝에만 추가 / `cms-tbfa.html` 각자 섹션 내부만.
+설계서: `phase22b-r2-budget-planning.md` / `phase22d-r1-voucher-bank-import.md`
+검증 보고서: `docs/verify/2026-05-15-phase22-r2d1.md`
 
-**머지 순서**: 먼저 끝난 라운드 먼저 머지 → 나중 라운드 rebase → 둘 다 머지 후 C 통합 검증 → 메인이 budget_line_id FK 추가.
-
-### 3.2 Phase 22-B-R1 — 마감 (2026-05-15)
+### 3.3 Phase 22-B-R1 — 마감 (2026-05-15)
 
 재정 화면 6개 통합 CMS 이전 + 지출 시스템 단일화 + 기간 필터.
 
@@ -72,7 +74,7 @@
 설계서: [`docs/milestones/2026-05-15-phase22b-r1-finance-relocation.md`](milestones/2026-05-15-phase22b-r1-finance-relocation.md)
 검증 보고서: `docs/verify/2026-05-15-phase22b-r1.md`
 
-### 3.3 Phase 22-A·22-C — 완전 마감 (2026-05-15 새벽)
+### 3.4 Phase 22-A·22-C — 완전 마감 (2026-05-15 새벽)
 
 매출 통합 관리(22-A) + 지출 관리(22-C). R1·R2·R3 합산 BUG 15건 전부 해소. 운영 가능.
 상세는 [`docs/milestones-archive.md`](milestones-archive.md) + 메모리 `project_ai_cost_safety.md`.
@@ -83,26 +85,23 @@
 ## 4. 즉시 해야 할 일 (새 메인)
 
 ```
-1. R2·D1 채팅 완료 보고 대기 → 머지 (먼저 끝난 쪽 먼저)
-2. 각 라운드 마이그 호출은 Swain에게 진단 URL 안내 → 매핑·결과 확인 후 ?run=1
-3. 두 라운드 머지 완료 → C 통합 검증 트리거 발행 (22-D-R1 설계서 §9.2)
-4. 두 라운드 마감 → 22-B-R3 (NPO 표준 회계 보고서) 협의
-5. 별도 사안: 기존 tsc 묵은 에러 14건 정리 라운드 (22-B-R3 이후 우선순위)
+1. 22-B-R3 B·A 완료 보고 대기 → 머지 (B 백엔드 먼저 → A 프론트)
+2. B의 PDF 함수 + 옛 테이블 정리 머지 → tsc 신규 에러 0건 확인
+3. B·A 머지 완료 → C 검증 트리거 발행 (22-B-R3 설계서 §8.3)
+4. C 검증 BUG fix 머지 → 22-B-R3 마감 → Phase 22-B 3부작 완결
+5. 후속: 22-D-R2 통장 자동화 / tsc 묵은 에러 14건 정리 / vouchers FK 마이그
 ```
 
 ---
 
-## 5. 채팅 구조 (현재 — A·B·C 유지, 두 라운드 동시 진행)
+## 5. 채팅 구조 (현재 — A·B·C, 22-B-R3 착수 대기)
 
 | 채팅 | 모델 | 워크트리 | 역할 | 현재 상태 |
 |---|---|---|---|---|
-| 메인 | Opus 4.7 | tbfa-mis | 설계·머지·조율·문서 | 22-B-R1 마감, A·B 트리거 발송 |
-| A | Sonnet 4.6 (작업량 많으면 Opus) | tbfa-mis-A | 프론트 — 두 라운드 | 착수 |
-| B | Opus 4.7 | tbfa-mis-B | 백엔드 + AI 도구 — 두 라운드 | 착수 |
-| C | Opus 4.7 | tbfa-mis-C | 두 라운드 통합 검증 | 대기 |
-
-> 22-B-R2·22-D-R1은 한 채팅이 두 라운드를 한 브랜치에서 담당.
-> A(프론트)·B(백엔드) 영역 분리 유지 — 채팅 내부에서 두 라운드 순차 조율.
+| 메인 | Opus 4.7 | tbfa-mis | 설계·머지·조율·문서 | 22-B-R2·22-D-R1 마감, 22-B-R3 트리거 발송 |
+| A | Sonnet 4.6 | tbfa-mis-A | 프론트 | ⏸ 22-B-R3 `feature/phase22b-r3-front` 트리거 대기 |
+| B | Opus 4.7 | tbfa-mis-B | 백엔드 + AI 도구 | ⏸ 22-B-R3 `feature/phase22b-r3-back` 트리거 대기 |
+| C | Opus 4.7 | tbfa-mis-C | 검증 + fix | ⏸ 22-B-R3 B·A 머지 후 검증 |
 
 ---
 
@@ -122,6 +121,9 @@
 | 2026-05-14 | 옛 main 베이스 브랜치 머지 | 선택적 체크아웃 패턴 (§16) |
 | 2026-05-15 | A·B가 PowerShell·git 권한 재질문 | settings.json `Bash(*)`·`PowerShell(*)` allow + 트리거에 권한질문 금지 명시 |
 | 2026-05-15 | R3 옛 베이스 머지 → ai-agent-tools 충돌 | 충돌 해소 시 최신(period) 버전 살림 |
+| 2026-05-15 | B가 PROJECT_STATE 무단 변경(트리거 위반) | 머지 시 PROJECT_STATE 변경분 차단 (코드 파일만) |
+| 2026-05-15 | A가 옛 베이스 분기 → cms-tbfa.html 충돌 | 트리거에 "git pull 후 main 최신 분기" 강조 |
+| 2026-05-15 | AI 도구 그룹 갱신 3라운드 연속 누락 | 메모리에 AI 도구 신설 시 갱신 의무 5곳 명문화(④ admin-ai-agent.ts TOOL_GROUPS) |
 
 ### 6.2 마이그레이션 호출 표준
 
@@ -178,21 +180,21 @@ const adminUid = auth.ctx?.admin?.uid;   // id 아님
 | Phase 22-A 매출 통합 관리 | ✅ 100% (BUG 15건 해소) |
 | Phase 22-C 지출 관리 | ✅ 100% |
 | **Phase 22-B-R1 재정 화면 이전·기간 필터** | ✅ 100% (BUG 3건 해소) |
-| **Phase 22-B-R2 예산 편성·2단계 결재** | 🔵 진행 중 (R2 채팅) |
-| **Phase 22-D-R1 전표 시스템** | 🔵 진행 중 (D1 채팅) |
-| Phase 22-B-R3 NPO 표준 회계 보고서 | ⏸ R2 이후 |
-| Phase 22-D-R2/R3 통장 자동화·AI 부가기능 | ⏸ D1 이후 |
+| **Phase 22-B-R2 예산 편성·2단계 결재** | ✅ 100% (C 검증 11/12 + BUG fix) |
+| **Phase 22-D-R1 전표 시스템** | ✅ 100% (C 검증 13/16 + BUG fix, 교차 확인 PASS) |
+| **Phase 22-B-R3 NPO 표준 회계 보고서** | 🔵 설계 완성·트리거 발송 (착수 대기) |
+| Phase 22-D-R2/R3 통장 자동화·AI 부가기능 | ⏸ 22-B-R3 이후 |
 
-누적 약 **73%** / 약 690h+
+누적 약 **75%** / 약 710h+
 
 ---
 
 ## 8. AI 에이전트 v3 (참고 — 종료된 시스템)
 
-**상태**: 개발 종료(2026-05-14). 현재 도구 90개 (22-A 7 + 22-C 5 추가).
-22-B-R2(예산 3개)·22-D-R1(전표 4개) 진행 중 — 완료 시 97개 예정.
+**상태**: 개발 종료(2026-05-14). 현재 도구 **97개** (22-A 7 + 22-C 5 + 22-B-R2 예산 3 + 22-D-R1 전표 4 추가).
 **표준 문서**: [`docs/standards/AI_AGENT_PLATFORM_STANDARD.md`](standards/AI_AGENT_PLATFORM_STANDARD.md) v1.4
 자세한 내용은 메모리 `project_ai_cost_safety.md` 정독.
+⚠️ AI 도구 신설 시 갱신 의무 **5곳** — ④ `admin-ai-agent.ts` TOOL_GROUPS 3라운드 연속 누락(BUG-009→016→019). 메모리 참조.
 
 ---
 
@@ -202,11 +204,11 @@ const adminUid = auth.ctx?.admin?.uid;   // id 아님
 인수인계 정독 완료.
 
 현재 상태:
-- Phase 22-A·22-C·22-B-R1 ✅ 마감 (main @ d28c833)
-- Phase 22-B-R2(예산 편성)·22-D-R1(전표 시스템) 🔵 동시 진행 중
-  · R2 채팅: tbfa-mis-B / feature/phase22b-r2
-  · D1 채팅: tbfa-mis-A / feature/phase22d-r1
-- 다음: R2·D1 완료 보고 → 머지 → 마이그 호출 → C 통합 검증
+- Phase 22-A·22-C·22-B-R1·22-B-R2·22-D-R1 ✅ 마감 (main @ 7d080b8)
+- Phase 22-B-R3(NPO 표준 회계 보고서) 🔵 설계 완성·B·A·C 트리거 발송
+  · B: tbfa-mis-B / feature/phase22b-r3-back (PDF 함수 + 옛 테이블 정리)
+  · A: tbfa-mis-A / feature/phase22b-r3-front (보고서 2탭 + 인쇄·엑셀·PDF)
+- 다음: 22-B-R3 B·A 완료 보고 → 머지 → C 검증 → Phase 22-B 3부작 완결
 
-R2·D1 진행 상황 확인하고 머지 준비하겠습니다.
+22-B-R3 진행 상황 확인하고 머지 준비하겠습니다.
 ```

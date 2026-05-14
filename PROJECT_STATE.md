@@ -24,11 +24,11 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-15 | **메인** | **Phase 22-B-R2 + 22-D-R1 동시 진행 착수** (main @ `48efbbd`) — 두 라운드 설계서·트리거 완성. **A·B·C 구조 유지** — 각 채팅이 두 라운드를 한 브랜치에서 담당(`feature/phase22-r2d1-front`·`-back`). 22-B-R2: budget_plans+budget_lines·2단계 결재(작성→상신→승인)·전년 실적 자동 채움·expense_categories 단일화. 22-D-R1: vouchers·계정과목 NPO 18개·증빙·예산 연결(budget_lines)·반복 템플릿. C는 두 라운드 통합 검증. A·B 트리거 발송. |
-| 2026-05-15 | **메인** | **🎉 Phase 22-B-R1 ✅ 마감** (main @ `d28c833`) — 재정 화면 6개 통합 CMS 이전 + 지출 단일화 + 기간 필터(period). C 검증 PASS 18/20 → BUG-016/017/018 자체 fix 머지. 옛 지출 데이터 0건 진단 → 마이그 함수 삭제(실행 불필요). 카테고리 NPO 4분류 통일 결정(재편은 R2 이관). 22-A-R3 cleanup도 함께 머지(`9817e89`, ai-agent-tools.ts 충돌 1건 해소). 기존 tsc 묵은 에러 14건 발견 — 22-B 무관·배포 영향 없음·별도 정리 라운드 필요. |
-| 2026-05-15 (새벽) | **메인** | **🎉🎉 Phase 22-A·22-C ✅ 완전 마감** (main @ `76bf068`) — R1·R2·R3 합산 BUG 15건 모두 해소. R3 8건: ensureRole 권한 안전망·PUT/PATCH 허용·키명 이중·selectRelevantTools 키워드 13종·도구 description enum·categoryCode 자연어·?all=1 안전망. 운영 가능 상태 확정. |
-| 2026-05-14 (심야) | **메인** | **22-A·22-C B·A·C 머지 + R2 검증** — 22-A·22-C 백엔드·프론트 머지, C 검증 R1(BUG 12건)·R2(PASS 23/27, BUG-015 환불 누적 fix). 선택적 체크아웃 패턴·충돌 해결 2건. |
-| 2026-05-12 | **메인** | **🎉 Phase 21 워크스페이스 v3 ✅ 100% 마감** — R1·R2+R3·R4 3개 라운드 완료, 회귀 0, 보고서 3종. §6.15 진행 중 채팅 알림 의무 신설. |
+| 2026-05-15 | **메인** | **🎉 Phase 22-B-R2 + 22-D-R1 ✅ 마감** (main @ `7d080b8`) — 예산 편성·전표 시스템 두 라운드 동시 진행 완료. B·A 머지 + 마이그 2개 호출(budget_plans·budget_lines / account_codes 18개·vouchers·bank_*) + C 통합 검증(R2 11/12·D1 13/16) + BUG-019/020 fix 머지. 교차 확인(전표↔예산안) PASS. 메타 경고: AI 도구 그룹 갱신 3라운드 연속 누락(BUG-009→016→019) → 메모리 `project_ai_cost_safety`에 갱신 의무 5곳 명문화(④ admin-ai-agent.ts TOOL_GROUPS). 머지 시 B의 PROJECT_STATE 무단 변경 차단. **22-B-R3 설계서 완성·B·A·C 트리거 발송.** |
+| 2026-05-15 | **메인** | **Phase 22-B-R2 + 22-D-R1 동시 진행 착수** — A·B·C 구조 유지, 각 채팅이 두 라운드를 한 브랜치에서 담당(`feature/phase22-r2d1-front`·`-back`). 22-B-R2: budget_plans+budget_lines·2단계 결재·전년 실적 자동 채움. 22-D-R1: vouchers·계정과목 NPO 18개·증빙·예산 연결. |
+| 2026-05-15 | **메인** | **🎉 Phase 22-B-R1 ✅ 마감** (main @ `d28c833`) — 재정 화면 6개 통합 CMS 이전 + 지출 단일화 + 기간 필터. C 검증 18/20 → BUG-016/017/018 fix. 옛 지출 데이터 0건 진단 → 마이그 삭제. 카테고리 NPO 4분류 통일 결정. tsc 묵은 에러 14건 발견(배포 영향 없음·별도 정리 필요). |
+| 2026-05-15 (새벽) | **메인** | **🎉🎉 Phase 22-A·22-C ✅ 완전 마감** (main @ `76bf068`) — R1·R2·R3 합산 BUG 15건 해소. ensureRole 권한 안전망·키명 이중·categoryCode 자연어 등. 운영 가능. |
+| 2026-05-14 (심야) | **메인** | **22-A·22-C B·A·C 머지 + R2 검증** — 백엔드·프론트 머지, C 검증 R1(BUG 12건)·R2(PASS 23/27). 선택적 체크아웃·충돌 해결 2건. |
 > 갱신 시 위 표 **맨 위**에 행 추가. 5행 넘으면 오래된 행 삭제.
 
 ---
@@ -36,32 +36,30 @@
 ## 3. 현재 작업 모드
 
 ```
-🔵 Phase 22-B-R2 + 22-D-R1 — 동시 진행 중 (2026-05-15 착수)
-   설계서: docs/milestones/2026-05-15-phase22b-r2-budget-planning.md
-           docs/milestones/2026-05-15-phase22d-r1-voucher-bank-import.md
-   베이스: main @ 48efbbd
-   구조: A·B·C 유지 — 각 채팅이 두 라운드를 한 브랜치에 담당
-   ├─ A: feature/phase22-r2d1-front (예산 패널 + 전표 탭) — 트리거 발송
-   ├─ B: feature/phase22-r2d1-back (두 라운드 백엔드 + AI 도구 7개) — 트리거 발송
-   └─ C: 두 라운드 통합 검증 — A·B 머지 + 마이그 2개 호출 후 트리거
+🔵 Phase 22-B-R3 — NPO 표준 회계 보고서 (착수 대기)
+   설계서: docs/milestones/2026-05-15-phase22b-r3-accounting-reports.md
+   베이스: main @ 7d080b8
+   운영성과표 + 예산 대비 실적표 / 인쇄·엑셀·PDF / 옛 테이블 코드 정리
+   ├─ A: feature/phase22b-r3-front (보고서 2탭 정식화 + 출력 3종) — 트리거 발송
+   ├─ B: feature/phase22b-r3-back (PDF 생성 함수 + 옛 테이블 정리) — 트리거 발송
+   └─ C: 검증 Q1~Q12 — B·A 머지 후 트리거
 
-✅ Phase 22-B-R1 — 마감 (2026-05-15, main @ d28c833)
-   재정 화면 6개 통합 CMS 이전 + 지출 단일화 + 기간 필터
-   C 검증 PASS 18/20 + BUG-016/017/018 fix / 보고서 docs/verify/2026-05-15-phase22b-r1.md
+✅ Phase 22-B-R2 + 22-D-R1 — 마감 (2026-05-15)
+   22-B-R2 예산 편성·2단계 결재 / 22-D-R1 전표 시스템
+   C 통합 검증 R2 11/12·D1 13/16 + BUG-019/020 fix / 보고서 docs/verify/2026-05-15-phase22-r2d1.md
 
-✅ Phase 22-A·22-C — 완전 마감 (2026-05-15 새벽, BUG 15건 해소, 운영 가능)
+✅ Phase 22-B-R1 — 마감 (2026-05-15)  /  ✅ Phase 22-A·22-C — 완전 마감 (BUG 15건 해소)
 
-⏸ 후속 라운드 (현재 두 라운드 마감 후)
-   - 22-B-R3: NPO 표준 회계 보고서 (운영성과표·재정상태표·현금흐름표)
-   - 22-D-R2: 통장거래내역 CSV/XLSX 자동화 + AI 자동 분류 + 거래처·OCR
+⏸ 후속 라운드 (22-B-R3 마감 후)
+   - 22-D-R2: 통장거래내역 CSV/XLSX 자동화 + AI 자동 분류 + 거래처·OCR (재정상태표·현금흐름표는 이때)
    - 22-D-R3: 결산 보조 + 이상 패턴 + 전표 인쇄
    - tsc 묵은 에러 14건 정리 라운드
+   - vouchers.budget_line_id FK 제약 추가 마이그 (운영 안정 후 선택)
    - Phase 18 성능 최적화 / Phase 19 자동 테스트 (설계만 완성)
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
 - 카카오 심사 통과 후 환경변수 2개 등록 (ALIGO_TEMPLATE_BILLING_FAILED, ALIGO_TEMPLATE_CARD_EXPIRING) → 자동 발송
-- 두 라운드 B 머지 후 마이그 2개 진단 호출 (메인이 URL 안내)
 
 ---
 
@@ -70,14 +68,12 @@
 > 완료된 병렬 작업 분담 정의는 git history + `docs/milestones-archive.md` 참고.
 > 새 병렬 작업 시작 시 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §4 템플릿 사용.
 
-### 4.1 Phase 22-B-R2 + 22-D-R1 — 두 라운드 동시 진행 (🔵 진행 중)
+### 4.1 Phase 22-B-R3 — NPO 표준 회계 보고서 (🔵 착수 대기)
 
-A·B가 두 라운드를 각자 한 브랜치에서 작업 중. 상세는 §3 + 설계서 2개.
-- A: `feature/phase22-r2d1-front` — 22-B-R2 예산 패널 + 22-D-R1 전표 탭
-- B: `feature/phase22-r2d1-back` — 두 라운드 백엔드(마이그 2·API 19·AI 도구 7)
-- C: A·B 머지 + 마이그 호출 후 통합 검증
-
-진행률 분모: A = Part A + Part B 항목 / B = Part A + Part B 항목.
+B·A·C 트리거 발송됨. 상세는 §3 + 설계서 `2026-05-15-phase22b-r3-accounting-reports.md`.
+- A: `feature/phase22b-r3-front` — 운영성과표·예산실적표 2탭 정식화 + 인쇄·엑셀·PDF
+- B: `feature/phase22b-r3-back` — PDF 생성 함수 + 옛 테이블(budgets·budget_categories·expenditures) 코드 정리
+- C: B·A 머지 후 검증 Q1~Q12
 
 이전 완료 마일스톤 분담 정의는 `docs/HANDOFF.md` §3 + `docs/milestones-archive.md` 참조.
 
@@ -120,11 +116,12 @@ A·B가 두 라운드를 각자 한 브랜치에서 작업 중. 상세는 §3 + 
 | **Phase 21 워크스페이스 v3 + 서비스 연동** | ✅ **100% 마감** (2026-05-12) — R1 (Q1~Q10 + BUG 2) / R2+R3 (Q1~Q16 + BUG 2) / R4 (Q1~Q18 + BUG 1) / 3개 라운드 모두 회귀 0 / 보고서 3종 docs/verify/2026-05-12-phase21-r1·r2r3·r4.md |
 | **Phase 22-A 매출 통합 관리** | ✅ 100% 마감 (2026-05-15) — R1·R2·R3 합산 BUG 15건 해소 / 6 카테고리·승인·환불 누적·손익계산서·AI 도구 7개 / 운영 가능 |
 | **Phase 22-C 지출 관리** | ✅ 100% 마감 (2026-05-15) — NPO 4분류 + 자유 추가·R2 영수증·승인·환불 누적·AI 도구 5개 / 운영 가능 |
-| **Phase 22-B-R1 재정 화면 이전·기간 필터** | ✅ 100% 마감 (main @ `d28c833`, 2026-05-15) — 재정 6개 화면 통합 CMS 이전·지출 단일화·기간 필터 / C 검증 PASS 18/20 + BUG-016/017/018 fix / 옛 지출 데이터 0건 진단 → 카테고리 NPO 4분류 통일 결정 |
-| **Phase 22-B-R2 예산 편성·2단계 결재** | 🔵 진행 중 (2026-05-15 착수) — budget_plans+budget_lines·전년 실적 자동 채움·작성→상신→승인·expense_categories 단일화 / A·B 트리거 발송 |
-| **Phase 22-D-R1 전표 시스템** | 🔵 진행 중 (2026-05-15 착수) — vouchers·계정과목 NPO 18개·증빙·예산 연결·반복 템플릿·AI 도구 4개 / 22-B-R2와 한 브랜치 동시 진행 |
+| **Phase 22-B-R1 재정 화면 이전·기간 필터** | ✅ 100% 마감 (main @ `d28c833`, 2026-05-15) — 재정 6개 화면 통합 CMS 이전·지출 단일화·기간 필터 / C 검증 18/20 + BUG-016/017/018 fix / 옛 지출 데이터 0건 → NPO 4분류 통일 결정 |
+| **Phase 22-B-R2 예산 편성·2단계 결재** | ✅ 100% 마감 (main @ `7d080b8`, 2026-05-15) — budget_plans+budget_lines·전년 실적 자동 채움·작성→상신→승인 / C 검증 11/12 + BUG fix |
+| **Phase 22-D-R1 전표 시스템** | ✅ 100% 마감 (main @ `7d080b8`, 2026-05-15) — vouchers·계정과목 NPO 18개·증빙·예산 연결·반복 템플릿·AI 도구 4개 / C 검증 13/16 + BUG fix / 교차 확인(전표↔예산안) PASS |
+| **Phase 22-B-R3 NPO 표준 회계 보고서** | 🔵 설계 완성·트리거 발송 (2026-05-15) — 운영성과표+예산실적표·인쇄/엑셀/PDF·옛 테이블 코드 정리 / B·A·C 착수 대기 |
 
-**누적**: 약 73% / 약 690h+
+**누적**: 약 75% / 약 710h+
 
 ---
 
@@ -155,10 +152,10 @@ A·B가 두 라운드를 각자 한 브랜치에서 작업 중. 상세는 §3 + 
 
 | 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
 |---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 22-B-R1 마감 / 22-B-R2·22-D-R1 트리거 발송, A·B 작업 대기 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 (작업량 많으면 Opus) | 프론트 구현 | `public/`, `assets/` | 🔵 `feature/phase22-r2d1-front` — 두 라운드 프론트 |
-| `../tbfa-mis-B` | **B** | Opus 4.7 | 백 구현 + AI 도구 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | 🔵 `feature/phase22-r2d1-back` — 두 라운드 백엔드 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix | 모든 영역 (검증·fix 한정) | ⏸ A·B 머지 + 마이그 호출 후 두 라운드 통합 검증 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | 22-B-R2·22-D-R1 마감 / 22-B-R3 트리거 발송, B·A 작업 대기 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ⏸ 22-B-R3 `feature/phase22b-r3-front` 트리거 대기 |
+| `../tbfa-mis-B` | **B** | Opus 4.7 | 백 구현 + AI 도구 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ⏸ 22-B-R3 `feature/phase22b-r3-back` 트리거 대기 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix | 모든 영역 (검증·fix 한정) | ⏸ 22-B-R3 B·A 머지 후 검증 |
 | `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
