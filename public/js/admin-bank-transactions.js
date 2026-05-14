@@ -21,13 +21,6 @@
       return { ok: r.ok && data && data.ok !== false, status: r.status, data, error: data?.error };
     }).catch(e => ({ ok: false, error: String(e) }));
   }
-  /* FormData 업로드 (multipart — Content-Type 미지정: 브라우저 자동) */
-  function apiUpload(path, formData) {
-    return fetch(path, { method: 'POST', credentials: 'include', body: formData }).then(async r => {
-      const data = await r.json().catch(() => null);
-      return { ok: r.ok && data && data.ok !== false, status: r.status, data, error: data?.error };
-    }).catch(e => ({ ok: false, error: String(e) }));
-  }
   /* 응답 본문 다중 fallback */
   function unwrap(res) { return res.data?.data || res.data || {}; }
   function pickArr(res, key) {
@@ -294,27 +287,155 @@
   }
 
   /* ════════════════════════════════════════════════
-     업로드
+     IBK 엑셀 클라이언트 파싱 (설계서 §1 — SheetJS CDN)
+     메타데이터가 상단에 흩어짐 → "거래일시" 헤더 셀 탐지 → 그 행부터 데이터
+  ════════════════════════════════════════════════ */
+  /* 콤마·공백 제거 후 숫자화 */
+  function parseNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    const n = parseFloat(String(v).replace(/[,\s원]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+  /* IBK 12컬럼 헤더 명칭 → 정규화 키 매핑 (헤더 텍스트는 공백 제거 후 비교) */
+  const IBK_HEADER_MAP = {
+    '거래일시': 'txnDate',
+    '출금': 'withdraw',
+    '출금금액': 'withdraw',
+    '입금': 'deposit',
+    '입금금액': 'deposit',
+    '거래후잔액': 'balanceAfter',
+    '잔액': 'balanceAfter',
+    '거래내용': 'description',
+    '상대계좌번호': 'counterpartAccount',
+    '상대은행': 'counterpartBank',
+    '메모': 'memo',
+    '거래구분': 'txnMethod',
+    '수표어음금액': 'noteAmount',
+    'CMS코드': 'cmsCode',
+    '상대계좌예금주명': 'counterpartName',
+  };
+  function normHeader(s) { return String(s == null ? '' : s).replace(/\s/g, ''); }
+
+  /* 엑셀 파일 → { transactions:[...], meta:{...} } */
+  async function parseIbkExcel(file) {
+    if (typeof XLSX === 'undefined') {
+      throw new Error('엑셀 파서(SheetJS)가 로드되지 않았습니다. 페이지를 새로고침해 주세요.');
+    }
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    if (!sheet) throw new Error('엑셀 시트를 찾을 수 없습니다.');
+    /* 행 배열(셀 값 그대로) — 헤더 행을 직접 탐지 */
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+
+    /* 1) "거래일시" 헤더 셀이 있는 행 탐지 */
+    let headerIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || [];
+      if (r.some(c => normHeader(c) === '거래일시')) { headerIdx = i; break; }
+    }
+    if (headerIdx < 0) throw new Error('"거래일시" 헤더를 찾을 수 없습니다. IBK 기업은행 거래내역 엑셀이 맞는지 확인해 주세요.');
+
+    /* 2) 헤더 행 → 컬럼 인덱스 매핑 */
+    const headerRow = rows[headerIdx] || [];
+    const colIdx = {};  // { 정규화키: 컬럼인덱스 }
+    headerRow.forEach((cell, idx) => {
+      const key = IBK_HEADER_MAP[normHeader(cell)];
+      if (key && colIdx[key] === undefined) colIdx[key] = idx;
+    });
+    if (colIdx.txnDate === undefined) throw new Error('거래일시 컬럼을 인식하지 못했습니다.');
+
+    /* 3) 메타데이터 추출 — 헤더 위쪽 행들에서 계좌번호·예금주명·조회기간 찾기 */
+    const meta = { accountNo: '', accountHolder: '', periodStart: '', periodEnd: '' };
+    const metaText = rows.slice(0, headerIdx).map(r => (r || []).join(' ')).join(' ');
+    const acctM   = metaText.match(/(\d{2,4}-\d{2,6}-\d{2,4}-\d{2,4}|\d{10,16})/);
+    if (acctM) meta.accountNo = acctM[1];
+    const holderM = metaText.match(/예금주\s*명?\s*[:：]?\s*([^\s]+)/);
+    if (holderM) meta.accountHolder = holderM[1];
+    const periodM = metaText.match(/(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})\s*[~\-]\s*(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})/);
+    if (periodM) {
+      meta.periodStart = periodM[1].replace(/[.\/]/g, '-');
+      meta.periodEnd   = periodM[2].replace(/[.\/]/g, '-');
+    }
+
+    /* 4) 데이터 행 파싱 (헤더 다음 행부터, 합계행 제외) */
+    const transactions = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const r = rows[i] || [];
+      const cell = k => (colIdx[k] !== undefined ? r[colIdx[k]] : '');
+      const rawDate = String(cell('txnDate') || '').trim();
+      /* 빈 행 스킵 */
+      if (!rawDate) continue;
+      /* 합계 행 스킵 — 거래일시 칸에 "합계" 등이 들어오는 케이스 */
+      if (/합\s*계|소\s*계|총\s*계/.test(r.join(''))) continue;
+      /* 거래일시가 날짜 형태가 아니면 스킵 (안내문 행 등) */
+      if (!/\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}/.test(rawDate)) continue;
+
+      const withdraw = parseNum(cell('withdraw'));
+      const deposit  = parseNum(cell('deposit'));
+      /* 금액 정규화 1차: 출금→음수, 입금→양수, 단일 amount */
+      const amount = deposit > 0 ? deposit : -withdraw;
+
+      transactions.push({
+        txnDate:           rawDate.replace(/[.\/]/g, '-'),
+        amount,
+        balanceAfter:      parseNum(cell('balanceAfter')),
+        description:       String(cell('description') || '').trim(),
+        counterpartAccount: String(cell('counterpartAccount') || '').trim(),
+        counterpartBank:   String(cell('counterpartBank') || '').trim(),
+        memo:              String(cell('memo') || '').trim(),
+        txnMethod:         String(cell('txnMethod') || '').trim(),
+        noteAmount:        parseNum(cell('noteAmount')),
+        cmsCode:           String(cell('cmsCode') || '').trim(),
+        counterpartName:   String(cell('counterpartName') || '').trim(),
+      });
+    }
+    if (!transactions.length) throw new Error('파싱된 거래가 없습니다. 엑셀 내용을 확인해 주세요.');
+    return { transactions, meta };
+  }
+
+  /* ════════════════════════════════════════════════
+     업로드 — 클라이언트 파싱 후 application/json POST
   ════════════════════════════════════════════════ */
   async function uploadFile(file) {
     const statusEl = document.getElementById('btUploadStatus');
-    if (statusEl) {
-      statusEl.style.display = '';
-      statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#e0f2fe;color:#0369a1;font-size:13px">📤 "${escapeHtml(file.name)}" 업로드·파싱 중…</div>`;
+    const setStatus = (bg, color, html) => {
+      if (statusEl) {
+        statusEl.style.display = '';
+        statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:${bg};color:${color};font-size:13px">${html}</div>`;
+      }
+    };
+    setStatus('#e0f2fe', '#0369a1', `📤 "${escapeHtml(file.name)}" 파싱 중…`);
+
+    /* 1) 클라이언트 엑셀 파싱 */
+    let parsed;
+    try {
+      parsed = await parseIbkExcel(file);
+    } catch (e) {
+      setStatus('#fee2e2', '#b91c1c', '파싱 실패: ' + escapeHtml(String(e?.message || e)));
+      return;
     }
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await apiUpload('/api/admin-bank-import', fd);
+
+    setStatus('#e0f2fe', '#0369a1', `📤 ${parsed.transactions.length}건 파싱 완료 — 서버 적재·대사 중…`);
+
+    /* 2) 정규화 거래 배열 JSON POST */
+    const res = await api('POST', '/api/admin-bank-import', {
+      fileName:     file.name,
+      meta:         parsed.meta,
+      transactions: parsed.transactions,
+    });
     if (!res.ok) {
-      if (statusEl) statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-size:13px">업로드 실패: ${escapeHtml(res.data?.error || res.error || '')}${res.data?.detail ? ' — ' + escapeHtml(res.data.detail) : ''}</div>`;
+      setStatus('#fee2e2', '#b91c1c', '업로드 실패: ' + escapeHtml(res.data?.error || res.error || '')
+        + (res.data?.detail ? ' — ' + escapeHtml(res.data.detail) : ''));
       return;
     }
     const d = unwrap(res);
     const inserted = d.inserted ?? d.insertedCount ?? d.count ?? 0;
     const skipped  = d.skipped  ?? d.duplicateCount ?? 0;
-    if (statusEl) {
-      statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:#dcfce7;color:#15803d;font-size:13px">✅ 업로드 완료 — 신규 ${inserted}건 적재${skipped ? `, 중복 ${skipped}건 제외` : ''}. 대사 결과를 확인하세요.</div>`;
-    }
+    setStatus('#dcfce7', '#15803d',
+      `✅ 업로드 완료 — 신규 ${inserted}건 적재${skipped ? `, 중복 ${skipped}건 제외` : ''}. 대사 결과를 확인하세요.`);
+
     const fileInput = document.getElementById('btFileInput');
     if (fileInput) fileInput.value = '';
     /* 업로드 후 자동 갱신 */
