@@ -1,7 +1,8 @@
 import { db } from "../../db";
 import { expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { resolvePeriod } from "../../lib/period-filter";
 
 export const config = { path: "/api/admin-expense-list" };
 
@@ -10,16 +11,18 @@ export default async function handler(req: Request): Promise<Response> {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const fiscalYearParam = url.searchParams.get("fiscalYear");
+  const { startDate, endDate, period, fiscalYear } = resolvePeriod({
+    period:     url.searchParams.get("period"),
+    startDate:  url.searchParams.get("startDate"),
+    endDate:    url.searchParams.get("endDate"),
+    fiscalYear: url.searchParams.get("fiscalYear"),
+  });
+
   const status = url.searchParams.get("status"); // draft|approved|rejected|all
   const categoryIdParam = url.searchParams.get("categoryId");
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "30")));
   const offset = (page - 1) * limit;
-
-  if (!fiscalYearParam) {
-    return new Response(JSON.stringify({ ok: false, error: "fiscalYear 파라미터 필요", step: "validate" }), { status: 400 });
-  }
 
   // 카테고리 맵 (separate query)
   const catMap = new Map<number, { code: string; name: string }>();
@@ -32,15 +35,22 @@ export default async function handler(req: Request): Promise<Response> {
     console.warn("[expense-list] 카테고리 조회 실패", err);
   }
 
-  // 조건 빌드
-  const conditions = [eq(expenses.fiscalYear, Number(fiscalYearParam))];
+  // 조건 빌드 — period 기반 날짜 범위 (occurred_at 기준)
+  // fiscal_year 필터: year 모드(하위호환 포함)에서만 추가 (period=year → fiscalYear 있음)
+  const conditions: any[] = [
+    gte(expenses.occurredAt, startDate),
+    lte(expenses.occurredAt, endDate),
+  ];
+  if (fiscalYear !== null) {
+    conditions.push(eq(expenses.fiscalYear, fiscalYear));
+  }
   if (status && status !== "all") {
     conditions.push(eq(expenses.status, status));
   }
   if (categoryIdParam) {
     conditions.push(eq(expenses.categoryId, Number(categoryIdParam)));
   }
-  const where = conditions.length === 1 ? conditions[0] : and(...conditions);
+  const where = and(...conditions);
 
   // 합계
   let summary = { totalAmount: 0, totalRefund: 0, netAmount: 0 };
@@ -119,7 +129,11 @@ export default async function handler(req: Request): Promise<Response> {
     };
   });
 
-  return new Response(JSON.stringify({ ok: true, data: { items, total, page, limit, summary } }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify({
+    ok: true,
+    data: {
+      items, total, page, limit, summary,
+      period, startDate, endDate,
+    },
+  }), { headers: { "Content-Type": "application/json" } });
 }

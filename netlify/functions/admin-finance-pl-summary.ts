@@ -2,6 +2,7 @@ import { db } from "../../db";
 import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { eq, and, sql } from "drizzle-orm";
+import { resolvePeriod } from "../../lib/period-filter";
 
 export const config = { path: "/api/admin-finance-pl-summary" };
 
@@ -10,15 +11,17 @@ export default async function handler(req: Request): Promise<Response> {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const fiscalYearParam = url.searchParams.get("fiscalYear");
-  const fiscalYear = fiscalYearParam ? Number(fiscalYearParam) : new Date().getFullYear();
+  const { startDate, endDate, period, fiscalYear, includeMonthly } = resolvePeriod({
+    period:     url.searchParams.get("period"),
+    startDate:  url.searchParams.get("startDate"),
+    endDate:    url.searchParams.get("endDate"),
+    fiscalYear: url.searchParams.get("fiscalYear"),
+  });
 
-  const yearStart = `${fiscalYear}-01-01`;
-  const yearEnd   = `${fiscalYear}-12-31`;
-
-  // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund, 월별 분해) ──
+  // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund) ──
   let donationGross = 0;
   let donationRefund = 0;
+  // monthly 집계용 (includeMonthly=true일 때만 필요하지만 항상 초기화)
   const donationByMonth: Record<number, { gross: number; refund: number }> = {};
   for (let m = 1; m <= 12; m++) donationByMonth[m] = { gross: 0, refund: 0 };
 
@@ -32,7 +35,7 @@ export default async function handler(req: Request): Promise<Response> {
       .where(
         and(
           eq(donations.status, "completed"),
-          sql`EXTRACT(YEAR FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})) = ${fiscalYear}`
+          sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
         )
       )
       .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`);
@@ -40,14 +43,14 @@ export default async function handler(req: Request): Promise<Response> {
     for (const row of donRows) {
       const m = Number(row.month);
       const g = Number(row.gross);
-      donationByMonth[m].gross = g;
+      if (donationByMonth[m]) donationByMonth[m].gross = g;
       donationGross += g;
     }
   } catch (err: any) {
     console.warn("[pl-summary] 후원 집계 실패", err);
   }
 
-  // BUG-002 fix: 후원 환불(status='refunded') 별도 집계 → donations.refund 채움
+  // BUG-002 fix: 후원 환불(status='refunded') 별도 집계
   try {
     const refundRows = await db
       .select({
@@ -58,7 +61,7 @@ export default async function handler(req: Request): Promise<Response> {
       .where(
         and(
           eq(donations.status, "refunded"),
-          sql`EXTRACT(YEAR FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})) = ${fiscalYear}`
+          sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
         )
       )
       .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`);
@@ -66,14 +69,14 @@ export default async function handler(req: Request): Promise<Response> {
     for (const row of refundRows) {
       const m = Number(row.month);
       const t = Number(row.total);
-      donationByMonth[m].refund = t;
+      if (donationByMonth[m]) donationByMonth[m].refund = t;
       donationRefund += t;
     }
   } catch (err: any) {
     console.warn("[pl-summary] 후원 환불 집계 실패", err);
   }
 
-  // ── 2. 후원 외 수입 집계 (status='approved', 카테고리별) ──
+  // ── 2. 후원 외 수입 집계 (status='approved', recognizedAt 기준) ──
   let otherGross = 0;
   let otherRefund = 0;
   const otherByMonth: Record<number, { gross: number; refund: number }> = {};
@@ -102,7 +105,7 @@ export default async function handler(req: Request): Promise<Response> {
       .where(
         and(
           eq(otherRevenues.status, "approved"),
-          sql`${otherRevenues.recognizedAt}::date BETWEEN ${yearStart}::date AND ${yearEnd}::date`
+          sql`${otherRevenues.recognizedAt}::date BETWEEN ${startDate}::date AND ${endDate}::date`
         )
       )
       .groupBy(otherRevenues.categoryId, sql`EXTRACT(MONTH FROM ${otherRevenues.recognizedAt}::date)`);
@@ -113,8 +116,7 @@ export default async function handler(req: Request): Promise<Response> {
       const g = Number(row.gross);
       const r = Number(row.refund);
 
-      otherByMonth[m].gross += g;
-      otherByMonth[m].refund += r;
+      if (otherByMonth[m]) { otherByMonth[m].gross += g; otherByMonth[m].refund += r; }
       otherGross += g;
       otherRefund += r;
 
@@ -134,7 +136,7 @@ export default async function handler(req: Request): Promise<Response> {
     .map(c => ({ code: c.code, name: c.name, gross: c.gross, refund: c.refund, net: c.gross - c.refund }))
     .sort((a, b) => b.net - a.net);
 
-  // ── 3. 지출 집계 (status='approved', 카테고리별·월별) — Phase 22-C ──
+  // ── 3. 지출 집계 (status='approved', occurred_at 기준) — Phase 22-C ──
   let expenseGross = 0;
   let expenseRefund = 0;
   const expenseByMonth: Record<number, { gross: number; refund: number }> = {};
@@ -152,6 +154,15 @@ export default async function handler(req: Request): Promise<Response> {
 
   const expCatNetMap = new Map<number, { code: string; name: string; gross: number; refund: number }>();
   try {
+    // fiscal_year 필터: year 모드(하위호환 포함)에서만 추가
+    const expConditions: any[] = [
+      eq(expenses.status, "approved"),
+      sql`${expenses.occurredAt}::date BETWEEN ${startDate}::date AND ${endDate}::date`,
+    ];
+    if (fiscalYear !== null) {
+      expConditions.push(eq(expenses.fiscalYear, fiscalYear));
+    }
+
     const expRows = await db
       .select({
         categoryId: expenses.categoryId,
@@ -160,12 +171,7 @@ export default async function handler(req: Request): Promise<Response> {
         refund: sql<string>`COALESCE(SUM(${expenses.refundAmount}), 0)`,
       })
       .from(expenses)
-      .where(
-        and(
-          eq(expenses.status, "approved"),
-          eq(expenses.fiscalYear, fiscalYear)
-        )
-      )
+      .where(and(...expConditions))
       .groupBy(expenses.categoryId, sql`EXTRACT(MONTH FROM ${expenses.occurredAt}::date)`);
 
     for (const row of expRows) {
@@ -174,8 +180,7 @@ export default async function handler(req: Request): Promise<Response> {
       const g = Number(row.gross);
       const r = Number(row.refund);
 
-      expenseByMonth[m].gross += g;
-      expenseByMonth[m].refund += r;
+      if (expenseByMonth[m]) { expenseByMonth[m].gross += g; expenseByMonth[m].refund += r; }
       expenseGross += g;
       expenseRefund += r;
 
@@ -195,14 +200,19 @@ export default async function handler(req: Request): Promise<Response> {
     .map(c => ({ code: c.code, name: c.name, gross: c.gross, refund: c.refund, total: c.gross - c.refund }))
     .sort((a, b) => b.total - a.total);
 
-  // ── 4. 월별 통합 (BUG-002 fix: 후원 환불·기타 환불·지출 환불 모두 차감) ──
-  const monthly = [];
-  for (let m = 1; m <= 12; m++) {
-    const revenue = (donationByMonth[m].gross - donationByMonth[m].refund)
-                  + (otherByMonth[m].gross - otherByMonth[m].refund);
-    const expenditure = expenseByMonth[m].gross - expenseByMonth[m].refund;
-    monthly.push({ month: m, revenue, expenditure, net: revenue - expenditure });
-  }
+  // ── 4. 월별 통합 (includeMonthly=true일 때만 포함) ──
+  const monthly = includeMonthly
+    ? (() => {
+        const result = [];
+        for (let m = 1; m <= 12; m++) {
+          const revenue = (donationByMonth[m].gross - donationByMonth[m].refund)
+                        + (otherByMonth[m].gross - otherByMonth[m].refund);
+          const expenditure = expenseByMonth[m].gross - expenseByMonth[m].refund;
+          result.push({ month: m, revenue, expenditure, net: revenue - expenditure });
+        }
+        return result;
+      })()
+    : undefined;
 
   // ── 5. 응답 조립 ──
   const donationNet = donationGross - donationRefund;
@@ -211,32 +221,25 @@ export default async function handler(req: Request): Promise<Response> {
   const expenditureTotal = expenseGross - expenseRefund;
   const netIncome = totalNet - expenditureTotal;
 
-  return new Response(JSON.stringify({
-    ok: true,
-    data: {
-      fiscalYear,
-      revenue: {
-        donations: {
-          gross: donationGross,
-          refund: donationRefund,
-          net: donationNet,
-        },
-        other: {
-          gross: otherGross,
-          refund: otherRefund,
-          net: otherNet,
-          byCategory: otherByCategory,
-        },
-        totalNet,
-      },
-      expenditure: {
-        total: expenditureTotal,
-        gross: expenseGross,
-        refund: expenseRefund,
-        byCategory: expenseByCategory,
-      },
-      netIncome,
-      monthly,
+  const responseData: Record<string, any> = {
+    period, startDate, endDate,
+    ...(fiscalYear !== null ? { fiscalYear } : {}),
+    revenue: {
+      donations: { gross: donationGross, refund: donationRefund, net: donationNet },
+      other: { gross: otherGross, refund: otherRefund, net: otherNet, byCategory: otherByCategory },
+      totalNet,
     },
-  }), { headers: { "Content-Type": "application/json" } });
+    expenditure: {
+      total: expenditureTotal,
+      gross: expenseGross,
+      refund: expenseRefund,
+      byCategory: expenseByCategory,
+    },
+    netIncome,
+  };
+  if (monthly !== undefined) responseData.monthly = monthly;
+
+  return new Response(JSON.stringify({ ok: true, data: responseData }), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
