@@ -2,9 +2,9 @@
 
 > **단일 최신 파일**. "지금 어디까지 왔는지" 한 화면에 들어오게 유지.
 > 새 메인 채팅 시작 시 정독.
-> 이전 시점 스냅샷은 [`docs/handover/v*.md`](handover/) 영구 보관(자발적 안 읽음).
+> 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-14 새벽 05:30 / **AI 에이전트 v3 개발 종료** / main @ `3ba204c`
+> **마지막 갱신**: 2026-05-14 심야 / **Phase 22-A·22-C R2 완료, R3 진행 중** / main @ `34ba615`
 
 ---
 
@@ -12,7 +12,7 @@
 
 **SIREN(싸이렌)** = (사)교사유가족협의회 통합 NPO 플랫폼.
 
-- 라이브: <https://tbfa-siren-cms.netlify.app>
+- 라이브: <https://tbfa.co.kr> (공식 메인) / <https://tbfa-siren-cms.netlify.app> (Netlify 기본)
 - 베이스 브랜치: `main`
 - 상세 스택·환경·구조: [`CLAUDE.md`](../CLAUDE.md) §1~5
 
@@ -21,195 +21,162 @@
 ## 2. 새 메인 채팅이 시작 시 해야 할 일
 
 ```
-1) 본 HANDOFF.md 정독 (지금 읽고 있음)
+1) 본 HANDOFF.md 정독
 2) PROJECT_STATE.md §2·§3·§5·§7 정독
-3) docs/PARALLEL_GUIDE.md §1~§3 정독
-4) 본 §3 (지금 진행 중인 일) 확인
-5) B·A·C 채팅 진행 상황을 Swain께 확인
-6) 보고 온 채팅 있으면 즉시 머지 순서대로 처리
+3) docs/PARALLEL_GUIDE.md §1~§19 정독 (§12~§19 = 2026-05-14 신규 정책)
+4) memory/MEMORY.md 인덱스 + feedback_* 메모리 본문 정독
+5) 본 §3 (지금 진행 중인 일) 확인
+6) C R3 진행 결과 받으면 머지 진행
 ```
 
 ---
 
-## 3. 지금 진행 중인 일 (이전 메인 채팅 종료 시점)
+## 3. 지금 진행 중인 일
 
-### 3.0 🎉 AI 에이전트 v3 — 개발 종료 (2026-05-14 새벽 05:30)
+### 3.0 Phase 22-A 매출 통합 관리 + Phase 22-C 지출 관리 — R3 진행 중
 
-**브랜치**: `main` @ `3ba204c` (Phase 5 미진행, 84개 도구로 마감)
-**표준 문서**: `docs/standards/AI_AGENT_PLATFORM_STANDARD.md` **v1.3** (이번 세션 v1.0→v1.3 누적 갱신)
-**메모리**: `project_ai_cost_safety.md` v3 + `project_ai_standard.md`
+**브랜치**: `main` @ `34ba615` (R2 BUG-015 머지 완료)
+**설계서**:
+- [`docs/milestones/2026-05-14-phase22a-revenue-management.md`](milestones/2026-05-14-phase22a-revenue-management.md)
+- [`docs/milestones/2026-05-14-phase22c-expense-management.md`](milestones/2026-05-14-phase22c-expense-management.md)
 
-#### Phase 진행 (모두 완료, Phase 5 안 함)
+#### 진행 흐름 요약
 
-| Phase | 영역 | 도구 수 | 상태 |
-|---|---|---|---|
-| 기존 (v1) | 회원·후원·SIREN·게시판·캠페인 등 | 42 | ✅ |
-| Phase 1 | 워크스페이스 확장 (메모·일정·댓글·작업삭제·파일) | 12 | ✅ |
-| Phase 2 | 콘텐츠·게시판·캠페인·공지·FAQ 보강 | 10 | ✅ |
-| Phase 3 | FAQ CUD·자료·템플릿·수신자그룹·사건의견 | 10 | ✅ |
-| Phase 4 | 잠재후원·자료CUD·예산·정책·채팅 | 10 | ✅ |
-| **합계** | | **84개** | |
-| Phase 5 | (미정 — 회원등급·결제정책 CUD·발송큐 등) | — | ❌ **안 함**. 1주 운영 후 사용 패턴 보고 재결정 |
-
-#### 이번 세션 (2026-05-14) 누적 작업
-
-1. **신규 도구 42개** (Phase 1·2·3·4 = 84개 총합)
-2. **회귀 fix 7건**:
-   - DB에 옛 시스템 프롬프트 잔존 → DELETE + FALLBACK 복귀
-   - prompt injection (금지 응답 예시가 거꾸로 학습) → 예시 제거
-   - `selectRelevantTools` 'ALL fallback 임계' 제거 → 도구 4~10개로 좁힘
-   - 짧은 메시지 임계 8자 → 4자 (짧은 도메인 명령도 도구 받음)
-   - 빈 응답(STOP + parts 없음) 자동 폴백
-   - `budget_categories` 컬럼 가정 오류 (name_ko → name)
-   - 헤더 인증 5초 지연 + 잘못된 표시 (auth.js admin 폴백 + admin-me `?light=1`)
-3. **BUG 6건 fix** (C V3·V4·V5 보고):
-   - BUG-03 toolApproval 자연어 → short-circuit (F11 표준)
-   - BUG-04 권한 hierarchy 없음 → super_admin > admin > null
-   - BUG-05 현재 날짜 추측 → systemPrompt에 KST 동적 주입
-   - BUG-05a notice_category enum 잘못 → general/member/event/media 정정
-   - BUG-06 도구 선택 매핑 모호 → 시스템 프롬프트 매핑 표 강화
-   - BUG-Phase2-02 notice_create 잘못된 테이블 → board_posts → notices 정정
-4. **표준 v1.0 → v1.1 → v1.2 → v1.3** 누적 갱신:
-   - v1.1: 84개 도구 카테고리 + A10·A11 + B9 + D5 + F8·F9 + §17·§18
-   - v1.2: C6 role hierarchy + F10 날짜 주입 + 15.5 schema 사전 검증 의무 + §18.8~18.11
-   - v1.3: F11 short-circuit + §17.1 한계 해소 + §18.12
-5. **데이터 정리**: 검증 잔여 3건 (notices id=8 + memo id=1·3) — 자연어 short-circuit으로 정리
-6. **C 검증 라운드 V3·V4·V5**: UTF-8 환경 거의 100% PASS
-
-#### 5층 비용 안전장치 (v2와 동일·유지)
-
-기능 토글 → 사용자 Rate Limit → 월 한도 → 도구 결과 캐싱 → Context Caching
-
-#### 라이브 검증 정확도
-
-- 메인 8/8 도메인 PASS (회원·후원·메모·일정·공지·FAQ·예산·잠재)
-- C V5: 5/7 PASS (2 SKIP은 실 데이터 보호 의도)
-- 자연어 멀티턴 dry-run: 작동 (short-circuit, LLM 0회, 300ms)
-
-#### 운영 후속 (Swain 필수 아님)
-
-- 1주 후 `/admin-ai-cost.html`에서 도구별 사용량 확인
-- 1개월 후 Google AI 청구서와 `cost_usd` 합계 대조
-- C V6 결과 받으면 verify 브랜치 → main 머지 (RESULTS·issues 문서)
-
-#### 새 메인 채팅이 "AI 에이전트 또 만들지?" 의심하면 답
-
-**답: 다 만들어졌음. 코드·문서·검증 모두 종료.**
-
-확인 방법:
-1. `lib/ai-agent-tools.ts` line 1~310 — TOOL_DECLARATIONS 84개
-2. `docs/standards/AI_AGENT_PLATFORM_STANDARD.md` v1.3 — 표준
-3. `memory/project_ai_cost_safety.md` v3 — 시스템 요약
-4. main 최신 `3ba204c` (또는 그 이후 잡일 커밋)
-
-**해서는 안 되는 것**:
-- AI 도구 새로 만들기 (Phase 5는 보류, Swain 명시 지시 없이 추가 X)
-- 표준 문서 함부로 수정 (v1.3이 안정 상태, 사고 사례 18건 누적)
-- BUG 6건 재진단 (다 해결됨, 위 목록 확인)
-
-**해도 되는 것**:
-- 1주 운영 후 사용량 패턴 보고 Phase 5 후보 도출
-- 새 운영 버그 발견 시 fix (BUG 7번 등 새 번호)
-- 다른 영역 작업 (AI와 무관한 다른 Phase)
-
----
-
-### 3.1 Phase 15 — 전문가 매칭 고도화 C 검증 완료, 머지 대기
-
-**상태**: C 검증 브랜치 `verify/phase15` 완료 (`43a7aa6`). 메인 머지 필요.
-
-**검증 결과**: Q1~Q9 모두 PASS. 버그 6건 발견·수정.
-
-| BUG | 심각도 | 내용 |
+| 단계 | 상태 | 핵심 |
 |---|---|---|
-| BUG-15-01 | Critical | AI 추천 백엔드가 존재하지 않는 테이블명(`legal_reports`) 사용 → `legal_consultations`로 수정 |
-| BUG-15-02 | High | AI 추천 백엔드가 잘못된 컬럼명(`content`) 사용 → 테이블별 실제 컬럼명(`content_html` / `content`) 분리 |
-| BUG-15-03 | Critical | 전문가 프로필 저장 API 경로 오타 → 올바른 경로로 수정 |
-| BUG-15-04 | Medium | 전문가 프로필 목록 조회 시 필터 파라미터를 백엔드가 미지원 → 전체 조회 후 화면에서 필터링으로 변경 |
-| BUG-15-05 | Critical | 매칭 후기 작성 화면이 matchId 없이 초기화돼 항상 오류 → 완료 카드에 [⭐ 후기 작성] 버튼 추가, matchId 연동 |
-| BUG-15-06 | High | AI 추천 화면이 matchId만 보내는데 백엔드는 sourceType·sourceId가 없으면 처리 불가 → 백엔드에서 matchId로 원본 정보 자동 조회 |
+| 22-A 0단계 schema·마이그 | ✅ | revenueCategories + otherRevenues |
+| 22-A 1단계 B 백엔드 (Opus 재시작) | ✅ | 7 API + AI 도구 6+1 (revenue_refund 보강) |
+| 22-A 1단계 A 프론트 | ✅ | 사이드바 + KPI 6개 + admin-other-revenues |
+| 22-A 코드 머지 (B → A) | ✅ | 메인 선택적 체크아웃 |
+| 22-C 0단계 schema·마이그 | ✅ | expenseCategories + expenses, 마이그 호출 완료 |
+| 22-C 1단계 B 백엔드 | ✅ | 9 API + AI 도구 5 + pl_summary 지출 통합 |
+| 22-C 1단계 A 프론트 | ✅ | admin-expenses.html 신규 + finance-income/report 확장 |
+| 22-C 코드 머지 (B → A) | ✅ | 충돌 2건 해결 (BUG-002 + 22-C 통합) |
+| C 검증 R1 | ✅ | PASS / BUG 12건 발견 (Critical 2 + High 3 + Medium·Low 7) |
+| C 자체 BUG fix R1 (BUG-001~005) | ✅ | 권한 시드 정정 마이그 포함 |
+| revenue_refund admin UI super_admin 정정 | ✅ | Swain 수동 |
+| C 검증 R2 | ✅ | PASS 23/27, BUG-013(이미 fix 됨) + BUG-015 |
+| BUG-015 fix 머지 | ✅ | 지출 환불 누적 처리 (BUG-001 패턴 재발 차단) |
+| docs/ 정리 (3개 archive) | ✅ | 17,746줄 → 1,500줄 (94% 감축) |
+| **C 검증 R3 — Medium·Low 8건** | ⏳ | **C 작업 중** |
+| Phase 22-A·22-C 마감 | ⏸ | R3 완료 후 |
 
-**보고서**: [`docs/verify/2026-05-11-phase15.md`](verify/2026-05-11-phase15.md)
+#### R3 잔여 작업 (8건)
 
----
+R2 후 Medium·Low 8건 일괄 fix:
 
-### 3.2 Phase 16 — 통합 분석 대시보드 C 검증 완료, 머지 대기
-
-**상태**: C 검증 브랜치 `verify/phase16` 완료 (`21f6222`). 메인 머지 필요.
-
-**검증 결과**: Q1~Q10 모두 PASS. 버그 2건 발견·수정.
-
-| BUG | 심각도 | 내용 |
+| BUG | 심각도 | 영역 |
 |---|---|---|
-| BUG-16-01 | High | 통합 분석 대시보드 화면에 기간 선택 버튼이 없어 30일 고정 → [30일][90일][180일][365일] 버튼 추가 및 클릭 시 KPI 재조회 |
-| BUG-16-02 | High | 대표 보고서 [연간] 탭 클릭 시 분기 데이터 반환 → 화면 탭값(`yearly`)을 백엔드 인식값(`annual`)으로 매핑 추가 |
+| BUG-006 환불 권한 3중 모순 | Medium | super_admin 일관성 |
+| BUG-007 PUT vs PATCH | Low | REST 규약 |
+| BUG-008 응답 키명 일관성 | Low | A/B 미세 |
+| BUG-009 selectRelevantTools finance 누락 | Medium | AI 동적 로딩 |
+| BUG-010 도구 description enum 미명시 | Medium | LLM 정확도 |
+| BUG-011 categoryCode vs Id | Low | A 프론트 표시 |
+| BUG-012 ?all=1 페이지네이션 우회 | Low | 안전 상한 |
+| 22-C selectRelevantTools 지출 도구·키워드 누락 | Medium | BUG-009 확장 |
 
-**보고서**: [`docs/verify/2026-05-11-phase16.md`](verify/2026-05-11-phase16.md)
+브랜치: `fix/phase22a-r3-cleanup`. C 자율주행.
+예상: 2~4h fix + 1h 재검증 + 메인 머지·문서 1h = 합계 4~6h.
 
----
+#### 핵심 커밋 (오늘 누적)
 
-### 3.3 새 C 채팅에게 (다음 작업)
+| 커밋 | 내용 |
+|---|---|
+| `9604207` | 22-A schema + 마이그레이션 (0단계) |
+| `9841f0a` | 22-A 마이그 호출 완료 → 파일 삭제 |
+| `43196e9` | 22-C schema + 마이그 + 설계서 |
+| `e266fc1` | C 검증 시드 함수 + 22-C 트리거 라벨 명확화 |
+| `6063440` | 22-C 트리거 자율주행 정책 조항 |
+| `0d7e5a5` | CLAUDE.md §6.16 진행률 + §6.17 자율주행 |
+| `3572420` | docs/ 옛 문서 12개 정리 (DESIGN_PHASE*·HANDOFF_A/B/C 등) |
+| `9d46baa` | 22-C 설계서 pl_summary 스펙 정정 |
+| `791b7da` | 22-C 마이그 호출 완료 → 파일 삭제 |
+| `6c71d1b` | A 22-A 프론트 실 API 교체 push (이때 main 미머지 상태) |
+| `21104ef` | A 22-A 프론트 머지 (사고 fix — §15 사례) |
+| `160e560` | B 22-A 백엔드 7 API + AI 도구 7개 머지 |
+| `cfd4776` | C BUG-001~005 fix 머지 (R1 BUG fix) |
+| `e46f69f` | B 22-C 백엔드 9 API + AI 도구 5 머지 |
+| `a616772` | A 22-C 프론트 머지 |
+| `ae09399` | 배포 빌드 fix (donationRefund const→let) |
+| `063f451` | docs/ 폴더 단위 압축 (3개 archive + 67개 삭제) |
+| `39dd203` | 22-A 권한 시드 정정 마이그 호출 후 파일 삭제 |
+| `34ba615` | R2 BUG-015 지출 환불 누적 fix 머지 |
 
-새 C 채팅은 Swain(사용자)이 다음 검증 작업 트리거를 보낼 때까지 대기.
+#### 신규 정책 (오늘 정착, 향후 라운드에 자동 적용)
 
-**C 작업 규칙 (반드시 준수)**:
-- 표현 규칙: 함수명·변수명·코드 용어 없이 사용자 동작·결과 위주로 설명
-- 금지: `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 (C는 검증 보고서만 작성)
-- worktree: `../tbfa-mis-C` / 현재 브랜치: `verify/phase16`
+CLAUDE.md 추가:
+- **§6.16 진행률 % 보고 의무** — 큰 단계 완료마다 "📊 진행률 X%" 한 줄
+- **§6.17 A·B·C 자율주행** — push와 애매한 로직만 묻고 자율
 
----
+PARALLEL_GUIDE.md 추가 (§12~§19):
+- §12 자율주행 정책 (`.claude/settings.json` + 트리거 본문)
+- §13 트리거 영역 라벨 (🔧🎨🔍) + git 원격 확인 의무
+- §14 진행률 % 보고
+- §15 머지 검증 의무 — 응답 키 호환 ≠ 실 머지
+- §16 선택적 체크아웃 패턴 (옛 main 베이스 브랜치)
+- §17 C 검증 → C 자체 fix → 메인 머지 패턴
+- §18 Subagent 병렬 활용 (큰 압축·정독)
+- §19 사고 사례 5건 (오늘 22-A 라운드 신규)
 
-### 3.4 충돌 재발 방지 정책
+메모리 신규:
+- `feedback_trigger_role_labels` — A·B·C 트리거 영역 라벨
+- `feedback_subchat_autonomy` — 자율주행 정책
+- `feedback_progress_reporting` — 진행률 % 보고
+- `feedback_merge_actual_verification` — 실 머지 확인 의무
 
-**A·B·C 채팅은 `PROJECT_STATE.md`, `docs/HANDOFF.md`, `docs/` 수정 절대 금지.**
+#### docs/ 정리 결과
 
----
+| Before | After | 감축 |
+|---|---|---|
+| 89개 파일·17,746줄 | 12개 파일·1,500줄 | 94% |
 
-### 3.5 4채팅 구조 (현재)
+archive 3개:
+- `docs/issues-archive.md` (147줄, 13건)
+- `docs/verify-archive.md` (354줄, 32건)
+- `docs/milestones-archive.md` (496줄, 22건)
 
-| 채팅 | 모델 | 역할 | 현재 상태 |
-|---|---|---|---|
-| 메인 | Opus 4.7 | 설계·머지·조율 | 인수인계 진행 중 |
-| A | Sonnet 4.6 | 프론트 (`public/`) | Phase 15+16 완료 후 대기 |
-| B | Sonnet 4.6 | 백 (`netlify/functions/`, `lib/`, `db/`) | Phase 15+16 완료 후 대기 |
-| C | Opus 4.7 | 검증·fix | Phase 15+16 검증 완료 / 머지 대기 |
-
-**worktree 폴더:**
-```
-tbfa-mis        (메인) — 머지·조율 전용
-../tbfa-mis-A  (A 채팅)
-../tbfa-mis-B  (B 채팅)
-../tbfa-mis-C  (C 채팅) — 현재 verify/phase16
-```
-
----
-
-### 3.6 머지 순서 (즉시)
-
-```
-1. verify/phase15 → main 머지 (C BUG-15-01~06 fix 포함)
-2. verify/phase16 → main 머지 (C BUG-16-01~02 fix 포함)
-3. PROJECT_STATE.md §5 Phase 15·16 상태 갱신
-4. 다음 단계: Phase 17 보안·감사 강화 (또는 Swain과 협의)
-```
+진행 중인 마일스톤만 `docs/milestones/`에 유지:
+- `2026-05-14-phase22a-revenue-management.md`
+- `2026-05-14-phase22c-expense-management.md`
 
 ---
 
 ## 4. 즉시 해야 할 일 (새 메인)
 
 ```
-1. verify/phase15 머지 → main push
-2. verify/phase16 머지 → main push
-3. PROJECT_STATE.md §5 Phase 15·16 ✅ 표시
-4. Swain과 Phase 17 일정 협의 후 A·B 트리거
-5. C에게 Phase 17 검증 트리거 (A·B 완료 후)
+1. C R3 완료 보고 대기 (현재 작업 중)
+2. R3 push 받으면 → 머지 (선택적 체크아웃, §16 패턴 적용)
+3. PROJECT_STATE §2 + §5 갱신 (Phase 22-A·22-C ✅ 마감)
+4. 메모리 갱신: project_ai_cost_safety, ai_standard, 또는 신규
+5. R3 완료 시 Swain께 마감 보고
+6. Phase 22-B (예산 편성·다단계 결재·풀세트 회계) 진행 협의
 ```
 
 ---
 
-## 5. 핵심 정보
+## 5. 4채팅 구조 (현재)
 
-### 5.1 반복 사고 패턴 방지
+| 채팅 | 모델 | 역할 | 현재 상태 |
+|---|---|---|---|
+| 메인 | Opus 4.7 | 설계·머지·조율·문서 | 인수인계 작성 + R3 머지 대기 |
+| A | Sonnet 4.6 | 프론트 (`public/`) | 22-A·22-C 마감, 대기 |
+| B | Opus 4.7 (22-A부터 교체) | 백 (`netlify/functions/`, `lib/`, `db/`) | 22-A·22-C 마감, 대기 |
+| C | Opus 4.7 | 검증 + 자체 fix | R3 작업 중 (`fix/phase22a-r3-cleanup`) |
+
+**worktree 폴더:**
+```
+tbfa-mis        (메인) — 머지·조율 전용
+../tbfa-mis-A  (A 채팅)
+../tbfa-mis-B  (B 채팅)
+../tbfa-mis-C  (C 채팅) — 현재 fix/phase22a-r3-cleanup
+```
+
+---
+
+## 6. 핵심 정보
+
+### 6.1 반복 사고 패턴 방지 (PARALLEL_GUIDE §10·§19 통합)
 
 | 날짜 | 사고 | 방지 |
 |---|---|---|
@@ -217,32 +184,57 @@ tbfa-mis        (메인) — 머지·조율 전용
 | 2026-05-09 | schema 영역 덮어쓰기 | B만 schema, append-only |
 | 2026-05-09 | #BUG-1 `uid` 필드명 오류 | 헬퍼 도입 직후 사용처 1회 검증 |
 | 2026-05-10 | bigserial import 누락 502 | B push 전 `npx tsc --noEmit` 의무 |
-| 2026-05-11 | #BUG-8 `auth.admin?.id` undefined | `auth.ctx?.admin?.uid` 직접 참조 |
-| 2026-05-11 | #BUG-9 schema 컬럼 누락 (마이그 후 미반영) | 마이그 직후 schema 전수 대조 필수 |
-| 2026-05-11 | A가 PROJECT_STATE.md 자발 수정 → 머지 2회 충돌 | A·B·C 트리거 프롬프트 `금지:` 항목에 명시 |
-| 2026-05-11 | BUG-15-01 존재하지 않는 테이블명 사용 | 백엔드 테이블명은 schema.ts에서 직접 확인 |
-| 2026-05-11 | BUG-15-05 matchId 미연결로 후기 기능 동작 불가 | 기능 단위 end-to-end 흐름 추적 필수 |
+| 2026-05-11 | A가 PROJECT_STATE.md 자발 수정 → 머지 충돌 | A·B·C는 PROJECT_STATE·docs 수정 금지 |
+| 2026-05-14 | 트리거 오발송 (A·B 둘 다 프론트) | 트리거 영역 라벨 🔧🎨🔍 + 본문 첫 줄 안내 (§13) |
+| 2026-05-14 | "응답 키 호환 = 머지 불필요" 오판 | git log origin/main..feature/X 0개 확인 (§15) |
+| 2026-05-14 | 옛 main 베이스 브랜치 머지 → 정리된 파일 재등장 | 선택적 체크아웃 패턴 (§16) |
+| 2026-05-14 | const→let 변형 tsc gate 누락 → 배포 실패 | push 전 `npx tsc --noEmit` 재강조 |
+| 2026-05-14 | 같은 패턴 BUG 22-A→22-C 재발 (BUG-001→015) | 신규 라운드 트리거 작성 전 docs/issues-archive 직전 BUG 정독 |
 
-### 5.2 마이그레이션 호출 표준
+### 6.2 마이그레이션 호출 표준
 
 ```
 어드민 로그인 상태에서 주소창:
-https://tbfa-siren-cms.netlify.app/api/migrate-{이름}?run=1
+https://tbfa.co.kr/api/migrate-{이름}?run=1
 → { "ok": true } 확인 후 메인에 알림
 → 메인: schema 활성화 + 마이그 파일 삭제 + push
 ```
 
-### 5.3 requireAdmin 패턴 (반드시 준수)
+### 6.3 requireAdmin 패턴 (반드시 준수)
 
 ```typescript
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+
 const auth = await requireAdmin(req);
-if (!auth.ok) return auth.res;  // 'res' — 'response' 아님
-const adminUid = auth.ctx?.admin?.uid;  // id 아님
+if (guardFailed(auth)) return auth.res;  // TS2339 narrowing fix
+const adminUid = auth.ctx?.admin?.uid;   // id 아님
+```
+
+### 6.4 P&L 응답 키 구조 (22-A·22-C 통합 후 표준)
+
+```json
+{
+  "fiscalYear": 2026,
+  "revenue": {
+    "donations": { "gross": N, "refund": N, "net": N },
+    "other": {
+      "gross": N, "refund": N, "net": N,
+      "byCategory": [{ "code": "lecture", "name": "강연·교육", "gross": N, "refund": N, "net": N }]
+    },
+    "totalNet": N
+  },
+  "expenditure": {
+    "total": N, "gross": N, "refund": N,
+    "byCategory": [{ "code": "personnel", "name": "인건비", "gross": N, "refund": N, "total": N }]
+  },
+  "netIncome": N,
+  "monthly": [{ "month": 1, "revenue": N, "expenditure": N, "net": N }]
+}
 ```
 
 ---
 
-## 6. Phase 진행률 스냅샷
+## 7. Phase 진행률 스냅샷
 
 | 묶음 | 상태 |
 |---|---|
@@ -253,27 +245,42 @@ const adminUid = auth.ctx?.admin?.uid;  // id 아님
 | Phase 8 알림 인프라 | ✅ 100% |
 | Phase 9 외부 API | ✅ 코드 100% / 🟡 실발송 환경변수 등록 후 자동 |
 | Phase 10 R1~R4 | ✅ 100% |
-| Phase 11 멘션·구독 | ✅ B+A 머지 / ✅ C 검증 PASS |
-| Phase 12 신고 공개·익명 | ✅ B+A 머지 / ✅ C 검증 PASS |
-| Phase 13 신고 통계 | ✅ B+A 머지 / ✅ C 검증 PASS |
-| Phase 14 AI 어시스턴트 | ✅ B+A 머지 / ✅ C 검증 PASS |
-| **Phase 15 전문가 매칭** | ✅ B+A 머지 / 🟣 verify/phase15 머지 대기 |
-| **Phase 16 통합 분석** | ✅ B+A 머지 / 🟣 verify/phase16 머지 대기 |
-| Phase 17~22 | ⏸ 카탈로그만 |
+| Phase 11·12 멘션·신고 공개 | ✅ 100% |
+| Phase 13·14·15·16 | ✅ 100% |
+| Phase 17 보안·감사 | ✅ 코드 머지·검증 / BUG-17-04·05 후속 권고 |
+| Phase 18 성능 최적화 | 🟡 설계 완료 / B 진행 중 |
+| Phase 19 자동 테스트 | ✅ 설계 / ⏸ 미착수 |
+| Phase 20 어드민 UI | Phase 20-A ❌ 거부 / 20-B·20-C ✅ |
+| Phase 21 워크스페이스 v3 | ✅ 100% (R1·R2+R3·R4) |
+| **Phase 22-A 매출 통합 관리** | 🟢 R2 PASS 23/27 + R3 진행 중 |
+| **Phase 22-C 지출 관리** | 🟢 R2 PASS 16/20 + R3 진행 중 |
+| Phase 22-B 예산·다단계 결재·풀세트 회계 | ⏸ 22-A·C 마감 후 합의 |
 
-누적 약 **62%** / 약 580h+
+누적 약 **70%** / 약 650h+
 
 ---
 
-## 7. 새 메인 첫 메시지 권장
+## 8. AI 에이전트 v3 (참고 — 종료된 시스템)
+
+**상태**: 개발 종료(2026-05-14 새벽). main @ `9f147a5` 시점에 84개 도구로 마감.
+**현재 도구 수**: 90개 (22-A 7개 + 22-C 5개 추가, 22-A 라운드에서 revenue_refund 누락 보강)
+**표준 문서**: [`docs/standards/AI_AGENT_PLATFORM_STANDARD.md`](standards/AI_AGENT_PLATFORM_STANDARD.md) v1.4
+
+자세한 내용은 메모리 `project_ai_cost_safety.md` 정독.
+
+**원칙**: Phase 5 추가 도구는 1주 운영 후 사용 패턴 보고 결정. 임의 도구 추가 금지.
+
+---
+
+## 9. 새 메인 첫 메시지 권장
 
 ```
 인수인계 정독 완료.
 
 현재 상태:
-- Phase 15: C 검증 PASS (verify/phase15 머지 대기)
-- Phase 16: C 검증 PASS (verify/phase16 머지 대기)
-- 다음: 두 브랜치 머지 후 Phase 17 일정 협의
+- Phase 22-A 매출 통합 관리·Phase 22-C 지출 관리 코드 머지 완료 (main @ 34ba615)
+- C R3 작업 중 (Medium·Low 8건 fix/phase22a-r3-cleanup)
+- 다음: R3 push 받으면 머지 + Phase 22-A·22-C 마감 + Phase 22-B 협의
 
-머지 순서대로 처리 후 Swain께 보고드립니다.
+C R3 완료 보고 대기.
 ```

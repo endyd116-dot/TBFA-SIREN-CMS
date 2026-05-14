@@ -267,4 +267,291 @@ feature/xxx (A·B·C 작업) → dev (테스트 서버 검증) → main (운영 
 - worktree 병렬 구조
 - A·B·C 브랜치 명명 규칙
 
-**최종 갱신**: 2026-05-12 (dev→main 2단계 배포 규칙 추가)
+---
+
+## 12. 자율주행 정책 (2026-05-14 정착)
+
+A·B·C 서브 채팅은 **완전 자율주행** — 작업 흐름을 끊지 않게 push와 애매한 로직만 묻고 나머지는 자율 진행.
+
+### 12.1 정책 표
+
+| 카테고리 | 정책 |
+|---|---|
+| 파일 Read·Edit·Write | ✅ 자율 (lib/auth.ts·admin-guard.ts·hyosung-parser.ts deny 항목 제외) |
+| git status·log·diff·fetch·pull·add·commit·rebase·restore·worktree | ✅ 자율 |
+| bash·PowerShell 일반 명령 | ✅ 자율 |
+| npm install·run | ✅ 자율 |
+| **git push** | ❓ ask (push 직전 1회 확인) |
+| 설계·로직 결정 (애매한 영역) | ❓ ask |
+| package.json·package-lock 수정 | ❓ ask |
+| npm uninstall·update, netlify, curl, Invoke-WebRequest | ❓ ask |
+| force push, hard reset, rm -rf | ❌ deny |
+| lib/auth.ts·admin-guard.ts·hyosung-parser.ts 수정 | ❌ deny |
+| public/js/auth.js·admin-mypage-cancellation.js·admin-eligibility.js | ❌ deny |
+
+### 12.2 적용 위치
+
+1. **`.claude/settings.json`** — 메인 + A + B + C 4개 워크트리에 동일 배포 (`.claude/`는 gitignored이므로 직접 cp)
+2. **트리거 본문** 첫 줄 박스에 명시:
+   ```
+   [자율주행 정책]
+   - push와 애매한 로직만 묻고 나머지는 자율 진행
+   - 파일 읽기·수정·git·bash·PowerShell·npm install은 묻지 말 것
+   - 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
+   ```
+
+관련 메모리: `feedback_subchat_autonomy`.
+
+---
+
+## 13. 트리거 영역 라벨 (2026-05-14 정착)
+
+A·B 둘 다에게 같은 프론트 트리거가 발송된 22-A 1단계 사고(2026-05-14) 재발 방지.
+
+### 13.1 헤더 + 본문 첫 줄에 영역 명시
+
+```
+## §6.1 B 트리거 (feature/phase{N}-back) — 🔧 백엔드 전용
+## §6.2 A 트리거 (feature/phase{N}-front) — 🎨 프론트엔드 전용
+## §6.3 C 트리거 — 🔍 검증 전용
+```
+
+본문 첫 줄:
+```
+[메인 → B 채팅] Phase X — 🔧 백엔드 + AI 도구 (프론트 작업 ❌)
+
+이 트리거는 백엔드 + AI 도구 작업 전용입니다.
+화면·HTML·JS 작업이 포함된 트리거를 받았다면 잘못 받은 것이니 즉시 메인에 문의.
+```
+
+### 13.2 머지 전 git 원격 확인 의무
+
+머지 보고가 와도 그대로 믿지 말고 실제 push 여부 확인:
+```bash
+git fetch origin --prune
+git log origin/main..origin/feature/X --oneline   # 1개 이상이어야 머지 가능
+```
+
+A·B 둘 다 같은 종류 보고(예: 모두 프론트 완료)가 오면 트리거 오발송 의심.
+
+관련 메모리: `feedback_trigger_role_labels`.
+
+---
+
+## 14. 진행률 % 보고 의무 (2026-05-14 정착, CLAUDE.md §6.16)
+
+A·B·C·메인 모두 큰 단계 완료마다 진행률 % 한 줄 보고.
+
+### 14.1 형식
+
+```
+📊 진행률 35% (3/9 완료) — 다음: API 4 작성 중
+[진행률 60% ▓▓▓▓▓▓░░░░] — 카테고리 관리 3개 완료, 지출 항목 6개 진행 중
+```
+
+### 14.2 빈도·분모·분자
+
+| 항목 | 기준 |
+|---|---|
+| 빈도 | 큰 단계(체크박스 1개) 완료마다 + 30분 이상 작업 시 1회 이상. **매 응답마다 ❌** |
+| 분모 | 트리거 체크박스 항목 수 (예: API 9개 + AI 도구 6개 = 15개) |
+| 분자 | 완료된 체크박스 수 |
+| 메인 분모 | 라운드 4단계(설계·머지·검증·문서) 또는 6단계(§2 기준) |
+
+### 14.3 트리거 본문 박스
+
+```
+[진행률 보고 의무]
+- 큰 단계(체크박스 1개) 완료마다 진행률 % 한 줄 보고
+- 형식: "📊 진행률 35% (3/N 완료) — 다음: ..."
+- 매 응답마다 ❌ (큰 단계마다만)
+```
+
+관련 메모리: `feedback_progress_reporting`.
+
+---
+
+## 15. 머지 검증 의무 — 실 머지 확인 (2026-05-14 정착)
+
+**"머지 = 응답 키 호환"이 아니라 "코드가 main 브랜치에 들어감"**.
+
+### 15.1 사고 사례 (2026-05-14)
+
+메인이 B 백엔드 머지 후 "A의 mock 응답 키가 B 실 API와 1:1 일치 = A는 별도 머지 불필요"로 판단. 22-C 프론트 트리거 발송. A 채팅이 git diff로 확인하다 발견: A의 `feature/phase22a-front` 가 origin/main에 미머지 상태. 사이드바·KPI 6개 등 모두 main에 없음. 22-C가 그 위에 작업하면 충돌.
+
+### 15.2 머지 보고 후 검증 명령어
+
+```bash
+git fetch origin
+git log origin/main..origin/feature/X --oneline   # 0개여야 머지 완료
+git diff origin/main..origin/feature/X --stat     # 빈 결과여야 함
+```
+
+### 15.3 PROJECT_STATE 표현 규칙
+
+- "A 자동 정렬·머지 불필요" 같은 모호한 표현 금지
+- 명확히 "A `feature/X@hash` → main @ hash 머지 완료" 또는 "미머지 (이유: ...)"
+
+관련 메모리: `feedback_merge_actual_verification`.
+
+---
+
+## 16. 선택적 체크아웃 머지 패턴 (2026-05-14 정착)
+
+서브 채팅이 옛 main 베이스에서 시작했을 때 그대로 머지하면 그 사이 정리된 옛 파일(docs·삭제된 마이그)이 다시 등장. **신규 변경 파일만 선택적 체크아웃**.
+
+### 16.1 진단
+
+```bash
+git diff main..origin/feature/X --name-status
+# A = 새 파일 (가져올 것)
+# M = 수정 파일 (가져올 것)
+# D = 삭제 표시 (가져오면 main의 현재 파일이 사라짐 — 위험 신호)
+```
+
+D 표시가 많거나 메인이 최근 정리·삭제한 파일을 다시 가져오려 하면 → 선택적 체크아웃 강제.
+
+### 16.2 선택적 체크아웃
+
+```bash
+git checkout origin/feature/X -- {신규/수정 파일만 1개씩 명시}
+git status                # M 또는 A로만 표시되어야 함
+git diff --staged --stat  # 의도한 파일만
+git commit -m "merge: ..."
+git push origin main
+```
+
+### 16.3 22-A 라운드 실제 사례
+
+B의 `feature/phase22a-back @ 232bad4` 머지 시 옛 main 베이스라 docs 12개·삭제 마이그이 재등장하려 함. 선택적 체크아웃으로 신규 10개 파일만(REST API 7 + lib 3) 통합. C의 `fix/phase22a-r2-bugs` 머지 시도 옛 docs 재등장 + 이미 fix된 BUG-013 중복 — 신규 2개 파일(`admin-expense-refund.ts` + `tool_expenseRefund`) 만 체크아웃.
+
+---
+
+## 17. C 검증 → C 자체 fix → 메인 머지 패턴 (2026-05-14 정착)
+
+이전: C는 검증만 → 메인이 fix → C가 재검증.
+**새 패턴: C 검증 중 BUG 발견 시 C가 직접 `fix/{이름}` 브랜치 작업** → 메인은 머지만.
+
+### 17.1 흐름
+
+```
+C 검증 라운드 R1 (verify/phase{N}-r1)
+  → BUG N건 발견 + docs/issues/ 작성
+  → 메인이 'C가 직접 fix' 트리거 발송
+  
+C fix 라운드 (fix/phase{N}-bugs)
+  → BUG 5건(예) fix + 1회용 마이그(필요 시)
+  → 자율 결정: BUG별 커밋 or 묶음 커밋
+  → push
+  
+메인 머지
+  → 선택적 체크아웃 (옛 main 베이스라면 §16)
+  → Swain께 1회용 마이그 호출 안내 (있으면)
+  → push
+  
+C 검증 R2 (verify/phase{N}-r2)
+  → fix 검증 + 신규 BUG 발견
+  → BUG 발견 시 다시 fix/phase{N}-r2-bugs
+```
+
+### 17.2 트리거 본문 예시
+
+```
+[메인 → C 채팅] Phase X BUG fix — 🔧 머지 차단 N건 (역할 전환: 검증→fix)
+
+C 검증 라운드에서 발견한 BUG M건 중 머지 차단 N건(Critical 2 + High 3)을 
+C가 직접 fix합니다. 메인은 docs/ 정리 작업 병행.
+
+[자율주행 정책]
+[진행률 보고 의무]
+
+워크트리:
+  git checkout main && git pull
+  git checkout -b fix/phase{N}-bugs
+
+(각 BUG 별 위치·방법·1회용 마이그 명시)
+```
+
+### 17.3 장점
+
+- 라운드 처리 시간 단축 (메인이 fix 안 해도 됨)
+- Opus C가 fix까지 책임 → 일관된 시각
+- 메인은 정리·문서·머지에 집중
+
+---
+
+## 18. Subagent 병렬 활용 패턴 (2026-05-14 정착)
+
+큰 정독·압축·다중 파일 조사는 메인이 직접 하지 말고 **general-purpose Subagent 3~5개를 병렬 launch**.
+
+### 18.1 적합한 작업
+
+- 폴더 단위 압축 (docs/issues/·verify/·milestones/ → archive)
+- 코드베이스 광역 검색·통계
+- 큰 문서 정독 + 요약
+- 다중 파일 일괄 분석
+
+### 18.2 launch 방식
+
+```
+Agent (general-purpose, run_in_background=true)
+- 폴더 A 정독·압축 → docs/A-archive.md 작성
+
+Agent (general-purpose, run_in_background=true)
+- 폴더 B 정독·압축 → docs/B-archive.md 작성
+
+Agent (general-purpose, run_in_background=true)
+- 폴더 C 정독·압축 → docs/C-archive.md 작성
+```
+
+병렬 launch 후 메인은 완료 알림 받으며 다른 작업 진행.
+
+### 18.3 22-A 라운드 실제 사례
+
+docs/ 폴더 67개 파일(16,260줄) 압축:
+- Agent 1: issues/ 13개 → issues-archive.md (147줄, 92%↓)
+- Agent 2: verify/ 32개 → verify-archive.md (354줄, 92%↓)
+- Agent 3: milestones/ 22개 → milestones-archive.md (496줄, 95%↓)
+- 합계: 16,260줄 → 997줄 (94% 감축)
+
+세 에이전트 동시 진행, 메인은 B 머지·BUG fix 머지 병행.
+
+### 18.4 주의
+
+- **Subagent에 정확한 형식 명세 전달**: "표 + 상세 + 교훈 섹션 80% 감축" 등
+- **결과 파일 경로 정확히 지정**
+- **완료 보고는 250자 이내로 요청** (컨텍스트 절감)
+- run_in_background=true 시 자동 알림 기다림 (poll 금지)
+
+---
+
+## 19. 사고 사례 학습 (2026-05-14 22-A 라운드 신규)
+
+§10 사고 사례에 누적:
+
+### 2026-05-14 — 트리거 오발송 (A·B 둘 다 프론트)
+**원인**: Swain이 A 채팅 트리거를 B 채팅에도 복붙 → B가 프론트 작업.
+**영향**: B 백엔드 미생산, B 브랜치 자체가 origin에 없음. 메인이 B 머지 시도 시점에 발견.
+**대응**: 트리거 헤더+본문 첫 줄 영역 라벨 명시(§13). 트리거 오발송 시 즉시 문의 안내. 메모리 `feedback_trigger_role_labels`.
+
+### 2026-05-14 — "응답 키 호환 = 머지 불필요" 잘못된 판단
+**원인**: 메인이 B 백엔드 머지 후 "A의 mock과 B 응답 키가 1:1 일치하니 A는 별도 머지 불필요"로 판단. 데이터 호환성과 코드 머지를 혼동.
+**영향**: A의 사이드바·KPI 6개 등 main에 없는 상태로 22-C 트리거 발송. A 보고로 발견.
+**대응**: §15 머지 검증 의무. git log origin/main..feature/X 0개 확인 의무. 메모리 `feedback_merge_actual_verification`.
+
+### 2026-05-14 — 옛 main 베이스 브랜치 머지 시 정리된 파일 재등장
+**원인**: B·C 브랜치가 옛 main 베이스에서 작업. 그 사이 메인이 docs/ 12개 정리·마이그 삭제. 그대로 머지하면 옛 파일이 모두 부활.
+**영향**: docs/ 압축 작업이 두 번 무효화될 뻔.
+**대응**: §16 선택적 체크아웃 패턴. `git diff --name-status` 의 D 표시 위험 신호로 인식.
+
+### 2026-05-14 — 변수 선언 변형(let→const) tsc gate 누락
+**원인**: C가 BUG-002 fix 시 `const donationRefund = 0` 선언 후 line 70에서 `donationRefund += t` 시도. 로컬 tsc gate 통과해야 했으나 누락 → Netlify 배포 빌드 실패.
+**대응**: B·C push 전 `npx tsc --noEmit` 의무 통과 재강조(§7). 머지 시 빌드 fix 즉시 push 정책.
+
+### 2026-05-14 — 같은 패턴 BUG 22-A→22-C 재발 (BUG-001→015)
+**원인**: 매출 환불 누적 fix(BUG-001) 후 22-C 지출 환불에서 같은 덮어쓰기 패턴 재등장(BUG-015). 신규 라운드 설계 시 직전 issues 정독 누락.
+**대응**: §14.1 CLAUDE.md "memory 정독 + docs/issues-archive 직전 라운드 BUG 패턴 정독 의무". 신규 라운드 트리거 작성 전 이 정독 단계 추가.
+
+---
+
+**최종 갱신**: 2026-05-14 심야 (Phase 22-A·22-C 라운드 신규 정책 6개 추가 — §12 자율주행·§13 영역 라벨·§14 진행률·§15 머지 검증·§16 선택적 체크아웃·§17 C 자체 fix·§18 Subagent 병렬·§19 사고 사례 5건)
