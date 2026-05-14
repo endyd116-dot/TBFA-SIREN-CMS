@@ -436,16 +436,16 @@
     set('kpiTotal', total.toLocaleString() + '명');
     set('kpiNew', '—');                 // Phase 1: 별도 집계 API 없음
 
-    /* ★ 버그픽스 20260515-2차 (#1): 유족·후원·정기·일시 KPI를 실제 집계값으로.
+    /* ★ 버그픽스 20260515-2차 (#1): 유족·후원·정기·예비 KPI를 실제 집계값으로.
        1순위: B가 admin-members 응답에 넣는 전체 집계 필드(typeCounts·donorTypeCounts).
        2순위(폴백): 현재 페이지 rows로 추정(첫 페이지만이라 부정확 — '~명*' 표기).
-       응답 키 다중 fallback (§6.2). */
+       ★ 후원 분류 체계는 regular/prospect/none 3종 — onetime(일시) 키 없음.
+       "예비 후원회원" KPI는 donorTypeCounts.prospect 를 정식 매핑한다. */
     const tc  = resp.typeCounts || {};
     const dtc = resp.donorTypeCounts || {};
     const rowFamily   = rows.filter(m => (m.type || m.memberType) === 'family').length;
     const rowRegular  = rows.filter(m => m.donorType === 'regular').length;
     const rowProspect = rows.filter(m => m.donorType === 'prospect').length;
-    const rowOnetime  = rows.filter(m => ['onetime','once','one_time'].includes(m.donorType)).length;
     const rowVolunteer = rows.filter(m => (m.type || m.memberType) === 'volunteer').length;
 
     // 집계 필드 우선, 없으면 페이지 추정값에 별표 — 어느 쪽이든 "—"는 면함
@@ -455,10 +455,9 @@
 
     const aggFamily   = tc.family ?? tc['유족'] ?? tc['family'];
     const aggRegular  = dtc.regular ?? dtc['정기'];
-    const aggProspect = dtc.prospect ?? dtc['잠재'];
-    const aggOnetime  = dtc.onetime ?? dtc.oneTime ?? dtc.once ?? dtc['일시'];
+    const aggProspect = dtc.prospect ?? dtc['예비'] ?? dtc['잠재'];
     const aggVolunteer = tc.volunteer ?? tc['봉사'];
-    // 후원회원 = 정기 + 잠재(예비) — 집계 필드 둘 다 있으면 합, 아니면 페이지 추정
+    // 후원회원 = 정기 + 예비(prospect) — 집계 필드 둘 다 있으면 합, 아니면 페이지 추정
     const aggDonor = (aggRegular != null || aggProspect != null)
       ? (Number(aggRegular || 0) + Number(aggProspect || 0))
       : null;
@@ -466,7 +465,7 @@
     set('kpiFamily',   pick(aggFamily, rowFamily));
     set('kpiDonor',    pick(aggDonor, rowRegular + rowProspect));
     set('kpiRegular',  pick(aggRegular, rowRegular));
-    set('kpiOnetime',  pick(aggOnetime != null ? aggOnetime : aggProspect, rowOnetime || rowProspect));
+    set('kpiOnetime',  pick(aggProspect, rowProspect));
     set('kpiVolunteer', pick(aggVolunteer, rowVolunteer));
 
     /* ★ 버그픽스 20260515 (#2): signupSource 정규화 후 출처별 카운트 (전부 "기타" 떨어지던 문제) */
