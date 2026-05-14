@@ -37,6 +37,7 @@
   const PAGE_SIZE   = 30;
   let detailItem    = null;
   let myRole        = null;
+  let anomalyMap    = {};   // { accountCode: { rate, current, prev } } — 이상 지출 패턴 배지
 
   /* ── API 헬퍼 ── */
   function api(method, path, body) {
@@ -478,8 +479,35 @@
       items = payload?.items || payload?.data?.items || [];
     }
 
+    await loadAnomaly();
     renderSummary(computeSummary(items));
     renderTable(items, tbody);
+  }
+
+  /* ── 이상 지출 패턴 (계정과목별 전월 대비 급증) ── */
+  async function loadAnomaly() {
+    if (USE_MOCK) { anomalyMap = {}; return; }
+    const res = await api('GET', '/api/admin-finance-anomaly');
+    if (!res.ok) { anomalyMap = {}; return; }
+    const d = res.data?.data || res.data || {};
+    const items = d.items || d.anomalies || (Array.isArray(d) ? d : []);
+    anomalyMap = {};
+    (items || []).forEach(it => {
+      const code = it.accountCode || it.account_code || it.code;
+      if (!code) return;
+      anomalyMap[String(code)] = {
+        rate:    it.increaseRate ?? it.increase_rate ?? it.rate ?? 0,
+        current: it.currentAmount ?? it.current_amount ?? it.current ?? 0,
+        prev:    it.prevAmount ?? it.prev_amount ?? it.previous ?? 0,
+      };
+    });
+  }
+
+  function anomalyBadge(code) {
+    const a = anomalyMap[String(code)];
+    if (!a) return '';
+    const rate = Math.round(a.rate);
+    return ` <span title="전월 대비 +${rate}% 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 +${rate}%</span>`;
   }
 
   function computeSummary(items) {
@@ -503,7 +531,7 @@
     tbody.innerHTML = items.map(item => `
       <tr>
         <td>${fmtDate(item.occurredAt)}</td>
-        <td>${escapeHtml(item.categoryName || '—')}</td>
+        <td>${escapeHtml(item.categoryName || '—')}${anomalyBadge(item.categoryCode)}</td>
         <td>${escapeHtml(item.payeeName || '—')}</td>
         <td class="num">${fmtKRW(item.amount)}</td>
         <td class="num" style="color:${Number(item.refundAmount || 0) > 0 ? 'var(--danger)' : 'var(--text-3)'}">
