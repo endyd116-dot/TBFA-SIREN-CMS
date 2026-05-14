@@ -1928,10 +1928,19 @@
     if (!Array.isArray(channels) || channels.length === 0) {
       return `<span class="cms-badge cms-b-mute" style="color:#8a8a8a">─</span>`;
     }
-    return channels.map(ch => {
+    const badges = channels.map(ch => {
       const meta = CHANNEL_LABEL[ch] || { icon: '·', text: ch, cls: 'cms-b-mute' };
       return `<span class="cms-badge ${meta.cls}" title="${escapeHtml(meta.text)}">${meta.icon} ${escapeHtml(meta.text)}</span>`;
-    }).join(' ');
+    });
+    /* #7/#8 정기후원 중복 경고 — 효성·토스 양쪽 정기후원이 동시 활성이면 이중 청구 위험 */
+    if (channels.includes('toss') && channels.includes('hyosung')) {
+      badges.push(
+        `<span class="cms-badge cms-b-danger" style="background:#fde8e8;color:#c5293a;font-weight:600"` +
+        ` title="효성·토스 정기후원이 동시 활성입니다. 이중 청구 위험 — 한 채널을 해지하세요 (토스: 빌링 관리 화면, 효성: 효성 CMS+).">` +
+        `⚠ 중복</span>`
+      );
+    }
+    return badges.join(' ');
   }
 
   /* ============ C10. 정기 후원자 ============ */

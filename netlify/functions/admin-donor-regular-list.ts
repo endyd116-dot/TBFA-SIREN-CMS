@@ -131,7 +131,7 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   /* 2. 쿼리 파싱 */
-  let channel: "toss" | "hyosung" | "all";
+  let channel: "toss" | "hyosung" | "both" | "all";
   let q: string;
   let page: number;
   let pageSize: number;
@@ -140,7 +140,9 @@ export default async (req: Request, _ctx: Context) => {
     const url = new URL(req.url);
     const rawChannel = (url.searchParams.get("channel") || "all").toLowerCase();
     channel =
-      rawChannel === "toss" || rawChannel === "hyosung" ? (rawChannel as DonorChannel) : "all";
+      rawChannel === "toss" || rawChannel === "hyosung" || rawChannel === "both"
+        ? (rawChannel as "toss" | "hyosung" | "both")
+        : "all";
     q = (url.searchParams.get("q") || "").trim().slice(0, 100);
     page = Math.max(1, Number(url.searchParams.get("page") || "1") || 1);
     pageSize = Math.min(200, Math.max(1, Number(url.searchParams.get("pageSize") || "50") || 50));
@@ -159,7 +161,9 @@ export default async (req: Request, _ctx: Context) => {
         ? sql`AND m.donor_channels @> '["toss"]'::jsonb`
         : channel === "hyosung"
           ? sql`AND m.donor_channels @> '["hyosung"]'::jsonb`
-          : sql``;
+          : channel === "both"
+            ? sql`AND m.donor_channels @> '["toss"]'::jsonb AND m.donor_channels @> '["hyosung"]'::jsonb`
+            : sql``;
 
     const qLike = q ? `%${q}%` : "";
     const qFilter = q
