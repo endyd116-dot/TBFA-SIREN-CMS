@@ -5,6 +5,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail } from "./email";
+import { resolvePeriod } from "./period-filter";
 
 /* =========================================================
    Gemini Function Declaration — OpenAPI 3.0 schema (대문자 type)
@@ -491,18 +492,18 @@ export const TOOL_DECLARATIONS = [
       receiptUrl:   { type: "STRING",  description: "영수증 URL (선택)" },
     }, required: ["recognizedAt", "amount"] }},
 
-  { name: "revenue_list", description: "후원 외 수입 목록 조회 (회계연도·카테고리·상태·납입자·기간 필터)",
+  { name: "revenue_list", description: "후원 외 수입 목록 조회. period로 기간 지정 (기본: 이번 달)",
     parameters: { type: "OBJECT", properties: {
-      fiscalYear: { type: "INTEGER", description: "회계연도 (필수)" },
+      period:     { type: "STRING",  description: "기간 단위", enum: ["day", "week", "month", "half_year", "year", "custom"], },
+      startDate:  { type: "STRING",  description: "custom일 때 시작일 YYYY-MM-DD" },
+      endDate:    { type: "STRING",  description: "custom일 때 종료일 YYYY-MM-DD" },
+      fiscalYear: { type: "INTEGER", description: "연도(숫자)만 넘기면 해당 연도 1/1~12/31 (하위호환)" },
       status:     { type: "STRING",  description: "수입 상태", enum: ["draft", "approved", "rejected", "all"] },
       categoryId: { type: "INTEGER", description: "카테고리 ID 필터 (선택)" },
-      categoryCode: { type: "STRING", description: "카테고리 코드 필터 (선택)", enum: ["lecture", "govgrant", "corp_sponsor", "twork_on", "twork_si", "etc"] },
       payerName:  { type: "STRING",  description: "납입자·기관명 부분 일치 (선택)" },
-      startDate:  { type: "STRING",  description: "인식일 시작 YYYY-MM-DD (선택)" },
-      endDate:    { type: "STRING",  description: "인식일 종료 YYYY-MM-DD (선택)" },
       page:       { type: "INTEGER" },
       limit:      { type: "INTEGER" },
-    }, required: ["fiscalYear"] }},
+    }}},
 
   { name: "revenue_update", description: "수입 항목 수정 (draft 상태·등록자 또는 super_admin만 가능)",
     parameters: { type: "OBJECT", properties: {
@@ -529,21 +530,26 @@ export const TOOL_DECLARATIONS = [
       refundAmount: { type: "INTEGER", description: "환불 금액 (원). 원래 금액 이하" },
     }, required: ["id", "refundAmount"] }},
 
-  { name: "pl_summary", description: "손익계산서 요약 — 후원+기타 매출·지출·순이익 (월별 포함)",
+  { name: "pl_summary", description: "손익계산서 요약 — 후원+기타 매출·지출·순이익. period로 기간 지정 (기본: 이번 달)",
     parameters: { type: "OBJECT", properties: {
-      fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
+      period:    { type: "STRING",  description: "기간 단위", enum: ["day", "week", "month", "half_year", "year", "custom"] },
+      startDate: { type: "STRING",  description: "custom일 때 시작일 YYYY-MM-DD" },
+      endDate:   { type: "STRING",  description: "custom일 때 종료일 YYYY-MM-DD" },
+      fiscalYear: { type: "INTEGER", description: "연도(숫자)만 넘기면 해당 연도 1/1~12/31 (하위호환). monthly[] 자동 포함" },
     }}},
 
   /* === Phase 22-C 지출 (5개) === */
   { name: "expense_categories_list", description: "지출 카테고리 목록. NPO 표준 4분류(인건비/사업비/관리운영비/모금비) + 사용자 정의",
     parameters: { type: "OBJECT", properties: {} }},
 
-  { name: "expenses_list", description: "지출 항목 목록 조회. 연도·상태·카테고리 필터",
+  { name: "expenses_list", description: "지출 항목 목록 조회. period로 기간 지정 (기본: 이번 달). status: draft|approved|rejected",
     parameters: { type: "OBJECT", properties: {
-      fiscalYear: { type: "INTEGER", description: "회계연도 (생략 시 올해)" },
+      period:     { type: "STRING",  description: "기간 단위", enum: ["day", "week", "month", "half_year", "year", "custom"] },
+      startDate:  { type: "STRING",  description: "custom일 때 시작일 YYYY-MM-DD" },
+      endDate:    { type: "STRING",  description: "custom일 때 종료일 YYYY-MM-DD" },
+      fiscalYear: { type: "INTEGER", description: "연도(숫자)만 넘기면 해당 연도 1/1~12/31 (하위호환)" },
       status:     { type: "STRING",  description: "지출 상태", enum: ["draft", "approved", "rejected", "all"] },
       categoryId: { type: "INTEGER", description: "expense_categories.id (선택)" },
-      categoryCode: { type: "STRING", description: "카테고리 코드 필터 (선택)", enum: ["personnel", "program", "admin_ops", "fundraising"] },
       page:       { type: "INTEGER" },
       limit:      { type: "INTEGER" },
     }}},
@@ -3172,29 +3178,20 @@ async function tool_revenueCreate(args: any, adminId: number | null): Promise<To
 }
 
 async function tool_revenueList(args: any): Promise<ToolResult> {
-  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  const { startDate, endDate, period } = resolvePeriod({
+    period: args?.period, startDate: args?.startDate, endDate: args?.endDate,
+    fiscalYear: args?.fiscalYear != null ? String(args.fiscalYear) : null,
+  });
   const status = args?.status || "all";
   const categoryId = args?.categoryId;
   const payerName = (args?.payerName || "").trim();
-  const startDate = args?.startDate;
-  const endDate = args?.endDate;
   const limit = Math.min(Number(args?.limit) || 50, 100);
   const page = Math.max(1, Number(args?.page) || 1);
   const offset = (page - 1) * limit;
 
-  // BUG-005 fix: 카테고리·납입자·기간 동적 WHERE
-  const statusCond     = status !== "all"               ? sql`AND r.status = ${status}`                                                : sql``;
-  const categoryCond   = categoryId                     ? sql`AND r.category_id = ${Number(categoryId)}`                                : sql``;
-  const payerCond      = payerName                      ? sql`AND r.payer_name ILIKE ${`%${payerName}%`}`                               : sql``;
-  const startCond      = startDate                      ? sql`AND r.recognized_at >= ${startDate}::date`                                : sql``;
-  const endCond        = endDate                        ? sql`AND r.recognized_at <= ${endDate}::date`                                  : sql``;
-
-  // 요약(summary)은 페이지네이션 무관하게 같은 필터 — 별칭 없이 단순화 위해 같은 변수 재사용
-  const statusCondSum     = status !== "all"               ? sql`AND status = ${status}`                                                : sql``;
-  const categoryCondSum   = categoryId                     ? sql`AND category_id = ${Number(categoryId)}`                                : sql``;
-  const payerCondSum      = payerName                      ? sql`AND payer_name ILIKE ${`%${payerName}%`}`                               : sql``;
-  const startCondSum      = startDate                      ? sql`AND recognized_at >= ${startDate}::date`                                : sql``;
-  const endCondSum        = endDate                        ? sql`AND recognized_at <= ${endDate}::date`                                  : sql``;
+  const statusCond   = status !== "all" ? sql`AND r.status = ${status}`                    : sql``;
+  const categoryCond = categoryId       ? sql`AND r.category_id = ${Number(categoryId)}`    : sql``;
+  const payerCond    = payerName        ? sql`AND r.payer_name ILIKE ${`%${payerName}%`}`   : sql``;
 
   try {
     const r: any = await db.execute(sql`
@@ -3202,7 +3199,8 @@ async function tool_revenueList(args: any): Promise<ToolResult> {
              r.amount, r.refund_amount, r.payer_name, r.status, r.description
         FROM other_revenues r
         LEFT JOIN revenue_categories c ON c.id = r.category_id
-       WHERE r.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${categoryCond} ${payerCond} ${startCond} ${endCond}
+       WHERE r.recognized_at::date BETWEEN ${startDate}::date AND ${endDate}::date
+         ${statusCond} ${categoryCond} ${payerCond}
        ORDER BY r.recognized_at DESC, r.id DESC
        LIMIT ${limit} OFFSET ${offset}
     `);
@@ -3210,12 +3208,13 @@ async function tool_revenueList(args: any): Promise<ToolResult> {
     const sumR: any = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) AS gross, COALESCE(SUM(refund_amount), 0) AS refund
         FROM other_revenues
-       WHERE fiscal_year = ${Number(fiscalYear)} ${statusCondSum} ${categoryCondSum} ${payerCondSum} ${startCondSum} ${endCondSum}
+       WHERE recognized_at::date BETWEEN ${startDate}::date AND ${endDate}::date
+         ${statusCond} ${categoryCond} ${payerCond}
     `);
     const sumRow = (sumR?.rows ?? sumR ?? [])[0] || {};
     const gross = Number(sumRow.gross || 0);
     const refund = Number(sumRow.refund || 0);
-    return { ok: true, output: { count: rows.length, items: rows, summary: { gross, refund, net: gross - refund } } };
+    return { ok: true, output: { count: rows.length, items: rows, period, startDate, endDate, summary: { gross, refund, net: gross - refund } } };
   } catch (e: any) {
     return { ok: false, error: `수입 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -3353,14 +3352,17 @@ async function tool_revenueRefund(args: any, adminId: number | null): Promise<To
 }
 
 async function tool_plSummary(args: any): Promise<ToolResult> {
-  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  const { startDate, endDate, period, fiscalYear } = resolvePeriod({
+    period: args?.period, startDate: args?.startDate, endDate: args?.endDate,
+    fiscalYear: args?.fiscalYear != null ? String(args.fiscalYear) : null,
+  });
   try {
     // 후원 — completed gross
     const donR: any = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) AS gross
         FROM donations
        WHERE status = 'completed'
-         AND EXTRACT(YEAR FROM COALESCE(hyosung_paid_date, created_at)) = ${Number(fiscalYear)}
+         AND COALESCE(hyosung_paid_date, created_at)::date BETWEEN ${startDate}::date AND ${endDate}::date
     `);
     const donGross = Number((donR?.rows ?? donR ?? [])[0]?.gross || 0);
 
@@ -3369,7 +3371,7 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       SELECT COALESCE(SUM(amount), 0) AS refund
         FROM donations
        WHERE status = 'refunded'
-         AND EXTRACT(YEAR FROM COALESCE(hyosung_paid_date, created_at)) = ${Number(fiscalYear)}
+         AND COALESCE(hyosung_paid_date, created_at)::date BETWEEN ${startDate}::date AND ${endDate}::date
     `);
     const donRefund = Number((donRefR?.rows ?? donRefR ?? [])[0]?.refund || 0);
     const donNet = donGross - donRefund;
@@ -3381,7 +3383,7 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
         FROM other_revenues r
         LEFT JOIN revenue_categories c ON c.id = r.category_id
        WHERE r.status = 'approved'
-         AND r.recognized_at::date BETWEEN ${`${fiscalYear}-01-01`}::date AND ${`${fiscalYear}-12-31`}::date
+         AND r.recognized_at::date BETWEEN ${startDate}::date AND ${endDate}::date
        GROUP BY c.code, c.name
     `);
     const othRows = othR?.rows ?? othR ?? [];
@@ -3392,15 +3394,19 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       return { code: row.code, name: row.name, gross: g, refund: rf, net: g - rf };
     });
 
-    // Phase 22-C 지출 집계 (status='approved')
+    // Phase 22-C 지출 집계 (status='approved', occurred_at 기준)
+    const expConds = [
+      sql`e.status = 'approved'`,
+      sql`e.occurred_at::date BETWEEN ${startDate}::date AND ${endDate}::date`,
+      ...(fiscalYear !== null ? [sql`e.fiscal_year = ${fiscalYear}`] : []),
+    ];
     const expR: any = await db.execute(sql`
       SELECT c.code, c.name,
              COALESCE(SUM(e.amount), 0) AS gross,
              COALESCE(SUM(e.refund_amount), 0) AS refund
         FROM expenses e
         LEFT JOIN expense_categories c ON c.id = e.category_id
-       WHERE e.status = 'approved'
-         AND e.fiscal_year = ${Number(fiscalYear)}
+       WHERE ${sql.join(expConds, sql` AND `)}
        GROUP BY c.code, c.name
     `);
     const expRows = expR?.rows ?? expR ?? [];
@@ -3411,14 +3417,14 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
       return { code: row.code, name: row.name, gross: g, refund: rf, total: g - rf };
     });
 
-    // BUG-002 fix: 후원 환불(donRefund)도 totalNet에 차감되도록 donNet 사용
     const totalNet = donNet + (othGross - othRefund);
     const expenditureTotal = expGross - expRefund;
     const netIncome = totalNet - expenditureTotal;
     return {
       ok: true,
       output: {
-        fiscalYear: Number(fiscalYear),
+        period, startDate, endDate,
+        ...(fiscalYear !== null ? { fiscalYear } : {}),
         revenue: {
           donations: { gross: donGross, refund: donRefund, net: donNet },
           other: { gross: othGross, refund: othRefund, net: othGross - othRefund, byCategory },
@@ -3426,7 +3432,7 @@ async function tool_plSummary(args: any): Promise<ToolResult> {
         },
         expenditure: { total: expenditureTotal, gross: expGross, refund: expRefund, byCategory: expByCategory },
         netIncome,
-        summary: `${fiscalYear}년 총수입 ${totalNet.toLocaleString("ko-KR")}원 - 총지출 ${expenditureTotal.toLocaleString("ko-KR")}원 = 순이익 ${netIncome.toLocaleString("ko-KR")}원`,
+        summary: `${startDate}~${endDate} 총수입 ${totalNet.toLocaleString("ko-KR")}원 - 총지출 ${expenditureTotal.toLocaleString("ko-KR")}원 = 순이익 ${netIncome.toLocaleString("ko-KR")}원`,
       },
     };
   } catch (e: any) {
@@ -3451,21 +3457,29 @@ async function tool_expenseCategoriesList(): Promise<ToolResult> {
 }
 
 async function tool_expensesList(args: any): Promise<ToolResult> {
-  const fiscalYear = args?.fiscalYear || new Date().getFullYear();
+  const { startDate, endDate, period, fiscalYear } = resolvePeriod({
+    period: args?.period, startDate: args?.startDate, endDate: args?.endDate,
+    fiscalYear: args?.fiscalYear != null ? String(args.fiscalYear) : null,
+  });
   const status = args?.status || "all";
   const categoryId = args?.categoryId ? Number(args.categoryId) : null;
   const limit = Math.min(Number(args?.limit) || 30, 100);
   const page = Math.max(1, Number(args?.page) || 1);
   const offset = (page - 1) * limit;
 
-  // §18.13 enum 동기화: status 검증 (ALLOWED 상수)
+  // §18.13 enum 동기화: status 검증
   const ALLOWED_STATUS = ["draft", "approved", "rejected", "all"];
   if (!ALLOWED_STATUS.includes(status)) {
     return { ok: false, error: `status는 ${ALLOWED_STATUS.join("|")} 중 하나` };
   }
 
-  const statusCond = status !== "all" ? sql`AND e.status = ${status}` : sql``;
-  const catCond = categoryId ? sql`AND e.category_id = ${categoryId}` : sql``;
+  const baseConds = [
+    sql`e.occurred_at::date BETWEEN ${startDate}::date AND ${endDate}::date`,
+    ...(fiscalYear !== null ? [sql`e.fiscal_year = ${fiscalYear}`] : []),
+    ...(status !== "all" ? [sql`e.status = ${status}`] : []),
+    ...(categoryId ? [sql`e.category_id = ${categoryId}`] : []),
+  ];
+  const where = sql.join(baseConds, sql` AND `);
 
   try {
     const r: any = await db.execute(sql`
@@ -3475,17 +3489,17 @@ async function tool_expensesList(args: any): Promise<ToolResult> {
              e.recorded_by, e.approved_by, e.approved_at, e.rejection_reason
         FROM expenses e
         LEFT JOIN expense_categories c ON c.id = e.category_id
-       WHERE e.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${catCond}
+       WHERE ${where}
        ORDER BY e.occurred_at DESC, e.id DESC
        LIMIT ${limit} OFFSET ${offset}
     `);
     const rows = r?.rows ?? r ?? [];
 
     const sumR: any = await db.execute(sql`
-      SELECT COALESCE(SUM(amount), 0) AS gross,
-             COALESCE(SUM(refund_amount), 0) AS refund
+      SELECT COALESCE(SUM(e.amount), 0) AS gross,
+             COALESCE(SUM(e.refund_amount), 0) AS refund
         FROM expenses e
-       WHERE e.fiscal_year = ${Number(fiscalYear)} ${statusCond} ${catCond}
+       WHERE ${where}
     `);
     const sumRow = (sumR?.rows ?? sumR ?? [])[0] || {};
     const gross = Number(sumRow.gross || 0);
@@ -3496,6 +3510,7 @@ async function tool_expensesList(args: any): Promise<ToolResult> {
       output: {
         count: rows.length,
         items: rows,
+        period, startDate, endDate,
         summary: { gross, refund, net: gross - refund },
       },
     };
