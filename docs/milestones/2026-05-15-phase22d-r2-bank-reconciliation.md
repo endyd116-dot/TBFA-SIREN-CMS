@@ -36,7 +36,15 @@
 
 ---
 
-## §1 통장 엑셀 파싱 (IBK 전용)
+## §1 통장 엑셀 파싱 (IBK 전용) — 클라이언트 1차 변환 + 서버 정규화
+
+> **2026-05-15 정정**: 당초 "SheetJS 서버 파싱"으로 썼으나, CLAUDE.md §2 표준이
+> "SheetJS 클라이언트 변환"이고 서버에 `xlsx` 미설치. **클라이언트 파싱으로 변경.**
+>
+> - **A (클라이언트)**: SheetJS CDN으로 엑셀 → JSON 1차 변환. 헤더 행 자동 탐지 +
+>   §1.1 12컬럼 추출 + 메타데이터 추출 + 합계행 제외 → 정규화된 거래 배열 JSON
+> - **B (서버)**: `admin-bank-import`가 **JSON 거래 배열**을 받음(FormData multipart ❌).
+>   금액 정규화 검증 + `dedup_hash` 생성 + DB 적재 + 대사 엔진. 신규 패키지 0개.
 
 ### 1.1 IBK 입출식 예금 거래내역조회 — 컬럼 구조
 
@@ -57,12 +65,17 @@
 
 ### 1.2 파싱 주의사항
 
-- **헤더 행 자동 탐지**: 엑셀 상단에 메타데이터(계좌번호·예금주명·현재잔액·조회기간)가 흩어져 있고 헤더 행이 중간에 있음 → "거래일시" 헤더 셀을 찾아 그 행부터 데이터로 파싱
-- **메타데이터 추출**: 계좌번호·예금주명·조회시작/종료일자 → `bank_imports`에 저장
-- **합계 행 제외**: 마지막 "합계" 행 스킵
-- **금액 정규화**: 콤마 제거, 출금→음수 / 입금→양수로 `amount` 단일 컬럼
-- **중복 방지**: `거래일시 + amount + balance_after` 조합 해시로 같은 거래 재적재 차단
-- **포맷**: `.xlsx` 우선 (SheetJS 서버 파싱), `.csv`도 허용
+| 항목 | 담당 | 내용 |
+|---|---|---|
+| 헤더 행 자동 탐지 | A (클라이언트) | 메타데이터가 상단에 흩어져 있고 헤더가 중간 → "거래일시" 헤더 셀 찾아 그 행부터 |
+| 메타데이터 추출 | A → B | 계좌번호·예금주명·조회시작/종료일자 → JSON에 담아 전송 → B가 `bank_imports` 저장 |
+| 합계 행 제외 | A (클라이언트) | 마지막 "합계" 행 스킵 |
+| 금액 정규화 | A 1차 + B 검증 | 콤마 제거, 출금→음수 / 입금→양수로 `amount` 단일 값. B가 재검증 |
+| 중복 방지 | **B (서버)** | `거래일시 + amount + balance_after` 조합 `dedup_hash` 서버 생성 (무결성) |
+| 포맷 | A (클라이언트) | `.xlsx` 우선 (SheetJS CDN), `.csv`도 허용 |
+
+- A는 SheetJS CDN(이미 프로젝트에서 쓰는 0.18.5)으로 엑셀→JSON 변환만. 정규화 거래 배열을 `admin-bank-import`에 POST(application/json)
+- B는 JSON 배열 수신 → `dedup_hash` 생성·중복 차단·금액 검증 → DB 적재
 
 ---
 
@@ -175,7 +188,7 @@ CREATE TABLE counterparties (
 
 | 엔드포인트 | 메서드 | 기능 | 권한 |
 |---|---|---|---|
-| `/api/admin-bank-import` | POST | 통장 엑셀 업로드 + 파싱 + bank_imports·bank_transactions 적재 | admin |
+| `/api/admin-bank-import` | POST | **JSON 거래 배열 수신**(A가 클라이언트 파싱) + dedup_hash·검증 + bank_imports·bank_transactions 적재 | admin |
 | `/api/admin-bank-import-list` | GET | 업로드 이력 | admin |
 | `/api/admin-bank-reconcile` | POST | 대사 엔진 실행 (입금 대사 + 출금 전표생성) | admin |
 | `/api/admin-bank-transactions-list` | GET | 거래 목록 (입금/출금·매칭상태·기간 필터) | admin |
@@ -283,10 +296,12 @@ CREATE TABLE counterparties (
   · /* === Phase 22-D-R2 === */ 헤더, 마이그 적용 후 활성화
 - [ ] 메인에 마이그 호출 요청
 
-■ 2단계 — 파싱 (설계서 §1)
-- [ ] IBK 입출식 예금 엑셀 파서 (SheetJS 서버 파싱)
-  · 헤더 행 자동 탐지 + 12컬럼 매핑 + 메타데이터 추출 + 합계행 제외
-  · 금액 정규화(출금 음수/입금 양수) + dedup_hash 생성
+■ 2단계 — 수신·검증·적재 (설계서 §1 — 클라이언트 파싱으로 변경됨)
+- [ ] admin-bank-import: A가 클라이언트 SheetJS로 파싱한 **JSON 거래 배열** 수신
+  (FormData multipart 아님 — application/json)
+  · dedup_hash 서버 생성(거래일시+amount+balance_after) + 중복 차단
+  · 금액 정규화 재검증 + 메타데이터 → bank_imports 저장 + bank_transactions 적재
+  · ★ 서버에 xlsx 패키지 설치 금지 — CLAUDE.md §2 표준(SheetJS 클라이언트)
 
 ■ 3단계 — 대사 엔진 (설계서 §3 — 핵심)
 - [ ] 입금 대사: 묶음정산 감지 → 개별 매칭(donations) → 미매칭 분기(donation/revenue 후보)
@@ -338,7 +353,9 @@ CREATE TABLE counterparties (
 [ ] cms-tbfa.html "💰 후원·재정 관리" 그룹에 "통장 거래내역" 메뉴 + page-bank-transactions 섹션
 [ ] cms-tbfa.js 탭 라우팅 케이스 추가
 [ ] 신규 JS (admin-bank-transactions.js): window.SIREN_* 패턴, page-* ID 폴백
-[ ] 업로드 화면 — 엑셀 드래그&드롭 → /api/admin-bank-import + 업로드 이력
+[ ] 업로드 화면 — 엑셀 드래그&드롭 → **SheetJS CDN으로 클라이언트 파싱**
+    (헤더 자동 탐지 + §1.1 12컬럼 추출 + 메타데이터 + 합계행 제외 → 정규화 JSON 배열)
+    → /api/admin-bank-import에 application/json POST + 업로드 이력
 [ ] 대사 요약 — 입금 매칭/미확인, 출금 전표생성/대기, 묶음정산 카운트
 [ ] 거래 목록 — 거래일시·입출구분·금액·거래내용·거래처·매칭상태 배지
       · 기간 선택기 (22-B-R1 §2-b 공통 컴포넌트 재사용)
@@ -352,7 +369,9 @@ CREATE TABLE counterparties (
 ■ 주의
 - 데이터 API는 B가 작성 — A는 호출·렌더만. 응답 키 다중 fallback
 - cms-tbfa.html은 재정 그룹 사이드바 + page-bank-transactions 섹션 내부만
-- 엑셀 업로드는 FormData multipart — admin-bank-import 명세는 B 완료 후 공유받아 맞춤
+- ★ 엑셀 파싱은 A 클라이언트 담당 (SheetJS CDN 0.18.5, 프로젝트 기존 사용분).
+  admin-bank-import는 FormData 아닌 application/json (정규화 거래 배열) 전송
+- §1.1 12컬럼 매핑·헤더 탐지·합계행 제외는 A 클라이언트 파서가 구현
 
 완료 후:
 - git add, commit, git push origin feature/phase22d-r2-front
