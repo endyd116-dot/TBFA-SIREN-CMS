@@ -3,6 +3,7 @@ import { donations, otherRevenues, revenueCategories, expenses, expenseCategorie
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { eq, and, sql } from "drizzle-orm";
 import { resolvePeriod } from "../../lib/period-filter";
+import { getCache, setCache } from "../../lib/cache";
 
 export const config = { path: "/api/admin-finance-pl-summary" };
 
@@ -17,6 +18,16 @@ export default async function handler(req: Request): Promise<Response> {
     endDate:    url.searchParams.get("endDate"),
     fiscalYear: url.searchParams.get("fiscalYear"),
   });
+
+  /* ★ 버그픽스 #13-2: 손익 요약은 읽기 전용 집계 — 기간 키별 3분 캐시.
+   *  donations/expenses/other_revenues 풀집계가 매 진입마다 도는 부담을 줄임. */
+  const cacheKey = `pl-summary-v1:${period}:${startDate}:${endDate}:${fiscalYear ?? "-"}:${includeMonthly ? "m" : "-"}`;
+  const cached = await getCache<Record<string, any>>(cacheKey);
+  if (cached) {
+    return new Response(JSON.stringify({ ok: true, data: { ...cached, cached: true } }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   // ── 1. 후원 집계 (status='completed' gross + status='refunded' refund) ──
   let donationGross = 0;
@@ -238,6 +249,9 @@ export default async function handler(req: Request): Promise<Response> {
     netIncome,
   };
   if (monthly !== undefined) responseData.monthly = monthly;
+
+  /* 캐시 저장 (실패해도 응답에 영향 없음) */
+  await setCache(cacheKey, responseData, 3 * 60);
 
   return new Response(JSON.stringify({ ok: true, data: responseData }), {
     headers: { "Content-Type": "application/json" },

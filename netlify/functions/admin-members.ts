@@ -21,7 +21,7 @@
  * - 유가족 회원은 status=pending, 그 외는 active
  * - emailVerified=false (사용자가 별도 인증 필요)
  */
-import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, count, sql, inArray } from "drizzle-orm";
 import crypto from "crypto";
 import { db, members, donations } from "../../db";
 import { signupSources, memberGrades } from "../../db/schema";
@@ -240,11 +240,17 @@ export default async (req: Request) => {
         /* 그 외 값(잘못된 입력)은 무시 — 필터 미적용 */
       }
 
-      /* ★ Phase 1: donorType fast-path.
-       *  schema에 donor_type 컬럼이 아직 없음 → 모든 회원 'none' 디폴트.
-       *  'regular'/'prospect' 요청은 Phase 1에서 빈 결과 즉시 반환 (DB 쿼리 스킵). */
-      const donorTypeFastEmpty =
-        donorTypeParam === "regular" || donorTypeParam === "prospect";
+      /* ★ 버그픽스 #2: donorType 은 donations JOIN 으로 실제 판정 (컬럼 추가 불필요).
+       *  - regular  : status='completed' 이고 type='regular'(정기) 후원 이력 있음
+       *  - prospect : 완료 후원 이력은 있으나 정기는 없음 (일시후원만)
+       *  - none     : 완료 후원 이력 전혀 없음
+       *  목록 SELECT 이후 memberIds 로 별도 집계 쿼리 → Map 매칭.
+       *  donorType 필터가 걸린 경우엔 먼저 해당 donorType 의 memberId 집합을 구해
+       *  where 에 inArray 로 합류. */
+      const donorTypeFilter =
+        donorTypeParam === "regular" || donorTypeParam === "prospect" || donorTypeParam === "none"
+          ? donorTypeParam
+          : null;
 
       const conditions: any[] = [];
       if (type && ["regular", "family", "volunteer", "admin"].includes(type)) {
@@ -266,6 +272,42 @@ export default async (req: Request) => {
       if (resolvedSourceId !== null) {
         conditions.push(eq((members as any).signupSourceId, resolvedSourceId));
       }
+      /* ★ 버그픽스 #2: donorType 필터 — 해당 donorType 의 memberId 집합을 먼저 구해 where 합류.
+       *  donations 집계로 정기/일시/무후원 분류 후 inArray 조건 추가. */
+      if (donorTypeFilter) {
+        try {
+          const dtRes: any = await db.execute(sql`
+            SELECT m.id,
+              BOOL_OR(d.status = 'completed' AND d.type = 'regular') AS has_regular,
+              BOOL_OR(d.status = 'completed') AS has_any
+            FROM members m
+            LEFT JOIN donations d ON d.member_id = m.id
+            GROUP BY m.id
+          `);
+          const dtRows: any[] = Array.isArray(dtRes) ? dtRes : (dtRes?.rows || []);
+          const matchedIds: number[] = [];
+          for (const r of dtRows) {
+            const hasRegular = r.has_regular === true;
+            const hasAny = r.has_any === true;
+            const dt = hasRegular ? "regular" : hasAny ? "prospect" : "none";
+            if (dt === donorTypeFilter) matchedIds.push(Number(r.id));
+          }
+          if (matchedIds.length === 0) {
+            return ok({
+              list: [],
+              pagination: { page, limit, total: 0, totalPages: 0 },
+              categoryCounts: {},
+              data: [],
+              page,
+              pageSize: limit,
+              total: 0,
+            });
+          }
+          conditions.push(inArray(members.id, matchedIds));
+        } catch (dtErr) {
+          console.warn("[admin-members] donorType 필터 집계 실패 — 필터 미적용", dtErr);
+        }
+      }
       /* ★ M-19-1: 등급 필터 */
       if (gradeIdParam && /^\d+$/.test(gradeIdParam)) {
         conditions.push(eq((members as any).gradeId, Number(gradeIdParam)));
@@ -286,20 +328,6 @@ export default async (req: Request) => {
           : conditions.length === 1
             ? conditions[0]
             : and(...conditions);
-
-      /* ★ Phase 1: donorType=regular|prospect → 빈 결과 fast-path (Phase 1 컬럼 없음) */
-      if (donorTypeFastEmpty) {
-        return ok({
-          list: [],
-          pagination: { page, limit, total: 0, totalPages: 0 },
-          categoryCounts: {},
-          /* ── DESIGN_PHASE1 §6.2 키 (top-level 미러링은 클라이언트 fallback 처리) ── */
-          data: [],
-          page,
-          pageSize: limit,
-          total: 0,
-        });
-      }
 
       const [{ total }] = await db.select({ total: count() }).from(members).where(where);
 
@@ -379,6 +407,35 @@ export default async (req: Request) => {
         }
       }
 
+      /* ★ 버그픽스 #2: donorType — donations 별도 집계 + Map 매칭.
+       *  목록에 표시된 회원만 집계 (memberIds IN 절). 정기 후원 있으면 regular,
+       *  완료 후원만 있으면 prospect, 없으면 none. 실패 시 전원 'none' fallback. */
+      const donorTypeMap = new Map<number, DonorType>();
+      if (memberIds.length > 0) {
+        try {
+          const dtRes: any = await db.execute(sql`
+            SELECT d.member_id,
+              BOOL_OR(d.status = 'completed' AND d.type = 'regular') AS has_regular,
+              BOOL_OR(d.status = 'completed') AS has_any
+            FROM donations d
+            WHERE d.member_id = ANY(${sql.raw(`ARRAY[${memberIds.join(",") || "0"}]::int[]`)})
+            GROUP BY d.member_id
+          `);
+          const dtRows: any[] = Array.isArray(dtRes) ? dtRes : (dtRes as any).rows || [];
+          for (const r of dtRows) {
+            if (r.member_id == null) continue;
+            const dt: DonorType = r.has_regular === true
+              ? "regular"
+              : r.has_any === true
+                ? "prospect"
+                : "none";
+            donorTypeMap.set(Number(r.member_id), dt);
+          }
+        } catch (dtErr) {
+          console.warn("[admin-members] donorType 집계 실패 — 전원 'none' fallback", dtErr);
+        }
+      }
+
       /* ★ Phase 1 §6.2: AdminMember 매핑 — list 와 동일한 row 를 §6.2 인터페이스로 정규화.
        *  매핑 표 5종 외 코드(또는 NULL) → signupSource=null, label=null (DESIGN §6.2 명시) */
       const adminMembers: AdminMember[] = (list as any[]).map((r) => {
@@ -392,7 +449,7 @@ export default async (req: Request) => {
           signupSourceId: r.signupSourceId ?? null,
           signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
           signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
-          donorType: (r as any).donorType ?? "none" as DonorType,
+          donorType: donorTypeMap.get(Number(r.id)) ?? ("none" as DonorType),
           status: r.status,
           createdAt:
             r.createdAt instanceof Date
@@ -416,8 +473,20 @@ export default async (req: Request) => {
         };
       });
 
+      /* ★ 버그픽스 #2: list 행에도 signupSource/Label·donorType 미러링
+       *  (A 가 list 키를 쓰든 data 키를 쓰든 출처·후원상태가 보이도록) */
+      const listEnriched = (list as any[]).map((r) => {
+        const code: string = r.sourceCode || "";
+        return {
+          ...r,
+          signupSource: SOURCE_CODE_TO_ENUM[code] ?? null,
+          signupSourceLabel: SOURCE_CODE_TO_LABEL[code] ?? null,
+          donorType: donorTypeMap.get(Number(r.id)) ?? "none",
+        };
+      });
+
       return ok({
-        list,
+        list: listEnriched,
         pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
         categoryCounts,
         /* ── DESIGN_PHASE1 §6.2 키 (cms-tbfa.js 가 fallback 으로 접근) ── */

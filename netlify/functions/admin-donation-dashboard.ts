@@ -110,31 +110,44 @@ export default async (req: Request, _ctx: Context) => {
      ───────────────────────────────────────────────────────── */
   let kpi: AdminDonationDashboard["kpi"];
   try {
+    /* ★ 버그픽스 #3: 기존 쿼리가 members.donor_type / donor_channels / prospect_subtype
+     *  컬럼을 참조했으나 해당 컬럼들은 DB에 존재하지 않음 → select_kpi 단계 500 → 무한로딩.
+     *  donations 테이블 집계로 후원 분류를 실시간 산출하도록 재작성:
+     *  - regular  : status='completed' 인 정기(type='regular') 후원 이력 보유 회원
+     *  - prospect : 완료 후원은 있으나 정기 후원 이력은 없는 회원 (일시후원만)
+     *  - none     : 완료 후원 이력 전혀 없음
+     *  - 채널(toss/hyosung)은 donations.pg_provider 로 구분 */
     const kpiRes: any = await db.execute(sql`
+      WITH member_donor AS (
+        SELECT
+          m.id,
+          BOOL_OR(d.status = 'completed' AND d.type = 'regular')                        AS has_regular,
+          BOOL_OR(d.status = 'completed')                                               AS has_any,
+          BOOL_OR(d.status = 'completed' AND d.type = 'regular'
+                  AND d.pg_provider = 'hyosung_cms')                                    AS has_regular_hyosung,
+          BOOL_OR(d.status = 'completed' AND d.type = 'regular'
+                  AND COALESCE(d.pg_provider, '') <> 'hyosung_cms')                      AS has_regular_toss,
+          BOOL_OR(d.status = 'completed' AND d.type = 'regular' AND d.pg_provider = 'hyosung_cms')
+            AND BOOL_OR(d.status = 'completed' AND d.type = 'regular'
+                        AND COALESCE(d.pg_provider, '') <> 'hyosung_cms')                AS has_both,
+          BOOL_OR(d.status = 'completed' AND d.type = 'onetime')                        AS has_onetime,
+          BOOL_OR(d.status IN ('cancelled', 'refunded'))                                AS has_cancelled
+        FROM members m
+        LEFT JOIN donations d ON d.member_id = m.id
+        WHERE m.status <> 'withdrawn'
+        GROUP BY m.id
+      )
       SELECT
-        COUNT(*)::int AS members_total,
-        COUNT(*) FILTER (WHERE donor_type = 'regular')::int AS regular_total,
-        COUNT(*) FILTER (
-          WHERE donor_type = 'regular'
-            AND donor_channels @> '["toss"]'::jsonb
-            AND NOT (donor_channels @> '["hyosung"]'::jsonb)
-        )::int AS toss_only,
-        COUNT(*) FILTER (
-          WHERE donor_type = 'regular'
-            AND donor_channels @> '["hyosung"]'::jsonb
-            AND NOT (donor_channels @> '["toss"]'::jsonb)
-        )::int AS hyosung_only,
-        COUNT(*) FILTER (
-          WHERE donor_type = 'regular'
-            AND donor_channels @> '["toss"]'::jsonb
-            AND donor_channels @> '["hyosung"]'::jsonb
-        )::int AS both_channels,
-        COUNT(*) FILTER (WHERE donor_type = 'prospect')::int AS prospect_total,
-        COUNT(*) FILTER (WHERE donor_type = 'prospect' AND prospect_subtype = 'onetime')::int AS prospect_onetime,
-        COUNT(*) FILTER (WHERE donor_type = 'prospect' AND prospect_subtype = 'cancelled')::int AS prospect_cancelled,
-        COUNT(*) FILTER (WHERE donor_type = 'none' OR donor_type IS NULL)::int AS non_donor
-      FROM members
-      WHERE status != 'withdrawn'
+        COUNT(*)::int                                                                  AS members_total,
+        COUNT(*) FILTER (WHERE has_regular)::int                                        AS regular_total,
+        COUNT(*) FILTER (WHERE has_regular AND has_regular_toss AND NOT has_regular_hyosung)::int AS toss_only,
+        COUNT(*) FILTER (WHERE has_regular AND has_regular_hyosung AND NOT has_regular_toss)::int AS hyosung_only,
+        COUNT(*) FILTER (WHERE has_regular AND has_both)::int                           AS both_channels,
+        COUNT(*) FILTER (WHERE NOT has_regular AND has_any)::int                        AS prospect_total,
+        COUNT(*) FILTER (WHERE NOT has_regular AND has_any AND has_onetime)::int        AS prospect_onetime,
+        COUNT(*) FILTER (WHERE NOT has_regular AND has_any AND has_cancelled AND NOT has_onetime)::int AS prospect_cancelled,
+        COUNT(*) FILTER (WHERE NOT has_any)::int                                        AS non_donor
+      FROM member_donor
     `);
     const kpiRow = (Array.isArray(kpiRes) ? kpiRes[0] : (kpiRes as any).rows?.[0]) || {};
 
@@ -226,7 +239,8 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[donation-dashboard] Alert 2(미매칭 수납) 조회 실패 — 건너뜀", err);
   }
 
-  /* Alert 3: 최근 30일 내 효성 계약 중지(해지) 이동 */
+  /* Alert 3: 최근 30일 내 효성 계약 중지(해지) 이동
+   * ★ 버그픽스 #3: m.donor_type 조건 제거 (컬럼 없음). 효성 계약상태·동기화 시각만으로 판정. */
   try {
     const cancelRes: any = await db.execute(sql`
       SELECT m.id, m.name, hc.member_no, hc.contract_status
@@ -234,7 +248,6 @@ export default async (req: Request, _ctx: Context) => {
       INNER JOIN hyosung_contracts hc ON hc.member_no = m.hyosung_member_no
       WHERE m.hyosung_contract_status IN ('cancelled', 'expired', 'suspended', 'terminated')
         AND m.hyosung_synced_at >= NOW() - INTERVAL '30 days'
-        AND m.donor_type = 'prospect'
       ORDER BY m.hyosung_synced_at DESC
       LIMIT 10
     `);
@@ -254,13 +267,17 @@ export default async (req: Request, _ctx: Context) => {
     console.warn("[donation-dashboard] Alert 3(최근 해지) 조회 실패 — 건너뜀", err);
   }
 
-  /* Alert 4: donor_type 충돌 — 효성 active이지만 SIREN donor_type이 'none'인 회원 */
+  /* Alert 4: 후원 상태 충돌 — 효성 계약은 active 인데 완료된 후원 이력이 전혀 없는 회원
+   * ★ 버그픽스 #3: m.donor_type 컬럼 제거. donations 완료 이력 부재로 충돌 판정. */
   try {
     const conflictRes: any = await db.execute(sql`
-      SELECT m.id, m.name, m.hyosung_contract_status, m.donor_type
+      SELECT m.id, m.name, m.hyosung_contract_status
       FROM members m
       WHERE m.hyosung_contract_status = 'active'
-        AND (m.donor_type = 'none' OR m.donor_type IS NULL)
+        AND NOT EXISTS (
+          SELECT 1 FROM donations d
+          WHERE d.member_id = m.id AND d.status = 'completed'
+        )
       LIMIT 10
     `);
     const conflictRows: any[] = Array.isArray(conflictRes) ? conflictRes : (conflictRes as any).rows || [];
@@ -270,12 +287,12 @@ export default async (req: Request, _ctx: Context) => {
         count: conflictRows.length,
         samples: conflictRows.slice(0, 5).map((r) => ({
           memberId: Number(r.id),
-          description: `${r.name || "이름없음"} — 효성 계약 active이나 donor_type = '${r.donor_type || "null"}'`,
+          description: `${r.name || "이름없음"} — 효성 계약 active이나 완료된 후원 이력 없음`,
         })),
       });
     }
   } catch (err) {
-    console.warn("[donation-dashboard] Alert 4(donor_type 충돌) 조회 실패 — 건너뜀", err);
+    console.warn("[donation-dashboard] Alert 4(후원 상태 충돌) 조회 실패 — 건너뜀", err);
   }
 
   /* ─────────────────────────────────────────────────────────

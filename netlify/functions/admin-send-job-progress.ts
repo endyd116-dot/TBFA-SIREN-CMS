@@ -50,17 +50,24 @@ export default async function handler(req: Request, _ctx: Context) {
         { status: 404, headers: JSON_HEADER },
       );
     }
-    const total = row.total_recipients || 0;
-    const done = (row.success_count || 0) + (row.failure_count || 0);
-    const progressPercent = total > 0 ? Math.round((done / total) * 1000) / 10 : 0;
+    /* ★ 버그픽스 #14: snake_case 컬럼을 camelCase 로 명시 정규화 + Number 강제
+     *  (NULL 컬럼이 undefined 로 흘러 클라이언트 카운트가 0 으로 표시되던 문제 차단).
+     *  pendingCount(미발송) 도 응답에 포함 — 설계서 표준 키. */
+    const totalRecipients = Number(row.total_recipients) || 0;
+    const successCount = Number(row.success_count) || 0;
+    const failureCount = Number(row.failure_count) || 0;
+    const done = successCount + failureCount;
+    const pendingCount = Math.max(0, totalRecipients - done);
+    const progressPercent = totalRecipients > 0 ? Math.round((done / totalRecipients) * 1000) / 10 : 0;
     return new Response(
       JSON.stringify({
         ok: true,
         progress: {
           status: row.status,
-          totalRecipients: total,
-          successCount: row.success_count,
-          failureCount: row.failure_count,
+          totalRecipients,
+          successCount,
+          failureCount,
+          pendingCount,
           progressPercent,
           lastError: row.last_error,
         },
