@@ -178,7 +178,7 @@
 
   /* ── 초기화 ── */
   function init() {
-    const container = document.getElementById("adm-finance-budget");
+    const container = document.getElementById("adm-finance-budget") || document.getElementById("page-finance-budget");
     if (!container) return;
 
     container.innerHTML = `
@@ -310,7 +310,7 @@
   }
 
   function load() {
-    const el = document.getElementById("adm-finance-budget");
+    const el = document.getElementById("adm-finance-budget") || document.getElementById("page-finance-budget");
     if (el && el.innerHTML.trim() === "") init();
     else { loadBudget(); loadExpList(); }
   }

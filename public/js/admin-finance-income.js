@@ -3,7 +3,40 @@
   'use strict';
 
   let currentYear  = new Date().getFullYear();
-  let currentMonth = null; // null = 연간, 1~12 = 월별
+  let currentMonth = null; // null = 연간, 1~12 = 월별 (레거시 호환)
+
+  /* ── 기간 파라미터 계산 ── */
+  function getFiPeriodQs() {
+    const sel    = document.getElementById('fiPeriodSel');
+    const period = sel?.value || 'month';
+    const today  = new Date();
+    const pad    = n => String(n).padStart(2, '0');
+    const fmt    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let startDate, endDate;
+    if (period === 'day') {
+      startDate = endDate = fmt(today);
+    } else if (period === 'week') {
+      const day = today.getDay();
+      const mon = new Date(today); mon.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+      const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+      startDate = fmt(mon); endDate = fmt(sun);
+    } else if (period === 'month') {
+      startDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+      endDate   = fmt(new Date(today.getFullYear(), today.getMonth()+1, 0));
+    } else if (period === 'half_year') {
+      const s = new Date(today); s.setMonth(today.getMonth() - 5); s.setDate(1);
+      startDate = fmt(s); endDate = fmt(today);
+    } else if (period === 'year') {
+      startDate = `${today.getFullYear()}-01-01`;
+      endDate   = `${today.getFullYear()}-12-31`;
+    } else {
+      startDate = document.getElementById('fiStartDate')?.value || '';
+      endDate   = document.getElementById('fiEndDate')?.value   || '';
+    }
+    const year  = startDate ? new Date(startDate).getFullYear() : today.getFullYear();
+    const month = (period === 'month') ? today.getMonth() + 1 : null;
+    return { period, startDate, endDate, year, month };
+  }
 
   /* ── api helper ── */
   function apiFetch(url) {
@@ -263,9 +296,12 @@
 
   /* ── 로드 ── */
   async function load() {
-    const qs = currentMonth
-      ? `?year=${currentYear}&month=${currentMonth}`
-      : `?year=${currentYear}`;
+    const pd = getFiPeriodQs();
+    const params = new URLSearchParams({ year: pd.year, period: pd.period });
+    if (pd.month)     params.set('month',     pd.month);
+    if (pd.startDate) params.set('startDate', pd.startDate);
+    if (pd.endDate)   params.set('endDate',   pd.endDate);
+    const qs = '?' + params;
 
     /* 후원 집계 */
     const donRes = await apiFetch('/api/admin-finance-income-summary' + qs);
@@ -278,7 +314,7 @@
     /* 손익 집계 (Phase 22A) — 실패 시 빈 객체로 계속 */
     let plData = {};
     try {
-      const plRes = await apiFetch('/api/admin-finance-pl-summary?fiscalYear=' + currentYear);
+      const plRes = await apiFetch('/api/admin-finance-pl-summary?fiscalYear=' + pd.year);
       if (plRes.ok) plData = plRes.data?.data || plRes.data || plRes;
     } catch (e) { console.warn('[finance-income] P&L 조회 실패', e); }
 
@@ -291,30 +327,22 @@
 
   /* ── 초기화 ── */
   function init() {
-    /* 연도 선택 */
-    const yearSel = document.getElementById('fiYearSelect');
-    if (yearSel && !yearSel.options.length) {
-      const ty = new Date().getFullYear();
-      for (let y = ty + 1; y >= ty - 5; y--) {
-        const opt = document.createElement('option');
-        opt.value = y; opt.textContent = y + '년';
-        if (y === currentYear) opt.selected = true;
-        yearSel.appendChild(opt);
-      }
-      yearSel.addEventListener('change', () => { currentYear = parseInt(yearSel.value); load(); });
-    }
-
-    /* 월 탭 버튼 */
-    document.querySelectorAll('.fi-month-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.fi-month-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const m = btn.dataset.month;
-        currentMonth = m === 'all' ? null : parseInt(m);
-        load();
+    const sel = document.getElementById('fiPeriodSel');
+    if (sel && !sel.dataset.bound) {
+      sel.dataset.bound = '1';
+      sel.addEventListener('change', () => {
+        const cr = document.getElementById('fiCustomRange');
+        if (cr) cr.style.display = sel.value === 'custom' ? 'flex' : 'none';
+        if (sel.value !== 'custom') load();
       });
-    });
-
+      const startEl = document.getElementById('fiStartDate');
+      const endEl   = document.getElementById('fiEndDate');
+      if (startEl && endEl) {
+        const check = () => { if (startEl.value && endEl.value) load(); };
+        startEl.addEventListener('change', check);
+        endEl.addEventListener('change', check);
+      }
+    }
     load();
   }
 

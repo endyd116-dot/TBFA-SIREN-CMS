@@ -111,6 +111,76 @@
     }).join('');
   }
 
+  /* ── 기간 선택기 HTML ── */
+  function periodSelectorHtml(prefix) {
+    return `
+      <select id="${prefix}PeriodSel" class="input-sm" style="width:120px">
+        <option value="day">오늘</option>
+        <option value="week">이번 주</option>
+        <option value="month" selected>이번 달</option>
+        <option value="half_year">반기</option>
+        <option value="year">올해</option>
+        <option value="custom">특정 기간</option>
+      </select>
+      <div id="${prefix}CustomRange" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="${prefix}StartDate" class="input-sm">
+        <span>~</span>
+        <input type="date" id="${prefix}EndDate" class="input-sm">
+      </div>
+    `;
+  }
+
+  /* ── 기간 선택기 이벤트 바인딩 ── */
+  function bindPeriodSelector(prefix, onSearch) {
+    const sel = document.getElementById(prefix + 'PeriodSel');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      const cr = document.getElementById(prefix + 'CustomRange');
+      if (cr) cr.style.display = sel.value === 'custom' ? 'flex' : 'none';
+      if (sel.value !== 'custom') onSearch();
+    });
+    const startEl = document.getElementById(prefix + 'StartDate');
+    const endEl   = document.getElementById(prefix + 'EndDate');
+    if (startEl && endEl) {
+      const check = () => { if (startEl.value && endEl.value) onSearch(); };
+      startEl.addEventListener('change', check);
+      endEl.addEventListener('change', check);
+    }
+  }
+
+  /* ── 기간 파라미터 계산 ── */
+  function getPeriodQs(prefix) {
+    const sel    = document.getElementById(prefix + 'PeriodSel');
+    const period = sel?.value || 'month';
+    const today  = new Date();
+    const pad    = n => String(n).padStart(2, '0');
+    const fmt    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let startDate, endDate;
+
+    if (period === 'day') {
+      startDate = endDate = fmt(today);
+    } else if (period === 'week') {
+      const day = today.getDay();
+      const mon = new Date(today); mon.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+      const sun = new Date(mon);   sun.setDate(mon.getDate() + 6);
+      startDate = fmt(mon); endDate = fmt(sun);
+    } else if (period === 'month') {
+      startDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-01`;
+      endDate   = fmt(new Date(today.getFullYear(), today.getMonth()+1, 0));
+    } else if (period === 'half_year') {
+      const s = new Date(today); s.setMonth(today.getMonth() - 5); s.setDate(1);
+      startDate = fmt(s); endDate = fmt(today);
+    } else if (period === 'year') {
+      startDate = `${today.getFullYear()}-01-01`;
+      endDate   = `${today.getFullYear()}-12-31`;
+    } else {
+      startDate = document.getElementById(prefix + 'StartDate')?.value || '';
+      endDate   = document.getElementById(prefix + 'EndDate')?.value   || '';
+    }
+    return { period, startDate, endDate,
+      fiscalYear: startDate ? new Date(startDate).getFullYear() : today.getFullYear() };
+  }
+
   /* ── 화면 골격 렌더 (최초 1회) ── */
   function renderShell(container) {
     const superTab = isSuperAdmin()
@@ -132,7 +202,7 @@
         <!-- 지출 내역 탭 -->
         <div id="expTabList" class="tab-pane">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-            <select id="expYearSelect" class="input-sm" style="width:90px">${buildYearOpts()}</select>
+            ${periodSelectorHtml('exp')}
             <select id="expStatusSelect" class="input-sm" style="width:120px">
               <option value="">전체 상태</option>
               <option value="draft">임시저장</option>
@@ -344,7 +414,8 @@
   function switchTab(tab) {
     if (tab === 'categories' && !isSuperAdmin()) return;
     currentTab = tab;
-    document.querySelectorAll('#adm-expenses .tab-btn').forEach(b => {
+    const container = document.getElementById('adm-expenses') || document.getElementById('page-expenses');
+    document.querySelectorAll((container?.id ? '#' + container.id : '.adm-expenses-wrap') + ' .tab-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
     const list = document.getElementById('expTabList');
@@ -369,11 +440,15 @@
         (!currentYear   || i.fiscalYear === Number(currentYear))
       );
     } else {
+      const pd = getPeriodQs('exp');
       const qs = new URLSearchParams({
-        fiscalYear: currentYear,
+        fiscalYear: pd.fiscalYear,
         page:       currentPage,
         limit:      PAGE_SIZE,
+        period:     pd.period,
       });
+      if (pd.startDate) qs.set('startDate', pd.startDate);
+      if (pd.endDate)   qs.set('endDate',   pd.endDate);
       if (currentCat)    qs.set('categoryId', currentCat);
       if (currentStatus) qs.set('status',     currentStatus);
 
@@ -829,12 +904,15 @@
 
   /* ── 초기화 / 재진입 통합 ── */
   async function init() {
-    const container = document.getElementById('adm-expenses');
+    const container = document.getElementById('adm-expenses') || document.getElementById('page-expenses');
     if (!container) return;
     if (!container.querySelector('.panel')) {
       await loadMyRole();
       await loadCategories();
       renderShell(container);
+      bindPeriodSelector('exp', () => { currentPage = 1; loadList(); });
+      const refreshBtn = document.getElementById('expRefreshBtn');
+      if (refreshBtn) refreshBtn.addEventListener('click', () => { currentPage = 1; loadList(); });
     }
     await loadList();
   }
