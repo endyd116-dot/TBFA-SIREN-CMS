@@ -436,8 +436,8 @@
     const pendingVouchers = d.pendingVouchers ?? d.pending_vouchers ?? d.unsettledVouchers ?? 0;
     const draftCount      = d.draftCount ?? d.draft_count ?? 0;
     const submittedCount  = d.submittedCount ?? d.submitted_count ?? 0;
-    const unconfirmedTxns = d.unconfirmedTxns ?? d.unconfirmed_txns ?? d.unmatchedTransactions ?? 0;
-    const monthLabel      = d.month || d.monthLabel || '이번 달';
+    const unconfirmedTxns = d.pendingBankTxn ?? d.unconfirmedTxns ?? d.unconfirmed_txns ?? d.unmatchedTransactions ?? 0;
+    const monthLabel      = (d.year && d.month) ? `${d.year}년 ${d.month}월` : (d.month || d.monthLabel || '이번 달');
 
     const totalPending = pendingVouchers || (draftCount + submittedCount);
     if (!totalPending && !unconfirmedTxns) {
@@ -474,15 +474,16 @@
     const res = await api('GET', '/api/admin-finance-anomaly');
     if (!res.ok) { anomalyCodes = {}; return; }
     const d = res.data?.data || res.data || {};
-    const items = d.items || d.anomalies || (Array.isArray(d) ? d : []);
+    /* 백엔드는 items에 급증·비급증 모두 담고 surge 플래그로 구분 — surgeItems만 배지 대상 */
+    const items = d.surgeItems || (d.items || d.anomalies || (Array.isArray(d) ? d : [])).filter(it => it.surge);
     anomalyCodes = {};
     (items || []).forEach(it => {
       const code = it.accountCode || it.account_code || it.code;
       if (!code) return;
       anomalyCodes[String(code)] = {
-        rate:    it.increaseRate ?? it.increase_rate ?? it.rate ?? 0,
-        current: it.currentAmount ?? it.current_amount ?? it.current ?? 0,
-        prev:    it.prevAmount ?? it.prev_amount ?? it.previous ?? 0,
+        rate:    it.changeRate ?? it.increaseRate ?? it.increase_rate ?? it.rate ?? null,
+        current: it.thisMonth ?? it.currentAmount ?? it.current_amount ?? it.current ?? 0,
+        prev:    it.prevSync ?? it.prevAmount ?? it.prev_amount ?? it.previous ?? 0,
         name:    it.accountName || it.account_name || it.name || '',
       };
     });
@@ -493,8 +494,9 @@
   function anomalyBadge(accountCode) {
     const a = anomalyCodes[String(accountCode)];
     if (!a) return '';
-    const rate = Math.round(a.rate);
-    return ` <span class="vc-anomaly-badge" title="전월 대비 +${rate}% 급증 (전월 ${fmtKRW(a.prev)} → 이번 달 ${fmtKRW(a.current)})" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 +${rate}%</span>`;
+    /* rate=null = 전월 동기 지출 0원이라 비율 계산 불가 (신규 발생) */
+    const rateText = (a.rate == null) ? '신규' : `+${Math.round(a.rate)}%`;
+    return ` <span class="vc-anomaly-badge" title="전월 대비 급증 (전월 ${fmtKRW(a.prev)} → 이번 달 ${fmtKRW(a.current)})" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 ${rateText}</span>`;
   }
 
   /* ── 전표 목록 조회 ── */

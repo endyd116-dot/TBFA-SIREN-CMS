@@ -53,16 +53,17 @@
   async function loadAnomaly() {
     try {
       const res = await apiFetch('/api/admin-finance-anomaly');
-      const d = res?.data || res || {};
-      const items = d.items || d.anomalies || (Array.isArray(d) ? d : []);
+      const d = res?.data?.data || res?.data || res || {};
+      /* 백엔드는 items에 급증·비급증 모두 담고 surge 플래그로 구분 — surgeItems만 배지 대상 */
+      const items = d.surgeItems || (d.items || d.anomalies || (Array.isArray(d) ? d : [])).filter(it => it.surge);
       anomalyMap = {};
       (items || []).forEach(it => {
         const code = it.accountCode || it.account_code || it.code;
         if (!code) return;
         anomalyMap[String(code)] = {
-          rate:    it.increaseRate ?? it.increase_rate ?? it.rate ?? 0,
-          current: it.currentAmount ?? it.current_amount ?? it.current ?? 0,
-          prev:    it.prevAmount ?? it.prev_amount ?? it.previous ?? 0,
+          rate:    it.changeRate ?? it.increaseRate ?? it.increase_rate ?? it.rate ?? null,
+          current: it.thisMonth ?? it.currentAmount ?? it.current_amount ?? it.current ?? 0,
+          prev:    it.prevSync ?? it.prevAmount ?? it.prev_amount ?? it.previous ?? 0,
         };
       });
     } catch { anomalyMap = {}; }
@@ -71,8 +72,8 @@
   function anomalyBadge(code) {
     const a = anomalyMap[String(code)];
     if (!a) return '';
-    const rate = Math.round(a.rate);
-    return ` <span class="print-hide" title="전월 대비 +${rate}% 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 +${rate}%</span>`;
+    const rateText = (a.rate == null) ? '신규' : `+${Math.round(a.rate)}%`;
+    return ` <span class="print-hide" title="전월 대비 급증" style="display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border:1px solid #fde68a">⚠️ 급증 ${rateText}</span>`;
   }
 
   /* ── 보고서 머리말 ── */
@@ -336,11 +337,13 @@
     const pane = document.getElementById('frPane-balance');
     if (!pane) return;
 
-    const asOf      = bs.asOfDate || bs.as_of_date || bs.date || '—';
-    const cashAsset = fmtNum(bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
-    const totalAssets = fmtNum(bs.totalAssets ?? bs.total_assets ?? cashAsset);
-    const totalLiab   = fmtNum(bs.totalLiabilities ?? bs.total_liabilities ?? 0);
-    const netAssets   = fmtNum(bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
+    const asset_   = bs.assets || {};
+    const liab_    = bs.liabilities || {};
+    const asOf      = bs.asOf || bs.asOfDate || bs.as_of_date || bs.date || '—';
+    const cashAsset = fmtNum(asset_.cash ?? bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
+    const totalAssets = fmtNum(asset_.total ?? bs.totalAssets ?? bs.total_assets ?? cashAsset);
+    const totalLiab   = fmtNum(liab_.total ?? bs.totalLiabilities ?? bs.total_liabilities ?? 0);
+    const netAssets   = fmtNum(bs.netAsset ?? bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
 
     /* 통장별 잔액 내역 (있으면) */
     const accounts = bs.accounts || bs.bankAccounts || bs.bank_accounts || [];
@@ -432,7 +435,7 @@
     const outflow = cf.outflow || cf.outflows || {};
     const inTotal  = fmtNum(inflow.total ?? cf.totalInflow ?? cf.total_inflow ?? 0);
     const outTotal = fmtNum(outflow.total ?? cf.totalOutflow ?? cf.total_outflow ?? 0);
-    const netFlow  = fmtNum(cf.netCashflow ?? cf.net_cashflow ?? (inTotal - outTotal));
+    const netFlow  = fmtNum(cf.netCashFlow ?? cf.netCashflow ?? cf.net_cashflow ?? (inTotal - outTotal));
 
     const inCats  = inflow.byCategory || inflow.categories || cf.inflowCategories || [];
     const outCats = outflow.byCategory || outflow.categories || cf.outflowCategories || [];
@@ -529,11 +532,13 @@
 
   function exportExcelBalance() {
     const bs = lastBalanceData;
-    const asOf      = bs.asOfDate || bs.as_of_date || bs.date || '';
-    const cashAsset = fmtNum(bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
-    const totalAssets = fmtNum(bs.totalAssets ?? bs.total_assets ?? cashAsset);
-    const totalLiab   = fmtNum(bs.totalLiabilities ?? bs.total_liabilities ?? 0);
-    const netAssets   = fmtNum(bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
+    const asset_   = bs.assets || {};
+    const liab_    = bs.liabilities || {};
+    const asOf      = bs.asOf || bs.asOfDate || bs.as_of_date || bs.date || '';
+    const cashAsset = fmtNum(asset_.cash ?? bs.cashAssets ?? bs.cash_assets ?? bs.cashAsset ?? bs.bankBalance ?? bs.bank_balance ?? 0);
+    const totalAssets = fmtNum(asset_.total ?? bs.totalAssets ?? bs.total_assets ?? cashAsset);
+    const totalLiab   = fmtNum(liab_.total ?? bs.totalLiabilities ?? bs.total_liabilities ?? 0);
+    const netAssets   = fmtNum(bs.netAsset ?? bs.netAssets ?? bs.net_assets ?? (totalAssets - totalLiab));
     const accounts = bs.accounts || bs.bankAccounts || bs.bank_accounts || [];
 
     const aoa = [
@@ -567,7 +572,7 @@
     const outflow = cf.outflow || cf.outflows || {};
     const inTotal  = fmtNum(inflow.total ?? cf.totalInflow ?? cf.total_inflow ?? 0);
     const outTotal = fmtNum(outflow.total ?? cf.totalOutflow ?? cf.total_outflow ?? 0);
-    const netFlow  = fmtNum(cf.netCashflow ?? cf.net_cashflow ?? (inTotal - outTotal));
+    const netFlow  = fmtNum(cf.netCashFlow ?? cf.netCashflow ?? cf.net_cashflow ?? (inTotal - outTotal));
     const inCats  = inflow.byCategory || inflow.categories || cf.inflowCategories || [];
     const outCats = outflow.byCategory || outflow.categories || cf.outflowCategories || [];
 
@@ -686,7 +691,7 @@
     } else if (currentTab === 'balance') {
       if (!lastBalanceData) { alert('먼저 재정상태표를 조회해 주세요.'); return; }
       url = '/api/admin-finance-report-pdf?type=balance';
-      fname = `SIREN_재정상태표_${(lastBalanceData.asOfDate || lastBalanceData.as_of_date || lastBalanceData.date || '').replace(/[~\s]/g, '')}.pdf`;
+      fname = `SIREN_재정상태표_${(lastBalanceData.asOf || lastBalanceData.asOfDate || lastBalanceData.as_of_date || lastBalanceData.date || '').replace(/[~\s]/g, '')}.pdf`;
     } else {
       if (!lastCashflowData) { alert('먼저 현금흐름표를 조회해 주세요.'); return; }
       const params = new URLSearchParams({ type: 'cashflow', period: pd.period });
