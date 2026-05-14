@@ -578,26 +578,50 @@ async function pickAccountByCategory(category: string): Promise<{ code: string; 
 async function classifyExpenseByAI(txn: NormalizedTxn): Promise<{
   category: string; accountCode: string | null; confidence: number; reasoning: string;
 }> {
-  // account_codes 후보 목록 (AI에 제공)
-  let codeList = "";
+  // account_codes 후보 목록 — 대분류>소분류 계층으로 AI에 제공 (출금이므로 수익 계정 제외)
+  let codeTree = "";
   try {
     const r: any = await db.execute(sql`
-      SELECT code, name, category FROM account_codes
-      WHERE is_active = TRUE ORDER BY category, sort_order LIMIT 60`);
-    codeList = (r?.rows ?? r ?? []).map((c: any) => `${c.code}:${c.name}(${c.category})`).join(", ");
+      SELECT code, name, category, parent_code FROM account_codes
+      WHERE is_active = TRUE AND category <> 'income'
+      ORDER BY category, sort_order, code`);
+    const rows: any[] = r?.rows ?? r ?? [];
+    const CAT_LABEL: Record<string, string> = {
+      personnel: "인건비", program: "사업비", admin_ops: "관리운영비", fundraising: "모금비",
+    };
+    const parents = rows.filter((c) => !c.parent_code);
+    const lines: string[] = [];
+    for (const p of parents) {
+      const children = rows.filter((c) => c.parent_code === p.code);
+      const childStr = children.map((c) => `${c.code} ${c.name}`).join(", ");
+      lines.push(`[${CAT_LABEL[p.category] || p.category}] 대분류 ${p.code} ${p.name}`
+        + (childStr ? ` → 소분류: ${childStr}` : ""));
+    }
+    // 부모 없이 떠 있는 소분류도 노출
+    const orphans = rows.filter((c) => c.parent_code && !parents.some((p) => p.code === c.parent_code));
+    for (const o of orphans) lines.push(`[${CAT_LABEL[o.category] || o.category}] ${o.code} ${o.name}`);
+    codeTree = lines.join("\n");
   } catch { /* 폴백으로 계속 */ }
 
-  const prompt = `당신은 NPO 회계 담당자입니다. 통장 출금 거래를 보고 가장 적합한 계정과목을 고르세요.
+  const prompt = `당신은 NPO(비영리단체) 회계 담당자입니다. 통장 출금 거래 1건을 보고 가장 적합한 계정과목을 고르세요.
 
+[거래 정보]
 거래내용: ${txn.description || "(없음)"}
 거래처(예금주명): ${txn.counterpartName || "(없음)"}
 금액: ${Math.abs(txn.amount).toLocaleString()}원
 거래구분: ${txn.txnMethod || "(없음)"}
 
-계정과목 후보: ${codeList || "(목록 없음 — category만 추정)"}
+[계정과목 체계 — 대분류 아래 소분류]
+${codeTree || "(목록 없음 — category만 추정)"}
+
+[분류 방법]
+1. 먼저 거래 성격으로 대분류(인건비/사업비/관리운영비/모금비)를 정한다.
+2. 그 대분류 안에서 거래내용에 가장 잘 맞는 소분류 코드를 고른다.
+3. 소분류까지 특정하기 어려우면 대분류 코드를 그대로 쓴다.
+4. 어느 대분류인지도 불확실하면 accountCode는 null, confidence는 0.5 미만으로 둔다.
 
 다음 JSON만 출력:
-{"accountCode":"코드 또는 null","category":"personnel|program|admin_ops|fundraising","confidence":0.0~1.0,"reasoning":"한 줄 사유"}`;
+{"accountCode":"소분류 또는 대분류 코드, 불확실하면 null","category":"personnel|program|admin_ops|fundraising","confidence":0.0~1.0,"reasoning":"왜 이 계정과목인지 한 줄"}`;
 
   try {
     const res = await callGeminiJSON<{

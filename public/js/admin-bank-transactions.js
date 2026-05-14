@@ -5,11 +5,12 @@
   'use strict';
 
   /* ── 상태 ── */
-  let currentTab   = 'transactions';  // transactions | counterparties
+  let currentTab   = 'transactions';  // transactions | counterparties | accountCodes
   let txnList      = [];
   let importList   = [];
   let cpList       = [];
   let summaryData  = null;
+  let acctList     = [];   // 계정과목 마스터 (sort_order 정렬)
 
   /* ── API 헬퍼 ── */
   function api(method, path, body) {
@@ -139,6 +140,7 @@
           <div class="p-actions">
             <button class="btn-sm btn-sm-ghost" id="btTabTxn" type="button">거래 목록</button>
             <button class="btn-sm btn-sm-ghost" id="btTabCp" type="button">거래처 마스터</button>
+            <button class="btn-sm btn-sm-ghost" id="btTabAcct" type="button">계정과목 관리</button>
             <button class="btn-sm btn-sm-ghost" id="btSettingsBtn" type="button">⚙ 설정</button>
           </div>
         </div>
@@ -195,6 +197,21 @@
           </div>
           <div id="btCpList"></div>
         </div>
+
+        <!-- ─── 계정과목 관리 뷰 ─── -->
+        <div id="btViewAcct" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <div style="font-size:13px;color:var(--text-2,#5b6577);flex:1">
+              NPO 표준 계정과목 마스터입니다. 통장 거래 자동 분류·전표 작성에 쓰입니다.
+              ▲▼로 표시 순서를 바꿀 수 있고, 비활성 처리하면 신규 선택 목록에서 숨겨집니다(기존 전표는 유지).
+            </div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2,#5b6577)">
+              <input type="checkbox" id="btAcctShowInactive"> 비활성 포함
+            </label>
+            <button class="btn-sm btn-sm-primary" type="button" id="btAcctAddBtn">+ 계정과목 추가</button>
+          </div>
+          <div id="btAcctList"></div>
+        </div>
       </div>
 
       <!-- ─── 관리자 확인 모달 ─── -->
@@ -241,11 +258,51 @@
           </div>
         </div>
       </div>
+
+      <!-- ─── 계정과목 추가·수정 모달 ─── -->
+      <div id="btAcctModal" class="modal-backdrop" style="display:none">
+        <div class="modal" style="max-width:440px">
+          <div class="modal-head">
+            <span class="modal-title" id="btAcctModalTitle">계정과목 추가</span>
+            <button class="modal-close" type="button" id="btAcctCloseBtn">×</button>
+          </div>
+          <div class="modal-body">
+            <label class="form-label">코드 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="btAcctCode" class="input" placeholder="예: 5046 (2~20자리 숫자)" style="margin-bottom:4px">
+            <div style="font-size:11.5px;color:var(--text-3,#94a0b3);margin-bottom:10px">
+              코드는 전표가 참조하는 식별자라 추가 후 변경할 수 없습니다.
+            </div>
+            <label class="form-label">계정과목명 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="btAcctName" class="input" placeholder="예: 행사대행비" style="margin-bottom:10px">
+            <label class="form-label">분류 <span style="color:var(--danger)">*</span></label>
+            <select id="btAcctCategory" class="input" style="margin-bottom:10px">
+              <option value="income">수익</option>
+              <option value="personnel">인건비</option>
+              <option value="program">사업비</option>
+              <option value="admin_ops">관리운영비</option>
+              <option value="fundraising">모금비</option>
+            </select>
+            <label class="form-label">상위 코드 (선택)</label>
+            <select id="btAcctParent" class="input" style="margin-bottom:10px">
+              <option value="">— 대분류 (상위 없음) —</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2,#5b6577)" id="btAcctActiveRow">
+              <input type="checkbox" id="btAcctActive" checked> 활성 (비활성 시 신규 선택 목록에서 숨김)
+            </label>
+            <div id="btAcctModalError" style="color:var(--danger);font-size:13px;margin-top:8px;display:none"></div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-sm btn-sm-ghost" type="button" id="btAcctCancelBtn">취소</button>
+            <button class="btn-sm btn-sm-primary" type="button" id="btAcctSaveBtn">저장</button>
+          </div>
+        </div>
+      </div>
     `;
 
     /* 탭 전환 */
     document.getElementById('btTabTxn')?.addEventListener('click', () => switchTab('transactions'));
     document.getElementById('btTabCp')?.addEventListener('click', () => switchTab('counterparties'));
+    document.getElementById('btTabAcct')?.addEventListener('click', () => switchTab('accountCodes'));
     document.getElementById('btSettingsBtn')?.addEventListener('click', openSettingsModal);
 
     /* 업로드 */
@@ -273,21 +330,35 @@
     document.getElementById('btSettingsCloseBtn')?.addEventListener('click', closeSettingsModal);
     document.getElementById('btSettingsCancelBtn')?.addEventListener('click', closeSettingsModal);
     document.getElementById('btSettingsSaveBtn')?.addEventListener('click', saveSettings);
+
+    /* 계정과목 관리 */
+    document.getElementById('btAcctAddBtn')?.addEventListener('click', () => openAcctModal(null));
+    document.getElementById('btAcctShowInactive')?.addEventListener('change', loadAccountCodes);
+    document.getElementById('btAcctCloseBtn')?.addEventListener('click', closeAcctModal);
+    document.getElementById('btAcctCancelBtn')?.addEventListener('click', closeAcctModal);
+    document.getElementById('btAcctSaveBtn')?.addEventListener('click', saveAcct);
   }
 
   /* ── 탭 전환 ── */
   function switchTab(tab) {
     currentTab = tab;
-    const txnView = document.getElementById('btViewTxn');
-    const cpView  = document.getElementById('btViewCp');
-    const txnBtn  = document.getElementById('btTabTxn');
-    const cpBtn   = document.getElementById('btTabCp');
-    if (txnView) txnView.style.display = tab === 'transactions' ? '' : 'none';
-    if (cpView)  cpView.style.display  = tab === 'counterparties' ? '' : 'none';
-    if (txnBtn)  txnBtn.className = 'btn-sm ' + (tab === 'transactions' ? 'btn-sm-primary' : 'btn-sm-ghost');
-    if (cpBtn)   cpBtn.className  = 'btn-sm ' + (tab === 'counterparties' ? 'btn-sm-primary' : 'btn-sm-ghost');
-    if (tab === 'transactions') { loadSummary(); loadTransactions(); loadImportList(); }
-    else loadCounterparties();
+    const views = {
+      transactions:  document.getElementById('btViewTxn'),
+      counterparties: document.getElementById('btViewCp'),
+      accountCodes:  document.getElementById('btViewAcct'),
+    };
+    const btns = {
+      transactions:  document.getElementById('btTabTxn'),
+      counterparties: document.getElementById('btTabCp'),
+      accountCodes:  document.getElementById('btTabAcct'),
+    };
+    Object.keys(views).forEach(k => {
+      if (views[k]) views[k].style.display = k === tab ? '' : 'none';
+      if (btns[k])  btns[k].className = 'btn-sm ' + (k === tab ? 'btn-sm-primary' : 'btn-sm-ghost');
+    });
+    if (tab === 'transactions')      { loadSummary(); loadTransactions(); loadImportList(); }
+    else if (tab === 'counterparties') loadCounterparties();
+    else if (tab === 'accountCodes')   loadAccountCodes();
   }
 
   /* ════════════════════════════════════════════════
@@ -1027,6 +1098,173 @@
   }
 
   /* ════════════════════════════════════════════════
+     계정과목 관리 (NPO 표준 계정과목 마스터)
+  ════════════════════════════════════════════════ */
+  const ACCT_CAT_LABEL = {
+    income: '수익', personnel: '인건비', program: '사업비',
+    admin_ops: '관리운영비', fundraising: '모금비',
+  };
+  let editingAcctId = null;
+
+  async function loadAccountCodes() {
+    const el = document.getElementById('btAcctList');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--text-3);padding:12px">불러오는 중…</div>';
+    const showInactive = document.getElementById('btAcctShowInactive')?.checked;
+    const res = await api('GET', '/api/admin-account-codes-list?activeOnly=' + (showInactive ? 'false' : 'true'));
+    if (!res.ok) { el.innerHTML = `<div style="color:var(--danger);padding:12px">계정과목 목록 조회 실패: ${escapeHtml(res.error || '')}</div>`; return; }
+    acctList = pickArr(res, 'codes');
+    if (!Array.isArray(acctList)) acctList = [];
+    renderAccountCodes(el);
+  }
+
+  function renderAccountCodes(el) {
+    if (!acctList.length) {
+      el.innerHTML = '<div style="color:var(--text-3);padding:16px;text-align:center">등록된 계정과목이 없습니다. "+ 계정과목 추가"로 등록하세요.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="data-table" style="width:100%">
+        <thead>
+          <tr>
+            <th style="width:90px">코드</th><th>계정과목명</th><th style="width:110px">분류</th>
+            <th style="width:90px">상위코드</th><th style="width:70px">상태</th>
+            <th style="width:80px">순서</th><th style="width:140px">액션</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${acctList.map((a, i) => {
+            const isParent = !a.parentCode;
+            const nameCell = isParent
+              ? `<strong>${escapeHtml(a.name || '—')}</strong>`
+              : `<span style="color:var(--text-2,#5b6577)">└ ${escapeHtml(a.name || '—')}</span>`;
+            const statusBadge = a.isActive
+              ? '<span style="color:#15803d;font-weight:600">활성</span>'
+              : '<span style="color:#94a0b3">비활성</span>';
+            return `<tr style="${a.isActive ? '' : 'opacity:.55'}">
+              <td style="font-family:monospace">${escapeHtml(a.code || '')}</td>
+              <td>${nameCell}</td>
+              <td>${ACCT_CAT_LABEL[a.category] || escapeHtml(a.category || '—')}</td>
+              <td style="font-family:monospace;color:var(--text-3,#94a0b3)">${escapeHtml(a.parentCode || '—')}</td>
+              <td>${statusBadge}</td>
+              <td style="white-space:nowrap">
+                <button class="btn-sm btn-sm-ghost" type="button" ${i === 0 ? 'disabled' : ''} onclick="window.SIREN_BANK_TXN.moveAcct(${i},-1)" title="위로">▲</button>
+                <button class="btn-sm btn-sm-ghost" type="button" ${i === acctList.length - 1 ? 'disabled' : ''} onclick="window.SIREN_BANK_TXN.moveAcct(${i},1)" title="아래로">▼</button>
+              </td>
+              <td style="white-space:nowrap">
+                <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.openAcctEdit(${a.id})">수정</button>
+                <button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_BANK_TXN.toggleAcct(${a.id})">${a.isActive ? '비활성' : '활성'}</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  /* 상위 코드 select 채우기 — 대분류(상위 없는 코드)만 후보로 */
+  function fillAcctParentSelect(selectedCode) {
+    const sel = document.getElementById('btAcctParent');
+    if (!sel) return;
+    const parents = acctList.filter(a => !a.parentCode);
+    sel.innerHTML = '<option value="">— 대분류 (상위 없음) —</option>'
+      + parents.map(p =>
+          `<option value="${escapeHtml(p.code)}" ${p.code === selectedCode ? 'selected' : ''}>${escapeHtml(p.code)} ${escapeHtml(p.name)}</option>`
+        ).join('');
+  }
+
+  /* acct=null → 추가, acct 객체 → 수정 */
+  function openAcctModal(acct) {
+    editingAcctId = acct ? acct.id : null;
+    const modal  = document.getElementById('btAcctModal');
+    const title  = document.getElementById('btAcctModalTitle');
+    const codeEl = document.getElementById('btAcctCode');
+    const nameEl = document.getElementById('btAcctName');
+    const catEl  = document.getElementById('btAcctCategory');
+    const actEl  = document.getElementById('btAcctActive');
+    const actRow = document.getElementById('btAcctActiveRow');
+    const errEl  = document.getElementById('btAcctModalError');
+    if (errEl) errEl.style.display = 'none';
+    if (title) title.textContent = acct ? '계정과목 수정' : '계정과목 추가';
+    if (codeEl) {
+      codeEl.value = acct ? acct.code : '';
+      /* 코드는 전표가 참조하는 식별자라 수정 시 변경 불가 */
+      codeEl.disabled = !!acct;
+    }
+    if (nameEl) nameEl.value = acct ? (acct.name || '') : '';
+    if (catEl)  catEl.value  = acct ? acct.category : 'admin_ops';
+    if (actEl)  actEl.checked = acct ? !!acct.isActive : true;
+    /* 활성 체크박스는 수정 시에만 — 추가는 항상 활성 */
+    if (actRow) actRow.style.display = acct ? 'flex' : 'none';
+    fillAcctParentSelect(acct ? acct.parentCode : '');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function openAcctEdit(id) {
+    const a = acctList.find(x => x.id === id);
+    if (a) openAcctModal(a);
+  }
+
+  function closeAcctModal() {
+    const modal = document.getElementById('btAcctModal');
+    if (modal) modal.style.display = 'none';
+    editingAcctId = null;
+  }
+
+  async function saveAcct() {
+    const errEl = document.getElementById('btAcctModalError');
+    const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = ''; } };
+    const code       = document.getElementById('btAcctCode')?.value.trim();
+    const name       = document.getElementById('btAcctName')?.value.trim();
+    const category   = document.getElementById('btAcctCategory')?.value;
+    const parentCode = document.getElementById('btAcctParent')?.value || null;
+    const isActive   = document.getElementById('btAcctActive')?.checked;
+    if (!name) { showErr('계정과목명을 입력하세요.'); return; }
+    let res;
+    if (editingAcctId) {
+      res = await api('POST', '/api/admin-account-code-update', {
+        id: editingAcctId, name, category, parentCode, isActive,
+      });
+    } else {
+      if (!code || !/^[0-9]{2,20}$/.test(code)) { showErr('코드는 2~20자리 숫자여야 합니다.'); return; }
+      res = await api('POST', '/api/admin-account-code-create', {
+        code, name, category, parentCode,
+      });
+    }
+    if (!res.ok) {
+      showErr('저장 실패: ' + (res.data?.error || res.error || '')
+        + (res.data?.detail ? ' — ' + res.data.detail : ''));
+      return;
+    }
+    closeAcctModal();
+    loadAccountCodes();
+  }
+
+  /* 비활성/활성 토글 — 삭제 대신 (전표에 쓰인 코드 보호) */
+  async function toggleAcct(id) {
+    const a = acctList.find(x => x.id === id);
+    if (!a) return;
+    const next = !a.isActive;
+    if (!confirm(`"${a.name}" 계정과목을 ${next ? '활성' : '비활성'} 처리하시겠습니까?`
+      + (next ? '' : '\n비활성 시 신규 선택 목록에서 숨겨집니다. 기존 전표는 그대로 유지됩니다.'))) return;
+    const res = await api('POST', '/api/admin-account-code-update', { id, isActive: next });
+    if (!res.ok) { alert('상태 변경 실패: ' + (res.data?.error || res.error || '')); return; }
+    loadAccountCodes();
+  }
+
+  /* ▲▼ 순서 이동 — 인접 항목과 교환 후 전체 순서 전송 */
+  async function moveAcct(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= acctList.length) return;
+    const arr = acctList.slice();
+    const tmp = arr[index]; arr[index] = arr[target]; arr[target] = tmp;
+    const res = await api('POST', '/api/admin-account-code-reorder', {
+      orderedIds: arr.map(a => a.id),
+    });
+    if (!res.ok) { alert('순서 변경 실패: ' + (res.data?.error || res.error || '')); return; }
+    loadAccountCodes();
+  }
+
+  /* ════════════════════════════════════════════════
      초기화 / 재진입
   ════════════════════════════════════════════════ */
   function init() {
@@ -1041,6 +1279,7 @@
     const container = document.getElementById('page-bank-transactions');
     if (container && !container.querySelector('.panel')) { init(); return; }
     if (currentTab === 'transactions') { loadSummary(); loadTransactions(); loadImportList(); }
+    else if (currentTab === 'accountCodes') loadAccountCodes();
     else loadCounterparties();
   }
 
@@ -1051,5 +1290,8 @@
     openCpEdit,
     unignore,
     runBatchVoucher,
+    openAcctEdit,
+    toggleAcct,
+    moveAcct,
   };
 })();
