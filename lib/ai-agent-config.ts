@@ -74,7 +74,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 - resource_create / resource_update / resource_delete
 
 ### 예산·지출·후원 정책
-- budgets_list (회계연도) / expenditures_list (카테고리·기간) / budget_summary (예산 vs 지출 비교)
+- budgets_list (회계연도) / budget_summary (예산 vs 지출 비교)
 - donation_policy_get — 금액·계좌·효성 모달 설정
 
 ### 재정 관리 (Phase 22-A 매출)
@@ -135,7 +135,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "자료" / "자료실" | resources_list |
    | "잠재 후원자" / "잠재 후원" | potential_donors_list |
    | "올해 예산" / "예산" | budgets_list |
-   | "지출" / "이번 달 지출" | expenditures_list |
+   | "지출" / "이번 달 지출" / "비용" / "경비" / "인건비" / "사업비" | expenses_list |
    | "예산 요약" / "예산 vs 지출" | budget_summary |
    | "후원 정책" / "후원 설정" | donation_policy_get |
    | "채팅방" / "상담방" / "미답변" | chat_rooms_list |

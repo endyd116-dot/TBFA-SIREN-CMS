@@ -460,12 +460,6 @@ export const TOOL_DECLARATIONS = [
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "예: 2026 (생략 시 올해)" },
     }}},
-  { name: "expenditures_list", description: "지출 목록 (카테고리·상태·기간 필터)",
-    parameters: { type: "OBJECT", properties: {
-      categoryId: { type: "INTEGER" }, status: { type: "STRING", description: "draft|approved|paid" },
-      fromDate: { type: "STRING", description: "YYYY-MM-DD" }, toDate: { type: "STRING" },
-      limit: { type: "INTEGER" },
-    }}},
   { name: "budget_summary", description: "회계연도 예산 vs 지출 비교 (카테고리별 집계)",
     parameters: { type: "OBJECT", properties: {
       fiscalYear: { type: "INTEGER", description: "예: 2026 (생략 시 올해)" },
@@ -715,7 +709,6 @@ export async function executeTool(
       case "resource_update":          return await tool_resourceUpdate(args, adminId);
       case "resource_delete":          return await tool_resourceDelete(args, adminId);
       case "budgets_list":             return await tool_budgetsList(args);
-      case "expenditures_list":        return await tool_expendituresList(args);
       case "budget_summary":           return await tool_budgetSummary(args);
       case "donation_policy_get":      return await tool_donationPolicyGet();
       case "chat_rooms_list":          return await tool_chatRoomsList(args);
@@ -2817,8 +2810,7 @@ async function tool_incidentCommentAdd(args: any, adminId: number | null): Promi
    표준 §3.3 — 직접 DB + dry-run + rollbackData
    ========================================================= */
 
-const ALLOWED_EXPENDITURE_STATUSES = new Set(["draft", "approved", "paid", "rejected"]);
-const ALLOWED_CHAT_STATUSES        = new Set(["active", "closed", "archived"]);
+const ALLOWED_CHAT_STATUSES = new Set(["active", "closed", "archived"]);
 
 /* ─── 잠재 후원자 ───────────────────────────────────── */
 async function tool_potentialDonorsList(args: any): Promise<ToolResult> {
@@ -3007,77 +2999,45 @@ async function tool_budgetsList(args: any): Promise<ToolResult> {
   }
 }
 
-async function tool_expendituresList(args: any): Promise<ToolResult> {
-  const limit = Math.min(Number(args?.limit) || 30, 200);
-  const conds: any[] = [];
-  if (Number.isFinite(Number(args?.categoryId))) conds.push(sql`category_id = ${Number(args.categoryId)}`);
-  if (typeof args?.status === "string" && ALLOWED_EXPENDITURE_STATUSES.has(args.status)) {
-    conds.push(sql`status = ${args.status}`);
-  }
-  if (typeof args?.fromDate === "string" && args.fromDate.trim()) {
-    const d = new Date(args.fromDate);
-    if (!isNaN(d.getTime())) conds.push(sql`spent_at >= ${d.toISOString()}::timestamptz`);
-  }
-  if (typeof args?.toDate === "string" && args.toDate.trim()) {
-    const d = new Date(args.toDate);
-    if (!isNaN(d.getTime())) conds.push(sql`spent_at <= ${d.toISOString()}::timestamptz`);
-  }
-  const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
-  try {
-    const r: any = await db.execute(sql`
-      SELECT e.id, e.category_id, e.amount, e.spent_at, e.description, e.payee, e.status,
-             e.approved_at, c.name AS category_name
-        FROM expenditures e
-        LEFT JOIN budget_categories c ON c.id = e.category_id
-        ${where}
-       ORDER BY e.spent_at DESC
-       LIMIT ${limit}
-    `);
-    const rows = r?.rows ?? r ?? [];
-    return { ok: true, output: { count: rows.length, expenditures: rows } };
-  } catch (e: any) {
-    return { ok: false, error: `지출 조회 실패: ${e?.message?.slice(0, 200)}` };
-  }
-}
-
 async function tool_budgetSummary(args: any): Promise<ToolResult> {
+  // budget_categories(예산) vs expenses(지출, 22-C) 비교
+  // budget_categories.code === expense_categories.code (22-B-R1 마이그 후 동기화)
   const year = Number(args?.fiscalYear) || new Date().getFullYear();
-  const yearStartIso = new Date(year, 0, 1).toISOString();
-  const yearEndIso = new Date(year + 1, 0, 1).toISOString();
   try {
     const r: any = await db.execute(sql`
       SELECT
-        c.id AS category_id,
-        c.name AS category_name,
-        c.code AS category_code,
+        bc.id AS category_id,
+        bc.name AS category_name,
+        bc.code AS category_code,
         COALESCE(b.planned_amount::numeric, 0)::numeric AS planned,
-        COALESCE(SUM(CASE WHEN e.status = 'paid' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS spent,
-        COALESCE(SUM(CASE WHEN e.status = 'approved' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS approved_pending
-        FROM budget_categories c
-        LEFT JOIN budgets b ON b.category_id = c.id AND b.fiscal_year = ${year}
-        LEFT JOIN expenditures e ON e.category_id = c.id AND e.spent_at >= ${yearStartIso}::timestamptz AND e.spent_at < ${yearEndIso}::timestamptz
-       WHERE c.is_active = TRUE
-       GROUP BY c.id, c.name, c.code, b.planned_amount
-       ORDER BY c.id ASC
+        COALESCE(SUM(CASE WHEN e.status = 'approved' THEN (e.amount - e.refund_amount)::numeric ELSE 0 END), 0)::numeric AS executed,
+        COALESCE(SUM(CASE WHEN e.status = 'draft' THEN e.amount::numeric ELSE 0 END), 0)::numeric AS draft_pending
+        FROM budget_categories bc
+        LEFT JOIN budgets b ON b.category_id = bc.id AND b.fiscal_year = ${year}
+        LEFT JOIN expense_categories ec ON ec.code = bc.code AND ec.is_active = TRUE
+        LEFT JOIN expenses e ON e.category_id = ec.id AND e.fiscal_year = ${year}
+       WHERE bc.is_active = TRUE
+       GROUP BY bc.id, bc.name, bc.code, b.planned_amount
+       ORDER BY bc.id ASC
     `);
     const rows: any[] = r?.rows ?? r ?? [];
     const summary = rows.map((r: any) => {
       const planned = Number(r.planned) || 0;
-      const spent = Number(r.spent) || 0;
-      const approvedPending = Number(r.approved_pending) || 0;
-      const remaining = planned - spent - approvedPending;
-      const usagePct = planned > 0 ? Math.round((spent / planned) * 100) : 0;
+      const executed = Number(r.executed) || 0;
+      const draftPending = Number(r.draft_pending) || 0;
+      const remaining = planned - executed;
+      const usagePct = planned > 0 ? Math.round((executed / planned) * 100) : 0;
       return {
         categoryId: r.category_id, categoryName: r.category_name, code: r.category_code,
-        planned, spent, approvedPending, remaining, usagePct,
+        planned, executed, draftPending, remaining, usagePct,
       };
     });
     const totals = summary.reduce((acc, r) => ({
       planned: acc.planned + r.planned,
-      spent: acc.spent + r.spent,
-      approvedPending: acc.approvedPending + r.approvedPending,
+      executed: acc.executed + r.executed,
+      draftPending: acc.draftPending + r.draftPending,
       remaining: acc.remaining + r.remaining,
-    }), { planned: 0, spent: 0, approvedPending: 0, remaining: 0 });
+    }), { planned: 0, executed: 0, draftPending: 0, remaining: 0 });
     return { ok: true, output: { fiscalYear: year, totals, categories: summary } };
   } catch (e: any) {
     return { ok: false, error: `예산 요약 실패: ${e?.message?.slice(0, 200)}` };

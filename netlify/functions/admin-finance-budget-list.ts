@@ -13,44 +13,69 @@ export default async function handler(req: Request, _ctx: Context) {
   const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
 
   try {
-    // 예산 + 집행 집계 (카테고리별)
-    const rows = await db.execute(sql`
+    // 1. 예산 목록 (budget_categories + budgets)
+    // budget_categories는 유지 (R2 예산 편성에서 사용)
+    const budgetRows: any = await db.execute(sql`
       SELECT
-        bc.id,
-        bc.name,
-        bc.code,
-        COALESCE(b.planned_amount, 0)::int AS planned_amount,
-        COALESCE(ex.executed_amount, 0)::int AS executed_amount,
-        COALESCE(ex.executed_count, 0)::int AS executed_count
+        bc.id AS bc_id,
+        bc.name AS bc_name,
+        bc.code AS bc_code,
+        COALESCE(b.planned_amount, 0)::bigint AS planned_amount
       FROM budget_categories bc
       LEFT JOIN budgets b
         ON b.category_id = bc.id AND b.fiscal_year = ${year}
-      LEFT JOIN (
-        SELECT
-          category_id,
-          SUM(amount)::int AS executed_amount,
-          COUNT(*)::int AS executed_count
-        FROM expenditures
-        WHERE status = 'approved'
-          AND EXTRACT(YEAR FROM spent_at) = ${year}
-        GROUP BY category_id
-      ) ex ON ex.category_id = bc.id
       WHERE bc.is_active = TRUE
       ORDER BY bc.id
     `);
+    const budRows: any[] = (budgetRows as any)?.rows ?? (budgetRows as any[]) ?? [];
 
-    const items = ((rows as any).rows || rows as any[]).map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      code: r.code,
-      plannedAmount: r.planned_amount,
-      executedAmount: r.executed_amount,
-      executedCount: r.executed_count,
-      remaining: r.planned_amount - r.executed_amount,
-      rate: r.planned_amount > 0
-        ? Math.round((r.executed_amount / r.planned_amount) * 100)
-        : 0,
-    }));
+    // 2. expense_categories 코드 → ID 매핑 (budget_categories.code와 동일 코드 기준 매칭)
+    //    22-B-R1 마이그레이션 후 budget_categories.code = expense_categories.code 로 1:1 대응
+    const expCatR: any = await db.execute(sql`
+      SELECT id, code FROM expense_categories WHERE is_active = TRUE
+    `);
+    const expCatRows: any[] = expCatR?.rows ?? expCatR ?? [];
+    const expCatByCode = new Map<string, number>(
+      expCatRows.map((r: any) => [r.code, Number(r.id)])
+    );
+
+    // 3. expenses 기준 카테고리별 집행 집계
+    //    (22-C expenses 테이블, status='approved', fiscal_year 매칭)
+    const execR: any = await db.execute(sql`
+      SELECT
+        e.category_id AS exp_cat_id,
+        COALESCE(SUM(e.amount - e.refund_amount), 0)::bigint AS executed_amount,
+        COUNT(*)::int AS executed_count
+      FROM expenses e
+      WHERE e.status = 'approved'
+        AND e.fiscal_year = ${year}
+      GROUP BY e.category_id
+    `);
+    const execRows: any[] = execR?.rows ?? execR ?? [];
+    const execByCatId = new Map<number, { amount: number; count: number }>(
+      execRows.map((r: any) => [Number(r.exp_cat_id), {
+        amount: Number(r.executed_amount),
+        count: Number(r.executed_count),
+      }])
+    );
+
+    // 4. 카테고리별 결합 — budget_categories.code → expense_categories.id 경유
+    const items = budRows.map((r: any) => {
+      const planned = Number(r.planned_amount);
+      const expCatId = expCatByCode.get(r.bc_code) ?? null;
+      const exec = expCatId !== null ? (execByCatId.get(expCatId) ?? { amount: 0, count: 0 }) : { amount: 0, count: 0 };
+      const executed = exec.amount;
+      return {
+        id: r.bc_id,
+        name: r.bc_name,
+        code: r.bc_code,
+        plannedAmount: planned,
+        executedAmount: executed,
+        executedCount: exec.count,
+        remaining: planned - executed,
+        rate: planned > 0 ? Math.round((executed / planned) * 100) : 0,
+      };
+    });
 
     const totalPlanned = items.reduce((s: number, i: any) => s + i.plannedAmount, 0);
     const totalExecuted = items.reduce((s: number, i: any) => s + i.executedAmount, 0);

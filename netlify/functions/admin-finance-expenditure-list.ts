@@ -9,6 +9,15 @@ export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
+  // ⚠️ DEPRECATED (Phase 22-B-R1): expenditures → expenses 단일화 완료
+  // 이 API는 회귀 방지를 위해 임시 유지되며 곧 삭제됩니다.
+  // 대신 /api/admin-expense-list 를 사용하세요.
+  const DEPRECATED_WARNING = {
+    deprecated: true,
+    useInstead: "admin-expense-list",
+    message: "이 API는 지출 시스템 단일화(Phase 22-B-R1)로 deprecated 되었습니다. /api/admin-expense-list 를 사용하세요.",
+  };
+
   const url = new URL(req.url);
   const status = url.searchParams.get("status") || "all";
   const category = url.searchParams.get("category") || "all";
@@ -59,6 +68,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return new Response(
       JSON.stringify({
         ok: true,
+        ...DEPRECATED_WARNING,
         data: {
           items: (rows as any).rows || rows as any[],
           total,

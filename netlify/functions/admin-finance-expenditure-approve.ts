@@ -9,6 +9,8 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "PATCH")
     return new Response(JSON.stringify({ ok: false, error: "PATCH only" }), { status: 405 });
 
+  // ⚠️ DEPRECATED (Phase 22-B-R1): expenditures → expenses 단일화 완료
+  // 대신 /api/admin-expense-approve 를 사용하세요.
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
@@ -43,7 +45,12 @@ export default async function handler(req: Request, _ctx: Context) {
       );
     }
     return new Response(
-      JSON.stringify({ ok: true, message: action === "approve" ? "승인 완료" : "반려 완료" }),
+      JSON.stringify({
+        ok: true,
+        deprecated: true,
+        useInstead: "admin-expense-approve",
+        message: `${action === "approve" ? "승인 완료" : "반려 완료"} (이 API는 deprecated — /api/admin-expense-approve 사용 권장)`,
+      }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err: any) {
