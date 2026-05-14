@@ -1,10 +1,21 @@
-/* admin-finance-report.js — Phase 7 + 22A: 재무 보고서 (손익계산서 탭 추가) */
+/* admin-finance-report.js — Phase 22-B-R3: NPO 표준 회계 보고서
+   탭1 운영성과표(Statement of Operations) / 탭2 예산 대비 실적표(Budget vs Actual)
+   출력 3종: 인쇄(window.print) · 엑셀(SheetJS) · PDF(admin-finance-report-pdf API) */
 (function () {
   'use strict';
 
-  let lastData  = null;
-  let lastPlData = null;
-  let currentTab = 'report'; // 'report' | 'pl'
+  let lastPlData     = null;   // 운영성과표 데이터
+  let lastBudgetData = null;   // 예산 대비 실적표 데이터
+  let orgName        = '(사)교사유가족협의회';
+  let currentTab     = 'pl';   // 'pl' | 'budget'
+
+  /* NPO 표준 4분류 (지출) */
+  const NPO_EXP_CLASSES = [
+    { code: 'personnel',   label: '인건비' },
+    { code: 'program',     label: '사업비' },
+    { code: 'admin_ops',   label: '관리운영비' },
+    { code: 'fundraising', label: '모금비' },
+  ];
 
   function apiFetch(url) {
     return fetch(url, { credentials: 'include' }).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
@@ -15,279 +26,412 @@
     return Number(n).toLocaleString('ko-KR') + '원';
   }
 
-  function fmtShort(n) {
-    if (!n && n !== 0) return '—';
-    const v = Number(n);
-    if (v >= 100000000) return (v / 100000000).toFixed(1) + '억원';
-    if (v >= 10000)     return (v / 10000).toFixed(1)     + '만원';
-    return v.toLocaleString('ko-KR') + '원';
+  function fmtNum(n) {
+    if (n === undefined || n === null || isNaN(n)) return 0;
+    return Number(n);
+  }
+
+  function nowStr() {
+    const d = new Date();
+    const p = x => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  /* ── 협회명 조회 (보고서 머리말용) ── */
+  async function loadOrgName() {
+    try {
+      const res = await apiFetch('/api/admin/receipt-settings');
+      const s = res?.data?.data?.settings || {};
+      if (s.orgName) orgName = s.orgName;
+    } catch { /* 기본값 유지 */ }
+  }
+
+  /* ── 보고서 머리말 ── */
+  function reportHeaderHtml(title, periodLabel) {
+    return `
+      <div class="fr-report-header report-header">
+        <div class="fr-org-name">${orgName}</div>
+        <h2 class="report-title">${title}</h2>
+        <div class="report-period">기간: ${periodLabel || '—'}</div>
+        <div class="fr-generated">생성일시: ${nowStr()}</div>
+      </div>
+    `;
   }
 
   /* ── 탭 전환 ── */
   function switchTab(tab) {
     currentTab = tab;
-    ['report', 'pl'].forEach(t => {
+    ['pl', 'budget'].forEach(t => {
       const btn  = document.getElementById('frTab-' + t);
       const pane = document.getElementById('frPane-' + t);
       if (btn)  btn.classList.toggle('on', t === tab);
       if (pane) pane.style.display = t === tab ? '' : 'none';
     });
-    if (tab === 'pl' && !lastPlData) loadPl();
+    if (tab === 'pl'     && !lastPlData)     loadPl();
+    if (tab === 'budget' && !lastBudgetData) loadBudget();
   }
 
-  /* ── 기존 보고서 렌더 ── */
-  function render(data) {
-    const d = data.data || data;
-    lastData = d;
+  /* ════════════════════════════════════════════
+     운영성과표 (Statement of Operations)
+     ════════════════════════════════════════════ */
+  async function loadPl() {
+    const pd = getFrPeriodQs();
+    const params = new URLSearchParams({ period: pd.period });
+    if (pd.startDate) params.set('startDate', pd.startDate);
+    if (pd.endDate)   params.set('endDate',   pd.endDate);
 
-    // KPI
-    document.getElementById('frKpiIncome').textContent = fmtKRW(d.income?.total);
-    document.getElementById('frKpiExp').textContent    = fmtKRW(d.expenditure?.total);
-    const bal   = d.balance || 0;
-    const balEl = document.getElementById('frKpiBalance');
-    if (balEl) {
-      balEl.textContent = fmtKRW(Math.abs(bal));
-      balEl.style.color = bal < 0 ? 'var(--danger)' : 'var(--success)';
-      const balLabel = document.getElementById('frKpiBalanceLabel');
-      if (balLabel) balLabel.textContent = bal < 0 ? '적자' : '흑자';
-    }
+    const pane = document.getElementById('frPane-pl');
+    if (pane) pane.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:40px">불러오는 중…</div>`;
 
-    // 예산 대비 실적
-    const tbody = document.getElementById('frBvaTbody');
-    if (tbody) {
-      const items = d.budgetVsActual || [];
-      if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-3)">예산 데이터 없음 (Phase 6 예산 편성 후 조회 가능)</td></tr>`;
-      } else {
-        tbody.innerHTML = items.map(item => {
-          const rc = item.rate >= 90 ? 'var(--danger)' : item.rate >= 70 ? '#f59e0b' : 'var(--success)';
-          return `<tr>
-            <td>${item.name}</td>
-            <td class="num">${fmtKRW(item.budget)}</td>
-            <td class="num">${fmtKRW(item.actual)}</td>
-            <td>
-              <div style="display:flex;align-items:center;gap:8px">
-                <div class="pct-bar" style="flex:1"><div class="pct-fill" style="width:${Math.min(item.rate||0,100)}%;background:${rc}"></div></div>
-                <span style="color:${rc};font-weight:600;min-width:36px">${item.rate || 0}%</span>
-              </div>
-            </td>
-          </tr>`;
-        }).join('');
-      }
+    const res = await apiFetch('/api/admin-finance-pl-summary?' + params);
+    if (!res.ok) {
+      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">운영성과표 조회 실패: ${res.data?.error || res.error || ''}</div>`;
+      return;
     }
-
-    // 지출 사업별
-    const expTbody = document.getElementById('frExpTbody');
-    if (expTbody) {
-      const cats = d.expenditure?.byCategory || [];
-      expTbody.innerHTML = cats.length
-        ? cats.map(c => `<tr><td>${c.category_name || '—'}</td><td class="num">${fmtKRW(c.amount)}</td><td class="num">${c.count}건</td></tr>`).join('')
-        : `<tr><td colspan="3" style="text-align:center;color:var(--text-3)">지출 내역 없음</td></tr>`;
-    }
+    const pl = res.data?.data || res.data || res;
+    pl.__periodLabel = periodLabel(pd);
+    renderPl(pl);
   }
 
-  /* ── 손익계산서 렌더 ── */
   function renderPl(pl) {
     lastPlData = pl;
     const pane = document.getElementById('frPane-pl');
     if (!pane) return;
 
-    const rev  = pl.revenue || {};
-    const don  = rev.donations || {};
-    const oth  = rev.other     || {};
-    const exp  = pl.expenditure || {};
-    const net  = pl.netIncome  || 0;
+    const rev = pl.revenue || {};
+    const don = rev.donations || {};
+    const oth = rev.other || {};
+    const exp = pl.expenditure || {};
 
-    const otherRows = (oth.byCategory || []).map(cat =>
+    // Ⅰ 사업수익
+    const donNet      = fmtNum(don.net);
+    const othNet      = fmtNum(oth.net);
+    const revTotalNet = fmtNum(rev.totalNet);
+
+    const othCatRows = (oth.byCategory || []).map(c =>
       `<tr>
-        <td style="padding-left:20px;color:var(--text-2)">${cat.name}</td>
-        <td></td>
-        <td class="num">${fmtKRW(cat.net)}</td>
+        <td class="fr-indent2">· ${c.name}</td>
+        <td class="num"></td>
+        <td class="num">${fmtKRW(c.net)}</td>
       </tr>`
     ).join('');
 
+    // Ⅱ 사업비용 — NPO 4분류로 매핑
     const expByCat = exp.byCategory || [];
-    const expRows = expByCat.length
-      ? expByCat.map(cat =>
-          `<tr>
-            <td style="padding-left:20px;color:var(--text-2)">${cat.name || cat.code || '—'}</td>
-            <td></td>
-            <td class="num" style="color:var(--danger)">${fmtKRW(cat.total != null ? cat.total : cat.amount)}</td>
-          </tr>`
-        ).join('')
-      : `<tr><td colspan="3" style="padding-left:20px;color:var(--text-3);font-style:italic">지출 내역 없음</td></tr>`;
+    const expClassMap = {};
+    let expClassified = 0;
+    for (const c of expByCat) {
+      const amt = fmtNum(c.total != null ? c.total : c.amount);
+      const key = NPO_EXP_CLASSES.some(x => x.code === c.code) ? c.code : '__etc';
+      expClassMap[key] = (expClassMap[key] || 0) + amt;
+    }
+    const expClassRows = NPO_EXP_CLASSES.map((cls, idx) => {
+      const amt = fmtNum(expClassMap[cls.code]);
+      expClassified += amt;
+      return `<tr>
+        <td class="fr-indent1">${idx + 1}. ${cls.label}</td>
+        <td class="num"></td>
+        <td class="num">${fmtKRW(amt)}</td>
+      </tr>`;
+    }).join('');
+    const etcExp = fmtNum(expClassMap['__etc']);
+    const etcRow = etcExp > 0
+      ? `<tr><td class="fr-indent1">5. 기타비용</td><td class="num"></td><td class="num">${fmtKRW(etcExp)}</td></tr>`
+      : '';
+    const expTotal = fmtNum(exp.total);
 
-    const netColor = net >= 0 ? 'var(--success)' : 'var(--danger)';
-    const netLabel = net >= 0 ? '당기 순이익' : '당기 순손실';
+    // Ⅲ 운영성과
+    const result      = fmtNum(pl.netIncome);
+    const resultColor = result >= 0 ? 'var(--success)' : 'var(--danger)';
+    const resultLabel = result >= 0 ? '운영성과 (잉여)' : '운영성과 (부족)';
 
     pane.innerHTML = `
-      <!-- 손익 요약 KPI -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-        <div class="kpi"><div class="kpi-label">총 매출 (순)</div><div class="kpi-value">${fmtShort(rev.totalNet)}</div></div>
-        <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--danger)">${fmtShort(exp.total)}</div></div>
-        <div class="kpi"><div class="kpi-label">${netLabel}</div><div class="kpi-value" style="color:${netColor}">${fmtShort(Math.abs(net))}</div></div>
-      </div>
+      ${reportHeaderHtml('운영성과표', pl.__periodLabel)}
 
-      <!-- 손익계산서 테이블 -->
-      <table class="data-table" style="width:100%;margin-bottom:24px">
+      <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
-          <tr><th>항목</th><th class="num">총액</th><th class="num">순액</th></tr>
+          <tr><th style="width:60%">계정과목</th><th class="num">소계</th><th class="num">금액</th></tr>
         </thead>
         <tbody>
-          <!-- 수익 섹션 -->
-          <tr style="background:var(--bg-2)">
-            <td colspan="3" style="font-weight:700;color:var(--text-1)">Ⅰ. 수익</td>
+          <!-- Ⅰ 사업수익 -->
+          <tr class="fr-section"><td colspan="3">Ⅰ. 사업수익</td></tr>
+          <tr>
+            <td class="fr-indent1">1. 후원금수익</td>
+            <td class="num"></td>
+            <td class="num">${fmtKRW(donNet)}</td>
           </tr>
           <tr>
-            <td style="padding-left:12px">후원 수입</td>
-            <td class="num">${fmtKRW(don.gross)}</td>
-            <td class="num">${fmtKRW(don.net)}</td>
+            <td class="fr-indent1">2. 사업수익 (후원 외)</td>
+            <td class="num"></td>
+            <td class="num">${fmtKRW(othNet)}</td>
           </tr>
-          ${don.refund > 0 ? `<tr><td style="padding-left:20px;color:var(--danger)">(-) 환불</td><td class="num" style="color:var(--danger)">${fmtKRW(don.refund)}</td><td></td></tr>` : ''}
-          <tr>
-            <td style="padding-left:12px">후원 외 매출</td>
-            <td class="num">${fmtKRW(oth.gross)}</td>
-            <td class="num">${fmtKRW(oth.net)}</td>
-          </tr>
-          ${oth.refund > 0 ? `<tr><td style="padding-left:20px;color:var(--danger)">(-) 환불</td><td class="num" style="color:var(--danger)">${fmtKRW(oth.refund)}</td><td></td></tr>` : ''}
-          ${otherRows}
-          <tr style="font-weight:700;border-top:2px solid var(--border)">
-            <td>수익 합계</td>
-            <td></td>
-            <td class="num">${fmtKRW(rev.totalNet)}</td>
+          ${othCatRows}
+          <tr class="fr-subtotal">
+            <td>사업수익 계</td>
+            <td class="num"></td>
+            <td class="num">${fmtKRW(revTotalNet)}</td>
           </tr>
 
-          <!-- 지출 섹션 -->
-          <tr style="background:var(--bg-2)">
-            <td colspan="3" style="font-weight:700;color:var(--text-1)">Ⅱ. 지출</td>
-          </tr>
-          ${expRows}
-          <tr style="font-weight:700;border-top:2px solid var(--border)">
-            <td>지출 합계</td>
-            <td></td>
-            <td class="num" style="color:var(--danger)">${fmtKRW(exp.total)}</td>
+          <!-- Ⅱ 사업비용 -->
+          <tr class="fr-section"><td colspan="3">Ⅱ. 사업비용</td></tr>
+          ${expClassRows}
+          ${etcRow}
+          <tr class="fr-subtotal">
+            <td>사업비용 계</td>
+            <td class="num"></td>
+            <td class="num">${fmtKRW(expTotal)}</td>
           </tr>
 
-          <!-- 당기 순이익 -->
-          <tr style="background:${net >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'};font-weight:700;border-top:2px solid var(--border)">
-            <td colspan="2">${netLabel} (Ⅰ−Ⅱ)</td>
-            <td class="num" style="color:${netColor};font-size:16px">${fmtKRW(Math.abs(net))}</td>
+          <!-- Ⅲ 운영성과 -->
+          <tr class="fr-result" style="background:${result >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'}">
+            <td colspan="2">Ⅲ. ${resultLabel} (Ⅰ − Ⅱ)</td>
+            <td class="num" style="color:${resultColor};font-size:15px;font-weight:700">${fmtKRW(result)}</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- 월별 손익 추이 -->
-      <div style="font-size:14px;font-weight:700;margin-bottom:8px">월별 손익 추이</div>
-      <table class="data-table" style="width:100%">
-        <thead><tr><th>월</th><th class="num">매출</th><th class="num">지출</th><th class="num">순이익</th></tr></thead>
+      <div class="fr-note">※ 수익·비용은 모두 환불 차감 후 순액 기준입니다.</div>
+    `;
+  }
+
+  /* ════════════════════════════════════════════
+     예산 대비 실적표 (Budget vs Actual)
+     ════════════════════════════════════════════ */
+  async function loadBudget() {
+    const pd = getFrPeriodQs();
+    const year = pd.year;
+
+    const pane = document.getElementById('frPane-budget');
+    if (pane) pane.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:40px">불러오는 중…</div>`;
+
+    const res = await apiFetch('/api/admin-finance-budget-list?year=' + year);
+    if (!res.ok) {
+      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">예산 대비 실적표 조회 실패: ${res.data?.error || res.error || ''}</div>`;
+      return;
+    }
+    const bd = res.data?.data || res.data || res;
+    bd.__year = year;
+    renderBudget(bd);
+  }
+
+  function renderBudget(bd) {
+    lastBudgetData = bd;
+    const pane = document.getElementById('frPane-budget');
+    if (!pane) return;
+
+    const fiscalLabel = `${bd.year || bd.__year} 회계연도`;
+
+    // 승인 예산안 없음
+    if (bd.noPlan) {
+      pane.innerHTML = `
+        ${reportHeaderHtml('예산 대비 실적표', fiscalLabel)}
+        <div class="fr-noplan">
+          <div style="font-size:32px;margin-bottom:8px">📋</div>
+          <div style="font-weight:700;margin-bottom:6px">승인된 예산안이 없습니다</div>
+          <div style="color:var(--text-3)">${bd.message || `${bd.year}년도 예산안을 편성·승인 후 집행률 확인이 가능합니다.`}</div>
+        </div>
+      `;
+      return;
+    }
+
+    const items = bd.items || [];
+    const planTitle = bd.plan?.title ? ` — 승인 예산안: "${bd.plan.title}"` : '';
+
+    const rows = items.map(item => {
+      const planned   = fmtNum(item.plannedAmount);
+      const executed  = fmtNum(item.executedAmount);
+      const remaining = fmtNum(item.remaining);
+      const rate      = fmtNum(item.rate);
+      const rc = rate >= 90 ? 'var(--danger)' : rate >= 70 ? '#f59e0b' : 'var(--success)';
+      return `<tr>
+        <td>${item.categoryName || item.categoryCode || '—'}</td>
+        <td class="num">${fmtKRW(planned)}</td>
+        <td class="num">${fmtKRW(executed)}</td>
+        <td class="num" style="color:${remaining < 0 ? 'var(--danger)' : 'inherit'}">${fmtKRW(remaining)}</td>
+        <td class="num" style="color:${rc};font-weight:600">${rate}%</td>
+      </tr>`;
+    }).join('');
+
+    const totalPlanned   = fmtNum(bd.totalPlanned);
+    const totalExecuted  = fmtNum(bd.totalExecuted);
+    const totalRemaining = fmtNum(bd.totalRemaining != null ? bd.totalRemaining : totalPlanned - totalExecuted);
+    const totalRate      = fmtNum(bd.executionRate != null ? bd.executionRate : (totalPlanned > 0 ? Math.round(totalExecuted / totalPlanned * 100) : 0));
+
+    pane.innerHTML = `
+      ${reportHeaderHtml('예산 대비 실적표', fiscalLabel + planTitle)}
+
+      <table class="data-table report-table fr-statement" style="width:100%">
+        <thead>
+          <tr>
+            <th>계정과목</th>
+            <th class="num">편성액</th>
+            <th class="num">집행액</th>
+            <th class="num">잔여액</th>
+            <th class="num">집행률</th>
+          </tr>
+        </thead>
         <tbody>
-          ${(pl.monthly || []).map(m => {
-            const nc = m.net >= 0 ? 'var(--success)' : 'var(--danger)';
-            return `<tr>
-              <td>${m.month}월</td>
-              <td class="num">${m.revenue ? fmtKRW(m.revenue) : '—'}</td>
-              <td class="num">${m.expenditure ? fmtKRW(m.expenditure) : '—'}</td>
-              <td class="num" style="color:${nc};font-weight:600">${m.revenue || m.expenditure ? fmtKRW(m.net) : '—'}</td>
-            </tr>`;
-          }).join('')}
+          ${rows || `<tr><td colspan="5" style="text-align:center;color:var(--text-3)">예산 항목이 없습니다.</td></tr>`}
+          <tr class="fr-result">
+            <td style="font-weight:700">합계</td>
+            <td class="num" style="font-weight:700">${fmtKRW(totalPlanned)}</td>
+            <td class="num" style="font-weight:700">${fmtKRW(totalExecuted)}</td>
+            <td class="num" style="font-weight:700;color:${totalRemaining < 0 ? 'var(--danger)' : 'inherit'}">${fmtKRW(totalRemaining)}</td>
+            <td class="num" style="font-weight:700">${totalRate}%</td>
+          </tr>
         </tbody>
       </table>
     `;
   }
 
-  /* ── 엑셀 내보내기 (손익 시트 추가) ── */
+  /* ════════════════════════════════════════════
+     출력 — 인쇄
+     ════════════════════════════════════════════ */
+  function printReport() {
+    if (currentTab === 'pl' && !lastPlData)         { alert('먼저 운영성과표를 조회해 주세요.'); return; }
+    if (currentTab === 'budget' && !lastBudgetData) { alert('먼저 예산 대비 실적표를 조회해 주세요.'); return; }
+    window.print();
+  }
+
+  /* ════════════════════════════════════════════
+     출력 — 엑셀 (SheetJS)
+     ════════════════════════════════════════════ */
   function exportExcel() {
-    if (!lastData && !lastPlData) { alert('먼저 데이터를 불러와 주세요.'); return; }
-    if (!window.XLSX) { alert('SheetJS 라이브러리가 로드되지 않았습니다.'); return; }
+    if (!window.XLSX) { alert('엑셀 변환 라이브러리가 로드되지 않았습니다.'); return; }
 
-    const d  = lastData  || {};
-    const pl = lastPlData || {};
-    const wb = XLSX.utils.book_new();
+    if (currentTab === 'pl') {
+      if (!lastPlData) { alert('먼저 운영성과표를 조회해 주세요.'); return; }
+      exportExcelPl();
+    } else {
+      if (!lastBudgetData) { alert('먼저 예산 대비 실적표를 조회해 주세요.'); return; }
+      exportExcelBudget();
+    }
+  }
 
-    // 시트 1: 수입 요약
-    const incomeSheet = [
-      ['채널', '금액(원)'],
-      ['토스',      d.income?.byChannel?.toss    || 0],
-      ['효성 CMS+', d.income?.byChannel?.hyosung  || 0],
-      ['계좌이체',  d.income?.byChannel?.bank     || 0],
-      ['기타',      d.income?.byChannel?.other    || 0],
-      ['합계',      d.income?.total               || 0],
+  function exportExcelPl() {
+    const pl  = lastPlData;
+    const rev = pl.revenue || {};
+    const don = rev.donations || {};
+    const oth = rev.other || {};
+    const exp = pl.expenditure || {};
+
+    const expByCat = exp.byCategory || [];
+    const expClassMap = {};
+    for (const c of expByCat) {
+      const amt = fmtNum(c.total != null ? c.total : c.amount);
+      const key = NPO_EXP_CLASSES.some(x => x.code === c.code) ? c.code : '__etc';
+      expClassMap[key] = (expClassMap[key] || 0) + amt;
+    }
+
+    const aoa = [
+      [orgName],
+      ['운영성과표'],
+      ['기간', pl.__periodLabel || ''],
+      ['생성일시', nowStr()],
+      [],
+      ['계정과목', '금액(원)'],
+      ['Ⅰ. 사업수익', ''],
+      ['  1. 후원금수익', fmtNum(don.net)],
+      ['  2. 사업수익 (후원 외)', fmtNum(oth.net)],
+      ...(oth.byCategory || []).map(c => ['    · ' + c.name, fmtNum(c.net)]),
+      ['  사업수익 계', fmtNum(rev.totalNet)],
+      ['Ⅱ. 사업비용', ''],
+      ...NPO_EXP_CLASSES.map((cls, i) => [`  ${i + 1}. ${cls.label}`, fmtNum(expClassMap[cls.code])]),
+      ...(fmtNum(expClassMap['__etc']) > 0 ? [['  5. 기타비용', fmtNum(expClassMap['__etc'])]] : []),
+      ['  사업비용 계', fmtNum(exp.total)],
+      ['Ⅲ. 운영성과 (Ⅰ − Ⅱ)', fmtNum(pl.netIncome)],
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(incomeSheet), '수입');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '운영성과표');
+    XLSX.writeFile(wb, `SIREN_운영성과표_${(pl.__periodLabel || '').replace(/[~\s]/g, '')}.xlsx`);
+  }
 
-    // 시트 2: 지출 사업별
-    const expSheet = [['사업명', '금액(원)', '건수'], ...(d.expenditure?.byCategory || []).map(c => [c.category_name, c.amount, c.count])];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(expSheet), '지출');
+  function exportExcelBudget() {
+    const bd = lastBudgetData;
+    if (bd.noPlan) { alert('승인된 예산안이 없어 엑셀로 내보낼 데이터가 없습니다.'); return; }
 
-    // 시트 3: 예산 대비
-    const bvaSheet = [['사업명', '예산(원)', '실적(원)', '집행률(%)'], ...(d.budgetVsActual || []).map(i => [i.name, i.budget, i.actual, i.rate])];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bvaSheet), '예산비교');
+    const items = bd.items || [];
+    const aoa = [
+      [orgName],
+      ['예산 대비 실적표'],
+      ['회계연도', `${bd.year || bd.__year} 회계연도`],
+      ['승인 예산안', bd.plan?.title || ''],
+      ['생성일시', nowStr()],
+      [],
+      ['계정과목', '편성액(원)', '집행액(원)', '잔여액(원)', '집행률(%)'],
+      ...items.map(i => [
+        i.categoryName || i.categoryCode || '',
+        fmtNum(i.plannedAmount),
+        fmtNum(i.executedAmount),
+        fmtNum(i.remaining),
+        fmtNum(i.rate),
+      ]),
+      [
+        '합계',
+        fmtNum(bd.totalPlanned),
+        fmtNum(bd.totalExecuted),
+        fmtNum(bd.totalRemaining != null ? bd.totalRemaining : fmtNum(bd.totalPlanned) - fmtNum(bd.totalExecuted)),
+        fmtNum(bd.executionRate),
+      ],
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '예산대비실적');
+    XLSX.writeFile(wb, `SIREN_예산대비실적표_${bd.year || bd.__year}.xlsx`);
+  }
 
-    // 시트 4: 손익계산서 (Phase 22A)
-    if (pl.revenue) {
-      const rev = pl.revenue || {};
-      const exp = pl.expenditure || {};
-      const plSheet = [
-        ['항목', '총액(원)', '순액(원)'],
-        ['Ⅰ. 수익', '', ''],
-        ['후원 수입',      rev.donations?.gross || 0, rev.donations?.net || 0],
-        ['후원 외 매출',   rev.other?.gross     || 0, rev.other?.net     || 0],
-        ...(rev.other?.byCategory || []).map(c => ['  ' + c.name, '', c.net]),
-        ['수익 합계', '', rev.totalNet || 0],
-        ['', '', ''],
-        ['Ⅱ. 지출', '', ''],
-        ...(exp.byCategory || []).map(c => [c.name || c.code, (c.total != null ? c.total : c.amount) || 0, '']),
-        ['지출 합계', '', exp.total || 0],
-        ['', '', ''],
-        [pl.netIncome >= 0 ? '당기 순이익' : '당기 순손실', '', Math.abs(pl.netIncome || 0)],
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(plSheet), '손익계산서');
+  /* ════════════════════════════════════════════
+     출력 — PDF (admin-finance-report-pdf API — B 작성)
+     ════════════════════════════════════════════ */
+  async function exportPdf() {
+    const pd = getFrPeriodQs();
+    let url, fname;
+
+    if (currentTab === 'pl') {
+      if (!lastPlData) { alert('먼저 운영성과표를 조회해 주세요.'); return; }
+      const params = new URLSearchParams({ type: 'pl', period: pd.period });
+      if (pd.startDate) params.set('startDate', pd.startDate);
+      if (pd.endDate)   params.set('endDate',   pd.endDate);
+      url = '/api/admin-finance-report-pdf?' + params;
+      fname = `SIREN_운영성과표_${(lastPlData.__periodLabel || '').replace(/[~\s]/g, '')}.pdf`;
+    } else {
+      if (!lastBudgetData) { alert('먼저 예산 대비 실적표를 조회해 주세요.'); return; }
+      if (lastBudgetData.noPlan) { alert('승인된 예산안이 없어 PDF로 내보낼 데이터가 없습니다.'); return; }
+      url = '/api/admin-finance-report-pdf?type=budget&year=' + pd.year;
+      fname = `SIREN_예산대비실적표_${pd.year}.pdf`;
     }
 
-    const year = d.year || pl.fiscalYear || new Date().getFullYear();
-    XLSX.writeFile(wb, `SIREN_재무보고서_${year}.xlsx`);
-  }
-
-  /* ── 로드 ── */
-  async function load() {
-    const pd = getFrPeriodQs();
-    const params = new URLSearchParams({ year: pd.year, period: pd.period });
-    if (pd.startDate) params.set('startDate', pd.startDate);
-    if (pd.endDate)   params.set('endDate',   pd.endDate);
-
-    const res = await apiFetch('/api/admin-finance-report?' + params);
-    if (!res.ok) { alert('보고서 조회 실패: ' + (res.error || '')); return; }
-    render(res);
-
-    // 손익 탭이 활성이면 같이 갱신
-    if (currentTab === 'pl') loadPl();
-  }
-
-  async function loadPl() {
-    // BUG-018 fix: fiscalYear 단독 → period 기반 전달 (기간 선택기 반영)
-    const pd = getFrPeriodQs();
-    const plParams = new URLSearchParams({ period: pd.period });
-    if (pd.startDate) plParams.set('startDate', pd.startDate);
-    if (pd.endDate)   plParams.set('endDate',   pd.endDate);
-    const res  = await apiFetch('/api/admin-finance-pl-summary?' + plParams);
-    if (!res.ok) {
-      const pane = document.getElementById('frPane-pl');
-      if (pane) pane.innerHTML = `<div style="color:var(--danger);padding:20px">손익 집계 조회 실패: ${res.data?.error || res.error || ''}</div>`;
-      return;
+    try {
+      const resp = await fetch(url, { credentials: 'include' });
+      if (!resp.ok) {
+        let msg = 'HTTP ' + resp.status;
+        try { const j = await resp.json(); msg = j.error || j.detail || msg; } catch { /* binary or empty */ }
+        alert('PDF 생성 실패: ' + msg);
+        return;
+      }
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (e) {
+      alert('PDF 다운로드 실패: ' + String(e));
     }
-    const pl = res.data?.data || res.data || res;
-    renderPl(pl);
   }
 
-  /* ── 기간 선택기 헬퍼 ── */
+  /* ════════════════════════════════════════════
+     기간 선택기 (22-B-R1 공통 패턴)
+     ════════════════════════════════════════════ */
   function frPeriodSelectorHtml() {
     return `
       <select id="frPeriodSel" class="input-sm" style="width:120px">
         <option value="day">오늘</option>
         <option value="week">이번 주</option>
-        <option value="month" selected>이번 달</option>
+        <option value="month">이번 달</option>
         <option value="half_year">반기</option>
-        <option value="year">올해</option>
+        <option value="year" selected>올해</option>
         <option value="custom">특정 기간</option>
       </select>
       <div id="frCustomRange" style="display:none;align-items:center;gap:6px">
@@ -300,7 +444,7 @@
 
   function getFrPeriodQs() {
     const sel    = document.getElementById('frPeriodSel');
-    const period = sel?.value || 'month';
+    const period = sel?.value || 'year';
     const today  = new Date();
     const pad    = n => String(n).padStart(2, '0');
     const fmt    = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -329,6 +473,19 @@
       year: startDate ? new Date(startDate).getFullYear() : today.getFullYear() };
   }
 
+  function periodLabel(pd) {
+    if (pd.startDate && pd.endDate) {
+      return pd.startDate === pd.endDate ? pd.startDate : `${pd.startDate} ~ ${pd.endDate}`;
+    }
+    return '—';
+  }
+
+  /* ── 조회 (현재 탭 갱신) ── */
+  function load() {
+    if (currentTab === 'pl') loadPl();
+    else                     loadBudget();
+  }
+
   /* ── 초기화 ── */
   function init() {
     const container = document.getElementById('adm-finance-report') || document.getElementById('page-finance-report');
@@ -336,52 +493,31 @@
 
     container.innerHTML = `
       <div class="panel">
-        <div class="p-head">
+        <div class="p-head print-hide">
           <div class="p-title">재무 보고서</div>
           <div class="p-actions" style="gap:8px;flex-wrap:wrap">
             ${frPeriodSelectorHtml()}
             <button class="btn-sm btn-sm-primary" onclick="window.SIREN_FINANCE_REPORT.load()">조회</button>
+            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.printReport()">🖨 인쇄</button>
             <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportExcel()">📊 엑셀</button>
-            <button class="btn-sm btn-sm-ghost" onclick="window.print()">🖨 인쇄</button>
+            <button class="btn-sm btn-sm-ghost" onclick="window.SIREN_FINANCE_REPORT.exportPdf()">📄 PDF</button>
           </div>
         </div>
 
-        <!-- 탭 (Phase 22A: 손익계산서 추가) -->
-        <div class="content-tabs" style="margin-bottom:20px">
-          <button type="button" class="ct-tab on" id="frTab-report" onclick="window.SIREN_FINANCE_REPORT.switchTab('report')">📋 예산·실적 보고서</button>
-          <button type="button" class="ct-tab"    id="frTab-pl"     onclick="window.SIREN_FINANCE_REPORT.switchTab('pl')">📊 손익계산서</button>
+        <!-- 탭 -->
+        <div class="content-tabs print-hide" style="margin-bottom:20px">
+          <button type="button" class="ct-tab on" id="frTab-pl"     onclick="window.SIREN_FINANCE_REPORT.switchTab('pl')">📊 운영성과표</button>
+          <button type="button" class="ct-tab"    id="frTab-budget" onclick="window.SIREN_FINANCE_REPORT.switchTab('budget')">📋 예산 대비 실적표</button>
         </div>
 
-        <!-- 탭1: 기존 보고서 -->
-        <div id="frPane-report">
-          <!-- KPI 3개 -->
-          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-            <div class="kpi"><div class="kpi-label">총 수입</div><div class="kpi-value" id="frKpiIncome">—</div></div>
-            <div class="kpi"><div class="kpi-label">총 지출</div><div class="kpi-value" id="frKpiExp">—</div></div>
-            <div class="kpi">
-              <div class="kpi-label" id="frKpiBalanceLabel">잔액</div>
-              <div class="kpi-value" id="frKpiBalance">—</div>
-            </div>
-          </div>
-
-          <!-- 예산 대비 실적 -->
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px">예산 대비 실적</div>
-          <table class="data-table" style="width:100%;margin-bottom:24px">
-            <thead><tr><th>사업명</th><th class="num">예산(원)</th><th class="num">실적(원)</th><th>집행률</th></tr></thead>
-            <tbody id="frBvaTbody"><tr><td colspan="4" style="text-align:center">조회 버튼을 눌러 데이터를 불러오세요.</td></tr></tbody>
-          </table>
-
-          <!-- 지출 사업별 -->
-          <div style="font-size:14px;font-weight:700;margin-bottom:8px">사업별 지출 내역</div>
-          <table class="data-table" style="width:100%">
-            <thead><tr><th>사업명</th><th class="num">지출(원)</th><th class="num">건수</th></tr></thead>
-            <tbody id="frExpTbody"><tr><td colspan="3" style="text-align:center">—</td></tr></tbody>
-          </table>
+        <!-- 탭1: 운영성과표 -->
+        <div id="frPane-pl">
+          <div style="text-align:center;color:var(--text-3);padding:40px">불러오는 중…</div>
         </div>
 
-        <!-- 탭2: 손익계산서 (Phase 22A) -->
-        <div id="frPane-pl" style="display:none">
-          <div style="text-align:center;color:var(--text-3);padding:40px">손익계산서 탭을 클릭하면 로드됩니다.</div>
+        <!-- 탭2: 예산 대비 실적표 -->
+        <div id="frPane-budget" style="display:none">
+          <div style="text-align:center;color:var(--text-3);padding:40px">예산 대비 실적표 탭을 클릭하면 로드됩니다.</div>
         </div>
       </div>
     `;
@@ -402,8 +538,8 @@
       endEl.addEventListener('change', check);
     }
 
-    load();
+    loadOrgName().then(() => loadPl());
   }
 
-  window.SIREN_FINANCE_REPORT = { load, init, exportExcel, switchTab };
+  window.SIREN_FINANCE_REPORT = { load, init, switchTab, printReport, exportExcel, exportPdf };
 })();
