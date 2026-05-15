@@ -491,9 +491,15 @@ async function processChunk(job: any) {
     console.log(`[cron-dispatcher] rec#${rec.id} → ${result.ok ? "OK" : "FAIL"} (${adapterMs}ms) ${result.error ? "err=" + result.error.slice(0, 200) : ""}`);
 
     if (result.ok) {
+      /* ★ 2026-05-16: 카카오 알림톡처럼 정책상 발송 안 한 경우(result.skipped=true)는
+         status='sent'로 박지만 error 컬럼에 정책 스킵 표시를 박아 화면에서 '발송 안 함'
+         으로 라벨 분기 가능하게 함. success 카운트는 그대로 (어댑터 호출 자체는 성공). */
+      const skipMark = (result as any).skipped === true
+        ? "[정책 스킵] 카카오 알림톡은 사전심사 통과 정형 템플릿만 발송 가능 (어드민 화면 자유 본문 정책 위반)"
+        : "";
       await db.execute(sql`
         UPDATE communication_send_recipients
-           SET status = 'sent', sent_at = NOW(), updated_at = NOW()
+           SET status = 'sent', sent_at = NOW(), error = ${skipMark || null}, updated_at = NOW()
          WHERE id = ${rec.id}
       `);
       success++;

@@ -325,7 +325,14 @@
     } else {
       $("recBody").innerHTML = rows.map(r => {
         const st = String(r.status || "pending");
-        const stLabel = REC_STATUS_LABEL[st] || st;
+        /* ★ 2026-05-16: 카카오 알림톡 정책 스킵은 cron이 status='sent'+error='[정책 스킵]...'
+           으로 박음. 화면엔 '성공'이 아니라 '발송 안 함'으로 표시해야 오해 방지. */
+        const err = String(r.error || "");
+        const isPolicySkip = st === "sent" && err.startsWith("[정책 스킵]");
+        const stLabel = isPolicySkip ? "발송 안 함" : (REC_STATUS_LABEL[st] || st);
+        const badgeClass = isPolicySkip
+          ? "cancelled"
+          : (st === "sent" ? "completed" : st === "failed" ? "failed" : st === "cancelled" ? "cancelled" : "pending");
         const sentAt  = r.sentAt ? formatLocalDateTime(r.sentAt) : "-";
         const retryBtn = (st === "failed")
           ? `<button class="btn btn-sm" onclick="doRetryOne(${r.id})">재발송</button>`
@@ -335,9 +342,9 @@
             <td class="col-id">#${r.memberId ?? "-"}</td>
             <td class="col-name">${escapeHtml(r.memberName || "-")}</td>
             <td class="col-mail">${escapeHtml(r.memberEmail || "-")}</td>
-            <td class="col-stat"><span class="badge badge-${st === "sent" ? "completed" : st === "failed" ? "failed" : st === "cancelled" ? "cancelled" : "pending"}">${escapeHtml(stLabel)}</span></td>
+            <td class="col-stat"><span class="badge badge-${badgeClass}">${escapeHtml(stLabel)}</span></td>
             <td class="col-time">${escapeHtml(sentAt)}</td>
-            <td class="col-err">${escapeHtml(r.error || "")}</td>
+            <td class="col-err">${escapeHtml(err)}</td>
             <td>${retryBtn}</td>
           </tr>
         `;

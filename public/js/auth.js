@@ -168,7 +168,10 @@
         else topRight.prepend(userBox);
       }
       const u = Auth.user;
-      const typeLabel = ({regular:'후원회원',family:'유가족',volunteer:'봉사자',admin:'관리자'})[u.type] || u.type;
+      /* ★ 2026-05-16: 신규 가입자도 회원 유형 'regular'로 박히는데 헤더에 '후원회원'으로
+         표시되면 아직 후원한 적 없는 가입자는 혼동. 단순 '회원'으로 통일. 정기/예비
+         후원자 구분은 마이페이지에서 별도 표시. */
+      const typeLabel = ({regular:'회원',family:'유가족',volunteer:'봉사자',admin:'관리자'})[u.type] || u.type;
       userBox.innerHTML = `
         <a href="/mypage.html#consult" style="color:#fff;font-weight:500;position:relative;display:inline-flex;align-items:center;gap:4px;text-decoration:none" title="1:1 상담">
           💬<span id="chatNotifyBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#c5293a;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;padding:0 4px">0</span>
