@@ -49,6 +49,19 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   ]);
 }
 
+/* ★ 2026-05-16 BUG-FIX: drizzle-orm/postgres-js 드라이버에서 UPDATE/DELETE 결과의
+   영향받은 행 수는 `count` 프로퍼티에 들어있음. node-postgres의 `rowCount`로
+   접근하면 항상 undefined → 모든 발송이 "이미 sending" 분기로 continue되어
+   어댑터 호출 자체가 안 됨. 두 필드 모두 fallback으로 처리. */
+function affectedRows(r: any): number {
+  if (r == null) return 0;
+  const c = (r as any).count;
+  if (typeof c === "number") return c;
+  const rc = (r as any).rowCount;
+  if (typeof rc === "number") return rc;
+  return 0;
+}
+
 export default async function handler(_req: Request) {
   const t0 = Date.now();
   const stats = {
@@ -96,8 +109,8 @@ export default async function handler(_req: Request) {
         FROM (SELECT job_id, COUNT(*)::int AS cnt FROM orphan_failed GROUP BY job_id) sub
        WHERE j.id = sub.job_id
     `);
-    const recCnt = recovered?.rowCount ?? 0;
-    const failCnt = failedOut?.rowCount ?? 0;
+    const recCnt = affectedRows(recovered);
+    const failCnt = affectedRows(failedOut);
     if (recCnt > 0 || failCnt > 0) {
       console.warn(`[cron-dispatcher] 고아 sending 복구 — 재시도=${recCnt} 실패종결=${failCnt}`);
     }
@@ -238,7 +251,7 @@ export default async function handler(_req: Request) {
        WHERE status IN ('pending', 'sending')
          AND job_id IN (SELECT id FROM communication_send_jobs WHERE status = 'cancelled')
     `);
-    stats.cancelledCleaned = r?.rowCount ?? 0;
+    stats.cancelledCleaned = affectedRows(r);
   } catch (err) {
     console.error("[cron-dispatcher] 3단계 cancelled 정리 실패", err);
   }
@@ -433,6 +446,8 @@ async function processChunk(job: any) {
   let success = 0;
   let failure = 0;
 
+  console.log(`[cron-dispatcher] processChunk jobId=${job.id} channel=${channel} chunk=${chunk.length}`);
+
   for (const rec of chunk) {
     /* sending 마킹 (race 방지 — 같은 cron 중첩 시 중복 발송 차단) */
     const upd: any = await db.execute(sql`
@@ -440,10 +455,14 @@ async function processChunk(job: any) {
          SET status = 'sending', updated_at = NOW()
        WHERE id = ${rec.id} AND status = 'pending'
     `);
-    if ((upd?.rowCount ?? 0) === 0) {
+    if (affectedRows(upd) === 0) {
       /* 다른 cron tick이 이미 가져감 — 스킵 */
+      console.log(`[cron-dispatcher] rec#${rec.id} skip — 이미 sending`);
       continue;
     }
+
+    const adapterStartedAt = Date.now();
+    console.log(`[cron-dispatcher] rec#${rec.id} member#${rec.member_id} email=${rec.member_email || '-'} phone=${rec.member_phone || '-'} → ${channel} 발송 시도`);
 
     let result: { ok: boolean; error?: string };
     try {
@@ -468,6 +487,8 @@ async function processChunk(job: any) {
       /* 타임아웃·예외 — 수신자를 'sending'에 남기지 않고 즉시 failed 처리 */
       result = { ok: false, error: String(err?.message || err).slice(0, 500) };
     }
+    const adapterMs = Date.now() - adapterStartedAt;
+    console.log(`[cron-dispatcher] rec#${rec.id} → ${result.ok ? "OK" : "FAIL"} (${adapterMs}ms) ${result.error ? "err=" + result.error.slice(0, 200) : ""}`);
 
     if (result.ok) {
       await db.execute(sql`
