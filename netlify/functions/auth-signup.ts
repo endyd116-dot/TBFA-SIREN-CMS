@@ -267,6 +267,18 @@ export default async (req: Request, _ctx: Context) => {
       return conflict("이미 가입된 이메일입니다");
     }
 
+    /* 6-2. 전화번호 중복 확인 (입력된 경우만 — phone은 nullable) */
+    if (phone) {
+      const [existingPhone] = await db
+        .select({ id: members.id })
+        .from(members)
+        .where(eq(members.phone, phone))
+        .limit(1);
+      if (existingPhone) {
+        return conflict("이미 가입된 연락처입니다");
+      }
+    }
+
     /* 7. 비밀번호 해시 */
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
