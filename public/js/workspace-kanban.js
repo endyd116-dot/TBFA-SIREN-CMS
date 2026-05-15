@@ -123,6 +123,14 @@
   /* ═══════════════════ 보기 모드 전환 ═══════════════════ */
 
   function switchViewMode(mode) {
+    /* ★ 2026-05-16: 캘린더 모드는 통합 캘린더 페이지로 이동. 옛 사용자가
+       localStorage에 wkViewMode='calendar' 저장해뒀어도 페이지 진입 시
+       자동으로 통합 캘린더 화면으로 안내. localStorage 값은 board로 정정. */
+    if (mode === 'calendar') {
+      try { localStorage.setItem('wkViewMode', 'board'); } catch (_) {}
+      window.location.href = '/workspace-calendar.html';
+      return;
+    }
     STATE.viewMode = mode;
     localStorage.setItem('wkViewMode', mode);
     // 토글 버튼 활성화
@@ -891,6 +899,14 @@
       const btn = e.target.closest('.wk-view-btn');
       if (!btn) return;
       const mode = btn.dataset.view;
+      /* ★ 2026-05-16: WBS 내 캘린더 보기 모드는 작업만 표시 (단일 데이터).
+         별도 캘린더 페이지(workspace-calendar.html)가 작업·일정·메모를 통합
+         표시하므로 캘린더 버튼은 그 통합 화면으로 이동 처리. 우선순위 색상·
+         월/주/목록 보기 등 핵심 기능은 통합 캘린더에 이미 갖춰져 있음. */
+      if (mode === 'calendar') {
+        window.location.href = '/workspace-calendar.html';
+        return;
+      }
       if (mode && mode !== STATE.viewMode) {
         switchViewMode(mode);
         // 서버에 기본 보기 저장 (debounce)
