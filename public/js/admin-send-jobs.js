@@ -266,6 +266,9 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    /* 안전망: 발송 작업 목록 화면 전용 element가 없으면(다른 페이지에 잘못 로드된 경우)
+       bindEvents 안의 addEventListener가 null로 터지므로 초기화 자체를 건너뜀. */
+    if (!document.getElementById("btnReload") || !document.getElementById("tblBody")) return;
     bindEvents();
     load();
   });

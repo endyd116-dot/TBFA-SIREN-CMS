@@ -2387,8 +2387,9 @@
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
   <script src="/js/cms-tbfa-source-kpi.js?v=2026-05-10-q4"></script>
-  <!-- 알림 발송 모듈 (Phase 10 R3) -->
-  <script src="/js/admin-send-jobs.js?v=20260516fail-label"></script>
+  <!-- 알림 발송 모듈 (Phase 10 R3) — 발송 작업 목록은 /admin-send-jobs.html(iframe)에서만 동작.
+       메인 cms-tbfa.html에는 admin-send-jobs.js 전용 DOM(btnReload·fStatus 등)이 없어
+       DOMContentLoaded에서 bindEvents가 null 에러를 던지므로 여기서 로드하지 않음. -->
   <script src="/js/admin-recipient-groups.js?v=2026-05-11-a1"></script>
   <!-- ★ AI 에이전트 위젯 (admin/operator 전용 — 우하단 플로팅) -->
   <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
