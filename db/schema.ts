@@ -177,7 +177,11 @@ export const members = pgTable("members", {
   /* ───────── ★ F-1 운영자 ───────── */
   role: varchar("role", { length: 20 }),
   notifyOnSupport: boolean("notify_on_support").default(false),
-  operatorActive: boolean("operator_active").default(true),
+  /* ★ 2026-05-16 SECURITY: default true는 일반 회원 가입 기능 도입 전 옛 정책.
+     일반 가입자도 자동으로 운영자 권한을 받아 관리자 모드 UI가 노출되던 결함.
+     default false로 변경 + 옛 회원 일괄 정리 마이그레이션(migrate-fix-operator-active)
+     로 운영 데이터 정정. */
+  operatorActive: boolean("operator_active").default(false),
 
   // 보안 / 인증
   emailVerified: boolean("email_verified").default(false),

@@ -301,6 +301,11 @@ export default async (req: Request, _ctx: Context) => {
       memo: body.memo ? String(body.memo).slice(0, 500) : null,
       /* 유가족은 수동 승인 필요 */
       emailVerified: false,
+      /* ★ 2026-05-16 SECURITY: schema의 operatorActive default가 true로 박혀
+         있어 신규 가입 회원이 자동으로 운영자 권한을 받았음. 일반 가입 흐름에서는
+         절대 운영자 아니므로 명시적으로 false. 관리자 권한 부여는 관리자 화면에서
+         별도 PATCH로만 가능하게 유지. */
+      operatorActive: false,
     };
 
     const [created] = await db.insert(members).values(insertData).returning({
