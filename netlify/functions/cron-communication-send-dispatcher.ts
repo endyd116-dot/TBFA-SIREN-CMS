@@ -109,9 +109,29 @@ export default async function handler(_req: Request) {
      1단계 — pending 작업 픽업
      ============================================================ */
   try {
+    /* ★ 2026-05-16 진단: 새 발송 작업이 picking 안 되는 원인 추적용.
+       전체 communication_send_jobs 의 status·scheduled_at 분포를 한 줄로 로그 */
+    try {
+      const diag: any = await db.execute(sql`
+        SELECT status,
+               COUNT(*)::int AS cnt,
+               COUNT(CASE WHEN scheduled_at IS NULL THEN 1 END)::int AS sched_null,
+               COUNT(CASE WHEN scheduled_at <= NOW() THEN 1 END)::int AS sched_past,
+               COUNT(CASE WHEN scheduled_at > NOW() THEN 1 END)::int AS sched_future,
+               MAX(id) AS max_id
+          FROM communication_send_jobs
+         GROUP BY status
+      `);
+      const diagRows = diag?.rows ?? diag ?? [];
+      if (diagRows.length > 0) {
+        console.log("[cron-dispatcher] DIAG status 분포:", JSON.stringify(diagRows));
+      }
+    } catch (_) {}
+
     const r: any = await db.execute(sql`
       SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
-             j.subject_override, j.body_override, j.excluded_member_ids
+             j.subject_override, j.body_override, j.excluded_member_ids,
+             j.status, j.scheduled_at, j.schedule_type
         FROM communication_send_jobs j
        WHERE j.status = 'pending'
          AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
