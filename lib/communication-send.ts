@@ -260,11 +260,24 @@ export function buildMemberRenderData(member: {
   email: string | null;
   phone: string | null;
 }): Record<string, string> {
+  /* ★ 2026-05-16: 사용자가 템플릿 본문에서 어떤 변수 표기를 써도 회원 정보가
+     자동 치환되도록 한글·영문 alias 폭넓게 채움. 매핑되지 않으면 빈 문자열로
+     치환되어 미리보기 예시값(홍길동 등)이 실제 메일에 박히는 사고 차단. */
+  const name = member.name || "";
+  const email = member.email || "";
+  const phone = member.phone || "";
+  const idStr = String(member.id);
   return {
-    name: member.name || "",
-    memberName: member.name || "",
-    email: member.email || "",
-    phone: member.phone || "",
-    memberId: String(member.id),
+    /* 회원 이름 */
+    name, memberName: name, member_name: name, userName: name, user_name: name,
+    이름: name, 회원이름: name, 회원명: name, 성함: name,
+    /* 이메일 */
+    email, memberEmail: email, member_email: email, userEmail: email, user_email: email,
+    이메일: email, 회원이메일: email,
+    /* 전화번호 */
+    phone, memberPhone: phone, member_phone: phone, userPhone: phone, user_phone: phone,
+    연락처: phone, 전화번호: phone, 휴대폰: phone, 회원연락처: phone,
+    /* 회원 ID */
+    memberId: idStr, member_id: idStr, userId: idStr, user_id: idStr, 회원번호: idStr,
   };
 }

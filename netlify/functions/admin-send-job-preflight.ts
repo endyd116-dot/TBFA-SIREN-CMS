@@ -132,10 +132,11 @@ export default async function handler(req: Request, _ctx: Context) {
       phone: null,
     });
     const variables = Array.isArray(template.variables) ? template.variables : [];
+    /* 미리보기/사전 점검 — 실제 회원 데이터에 없는 변수는 sample 예시값으로 표시 */
     const subjectRender = template.subject
-      ? renderTemplate(template.subject, variables, data)
+      ? renderTemplate(template.subject, variables, data, { useSampleFallback: true })
       : { rendered: "", warnings: [] as string[] };
-    const bodyRender = renderTemplate(template.bodyTemplate, variables, data);
+    const bodyRender = renderTemplate(template.bodyTemplate, variables, data, { useSampleFallback: true });
     renderedSample = {
       memberId: m.id,
       memberName: m.name,

@@ -46,14 +46,14 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     Object.assign(data, overrides);
 
-    /* 제목 치환 */
+    /* 미리보기 — 실제 회원 데이터에 없는 변수는 sample 예시값으로 표시 */
     const subjectResult =
       subject
-        ? renderTemplate(String(subject), variables, data)
+        ? renderTemplate(String(subject), variables, data, { useSampleFallback: true })
         : { rendered: "", warnings: [] };
 
     /* 본문 치환 */
-    const bodyResult = renderTemplate(bodyTemplate, variables, data);
+    const bodyResult = renderTemplate(bodyTemplate, variables, data, { useSampleFallback: true });
 
     const warnings = [...subjectResult.warnings, ...bodyResult.warnings];
 

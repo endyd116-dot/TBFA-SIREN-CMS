@@ -11,22 +11,35 @@ export interface RenderResult {
 
 /**
  * mustache 스타일 {{key}} 치환.
- * - data에 키가 없으면 sample 사용, sample도 없으면 빈 문자열 + warning
+ * - data에 키가 없으면 sample 사용(미리보기 모드만), sample도 없으면 빈 문자열 + warning
  * - {{key}} 외 블록·조건문 미지원
  * - HTML 이스케이프 X (이메일 HTML 본문에서 raw 사용 의도)
+ *
+ * ★ 2026-05-16: 진짜 발송 시 sample fallback 사용하면 미리보기 예시값(예: "홍길동")이
+ * 실제 메일에 그대로 박혀버림. options.useSampleFallback 기본값을 false로 두고,
+ * 미리보기 화면에서만 명시적으로 true 전달하도록 변경.
  */
+export interface RenderOptions {
+  /** true면 변수 데이터 못 찾을 때 variables[].sample로 fallback (미리보기 전용). 기본 false. */
+  useSampleFallback?: boolean;
+}
+
 export function renderTemplate(
   template: string,
   variables: TemplateVariable[],
   data: Record<string, string> = {},
+  options: RenderOptions = {},
 ): RenderResult {
   const warnings: string[] = [];
   const varMap = new Map(variables.map((v) => [v.key, v]));
+  const allowSample = options.useSampleFallback === true;
 
   const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
     if (key in data) return data[key];
-    const varDef = varMap.get(key);
-    if (varDef?.sample !== undefined && varDef.sample !== "") return varDef.sample;
+    if (allowSample) {
+      const varDef = varMap.get(key);
+      if (varDef?.sample !== undefined && varDef.sample !== "") return varDef.sample;
+    }
     warnings.push(`변수 {{${key}}}의 값이 없어 빈 문자열로 치환되었습니다.`);
     return "";
   });
