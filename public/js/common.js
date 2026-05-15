@@ -544,6 +544,13 @@
     '/api/auth/email-verify',
     '/api/admin/login',
     '/api/auth/me',
+    /* ★ 2026-05-16: 헤더 '관리자 모드' 버튼 표시 판단용 호출(/api/admin/me·
+       /api/admin/me?light=1)이 비로그인 메인 페이지에서 정상 401 응답인데,
+       isExcluded 미통과로 handle401이 모달을 강제로 열어 모든 사용자에게
+       세션 만료 모달이 뜨던 결함. 어드민 페이지 자체는 진입 시 별도 redirect
+       흐름이 있어 모달 안 떠도 안전. ai-agent-widget.js의 권한 체크 호출도
+       동일하게 보호됨. */
+    '/api/admin/me',
   ];
 
   function isExcluded(url) {
