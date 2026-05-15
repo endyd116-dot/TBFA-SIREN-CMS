@@ -85,16 +85,28 @@
     });
   }
 
-  /* ═══════════════════ YIQ 텍스트 색상 ═══════════════════ */
+  /* ═══════════════════ YIQ 텍스트 색상 ═══════════════════
+     ★ 2026-05-16: 옛 코드는 짧은 hex(#fff)·잘못된 색 입력 시 흰색 반환 →
+     흰 배경 메모에 흰 글씨가 박혀 안 보이는 직관성 결함. 짧은 hex 정규화 +
+     색 파싱 실패 시 검은 글씨로 폴백(밝은 배경이 가장 흔하므로 더 안전). */
   function yiqTextColor(bgHex) {
-    if (!bgHex || bgHex.length < 7) return '#fff';
+    const DARK = '#1f2937'; // 폴백 — 어두운 글씨 (밝은 배경에서 가독성)
+    const LIGHT = '#ffffff';
+    if (!bgHex) return DARK;
+    let hex = String(bgHex).trim();
+    /* #rgb → #rrggbb 정규화 */
+    if (/^#[0-9a-fA-F]{3}$/.test(hex)) {
+      hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return DARK;
     try {
-      const r = parseInt(bgHex.slice(1, 3), 16);
-      const g = parseInt(bgHex.slice(3, 5), 16);
-      const b = parseInt(bgHex.slice(5, 7), 16);
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      if (isNaN(r) || isNaN(g) || isNaN(b)) return DARK;
       const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-      return yiq >= 128 ? '#000' : '#fff';
-    } catch (_) { return '#fff'; }
+      return yiq >= 128 ? DARK : LIGHT;
+    } catch (_) { return DARK; }
   }
 
   /* ═══════════════════ 데이터 로드 ═══════════════════ */
@@ -166,7 +178,10 @@
         if (row.type === 'memo') {
           // 메모 미러링 row — B 머지 후 실제 row, 전/mock 데이터
           if (!STATE.showMemos) continue;
-          const bgColor = row.color || '#fff3cd';
+          /* ★ 2026-05-16: row.color에 named color('red')·잘못된 hex가 박힐 수 있음.
+             유효한 hex만 통과시키고 그 외엔 안전한 메모 기본색(연한 노랑)으로 폴백. */
+          const _rawColor = row.color || '';
+          const bgColor = /^#[0-9a-fA-F]{3,6}$/.test(_rawColor) ? _rawColor : '#fff3cd';
           result.push({
             id: `memo-${row.id}`,
             title: `📝 ${row.title || '(메모)'}`,
@@ -214,7 +229,10 @@
       return MOCK_EVENTS.map(row => {
         if (row.type === 'memo') {
           if (!STATE.showMemos) return null;
-          const bgColor = row.color || '#fff3cd';
+          /* ★ 2026-05-16: row.color에 named color('red')·잘못된 hex가 박힐 수 있음.
+             유효한 hex만 통과시키고 그 외엔 안전한 메모 기본색(연한 노랑)으로 폴백. */
+          const _rawColor = row.color || '';
+          const bgColor = /^#[0-9a-fA-F]{3,6}$/.test(_rawColor) ? _rawColor : '#fff3cd';
           return {
             id: `memo-${row.id}`,
             title: `📝 ${row.title}`,
