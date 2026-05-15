@@ -240,9 +240,18 @@
         document.querySelectorAll('.cms-menu a').forEach(x => x.classList.remove('on'));
         a.classList.add('on');
         
-        document.querySelectorAll('.cms-page').forEach(p => p.classList.remove('show'));
+        /* ★ 2026-05-16 안전망: CSS .cms-page{display:none}이 다른 인라인 스타일에
+           덮어쓰여 사이드바 중복(여러 page 동시 표시) 발생 의심. 명시적으로 모든
+           .cms-page를 인라인 hide + 활성 페이지만 inline display 클리어 + show 추가. */
+        document.querySelectorAll('.cms-page').forEach(p => {
+          p.classList.remove('show');
+          p.style.display = 'none';
+        });
         const target = document.getElementById('page-' + tab);
-        if (target) target.classList.add('show');
+        if (target) {
+          target.classList.add('show');
+          target.style.display = ''; /* CSS .show 룰의 display:block가 적용되도록 인라인 제거 */
+        }
 
         const titles = {
           dashboard: '대시보드',
@@ -3765,7 +3774,14 @@ function _nfLoadIframe(pageId) {
   if (!iframe) return;
   if (iframe.src) return; /* 이미 로드된 경우 스킵 */
   var src = iframe.dataset.nfSrc;
-  if (src) iframe.src = src;
+  /* ★ 2026-05-16 안전망: src가 비어있거나 외부 URL/자기 자신(cms-tbfa.html)
+     이면 iframe 안에 cms-tbfa.html이 통째로 다시 로드되어 사이드바 중복 발생.
+     '/admin-'으로 시작하는 어드민 페이지만 허용. */
+  if (!src || typeof src !== 'string' || !src.startsWith('/admin-')) {
+    console.warn('[_nfLoadIframe] 잘못된 dataset.nfSrc 차단:', src);
+    return;
+  }
+  iframe.src = src;
 }
 function renderSendJobs()        { _nfLoadIframe('page-send-jobs'); }
 function renderSendTemplate()    { _nfLoadIframe('page-send-template'); }
