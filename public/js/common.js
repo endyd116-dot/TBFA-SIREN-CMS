@@ -4,6 +4,16 @@
 (function () {
   'use strict';
 
+  /* ------------ HTTPS 강제 (2026-05-16) — _redirects 백업 ------------
+   * Netlify "Force HTTPS" 토글이 새 UI에서 안 보여서 우회.
+   * _redirects 룰이 1차, 이 JS가 2차 안전망 (localhost·netlify.app 미적용). */
+  try {
+    if (location.protocol === 'http:' && /(^|\.)tbfa\.co\.kr$/.test(location.hostname)) {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+      return;
+    }
+  } catch (e) { /* 리다이렉트 실패 무시 */ }
+
   /* ------------ 0. 헬퍼 ------------ */
   const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

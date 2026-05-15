@@ -1,0 +1,4 @@
+# HTTP → HTTPS 강제 리다이렉트 (Netlify "Force HTTPS" 토글 대체)
+# 301! 의 ! 는 "shadowing" 플래그 — 정적 자원보다 우선 적용
+http://tbfa.co.kr/*       https://tbfa.co.kr/:splat       301!
+http://www.tbfa.co.kr/*   https://tbfa.co.kr/:splat       301!
