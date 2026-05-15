@@ -152,6 +152,12 @@
 [functions."cron-notification-retry"]
   schedule = "* * * * *"
 
+# ★ Phase 10 R3: 발송 큐 디스패처 (1분 주기) — 발송 작업을 실제로 픽업·처리
+# 함수 파일 내에 export const config = { schedule } 있지만 일부 환경에서 인식 안 됨 →
+# netlify.toml에도 명시해 이중 등록 (2026-05-16)
+[functions."cron-communication-send-dispatcher"]
+  schedule = "* * * * *"
+
 # ★ Phase 21 R2+R3: 워크스페이스 카드 마감 24h/72h 알림 (매일 KST 09:00 = UTC 00:00)
 # - status NOT IN ('done','archived') 카드 중 마감 시각이 23~25h 또는 71~73h 후인 카드
 # - 담당자(assigned_to) + 워처(workspace_task_watchers) 에게 알림 (category="due")
