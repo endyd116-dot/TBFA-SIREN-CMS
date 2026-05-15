@@ -66,6 +66,12 @@ async function sendEmailDirect(
   if (!member.email) {
     return { ok: false, error: `이메일 주소 없음 (memberId=${member.id})` };
   }
+  /* ★ 2026-05-16: 효성 import 시 자동 생성된 placeholder 이메일은 발송 시도 X.
+     실제 도메인이 아니라 Resend가 응답 안 보내 15초 타임아웃 낭비됨. */
+  const emailLower = member.email.toLowerCase();
+  if (emailLower.endsWith("@noemail.siren.local") || emailLower.endsWith(".local") || emailLower.endsWith(".invalid") || emailLower.endsWith(".test")) {
+    return { ok: false, error: `유효하지 않은 이메일 도메인 (placeholder): ${member.email}` };
+  }
   const subject = (payload.subject || "").trim() || "(제목 없음)";
   const html =
     `<div style="font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;color:#0f0f0f;padding:24px;line-height:1.7;font-size:15px;">` +

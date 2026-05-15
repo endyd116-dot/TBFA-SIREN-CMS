@@ -130,14 +130,30 @@
     } else {
       tbody.innerHTML = state.rows.map(r => {
         const status = String(r.status || "pending");
-        const label  = STATUS_LABEL[status] || status;
+        const successCnt = Number(r.successCount || 0);
+        const failureCnt = Number(r.failureCount || 0);
         const total  = Number(r.totalRecipients || 0);
-        const done   = Number(r.successCount || 0) + Number(r.failureCount || 0);
+        const done   = successCnt + failureCnt;
         const pct    = progressPercent(r);
-        const fillCls = (status === "completed") ? "completed"
+
+        /* ★ 2026-05-16: status='completed' 인데 실제로는 전부/일부 실패면 표시 라벨 분기 */
+        let effLabel = STATUS_LABEL[status] || status;
+        let effBadgeStyle = "";
+        let effFillCls = (status === "completed") ? "completed"
                       : (status === "failed")    ? "failed"
                       : (status === "cancelled") ? "cancelled"
                       : "";
+        if (status === "completed" && total > 0) {
+          if (failureCnt > 0 && successCnt === 0) {
+            effLabel = "실패";
+            effBadgeStyle = "background:#fde7e9;color:#c0392b;border:1px solid #f5b8bd";
+            effFillCls = "failed";
+          } else if (failureCnt > 0 && successCnt > 0) {
+            effLabel = "일부 실패";
+            effBadgeStyle = "background:#fff3e0;color:#c47a00;border:1px solid #f5d8a8";
+          }
+        }
+
         const numLine = total > 0
           ? `${done.toLocaleString()} / ${total.toLocaleString()} (${pct.toFixed(1)}%)`
           : (status === "pending" ? "대기 중" : "-");
@@ -145,7 +161,7 @@
         let actionBtn = "";
         if (status === "failed" || status === "cancelled") {
           actionBtn = `<button class="btn btn-sm" data-act="restart" data-id="${r.id}" title="작업 전체를 다시 시작 (대기열로 되돌림)">🔄 재시도</button>`;
-        } else if (status === "completed" && Number(r.failureCount || 0) > 0) {
+        } else if (status === "completed" && failureCnt > 0) {
           actionBtn = `<button class="btn btn-sm" data-act="retry-failed" data-id="${r.id}" title="실패 수신자만 다시 발송">🔄 실패만 재발송</button>`;
         }
         return `
@@ -156,12 +172,12 @@
             <td class="col-grp">${escapeHtml(r.groupName || "-")}</td>
             <td class="col-time">${escapeHtml(fmtScheduleTime(r))}</td>
             <td class="col-status">
-              <span class="badge badge-${status}">${escapeHtml(label)}</span>
+              <span class="badge badge-${status}" style="${effBadgeStyle}">${escapeHtml(effLabel)}</span>
             </td>
             <td class="col-progress">
               <div class="progress-num">${numLine}</div>
               <div class="progress-bar">
-                <div class="progress-fill ${fillCls}" style="width:${pct}%;"></div>
+                <div class="progress-fill ${effFillCls}" style="width:${pct}%;"></div>
               </div>
             </td>
             <td class="col-action" style="white-space:nowrap">${actionBtn}</td>
