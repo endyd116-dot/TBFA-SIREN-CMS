@@ -73,35 +73,41 @@
     initAIWithData();
   }
 
-  /* ============ 대시보드 차트 (실 데이터) ============ */
+  /* ============ 대시보드 차트 (실 데이터) ============
+     ★ 2026-05-16 재구성: 싸이렌 어드민은 SIREN 플랫폼 중심 →
+       chart1: 사이렌 신고 추이 (최근 12주, 사건·악성·법률 합계 라인)
+       chart2: 웹 가입자 분포 (가입경로='siren' 회원만, 회원 유형별 도넛)
+     데이터 출처: /api/admin-dashboard-kpi?webonly=1 → siren.weeklyTrend + member.byType */
   async function initDashboardWithData() {
     if (typeof Chart === 'undefined') {
       console.warn('[Charts] Chart.js not loaded');
       return;
     }
 
-    const data = await getJson('/api/admin/stats');
-    if (!data || !data.ok || !data.data) {
-      console.warn('[Charts] Stats API failed');
+    const data = await getJson('/api/admin-dashboard-kpi?period=90d&webonly=1');
+    if (!data || !data.ok) {
+      console.warn('[Charts] dashboard-kpi API failed');
       return;
     }
 
-    const monthly = data.data.monthlyDonations || { labels: [], values: [] };
-    const dist = data.data.memberDistribution || {};
+    const siren  = data.siren  || {};
+    const member = data.member || {};
+    const weekly = Array.isArray(siren.weeklyTrend) ? siren.weeklyTrend : [];
+    const byType = member.byType || {};
 
-       /* 1-1. 월별 후원금 (Line) */
+    /* 1-1. 사이렌 신고 추이 (Line, 12주) */
     const c1 = document.getElementById('chart1');
     if (c1) {
-      /* ★ 2026-05 패치: 페이지 재진입 시 Canvas 중복 사용 에러 방지 */
       if (instances.chart1) instances.chart1.destroy();
+      const labels = weekly.map(w => w.week);
+      const values = weekly.map(w => Number(w.count) || 0);
       instances.chart1 = new Chart(c1.getContext('2d'), {
         type: 'line',
         data: {
-          labels: monthly.labels,
+          labels: labels.length ? labels : ['데이터 없음'],
           datasets: [{
-            /* ★ M-18: 라벨을 "후원금 (만원)"으로 변경 */
-            label: '후원금',
-            data: monthly.values,
+            label: '주간 신고 건수',
+            data: values.length ? values : [0],
             borderColor: COLORS.brand,
             backgroundColor: 'rgba(122,31,43,0.08)',
             tension: 0.35,
@@ -124,10 +130,9 @@
               bodyFont: baseFont,
               padding: 12,
               cornerRadius: 6,
-              /* ★ M-18: 툴팁 한국식 표기 */
               callbacks: {
                 label: function (ctx) {
-                  return fmtKrw(ctx.parsed.y);
+                  return (ctx.parsed.y || 0).toLocaleString() + ' 건';
                 },
               },
             },
@@ -138,10 +143,8 @@
               ticks: {
                 font: baseFont,
                 color: '#888',
-                /* ★ M-18: Y축 한국식 짧은 표기 (예: "1,234만", "1.2억") */
-                callback: function (value) {
-                  return fmtKrwShort(value);
-                },
+                callback: function (value) { return Number(value).toLocaleString() + '건'; },
+                stepSize: 1,
               },
               grid: { color: '#f0eeeb' },
             },
@@ -154,17 +157,17 @@
       });
     }
 
-    /* 1-2. 회원 분포 (Doughnut) */
+    /* 1-2. 웹 가입자 분포 (Doughnut, 회원 유형별 — 가입경로='siren'만) */
     const c2 = document.getElementById('chart2');
     if (c2) {
       if (instances.chart2) instances.chart2.destroy();
-      const labels = ['정기후원', '유가족', '봉사자', '관리자', '기타'];
+      const labels = ['일반 회원', '유가족', '봉사자', '전문가', '관리자'];
       const values = [
-        dist.regular || 0,
-        dist.family || 0,
-        dist.volunteer || 0,
-        dist.admin || 0,
-        dist.onetime || 0,
+        Number(byType.regular   || 0),
+        Number(byType.family    || 0),
+        Number(byType.volunteer || 0),
+        Number(byType.expert    || 0),
+        Number(byType.admin     || 0),
       ];
       instances.chart2 = new Chart(c2.getContext('2d'), {
         type: 'doughnut',
@@ -176,8 +179,8 @@
               COLORS.brand,
               COLORS.ink,
               COLORS.success,
+              COLORS.info,
               COLORS.warn,
-              COLORS.mute,
             ],
             borderWidth: 0,
           }],
@@ -188,12 +191,7 @@
           plugins: {
             legend: {
               position: 'right',
-              labels: {
-                font: baseFont,
-                color: '#525252',
-                boxWidth: 12,
-                padding: 10,
-              },
+              labels: { font: baseFont, color: '#525252', boxWidth: 12, padding: 10 },
             },
             tooltip: {
               backgroundColor: '#0f0f0f',

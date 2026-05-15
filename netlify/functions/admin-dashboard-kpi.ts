@@ -193,11 +193,24 @@ export default async (req: Request, _ctx: Context) => {
       withdrawnCount: Number(r.withdrawn_count),
     }));
 
+    /* ★ 2026-05-16: 회원 유형별 분포 (도넛 차트용). webonly 필터 동일 적용. */
+    const byTypeRes = await db.execute(sql`
+      SELECT type, COUNT(*)::int AS cnt
+      FROM members m
+      WHERE m.status = 'active' ${webFilter}
+      GROUP BY type
+    `);
+    const byType: Record<string, number> = {};
+    for (const r of rows(byTypeRes)) {
+      byType[String(r.type)] = Number(r.cnt ?? 0);
+    }
+
     member = {
       newCount: Number(mr.new_count ?? 0),
       activeCount: Number(mr.active_count ?? 0),
       withdrawnCount: Number(mr.withdrawn_count ?? 0),
       monthlyTrend,
+      byType,
     };
   } catch (err) {
     return jsonError("select_member", err);
@@ -233,7 +246,27 @@ export default async (req: Request, _ctx: Context) => {
     }
     const resolvedRate = totalNew > 0 ? Math.round((totalResolved / totalNew) * 100) / 100 : 0;
 
-    siren = { totalNew, resolvedRate, byType };
+    /* ★ 2026-05-16: 최근 12주 신고 추이 (라인 차트용) — 사건·악성·법률 합계 주별 카운트 */
+    const weeklyRes = await db.execute(sql`
+      SELECT
+        TO_CHAR(DATE_TRUNC('week', created_at), 'MM-DD') AS week,
+        COUNT(*)::int AS cnt
+      FROM (
+        SELECT created_at FROM incident_reports   WHERE created_at >= NOW() - INTERVAL '12 weeks'
+        UNION ALL
+        SELECT created_at FROM harassment_reports WHERE created_at >= NOW() - INTERVAL '12 weeks'
+        UNION ALL
+        SELECT created_at FROM legal_consultations WHERE created_at >= NOW() - INTERVAL '12 weeks'
+      ) t
+      GROUP BY DATE_TRUNC('week', created_at)
+      ORDER BY DATE_TRUNC('week', created_at)
+    `);
+    const weeklyTrend = rows(weeklyRes).map((r: any) => ({
+      week: String(r.week),
+      count: Number(r.cnt ?? 0),
+    }));
+
+    siren = { totalNew, resolvedRate, byType, weeklyTrend };
   } catch (err) {
     return jsonError("select_siren", err);
   }
