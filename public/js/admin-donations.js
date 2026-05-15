@@ -139,11 +139,11 @@
       </div>
 
       <!-- 후원 상세 -->
-      <div id="donationDetailModal" class="modal">
-        <div class="modal-content" style="max-width:680px">
-          <div class="modal-header">
-            <h3 class="serif">💝 후원 상세</h3>
-            <button class="modal-close" data-action="close-modal">&times;</button>
+      <div id="donationDetailModal" class="modal-bg">
+        <div class="modal modal-lg" style="max-width:680px;padding:28px">
+          <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <h3 class="serif" style="margin:0;font-size:18px">💝 후원 상세</h3>
+            <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body" id="donationDetailBody">
             <div style="text-align:center;padding:40px;color:var(--text-3)">로딩 중...</div>
@@ -152,11 +152,11 @@
       </div>
 
       <!-- 환불 사유 -->
-      <div id="refundReasonModal" class="modal">
-        <div class="modal-content" style="max-width:520px">
-          <div class="modal-header">
-            <h3 class="serif">💸 후원 환불 처리</h3>
-            <button class="modal-close" data-action="close-modal">&times;</button>
+      <div id="refundReasonModal" class="modal-bg">
+        <div class="modal" style="max-width:520px;padding:28px">
+          <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <h3 class="serif" style="margin:0;font-size:18px">💸 후원 환불 처리</h3>
+            <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body">
             <div class="rc-warn-box">
@@ -205,11 +205,11 @@
       </div>
 
       <!-- 결제 취소 사유 -->
-      <div id="cancelReasonModal" class="modal">
-        <div class="modal-content" style="max-width:520px">
-          <div class="modal-header">
-            <h3 class="serif">❌ 후원 취소 처리</h3>
-            <button class="modal-close" data-action="close-modal">&times;</button>
+      <div id="cancelReasonModal" class="modal-bg">
+        <div class="modal" style="max-width:520px;padding:28px">
+          <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+            <h3 class="serif" style="margin:0;font-size:18px">❌ 후원 취소 처리</h3>
+            <button class="modal-close" data-action="close-modal" style="position:static">&times;</button>
           </div>
           <div class="modal-body">
             <div class="rc-warn-box danger">
@@ -540,15 +540,18 @@
     if (_listenersBound) return;
     _listenersBound = true;
 
-    /* 모달 닫기 */
+    /* 모달 닫기 — admin-donations.js 모달 3종 한정 (#donationDetailModal·#refundReasonModal·#cancelReasonModal) */
+    const ADM_MODAL_SEL = '#donationDetailModal, #refundReasonModal, #cancelReasonModal';
     document.addEventListener('click', (e) => {
       if (e.target.closest('[data-action="close-modal"]')) {
-        const modal = e.target.closest('.modal');
+        const modal = e.target.closest(ADM_MODAL_SEL);
         if (modal) modal.classList.remove('show');
         return;
       }
-      if (e.target.classList.contains('modal')) {
-        e.target.classList.remove('show');
+      /* 백드롭 클릭 시 닫기 (모달 카드 안 클릭은 무시) */
+      const t = e.target;
+      if (t && (t.id === 'donationDetailModal' || t.id === 'refundReasonModal' || t.id === 'cancelReasonModal')) {
+        t.classList.remove('show');
       }
     });
 
