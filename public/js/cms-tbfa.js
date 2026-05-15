@@ -401,15 +401,32 @@
       });
     });
 
-    /* ★ 버그픽스 20260515-2차 (#6): 모든 2뎁스 그룹은 기본 닫힘(HTML 인라인 display:none).
-       단 진입 시 현재 활성 탭이 속한 그룹만 자동 펼침. */
+    /* ★ 2026-05-16: 진입 시 모든 2뎁스 강제 닫힘 — 깔끔한 1뎁스만 보이는 디폴트 화면.
+       HTML 인라인 display:none이 박혀있어도 다른 코드가 변경했을 가능성 차단.
+       sidebar-group.js의 data-sidebar-group 패턴 + cms-tbfa.js의 data-toggle 패턴
+       두 가지가 공존하므로 모든 .cms-submenu를 명시적으로 초기화. */
+    document.querySelectorAll('.cms-menu .cms-submenu').forEach(sm => {
+      sm.style.display = 'none';
+      sm.setAttribute('aria-hidden', 'true');
+    });
+    document.querySelectorAll('.cms-menu .cms-menu-group').forEach(group => {
+      group.classList.remove('open');
+      const trigger = group.querySelector('[data-sidebar-group], [data-toggle]');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+      const chevron = group.querySelector('.cms-menu-chevron, .sidebar-group-chevron');
+      if (chevron) chevron.style.transform = '';
+    });
+
+    /* 그 다음 — 현재 활성 탭이 속한 그룹만 자동 펼침 (예: 발송 작업 탭에 진입하면 알림·발송 그룹만 열림) */
     const activeLink = document.querySelector('.cms-menu a.on[data-tab]');
     const activeGroup = activeLink && activeLink.closest('.cms-menu-group');
     if (activeGroup) {
       activeGroup.classList.add('open');
       const sm = activeGroup.querySelector('.cms-submenu');
-      if (sm) sm.style.display = 'block';
-      const cv = activeGroup.querySelector('.cms-menu-chevron');
+      if (sm) { sm.style.display = 'block'; sm.setAttribute('aria-hidden', 'false'); }
+      const trigger = activeGroup.querySelector('[data-sidebar-group], [data-toggle]');
+      if (trigger) trigger.setAttribute('aria-expanded', 'true');
+      const cv = activeGroup.querySelector('.cms-menu-chevron, .sidebar-group-chevron');
       if (cv) cv.style.transform = 'rotate(180deg)';
     }
   }

@@ -2751,11 +2751,17 @@
           </ul>
         </li>
 
-        <!-- ── 🎗 유가족 지원 (★ 2026-05-16 복구 — Swain 요청. 7642bac에서 메뉴만 제거됐고 페이지는 살아있음) ── -->
-        <li><a data-page="support"><i>🎗</i><span>유가족 지원 관리</span></a></li>
-
-        <!-- ── 📢 캠페인 관리 (★ 2026-05-16 복구 — Swain 요청. adm-campaigns 페이지 살아있음) ── -->
-        <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
+        <!-- ── 🎗 유가족 지원 관리 (★ 2026-05-16: 유가족 지원사업 + 캠페인을 한 그룹으로 묶음 — 다른 메뉴와 통일) ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="family-support" aria-expanded="false">
+            <i>🎗</i><span>유가족 지원 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul class="adm-submenu" data-sidebar-submenu="family-support" aria-hidden="true" style="display:none">
+            <li><a data-page="support"><i>🎗</i><span>유가족 지원사업 관리</span></a></li>
+            <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
+          </ul>
+        </li>
 
         <!-- ── 🌐 홈페이지 관리 ── -->
         <li class="adm-menu-toggle-group">
