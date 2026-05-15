@@ -2862,22 +2862,22 @@
             <button type="button" class="ct-tab" data-dtab="siren-stats">🚨 신고 통계</button>
           </div>
 
-          <!-- 탭 1: 기존 대시보드 -->
+          <!-- 탭 1: 싸이렌 플랫폼 대시보드 (★ 2026-05-16 재구성: 웹 가입자 중심·후원 KPI 제거) -->
           <div data-dtab-pane="main">
           <div class="kpi-grid">
-            <div class="kpi"><div class="kpi-label">금월 후원금</div><div class="kpi-value">₩ 0.0M</div><div class="kpi-delta">실시간</div></div>
-            <div class="kpi"><div class="kpi-label">신규 정기 후원</div><div class="kpi-value">0 명</div><div class="kpi-delta">금월</div></div>
-            <div class="kpi"><div class="kpi-label">대기 중 지원 신청</div><div class="kpi-value" id="kpi-support-pending">0 건</div><div class="kpi-delta">검토 필요</div></div>
-            <div class="kpi"><div class="kpi-label">전체 회원</div><div class="kpi-value">0</div><div class="kpi-delta">누적</div></div>
+            <div class="kpi"><div class="kpi-label">사이렌 웹 가입자</div><div class="kpi-value" id="kpi-web-members">0</div><div class="kpi-delta" id="kpi-web-members-delta">이번 주 신규 0명</div></div>
+            <div class="kpi"><div class="kpi-label">대기 중 지원 신청</div><div class="kpi-value" id="kpi-support-pending">0 건</div><div class="kpi-delta">사건·악성·법률·심리 합계</div></div>
+            <div class="kpi"><div class="kpi-label">활성 매칭</div><div class="kpi-value" id="kpi-active-matches">0 건</div><div class="kpi-delta">전문가 매칭 진행 중</div></div>
+            <div class="kpi"><div class="kpi-label">최근 7일 신고</div><div class="kpi-value" id="kpi-recent-reports">0 건</div><div class="kpi-delta">사건·악성·법률 합계</div></div>
           </div>
 
           <div class="row-2">
             <div class="panel">
-              <div class="p-head"><div class="p-title">월별 후원금 추이</div><span class="p-tag">최근 12개월</span></div>
+              <div class="p-head"><div class="p-title">사이렌 신고 추이</div><span class="p-tag">최근 12주</span></div>
               <div style="height:280px"><canvas id="chart1"></canvas></div>
             </div>
             <div class="panel">
-              <div class="p-head"><div class="p-title">회원 분포</div><span class="p-tag">실시간</span></div>
+              <div class="p-head"><div class="p-title">웹 가입자 분포</div><span class="p-tag">회원 유형별</span></div>
               <div style="height:280px"><canvas id="chart2"></canvas></div>
             </div>
           </div>
@@ -2886,8 +2886,8 @@
             <div class="panel">
               <div class="p-head"><div class="p-title">AI 이상징후 감지</div><span class="p-tag ai">AI · 실시간</span></div>
               <div class="ai-card">
-                <div class="ai-card-head"><div class="ai-icon">!</div><div class="ai-name">후원 이탈 위험 감지</div><div class="ai-score">위험도 87%</div></div>
-                <div class="ai-desc">정기 후원자 중 최근 90일간 결제 실패 또는 상호작용이 없는 회원이 있습니다. 감사 메시지 발송을 권장합니다.</div>
+                <div class="ai-card-head"><div class="ai-icon">!</div><div class="ai-name">사이렌 플랫폼 모니터</div><div class="ai-score">위험도 —</div></div>
+                <div class="ai-desc">사이렌 신고 폭주·미처리 누적·매칭 지연 등 플랫폼 운영 위험 신호를 자동 감지합니다.</div>
               </div>
               <div class="ai-card">
                 <div class="ai-card-head"><div class="ai-icon">↗</div><div class="ai-name">캠페인 반응 급증</div><div class="ai-score">기회 92%</div></div>

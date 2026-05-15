@@ -51,6 +51,10 @@ export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") || "30d";
   const days = PERIOD_MAP[periodParam] ?? 30;
+  /* ★ 2026-05-16: 싸이렌 어드민 대시보드는 SIREN 웹 가입자만 집계. 효성·수기·
+     이벤트 등으로 확보된 회원은 통합 CMS에서 보므로 ?webonly=1 옵션으로 필터.
+     필터 조건: signup_sources.code='siren' (사이렌 웹 가입). */
+  const webOnly = url.searchParams.get("webonly") === "1";
 
   /* ── 1. 후원 KPI ── */
   let donation: any;
@@ -149,15 +153,22 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 2. 회원 KPI ── */
   let member: any;
   try {
+    /* ★ 2026-05-16: webonly=1 시 가입경로 'siren'(웹) 회원만 집계. 효성·수기·
+       이벤트 등은 제외 — 싸이렌 어드민 대시보드는 SIREN 플랫폼 가입자만 본다. */
+    const webFilter = webOnly
+      ? sql`AND m.signup_source_id = (SELECT id FROM signup_sources WHERE code = 'siren' LIMIT 1)`
+      : sql``;
+
     const memberRes = await db.execute(sql`
       SELECT
-        COUNT(*) FILTER (WHERE created_at >= NOW() - (${days} || ' days')::interval)::int AS new_count,
-        COUNT(*) FILTER (WHERE status = 'active')::int                                    AS active_count,
+        COUNT(*) FILTER (WHERE m.created_at >= NOW() - (${days} || ' days')::interval)::int AS new_count,
+        COUNT(*) FILTER (WHERE m.status = 'active')::int                                    AS active_count,
         COUNT(*) FILTER (
-          WHERE status = 'withdrawn'
-            AND withdrawn_at >= NOW() - (${days} || ' days')::interval
+          WHERE m.status = 'withdrawn'
+            AND m.withdrawn_at >= NOW() - (${days} || ' days')::interval
         )::int AS withdrawn_count
-      FROM members
+      FROM members m
+      WHERE 1=1 ${webFilter}
     `);
     const mr = rows(memberRes)[0] || {};
 
@@ -172,7 +183,7 @@ export default async (req: Request, _ctx: Context) => {
             AND m.withdrawn_at < DATE_TRUNC('month', m.created_at) + INTERVAL '1 month'
         )::int AS withdrawn_count
       FROM members m
-      WHERE m.created_at >= NOW() - (${trendMonths} || ' months')::interval
+      WHERE m.created_at >= NOW() - (${trendMonths} || ' months')::interval ${webFilter}
       GROUP BY DATE_TRUNC('month', m.created_at)
       ORDER BY DATE_TRUNC('month', m.created_at)
     `);

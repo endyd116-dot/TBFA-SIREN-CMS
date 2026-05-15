@@ -496,22 +496,55 @@ const OPERATOR_CATEGORIES = [
     });
   }
 
-  /* ============ 대시보드 KPI ============ */
+  /* ============ 대시보드 KPI (★ 2026-05-16 재구성: SIREN 플랫폼 중심) ============
+     기존: 금월 후원금 / 신규 정기 후원 / 대기 중 지원 / 전체 회원
+     변경: 사이렌 웹 가입자 / 대기 중 지원 / 활성 매칭 / 최근 7일 신고
+     - 회원 통계는 가입경로='siren' 필터(webonly=1) — 효성·수기·이벤트 제외
+     - 후원 KPI·차트는 통합 CMS(cms-tbfa.html)에서 관리, 여기는 SIREN 플랫폼 운영 중심 */
   function renderDashboardKPI() {
-    if (!CURRENT_KPI) return;
     const dash = document.getElementById('adm-dashboard');
     if (!dash) return;
-    const kpis = dash.querySelectorAll('.kpi-grid > .kpi .kpi-value');
-    if (kpis.length < 4) return;
-    kpis[0].textContent = fmtMoney(CURRENT_KPI.monthlyDonation);
-    kpis[1].textContent = (CURRENT_KPI.newRegularCount || 0) + ' 명';
-    kpis[2].textContent = (CURRENT_KPI.pendingSupportCount || 0) + ' 건';
-    kpis[3].textContent = (CURRENT_KPI.totalMembers || 0).toLocaleString();
+
+    const setText = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    /* 1차 — admin/me 응답 캐시(CURRENT_KPI)에서 지원 신청 대기만 우선 표시 */
+    if (CURRENT_KPI) {
+      setText('kpi-support-pending', (CURRENT_KPI.pendingSupportCount || 0) + ' 건');
+    }
 
     const adminAvatar = document.querySelector('.adm-avatar');
     if (adminAvatar && CURRENT_ADMIN) {
       adminAvatar.textContent = (CURRENT_ADMIN.name || 'A').charAt(0);
     }
+
+    /* 2차 — 신규 KPI 3개는 dashboard-kpi API로 별도 조회 (webonly=1 — SIREN 웹 가입자만) */
+    fetch('/api/admin-dashboard-kpi?period=30d&webonly=1', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j || j.ok === false) return;
+        const m = j.member || {};
+        const s = j.siren  || {};
+        /* 사이렌 웹 가입자 — 활성 회원 수 + 30일 신규 */
+        setText('kpi-web-members', Number(m.activeCount || 0).toLocaleString());
+        const dEl = document.getElementById('kpi-web-members-delta');
+        if (dEl) dEl.textContent = '최근 30일 신규 ' + Number(m.newCount || 0).toLocaleString() + '명';
+        /* 최근 7일 신고는 최근 30일 합계로 우선 표시 (period=7d 별도 호출 가능) */
+        setText('kpi-recent-reports', Number(s.totalNew || 0).toLocaleString() + ' 건');
+      })
+      .catch(() => {});
+
+    /* 3차 — 활성 매칭 건수 (expert-match-list API 호출, status=pending+matched) */
+    fetch('/api/admin-expert-list?status=pending', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j || j.ok === false) return;
+        const t = Number((j.data && j.data.total) ?? j.total ?? 0);
+        setText('kpi-active-matches', t.toLocaleString() + ' 건');
+      })
+      .catch(() => {});
   }
 
   async function loadDashboardActivity() {
