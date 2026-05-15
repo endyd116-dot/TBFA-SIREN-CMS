@@ -114,10 +114,10 @@
     const total = d.totalAmount || 1;
 
     const channelRows = [
-      { label: '토스',       key: 'toss' },
-      { label: '효성 CMS+', key: 'hyosung' },
-      { label: '계좌이체',   key: 'bank' },
-      { label: '기타',       key: 'other' },
+      { label: '토스 자동결제',   key: 'toss' },
+      { label: '효성 자동이체',   key: 'hyosung' },
+      { label: '계좌이체 (IBK)',  key: 'bank' },
+      { label: '기타',            key: 'other' },
     ];
     const tbody = document.getElementById('fiChannelTbody');
     if (tbody) {
@@ -287,7 +287,7 @@
     channelChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['토스', '효성 CMS+', '계좌이체', '기타'],
+        labels: ['토스 자동결제', '효성 자동이체', '계좌이체 (IBK)', '기타'],
         datasets: [{ data: [ch.toss?.amount || 0, ch.hyosung?.amount || 0, ch.bank?.amount || 0, ch.other?.amount || 0], backgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#94a3b8'] }],
       },
       options: { responsive: true, plugins: { legend: { position: 'bottom' } } },

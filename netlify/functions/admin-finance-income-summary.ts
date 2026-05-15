@@ -130,11 +130,15 @@ export default async function handler(req: Request, _ctx: Context) {
     for (const row of channelRows) {
       const p = (row.provider ?? "").toLowerCase();
       const isRegular = row.type === "regular";
+      /* ★ 2026-05-16 fix: IBK 통과 'ibk_bank'·신청 'manual'·옛 'bank' 모두 계좌이체 채널로 정규화.
+         이전엔 'ibk_bank'가 'bank' 와 정확히 같지 않아 모두 'other'로 떨어졌음 → 수입 현황에서
+         IBK 입금이 '기타'로 잡히던 회귀. */
+      const isBankLike = p === "bank" || p.includes("ibk") || p === "manual";
       const key = p.includes("toss")
         ? "toss"
         : p.includes("hyosung")
         ? "hyosung"
-        : p === "bank"
+        : isBankLike
         ? "bank"
         : "other";
       channelMap[key].count += row.count;

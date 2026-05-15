@@ -487,7 +487,7 @@
           <span class="cms-menu-chevron">▾</span>
         </a>
         <ul class="cms-submenu" data-submenu="finance" style="display:none">
-          <li><a href="#finance-income" data-tab="finance-income"><i>📈</i><span>수입 현황</span></a></li>
+          <li><a href="#finance-income" data-tab="finance-income"><i>📊</i><span>손익 현황</span></a></li>
           <li><a href="#other-revenues" data-tab="other-revenues"><i>💼</i><span>후원 외 매출</span></a></li>
           <li><a href="#expenses" data-tab="expenses"><i>💸</i><span>지출 관리</span></a></li>
           <li><a href="#finance-budget" data-tab="finance-budget"><i>📋</i><span>예산 관리</span></a></li>
@@ -1255,9 +1255,15 @@
       <!-- ============ Phase 22-B-R1: 재정 관리 (admin.html에서 이전) ============ -->
       <section class="cms-page" id="page-donations"></section>
       <section class="cms-page" id="page-finance-income">
+        <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1a5ec4;line-height:1.7">
+          📊 <strong>손익 현황 — 수입·지출 통합 보고</strong><br>
+          • 수입 합산: 토스 (정기·일시) + 효성 자동이체 + IBK 통장(직접 계좌이체 통과) + 후원 외 매출<br>
+          • 지출 합산: 지출 관리에서 승인된 행 전체<br>
+          • 당기 순이익 = 총 매출(환불 차감) − 총 지출(환불 차감). 음수면 "당기 순손실"로 표시.
+        </div>
         <div class="panel">
           <div class="p-head">
-            <div class="p-title">수입 현황</div>
+            <div class="p-title">손익 현황</div>
             <div class="p-actions" style="gap:8px;display:flex;align-items:center;flex-wrap:wrap">
               <select id="fiPeriodSel" class="input-sm" style="width:120px">
                 <option value="day">오늘</option>
@@ -2374,7 +2380,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260516dupchannel"></script>
+  <script src="/js/cms-tbfa.js?v=20260516pl-rename"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
@@ -2387,7 +2393,7 @@
   <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
   <!-- Phase 22-B-R1: 재정 관리 (admin.html에서 이전) -->
   <script src="/js/admin-donations.js?v=20260516modal-fix"></script>
-  <script src="/js/admin-finance-income.js?v=20260515p22r2d1"></script>
+  <script src="/js/admin-finance-income.js?v=20260516ibk-fix"></script>
   <script src="/js/admin-other-revenues.js?v=20260516revcathier"></script>
   <script src="/js/admin-expenses.js?v=20260515bugfix2"></script>
   <!-- Phase 22-D-R1: 전표 관리 -->
