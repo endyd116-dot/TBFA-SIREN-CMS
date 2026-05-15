@@ -205,12 +205,16 @@ async function confirmHyosungBilling(
       .limit(1);
 
     if (existingDonation.length === 0) {
+      /* ★ 2026-05-16 fix: PDF '상품' 값 기준으로 정기/일시 분기.
+         '일시후원' = onetime, 그 외('정기후원'·'후원회비') = regular.
+         이전엔 무조건 regular로 박혀서 후원 결제 내역 유형이 부정확. */
+      const donationType = row.productName === "일시후원" ? "onetime" : "regular";
       const ins = await db.insert(donations).values({
         memberId: targetMemberId,
         donorName: (row.memberName || `효성회원_${row.memberNo}`).slice(0, 50),
         donorPhone: row.phone,
         amount: row.receivedAmount,
-        type: "regular",
+        type: donationType,
         payMethod: (row.paymentMethod || row.paymentTool || "bank_transfer").slice(0, 20),
         status: "completed",
         pgProvider: "hyosung",
