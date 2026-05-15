@@ -26,6 +26,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { cancelTossPayment } from "../../lib/toss-billing";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -201,8 +202,34 @@ export default async (req: Request) => {
         }
 
         const refundReason = typeof body.reason === "string" ? body.reason.trim().slice(0, 500) : "";
+        const autoRefundToss = body.autoRefundToss === true;
         const now = new Date();
-        const adminTag = `[환불 ${now.toISOString().slice(0, 10)} by ${admin.name || "관리자"}]`;
+
+        /* ── 토스 자동 환불 분기 ── */
+        let tossRefundNote = "";
+        if (autoRefundToss) {
+          /* 토스 결제만 자동 환불 가능 */
+          const pg = (existing as any).pgProvider as string | null;
+          const paymentKey = (existing as any).tossPaymentKey as string | null;
+          if (pg !== "toss" || !paymentKey) {
+            return badRequest(
+              `토스 자동 환불은 토스 결제 + paymentKey가 있는 경우만 가능합니다 (현재 pg=${pg || "없음"}, paymentKey=${paymentKey ? "있음" : "없음"})`
+            );
+          }
+          /* 토스 환불 API 호출 — 실패 시 DB 안 건드림 */
+          const result = await cancelTossPayment(
+            paymentKey,
+            refundReason || `관리자 환불 (${admin.name || "관리자"})`,
+          );
+          if (!result.success) {
+            return badRequest(
+              `토스 환불 실패: ${result.errorCode || "ERROR"} — ${result.errorMessage || "알 수 없는 오류"} (DB 상태 변경 없음)`
+            );
+          }
+          tossRefundNote = ` [토스 자동환불 OK status=${result.status || "?"} txn=${result.transactionKey || "?"}]`;
+        }
+
+        const adminTag = `[환불 ${now.toISOString().slice(0, 10)} by ${admin.name || "관리자"}${tossRefundNote}]`;
         const refundMemo = refundReason ? `${adminTag} ${refundReason}` : adminTag;
         const newMemo = existing.memo
           ? `${existing.memo}\n${refundMemo}`
@@ -230,12 +257,15 @@ export default async (req: Request) => {
             amount: updated.amount,
             previousStatus: "completed",
             reasonProvided: !!refundReason,
+            autoRefundToss,
           },
         });
 
         return ok(
           { donation: updated },
-          `₩${(updated.amount || 0).toLocaleString()} 환불 처리되었습니다. (실제 PG사 환불은 별도 진행)`,
+          autoRefundToss
+            ? `₩${(updated.amount || 0).toLocaleString()} 토스 자동 환불 완료 (PG·DB 양쪽 반영)`
+            : `₩${(updated.amount || 0).toLocaleString()} 환불 처리되었습니다. (실제 PG사 환불은 별도 진행)`,
         );
       }
 

@@ -385,3 +385,85 @@ export function calculateNextBillingDate(billingDay: number, from: Date = new Da
 
   return new Date(nextYear, nextMonth, safeDay);
 }
+
+/* =========================================================
+   토스 환불(취소) API — 일시 결제·정기 결제 환불 공용
+   POST /v1/payments/{paymentKey}/cancel
+   - 전액 환불: cancelAmount 생략
+   - 부분 환불: cancelAmount 지정 (현재는 전액만 지원)
+   ========================================================= */
+
+export interface CancelResult {
+  success: boolean;
+  status?: string;           // 'CANCELED' | 'PARTIAL_CANCELED' 등
+  canceledAt?: string;
+  cancelAmount?: number;
+  transactionKey?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  rawResponse?: any;
+}
+
+export async function cancelTossPayment(
+  paymentKey: string,
+  cancelReason: string,
+  cancelAmount?: number,
+): Promise<CancelResult> {
+  if (!paymentKey || typeof paymentKey !== "string") {
+    return { success: false, errorCode: "MISSING_PAYMENT_KEY", errorMessage: "토스 paymentKey가 없습니다" };
+  }
+  /* 사유 비었거나 너무 짧으면 안전한 기본값으로 (토스 필수 필드) */
+  const safeReason = (cancelReason || "관리자 환불").trim().slice(0, 200) || "관리자 환불";
+
+  const body: any = { cancelReason: safeReason };
+  if (typeof cancelAmount === "number" && cancelAmount > 0) {
+    body.cancelAmount = Math.floor(cancelAmount);
+  }
+
+  const url = `${getTossBaseUrl()}/v1/payments/${encodeURIComponent(paymentKey)}/cancel`;
+
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": getAuthHeader(),
+        "Content-Type": "application/json",
+        "Idempotency-Key": `cancel-${paymentKey}-${Date.now()}`,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e: any) {
+    return {
+      success: false,
+      errorCode: "NETWORK_ERROR",
+      errorMessage: String(e?.message || e).slice(0, 300),
+    };
+  }
+
+  let json: any = null;
+  try { json = await resp.json(); } catch { json = null; }
+
+  if (!resp.ok) {
+    const normalized = normalizeTossError(json);
+    return {
+      success: false,
+      errorCode: normalized.code,
+      errorMessage: normalized.message,
+      rawResponse: json,
+    };
+  }
+
+  /* 성공 — 마지막 cancels 행에서 환불 정보 추출 */
+  const cancels = Array.isArray(json?.cancels) ? json.cancels : [];
+  const lastCancel = cancels[cancels.length - 1] || {};
+
+  return {
+    success: true,
+    status: json?.status,
+    canceledAt: lastCancel.canceledAt || json?.lastTransactionKey,
+    cancelAmount: Number(lastCancel.cancelAmount) || cancelAmount,
+    transactionKey: lastCancel.transactionKey,
+    rawResponse: json,
+  };
+}
