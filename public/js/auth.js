@@ -298,13 +298,27 @@ document.addEventListener('change', async function (e) {
           const agreeAll = Array.from(checkboxes).every(c => c.checked);
           if (!agreeAll) throw new Error('이용약관에 동의해주세요');
 
+          /* ★ 2026-05-16: 서버(auth-signup.ts)는 약관 동의를 agreeTerms·agreePrivacy
+             두 필드로 분리해서 검증함. 화면 체크박스 한 개로 둘 다 동의 처리는
+             정상 UX이므로 클라이언트가 두 필드 모두 true로 전송. agree 한 필드만
+             보내면 서버가 400 '이용약관에 동의해주세요'로 거절. */
           res = await Auth.signup({
             email: data.email,
             password: data.password,
             name: data.name,
             phone: data.phone,
             memberType: data.memberType || 'regular',
-            agree: true,
+            agreeTerms: true,
+            agreePrivacy: true,
+            /* 전문가 회원 추가 필드 — 일반 회원이면 undefined 무시됨 */
+            expertType: data.expertType || undefined,
+            specialty: data.specialty || undefined,
+            affiliation: data.affiliation || undefined,
+            yearsOfExperience: data.yearsOfExperience || undefined,
+            licenseNumber: data.licenseNumber || undefined,
+            bio: data.bio || undefined,
+            preferredArea: data.preferredArea || undefined,
+            certificateBlobId: data.certificateBlobId || undefined,
           });
         } else if (type === 'password-reset-request') {
           res = await api('/api/auth/password-reset-request', {
