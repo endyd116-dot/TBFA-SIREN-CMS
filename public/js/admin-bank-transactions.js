@@ -136,7 +136,7 @@
     container.innerHTML = `
       <div class="panel">
         <div class="p-head">
-          <div class="p-title">🏦 통장 거래내역</div>
+          <div class="p-title">🏦 지출 자동 추출 시스템</div>
           <div class="p-actions">
             <button class="btn-sm btn-sm-ghost" id="btTabTxn" type="button">거래 목록</button>
             <button class="btn-sm btn-sm-ghost" id="btTabCp" type="button">거래처 마스터</button>

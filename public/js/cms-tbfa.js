@@ -268,7 +268,7 @@
           'other-revenues': '💼 후원 외 매출',
           'expenses': '💸 지출 관리',
           'finance-budget': '📋 예산 관리',
-          'bank-transactions': '🏦 통장 거래내역',
+          'bank-transactions': '🏦 지출 자동 추출 시스템',
           'finance-report': '📊 재무 보고서',
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
           'donation-dashboard': '🔍 종합 검증 대시보드',
