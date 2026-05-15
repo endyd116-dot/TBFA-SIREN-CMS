@@ -551,6 +551,11 @@
        흐름이 있어 모달 안 떠도 안전. ai-agent-widget.js의 권한 체크 호출도
        동일하게 보호됨. */
     '/api/admin/me',
+    /* ★ 2026-05-16: mypage-out-of-office.js가 마이페이지 진입 시 /api/admin-user-preferences
+       호출(부재 일정 카드 렌더 — 어드민·운영자 전용 기능). 일반 회원은 정상 401 응답인데
+       EXCLUDED 미통과 → 모달 트리거. 클라이언트 측은 catch로 카드 숨김 처리하지만
+       fetch wrap의 handle401이 먼저 발사돼서 모달 강제 표시. */
+    '/api/admin-user-preferences',
   ];
 
   function isExcluded(url) {

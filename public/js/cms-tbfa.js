@@ -2435,6 +2435,19 @@
     setupDonorProspectFilters(); /* ★ Phase 2 C11 */
 
     renderDashboard();
+
+    /* ★ 2026-05-16: location.hash 기반 자동 탭 진입.
+       예: /cms-tbfa.html#send-jobs 로 진입 시 발송 작업 메뉴 자동 선택.
+       발송 상세 페이지의 '← 발송 작업 목록으로' 버튼이 hash=#send-jobs로
+       navigate하면 이 코드가 해당 탭으로 자동 전환. 옛 코드는 hash 처리 없어
+       dashboard만 표시되던 결함. */
+    const hash = (location.hash || '').replace('#', '');
+    if (hash) {
+      const targetLink = document.querySelector('.cms-menu a[data-tab="' + hash + '"]');
+      if (targetLink) {
+        try { targetLink.click(); } catch (_) {}
+      }
+    }
   }
 
   if (document.readyState === 'loading') {
