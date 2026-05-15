@@ -94,12 +94,31 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 4. 승인 시 회원 자격 갱신 */
     if (action === "approve") {
-      await db.execute(sql`
-        UPDATE members
-           SET eligibility_type = ${reqRow.requestedType},
-               updated_at = now()
-         WHERE id = ${reqRow.memberId}
-      `);
+      /* ★ 2026-05-16: 자격 변경 승인 시 전문가 매칭 풀 조건(type='volunteer' +
+         member_subtype + secondary_verified=true)도 함께 반영. 옛 코드는 eligibility_type
+         만 박아서 매칭 풀·전문가 프로필 화면에 표시 안 되던 결함. 변호사·심리상담사는
+         전문가 풀에 자동 등록, 일반·유가족 등은 type/subtype은 안 건드림. */
+      const expertTypes = ["lawyer", "counselor"];
+      const isExpert = expertTypes.includes(String(reqRow.requestedType));
+      if (isExpert) {
+        await db.execute(sql`
+          UPDATE members
+             SET eligibility_type = ${reqRow.requestedType},
+                 type = 'volunteer',
+                 member_subtype = ${reqRow.requestedType},
+                 secondary_verified = true,
+                 secondary_verified_at = now(),
+                 updated_at = now()
+           WHERE id = ${reqRow.memberId}
+        `);
+      } else {
+        await db.execute(sql`
+          UPDATE members
+             SET eligibility_type = ${reqRow.requestedType},
+                 updated_at = now()
+           WHERE id = ${reqRow.memberId}
+        `);
+      }
     }
 
     /* 5. 알림 (실패해도 메인 흐름 영향 X) */
