@@ -2712,21 +2712,7 @@
         <!-- ── 📈 대시보드 (통합) ── -->
         <li><a class="on" data-page="dashboard"><i>📈</i><span>대시보드</span></a></li>
 
-        <!-- ── 🌐 홈페이지 관리 ── -->
-        <li class="adm-menu-toggle-group">
-          <a href="#" data-sidebar-group="homepage" aria-expanded="false">
-            <i>🌐</i><span>홈페이지 관리</span>
-            <span class="sidebar-group-chevron">▾</span>
-          </a>
-          <ul class="adm-submenu" data-sidebar-submenu="homepage" aria-hidden="true" style="display:none">
-            <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i>🎨</i><span>메인 화면 편집</span></a></li>
-            <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
-            <li><a data-page="report"><i>📋</i><span>주간 보고서</span></a></li>
-            <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
-          </ul>
-        </li>
-
-        <!-- ── 🚨 사이렌 신고 관리 ── -->
+        <!-- ── 🚨 사이렌 신고 관리 (★ 2026-05-16: 최상단 그룹으로 위치 변경 — Swain 요청) ── -->
         <li class="adm-menu-toggle-group">
           <a href="#" data-sidebar-group="siren" aria-expanded="false">
             <i>🚨</i><span>사이렌 신고 관리</span>
@@ -2759,6 +2745,26 @@
             </li>
             <li><a data-page="agency-mgmt"><i>🏛️</i><span>외부 기관 관리</span></a></li>
             <li><a data-page="referral-history"><i>📤</i><span>인계 이력</span></a></li>
+          </ul>
+        </li>
+
+        <!-- ── 🎗 유가족 지원 (★ 2026-05-16 복구 — Swain 요청. 7642bac에서 메뉴만 제거됐고 페이지는 살아있음) ── -->
+        <li><a data-page="support"><i>🎗</i><span>유가족 지원 관리</span></a></li>
+
+        <!-- ── 📢 캠페인 관리 (★ 2026-05-16 복구 — Swain 요청. adm-campaigns 페이지 살아있음) ── -->
+        <li><a data-page="campaigns"><i>📢</i><span>캠페인 관리</span></a></li>
+
+        <!-- ── 🌐 홈페이지 관리 ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="homepage" aria-expanded="false">
+            <i>🌐</i><span>홈페이지 관리</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul class="adm-submenu" data-sidebar-submenu="homepage" aria-hidden="true" style="display:none">
+            <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i>🎨</i><span>메인 화면 편집</span></a></li>
+            <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
+            <li><a data-page="report"><i>📋</i><span>주간 보고서</span></a></li>
+            <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
           </ul>
         </li>
 
