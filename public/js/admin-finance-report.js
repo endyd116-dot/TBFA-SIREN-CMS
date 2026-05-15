@@ -180,6 +180,12 @@
     pane.innerHTML = `
       ${reportHeaderHtml('운영성과표', pl.__periodLabel)}
 
+      <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
+        💡 <strong>운영성과표 = 수익(승인·완료된 거래) − 비용(승인된 지출)</strong>.
+        후원·후원 외 매출·지출의 상태가 <strong>"승인"</strong> 인 행만 집계됩니다.
+        직접 계좌이체로 신청만 하고 입금 확인 안 된 건(<code>pending_bank</code>)은 매출로 잡히지 않습니다 — [📥 입금 매칭·통과]에서 통과 처리해야 합산됩니다.
+      </div>
+
       <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
           <tr><th style="width:60%">계정과목</th><th class="num">소계</th><th class="num">금액</th></tr>
@@ -292,6 +298,11 @@
     pane.innerHTML = `
       ${reportHeaderHtml('예산 대비 실적표', fiscalLabel + planTitle)}
 
+      <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a5ec4;line-height:1.6">
+        💡 <strong>예산 = "승인" 상태 예산서</strong>의 항목별 계획 / <strong>실적 = "승인" 상태 지출</strong>의 발생액.
+        예산서가 "작성중·검토중" 상태면 이 표에 안 나타납니다 — [📋 예산 관리]에서 결재 진행 → 승인까지 완료해야 반영됩니다.
+      </div>
+
       <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
           <tr>
@@ -355,6 +366,13 @@
 
     pane.innerHTML = `
       ${reportHeaderHtml('재정상태표', `${asOf} 기준`)}
+
+      <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7d5400;line-height:1.6">
+        ⚠️ <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
+        후원·후원외 매출·지출 입력값이 아니라 실제 통장의 잔액 변동만 반영하므로,
+        IBK CSV를 한 번도 업로드하지 않았다면 자산이 0으로 표시됩니다.
+        [📥 입금 매칭·통과 → 자료 업로드·통과]에서 IBK 거래내역 CSV를 통과 처리해야 채워집니다.
+      </div>
 
       <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
@@ -455,6 +473,12 @@
 
     pane.innerHTML = `
       ${reportHeaderHtml('현금흐름표', cf.__periodLabel)}
+
+      <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#7d5400;line-height:1.6">
+        ⚠️ <strong>이 표는 IBK 통장 거래내역으로만 산정</strong>됩니다.
+        기초·기말 잔액과 입출금은 IBK CSV 거래만 반영하므로, 통장 거래내역을 통과 처리해야 채워집니다.
+        후원·후원외 매출·지출 입력값은 별도 — 운영성과표(손익)에서 확인하세요.
+      </div>
 
       <table class="data-table report-table fr-statement" style="width:100%">
         <thead>
