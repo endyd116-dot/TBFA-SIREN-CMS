@@ -8,10 +8,12 @@
   /* ---- Chart 인스턴스 관리 ---- */
   var _chartTrend = null;
   var _chartSiren = null;
+  var _chartSirenWeekly = null;
 
   function destroyCharts() {
     if (_chartTrend) { try { _chartTrend.destroy(); } catch (e) {} _chartTrend = null; }
     if (_chartSiren) { try { _chartSiren.destroy(); } catch (e) {} _chartSiren = null; }
+    if (_chartSirenWeekly) { try { _chartSirenWeekly.destroy(); } catch (e) {} _chartSirenWeekly = null; }
   }
 
   /* ---- 유틸 ---- */
@@ -102,6 +104,12 @@
         '</div>' +
       '</div>' +
 
+      /* ★ 2026-05-16 #3: SIREN 주별 신고 추이 라인 차트 (임원 회의·사업 보고용) */
+      '<div class="panel" style="padding:20px;margin-bottom:28px">' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📈 SIREN 주별 신고 추이 (최근 12주)</div>' +
+        '<canvas id="ud-chart-siren-weekly" height="120"></canvas>' +
+      '</div>' +
+
       /* 코호트 테이블 */
       '<div class="panel" style="padding:20px;margin-bottom:28px">' +
         '<div style="font-size:15px;font-weight:600;margin-bottom:14px">🔬 코호트 분석</div>' +
@@ -130,6 +138,7 @@
     renderKpi(data);
     renderTrendChart(data.donation || {});
     renderSirenChart(data.siren || {});
+    renderSirenWeeklyChart(data.siren || {});
   }
 
   function renderKpi(d) {
@@ -137,11 +146,15 @@
     if (!el) return;
     var donation = d.donation || {};
     var member = d.member || {};
+    /* ★ 2026-05-16 #3: SIREN KPI 2종 추가 — 신규 신고 + 처리율 */
+    var siren = d.siren || {};
     var cards = [
       { label: '월간 후원 수입', value: fmtAmount(donation.totalAmount), icon: '💰', color: '#10b981' },
       { label: '신규 후원자', value: fmtNum(donation.newDonors) + '명', icon: '🙋', color: '#3b82f6' },
       { label: '정기 유지율', value: fmtPct(donation.regularRetentionRate), icon: '🔄', color: '#8b5cf6' },
-      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '👤', color: '#f59e0b' }
+      { label: '신규 회원', value: fmtNum(member.newCount) + '명', icon: '👤', color: '#f59e0b' },
+      { label: 'SIREN 신규 신고', value: fmtNum(siren.totalNew) + '건', icon: '🚨', color: '#ef4444' },
+      { label: 'SIREN 처리율', value: fmtPct(siren.resolvedRate), icon: '✅', color: '#0ea5e9' }
     ];
     el.innerHTML = cards.map(function (c) {
       return '<div style="background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:10px;padding:20px;text-align:center">' +
@@ -214,6 +227,47 @@
         responsive: true,
         plugins: {
           legend: { position: 'bottom', labels: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  /* ★ 2026-05-16 #3: SIREN 주별 신고 추이 (라인 차트) ---- */
+  function renderSirenWeeklyChart(siren) {
+    var canvas = document.getElementById('ud-chart-siren-weekly');
+    if (!canvas || !window.Chart) return;
+    if (_chartSirenWeekly) { _chartSirenWeekly.destroy(); _chartSirenWeekly = null; }
+
+    var trend = siren.weeklyTrend || [];
+    if (!trend.length) {
+      var parent = canvas.parentElement;
+      if (parent) parent.innerHTML = '<div style="font-size:15px;font-weight:600;margin-bottom:14px">📈 SIREN 주별 신고 추이</div><p style="color:#9ca3af;font-size:13px;padding:20px 0;text-align:center">최근 12주간 신고 내역이 없습니다.</p>';
+      return;
+    }
+    var labels = trend.map(function (t) { return t.week; });
+    var counts = trend.map(function (t) { return t.count; });
+
+    _chartSirenWeekly = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '주별 신고 건수',
+          data: counts,
+          backgroundColor: 'rgba(239,68,68,0.15)',
+          borderColor: '#ef4444',
+          borderWidth: 2.5,
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: '#ef4444',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } }
         }
       }
     });

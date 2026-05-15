@@ -123,13 +123,14 @@
   /* ═══════════════════ 보기 모드 전환 ═══════════════════ */
 
   function switchViewMode(mode) {
-    /* ★ 2026-05-16: 캘린더 모드는 통합 캘린더 페이지로 이동. 옛 사용자가
-       localStorage에 wkViewMode='calendar' 저장해뒀어도 페이지 진입 시
-       자동으로 통합 캘린더 화면으로 안내. localStorage 값은 board로 정정. */
+    /* ★ 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 단 init()에서
+       자동으로 switchViewMode('calendar')가 호출되면 무한 redirect 발생 →
+       WBS 화면 자체로 진입 불가. 따라서 calendar 모드 진입 시도는 board로
+       강제 정정 (자동 redirect 제거). 사용자가 명시적으로 캘린더 버튼을
+       눌렀을 때만 별도 캘린더 페이지로 이동 (click 핸들러에서 처리). */
     if (mode === 'calendar') {
+      mode = 'board';
       try { localStorage.setItem('wkViewMode', 'board'); } catch (_) {}
-      window.location.href = '/workspace-calendar.html';
-      return;
     }
     STATE.viewMode = mode;
     localStorage.setItem('wkViewMode', mode);
@@ -1097,9 +1098,12 @@
       }
       const prefs = (res && res.data) || res || {};
       const serverView = prefs.defaultWbsView;
-      if (serverView && ['board', 'list', 'calendar'].includes(serverView)) {
-        STATE.viewMode = serverView;
-        localStorage.setItem('wkViewMode', serverView);
+      /* ★ 2026-05-16 (2차 fix): WBS 내 캘린더 모드는 deprecated. 서버 prefs에
+         'calendar'가 박혀있어도 'board'로 강제 정정 (자동 redirect 무한루프 방지). */
+      const normalized = serverView === 'calendar' ? 'board' : serverView;
+      if (normalized && ['board', 'list'].includes(normalized)) {
+        STATE.viewMode = normalized;
+        localStorage.setItem('wkViewMode', normalized);
       }
     } catch (_) {}
   }

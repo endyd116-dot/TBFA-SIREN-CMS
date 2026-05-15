@@ -452,6 +452,20 @@
     });
     $('#wcBtnRefresh')?.addEventListener('click', () => STATE.calendar?.refetchEvents());
 
+    /* ★ 2026-05-16 #1-2: 헤더 빠른 추가 버튼 — 메모/일정 */
+    $('#wcBtnNewMemo')?.addEventListener('click', () => {
+      const today = new Date().toISOString().slice(0, 10);
+      if (window.WorkspaceMemoModal) {
+        WorkspaceMemoModal.openCreate({ showInCalendar: true, eventDate: today });
+      } else {
+        toast('메모 모듈 로드 실패 — 페이지 새로고침 후 다시 시도하세요', 'error');
+      }
+    });
+    $('#wcBtnNewEvent')?.addEventListener('click', () => {
+      const today = new Date().toISOString().slice(0, 10);
+      openEventModal({ startDate: today });
+    });
+
     // 모달 닫기
     document.addEventListener('click', e => {
       const close = e.target.closest('[data-close-modal]');
