@@ -71,8 +71,8 @@
     var disabled = state.hasPending ? 'disabled' : '';
     var cur = state.currentType ? '<strong>' + escapeHtml(state.currentType) + '</strong>' : '<span style="color:var(--text-3)">미설정</span>';
     return '' +
-      '<h3 class="serif">🎓 교원 자격 변경</h3>' +
-      '<p class="sub">현직/은퇴/예비/일반 자격을 변경 신청하실 수 있습니다. 신청 후 운영자 검토를 거쳐 결과를 알려드립니다.</p>' +
+      '<h3 class="serif">🎓 교원 자격 인증 및 변경</h3>' +
+      '<p class="sub">현직/은퇴/예비/일반 자격을 변경 신청하실 수 있습니다. 자격 증빙 파일(교원 자격증·재직증명서 등)을 첨부해 주시면 빠른 검토가 가능합니다. 신청 후 운영자 검토를 거쳐 결과를 알려드립니다.</p>' +
       '<div class="panel" style="margin-bottom:14px">' +
         '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">' +
           '<div><span style="color:var(--text-3);font-size:13px">현재 자격</span> ' + cur + '</div>' +
@@ -94,6 +94,14 @@
         '<div class="fg">' +
           '<label>변경 사유 <span style="color:var(--danger)">*</span> <span class="hint">(10자 이상)</span></label>' +
           '<textarea id="eligReason" rows="4" maxlength="2000" placeholder="자격 변경이 필요한 사유를 작성해주세요" ' + disabled + '></textarea>' +
+        '</div>' +
+        /* ★ 2026-05-16: 자격 증빙 파일 첨부 (선택). JPG·PNG·PDF 등 10MB 이내.
+           파일 선택 시 즉시 업로드되어 blob ID 받음. 제출 시 그 ID를 함께 전송. */
+        '<div class="fg">' +
+          '<label>자격 증빙 파일 <span class="hint">(선택 — JPG/PNG/PDF, 최대 10MB)</span></label>' +
+          '<input type="file" id="eligEvidenceFile" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" ' + disabled + '>' +
+          '<input type="hidden" id="eligEvidenceBlobId">' +
+          '<div id="eligEvidenceStatus" style="font-size:12px;color:var(--text-3);margin-top:6px">미선택</div>' +
         '</div>' +
         '<div class="fg" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
           '<button type="submit" class="btn btn-primary" ' + disabled + '>신청 제출</button>' +
@@ -127,6 +135,67 @@
 
     var form = panel.querySelector('#eligForm');
     if (form) form.addEventListener('submit', onSubmit);
+
+    /* 파일 선택 시 자동 업로드 (blob-upload API 직접 호출) */
+    var fileInput = panel.querySelector('#eligEvidenceFile');
+    if (fileInput) fileInput.addEventListener('change', onEvidenceChange);
+  }
+
+  /* ★ 2026-05-16: 자격 증빙 파일 자동 업로드 (회원가입 인증서 첨부와 동일 패턴) */
+  async function onEvidenceChange(e) {
+    var fileInput = e.target;
+    var file = fileInput.files && fileInput.files[0];
+    var statusEl = document.getElementById('eligEvidenceStatus');
+    var blobIdInput = document.getElementById('eligEvidenceBlobId');
+
+    if (!file) {
+      if (statusEl) { statusEl.textContent = '미선택'; statusEl.style.color = 'var(--text-3)'; }
+      if (blobIdInput) blobIdInput.value = '';
+      return;
+    }
+
+    /* 크기 검증 — 10MB */
+    if (file.size > 10 * 1024 * 1024) {
+      if (statusEl) { statusEl.textContent = '❌ 10MB 이하만 가능합니다'; statusEl.style.color = 'var(--danger)'; }
+      fileInput.value = '';
+      if (blobIdInput) blobIdInput.value = '';
+      return;
+    }
+
+    if (statusEl) { statusEl.textContent = '업로드 중…'; statusEl.style.color = 'var(--text-2)'; }
+
+    try {
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('context', 'eligibility_evidence');
+      fd.append('isPublic', 'false');
+      var res = await fetch('/api/blob-upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      var j = await res.json().catch(function () { return {}; });
+      /* 응답 키 다중 fallback (Critical 함정 패턴) */
+      var blobId = (j && j.data && (j.data.id || j.data.blobId))
+        || (j && (j.id || j.blobId))
+        || null;
+      if (!res.ok || !blobId) {
+        var err = (j && j.error) || ('HTTP ' + res.status);
+        throw new Error(err);
+      }
+      if (blobIdInput) blobIdInput.value = String(blobId);
+      if (statusEl) {
+        statusEl.textContent = '✅ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
+        statusEl.style.color = 'var(--success, #16a34a)';
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = '❌ 업로드 실패: ' + (err.message || '오류');
+        statusEl.style.color = 'var(--danger)';
+      }
+      fileInput.value = '';
+      if (blobIdInput) blobIdInput.value = '';
+    }
   }
 
   async function onSubmit(e) {
@@ -141,9 +210,18 @@
     var btn = e.target.querySelector('button[type=submit]');
     if (btn) { btn.disabled = true; btn.textContent = '제출 중...'; }
 
+    /* 자격 증빙 파일 ID (선택) — 미선택이면 비워서 전송, 서버가 nullable 처리 */
+    var evidenceBlobIdEl = document.getElementById('eligEvidenceBlobId');
+    var evidenceBlobId = evidenceBlobIdEl && evidenceBlobIdEl.value ? Number(evidenceBlobIdEl.value) : null;
+
+    var body = { requestedType: requestedType, reason: reason };
+    if (evidenceBlobId && Number.isFinite(evidenceBlobId)) {
+      body.evidenceBlobId = evidenceBlobId;
+    }
+
     var r = await api('/api/eligibility-request', {
       method: 'POST',
-      body: { requestedType: requestedType, reason: reason },
+      body: body,
     });
     if (btn) { btn.disabled = false; btn.textContent = '신청 제출'; }
 
