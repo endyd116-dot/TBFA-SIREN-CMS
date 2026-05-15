@@ -105,7 +105,11 @@
 
         <div class="fg">
           <label>자격증 증빙 <span style="color:var(--danger)">* (PDF/이미지, 최대 10MB)</span></label>
-          <input type="file" id="signupCertificateFile" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+          <!-- ★ 2026-05-16: required 속성을 HTML에 박지 않음. 전문가 회원 영역이 숨김 상태일 때
+               hidden input에 required가 남아있으면 폼 제출 시 브라우저가 focus 못해 검증 실패
+               → submit 차단 + 사용자한테 아무 안내 없음(가입 안 됨 증상). 회원 유형이 'expert'로
+               바뀔 때만 auth.js가 동적으로 required=true 셋팅. -->
+          <input type="file" id="signupCertificateFile" accept=".pdf,.jpg,.jpeg,.png,.webp">
           <input type="hidden" name="certificateBlobId" id="signupCertificateBlobId">
           <div id="signupCertificateStatus" style="font-size:11.5px;color:var(--text-3);margin-top:4px">미선택</div>
         </div>
