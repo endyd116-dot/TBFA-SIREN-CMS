@@ -34,8 +34,10 @@ const PENDING_PICKUP_LIMIT = 10;
 const PROCESSING_JOB_LIMIT = 5;
 const CHUNK_SIZE = 50;
 /* 수신자 1건 발송 상한 — 외부 API(Resend/Aligo)가 응답 없이 멈추면
-   함수 전체가 타임아웃되어 수신자가 'sending'에 갇힘. 건별 상한으로 차단. */
-const SEND_TIMEOUT_MS = 15000;
+   함수 전체가 타임아웃되어 수신자가 'sending'에 갇힘. 건별 상한으로 차단.
+   2026-05-16: 15s → 8s. Netlify Functions sync timeout(10s) 안에서
+   우리 timeout 발화 + recipient 'failed' 갱신까지 끝내기 위해 단축. */
+const SEND_TIMEOUT_MS = 8000;
 
 /** Promise에 타임아웃 — 초과 시 reject (원본 Promise는 함수 종료와 함께 폐기) */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
@@ -75,7 +77,7 @@ export default async function handler(_req: Request) {
       UPDATE communication_send_recipients
          SET status = 'pending', retry_count = retry_count + 1, updated_at = NOW()
        WHERE status = 'sending'
-         AND updated_at < NOW() - INTERVAL '5 minutes'
+         AND updated_at < NOW() - INTERVAL '90 seconds'
          AND retry_count < 3
     `);
     const failedOut: any = await db.execute(sql`
@@ -85,7 +87,7 @@ export default async function handler(_req: Request) {
                error = '발송 반복 타임아웃 — 3회 재시도 후 실패 처리',
                updated_at = NOW()
          WHERE status = 'sending'
-           AND updated_at < NOW() - INTERVAL '5 minutes'
+           AND updated_at < NOW() - INTERVAL '90 seconds'
            AND retry_count >= 3
          RETURNING job_id
       )
