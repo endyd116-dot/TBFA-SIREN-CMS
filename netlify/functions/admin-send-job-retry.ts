@@ -23,8 +23,18 @@ export default async function handler(req: Request) {
     });
   }
 
+  /* 수신자 ID는 URL 쿼리(?id=N) 또는 본문({recipientId|id}) 둘 다 허용 —
+     호출 지점이 화면별로 달라 한쪽만 받으면 400 발생함. */
   const url = new URL(req.url);
-  const recipientId = Number(url.searchParams.get("id"));
+  let recipientId = Number(url.searchParams.get("id"));
+  if (!recipientId || isNaN(recipientId)) {
+    try {
+      const body = await req.json().catch(() => null);
+      if (body && typeof body === "object") {
+        recipientId = Number((body as any).recipientId ?? (body as any).id);
+      }
+    } catch (_) { /* body 파싱 실패는 무시 */ }
+  }
   if (!recipientId || isNaN(recipientId)) {
     return new Response(
       JSON.stringify({ ok: false, error: "수신자 ID(id)가 필요합니다" }),

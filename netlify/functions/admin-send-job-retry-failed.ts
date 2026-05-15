@@ -22,8 +22,18 @@ export default async function handler(req: Request) {
     });
   }
 
+  /* 작업 ID는 URL 쿼리(?id=N) 또는 본문({jobId|id}) 둘 다 허용 — 호출 지점이
+     화면별로 달라(목록은 body, 상세는 쿼리) 한쪽만 받으면 400 발생함. */
   const url = new URL(req.url);
-  const jobId = Number(url.searchParams.get("id"));
+  let jobId = Number(url.searchParams.get("id"));
+  if (!jobId || isNaN(jobId)) {
+    try {
+      const body = await req.json().catch(() => null);
+      if (body && typeof body === "object") {
+        jobId = Number((body as any).jobId ?? (body as any).id);
+      }
+    } catch (_) { /* body 파싱 실패는 무시 — 아래에서 400 처리 */ }
+  }
   if (!jobId || isNaN(jobId)) {
     return new Response(
       JSON.stringify({ ok: false, error: "작업 ID(id)가 필요합니다" }),
