@@ -128,9 +128,17 @@
 /* 작업 vs 일정 색상 (extendedProps.type 별) */
 .wc-ev-task-urgent  { background: #fef2f2 !important; border-color: #dc2626 !important; color: #991b1b !important; }
 .wc-ev-task-high    { background: #fff7ed !important; border-color: #ea580c !important; color: #9a3412 !important; }
+/* ★ 2026-05-16: priority='medium'은 CSS 정의 없어서 FullCalendar 기본색(파랑+흰글씨)로
+   안 보이던 결함. 노란 톤으로 추가. urgent>high>medium>normal>low 순서 색상 톤 유지. */
+.wc-ev-task-medium  { background: #fefce8 !important; border-color: #ca8a04 !important; color: #854d0e !important; }
 .wc-ev-task-normal  { background: #f0fdf4 !important; border-color: #16a34a !important; color: #166534 !important; }
 .wc-ev-task-low     { background: #f9fafb !important; border-color: #9ca3af !important; color: #4b5563 !important; }
 .wc-ev-task-done    { background: #e5e7eb !important; border-color: #9ca3af !important; color: #6b7280 !important; text-decoration: line-through; }
+
+/* 안전망: 정의되지 않은 priority(예: 향후 추가될 새 enum) 폴백 — 검은 글씨 + 회색 배경 */
+.fc-event[class*="wc-ev-task-"]:not(.wc-ev-task-urgent):not(.wc-ev-task-high):not(.wc-ev-task-medium):not(.wc-ev-task-normal):not(.wc-ev-task-low):not(.wc-ev-task-done) {
+  background: #f3f4f6 !important; border-color: #9ca3af !important; color: #1f2937 !important;
+}
 
 .wc-ev-event        { background: #eff6ff !important; border-color: #2563eb !important; color: #1e40af !important; }
 .wc-ev-event-meeting       { background: #ede9fe !important; border-color: #7c3aed !important; color: #5b21b6 !important; }
