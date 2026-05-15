@@ -2,6 +2,17 @@
 <html lang="ko">
 <head>
 <script>if(location.protocol==='http:'&&/tbfa\.co\.kr$/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search+location.hash);</script>
+<script>
+/* ★ 2026-05-16: cms-tbfa.html이 iframe 안에서 로드되면 nested iframe 재귀 발생.
+   흐름: 메인 cms-tbfa → iframe(admin-send-jobs) → 작업 행 클릭 → detail → '← 목록으로'
+   버튼이 (window.top||window).location.href='/cms-tbfa.html#send-jobs' 실행 →
+   iframe 안에 cms-tbfa 로드 → 그 cms-tbfa가 또 iframe 생성 → 8번 재귀.
+   해결: cms-tbfa.html이 iframe 안에서 로드되면 outermost top window로 강제 이동. */
+if (window.self !== window.top) {
+  try { window.top.location.href = window.self.location.href; }
+  catch (_) { window.location.href = '/cms-tbfa.html'; }
+}
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>교유협 통합 CMS | SIREN</title>
@@ -2381,7 +2392,7 @@
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260516iframe-safety"></script>
+  <script src="/js/cms-tbfa.js?v=20260516iframe-break"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
