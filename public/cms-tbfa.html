@@ -1095,12 +1095,20 @@
         <!-- 탭 2: 자료 업로드·통과 -->
         <div data-itab-pane="csv" style="display:none">
           <div style="background:#fff7e6;border:1px solid #f5d8a8;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.7">
-            📥 <strong>지원 파일 3종</strong> — 효성 수납 CSV · 효성 계약 CSV · 기업은행(IBK) 통장 거래내역 CSV<br>
-            업로드하면 자동으로 회원과 매칭하고, 검토 후 "통과" 클릭 시:<br>
-            &nbsp;&nbsp;✅ 후원 결제 내역에 정식 행 생성<br>
-            &nbsp;&nbsp;✅ 효성 계약 명단·월별 입금 현황 자동 갱신<br>
-            &nbsp;&nbsp;✅ 회원 신분(정기/예비 후원자) 자동 전환<br>
-            ⚠️ 회원이 먼저 있어야 매칭됩니다. 회원이 없다면 [📋 신규 회원 일괄 등록] 탭에서 먼저 등록해 주세요.
+            📥 <strong>업로드 순서를 꼭 지켜주세요 (오류 방지)</strong><br>
+            <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">①</span>
+            <strong>효성 계약 CSV 먼저</strong> — 효성 사이트 [계약정보] 탭에서 받은 파일. 회원·계약을 먼저 등록해 둬야 다음 단계 매칭이 됨.<br>
+            <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">②</span>
+            <strong>효성 수납 CSV 두 번째</strong> — 효성 사이트 [수납정보] 탭에서 받은 파일. ①에서 등록된 계약·회원에 입금 내역이 연결됨.<br>
+            <span style="display:inline-block;background:#fff;border:1px solid #e3c388;border-radius:4px;padding:2px 8px;margin:3px 0;font-weight:600;color:#7d5400">③</span>
+            <strong>기업은행(IBK) 통장 CSV</strong> — 직접 계좌이체 일시 후원 매칭용. 효성과 무관하니 언제 올려도 무방.<br>
+            <br>
+            ⚠️ <strong>순서를 뒤집으면</strong> "회원이 없음. 효성 계약 파일 먼저 통과 처리하세요" 라는 거부 메시지가 뜹니다. 데이터는 망가지지 않으니 안내대로 ① 먼저 올린 뒤 ②를 다시 시도하면 됩니다.<br>
+            <br>
+            "통과" 클릭 시:<br>
+            &nbsp;&nbsp;✅ 후원 결제 내역에 정식 행 생성 &nbsp;|&nbsp; ✅ 효성 자동이체 화면(계약 명단·월별 입금 현황) 자동 갱신 &nbsp;|&nbsp; ✅ 회원 신분(정기/예비 후원자) 자동 전환<br>
+            <br>
+            ⚠️ IBK 매칭은 회원이 먼저 있어야 됩니다 — 없다면 [📋 신규 회원 일괄 등록] 탭에서 먼저 등록해 주세요.
           </div>
           <!-- CSV 매핑 컨텐츠 — id는 그대로 유지 (JS 참조) -->
           <div id="csv-import-inner"></div>
