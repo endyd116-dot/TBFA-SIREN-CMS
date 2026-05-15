@@ -58,7 +58,7 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
-  const CACHE_KEY = "members-source-kpi-v1";
+  const CACHE_KEY = "members-source-kpi-v2";
   const CACHE_TTL = 10 * 60; // 10분
 
   /* 캐시 히트 시 즉시 반환 */
@@ -75,14 +75,14 @@ export default async (req: Request, _ctx: Context) => {
     const rs: any = await db.execute(sql`
       SELECT
         COUNT(*)::int                                                                       AS total,
-        COUNT(*) FILTER (WHERE ss.code = 'siren')::int                                      AS siren,
-        COUNT(*) FILTER (WHERE ss.code = 'hyosung')::int                                    AS hyosung,
-        COUNT(*) FILTER (WHERE ss.code IN ('manual','admin_manual'))::int                   AS manual,
+        COUNT(*) FILTER (WHERE ss.code = 'website')::int                                    AS siren,
+        COUNT(*) FILTER (WHERE ss.code = 'hyosung_csv')::int                                AS hyosung,
+        COUNT(*) FILTER (WHERE ss.code = 'admin')::int                                      AS manual,
         COUNT(*) FILTER (WHERE ss.code = 'event')::int                                      AS event,
         COUNT(*) FILTER (WHERE ss.code = 'etc')::int                                        AS etc,
         COUNT(*) FILTER (WHERE
           ss.code IS NULL
-          OR ss.code NOT IN ('siren','hyosung','manual','admin_manual','event','etc')
+          OR ss.code NOT IN ('website','hyosung_csv','admin','event','etc')
         )::int                                                                               AS other
       FROM members m
       LEFT JOIN signup_sources ss ON ss.id = m.signup_source_id
