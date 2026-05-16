@@ -138,11 +138,23 @@
     try {
       const res = await api(`/api/admin-workspace-tasks?${params}`);
       const items = res.data?.items || res.data || [];
+      /* ★ 2026-05-16 #4-2-2: classNames만 적용하면 FullCalendar가 기본 흰 글씨로
+         .fc-event-title을 렌더 → 작업 카드 제목이 흰색으로 안 보임. priority별
+         배경·테두리·글씨 색을 직접 inline으로 지정해 강제 적용. */
+      const TASK_PALETTE = {
+        urgent:  { bg: '#fef2f2', border: '#dc2626', text: '#991b1b' },
+        high:    { bg: '#fff7ed', border: '#ea580c', text: '#9a3412' },
+        medium:  { bg: '#fefce8', border: '#ca8a04', text: '#854d0e' },
+        normal:  { bg: '#f0fdf4', border: '#16a34a', text: '#166534' },
+        low:     { bg: '#f9fafb', border: '#9ca3af', text: '#4b5563' },
+        done:    { bg: '#e5e7eb', border: '#9ca3af', text: '#6b7280' },
+      };
       return items
         .filter(t => t.dueDate && new Date(t.dueDate) >= new Date(startDate) && new Date(t.dueDate) <= new Date(endDate))
         .filter(t => t.status !== 'archived')
         .map(t => {
           const isDone = t.status === 'done';
+          const palette = TASK_PALETTE[isDone ? 'done' : (t.priority || 'normal')] || TASK_PALETTE.normal;
           const cls = isDone ? 'wc-ev-task-done' : `wc-ev-task-${t.priority || 'normal'}`;
           return {
             id: `task-${t.id}`,
@@ -150,6 +162,9 @@
             start: t.dueDate,
             allDay: true,
             classNames: [cls],
+            backgroundColor: palette.bg,
+            borderColor: palette.border,
+            textColor: palette.text,
             extendedProps: { type: 'task', taskId: t.id, status: t.status, priority: t.priority },
           };
         });
@@ -405,9 +420,19 @@
       eventClick: onEventClick,
       // YIQ 텍스트 색상 자동 적용
       eventDidMount(info) {
-        const bgColor = info.event.backgroundColor;
-        if (bgColor) {
-          const textColor = yiqTextColor(bgColor);
+        /* ★ 2026-05-16 #4-2-2: 작업 카드는 priority별 의미 있는 글씨색을 명시
+           지정했으므로 YIQ로 덮어쓰지 말 것. 메모만 YIQ 자동 계산 (사용자가
+           고른 임의 배경색 대비). 일정은 textColor 미지정 → FullCalendar 기본. */
+        const type = info.event.extendedProps && info.event.extendedProps.type;
+        const explicitText = info.event.textColor;
+        let textColor;
+        if (explicitText) {
+          textColor = explicitText;
+        } else if (type === 'memo' || !type) {
+          const bgColor = info.event.backgroundColor;
+          if (bgColor) textColor = yiqTextColor(bgColor);
+        }
+        if (textColor) {
           info.el.style.color = textColor;
           const titleEl = info.el.querySelector('.fc-event-title');
           if (titleEl) titleEl.style.color = textColor;

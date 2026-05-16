@@ -2712,8 +2712,12 @@
         <!-- ── 📈 대시보드 (통합) ── -->
         <li><a class="on" data-page="dashboard"><i>📈</i><span>대시보드</span></a></li>
 
-        <!-- ── 📊 통합 분석 대시보드 (★ 2026-05-16 복구 — Phase 16. 시간 흐름 분석·차트 위주) ── -->
-        <li><a data-page="unified-dashboard"><i>📊</i><span>통합 분석 대시보드</span></a></li>
+        <!-- ★ 2026-05-16 (재제거): 통합 분석 대시보드 메뉴 항목 제거 —
+             대시보드 화면 안의 '📊 통합 분석' 탭이 동일 내용을 표시하므로
+             별도 1뎁스 메뉴는 중복. 화면(div#adm-unified-dashboard) +
+             JS(admin-unified-dashboard.js)는 그대로 유지 — 대시보드 탭이
+             동적으로 #adm-unified-dashboard를 #adm-unified-dashboard-inner로
+             이동·로드하는 구조라 변경 불필요. -->
 
         <!-- ── 🚨 사이렌 신고 관리 (★ 2026-05-16: 최상단 그룹으로 위치 변경 — Swain 요청) ── -->
         <li class="adm-menu-toggle-group">
