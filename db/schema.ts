@@ -2194,6 +2194,28 @@ export const notificationAdminSettings = pgTable("notification_admin_settings", 
 export type NotificationAdminSetting = typeof notificationAdminSettings.$inferSelect;
 export type NewNotificationAdminSetting = typeof notificationAdminSettings.$inferInsert;
 
+/* === 2026-05-16: 효성 후원자 사이트 가입 흐름 A안 — 전화 인증 코드 저장 ===
+   migrate-phone-verifications.ts로 테이블 생성됨. */
+export const phoneVerifications = pgTable("phone_verifications", {
+  id:               bigserial("id", { mode: "number" }).primaryKey(),
+  phone:            varchar("phone", { length: 20 }).notNull(),
+  code:             varchar("code", { length: 10 }).notNull(),
+  verifyToken:      varchar("verify_token", { length: 64 }),
+  matchedMemberId:  integer("matched_member_id").references(() => members.id, { onDelete: "set null" }),
+  verified:         boolean("verified").default(false).notNull(),
+  attempts:         integer("attempts").default(0).notNull(),
+  expiresAt:        timestamp("expires_at").notNull(),
+  tokenExpiresAt:   timestamp("token_expires_at"),
+  ip:               varchar("ip", { length: 45 }),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  phoneIdx:   index("phone_verifs_phone_idx").on(t.phone, t.createdAt),
+  expiresIdx: index("phone_verifs_expires_idx").on(t.expiresAt),
+}));
+
+export type PhoneVerification    = typeof phoneVerifications.$inferSelect;
+export type NewPhoneVerification = typeof phoneVerifications.$inferInsert;
+
 /* === Phase 10 R1 — 템플릿 빌더 === */
 
 export const communicationTemplates = pgTable("communication_templates", {
