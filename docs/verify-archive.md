@@ -352,3 +352,62 @@ V1 발견 → V2 확정 → V3 인프라 장애 → V4 진단 fix → V5·V6·V7
 ---
 
 **마지막 갱신**: 2026-05-14 (V7 BUG-05b 완전 해소 + 표준 v1.4 §18.13 정착 시점).
+
+---
+
+## 2026-05-16 AI 비서 도구 라이브 검증 (C)
+
+- **베이스**: main 07f8479 (email_send/notification_send memberIds 정규화 fix 직후)
+- **방법**: https://tbfa.co.kr/api/admin-ai-agent 에 21개 묶음 × 자연어 명령으로 라이브 호출. 변경 도구는 dry-run/preview까지만 (실 데이터 변경 0건). conversationId는 묶음별 재사용.
+- **묶음**: 21개 / 명령: 34건 / 도구 호출: 32건
+- **결과**: 통과 30 / 실패 2 (모두 C 자율 fix 후 재검증 통과)
+
+### 발견 이슈 (모두 fix됨 — 커밋 d400f61)
+
+| 도구 | 명령 | 1차 오류 | 원인 | fix | 재검증 |
+|---|---|---|---|---|---|
+| `donations_stats` | "후원 통계" | `invalid input value for enum donation_type: "one_time"` | 코드가 후원 종류 비교 값을 `'one_time'`(언더스코어)로 작성 — DB enum 정의는 `'onetime'` ([db/schema.ts:28](db/schema.ts#L28)) | [lib/ai-agent-tools.ts:1044](lib/ai-agent-tools.ts#L1044) `'one_time'` → `'onetime'` | ✅ "최근 1개월간 완료된 후원 13건, 280,000원, 일시 2건·정기 11건" 정상 응답 |
+| `email_send` | "박새로이에게 메일 보내줘…" | `수신자 조회 실패: The "string" argument must be of type string... Received type number (5)` | SQL `id = ANY(${ids})`에 JS number[] 전달 → postgres-js 드라이버가 배열 원소 타입을 못 추론해서 직렬화 실패. (오늘 07f8479 fix는 입력 정규화만 처리했고 SQL 직렬화는 그대로 남아 있던 결함) | [lib/ai-agent-tools.ts:1300](lib/ai-agent-tools.ts#L1300) — 코드베이스 표준 패턴 `sql.raw('ARRAY[…]::int[]')`로 변경 ([admin-donation-confirm.ts:341](netlify/functions/admin-donation-confirm.ts#L341)와 동일) | ✅ preview `{recipientCount:1, recipientNames:["박새로이"]}`, `pendingApproval=true` 정상 응답 |
+
+### 명료화 응답 (버그 아님 — AI가 재질문)
+
+- **운영성과 보고서**: 기간 미지정 → "예: '2025년'·'작년'" 재질문
+- **차년도 예산안**: 연도 미지정 → "어떤 연도?" 재질문
+- **최근 알림**: 회원ID 미지정 → "어떤 회원의?" 재질문
+- **내 메모**: 빈 메모 상태에서 "(응답 없음)" 짧은 reply (도구 호출 없음 — 데이터 0건이라 응답 비움)
+
+### 통과한 묶음 전체 (32개 도구 모두 OK)
+
+| # | 묶음 | 호출 도구 | 핵심 응답 |
+|---|---|---|---|
+| 1 | 회원 | members_stats, members_search | 활성 63명·박새로이 ID 5 |
+| 2 | 후원 | donations_stats(fix후), donations_recent | 280,000원·5건 |
+| 3 | SIREN 신고 | incidents_list, harassment_reports_list | 6건·10건 |
+| 4 | 법률상담 | legal_consultations_list | L-2026-7155·2500 외 |
+| 5 | 게시판·공지 | notices_list, board_posts_list | 7개·1개 |
+| 6 | 캠페인 | campaigns_list | 활성 1건 |
+| 7 | 콘텐츠·자료 | faqs_list, resources_list | 6개·1개 |
+| 8 | 알림 템플릿 | templates_list, recipient_groups_list | 16건·9개 |
+| 9 | 잠재 후원자 | potential_donors_list | 0건 |
+| 10 | 예산·후원정책 | budgets_list, donation_policy_get | 미편성·정책 OK |
+| 11 | 재정 22-A | revenue_categories_list, revenue_list | 카테고리 OK·1,100,000원 |
+| 12 | 지출 22-C | expense_categories_list, expenses_list | 카테고리 OK·123,232원 |
+| 13 | 손익 | (명료화 재질문) | 기간 요청 |
+| 14 | 예산안·전표 | voucher_list | 11건 |
+| 15 | 통장 대사 | bank_reconcile_summary | 출금 4건/200,125원 |
+| 16 | 채팅 | chat_rooms_list | 미답변 0건 |
+| 17 | 워크스페이스 | tasks_list, (메모는 reply만) | 작업 OK |
+| 18 | 캘린더·알림 | events_list | 이번 주 0건 |
+| 19 | 발송 (★) | members_search + email_send(fix후) | preview·승인 대기 |
+| 20 | 종합 KPI | kpi_summary | 회원 62·후원 13건·28만원 |
+| 21 | 보안·감사 | audit_logs_recent, members_recent_logins | 로그 10건·로그인 2명 |
+
+### 결론
+
+AI 비서 도구 90종 라이브 호출 인프라(자연어 → Gemini → 도구 디스패치 → 응답) 자체는 **완전 정상**. 발견된 2건은 모두 도구 핸들러 단의 단순 정합성 결함(enum 값 1글자·SQL 배열 직렬화)으로 C가 즉시 fix → 머지 후 재검증 통과. 변경 도구는 모두 dry-run preview까지만 진행해 실 데이터 변경 0건.
+
+**산출물**: `scripts/ai-verify-all.mjs` (재실행 가능한 21 묶음 일괄 검증기), `scripts/ai-verify-results.json` (1차 스냅샷).
+
+---
+
+**마지막 갱신**: 2026-05-16 (AI 비서 도구 21 묶음 라이브 검증 완료 + d400f61 fix 재검증 통과).
