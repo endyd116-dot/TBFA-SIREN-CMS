@@ -154,6 +154,7 @@ export default async function handler(_req: Request) {
       r = await db.execute(sql`
         SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
                j.subject_override, j.body_override, j.excluded_member_ids, j.images_override,
+               j.wrap_email_with_layout, j.attachment_blob_ids,
                j.status, j.scheduled_at, j.schedule_type
           FROM communication_send_jobs j
          WHERE j.status = 'pending'
@@ -165,6 +166,7 @@ export default async function handler(_req: Request) {
       r = await db.execute(sql`
         SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
                j.subject_override, j.body_override, j.excluded_member_ids,
+               j.wrap_email_with_layout, j.attachment_blob_ids,
                j.status, j.scheduled_at, j.schedule_type
           FROM communication_send_jobs j
          WHERE j.status = 'pending'
@@ -524,6 +526,34 @@ async function startJob(job: any) {
 }
 
 /* =========================================================
+   ★ 2026-05-16: 이메일 첨부파일 — attachment_blob_ids → blob_uploads 조회 →
+   sendEmailDirect가 R2 다운로드해서 base64 첨부할 수 있도록 blob_key·filename 전달.
+   ========================================================= */
+async function resolveAttachmentBlobs(
+  blobIds: any,
+): Promise<Array<{ blobKey: string; filename: string }>> {
+  const ids: number[] = Array.isArray(blobIds)
+    ? blobIds.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
+    : [];
+  if (ids.length === 0) return [];
+  try {
+    const idsLit = `ARRAY[${ids.join(",")}]::int[]`;
+    const r: any = await db.execute(sql`
+      SELECT id, blob_key, original_name
+        FROM blob_uploads
+       WHERE id = ANY(${sql.raw(idsLit)}) AND upload_status = 'completed'
+    `);
+    return (r?.rows ?? r ?? []).map((row: any) => ({
+      blobKey: String(row.blob_key),
+      filename: String(row.original_name || "attachment"),
+    }));
+  } catch (e) {
+    console.warn(`[cron-dispatcher] 첨부 blob 조회 실패`, e);
+    return [];
+  }
+}
+
+/* =========================================================
    processChunk — processing 작업 1개 chunk 처리
    ========================================================= */
 
@@ -651,6 +681,11 @@ async function processChunk(job: any) {
             } : {}),
             /* ★ 2026-05-17: SMS 채널 + 이미지 있으면 MMS 자동 전환. 첫 번째 이미지만 사용. */
             ...(channel === "sms" && smsImageUrl ? { mmsImageUrl: smsImageUrl } : {}),
+            /* ★ 2026-05-16: 이메일 채널 전용 — 웹 감싸기 + 첨부파일 */
+            ...(channel === "email" ? {
+              wrapEmail: job.wrap_email_with_layout === true,
+              emailAttachments: await resolveAttachmentBlobs(job.attachment_blob_ids),
+            } : {}),
           },
         ),
         SEND_TIMEOUT_MS,

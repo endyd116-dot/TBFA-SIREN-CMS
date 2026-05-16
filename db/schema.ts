@@ -2296,6 +2296,13 @@ export const communicationSendJobs = pgTable("communication_send_jobs", {
   bodyOverride:         text("body_override"),
   // 미리보기에서 사용자가 체크 해제한 회원 ID 배열 — cron 발송 시 그룹 resolve 결과에서 제외
   excludedMemberIds:    jsonb("excluded_member_ids").default(sql`'[]'::jsonb`),
+  /* ★ 2026-05-16: 이메일 첨부파일 (blob_uploads.id 배열). 이메일 채널 전용.
+     SMS/카카오/MMS는 무시. migrate-send-jobs-attachments.ts로 컬럼 추가됨. */
+  attachmentBlobIds:    jsonb("attachment_blob_ids").default(sql`'[]'::jsonb`).notNull(),
+  /* ★ 2026-05-16: "메일 웹 감싸기" 옵션. true면 디스패처가 이메일 본문을
+     lib/email.ts baseLayout()으로 wrap. 템플릿의 use_siren_layout과 별개로
+     발송 단위 토글. */
+  wrapEmailWithLayout:  boolean("wrap_email_with_layout").default(false).notNull(),
 }, (t) => ({
   statusIdx:    index("send_jobs_status_idx").on(t.status),
   scheduledIdx: index("send_jobs_scheduled_idx").on(t.scheduledAt),

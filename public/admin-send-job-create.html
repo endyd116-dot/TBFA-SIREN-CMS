@@ -217,6 +217,24 @@ body {
       <div class="form-hint">템플릿 선택 시 기본 채널이 자동으로 체크됩니다. 여러 채널을 동시에 선택하면 각 채널마다 개별 발송 작업이 등록됩니다.</div>
     </div>
 
+    <!-- ★ 2026-05-16: 이메일 전용 옵션 (이메일 채널 체크 시에만 표시) -->
+    <div class="form-row" id="emailOptionsRow" style="display:none;background:#eff6ff;border-left:4px solid #1e40af;padding:14px 16px;border-radius:6px">
+      <label class="form-label" style="color:#1e3a8a">📧 이메일 전용 옵션</label>
+      <div style="margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer">
+          <input type="checkbox" id="fWrapEmail" style="width:18px;height:18px">
+          <span><b>메일 웹 감싸기</b> — SIREN 디자인 헤더·푸터로 본문을 감싸서 발송</span>
+        </label>
+        <div class="form-hint" style="margin-left:26px;color:#475569">SMS·카카오·인앱은 본문 그대로 발송됩니다. 이메일에만 적용.</div>
+      </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;font-weight:500;margin-bottom:6px">📎 첨부파일</label>
+        <input type="file" id="fAttachments" multiple style="font-size:0.85rem">
+        <div class="form-hint" style="color:#475569">⚠️ 첨부파일은 <b>이메일에만</b> 전송됩니다. SMS·카카오·인앱은 첨부 무시. 단일 파일 20MB 이하.</div>
+        <div id="fAttachmentList" style="margin-top:6px;font-size:0.82rem;color:#475569"></div>
+      </div>
+    </div>
+
     <div class="form-row">
       <label class="form-label" for="fGroup">수신자 그룹<span class="req">*</span></label>
       <select class="form-select" id="fGroup">

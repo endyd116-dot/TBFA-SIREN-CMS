@@ -71,6 +71,13 @@ export default async function handler(req: Request, _ctx: Context) {
     : [];
   const excludedJson = JSON.stringify(excludedMemberIds);
 
+  /* ★ 2026-05-16: 이메일 전용 옵션 — 웹 감싸기 + 첨부파일 */
+  const wrapEmailWithLayout = body?.wrapEmailWithLayout === true;
+  const attachmentBlobIds: number[] = Array.isArray(body?.attachmentBlobIds)
+    ? body.attachmentBlobIds.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
+    : [];
+  const attachmentJson = JSON.stringify(attachmentBlobIds);
+
   /* ★ 2026-05-17: 이미지 override — 발송 시점에 템플릿 이미지를 임시 수정.
      NULL이면 템플릿의 images 그대로 사용. 빈 배열 []이면 이미지 모두 제거. */
   const imagesOverride = Array.isArray(body?.imagesOverride) ? body.imagesOverride.slice(0, 20) : null;
@@ -123,17 +130,21 @@ export default async function handler(req: Request, _ctx: Context) {
   for (const channel of channels) {
     const jobName = channels.length > 1 ? `${name} (${CHANNEL_LABEL[channel] || channel})` : name;
     try {
-      /* 1차: 새 컬럼 + images_override 포함 (마이그 적용 후) */
+      /* 1차: 모든 새 컬럼 포함 — wrap_email_with_layout·attachment_blob_ids는 이메일 채널에서만 의미 */
+      const isEmail = channel === "email";
       const r: any = await db.execute(sql`
         INSERT INTO communication_send_jobs
           (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
            status, total_recipients, success_count, failure_count, created_by,
-           subject_override, body_override, excluded_member_ids, images_override)
+           subject_override, body_override, excluded_member_ids, images_override,
+           wrap_email_with_layout, attachment_blob_ids)
         VALUES
           (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
            ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId},
            ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb,
-           ${imagesOverrideJson ? sql`${imagesOverrideJson}::jsonb` : sql`NULL`})
+           ${imagesOverrideJson ? sql`${imagesOverrideJson}::jsonb` : sql`NULL`},
+           ${isEmail ? wrapEmailWithLayout : false},
+           ${isEmail ? sql`${attachmentJson}::jsonb` : sql`'[]'::jsonb`})
         RETURNING id
       `);
       const row = (r?.rows ?? r ?? [])[0];

@@ -445,9 +445,19 @@
           }
           refreshTemplateOptions();
           applyImagesCardVisibility();
+          /* ★ 2026-05-16: 이메일 옵션 영역 표시/숨김 */
+          applyEmailOptionsVisibility();
         }, 0);
       });
     });
+  }
+
+  /* ★ 2026-05-16: 이메일 채널 체크 시에만 "이메일 전용 옵션" 영역 표시 */
+  function applyEmailOptionsVisibility() {
+    const row = document.getElementById('emailOptionsRow');
+    if (!row) return;
+    const channels = getSelectedChannels();
+    row.style.display = channels.includes('email') ? '' : 'none';
   }
 
   /* ★ 2026-05-16: 현재 선택된 채널이 카카오 단독이면 카카오 전용 템플릿만,
@@ -689,6 +699,10 @@
       imagesOverride = jobImages;
     }
 
+    /* ★ 2026-05-16: 이메일 전용 옵션 — wrapEmail + attachments */
+    const wrapEmail = document.getElementById('fWrapEmail')?.checked === true;
+    const attachmentBlobIds = Array.isArray(window._sendJobAttachmentIds) ? window._sendJobAttachmentIds.filter(n => Number.isInteger(n)) : [];
+
     return {
       ok: true,
       body: {
@@ -702,7 +716,49 @@
         ...(bodyOverride ? { bodyOverride } : {}),
         ...(excludedIds.size > 0 ? { excludedMemberIds: Array.from(excludedIds) } : {}),
         ...(imagesOverride !== undefined ? { imagesOverride } : {}),
+        ...(channels.includes('email') ? { wrapEmailWithLayout: wrapEmail, attachmentBlobIds } : {}),
       },
+    };
+  }
+
+  /* ★ 2026-05-16: 첨부파일 업로드 — fAttachments change 시 R2 업로드 + blob_id 누적 */
+  function bindAttachmentUpload() {
+    const fileInput = document.getElementById('fAttachments');
+    const listEl = document.getElementById('fAttachmentList');
+    if (!fileInput || !listEl) return;
+    if (!window._sendJobAttachmentIds) window._sendJobAttachmentIds = [];
+
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files || []);
+      if (files.length === 0) return;
+      for (const file of files) {
+        if (file.size > 20 * 1024 * 1024) {
+          showToast(`${file.name} — 20MB 이하만 첨부 가능`, 'error');
+          continue;
+        }
+        listEl.innerHTML += `<div data-file="uploading">⏳ ${escapeHtml(file.name)} 업로드 중...</div>`;
+        try {
+          if (!window.SirenEditor || typeof window.SirenEditor.uploadFile !== 'function') {
+            throw new Error('업로드 모듈 미설치');
+          }
+          const result = await window.SirenEditor.uploadFile(file, 'email_attachment');
+          if (!result || !result.id) throw new Error('업로드 실패');
+          window._sendJobAttachmentIds.push(Number(result.id));
+          /* 마지막 uploading 줄을 성공으로 교체 */
+          const last = listEl.querySelector('[data-file="uploading"]');
+          if (last) last.outerHTML = `✅ ${escapeHtml(file.name)} (${(file.size/1024).toFixed(1)}KB) <button type="button" class="btn-mini" onclick="window._removeAttachment(${result.id}, this)" style="font-size:0.72rem;margin-left:4px;padding:1px 6px">×</button><br>`;
+        } catch (err) {
+          const last = listEl.querySelector('[data-file="uploading"]');
+          if (last) last.outerHTML = `❌ ${escapeHtml(file.name)} 업로드 실패: ${escapeHtml(err.message || '')}<br>`;
+        }
+      }
+      fileInput.value = '';
+    });
+
+    window._removeAttachment = (id, btn) => {
+      window._sendJobAttachmentIds = (window._sendJobAttachmentIds || []).filter(n => n !== id);
+      const line = btn.closest('div') || btn.parentNode;
+      if (line && line.remove) line.remove();
     };
   }
 
@@ -767,6 +823,7 @@
     });
 
     bindChannelGrid();
+    bindAttachmentUpload();
 
     $("btnCancel").addEventListener("click", () => {
       window.location.href = "/admin-send-jobs.html";

@@ -25,6 +25,10 @@ export interface SendPayload {
   alimtalkButtonJson?: any;
   /** ★ 2026-05-17: SMS 채널일 때 이미지 첨부 시 자동 MMS 전환. 첫 번째 이미지 URL만 사용. */
   mmsImageUrl?: string;
+  /** ★ 2026-05-16: 이메일 채널 전용 — SIREN baseLayout으로 wrap (메일 웹 감싸기) */
+  wrapEmail?: boolean;
+  /** ★ 2026-05-16: 이메일 채널 전용 — 첨부파일 (R2 blob_key + 파일명). 무시되는 채널은 무관. */
+  emailAttachments?: Array<{ blobKey: string; filename: string }>;
 }
 
 export interface SendResult {
@@ -79,12 +83,34 @@ async function sendEmailDirect(
     return { ok: false, error: `유효하지 않은 이메일 도메인 (placeholder): ${member.email}` };
   }
   const subject = (payload.subject || "").trim() || "(제목 없음)";
-  const html =
-    `<div style="font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;color:#0f0f0f;padding:24px;line-height:1.7;font-size:15px;">` +
-    String(payload.body).slice(0, 50000) +
-    `</div>`;
+  const innerBody = String(payload.body).slice(0, 50000);
 
-  const result: any = await sendEmail({ to: member.email, subject, html });
+  /* ★ 2026-05-16: wrapEmail=true면 SIREN baseLayout으로 wrap, 아니면 기본 div */
+  let html: string;
+  if (payload.wrapEmail) {
+    const { baseLayout } = await import("./email");
+    html = baseLayout({ title: subject, bodyHtml: innerBody });
+  } else {
+    html = `<div style="font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;color:#0f0f0f;padding:24px;line-height:1.7;font-size:15px;">${innerBody}</div>`;
+  }
+
+  /* ★ 2026-05-16: 첨부파일 — R2 private bucket이라 downloadFromR2 직접 호출 → base64 */
+  let attachments: Array<{ filename: string; content: string }> | undefined;
+  if (Array.isArray(payload.emailAttachments) && payload.emailAttachments.length > 0) {
+    const { downloadFromR2 } = await import("./r2-server");
+    attachments = [];
+    for (const att of payload.emailAttachments) {
+      try {
+        const data = await downloadFromR2(att.blobKey);
+        if (!data) continue;
+        if (data.byteLength > 20 * 1024 * 1024) continue;  /* 단일 첨부 20MB 상한 (Resend 권장) */
+        attachments.push({ filename: att.filename, content: Buffer.from(data).toString("base64") });
+      } catch {}
+    }
+    if (attachments.length === 0) attachments = undefined;
+  }
+
+  const result: any = await sendEmail({ to: member.email, subject, html, attachments });
   if (!result?.ok) {
     return {
       ok: false,

@@ -15,7 +15,7 @@ const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
    ───────────────────────────────────────────────────────────── */
 const TEST_MODE_RECIPIENT = (process.env.RESEND_TEST_RECIPIENT || "").trim();
 
-export async function sendEmail(opts: { to: string; subject: string; html: string }) {
+export async function sendEmail(opts: { to: string; subject: string; html: string; attachments?: Array<{ filename: string; content: string }> }) {
   const apiKeyMasked = RESEND_API_KEY 
     ? RESEND_API_KEY.slice(0, 6) + "..." + RESEND_API_KEY.slice(-4)
     : "(비어있음)";
@@ -63,6 +63,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
       to: actualTo,
       subject: actualSubject,
       html: actualHtml,
+      ...(opts.attachments && opts.attachments.length > 0 ? { attachments: opts.attachments } : {}),
     });
 
     if (error) {
