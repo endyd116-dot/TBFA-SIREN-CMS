@@ -83,9 +83,21 @@ export default async (_req: Request) => {
     // 1. 청구 대상자 수집
     const scheduled = await collectScheduledTargets();
     const retries = await collectRetryTargets();
-    const allTargets = [...scheduled, ...retries];
 
-    console.log(`[cron-billing] 대상: 정기 ${scheduled.length}명 + 재시도 ${retries.length}명 = 총 ${allTargets.length}명`);
+    // ★ 중복 제거: 같은 회원이 scheduled(오늘 약정일) + retries(이전 실패 재시도)
+    //   양쪽에 동시에 들어있으면 1회만 청구. scheduled 우선(오늘이 정기일이므로
+    //   이번 사이클에서 정기 청구로 처리하고, 또 실패하면 다음 cron의 retry로 잡힘).
+    //   이 dedup이 없으면 같은 회원에게 같은 알림이 2번 발송됨.
+    const seenMemberIds = new Set<number>();
+    const allTargets: BillingTarget[] = [];
+    let dedupedCount = 0;
+    for (const t of [...scheduled, ...retries]) {
+      if (seenMemberIds.has(t.memberId)) { dedupedCount++; continue; }
+      seenMemberIds.add(t.memberId);
+      allTargets.push(t);
+    }
+
+    console.log(`[cron-billing] 대상: 정기 ${scheduled.length}명 + 재시도 ${retries.length}명 → dedup ${dedupedCount}건 제외 → 총 ${allTargets.length}명`);
 
     // 2. 배치 실행 (5명씩)
     const summary: BillingSummary = {
