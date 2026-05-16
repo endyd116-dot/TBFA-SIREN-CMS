@@ -21,7 +21,7 @@
 // - 즉시 활성화 회원만 로그인 쿠키 발급
 
 import type { Context } from "@netlify/functions";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "../../db";
 import { members, blobUploads } from "../../db/schema";
@@ -33,6 +33,8 @@ import {
   ok, badRequest, conflict, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
+/* ★ 2026-05-16 A안: 효성 후원자 사이트 가입 흐름 — 전화 인증 토큰 처리 */
+import { consumeVerifyToken, normalizePhone as normPhoneVerify } from "../../lib/phone-verify";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
@@ -257,25 +259,41 @@ export default async (req: Request, _ctx: Context) => {
       certificateBlobId = blobId;
     }
 
-    /* 6. 이메일 중복 확인 */
+    /* ★ A안: 전화 인증 토큰 처리 — verifyToken 있으면 phone_verifications에서 matched_member_id 조회.
+       matched 있으면 그 row를 활성화 흐름으로 (이메일·비번 추가). 없으면 신규 가입 흐름. */
+    let matchedMemberId: number | null = null;
+    const verifyToken = body?.verifyToken ? String(body.verifyToken) : "";
+    if (verifyToken) {
+      const consumed = await consumeVerifyToken(verifyToken);
+      if (!consumed) {
+        return badRequest("전화 인증이 만료되었거나 유효하지 않습니다. 다시 인증해 주세요.");
+      }
+      /* 인증한 전화번호와 가입 폼 전화번호 일치 검증 (보안) */
+      if (normPhoneVerify(phone || "") !== normPhoneVerify(consumed.phone)) {
+        return badRequest("인증하신 전화번호와 가입 전화번호가 다릅니다.");
+      }
+      matchedMemberId = consumed.matchedMemberId;
+    }
+
+    /* 6. 이메일 중복 확인 — matched 회원의 placeholder 이메일은 제외 */
     const [existing] = await db
       .select({ id: members.id })
       .from(members)
       .where(eq(members.email, email))
       .limit(1);
-    if (existing) {
+    if (existing && (!matchedMemberId || existing.id !== matchedMemberId)) {
       return conflict("이미 가입된 이메일입니다");
     }
 
-    /* 6-2. 전화번호 중복 확인 (입력된 경우만 — phone은 nullable) */
-    if (phone) {
+    /* 6-2. 전화번호 중복 확인 — matchedMemberId 있으면 그 row가 본인 row이므로 skip */
+    if (phone && !matchedMemberId) {
       const [existingPhone] = await db
         .select({ id: members.id })
         .from(members)
         .where(eq(members.phone, phone))
         .limit(1);
       if (existingPhone) {
-        return conflict("이미 가입된 연락처입니다");
+        return conflict("이미 가입된 연락처입니다. 전화번호 인증으로 활성화하실 수 있습니다.");
       }
     }
 
@@ -308,16 +326,50 @@ export default async (req: Request, _ctx: Context) => {
       operatorActive: false,
     };
 
-    const [created] = await db.insert(members).values(insertData).returning({
-      id: members.id,
-      email: members.email,
-      name: members.name,
-      status: members.status,
-      type: members.type,
-      memberCategory: members.memberCategory,
-      memberSubtype: members.memberSubtype,
-      createdAt: members.createdAt,
-    });
+    /* ★ A안: matchedMemberId 있으면 INSERT 대신 UPDATE (기존 효성 후원자 row 활성화).
+       후원 이력·hyosung_member_no·hyosung_synced_at 등은 그대로 유지. */
+    let created: any;
+    if (matchedMemberId) {
+      await db.execute(sql`
+        UPDATE members SET
+          email                   = ${email},
+          password_hash           = ${passwordHash},
+          name                    = ${name},
+          type                    = ${config.mappedType},
+          status                  = ${config.initialStatus},
+          member_category         = ${config.memberCategory},
+          member_subtype          = ${config.subtype ?? null},
+          certificate_blob_id     = ${certificateBlobId},
+          certificate_uploaded_at = ${certificateBlobId ? now.toISOString() : null}::timestamp,
+          agree_email             = ${body.agreeEmail !== false},
+          agree_sms               = ${body.agreeSms !== false},
+          agree_mail              = ${body.agreeMail === true},
+          memo                    = ${body.memo ? String(body.memo).slice(0, 500) : null},
+          email_verified          = FALSE,
+          operator_active         = FALSE,
+          updated_at              = NOW()
+        WHERE id = ${matchedMemberId}
+      `);
+      const [updated] = await db.select({
+        id: members.id, email: members.email, name: members.name,
+        status: members.status, type: members.type,
+        memberCategory: members.memberCategory, memberSubtype: members.memberSubtype,
+        createdAt: members.createdAt,
+      }).from(members).where(eq(members.id, matchedMemberId)).limit(1);
+      created = updated;
+    } else {
+      const [inserted] = await db.insert(members).values(insertData).returning({
+        id: members.id,
+        email: members.email,
+        name: members.name,
+        status: members.status,
+        type: members.type,
+        memberCategory: members.memberCategory,
+        memberSubtype: members.memberSubtype,
+        createdAt: members.createdAt,
+      });
+      created = inserted;
+    }
 
     /* 9. blob_uploads에 reference 연결 */
     if (certificateBlobId) {
