@@ -29,33 +29,50 @@ export default async function handler(req: Request) {
   const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const toDate   = to   ? new Date(to)   : new Date();
 
+  /* ★ 2026-05-16 (3차): 메인 jobs/recipients 쿼리도 inner try로 감싸 outer 500
+     자체를 차단. 한 쿼리 fail해도 다른 쿼리는 정상 응답 + 응답에 _errors 배열로
+     실패한 쿼리 step과 detail 표시 → 사용자가 화면에서 정확한 원인 인지. */
+  const _errors: { step: string; detail: string }[] = [];
+
   try {
     /* 총 발송 작업 수 */
-    const jobsRes: any = await db.execute(sql`
-      SELECT COUNT(*)::int AS total_jobs
-        FROM communication_send_jobs
-       WHERE created_at >= ${fromDate} AND created_at <= ${toDate}
-         AND status IN ('completed','processing','failed')
-    `);
-    const totalJobs = ((jobsRes?.rows ?? jobsRes)[0] ?? {}).total_jobs ?? 0;
+    let totalJobs = 0;
+    try {
+      const jobsRes: any = await db.execute(sql`
+        SELECT COUNT(*)::int AS total_jobs
+          FROM communication_send_jobs
+         WHERE created_at >= ${fromDate} AND created_at <= ${toDate}
+           AND status IN ('completed','processing','failed')
+      `);
+      totalJobs = ((jobsRes?.rows ?? jobsRes)[0] ?? {}).total_jobs ?? 0;
+    } catch (e: any) {
+      _errors.push({ step: 'jobs', detail: String(e?.message || e).slice(0, 300) });
+      console.warn('[analytics-overview] jobs 쿼리 실패', e);
+    }
 
     /* 수신자 집계 */
-    const recipientsRes: any = await db.execute(sql`
-      SELECT
-        COUNT(*)::int                                    AS total,
-        COUNT(*) FILTER (WHERE status = 'sent')::int    AS delivered,
-        COUNT(*) FILTER (WHERE open_count > 0)::int     AS opened,
-        COUNT(*) FILTER (WHERE click_count > 0)::int    AS clicked
-      FROM communication_send_recipients r
-      JOIN communication_send_jobs j ON j.id = r.job_id
-      WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
-        AND r.status IN ('sent','failed')
-    `);
-    const agg = (recipientsRes?.rows ?? recipientsRes ?? [])[0] ?? {};
-    const totalRecipients = agg.total ?? 0;
-    const delivered       = agg.delivered ?? 0;
-    const opened          = agg.opened ?? 0;
-    const clicked         = agg.clicked ?? 0;
+    let totalRecipients = 0, delivered = 0, opened = 0, clicked = 0;
+    try {
+      const recipientsRes: any = await db.execute(sql`
+        SELECT
+          COUNT(*)::int                                    AS total,
+          COUNT(*) FILTER (WHERE status = 'sent')::int    AS delivered,
+          COUNT(*) FILTER (WHERE open_count > 0)::int     AS opened,
+          COUNT(*) FILTER (WHERE click_count > 0)::int    AS clicked
+        FROM communication_send_recipients r
+        JOIN communication_send_jobs j ON j.id = r.job_id
+        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+          AND r.status IN ('sent','failed')
+      `);
+      const agg = (recipientsRes?.rows ?? recipientsRes ?? [])[0] ?? {};
+      totalRecipients = agg.total ?? 0;
+      delivered       = agg.delivered ?? 0;
+      opened          = agg.opened ?? 0;
+      clicked         = agg.clicked ?? 0;
+    } catch (e: any) {
+      _errors.push({ step: 'recipients', detail: String(e?.message || e).slice(0, 300) });
+      console.warn('[analytics-overview] recipients 쿼리 실패', e);
+    }
     const openRate  = delivered > 0 ? Math.round((opened  / delivered) * 1000) / 10 : 0;
     const clickRate = delivered > 0 ? Math.round((clicked / delivered) * 1000) / 10 : 0;
 
@@ -77,7 +94,10 @@ export default async function handler(req: Request) {
       for (const row of (chRes?.rows ?? chRes ?? [])) {
         byChannel[row.channel] = { sent: row.sent, opened: row.opened, clicked: row.clicked };
       }
-    } catch (e) { console.warn("[analytics-overview] byChannel 실패", e); }
+    } catch (e: any) {
+      _errors.push({ step: 'byChannel', detail: String(e?.message || e).slice(0, 300) });
+      console.warn("[analytics-overview] byChannel 실패", e);
+    }
 
     /* 전송 성공률(deliveryRate) — totalRecipients 대비 delivered */
     const deliveryRate = totalRecipients > 0
@@ -103,9 +123,14 @@ export default async function handler(req: Request) {
       trend = (trendRes?.rows ?? trendRes ?? []).map((r: any) => ({
         date: r.date, sent: r.sent, opened: r.opened, clicked: r.clicked,
       }));
-    } catch (e) { console.warn("[analytics-overview] trend 실패", e); }
+    } catch (e: any) {
+      _errors.push({ step: 'trend', detail: String(e?.message || e).slice(0, 300) });
+      console.warn("[analytics-overview] trend 실패", e);
+    }
 
-    /* ★ 2026-05-16: Top 발송 작업 (열람률 기준 상위 10) — 옛 코드 누락분 추가 */
+    /* ★ 2026-05-16 (2차): Top 발송 작업 — COUNT(r.id) 안전 패턴.
+       옛 r.* 패턴은 PG 버전에 따라 parser 이슈 가능. r.id는 NOT NULL이라
+       매칭 안 된 LEFT JOIN row(전부 NULL)는 자연스럽게 제외됨. */
     let topJobs: any[] = [];
     try {
       const topRes: any = await db.execute(sql`
@@ -113,16 +138,16 @@ export default async function handler(req: Request) {
           j.id,
           j.name                                                       AS job_name,
           j.channel,
-          COUNT(r.*) FILTER (WHERE r.status = 'sent')::int             AS sent,
-          COUNT(r.*) FILTER (WHERE r.open_count > 0)::int              AS opened
+          COUNT(r.id) FILTER (WHERE r.status = 'sent')::int            AS sent,
+          COUNT(r.id) FILTER (WHERE r.open_count > 0)::int             AS opened
         FROM communication_send_jobs j
         LEFT JOIN communication_send_recipients r ON r.job_id = j.id
         WHERE j.created_at >= ${fromDate} AND j.created_at <= ${toDate}
         GROUP BY j.id, j.name, j.channel
-        HAVING COUNT(r.*) FILTER (WHERE r.status = 'sent') > 0
-        ORDER BY (CASE WHEN COUNT(r.*) FILTER (WHERE r.status = 'sent') > 0
-                       THEN COUNT(r.*) FILTER (WHERE r.open_count > 0)::numeric
-                            / COUNT(r.*) FILTER (WHERE r.status = 'sent')
+        HAVING COUNT(r.id) FILTER (WHERE r.status = 'sent') > 0
+        ORDER BY (CASE WHEN COUNT(r.id) FILTER (WHERE r.status = 'sent') > 0
+                       THEN COUNT(r.id) FILTER (WHERE r.open_count > 0)::numeric
+                            / COUNT(r.id) FILTER (WHERE r.status = 'sent')
                        ELSE 0 END) DESC,
                  sent DESC
         LIMIT 10
@@ -139,7 +164,10 @@ export default async function handler(req: Request) {
           openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
         };
       });
-    } catch (e) { console.warn("[analytics-overview] topJobs 실패", e); }
+    } catch (e: any) {
+      _errors.push({ step: 'topJobs', detail: String(e?.message || e).slice(0, 300) });
+      console.warn("[analytics-overview] topJobs 실패", e);
+    }
 
     /* ★ 2026-05-16: AI 트리거 효과 — triggered_by_auto_id 기준 집계
        (정확한 컬럼명: communication_send_jobs.triggered_by_auto_id +
@@ -150,8 +178,8 @@ export default async function handler(req: Request) {
         SELECT
           j.triggered_by_auto_id                                            AS trigger_id,
           COALESCE(MAX(t.name), '트리거 #' || j.triggered_by_auto_id::text) AS trigger_name,
-          COUNT(r.*) FILTER (WHERE r.status = 'sent')::int                  AS sent,
-          COUNT(r.*) FILTER (WHERE r.open_count > 0)::int                   AS opened
+          COUNT(r.id) FILTER (WHERE r.status = 'sent')::int                 AS sent,
+          COUNT(r.id) FILTER (WHERE r.open_count > 0)::int                  AS opened
         FROM communication_send_jobs j
         LEFT JOIN communication_send_recipients r ON r.job_id = j.id
         LEFT JOIN communication_auto_triggers t ON t.id = j.triggered_by_auto_id
@@ -172,7 +200,10 @@ export default async function handler(req: Request) {
           openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
         };
       });
-    } catch (e) { console.warn("[analytics-overview] aiTriggerEffect 실패 (auto_triggers 테이블 부재 가능)", e); }
+    } catch (e: any) {
+      _errors.push({ step: 'aiTriggerEffect', detail: String(e?.message || e).slice(0, 300) });
+      console.warn("[analytics-overview] aiTriggerEffect 실패", e);
+    }
 
     return new Response(
       JSON.stringify({
@@ -182,6 +213,7 @@ export default async function handler(req: Request) {
           openRate, clickRate,
           byChannel, trend, topJobs, aiTriggerEffect,
         },
+        _errors: _errors.length ? _errors : undefined,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );

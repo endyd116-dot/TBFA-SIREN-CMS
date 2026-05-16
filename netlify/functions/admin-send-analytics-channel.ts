@@ -20,25 +20,35 @@ export default async function handler(req: Request) {
   const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const toDate   = to   ? new Date(to)   : new Date();
 
+  /* ★ 2026-05-16: 각 쿼리를 inner try로 감싸 outer 500 자체 차단 + 어떤 쿼리가
+     실패했는지 _errors 배열로 응답에 포함 → 사용자가 화면에서 정확한 원인 인지. */
+  const _errors: { step: string; detail: string }[] = [];
+
   try {
     /* 채널별 상세 집계 */
-    const channelRes: any = await db.execute(sql`
-      SELECT
-        r.channel,
-        COUNT(*)::int                                          AS total_recipients,
-        COUNT(*) FILTER (WHERE r.status = 'sent')::int        AS sent,
-        COUNT(*) FILTER (WHERE r.status = 'failed')::int      AS failed,
-        COUNT(*) FILTER (WHERE r.open_count > 0)::int         AS opened_unique,
-        COUNT(*) FILTER (WHERE r.click_count > 0)::int        AS clicked_unique,
-        COALESCE(SUM(r.open_count), 0)::int                   AS total_opens,
-        COALESCE(SUM(r.click_count), 0)::int                  AS total_clicks,
-        COUNT(DISTINCT r.job_id)::int                         AS job_count
-      FROM communication_send_recipients r
-      WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
-      GROUP BY r.channel
-      ORDER BY sent DESC
-    `);
-    const rows = channelRes?.rows ?? channelRes ?? [];
+    let rows: any[] = [];
+    try {
+      const channelRes: any = await db.execute(sql`
+        SELECT
+          r.channel,
+          COUNT(*)::int                                          AS total_recipients,
+          COUNT(*) FILTER (WHERE r.status = 'sent')::int        AS sent,
+          COUNT(*) FILTER (WHERE r.status = 'failed')::int      AS failed,
+          COUNT(*) FILTER (WHERE r.open_count > 0)::int         AS opened_unique,
+          COUNT(*) FILTER (WHERE r.click_count > 0)::int        AS clicked_unique,
+          COALESCE(SUM(r.open_count), 0)::int                   AS total_opens,
+          COALESCE(SUM(r.click_count), 0)::int                  AS total_clicks,
+          COUNT(DISTINCT r.job_id)::int                         AS job_count
+        FROM communication_send_recipients r
+        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        GROUP BY r.channel
+        ORDER BY sent DESC
+      `);
+      rows = channelRes?.rows ?? channelRes ?? [];
+    } catch (e: any) {
+      _errors.push({ step: 'channels', detail: String(e?.message || e).slice(0, 300) });
+      console.warn('[analytics-channel] channels 쿼리 실패', e);
+    }
 
     /* 채널별 오픈율·클릭률 계산 */
     const channels = rows.map((r: any) => {
@@ -76,10 +86,13 @@ export default async function handler(req: Request) {
         LIMIT 80
       `);
       weeklyTrend = weekRes?.rows ?? weekRes ?? [];
-    } catch (e) { console.warn("[analytics-channel] weeklyTrend 실패", e); }
+    } catch (e: any) {
+      _errors.push({ step: 'weeklyTrend', detail: String(e?.message || e).slice(0, 300) });
+      console.warn("[analytics-channel] weeklyTrend 실패", e);
+    }
 
     return new Response(
-      JSON.stringify({ ok: true, channels, weeklyTrend }),
+      JSON.stringify({ ok: true, channels, weeklyTrend, _errors: _errors.length ? _errors : undefined }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {

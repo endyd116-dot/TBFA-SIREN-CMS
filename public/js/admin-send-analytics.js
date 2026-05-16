@@ -60,16 +60,24 @@
       api({ url: `/api/admin-send-analytics-channel?from=${from}&to=${to}` }),
     ]);
 
-    /* ★ 2026-05-16: API 실패 시 명시적 에러 표시 — 옛 코드는 ovRes.ok=false 여도
-       그대로 진행해 모든 카드에 '—'만 보였음. 실제 원인(401·500·네트워크)이
-       사용자에게 보이지 않음. */
+    /* ★ 2026-05-16 (2차): API 실패 시 detail(서버 SQL 에러 본문)까지 합쳐 표시.
+       이전 fix는 error 또는 detail 중 하나만 → '발송 통계 조회 실패: 발송 통계
+       조회 실패' 같은 무의미 출력. 둘을 합쳐 진짜 원인이 화면에 노출되도록. */
     if (!ovRes.ok) {
-      const msg = (ovRes.data && (ovRes.data.error || ovRes.data.detail)) || ('HTTP ' + (ovRes.status || '?'));
+      const err = ovRes.data && ovRes.data.error;
+      const det = ovRes.data && ovRes.data.detail;
+      const stp = ovRes.data && ovRes.data.step;
+      const parts = [];
+      if (err) parts.push(err);
+      if (stp) parts.push('[' + stp + ']');
+      if (det) parts.push(det);
+      const msg = parts.length ? parts.join(' ') : ('HTTP ' + (ovRes.status || '?'));
+      console.error('[send-analytics] overview API 실패:', ovRes.data);
       showToast('발송 통계 조회 실패: ' + msg, 'error');
-      const errHtml = '<p class="empty" style="color:#b91c1c">조회 실패: ' + escapeHtml(msg) + '</p>';
+      const errHtml = '<p class="empty" style="color:#b91c1c;white-space:pre-wrap">조회 실패\n' + escapeHtml(msg) + '</p>';
       $("trendEmpty").style.display = 'block';
       $("trendEmpty").textContent = '조회 실패: ' + msg;
-      $("channelBody").innerHTML = '<tr><td colspan="6" class="empty" style="color:#b91c1c">조회 실패: ' + escapeHtml(msg) + '</td></tr>';
+      $("channelBody").innerHTML = '<tr><td colspan="6" class="empty" style="color:#b91c1c;white-space:pre-wrap">조회 실패\n' + escapeHtml(msg) + '</td></tr>';
       $("topJobsList").innerHTML = errHtml;
       $("triggerEffectList").innerHTML = errHtml;
       return;
@@ -79,6 +87,16 @@
     const ch = chRes.ok
       ? (chRes.data?.channels || chRes.data?.data?.channels || chRes.data?.byChannel || ov.byChannel || {})
       : (ov.byChannel || {});
+
+    /* ★ 2026-05-16 (3차): 200 응답이지만 일부 쿼리 실패한 경우 _errors 표시 */
+    const errs = [];
+    if (ovRes.data && Array.isArray(ovRes.data._errors)) errs.push(...ovRes.data._errors);
+    if (chRes.data && Array.isArray(chRes.data._errors)) errs.push(...chRes.data._errors);
+    if (errs.length) {
+      console.warn('[send-analytics] 부분 실패:', errs);
+      const msg = errs.map(e => '[' + e.step + '] ' + e.detail).join(' | ');
+      showToast('일부 데이터 누락: ' + msg, 'error');
+    }
 
     renderKPI(ov);
     renderTrendChart(ov.trend || []);
