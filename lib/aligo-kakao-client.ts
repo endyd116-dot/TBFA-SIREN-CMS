@@ -36,23 +36,72 @@ export interface AligoAlimtalkResult {
 
 const ALIGO_ENDPOINT = "https://kakaoapi.aligo.in/akv10/alimtalk/send/";
 
+/* ★ 2026-05-16: AWS us-east-2 Lambda 변동 IP가 알리고 화이트리스트와 호환 안 됨.
+   ALIGO_PROXY_URL이 설정되어 있으면 Oracle Cloud Free Tier에 배포한 고정 IP
+   프록시 서버 경유로 호출. 프록시가 자체 환경변수로 알리고 자격 보관하므로
+   Netlify 측은 PROXY_URL·PROXY_SECRET만 알면 됨. */
 export async function sendAligoAlimtalk(
   opts: AligoAlimtalkOpts,
 ): Promise<AligoAlimtalkResult> {
-  const apikey = process.env.ALIGO_API_KEY || "";
-  const userid = process.env.ALIGO_USER_ID || "";
-
-  if (!apikey || !userid) {
-    return { ok: false, error: "ALIGO_API_KEY/ALIGO_USER_ID 미등록" };
-  }
-  if (!opts.senderKey) {
-    return { ok: false, error: "ALIGO_KAKAO_CHANNEL_ID(senderkey) 미등록" };
-  }
   if (!opts.tplCode) {
     return { ok: false, error: "tplCode 미지정 (템플릿 ID 환경변수 미등록)" };
   }
   if (!opts.receiver) {
     return { ok: false, error: "수신자 번호 없음" };
+  }
+
+  const proxyUrl    = process.env.ALIGO_PROXY_URL || "";
+  const proxySecret = process.env.ALIGO_PROXY_SECRET || "";
+
+  /* === 프록시 경유 모드 (운영) === */
+  if (proxyUrl) {
+    if (!proxySecret) {
+      return { ok: false, error: "ALIGO_PROXY_SECRET 미설정 — 프록시 인증 불가" };
+    }
+    try {
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-proxy-secret": proxySecret,
+        },
+        body: JSON.stringify({
+          tplCode: opts.tplCode,
+          receiver: opts.receiver,
+          message: opts.message,
+          subject: opts.subject || "",
+          buttonJson: opts.buttonJson || null,
+        }),
+      });
+      const json: any = await res.json().catch(() => ({}));
+      if (json?.ok === true) {
+        return {
+          ok: true,
+          providerMessageId: json.providerMessageId || undefined,
+          code: json.code,
+          message: json.message,
+        };
+      }
+      return {
+        ok: false,
+        code: json?.code,
+        message: json?.message,
+        error: String(json?.error || `프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500),
+      };
+    } catch (err: any) {
+      return { ok: false, error: `프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+    }
+  }
+
+  /* === 직접 호출 모드 (옛 경로, IP 화이트리스트 통과 시) === */
+  const apikey = process.env.ALIGO_API_KEY || "";
+  const userid = process.env.ALIGO_USER_ID || "";
+
+  if (!apikey || !userid) {
+    return { ok: false, error: "ALIGO_API_KEY/ALIGO_USER_ID 미등록 (또는 ALIGO_PROXY_URL 설정 필요)" };
+  }
+  if (!opts.senderKey) {
+    return { ok: false, error: "ALIGO_KAKAO_CHANNEL_ID(senderkey) 미등록" };
   }
 
   const form = new URLSearchParams();

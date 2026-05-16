@@ -1,0 +1,17 @@
+[Unit]
+Description=Aligo Kakao Alimtalk Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/aligo-proxy
+EnvironmentFile=/home/ubuntu/aligo-proxy/.env
+ExecStart=/usr/bin/node /home/ubuntu/aligo-proxy/server.js
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/aligo-proxy.log
+StandardError=append:/var/log/aligo-proxy.log
+
+[Install]
+WantedBy=multi-user.target
