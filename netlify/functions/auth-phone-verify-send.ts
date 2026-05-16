@@ -13,7 +13,7 @@
 import type { Context } from "@netlify/functions";
 import {
   normalizePhone, checkRateLimit, generateVerifyCode,
-  sendVerifyCodeSms, insertVerification, CODE_EXPIRES_MS,
+  sendVerifyCodeSms, insertVerification, deleteVerification, CODE_EXPIRES_MS,
 } from "../../lib/phone-verify";
 
 export const config = { path: "/api/auth/phone-verify-send" };
@@ -62,6 +62,9 @@ export default async (req: Request, _ctx: Context) => {
 
   const sms = await sendVerifyCodeSms(phone, code);
   if (!sms.ok) {
+    /* SMS 실패 시 방금 INSERT한 row 롤백 — rate limit 부정 누적 방지
+       (사용자가 코드 못 받았는데 5분 갇히는 UX 결함 차단) */
+    await deleteVerification(id);
     return new Response(JSON.stringify({
       ok: false, error: "SMS 발송 실패", step: "send", detail: (sms.error || "").slice(0, 200),
     }), { status: 500, headers: JSON_HEADER });
