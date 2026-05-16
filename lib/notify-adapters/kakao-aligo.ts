@@ -47,8 +47,8 @@ interface BuildResult {
   buttonJson: string;
 }
 
-/* enriched params 추출 — DB 템플릿 변수 치환과 폴백 본문 양쪽에 사용 */
-function enrichKakaoParams(event: NotifyEvent, params: Record<string, any>, memberName: string): Record<string, any> {
+/* enriched params 추출 — DB 템플릿 변수 치환과 폴백 본문 양쪽에 사용 (★ export — list API 미리보기) */
+export function enrichKakaoParams(event: NotifyEvent, params: Record<string, any>, memberName: string): Record<string, any> {
   switch (event) {
     case NotifyEvent.BILLING_FAILED: {
       const name = String(params.memberName || memberName || "후원자");
@@ -76,8 +76,8 @@ function enrichKakaoParams(event: NotifyEvent, params: Record<string, any>, memb
   }
 }
 
-/* 폴백 본문 (DB 템플릿 없을 때) — 박새로이가 받은 그 본문 그대로, enriched 변수 사용 */
-function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): string | null {
+/* 폴백 본문 (DB 템플릿 없을 때) — 박새로이가 받은 그 본문 그대로, enriched 변수 사용 (★ export — list API 미리보기) */
+export function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): string | null {
   switch (event) {
     case NotifyEvent.BILLING_FAILED:
       return `[교사유가족협의회] ${e.name}님, 이번 달 후원 결제 안내드려요

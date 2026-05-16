@@ -32,8 +32,8 @@ async function lookupPhone(targetId: number): Promise<string | null> {
   }
 }
 
-/* ─── 이벤트 → SMS 메시지 빌드 ─── */
-function buildSmsContent(
+/* ─── 이벤트 → SMS 메시지 빌드 (★ export — list API 미리보기에서 호출) ─── */
+export function buildSmsContent(
   event: NotifyEvent,
   params: Record<string, any>,
 ): { msg: string; title?: string } | null {

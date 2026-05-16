@@ -13,8 +13,51 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { NotifyEvent } from "../../lib/notify-events";
+import { buildEmailContent } from "../../lib/notify-adapters/email";
+import { buildSmsContent } from "../../lib/notify-adapters/sms-aligo";
+import { enrichKakaoParams, fallbackBodyKakao } from "../../lib/notify-adapters/kakao-aligo";
 
 export const config = { path: "/api/admin-system-notification-list" };
+
+/* 이벤트별 미리보기용 sample params — 코드 하드코딩 본문이 어떻게 발송되는지 운영자가 확인 */
+const SAMPLE_PARAMS: Record<string, Record<string, any>> = {
+  "billing.success":            { memberName: "박새로이", amount: 30000, donationId: 123, chargedAt: new Date(), nextChargeAt: new Date(Date.now() + 30*86400000), cardCompany: "신한", cardNumberMasked: "****-****-****-1234", isMember: true },
+  "billing.failed":             { memberName: "박새로이", amount: 30000, failureReason: "한도초과", consecutiveFailCount: 1, willRetryAt: new Date(Date.now() + 86400000), isMember: true },
+  "billing.canceled":           { memberName: "박새로이", amount: 30000, cancelReason: "3회 연속 실패", title: "정기 후원 자동 해지 안내", message: "결제 실패 누적으로 정기 후원이 자동 해지되었습니다." },
+  "card.expiring":              { memberName: "박새로이", cardExpiryMonth: "2612", daysUntilExpiry: 30, daysLeft: 30 },
+  "workspace.activity":         { title: "새 댓글이 달렸습니다", message: "작업 카드에 새 댓글이 등록되었습니다." },
+  "admin.daily_briefing":       { title: "일일 운영 브리핑", message: "오늘의 신규 후원·회원·신고 요약" },
+  "support.reply":              { memberName: "박새로이", title: "심리상담 답변", answerBody: "신청해 주신 상담 일정 안내드립니다." },
+  "siren.assigned":             { memberName: "박새로이", title: "사건 신고 담당자 배정", assigneeName: "운영자" },
+  "member.eligibility_decided": { memberName: "박새로이", title: "회원 자격 심사 결과", decision: "approved", reason: "유족 자격 확인 완료" },
+};
+
+/* 채널별 default 본문 빌더 — DB 템플릿이 없을 때 코드 하드코딩 본문을 호출해서 미리보기 제공 */
+function buildDefaultBody(eventType: string, channel: "email" | "sms" | "kakao" | "inapp"): { subject?: string; body: string } | null {
+  const params = SAMPLE_PARAMS[eventType] || {};
+  const event = eventType as NotifyEvent;
+  try {
+    if (channel === "email") {
+      const tpl = buildEmailContent(event, params);
+      if (tpl) return { subject: tpl.subject, body: tpl.html };
+    } else if (channel === "sms") {
+      const tpl = buildSmsContent(event, params);
+      if (tpl) return { body: tpl.msg };
+    } else if (channel === "kakao") {
+      const enriched = enrichKakaoParams(event, params, String(params.memberName || ""));
+      const body = fallbackBodyKakao(event, enriched);
+      if (body) return { body };
+    } else if (channel === "inapp") {
+      const title = String(params.title || event);
+      const message = String(params.message || params.answerBody || "");
+      return { body: message ? `[${title}]\n${message}` : `[${title}]\n(인앱 알림 본문은 발송 시점에 동적으로 결정됩니다)` };
+    }
+  } catch {
+    /* 어댑터가 sample params로 호출 실패 — 폴백 메시지 */
+  }
+  return null;
+}
 
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 
@@ -60,20 +103,32 @@ export default async (req: Request, _ctx: Context) => {
       channels: {
         email: r.email_template_id ? {
           templateId: Number(r.email_template_id), name: r.te_name,
-          subject: r.te_subject, body: r.te_body, variables: r.te_vars,
-        } : null,
+          subject: r.te_subject, body: r.te_body, variables: r.te_vars, isDefault: false,
+        } : (() => {
+          const d = buildDefaultBody(r.event_type, "email");
+          return d ? { templateId: null, name: null, subject: d.subject, body: d.body, variables: [], isDefault: true } : null;
+        })(),
         sms: r.sms_template_id ? {
           templateId: Number(r.sms_template_id), name: r.ts_name,
-          subject: r.ts_subject, body: r.ts_body, variables: r.ts_vars,
-        } : null,
+          subject: r.ts_subject, body: r.ts_body, variables: r.ts_vars, isDefault: false,
+        } : (() => {
+          const d = buildDefaultBody(r.event_type, "sms");
+          return d ? { templateId: null, name: null, subject: null, body: d.body, variables: [], isDefault: true } : null;
+        })(),
         kakao: r.kakao_template_id ? {
           templateId: Number(r.kakao_template_id), name: r.tk_name,
-          subject: r.tk_subject, body: r.tk_body, variables: r.tk_vars,
-        } : null,
+          subject: r.tk_subject, body: r.tk_body, variables: r.tk_vars, isDefault: false,
+        } : (() => {
+          const d = buildDefaultBody(r.event_type, "kakao");
+          return d ? { templateId: null, name: null, subject: null, body: d.body, variables: [], isDefault: true } : null;
+        })(),
         inapp: r.inapp_template_id ? {
           templateId: Number(r.inapp_template_id), name: r.ti_name,
-          subject: r.ti_subject, body: r.ti_body, variables: r.ti_vars,
-        } : null,
+          subject: r.ti_subject, body: r.ti_body, variables: r.ti_vars, isDefault: false,
+        } : (() => {
+          const d = buildDefaultBody(r.event_type, "inapp");
+          return d ? { templateId: null, name: null, subject: null, body: d.body, variables: [], isDefault: true } : null;
+        })(),
       },
     }));
 

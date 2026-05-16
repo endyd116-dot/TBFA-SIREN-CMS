@@ -32,8 +32,8 @@ async function lookupEmail(targetId: number): Promise<string | null> {
   }
 }
 
-/* ─── 이벤트 → 이메일 템플릿 라우팅 ─── */
-function buildEmailContent(
+/* ─── 이벤트 → 이메일 템플릿 라우팅 (★ export — list API 미리보기에서 호출) ─── */
+export function buildEmailContent(
   event: NotifyEvent,
   params: Record<string, any>,
 ): { subject: string; html: string } | null {

@@ -238,17 +238,29 @@ function buildPanel(ch) {
       ${vars.map(v => `<code>{{${esc(v.key || v.name)}}}</code> - ${esc(v.label || v.description || '')} (예: ${esc(v.sample || v.example || '')})`).join("<br/>")}
     </div>` : '<div class="var-guide" style="color:#94a3b8;">정의된 변수가 없습니다. 본문을 처음 저장하시면 cron이 전달하는 변수를 자동 인식합니다.</div>';
 
+  const isDefault = tpl?.isDefault === true;
+  const defaultBanner = isDefault ? `
+    <div style="background:#eff6ff;border-left:4px solid #1e40af;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#1e3a8a;">
+      💡 <b>현재 코드에서 발송 중인 본문입니다.</b> 아래 내용 그대로 발송되고 있으며, 수정하신 후 저장하면 DB로 옮겨져 이후 발송부터 적용됩니다. (수정 안 하시면 현재 코드 동작 그대로 유지)
+    </div>` : '';
+  const emptyBanner = (!tpl) ? `
+    <div style="background:#f8fafc;border-left:4px solid #94a3b8;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#475569;">
+      이 채널은 현재 발송되지 않습니다. 본문을 입력하시고 카드의 채널 칩에서 활성화하시면 발송됩니다.
+    </div>` : '';
+
   return `
     <div class="tab-panel ${ch === _activeTab ? 'active' : ''}" data-panel="${ch}">
       ${isKakao ? '<div class="kakao-warn">⚠️ 카카오 알림톡은 카카오 비즈 채널에 사전 등록된 본문과 정확히 일치해야 발송됩니다. 본문 수정 시 카카오 콘솔에서 새 본문으로 템플릿 재심사를 신청해야 실제 발송됩니다.</div>' : ''}
+      ${defaultBanner}
+      ${emptyBanner}
       ${ch === 'email' ? `
         <div class="form-row">
-          <label>이메일 제목</label>
+          <label>이메일 제목 ${isDefault ? '<span style="color:#1e40af;font-weight:600;">(코드 기본값)</span>' : ''}</label>
           <input type="text" data-field="${ch}-subject" value="${esc(tpl?.subject || '')}" placeholder="예: [교사유가족협의회] 정기 결제 안내" />
         </div>` : ''}
       <div class="form-row">
-        <label>본문 (Handlebars 변수 ${'{{변수명}}'} 사용)</label>
-        <textarea data-field="${ch}-body" placeholder="${tpl ? '' : '아직 본문이 저장되어 있지 않습니다. 첫 저장 시 새 템플릿이 생성됩니다.'}">${esc(tpl?.body || '')}</textarea>
+        <label>본문 ${isDefault ? '<span style="color:#1e40af;font-weight:600;">(코드 기본값 — 수정 후 저장 시 DB로 이관)</span>' : '(Handlebars 변수 {{변수명}} 사용)'}</label>
+        <textarea data-field="${ch}-body" placeholder="${tpl ? '' : '아직 본문이 저장되어 있지 않고 코드에도 정의되지 않은 채널입니다. 본문 입력 후 저장하면 새 템플릿이 생성됩니다.'}">${esc(tpl?.body || '')}</textarea>
         ${varGuide}
       </div>
     </div>
