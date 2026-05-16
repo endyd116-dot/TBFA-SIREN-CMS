@@ -15,6 +15,8 @@ import { eq } from "drizzle-orm";
 import { aligoSend } from "../aligo-client";
 import { NotifyEvent } from "../notify-events";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
+/* ★ 2026-05-16: 어드민 채널 토글 — isActive=false면 발송 차단. */
+import { loadEventTemplate } from "../notify-dispatcher";
 
 /* ─── 수신자 전화번호 조회 ─── */
 async function lookupPhone(targetId: number): Promise<string | null> {
@@ -73,6 +75,16 @@ export const smsAligoAdapter: NotifyAdapter = {
   async send(opts: AdapterSendOpts): Promise<AdapterResult> {
     const t0 = Date.now();
     try {
+      /* 어드민이 SMS 채널 끄면 차단. DB 본문 마이그는 D5 이후 점진. */
+      const dbTpl = await loadEventTemplate({ event: opts.event, channel: "sms", params: opts.params });
+      if (dbTpl && "skip" in dbTpl) {
+        return {
+          ok: true,
+          providerMessageId: `skipped-admin-disabled-${opts.logId}`,
+          latencyMs: Date.now() - t0,
+        };
+      }
+
       const phone = await lookupPhone(opts.targetId);
       if (!phone) {
         return {

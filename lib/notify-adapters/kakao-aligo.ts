@@ -21,6 +21,8 @@ import {
   normalizePhone,
 } from "../aligo-kakao-client";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
+/* ★ 2026-05-16: 자동 발송 통합 CMS — 어드민 편집 본문 우선 사용. */
+import { loadEventTemplate } from "../notify-dispatcher";
 
 /* ─── 수신자 정보 조회 ─── */
 async function lookupRecipient(targetId: number): Promise<{ name: string; phone: string } | null> {
@@ -45,16 +47,10 @@ interface BuildResult {
   buttonJson: string;
 }
 
-function buildAlimtalk(
-  event: NotifyEvent,
-  params: Record<string, any>,
-  memberName: string,
-): BuildResult | null {
-  const linkUrl = "https://tbfa-siren-cms.netlify.app/mypage/donation";
-
+/* enriched params 추출 — DB 템플릿 변수 치환과 폴백 본문 양쪽에 사용 */
+function enrichKakaoParams(event: NotifyEvent, params: Record<string, any>, memberName: string): Record<string, any> {
   switch (event) {
     case NotifyEvent.BILLING_FAILED: {
-      const tplCode = process.env.ALIGO_TEMPLATE_BILLING_FAILED || "";
       const name = String(params.memberName || memberName || "후원자");
       const amount = Number(params.amount) || 0;
       const failureReason = String(params.failureReason || "결제 실패");
@@ -63,95 +59,111 @@ function buildAlimtalk(
       const retryStr = willRetryAt
         ? `${willRetryAt.getFullYear()}-${String(willRetryAt.getMonth() + 1).padStart(2, "0")}-${String(willRetryAt.getDate()).padStart(2, "0")}`
         : "추후 안내";
+      return { name, amountFmt: amount.toLocaleString(), failureReason, failCount, retryStr };
+    }
+    case NotifyEvent.CARD_EXPIRING: {
+      const name = String(params.memberName || memberName || "후원자");
+      const cardExpiryMonth = String(params.cardExpiryMonth || "");
+      const daysUntilExpiry = Number(params.daysUntilExpiry) || 0;
+      let cardExpiryStr = cardExpiryMonth;
+      if (/^\d{4}$/.test(cardExpiryMonth)) {
+        cardExpiryStr = `20${cardExpiryMonth.slice(0, 2)}-${cardExpiryMonth.slice(2, 4)}`;
+      }
+      return { name, cardExpiryStr, daysUntilExpiry };
+    }
+    default:
+      return {};
+  }
+}
 
-      // 설계서 §8 템플릿 1 — 변수: 회원이름·금액·실패사유·연속실패횟수·재시도일자
-      const message =
-`[교사유가족협의회] ${name}님, 이번 달 후원 결제 안내드려요
+/* 폴백 본문 (DB 템플릿 없을 때) — 박새로이가 받은 그 본문 그대로, enriched 변수 사용 */
+function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): string | null {
+  switch (event) {
+    case NotifyEvent.BILLING_FAILED:
+      return `[교사유가족협의회] ${e.name}님, 이번 달 후원 결제 안내드려요
 
-${name}님, 안녕하세요.
+${e.name}님, 안녕하세요.
 교사유가족협의회입니다.
 
-이번 달 보내주시기로 한 정기 후원 ${amount.toLocaleString()}원이
+이번 달 보내주시기로 한 정기 후원 ${e.amountFmt}원이
 안타깝게도 결제되지 못했어요.
 
-▪ 사유: ${failureReason}
-▪ 연속 실패: ${failCount}회
-▪ 다음 시도일: ${retryStr}
+▪ 사유: ${e.failureReason}
+▪ 연속 실패: ${e.failCount}회
+▪ 다음 시도일: ${e.retryStr}
 
 카드 한도와 잔액, 카드 정보를
 한 번만 살펴봐 주시면 좋겠습니다.
 
-${name}님의 따뜻한 마음이
+${e.name}님의 따뜻한 마음이
 유가족 곁에 끊김 없이 닿을 수 있도록
 [후원 정보 확인] 버튼으로 잠시 점검해 주세요.
 
 언제나 함께해 주셔서 진심으로 감사드립니다.`;
 
-      const buttonJson = JSON.stringify({
-        button: [{
-          name: "후원 정보 확인",
-          linkType: "WL",
-          linkTypeName: "웹링크",
-          linkM: linkUrl,
-          linkP: linkUrl,
-        }],
-      });
+    case NotifyEvent.CARD_EXPIRING:
+      return `[교사유가족협의회] ${e.name}님, 등록 카드 만료가 ${e.daysUntilExpiry}일 남았어요
 
-      return { tplCode: tplCode || null, message, subject: "", buttonJson };
-    }
-
-    case NotifyEvent.CARD_EXPIRING: {
-      const tplCode = process.env.ALIGO_TEMPLATE_CARD_EXPIRING || "";
-      const name = String(params.memberName || memberName || "후원자");
-      const cardExpiryMonth = String(params.cardExpiryMonth || "");
-      const daysUntilExpiry = Number(params.daysUntilExpiry) || 0;
-
-      // 카드 만료일 표기 정규화 (YYMM/YYYY-MM → YYYY-MM)
-      let cardExpiryStr = cardExpiryMonth;
-      if (/^\d{4}$/.test(cardExpiryMonth)) {
-        const yy = cardExpiryMonth.slice(0, 2);
-        const mm = cardExpiryMonth.slice(2, 4);
-        cardExpiryStr = `20${yy}-${mm}`;
-      }
-
-      // 설계서 §8 템플릿 2 — 변수: 회원이름·카드만료일·잔여일수
-      const message =
-`[교사유가족협의회] ${name}님, 등록 카드 만료가 ${daysUntilExpiry}일 남았어요
-
-${name}님, 안녕하세요.
+${e.name}님, 안녕하세요.
 교사유가족협의회입니다.
 
 정기 후원에 등록해 주신 카드의
 만료일이 가까워졌습니다.
 
-▪ 카드 만료일: ${cardExpiryStr}
-▪ 잔여 일수: ${daysUntilExpiry}일
+▪ 카드 만료일: ${e.cardExpiryStr}
+▪ 잔여 일수: ${e.daysUntilExpiry}일
 
 만료 전에 새 카드 정보로 갱신해 주시면
-${name}님께서 보내주시는 마음이
+${e.name}님께서 보내주시는 마음이
 유가족 곁에 끊김 없이 계속 닿을 수 있어요.
 
 [카드 정보 갱신] 버튼으로 잠깐만 시간 내 주세요.
 
 오늘도 함께해 주셔서 진심으로 감사드립니다.`;
 
-      const buttonJson = JSON.stringify({
-        button: [{
-          name: "카드 정보 갱신",
-          linkType: "WL",
-          linkTypeName: "웹링크",
-          linkM: linkUrl,
-          linkP: linkUrl,
-        }],
-      });
-
-      return { tplCode: tplCode || null, message, subject: "", buttonJson };
-    }
-
     default:
-      // 알림톡 정책 미대상 이벤트 — skip
       return null;
   }
+}
+
+async function buildAlimtalk(
+  event: NotifyEvent,
+  params: Record<string, any>,
+  memberName: string,
+): Promise<BuildResult | { skip: true } | null> {
+  const linkUrl = "https://tbfa.co.kr/mypage/donation";
+
+  /* 알림톡 정책 미대상 이벤트 — skip (DB 템플릿이 있어도 카카오 tplCode 매칭 안 됨) */
+  if (event !== NotifyEvent.BILLING_FAILED && event !== NotifyEvent.CARD_EXPIRING) {
+    return null;
+  }
+
+  /* enriched params + DB 템플릿 로드 */
+  const enriched = enrichKakaoParams(event, params, memberName);
+  const dbTpl = await loadEventTemplate({ event, channel: "kakao", params: enriched });
+  if (dbTpl && "skip" in dbTpl) {
+    /* isActive=false → 운영자가 카카오 채널 끄짐. 발송 차단 신호 */
+    return { skip: true };
+  }
+
+  /* 본문: DB 우선, 없으면 폴백 (skip은 위에서 처리됨) */
+  const fallbackBody = fallbackBodyKakao(event, enriched);
+  const dbBody = (dbTpl && !("skip" in dbTpl)) ? dbTpl.body : null;
+  const message = dbBody || fallbackBody;
+  if (!message) return null;
+
+  /* tplCode·buttonJson은 카카오 심사 통과 템플릿과 매핑 (환경변수) */
+  const tplCodeEnv = event === NotifyEvent.BILLING_FAILED
+    ? process.env.ALIGO_TEMPLATE_BILLING_FAILED
+    : process.env.ALIGO_TEMPLATE_CARD_EXPIRING;
+  const tplCode = tplCodeEnv || "";
+
+  const buttonName = event === NotifyEvent.BILLING_FAILED ? "후원 정보 확인" : "카드 정보 갱신";
+  const buttonJson = JSON.stringify({
+    button: [{ name: buttonName, linkType: "WL", linkTypeName: "웹링크", linkM: linkUrl, linkP: linkUrl }],
+  });
+
+  return { tplCode: tplCode || null, message, subject: "", buttonJson };
 }
 
 /* ─── 어댑터 ─── */
@@ -172,12 +184,20 @@ export const kakaoAligoAdapter: NotifyAdapter = {
         };
       }
 
-      const built = buildAlimtalk(opts.event, opts.params, recipient.name);
+      const built = await buildAlimtalk(opts.event, opts.params, recipient.name);
       if (!built) {
         // 알림톡 미대상 이벤트 — 실패 아닌 스킵
         return {
           ok: true,
           providerMessageId: "skipped-no-template",
+          latencyMs: Date.now() - t0,
+        };
+      }
+      if ("skip" in built) {
+        // 운영자가 어드민에서 카카오 채널 끔 — 실패 아닌 의도된 스킵
+        return {
+          ok: true,
+          providerMessageId: `skipped-admin-disabled-${opts.logId}`,
           latencyMs: Date.now() - t0,
         };
       }
