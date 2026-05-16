@@ -214,6 +214,17 @@ function closeModal() {
 function buildForcedSection() {
   const allCh = [["inapp","인앱"],["email","이메일"],["sms","SMS"],["kakao","카카오"]];
   const forced = _editingEvent.forcedChannels || [];
+  const section = document.getElementById("forcedSection");
+
+  /* ★ 2026-05-16: 강제 채널이 비어있는 이벤트(워크스페이스·일일 브리핑·SUPPORT 등 7개)에는
+     "강제 발송 채널" 빨간 경고 박스를 표시하지 않음. 결제 실패·카드 만료 2건만 표시. */
+  if (forced.length === 0) {
+    section.style.display = 'none';
+    document.getElementById("forcedChecks").innerHTML = "";
+    return;
+  }
+
+  section.style.display = '';
   document.getElementById("forcedChecks").innerHTML = allCh.map(([c, label]) =>
     `<label><input type="checkbox" data-forced="${c}" ${forced.includes(c) ? 'checked' : ''} /> ${label}</label>`
   ).join("");
