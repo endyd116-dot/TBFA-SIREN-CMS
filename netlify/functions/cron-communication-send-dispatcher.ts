@@ -274,9 +274,19 @@ export default async function handler(_req: Request) {
    ========================================================= */
 
 async function startJob(job: any) {
-  /* 템플릿·그룹 조회 */
+  /* 템플릿·그룹 조회 — ★ 2026-05-16: 카카오 전용 컬럼도 함께 SELECT (마이그 적용 후) */
+  const colCheck: any = await db.execute(sql`
+    SELECT COUNT(*)::int AS n FROM information_schema.columns
+     WHERE table_name = 'communication_templates'
+       AND column_name IN ('alimtalk_template_code','alimtalk_review_status','alimtalk_button_json')
+  `);
+  const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
+  const alimtalkSelect = hasAlimtalkCols
+    ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
+    : sql``;
+
   const tplRes: any = await db.execute(sql`
-    SELECT id, name, channel, subject, body_template, variables, is_active
+    SELECT id, name, channel, subject, body_template, variables, is_active${alimtalkSelect}
       FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
   `);
   const template = (tplRes?.rows ?? tplRes ?? [])[0];
@@ -357,14 +367,23 @@ async function startJob(job: any) {
       const effectiveSubjectTpl = (job.subject_override && String(job.subject_override).trim().length > 0)
         ? job.subject_override
         : template.subject;
-      const effectiveBodyTpl    = (job.body_override && String(job.body_override).trim().length > 0)
+      let effectiveBodyTpl = (job.body_override && String(job.body_override).trim().length > 0)
         ? job.body_override
         : template.body_template;
 
+      /* ★ 2026-05-16: 카카오 채널은 알리고 표준 변수 표기 #{변수} → renderTemplate가
+         인식하는 {{변수}}로 변환. 변환 후 동일 치환 로직 사용. 또 회원 변수 외 다른
+         변수(금액·실패사유 등)는 variables[].sample fallback 허용 (자동 트리거 컨텍스트
+         없이 수동 발송 시 빈 본문이 알리고 발송 거부되는 결함 차단). */
+      const renderOptions = channel === "kakao" ? { useSampleFallback: true } : {};
+      if (channel === "kakao") {
+        effectiveBodyTpl = String(effectiveBodyTpl).replace(/#\{([^{}]+)\}/g, "{{$1}}");
+      }
+
       const subjectStr = effectiveSubjectTpl
-        ? renderTemplate(effectiveSubjectTpl, variables, data).rendered
+        ? renderTemplate(effectiveSubjectTpl, variables, data, renderOptions).rendered
         : null;
-      let bodyStr = renderTemplate(effectiveBodyTpl, variables, data).rendered;
+      let bodyStr = renderTemplate(effectiveBodyTpl, variables, data, renderOptions).rendered;
 
       /* 이메일 채널: 추적 픽셀 + 클릭 추적 URL 주입 */
       const trackingToken = generateTrackingToken();
@@ -409,6 +428,29 @@ async function startJob(job: any) {
 
 async function processChunk(job: any) {
   const channel: SendChannel = job.channel;
+
+  /* ★ 2026-05-16: 카카오 채널이면 작업의 템플릿에서 알리고 정보 1회 조회 (chunk 공유) */
+  let kakaoTplCode: string | null = null;
+  let kakaoBtnJson: any = null;
+  if (channel === "kakao") {
+    const colCheck: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM information_schema.columns
+       WHERE table_name = 'communication_templates'
+         AND column_name IN ('alimtalk_template_code','alimtalk_button_json')
+    `);
+    const hasCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 2;
+    if (hasCols) {
+      const tplRes: any = await db.execute(sql`
+        SELECT alimtalk_template_code, alimtalk_button_json
+          FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+      `);
+      const tplRow = (tplRes?.rows ?? tplRes ?? [])[0];
+      if (tplRow) {
+        kakaoTplCode = tplRow.alimtalk_template_code || null;
+        kakaoBtnJson = tplRow.alimtalk_button_json || null;
+      }
+    }
+  }
 
   /* pending 수신자 50건 픽업 (회원 정보 조인) */
   const r: any = await db.execute(sql`
@@ -478,6 +520,10 @@ async function processChunk(job: any) {
           {
             subject: rec.rendered_subject == null ? undefined : String(rec.rendered_subject),
             body:    rec.rendered_body == null ? "" : String(rec.rendered_body),
+            ...(channel === "kakao" && kakaoTplCode ? {
+              alimtalkTemplateCode: kakaoTplCode,
+              alimtalkButtonJson:   kakaoBtnJson,
+            } : {}),
           },
         ),
         SEND_TIMEOUT_MS,
@@ -491,11 +537,13 @@ async function processChunk(job: any) {
     console.log(`[cron-dispatcher] rec#${rec.id} → ${result.ok ? "OK" : "FAIL"} (${adapterMs}ms) ${result.error ? "err=" + result.error.slice(0, 200) : ""}`);
 
     if (result.ok) {
-      /* ★ 2026-05-16: 카카오 알림톡처럼 정책상 발송 안 한 경우(result.skipped=true)는
-         status='sent'로 박지만 error 컬럼에 정책 스킵 표시를 박아 화면에서 '발송 안 함'
-         으로 라벨 분기 가능하게 함. success 카운트는 그대로 (어댑터 호출 자체는 성공). */
+      /* ★ 2026-05-16: 정책 스킵 케이스(result.skipped=true)는 status='sent'로 박되
+         error 컬럼에 result.error에 담긴 사유를 적어 화면에서 '발송 안 함'으로 라벨
+         분기 가능. 옛 코드는 카카오만 하드코딩된 문구였는데 result.error 사용으로
+         변경 → 카카오 외 다른 정책 스킵 사유(예: alimtalk_template_code 미등록)도
+         정확히 표시. */
       const skipMark = (result as any).skipped === true
-        ? "[정책 스킵] 카카오 알림톡은 사전심사 통과 정형 템플릿만 발송 가능 (어드민 화면 자유 본문 정책 위반)"
+        ? ((result as any).error || "정책 스킵 (발송 안 함)")
         : "";
       await db.execute(sql`
         UPDATE communication_send_recipients

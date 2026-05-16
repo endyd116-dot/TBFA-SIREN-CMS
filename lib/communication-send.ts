@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { members, communicationTemplates, recipientGroups } from "../db";
 import { sendEmail } from "./email";
 import { aligoSend } from "./aligo-client";
+import { sendAligoAlimtalk, normalizePhone } from "./aligo-kakao-client";
 import { createNotification } from "./notify";
 
 export type SendChannel = "email" | "sms" | "kakao" | "inapp";
@@ -16,8 +17,12 @@ export type SendChannel = "email" | "sms" | "kakao" | "inapp";
 export interface SendPayload {
   /** 이메일 제목 / 인앱 알림 제목 (있으면 사용) */
   subject?: string;
-  /** 본문 — 모든 채널 공통 */
+  /** 본문 — 모든 채널 공통. 카카오는 변수 치환된 최종 본문(알리고에 그대로 전송) */
   body: string;
+  /** ★ 2026-05-16: 카카오 알림톡 — 알리고 등록 tpl_code (UH_XXXX). 없으면 발송 안 함 */
+  alimtalkTemplateCode?: string;
+  /** ★ 2026-05-16: 카카오 알림톡 버튼 JSON (button_1) */
+  alimtalkButtonJson?: any;
 }
 
 export interface SendResult {
@@ -48,8 +53,7 @@ export async function sendViaAdapter(
       case "inapp":
         return await sendInappDirect(member, payload);
       case "kakao":
-        // 알림톡은 사전 심사 통과 템플릿만 발송 가능 — 자유 본문 마케팅 불가
-        return { ok: true, skipped: true, providerMessageId: "kakao-marketing-not-supported" };
+        return await sendKakaoDirect(member, payload);
       default:
         return { ok: false, error: `알 수 없는 채널: ${channel}` };
     }
@@ -126,6 +130,71 @@ async function sendInappDirect(
     return { ok: false, error: "createNotification 반환값 null" };
   }
   return { ok: true, providerMessageId: String(notifId) };
+}
+
+/* ─── 카카오 알림톡 직접 발송 (Aligo) ───
+   ★ 2026-05-16: dispatcher 통합 — 옛 코드는 무조건 skip → 항상 '발송 안 함'.
+   communication_templates에 등록된 alimtalk_template_code(UH_XXXX) + 변수
+   치환된 본문(payload.body) + 버튼 JSON으로 알리고 API 호출. */
+async function sendKakaoDirect(
+  member: { id: number; phone: string | null; name: string | null },
+  payload: SendPayload,
+): Promise<SendResult> {
+  /* 1) 템플릿 코드 누락 — 카카오 전용 템플릿 아닌 경우(일반 카카오 채널 템플릿
+     예: 단순 안내) → 정책 스킵으로 status=sent + 안내 라벨 */
+  if (!payload.alimtalkTemplateCode) {
+    return {
+      ok: true,
+      skipped: true,
+      providerMessageId: "kakao-no-template-code",
+      error: "[정책 스킵] 카카오 채널은 알리고 사전심사 통과 템플릿(UH_XXXX) 등록 후에만 실제 발송됩니다.",
+    } as SendResult & { error?: string };
+  }
+
+  /* 2) 수신자 검증 */
+  if (!member.phone) {
+    return { ok: false, error: `전화번호 없음 (memberId=${member.id})` };
+  }
+  const receiver = normalizePhone(member.phone);
+  if (!receiver || receiver.length < 10) {
+    return { ok: false, error: `유효하지 않은 전화번호 (${member.phone})` };
+  }
+
+  /* 3) 환경변수 확인 */
+  const senderKey = process.env.ALIGO_KAKAO_CHANNEL_ID || "";
+  const sender   = process.env.ALIGO_SENDER || "";
+  if (!senderKey) {
+    return { ok: false, error: "ALIGO_KAKAO_CHANNEL_ID(senderkey) 미설정 — Netlify 환경변수 확인" };
+  }
+  if (!sender) {
+    return { ok: false, error: "ALIGO_SENDER(발신번호) 미설정 — Netlify 환경변수 확인" };
+  }
+
+  /* 4) 버튼 JSON 직렬화 (jsonb로 저장된 경우 객체로 옴) */
+  const buttonJsonStr = payload.alimtalkButtonJson
+    ? (typeof payload.alimtalkButtonJson === "string"
+        ? payload.alimtalkButtonJson
+        : JSON.stringify(payload.alimtalkButtonJson))
+    : undefined;
+
+  /* 5) 알리고 호출 — payload.body는 dispatcher가 변수 치환 완료한 최종 본문 */
+  const result = await sendAligoAlimtalk({
+    tplCode: payload.alimtalkTemplateCode,
+    receiver,
+    message: String(payload.body),
+    subject: payload.subject || "",
+    buttonJson: buttonJsonStr,
+    senderKey,
+    sender,
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error || `알리고 카카오 발송 실패 (code=${result.code} ${result.message || ""})`,
+    };
+  }
+  return { ok: true, providerMessageId: result.providerMessageId };
 }
 
 /* =========================================================

@@ -34,7 +34,11 @@ export function renderTemplate(
   const varMap = new Map(variables.map((v) => [v.key, v]));
   const allowSample = options.useSampleFallback === true;
 
-  const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+  /* ★ 2026-05-16: \w+는 ASCII 단어 문자만 매칭 → 한글 변수명({{회원이름}})은
+     치환 안 되고 그대로 남던 결함. [^{}]+로 확장해 한글·공백 포함 변수명 지원.
+     키 trim 추가로 {{ 회원이름 }} 같은 공백 입력도 안전 처리. */
+  const rendered = template.replace(/\{\{([^{}]+)\}\}/g, (_, rawKey: string) => {
+    const key = String(rawKey).trim();
     if (key in data) return data[key];
     if (allowSample) {
       const varDef = varMap.get(key);
@@ -47,11 +51,11 @@ export function renderTemplate(
   return { rendered, warnings };
 }
 
-/** 본문에서 사용된 {{key}} 모두 추출 (중복 제거) */
+/** 본문에서 사용된 {{key}} 모두 추출 (중복 제거) — 한글 변수명 지원 */
 export function extractVariableKeys(template: string): string[] {
   const keys = new Set<string>();
-  for (const [, key] of template.matchAll(/\{\{(\w+)\}\}/g)) {
-    keys.add(key);
+  for (const [, rawKey] of template.matchAll(/\{\{([^{}]+)\}\}/g)) {
+    keys.add(String(rawKey).trim());
   }
   return Array.from(keys);
 }
