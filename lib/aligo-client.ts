@@ -93,6 +93,47 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     return { ok: true, msgId: `test-${Date.now()}`, resultCode: "1", message: "테스트모드" };
   }
 
+  /* ★ 2026-05-16: Oracle 프록시 경유 모드 (카카오 알림톡과 동일 패턴).
+     ALIGO_SMS_PROXY_URL이 설정되어 있으면 Oracle 고정 IP 프록시로 호출 →
+     Netlify 변동 IP가 알리고 화이트리스트 차단되는 문제(result_code=-101) 해결.
+     아래는 lib/notify-adapters/kakao-aligo.ts·aligo-kakao-client.ts 동일 흐름. */
+  const proxyUrl    = process.env.ALIGO_SMS_PROXY_URL || "";
+  const proxySecret = process.env.ALIGO_PROXY_SECRET || "";
+  let raw: any;
+
+  if (proxyUrl) {
+    if (!proxySecret) {
+      return { ok: false, error: "ALIGO_PROXY_SECRET 미설정 — SMS 프록시 인증 불가" };
+    }
+    try {
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-proxy-secret": proxySecret },
+        body: JSON.stringify({
+          receiver, msg: opts.msg, msgType, title, testmode: false,
+        }),
+      });
+      raw = await res.json().catch(() => ({}));
+      if (raw?.ok === true) {
+        return {
+          ok: true,
+          msgId: raw.msgId || `proxy-${Date.now()}`,
+          resultCode: raw.resultCode || "1",
+          message: raw.message || "",
+        };
+      }
+      return {
+        ok: false,
+        resultCode: raw?.resultCode,
+        message: raw?.message,
+        error: String(raw?.error || `SMS 프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500),
+      };
+    } catch (err: any) {
+      return { ok: false, error: `SMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+    }
+  }
+
+  /* ===== 직접 호출 모드 (옛 경로, IP 화이트리스트 통과 시) ===== */
   const body = new URLSearchParams({
     key:         apiKey,
     user_id:     userId,
@@ -104,7 +145,6 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     ...(msgType === "LMS" ? { title } : {}),
   });
 
-  let raw: any;
   try {
     const res = await fetch(ALIGO_SEND_URL, {
       method:  "POST",

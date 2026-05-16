@@ -164,9 +164,21 @@ Netlify 사이트 설정 → Site configuration → Environment variables → **
 | Key | Value |
 |---|---|
 | `ALIGO_PROXY_URL` | `http://158.180.123.45:8080/aligo/alimtalk` |
+| `ALIGO_SMS_PROXY_URL` | `http://158.180.123.45:8080/aligo/sms` (★ 2026-05-16 신규 — 전화 인증·일반 SMS 발송도 프록시 경유) |
 | `ALIGO_PROXY_SECRET` | (6단계 `.env`의 `PROXY_SECRET` 값 그대로) |
 
-**기존** `ALIGO_API_KEY`·`ALIGO_USER_ID`·`ALIGO_KAKAO_CHANNEL_ID`·`ALIGO_SENDER`는 **이제 프록시에만 있으면 되므로 Netlify에서는 삭제해도 됨** (단 SMS도 알리고를 쓰면 ALIGO_API_KEY·ALIGO_USER_ID·ALIGO_SENDER는 SMS 발송 경로에 필요 — 일단 유지 권장).
+**기존** `ALIGO_API_KEY`·`ALIGO_USER_ID`·`ALIGO_KAKAO_CHANNEL_ID`·`ALIGO_SENDER`는 **이제 프록시에만 있으면 되므로 Netlify에서는 삭제해도 됨** (단 직접 호출 fallback이 필요하면 유지).
+
+**★ 2026-05-16 SMS 프록시 추가 작업** (이미 운영 중인 프록시 VM에서):
+```bash
+cd ~/aligo-proxy   # 또는 server.js가 있는 경로
+git pull           # 또는 wget으로 새 server.js 가져오기
+sudo systemctl restart aligo-proxy
+curl -X POST http://localhost:8080/aligo/sms -H "x-proxy-secret: $PROXY_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"receiver":"01000000000","msg":"테스트","msgType":"SMS","testmode":true}'
+# → 응답 ok:true (testmode=true이므로 실제 발송 안 됨)
+```
 
 저장 후 사이트 재배포 (Deploys → Trigger deploy → Clear cache and deploy site).
 

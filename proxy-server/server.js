@@ -25,6 +25,7 @@ const PORT = Number(process.env.PORT) || 8080;
 const PROXY_SECRET = process.env.PROXY_SECRET || "";
 
 const ALIGO_ENDPOINT = "https://kakaoapi.aligo.in/akv10/alimtalk/send/";
+const ALIGO_SMS_ENDPOINT = "https://apis.aligo.in/send/";
 const ALIGO_API_KEY = process.env.ALIGO_API_KEY || "";
 const ALIGO_USER_ID = process.env.ALIGO_USER_ID || "";
 const ALIGO_KAKAO_CHANNEL_ID = process.env.ALIGO_KAKAO_CHANNEL_ID || "";
@@ -61,11 +62,11 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  if (req.method !== "POST" || req.url !== "/aligo/alimtalk") {
+  if (req.method !== "POST" || (req.url !== "/aligo/alimtalk" && req.url !== "/aligo/sms")) {
     return jsonResponse(res, 404, { ok: false, error: "Not Found" });
   }
 
-  /* 인증 */
+  /* 인증 (양쪽 라우트 공통) */
   if (!PROXY_SECRET) {
     return jsonResponse(res, 500, { ok: false, error: "PROXY_SECRET 미설정" });
   }
@@ -77,8 +78,8 @@ const server = http.createServer(async (req, res) => {
   if (!ALIGO_API_KEY || !ALIGO_USER_ID) {
     return jsonResponse(res, 500, { ok: false, error: "알리고 API 자격 미설정" });
   }
-  if (!ALIGO_KAKAO_CHANNEL_ID || !ALIGO_SENDER) {
-    return jsonResponse(res, 500, { ok: false, error: "알리고 카카오 채널·발신번호 미설정" });
+  if (!ALIGO_SENDER) {
+    return jsonResponse(res, 500, { ok: false, error: "알리고 발신번호 미설정" });
   }
 
   /* 입력 파싱 */
@@ -88,6 +89,50 @@ const server = http.createServer(async (req, res) => {
     payload = JSON.parse(raw);
   } catch (e) {
     return jsonResponse(res, 400, { ok: false, error: "JSON 파싱 실패" });
+  }
+
+  /* ===== SMS 라우트 ===== */
+  if (req.url === "/aligo/sms") {
+    const { receiver, msg, msgType, title, testmode } = payload || {};
+    if (!receiver || !msg) {
+      return jsonResponse(res, 400, { ok: false, error: "receiver·msg 필수" });
+    }
+    const form = new URLSearchParams();
+    form.set("key", ALIGO_API_KEY);
+    form.set("user_id", ALIGO_USER_ID);
+    form.set("sender", ALIGO_SENDER);
+    form.set("receiver", String(receiver));
+    form.set("msg", String(msg));
+    form.set("msg_type", String(msgType || "SMS"));   /* SMS | LMS | MMS */
+    if (msgType === "LMS" || msgType === "MMS") form.set("title", String(title || "알림"));
+    form.set("testmode_yn", testmode === true ? "Y" : "N");
+
+    try {
+      const aligoRes = await fetch(ALIGO_SMS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString(),
+      });
+      const aligoText = await aligoRes.text();
+      let aligoJson;
+      try { aligoJson = JSON.parse(aligoText); } catch { aligoJson = { raw: aligoText }; }
+
+      const code = String(aligoJson?.result_code ?? "");
+      const message = String(aligoJson?.message ?? "");
+      const msgId = aligoJson?.msg_id ? String(aligoJson.msg_id) : null;
+
+      if (code === "1") {
+        return jsonResponse(res, 200, { ok: true, msgId, resultCode: code, message });
+      }
+      return jsonResponse(res, 200, { ok: false, resultCode: code, message, error: `Aligo SMS result_code=${code} ${message}`.slice(0, 500) });
+    } catch (err) {
+      return jsonResponse(res, 500, { ok: false, error: String(err?.message || err).slice(0, 500) });
+    }
+  }
+
+  /* ===== 카카오 알림톡 라우트 (기존) ===== */
+  if (!ALIGO_KAKAO_CHANNEL_ID) {
+    return jsonResponse(res, 500, { ok: false, error: "알리고 카카오 채널 미설정" });
   }
   const { tplCode, receiver, message, subject, buttonJson } = payload || {};
   if (!tplCode || !receiver || !message) {
