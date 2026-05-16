@@ -507,6 +507,30 @@ async function startJob(job: any) {
 async function processChunk(job: any) {
   const channel: SendChannel = job.channel;
 
+  /* ★ 2026-05-17: SMS 채널이면 이미지 첨부 시 자동 MMS로 분기. 첫 이미지 URL만 사용. */
+  let smsImageUrl: string | null = null;
+  if (channel === "sms") {
+    /* job.images_override 우선, 없으면 template.images */
+    const jobImagesOv = (job as any).images_override;
+    let imgs: any[] = [];
+    if (jobImagesOv !== null && jobImagesOv !== undefined) {
+      imgs = Array.isArray(jobImagesOv) ? jobImagesOv : [];
+    } else {
+      /* template.images 조회 */
+      try {
+        const tplImgRes: any = await db.execute(sql`
+          SELECT images FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+        `);
+        const r = (tplImgRes?.rows ?? tplImgRes ?? [])[0];
+        imgs = Array.isArray(r?.images) ? r.images : [];
+      } catch (_) { imgs = []; }
+    }
+    if (imgs.length > 0) {
+      imgs.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
+      smsImageUrl = String(imgs[0].url || "") || null;
+    }
+  }
+
   /* ★ 2026-05-16: 카카오 채널이면 작업의 템플릿에서 알리고 정보 1회 조회 (chunk 공유) */
   let kakaoTplCode: string | null = null;
   let kakaoBtnJson: any = null;
@@ -602,6 +626,8 @@ async function processChunk(job: any) {
               alimtalkTemplateCode: kakaoTplCode,
               alimtalkButtonJson:   kakaoBtnJson,
             } : {}),
+            /* ★ 2026-05-17: SMS 채널 + 이미지 있으면 MMS 자동 전환. 첫 번째 이미지만 사용. */
+            ...(channel === "sms" && smsImageUrl ? { mmsImageUrl: smsImageUrl } : {}),
           },
         ),
         SEND_TIMEOUT_MS,

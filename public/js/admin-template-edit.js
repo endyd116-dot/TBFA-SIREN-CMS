@@ -315,8 +315,16 @@
     const alimtalkCard = $("alimtalkCard"); /* ★ 2026-05-16 */
     const imagesCard = $("imagesCard");     /* ★ 2026-05-17 */
 
-    /* 이미지 카드: 이메일 채널만 노출 (1차). MMS는 다음 라운드. */
-    if (imagesCard) imagesCard.style.display = (ch === "email") ? "" : "none";
+    /* 이미지 카드: 이메일·SMS 채널 노출. SMS는 이미지 있으면 자동 MMS 전환 (단가 2~3배). */
+    if (imagesCard) {
+      imagesCard.style.display = (ch === "email" || ch === "sms") ? "" : "none";
+      const titleEl = imagesCard.querySelector("h3");
+      if (titleEl) {
+        titleEl.innerHTML = ch === "sms"
+          ? "🖼️ 이미지 첨부 (SMS → MMS 자동 전환 · 단가 2~3배)"
+          : "🖼️ 이미지 첨부 (이메일 전용)";
+      }
+    }
 
     // 제목 칸: 이메일·인앱만 노출
     if (ch === "email" || ch === "inapp") {

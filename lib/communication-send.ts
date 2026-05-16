@@ -8,7 +8,7 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { members, communicationTemplates, recipientGroups } from "../db";
 import { sendEmail } from "./email";
-import { aligoSend } from "./aligo-client";
+import { aligoSend, aligoSendMms } from "./aligo-client";
 import { sendAligoAlimtalk, normalizePhone } from "./aligo-kakao-client";
 import { createNotification } from "./notify";
 
@@ -23,6 +23,8 @@ export interface SendPayload {
   alimtalkTemplateCode?: string;
   /** ★ 2026-05-16: 카카오 알림톡 버튼 JSON (button_1) */
   alimtalkButtonJson?: any;
+  /** ★ 2026-05-17: SMS 채널일 때 이미지 첨부 시 자동 MMS 전환. 첫 번째 이미지 URL만 사용. */
+  mmsImageUrl?: string;
 }
 
 export interface SendResult {
@@ -92,7 +94,7 @@ async function sendEmailDirect(
   return { ok: true, providerMessageId: result?.id || undefined };
 }
 
-/* ─── SMS 직접 발송 (Aligo) ─── */
+/* ─── SMS 직접 발송 (Aligo) — 이미지 있으면 자동 MMS ─── */
 async function sendSmsDirect(
   member: { id: number; phone: string | null; name: string | null },
   payload: SendPayload,
@@ -102,6 +104,22 @@ async function sendSmsDirect(
   }
   const msg = String(payload.body).slice(0, 2000);
   const title = payload.subject ? String(payload.subject).slice(0, 30) : undefined;
+
+  /* ★ 2026-05-17: 이미지 URL이 있으면 MMS로 발송. 알리고 단가 LMS의 2~3배. */
+  if (payload.mmsImageUrl) {
+    const mmsResult = await aligoSendMms({
+      receiver: member.phone,
+      msg, title,
+      imageUrl: payload.mmsImageUrl,
+    });
+    if (!mmsResult.ok) {
+      return {
+        ok: false,
+        error: (mmsResult.error || `Aligo MMS 오류 code=${mmsResult.resultCode}`).slice(0, 500),
+      };
+    }
+    return { ok: true, providerMessageId: mmsResult.msgId };
+  }
 
   const result = await aligoSend({ receiver: member.phone, msg, title });
   if (!result.ok) {

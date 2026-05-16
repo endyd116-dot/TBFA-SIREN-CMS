@@ -133,3 +133,92 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     error:      `Aligo 오류 result_code=${code} message=${raw?.message ?? ""}`,
   };
 }
+
+/* =========================================================
+   ★ 2026-05-17: aligoSendMms — 이미지 첨부 MMS 발송 (multipart)
+   - image 파라미터로 image1·image2·image3 최대 3장. 우리는 1장만 사용.
+   - 알리고 정책: 한 장 ~300KB, jpg/png/gif.
+   - title 필수 (LMS와 동일).
+   ========================================================= */
+export interface AligoMmsOpts extends AligoSendOpts {
+  /** 첨부할 이미지 (R2 URL 또는 절대 URL). Buffer 다운로드 후 multipart. */
+  imageUrl: string;
+}
+
+export async function aligoSendMms(opts: AligoMmsOpts): Promise<AligoSendResult> {
+  const apiKey  = process.env.ALIGO_API_KEY;
+  const userId  = process.env.ALIGO_USER_ID;
+  const sender  = process.env.ALIGO_SENDER;
+
+  if (!apiKey || !userId || !sender) {
+    return { ok: false, error: "Aligo 환경변수 미설정 (ALIGO_API_KEY / ALIGO_USER_ID / ALIGO_SENDER)" };
+  }
+
+  const testMode = process.env.NOTIFICATION_TEST_MODE === "true";
+  const receiver = normalizePhone(opts.receiver);
+  if (!receiver || receiver.length < 10) {
+    return { ok: false, error: `수신번호 형식 오류: ${opts.receiver}` };
+  }
+  if (!opts.imageUrl) {
+    return { ok: false, error: "MMS 이미지 URL 미지정" };
+  }
+
+  /* 이미지 다운로드 */
+  let imageBlob: Blob;
+  try {
+    const imgRes = await fetch(opts.imageUrl);
+    if (!imgRes.ok) {
+      return { ok: false, error: `이미지 다운로드 실패: HTTP ${imgRes.status}` };
+    }
+    imageBlob = await imgRes.blob();
+    if (imageBlob.size > 300 * 1024) {
+      return { ok: false, error: `이미지 크기 초과 (${Math.round(imageBlob.size / 1024)}KB, 최대 300KB)` };
+    }
+  } catch (err: any) {
+    return { ok: false, error: `이미지 다운로드 오류: ${String(err?.message || err).slice(0, 300)}` };
+  }
+
+  const title = opts.title ?? "알림";
+
+  if (testMode) {
+    console.log(`[aligo-client] TEST_MODE MMS 발송 (실제 전송 안 됨) to=${receiver} bytes=${opts.msg.length} imgSize=${imageBlob.size}`);
+    return { ok: true, msgId: `test-mms-${Date.now()}`, resultCode: "1", message: "테스트모드(MMS)" };
+  }
+
+  const form = new FormData();
+  form.set("key", apiKey);
+  form.set("user_id", userId);
+  form.set("sender", normalizePhone(sender));
+  form.set("receiver", receiver);
+  form.set("msg", opts.msg);
+  form.set("msg_type", "MMS");
+  form.set("title", title);
+  form.set("testmode_yn", "N");
+  /* 알리고 image1 파라미터로 파일 첨부 */
+  const ext = (imageBlob.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 4);
+  form.set("image1", imageBlob, `mms.${ext}`);
+
+  let raw: any;
+  try {
+    const res = await fetch(ALIGO_SEND_URL, { method: "POST", body: form });
+    raw = await res.json();
+  } catch (err: any) {
+    return { ok: false, error: `Aligo MMS 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
+  }
+
+  const code = String(raw?.result_code ?? "");
+  if (code === "1") {
+    return {
+      ok: true,
+      msgId: String(raw?.msg_id ?? ""),
+      resultCode: code,
+      message: String(raw?.message ?? ""),
+    };
+  }
+  return {
+    ok: false,
+    resultCode: code,
+    message: String(raw?.message ?? ""),
+    error: `Aligo MMS 오류 result_code=${code} message=${raw?.message ?? ""}`,
+  };
+}

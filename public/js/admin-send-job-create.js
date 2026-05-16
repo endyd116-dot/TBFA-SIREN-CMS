@@ -244,15 +244,23 @@
     });
   }
 
-  /* 이미지 카드 표시 여부 — 이메일 채널 단독일 때만 (1차) */
+  /* 이미지 카드 표시 — 이메일·SMS 채널에 노출 (SMS는 자동 MMS 전환) */
   function applyImagesCardVisibility() {
     const card = $('imagesCard');
     if (!card) return;
     const channels = getSelectedChannels();
-    /* 이메일이 포함되어 있고 카카오는 단독 모드라 제외 */
     const hasEmail = channels.includes('email');
-    card.style.display = (hasEmail && currentTemplate) ? '' : 'none';
-    /* 발송 미리보기 카드도 동일 (이메일·인앱) */
+    const hasSms = channels.includes('sms');
+    card.style.display = ((hasEmail || hasSms) && currentTemplate) ? '' : 'none';
+    /* SMS 채널일 때 비용 안내 추가 */
+    const titleEl = card.querySelector('.card-title');
+    if (titleEl) {
+      const hint = hasSms && !hasEmail
+        ? '🖼️ 이미지 첨부 <span class="badge-tip" style="background:#fff7ed;color:#9a3412">SMS → MMS 자동 전환 (단가 2~3배, 첫 이미지만)</span>'
+        : '🖼️ 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>';
+      titleEl.innerHTML = hint;
+    }
+    /* 발송 미리보기 카드 — 이메일·인앱 */
     const pvCard = $('sendPreviewCard');
     if (pvCard) {
       const showPv = currentTemplate && (channels.includes('email') || channels.includes('inapp'));
