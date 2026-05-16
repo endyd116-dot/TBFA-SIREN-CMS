@@ -274,21 +274,29 @@ export default async function handler(_req: Request) {
    ========================================================= */
 
 async function startJob(job: any) {
-  /* 템플릿·그룹 조회 — ★ 2026-05-16: 카카오 전용 컬럼도 함께 SELECT (마이그 적용 후) */
+  /* 템플릿·그룹 조회 — ★ 2026-05-16 (재수정): drizzle SQL fragment embedding
+     (sql`...${embedFragment}...`)이 dispatcher 환경에서 'syntax error near LIMIT'
+     야기 → 조건 분기로 명시 SELECT 두 가지 작성. 컬럼 존재 여부에 따라 분기. */
   const colCheck: any = await db.execute(sql`
     SELECT COUNT(*)::int AS n FROM information_schema.columns
      WHERE table_name = 'communication_templates'
        AND column_name IN ('alimtalk_template_code','alimtalk_review_status','alimtalk_button_json')
   `);
   const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
-  const alimtalkSelect = hasAlimtalkCols
-    ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
-    : sql``;
 
-  const tplRes: any = await db.execute(sql`
-    SELECT id, name, channel, subject, body_template, variables, is_active${alimtalkSelect}
-      FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
-  `);
+  let tplRes: any;
+  if (hasAlimtalkCols) {
+    tplRes = await db.execute(sql`
+      SELECT id, name, channel, subject, body_template, variables, is_active,
+             alimtalk_template_code, alimtalk_review_status, alimtalk_button_json
+        FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+    `);
+  } else {
+    tplRes = await db.execute(sql`
+      SELECT id, name, channel, subject, body_template, variables, is_active
+        FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+    `);
+  }
   const template = (tplRes?.rows ?? tplRes ?? [])[0];
   if (!template) throw new Error(`템플릿을 찾을 수 없음 (id=${job.template_id})`);
   if (!template.is_active) throw new Error("템플릿이 비활성 상태");
