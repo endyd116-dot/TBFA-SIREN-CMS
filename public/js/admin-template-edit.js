@@ -168,15 +168,25 @@
         credentials: "include",
         body: fd,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.url) {
-        statusEl.textContent = "업로드 실패: " + (data.error || ("HTTP " + res.status));
+      const raw = await res.json().catch(() => ({}));
+      /* ★ 2026-05-17: blob-upload는 ok() 헬퍼로 wrap → {ok, message, data:{url, blobKey, ...}}.
+         data.data.url을 우선 + data.url을 fallback (다른 응답 형태 안전망). */
+      const payload = raw?.data ?? raw ?? {};
+      const relativeUrl = payload.url || raw.url || "";
+      if (!res.ok || !relativeUrl) {
+        const detail = raw.error || raw.message || ("HTTP " + res.status);
+        statusEl.textContent = "업로드 실패: " + detail;
         statusEl.style.color = "#b91c1c";
         return;
       }
+      /* ★ 2026-05-17: 이메일에 박힐 때 절대 URL이어야 외부에서 접근 가능 →
+         상대 경로면 window.location.origin과 결합. */
+      const absoluteUrl = relativeUrl.startsWith("http")
+        ? relativeUrl
+        : new URL(relativeUrl, window.location.origin).href;
       templateImages.push({
-        url: data.url,
-        blobKey: data.blobKey || data.key || "",
+        url: absoluteUrl,
+        blobKey: payload.blobKey || raw.blobKey || "",
         name: file.name,
         width: 600,
         align: "center",
