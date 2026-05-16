@@ -267,6 +267,118 @@ document.addEventListener('change', async function (e) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  /* ============================================================
+     ★ 2026-05-16 A안: 회원가입 모달의 전화번호 SMS 인증 핸들러
+     ============================================================ */
+  (function bindSignupPhoneVerify() {
+    var verifyBtn = document.getElementById('signupPhoneVerifyBtn');
+    var codeBtn   = document.getElementById('signupPhoneCodeBtn');
+    if (!verifyBtn || !codeBtn) return;  /* signup 모달이 없는 페이지 */
+
+    var phoneInput     = document.getElementById('signupPhone');
+    var codeRow        = document.getElementById('signupPhoneCodeRow');
+    var codeInput      = document.getElementById('signupPhoneCode');
+    var statusEl       = document.getElementById('signupPhoneStatus');
+    var tokenInput     = document.getElementById('signupVerifyToken');
+
+    function setStatus(html, color) {
+      if (!statusEl) return;
+      statusEl.innerHTML = html;
+      statusEl.style.color = color || 'var(--text-3)';
+    }
+
+    verifyBtn.addEventListener('click', async function () {
+      var phone = (phoneInput && phoneInput.value || '').trim();
+      if (!phone) { setStatus('전화번호를 먼저 입력해 주세요', 'var(--danger)'); return; }
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = '발송 중…';
+      try {
+        var r = await fetch('/api/auth/phone-verify-send', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone }),
+        });
+        var data = await r.json().catch(function () { return {}; });
+        if (!r.ok || !data.ok) {
+          setStatus('❌ ' + (data.error || '인증번호 발송 실패'), 'var(--danger)');
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = '인증번호 받기';
+          return;
+        }
+        codeRow.style.display = '';
+        codeInput.focus();
+        setStatus('📩 인증번호를 발송했습니다. 5분 이내에 입력해 주세요.', 'var(--success)');
+        verifyBtn.textContent = '재발송';
+        setTimeout(function () { verifyBtn.disabled = false; }, 30000);  /* 30초 동안 재발송 차단 */
+      } catch (err) {
+        setStatus('❌ 네트워크 오류: ' + (err.message || ''), 'var(--danger)');
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = '인증번호 받기';
+      }
+    });
+
+    codeBtn.addEventListener('click', async function () {
+      var phone = (phoneInput && phoneInput.value || '').trim();
+      var code  = (codeInput && codeInput.value  || '').trim();
+      if (!code) { setStatus('인증번호를 입력해 주세요', 'var(--danger)'); return; }
+      codeBtn.disabled = true;
+      codeBtn.textContent = '확인 중…';
+      try {
+        var r = await fetch('/api/auth/phone-verify-check', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone, code: code }),
+        });
+        var data = await r.json().catch(function () { return {}; });
+        if (!r.ok || !data.ok) {
+          setStatus('❌ ' + (data.error || '인증 실패'), 'var(--danger)');
+          codeBtn.disabled = false;
+          codeBtn.textContent = '확인';
+          return;
+        }
+
+        /* 인증 통과 — verifyToken 저장 + 매칭 결과 안내 */
+        tokenInput.value = data.verifyToken || '';
+        codeBtn.disabled = true;
+        codeBtn.textContent = '인증 완료';
+        codeInput.disabled = true;
+        phoneInput.disabled = true;
+        verifyBtn.style.display = 'none';
+
+        var matched = data.matchedMember;
+        if (matched && matched.mode === 'existing_full') {
+          /* 이미 사이트 회원 — 가입 차단, 로그인 안내 */
+          setStatus(
+            '✅ 인증 완료. 다만 ' + escapeHtml(matched.name) + '님은 이미 가입하신 회원입니다.<br/>' +
+            '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="loginModal" style="color:var(--brand);text-decoration:underline">로그인</a>하거나, ' +
+            '<a href="javascript:void(0)" data-action="switch-modal" data-from="signupModal" data-to="passwordResetModal" style="color:var(--brand);text-decoration:underline">비밀번호 재설정</a>을 이용해 주세요.',
+            'var(--warning, #b8860b)'
+          );
+          /* 가입 버튼 비활성화 */
+          var submitBtn = document.querySelector('form[data-form="signup"] button[type="submit"]');
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '이미 가입된 회원입니다'; }
+        } else if (matched && (matched.mode === 'existing_hyosung' || matched.mode === 'existing_donor')) {
+          var sourceLabel = matched.isHyosung ? '효성으로' : '';
+          setStatus(
+            '✅ ' + escapeHtml(matched.name) + '님, 환영합니다!<br/>' +
+            '이미 ' + sourceLabel + ' 후원해 주시는 분이시군요 (' + matched.donationCount + '회). ' +
+            '이메일·비밀번호를 추가하시면 마이페이지에서 후원 이력·영수증을 직접 관리하실 수 있어요.',
+            'var(--success)'
+          );
+          /* 이름 필드 자동 채움 (read-only는 아님 — 사용자 확인 후 수정 가능) */
+          var nameInput = document.querySelector('form[data-form="signup"] input[name="name"]');
+          if (nameInput && !nameInput.value) nameInput.value = matched.name;
+        } else {
+          setStatus('✅ 인증 완료. 이메일·비밀번호를 입력하고 가입을 완료해 주세요.', 'var(--success)');
+        }
+      } catch (err) {
+        setStatus('❌ 네트워크 오류: ' + (err.message || ''), 'var(--danger)');
+        codeBtn.disabled = false;
+        codeBtn.textContent = '확인';
+      }
+    });
+  })();
+
   function formatDate(iso) {
     if (!iso) return '-';
     const d = new Date(iso);
@@ -301,6 +413,11 @@ document.addEventListener('change', async function (e) {
           const agreeAll = Array.from(checkboxes).every(c => c.checked);
           if (!agreeAll) throw new Error('이용약관에 동의해주세요');
 
+          /* ★ 2026-05-16 A안: 전화 인증 토큰 필수 */
+          if (!data.verifyToken) {
+            throw new Error('전화번호 인증을 먼저 완료해 주세요. (연락처 입력 후 "인증번호 받기" → 6자리 코드 확인)');
+          }
+
           /* ★ 2026-05-16: 서버(auth-signup.ts)는 약관 동의를 agreeTerms·agreePrivacy
              두 필드로 분리해서 검증함. 화면 체크박스 한 개로 둘 다 동의 처리는
              정상 UX이므로 클라이언트가 두 필드 모두 true로 전송. agree 한 필드만
@@ -311,6 +428,7 @@ document.addEventListener('change', async function (e) {
             name: data.name,
             phone: data.phone,
             memberType: data.memberType || 'regular',
+            verifyToken: data.verifyToken,   /* ★ A안: 서버에서 phone_verifications 조회·matched_member 활성화 */
             agreeTerms: true,
             agreePrivacy: true,
             /* 전문가 회원 추가 필드 — 일반 회원이면 undefined 무시됨 */
