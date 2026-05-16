@@ -109,6 +109,7 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 
 ### 발송 (email)
 - 단일·다수 회원: email_send (Resend, dry-run 후 발송)
+- **memberIds는 반드시 정수 배열**: 한 명이라도 [5] (O), 5 단독 (X). subject·body 둘 다 필수.
 
 ### 종합 KPI
 - kpi_summary — 회원·후원·신고 핵심 숫자 한 번에

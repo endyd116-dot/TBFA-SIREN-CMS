@@ -221,7 +221,7 @@ export default async (req: Request, _ctx: Context) => {
             }
           }
 
-          write("tool_done", { name: toolName, ok: result.ok, _cached: result._cached, hasPreview: !!result.preview });
+          write("tool_done", { name: toolName, ok: result.ok, error: result.ok ? undefined : result.error, _cached: result._cached, hasPreview: !!result.preview });
           totalToolCalls++;
           executedTools.push({ name: toolName, args: toolArgs, result });
 

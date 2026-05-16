@@ -675,6 +675,31 @@ export interface ToolResult {
  */
 type RoleGuardResult = { ok: true; error?: undefined } | { ok: false; error: string };
 
+/**
+ * Gemini 함수 호출 인자 정규화 — ARRAY of INTEGER 스키마를 어겨도 수용.
+ * 단일 정수(5), 문자열("5"), 문자열화 배열("[1,2]"), 쉼표 문자열("1,2"), 정상 배열 모두 [1,2]로.
+ */
+function toIdArray(raw: any): number[] {
+  if (raw === undefined || raw === null || raw === "") return [];
+  let candidate: any = raw;
+  if (typeof candidate === "string") {
+    const s = candidate.trim();
+    if (s.startsWith("[") && s.endsWith("]")) {
+      try { candidate = JSON.parse(s); } catch { candidate = s.slice(1, -1).split(","); }
+    } else if (s.includes(",")) {
+      candidate = s.split(",");
+    } else {
+      candidate = [s];
+    }
+  } else if (typeof candidate === "number") {
+    candidate = [candidate];
+  }
+  if (!Array.isArray(candidate)) return [];
+  return candidate
+    .map((n: any) => Number(typeof n === "string" ? n.trim() : n))
+    .filter((n: number) => Number.isFinite(n) && n > 0);
+}
+
 async function ensureRole(adminId: number | null, allowedRoles: string[]): Promise<RoleGuardResult> {
   if (!adminId) return { ok: false, error: "관리자 인증이 필요합니다" };
   try {
@@ -1260,8 +1285,8 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
 }
 
 async function tool_emailSend(args: any, adminId: number | null): Promise<ToolResult> {
-  const ids: number[] = Array.isArray(args?.memberIds) ? args.memberIds.map((n: any) => Number(n)).filter(Boolean) : [];
-  if (ids.length === 0) return { ok: false, error: "memberIds 필수" };
+  const ids: number[] = toIdArray(args?.memberIds);
+  if (ids.length === 0) return { ok: false, error: "memberIds 필수 (정수 배열, 예: [5])" };
   if (ids.length > 50) return { ok: false, error: "한 번에 최대 50명까지" };
   const subject = String(args?.subject || "").trim();
   const body = String(args?.body || "").trim();
@@ -1706,8 +1731,8 @@ async function tool_donationsStatusUpdate(args: any, adminId: number | null): Pr
 }
 
 async function tool_notificationSend(args: any, adminId: number | null): Promise<ToolResult> {
-  const ids: number[] = Array.isArray(args?.memberIds) ? args.memberIds.map((n: any) => Number(n)).filter(Boolean) : [];
-  if (ids.length === 0) return { ok: false, error: "memberIds 필수" };
+  const ids: number[] = toIdArray(args?.memberIds);
+  if (ids.length === 0) return { ok: false, error: "memberIds 필수 (정수 배열, 예: [5])" };
   if (ids.length > 100) return { ok: false, error: "한 번에 최대 100명까지" };
   const title = String(args?.title || "").trim();
   if (!title) return { ok: false, error: "title 필수" };

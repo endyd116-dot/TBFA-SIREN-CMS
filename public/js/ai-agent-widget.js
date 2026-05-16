@@ -459,7 +459,8 @@
     var box = document.createElement('div');
     box.className = 'aiw-tools';
     box.innerHTML = '🔧 사용한 도구: ' + toolCalls.map(function (t) {
-      return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? 'ok' : 'error') + ')';
+      var err = !t.result.ok && t.result.error ? ': ' + escapeHtml(String(t.result.error).slice(0, 120)) : '';
+      return '<b>' + escapeHtml(t.name) + '</b>(' + (t.result.ok ? 'ok' : 'error' + err) + ')';
     }).join(', ');
     msgs.appendChild(box);
     msgs.scrollTop = msgs.scrollHeight;
@@ -579,7 +580,8 @@
             var hints = document.querySelectorAll('.aiw-tools[data-tool-name="' + ev.data.name + '"]');
             if (hints.length > 0) {
               var last = hints[hints.length - 1];
-              last.textContent = '🔧 ' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '');
+              var errMsg = !ev.data.ok && ev.data.error ? ' — ' + String(ev.data.error).slice(0, 120) : '';
+              last.textContent = '🔧 ' + ev.data.name + (ev.data.ok ? ' ✓' : ' ✗') + (ev.data._cached ? ' (캐시)' : '') + errMsg;
             }
           } else if (ev.event === 'approval') {
             appendPendingApproval(ev.data);
