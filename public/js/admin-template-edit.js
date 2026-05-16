@@ -43,6 +43,102 @@
     setTimeout(() => el.classList.remove("show"), 3500);
   }
 
+  /* ★ 2026-05-17: 자주 쓰는 변수 카테고리별 카탈로그.
+     운영자가 키·라벨·샘플을 직접 입력하지 않고 클릭 한 번에 추가.
+     알리고 카카오 변수 표기(#{회원이름})와 우리 시스템({{회원이름}}) 둘 다
+     지원되도록 한글 키 그대로 채택. */
+  const VAR_PRESETS = {
+    "👤 회원 정보": [
+      { key: "회원이름",   label: "회원 이름",       sample: "박두용" },
+      { key: "회원ID",     label: "회원 아이디(이메일)", sample: "donor@tbfa.co.kr" },
+      { key: "회원번호",   label: "회원 번호",       sample: "12345" },
+      { key: "이메일",     label: "회원 이메일",     sample: "donor@tbfa.co.kr" },
+      { key: "연락처",     label: "회원 연락처",     sample: "010-1234-5678" },
+      { key: "가입일",     label: "가입일",          sample: "2025-03-15" },
+      { key: "회원유형",   label: "회원 유형(정기/일시/잠재)", sample: "정기 후원자" },
+      { key: "회원등급",   label: "회원 등급",       sample: "골드" },
+    ],
+    "💰 후원·결제": [
+      { key: "금액",         label: "후원 금액",        sample: "30,000" },
+      { key: "출금금액",     label: "이번 회차 출금 금액", sample: "30,000" },
+      { key: "출금예정일",   label: "출금 예정일",       sample: "2026-06-01" },
+      { key: "출금일시",     label: "출금 완료 일시",     sample: "2026-05-15 09:00" },
+      { key: "결제수단",     label: "결제 수단",         sample: "신한카드" },
+      { key: "카드번호뒷자리", label: "카드 번호 뒷 4자리", sample: "4321" },
+      { key: "카드만료일",   label: "카드 만료일",       sample: "2026-08" },
+      { key: "잔여일수",     label: "카드 만료 잔여 일수", sample: "30" },
+      { key: "누적후원금액", label: "누적 후원 금액",     sample: "360,000" },
+      { key: "연간후원금액", label: "연간 후원 총액",     sample: "360,000" },
+      { key: "실패사유",     label: "결제 실패 사유",     sample: "한도초과" },
+      { key: "연속실패횟수", label: "연속 결제 실패 횟수", sample: "1" },
+      { key: "재시도일자",   label: "다음 결제 재시도 일자", sample: "2026-05-22" },
+    ],
+    "📋 후원 정보 변경": [
+      { key: "변경항목",   label: "변경 항목",     sample: "결제수단" },
+      { key: "변경전내용", label: "변경 전 내용",   sample: "현대카드 9999" },
+      { key: "변경후내용", label: "변경 후 내용",   sample: "신한카드 4321" },
+      { key: "처리일시",   label: "처리 일시",     sample: "2026-05-16 14:30" },
+    ],
+    "🧾 영수증": [
+      { key: "영수증종류",   label: "영수증 종류",     sample: "기부금영수증" },
+      { key: "발급가능기간", label: "발급 가능 기간",   sample: "2027-01-01 ~ 2027-01-31" },
+      { key: "발급일자",     label: "발급 일자",       sample: "2027-01-15" },
+    ],
+    "🚨 SIREN 신고": [
+      { key: "신고번호",   label: "신고 번호",       sample: "SR-2026-001" },
+      { key: "신고유형",   label: "신고 유형",       sample: "사건·사고" },
+      { key: "신고일자",   label: "신고 접수 일자",   sample: "2026-05-16" },
+      { key: "처리상태",   label: "현재 처리 상태",   sample: "검토 중" },
+      { key: "담당자",     label: "담당자 이름",     sample: "김상담" },
+      { key: "처리완료일", label: "처리 완료 일자",   sample: "2026-05-20" },
+    ],
+    "🏫 협회 정보": [
+      { key: "협회명",       label: "협회 이름",       sample: "교사유가족협의회" },
+      { key: "협회연락처",   label: "협회 대표 전화",   sample: "02-707-2072" },
+      { key: "협회이메일",   label: "협회 대표 이메일", sample: "contact@tbfa.co.kr" },
+      { key: "협회주소",     label: "협회 주소",       sample: "서울특별시 강서구 공항대로 426 VIP오피스텔 618호" },
+      { key: "대표자명",     label: "대표자 이름",     sample: "홍길동" },
+      { key: "사업자번호",   label: "사업자등록번호",   sample: "118-82-71215" },
+    ],
+    "📅 일자·기타": [
+      { key: "오늘날짜",     label: "오늘 날짜",       sample: "2026-05-17" },
+      { key: "현재시각",     label: "현재 시각",       sample: "14:30" },
+      { key: "연도",         label: "올해 연도",       sample: "2026" },
+      { key: "월",           label: "이번 달",         sample: "5" },
+      { key: "발송일자",     label: "발송 일자",       sample: "2026-05-17" },
+    ],
+  };
+
+  /* 프리셋 모달 열기 — 이미 정의된 변수는 회색 + 클릭 불가 */
+  function openVarPresetModal() {
+    const defined = new Set(readVariables().map(v => v.key));
+    let html = "";
+    for (const [cat, items] of Object.entries(VAR_PRESETS)) {
+      html += `<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#374151;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb">${escapeHtml(cat)}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+      for (const v of items) {
+        const isDefined = defined.has(v.key);
+        const styleBg = isDefined ? "#f3f4f6;color:#9ca3af;cursor:not-allowed" : "#fff;color:#1f2937;cursor:pointer";
+        const styleBorder = isDefined ? "#e5e7eb" : "#d1d5db";
+        html += `<button type="button" class="var-preset-btn" data-key="${escapeHtml(v.key)}" data-label="${escapeHtml(v.label)}" data-sample="${escapeHtml(v.sample)}" ${isDefined ? "disabled" : ""} style="text-align:left;padding:8px 12px;background:${styleBg};border:1px solid ${styleBorder};border-radius:6px;font-size:12.5px"><div style="font-weight:600">${escapeHtml(v.label)}${isDefined ? " ✓" : ""}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">{{${escapeHtml(v.key)}}} <span style="opacity:.6">— ${escapeHtml(v.sample)}</span></div></button>`;
+      }
+      html += `</div></div>`;
+    }
+    $("varPresetBody").innerHTML = html;
+    $("varPresetModal").style.display = "flex";
+    $("varPresetBody").querySelectorAll(".var-preset-btn:not([disabled])").forEach(btn => {
+      btn.addEventListener("click", () => {
+        addVarRow({ key: btn.dataset.key, label: btn.dataset.label, sample: btn.dataset.sample });
+        btn.disabled = true;
+        btn.style.background = "#f3f4f6";
+        btn.style.color = "#9ca3af";
+        btn.style.cursor = "not-allowed";
+        const titleEl = btn.querySelector("div");
+        if (titleEl && !titleEl.textContent.endsWith(" ✓")) titleEl.textContent += " ✓";
+      });
+    });
+  }
+  function closeVarPresetModal() { $("varPresetModal").style.display = "none"; }
+
   /* ── 변수 정의 표 ── */
   function addVarRow(v = { key: "", label: "", sample: "" }) {
     const tbody = $("varTbody");
@@ -376,6 +472,12 @@
   /* ── 이벤트 ── */
   function bindEvents() {
     $("btnAddVar").addEventListener("click", () => addVarRow());
+    /* ★ 2026-05-17: 변수 프리셋 모달 트리거 + 닫기 */
+    $("btnAddVarPreset")?.addEventListener("click", openVarPresetModal);
+    $("varPresetClose")?.addEventListener("click", closeVarPresetModal);
+    $("varPresetModal")?.addEventListener("click", (e) => {
+      if (e.target === $("varPresetModal")) closeVarPresetModal();
+    });
 
     document.querySelectorAll('input[name="channel"]').forEach(r =>
       r.addEventListener("change", applyChannelUI)
