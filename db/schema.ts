@@ -3155,3 +3155,88 @@ export const counterparties = pgTable("counterparties", {
 export type Counterparty    = typeof counterparties.$inferSelect;
 export type NewCounterparty = typeof counterparties.$inferInsert;
 
+/* =========================================================
+   === 2026-05-16: 응답폼·신청폼 빌더 (믹스온 비교 약점 ★★★ 1순위) ===
+   migrate-forms.ts로 테이블 생성됨. 운영자가 코드 없이 행사 신청·설문·
+   이벤트 폼을 직접 만들고 응답 수집. 응답자는 회원/비회원 모두 가능.
+   ========================================================= */
+
+export const forms = pgTable("forms", {
+  id:                bigserial("id", { mode: "number" }).primaryKey(),
+  title:             varchar("title", { length: 200 }).notNull(),
+  slug:              varchar("slug", { length: 100 }).notNull().unique(),
+  description:       text("description"),
+  instructions:      text("instructions"),
+  /* 접근 정책 */
+  accessLevel:       varchar("access_level", { length: 20 }).default("public").notNull(),
+  requiresAuth:      boolean("requires_auth").default(false).notNull(),
+  /* 상태·공개 */
+  isActive:          boolean("is_active").default(true).notNull(),
+  isPublished:       boolean("is_published").default(false).notNull(),
+  /* 응답 정책 */
+  maxResponses:      integer("max_responses"),
+  allowDuplicates:   boolean("allow_duplicates").default(true).notNull(),
+  closedMessage:     text("closed_message"),
+  /* 알림 */
+  notifyOnSubmit:    boolean("notify_on_submit").default(true).notNull(),
+  adminNotifyEmail:  varchar("admin_notify_email", { length: 200 }),
+  /* 메타 */
+  createdBy:         integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:         timestamp("created_at").defaultNow().notNull(),
+  updatedAt:         timestamp("updated_at").defaultNow().notNull(),
+  publishedAt:       timestamp("published_at"),
+}, (t) => ({
+  slugIdx:      index("forms_slug_idx").on(t.slug),
+  activeIdx:    index("forms_active_idx").on(t.isActive, t.isPublished),
+}));
+
+export type Form    = typeof forms.$inferSelect;
+export type NewForm = typeof forms.$inferInsert;
+
+export const formFields = pgTable("form_fields", {
+  id:               bigserial("id", { mode: "number" }).primaryKey(),
+  formId:           bigint("form_id", { mode: "number" }).notNull().references(() => forms.id, { onDelete: "cascade" }),
+  fieldKey:         varchar("field_key", { length: 50 }).notNull(),
+  type:             varchar("type", { length: 20 }).notNull(),
+  label:            varchar("label", { length: 200 }).notNull(),
+  placeholder:      varchar("placeholder", { length: 200 }),
+  helpText:         text("help_text"),
+  options:          jsonb("options").default(sql`'[]'::jsonb`).notNull(),
+  required:         boolean("required").default(false).notNull(),
+  pattern:          varchar("pattern", { length: 200 }),
+  minLength:        integer("min_length"),
+  maxLength:        integer("max_length"),
+  acceptFileTypes:  varchar("accept_file_types", { length: 200 }),
+  maxFileSize:      integer("max_file_size"),
+  sortOrder:        integer("sort_order").default(0).notNull(),
+  isVisible:        boolean("is_visible").default(true).notNull(),
+  showConditions:   jsonb("show_conditions"),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  formIdx: index("form_fields_form_idx").on(t.formId, t.sortOrder),
+}));
+
+export type FormField    = typeof formFields.$inferSelect;
+export type NewFormField = typeof formFields.$inferInsert;
+
+export const formSubmissions = pgTable("form_submissions", {
+  id:            bigserial("id", { mode: "number" }).primaryKey(),
+  formId:        bigint("form_id", { mode: "number" }).notNull().references(() => forms.id, { onDelete: "cascade" }),
+  memberId:      integer("member_id").references(() => members.id, { onDelete: "set null" }),
+  memberEmail:   varchar("member_email", { length: 200 }),
+  memberPhone:   varchar("member_phone", { length: 20 }),
+  data:          jsonb("data").notNull(),
+  userAgent:     text("user_agent"),
+  ipAddress:     varchar("ip_address", { length: 45 }),
+  status:        varchar("status", { length: 20 }).default("submitted").notNull(),
+  notes:         text("notes"),
+  createdAt:     timestamp("created_at").defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  formIdx:    index("form_submissions_form_idx").on(t.formId, t.createdAt),
+  statusIdx:  index("form_submissions_status_idx").on(t.formId, t.status),
+}));
+
+export type FormSubmission    = typeof formSubmissions.$inferSelect;
+export type NewFormSubmission = typeof formSubmissions.$inferInsert;
+

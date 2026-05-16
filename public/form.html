@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>응답폼 | (사)교사유가족협의회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f5f4f2; color: #0f0f0f; line-height: 1.6; }
+  .wrap { max-width: 720px; margin: 40px auto; padding: 0 20px 80px; }
+  .header { background: #0f0f0f; color: #fff; padding: 18px 24px; border-radius: 10px 10px 0 0; }
+  .header h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
+  .header .org { color: #b8935a; font-size: 0.8rem; margin-top: 2px; letter-spacing: 2px; }
+
+  .card { background: #fff; padding: 32px 28px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  h2 { margin: 0 0 6px; font-size: 1.5rem; color: #0f0f0f; }
+  .desc { color: #525252; font-size: 0.95rem; margin-bottom: 20px; }
+  .instructions { background: #f8fafc; border-left: 4px solid #1e40af; padding: 14px 16px; border-radius: 6px; margin-bottom: 24px; font-size: 0.9rem; color: #475569; white-space: pre-wrap; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 0.9rem; font-weight: 500; color: #0f0f0f; margin-bottom: 6px; }
+  .field .help { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+  .field .req { color: #dc2626; margin-left: 3px; }
+  .field input[type="text"], .field input[type="email"], .field input[type="tel"], .field input[type="number"], .field input[type="date"], .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.92rem; font-family: inherit;
+  }
+  .field textarea { min-height: 100px; resize: vertical; }
+  .field .options label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-bottom: 6px; cursor: pointer; }
+  .field .options input[type="checkbox"], .field .options input[type="radio"] { width: 18px; height: 18px; }
+  .field-error { color: #dc2626; font-size: 0.8rem; margin-top: 4px; }
+
+  .submit-btn { width: 100%; padding: 14px; background: #7a1f2b; color: #fff; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  .submit-btn:hover { background: #5d1721; }
+  .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  .status { padding: 30px 20px; text-align: center; }
+  .status.success { color: #16a34a; }
+  .status.error { color: #dc2626; }
+  .status .icon { font-size: 3rem; margin-bottom: 12px; }
+  .status .title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+  .status .msg { color: #525252; font-size: 0.9rem; }
+
+  .meta { font-size: 0.78rem; color: #94a3b8; margin-top: 14px; text-align: right; }
+  .meta b { color: #525252; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+    <h1>SIREN</h1>
+    <div class="org">교사유가족협의회</div>
+  </div>
+  <div class="card" id="formCard">
+    <p style="text-align:center;color:#94a3b8;padding:40px;">불러오는 중...</p>
+  </div>
+</div>
+
+<script>
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function getSlug() {
+  const u = new URL(location.href);
+  return u.searchParams.get("slug") || u.pathname.replace(/^\/form\//, "").replace(/\/$/, "");
+}
+
+async function api(path, opts) {
+  const r = await fetch(path, { method: opts?.method || "GET", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: opts?.body ? JSON.stringify(opts.body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok && data.ok !== false, status: r.status, data };
+}
+
+function renderError(title, msg) {
+  document.getElementById("formCard").innerHTML =
+    `<div class="status error"><div class="icon">⚠️</div><div class="title">${esc(title)}</div><div class="msg">${esc(msg)}</div></div>`;
+}
+
+function renderSuccess(msg) {
+  document.getElementById("formCard").innerHTML =
+    `<div class="status success"><div class="icon">✅</div><div class="title">제출 완료</div><div class="msg">${esc(msg)}</div></div>`;
+}
+
+function renderField(f) {
+  const req = f.required ? '<span class="req">*</span>' : '';
+  const help = f.helpText ? `<div class="help">${esc(f.helpText)}</div>` : '';
+  let input = '';
+
+  switch (f.type) {
+    case 'textarea':
+      input = `<textarea name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''} maxlength="${f.maxLength || 5000}"></textarea>`; break;
+    case 'select':
+      input = `<select name="${esc(f.fieldKey)}" ${f.required ? 'required' : ''}><option value="">선택하세요</option>` +
+        (f.options || []).map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('') + '</select>'; break;
+    case 'checkbox':
+      input = `<div class="options">` + (f.options || []).map((o, i) =>
+        `<label><input type="checkbox" name="${esc(f.fieldKey)}" value="${esc(o.value)}"> ${esc(o.label)}</label>`).join('') + '</div>'; break;
+    case 'radio':
+      input = `<div class="options">` + (f.options || []).map((o, i) =>
+        `<label><input type="radio" name="${esc(f.fieldKey)}" value="${esc(o.value)}" ${f.required ? 'required' : ''}> ${esc(o.label)}</label>`).join('') + '</div>'; break;
+    case 'email':
+      input = `<input type="email" name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''}>`; break;
+    case 'tel':
+      input = `<input type="tel" name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '010-0000-0000')}" ${f.required ? 'required' : ''}>`; break;
+    case 'number':
+      input = `<input type="number" name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''}>`; break;
+    case 'date':
+      input = `<input type="date" name="${esc(f.fieldKey)}" ${f.required ? 'required' : ''}>`; break;
+    case 'file':
+      input = `<input type="file" name="${esc(f.fieldKey)}" ${f.acceptFileTypes ? `accept="${esc(f.acceptFileTypes)}"` : ''}><div class="help">파일 업로드는 D5 단계에서 지원 예정</div>`; break;
+    default:
+      input = `<input type="text" name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''} ${f.pattern ? `pattern="${esc(f.pattern)}"` : ''}>`;
+  }
+
+  return `<div class="field" data-field-key="${esc(f.fieldKey)}">
+    <label>${esc(f.label)}${req}</label>
+    ${input}
+    ${help}
+    <div class="field-error" id="err-${esc(f.fieldKey)}" style="display:none"></div>
+  </div>`;
+}
+
+async function load() {
+  const slug = getSlug();
+  if (!slug) { renderError("폼 주소 오류", "URL에 slug가 없습니다"); return; }
+
+  const r = await api("/api/form?slug=" + encodeURIComponent(slug));
+  if (!r.ok) {
+    if (r.data.isClosed) renderError("응답 마감", r.data.error || "현재 응답을 받지 않습니다");
+    else renderError("폼 조회 실패", r.data.error || ("HTTP " + r.status));
+    return;
+  }
+
+  const form = r.data.form;
+  document.title = form.title + " | 응답폼";
+
+  let html = `<h2>${esc(form.title)}</h2>`;
+  if (form.description) html += `<p class="desc">${esc(form.description)}</p>`;
+  if (form.instructions) html += `<div class="instructions">${esc(form.instructions)}</div>`;
+
+  if (form.isClosed) {
+    html += `<div class="status error" style="padding:30px 0;"><div class="icon">🔒</div><div class="title">응답 마감</div><div class="msg">${esc(form.closedMessage)}</div></div>`;
+    document.getElementById("formCard").innerHTML = html;
+    return;
+  }
+
+  html += `<form id="responseForm">`;
+  for (const f of form.fields) html += renderField(f);
+
+  /* 비회원도 응답 가능한 폼이면 연락처 입력 권장 */
+  if (form.accessLevel === "public" && !form.requiresAuth) {
+    html += `<div class="field"><label>이메일 (응답 결과 통지용, 선택)</label><input type="email" name="__memberEmail" placeholder="example@email.com"></div>`;
+    html += `<div class="field"><label>전화번호 (선택)</label><input type="tel" name="__memberPhone" placeholder="010-0000-0000"></div>`;
+  }
+
+  html += `<button type="submit" class="submit-btn">응답 제출</button></form>`;
+  html += `<div class="meta">응답 ${form.responseCount}건${form.maxResponses ? ` / ${form.maxResponses}건` : ''}</div>`;
+  document.getElementById("formCard").innerHTML = html;
+
+  document.getElementById("responseForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const btn = ev.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "제출 중…";
+
+    /* form data 수집 — checkbox는 배열, 나머지는 단일 */
+    const formData = new FormData(ev.target);
+    const data = {};
+    const checkboxFields = form.fields.filter(f => f.type === "checkbox").map(f => f.fieldKey);
+    const memberEmail = formData.get("__memberEmail") || null;
+    const memberPhone = formData.get("__memberPhone") || null;
+    formData.delete("__memberEmail");
+    formData.delete("__memberPhone");
+
+    for (const f of form.fields) {
+      if (f.type === "checkbox") {
+        data[f.fieldKey] = formData.getAll(f.fieldKey);
+      } else {
+        const v = formData.get(f.fieldKey);
+        if (v !== null && v !== "") data[f.fieldKey] = v;
+      }
+    }
+
+    const r = await api("/api/form-submit", {
+      method: "POST",
+      body: { slug: form.slug, data, memberEmail, memberPhone },
+    });
+    if (r.ok) {
+      renderSuccess(r.data.message || "응답이 제출되었습니다.");
+    } else {
+      btn.disabled = false;
+      btn.textContent = "응답 제출";
+      if (r.data.fieldErrors) {
+        for (const [k, msg] of Object.entries(r.data.fieldErrors)) {
+          const el = document.getElementById("err-" + k);
+          if (el) { el.textContent = msg; el.style.display = ''; }
+        }
+      } else {
+        alert(r.data.error || "제출 실패");
+      }
+    }
+  });
+}
+
+load();
+</script>
+
+</body>
+</html>
