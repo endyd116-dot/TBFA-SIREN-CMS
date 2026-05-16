@@ -478,3 +478,44 @@ A안 백엔드 로직(헬퍼·핸들러·DB 흐름)은 완전 정상이나, **SM
 ---
 
 **마지막 갱신**: 2026-05-16 (A안 가입 흐름 검증 — BUG-2 자율 fix + BUG-1 메인 인계).
+
+---
+
+## 2026-05-16 A안 효성 후원자 가입 흐름 재검증 (C — BUG-1 해소 후)
+
+- **베이스**: main + 846f567 (SMS Oracle 프록시 경유 fix) + 061af1c (C BUG-2 머지) + b334d39 (C 10초 timeout 안전망)
+- **재검증 대상**: 1차 검증에서 BUG-1로 차단됐던 4건 (시나리오 2/3 + 엣지 5-B + 2-D 매칭 로직)
+- **결과**: 4건 전부 통과
+
+### 검증 결과
+
+| # | 명령 | 응답 | 결과 |
+|---|---|---|---|
+| 시나리오2 | `phone-verify-send {"phone":"01028075242"}` | 200 / sentAt / expiresAt / message | ✅ 1.86초. 프록시 정상 통과, Swain 카톡으로 코드 826439 수신 |
+| 시나리오3 | `phone-verify-check {"phone":"01028075242","code":"826439"}` | 200 / verifyToken / matchedMember 4종 정확 | ✅ "이미 가입하신 분이에요…" 메시지 정확 |
+| 2-D | `findMatchedMemberByPhone` 라이브 응답 | `id=3 name="박두용" isHyosung=false hasEmail=true donationCount=0 mode="existing_full"` | ✅ 4종 필드 모두 정확. placeholder 이메일 제외 패턴(`@auto.` / `.auto.local`) 라이브 검증 |
+| 엣지5-B | 유효 verifyToken(73b62cff…) + 다른 phone(01077778888) signup | 400 / "인증하신 전화번호와 가입 전화번호가 다릅니다." | ✅ |
+
+### 추가 발견 (BUG 아님 — 데이터 정합성 참고)
+
+01028075242 phone으로 회원 2명 등록됨:
+- **id 3 박두용** (이메일 있음, 후원 0건) ← 매칭됨 (ORDER BY id ASC LIMIT 1 정책)
+- **id 5 박새로이** (이메일 있음, 후원 있음 — 이전 AI 비서 검증에서 확인)
+
+코드는 의도된 정책대로 작동(가장 먼저 가입한 회원 우선 매칭). 단 같은 phone 중복 회원 데이터 자체는 정리할지 결정 영역(메인/Swain 판단). signup 흐름의 모든 분기는 정상 작동.
+
+### 결론
+
+A안 효성 후원자 가입 흐름 **백엔드 end-to-end 검증 완료**. SMS 발송(BUG-1 메인 fix) + INSERT 롤백(BUG-2 C fix) + 프록시 timeout 안전망(b334d39 C fix) 3종이 머지·배포되어 흐름이 정상 작동.
+
+**1차에서 남긴 인계**: 검증용 회원 ID 64 (`verifytest-novt@autoverify.local`) 클린업은 여전히 메인 처리 필요. 재검증에서 추가 INSERT는 발생 안 함 (엣지 5-B는 400 거절).
+
+### 산출물
+
+- `scripts/phone-verify-test.mjs` (라이브 검증 헬퍼 — 1차/재검증 공용)
+- BUG-2 fix (커밋 062ef386 → 머지 061af1c)
+- 프록시 timeout 안전망 (커밋 b334d39 — 머지 대기)
+
+---
+
+**마지막 갱신**: 2026-05-16 (A안 가입 흐름 재검증 — 4건 전부 통과, BUG-1·2·3 모두 해소).
