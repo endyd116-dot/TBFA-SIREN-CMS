@@ -189,10 +189,21 @@ async function sendKakaoDirect(
   });
 
   if (!result.ok) {
-    return {
-      ok: false,
-      error: result.error || `알리고 카카오 발송 실패 (code=${result.code} ${result.message || ""})`,
-    };
+    /* ★ 2026-05-16: 알리고 IP 화이트리스트 거부(code=-99) 진단 — 호출 실패 시 그
+       시점의 Netlify 송신 IP를 즉시 조회해 에러 메시지에 포함. 사용자가 화면
+       실패 사유에서 IP를 그대로 보고 알리고 콘솔에 등록 가능. AWS Lambda IP가
+       cold start마다 변동되는 환경에서 매번 등록·재발송하는 단발 검증용. */
+    let outboundIp = "";
+    try {
+      const ipRes = await fetch("https://api.ipify.org?format=json", {
+        signal: AbortSignal.timeout(3000),
+      });
+      const ipData: any = await ipRes.json().catch(() => ({}));
+      outboundIp = String(ipData.ip || "").slice(0, 50);
+    } catch (_) { /* IP 조회 실패해도 본 에러는 그대로 반환 */ }
+    const baseErr = result.error || `알리고 카카오 발송 실패 (code=${result.code} ${result.message || ""})`;
+    const ipMark = outboundIp ? ` | Netlify outbound IP=${outboundIp} (알리고 콘솔에 등록 필요)` : "";
+    return { ok: false, error: (baseErr + ipMark).slice(0, 500) };
   }
   return { ok: true, providerMessageId: result.providerMessageId };
 }
