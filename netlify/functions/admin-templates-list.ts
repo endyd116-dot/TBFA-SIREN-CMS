@@ -76,8 +76,16 @@ export default async function handler(req: Request, _ctx: Context) {
       ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
       : sql``;
 
+    /* ★ 2026-05-17: images jsonb 컬럼 존재 시 SELECT (마이그 후) */
+    const imgCheck: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+    `);
+    const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
+    const imagesCol = hasImagesCol ? sql`, images` : sql``;
+
     const rowsRes: any = await db.execute(
-      sql`SELECT id, name, channel, category, subject, body_template, variables, is_active, created_at, updated_at${alimtalkCols}
+      sql`SELECT id, name, channel, category, subject, body_template, variables, is_active, created_at, updated_at${alimtalkCols}${imagesCol}
           FROM communication_templates
           ${whereFragment}
           ORDER BY updated_at DESC
@@ -104,6 +112,8 @@ export default async function handler(req: Request, _ctx: Context) {
       alimtalkReviewStatus: r.alimtalk_review_status ?? null,
       alimtalkButtonJson:   r.alimtalk_button_json ?? null,
       isKakaoOnly:          !!(r.alimtalk_template_code),
+      /* ★ 2026-05-17: 이미지 첨부 — 마이그 후에만 값 존재 */
+      images:               Array.isArray(r.images) ? r.images : [],
     }));
 
     const total = ((countRes?.rows ?? countRes)[0] ?? {}).n ?? 0;

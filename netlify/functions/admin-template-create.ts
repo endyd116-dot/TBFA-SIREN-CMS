@@ -135,8 +135,32 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
 
+    /* ★ 2026-05-17: images jsonb 컬럼 + 페이로드 처리 */
+    const imgCheck: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+    `);
+    const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
+    const imagesArr = Array.isArray(body.images) ? body.images.slice(0, 20) : [];
+    const imagesJson = JSON.stringify(imagesArr);
+
     let res: any;
-    if (hasAlimtalkCols) {
+    if (hasAlimtalkCols && hasImagesCol) {
+      res = await db.execute(
+        sql`INSERT INTO communication_templates
+              (name, channel, category, subject, body_template, variables, created_by, updated_by,
+               alimtalk_template_code, alimtalk_review_status, alimtalk_button_json, images)
+            VALUES
+              (${name.trim()}, ${channel}, ${category},
+               ${subject ? subject.trim() : null},
+               ${bodyTemplate}, ${JSON.stringify(variables)}::jsonb,
+               ${adminId}, ${adminId},
+               ${alimtalkTemplateCode}, ${alimtalkReviewStatus},
+               ${alimtalkButtonJson ? sql`${alimtalkButtonJson}::jsonb` : sql`NULL`},
+               ${imagesJson}::jsonb)
+            RETURNING id`
+      );
+    } else if (hasAlimtalkCols) {
       res = await db.execute(
         sql`INSERT INTO communication_templates
               (name, channel, category, subject, body_template, variables, created_by, updated_by,

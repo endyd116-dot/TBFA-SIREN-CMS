@@ -16,6 +16,9 @@
   const editId = params.get("id");
   let isEdit = !!editId;
 
+  /* ★ 2026-05-17: 이미지 첨부 상태 — 템플릿 저장 시 페이로드에 포함 */
+  let templateImages = [];
+
   /* ── api 헬퍼 ── */
   async function api({ method = "GET", url, body }) {
     try {
@@ -139,6 +142,128 @@
   }
   function closeVarPresetModal() { $("varPresetModal").style.display = "none"; }
 
+  /* ★ 2026-05-17: 이미지 첨부 — 업로드·미리보기·크기/정렬/위치/순서 조절 */
+  async function uploadTemplateImage(file) {
+    const statusEl = $("imageUploadStatus");
+    if (templateImages.length >= 20) {
+      statusEl.textContent = "이미지는 최대 20개까지";
+      statusEl.style.color = "#b91c1c";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      statusEl.textContent = "이미지는 5MB 이하만 가능";
+      statusEl.style.color = "#b91c1c";
+      return;
+    }
+    statusEl.textContent = "업로드 중…";
+    statusEl.style.color = "#6b7280";
+
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("context", "template_image");
+    fd.append("isPublic", "true");
+    try {
+      const res = await fetch("/api/blob-upload", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        statusEl.textContent = "업로드 실패: " + (data.error || ("HTTP " + res.status));
+        statusEl.style.color = "#b91c1c";
+        return;
+      }
+      templateImages.push({
+        url: data.url,
+        blobKey: data.blobKey || data.key || "",
+        name: file.name,
+        width: 600,
+        align: "center",
+        position: "above",
+        order: templateImages.length,
+        alt: "",
+      });
+      statusEl.textContent = "✓ 업로드 완료";
+      statusEl.style.color = "#166534";
+      renderImagesList();
+    } catch (err) {
+      statusEl.textContent = "업로드 실패: " + String(err.message || err);
+      statusEl.style.color = "#b91c1c";
+    }
+  }
+
+  function renderImagesList() {
+    const wrap = $("imagesList");
+    if (!wrap) return;
+    if (!templateImages.length) {
+      wrap.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;border:1px dashed #d1d5db;border-radius:8px">첨부된 이미지가 없습니다. 위 [이미지 업로드] 버튼으로 추가하세요.</div>`;
+      return;
+    }
+    /* order로 정렬 */
+    const sorted = templateImages.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    wrap.innerHTML = sorted.map((img, idx) => {
+      const realIdx = templateImages.indexOf(img);
+      return `
+        <div style="display:flex;gap:12px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px" data-img-idx="${realIdx}">
+          <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #d1d5db;background:#fff">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12.5px;color:#374151;font-weight:600">${escapeHtml(img.name)}</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <label style="font-size:11.5px;color:#6b7280">위치
+                <select class="img-position" data-idx="${realIdx}" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+                  <option value="above" ${img.position === 'above' ? 'selected' : ''}>본문 위</option>
+                  <option value="below" ${img.position === 'below' ? 'selected' : ''}>본문 아래</option>
+                </select>
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">정렬
+                <select class="img-align" data-idx="${realIdx}" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+                  <option value="left" ${img.align === 'left' ? 'selected' : ''}>왼쪽</option>
+                  <option value="center" ${img.align === 'center' ? 'selected' : ''}>가운데</option>
+                  <option value="right" ${img.align === 'right' ? 'selected' : ''}>오른쪽</option>
+                </select>
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">너비(px)
+                <input type="number" class="img-width" data-idx="${realIdx}" value="${img.width || 600}" min="50" max="1200" step="10" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">순서
+                <input type="number" class="img-order" data-idx="${realIdx}" value="${img.order || 0}" min="0" max="99" step="1" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+              </label>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <input type="text" class="img-alt" data-idx="${realIdx}" value="${escapeHtml(img.alt || '')}" placeholder="이미지 설명 (선택, 스크린리더용)" style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px">
+              <button type="button" class="btn btn-sm img-delete" data-idx="${realIdx}" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">삭제</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    /* 이벤트 바인딩 */
+    wrap.querySelectorAll(".img-position, .img-align, .img-width, .img-order, .img-alt").forEach(el => {
+      el.addEventListener("change", () => {
+        const i = Number(el.dataset.idx);
+        const field = el.classList.contains("img-position") ? "position"
+                    : el.classList.contains("img-align")    ? "align"
+                    : el.classList.contains("img-width")    ? "width"
+                    : el.classList.contains("img-order")    ? "order"
+                    : "alt";
+        const val = (field === "width" || field === "order") ? Number(el.value) : el.value;
+        templateImages[i][field] = val;
+        if (field === "order") renderImagesList(); /* 정렬 즉시 반영 */
+      });
+    });
+    wrap.querySelectorAll(".img-delete").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.dataset.idx);
+        if (confirm("이미지를 삭제하시겠습니까?")) {
+          templateImages.splice(i, 1);
+          renderImagesList();
+        }
+      });
+    });
+  }
+
   /* ── 변수 정의 표 ── */
   function addVarRow(v = { key: "", label: "", sample: "" }) {
     const tbody = $("varTbody");
@@ -178,6 +303,10 @@
     const charCounter = $("charCounter");
     const kakaoNotice = $("kakaoNotice");
     const alimtalkCard = $("alimtalkCard"); /* ★ 2026-05-16 */
+    const imagesCard = $("imagesCard");     /* ★ 2026-05-17 */
+
+    /* 이미지 카드: 이메일 채널만 노출 (1차). MMS는 다음 라운드. */
+    if (imagesCard) imagesCard.style.display = (ch === "email") ? "" : "none";
 
     // 제목 칸: 이메일·인앱만 노출
     if (ch === "email" || ch === "inapp") {
@@ -237,6 +366,11 @@
       bodyTemplate,
       variables,
     };
+    /* ★ 2026-05-17: 이메일 채널이면 templateImages 페이로드에 포함 */
+    if (channel === "email") {
+      payload.images = templateImages;
+    }
+
     /* ★ 2026-05-16: 카카오 채널이면 알리고 전용 필드 함께 페이로드에 포함 */
     if (channel === "kakao") {
       payload.alimtalkTemplateCode = ($("fAlimtalkTemplateCode")?.value || "").trim();
@@ -451,6 +585,10 @@
       vars.forEach(v => addVarRow(v));
     }
 
+    /* ★ 2026-05-17: 이미지 필드 복원 */
+    templateImages = Array.isArray(t.images) ? t.images.slice() : [];
+    renderImagesList();
+
     /* ★ 2026-05-16: 카카오 전용 필드 복원 */
     if (t.channel === "kakao") {
       const codeEl = $("fAlimtalkTemplateCode");
@@ -478,6 +616,17 @@
     $("varPresetModal")?.addEventListener("click", (e) => {
       if (e.target === $("varPresetModal")) closeVarPresetModal();
     });
+
+    /* ★ 2026-05-17: 이미지 업로드 — file input + button */
+    $("btnImageUpload")?.addEventListener("click", () => $("fImageFile")?.click());
+    $("fImageFile")?.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) uploadTemplateImage(file);
+      e.target.value = ""; /* 같은 파일 재업로드 가능하도록 reset */
+    });
+
+    /* 빈 화면 초기 렌더 */
+    renderImagesList();
 
     document.querySelectorAll('input[name="channel"]').forEach(r =>
       r.addEventListener("change", applyChannelUI)

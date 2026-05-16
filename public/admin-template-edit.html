@@ -298,6 +298,21 @@ textarea {
       </div>
     </div>
 
+    <!-- ★ 2026-05-17: 이미지 첨부 카드 (이메일 채널 전용 — 다른 채널에선 숨김) -->
+    <div class="card" id="imagesCard" style="display:none">
+      <h3>🖼️ 이미지 첨부 (이메일 전용)</h3>
+      <p class="helper-text" style="margin-top:-4px;margin-bottom:14px">
+        이메일 본문에 함께 발송될 이미지입니다. 위치(본문 위/아래)·정렬(좌/중/우)·너비(픽셀)를 조절할 수 있습니다.
+        최대 5MB·jpg/png/gif/webp. 한 템플릿에 최대 20개.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+        <input type="file" id="fImageFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+        <button type="button" class="btn" id="btnImageUpload" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600">📤 이미지 업로드</button>
+        <span id="imageUploadStatus" style="font-size:12.5px;color:#6b7280"></span>
+      </div>
+      <div id="imagesList" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+
     <div class="action-row">
       <button type="button" class="btn btn-ghost left" id="btnCancel">취소</button>
       <button type="button" class="btn" id="btnPreview">미리보기</button>
@@ -328,6 +343,6 @@ textarea {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-template-edit.js?v=20260517var-presets"></script>
+<script src="/js/admin-template-edit.js?v=20260517images"></script>
 </body>
 </html>

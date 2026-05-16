@@ -164,7 +164,33 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
 
-    if (hasAlimtalkCols) {
+    /* ★ 2026-05-17: images jsonb 컬럼 + 페이로드 처리 */
+    const imgCheck: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+    `);
+    const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
+    const imagesArr = Array.isArray(body.images) ? body.images.slice(0, 20) : [];
+    const imagesJson = JSON.stringify(imagesArr);
+
+    if (hasAlimtalkCols && hasImagesCol) {
+      await db.execute(
+        sql`UPDATE communication_templates
+            SET name                    = ${name.trim()},
+                channel                 = ${channel},
+                category                = ${category},
+                subject                 = ${subject ? subject.trim() : null},
+                body_template           = ${bodyTemplate},
+                variables               = ${JSON.stringify(variables)}::jsonb,
+                updated_by              = ${adminId},
+                updated_at              = NOW(),
+                alimtalk_template_code  = ${alimtalkTemplateCode},
+                alimtalk_review_status  = ${alimtalkReviewStatus},
+                alimtalk_button_json    = ${alimtalkButtonJson ? sql`${alimtalkButtonJson}::jsonb` : sql`NULL`},
+                images                  = ${imagesJson}::jsonb
+            WHERE id = ${id}`
+      );
+    } else if (hasAlimtalkCols) {
       await db.execute(
         sql`UPDATE communication_templates
             SET name                    = ${name.trim()},

@@ -35,9 +35,17 @@ export default async function handler(req: Request, _ctx: Context) {
       ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
       : sql``;
 
+    /* ★ 2026-05-17: images jsonb 컬럼 조건부 SELECT */
+    const imgCheck: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+    `);
+    const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
+    const imagesCol = hasImagesCol ? sql`, images` : sql``;
+
     const res: any = await db.execute(
       sql`SELECT id, name, channel, category, subject, body_template, variables,
-                 is_active, created_by, updated_by, created_at, updated_at${alimtalkCols}
+                 is_active, created_by, updated_by, created_at, updated_at${alimtalkCols}${imagesCol}
           FROM communication_templates
           WHERE id = ${id}
           LIMIT 1`
@@ -72,6 +80,8 @@ export default async function handler(req: Request, _ctx: Context) {
           alimtalkReviewStatus: row.alimtalk_review_status ?? null,
           alimtalkButtonJson:   row.alimtalk_button_json ?? null,
           isKakaoOnly:          !!(row.alimtalk_template_code),
+          /* ★ 2026-05-17: 이미지 첨부 */
+          images:               Array.isArray(row.images) ? row.images : [],
         },
       }),
       { status: 200, headers: JSON_HEADER },

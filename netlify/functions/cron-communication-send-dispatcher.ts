@@ -285,7 +285,20 @@ async function startJob(job: any) {
   const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
 
   let tplRes: any;
-  if (hasAlimtalkCols) {
+  /* ★ 2026-05-17: images jsonb 컬럼 조건부 SELECT */
+  const imgCheck: any = await db.execute(sql`
+    SELECT 1 AS ok FROM information_schema.columns
+     WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+  `);
+  const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
+
+  if (hasAlimtalkCols && hasImagesCol) {
+    tplRes = await db.execute(sql`
+      SELECT id, name, channel, subject, body_template, variables, is_active,
+             alimtalk_template_code, alimtalk_review_status, alimtalk_button_json, images
+        FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+    `);
+  } else if (hasAlimtalkCols) {
     tplRes = await db.execute(sql`
       SELECT id, name, channel, subject, body_template, variables, is_active,
              alimtalk_template_code, alimtalk_review_status, alimtalk_button_json
@@ -396,6 +409,22 @@ async function startJob(job: any) {
       /* 이메일 채널: 추적 픽셀 + 클릭 추적 URL 주입 */
       const trackingToken = generateTrackingToken();
       if (channel === "email") {
+        /* ★ 2026-05-17: 이메일 채널 — 템플릿 images를 본문에 inject.
+           position(above/below)·align·width 반영. order로 정렬. */
+        const images = Array.isArray((template as any).images) ? (template as any).images.slice() : [];
+        if (images.length > 0) {
+          images.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
+          const buildImgTag = (img: any) => {
+            const alignCss = img.align === "left" ? "left" : img.align === "right" ? "right" : "center";
+            const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
+            const url = String(img.url || "");
+            const alt = String(img.alt || "").replace(/"/g, "&quot;");
+            return `<div style="text-align:${alignCss};margin:12px 0"><img src="${url}" alt="${alt}" style="max-width:100%;width:${width}px;height:auto;display:inline-block;border:0"></div>`;
+          };
+          const aboveImgs = images.filter((img: any) => img.position !== "below").map(buildImgTag).join("");
+          const belowImgs = images.filter((img: any) => img.position === "below").map(buildImgTag).join("");
+          bodyStr = aboveImgs + bodyStr + belowImgs;
+        }
         bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
       }
 
