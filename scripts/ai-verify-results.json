@@ -1,0 +1,753 @@
+[
+  {
+    "id": 1,
+    "name": "회원",
+    "calls": [
+      {
+        "cmd": "회원 통계 보여줘",
+        "status": 200,
+        "elapsedMs": 3105,
+        "conversationId": 1019,
+        "reply": "현재 활동 중인 정회원은 58명, 가족회원 1명, 자원봉사자 1명, 관리자 2명입니다. 탈퇴한 정회원은 1명입니다. 총 회원 수는 63명입니다.",
+        "toolCalls": [
+          {
+            "name": "members_stats",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "박새로이 찾아줘",
+        "status": 200,
+        "elapsedMs": 2182,
+        "conversationId": 1019,
+        "reply": "박새로이 회원님을 찾았습니다. (ID: 5, 이메일: endy0718@naver.com, 전화: 01028075242)",
+        "toolCalls": [
+          {
+            "name": "members_search",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "query"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "후원",
+    "calls": [
+      {
+        "cmd": "후원 통계",
+        "status": 200,
+        "elapsedMs": 1608,
+        "conversationId": 1020,
+        "reply": "후원 통계를 불러오는 중 오류가 발생했습니다. 다시 시도해 주시겠어요?",
+        "toolCalls": [
+          {
+            "name": "donations_stats",
+            "ok": false,
+            "error": "invalid input value for enum donation_type: \"one_time\"",
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "최근 후원 5건",
+        "status": 200,
+        "elapsedMs": 3178,
+        "conversationId": 1020,
+        "reply": "최근 후원 5건입니다:\n\n1.  **지혜옥**님: 10,000원 (정기 후원, 완료)\n2.  **김형영**님: 20,000원 (정기 후원, 완료)\n3.  **장덕진**님: 20,000원 (정기 후원, 완료)\n4.  **박연숙**님: 10,000원 (정기 후원, 완료)\n5.  **박두용**님: 20,000원 (정기 후원, 완료)",
+        "toolCalls": [
+          {
+            "name": "donations_recent",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "limit"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "SIREN 신고",
+    "calls": [
+      {
+        "cmd": "사건 신고 목록",
+        "status": 200,
+        "elapsedMs": 5894,
+        "conversationId": 1021,
+        "reply": "현재 6건의 사건 신고가 있습니다.\n\n*   2025년 광주 초등학교 교사 사건 (ID: 6)\n*   2025년 인천 특수학교 교사 사건 (ID: 5)\n*   2024년 대구 고등학교 교사 사건 (ID: 4)\n*   2024년 부산 중학교 교사 사건 (ID: 3)\n*   2023년 서울 초등학교 교사 사건 (ID: 2)\n*   교권 침해 사례 (샘플) (ID: 1)",
+        "toolCalls": [
+          {
+            "name": "incidents_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "악성민원 목록",
+        "status": 200,
+        "elapsedMs": 2639,
+        "conversationId": 1021,
+        "reply": "총 10건의 악성민원 신고가 있습니다. 몇 가지만 요약해 드릴게요.\n\n*   학생으로부터 성폭행 (ID: 23, 상태: submitted)\n*   학생 폭력이 과해요 (ID: 22, 상태: reviewing, 심각도: critical)\n*   악성민원을 받았습니다. (ID: 18, 상태: responded, 심각도: high)\n*   자세한건 첨부파일로봐줘 (ID: 16, 상태: ai_analyzed, 심각도: low)",
+        "toolCalls": [
+          {
+            "name": "harassment_reports_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "법률상담",
+    "calls": [
+      {
+        "cmd": "법률 상담 목록",
+        "status": 200,
+        "elapsedMs": 5528,
+        "conversationId": 1022,
+        "reply": "법률 상담 목록입니다:\n\n*   **L-2026-7155**: 학생이 저를 때렸어요 (형사, 매칭 중)\n*   **L-2026-2500**: 부당해고 (노동, 매칭 완료)\n*   **L-2026-6415**: 111111-1******11 (학내분쟁, AI 분석 완료)\n*   **L-2026-3304**: 첨부파일을 확인 (형사, AI 분석 완료)\n*   **L-2026-4434**: ㅇㅇ 첨부내용확인하셈 (학내분쟁, AI 분석 완료)\n*   **L-2026-4977**: 321312-4******1231 (학내분쟁, 제출됨)\n*   **L-2026-6135**: 2121****3123 (학내분쟁, AI 분석 완료)\n*   **L-2026-1836**: ㅁㄴㅇㄴㅁㅇㄴㅁㅇㄴㅁㅇㅁㅇㅁㄴㅇㄹㅊㅌㅍ (학내분쟁, AI 분석 완료)\n\n총 8건의 법률 상담이 있습니다.\n\n🔒 개인정보 3건 자동 마스킹 처리됨 (주민번호·카드·계좌)",
+        "toolCalls": [
+          {
+            "name": "legal_consultations_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "게시판·공지",
+    "calls": [
+      {
+        "cmd": "공지 목록",
+        "status": 200,
+        "elapsedMs": 2530,
+        "conversationId": 1023,
+        "reply": "총 7개의 공지사항이 있습니다. 주요 공지는 다음과 같습니다.\n\n*   **안녕하세요** (회원, ID: 7, 2026-05-04)\n*   **2026년 정기총회 개최 및 활동 보고서 공개 안내** (일반, ID: 1, 2026-05-01)\n*   **유가족 심리상담 지원 프로그램 2기 모집** (이벤트, ID: 3, 2026-05-01)\n*   **법률 자문 봉사단 1차 모집 결과 공지** (이벤트, ID: 4, 2026-05-01)\n*   **[OO일보] 교사유가족협의회 1주년, 그 의미를 묻다** (미디어, ID: 6, 2026-05-01)\n*   **신규 정기 후원 회원을 위한 감사 캠페인 진행** (회원, ID: 2, 2026-05-01)\n*   **기부금 영수증 일괄 발급 기간 안내** (회원, ID: 5, 2026-05-01)",
+        "toolCalls": [
+          {
+            "name": "notices_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "게시글 목록",
+        "status": 200,
+        "elapsedMs": 2484,
+        "conversationId": 1023,
+        "reply": "현재 게시글은 총 1개입니다.\n\n*   **자유롭게** (일반, ID: 1, 작성자: 5번 회원, 2026-05-04)",
+        "toolCalls": [
+          {
+            "name": "board_posts_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "캠페인",
+    "calls": [
+      {
+        "cmd": "캠페인 목록",
+        "status": 200,
+        "elapsedMs": 1785,
+        "conversationId": 1024,
+        "reply": "현재 진행 중인 캠페인은 '선생님의 빈자리, 당신의 따뜻한 손길로 채워주세요' 입니다. 목표액은 100,000원이며 현재 0원이 모금되었습니다.",
+        "toolCalls": [
+          {
+            "name": "campaigns_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "콘텐츠·자료",
+    "calls": [
+      {
+        "cmd": "FAQ 보여줘",
+        "status": 200,
+        "elapsedMs": 11047,
+        "conversationId": 1025,
+        "reply": "총 6개의 FAQ가 있습니다.\n\n1.  **교사유가족협의회 가입 절차가 궁금해요.** (일반)\n2.  **기부금 영수증은 언제 어떻게 발급되나요?** (후원)\n3.  **법률 지원은 어떤 분들이 도와주시나요?** (지원)\n4.  **정기 후원을 해지하고 싶어요.** (후원)\n5.  **봉사자로 참여하고 싶습니다. 어떻게 신청하나요?** (일반)\n6.  **후원금은 어디에 사용되나요?** (후원)",
+        "toolCalls": [
+          {
+            "name": "faqs_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "자료실 목록",
+        "status": 200,
+        "elapsedMs": 1716,
+        "conversationId": 1025,
+        "reply": "자료실에 1개의 자료가 있습니다.\n\n*   **534314** (공개)",
+        "toolCalls": [
+          {
+            "name": "resources_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "알림 템플릿",
+    "calls": [
+      {
+        "cmd": "발송 템플릿 목록",
+        "status": 200,
+        "elapsedMs": 3346,
+        "conversationId": 1026,
+        "reply": "현재 등록된 발송 템플릿은 총 16건입니다.\n\n**주요 템플릿:**\n*   **이메일:** 신규 가입 환영, 월간 뉴스레터, 일회성 공지 등\n*   **카카오 알림톡:** 정기 결제 실패/완료 안내, 카드 만료 안내, 기부금 영수증 발급 등\n*   **SMS/인앱:** 후원 감사 메시지, 앱 공지사항 등\n\n특정 채널(email, kakao 등)이나 카테고리별로 필터링하여 확인하시겠습니까?",
+        "toolCalls": [
+          {
+            "name": "templates_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "수신자 그룹",
+        "status": 200,
+        "elapsedMs": 2022,
+        "conversationId": 1026,
+        "reply": "현재 9개의 수신자 그룹이 있습니다.\n\n*   **전체 활성 회원**\n*   **정기 후원자** (세분화: 효성 CMS+, 토스 빌링)\n*   **예비 후원자** (일시·중단)\n*   **일시 후원자** (최근 90일)\n*   **운영자**\n*   **유가족 회원 전체**\n\n이 그룹들을 활용하여 알림을 발송할 수 있습니다.",
+        "toolCalls": [
+          {
+            "name": "recipient_groups_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "잠재 후원자",
+    "calls": [
+      {
+        "cmd": "잠재 후원자 목록",
+        "status": 200,
+        "elapsedMs": 1460,
+        "conversationId": 1027,
+        "reply": "현재 잠재 후원자 목록이 비어 있습니다.",
+        "toolCalls": [
+          {
+            "name": "potential_donors_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "예산·후원정책",
+    "calls": [
+      {
+        "cmd": "올해 예산",
+        "status": 200,
+        "elapsedMs": 4355,
+        "conversationId": 1028,
+        "reply": "올해(2026년) 예산은 아직 편성되지 않았습니다.",
+        "toolCalls": [
+          {
+            "name": "budgets_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "fiscalYear"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "후원 정책 보여줘",
+        "status": 200,
+        "elapsedMs": 2907,
+        "conversationId": 1028,
+        "reply": "현재 후원 정책은 다음과 같습니다:\n\n*   **은행 정보**: 국민은행, 계좌번호 010-45454-4544, 예금주 (사)교사유가족협의회\n*   **효성 CMS+ 안내**: 자동이체 등록을 위해 외부 페이지로 이동하며, 등록 완료까지 2~3일 소요됩니다.\n*   **최소/최대 후원 금액**: 1,000원 ~ 100,000,000원\n*   **모달 제목**: 🎗 후원 동참하기\n*   **모달 부제목**: 여러분의 따뜻한 마음이 유가족에게 큰 힘이 됩니다.뀨\n*   **일시 후원 금액 옵션**: 1만원, 3만원, 5만원, 10만원, 30만원, 50만원\n*   **정기 후원 금액 옵션**: 1만원, 2만원, 3만원, 10만원, 30만원, 50만원",
+        "toolCalls": [
+          {
+            "name": "donation_policy_get",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "재정 22-A",
+    "calls": [
+      {
+        "cmd": "수입 카테고리",
+        "status": 200,
+        "elapsedMs": 8009,
+        "conversationId": 1029,
+        "reply": "수입 카테고리 목록입니다:\n\n*   **강연·교육 수익** (코드: `lecture`, ID: 1): 교사·외부 강연료·교육 워크숍 수익\n*   **정부·지자체 지원금** (코드: `govgrant`, ID: 2): 국고보조·지자체 공모 사업·보조금\n*   **기업 협찬·제휴 수익** (코드: `corp_sponsor`, ID: 3): 기업 협찬·제휴·후원 프로그램·회원사 수익\n*   **함께워크_On (사업지원·자리대여)** (코드: `twork_on`, ID: 4): 함께워크_On 사업지원·자리대여 수익\n*   **함께워크_SI (AI·AX·SI)** (코드: `twork_si`, ID: 5): 함께워크_SI AI·AX·SI 사업 수익\n*   **기타** (코드: `etc`, ID: 6): 위 6개에 속하지 않는 모든 수입",
+        "toolCalls": [
+          {
+            "name": "revenue_categories_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "매출 내역 이번달",
+        "status": 200,
+        "elapsedMs": 2506,
+        "conversationId": 1029,
+        "reply": "이번 달 매출 내역입니다.\n\n*   **강연·교육 수익** (ID: 1): 1,100,000원, 2026-05-15, 지급인: 기업 (승인됨)\n\n총 1건의 매출이 있으며, 합계는 1,100,000원입니다.",
+        "toolCalls": [
+          {
+            "name": "revenue_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "period"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "지출 22-C",
+    "calls": [
+      {
+        "cmd": "지출 카테고리",
+        "status": 200,
+        "elapsedMs": 14504,
+        "conversationId": 1030,
+        "reply": "네, 지출 카테고리 목록입니다.\n\n*   **인건비 (personnel)**: 급여, 퇴직금, 복리후생비 등 인력 관련 비용\n*   **사업비 (program)**: 사업 수행에 직접 사용되는 비용\n*   **관리운영비 (admin_ops)**: 임차료, 공과금, 소모품 등 일반 운영 비용\n*   **모금비 (fundraising)**: 후원자 모집, 관리, 감사 활동 관련 비용",
+        "toolCalls": [
+          {
+            "name": "expense_categories_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "이번 달 지출",
+        "status": 200,
+        "elapsedMs": 2110,
+        "conversationId": 1030,
+        "reply": "이번 달(2026-05-01 ~ 2026-05-31) 지출 내역은 총 1건, 123,232원입니다.\n\n*   **인건비**: 123,232원 (2026-05-15 발생, 지급처: 12323)",
+        "toolCalls": [
+          {
+            "name": "expenses_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "period"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "손익",
+    "calls": [
+      {
+        "cmd": "운영성과 보고서",
+        "status": 200,
+        "elapsedMs": 1074,
+        "conversationId": 1031,
+        "reply": "어떤 기간의 운영성과 보고서를 원하시나요? 예를 들어 '2025년' 또는 '작년'과 같이 말씀해주세요.",
+        "toolCalls": [],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "예산안·전표",
+    "calls": [
+      {
+        "cmd": "차년도 예산안",
+        "status": 200,
+        "elapsedMs": 992,
+        "conversationId": 1032,
+        "reply": "어떤 연도의 예산안을 생성하시겠습니까?",
+        "toolCalls": [],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "전표 목록",
+        "status": 200,
+        "elapsedMs": 2072,
+        "conversationId": 1032,
+        "reply": "현재 11개의 전표가 있습니다. 주요 내용은 다음과 같습니다.\n\n*   **관리운영비**: 청소관리비 (137,225원), GS25강서화곡점 (2,200원, 5,700원)\n*   **모금비**: CMS 사용료 (55,000원)\n\n모든 전표는 'draft' 상태입니다.",
+        "toolCalls": [
+          {
+            "name": "voucher_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "통장 대사",
+    "calls": [
+      {
+        "cmd": "통장 대사 현황",
+        "status": 200,
+        "elapsedMs": 1951,
+        "conversationId": 1033,
+        "reply": "전체 기간 동안의 통장 대사 현황입니다.\n\n*   **입금**: 총 0건 중 0건 확정, 0건 확인 대기 중입니다.\n*   **출금**: 총 4건(200,125원) 중 3건이 전표 생성되었고, 1건이 확인 대기 중입니다.",
+        "toolCalls": [
+          {
+            "name": "bank_reconcile_summary",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "name": "채팅",
+    "calls": [
+      {
+        "cmd": "미답변 채팅방 목록",
+        "status": 200,
+        "elapsedMs": 2109,
+        "conversationId": 1034,
+        "reply": "현재 미답변 채팅방이 없습니다.",
+        "toolCalls": [
+          {
+            "name": "chat_rooms_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "unreadOnly"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "name": "워크스페이스",
+    "calls": [
+      {
+        "cmd": "내 작업 목록",
+        "status": 200,
+        "elapsedMs": 2586,
+        "conversationId": 1035,
+        "reply": "회원님의 작업 목록입니다:\n\n*   **3123****2313** (ID: 3) - 기한: 2026-05-12, 우선순위: 긴급, 상태: 진행 중\n*   **12313213** (ID: 1) - 기한: 2026-05-13, 우선순위: 보통, 상태: 보관됨 (완료)\n*   **⚠️ [SIREN-악성민원] 학생으로부터 성폭행** (ID: 4) - 기한: 2026-05-13, 우선순위: 높음, 상태: 할 일\n*   **123123-1******1** (ID: 2) - 기한: 2026-05-15, 우선순위: 보통, 상태: 보관됨 (완료)\n*   **454** (ID: 5) - 기한: 2026-05-18, 우선순위: 보통, 상태: 할 일 (담당자: 4번 회원)\n\n🔒 개인정보 2건 자동 마스킹 처리됨 (주민번호·카드·계좌)",
+        "toolCalls": [
+          {
+            "name": "tasks_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "memberId"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "내 메모",
+        "status": 200,
+        "elapsedMs": 1363,
+        "conversationId": 1035,
+        "reply": "(응답 없음)",
+        "toolCalls": [],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "캘린더·알림",
+    "calls": [
+      {
+        "cmd": "이번 주 일정",
+        "status": 200,
+        "elapsedMs": 2106,
+        "conversationId": 1036,
+        "reply": "이번 주 일정은 없습니다.",
+        "toolCalls": [
+          {
+            "name": "events_list",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "fromDate",
+              "toDate"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "최근 알림",
+        "status": 200,
+        "elapsedMs": 1016,
+        "conversationId": 1036,
+        "reply": "어떤 회원의 최근 알림을 조회할까요? 회원 ID를 알려주세요.",
+        "toolCalls": [],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "name": "발송 (★ fix)",
+    "calls": [
+      {
+        "cmd": "박새로이에게 메일 보내줘. 제목 테스트, 내용 검증 메일",
+        "status": 200,
+        "elapsedMs": 10614,
+        "conversationId": 1037,
+        "reply": "박새로이 회원님(ID: 5)을 찾았습니다. \n\n메일 발송(제목: 테스트)을 시도했으나, 시스템 내부 오류(수신자 ID 처리 문제)로 인해 현재 발송이 불가능합니다. 잠시 후 다시 시도해 주시거나 관리자에게 문의 부탁드립니다.",
+        "toolCalls": [
+          {
+            "name": "members_search",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "query"
+            ]
+          },
+          {
+            "name": "email_send",
+            "ok": false,
+            "error": "수신자 조회 실패: The \"string\" argument must be of type string or an instance of Buffer or ArrayBuffer. Received type number (5)",
+            "preview": null,
+            "argsKeys": [
+              "body",
+              "requireApproval",
+              "subject",
+              "memberIds"
+            ]
+          },
+          {
+            "name": "email_send",
+            "ok": false,
+            "error": "수신자 조회 실패: The \"string\" argument must be of type string or an instance of Buffer or ArrayBuffer. Received type number (5)",
+            "preview": null,
+            "argsKeys": [
+              "requireApproval",
+              "memberIds",
+              "body",
+              "subject"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "name": "종합 KPI",
+    "calls": [
+      {
+        "cmd": "대시보드 KPI",
+        "status": 200,
+        "elapsedMs": 4652,
+        "conversationId": 1038,
+        "reply": "대시보드 KPI 요약입니다.\n\n*   **활성 캠페인**: 1개\n*   **활성 회원**: 62명\n*   **이번 달 후원 건수**: 13건\n*   **이번 달 후원 금액**: 280,000원\n*   **처리 대기 중인 악성 민원**: 20건\n*   **활성 사건**: 6건\n*   **처리 대기 중인 법률 상담**: 7건\n*   **지난 30일간 신규 회원**: 63명",
+        "toolCalls": [
+          {
+            "name": "kpi_summary",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "보안·감사",
+    "calls": [
+      {
+        "cmd": "최근 감사 로그",
+        "status": 200,
+        "elapsedMs": 1854,
+        "conversationId": 1039,
+        "reply": "최근 감사 로그 10건입니다.\n\n*   **총괄 관리자**: 로그인 성공/실패, 메모 생성 (ID 9)\n*   **cron-grade-recalc**: 등급 재계산 (총 60건)\n*   **박새로이**: 로그인 성공/로그아웃\n\n더 자세한 정보가 필요하시면 특정 사용자 ID나 작업(action)을 알려주세요.",
+        "toolCalls": [
+          {
+            "name": "audit_logs_recent",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": []
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      },
+      {
+        "cmd": "최근 로그인 24시간",
+        "status": 200,
+        "elapsedMs": 1930,
+        "conversationId": 1039,
+        "reply": "최근 24시간 내 로그인한 회원은 2명입니다.\n\n*   **총괄 관리자** (admin@siren-org.kr, ID: 1) - 2026-05-16 18:40:20\n*   **박새로이** (endy0718@naver.com, ID: 5) - 2026-05-15 23:07:42",
+        "toolCalls": [
+          {
+            "name": "members_recent_logins",
+            "ok": true,
+            "error": null,
+            "preview": null,
+            "argsKeys": [
+              "hours"
+            ]
+          }
+        ],
+        "pendingApproval": false,
+        "error": null
+      }
+    ]
+  }
+]

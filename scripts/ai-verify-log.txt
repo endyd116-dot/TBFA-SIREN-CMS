@@ -1,0 +1,90 @@
+
+=== [1] 회원 ===
+  "회원 통계 보여줘" -> 200 (3105ms) tools:[members_stats=OK] reply: 현재 활동 중인 정회원은 58명, 가족회원 1명, 자원봉사자 1명, 관리자 2명입니다. 탈퇴한 정회원은 1명입니다. 총 회원 수는 63명입니다.
+  "박새로이 찾아줘" -> 200 (2182ms) tools:[members_search=OK] reply: 박새로이 회원님을 찾았습니다. (ID: 5, 이메일: endy0718@naver.com, 전화: 01028075242)
+
+=== [2] 후원 ===
+  "후원 통계" -> 200 (1608ms) tools:[donations_stats=FAIL[invalid input value for enum donation_type: "one_time"]] reply: 후원 통계를 불러오는 중 오류가 발생했습니다. 다시 시도해 주시겠어요?
+  "최근 후원 5건" -> 200 (3178ms) tools:[donations_recent=OK] reply: 최근 후원 5건입니다:  1.  **지혜옥**님: 10,000원 (정기 후원, 완료) 2.  **김형영**님: 20,000원 (정기 후원, 완료) 3.  **장덕진**님: 20,0
+
+=== [3] SIREN 신고 ===
+  "사건 신고 목록" -> 200 (5894ms) tools:[incidents_list=OK] reply: 현재 6건의 사건 신고가 있습니다.  *   2025년 광주 초등학교 교사 사건 (ID: 6) *   2025년 인천 특수학교 교사 사건 (ID: 5) *   2024년 대구 고등
+  "악성민원 목록" -> 200 (2639ms) tools:[harassment_reports_list=OK] reply: 총 10건의 악성민원 신고가 있습니다. 몇 가지만 요약해 드릴게요.  *   학생으로부터 성폭행 (ID: 23, 상태: submitted) *   학생 폭력이 과해요 (ID: 22
+
+=== [4] 법률상담 ===
+  "법률 상담 목록" -> 200 (5528ms) tools:[legal_consultations_list=OK] reply: 법률 상담 목록입니다:  *   **L-2026-7155**: 학생이 저를 때렸어요 (형사, 매칭 중) *   **L-2026-2500**: 부당해고 (노동, 매칭 완료) *   
+
+=== [5] 게시판·공지 ===
+  "공지 목록" -> 200 (2530ms) tools:[notices_list=OK] reply: 총 7개의 공지사항이 있습니다. 주요 공지는 다음과 같습니다.  *   **안녕하세요** (회원, ID: 7, 2026-05-04) *   **2026년 정기총회 개최 및 활동 보
+  "게시글 목록" -> 200 (2484ms) tools:[board_posts_list=OK] reply: 현재 게시글은 총 1개입니다.  *   **자유롭게** (일반, ID: 1, 작성자: 5번 회원, 2026-05-04)
+
+=== [6] 캠페인 ===
+  "캠페인 목록" -> 200 (1785ms) tools:[campaigns_list=OK] reply: 현재 진행 중인 캠페인은 '선생님의 빈자리, 당신의 따뜻한 손길로 채워주세요' 입니다. 목표액은 100,000원이며 현재 0원이 모금되었습니다.
+
+=== [7] 콘텐츠·자료 ===
+  "FAQ 보여줘" -> 200 (11047ms) tools:[faqs_list=OK] reply: 총 6개의 FAQ가 있습니다.  1.  **교사유가족협의회 가입 절차가 궁금해요.** (일반) 2.  **기부금 영수증은 언제 어떻게 발급되나요?** (후원) 3.  **법률 지원
+  "자료실 목록" -> 200 (1716ms) tools:[resources_list=OK] reply: 자료실에 1개의 자료가 있습니다.  *   **534314** (공개)
+
+=== [8] 알림 템플릿 ===
+  "발송 템플릿 목록" -> 200 (3346ms) tools:[templates_list=OK] reply: 현재 등록된 발송 템플릿은 총 16건입니다.  **주요 템플릿:** *   **이메일:** 신규 가입 환영, 월간 뉴스레터, 일회성 공지 등 *   **카카오 알림톡:** 정기 결
+  "수신자 그룹" -> 200 (2022ms) tools:[recipient_groups_list=OK] reply: 현재 9개의 수신자 그룹이 있습니다.  *   **전체 활성 회원** *   **정기 후원자** (세분화: 효성 CMS+, 토스 빌링) *   **예비 후원자** (일시·중단) *
+
+=== [9] 잠재 후원자 ===
+  "잠재 후원자 목록" -> 200 (1460ms) tools:[potential_donors_list=OK] reply: 현재 잠재 후원자 목록이 비어 있습니다.
+
+=== [10] 예산·후원정책 ===
+  "올해 예산" -> 200 (4355ms) tools:[budgets_list=OK] reply: 올해(2026년) 예산은 아직 편성되지 않았습니다.
+  "후원 정책 보여줘" -> 200 (2907ms) tools:[donation_policy_get=OK] reply: 현재 후원 정책은 다음과 같습니다:  *   **은행 정보**: 국민은행, 계좌번호 010-45454-4544, 예금주 (사)교사유가족협의회 *   **효성 CMS+ 안내**: 자
+
+=== [11] 재정 22-A ===
+  "수입 카테고리" -> 200 (8009ms) tools:[revenue_categories_list=OK] reply: 수입 카테고리 목록입니다:  *   **강연·교육 수익** (코드: `lecture`, ID: 1): 교사·외부 강연료·교육 워크숍 수익 *   **정부·지자체 지원금** (코드:
+  "매출 내역 이번달" -> 200 (2506ms) tools:[revenue_list=OK] reply: 이번 달 매출 내역입니다.  *   **강연·교육 수익** (ID: 1): 1,100,000원, 2026-05-15, 지급인: 기업 (승인됨)  총 1건의 매출이 있으며, 합계는 
+
+=== [12] 지출 22-C ===
+  "지출 카테고리" -> 200 (14504ms) tools:[expense_categories_list=OK] reply: 네, 지출 카테고리 목록입니다.  *   **인건비 (personnel)**: 급여, 퇴직금, 복리후생비 등 인력 관련 비용 *   **사업비 (program)**: 사업 수행에 
+  "이번 달 지출" -> 200 (2110ms) tools:[expenses_list=OK] reply: 이번 달(2026-05-01 ~ 2026-05-31) 지출 내역은 총 1건, 123,232원입니다.  *   **인건비**: 123,232원 (2026-05-15 발생, 지급처: 
+
+=== [13] 손익 ===
+  "운영성과 보고서" -> 200 (1074ms) tools:[] reply: 어떤 기간의 운영성과 보고서를 원하시나요? 예를 들어 '2025년' 또는 '작년'과 같이 말씀해주세요.
+
+=== [14] 예산안·전표 ===
+  "차년도 예산안" -> 200 (992ms) tools:[] reply: 어떤 연도의 예산안을 생성하시겠습니까?
+  "전표 목록" -> 200 (2072ms) tools:[voucher_list=OK] reply: 현재 11개의 전표가 있습니다. 주요 내용은 다음과 같습니다.  *   **관리운영비**: 청소관리비 (137,225원), GS25강서화곡점 (2,200원, 5,700원) *   
+
+=== [15] 통장 대사 ===
+  "통장 대사 현황" -> 200 (1951ms) tools:[bank_reconcile_summary=OK] reply: 전체 기간 동안의 통장 대사 현황입니다.  *   **입금**: 총 0건 중 0건 확정, 0건 확인 대기 중입니다. *   **출금**: 총 4건(200,125원) 중 3건이 전표
+
+=== [16] 채팅 ===
+  "미답변 채팅방 목록" -> 200 (2109ms) tools:[chat_rooms_list=OK] reply: 현재 미답변 채팅방이 없습니다.
+
+=== [17] 워크스페이스 ===
+  "내 작업 목록" -> 200 (2586ms) tools:[tasks_list=OK] reply: 회원님의 작업 목록입니다:  *   **3123****2313** (ID: 3) - 기한: 2026-05-12, 우선순위: 긴급, 상태: 진행 중 *   **12313213** (
+  "내 메모" -> 200 (1363ms) tools:[] reply: (응답 없음)
+
+=== [18] 캘린더·알림 ===
+  "이번 주 일정" -> 200 (2106ms) tools:[events_list=OK] reply: 이번 주 일정은 없습니다.
+  "최근 알림" -> 200 (1016ms) tools:[] reply: 어떤 회원의 최근 알림을 조회할까요? 회원 ID를 알려주세요.
+
+=== [19] 발송 (★ fix) ===
+  "박새로이에게 메일 보내줘. 제목 테스트, 내용 검증 메일" -> 200 (10614ms) tools:[members_search=OK, email_send=FAIL[수신자 조회 실패: The "string" argument must be of type string or an instance of Buffer], email_send=FAIL[수신자 조회 실패: The "string" argument must be of type string or an instance of Buffer]] reply: 박새로이 회원님(ID: 5)을 찾았습니다.   메일 발송(제목: 테스트)을 시도했으나, 시스템 내부 오류(수신자 ID 처리 문제)로 인해 현재 발송이 불가능합니다. 잠시 후 다시 
+
+=== [20] 종합 KPI ===
+  "대시보드 KPI" -> 200 (4652ms) tools:[kpi_summary=OK] reply: 대시보드 KPI 요약입니다.  *   **활성 캠페인**: 1개 *   **활성 회원**: 62명 *   **이번 달 후원 건수**: 13건 *   **이번 달 후원 금액**: 2
+
+=== [21] 보안·감사 ===
+  "최근 감사 로그" -> 200 (1854ms) tools:[audit_logs_recent=OK] reply: 최근 감사 로그 10건입니다.  *   **총괄 관리자**: 로그인 성공/실패, 메모 생성 (ID 9) *   **cron-grade-recalc**: 등급 재계산 (총 60건) 
+  "최근 로그인 24시간" -> 200 (1930ms) tools:[members_recent_logins=OK] reply: 최근 24시간 내 로그인한 회원은 2명입니다.  *   **총괄 관리자** (admin@siren-org.kr, ID: 1) - 2026-05-16 18:40:20 *   **박새
+
+=== 저장: scripts/ai-verify-results.json ===
+
+=== 요약 ===
+묶음: 21, 명령: 34, 도구 호출: 32, 이슈: 7
+
+이슈 목록:
+ - [후원] "후원 통계" → donations_stats: invalid input value for enum donation_type: "one_time"
+ - [손익] "운영성과 보고서" → (no-tool-call): reply only: 어떤 기간의 운영성과 보고서를 원하시나요? 예를 들어 '2025년' 또는 '작년'과 같이 말씀해주세요.
+ - [예산안·전표] "차년도 예산안" → (no-tool-call): reply only: 어떤 연도의 예산안을 생성하시겠습니까?
+ - [워크스페이스] "내 메모" → (no-tool-call): reply only: (응답 없음)
+ - [캘린더·알림] "최근 알림" → (no-tool-call): reply only: 어떤 회원의 최근 알림을 조회할까요? 회원 ID를 알려주세요.
+ - [발송 (★ fix)] "박새로이에게 메일 보내줘. 제목 테스트, 내용 검증 메일" → email_send: 수신자 조회 실패: The "string" argument must be of type string or an instance of Buffer or ArrayBuffer. Received type number (5
+ - [발송 (★ fix)] "박새로이에게 메일 보내줘. 제목 테스트, 내용 검증 메일" → email_send: 수신자 조회 실패: The "string" argument must be of type string or an instance of Buffer or ArrayBuffer. Received type number (5

@@ -1041,7 +1041,7 @@ async function tool_donationsStats(args: any): Promise<ToolResult> {
       COUNT(*) FILTER (WHERE status='completed')::int AS completed_count,
       COALESCE(SUM(amount) FILTER (WHERE status='completed'), 0)::bigint AS completed_sum,
       COUNT(*) FILTER (WHERE type='regular' AND status='completed')::int AS regular_count,
-      COUNT(*) FILTER (WHERE type='one_time' AND status='completed')::int AS onetime_count
+      COUNT(*) FILTER (WHERE type='onetime' AND status='completed')::int AS onetime_count
     FROM donations
     WHERE created_at >= NOW() - (${months}::int * INTERVAL '1 month')
   `);
@@ -1293,12 +1293,13 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
   if (!subject) return { ok: false, error: "subject 필수" };
   if (!body) return { ok: false, error: "body 필수" };
 
-  /* 수신자 조회 — 이름·이메일 */
+  /* 수신자 조회 — 이름·이메일 (ids는 toIdArray로 정수 보장됨) */
   let recipients: any[] = [];
   try {
+    const idsLiteral = `ARRAY[${ids.join(",")}]::int[]`;
     const r: any = await db.execute(sql`
       SELECT id, name, email FROM members
-       WHERE id = ANY(${ids}) AND email IS NOT NULL AND email <> ''
+       WHERE id = ANY(${sql.raw(idsLiteral)}) AND email IS NOT NULL AND email <> ''
        LIMIT 50
     `);
     recipients = r?.rows ?? r ?? [];
