@@ -264,6 +264,7 @@
           'send-template': '📝 발송 템플릿',
           'recipient-groups': '👥 수신자 그룹',
           'auto-trigger': '🤖 AI 자동 발송',
+          'system-notification': '🔔 시스템 자동 발송',
           'send-analytics': '📊 발송 분석',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
@@ -306,6 +307,7 @@
         else if (tab === 'send-template') renderSendTemplate();
         else if (tab === 'recipient-groups') renderRecipientGroups();
         else if (tab === 'auto-trigger') renderAutoTrigger();
+        else if (tab === 'system-notification') renderSystemNotification();
         else if (tab === 'send-analytics') renderSendAnalytics();
         else if (tab === 'csv-import') {
           /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
@@ -3800,6 +3802,7 @@ function renderSendJobs()        { _nfLoadIframe('page-send-jobs'); }
 function renderSendTemplate()    { _nfLoadIframe('page-send-template'); }
 function renderRecipientGroups() { _nfLoadIframe('page-recipient-groups'); }
 function renderAutoTrigger()     { _nfLoadIframe('page-auto-trigger'); }
+function renderSystemNotification() { _nfLoadIframe('page-system-notification'); }
 function renderSendAnalytics()   { _nfLoadIframe('page-send-analytics'); }
 
 /* ================================================================
