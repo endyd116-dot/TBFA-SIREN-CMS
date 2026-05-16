@@ -97,11 +97,11 @@ nano .env
 `.env` 내용 (실제 값으로):
 
 ```
-PROXY_SECRET=Swain이_정하는_임의_긴_문자열_32자_이상
-ALIGO_API_KEY=2tr8k7hxgtw3cio5de6mmu8fuqpak67z
-ALIGO_USER_ID=tbfa4utb
-ALIGO_KAKAO_CHANNEL_ID=2b03f0eb08403b81d399e64f8214fd14ed6b9ebd
-ALIGO_SENDER=02xxxxxxxx
+PROXY_SECRET=임의의_긴_문자열_32자_이상
+ALIGO_API_KEY=(알리고 콘솔 → API Key)
+ALIGO_USER_ID=(알리고 콘솔 → 등록한 USER ID)
+ALIGO_KAKAO_CHANNEL_ID=(알리고 콘솔 → Senderkey)
+ALIGO_SENDER=(협회 발신번호, - 제거)
 PORT=8080
 ```
 

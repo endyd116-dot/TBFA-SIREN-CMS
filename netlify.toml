@@ -11,6 +11,10 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--prefer-offline"
+  # ★ 2026-05-17: proxy-server/ 폴더는 Oracle VM 배포용 README/스크립트라
+  # Netlify 빌드 출력과 무관. 혹시 남는 placeholder가 잡히지 않도록 secret
+  # scan에서 제외.
+  SECRETS_SCAN_OMIT_PATHS = "proxy-server/**,docs/handover/**"
 
 # ============================================================
 # Redirects
