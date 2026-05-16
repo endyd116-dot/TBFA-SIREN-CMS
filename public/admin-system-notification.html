@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>시스템 자동 발송 관리 | SIREN 어드민</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f1f5f9; color: #1e293b; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+  .back-link { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+  h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
+  .desc { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; line-height: 1.6; }
+  .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 14px; border-radius: 6px; margin-bottom: 20px; font-size: 0.85rem; color: #78350f; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; transition: box-shadow 0.15s; }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card.disabled { opacity: 0.6; background: #f8fafc; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .card-title { font-size: 0.98rem; font-weight: 600; color: #0f172a; }
+  .card-desc { font-size: 0.78rem; color: #64748b; line-height: 1.5; margin-bottom: 12px; min-height: 36px; }
+  .toggle { position: relative; width: 38px; height: 22px; background: #cbd5e1; border-radius: 22px; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+  .toggle.on { background: #16a34a; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+  .toggle.on::after { left: 18px; }
+
+  .channels { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .ch-chip { font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; border: 1px solid #e2e8f0; color: #94a3b8; background: #f8fafc; }
+  .ch-chip.active { color: #1e40af; background: #dbeafe; border-color: #93c5fd; font-weight: 600; }
+  .ch-chip.forced { color: #b91c1c; background: #fee2e2; border-color: #fca5a5; font-weight: 600; }
+
+  .edit-btn { width: 100%; padding: 7px 0; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 0.82rem; color: #475569; font-family: inherit; }
+  .edit-btn:hover { background: #e2e8f0; }
+
+  /* Modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 100; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 720px; padding: 22px 24px; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+  .modal-head h2 { font-size: 1.1rem; margin: 0; }
+  .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8; line-height: 1; }
+  .close-btn:hover { color: #475569; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; cursor: pointer; font-size: 0.85rem; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: #1e40af; border-bottom-color: #1e40af; font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .form-row { margin-bottom: 12px; }
+  .form-row label { display: block; font-size: 0.8rem; font-weight: 500; color: #475569; margin-bottom: 4px; }
+  .form-row input[type="text"], .form-row textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; font-family: inherit; }
+  .form-row textarea { min-height: 220px; resize: vertical; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.6; }
+
+  .var-guide { background: #f8fafc; padding: 10px 12px; border-radius: 6px; font-size: 0.75rem; color: #64748b; margin-top: 6px; }
+  .var-guide b { color: #0f172a; }
+  .var-guide code { background: #fff; padding: 1px 5px; border-radius: 3px; border: 1px solid #e2e8f0; color: #1e40af; }
+
+  .kakao-warn { background: #fee2e2; border-left: 4px solid #dc2626; padding: 10px 12px; border-radius: 6px; font-size: 0.78rem; color: #7f1d1d; margin-bottom: 12px; }
+  .channel-toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f8fafc; border-radius: 6px; margin-bottom: 12px; font-size: 0.82rem; }
+
+  .forced-section { background: #fef2f2; border: 1px solid #fecaca; padding: 12px 14px; border-radius: 6px; margin-bottom: 12px; }
+  .forced-section h3 { font-size: 0.85rem; margin: 0 0 6px; color: #991b1b; }
+  .forced-section p { font-size: 0.75rem; color: #7f1d1d; margin: 0 0 8px; line-height: 1.5; }
+  .forced-checks { display: flex; gap: 12px; flex-wrap: wrap; }
+  .forced-checks label { font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  .actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid #e2e8f0; margin-top: 14px; }
+  .btn-primary { padding: 9px 18px; background: #1e40af; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-family: inherit; }
+  .btn-primary:hover { background: #1e3a8a; }
+  .btn-secondary { padding: 9px 18px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-family: inherit; }
+
+  .empty-channel { text-align: center; padding: 30px 20px; color: #94a3b8; font-size: 0.85rem; }
+  .empty-channel button { margin-top: 10px; padding: 6px 14px; background: #1e40af; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a href="/admin.html" class="back-link" onclick="window.location.href='/admin.html';return false;">← 어드민으로</a>
+  <h1>🔔 시스템 자동 발송 관리</h1>
+  <p class="desc">
+    회원에게 자동 발송되는 시스템 메시지(정기 결제 안내·카드 만료·자격 심사 결과 등)를 한 곳에서 관리합니다.<br/>
+    각 이벤트의 본문을 편집하고, 채널(이메일·SMS·카카오·인앱)별 on/off를 토글할 수 있습니다.
+  </p>
+
+  <div class="alert">
+    📌 변경한 본문은 다음 자동 발송부터 적용됩니다. 변수(<code>{{name}}</code> 등)는 발송 시 실제 값으로 자동 치환됩니다.
+  </div>
+
+  <div id="grid" class="grid">
+    <p style="text-align:center;color:#94a3b8;padding:40px;">불러오는 중...</p>
+  </div>
+</div>
+
+<!-- 편집 모달 -->
+<div id="modalBg" class="modal-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">이벤트 편집</h2>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+
+    <div class="forced-section" id="forcedSection">
+      <h3>⚠️ 강제 발송 채널 (회원 보호)</h3>
+      <p>이 채널은 결제 실패·카드 만료 등 회원 권리에 관련된 알림을 놓치지 않도록 항상 발송됩니다. 해제 시 회원이 결제 문제를 인지하지 못할 수 있습니다.</p>
+      <div class="forced-checks" id="forcedChecks"></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="tabPanels"></div>
+
+    <div class="actions">
+      <button class="btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn-primary" onclick="saveEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _events = [];
+let _editingEvent = null;
+let _activeTab = "email";
+
+async function api(path, opts) {
+  opts = opts || {};
+  const init = { method: opts.method || "GET", credentials: "include",
+    headers: { "Content-Type": "application/json" } };
+  if (opts.body) init.body = JSON.stringify(opts.body);
+  const res = await fetch(path, init);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok && data.ok !== false, data };
+}
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+async function load() {
+  const r = await api("/api/admin-system-notification-list");
+  if (!r.ok) {
+    document.getElementById("grid").innerHTML = `<p style="color:#dc2626;padding:20px;">불러오기 실패: ${esc(r.data.error || "")}</p>`;
+    return;
+  }
+  _events = r.data.events || [];
+  render();
+}
+
+function render() {
+  const grid = document.getElementById("grid");
+  if (_events.length === 0) {
+    grid.innerHTML = `<p style="color:#94a3b8;text-align:center;padding:40px;">시스템 이벤트가 없습니다.</p>`;
+    return;
+  }
+  grid.innerHTML = _events.map(ev => {
+    const defaultCh = ev.defaultChannels || [];
+    const forcedCh = ev.forcedChannels || [];
+    const allCh = ["inapp", "email", "sms", "kakao"];
+    const chHtml = allCh.map(c => {
+      const isDefault = defaultCh.includes(c);
+      const isForced = forcedCh.includes(c);
+      const cls = isForced ? "ch-chip forced" : (isDefault ? "ch-chip active" : "ch-chip");
+      const label = { inapp: "인앱", email: "이메일", sms: "SMS", kakao: "카카오" }[c];
+      return `<span class="${cls}" title="${isForced ? '강제 발송' : (isDefault ? '활성' : '비활성')}">${label}${isForced ? ' 🔒' : ''}</span>`;
+    }).join("");
+    return `
+      <div class="card ${ev.isActive ? '' : 'disabled'}">
+        <div class="card-head">
+          <div class="card-title">${esc(ev.displayLabel)}</div>
+          <div class="toggle ${ev.isActive ? 'on' : ''}" onclick="toggleActive('${esc(ev.eventType)}')" title="${ev.isActive ? '이벤트 켜짐' : '이벤트 꺼짐'}"></div>
+        </div>
+        <div class="card-desc">${esc(ev.description)}</div>
+        <div class="channels">${chHtml}</div>
+        <button class="edit-btn" onclick="openModal('${esc(ev.eventType)}')">본문·채널 편집 →</button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function toggleActive(eventType) {
+  const ev = _events.find(e => e.eventType === eventType);
+  if (!ev) return;
+  const newActive = !ev.isActive;
+  if (!newActive && (ev.forcedChannels || []).length > 0) {
+    if (!confirm(`이 이벤트를 꺼시면 강제 발송 채널(${ev.forcedChannels.join(", ")})도 발송되지 않습니다.\n정말 끄시겠습니까?`)) return;
+  }
+  const r = await api("/api/admin-system-notification-update", {
+    method: "PATCH",
+    body: { eventType, isActive: newActive },
+  });
+  if (r.ok) { ev.isActive = newActive; render(); }
+  else alert("저장 실패: " + (r.data.error || ""));
+}
+
+function openModal(eventType) {
+  _editingEvent = JSON.parse(JSON.stringify(_events.find(e => e.eventType === eventType)));
+  if (!_editingEvent) return;
+  document.getElementById("modalTitle").textContent = _editingEvent.displayLabel;
+  buildForcedSection();
+  buildTabs();
+  switchTab("email");
+  document.getElementById("modalBg").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("modalBg").classList.remove("show");
+  _editingEvent = null;
+}
+
+function buildForcedSection() {
+  const allCh = [["inapp","인앱"],["email","이메일"],["sms","SMS"],["kakao","카카오"]];
+  const forced = _editingEvent.forcedChannels || [];
+  document.getElementById("forcedChecks").innerHTML = allCh.map(([c, label]) =>
+    `<label><input type="checkbox" data-forced="${c}" ${forced.includes(c) ? 'checked' : ''} /> ${label}</label>`
+  ).join("");
+}
+
+function buildTabs() {
+  const tabs = ["email", "sms", "kakao", "inapp"];
+  const labels = { email: "이메일", sms: "SMS", kakao: "카카오 ⚠️", inapp: "인앱(벨)" };
+  document.getElementById("tabs").innerHTML = tabs.map(t =>
+    `<div class="tab ${t === _activeTab ? 'active' : ''}" onclick="switchTab('${t}')">${labels[t]}</div>`
+  ).join("");
+  document.getElementById("tabPanels").innerHTML = tabs.map(t => buildPanel(t)).join("");
+}
+
+function buildPanel(ch) {
+  const tpl = _editingEvent.channels[ch];
+  const isKakao = ch === "kakao";
+  const vars = (tpl && Array.isArray(tpl.variables)) ? tpl.variables : [];
+  const varGuide = vars.length > 0 ? `
+    <div class="var-guide">
+      <b>사용 가능한 변수</b> (본문에 그대로 입력하면 발송 시 실제 값으로 치환):<br/>
+      ${vars.map(v => `<code>{{${esc(v.key || v.name)}}}</code> - ${esc(v.label || v.description || '')} (예: ${esc(v.sample || v.example || '')})`).join("<br/>")}
+    </div>` : '<div class="var-guide" style="color:#94a3b8;">정의된 변수가 없습니다. 본문을 처음 저장하시면 cron이 전달하는 변수를 자동 인식합니다.</div>';
+
+  return `
+    <div class="tab-panel ${ch === _activeTab ? 'active' : ''}" data-panel="${ch}">
+      ${isKakao ? '<div class="kakao-warn">⚠️ 카카오 알림톡은 카카오 비즈 채널에 사전 등록된 본문과 정확히 일치해야 발송됩니다. 본문 수정 시 카카오 콘솔에서 새 본문으로 템플릿 재심사를 신청해야 실제 발송됩니다.</div>' : ''}
+      ${ch === 'email' ? `
+        <div class="form-row">
+          <label>이메일 제목</label>
+          <input type="text" data-field="${ch}-subject" value="${esc(tpl?.subject || '')}" placeholder="예: [교사유가족협의회] 정기 결제 안내" />
+        </div>` : ''}
+      <div class="form-row">
+        <label>본문 (Handlebars 변수 ${'{{변수명}}'} 사용)</label>
+        <textarea data-field="${ch}-body" placeholder="${tpl ? '' : '아직 본문이 저장되어 있지 않습니다. 첫 저장 시 새 템플릿이 생성됩니다.'}">${esc(tpl?.body || '')}</textarea>
+        ${varGuide}
+      </div>
+    </div>
+  `;
+}
+
+function switchTab(ch) {
+  _activeTab = ch;
+  document.querySelectorAll(".tab").forEach(el => el.classList.toggle("active", el.textContent.toLowerCase().includes(ch)));
+  document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.dataset.panel === ch));
+}
+
+async function saveEvent() {
+  if (!_editingEvent) return;
+  const forcedChannels = Array.from(document.querySelectorAll('input[data-forced]:checked')).map(el => el.dataset.forced);
+  const channelBody = {};
+  for (const ch of ["email","sms","kakao","inapp"]) {
+    const bodyEl = document.querySelector(`textarea[data-field="${ch}-body"]`);
+    if (!bodyEl) continue;
+    const body = bodyEl.value.trim();
+    const subjectEl = document.querySelector(`input[data-field="${ch}-subject"]`);
+    const subject = subjectEl ? subjectEl.value.trim() : null;
+    const orig = _editingEvent.channels[ch];
+    /* 변경된 채널만 전송 (불필요한 빈 row 생성 방지) */
+    if (body && (body !== (orig?.body || "") || subject !== (orig?.subject || null))) {
+      channelBody[ch] = { body, subject, variables: orig?.variables || [] };
+    }
+  }
+  const r = await api("/api/admin-system-notification-update", {
+    method: "PATCH",
+    body: { eventType: _editingEvent.eventType, forcedChannels, channelBody },
+  });
+  if (r.ok) {
+    const warns = r.data.warnings || [];
+    alert("저장 완료" + (warns.length > 0 ? "\n\n⚠️ " + warns.join("\n") : ""));
+    closeModal();
+    load();
+  } else {
+    alert("저장 실패: " + (r.data.error || ""));
+  }
+}
+
+load();
+</script>
+
+</body>
+</html>
