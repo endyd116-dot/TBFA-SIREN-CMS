@@ -211,6 +211,9 @@ body {
   <div class="card">
     <div class="card-title">📨 수신자 목록</div>
 
+    <!-- ★ 2026-05-17: pending 상태일 때 미리보기 안내 배너 (recipients API 응답 isPreview=true) -->
+    <div id="recPreviewBanner"></div>
+
     <div class="filter-tabs">
       <button class="active" data-filter="">전체</button>
       <button data-filter="sent">성공만</button>
@@ -248,6 +251,6 @@ body {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-send-job-detail.js?v=2"></script>
+<script src="/js/admin-send-job-detail.js?v=20260517preview"></script>
 </body>
 </html>

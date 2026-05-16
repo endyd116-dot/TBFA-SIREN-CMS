@@ -315,11 +315,20 @@
     const payload = res.data?.data ?? res.data ?? {};
     const rows  = payload.recipients ?? res.data?.recipients ?? [];
     const total = payload.total ?? res.data?.total ?? rows.length;
+    /* ★ 2026-05-17: 작업이 pending이면 백엔드가 그룹 미리보기 멤버를 반환하고
+       isPreview=true 플래그를 함께 보냄. 화면에 '발송 대기 — 미리보기' 안내. */
+    const isPreview = payload.isPreview ?? res.data?.isPreview ?? false;
     recState.total = total;
-    renderRecipients(rows);
+    renderRecipients(rows, isPreview);
   }
 
-  function renderRecipients(rows) {
+  function renderRecipients(rows, isPreview) {
+    /* 미리보기 안내 배너 */
+    const banner = isPreview
+      ? `<div style="margin-bottom:10px;padding:9px 14px;background:#fff7ed;border-left:3px solid #ea580c;border-radius:6px;font-size:13px;color:#9a3412">⏳ 발송 대기 중 — 아래는 발송 예정 회원 미리보기입니다. cron이 실행되면 실제 수신자 스냅샷으로 갱신됩니다.</div>`
+      : "";
+    const bannerEl = document.getElementById("recPreviewBanner");
+    if (bannerEl) bannerEl.innerHTML = banner;
     if (!rows.length) {
       $("recBody").innerHTML = `<tr><td colspan="7" class="empty-state">조건에 맞는 수신자가 없습니다.</td></tr>`;
     } else {
