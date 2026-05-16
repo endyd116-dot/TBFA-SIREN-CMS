@@ -26,6 +26,7 @@
     "pdf-lib": "^1.17.1",
     "postgres": "^3.4.9",
     "resend": "^6.12.2",
+    "sharp": "^0.33.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

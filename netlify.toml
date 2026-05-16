@@ -90,6 +90,7 @@
     "pdf-lib",
     "@pdf-lib/fontkit",
     "resend",
+    "sharp",
   ]
 
 # ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)

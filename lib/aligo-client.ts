@@ -203,7 +203,7 @@ export async function aligoSendMms(opts: AligoMmsOpts): Promise<AligoSendResult>
     return { ok: false, error: "MMS 이미지 URL 미지정" };
   }
 
-  /* 이미지 다운로드 */
+  /* 이미지 다운로드 + 300KB 초과 시 자동 압축 (sharp) */
   let imageBlob: Blob;
   try {
     const imgRes = await fetch(opts.imageUrl);
@@ -211,8 +211,20 @@ export async function aligoSendMms(opts: AligoMmsOpts): Promise<AligoSendResult>
       return { ok: false, error: `이미지 다운로드 실패: HTTP ${imgRes.status}` };
     }
     imageBlob = await imgRes.blob();
+
     if (imageBlob.size > 300 * 1024) {
-      return { ok: false, error: `이미지 크기 초과 (${Math.round(imageBlob.size / 1024)}KB, 최대 300KB)` };
+      /* ★ 2026-05-16: 자동 압축 — JPEG quality 단계적 → 해상도 축소 → 그래도 안되면 실패. */
+      const { compressToMaxBytes } = await import("./image-compress");
+      const arrayBuf = await imageBlob.arrayBuffer();
+      const compressed = await compressToMaxBytes(arrayBuf, 300 * 1024);
+      if (!compressed) {
+        return {
+          ok: false,
+          error: `이미지 크기 초과 (${Math.round(imageBlob.size / 1024)}KB) — 자동 압축 시도했으나 300KB 이하로 줄일 수 없습니다. 더 작은 이미지로 다시 업로드해 주세요.`,
+        };
+      }
+      console.log(`[aligo-client] MMS 이미지 자동 압축: ${Math.round(compressed.originalBytes / 1024)}KB → ${Math.round(compressed.finalBytes / 1024)}KB (mode=${compressed.mode}${compressed.meta.quality ? ' q=' + compressed.meta.quality : ''}${compressed.meta.width ? ' w=' + compressed.meta.width : ''})`);
+      imageBlob = new Blob([new Uint8Array(compressed.buffer)], { type: "image/jpeg" });
     }
   } catch (err: any) {
     return { ok: false, error: `이미지 다운로드 오류: ${String(err?.message || err).slice(0, 300)}` };
