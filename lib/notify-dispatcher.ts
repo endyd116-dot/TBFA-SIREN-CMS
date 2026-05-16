@@ -296,3 +296,86 @@ async function _updateLog(id: number, fields: Record<string, any>): Promise<void
     console.error(`[notify-dispatcher] log UPDATE 실패 id=${id}:`, err);
   }
 }
+
+/* =========================================================
+   ★ 2026-05-16: 자동 발송 통합 CMS (B안) — 어드민이 편집한 템플릿 로드
+
+   어댑터들이 발송 직전 호출:
+     const tpl = await loadEventTemplate({ event, channel, params });
+     if (tpl) { 새 본문으로 발송 }
+     else     { 기존 하드코딩 함수로 폴백 (안전망) }
+
+   반환값:
+   - null        : isActive=false 또는 templateId NULL → 어댑터는 폴백
+   - { skip:true }: 이벤트 자체가 끄짐 (isActive=false) → 어댑터도 발송 안 함
+   - { subject, body }: 어드민 편집 본문 + Handlebars 변수 치환 완료
+   ========================================================= */
+
+import { renderTemplate, type TemplateVariable } from "./template-render";
+
+export interface LoadedTemplate {
+  subject: string;
+  body: string;
+}
+
+export async function loadEventTemplate(opts: {
+  event: NotifyEvent;
+  channel: ChannelName;
+  params: Record<string, any>;
+}): Promise<LoadedTemplate | { skip: true } | null> {
+  try {
+    /* 1) notification_admin_settings에서 isActive + 채널별 templateId 조회 */
+    const settingCol = `${opts.channel}_template_id`;
+    const res: any = await db.execute(sql`
+      SELECT is_active, ${sql.raw(settingCol)} AS template_id
+        FROM notification_admin_settings
+       WHERE event_type = ${opts.event}
+       LIMIT 1
+    `);
+    const rows = res?.rows ?? res ?? [];
+    if (rows.length === 0) return null;  /* 설정 row 없음 → 폴백 */
+    const setting = rows[0];
+
+    if (setting.is_active === false) return { skip: true };  /* 이벤트 자체 끄짐 */
+
+    const templateId = setting.template_id;
+    if (!templateId) return null;  /* 채널별 템플릿 미연결 → 폴백 */
+
+    /* 2) communication_templates에서 본문·변수 로드 */
+    const tplRes: any = await db.execute(sql`
+      SELECT subject, body_template, variables, is_active AS tpl_active
+        FROM communication_templates
+       WHERE id = ${Number(templateId)}
+       LIMIT 1
+    `);
+    const tplRows = tplRes?.rows ?? tplRes ?? [];
+    if (tplRows.length === 0) return null;
+    const tpl = tplRows[0];
+    if (tpl.tpl_active === false) return null;  /* 템플릿 비활성 → 폴백 */
+
+    /* 3) variables 정규화 — 기존 시스템 {key,label,sample} + 시드 {name,description,example} 양쪽 지원 */
+    const rawVars = Array.isArray(tpl.variables) ? tpl.variables : [];
+    const variables: TemplateVariable[] = rawVars.map((v: any) => ({
+      key:    String(v.key ?? v.name ?? ""),
+      label:  v.label ?? v.description,
+      sample: v.sample ?? v.example,
+    })).filter((v: TemplateVariable) => v.key);
+
+    /* 4) data 매핑 — params의 key가 곧 변수명 (cron이 dispatch 호출 시 정확히 매핑해줘야 함) */
+    const data: Record<string, string> = {};
+    for (const v of variables) {
+      const raw = (opts.params as any)[v.key];
+      if (raw !== undefined && raw !== null) data[v.key] = String(raw);
+    }
+
+    /* 5) Handlebars 치환 */
+    const { rendered } = renderTemplate(String(tpl.body_template || ""), variables, data);
+    return {
+      subject: String(tpl.subject || ""),
+      body: rendered,
+    };
+  } catch (err) {
+    console.error(`[notify-dispatcher] loadEventTemplate 실패 event=${opts.event} channel=${opts.channel}:`, err);
+    return null;  /* 에러 시 폴백 (운영 중단 방지) */
+  }
+}

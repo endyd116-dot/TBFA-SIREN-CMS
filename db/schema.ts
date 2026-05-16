@@ -2177,6 +2177,16 @@ export const notificationAdminSettings = pgTable("notification_admin_settings", 
   eventType:       text("event_type").primaryKey(),
   defaultChannels: jsonb("default_channels").default(sql`'[]'::jsonb`).notNull(),
   forcedChannels:  jsonb("forced_channels").default(sql`'[]'::jsonb`).notNull(),
+  /* ★ 2026-05-16: 자동 발송 통합 CMS (B안) — 채널별 템플릿 매핑 + on/off + UI 라벨.
+     migrate-notification-cms.ts로 컬럼 추가됨. templateId NULL이면 어댑터가
+     기존 코드(하드코딩) 함수로 폴백. */
+  emailTemplateId: bigint("email_template_id", { mode: "number" }),
+  smsTemplateId:   bigint("sms_template_id", { mode: "number" }),
+  kakaoTemplateId: bigint("kakao_template_id", { mode: "number" }),
+  inappTemplateId: bigint("inapp_template_id", { mode: "number" }),
+  isActive:        boolean("is_active").default(true).notNull(),
+  displayLabel:    text("display_label"),
+  description:     text("description"),
   updatedAt:       timestamp("updated_at").defaultNow().notNull(),
   updatedBy:       integer("updated_by").references(() => members.id, { onDelete: "set null" }),
 });
