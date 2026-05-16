@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-16 / **🔧 버그 픽스 3차 코드 완결 + 📐 Phase 23 설계 라운드 진입** / main @ `20af8b4` (전부 푸시 완료)
+> **마지막 갱신**: 2026-05-16 / **🏁 박새로이 사고→자동발송 CMS·효성 가입·응답폼·SMS/MMS 인프라 한 사이클 완결 + 전 영역 정독·19건 진단** / main @ `73d3d7f` (전부 푸시 완료)
 
 ---
 
@@ -16,6 +16,12 @@
 - 베이스 브랜치: `main`
 - 상세 스택·환경·구조: [`CLAUDE.md`](../CLAUDE.md) §1~5
 
+운영 완성도 (2026-05-16 기준):
+- 🟢 교유협 자체 운영: **약 95%** (실제 운영 단계)
+- 🟡 외부 판매(이전·라이선싱): 약 75%
+- 🟠 SaaS화: 약 50%
+- 🔵 콘텐츠·커뮤니티 플랫폼 동급: 약 80%
+
 ---
 
 ## 2. 새 메인 채팅이 시작 시 해야 할 일
@@ -23,235 +29,150 @@
 ```
 1) 본 HANDOFF.md 정독
 2) PROJECT_STATE.md §2·§3·§5·§7 정독
-3) docs/PARALLEL_GUIDE.md §1~§19 정독
+3) docs/REMAINING_WORK.md §8 (잔여 작업 인벤토리) 정독 — 라운드 계획 핵심
 4) memory/MEMORY.md 인덱스 + feedback_* 메모리 본문 정독
-5) 본 §3 (지금 진행 중인 일) 확인
-6) §4 다음 트랙 후보 — Swain과 우선순위 협의 후 라운드 설계
+5) 본 §4 (다음 메인이 할 일) 확인
+6) Swain과 라운드 시작 확인 → §4 라운드 1부터 진행
 ```
 
 ---
 
-## 3. 지금 진행 중인 일
+## 3. 2026-05-16 완료한 일 (약 40 커밋)
 
-### 3.1 ✅ 버그 픽스 3차 — 코드 작업 전부 완결 (2026-05-16, 메인 단독)
+박새로이 카톡 중복 발송 사고가 발단이 되어 운영 안정성·사용자 경험·인프라·외부 판매 준비까지 모두 한 단계 끌어올린 큰 사이클.
 
-**이번 세션에서 버그 픽스 3차의 코드 작업을 전부 마감했다.** main @ `20af8b4`, 모두 푸시 완료.
+### 3.1 사고 대응 & AI
+- `07f8479` AI 메일 발송 인자 정규화 + 오류 사유 화면 노출
+- `4787548` cron-billing scheduled+retry 중복 청구 dedup (박새로이 카톡 2번 사고)
+- `d400f61` C 검증 fix — donations_stats enum + email_send SQL 배열 직렬화
+- `ab7e916` Netlify 빌드 단축 (aws-sdk·pdf-lib·resend external)
 
-| 커밋 | 내용 |
+### 3.2 자동 발송 통합 CMS (B안 — 5단계)
+- `1de15c2` D1 마이그 — notification_admin_settings 컬럼 7개 + 9개 이벤트 + 카카오 본문 2건
+- `5ccbe95` D2 schema 활성화 + loadEventTemplate 헬퍼
+- `cb0bd9a` D3 어댑터 4종 (DB 본문 우선 + 토글 + 폴백)
+- `c33f4da` D4 어드민 UI (admin-system-notification.html) — 카드 그리드 + 4탭 편집 모달
+- `510e531` D5 사이드바 메뉴 등록
+- `45de698` 흰 화면 fix (iframe 라우팅 4곳 등록 누락 — 메모리화)
+- `7e9ae4e` 코드 기본값 미리보기 표시
+- `34eac6d` 강제 채널 박스 조건부 표시 (forcedChannels 비어있으면 숨김)
+
+→ 운영자가 어드민에서 9개 시스템 이벤트의 본문·채널 토글·강제 채널 모두 편집 가능.
+
+### 3.3 효성 후원자 가입 흐름 (A안 — 5단계 + C 검증 3라운드)
+- `9f4bf9a` D1 phone_verifications 테이블 마이그
+- `1d3285c` D2 schema 활성화 + 인증 헬퍼·API 2개 (phone-verify-send/check)
+- `0724fa7` D3 auth-signup.ts 분기 (verifyToken → 기존 row UPDATE)
+- `6343274` D4 가입 모달 UI + auth.js 핸들러
+- `a563aed` D5 만료 row cleanup cron
+- C 검증 1·2·3차 통과 (BUG-1·2·3 모두 해소):
+  - `061af1c` C BUG-2 fix (SMS 실패 시 INSERT 롤백)
+  - `846f567` SMS Oracle 프록시 (BUG-1 메인 해결)
+  - `4783ed3` C timeout fix (10초 AbortController)
+  - `f1c04fe` MMS 프록시 라우트 + signup 핸들러 partials:loaded 바인딩
+  - `52b94b2`·`73d3d7f` 검증 보고서 archive
+
+→ 효성·기업은행 등 외부 연동 후원자가 사이트 회원으로 전환 가능 (전화 인증 → 기존 row 활성화).
+
+### 3.4 응답폼·신청폼 빌더 (5단계)
+- `4b6a33a` D1 마이그 — forms·formFields·formSubmissions 3 테이블
+- `bd33139` D2 공개 API 2개 (form.ts·form-submit.ts) + 공개 페이지 form.html
+- `865113d` D3+D4+D5 어드민 빌더·응답 조회·CSV·사이드바 메뉴
+
+→ 운영자가 행사 신청·설문·이벤트 폼 코드 없이 만들고 응답 수집·CSV 다운.
+
+### 3.5 미디어 처리 + 메일 첨부 + 인프라
+- `5ce3f11`·`dd11663` 카카오·MMS 이미지 자동 압축 (sharp + JPEG quality·resize 단계적)
+- `0293f18` 메일 웹 감싸기 + 이메일 첨부파일 (R2 → base64 → Resend attachments)
+- SMS·MMS Oracle 프록시 인프라 신규 구축 (server.js에 /aligo/sms·/aligo/mms 라우트 + ALIGO_SMS_PROXY_URL Netlify env)
+
+### 3.6 외부 판매 준비
+- `bb60b59`·`30a69c5`·`8a180ae` 잔여 작업 §8에 SaaS·외부 판매 약점 4개 + 효성 가입 + 파일함 통합 등록
+- 35개 모듈 카탈로그 영업 자료 토대 정리
+
+### 3.7 전 영역 정독·진단 (오늘 마지막)
+- SIREN·워크스페이스·통합 CMS 3개 영역 정독으로 19건(Critical 9 + Important 10) 발견
+- 영역별 라운드 계획 수립 (다음 §4 참조)
+
+---
+
+## 4. 다음 메인이 할 일 — 영역별 라운드 계획
+
+### 4.1 라운드 1 — SIREN 영역 (Critical 2 + Important 2 = 4건, 1.5~3일)
+
+| # | 우선 | 이슈 | 수정안 |
+|---|---|---|---|
+| 1 | 🔴 | 회원 탈퇴 시 빌링키 자동 비활성화 | `auth-withdraw.ts`에 `billingKeys.isActive=false` UPDATE 추가 |
+| 2 | 🔴 | 신고 status `responded` 미구현 정리 | A) `responded` 제거 단순화 / B) 명시적 endpoint 신설 — Swain 선택 |
+| 3 | 🟡 | 자격 변경 되돌리기 (어드민 강제 변경) | `admin-eligibility-force-change` endpoint 신설 |
+| 4 | 🟡 | 익명 신고 보고자 정보 일관성 | 어드민 UI에 "등록 회원명(익명 시 마스킹)" 표시 |
+
+### 4.2 라운드 2 — 워크스페이스 영역 (Critical 4 + Important 4 = 8건 + 구글 캘린더 연동, 5~9일)
+
+| # | 우선 | 이슈 | 수정안 |
+|---|---|---|---|
+| 1 | 🔴 | 작업 소유자(`memberId`) 변경 금지 | `assign` 시 `assignedTo`만 변경, `memberId` 고정 |
+| 2 | 🔴 | 멘션 조회·읽음 추적 | `workspace_task_mentions` 테이블 신설 |
+| 3 | 🔴 | 파일 삭제 시 `blob_uploads` orphan 정리 | 휴지통 cron에 SQL 추가 |
+| 4 | 🔴 | 완료 되돌리기 시 `completedAt` clear | done→todo 시 `completedAt=null`·`completedBy=null` 강제 |
+| 5 | 🟡 | 이벤트 RSVP 히스토리 | `workspace_event_rsvps` 테이블 신설 |
+| 6 | 🟡 | 마감 알림 타임존·휴일 | `reminderConfig.timezone` + 한국 공휴일 캘린더 |
+| 7 | 🟡 | 다른 운영자 task 조회 권한 모호 | `assignedByMe` 기본 ON + 권한 정책 명시 |
+| 8 | 🟡 | 휴지통 복원 불가 | "휴지통" UI + `restore` action |
+| 9 | 🆕 | **구글 캘린더 API 연동** (Swain 2026-05-16 추가 요청) | OAuth2 + 워크스페이스 이벤트 양방향 동기. 추정 5~7일 별도 라운드 |
+
+→ 9번은 큰 모듈이라 워크스페이스 라운드 2 후 별도 라운드 검토 (또는 라운드 2.5).
+
+### 4.3 라운드 3 — 통합 CMS 영역 (Critical 3 + Important 4 = 7건, 3~5일)
+
+| # | 우선 | 이슈 | 수정안 |
+|---|---|---|---|
+| 1 | 🔴 | **환불 권한 통일 — `admin` 통합** (Swain 정책 결정) | 후원 환불·지출 환불 모두 `admin` 권한으로 통일 (super_admin 아님) |
+| 2 | 🔴 | 자동 발송 중복 차단 | 실 발송 시점에 `cooldown_days` + `trigger_runs` 이력 검사 + `triggered_by` 추적 |
+| 3 | 🔴 | 재정 기준일 통일 (`paidAt` 단일) | 모든 재정 리포트 `paidAt` 단일 기준 + 환불 시 예산·잔액 자동 갱신 |
+| 4 | 🟡 | admin 권한 경계 모호 | 모든 어드민 함수에 role 검증 추가 (라운드 4와 통합 검토) |
+| 5 | 🟡 | 블랙·자격·해지 되돌리기 | 각각 unblacklist·자격 복원·빌링키 재활성화 API 추가 (사유 기록 필수) |
+| 6 | 🟡 | 발송 채널·템플릿 호환성 검증 | template.channel과 request.channels 호환성 검증 + 경고 |
+| 7 | 🟡 | 후원·캠페인·응답폼 폼 경계 문서화 | CLAUDE.md에 각 폼 용도 명시 |
+
+### 4.4 라운드 4 — 권한 체계 신설 (Swain 2026-05-16 추가 요청, 4~6일)
+
+**3단 권한 체계 신설**: `super_admin` / `admin` / `operator`
+
+| 작업 | 내용 |
 |---|---|
-| `8495b2c` | 계정과목 전면작업 — 시드 마이그(비용27+수익10=37건)·CRUD API 3종·통장거래 서브탭 "계정과목 관리"·AI 분류 대분류>소분류 계층화 |
-| `266ece8` | 출금 전표 확정 모달 — 예산 항목 ID 입력 → 항목명 드롭다운 + AI 1차 추천 (신규 API `admin-budget-lines-list`) |
-| `05ce334` | 계정과목 시드 마이그 파일 삭제 (호출 완료 — 신규19·갱신18) |
-| `4698b7b`·`ae7b3ef` | #9/#11 매출 카테고리 2단계 계층 — 마이그(`parent_id`·`is_system`)·CRUD API 3종·"카테고리 관리" 서브탭·대/소분류 드롭다운 |
-| `95af964`·`ecefff3` | 매출 카테고리 마이그 검증·완료 — 호출 확인(systemCount 6/6), 마이그 파일 삭제 + `revenue_categories` schema 정의 활성화 |
-| `8d41a9e` | #7/#8 정기후원 효성·토스 중복 경고 — 정기 후원자 명단에 `⚠ 중복` 배지 + "효성+토스 중복" 진단 필터. 차단 X, 경고·진단만 (Swain 정책). `donor_channels` jsonb로 감지 |
-| `fedec10` | v3.0 설계도 docs 커밋 |
-| `20af8b4` | Phase 23-0 골격 설계서 |
+| schema | `members.role` enum 3단 명확화 (기존 super_admin·admin만 → operator 추가 또는 정리) |
+| 모든 어드민 함수 | 3단 권한 검증 일관 적용 — 라운드 3 #4와 통합 |
+| **R&R 정책 문서** | `docs/policies/roles-and-permissions.md` 신설 — 각 권한이 무엇을 할 수 있는지 매트릭스 |
+| **싸이렌·효성 CMS 통합 권한 정책 관리** | 어드민 화면에 "권한 정책 관리" 페이지 신설 — 운영자가 권한 매트릭스 조회·일부 수정 가능 |
+| 감사 로그 | 권한 변경·정책 변경도 감사 로그에 기록 |
 
-**버그 픽스 3차 — 남은 것 = Swain 운영 작업뿐 (코드 아님)**:
-- **#16** tbfa.co.kr HTTPS 인증서 발급 (Netlify Domain management)
-- **#14** 발송 환경변수 확인 (`6dc57a3` 배포 후 발송 작업 `last_error` 메시지 확인 — RESEND_API_KEY 류)
-- **#3** 효성 데이터 Neon 진단 쿼리 4개 실행 → ④가 0이면 효성 재import
+### 4.5 라운드 5 — 잔여 §8 점진 진행
 
-### 3.2 📐 Phase 23 설계 라운드 — 진행 중 (★ 새 메인이 이어받을 핵심)
-
-Swain이 **사단법인 예산 관리 시스템 v3.0 설계도**를 줌. 검토·설계 진행 중.
-
-**정본 문서**: [`docs/교사유가족협의회_사단법인_예산시스템_기능설계도_v3.md`](교사유가족협의회_사단법인_예산시스템_기능설계도_v3.md) (v1·v2 폐기, v3.0이 정본)
-**골격 설계서**: [`docs/milestones/2026-05-16-phase23-0-budget-foundation.md`](milestones/2026-05-16-phase23-0-budget-foundation.md)
-
-**v3.0 핵심**: 4축 태깅(계정과목×사업×기능×재원) + 편성→심의→집행→결산 라이프사이클 + 총회·이사회 의결 모델 + 보조금 모듈 + AI 25개 기능.
-
-**메인이 내린 분석 (확정)**:
-- "폐기 후 신규" ❌ / "전면 수정" ❌ → **계층적 하이브리드**: 밑바탕 인프라 재활용(통장 대사 엔진·거래처 학습·계정과목·AI 인프라·R2·감사) + 예산 도메인 4축 재설계 + 신규 모듈(의결·보조금·OCR) 추가
-- 재활용 11 / 진화 7 / 신규 11 분류표 작성 (대화 기록 — Phase 23-0 설계서 §1에 압축)
-
-**Swain 확정 결정 (이번 세션)**:
-- 전환 시점 = **완성되는 대로 즉시**
-- **재정 모듈 전체가 더미데이터** (예산뿐 아니라 후원·매출·통장거래·계정과목까지 전부) → **마이그레이션 불필요, 재정 모듈 전체를 v3.0 기준 백지 재구축**. 23-0 설계서 §3 "마이그레이션 전략" 절은 폐기 — "재정 모듈 백지 재구축"으로 대체할 것.
-- 과거 기록 = 완전 별도 보관 (사실상 폐기 — 더미라 미련 없음)
-
-**★ 미해결 — 새 메인이 Swain에게 확인받을 첫 결정 (가장 중요)**:
-메인이 다음 판단을 제시했고 **Swain 확인 대기 중**:
-> **"독립 앱 ❌ / SIREN 안의 독립 모듈 ⭕"** — 재정 모듈을 별도 배포·별도 DB·별도 로그인의 독립 앱으로 만들지 말고, SIREN 안에서 v3.0 기준으로 백지 재구축하되 재정 전용 영역으로 자기 완결적으로 묶을 것.
-> 근거: ① v3.0 운영자(이사장·이사·감사·사무국)=SIREN 회원 — 별도면 회원 이중관리 ② v3.0 "재원" 축은 효성·토스 후원 데이터를 먹음 — SIREN에 연동 코드 이미 있음 ③ 통장 대사 엔진·AI 5층 안전장치 재활용 ④ 법인격 분리는 v3.0의 "회계구분(일반/보조금)" 축 + 회계연도 경계로 해결 — 시스템을 쪼갤 문제가 아님.
-> **이게 확정돼야 23-0 설계서를 갱신하고 구현 트리거 작성 가능.**
-
-**추천만 하고 미확정 (Q4)**: v3.0이 예산 절차를 가져간 뒤 후원·매출·회계보고서 처리 — 메인 추천 = "후원·매출 관리 화면은 SIREN 유지하되 v3.0의 재원/수입 실적으로 연결, 회계 보고서는 v3.0 결산으로 흡수". Swain "AI가 판단해달라" → 위 독립모듈 판단과 함께 확인받을 것.
-
-**후속 라운드 파라미터 (23-0 착수 막지 않음 — 후속 확정)**: 주무관청(시도교육청) · 정관 의결정족수 · 회계연도 시작 시점 · LLM/OCR/임베딩 벤더.
-
-### 3.3 Phase 22 재정 시리즈 — 마감 상세 (참조용)
-
-⚠️ **단, §3.2 결정대로 Phase 22 재정 산출물(예산·전표·지출·후원·매출 등)은 전부 더미 → v3.0으로 백지 재구축 대상.** 아래는 "어떤 코드 자산이 있는지" 참조용.
-
-| 라운드 | 핵심 산출물 | 설계서 |
-|---|---|---|
-| 22-A 매출 / 22-C 지출 | revenue·other_revenues·expenses + AI 도구 12개 | `milestones-archive.md` |
-| 22-B-R1 화면 이전·기간 필터 | 재정 6개 화면 통합 CMS 이전 + `period` 필터 | `phase22b-r1-finance-relocation.md` |
-| 22-B-R2 예산 편성 | budget_plans·budget_lines + 2단계 결재 | `phase22b-r2-budget-planning.md` |
-| 22-D-R1 전표 시스템 | vouchers·account_codes·bank_* + 반복 템플릿 | `phase22d-r1-voucher-bank-import.md` |
-| 22-B-R3 회계 보고서 | 운영성과표·예산실적표 + 인쇄/엑셀/PDF | `phase22b-r3-accounting-reports.md` |
-| 22-D-R2 통장 자동화 | IBK 엑셀 파싱 + 입출금 대사 엔진 + 거래처 마스터 | `phase22d-r2-bank-reconciliation.md` |
-| 22-D-R3 예산잠금·재무제표 | 예산 잠금 + 결산 보조 + 반복전표 cron + 재정상태표·현금흐름표 | `phase22d-r3-budget-lock-reports.md` |
-
-**재활용 가치 높은 코드 자산** (v3.0 백지 재구축 시): `lib/bank-reconcile.ts` 통장 대사 엔진(AI-12 80% 구현) · `counterparties` 거래처 학습(=v3.0 payee_mapping) · `account_codes` 계층 · `ai-gemini.ts`+AI 도구 5층 안전장치 · R2 · 전표 PDF · 회계보고서 틀.
+순서대로:
+1. 🔵 새 발송 — 채널별 미리보기 분리 (1~2일)
+2. ★★ 게이미피케이션 (포인트·뱃지 중 1개부터, 5~7일/항목)
+3. ★ 큐레이션·팝업 (3~4일)
+4. 옵션 대관·예약 (4~5일)
+5. 🟣 파일 첨부 — 워크스페이스 파일함 재사용 통합 (3~4일, 최후)
 
 ---
 
-## 4. 즉시 해야 할 일 (새 메인)
+## 5. 라운드 진행 원칙
 
-**현재 상태**: 버그 픽스 3차 코드 완결(전부 푸시, main @ `20af8b4`) / Phase 23 설계 라운드 진입.
-
-```
-▶ 0순위: 시작 시 정독
-   - 본 HANDOFF §3.2 (Phase 23 진행 상황·미해결 결정)
-   - docs/교사유가족협의회_사단법인_예산시스템_기능설계도_v3.md (v3.0 정본 — 전체)
-   - docs/milestones/2026-05-16-phase23-0-budget-foundation.md (골격 설계서)
-   - PROJECT_STATE.md §2·§3 / memory/MEMORY.md + feedback_*
-   - 도구 주의: Edit는 작게 쪼갤 것 / Bash는 `cd` 없이 (한글경로 깨짐)
-   - 설명·검증은 CLAUDE.md §6.14 — 함수명 말고 기능·시나리오 위주 (Swain 절대명제)
-
-▶ 1순위: §3.2 "★ 미해결" 결정을 Swain에게 확인
-   - "독립 앱 ❌ / SIREN 내 독립 모듈로 재정 모듈 전체 백지 재구축" 판단 동의 여부
-   - Q4 (후원·매출·보고서 경계) 추천 동의 여부
-   - 이 둘이 확정돼야 다음 단계 가능
-
-▶ 2순위: 23-0 골격 설계서 갱신
-   - §3 "마이그레이션 전략" → "재정 모듈 백지 재구축" 으로 교체
-   - 범위를 "예산"에서 "재정 모듈 전체"로 확장 (재정 전체가 더미이므로)
-   - 독립 모듈 구조 반영
-
-▶ 3순위: 23-0 구현 라운드 트리거 작성 → A·B·C 병렬 착수
-   - 마스터 테이블(fiscal_years·programs·funding_sources) + account_codes 진화
-     + 4축 budget 모델 + 시드 + 마이그 함수
-   - PARALLEL_TEMPLATE 양식, 체크박스 패턴
-
-▶ Swain 운영 (병행 — 코드 아님): #16 HTTPS · #14 발송 환경변수 · #3 효성 데이터 진단
-```
-
-**새 메인 첫 메시지 권장**: "Phase 23 설계 라운드 인수인계 받았습니다. 버그 픽스 3차는
-코드 작업 전부 완결(#16/#14/#3만 Swain 운영 작업으로 남음). Phase 23은 v3.0 정본 +
-골격 설계서까지 나와 있고 — **딱 하나, '재정 모듈을 SIREN 안의 독립 모듈로 백지
-재구축'(독립 앱 아님) 판단에 동의하시는지** 확인이 필요합니다. 동의하시면 골격
-설계서를 그 기준으로 갱신하고 23-0 구현 트리거 작성으로 들어가겠습니다."
+1. **라운드 1 SIREN부터 시작** — 가장 작고 사용자 영향 큼
+2. **운영 결정 자동 안내** — 데이터 정리·정책 결정 필요한 부분은 어드민 팝업·통지로 안내, Swain이 별도 처리
+3. **각 fix push 후 사용자 검증** — 다음 항목 진행 전 작동 확인
+4. **컨텍스트 80% 도달 시 새 채팅 전환** — 라운드 단위로 나누는 것이 자연스러움
+5. **메모리·CLAUDE.md 자동 로드** — feedback_* 메모리 본문 정독 의무 (특히 design_routine·iframe_page_routing)
 
 ---
 
-## 5. 채팅 구조 (현재 — A·B·C, 다음 라운드 대기)
+## 6. 관련 문서
 
-| 채팅 | 모델 | 워크트리 | 역할 | 현재 상태 |
-|---|---|---|---|---|
-| 메인 | Opus 4.7 | tbfa-mis | 설계·머지·조율·문서 | Phase 22 전체 완결, 다음 트랙 협의 |
-| A | Sonnet 4.6 | tbfa-mis-A | 프론트 | ⏸ 다음 라운드 대기 |
-| B | Opus 4.7 | tbfa-mis-B | 백엔드 + AI 도구 | ⏸ 다음 라운드 대기 |
-| C | Opus 4.7 | tbfa-mis-C | 검증 + fix | ⏸ 다음 라운드 대기 |
-
----
-
-## 6. 핵심 정보
-
-### 6.1 반복 사고 패턴 방지 (PARALLEL_GUIDE §10·§19 통합)
-
-| 날짜 | 사고 | 방지 |
-|---|---|---|
-| 2026-05-09 | worktree 미분리 충돌 | worktree 강제 |
-| 2026-05-09 | schema 영역 덮어쓰기 | schema append-only 섹션 헤더 |
-| 2026-05-09 | #BUG-1 `uid` 필드명 오류 | 헬퍼 도입 직후 사용처 1회 검증 |
-| 2026-05-10 | bigserial import 누락 502 | push 전 `npx tsc --noEmit` 의무 |
-| 2026-05-11 | A가 PROJECT_STATE 자발 수정 → 충돌 | A·B·C는 PROJECT_STATE·docs 수정 금지 |
-| 2026-05-14 | 트리거 오발송 (A·B 둘 다 프론트) | 트리거 영역 라벨 🔧🎨🔍 (§13) |
-| 2026-05-14 | "응답 키 호환 = 머지 불필요" 오판 | git log origin/main..feature/X 확인 (§15) |
-| 2026-05-14 | 옛 main 베이스 브랜치 머지 | 선택적 체크아웃 패턴 (§16) |
-| 2026-05-15 | A·B가 PowerShell·git 권한 재질문 | settings.json `Bash(*)`·`PowerShell(*)` allow + 트리거에 권한질문 금지 명시 |
-| 2026-05-15 | R3 옛 베이스 머지 → ai-agent-tools 충돌 | 충돌 해소 시 최신(period) 버전 살림 |
-| 2026-05-15 | B가 PROJECT_STATE 무단 변경(트리거 위반) | 머지 시 PROJECT_STATE 변경분 차단 (코드 파일만) |
-| 2026-05-15 | A가 옛 베이스 분기 → cms-tbfa.html 충돌 | 트리거에 "git pull 후 main 최신 분기" 강조 |
-| 2026-05-15 | AI 도구 그룹 갱신 3라운드 연속 누락 | 메모리에 AI 도구 신설 시 갱신 의무 5곳 명문화(④ admin-ai-agent.ts TOOL_GROUPS) |
-
-### 6.2 마이그레이션 호출 표준
-
-```
-어드민 로그인 상태에서 주소창:
-https://tbfa.co.kr/api/migrate-{이름}?run=1
-→ { "ok": true } 확인 후 메인에 알림
-→ 메인: schema 활성화 + 마이그 파일 삭제 + push
-※ 진단 모드(?run= 없이)는 인증 불필요 — Swain이 브라우저로 먼저 호출
-```
-
-### 6.3 requireAdmin 패턴 (반드시 준수)
-
-```typescript
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-
-const auth = await requireAdmin(req);
-if (guardFailed(auth)) return auth.res;  // TS2339 narrowing fix
-const adminUid = auth.ctx?.admin?.uid;   // id 아님
-```
-
-### 6.4 P&L 응답 키 구조 (22-A·22-C 통합 후 표준)
-
-```json
-{
-  "revenue": {
-    "donations": { "gross": N, "refund": N, "net": N },
-    "other": { "gross": N, "refund": N, "net": N, "byCategory": [...] },
-    "totalNet": N
-  },
-  "expenditure": { "total": N, "gross": N, "refund": N, "byCategory": [...] },
-  "netIncome": N,
-  "monthly": [{ "month": 1, "revenue": N, "expenditure": N, "net": N }]
-}
-```
-> 22-B-R1 기간 필터: `period`(day|week|month|half_year|year|custom) + `startDate`/`endDate`,
-> `fiscalYear` 하위호환. `lib/period-filter.ts` 공용 헬퍼.
-
-### 6.5 알려진 기술 부채
-
-- **tsc 묵은 에러 14건**: `admin-report-status-update.ts`·`migrate-phase22a-c-seed.ts`·`user-mention-read.ts`·`user-post-subscribe.ts` 등. 22-B 작업과 무관, Netlify(esbuild)는 배포 영향 없음. 정리 라운드 필요.
-
----
-
-## 7. Phase 진행률 스냅샷
-
-| 묶음 | 상태 |
-|---|---|
-| Phase 1~17 | ✅ 100% (Phase 17 BUG-17-04·05 후속 권고) |
-| Phase 18 성능 최적화 | 🟡 설계 완료 / 미착수 |
-| Phase 19 자동 테스트 | ✅ 설계 / ⏸ 미착수 |
-| Phase 20 어드민 UI | 20-A ❌ 거부 / 20-B·20-C ✅ |
-| Phase 21 워크스페이스 v3 | ✅ 100% |
-| Phase 22-A 매출 통합 관리 | ✅ 100% (BUG 15건 해소) |
-| Phase 22-C 지출 관리 | ✅ 100% |
-| **Phase 22-B 재정 3부작** | ✅ 100% — R1 화면이전·기간필터 / R2 예산편성·결재 / R3 회계보고서 |
-| **Phase 22-D 전표 3부작** | ✅ 100% — R1 전표 / R2 통장자동화 / R3 예산잠금·전표운영·재무제표 |
-| **🎉 Phase 22 전체** | ✅ 100% 완결 (22-A·B·C·D 재정 시리즈 — main @ `9e73e98`) |
-
-누적 약 **82%** / 약 755h+
-
----
-
-## 8. AI 에이전트 v3 (참고 — 종료된 시스템)
-
-**상태**: 개발 종료(2026-05-14). 현재 도구 **98개** (22-A 7 + 22-C 5 + 22-B-R2 예산 3 + 22-D-R1 전표 4 + 22-D-R2 bank_reconcile_summary 1 추가).
-**표준 문서**: [`docs/standards/AI_AGENT_PLATFORM_STANDARD.md`](standards/AI_AGENT_PLATFORM_STANDARD.md) v1.4
-자세한 내용은 메모리 `project_ai_cost_safety.md` 정독.
-⚠️ AI 도구 신설 시 갱신 의무 **5곳** — ④ `admin-ai-agent.ts` TOOL_GROUPS 누락 반복(BUG-009→016→019). 메모리 참조.
-
----
-
-## 9. 새 메인 첫 메시지 권장
-
-```
-인수인계 정독 완료.
-
-현재 상태:
-- 🎉🎉🎉 Phase 22 전체 완결 (22-A 매출 / 22-B 재정 3부작 / 22-C 지출 / 22-D 전표 3부작,
-  main @ 9e73e98) — 재정 시리즈 전체 운영 가능
-- 진행 중 작업 없음 — 다음 트랙 Swain 협의 대기
-  · 후보 ①: 함께워크 ON(공유오피스) 신규 구축 — 가장 유력
-  · 후보 ②: SIREN 안정화 (tsc 14건·자동 테스트·성능)
-- 라이브 확인 권장: www.tbfa.co.kr DNS(가비아 www CNAME 추가) / cron-voucher-recurring
-
-§4 후보 우선순위를 Swain과 확정하겠습니다.
-```
+- [CLAUDE.md](../CLAUDE.md) — 코딩 컨벤션·자율성 원칙·체크리스트
+- [PROJECT_STATE.md](../PROJECT_STATE.md) — 휘발성 상태 (진행률·worktree·이슈)
+- [docs/REMAINING_WORK.md](REMAINING_WORK.md) — 잔여 작업 §8 인벤토리 (라운드 계획 단일 출처)
+- [docs/verify-archive.md](verify-archive.md) — 검증 보고 archive (2026-05-16 A안 3라운드 통과 포함)
+- [docs/PAGES.md](PAGES.md) — 페이지 진입점 카탈로그
+- [memory/MEMORY.md](../../../../.claude/projects/c--Users-Administrator-Desktop----dev-tbfa-mis/memory/MEMORY.md) — 인덱스
