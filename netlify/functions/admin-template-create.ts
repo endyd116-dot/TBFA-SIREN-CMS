@@ -112,16 +112,56 @@ export default async function handler(req: Request, _ctx: Context) {
     const { name, channel, category, subject, bodyTemplate, variables } = body;
     const adminId = auth.ctx.admin.uid;
 
-    const res: any = await db.execute(
-      sql`INSERT INTO communication_templates
-            (name, channel, category, subject, body_template, variables, created_by, updated_by)
-          VALUES
-            (${name.trim()}, ${channel}, ${category},
-             ${subject ? subject.trim() : null},
-             ${bodyTemplate}, ${JSON.stringify(variables)}::jsonb,
-             ${adminId}, ${adminId})
-          RETURNING id`
-    );
+    /* ★ 2026-05-16: 카카오 알림톡 전용 필드 — 채널이 kakao일 때만 사용.
+       마이그(/api/migrate-add-alimtalk-fields?run=1) 적용 후에만 INSERT 가능. */
+    const isKakao = channel === "kakao";
+    const alimtalkTemplateCode = isKakao && body.alimtalkTemplateCode
+      ? String(body.alimtalkTemplateCode).trim().slice(0, 50)
+      : null;
+    const alimtalkReviewStatus = isKakao && body.alimtalkReviewStatus
+      ? String(body.alimtalkReviewStatus).trim()
+      : null;
+    const alimtalkButtonJson = isKakao && body.alimtalkButtonJson
+      ? (typeof body.alimtalkButtonJson === "string"
+          ? body.alimtalkButtonJson
+          : JSON.stringify(body.alimtalkButtonJson))
+      : null;
+
+    /* 카카오 필드가 DB에 있을 때만 INSERT 컬럼에 포함 */
+    const colCheck: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM information_schema.columns
+       WHERE table_name = 'communication_templates'
+         AND column_name IN ('alimtalk_template_code','alimtalk_review_status','alimtalk_button_json')
+    `);
+    const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
+
+    let res: any;
+    if (hasAlimtalkCols) {
+      res = await db.execute(
+        sql`INSERT INTO communication_templates
+              (name, channel, category, subject, body_template, variables, created_by, updated_by,
+               alimtalk_template_code, alimtalk_review_status, alimtalk_button_json)
+            VALUES
+              (${name.trim()}, ${channel}, ${category},
+               ${subject ? subject.trim() : null},
+               ${bodyTemplate}, ${JSON.stringify(variables)}::jsonb,
+               ${adminId}, ${adminId},
+               ${alimtalkTemplateCode}, ${alimtalkReviewStatus},
+               ${alimtalkButtonJson ? sql`${alimtalkButtonJson}::jsonb` : sql`NULL`})
+            RETURNING id`
+      );
+    } else {
+      res = await db.execute(
+        sql`INSERT INTO communication_templates
+              (name, channel, category, subject, body_template, variables, created_by, updated_by)
+            VALUES
+              (${name.trim()}, ${channel}, ${category},
+               ${subject ? subject.trim() : null},
+               ${bodyTemplate}, ${JSON.stringify(variables)}::jsonb,
+               ${adminId}, ${adminId})
+            RETURNING id`
+      );
+    }
 
     const rows = res?.rows ?? res ?? [];
     const id = rows[0]?.id;

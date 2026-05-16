@@ -24,9 +24,20 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   try {
+    /* ★ 2026-05-16: 카카오 필드 조건부 SELECT (마이그 적용 후만 존재) */
+    const colCheck: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM information_schema.columns
+       WHERE table_name = 'communication_templates'
+         AND column_name IN ('alimtalk_template_code','alimtalk_review_status','alimtalk_button_json')
+    `);
+    const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
+    const alimtalkCols = hasAlimtalkCols
+      ? sql`, alimtalk_template_code, alimtalk_review_status, alimtalk_button_json`
+      : sql``;
+
     const res: any = await db.execute(
       sql`SELECT id, name, channel, category, subject, body_template, variables,
-                 is_active, created_by, updated_by, created_at, updated_at
+                 is_active, created_by, updated_by, created_at, updated_at${alimtalkCols}
           FROM communication_templates
           WHERE id = ${id}
           LIMIT 1`
@@ -57,6 +68,10 @@ export default async function handler(req: Request, _ctx: Context) {
           updatedBy:    row.updated_by ?? null,
           createdAt:    row.created_at,
           updatedAt:    row.updated_at,
+          alimtalkTemplateCode: row.alimtalk_template_code ?? null,
+          alimtalkReviewStatus: row.alimtalk_review_status ?? null,
+          alimtalkButtonJson:   row.alimtalk_button_json ?? null,
+          isKakaoOnly:          !!(row.alimtalk_template_code),
         },
       }),
       { status: 200, headers: JSON_HEADER },

@@ -242,13 +242,42 @@ textarea {
              placeholder="예) [교사유가족협의회] {{member_name}}님께" />
     </div>
 
+    <!-- ★ 2026-05-16: 카카오 알림톡 전용 입력 카드 (채널=kakao일 때만 노출) -->
+    <div class="card" id="alimtalkCard" style="display:none;border-left:3px solid #ea580c">
+      <h3 style="color:#9a3412">🔆 알리고 카카오 알림톡 등록 정보</h3>
+      <p class="helper-text" style="margin-top:-4px;margin-bottom:14px;">
+        알리고 카카오 비즈 콘솔(<code>smartsms.aligo.in</code>)에서 심사를 통과한 템플릿 정보를 등록합니다.
+        본문은 알리고에 등록된 것과 <strong>글자 한 자라도 다르면 발송이 거부됩니다.</strong>
+      </p>
+      <div class="form-row">
+        <label class="field-label">알리고 템플릿 코드<span class="req">*</span></label>
+        <input type="text" id="fAlimtalkTemplateCode" class="input-text" maxlength="50" placeholder="예) UH_7533" />
+        <p class="helper-text" style="margin-top:4px">알리고 콘솔의 <code>tpl_code</code>. 정확히 입력하지 않으면 발송 실패.</p>
+      </div>
+      <div class="form-row">
+        <label class="field-label">심사 상태<span class="req">*</span></label>
+        <select id="fAlimtalkReviewStatus" class="input-select">
+          <option value="">선택</option>
+          <option value="pending">검수중</option>
+          <option value="approved">승인완료</option>
+          <option value="rejected">반려</option>
+        </select>
+        <p class="helper-text" style="margin-top:4px">'승인완료'만 발송 작업 만들기에서 발송 가능. 다른 상태는 라벨만 표시.</p>
+      </div>
+      <div class="form-row">
+        <label class="field-label">버튼 JSON (선택)</label>
+        <textarea id="fAlimtalkButtonJson" rows="4" style="width:100%;padding:9px 11px;border:1px solid #e2e8f0;border-radius:7px;font-size:12.5px;font-family:Consolas,Monaco,monospace;resize:vertical" placeholder='{"button":[{"name":"후원 정보 확인","linkType":"WL","linkTypeName":"웹링크","linkM":"https://tbfa.co.kr/mypage","linkP":"https://tbfa.co.kr/mypage"}]}'></textarea>
+        <p class="helper-text" style="margin-top:4px">웹링크·전화 등 버튼이 필요한 템플릿에만 입력. 비워두면 버튼 없음.</p>
+      </div>
+    </div>
+
     <div class="card">
       <h3>본문</h3>
       <textarea id="fBody" placeholder="{{member_name}}님 안녕하세요. ..."></textarea>
       <div class="char-counter" id="charCounter" style="display:none;">현재 0자 / SMS 90자 / LMS 2000자</div>
       <div class="notice-box" id="kakaoNotice" style="display:none;">
-        ⓘ 카카오 알림톡은 별도로 Aligo 콘솔에서 심사 통과된 템플릿을 사용합니다.
-        본 본문은 <strong>미리보기·내부 기록용</strong>으로만 보관됩니다.
+        ⓘ 카카오 알림톡은 알리고에 등록된 본문과 <strong>글자 한 자라도 다르면 발송이 거부</strong>됩니다.
+        알리고 콘솔에서 본문을 그대로 복사하여 붙여넣어 주세요.
       </div>
     </div>
 
@@ -282,6 +311,6 @@ textarea {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-template-edit.js?v=1"></script>
+<script src="/js/admin-template-edit.js?v=20260516kakao-fields"></script>
 </body>
 </html>

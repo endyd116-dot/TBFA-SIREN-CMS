@@ -109,16 +109,30 @@
     if (!state.rows.length) {
       tbody.innerHTML = `<tr><td colspan="6" class="empty-state">조건에 맞는 템플릿이 없습니다.</td></tr>`;
     } else {
+      const REVIEW_LABEL = { approved: "승인완료", pending: "검수중", rejected: "반려" };
+      const REVIEW_COLOR = { approved: "#166534", pending: "#92400e", rejected: "#b91c1c" };
       tbody.innerHTML = state.rows.map(r => {
         const ch   = CH_LABEL[r.channel]   || r.channel || "-";
         const cat  = CAT_LABEL[r.category] || r.category || "-";
         const chCls = "badge badge-" + (r.channel || "inapp");
         const inactive = r.isActive === false;
+        /* ★ 2026-05-16: 카카오 전용 라벨 + 심사 상태 라벨 */
+        const isKakaoOnly = !!r.isKakaoOnly || (r.channel === "kakao" && r.alimtalkTemplateCode);
+        const kakaoBadge = isKakaoOnly
+          ? `<span class="badge" style="margin-left:4px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:10.5px">카카오 전용</span>`
+          : "";
+        const codeBadge = isKakaoOnly && r.alimtalkTemplateCode
+          ? `<span class="badge" style="margin-left:4px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;font-size:10.5px;font-family:Consolas,Monaco,monospace">${escapeHtml(r.alimtalkTemplateCode)}</span>`
+          : "";
+        const reviewBadge = isKakaoOnly && r.alimtalkReviewStatus
+          ? `<span class="badge" style="margin-left:4px;background:#fff;color:${REVIEW_COLOR[r.alimtalkReviewStatus] || "#374151"};border:1px solid ${REVIEW_COLOR[r.alimtalkReviewStatus] || "#e5e7eb"};font-size:10.5px">${REVIEW_LABEL[r.alimtalkReviewStatus] || r.alimtalkReviewStatus}</span>`
+          : "";
         return `
           <tr class="${inactive ? "inactive" : ""}" data-id="${r.id}">
             <td class="col-id">#${r.id}</td>
             <td>
               ${escapeHtml(r.name || "(이름 없음)")}
+              ${kakaoBadge}${codeBadge}${reviewBadge}
               ${inactive ? `<span class="badge badge-off">비활성</span>` : ""}
             </td>
             <td><span class="${chCls}">${ch}</span></td>

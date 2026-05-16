@@ -67,13 +67,9 @@
       $("fTemplate").innerHTML = `<option value="">(활성 템플릿 없음)</option>`;
       return;
     }
-    const opts = [`<option value="">선택</option>`].concat(
-      templates.map(t => {
-        const ch = CHANNEL_LABEL[t.channel] || t.channel || "-";
-        return `<option value="${t.id}">${escapeHtml(t.name || "(이름 없음)")} (${escapeHtml(ch)})</option>`;
-      })
-    );
-    $("fTemplate").innerHTML = opts.join("");
+    /* ★ 2026-05-16: 최초 로드 시점에 채널이 아직 안 정해졌으니 일단 카카오 전용
+       제외한 일반 템플릿만 표시. 채널 선택 시 refreshTemplateOptions가 재필터. */
+    refreshTemplateOptions();
   }
 
   async function loadGroups() {
@@ -129,15 +125,32 @@
       ? `<div class="form-hint">사용 가능 변수: ${vars.map(v => `<code>{{${escapeHtml(v.key)}}}</code>`).join(", ")}</div>`
       : `<div class="form-hint">정의된 변수 없음</div>`;
 
+    /* ★ 2026-05-16: 카카오 전용 템플릿은 본문 read-only. 알리고 심사 통과 본문을
+       글자 한 자라도 바꾸면 발송 거부되므로 편집 차단 + 안내 + 변수만 회원 데이터로
+       치환됨을 명시. */
+    const isKakaoOnly = !!t.isKakaoOnly || (t.channel === 'kakao' && t.alimtalkTemplateCode);
+    const REVIEW_LABEL = { approved: '승인완료', pending: '검수중', rejected: '반려' };
+
     let html = `
       <div class="edit-meta">
         <div><span class="label">템플릿</span> ${escapeHtml(t.name || "-")}</div>
-        <div><span class="label">기본 채널</span> ${escapeHtml(CHANNEL_LABEL[t.channel] || t.channel)}</div>
+        <div><span class="label">기본 채널</span> ${escapeHtml(CHANNEL_LABEL[t.channel] || t.channel)}${isKakaoOnly ? ' <span style="color:#9a3412;font-weight:600">· 카카오 전용</span>' : ''}</div>
+        ${isKakaoOnly && t.alimtalkTemplateCode ? `<div><span class="label">알리고 코드</span> <code>${escapeHtml(t.alimtalkTemplateCode)}</code></div>` : ''}
+        ${isKakaoOnly && t.alimtalkReviewStatus ? `<div><span class="label">심사 상태</span> ${escapeHtml(REVIEW_LABEL[t.alimtalkReviewStatus] || t.alimtalkReviewStatus)}</div>` : ''}
         ${vars.length ? `<div><span class="label">변수</span> ${vars.length}개</div>` : ""}
       </div>
     `;
 
-    if (hasSubject) {
+    if (isKakaoOnly) {
+      html += `
+        <div style="margin:8px 0 12px;padding:10px 14px;background:#fff7ed;border-left:3px solid #ea580c;border-radius:6px;font-size:13px;color:#9a3412;line-height:1.55">
+          알리고 심사를 통과한 본문은 글자 한 자라도 다르면 발송이 거부됩니다.
+          본문은 읽기 전용이며 <strong>#{변수}</strong>는 수신자 그룹의 회원 데이터로 자동 치환됩니다.
+        </div>
+      `;
+    }
+
+    if (hasSubject && !isKakaoOnly) {
       html += `
         <div class="form-row">
           <label class="form-label" for="fSubject">제목</label>
@@ -147,24 +160,28 @@
     }
     html += `
       <div class="form-row">
-        <label class="form-label" for="fBody">본문</label>
-        <textarea class="form-textarea" id="fBody">${escapeHtml(t.bodyTemplate || "")}</textarea>
+        <label class="form-label" for="fBody">본문${isKakaoOnly ? ' <span style="font-size:11px;color:#9a3412;font-weight:500">· 읽기 전용</span>' : ''}</label>
+        <textarea class="form-textarea" id="fBody"${isKakaoOnly ? ' readonly style="background:#f9fafb;color:#374151;cursor:not-allowed"' : ''}>${escapeHtml(t.bodyTemplate || "")}</textarea>
         ${varHint}
       </div>
+      ${isKakaoOnly ? '' : `
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
         <button class="btn btn-sm" id="btnResetEdit" type="button">↺ 템플릿 원본으로 되돌리기</button>
-      </div>
+      </div>`}
     `;
     $("editArea").innerHTML = html;
 
-    /* 변경 감지 */
-    if (hasSubject) $("fSubject").addEventListener("input", () => { editorDirty = true; });
-    $("fBody").addEventListener("input", () => { editorDirty = true; });
-    $("btnResetEdit").addEventListener("click", () => {
-      renderEditArea();   /* 다시 그리면 원본 값으로 복원 */
-      editorDirty = false;
-      showToast("템플릿 원본으로 되돌렸습니다.");
-    });
+    /* 변경 감지 — 카카오 전용은 편집 불가라 바인딩 생략 */
+    if (!isKakaoOnly) {
+      if (hasSubject) $("fSubject").addEventListener("input", () => { editorDirty = true; });
+      $("fBody").addEventListener("input", () => { editorDirty = true; });
+      const btnReset = document.getElementById("btnResetEdit");
+      if (btnReset) btnReset.addEventListener("click", () => {
+        renderEditArea();
+        editorDirty = false;
+        showToast("템플릿 원본으로 되돌렸습니다.");
+      });
+    }
   }
 
   /* ── 채널 다중 체크박스 ── */
@@ -176,7 +193,35 @@
       if (target) {
         target.checked = true;
         target.closest('.channel-item').classList.add('checked');
+        /* 카카오면 다른 채널 자동 해제 (단독만 가능) */
+        if (channel === 'kakao') uncheckNonKakao();
       }
+    }
+    /* 채널 변경에 따라 템플릿 셀렉트 옵션 다시 필터 */
+    refreshTemplateOptions();
+  }
+
+  /* ★ 2026-05-16: 카카오는 다른 채널과 동시 선택 불가. 알리고 알림톡은 등록된
+     본문·변수만 정확히 일치할 때 발송 가능해 다중 채널과 워크플로우가 달라짐. */
+  function uncheckNonKakao() {
+    let removed = [];
+    document.querySelectorAll('#channelGrid input[type="checkbox"]').forEach(cb => {
+      if (cb.value !== 'kakao' && cb.checked) {
+        cb.checked = false;
+        cb.closest('.channel-item').classList.remove('checked');
+        removed.push(CHANNEL_LABEL[cb.value] || cb.value);
+      }
+    });
+    if (removed.length) {
+      showToast('카카오는 다른 채널과 동시 발송할 수 없어 ' + removed.join('·') + ' 체크를 해제했습니다.', 'info');
+    }
+  }
+  function uncheckKakao() {
+    const kakao = document.querySelector('#channelGrid input[value="kakao"]');
+    if (kakao && kakao.checked) {
+      kakao.checked = false;
+      kakao.closest('.channel-item').classList.remove('checked');
+      showToast('카카오와 다른 채널은 동시 선택할 수 없어 카카오 체크를 해제했습니다.', 'info');
     }
   }
 
@@ -187,9 +232,59 @@
         setTimeout(() => {
           const cb = item.querySelector('input');
           item.classList.toggle('checked', cb.checked);
+          /* 카카오 vs 다른 채널 충돌 해소 */
+          if (cb.checked) {
+            if (cb.value === 'kakao') uncheckNonKakao();
+            else uncheckKakao();
+          }
+          refreshTemplateOptions();
         }, 0);
       });
     });
+  }
+
+  /* ★ 2026-05-16: 현재 선택된 채널이 카카오 단독이면 카카오 전용 템플릿만,
+     아니면 카카오 전용은 제외하고 표시. 카카오 전용 옵션엔 '(카카오 전용)·
+     (검수상태)' 라벨 + 미승인 옵션은 회색·비활성화. */
+  function refreshTemplateOptions() {
+    if (!templates || !templates.length) return;
+    const channels = getSelectedChannels();
+    const isKakaoOnly = channels.length === 1 && channels[0] === 'kakao';
+
+    /* 필터: 카카오 단독이면 카카오 전용(isKakaoOnly=true)만,
+       나머지 경우엔 카카오 전용은 숨김 (일반 발송 워크플로우와 분리). */
+    const filtered = templates.filter(t => {
+      const isKakaoTpl = !!t.isKakaoOnly || (t.channel === 'kakao' && t.alimtalkTemplateCode);
+      return isKakaoOnly ? isKakaoTpl : !isKakaoTpl;
+    });
+
+    const REVIEW_LABEL = { approved: '승인', pending: '검수중', rejected: '반려' };
+    const sel = $('fTemplate');
+    const prevValue = sel.value;
+    const opts = [`<option value="">선택</option>`].concat(
+      filtered.map(t => {
+        const ch = CHANNEL_LABEL[t.channel] || t.channel || '-';
+        const tags = [];
+        if (t.isKakaoOnly || (t.channel === 'kakao' && t.alimtalkTemplateCode)) {
+          tags.push('카카오 전용');
+          if (t.alimtalkTemplateCode) tags.push(t.alimtalkTemplateCode);
+          if (t.alimtalkReviewStatus) tags.push(REVIEW_LABEL[t.alimtalkReviewStatus] || t.alimtalkReviewStatus);
+        } else {
+          tags.push(ch);
+        }
+        const disabled = (t.alimtalkReviewStatus && t.alimtalkReviewStatus !== 'approved') ? 'disabled' : '';
+        const styleAttr = disabled ? ' style="color:#9ca3af"' : '';
+        return `<option value="${t.id}" ${disabled}${styleAttr}>${escapeHtml(t.name || '(이름 없음)')} (${tags.map(escapeHtml).join(' · ')})</option>`;
+      })
+    );
+    sel.innerHTML = opts.join('');
+    /* 선택 유지 시도 — 새 필터에서 사라졌으면 빈 값 */
+    if (prevValue && filtered.find(t => String(t.id) === String(prevValue))) {
+      sel.value = prevValue;
+    } else if (prevValue) {
+      sel.value = '';
+      loadTemplateDetail('');
+    }
   }
 
   function getSelectedChannels() {
@@ -334,6 +429,23 @@
 
     const channels = getSelectedChannels();
     if (!channels.length) return { ok: false, msg: "발송 채널을 1개 이상 선택해 주세요." };
+
+    /* ★ 2026-05-16: 카카오 + 다른 채널 동시 선택 차단 (UI에서 막혔지만 안전망) */
+    if (channels.includes('kakao') && channels.length > 1) {
+      return { ok: false, msg: "카카오는 다른 채널과 동시 발송할 수 없습니다. 카카오 단독으로 선택해 주세요." };
+    }
+
+    /* ★ 2026-05-16: 카카오 단독 + 미승인 템플릿 차단 */
+    if (channels.length === 1 && channels[0] === 'kakao' && currentTemplate) {
+      const isKakaoOnly = !!currentTemplate.isKakaoOnly || (currentTemplate.channel === 'kakao' && currentTemplate.alimtalkTemplateCode);
+      if (!isKakaoOnly) {
+        return { ok: false, msg: "카카오 채널은 알리고에 등록된 카카오 전용 템플릿만 사용할 수 있습니다." };
+      }
+      if (currentTemplate.alimtalkReviewStatus !== 'approved') {
+        const label = { pending: '검수중', rejected: '반려' }[currentTemplate.alimtalkReviewStatus] || currentTemplate.alimtalkReviewStatus || '미승인';
+        return { ok: false, msg: `이 카카오 템플릿은 '${label}' 상태라 발송할 수 없습니다. 알리고 콘솔에서 승인 완료 후 다시 시도해 주세요.` };
+      }
+    }
 
     const grpId = $("fGroup").value;
     if (!grpId) return { ok: false, msg: "수신자 그룹을 선택해 주세요." };

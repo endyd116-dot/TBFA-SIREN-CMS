@@ -81,6 +81,7 @@
     const subjectCard = $("subjectCard");
     const charCounter = $("charCounter");
     const kakaoNotice = $("kakaoNotice");
+    const alimtalkCard = $("alimtalkCard"); /* ★ 2026-05-16 */
 
     // 제목 칸: 이메일·인앱만 노출
     if (ch === "email" || ch === "inapp") {
@@ -97,8 +98,9 @@
       charCounter.style.display = "none";
     }
 
-    // 카카오 안내 박스
+    // 카카오 안내 + 알리고 전용 입력 카드
     kakaoNotice.style.display = (ch === "kakao") ? "" : "none";
+    if (alimtalkCard) alimtalkCard.style.display = (ch === "kakao") ? "" : "none";
   }
 
   function updateCharCounter() {
@@ -139,6 +141,22 @@
       bodyTemplate,
       variables,
     };
+    /* ★ 2026-05-16: 카카오 채널이면 알리고 전용 필드 함께 페이로드에 포함 */
+    if (channel === "kakao") {
+      payload.alimtalkTemplateCode = ($("fAlimtalkTemplateCode")?.value || "").trim();
+      payload.alimtalkReviewStatus = $("fAlimtalkReviewStatus")?.value || "";
+      const btnText = ($("fAlimtalkButtonJson")?.value || "").trim();
+      if (btnText) {
+        try {
+          payload.alimtalkButtonJson = JSON.parse(btnText);
+        } catch (_) {
+          /* 검증 단계에서 잡힘 */
+          payload.alimtalkButtonJson = btnText;
+        }
+      } else {
+        payload.alimtalkButtonJson = null;
+      }
+    }
     return payload;
   }
 
@@ -158,6 +176,25 @@
     if (undef.length) {
       const list = undef.map(k => "{{" + k + "}}").join(", ");
       return "본문에 정의되지 않은 변수가 있습니다: " + list;
+    }
+    /* ★ 2026-05-16: 카카오 채널 추가 검증 */
+    if (payload.channel === "kakao") {
+      if (!payload.alimtalkTemplateCode) {
+        return "카카오 알림톡은 알리고 템플릿 코드(예: UH_7533)가 필요합니다.";
+      }
+      if (!/^[A-Za-z0-9_]{1,50}$/.test(payload.alimtalkTemplateCode)) {
+        return "알리고 템플릿 코드는 영문·숫자·언더스코어만 가능합니다.";
+      }
+      if (!payload.alimtalkReviewStatus) {
+        return "카카오 알림톡 심사 상태를 선택해 주세요.";
+      }
+      if (!["pending","approved","rejected"].includes(payload.alimtalkReviewStatus)) {
+        return "심사 상태 값이 올바르지 않습니다.";
+      }
+      /* 버튼 JSON 검증 — 입력했다면 유효한 JSON이어야 */
+      if (payload.alimtalkButtonJson && typeof payload.alimtalkButtonJson === "string") {
+        return "버튼 JSON 형식이 올바르지 않습니다. JSON 객체로 입력해 주세요.";
+      }
     }
     return null;
   }
@@ -316,6 +353,21 @@
       addVarRow();
     } else {
       vars.forEach(v => addVarRow(v));
+    }
+
+    /* ★ 2026-05-16: 카카오 전용 필드 복원 */
+    if (t.channel === "kakao") {
+      const codeEl = $("fAlimtalkTemplateCode");
+      const reviewEl = $("fAlimtalkReviewStatus");
+      const btnEl = $("fAlimtalkButtonJson");
+      if (codeEl) codeEl.value = t.alimtalkTemplateCode || "";
+      if (reviewEl) reviewEl.value = t.alimtalkReviewStatus || "";
+      if (btnEl) {
+        const v = t.alimtalkButtonJson;
+        btnEl.value = v
+          ? (typeof v === "string" ? v : JSON.stringify(v, null, 2))
+          : "";
+      }
     }
 
     applyChannelUI();

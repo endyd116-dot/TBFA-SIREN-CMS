@@ -143,18 +143,57 @@ export default async function handler(req: Request, _ctx: Context) {
     const { name, channel, category, subject, bodyTemplate, variables } = body;
     const adminId = auth.ctx.admin.uid;
 
-    await db.execute(
-      sql`UPDATE communication_templates
-          SET name          = ${name.trim()},
-              channel       = ${channel},
-              category      = ${category},
-              subject       = ${subject ? subject.trim() : null},
-              body_template = ${bodyTemplate},
-              variables     = ${JSON.stringify(variables)}::jsonb,
-              updated_by    = ${adminId},
-              updated_at    = NOW()
-          WHERE id = ${id}`
-    );
+    /* ★ 2026-05-16: 카카오 알림톡 전용 필드 처리 */
+    const isKakao = channel === "kakao";
+    const alimtalkTemplateCode = isKakao && body.alimtalkTemplateCode
+      ? String(body.alimtalkTemplateCode).trim().slice(0, 50)
+      : null;
+    const alimtalkReviewStatus = isKakao && body.alimtalkReviewStatus
+      ? String(body.alimtalkReviewStatus).trim()
+      : null;
+    const alimtalkButtonJson = isKakao && body.alimtalkButtonJson
+      ? (typeof body.alimtalkButtonJson === "string"
+          ? body.alimtalkButtonJson
+          : JSON.stringify(body.alimtalkButtonJson))
+      : null;
+
+    const colCheck: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM information_schema.columns
+       WHERE table_name = 'communication_templates'
+         AND column_name IN ('alimtalk_template_code','alimtalk_review_status','alimtalk_button_json')
+    `);
+    const hasAlimtalkCols = (((colCheck?.rows ?? colCheck)[0] ?? {}).n ?? 0) === 3;
+
+    if (hasAlimtalkCols) {
+      await db.execute(
+        sql`UPDATE communication_templates
+            SET name                    = ${name.trim()},
+                channel                 = ${channel},
+                category                = ${category},
+                subject                 = ${subject ? subject.trim() : null},
+                body_template           = ${bodyTemplate},
+                variables               = ${JSON.stringify(variables)}::jsonb,
+                updated_by              = ${adminId},
+                updated_at              = NOW(),
+                alimtalk_template_code  = ${alimtalkTemplateCode},
+                alimtalk_review_status  = ${alimtalkReviewStatus},
+                alimtalk_button_json    = ${alimtalkButtonJson ? sql`${alimtalkButtonJson}::jsonb` : sql`NULL`}
+            WHERE id = ${id}`
+      );
+    } else {
+      await db.execute(
+        sql`UPDATE communication_templates
+            SET name          = ${name.trim()},
+                channel       = ${channel},
+                category      = ${category},
+                subject       = ${subject ? subject.trim() : null},
+                body_template = ${bodyTemplate},
+                variables     = ${JSON.stringify(variables)}::jsonb,
+                updated_by    = ${adminId},
+                updated_at    = NOW()
+            WHERE id = ${id}`
+      );
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
