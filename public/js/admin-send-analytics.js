@@ -60,8 +60,25 @@
       api({ url: `/api/admin-send-analytics-channel?from=${from}&to=${to}` }),
     ]);
 
+    /* ★ 2026-05-16: API 실패 시 명시적 에러 표시 — 옛 코드는 ovRes.ok=false 여도
+       그대로 진행해 모든 카드에 '—'만 보였음. 실제 원인(401·500·네트워크)이
+       사용자에게 보이지 않음. */
+    if (!ovRes.ok) {
+      const msg = (ovRes.data && (ovRes.data.error || ovRes.data.detail)) || ('HTTP ' + (ovRes.status || '?'));
+      showToast('발송 통계 조회 실패: ' + msg, 'error');
+      const errHtml = '<p class="empty" style="color:#b91c1c">조회 실패: ' + escapeHtml(msg) + '</p>';
+      $("trendEmpty").style.display = 'block';
+      $("trendEmpty").textContent = '조회 실패: ' + msg;
+      $("channelBody").innerHTML = '<tr><td colspan="6" class="empty" style="color:#b91c1c">조회 실패: ' + escapeHtml(msg) + '</td></tr>';
+      $("topJobsList").innerHTML = errHtml;
+      $("triggerEffectList").innerHTML = errHtml;
+      return;
+    }
+
     const ov = ovRes.data?.overview || ovRes.data?.data?.overview || ovRes.data || {};
-    const ch = chRes.data?.channels || chRes.data?.data?.channels || chRes.data?.byChannel || ov.byChannel || {};
+    const ch = chRes.ok
+      ? (chRes.data?.channels || chRes.data?.data?.channels || chRes.data?.byChannel || ov.byChannel || {})
+      : (ov.byChannel || {});
 
     renderKPI(ov);
     renderTrendChart(ov.trend || []);

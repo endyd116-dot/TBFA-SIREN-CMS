@@ -79,6 +79,11 @@ export default async function handler(req: Request) {
       }
     } catch (e) { console.warn("[analytics-overview] byChannel 실패", e); }
 
+    /* 전송 성공률(deliveryRate) — totalRecipients 대비 delivered */
+    const deliveryRate = totalRecipients > 0
+      ? Math.round((delivered / totalRecipients) * 1000) / 10
+      : 0;
+
     /* 일별 추세 (최대 60일) */
     let trend: any[] = [];
     try {
@@ -100,12 +105,82 @@ export default async function handler(req: Request) {
       }));
     } catch (e) { console.warn("[analytics-overview] trend 실패", e); }
 
+    /* ★ 2026-05-16: Top 발송 작업 (열람률 기준 상위 10) — 옛 코드 누락분 추가 */
+    let topJobs: any[] = [];
+    try {
+      const topRes: any = await db.execute(sql`
+        SELECT
+          j.id,
+          j.name                                                       AS job_name,
+          j.channel,
+          COUNT(r.*) FILTER (WHERE r.status = 'sent')::int             AS sent,
+          COUNT(r.*) FILTER (WHERE r.open_count > 0)::int              AS opened
+        FROM communication_send_jobs j
+        LEFT JOIN communication_send_recipients r ON r.job_id = j.id
+        WHERE j.created_at >= ${fromDate} AND j.created_at <= ${toDate}
+        GROUP BY j.id, j.name, j.channel
+        HAVING COUNT(r.*) FILTER (WHERE r.status = 'sent') > 0
+        ORDER BY (CASE WHEN COUNT(r.*) FILTER (WHERE r.status = 'sent') > 0
+                       THEN COUNT(r.*) FILTER (WHERE r.open_count > 0)::numeric
+                            / COUNT(r.*) FILTER (WHERE r.status = 'sent')
+                       ELSE 0 END) DESC,
+                 sent DESC
+        LIMIT 10
+      `);
+      topJobs = (topRes?.rows ?? topRes ?? []).map((r: any) => {
+        const s = Number(r.sent ?? 0);
+        const o = Number(r.opened ?? 0);
+        return {
+          jobId: r.id,
+          jobName: r.job_name,
+          channel: r.channel,
+          sent: s,
+          opened: o,
+          openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
+        };
+      });
+    } catch (e) { console.warn("[analytics-overview] topJobs 실패", e); }
+
+    /* ★ 2026-05-16: AI 트리거 효과 — triggered_by_auto_id 기준 집계
+       (정확한 컬럼명: communication_send_jobs.triggered_by_auto_id +
+       communication_auto_triggers.name) */
+    let aiTriggerEffect: any[] = [];
+    try {
+      const triggerRes: any = await db.execute(sql`
+        SELECT
+          j.triggered_by_auto_id                                            AS trigger_id,
+          COALESCE(MAX(t.name), '트리거 #' || j.triggered_by_auto_id::text) AS trigger_name,
+          COUNT(r.*) FILTER (WHERE r.status = 'sent')::int                  AS sent,
+          COUNT(r.*) FILTER (WHERE r.open_count > 0)::int                   AS opened
+        FROM communication_send_jobs j
+        LEFT JOIN communication_send_recipients r ON r.job_id = j.id
+        LEFT JOIN communication_auto_triggers t ON t.id = j.triggered_by_auto_id
+        WHERE j.created_at >= ${fromDate} AND j.created_at <= ${toDate}
+          AND j.triggered_by_auto_id IS NOT NULL
+        GROUP BY j.triggered_by_auto_id
+        ORDER BY sent DESC
+        LIMIT 10
+      `);
+      aiTriggerEffect = (triggerRes?.rows ?? triggerRes ?? []).map((r: any) => {
+        const s = Number(r.sent ?? 0);
+        const o = Number(r.opened ?? 0);
+        return {
+          triggerId: r.trigger_id,
+          triggerName: r.trigger_name,
+          sent: s,
+          opened: o,
+          openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
+        };
+      });
+    } catch (e) { console.warn("[analytics-overview] aiTriggerEffect 실패 (auto_triggers 테이블 부재 가능)", e); }
+
     return new Response(
       JSON.stringify({
         ok: true,
         overview: {
-          totalJobs, totalRecipients, delivered, openRate, clickRate,
-          byChannel, trend,
+          totalJobs, totalRecipients, delivered, deliveryRate,
+          openRate, clickRate,
+          byChannel, trend, topJobs, aiTriggerEffect,
         },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
