@@ -119,6 +119,13 @@ export async function insertVerification(opts: { phone: string; code: string; ip
   }
 }
 
+/** 인증 row 삭제 (SMS 발송 실패 시 롤백용 — rate limit 부정 누적 방지) */
+export async function deleteVerification(id: number): Promise<void> {
+  try {
+    await db.execute(sql`DELETE FROM phone_verifications WHERE id = ${id}`);
+  } catch {}
+}
+
 /** 코드 검증 — 가장 최근의 미사용 row 조회 → code 일치 시 verified=true + token 발급 */
 export interface VerifyResult {
   ok: boolean;
