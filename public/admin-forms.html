@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>응답폼·신청폼 관리 | SIREN 어드민</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f1f5f9; color: #1e293b; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+  .head-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+  h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
+  .desc { color: #64748b; font-size: 0.875rem; margin: 0; }
+  .btn-primary { padding: 10px 18px; background: #1e40af; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-family: inherit; font-weight: 500; }
+  .btn-primary:hover { background: #1e3a8a; }
+  .btn-secondary { padding: 8px 14px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-family: inherit; }
+  .btn-danger { padding: 6px 12px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+  .btn-mini { padding: 4px 9px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-family: inherit; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.87rem; }
+  th { background: #f8fafc; font-weight: 600; color: #475569; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:hover td { background: #f8fafc; }
+  .status-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+  .status-chip.published { background: #d1fae5; color: #065f46; }
+  .status-chip.draft     { background: #fef3c7; color: #92400e; }
+  .status-chip.inactive  { background: #f1f5f9; color: #94a3b8; }
+  .access-chip { font-size: 0.7rem; color: #64748b; }
+
+  .empty { padding: 60px 20px; text-align: center; color: #94a3b8; }
+
+  /* Modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 100; align-items: flex-start; justify-content: center; padding: 30px 20px; overflow-y: auto; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 900px; padding: 24px 26px; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+  .modal-head h2 { font-size: 1.15rem; margin: 0; }
+  .close-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: #94a3b8; line-height: 1; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; cursor: pointer; font-size: 0.88rem; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: #1e40af; border-bottom-color: #1e40af; font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 0.83rem; font-weight: 500; color: #475569; margin-bottom: 4px; }
+  .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-family: inherit; }
+  .form-row textarea { min-height: 70px; resize: vertical; }
+  .form-row .hint { font-size: 0.74rem; color: #94a3b8; margin-top: 3px; }
+
+  .field-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+  .field-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .field-card-type { font-size: 0.72rem; color: #1e40af; background: #dbeafe; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .field-card-actions { display: flex; gap: 4px; }
+  .field-options-block { background: #fff; padding: 8px 10px; border-radius: 5px; border: 1px dashed #cbd5e1; margin-top: 6px; }
+  .option-row { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; }
+  .option-row input { flex: 1; padding: 5px 8px; font-size: 0.8rem; }
+
+  .add-field-bar { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px; background: #eff6ff; border-radius: 8px; margin-bottom: 14px; }
+  .add-field-bar button { padding: 5px 11px; background: #fff; border: 1px solid #93c5fd; color: #1e40af; border-radius: 5px; cursor: pointer; font-size: 0.78rem; font-family: inherit; }
+
+  .actions { display: flex; justify-content: space-between; gap: 8px; padding-top: 14px; border-top: 1px solid #e2e8f0; margin-top: 16px; }
+  .actions-left, .actions-right { display: flex; gap: 8px; }
+
+  .public-url-box { background: #dcfce7; border: 1px solid #86efac; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; color: #065f46; margin-bottom: 14px; word-break: break-all; }
+  .public-url-box a { color: #047857; font-weight: 600; }
+
+  .back-link { display: inline-block; color: #1e40af; font-size: 0.85rem; margin-bottom: 12px; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a href="/admin.html" class="back-link" onclick="window.location.href='/admin.html';return false;">← 어드민으로</a>
+  <div class="head-bar">
+    <div>
+      <h1>📋 응답폼·신청폼 관리</h1>
+      <p class="desc">행사 신청·설문·이벤트 폼을 코드 없이 만들고 응답을 받아보세요.</p>
+    </div>
+    <button class="btn-primary" onclick="openModal()">+ 새 폼 만들기</button>
+  </div>
+
+  <table id="formsTable">
+    <thead><tr>
+      <th>제목 / slug</th><th>접근</th><th>필드</th><th>응답</th><th>상태</th><th>작성</th><th></th>
+    </tr></thead>
+    <tbody><tr><td colspan="7" class="empty">불러오는 중…</td></tr></tbody>
+  </table>
+</div>
+
+<!-- 편집 모달 -->
+<div id="modalBg" class="modal-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">새 폼 만들기</h2>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+
+    <div class="public-url-box" id="publicUrlBox" style="display:none"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="basic" onclick="switchTab('basic')">기본 정보</div>
+      <div class="tab" data-tab="fields" onclick="switchTab('fields')">필드 (<span id="fieldCount">0</span>)</div>
+      <div class="tab" data-tab="policy" onclick="switchTab('policy')">정책·알림</div>
+    </div>
+
+    <!-- 기본 정보 -->
+    <div class="tab-panel active" data-panel="basic">
+      <div class="grid-2">
+        <div class="form-row">
+          <label>제목 *</label>
+          <input type="text" id="fTitle" placeholder="예: 2026 추모식 참석 신청" maxlength="200">
+        </div>
+        <div class="form-row">
+          <label>URL slug *</label>
+          <input type="text" id="fSlug" placeholder="예: memorial-2026" maxlength="100">
+          <div class="hint">영문/숫자/_/- 만. 공개 URL: tbfa.co.kr/form.html?slug=...</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>설명</label>
+        <textarea id="fDescription" placeholder="이 폼의 목적·기간 등을 짧게 안내" maxlength="500"></textarea>
+      </div>
+      <div class="form-row">
+        <label>안내 문구 (응답자 화면 상단 표시)</label>
+        <textarea id="fInstructions" placeholder="응답 전 꼭 확인하실 내용을 입력해 주세요" maxlength="2000"></textarea>
+      </div>
+    </div>
+
+    <!-- 필드 -->
+    <div class="tab-panel" data-panel="fields">
+      <div class="add-field-bar">
+        <span style="font-size:0.82rem;color:#475569;font-weight:600;margin-right:6px;align-self:center">+ 필드 추가:</span>
+        <button onclick="addField('text')">📝 텍스트</button>
+        <button onclick="addField('textarea')">📄 긴 텍스트</button>
+        <button onclick="addField('email')">📧 이메일</button>
+        <button onclick="addField('tel')">📱 전화</button>
+        <button onclick="addField('number')">🔢 숫자</button>
+        <button onclick="addField('date')">📅 날짜</button>
+        <button onclick="addField('select')">⬇️ 드롭다운</button>
+        <button onclick="addField('radio')">⚪ 단일 선택</button>
+        <button onclick="addField('checkbox')">☑️ 다중 선택</button>
+        <button onclick="addField('file')">📎 파일 업로드</button>
+      </div>
+      <div id="fieldsList"></div>
+    </div>
+
+    <!-- 정책 -->
+    <div class="tab-panel" data-panel="policy">
+      <div class="grid-2">
+        <div class="form-row">
+          <label>접근 권한</label>
+          <select id="fAccessLevel">
+            <option value="public">누구나 (비회원 응답 가능)</option>
+            <option value="members_only">회원만 (로그인 필수)</option>
+            <option value="limited">제한 (링크 공유한 사람만)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>응답 정원 (선택)</label>
+          <input type="number" id="fMaxResponses" placeholder="비우면 무제한" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <label><input type="checkbox" id="fAllowDuplicates"> 같은 회원의 중복 응답 허용</label>
+      </div>
+      <div class="form-row">
+        <label>정원 마감 시 안내 메시지</label>
+        <input type="text" id="fClosedMessage" placeholder="응답 정원이 마감되었습니다 (기본)">
+      </div>
+      <div class="form-row">
+        <label><input type="checkbox" id="fNotifyOnSubmit" checked> 응답 도착 시 어드민에게 인앱 알림</label>
+      </div>
+      <div class="form-row">
+        <label>알림 받을 이메일 (선택)</label>
+        <input type="email" id="fAdminNotifyEmail" placeholder="비우면 폼 작성자에게 알림">
+      </div>
+      <div class="grid-2">
+        <div class="form-row">
+          <label><input type="checkbox" id="fIsActive" checked> 활성 (켜져 있어야 응답 받음)</label>
+        </div>
+        <div class="form-row">
+          <label><input type="checkbox" id="fIsPublished"> 발행 (켜야 공개 URL 접근 가능)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="actions-left">
+        <button class="btn-danger" id="deleteBtn" style="display:none" onclick="deleteForm()">🗑️ 삭제</button>
+      </div>
+      <div class="actions-right">
+        <button class="btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn-primary" onclick="saveForm()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _forms = [];
+let _editingId = null;
+let _fields = [];
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function api(path, opts) {
+  const r = await fetch(path, { method: opts?.method || "GET", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: opts?.body ? JSON.stringify(opts.body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok && data.ok !== false, status: r.status, data };
+}
+
+function fmtDate(s) { if (!s) return '—'; const d = new Date(s); return isNaN(d) ? '—' : d.toLocaleDateString('ko-KR'); }
+
+async function load() {
+  const r = await api("/api/admin-forms-list");
+  if (!r.ok) { document.querySelector("#formsTable tbody").innerHTML = `<tr><td colspan="7" class="empty">불러오기 실패: ${esc(r.data.error || '')}</td></tr>`; return; }
+  _forms = r.data.forms || [];
+  render();
+}
+
+function render() {
+  const tbody = document.querySelector("#formsTable tbody");
+  if (_forms.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="empty">아직 만든 폼이 없습니다. "+ 새 폼 만들기"로 시작하세요.</td></tr>`; return; }
+  tbody.innerHTML = _forms.map(f => {
+    const status = !f.isActive ? `<span class="status-chip inactive">비활성</span>` :
+      (f.isPublished ? `<span class="status-chip published">발행됨</span>` : `<span class="status-chip draft">초안</span>`);
+    const access = { public: '🌐 공개', members_only: '🔒 회원만', limited: '🔗 제한' }[f.accessLevel] || f.accessLevel;
+    const resp = f.maxResponses ? `${f.responseCount}/${f.maxResponses}` : f.responseCount;
+    return `<tr>
+      <td><b>${esc(f.title)}</b><br/><span style="font-size:0.75rem;color:#94a3b8">/${esc(f.slug)}</span></td>
+      <td><span class="access-chip">${access}</span></td>
+      <td style="text-align:center">${f.fieldCount}</td>
+      <td style="text-align:center">${resp}</td>
+      <td>${status}</td>
+      <td style="font-size:0.78rem;color:#94a3b8">${fmtDate(f.createdAt)}</td>
+      <td><button class="btn-mini" onclick="openModal(${f.id})">편집</button> <a href="/admin-form-submissions.html?formId=${f.id}" class="btn-mini" style="text-decoration:none;display:inline-block">응답 ${f.responseCount}</a></td>
+    </tr>`;
+  }).join("");
+}
+
+function switchTab(t) {
+  document.querySelectorAll(".tab").forEach(el => el.classList.toggle("active", el.dataset.tab === t));
+  document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.dataset.panel === t));
+}
+
+async function openModal(id) {
+  _editingId = id || null;
+  _fields = [];
+  document.getElementById("modalTitle").textContent = id ? "폼 편집" : "새 폼 만들기";
+  document.getElementById("deleteBtn").style.display = id ? '' : 'none';
+  document.getElementById("publicUrlBox").style.display = 'none';
+
+  /* 초기화 */
+  ['fTitle','fSlug','fDescription','fInstructions','fMaxResponses','fClosedMessage','fAdminNotifyEmail'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById("fAccessLevel").value = 'public';
+  document.getElementById("fAllowDuplicates").checked = true;
+  document.getElementById("fNotifyOnSubmit").checked = true;
+  document.getElementById("fIsActive").checked = true;
+  document.getElementById("fIsPublished").checked = false;
+
+  if (id) {
+    const r = await api("/api/admin-forms-list?id=" + id);
+    if (!r.ok) { alert("불러오기 실패: " + (r.data.error || '')); return; }
+    const f = r.data.form;
+    document.getElementById("fTitle").value = f.title || '';
+    document.getElementById("fSlug").value = f.slug || '';
+    document.getElementById("fDescription").value = f.description || '';
+    document.getElementById("fInstructions").value = f.instructions || '';
+    document.getElementById("fAccessLevel").value = f.accessLevel || 'public';
+    document.getElementById("fMaxResponses").value = f.maxResponses || '';
+    document.getElementById("fAllowDuplicates").checked = f.allowDuplicates !== false;
+    document.getElementById("fClosedMessage").value = f.closedMessage || '';
+    document.getElementById("fNotifyOnSubmit").checked = f.notifyOnSubmit !== false;
+    document.getElementById("fAdminNotifyEmail").value = f.adminNotifyEmail || '';
+    document.getElementById("fIsActive").checked = f.isActive !== false;
+    document.getElementById("fIsPublished").checked = f.isPublished === true;
+    _fields = (f.fields || []).map(x => ({ ...x }));
+
+    if (f.isPublished) {
+      const url = `https://tbfa.co.kr/form.html?slug=${f.slug}`;
+      document.getElementById("publicUrlBox").innerHTML = `🌐 공개 URL: <a href="${url}" target="_blank">${url}</a>`;
+      document.getElementById("publicUrlBox").style.display = '';
+    }
+  }
+  renderFields();
+  switchTab("basic");
+  document.getElementById("modalBg").classList.add("show");
+}
+
+function closeModal() { document.getElementById("modalBg").classList.remove("show"); _editingId = null; _fields = []; }
+
+function addField(type) {
+  const n = _fields.length;
+  const key = `field_${n + 1}`;
+  _fields.push({
+    fieldKey: key, type, label: '새 ' + type + ' 필드',
+    placeholder: '', helpText: '', options: (type==='select'||type==='radio'||type==='checkbox') ? [{label:'옵션 1', value:'opt1'}] : [],
+    required: false, sortOrder: n, isVisible: true,
+  });
+  renderFields();
+  switchTab("fields");
+}
+
+function moveField(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= _fields.length) return;
+  [_fields[i], _fields[j]] = [_fields[j], _fields[i]];
+  _fields.forEach((f, idx) => f.sortOrder = idx);
+  renderFields();
+}
+
+function removeField(i) { if (!confirm("이 필드를 삭제하시겠습니까?")) return; _fields.splice(i, 1); renderFields(); }
+
+function addOption(i) {
+  const f = _fields[i];
+  const n = (f.options || []).length;
+  f.options = [...(f.options || []), { label: `옵션 ${n + 1}`, value: `opt${n + 1}` }];
+  renderFields();
+}
+function removeOption(i, oi) { _fields[i].options.splice(oi, 1); renderFields(); }
+
+function updateField(i, key, val) {
+  if (key === 'required' || key === 'isVisible') _fields[i][key] = val;
+  else _fields[i][key] = val;
+}
+function updateOption(i, oi, key, val) { _fields[i].options[oi][key] = val; }
+
+function renderFields() {
+  document.getElementById("fieldCount").textContent = _fields.length;
+  const list = document.getElementById("fieldsList");
+  if (_fields.length === 0) {
+    list.innerHTML = `<div class="empty">아직 필드가 없습니다. 위에서 추가하세요.</div>`;
+    return;
+  }
+  list.innerHTML = _fields.map((f, i) => {
+    const typeLabel = { text:'텍스트', textarea:'긴 텍스트', email:'이메일', tel:'전화', number:'숫자', date:'날짜', select:'드롭다운', radio:'단일 선택', checkbox:'다중 선택', file:'파일' }[f.type] || f.type;
+    const hasOptions = ['select','radio','checkbox'].includes(f.type);
+    return `<div class="field-card">
+      <div class="field-card-head">
+        <div><span class="field-card-type">${typeLabel}</span> <span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">key: <b>${esc(f.fieldKey)}</b></span></div>
+        <div class="field-card-actions">
+          <button class="btn-mini" onclick="moveField(${i}, -1)" ${i===0?'disabled':''}>↑</button>
+          <button class="btn-mini" onclick="moveField(${i}, 1)" ${i===_fields.length-1?'disabled':''}>↓</button>
+          <button class="btn-danger" onclick="removeField(${i})">삭제</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>라벨 *</label><input type="text" value="${esc(f.label)}" oninput="updateField(${i},'label',this.value)"></div>
+        <div class="form-row"><label>field key *</label><input type="text" value="${esc(f.fieldKey)}" oninput="updateField(${i},'fieldKey',this.value)" pattern="[a-z0-9_]+"></div>
+      </div>
+      <div class="form-row"><label>플레이스홀더</label><input type="text" value="${esc(f.placeholder || '')}" oninput="updateField(${i},'placeholder',this.value)"></div>
+      <div class="form-row"><label>도움말</label><input type="text" value="${esc(f.helpText || '')}" oninput="updateField(${i},'helpText',this.value)"></div>
+      <div class="form-row"><label><input type="checkbox" ${f.required?'checked':''} onchange="updateField(${i},'required',this.checked)"> 필수 입력</label></div>
+      ${hasOptions ? `<div class="form-row"><label>선택 옵션</label><div class="field-options-block">${
+        (f.options || []).map((o, oi) => `<div class="option-row">
+          <input type="text" placeholder="화면 표시" value="${esc(o.label)}" oninput="updateOption(${i},${oi},'label',this.value)">
+          <input type="text" placeholder="저장값" value="${esc(o.value)}" oninput="updateOption(${i},${oi},'value',this.value)">
+          <button class="btn-danger" onclick="removeOption(${i},${oi})">×</button>
+        </div>`).join('')
+      }<button class="btn-mini" onclick="addOption(${i})">+ 옵션 추가</button></div></div>` : ''}
+    </div>`;
+  }).join("");
+}
+
+async function saveForm() {
+  const payload = {
+    id: _editingId || undefined,
+    title: document.getElementById("fTitle").value.trim(),
+    slug: document.getElementById("fSlug").value.trim(),
+    description: document.getElementById("fDescription").value.trim() || null,
+    instructions: document.getElementById("fInstructions").value.trim() || null,
+    accessLevel: document.getElementById("fAccessLevel").value,
+    requiresAuth: false,
+    isActive: document.getElementById("fIsActive").checked,
+    isPublished: document.getElementById("fIsPublished").checked,
+    maxResponses: document.getElementById("fMaxResponses").value ? Number(document.getElementById("fMaxResponses").value) : null,
+    allowDuplicates: document.getElementById("fAllowDuplicates").checked,
+    closedMessage: document.getElementById("fClosedMessage").value.trim() || null,
+    notifyOnSubmit: document.getElementById("fNotifyOnSubmit").checked,
+    adminNotifyEmail: document.getElementById("fAdminNotifyEmail").value.trim() || null,
+    fields: _fields,
+  };
+  if (!payload.title || !payload.slug) { alert("제목과 slug 필수"); return; }
+  const r = await api("/api/admin-form-save", { method: "POST", body: payload });
+  if (r.ok) {
+    alert(`저장 완료\n공개 URL: ${r.data.publicUrl}`);
+    closeModal();
+    load();
+  } else {
+    alert("저장 실패: " + (r.data.error || ''));
+  }
+}
+
+async function deleteForm() {
+  if (!_editingId) return;
+  if (!confirm("이 폼을 삭제하시겠습니까?")) return;
+  let r = await api("/api/admin-form-delete", { method: "POST", body: { id: _editingId } });
+  if (!r.ok && r.data.requiresConfirm) {
+    if (!confirm(r.data.error)) return;
+    r = await api("/api/admin-form-delete", { method: "POST", body: { id: _editingId, confirm: true } });
+  }
+  if (r.ok) { alert("삭제 완료"); closeModal(); load(); }
+  else alert("삭제 실패: " + (r.data.error || ''));
+}
+
+load();
+</script>
+
+</body>
+</html>
