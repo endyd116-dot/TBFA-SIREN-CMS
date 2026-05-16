@@ -40,6 +40,20 @@ export default async function handler(req: Request, _ctx: Context) {
   let stats: any = { pending: 0, sending: 0, sent: 0, failed: 0, cancelled: 0 };
 
   try {
+    /* ★ 2026-05-17: images_override + template.images 조건부 SELECT */
+    const colJob: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_send_jobs' AND column_name = 'images_override' LIMIT 1
+    `);
+    const hasJobImages = ((colJob?.rows ?? colJob ?? [])[0] || {}).ok === 1;
+    const colTpl: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'images' LIMIT 1
+    `);
+    const hasTplImages = ((colTpl?.rows ?? colTpl ?? [])[0] || {}).ok === 1;
+    const jobImagesCol = hasJobImages ? sql`, j.images_override` : sql``;
+    const tplImagesCol = hasTplImages ? sql`, t.images AS template_images` : sql``;
+
     const r: any = await db.execute(sql`
       SELECT j.id, j.name, j.template_id, j.recipient_group_id, j.channel,
              j.schedule_type, j.scheduled_at, j.status,
@@ -47,7 +61,7 @@ export default async function handler(req: Request, _ctx: Context) {
              j.last_error, j.started_at, j.completed_at,
              j.created_by, j.created_at, j.updated_at,
              t.name AS template_name,
-             g.name AS group_name
+             g.name AS group_name${jobImagesCol}${tplImagesCol}
         FROM communication_send_jobs j
         LEFT JOIN communication_templates t ON t.id = j.template_id
         LEFT JOIN recipient_groups g ON g.id = j.recipient_group_id
@@ -85,6 +99,9 @@ export default async function handler(req: Request, _ctx: Context) {
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      /* ★ 2026-05-17: 이미지 — override 우선, 없으면 템플릿의 images */
+      imagesOverride: Array.isArray(row.images_override) ? row.images_override : null,
+      templateImages: Array.isArray(row.template_images) ? row.template_images : [],
     };
   } catch (err: any) {
     return jsonError("select_job", err);

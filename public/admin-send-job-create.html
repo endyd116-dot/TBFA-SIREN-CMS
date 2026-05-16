@@ -248,6 +248,24 @@ body {
     </div>
   </div>
 
+  <!-- ★ 2026-05-17: 이미지 편집 (이메일 채널 전용) -->
+  <div class="card" id="imagesCard" style="display:none">
+    <div class="card-title">
+      🖼️ 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>
+    </div>
+    <p class="form-hint" style="margin-bottom:12px">
+      템플릿에 등록된 이미지가 자동으로 로드됩니다. 이번 발송에만 추가·교체·삭제·재정렬할 수 있습니다.
+      저장된 변경 사항은 이 발송 작업에만 반영되며 템플릿 원본은 그대로 유지됩니다.
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+      <input type="file" id="fJobImageFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+      <button type="button" class="btn" id="btnJobImageUpload" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;font-weight:600">📤 이미지 추가</button>
+      <button type="button" class="btn btn-sm" id="btnResetJobImages" style="background:#fff7ed;border-color:#fdba74;color:#9a3412">↺ 템플릿 원본으로 되돌리기</button>
+      <span id="jobImageUploadStatus" style="font-size:12.5px;color:#6b7280"></span>
+    </div>
+    <div id="jobImagesList" style="display:flex;flex-direction:column;gap:12px"></div>
+  </div>
+
   <!-- 3. 수신자 미리보기 -->
   <div class="card">
     <div class="card-title">수신자 미리보기</div>
@@ -264,6 +282,6 @@ body {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-send-job-create.js?v=20260516kakao-filter"></script>
+<script src="/js/admin-send-job-create.js?v=20260517job-images"></script>
 </body>
 </html>

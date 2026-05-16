@@ -141,16 +141,37 @@ export default async function handler(_req: Request) {
       }
     } catch (_) {}
 
-    const r: any = await db.execute(sql`
-      SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
-             j.subject_override, j.body_override, j.excluded_member_ids,
-             j.status, j.scheduled_at, j.schedule_type
-        FROM communication_send_jobs j
-       WHERE j.status = 'pending'
-         AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
-       ORDER BY j.scheduled_at ASC NULLS FIRST, j.id ASC
-       LIMIT ${PENDING_PICKUP_LIMIT}
+    /* ★ 2026-05-17: images_override 컬럼 존재 시 조건부 SELECT */
+    const colImgChk: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_send_jobs' AND column_name = 'images_override' LIMIT 1
     `);
+    const hasImgOverride = ((colImgChk?.rows ?? colImgChk ?? [])[0] || {}).ok === 1;
+
+    let r: any;
+    if (hasImgOverride) {
+      r = await db.execute(sql`
+        SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
+               j.subject_override, j.body_override, j.excluded_member_ids, j.images_override,
+               j.status, j.scheduled_at, j.schedule_type
+          FROM communication_send_jobs j
+         WHERE j.status = 'pending'
+           AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
+         ORDER BY j.scheduled_at ASC NULLS FIRST, j.id ASC
+         LIMIT ${PENDING_PICKUP_LIMIT}
+      `);
+    } else {
+      r = await db.execute(sql`
+        SELECT j.id, j.template_id, j.recipient_group_id, j.channel, j.name,
+               j.subject_override, j.body_override, j.excluded_member_ids,
+               j.status, j.scheduled_at, j.schedule_type
+          FROM communication_send_jobs j
+         WHERE j.status = 'pending'
+           AND (j.scheduled_at IS NULL OR j.scheduled_at <= NOW())
+         ORDER BY j.scheduled_at ASC NULLS FIRST, j.id ASC
+         LIMIT ${PENDING_PICKUP_LIMIT}
+      `);
+    }
     const pendingJobs = r?.rows ?? r ?? [];
 
     for (const job of pendingJobs) {
@@ -203,13 +224,30 @@ export default async function handler(_req: Request) {
      2단계 — processing 작업 chunk 처리
      ============================================================ */
   try {
-    const r: any = await db.execute(sql`
-      SELECT id, channel
-        FROM communication_send_jobs
-       WHERE status = 'processing'
-       ORDER BY started_at ASC NULLS LAST, id ASC
-       LIMIT ${PROCESSING_JOB_LIMIT}
+    /* ★ 2026-05-17: images_override 포함 (조건부) */
+    const colChk2: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_send_jobs' AND column_name = 'images_override' LIMIT 1
     `);
+    const hasImgOv2 = ((colChk2?.rows ?? colChk2 ?? [])[0] || {}).ok === 1;
+    let r: any;
+    if (hasImgOv2) {
+      r = await db.execute(sql`
+        SELECT id, channel, template_id, images_override
+          FROM communication_send_jobs
+         WHERE status = 'processing'
+         ORDER BY started_at ASC NULLS LAST, id ASC
+         LIMIT ${PROCESSING_JOB_LIMIT}
+      `);
+    } else {
+      r = await db.execute(sql`
+        SELECT id, channel
+          FROM communication_send_jobs
+         WHERE status = 'processing'
+         ORDER BY started_at ASC NULLS LAST, id ASC
+         LIMIT ${PROCESSING_JOB_LIMIT}
+      `);
+    }
     const processingJobs = r?.rows ?? r ?? [];
 
     for (const job of processingJobs) {
@@ -409,9 +447,12 @@ async function startJob(job: any) {
       /* 이메일 채널: 추적 픽셀 + 클릭 추적 URL 주입 */
       const trackingToken = generateTrackingToken();
       if (channel === "email") {
-        /* ★ 2026-05-17: 이메일 채널 — 템플릿 images를 본문에 inject.
-           position(above/below)·align·width 반영. order로 정렬. */
-        const images = Array.isArray((template as any).images) ? (template as any).images.slice() : [];
+        /* ★ 2026-05-17: 이메일 채널 — job.images_override 우선, 없으면 템플릿의 images.
+           NULL이면 템플릿 그대로. 빈 배열 []이면 의도적으로 이미지 모두 제거. */
+        const jobImagesOverride = (job as any).images_override;
+        const images = (jobImagesOverride !== null && jobImagesOverride !== undefined)
+          ? (Array.isArray(jobImagesOverride) ? jobImagesOverride.slice() : [])
+          : (Array.isArray((template as any).images) ? (template as any).images.slice() : []);
         if (images.length > 0) {
           images.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
           const buildImgTag = (img: any) => {

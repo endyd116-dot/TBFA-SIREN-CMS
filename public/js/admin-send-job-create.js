@@ -8,6 +8,10 @@
   const CHANNEL_ICONS = { email: "📧", sms: "📱", kakao: "💬", inapp: "🔔" };
 
   let templates = [];
+  /* ★ 2026-05-17: 발송 작업용 이미지 상태 — 템플릿 로드 시 templateImages로 초기화.
+     사용자가 수정하면 isDirty=true → 등록 시 imagesOverride로 전송. */
+  let jobImages = [];
+  let jobImagesDirty = false;
   let groups    = [];
   let currentTemplate = null;     /* 선택한 템플릿 객체 (variables 포함) */
   let editorDirty = false;        /* 사용자가 본문을 수정했는지 */
@@ -112,8 +116,142 @@
     }
     currentTemplate = tpl;
     editorDirty = false;
+    /* ★ 2026-05-17: 템플릿의 이미지를 발송 작업용으로 초기 로드. isDirty=false */
+    jobImages = Array.isArray(tpl.images) ? tpl.images.map(i => Object.assign({}, i)) : [];
+    jobImagesDirty = false;
     renderEditArea();
+    renderJobImagesList();
     autoCheckTemplateChannel(tpl.channel);
+    applyImagesCardVisibility();
+  }
+
+  /* ★ 2026-05-17: 발송 작업용 이미지 업로드·편집 (admin-template-edit과 유사) */
+  async function uploadJobImage(file) {
+    const statusEl = $('jobImageUploadStatus');
+    if (jobImages.length >= 20) {
+      statusEl.textContent = '이미지는 최대 20개까지';
+      statusEl.style.color = '#b91c1c';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      statusEl.textContent = '이미지는 5MB 이하만 가능';
+      statusEl.style.color = '#b91c1c';
+      return;
+    }
+    statusEl.textContent = '업로드 중…';
+    statusEl.style.color = '#6b7280';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('context', 'send_job_image');
+    fd.append('isPublic', 'true');
+    try {
+      const res = await fetch('/api/blob-upload', { method: 'POST', credentials: 'include', body: fd });
+      const raw = await res.json().catch(() => ({}));
+      const payload = raw?.data ?? raw ?? {};
+      const relativeUrl = payload.url || raw.url || '';
+      if (!res.ok || !relativeUrl) {
+        statusEl.textContent = '업로드 실패: ' + (raw.error || raw.message || ('HTTP ' + res.status));
+        statusEl.style.color = '#b91c1c';
+        return;
+      }
+      const absoluteUrl = relativeUrl.startsWith('http')
+        ? relativeUrl
+        : new URL(relativeUrl, window.location.origin).href;
+      jobImages.push({
+        url: absoluteUrl,
+        blobKey: payload.blobKey || raw.blobKey || '',
+        name: file.name,
+        width: 600, align: 'center', position: 'above',
+        order: jobImages.length, alt: '',
+      });
+      jobImagesDirty = true;
+      statusEl.textContent = '✓ 업로드 완료';
+      statusEl.style.color = '#166534';
+      renderJobImagesList();
+    } catch (err) {
+      statusEl.textContent = '업로드 실패: ' + String(err.message || err);
+      statusEl.style.color = '#b91c1c';
+    }
+  }
+
+  function renderJobImagesList() {
+    const wrap = $('jobImagesList');
+    if (!wrap) return;
+    if (!jobImages.length) {
+      wrap.innerHTML = `<div style="padding:18px;text-align:center;color:#9ca3af;border:1px dashed #d1d5db;border-radius:8px;font-size:13px">첨부된 이미지가 없습니다. 위 [이미지 추가] 버튼으로 추가하세요.</div>`;
+      return;
+    }
+    const sorted = jobImages.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    wrap.innerHTML = sorted.map(img => {
+      const realIdx = jobImages.indexOf(img);
+      return `
+        <div style="display:flex;gap:12px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+          <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #d1d5db;background:#fff">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12.5px;color:#374151;font-weight:600">${escapeHtml(img.name || '이미지')}</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <label style="font-size:11.5px;color:#6b7280">위치
+                <select class="ji-pos" data-idx="${realIdx}" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+                  <option value="above" ${img.position === 'above' ? 'selected' : ''}>본문 위</option>
+                  <option value="below" ${img.position === 'below' ? 'selected' : ''}>본문 아래</option>
+                </select>
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">정렬
+                <select class="ji-align" data-idx="${realIdx}" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+                  <option value="left" ${img.align === 'left' ? 'selected' : ''}>왼쪽</option>
+                  <option value="center" ${img.align === 'center' ? 'selected' : ''}>가운데</option>
+                  <option value="right" ${img.align === 'right' ? 'selected' : ''}>오른쪽</option>
+                </select>
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">너비(px)
+                <input type="number" class="ji-w" data-idx="${realIdx}" value="${img.width || 600}" min="50" max="1200" step="10" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+              </label>
+              <label style="font-size:11.5px;color:#6b7280">순서
+                <input type="number" class="ji-ord" data-idx="${realIdx}" value="${img.order || 0}" min="0" max="99" step="1" style="width:100%;padding:5px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-top:2px">
+              </label>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <input type="text" class="ji-alt" data-idx="${realIdx}" value="${escapeHtml(img.alt || '')}" placeholder="이미지 설명 (선택)" style="flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px">
+              <button type="button" class="btn btn-sm ji-del" data-idx="${realIdx}" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">삭제</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    wrap.querySelectorAll('.ji-pos, .ji-align, .ji-w, .ji-ord, .ji-alt').forEach(el => {
+      el.addEventListener('change', () => {
+        const i = Number(el.dataset.idx);
+        const field = el.classList.contains('ji-pos') ? 'position'
+                    : el.classList.contains('ji-align') ? 'align'
+                    : el.classList.contains('ji-w')     ? 'width'
+                    : el.classList.contains('ji-ord')   ? 'order'
+                    : 'alt';
+        const val = (field === 'width' || field === 'order') ? Number(el.value) : el.value;
+        jobImages[i][field] = val;
+        jobImagesDirty = true;
+        if (field === 'order') renderJobImagesList();
+      });
+    });
+    wrap.querySelectorAll('.ji-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.idx);
+        if (confirm('이미지를 삭제하시겠습니까?')) {
+          jobImages.splice(i, 1);
+          jobImagesDirty = true;
+          renderJobImagesList();
+        }
+      });
+    });
+  }
+
+  /* 이미지 카드 표시 여부 — 이메일 채널 단독일 때만 (1차) */
+  function applyImagesCardVisibility() {
+    const card = $('imagesCard');
+    if (!card) return;
+    const channels = getSelectedChannels();
+    /* 이메일이 포함되어 있고 카카오는 단독 모드라 제외 */
+    const hasEmail = channels.includes('email');
+    card.style.display = (hasEmail && currentTemplate) ? '' : 'none';
   }
 
   function renderEditArea() {
@@ -238,6 +376,7 @@
             else uncheckKakao();
           }
           refreshTemplateOptions();
+          applyImagesCardVisibility();
         }, 0);
       });
     });
@@ -476,6 +615,12 @@
       }
     }
 
+    /* ★ 2026-05-17: 이미지 override — 이메일 채널이고 사용자가 수정한 경우만 전송 */
+    let imagesOverride;
+    if (channels.includes('email') && jobImagesDirty) {
+      imagesOverride = jobImages;
+    }
+
     return {
       ok: true,
       body: {
@@ -488,6 +633,7 @@
         ...(subjectOverride ? { subjectOverride } : {}),
         ...(bodyOverride ? { bodyOverride } : {}),
         ...(excludedIds.size > 0 ? { excludedMemberIds: Array.from(excludedIds) } : {}),
+        ...(imagesOverride !== undefined ? { imagesOverride } : {}),
       },
     };
   }
@@ -558,6 +704,23 @@
       window.location.href = "/admin-send-jobs.html";
     });
     $("btnSubmit").addEventListener("click", submit);
+
+    /* ★ 2026-05-17: 발송 작업 이미지 — 업로드·원본 복원 버튼 */
+    $('btnJobImageUpload')?.addEventListener('click', () => $('fJobImageFile')?.click());
+    $('fJobImageFile')?.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) uploadJobImage(file);
+      e.target.value = '';
+    });
+    $('btnResetJobImages')?.addEventListener('click', () => {
+      if (!currentTemplate) return;
+      if (!confirm('이미지를 템플릿 원본 상태로 되돌립니다. 이번 발송에서 변경한 내용이 사라집니다. 계속할까요?')) return;
+      jobImages = Array.isArray(currentTemplate.images) ? currentTemplate.images.map(i => Object.assign({}, i)) : [];
+      jobImagesDirty = false;
+      renderJobImagesList();
+      const st = $('jobImageUploadStatus');
+      if (st) { st.textContent = '↺ 템플릿 원본으로 복원'; st.style.color = '#9a3412'; }
+    });
   }
 
   document.addEventListener("DOMContentLoaded", async () => {

@@ -71,6 +71,11 @@ export default async function handler(req: Request, _ctx: Context) {
     : [];
   const excludedJson = JSON.stringify(excludedMemberIds);
 
+  /* ★ 2026-05-17: 이미지 override — 발송 시점에 템플릿 이미지를 임시 수정.
+     NULL이면 템플릿의 images 그대로 사용. 빈 배열 []이면 이미지 모두 제거. */
+  const imagesOverride = Array.isArray(body?.imagesOverride) ? body.imagesOverride.slice(0, 20) : null;
+  const imagesOverrideJson = imagesOverride ? JSON.stringify(imagesOverride) : null;
+
   if (name.length < 1 || name.length > 200) {
     return new Response(
       JSON.stringify({ ok: false, error: "발송 이름은 1~200자여야 합니다.", step: "validate_name" }),
@@ -118,16 +123,17 @@ export default async function handler(req: Request, _ctx: Context) {
   for (const channel of channels) {
     const jobName = channels.length > 1 ? `${name} (${CHANNEL_LABEL[channel] || channel})` : name;
     try {
-      /* 1차: 새 컬럼 포함 */
+      /* 1차: 새 컬럼 + images_override 포함 (마이그 적용 후) */
       const r: any = await db.execute(sql`
         INSERT INTO communication_send_jobs
           (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
            status, total_recipients, success_count, failure_count, created_by,
-           subject_override, body_override, excluded_member_ids)
+           subject_override, body_override, excluded_member_ids, images_override)
         VALUES
           (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
            ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId},
-           ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb)
+           ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb,
+           ${imagesOverrideJson ? sql`${imagesOverrideJson}::jsonb` : sql`NULL`})
         RETURNING id
       `);
       const row = (r?.rows ?? r ?? [])[0];
@@ -136,21 +142,39 @@ export default async function handler(req: Request, _ctx: Context) {
       lastInsertError = err1;
       console.error("[send-job-create] 1차 INSERT 실패", err1?.message);
       try {
-        /* 2차 폴백: 새 컬럼 없이 기본 컬럼만 (마이그레이션 미적용 환경 대비) */
-        const r2: any = await db.execute(sql`
+        /* 2차 폴백: images_override 컬럼 미존재 환경 — 그것 빼고 INSERT */
+        const r1b: any = await db.execute(sql`
           INSERT INTO communication_send_jobs
             (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
-             status, total_recipients, success_count, failure_count, created_by)
+             status, total_recipients, success_count, failure_count, created_by,
+             subject_override, body_override, excluded_member_ids)
           VALUES
             (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
-             ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId})
+             ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId},
+             ${subjectOverride}, ${bodyOverride}, ${excludedJson}::jsonb)
           RETURNING id
         `);
-        const row2 = (r2?.rows ?? r2 ?? [])[0];
-        if (row2?.id) createdIds.push(Number(row2.id));
+        const row1b = (r1b?.rows ?? r1b ?? [])[0];
+        if (row1b?.id) createdIds.push(Number(row1b.id));
         lastInsertError = null;
-      } catch (err2: any) {
-        return jsonError("insert_job_fallback", err2);
+      } catch (err1b: any) {
+        try {
+          /* 3차 폴백: 새 컬럼 모두 없이 기본 컬럼만 */
+          const r2: any = await db.execute(sql`
+            INSERT INTO communication_send_jobs
+              (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
+               status, total_recipients, success_count, failure_count, created_by)
+            VALUES
+              (${jobName}, ${templateId}, ${recipientGroupId}, ${channel}, ${scheduleType},
+               ${effectiveAtForDb}, 'pending', 0, 0, 0, ${adminId})
+            RETURNING id
+          `);
+          const row2 = (r2?.rows ?? r2 ?? [])[0];
+          if (row2?.id) createdIds.push(Number(row2.id));
+          lastInsertError = null;
+        } catch (err2: any) {
+          return jsonError("insert_job_fallback", err2);
+        }
       }
     }
   }
