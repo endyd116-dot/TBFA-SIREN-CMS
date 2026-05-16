@@ -26,8 +26,14 @@ export default async function handler(req: Request) {
   const from = url.searchParams.get("from");
   const to   = url.searchParams.get("to");
 
+  /* ★ 2026-05-16 (4차): drizzle-orm/postgres-js는 sql 태그 안에 Date 객체를
+     직접 바인딩하지 못함('argument must be string or Buffer/ArrayBuffer.
+     Received instance of Date'). ISO 문자열로 변환해 PG가 자동 timestamp
+     cast 하도록 처리. */
   const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const toDate   = to   ? new Date(to)   : new Date();
+  const fromIso  = fromDate.toISOString();
+  const toIso    = toDate.toISOString();
 
   /* ★ 2026-05-16 (3차): 메인 jobs/recipients 쿼리도 inner try로 감싸 outer 500
      자체를 차단. 한 쿼리 fail해도 다른 쿼리는 정상 응답 + 응답에 _errors 배열로
@@ -41,7 +47,7 @@ export default async function handler(req: Request) {
       const jobsRes: any = await db.execute(sql`
         SELECT COUNT(*)::int AS total_jobs
           FROM communication_send_jobs
-         WHERE created_at >= ${fromDate} AND created_at <= ${toDate}
+         WHERE created_at >= ${fromIso} AND created_at <= ${toIso}
            AND status IN ('completed','processing','failed')
       `);
       totalJobs = ((jobsRes?.rows ?? jobsRes)[0] ?? {}).total_jobs ?? 0;
@@ -55,13 +61,13 @@ export default async function handler(req: Request) {
     try {
       const recipientsRes: any = await db.execute(sql`
         SELECT
-          COUNT(*)::int                                    AS total,
-          COUNT(*) FILTER (WHERE status = 'sent')::int    AS delivered,
-          COUNT(*) FILTER (WHERE open_count > 0)::int     AS opened,
-          COUNT(*) FILTER (WHERE click_count > 0)::int    AS clicked
+          COUNT(*)::int                                      AS total,
+          COUNT(*) FILTER (WHERE r.status = 'sent')::int    AS delivered,
+          COUNT(*) FILTER (WHERE r.open_count > 0)::int     AS opened,
+          COUNT(*) FILTER (WHERE r.click_count > 0)::int    AS clicked
         FROM communication_send_recipients r
         JOIN communication_send_jobs j ON j.id = r.job_id
-        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        WHERE r.created_at >= ${fromIso} AND r.created_at <= ${toIso}
           AND r.status IN ('sent','failed')
       `);
       const agg = (recipientsRes?.rows ?? recipientsRes ?? [])[0] ?? {};
@@ -87,7 +93,7 @@ export default async function handler(req: Request) {
           COUNT(*) FILTER (WHERE r.click_count > 0)::int  AS clicked
         FROM communication_send_recipients r
         JOIN communication_send_jobs j ON j.id = r.job_id
-        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        WHERE r.created_at >= ${fromIso} AND r.created_at <= ${toIso}
           AND r.status = 'sent'
         GROUP BY r.channel
       `);
@@ -114,7 +120,7 @@ export default async function handler(req: Request) {
           COUNT(*) FILTER (WHERE r.open_count > 0)::int   AS opened,
           COUNT(*) FILTER (WHERE r.click_count > 0)::int  AS clicked
         FROM communication_send_recipients r
-        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        WHERE r.created_at >= ${fromIso} AND r.created_at <= ${toIso}
           AND r.status = 'sent'
         GROUP BY DATE(r.created_at)
         ORDER BY DATE(r.created_at) ASC
@@ -142,7 +148,7 @@ export default async function handler(req: Request) {
           COUNT(r.id) FILTER (WHERE r.open_count > 0)::int             AS opened
         FROM communication_send_jobs j
         LEFT JOIN communication_send_recipients r ON r.job_id = j.id
-        WHERE j.created_at >= ${fromDate} AND j.created_at <= ${toDate}
+        WHERE j.created_at >= ${fromIso} AND j.created_at <= ${toIso}
         GROUP BY j.id, j.name, j.channel
         HAVING COUNT(r.id) FILTER (WHERE r.status = 'sent') > 0
         ORDER BY (CASE WHEN COUNT(r.id) FILTER (WHERE r.status = 'sent') > 0
@@ -174,32 +180,46 @@ export default async function handler(req: Request) {
        communication_auto_triggers.name) */
     let aiTriggerEffect: any[] = [];
     try {
-      const triggerRes: any = await db.execute(sql`
-        SELECT
-          j.triggered_by_auto_id                                            AS trigger_id,
-          COALESCE(MAX(t.name), '트리거 #' || j.triggered_by_auto_id::text) AS trigger_name,
-          COUNT(r.id) FILTER (WHERE r.status = 'sent')::int                 AS sent,
-          COUNT(r.id) FILTER (WHERE r.open_count > 0)::int                  AS opened
-        FROM communication_send_jobs j
-        LEFT JOIN communication_send_recipients r ON r.job_id = j.id
-        LEFT JOIN communication_auto_triggers t ON t.id = j.triggered_by_auto_id
-        WHERE j.created_at >= ${fromDate} AND j.created_at <= ${toDate}
-          AND j.triggered_by_auto_id IS NOT NULL
-        GROUP BY j.triggered_by_auto_id
-        ORDER BY sent DESC
-        LIMIT 10
+      /* triggered_by_auto_id 컬럼이 실제 DB에 없을 수도 있음(schema.ts에는
+         정의되어 있지만 ALTER 마이그 안 된 상태). 컬럼 존재 확인 후 분기. */
+      const colCheck: any = await db.execute(sql`
+        SELECT 1 AS ok FROM information_schema.columns
+         WHERE table_name = 'communication_send_jobs'
+           AND column_name = 'triggered_by_auto_id'
+         LIMIT 1
       `);
-      aiTriggerEffect = (triggerRes?.rows ?? triggerRes ?? []).map((r: any) => {
-        const s = Number(r.sent ?? 0);
-        const o = Number(r.opened ?? 0);
-        return {
-          triggerId: r.trigger_id,
-          triggerName: r.trigger_name,
-          sent: s,
-          opened: o,
-          openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
-        };
-      });
+      const colExists = ((colCheck?.rows ?? colCheck ?? [])[0] || {}).ok === 1;
+      if (!colExists) {
+        aiTriggerEffect = [];
+        _errors.push({ step: 'aiTriggerEffect', detail: 'triggered_by_auto_id 컬럼이 DB에 없습니다(스키마 마이그 필요). AI 트리거 효과 분석은 마이그 후 표시됩니다.' });
+      } else {
+        const triggerRes: any = await db.execute(sql`
+          SELECT
+            j.triggered_by_auto_id                                            AS trigger_id,
+            COALESCE(MAX(t.name), '트리거 #' || j.triggered_by_auto_id::text) AS trigger_name,
+            COUNT(r.id) FILTER (WHERE r.status = 'sent')::int                 AS sent,
+            COUNT(r.id) FILTER (WHERE r.open_count > 0)::int                  AS opened
+          FROM communication_send_jobs j
+          LEFT JOIN communication_send_recipients r ON r.job_id = j.id
+          LEFT JOIN communication_auto_triggers t ON t.id = j.triggered_by_auto_id
+          WHERE j.created_at >= ${fromIso} AND j.created_at <= ${toIso}
+            AND j.triggered_by_auto_id IS NOT NULL
+          GROUP BY j.triggered_by_auto_id
+          ORDER BY sent DESC
+          LIMIT 10
+        `);
+        aiTriggerEffect = (triggerRes?.rows ?? triggerRes ?? []).map((r: any) => {
+          const s = Number(r.sent ?? 0);
+          const o = Number(r.opened ?? 0);
+          return {
+            triggerId: r.trigger_id,
+            triggerName: r.trigger_name,
+            sent: s,
+            opened: o,
+            openRate: s > 0 ? Math.round((o / s) * 1000) / 10 : 0,
+          };
+        });
+      }
     } catch (e: any) {
       _errors.push({ step: 'aiTriggerEffect', detail: String(e?.message || e).slice(0, 300) });
       console.warn("[analytics-overview] aiTriggerEffect 실패", e);

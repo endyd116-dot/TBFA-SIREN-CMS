@@ -17,8 +17,12 @@ export default async function handler(req: Request) {
   const from = url.searchParams.get("from");
   const to   = url.searchParams.get("to");
 
+  /* ★ 2026-05-16: drizzle-orm/postgres-js는 Date 객체 직접 바인딩 불가 →
+     ISO string으로 변환해 PG가 자동 timestamp cast 하도록 처리. */
   const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const toDate   = to   ? new Date(to)   : new Date();
+  const fromIso  = fromDate.toISOString();
+  const toIso    = toDate.toISOString();
 
   /* ★ 2026-05-16: 각 쿼리를 inner try로 감싸 outer 500 자체 차단 + 어떤 쿼리가
      실패했는지 _errors 배열로 응답에 포함 → 사용자가 화면에서 정확한 원인 인지. */
@@ -40,7 +44,7 @@ export default async function handler(req: Request) {
           COALESCE(SUM(r.click_count), 0)::int                  AS total_clicks,
           COUNT(DISTINCT r.job_id)::int                         AS job_count
         FROM communication_send_recipients r
-        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        WHERE r.created_at >= ${fromIso} AND r.created_at <= ${toIso}
         GROUP BY r.channel
         ORDER BY sent DESC
       `);
@@ -80,7 +84,7 @@ export default async function handler(req: Request) {
           COUNT(*) FILTER (WHERE r.status = 'sent')::int       AS sent,
           COUNT(*) FILTER (WHERE r.open_count > 0)::int        AS opened
         FROM communication_send_recipients r
-        WHERE r.created_at >= ${fromDate} AND r.created_at <= ${toDate}
+        WHERE r.created_at >= ${fromIso} AND r.created_at <= ${toIso}
         GROUP BY r.channel, DATE_TRUNC('week', r.created_at)
         ORDER BY week_start ASC, r.channel ASC
         LIMIT 80
