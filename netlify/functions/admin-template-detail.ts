@@ -43,9 +43,17 @@ export default async function handler(req: Request, _ctx: Context) {
     const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
     const imagesCol = hasImagesCol ? sql`, images` : sql``;
 
+    /* ★ 2026-05-17: use_siren_layout 조건부 */
+    const sirenCheck: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'use_siren_layout' LIMIT 1
+    `);
+    const hasSirenCol = ((sirenCheck?.rows ?? sirenCheck ?? [])[0] || {}).ok === 1;
+    const sirenCol = hasSirenCol ? sql`, use_siren_layout` : sql``;
+
     const res: any = await db.execute(
       sql`SELECT id, name, channel, category, subject, body_template, variables,
-                 is_active, created_by, updated_by, created_at, updated_at${alimtalkCols}${imagesCol}
+                 is_active, created_by, updated_by, created_at, updated_at${alimtalkCols}${imagesCol}${sirenCol}
           FROM communication_templates
           WHERE id = ${id}
           LIMIT 1`
@@ -82,6 +90,7 @@ export default async function handler(req: Request, _ctx: Context) {
           isKakaoOnly:          !!(row.alimtalk_template_code),
           /* ★ 2026-05-17: 이미지 첨부 */
           images:               Array.isArray(row.images) ? row.images : [],
+          useSirenLayout:       !!row.use_siren_layout,
         },
       }),
       { status: 200, headers: JSON_HEADER },

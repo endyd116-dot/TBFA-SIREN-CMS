@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { resolveRecipients } from "../../lib/recipient-resolve";
 import { renderTemplate } from "../../lib/template-render";
+import { baseLayout } from "../../lib/email";
 import {
   sendViaAdapter,
   buildMemberRenderData,
@@ -330,7 +331,20 @@ async function startJob(job: any) {
   `);
   const hasImagesCol = ((imgCheck?.rows ?? imgCheck ?? [])[0] || {}).ok === 1;
 
-  if (hasAlimtalkCols && hasImagesCol) {
+  /* ★ 2026-05-17: use_siren_layout 컬럼 조건부 */
+  const sirenColChk: any = await db.execute(sql`
+    SELECT 1 AS ok FROM information_schema.columns
+     WHERE table_name = 'communication_templates' AND column_name = 'use_siren_layout' LIMIT 1
+  `);
+  const hasSirenCol = ((sirenColChk?.rows ?? sirenColChk ?? [])[0] || {}).ok === 1;
+
+  if (hasAlimtalkCols && hasImagesCol && hasSirenCol) {
+    tplRes = await db.execute(sql`
+      SELECT id, name, channel, subject, body_template, variables, is_active,
+             alimtalk_template_code, alimtalk_review_status, alimtalk_button_json, images, use_siren_layout
+        FROM communication_templates WHERE id = ${job.template_id} LIMIT 1
+    `);
+  } else if (hasAlimtalkCols && hasImagesCol) {
     tplRes = await db.execute(sql`
       SELECT id, name, channel, subject, body_template, variables, is_active,
              alimtalk_template_code, alimtalk_review_status, alimtalk_button_json, images
@@ -465,6 +479,15 @@ async function startJob(job: any) {
           const aboveImgs = images.filter((img: any) => img.position !== "below").map(buildImgTag).join("");
           const belowImgs = images.filter((img: any) => img.position === "below").map(buildImgTag).join("");
           bodyStr = aboveImgs + bodyStr + belowImgs;
+        }
+        /* ★ 2026-05-17: use_siren_layout=true 템플릿은 깔끔한 SIREN 헤더·푸터로 wrap.
+           subject를 title로, 본문(이미지 포함)을 bodyHtml로 전달. CTA 버튼은
+           추후 컬럼 추가 시 확장. */
+        if ((template as any).use_siren_layout === true) {
+          bodyStr = baseLayout({
+            title: subjectStr || "(제목 없음)",
+            bodyHtml: bodyStr,
+          });
         }
         bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
       }

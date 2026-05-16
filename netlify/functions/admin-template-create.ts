@@ -144,8 +144,31 @@ export default async function handler(req: Request, _ctx: Context) {
     const imagesArr = Array.isArray(body.images) ? body.images.slice(0, 20) : [];
     const imagesJson = JSON.stringify(imagesArr);
 
+    /* ★ 2026-05-17: use_siren_layout 처리 */
+    const sirenChk: any = await db.execute(sql`
+      SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_name = 'communication_templates' AND column_name = 'use_siren_layout' LIMIT 1
+    `);
+    const hasSirenCol = ((sirenChk?.rows ?? sirenChk ?? [])[0] || {}).ok === 1;
+    const useSirenLayout = !!body.useSirenLayout && (channel === "email");
+
     let res: any;
-    if (hasAlimtalkCols && hasImagesCol) {
+    if (hasAlimtalkCols && hasImagesCol && hasSirenCol) {
+      res = await db.execute(
+        sql`INSERT INTO communication_templates
+              (name, channel, category, subject, body_template, variables, created_by, updated_by,
+               alimtalk_template_code, alimtalk_review_status, alimtalk_button_json, images, use_siren_layout)
+            VALUES
+              (${name.trim()}, ${channel}, ${category},
+               ${subject ? subject.trim() : null},
+               ${bodyTemplate}, ${JSON.stringify(variables)}::jsonb,
+               ${adminId}, ${adminId},
+               ${alimtalkTemplateCode}, ${alimtalkReviewStatus},
+               ${alimtalkButtonJson ? sql`${alimtalkButtonJson}::jsonb` : sql`NULL`},
+               ${imagesJson}::jsonb, ${useSirenLayout})
+            RETURNING id`
+      );
+    } else if (hasAlimtalkCols && hasImagesCol) {
       res = await db.execute(
         sql`INSERT INTO communication_templates
               (name, channel, category, subject, body_template, variables, created_by, updated_by,

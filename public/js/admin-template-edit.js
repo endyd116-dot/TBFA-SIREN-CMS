@@ -315,6 +315,10 @@
     const alimtalkCard = $("alimtalkCard"); /* ★ 2026-05-16 */
     const imagesCard = $("imagesCard");     /* ★ 2026-05-17 */
 
+    /* ★ 2026-05-17: SIREN 레이아웃 카드 — 이메일 채널만 노출 */
+    const sirenCard = $("sirenLayoutCard");
+    if (sirenCard) sirenCard.style.display = (ch === "email") ? "" : "none";
+
     /* 이미지 카드: 이메일·SMS 채널 노출. SMS는 이미지 있으면 자동 MMS 전환 (단가 2~3배). */
     if (imagesCard) {
       imagesCard.style.display = (ch === "email" || ch === "sms") ? "" : "none";
@@ -387,6 +391,7 @@
     /* ★ 2026-05-17: 이메일 채널이면 templateImages 페이로드에 포함 */
     if (channel === "email") {
       payload.images = templateImages;
+      payload.useSirenLayout = $("fUseSirenLayout")?.checked || false;
     }
 
     /* ★ 2026-05-16: 카카오 채널이면 알리고 전용 필드 함께 페이로드에 포함 */
@@ -542,8 +547,9 @@
     $("pvSubject").textContent = preview.subject || "(제목 없음)";
     /* ★ 2026-05-17: 이메일 채널이고 이미지가 있으면 본문 위/아래에 inject. textContent 대신 innerHTML. */
     const pvBodyEl = $("pvBody");
-    if (payload.channel === "email" && Array.isArray(templateImages) && templateImages.length > 0) {
-      const images = templateImages.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    const useSiren = payload.channel === "email" && $("fUseSirenLayout")?.checked;
+    if (payload.channel === "email" && (Array.isArray(templateImages) && templateImages.length > 0 || useSiren)) {
+      const images = (templateImages || []).slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
       const buildImgTag = (img) => {
         const alignCss = img.align === "left" ? "left" : img.align === "right" ? "right" : "center";
         const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
@@ -551,9 +557,33 @@
       };
       const aboveImgs = images.filter(img => img.position !== "below").map(buildImgTag).join("");
       const belowImgs = images.filter(img => img.position === "below").map(buildImgTag).join("");
-      /* 본문은 escape 처리해서 안전하게 + 줄바꿈 보존 */
       const escapedBody = escapeHtml(preview.body || "").replace(/\n/g, "<br>");
-      pvBodyEl.innerHTML = aboveImgs + `<div style="white-space:pre-wrap;line-height:1.55">${escapedBody}</div>` + belowImgs;
+      let innerHtml = aboveImgs + `<div style="white-space:pre-wrap;line-height:1.55">${escapedBody}</div>` + belowImgs;
+      if (useSiren) {
+        /* SIREN 레이아웃 wrap — baseLayout 시뮬레이션 */
+        const title = preview.subject || "(제목 없음)";
+        innerHtml = `
+          <div style="background:#f5f4f2;padding:20px;border-radius:8px">
+            <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+              <div style="background:#0f0f0f;padding:20px 32px;border-bottom:3px solid #b8935a">
+                <div style="color:#fff;font-size:18px;font-weight:700;letter-spacing:1px">SIREN</div>
+                <div style="color:#b8935a;font-size:12px;margin-top:2px;letter-spacing:2px">존엄한 기억, 투명한 동행</div>
+              </div>
+              <div style="padding:32px 32px 12px">
+                <h1 style="margin:0;font-size:20px;color:#0f0f0f;font-weight:700;line-height:1.4">${escapeHtml(title)}</h1>
+              </div>
+              <div style="padding:8px 32px 24px;font-size:14px;line-height:1.7;color:#333">
+                ${innerHtml}
+              </div>
+              <div style="background:#fafaf8;padding:20px 32px;border-top:1px solid #e8e6e3;font-size:12px;color:#8a8a8a;line-height:1.6">
+                <div>이 메일은 자동 발송된 알림 메일입니다.</div>
+                <div style="margin-top:6px">© SIREN 교사유가족협의회</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      pvBodyEl.innerHTML = innerHtml;
     } else {
       pvBodyEl.textContent = preview.body || "";
     }
@@ -619,9 +649,11 @@
       vars.forEach(v => addVarRow(v));
     }
 
-    /* ★ 2026-05-17: 이미지 필드 복원 */
+    /* ★ 2026-05-17: 이미지·SIREN 레이아웃 필드 복원 */
     templateImages = Array.isArray(t.images) ? t.images.slice() : [];
     renderImagesList();
+    const sirenCb = $("fUseSirenLayout");
+    if (sirenCb) sirenCb.checked = !!t.useSirenLayout;
 
     /* ★ 2026-05-16: 카카오 전용 필드 복원 */
     if (t.channel === "kakao") {

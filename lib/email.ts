@@ -80,7 +80,9 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
 }
 
 /* ───────────────────── 공용 레이아웃 ───────────────────── */
-function baseLayout(opts: { title: string; bodyHtml: string; ctaText?: string; ctaUrl?: string }) {
+/* ★ 2026-05-17: 발송 템플릿이 SIREN 깔끔한 레이아웃을 사용할 수 있게 export.
+   dispatcher가 use_siren_layout=true 템플릿의 본문을 이 함수로 wrap. */
+export function baseLayout(opts: { title: string; bodyHtml: string; ctaText?: string; ctaUrl?: string }) {
   const { title, bodyHtml, ctaText, ctaUrl } = opts;
   const ctaBlock = ctaText && ctaUrl
     ? `<tr><td align="center" style="padding:8px 0 28px;">

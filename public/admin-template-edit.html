@@ -298,6 +298,19 @@ textarea {
       </div>
     </div>
 
+    <!-- ★ 2026-05-17: SIREN 깔끔한 이메일 레이아웃 옵션 (이메일 채널 전용) -->
+    <div class="card" id="sirenLayoutCard" style="display:none;border-left:3px solid #b8935a;background:#fffaf5">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+        <input type="checkbox" id="fUseSirenLayout" style="width:17px;height:17px;cursor:pointer">
+        <span style="font-weight:600">📨 SIREN 깔끔한 이메일 레이아웃 사용</span>
+      </label>
+      <p class="helper-text" style="margin-top:8px">
+        체크하면 회원가입·비밀번호 재설정 메일과 동일한 SIREN 헤더(검정 배경 + 금색 라인) + 카드형 본문 + 푸터 디자인이 자동으로 적용됩니다.
+        운영자는 <strong>본문 내용만 작성</strong>하면 됩니다.
+        제목·본문·이미지가 그대로 들어가고 SIREN 브랜드 헤더·푸터로 wrap됩니다.
+      </p>
+    </div>
+
     <!-- ★ 2026-05-17: 이미지 첨부 카드 (이메일 채널 전용 — 다른 채널에선 숨김) -->
     <div class="card" id="imagesCard" style="display:none">
       <h3>🖼️ 이미지 첨부 (이메일 전용)</h3>
@@ -343,6 +356,6 @@ textarea {
 
 <div id="toast" class="toast"></div>
 
-<script src="/js/admin-template-edit.js?v=20260517mms"></script>
+<script src="/js/admin-template-edit.js?v=20260517siren-layout"></script>
 </body>
 </html>
