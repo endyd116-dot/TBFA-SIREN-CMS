@@ -105,6 +105,11 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     if (!proxySecret) {
       return { ok: false, error: "ALIGO_PROXY_SECRET 미설정 — SMS 프록시 인증 불가" };
     }
+    /* 프록시 콜드 스타트 또는 다운 시 Netlify 함수 자체가 30초 timeout으로 죽으면
+       send 핸들러의 SMS 실패 분기(deleteVerification 롤백)까지 도달 못 함 → row 남음 →
+       사용자 5분 갇힘. AbortController로 10초 안에 명확히 ok:false 반환되도록 안전망. */
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
     try {
       const res = await fetch(proxyUrl, {
         method: "POST",
@@ -112,7 +117,9 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
         body: JSON.stringify({
           receiver, msg: opts.msg, msgType, title, testmode: false,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       raw = await res.json().catch(() => ({}));
       if (raw?.ok === true) {
         return {
@@ -129,7 +136,11 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
         error: String(raw?.error || `SMS 프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500),
       };
     } catch (err: any) {
-      return { ok: false, error: `SMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+      clearTimeout(timer);
+      const isTimeout = err?.name === "AbortError";
+      return { ok: false, error: isTimeout
+        ? "SMS 프록시 호출 timeout (10초) — 프록시 콜드 스타트 또는 다운"
+        : `SMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
     }
   }
 
