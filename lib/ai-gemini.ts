@@ -165,10 +165,14 @@ async function callSingleModel(
   }
 
   try {
+    /* ★ 2026-05-17: Gemini API fetch에 timeout 명시. 옛 코드에 timeout 없어
+       API 응답 늦을 시 Netlify Functions 10초 한도까지 무한 대기 → 504.
+       8초로 두면 폴백 chain의 첫 모델 시도 가능. */
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {

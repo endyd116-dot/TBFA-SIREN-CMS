@@ -28,10 +28,13 @@ export async function* streamGemini(
   apiKey: string,
 ): AsyncGenerator<GeminiStreamChunk, void, void> {
   const url = `${GEMINI_API_URL}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  /* ★ 2026-05-17: 첫 응답 헤더까지의 timeout — stream이 시작되면 무한 유지되어도
+     OK이나 헤더 단계에서 hang하면 504 원인. 8초로 명시. */
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) {
