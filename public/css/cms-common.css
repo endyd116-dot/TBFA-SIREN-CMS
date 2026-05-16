@@ -530,23 +530,40 @@ body {
   .cms-filter-actions .cms-btn { flex: 1; justify-content: center; }
 }
 /* ===========================================================
-   ★ 버그픽스3 #6-1: 사이드바 2뎁스 항상 표시 + 1뎁스 좌측 이동
-   - 2뎁스(.cms-submenu)를 항상 펼친 상태로 (인라인 display:none 무력화)
-   - 1뎁스는 왼쪽으로 당기고, 2뎁스는 들여쓰기 줄여 중앙 가깝게
-   - 접기/펼치기 화살표(chevron)는 의미 없어져 숨김
+   ★ 2026-05-17: 사이드바 1뎁스 default + 2뎁스 펼치기 토글 복구
+   - 옛 버그픽스3 #6-1이 .cms-submenu에 display:block !important를 박아
+     항상 모든 2뎁스가 펼쳐진 상태였음 (Swain 반복 요청 — 직관성 저하).
+   - 이제 JS가 관리하는 [aria-hidden] 속성으로 표시·숨김 결정.
+   - 접기/펼치기 chevron 복구.
+   - 1뎁스·2뎁스 들여쓰기는 admin.html과 비슷한 톤으로 유지.
    =========================================================== */
-.cms-submenu {
-  display: block !important;
+.cms-submenu[aria-hidden="true"] {
+  display: none;
+}
+.cms-submenu[aria-hidden="false"] {
+  display: block;
 }
 .cms-menu-group > a {
   padding-left: 14px !important;
   padding-right: 14px !important;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
 .cms-submenu li a {
-  padding-left: 22px !important;
+  padding-left: 32px !important;
   padding-right: 14px !important;
 }
 .sidebar-group-chevron,
 .cms-menu-chevron {
-  display: none !important;
+  margin-left: auto;
+  transition: transform 0.15s;
+  font-size: 11px;
+  color: #94a0b3;
+}
+.cms-menu-group > a[aria-expanded="true"] .sidebar-group-chevron,
+.cms-menu-group > a[aria-expanded="true"] .cms-menu-chevron,
+.cms-menu-group.open .sidebar-group-chevron,
+.cms-menu-group.open .cms-menu-chevron {
+  transform: rotate(180deg);
 }

@@ -252,6 +252,66 @@
     /* 이메일이 포함되어 있고 카카오는 단독 모드라 제외 */
     const hasEmail = channels.includes('email');
     card.style.display = (hasEmail && currentTemplate) ? '' : 'none';
+    /* 발송 미리보기 카드도 동일 (이메일·인앱) */
+    const pvCard = $('sendPreviewCard');
+    if (pvCard) {
+      const showPv = currentTemplate && (channels.includes('email') || channels.includes('inapp'));
+      pvCard.style.display = showPv ? '' : 'none';
+    }
+  }
+
+  /* ★ 2026-05-17: 발송 미리보기 — 첫 수신자 데이터로 치환 + 이미지 inject 결과 표시 */
+  async function refreshSendPreview() {
+    const box = $('sendPreviewBox');
+    if (!box) return;
+    if (!currentTemplate) {
+      box.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:24px 0">템플릿을 먼저 선택하세요.</div>`;
+      return;
+    }
+    /* 수신자 그룹 첫 멤버로 변수 치환 시도 (있으면) */
+    const grpId = $('fGroup')?.value;
+    let memberData = { 회원이름: '박두용', 이름: '박두용', name: '박두용', email: 'donor@tbfa.co.kr', phone: '010-1234-5678' };
+    if (grpId) {
+      try {
+        const res = await api({ method: 'GET', url: `/api/admin-recipient-group-members?id=${encodeURIComponent(grpId)}&limit=1&offset=0` });
+        const m = (res.data?.members ?? res.data?.data?.members ?? [])[0];
+        if (m) {
+          memberData = {
+            회원이름: m.name || '', 이름: m.name || '', name: m.name || '',
+            이메일: m.email || '', email: m.email || '',
+            연락처: m.phone || '', phone: m.phone || '',
+            회원번호: String(m.id || ''), memberId: String(m.id || ''),
+          };
+        }
+      } catch (_) {}
+    }
+    /* 변수 정의 + 본문 가져오기 (override가 있으면 그것, 아니면 원본) */
+    const variables = Array.isArray(currentTemplate.variables) ? currentTemplate.variables : [];
+    const subjEl = $('fSubject');
+    const bodyEl = $('fBody');
+    const subjTpl = (subjEl && subjEl.value) || currentTemplate.subject || '';
+    const bodyTpl = (bodyEl && bodyEl.value) || currentTemplate.bodyTemplate || '';
+    /* 클라이언트 변수 치환 — 단순 {{key}} 패턴 */
+    const renderTpl = (tpl) => String(tpl).replace(/\{\{([^{}]+)\}\}/g, (_, rawKey) => {
+      const k = String(rawKey).trim();
+      if (k in memberData) return memberData[k];
+      const v = variables.find(v => v.key === k);
+      return v?.sample || `[${k}]`;
+    });
+    const subject = renderTpl(subjTpl);
+    const body = renderTpl(bodyTpl);
+    /* 이미지 inject */
+    const images = (Array.isArray(jobImages) ? jobImages : []).slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    const buildImgTag = (img) => {
+      const alignCss = img.align === 'left' ? 'left' : img.align === 'right' ? 'right' : 'center';
+      const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
+      return `<div style="text-align:${alignCss};margin:12px 0"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="max-width:100%;width:${width}px;height:auto;display:inline-block;border:1px solid #e5e7eb;border-radius:4px"></div>`;
+    };
+    const aboveImgs = images.filter(img => img.position !== 'below').map(buildImgTag).join('');
+    const belowImgs = images.filter(img => img.position === 'below').map(buildImgTag).join('');
+    const subjectHtml = subject ? `<div style="font-weight:700;font-size:15px;color:#111827;padding:8px 0;border-bottom:1px solid #e5e7eb;margin-bottom:14px">제목: ${escapeHtml(subject)}</div>` : '';
+    const bodyHtml = `<div style="white-space:pre-wrap">${escapeHtml(body).replace(/\n/g, '<br>')}</div>`;
+    box.innerHTML = subjectHtml + aboveImgs + bodyHtml + belowImgs;
   }
 
   function renderEditArea() {
@@ -721,6 +781,9 @@
       const st = $('jobImageUploadStatus');
       if (st) { st.textContent = '↺ 템플릿 원본으로 복원'; st.style.color = '#9a3412'; }
     });
+
+    /* ★ 2026-05-17: 발송 미리보기 새로고침 */
+    $('btnSendPreview')?.addEventListener('click', refreshSendPreview);
   }
 
   document.addEventListener("DOMContentLoaded", async () => {

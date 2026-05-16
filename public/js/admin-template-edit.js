@@ -532,7 +532,23 @@
     const warnings = data.warnings ?? res.data?.warnings ?? [];
 
     $("pvSubject").textContent = preview.subject || "(제목 없음)";
-    $("pvBody").textContent    = preview.body || "";
+    /* ★ 2026-05-17: 이메일 채널이고 이미지가 있으면 본문 위/아래에 inject. textContent 대신 innerHTML. */
+    const pvBodyEl = $("pvBody");
+    if (payload.channel === "email" && Array.isArray(templateImages) && templateImages.length > 0) {
+      const images = templateImages.slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+      const buildImgTag = (img) => {
+        const alignCss = img.align === "left" ? "left" : img.align === "right" ? "right" : "center";
+        const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
+        return `<div style="text-align:${alignCss};margin:12px 0"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="max-width:100%;width:${width}px;height:auto;display:inline-block;border:1px solid #e5e7eb;border-radius:4px"></div>`;
+      };
+      const aboveImgs = images.filter(img => img.position !== "below").map(buildImgTag).join("");
+      const belowImgs = images.filter(img => img.position === "below").map(buildImgTag).join("");
+      /* 본문은 escape 처리해서 안전하게 + 줄바꿈 보존 */
+      const escapedBody = escapeHtml(preview.body || "").replace(/\n/g, "<br>");
+      pvBodyEl.innerHTML = aboveImgs + `<div style="white-space:pre-wrap;line-height:1.55">${escapedBody}</div>` + belowImgs;
+    } else {
+      pvBodyEl.textContent = preview.body || "";
+    }
     $("pvSubject").style.display = (payload.channel === "email" || payload.channel === "inapp") ? "" : "none";
     $("previewResult").style.display = "";
 
