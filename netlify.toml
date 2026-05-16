@@ -10,7 +10,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--prefer-offline"
+  # ★ 2026-05-16: 빌드 시간 단축 — 오프라인 캐시 우선 + audit/fund 스킵
+  NPM_FLAGS = "--prefer-offline --no-audit --no-fund"
   # ★ 2026-05-17: proxy-server/ 폴더는 Oracle VM 배포용 README/스크립트라
   # Netlify 빌드 출력과 무관. 혹시 남는 placeholder가 잡히지 않도록 secret
   # scan에서 제외.
@@ -79,7 +80,17 @@
   directory = "netlify/functions"
   # ★ 빌드 시간 단축: 폰트(6MB) 전역 포함 제거 — 영수증·증명서 5개 함수에만 포함
   included_files = ["db/**/*", "lib/**/*"]
-  external_node_modules = ["postgres"]
+  # ★ 2026-05-16: 무거운 의존성 외부화로 함수 번들 시간·크기 단축.
+  #   런타임에 node_modules에서 직접 로드되므로 콜드 스타트는 거의 영향 없고
+  #   빌드 시간은 함수 수(170+) × 의존성 트리만큼 단축됨 (특히 aws-sdk 약 5MB).
+  external_node_modules = [
+    "postgres",
+    "@aws-sdk/client-s3",
+    "@aws-sdk/s3-request-presigner",
+    "pdf-lib",
+    "@pdf-lib/fontkit",
+    "resend",
+  ]
 
 # ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)
 [functions."donation-receipt"]
