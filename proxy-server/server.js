@@ -26,6 +26,7 @@ const PROXY_SECRET = process.env.PROXY_SECRET || "";
 
 const ALIGO_ENDPOINT = "https://kakaoapi.aligo.in/akv10/alimtalk/send/";
 const ALIGO_SMS_ENDPOINT = "https://apis.aligo.in/send/";
+const ALIGO_MMS_ENDPOINT = "https://apis.aligo.in/send/";  /* MMS도 동일 엔드포인트, msg_type=MMS + image1 multipart */
 const ALIGO_API_KEY = process.env.ALIGO_API_KEY || "";
 const ALIGO_USER_ID = process.env.ALIGO_USER_ID || "";
 const ALIGO_KAKAO_CHANNEL_ID = process.env.ALIGO_KAKAO_CHANNEL_ID || "";
@@ -62,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  if (req.method !== "POST" || (req.url !== "/aligo/alimtalk" && req.url !== "/aligo/sms")) {
+  if (req.method !== "POST" || (req.url !== "/aligo/alimtalk" && req.url !== "/aligo/sms" && req.url !== "/aligo/mms")) {
     return jsonResponse(res, 404, { ok: false, error: "Not Found" });
   }
 
@@ -125,6 +126,47 @@ const server = http.createServer(async (req, res) => {
         return jsonResponse(res, 200, { ok: true, msgId, resultCode: code, message });
       }
       return jsonResponse(res, 200, { ok: false, resultCode: code, message, error: `Aligo SMS result_code=${code} ${message}`.slice(0, 500) });
+    } catch (err) {
+      return jsonResponse(res, 500, { ok: false, error: String(err?.message || err).slice(0, 500) });
+    }
+  }
+
+  /* ===== MMS 라우트 (이미지 첨부 SMS) =====
+     Netlify에서 base64로 이미지 인코딩 후 JSON으로 전송 → 프록시가 디코드 + multipart로 알리고 전달 */
+  if (req.url === "/aligo/mms") {
+    const { receiver, msg, title, imageBase64, imageType, imageName, testmode } = payload || {};
+    if (!receiver || !msg || !imageBase64) {
+      return jsonResponse(res, 400, { ok: false, error: "receiver·msg·imageBase64 필수" });
+    }
+    try {
+      const imgBuf = Buffer.from(String(imageBase64), "base64");
+      const mime = String(imageType || "image/jpeg");
+      const filename = String(imageName || "mms.jpg");
+
+      const form = new FormData();
+      form.set("key", ALIGO_API_KEY);
+      form.set("user_id", ALIGO_USER_ID);
+      form.set("sender", ALIGO_SENDER);
+      form.set("receiver", String(receiver));
+      form.set("msg", String(msg));
+      form.set("msg_type", "MMS");
+      form.set("title", String(title || "알림"));
+      form.set("testmode_yn", testmode === true ? "Y" : "N");
+      form.set("image1", new Blob([imgBuf], { type: mime }), filename);
+
+      const aligoRes = await fetch(ALIGO_MMS_ENDPOINT, { method: "POST", body: form });
+      const aligoText = await aligoRes.text();
+      let aligoJson;
+      try { aligoJson = JSON.parse(aligoText); } catch { aligoJson = { raw: aligoText }; }
+
+      const code = String(aligoJson?.result_code ?? "");
+      const message = String(aligoJson?.message ?? "");
+      const msgId = aligoJson?.msg_id ? String(aligoJson.msg_id) : null;
+
+      if (code === "1") {
+        return jsonResponse(res, 200, { ok: true, msgId, resultCode: code, message });
+      }
+      return jsonResponse(res, 200, { ok: false, resultCode: code, message, error: `Aligo MMS result_code=${code} ${message}`.slice(0, 500) });
     } catch (err) {
       return jsonResponse(res, 500, { ok: false, error: String(err?.message || err).slice(0, 500) });
     }

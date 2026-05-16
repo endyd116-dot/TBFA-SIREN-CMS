@@ -269,11 +269,16 @@ document.addEventListener('change', async function (e) {
 
   /* ============================================================
      ★ 2026-05-16 A안: 회원가입 모달의 전화번호 SMS 인증 핸들러
+     partials/modals.html이 동적 fetch로 로드되므로 IIFE 즉시 실행 시점에는
+     #signupPhoneVerifyBtn이 DOM에 없음. partials:loaded 이벤트 후 또는
+     이미 로드된 경우 즉시 바인딩.
      ============================================================ */
-  (function bindSignupPhoneVerify() {
+  function bindSignupPhoneVerify() {
     var verifyBtn = document.getElementById('signupPhoneVerifyBtn');
     var codeBtn   = document.getElementById('signupPhoneCodeBtn');
     if (!verifyBtn || !codeBtn) return;  /* signup 모달이 없는 페이지 */
+    if (verifyBtn.dataset.bound === '1') return;  /* 중복 바인딩 방지 */
+    verifyBtn.dataset.bound = '1';
 
     var phoneInput     = document.getElementById('signupPhone');
     var codeRow        = document.getElementById('signupPhoneCodeRow');
@@ -377,7 +382,15 @@ document.addEventListener('change', async function (e) {
         codeBtn.textContent = '확인';
       }
     });
-  })();
+  }
+
+  /* partials 로드 완료 시 + 이미 로드된 경우 즉시 시도 */
+  document.addEventListener('partials:loaded', bindSignupPhoneVerify);
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(bindSignupPhoneVerify, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', bindSignupPhoneVerify);
+  }
 
   function formatDate(iso) {
     if (!iso) return '-';

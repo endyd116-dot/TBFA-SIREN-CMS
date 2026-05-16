@@ -38,7 +38,10 @@ const CHUNK_SIZE = 50;
    함수 전체가 타임아웃되어 수신자가 'sending'에 갇힘. 건별 상한으로 차단.
    2026-05-16: 15s → 8s. Netlify Functions sync timeout(10s) 안에서
    우리 timeout 발화 + recipient 'failed' 갱신까지 끝내기 위해 단축. */
-const SEND_TIMEOUT_MS = 8000;
+/* ★ 2026-05-16: MMS 발송은 sharp 이미지 압축(1~3초) + 프록시 base64 전송(1~2초) +
+   알리고 API 응답(2~3초) → 합쳐 최대 8초 부족. 15초로 늘려 timeout 여유 확보.
+   Netlify Functions 30초 한계 안에서 안전. */
+const SEND_TIMEOUT_MS = 15000;
 
 /** Promise에 타임아웃 — 초과 시 reject (원본 Promise는 함수 종료와 함께 폐기) */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {

@@ -248,6 +248,53 @@ export async function aligoSendMms(opts: AligoMmsOpts): Promise<AligoSendResult>
     return { ok: true, msgId: `test-mms-${Date.now()}`, resultCode: "1", message: "테스트모드(MMS)" };
   }
 
+  const ext = (imageBlob.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 4);
+
+  /* ★ 2026-05-16: MMS도 Oracle 프록시 경유 (ALIGO_SMS_PROXY_URL과 동일 origin, /aligo/mms 라우트).
+     이미지를 base64로 인코딩해서 JSON body로 전송 → 프록시가 multipart로 알리고 전달. */
+  const smsProxyUrl = process.env.ALIGO_SMS_PROXY_URL || "";
+  const proxySecret = process.env.ALIGO_PROXY_SECRET || "";
+  let raw: any;
+
+  if (smsProxyUrl) {
+    if (!proxySecret) {
+      return { ok: false, error: "ALIGO_PROXY_SECRET 미설정 — MMS 프록시 인증 불가" };
+    }
+    /* SMS URL을 MMS URL로 변환 (/aligo/sms → /aligo/mms) */
+    const mmsProxyUrl = smsProxyUrl.replace(/\/aligo\/sms$/, "/aligo/mms");
+    const arrayBuf = await imageBlob.arrayBuffer();
+    const imageBase64 = Buffer.from(arrayBuf).toString("base64");
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch(mmsProxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-proxy-secret": proxySecret },
+        body: JSON.stringify({
+          receiver, msg: opts.msg, title,
+          imageBase64, imageType: imageBlob.type || "image/jpeg", imageName: `mms.${ext}`,
+          testmode: false,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      raw = await res.json().catch(() => ({}));
+      if (raw?.ok === true) {
+        return { ok: true, msgId: raw.msgId || `proxy-mms-${Date.now()}`, resultCode: raw.resultCode || "1", message: raw.message || "" };
+      }
+      return { ok: false, resultCode: raw?.resultCode, message: raw?.message,
+        error: String(raw?.error || `MMS 프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500) };
+    } catch (err: any) {
+      clearTimeout(timer);
+      const isTimeout = err?.name === "AbortError";
+      return { ok: false, error: isTimeout
+        ? "MMS 프록시 호출 timeout (10초)"
+        : `MMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+    }
+  }
+
+  /* ===== 직접 호출 모드 (옛 경로) ===== */
   const form = new FormData();
   form.set("key", apiKey);
   form.set("user_id", userId);
@@ -257,11 +304,8 @@ export async function aligoSendMms(opts: AligoMmsOpts): Promise<AligoSendResult>
   form.set("msg_type", "MMS");
   form.set("title", title);
   form.set("testmode_yn", "N");
-  /* 알리고 image1 파라미터로 파일 첨부 */
-  const ext = (imageBlob.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 4);
   form.set("image1", imageBlob, `mms.${ext}`);
 
-  let raw: any;
   try {
     const res = await fetch(ALIGO_SEND_URL, { method: "POST", body: form });
     raw = await res.json();
