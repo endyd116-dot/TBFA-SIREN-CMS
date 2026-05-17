@@ -59,10 +59,8 @@
      □ site-popup.js 신규
      □ iframe 12곳 (admin.html·admin.js·cms-tbfa.html·cms-tbfa.js × 3페이지)
 
-   ★ 다음 메인 작업 (B·A push 후):
-   1. B push → 응답 키 대조 → 머지
-   2. A push → 머지
-   3. C 트리거 발사 (Q1~Q15)
+   ★ 다음 메인 작업:
+   C 검증 완료 후 PROJECT_STATE.md 갱신 + HANDOFF.md 갱신
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -144,9 +142,9 @@
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
 | 메인 | DB·마이그·라이브러리 | 8테이블 마이그+schema.ts+badge-checker.ts | ✅ 완료 |
-| B | 백엔드 | 18 API + 이벤트 후킹 3곳 | 🔄 작업 중 |
-| A | 프론트 | 5 HTML + site-popup.js + iframe 12곳 | 🔄 작업 중 |
-| C | 검증 | Q1~Q15 | ⏸ B·A 완료 후 |
+| B | 백엔드 | 18 API + 이벤트 후킹 3곳 | ✅ 완료 (머지됨) |
+| A | 프론트 | 5 HTML + site-popup.js + iframe 12곳 | ✅ 완료 (머지됨) |
+| C | 검증 | Q1~Q15 | 🔄 검증 중 |
 
 ---
 
