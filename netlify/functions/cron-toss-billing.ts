@@ -314,6 +314,7 @@ async function handleSuccess(
     isAnonymous: false,
     receiptRequested: true,
     billingLogId: logId,
+    paidAt: new Date(),
   } as any).returning({ id: donations.id });
   const donationRows = Array.isArray(donationResult) ? donationResult : (donationResult as any).rows || [];
   const donationId = donationRows[0]?.id;

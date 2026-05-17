@@ -292,6 +292,7 @@ export default async (req: Request, ctx: Context) => {
           hyosungReceiptStatus: row.receiptStatus,
           hyosungPaidDate: row.paymentDate ? new Date(row.paymentDate) : null,
           campaignTag: row.productName,
+          paidAt: row.paymentDate ? new Date(row.paymentDate) : new Date(),
         } as any).returning({ id: donations.id });
 
         const donationId = insertedDonation[0].id;

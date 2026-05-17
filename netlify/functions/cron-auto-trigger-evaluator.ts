@@ -43,12 +43,39 @@ export default async function handler(_req: Request) {
     let memberCount = 0;
 
     try {
+      /* 트리거 단위 쿨다운 체크 — 이 트리거가 cooldownDays 내에 'ok'로 실행된 이력이 있으면 스킵 */
+      const cooldownDays = Number(trigger.cooldown_days ?? 30);
+      const cooldownCutoff = new Date(Date.now() - cooldownDays * 86400_000);
+      const recentRunRes: any = await db.execute(sql`
+        SELECT id FROM communication_auto_trigger_runs
+         WHERE trigger_id = ${trigger.id}
+           AND status = 'ok'
+           AND triggered_at >= ${cooldownCutoff}
+         LIMIT 1
+      `);
+      const recentRun = (recentRunRes?.rows ?? recentRunRes ?? []);
+      if (recentRun.length > 0) {
+        runStatus = "skipped";
+        try {
+          await db.execute(sql`
+            INSERT INTO communication_auto_trigger_runs
+              (trigger_id, job_id, triggered_at, member_count, status, error)
+            VALUES
+              (${trigger.id}, ${null}, NOW(), ${0}, ${'skipped'}, ${'cooldown 내 실행 이력 있음'})
+          `);
+        } catch (e) {
+          console.warn(`[cron-auto-trigger] skipped runs 기록 실패 triggerId=${trigger.id}`, e);
+        }
+        stats.skipped++;
+        continue;
+      }
+
       /* 발송 대상 평가 */
       const evalResult = await evaluateTrigger({
         id:          trigger.id,
         triggerType: trigger.trigger_type as TriggerType,
         delayHours:  Number(trigger.delay_hours ?? 0),
-        cooldownDays: Number(trigger.cooldown_days ?? 30),
+        cooldownDays: cooldownDays,
         conditions:  trigger.conditions,
       });
 

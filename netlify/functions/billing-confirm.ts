@@ -306,6 +306,7 @@ export default async (req: Request) => {
       receiptIssued: true,
       receiptIssuedAt: now,
       receiptRequested: true,
+      paidAt: now,
     };
 
     const [donation] = await db

@@ -13,11 +13,6 @@ export default async function handler(req: Request): Promise<Response> {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
 
-  // 슈퍼어드민만 환불 처리 가능
-  if (auth.ctx.admin.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민만 환불 처리할 수 있습니다", step: "auth_role" }), { status: 403 });
-  }
-
   let body: any;
   try {
     body = await req.json();

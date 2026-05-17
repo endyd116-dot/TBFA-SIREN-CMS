@@ -270,6 +270,7 @@ async function processOneCharge(billing: any, authHeader: string): Promise<{
       receiptIssuedAt: now,
       receiptRequested: true,
       isAnonymous: false,
+      paidAt: now,
     } as any)
     .returning({ id: donations.id });
 
