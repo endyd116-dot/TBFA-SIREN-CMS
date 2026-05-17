@@ -3927,6 +3927,37 @@ const OPERATOR_CATEGORIES = [
            'style="display:inline-block;padding:7px 14px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;text-decoration:none;color:#1e293b;background:#fff">' +
           '📬 이 회원에게 보낸 메시지 이력' +
         '</a>' +
+      '</div>' +
+
+      /* 자격 직접 변경 */
+      '<div class="mi-section" style="margin-top:16px">' +
+        '<h5>🎓 교원 자격 직접 변경 <span style="font-weight:400;color:var(--text-3);font-size:11.5px">(신청 없이 즉시 적용)</span></h5>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+          '<div style="font-size:13px;color:var(--text-2)">현재 자격: <strong>' + escapeHtml(member.eligibilityType || '미설정') + '</strong></div>' +
+          '<button type="button" style="padding:5px 12px;border:1px solid var(--brand);border-radius:6px;background:#fff;color:var(--brand);font-size:12px;cursor:pointer;font-weight:600" data-mi-elig="open" data-mi-id="' + member.id + '" data-mi-elig-cur="' + escapeHtml(member.eligibilityType || '') + '">✏️ 직접 변경</button>' +
+        '</div>' +
+        '<div id="miEligChangeForm_' + member.id + '" style="display:none;margin-top:12px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">' +
+          '<div style="margin-bottom:10px">' +
+            '<label style="font-size:12.5px;font-weight:600;color:var(--text-1);display:block;margin-bottom:4px">새 자격 유형</label>' +
+            '<select id="miEligTypeSelect_' + member.id + '" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit">' +
+              '<option value="">선택...</option>' +
+              '<option value="active_teacher">현직 교원</option>' +
+              '<option value="retired_teacher">은퇴 교원</option>' +
+              '<option value="pre_teacher">예비 교원</option>' +
+              '<option value="general">일반인</option>' +
+              '<option value="lawyer">변호사</option>' +
+              '<option value="counselor">상담사</option>' +
+            '</select>' +
+          '</div>' +
+          '<div style="margin-bottom:10px">' +
+            '<label style="font-size:12.5px;font-weight:600;color:var(--text-1);display:block;margin-bottom:4px">변경 사유 <span style="color:var(--text-3);font-weight:400">(5자 이상)</span></label>' +
+            '<textarea id="miEligReasonInput_' + member.id + '" maxlength="500" rows="2" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box" placeholder="변경 사유를 입력하세요..."></textarea>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px">' +
+            '<button type="button" style="flex:1;padding:7px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600" data-mi-elig="confirm" data-mi-id="' + member.id + '">✓ 변경 확정</button>' +
+            '<button type="button" style="padding:7px 14px;background:#fff;border:1px solid var(--line);border-radius:6px;font-size:13px;cursor:pointer" data-mi-elig="cancel" data-mi-id="' + member.id + '">취소</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
   }
 
@@ -4091,6 +4122,58 @@ const OPERATOR_CATEGORIES = [
           }
           return;
         }
+      }
+    });
+
+    /* 자격 직접 변경 */
+    document.addEventListener('click', async (e) => {
+      const eligBtn = e.target.closest('[data-mi-elig]');
+      if (!eligBtn) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const action = eligBtn.dataset.miElig;
+      const memberId = Number(eligBtn.dataset.miId);
+      if (!memberId) return;
+
+      if (action === 'open') {
+        const form = document.getElementById('miEligChangeForm_' + memberId);
+        if (form) form.style.display = form.style.display === 'none' ? '' : 'none';
+        return;
+      }
+
+      if (action === 'cancel') {
+        const form = document.getElementById('miEligChangeForm_' + memberId);
+        if (form) form.style.display = 'none';
+        return;
+      }
+
+      if (action === 'confirm') {
+        const newType = (document.getElementById('miEligTypeSelect_' + memberId) || {}).value || '';
+        const reason = ((document.getElementById('miEligReasonInput_' + memberId) || {}).value || '').trim();
+
+        if (!newType) return toast('자격 유형을 선택해 주세요');
+        if (reason.length < 5) return toast('변경 사유를 5자 이상 입력해 주세요');
+
+        eligBtn.disabled = true;
+        const oldText = eligBtn.textContent;
+        eligBtn.textContent = '처리 중...';
+
+        const res = await api('/api/admin-eligibility-force-change', {
+          method: 'POST',
+          body: { memberId, newEligibilityType: newType, reason },
+        });
+
+        eligBtn.disabled = false;
+        eligBtn.textContent = oldText;
+
+        if (res.ok) {
+          toast(res.data?.message || '자격이 변경되었습니다');
+          openMemberInfoModal(memberId);
+        } else {
+          toast(res.data?.error || '변경 실패');
+        }
+        return;
       }
     });
   }

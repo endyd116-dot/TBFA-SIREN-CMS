@@ -31,7 +31,7 @@
 
   /* 신고 유형별 단계 흐름 */
   const STAGE_FLOW = {
-    incident: ['submitted', 'ai_analyzed', 'reviewing', 'in_progress', 'completed', 'closed'],
+    incident: ['submitted', 'ai_analyzed', 'reviewing', 'in_progress', 'responded', 'completed', 'closed'],
     harassment: ['submitted', 'ai_analyzed', 'reviewing', 'responding', 'responded', 'closed'],
     legal: ['submitted', 'ai_analyzed', 'reviewing', 'matching', 'matched', 'in_progress', 'completed', 'closed'],
   };
@@ -133,10 +133,10 @@
           </div>
         ` : ''}
 
-        ${report.adminComment ? `
+        ${report.adminResponse ? `
           <div style="background:#fffaf5;border:1px solid #f5dcc8;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.7">
-            <strong style="color:var(--brand)">📝 담당자 답변</strong><br>${escapeHtml(report.adminComment)}
-            ${report.adminCommentAt ? `<div style="font-size:11px;color:var(--text-3);margin-top:4px">${fmtDate(report.adminCommentAt)}</div>` : ''}
+            <strong style="color:var(--brand)">📝 담당자 답변</strong><br>${escapeHtml(report.adminResponse)}
+            ${report.respondedAt ? `<div style="font-size:11px;color:var(--text-3);margin-top:4px">${fmtDate(report.respondedAt)}</div>` : ''}
           </div>
         ` : ''}
 
@@ -180,8 +180,8 @@
         return;
       }
 
-      const rows = json.data?.rows || json.data?.list || json.data || [];
-      const total = json.data?.total || rows.length;
+      const rows = json.items || json.data?.rows || json.data?.list || json.data || [];
+      const total = json.total || json.data?.total || rows.length;
       const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
       if (!rows.length) {

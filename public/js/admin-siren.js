@@ -259,7 +259,7 @@
   }
   function reporterCell(name, isAnon) {
     const safe = escapeHtml(name || '회원');
-    return safe + (isAnon ? '<span class="srn-anon-badge">익명</span>' : '');
+    return safe + (isAnon ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : '');
   }
   function summaryCell(title, summary) {
     return `<div style="font-weight:600;color:var(--ink)">${escapeHtml(title || '')}</div>` +
@@ -438,7 +438,7 @@
         <div>접수번호</div><div style="font-family:Inter;font-weight:600">${escapeHtml(r.reportNo)}</div>
         <div>제목</div><div><strong>${escapeHtml(r.title)}</strong></div>
         <div>관련 사건</div><div>${r.incidentTitle ? escapeHtml(r.incidentTitle) : '—'}</div>
-        <div>제보자</div><div>${escapeHtml(reporterName)}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
+        <div>제보자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
         <div>정식 접수</div><div>${r.sirenReportRequested === true ? '✅ Yes' : (r.sirenReportRequested === false ? '❌ No (AI만)' : '미결정')}</div>
@@ -502,7 +502,7 @@
         <div>유형</div><div>${escapeHtml(catLabel)}</div>
         <div>발생 빈도</div><div>${r.frequency === 'once' ? '1회성' : r.frequency === 'recurring' ? '반복적' : r.frequency === 'ongoing' ? '진행 중' : '—'}</div>
         ${r.occurredAt ? `<div>발생 시기</div><div>${fmtDate(r.occurredAt)}</div>` : ''}
-        <div>신고자</div><div>${escapeHtml(reporterName)}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
+        <div>신고자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
         <div>정식 신고</div><div>${r.sirenReportRequested === true ? '✅ Yes' : (r.sirenReportRequested === false ? '❌ No (AI만)' : '미결정')}</div>
@@ -566,7 +566,7 @@
         <div>법률 분야</div><div>${escapeHtml(catLabel)}</div>
         ${r.partyInfo ? `<div>상대방</div><div>${escapeHtml(r.partyInfo)}</div>` : ''}
         ${r.occurredAt ? `<div>발생 시기</div><div>${fmtDate(r.occurredAt)}</div>` : ''}
-        <div>신청자</div><div>${escapeHtml(reporterName)}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
+        <div>신청자</div><div>${escapeHtml(reporterName)}${r.isAnonymous ? '<span class="srn-anon-badge" style="background:#fef08a;color:#713f12;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:5px">익명 원함</span>' : ''}${r.memberEmail && !r.isAnonymous ? ` · ${escapeHtml(r.memberEmail)}` : ''}</div>
         <div>접수일시</div><div>${fmtDateTime(r.createdAt)}</div>
         <div>상태</div><div>${statusPill(r.status)}</div>
         <div>매칭 신청</div><div>${r.sirenReportRequested === true ? '✅ Yes' : '❌ AI만'}</div>
@@ -828,7 +828,8 @@
     const btn = document.querySelector(`[data-srn-action="save-response"][data-srn-id="${id}"][data-srn-kind="${kind}"]`);
     if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
 
-    const payload = { id, status, adminResponse, sendEmail };
+    const payload = { id, adminResponse, sendEmail, sendNotify: true };
+    if (status) payload.status = status;
     if (kind === 'legal' && lawyer !== undefined) {
       payload.assignedLawyerName = lawyer;
     }
