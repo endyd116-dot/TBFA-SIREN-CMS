@@ -275,7 +275,7 @@
       : (r.sirenReportRequested === false
         ? '<span style="color:var(--text-3)">📋</span>'
         : '<span style="color:var(--text-3)">—</span>');
-    const reporterName = r.isAnonymous ? '제보자' : (r.memberName || r.reporterName || '회원');
+    const reporterName = r.memberName || r.reporterName || '회원';
     return `<tr>
       <td>${sevPill(r.aiSeverity)}</td>
       <td style="font-family:Inter;font-size:12px">${escapeHtml(r.reportNo)}</td>
@@ -292,7 +292,7 @@
     const sirenMark = r.sirenReportRequested === true
       ? '<span style="color:var(--brand);font-weight:700">📌</span>'
       : '<span style="color:var(--text-3)">—</span>';
-    const reporterName = r.isAnonymous ? '신고자' : (r.memberName || r.reporterName || '회원');
+    const reporterName = r.memberName || r.reporterName || '회원';
     const catLabel = HARASS_CAT[r.category] || r.category;
     return `<tr>
       <td>${sevPill(r.aiSeverity)}</td>
@@ -307,7 +307,7 @@
   }
 
   function renderLegalRow(r) {
-    const reporterName = r.isAnonymous ? '신청자' : (r.memberName || '회원');
+    const reporterName = r.memberName || '회원';
     const catLabel = LEGAL_CAT[r.category] || r.category;
     const lawyerCell = r.assignedLawyerName
       ? `<strong style="color:#5a4d8c">${escapeHtml(r.assignedLawyerName)}</strong>`
@@ -410,7 +410,7 @@
   function renderIncidentDetail(body, r) {
     if (!r) return;
 
-    const reporterName = r.isAnonymous ? '제보자 (익명)' : (r.memberName || r.reporterName || '회원');
+    const reporterName = r.memberName || r.reporterName || '회원';
     const responderInfo = r.responder
       ? `${escapeHtml(r.responder.name)} · ${fmtDateTime(r.respondedAt)}`
       : '';
@@ -471,7 +471,7 @@
   function renderHarassmentDetail(body, r) {
     if (!r) return;
 
-    const reporterName = r.isAnonymous ? '신고자 (익명)' : (r.memberName || r.reporterName || '회원');
+    const reporterName = r.memberName || r.reporterName || '회원';
     const catLabel = HARASS_CAT[r.category] || r.category;
 
     const aiBlock = r.aiSummary ? `
@@ -534,7 +534,7 @@
   function renderLegalDetail(body, r) {
     if (!r) return;
 
-    const reporterName = r.isAnonymous ? '신청자 (익명)' : (r.memberName || '회원');
+    const reporterName = r.memberName || '회원';
     const catLabel = LEGAL_CAT[r.category] || r.category;
 
     const aiBlock = r.aiSummary ? `
