@@ -3376,6 +3376,7 @@ export const sitePopups = pgTable("site_popups", {
   startAt:          timestamp("start_at"),
   endAt:            timestamp("end_at"),
   isActive:         boolean("is_active").notNull().default(true),
+  layoutConfig:     jsonb("layout_config"),
   createdAt:        timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -3387,5 +3388,17 @@ export const siteCurations = pgTable("site_curations", {
   isActive:  boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/* === 라운드6 RBAC 권한 정책 === */
+
+export const rolePermissions = pgTable("role_permissions", {
+  id:              serial("id").primaryKey(),
+  featureKey:      varchar("feature_key", { length: 60 }).notNull().unique(),
+  featureLabel:    varchar("feature_label", { length: 100 }).notNull(),
+  category:        varchar("category", { length: 20 }).notNull().default("siren"),
+  adminAllowed:    boolean("admin_allowed").notNull().default(true),
+  operatorAllowed: boolean("operator_allowed").notNull().default(false),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
 });
 

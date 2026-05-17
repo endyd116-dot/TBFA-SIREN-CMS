@@ -35,6 +35,7 @@
     .matrix-table th { background: #f9fafb; font-weight: 600; color: #374151; }
     .matrix-table td:first-child { text-align: left; font-weight: 500; color: #1a2035; background: #fafafa; }
     .matrix-table tbody tr:hover td { background: #f0f4ff; }
+    .matrix-table .cat-row td { background: #f0f4ff; font-weight: 700; font-size: 12px; color: #1e40af; letter-spacing: 0.3px; }
 
     .badge-allow {
       display: inline-block; padding: 2px 10px; border-radius: 12px;
@@ -44,6 +45,11 @@
       display: inline-block; padding: 2px 10px; border-radius: 12px;
       font-size: 12px; font-weight: 600; background: #fee2e2; color: #dc2626;
     }
+
+    /* 토글 체크박스 스타일 */
+    .toggle-wrap { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+    .toggle-wrap input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #1e40af; }
+    .toggle-wrap span { font-size: 12px; color: #374151; }
     .role-badge {
       display: inline-block; padding: 2px 10px; border-radius: 12px;
       font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
@@ -152,31 +158,40 @@
   <h2>🔐 권한 정책 관리</h2>
   <p class="page-desc">3단 권한 체계(super_admin / admin / operator) 정의, 운영자 역할 현황 및 역할 부여·회수를 관리합니다.</p>
 
-  <!-- ── 1. 권한 매트릭스 (읽기 전용) ── -->
+  <!-- ── 1. 권한 매트릭스 (편집 가능 — super_admin 전용) ── -->
   <div class="card">
-    <div class="card-title">📋 권한 매트릭스 <span style="font-size:11px;font-weight:400;color:#9ca3af">(읽기 전용)</span></div>
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th style="text-align:left;width:40%">기능 영역</th>
-          <th><span class="role-badge role-super_admin">super_admin</span></th>
-          <th><span class="role-badge role-admin">admin</span></th>
-          <th><span class="role-badge role-operator">operator</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td>감사 로그 조회</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>예산 승인</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>지출 승인</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>등급·정책·AI 설정</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>운영자 관리 (역할 부여·회수)</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>회원 관리 (블랙·자격·강제)</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>후원·환불 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>SIREN 신고 처리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
-        <tr><td>캠페인·게시판 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td></tr>
-        <tr><td>워크스페이스 조회·Task 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td></tr>
-      </tbody>
-    </table>
+    <div class="card-title">
+      📋 권한 매트릭스
+      <span id="matrixEditNote" style="font-size:11px;font-weight:400;color:#9ca3af">불러오는 중...</span>
+    </div>
+
+    <!-- 카테고리 탭 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button id="tabSiren" onclick="switchMatrixTab('siren')"
+        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff">
+        🔴 SIREN
+      </button>
+      <button id="tabCms" onclick="switchMatrixTab('cms')"
+        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151">
+        📦 통합 CMS
+      </button>
+    </div>
+
+    <div id="matrixArea">
+      <table class="matrix-table" id="matrixTable">
+        <thead>
+          <tr>
+            <th style="text-align:left;width:38%">기능 영역</th>
+            <th style="width:18%"><span class="role-badge role-super_admin">super_admin</span></th>
+            <th style="width:22%"><span class="role-badge role-admin">admin</span></th>
+            <th style="width:22%"><span class="role-badge role-operator">operator</span></th>
+          </tr>
+        </thead>
+        <tbody id="matrixTbody">
+          <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ── 2. 운영자 현황 ── -->
@@ -464,10 +479,82 @@
       }
     }
 
+    /* ─── 권한 매트릭스 ─── */
+    let _allPerms = [];
+    let _currentTab = 'siren';
+
+    function switchMatrixTab(tab) {
+      _currentTab = tab;
+      document.getElementById('tabSiren').style.cssText = tab === 'siren'
+        ? 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff'
+        : 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
+      document.getElementById('tabCms').style.cssText = tab === 'cms'
+        ? 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff'
+        : 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
+      renderMatrix();
+    }
+
+    async function loadMatrix() {
+      const res = await api('/api/admin-role-permissions');
+      _allPerms = res.data?.data?.permissions || res.data?.permissions || [];
+      document.getElementById('matrixEditNote').textContent =
+        currentRole === 'super_admin' ? '(체크박스 클릭으로 즉시 저장)' : '(읽기 전용)';
+      renderMatrix();
+    }
+
+    function renderMatrix() {
+      const perms = _allPerms.filter(p => p.category === _currentTab);
+      const isSA = currentRole === 'super_admin';
+      const tbody = document.getElementById('matrixTbody');
+      if (!perms.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px">항목 없음</td></tr>';
+        return;
+      }
+      tbody.innerHTML = perms.map(p => {
+        const superCell = '<span class="badge-allow">항상 허용</span>';
+
+        const adminCell = isSA
+          ? '<label class="toggle-wrap"><input type="checkbox"' + (p.adminAllowed ? ' checked' : '') + ' data-perm-id="' + p.id + '" data-field="adminAllowed" onchange="savePermission(this)"><span>' + (p.adminAllowed ? '허용' : '불가') + '</span></label>'
+          : (p.adminAllowed ? '<span class="badge-allow">허용</span>' : '<span class="badge-deny">불가</span>');
+
+        const opCell = isSA
+          ? '<label class="toggle-wrap"><input type="checkbox"' + (p.operatorAllowed ? ' checked' : '') + ' data-perm-id="' + p.id + '" data-field="operatorAllowed" onchange="savePermission(this)"><span>' + (p.operatorAllowed ? '허용' : '불가') + '</span></label>'
+          : (p.operatorAllowed ? '<span class="badge-allow">허용</span>' : '<span class="badge-deny">불가</span>');
+
+        return '<tr><td>' + esc(p.featureLabel) + '</td><td>' + superCell + '</td><td>' + adminCell + '</td><td>' + opCell + '</td></tr>';
+      }).join('');
+    }
+
+    async function savePermission(checkbox) {
+      const id = checkbox.dataset.permId;
+      const field = checkbox.dataset.field;
+      const value = checkbox.checked;
+      const span = checkbox.nextElementSibling;
+      if (span) span.textContent = '저장 중...';
+      checkbox.disabled = true;
+
+      const body = {};
+      body[field] = value;
+      const res = await api('/api/admin-role-permissions?id=' + id, { method: 'PATCH', body });
+
+      checkbox.disabled = false;
+      if (res.ok || res.data?.ok) {
+        if (span) span.textContent = value ? '허용' : '불가';
+        /* 로컬 캐시도 갱신 */
+        const perm = _allPerms.find(p => p.id === Number(id));
+        if (perm) perm[field] = value;
+        toast('저장되었습니다.', 'ok');
+      } else {
+        checkbox.checked = !value;
+        if (span) span.textContent = !value ? '허용' : '불가';
+        toast(res.data?.error || '저장 실패', 'error');
+      }
+    }
+
     /* ─── 초기화 ─── */
     (async function init() {
       await fetchCurrentRole();
-      await loadOperators();
+      await Promise.all([loadOperators(), loadMatrix()]);
       if (currentRole === 'super_admin') {
         document.querySelectorAll('.super-only-card').forEach(el => el.style.display = 'block');
       }
