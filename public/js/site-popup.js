@@ -58,6 +58,11 @@
 
   /* 우하단 플로팅 박스 DOM 생성 */
   function buildFloat(popup, index) {
+    var layout = popup.layoutConfig || {};
+    var imgSizeMap = { small: '120px', medium: '160px', large: '200px', full: '300px' };
+    var imgMaxH = imgSizeMap[layout.imgSize] || '180px';
+    var imgAlign = layout.imgAlign || 'center';
+
     const wrap = document.createElement('div');
     wrap.id = 'site-popup-' + popup.id;
     const offset = index * 10;
@@ -81,7 +86,7 @@
       const href = popup.linkUrl ? 'href="' + popup.linkUrl + '" target="_blank" rel="noopener"' : '';
       imgHtml = '<a ' + href + ' style="display:block;line-height:0">'
         + '<img src="' + popup.imageUrl + '" alt="' + popup.title + '"'
-        + ' style="width:100%;max-height:180px;object-fit:cover;display:block">'
+        + ' style="width:100%;max-height:' + imgMaxH + ';object-fit:cover;object-position:' + imgAlign + ';display:block">'
         + '</a>';
     }
 

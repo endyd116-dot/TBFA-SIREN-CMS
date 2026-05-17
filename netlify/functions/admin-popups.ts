@@ -38,6 +38,7 @@ export default async (req: Request) => {
           startAt: body.startAt ? new Date(body.startAt) : null,
           endAt: body.endAt ? new Date(body.endAt) : null,
           isActive: body.isActive !== false,
+          layoutConfig: body.layoutConfig ?? null,
         } as any)
         .returning();
 
@@ -59,6 +60,7 @@ export default async (req: Request) => {
       if (body.startAt !== undefined) updateData.startAt = body.startAt ? new Date(body.startAt) : null;
       if (body.endAt !== undefined) updateData.endAt = body.endAt ? new Date(body.endAt) : null;
       if (typeof body.isActive === "boolean") updateData.isActive = body.isActive;
+      if (body.layoutConfig !== undefined) updateData.layoutConfig = body.layoutConfig;
 
       if (!Object.keys(updateData).length) return badRequest("수정할 항목이 없습니다");
 

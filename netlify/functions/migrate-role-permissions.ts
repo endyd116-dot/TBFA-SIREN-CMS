@@ -39,6 +39,7 @@ export default async (req: Request) => {
       ok: true,
       mode: "diagnostic",
       message: "?run=1 을 추가하면 마이그레이션이 실행됩니다 (어드민 로그인 필요)",
+      creates: "role_permissions 테이블 + site_popups.layout_config 컬럼",
       featuresCount: SEED.length,
     }), { headers: { "Content-Type": "application/json" } });
   }
@@ -59,6 +60,11 @@ export default async (req: Request) => {
       )
     `);
 
+    /* 팝업 레이아웃 설정 컬럼 추가 (site_popups 테이블) */
+    await db.execute(sql`
+      ALTER TABLE site_popups ADD COLUMN IF NOT EXISTS layout_config JSONB DEFAULT NULL
+    `);
+
     let inserted = 0;
     for (const f of SEED) {
       const res = await db.execute(sql`
@@ -69,7 +75,7 @@ export default async (req: Request) => {
       inserted += (res as any).rowCount ?? 0;
     }
 
-    return ok({ success: true, total: SEED.length, inserted });
+    return ok({ success: true, total: SEED.length, inserted, popupLayoutColumn: true });
   } catch (err: any) {
     console.error("[migrate-role-permissions]", err);
     return serverError("마이그레이션 실패", err);

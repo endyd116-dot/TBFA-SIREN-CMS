@@ -202,6 +202,19 @@
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+    /* ─── 이미지 업로드 ─── */
+    .img-upload-zone {
+      border: 2px dashed #d1d5db; border-radius: 8px; padding: 12px;
+      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      background: #fafafa; position: relative;
+    }
+    .img-upload-zone:hover, .img-upload-zone.drag { border-color: #3b82f6; background: #eff6ff; }
+    .img-upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .img-preview-wrap { position: relative; border-radius: 6px; overflow: hidden; background: #f3f4f6; }
+    .img-preview-wrap img { width: 100%; height: 90px; object-fit: cover; display: block; }
+    .img-remove-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 4px; width: 20px; height: 20px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .upload-status { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
     /* ─── 드래그 중 스타일 ─── */
     .curation-item.dragging {
       opacity: 0.5;
@@ -240,6 +253,7 @@
     <div class="modal-body">
       <input type="hidden" id="itemId">
       <input type="hidden" id="itemSlot">
+      <input type="hidden" id="itemImageUrl">
       <div class="fg">
         <label>제목</label>
         <input type="text" id="itemTitle" placeholder="배너 제목">
@@ -254,8 +268,16 @@
       </div>
       <div class="fg-row">
         <div class="fg">
-          <label>이미지 URL (선택)</label>
-          <input type="url" id="itemImage" placeholder="https://...">
+          <label>이미지 (선택)</label>
+          <div id="itemImgZone" class="img-upload-zone">
+            <input type="file" id="itemImgFile" accept="image/*">
+            <div id="itemImgPlaceholder" style="font-size:11px;color:#9ca3af">🖼️ 클릭하거나 드래그</div>
+            <div id="itemImgPreview" class="img-preview-wrap" style="display:none">
+              <img id="itemImgThumb" src="" alt="">
+              <button class="img-remove-btn" id="btnItemImgRemove" type="button">×</button>
+            </div>
+          </div>
+          <div id="itemImgStatus" class="upload-status"></div>
         </div>
         <div class="fg">
           <label>콘텐츠 유형</label>
@@ -311,6 +333,59 @@
     const btn = e.target.closest('[data-close]');
     if (btn) document.getElementById(btn.dataset.close).classList.remove('show');
   });
+
+  /* ── 이미지 업로드 ── */
+  function showItemImg(url) {
+    document.getElementById('itemImgPlaceholder').style.display = 'none';
+    document.getElementById('itemImgPreview').style.display = 'block';
+    document.getElementById('itemImgThumb').src = url;
+    document.getElementById('itemImageUrl').value = url;
+  }
+  function clearItemImg() {
+    document.getElementById('itemImgPlaceholder').style.display = '';
+    document.getElementById('itemImgPreview').style.display = 'none';
+    document.getElementById('itemImgThumb').src = '';
+    document.getElementById('itemImageUrl').value = '';
+    document.getElementById('itemImgFile').value = '';
+    document.getElementById('itemImgStatus').textContent = '';
+  }
+  document.getElementById('btnItemImgRemove').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); clearItemImg();
+  });
+  const itemZone = document.getElementById('itemImgZone');
+  itemZone.addEventListener('dragover', e => { e.preventDefault(); itemZone.classList.add('drag'); });
+  itemZone.addEventListener('dragleave', () => itemZone.classList.remove('drag'));
+  itemZone.addEventListener('drop', e => {
+    e.preventDefault(); itemZone.classList.remove('drag');
+    const f = e.dataTransfer.files[0]; if (f) handleItemFile(f);
+  });
+  document.getElementById('itemImgFile').addEventListener('change', function(e) {
+    const f = e.target.files[0]; if (f) handleItemFile(f);
+  });
+  async function handleItemFile(file) {
+    if (!file.type.startsWith('image/')) { toast('이미지 파일만 업로드할 수 있습니다.'); return; }
+    const status = document.getElementById('itemImgStatus');
+    status.textContent = '업로드 중...';
+    try {
+      const r1 = await api('/api/blob-presign', {
+        method: 'POST',
+        body: { originalName: file.name, mimeType: file.type, sizeBytes: file.size, context: 'curation_image', isPublic: true },
+      });
+      if (!r1.ok) throw new Error(r1.data?.error || 'URL 요청 실패');
+      const d1 = r1.data?.data || r1.data;
+      const putRes = await fetch(d1.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      if (!putRes.ok) throw new Error('R2 업로드 실패 (' + putRes.status + ')');
+      const r3 = await api('/api/blob-confirm', { method: 'POST', body: { id: d1.id } });
+      if (!r3.ok) throw new Error(r3.data?.error || '확인 실패');
+      const imgUrl = (r3.data?.data || r3.data)?.url;
+      if (!imgUrl) throw new Error('이미지 URL 없음');
+      status.textContent = '✅ 완료';
+      showItemImg(imgUrl);
+    } catch (err) {
+      status.textContent = '❌ ' + err.message;
+      toast('업로드 실패: ' + err.message);
+    }
+  }
 
   /* ── 슬롯 렌더 ── */
   function renderSlot(slot, items) {
@@ -411,9 +486,10 @@
     const addBtn = e.target.closest('[data-add-item]');
     if (addBtn) {
       document.getElementById('modalItemTitle').textContent = '아이템 추가';
-      ['itemId','itemTitle','itemSubtitle','itemLink','itemImage'].forEach(id => document.getElementById(id).value = '');
+      ['itemId','itemTitle','itemSubtitle','itemLink'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('itemSlot').value = addBtn.dataset.addItem;
       document.getElementById('itemType').value = 'banner';
+      clearItemImg();
       document.getElementById('modalItem').classList.add('show');
       return;
     }
@@ -428,8 +504,8 @@
       document.getElementById('itemTitle').value = item.title;
       document.getElementById('itemSubtitle').value = item.subtitle || '';
       document.getElementById('itemLink').value = item.linkUrl || '';
-      document.getElementById('itemImage').value = item.imageUrl || '';
       document.getElementById('itemType').value = item.contentType || 'banner';
+      if (item.imageUrl) { showItemImg(item.imageUrl); } else { clearItemImg(); }
       document.getElementById('modalItem').classList.add('show');
       return;
     }
@@ -453,7 +529,7 @@
       title: document.getElementById('itemTitle').value.trim(),
       subtitle: document.getElementById('itemSubtitle').value.trim() || null,
       linkUrl: document.getElementById('itemLink').value.trim() || null,
-      imageUrl: document.getElementById('itemImage').value.trim() || null,
+      imageUrl: document.getElementById('itemImageUrl').value.trim() || null,
       contentType: document.getElementById('itemType').value,
     };
     if (!body.title) { toast('제목은 필수입니다.'); return; }
