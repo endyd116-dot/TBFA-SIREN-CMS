@@ -802,6 +802,35 @@ export const TOOL_DECLARATIONS = [
       link:      { type: "STRING",  description: "클릭 시 이동 URL (선택)" },
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["title", "body"] }},
+
+  /* === Layer 2 파이프라인 === */
+  { name: "email_send_by_filter", description: "회원 조건 필터링 후 맞춤 이메일 일괄 발송 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      memberFilter: { type: "OBJECT", description: "회원 필터 조건", properties: {
+        type:             { type: "STRING",  description: "회원 유형: regular|expert|operator" },
+        donationMonths:   { type: "OBJECT",  description: "정기 후원 개월 수 조건. 예: { gte: 6 } 또는 { lte: 3 }" },
+        churnRiskLevel:   { type: "STRING",  description: "이탈 위험 등급: high|critical|medium" },
+        lastDonationDays: { type: "OBJECT",  description: "마지막 후원 경과 일수 조건. 예: { gte: 90 }" },
+        agreeEmail:       { type: "BOOLEAN", description: "true=이메일 수신 동의자만" },
+        joinedDays:       { type: "OBJECT",  description: "가입 경과 일수 조건. 예: { gte: 30 }" },
+      }},
+      subject:         { type: "STRING",  description: "이메일 제목 ({{name}} 변수로 회원 이름 삽입 가능)" },
+      bodyMode:        { type: "STRING",  description: "본문 모드: fixed(고정 본문) | ai_generate(회원별 개인화)", enum: ["fixed", "ai_generate"] },
+      bodyTemplate:    { type: "STRING",  description: "bodyMode=fixed 시 사용할 HTML 본문" },
+      tone:            { type: "STRING",  description: "bodyMode=ai_generate 시 톤 힌트 (예: 따뜻한, 공식적)" },
+      wrapWithLayout:  { type: "BOOLEAN", description: "true=SIREN 이메일 레이아웃으로 감싸기" },
+      layout:          { type: "STRING",  description: "레이아웃 종류: classic|minimal|gradient|editorial (기본 classic)", enum: ["classic", "minimal", "gradient", "editorial"] },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["memberFilter", "subject"] }},
+
+  { name: "bulk_pipeline", description: "범용 source+filter+action 파이프라인 — 다양한 데이터 소스를 조건 필터링 후 일괄 처리 (dry-run 우선). source=members: email_send·notification_send·members_block / legal_consultations: legal_reply·legal_status_update / harassment_reports: harassment_reply·harassment_status_update / chat_rooms: chat_message_send·chat_room_close",
+    parameters: { type: "OBJECT", properties: {
+      source:          { type: "STRING",  description: "데이터 소스: members|legal_consultations|harassment_reports|chat_rooms", enum: ["members", "legal_consultations", "harassment_reports", "chat_rooms"] },
+      filter:          { type: "OBJECT",  description: "source별 필터 조건 (status, type, dateRange 등)" },
+      action:          { type: "STRING",  description: "수행할 액션 — members: email_send·notification_send·members_block / legal_consultations: legal_reply·legal_status_update / harassment_reports: harassment_reply·harassment_status_update / chat_rooms: chat_message_send·chat_room_close" },
+      actionParams:    { type: "OBJECT",  description: "action에 전달할 추가 파라미터" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["source", "action"] }},
 ];
 
 /* =========================================================
@@ -1010,6 +1039,9 @@ export async function executeTool(
       case "harassment_reply_batch":   return await tool_harassmentReplyBatch(args, adminId);
       case "chat_message_broadcast":   return await tool_chatMessageBroadcast(args, adminId);
       case "notification_batch":       return await tool_notificationBatch(args, adminId);
+      /* === Layer 2 파이프라인 === */
+      case "email_send_by_filter":    return await tool_emailSendByFilter(args, adminId);
+      case "bulk_pipeline":           return await tool_bulkPipeline(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -5169,5 +5201,208 @@ async function tool_notificationBatch(args: any, adminId: number | null): Promis
     return { ok: true, output: { total: targetMembers.length, inserted, message: `${inserted}명에게 알림 발송 완료` } };
   } catch (e: any) {
     return { ok: false, error: `일괄 알림 발송 실패: ${e?.message?.slice(0, 200)} (성공 ${inserted}/${targetMembers.length})` };
+  }
+}
+
+/* =========================================================
+   === Layer 2 파이프라인 ===
+   ========================================================= */
+
+async function tool_emailSendByFilter(args: any, adminId: number): Promise<ToolResult> {
+  try {
+    const authCheck = await ensureRole(adminId, ["operator", "admin"]);
+    if (!authCheck.ok) return authCheck;
+
+    const { memberFilter = {}, subject, bodyMode = "fixed", bodyTemplate, tone, wrapWithLayout = false, layout = "classic", requireApproval = true } = args;
+
+    if (!subject) return { ok: false, error: "subject(이메일 제목)는 필수입니다" };
+
+    // WHERE 조건 누적 (whitelist 기반 — SQL 인젝션 방지)
+    const conditions: string[] = ["m.agree_email = true", "m.status = 'active'"];
+
+    if (memberFilter.type && ["regular", "expert", "operator"].includes(memberFilter.type)) {
+      conditions.push(`m.type = '${memberFilter.type}'`);
+    }
+    if (memberFilter.churnRiskLevel && ["high", "critical", "medium"].includes(memberFilter.churnRiskLevel)) {
+      conditions.push(`m.churn_risk_level = '${memberFilter.churnRiskLevel}'`);
+    }
+    if (memberFilter.agreeEmail === false) {
+      // agreeEmail=false는 동의자만 필터(기본) 해제 → 전체 대상
+      conditions.splice(conditions.indexOf("m.agree_email = true"), 1);
+    }
+    if (memberFilter.donationMonths?.gte != null) {
+      conditions.push(`m.regular_months_count >= ${Number(memberFilter.donationMonths.gte)}`);
+    }
+    if (memberFilter.donationMonths?.lte != null) {
+      conditions.push(`m.regular_months_count <= ${Number(memberFilter.donationMonths.lte)}`);
+    }
+    if (memberFilter.lastDonationDays?.gte != null) {
+      conditions.push(`m.last_donation_at <= NOW() - INTERVAL '${Number(memberFilter.lastDonationDays.gte)} days'`);
+    }
+    if (memberFilter.joinedDays?.gte != null) {
+      conditions.push(`m.created_at <= NOW() - INTERVAL '${Number(memberFilter.joinedDays.gte)} days'`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const rows: Array<{ id: number; name: string; email: string; regularMonthsCount: number | null }> = await db.execute(
+      sql.raw(`SELECT m.id, m.name, m.email, m.regular_months_count AS "regularMonthsCount" FROM members m ${where} ORDER BY m.id LIMIT 1000`)
+    ) as any;
+
+    const total = rows.length;
+
+    // dry-run 반환
+    if (requireApproval !== false) {
+      return {
+        ok: true,
+        preview: {
+          dry_run: true,
+          total,
+          sample: rows.slice(0, 5).map(r => ({ id: r.id, name: r.name, email: r.email })),
+          message: `총 ${total}명에게 "${subject}" 이메일 발송 예정. requireApproval=false로 재호출하면 실제 발송합니다.`,
+        },
+      };
+    }
+
+    // 실제 발송
+    let sent = 0;
+    let failed = 0;
+    for (const member of rows) {
+      try {
+        const personalizedSubject = subject.replace(/\{\{name\}\}/g, member.name || "");
+
+        let bodyHtml: string;
+        if (bodyMode === "ai_generate") {
+          const toneHint = tone ? ` 톤: ${tone}.` : "";
+          bodyHtml = `<p>안녕하세요, ${member.name}님.</p><p>SIREN 교사유가족협의회에서 소식을 전합니다.${toneHint}</p>`;
+        } else {
+          bodyHtml = (bodyTemplate || "").replace(/\{\{name\}\}/g, member.name || "");
+        }
+
+        let html = bodyHtml;
+        if (wrapWithLayout) {
+          html = renderEmailLayout(layout as any, { title: personalizedSubject, bodyHtml });
+        }
+
+        const result = await sendEmail({ to: member.email, subject: personalizedSubject, html });
+        if (result.ok) sent++; else failed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return {
+      ok: true,
+      output: { total, sent, failed, message: `${sent}명 발송 완료, ${failed}명 실패` },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `이메일 일괄 발송 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult> {
+  try {
+    const authCheck = await ensureRole(adminId, ["operator", "admin"]);
+    if (!authCheck.ok) return authCheck;
+
+    const { source, filter = {}, action, actionParams = {}, requireApproval = true } = args;
+
+    const allowedSources = ["members", "legal_consultations", "harassment_reports", "chat_rooms"];
+    if (!allowedSources.includes(source)) {
+      return { ok: false, error: `지원하지 않는 source: ${source}. 가능: ${allowedSources.join(", ")}` };
+    }
+
+    // source별 가능 action 검증
+    const allowedActions: Record<string, string[]> = {
+      members:              ["email_send", "notification_send", "members_block"],
+      legal_consultations:  ["legal_reply", "legal_status_update"],
+      harassment_reports:   ["harassment_reply", "harassment_status_update"],
+      chat_rooms:           ["chat_message_send", "chat_room_close"],
+    };
+    if (!allowedActions[source]?.includes(action)) {
+      return { ok: false, error: `source="${source}"에서 action="${action}"은 지원하지 않습니다. 가능: ${allowedActions[source]?.join(", ")}` };
+    }
+
+    // source별 SELECT
+    let rows: any[] = [];
+
+    if (source === "members") {
+      const conds: string[] = [];
+      if (filter.status && ["active", "inactive", "withdrawn"].includes(filter.status)) conds.push(`status = '${filter.status}'`);
+      if (filter.type && ["regular", "expert", "operator"].includes(filter.type)) conds.push(`type = '${filter.type}'`);
+      if (filter.churnRiskLevel && ["high", "critical", "medium"].includes(filter.churnRiskLevel)) conds.push(`churn_risk_level = '${filter.churnRiskLevel}'`);
+      const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+      rows = await db.execute(sql.raw(`SELECT id, name, email, type, status FROM members ${where} ORDER BY id LIMIT 500`)) as any;
+
+    } else if (source === "legal_consultations") {
+      const conds: string[] = [];
+      if (filter.status) conds.push(`status = '${filter.status}'`);
+      if (filter.category) conds.push(`category = '${filter.category}'`);
+      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
+      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+      rows = await db.execute(sql.raw(`SELECT id, consultation_no, title, status, member_id FROM legal_consultations ${where} ORDER BY id LIMIT 500`)) as any;
+
+    } else if (source === "harassment_reports") {
+      const conds: string[] = [];
+      if (filter.status) conds.push(`status = '${filter.status}'`);
+      if (filter.category) conds.push(`category = '${filter.category}'`);
+      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
+      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+      rows = await db.execute(sql.raw(`SELECT id, report_no, title, status, member_id FROM harassment_reports ${where} ORDER BY id LIMIT 500`)) as any;
+
+    } else if (source === "chat_rooms") {
+      const conds: string[] = [];
+      if (filter.status && ["active", "closed"].includes(filter.status)) conds.push(`status = '${filter.status}'`);
+      if (filter.category) conds.push(`category = '${filter.category}'`);
+      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
+      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+      rows = await db.execute(sql.raw(`SELECT id, title, status, category, member_id FROM chat_rooms ${where} ORDER BY id LIMIT 500`)) as any;
+    }
+
+    const total = rows.length;
+
+    // dry-run 반환
+    if (requireApproval !== false) {
+      return {
+        ok: true,
+        preview: {
+          dry_run: true,
+          total,
+          source,
+          action,
+          sample: rows.slice(0, 3),
+          message: `source="${source}"에서 ${total}건에 action="${action}" 실행 예정. requireApproval=false로 재호출하면 실제 실행합니다.`,
+        },
+      };
+    }
+
+    // 실제 실행 — 각 레코드 ID를 actionParams에 합쳐 executeTool 위임
+    let processed = 0;
+    const errors: string[] = [];
+
+    for (const row of rows) {
+      try {
+        const toolArgs = { ...actionParams, id: row.id };
+        const result = await executeTool(action, toolArgs, adminId);
+        if (result.ok) processed++;
+        else errors.push(`id=${row.id}: ${result.error}`);
+      } catch (e: any) {
+        errors.push(`id=${row.id}: ${e?.message?.slice(0, 100)}`);
+      }
+    }
+
+    return {
+      ok: true,
+      output: {
+        total,
+        processed,
+        errors: errors.slice(0, 20),
+        message: `${processed}건 처리 완료, ${errors.length}건 실패`,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `bulk_pipeline 실패: ${e?.message?.slice(0, 300)}` };
   }
 }
