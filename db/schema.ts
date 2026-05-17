@@ -393,12 +393,15 @@ export const donations = pgTable("donations", {
   receiptBlobId: integer("receipt_blob_id"),
 
   memo: text("memo"),
+  /* === 라운드3 CMS: 재정 기준일 통일 === */
+  paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
   memberIdx: index("donations_member_idx").on(t.memberId),
   statusIdx: index("donations_status_idx").on(t.status),
   createdIdx: index("donations_created_idx").on(t.createdAt),
+  paidAtIdx: index("donations_paid_at_idx").on(t.paidAt),
   receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber),
   tossPaymentKeyIdx: index("donations_toss_payment_key_idx").on(t.tossPaymentKey),
   tossOrderIdIdx: index("donations_toss_order_id_idx").on(t.tossOrderId),
