@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-17 | **메인** | **🏁 라운드 2 워크스페이스 완결 + 라운드 3 CMS 설계·마이그 준비 완료** (main @ `c4d2921`) — R2 Q1~Q12 통과 (BUG-Q4 멘션 INSERT·BUG-Q6 workspaceId 수정, 61572bc). 라운드 3 설계서·마이그·schema paidAt 완료. Swain 마이그 호출 대기 중. |
 | 2026-05-17 | **메인** | **🚀 라운드 2 워크스페이스 마이그 완료 + schema 활성화 + B·A 트리거 발사** (main @ `a595339`) — 3개 테이블 생성 확인(workspace_task_mentions·workspace_event_rsvps·google_calendar_tokens). 마이그 파일 삭제. 설계서: `docs/milestones/2026-05-17-round2-workspace.md`. B 9건(assign 버그·blob orphan·completedAt clear·mentions·rsvp·restore·holidays·assignedByMe·구글캘), A 4건(복원 버튼·RSVP UI·멘션 배지·구글캘 UI). ★ Swain 구글 OAuth2 환경변수 설정 필요. Round 1 Q10 익명 실명 표시 fix도 동시 머지(8de5e1c). |
 | 2026-05-17 | **메인** | **🎯 라운드 1 SIREN 4건 fix 설계 완료 + A·B·C 병렬 트리거 배포 대기** (main @ 본 커밋) — Swain 결정: #2 B안(응답 endpoint)·#3 A안(회원 상세 강제 변경)·#4 B안(실명+익명 배지)·진행 4채팅 병렬. 설계서: `docs/milestones/2026-05-17-round1-siren.md`. DB 마이그 0건(컬럼 모두 존재). B 작업 6건(빌링키·3종 자동 status·user-my-reports 응답·자격 강제 endpoint), A 작업 4건(my-reports.js 필드 정정·STAGE_FLOW·익명 배지·회원 상세 모달), C 12개 시나리오. **A·B 트리거는 메인 응답 본문에 그대로 박힘 — Swain이 복붙해서 A·B·C 채팅 시작**. |
 | 2026-05-16 | **메인** | **버그 픽스 3차 코드 완결 + 📐 Phase 23 설계 진입** (main @ `20af8b4`, 전부 푸시) — 계정과목 전면작업·#9/#11 매출 카테고리 2단계 계층·#7/#8 정기후원 효성·토스 중복 경고·출금전표 예산항목 드롭다운 전부 완료. 계정과목·매출카테고리 마이그 호출 확인·파일삭제·schema 활성화 완료. 버그3차 남은 건 Swain 운영 작업뿐(#16 HTTPS·#14 환경변수·#3 효성데이터). v3.0 설계도 정본화(docs 커밋)·Phase 23-0 골격 설계서 작성. ★ **재정 모듈 전체가 더미 → 마이그 불필요·v3.0 백지 재구축**. 미해결: "독립 앱 vs SIREN 내 독립 모듈" 메인 판단 → Swain 확인 대기. 상세 docs/HANDOFF.md §3.2. |
@@ -38,22 +39,20 @@
 ## 3. 현재 작업 모드
 
 ```
-🚀 라운드 2 워크스페이스 8건 + 구글 캘린더 — B·A 작업 진행 중 (2026-05-17)
-   - 설계서: docs/milestones/2026-05-17-round2-workspace.md
-   - DB 마이그: ✅ 완료 (3개 테이블) + schema.ts 활성화
-   - B 백 9건: assign 버그·blob orphan·completedAt·mentions API·event-rsvp·restore·holidays·assignedByMe·구글캘 4개
-   - A 프론트 4건: 휴지통 복원 버튼·RSVP UI·멘션 배지·구글 캘린더 연동 UI
-   - C 검증 Q1~Q12 (B·A 머지 후 진입)
+🔄 라운드 3 통합 CMS 6건 — 마이그 호출 대기 중 (2026-05-17)
+   - 설계서: docs/milestones/2026-05-17-round3-cms.md
+   - DB 마이그: migrate-round3-cms.ts 배포 완료 → Swain 호출 대기
+   - schema.ts: donations.paidAt 이미 추가됨
+   - B 백 5건: 환불 권한 확인·중복 차단·paidAt 적용·빌링키 재활성화 API·채널 검증
+   - A 프론트 1건: 빌링키 재활성화 UI
 
-   ★ Swain 필요 액션:
-   - 구글 OAuth2 환경변수 3개 등록 (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
-   - Round 1 C 검증 결과 확인 후 메인에 알림
+   ★ Swain 지금 할 일:
+   https://tbfa.co.kr/api/migrate-round3-cms?run=1 호출 → 완료 알림
 
-   ★ 다음 메인 작업:
-   1. B push → 응답 키 대조 → main 머지
-   2. A push → main 머지
-   3. C 검증 Q1~Q12
-   4. 라운드 3 CMS 7건 설계 진입
+   ★ 다음 메인 작업 (마이그 확인 후):
+   1. 마이그 파일 삭제 + B·A 트리거 발사
+   2. B·A push → 머지
+   3. C 검증 Q1~Q9
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -86,7 +85,7 @@
 | A | 프론트 | my-reports.js·STAGE_FLOW·익명 배지·회원 상세 모달 | ✅ 완료 (머지됨) |
 | C | 검증 | Q1~Q12 라이브 검증 | ✅ 완료 (12/12 통과, BUG-Q10 fix 포함, 0320fa2) |
 
-### 4.2 라운드 2 워크스페이스 8건 + 구글 캘린더 (2026-05-17 진행 중)
+### 4.2 라운드 2 워크스페이스 8건 + 구글 캘린더 (2026-05-17 ✅ 전체 완결)
 
 설계서: [docs/milestones/2026-05-17-round2-workspace.md](docs/milestones/2026-05-17-round2-workspace.md)
 
@@ -95,7 +94,7 @@
 | 메인 | DB·마이그·머지 | 마이그 3개 테이블 + schema.ts 활성화 | ✅ 완료 (a595339) |
 | B | 백엔드 | assign 버그·blob orphan·completedAt·mentions·rsvp·restore·holidays·assignedByMe·구글캘 | 🔄 트리거 발사 완료, 작업 중 |
 | A | 프론트 | 휴지통 복원·RSVP UI·멘션 배지·구글캘 연동 UI | 🔄 트리거 발사 완료, 작업 중 |
-| C | 검증 | Q1~Q12 | ⏸ B·A 머지 후 진입 |
+| C | 검증 | Q1~Q12 | ✅ 완료 (10통과 + BUG-Q4·Q6 fix, 61572bc) |
 
 다음 트랙(라운드 3~5)은 `docs/HANDOFF.md` §4 참조.
 
