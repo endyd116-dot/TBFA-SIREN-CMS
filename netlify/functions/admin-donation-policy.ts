@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { donationPolicies } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   ok, badRequest, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -119,9 +120,7 @@ export default async (req: Request) => {
     }
 
     if (req.method === "PATCH") {
-      if (member.role !== "super_admin") {
-        return forbidden("후원 정책 수정은 슈퍼 관리자만 가능합니다");
-      }
+      if (!requireRole(member, "super_admin")) return roleForbidden("super_admin");
 
       const body = await parseJson(req);
       if (!body || typeof body !== "object") return badRequest("요청 본문이 비어있습니다");

@@ -120,7 +120,7 @@ export default async (req: Request) => {
     const token = signAdminToken({
       uid: user.id,
       email: user.email,
-      role: "super_admin",
+      role: user.role ?? "operator",
       name: user.name,
     });
     const cookie = buildCookie("siren_admin_token", token, {
@@ -138,7 +138,7 @@ export default async (req: Request) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: "super_admin",
+        role: user.role ?? "operator",
       },
       /* token 필드 제거 */
     }, "관리자 인증 완료. 환영합니다.");

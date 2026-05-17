@@ -9,6 +9,7 @@
 
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   getSystemPrompt, setSystemPrompt,
   listToolPermissions, updateToolPermission,
@@ -21,11 +22,11 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
-  const adminId = (auth as any).ctx?.admin?.uid ?? null;
-  const adminRole = (auth as any).ctx?.admin?.role ?? null;
+  const adminId = auth.ctx.admin.uid;
+  const adminMember = auth.ctx.member;
 
   if (req.method === "GET") return handleGet();
-  if (req.method === "POST") return handlePost(req, adminId, adminRole);
+  if (req.method === "POST") return handlePost(req, adminId, adminMember);
 
   return new Response(JSON.stringify({ ok: false, error: "GET 또는 POST" }),
     { status: 405, headers: JSON_HEADER });
@@ -44,7 +45,7 @@ async function handleGet(): Promise<Response> {
   }
 }
 
-async function handlePost(req: Request, adminId: number | null, adminRole: string | null): Promise<Response> {
+async function handlePost(req: Request, adminId: number, adminMember: { role?: string | null }): Promise<Response> {
   let body: any = {};
   try { body = await req.json(); } catch {
     return new Response(JSON.stringify({ ok: false, error: "JSON 파싱 실패" }),
@@ -95,9 +96,8 @@ async function handlePost(req: Request, adminId: number | null, adminRole: strin
     }
 
     /* 슈퍼관리자만 권한 자체를 변경할 수 있게 */
-    if (patch.requiredRole !== undefined && adminRole !== "super_admin") {
-      return new Response(JSON.stringify({ ok: false, error: "도구 권한 변경은 슈퍼관리자만 가능합니다" }),
-        { status: 403, headers: JSON_HEADER });
+    if (patch.requiredRole !== undefined && !requireRole(adminMember, "super_admin")) {
+      return roleForbidden("super_admin");
     }
 
     try {

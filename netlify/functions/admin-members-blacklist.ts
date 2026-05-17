@@ -14,6 +14,7 @@ import { db } from "../../db";
 import { members } from "../../db/schema";
 import { eq, and, desc, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   ok, badRequest, forbidden, notFound, methodNotAllowed,
   serverError, parseJson,
@@ -23,6 +24,7 @@ import { logAudit } from "../../lib/audit";
 export default async (req: Request, _ctx: Context) => {
   const guard = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
+  if (!requireRole(guard.ctx.member, "admin")) return roleForbidden("admin");
   const adminMember = guard.ctx.member as any;
   const meId = adminMember.id as number;
 

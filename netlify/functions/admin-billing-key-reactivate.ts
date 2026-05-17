@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { billingKeys, notifications } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { logAdminAction } from "../../lib/audit";
 import { eq } from "drizzle-orm";
 
@@ -29,6 +30,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
+  if (!requireRole(auth.ctx.member, "admin")) return roleForbidden("admin");
   const { admin } = auth.ctx;
 
   let body: any;
