@@ -2837,6 +2837,7 @@
             <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
             <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
             <li data-super-only="1"><a data-page="security-audit"><i>🔒</i><span>감사·보안 로그</span></a></li>
+            <li data-super-only="1"><a data-page="role-policy"><i>🛡️</i><span>권한 정책</span></a></li>
           </ul>
         </li>
 
@@ -4477,6 +4478,12 @@
         <!-- Phase 17: 보안·감사 로그 -->
         <div id="adm-security-audit" class="adm-page"></div>
 
+        <!-- Round 4: 권한 정책 관리 -->
+        <div id="adm-role-policy" class="adm-page" style="padding:0;overflow:hidden">
+          <iframe src="/admin-role-policy.html" title="권한 정책 관리"
+            style="width:100%;height:100%;border:none;min-height:600px"></iframe>
+        </div>
+
         <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
                 <!-- ★ C안 Step 3: AI 활동보고서 목록 (모듈에서 동적 렌더) -->
@@ -5630,7 +5637,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260516siren-dash"></script>
-  <script src="/js/admin.js?v=20260517r1"></script>
+  <script src="/js/admin.js?v=20260517r2"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-17-r2"></script>
   <script src="/js/editor.js?v=2026-05"></script>

@@ -372,6 +372,7 @@
         else if (tab === 'ai-cost')    _nfLoadIframe('page-ai-cost');
         else if (tab === 'ai-logs')    renderAiLogs();
         else if (tab === 'ai-config')  _nfLoadIframe('page-ai-config');  /* iframe으로 교체됨 */
+        else if (tab === 'role-policy') _nfLoadIframe('page-role-policy'); /* Round 4: 권한 정책 */
       });
     });
 

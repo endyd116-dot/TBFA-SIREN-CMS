@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>권한 정책 관리 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a2035;
+      background: #f4f6fa;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1a2035;
+    }
+    .page-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    /* ─── 섹션 카드 ─── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── 권한 매트릭스 테이블 ─── */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .matrix-table th, .matrix-table td {
+      padding: 10px 14px;
+      border: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    .matrix-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    .matrix-table td:first-child {
+      text-align: left;
+      font-weight: 500;
+      color: #1a2035;
+      background: #fafafa;
+    }
+    .matrix-table tbody tr:hover td { background: #f0f4ff; }
+
+    .badge-allow {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    .badge-deny {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    /* role 배지 */
+    .role-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .role-super_admin { background: #ede9fe; color: #6d28d9; }
+    .role-admin       { background: #dbeafe; color: #1d4ed8; }
+    .role-operator    { background: #f3f4f6; color: #4b5563; }
+
+    /* ─── 운영자 목록 ─── */
+    .ops-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .ops-table th, .ops-table td {
+      padding: 10px 14px;
+      border: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .ops-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    .ops-table tbody tr:hover td { background: #f0f4ff; }
+
+    .role-select {
+      padding: 4px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fff;
+      cursor: pointer;
+      color: #374151;
+    }
+    .role-select:focus { outline: none; border-color: #6366f1; }
+
+    .btn-save-role {
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      background: #6366f1;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save-role:hover { background: #4f46e5; }
+    .btn-save-role:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    /* 상태·로딩 */
+    .loading-row td { text-align: center; color: #9ca3af; padding: 24px; }
+    .error-row td { text-align: center; color: #dc2626; padding: 16px; }
+
+    /* 알림 토스트 */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok   { background: #16a34a; }
+    #toast.err  { background: #dc2626; }
+
+    /* super_admin 전용 안내 */
+    .super-only-notice {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🔐 권한 정책 관리</h2>
+  <p class="page-desc">3단 권한 체계(super_admin / admin / operator) 정의와 운영자별 역할을 확인·변경합니다.</p>
+
+  <!-- 1. 권한 매트릭스 (읽기 전용) -->
+  <div class="card">
+    <div class="card-title">📋 권한 매트릭스 <span style="font-size:11px;font-weight:400;color:#9ca3af">(읽기 전용)</span></div>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;width:40%">기능 영역</th>
+          <th><span class="role-badge role-super_admin">super_admin</span></th>
+          <th><span class="role-badge role-admin">admin</span></th>
+          <th><span class="role-badge role-operator">operator</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>감사 로그 조회</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>예산 승인</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>지출 승인</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>등급·정책·AI 설정</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>운영자 관리</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>회원 관리 (블랙·자격·강제)</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>후원·환불 관리</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>SIREN 신고 처리</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-deny">불가</span></td>
+        </tr>
+        <tr>
+          <td>캠페인·게시판 관리</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+        </tr>
+        <tr>
+          <td>워크스페이스 조회·Task 관리</td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+          <td><span class="badge-allow">허용</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 2. 운영자 역할 현황 -->
+  <div class="card">
+    <div class="card-title">👨‍💼 운영자 역할 현황</div>
+    <table class="ops-table">
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>현재 역할</th>
+          <th>활성 상태</th>
+          <th id="roleChangeHeader" style="display:none">역할 변경 <span style="font-size:11px;color:#9ca3af">(super_admin 전용)</span></th>
+        </tr>
+      </thead>
+      <tbody id="opsTbody">
+        <tr class="loading-row"><td colspan="4">불러오는 중...</td></tr>
+      </tbody>
+    </table>
+    <p class="super-only-notice" id="superOnlyNotice" style="display:none">※ 역할 변경은 super_admin 계정으로 로그인한 경우에만 가능합니다.</p>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    /* ─── 공용 api 헬퍼 ─── */
+    async function api(url, opts) {
+      opts = opts || {};
+      const fetchOpts = {
+        method: opts.method || 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      };
+      if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
+      const r = await fetch(url, fetchOpts);
+      let data;
+      try { data = await r.json(); } catch (e) { data = {}; }
+      return { ok: r.ok, status: r.status, data };
+    }
+
+    /* ─── 토스트 ─── */
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'show ' + (type === 'error' ? 'err' : 'ok');
+      setTimeout(() => { el.className = ''; }, 2800);
+    }
+
+    /* ─── role 라벨·배지 ─── */
+    function roleBadge(role) {
+      const labels = { super_admin: 'Super Admin', admin: 'Admin', operator: 'Operator' };
+      const label = labels[role] || role;
+      return '<span class="role-badge role-' + role + '">' + label + '</span>';
+    }
+
+    /* ─── mock 데이터 (백엔드 연결 전 폴백) ─── */
+    const MOCK_OPERATORS = {
+      ok: true,
+      data: {
+        operators: [
+          { id: 1, name: "김운영", role: "super_admin", operatorActive: true },
+          { id: 2, name: "이담당", role: "admin", operatorActive: true },
+          { id: 3, name: "박조회", role: "operator", operatorActive: true }
+        ]
+      }
+    };
+
+    /* ─── 현재 로그인 계정 role ─── */
+    let currentRole = null;
+
+    async function fetchCurrentRole() {
+      try {
+        const res = await api('/api/admin/me');
+        if (res.ok) {
+          currentRole = res.data.data?.role || res.data.role || null;
+        }
+      } catch (e) { /* 무시 */ }
+    }
+
+    /* ─── 운영자 목록 로드 ─── */
+    async function loadOperators() {
+      const tbody = document.getElementById('opsTbody');
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="4">불러오는 중...</td></tr>';
+
+      let operators = [];
+      try {
+        const res = await api('/api/admin-operators');
+        if (res.ok && (res.data?.data?.operators || res.data?.operators)) {
+          operators = res.data?.data?.operators || res.data?.operators;
+        } else {
+          operators = MOCK_OPERATORS.data.operators;
+        }
+      } catch (e) {
+        operators = MOCK_OPERATORS.data.operators;
+      }
+
+      const isSuperAdmin = currentRole === 'super_admin';
+      const header = document.getElementById('roleChangeHeader');
+      const notice = document.getElementById('superOnlyNotice');
+
+      if (isSuperAdmin) {
+        header.style.display = '';
+        notice.style.display = '';
+      }
+
+      if (!operators.length) {
+        tbody.innerHTML = '<tr class="loading-row"><td colspan="4">등록된 운영자가 없습니다.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = operators.map(op => {
+        const active = op.operatorActive
+          ? '<span style="color:#16a34a;font-weight:600">활성</span>'
+          : '<span style="color:#dc2626;font-weight:600">비활성</span>';
+
+        const changeCell = isSuperAdmin
+          ? `<td>
+              <select class="role-select" id="role-select-${op.id}" data-op-id="${op.id}" data-orig="${op.role}">
+                <option value="super_admin" ${op.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                <option value="admin"       ${op.role === 'admin'       ? 'selected' : ''}>Admin</option>
+                <option value="operator"    ${op.role === 'operator'    ? 'selected' : ''}>Operator</option>
+              </select>
+              <button class="btn-save-role" onclick="saveRole(${op.id})" id="btn-role-${op.id}">저장</button>
+            </td>`
+          : '';
+
+        return `<tr>
+          <td>${op.name}</td>
+          <td>${roleBadge(op.role)}</td>
+          <td>${active}</td>
+          ${changeCell}
+        </tr>`;
+      }).join('');
+    }
+
+    /* ─── 역할 변경 저장 ─── */
+    async function saveRole(opId) {
+      const select = document.getElementById('role-select-' + opId);
+      const btn = document.getElementById('btn-role-' + opId);
+      if (!select || !btn) return;
+
+      const newRole = select.value;
+      const origRole = select.dataset.orig;
+      if (newRole === origRole) {
+        toast('변경 사항이 없습니다.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '저장 중...';
+
+      try {
+        const res = await api('/api/admin-operators?id=' + opId, {
+          method: 'PATCH',
+          body: { role: newRole },
+        });
+        if (res.ok || res.data?.ok) {
+          toast('역할이 변경되었습니다.', 'ok');
+          select.dataset.orig = newRole;
+        } else {
+          toast(res.data?.error || '변경 실패', 'error');
+          select.value = origRole;
+        }
+      } catch (e) {
+        toast('네트워크 오류: ' + e.message, 'error');
+        select.value = origRole;
+      }
+
+      btn.disabled = false;
+      btn.textContent = '저장';
+      loadOperators();
+    }
+
+    /* ─── 초기화 ─── */
+    (async function init() {
+      await fetchCurrentRole();
+      await loadOperators();
+    })();
+  </script>
+</body>
+</html>
