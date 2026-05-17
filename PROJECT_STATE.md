@@ -24,7 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료 (116→122+ 도구). A: feature/layer1-batch (배치 도구 4개), B: feature/layer2-pipeline (파이프라인 도구 2개). 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
+| 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
+| 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료. 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
 | 2026-05-17 | **메인** | **🏁 라운드 1~6 전체 완결** (main @ `5086322`) — C 검증 54항목 전부 통과. R2 BUG 2건 포함 모두 해소. 게이미피케이션·큐레이션·팝업 DB 8테이블 + API 18개 + UI 5페이지 운영 중. |
 | 2026-05-17 | **메인** | **🏁 라운드 5 발송 센터 UX 완결 (C Q1~Q10 전부 통과, BUG 0)** (main @ `7a2f557`) — 채널별 미리보기 탭(이메일·SMS·카카오·인앱) + 파일함 재사용 첨부 전부 PASS. |
 | 2026-05-17 | **메인** | **🏁 라운드 4 3단 권한 체계 완결 (C Q1~Q8 전부 통과, BUG 0)** (main @ `a2a7a55`) — 로그인 role 하드코딩 제거·requireRole 헬퍼·admin 등급 체크·권한 정책 페이지 전부 PASS. |
@@ -145,9 +146,9 @@
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| A | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | ⏸ Phase 1 대기 |
-| B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ⏸ Phase 1 대기 |
-| C | 검증 | Q1~Q6 라이브 검증 (Phase 1 완료 후 시작) | ⏸ Phase 1 대기 |
+| A | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | 🔄 진행 중 |
+| B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | 🔄 진행 중 |
+| C | 검증 | Q1~Q6 라이브 검증 | 🔄 진행 중 |
 
 ### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 ✅ 전체 완결)
 
