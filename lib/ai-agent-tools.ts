@@ -455,6 +455,24 @@ export const TOOL_DECLARATIONS = [
 
   { name: "recipient_groups_list", description: "수신자 그룹 목록 (활성여부 필터)",
     parameters: { type: "OBJECT", properties: { isActive: { type: "BOOLEAN" }, limit: { type: "INTEGER" }}}},
+  { name: "recipient_group_create", description: "수신자 그룹 생성 (dry-run 우선). criteria.type='filter'이면 조건 기반(이탈위험·신규 등), 'manual'이면 memberIds 직접 지정.",
+    parameters: { type: "OBJECT", properties: {
+      name: { type: "STRING", description: "그룹 이름 (예: 이탈 위험 후원자 2026-05)" },
+      description: { type: "STRING" },
+      criteria: { type: "OBJECT", description: "{ type:'filter', filters:[{field,op,values}] } 또는 { type:'manual', memberIds:[1,2,3] }" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["name", "criteria"] }},
+  { name: "recipient_group_update", description: "수신자 그룹 수정 (이름·설명·조건·활성여부, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      groupId: { type: "INTEGER" },
+      name: { type: "STRING" }, description: { type: "STRING" },
+      criteria: { type: "OBJECT" }, isActive: { type: "BOOLEAN" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["groupId"] }},
+  { name: "recipient_group_delete", description: "수신자 그룹 비활성화 (soft delete, dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      groupId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["groupId"] }},
 
   { name: "incident_comment_add", description: "사건 제보에 운영자 의견·답변 추가 (dry-run 우선). isPrivate=true는 내부 메모.",
     parameters: { type: "OBJECT", properties: {
@@ -505,6 +523,32 @@ export const TOOL_DECLARATIONS = [
 
   { name: "donation_policy_get", description: "후원 정책 단건 조회 (금액·계좌·효성 모달 등)",
     parameters: { type: "OBJECT", properties: {} }},
+  { name: "donation_policy_update", description: "후원 정책 수정 (dry-run 우선). 변경할 필드만 전달. 예: '최소 후원금 1만원으로 바꿔줘' → minAmount:10000.",
+    parameters: { type: "OBJECT", properties: {
+      minAmount: { type: "INTEGER", description: "최소 후원 금액 (원)" },
+      maxAmount: { type: "INTEGER" },
+      regularAmounts: { type: "ARRAY", items: { type: "INTEGER" }, description: "정기 후원 선택 금액 목록. 예: [10000,30000,50000,100000]" },
+      onetimeAmounts: { type: "ARRAY", items: { type: "INTEGER" }, description: "일시 후원 선택 금액 목록" },
+      bankName: { type: "STRING" }, bankAccountNo: { type: "STRING" }, bankAccountHolder: { type: "STRING" },
+      bankGuideText: { type: "STRING" },
+      hyosungCountdownMessage: { type: "STRING" }, hyosungCountdownSeconds: { type: "INTEGER" },
+      modalTitle: { type: "STRING" }, modalSubtitle: { type: "STRING" },
+      requireApproval: { type: "BOOLEAN" },
+    }}},
+  { name: "legal_reply", description: "법률 상담에 관리자 답변 작성 + 상태 변경 (dry-run 우선). '법률 상담 일괄 거절 답변 보내' 같은 배치 처리 시 각 건마다 호출.",
+    parameters: { type: "OBJECT", properties: {
+      consultationId: { type: "INTEGER" },
+      adminResponse: { type: "STRING", description: "답변 본문. AI가 직접 작성." },
+      status: { type: "STRING", description: "responded(답변완료)|rejected(거절)|closed. 생략 시 responded.", enum: ["responded", "rejected", "closed"] },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["consultationId", "adminResponse"] }},
+  { name: "harassment_reply", description: "악성민원 신고에 관리자 답변 작성 + 상태 변경 (dry-run 우선).",
+    parameters: { type: "OBJECT", properties: {
+      reportId: { type: "INTEGER" },
+      adminResponse: { type: "STRING", description: "답변 본문. AI가 직접 작성." },
+      status: { type: "STRING", description: "responded|rejected|closed. 생략 시 responded.", enum: ["responded", "rejected", "closed"] },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["reportId", "adminResponse"] }},
 
   { name: "chat_rooms_list", description: "채팅방 목록 (카테고리·상태 필터, 미답변 우선)",
     parameters: { type: "OBJECT", properties: {
@@ -513,6 +557,22 @@ export const TOOL_DECLARATIONS = [
       unreadOnly: { type: "BOOLEAN", description: "true=관리자 미확인 메시지 있는 방만" },
       limit: { type: "INTEGER" },
     }}},
+  { name: "chat_room_messages_list", description: "채팅방 메시지 목록 (최신순). 답변 작성 전 대화 맥락 확인용.",
+    parameters: { type: "OBJECT", properties: {
+      roomId: { type: "INTEGER" },
+      limit: { type: "INTEGER", description: "기본 30" },
+    }, required: ["roomId"] }},
+  { name: "chat_message_send", description: "채팅방에 관리자 메시지 전송 (dry-run 우선). 미답변 채팅 응대·일괄 안내에 사용.",
+    parameters: { type: "OBJECT", properties: {
+      roomId: { type: "INTEGER" },
+      content: { type: "STRING", description: "전송할 메시지 본문" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["roomId", "content"] }},
+  { name: "chat_room_close", description: "채팅방 종료 (status=closed, dry-run 우선). 답변 완료 후 종료 처리에 사용.",
+    parameters: { type: "OBJECT", properties: {
+      roomId: { type: "INTEGER" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["roomId"] }},
 
   /* === Phase 22-A 매출 (6개) === */
   { name: "revenue_categories_list", description: "후원 외 수입 카테고리 목록 조회",
@@ -849,6 +909,9 @@ export async function executeTool(
       case "template_create":          return await tool_templateCreate(args, adminId);
       case "template_update":          return await tool_templateUpdate(args, adminId);
       case "recipient_groups_list":    return await tool_recipientGroupsList(args);
+      case "recipient_group_create":   return await tool_recipientGroupCreate(args, adminId);
+      case "recipient_group_update":   return await tool_recipientGroupUpdate(args, adminId);
+      case "recipient_group_delete":   return await tool_recipientGroupDelete(args, adminId);
       case "incident_comment_add":     return await tool_incidentCommentAdd(args, adminId);
       /* Phase 4: 잠재후원자·자료CUD·예산·정책·채팅 (10개) */
       case "potential_donors_list":    return await tool_potentialDonorsList(args);
@@ -859,7 +922,13 @@ export async function executeTool(
       case "budgets_list":             return await tool_budgetsList(args);
       case "budget_summary":           return await tool_budgetSummary(args);
       case "donation_policy_get":      return await tool_donationPolicyGet();
+      case "donation_policy_update":   return await tool_donationPolicyUpdate(args, adminId);
       case "chat_rooms_list":          return await tool_chatRoomsList(args);
+      case "chat_room_messages_list":  return await tool_chatRoomMessagesList(args, adminId);
+      case "chat_message_send":        return await tool_chatMessageSend(args, adminId);
+      case "chat_room_close":          return await tool_chatRoomClose(args, adminId);
+      case "legal_reply":              return await tool_legalReply(args, adminId);
+      case "harassment_reply":         return await tool_harassmentReply(args, adminId);
       /* Phase 22-A 매출 */
       case "revenue_categories_list": return await tool_revenueCategoriesList();
       case "revenue_create":          return await tool_revenueCreate(args, adminId);
@@ -2372,6 +2441,281 @@ async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolR
     return { ok: true, output: { deleted: true, taskId: id, cascaded: { comments: commentCount, reports: reportCount, attachments: attachmentCount } }, rollbackData: { table: "workspace_tasks", id, before } };
   } catch (e: any) {
     return { ok: false, error: `작업 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   수신자 그룹 CRUD (3종)
+   ========================================================= */
+
+async function tool_recipientGroupCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const name = String(args?.name || "").trim().slice(0, 100);
+  if (!name) return { ok: false, error: "name 필수" };
+  const criteria = args?.criteria;
+  if (!criteria || !["filter", "manual"].includes(criteria?.type))
+    return { ok: false, error: "criteria.type 필수 (filter|manual)" };
+  const description = String(args?.description || "").trim();
+
+  const preview = { name, description, criteriaType: criteria.type };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 수신자 그룹 "${name}" 생성 예정.` } };
+
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO recipient_groups (name, description, criteria, is_active, created_by, updated_by, created_at, updated_at)
+      VALUES (${name}, ${description || null}, ${JSON.stringify(criteria)}::jsonb, true, ${adminId}, ${adminId}, NOW(), NOW())
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { groupId: id, ...preview }, rollbackData: { table: "recipient_groups", id } };
+  } catch (e: any) {
+    return { ok: false, error: `그룹 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_recipientGroupUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.groupId || 0);
+  if (!id) return { ok: false, error: "groupId 필수" };
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, name, description, criteria, is_active FROM recipient_groups WHERE id = ${id}`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `수신자 그룹 ${id} 없음` };
+
+  const name = args?.name !== undefined ? String(args.name).trim().slice(0, 100) : before.name;
+  const description = args?.description !== undefined ? String(args.description) : before.description;
+  const criteria = args?.criteria !== undefined ? args.criteria : before.criteria;
+  const isActive = args?.isActive !== undefined ? Boolean(args.isActive) : before.is_active;
+
+  const preview = { groupId: id, name, isActive };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 그룹 "${before.name}" 수정 예정.` } };
+
+  try {
+    await db.execute(sql`
+      UPDATE recipient_groups SET name = ${name}, description = ${description}, criteria = ${JSON.stringify(criteria)}::jsonb,
+        is_active = ${isActive}, updated_by = ${adminId}, updated_at = NOW() WHERE id = ${id}
+    `);
+    return { ok: true, output: { updated: true, ...preview }, rollbackData: { table: "recipient_groups", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `그룹 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_recipientGroupDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.groupId || 0);
+  if (!id) return { ok: false, error: "groupId 필수" };
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, name FROM recipient_groups WHERE id = ${id}`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `수신자 그룹 ${id} 없음` };
+
+  if (args?.requireApproval !== false)
+    return { ok: true, preview: { groupId: id, name: before.name }, output: { dry_run: true, message: `승인 대기. 그룹 "${before.name}" 비활성화 예정.` } };
+  try {
+    await db.execute(sql`UPDATE recipient_groups SET is_active = false, updated_by = ${adminId}, updated_at = NOW() WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, groupId: id, name: before.name }, rollbackData: { table: "recipient_groups", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `그룹 비활성화 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   채팅방 관리 (3종)
+   ========================================================= */
+
+async function tool_chatRoomMessagesList(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const roomId = Number(args?.roomId || 0);
+  if (!roomId) return { ok: false, error: "roomId 필수" };
+  const limit = Math.min(Number(args?.limit) || 30, 100);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, sender_id, sender_role, message_type, content, is_read, is_system, created_at
+        FROM chat_messages WHERE room_id = ${roomId}
+       ORDER BY created_at DESC LIMIT ${limit}
+    `);
+    const messages = (r?.rows ?? r ?? []).reverse();
+    return { ok: true, output: { roomId, count: messages.length, messages } };
+  } catch (e: any) {
+    return { ok: false, error: `메시지 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_chatMessageSend(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const roomId = Number(args?.roomId || 0);
+  const content = String(args?.content || "").trim();
+  if (!roomId) return { ok: false, error: "roomId 필수" };
+  if (!content) return { ok: false, error: "content 필수" };
+
+  let room: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status, member_id FROM chat_rooms WHERE id = ${roomId}`);
+    room = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `채팅방 조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!room) return { ok: false, error: `채팅방 ${roomId} 없음` };
+  if (room.status === "closed") return { ok: false, error: "종료된 채팅방에는 메시지를 보낼 수 없음" };
+
+  const preview = { roomId, contentPreview: content.slice(0, 100) };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 채팅방 ${roomId}에 메시지 전송 예정.` } };
+
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO chat_messages (room_id, sender_id, sender_role, message_type, content, is_read, is_system, created_at)
+      VALUES (${roomId}, ${adminId}, 'admin', 'text', ${content}, false, false, NOW())
+      RETURNING id
+    `);
+    const msgId = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    await db.execute(sql`
+      UPDATE chat_rooms SET last_message_at = NOW(), last_message_preview = ${content.slice(0, 100)},
+        unread_for_user = true, updated_at = NOW() WHERE id = ${roomId}
+    `);
+    return { ok: true, output: { messageId: msgId, roomId, sent: true } };
+  } catch (e: any) {
+    return { ok: false, error: `메시지 전송 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_chatRoomClose(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const roomId = Number(args?.roomId || 0);
+  if (!roomId) return { ok: false, error: "roomId 필수" };
+  let room: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status FROM chat_rooms WHERE id = ${roomId}`);
+    room = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!room) return { ok: false, error: `채팅방 ${roomId} 없음` };
+  if (room.status === "closed") return { ok: false, error: "이미 종료된 채팅방" };
+
+  if (args?.requireApproval !== false)
+    return { ok: true, preview: { roomId }, output: { dry_run: true, message: `승인 대기. 채팅방 ${roomId} 종료 예정.` } };
+  try {
+    await db.execute(sql`
+      UPDATE chat_rooms SET status = 'closed', closed_at = NOW(), closed_by = ${adminId}, updated_at = NOW() WHERE id = ${roomId}
+    `);
+    return { ok: true, output: { closed: true, roomId } };
+  } catch (e: any) {
+    return { ok: false, error: `채팅방 종료 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   후원 정책 수정 (1종)
+   ========================================================= */
+
+async function tool_donationPolicyUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+
+  const fields: Record<string, any> = {};
+  if (args?.minAmount !== undefined)            fields.min_amount = Number(args.minAmount);
+  if (args?.maxAmount !== undefined)            fields.max_amount = Number(args.maxAmount);
+  if (Array.isArray(args?.regularAmounts))      fields.regular_amounts = JSON.stringify(args.regularAmounts);
+  if (Array.isArray(args?.onetimeAmounts))      fields.onetime_amounts = JSON.stringify(args.onetimeAmounts);
+  if (args?.bankName !== undefined)             fields.bank_name = String(args.bankName);
+  if (args?.bankAccountNo !== undefined)        fields.bank_account_no = String(args.bankAccountNo);
+  if (args?.bankAccountHolder !== undefined)    fields.bank_account_holder = String(args.bankAccountHolder);
+  if (args?.bankGuideText !== undefined)        fields.bank_guide_text = String(args.bankGuideText);
+  if (args?.hyosungCountdownMessage !== undefined) fields.hyosung_countdown_message = String(args.hyosungCountdownMessage);
+  if (args?.hyosungCountdownSeconds !== undefined) fields.hyosung_countdown_seconds = Number(args.hyosungCountdownSeconds);
+  if (args?.modalTitle !== undefined)           fields.modal_title = String(args.modalTitle);
+  if (args?.modalSubtitle !== undefined)        fields.modal_subtitle = String(args.modalSubtitle);
+
+  if (Object.keys(fields).length === 0) return { ok: false, error: "변경할 필드를 하나 이상 지정해주세요" };
+
+  const preview = { changedFields: Object.keys(fields), values: fields };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 후원 정책 ${Object.keys(fields).join(", ")} 수정 예정.` } };
+
+  try {
+    const setClauses = Object.entries(fields).map(([col, val]) =>
+      col.endsWith("_amounts") ? sql`${sql.raw(col)} = ${val}::jsonb` : sql`${sql.raw(col)} = ${val}`
+    );
+    await db.execute(sql`
+      UPDATE donation_policies SET ${sql.join(setClauses, sql`, `)}, updated_by = ${adminId}, updated_at = NOW()
+      WHERE id = (SELECT id FROM donation_policies ORDER BY id LIMIT 1)
+    `);
+    return { ok: true, output: { updated: true, ...preview } };
+  } catch (e: any) {
+    return { ok: false, error: `후원 정책 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   법률 상담·악성민원 답변 (2종)
+   ========================================================= */
+
+async function tool_legalReply(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.consultationId || 0);
+  const adminResponse = String(args?.adminResponse || "").trim();
+  if (!id) return { ok: false, error: "consultationId 필수" };
+  if (!adminResponse) return { ok: false, error: "adminResponse 필수" };
+  const VALID = new Set(["responded", "rejected", "closed"]);
+  const status = VALID.has(args?.status) ? args.status : "responded";
+
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status, description FROM legal_consultations WHERE id = ${id}`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `법률 상담 ${id} 없음` };
+
+  const preview = { consultationId: id, status, responsePreview: adminResponse.slice(0, 100) };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 법률 상담 ${id}에 답변 등록 + 상태 "${status}" 예정.` } };
+
+  try {
+    await db.execute(sql`
+      UPDATE legal_consultations
+         SET admin_response = ${adminResponse}, status = ${status},
+             responded_by = ${adminId}, responded_at = NOW(), updated_at = NOW()
+       WHERE id = ${id}
+    `);
+    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "legal_consultations", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `법률 상담 답변 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_harassmentReply(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.reportId || 0);
+  const adminResponse = String(args?.adminResponse || "").trim();
+  if (!id) return { ok: false, error: "reportId 필수" };
+  if (!adminResponse) return { ok: false, error: "adminResponse 필수" };
+  const VALID = new Set(["responded", "rejected", "closed"]);
+  const status = VALID.has(args?.status) ? args.status : "responded";
+
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, status FROM harassment_reports WHERE id = ${id}`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `악성민원 ${id} 없음` };
+
+  const preview = { reportId: id, status, responsePreview: adminResponse.slice(0, 100) };
+  if (args?.requireApproval !== false)
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 악성민원 ${id}에 답변 등록 + 상태 "${status}" 예정.` } };
+
+  try {
+    await db.execute(sql`
+      UPDATE harassment_reports
+         SET admin_response = ${adminResponse}, status = ${status},
+             responded_by = ${adminId}, responded_at = NOW(), updated_at = NOW()
+       WHERE id = ${id}
+    `);
+    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "harassment_reports", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `악성민원 답변 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
 
