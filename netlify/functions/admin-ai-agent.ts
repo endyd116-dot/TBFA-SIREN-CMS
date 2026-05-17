@@ -633,7 +633,19 @@ export default async (req: Request, _ctx: Context) => {
   const todayIso = nowKst.toISOString().slice(0, 10);
   const dayName = ["일", "월", "화", "수", "목", "금", "토"][nowKst.getUTCDay()];
   const tomorrowIso = new Date(nowKst.getTime() + 86400000).toISOString().slice(0, 10);
-  const systemPrompt = `현재 한국 시간(KST) 기준 오늘 날짜: ${todayIso} (${dayName}요일). 내일: ${tomorrowIso}.\n날짜 인자(dueDate·startAt 등)는 이 정보 기준으로 정확히 계산하세요.\n\n${baseSystemPrompt}`;
+
+  /* === 소프트 업무 제한: 이 대화에서 범위 외 응답 횟수 집계 === */
+  const offTopicCount = messages.filter(
+    (m: any) => m.role === "model" && (
+      (m.parts?.[0]?.text ?? "").startsWith("[범위외]") ||
+      (m.parts?.[0]?.text ?? "").startsWith("[업무복귀]")
+    )
+  ).length;
+  const offTopicContext = offTopicCount > 0
+    ? `\n[현재 대화 상태: 범위 외 응답 ${offTopicCount}회]`
+    : "";
+
+  const systemPrompt = `현재 한국 시간(KST) 기준 오늘 날짜: ${todayIso} (${dayName}요일). 내일: ${tomorrowIso}.\n날짜 인자(dueDate·startAt 등)는 이 정보 기준으로 정확히 계산하세요.\n\n${baseSystemPrompt}${offTopicContext}`;
   const adminRole = (auth as any).ctx?.admin?.role ?? null;
 
   /* === 의도별 모델 체인 선택 (변경 키워드 → HIGH, 그 외 → LOW) === */
@@ -858,6 +870,12 @@ export default async (req: Request, _ctx: Context) => {
   const piiResult = maskPII(finalReply || "");
   let safeReply = piiResult.masked || "(응답 없음)";
 
+  /* === 소프트 업무 제한: 접두사 감지 === */
+  const isOffTopic = safeReply.startsWith("[범위외]");
+  const isRedirect = safeReply.startsWith("[업무복귀]");
+  if (isOffTopic) safeReply = safeReply.slice("[범위외]".length).trimStart();
+  else if (isRedirect) safeReply = safeReply.slice("[업무복귀]".length).trimStart();
+
   /* === Phase 1: 경고 임계 도달 시 응답에 안내 메시지 동봉 === */
   let replyWithWarn = safeReply;
   if (budget.warn) replyWithWarn += `\n\n${budget.message}`;
@@ -872,6 +890,8 @@ export default async (req: Request, _ctx: Context) => {
     ok: true,
     conversationId,
     reply: replyWithWarn,
+    isOffTopic: isOffTopic || undefined,
+    isRedirect: isRedirect || undefined,
     toolCalls: executedTools,
     pendingApproval,
     costWarning: budget.warn ? budget.message : undefined,

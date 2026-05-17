@@ -86,6 +86,9 @@
       }
       .aiw-msg.user .aiw-bubble { background: #1e40af; color: #fff; border-bottom-right-radius: 4px; }
       .aiw-msg.ai   .aiw-bubble { background: #fff; color: #1e293b; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
+      .aiw-msg.ai.off-topic .aiw-bubble { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+      .aiw-msg.ai.redirect .aiw-bubble { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+      .aiw-topic-label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; padding-left: 2px; }
       .aiw-tools {
         background: #fff8e1; border-left: 3px solid #ca8a04;
         padding: 10px 12px; border-radius: 6px; font-size: 11.5px; color: #713f12;
@@ -433,6 +436,20 @@
   var conversationId = null;
   var lastPendingApproval = null;
 
+  function appendOffTopicMsg(text, isRedirect) {
+    var msgs = document.querySelector('.aiw-msgs');
+    var empty = msgs.querySelector('.aiw-empty');
+    if (empty) empty.remove();
+    var m = document.createElement('div');
+    m.className = 'aiw-msg ai ' + (isRedirect ? 'redirect' : 'off-topic');
+    var label = isRedirect ? '📋 업무로 돌아가요' : '💬 업무 범위 외 답변';
+    m.innerHTML = '<div class="aiw-topic-label">' + label + '</div><div class="aiw-bubble"></div>';
+    m.querySelector('.aiw-bubble').innerHTML = renderMarkdown(text);
+    msgs.appendChild(m);
+    msgs.scrollTop = msgs.scrollHeight;
+    return m;
+  }
+
   function appendMsg(role, text) {
     var msgs = document.querySelector('.aiw-msgs');
     /* empty 상태 제거 */
@@ -713,7 +730,13 @@
       thinking.remove();
       if (!res.ok) throw new Error((j.error || 'HTTP ' + res.status) + (j.detail ? ' — ' + j.detail : '') + (j.step ? ' [step:' + j.step + ']' : ''));
       conversationId = j.conversationId || conversationId;
-      appendMsg('ai', j.reply || '(응답 없음)');
+      if (j.isRedirect) {
+        appendOffTopicMsg(j.reply || '', true);
+      } else if (j.isOffTopic) {
+        appendOffTopicMsg(j.reply || '', false);
+      } else {
+        appendMsg('ai', j.reply || '(응답 없음)');
+      }
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
       if (j.pendingApproval) appendPendingApproval(j.pendingApproval);
       /* === F-6: 계획 모드 감지 — 응답에 "실행 계획" 있고 도구 미호출이면 진행 버튼 === */
@@ -747,7 +770,13 @@
       var j = await res.json().catch(function () { return {}; });
       thinking.remove();
       if (!res.ok) throw new Error((j.error || 'HTTP ' + res.status) + (j.detail ? ' — ' + j.detail : '') + (j.step ? ' [step:' + j.step + ']' : ''));
-      appendMsg('ai', j.reply || '(응답 없음)');
+      if (j.isRedirect) {
+        appendOffTopicMsg(j.reply || '', true);
+      } else if (j.isOffTopic) {
+        appendOffTopicMsg(j.reply || '', false);
+      } else {
+        appendMsg('ai', j.reply || '(응답 없음)');
+      }
       if (j.toolCalls && j.toolCalls.length) appendToolsInfo(j.toolCalls);
     } catch (err) {
       thinking.remove();
