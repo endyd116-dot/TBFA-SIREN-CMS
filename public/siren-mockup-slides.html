@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>SIREN 슬라이드 스크린샷 소스</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: #1a1a2e; color: #e0e0e0; }
+
+  /* === 네비게이션 === */
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: #0d0d1a; border-bottom: 1px solid #333; display: flex; gap: 8px; padding: 10px 20px; }
+  .nav button { padding: 6px 14px; border-radius: 6px; border: 1px solid #444; background: #1a1a2e; color: #aaa; cursor: pointer; font-size: 12px; }
+  .nav button.active { background: #e63946; color: #fff; border-color: #e63946; }
+  .nav .sep { width: 1px; background: #333; margin: 0 4px; }
+  .nav .save-btn { margin-left: auto; background: #2ecc71; color: #fff; border-color: #2ecc71; font-weight: 700; font-size: 13px; padding: 6px 18px; }
+  .nav .save-btn:hover { background: #27ae60; border-color: #27ae60; }
+  .nav .save-btn:disabled { background: #555; border-color: #555; color: #999; cursor: not-allowed; }
+  .save-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+  .save-overlay.show { display: flex; }
+  .save-overlay .so-box { background: #1a1a2e; border: 1px solid #333; border-radius: 16px; padding: 32px 48px; text-align: center; }
+  .save-overlay .so-spinner { font-size: 40px; animation: spin 1s linear infinite; display: block; margin-bottom: 16px; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .save-overlay .so-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .save-overlay .so-sub { font-size: 13px; color: #888; }
+  .capture-hint { position: fixed; bottom: 20px; right: 20px; z-index: 999; background: #e63946; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 20px rgba(230,57,70,0.5); }
+
+  /* === 공통 === */
+  .screen { display: none; width: 1440px; }
+  .screen.active { display: block; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+
+  /* ========================================
+     SCREEN 1: 대시보드 개요 (슬라이드 05용)
+  ======================================== */
+  #s1 { background: #f0f2f5; min-height: 860px; }
+  #s1 .topbar { background: #1a1a2e; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  #s1 .topbar .logo { color: #e63946; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+  #s1 .topbar .org { color: #999; font-size: 13px; }
+  #s1 .topbar .badge { margin-left: auto; background: #e63946; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  #s1 .layout { display: flex; }
+  #s1 .sidebar { width: 220px; background: #fff; min-height: 804px; padding: 20px 0; border-right: 1px solid #e8e8e8; }
+  #s1 .sidebar .menu-group { margin-bottom: 8px; }
+  #s1 .sidebar .menu-label { padding: 8px 20px 4px; font-size: 10px; color: #999; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  #s1 .sidebar .menu-item { padding: 9px 20px; font-size: 13px; color: #555; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  #s1 .sidebar .menu-item.active { background: #fff5f5; color: #e63946; font-weight: 700; border-right: 3px solid #e63946; }
+  #s1 .sidebar .menu-item .icon { width: 18px; text-align: center; font-size: 15px; }
+  #s1 .main { flex: 1; padding: 24px; }
+  #s1 .page-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+  #s1 .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+  #s1 .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; }
+  #s1 .kpi { flex: 1; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  #s1 .kpi .k-label { font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 600; }
+  #s1 .kpi .k-val { font-size: 32px; font-weight: 800; color: #1a1a2e; }
+  #s1 .kpi .k-unit { font-size: 14px; color: #888; margin-left: 4px; font-weight: 400; }
+  #s1 .kpi .k-change { font-size: 12px; margin-top: 4px; }
+  #s1 .kpi .k-change.up { color: #2ecc71; }
+  #s1 .kpi .k-change.down { color: #e63946; }
+  #s1 .kpi.red { border-top: 3px solid #e63946; }
+  #s1 .kpi.blue { border-top: 3px solid #3498db; }
+  #s1 .kpi.green { border-top: 3px solid #2ecc71; }
+  #s1 .kpi.purple { border-top: 3px solid #9b59b6; }
+  #s1 .row2 { display: flex; gap: 16px; }
+  #s1 .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  #s1 .card-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  #s1 .card-title .more { font-size: 12px; color: #aaa; font-weight: 400; cursor: pointer; }
+  #s1 .donation-chart { flex: 1.2; }
+  #s1 .recent-list { flex: 1; }
+  #s1 .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 0 8px; }
+  #s1 .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  #s1 .bar { width: 100%; border-radius: 4px 4px 0 0; }
+  #s1 .bar.red { background: #e63946; }
+  #s1 .bar.light { background: #f5a0a7; }
+  #s1 .bar-label { font-size: 10px; color: #999; }
+  #s1 .member-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f5f5f5; }
+  #s1 .member-row:last-child { border: none; }
+  #s1 .avatar { width: 32px; height: 32px; border-radius: 50%; background: #e63946; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; }
+  #s1 .member-info .name { font-size: 13px; font-weight: 600; color: #333; }
+  #s1 .member-info .sub { font-size: 11px; color: #999; margin-top: 2px; }
+  #s1 .member-badge { margin-left: auto; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  #s1 .member-badge.regular { background: #fff0f0; color: #e63946; }
+  #s1 .member-badge.new { background: #e8f4fd; color: #3498db; }
+  #s1 .member-badge.vip { background: #fef9e7; color: #f39c12; }
+  #s1 .siren-alert { background: linear-gradient(135deg, #e63946, #c0392b); border-radius: 12px; padding: 20px; color: #fff; }
+  #s1 .siren-alert .sa-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  #s1 .siren-items { display: flex; flex-direction: column; gap: 8px; }
+  #s1 .siren-item { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  #s1 .siren-item .si-text { font-size: 13px; }
+  #s1 .siren-item .si-status { font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 10px; }
+  #s1 .bottom-row { display: flex; gap: 16px; margin-top: 16px; }
+  #s1 .activity-card { flex: 2; }
+  #s1 .notice-card { flex: 1; }
+  #s1 .activity-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 12px; color: #555; }
+  #s1 .activity-item:last-child { border: none; }
+  #s1 .activity-item .dot { width: 8px; height: 8px; border-radius: 50%; background: #e63946; margin-top: 4px; flex-shrink: 0; }
+  #s1 .notice-item { padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+  #s1 .notice-item:last-child { border: none; }
+  #s1 .notice-item .n-title { font-size: 13px; color: #333; font-weight: 500; }
+  #s1 .notice-item .n-date { font-size: 11px; color: #999; margin-top: 3px; }
+
+  /* ========================================
+     SCREEN 2: 기능 쇼케이스 (슬라이드 06용)
+  ======================================== */
+  #s2 { background: #0d0d1a; min-height: 860px; padding: 40px; }
+  #s2 .s2-header { text-align: center; margin-bottom: 40px; }
+  #s2 .s2-header .s2-tag { background: rgba(230,57,70,0.2); color: #e63946; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; display: inline-block; margin-bottom: 16px; border: 1px solid rgba(230,57,70,0.3); }
+  #s2 .s2-header h2 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  #s2 .s2-header p { font-size: 15px; color: #888; }
+  #s2 .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  #s2 .feat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 28px; transition: all 0.2s; position: relative; overflow: hidden; }
+  #s2 .feat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+  #s2 .feat-card.f1::before { background: linear-gradient(90deg, #e63946, #ff6b6b); }
+  #s2 .feat-card.f2::before { background: linear-gradient(90deg, #3498db, #74b9ff); }
+  #s2 .feat-card.f3::before { background: linear-gradient(90deg, #2ecc71, #55efc4); }
+  #s2 .feat-card.f4::before { background: linear-gradient(90deg, #9b59b6, #a29bfe); }
+  #s2 .feat-card.f5::before { background: linear-gradient(90deg, #e67e22, #fdcb6e); }
+  #s2 .feat-card.f6::before { background: linear-gradient(90deg, #e63946, #fd79a8); }
+  #s2 .feat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+  #s2 .f1 .feat-icon { background: rgba(230,57,70,0.15); }
+  #s2 .f2 .feat-icon { background: rgba(52,152,219,0.15); }
+  #s2 .f3 .feat-icon { background: rgba(46,204,113,0.15); }
+  #s2 .f4 .feat-icon { background: rgba(155,89,182,0.15); }
+  #s2 .f5 .feat-icon { background: rgba(230,126,34,0.15); }
+  #s2 .f6 .feat-icon { background: rgba(230,57,70,0.15); }
+  #s2 .feat-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  #s2 .feat-desc { font-size: 13px; color: #888; line-height: 1.6; margin-bottom: 16px; }
+  #s2 .feat-items { display: flex; flex-direction: column; gap: 6px; }
+  #s2 .feat-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; }
+  #s2 .feat-item::before { content: '✓'; color: #2ecc71; font-weight: 700; font-size: 11px; }
+  #s2 .feat-stat { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 16px; }
+  #s2 .feat-stat-item .sv { font-size: 20px; font-weight: 800; color: #fff; }
+  #s2 .feat-stat-item .sk { font-size: 11px; color: #666; margin-top: 2px; }
+
+  /* ========================================
+     SCREEN 3: AI 에이전트 채팅 (슬라이드 08용)
+  ======================================== */
+  #s3 { background: #f0f2f5; min-height: 860px; display: flex; }
+  #s3 .workspace { flex: 1; padding: 24px; }
+  #s3 .ws-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  #s3 .ws-title { font-size: 20px; font-weight: 800; color: #1a1a2e; }
+  #s3 .ws-badge { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  #s3 .task-board { display: flex; gap: 16px; margin-bottom: 20px; }
+  #s3 .task-col { flex: 1; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  #s3 .col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  #s3 .col-title { font-size: 13px; font-weight: 700; color: #333; }
+  #s3 .col-count { background: #f0f2f5; color: #666; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  #s3 .task-card { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  #s3 .task-card:last-child { margin-bottom: 0; }
+  #s3 .tc-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+  #s3 .tc-meta { display: flex; gap: 8px; align-items: center; }
+  #s3 .tc-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  #s3 .tc-tag.high { background: #fff0f0; color: #e63946; }
+  #s3 .tc-tag.mid { background: #fff8e1; color: #f39c12; }
+  #s3 .tc-tag.low { background: #e8f4fd; color: #3498db; }
+  #s3 .tc-tag.done-t { background: #eafaf1; color: #2ecc71; }
+  #s3 .tc-assignee { font-size: 11px; color: #999; }
+  #s3 .ai-panel { width: 360px; display: flex; flex-direction: column; background: #1a1a2e; }
+  #s3 .ai-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  #s3 .ai-title { display: flex; align-items: center; gap: 10px; }
+  #s3 .ai-title .ai-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #e63946, #c0392b); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  #s3 .ai-title .ai-name { font-size: 15px; font-weight: 700; color: #fff; }
+  #s3 .ai-title .ai-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  #s3 .ai-title .ai-status { margin-left: auto; width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; box-shadow: 0 0 6px #2ecc71; }
+  #s3 .ai-chat { flex: 1; padding: 16px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+  #s3 .msg { max-width: 90%; }
+  #s3 .msg.user { align-self: flex-end; }
+  #s3 .msg.bot { align-self: flex-start; }
+  #s3 .msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  #s3 .msg.user .msg-bubble { background: #e63946; color: #fff; border-radius: 12px 12px 2px 12px; }
+  #s3 .msg.bot .msg-bubble { background: rgba(255,255,255,0.08); color: #e0e0e0; border-radius: 12px 12px 12px 2px; }
+  #s3 .msg-time { font-size: 10px; color: #555; margin-top: 4px; text-align: right; }
+  #s3 .msg.bot .msg-time { text-align: left; }
+  #s3 .approval-card { background: rgba(230,57,70,0.1); border: 1px solid rgba(230,57,70,0.25); border-radius: 10px; padding: 12px; margin-top: 6px; }
+  #s3 .approval-card .ac-title { font-size: 12px; font-weight: 700; color: #e63946; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  #s3 .approval-card .ac-item { font-size: 12px; color: #ccc; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  #s3 .approval-card .ac-item::before { content: '▸'; color: #e63946; font-size: 10px; }
+  #s3 .approval-btns { display: flex; gap: 8px; margin-top: 10px; }
+  #s3 .btn-approve { flex: 1; background: #e63946; color: #fff; border: none; border-radius: 6px; padding: 7px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #s3 .btn-cancel { flex: 1; background: rgba(255,255,255,0.07); color: #aaa; border: none; border-radius: 6px; padding: 7px; font-size: 12px; cursor: pointer; }
+  #s3 .ai-tools { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+  #s3 .tools-label { font-size: 10px; color: #555; margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em; }
+  #s3 .tools-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  #s3 .tool-chip { padding: 4px 10px; background: rgba(255,255,255,0.06); border-radius: 20px; font-size: 11px; color: #888; }
+  #s3 .ai-input { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 8px; }
+  #s3 .ai-input input { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13px; }
+  #s3 .ai-input button { background: #e63946; border: none; border-radius: 8px; padding: 8px 14px; color: #fff; font-size: 14px; cursor: pointer; }
+
+  /* ========================================
+     SCREEN 4: SIREN 신고 대시보드 (슬라이드 05-A용)
+  ======================================== */
+  #s4 { background: #fff; min-height: 860px; }
+  #s4 .s4-top { background: #1a1a2e; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  #s4 .s4-top .logo { color: #e63946; font-weight: 800; font-size: 20px; }
+  #s4 .s4-top nav { display: flex; gap: 24px; margin-left: 40px; }
+  #s4 .s4-top nav a { color: #888; font-size: 13px; text-decoration: none; }
+  #s4 .s4-top nav a.active { color: #fff; font-weight: 700; }
+  #s4 .s4-content { display: flex; }
+  #s4 .s4-sidebar { width: 200px; background: #fafafa; border-right: 1px solid #eee; min-height: 804px; padding: 20px 0; }
+  #s4 .s4-sidebar .ss-item { padding: 10px 20px; font-size: 13px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  #s4 .s4-sidebar .ss-item.active { background: #fff0f0; color: #e63946; font-weight: 700; border-right: 3px solid #e63946; }
+  #s4 .s4-main { flex: 1; padding: 24px; }
+  #s4 .s4-breadcrumb { font-size: 12px; color: #aaa; margin-bottom: 16px; }
+  #s4 .s4-breadcrumb span { color: #333; }
+  #s4 .s4-page-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  #s4 .s4-page-title .alert-badge { background: #e63946; color: #fff; font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 700; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+  #s4 .report-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+  #s4 .report-tab { padding: 10px 20px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  #s4 .report-tab.active { color: #e63946; font-weight: 700; border-bottom-color: #e63946; }
+  #s4 .report-stats { display: flex; gap: 16px; margin-bottom: 20px; }
+  #s4 .rs { flex: 1; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  #s4 .rs .r-num { font-size: 28px; font-weight: 800; color: #1a1a2e; }
+  #s4 .rs .r-label { font-size: 11px; color: #888; margin-top: 4px; }
+  #s4 .rs.accent { border-top: 3px solid #e63946; }
+  #s4 .rs.blue { border-top: 3px solid #3498db; }
+  #s4 .rs.green { border-top: 3px solid #2ecc71; }
+  #s4 .rs.yellow { border-top: 3px solid #f39c12; }
+  #s4 .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #s4 .report-table th { background: #f8f9fa; color: #555; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
+  #s4 .report-table td { padding: 11px 12px; border-bottom: 1px solid #f5f5f5; color: #333; }
+  #s4 .report-table tr:last-child td { border-bottom: none; }
+  #s4 .status-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  #s4 .status-badge.receiving { background: #fff0f0; color: #e63946; }
+  #s4 .status-badge.reviewing { background: #fff8e1; color: #f39c12; }
+  #s4 .status-badge.processing { background: #e8f4fd; color: #3498db; }
+  #s4 .status-badge.complete { background: #eafaf1; color: #2ecc71; }
+  #s4 .anon-flag { background: #f5f5f5; color: #999; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+  #s4 .priority-high { color: #e63946; font-weight: 700; }
+  #s4 .priority-mid { color: #f39c12; font-weight: 700; }
+  #s4 .priority-low { color: #3498db; font-weight: 700; }
+  #s4 .ai-analysis { margin-top: 20px; background: linear-gradient(135deg, #1a1a2e, #2d3561); border-radius: 12px; padding: 20px; color: #fff; }
+  #s4 .ai-analysis .aa-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  #s4 .aa-grid { display: flex; gap: 16px; }
+  #s4 .aa-item { flex: 1; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 14px; }
+  #s4 .aa-item .aa-label { font-size: 11px; color: #aaa; margin-bottom: 6px; }
+  #s4 .aa-item .aa-val { font-size: 22px; font-weight: 800; color: #fff; }
+  #s4 .aa-item .aa-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); margin-top: 6px; overflow: hidden; }
+  #s4 .aa-item .aa-bar-fill { height: 100%; background: #e63946; border-radius: 2px; }
+
+  /* ========================================
+     SCREEN 5: AI 일일 브리핑
+  ======================================== */
+  #s5 { background: #0d0d1a; min-height: 900px; padding: 0; }
+  #s5 .s5-topbar { background: #1a1a2e; height: 56px; display: flex; align-items: center; padding: 0 28px; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  #s5 .s5-topbar .logo { color: #e63946; font-weight: 800; font-size: 20px; }
+  #s5 .s5-topbar .org { color: #666; font-size: 13px; }
+  #s5 .s5-topbar .time-badge { margin-left: auto; background: rgba(230,57,70,0.15); border: 1px solid rgba(230,57,70,0.3); color: #e63946; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  #s5 .s5-body { display: flex; gap: 0; }
+  #s5 .s5-side { width: 72px; background: #1a1a2e; min-height: 844px; display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 8px; border-right: 1px solid rgba(255,255,255,0.05); }
+  #s5 .s5-side .sicon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; }
+  #s5 .s5-side .sicon.act { background: rgba(230,57,70,0.2); }
+  #s5 .s5-main { flex: 1; padding: 28px 32px; }
+  #s5 .briefing-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+  #s5 .briefing-header .bh-left h1 { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  #s5 .briefing-header .bh-left p { font-size: 14px; color: #666; }
+  #s5 .briefing-header .bh-right { display: flex; gap: 10px; }
+  #s5 .briefing-header .bh-right .btn-regen { background: rgba(230,57,70,0.15); border: 1px solid rgba(230,57,70,0.3); color: #e63946; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #s5 .briefing-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 20px; }
+  #s5 .b-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 22px; }
+  #s5 .b-card-title { font-size: 13px; font-weight: 700; color: #aaa; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  #s5 .b-card-title .ai-dot { width: 8px; height: 8px; background: #e63946; border-radius: 50%; box-shadow: 0 0 6px #e63946; }
+  #s5 .summary-text { font-size: 15px; color: #e0e0e0; line-height: 1.8; }
+  #s5 .summary-text strong { color: #e63946; }
+  #s5 .summary-text .hl { background: rgba(230,57,70,0.12); border-left: 3px solid #e63946; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 14px; }
+  #s5 .kpi-mini { display: flex; flex-direction: column; gap: 12px; }
+  #s5 .km-item { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+  #s5 .km-item .km-label { font-size: 12px; color: #888; }
+  #s5 .km-item .km-val { font-size: 22px; font-weight: 800; color: #fff; }
+  #s5 .km-item .km-change { font-size: 11px; }
+  #s5 .km-item .km-change.up { color: #2ecc71; }
+  #s5 .km-item .km-change.warn { color: #f39c12; }
+  #s5 .km-item .km-change.down { color: #e63946; }
+  #s5 .priority-section { margin-bottom: 20px; }
+  #s5 .priority-section h3 { font-size: 13px; font-weight: 700; color: #aaa; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  #s5 .priority-list { display: flex; flex-direction: column; gap: 8px; }
+  #s5 .p-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+  #s5 .p-item .pi-rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+  #s5 .p-item .pi-rank.r1 { background: rgba(230,57,70,0.2); color: #e63946; }
+  #s5 .p-item .pi-rank.r2 { background: rgba(243,156,18,0.2); color: #f39c12; }
+  #s5 .p-item .pi-rank.r3 { background: rgba(52,152,219,0.2); color: #3498db; }
+  #s5 .p-item .pi-text { flex: 1; font-size: 13px; color: #ccc; }
+  #s5 .p-item .pi-text strong { color: #fff; display: block; margin-bottom: 3px; }
+  #s5 .p-item .pi-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  #s5 .p-item .pi-badge.urgent { background: rgba(230,57,70,0.15); color: #e63946; }
+  #s5 .p-item .pi-badge.normal { background: rgba(243,156,18,0.15); color: #f39c12; }
+  #s5 .p-item .pi-badge.info { background: rgba(52,152,219,0.15); color: #3498db; }
+  #s5 .bottom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  #s5 .trend-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; }
+  #s5 .trend-item .ti-label { font-size: 11px; color: #666; margin-bottom: 10px; font-weight: 700; }
+  #s5 .trend-item .ti-bars { display: flex; align-items: flex-end; gap: 4px; height: 50px; }
+  #s5 .trend-item .ti-bar { flex: 1; border-radius: 2px 2px 0 0; }
+  #s5 .ai-credit { margin-top: 24px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #444; }
+  #s5 .ai-credit .ai-logo { background: linear-gradient(135deg, #e63946, #c0392b); width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+
+  /* ========================================
+     SCREEN 6: AI 칸반 리스크 + 작업 요약
+  ======================================== */
+  #s6 { background: #f4f6f9; min-height: 900px; }
+  #s6 .s6-top { background: #1a1a2e; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  #s6 .s6-top .logo { color: #e63946; font-weight: 800; font-size: 20px; }
+  #s6 .s6-body { display: flex; }
+  #s6 .s6-sidebar { width: 56px; background: #fff; border-right: 1px solid #eee; min-height: 844px; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 10px; }
+  #s6 .s6-sidebar .si { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+  #s6 .s6-sidebar .si.act { background: #fff0f0; }
+  #s6 .s6-content { flex: 1; padding: 24px; }
+  #s6 .s6-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  #s6 .s6-header h2 { font-size: 20px; font-weight: 800; color: #1a1a2e; display: flex; align-items: center; gap: 10px; }
+  #s6 .s6-header .ai-badge { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  #s6 .s6-header .filter-row { display: flex; gap: 8px; }
+  #s6 .s6-header .filter-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #ddd; background: #fff; font-size: 12px; color: #666; cursor: pointer; }
+  #s6 .s6-header .filter-btn.active-f { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+  #s6 .kanban { display: flex; gap: 16px; overflow-x: auto; }
+  #s6 .k-col { width: 280px; flex-shrink: 0; }
+  #s6 .k-col-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; margin-bottom: 10px; }
+  #s6 .k-col-header .kch-title { font-size: 13px; font-weight: 700; color: #444; display: flex; align-items: center; gap: 8px; }
+  #s6 .k-col-header .kch-count { background: #eee; color: #666; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+  #s6 .k-card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid transparent; position: relative; }
+  #s6 .k-card.risk-high { border-left-color: #e63946; }
+  #s6 .k-card.risk-mid { border-left-color: #f39c12; }
+  #s6 .k-card.risk-low { border-left-color: #2ecc71; }
+  #s6 .k-card.risk-none { border-left-color: #ddd; }
+  #s6 .kc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  #s6 .kc-title { font-size: 13px; font-weight: 700; color: #1a1a2e; line-height: 1.4; flex: 1; margin-right: 8px; }
+  #s6 .risk-score { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  #s6 .risk-score.high { background: #fff0f0; color: #e63946; }
+  #s6 .risk-score.mid { background: #fff8e1; color: #f39c12; }
+  #s6 .risk-score.low { background: #eafaf1; color: #2ecc71; }
+  #s6 .risk-score.none { background: #f5f5f5; color: #aaa; }
+  #s6 .ai-summary { background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08)); border: 1px solid rgba(102,126,234,0.2); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+  #s6 .ai-summary .as-label { font-size: 10px; color: #9b59b6; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  #s6 .ai-summary .as-text { font-size: 12px; color: #555; line-height: 1.5; }
+  #s6 .kc-meta { display: flex; align-items: center; justify-content: space-between; }
+  #s6 .kc-tags { display: flex; gap: 4px; }
+  #s6 .kc-tag { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+  #s6 .kc-tag.t-urgent { background: #fff0f0; color: #e63946; }
+  #s6 .kc-tag.t-normal { background: #e8f4fd; color: #3498db; }
+  #s6 .kc-tag.t-done { background: #eafaf1; color: #2ecc71; }
+  #s6 .kc-assignee { font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 4px; }
+  #s6 .kc-assignee .av { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 9px; font-weight: 700; }
+  #s6 .risk-legend { display: flex; gap: 16px; margin-bottom: 12px; }
+  #s6 .rl-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+  #s6 .rl-dot { width: 10px; height: 10px; border-radius: 2px; }
+  #s6 .ai-regen-btn { background: rgba(155,89,182,0.1); border: 1px solid rgba(155,89,182,0.25); color: #9b59b6; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+  #s6 .risk-panel { width: 300px; background: #fff; border-left: 1px solid #eee; padding: 20px; }
+  #s6 .rp-title { font-size: 14px; font-weight: 800; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  #s6 .rp-dist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  #s6 .rp-row { display: flex; align-items: center; gap: 10px; }
+  #s6 .rp-row .rp-label { font-size: 12px; color: #666; width: 40px; }
+  #s6 .rp-bar-bg { flex: 1; height: 8px; background: #f5f5f5; border-radius: 4px; overflow: hidden; }
+  #s6 .rp-bar-fill { height: 100%; border-radius: 4px; }
+  #s6 .rp-row .rp-num { font-size: 12px; font-weight: 700; color: #333; width: 24px; text-align: right; }
+  #s6 .rp-insight { background: linear-gradient(135deg, #1a1a2e, #2d3561); border-radius: 10px; padding: 14px; color: #fff; }
+  #s6 .rp-insight .ri-title { font-size: 12px; font-weight: 700; margin-bottom: 10px; color: #e0e0e0; display: flex; align-items: center; gap: 6px; }
+  #s6 .rp-insight .ri-item { font-size: 12px; color: #aaa; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+  #s6 .rp-insight .ri-item:last-child { border: none; }
+  #s6 .rp-insight .ri-item::before { content: '▸'; color: #e63946; font-size: 10px; margin-top: 2px; flex-shrink: 0; }
+
+  /* ========================================
+     SCREEN 7: AI 지출 자동 분류
+  ======================================== */
+  #s7 { background: #f4f6f9; min-height: 900px; }
+  #s7 .s7-top { background: #1a1a2e; height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  #s7 .s7-top .logo { color: #e63946; font-weight: 800; font-size: 20px; }
+  #s7 .s7-top .breadcrumb { color: #666; font-size: 13px; }
+  #s7 .s7-top .breadcrumb span { color: #fff; }
+  #s7 .s7-body { display: flex; gap: 0; }
+  #s7 .s7-main { flex: 1; padding: 28px; }
+  #s7 .s7-page-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
+  #s7 .s7-page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+  #s7 .upload-zone { background: #fff; border: 2px dashed #ddd; border-radius: 14px; padding: 32px; text-align: center; margin-bottom: 24px; position: relative; overflow: hidden; }
+  #s7 .upload-zone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(230,57,70,0.03), rgba(102,126,234,0.03)); }
+  #s7 .upload-zone .uz-icon { font-size: 40px; margin-bottom: 12px; }
+  #s7 .upload-zone .uz-title { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 6px; }
+  #s7 .upload-zone .uz-sub { font-size: 12px; color: #aaa; margin-bottom: 16px; }
+  #s7 .upload-zone .uz-btn { background: #e63946; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  #s7 .upload-zone .uz-formats { font-size: 11px; color: #ccc; margin-top: 10px; }
+  #s7 .upload-status { background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  #s7 .us-icon { width: 44px; height: 44px; background: rgba(46,204,113,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  #s7 .us-info .us-title { font-size: 14px; font-weight: 700; color: #333; }
+  #s7 .us-info .us-sub { font-size: 12px; color: #888; margin-top: 3px; }
+  #s7 .us-stats { margin-left: auto; display: flex; gap: 24px; }
+  #s7 .us-stat .sv { font-size: 22px; font-weight: 800; color: #1a1a2e; text-align: center; }
+  #s7 .us-stat .sk { font-size: 11px; color: #aaa; text-align: center; }
+  #s7 .accuracy-bar-wrap { margin-left: 24px; }
+  #s7 .accuracy-bar-wrap .ab-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 700; }
+  #s7 .accuracy-bar { width: 120px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  #s7 .accuracy-bar .ab-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); border-radius: 4px; }
+  #s7 .accuracy-pct { font-size: 18px; font-weight: 800; color: #2ecc71; text-align: center; margin-top: 4px; }
+  #s7 .classify-table-wrap { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  #s7 .ct-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  #s7 .ct-header h3 { font-size: 15px; font-weight: 800; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
+  #s7 .ct-header .ct-actions { display: flex; gap: 8px; }
+  #s7 .ct-header .ct-btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+  #s7 .ct-header .ct-btn.primary { background: #e63946; color: #fff; }
+  #s7 .ct-header .ct-btn.secondary { background: #f0f2f5; color: #555; }
+  #s7 .classify-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #s7 .classify-table th { background: #f8f9fa; color: #555; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
+  #s7 .classify-table td { padding: 11px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+  #s7 .classify-table tr:last-child td { border-bottom: none; }
+  #s7 .classify-table tr:hover td { background: #fafafa; }
+  #s7 .ai-classified { display: flex; align-items: center; gap: 8px; }
+  #s7 .ai-classified .cat-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  #s7 .ai-classified .cat-badge.c1 { background: #e8f4fd; color: #2980b9; }
+  #s7 .ai-classified .cat-badge.c2 { background: #fef9e7; color: #d35400; }
+  #s7 .ai-classified .cat-badge.c3 { background: #eafaf1; color: #27ae60; }
+  #s7 .ai-classified .cat-badge.c4 { background: #f5eef8; color: #8e44ad; }
+  #s7 .ai-classified .cat-badge.c5 { background: #fff0f0; color: #c0392b; }
+  #s7 .ai-classified .conf { font-size: 11px; color: #aaa; }
+  #s7 .ai-classified .conf.high { color: #27ae60; font-weight: 600; }
+  #s7 .ai-classified .conf.mid { color: #f39c12; font-weight: 600; }
+  #s7 .ai-icon-sm { width: 16px; height: 16px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; }
+  #s7 .amount-col { font-weight: 700; color: #1a1a2e; }
+  #s7 .amount-col.negative { color: #e63946; }
+  #s7 .edit-icon { color: #ccc; cursor: pointer; font-size: 14px; }
+  #s7 .edit-icon:hover { color: #666; }
+  #s7 .s7-right { width: 280px; padding: 28px 20px; border-left: 1px solid #eee; background: #fff; }
+  #s7 .s7-right h3 { font-size: 14px; font-weight: 800; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  #s7 .cat-summary { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  #s7 .cs-item { display: flex; align-items: center; gap: 10px; }
+  #s7 .cs-item .cs-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  #s7 .cs-item .cs-name { font-size: 12px; color: #555; flex: 1; }
+  #s7 .cs-item .cs-amount { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  #s7 .cs-item .cs-bar-bg { width: 100%; height: 4px; background: #f0f0f0; border-radius: 2px; margin-top: 4px; }
+  #s7 .cs-item-wrap { flex: 1; }
+  #s7 .donut-wrap { text-align: center; margin-bottom: 16px; }
+  #s7 .donut-wrap svg { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1)); }
+  #s7 .ai-note { background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08)); border: 1px solid rgba(102,126,234,0.2); border-radius: 10px; padding: 14px; }
+  #s7 .ai-note .an-title { font-size: 12px; font-weight: 700; color: #764ba2; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  #s7 .ai-note .an-item { font-size: 12px; color: #666; padding: 4px 0; display: flex; align-items: flex-start; gap: 6px; line-height: 1.4; }
+  #s7 .ai-note .an-item::before { content: '•'; color: #9b59b6; font-size: 14px; line-height: 1; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- 네비게이션 -->
+<div class="nav">
+  <button class="active" onclick="show(1)">📊 대시보드</button>
+  <button onclick="show(2)">⚡ 핵심 기능 6가지</button>
+  <button onclick="show(3)">🤖 AI 에이전트 채팅</button>
+  <button onclick="show(4)">🚨 SIREN 신고 관리</button>
+  <div class="sep"></div>
+  <button onclick="show(5)">🌅 AI 일일 브리핑</button>
+  <button onclick="show(6)">📌 AI 칸반 리스크 점수</button>
+  <button onclick="show(7)">💳 AI 지출 자동 분류</button>
+  <div class="sep"></div>
+  <button class="save-btn" onclick="saveCurrentImage()">📸 이미지 저장</button>
+  <button class="save-btn" onclick="saveAllImages()" style="background:#3498db;border-color:#3498db;margin-left:4px;">💾 전체 저장 (7장)</button>
+</div>
+
+<!-- 저장 중 오버레이 -->
+<div class="save-overlay" id="saveOverlay">
+  <div class="so-box">
+    <span class="so-spinner" id="overlayIcon">⏳</span>
+    <div class="so-title" id="overlayTitle">이미지 생성 중...</div>
+    <div class="so-sub" id="overlaySub">잠시만 기다려 주세요</div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 1: 대시보드 ============================ -->
+<div id="s1" class="screen active" style="margin-top:56px;">
+  <div class="topbar">
+    <span class="logo">🔴 SIREN</span>
+    <span class="org">교사유가족협의회 관리시스템</span>
+    <span class="badge">관리자 · super_admin</span>
+  </div>
+  <div class="layout">
+    <!-- 사이드바 -->
+    <div class="sidebar">
+      <div class="menu-group">
+        <div class="menu-label">대시보드</div>
+        <div class="menu-item active"><span class="icon">🏠</span> 전체 현황</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-label">회원 관리</div>
+        <div class="menu-item"><span class="icon">👥</span> 회원 목록</div>
+        <div class="menu-item"><span class="icon">📋</span> 등급 관리</div>
+        <div class="menu-item"><span class="icon">🔒</span> 권한 설정</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-label">후원 관리</div>
+        <div class="menu-item"><span class="icon">💳</span> 후원 현황</div>
+        <div class="menu-item"><span class="icon">📅</span> 정기후원</div>
+        <div class="menu-item"><span class="icon">🏦</span> 계좌이체</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-label">유족 지원</div>
+        <div class="menu-item"><span class="icon">🧠</span> 심리상담</div>
+        <div class="menu-item"><span class="icon">⚖️</span> 법률 지원</div>
+        <div class="menu-item"><span class="icon">🎓</span> 장학금</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-label">SIREN 신고</div>
+        <div class="menu-item"><span class="icon">🚨</span> 신고 목록</div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-label">워크스페이스</div>
+        <div class="menu-item"><span class="icon">📌</span> 칸반보드</div>
+        <div class="menu-item"><span class="icon">📁</span> 파일함</div>
+      </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main">
+      <div class="page-title">전체 현황 대시보드</div>
+      <div class="page-sub">2026년 5월 기준 · 실시간 업데이트</div>
+
+      <!-- KPI 행 -->
+      <div class="kpi-row">
+        <div class="kpi red">
+          <div class="k-label">이번 달 후원금</div>
+          <div><span class="k-val">12,840</span><span class="k-unit">만원</span></div>
+          <div class="k-change up">▲ 전월 대비 +8.3%</div>
+        </div>
+        <div class="kpi blue">
+          <div class="k-label">등록 회원</div>
+          <div><span class="k-val">3,241</span><span class="k-unit">명</span></div>
+          <div class="k-change up">▲ 이번 달 +127명</div>
+        </div>
+        <div class="kpi green">
+          <div class="k-label">유족 지원 건</div>
+          <div><span class="k-val">486</span><span class="k-unit">건</span></div>
+          <div class="k-change up">▲ 진행 중 38건</div>
+        </div>
+        <div class="kpi purple">
+          <div class="k-label">SIREN 신고</div>
+          <div><span class="k-val">24</span><span class="k-unit">건</span></div>
+          <div class="k-change down">⚠ 처리 대기 7건</div>
+        </div>
+      </div>
+
+      <!-- 차트 + 최근 회원 행 -->
+      <div class="row2">
+        <div class="card donation-chart">
+          <div class="card-title">월별 후원 추이 <span class="more">6개월 보기 ▾</span></div>
+          <div class="chart-bars">
+            <div class="bar-col"><div class="bar red" style="height:60%"></div><div class="bar-label">12월</div></div>
+            <div class="bar-col"><div class="bar light" style="height:45%"></div><div class="bar-label">1월</div></div>
+            <div class="bar-col"><div class="bar light" style="height:55%"></div><div class="bar-label">2월</div></div>
+            <div class="bar-col"><div class="bar light" style="height:70%"></div><div class="bar-label">3월</div></div>
+            <div class="bar-col"><div class="bar red" style="height:85%"></div><div class="bar-label">4월</div></div>
+            <div class="bar-col"><div class="bar red" style="height:100%"></div><div class="bar-label">5월</div></div>
+          </div>
+          <div style="font-size:11px;color:#aaa;text-align:right;margin-top:4px;">단위: 만원</div>
+        </div>
+        <div class="card recent-list">
+          <div class="card-title">최근 등록 회원 <span class="more">전체 보기 ▾</span></div>
+          <div class="member-row">
+            <div class="avatar">김</div>
+            <div class="member-info"><div class="name">김○○ 선생님</div><div class="sub">정기후원 · 5월 17일 가입</div></div>
+            <span class="member-badge regular">정기</span>
+          </div>
+          <div class="member-row">
+            <div class="avatar" style="background:#3498db">이</div>
+            <div class="member-info"><div class="name">이○○ 선생님</div><div class="sub">일시후원 · 5월 16일 가입</div></div>
+            <span class="member-badge new">신규</span>
+          </div>
+          <div class="member-row">
+            <div class="avatar" style="background:#f39c12">박</div>
+            <div class="member-info"><div class="name">박○○ 선생님</div><div class="sub">정기후원 2년 · 우수 회원</div></div>
+            <span class="member-badge vip">VIP</span>
+          </div>
+          <div class="member-row">
+            <div class="avatar" style="background:#2ecc71">최</div>
+            <div class="member-info"><div class="name">최○○ 선생님</div><div class="sub">계좌이체 · 5월 15일 가입</div></div>
+            <span class="member-badge new">신규</span>
+          </div>
+        </div>
+        <div class="siren-alert">
+          <div class="sa-title">🚨 SIREN 긴급 처리 필요</div>
+          <div class="siren-items">
+            <div class="siren-item">
+              <div class="si-text">사건 신고 #2024-0518</div>
+              <div class="si-status">접수 24h↑</div>
+            </div>
+            <div class="siren-item">
+              <div class="si-text">괴롭힘 신고 #2024-0517</div>
+              <div class="si-status">검토 중</div>
+            </div>
+            <div class="siren-item">
+              <div class="si-text">법률 상담 신청 3건</div>
+              <div class="si-status">배정 대기</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 활동 로그 + 공지사항 -->
+      <div class="bottom-row">
+        <div class="card activity-card">
+          <div class="card-title">최근 활동 로그</div>
+          <div class="activity-item"><div class="dot"></div>박○○ 후원자 정기결제 성공 · 5만원 · 방금 전</div>
+          <div class="activity-item"><div class="dot" style="background:#3498db"></div>이○○ 회원 등급 변경 → 우수회원 · 3분 전</div>
+          <div class="activity-item"><div class="dot" style="background:#9b59b6"></div>워크스페이스 칸반 카드 완료 처리 · 김○○ · 5분 전</div>
+          <div class="activity-item"><div class="dot" style="background:#2ecc71"></div>장학금 지원 결정 · 3건 · 10분 전</div>
+          <div class="activity-item"><div class="dot" style="background:#f39c12"></div>AI 브리핑 생성 완료 · 오늘 06:30</div>
+        </div>
+        <div class="card notice-card">
+          <div class="card-title">공지사항</div>
+          <div class="notice-item"><div class="n-title">6월 유족 법률 지원 신청 안내</div><div class="n-date">2026-05-15 · 관리자</div></div>
+          <div class="notice-item"><div class="n-title">2026 상반기 장학금 최종 선발</div><div class="n-date">2026-05-10 · 관리자</div></div>
+          <div class="notice-item"><div class="n-title">5월 정기 이사회 결과 안내</div><div class="n-date">2026-05-05 · 관리자</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 2: 핵심 기능 ============================ -->
+<div id="s2" class="screen" style="margin-top:56px;">
+  <div class="s2-header">
+    <div class="s2-tag">SIREN CORE FEATURES</div>
+    <h2>비영리단체 운영의 모든 것, 하나의 플랫폼으로</h2>
+    <p>후원부터 신고·유족지원·워크스페이스·AI까지 — 외부 협업툴 없이 완전 자급</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card f1">
+      <div class="feat-icon">💳</div>
+      <div class="feat-title">통합 후원 관리</div>
+      <div class="feat-desc">정기·일시·CMS자동이체·계좌이체 4가지 결제수단을 단일 화면에서 관리</div>
+      <div class="feat-items">
+        <div class="feat-item">토스페이먼츠 + 효성CMS 연동</div>
+        <div class="feat-item">자동 영수증 PDF 발행</div>
+        <div class="feat-item">이탈 예측 AI 분석</div>
+        <div class="feat-item">월별 후원 추이 시각화</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">4종</div><div class="sk">결제수단</div></div>
+        <div class="feat-stat-item"><div class="sv">자동</div><div class="sk">영수증 발행</div></div>
+      </div>
+    </div>
+    <div class="feat-card f2">
+      <div class="feat-icon">👥</div>
+      <div class="feat-title">회원 & 등급 관리</div>
+      <div class="feat-desc">회원 가입부터 등급 자동산정, 블랙리스트, 활동 이력까지 통합 관리</div>
+      <div class="feat-items">
+        <div class="feat-item">회원 등급 자동 산정 (cron)</div>
+        <div class="feat-item">블랙리스트 차단 미들웨어</div>
+        <div class="feat-item">활동 이력 감사 로그</div>
+        <div class="feat-item">Excel 일괄 내보내기</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">5등급</div><div class="sk">자동 분류</div></div>
+        <div class="feat-stat-item"><div class="sv">56+</div><div class="sk">DB 테이블</div></div>
+      </div>
+    </div>
+    <div class="feat-card f3">
+      <div class="feat-icon">🤝</div>
+      <div class="feat-title">유족 지원 시스템</div>
+      <div class="feat-desc">심리상담·법률지원·장학금 신청을 통합 관리, 지원 상태 실시간 추적</div>
+      <div class="feat-items">
+        <div class="feat-item">심리상담 매칭 및 일정 관리</div>
+        <div class="feat-item">법률지원 케이스 추적</div>
+        <div class="feat-item">장학금 심사 워크플로</div>
+        <div class="feat-item">지원 현황 통합 대시보드</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">3종</div><div class="sk">지원 유형</div></div>
+        <div class="feat-stat-item"><div class="sv">실시간</div><div class="sk">상태 추적</div></div>
+      </div>
+    </div>
+    <div class="feat-card f4">
+      <div class="feat-icon">🚨</div>
+      <div class="feat-title">SIREN 신고 플랫폼</div>
+      <div class="feat-desc">사건·괴롭힘·법률상담 익명 신고 접수, AI 리스크 분석, 처리 흐름 관리</div>
+      <div class="feat-items">
+        <div class="feat-item">완전 익명 신고 지원</div>
+        <div class="feat-item">AI 자동 리스크 점수 산정</div>
+        <div class="feat-item">담당자 배정 및 처리 추적</div>
+        <div class="feat-item">신고자 보호 암호화 저장</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">3종</div><div class="sk">신고 유형</div></div>
+        <div class="feat-stat-item"><div class="sv">익명</div><div class="sk">완전 보호</div></div>
+      </div>
+    </div>
+    <div class="feat-card f5">
+      <div class="feat-icon">🗂️</div>
+      <div class="feat-title">워크스페이스 협업</div>
+      <div class="feat-desc">칸반보드·캘린더·파일함·템플릿을 하나로 묶은 팀 협업 플랫폼</div>
+      <div class="feat-items">
+        <div class="feat-item">칸반 카드 + AI 자동 요약</div>
+        <div class="feat-item">FullCalendar 일정 관리</div>
+        <div class="feat-item">Cloudflare R2 파일 스토리지</div>
+        <div class="feat-item">역할별 권한 제어</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">4종</div><div class="sk">협업 도구</div></div>
+        <div class="feat-stat-item"><div class="sv">무제한</div><div class="sk">파일 저장</div></div>
+      </div>
+    </div>
+    <div class="feat-card f6">
+      <div class="feat-icon">🤖</div>
+      <div class="feat-title">AI 에이전트 (AX)</div>
+      <div class="feat-desc">채팅 한 마디로 업무 자동화 — 103개 도구, 53개 실행형, 사전 승인 안전장치</div>
+      <div class="feat-items">
+        <div class="feat-item">자연어 명령 → 업무 자동 실행</div>
+        <div class="feat-item">실행 전 미리보기 + 승인 단계</div>
+        <div class="feat-item">통장거래내역 자동 분류 (90%)</div>
+        <div class="feat-item">일일 브리핑 자동 생성</div>
+      </div>
+      <div class="feat-stat">
+        <div class="feat-stat-item"><div class="sv">103개</div><div class="sk">AI 도구</div></div>
+        <div class="feat-stat-item"><div class="sv">90%</div><div class="sk">분류 정확도</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 3: AI 에이전트 ============================ -->
+<div id="s3" class="screen" style="margin-top:56px;">
+  <!-- 워크스페이스 배경 -->
+  <div class="workspace">
+    <div class="ws-header">
+      <div class="ws-title">워크스페이스 — 2026년 5월</div>
+      <div class="ws-badge">🤖 AI 에이전트 활성</div>
+    </div>
+    <div class="task-board">
+      <div class="task-col">
+        <div class="col-header"><div class="col-title">📋 예정</div><div class="col-count">4</div></div>
+        <div class="task-card">
+          <div class="tc-title">6월 이사회 안건 준비</div>
+          <div class="tc-meta"><span class="tc-tag high">긴급</span><span class="tc-assignee">박두용 PM</span></div>
+        </div>
+        <div class="task-card">
+          <div class="tc-title">신규 회원 환영 메일 발송</div>
+          <div class="tc-meta"><span class="tc-tag mid">보통</span><span class="tc-assignee">장석주</span></div>
+        </div>
+        <div class="task-card">
+          <div class="tc-title">5월 후원 정산 보고서</div>
+          <div class="tc-meta"><span class="tc-tag high">긴급</span><span class="tc-assignee">미배정</span></div>
+        </div>
+      </div>
+      <div class="task-col">
+        <div class="col-header"><div class="col-title">⚙️ 진행 중</div><div class="col-count">3</div></div>
+        <div class="task-card">
+          <div class="tc-title">유족 심리상담 6월 일정 조율</div>
+          <div class="tc-meta"><span class="tc-tag mid">보통</span><span class="tc-assignee">박두용 PM</span></div>
+        </div>
+        <div class="task-card">
+          <div class="tc-title">NPO 패키지 제안서 최종화</div>
+          <div class="tc-meta"><span class="tc-tag high">긴급</span><span class="tc-assignee">장석주</span></div>
+        </div>
+      </div>
+      <div class="task-col">
+        <div class="col-header"><div class="col-title">✅ 완료</div><div class="col-count">8</div></div>
+        <div class="task-card">
+          <div class="tc-title">장학금 심사 결과 통보</div>
+          <div class="tc-meta"><span class="tc-tag done-t">완료</span><span class="tc-assignee">박두용 PM</span></div>
+        </div>
+        <div class="task-card">
+          <div class="tc-title">4월 후원 영수증 일괄 발행</div>
+          <div class="tc-meta"><span class="tc-tag done-t">완료</span><span class="tc-assignee">AI 자동</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- 빈 공간 채우기 -->
+    <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:12px;">📅 이번 주 일정</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:#555;padding:8px 0;border-bottom:1px solid #f5f5f5;"><span style="background:#e63946;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">오늘</span>심리상담 전문가 화상 미팅 오후 2시</div>
+        <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:#555;padding:8px 0;border-bottom:1px solid #f5f5f5;"><span style="background:#3498db;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">5/20</span>NPO 제안 미팅 — 교원단체연합회</div>
+        <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:#555;padding:8px 0;"><span style="background:#9b59b6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">5/23</span>6월 이사회 사전 준비 회의</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 에이전트 패널 -->
+  <div class="ai-panel">
+    <div class="ai-header">
+      <div class="ai-title">
+        <div class="ai-icon">🤖</div>
+        <div>
+          <div class="ai-name">SIREN AI 에이전트</div>
+          <div class="ai-sub">103개 도구 활성 · GPT-4 기반</div>
+        </div>
+        <div class="ai-status"></div>
+      </div>
+    </div>
+
+    <div class="ai-chat">
+      <!-- 유저 메시지 -->
+      <div class="msg user">
+        <div class="msg-bubble">5월 신규 회원들한테 환영 메일 보내줘</div>
+        <div class="msg-time">오후 2:14</div>
+      </div>
+
+      <!-- AI 분석 응답 -->
+      <div class="msg bot">
+        <div class="msg-bubble">
+          5월 신규 가입 회원 <strong style="color:#e63946">127명</strong>을 조회했습니다.<br>
+          다음 작업을 실행하겠습니다:
+          <div class="approval-card">
+            <div class="ac-title">⚡ 실행 계획 미리보기</div>
+            <div class="ac-item">대상: 5월 신규 회원 127명 전체</div>
+            <div class="ac-item">발송: 환영 메일 (템플릿 #3 — 신규가입)</div>
+            <div class="ac-item">시간: 즉시 발송</div>
+            <div class="ac-item">비용: Resend API 호출 127건</div>
+            <div class="approval-btns">
+              <button class="btn-approve">✓ 승인 (실행)</button>
+              <button class="btn-cancel">✕ 취소</button>
+            </div>
+          </div>
+        </div>
+        <div class="msg-time">오후 2:14</div>
+      </div>
+
+      <!-- 유저: 승인 -->
+      <div class="msg user">
+        <div class="msg-bubble">승인</div>
+        <div class="msg-time">오후 2:15</div>
+      </div>
+
+      <!-- AI 완료 -->
+      <div class="msg bot">
+        <div class="msg-bubble">
+          ✅ <strong>환영 메일 발송 완료</strong><br>
+          127명 전원 발송 성공 · 실패 0건<br>
+          <span style="font-size:11px;color:#aaa;display:block;margin-top:6px;">업무 카드 자동 완료 처리 · 활동 로그 기록 완료</span>
+        </div>
+        <div class="msg-time">오후 2:15</div>
+      </div>
+    </div>
+
+    <div class="ai-tools">
+      <div class="tools-label">빠른 명령 예시</div>
+      <div class="tools-chips">
+        <div class="tool-chip">업무 등록해줘</div>
+        <div class="tool-chip">메모 저장</div>
+        <div class="tool-chip">일정 추가</div>
+        <div class="tool-chip">공지 작성</div>
+        <div class="tool-chip">알림 보내줘</div>
+        <div class="tool-chip">지출 분류</div>
+      </div>
+    </div>
+
+    <div class="ai-input">
+      <input placeholder="명령을 입력하세요... (예: 이번 주 일정 알려줘)">
+      <button>▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 4: SIREN 신고 관리 ============================ -->
+<div id="s4" class="screen" style="margin-top:56px;">
+  <div class="s4-top">
+    <span class="logo">🔴 SIREN</span>
+    <nav>
+      <a href="#">대시보드</a>
+      <a href="#">회원</a>
+      <a href="#">후원</a>
+      <a href="#" class="active">SIREN 신고</a>
+      <a href="#">유족지원</a>
+      <a href="#">워크스페이스</a>
+    </nav>
+  </div>
+  <div class="s4-content">
+    <div class="s4-sidebar">
+      <div class="ss-item active">🚨 전체 신고</div>
+      <div class="ss-item">📋 사건 신고</div>
+      <div class="ss-item">😰 괴롭힘 신고</div>
+      <div class="ss-item">⚖️ 법률 상담</div>
+      <div class="ss-item">✅ 완료 건</div>
+      <div class="ss-item" style="margin-top:24px;">📊 통계 분석</div>
+      <div class="ss-item">⚙️ 처리 설정</div>
+    </div>
+    <div class="s4-main">
+      <div class="s4-breadcrumb">SIREN 관리 / <span>전체 신고 목록</span></div>
+      <div class="s4-page-title">
+        SIREN 신고 현황
+        <span class="alert-badge">처리 대기 7건</span>
+      </div>
+
+      <div class="report-tabs">
+        <div class="report-tab active">전체 (24)</div>
+        <div class="report-tab">사건 신고 (11)</div>
+        <div class="report-tab">괴롭힘 (9)</div>
+        <div class="report-tab">법률 상담 (4)</div>
+      </div>
+
+      <div class="report-stats">
+        <div class="rs accent"><div class="r-num">24</div><div class="r-label">이번 달 전체 신고</div></div>
+        <div class="rs blue"><div class="r-num">7</div><div class="r-label">처리 대기</div></div>
+        <div class="rs green"><div class="r-num">14</div><div class="r-label">처리 완료</div></div>
+        <div class="rs yellow"><div class="r-num">3</div><div class="r-label">검토 중</div></div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>신고번호</th>
+            <th>유형</th>
+            <th>내용 (요약)</th>
+            <th>신고자</th>
+            <th>접수일</th>
+            <th>우선도</th>
+            <th>상태</th>
+            <th>담당자</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>#2024-0518</td>
+            <td>사건 신고</td>
+            <td>학부모 민원 관련 부당 처우 신고</td>
+            <td><span class="anon-flag">익명</span></td>
+            <td>2026-05-18</td>
+            <td class="priority-high">긴급</td>
+            <td><span class="status-badge receiving">접수됨</span></td>
+            <td>미배정</td>
+          </tr>
+          <tr>
+            <td>#2024-0517</td>
+            <td>괴롭힘 신고</td>
+            <td>동료 교사에 의한 직장 내 괴롭힘</td>
+            <td><span class="anon-flag">익명</span></td>
+            <td>2026-05-17</td>
+            <td class="priority-high">높음</td>
+            <td><span class="status-badge reviewing">검토 중</span></td>
+            <td>박○○ 변호사</td>
+          </tr>
+          <tr>
+            <td>#2024-0515</td>
+            <td>법률 상담</td>
+            <td>순직 인정 관련 법적 대응 문의</td>
+            <td>김○○</td>
+            <td>2026-05-15</td>
+            <td class="priority-mid">보통</td>
+            <td><span class="status-badge processing">처리 중</span></td>
+            <td>이○○ 변호사</td>
+          </tr>
+          <tr>
+            <td>#2024-0514</td>
+            <td>사건 신고</td>
+            <td>관리자 부당 지시 및 보복 행위 신고</td>
+            <td><span class="anon-flag">익명</span></td>
+            <td>2026-05-14</td>
+            <td class="priority-high">긴급</td>
+            <td><span class="status-badge processing">처리 중</span></td>
+            <td>최○○ 담당</td>
+          </tr>
+          <tr>
+            <td>#2024-0510</td>
+            <td>괴롭힘 신고</td>
+            <td>학교 내 교원 간 갑질 및 따돌림</td>
+            <td><span class="anon-flag">익명</span></td>
+            <td>2026-05-10</td>
+            <td class="priority-mid">보통</td>
+            <td><span class="status-badge complete">완료</span></td>
+            <td>박○○ 변호사</td>
+          </tr>
+          <tr>
+            <td>#2024-0508</td>
+            <td>사건 신고</td>
+            <td>교원 사망 관련 진상 조사 요청</td>
+            <td>이○○</td>
+            <td>2026-05-08</td>
+            <td class="priority-high">긴급</td>
+            <td><span class="status-badge complete">완료</span></td>
+            <td>최○○ 담당</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ai-analysis">
+        <div class="aa-title">🤖 AI 리스크 분석 (오늘 오전 6:30 자동 갱신)</div>
+        <div class="aa-grid">
+          <div class="aa-item">
+            <div class="aa-label">긴급 처리 필요</div>
+            <div class="aa-val">3건</div>
+            <div class="aa-bar"><div class="aa-bar-fill" style="width:38%"></div></div>
+          </div>
+          <div class="aa-item">
+            <div class="aa-label">평균 처리 시간</div>
+            <div class="aa-val">2.3일</div>
+            <div class="aa-bar"><div class="aa-bar-fill" style="width:46%;background:#3498db"></div></div>
+          </div>
+          <div class="aa-item">
+            <div class="aa-label">이번 달 완료율</div>
+            <div class="aa-val">58%</div>
+            <div class="aa-bar"><div class="aa-bar-fill" style="width:58%;background:#2ecc71"></div></div>
+          </div>
+          <div class="aa-item">
+            <div class="aa-label">익명 신고 비율</div>
+            <div class="aa-val">71%</div>
+            <div class="aa-bar"><div class="aa-bar-fill" style="width:71%;background:#9b59b6"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 5: AI 일일 브리핑 ============================ -->
+<div id="s5" class="screen" style="margin-top:56px;">
+  <div class="s5-topbar">
+    <span class="logo">🔴 SIREN</span>
+    <span class="org">교사유가족협의회 관리시스템</span>
+    <span class="time-badge">🤖 AI 브리핑 · 오늘 오전 6:30 자동 생성</span>
+  </div>
+  <div class="s5-body">
+    <div class="s5-side">
+      <div class="sicon act">🏠</div>
+      <div class="sicon">👥</div>
+      <div class="sicon">💳</div>
+      <div class="sicon">🚨</div>
+      <div class="sicon">📌</div>
+      <div class="sicon">🤖</div>
+    </div>
+    <div class="s5-main">
+      <div class="briefing-header">
+        <div class="bh-left">
+          <h1>📋 오늘의 AI 브리핑 — 2026년 5월 18일</h1>
+          <p>매일 오전 6:30 자동 생성 · Gemini 3-flash · 박두용 관리자 맞춤</p>
+        </div>
+        <div class="bh-right">
+          <button class="btn-regen">🔄 수동 재생성</button>
+        </div>
+      </div>
+
+      <div class="briefing-grid">
+        <!-- 오늘의 요약 -->
+        <div class="b-card">
+          <div class="b-card-title"><div class="ai-dot"></div> AI 종합 요약</div>
+          <div class="summary-text">
+            어제 대비 <strong>후원 건수 +12건</strong> 증가했습니다. 5월 누적 후원금은 1억 2,840만원으로 목표 대비 <strong>85.6%</strong> 달성 중입니다.
+            <div class="hl">⚠ SIREN 신고 중 <strong>긴급 처리 필요 건이 3건</strong> 미배정 상태입니다. 오늘 오전 중 담당자 배정이 필요합니다.</div>
+            신규 회원 가입이 이번 주 37명으로 <strong>전주 대비 +22%</strong> 증가하고 있으며, 정기후원 전환율은 41%로 양호한 수준입니다. 워크스페이스 긴급 카드 2건의 마감이 오늘로, <strong>조기 처리를 권장</strong>드립니다.
+          </div>
+        </div>
+        <!-- 오늘의 KPI -->
+        <div class="b-card">
+          <div class="b-card-title"><div class="ai-dot" style="background:#3498db;box-shadow:0 0 6px #3498db"></div> 주요 지표</div>
+          <div class="kpi-mini">
+            <div class="km-item">
+              <div><div class="km-label">오늘 누적 후원금</div><div class="km-val">1억 2,840만원</div></div>
+              <div class="km-change up">▲ 목표 85.6%</div>
+            </div>
+            <div class="km-item">
+              <div><div class="km-label">미처리 신고</div><div class="km-val">7건</div></div>
+              <div class="km-change warn">⚠ 긴급 3건 포함</div>
+            </div>
+            <div class="km-item">
+              <div><div class="km-label">이번 주 신규 가입</div><div class="km-val">37명</div></div>
+              <div class="km-change up">▲ 전주 대비 +22%</div>
+            </div>
+            <div class="km-item">
+              <div><div class="km-label">오늘 마감 워크카드</div><div class="km-val">2건</div></div>
+              <div class="km-change down">❗ 처리 필요</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오늘 우선순위 -->
+      <div class="priority-section">
+        <h3><div class="ai-dot" style="display:inline-block;width:8px;height:8px;background:#f39c12;border-radius:50%;box-shadow:0 0 6px #f39c12"></div> AI 추천 오늘의 우선순위</h3>
+        <div class="priority-list">
+          <div class="p-item">
+            <div class="pi-rank r1">1</div>
+            <div class="pi-text">
+              <strong>SIREN 긴급 신고 담당자 배정</strong>
+              신고 #2024-0518 (학부모 민원 관련) 외 2건 — 접수 후 24시간 초과 대기 중
+            </div>
+            <span class="pi-badge urgent">긴급</span>
+          </div>
+          <div class="p-item">
+            <div class="pi-rank r2">2</div>
+            <div class="pi-text">
+              <strong>6월 이사회 안건 초안 검토</strong>
+              오늘 마감 예정 · AI 요약 초안 완성됨 (칸반보드 확인)
+            </div>
+            <span class="pi-badge normal">오늘 마감</span>
+          </div>
+          <div class="p-item">
+            <div class="pi-rank r3">3</div>
+            <div class="pi-text">
+              <strong>5월 신규 회원 환영 메일 발송</strong>
+              이번 달 신규 127명 미발송 · AI 에이전트로 자동 발송 가능
+            </div>
+            <span class="pi-badge info">이번 주</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 트렌드 -->
+      <div class="bottom-grid">
+        <div class="trend-item">
+          <div class="ti-label">📈 후원 7일 추이</div>
+          <div class="ti-bars">
+            <div class="ti-bar" style="height:55%;background:#f5a0a7;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:40%;background:#f5a0a7;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:65%;background:#f5a0a7;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:50%;background:#f5a0a7;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:80%;background:#e63946;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:70%;background:#e63946;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:100%;background:#e63946;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+        <div class="trend-item">
+          <div class="ti-label">👥 신규 가입 추이</div>
+          <div class="ti-bars">
+            <div class="ti-bar" style="height:40%;background:#74b9ff;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:60%;background:#74b9ff;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:45%;background:#74b9ff;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:70%;background:#3498db;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:55%;background:#3498db;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:85%;background:#3498db;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:100%;background:#2980b9;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+        <div class="trend-item">
+          <div class="ti-label">🚨 SIREN 신고 처리율</div>
+          <div class="ti-bars">
+            <div class="ti-bar" style="height:90%;background:#55efc4;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:75%;background:#55efc4;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:80%;background:#2ecc71;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:60%;background:#f39c12;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:55%;background:#f39c12;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:70%;background:#2ecc71;border-radius:2px 2px 0 0"></div>
+            <div class="ti-bar" style="height:58%;background:#f39c12;border-radius:2px 2px 0 0"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-credit">
+        <div class="ai-logo">🤖</div>
+        Gemini 3-flash · 자동 생성 2026-05-18 06:30 KST · 데이터 기반 · 오류 발견 시 수동 재생성 가능
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 6: AI 칸반 리스크 점수 ============================ -->
+<div id="s6" class="screen" style="margin-top:56px;">
+  <div class="s6-top">
+    <span class="logo">🔴 SIREN</span>
+    <span style="color:#666;font-size:13px;margin-left:16px;">워크스페이스 / 칸반보드</span>
+  </div>
+  <div class="s6-body">
+    <div class="s6-sidebar">
+      <div class="si">🏠</div>
+      <div class="si act">📌</div>
+      <div class="si">📁</div>
+      <div class="si">📅</div>
+      <div class="si">🤖</div>
+    </div>
+    <div class="s6-content">
+      <div class="s6-header">
+        <div>
+          <h2>칸반보드 <span class="ai-badge">🤖 AI 리스크 분석 활성</span></h2>
+          <div class="risk-legend" style="margin-top:8px;">
+            <div class="rl-item"><div class="rl-dot" style="background:#e63946"></div> 고위험 (즉시 처리)</div>
+            <div class="rl-item"><div class="rl-dot" style="background:#f39c12"></div> 중위험 (주의 필요)</div>
+            <div class="rl-item"><div class="rl-dot" style="background:#2ecc71"></div> 저위험 (정상)</div>
+            <div class="rl-item"><div class="rl-dot" style="background:#ddd"></div> 미분석</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="filter-row">
+            <button class="filter-btn active-f">전체</button>
+            <button class="filter-btn">고위험만</button>
+            <button class="filter-btn">내 담당</button>
+          </div>
+          <button class="ai-regen-btn">🔄 리스크 재분석</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:16px;">
+        <div class="kanban" style="flex:1;">
+          <!-- 예정 컬럼 -->
+          <div class="k-col">
+            <div class="k-col-header">
+              <div class="kch-title">📋 예정 <span class="kch-count">4</span></div>
+            </div>
+            <div class="k-card risk-high">
+              <div class="kc-top">
+                <div class="kc-title">6월 이사회 안건 문서 준비</div>
+                <div class="risk-score high">위험 87</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 요약</div>
+                <div class="as-text">이사회 개최 D-13 시점에서 안건 초안 미착수 상태. 법정 제출 기한 고려 시 지연 위험 높음. 오늘 착수 권장.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-urgent">긴급</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#e63946">박</div> 박두용 PM</div>
+              </div>
+            </div>
+            <div class="k-card risk-mid">
+              <div class="kc-top">
+                <div class="kc-title">신규 회원 환영 메일 발송</div>
+                <div class="risk-score mid">위험 52</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 요약</div>
+                <div class="as-text">5월 신규 127명 환영 메일 미발송. AI 에이전트 자동 발송 가능. 관계 형성 지연 시 이탈률 증가 예측.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-normal">이번 주</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#3498db">장</div> 장석주</div>
+              </div>
+            </div>
+            <div class="k-card risk-low">
+              <div class="kc-top">
+                <div class="kc-title">5월 후원 정산 보고서 작성</div>
+                <div class="risk-score low">위험 18</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 요약</div>
+                <div class="as-text">월말 정산 일정에 여유 있음. 데이터 자동 집계 완료 상태. 서식 입력 후 검토만 필요.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-normal">5/31</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#9b59b6">박</div> 박두용 PM</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 진행 중 컬럼 -->
+          <div class="k-col">
+            <div class="k-col-header">
+              <div class="kch-title">⚙️ 진행 중 <span class="kch-count">3</span></div>
+            </div>
+            <div class="k-card risk-high">
+              <div class="kc-top">
+                <div class="kc-title">NPO 패키지 제안서 최종화</div>
+                <div class="risk-score high">위험 79</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 요약</div>
+                <div class="as-text">미팅 일정(5/20)까지 D-2. 이미지 삽입 미완료 상태. 오늘 중 완료하지 않으면 미팅 자료 미준비 위험.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-urgent">D-2</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#e63946">장</div> 장석주</div>
+              </div>
+            </div>
+            <div class="k-card risk-mid">
+              <div class="kc-top">
+                <div class="kc-title">유족 심리상담 6월 일정 조율</div>
+                <div class="risk-score mid">위험 44</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 요약</div>
+                <div class="as-text">전문가 3인 일정 확인 중. 대기자 8명 존재. 일정 확정 지연 시 대기자 이탈 가능성 있음.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-normal">6/1 예정</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#2ecc71">박</div> 박두용 PM</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 완료 컬럼 -->
+          <div class="k-col">
+            <div class="k-col-header">
+              <div class="kch-title">✅ 완료 <span class="kch-count">8</span></div>
+            </div>
+            <div class="k-card risk-none">
+              <div class="kc-top">
+                <div class="kc-title">장학금 심사 결과 통보 완료</div>
+                <div class="risk-score none">완료</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 완료 보고서</div>
+                <div class="as-text">3건 전원 합격 통보 완료. 이의신청 기한 5/25. 지원금 5월 말 지급 예정. 후속 모니터링 권장.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-done">완료</span></div>
+                <div class="kc-assignee"><div class="av" style="background:#f39c12">박</div> 박두용 PM</div>
+              </div>
+            </div>
+            <div class="k-card risk-none">
+              <div class="kc-top">
+                <div class="kc-title">4월 후원 영수증 일괄 발행</div>
+                <div class="risk-score none">완료</div>
+              </div>
+              <div class="ai-summary">
+                <div class="as-label">🤖 AI 완료 보고서</div>
+                <div class="as-text">312건 PDF 자동 생성 및 이메일 발송 완료. 오류 0건. 미수신 재발송 대상 없음.</div>
+              </div>
+              <div class="kc-meta">
+                <div class="kc-tags"><span class="kc-tag t-done">자동처리</span></div>
+                <div class="kc-assignee" style="color:#9b59b6;font-size:11px;display:flex;align-items:center;gap:4px;"><div style="width:20px;height:20px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">AI</div> AI 자동</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 리스크 분석 패널 -->
+        <div class="risk-panel">
+          <div class="rp-title">🤖 AI 리스크 분석</div>
+          <div style="font-size:12px;color:#888;margin-bottom:12px;">오늘 오전 6:30 자동 갱신</div>
+          <div class="rp-dist">
+            <div class="rp-row">
+              <div class="rp-label" style="color:#e63946;font-weight:700">고위험</div>
+              <div class="rp-bar-bg"><div class="rp-bar-fill" style="width:29%;background:#e63946"></div></div>
+              <div class="rp-num">2건</div>
+            </div>
+            <div class="rp-row">
+              <div class="rp-label" style="color:#f39c12;font-weight:700">중위험</div>
+              <div class="rp-bar-bg"><div class="rp-bar-fill" style="width:29%;background:#f39c12"></div></div>
+              <div class="rp-num">2건</div>
+            </div>
+            <div class="rp-row">
+              <div class="rp-label" style="color:#2ecc71;font-weight:700">저위험</div>
+              <div class="rp-bar-bg"><div class="rp-bar-fill" style="width:14%;background:#2ecc71"></div></div>
+              <div class="rp-num">1건</div>
+            </div>
+            <div class="rp-row">
+              <div class="rp-label" style="color:#aaa;font-weight:700">완료</div>
+              <div class="rp-bar-bg"><div class="rp-bar-fill" style="width:100%;background:#ddd"></div></div>
+              <div class="rp-num">8건</div>
+            </div>
+          </div>
+          <div class="rp-insight">
+            <div class="ri-title">💡 AI 인사이트</div>
+            <div class="ri-item">이사회 준비 카드가 D-13인데 아직 미착수 상태입니다. 오늘 즉시 시작이 필요합니다.</div>
+            <div class="ri-item">고위험 카드 2건이 모두 오늘~이번 주 마감입니다. 우선 집중 권장.</div>
+            <div class="ri-item">AI 에이전트로 환영 메일을 자동 발송하면 중위험 1건을 즉시 해소할 수 있습니다.</div>
+            <div class="ri-item">완료 카드 중 장학금 이의신청 기한(5/25)이 다가오고 있습니다. 모니터링 필요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ SCREEN 7: AI 지출 자동 분류 ============================ -->
+<div id="s7" class="screen" style="margin-top:56px;">
+  <div class="s7-top">
+    <span class="logo">🔴 SIREN</span>
+    <span class="breadcrumb" style="margin-left:16px;">재무 관리 / <span>AI 지출 자동 분류</span></span>
+  </div>
+  <div class="s7-body">
+    <div class="s7-main">
+      <div class="s7-page-title">
+        AI 지출 자동 분류
+        <span style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;">🤖 Gemini 분석</span>
+      </div>
+      <div class="s7-page-sub">통장 거래내역 파일 업로드 → AI가 예산 항목과 계정과목 자동 분류 (평균 정확도 90%)</div>
+
+      <!-- 업로드 완료 상태 -->
+      <div class="upload-status">
+        <div class="us-icon">✅</div>
+        <div class="us-info">
+          <div class="us-title">국민은행_2026년5월_거래내역.xlsx · 분석 완료</div>
+          <div class="us-sub">2026-05-18 09:14 업로드 · 총 28건 거래 분석</div>
+        </div>
+        <div class="us-stats">
+          <div class="us-stat"><div class="sv">28</div><div class="sk">전체 건수</div></div>
+          <div class="us-stat"><div class="sv" style="color:#2ecc71">25</div><div class="sk">자동 분류</div></div>
+          <div class="us-stat"><div class="sv" style="color:#f39c12">3</div><div class="sk">검토 필요</div></div>
+        </div>
+        <div class="accuracy-bar-wrap">
+          <div class="ab-label">AI 분류 정확도</div>
+          <div class="accuracy-bar"><div class="ab-fill" style="width:90%"></div></div>
+          <div class="accuracy-pct">90%</div>
+        </div>
+      </div>
+
+      <!-- 분류 결과 테이블 -->
+      <div class="classify-table-wrap">
+        <div class="ct-header">
+          <h3>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:6px;font-size:12px;color:#fff">AI</span>
+            분류 결과 (28건)
+          </h3>
+          <div class="ct-actions">
+            <button class="ct-btn secondary">Excel 내보내기</button>
+            <button class="ct-btn primary">회계 시스템 반영</button>
+          </div>
+        </div>
+        <table class="classify-table">
+          <thead>
+            <tr>
+              <th>거래일</th>
+              <th>내용</th>
+              <th>금액</th>
+              <th>AI 분류 항목</th>
+              <th>예산 계정과목</th>
+              <th>신뢰도</th>
+              <th>수정</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>05-18</td>
+              <td>심리상담센터 5월분</td>
+              <td class="amount-col negative">-1,200,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c3">유족지원비</span>
+              </td>
+              <td style="font-size:12px;color:#555">사업비 / 유족지원</td>
+              <td><span class="conf high">98%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-17</td>
+              <td>네이버 클라우드 청구</td>
+              <td class="amount-col negative">-89,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c1">IT운영비</span>
+              </td>
+              <td style="font-size:12px;color:#555">관리비 / 통신</td>
+              <td><span class="conf high">95%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-17</td>
+              <td>정기후원 입금</td>
+              <td class="amount-col" style="color:#2ecc71">+5,000,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c4">정기후원수입</span>
+              </td>
+              <td style="font-size:12px;color:#555">수입 / 후원금</td>
+              <td><span class="conf high">99%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-16</td>
+              <td>사무용품 구매 쿠팡</td>
+              <td class="amount-col negative">-134,500</td>
+              <td class="ai-classified">
+                <span class="cat-badge c1">사무용품비</span>
+              </td>
+              <td style="font-size:12px;color:#555">관리비 / 소모품</td>
+              <td><span class="conf high">92%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr style="background:#fffbf0;">
+              <td>05-15</td>
+              <td>한국○○공제회 납부</td>
+              <td class="amount-col negative">-320,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c2" style="background:#fff3cd;color:#856404;border:1px solid #ffc107">검토 필요</span>
+              </td>
+              <td style="font-size:12px;color:#f39c12;font-weight:700">⚠ 분류 불확실</td>
+              <td><span class="conf mid">61%</span></td>
+              <td><span class="edit-icon" style="color:#f39c12">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-15</td>
+              <td>장학금 지급 이○○</td>
+              <td class="amount-col negative">-500,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c3">장학금지원비</span>
+              </td>
+              <td style="font-size:12px;color:#555">사업비 / 장학</td>
+              <td><span class="conf high">97%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-14</td>
+              <td>Netlify 구독료</td>
+              <td class="amount-col negative">-28,600</td>
+              <td class="ai-classified">
+                <span class="cat-badge c1">IT운영비</span>
+              </td>
+              <td style="font-size:12px;color:#555">관리비 / 통신</td>
+              <td><span class="conf high">96%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+            <tr>
+              <td>05-14</td>
+              <td>일시후원 홍○○</td>
+              <td class="amount-col" style="color:#2ecc71">+100,000</td>
+              <td class="ai-classified">
+                <span class="cat-badge c4">일시후원수입</span>
+              </td>
+              <td style="font-size:12px;color:#555">수입 / 후원금</td>
+              <td><span class="conf high">99%</span></td>
+              <td><span class="edit-icon">✏️</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:12px 0;font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:4px;font-size:10px;color:#fff">AI</span>
+          AI 자동 분류 · 검토 필요 항목(주황 행)은 직접 계정과목 선택 후 반영하세요. 반영 후 회계 시스템에 자동 기록됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 오른쪽 요약 패널 -->
+    <div class="s7-right">
+      <h3>📊 항목별 지출 요약</h3>
+      <!-- 도넛 차트 SVG -->
+      <div class="donut-wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#f5f5f5" stroke-width="24"/>
+          <!-- 유족지원비 35% -->
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#2ecc71" stroke-width="24" stroke-dasharray="131.9 245.1" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+          <!-- IT운영비 22% -->
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#3498db" stroke-width="24" stroke-dasharray="82.9 293.1" stroke-dashoffset="-131.9" transform="rotate(-90 80 80)"/>
+          <!-- 장학금 19% -->
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#9b59b6" stroke-width="24" stroke-dasharray="71.6 305.4" stroke-dashoffset="-214.8" transform="rotate(-90 80 80)"/>
+          <!-- 사무용품 14% -->
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#f39c12" stroke-width="24" stroke-dasharray="52.8 324.2" stroke-dashoffset="-286.4" transform="rotate(-90 80 80)"/>
+          <!-- 기타 10% -->
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#e63946" stroke-width="24" stroke-dasharray="37.7 339.3" stroke-dashoffset="-339.2" transform="rotate(-90 80 80)"/>
+          <text x="80" y="75" text-anchor="middle" font-size="18" font-weight="800" fill="#1a1a2e">2,272</text>
+          <text x="80" y="92" text-anchor="middle" font-size="11" fill="#888">천원</text>
+        </svg>
+      </div>
+      <div class="cat-summary">
+        <div class="cs-item">
+          <div class="cs-dot" style="background:#2ecc71"></div>
+          <div class="cs-item-wrap">
+            <div style="display:flex;justify-content:space-between;"><span class="cs-name">유족지원비</span><span class="cs-amount">795,200원</span></div>
+            <div class="cs-bar-bg"><div style="width:35%;height:100%;background:#2ecc71;border-radius:2px"></div></div>
+          </div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-dot" style="background:#3498db"></div>
+          <div class="cs-item-wrap">
+            <div style="display:flex;justify-content:space-between;"><span class="cs-name">IT운영비</span><span class="cs-amount">499,840원</span></div>
+            <div class="cs-bar-bg"><div style="width:22%;height:100%;background:#3498db;border-radius:2px"></div></div>
+          </div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-dot" style="background:#9b59b6"></div>
+          <div class="cs-item-wrap">
+            <div style="display:flex;justify-content:space-between;"><span class="cs-name">장학금지원비</span><span class="cs-amount">431,680원</span></div>
+            <div class="cs-bar-bg"><div style="width:19%;height:100%;background:#9b59b6;border-radius:2px"></div></div>
+          </div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-dot" style="background:#f39c12"></div>
+          <div class="cs-item-wrap">
+            <div style="display:flex;justify-content:space-between;"><span class="cs-name">사무용품비</span><span class="cs-amount">318,080원</span></div>
+            <div class="cs-bar-bg"><div style="width:14%;height:100%;background:#f39c12;border-radius:2px"></div></div>
+          </div>
+        </div>
+        <div class="cs-item">
+          <div class="cs-dot" style="background:#e63946"></div>
+          <div class="cs-item-wrap">
+            <div style="display:flex;justify-content:space-between;"><span class="cs-name">기타</span><span class="cs-amount">227,200원</span></div>
+            <div class="cs-bar-bg"><div style="width:10%;height:100%;background:#e63946;border-radius:2px"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-note">
+        <div class="an-title">🤖 AI 분석 노트</div>
+        <div class="an-item">유족지원비가 전월 대비 +18% 증가. 6월 상담 수요 증가 예상됨.</div>
+        <div class="an-item">IT 운영비(Netlify·클라우드)는 연간 구독으로 전환 시 약 15% 절감 가능.</div>
+        <div class="an-item">검토 필요 3건은 계정과목 직접 선택 후 반영 필요. 유사 거래 패턴 학습 중.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCREEN_NAMES = {
+  1: '01_대시보드',
+  2: '02_핵심기능_6가지',
+  3: '03_AI_에이전트_채팅',
+  4: '04_SIREN_신고관리',
+  5: '05_AI_일일_브리핑',
+  6: '06_AI_칸반_리스크점수',
+  7: '07_AI_지출_자동분류',
+};
+
+let currentScreen = 1;
+
+function show(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button:not(.save-btn)').forEach((b,i) => {
+    const idx = [0,1,2,3,5,6,7]; // sep 제외 인덱스
+    b.classList.remove('active');
+  });
+  // 화면 버튼만 active 처리 (save 버튼 제외)
+  const screenBtns = document.querySelectorAll('.nav button:not(.save-btn)');
+  screenBtns.forEach(b => b.classList.remove('active'));
+  screenBtns[n <= 4 ? n-1 : n-2].classList.add('active'); // sep 하나 감안
+  document.getElementById('s'+n).classList.add('active');
+  currentScreen = n;
+}
+
+async function captureScreen(n) {
+  const el = document.getElementById('s'+n);
+  // 잠깐 보이게 해서 캡처
+  const wasActive = el.classList.contains('active');
+  el.style.display = 'block';
+  el.style.position = 'absolute';
+  el.style.top = '0';
+  el.style.left = '0';
+  el.style.zIndex = '-1';
+
+  const canvas = await html2canvas(el, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    width: 1440,
+    height: el.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
+    backgroundColor: getComputedStyle(el).backgroundColor || '#ffffff',
+    logging: false,
+  });
+
+  if (!wasActive) {
+    el.style.display = 'none';
+    el.style.position = '';
+    el.style.top = '';
+    el.style.left = '';
+    el.style.zIndex = '';
+  } else {
+    el.style.position = '';
+    el.style.top = '';
+    el.style.left = '';
+    el.style.zIndex = '';
+  }
+
+  return canvas;
+}
+
+function downloadCanvas(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function showOverlay(title, sub, icon='⏳') {
+  document.getElementById('overlayTitle').textContent = title;
+  document.getElementById('overlaySub').textContent = sub;
+  document.getElementById('overlayIcon').textContent = icon;
+  document.getElementById('saveOverlay').classList.add('show');
+}
+
+function hideOverlay() {
+  document.getElementById('saveOverlay').classList.remove('show');
+}
+
+async function saveCurrentImage() {
+  const btns = document.querySelectorAll('.save-btn');
+  btns.forEach(b => b.disabled = true);
+  showOverlay(
+    `"${SCREEN_NAMES[currentScreen]}" 이미지 생성 중...`,
+    '화면을 캡처하고 있습니다. 잠시만 기다려 주세요.'
+  );
+  try {
+    const canvas = await captureScreen(currentScreen);
+    const filename = `SIREN_${SCREEN_NAMES[currentScreen]}.png`;
+    downloadCanvas(canvas, filename);
+    showOverlay('저장 완료!', filename, '✅');
+    setTimeout(hideOverlay, 1500);
+  } catch(e) {
+    showOverlay('오류 발생', String(e), '❌');
+    setTimeout(hideOverlay, 2500);
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+async function saveAllImages() {
+  const btns = document.querySelectorAll('.save-btn');
+  btns.forEach(b => b.disabled = true);
+  const total = Object.keys(SCREEN_NAMES).length;
+  for (let n = 1; n <= total; n++) {
+    showOverlay(
+      `전체 저장 중... (${n}/${total})`,
+      `${SCREEN_NAMES[n]} 캡처 중...`
+    );
+    try {
+      // 잠깐 해당 화면 활성화해서 렌더링
+      show(n);
+      await new Promise(r => setTimeout(r, 300)); // 렌더링 대기
+      const canvas = await captureScreen(n);
+      const filename = `SIREN_${SCREEN_NAMES[n]}.png`;
+      downloadCanvas(canvas, filename);
+      await new Promise(r => setTimeout(r, 200));
+    } catch(e) {
+      console.error(`화면 ${n} 캡처 실패:`, e);
+    }
+  }
+  showOverlay('전체 저장 완료!', `${total}장 모두 다운로드됐습니다.`, '🎉');
+  setTimeout(hideOverlay, 2000);
+  btns.forEach(b => b.disabled = false);
+}
+
+// sep 위치 고려한 show 함수 재정의 (버튼 인덱스 정확히 처리)
+(function() {
+  const allNavBtns = document.querySelectorAll('.nav button:not(.save-btn)');
+  // 버튼 순서: 0=대시보드, 1=핵심기능, 2=AI에이전트, 3=SIREN신고, 4=AI브리핑, 5=칸반리스크, 6=지출분류
+  window.show = function(n) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    allNavBtns.forEach(b => b.classList.remove('active'));
+    const btnIdx = n <= 4 ? n-1 : n-2;
+    if (allNavBtns[btnIdx]) allNavBtns[btnIdx].classList.add('active');
+    document.getElementById('s'+n).classList.add('active');
+    currentScreen = n;
+  };
+})();
+</script>
+</body>
+</html>
