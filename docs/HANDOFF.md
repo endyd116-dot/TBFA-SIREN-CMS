@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-17 / **🏁 라운드 1 SIREN 4건 전체 완결 (Q1~Q12 통과, BUG-Q10 fix 포함) + 라운드 2 워크스페이스 마이그 완료·B·A 작업 진행 중** / main @ `1197545` (전부 푸시 완료)
+> **마지막 갱신**: 2026-05-17 / **🔄 라운드 4 3단 권한 체계 B·A 작업 진행 중 (라운드 1·2·3 전체 완결)** / main @ `6e69a0f` (전부 푸시 완료)
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 3. 2026-05-17 완료한 일
 
-### 3.0 라운드 1 SIREN 4건 fix (전체 완결)
+### 3.0 라운드 1 SIREN 4건 fix (✅ 전체 완결)
 
 | fix | 내용 | 커밋 |
 |---|---|---|
@@ -51,12 +51,29 @@
 
 → 검증 보고서: `docs/verify/2026-05-17-round1-siren.md` (C 작성)
 
-### 3.1 라운드 2 워크스페이스 DB 기반 완료
+### 3.1 라운드 2 워크스페이스 8건 + 구글 캘린더 (✅ 전체 완결)
 
 - 3개 테이블 신설: workspace_task_mentions·workspace_event_rsvps·google_calendar_tokens
-- 마이그레이션 호출 완료 (Swain, 2026-05-17)
-- schema.ts 활성화 (`a595339`)
-- B(백엔드 9건)·A(프론트 4건) 트리거 발사 완료 — 현재 작업 중
+- 마이그레이션 호출 완료, B 9건·A 4건 머지 완료
+- C 검증 Q1~Q12 통과 (BUG-Q4 멘션 INSERT·BUG-Q6 workspaceId fix 포함)
+→ 검증 보고서: `docs/verify/2026-05-17-round2-workspace.md`
+
+### 3.2 라운드 3 통합 CMS 6건 (✅ 전체 완결)
+
+- donations.paidAt 신설 마이그 + 백필 완료
+- 자동 발송 cooldown 중복 차단·환불 권한 통일·빌링키 재활성화 API·채널 검증
+- B 5건·A 1건 머지 완료
+- C 검증 Q1~Q9 전부 통과 (BUG 0)
+→ 검증 보고서: `docs/verify/2026-05-17-round3-cms.md`
+
+### 3.3 라운드 4 3단 권한 체계 (🔄 진행 중)
+
+- lib/admin-role.ts 신설 (`requireRole` / `roleForbidden` 헬퍼)
+- docs/policies/roles-and-permissions.md 역할 정책 문서
+- DB 마이그 완료: 기존 operator(type=admin) → admin 1명 변환
+- **B·A 트리거 발사 완료** — 각자 브랜치에서 작업 중
+  - B: feature/round4-rbac-back (로그인 버그 fix·super_admin 7개·admin 4개·operators 수정)
+  - A: feature/round4-rbac-front (권한 정책 관리 페이지 + iframe 4곳)
 
 ---
 

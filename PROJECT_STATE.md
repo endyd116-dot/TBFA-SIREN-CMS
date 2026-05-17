@@ -24,8 +24,9 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-17 | **메인** | **🏁 라운드 2 워크스페이스 완결 + 라운드 3 CMS 설계·마이그 준비 완료** (main @ `c4d2921`) — R2 Q1~Q12 통과 (BUG-Q4 멘션 INSERT·BUG-Q6 workspaceId 수정, 61572bc). 라운드 3 설계서·마이그·schema paidAt 완료. Swain 마이그 호출 대기 중. |
-| 2026-05-17 | **메인** | **🚀 라운드 2 워크스페이스 마이그 완료 + schema 활성화 + B·A 트리거 발사** (main @ `a595339`) — 3개 테이블 생성 확인(workspace_task_mentions·workspace_event_rsvps·google_calendar_tokens). 마이그 파일 삭제. 설계서: `docs/milestones/2026-05-17-round2-workspace.md`. B 9건(assign 버그·blob orphan·completedAt clear·mentions·rsvp·restore·holidays·assignedByMe·구글캘), A 4건(복원 버튼·RSVP UI·멘션 배지·구글캘 UI). ★ Swain 구글 OAuth2 환경변수 설정 필요. Round 1 Q10 익명 실명 표시 fix도 동시 머지(8de5e1c). |
+| 2026-05-17 | **메인** | **🔄 라운드 4 3단 권한 체계 — B·A 트리거 발사** (main @ `6e69a0f`) — lib/admin-role.ts + roles-and-permissions.md + 마이그 완료(operator→admin 1건). B: 로그인 버그·super_admin 체크 7개·admin 체크 4개·admin-operators role 확장. A: admin-role-policy.html 신규 + iframe 4곳 등록. |
+| 2026-05-17 | **메인** | **🏁 라운드 3 CMS 6건 완결 (C Q1~Q9 전부 통과, BUG 0)** (main @ `aea1267`) — R3 C 검증: 환불권한·자동발송중복차단·paidAt 백필·재활성화 API·채널검증 전부 PASS. 보고서: `docs/verify/2026-05-17-round3-cms.md`. |
+| 2026-05-17 | **메인** | **🏁 라운드 2 워크스페이스 완결 + 라운드 3 CMS 설계·마이그 준비 완료** (main @ `c4d2921`) — R2 Q1~Q12 통과 (BUG-Q4 멘션 INSERT·BUG-Q6 workspaceId 수정, 61572bc). 라운드 3 설계서·마이그·schema paidAt 완료. |
 | 2026-05-17 | **메인** | **🎯 라운드 1 SIREN 4건 fix 설계 완료 + A·B·C 병렬 트리거 배포 대기** (main @ 본 커밋) — Swain 결정: #2 B안(응답 endpoint)·#3 A안(회원 상세 강제 변경)·#4 B안(실명+익명 배지)·진행 4채팅 병렬. 설계서: `docs/milestones/2026-05-17-round1-siren.md`. DB 마이그 0건(컬럼 모두 존재). B 작업 6건(빌링키·3종 자동 status·user-my-reports 응답·자격 강제 endpoint), A 작업 4건(my-reports.js 필드 정정·STAGE_FLOW·익명 배지·회원 상세 모달), C 12개 시나리오. **A·B 트리거는 메인 응답 본문에 그대로 박힘 — Swain이 복붙해서 A·B·C 채팅 시작**. |
 | 2026-05-16 | **메인** | **버그 픽스 3차 코드 완결 + 📐 Phase 23 설계 진입** (main @ `20af8b4`, 전부 푸시) — 계정과목 전면작업·#9/#11 매출 카테고리 2단계 계층·#7/#8 정기후원 효성·토스 중복 경고·출금전표 예산항목 드롭다운 전부 완료. 계정과목·매출카테고리 마이그 호출 확인·파일삭제·schema 활성화 완료. 버그3차 남은 건 Swain 운영 작업뿐(#16 HTTPS·#14 환경변수·#3 효성데이터). v3.0 설계도 정본화(docs 커밋)·Phase 23-0 골격 설계서 작성. ★ **재정 모듈 전체가 더미 → 마이그 불필요·v3.0 백지 재구축**. 미해결: "독립 앱 vs SIREN 내 독립 모듈" 메인 판단 → Swain 확인 대기. 상세 docs/HANDOFF.md §3.2. |
 | 2026-05-16 | **메인** | **버그 픽스 3차 진행 중** (이전 세션) — `93f89ca` #13 계정과목 503 + `6dc57a3` #14-B 발송 멈춤. 이후 본 세션에서 계정과목·매출카테고리·#7/#8 마감. |
@@ -39,20 +40,22 @@
 ## 3. 현재 작업 모드
 
 ```
-🔄 라운드 3 통합 CMS 6건 — 마이그 호출 대기 중 (2026-05-17)
-   - 설계서: docs/milestones/2026-05-17-round3-cms.md
-   - DB 마이그: migrate-round3-cms.ts 배포 완료 → Swain 호출 대기
-   - schema.ts: donations.paidAt 이미 추가됨
-   - B 백 5건: 환불 권한 확인·중복 차단·paidAt 적용·빌링키 재활성화 API·채널 검증
-   - A 프론트 1건: 빌링키 재활성화 UI
+🔄 라운드 4 3단 권한 체계 — B·A 작업 중 (2026-05-17)
+   - 설계서: docs/milestones/2026-05-17-round4-rbac.md
+   - 메인 완료: lib/admin-role.ts + docs/policies/roles-and-permissions.md + 마이그 완료 (6e69a0f)
+   - B 백엔드: feature/round4-rbac-back — 작업 중
+     □ admin-login.ts role 하드코딩 제거
+     □ super_admin 체크 7개 파일 패턴 통일
+     □ admin 등급 체크 4개 파일 추가
+     □ admin-operators.ts role 'admin' 추가
+   - A 프론트: feature/round4-rbac-front — 작업 중
+     □ admin-role-policy.html 신규
+     □ iframe 4곳 등록
 
-   ★ Swain 지금 할 일:
-   https://tbfa.co.kr/api/migrate-round3-cms?run=1 호출 → 완료 알림
-
-   ★ 다음 메인 작업 (마이그 확인 후):
-   1. 마이그 파일 삭제 + B·A 트리거 발사
-   2. B·A push → 머지
-   3. C 검증 Q1~Q9
+   ★ 다음 메인 작업 (B·A push 후):
+   1. B push → 키 대조 → 머지
+   2. A push → 머지
+   3. C 트리거 발사 (Q1~Q8)
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -92,11 +95,33 @@
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
 | 메인 | DB·마이그·머지 | 마이그 3개 테이블 + schema.ts 활성화 | ✅ 완료 (a595339) |
-| B | 백엔드 | assign 버그·blob orphan·completedAt·mentions·rsvp·restore·holidays·assignedByMe·구글캘 | 🔄 트리거 발사 완료, 작업 중 |
-| A | 프론트 | 휴지통 복원·RSVP UI·멘션 배지·구글캘 연동 UI | 🔄 트리거 발사 완료, 작업 중 |
+| B | 백엔드 | assign 버그·blob orphan·completedAt·mentions·rsvp·restore·holidays·assignedByMe·구글캘 | ✅ 완료 (머지됨) |
+| A | 프론트 | 휴지통 복원·RSVP UI·멘션 배지·구글캘 연동 UI | ✅ 완료 (머지됨) |
 | C | 검증 | Q1~Q12 | ✅ 완료 (10통과 + BUG-Q4·Q6 fix, 61572bc) |
 
-다음 트랙(라운드 3~5)은 `docs/HANDOFF.md` §4 참조.
+### 4.3 라운드 3 통합 CMS 6건 (2026-05-17 ✅ 전체 완결)
+
+설계서: [docs/milestones/2026-05-17-round3-cms.md](docs/milestones/2026-05-17-round3-cms.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | DB·마이그 | paidAt 마이그 + schema 활성화 | ✅ 완료 (033ee0d) |
+| B | 백엔드 | 환불권한·중복차단·paidAt 적용·재활성화 API·채널검증 | ✅ 완료 (da40c44, 머지됨) |
+| A | 프론트 | 빌링키 재활성화 UI | ✅ 완료 (d1052c0, 머지됨) |
+| C | 검증 | Q1~Q9 | ✅ 완료 (9/9 통과, BUG 0, aea1267) |
+
+### 4.4 라운드 4 3단 권한 체계 (2026-05-17 🔄 진행 중)
+
+설계서: [docs/milestones/2026-05-17-round4-rbac.md](docs/milestones/2026-05-17-round4-rbac.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | 헬퍼·마이그·문서 | lib/admin-role.ts + 마이그 완료 + roles 문서 | ✅ 완료 (6e69a0f) |
+| B | 백엔드 | 로그인 버그·super_admin 7개·admin 4개·operators 수정 | 🔄 트리거 발사, 작업 중 |
+| A | 프론트 | admin-role-policy.html + iframe 4곳 | 🔄 트리거 발사, 작업 중 |
+| C | 검증 | Q1~Q8 | ⏸ B·A 완료 후 |
+
+다음 트랙(라운드 5~)은 `docs/HANDOFF.md` §4 참조.
 
 ---
 
