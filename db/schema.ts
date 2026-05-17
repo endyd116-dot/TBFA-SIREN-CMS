@@ -3296,3 +3296,96 @@ export type NewWorkspaceEventRsvp   = typeof workspaceEventRsvps.$inferInsert;
 export type GoogleCalendarToken     = typeof googleCalendarTokens.$inferSelect;
 export type NewGoogleCalendarToken  = typeof googleCalendarTokens.$inferInsert;
 
+/* === 라운드6 게이미피케이션 === */
+
+export const pointRules = pgTable("point_rules", {
+  id:          serial("id").primaryKey(),
+  eventType:   varchar("event_type", { length: 40 }).notNull().unique(),
+  pointAmount: integer("point_amount").notNull().default(0),
+  isActive:    boolean("is_active").notNull().default(true),
+  description: varchar("description", { length: 200 }),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+});
+
+export const memberPointLogs = pgTable("member_point_logs", {
+  id:          serial("id").primaryKey(),
+  memberId:    integer("member_id").notNull(),
+  delta:       integer("delta").notNull(),
+  reason:      varchar("reason", { length: 200 }),
+  eventType:   varchar("event_type", { length: 40 }),
+  referenceId: integer("reference_id"),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("member_point_logs_member_idx").on(t.memberId),
+}));
+
+export const badgeDefinitions = pgTable("badge_definitions", {
+  code:           varchar("code", { length: 50 }).primaryKey(),
+  nameKo:         varchar("name_ko", { length: 50 }).notNull(),
+  icon:           varchar("icon", { length: 100 }),
+  conditionType:  varchar("condition_type", { length: 30 }).notNull(),
+  conditionValue: integer("condition_value").notNull(),
+  description:    varchar("description", { length: 200 }),
+  isActive:       boolean("is_active").notNull().default(true),
+  sortOrder:      integer("sort_order").default(0),
+});
+
+export const memberBadges = pgTable("member_badges", {
+  id:        serial("id").primaryKey(),
+  memberId:  integer("member_id").notNull(),
+  badgeCode: varchar("badge_code", { length: 50 }).notNull(),
+  awardedAt: timestamp("awarded_at").defaultNow().notNull(),
+}, (t) => ({
+  uniq: uniqueIndex("member_badges_uniq").on(t.memberId, t.badgeCode),
+}));
+
+export const rewards = pgTable("rewards", {
+  id:          serial("id").primaryKey(),
+  nameKo:      varchar("name_ko", { length: 100 }).notNull(),
+  description: text("description"),
+  pointCost:   integer("point_cost").notNull(),
+  stock:       integer("stock"),
+  isActive:    boolean("is_active").notNull().default(true),
+  imageUrl:    varchar("image_url", { length: 500 }),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+});
+
+export const rewardRedemptions = pgTable("reward_redemptions", {
+  id:          serial("id").primaryKey(),
+  memberId:    integer("member_id").notNull(),
+  rewardId:    integer("reward_id").notNull(),
+  pointCost:   integer("point_cost").notNull(),
+  status:      varchar("status", { length: 20 }).notNull().default("pending"),
+  note:        varchar("note", { length: 300 }),
+  redeemedAt:  timestamp("redeemed_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+}, (t) => ({
+  memberIdx: index("reward_redemptions_member_idx").on(t.memberId),
+}));
+
+/* === 라운드6 큐레이션·팝업 === */
+
+export const sitePopups = pgTable("site_popups", {
+  id:               serial("id").primaryKey(),
+  title:            varchar("title", { length: 100 }).notNull(),
+  content:          text("content"),
+  imageUrl:         varchar("image_url", { length: 500 }),
+  linkUrl:          varchar("link_url", { length: 500 }),
+  targetPages:      jsonb("target_pages").default(["*"]),
+  displayFrequency: varchar("display_frequency", { length: 20 }).notNull().default("once_day"),
+  startAt:          timestamp("start_at"),
+  endAt:            timestamp("end_at"),
+  isActive:         boolean("is_active").notNull().default(true),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+});
+
+export const siteCurations = pgTable("site_curations", {
+  id:        serial("id").primaryKey(),
+  slot:      varchar("slot", { length: 40 }).notNull(),
+  title:     varchar("title", { length: 100 }),
+  items:     jsonb("items").default([]),
+  isActive:  boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
