@@ -52,9 +52,10 @@
      □ email_send_by_filter / bulk_pipeline
    - Phase 1 완료 후 Phase 2 시작 (C Layer3 힌트 + D Layer4 스케줄)
 
-   ★ Phase 2 조건: A+B 머지 완료 후 C·D 트리거 발사
-   C (Layer 3 힌트): feature/layer3-hints → ../tbfa-mis-C (대기)
-   D (Layer 4 스케줄): feature/layer4-schedule → ../tbfa-mis-D (대기)
+   ★ Phase 2 조건: A+B 머지 완료 후 A·B·C 트리거 발사
+   A Phase 2 (Layer 3 힌트): feature/layer3-hints → ../tbfa-mis-A (대기)
+   B Phase 2 (Layer 4 스케줄): feature/layer4-schedule → ../tbfa-mis-B (대기)
+   C (검증): verify/round7 → ../tbfa-mis-C (Phase 1 완료 후 Q1~Q6 검증)
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -140,12 +141,13 @@
 | A | AI 배치 도구 | Layer 1: legal_reply_batch·harassment_reply_batch·chat_message_broadcast·notification_batch | 🔄 진행 중 |
 | B | AI 파이프라인 | Layer 2: email_send_by_filter·bulk_pipeline | 🔄 진행 중 |
 
-**Phase 2 (A+B 머지 후)**
+**Phase 2 (A+B 머지 후 — 같은 워크트리 재사용)**
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| C | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | ⏸ Phase 1 대기 |
-| D | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ⏸ Phase 1 대기 |
+| A | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | ⏸ Phase 1 대기 |
+| B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ⏸ Phase 1 대기 |
+| C | 검증 | Q1~Q6 라이브 검증 (Phase 1 완료 후 시작) | ⏸ Phase 1 대기 |
 
 ### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 ✅ 전체 완결)
 
@@ -236,13 +238,13 @@
 
 > 2026-05-10 적용. 모델·역할 분배는 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §1.
 
-| 폴더 | 채팅 | 모델 | 역할 | 브랜치 | 현재 상태 |
-|---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 설계·머지·조율 | `main` | 라운드 7 설계 완료 |
-| `../tbfa-mis-A` | **A** | Opus 4.7 | Layer 1 배치 도구 | `feature/layer1-batch` | 🔄 Phase 1 진행 중 |
-| `../tbfa-mis-B` | **B** | Sonnet 4.6 | Layer 2 파이프라인 도구 | `feature/layer2-pipeline` | 🔄 Phase 1 진행 중 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | Layer 3 힌트 시스템 | `feature/layer3-hints` | ⏸ Phase 2 대기 |
-| `../tbfa-mis-D` | **D** | Sonnet 4.6 | Layer 4 스케줄 도구 | `feature/layer4-schedule` | ⏸ Phase 2 대기 |
+| 폴더 | 채팅 | 모델 | 역할 | Phase 1 브랜치 | Phase 2 브랜치 | 현재 상태 |
+|---|---|---|---|---|---|---|
+| `tbfa-mis` | **메인** | Opus 4.7 | 설계·머지·조율 | `main` | `main` | 라운드 7 설계 완료 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | Layer 1→3 | `feature/layer1-batch` | `feature/layer3-hints` | 🔄 Phase 1 진행 중 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | Layer 2→4 | `feature/layer2-pipeline` | `feature/layer4-schedule` | 🔄 Phase 1 진행 중 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 검증 | — | `verify/round7` | ⏸ Phase 1 완료 후 시작 |
+| `../tbfa-mis-D` | D | — | 휴면 | — | — | 사용 안 함 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
 
