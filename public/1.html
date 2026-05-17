@@ -132,37 +132,30 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 .feat-title{font-size:16px;font-weight:700;color:var(--text);margin:10px 0 6px}
 .feat-desc{font-size:13px;color:var(--text2);line-height:1.6}
 
-/* 포트폴리오 3열 레이아웃 */
-.pfol-wrap{display:grid;grid-template-columns:1fr 220px 1fr;gap:24px;margin-bottom:0;height:460px}
-.pfol-left{padding:8px 0}
-.pfol-left h3{font-size:14px;font-weight:700;color:var(--blue);letter-spacing:.05em;margin-bottom:12px;text-transform:uppercase}
-.pfol-bullets{display:flex;flex-direction:column;gap:8px}
-.pfol-bullet{display:flex;gap:10px;align-items:flex-start}
-.pfol-bullet::before{content:'▶';font-size:10px;color:var(--blue);margin-top:3px;flex-shrink:0}
-.pfol-bullet-txt{font-size:13px;color:var(--text2);line-height:1.5}
-.pfol-center{}
-.client-card{
-  background:var(--blue);border-radius:16px;padding:24px 20px;
-  height:100%;display:flex;flex-direction:column;gap:12px
-}
-.client-name{font-size:22px;font-weight:800;color:#fff;line-height:1.2}
-.client-badge{
-  background:rgba(255,255,255,.2);color:#fff;
-  font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;
-  display:inline-block;margin-top:2px
-}
-.client-tech{
-  margin-top:auto;
-  font-size:11px;color:rgba(255,255,255,.7);line-height:1.6
-}
-.client-tech strong{color:#fff;font-weight:700;font-size:10px;letter-spacing:.08em}
-.pfol-right{position:relative}
-.pfol-right img{width:100%;height:100%;object-fit:cover;border-radius:12px;border:1px solid var(--gray-mid)}
-.pfol-no-img{
-  width:100%;height:100%;border-radius:12px;border:2px dashed var(--gray-mid);
-  display:flex;align-items:center;justify-content:center;
-  color:var(--text2);font-size:13px
-}
+/* 포트폴리오 2열 레이아웃 */
+.pf-bar{height:56px;background:var(--blue);display:flex;align-items:center;justify-content:space-between;padding:0 32px;flex-shrink:0}
+.pf-bar-left{display:flex;align-items:center;gap:20px}
+.pf-num{font-size:11px;font-weight:700;color:#bfdbfe;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.pf-title{font-size:18px;font-weight:800;color:#fff}
+.pf-stats{display:flex;gap:28px}
+.pf-stat{text-align:center}
+.pf-stat-n{font-size:16px;font-weight:800;color:#fff;line-height:1}
+.pf-stat-l{font-size:10px;color:#bfdbfe;margin-top:2px}
+.pf-body{display:grid;grid-template-columns:280px 1fr;height:664px}
+.pf-left{background:#f8fafc;border-right:1px solid #e2e8f0;padding:18px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.pf-client-card{background:var(--blue);border-radius:12px;padding:16px 18px;flex-shrink:0}
+.pf-client-name{font-size:19px;font-weight:800;color:#fff;line-height:1.2}
+.pf-client-badge{background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;display:inline-block;margin-top:6px}
+.pf-client-tech{font-size:11px;color:rgba(255,255,255,.75);margin-top:10px;line-height:1.6}
+.pf-client-tech strong{color:#fff;font-size:10px;letter-spacing:.08em}
+.pf-bullets{display:flex;flex-direction:column;gap:7px}
+.pf-bullet{font-size:12px;color:#475569;padding-left:14px;position:relative;line-height:1.5}
+.pf-bullet::before{content:'▶';position:absolute;left:0;color:var(--blue);font-size:9px;top:3px}
+.pf-desc{font-size:11px;color:#64748b;line-height:1.6}
+.pf-result{margin-top:auto;background:var(--blue);border-radius:8px;padding:10px 14px;font-size:11px;color:#bfdbfe;line-height:1.6;flex-shrink:0}
+.pf-result strong{color:#fff}
+.pf-img-wrap{background:#0f172a;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;padding:12px}
+.pf-img-wrap img{width:100%;height:100%;object-fit:contain;object-position:top center;border-radius:6px}
 
 /* ══════════════════════════════════════
    SLIDE 1: Cover
@@ -671,505 +664,455 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 </div>
 <!-- ══════════════ SLIDE 11: 아워홈 TQMS ══════════════ -->
 <div class="slide" id="g11">
-  <div class="sw narrow">
-    <span class="sec-badge">10 · 아워홈</span>
-    <h1 class="slide-h1" style="font-size:32px">TQMS 통합 품질관리 플랫폼 — <em>아워홈 전 공정 품질을 한 화면에서.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">디지털클러스터사업 · 규모 10억<br>원료 입고부터 생산·유통·판매까지 전 공정의 품질 데이터를 통합 관리.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">원료·생산·유통 통합 추적</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">LOT 단위 품질 KPI</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">CAPA 워크플로우 자동화</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">라인별 실시간 모니터</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">아워홈<br>(Ourhome)</div>
-          <div class="client-badge">10억 경쟁입찰 1위</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>React · Spring Boot<br>PostgreSQL · Kafka</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a1.png" alt="아워홈 TQMS 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">10 · 아워홈 (Ourhome)</span>
+      <span class="pf-title">TQMS 통합 품질관리 플랫폼</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">1위</div><div class="pf-stat-l">경쟁입찰</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">10억</div><div class="pf-stat-l">사업규모</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">전공정</div><div class="pf-stat-l">통합관리</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>식품 대기업 전 공정 품질을 단일 플랫폼으로 통합한 디지털클러스터 레퍼런스.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">1위</div><div class="rstat-lbl">경쟁입찰</div></div>
-      <div class="rstat"><div class="rstat-num">10억</div><div class="rstat-lbl">사업규모</div></div>
-      <div class="rstat"><div class="rstat-num">전공정</div><div class="rstat-lbl">통합관리</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">아워홈<br>(Ourhome)</div>
+        <div class="pf-client-badge">10억 경쟁입찰 1위</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>React · Spring Boot · PostgreSQL · Kafka</div>
+      </div>
+      <div class="pf-desc">디지털클러스터사업 · 규모 10억<br>원료 입고부터 생산·유통·판매까지 전 공정의 품질 데이터를 통합 관리.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">원료·생산·유통 통합 추적</div>
+        <div class="pf-bullet">LOT 단위 품질 KPI 대시보드</div>
+        <div class="pf-bullet">CAPA 워크플로우 자동화</div>
+        <div class="pf-bullet">라인별 실시간 모니터링</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 식품 대기업 전 공정 품질을 단일 플랫폼으로 통합한 디지털클러스터 레퍼런스.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a1.png" alt="아워홈 TQMS 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 12: 신세계 LCMS ══════════════ -->
 <div class="slide" id="g12">
-  <div class="sw narrow">
-    <span class="sec-badge">11 · 신세계</span>
-    <h1 class="slide-h1" style="font-size:32px">LCMS 임직원 교육·체험 플랫폼 — <em>신세계·스타벅스 전사 도입.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">경쟁입찰 1위 · 8억<br>교육 콘텐츠 카탈로그, 체험 예약·관리, 임직원 이력·수료증, 관리자 KPI 대시보드까지 일괄 구축.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">교육 카탈로그·신청·승인</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">체험형 콘텐츠 / 출석 체크</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">이력·수료증 자동 발급</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">운영자 대시보드 · KPI</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">신세계그룹<br>(Shinsegae)</div>
-          <div class="client-badge">8억 계약</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>React · Spring Boot<br>PostgreSQL</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/p1.png" alt="신세계 LCMS 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">11 · 신세계그룹 (Shinsegae)</span>
+      <span class="pf-title">LCMS 임직원 교육·체험 플랫폼</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">1위</div><div class="pf-stat-l">경쟁입찰</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">8억</div><div class="pf-stat-l">계약규모</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">전사</div><div class="pf-stat-l">도입</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>신세계·스타벅스 임직원 교육 인프라를 단일 플랫폼으로 통합.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">1위</div><div class="rstat-lbl">경쟁입찰</div></div>
-      <div class="rstat"><div class="rstat-num">전사</div><div class="rstat-lbl">도입</div></div>
-      <div class="rstat"><div class="rstat-num">교육</div><div class="rstat-lbl">인프라</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">신세계그룹<br>(Shinsegae)</div>
+        <div class="pf-client-badge">8억 계약</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>React · Spring Boot · PostgreSQL</div>
+      </div>
+      <div class="pf-desc">경쟁입찰 1위 · 8억<br>교육 콘텐츠 카탈로그, 체험 예약·관리, 임직원 이력·수료증, 관리자 KPI 대시보드 일괄 구축.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">교육 카탈로그·신청·승인</div>
+        <div class="pf-bullet">체험형 콘텐츠 / 출석 체크</div>
+        <div class="pf-bullet">이력·수료증 자동 발급</div>
+        <div class="pf-bullet">운영자 대시보드 · KPI</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 신세계·스타벅스 임직원 교육 인프라를 단일 플랫폼으로 통합.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/p1.png" alt="신세계 LCMS 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 13: 컬리 ══════════════ -->
 <div class="slide" id="g13">
-  <div class="sw narrow">
-    <span class="sec-badge">12 · 컬리</span>
-    <h1 class="slide-h1" style="font-size:32px">마켓컬리 결제정산 시스템 고도화 — <em>정산팀 수작업을 거의 0으로.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">고도화 프로젝트<br>기존 정산 시스템 데이터를 기반으로 채권정산·거래대사·일/월 마감을 효율적으로 처리하는 별도 정산 관리 시스템.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">거래대사 자동화·차이 리포트</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">채권정산 워크플로우</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">일·월 마감 자동화</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">정산 관리 대시보드</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">컬리<br>(Kurly)</div>
-          <div class="client-badge">자동화 Settlement</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>React · Spring Boot</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/p2.png" alt="컬리 정산 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">12 · 컬리 (Kurly)</span>
+      <span class="pf-title">마켓컬리 결제정산 시스템 고도화</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">수작업</div><div class="pf-stat-l">→ 0</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">마감</div><div class="pf-stat-l">자동화</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">백오피스</div><div class="pf-stat-l">재구축</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>컬리 정산팀의 수작업을 거의 0으로 압축한 백오피스를 직접 구축.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">신선식품</div><div class="rstat-lbl">1위</div></div>
-      <div class="rstat"><div class="rstat-num">마감</div><div class="rstat-lbl">단축</div></div>
-      <div class="rstat"><div class="rstat-num">백오피스</div><div class="rstat-lbl">재구축</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">컬리<br>(Kurly)</div>
+        <div class="pf-client-badge">자동화 Settlement</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>React · Spring Boot</div>
+      </div>
+      <div class="pf-desc">고도화 프로젝트<br>기존 정산 시스템을 기반으로 채권정산·거래대사·일/월 마감을 효율적으로 처리하는 별도 정산 관리 시스템.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">거래대사 자동화·차이 리포트</div>
+        <div class="pf-bullet">채권정산 워크플로우</div>
+        <div class="pf-bullet">일·월 마감 자동화</div>
+        <div class="pf-bullet">정산 관리 대시보드</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 컬리 정산팀의 수작업을 거의 0으로 압축한 백오피스를 직접 구축.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/p2.png" alt="컬리 정산 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 14: 현대자동차 ══════════════ -->
 <div class="slide" id="g14">
-  <div class="sw narrow">
-    <span class="sec-badge">13 · 현대자동차</span>
-    <h1 class="slide-h1" style="font-size:32px">제네시스 디지털 가이드 — <em>글로벌 OEM 브랜드 표준을 통과한 결과물.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">브랜드 사이트 구축<br>차량 기능별 안내, YouTube 영상 연동, 방문자 정보 수집·분석, 관리자 콘텐츠 편집 기능을 포함한 글로벌 OEM 표준 사이트.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">차량 기능별 안내 페이지</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">YouTube 영상 / 인터랙티브</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">방문자 정보 수집·트래킹</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">관리자 콘텐츠 에디터</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">Hyundai<br>Motor</div>
-          <div class="client-badge">Genesis Brand</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Web · Java · Spring</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a2.png" alt="현대 제네시스 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">13 · Hyundai Motor</span>
+      <span class="pf-title">제네시스 디지털 가이드</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">OEM</div><div class="pf-stat-l">글로벌</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">브랜드</div><div class="pf-stat-l">표준 통과</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">Spring</div><div class="pf-stat-l">Backend</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>글로벌 OEM 브랜드 표준을 통과한 결과물.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">OEM</div><div class="rstat-lbl">글로벌</div></div>
-      <div class="rstat"><div class="rstat-num">Web</div><div class="rstat-lbl">구축</div></div>
-      <div class="rstat"><div class="rstat-num">Spring</div><div class="rstat-lbl">Backend</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">Hyundai<br>Motor</div>
+        <div class="pf-client-badge">Genesis Brand</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Web · Java · Spring</div>
+      </div>
+      <div class="pf-desc">브랜드 사이트 구축<br>차량 기능별 안내, YouTube 영상 연동, 방문자 정보 수집·분석, 관리자 콘텐츠 편집. 글로벌 OEM 표준 사이트.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">차량 기능별 안내 페이지</div>
+        <div class="pf-bullet">YouTube 영상 / 인터랙티브</div>
+        <div class="pf-bullet">방문자 정보 수집·트래킹</div>
+        <div class="pf-bullet">관리자 콘텐츠 에디터</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 글로벌 OEM 브랜드 표준을 통과한 결과물.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a2.png" alt="현대 제네시스 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 15: 미래에셋 투자 ══════════════ -->
 <div class="slide" id="g15">
-  <div class="sw narrow">
-    <span class="sec-badge">14 · 미래에셋</span>
-    <h1 class="slide-h1" style="font-size:32px">투자의 달인 주식분석 플랫폼 — <em>대형 증권사 RFP 기준을 통과.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">경쟁입찰 1위 · 수주<br>시황·종목·뉴스 데이터를 통합 분석하고 종목 추천 모델, 포트폴리오 평가, 사용자 알림·인사이트 리포트를 제공.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">종목 분석·추천 모델</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">실시간 시황·뉴스 통합</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">포트폴리오 평가·리포트</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">알림 / 인사이트 카드</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">㈜에스비씨엔<br>(미래에셋)</div>
-          <div class="client-badge">1위 경쟁입찰</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>React Native · Spring<br>Python</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a3.png" alt="미래에셋 투자 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">14 · ㈜에스비씨엔 (미래에셋)</span>
+      <span class="pf-title">투자의 달인 주식분석 플랫폼</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">1위</div><div class="pf-stat-l">경쟁입찰</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">실시간</div><div class="pf-stat-l">시황 분석</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">AI</div><div class="pf-stat-l">추천 모델</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>대형 증권사 RFP 기준을 통과한 분석 플랫폼.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">증권</div><div class="rstat-lbl">대형사</div></div>
-      <div class="rstat"><div class="rstat-num">실시간</div><div class="rstat-lbl">분석</div></div>
-      <div class="rstat"><div class="rstat-num">미래에셋</div><div class="rstat-lbl">검증</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">㈜에스비씨엔<br>(미래에셋)</div>
+        <div class="pf-client-badge">1위 경쟁입찰</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>React Native · Spring · Python</div>
+      </div>
+      <div class="pf-desc">경쟁입찰 1위 · 수주<br>시황·종목·뉴스 데이터를 통합 분석하고 종목 추천 모델, 포트폴리오 평가, 알림·인사이트 리포트를 제공.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">종목 분석·추천 모델</div>
+        <div class="pf-bullet">실시간 시황·뉴스 통합</div>
+        <div class="pf-bullet">포트폴리오 평가·리포트</div>
+        <div class="pf-bullet">알림 / 인사이트 카드</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 대형 증권사 RFP 기준을 통과한 분석 플랫폼.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a3.png" alt="미래에셋 투자 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
+
 <!-- ══════════════ SLIDE 16: 미래에셋생명 ══════════════ -->
 <div class="slide" id="g16">
-  <div class="sw narrow">
-    <span class="sec-badge">15 · 미래에셋생명</span>
-    <h1 class="slide-h1" style="font-size:32px">오픈소스 취약점 관리 시스템 (망분리) — <em>금융권 규제 환경 검증.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2024.12 — 2025.03<br>래브라도랩스 보안 솔루션과 내부 시스템 2종을 연동. 망분리 환경에서도 외부 라이브러리를 자동 반입하도록 설계·구현.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">망분리 라이브러리 자동 반입</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">오픈소스 취약점 스캔·관리</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">보안 정책 룰 엔진</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">관리자 대시보드</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">미래에셋<br>생명</div>
-          <div class="client-badge">망분리 금융권</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Java 17 · Spring<br>React · PostgreSQL</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a4.png" alt="미래에셋생명 보안 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">15 · 미래에셋생명</span>
+      <span class="pf-title">오픈소스 취약점 관리 시스템 (망분리)</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">금융권</div><div class="pf-stat-l">규제 대응</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">자동</div><div class="pf-stat-l">라이브러리 반입</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">보안</div><div class="pf-stat-l">SI 검증</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>금융권 규제 환경에서 검증된 보안·인프라 SI 역량.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">규제</div><div class="rstat-lbl">대응</div></div>
-      <div class="rstat"><div class="rstat-num">자동</div><div class="rstat-lbl">반입</div></div>
-      <div class="rstat"><div class="rstat-num">보안</div><div class="rstat-lbl">SI</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">미래에셋<br>생명</div>
+        <div class="pf-client-badge">망분리 금융권</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Java 17 · Spring · React · PostgreSQL</div>
+      </div>
+      <div class="pf-desc">2024.12 — 2025.03<br>래브라도랩스 보안 솔루션과 내부 시스템 2종을 연동. 망분리 환경에서도 외부 라이브러리를 자동 반입하도록 설계.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">망분리 라이브러리 자동 반입</div>
+        <div class="pf-bullet">오픈소스 취약점 스캔·관리</div>
+        <div class="pf-bullet">보안 정책 룰 엔진</div>
+        <div class="pf-bullet">관리자 대시보드</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 금융권 규제 환경에서 검증된 보안·인프라 SI 역량.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a4.png" alt="미래에셋생명 보안 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 17: 대한의사협회 ══════════════ -->
 <div class="slide" id="g17">
-  <div class="sw narrow">
-    <span class="sec-badge">16 · 대한의사협회</span>
-    <h1 class="slide-h1" style="font-size:32px">의사과학자 교류 플랫폼 — <em>의료 전문가 커뮤니티의 데이터·검색 표준.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">경쟁입찰 1위 · 5억<br>전문의·의사과학자 회원 인증, 학술자료 검색, 세미나 신청, 논문 DB까지 의료 전문 커뮤니티 표준 구축.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">전문의 회원 인증</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">학술자료 검색·콘텐츠 관리</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">세미나·교육 신청</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">논문 DB·검색 엔진</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">대한의사<br>협회</div>
-          <div class="client-badge">5억 계약</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>React · Spring Boot<br>PostgreSQL</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a5.png" alt="의사협회 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">16 · 대한의사협회</span>
+      <span class="pf-title">의사과학자 교류 플랫폼</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">1위</div><div class="pf-stat-l">경쟁입찰</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">5억</div><div class="pf-stat-l">계약</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">의료계</div><div class="pf-stat-l">플랫폼</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>의료 전문가 커뮤니티의 데이터·검색 표준을 구축.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">1위</div><div class="rstat-lbl">경쟁입찰</div></div>
-      <div class="rstat"><div class="rstat-num">의료계</div><div class="rstat-lbl">플랫폼</div></div>
-      <div class="rstat"><div class="rstat-num">전문</div><div class="rstat-lbl">커뮤니티</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">대한의사<br>협회</div>
+        <div class="pf-client-badge">5억 계약</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>React · Spring Boot · PostgreSQL</div>
+      </div>
+      <div class="pf-desc">경쟁입찰 1위 · 5억<br>전문의·의사과학자 회원 인증, 학술자료 검색, 세미나 신청, 논문 DB까지 의료 전문 커뮤니티 표준 구축.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">전문의 회원 인증</div>
+        <div class="pf-bullet">학술자료 검색·콘텐츠 관리</div>
+        <div class="pf-bullet">세미나·교육 신청</div>
+        <div class="pf-bullet">논문 DB·검색 엔진</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 의료 전문가 커뮤니티의 데이터·검색 표준을 구축.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a5.png" alt="의사협회 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 18: 법무법인 바른 ══════════════ -->
 <div class="slide" id="g18">
-  <div class="sw narrow">
-    <span class="sec-badge">17 · 법무법인 바른</span>
-    <h1 class="slide-h1" style="font-size:32px">법률지원 플랫폼·공식 웹사이트 — <em>대형 로펌의 법률·콘텐츠 인프라.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">수주 · 진행<br>다국어 콘텐츠 관리, 변호사·전문 분야 검색, 의뢰 접수·케이스 관리, 관리자 자유도 강화(직접 콘텐츠 게시).</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">다국어 콘텐츠 관리 (CMS)</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">변호사·분야별 검색</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">의뢰 접수·케이스 관리</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">관리자 권한·로그</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">법무법인<br>바른</div>
-          <div class="client-badge">대형 로펌</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Java · Spring<br>Web · CMS</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a6.png" alt="법무법인 바른 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">17 · 법무법인 바른</span>
+      <span class="pf-title">법률지원 플랫폼·공식 웹사이트</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">다국어</div><div class="pf-stat-l">CMS</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">직접</div><div class="pf-stat-l">게시</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">수주</div><div class="pf-stat-l">완료</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>대형 로펌의 법률·콘텐츠 인프라를 운영 가능한 형태로 납품.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">다국어</div><div class="rstat-lbl">CMS</div></div>
-      <div class="rstat"><div class="rstat-num">직접</div><div class="rstat-lbl">게시</div></div>
-      <div class="rstat"><div class="rstat-num">수주</div><div class="rstat-lbl">완료</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">법무법인<br>바른</div>
+        <div class="pf-client-badge">대형 로펌</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Java · Spring · Web · CMS</div>
+      </div>
+      <div class="pf-desc">수주 · 진행<br>다국어 콘텐츠 관리, 변호사·전문 분야 검색, 의뢰 접수·케이스 관리, 관리자 자유도 강화(직접 콘텐츠 게시).</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">다국어 콘텐츠 관리 (CMS)</div>
+        <div class="pf-bullet">변호사·분야별 검색</div>
+        <div class="pf-bullet">의뢰 접수·케이스 관리</div>
+        <div class="pf-bullet">관리자 권한·로그</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 대형 로펌의 법률·콘텐츠 인프라를 운영 가능한 형태로 납품.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a6.png" alt="법무법인 바른 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 19: NFLUX 스마트항만 ══════════════ -->
 <div class="slide" id="g19">
-  <div class="sw narrow">
-    <span class="sec-badge">18 · 국가과제 / NFLUX</span>
-    <h1 class="slide-h1" style="font-size:32px">스마트 항만 — 자율운항선박 연계 플랫폼. <em>국가 R&D 분산 아키텍처.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2023.04 — 2023.11<br>터미널 정보 연계 모듈, 해상물류 통합 플랫폼, API 등록·관리, 통합 SOP 자동화까지 분산 아키텍처 직접 설계.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">터미널 정보 연계 모듈</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">해상물류 통합 플랫폼</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">API 등록·관리·라우팅</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">프로세스 자동화 (SOP)</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">국가과제<br>(NFLUX)</div>
-          <div class="client-badge">국가과제 수주</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Java 11 · Spring<br>Kafka · Elasticsearch</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/p5.png" alt="NFLUX 스마트항만 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">18 · 국가과제 / NFLUX</span>
+      <span class="pf-title">스마트항만 — 자율운항선박 연계 플랫폼</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">국가</div><div class="pf-stat-l">R&D 수주</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">Kafka</div><div class="pf-stat-l">Stream</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">SOP</div><div class="pf-stat-l">자동화</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>국가 R&D 과제 수준의 분산 아키텍처를 직접 설계·구현.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">Kafka</div><div class="rstat-lbl">Stream</div></div>
-      <div class="rstat"><div class="rstat-num">SOP</div><div class="rstat-lbl">자동화</div></div>
-      <div class="rstat"><div class="rstat-num">R&D</div><div class="rstat-lbl">검증</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">국가과제<br>(NFLUX)</div>
+        <div class="pf-client-badge">국가과제 수주</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Java 11 · Spring · Kafka · Elasticsearch</div>
+      </div>
+      <div class="pf-desc">2023.04 — 2023.11<br>터미널 정보 연계 모듈, 해상물류 통합 플랫폼, API 등록·관리, 통합 SOP 자동화까지 분산 아키텍처 직접 설계.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">터미널 정보 연계 모듈</div>
+        <div class="pf-bullet">해상물류 통합 플랫폼</div>
+        <div class="pf-bullet">API 등록·관리·라우팅</div>
+        <div class="pf-bullet">프로세스 자동화 (SOP)</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 국가 R&D 과제 수준의 분산 아키텍처를 직접 설계·구현.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/p5.png" alt="NFLUX 스마트항만 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 20: 강릉시 데이터허브 ══════════════ -->
 <div class="slide" id="g20">
-  <div class="sw narrow">
-    <span class="sec-badge">19 · 강릉시 / NFLUX</span>
-    <h1 class="slide-h1" style="font-size:32px">강릉시 데이터허브 플랫폼 — <em>지자체 스마트시티 레퍼런스.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2023.04 — 2023.11<br>각 데이터 소스 어댑터를 통해 수집·저장·분석하는 엣지 컴퓨팅 기술. 지자체 스마트시티 표준 레퍼런스.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">데이터 소스 어댑터 (확장형)</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">엣지 컴퓨팅 수집·전처리</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">저장·인덱싱·검색</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">분석·시각화 콘솔</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">강릉시<br>(NFLUX)</div>
-          <div class="client-badge">Edge Computing</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Java · Spring<br>Kafka · Elasticsearch</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/p3.png" alt="강릉 데이터허브 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">19 · 강릉시 / NFLUX</span>
+      <span class="pf-title">강릉시 스마트시티 데이터허브</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">지자체</div><div class="pf-stat-l">레퍼런스</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">Edge</div><div class="pf-stat-l">Computing</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">스마트</div><div class="pf-stat-l">시티</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>지자체 스마트시티 데이터허브 운영 레퍼런스 보유.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">지자체</div><div class="rstat-lbl">레퍼런스</div></div>
-      <div class="rstat"><div class="rstat-num">Data</div><div class="rstat-lbl">Hub</div></div>
-      <div class="rstat"><div class="rstat-num">스마트</div><div class="rstat-lbl">시티</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">강릉시<br>(NFLUX)</div>
+        <div class="pf-client-badge">Edge Computing</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Java · Spring · Kafka · Elasticsearch</div>
+      </div>
+      <div class="pf-desc">2023.04 — 2023.11<br>각 데이터 소스 어댑터를 통해 수집·저장·분석하는 엣지 컴퓨팅 기술. 지자체 스마트시티 표준 레퍼런스.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">데이터 소스 어댑터 (확장형)</div>
+        <div class="pf-bullet">엣지 컴퓨팅 수집·전처리</div>
+        <div class="pf-bullet">저장·인덱싱·검색</div>
+        <div class="pf-bullet">분석·시각화 콘솔</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 지자체 스마트시티 데이터허브 운영 레퍼런스 보유.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/p3.png" alt="강릉 데이터허브 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
-<!-- ══════════════ SLIDE 21: 플레오 마쿠키친 ══════════════ -->
+
+<!-- ══════════════ SLIDE 21: 마쿠키친 ══════════════ -->
 <div class="slide" id="g21">
-  <div class="sw narrow">
-    <span class="sec-badge">20 · 플레오</span>
-    <h1 class="slide-h1" style="font-size:32px">마쿠키친 · 가정간편식 하이브리드 앱 — <em>기획부터 출시까지 6개월 풀사이클.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2020.04 — 2020.10 · 6개월<br>서비스 기획부터 풀스택 개발까지. 회원·결제·주문·배송·CS, AI 기반 추천 / 행동 데이터 모델링.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">소셜 로그인 (NAVER·KAKAO)</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">상품 / 결제 / 배송 모듈</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">구매·조회·리뷰 행동 분석</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">AI 취향 모델링·추천</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">플레오<br>(Pleo)</div>
-          <div class="client-badge">6개월 Launch</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>PHP · JS · Python<br>AWS · MariaDB</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a7.png" alt="플레오 마쿠키친 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">20 · 마쿠키친</span>
+      <span class="pf-title">가정간편식 하이브리드 앱 — 기획부터 출시까지</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">AI</div><div class="pf-stat-l">추천 모델</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">6개월</div><div class="pf-stat-l">풀사이클</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">자체</div><div class="pf-stat-l">플랫폼</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>기획부터 출시까지 6개월 풀사이클을 동일 팀이 수행.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">AI</div><div class="rstat-lbl">추천</div></div>
-      <div class="rstat"><div class="rstat-num">풀사이클</div><div class="rstat-lbl">6개월</div></div>
-      <div class="rstat"><div class="rstat-num">자체</div><div class="rstat-lbl">플랫폼</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">마쿠키친</div>
+        <div class="pf-client-badge">6개월 Launch</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>PHP · JS · Python · AWS · MariaDB</div>
+      </div>
+      <div class="pf-desc">2020.04 — 2020.10 · 6개월<br>서비스 기획부터 풀스택 개발까지. 회원·결제·주문·배송·CS, AI 기반 추천 / 행동 데이터 모델링.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">소셜 로그인 (NAVER·KAKAO)</div>
+        <div class="pf-bullet">상품 / 결제 / 배송 모듈</div>
+        <div class="pf-bullet">구매·조회·리뷰 행동 분석</div>
+        <div class="pf-bullet">AI 취향 모델링·추천</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 기획부터 출시까지 6개월 풀사이클을 동일 팀이 수행.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a7.png" alt="마쿠키친 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 22: 합참 보안훈련 ══════════════ -->
 <div class="slide" id="g22">
-  <div class="sw narrow">
-    <span class="sec-badge">21 · 보안 / 합동참모본부</span>
-    <h1 class="slide-h1" style="font-size:32px">보안 훈련 시스템 + 다크트레이스 실시간 알림. <em>군·기업 보안 이벤트 대응.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2016 (군) · 2023 (기업)<br>합동참모본부 감찰실 랜섬웨어 모의훈련 시스템. 다크트레이스 보안 이벤트 실시간 수집·필터링·클라이언트 팝업.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">해킹메일·스크린락 모의훈련</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">Flask 서버-클라이언트 통제</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">다크트레이스 이벤트 수집</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">경량 클라이언트 실시간 팝업</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">합참 · 기업</div>
-          <div class="client-badge">군 + 기업 보안</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>Python · Flask<br>MariaDB · Darktrace API</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/a8.png" alt="합참 보안훈련 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">21 · 합동참모본부</span>
+      <span class="pf-title">보안훈련 시스템 + 다크트레이스 실시간 알림</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">실시간</div><div class="pf-stat-l">알림</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">군·기업</div><div class="pf-stat-l">양측 검증</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">보안</div><div class="pf-stat-l">훈련</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>군과 기업 양쪽에서 검증된 보안 운영 노하우.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">실시간</div><div class="rstat-lbl">알림</div></div>
-      <div class="rstat"><div class="rstat-num">Flask</div><div class="rstat-lbl">Edge</div></div>
-      <div class="rstat"><div class="rstat-num">보안</div><div class="rstat-lbl">훈련</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">합참 · 기업</div>
+        <div class="pf-client-badge">군 + 기업 보안</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>Python · Flask · MariaDB · Darktrace API</div>
+      </div>
+      <div class="pf-desc">2016 (군) · 2023 (기업)<br>합동참모본부 감찰실 랜섬웨어 모의훈련 시스템. 다크트레이스 보안 이벤트 실시간 수집·필터링·클라이언트 팝업.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">해킹메일·스크린락 모의훈련</div>
+        <div class="pf-bullet">Flask 서버-클라이언트 통제</div>
+        <div class="pf-bullet">다크트레이스 이벤트 수집</div>
+        <div class="pf-bullet">경량 클라이언트 실시간 팝업</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 군과 기업 양쪽에서 검증된 보안 운영 노하우.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/a8.png" alt="합참 보안훈련 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
 
 <!-- ══════════════ SLIDE 23: HouseRentAms ══════════════ -->
 <div class="slide" id="g23">
-  <div class="sw narrow">
-    <span class="sec-badge">22 · HouseRentAms</span>
-    <h1 class="slide-h1" style="font-size:32px">다건물 임대업 + AI 에이전트 통합 관리. <em>매출 +37%, 인건비 -40% 실측.</em></h1>
-    <div class="pfol-wrap">
-      <div class="pfol-left">
-        <h3>PROJECT OVERVIEW</h3>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2개월 구축 · 4,000만원<br>기존 수기/엑셀로 운영되던 다건물 임대를 풀 플랫폼화. AI가 사진·엑셀 자유 업로드만으로 매물 정보를 자동 인식·추출.</div>
-        <div class="pfol-bullets">
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">AI 실시간 가격 (예약율·계절)</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">가동률·마케팅 AI 인사이트</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">사진·엑셀 → AI 자동 입력</div></div>
-          <div class="pfol-bullet"><div class="pfol-bullet-txt">관리실장·미화원 피드백 채널</div></div>
-        </div>
-      </div>
-      <div class="pfol-center">
-        <div class="client-card">
-          <div class="client-name">개인<br>임대업자</div>
-          <div class="client-badge">+37% 매출 ↑</div>
-          <div style="flex:1"></div>
-          <div class="client-tech"><strong>TECH</strong><br>AI 에이전트<br>웹 대시보드 · OCR</div>
-        </div>
-      </div>
-      <div class="pfol-right">
-        <img src="img/p4.png" alt="HouseRentAms 화면" onerror="this.parentNode.innerHTML='<div class=pfol-no-img>이미지 준비 중</div>'">
-      </div>
+  <div class="pf-bar">
+    <div class="pf-bar-left">
+      <span class="pf-num">22 · HouseRentAms</span>
+      <span class="pf-title">다건물 임대 + AI 에이전트 통합 관리</span>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-n">+37%</div><div class="pf-stat-l">매출 ↑</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">-40%</div><div class="pf-stat-l">인건비</div></div>
+      <div class="pf-stat"><div class="pf-stat-n">2개월</div><div class="pf-stat-l">구축</div></div>
     </div>
   </div>
-  <div class="result-bar">
-    <span class="result-txt"><span>결과적으로, </span>6개월간 매출 +37%, 인건비 -40%. 실측된 AI 에이전트 사례.</span>
-    <div class="result-stats">
-      <div class="rstat"><div class="rstat-num">+37%</div><div class="rstat-lbl">매출 ↑</div></div>
-      <div class="rstat"><div class="rstat-num">-40%</div><div class="rstat-lbl">인건비</div></div>
-      <div class="rstat"><div class="rstat-num">2개월</div><div class="rstat-lbl">구축</div></div>
+  <div class="pf-body">
+    <div class="pf-left">
+      <div class="pf-client-card">
+        <div class="pf-client-name">개인<br>임대업자</div>
+        <div class="pf-client-badge">+37% 매출 ↑</div>
+        <div class="pf-client-tech"><strong>TECH</strong><br>AI 에이전트 · 웹 대시보드 · OCR</div>
+      </div>
+      <div class="pf-desc">2개월 구축 · 4,000만원<br>기존 수기/엑셀로 운영되던 다건물 임대를 풀 플랫폼화. AI가 사진·엑셀 자유 업로드만으로 매물 정보를 자동 인식·추출.</div>
+      <div class="pf-bullets">
+        <div class="pf-bullet">AI 실시간 가격 (예약율·계절)</div>
+        <div class="pf-bullet">가동률·마케팅 AI 인사이트</div>
+        <div class="pf-bullet">사진·엑셀 → AI 자동 입력</div>
+        <div class="pf-bullet">관리실장·미화원 피드백 채널</div>
+      </div>
+      <div class="pf-result"><strong>결과적으로,</strong> 6개월간 매출 +37%, 인건비 -40%. 실측된 AI 에이전트 사례.</div>
+    </div>
+    <div class="pf-img-wrap">
+      <img src="img/p4.png" alt="HouseRentAms 화면" onerror="this.style.display='none'">
     </div>
   </div>
 </div>
