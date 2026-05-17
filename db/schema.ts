@@ -3247,3 +3247,49 @@ export const formSubmissions = pgTable("form_submissions", {
 export type FormSubmission    = typeof formSubmissions.$inferSelect;
 export type NewFormSubmission = typeof formSubmissions.$inferInsert;
 
+/* === 라운드2 워크스페이스 === */
+
+export const workspaceTaskMentions = pgTable("workspace_task_mentions", {
+  id:                serial("id").primaryKey(),
+  workspaceId:       integer("workspace_id").notNull(),
+  taskId:            integer("task_id").notNull(),
+  mentionedMemberId: integer("mentioned_member_id").notNull(),
+  mentionerMemberId: integer("mentioner_member_id"),
+  context:           text("context"),
+  isRead:            boolean("is_read").default(false).notNull(),
+  readAt:            timestamp("read_at"),
+  createdAt:         timestamp("created_at").defaultNow().notNull(),
+});
+
+export const workspaceEventRsvps = pgTable("workspace_event_rsvps", {
+  id:          serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull(),
+  eventId:     integer("event_id").notNull(),
+  memberId:    integer("member_id").notNull(),
+  status:      varchar("status", { length: 10 }).notNull(),
+  note:        varchar("note", { length: 200 }),
+  respondedAt: timestamp("responded_at").defaultNow().notNull(),
+}, (t) => ({
+  uniq: uniqueIndex("workspace_event_rsvps_uniq").on(t.eventId, t.memberId),
+}));
+
+export const googleCalendarTokens = pgTable("google_calendar_tokens", {
+  id:           serial("id").primaryKey(),
+  memberId:     integer("member_id").notNull().unique(),
+  accessToken:  text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt:    timestamp("expires_at").notNull(),
+  calendarId:   varchar("calendar_id", { length: 200 }).default("primary"),
+  syncEnabled:  boolean("sync_enabled").default(true).notNull(),
+  lastSyncAt:   timestamp("last_sync_at"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type WorkspaceTaskMention    = typeof workspaceTaskMentions.$inferSelect;
+export type NewWorkspaceTaskMention = typeof workspaceTaskMentions.$inferInsert;
+export type WorkspaceEventRsvp      = typeof workspaceEventRsvps.$inferSelect;
+export type NewWorkspaceEventRsvp   = typeof workspaceEventRsvps.$inferInsert;
+export type GoogleCalendarToken     = typeof googleCalendarTokens.$inferSelect;
+export type NewGoogleCalendarToken  = typeof googleCalendarTokens.$inferInsert;
+
