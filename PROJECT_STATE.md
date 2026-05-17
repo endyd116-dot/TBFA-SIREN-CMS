@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료 (116→122+ 도구). A: feature/layer1-batch (배치 도구 4개), B: feature/layer2-pipeline (파이프라인 도구 2개). 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
 | 2026-05-17 | **메인** | **🏁 라운드 1~6 전체 완결** (main @ `5086322`) — C 검증 54항목 전부 통과. R2 BUG 2건 포함 모두 해소. 게이미피케이션·큐레이션·팝업 DB 8테이블 + API 18개 + UI 5페이지 운영 중. |
 | 2026-05-17 | **메인** | **🏁 라운드 5 발송 센터 UX 완결 (C Q1~Q10 전부 통과, BUG 0)** (main @ `7a2f557`) — 채널별 미리보기 탭(이메일·SMS·카카오·인앱) + 파일함 재사용 첨부 전부 PASS. |
 | 2026-05-17 | **메인** | **🏁 라운드 4 3단 권한 체계 완결 (C Q1~Q8 전부 통과, BUG 0)** (main @ `a2a7a55`) — 로그인 role 하드코딩 제거·requireRole 헬퍼·admin 등급 체크·권한 정책 페이지 전부 PASS. |
@@ -42,25 +43,18 @@
 ## 3. 현재 작업 모드
 
 ```
-🔄 라운드 6 게이미피케이션 + 큐레이션·팝업 — B·A 작업 중 (2026-05-17)
-   - 설계서: docs/milestones/2026-05-17-round6-gamification.md
-   - 메인 완료: 마이그 8테이블 + lib/badge-checker.ts + schema.ts 추가
-   - B 백엔드: feature/round6-gamification-back — 작업 중
-     □ 사용자 API 5개 (my-points, my-badges, ranking, rewards-list, reward-redeem)
-     □ 어드민 API 9개 (point-rules, badge-definitions, rewards, reward-redemptions, member-points/adjust)
-     □ 공개 API 4개 (admin-popups, admin-curations, site-popups, site-curations — 이름 주의)
-     □ 이벤트 후킹 3곳 (donate-toss-confirm, donate-hyosung-intent, auth-login)
-   - A 프론트: feature/round6-gamification-front — 작업 중
-     □ mypage-points.html 신규 (포인트·뱃지·리워드 탭)
-     □ ranking.html 신규
-     □ admin-gamification.html 신규
-     □ admin-popups.html 신규
-     □ admin-curations.html 신규
-     □ site-popup.js 신규
-     □ iframe 12곳 (admin.html·admin.js·cms-tbfa.html·cms-tbfa.js × 3페이지)
+🚀 라운드 7 Phase 1 — AI Layer 1+2 병렬 개발 (2026-05-18)
+   - 설계서: docs/milestones/2026-05-18-round7-ai-layers.md
+   - 베이스: main @ 0a31dc7 (AI 도구 116개 운영 중)
+   - A (Layer 1 배치 도구): feature/layer1-batch → 워크트리 ../tbfa-mis-A
+     □ legal_reply_batch / harassment_reply_batch / chat_message_broadcast / notification_batch
+   - B (Layer 2 파이프라인): feature/layer2-pipeline → 워크트리 ../tbfa-mis-B
+     □ email_send_by_filter / bulk_pipeline
+   - Phase 1 완료 후 Phase 2 시작 (C Layer3 힌트 + D Layer4 스케줄)
 
-   ★ 다음 메인 작업:
-   C 검증 완료 후 PROJECT_STATE.md 갱신 + HANDOFF.md 갱신
+   ★ Phase 2 조건: A+B 머지 완료 후 C·D 트리거 발사
+   C (Layer 3 힌트): feature/layer3-hints → ../tbfa-mis-C (대기)
+   D (Layer 4 스케줄): feature/layer4-schedule → ../tbfa-mis-D (대기)
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -135,7 +129,25 @@
 | A | 프론트 | 채널별 미리보기 탭 + 파일함 재사용 첨부 | ✅ 완료 (머지됨) |
 | C | 검증 | Q1~Q10 | ✅ 완료 (10/10 통과, BUG 0, 7a2f557) |
 
-### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 🔄 진행 중)
+### 4.7 라운드 7 AI 에이전트 구조 확장 Layer 1~4 (2026-05-18 🚀 Phase 1 진행 중)
+
+설계서: [docs/milestones/2026-05-18-round7-ai-layers.md](docs/milestones/2026-05-18-round7-ai-layers.md)
+
+**Phase 1 (동시 진행)**
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| A | AI 배치 도구 | Layer 1: legal_reply_batch·harassment_reply_batch·chat_message_broadcast·notification_batch | 🔄 진행 중 |
+| B | AI 파이프라인 | Layer 2: email_send_by_filter·bulk_pipeline | 🔄 진행 중 |
+
+**Phase 2 (A+B 머지 후)**
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| C | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | ⏸ Phase 1 대기 |
+| D | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ⏸ Phase 1 대기 |
+
+### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 ✅ 전체 완결)
 
 설계서: [docs/milestones/2026-05-17-round6-gamification.md](docs/milestones/2026-05-17-round6-gamification.md)
 
@@ -193,6 +205,7 @@
 | **Phase 22-D-R3 예산잠금·전표운영·재무제표** | ✅ 100% 마감 (main @ `9e73e98`, 2026-05-15) — 예산 잠금·지출결의서 인쇄·결산 보조·이상패턴 배지·반복전표 cron·재정상태표·현금흐름표 / C 검증 PASS 15/FAIL 3 → BUG-1~4 응답 키 fix / **Phase 22-D 완결·Phase 22 전체 마무리** |
 
 | **라운드 1~6 (2026-05-17 사이클)** | ✅ 100% 완결 — SIREN 4건·워크스페이스 9건·CMS 6건·3단 권한·발송 UX·게이미피케이션+큐레이션·팝업 / C 검증 54항목 전부 통과 (R2 BUG 2건 제외 0) |
+| **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1 진행 중 — A(Layer1) + B(Layer2) 병렬 개발. Phase 2 (C+D) 대기 중. |
 
 **누적**: 약 87% / 약 820h+
 
@@ -223,13 +236,13 @@
 
 > 2026-05-10 적용. 모델·역할 분배는 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §1.
 
-| 폴더 | 채팅 | 모델 | 역할 | 영역 | 현재 상태 |
+| 폴더 | 채팅 | 모델 | 역할 | 브랜치 | 현재 상태 |
 |---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/`, `PROJECT_STATE.md`, 머지 | Phase 22 전체 완결 / 다음 트랙 협의 대기 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 구현 | `public/`, `assets/` | ⏸ 다음 라운드 대기 |
-| `../tbfa-mis-B` | **B** | Opus 4.7 | 백 구현 + AI 도구 | `netlify/functions/`, `lib/`, `db/`, `drizzle/` | ⏸ 다음 라운드 대기 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 라이브 검증 + fix | 모든 영역 (검증·fix 한정) | ⏸ 다음 라운드 대기 |
-| `../tbfa-mis-D` | D | — | 휴면 (큰 단독 라운드 시 가동) | — | 휴면 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 설계·머지·조율 | `main` | 라운드 7 설계 완료 |
+| `../tbfa-mis-A` | **A** | Opus 4.7 | Layer 1 배치 도구 | `feature/layer1-batch` | 🔄 Phase 1 진행 중 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | Layer 2 파이프라인 도구 | `feature/layer2-pipeline` | 🔄 Phase 1 진행 중 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | Layer 3 힌트 시스템 | `feature/layer3-hints` | ⏸ Phase 2 대기 |
+| `../tbfa-mis-D` | **D** | Sonnet 4.6 | Layer 4 스케줄 도구 | `feature/layer4-schedule` | ⏸ Phase 2 대기 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
 
