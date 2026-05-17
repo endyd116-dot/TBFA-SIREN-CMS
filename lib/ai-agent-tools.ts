@@ -843,6 +843,11 @@ export interface ToolResult {
   preview?: any;
   rollbackData?: any;
   error?: string;
+  suggestedNextSteps?: Array<{
+    tool: string;
+    reason: string;
+    params?: Record<string, any>;
+  }>;
 }
 
 /**
@@ -1136,7 +1141,7 @@ async function tool_campaignCreate(args: any, adminId: number | null): Promise<T
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
-    return { ok: true, output: { id, name, goalAmount, message: `캠페인 #${id} 등록 완료` } };
+    return { ok: true, output: { id, name, goalAmount, message: `캠페인 #${id} 등록 완료` }, suggestedNextSteps: buildNextSteps("campaign_create") };
   } catch (err: any) { return { ok: false, error: `캠페인 등록 실패: ${err?.message?.slice(0, 200)}` }; }
 }
 
@@ -1476,7 +1481,7 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
-    return { ok: true, output: { task_id: id, ...preview }, rollbackData: { table: "workspace_tasks", id } };
+    return { ok: true, output: { task_id: id, ...preview }, rollbackData: { table: "workspace_tasks", id }, suggestedNextSteps: buildNextSteps("task_create") };
   } catch (e: any) {
     return { ok: false, error: `작업 생성 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -1592,7 +1597,7 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
       results.errors.push(`${rcpt.name}: ${(e?.message || "").slice(0, 80)}`);
     }
   }
-  return { ok: true, output: results };
+  return { ok: true, output: results, suggestedNextSteps: buildNextSteps("email_send") };
 }
 
 /* =========================================================
@@ -1907,7 +1912,7 @@ async function tool_membersBlock(args: any, adminId: number | null): Promise<Too
              blacklist_reason = ${reason}
        WHERE id = ${memberId}
     `);
-    return { ok: true, output: { blocked: true, memberId, reason }, rollbackData: { table: "members", id: memberId, before } };
+    return { ok: true, output: { blocked: true, memberId, reason }, rollbackData: { table: "members", id: memberId, before }, suggestedNextSteps: buildNextSteps("members_block") };
   } catch (e: any) {
     return { ok: false, error: `차단 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2556,7 +2561,7 @@ async function tool_recipientGroupCreate(args: any, adminId: number | null): Pro
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
-    return { ok: true, output: { groupId: id, ...preview }, rollbackData: { table: "recipient_groups", id } };
+    return { ok: true, output: { groupId: id, ...preview }, rollbackData: { table: "recipient_groups", id }, suggestedNextSteps: buildNextSteps("recipient_group_create") };
   } catch (e: any) {
     return { ok: false, error: `그룹 생성 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2666,7 +2671,7 @@ async function tool_chatMessageSend(args: any, adminId: number | null): Promise<
       UPDATE chat_rooms SET last_message_at = NOW(), last_message_preview = ${content.slice(0, 100)},
         unread_for_user = true, updated_at = NOW() WHERE id = ${roomId}
     `);
-    return { ok: true, output: { messageId: msgId, roomId, sent: true } };
+    return { ok: true, output: { messageId: msgId, roomId, sent: true }, suggestedNextSteps: buildNextSteps("chat_message_send") };
   } catch (e: any) {
     return { ok: false, error: `메시지 전송 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2690,7 +2695,7 @@ async function tool_chatRoomClose(args: any, adminId: number | null): Promise<To
     await db.execute(sql`
       UPDATE chat_rooms SET status = 'closed', closed_at = NOW(), closed_by = ${adminId}, updated_at = NOW() WHERE id = ${roomId}
     `);
-    return { ok: true, output: { closed: true, roomId } };
+    return { ok: true, output: { closed: true, roomId }, suggestedNextSteps: buildNextSteps("chat_room_close") };
   } catch (e: any) {
     return { ok: false, error: `채팅방 종료 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2768,7 +2773,7 @@ async function tool_legalReply(args: any, adminId: number | null): Promise<ToolR
              responded_by = ${adminId}, responded_at = NOW(), updated_at = NOW()
        WHERE id = ${id}
     `);
-    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "legal_consultations", id, before } };
+    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "legal_consultations", id, before }, suggestedNextSteps: buildNextSteps("legal_reply") };
   } catch (e: any) {
     return { ok: false, error: `법률 상담 답변 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2801,7 +2806,7 @@ async function tool_harassmentReply(args: any, adminId: number | null): Promise<
              responded_by = ${adminId}, responded_at = NOW(), updated_at = NOW()
        WHERE id = ${id}
     `);
-    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "harassment_reports", id, before } };
+    return { ok: true, output: { replied: true, ...preview }, rollbackData: { table: "harassment_reports", id, before }, suggestedNextSteps: buildNextSteps("harassment_reply") };
   } catch (e: any) {
     return { ok: false, error: `악성민원 답변 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -2865,7 +2870,7 @@ async function tool_emailTemplateCreate(args: any, adminId: number | null): Prom
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
-    return { ok: true, output: { templateId: id, ...preview }, rollbackData: { table: "communication_templates", id } };
+    return { ok: true, output: { templateId: id, ...preview }, rollbackData: { table: "communication_templates", id }, suggestedNextSteps: buildNextSteps("email_template_create") };
   } catch (e: any) {
     return { ok: false, error: `템플릿 생성 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -5014,7 +5019,7 @@ async function tool_legalReplyBatch(args: any, adminId: number | null): Promise<
       `);
       processed++;
     }
-    return { ok: true, output: { total: rows.length, processed, message: `${processed}건 답변 완료` } };
+    return { ok: true, output: { total: rows.length, processed, message: `${processed}건 답변 완료` }, suggestedNextSteps: buildNextSteps("legal_reply_batch") };
   } catch (e: any) {
     return { ok: false, error: `법률 상담 일괄 답변 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -5080,7 +5085,7 @@ async function tool_harassmentReplyBatch(args: any, adminId: number | null): Pro
       `);
       processed++;
     }
-    return { ok: true, output: { total: rows.length, processed, message: `${processed}건 답변 완료` } };
+    return { ok: true, output: { total: rows.length, processed, message: `${processed}건 답변 완료` }, suggestedNextSteps: buildNextSteps("harassment_reply_batch") };
   } catch (e: any) {
     return { ok: false, error: `악성민원 일괄 답변 실패: ${e?.message?.slice(0, 200)}` };
   }
@@ -5198,7 +5203,7 @@ async function tool_notificationBatch(args: any, adminId: number | null): Promis
       `);
       inserted++;
     }
-    return { ok: true, output: { total: targetMembers.length, inserted, message: `${inserted}명에게 알림 발송 완료` } };
+    return { ok: true, output: { total: targetMembers.length, inserted, message: `${inserted}명에게 알림 발송 완료` }, suggestedNextSteps: buildNextSteps("notification_batch") };
   } catch (e: any) {
     return { ok: false, error: `일괄 알림 발송 실패: ${e?.message?.slice(0, 200)} (성공 ${inserted}/${targetMembers.length})` };
   }
@@ -5294,6 +5299,7 @@ async function tool_emailSendByFilter(args: any, adminId: number): Promise<ToolR
     return {
       ok: true,
       output: { total, sent, failed, message: `${sent}명 발송 완료, ${failed}명 실패` },
+      suggestedNextSteps: buildNextSteps("email_send_by_filter"),
     };
   } catch (e: any) {
     return { ok: false, error: `이메일 일괄 발송 실패: ${e?.message?.slice(0, 300)}` };
@@ -5402,8 +5408,61 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
         errors: errors.slice(0, 20),
         message: `${processed}건 처리 완료, ${errors.length}건 실패`,
       },
+      suggestedNextSteps: buildNextSteps("bulk_pipeline"),
     };
   } catch (e: any) {
     return { ok: false, error: `bulk_pipeline 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+/* === Layer 3 힌트 시스템 === */
+
+export function buildNextSteps(toolName: string): ToolResult["suggestedNextSteps"] {
+  switch (toolName) {
+    case "legal_reply":
+    case "legal_reply_batch":
+      return [
+        { tool: "email_send", reason: "답변 내용을 이메일로 전달할 수 있습니다" },
+        { tool: "chat_message_send", reason: "채팅방에 답변 완료 알림을 보낼 수 있습니다" },
+      ];
+    case "harassment_reply":
+    case "harassment_reply_batch":
+      return [{ tool: "chat_rooms_list", reason: "관련 채팅방을 확인할 수 있습니다" }];
+    case "email_send":
+    case "email_send_by_filter":
+      return [
+        { tool: "notification_send", reason: "인앱 알림도 함께 발송할 수 있습니다" },
+        { tool: "task_create", reason: "발송 후속 작업을 등록할 수 있습니다" },
+      ];
+    case "chat_message_send":
+      return [{ tool: "chat_room_close", reason: "답변 완료 후 채팅방을 종료할 수 있습니다" }];
+    case "members_block":
+      return [
+        { tool: "notification_send", reason: "당사자에게 알림을 보낼 수 있습니다" },
+        { tool: "audit_logs_recent", reason: "차단 이력을 확인할 수 있습니다" },
+      ];
+    case "campaign_create":
+      return [
+        { tool: "email_send", reason: "캠페인 공지 이메일을 발송할 수 있습니다" },
+        { tool: "notice_create", reason: "공지사항에 등록할 수 있습니다" },
+      ];
+    case "email_template_create":
+      return [{ tool: "email_send", reason: "새 템플릿으로 즉시 테스트 발송을 할 수 있습니다" }];
+    case "bulk_pipeline":
+      return [
+        { tool: "email_send", reason: "처리 결과를 요약 이메일로 보낼 수 있습니다" },
+        { tool: "task_create", reason: "후속 작업을 등록할 수 있습니다" },
+      ];
+    case "recipient_group_create":
+      return [{ tool: "email_send_by_filter", reason: "생성한 그룹에 바로 이메일을 발송할 수 있습니다" }];
+    case "task_create":
+      return [{ tool: "event_create", reason: "마감일을 캘린더에 등록할 수 있습니다" }];
+    case "notification_batch":
+      return [
+        { tool: "email_send", reason: "알림과 함께 이메일도 발송할 수 있습니다" },
+        { tool: "audit_logs_recent", reason: "발송 이력을 확인할 수 있습니다" },
+      ];
+    default:
+      return undefined;
   }
 }
