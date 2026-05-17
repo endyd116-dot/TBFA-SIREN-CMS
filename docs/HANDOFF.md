@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-17 / **🔄 라운드 5 발송 UX A 작업 중 (라운드 1·2·3·4 전체 완결)** / main @ `a2a7a55` (전부 푸시 완료)
+> **마지막 갱신**: 2026-05-17 / **🏁 라운드 1~6 전체 완결 (C 검증 54항목 전부 통과)** / main @ `5086322` (전부 푸시 완료)
 
 ---
 
@@ -75,11 +75,21 @@
 - C 검증 Q1~Q8 전부 통과 (BUG 0)
 → 검증 보고서: `docs/verify/2026-05-17-round4-rbac.md`
 
-### 3.4 라운드 5 발송 센터 UX (🔄 진행 중)
+### 3.4 라운드 5 발송 센터 UX (✅ 전체 완결)
 
-- A: feature/round5-send-ux — 작업 중
-  - 채널별 미리보기 탭 (이메일·SMS·카카오·인앱)
-  - 파일함에서 선택 첨부 (워크스페이스 파일 재사용)
+- 채널별 미리보기 탭 (이메일·SMS·카카오·인앱) + 파일함 재사용 첨부
+- C 검증 Q1~Q10 전부 통과 (BUG 0) → `7a2f557`
+→ 검증 보고서: `docs/verify/2026-05-17-round5-send-ux.md`
+
+### 3.5 라운드 6 게이미피케이션 + 큐레이션·팝업 (✅ 전체 완결)
+
+- DB 8테이블 신설: pointRules·memberPointLogs·badgeDefinitions·memberBadges·rewards·rewardRedemptions·sitePopups·siteCurations
+- lib/badge-checker.ts 신설 (후원 횟수·포인트 잔액 기준 자동 뱃지 부여)
+- B API 18개: 사용자 5(포인트·뱃지·랭킹·리워드) + 어드민 9 + 공개 4(팝업·큐레이션)
+- 이벤트 후킹 3곳: 토스·효성 후원 완료 + 일일 로그인 (fire-and-forget)
+- A 페이지 5개: mypage-points·ranking·admin-gamification·admin-popups·admin-curations + site-popup.js + iframe 12곳
+- C 검증 Q1~Q15 전부 통과 (BUG 0) → `a474978`
+→ 검증 보고서: `docs/verify/2026-05-17-round6-gamification.md`
 
 ---
 
@@ -153,7 +163,7 @@
 | 3 | 🟡 | 자격 변경 되돌리기 (어드민 강제 변경) | `admin-eligibility-force-change` endpoint 신설 |
 | 4 | 🟡 | 익명 신고 보고자 정보 일관성 | 어드민 UI에 "등록 회원명(익명 시 마스킹)" 표시 |
 
-### 4.2 라운드 2 — 워크스페이스 영역 🔄 진행 중 (B·A 작업 중, 2026-05-17)
+### 4.2 라운드 2 — 워크스페이스 영역 ✅ 완결 (2026-05-17)
 
 | # | 우선 | 이슈 | 수정안 |
 |---|---|---|---|
