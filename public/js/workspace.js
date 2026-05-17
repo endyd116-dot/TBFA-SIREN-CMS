@@ -1470,6 +1470,96 @@
     });
   }
 
+  /* ─────────── 멘션 알림 배지 (#2) ─────────── */
+  // mock 데이터 (B 머지 전)
+  const MOCK_MENTIONS = {
+    ok: true,
+    data: {
+      mentions: [
+        { id: 1, taskId: 42, taskTitle: '월간 보고서 작성', mentionerName: '박OO', context: '@나 확인 부탁드려요', isRead: false, createdAt: new Date().toISOString() },
+      ],
+    },
+  };
+
+  let mentionDropOpen = false;
+  let mentionLastFetch = 0;
+
+  async function loadMentions() {
+    const list = $('#wsMentionDropdownList');
+    if (!list) return;
+    let items = [];
+    try {
+      const ws = STATE.currentWorkspaceId || 1;
+      const res = await api(`/api/workspace-task-mentions?workspaceId=${ws}&unreadOnly=true`);
+      items = (res.data || res).mentions || [];
+    } catch (_) {
+      items = MOCK_MENTIONS.data.mentions;
+    }
+    const countEl = $('#wsMentionCount');
+    if (countEl) {
+      if (items.length > 0) {
+        countEl.textContent = items.length > 99 ? '99+' : String(items.length);
+        countEl.style.display = '';
+      } else {
+        countEl.style.display = 'none';
+      }
+    }
+    if (!items.length) {
+      list.innerHTML = '<li class="ws-notif-dropdown-empty">읽지 않은 멘션이 없습니다</li>';
+      return;
+    }
+    list.innerHTML = items.map(m => `
+      <li class="ws-notif-item is-unread" data-mention-id="${m.id}" data-task-id="${m.taskId}" style="cursor:pointer">
+        <span class="ws-notif-dot">@</span>
+        <div class="ws-notif-body">
+          <div class="ws-notif-title">${escapeHtml(m.taskTitle || '작업')}</div>
+          <div class="ws-notif-meta" style="font-size:11px;color:#6b7280">${escapeHtml(m.mentionerName || '')} · ${escapeHtml(m.context || '')}</div>
+        </div>
+      </li>`).join('');
+  }
+
+  function bindMentionBell() {
+    const bell = $('#wsMentionBell');
+    if (!bell) return;
+
+    bell.addEventListener('click', (e) => {
+      if (e.target.closest('#wsMentionDropdown')) return;
+      e.stopPropagation();
+      const dd = $('#wsMentionDropdown');
+      if (!dd) return;
+      mentionDropOpen = !mentionDropOpen;
+      dd.hidden = !mentionDropOpen;
+      if (mentionDropOpen && Date.now() - mentionLastFetch > 5000) {
+        mentionLastFetch = Date.now();
+        loadMentions();
+      }
+    });
+
+    // 멘션 항목 클릭 → 해당 Task 이동 + 읽음 처리
+    document.addEventListener('click', async (e) => {
+      const item = e.target.closest('#wsMentionDropdownList .ws-notif-item');
+      if (!item) return;
+      e.stopPropagation();
+      const mentionId = Number(item.dataset.mentionId);
+      const taskId = Number(item.dataset.taskId);
+      try {
+        if (mentionId) {
+          await api(`/api/workspace-task-mentions?id=${mentionId}`, { method: 'PATCH', body: { isRead: true } });
+        }
+      } catch (_) {}
+      if (taskId) location.href = `/workspace-kanban.html#task=${taskId}`;
+    });
+
+    // 외부 클릭 닫기
+    document.addEventListener('click', (e) => {
+      if (!mentionDropOpen) return;
+      if (e.target.closest('#wsMentionBell')) return;
+      const dd = $('#wsMentionDropdown');
+      if (dd) dd.hidden = true;
+      mentionDropOpen = false;
+    });
+  }
+
   /* ─────────── 카드 클릭 → WBS 이동 ─────────── */
   function bindPanelClicks() {
     document.addEventListener('click', (e) => {
@@ -1499,6 +1589,7 @@
 
   async function init() {
     bindNotifBell();
+    bindMentionBell();
     bindPanelClicks();
 
     const isAdmin = await detectAdmin();
@@ -1507,6 +1598,7 @@
       loadAssignedByMe(),
       loadUnassigned(isAdmin),
       loadNotifications(),
+      loadMentions(),
     ]);
 
     // WorkspaceSync 채널로 알림 갱신 트리거
@@ -1514,12 +1606,13 @@
       WorkspaceSync.on('notification:new', () => loadNotifications().catch(() => {}));
       WorkspaceSync.on('task:updated',     () => { loadAssignedByMe().catch(() => {}); loadUnassigned(isAdmin).catch(() => {}); });
       WorkspaceSync.on('task:created',     () => { loadAssignedByMe().catch(() => {}); loadUnassigned(isAdmin).catch(() => {}); });
-      WorkspaceSync.on('page:visible',     () => loadNotifications().catch(() => {}));
+      WorkspaceSync.on('page:visible',     () => { loadNotifications().catch(() => {}); loadMentions().catch(() => {}); });
     }
 
     // 폴링 (60초)
     setInterval(() => {
       loadNotifications().catch(() => {});
+      loadMentions().catch(() => {});
     }, 60000);
   }
 

@@ -173,6 +173,11 @@
   margin: 0;
 }
 
+/* RSVP 버튼 활성 상태 */
+#wcRsvpYes.is-active  { background: #dcfce7; border-color: #16a34a; color: #15803d; font-weight: 600; }
+#wcRsvpNo.is-active   { background: #fee2e2; border-color: #dc2626; color: #b91c1c; font-weight: 600; }
+#wcRsvpMaybe.is-active { background: #fef9c3; border-color: #ca8a04; color: #854d0e; font-weight: 600; }
+
 @media (max-width: 768px) {
   .wc-board { padding: 12px; }
   .wc-calendar { padding: 8px; }

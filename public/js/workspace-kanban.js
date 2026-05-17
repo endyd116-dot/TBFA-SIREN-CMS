@@ -653,6 +653,13 @@
     const isMarked = Array.isArray(t.bookmarkedBy) && STATE.me && t.bookmarkedBy.includes(STATE.me.id);
     bookmarkBtn.classList.toggle('is-marked', !!isMarked);
 
+    // archived 카드: 복원 버튼 표시, 보관 버튼 숨김
+    const isArchived = t.status === 'archived';
+    const restoreBtn = $('#wkCardRestore');
+    const archiveBtn = $('#wkCardArchive');
+    if (restoreBtn) restoreBtn.style.display = isArchived ? '' : 'none';
+    if (archiveBtn) archiveBtn.style.display = isArchived ? 'none' : '';
+
     openModal('wkCardModal');
 
     // 탭 모듈 hook (Step 7-B.3)
@@ -732,6 +739,21 @@
       await loadTasks();
     } catch (err) {
       toast('보관 실패: ' + err.message, 'error');
+    }
+  }
+
+  async function restoreFromModal() {
+    const id = Number($('#wkCardId').value);
+    if (!id) return;
+    try {
+      await api(`/api/admin-workspace-tasks?id=${id}&action=restore`, { method: 'PATCH', body: {} });
+      toast('복원됐어요 — todo로 이동', 'success');
+      closeModal('wkCardModal');
+      history.replaceState(null, '', '/workspace-kanban.html');
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:updated', { id });
+      await loadTasks();
+    } catch (err) {
+      toast('복원 실패: ' + err.message, 'error');
     }
   }
 
@@ -996,6 +1018,7 @@
 
     // 카드 모달
     $('#wkCardSave')?.addEventListener('click', saveCardModal);
+    $('#wkCardRestore')?.addEventListener('click', restoreFromModal);
     $('#wkCardArchive')?.addEventListener('click', archiveFromModal);
     $('#wkCardDelete')?.addEventListener('click', deleteFromModal);
     $('#wkCardBookmark')?.addEventListener('click', bookmarkFromModal);
