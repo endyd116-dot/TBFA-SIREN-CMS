@@ -256,7 +256,7 @@ export default async (req: Request, _ctx: Context) => {
         const status = url.searchParams.get("status");
         const mine = url.searchParams.get("mine") === "1";
         const assignedToMe = url.searchParams.get("assignedToMe") === "1";
-        const assignedByMe = url.searchParams.get("assignedByMe") === "1";
+        const assignedByMe = url.searchParams.get("assignedByMe") !== "false";
         const unassigned = url.searchParams.get("unassigned") === "1";
         const dueBefore = url.searchParams.get("dueBefore");
         const q = url.searchParams.get("q");
@@ -601,7 +601,6 @@ export default async (req: Request, _ctx: Context) => {
         const [updated]: any = await db
           .update(workspaceTasks)
           .set({
-            memberId: newAssignee,
             assignedTo: newAssignee,
             assignedBy: meId,
             assignedAt: new Date(),
@@ -741,6 +740,30 @@ export default async (req: Request, _ctx: Context) => {
           visibility: "team",
         });
         return ok(updated, "보류 해제되었습니다");
+      }
+
+      /* ─── action=restore (휴지통 복원) ─── */
+      if (action === "restore") {
+        if (!isOwner && !isSuperAdmin) return forbidden("복원 권한이 없습니다");
+        const [updated]: any = await db
+          .update(workspaceTasks)
+          .set({
+            deletedAt: null,
+            updatedAt: new Date(),
+          } as any)
+          .where(eq(workspaceTasks.id, id))
+          .returning();
+        await logWorkspaceActivity({
+          actorId: meId,
+          actorName: adminMember.name,
+          actionType: "task.unarchive",
+          targetType: "task",
+          targetId: id,
+          targetTitle: task.title,
+          metadata: {},
+          visibility: "team",
+        });
+        return ok(updated, "작업이 복원되었습니다");
       }
 
       /* ─── action=bookmark / unbookmark ─── */
