@@ -4,7 +4,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "../db";
-import { sendEmail, baseLayout } from "./email";
+import { sendEmail, renderEmailLayout } from "./email";
 import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
 
@@ -232,7 +232,8 @@ export const TOOL_DECLARATIONS = [
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명). toEmails와 함께 쓸 수 있음." },
       toEmails: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 이메일 주소 목록 (최대 10개). 회원이 아닌 외부 주소 포함 가능." },
       subject: { type: "STRING" }, body: { type: "STRING", description: "본문. wrapWithLayout=true 시 HTML 태그 사용 가능(p, strong, br 등). 평문도 자동 변환." },
-      wrapWithLayout: { type: "BOOLEAN", description: "SIREN 공식 이메일 레이아웃으로 래핑. 격식 있는 발송 시 true 권장." },
+      wrapWithLayout: { type: "BOOLEAN", description: "SIREN 이메일 레이아웃으로 래핑. 격식 있는 발송 시 true 권장." },
+      layout: { type: "STRING", description: "템플릿 종류 (wrapWithLayout=true 시 적용). classic: 검정+금색 전통 SIREN 스타일 | minimal: 순백 미니멀 좌측 블루 액센트 — B2B 공문·영업 최적 | gradient: 인디고→퍼플 그라디언트 헤더 — 캠페인·이벤트 초대 | editorial: 크림 배경 세리프 타이틀 — 뉴스레터·장문 소식. 미지정 시 classic." },
       ctaText: { type: "STRING", description: "wrapWithLayout=true 시 하단 버튼 텍스트. 예: '홈페이지 방문하기'" },
       ctaUrl: { type: "STRING", description: "CTA 버튼 링크 URL" },
       requireApproval: { type: "BOOLEAN" },
@@ -1377,8 +1378,9 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
   const isHtml = /<[a-z][\s\S]*>/i.test(body);
   const bodyHtml = isHtml ? body : `<div style="white-space:pre-wrap">${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`;
   const wrapWithLayout = args?.wrapWithLayout === true;
+  const layout = ["classic","minimal","gradient","editorial"].includes(args?.layout) ? args.layout : "classic";
   const finalHtml = wrapWithLayout
-    ? baseLayout({
+    ? renderEmailLayout(layout, {
         title: subject,
         bodyHtml,
         ...(args?.ctaText && args?.ctaUrl ? { ctaText: String(args.ctaText), ctaUrl: String(args.ctaUrl) } : {}),

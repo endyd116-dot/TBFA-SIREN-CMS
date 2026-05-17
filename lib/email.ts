@@ -154,6 +154,169 @@ export function baseLayout(opts: { title: string; bodyHtml: string; ctaText?: st
 </body></html>`;
 }
 
+/* ───────────────────── 추가 레이아웃 3종 (2026-05-18) ───────────────────── */
+
+type LayoutOpts = { title: string; bodyHtml: string; ctaText?: string; ctaUrl?: string };
+
+/** minimal — 순백 미니멀. 여백 중심, 좌측 컬러 액센트 라인. B2B 공문·영업 메일 최적. */
+export function layoutMinimal(opts: LayoutOpts) {
+  const { title, bodyHtml, ctaText, ctaUrl } = opts;
+  const ctaBlock = ctaText && ctaUrl
+    ? `<div style="margin:28px 0 8px;">
+         <a href="${ctaUrl}" target="_blank"
+            style="display:inline-block;padding:13px 28px;background:#1a1a1a;color:#ffffff;
+                   text-decoration:none;border-radius:4px;font-size:14px;font-weight:600;letter-spacing:0.3px;">
+           ${ctaText}
+         </a>
+       </div>`
+    : "";
+  return `<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>${title}</title></head>
+<body style="margin:0;padding:0;background:#f8f8f8;font-family:'Noto Sans KR',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8f8f8;padding:40px 12px;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" border="0"
+             style="background:#ffffff;max-width:580px;width:100%;">
+        <!-- 상단 액센트 라인 -->
+        <tr><td style="background:#2563eb;height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+        <!-- 로고 -->
+        <tr><td style="padding:28px 40px 0;">
+          <span style="font-size:13px;font-weight:700;color:#2563eb;letter-spacing:1.5px;text-transform:uppercase;">SIREN</span>
+        </td></tr>
+        <!-- 제목 -->
+        <tr><td style="padding:20px 40px 0;">
+          <h1 style="margin:0;font-size:22px;font-weight:700;color:#111111;line-height:1.35;">${title}</h1>
+          <div style="margin-top:12px;width:36px;height:2px;background:#2563eb;"></div>
+        </td></tr>
+        <!-- 본문 -->
+        <tr><td style="padding:20px 40px 0;font-size:14px;line-height:1.75;color:#444444;">${bodyHtml}</td></tr>
+        <!-- CTA -->
+        <tr><td style="padding:0 40px;">${ctaBlock}</td></tr>
+        <!-- 구분선 + 푸터 -->
+        <tr><td style="padding:28px 40px;border-top:1px solid #eeeeee;margin-top:28px;
+                       font-size:11px;color:#aaaaaa;line-height:1.6;">
+          <div>© SIREN 교사유가족협의회</div>
+          <div><a href="${SITE_URL}" style="color:#2563eb;text-decoration:none;">${SITE_URL.replace("https://","")}</a></div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+/** gradient — 그라디언트 헤더 카드. 인디고→퍼플 그라디언트. 캠페인·이벤트 초대에 최적. */
+export function layoutGradient(opts: LayoutOpts) {
+  const { title, bodyHtml, ctaText, ctaUrl } = opts;
+  const ctaBlock = ctaText && ctaUrl
+    ? `<tr><td align="center" style="padding:8px 0 32px;">
+         <a href="${ctaUrl}" target="_blank"
+            style="display:inline-block;padding:15px 36px;
+                   background:linear-gradient(135deg,#4f46e5,#7c3aed);
+                   color:#ffffff;text-decoration:none;border-radius:50px;
+                   font-size:15px;font-weight:700;letter-spacing:0.3px;
+                   box-shadow:0 4px 14px rgba(79,70,229,0.4);">
+           ${ctaText} →
+         </a>
+       </td></tr>`
+    : "";
+  return `<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>${title}</title></head>
+<body style="margin:0;padding:0;background:#eef2ff;font-family:'Noto Sans KR',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef2ff;padding:36px 12px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0"
+             style="background:#ffffff;border-radius:16px;overflow:hidden;
+                    box-shadow:0 8px 32px rgba(79,70,229,0.12);max-width:600px;width:100%;">
+        <!-- 그라디언트 헤더 -->
+        <tr><td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 60%,#a855f7 100%);
+                       padding:36px 40px 32px;">
+          <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:600;
+                      letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">SIREN</div>
+          <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;line-height:1.35;">${title}</h1>
+        </td></tr>
+        <!-- 본문 -->
+        <tr><td style="padding:32px 40px 8px;font-size:14px;line-height:1.75;color:#374151;">${bodyHtml}</td></tr>
+        <!-- CTA -->
+        ${ctaBlock}
+        <!-- 푸터 -->
+        <tr><td style="background:#f5f3ff;padding:20px 40px;font-size:11px;color:#9ca3af;line-height:1.6;">
+          <div>© SIREN 교사유가족협의회 ·
+            <a href="${SITE_URL}" style="color:#7c3aed;text-decoration:none;">${SITE_URL.replace("https://","")}</a>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+/** editorial — 에디토리얼 뉴스레터. 크림 배경 + 세리프 타이틀 + 넓은 여백. 월간 소식·장문 안내에 최적. */
+export function layoutEditorial(opts: LayoutOpts) {
+  const { title, bodyHtml, ctaText, ctaUrl } = opts;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const ctaBlock = ctaText && ctaUrl
+    ? `<tr><td style="padding:0 48px 36px;">
+         <a href="${ctaUrl}" target="_blank"
+            style="display:inline-block;padding:12px 28px;border:2px solid #0f0f0f;
+                   color:#0f0f0f;text-decoration:none;font-size:14px;font-weight:700;
+                   letter-spacing:0.5px;">
+           ${ctaText}
+         </a>
+       </td></tr>`
+    : "";
+  return `<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>${title}</title></head>
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:'Noto Sans KR',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f1eb;padding:36px 12px;">
+    <tr><td align="center">
+      <table width="620" cellpadding="0" cellspacing="0" border="0"
+             style="background:#faf8f3;max-width:620px;width:100%;border:1px solid #e8e2d5;">
+        <!-- 상단 날짜 바 -->
+        <tr><td style="padding:16px 48px;border-bottom:1px solid #e8e2d5;
+                       font-size:11px;color:#999999;letter-spacing:1px;text-transform:uppercase;">
+          ${dateStr} · SIREN 교사유가족협의회
+        </td></tr>
+        <!-- 대형 타이틀 -->
+        <tr><td style="padding:40px 48px 16px;">
+          <h1 style="margin:0;font-size:28px;font-weight:700;color:#1a1a1a;line-height:1.3;
+                     font-family:'Noto Serif KR',Georgia,serif;">${title}</h1>
+          <div style="margin-top:16px;width:48px;height:3px;background:#c8a96e;"></div>
+        </td></tr>
+        <!-- 본문 -->
+        <tr><td style="padding:20px 48px 12px;font-size:15px;line-height:1.85;color:#3d3d3d;">${bodyHtml}</td></tr>
+        <!-- CTA -->
+        ${ctaBlock}
+        <!-- 구분선 -->
+        <tr><td style="padding:0 48px;"><div style="height:1px;background:#e8e2d5;"></div></td></tr>
+        <!-- 푸터 -->
+        <tr><td style="padding:20px 48px;font-size:11px;color:#aaaaaa;line-height:1.6;">
+          <div>이 메일은 SIREN 플랫폼에서 발송되었습니다.</div>
+          <div>© SIREN 교사유가족협의회 ·
+            <a href="${SITE_URL}" style="color:#c8a96e;text-decoration:none;">${SITE_URL.replace("https://","")}</a>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+/* ───────────────────── 레이아웃 디스패처 ───────────────────── */
+export type EmailLayoutType = "classic" | "minimal" | "gradient" | "editorial";
+
+export function renderEmailLayout(layout: EmailLayoutType, opts: LayoutOpts): string {
+  switch (layout) {
+    case "minimal":   return layoutMinimal(opts);
+    case "gradient":  return layoutGradient(opts);
+    case "editorial": return layoutEditorial(opts);
+    default:          return baseLayout(opts);   // classic
+  }
+}
+
 /* HTML 이스케이프 (XSS 방지) */
 function esc(s: string): string {
   if (!s) return "";
