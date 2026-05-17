@@ -24,12 +24,11 @@ export default async (req: Request, _ctx: Context) => {
     const body: any = await parseJson(req);
     if (!body) return badRequest("JSON body 필요");
 
-    const workspaceId = Number(body.workspaceId);
+    const workspaceId = Number(body.workspaceId) || 1;
     const eventId = Number(body.eventId);
     const status = String(body.status || "");
     const note = body.note ? String(body.note).trim().slice(0, 500) : null;
 
-    if (!workspaceId) return badRequest("workspaceId 필수");
     if (!eventId) return badRequest("eventId 필수");
     if (!(VALID_STATUSES as readonly string[]).includes(status)) {
       return badRequest("status는 yes/no/maybe 중 하나");

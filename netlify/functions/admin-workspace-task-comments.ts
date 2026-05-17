@@ -13,6 +13,7 @@ import { db } from "../../db";
 import {
   workspaceTaskComments,
   workspaceTasks,
+  workspaceTaskMentions,
   members,
 } from "../../db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
@@ -202,6 +203,22 @@ export default async (req: Request, _ctx: Context) => {
           });
         } catch (err) {
           console.warn("[task-comments] 알림 발송 실패:", err);
+        }
+      }
+
+      // workspace_task_mentions INSERT — @멘션된 멤버만 (본인 제외)
+      const mentionTargets = mentions.filter((id: number) => id !== meId);
+      for (const mentionedId of mentionTargets) {
+        try {
+          await db.insert(workspaceTaskMentions).values({
+            workspaceId: 1,
+            taskId,
+            mentionedMemberId: mentionedId,
+            mentionerMemberId: meId,
+            context: content.slice(0, 500),
+          } as any);
+        } catch (err) {
+          console.warn("[task-comments] mention INSERT 실패:", err);
         }
       }
 
