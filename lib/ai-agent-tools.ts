@@ -831,6 +831,24 @@ export const TOOL_DECLARATIONS = [
       actionParams:    { type: "OBJECT",  description: "action에 전달할 추가 파라미터" },
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["source", "action"] }},
+  /* === Layer 4 스케줄 === */
+  { name: "schedule_command", description: "AI 명령을 cron 일정으로 등록 — 지정 시간마다 자동 실행 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      name:            { type: "STRING",  description: "스케줄 이름 (고유 식별자)" },
+      cronExpr:        { type: "STRING",  description: "cron 표현식 (예: '0 9 * * 1' = 매주 월요일 9시)" },
+      command:         { type: "STRING",  description: "자동 실행할 AI 명령 텍스트" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["name", "cronExpr", "command"] }},
+  { name: "scheduled_commands_list", description: "등록된 AI 스케줄 명령 목록 조회",
+    parameters: { type: "OBJECT", properties: {
+      isActive: { type: "BOOLEAN", description: "true=활성만, false=비활성만, 생략=전체" },
+      limit:    { type: "INTEGER", description: "최대 조회 건수 (기본 20, 최대 100)" },
+    }, required: [] }},
+  { name: "schedule_cancel", description: "스케줄 명령 비활성화 (dry-run 우선)",
+    parameters: { type: "OBJECT", properties: {
+      scheduleId:      { type: "INTEGER", description: "비활성화할 스케줄 ID" },
+      requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
+    }, required: ["scheduleId"] }},
 ];
 
 /* =========================================================
@@ -1042,6 +1060,10 @@ export async function executeTool(
       /* === Layer 2 파이프라인 === */
       case "email_send_by_filter":    return await tool_emailSendByFilter(args, adminId);
       case "bulk_pipeline":           return await tool_bulkPipeline(args, adminId);
+      /* === Layer 4 스케줄 === */
+      case "schedule_command":        return await tool_scheduleCommand(args, adminId);
+      case "scheduled_commands_list": return await tool_scheduledCommandsList(args);
+      case "schedule_cancel":         return await tool_scheduleCancel(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -5404,5 +5426,145 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
     };
   } catch (e: any) {
     return { ok: false, error: `bulk_pipeline 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+/* =========================================================
+   === Layer 4 스케줄 ===
+   ========================================================= */
+
+async function tool_scheduleCommand(args: any, adminId: number): Promise<ToolResult> {
+  try {
+    const name = String(args?.name || "").trim();
+    const cronExpr = String(args?.cronExpr || "").trim();
+    const command = String(args?.command || "").trim();
+    const requireApproval = args?.requireApproval !== false;
+
+    if (!name) return { ok: false, error: "name 파라미터가 필요합니다" };
+    if (!cronExpr) return { ok: false, error: "cronExpr 파라미터가 필요합니다" };
+    if (!command) return { ok: false, error: "command 파라미터가 필요합니다" };
+
+    if (requireApproval) {
+      return {
+        ok: true,
+        preview: {
+          dry_run: true,
+          name,
+          cronExpr,
+          command,
+          message: `스케줄 '${name}' 등록 예정 (cron: ${cronExpr}). requireApproval=false로 재호출하면 실제 등록합니다.`,
+        },
+      };
+    }
+
+    const rows = await db.execute(sql`
+      INSERT INTO ai_scheduled_commands (name, cron_expr, command, admin_id, is_active, next_run_at, created_at, updated_at)
+      VALUES (${name}, ${cronExpr}, ${command}, ${adminId}, true, NOW() + INTERVAL '1 day', NOW(), NOW())
+      RETURNING id, name, cron_expr
+    `) as any;
+
+    const row = Array.isArray(rows) ? rows[0] : rows?.rows?.[0];
+    return {
+      ok: true,
+      output: {
+        id: row?.id,
+        name: row?.name,
+        cronExpr: row?.cron_expr,
+        message: `스케줄 '${name}' 등록 완료`,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `schedule_command 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+async function tool_scheduledCommandsList(args: any): Promise<ToolResult> {
+  try {
+    const isActive = args?.isActive;
+    const limit = Math.min(Number(args?.limit) || 20, 100);
+
+    let rows: any[];
+    if (isActive === true) {
+      rows = await db.execute(sql`
+        SELECT id, name, cron_expr, command, is_active, last_run_at, next_run_at, last_result, created_at
+        FROM ai_scheduled_commands
+        WHERE is_active = true
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `) as any;
+    } else if (isActive === false) {
+      rows = await db.execute(sql`
+        SELECT id, name, cron_expr, command, is_active, last_run_at, next_run_at, last_result, created_at
+        FROM ai_scheduled_commands
+        WHERE is_active = false
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `) as any;
+    } else {
+      rows = await db.execute(sql`
+        SELECT id, name, cron_expr, command, is_active, last_run_at, next_run_at, last_result, created_at
+        FROM ai_scheduled_commands
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `) as any;
+    }
+
+    const list = Array.isArray(rows) ? rows : (rows as any)?.rows || [];
+    return {
+      ok: true,
+      output: {
+        total: list.length,
+        schedules: list,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `scheduled_commands_list 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+async function tool_scheduleCancel(args: any, adminId: number): Promise<ToolResult> {
+  try {
+    const scheduleId = Number(args?.scheduleId);
+    const requireApproval = args?.requireApproval !== false;
+
+    if (!scheduleId) return { ok: false, error: "scheduleId 파라미터가 필요합니다" };
+
+    // 대상 스케줄 조회
+    const found = await db.execute(sql`
+      SELECT id, name, cron_expr, is_active FROM ai_scheduled_commands WHERE id = ${scheduleId}
+    `) as any;
+    const schedule = Array.isArray(found) ? found[0] : found?.rows?.[0];
+    if (!schedule) return { ok: false, error: `scheduleId=${scheduleId} 스케줄을 찾을 수 없습니다` };
+
+    if (requireApproval) {
+      return {
+        ok: true,
+        preview: {
+          dry_run: true,
+          id: schedule.id,
+          name: schedule.name,
+          cronExpr: schedule.cron_expr,
+          currentActive: schedule.is_active,
+          message: `스케줄 '${schedule.name}' 비활성화 예정. requireApproval=false로 재호출하면 실제 비활성화합니다.`,
+        },
+      };
+    }
+
+    await db.execute(sql`
+      UPDATE ai_scheduled_commands
+      SET is_active = false, updated_at = NOW()
+      WHERE id = ${scheduleId}
+    `);
+
+    return {
+      ok: true,
+      output: {
+        id: scheduleId,
+        name: schedule.name,
+        message: `스케줄 '${schedule.name}' 비활성화 완료`,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `schedule_cancel 실패: ${e?.message?.slice(0, 300)}` };
   }
 }
