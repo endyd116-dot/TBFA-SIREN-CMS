@@ -1,5 +1,5 @@
 /* =========================================================
-   site-popup.js — 사이트 팝업 오버레이 렌더러
+   site-popup.js — 사이트 팝업 플로팅 박스 렌더러
    GET /api/site-popups?page=xxx → 팝업 노출
    localStorage로 세션/하루/주간 빈도 제어
    ========================================================= */
@@ -10,10 +10,8 @@
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const ONE_WEEK = 7 * ONE_DAY;
 
-  /* 현재 페이지 경로 */
   const currentPage = location.pathname;
 
-  /* localStorage 유틸 */
   function getSeenMap() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
     catch { return {}; }
@@ -22,7 +20,6 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch {}
   }
 
-  /* 팝업을 이번에 표시해야 하는지 결정 */
   function shouldShow(popup) {
     const freq = popup.displayFrequency || popup.frequency || 'once_day';
     if (freq === 'always') return true;
@@ -32,7 +29,6 @@
     const last = seen[key];
 
     if (freq === 'session') {
-      /* sessionStorage로 세션 추적 */
       const sKey = 'siren_popup_session_' + popup.id;
       if (sessionStorage.getItem(sKey)) return false;
       return true;
@@ -48,7 +44,6 @@
     return true;
   }
 
-  /* 팝업을 "봤다"고 기록 */
   function markSeen(popup) {
     const freq = popup.displayFrequency || popup.frequency || 'once_day';
     if (freq === 'session') {
@@ -61,70 +56,72 @@
     setSeenMap(map);
   }
 
-  /* 팝업 오버레이 DOM 생성 */
-  function buildOverlay(popup) {
-    const overlay = document.createElement('div');
-    overlay.id = 'site-popup-' + popup.id;
-    overlay.style.cssText = [
-      'position:fixed', 'inset:0', 'background:rgba(0,0,0,0.55)',
-      'z-index:99999', 'display:flex', 'align-items:center',
-      'justify-content:center', 'padding:20px',
-    ].join(';');
-
-    const box = document.createElement('div');
-    box.style.cssText = [
-      'background:#fff', 'border-radius:14px',
-      'width:100%', 'max-width:480px',
-      'box-shadow:0 20px 60px rgba(0,0,0,0.25)',
-      'overflow:hidden', 'animation:popupFadeIn 0.25s ease',
+  /* 우하단 플로팅 박스 DOM 생성 */
+  function buildFloat(popup, index) {
+    const wrap = document.createElement('div');
+    wrap.id = 'site-popup-' + popup.id;
+    const offset = index * 10;
+    wrap.style.cssText = [
+      'position:fixed',
+      'bottom:' + (24 + offset) + 'px',
+      'right:' + (24 + offset) + 'px',
+      'z-index:' + (99999 - index),
+      'width:320px',
+      'max-width:calc(100vw - 48px)',
+      'background:#fff',
+      'border-radius:14px',
+      'box-shadow:0 8px 32px rgba(0,0,0,0.18)',
+      'overflow:hidden',
+      'animation:popupSlideUp 0.3s ease',
     ].join(';');
 
     /* 이미지 */
     let imgHtml = '';
     if (popup.imageUrl) {
-      const clickWrap = popup.linkUrl ? `href="${popup.linkUrl}"` : '';
-      imgHtml = `<a ${clickWrap} target="${popup.linkUrl ? '_blank' : '_self'}" rel="noopener"
-        style="display:block;line-height:0">
-        <img src="${popup.imageUrl}" alt="${popup.title}"
-          style="width:100%;max-height:280px;object-fit:cover;display:block">
-      </a>`;
+      const href = popup.linkUrl ? 'href="' + popup.linkUrl + '" target="_blank" rel="noopener"' : '';
+      imgHtml = '<a ' + href + ' style="display:block;line-height:0">'
+        + '<img src="' + popup.imageUrl + '" alt="' + popup.title + '"'
+        + ' style="width:100%;max-height:180px;object-fit:cover;display:block">'
+        + '</a>';
     }
 
+    /* 헤더 (제목 + X 닫기) */
+    const headerHtml = '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 14px 0">'
+      + '<div style="font-size:14px;font-weight:700;color:#1a2035;flex:1;margin-right:8px;line-height:1.4">' + popup.title + '</div>'
+      + '<button class="siren-popup-close" data-popup-id="' + popup.id + '"'
+      + ' style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;padding:0;margin-top:-2px">×</button>'
+      + '</div>';
+
     /* 본문 */
-    const hasContent = popup.content || popup.title;
-    const contentHtml = hasContent ? `
-      <div style="padding:20px 24px 0">
-        <div style="font-size:16px;font-weight:700;color:#1a2035;margin-bottom:8px">${popup.title}</div>
-        ${popup.content ? `<div style="font-size:13px;color:#4b5563;line-height:1.6;white-space:pre-line">${popup.content}</div>` : ''}
-        ${popup.linkUrl && !popup.imageUrl ? `<a href="${popup.linkUrl}" target="_blank" rel="noopener"
-          style="display:inline-block;margin-top:12px;color:#1e40af;font-size:13px;font-weight:600;text-decoration:underline">자세히 보기 →</a>` : ''}
-      </div>` : '';
+    const bodyHtml = popup.content
+      ? '<div style="padding:8px 14px 0;font-size:12.5px;color:#4b5563;line-height:1.6;white-space:pre-line">' + popup.content + '</div>'
+      : '';
 
-    /* 하단 버튼 */
-    const footHtml = `
-      <div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px">
-        <button class="siren-popup-close-today" data-popup-id="${popup.id}"
-          style="padding:7px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
-          오늘 하루 닫기
-        </button>
-        <button class="siren-popup-close" data-popup-id="${popup.id}"
-          style="padding:7px 14px;background:#1e40af;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
-          닫기
-        </button>
-      </div>`;
+    /* 링크 버튼 (이미지 없고 linkUrl 있을 때) */
+    const linkHtml = popup.linkUrl && !popup.imageUrl
+      ? '<div style="padding:6px 14px 0"><a href="' + popup.linkUrl + '" target="_blank" rel="noopener"'
+        + ' style="color:#1e40af;font-size:12px;font-weight:600;text-decoration:underline">자세히 보기 →</a></div>'
+      : '';
 
-    box.innerHTML = imgHtml + contentHtml + footHtml;
-    overlay.appendChild(box);
-    return overlay;
+    /* 하단 — 오늘 하루 닫기 */
+    const footHtml = '<div style="padding:10px 14px 14px;display:flex;justify-content:flex-end">'
+      + '<button class="siren-popup-close-today" data-popup-id="' + popup.id + '"'
+      + ' style="padding:5px 12px;background:#f3f4f6;color:#6b7280;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">'
+      + '오늘 하루 닫기</button>'
+      + '</div>';
+
+    wrap.innerHTML = imgHtml + headerHtml + bodyHtml + linkHtml + footHtml;
+    return wrap;
   }
 
   /* 팝업 닫기 */
   function closePopup(popupId, todayOnly) {
-    const overlay = document.getElementById('site-popup-' + popupId);
-    if (!overlay) return;
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.2s';
-    setTimeout(() => overlay.remove(), 220);
+    const el = document.getElementById('site-popup-' + popupId);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = 'opacity 0.2s, transform 0.2s';
+    setTimeout(() => el.remove(), 220);
     if (todayOnly) {
       const map = getSeenMap();
       map['p_' + popupId] = Date.now();
@@ -132,49 +129,39 @@
     }
   }
 
-  /* 팝업 렌더 */
-  function renderPopup(popup) {
+  function renderPopup(popup, index) {
     if (!shouldShow(popup)) return;
     markSeen(popup);
-
-    const overlay = buildOverlay(popup);
-    document.body.appendChild(overlay);
-
-    /* 오버레이 바깥 클릭 닫기 */
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) closePopup(popup.id, false);
-    });
+    const el = buildFloat(popup, index);
+    document.body.appendChild(el);
   }
 
-  /* 팝업 이벤트 (동적 요소라 document에 위임) */
-  document.addEventListener('click', e => {
-    const closeBtn = e.target.closest('.siren-popup-close');
+  /* 이벤트 위임 */
+  document.addEventListener('click', function (e) {
+    var closeBtn = e.target.closest('.siren-popup-close');
     if (closeBtn) { closePopup(Number(closeBtn.dataset.popupId), false); return; }
 
-    const todayBtn = e.target.closest('.siren-popup-close-today');
+    var todayBtn = e.target.closest('.siren-popup-close-today');
     if (todayBtn) { closePopup(Number(todayBtn.dataset.popupId), true); }
   });
 
-  /* CSS 애니메이션 */
-  const style = document.createElement('style');
-  style.textContent = '@keyframes popupFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}';
+  /* 슬라이드업 애니메이션 */
+  var style = document.createElement('style');
+  style.textContent = '@keyframes popupSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}';
   document.head.appendChild(style);
 
-  /* API 호출 + 렌더 */
   async function init() {
     try {
-      const r = await fetch('/api/site-popups?page=' + encodeURIComponent(currentPage));
+      var r = await fetch('/api/site-popups?page=' + encodeURIComponent(currentPage));
       if (!r.ok) return;
-      const json = await r.json();
-      const popups = (json.data?.popups || json.data || json.popups || []);
-      /* 순서대로 표시 (z-index 역순으로 쌓이므로 첫 번째가 맨 위) */
-      popups.forEach((p, i) => {
-        setTimeout(() => renderPopup(p), i * 150);
+      var json = await r.json();
+      var popups = json.data?.popups || json.data || json.popups || [];
+      popups.forEach(function (p, i) {
+        setTimeout(function () { renderPopup(p, i); }, i * 200);
       });
-    } catch { /* 팝업 오류는 조용히 무시 */ }
+    } catch (_) { /* 팝업 오류는 조용히 무시 */ }
   }
 
-  /* DOM 준비 후 실행 */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
