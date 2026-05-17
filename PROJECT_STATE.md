@@ -75,7 +75,7 @@
 > 완료된 병렬 작업 분담 정의는 git history + `docs/milestones-archive.md` 참고.
 > 새 병렬 작업 시작 시 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §4 템플릿 사용.
 
-### 4.1 라운드 1 SIREN 4건 fix (2026-05-17 ✅ 완료)
+### 4.1 라운드 1 SIREN 4건 fix (2026-05-17 ✅ 전체 완결)
 
 설계서: [docs/milestones/2026-05-17-round1-siren.md](docs/milestones/2026-05-17-round1-siren.md)
 
@@ -84,7 +84,7 @@
 | 메인 | 구조·머지 | 설계서 작성·머지 조율 | ✅ 완료 (69e791f 머지) |
 | B | 백엔드 | 빌링키 비활성화·3종 자동 status·user-my-reports·자격 강제 | ✅ 완료 (머지됨) |
 | A | 프론트 | my-reports.js·STAGE_FLOW·익명 배지·회원 상세 모달 | ✅ 완료 (머지됨) |
-| C | 검증 | Q1~Q12 라이브 검증 | ⏸ C 채팅 검증 완료 보고 대기 |
+| C | 검증 | Q1~Q12 라이브 검증 | ✅ 완료 (12/12 통과, BUG-Q10 fix 포함, 0320fa2) |
 
 ### 4.2 라운드 2 워크스페이스 8건 + 구글 캘린더 (2026-05-17 진행 중)
 
