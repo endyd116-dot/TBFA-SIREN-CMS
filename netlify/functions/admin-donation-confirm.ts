@@ -224,6 +224,7 @@ async function confirmHyosungBilling(
         hyosungReceiptStatus: row.receiptStatus,
         hyosungPaidDate: row.paymentDate ? new Date(row.paymentDate) : null,
         hyosungBillingId: billingId,
+        paidAt: row.paymentDate ? new Date(row.paymentDate) : new Date(),
       } as any).returning({ id: donations.id });
       donationId = ins[0]?.id ?? null;
 
@@ -286,6 +287,7 @@ async function confirmIbkOrLegacy(
     bankDepositorName: !isHyosung ? p.parsedName : null,
     memo,
     createdAt: p.parsedDate || new Date(),
+    paidAt: p.parsedDate || new Date(),
   } as any).returning({ id: donations.id });
 
   return { ok: true, memberId: m.id, donationId: inserted.id };

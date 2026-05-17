@@ -60,9 +60,22 @@ export default async function handler(req: Request, _ctx: Context) {
 
   /* 신규: 채널 다중 선택 — 각 채널마다 별도 job 생성 */
   const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"];
-  let channels: string[] = Array.isArray(body?.channels)
-    ? body.channels.map((c: any) => String(c)).filter((c: string) => VALID_CHANNELS.includes(c))
+  const rawChannels: string[] = Array.isArray(body?.channels)
+    ? body.channels.map((c: any) => String(c))
     : [];
+  const invalidChannels = rawChannels.filter((c) => !VALID_CHANNELS.includes(c));
+  if (invalidChannels.length > 0) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: `지원하지 않는 채널: ${invalidChannels.join(", ")}`,
+        step: "validate_channels",
+        validChannels: VALID_CHANNELS,
+      }),
+      { status: 400, headers: JSON_HEADER },
+    );
+  }
+  let channels: string[] = rawChannels.filter((c) => VALID_CHANNELS.includes(c));
   channels = Array.from(new Set(channels));
 
   /* 신규: 미리보기에서 사용자가 체크 해제한 회원 ID 배열 (발송 제외) */

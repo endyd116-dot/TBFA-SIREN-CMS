@@ -112,22 +112,14 @@ export default async (req: Request) => {
       const todayStartIso = todayStart.toISOString();
       const monthStartIso = monthStart.toISOString();
 
-      /* ★ 버그픽스2 #7: 금일·금월 결제금액의 집계 기준일 —
-       *  효성 CMS 후원은 created_at(데이터 import일)과 실제 결제일이 다르므로
-       *  hyosung_paid_date 기준으로 집계해야 admin-finance-income-summary 와 금액이 일치.
-       *  효성(pg_provider ILIKE '%hyosung%')만 COALESCE(hyosung_paid_date, created_at),
-       *  그 외 채널(토스·CMS·계좌)은 created_at 그대로. */
+      /* paid_at 기준으로 통계 집계 — paid_at이 없는 구형 레코드는 COALESCE(hyosung_paid_date, created_at) 폴백 */
       const statsRes: any = await db.execute(sql`
         SELECT
           COALESCE(SUM(CASE WHEN status = 'completed' AND
-            (CASE WHEN pg_provider ILIKE '%hyosung%'
-                  THEN COALESCE(hyosung_paid_date, created_at)
-                  ELSE created_at END) >= ${todayStartIso}::timestamp
+            COALESCE(paid_at, CASE WHEN pg_provider ILIKE '%hyosung%' THEN COALESCE(hyosung_paid_date, created_at) ELSE created_at END) >= ${todayStartIso}::timestamp
             THEN amount ELSE 0 END), 0)::bigint AS today_amount,
           COALESCE(SUM(CASE WHEN status = 'completed' AND
-            (CASE WHEN pg_provider ILIKE '%hyosung%'
-                  THEN COALESCE(hyosung_paid_date, created_at)
-                  ELSE created_at END) >= ${monthStartIso}::timestamp
+            COALESCE(paid_at, CASE WHEN pg_provider ILIKE '%hyosung%' THEN COALESCE(hyosung_paid_date, created_at) ELSE created_at END) >= ${monthStartIso}::timestamp
             THEN amount ELSE 0 END), 0)::bigint AS month_amount,
           COUNT(CASE WHEN status = 'failed' THEN 1 END)::int AS failed_count,
           COUNT(CASE WHEN status = 'completed' AND receipt_issued = false THEN 1 END)::int AS receipt_pending_count,

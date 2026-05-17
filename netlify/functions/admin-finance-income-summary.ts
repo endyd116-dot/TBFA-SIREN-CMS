@@ -27,8 +27,8 @@ export default async function handler(req: Request, _ctx: Context) {
     const startDate = new Date(sdStr + "T00:00:00");
     const endDate = new Date(edStr + "T23:59:59");
 
-    /* ★ Q12: 집계 기준은 실제 결제일 — 효성 CMS는 hyosungPaidDate, 그 외 채널은 createdAt */
-    const paidAt = sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})`;
+    /* paid_at 기준 집계 — paid_at 없는 구형 레코드는 효성은 hyosung_paid_date, 그 외는 created_at 폴백 */
+    const paidAt = sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})`;
 
     // pgProvider + type 기준 채널별 집계
     // ★ 버그픽스2 #7·#8: 기존엔 provider 만으로 집계해 토스 정기(CMS)·토스 일시가
