@@ -32,6 +32,9 @@
   report: '📊 주간 보고서',
   'security-audit': '🔒 보안·감사 로그',
   'role-policy': '🛡️ 권한 정책',
+  'gamification': '🎮 게이미피케이션',
+  'popups': '📢 팝업 관리',
+  'curations': '🗂️ 큐레이션',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -5457,6 +5460,12 @@ const OPERATOR_CATEGORIES = [
       document.dispatchEvent(new CustomEvent('siren:page', { detail: { page: 'security-audit' } }));
     } else if (page === 'role-policy') {
       /* Round 4: 권한 정책 관리 — iframe 직접 렌더 */
+    } else if (page === 'gamification') {
+      /* Round 6: 게이미피케이션 — iframe 직접 렌더 */
+    } else if (page === 'popups') {
+      /* Round 6: 팝업 관리 — iframe 직접 렌더 */
+    } else if (page === 'curations') {
+      /* Round 6: 큐레이션 — iframe 직접 렌더 */
     }
   }
 
