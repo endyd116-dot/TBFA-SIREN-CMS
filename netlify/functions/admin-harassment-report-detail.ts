@@ -99,6 +99,7 @@ export default async (req: Request, _ctx: Context) => {
 
       const updateData: any = { updatedAt: new Date() };
       if (status) updateData.status = status;
+      if (!status && adminResponse) updateData.status = "responded";
       if (adminResponse !== undefined) {
         updateData.adminResponse = adminResponse || null;
         if (adminResponse) {

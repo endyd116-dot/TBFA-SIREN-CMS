@@ -21,7 +21,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   db, members, chatBlacklist,
-  passwordResetTokens, emailVerificationTokens,
+  passwordResetTokens, emailVerificationTokens, billingKeys,
 } from "../../db";
 import { authenticateUser, verifyPassword, clearCookie } from "../../lib/auth";
 import { safeValidate } from "../../lib/validation";
@@ -172,7 +172,27 @@ export default async (req: Request) => {
         ),
       );
 
-    /* 11. 확인 메일 발송 (실패해도 탈퇴는 성공) */
+    /* 11. 빌링키 자동 비활성화 (탈퇴자 자동결제 차단) */
+    try {
+      const billingUpdatePayload: any = {
+        isActive: false,
+        deactivatedAt: new Date(),
+        deactivatedReason: "회원 탈퇴",
+      };
+      await db
+        .update(billingKeys)
+        .set(billingUpdatePayload)
+        .where(
+          and(
+            eq(billingKeys.memberId, user.id),
+            eq(billingKeys.isActive, true),
+          ),
+        );
+    } catch (billingErr) {
+      console.error("[auth-withdraw] 빌링키 비활성화 실패:", billingErr);
+    }
+
+    /* 13. 확인 메일 발송 (실패해도 탈퇴는 성공) */
     let emailSent = false;
     try {
       const tpl = tplWithdrawConfirm({
@@ -190,7 +210,7 @@ export default async (req: Request) => {
       console.error("[auth-withdraw] 확인 메일 발송 실패:", mailErr);
     }
 
-    /* 12. 감사 로그 */
+    /* 14. 감사 로그 */
     await logUserAction(req, user.id, originalName, "withdraw_success", {
       detail: {
         originalEmail,
@@ -200,7 +220,7 @@ export default async (req: Request) => {
       },
     });
 
-    /* 13. 응답 + 쿠키 삭제 */
+    /* 15. 응답 + 쿠키 삭제 */
     const res = ok(
       {},
       "회원 탈퇴가 완료되었습니다. 그동안 함께해 주셔서 감사합니다.",

@@ -49,6 +49,8 @@ export default async (req: Request) => {
         title: incidentReports.title,
         status: incidentReports.status,
         isAnonymous: incidentReports.isAnonymous,
+        adminResponse: incidentReports.adminResponse,
+        respondedAt: incidentReports.respondedAt,
         createdAt: incidentReports.createdAt,
         updatedAt: incidentReports.updatedAt,
       })
@@ -73,6 +75,8 @@ export default async (req: Request) => {
         title: harassmentReports.title,
         status: harassmentReports.status,
         isAnonymous: harassmentReports.isAnonymous,
+        adminResponse: harassmentReports.adminResponse,
+        respondedAt: harassmentReports.respondedAt,
         createdAt: harassmentReports.createdAt,
         updatedAt: harassmentReports.updatedAt,
       })
@@ -97,6 +101,9 @@ export default async (req: Request) => {
         title: legalConsultations.title,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
+        adminResponse: legalConsultations.adminResponse,
+        respondedAt: legalConsultations.respondedAt,
+        assignedLawyerName: legalConsultations.assignedLawyerName,
         createdAt: legalConsultations.createdAt,
         updatedAt: legalConsultations.updatedAt,
       })
