@@ -124,6 +124,19 @@
           </div>
         </div>
       </span>
+      <!-- 멘션 알림 배지 (#2) -->
+      <span class="ws-mention-bell" id="wsMentionBell" title="내 멘션" style="position:relative;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:18px;user-select:none" aria-label="멘션 알림">
+        <span>@</span>
+        <span class="ws-notif-count" id="wsMentionCount" style="display:none">0</span>
+        <div class="ws-notif-dropdown" id="wsMentionDropdown" hidden style="min-width:320px">
+          <div class="ws-notif-dropdown-header">
+            <span class="ws-notif-dropdown-title">@ 내 멘션</span>
+          </div>
+          <ul class="ws-notif-dropdown-list" id="wsMentionDropdownList">
+            <li class="ws-notif-dropdown-empty">불러오는 중...</li>
+          </ul>
+        </div>
+      </span>
     </div>
   </header>
 
@@ -402,7 +415,7 @@
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
-<script src="/js/workspace.js?v=8" defer></script>
+<script src="/js/workspace.js?v=9" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>

@@ -18,6 +18,15 @@
     { type: 'memo',  id: 12, title: '예시 메모', startAt: '2026-05-15T14:00:00', endAt: null, allDay: false, color: '#fff3cd', isPinned: false },
   ];
 
+  // mock 데이터 — RSVP (B 머지 전)
+  const MOCK_RSVPS = {
+    ok: true,
+    data: { rsvps: [], summary: { yes: 0, no: 0, maybe: 0 } },
+  };
+
+  // mock 데이터 — 구글 캘린더 연동 상태 (B 머지 전)
+  const MOCK_GCAL_STATUS = { ok: true, data: { connected: false } };
+
   const STATE = {
     calendar: null,
     me: null,
@@ -29,6 +38,7 @@
     rangeEnd: null,
     // 빈 셀 클릭 팝업 DOM
     datePopup: null,
+    currentEventId: null,   // 현재 열린 일정 ID (RSVP 용)
   };
 
   function $(s, root = document) { return root.querySelector(s); }
@@ -376,8 +386,84 @@
     $('#wcEventTime').textContent = `📅 ${fmt(start)}${end ? ' ~ ' + fmt(end) : ''}`;
     $('#wcEventLocation').textContent = ext.location ? `📍 ${ext.location}` : '';
     $('#wcEventDesc').textContent = ext.description || '';
+
+    // RSVP 초기화
+    STATE.currentEventId = ext.eventId || null;
+    resetRsvpButtons();
+    if (STATE.currentEventId) loadRsvps(STATE.currentEventId);
+
     $('#wcEventModal').classList.add('is-open');
     $('#wcEventModal').setAttribute('aria-hidden', 'false');
+  }
+
+  /* ═══════════════════ RSVP ═══════════════════ */
+  function resetRsvpButtons() {
+    ['wcRsvpYes', 'wcRsvpNo', 'wcRsvpMaybe'].forEach(id => {
+      const btn = $('#' + id);
+      if (btn) btn.classList.remove('is-active');
+    });
+    const summary = $('#wcRsvpSummary');
+    if (summary) summary.textContent = '';
+  }
+
+  async function loadRsvps(eventId) {
+    let data;
+    try {
+      const res = await api(`/api/workspace-event-rsvps?eventId=${eventId}`);
+      data = res.data || res;
+    } catch (_) {
+      data = MOCK_RSVPS.data;
+    }
+    const summary = data.summary || { yes: 0, no: 0, maybe: 0 };
+    const summaryEl = $('#wcRsvpSummary');
+    if (summaryEl) summaryEl.textContent = `✓ ${summary.yes} · ✗ ${summary.no} · ? ${summary.maybe}`;
+
+    // 내 응답 하이라이트
+    const myUid = STATE.me?.id;
+    const myRsvp = Array.isArray(data.rsvps)
+      ? data.rsvps.find(r => r.memberId === myUid)
+      : null;
+    if (myRsvp) {
+      const map = { yes: 'wcRsvpYes', no: 'wcRsvpNo', maybe: 'wcRsvpMaybe' };
+      const btn = $('#' + map[myRsvp.status]);
+      if (btn) btn.classList.add('is-active');
+    }
+  }
+
+  async function submitRsvp(status) {
+    const eventId = STATE.currentEventId;
+    if (!eventId) return;
+    try {
+      await api('/api/workspace-event-rsvp', {
+        method: 'POST',
+        body: { eventId, status },
+      });
+      toast(status === 'yes' ? '참석 예정으로 등록됐어요' : status === 'no' ? '불참으로 등록됐어요' : '미정으로 등록됐어요', 'success');
+      // 버튼 활성화 갱신
+      resetRsvpButtons();
+      const map = { yes: 'wcRsvpYes', no: 'wcRsvpNo', maybe: 'wcRsvpMaybe' };
+      const btn = $('#' + map[status]);
+      if (btn) btn.classList.add('is-active');
+      // 요약 재로드
+      loadRsvps(eventId);
+    } catch (err) {
+      toast('참석 여부 저장 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* ═══════════════════ 구글 캘린더 상태 ═══════════════════ */
+  async function loadGcalStatus() {
+    let connected = false;
+    try {
+      const res = await api('/api/google-calendar-status');
+      connected = !!((res.data || res).connected);
+    } catch (_) {
+      connected = MOCK_GCAL_STATUS.data.connected;
+    }
+    const connectBtn = $('#wcBtnGcalConnect');
+    const syncBtn = $('#wcBtnGcalSync');
+    if (connectBtn) connectBtn.style.display = connected ? 'none' : '';
+    if (syncBtn) syncBtn.style.display = connected ? '' : 'none';
   }
 
   /* ═══════════════════ 사용자 정보 ═══════════════════ */
@@ -512,6 +598,50 @@
       }
     });
 
+    // RSVP 버튼
+    ['wcRsvpYes', 'wcRsvpNo', 'wcRsvpMaybe'].forEach(id => {
+      $('#' + id)?.addEventListener('click', () => {
+        const btn = $('#' + id);
+        submitRsvp(btn.dataset.rsvp);
+      });
+    });
+
+    // 구글 캘린더 연동 버튼
+    $('#wcBtnGcalConnect')?.addEventListener('click', async () => {
+      try {
+        const res = await api('/api/google-calendar-auth');
+        const authUrl = (res.data || res).authUrl;
+        if (authUrl) {
+          window.open(authUrl, 'gcal_auth', 'width=600,height=700');
+          // 팝업 완료 후 상태 재확인 (5초 후)
+          setTimeout(() => loadGcalStatus(), 5000);
+        } else {
+          toast('인증 URL을 받지 못했어요', 'error');
+        }
+      } catch (err) {
+        toast('구글 캘린더 연동 실패: ' + err.message, 'error');
+      }
+    });
+
+    // 구글 캘린더 동기화 버튼
+    $('#wcBtnGcalSync')?.addEventListener('click', async () => {
+      const btn = $('#wcBtnGcalSync');
+      if (!btn) return;
+      btn.disabled = true;
+      const orig = btn.textContent;
+      btn.textContent = '동기화 중...';
+      try {
+        await api('/api/google-calendar-sync', { method: 'POST', body: {} });
+        toast('구글 캘린더 동기화 완료', 'success');
+        try { STATE.calendar?.refetchEvents(); } catch (_) {}
+      } catch (err) {
+        toast('동기화 실패: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    });
+
     // 로그아웃
     $('#wsBtnLogout')?.addEventListener('click', async () => {
       if (!confirm('로그아웃하시겠습니까?')) return;
@@ -529,7 +659,7 @@
       $('#wcCalendar').innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">캘린더 라이브러리 로드 실패. 페이지 새로고침 또는 잠시 후 다시 시도해주세요.</div>';
       return;
     }
-    await Promise.all([loadMe(), Promise.resolve()]);
+    await Promise.all([loadMe(), loadGcalStatus()]);
     initCalendar();
 
     // WorkspaceSync: 작업·메모 변경 시 캘린더 자동 갱신
