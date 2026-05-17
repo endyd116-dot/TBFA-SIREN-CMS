@@ -4,7 +4,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "../db";
-import { sendEmail } from "./email";
+import { sendEmail, baseLayout } from "./email";
 import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
 
@@ -227,11 +227,15 @@ export const TOOL_DECLARATIONS = [
       dueDate: { type: "STRING", description: "YYYY-MM-DD (생략 시 7일 후)" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["title"] }},
-  { name: "email_send", description: "이메일 발송 (회원 ID 목록 또는 직접 이메일 주소, 파일함 파일 첨부 가능). memberIds와 toEmails 중 하나 이상 필수.",
+  { name: "email_send", description: "이메일 발송 (회원 ID 목록 또는 직접 이메일 주소, 파일함 파일 첨부 가능). memberIds와 toEmails 중 하나 이상 필수. wrapWithLayout=true 시 SIREN 공식 브랜드 템플릿(흑백+금색 테두리, 깔끔)으로 자동 래핑 — '가장 깔끔한 템플릿', '격식 있게' 요청 시 반드시 true.",
     parameters: { type: "OBJECT", properties: {
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명). toEmails와 함께 쓸 수 있음." },
       toEmails: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 이메일 주소 목록 (최대 10개). 회원이 아닌 외부 주소 포함 가능." },
-      subject: { type: "STRING" }, body: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
+      subject: { type: "STRING" }, body: { type: "STRING", description: "본문. wrapWithLayout=true 시 HTML 태그 사용 가능(p, strong, br 등). 평문도 자동 변환." },
+      wrapWithLayout: { type: "BOOLEAN", description: "SIREN 공식 이메일 레이아웃으로 래핑. 격식 있는 발송 시 true 권장." },
+      ctaText: { type: "STRING", description: "wrapWithLayout=true 시 하단 버튼 텍스트. 예: '홈페이지 방문하기'" },
+      ctaUrl: { type: "STRING", description: "CTA 버튼 링크 URL" },
+      requireApproval: { type: "BOOLEAN" },
       attachmentFileIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "파일함(workspace_files)에서 첨부할 파일 ID 목록 (최대 5개). files_list 도구로 ID를 먼저 확인." },
     }, required: ["subject", "body"] }},
   { name: "notification_send", description: "회원에게 사이트 알림 발송 (1~100명)",
@@ -1369,15 +1373,26 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
     return { ok: true, preview, output: { dry_run: true, message: `승인 대기. ${recipients.length}명에게 발송 예정${attachmentSummary ? " / " + attachmentSummary : ""}. requireApproval=false로 재호출하면 실제 발송.` } };
   }
 
+  /* 본문 HTML 조립 */
+  const isHtml = /<[a-z][\s\S]*>/i.test(body);
+  const bodyHtml = isHtml ? body : `<div style="white-space:pre-wrap">${body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>`;
+  const wrapWithLayout = args?.wrapWithLayout === true;
+  const finalHtml = wrapWithLayout
+    ? baseLayout({
+        title: subject,
+        bodyHtml,
+        ...(args?.ctaText && args?.ctaUrl ? { ctaText: String(args.ctaText), ctaUrl: String(args.ctaUrl) } : {}),
+      })
+    : bodyHtml;
+
   /* 실제 발송 */
   const results = { sent: 0, failed: 0, errors: [] as string[], attachments: attachmentSummary };
-  const isHtml = /<[a-z][\s\S]*>/i.test(body);
   for (const rcpt of recipients) {
     try {
       await sendEmail({
         to: rcpt.email,
         subject,
-        html: isHtml ? body : `<div style="white-space:pre-wrap">${body.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</div>`,
+        html: finalHtml,
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       results.sent++;
