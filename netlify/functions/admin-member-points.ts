@@ -1,6 +1,6 @@
 import { db } from "../../db";
 import { memberPointLogs, members } from "../../db/schema";
-import { eq, desc, sum } from "drizzle-orm";
+import { eq, desc, sum, ilike } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, badRequest, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
@@ -14,8 +14,27 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const memberId = Number(url.searchParams.get("memberId"));
-  if (!memberId) return badRequest("memberId 파라미터가 필요합니다");
+  const memberIdParam = url.searchParams.get("memberId");
+  const nameQuery = url.searchParams.get("name")?.trim();
+
+  /* 이름 검색 모드: ?name=X → 회원 목록 반환 */
+  if (nameQuery) {
+    if (nameQuery.length < 1) return badRequest("이름을 1자 이상 입력하세요");
+    try {
+      const rows = await db
+        .select({ id: members.id, name: members.name, email: members.email })
+        .from(members)
+        .where(ilike(members.name, "%" + nameQuery + "%"))
+        .limit(20);
+      return ok({ members: rows });
+    } catch (err) {
+      return serverError("회원 검색 중 오류가 발생했습니다", err);
+    }
+  }
+
+  /* 포인트 내역 모드: ?memberId=N */
+  const memberId = Number(memberIdParam);
+  if (!memberId) return badRequest("memberId 또는 name 파라미터가 필요합니다");
 
   try {
     const [balanceRow] = await db

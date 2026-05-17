@@ -24,7 +24,7 @@
 
   /* 팝업을 이번에 표시해야 하는지 결정 */
   function shouldShow(popup) {
-    const freq = popup.frequency || 'session';
+    const freq = popup.displayFrequency || popup.frequency || 'once_day';
     if (freq === 'always') return true;
 
     const seen = getSeenMap();
@@ -37,7 +37,7 @@
       if (sessionStorage.getItem(sKey)) return false;
       return true;
     }
-    if (freq === 'daily') {
+    if (freq === 'daily' || freq === 'once_day') {
       if (!last) return true;
       return (Date.now() - last) > ONE_DAY;
     }
@@ -50,7 +50,7 @@
 
   /* 팝업을 "봤다"고 기록 */
   function markSeen(popup) {
-    const freq = popup.frequency || 'session';
+    const freq = popup.displayFrequency || popup.frequency || 'once_day';
     if (freq === 'session') {
       try { sessionStorage.setItem('siren_popup_session_' + popup.id, '1'); } catch {}
       return;

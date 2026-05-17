@@ -275,7 +275,7 @@
       try {
         const res = await api('/api/admin/me');
         if (res.ok) {
-          currentRole = res.data.data?.role || res.data.role || null;
+          currentRole = res.data.data?.admin?.role || res.data.data?.role || res.data.role || null;
         }
       } catch (e) { /* 무시 */ }
     }

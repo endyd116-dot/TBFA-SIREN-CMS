@@ -275,17 +275,31 @@
 <!-- ── 탭 5: 회원 포인트 ── -->
 <div class="tab-panel" id="panel-members">
   <div class="card">
-    <div class="card-title"><span>포인트 직접 조정</span></div>
-    <div class="adjust-form">
-      <div class="fg"><label>회원 UID</label><input type="text" id="adjUid" placeholder="UID 입력"></div>
-      <div class="fg"><label>변동량 (음수 가능)</label><input type="number" id="adjDelta" placeholder="예: 100, -50"></div>
-      <div class="fg"><label>사유</label><input type="text" id="adjReason" placeholder="관리자 수동 지급 등"></div>
-      <button class="btn btn-primary" id="btnAdjust" style="margin-bottom:0">적용</button>
+    <div class="card-title"><span>🔍 회원 검색</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="memberNameSearch" class="data-input" placeholder="회원 이름 입력 (1자 이상)" style="flex:1">
+      <button class="btn btn-primary btn-sm" id="btnMemberSearch">검색</button>
     </div>
+    <div id="memberSearchResults"></div>
   </div>
-  <div class="card">
-    <div class="card-title"><span>회원별 포인트 현황</span></div>
-    <div id="membersContent"><div class="loading">불러오는 중...</div></div>
+
+  <div id="memberPointsDetail" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span id="mpDetailName">선택된 회원</span>
+        <span id="mpDetailBalance" style="font-size:16px;color:#1d4ed8;font-weight:700"></span>
+      </div>
+      <div class="adjust-form">
+        <input type="hidden" id="adjMemberId">
+        <div class="fg"><label>변동량 (음수=차감)</label><input type="number" id="adjDelta" placeholder="예: 100, -50"></div>
+        <div class="fg"><label>사유</label><input type="text" id="adjReason" placeholder="관리자 수동 지급 등"></div>
+        <button class="btn btn-primary" id="btnAdjust" style="margin-bottom:0">포인트 조정</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>포인트 내역</span></div>
+      <div id="membersContent"></div>
+    </div>
   </div>
 </div>
 
@@ -379,6 +393,8 @@
       return { ok: false, data: { error: e.message } };
     }
   }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function fmtDate(iso) {
     if (!iso) return '—';
@@ -637,39 +653,63 @@
   /* ══════════════════════════════════════
      탭 5: 회원 포인트
   ══════════════════════════════════════ */
-  async function loadMemberPoints() {
-    const res = await api('/api/admin-member-points');
+  async function loadMemberPoints() { /* 탭 첫 진입 시 호출 — 아무것도 안 함 (검색 유도) */ }
+
+  async function searchMembers() {
+    const q = (document.getElementById('memberNameSearch').value || '').trim();
+    const box = document.getElementById('memberSearchResults');
+    if (!q) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="loading">검색 중...</div>';
+    const res = await api('/api/admin-member-points?name=' + encodeURIComponent(q));
     const d = res.data?.data || res.data || {};
-    const members = d.members || [];
-    const el = document.getElementById('membersContent');
-    if (!members.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>회원 데이터가 없습니다.</p></div>';
-      return;
-    }
-    el.innerHTML = `<table class="data-table">
-      <thead><tr><th>이름</th><th>이메일</th><th>잔액</th><th>총 획득</th><th>총 사용</th></tr></thead>
-      <tbody>${members.map(m => `
-        <tr>
-          <td>${m.name || '—'}</td>
-          <td>${m.email || '—'}</td>
-          <td><strong style="color:#1d4ed8">⭐ ${(m.balance || 0).toLocaleString()}P</strong></td>
-          <td>${(m.totalEarned || 0).toLocaleString()}P</td>
-          <td>${(m.totalSpent || 0).toLocaleString()}P</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+    const list = d.members || [];
+    if (!list.length) { box.innerHTML = '<div class="empty-state" style="padding:12px">검색 결과가 없습니다.</div>'; return; }
+    box.innerHTML = `<table class="data-table"><thead><tr><th>이름</th><th>이메일</th><th>선택</th></tr></thead><tbody>
+      ${list.map(m => `<tr>
+        <td>${m.name || '—'}</td><td style="font-size:12px;color:#6b7280">${m.email || '—'}</td>
+        <td><button class="btn btn-ghost btn-sm" data-select-member="${m.id}" data-name="${esc(m.name || '')}">포인트 보기</button></td>
+      </tr>`).join('')}</tbody></table>`;
   }
 
+  async function loadMemberPointsById(memberId, name) {
+    const detail = document.getElementById('memberPointsDetail');
+    const content = document.getElementById('membersContent');
+    detail.style.display = 'block';
+    document.getElementById('mpDetailName').textContent = name + ' 님의 포인트';
+    document.getElementById('adjMemberId').value = memberId;
+    content.innerHTML = '<div class="loading">불러오는 중...</div>';
+    const res = await api('/api/admin-member-points?memberId=' + memberId);
+    const d = res.data?.data || res.data || {};
+    document.getElementById('mpDetailBalance').textContent = '⭐ ' + ((d.balance || 0)).toLocaleString() + 'P';
+    const logs = d.logs || [];
+    if (!logs.length) { content.innerHTML = '<div class="empty-state" style="padding:16px">포인트 내역이 없습니다.</div>'; return; }
+    content.innerHTML = `<table class="data-table"><thead><tr><th>일시</th><th>이벤트</th><th>변동</th><th>사유</th></tr></thead><tbody>
+      ${logs.map(l => `<tr>
+        <td style="font-size:12px">${new Date(l.createdAt).toLocaleString('ko')}</td>
+        <td>${l.eventType || '—'}</td>
+        <td style="color:${l.delta >= 0 ? '#16a34a' : '#dc2626'};font-weight:600">${l.delta >= 0 ? '+' : ''}${l.delta}P</td>
+        <td style="font-size:12px;color:#6b7280">${l.reason || '—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  document.getElementById('btnMemberSearch').addEventListener('click', searchMembers);
+  document.getElementById('memberNameSearch').addEventListener('keydown', e => { if (e.key === 'Enter') searchMembers(); });
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-select-member]');
+    if (btn) loadMemberPointsById(Number(btn.dataset.selectMember), btn.dataset.name);
+  });
+
   document.getElementById('btnAdjust').addEventListener('click', async () => {
-    const uid = document.getElementById('adjUid').value.trim();
+    const memberId = Number(document.getElementById('adjMemberId').value);
     const delta = Number(document.getElementById('adjDelta').value);
     const reason = document.getElementById('adjReason').value.trim();
-    if (!uid || !delta || !reason) { toast('UID, 변동량, 사유를 모두 입력하세요.'); return; }
-    const res = await api('/api/admin-point-adjust', { method: 'POST', body: { uid, delta, reason } });
+    if (!memberId) { toast('먼저 회원을 검색해서 선택하세요.'); return; }
+    if (!delta || !reason) { toast('변동량과 사유를 모두 입력하세요.'); return; }
+    const res = await api('/api/admin-point-adjust', { method: 'POST', body: { memberId, delta, reason } });
     if (!res.ok) { toast(res.data?.error || '조정 실패'); return; }
     toast('포인트가 조정되었습니다.');
-    ['adjUid','adjDelta','adjReason'].forEach(id => document.getElementById(id).value = '');
-    loadMemberPoints();
+    ['adjDelta','adjReason'].forEach(id => document.getElementById(id).value = '');
+    loadMemberPointsById(memberId, document.getElementById('mpDetailName').textContent.replace(' 님의 포인트', ''));
   });
 
   /* ── 탭 전환 ── */

@@ -833,6 +833,8 @@
               <li data-mp="eligibility">🎓 교원 자격 인증 및 변경</li>
               <li data-mp="expertMatch">⚖️ 전문가 상담</li>
               <li onclick="window.location.href='/my-send-history.html';return false;" style="cursor:pointer">📬 받은 메시지</li>
+              <li data-mp="points">🏆 포인트·배지</li>
+              <li data-mp="ranking">🥇 랭킹</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
             </ul>
           </aside>
@@ -1068,6 +1070,38 @@
             <!-- Phase 15: 매칭 종결 별점 피드백 (mypage-match-feedback.js가 동적 렌더) -->
             <div id="matchFeedbackContainer" style="display:none"></div>
 
+            <!-- 포인트·배지 패널 -->
+            <div class="mp-panel" data-mp-panel="points" style="display:none">
+              <h3 class="serif">🏆 포인트·배지</h3>
+              <p class="sub">활동 포인트와 획득 배지를 확인하세요.</p>
+              <div id="mpPointsBanner" style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:12px;padding:24px 28px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:20px">
+                <div style="font-size:40px">⭐</div>
+                <div>
+                  <div style="font-size:12px;opacity:0.85;margin-bottom:2px">내 포인트 잔액</div>
+                  <div id="mpPointsBalance" style="font-size:36px;font-weight:800;letter-spacing:-1px">0 P</div>
+                </div>
+              </div>
+              <div class="panel" style="margin-bottom:18px">
+                <div style="font-weight:700;margin-bottom:14px">🎖 보유 배지</div>
+                <div id="mpBadgeList" style="display:flex;flex-wrap:wrap;gap:10px">
+                  <span style="color:var(--text-3);font-size:13px">불러오는 중...</span>
+                </div>
+              </div>
+              <div class="panel">
+                <div style="font-weight:700;margin-bottom:14px">📋 포인트 내역</div>
+                <div id="mpPointsLog"></div>
+              </div>
+            </div>
+
+            <!-- 랭킹 패널 -->
+            <div class="mp-panel" data-mp-panel="ranking" style="display:none">
+              <h3 class="serif">🥇 랭킹</h3>
+              <p class="sub">포인트 기준 전체 회원 순위를 확인하세요.</p>
+              <div id="mpRankingContent">
+                <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1243,6 +1277,10 @@
         if (key === 'expertMatch' && window.SIREN_MYPAGE_EXPERT_MATCH && typeof window.SIREN_MYPAGE_EXPERT_MATCH.load === 'function') {
           window.SIREN_MYPAGE_EXPERT_MATCH.load();
         }
+        /* 포인트·배지 탭 */
+        if (key === 'points') mpLoadPoints();
+        /* 랭킹 탭 */
+        if (key === 'ranking') mpLoadRanking();
         return true;
       }
 
@@ -1308,6 +1346,84 @@
         e.preventDefault();
         SIREN.toast(btn.dataset.demoMessage);
       });
+
+      /* ── 포인트·배지 ── */
+      let _pointsLoaded = false;
+      async function mpLoadPoints() {
+        if (_pointsLoaded) return;
+        _pointsLoaded = true;
+        try {
+          const [pr, br] = await Promise.all([
+            fetch('/api/my-points', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+            fetch('/api/my-badges', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+          ]);
+          const balance = pr.data?.balance ?? pr.balance ?? 0;
+          const logs    = pr.data?.logs    ?? pr.logs    ?? [];
+          const badges  = br.data?.badges  ?? br.badges  ?? [];
+
+          document.getElementById('mpPointsBalance').textContent = balance.toLocaleString() + ' P';
+
+          /* 배지 */
+          const badgeEl = document.getElementById('mpBadgeList');
+          if (badges.length) {
+            badgeEl.innerHTML = badges.map(b =>
+              `<span style="display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 12px;font-size:13px">
+                <span style="font-size:18px">${b.icon || '🎖'}</span><span>${b.nameKo || b.code}</span>
+              </span>`
+            ).join('');
+          } else {
+            badgeEl.innerHTML = '<span style="color:var(--text-3);font-size:13px">아직 획득한 배지가 없습니다.</span>';
+          }
+
+          /* 포인트 내역 */
+          const logEl = document.getElementById('mpPointsLog');
+          if (!logs.length) {
+            logEl.innerHTML = '<p style="color:var(--text-3);font-size:13px;padding:12px 0">포인트 내역이 없습니다.</p>';
+          } else {
+            logEl.innerHTML = `<table class="tbl" style="margin-top:0">
+              <thead><tr><th>일시</th><th>이벤트</th><th>변동</th><th>사유</th></tr></thead>
+              <tbody>${logs.slice(0,50).map(l => `<tr>
+                <td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt).toLocaleDateString('ko')}</td>
+                <td>${l.eventType || '—'}</td>
+                <td style="color:${l.delta >= 0 ? '#16a34a' : '#dc2626'};font-weight:600">${l.delta >= 0 ? '+' : ''}${l.delta}P</td>
+                <td style="font-size:12px;color:var(--text-2)">${l.reason || '—'}</td>
+              </tr>`).join('')}</tbody>
+            </table>`;
+          }
+        } catch (e) {
+          document.getElementById('mpPointsLog').innerHTML = '<p style="color:var(--danger)">불러오기 실패</p>';
+        }
+      }
+
+      /* ── 랭킹 ── */
+      let _rankingLoaded = false;
+      async function mpLoadRanking() {
+        if (_rankingLoaded) return;
+        _rankingLoaded = true;
+        const el = document.getElementById('mpRankingContent');
+        try {
+          const r = await fetch('/api/ranking', { credentials: 'include' });
+          const json = await r.json().catch(() => ({}));
+          const ranking = json.data?.ranking ?? json.ranking ?? [];
+          if (!ranking.length) {
+            el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">랭킹 데이터가 없습니다.</p>';
+            return;
+          }
+          el.innerHTML = `<table class="tbl">
+            <thead><tr><th style="width:48px">순위</th><th>이름</th><th>포인트</th></tr></thead>
+            <tbody>${ranking.map((m) => {
+              const medal = m.rank <= 3 ? ['🥇','🥈','🥉'][m.rank - 1] : String(m.rank);
+              return `<tr>
+                <td style="text-align:center">${medal}</td>
+                <td>${m.name || '익명'}</td>
+                <td style="color:#1d4ed8;font-weight:600">⭐ ${(m.points || 0).toLocaleString()}P</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>`;
+        } catch (e) {
+          el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>';
+        }
+      }
     };
   </script>
 </body>

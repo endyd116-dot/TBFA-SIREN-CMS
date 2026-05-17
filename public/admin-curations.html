@@ -388,7 +388,7 @@
     document.getElementById('panel-' + slot).innerHTML = '<div class="loading">불러오는 중...</div>';
     const res = await api('/api/admin-curations?slot=' + slot);
     const d = res.data?.data || res.data || {};
-    const items = d.items || [];
+    const items = d.items || d.curations || [];
     renderSlot(slot, items);
     loaded[slot] = true;
   }
@@ -402,7 +402,7 @@
       const list = document.getElementById('list-' + slot);
       if (!list) return;
       const ids = [...list.querySelectorAll('.curation-item')].map(el => Number(el.dataset.id));
-      const res = await api('/api/admin-curations/reorder', { method: 'PATCH', body: { slot, ids } });
+      const res = await api('/api/admin-curations?action=reorder', { method: 'PATCH', body: { ids } });
       if (res.ok) toast('순서가 저장되었습니다.'); else toast(res.data?.error || '저장 실패');
       return;
     }
@@ -439,7 +439,7 @@
     if (delBtn) {
       if (!confirm('이 아이템을 삭제하시겠습니까?')) return;
       const slot = delBtn.closest('.tab-panel').id.replace('panel-', '');
-      const res = await api('/api/admin-curations/' + delBtn.dataset.itemDel, { method: 'DELETE' });
+      const res = await api('/api/admin-curations?id=' + delBtn.dataset.itemDel, { method: 'DELETE' });
       if (res.ok) { toast('삭제되었습니다.'); loadSlot(slot); } else toast(res.data?.error || '삭제 실패');
     }
   });
@@ -458,7 +458,7 @@
     };
     if (!body.title) { toast('제목은 필수입니다.'); return; }
     const res = id
-      ? await api('/api/admin-curations/' + id, { method: 'PATCH', body })
+      ? await api('/api/admin-curations?id=' + id, { method: 'PATCH', body })
       : await api('/api/admin-curations', { method: 'POST', body });
     if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
     toast('저장되었습니다.');
