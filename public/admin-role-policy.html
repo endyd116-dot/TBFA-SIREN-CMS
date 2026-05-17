@@ -6,184 +6,153 @@
   <title>권한 정책 관리 — SIREN</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
-      font-size: 14px;
-      color: #1a2035;
-      background: #f4f6fa;
-      padding: 24px;
-      min-height: 100vh;
+      font-size: 14px; color: #1a2035; background: #f4f6fa;
+      padding: 24px; min-height: 100vh;
     }
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #1a2035; }
+    .page-desc { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
 
-    h2 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      color: #1a2035;
-    }
-    .page-desc {
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 24px;
-    }
-
-    /* ─── 섹션 카드 ─── */
     .card {
-      background: #fff;
-      border-radius: 10px;
+      background: #fff; border-radius: 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      padding: 20px 24px;
-      margin-bottom: 24px;
+      padding: 20px 24px; margin-bottom: 24px;
     }
     .card-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #374151;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
+      font-size: 14px; font-weight: 700; color: #374151;
+      margin-bottom: 16px; padding-bottom: 10px;
       border-bottom: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 6px;
     }
+    .super-only-card { display: none; }
 
-    /* ─── 권한 매트릭스 테이블 ─── */
-    .matrix-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    /* 권한 매트릭스 */
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .matrix-table th, .matrix-table td {
-      padding: 10px 14px;
-      border: 1px solid #e5e7eb;
-      text-align: center;
+      padding: 10px 14px; border: 1px solid #e5e7eb; text-align: center;
     }
-    .matrix-table th {
-      background: #f9fafb;
-      font-weight: 600;
-      color: #374151;
-    }
-    .matrix-table td:first-child {
-      text-align: left;
-      font-weight: 500;
-      color: #1a2035;
-      background: #fafafa;
-    }
+    .matrix-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+    .matrix-table td:first-child { text-align: left; font-weight: 500; color: #1a2035; background: #fafafa; }
     .matrix-table tbody tr:hover td { background: #f0f4ff; }
 
     .badge-allow {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #dcfce7;
-      color: #16a34a;
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600; background: #dcfce7; color: #16a34a;
     }
     .badge-deny {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #fee2e2;
-      color: #dc2626;
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600; background: #fee2e2; color: #dc2626;
     }
-
-    /* role 배지 */
     .role-badge {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
     }
     .role-super_admin { background: #ede9fe; color: #6d28d9; }
     .role-admin       { background: #dbeafe; color: #1d4ed8; }
     .role-operator    { background: #f3f4f6; color: #4b5563; }
 
-    /* ─── 운영자 목록 ─── */
-    .ops-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    /* 운영자 목록 테이블 */
+    .ops-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .ops-table th, .ops-table td {
-      padding: 10px 14px;
-      border: 1px solid #e5e7eb;
-      text-align: left;
+      padding: 10px 14px; border: 1px solid #e5e7eb; text-align: left;
     }
-    .ops-table th {
-      background: #f9fafb;
-      font-weight: 600;
-      color: #374151;
-    }
+    .ops-table th { background: #f9fafb; font-weight: 600; color: #374151; }
     .ops-table tbody tr:hover td { background: #f0f4ff; }
 
     .role-select {
-      padding: 4px 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 12px;
-      background: #fff;
-      cursor: pointer;
-      color: #374151;
+      padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 6px;
+      font-size: 12px; background: #fff; cursor: pointer; color: #374151;
     }
     .role-select:focus { outline: none; border-color: #6366f1; }
 
-    .btn-save-role {
-      padding: 4px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      background: #6366f1;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-save-role:hover { background: #4f46e5; }
-    .btn-save-role:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .btn { padding: 6px 14px; font-size: 12px; font-weight: 600; border: none;
+      border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+    .btn-save { background: #6366f1; color: #fff; }
+    .btn-save:hover { background: #4f46e5; }
+    .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .btn-demote { background: #fee2e2; color: #dc2626; margin-left: 4px; }
+    .btn-demote:hover { background: #fecaca; }
+    .btn-toggle { background: #f3f4f6; color: #374151; margin-left: 4px; }
+    .btn-toggle:hover { background: #e5e7eb; }
 
-    /* 상태·로딩 */
+    /* 회원 검색 */
+    .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .search-input {
+      flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
+      font-size: 13px; color: #1a2035;
+    }
+    .search-input:focus { outline: none; border-color: #6366f1; }
+    .btn-search { padding: 8px 16px; background: #6366f1; color: #fff;
+      border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-search:hover { background: #4f46e5; }
+
+    .candidate-list { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    .candidate-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid #f3f4f6; background: #fff;
+    }
+    .candidate-item:last-child { border-bottom: none; }
+    .candidate-item:hover { background: #f8faff; }
+    .candidate-name { font-weight: 600; font-size: 13px; color: #1a2035; }
+    .candidate-email { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .promote-row { display: flex; gap: 6px; align-items: center; }
+    .promote-select {
+      padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 6px;
+      font-size: 12px; background: #fff; color: #374151; cursor: pointer;
+    }
+    .btn-promote { padding: 5px 12px; background: #16a34a; color: #fff;
+      border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-promote:hover { background: #15803d; }
+    .btn-promote:disabled { background: #86efac; cursor: not-allowed; }
+
+    .empty-msg { text-align: center; color: #9ca3af; padding: 20px; font-size: 13px; }
     .loading-row td { text-align: center; color: #9ca3af; padding: 24px; }
-    .error-row td { text-align: center; color: #dc2626; padding: 16px; }
+    .error-msg { text-align: center; color: #dc2626; padding: 16px; font-size: 13px; }
+
+    /* KPI */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+    .kpi-card { background: #f9fafb; border-radius: 8px; padding: 12px 16px; text-align: center; }
+    .kpi-label { font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px; }
+    .kpi-value { font-size: 20px; font-weight: 700; color: #1a2035; }
 
     /* 알림 토스트 */
     #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      z-index: 9999;
+      position: fixed; bottom: 24px; right: 24px; padding: 10px 18px;
+      border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 9999;
     }
     #toast.show { opacity: 1; }
-    #toast.ok   { background: #16a34a; }
-    #toast.err  { background: #dc2626; }
+    #toast.ok  { background: #16a34a; }
+    #toast.err { background: #dc2626; }
 
-    /* super_admin 전용 안내 */
-    .super-only-notice {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 8px;
+    /* 확인 모달 */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 9000;
+      align-items: center; justify-content: center;
     }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 10px; padding: 24px;
+      width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+    .modal-desc { font-size: 13px; color: #4b5563; margin-bottom: 20px; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel { padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: #fff; font-size: 13px; cursor: pointer; }
+    .btn-confirm-danger { padding: 8px 16px; border: none; border-radius: 6px;
+      background: #dc2626; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-confirm-danger:hover { background: #b91c1c; }
   </style>
 </head>
 <body>
 
   <h2>🔐 권한 정책 관리</h2>
-  <p class="page-desc">3단 권한 체계(super_admin / admin / operator) 정의와 운영자별 역할을 확인·변경합니다.</p>
+  <p class="page-desc">3단 권한 체계(super_admin / admin / operator) 정의, 운영자 역할 현황 및 역할 부여·회수를 관리합니다.</p>
 
-  <!-- 1. 권한 매트릭스 (읽기 전용) -->
+  <!-- ── 1. 권한 매트릭스 (읽기 전용) ── -->
   <div class="card">
     <div class="card-title">📋 권한 매트릭스 <span style="font-size:11px;font-weight:400;color:#9ca3af">(읽기 전용)</span></div>
     <table class="matrix-table">
@@ -196,93 +165,88 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>감사 로그 조회</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>예산 승인</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>지출 승인</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>등급·정책·AI 설정</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>운영자 관리</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>회원 관리 (블랙·자격·강제)</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>후원·환불 관리</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>SIREN 신고 처리</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-deny">불가</span></td>
-        </tr>
-        <tr>
-          <td>캠페인·게시판 관리</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-        </tr>
-        <tr>
-          <td>워크스페이스 조회·Task 관리</td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-          <td><span class="badge-allow">허용</span></td>
-        </tr>
+        <tr><td>감사 로그 조회</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>예산 승인</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>지출 승인</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>등급·정책·AI 설정</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>운영자 관리 (역할 부여·회수)</td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>회원 관리 (블랙·자격·강제)</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>후원·환불 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>SIREN 신고 처리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-deny">불가</span></td></tr>
+        <tr><td>캠페인·게시판 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td></tr>
+        <tr><td>워크스페이스 조회·Task 관리</td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td><td><span class="badge-allow">허용</span></td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- 2. 운영자 역할 현황 -->
+  <!-- ── 2. 운영자 현황 ── -->
   <div class="card">
-    <div class="card-title">👨‍💼 운영자 역할 현황</div>
-    <table class="ops-table">
+    <div class="card-title">👨‍💼 운영자 현황</div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="kpiTotal">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="kpiSuper">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">어드민</div><div class="kpi-value" id="kpiAdmin">-</div></div>
+      <div class="kpi-card"><div class="kpi-label">활성</div><div class="kpi-value" id="kpiActive">-</div></div>
+    </div>
+    <table class="ops-table" id="opsTable">
       <thead>
         <tr>
           <th>이름</th>
+          <th>이메일</th>
           <th>현재 역할</th>
           <th>활성 상태</th>
           <th id="roleChangeHeader" style="display:none">역할 변경 <span style="font-size:11px;color:#9ca3af">(super_admin 전용)</span></th>
+          <th id="actionHeader" style="display:none">관리 <span style="font-size:11px;color:#9ca3af">(super_admin 전용)</span></th>
         </tr>
       </thead>
       <tbody id="opsTbody">
-        <tr class="loading-row"><td colspan="4">불러오는 중...</td></tr>
+        <tr class="loading-row"><td colspan="6">불러오는 중...</td></tr>
       </tbody>
     </table>
-    <p class="super-only-notice" id="superOnlyNotice" style="display:none">※ 역할 변경은 super_admin 계정으로 로그인한 경우에만 가능합니다.</p>
+  </div>
+
+  <!-- ── 3. 역할 부여 (super_admin 전용) ── -->
+  <div class="card super-only-card" id="promoteCard">
+    <div class="card-title">➕ 운영자 역할 부여 <span style="font-size:11px;font-weight:400;color:#9ca3af">(super_admin 전용 — 일반 회원 → 운영자 승급)</span></div>
+    <p style="font-size:12.5px;color:#6b7280;margin-bottom:14px;line-height:1.6">
+      이름 또는 이메일로 회원을 검색한 뒤 역할을 선택해 운영자로 지정하세요.<br>
+      승급된 회원은 즉시 어드민 백오피스에 접근할 수 있습니다.
+    </p>
+    <div class="search-row">
+      <input type="text" class="search-input" id="promoteSearch" placeholder="이름 또는 이메일 검색 (2자 이상)">
+      <button class="btn-search" onclick="searchCandidates()">검색</button>
+    </div>
+    <div id="candidateResults"></div>
+  </div>
+
+  <!-- 강등 확인 모달 -->
+  <div class="modal-overlay" id="demoteModal">
+    <div class="modal-box">
+      <div class="modal-title">⚠️ 운영자 강등 확인</div>
+      <div class="modal-desc" id="demoteModalDesc"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDemoteModal()">취소</button>
+        <button class="btn-confirm-danger" id="demoteConfirmBtn">강등 확인</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast"></div>
 
   <script>
-    /* ─── 공용 api 헬퍼 ─── */
+    const API = '/api/admin/operators';
+    let currentRole = null;
+    let _demoteTargetId = null;
+    let _demoteTargetName = '';
+
+    /* ─── 유틸 ─── */
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'show ' + (type === 'error' ? 'err' : 'ok');
+      setTimeout(() => { el.className = ''; }, 2800);
+    }
+
     async function api(url, opts) {
       opts = opts || {};
       const fetchOpts = {
@@ -297,36 +261,16 @@
       return { ok: r.ok, status: r.status, data };
     }
 
-    /* ─── 토스트 ─── */
-    function toast(msg, type) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.className = 'show ' + (type === 'error' ? 'err' : 'ok');
-      setTimeout(() => { el.className = ''; }, 2800);
-    }
-
-    /* ─── role 라벨·배지 ─── */
     function roleBadge(role) {
-      const labels = { super_admin: 'Super Admin', admin: 'Admin', operator: 'Operator' };
-      const label = labels[role] || role;
-      return '<span class="role-badge role-' + role + '">' + label + '</span>';
+      const map = { super_admin: 'Super Admin', admin: 'Admin', operator: 'Operator' };
+      return '<span class="role-badge role-' + role + '">' + (map[role] || role) + '</span>';
     }
 
-    /* ─── mock 데이터 (백엔드 연결 전 폴백) ─── */
-    const MOCK_OPERATORS = {
-      ok: true,
-      data: {
-        operators: [
-          { id: 1, name: "김운영", role: "super_admin", operatorActive: true },
-          { id: 2, name: "이담당", role: "admin", operatorActive: true },
-          { id: 3, name: "박조회", role: "operator", operatorActive: true }
-        ]
-      }
-    };
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
-    /* ─── 현재 로그인 계정 role ─── */
-    let currentRole = null;
-
+    /* ─── 현재 로그인 role 조회 ─── */
     async function fetchCurrentRole() {
       try {
         const res = await api('/api/admin/me');
@@ -339,101 +283,194 @@
     /* ─── 운영자 목록 로드 ─── */
     async function loadOperators() {
       const tbody = document.getElementById('opsTbody');
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="4">불러오는 중...</td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="6">불러오는 중...</td></tr>';
 
-      let operators = [];
-      try {
-        const res = await api('/api/admin-operators');
-        if (res.ok && (res.data?.data?.operators || res.data?.operators)) {
-          operators = res.data?.data?.operators || res.data?.operators;
-        } else {
-          operators = MOCK_OPERATORS.data.operators;
-        }
-      } catch (e) {
-        operators = MOCK_OPERATORS.data.operators;
-      }
+      const res = await api(API);
+      const ops = res.data?.data?.operators || res.data?.operators || [];
+      const stats = res.data?.data?.stats || res.data?.stats || {};
+
+      /* KPI */
+      document.getElementById('kpiTotal').textContent = (stats.total ?? ops.length) + ' 명';
+      document.getElementById('kpiSuper').textContent = (stats.superAdmins ?? ops.filter(o => o.role === 'super_admin').length) + ' 명';
+      document.getElementById('kpiAdmin').textContent = (stats.admins ?? ops.filter(o => o.role === 'admin').length) + ' 명';
+      document.getElementById('kpiActive').textContent = (stats.active ?? ops.filter(o => o.operatorActive !== false).length) + ' 명';
 
       const isSuperAdmin = currentRole === 'super_admin';
-      const header = document.getElementById('roleChangeHeader');
-      const notice = document.getElementById('superOnlyNotice');
+      document.getElementById('roleChangeHeader').style.display = isSuperAdmin ? '' : 'none';
+      document.getElementById('actionHeader').style.display = isSuperAdmin ? '' : 'none';
 
-      if (isSuperAdmin) {
-        header.style.display = '';
-        notice.style.display = '';
-      }
-
-      if (!operators.length) {
-        tbody.innerHTML = '<tr class="loading-row"><td colspan="4">등록된 운영자가 없습니다.</td></tr>';
+      if (!ops.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">등록된 운영자가 없습니다.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = operators.map(op => {
-        const active = op.operatorActive
+      tbody.innerHTML = ops.map(op => {
+        const active = op.operatorActive !== false
           ? '<span style="color:#16a34a;font-weight:600">활성</span>'
           : '<span style="color:#dc2626;font-weight:600">비활성</span>';
 
-        const changeCell = isSuperAdmin
+        const roleChangeCell = isSuperAdmin
           ? `<td>
-              <select class="role-select" id="role-select-${op.id}" data-op-id="${op.id}" data-orig="${op.role}">
+              <select class="role-select" id="rs-${op.id}" data-orig="${op.role}">
                 <option value="super_admin" ${op.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
                 <option value="admin"       ${op.role === 'admin'       ? 'selected' : ''}>Admin</option>
                 <option value="operator"    ${op.role === 'operator'    ? 'selected' : ''}>Operator</option>
               </select>
-              <button class="btn-save-role" onclick="saveRole(${op.id})" id="btn-role-${op.id}">저장</button>
+              <button class="btn btn-save" style="margin-left:4px" onclick="saveRole(${op.id})">저장</button>
+            </td>`
+          : '';
+
+        const actionCell = isSuperAdmin
+          ? `<td>
+              <button class="btn btn-toggle" onclick="toggleActive(${op.id}, ${!!op.operatorActive})">${op.operatorActive !== false ? '⏸ 비활성' : '▶ 활성'}</button>
+              <button class="btn btn-demote" onclick="confirmDemote(${op.id}, '${esc(op.name)}')">🔻 강등</button>
             </td>`
           : '';
 
         return `<tr>
-          <td>${op.name}</td>
+          <td><strong>${esc(op.name)}</strong></td>
+          <td style="font-size:12px;color:#6b7280">${esc(op.email || '')}</td>
           <td>${roleBadge(op.role)}</td>
           <td>${active}</td>
-          ${changeCell}
+          ${roleChangeCell}
+          ${actionCell}
         </tr>`;
       }).join('');
     }
 
     /* ─── 역할 변경 저장 ─── */
     async function saveRole(opId) {
-      const select = document.getElementById('role-select-' + opId);
-      const btn = document.getElementById('btn-role-' + opId);
-      if (!select || !btn) return;
-
+      const select = document.getElementById('rs-' + opId);
+      if (!select) return;
       const newRole = select.value;
       const origRole = select.dataset.orig;
-      if (newRole === origRole) {
-        toast('변경 사항이 없습니다.', 'error');
-        return;
-      }
+      if (newRole === origRole) { toast('변경 사항이 없습니다.', 'error'); return; }
 
-      btn.disabled = true;
-      btn.textContent = '저장 중...';
-
-      try {
-        const res = await api('/api/admin-operators?id=' + opId, {
-          method: 'PATCH',
-          body: { role: newRole },
-        });
-        if (res.ok || res.data?.ok) {
-          toast('역할이 변경되었습니다.', 'ok');
-          select.dataset.orig = newRole;
-        } else {
-          toast(res.data?.error || '변경 실패', 'error');
-          select.value = origRole;
-        }
-      } catch (e) {
-        toast('네트워크 오류: ' + e.message, 'error');
+      const res = await api(API, { method: 'PATCH', body: { id: opId, role: newRole } });
+      if (res.ok || res.data?.ok) {
+        toast('역할이 변경되었습니다.', 'ok');
+        loadOperators();
+      } else {
+        toast(res.data?.error || '변경 실패', 'error');
         select.value = origRole;
       }
+    }
 
-      btn.disabled = false;
-      btn.textContent = '저장';
-      loadOperators();
+    /* ─── 활성/비활성 토글 ─── */
+    async function toggleActive(opId, current) {
+      const res = await api(API, { method: 'PATCH', body: { id: opId, operatorActive: !current } });
+      if (res.ok || res.data?.ok) {
+        toast(!current ? '활성화되었습니다.' : '비활성화되었습니다.', 'ok');
+        loadOperators();
+      } else {
+        toast(res.data?.error || '변경 실패', 'error');
+      }
+    }
+
+    /* ─── 강등 모달 ─── */
+    function confirmDemote(opId, name) {
+      _demoteTargetId = opId;
+      _demoteTargetName = name;
+      document.getElementById('demoteModalDesc').innerHTML =
+        '<strong>' + esc(name) + '</strong>님을 일반 회원으로 강등합니다.<br>' +
+        '백오피스 접근 권한이 즉시 회수됩니다. 계속하시겠습니까?';
+      document.getElementById('demoteModal').classList.add('show');
+      document.getElementById('demoteConfirmBtn').onclick = executeDemote;
+    }
+
+    function closeDemoteModal() {
+      document.getElementById('demoteModal').classList.remove('show');
+      _demoteTargetId = null;
+    }
+
+    async function executeDemote() {
+      if (!_demoteTargetId) return;
+      const btn = document.getElementById('demoteConfirmBtn');
+      btn.disabled = true; btn.textContent = '처리 중...';
+      const res = await api(API + '?id=' + _demoteTargetId, { method: 'DELETE' });
+      btn.disabled = false; btn.textContent = '강등 확인';
+      closeDemoteModal();
+      if (res.ok || res.data?.ok) {
+        toast(_demoteTargetName + '님이 일반 회원으로 강등되었습니다.', 'ok');
+        loadOperators();
+      } else {
+        toast(res.data?.error || '강등 실패', 'error');
+      }
+    }
+
+    /* ─── 회원 검색 (승급 후보) ─── */
+    let _searchTimer = null;
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('promoteSearch');
+      if (input) {
+        input.addEventListener('input', () => {
+          clearTimeout(_searchTimer);
+          _searchTimer = setTimeout(() => {
+            if (input.value.trim().length >= 2) searchCandidates();
+          }, 400);
+        });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') searchCandidates(); });
+      }
+    });
+
+    async function searchCandidates() {
+      const q = (document.getElementById('promoteSearch')?.value || '').trim();
+      const box = document.getElementById('candidateResults');
+      if (!box) return;
+      if (q.length < 2) { box.innerHTML = '<div class="empty-msg">2자 이상 입력하세요.</div>'; return; }
+
+      box.innerHTML = '<div class="empty-msg">검색 중...</div>';
+      const res = await api(API + '?candidates=1&q=' + encodeURIComponent(q));
+      const candidates = res.data?.data?.candidates || res.data?.candidates || [];
+
+      if (!candidates.length) {
+        box.innerHTML = '<div class="empty-msg">검색 결과가 없습니다.</div>'; return;
+      }
+
+      box.innerHTML = '<div class="candidate-list">' + candidates.map(c => `
+        <div class="candidate-item">
+          <div>
+            <div class="candidate-name">${esc(c.name)}</div>
+            <div class="candidate-email">${esc(c.email || '')}</div>
+          </div>
+          <div class="promote-row">
+            <select class="promote-select" id="ps-${c.id}">
+              <option value="admin">Admin</option>
+              <option value="operator">Operator</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+            <button class="btn-promote" id="pb-${c.id}" onclick="promoteCandidate(${c.id}, '${esc(c.name)}')">승급</button>
+          </div>
+        </div>
+      `).join('') + '</div>';
+    }
+
+    async function promoteCandidate(memberId, name) {
+      const select = document.getElementById('ps-' + memberId);
+      const btn = document.getElementById('pb-' + memberId);
+      if (!select || !btn) return;
+      const role = select.value;
+      btn.disabled = true; btn.textContent = '처리 중...';
+
+      const res = await api(API, { method: 'POST', body: { memberId, role } });
+      btn.disabled = false; btn.textContent = '승급';
+      if (res.ok || res.data?.ok) {
+        toast(name + '님이 ' + role + ' 역할로 승급되었습니다.', 'ok');
+        document.getElementById('promoteSearch').value = '';
+        document.getElementById('candidateResults').innerHTML = '';
+        loadOperators();
+      } else {
+        toast(res.data?.error || '승급 실패', 'error');
+      }
     }
 
     /* ─── 초기화 ─── */
     (async function init() {
       await fetchCurrentRole();
       await loadOperators();
+      if (currentRole === 'super_admin') {
+        document.querySelectorAll('.super-only-card').forEach(el => el.style.display = 'block');
+      }
     })();
   </script>
 </body>

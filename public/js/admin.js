@@ -15,7 +15,6 @@
   'siren-legal': '⚖️ 법률지원 상담 관리',
   'siren-board': '💬 자유게시판 관리',
   'siren-stats': '📊 신고 통계 대시보드',
-  operators: '운영자 관리',
   chat: '문의 관리',   
   'activity-report': 'AI 활동보고서',
   'notification-logs': '알림 발송 로그',
@@ -5388,8 +5387,6 @@ const OPERATOR_CATEGORIES = [
       if (window.SIREN_ADMIN_APPROVALS) window.SIREN_ADMIN_APPROVALS.refreshBadge();
     } else if (page === 'support') {
       loadSupport();
-    } else if (page === 'operators') {
-      loadOperators();
     } else if (page === 'chat') {
       if (window.SIREN_ADMIN_CHAT) window.SIREN_ADMIN_CHAT.loadRoomList();
     } else if (page === 'content') {

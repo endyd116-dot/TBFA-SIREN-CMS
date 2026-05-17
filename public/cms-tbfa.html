@@ -539,16 +539,21 @@ if (window.self !== window.top) {
         </ul>
       </li>
 
-      <!-- ── 🛎 운영 도구 ── -->
-      <li class="cms-menu-section">
-        <div style="padding:14px 18px 6px;font-size:10.5px;color:var(--text-3,#94a0b3);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;border-top:1px solid var(--line,#e3e6eb);margin-top:6px">🛎 운영 도구</div>
+      <!-- ── 🛎 운영 관리 ── -->
+      <li class="cms-menu-group" data-group="ops-mgmt">
+        <a href="#" data-toggle="ops-mgmt">
+          <i>🛎</i><span>운영 관리</span>
+          <span class="cms-menu-chevron">▾</span>
+        </a>
+        <ul class="cms-submenu" data-submenu="ops-mgmt" style="display:none">
+          <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
+          <li><a href="#forms-builder" data-tab="forms-builder"><i>📋</i><span>응답폼·신청폼</span></a></li>
+          <li><a href="#role-policy" data-tab="role-policy"><i>🛡️</i><span>권한 정책</span></a></li>
+          <li><a href="#gamification" data-tab="gamification"><i>🎮</i><span>게이미피케이션</span></a></li>
+          <li><a href="#popups" data-tab="popups"><i>📢</i><span>팝업 관리</span></a></li>
+          <li><a href="#curations" data-tab="curations"><i>🗂️</i><span>큐레이션</span></a></li>
+        </ul>
       </li>
-      <li><a href="#receipt-settings" data-tab="receipt-settings"><i>📄</i><span>영수증 설정</span></a></li>
-      <li><a href="#forms-builder" data-tab="forms-builder"><i>📋</i><span>응답폼·신청폼</span></a></li>
-      <li><a href="#role-policy" data-tab="role-policy"><i>🛡️</i><span>권한 정책</span></a></li>
-      <li><a href="#gamification" data-tab="gamification"><i>🎮</i><span>게이미피케이션</span></a></li>
-      <li><a href="#popups" data-tab="popups"><i>📢</i><span>팝업 관리</span></a></li>
-      <li><a href="#curations" data-tab="curations"><i>🗂️</i><span>큐레이션</span></a></li>
 
     </nav>
   </aside>
@@ -2426,7 +2431,7 @@ if (window.self !== window.top) {
   <!-- SheetJS (Excel 파싱용) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
-  <script src="/js/cms-tbfa.js?v=20260517r6"></script>
+  <script src="/js/cms-tbfa.js?v=20260517r7"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

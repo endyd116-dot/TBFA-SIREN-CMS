@@ -2834,7 +2834,6 @@
             <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul class="adm-submenu" data-sidebar-submenu="system" aria-hidden="true" style="display:none">
-            <li><a data-page="operators"><i>👨‍💼</i><span>운영자 관리</span></a></li>
             <li><a data-page="settings"><i>⚙️</i><span>시스템 설정</span></a></li>
             <li data-super-only="1"><a data-page="security-audit"><i>🔒</i><span>감사·보안 로그</span></a></li>
             <li data-super-only="1"><a data-page="role-policy"><i>🛡️</i><span>권한 정책</span></a></li>
@@ -3507,100 +3506,6 @@
           </div>
         </div>
 
-        <!-- 5. 운영자 관리 -->
-        <div id="adm-operators" class="adm-page">
-          <!-- Phase 21 R3 — 운영자 / R&R 매핑 탭 -->
-          <div class="op-tabs" role="tablist" style="display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:18px">
-            <button type="button" class="op-tab is-active" data-op-tab="list" role="tab" aria-selected="true"
-                    style="padding:10px 16px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-1);border-bottom:2px solid var(--gold);cursor:pointer">
-              운영자 목록
-            </button>
-            <button type="button" class="op-tab" data-op-tab="rnr" role="tab" aria-selected="false"
-                    style="padding:10px 16px;border:none;background:none;font-size:14px;font-weight:500;color:var(--text-3);border-bottom:2px solid transparent;cursor:pointer">
-              R&R 매핑
-            </button>
-          </div>
-
-          <!-- 탭 1: 운영자 목록 -->
-          <div class="op-tab-panel" data-op-panel="list">
-            <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-              <div class="kpi"><div class="kpi-label">전체 운영자</div><div class="kpi-value" id="opKpiTotal">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">슈퍼 관리자</div><div class="kpi-value" id="opKpiSuper">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">일반 운영자</div><div class="kpi-value" id="opKpiOperator">0 명</div></div>
-              <div class="kpi"><div class="kpi-label">활성 운영자</div><div class="kpi-value" id="opKpiActive">0 명</div></div>
-            </div>
-
-            <div class="panel">
-              <div class="p-head">
-                <div class="p-title">👨‍💼 운영자 목록</div>
-                <div class="p-actions">
-                  <button class="btn-sm btn-sm-primary" data-op-action="open-promote">+ 회원 승급</button>
-                </div>
-              </div>
-              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                💡 운영자는 백오피스에 접근할 수 있으며, "알림 수신"이 켜진 운영자는 새 지원 신청 시 이메일을 받습니다.<br />
-                긴급(🔴) 신청은 모든 운영자에게 자동 발송됩니다.
-              </p>
-              <table class="tbl">
-                <thead>
-                  <tr>
-                    <th>이름</th>
-                    <th>이메일</th>
-                    <th>역할</th>
-                    <th>알림 수신</th>
-                    <th>상태</th>
-                    <th>최종 로그인</th>
-                    <th style="width:140px">관리</th>
-                  </tr>
-                </thead>
-                <tbody><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 탭 2: R&R 매핑 (Phase 21 R3) -->
-          <div class="op-tab-panel" data-op-panel="rnr" hidden>
-            <div class="panel" id="rnrFallbackPanel">
-              <div class="p-head">
-                <div class="p-title">🎯 Fallback 담당자</div>
-                <span class="p-tag" style="background:#f1f5f9;color:#475569">R&R 매핑 없을 때 자동 배정</span>
-              </div>
-              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                서비스 유형/카테고리에 매핑된 운영자가 없을 때, 모든 신규 카드가 이 담당자에게 자동 할당됩니다.
-              </p>
-              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <select id="rnrFallbackUid" class="wk-input" style="min-width:240px;max-width:360px">
-                  <option value="">— 운영자 선택 —</option>
-                </select>
-                <button type="button" id="rnrFallbackSave" class="btn-sm btn-sm-primary" data-rnr-edit>저장</button>
-                <span id="rnrFallbackHint" style="font-size:12.5px;color:var(--text-3)"></span>
-              </div>
-            </div>
-
-            <div class="panel" style="margin-top:18px">
-              <div class="p-head">
-                <div class="p-title">📋 서비스별 매핑</div>
-                <div class="p-actions">
-                  <button type="button" id="rnrReload" class="btn-sm btn-sm-ghost">🔄 새로고침</button>
-                </div>
-              </div>
-              <p style="font-size:12.5px;color:var(--text-3);margin:-4px 0 14px;line-height:1.6">
-                서비스 유형·카테고리별로 1차 담당자와 백업 담당자를 지정합니다. 1차 담당자가 부재 중이면 백업으로 자동 전환됩니다.
-              </p>
-
-              <div id="rnrEditDisabledHint" style="display:none;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:12.5px;color:#b91c1c;margin-bottom:14px">
-                ⚠️ 어드민만 편집할 수 있어요 — 읽기 전용으로 표시됩니다
-              </div>
-
-              <div id="rnrMappingGroups" class="rnr-groups">
-                <div style="text-align:center;padding:30px;color:var(--text-3)">불러오는 중...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-       <!-- public/admin.html — id="adm-ai" 내부, 기존 row-2 다음에 신규 패널 삽입 -->
-<!-- public/admin.html — #adm-ai 안의 row-2 다음에 신규 패널 추가 -->
         <!-- AI 추천 센터 -->
         <div id="adm-ai" class="adm-page">
           <div class="ai-banner">
@@ -5658,7 +5563,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/charts.js?v=20260516siren-dash"></script>
-  <script src="/js/admin.js?v=20260517r6"></script>
+  <script src="/js/admin.js?v=20260517r7"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-17-r2"></script>
   <script src="/js/editor.js?v=2026-05"></script>
