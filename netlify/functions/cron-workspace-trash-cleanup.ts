@@ -10,9 +10,9 @@
 // 3. 감사 로그 + 슈퍼관리자 알림
 
 import type { Context } from "@netlify/functions";
-import { lt, isNotNull, and, eq } from "drizzle-orm";
+import { lt, isNotNull, and, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import { workspaceFiles, workspaceFolders } from "../../db/schema";
+import { workspaceFiles, workspaceFolders, blobUploads } from "../../db/schema";
 import { deleteFromR2 } from "../../lib/r2-delete";
 import { logAudit } from "../../lib/audit";
 
@@ -28,6 +28,7 @@ export default async (req: Request, context: Context) => {
   let r2Deleted = 0;
   let r2Failed = 0;
   let foldersPurged = 0;
+  let blobOrphansDeleted = 0;
   const errors: string[] = [];
 
   try {
@@ -81,9 +82,35 @@ export default async (req: Request, context: Context) => {
       }
     }
 
+    /* 3. workspace blob orphan 정리 — workspaceFiles hard delete 후 참조 없는 blob_uploads 삭제
+          workspaceFiles.r2Key === blobUploads.blobKey 로 매칭 */
+    try {
+      const survivingKeys: any = await db
+        .select({ r2Key: workspaceFiles.r2Key })
+        .from(workspaceFiles);
+      const keySet = new Set((survivingKeys as any[]).map((r: any) => r.r2Key).filter(Boolean));
+
+      const workspaceBlobs: any = await db
+        .select({ id: blobUploads.id, blobKey: blobUploads.blobKey })
+        .from(blobUploads)
+        .where(eq(blobUploads.context, "workspace"));
+
+      const orphanIds = (workspaceBlobs as any[])
+        .filter((r: any) => !keySet.has(r.blobKey))
+        .map((r: any) => r.id);
+
+      if (orphanIds.length > 0) {
+        await db.delete(blobUploads).where(inArray(blobUploads.id, orphanIds));
+        blobOrphansDeleted = orphanIds.length;
+      }
+    } catch (e: any) {
+      console.warn("[cron-trash] blob orphan 정리 실패:", e?.message || e);
+      errors.push(`BlobOrphan: ${e?.message || "unknown"}`);
+    }
+
     const durationMs = Date.now() - startedAt;
 
-    /* 3. 감사 로그 */
+    /* 4. 감사 로그 */
     try {
       await logAudit({
         memberId: 0,
@@ -98,6 +125,7 @@ export default async (req: Request, context: Context) => {
           r2Deleted,
           r2Failed,
           foldersPurged,
+          blobOrphansDeleted,
           durationMs,
           errors: errors.slice(0, 20),
         },
@@ -106,8 +134,8 @@ export default async (req: Request, context: Context) => {
       console.warn("[cron-trash] audit failed:", e);
     }
 
-    /* 4. 처리 결과 요약 */
-    console.log(`[cron-trash] 완료: 파일 ${filesPurged}/${filesProcessed}, 폴더 ${foldersPurged}, R2 ${r2Deleted}/${r2Failed}, ${durationMs}ms`);
+    /* 5. 처리 결과 요약 */
+    console.log(`[cron-trash] 완료: 파일 ${filesPurged}/${filesProcessed}, 폴더 ${foldersPurged}, R2 ${r2Deleted}/${r2Failed}, blob orphan ${blobOrphansDeleted}, ${durationMs}ms`);
 
     return new Response(
       JSON.stringify({
@@ -117,6 +145,7 @@ export default async (req: Request, context: Context) => {
         r2Deleted,
         r2Failed,
         foldersPurged,
+        blobOrphansDeleted,
         durationMs,
         errorsCount: errors.length,
         errorsSample: errors.slice(0, 5),
