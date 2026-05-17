@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIREN AI 에이전트 — 소개</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    background: #0f172a;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* ── 네비게이션 ── */
+  .nav {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px; z-index: 100;
+  }
+  .nav-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.2); }
+  .nav-dots { display: flex; gap: 8px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.3); cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .dot.active { background: #60a5fa; transform: scale(1.3); }
+
+  /* ── 슬라이드 1: 표지 ── */
+  #s1 {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  }
+  .s1-badge {
+    background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.4);
+    color: #93c5fd; font-size: 13px; font-weight: 600;
+    padding: 6px 16px; border-radius: 20px; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 32px;
+  }
+  .s1-title {
+    font-size: 64px; font-weight: 800; line-height: 1.1;
+    text-align: center; margin-bottom: 24px;
+    background: linear-gradient(135deg, #fff 40%, #93c5fd 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .s1-sub {
+    font-size: 22px; color: #94a3b8; font-weight: 400;
+    text-align: center; line-height: 1.6; max-width: 600px;
+  }
+  .s1-glow {
+    position: absolute; width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .s1-chips {
+    display: flex; gap: 12px; margin-top: 48px; flex-wrap: wrap; justify-content: center;
+  }
+  .chip {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    color: #cbd5e1; font-size: 13px; padding: 8px 16px; border-radius: 8px;
+  }
+
+  /* ── 슬라이드 2: 문제 ── */
+  #s2 { background: #0f172a; }
+  .slide-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: #60a5fa; margin-bottom: 16px;
+    align-self: flex-start; width: 100%; max-width: 900px;
+  }
+  .slide-title {
+    font-size: 42px; font-weight: 800; line-height: 1.2;
+    margin-bottom: 12px; align-self: flex-start; max-width: 900px;
+  }
+  .slide-desc {
+    font-size: 16px; color: #64748b; margin-bottom: 48px;
+    align-self: flex-start; max-width: 900px;
+  }
+  .pain-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    width: 100%; max-width: 900px;
+  }
+  .pain-card {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 16px; padding: 28px 24px;
+  }
+  .pain-icon { font-size: 32px; margin-bottom: 16px; }
+  .pain-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #f1f5f9; }
+  .pain-body { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+  .pain-highlight { color: #f87171; font-weight: 600; }
+
+  /* ── 슬라이드 3: 솔루션 ── */
+  #s3 { background: #0f172a; }
+  .layers-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+    width: 100%; max-width: 900px;
+  }
+  .layer-card {
+    border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
+  }
+  .layer-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .l1 { background: linear-gradient(135deg, #1e3a5f, #172554); }
+  .l1::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .l2 { background: linear-gradient(135deg, #1a2e3b, #0f2744); }
+  .l2::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+  .l3 { background: linear-gradient(135deg, #2d1b69, #1e1b4b); }
+  .l3::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .l4 { background: linear-gradient(135deg, #3b1f1f, #2d1515); }
+  .l4::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+  .layer-num {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    margin-bottom: 12px; opacity: 0.7;
+  }
+  .l1 .layer-num { color: #60a5fa; }
+  .l2 .layer-num { color: #22d3ee; }
+  .l3 .layer-num { color: #a78bfa; }
+  .l4 .layer-num { color: #fbbf24; }
+
+  .layer-icon { font-size: 28px; margin-bottom: 12px; }
+  .layer-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+  .layer-body { font-size: 13.5px; color: #94a3b8; line-height: 1.6; }
+  .layer-example {
+    margin-top: 14px; background: rgba(0,0,0,0.25);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 12.5px; color: #e2e8f0; font-style: italic;
+    border-left: 2px solid rgba(255,255,255,0.2);
+  }
+
+  /* ── 슬라이드 4: 시나리오 ── */
+  #s4 { background: #0f172a; }
+  .scenario-wrap {
+    width: 100%; max-width: 900px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
+  }
+  .scenario-left { display: flex; flex-direction: column; gap: 0; }
+  .chat-bubble {
+    padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.6;
+    margin-bottom: 12px; position: relative;
+  }
+  .chat-user {
+    background: #1e3a5f; border: 1px solid #2563eb;
+    color: #bfdbfe; border-bottom-left-radius: 4px;
+  }
+  .chat-user::before {
+    content: '👤 운영자';
+    display: block; font-size: 11px; font-weight: 700;
+    color: #60a5fa; margin-bottom: 6px; letter-spacing: 0.05em;
+  }
+  .chat-ai {
+    background: #1e293b; border: 1px solid #334155;
+    color: #e2e8f0; border-bottom-left-radius: 4px;
+  }
+  .chat-ai::before {
+    content: '🤖 AI 에이전트';
+    display: block; font-size: 11px; font-weight: 700;
+    color: #a78bfa; margin-bottom: 6px; letter-spacing: 0.05em;
+  }
+  .chat-tag {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-right: 6px;
+    vertical-align: middle; letter-spacing: 0.05em;
+  }
+  .tag-l1 { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .tag-l2 { background: rgba(6,182,212,0.2); color: #22d3ee; }
+  .tag-l3 { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .tag-l4 { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+  .scenario-right { display: flex; flex-direction: column; gap: 12px; }
+  .effect-card {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 12px; padding: 20px;
+  }
+  .effect-title { font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 6px; }
+  .effect-val { font-size: 28px; font-weight: 800; }
+  .effect-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .ev-blue { color: #60a5fa; }
+  .ev-cyan { color: #22d3ee; }
+  .ev-purple { color: #a78bfa; }
+  .ev-amber { color: #fbbf24; }
+
+  /* ── 슬라이드 5: 효과 ── */
+  #s5 { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); }
+  .effect-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    width: 100%; max-width: 900px; margin-bottom: 32px;
+  }
+  .big-stat {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 32px 24px; text-align: center;
+  }
+  .big-num {
+    font-size: 52px; font-weight: 900; line-height: 1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff, #93c5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .big-label { font-size: 15px; color: #94a3b8; font-weight: 500; line-height: 1.4; }
+  .closing {
+    width: 100%; max-width: 900px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(59,130,246,0.1));
+    border: 1px solid rgba(99,102,241,0.3); border-radius: 16px;
+    padding: 28px 36px; display: flex; align-items: center; gap: 24px;
+  }
+  .closing-icon { font-size: 40px; flex-shrink: 0; }
+  .closing-text { font-size: 17px; color: #e2e8f0; line-height: 1.7; }
+  .closing-text strong { color: #fff; }
+
+  /* 키보드 힌트 */
+  .kbd-hint {
+    position: fixed; bottom: 32px; right: 40px;
+    font-size: 11px; color: rgba(255,255,255,0.25);
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ═══ 슬라이드 1: 표지 ═══ -->
+  <div class="slide active" id="s1">
+    <div class="s1-glow"></div>
+    <div class="s1-badge">SIREN AI 에이전트</div>
+    <h1 class="s1-title">반복 업무는 AI에게<br>사람은 사람에게</h1>
+    <p class="s1-sub">명령 한 마디로 수십 건을 처리하고<br>다음 할 일을 스스로 제안하는 업무 자동화 AI</p>
+    <div class="s1-chips">
+      <span class="chip">🔁 일괄 처리</span>
+      <span class="chip">🎯 조건 자동화</span>
+      <span class="chip">💡 연쇄 제안</span>
+      <span class="chip">⏰ 예약 실행</span>
+    </div>
+  </div>
+
+  <!-- ═══ 슬라이드 2: 문제 ═══ -->
+  <div class="slide" id="s2">
+    <div class="slide-label">Problem</div>
+    <h2 class="slide-title">NPO 행정, 이런 상황 익숙하지 않으신가요?</h2>
+    <p class="slide-desc">좋은 의도와 열정만으로는 채울 수 없는 운영의 빈틈</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">😮‍💨</div>
+        <div class="pain-title">같은 작업을 반복</div>
+        <div class="pain-body">
+          법률 상담 답변, 회원 알림 발송, 채팅방 관리…<br>
+          <span class="pain-highlight">매일 같은 패턴</span>의 업무가 담당자를 소진시킵니다
+        </div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🔍</div>
+        <div class="pain-title">대상자를 일일이 찾아야</div>
+        <div class="pain-body">
+          "3개월 이상 미후원 정기회원 누구지?"<br>
+          <span class="pain-highlight">조건별 분류와 추출</span>에만 수십 분이 사라집니다
+        </div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">😓</div>
+        <div class="pain-title">후속 조치를 놓침</div>
+        <div class="pain-body">
+          답변 후 이메일, 상태 변경, 관련 알림…<br>
+          <span class="pain-highlight">연결된 후속 작업</span>이 기억에서 빠져나갑니다
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 슬라이드 3: 솔루션 ═══ -->
+  <div class="slide" id="s3">
+    <div class="slide-label">Solution</div>
+    <h2 class="slide-title">4개 레이어로 업무를 자동화합니다</h2>
+    <p class="slide-desc">채팅창에 자연어로 말하면 AI가 처리합니다</p>
+    <div class="layers-grid">
+
+      <div class="layer-card l1">
+        <div class="layer-num">LAYER 1 — 일괄 처리</div>
+        <div class="layer-icon">📦</div>
+        <div class="layer-title">수십 건을 한 번에</div>
+        <div class="layer-body">법률 상담 전체 답변, 괴롭힘 신고 상태 일괄 변경, 전체 채팅방 공지 발송</div>
+        <div class="layer-example">"미답변 법률 상담 전부 표준 답변으로 처리해줘"</div>
+      </div>
+
+      <div class="layer-card l2">
+        <div class="layer-num">LAYER 2 — 조건 자동화</div>
+        <div class="layer-icon">🎯</div>
+        <div class="layer-title">대상자를 AI가 직접 선별</div>
+        <div class="layer-body">조건만 말하면 DB에서 대상자 추출 → 이메일·알림까지 자동 연결</div>
+        <div class="layer-example">"3개월 미후원 정기회원에게 독려 이메일 보내줘"</div>
+      </div>
+
+      <div class="layer-card l3">
+        <div class="layer-num">LAYER 3 — 연쇄 제안</div>
+        <div class="layer-icon">💡</div>
+        <div class="layer-title">다음 할 일을 스스로 안내</div>
+        <div class="layer-body">작업 완료 후 "이것도 하시겠어요?" 자동 제안으로 후속 조치 누락 방지</div>
+        <div class="layer-example">답변 완료 → "이메일로도 전달할까요?" 자동 제안</div>
+      </div>
+
+      <div class="layer-card l4">
+        <div class="layer-num">LAYER 4 — 예약 실행</div>
+        <div class="layer-icon">⏰</div>
+        <div class="layer-title">"나중에 해줘"가 가능</div>
+        <div class="layer-body">반복 업무를 스케줄로 등록하면 지정 시간마다 AI가 자동 실행</div>
+        <div class="layer-example">"매주 월요일 미처리 상담 목록 보고해줘"</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 슬라이드 4: 시나리오 ═══ -->
+  <div class="slide" id="s4">
+    <div class="slide-label">Real Scenario</div>
+    <h2 class="slide-title">실제 대화 한 번으로 이렇게 됩니다</h2>
+    <p class="slide-desc" style="margin-bottom:28px;">이전엔 4번 따로 명령해야 했던 흐름</p>
+
+    <div class="scenario-wrap">
+      <div class="scenario-left">
+        <div class="chat-bubble chat-user">
+          이번 주 미답변 법률 상담 전부 '검토 중'으로 바꾸고,<br>
+          담당 변호사들한테 이메일로 알려줘.<br>
+          앞으로 매주 월요일에 같은 작업 자동으로 해줘.
+        </div>
+        <div class="chat-bubble chat-ai">
+          <span class="chat-tag tag-l1">LAYER 1</span> 미답변 법률 상담 <strong>7건</strong> 확인했습니다.<br>
+          상태를 '검토 중'으로 변경할까요? (dry-run 확인)<br><br>
+          ✅ 승인 후 → 7건 일괄 처리 완료<br><br>
+          <span class="chat-tag tag-l2">LAYER 2</span> 담당 변호사 <strong>3명</strong>에게 이메일 발송 완료<br><br>
+          <span class="chat-tag tag-l4">LAYER 4</span> 매주 월요일 09:00 자동 실행 스케줄 등록<br><br>
+          <span class="chat-tag tag-l3">LAYER 3</span> 💡 관련 채팅방에 처리 완료 알림도 보낼까요?
+        </div>
+      </div>
+
+      <div class="scenario-right">
+        <div class="effect-card">
+          <div class="effect-title">이전 소요 시간</div>
+          <div class="effect-val" style="color:#f87171">40분+</div>
+          <div class="effect-sub">목록 확인 → 건별 처리 → 이메일 개별 작성 → 스케줄 메모</div>
+        </div>
+        <div class="effect-card">
+          <div class="effect-title">AI 에이전트 소요 시간</div>
+          <div class="effect-val ev-blue">2분</div>
+          <div class="effect-sub">명령 입력 → 확인 → 완료</div>
+        </div>
+        <div class="effect-card">
+          <div class="effect-title">누락 가능성</div>
+          <div class="effect-val ev-purple">0%</div>
+          <div class="effect-sub">후속 조치를 AI가 직접 제안하므로 빠뜨림 없음</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 슬라이드 5: 효과 ═══ -->
+  <div class="slide" id="s5">
+    <div class="slide-label">Impact</div>
+    <h2 class="slide-title" style="margin-bottom:8px;">행정 부담을 줄이고 사람에게 집중합니다</h2>
+    <p class="slide-desc" style="margin-bottom:36px;">AI는 반복·처리를, 사람은 판단·공감을</p>
+
+    <div class="effect-grid">
+      <div class="big-stat">
+        <div class="big-num">90+</div>
+        <div class="big-label">AI 에이전트<br>도구 수</div>
+      </div>
+      <div class="big-stat">
+        <div class="big-num">24/7</div>
+        <div class="big-label">스케줄 명령<br>자동 실행</div>
+      </div>
+      <div class="big-stat">
+        <div class="big-num">1번</div>
+        <div class="big-label">명령으로<br>다단계 처리</div>
+      </div>
+    </div>
+
+    <div class="closing">
+      <div class="closing-icon">🤝</div>
+      <div class="closing-text">
+        <strong>SIREN AI 에이전트</strong>는 유가족협의회 운영자의 반복 행정 부담을 줄여<br>
+        <strong>상담·지원·공감</strong>이라는 본질적인 일에 더 많은 시간을 드립니다.<br>
+        회원 관리부터 법률 상담, 후원 처리, 자동 보고까지 — 하나의 채팅창에서.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.deck -->
+
+<!-- 네비게이션 -->
+<div class="nav">
+  <button class="nav-btn" id="prevBtn">&#8592;</button>
+  <div class="nav-dots">
+    <div class="dot active" data-i="0"></div>
+    <div class="dot" data-i="1"></div>
+    <div class="dot" data-i="2"></div>
+    <div class="dot" data-i="3"></div>
+    <div class="dot" data-i="4"></div>
+  </div>
+  <button class="nav-btn" id="nextBtn">&#8594;</button>
+</div>
+
+<div class="kbd-hint">← → 키 또는 클릭으로 이동</div>
+
+<script>
+  var slides = document.querySelectorAll('.slide');
+  var dots = document.querySelectorAll('.dot');
+  var cur = 0;
+
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+  }
+
+  document.getElementById('nextBtn').onclick = function() { goTo(cur + 1); };
+  document.getElementById('prevBtn').onclick = function() { goTo(cur - 1); };
+  dots.forEach(function(d) {
+    d.onclick = function() { goTo(+d.dataset.i); };
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(cur + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(cur - 1);
+  });
+</script>
+</body>
+</html>
