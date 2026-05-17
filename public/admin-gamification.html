@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게이미피케이션 관리 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a2035;
+      background: #f4f6fa;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+
+    /* ─── 탭 ─── */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { color: #1e40af; border-bottom-color: #1e40af; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── 카드 ─── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ─── 폼 ─── */
+    .fg { margin-bottom: 14px; }
+    .fg label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .fg input, .fg textarea, .fg select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+    }
+    .fg input:focus, .fg textarea:focus, .fg select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .fg textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+    .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ─── 버튼 ─── */
+    .btn { padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background: #1e40af; color: #fff; }
+    .btn-primary:hover { background: #1e3a8a; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-ghost { background: #f3f4f6; color: #374151; }
+    .btn-ghost:hover { background: #e5e7eb; }
+
+    /* ─── 테이블 ─── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      text-align: left;
+      padding: 9px 12px;
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 600;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .data-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      color: #374151;
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #f9fafb; }
+
+    /* ─── 배지 ─── */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-inactive { background: #f3f4f6; color: #6b7280; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+
+    /* ─── 모달 ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h3 { font-size: 15px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280; }
+    .modal-body { padding: 20px; }
+    .modal-foot {
+      padding: 14px 20px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ─── 포인트 규칙 ─── */
+    .rules-grid { display: flex; flex-direction: column; gap: 12px; }
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .rule-label { flex: 1; font-size: 13px; font-weight: 600; color: #374151; }
+    .rule-pts {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rule-pts input {
+      width: 72px;
+      padding: 7px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    /* ─── 포인트 조정 ─── */
+    .adjust-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+    .adjust-form .fg { margin-bottom: 0; }
+
+    /* ─── 빈 상태 ─── */
+    .empty-state { text-align: center; padding: 36px; color: #9ca3af; }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .loading { text-align: center; padding: 32px; color: #9ca3af; font-size: 13px; }
+
+    /* ─── 토스트 ─── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a2035; color: #fff;
+      padding: 10px 22px; border-radius: 8px;
+      font-size: 13px; opacity: 0;
+      transition: all 0.25s; pointer-events: none; z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<h2>🎮 게이미피케이션 관리</h2>
+<p class="page-desc">포인트 규칙, 뱃지, 리워드, 교환 신청, 회원 포인트를 관리합니다.</p>
+
+<!-- 탭 바 -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="rules">⚙️ 포인트 규칙</button>
+  <button class="tab-btn" data-tab="badges">🏅 뱃지 관리</button>
+  <button class="tab-btn" data-tab="rewards">🎁 리워드 관리</button>
+  <button class="tab-btn" data-tab="redemptions">📋 교환 신청</button>
+  <button class="tab-btn" data-tab="members">👥 회원 포인트</button>
+</div>
+
+<!-- ── 탭 1: 포인트 규칙 ── -->
+<div class="tab-panel active" id="panel-rules">
+  <div class="card">
+    <div class="card-title">
+      <span>포인트 지급 규칙</span>
+      <button class="btn btn-primary btn-sm" id="btnSaveRules">저장</button>
+    </div>
+    <div id="rulesContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ── 탭 2: 뱃지 관리 ── -->
+<div class="tab-panel" id="panel-badges">
+  <div class="card">
+    <div class="card-title">
+      <span>뱃지 목록</span>
+      <button class="btn btn-primary btn-sm" id="btnAddBadge">+ 뱃지 추가</button>
+    </div>
+    <div id="badgesContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ── 탭 3: 리워드 관리 ── -->
+<div class="tab-panel" id="panel-rewards">
+  <div class="card">
+    <div class="card-title">
+      <span>리워드 목록</span>
+      <button class="btn btn-primary btn-sm" id="btnAddReward">+ 리워드 추가</button>
+    </div>
+    <div id="rewardsContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ── 탭 4: 교환 신청 ── -->
+<div class="tab-panel" id="panel-redemptions">
+  <div class="card">
+    <div class="card-title"><span>교환 신청 목록</span></div>
+    <div id="redemptionsContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ── 탭 5: 회원 포인트 ── -->
+<div class="tab-panel" id="panel-members">
+  <div class="card">
+    <div class="card-title"><span>포인트 직접 조정</span></div>
+    <div class="adjust-form">
+      <div class="fg"><label>회원 UID</label><input type="text" id="adjUid" placeholder="UID 입력"></div>
+      <div class="fg"><label>변동량 (음수 가능)</label><input type="number" id="adjDelta" placeholder="예: 100, -50"></div>
+      <div class="fg"><label>사유</label><input type="text" id="adjReason" placeholder="관리자 수동 지급 등"></div>
+      <button class="btn btn-primary" id="btnAdjust" style="margin-bottom:0">적용</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>회원별 포인트 현황</span></div>
+    <div id="membersContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- ── 뱃지 모달 ── -->
+<div class="modal-overlay" id="modalBadge">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalBadgeTitle">뱃지 추가</h3>
+      <button class="modal-close" data-close="modalBadge">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="badgeId">
+      <div class="fg"><label>뱃지 코드 (영문)</label><input type="text" id="badgeCode" placeholder="first_step"></div>
+      <div class="fg-row">
+        <div class="fg"><label>이름 (한국어)</label><input type="text" id="badgeNameKo" placeholder="첫 걸음"></div>
+        <div class="fg"><label>아이콘 (이모지)</label><input type="text" id="badgeIcon" placeholder="🌱" maxlength="4"></div>
+      </div>
+      <div class="fg"><label>설명</label><textarea id="badgeDesc" rows="2" placeholder="뱃지 획득 조건 설명"></textarea></div>
+      <div class="fg"><label>자동 지급 조건 (선택)</label>
+        <select id="badgeTrigger">
+          <option value="">수동 지급만</option>
+          <option value="login_daily">일일 로그인</option>
+          <option value="donation_complete">후원 완료</option>
+          <option value="points_100">포인트 100 달성</option>
+          <option value="points_500">포인트 500 달성</option>
+          <option value="points_1000">포인트 1000 달성</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalBadge">취소</button>
+      <button class="btn btn-primary" id="btnSaveBadge">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 리워드 모달 ── -->
+<div class="modal-overlay" id="modalReward">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalRewardTitle">리워드 추가</h3>
+      <button class="modal-close" data-close="modalReward">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rewardId">
+      <div class="fg"><label>리워드 이름</label><input type="text" id="rewardName" placeholder="텀블러"></div>
+      <div class="fg"><label>설명</label><textarea id="rewardDesc" rows="2"></textarea></div>
+      <div class="fg-row">
+        <div class="fg"><label>필요 포인트</label><input type="number" id="rewardCost" min="1" placeholder="500"></div>
+        <div class="fg"><label>재고</label><input type="number" id="rewardStock" min="0" placeholder="10"></div>
+      </div>
+      <div class="fg">
+        <label>활성화</label>
+        <select id="rewardActive">
+          <option value="1">활성</option>
+          <option value="0">비활성</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalReward">취소</button>
+      <button class="btn btn-primary" id="btnSaveReward">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── 유틸 ── */
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  async function api(path, opts = {}) {
+    try {
+      const r = await fetch(path, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (e) {
+      return { ok: false, data: { error: e.message } };
+    }
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('ko-KR');
+  }
+
+  /* ── 모달 ── */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-close]');
+    if (btn) document.getElementById(btn.dataset.close).classList.remove('show');
+  });
+  function openModal(id) { document.getElementById(id).classList.add('show'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+  /* ══════════════════════════════════════
+     탭 1: 포인트 규칙
+  ══════════════════════════════════════ */
+  const DEFAULT_RULES = [
+    { eventType: 'login_daily', label: '일일 로그인', defaultPts: 1 },
+    { eventType: 'donation_complete', label: '후원 완료', defaultPts: 100 },
+    { eventType: 'profile_complete', label: '프로필 완성', defaultPts: 50 },
+    { eventType: 'siren_report', label: 'SIREN 신고 제출', defaultPts: 30 },
+    { eventType: 'comment_create', label: '댓글 작성', defaultPts: 5 },
+  ];
+
+  let rulesData = {};
+
+  async function loadRules() {
+    const res = await api('/api/admin-point-rules');
+    const d = res.data?.data || res.data || {};
+    rulesData = d.rules || {};
+    const el = document.getElementById('rulesContent');
+    el.innerHTML = `<div class="rules-grid">${DEFAULT_RULES.map(r => `
+      <div class="rule-item">
+        <div class="rule-label">${r.label}</div>
+        <div class="rule-pts">
+          <span style="font-size:12px;color:#6b7280">포인트</span>
+          <input type="number" min="0" data-event="${r.eventType}"
+            value="${rulesData[r.eventType] ?? r.defaultPts}" class="rule-pts-input">
+          <span style="font-size:12px;color:#6b7280">P</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('btnSaveRules').addEventListener('click', async () => {
+    const inputs = document.querySelectorAll('.rule-pts-input');
+    const rules = {};
+    inputs.forEach(inp => { rules[inp.dataset.event] = Number(inp.value); });
+    const res = await api('/api/admin-point-rules', { method: 'PATCH', body: { rules } });
+    if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
+    toast('포인트 규칙이 저장되었습니다.');
+  });
+
+  /* ══════════════════════════════════════
+     탭 2: 뱃지 관리
+  ══════════════════════════════════════ */
+  async function loadBadges() {
+    const res = await api('/api/admin-badge-definitions');
+    const d = res.data?.data || res.data || {};
+    const badges = d.badges || [];
+    const el = document.getElementById('badgesContent');
+    if (!badges.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏅</div><p>등록된 뱃지가 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="data-table">
+      <thead><tr><th>아이콘</th><th>코드</th><th>이름</th><th>자동 조건</th><th>관리</th></tr></thead>
+      <tbody>${badges.map(b => `
+        <tr>
+          <td style="font-size:22px">${b.icon || '🏅'}</td>
+          <td><code style="font-size:11px;background:#f3f4f6;padding:2px 6px;border-radius:4px">${b.code}</code></td>
+          <td>${b.nameKo}</td>
+          <td>${b.triggerEvent || '—'}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" data-badge-edit='${JSON.stringify(b)}'>수정</button>
+            <button class="btn btn-danger btn-sm" data-badge-del="${b.id}" style="margin-left:4px">삭제</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  document.getElementById('btnAddBadge').addEventListener('click', () => {
+    document.getElementById('modalBadgeTitle').textContent = '뱃지 추가';
+    ['badgeId','badgeCode','badgeNameKo','badgeIcon','badgeDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('badgeTrigger').value = '';
+    openModal('modalBadge');
+  });
+
+  document.addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-badge-edit]');
+    if (editBtn) {
+      const b = JSON.parse(editBtn.dataset.badgeEdit);
+      document.getElementById('modalBadgeTitle').textContent = '뱃지 수정';
+      document.getElementById('badgeId').value = b.id;
+      document.getElementById('badgeCode').value = b.code;
+      document.getElementById('badgeNameKo').value = b.nameKo;
+      document.getElementById('badgeIcon').value = b.icon || '';
+      document.getElementById('badgeDesc').value = b.description || '';
+      document.getElementById('badgeTrigger').value = b.triggerEvent || '';
+      openModal('modalBadge');
+      return;
+    }
+    const delBtn = e.target.closest('[data-badge-del]');
+    if (delBtn) {
+      if (!confirm('이 뱃지를 삭제하시겠습니까?')) return;
+      api('/api/admin-badge-definitions/' + delBtn.dataset.badgeDel, { method: 'DELETE' })
+        .then(r => { if (r.ok) { toast('삭제되었습니다.'); loadBadges(); } else toast(r.data?.error || '삭제 실패'); });
+    }
+  });
+
+  document.getElementById('btnSaveBadge').addEventListener('click', async () => {
+    const id = document.getElementById('badgeId').value;
+    const body = {
+      code: document.getElementById('badgeCode').value.trim(),
+      nameKo: document.getElementById('badgeNameKo').value.trim(),
+      icon: document.getElementById('badgeIcon').value.trim(),
+      description: document.getElementById('badgeDesc').value.trim(),
+      triggerEvent: document.getElementById('badgeTrigger').value || null,
+    };
+    if (!body.code || !body.nameKo) { toast('코드와 이름은 필수입니다.'); return; }
+    const res = id
+      ? await api('/api/admin-badge-definitions/' + id, { method: 'PATCH', body })
+      : await api('/api/admin-badge-definitions', { method: 'POST', body });
+    if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
+    toast('저장되었습니다.');
+    closeModal('modalBadge');
+    loadBadges();
+  });
+
+  /* ══════════════════════════════════════
+     탭 3: 리워드 관리
+  ══════════════════════════════════════ */
+  async function loadRewards() {
+    const res = await api('/api/admin-rewards');
+    const d = res.data?.data || res.data || {};
+    const rewards = d.rewards || [];
+    const el = document.getElementById('rewardsContent');
+    if (!rewards.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>등록된 리워드가 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="data-table">
+      <thead><tr><th>이름</th><th>필요 포인트</th><th>재고</th><th>상태</th><th>관리</th></tr></thead>
+      <tbody>${rewards.map(r => `
+        <tr>
+          <td><strong>${r.nameKo}</strong><br><span style="font-size:11px;color:#9ca3af">${r.description || ''}</span></td>
+          <td><span style="font-weight:700;color:#1d4ed8">⭐ ${r.pointCost}P</span></td>
+          <td>${r.stock}</td>
+          <td><span class="status-badge ${r.isActive ? 'badge-active' : 'badge-inactive'}">${r.isActive ? '활성' : '비활성'}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm" data-reward-edit='${JSON.stringify(r)}'>수정</button>
+            <button class="btn btn-danger btn-sm" data-reward-del="${r.id}" style="margin-left:4px">삭제</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  document.getElementById('btnAddReward').addEventListener('click', () => {
+    document.getElementById('modalRewardTitle').textContent = '리워드 추가';
+    ['rewardId','rewardName','rewardDesc','rewardCost','rewardStock'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rewardActive').value = '1';
+    openModal('modalReward');
+  });
+
+  document.addEventListener('click', e => {
+    const editBtn = e.target.closest('[data-reward-edit]');
+    if (editBtn) {
+      const r = JSON.parse(editBtn.dataset.rewardEdit);
+      document.getElementById('modalRewardTitle').textContent = '리워드 수정';
+      document.getElementById('rewardId').value = r.id;
+      document.getElementById('rewardName').value = r.nameKo;
+      document.getElementById('rewardDesc').value = r.description || '';
+      document.getElementById('rewardCost').value = r.pointCost;
+      document.getElementById('rewardStock').value = r.stock;
+      document.getElementById('rewardActive').value = r.isActive ? '1' : '0';
+      openModal('modalReward');
+      return;
+    }
+    const delBtn = e.target.closest('[data-reward-del]');
+    if (delBtn) {
+      if (!confirm('이 리워드를 삭제하시겠습니까?')) return;
+      api('/api/admin-rewards/' + delBtn.dataset.rewardDel, { method: 'DELETE' })
+        .then(r => { if (r.ok) { toast('삭제되었습니다.'); loadRewards(); } else toast(r.data?.error || '삭제 실패'); });
+    }
+  });
+
+  document.getElementById('btnSaveReward').addEventListener('click', async () => {
+    const id = document.getElementById('rewardId').value;
+    const body = {
+      nameKo: document.getElementById('rewardName').value.trim(),
+      description: document.getElementById('rewardDesc').value.trim(),
+      pointCost: Number(document.getElementById('rewardCost').value),
+      stock: Number(document.getElementById('rewardStock').value),
+      isActive: document.getElementById('rewardActive').value === '1',
+    };
+    if (!body.nameKo || !body.pointCost) { toast('이름과 포인트는 필수입니다.'); return; }
+    const res = id
+      ? await api('/api/admin-rewards/' + id, { method: 'PATCH', body })
+      : await api('/api/admin-rewards', { method: 'POST', body });
+    if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
+    toast('저장되었습니다.');
+    closeModal('modalReward');
+    loadRewards();
+  });
+
+  /* ══════════════════════════════════════
+     탭 4: 교환 신청
+  ══════════════════════════════════════ */
+  const STATUS_LABEL = { pending: '대기', approved: '승인', rejected: '거절' };
+  const STATUS_CLASS = { pending: 'badge-pending', approved: 'badge-active', rejected: 'badge-inactive' };
+
+  async function loadRedemptions() {
+    const res = await api('/api/admin-reward-redemptions');
+    const d = res.data?.data || res.data || {};
+    const list = d.redemptions || [];
+    const el = document.getElementById('redemptionsContent');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>교환 신청 내역이 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="data-table">
+      <thead><tr><th>신청일</th><th>회원</th><th>리워드</th><th>포인트</th><th>상태</th><th>처리</th></tr></thead>
+      <tbody>${list.map(r => `
+        <tr>
+          <td>${fmtDate(r.createdAt)}</td>
+          <td>${r.memberName || r.memberUid || '—'}</td>
+          <td>${r.rewardName || '—'}</td>
+          <td>${r.pointCost ? r.pointCost + 'P' : '—'}</td>
+          <td><span class="status-badge ${STATUS_CLASS[r.status] || 'badge-inactive'}">${STATUS_LABEL[r.status] || r.status}</span></td>
+          <td>${r.status === 'pending' ? `
+            <button class="btn btn-primary btn-sm" data-redm-approve="${r.id}">승인</button>
+            <button class="btn btn-danger btn-sm" data-redm-reject="${r.id}" style="margin-left:4px">거절</button>` : '—'}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  document.addEventListener('click', async e => {
+    const approveBtn = e.target.closest('[data-redm-approve]');
+    if (approveBtn) {
+      const res = await api('/api/admin-reward-redemptions/' + approveBtn.dataset.redmApprove, { method: 'PATCH', body: { status: 'approved' } });
+      if (res.ok) { toast('승인되었습니다.'); loadRedemptions(); } else toast(res.data?.error || '처리 실패');
+      return;
+    }
+    const rejectBtn = e.target.closest('[data-redm-reject]');
+    if (rejectBtn) {
+      const res = await api('/api/admin-reward-redemptions/' + rejectBtn.dataset.redmReject, { method: 'PATCH', body: { status: 'rejected' } });
+      if (res.ok) { toast('거절되었습니다.'); loadRedemptions(); } else toast(res.data?.error || '처리 실패');
+    }
+  });
+
+  /* ══════════════════════════════════════
+     탭 5: 회원 포인트
+  ══════════════════════════════════════ */
+  async function loadMemberPoints() {
+    const res = await api('/api/admin-member-points');
+    const d = res.data?.data || res.data || {};
+    const members = d.members || [];
+    const el = document.getElementById('membersContent');
+    if (!members.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>회원 데이터가 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="data-table">
+      <thead><tr><th>이름</th><th>이메일</th><th>잔액</th><th>총 획득</th><th>총 사용</th></tr></thead>
+      <tbody>${members.map(m => `
+        <tr>
+          <td>${m.name || '—'}</td>
+          <td>${m.email || '—'}</td>
+          <td><strong style="color:#1d4ed8">⭐ ${(m.balance || 0).toLocaleString()}P</strong></td>
+          <td>${(m.totalEarned || 0).toLocaleString()}P</td>
+          <td>${(m.totalSpent || 0).toLocaleString()}P</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  document.getElementById('btnAdjust').addEventListener('click', async () => {
+    const uid = document.getElementById('adjUid').value.trim();
+    const delta = Number(document.getElementById('adjDelta').value);
+    const reason = document.getElementById('adjReason').value.trim();
+    if (!uid || !delta || !reason) { toast('UID, 변동량, 사유를 모두 입력하세요.'); return; }
+    const res = await api('/api/admin-point-adjust', { method: 'POST', body: { uid, delta, reason } });
+    if (!res.ok) { toast(res.data?.error || '조정 실패'); return; }
+    toast('포인트가 조정되었습니다.');
+    ['adjUid','adjDelta','adjReason'].forEach(id => document.getElementById(id).value = '');
+    loadMemberPoints();
+  });
+
+  /* ── 탭 전환 ── */
+  const loaders = {
+    rules: loadRules, badges: loadBadges, rewards: loadRewards,
+    redemptions: loadRedemptions, members: loadMemberPoints,
+  };
+  const loaded = {};
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('panel-' + tab).classList.add('active');
+      if (!loaded[tab] && loaders[tab]) { loaded[tab] = true; await loaders[tab](); }
+    });
+  });
+
+  /* ── 초기 로드 ── */
+  loadRules().then(() => { loaded.rules = true; });
+})();
+</script>
+</body>
+</html>

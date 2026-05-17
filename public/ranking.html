@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포인트 랭킹 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a2035;
+      background: #f4f6fa;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .page-desc {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    /* ─── 상위 3위 포디움 ─── */
+    .podium {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .podium-item {
+      text-align: center;
+      flex: 1;
+      max-width: 120px;
+    }
+    .podium-rank {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+    .podium-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .podium-pts {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    .podium-bar {
+      border-radius: 8px 8px 0 0;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .podium-1 .podium-bar { height: 90px; background: linear-gradient(180deg, #fbbf24, #f59e0b); }
+    .podium-2 .podium-bar { height: 65px; background: linear-gradient(180deg, #d1d5db, #9ca3af); }
+    .podium-3 .podium-bar { height: 48px; background: linear-gradient(180deg, #fcd5a4, #f0a060); }
+
+    /* ─── 카드 ─── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* ─── 랭킹 테이블 ─── */
+    .rank-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .rank-table th {
+      text-align: left;
+      padding: 10px 16px;
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 600;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .rank-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid #f0f2f5;
+      color: #374151;
+      vertical-align: middle;
+    }
+    .rank-table tr:last-child td { border-bottom: none; }
+    .rank-table tr:hover td { background: #f9fafb; }
+
+    .rank-num {
+      font-size: 15px;
+      font-weight: 800;
+      min-width: 32px;
+      display: inline-block;
+    }
+    .rank-1 { color: #f59e0b; }
+    .rank-2 { color: #9ca3af; }
+    .rank-3 { color: #f0a060; }
+
+    .pts-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ─── 빈 상태 ─── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: #9ca3af;
+    }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ─── 로딩 ─── */
+    .loading { text-align: center; padding: 40px; color: #9ca3af; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<h2>🏆 포인트 랭킹</h2>
+<p class="page-desc">활동 포인트 상위 20명 현황입니다.</p>
+
+<div id="podiumWrap"></div>
+
+<div class="card">
+  <div class="card-title">전체 순위</div>
+  <div id="rankingContent"><div class="loading">불러오는 중...</div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const USE_MOCK = false;
+  const MOCK_RANKING = {
+    ok: true,
+    data: { ranking: [
+      { rank: 1, name: '김***', points: 1200 },
+      { rank: 2, name: '이***', points: 980 },
+      { rank: 3, name: '박***', points: 750 },
+      { rank: 4, name: '최***', points: 620 },
+      { rank: 5, name: '정***', points: 430 }
+    ]}
+  };
+
+  async function api(path) {
+    if (USE_MOCK) return MOCK_RANKING;
+    try {
+      const r = await fetch(path);
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, data };
+    } catch (e) {
+      return { ok: false, data: {} };
+    }
+  }
+
+  function renderPodium(top3) {
+    if (top3.length < 1) return;
+    const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+    const classes = top3[1] ? ['podium-2', 'podium-1', 'podium-3'] : ['', 'podium-1', ''];
+    const medals = ['🥈', '🥇', '🥉'];
+    document.getElementById('podiumWrap').innerHTML = `
+      <div class="podium">${order.map((item, i) => item ? `
+        <div class="podium-item ${classes[i]}">
+          <div class="podium-rank">${medals[i]}</div>
+          <div class="podium-name">${item.name}</div>
+          <div class="podium-pts">${item.points.toLocaleString()}P</div>
+          <div class="podium-bar"></div>
+        </div>` : '').join('')}
+      </div>`;
+  }
+
+  function rankClass(rank) {
+    if (rank === 1) return 'rank-1';
+    if (rank === 2) return 'rank-2';
+    if (rank === 3) return 'rank-3';
+    return '';
+  }
+
+  async function load() {
+    const res = await api('/api/ranking');
+    const d = res.data?.data || res.data || {};
+    const ranking = d.ranking || [];
+    const el = document.getElementById('rankingContent');
+
+    if (!ranking.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏆</div><p>랭킹 데이터가 없습니다.</p></div>';
+      return;
+    }
+
+    renderPodium(ranking.slice(0, 3));
+
+    el.innerHTML = `<table class="rank-table">
+      <thead><tr><th>순위</th><th>회원</th><th>포인트</th></tr></thead>
+      <tbody>${ranking.map(r => `
+        <tr>
+          <td><span class="rank-num ${rankClass(r.rank)}">${r.rank}</span></td>
+          <td>${r.name}</td>
+          <td><span class="pts-badge">⭐ ${r.points.toLocaleString()}P</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

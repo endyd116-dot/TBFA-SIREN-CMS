@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>큐레이션 관리 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a2035;
+      background: #f4f6fa;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+
+    /* ─── 슬롯 탭 ─── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e5e7eb;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { color: #1e40af; border-bottom-color: #1e40af; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── 카드 ─── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ─── 아이템 리스트 ─── */
+    .curation-list { display: flex; flex-direction: column; gap: 8px; }
+    .curation-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fafafa;
+      transition: box-shadow 0.15s;
+    }
+    .curation-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .drag-handle {
+      color: #d1d5db;
+      cursor: grab;
+      font-size: 16px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .item-order {
+      font-size: 12px;
+      font-weight: 800;
+      color: #9ca3af;
+      min-width: 20px;
+    }
+    .item-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #e5e7eb;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      overflow: hidden;
+    }
+    .item-info { flex: 1; min-width: 0; }
+    .item-title { font-size: 13px; font-weight: 700; color: #1a2035; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-link { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-type {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      white-space: nowrap;
+    }
+
+    /* ─── 버튼 ─── */
+    .btn { padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background: #1e40af; color: #fff; }
+    .btn-primary:hover { background: #1e3a8a; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-ghost { background: #f3f4f6; color: #374151; }
+    .btn-ghost:hover { background: #e5e7eb; }
+
+    /* ─── 모달 ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow-y: auto;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      margin: auto;
+    }
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h3 { font-size: 15px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280; }
+    .modal-body { padding: 20px; }
+    .modal-foot { padding: 14px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* ─── 폼 ─── */
+    .fg { margin-bottom: 14px; }
+    .fg label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .fg input, .fg select, .fg textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+    }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: #3b82f6; }
+    .fg textarea { resize: vertical; min-height: 64px; }
+    .fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ─── 순서 변경 안내 ─── */
+    .sort-hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── 빈/로딩 ─── */
+    .empty-state { text-align: center; padding: 48px; color: #9ca3af; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .loading { text-align: center; padding: 40px; color: #9ca3af; font-size: 13px; }
+
+    /* ─── 토스트 ─── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a2035; color: #fff;
+      padding: 10px 22px; border-radius: 8px;
+      font-size: 13px; opacity: 0;
+      transition: all 0.25s; pointer-events: none; z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ─── 드래그 중 스타일 ─── */
+    .curation-item.dragging {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+    .curation-item.drag-over {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🗂️ 큐레이션 슬롯 관리</h2>
+<p class="page-desc">홈·마이페이지 등 슬롯별 콘텐츠 아이템을 관리합니다. 드래그하여 순서를 조정하세요.</p>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-slot="home_top">🏠 홈 상단</button>
+  <button class="tab-btn" data-slot="home_mid">📌 홈 중간</button>
+  <button class="tab-btn" data-slot="mypage_banner">👤 마이페이지 배너</button>
+</div>
+
+<div id="slotPanels">
+  <div class="tab-panel active" id="panel-home_top"></div>
+  <div class="tab-panel" id="panel-home_mid"></div>
+  <div class="tab-panel" id="panel-mypage_banner"></div>
+</div>
+
+<!-- 아이템 추가/수정 모달 -->
+<div class="modal-overlay" id="modalItem">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalItemTitle">아이템 추가</h3>
+      <button class="modal-close" data-close="modalItem">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="itemId">
+      <input type="hidden" id="itemSlot">
+      <div class="fg">
+        <label>제목</label>
+        <input type="text" id="itemTitle" placeholder="배너 제목">
+      </div>
+      <div class="fg">
+        <label>부제목 / 설명 (선택)</label>
+        <textarea id="itemSubtitle" rows="2" placeholder="짧은 설명"></textarea>
+      </div>
+      <div class="fg">
+        <label>링크 URL</label>
+        <input type="text" id="itemLink" placeholder="/donate.html 또는 https://...">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>이미지 URL (선택)</label>
+          <input type="url" id="itemImage" placeholder="https://...">
+        </div>
+        <div class="fg">
+          <label>콘텐츠 유형</label>
+          <select id="itemType">
+            <option value="banner">배너</option>
+            <option value="card">카드</option>
+            <option value="notice">공지</option>
+            <option value="campaign">캠페인</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalItem">취소</button>
+      <button class="btn btn-primary" id="btnSaveItem">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SLOT_LABELS = { home_top: '홈 상단', home_mid: '홈 중간', mypage_banner: '마이페이지 배너' };
+  const TYPE_LABEL = { banner: '배너', card: '카드', notice: '공지', campaign: '캠페인' };
+
+  /* ── 유틸 ── */
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  async function api(path, opts = {}) {
+    try {
+      const r = await fetch(path, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (e) {
+      return { ok: false, data: { error: e.message } };
+    }
+  }
+
+  /* ── 모달 ── */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-close]');
+    if (btn) document.getElementById(btn.dataset.close).classList.remove('show');
+  });
+
+  /* ── 슬롯 렌더 ── */
+  function renderSlot(slot, items) {
+    const panel = document.getElementById('panel-' + slot);
+    panel.innerHTML = `
+      <div class="card">
+        <div class="card-title">
+          <span>📍 ${SLOT_LABELS[slot]} 콘텐츠</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-ghost btn-sm" data-save-order="${slot}">순서 저장</button>
+            <button class="btn btn-primary btn-sm" data-add-item="${slot}">+ 아이템 추가</button>
+          </div>
+        </div>
+        ${items.length ? `
+          <div class="sort-hint">☰ 드래그하여 순서를 변경한 뒤 "순서 저장"을 누르세요.</div>
+          <div class="curation-list" id="list-${slot}">${items.map((item, i) => `
+            <div class="curation-item" draggable="true" data-id="${item.id}">
+              <span class="drag-handle">☰</span>
+              <span class="item-order">${i + 1}</span>
+              <div class="item-thumb">${item.imageUrl ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover">` : '🖼️'}</div>
+              <div class="item-info">
+                <div class="item-title">${item.title}</div>
+                <div class="item-link">${item.linkUrl || '—'}</div>
+              </div>
+              <span class="item-type">${TYPE_LABEL[item.contentType] || item.contentType || '—'}</span>
+              <button class="btn btn-ghost btn-sm" data-item-edit='${JSON.stringify(item)}' style="flex-shrink:0">수정</button>
+              <button class="btn btn-danger btn-sm" data-item-del="${item.id}" style="flex-shrink:0;margin-left:4px">삭제</button>
+            </div>`).join('')}
+          </div>` :
+          '<div class="empty-state"><div class="empty-icon">📭</div><p>등록된 아이템이 없습니다.</p></div>'
+        }
+      </div>`;
+
+    /* 드래그 정렬 */
+    const list = document.getElementById('list-' + slot);
+    if (!list) return;
+    let dragSrc = null;
+
+    list.addEventListener('dragstart', e => {
+      dragSrc = e.target.closest('.curation-item');
+      if (dragSrc) dragSrc.classList.add('dragging');
+    });
+    list.addEventListener('dragend', e => {
+      const el = e.target.closest('.curation-item');
+      if (el) el.classList.remove('dragging');
+      list.querySelectorAll('.curation-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const target = e.target.closest('.curation-item');
+      if (target && target !== dragSrc) {
+        list.querySelectorAll('.curation-item').forEach(i => i.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+      }
+    });
+    list.addEventListener('drop', e => {
+      e.preventDefault();
+      const target = e.target.closest('.curation-item');
+      if (target && target !== dragSrc && dragSrc) {
+        const items = [...list.querySelectorAll('.curation-item')];
+        const fromIdx = items.indexOf(dragSrc);
+        const toIdx = items.indexOf(target);
+        if (fromIdx < toIdx) list.insertBefore(dragSrc, target.nextSibling);
+        else list.insertBefore(dragSrc, target);
+        /* 번호 갱신 */
+        list.querySelectorAll('.item-order').forEach((el, i) => el.textContent = i + 1);
+      }
+      list.querySelectorAll('.curation-item').forEach(i => i.classList.remove('drag-over'));
+    });
+  }
+
+  /* ── 슬롯 로드 ── */
+  const loaded = {};
+  async function loadSlot(slot) {
+    document.getElementById('panel-' + slot).innerHTML = '<div class="loading">불러오는 중...</div>';
+    const res = await api('/api/admin-curations?slot=' + slot);
+    const d = res.data?.data || res.data || {};
+    const items = d.items || [];
+    renderSlot(slot, items);
+    loaded[slot] = true;
+  }
+
+  /* ── 이벤트: 순서 저장 ── */
+  document.addEventListener('click', async e => {
+    /* 순서 저장 */
+    const saveBtn = e.target.closest('[data-save-order]');
+    if (saveBtn) {
+      const slot = saveBtn.dataset.saveOrder;
+      const list = document.getElementById('list-' + slot);
+      if (!list) return;
+      const ids = [...list.querySelectorAll('.curation-item')].map(el => Number(el.dataset.id));
+      const res = await api('/api/admin-curations/reorder', { method: 'PATCH', body: { slot, ids } });
+      if (res.ok) toast('순서가 저장되었습니다.'); else toast(res.data?.error || '저장 실패');
+      return;
+    }
+
+    /* 아이템 추가 */
+    const addBtn = e.target.closest('[data-add-item]');
+    if (addBtn) {
+      document.getElementById('modalItemTitle').textContent = '아이템 추가';
+      ['itemId','itemTitle','itemSubtitle','itemLink','itemImage'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('itemSlot').value = addBtn.dataset.addItem;
+      document.getElementById('itemType').value = 'banner';
+      document.getElementById('modalItem').classList.add('show');
+      return;
+    }
+
+    /* 아이템 수정 */
+    const editBtn = e.target.closest('[data-item-edit]');
+    if (editBtn) {
+      const item = JSON.parse(editBtn.dataset.itemEdit);
+      document.getElementById('modalItemTitle').textContent = '아이템 수정';
+      document.getElementById('itemId').value = item.id;
+      document.getElementById('itemSlot').value = item.slot;
+      document.getElementById('itemTitle').value = item.title;
+      document.getElementById('itemSubtitle').value = item.subtitle || '';
+      document.getElementById('itemLink').value = item.linkUrl || '';
+      document.getElementById('itemImage').value = item.imageUrl || '';
+      document.getElementById('itemType').value = item.contentType || 'banner';
+      document.getElementById('modalItem').classList.add('show');
+      return;
+    }
+
+    /* 아이템 삭제 */
+    const delBtn = e.target.closest('[data-item-del]');
+    if (delBtn) {
+      if (!confirm('이 아이템을 삭제하시겠습니까?')) return;
+      const slot = delBtn.closest('.tab-panel').id.replace('panel-', '');
+      const res = await api('/api/admin-curations/' + delBtn.dataset.itemDel, { method: 'DELETE' });
+      if (res.ok) { toast('삭제되었습니다.'); loadSlot(slot); } else toast(res.data?.error || '삭제 실패');
+    }
+  });
+
+  /* ── 저장 ── */
+  document.getElementById('btnSaveItem').addEventListener('click', async () => {
+    const id = document.getElementById('itemId').value;
+    const slot = document.getElementById('itemSlot').value;
+    const body = {
+      slot,
+      title: document.getElementById('itemTitle').value.trim(),
+      subtitle: document.getElementById('itemSubtitle').value.trim() || null,
+      linkUrl: document.getElementById('itemLink').value.trim() || null,
+      imageUrl: document.getElementById('itemImage').value.trim() || null,
+      contentType: document.getElementById('itemType').value,
+    };
+    if (!body.title) { toast('제목은 필수입니다.'); return; }
+    const res = id
+      ? await api('/api/admin-curations/' + id, { method: 'PATCH', body })
+      : await api('/api/admin-curations', { method: 'POST', body });
+    if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
+    toast('저장되었습니다.');
+    document.getElementById('modalItem').classList.remove('show');
+    loadSlot(slot);
+  });
+
+  /* ── 탭 전환 ── */
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const slot = btn.dataset.slot;
+      document.getElementById('panel-' + slot).classList.add('active');
+      if (!loaded[slot]) loadSlot(slot);
+    });
+  });
+
+  /* ── 초기 로드 ── */
+  loadSlot('home_top');
+})();
+</script>
+</body>
+</html>

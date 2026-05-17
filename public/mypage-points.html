@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포인트·뱃지 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a2035;
+      background: #f4f6fa;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* ─── 헤더 카드 (잔액) ─── */
+    .balance-card {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .balance-icon { font-size: 42px; }
+    .balance-info { flex: 1; }
+    .balance-label { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
+    .balance-amount {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .balance-unit { font-size: 16px; font-weight: 500; margin-left: 4px; }
+
+    /* ─── 탭 ─── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 6px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 0;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: #1e40af;
+      color: #fff;
+    }
+
+    /* ─── 콘텐츠 패널 ─── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── 카드 공통 ─── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* ─── 포인트 이력 테이블 ─── */
+    .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .log-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 600;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .log-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      color: #374151;
+    }
+    .log-table tr:last-child td { border-bottom: none; }
+    .delta-plus { color: #059669; font-weight: 700; }
+    .delta-minus { color: #dc2626; font-weight: 700; }
+
+    /* ─── 뱃지 그리드 ─── */
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 14px;
+    }
+    .badge-item {
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 18px 12px;
+      text-align: center;
+      transition: box-shadow 0.15s;
+    }
+    .badge-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .badge-icon { font-size: 36px; margin-bottom: 8px; }
+    .badge-name { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px; }
+    .badge-date { font-size: 11px; color: #9ca3af; }
+
+    /* ─── 리워드 목록 ─── */
+    .reward-list { display: flex; flex-direction: column; gap: 12px; }
+    .reward-item {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .reward-icon { font-size: 28px; }
+    .reward-info { flex: 1; }
+    .reward-name { font-size: 14px; font-weight: 700; color: #1a2035; margin-bottom: 3px; }
+    .reward-desc { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .reward-cost {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .reward-stock { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .btn-redeem {
+      padding: 9px 18px;
+      background: #1e40af;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-redeem:hover:not(:disabled) { background: #1e3a8a; }
+    .btn-redeem:disabled {
+      background: #d1d5db;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* ─── 빈 상태 ─── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ─── 토스트 ─── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a2035;
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ─── 로딩 ─── */
+    .loading { text-align: center; padding: 32px; color: #9ca3af; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<!-- 잔액 카드 -->
+<div class="balance-card">
+  <div class="balance-icon">⭐</div>
+  <div class="balance-info">
+    <div class="balance-label">내 포인트 잔액</div>
+    <div class="balance-amount" id="balanceAmount">—<span class="balance-unit">P</span></div>
+  </div>
+</div>
+
+<!-- 탭 바 -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="logs">📋 포인트 이력</button>
+  <button class="tab-btn" data-tab="badges">🏅 내 뱃지</button>
+  <button class="tab-btn" data-tab="rewards">🎁 리워드 교환</button>
+</div>
+
+<!-- 탭 패널: 포인트 이력 -->
+<div class="tab-panel active" id="panel-logs">
+  <div class="card">
+    <div class="card-title">포인트 이력</div>
+    <div id="logsContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- 탭 패널: 내 뱃지 -->
+<div class="tab-panel" id="panel-badges">
+  <div class="card">
+    <div class="card-title">획득한 뱃지</div>
+    <div id="badgesContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<!-- 탭 패널: 리워드 교환 -->
+<div class="tab-panel" id="panel-rewards">
+  <div class="card">
+    <div class="card-title">리워드 목록</div>
+    <div id="rewardsContent"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── mock ── */
+  const USE_MOCK = false;
+  const MOCK_MY_POINTS = {
+    ok: true,
+    data: {
+      balance: 350,
+      logs: [
+        { delta: 100, reason: '후원 완료', eventType: 'donation_complete', createdAt: '2026-05-17T10:00:00Z' },
+        { delta: 1, reason: '일일 로그인', eventType: 'login_daily', createdAt: '2026-05-17T09:00:00Z' }
+      ]
+    }
+  };
+  const MOCK_BADGES = {
+    ok: true,
+    data: { badges: [{ code: 'first_step', nameKo: '첫 걸음', icon: '🌱', awardedAt: '2026-05-10' }] }
+  };
+  const MOCK_REWARDS = {
+    ok: true,
+    data: { rewards: [
+      { id: 1, nameKo: '텀블러', description: '교사유가족협의회 텀블러', pointCost: 500, stock: 10, isActive: true }
+    ]}
+  };
+
+  /* ── 상태 ── */
+  let currentBalance = 0;
+
+  /* ── 유틸 ── */
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  async function api(path, opts = {}) {
+    if (USE_MOCK) {
+      if (path.includes('my-points')) return MOCK_MY_POINTS;
+      if (path.includes('my-badges')) return MOCK_BADGES;
+      if (path.includes('rewards-list')) return MOCK_REWARDS;
+      return { ok: true };
+    }
+    try {
+      const r = await fetch(path, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (e) {
+      return { ok: false, data: { error: e.message } };
+    }
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return iso.slice(0, 10);
+  }
+
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ko-KR') + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /* ── 포인트 이력 ── */
+  async function loadLogs() {
+    const res = await api('/api/my-points');
+    const d = res.data?.data || res.data || {};
+    currentBalance = d.balance || 0;
+    document.getElementById('balanceAmount').innerHTML = currentBalance.toLocaleString() + '<span class="balance-unit">P</span>';
+
+    const logs = d.logs || [];
+    const el = document.getElementById('logsContent');
+    if (!logs.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>포인트 이력이 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="log-table">
+      <thead><tr><th>일시</th><th>내용</th><th>변동</th></tr></thead>
+      <tbody>${logs.map(l => `
+        <tr>
+          <td>${fmtDateTime(l.createdAt)}</td>
+          <td>${l.reason || l.eventType || '—'}</td>
+          <td class="${l.delta >= 0 ? 'delta-plus' : 'delta-minus'}">${l.delta >= 0 ? '+' : ''}${l.delta.toLocaleString()}P</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  /* ── 뱃지 ── */
+  async function loadBadges() {
+    const res = await api('/api/my-badges');
+    const d = res.data?.data || res.data || {};
+    const badges = d.badges || [];
+    const el = document.getElementById('badgesContent');
+    if (!badges.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏅</div><p>아직 획득한 뱃지가 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="badge-grid">${badges.map(b => `
+      <div class="badge-item">
+        <div class="badge-icon">${b.icon || '🏅'}</div>
+        <div class="badge-name">${b.nameKo}</div>
+        <div class="badge-date">${fmtDate(b.awardedAt)}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  /* ── 리워드 ── */
+  async function loadRewards() {
+    const res = await api('/api/rewards-list');
+    const d = res.data?.data || res.data || {};
+    const rewards = (d.rewards || []).filter(r => r.isActive);
+    const el = document.getElementById('rewardsContent');
+    if (!rewards.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>교환 가능한 리워드가 없습니다.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="reward-list">${rewards.map(r => {
+      const canRedeem = currentBalance >= r.pointCost && r.stock > 0;
+      return `<div class="reward-item">
+        <div class="reward-icon">🎁</div>
+        <div class="reward-info">
+          <div class="reward-name">${r.nameKo}</div>
+          <div class="reward-desc">${r.description || ''}</div>
+          <div><span class="reward-cost">⭐ ${r.pointCost.toLocaleString()}P</span></div>
+          <div class="reward-stock">재고 ${r.stock}개</div>
+        </div>
+        <button class="btn-redeem" data-reward-id="${r.id}" data-cost="${r.pointCost}"
+          ${canRedeem ? '' : 'disabled'}>${canRedeem ? '교환하기' : '포인트 부족'}</button>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  async function redeemReward(rewardId, cost) {
+    if (!confirm(`포인트 ${cost}P를 사용해 교환하시겠습니까?`)) return;
+    const res = await api('/api/reward-redeem', { method: 'POST', body: { rewardId } });
+    if (!res.ok) {
+      toast(res.data?.error || '교환 실패. 다시 시도해 주세요.');
+      return;
+    }
+    toast('교환 신청이 완료되었습니다!');
+    await loadLogs();
+    await loadRewards();
+  }
+
+  /* ── 탭 전환 ── */
+  const panels = { logs: 'panel-logs', badges: 'panel-badges', rewards: 'panel-rewards' };
+  let loaded = { logs: false, badges: false, rewards: false };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById(panels[tab]).classList.add('active');
+      if (!loaded[tab]) {
+        loaded[tab] = true;
+        if (tab === 'badges') await loadBadges();
+        if (tab === 'rewards') await loadRewards();
+      }
+    });
+  });
+
+  /* ── 교환 버튼 이벤트 ── */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-redeem');
+    if (!btn || btn.disabled) return;
+    redeemReward(Number(btn.dataset.rewardId), Number(btn.dataset.cost));
+  });
+
+  /* ── 초기 로드 ── */
+  loadLogs().then(() => { loaded.logs = true; });
+})();
+</script>
+</body>
+</html>

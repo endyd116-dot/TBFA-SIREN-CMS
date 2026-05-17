@@ -372,7 +372,10 @@
         else if (tab === 'ai-cost')    _nfLoadIframe('page-ai-cost');
         else if (tab === 'ai-logs')    renderAiLogs();
         else if (tab === 'ai-config')  _nfLoadIframe('page-ai-config');  /* iframe으로 교체됨 */
-        else if (tab === 'role-policy') _nfLoadIframe('page-role-policy'); /* Round 4: 권한 정책 */
+        else if (tab === 'role-policy')  _nfLoadIframe('page-role-policy');  /* Round 4: 권한 정책 */
+        else if (tab === 'gamification') _nfLoadIframe('page-gamification'); /* Round 6: 게이미피케이션 */
+        else if (tab === 'popups')       _nfLoadIframe('page-popups');       /* Round 6: 팝업 관리 */
+        else if (tab === 'curations')    _nfLoadIframe('page-curations');    /* Round 6: 큐레이션 */
       });
     });
 
