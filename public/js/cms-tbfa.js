@@ -2548,7 +2548,7 @@ async function loadTbKeys() {
       const expiryDisplay = r.cardExpiryMonth || '<span style="color:#c62828">미입력</span>';
       const toggleBtn = r.isActive
         ? `<button class="cms-btn" onclick="tbToggleKeyActive(${r.id}, false)" style="background:#d32f2f;color:#fff;padding:4px 8px;font-size:12px">해지</button>`
-        : `<button class="cms-btn" onclick="tbToggleKeyActive(${r.id}, true)" style="background:#2e7d32;color:#fff;padding:4px 8px;font-size:12px">재활성</button>`;
+        : `<button class="cms-btn" onclick="tbOpenReactivateModal(${r.id}, '${escapeHtml(r.memberName || '')}')" style="background:#1976d2;color:#fff;padding:4px 8px;font-size:12px">재활성화</button>`;
 
       return `<tr>
         <td>${r.id}</td>
@@ -2584,6 +2584,42 @@ async function tbToggleKeyActive(id, newActive) {
     loadTbKeys();
   } catch (e) {
     alert('변경 실패: ' + (e?.message || e));
+  }
+}
+
+function tbOpenReactivateModal(billingKeyId, memberName) {
+  const modal = document.getElementById('tbReactivateModal');
+  if (!modal) return;
+  document.getElementById('tbReactivateMemberName').textContent = memberName || '';
+  document.getElementById('tbReactivateReason').value = '';
+  document.getElementById('tbReactivateKeyId').value = billingKeyId;
+  modal.style.display = 'flex';
+  document.getElementById('tbReactivateReason').focus();
+}
+
+function tbCloseReactivateModal() {
+  const modal = document.getElementById('tbReactivateModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function tbConfirmReactivate() {
+  const billingKeyId = Number(document.getElementById('tbReactivateKeyId').value);
+  const reason = (document.getElementById('tbReactivateReason').value || '').trim();
+  if (reason.length < 5) {
+    alert('사유를 5자 이상 입력해주세요');
+    return;
+  }
+  try {
+    const res = await api('/api/admin-billing-key-reactivate', {
+      method: 'POST',
+      body: { billingKeyId, reason },
+    });
+    if (!res.ok) throw new Error(res.data?.error || 'HTTP ' + res.status);
+    tbCloseReactivateModal();
+    showToast('정기후원이 재활성화되었습니다', 'success');
+    loadTbKeys();
+  } catch (e) {
+    alert('재활성화 실패: ' + (e?.message || e));
   }
 }
 
