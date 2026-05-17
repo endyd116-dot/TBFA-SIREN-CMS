@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/handover/v20.md`](handover/v20.md) 영구 보관(자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-17 / **🔄 라운드 4 3단 권한 체계 B·A 작업 진행 중 (라운드 1·2·3 전체 완결)** / main @ `6e69a0f` (전부 푸시 완료)
+> **마지막 갱신**: 2026-05-17 / **🔄 라운드 5 발송 UX A 작업 중 (라운드 1·2·3·4 전체 완결)** / main @ `a2a7a55` (전부 푸시 완료)
 
 ---
 
@@ -66,14 +66,20 @@
 - C 검증 Q1~Q9 전부 통과 (BUG 0)
 → 검증 보고서: `docs/verify/2026-05-17-round3-cms.md`
 
-### 3.3 라운드 4 3단 권한 체계 (🔄 진행 중)
+### 3.3 라운드 4 3단 권한 체계 (✅ 전체 완결)
 
-- lib/admin-role.ts 신설 (`requireRole` / `roleForbidden` 헬퍼)
-- docs/policies/roles-and-permissions.md 역할 정책 문서
-- DB 마이그 완료: 기존 operator(type=admin) → admin 1명 변환
-- **B·A 트리거 발사 완료** — 각자 브랜치에서 작업 중
-  - B: feature/round4-rbac-back (로그인 버그 fix·super_admin 7개·admin 4개·operators 수정)
-  - A: feature/round4-rbac-front (권한 정책 관리 페이지 + iframe 4곳)
+- lib/admin-role.ts 신설, DB 마이그 완료 (operator→admin 1명)
+- 로그인 role 하드코딩 제거, requireRole 헬퍼 7개 파일 통일
+- admin 등급 체크 4개 파일 추가 (블랙·자격·빌링키·환불)
+- admin-role-policy.html 신규 + iframe 4곳 등록
+- C 검증 Q1~Q8 전부 통과 (BUG 0)
+→ 검증 보고서: `docs/verify/2026-05-17-round4-rbac.md`
+
+### 3.4 라운드 5 발송 센터 UX (🔄 진행 중)
+
+- A: feature/round5-send-ux — 작업 중
+  - 채널별 미리보기 탭 (이메일·SMS·카카오·인앱)
+  - 파일함에서 선택 첨부 (워크스페이스 파일 재사용)
 
 ---
 

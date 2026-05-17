@@ -24,9 +24,9 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-17 | **메인** | **🏁 라운드 4 3단 권한 체계 완결 (C Q1~Q8 전부 통과, BUG 0)** (main @ `a2a7a55`) — 로그인 role 하드코딩 제거·requireRole 헬퍼·admin 등급 체크·권한 정책 페이지 전부 PASS. 라운드 5 A 작업 진행 중. |
 | 2026-05-17 | **메인** | **🔄 라운드 4 3단 권한 체계 — B·A 트리거 발사** (main @ `6e69a0f`) — lib/admin-role.ts + roles-and-permissions.md + 마이그 완료(operator→admin 1건). B: 로그인 버그·super_admin 체크 7개·admin 체크 4개·admin-operators role 확장. A: admin-role-policy.html 신규 + iframe 4곳 등록. |
-| 2026-05-17 | **메인** | **🏁 라운드 3 CMS 6건 완결 (C Q1~Q9 전부 통과, BUG 0)** (main @ `aea1267`) — R3 C 검증: 환불권한·자동발송중복차단·paidAt 백필·재활성화 API·채널검증 전부 PASS. 보고서: `docs/verify/2026-05-17-round3-cms.md`. |
-| 2026-05-17 | **메인** | **🏁 라운드 2 워크스페이스 완결 + 라운드 3 CMS 설계·마이그 준비 완료** (main @ `c4d2921`) — R2 Q1~Q12 통과 (BUG-Q4 멘션 INSERT·BUG-Q6 workspaceId 수정, 61572bc). 라운드 3 설계서·마이그·schema paidAt 완료. |
+| 2026-05-17 | **메인** | **🏁 라운드 3 CMS 6건 완결 (C Q1~Q9 전부 통과, BUG 0)** (main @ `aea1267`) — R3 C 검증: 환불권한·자동발송중복차단·paidAt 백필·재활성화 API·채널검증 전부 PASS. |
 | 2026-05-17 | **메인** | **🎯 라운드 1 SIREN 4건 fix 설계 완료 + A·B·C 병렬 트리거 배포 대기** (main @ 본 커밋) — Swain 결정: #2 B안(응답 endpoint)·#3 A안(회원 상세 강제 변경)·#4 B안(실명+익명 배지)·진행 4채팅 병렬. 설계서: `docs/milestones/2026-05-17-round1-siren.md`. DB 마이그 0건(컬럼 모두 존재). B 작업 6건(빌링키·3종 자동 status·user-my-reports 응답·자격 강제 endpoint), A 작업 4건(my-reports.js 필드 정정·STAGE_FLOW·익명 배지·회원 상세 모달), C 12개 시나리오. **A·B 트리거는 메인 응답 본문에 그대로 박힘 — Swain이 복붙해서 A·B·C 채팅 시작**. |
 | 2026-05-16 | **메인** | **버그 픽스 3차 코드 완결 + 📐 Phase 23 설계 진입** (main @ `20af8b4`, 전부 푸시) — 계정과목 전면작업·#9/#11 매출 카테고리 2단계 계층·#7/#8 정기후원 효성·토스 중복 경고·출금전표 예산항목 드롭다운 전부 완료. 계정과목·매출카테고리 마이그 호출 확인·파일삭제·schema 활성화 완료. 버그3차 남은 건 Swain 운영 작업뿐(#16 HTTPS·#14 환경변수·#3 효성데이터). v3.0 설계도 정본화(docs 커밋)·Phase 23-0 골격 설계서 작성. ★ **재정 모듈 전체가 더미 → 마이그 불필요·v3.0 백지 재구축**. 미해결: "독립 앱 vs SIREN 내 독립 모듈" 메인 판단 → Swain 확인 대기. 상세 docs/HANDOFF.md §3.2. |
 | 2026-05-16 | **메인** | **버그 픽스 3차 진행 중** (이전 세션) — `93f89ca` #13 계정과목 503 + `6dc57a3` #14-B 발송 멈춤. 이후 본 세션에서 계정과목·매출카테고리·#7/#8 마감. |
@@ -40,7 +40,17 @@
 ## 3. 현재 작업 모드
 
 ```
-🔄 라운드 4 3단 권한 체계 — B·A 작업 중 (2026-05-17)
+🔄 라운드 5 발송 센터 UX — A 작업 중 (2026-05-17)
+   - 설계서: docs/milestones/2026-05-17-round5-send-ux.md
+   - A 프론트: feature/round5-send-ux — 작업 중
+     □ 채널별 미리보기 탭 (이메일·SMS·카카오·인앱)
+     □ 파일함에서 선택 첨부 (워크스페이스 파일 재사용)
+
+   ★ 다음 메인 작업 (A push 후):
+   1. A push → 머지
+   2. C 트리거 발사 (Q1~Q10)
+
+🔜 라운드 6 설계 중 — 게이미피케이션 + 큐레이션·팝업
    - 설계서: docs/milestones/2026-05-17-round4-rbac.md
    - 메인 완료: lib/admin-role.ts + docs/policies/roles-and-permissions.md + 마이그 완료 (6e69a0f)
    - B 백엔드: feature/round4-rbac-back — 작업 중
@@ -110,18 +120,25 @@
 | A | 프론트 | 빌링키 재활성화 UI | ✅ 완료 (d1052c0, 머지됨) |
 | C | 검증 | Q1~Q9 | ✅ 완료 (9/9 통과, BUG 0, aea1267) |
 
-### 4.4 라운드 4 3단 권한 체계 (2026-05-17 🔄 진행 중)
+### 4.4 라운드 4 3단 권한 체계 (2026-05-17 ✅ 전체 완결)
 
 설계서: [docs/milestones/2026-05-17-round4-rbac.md](docs/milestones/2026-05-17-round4-rbac.md)
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
 | 메인 | 헬퍼·마이그·문서 | lib/admin-role.ts + 마이그 완료 + roles 문서 | ✅ 완료 (6e69a0f) |
-| B | 백엔드 | 로그인 버그·super_admin 7개·admin 4개·operators 수정 | 🔄 트리거 발사, 작업 중 |
-| A | 프론트 | admin-role-policy.html + iframe 4곳 | 🔄 트리거 발사, 작업 중 |
-| C | 검증 | Q1~Q8 | ⏸ B·A 완료 후 |
+| B | 백엔드 | 로그인 버그·super_admin 7개·admin 4개·operators 수정 | ✅ 완료 (머지됨) |
+| A | 프론트 | admin-role-policy.html + iframe 4곳 | ✅ 완료 (머지됨) |
+| C | 검증 | Q1~Q8 | ✅ 완료 (8/8 통과, BUG 0, a2a7a55) |
 
-다음 트랙(라운드 5~)은 `docs/HANDOFF.md` §4 참조.
+### 4.5 라운드 5 발송 센터 UX (2026-05-17 🔄 진행 중)
+
+설계서: [docs/milestones/2026-05-17-round5-send-ux.md](docs/milestones/2026-05-17-round5-send-ux.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| A | 프론트 | 채널별 미리보기 탭 + 파일함 재사용 첨부 | 🔄 작업 중 |
+| C | 검증 | Q1~Q10 | ⏸ A 완료 후 |
 
 ---
 
