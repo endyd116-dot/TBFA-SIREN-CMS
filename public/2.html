@@ -25,7 +25,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 .dots-bar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:300;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);padding:7px 14px;border-radius:100px}
 .dot{width:6px;height:6px;border-radius:50%;border:none;cursor:pointer;opacity:.4;transition:all .2s}
 .dot.active{width:16px;border-radius:3px;opacity:1}
-.s1c{background:#60a5fa}.s2c{background:#3b82f6}.s3c{background:#a78bfa}.s4c{background:#34d399}.s5c{background:#fbbf24}.s6c{background:#60a5fa}
+.s1c{background:#60a5fa}.s2c{background:#3b82f6}.s3c{background:#a78bfa}.s4c{background:#34d399}.s5c{background:#fbbf24}.s6c{background:#60a5fa}.s7c{background:#22d3ee}
 
 .ctr{position:fixed;top:12px;right:14px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:rgba(255,255,255,.55);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;z-index:300;border:1px solid rgba(255,255,255,.1)}
 .sec-ind{position:fixed;top:12px;left:14px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);color:rgba(255,255,255,.55);font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;z-index:300;border:1px solid rgba(255,255,255,.1);letter-spacing:.06em}
@@ -904,6 +904,169 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   </div>
 </div>
 
+<!-- ════ S31 NPO 후원 통합 관리 ════ -->
+<div class="slide sw" id="s31" style="background:#fff;padding:40px 56px 0">
+  <div style="margin-bottom:16px">
+    <span class="tag" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-bottom:10px">NPO 특화 01</span>
+    <h2 style="font-size:30px;font-weight:900;color:#0f172a;margin-top:8px;margin-bottom:6px">후원 통합 관리 — <span style="color:#2563eb">정기·일시·CMS·계좌이체 4종 자동화.</span></h2>
+    <p style="font-size:14px;color:#64748b">결제부터 영수증·이탈 예측까지 — 후원 담당자가 수작업하던 모든 것이 자동입니다.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+    <div class="card" style="border-top:3px solid #2563eb;padding:16px"><div style="font-size:10px;font-weight:700;color:#2563eb;margin-bottom:6px">정기 후원</div><div style="font-size:15px;font-weight:800;color:#0f172a">빌링 자동청구</div><div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">매달 자동 카드 청구. 실패 시 재시도·안내 자동.</div></div>
+    <div class="card" style="border-top:3px solid #7c3aed;padding:16px"><div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:6px">CMS 자동이체</div><div style="font-size:15px;font-weight:800;color:#0f172a">효성 CMS+ 연동</div><div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">은행 계좌 자동이체. 지로·CMS 완전 연동.</div></div>
+    <div class="card" style="border-top:3px solid #059669;padding:16px"><div style="font-size:10px;font-weight:700;color:#059669;margin-bottom:6px">일시 후원</div><div style="font-size:15px;font-weight:800;color:#0f172a">토스페이먼츠</div><div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">카드·카카오·네이버페이. 즉시 영수증.</div></div>
+    <div class="card" style="border-top:3px solid #f59e0b;padding:16px"><div style="font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:6px">AI 이탈 예측</div><div style="font-size:15px;font-weight:800;color:#0f172a">이탈 사전 감지</div><div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">3개월 미후원 위험 회원 자동 감지·독려.</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;border:1px solid #e2e8f0">
+      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">📄 자동 발급 서류</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">영수증 PDF</span>
+        <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">기부금 영수증</span>
+        <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">연말정산 서류</span>
+        <span style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px">정기 명세서</span>
+      </div>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:16px 20px;border:1px solid #e2e8f0">
+      <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">📊 실시간 현황판</div>
+      <div style="display:flex;gap:20px">
+        <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#2563eb">247명</div><div style="font-size:11px;color:#64748b">정기 후원자</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#059669">89.3%</div><div style="font-size:11px;color:#64748b">청구 성공률</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:#f59e0b">12명</div><div style="font-size:11px;color:#64748b">이탈 위험</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ S32 NPO 회원 관리 ════ -->
+<div class="slide sw" id="s32" style="background:#fff;padding:40px 56px 0">
+  <div style="margin-bottom:16px">
+    <span class="tag" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-bottom:10px">NPO 특화 02</span>
+    <h2 style="font-size:30px;font-weight:900;color:#0f172a;margin-top:8px;margin-bottom:6px">회원 관리 & 등급 시스템 — <span style="color:#2563eb">모든 이력이 한 화면에.</span></h2>
+    <p style="font-size:14px;color:#64748b">후원 이력·상담 이력·등급·소통 채널이 회원 한 명의 화면에 통합됩니다.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card" style="padding:20px">
+      <div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:10px">회원 등급 자동 재계산</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">👑</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">명예 회원</div><div style="font-size:11px;color:#64748b">10년 이상 · 누적 500만원+</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">⭐</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">정회원 (Gold)</div><div style="font-size:11px;color:#64748b">5년 이상 · 누적 100만원+</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">🌟</span><div><div style="font-size:13px;font-weight:700;color:#0f172a">일반 회원</div><div style="font-size:11px;color:#64748b">정기 후원 활성화</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">🔔</span><div><div style="font-size:13px;font-weight:700;color:#64748b">관심 회원</div><div style="font-size:11px;color:#64748b">가입 후 미후원 — 독려 대상</div></div></div>
+      </div>
+      <div style="margin-top:12px;background:#eff6ff;border-radius:8px;padding:8px 12px;font-size:11px;color:#2563eb">매일 cron 자동 재계산 — 수동 갱신 불필요</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:12px;font-weight:700;color:#2563eb;margin-bottom:10px">통합 회원 화면</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💰</span><span style="font-size:13px;color:#0f172a">후원 이력 전체 · 납부 현황</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💬</span><span style="font-size:13px;color:#0f172a">상담·신고 이력 통합 조회</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📧</span><span style="font-size:13px;color:#0f172a">이메일·SMS 발송 이력</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🔒</span><span style="font-size:13px;color:#0f172a">개인정보 동의 이력 + 블랙리스트</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📊</span><span style="font-size:13px;color:#0f172a">이탈 위험 점수 (AI 산출)</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">📑</span><span style="font-size:13px;color:#0f172a">연말정산 영수증 재발급 원클릭</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 20px;display:flex;gap:32px;align-items:center">
+    <span style="font-size:12px;font-weight:700;color:#065f46">실제 운영 중:</span>
+    <span style="font-size:12px;color:#047857">Excel 일괄 내보내기</span>
+    <span style="font-size:12px;color:#047857">조건별 회원 필터링 (등급·기간·금액)</span>
+    <span style="font-size:12px;color:#047857">대량 이메일 발송</span>
+    <span style="font-size:12px;color:#047857">회원 차단 + 사유 기록</span>
+  </div>
+</div>
+
+<!-- ════ S33 NPO SIREN 신고 플랫폼 ════ -->
+<div class="slide" id="s33" style="background:#0f172a;padding:40px 56px 0">
+  <span class="tag" style="background:rgba(168,85,247,.2);color:#c084fc;border:1px solid rgba(168,85,247,.4)">NPO 특화 03</span>
+  <h2 style="font-size:28px;font-weight:900;color:#fff;margin:12px 0 6px">SIREN 신고 플랫폼 — <span style="color:#a78bfa">교사·직장 내 사건을 안전하게 접수.</span></h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:18px">사건 신고 · 괴롭힘 신고 · 법률 상담 3종 신고. 익명 제출 지원. 접수 → 배정 → 처리 → 완료 자동 알림.</p>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
+    <div class="card-dark" style="border-top:2px solid #ef4444"><div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:8px">사건 신고</div><div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">교사 사망·피해 사건</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">형사·민사 사건 접수. 익명 지원. 담당 배정 자동 알림. 진행 현황 실시간 추적.</div></div>
+    <div class="card-dark" style="border-top:2px solid #f59e0b"><div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:8px">괴롭힘 신고</div><div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">직장 내 괴롭힘</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">학교·직장 괴롭힘 접수. 증거 파일 첨부. 법적 조치 연계. 상담 신청 자동 연결.</div></div>
+    <div class="card-dark" style="border-top:2px solid #60a5fa"><div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">법률 상담</div><div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">무료 법률 상담</div><div style="font-size:12px;color:#94a3b8;line-height:1.6">전문 변호사 상담 예약. 상담 이력 관리. 소요 시간 추적. 후속 조치 알림.</div></div>
+  </div>
+  <div style="display:flex;gap:12px">
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔒</span><div><div style="font-size:12px;font-weight:700;color:#fff">익명 제출 지원</div><div style="font-size:11px;color:#64748b">신고자 보호 최우선. IP 비저장 옵션.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">📩</span><div><div style="font-size:12px;font-weight:700;color:#fff">자동 접수·알림</div><div style="font-size:11px;color:#64748b">접수 즉시 담당자에게 이메일 알림.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">📊</span><div><div style="font-size:12px;font-weight:700;color:#fff">관리자 대시보드</div><div style="font-size:11px;color:#64748b">신고 유형·처리 현황·소요 시간 통계.</div></div></div>
+    <div style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">🔔</span><div><div style="font-size:12px;font-weight:700;color:#fff">진행 현황 추적</div><div style="font-size:11px;color:#64748b">접수 → 배정 → 처리 → 완료 자동.</div></div></div>
+  </div>
+</div>
+
+<!-- ════ S34 NPO 유가족 지원 관리 ════ -->
+<div class="slide sw" id="s34" style="background:#fff;padding:40px 56px 0">
+  <div style="margin-bottom:16px">
+    <span class="tag" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-bottom:10px">NPO 특화 04</span>
+    <h2 style="font-size:30px;font-weight:900;color:#0f172a;margin-top:8px;margin-bottom:6px">유가족 지원 서비스 — <span style="color:#2563eb">심리·법률·장학 전과정 통합 관리.</span></h2>
+    <p style="font-size:14px;color:#64748b">신청부터 배정·처리·완료까지 — 지원 서비스의 모든 과정이 플랫폼 안에서 추적됩니다.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
+    <div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0;padding:18px">
+      <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:8px">심리 상담</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">전문 상담 연계</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.6;margin-bottom:10px">상담 신청 → 전문 상담사 배정 → 일정 조율 → 상담 이력 관리. 회기별 기록 보존.</div>
+      <div style="background:#f5f3ff;border-radius:6px;padding:6px 10px;font-size:11px;color:#7c3aed">월 평균 처리: 34건</div>
+    </div>
+    <div class="card" style="border-left:3px solid #2563eb;border-radius:0 12px 12px 0;padding:18px">
+      <div style="font-size:11px;font-weight:700;color:#2563eb;margin-bottom:8px">법률 지원</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">법률 서비스 추적</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.6;margin-bottom:10px">법률 자문 신청 → 변호사 배정 → 진행 현황 추적 → 결과 기록. 서류 첨부 지원.</div>
+      <div style="background:#eff6ff;border-radius:6px;padding:6px 10px;font-size:11px;color:#2563eb">월 평균 처리: 18건</div>
+    </div>
+    <div class="card" style="border-left:3px solid #059669;border-radius:0 12px 12px 0;padding:18px">
+      <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:8px">장학금</div>
+      <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:6px">장학 지원 관리</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.6;margin-bottom:10px">장학금 신청 → 심사 → 지급 → 이력 관리. 수혜자 현황 대시보드. 재신청 알림.</div>
+      <div style="background:#f0fdf4;border-radius:6px;padding:6px 10px;font-size:11px;color:#059669">수혜자 누적: 127명</div>
+    </div>
+  </div>
+  <div style="background:#f8fafc;border-radius:12px;padding:14px 20px;border:1px solid #e2e8f0;display:flex;gap:32px;align-items:center">
+    <span style="font-size:13px;font-weight:700;color:#0f172a">통합 대시보드:</span>
+    <span style="font-size:12px;color:#64748b">지원 유형별 현황</span>
+    <span style="font-size:12px;color:#64748b">담당자별 처리 건수</span>
+    <span style="font-size:12px;color:#64748b">평균 처리 기간</span>
+    <span style="font-size:12px;color:#64748b">이사회용 리포트 자동 생성</span>
+  </div>
+</div>
+
+<!-- ════ S35 NPO 투명성 & 자동 보고서 ════ -->
+<div class="slide" id="s35" style="background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 60%,#0369a1 100%);padding:40px 56px 0">
+  <span class="tag" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)">NPO 특화 05</span>
+  <h2 style="font-size:28px;font-weight:900;color:#fff;margin:12px 0 6px">투명성 & 자동 보고서 — <span style="color:#93c5fd">후원자가 신뢰하는 조직을 만듭니다.</span></h2>
+  <p style="font-size:13px;color:#93c5fd;margin-bottom:18px">후원금 사용 내역, AI 일일 브리핑, 연간 활동 보고서가 자동 생성됩니다. 이사회·후원자·감사 모두 만족시킵니다.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+    <div class="card-dark" style="border-top:2px solid #60a5fa">
+      <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:8px">🤖 AI 일일 브리핑</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">매일 06:30 자동 생성</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.6">어드민별 맞춤 브리핑. 어제 후원 현황·신규 회원·처리 대기 업무·이탈 위험 회원 요약.</div>
+      <div style="margin-top:10px;background:rgba(96,165,250,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#93c5fd">Google Gemini AI 자동 작성</div>
+    </div>
+    <div class="card-dark" style="border-top:2px solid #a78bfa">
+      <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:8px">📊 후원금 사용 리포트</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">분기·연간 자동 생성</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.6">후원금 수입·지출 내역 자동 집계. PDF 리포트 생성. 후원자에게 이메일 자동 발송.</div>
+      <div style="margin-top:10px;background:rgba(167,139,250,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#c084fc">print CSS + PDF 변환</div>
+    </div>
+    <div class="card-dark" style="border-top:2px solid #34d399">
+      <div style="font-size:11px;font-weight:700;color:#6ee7b7;margin-bottom:8px">🔐 감사 로그</div>
+      <div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:6px">1년 전체 이력 보관</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.6">누가 무엇을 언제 변경했는지 전체 추적. 이사회·외부 감사 대비. 연간 자동 정리.</div>
+      <div style="margin-top:10px;background:rgba(52,211,153,.15);border-radius:6px;padding:7px 10px;font-size:11px;color:#6ee7b7">cron 자동 1년 이상 정리</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:32px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 24px;align-items:center">
+    <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">자동</div><div style="font-size:11px;color:#93c5fd">일일 브리핑</div></div>
+    <div style="width:1px;height:36px;background:rgba(255,255,255,.15)"></div>
+    <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">분기</div><div style="font-size:11px;color:#93c5fd">후원 리포트</div></div>
+    <div style="width:1px;height:36px;background:rgba(255,255,255,.15)"></div>
+    <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">1년</div><div style="font-size:11px;color:#93c5fd">감사 로그</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#e2e8f0;line-height:1.7;max-width:500px"><strong style="color:#fff">결과적으로,</strong> 후원자는 내 후원금이 어디 쓰였는지 알고, 이사회는 보고서를 기다리지 않아도 됩니다.</div>
+  </div>
+</div>
+
 </div><!-- /viewport -->
 </div><!-- /deck -->
 
@@ -911,7 +1074,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <button class="nav-arr" id="aPrev" onclick="nav(-1)">&#8592;</button>
 <button class="nav-arr" id="aNext" onclick="nav(1)">&#8594;</button>
 <div class="dots-bar" id="dotsBar"></div>
-<div class="ctr" id="ctr">1 / 30</div>
+<div class="ctr" id="ctr">1 / 35</div>
 <div class="sec-ind" id="secInd">개요</div>
 
 <script>
@@ -922,7 +1085,8 @@ const sections = {
   12:'AI 에이전트', 13:'AI 에이전트', 14:'AI 에이전트', 15:'AI 에이전트', 16:'AI 에이전트',
   17:'포트폴리오', 18:'포트폴리오', 19:'포트폴리오', 20:'포트폴리오', 21:'포트폴리오', 22:'포트폴리오',
   23:'도입 제안', 24:'도입 제안', 25:'도입 제안', 26:'도입 제안', 27:'도입 제안', 28:'도입 제안',
-  29:'마무리', 30:'마무리'
+  29:'마무리', 30:'마무리',
+  31:'NPO 특화', 32:'NPO 특화', 33:'NPO 특화', 34:'NPO 특화', 35:'NPO 특화'
 };
 const dotClass = {
   1:'s1c',2:'s1c',3:'s1c',
@@ -930,7 +1094,8 @@ const dotClass = {
   12:'s3c',13:'s3c',14:'s3c',15:'s3c',16:'s3c',
   17:'s4c',18:'s4c',19:'s4c',20:'s4c',21:'s4c',22:'s4c',
   23:'s5c',24:'s5c',25:'s5c',26:'s5c',27:'s5c',28:'s5c',
-  29:'s6c',30:'s6c'
+  29:'s6c',30:'s6c',
+  31:'s7c',32:'s7c',33:'s7c',34:'s7c',35:'s7c'
 };
 
 let cur = 0;
