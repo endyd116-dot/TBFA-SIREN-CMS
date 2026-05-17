@@ -10,6 +10,7 @@
  */
 import { eq } from "drizzle-orm";
 import { db, members } from "../../db";
+import { pointRules, memberPointLogs } from "../../db/schema";
 import {
   verifyPassword, signUserToken, signAdminToken, buildCookie, DUMMY_BCRYPT_HASH,
 } from "../../lib/auth";
@@ -149,6 +150,30 @@ export default async (req: Request) => {
         lastLoginIp: (getClientIp(req) || "").slice(0, 45),
       } as any)
       .where(eq(members.id, user.id));
+
+    /* 6-b. 일일 로그인 포인트 적립 (fire-and-forget) */
+    try {
+      const prevLastLogin = user.lastLoginAt;
+      const today = new Date().toDateString();
+      const lastLoginDay = prevLastLogin ? new Date(prevLastLogin).toDateString() : null;
+      if (lastLoginDay !== today) {
+        const [rule] = await db
+          .select()
+          .from(pointRules)
+          .where(eq(pointRules.eventType, "login_daily"))
+          .limit(1);
+        if (rule && rule.isActive && rule.pointAmount > 0) {
+          await db.insert(memberPointLogs).values({
+            memberId: user.id,
+            delta: rule.pointAmount,
+            reason: "일일 로그인",
+            eventType: "login_daily",
+          } as any);
+        }
+      }
+    } catch (pointErr) {
+      console.warn("[auth-login] 일일 포인트 적립 실패", pointErr);
+    }
 
     /* 7. ★ E: JWT + 쿠키 발급 (remember 분기) */
     const token = signUserToken(

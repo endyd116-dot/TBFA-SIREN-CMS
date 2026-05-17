@@ -18,6 +18,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, donations, members } from "../../db";
+import { pointRules, memberPointLogs } from "../../db/schema";
 import { safeValidate } from "../../lib/validation";
 import {
   ok, badRequest, notFound, serverError,
@@ -25,6 +26,7 @@ import {
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
+import { checkAndAwardBadges } from "../../lib/badge-checker";
 
 
 /* ───────── 토스 API 설정 ───────── */
@@ -272,7 +274,31 @@ export default async (req: Request) => {
     }
 
 
-    /* 11. 감사 로그 */
+    /* 11. 포인트 적립 (fire-and-forget — 실패해도 후원 흐름 영향 없음) */
+    try {
+      const [rule] = await db
+        .select()
+        .from(pointRules)
+        .where(eq(pointRules.eventType, "donation_complete"))
+        .limit(1);
+      if (rule && rule.isActive && updated.memberId) {
+        const pts = Math.floor(updated.amount / 10000) * rule.pointAmount;
+        if (pts > 0) {
+          await db.insert(memberPointLogs).values({
+            memberId: updated.memberId,
+            delta: pts,
+            reason: "후원 완료",
+            eventType: "donation_complete",
+            referenceId: updated.id,
+          } as any);
+          await checkAndAwardBadges(updated.memberId);
+        }
+      }
+    } catch (pointErr) {
+      console.warn("[donate-toss-confirm] 포인트 적립 실패", pointErr);
+    }
+
+    /* 12. 감사 로그 */
     await logUserAction(req, updated.memberId, updated.donorName, "donate_toss_confirm_success", {
       target: orderId,
       detail: {
@@ -285,7 +311,7 @@ export default async (req: Request) => {
     });
 
 
-    /* 12. 성공 응답 */
+    /* 13. 성공 응답 */
     const donationNo = `D-${String(updated.id).padStart(7, "0")}`;
     return ok({
       donationId: updated.id,
