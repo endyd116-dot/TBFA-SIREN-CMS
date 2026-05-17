@@ -832,7 +832,7 @@
               <li data-mp="profile">회원 정보 수정</li>
               <li data-mp="eligibility">🎓 교원 자격 인증 및 변경</li>
               <li data-mp="expertMatch">⚖️ 전문가 상담</li>
-              <li onclick="window.location.href='/my-send-history.html';return false;" style="cursor:pointer">📬 받은 메시지</li>
+              <li data-mp="messages">📬 받은 메시지</li>
               <li data-mp="points">🏆 포인트·배지</li>
               <li data-mp="ranking">🥇 랭킹</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
@@ -1070,6 +1070,15 @@
             <!-- Phase 15: 매칭 종결 별점 피드백 (mypage-match-feedback.js가 동적 렌더) -->
             <div id="matchFeedbackContainer" style="display:none"></div>
 
+            <!-- 받은 메시지 패널 -->
+            <div class="mp-panel" data-mp-panel="messages" style="display:none">
+              <h3 class="serif">📬 받은 메시지</h3>
+              <p class="sub">관리자·운영자로부터 받은 발송 메시지 내역입니다.</p>
+              <div id="mpMessagesContent">
+                <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
+              </div>
+            </div>
+
             <!-- 포인트·배지 패널 -->
             <div class="mp-panel" data-mp-panel="points" style="display:none">
               <h3 class="serif">🏆 포인트·배지</h3>
@@ -1252,6 +1261,84 @@
   <script src="/js/mypage-out-of-office.js?v=2" defer></script>
 
   <script>
+    /* ── 포인트·배지·랭킹·메시지 로더 (전역 — SIREN_PAGE_INIT 바깥) ── */
+    var _pointsLoaded = false, _rankingLoaded = false, _messagesLoaded = false;
+
+    async function mpLoadPoints() {
+      if (_pointsLoaded) return;
+      _pointsLoaded = true;
+      try {
+        const [pr, br] = await Promise.all([
+          fetch('/api/my-points', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+          fetch('/api/my-badges', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+        ]);
+        const balance = pr.data?.balance ?? pr.balance ?? 0;
+        const logs    = pr.data?.logs    ?? pr.logs    ?? [];
+        const badges  = br.data?.badges  ?? br.badges  ?? [];
+        const balEl = document.getElementById('mpPointsBalance');
+        if (balEl) balEl.textContent = balance.toLocaleString() + ' P';
+        const badgeEl = document.getElementById('mpBadgeList');
+        if (badgeEl) {
+          badgeEl.innerHTML = badges.length
+            ? badges.map(b => `<span style="display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 12px;font-size:13px"><span style="font-size:18px">${b.icon||'🎖'}</span><span>${b.nameKo||b.code}</span></span>`).join('')
+            : '<span style="color:var(--text-3);font-size:13px">아직 획득한 배지가 없습니다.</span>';
+        }
+        const logEl = document.getElementById('mpPointsLog');
+        if (logEl) {
+          logEl.innerHTML = !logs.length
+            ? '<p style="color:var(--text-3);font-size:13px;padding:12px 0">포인트 내역이 없습니다.</p>'
+            : `<table class="tbl" style="margin-top:0"><thead><tr><th>일시</th><th>이벤트</th><th>변동</th><th>사유</th></tr></thead><tbody>${logs.slice(0,50).map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt).toLocaleDateString('ko')}</td><td>${l.eventType||'—'}</td><td style="color:${l.delta>=0?'#16a34a':'#dc2626'};font-weight:600">${l.delta>=0?'+':''}${l.delta}P</td><td style="font-size:12px;color:var(--text-2)">${l.reason||'—'}</td></tr>`).join('')}</tbody></table>`;
+        }
+      } catch { const el=document.getElementById('mpPointsLog'); if(el) el.innerHTML='<p style="color:var(--danger)">불러오기 실패</p>'; }
+    }
+
+    async function mpLoadRanking() {
+      if (_rankingLoaded) return;
+      _rankingLoaded = true;
+      const el = document.getElementById('mpRankingContent');
+      if (!el) return;
+      try {
+        const r = await fetch('/api/ranking', { credentials: 'include' });
+        const json = await r.json().catch(() => ({}));
+        const ranking = json.data?.ranking ?? json.ranking ?? [];
+        if (!ranking.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">랭킹 데이터가 없습니다.</p>'; return; }
+        el.innerHTML = `<table class="tbl"><thead><tr><th style="width:48px">순위</th><th>이름</th><th>포인트</th></tr></thead><tbody>${ranking.map(m=>{const medal=m.rank<=3?['🥇','🥈','🥉'][m.rank-1]:String(m.rank);return`<tr><td style="text-align:center">${medal}</td><td>${m.name||'익명'}</td><td style="color:#1d4ed8;font-weight:600">⭐ ${(m.points||0).toLocaleString()}P</td></tr>`;}).join('')}</tbody></table>`;
+      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>'; }
+    }
+
+    async function mpLoadMessages() {
+      if (_messagesLoaded) return;
+      _messagesLoaded = true;
+      const el = document.getElementById('mpMessagesContent');
+      if (!el) return;
+      try {
+        const r = await fetch('/api/my-send-history', { credentials: 'include' });
+        const json = await r.json().catch(() => ({}));
+        const logs = json.data?.logs ?? json.logs ?? [];
+        if (!logs.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">받은 메시지가 없습니다.</p>'; return; }
+        el.innerHTML = `<table class="tbl"><thead><tr><th>일시</th><th>채널</th><th>제목</th><th>내용</th></tr></thead><tbody>${logs.map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt||l.sentAt).toLocaleDateString('ko')}</td><td>${l.channel||'—'}</td><td style="font-weight:600">${l.title||'—'}</td><td style="font-size:12px;color:var(--text-2)">${(l.content||'').slice(0,60)}</td></tr>`).join('')}</tbody></table>`;
+      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>'; }
+    }
+
+    /* ── 폴백 핸들러 — SIREN_PAGE_INIT 없이도 포인트·랭킹·메시지 패널 전환 작동 ── */
+    document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('click', function(e) {
+        var li = e.target.closest('#mpMenu li[data-mp="points"], #mpMenu li[data-mp="ranking"], #mpMenu li[data-mp="messages"]');
+        if (!li) return;
+        var key = li.dataset.mp;
+        document.querySelectorAll('.mp-panel').forEach(function(p){ p.style.display='none'; });
+        var panel = document.querySelector('.mp-panel[data-mp-panel="'+key+'"]');
+        if (panel) panel.style.display = 'block';
+        document.querySelectorAll('#mpMenu li').forEach(function(x){ x.classList.remove('on'); });
+        li.classList.add('on');
+        var crumb = document.getElementById('mpCrumb');
+        if (crumb) crumb.textContent = li.textContent.trim();
+        if (key==='points')   mpLoadPoints();
+        if (key==='ranking')  mpLoadRanking();
+        if (key==='messages') mpLoadMessages();
+      });
+    });
+
     const __mpPrevInit = window.SIREN_PAGE_INIT;
     window.SIREN_PAGE_INIT = function () {
       if (typeof __mpPrevInit === 'function') __mpPrevInit();
@@ -1277,10 +1364,10 @@
         if (key === 'expertMatch' && window.SIREN_MYPAGE_EXPERT_MATCH && typeof window.SIREN_MYPAGE_EXPERT_MATCH.load === 'function') {
           window.SIREN_MYPAGE_EXPERT_MATCH.load();
         }
-        /* 포인트·배지 탭 */
-        if (key === 'points') mpLoadPoints();
-        /* 랭킹 탭 */
-        if (key === 'ranking') mpLoadRanking();
+        /* 포인트·배지·랭킹·메시지 — 전역 함수 호출 */
+        if (key === 'points')   mpLoadPoints();
+        if (key === 'ranking')  mpLoadRanking();
+        if (key === 'messages') mpLoadMessages();
         return true;
       }
 
@@ -1347,83 +1434,6 @@
         SIREN.toast(btn.dataset.demoMessage);
       });
 
-      /* ── 포인트·배지 ── */
-      let _pointsLoaded = false;
-      async function mpLoadPoints() {
-        if (_pointsLoaded) return;
-        _pointsLoaded = true;
-        try {
-          const [pr, br] = await Promise.all([
-            fetch('/api/my-points', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
-            fetch('/api/my-badges', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
-          ]);
-          const balance = pr.data?.balance ?? pr.balance ?? 0;
-          const logs    = pr.data?.logs    ?? pr.logs    ?? [];
-          const badges  = br.data?.badges  ?? br.badges  ?? [];
-
-          document.getElementById('mpPointsBalance').textContent = balance.toLocaleString() + ' P';
-
-          /* 배지 */
-          const badgeEl = document.getElementById('mpBadgeList');
-          if (badges.length) {
-            badgeEl.innerHTML = badges.map(b =>
-              `<span style="display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 12px;font-size:13px">
-                <span style="font-size:18px">${b.icon || '🎖'}</span><span>${b.nameKo || b.code}</span>
-              </span>`
-            ).join('');
-          } else {
-            badgeEl.innerHTML = '<span style="color:var(--text-3);font-size:13px">아직 획득한 배지가 없습니다.</span>';
-          }
-
-          /* 포인트 내역 */
-          const logEl = document.getElementById('mpPointsLog');
-          if (!logs.length) {
-            logEl.innerHTML = '<p style="color:var(--text-3);font-size:13px;padding:12px 0">포인트 내역이 없습니다.</p>';
-          } else {
-            logEl.innerHTML = `<table class="tbl" style="margin-top:0">
-              <thead><tr><th>일시</th><th>이벤트</th><th>변동</th><th>사유</th></tr></thead>
-              <tbody>${logs.slice(0,50).map(l => `<tr>
-                <td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt).toLocaleDateString('ko')}</td>
-                <td>${l.eventType || '—'}</td>
-                <td style="color:${l.delta >= 0 ? '#16a34a' : '#dc2626'};font-weight:600">${l.delta >= 0 ? '+' : ''}${l.delta}P</td>
-                <td style="font-size:12px;color:var(--text-2)">${l.reason || '—'}</td>
-              </tr>`).join('')}</tbody>
-            </table>`;
-          }
-        } catch (e) {
-          document.getElementById('mpPointsLog').innerHTML = '<p style="color:var(--danger)">불러오기 실패</p>';
-        }
-      }
-
-      /* ── 랭킹 ── */
-      let _rankingLoaded = false;
-      async function mpLoadRanking() {
-        if (_rankingLoaded) return;
-        _rankingLoaded = true;
-        const el = document.getElementById('mpRankingContent');
-        try {
-          const r = await fetch('/api/ranking', { credentials: 'include' });
-          const json = await r.json().catch(() => ({}));
-          const ranking = json.data?.ranking ?? json.ranking ?? [];
-          if (!ranking.length) {
-            el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">랭킹 데이터가 없습니다.</p>';
-            return;
-          }
-          el.innerHTML = `<table class="tbl">
-            <thead><tr><th style="width:48px">순위</th><th>이름</th><th>포인트</th></tr></thead>
-            <tbody>${ranking.map((m) => {
-              const medal = m.rank <= 3 ? ['🥇','🥈','🥉'][m.rank - 1] : String(m.rank);
-              return `<tr>
-                <td style="text-align:center">${medal}</td>
-                <td>${m.name || '익명'}</td>
-                <td style="color:#1d4ed8;font-weight:600">⭐ ${(m.points || 0).toLocaleString()}P</td>
-              </tr>`;
-            }).join('')}</tbody>
-          </table>`;
-        } catch (e) {
-          el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>';
-        }
-      }
     };
   </script>
 </body>

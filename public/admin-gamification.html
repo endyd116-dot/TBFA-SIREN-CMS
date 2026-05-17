@@ -236,7 +236,7 @@
   <div class="card">
     <div class="card-title">
       <span>포인트 지급 규칙</span>
-      <button class="btn btn-primary btn-sm" id="btnSaveRules">저장</button>
+      <button class="btn btn-primary btn-sm" id="btnAddRule">+ 규칙 추가</button>
     </div>
     <div id="rulesContent"><div class="loading">불러오는 중...</div></div>
   </div>
@@ -299,6 +299,30 @@
     <div class="card">
       <div class="card-title"><span>포인트 내역</span></div>
       <div id="membersContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 포인트 규칙 모달 ── -->
+<div class="modal-overlay" id="modalRule">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalRuleTitle">규칙 추가</h3>
+      <button class="modal-close" data-close="modalRule">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ruleId">
+      <div class="fg"><label>이벤트 유형 (영문, 고유값)</label><input type="text" id="ruleEventType" placeholder="예: custom_action"></div>
+      <div class="fg"><label>이름 (설명)</label><input type="text" id="ruleDescription" placeholder="예: 커스텀 활동 보상"></div>
+      <div class="fg"><label>포인트</label><input type="number" id="rulePointAmount" placeholder="예: 50" min="0"></div>
+      <div class="fg" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="ruleIsActive" checked>
+        <label for="ruleIsActive" style="margin-bottom:0;font-weight:400">활성 상태</label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close="modalRule">취소</button>
+      <button class="btn btn-primary" id="btnSaveRule">저장</button>
     </div>
   </div>
 </div>
@@ -412,41 +436,79 @@
   /* ══════════════════════════════════════
      탭 1: 포인트 규칙
   ══════════════════════════════════════ */
-  const DEFAULT_RULES = [
-    { eventType: 'login_daily', label: '일일 로그인', defaultPts: 1 },
-    { eventType: 'donation_complete', label: '후원 완료', defaultPts: 100 },
-    { eventType: 'profile_complete', label: '프로필 완성', defaultPts: 50 },
-    { eventType: 'siren_report', label: 'SIREN 신고 제출', defaultPts: 30 },
-    { eventType: 'comment_create', label: '댓글 작성', defaultPts: 5 },
-  ];
-
-  let rulesData = {};
-
   async function loadRules() {
     const res = await api('/api/admin-point-rules');
     const d = res.data?.data || res.data || {};
-    rulesData = d.rules || {};
+    const rules = d.rules || [];
     const el = document.getElementById('rulesContent');
-    el.innerHTML = `<div class="rules-grid">${DEFAULT_RULES.map(r => `
-      <div class="rule-item">
-        <div class="rule-label">${r.label}</div>
-        <div class="rule-pts">
-          <span style="font-size:12px;color:#6b7280">포인트</span>
-          <input type="number" min="0" data-event="${r.eventType}"
-            value="${rulesData[r.eventType] ?? r.defaultPts}" class="rule-pts-input">
-          <span style="font-size:12px;color:#6b7280">P</span>
-        </div>
-      </div>`).join('')}
-    </div>`;
+    if (!rules.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚙️</div><p>등록된 규칙이 없습니다. "+ 규칙 추가"를 눌러 추가하세요.</p></div>';
+      return;
+    }
+    el.innerHTML = `<table class="data-table"><thead><tr><th>이벤트 유형</th><th>설명</th><th>포인트</th><th>상태</th><th style="width:120px">관리</th></tr></thead><tbody>
+      ${rules.map(r => `<tr>
+        <td><code style="font-size:12px;background:#f3f4f6;padding:2px 6px;border-radius:4px">${r.eventType}</code></td>
+        <td>${r.description || '—'}</td>
+        <td style="font-weight:600;color:#1d4ed8">⭐ ${r.pointAmount}P</td>
+        <td><span style="color:${r.isActive ? '#16a34a' : '#9ca3af'};font-weight:600">${r.isActive ? '활성' : '비활성'}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" data-rule-edit='${JSON.stringify(r)}'>수정</button>
+          <button class="btn btn-danger btn-sm" data-rule-del="${r.id}" style="margin-left:4px">삭제</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
   }
 
-  document.getElementById('btnSaveRules').addEventListener('click', async () => {
-    const inputs = document.querySelectorAll('.rule-pts-input');
-    const rules = {};
-    inputs.forEach(inp => { rules[inp.dataset.event] = Number(inp.value); });
-    const res = await api('/api/admin-point-rules', { method: 'PATCH', body: { rules } });
+  /* 규칙 모달 열기 */
+  document.getElementById('btnAddRule').addEventListener('click', () => {
+    document.getElementById('modalRuleTitle').textContent = '규칙 추가';
+    ['ruleId','ruleEventType','ruleDescription','rulePointAmount'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('ruleIsActive').checked = true;
+    document.getElementById('ruleEventType').readOnly = false;
+    document.getElementById('modalRule').classList.add('show');
+  });
+
+  /* 규칙 수정/삭제 */
+  document.addEventListener('click', async e => {
+    const editBtn = e.target.closest('[data-rule-edit]');
+    if (editBtn) {
+      const r = JSON.parse(editBtn.dataset.ruleEdit);
+      document.getElementById('modalRuleTitle').textContent = '규칙 수정';
+      document.getElementById('ruleId').value = r.id;
+      document.getElementById('ruleEventType').value = r.eventType;
+      document.getElementById('ruleEventType').readOnly = true;
+      document.getElementById('ruleDescription').value = r.description || '';
+      document.getElementById('rulePointAmount').value = r.pointAmount;
+      document.getElementById('ruleIsActive').checked = r.isActive !== false;
+      document.getElementById('modalRule').classList.add('show');
+      return;
+    }
+    const delBtn = e.target.closest('[data-rule-del]');
+    if (delBtn) {
+      if (!confirm('이 규칙을 삭제하시겠습니까?')) return;
+      const res = await api('/api/admin-point-rules?id=' + delBtn.dataset.ruleDel, { method: 'DELETE' });
+      if (res.ok) { toast('삭제되었습니다.'); loadRules(); } else toast(res.data?.error || '삭제 실패');
+    }
+  });
+
+  /* 규칙 저장 */
+  document.getElementById('btnSaveRule').addEventListener('click', async () => {
+    const id = document.getElementById('ruleId').value;
+    const body = {
+      eventType:   document.getElementById('ruleEventType').value.trim(),
+      description: document.getElementById('ruleDescription').value.trim() || null,
+      pointAmount: Number(document.getElementById('rulePointAmount').value),
+      isActive:    document.getElementById('ruleIsActive').checked,
+    };
+    if (!body.eventType) { toast('이벤트 유형은 필수입니다.'); return; }
+    if (isNaN(body.pointAmount)) { toast('포인트를 입력하세요.'); return; }
+    const res = id
+      ? await api('/api/admin-point-rules?id=' + id, { method: 'PATCH', body })
+      : await api('/api/admin-point-rules', { method: 'POST', body });
     if (!res.ok) { toast(res.data?.error || '저장 실패'); return; }
-    toast('포인트 규칙이 저장되었습니다.');
+    toast('저장되었습니다.');
+    document.getElementById('modalRule').classList.remove('show');
+    loadRules();
   });
 
   /* ══════════════════════════════════════
