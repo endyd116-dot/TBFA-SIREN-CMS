@@ -319,6 +319,34 @@ export const TOOL_DECLARATIONS = [
       taskId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
     }, required: ["taskId"] }},
 
+  /* 이메일 템플릿 관리 (4종) */
+  { name: "email_templates_list", description: "등록된 이메일 발송 템플릿 목록 조회. 새 템플릿 추가 전 기존 목록을 먼저 확인하는 데 사용.",
+    parameters: { type: "OBJECT", properties: {
+      category: { type: "STRING", description: "newsletter|announcement|auto_trigger|campaign|system (생략 시 전체)" },
+      includeInactive: { type: "BOOLEAN", description: "비활성 포함 여부 (기본 false)" },
+    }}},
+  { name: "email_template_create", description: "새 이메일 발송 템플릿 생성 (dry-run 우선). AI가 HTML bodyTemplate을 직접 작성해 저장. '템플릿 추가해줘' 요청 시 이 도구로 생성.",
+    parameters: { type: "OBJECT", properties: {
+      name: { type: "STRING", description: "템플릿 이름 (1~100자)" },
+      subject: { type: "STRING", description: "이메일 제목 (변수 사용 가능, 예: {{name}}님께)" },
+      category: { type: "STRING", description: "newsletter|announcement|auto_trigger|campaign|system" },
+      bodyTemplate: { type: "STRING", description: "HTML 본문 (최대 10000자). 변수는 {{변수명}} 형식. 직접 HTML 작성." },
+      variables: { type: "ARRAY", items: { type: "OBJECT" }, description: "변수 목록. 각 항목: {key, label, sample}. 예: [{key:'name',label:'수신자 이름',sample:'홍길동'}]" },
+      useSirenLayout: { type: "BOOLEAN", description: "SIREN 공식 레이아웃으로 자동 래핑 여부" },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["name", "subject", "category", "bodyTemplate"] }},
+  { name: "email_template_update", description: "기존 이메일 템플릿 수정 (dry-run 우선).",
+    parameters: { type: "OBJECT", properties: {
+      templateId: { type: "INTEGER" },
+      name: { type: "STRING" }, subject: { type: "STRING" },
+      bodyTemplate: { type: "STRING" }, useSirenLayout: { type: "BOOLEAN" },
+      isActive: { type: "BOOLEAN" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["templateId"] }},
+  { name: "email_template_delete", description: "이메일 템플릿 비활성화 (soft delete, dry-run 우선).",
+    parameters: { type: "OBJECT", properties: {
+      templateId: { type: "INTEGER" }, requireApproval: { type: "BOOLEAN" },
+    }, required: ["templateId"] }},
+
   /* 파일함 (읽기 전용 — 업로드는 멀티파트라 AI 도구 X) */
   { name: "files_list", description: "워크스페이스 파일·폴더 목록 (호출자 본인 소유 또는 공유받은 것). email_send의 attachmentFileIds에 쓸 파일 ID를 이 도구로 먼저 확인.",
     parameters: { type: "OBJECT", properties: {
@@ -794,8 +822,12 @@ export async function executeTool(
       case "event_delete":         return await tool_eventDelete(args, adminId);
       case "task_comments_list":   return await tool_taskCommentsList(args);
       case "task_comment_add":     return await tool_taskCommentAdd(args, adminId);
-      case "task_delete":          return await tool_taskDelete(args, adminId);
-      case "files_list":           return await tool_filesList(args, adminId);
+      case "task_delete":              return await tool_taskDelete(args, adminId);
+      case "email_templates_list":     return await tool_emailTemplatesList(args, adminId);
+      case "email_template_create":    return await tool_emailTemplateCreate(args, adminId);
+      case "email_template_update":    return await tool_emailTemplateUpdate(args, adminId);
+      case "email_template_delete":    return await tool_emailTemplateDelete(args, adminId);
+      case "files_list":               return await tool_filesList(args, adminId);
       /* Phase 2: 콘텐츠·게시판·캠페인·공지·FAQ (10개) */
       case "notices_list":         return await tool_noticesList(args);
       case "notice_delete":        return await tool_noticeDelete(args, adminId);
@@ -2340,6 +2372,136 @@ async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolR
     return { ok: true, output: { deleted: true, taskId: id, cascaded: { comments: commentCount, reports: reportCount, attachments: attachmentCount } }, rollbackData: { table: "workspace_tasks", id, before } };
   } catch (e: any) {
     return { ok: false, error: `작업 삭제 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+/* =========================================================
+   이메일 템플릿 관리 (4종)
+   ========================================================= */
+
+async function tool_emailTemplatesList(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const includeInactive = args?.includeInactive === true;
+  const category = typeof args?.category === "string" ? args.category.trim() : "";
+  const VALID_CATS = new Set(["newsletter","announcement","auto_trigger","campaign","system"]);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, subject, category, body_template, variables, is_active,
+             use_siren_layout, created_at, updated_at
+        FROM communication_templates
+       WHERE channel = 'email'
+         ${!includeInactive ? sql`AND is_active = true` : sql``}
+         ${category && VALID_CATS.has(category) ? sql`AND category = ${category}` : sql``}
+       ORDER BY created_at DESC
+       LIMIT 50
+    `);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, templates: rows } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_emailTemplateCreate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const name = String(args?.name || "").trim().slice(0, 100);
+  const subject = String(args?.subject || "").trim();
+  const bodyTemplate = String(args?.bodyTemplate || "").trim();
+  const VALID_CATS = new Set(["newsletter","announcement","auto_trigger","campaign","system"]);
+  const category = VALID_CATS.has(args?.category) ? args.category : "announcement";
+  if (!name) return { ok: false, error: "name 필수 (1~100자)" };
+  if (!subject) return { ok: false, error: "subject 필수" };
+  if (!bodyTemplate || bodyTemplate.length < 10) return { ok: false, error: "bodyTemplate 필수 (최소 10자)" };
+  if (bodyTemplate.length > 10000) return { ok: false, error: "bodyTemplate 최대 10000자" };
+  const variables = Array.isArray(args?.variables) ? args.variables : [];
+  const useSirenLayout = args?.useSirenLayout === true;
+
+  const preview = { name, subject, category, bodyPreview: bodyTemplate.slice(0, 200), variableCount: variables.length, useSirenLayout };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 이메일 템플릿 "${name}" 생성 예정. requireApproval=false로 재호출하면 실제 저장.` } };
+  }
+
+  try {
+    const r: any = await db.execute(sql`
+      INSERT INTO communication_templates
+        (name, channel, category, subject, body_template, variables, use_siren_layout,
+         is_active, created_by, updated_by, created_at, updated_at)
+      VALUES
+        (${name}, 'email', ${category}, ${subject}, ${bodyTemplate},
+         ${JSON.stringify(variables)}::jsonb, ${useSirenLayout},
+         true, ${adminId}, ${adminId}, NOW(), NOW())
+      RETURNING id
+    `);
+    const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    return { ok: true, output: { templateId: id, ...preview }, rollbackData: { table: "communication_templates", id } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 생성 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_emailTemplateUpdate(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.templateId || 0);
+  if (!id) return { ok: false, error: "templateId 필수" };
+
+  /* 현재값 조회 */
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, subject, body_template, is_active, use_siren_layout
+        FROM communication_templates WHERE id = ${id} AND channel = 'email'
+    `);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `템플릿 조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `이메일 템플릿 ${id} 없음` };
+
+  const name = args?.name !== undefined ? String(args.name).trim().slice(0, 100) : before.name;
+  const subject = args?.subject !== undefined ? String(args.subject).trim() : before.subject;
+  const bodyTemplate = args?.bodyTemplate !== undefined ? String(args.bodyTemplate).trim() : before.body_template;
+  const isActive = args?.isActive !== undefined ? Boolean(args.isActive) : before.is_active;
+  const useSirenLayout = args?.useSirenLayout !== undefined ? Boolean(args.useSirenLayout) : before.use_siren_layout;
+
+  const preview = { templateId: id, name, subject, bodyPreview: bodyTemplate.slice(0, 200), isActive, useSirenLayout };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 템플릿 "${before.name}" 수정 예정.` } };
+  }
+
+  try {
+    await db.execute(sql`
+      UPDATE communication_templates
+         SET name = ${name}, subject = ${subject}, body_template = ${bodyTemplate},
+             is_active = ${isActive}, use_siren_layout = ${useSirenLayout},
+             updated_by = ${adminId}, updated_at = NOW()
+       WHERE id = ${id}
+    `);
+    return { ok: true, output: { updated: true, ...preview }, rollbackData: { table: "communication_templates", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `템플릿 수정 실패: ${e?.message?.slice(0, 200)}` };
+  }
+}
+
+async function tool_emailTemplateDelete(args: any, adminId: number | null): Promise<ToolResult> {
+  if (!adminId) return { ok: false, error: "관리자 인증 필요" };
+  const id = Number(args?.templateId || 0);
+  if (!id) return { ok: false, error: "templateId 필수" };
+
+  let before: any;
+  try {
+    const r: any = await db.execute(sql`SELECT id, name FROM communication_templates WHERE id = ${id} AND channel = 'email'`);
+    before = (r?.rows ?? r ?? [])[0];
+  } catch (e: any) { return { ok: false, error: `조회 실패: ${e?.message?.slice(0, 200)}` }; }
+  if (!before) return { ok: false, error: `이메일 템플릿 ${id} 없음` };
+
+  const preview = { templateId: id, name: before.name };
+  if (args?.requireApproval !== false) {
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. "${before.name}" 비활성화 예정.` } };
+  }
+
+  try {
+    await db.execute(sql`UPDATE communication_templates SET is_active = false, updated_by = ${adminId}, updated_at = NOW() WHERE id = ${id}`);
+    return { ok: true, output: { deleted: true, ...preview }, rollbackData: { table: "communication_templates", id, before } };
+  } catch (e: any) {
+    return { ok: false, error: `비활성화 실패: ${e?.message?.slice(0, 200)}` };
   }
 }
 
