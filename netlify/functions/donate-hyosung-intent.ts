@@ -7,8 +7,9 @@
 
 import { db, donations, generateTransactionId } from "../../db";
 import { eq } from "drizzle-orm";
-import { donationPolicies } from "../../db/schema";
+import { donationPolicies, pointRules, memberPointLogs } from "../../db/schema";
 import { authenticateUser } from "../../lib/auth";
+import { checkAndAwardBadges } from "../../lib/badge-checker";
 import {
   created, badRequest, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -95,6 +96,32 @@ export default async (req: Request) => {
       });
     } catch (e) {
       console.warn("[donate-hyosung-intent] 알림 실패", e);
+    }
+
+    /* 포인트 적립 (fire-and-forget) */
+    try {
+      if (memberId) {
+        const [rule] = await db
+          .select()
+          .from(pointRules)
+          .where(eq(pointRules.eventType, "donation_complete"))
+          .limit(1);
+        if (rule && rule.isActive) {
+          const pts = Math.floor(amount / 10000) * rule.pointAmount;
+          if (pts > 0) {
+            await db.insert(memberPointLogs).values({
+              memberId,
+              delta: pts,
+              reason: "후원 완료 (효성 CMS)",
+              eventType: "donation_complete",
+              referenceId: (record as any).id,
+            } as any);
+            await checkAndAwardBadges(memberId);
+          }
+        }
+      }
+    } catch (pointErr) {
+      console.warn("[donate-hyosung-intent] 포인트 적립 실패", pointErr);
     }
 
     return created({
