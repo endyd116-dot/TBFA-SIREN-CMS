@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail } from "./email";
 import { resolvePeriod } from "./period-filter";
+import { downloadFromR2 } from "./r2-server";
 
 /* =========================================================
    Gemini Function Declaration — OpenAPI 3.0 schema (대문자 type)
@@ -226,11 +227,13 @@ export const TOOL_DECLARATIONS = [
       dueDate: { type: "STRING", description: "YYYY-MM-DD (생략 시 7일 후)" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["title"] }},
-  { name: "email_send", description: "회원에게 이메일 발송 (1~50명, Resend)",
+  { name: "email_send", description: "이메일 발송 (회원 ID 목록 또는 직접 이메일 주소, 파일함 파일 첨부 가능). memberIds와 toEmails 중 하나 이상 필수.",
     parameters: { type: "OBJECT", properties: {
-      memberIds: { type: "ARRAY", items: { type: "INTEGER" }},
+      memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명). toEmails와 함께 쓸 수 있음." },
+      toEmails: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 이메일 주소 목록 (최대 10개). 회원이 아닌 외부 주소 포함 가능." },
       subject: { type: "STRING" }, body: { type: "STRING" }, requireApproval: { type: "BOOLEAN" },
-    }, required: ["memberIds", "subject", "body"] }},
+      attachmentFileIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "파일함(workspace_files)에서 첨부할 파일 ID 목록 (최대 5개). files_list 도구로 ID를 먼저 확인." },
+    }, required: ["subject", "body"] }},
   { name: "notification_send", description: "회원에게 사이트 알림 발송 (1~100명)",
     parameters: { type: "OBJECT", properties: {
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }},
@@ -312,9 +315,10 @@ export const TOOL_DECLARATIONS = [
     }, required: ["taskId"] }},
 
   /* 파일함 (읽기 전용 — 업로드는 멀티파트라 AI 도구 X) */
-  { name: "files_list", description: "워크스페이스 파일·폴더 목록 (호출자 본인 소유 또는 공유받은 것)",
+  { name: "files_list", description: "워크스페이스 파일·폴더 목록 (호출자 본인 소유 또는 공유받은 것). email_send의 attachmentFileIds에 쓸 파일 ID를 이 도구로 먼저 확인.",
     parameters: { type: "OBJECT", properties: {
       folderId: { type: "INTEGER", description: "폴더 ID (생략 시 루트)" },
+      search: { type: "STRING", description: "파일 이름 키워드 검색 (부분 일치). 예: 'NPO 제안서'" },
       limit: { type: "INTEGER" },
     }}},
 
@@ -1285,48 +1289,96 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
 }
 
 async function tool_emailSend(args: any, adminId: number | null): Promise<ToolResult> {
-  const ids: number[] = toIdArray(args?.memberIds);
-  if (ids.length === 0) return { ok: false, error: "memberIds 필수 (정수 배열, 예: [5])" };
-  if (ids.length > 50) return { ok: false, error: "한 번에 최대 50명까지" };
+  const memberIds: number[] = toIdArray(args?.memberIds);
+  const toEmailsRaw: string[] = Array.isArray(args?.toEmails) ? args.toEmails.map(String) : [];
+  if (memberIds.length === 0 && toEmailsRaw.length === 0) return { ok: false, error: "memberIds 또는 toEmails 중 하나 이상 필수" };
+  if (memberIds.length > 50) return { ok: false, error: "memberIds 최대 50명까지" };
+  if (toEmailsRaw.length > 10) return { ok: false, error: "toEmails 최대 10개까지" };
   const subject = String(args?.subject || "").trim();
   const body = String(args?.body || "").trim();
   if (!subject) return { ok: false, error: "subject 필수" };
   if (!body) return { ok: false, error: "body 필수" };
 
-  /* 수신자 조회 — 이름·이메일 (ids는 toIdArray로 정수 보장됨) */
-  let recipients: any[] = [];
-  try {
-    const idsLiteral = `ARRAY[${ids.join(",")}]::int[]`;
-    const r: any = await db.execute(sql`
-      SELECT id, name, email FROM members
-       WHERE id = ANY(${sql.raw(idsLiteral)}) AND email IS NOT NULL AND email <> ''
-       LIMIT 50
-    `);
-    recipients = r?.rows ?? r ?? [];
-  } catch (e: any) {
-    return { ok: false, error: `수신자 조회 실패: ${e?.message?.slice(0, 200)}` };
+  /* 수신자 목록 구성 */
+  let recipients: { name: string; email: string }[] = [];
+
+  /* memberIds → DB 조회 */
+  if (memberIds.length > 0) {
+    try {
+      const idsLiteral = `ARRAY[${memberIds.join(",")}]::int[]`;
+      const r: any = await db.execute(sql`
+        SELECT id, name, email FROM members
+         WHERE id = ANY(${sql.raw(idsLiteral)}) AND email IS NOT NULL AND email <> ''
+         LIMIT 50
+      `);
+      for (const row of (r?.rows ?? r ?? [])) {
+        recipients.push({ name: String(row.name || ""), email: String(row.email) });
+      }
+    } catch (e: any) {
+      return { ok: false, error: `수신자 조회 실패: ${e?.message?.slice(0, 200)}` };
+    }
   }
-  if (recipients.length === 0) return { ok: false, error: "유효한 수신자 없음 (이메일 등록된 회원만)" };
+
+  /* toEmails → 직접 추가 */
+  for (const addr of toEmailsRaw) {
+    if (addr.includes("@")) recipients.push({ name: addr, email: addr });
+  }
+
+  if (recipients.length === 0) return { ok: false, error: "유효한 수신자 없음" };
+
+  /* 파일함 첨부 — workspace_files r2Key 다운로드 */
+  const attachmentFileIds: number[] = toIdArray(args?.attachmentFileIds).slice(0, 5);
+  let attachments: Array<{ filename: string; content: string }> = [];
+  let attachmentSummary = "";
+  if (attachmentFileIds.length > 0) {
+    try {
+      const idsLiteral = `ARRAY[${attachmentFileIds.join(",")}]::int[]`;
+      const fr: any = await db.execute(sql`
+        SELECT id, name, r2_key, mime_type, size_bytes
+          FROM workspace_files
+         WHERE id = ANY(${sql.raw(idsLiteral)})
+           AND deleted_at IS NULL AND upload_status <> 'deleted'
+         LIMIT 5
+      `);
+      const fileRows: any[] = fr?.rows ?? fr ?? [];
+      const skipped: string[] = [];
+      for (const f of fileRows) {
+        const sizeBytes = Number(f.size_bytes || 0);
+        if (sizeBytes > 25 * 1024 * 1024) { skipped.push(`${f.name} (25MB 초과)`); continue; }
+        const buf = await downloadFromR2(String(f.r2_key));
+        if (!buf || buf.length === 0) { skipped.push(`${f.name} (다운로드 실패)`); continue; }
+        attachments.push({ filename: String(f.name), content: Buffer.from(buf).toString("base64") });
+      }
+      attachmentSummary = attachments.length > 0
+        ? `첨부 ${attachments.length}개: ${attachments.map(a => a.filename).join(", ")}`
+        : "";
+      if (skipped.length > 0) attachmentSummary += ` / 스킵 ${skipped.join(", ")}`;
+    } catch (e: any) {
+      return { ok: false, error: `첨부 파일 준비 실패: ${e?.message?.slice(0, 200)}` };
+    }
+  }
 
   const preview = {
     recipientCount: recipients.length,
-    recipientNames: recipients.slice(0, 5).map((r: any) => r.name),
+    recipients: recipients.slice(0, 5).map(r => `${r.name} <${r.email}>`),
     subject, bodyPreview: body.slice(0, 200),
+    ...(attachmentSummary ? { attachments: attachmentSummary } : {}),
   };
 
   if (args?.requireApproval !== false) {
-    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. ${recipients.length}명에게 발송 예정. requireApproval=false로 재호출하면 실제 발송.` } };
+    return { ok: true, preview, output: { dry_run: true, message: `승인 대기. ${recipients.length}명에게 발송 예정${attachmentSummary ? " / " + attachmentSummary : ""}. requireApproval=false로 재호출하면 실제 발송.` } };
   }
 
-  /* 실제 발송 — 한 명씩 (실패해도 다음 진행) */
-  const results = { sent: 0, failed: 0, errors: [] as string[] };
+  /* 실제 발송 */
+  const results = { sent: 0, failed: 0, errors: [] as string[], attachments: attachmentSummary };
   const isHtml = /<[a-z][\s\S]*>/i.test(body);
   for (const rcpt of recipients) {
     try {
       await sendEmail({
-        to: String(rcpt.email),
+        to: rcpt.email,
         subject,
         html: isHtml ? body : `<div style="white-space:pre-wrap">${body.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</div>`,
+        ...(attachments.length > 0 ? { attachments } : {}),
       });
       results.sent++;
     } catch (e: any) {
@@ -2278,31 +2330,50 @@ async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolR
 async function tool_filesList(args: any, adminId: number | null): Promise<ToolResult> {
   if (!adminId) return { ok: false, error: "관리자 인증 필요" };
   const folderId = args?.folderId != null ? Number(args.folderId) : null;
+  const search = typeof args?.search === "string" ? args.search.trim() : "";
   const limit = Math.min(Number(args?.limit) || 30, 100);
   try {
-    /* 폴더 */
-    const folderR: any = await db.execute(sql`
-      SELECT id, name, parent_id, depth, is_shared, created_at
-        FROM workspace_folders
-       WHERE deleted_at IS NULL
-         AND (owner_id = ${adminId} OR is_shared = true)
-         AND parent_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
-       ORDER BY name
-       LIMIT ${limit}
-    `);
-    const folders = folderR?.rows ?? folderR ?? [];
-    /* 파일 */
-    const fileR: any = await db.execute(sql`
-      SELECT id, name, ext, mime_type, size_bytes, is_shared, download_count, created_at
-        FROM workspace_files
-       WHERE deleted_at IS NULL
-         AND (owner_id = ${adminId} OR is_shared = true)
-         AND folder_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
-       ORDER BY created_at DESC
-       LIMIT ${limit}
-    `);
+    /* 파일 — 키워드 검색 시 폴더 무시하고 전체 검색 */
+    let fileR: any;
+    if (search) {
+      fileR = await db.execute(sql`
+        SELECT id, name, ext, mime_type, size_bytes, folder_id, is_shared, download_count, created_at
+          FROM workspace_files
+         WHERE deleted_at IS NULL
+           AND (owner_id = ${adminId} OR is_shared = true)
+           AND name ILIKE ${"%" + search + "%"}
+         ORDER BY created_at DESC
+         LIMIT ${limit}
+      `);
+    } else {
+      fileR = await db.execute(sql`
+        SELECT id, name, ext, mime_type, size_bytes, folder_id, is_shared, download_count, created_at
+          FROM workspace_files
+         WHERE deleted_at IS NULL
+           AND (owner_id = ${adminId} OR is_shared = true)
+           AND folder_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
+         ORDER BY created_at DESC
+         LIMIT ${limit}
+      `);
+    }
     const files = fileR?.rows ?? fileR ?? [];
-    return { ok: true, output: { folderId, folderCount: folders.length, fileCount: files.length, folders, files } };
+
+    /* 폴더 목록 — 검색 시 생략 */
+    let folders: any[] = [];
+    if (!search) {
+      const folderR: any = await db.execute(sql`
+        SELECT id, name, parent_id, depth, is_shared, created_at
+          FROM workspace_folders
+         WHERE deleted_at IS NULL
+           AND (owner_id = ${adminId} OR is_shared = true)
+           AND parent_id ${folderId == null ? sql`IS NULL` : sql`= ${folderId}`}
+         ORDER BY name
+         LIMIT ${limit}
+      `);
+      folders = folderR?.rows ?? folderR ?? [];
+    }
+
+    return { ok: true, output: { folderId, search: search || null, folderCount: folders.length, fileCount: files.length, folders, files } };
   } catch (e: any) {
     return { ok: false, error: `파일 목록 조회 실패: ${e?.message?.slice(0, 200)}` };
   }
