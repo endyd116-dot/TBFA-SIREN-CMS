@@ -21,6 +21,7 @@
 import { eq, desc, and, or, like, count, sql, inArray } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   ok, badRequest, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -145,6 +146,7 @@ export default async (req: Request) => {
 
     /* ===== PATCH ===== */
     if (req.method === "PATCH") {
+      if (!requireRole(guard.ctx.member, "admin")) return roleForbidden("admin");
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
 

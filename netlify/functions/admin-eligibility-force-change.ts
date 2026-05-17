@@ -5,6 +5,7 @@ import type { Context } from "@netlify/functions";
 import { eq, sql } from "drizzle-orm";
 import { db, members, notifications } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { logAdminAction } from "../../lib/audit";
 import {
   ok, badRequest, notFound, serverError,
@@ -22,6 +23,7 @@ export default async (req: Request, _ctx: Context) => {
 
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
+  if (!requireRole(guard.ctx.member, "admin")) return roleForbidden("admin");
   const { admin } = guard.ctx;
 
   try {

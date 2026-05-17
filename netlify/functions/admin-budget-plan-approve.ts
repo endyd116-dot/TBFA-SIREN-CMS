@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-budget-plan-approve" };
@@ -23,10 +24,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (guardFailed(auth)) return auth.res;
 
   // super_admin만 승인 가능
-  if (auth.ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "super_admin 권한이 필요합니다" }),
-      { status: 403, headers: { "Content-Type": "application/json" } });
-  }
+  if (!requireRole(auth.ctx.member, "super_admin")) return roleForbidden("super_admin");
   const adminId = auth.ctx.admin.uid;
 
   let body: any;

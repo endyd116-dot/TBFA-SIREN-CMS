@@ -9,6 +9,7 @@
 import { eq, asc, sql } from "drizzle-orm";
 import { db, members, memberGrades } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   ok, badRequest, notFound, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -82,9 +83,7 @@ export default async (req: Request) => {
 
     /* PATCH — 등급 수정 (super_admin) */
     if (req.method === "PATCH") {
-      if (adminMember.role !== "super_admin") {
-        return forbidden("등급 수정은 슈퍼 관리자만 가능합니다");
-      }
+      if (!requireRole(adminMember, "super_admin")) return roleForbidden("super_admin");
 
       const body = await parseJson(req);
       if (!body?.id) return badRequest("id가 필요합니다");

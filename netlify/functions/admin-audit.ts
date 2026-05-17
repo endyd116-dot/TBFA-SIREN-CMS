@@ -19,6 +19,7 @@
 import { eq, desc, and, or, like, count, gte, lte, sql } from "drizzle-orm";
 import { db, auditLogs, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import {
   ok, badRequest, notFound, forbidden, serverError,
   corsPreflight, methodNotAllowed,
@@ -35,9 +36,7 @@ export default async (req: Request) => {
   const { member } = guard.ctx;
 
   /* ★ M-16: super_admin only 가드 */
-  if (member.role !== "super_admin") {
-    return forbidden("감사 로그는 슈퍼 관리자만 조회할 수 있습니다");
-  }
+  if (!requireRole(member, "super_admin")) return roleForbidden("super_admin");
 
   try {
     const url = new URL(req.url);

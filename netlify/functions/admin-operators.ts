@@ -120,7 +120,8 @@ export default async (req: Request) => {
         stats: {
           total: operators.length,
           superAdmins: operators.filter((o: any) => o.role === "super_admin").length,
-          regular: operators.filter((o: any) => o.role !== "super_admin").length,
+          admins: operators.filter((o: any) => o.role === "admin").length,
+          operators: operators.filter((o: any) => o.role === "operator").length,
           active: operators.filter((o: any) => o.operatorActive !== false).length,
         },
       });
@@ -135,7 +136,8 @@ export default async (req: Request) => {
       const memberId = Number(body.memberId);
       if (!Number.isFinite(memberId)) return badRequest("유효하지 않은 ID");
 
-      const role = body.role === "super_admin" ? "super_admin" : "operator";
+      const VALID_ROLES = ["super_admin", "admin", "operator"];
+      const role = VALID_ROLES.includes(body.role) ? body.role : "admin";
       const notifyOnSupport = body.notifyOnSupport !== false; // 기본 true
 
       /* ★ M-15: 카테고리 처리
@@ -192,7 +194,7 @@ export default async (req: Request) => {
       if (!Number.isFinite(id)) return badRequest("유효하지 않은 ID");
 
       const updateData: any = { updatedAt: new Date() };
-      if (typeof body.role === "string" && ["super_admin", "operator"].includes(body.role)) {
+      if (typeof body.role === "string" && ["super_admin", "admin", "operator"].includes(body.role)) {
         updateData.role = body.role;
       }
       if (typeof body.notifyOnSupport === "boolean") {
@@ -213,7 +215,7 @@ export default async (req: Request) => {
       }
 
       /* ★ M-15: 자기 자신의 super_admin role을 강등하는 것도 차단 (마지막 super_admin 보호) */
-      if (id === admin.uid && updateData.role === "operator") {
+      if (id === admin.uid && updateData.role && updateData.role !== "super_admin") {
         const superAdmins: any = await db
           .select({ c: sql<number>`count(*)::int` })
           .from(members)

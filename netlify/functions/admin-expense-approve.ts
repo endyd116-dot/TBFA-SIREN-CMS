@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { expenses } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireRole, roleForbidden } from "../../lib/admin-role";
 import { eq } from "drizzle-orm";
 
 export const config = { path: "/api/admin-expense-approve" };
@@ -13,9 +14,7 @@ export default async function handler(req: Request): Promise<Response> {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
 
-  if (auth.ctx.admin.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민만 승인·반려할 수 있습니다", step: "auth_role" }), { status: 403 });
-  }
+  if (!requireRole(auth.ctx.member, "super_admin")) return roleForbidden("super_admin");
 
   let body: any;
   try {
