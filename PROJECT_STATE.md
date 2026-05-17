@@ -24,7 +24,9 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-17 | **메인** | **🏁 라운드 4 3단 권한 체계 완결 (C Q1~Q8 전부 통과, BUG 0)** (main @ `a2a7a55`) — 로그인 role 하드코딩 제거·requireRole 헬퍼·admin 등급 체크·권한 정책 페이지 전부 PASS. 라운드 5 A 작업 진행 중. |
+| 2026-05-17 | **메인** | **🔄 라운드 6 게이미피케이션+큐레이션·팝업 — B·A 트리거 발사** — 마이그 8테이블 완료·lib/badge-checker.ts 추가. B: 18 API + 이벤트 후킹 3곳. A: 5 HTML + site-popup.js + iframe 12곳. |
+| 2026-05-17 | **메인** | **🏁 라운드 5 발송 센터 UX 완결 (C Q1~Q10 전부 통과, BUG 0)** (main @ `7a2f557`) — 채널별 미리보기 탭(이메일·SMS·카카오·인앱) + 파일함 재사용 첨부 전부 PASS. |
+| 2026-05-17 | **메인** | **🏁 라운드 4 3단 권한 체계 완결 (C Q1~Q8 전부 통과, BUG 0)** (main @ `a2a7a55`) — 로그인 role 하드코딩 제거·requireRole 헬퍼·admin 등급 체크·권한 정책 페이지 전부 PASS. |
 | 2026-05-17 | **메인** | **🔄 라운드 4 3단 권한 체계 — B·A 트리거 발사** (main @ `6e69a0f`) — lib/admin-role.ts + roles-and-permissions.md + 마이그 완료(operator→admin 1건). B: 로그인 버그·super_admin 체크 7개·admin 체크 4개·admin-operators role 확장. A: admin-role-policy.html 신규 + iframe 4곳 등록. |
 | 2026-05-17 | **메인** | **🏁 라운드 3 CMS 6건 완결 (C Q1~Q9 전부 통과, BUG 0)** (main @ `aea1267`) — R3 C 검증: 환불권한·자동발송중복차단·paidAt 백필·재활성화 API·채널검증 전부 PASS. |
 | 2026-05-17 | **메인** | **🎯 라운드 1 SIREN 4건 fix 설계 완료 + A·B·C 병렬 트리거 배포 대기** (main @ 본 커밋) — Swain 결정: #2 B안(응답 endpoint)·#3 A안(회원 상세 강제 변경)·#4 B안(실명+익명 배지)·진행 4채팅 병렬. 설계서: `docs/milestones/2026-05-17-round1-siren.md`. DB 마이그 0건(컬럼 모두 존재). B 작업 6건(빌링키·3종 자동 status·user-my-reports 응답·자격 강제 endpoint), A 작업 4건(my-reports.js 필드 정정·STAGE_FLOW·익명 배지·회원 상세 모달), C 12개 시나리오. **A·B 트리거는 메인 응답 본문에 그대로 박힘 — Swain이 복붙해서 A·B·C 채팅 시작**. |
@@ -40,32 +42,27 @@
 ## 3. 현재 작업 모드
 
 ```
-🔄 라운드 5 발송 센터 UX — A 작업 중 (2026-05-17)
-   - 설계서: docs/milestones/2026-05-17-round5-send-ux.md
-   - A 프론트: feature/round5-send-ux — 작업 중
-     □ 채널별 미리보기 탭 (이메일·SMS·카카오·인앱)
-     □ 파일함에서 선택 첨부 (워크스페이스 파일 재사용)
-
-   ★ 다음 메인 작업 (A push 후):
-   1. A push → 머지
-   2. C 트리거 발사 (Q1~Q10)
-
-🔜 라운드 6 설계 중 — 게이미피케이션 + 큐레이션·팝업
-   - 설계서: docs/milestones/2026-05-17-round4-rbac.md
-   - 메인 완료: lib/admin-role.ts + docs/policies/roles-and-permissions.md + 마이그 완료 (6e69a0f)
-   - B 백엔드: feature/round4-rbac-back — 작업 중
-     □ admin-login.ts role 하드코딩 제거
-     □ super_admin 체크 7개 파일 패턴 통일
-     □ admin 등급 체크 4개 파일 추가
-     □ admin-operators.ts role 'admin' 추가
-   - A 프론트: feature/round4-rbac-front — 작업 중
-     □ admin-role-policy.html 신규
-     □ iframe 4곳 등록
+🔄 라운드 6 게이미피케이션 + 큐레이션·팝업 — B·A 작업 중 (2026-05-17)
+   - 설계서: docs/milestones/2026-05-17-round6-gamification.md
+   - 메인 완료: 마이그 8테이블 + lib/badge-checker.ts + schema.ts 추가
+   - B 백엔드: feature/round6-gamification-back — 작업 중
+     □ 사용자 API 5개 (my-points, my-badges, ranking, rewards-list, reward-redeem)
+     □ 어드민 API 9개 (point-rules, badge-definitions, rewards, reward-redemptions, member-points/adjust)
+     □ 공개 API 4개 (admin-popups, admin-curations, site-popups, site-curations — 이름 주의)
+     □ 이벤트 후킹 3곳 (donate-toss-confirm, donate-hyosung-intent, auth-login)
+   - A 프론트: feature/round6-gamification-front — 작업 중
+     □ mypage-points.html 신규 (포인트·뱃지·리워드 탭)
+     □ ranking.html 신규
+     □ admin-gamification.html 신규
+     □ admin-popups.html 신규
+     □ admin-curations.html 신규
+     □ site-popup.js 신규
+     □ iframe 12곳 (admin.html·admin.js·cms-tbfa.html·cms-tbfa.js × 3페이지)
 
    ★ 다음 메인 작업 (B·A push 후):
-   1. B push → 키 대조 → 머지
+   1. B push → 응답 키 대조 → 머지
    2. A push → 머지
-   3. C 트리거 발사 (Q1~Q8)
+   3. C 트리거 발사 (Q1~Q15)
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -131,14 +128,25 @@
 | A | 프론트 | admin-role-policy.html + iframe 4곳 | ✅ 완료 (머지됨) |
 | C | 검증 | Q1~Q8 | ✅ 완료 (8/8 통과, BUG 0, a2a7a55) |
 
-### 4.5 라운드 5 발송 센터 UX (2026-05-17 🔄 진행 중)
+### 4.5 라운드 5 발송 센터 UX (2026-05-17 ✅ 전체 완결)
 
 설계서: [docs/milestones/2026-05-17-round5-send-ux.md](docs/milestones/2026-05-17-round5-send-ux.md)
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| A | 프론트 | 채널별 미리보기 탭 + 파일함 재사용 첨부 | 🔄 작업 중 |
-| C | 검증 | Q1~Q10 | ⏸ A 완료 후 |
+| A | 프론트 | 채널별 미리보기 탭 + 파일함 재사용 첨부 | ✅ 완료 (머지됨) |
+| C | 검증 | Q1~Q10 | ✅ 완료 (10/10 통과, BUG 0, 7a2f557) |
+
+### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 🔄 진행 중)
+
+설계서: [docs/milestones/2026-05-17-round6-gamification.md](docs/milestones/2026-05-17-round6-gamification.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | DB·마이그·라이브러리 | 8테이블 마이그+schema.ts+badge-checker.ts | ✅ 완료 |
+| B | 백엔드 | 18 API + 이벤트 후킹 3곳 | 🔄 작업 중 |
+| A | 프론트 | 5 HTML + site-popup.js + iframe 12곳 | 🔄 작업 중 |
+| C | 검증 | Q1~Q15 | ⏸ B·A 완료 후 |
 
 ---
 
