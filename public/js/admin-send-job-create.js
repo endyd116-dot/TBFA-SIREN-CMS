@@ -260,23 +260,63 @@
         : '🖼️ 이미지 첨부 <span class="badge-tip">이번 발송에만 적용 — 템플릿 원본은 그대로</span>';
       titleEl.innerHTML = hint;
     }
-    /* 발송 미리보기 카드 — 이메일·인앱 */
+    /* 발송 미리보기 카드 — 채널 1개 이상 선택 시 표시 */
     const pvCard = $('sendPreviewCard');
     if (pvCard) {
-      const showPv = currentTemplate && (channels.includes('email') || channels.includes('inapp'));
+      const showPv = currentTemplate && channels.length > 0;
       pvCard.style.display = showPv ? '' : 'none';
+      if (showPv) applyPreviewTabVisibility();
     }
   }
 
-  /* ★ 2026-05-17: 발송 미리보기 — 첫 수신자 데이터로 치환 + 이미지 inject 결과 표시 */
+  /* ── 채널 미리보기 탭 전환 ── */
+  function bindPreviewTabs() {
+    document.querySelectorAll('.preview-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchPreviewTab(btn.dataset.tab);
+      });
+    });
+  }
+
+  function switchPreviewTab(tab) {
+    document.querySelectorAll('.preview-tab').forEach(btn => {
+      const isActive = btn.dataset.tab === tab;
+      btn.style.color = isActive ? '#1e40af' : '#94a3b8';
+      btn.style.fontWeight = isActive ? '700' : '500';
+      btn.style.borderBottomColor = isActive ? '#1e40af' : 'transparent';
+    });
+    ['email', 'sms', 'kakao', 'inapp'].forEach(ch => {
+      const el = $('preview-' + ch);
+      if (el) el.style.display = ch === tab ? '' : 'none';
+    });
+  }
+
+  /* 선택된 채널 탭만 활성화, 나머지 dim 처리 */
+  function applyPreviewTabVisibility() {
+    const channels = getSelectedChannels();
+    const tabBar = $('previewTabBar');
+    if (!tabBar) return;
+    let firstActive = null;
+    document.querySelectorAll('.preview-tab').forEach(btn => {
+      const ch = btn.dataset.tab;
+      const active = channels.includes(ch);
+      btn.style.opacity = active ? '1' : '0.35';
+      btn.style.pointerEvents = active ? '' : 'none';
+      if (active && !firstActive) firstActive = ch;
+    });
+    if (firstActive) switchPreviewTab(firstActive);
+  }
+
+  /* ★ 2026-05-17: 발송 미리보기 — 채널별 분기 렌더링 */
   async function refreshSendPreview() {
-    const box = $('sendPreviewBox');
-    if (!box) return;
     if (!currentTemplate) {
-      box.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:24px 0">템플릿을 먼저 선택하세요.</div>`;
+      ['email', 'sms', 'kakao', 'inapp'].forEach(ch => {
+        const el = $('preview-' + ch);
+        if (el) el.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:24px 0">템플릿을 먼저 선택하세요.</div>`;
+      });
       return;
     }
-    /* 수신자 그룹 첫 멤버로 변수 치환 시도 (있으면) */
+    /* 수신자 그룹 첫 멤버로 변수 치환 시도 */
     const grpId = $('fGroup')?.value;
     let memberData = { 회원이름: '박두용', 이름: '박두용', name: '박두용', email: 'donor@tbfa.co.kr', phone: '010-1234-5678' };
     if (grpId) {
@@ -293,13 +333,11 @@
         }
       } catch (_) {}
     }
-    /* 변수 정의 + 본문 가져오기 (override가 있으면 그것, 아니면 원본) */
     const variables = Array.isArray(currentTemplate.variables) ? currentTemplate.variables : [];
     const subjEl = $('fSubject');
     const bodyEl = $('fBody');
     const subjTpl = (subjEl && subjEl.value) || currentTemplate.subject || '';
     const bodyTpl = (bodyEl && bodyEl.value) || currentTemplate.bodyTemplate || '';
-    /* 클라이언트 변수 치환 — 단순 {{key}} 패턴 */
     const renderTpl = (tpl) => String(tpl).replace(/\{\{([^{}]+)\}\}/g, (_, rawKey) => {
       const k = String(rawKey).trim();
       if (k in memberData) return memberData[k];
@@ -308,18 +346,77 @@
     });
     const subject = renderTpl(subjTpl);
     const body = renderTpl(bodyTpl);
-    /* 이미지 inject */
-    const images = (Array.isArray(jobImages) ? jobImages : []).slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-    const buildImgTag = (img) => {
-      const alignCss = img.align === 'left' ? 'left' : img.align === 'right' ? 'right' : 'center';
-      const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
-      return `<div style="text-align:${alignCss};margin:12px 0"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="max-width:100%;width:${width}px;height:auto;display:inline-block;border:1px solid #e5e7eb;border-radius:4px"></div>`;
-    };
-    const aboveImgs = images.filter(img => img.position !== 'below').map(buildImgTag).join('');
-    const belowImgs = images.filter(img => img.position === 'below').map(buildImgTag).join('');
-    const subjectHtml = subject ? `<div style="font-weight:700;font-size:15px;color:#111827;padding:8px 0;border-bottom:1px solid #e5e7eb;margin-bottom:14px">제목: ${escapeHtml(subject)}</div>` : '';
-    const bodyHtml = `<div style="white-space:pre-wrap">${escapeHtml(body).replace(/\n/g, '<br>')}</div>`;
-    box.innerHTML = subjectHtml + aboveImgs + bodyHtml + belowImgs;
+
+    const channels = getSelectedChannels();
+
+    /* ── 이메일 미리보기 ── */
+    const emailEl = $('preview-email');
+    if (emailEl && channels.includes('email')) {
+      const images = (Array.isArray(jobImages) ? jobImages : []).slice().sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+      const buildImgTag = (img) => {
+        const alignCss = img.align === 'left' ? 'left' : img.align === 'right' ? 'right' : 'center';
+        const width = Math.min(Math.max(Number(img.width) || 600, 50), 1200);
+        return `<div style="text-align:${alignCss};margin:12px 0"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" style="max-width:100%;width:${width}px;height:auto;display:inline-block;border:1px solid #e5e7eb;border-radius:4px"></div>`;
+      };
+      const aboveImgs = images.filter(img => img.position !== 'below').map(buildImgTag).join('');
+      const belowImgs = images.filter(img => img.position === 'below').map(buildImgTag).join('');
+      const wrapEmail = document.getElementById('fWrapEmail')?.checked;
+      const subjectHtml = subject ? `<div style="font-weight:700;font-size:15px;color:#111827;padding:8px 0;border-bottom:1px solid #e5e7eb;margin-bottom:14px">제목: ${escapeHtml(subject)}</div>` : '';
+      const bodyHtml = `<div style="white-space:pre-wrap">${escapeHtml(body).replace(/\n/g, '<br>')}</div>`;
+      let inner = subjectHtml + aboveImgs + bodyHtml + belowImgs;
+      if (wrapEmail) {
+        inner = `<div style="background:#1e40af;color:#fff;padding:14px 20px;border-radius:6px 6px 0 0;font-weight:700;font-size:15px">SIREN 교사유가족협의회</div>` + inner + `<div style="background:#f8fafc;padding:10px 20px;border-radius:0 0 6px 6px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0">수신 거부는 마이페이지에서 설정하세요.</div>`;
+      }
+      emailEl.innerHTML = inner;
+    }
+
+    /* ── SMS 미리보기 ── */
+    const smsEl = $('preview-sms');
+    if (smsEl && channels.includes('sms')) {
+      const plainBody = bodyTpl.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      const rendered = renderTpl(plainBody);
+      const len = rendered.length;
+      const overLimit = len > 90;
+      smsEl.innerHTML = `
+        <div style="font-family:monospace;font-size:0.875rem;white-space:pre-wrap;background:#f8fafc;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;color:#1e293b;line-height:1.6">${escapeHtml(rendered)}</div>
+        <div style="margin-top:8px;font-size:0.8rem;font-weight:600;color:${overLimit ? '#b91c1c' : '#475569'}">${len}/90자 ${overLimit ? '— 90자 초과 시 장문(MMS) 전환' : ''}</div>
+      `;
+    }
+
+    /* ── 카카오 미리보기 ── */
+    const kakaoEl = $('preview-kakao');
+    if (kakaoEl && channels.includes('kakao')) {
+      const plainBody = bodyTpl.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      const rendered = renderTpl(plainBody);
+      const btns = Array.isArray(currentTemplate.buttons) ? currentTemplate.buttons : [];
+      const btnHtml = btns.length ? `<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">${btns.map(b => `<div style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:8px 12px;font-size:0.83rem;text-align:center;color:#374151">${escapeHtml(b.name || b.title || b.label || '버튼')}</div>`).join('')}</div>` : '';
+      kakaoEl.innerHTML = `
+        <div style="display:flex;justify-content:flex-start">
+          <div style="max-width:78%;background:#FEE500;border-radius:0 12px 12px 12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,0.1)">
+            ${subject ? `<div style="font-weight:700;font-size:14px;color:#1a1a1a;margin-bottom:6px">${escapeHtml(subject)}</div>` : ''}
+            <div style="font-size:13.5px;color:#1a1a1a;white-space:pre-wrap;line-height:1.55">${escapeHtml(rendered)}</div>
+            ${btnHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    /* ── 인앱 알림 카드 미리보기 ── */
+    const inappEl = $('preview-inapp');
+    if (inappEl && channels.includes('inapp')) {
+      const plainBody = body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      inappEl.innerHTML = `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);max-width:400px">
+          <div style="font-size:1.5rem;line-height:1">🔔</div>
+          <div style="flex:1;min-width:0">
+            ${subject ? `<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:3px">${escapeHtml(subject)}</div>` : ''}
+            <div style="font-size:13px;color:#475569;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${escapeHtml(plainBody)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    applyPreviewTabVisibility();
   }
 
   function renderEditArea() {
@@ -762,6 +859,130 @@
     };
   }
 
+  /* ── 파일함 모달 ── */
+  const FILE_ICON = { image: '🖼️', pdf: '📄', video: '🎬', audio: '🎵', zip: '🗜️', word: '📝', excel: '📊', ppt: '📋' };
+  function fileIcon(name) {
+    const ext = String(name || '').split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return FILE_ICON.image;
+    if (ext === 'pdf') return FILE_ICON.pdf;
+    if (['mp4','mov','avi','mkv'].includes(ext)) return FILE_ICON.video;
+    if (['mp3','wav','aac'].includes(ext)) return FILE_ICON.audio;
+    if (['zip','gz','tar'].includes(ext)) return FILE_ICON.zip;
+    if (['doc','docx'].includes(ext)) return FILE_ICON.word;
+    if (['xls','xlsx','csv'].includes(ext)) return FILE_ICON.excel;
+    if (['ppt','pptx'].includes(ext)) return FILE_ICON.ppt;
+    return '📎';
+  }
+  function fmtSize(bytes) {
+    if (!bytes) return '-';
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+    return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+  }
+  function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    return isNaN(dt) ? '' : dt.toLocaleDateString('ko-KR');
+  }
+
+  let _pickerFiles = [];
+  let _pickerSelected = new Set();
+  let _pickerSearch = '';
+
+  async function fetchPickerFiles(search) {
+    const url = '/api/admin-workspace-files?limit=50' + (search ? '&search=' + encodeURIComponent(search) : '');
+    const listEl = $('filePickerList');
+    if (listEl) listEl.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:32px 0">불러오는 중…</div>`;
+    const res = await api({ method: 'GET', url });
+    const payload = res.data?.data ?? res.data ?? {};
+    _pickerFiles = payload.rows ?? payload.files ?? res.data?.rows ?? [];
+    renderPickerList();
+  }
+
+  function renderPickerList() {
+    const listEl = $('filePickerList');
+    if (!listEl) return;
+    if (!_pickerFiles.length) {
+      listEl.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:32px 0">파일이 없습니다.</div>`;
+      return;
+    }
+    listEl.innerHTML = _pickerFiles.map(f => {
+      const sel = _pickerSelected.has(f.id);
+      return `
+        <div class="fp-item" data-id="${f.id}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;background:${sel ? '#eff6ff' : '#fff'};border:1px solid ${sel ? '#3b82f6' : '#e2e8f0'};margin-bottom:6px;transition:all 0.1s">
+          <div style="font-size:1.3rem;flex-shrink:0">${fileIcon(f.name || f.fileName)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.875rem;font-weight:500;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.name || f.fileName || '파일')}</div>
+            <div style="font-size:0.75rem;color:#94a3b8">${fmtSize(f.size || f.fileSize)} · ${fmtDate(f.createdAt || f.uploadedAt)}</div>
+          </div>
+          <div style="font-size:1.1rem;color:${sel ? '#1e40af' : '#d1d5db'}">${sel ? '✅' : '○'}</div>
+        </div>
+      `;
+    }).join('');
+    listEl.querySelectorAll('.fp-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        if (_pickerSelected.has(id)) _pickerSelected.delete(id);
+        else _pickerSelected.add(id);
+        renderPickerList();
+      });
+    });
+  }
+
+  function openFilePicker() {
+    const modal = $('filePickerModal');
+    if (!modal) return;
+    _pickerSelected.clear();
+    _pickerSearch = '';
+    const searchEl = $('filePickerSearch');
+    if (searchEl) searchEl.value = '';
+    modal.style.display = 'flex';
+    fetchPickerFiles('');
+  }
+
+  function closeFilePicker() {
+    const modal = $('filePickerModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function bindFilePickerModal() {
+    $('btnPickFromFiles')?.addEventListener('click', openFilePicker);
+    $('btnFilePickerClose')?.addEventListener('click', closeFilePicker);
+    $('btnFilePickerCancel')?.addEventListener('click', closeFilePicker);
+
+    let searchTimer;
+    $('filePickerSearch')?.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        _pickerSearch = e.target.value.trim();
+        fetchPickerFiles(_pickerSearch);
+      }, 350);
+    });
+
+    $('filePickerModal')?.addEventListener('click', (e) => {
+      if (e.target === $('filePickerModal')) closeFilePicker();
+    });
+
+    $('btnFilePickerConfirm')?.addEventListener('click', () => {
+      const listEl = $('fAttachmentList');
+      if (!window._sendJobAttachmentIds) window._sendJobAttachmentIds = [];
+      _pickerSelected.forEach(sid => {
+        const f = _pickerFiles.find(x => String(x.id) === String(sid));
+        if (!f) return;
+        const id = Number(f.id);
+        if (window._sendJobAttachmentIds.includes(id)) return;
+        window._sendJobAttachmentIds.push(id);
+        if (listEl) {
+          const div = document.createElement('div');
+          div.innerHTML = `✅ [파일함] ${escapeHtml(f.name || f.fileName || '파일')} <button type="button" class="btn-mini" style="font-size:0.72rem;margin-left:4px;padding:1px 6px" onclick="window._removeAttachment(${id}, this)">×</button><br>`;
+          listEl.appendChild(div.firstChild);
+        }
+      });
+      closeFilePicker();
+      if (_pickerSelected.size > 0) showToast(`파일함에서 ${_pickerSelected.size}개 파일 첨부됨`);
+    });
+  }
+
   async function submit() {
     if (submitting) return;
     const v = validateForm();
@@ -847,8 +1068,12 @@
       if (st) { st.textContent = '↺ 템플릿 원본으로 복원'; st.style.color = '#9a3412'; }
     });
 
-    /* ★ 2026-05-17: 발송 미리보기 새로고침 */
+    /* ★ 2026-05-17: 발송 미리보기 새로고침 + 탭 */
     $('btnSendPreview')?.addEventListener('click', refreshSendPreview);
+    bindPreviewTabs();
+
+    /* ★ 2026-05-18: 파일함 모달 */
+    bindFilePickerModal();
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
