@@ -2,8 +2,8 @@
 // 어드민 전용: 회원 자격 유형 강제 변경 (신청 없이 직접 변경)
 
 import type { Context } from "@netlify/functions";
-import { eq } from "drizzle-orm";
-import { db, members } from "../../db";
+import { eq, sql } from "drizzle-orm";
+import { db, members, notifications } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
 import {
@@ -13,7 +13,8 @@ import {
 
 export const config = { path: "/api/admin-eligibility-force-change" };
 
-const VALID_TYPES = ["active_teacher", "retired_teacher", "pre_teacher", "general"];
+const VALID_TYPES = ["현직", "은퇴", "예비", "일반", "lawyer", "counselor"];
+const EXPERT_TYPES = ["lawyer", "counselor"];
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -30,10 +31,13 @@ export default async (req: Request, _ctx: Context) => {
     const memberId = Number(body.memberId);
     if (!Number.isFinite(memberId) || memberId <= 0) return badRequest("memberId가 유효하지 않습니다");
 
-    const newType = String(body.eligibilityType || "").trim();
+    const newType = String(body.newEligibilityType || "").trim();
     if (!VALID_TYPES.includes(newType)) {
       return badRequest(`유효하지 않은 자격 유형입니다. 허용값: ${VALID_TYPES.join(", ")}`);
     }
+
+    const reason = String(body.reason || "").trim();
+    if (reason.length < 5) return badRequest("강제 변경 사유를 5자 이상 입력해 주세요");
 
     /* 대상 회원 조회 */
     const [member] = await db
@@ -50,17 +54,48 @@ export default async (req: Request, _ctx: Context) => {
       return badRequest("현재 자격 유형과 동일합니다");
     }
 
-    /* 자격 유형 강제 변경 */
-    await db
-      .update(members)
-      .set({ eligibilityType: newType, updatedAt: new Date() } as any)
-      .where(eq(members.id, memberId));
+    /* 자격 유형 강제 변경 (전문가 여부 분기) */
+    const isExpert = EXPERT_TYPES.includes(newType);
+    if (isExpert) {
+      await db.execute(sql`
+        UPDATE members
+           SET eligibility_type = ${newType},
+               type = 'volunteer',
+               member_subtype = ${newType},
+               secondary_verified = true,
+               secondary_verified_at = now(),
+               updated_at = now()
+         WHERE id = ${memberId}
+      `);
+    } else {
+      await db
+        .update(members)
+        .set({ eligibilityType: newType, updatedAt: new Date() } as any)
+        .where(eq(members.id, memberId));
+    }
+
+    /* 회원 알림 (실패해도 메인 흐름 영향 X) */
+    try {
+      await db.insert(notifications).values({
+        recipientId: memberId,
+        recipientType: "user",
+        category: "eligibility",
+        severity: "info",
+        title: "회원 자격이 변경되었습니다",
+        message: `변경 사유: ${reason}`.slice(0, 500),
+        link: "/mypage.html#eligibility",
+        refTable: "members",
+        refId: memberId,
+      } as any);
+    } catch (notifyErr: any) {
+      console.warn("[admin-eligibility-force-change] 알림 적재 실패:", notifyErr?.message);
+    }
 
     /* 감사 로그 */
     try {
       await logAdminAction(req, (admin as any).uid, (admin as any).name, "eligibility_force_change", {
         target: String(memberId),
-        detail: { memberName: member.name, beforeType, afterType: newType },
+        detail: { memberName: member.name, beforeType, afterType: newType, reason, isExpert },
       });
     } catch (_) {}
 
