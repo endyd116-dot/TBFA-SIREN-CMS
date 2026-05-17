@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 머지 완료** (main @ `8b06826`) — Layer 3 힌트 시스템(suggestedNextSteps 15핸들러) + Layer 4 스케줄 도구 3개(schedule_command·scheduled_commands_list·schedule_cancel) + C BUG 3건 fix 포함. **⚠️ 마이그레이션 호출 필요**: `https://tbfa.co.kr/api/migrate-ai-schedule?run=1` |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
 | 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료. 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
 | 2026-05-17 | **메인** | **🏁 라운드 1~6 전체 완결** (main @ `5086322`) — C 검증 54항목 전부 통과. R2 BUG 2건 포함 모두 해소. 게이미피케이션·큐레이션·팝업 DB 8테이블 + API 18개 + UI 5페이지 운영 중. |
@@ -44,19 +45,13 @@
 ## 3. 현재 작업 모드
 
 ```
-🚀 라운드 7 Phase 1 — AI Layer 1+2 병렬 개발 (2026-05-18)
-   - 설계서: docs/milestones/2026-05-18-round7-ai-layers.md
-   - 베이스: main @ 0a31dc7 (AI 도구 116개 운영 중)
-   - A (Layer 1 배치 도구): feature/layer1-batch → 워크트리 ../tbfa-mis-A
-     □ legal_reply_batch / harassment_reply_batch / chat_message_broadcast / notification_batch
-   - B (Layer 2 파이프라인): feature/layer2-pipeline → 워크트리 ../tbfa-mis-B
-     □ email_send_by_filter / bulk_pipeline
-   - Phase 1 완료 후 Phase 2 시작 (C Layer3 힌트 + D Layer4 스케줄)
-
-   ★ Phase 2 조건: A+B 머지 완료 후 A·B·C 트리거 발사
-   A Phase 2 (Layer 3 힌트): feature/layer3-hints → ../tbfa-mis-A (대기)
-   B Phase 2 (Layer 4 스케줄): feature/layer4-schedule → ../tbfa-mis-B (대기)
-   C (검증): verify/round7 → ../tbfa-mis-C (Phase 1 완료 후 Q1~Q6 검증)
+✅ 라운드 7 Phase 2 완료 — main @ 8b06826 (2026-05-18)
+   - Layer 3 힌트 시스템: suggestedNextSteps 필드 + buildNextSteps() + 15개 핸들러 주입
+   - Layer 4 스케줄 도구: schedule_command / scheduled_commands_list / schedule_cancel + cron-ai-schedule-runner
+   - C BUG 3건 fix: 정수형 비교 / 조건 필터 서브쿼리 / TOOL_GROUPS 6개 등록 누락
+   - ⚠️ Swain 마이그레이션 호출 필요: https://tbfa.co.kr/api/migrate-ai-schedule?run=1
+   - C Q1~Q6 라이브 검증 대기 중 (마이그 후)
+   - 🔄 다음: Round 8 주제 결정
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -135,20 +130,22 @@
 
 설계서: [docs/milestones/2026-05-18-round7-ai-layers.md](docs/milestones/2026-05-18-round7-ai-layers.md)
 
-**Phase 1 (동시 진행)**
+**Phase 1 (✅ 완료)**
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| A | AI 배치 도구 | Layer 1: legal_reply_batch·harassment_reply_batch·chat_message_broadcast·notification_batch | 🔄 진행 중 |
-| B | AI 파이프라인 | Layer 2: email_send_by_filter·bulk_pipeline | 🔄 진행 중 |
+| A | AI 배치 도구 | Layer 1: legal_reply_batch·harassment_reply_batch·chat_message_broadcast·notification_batch | ✅ 완료 (7a02f84) |
+| B | AI 파이프라인 | Layer 2: email_send_by_filter·bulk_pipeline | ✅ 완료 (d589b37) |
 
-**Phase 2 (A+B 머지 후 — 같은 워크트리 재사용)**
+**Phase 2 (✅ 머지 완료 — 마이그레이션 대기)**
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| A | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | 🔄 진행 중 |
-| B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | 🔄 진행 중 |
-| C | 검증 | Q1~Q6 라이브 검증 | 🔄 진행 중 |
+| A | AI 힌트 시스템 | Layer 3: ToolResult.suggestedNextSteps + 15개 핸들러 주입 | ✅ 완료 (7a02f84, 머지됨) |
+| B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ✅ 완료 (d723cc2, 머지됨) |
+| C | 버그픽스 + 검증 | BUG 3건 fix + Q1~Q6 라이브 검증 | 🔄 BUG fix 머지됨, 라이브 검증 마이그 후 |
+
+**⚠️ Swain 액션 필요**: `https://tbfa.co.kr/api/migrate-ai-schedule?run=1` 호출 후 메인에 알림
 
 ### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 ✅ 전체 완결)
 
@@ -208,7 +205,7 @@
 | **Phase 22-D-R3 예산잠금·전표운영·재무제표** | ✅ 100% 마감 (main @ `9e73e98`, 2026-05-15) — 예산 잠금·지출결의서 인쇄·결산 보조·이상패턴 배지·반복전표 cron·재정상태표·현금흐름표 / C 검증 PASS 15/FAIL 3 → BUG-1~4 응답 키 fix / **Phase 22-D 완결·Phase 22 전체 마무리** |
 
 | **라운드 1~6 (2026-05-17 사이클)** | ✅ 100% 완결 — SIREN 4건·워크스페이스 9건·CMS 6건·3단 권한·발송 UX·게이미피케이션+큐레이션·팝업 / C 검증 54항목 전부 통과 (R2 BUG 2건 제외 0) |
-| **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1 진행 중 — A(Layer1) + B(Layer2) 병렬 개발. Phase 2 (C+D) 대기 중. |
+| **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1+2 머지 완료 (main @ `8b06826`) — Layer 1~4 총 9개 도구 추가 + 힌트 시스템 + 스케줄 cron. **마이그레이션 호출 대기 → C Q1~Q6 라이브 검증 남음** |
 
 **누적**: 약 87% / 약 820h+
 
