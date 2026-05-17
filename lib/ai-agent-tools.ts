@@ -5103,7 +5103,7 @@ async function tool_chatMessageBroadcast(args: any, adminId: number | null): Pro
       const r: any = await db.execute(sql`SELECT id FROM chat_rooms WHERE status = 'closed' ORDER BY id`);
       targetRoomIds = (r?.rows ?? r ?? []).map((row: any) => Number(row.id));
     } else if (filter.unreadOnly) {
-      const r: any = await db.execute(sql`SELECT id FROM chat_rooms WHERE status != 'closed' AND unread_for_admin = true ORDER BY id`);
+      const r: any = await db.execute(sql`SELECT id FROM chat_rooms WHERE status != 'closed' AND unread_for_admin > 0 ORDER BY id`);
       targetRoomIds = (r?.rows ?? r ?? []).map((row: any) => Number(row.id));
     } else {
       return { ok: false, error: "roomIds 또는 filter(unreadOnly/closedOnly) 중 하나 필수" };
@@ -5237,7 +5237,8 @@ async function tool_emailSendByFilter(args: any, adminId: number): Promise<ToolR
       conditions.push(`m.regular_months_count <= ${Number(memberFilter.donationMonths.lte)}`);
     }
     if (memberFilter.lastDonationDays?.gte != null) {
-      conditions.push(`m.last_donation_at <= NOW() - INTERVAL '${Number(memberFilter.lastDonationDays.gte)} days'`);
+      // 마지막 후원일 기준 필터 — donations 테이블 서브쿼리
+      conditions.push(`m.id IN (SELECT member_id FROM donations WHERE status = 'paid' GROUP BY member_id HAVING MAX(paid_at) <= NOW() - INTERVAL '${Number(memberFilter.lastDonationDays.gte)} days')`);
     }
     if (memberFilter.joinedDays?.gte != null) {
       conditions.push(`m.created_at <= NOW() - INTERVAL '${Number(memberFilter.joinedDays.gte)} days'`);
