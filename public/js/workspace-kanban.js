@@ -1081,6 +1081,9 @@
       $('#wkColArchived').classList.toggle('wk-col-collapsed');
     });
 
+    // ★ Phase 25: 성과별 완료 카드 보기 토글
+    $('#wkBtnMilestoneView')?.addEventListener('click', toggleMilestoneGroupView);
+
     // 로그아웃
     $('#wsBtnLogout')?.addEventListener('click', async () => {
       if (!confirm('로그아웃하시겠습니까?')) return;
@@ -1089,6 +1092,45 @@
       } catch (_) {}
       location.href = '/admin.html';
     });
+  }
+
+  /* ★ Phase 25: 완료 카드 성과별 그룹 보기 */
+  let _msGroupViewOpen = false;
+  async function toggleMilestoneGroupView() {
+    const view = $('#wkMilestoneGroupView');
+    const colBody = $('.wk-col-body[data-droppable="done"]');
+    const btn = $('#wkBtnMilestoneView');
+    if (!view) return;
+    _msGroupViewOpen = !_msGroupViewOpen;
+    view.style.display = _msGroupViewOpen ? '' : 'none';
+    if (colBody) colBody.style.display = _msGroupViewOpen ? 'none' : '';
+    if (btn) btn.style.background = _msGroupViewOpen ? '#eff6ff' : '#fff';
+    if (!_msGroupViewOpen) return;
+    view.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:8px">불러오는 중...</div>';
+    try {
+      const res = await fetch('/api/workspace-milestone-done-tasks', { credentials: 'include' });
+      const data = await res.json();
+      if (!data.ok || !data.data) { view.innerHTML = '<div style="font-size:12px;color:#ef4444;padding:8px">로드 실패</div>'; return; }
+      const grouped = data.data.grouped || [];
+      const unmatched = data.data.unmatched || [];
+      if (!grouped.length && !unmatched.length) {
+        view.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:8px">이번 분기 완료 카드가 없습니다.</div>';
+        return;
+      }
+      const esc = s => String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+      const parts = [];
+      grouped.forEach(g => {
+        parts.push('<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#374151;padding:4px 0;border-bottom:1px solid #f3f4f6;margin-bottom:4px">🏆 ' + esc(g.name) + ' (' + g.tasks.length + '건)</div>' +
+          g.tasks.map(t => '<div style="font-size:11.5px;color:#6b7280;padding:2px 8px">' + esc(t.title) + '</div>').join('') + '</div>');
+      });
+      if (unmatched.length) {
+        parts.push('<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#9ca3af;padding:4px 0;border-bottom:1px solid #f3f4f6;margin-bottom:4px">미분류 (' + unmatched.length + '건)</div>' +
+          unmatched.map(t => '<div style="font-size:11.5px;color:#9ca3af;padding:2px 8px">' + esc(t.title) + '</div>').join('') + '</div>');
+      }
+      view.innerHTML = '<div style="padding:4px 2px">' + parts.join('') + '</div>';
+    } catch {
+      view.innerHTML = '<div style="font-size:12px;color:#ef4444;padding:8px">로드 중 오류</div>';
+    }
   }
 
   /* ═══════════════════ SortableJS 폴백 로드 ═══════════════════ */

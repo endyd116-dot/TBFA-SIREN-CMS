@@ -137,8 +137,11 @@
       <header class="wk-col-header">
         <span class="wk-col-title">✅ 완료</span>
         <span class="wk-col-count" data-count-for="done">0</span>
+        <button id="wkBtnMilestoneView" title="성과별 보기" style="margin-left:auto;font-size:11px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;background:#fff;cursor:pointer;color:#6b7280">🏆 성과별</button>
       </header>
       <div class="wk-col-body" data-droppable="done"></div>
+      <!-- Phase 25: 성과별 그룹 뷰 (토글) -->
+      <div id="wkMilestoneGroupView" style="display:none;padding:8px 4px;border-top:1px solid #e5e7eb;max-height:400px;overflow-y:auto"></div>
     </div>
 
     <div class="wk-column wk-col-archived wk-col-collapsed" data-status="archived" id="wkColArchived">

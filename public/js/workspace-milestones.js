@@ -219,6 +219,30 @@
           </div>
         </div>
       `).join('');
+
+    // ★ Phase 25: 보류 큐 + 보관함 + 카드 생성 섹션 삽입
+    content.insertAdjacentHTML('beforeend', `
+      <div style="margin-top:28px">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">🔍 성과 분류 보류 카드</h3>
+        <div id="p25PendingSection" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
+          <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
+        </div>
+      </div>
+      <div style="margin-top:24px">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">📁 보관함 (성과별)</h3>
+        <div id="p25DoneSection" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
+          <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
+        </div>
+      </div>
+      <div style="margin-top:24px">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px">🏆 마일스톤 → WBS 카드 생성</h3>
+        <div id="p25CardCreate" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
+          <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
+        </div>
+      </div>`);
+    loadAndRenderPendingQueue();
+    loadAndRenderDoneTasks();
+    if (state.member.milestoneRole) loadNonRevMilestonesForCardCreate();
   }
 
   /* ─── 매출 입력 탭 ─── */
@@ -461,6 +485,138 @@
       finally { btn.disabled = false; }
     });
   });
+
+  /* ─── Phase 25: 보류 분류 큐 ─── */
+  async function loadAndRenderPendingQueue() {
+    const container = $('#p25PendingSection');
+    if (!container) return;
+    try {
+      const res = await api('/api/workspace-milestone-pending');
+      const tasks = res.data?.tasks || [];
+      const defs  = res.data?.milestones || [];
+      if (!tasks.length) {
+        (container as HTMLElement).innerHTML =
+          '<div style="font-size:13px;color:#9ca3af;padding:12px 0">분류 대기 카드가 없습니다.</div>';
+        return;
+      }
+      const defsOpts = defs.map(d => `<option value="${d.id}">${escHtml(d.name)}</option>`).join('');
+      (container as HTMLElement).innerHTML = `
+        <p style="font-size:12.5px;color:#6b7280;margin:0 0 10px">완료 카드 중 성과 분류가 필요한 항목입니다. AI가 처리하지 못한 건을 직접 지정하세요.</p>
+        ${tasks.map(t => `
+          <div class="ms-pending-item" data-task-id="${t.id}" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6">
+            <span style="flex:1;font-size:13px;color:#374151">${escHtml(t.title)}</span>
+            <select class="p25-def-sel" data-task-id="${t.id}" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px">
+              <option value="">-- 마일스톤 선택 --</option>${defsOpts}
+            </select>
+            <button class="ms-btn ms-btn-primary ms-btn-sm p25-confirm" data-task-id="${t.id}" style="font-size:12px;padding:4px 10px">확인</button>
+            <button class="ms-btn ms-btn-ghost ms-btn-sm p25-skip" data-task-id="${t.id}" style="font-size:12px;padding:4px 8px">제외</button>
+          </div>
+        `).join('')}`;
+
+      (container as HTMLElement).querySelectorAll('.p25-confirm').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const taskId = Number((btn as HTMLElement).dataset.taskId);
+          const sel = (container as HTMLElement).querySelector(`.p25-def-sel[data-task-id="${taskId}"]`) as HTMLSelectElement;
+          const milestoneDefId = Number(sel?.value || 0);
+          if (!milestoneDefId) { toast('마일스톤을 선택하세요', 'error'); return; }
+          (btn as HTMLButtonElement).disabled = true;
+          try {
+            await api('/api/workspace-milestone-task-match', { method:'POST', body:{ taskId, milestoneDefId, action:'confirm' } });
+            toast('성과에 연결되었습니다', 'success');
+            await loadAndRenderPendingQueue();
+          } catch (e) { toast('오류: ' + (e as any).message, 'error'); (btn as HTMLButtonElement).disabled = false; }
+        });
+      });
+
+      (container as HTMLElement).querySelectorAll('.p25-skip').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const taskId = Number((btn as HTMLElement).dataset.taskId);
+          try {
+            await api('/api/workspace-milestone-task-match', { method:'POST', body:{ taskId, action:'skip' } });
+            await loadAndRenderPendingQueue();
+          } catch (e) { toast('오류: ' + (e as any).message, 'error'); }
+        });
+      });
+    } catch (e) {
+      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+    }
+  }
+
+  /* ─── Phase 25: 보관함 (성과별 완료 카드) ─── */
+  async function loadAndRenderDoneTasks() {
+    const container = $('#p25DoneSection');
+    if (!container) return;
+    (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af">불러오는 중...</div>';
+    try {
+      const res = await api(`/api/workspace-milestone-done-tasks?quarterId=${state.currentQuarterId||''}`);
+      const grouped  = res.data?.grouped || [];
+      const unmatched = res.data?.unmatched || [];
+      if (!grouped.length && !unmatched.length) {
+        (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:8px 0">이번 분기 완료 카드가 없습니다.</div>';
+        return;
+      }
+      const parts: string[] = [];
+      grouped.forEach(g => {
+        parts.push(`<div style="margin-bottom:14px">
+          <div style="font-size:13.5px;font-weight:700;color:#111;margin-bottom:6px">🏆 ${escHtml(g.name)} <span style="font-size:11.5px;font-weight:400;color:#6b7280">${g.tasks.length}건</span></div>
+          ${g.tasks.map(t => `<div style="font-size:12.5px;color:#374151;padding:3px 0 3px 14px;border-left:3px solid #e5e7eb">
+            ${escHtml(t.title)} <span style="color:#9ca3af">${fmtDate(t.completedAt)}</span>
+          </div>`).join('')}
+        </div>`);
+      });
+      if (unmatched.length) {
+        parts.push(`<div style="margin-bottom:14px">
+          <div style="font-size:13.5px;font-weight:700;color:#9ca3af;margin-bottom:6px">미분류 ${unmatched.length}건</div>
+          ${unmatched.map(t => `<div style="font-size:12.5px;color:#9ca3af;padding:3px 0 3px 14px">${escHtml(t.title)}</div>`).join('')}
+        </div>`);
+      }
+      (container as HTMLElement).innerHTML = parts.join('');
+    } catch (e) {
+      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+    }
+  }
+
+  /* ─── Phase 25: 마일스톤 → WBS 카드 생성 ─── */
+  async function loadNonRevMilestonesForCardCreate() {
+    const container = $('#p25CardCreate');
+    if (!container) return;
+    try {
+      const res = await api(`/api/milestone-definitions?role=${state.member.milestoneRole}&category=NON_REVENUE`);
+      const defs = res.data?.milestones || res.milestones || [];
+      if (!defs.length) {
+        (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af">비매출 마일스톤이 없습니다.</div>';
+        return;
+      }
+      (container as HTMLElement).innerHTML = `
+        <p style="font-size:12.5px;color:#6b7280;margin:0 0 10px">선택한 비매출 마일스톤에 맞는 WBS 카드를 자동 생성합니다. 생성된 카드를 완료하면 성과 달성에 카운트됩니다.</p>
+        ${defs.map(d => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#111">${escHtml(d.name)}</div>
+              <div style="font-size:11.5px;color:#9ca3af">목표: ${d.targetValue || 1}${d.targetUnit || '건'}</div>
+            </div>
+            <button class="ms-btn ms-btn-ghost ms-btn-sm p25-create-card" data-def-id="${d.id}" data-def-name="${escHtml(d.name)}"
+              style="font-size:12px;padding:4px 10px">+ WBS 카드 생성</button>
+          </div>
+        `).join('')}`;
+
+      (container as HTMLElement).querySelectorAll('.p25-create-card').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const milestoneDefId = Number((btn as HTMLElement).dataset.defId);
+          const defName = (btn as HTMLElement).dataset.defName;
+          if (!confirm(`"${defName}" 관련 WBS 카드를 생성하시겠습니까?`)) return;
+          (btn as HTMLButtonElement).disabled = true;
+          try {
+            const res = await api('/api/workspace-milestone-create-tasks', { method:'POST', body:{ milestoneDefId } });
+            toast(res.message || '카드 생성 완료', 'success');
+          } catch (e) { toast('카드 생성 실패: ' + (e as any).message, 'error'); }
+          finally { (btn as HTMLButtonElement).disabled = false; }
+        });
+      });
+    } catch (e) {
+      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+    }
+  }
 
   /* ─── 분기 결산 탭 ─── */
   async function renderSettlement() {
