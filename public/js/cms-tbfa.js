@@ -288,6 +288,7 @@
           'ai-cost':    '💰 AI 비서 — 비용 관리',
           'ai-logs':    '📊 AI 비서 — 도구 사용 로그',
           'ai-config':  '⚙️ AI 비서 — 설정·도구 관리',
+          'comment-reports': '🚩 신고 관리',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -372,9 +373,10 @@
         else if (tab === 'ai-cost')    _nfLoadIframe('page-ai-cost');
         else if (tab === 'ai-logs')    renderAiLogs();
         else if (tab === 'ai-config')  _nfLoadIframe('page-ai-config');  /* iframe으로 교체됨 */
-        else if (tab === 'role-policy')  _nfLoadIframe('page-role-policy');  /* Round 4: 권한 정책 */
-        else if (tab === 'gamification') _nfLoadIframe('page-gamification'); /* Round 6: 게이미피케이션 */
-        else if (tab === 'popups')       _nfLoadIframe('page-popups');       /* Round 6: 팝업 관리 */
+        else if (tab === 'role-policy')      _nfLoadIframe('page-role-policy');      /* Round 4: 권한 정책 */
+        else if (tab === 'gamification')    _nfLoadIframe('page-gamification');    /* Round 6: 게이미피케이션 */
+        else if (tab === 'popups')          _nfLoadIframe('page-popups');          /* Round 6: 팝업 관리 */
+        else if (tab === 'comment-reports') _nfLoadIframe('page-comment-reports'); /* Round 11: 신고 관리 */
       });
     });
 

@@ -1,110 +1,110 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>파일함 - SIREN 워크스페이스</title>
+  <title>?뚯씪??- SIREN ?뚰겕?ㅽ럹?댁뒪</title>
   <link rel="stylesheet" href="/css/base.css?v=1" />
   <link rel="stylesheet" href="/css/workspace-files.css?v=1" />
   <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3" />
 </head>
 <body class="wf-page">
 
-  <!-- ═══════════ 상단 헤더 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧???곷떒 ?ㅻ뜑 ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <header class="wf-topbar">
     <div class="wf-topbar-left">
-      <!-- 퀵이동 (좌측 상단 고정) -->
+      <!-- ?듭씠??(醫뚯륫 ?곷떒 怨좎젙) -->
       <div class="quick-jump" data-quick-jump style="margin:0 8px 0 0"></div>
-      <!-- 워크스페이스 1뎁스 (페이지 이동 토글, 기본 접힘) -->
+      <!-- ?뚰겕?ㅽ럹?댁뒪 1?곸뒪 (?섏씠吏 ?대룞 ?좉?, 湲곕낯 ?묓옒) -->
       <div class="wf-ws-group" style="position:relative;margin-right:10px">
         <a href="#" data-sidebar-group="workspace" aria-expanded="false"
            style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--line,#e3e6eb);border-radius:8px;background:#fff;color:#1a1f2b;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer">
-          <span>🛠</span>
-          <span>워크스페이스</span>
-          <span class="sidebar-group-chevron" style="font-size:11px">▾</span>
+          <span>?썱</span>
+          <span>?뚰겕?ㅽ럹?댁뒪</span>
+          <span class="sidebar-group-chevron" style="font-size:11px">??/span>
         </a>
         <ul data-sidebar-submenu="workspace" aria-hidden="true"
             style="display:none;position:absolute;left:0;top:calc(100% + 4px);min-width:200px;list-style:none;margin:0;padding:6px;background:#fff;border:1px solid var(--line,#e3e6eb);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.08);z-index:50">
-          <li><a href="/workspace.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📊</span><span>워크툴</span></a></li>
-          <li><a href="/workspace-kanban.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📋</span><span>WBS</span></a></li>
-          <li><a href="/workspace-calendar.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>🗓</span><span>캘린더</span></a></li>
-          <li><a href="/workspace-templates.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📑</span><span>템플릿</span></a></li>
-          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>📁</span><span>파일함</span></a></li>
+          <li><a href="/workspace.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>?뱤</span><span>?뚰겕??/span></a></li>
+          <li><a href="/workspace-kanban.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>?뱥</span><span>WBS</span></a></li>
+          <li><a href="/workspace-calendar.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>?뿎</span><span>罹섎┛??/span></a></li>
+          <li><a href="/workspace-templates.html" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>?뱫</span><span>?쒗뵆由?/span></a></li>
+          <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#1a1f2b;text-decoration:none;font-size:13px"><span>?뱚</span><span>?뚯씪??/span></a></li>
         </ul>
       </div>
-      <h1 class="wf-title">📁 파일함</h1>
+      <h1 class="wf-title">?뱚 ?뚯씪??/h1>
     </div>
     <div class="wf-topbar-right">
-      <span id="wfUserName" class="wf-user-name">—</span>
+      <span id="wfUserName" class="wf-user-name">??/span>
     </div>
   </header>
 
-  <!-- ═══════════ 뷰 전환 탭 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??酉??꾪솚 ???먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <nav class="wf-tabs" id="wfViewToggle">
-    <button class="wf-tab active" data-view="all">📂 전체</button>
-    <button class="wf-tab" data-view="mine">👤 내 파일</button>
-    <button class="wf-tab" data-view="shared">🔗 공유받음</button>
-    <button class="wf-tab" data-view="trash">🗑 휴지통</button>
+    <button class="wf-tab active" data-view="all">?뱛 ?꾩껜</button>
+    <button class="wf-tab" data-view="mine">?뫀 ???뚯씪</button>
+    <button class="wf-tab" data-view="shared">?뵕 怨듭쑀諛쏆쓬</button>
+    <button class="wf-tab" data-view="trash">?뿊 ?댁???/button>
   </nav>
 
-  <!-- ═══════════ 툴바 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧???대컮 ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-toolbar">
     <div class="wf-toolbar-search">
       <input type="text"
              id="wfSearchInput"
-             placeholder="🔍 파일명 또는 폴더명 검색..."
+             placeholder="?뵇 ?뚯씪紐??먮뒗 ?대뜑紐?寃??.."
              autocomplete="off" />
-      <button class="wf-search-clear" id="wfSearchClear" title="지우기">✕</button>
+      <button class="wf-search-clear" id="wfSearchClear" title="吏?곌린">??/button>
     </div>
 
     <div class="wf-toolbar-actions">
       <button id="wfBtnUpload" class="wf-btn wf-btn-primary">
-        📤 업로드
+        ?뱾 ?낅줈??
       </button>
       <button id="wfBtnNewFolder" class="wf-btn wf-btn-default">
-        📁 새 폴더
+        ?뱚 ???대뜑
       </button>
       <button id="wfBtnZipDownload" class="wf-btn wf-btn-default" disabled>
-        📦 ZIP 다운로드
+        ?벀 ZIP ?ㅼ슫濡쒕뱶
       </button>
       <button id="wfBtnDelete" class="wf-btn wf-btn-danger" disabled>
-        🗑 삭제
+        ?뿊 ??젣
       </button>
     </div>
   </div>
 
-  <!-- ═══════════ 브레드크럼 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??釉뚮젅?쒗겕???먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-breadcrumb" id="wfBreadcrumb">
-    <span class="wf-crumb active" data-folder-id="0">🏠 홈</span>
+    <span class="wf-crumb active" data-folder-id="0">?룧 ??/span>
   </div>
 
-  <!-- ═══════════ 본문 2컬럼 레이아웃 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??蹂몃Ц 2而щ읆 ?덉씠?꾩썐 ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <main class="wf-layout">
 
-    <!-- 좌: 폴더 트리 -->
+    <!-- 醫? ?대뜑 ?몃━ -->
     <aside class="wf-sidebar" id="wfSidebar">
       <div class="wf-sidebar-header">
-        <span class="wf-sidebar-title">폴더</span>
-        <button class="wf-sidebar-collapse" id="wfSidebarToggle" title="접기">◀</button>
+        <span class="wf-sidebar-title">?대뜑</span>
+        <button class="wf-sidebar-collapse" id="wfSidebarToggle" title="?묎린">?</button>
       </div>
       <div class="wf-tree" id="wfFolderTree">
-        <div class="wf-tree-loading">불러오는 중...</div>
+        <div class="wf-tree-loading">遺덈윭?ㅻ뒗 以?..</div>
       </div>
     </aside>
 
-    <!-- 우: 파일 리스트 -->
+    <!-- ?? ?뚯씪 由ъ뒪??-->
     <section class="wf-main">
       <div class="wf-main-header">
-        <span class="wf-file-count" id="wfFileCount">파일 0개</span>
+        <span class="wf-file-count" id="wfFileCount">?뚯씪 0媛?/span>
         <div class="wf-sort">
-          <label for="wfSortSelect">정렬:</label>
+          <label for="wfSortSelect">?뺣젹:</label>
           <select id="wfSortSelect">
-            <option value="name-asc">이름 (가나다)</option>
-            <option value="name-desc">이름 (역순)</option>
-            <option value="date-desc" selected>수정일 (최신)</option>
-            <option value="date-asc">수정일 (오래된)</option>
-            <option value="size-desc">크기 (큰 것)</option>
-            <option value="size-asc">크기 (작은 것)</option>
+            <option value="name-asc">?대쫫 (媛?섎떎)</option>
+            <option value="name-desc">?대쫫 (??닚)</option>
+            <option value="date-desc" selected>?섏젙??(理쒖떊)</option>
+            <option value="date-asc">?섏젙??(?ㅻ옒??</option>
+            <option value="size-desc">?ш린 (??寃?</option>
+            <option value="size-asc">?ш린 (?묒? 寃?</option>
           </select>
         </div>
       </div>
@@ -117,99 +117,99 @@
                 <input type="checkbox" id="wfSelectAll" />
               </th>
               <th class="wf-col-icon"></th>
-              <th class="wf-col-name">이름</th>
-              <th class="wf-col-owner">소유자</th>
-              <th class="wf-col-size">크기</th>
-              <th class="wf-col-date">수정일</th>
+              <th class="wf-col-name">?대쫫</th>
+              <th class="wf-col-owner">?뚯쑀??/th>
+              <th class="wf-col-size">?ш린</th>
+              <th class="wf-col-date">?섏젙??/th>
               <th class="wf-col-actions"></th>
             </tr>
           </thead>
           <tbody id="wfFileListBody">
             <tr class="wf-list-loading">
-              <td colspan="7">불러오는 중...</td>
+              <td colspan="7">遺덈윭?ㅻ뒗 以?..</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- 빈 상태 -->
+      <!-- 鍮??곹깭 -->
       <div class="wf-empty" id="wfEmptyState" style="display:none;">
-        <div class="wf-empty-icon">📂</div>
-        <div class="wf-empty-title">비어 있습니다</div>
-        <div class="wf-empty-desc">파일을 업로드하거나 새 폴더를 만들어 보세요.</div>
+        <div class="wf-empty-icon">?뱛</div>
+        <div class="wf-empty-title">鍮꾩뼱 ?덉뒿?덈떎</div>
+        <div class="wf-empty-desc">?뚯씪???낅줈?쒗븯嫄곕굹 ???대뜑瑜?留뚮뱾??蹂댁꽭??</div>
       </div>
     </section>
 
   </main>
 
-  <!-- ═══════════ 모달: 업로드 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??紐⑤떖: ?낅줈???먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-modal" id="wfUploadModal" role="dialog" aria-hidden="true">
     <div class="wf-modal-backdrop" data-close="wfUploadModal"></div>
     <div class="wf-modal-content">
       <div class="wf-modal-header">
-        <h2>📤 파일 업로드</h2>
-        <button class="wf-modal-close" data-close="wfUploadModal">✕</button>
+        <h2>?뱾 ?뚯씪 ?낅줈??/h2>
+        <button class="wf-modal-close" data-close="wfUploadModal">??/button>
       </div>
       <div class="wf-modal-body">
         <div class="wf-drop-zone" id="wfDropZone">
-          <div class="wf-drop-icon">📥</div>
+          <div class="wf-drop-icon">?뱿</div>
           <div class="wf-drop-text">
-            여기로 파일을 끌어다 놓거나<br />
+            ?ш린濡??뚯씪???뚯뼱???볤굅??br />
             <label class="wf-drop-browse">
               <input type="file" id="wfFileInput" multiple style="display:none" />
-              <span>파일 선택</span>
+              <span>?뚯씪 ?좏깮</span>
             </label>
           </div>
-          <div class="wf-drop-hint">파일당 최대 500MB</div>
+          <div class="wf-drop-hint">?뚯씪??理쒕? 500MB</div>
         </div>
 
         <div class="wf-upload-queue" id="wfUploadQueue"></div>
       </div>
       <div class="wf-modal-footer">
-        <button class="wf-btn wf-btn-default" data-close="wfUploadModal">닫기</button>
+        <button class="wf-btn wf-btn-default" data-close="wfUploadModal">?リ린</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ 모달: 새 폴더 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??紐⑤떖: ???대뜑 ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-modal" id="wfNewFolderModal" role="dialog" aria-hidden="true">
     <div class="wf-modal-backdrop" data-close="wfNewFolderModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>📁 새 폴더</h2>
-        <button class="wf-modal-close" data-close="wfNewFolderModal">✕</button>
+        <h2>?뱚 ???대뜑</h2>
+        <button class="wf-modal-close" data-close="wfNewFolderModal">??/button>
       </div>
       <div class="wf-modal-body">
         <label class="wf-field">
-          <span class="wf-field-label">폴더 이름</span>
+          <span class="wf-field-label">?대뜑 ?대쫫</span>
           <input type="text"
                  id="wfNewFolderName"
                  class="wf-field-input"
-                 placeholder="예: 2026 계약서"
+                 placeholder="?? 2026 怨꾩빟??
                  maxlength="100" />
         </label>
         <div class="wf-field-hint" id="wfNewFolderParent">
-          상위 폴더: <strong>홈</strong>
+          ?곸쐞 ?대뜑: <strong>??/strong>
         </div>
       </div>
       <div class="wf-modal-footer">
-        <button class="wf-btn wf-btn-default" data-close="wfNewFolderModal">취소</button>
-        <button class="wf-btn wf-btn-primary" id="wfBtnCreateFolder">생성</button>
+        <button class="wf-btn wf-btn-default" data-close="wfNewFolderModal">痍⑥냼</button>
+        <button class="wf-btn wf-btn-primary" id="wfBtnCreateFolder">?앹꽦</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ 모달: 이름 변경 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??紐⑤떖: ?대쫫 蹂寃??먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-modal" id="wfRenameModal" role="dialog" aria-hidden="true">
     <div class="wf-modal-backdrop" data-close="wfRenameModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>✏️ 이름 변경</h2>
-        <button class="wf-modal-close" data-close="wfRenameModal">✕</button>
+        <h2>?륅툘 ?대쫫 蹂寃?/h2>
+        <button class="wf-modal-close" data-close="wfRenameModal">??/button>
       </div>
       <div class="wf-modal-body">
         <label class="wf-field">
-          <span class="wf-field-label">새 이름</span>
+          <span class="wf-field-label">???대쫫</span>
           <input type="text"
                  id="wfRenameInput"
                  class="wf-field-input"
@@ -219,49 +219,49 @@
         <input type="hidden" id="wfRenameTargetId" />
       </div>
       <div class="wf-modal-footer">
-        <button class="wf-btn wf-btn-default" data-close="wfRenameModal">취소</button>
-        <button class="wf-btn wf-btn-primary" id="wfBtnRename">변경</button>
+        <button class="wf-btn wf-btn-default" data-close="wfRenameModal">痍⑥냼</button>
+        <button class="wf-btn wf-btn-primary" id="wfBtnRename">蹂寃?/button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ 모달: 공유 관리 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??紐⑤떖: 怨듭쑀 愿由??먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-modal" id="wfShareModal" role="dialog" aria-hidden="true">
     <div class="wf-modal-backdrop" data-close="wfShareModal"></div>
     <div class="wf-modal-content">
       <div class="wf-modal-header">
-        <h2>🔗 공유 관리</h2>
-        <button class="wf-modal-close" data-close="wfShareModal">✕</button>
+        <h2>?뵕 怨듭쑀 愿由?/h2>
+        <button class="wf-modal-close" data-close="wfShareModal">??/button>
       </div>
       <div class="wf-modal-body">
         <div class="wf-share-target" id="wfShareTarget">
-          <span class="wf-share-icon">📄</span>
-          <span class="wf-share-name">—</span>
+          <span class="wf-share-icon">?뱞</span>
+          <span class="wf-share-name">??/span>
         </div>
 
         <div class="wf-share-public">
           <label class="wf-switch">
             <input type="checkbox" id="wfSharePublic" />
             <span class="wf-switch-slider"></span>
-            <span class="wf-switch-label">전체 공개 (로그인 관리자 모두 열람 가능)</span>
+            <span class="wf-switch-label">?꾩껜 怨듦컻 (濡쒓렇??愿由ъ옄 紐⑤몢 ?대엺 媛??</span>
           </label>
         </div>
 
         <div class="wf-share-section">
-          <h3>특정 멤버에게 공유</h3>
+          <h3>?뱀젙 硫ㅻ쾭?먭쾶 怨듭쑀</h3>
           <div class="wf-share-add">
             <select id="wfShareMemberSelect">
-              <option value="">-- 멤버 선택 --</option>
+              <option value="">-- 硫ㅻ쾭 ?좏깮 --</option>
             </select>
             <select id="wfSharePermissionSelect">
-              <option value="view">조회</option>
-              <option value="edit">편집</option>
+              <option value="view">議고쉶</option>
+              <option value="edit">?몄쭛</option>
             </select>
-            <button class="wf-btn wf-btn-primary" id="wfBtnAddShare">추가</button>
+            <button class="wf-btn wf-btn-primary" id="wfBtnAddShare">異붽?</button>
           </div>
 
           <ul class="wf-share-list" id="wfShareList">
-            <li class="wf-share-empty">아직 공유된 멤버가 없습니다.</li>
+            <li class="wf-share-empty">?꾩쭅 怨듭쑀??硫ㅻ쾭媛 ?놁뒿?덈떎.</li>
           </ul>
         </div>
 
@@ -269,40 +269,40 @@
         <input type="hidden" id="wfShareTargetId" />
       </div>
       <div class="wf-modal-footer">
-        <button class="wf-btn wf-btn-default" data-close="wfShareModal">닫기</button>
+        <button class="wf-btn wf-btn-default" data-close="wfShareModal">?リ린</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ 모달: 영구 삭제 확인 (휴지통) ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧??紐⑤떖: ?곴뎄 ??젣 ?뺤씤 (?댁??? ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-modal" id="wfDeleteConfirmModal" role="dialog" aria-hidden="true">
     <div class="wf-modal-backdrop" data-close="wfDeleteConfirmModal"></div>
     <div class="wf-modal-content wf-modal-sm">
       <div class="wf-modal-header">
-        <h2>⚠️ 영구 삭제</h2>
-        <button class="wf-modal-close" data-close="wfDeleteConfirmModal">✕</button>
+        <h2>?좑툘 ?곴뎄 ??젣</h2>
+        <button class="wf-modal-close" data-close="wfDeleteConfirmModal">??/button>
       </div>
       <div class="wf-modal-body">
         <p class="wf-warning-text">
-          선택한 항목을 <strong>영구 삭제</strong>합니다.<br />
-          이 작업은 <strong>되돌릴 수 없습니다.</strong>
+          ?좏깮????ぉ??<strong>?곴뎄 ??젣</strong>?⑸땲??<br />
+          ???묒뾽? <strong>?섎룎由????놁뒿?덈떎.</strong>
         </p>
-        <p class="wf-warning-detail" id="wfDeleteConfirmDetail">—</p>
+        <p class="wf-warning-detail" id="wfDeleteConfirmDetail">??/p>
       </div>
       <div class="wf-modal-footer">
-        <button class="wf-btn wf-btn-default" data-close="wfDeleteConfirmModal">취소</button>
-        <button class="wf-btn wf-btn-danger" id="wfBtnConfirmDelete">영구 삭제</button>
+        <button class="wf-btn wf-btn-default" data-close="wfDeleteConfirmModal">痍⑥냼</button>
+        <button class="wf-btn wf-btn-danger" id="wfBtnConfirmDelete">?곴뎄 ??젣</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ 토스트 알림 컨테이너 ═══════════ -->
+  <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧???좎뒪???뚮┝ 而⑦뀒?대꼫 ?먥븧?먥븧?먥븧?먥븧?먥븧??-->
   <div class="wf-toast-container" id="wfToastContainer"></div>
 
-  <!-- placeholder JS (Step 6에서 본격 구현) -->
+  <!-- placeholder JS (Step 6?먯꽌 蹂멸꺽 援ы쁽) -->
   <script src="/js/workspace-sync-channel.js?v=2"></script>
   <script src="/js/workspace-task-modal.js?v=3"></script>
-  <script src="/js/workspace-files.js?v=2026-05-18-r10"></script>
+  <script src="/js/workspace-files.js?v=2026-05-18-r11"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
   <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>

@@ -1,26 +1,15 @@
 // public/js/settings-notifications.js
-// ★ R10: 라운드 10 — 알림 구독 설정 (mock 폴백 + 일괄 저장)
+// ★ R10: 라운드 10 — 알림 구독 설정 (일괄 저장)
 //
 // 응답 shape:
 //   GET  /api/notification-preferences → { ok, preferences:[{eventType, channels}] }
 //   PUT  /api/notification-preferences → { ok }
-// 실패 시 MOCK 사용.
 
 (function () {
   "use strict";
 
   const CHANNELS  = ["inapp", "email", "sms", "kakao"];
 
-  /* MOCK (B 머지 전까지 사용) */
-  const MOCK_NOTIFICATION_PREFS = {
-    ok: true,
-    preferences: [
-      { eventType: "support_status_change", channels: ["inapp", "email"] },
-      { eventType: "donation_confirmed",    channels: ["inapp", "email", "sms"] },
-      { eventType: "workspace_mention",     channels: ["inapp"] },
-    ],
-  };
-  const MOCK_PREFS_SAVE = { ok: true };
 
   /* 이벤트 분류·라벨 — 새 키는 여기에 추가만 하면 자동 인식 */
   const CATEGORY = {
@@ -46,7 +35,7 @@
   };
 
   let preferences = []; // [{eventType, channels:[...]}]
-  let phoneVerified = true; // R10 mock 기본: 인증된 것으로 간주
+  let phoneVerified = true;
 
   /* ── 카테고리 분류 ── */
   function categorize(eventType) {
@@ -82,19 +71,11 @@
         }
       }
     } catch (e) {
-      console.warn("[notif] fetch failed, using mock", e);
+      console.warn("[notif] fetch failed", e);
+      showToast("알림 설정을 불러올 수 없습니다.", "error");
     }
 
-    /* MOCK 폴백 */
-    if (!data || preferences.length === 0) {
-      console.info("[notif] MOCK_NOTIFICATION_PREFS 사용");
-      preferences = MOCK_NOTIFICATION_PREFS.preferences.map((p) => ({
-        eventType: p.eventType,
-        channels: p.channels.slice(),
-      }));
-      data = { phoneVerified: true };
-    }
-    phoneVerified = !!data.phoneVerified;
+    phoneVerified = !!(data && data.phoneVerified);
 
     if (!phoneVerified) {
       const a = document.getElementById("phoneAlert");
@@ -214,12 +195,7 @@
         saved = true;
       }
     } catch (e) {
-      console.warn("[notif] PUT failed, using MOCK_PREFS_SAVE", e);
-    }
-
-    if (!saved) {
-      /* MOCK 폴백 */
-      saved = MOCK_PREFS_SAVE.ok;
+      console.warn("[notif] PUT failed", e);
     }
 
     btn.disabled = false;

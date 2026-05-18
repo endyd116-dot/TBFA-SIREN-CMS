@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>신고 관리 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; font-size: 14px; color: #1a2035; background: #f4f6fa; padding: 24px; min-height: 100vh; }
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+
+    /* 필터 탭 */
+    .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .filter-tab { padding: 7px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; background: #fff; color: #374151; transition: all 0.15s; }
+    .filter-tab.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .filter-tab:hover:not(.active) { background: #f3f4f6; }
+
+    /* 카드·테이블 */
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 10px 14px; background: #f9fafb; color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+    .data-table td { padding: 12px 14px; border-bottom: 1px solid #f0f2f5; color: #374151; vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #f9fafb; }
+    .empty-row td { text-align: center; color: #9ca3af; padding: 32px; }
+
+    /* 배지 */
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-pending  { background: #fef9c3; color: #854d0e; }
+    .badge-reviewed { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #f3f4f6; color: #6b7280; }
+    .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .type-comment  { background: #dbeafe; color: #1e40af; }
+    .type-incident { background: #fce7f3; color: #9d174d; }
+
+    /* 버튼 */
+    .btn { padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary { background: #1e40af; color: #fff; }
+    .btn-primary:hover { background: #1e3a8a; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-ghost { background: #f3f4f6; color: #374151; }
+    .btn-ghost:hover { background: #e5e7eb; }
+    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+    .btn-outline:hover { background: #f9fafb; }
+
+    /* 페이지네이션 */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px; }
+    .pg-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #d1d5db; background: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pg-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .pg-btn:hover:not(.active):not(:disabled) { background: #f3f4f6; }
+    .pg-btn:disabled { opacity: 0.4; cursor: default; }
+
+    /* 모달 */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.show { display: flex; }
+    .modal-box { background: #fff; border-radius: 12px; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-head { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+    .modal-head h3 { font-size: 15px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280; line-height: 1; }
+    .modal-body { padding: 20px; }
+    .modal-foot { padding: 14px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+
+    .info-row { margin-bottom: 12px; }
+    .info-label { font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
+    .info-value { font-size: 13px; color: #1a2035; padding: 8px 10px; background: #f9fafb; border-radius: 6px; line-height: 1.5; }
+
+    .radio-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .radio-item { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 7px; border: 1px solid #e5e7eb; transition: all 0.15s; }
+    .radio-item:hover { background: #f0f4ff; border-color: #93c5fd; }
+    .radio-item input[type=radio] { accent-color: #1e40af; }
+    .radio-item label { font-size: 13px; color: #374151; cursor: pointer; }
+
+    /* 토스트 */
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1a2035; color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 13px; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .loading { text-align: center; padding: 32px; color: #9ca3af; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h2>🚩 신고 관리</h2>
+  <p class="page-desc">댓글·사건 신고 목록을 검토하고 처리합니다.</p>
+
+  <!-- 필터 탭 -->
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-status="">전체</button>
+    <button class="filter-tab" data-status="pending">검토대기</button>
+    <button class="filter-tab" data-status="reviewed">처리완료</button>
+    <button class="filter-tab" data-status="rejected">기각</button>
+  </div>
+
+  <!-- 목록 -->
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:60px">ID</th>
+          <th style="width:80px">종류</th>
+          <th>신고 사유</th>
+          <th style="width:100px">신고자</th>
+          <th style="width:110px">일시</th>
+          <th style="width:90px">상태</th>
+          <th style="width:70px"></th>
+        </tr>
+      </thead>
+      <tbody id="reportTableBody">
+        <tr><td colspan="7" class="loading">로딩 중...</td></tr>
+      </tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- 검토 모달 -->
+  <div class="modal-overlay" id="reviewModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>신고 검토</h3>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-row">
+          <div class="info-label">신고 사유</div>
+          <div class="info-value" id="modalReason">—</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">신고 대상</div>
+          <div class="info-value" id="modalTarget">—</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">처리 방법</div>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="reviewAction" value="none" checked>
+              <label>조치 없음 (기각)</label>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="reviewAction" value="hide_comment">
+              <label>댓글 숨기기</label>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="reviewAction" value="delete_comment">
+              <label>댓글 삭제</label>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline" onclick="closeModal()">취소</button>
+        <button class="btn btn-primary" onclick="submitReview()">처리 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/js/admin-comment-reports.js?v=1"></script>
+</body>
+</html>

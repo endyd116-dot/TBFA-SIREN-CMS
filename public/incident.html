@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>사건 상세 | 교사유가족협의회</title>
-<meta name="description" content="사건 상세 정보 및 제보 페이지">
+<title>?ш굔 ?곸꽭 | 援먯궗?좉?議깊삊?섑쉶</title>
+<meta name="description" content="?ш굔 ?곸꽭 ?뺣낫 諛??쒕낫 ?섏씠吏">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,182 +23,182 @@
 
   <main>
 
-    <!-- 사건 정보 영역 (incident.js가 채움) -->
+    <!-- ?ш굔 ?뺣낫 ?곸뿭 (incident.js媛 梨꾩?) -->
     <section class="incident-detail-hero" id="incidentHero">
       <div class="container">
-        <span class="eyebrow">사건 정보 로딩 중...</span>
-        <h1 id="incidentTitle">⏳ 잠시만 기다려 주세요</h1>
+        <span class="eyebrow">?ш굔 ?뺣낫 濡쒕뵫 以?..</span>
+        <h1 id="incidentTitle">???좎떆留?湲곕떎??二쇱꽭??/h1>
       </div>
     </section>
 
     <div class="container">
       <div class="incident-content-wrap" id="incidentContent">
-        <p style="text-align:center;color:var(--text-3);padding:40px">사건 상세 정보를 불러오는 중...</p>
+        <p style="text-align:center;color:var(--text-3);padding:40px">?ш굔 ?곸꽭 ?뺣낫瑜?遺덈윭?ㅻ뒗 以?..</p>
       </div>
 
       <div class="incident-cta-box" id="incidentCtaBox" style="display:none">
-        <h3>📝 이 사건에 대한 정보·증언을 가지고 계신가요?</h3>
+        <h3>?뱷 ???ш굔??????뺣낫쨌利앹뼵??媛吏怨?怨꾩떊媛??</h3>
         <p>
-          익명으로도 제보 가능하며, 모든 제보는 비밀이 보장됩니다.<br />
-          AI가 1차 분석한 후 사이렌 운영진이 검토하여 답변드립니다.
+          ?듬챸?쇰줈???쒕낫 媛?ν븯硫? 紐⑤뱺 ?쒕낫??鍮꾨???蹂댁옣?⑸땲??<br />
+          AI媛 1李?遺꾩꽍?????ъ씠???댁쁺吏꾩씠 寃?좏븯???듬??쒕┰?덈떎.
         </p>
-        <button class="cta-btn" id="btnOpenReportModal">제보하기 →</button>
+        <button class="cta-btn" id="btnOpenReportModal">?쒕낫?섍린 ??/button>
       </div>
 
-      <!-- ★ R10: 사건 댓글 영역 -->
+      <!-- ??R10: ?ш굔 ?볤? ?곸뿭 -->
       <section class="incident-comments" id="incidentCommentSection" style="display:none">
-        <h3 class="ic-title">💬 댓글 <span id="icCommentCount">(0)</span></h3>
+        <h3 class="ic-title">?뮠 ?볤? <span id="icCommentCount">(0)</span></h3>
 
         <div class="ic-form" id="icCommentForm" style="display:none">
-          <textarea id="icCommentInput" placeholder="댓글을 입력해 주세요 (최대 1000자)" maxlength="1000"></textarea>
+          <textarea id="icCommentInput" placeholder="?볤????낅젰??二쇱꽭??(理쒕? 1000??" maxlength="1000"></textarea>
           <div class="ic-form-actions">
-            <label class="ic-checkbox"><input type="checkbox" id="icAnonymous"> <span>익명</span></label>
-            <button type="button" class="ic-btn ic-btn-primary" id="icCommentSubmit">등록</button>
+            <label class="ic-checkbox"><input type="checkbox" id="icAnonymous"> <span>?듬챸</span></label>
+            <button type="button" class="ic-btn ic-btn-primary" id="icCommentSubmit">?깅줉</button>
           </div>
         </div>
         <div class="ic-login-notice" id="icLoginNotice" style="display:none">
-          댓글을 작성하려면 <a href="#" data-target="loginModal" style="color:var(--brand);font-weight:600">로그인</a>이 필요합니다.
+          ?볤????묒꽦?섎젮硫?<a href="#" data-target="loginModal" style="color:var(--brand);font-weight:600">濡쒓렇??/a>???꾩슂?⑸땲??
         </div>
 
         <div class="ic-list" id="icCommentList">
-          <div style="text-align:center;padding:20px;color:var(--text-3)">댓글 불러오는 중...</div>
+          <div style="text-align:center;padding:20px;color:var(--text-3)">?볤? 遺덈윭?ㅻ뒗 以?..</div>
         </div>
       </section>
     </div>
 
   </main>
 
-  <!-- ★ R10: 댓글 신고 모달 -->
+  <!-- ??R10: ?볤? ?좉퀬 紐⑤떖 -->
   <div class="ic-report-modal" id="icReportModal" role="dialog" aria-hidden="true">
     <div class="ic-report-backdrop" data-icr-close></div>
     <div class="ic-report-content">
       <div class="ic-report-header">
-        <h3>🚨 댓글 신고</h3>
-        <button type="button" class="ic-report-close" data-icr-close aria-label="닫기">&times;</button>
+        <h3>?슚 ?볤? ?좉퀬</h3>
+        <button type="button" class="ic-report-close" data-icr-close aria-label="?リ린">&times;</button>
       </div>
       <div class="ic-report-body">
-        <p class="ic-report-desc">부적절한 댓글을 신고하시려면 사유를 선택해 주세요. 운영진이 검토 후 처리합니다.</p>
+        <p class="ic-report-desc">遺?곸젅???볤????좉퀬?섏떆?ㅻ㈃ ?ъ쑀瑜??좏깮??二쇱꽭?? ?댁쁺吏꾩씠 寃????泥섎━?⑸땲??</p>
         <div class="ic-report-reasons" id="icReportReasons">
-          <label><input type="radio" name="icReportReason" value="욕설/혐오 발언"> <span>욕설·혐오 발언</span></label>
-          <label><input type="radio" name="icReportReason" value="허위 사실·비방"> <span>허위 사실·비방</span></label>
-          <label><input type="radio" name="icReportReason" value="스팸·도배"> <span>스팸·도배</span></label>
-          <label><input type="radio" name="icReportReason" value="개인정보 노출"> <span>개인정보 노출</span></label>
-          <label><input type="radio" name="icReportReason" value="기타"> <span>기타</span></label>
+          <label><input type="radio" name="icReportReason" value="?뺤꽕/?먯삤 諛쒖뼵"> <span>?뺤꽕쨌?먯삤 諛쒖뼵</span></label>
+          <label><input type="radio" name="icReportReason" value="?덉쐞 ?ъ떎쨌鍮꾨갑"> <span>?덉쐞 ?ъ떎쨌鍮꾨갑</span></label>
+          <label><input type="radio" name="icReportReason" value="?ㅽ뙵쨌?꾨같"> <span>?ㅽ뙵쨌?꾨같</span></label>
+          <label><input type="radio" name="icReportReason" value="媛쒖씤?뺣낫 ?몄텧"> <span>媛쒖씤?뺣낫 ?몄텧</span></label>
+          <label><input type="radio" name="icReportReason" value="湲고?"> <span>湲고?</span></label>
         </div>
-        <textarea id="icReportDetail" placeholder="상세 사유 (선택, 500자 이내)" maxlength="500"></textarea>
+        <textarea id="icReportDetail" placeholder="?곸꽭 ?ъ쑀 (?좏깮, 500???대궡)" maxlength="500"></textarea>
       </div>
       <div class="ic-report-footer">
-        <button type="button" class="ic-btn ic-btn-default" data-icr-close>취소</button>
-        <button type="button" class="ic-btn ic-btn-danger" id="icReportSubmit">신고하기</button>
+        <button type="button" class="ic-btn ic-btn-default" data-icr-close>痍⑥냼</button>
+        <button type="button" class="ic-btn ic-btn-danger" id="icReportSubmit">?좉퀬?섍린</button>
       </div>
     </div>
   </div>
 
   <!-- ============================================================
-       제보 모달
+       ?쒕낫 紐⑤떖
        ============================================================ -->
   <div id="incidentReportModal">
     <div class="ir-modal">
       <div class="ir-header">
-        <h3 id="irModalTitle">📝 사건 제보하기</h3>
-        <button type="button" class="ir-close" data-ir-close aria-label="닫기">&times;</button>
+        <h3 id="irModalTitle">?뱷 ?ш굔 ?쒕낫?섍린</h3>
+        <button type="button" class="ir-close" data-ir-close aria-label="?リ린">&times;</button>
       </div>
       <div class="ir-body">
 
-        <!-- STEP 1: 작성 폼 -->
+        <!-- STEP 1: ?묒꽦 ??-->
         <div class="ir-step" data-ir-step="1">
           <form id="incidentReportForm">
             <div class="fg">
-              <label>제목 <span style="color:#dc2626">*</span></label>
-              <input type="text" name="title" id="irTitle" required maxlength="200" placeholder="제보 내용을 간단히 요약해 주세요">
+              <label>?쒕ぉ <span style="color:#dc2626">*</span></label>
+              <input type="text" name="title" id="irTitle" required maxlength="200" placeholder="?쒕낫 ?댁슜??媛꾨떒???붿빟??二쇱꽭??>
             </div>
 
             <div class="fg" style="margin-bottom:16px">
-              <label>본문 <span style="color:#dc2626">*</span> <span class="hint">(서식, 이미지 첨부 가능)</span></label>
+              <label>蹂몃Ц <span style="color:#dc2626">*</span> <span class="hint">(?쒖떇, ?대?吏 泥⑤? 媛??</span></label>
               <div id="irEditor"></div>
             </div>
 
             <div class="fg" style="margin-bottom:16px">
-              <label>증빙 자료 첨부 <span class="hint">(선택 — 이미지·PDF·문서)</span></label>
+              <label>利앸튃 ?먮즺 泥⑤? <span class="hint">(?좏깮 ???대?吏쨌PDF쨌臾몄꽌)</span></label>
               <div id="irAttachments"></div>
             </div>
 
             <label class="checkbox-line">
               <input type="checkbox" name="isAnonymous" id="irAnonymous">
               <span>
-                <strong>익명으로 제보합니다</strong><br />
-                <span style="font-size:12px;color:var(--text-3)">관리자에게 신원 정보가 전달되지 않습니다. 단, 답변 확인은 마이페이지에서만 가능합니다.</span>
+                <strong>?듬챸?쇰줈 ?쒕낫?⑸땲??/strong><br />
+                <span style="font-size:12px;color:var(--text-3)">愿由ъ옄?먭쾶 ?좎썝 ?뺣낫媛 ?꾨떖?섏? ?딆뒿?덈떎. ?? ?듬? ?뺤씤? 留덉씠?섏씠吏?먯꽌留?媛?ν빀?덈떎.</span>
               </span>
             </label>
 
             <label class="checkbox-line">
               <input type="checkbox" required>
               <span>
-                <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand)">개인정보 수집·이용</a>
-                및 비밀 유지 안내에 동의합니다.<br />
-                <span style="font-size:12px;color:var(--text-3)">제보 내용과 첨부 파일은 암호화되어 안전하게 보관됩니다.</span>
+                <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--brand)">媛쒖씤?뺣낫 ?섏쭛쨌?댁슜</a>
+                諛?鍮꾨? ?좎? ?덈궡???숈쓽?⑸땲??<br />
+                <span style="font-size:12px;color:var(--text-3)">?쒕낫 ?댁슜怨?泥⑤? ?뚯씪? ?뷀샇?붾릺???덉쟾?섍쾶 蹂닿??⑸땲??</span>
               </span>
             </label>
 
             <div class="ir-actions">
-              <button type="button" class="btn-cancel" data-ir-close>취소</button>
-              <button type="submit" class="btn-submit" id="irSubmitBtn">🤖 AI 분석 후 제출</button>
+              <button type="button" class="btn-cancel" data-ir-close>痍⑥냼</button>
+              <button type="submit" class="btn-submit" id="irSubmitBtn">?쨼 AI 遺꾩꽍 ???쒖텧</button>
             </div>
           </form>
         </div>
 
-        <!-- STEP 2: AI 분석 결과 -->
+        <!-- STEP 2: AI 遺꾩꽍 寃곌낵 -->
         <div class="ir-step" data-ir-step="2" style="display:none">
           <div class="ir-ai-result">
             <div style="text-align:center;margin-bottom:18px">
-              <div style="font-size:14px;color:var(--text-3);margin-bottom:4px">접수번호</div>
+              <div style="font-size:14px;color:var(--text-3);margin-bottom:4px">?묒닔踰덊샇</div>
               <div style="font-family:'Inter';font-size:18px;font-weight:700;color:var(--brand)" id="irReportNo">R-2026-0000</div>
             </div>
 
             <div class="ir-ai-severity" id="irAiSeverity">
-              <span class="icon" id="irSeverityIcon">⚖️</span>
+              <span class="icon" id="irSeverityIcon">?뽳툘</span>
               <div>
-                <div class="label">AI 판단 위급도</div>
-                <div class="level" id="irSeverityLabel">분석 중...</div>
+                <div class="label">AI ?먮떒 ?꾧툒??/div>
+                <div class="level" id="irSeverityLabel">遺꾩꽍 以?..</div>
               </div>
             </div>
 
             <div class="ir-ai-block">
-              <div class="b-title">📋 AI 요약</div>
-              <div class="b-content" id="irAiSummary">분석 중...</div>
+              <div class="b-title">?뱥 AI ?붿빟</div>
+              <div class="b-content" id="irAiSummary">遺꾩꽍 以?..</div>
             </div>
 
             <div class="ir-ai-block">
-              <div class="b-title">💡 권장 후속조치</div>
-              <div class="b-content" id="irAiSuggestion">분석 중...</div>
+              <div class="b-title">?뮕 沅뚯옣 ?꾩냽議곗튂</div>
+              <div class="b-content" id="irAiSuggestion">遺꾩꽍 以?..</div>
             </div>
 
             <div class="ir-ai-decision">
-              <h4>📌 사이렌에 정식 접수하시겠습니까?</h4>
+              <h4>?뱦 ?ъ씠?뚯뿉 ?뺤떇 ?묒닔?섏떆寃좎뒿?덇퉴?</h4>
               <p>
-                AI 분석 결과를 보셨습니다. 추가로 사이렌 운영진의 검토와 답변이 필요하시면 정식 접수하시고,
-                AI 답변만으로 충분하시면 'AI 답변만' 버튼을 눌러주세요.<br />
-                <span style="color:var(--text-3);font-size:12px">※ AI 답변은 1차 분석 자료로, 법률 자문/공식 입장이 아닙니다.</span>
+                AI 遺꾩꽍 寃곌낵瑜?蹂댁뀲?듬땲?? 異붽?濡??ъ씠???댁쁺吏꾩쓽 寃?좎? ?듬????꾩슂?섏떆硫??뺤떇 ?묒닔?섏떆怨?
+                AI ?듬?留뚯쑝濡?異⑸텇?섏떆硫?'AI ?듬?留? 踰꾪듉???뚮윭二쇱꽭??<br />
+                <span style="color:var(--text-3);font-size:12px">??AI ?듬?? 1李?遺꾩꽍 ?먮즺濡? 踰뺣쪧 ?먮Ц/怨듭떇 ?낆옣???꾨떃?덈떎.</span>
               </p>
               <div class="decision-buttons">
-                <button type="button" class="btn-siren" id="irBtnSiren">✅ 사이렌에 정식 접수</button>
-                <button type="button" class="btn-ai-only" id="irBtnAiOnly">📋 AI 답변만 받고 종료</button>
+                <button type="button" class="btn-siren" id="irBtnSiren">???ъ씠?뚯뿉 ?뺤떇 ?묒닔</button>
+                <button type="button" class="btn-ai-only" id="irBtnAiOnly">?뱥 AI ?듬?留?諛쏄퀬 醫낅즺</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- STEP 3: 완료 -->
+        <!-- STEP 3: ?꾨즺 -->
         <div class="ir-step" data-ir-step="3" style="display:none;text-align:center;padding:30px 10px">
-          <div style="font-size:60px;margin-bottom:14px" id="irFinalIcon">🎯</div>
-          <h2 class="serif" style="margin-bottom:10px" id="irFinalTitle">제보가 완료되었습니다</h2>
+          <div style="font-size:60px;margin-bottom:14px" id="irFinalIcon">?렞</div>
+          <h2 class="serif" style="margin-bottom:10px" id="irFinalTitle">?쒕낫媛 ?꾨즺?섏뿀?듬땲??/h2>
           <p style="color:var(--text-2);font-size:13.5px;line-height:1.7;margin-bottom:24px" id="irFinalMsg">
-            소중한 제보 감사합니다.<br />
-            마이페이지 &gt; 신청 내역에서 확인하실 수 있습니다.
+            ?뚯쨷???쒕낫 媛먯궗?⑸땲??<br />
+            留덉씠?섏씠吏 &gt; ?좎껌 ?댁뿭?먯꽌 ?뺤씤?섏떎 ???덉뒿?덈떎.
           </p>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <a href="/mypage.html" class="btn btn-primary">마이페이지로 이동</a>
-            <button type="button" class="btn btn-outline" data-ir-close>닫기</button>
+            <a href="/mypage.html" class="btn btn-primary">留덉씠?섏씠吏濡??대룞</a>
+            <button type="button" class="btn btn-outline" data-ir-close>?リ린</button>
           </div>
         </div>
 
@@ -213,6 +213,6 @@
   <script src="/js/auth.js?v=6"></script>
   <script src="/js/editor.js?v=2026-05"></script>
   <script src="/js/attachment.js?v=2026-05"></script>
-  <script src="/js/incident.js?v=2026-05-18-r10"></script>
+  <script src="/js/incident.js?v=2026-05-18-r11"></script>
 </body>
 </html>

@@ -641,26 +641,13 @@
     openModal('wfShareModal');
   }
 
-  /* ★ R10: 공유 API mock 폴백 — B 머지 전까지 사용 */
-  const MOCK_FILE_SHARES = { ok: true, shares: [{ id: 20, sharedWith: 5, permission: 'view', expiresAt: null }] };
-  const MOCK_FILE_SHARE_CREATE = { ok: true, shareId: 20 };
-  async function tryR10Share(path, options = {}) {
-    try {
-      return await api(path, options);
-    } catch (err) {
-      console.warn('[R10 share fallback]', err?.message || err);
-      return null;
-    }
-  }
 
   async function loadShareList(type, id) {
     try {
       const params = new URLSearchParams();
       params.set('targetType', type);
       params.set('targetId', String(id));
-      /* R10: /api/workspace-file-share 시도 → 실패 시 MOCK */
-      let res = await tryR10Share(`/api/workspace-file-share?${params}`);
-      if (!res) res = MOCK_FILE_SHARES;
+      const res = await api(`/api/workspace-file-share?${params}`);
       const shares = res.shares || res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       const isPublic = res.isShared || res.data?.isShared || false;
 
@@ -712,9 +699,7 @@
         permission,
         expiresAt: null,
       };
-      /* R10: 새 엔드포인트 시도 → 실패 시 MOCK */
-      let res = await tryR10Share('/api/workspace-file-share', { method: 'POST', body });
-      if (!res) res = MOCK_FILE_SHARE_CREATE;
+      await api('/api/workspace-file-share', { method: 'POST', body });
       toast('공유되었습니다.', 'success');
       await loadShareList(type, id);
     } catch (err) {
@@ -725,12 +710,10 @@
   async function removeShare(shareId, type, id) {
     if (!confirm('이 공유를 해제하시겠습니까?')) return;
     try {
-      /* R10: 새 엔드포인트 — body로 shareId 전달, 실패 시 mock {ok:true} */
-      let res = await tryR10Share('/api/workspace-file-share', {
+      await api('/api/workspace-file-share', {
         method: 'DELETE',
         body: { shareId },
       });
-      if (!res) res = { ok: true };
       toast('공유가 취소되었습니다.', 'success');
       await loadShareList(type, id);
     } catch (err) {
