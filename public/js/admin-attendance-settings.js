@@ -523,7 +523,7 @@
   document.addEventListener('DOMContentLoaded', async function() {
     try {
       var meRes = await api('/api/admin/me?light=1');
-      var me = (meRes.data && meRes.data.admin) || meRes.admin || {};
+      var me = (meRes.data && meRes.data.admin) || meRes.admin || meRes.data || {};
       if (me.role !== 'super_admin') {
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:16px;color:#6b7280">슈퍼어드민만 접근할 수 있습니다.</div>';
         return;
@@ -537,8 +537,7 @@
     initTabs();
 
     // 회원 목록 미리 로드 (재택보고서·근무형태 탭 공통)
-    await loadMemberList('rrMemberSel');
-    await loadMemberList('wmMemberSel');
+    await Promise.all([loadMemberList('rrMemberSel'), loadMemberList('wmMemberSel')]);
 
     // 재택보고서 탭 이벤트
     (function() {

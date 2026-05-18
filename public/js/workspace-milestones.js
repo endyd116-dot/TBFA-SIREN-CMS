@@ -68,7 +68,10 @@
 
     // milestoneRole 없으면 안내
     if (!state.member.milestoneRole && !state.isSuperAdmin) {
-      $('#msSubtitle').textContent = '성과 담당 역할이 설정되어 있지 않습니다. 슈퍼어드민에게 문의하세요.';
+      const _loading = $('#overviewLoading') as HTMLElement;
+      const _content = $('#overviewContent') as HTMLElement;
+      if (_loading) _loading.style.display = 'none';
+      if (_content) { _content.style.display = ''; _content.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px 20px">성과 담당 역할이 설정되어 있지 않습니다.<br>슈퍼어드민에게 문의하세요.</div>'; }
       return;
     }
 
@@ -100,9 +103,8 @@
     $$('#msTabs .ms-tab').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
-    // 기본 탭 로드
-    await loadDashboard();
-    await loadRevenueMilestones();
+    // 기본 탭 로드 (병렬)
+    await Promise.all([loadDashboard(), loadRevenueMilestones()]);
     renderOverview();
   });
 

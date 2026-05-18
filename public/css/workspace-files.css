@@ -5,6 +5,7 @@
 
 /* ───── 페이지 콘텐츠 영역 (ws-sidebar 우측) ───── */
 .wf-page-body {
+  margin-left: var(--ws-sidebar-w);
   flex: 1;
   min-width: 0;
   display: flex;
