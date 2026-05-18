@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-18 | **메인** | **📐 라운드 8·9·10 설계 완료** — R8 수정/삭제 API 5종+보고↔작업 자동동기화(DB 마이그 불필요) / R9 WBS 고급+채팅 편집/삭제(DB 마이그 필요: migrate-chat-edit) / R10 댓글 투표·공유·알림 구독+AI 법률 배정(DB 마이그 불필요). B·A·C 트리거 3종 준비됨 |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 머지 완료** (main @ `8b06826`) — Layer 3 힌트 시스템(suggestedNextSteps 15핸들러) + Layer 4 스케줄 도구 3개(schedule_command·scheduled_commands_list·schedule_cancel) + C BUG 3건 fix 포함. **⚠️ 마이그레이션 호출 필요**: `https://tbfa.co.kr/api/migrate-ai-schedule?run=1` |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
 | 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료. 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
@@ -46,12 +47,14 @@
 
 ```
 ✅ 라운드 7 Phase 2 완료 — main @ 8b06826 (2026-05-18)
-   - Layer 3 힌트 시스템: suggestedNextSteps 필드 + buildNextSteps() + 15개 핸들러 주입
-   - Layer 4 스케줄 도구: schedule_command / scheduled_commands_list / schedule_cancel + cron-ai-schedule-runner
-   - C BUG 3건 fix: 정수형 비교 / 조건 필터 서브쿼리 / TOOL_GROUPS 6개 등록 누락
    - ⚠️ Swain 마이그레이션 호출 필요: https://tbfa.co.kr/api/migrate-ai-schedule?run=1
    - C Q1~Q6 라이브 검증 대기 중 (마이그 후)
-   - 🔄 다음: Round 8 주제 결정
+
+📐 라운드 8·9·10 설계 완료 (2026-05-18)
+   - R8: 수정/삭제 API 5종 + 보고↔작업 자동동기화 (DB 마이그 불필요)
+   - R9: WBS 서브태스크·체크리스트·반복·리마인더 + 채팅 편집/삭제/검색 (DB 마이그 필요)
+   - R10: 댓글 투표·신고 + 파일 공유 + 알림 구독 + AI 법률 자동배정 (DB 마이그 불필요)
+   - 🔄 다음: R8 B 트리거 → B 구현 → 머지 → A 구현 → C 검증
 
 🔧 도구 사용 주의
    - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
@@ -125,6 +128,39 @@
 |---|---|---|---|
 | A | 프론트 | 채널별 미리보기 탭 + 파일함 재사용 첨부 | ✅ 완료 (머지됨) |
 | C | 검증 | Q1~Q10 | ✅ 완료 (10/10 통과, BUG 0, 7a2f557) |
+
+### 4.8 라운드 8 수정 API 4종 + 보고↔작업 자동동기화 (2026-05-18 📐 설계 완료)
+
+설계서: [docs/milestones/2026-05-18-round8-update-sync.md](docs/milestones/2026-05-18-round8-update-sync.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | 설계·머지 | 설계서 작성, 트리거 준비 | ✅ 설계 완료 |
+| B | 백엔드 | support/incident/harassment/legal update API 4종 + delete 1종 + workspace sync | ⏸ 대기 |
+| A | 프론트 | mypage-applications.js·mypage.html + my-reports.js·my-reports.html 수정 버튼·모달 | ⏸ 대기 (B 머지 후) |
+| C | 검증 | Q1~Q10 라이브 검증 | ⏸ 대기 |
+
+### 4.9 라운드 9 WBS 고급 + 채팅 편집 + 폼 응답 삭제 (2026-05-18 📐 설계 완료)
+
+설계서: [docs/milestones/2026-05-18-round9-wbs-chat.md](docs/milestones/2026-05-18-round9-wbs-chat.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | DB 마이그·머지 | migrate-chat-edit.ts (chatMessages: editedAt, isDeleted, deletedAt) | ⏸ 대기 (R8 완료 후) |
+| B | 백엔드 | 서브태스크·체크리스트·반복·리마인더·채팅 편집/삭제/검색·폼 응답 삭제 API 9개 | ⏸ 대기 |
+| A | 프론트 | workspace-kanban.js·workspace.js·chat-user.js·admin-form-submissions.html | ⏸ 대기 |
+| C | 검증 | Q1~Q10+ 라이브 검증 | ⏸ 대기 |
+
+### 4.10 라운드 10 댓글 투표·신고 + 파일 공유 + 알림 구독 (2026-05-18 📐 설계 완료)
+
+설계서: [docs/milestones/2026-05-18-round10-comment-share-notify.md](docs/milestones/2026-05-18-round10-comment-share-notify.md)
+
+| 채팅 | 영역 | 작업 항목 | 상태 |
+|---|---|---|---|
+| 메인 | 설계·머지 | DB 마이그 불필요, 기존 테이블 활용 | ⏸ 대기 (R9 완료 후) |
+| B | 백엔드 | comment-vote·comment-report·admin 검토 + 파일 공유 + 알림 구독 + AI 법률 배정 7개 | ⏸ 대기 |
+| A | 프론트 | incident.js 투표/신고 UI + workspace-files.js 공유 모달 + settings-notifications.js | ⏸ 대기 |
+| C | 검증 | Q1~Q10+ 라이브 검증 | ⏸ 대기 |
 
 ### 4.7 라운드 7 AI 에이전트 구조 확장 Layer 1~4 (2026-05-18 🚀 Phase 1 진행 중)
 
@@ -206,6 +242,9 @@
 
 | **라운드 1~6 (2026-05-17 사이클)** | ✅ 100% 완결 — SIREN 4건·워크스페이스 9건·CMS 6건·3단 권한·발송 UX·게이미피케이션+큐레이션·팝업 / C 검증 54항목 전부 통과 (R2 BUG 2건 제외 0) |
 | **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1+2 머지 완료 (main @ `8b06826`) — Layer 1~4 총 9개 도구 추가 + 힌트 시스템 + 스케줄 cron. **마이그레이션 호출 대기 → C Q1~Q6 라이브 검증 남음** |
+| **라운드 8 수정 API 4종 + 보고 동기화** | 📐 설계 완료 (2026-05-18) — DB 마이그 불필요, B·A·C 트리거 준비됨. **다음: B 트리거 실행** |
+| **라운드 9 WBS 고급 + 채팅 편집** | 📐 설계 완료 (2026-05-18) — DB 마이그 필요 (migrate-chat-edit). R8 완료 후 시작 |
+| **라운드 10 댓글·공유·알림·AI 법률** | 📐 설계 완료 (2026-05-18) — DB 마이그 불필요. R9 완료 후 시작 |
 
 **누적**: 약 87% / 약 820h+
 
@@ -238,10 +277,10 @@
 
 | 폴더 | 채팅 | 모델 | 역할 | Phase 1 브랜치 | Phase 2 브랜치 | 현재 상태 |
 |---|---|---|---|---|---|---|
-| `tbfa-mis` | **메인** | Opus 4.7 | 설계·머지·조율 | `main` | `main` | 라운드 7 설계 완료 |
-| `../tbfa-mis-A` | **A** | Sonnet 4.6 | Layer 1→3 | `feature/layer1-batch` | `feature/layer3-hints` | 🔄 Phase 1 진행 중 |
-| `../tbfa-mis-B` | **B** | Sonnet 4.6 | Layer 2→4 | `feature/layer2-pipeline` | `feature/layer4-schedule` | 🔄 Phase 1 진행 중 |
-| `../tbfa-mis-C` | **C** | Opus 4.7 | 검증 | — | `verify/round7` | ⏸ Phase 1 완료 후 시작 |
+| `tbfa-mis` | **메인** | Opus 4.7 | 설계·머지·조율 | `main` | `main` | 라운드 8~10 설계 완료, 실행 대기 |
+| `../tbfa-mis-A` | **A** | Sonnet 4.6 | 프론트 | — | `feature/round8-update-front` | ⏸ R8 B 완료 후 시작 |
+| `../tbfa-mis-B` | **B** | Sonnet 4.6 | 백엔드 | — | `feature/round8-update-sync` | ⏸ 트리거 대기 중 |
+| `../tbfa-mis-C` | **C** | Opus 4.7 | 검증 | — | `verify/round8` | ⏸ R8 A·B 머지 후 시작 |
 | `../tbfa-mis-D` | D | — | 휴면 | — | — | 사용 안 함 |
 
 **충돌 회피**: 폴더 단위 분리 → A·B 거의 0. 자세히 [`docs/PARALLEL_GUIDE.md`](docs/PARALLEL_GUIDE.md) §3.
