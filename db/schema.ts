@@ -540,11 +540,9 @@ export const chatMessages = pgTable("chat_messages", {
   readAt: timestamp("read_at"),
   isSystem: boolean("is_system").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  /* === 라운드 9 — 메시지 수정·소프트 삭제 (마이그 migrate-chat-edit 후 활성화) ===
   editedAt:  timestamp("edited_at"),
   isDeleted: boolean("is_deleted").notNull().default(false),
   deletedAt: timestamp("deleted_at"),
-  */
 }, (t) => ({
   roomIdx: index("chat_messages_room_idx").on(t.roomId, t.createdAt),
   senderIdx: index("chat_messages_sender_idx").on(t.senderId),
