@@ -558,9 +558,9 @@
 
   /* ─── 인증 확인 ─── */
   async function checkAuth() {
-    const res = await api('/api/me');
-    if (!res.ok) { location.href = '/index.html'; return null; }
-    const user = res.data?.data || res.data || {};
+    const res = await api('/api/admin/me?light=1');
+    if (!res.ok) { location.href = '/admin-hub.html'; return null; }
+    const user = res.admin || res.data?.data || res.data || {};
     const nameEl = document.getElementById('wsSidebarUserName');
     if (nameEl) nameEl.textContent = user.name || user.username || '사용자';
     const subtitleEl = document.getElementById('attUserSubtitle');

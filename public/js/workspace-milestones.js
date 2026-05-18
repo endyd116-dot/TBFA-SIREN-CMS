@@ -83,6 +83,19 @@
 
     // 분기 목록 로드
     await loadQuarters();
+
+    // 분기가 없으면 안내 메시지만 표시
+    if (!state.currentQuarterId) {
+      const loading = $('#overviewLoading') as HTMLElement;
+      const content = $('#overviewContent') as HTMLElement;
+      if (loading) loading.style.display = 'none';
+      if (content) {
+        content.style.display = '';
+        content.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px 20px">활성 분기가 없습니다.<br>슈퍼어드민에서 분기를 추가해 주세요.</div>';
+      }
+      return;
+    }
+
     // 탭 이벤트
     $$('#msTabs .ms-tab').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
@@ -178,7 +191,12 @@
   function renderOverview() {
     const loading = $('#overviewLoading') as HTMLElement;
     const content = $('#overviewContent') as HTMLElement;
-    if (!state.dashboard) { loading.style.display = ''; content.style.display = 'none'; return; }
+    if (!state.dashboard) {
+      loading.style.display = 'none';
+      content.style.display = '';
+      content.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px 20px">성과 데이터를 불러올 수 없습니다.<br>분기 설정을 확인해 주세요.</div>';
+      return;
+    }
     loading.style.display = 'none';
     content.style.display = '';
 

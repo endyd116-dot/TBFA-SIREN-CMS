@@ -1,4 +1,4 @@
-import { requireActiveUser } from "../../lib/auth";
+import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-geocode" };
 
@@ -16,8 +16,8 @@ function jsonError(step: string, err: any, status = 500) {
 }
 
 export default async function handler(req: Request) {
-  const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return (auth as any).res;
 
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 

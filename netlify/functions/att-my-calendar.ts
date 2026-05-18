@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { members, attRecords } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireActiveUser } from "../../lib/auth";
+import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-my-calendar" };
 
@@ -19,8 +19,8 @@ function jsonError(step: string, err: any, status = 500) {
 }
 
 export default async function handler(req: Request) {
-  const auth = await requireActiveUser(req);
-  if (!auth.ok) return auth.res;
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return (auth as any).res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
@@ -34,7 +34,7 @@ export default async function handler(req: Request) {
     const [member] = await db
       .select({ uid: members.uid })
       .from(members)
-      .where(eq(members.id, auth.user.uid))
+      .where(eq(members.id, auth.ctx.member.id))
       .limit(1);
     if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
     memberUid = member.uid;
