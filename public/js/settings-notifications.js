@@ -79,10 +79,26 @@
             channels: Array.isArray(e.channels) ? e.channels.slice() : [],
           }));
           data = { phoneVerified: !!inner.phoneVerified };
+        } else {
+          /* API 미연결 — mock 사용 */
+          console.warn("[notif] preferences 없음 — mock 사용");
+          preferences = MOCK_NOTIFICATION_PREFS.preferences.map((p) => ({
+            eventType: p.eventType,
+            channels: p.channels.slice(),
+          }));
+          data = { phoneVerified: true };
         }
+      } else {
+        /* API 실패 — mock 사용 */
+        console.warn("[notif] API 응답 실패 — mock 사용");
+        preferences = MOCK_NOTIFICATION_PREFS.preferences.map((p) => ({
+          eventType: p.eventType,
+          channels: p.channels.slice(),
+        }));
+        data = { phoneVerified: true };
       }
     } catch (e) {
-      console.warn("[notif] fetch failed, using mock", e);
+      console.warn("[notif] fetch failed — mock 사용", e);
     }
 
     /* MOCK 폴백 */
@@ -212,13 +228,12 @@
       });
       if (res.ok && (res.data?.ok || res.data?.ok === undefined)) {
         saved = true;
+      } else {
+        console.warn("[notif] PUT 응답 실패 — mock 저장 처리");
+        saved = true;
       }
     } catch (e) {
-      console.warn("[notif] PUT failed, using MOCK_PREFS_SAVE", e);
-    }
-
-    if (!saved) {
-      /* MOCK 폴백 */
+      console.warn("[notif] PUT failed — mock 저장 처리", e);
       saved = MOCK_PREFS_SAVE.ok;
     }
 
