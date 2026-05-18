@@ -534,26 +534,26 @@ export default async (req: Request, _ctx: Context) => {
           }
         }
 
-        // ★ Round 8 — status=done 시 sourceType/sourceId 연결 테이블 status='resolved' 업데이트
+        // ★ Round 8 — status=done 시 sourceType/sourceId 연결 테이블 완료 상태 업데이트
         let syncedReport: { type: string; id: number } | null = null;
         if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
           const sourceType = task.sourceType as string;
           const sourceId = Number(task.sourceId);
-          const tableMap: Record<string, string> = {
-            support:    "support_requests",
-            incident:   "incident_reports",
-            harassment: "harassment_reports",
-            legal:      "legal_consultations",
+          const tableMap: Record<string, { table: string; status: string }> = {
+            support:    { table: "support_requests",   status: "completed" },
+            incident:   { table: "incident_reports",   status: "closed" },
+            harassment: { table: "harassment_reports", status: "closed" },
+            legal:      { table: "legal_consultations", status: "closed" },
           };
-          const tableName = tableMap[sourceType];
-          if (tableName) {
+          const mapping = tableMap[sourceType];
+          if (mapping) {
             try {
               await db.execute(
-                sql`UPDATE ${sql.raw(tableName)} SET status = 'resolved', updated_at = NOW() WHERE id = ${sourceId}`
+                sql`UPDATE ${sql.raw(mapping.table)} SET status = ${mapping.status}, updated_at = NOW() WHERE id = ${sourceId}`
               );
               syncedReport = { type: sourceType, id: sourceId };
             } catch (syncErr) {
-              console.warn("[round8-sync] 연결 테이블 resolved 업데이트 실패:", syncErr);
+              console.warn("[round8-sync] 연결 테이블 완료 업데이트 실패:", syncErr);
             }
           }
         }

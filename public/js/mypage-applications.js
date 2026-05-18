@@ -805,10 +805,7 @@
 
   /* =========================================================
      ★ round8: 유가족 지원 신청 수정 모달
-     (B 머지 전: MOCK_SUPPORT_UPDATE 사용, 머지 후 실 API로 전환)
      ========================================================= */
-  const MOCK_SUPPORT_UPDATE = { ok: true, id: 1 }; // B 머지 후 제거
-
   async function openSupportEditModal(tabKey, id) {
     const cfg = TYPES[tabKey];
     if (!cfg || !cfg.detailApi) return;
@@ -953,12 +950,8 @@
     submitBtn.textContent = '저장 중...';
 
     try {
-      /* ★ B 머지 전 mock 사용 — 머지 후 아래 fetch 블록으로 교체 */
-      let json = MOCK_SUPPORT_UPDATE;
-      /*
       const res = await api('/api/support-update', { method: 'PATCH', body: { id, title, content, category } });
-      json = res.data;
-      */
+      const json = res.data;
       if (!json || !json.ok) {
         window.SIREN && window.SIREN.toast(json.error || '수정 실패');
         submitBtn.disabled = false;

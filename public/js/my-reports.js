@@ -273,14 +273,6 @@
     });
   }
 
-  /* =========================================================
-     ★ round8: mock 상수 (B 머지 후 실 API로 교체)
-     ========================================================= */
-  const MOCK_INCIDENT_UPDATE   = { ok: true, id: 1 };
-  const MOCK_HARASSMENT_UPDATE = { ok: true, id: 1 };
-  const MOCK_LEGAL_UPDATE      = { ok: true, id: 1 };
-  const MOCK_LEGAL_DELETE      = { ok: true };
-
   /* ── 수정 모달 열기 ── */
   function openReportEditModal(tabKey, report) {
     const existing = document.getElementById('reportEditModal');
@@ -470,12 +462,6 @@
     submitBtn.textContent = '저장 중...';
 
     try {
-      /* ★ B 머지 전 mock 사용 — 머지 후 실 API fetch로 교체 */
-      let json;
-      if (tabKey === 'incident')        json = MOCK_INCIDENT_UPDATE;
-      else if (tabKey === 'harassment') json = MOCK_HARASSMENT_UPDATE;
-      else                              json = MOCK_LEGAL_UPDATE;
-      /*
       const apiPath = tabKey === 'incident'   ? '/api/incident-report-update'
                     : tabKey === 'harassment'  ? '/api/harassment-report-update'
                     :                           '/api/legal-consultation-update';
@@ -484,8 +470,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, title, content, category, ...extra }),
       });
-      json = await res.json();
-      */
+      const json = await res.json();
 
       if (!json || !json.ok) {
         window.SIREN && window.SIREN.toast(json.error || '수정 실패');
@@ -511,16 +496,12 @@
     if (!confirm(`"${no}"을(를) 삭제하시겠습니까?\n삭제된 내역은 복구할 수 없습니다.`)) return;
 
     try {
-      /* ★ B 머지 전 mock 사용 — 머지 후 실 API로 교체 */
-      const json = MOCK_LEGAL_DELETE;
-      /*
       const res = await fetch('/api/legal-consultation-delete', {
-        method: 'POST', credentials: 'include',
+        method: 'DELETE', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
       const json = await res.json();
-      */
 
       if (!json || !json.ok) {
         window.SIREN && window.SIREN.toast(json.error || '삭제 실패');
