@@ -174,6 +174,10 @@
 [functions."cron-communication-send-dispatcher"]
   schedule = "* * * * *"
 
+# ★ 라운드 11: 워크스페이스 태스크 리마인더 (15분 주기) — reminder_config.remindAt 기반
+[functions."cron-workspace-task-reminder"]
+  schedule = "*/15 * * * *"
+
 # ★ Phase 21 R2+R3: 워크스페이스 카드 마감 24h/72h 알림 (매일 KST 09:00 = UTC 00:00)
 # - status NOT IN ('done','archived') 카드 중 마감 시각이 23~25h 또는 71~73h 후인 카드
 # - 담당자(assigned_to) + 워처(workspace_task_watchers) 에게 알림 (category="due")

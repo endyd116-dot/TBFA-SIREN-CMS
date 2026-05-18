@@ -59,11 +59,11 @@ export default async (req: Request, _ctx: Context) => {
     return json({ ok: false, error: "유효하지 않은 action" }, 400);
   }
 
-  // 신고 레코드 조회
+  // 신고 레코드 조회 (reporter member_id 포함)
   let report: any;
   try {
     const r: any = await db.execute(sql`
-      SELECT id, comment_id, incident_id, report_type
+      SELECT id, comment_id, incident_id, report_type, member_id AS reporter_id
       FROM comment_reports WHERE id = ${reportId} LIMIT 1
     `);
     report = (r?.rows ?? r)?.[0];
@@ -96,8 +96,69 @@ export default async (req: Request, _ctx: Context) => {
              reviewed_at = now()
        WHERE id = ${reportId}
     `);
-    return json({ ok: true });
   } catch (err: any) {
     return jsonError("update_status", err);
   }
+
+  // 처리 완료 알림 — 신고자 + 원작자 양쪽 (fire-and-forget)
+  try {
+    const { dispatch } = await import("../../lib/notify-dispatcher");
+    const { NotifyEvent } = await import("../../lib/notify-events");
+
+    // 원작자 memberId 조회 (댓글이 존재할 때만)
+    let commentAuthorId: number | null = null;
+    if (report.comment_id) {
+      try {
+        const cr: any = await db.execute(sql`
+          SELECT member_id FROM incident_comments WHERE id = ${report.comment_id} LIMIT 1
+        `);
+        const row = (cr?.rows ?? cr)?.[0];
+        if (row?.member_id) commentAuthorId = Number(row.member_id);
+      } catch (e) {
+        console.warn("[admin-comment-report-review] 원작자 조회 실패:", e);
+      }
+    }
+
+    const actionLabel = action === "hide_comment" ? "숨김 처리" : action === "delete_comment" ? "삭제 처리" : "검토 완료";
+    const statusLabel = status === "resolved" ? "처리 완료" : status === "dismissed" ? "기각" : "검토됨";
+    const link = `/mypage.html#reports`;
+
+    // 신고자 알림
+    if (report.reporter_id) {
+      dispatch({
+        event: NotifyEvent.COMMENT_REPORT_RESOLVED,
+        target: { type: "member", id: Number(report.reporter_id) },
+        params: {
+          title: `신고가 ${statusLabel}되었습니다`,
+          message: `접수하신 신고가 검토되어 ${actionLabel}되었습니다.`,
+          link,
+          category: "system",
+          severity: "info",
+          refTable: "comment_reports",
+          refId: reportId,
+        },
+      });
+    }
+
+    // 원작자 알림 (신고자와 다를 때만)
+    if (commentAuthorId && commentAuthorId !== Number(report.reporter_id)) {
+      dispatch({
+        event: NotifyEvent.COMMENT_REPORT_RESOLVED,
+        target: { type: "member", id: commentAuthorId },
+        params: {
+          title: "작성하신 댓글이 신고 검토되었습니다",
+          message: `작성하신 댓글이 신고 검토 결과 ${actionLabel}되었습니다.`,
+          link: `/incident.html#comment-${report.comment_id}`,
+          category: "system",
+          severity: "warning",
+          refTable: "comment_reports",
+          refId: reportId,
+        },
+      });
+    }
+  } catch (dispatchErr) {
+    console.warn("[admin-comment-report-review] 알림 dispatch 실패:", dispatchErr);
+  }
+
+  return json({ ok: true });
 };

@@ -16,6 +16,8 @@ export enum NotifyEvent {
   SUPPORT_REPLY               = "support.reply",
   SIREN_ASSIGNED              = "siren.assigned",
   MEMBER_ELIGIBILITY_DECIDED  = "member.eligibility_decided",
+  COMMENT_REPORT_RESOLVED     = "comment.report_resolved",
+  LEGAL_ASSIGNED              = "legal.assigned",
 }
 
 export type ChannelName = "inapp" | "email" | "sms" | "kakao";
@@ -46,4 +48,6 @@ export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.SUPPORT_REPLY]:              ["inapp", "email"],
   [NotifyEvent.SIREN_ASSIGNED]:             ["inapp", "email"],
   [NotifyEvent.MEMBER_ELIGIBILITY_DECIDED]: ["inapp", "email"],
+  [NotifyEvent.COMMENT_REPORT_RESOLVED]:    ["inapp"],
+  [NotifyEvent.LEGAL_ASSIGNED]:             ["inapp", "email"],
 };

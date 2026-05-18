@@ -53,7 +53,8 @@ export default async (req: Request, _ctx: Context) => {
       .limit(1);
     if (!parent) return jsonError(404, "select_parent", "원본 작업을 찾을 수 없습니다");
 
-    const title = String(body?.title || parent.title || "").trim() || parent.title;
+    const rawTitle = String(body?.title || parent.title || "").trim() || parent.title;
+    const title = rawTitle.startsWith("[반복] ") ? rawTitle : `[반복] ${rawTitle}`;
 
     const insertData: any = {
       memberId: meId,

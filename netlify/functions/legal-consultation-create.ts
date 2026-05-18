@@ -176,6 +176,27 @@ export default async (req: Request, _ctx: Context) => {
             assignedLawyerName: lawyer.name || null,
             assignedAt: new Date(),
           } as any).where(eq(legalConsultations.id, consultationId));
+
+          // 신청자에게 변호사 배정 알림 (fire-and-forget)
+          try {
+            const { dispatch } = await import("../../lib/notify-dispatcher");
+            const { NotifyEvent } = await import("../../lib/notify-events");
+            dispatch({
+              event: NotifyEvent.LEGAL_ASSIGNED,
+              target: { type: "member", id: user.uid },
+              params: {
+                title: "담당 변호사가 배정되었습니다",
+                message: `${lawyer.name || "변호사"}님이 법률 상담 담당으로 배정되었습니다.`,
+                link: `/mypage-siren.html#legal-${consultationId}`,
+                category: "legal",
+                severity: "info",
+                refTable: "legal_consultations",
+                refId: consultationId,
+              },
+            });
+          } catch (notifyErr) {
+            console.warn("[legal-consultation-create] LEGAL_ASSIGNED 알림 실패:", notifyErr);
+          }
         }
       }
     } catch (assignErr) {
