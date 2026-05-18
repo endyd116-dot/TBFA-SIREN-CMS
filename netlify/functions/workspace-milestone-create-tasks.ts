@@ -4,7 +4,7 @@
  * body: { milestoneDefId, count? }
  */
 import type { Context } from "@netlify/functions";
-import { requireActiveUser } from "../../lib/auth";
+import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -13,9 +13,9 @@ export const config = { path: "/api/workspace-milestone-create-tasks" };
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST only" }, { status: 405 });
 
-  const auth = await requireActiveUser(req);
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
-  const member = auth.member as any;
+  const member = auth.ctx.member as any;
 
   let body: any = {};
   try { body = await req.json(); } catch (_) {}

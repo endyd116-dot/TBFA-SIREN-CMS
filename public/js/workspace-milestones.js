@@ -57,8 +57,8 @@
   document.addEventListener('DOMContentLoaded', async () => {
     // 로그인 확인
     try {
-      const meData = await api('/api/auth-me');
-      state.member = meData.data || meData.member || meData;
+      const meData = await api('/api/admin/me?light=1');
+      state.member = meData.admin || meData.data || meData.member || meData;
       state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
       state.isSuperAdmin = state.member.role === 'super_admin';
     } catch {
