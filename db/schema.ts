@@ -3730,3 +3730,31 @@ export type AttHoliday             = typeof attHolidays.$inferSelect;
 export type NewAttHoliday          = typeof attHolidays.$inferInsert;
 
 /* === Phase 26 정의 끝 === */
+
+/* === Phase 27: 재택근무 보고서 === */
+
+export const attRemoteWorkReports = pgTable("att_remote_work_reports", {
+  id:             serial("id").primaryKey(),
+  memberUid:      integer("member_uid").notNull(),
+  date:           date("date").notNull(),
+  wbsCardIds:     jsonb("wbs_card_ids").default([]),
+  content:        text("content"),
+  aiDraft:        text("ai_draft"),
+  qualityScore:   integer("quality_score"),
+  status:         varchar("status", { length: 20 }).default("DRAFT").notNull(),
+  submittedAt:    timestamp("submitted_at", { withTimezone: true }),
+  supervisorNote: text("supervisor_note"),
+  isStarred:      boolean("is_starred").default(false),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  memberDateUq: uniqueIndex("att_remote_work_reports_member_date_uq").on(t.memberUid, t.date),
+  memberUidIdx: index("idx_arr_member_uid2").on(t.memberUid),
+  dateIdx2:     index("idx_arr_date2").on(t.date),
+  statusIdx2:   index("idx_arr_status2").on(t.status),
+}));
+
+export type AttRemoteWorkReport    = typeof attRemoteWorkReports.$inferSelect;
+export type NewAttRemoteWorkReport = typeof attRemoteWorkReports.$inferInsert;
+
+/* === Phase 27 정의 끝 === */

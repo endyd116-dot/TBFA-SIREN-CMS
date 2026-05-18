@@ -206,6 +206,22 @@
 [functions."cron-ai-schedule-runner"]
   schedule = "*/10 * * * *"
 
+# ★ Phase 27: 근태 오전 알림 — 09:30 KST (00:30 UTC) 출근 미체크
+[functions."cron-att-morning"]
+  schedule = "30 0 * * *"
+
+# ★ Phase 27: 근태 자정 알림 — 자정 KST (15:00 UTC) 퇴근 미체크 + 재택보고서 미제출 + 52시간
+[functions."cron-att-evening"]
+  schedule = "0 15 * * *"
+
+# ★ Phase 27: AI 일일 근태 요약 — 18:00 KST (09:00 UTC)
+[functions."cron-att-ai-daily"]
+  schedule = "0 9 * * *"
+
+# ★ Phase 27: 유급휴가 자동 부여 — 매월 1일 09:00 KST (0:00 UTC)
+[functions."cron-att-leave-auto"]
+  schedule = "0 0 1 * *"
+
 # ============================================================
 # Dev 설정
 # ============================================================
