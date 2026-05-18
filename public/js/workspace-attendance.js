@@ -78,6 +78,8 @@
      탭 1: 출퇴근
   ═══════════════════════════════════ */
   async function initCheckin() {
+    const btnIn = document.getElementById('attBtnCheckin') as HTMLButtonElement;
+    try {
     // 오늘 날짜 표시
     const now = new Date();
     const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -104,6 +106,11 @@
     const sumRes = await api(`/api/att-my-stats?year=${yr}&month=${mo}`);
     const stats = sumRes.data?.data || sumRes.data || {};
     renderSummary(stats);
+    } catch (e) {
+      console.error('[att] initCheckin 오류:', e);
+      if (btnIn) { btnIn.disabled = false; btnIn.textContent = '🟢 출근 (새로고침 필요)'; }
+      toast('출퇴근 정보를 불러오지 못했습니다. 새로고침해 주세요.');
+    }
   }
 
   function renderModeBadge(mode) {
@@ -167,24 +174,35 @@
     if (btn) btn.disabled = true;
 
     const noGps = (mode === 'REMOTE' || mode === 'BUSINESS_TRIP');
+    const needsGps = (mode === 'OFFICE' || mode === 'FIELD');
     if (noGps) {
       await sendCheckin(null, null);
       return;
     }
     if (!navigator.geolocation) {
-      toast('이 기기에서는 위치 정보를 사용할 수 없습니다');
-      if (btn) btn.disabled = false;
+      if (!needsGps) {
+        await sendCheckin(null, null);
+      } else {
+        toast('이 기기에서는 위치 정보를 사용할 수 없습니다');
+        if (btn) btn.disabled = false;
+      }
       return;
     }
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await sendCheckin(pos.coords.latitude, pos.coords.longitude);
       },
-      () => {
-        toast('위치 정보를 허용해주세요 (설정 → 권한 → 위치)');
-        if (btn) btn.disabled = false;
+      async (err) => {
+        if (!needsGps) {
+          // 사무실·외근 모드가 아니면 GPS 없이 출근 허용
+          toast('위치 권한 없음 — GPS 없이 출근합니다 📡');
+          await sendCheckin(null, null);
+        } else {
+          toast('위치 정보를 허용해주세요 (설정 → 권한 → 위치)');
+          if (btn) btn.disabled = false;
+        }
       },
-      { timeout: 10000 }
+      { timeout: 8000 }
     );
   }
 

@@ -55,6 +55,13 @@
 
   /* ─── 초기화 ─── */
   document.addEventListener('DOMContentLoaded', async () => {
+    const _hideSpinner = () => {
+      const _l = document.querySelector('#overviewLoading') as HTMLElement;
+      const _c = document.querySelector('#overviewContent') as HTMLElement;
+      if (_l) _l.style.display = 'none';
+      if (_c) _c.style.display = '';
+    };
+    try {
     // 로그인 확인
     try {
       const meData = await api('/api/admin/me?light=1');
@@ -62,7 +69,7 @@
       state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
       state.isSuperAdmin = state.member.role === 'super_admin';
     } catch {
-      window.location.href = '/login.html';
+      window.location.href = '/admin-hub.html';
       return;
     }
 
@@ -106,6 +113,12 @@
     // 기본 탭 로드 (병렬)
     await Promise.all([loadDashboard(), loadRevenueMilestones()]);
     renderOverview();
+    } catch (err) {
+      console.error('[ms] 초기화 오류:', err);
+      _hideSpinner();
+      const _c = document.querySelector('#overviewContent') as HTMLElement;
+      if (_c) _c.innerHTML = `<div style="text-align:center;color:#dc2626;padding:40px 20px">성과관리를 불러오는 중 오류가 발생했습니다.<br><small style="color:#9ca3af">${(err as any)?.message || ''}</small></div>`;
+    }
   });
 
   /* ─── 분기 ─── */
