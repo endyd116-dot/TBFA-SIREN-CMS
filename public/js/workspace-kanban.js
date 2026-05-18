@@ -433,6 +433,7 @@
   <div class="wk-card-meta">
     ${dueText ? `<span class="wk-card-due ${dueClass}">📅 ${escapeHtml(dueText)}</span>` : ''}
     ${totalCheck > 0 ? `<span class="wk-card-checklist">✅ ${doneCount}/${totalCheck}</span>` : ''}
+    ${(t.subtaskCount > 0) ? `<span class="wk-card-subtask">📋 ${t.subtaskDoneCount || 0}/${t.subtaskCount}</span>` : ''}
     ${t.assignedBy ? `<span title="지시받은 작업">📥</span>` : ''}
   </div>
   ${progress > 0 ? `<div class="wk-card-progress"><div class="wk-card-progress-bar" style="width:${progress}%"></div></div>` : ''}
