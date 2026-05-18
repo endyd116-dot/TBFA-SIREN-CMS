@@ -421,14 +421,16 @@
       ? t.bookmarkedBy.includes(STATE.me.id)
       : false;
     const progress = Number(t.progress || 0);
+    const isSub = !!t.parentTaskId;
 
     const holdReason = t.status === 'blocked' && t.holdReason
       ? `<div class="wk-card-hold-reason">${escapeHtml(String(t.holdReason).slice(0, 80))}</div>`
       : '';
 
     return `
-<article class="wk-card wk-priority-${escapeHtml(t.priority || 'normal')}" data-task-id="${t.id}" data-status="${escapeHtml(t.status || 'todo')}">
+<article class="wk-card wk-priority-${escapeHtml(t.priority || 'normal')}${isSub ? ' wk-card--sub' : ''}" data-task-id="${t.id}" data-status="${escapeHtml(t.status || 'todo')}">
   <button class="wk-card-bookmark${bookmarked ? ' is-marked' : ''}" data-bookmark="${t.id}" type="button" title="북마크">★</button>
+  ${isSub ? '<div class="wk-card-sub-label">서브태스크</div>' : ''}
   <h3 class="wk-card-title">${escapeHtml(t.title || '제목 없음')}</h3>
   <div class="wk-card-meta">
     ${dueText ? `<span class="wk-card-due ${dueClass}">📅 ${escapeHtml(dueText)}</span>` : ''}
