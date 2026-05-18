@@ -715,6 +715,9 @@
         alreadyReported = true;
       } else if (r.ok && json.ok) {
         result = json;
+      } else {
+        console.warn('[incident] comment-report API 미연결 — mock 사용', json.error);
+        result = MOCK_COMMENT_REPORT;
       }
     } catch (_) {
       toast('오류가 발생했습니다.');
