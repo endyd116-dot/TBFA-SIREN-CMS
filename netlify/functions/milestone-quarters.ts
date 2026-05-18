@@ -49,7 +49,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (req.method === "PATCH") {
     if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
-    const id = url.pathname.split("/").pop();
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
     if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }

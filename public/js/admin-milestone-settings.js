@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var state = { defs: [], members: [], editingId: null };
+  var state = { defs: [], members: [], quarters: [], editingId: null };
   var ROLE_LABEL = { SM: 'SM — 사무국장', PM: 'PM — 정책국장', SI: 'SI — SI관리자' };
   var CAT_LABEL  = { REVENUE_LINKED: '매출연동', NON_REVENUE: '비매출' };
 
@@ -266,6 +266,109 @@
     }
   };
 
+  /* ════════════════════════════════════════
+     분기 관리 탭
+  ════════════════════════════════════════ */
+  var Q_STATUS_LABEL = { UPCOMING: '예정', ACTIVE: '활성', ENDED: '마감', SETTLED: '정산완료' };
+  var Q_STATUS_STYLE = {
+    UPCOMING: 'background:#dbeafe;color:#1d4ed8',
+    ACTIVE:   'background:#dcfce7;color:#15803d',
+    ENDED:    'background:#fef3c7;color:#92400e',
+    SETTLED:  'background:#f3f4f6;color:#6b7280',
+  };
+  var Q_NEXT = { UPCOMING: 'ACTIVE', ACTIVE: 'ENDED', ENDED: 'SETTLED' };
+  var Q_NEXT_LABEL = { UPCOMING: '활성화', ACTIVE: '마감', ENDED: '정산완료 처리' };
+
+  async function loadQuarters() {
+    try {
+      var res = await api('/api/milestone-quarters');
+      state.quarters = (res.data && res.data.quarters) || res.quarters || [];
+      renderQuartersTable();
+    } catch(e) {
+      $('#quarterTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
+    }
+  }
+
+  function renderQuartersTable() {
+    var tbody = $('#quarterTableBody');
+    if (!state.quarters.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">등록된 분기가 없습니다. "+ 분기 추가" 버튼으로 분기를 추가하세요.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = state.quarters.map(function(q) {
+      var statusStyle = Q_STATUS_STYLE[q.status] || 'background:#f3f4f6;color:#6b7280';
+      var statusLabel = Q_STATUS_LABEL[q.status] || q.status;
+      var nextStatus = Q_NEXT[q.status];
+      var actionBtn = nextStatus
+        ? '<button class="mst-btn primary" style="padding:4px 10px;font-size:12px" onclick="setQuarterStatus(' + q.id + ',\'' + nextStatus + '\')">' + Q_NEXT_LABEL[q.status] + '</button>'
+        : '<span style="color:#9ca3af;font-size:12px">—</span>';
+      return '<tr>' +
+        '<td style="font-weight:600">' + esc(q.year) + '</td>' +
+        '<td><span class="mst-badge" style="' + statusStyle + ';font-size:12px">Q' + esc(q.quarter) + '</span></td>' +
+        '<td style="font-size:13px">' + esc(q.startDate || q.start_date || '') + '</td>' +
+        '<td style="font-size:13px">' + esc(q.endDate || q.end_date || '') + '</td>' +
+        '<td style="font-size:13px">' + esc(q.settlementDate || q.settlement_date || '') + '</td>' +
+        '<td><span class="mst-badge" style="' + statusStyle + '">' + statusLabel + '</span></td>' +
+        '<td>' + actionBtn + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  window.setQuarterStatus = async function(id, nextStatus) {
+    var labelMap = { ACTIVE: '활성화', ENDED: '마감', SETTLED: '정산완료 처리' };
+    if (!confirm('이 분기를 ' + (labelMap[nextStatus] || nextStatus) + ' 하시겠습니까?')) return;
+    try {
+      await api('/api/milestone-quarters?id=' + id, { method: 'PATCH', body: { status: nextStatus } });
+      toast('상태 변경 완료 (' + (Q_STATUS_LABEL[nextStatus] || nextStatus) + ')', 'success');
+      await loadQuarters();
+    } catch(e) {
+      toast('상태 변경 실패: ' + e.message, 'error');
+    }
+  };
+
+  function openAddQuarter() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var mon = now.getMonth() + 1;
+    var q = Math.ceil(mon / 3);
+    $('#qYear').value = year;
+    $('#qQuarter').value = String(q);
+    autoFillQuarterDates();
+    $('#quarterModal').classList.add('open');
+  }
+
+  function autoFillQuarterDates() {
+    var year = parseInt($('#qYear').value) || new Date().getFullYear();
+    var q = parseInt($('#qQuarter').value) || 1;
+    var starts = [[1,1],[4,1],[7,1],[10,1]];
+    var ends   = [[3,31],[6,30],[9,30],[12,31]];
+    var s = starts[q-1], e = ends[q-1];
+    var pad = function(n){ return n < 10 ? '0'+n : String(n); };
+    $('#qStartDate').value = year + '-' + pad(s[0]) + '-' + pad(s[1]);
+    $('#qEndDate').value   = year + '-' + pad(e[0]) + '-' + pad(e[1]);
+    var sd = new Date(year, e[0]-1, e[1] + 10);
+    $('#qSettlementDate').value = sd.getFullYear() + '-' + pad(sd.getMonth()+1) + '-' + pad(sd.getDate());
+  }
+
+  async function saveQuarter() {
+    var year = parseInt($('#qYear').value);
+    var quarter = parseInt($('#qQuarter').value);
+    var startDate = $('#qStartDate').value;
+    var endDate = $('#qEndDate').value;
+    var settlementDate = $('#qSettlementDate').value;
+    if (!year || !quarter || !startDate || !endDate || !settlementDate) {
+      toast('모든 필드를 입력해 주세요', 'error'); return;
+    }
+    try {
+      await api('/api/milestone-quarters', { method: 'POST', body: { year: year, quarter: quarter, startDate: startDate, endDate: endDate, settlementDate: settlementDate } });
+      toast(year + 'Q' + quarter + ' 분기 추가 완료', 'success');
+      $('#quarterModal').classList.remove('open');
+      await loadQuarters();
+    } catch(e) {
+      toast('저장 실패: ' + e.message, 'error');
+    }
+  }
+
   /* ── 초기화 ── */
   document.addEventListener('DOMContentLoaded', async function() {
     // super_admin 체크
@@ -288,16 +391,27 @@
     $$('.mst-tab').forEach(function(btn) {
       btn.addEventListener('click', function() {
         if (btn.dataset.tab === 'roles' && !state.members.length) loadMembers();
+        if (btn.dataset.tab === 'quarters') loadQuarters();
       });
     });
 
-    // 모달 이벤트
+    // 모달 이벤트 — 마일스톤 정의
     $('#btnAddDef').addEventListener('click', window.openAddDef);
     $('#btnDefCancel').addEventListener('click', function(){ $('#defModal').classList.remove('open'); });
     $('#btnDefSave').addEventListener('click', saveDef);
     $('#defModal').addEventListener('click', function(e) {
       if (e.target === $('#defModal')) $('#defModal').classList.remove('open');
     });
+
+    // 모달 이벤트 — 분기 관리
+    $('#btnAddQuarter').addEventListener('click', openAddQuarter);
+    $('#btnQCancel').addEventListener('click', function(){ $('#quarterModal').classList.remove('open'); });
+    $('#btnQSave').addEventListener('click', saveQuarter);
+    $('#quarterModal').addEventListener('click', function(e) {
+      if (e.target === $('#quarterModal')) $('#quarterModal').classList.remove('open');
+    });
+    $('#qYear').addEventListener('change', autoFillQuarterDates);
+    $('#qQuarter').addEventListener('change', autoFillQuarterDates);
 
     // 초기 데이터 로드
     await loadDefs();
