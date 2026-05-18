@@ -191,11 +191,9 @@
 
     const progress = d.revenueProgress || [];
     if (!progress.length) {
-      content.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon">📊</div>담당 마일스톤이 없습니다.</div>';
-      return;
-    }
-
-    content.innerHTML = '<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">매출연동 마일스톤 진행률</h3>' +
+      content.innerHTML = '<div class="ms-empty" style="margin-bottom:16px"><div class="ms-empty-icon">📊</div>담당 매출연동 마일스톤이 없습니다.</div>';
+    } else {
+      content.innerHTML = '<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">매출연동 마일스톤 진행률</h3>' +
       progress.map(p => `
         <div class="ms-progress-card">
           <div class="ms-progress-top">
@@ -219,6 +217,7 @@
           </div>
         </div>
       `).join('');
+    }
 
     // ★ Phase 25: 보류 큐 + 보관함 + 카드 생성 섹션 삽입
     content.insertAdjacentHTML('beforeend', `
@@ -555,7 +554,7 @@
         (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:8px 0">이번 분기 완료 카드가 없습니다.</div>';
         return;
       }
-      const parts: string[] = [];
+      const parts = [];
       grouped.forEach(g => {
         parts.push(`<div style="margin-bottom:14px">
           <div style="font-size:13.5px;font-weight:700;color:#111;margin-bottom:6px">🏆 ${escHtml(g.name)} <span style="font-size:11.5px;font-weight:400;color:#6b7280">${g.tasks.length}건</span></div>
