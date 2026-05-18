@@ -6,6 +6,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { notifyMany } from "../../lib/notify";
 
 export const config = { path: "/api/admin-milestone-definitions" };
 
@@ -119,6 +120,22 @@ export default async function handler(req: Request, _ctx: Context) {
           updated_at            = now()
         WHERE id = ${id}
       `);
+
+      // 모든 어드민에게 마일스톤 정의 변경 알림 (fire-and-forget)
+      try {
+        const adminRows = await db.execute(sql`
+          SELECT id FROM members WHERE type = 'admin' AND status = 'active'
+        `);
+        const adminIds = ((adminRows as any).rows || (adminRows as any[])).map((r: any) => r.id);
+        notifyMany(adminIds, {
+          recipientType: "admin",
+          category: "milestone", severity: "info",
+          title: `마일스톤 정의 변경: ${body.name || ""}`,
+          message: "성과 마일스톤 정의가 수정되었습니다. 확인해주세요.",
+          link: "/admin#milestone-settings",
+        }).catch(() => {});
+      } catch { /* 알림 실패는 본 응답에 영향 없음 */ }
+
       return Response.json({ ok: true });
     } catch (err) { return jsonErr("update", err); }
   }

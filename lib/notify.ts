@@ -14,7 +14,7 @@ import { notifications, members } from "../db/schema";
 import { eq, and, or, inArray, sql } from "drizzle-orm";
 export type NotifyCategory =
   | "support" | "donation" | "chat" | "audit"
-  | "system" | "billing" | "member";
+  | "system" | "billing" | "member" | "milestone";
 
 export type NotifySeverity = "info" | "warning" | "critical";
 
