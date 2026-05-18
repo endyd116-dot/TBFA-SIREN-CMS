@@ -1,0 +1,229 @@
+/**
+ * lib/att-utils.ts — Phase 26 근태관리 공용 유틸리티
+ * B 담당자가 완성 (API 함수에서 import하여 사용)
+ */
+import { db } from "../db/index";
+import { attSchedules, attScheduleOverrides, attPolicies } from "../db/schema";
+import { eq, and, lte, or, isNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+
+// ─────────────────────────────────────────────────────────
+// 1. 위치 관련
+// ─────────────────────────────────────────────────────────
+
+/** Haversine 공식으로 두 GPS 좌표 간 거리(미터) 계산 */
+export function haversineDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6371000; // 지구 반지름 (미터)
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** 직원이 허용 반경 이내에 있는지 여부 */
+export function isWithinRadius(
+  userLat: number, userLng: number,
+  placeLat: number, placeLng: number,
+  radiusM: number
+): boolean {
+  return haversineDistance(userLat, userLng, placeLat, placeLng) <= radiusM;
+}
+
+// ─────────────────────────────────────────────────────────
+// 2. 근무형태 결정 (override > schedule > 기본 OFFICE)
+// ─────────────────────────────────────────────────────────
+
+export interface WorkModeResult {
+  mode: string;
+  workplaceId: number | null;
+  recurringRule: Record<string, string> | null;
+  source: "override" | "schedule" | "default";
+}
+
+export async function getScheduledWorkMode(
+  memberUid: string,
+  dateStr: string, // 'YYYY-MM-DD'
+): Promise<WorkModeResult> {
+  // 1순위: 단발성 재정의
+  const override = await db
+    .select()
+    .from(attScheduleOverrides)
+    .where(
+      and(
+        eq(attScheduleOverrides.memberUid, memberUid),
+        eq(attScheduleOverrides.date, dateStr)
+      )
+    )
+    .limit(1);
+
+  if (override.length > 0) {
+    return {
+      mode: override[0].workMode,
+      workplaceId: override[0].workplaceId ?? null,
+      recurringRule: null,
+      source: "override",
+    };
+  }
+
+  // 2순위: 반복 스케줄 (start_date <= date AND (end_date IS NULL OR end_date >= date))
+  const schedules = await db
+    .select()
+    .from(attSchedules)
+    .where(
+      and(
+        eq(attSchedules.memberUid, memberUid),
+        lte(attSchedules.startDate, dateStr),
+        or(isNull(attSchedules.endDate), sql`${attSchedules.endDate} >= ${dateStr}`)
+      )
+    )
+    .limit(1);
+
+  if (schedules.length > 0) {
+    const sched = schedules[0];
+    let mode = sched.workMode;
+
+    // HYBRID: recurring_rule에서 해당 요일 근무형태 조회
+    if (mode === "HYBRID" && sched.recurringRule) {
+      const dayOfWeek = new Date(dateStr).toLocaleDateString("en-US", { weekday: "short" }).toLowerCase();
+      // 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun'
+      const dayMap: Record<string, string> = {
+        "sun": "sun", "mon": "mon", "tue": "tue",
+        "wed": "wed", "thu": "thu", "fri": "fri", "sat": "sat",
+      };
+      const rule = sched.recurringRule as Record<string, string>;
+      const dayKey = dayMap[dayOfWeek];
+      if (dayKey && rule[dayKey]) {
+        mode = rule[dayKey];
+      } else {
+        mode = "OFFICE"; // 미지정 요일 = 사무실
+      }
+    }
+
+    return {
+      mode,
+      workplaceId: sched.workplaceId ?? null,
+      recurringRule: sched.recurringRule as Record<string, string> | null,
+      source: "schedule",
+    };
+  }
+
+  // 기본: OFFICE
+  return { mode: "OFFICE", workplaceId: null, recurringRule: null, source: "default" };
+}
+
+// ─────────────────────────────────────────────────────────
+// 3. 근무시간 계산
+// ─────────────────────────────────────────────────────────
+
+export interface WorkTimeResult {
+  workingMins: number;
+  overtimeMins: number;
+  totalMins: number;
+  breakDeducted: boolean;
+}
+
+export function calcWorkingMins(
+  checkIn: Date,
+  checkOut: Date,
+  policy: {
+    dailyHours: number;
+    breakMins: number;
+    breakThresholdHours: number;
+  }
+): WorkTimeResult {
+  const totalMins = Math.floor((checkOut.getTime() - checkIn.getTime()) / 60000);
+  const thresholdMins = policy.breakThresholdHours * 60;
+  const breakDeducted = totalMins >= thresholdMins;
+  const workingMins = breakDeducted ? totalMins - policy.breakMins : totalMins;
+  const standardMins = policy.dailyHours * 60;
+  const overtimeMins = Math.max(0, workingMins - standardMins);
+  return { workingMins: Math.max(0, workingMins), overtimeMins, totalMins, breakDeducted };
+}
+
+// ─────────────────────────────────────────────────────────
+// 4. 지각·조퇴·결근 판정
+// ─────────────────────────────────────────────────────────
+
+export function determineStatus(
+  checkInTime: Date | null,
+  checkOutTime: Date | null,
+  policy: {
+    checkInTime: string;  // 'HH:MM'
+    checkOutTime: string; // 'HH:MM'
+    lateGraceMins: number;
+    earlyLeaveGraceMins: number;
+  },
+  isLeave: boolean,
+  isHoliday: boolean
+): string {
+  if (isHoliday) return "HOLIDAY";
+  if (isLeave) return "LEAVE";
+  if (!checkInTime) return "ABSENT";
+
+  const [ciH, ciM] = policy.checkInTime.split(":").map(Number);
+  const [coH, coM] = policy.checkOutTime.split(":").map(Number);
+
+  const stdCheckIn  = ciH * 60 + ciM + policy.lateGraceMins;
+  const stdCheckOut = coH * 60 + coM - policy.earlyLeaveGraceMins;
+
+  const actualCheckInMins =
+    checkInTime.getHours() * 60 + checkInTime.getMinutes();
+
+  const isLate = actualCheckInMins > stdCheckIn;
+
+  if (!checkOutTime) return isLate ? "LATE" : "NORMAL";
+
+  const actualCheckOutMins =
+    checkOutTime.getHours() * 60 + checkOutTime.getMinutes();
+
+  const isEarlyLeave = actualCheckOutMins < stdCheckOut;
+
+  if (isLate && isEarlyLeave) return "LATE"; // 지각+조퇴 → 지각 우선
+  if (isLate) return "LATE";
+  if (isEarlyLeave) return "EARLY_LEAVE";
+  return "NORMAL";
+}
+
+// ─────────────────────────────────────────────────────────
+// 5. 이번 달 재택 일수 카운트
+// ─────────────────────────────────────────────────────────
+
+export async function countRemoteDaysThisMonth(
+  memberUid: string,
+  year: number,
+  month: number, // 1~12
+): Promise<number> {
+  const padM = String(month).padStart(2, "0");
+  const from = `${year}-${padM}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const to = `${year}-${padM}-${String(lastDay).padStart(2, "0")}`;
+
+  const result = await db.execute(sql`
+    SELECT COUNT(*) AS cnt
+    FROM att_records
+    WHERE member_uid = ${memberUid}
+      AND work_mode = 'REMOTE'
+      AND date >= ${from}::date
+      AND date <= ${to}::date
+  `);
+  return Number((result.rows[0] as any)?.cnt ?? 0);
+}
+
+// ─────────────────────────────────────────────────────────
+// 6. 기본 정책 조회
+// ─────────────────────────────────────────────────────────
+
+export async function getDefaultPolicy() {
+  const rows = await db
+    .select()
+    .from(attPolicies)
+    .where(eq(attPolicies.isDefault, true))
+    .limit(1);
+  return rows[0] ?? null;
+}

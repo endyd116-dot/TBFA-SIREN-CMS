@@ -3517,3 +3517,216 @@ export const quarterlySettlements = pgTable("quarterly_settlements", {
   quarterMemberUq: uniqueIndex("qs_quarter_member_uq").on(t.quarterId, t.memberId),
 }));
 
+/* =========================================================
+   === Phase 26 — 근태관리 시스템 (2026-05-19) ===
+   설계서: docs/milestones/2026-05-19-phase26-attendance.md
+   마이그레이션: migrate-phase26-attendance (실행 후 활성화됨)
+   역할: super_admin=슈퍼어드민, admin/operator=직원
+   ========================================================= */
+
+/* 1. 거점 (사무실·외근지) */
+export const attWorkplaces = pgTable("att_workplaces", {
+  id:        serial("id").primaryKey(),
+  name:      varchar("name", { length: 100 }).notNull(),
+  type:      varchar("type", { length: 20 }).notNull(),       // 'OFFICE' | 'FIELD'
+  address:   text("address"),
+  lat:       numeric("lat", { precision: 10, scale: 7 }),
+  lng:       numeric("lng", { precision: 10, scale: 7 }),
+  radius:    integer("radius").default(50).notNull(),         // 허용 반경 (미터)
+  isActive:  boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  typeIdx: index("att_workplaces_type_idx").on(t.type),
+  activeIdx: index("att_workplaces_active_idx").on(t.isActive),
+}));
+
+/* 2. 근무 정책 */
+export const attPolicies = pgTable("att_policies", {
+  id:                    serial("id").primaryKey(),
+  name:                  varchar("name", { length: 100 }).notNull(),
+  checkInTime:           time("check_in_time").default(sql`'09:00'`).notNull(),
+  checkOutTime:          time("check_out_time").default(sql`'18:00'`).notNull(),
+  lateGraceMins:         integer("late_grace_mins").default(10).notNull(),
+  earlyLeaveGraceMins:   integer("early_leave_grace_mins").default(10).notNull(),
+  dailyHours:            numeric("daily_hours", { precision: 4, scale: 2 }).default("8").notNull(),
+  breakMins:             integer("break_mins").default(60).notNull(),
+  breakThresholdHours:   numeric("break_threshold_hours", { precision: 4, scale: 2 }).default("4").notNull(),
+  weeklyMaxHours:        integer("weekly_max_hours").default(52).notNull(),
+  coreStartTime:         time("core_start_time").default(sql`'10:00'`),
+  coreEndTime:           time("core_end_time").default(sql`'16:00'`),
+  flexEnabled:           boolean("flex_enabled").default(false).notNull(),
+  remoteMaxPerMonth:     integer("remote_max_per_month").default(10).notNull(),
+  isDefault:             boolean("is_default").default(false).notNull(),
+  createdAt:             timestamp("created_at").defaultNow().notNull(),
+  updatedAt:             timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  defaultIdx: index("att_policies_default_idx").on(t.isDefault),
+}));
+
+/* 3. 휴가 종류 */
+export const attLeaveTypes = pgTable("att_leave_types", {
+  id:               serial("id").primaryKey(),
+  name:             varchar("name", { length: 100 }).notNull(),
+  isPaid:           boolean("is_paid").default(true).notNull(),
+  unit:             varchar("unit", { length: 10 }).default("day").notNull(),  // 'day' | 'hour'
+  requiresApproval: boolean("requires_approval").default(true).notNull(),
+  defaultDays:      numeric("default_days", { precision: 5, scale: 2 }).default("0").notNull(),
+  isActive:         boolean("is_active").default(true).notNull(),
+  displayOrder:     integer("display_order").default(0).notNull(),
+  createdAt:        timestamp("created_at").defaultNow().notNull(),
+  updatedAt:        timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  activeIdx: index("att_leave_types_active_idx").on(t.isActive),
+}));
+
+/* 4. 직원별 휴가 잔여 */
+export const attLeaveBalances = pgTable("att_leave_balances", {
+  id:          serial("id").primaryKey(),
+  memberUid:   varchar("member_uid", { length: 36 }).notNull(),
+  leaveTypeId: integer("leave_type_id").notNull().references(() => attLeaveTypes.id, { onDelete: "cascade" }),
+  year:        integer("year").notNull(),
+  totalDays:   numeric("total_days", { precision: 5, scale: 2 }).default("0").notNull(),
+  usedDays:    numeric("used_days", { precision: 5, scale: 2 }).default("0").notNull(),
+}, (t) => ({
+  memberYearUnq: uniqueIndex("att_leave_balances_member_year_uq").on(t.memberUid, t.leaveTypeId, t.year),
+  memberIdx:     index("att_leave_balances_member_idx").on(t.memberUid),
+}));
+
+/* 5. 휴가 신청 */
+export const attLeaveRequests = pgTable("att_leave_requests", {
+  id:          serial("id").primaryKey(),
+  memberUid:   varchar("member_uid", { length: 36 }).notNull(),
+  leaveTypeId: integer("leave_type_id").notNull().references(() => attLeaveTypes.id),
+  startDate:   date("start_date").notNull(),
+  endDate:     date("end_date").notNull(),
+  days:        numeric("days", { precision: 5, scale: 2 }).notNull(),
+  reason:      text("reason"),
+  status:      varchar("status", { length: 20 }).default("PENDING").notNull(),  // PENDING|APPROVED|REJECTED
+  reviewedBy:  varchar("reviewed_by", { length: 36 }),
+  reviewNote:  text("review_note"),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("att_leave_requests_member_idx").on(t.memberUid),
+  statusIdx: index("att_leave_requests_status_idx").on(t.status),
+  dateIdx:   index("att_leave_requests_date_idx").on(t.startDate),
+}));
+
+/* 6. 직원별 근무형태 스케줄 (반복 규칙) */
+export const attSchedules = pgTable("att_schedules", {
+  id:            serial("id").primaryKey(),
+  memberUid:     varchar("member_uid", { length: 36 }).notNull(),
+  workMode:      varchar("work_mode", { length: 30 }).notNull(),   // OFFICE|REMOTE|FIELD|BUSINESS_TRIP|HYBRID
+  recurringRule: jsonb("recurring_rule"),                           // {mon:'REMOTE',tue:'OFFICE',...} HYBRID 전용
+  startDate:     date("start_date").notNull(),
+  endDate:       date("end_date"),                                  // NULL = 무기한
+  workplaceId:   integer("workplace_id").references(() => attWorkplaces.id, { onDelete: "set null" }),
+  note:          text("note"),
+  createdBy:     varchar("created_by", { length: 36 }),
+  createdAt:     timestamp("created_at").defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx:  index("att_schedules_member_idx").on(t.memberUid),
+  startIdx:   index("att_schedules_start_idx").on(t.startDate),
+}));
+
+/* 7. 단발성 근무형태 재정의 (반복 규칙보다 우선) */
+export const attScheduleOverrides = pgTable("att_schedule_overrides", {
+  id:          serial("id").primaryKey(),
+  memberUid:   varchar("member_uid", { length: 36 }).notNull(),
+  date:        date("date").notNull(),
+  workMode:    varchar("work_mode", { length: 30 }).notNull(),
+  workplaceId: integer("workplace_id").references(() => attWorkplaces.id, { onDelete: "set null" }),
+  reason:      text("reason"),
+  createdBy:   varchar("created_by", { length: 36 }),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberDateUnq: uniqueIndex("att_overrides_member_date_uq").on(t.memberUid, t.date),
+  memberIdx:     index("att_overrides_member_idx").on(t.memberUid),
+}));
+
+/* 8. 출퇴근 기록 (일별 1건) */
+export const attRecords = pgTable("att_records", {
+  id:                  serial("id").primaryKey(),
+  memberUid:           varchar("member_uid", { length: 36 }).notNull(),
+  date:                date("date").notNull(),
+  workMode:            varchar("work_mode", { length: 30 }),
+  status:              varchar("status", { length: 30 }).default("NORMAL").notNull(),
+                       // NORMAL|LATE|EARLY_LEAVE|ABSENT|LEAVE|HOLIDAY|PARTIAL_LEAVE
+  checkInTime:         timestamp("check_in_time"),
+  checkInLat:          numeric("check_in_lat", { precision: 10, scale: 7 }),
+  checkInLng:          numeric("check_in_lng", { precision: 10, scale: 7 }),
+  checkInIp:           varchar("check_in_ip", { length: 50 }),
+  checkOutTime:        timestamp("check_out_time"),
+  checkOutLat:         numeric("check_out_lat", { precision: 10, scale: 7 }),
+  checkOutLng:         numeric("check_out_lng", { precision: 10, scale: 7 }),
+  workplaceId:         integer("workplace_id").references(() => attWorkplaces.id, { onDelete: "set null" }),
+  workingMins:         integer("working_mins"),
+  overtimeMins:        integer("overtime_mins").default(0).notNull(),
+  isManuallyAdjusted:  boolean("is_manually_adjusted").default(false).notNull(),
+  note:                text("note"),
+  createdAt:           timestamp("created_at").defaultNow().notNull(),
+  updatedAt:           timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberDateUnq: uniqueIndex("att_records_member_date_uq").on(t.memberUid, t.date),
+  memberIdx:     index("att_records_member_idx").on(t.memberUid),
+  dateIdx:       index("att_records_date_idx").on(t.date),
+  statusIdx:     index("att_records_status_idx").on(t.status),
+}));
+
+/* 9. 출퇴근 수정 요청 */
+export const attCorrections = pgTable("att_corrections", {
+  id:                  serial("id").primaryKey(),
+  memberUid:           varchar("member_uid", { length: 36 }).notNull(),
+  targetDate:          date("target_date").notNull(),
+  correctionType:      varchar("correction_type", { length: 20 }).notNull(), // CHECK_IN|CHECK_OUT|BOTH
+  requestedCheckIn:    timestamp("requested_check_in"),
+  requestedCheckOut:   timestamp("requested_check_out"),
+  reason:              text("reason"),
+  evidenceUrl:         text("evidence_url"),
+  status:              varchar("status", { length: 20 }).default("PENDING").notNull(),
+  reviewedBy:          varchar("reviewed_by", { length: 36 }),
+  reviewNote:          text("review_note"),
+  createdAt:           timestamp("created_at").defaultNow().notNull(),
+  updatedAt:           timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("att_corrections_member_idx").on(t.memberUid),
+  statusIdx: index("att_corrections_status_idx").on(t.status),
+  dateIdx:   index("att_corrections_date_idx").on(t.targetDate),
+}));
+
+/* 10. 공휴일·회사 휴무일 */
+export const attHolidays = pgTable("att_holidays", {
+  id:        serial("id").primaryKey(),
+  date:      date("date").notNull().unique(),
+  name:      varchar("name", { length: 100 }).notNull(),
+  type:      varchar("type", { length: 20 }).default("PUBLIC").notNull(),  // PUBLIC | COMPANY
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  dateIdx: index("att_holidays_date_idx").on(t.date),
+  typeIdx: index("att_holidays_type_idx").on(t.type),
+}));
+
+export type AttWorkplace           = typeof attWorkplaces.$inferSelect;
+export type NewAttWorkplace        = typeof attWorkplaces.$inferInsert;
+export type AttPolicy              = typeof attPolicies.$inferSelect;
+export type NewAttPolicy           = typeof attPolicies.$inferInsert;
+export type AttLeaveType           = typeof attLeaveTypes.$inferSelect;
+export type NewAttLeaveType        = typeof attLeaveTypes.$inferInsert;
+export type AttLeaveBalance        = typeof attLeaveBalances.$inferSelect;
+export type NewAttLeaveBalance     = typeof attLeaveBalances.$inferInsert;
+export type AttLeaveRequest        = typeof attLeaveRequests.$inferSelect;
+export type NewAttLeaveRequest     = typeof attLeaveRequests.$inferInsert;
+export type AttSchedule            = typeof attSchedules.$inferSelect;
+export type NewAttSchedule         = typeof attSchedules.$inferInsert;
+export type AttScheduleOverride    = typeof attScheduleOverrides.$inferSelect;
+export type NewAttScheduleOverride = typeof attScheduleOverrides.$inferInsert;
+export type AttRecord              = typeof attRecords.$inferSelect;
+export type NewAttRecord           = typeof attRecords.$inferInsert;
+export type AttCorrection          = typeof attCorrections.$inferSelect;
+export type NewAttCorrection       = typeof attCorrections.$inferInsert;
+export type AttHoliday             = typeof attHolidays.$inferSelect;
+export type NewAttHoliday          = typeof attHolidays.$inferInsert;
+
+/* === Phase 26 정의 끝 === */
