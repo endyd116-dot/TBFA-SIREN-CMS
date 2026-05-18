@@ -335,7 +335,7 @@ export default async (req: Request, _ctx: Context) => {
         const status = url.searchParams.get("status");
         const mine = url.searchParams.get("mine") === "1";
         const assignedToMe = url.searchParams.get("assignedToMe") === "1";
-        const assignedByMe = url.searchParams.get("assignedByMe") !== "false";
+        const assignedByMe = url.searchParams.get("assignedByMe") === "1";
         const unassigned = url.searchParams.get("unassigned") === "1";
         const dueBefore = url.searchParams.get("dueBefore");
         const q = url.searchParams.get("q");
