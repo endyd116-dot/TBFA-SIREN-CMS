@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>근태관리 - SIREN 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- 공통 CSS -->
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<!-- 워크스페이스 전용 -->
+<link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
+<link rel="stylesheet" href="/css/workspace-attendance.css?v=1">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
+
+<!-- FullCalendar CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+</head>
+
+<body class="ws-body">
+
+<!-- ═══════════════════════════ 슬림 사이드바 ═══════════════════════════ -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <div class="quick-jump" data-quick-jump></div>
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="true">
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="false">
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
+      </a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════ 메인 ═══════════════════════════ -->
+<main class="ws-main" id="wsMain">
+  <div style="padding:24px 28px; max-width:960px; margin:0 auto;">
+
+    <!-- 페이지 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;margin:0">🕐 근태관리</h2>
+        <div style="font-size:13px;color:#6b7280;margin-top:2px" id="attUserSubtitle">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <nav class="att-tabs" id="attTabs">
+      <button class="att-tab active" data-tab="checkin">출퇴근</button>
+      <button class="att-tab" data-tab="calendar">내 캘린더</button>
+      <button class="att-tab" data-tab="stats">통계</button>
+      <button class="att-tab" data-tab="leave">휴가</button>
+      <button class="att-tab" data-tab="amend">수정 요청</button>
+    </nav>
+
+    <!-- ══════════ 탭 1: 출퇴근 ══════════ -->
+    <div class="att-panel active" id="attPanelCheckin">
+
+      <!-- 오늘 날짜 + 근무형태 -->
+      <div class="att-today-header">
+        <div>
+          <span class="att-today-date" id="attTodayDate">—</span>
+          <span class="att-today-day" id="attTodayDay"></span>
+        </div>
+        <span class="att-mode-badge UNKNOWN" id="attModeBadge">⏳ 조회 중</span>
+      </div>
+
+      <!-- 출근/퇴근 버튼 영역 -->
+      <div class="att-checkin-area">
+        <div class="att-current-status" id="attCurrentStatus">
+          오늘의 출퇴근 현황을 불러오는 중...
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+          <button class="att-btn-checkin" id="attBtnCheckin" disabled>
+            🟢 출근
+          </button>
+          <button class="att-btn-checkout" id="attBtnCheckout" disabled style="display:none">
+            🔴 퇴근
+          </button>
+        </div>
+        <div style="font-size:12px;color:#9ca3af;text-align:center" id="attGpsNote"></div>
+      </div>
+
+      <!-- 이번달 요약 -->
+      <div class="att-section-header">
+        <span class="att-section-title">이번달 요약</span>
+        <span style="font-size:12px;color:#9ca3af" id="attSummaryMonth"></span>
+      </div>
+      <div class="att-summary-grid">
+        <div class="att-summary-card">
+          <div class="att-summary-label">근무일수</div>
+          <div class="att-summary-value green" id="sumWorkDays">—</div>
+          <div class="att-summary-sub">일</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">총 근무시간</div>
+          <div class="att-summary-value" id="sumWorkHours">—</div>
+          <div class="att-summary-sub">시간</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">지각</div>
+          <div class="att-summary-value yellow" id="sumLateCount">—</div>
+          <div class="att-summary-sub">회</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">재택 일수</div>
+          <div class="att-summary-value purple" id="sumRemoteDays">—</div>
+          <div class="att-summary-sub">일</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 탭 2: 내 캘린더 ══════════ -->
+    <div class="att-panel" id="attPanelCalendar">
+      <!-- 범례 -->
+      <div class="att-legend" style="margin-bottom:14px">
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-normal)"></div>정상</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-late)"></div>지각</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-absent)"></div>결근</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-leave)"></div>휴가</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-remote)"></div>재택</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-field)"></div>외근</div>
+        <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-holiday)"></div>공휴일</div>
+      </div>
+      <div id="attCalendar"></div>
+    </div>
+
+    <!-- ══════════ 탭 3: 통계 ══════════ -->
+    <div class="att-panel" id="attPanelStats">
+      <div class="att-stat-cards">
+        <div class="att-summary-card">
+          <div class="att-summary-label">근무일수</div>
+          <div class="att-summary-value green" id="statWorkDays">—</div>
+          <div class="att-summary-sub">일</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">총 근무시간</div>
+          <div class="att-summary-value" id="statWorkHours">—</div>
+          <div class="att-summary-sub">시간</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">지각 횟수</div>
+          <div class="att-summary-value yellow" id="statLateCount">—</div>
+          <div class="att-summary-sub">회</div>
+        </div>
+        <div class="att-summary-card">
+          <div class="att-summary-label">재택 일수</div>
+          <div class="att-summary-value purple" id="statRemoteDays">—</div>
+          <div class="att-summary-sub">일</div>
+        </div>
+      </div>
+
+      <!-- 도넛 차트 -->
+      <div class="att-chart-wrap">
+        <div class="att-chart-title">근무형태 분포</div>
+        <canvas id="attDonutChart" width="280" height="280"></canvas>
+      </div>
+    </div>
+
+    <!-- ══════════ 탭 4: 휴가 ══════════ -->
+    <div class="att-panel" id="attPanelLeave">
+
+      <!-- 잔여 휴가 현황 -->
+      <div class="att-section-header">
+        <span class="att-section-title">잔여 휴가 현황</span>
+      </div>
+      <div class="att-table-wrap" style="margin-bottom:24px">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>종류</th>
+              <th>부여</th>
+              <th>사용</th>
+              <th>잔여</th>
+            </tr>
+          </thead>
+          <tbody id="attLeaveBalanceBody">
+            <tr><td colspan="4" class="att-empty">조회 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 휴가 신청 폼 -->
+      <div class="att-section-header">
+        <span class="att-section-title">휴가 신청</span>
+      </div>
+      <div class="att-form-card">
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>휴가 종류</label>
+            <select id="attLeaveType">
+              <option value="">선택하세요</option>
+            </select>
+          </div>
+          <div class="att-form-group">
+            <label>반차 여부</label>
+            <select id="attLeaveHalf">
+              <option value="">종일</option>
+              <option value="AM">오전 반차</option>
+              <option value="PM">오후 반차</option>
+            </select>
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>시작일</label>
+            <input type="date" id="attLeaveStart">
+          </div>
+          <div class="att-form-group">
+            <label>종료일</label>
+            <input type="date" id="attLeaveEnd">
+          </div>
+        </div>
+        <div class="att-form-row full">
+          <div class="att-form-group">
+            <label>사유</label>
+            <textarea id="attLeaveReason" placeholder="휴가 사유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <button class="att-btn att-btn-primary" id="attBtnLeaveSubmit">휴가 신청</button>
+      </div>
+
+      <!-- 신청 내역 -->
+      <div class="att-section-header" style="margin-top:8px">
+        <span class="att-section-title">신청 내역</span>
+      </div>
+      <div class="att-table-wrap">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>종류</th>
+              <th>기간</th>
+              <th>일수</th>
+              <th>사유</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="attLeaveHistoryBody">
+            <tr><td colspan="5" class="att-empty">신청 내역이 없습니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════ 탭 5: 수정 요청 ══════════ -->
+    <div class="att-panel" id="attPanelAmend">
+
+      <!-- 수정 요청 폼 -->
+      <div class="att-section-header">
+        <span class="att-section-title">출퇴근 수정 요청</span>
+      </div>
+      <div class="att-form-card">
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>대상 날짜</label>
+            <input type="date" id="attAmendDate">
+          </div>
+          <div class="att-form-group">
+            <label>수정 유형</label>
+            <select id="attAmendType">
+              <option value="CHECKIN">출근 시각</option>
+              <option value="CHECKOUT">퇴근 시각</option>
+              <option value="BOTH">출퇴근 모두</option>
+            </select>
+          </div>
+        </div>
+        <div class="att-form-row" id="attAmendTimeRow">
+          <div class="att-form-group">
+            <label>정정 출근 시각</label>
+            <input type="time" id="attAmendCheckin">
+          </div>
+          <div class="att-form-group">
+            <label>정정 퇴근 시각</label>
+            <input type="time" id="attAmendCheckout">
+          </div>
+        </div>
+        <div class="att-form-row full">
+          <div class="att-form-group">
+            <label>사유</label>
+            <textarea id="attAmendReason" placeholder="수정이 필요한 이유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <button class="att-btn att-btn-primary" id="attBtnAmendSubmit">수정 요청 제출</button>
+      </div>
+
+      <!-- 수정 요청 내역 -->
+      <div class="att-section-header" style="margin-top:8px">
+        <span class="att-section-title">요청 내역</span>
+      </div>
+      <div class="att-table-wrap">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>유형</th>
+              <th>요청 시각</th>
+              <th>사유</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="attAmendHistoryBody">
+            <tr><td colspan="5" class="att-empty">요청 내역이 없습니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /inner -->
+</main>
+
+<!-- 토스트 -->
+<div id="attToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- FullCalendar CDN -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<!-- 워크스페이스 공통 JS -->
+<script src="/js/workspace-common.js?v=20260515bugfix2"></script>
+<!-- 근태관리 JS -->
+<script src="/js/workspace-attendance.js?v=1"></script>
+</body>
+</html>
