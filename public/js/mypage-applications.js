@@ -249,6 +249,11 @@
         ? `<button type="button" class="btn-detail" data-act="supplement-open" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#c47a00;border-color:#c47a00">📤 보완 제출</button>`
         : '';
 
+      /* ★ round8: family submitted 상태일 때 수정 버튼 (B 머지 전 mock 사용) */
+      const editBtn = (tabKey === 'family' && status === 'submitted')
+        ? `<button type="button" class="btn-detail" data-act="edit" data-id="${id}" data-no="${escapeHtml(no)}" style="background:#1a56db;border-color:#1a56db;color:#fff">✏️ 수정</button>`
+        : '';
+
       /* 전문가 채팅방 버튼 — family(유가족지원) / legal(법률지원) 에서 배정 시 표시 */
       const chatRoomId = item.chatRoomId;
       const expertChatBtn = (tabKey === 'family' || tabKey === 'legal') && chatRoomId
@@ -273,6 +278,7 @@
           </div>
           <div class="app-card-actions">
             ${detailBtn}
+            ${editBtn}
             ${supplementBtn}
             ${expertChatBtn}
             ${deleteBtn}
@@ -294,6 +300,10 @@
     /* ★ v11 묶음 B-11: 보완 제출 버튼 (목록에서) */
     pane.querySelectorAll('[data-act="supplement-open"]').forEach((btn) => {
       btn.addEventListener('click', () => openSupplementModal(Number(btn.dataset.id), btn.dataset.no));
+    });
+    /* ★ round8: 유가족 지원 수정 버튼 */
+    pane.querySelectorAll('[data-act="edit"]').forEach((btn) => {
+      btn.addEventListener('click', () => openSupportEditModal(tabKey, Number(btn.dataset.id)));
     });
     /* 전문가 채팅방 열기 */
     pane.querySelectorAll('[data-act="open-expert-chat"]').forEach((btn) => {
@@ -788,6 +798,181 @@
     } catch (e) {
       console.error('[submitSupplement]', e);
       window.SIREN.toast('네트워크 오류');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+    }
+  }
+
+  /* =========================================================
+     ★ round8: 유가족 지원 신청 수정 모달
+     (B 머지 전: MOCK_SUPPORT_UPDATE 사용, 머지 후 실 API로 전환)
+     ========================================================= */
+  const MOCK_SUPPORT_UPDATE = { ok: true, id: 1 }; // B 머지 후 제거
+
+  async function openSupportEditModal(tabKey, id) {
+    const cfg = TYPES[tabKey];
+    if (!cfg || !cfg.detailApi) return;
+
+    /* 상세 데이터 fetch */
+    let item = null;
+    try {
+      const res = await fetch(cfg.detailApi + '?id=' + id, { credentials: 'include' });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        window.SIREN && window.SIREN.toast(json.error || '데이터를 불러올 수 없습니다');
+        return;
+      }
+      const data = json.data || {};
+      item = data.request || data.report || data.consultation || data;
+    } catch (e) {
+      console.error('[openSupportEditModal] fetch', e);
+      window.SIREN && window.SIREN.toast('네트워크 오류');
+      return;
+    }
+
+    /* 기존 수정 모달 제거 */
+    const existing = document.getElementById('supportEditModal');
+    if (existing) existing.remove();
+
+    const title = (item && item.title) || '';
+    const content = (item && (item.content || item.contentHtml || '')) || '';
+    const category = (item && item.category) || '';
+
+    const categoryOptions = [
+      { value: 'counseling', label: '심리상담' },
+      { value: 'legal', label: '법률자문' },
+      { value: 'scholarship', label: '장학' },
+      { value: 'other', label: '기타' },
+    ].map((o) => `<option value="${o.value}" ${category === o.value ? 'selected' : ''}>${o.label}</option>`).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'supportEditModal';
+    modal.style.cssText = 'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10002;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;max-width:580px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
+        <div style="padding:16px 24px;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#fff;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">✏️ 유가족 지원 신청 수정</div>
+            <div style="font-size:11.5px;opacity:0.85;margin-top:2px">접수 상태에서만 수정 가능합니다</div>
+          </div>
+          <button type="button" data-edit-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+        </div>
+        <div style="padding:22px 24px">
+          <input type="hidden" id="seId" value="${id}">
+
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              제목 <span style="color:#dc2626">*</span>
+            </label>
+            <input type="text" id="seTitle" maxlength="200" value="${escapeHtml(title)}"
+              style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
+              placeholder="신청 제목을 입력해 주세요">
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              분류
+            </label>
+            <select id="seCategory"
+              style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
+              ${categoryOptions}
+            </select>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              내용 <span style="color:#dc2626">*</span>
+              <span style="font-weight:400;color:var(--text-3);font-size:11px">(10자 이상 5000자 이내)</span>
+            </label>
+            <textarea id="seContent" maxlength="5000" rows="9"
+              style="width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;min-height:180px"
+              placeholder="신청 내용을 상세히 작성해 주세요">${escapeHtml(content.replace(/<[^>]+>/g, ''))}</textarea>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px;text-align:right" id="seContentCount">0 / 5000</div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="button" data-edit-close style="flex:1;padding:11px 0;background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>
+            <button type="button" id="seSubmitBtn" style="flex:2;padding:11px 0;background:#1a56db;color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">저장하기</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    /* 글자수 카운터 초기화 */
+    const contentEl = modal.querySelector('#seContent');
+    const countEl = modal.querySelector('#seContentCount');
+    countEl.textContent = `${contentEl.value.length} / 5000`;
+    contentEl.addEventListener('input', () => {
+      countEl.textContent = `${contentEl.value.length} / 5000`;
+    });
+
+    /* 닫기 */
+    modal.querySelectorAll('[data-edit-close]').forEach((btn) => {
+      btn.addEventListener('click', () => closeSupportEditModal());
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeSupportEditModal();
+    });
+    const escHandler = (e) => {
+      if (e.key === 'Escape') { closeSupportEditModal(); document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    /* 저장 */
+    modal.querySelector('#seSubmitBtn').addEventListener('click', () => submitSupportEdit(tabKey));
+  }
+
+  function closeSupportEditModal() {
+    const m = document.getElementById('supportEditModal');
+    if (m) m.remove();
+    const anyOpen = document.querySelector('.modal-bg.show, #appDetailModal.show, #supplementModal');
+    if (!anyOpen) document.body.style.overflow = '';
+  }
+
+  async function submitSupportEdit(tabKey) {
+    const idEl = document.getElementById('seId');
+    const titleEl = document.getElementById('seTitle');
+    const contentEl = document.getElementById('seContent');
+    const categoryEl = document.getElementById('seCategory');
+    const submitBtn = document.getElementById('seSubmitBtn');
+    if (!idEl || !titleEl || !contentEl || !submitBtn) return;
+
+    const id = Number(idEl.value);
+    const title = (titleEl.value || '').trim();
+    const content = (contentEl.value || '').trim();
+    const category = categoryEl ? categoryEl.value : '';
+
+    if (!title) { window.SIREN && window.SIREN.toast('제목을 입력해 주세요'); titleEl.focus(); return; }
+    if (content.length < 10) { window.SIREN && window.SIREN.toast('내용을 10자 이상 입력해 주세요'); contentEl.focus(); return; }
+    if (content.length > 5000) { window.SIREN && window.SIREN.toast('내용은 5000자 이내로 작성해 주세요'); return; }
+
+    const oldText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '저장 중...';
+
+    try {
+      /* ★ B 머지 전 mock 사용 — 머지 후 아래 fetch 블록으로 교체 */
+      let json = MOCK_SUPPORT_UPDATE;
+      /*
+      const res = await api('/api/support-update', { method: 'PATCH', body: { id, title, content, category } });
+      json = res.data;
+      */
+      if (!json || !json.ok) {
+        window.SIREN && window.SIREN.toast(json.error || '수정 실패');
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+        return;
+      }
+
+      window.SIREN && window.SIREN.toast('수정되었습니다.');
+      closeSupportEditModal();
+      delete _cache[tabKey];
+      await loadTab(tabKey);
+    } catch (e) {
+      console.error('[submitSupportEdit]', e);
+      window.SIREN && window.SIREN.toast('네트워크 오류');
       submitBtn.disabled = false;
       submitBtn.textContent = oldText;
     }

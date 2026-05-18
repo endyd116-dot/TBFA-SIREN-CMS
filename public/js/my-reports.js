@@ -113,6 +113,16 @@
     const anonBadge = report.isAnonymous ? '<span class="anon-badge">익명</span>' : '';
     const title = report.title || report.subject || cfg.typeLabel;
     const cardId = 'card-tl-' + report.id;
+    const isSubmitted = (report.status || '') === 'submitted';
+
+    /* ★ round8: submitted 상태일 때만 수정/삭제 버튼 표시 */
+    const editBtn = isSubmitted
+      ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">✏️ 수정</button>`
+      : '';
+    /* 법률 상담만 삭제 버튼 추가 (submitted 상태) */
+    const deleteBtn = (tabKey === 'legal' && isSubmitted)
+      ? `<button type="button" class="rpt-del-btn" data-rpt-del="${report.id}" data-tab="${tabKey}" data-no="${escapeHtml(String(report.reportNo || report.id))}">🗑 삭제</button>`
+      : '';
 
     return `
       <div class="report-card">
@@ -144,9 +154,13 @@
           ${buildTimeline(report, tabKey)}
         </div>
 
-        <button class="toggle-tl-btn" onclick="toggleTimeline('${escapeHtml(cardId)}', this)">
-          ▶ 처리 단계 타임라인 보기
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="toggle-tl-btn" onclick="toggleTimeline('${escapeHtml(cardId)}', this)">
+            ▶ 처리 단계 타임라인 보기
+          </button>
+          ${editBtn}
+          ${deleteBtn}
+        </div>
       </div>
     `;
   }
@@ -200,6 +214,7 @@
 
       list.innerHTML = rows.map((r) => buildCard(r, _activeTab)).join('');
       renderPagination(totalPages);
+      bindCardActions(rows);
     } catch (e) {
       console.error('[my-reports]', e);
       list.innerHTML = '<div class="report-empty"><div class="icon">⚠️</div>네트워크 오류</div>';
@@ -233,6 +248,292 @@
         if (Number.isFinite(p)) { _page = p; loadList(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       });
     });
+  }
+
+  /* =========================================================
+     ★ round8: 수정/삭제 버튼 이벤트 바인딩
+     ========================================================= */
+  function bindCardActions(rows) {
+    /* 수정 버튼 */
+    document.querySelectorAll('[data-rpt-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = Number(btn.dataset.rptEdit);
+        const tabKey = btn.dataset.tab;
+        const report = rows.find((r) => r.id === id);
+        if (report) openReportEditModal(tabKey, report);
+      });
+    });
+    /* 삭제 버튼 (법률) */
+    document.querySelectorAll('[data-rpt-del]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = Number(btn.dataset.rptDel);
+        const no = btn.dataset.no || String(id);
+        deleteReport(id, no);
+      });
+    });
+  }
+
+  /* =========================================================
+     ★ round8: mock 상수 (B 머지 후 실 API로 교체)
+     ========================================================= */
+  const MOCK_INCIDENT_UPDATE   = { ok: true, id: 1 };
+  const MOCK_HARASSMENT_UPDATE = { ok: true, id: 1 };
+  const MOCK_LEGAL_UPDATE      = { ok: true, id: 1 };
+  const MOCK_LEGAL_DELETE      = { ok: true };
+
+  /* ── 수정 모달 열기 ── */
+  function openReportEditModal(tabKey, report) {
+    const existing = document.getElementById('reportEditModal');
+    if (existing) existing.remove();
+
+    const id = report.id;
+    const title = report.title || '';
+    const content = (report.contentHtml || report.content || '').replace(/<[^>]+>/g, '');
+    const category = report.category || '';
+
+    /* 탭별 카테고리 옵션 */
+    const catMap = {
+      incident:   [{ value: 'school', label: '학교' }, { value: 'public', label: '공공' }, { value: 'other', label: '기타' }],
+      harassment: [{ value: 'parent', label: '학부모' }, { value: 'student', label: '학생' }, { value: 'admin', label: '관리자' }, { value: 'colleague', label: '동료' }, { value: 'other', label: '기타' }],
+      legal:      [{ value: 'school_dispute', label: '교권/학교' }, { value: 'civil', label: '민사' }, { value: 'criminal', label: '형사' }, { value: 'family', label: '가사' }, { value: 'labor', label: '노동' }, { value: 'contract', label: '계약' }, { value: 'other', label: '기타' }],
+    };
+    const catOptions = (catMap[tabKey] || [])
+      .map((o) => `<option value="${o.value}" ${category === o.value ? 'selected' : ''}>${o.label}</option>`)
+      .join('');
+
+    /* 탭별 추가 필드 */
+    let extraFields = '';
+    if (tabKey === 'harassment') {
+      const freq = report.frequency || '';
+      const incidentDate = report.incidentDate ? report.incidentDate.slice(0, 10) : '';
+      extraFields = `
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">발생일</label>
+          <input type="date" id="reIncidentDate" value="${escapeHtml(incidentDate)}"
+            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">빈도</label>
+          <input type="text" id="reFrequency" maxlength="100" value="${escapeHtml(freq)}"
+            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
+            placeholder="예: 주 3회, 매일 등">
+        </div>
+      `;
+    }
+    if (tabKey === 'legal') {
+      const urgency = report.urgency || report.aiUrgency || '';
+      const partyInfo = report.partyInfo || '';
+      const urgencyOptions = [
+        { value: 'urgent', label: '🚨 긴급' },
+        { value: 'high', label: '⚠️ 높음' },
+        { value: 'normal', label: '⚖️ 보통' },
+        { value: 'low', label: '💡 낮음' },
+      ].map((o) => `<option value="${o.value}" ${urgency === o.value ? 'selected' : ''}>${o.label}</option>`).join('');
+      extraFields = `
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">긴급도</label>
+          <select id="reUrgency"
+            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
+            ${urgencyOptions}
+          </select>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">당사자 정보</label>
+          <textarea id="rePartyInfo" maxlength="500" rows="3"
+            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"
+            placeholder="상대방 정보, 관계 등 (선택)">${escapeHtml(partyInfo)}</textarea>
+        </div>
+      `;
+    }
+
+    const typeLabel = TAB_CONFIG[tabKey] ? TAB_CONFIG[tabKey].label : tabKey;
+    const modal = document.createElement('div');
+    modal.id = 'reportEditModal';
+    modal.style.cssText = 'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10002;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;max-width:580px;width:100%;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,0.3);overflow:hidden">
+        <div style="padding:16px 24px;background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#fff;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700">✏️ ${escapeHtml(typeLabel)} 수정</div>
+            <div style="font-size:11.5px;opacity:0.85;margin-top:2px">접수 상태에서만 수정 가능합니다</div>
+          </div>
+          <button type="button" data-re-close style="background:transparent;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+        </div>
+        <div style="padding:22px 24px">
+          <input type="hidden" id="reId" value="${id}">
+          <input type="hidden" id="reTab" value="${tabKey}">
+
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              제목 <span style="color:#dc2626">*</span>
+            </label>
+            <input type="text" id="reTitle" maxlength="200" value="${escapeHtml(title)}"
+              style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
+              placeholder="제목을 입력해 주세요">
+          </div>
+
+          ${catOptions ? `
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">분류</label>
+            <select id="reCategory"
+              style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
+              ${catOptions}
+            </select>
+          </div>` : ''}
+
+          ${extraFields}
+
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">
+              내용 <span style="color:#dc2626">*</span>
+              <span style="font-weight:400;color:var(--text-3);font-size:11px">(10자 이상 5000자 이내)</span>
+            </label>
+            <textarea id="reContent" maxlength="5000" rows="9"
+              style="width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;min-height:180px"
+              placeholder="내용을 상세히 작성해 주세요">${escapeHtml(content)}</textarea>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px;text-align:right" id="reContentCount">0 / 5000</div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="button" data-re-close style="flex:1;padding:11px 0;background:transparent;border:1px solid var(--line);color:var(--text-2);border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">취소</button>
+            <button type="button" id="reSubmitBtn" style="flex:2;padding:11px 0;background:#1a56db;color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">저장하기</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    /* 글자수 카운터 초기화 */
+    const contentEl = modal.querySelector('#reContent');
+    const countEl = modal.querySelector('#reContentCount');
+    countEl.textContent = `${contentEl.value.length} / 5000`;
+    contentEl.addEventListener('input', () => {
+      countEl.textContent = `${contentEl.value.length} / 5000`;
+    });
+
+    /* 닫기 */
+    modal.querySelectorAll('[data-re-close]').forEach((btn) => {
+      btn.addEventListener('click', closeReportEditModal);
+    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeReportEditModal(); });
+    const escHandler = (e) => {
+      if (e.key === 'Escape') { closeReportEditModal(); document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    /* 저장 */
+    modal.querySelector('#reSubmitBtn').addEventListener('click', submitReportEdit);
+  }
+
+  function closeReportEditModal() {
+    const m = document.getElementById('reportEditModal');
+    if (m) m.remove();
+    document.body.style.overflow = '';
+  }
+
+  async function submitReportEdit() {
+    const idEl       = document.getElementById('reId');
+    const tabEl      = document.getElementById('reTab');
+    const titleEl    = document.getElementById('reTitle');
+    const contentEl  = document.getElementById('reContent');
+    const catEl      = document.getElementById('reCategory');
+    const submitBtn  = document.getElementById('reSubmitBtn');
+    if (!idEl || !titleEl || !contentEl || !submitBtn) return;
+
+    const id      = Number(idEl.value);
+    const tabKey  = tabEl ? tabEl.value : _activeTab;
+    const title   = (titleEl.value || '').trim();
+    const content = (contentEl.value || '').trim();
+    const category = catEl ? catEl.value : '';
+
+    if (!title) { window.SIREN && window.SIREN.toast('제목을 입력해 주세요'); titleEl.focus(); return; }
+    if (content.length < 10) { window.SIREN && window.SIREN.toast('내용을 10자 이상 입력해 주세요'); contentEl.focus(); return; }
+
+    /* 탭별 추가 필드 수집 */
+    const extra = {};
+    if (tabKey === 'harassment') {
+      const dateEl = document.getElementById('reIncidentDate');
+      const freqEl = document.getElementById('reFrequency');
+      if (dateEl) extra.incidentDate = dateEl.value;
+      if (freqEl) extra.frequency = freqEl.value.trim();
+    }
+    if (tabKey === 'legal') {
+      const urgEl   = document.getElementById('reUrgency');
+      const partyEl = document.getElementById('rePartyInfo');
+      if (urgEl) extra.urgency = urgEl.value;
+      if (partyEl) extra.partyInfo = partyEl.value.trim();
+    }
+
+    const oldText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '저장 중...';
+
+    try {
+      /* ★ B 머지 전 mock 사용 — 머지 후 실 API fetch로 교체 */
+      let json;
+      if (tabKey === 'incident')        json = MOCK_INCIDENT_UPDATE;
+      else if (tabKey === 'harassment') json = MOCK_HARASSMENT_UPDATE;
+      else                              json = MOCK_LEGAL_UPDATE;
+      /*
+      const apiPath = tabKey === 'incident'   ? '/api/incident-report-update'
+                    : tabKey === 'harassment'  ? '/api/harassment-report-update'
+                    :                           '/api/legal-consultation-update';
+      const res = await fetch(apiPath, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, title, content, category, ...extra }),
+      });
+      json = await res.json();
+      */
+
+      if (!json || !json.ok) {
+        window.SIREN && window.SIREN.toast(json.error || '수정 실패');
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldText;
+        return;
+      }
+
+      window.SIREN && window.SIREN.toast('수정되었습니다.');
+      closeReportEditModal();
+      _page = 1;
+      await loadList();
+    } catch (e) {
+      console.error('[submitReportEdit]', e);
+      window.SIREN && window.SIREN.toast('네트워크 오류');
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldText;
+    }
+  }
+
+  /* ── 법률 상담 삭제 ── */
+  async function deleteReport(id, no) {
+    if (!confirm(`"${no}"을(를) 삭제하시겠습니까?\n삭제된 내역은 복구할 수 없습니다.`)) return;
+
+    try {
+      /* ★ B 머지 전 mock 사용 — 머지 후 실 API로 교체 */
+      const json = MOCK_LEGAL_DELETE;
+      /*
+      const res = await fetch('/api/legal-consultation-delete', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      */
+
+      if (!json || !json.ok) {
+        window.SIREN && window.SIREN.toast(json.error || '삭제 실패');
+        return;
+      }
+
+      window.SIREN && window.SIREN.toast('삭제되었습니다.');
+      _page = 1;
+      await loadList();
+    } catch (e) {
+      console.error('[deleteReport]', e);
+      window.SIREN && window.SIREN.toast('네트워크 오류');
+    }
   }
 
   /* ── 초기화 ── */
