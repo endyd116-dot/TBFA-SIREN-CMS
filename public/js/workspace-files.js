@@ -1388,9 +1388,31 @@
     }
   }
 
+  /* ───────── 사이드바 초기화 ───────── */
+  async function initSidebar() {
+    try {
+      const res = await api('/api/admin/me');
+      const me = (res.data && res.data.admin) || res.data || res;
+      const nameEl = document.getElementById('wsSidebarUserName');
+      if (nameEl) nameEl.textContent = me.name || me.email || '사용자';
+    } catch { /* 무시 */ }
+
+    const logoutBtn = document.getElementById('wsBtnLogout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        if (!confirm('로그아웃하시겠습니까?')) return;
+        try {
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        } catch { /* 무시 */ }
+        location.href = '/admin.html';
+      });
+    }
+  }
+
   /* ───────── 초기화 ───────── */
   async function init() {
     bindEvents();
+    initSidebar();
     try {
       await Promise.all([loadFolders(), loadMembers()]);
       await loadFiles();

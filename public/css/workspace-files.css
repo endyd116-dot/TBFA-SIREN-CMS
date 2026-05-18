@@ -3,17 +3,18 @@
    Phase 3-extra Step 5 (2026.05)
    ═══════════════════════════════════════════════ */
 
-/* ───── 페이지 루트 ───── */
-.wf-page {
-  margin: 0;
-  padding: 0;
+/* ───── 페이지 콘텐츠 영역 (ws-sidebar 우측) ───── */
+.wf-page-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;
   color: #1f2937;
   background: #f9fafb;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 /* ───── 상단 헤더 ───── */
