@@ -458,9 +458,6 @@
      - 신고: /api/comment-report (실패 시 MOCK_COMMENT_REPORT)
      =========================================================== */
 
-  /* MOCK (B 머지 전까지) */
-  const MOCK_VOTE = { ok: true, action: 'added', upCount: 5, downCount: 1 };
-  const MOCK_COMMENT_REPORT = { ok: true, reportId: 77 };
 
   let _comments = [];
   let _isLoggedIn = false;
@@ -646,29 +643,13 @@
       const json = await r.json().catch(() => ({}));
       if (r.ok && json.ok) {
         result = json;
+      } else {
+        toast(json.error || '투표 처리 실패');
+        return;
       }
-    } catch (_) { /* fallthrough to mock */ }
-
-    if (!result) {
-      /* MOCK 폴백 — 클라이언트 측 토글 시뮬레이션 */
-      const c0 = _comments.find((x) => x.id === commentId);
-      if (!c0) return;
-      const prev = c0.myVote;
-      const wasSame = prev === voteType;
-      let up = c0.upCount || 0;
-      let dn = c0.downCount || 0;
-      if (prev === 'up') up = Math.max(0, up - 1);
-      if (prev === 'down') dn = Math.max(0, dn - 1);
-      if (!wasSame) {
-        if (voteType === 'up') up += 1;
-        else dn += 1;
-      }
-      result = {
-        ok: true,
-        action: wasSame ? 'removed' : 'added',
-        upCount: up,
-        downCount: dn,
-      };
+    } catch (err) {
+      toast('오류가 발생했습니다.');
+      return;
     }
 
     /* 로컬 상태 + UI 갱신 */
@@ -735,13 +716,19 @@
       } else if (r.ok && json.ok) {
         result = json;
       }
-    } catch (_) { /* fallthrough */ }
+    } catch (_) {
+      toast('오류가 발생했습니다.');
+      if (btn) { btn.disabled = false; btn.textContent = '신고하기'; }
+      closeCommentReportModal();
+      return;
+    }
 
     if (alreadyReported) {
       toast('이미 신고한 항목입니다.');
-    } else {
-      if (!result) result = MOCK_COMMENT_REPORT;
+    } else if (result) {
       toast('신고되었습니다. 검토 후 처리됩니다.');
+    } else {
+      toast('신고 처리 실패. 잠시 후 다시 시도해 주세요.');
     }
 
     if (btn) { btn.disabled = false; btn.textContent = '신고하기'; }

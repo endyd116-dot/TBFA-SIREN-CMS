@@ -1952,22 +1952,6 @@
 (function () {
   'use strict';
 
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_SUBTASKS = {
-    ok: true,
-    subtasks: [
-      { id: 101, title: '서브태스크1', status: 'todo', assignedTo: null, assignedToName: null, dueDate: '2026-06-01', progress: 0 },
-      { id: 102, title: '서브태스크2', status: 'in_progress', assignedTo: 5, assignedToName: '담당자', dueDate: '2026-06-15', progress: 50 },
-    ],
-  };
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_SUBTASK_CREATE = { ok: true, id: 103, task: { id: 103, parentTaskId: 10, title: '새 서브태스크', status: 'todo' } };
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_CHECKLIST = { ok: true, taskId: 10, items: [{ id: 'ck1', text: '항목1', done: true }] };
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_RECURRING = { ok: true, id: 202, recurringParentId: 10 };
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_REMINDER = { ok: true, taskId: 10 };
 
   const STATUS_LABEL_KR = {
     todo: '할 일', doing: '진행 중', in_progress: '진행 중',
@@ -2024,9 +2008,10 @@
     let res;
     try {
       res = await api('/api/admin-workspace-subtasks?parentId=' + parentId);
-    } catch (_) {
-      /* ★ B 머지 전 mock 사용 */
-      res = MOCK_SUBTASKS;
+    } catch (err) {
+      toast('서브태스크 불러오기 실패: ' + err.message, 'error');
+      listEl.innerHTML = '<li class="wk-history-empty">불러오기 실패</li>';
+      return;
     }
     const items = (res && res.subtasks) || (res && res.data && res.data.subtasks) || [];
     if (countEl) countEl.textContent = items.length ? String(items.length) : '';
@@ -2072,20 +2057,10 @@
     const btn = $('#wkCardSubtaskAdd');
     if (btn) btn.disabled = true;
     try {
-      let res;
-      try {
-        res = await api('/api/admin-workspace-subtask-create', {
-          method: 'POST',
-          body: { parentTaskId: parentId, title: title, priority: 'normal' },
-        });
-      } catch (err) {
-        /* ★ B 머지 전 mock 사용 */
-        if (String(err.message).includes('1단계')) {
-          toast('1단계 서브태스크만 허용됩니다.', 'error');
-          return;
-        }
-        res = MOCK_SUBTASK_CREATE;
-      }
+      const res = await api('/api/admin-workspace-subtask-create', {
+        method: 'POST',
+        body: { parentTaskId: parentId, title: title, priority: 'normal' },
+      });
       if (!res || res.ok === false) {
         toast((res && res.error) || '생성 실패', 'error');
         return;
@@ -2093,7 +2068,7 @@
       if (input) input.value = '';
       toast('서브태스크가 추가되었습니다.', 'success');
       await loadSubtasks(parentId);
-      if (window.WorkspaceSync) WorkspaceSync.notify('task:created', { id: (res && res.id) || 0 });
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:created', { id: res.id || 0 });
       if (typeof window.wkReloadTasks === 'function') window.wkReloadTasks();
     } catch (err) {
       toast('생성 실패: ' + err.message, 'error');
@@ -2117,16 +2092,10 @@
     if (!taskId) return;
     const items = collectChecklist();
     try {
-      let res;
-      try {
-        res = await api('/api/admin-workspace-task-checklist', {
-          method: 'PATCH',
-          body: { taskId: taskId, items: items },
-        });
-      } catch (_) {
-        /* ★ B 머지 전 mock 사용 */
-        res = { ...MOCK_CHECKLIST, taskId: taskId, items: items };
-      }
+      const res = await api('/api/admin-workspace-task-checklist', {
+        method: 'PATCH',
+        body: { taskId: taskId, items: items },
+      });
       if (res && res.ok === false) {
         toast((res && res.error) || '체크리스트 저장 실패', 'error');
         return;
@@ -2164,16 +2133,10 @@
     const btn = $('#wkCardReminderSave');
     if (btn) btn.disabled = true;
     try {
-      let res;
-      try {
-        res = await api('/api/admin-workspace-task-reminder', {
-          method: 'PATCH',
-          body: { taskId: taskId, reminderConfig: { enabled, minutesBefore, channels } },
-        });
-      } catch (_) {
-        /* ★ B 머지 전 mock 사용 */
-        res = MOCK_REMINDER;
-      }
+      const res = await api('/api/admin-workspace-task-reminder', {
+        method: 'PATCH',
+        body: { taskId: taskId, reminderConfig: { enabled, minutesBefore, channels } },
+      });
       if (res && res.ok === false) {
         toast((res && res.error) || '리마인더 저장 실패', 'error');
         return;
@@ -2202,13 +2165,7 @@
     try {
       const body = { parentTaskId: parentTaskId, dueDate: new Date(due).toISOString() };
       if (title) body.title = title;
-      let res;
-      try {
-        res = await api('/api/admin-workspace-task-recurring', { method: 'POST', body });
-      } catch (_) {
-        /* ★ B 머지 전 mock 사용 */
-        res = MOCK_RECURRING;
-      }
+      const res = await api('/api/admin-workspace-task-recurring', { method: 'POST', body });
       if (res && res.ok === false) {
         toast((res && res.error) || '반복 작업 생성 실패', 'error');
         return;

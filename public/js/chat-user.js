@@ -656,10 +656,6 @@
   }
 
   /* ============ ★ R9: 메시지 수정/삭제 메뉴 ============ */
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_CHAT_UPDATE = { ok: true, messageId: 0, editedAt: new Date().toISOString() };
-  /* ★ B 머지 전 mock 사용 */
-  const MOCK_CHAT_DELETE = { ok: true };
 
   function closeMsgMenu() {
     const menu = document.getElementById('chatMsgMenu');
@@ -753,16 +749,10 @@
       saveBtn.disabled = true;
       saveBtn.textContent = '저장 중...';
       try {
-        let res;
-        try {
-          res = await api('/api/chat-message-update', {
-            method: 'PATCH',
-            body: { messageId: msgId, content: newContent },
-          });
-        } catch (_) {
-          /* ★ B 머지 전 mock 사용 */
-          res = { status: 200, ok: true, data: { ...MOCK_CHAT_UPDATE, messageId: msgId } };
-        }
+        const res = await api('/api/chat-message-update', {
+          method: 'PATCH',
+          body: { messageId: msgId, content: newContent },
+        });
         if (!res.ok) {
           const errMsg = (res.data && res.data.error) || '수정 실패';
           if (errMsg.includes('5분')) {
@@ -799,16 +789,10 @@
   async function deleteMessage(msgId) {
     if (!confirm('이 메시지를 삭제하시겠습니까?')) return;
     try {
-      let res;
-      try {
-        res = await api('/api/chat-message-delete', {
-          method: 'DELETE',
-          body: { messageId: msgId },
-        });
-      } catch (_) {
-        /* ★ B 머지 전 mock 사용 */
-        res = { status: 200, ok: true, data: MOCK_CHAT_DELETE };
-      }
+      const res = await api('/api/chat-message-delete', {
+        method: 'DELETE',
+        body: { messageId: msgId },
+      });
       if (!res.ok) {
         SIREN.toast((res.data && res.data.error) || '삭제 실패');
         return;
@@ -833,6 +817,113 @@
     }
   }
 
+  /* ============ ★ R9: 채팅 검색 ============ */
+  function injectSearchUI() {
+    const modal = document.getElementById('chatWindowModal');
+    if (!modal || modal.querySelector('#chatSearchBar')) return;
+
+    /* 검색 버튼 — 헤더에 삽입 */
+    const header = modal.querySelector('.chat-modal-header');
+    if (header) {
+      const searchToggle = document.createElement('button');
+      searchToggle.id = 'chatSearchToggle';
+      searchToggle.title = '메시지 검색';
+      searchToggle.setAttribute('aria-label', '메시지 검색');
+      searchToggle.style.cssText = 'background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-3,#94a3b8);padding:4px 6px;margin-right:4px';
+      searchToggle.textContent = '🔍';
+      const closeBtn = header.querySelector('[data-chat-close]');
+      if (closeBtn) header.insertBefore(searchToggle, closeBtn);
+      else header.appendChild(searchToggle);
+      searchToggle.addEventListener('click', toggleSearchBar);
+    }
+
+    /* 검색 바 */
+    const searchBar = document.createElement('div');
+    searchBar.id = 'chatSearchBar';
+    searchBar.style.cssText = 'display:none;padding:8px 12px;border-bottom:1px solid var(--line,#e2e8f0);background:#f8fafc;gap:6px;align-items:center';
+    searchBar.innerHTML = `
+      <input id="chatSearchInput" type="text" placeholder="메시지 검색..." style="flex:1;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:13px;outline:none;width:100%">
+      <button id="chatSearchClear" title="닫기" style="background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;flex-shrink:0">×</button>
+    `;
+    const msgsEl = document.getElementById('chatMessages');
+    if (msgsEl) msgsEl.parentNode.insertBefore(searchBar, msgsEl);
+
+    /* 검색 결과 영역 */
+    const resultArea = document.createElement('div');
+    resultArea.id = 'chatSearchResults';
+    resultArea.style.cssText = 'display:none;max-height:260px;overflow-y:auto;border-bottom:1px solid var(--line,#e2e8f0);background:#fff;font-size:13px';
+    searchBar.after(resultArea);
+
+    const input = searchBar.querySelector('#chatSearchInput');
+    let debounce = null;
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => runSearch(input.value.trim()), 350);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { clearTimeout(debounce); runSearch(input.value.trim()); }
+      if (e.key === 'Escape') toggleSearchBar();
+    });
+    searchBar.querySelector('#chatSearchClear').addEventListener('click', toggleSearchBar);
+  }
+
+  function toggleSearchBar() {
+    const bar = document.getElementById('chatSearchBar');
+    const results = document.getElementById('chatSearchResults');
+    if (!bar) return;
+    const isOpen = bar.style.display !== 'none';
+    bar.style.display = isOpen ? 'none' : 'flex';
+    if (isOpen) {
+      if (results) results.style.display = 'none';
+    } else {
+      const input = bar.querySelector('#chatSearchInput');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+
+  async function runSearch(q) {
+    const results = document.getElementById('chatSearchResults');
+    if (!results) return;
+    if (!q) { results.style.display = 'none'; return; }
+
+    results.style.display = 'block';
+    results.innerHTML = '<div style="padding:12px;color:#94a3b8;text-align:center">검색 중...</div>';
+
+    const roomId = _currentRoom && _currentRoom.id;
+    if (!roomId) { results.innerHTML = '<div style="padding:12px;color:#94a3b8;text-align:center">채팅방을 먼저 열어주세요.</div>'; return; }
+
+    const res = await api('/api/chat-search?roomId=' + roomId + '&q=' + encodeURIComponent(q));
+    const messages = res.data?.data?.messages || res.data?.messages || [];
+
+    if (!messages.length) {
+      results.innerHTML = '<div style="padding:12px;color:#94a3b8;text-align:center">검색 결과가 없습니다.</div>';
+      return;
+    }
+
+    results.innerHTML = messages.map(m => {
+      const highlighted = escapeHtml(m.content || '').replace(
+        new RegExp('(' + escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'),
+        '<mark style="background:#fef08a;border-radius:2px">$1</mark>'
+      );
+      const dateStr = m.createdAt ? m.createdAt.slice(0, 16).replace('T', ' ') : '';
+      return `<div style="padding:10px 14px;border-bottom:1px solid #f0f2f5;cursor:pointer" class="chat-search-result" data-msg-id="${m.id}">
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:2px">${escapeHtml(m.senderName || '알 수 없음')} · ${dateStr}</div>
+        <div style="line-height:1.5">${highlighted}</div>
+      </div>`;
+    }).join('');
+
+    results.querySelectorAll('.chat-search-result').forEach(row => {
+      row.addEventListener('mouseenter', () => { row.style.background = '#f8fafc'; });
+      row.addEventListener('mouseleave', () => { row.style.background = ''; });
+      row.addEventListener('click', () => {
+        /* 결과 닫고 해당 메시지로 스크롤 시도 */
+        toggleSearchBar();
+        const target = document.querySelector('[data-msg-row="' + row.dataset.msgId + '"]');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+  }
+
   /* ============ 초기화 ============ */
   function init() {
     if (_chatInitDone) return;
@@ -845,6 +936,7 @@
     setupImageUpload();
     setupImageClick(); // ★ H-1
     setupMessageActions(); // ★ R9
+    injectSearchUI(); // ★ R9: 채팅 검색
   }
 
   /* 전역 노출 */

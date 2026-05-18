@@ -1471,15 +1471,6 @@
   }
 
   /* ─────────── 멘션 알림 배지 (#2) ─────────── */
-  // mock 데이터 (B 머지 전)
-  const MOCK_MENTIONS = {
-    ok: true,
-    data: {
-      mentions: [
-        { id: 1, taskId: 42, taskTitle: '월간 보고서 작성', mentionerName: '박OO', context: '@나 확인 부탁드려요', isRead: false, createdAt: new Date().toISOString() },
-      ],
-    },
-  };
 
   let mentionDropOpen = false;
   let mentionLastFetch = 0;
@@ -1493,7 +1484,7 @@
       const res = await api(`/api/workspace-task-mentions?workspaceId=${ws}&unreadOnly=true`);
       items = (res.data || res).mentions || [];
     } catch (_) {
-      items = MOCK_MENTIONS.data.mentions;
+      items = [];
     }
     const countEl = $('#wsMentionCount');
     if (countEl) {
