@@ -298,6 +298,12 @@ export const members = pgTable("members", {
    */
   defaultWbsView: varchar("default_wbs_view", { length: 20 }).default("board"),
 
+  /* ───────── ★ Phase 24: 마일스톤 담당 역할 ─────────
+   * SM(사무국장) | PM(정책국장) | SI(SI관리자) | NULL(미배정)
+   * 마이그레이션: migrate-milestone-setup (완료)
+   */
+  milestoneRole: varchar("milestone_role", { length: 10 }),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
