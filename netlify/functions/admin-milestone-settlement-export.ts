@@ -12,6 +12,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
+  /* ★ R29-MS-GAP1-A: 결산 CSV 다운로드는 super_admin 전용 (급여 정보 포함) */
+  if ((auth.ctx.member as any)?.role !== "super_admin") {
+    return Response.json({ ok: false, error: "슈퍼어드민 전용 (급여 CSV 다운로드)" }, { status: 403 });
+  }
 
   const url = new URL(req.url);
   const quarterId = url.searchParams.get("quarterId");

@@ -20,7 +20,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
   if (req.method === "GET") {
     try {
-      const rows = await db.execute(sql`SELECT * FROM quarters ORDER BY year DESC, quarter DESC LIMIT 20`);
+      /* ★ R29-MS-GAP1-A: super_admin은 전체, 그 외(운영자/일반어드민)는 ACTIVE+UPCOMING만 */
+      const rows = isSuperAdmin
+        ? await db.execute(sql`SELECT * FROM quarters ORDER BY year DESC, quarter DESC LIMIT 20`)
+        : await db.execute(sql`SELECT * FROM quarters WHERE status IN ('ACTIVE', 'UPCOMING', 'ENDED') ORDER BY year DESC, quarter DESC LIMIT 20`);
       const quarters = ((rows as any).rows || (rows as any[])).map(formatQ);
       return Response.json({ ok: true, data: { quarters } });
     } catch (err) { return jsonError("select", err); }
