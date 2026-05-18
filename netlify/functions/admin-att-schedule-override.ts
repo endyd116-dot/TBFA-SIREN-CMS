@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
-  if (auth.member.role !== "super_admin") {
+  if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
@@ -46,7 +46,7 @@ export default async function handler(req: Request) {
         workMode,
         workplaceId: workplaceId ?? null,
         reason: reason ?? null,
-        createdBy: auth.member.uid,
+        createdBy: (auth as any).ctx.member.uid,
       })
       .onConflictDoUpdate({
         target: [attScheduleOverrides.memberUid, attScheduleOverrides.date],
@@ -54,7 +54,7 @@ export default async function handler(req: Request) {
           workMode,
           workplaceId: workplaceId ?? null,
           reason: reason ?? null,
-          createdBy: auth.member.uid,
+          createdBy: (auth as any).ctx.member.uid,
         },
       })
       .returning();

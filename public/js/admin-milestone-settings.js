@@ -374,7 +374,7 @@
     // super_admin 체크
     try {
       var meRes = await api('/api/admin/me?light=1');
-      var me = meRes.admin || {};
+      var me = (meRes.data && meRes.data.admin) || meRes.admin || {};
       if (me.role !== 'super_admin') {
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:16px;color:#6b7280">슈퍼어드민만 접근할 수 있습니다.</div>';
         return;
