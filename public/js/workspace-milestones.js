@@ -39,7 +39,7 @@
     });
     let data = null;
     try { data = await res.json(); } catch (_) {}
-    if (!res.ok) { const err = new Error((data && (data.error || data.message)) || 'HTTP ' + res.status); (err as any).status = res.status; throw err; }
+    if (!res.ok) { const err = new Error((data && (data.error || data.message)) || 'HTTP ' + res.status); (err).status = res.status; throw err; }
     return data;
   }
 
@@ -56,8 +56,8 @@
   /* ─── 초기화 ─── */
   document.addEventListener('DOMContentLoaded', async () => {
     const _hideSpinner = () => {
-      const _l = document.querySelector('#overviewLoading') as HTMLElement;
-      const _c = document.querySelector('#overviewContent') as HTMLElement;
+      const _l = document.querySelector('#overviewLoading');
+      const _c = document.querySelector('#overviewContent');
       if (_l) _l.style.display = 'none';
       if (_c) _c.style.display = '';
     };
@@ -75,8 +75,8 @@
 
     // milestoneRole 없으면 안내
     if (!state.member.milestoneRole && !state.isSuperAdmin) {
-      const _loading = $('#overviewLoading') as HTMLElement;
-      const _content = $('#overviewContent') as HTMLElement;
+      const _loading = $('#overviewLoading');
+      const _content = $('#overviewContent');
       if (_loading) _loading.style.display = 'none';
       if (_content) { _content.style.display = ''; _content.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px 20px">성과 담당 역할이 설정되어 있지 않습니다.<br>슈퍼어드민에게 문의하세요.</div>'; }
       return;
@@ -96,8 +96,8 @@
 
     // 분기가 없으면 안내 메시지만 표시
     if (!state.currentQuarterId) {
-      const loading = $('#overviewLoading') as HTMLElement;
-      const content = $('#overviewContent') as HTMLElement;
+      const loading = $('#overviewLoading');
+      const content = $('#overviewContent');
       if (loading) loading.style.display = 'none';
       if (content) {
         content.style.display = '';
@@ -116,8 +116,8 @@
     } catch (err) {
       console.error('[ms] 초기화 오류:', err);
       _hideSpinner();
-      const _c = document.querySelector('#overviewContent') as HTMLElement;
-      if (_c) _c.innerHTML = `<div style="text-align:center;color:#dc2626;padding:40px 20px">성과관리를 불러오는 중 오류가 발생했습니다.<br><small style="color:#9ca3af">${(err as any)?.message || ''}</small></div>`;
+      const _c = document.querySelector('#overviewContent');
+      if (_c) _c.innerHTML = `<div style="text-align:center;color:#dc2626;padding:40px 20px">성과관리를 불러오는 중 오류가 발생했습니다.<br><small style="color:#9ca3af">${(err)?.message || ''}</small></div>`;
     }
   });
 
@@ -129,11 +129,11 @@
       const active = state.quarters.find(q => q.status === 'ACTIVE');
       state.currentQuarterId = active ? active.id : (state.quarters[0]?.id || null);
       renderQuarterSelect();
-    } catch (e) { toast('분기 로드 실패: ' + (e as any).message, 'error'); }
+    } catch (e) { toast('분기 로드 실패: ' + (e).message, 'error'); }
   }
 
   function renderQuarterSelect() {
-    const sel = $('#msQuarterSelect') as HTMLSelectElement;
+    const sel = $('#msQuarterSelect');
     if (!sel) return;
     sel.innerHTML = state.quarters.map(q =>
       `<option value="${q.id}" ${q.id===state.currentQuarterId?'selected':''}>${q.year}년 Q${q.quarter}</option>`
@@ -163,7 +163,7 @@
       state.dashboard = res.data || res;
       state.nonRevAchs = state.dashboard.nonRevenueAchievements || [];
       state.settlement = state.dashboard.settlement;
-    } catch (e) { toast('대시보드 로드 실패: ' + (e as any).message, 'error'); }
+    } catch (e) { toast('대시보드 로드 실패: ' + (e).message, 'error'); }
   }
 
   /* ─── 매출연동 마일스톤 정의 로드 (입력 폼용) ─── */
@@ -177,7 +177,7 @@
   }
 
   function buildMilestoneSelect(selector, milestones) {
-    const el = $(selector) as HTMLSelectElement;
+    const el = $(selector);
     if (!el) return;
     el.innerHTML = '<option value="">마일스톤 선택...</option>' +
       milestones.map(m => `<option value="${m.id}">${m.name} (${m.code})</option>`).join('');
@@ -185,11 +185,11 @@
 
   /* ─── 탭 전환 ─── */
   function switchTab(tab) {
-    $$('#msTabs .ms-tab').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.tab === tab));
-    $$('.ms-tab-panel').forEach(p => { (p as HTMLElement).style.display = 'none'; });
+    $$('#msTabs .ms-tab').forEach(b => b.classList.toggle('active', (b).dataset.tab === tab));
+    $$('.ms-tab-panel').forEach(p => { (p).style.display = 'none'; });
     const panels = { overview:'tabOverview', 'revenue-input':'tabRevenueInput', 'revenue-verify':'tabRevenueVerify', nonrevenue:'tabNonRevenue', settlement:'tabSettlement' };
     const panelEl = $(('#' + panels[tab]) || '#tabOverview');
-    if (panelEl) (panelEl as HTMLElement).style.display = '';
+    if (panelEl) (panelEl).style.display = '';
     if (tab === 'overview')         renderOverview();
     if (tab === 'revenue-input')    loadAndRenderRevenueList();
     if (tab === 'revenue-verify')   loadAndRenderVerifyList();
@@ -198,14 +198,14 @@
   }
 
   function renderCurrentTab() {
-    const active = $('#msTabs .ms-tab.active') as HTMLElement;
+    const active = $('#msTabs .ms-tab.active');
     if (active) switchTab(active.dataset.tab);
   }
 
   /* ─── 내 현황 탭 ─── */
   function renderOverview() {
-    const loading = $('#overviewLoading') as HTMLElement;
-    const content = $('#overviewContent') as HTMLElement;
+    const loading = $('#overviewLoading');
+    const content = $('#overviewContent');
     if (!state.dashboard) {
       loading.style.display = 'none';
       content.style.display = '';
@@ -220,7 +220,7 @@
     $('#kpiRevenue').textContent  = fmt(inc.revenueLinked || 0);
     $('#kpiNonRevenue').textContent = fmt(inc.nonRevenue || 0);
     $('#kpiTotal').textContent    = fmt(inc.total || 0);
-    ($('#msKpiRow') as HTMLElement).style.display = '';
+    ($('#msKpiRow')).style.display = '';
 
     const progress = d.revenueProgress || [];
     if (!progress.length) {
@@ -286,7 +286,7 @@
       const res = await api(`/api/milestone-revenue?quarterId=${state.currentQuarterId}`);
       state.revenueEntries = res.data?.entries || res.entries || [];
       renderRevenueList();
-    } catch (e) { list.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e as any).message)}</div>`; }
+    } catch (e) { list.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e).message)}</div>`; }
   }
 
   function renderRevenueList() {
@@ -312,29 +312,29 @@
     const savBtn = $('#riBtnSave');
     if (savBtn) savBtn.addEventListener('click', saveRevenueEntry);
 
-    const milSel = $('#riMilestoneId') as HTMLSelectElement;
+    const milSel = $('#riMilestoneId');
     if (milSel) milSel.addEventListener('change', () => {
-      const wrap = $('#riCampaignWrap') as HTMLElement;
+      const wrap = $('#riCampaignWrap');
       const m = state.milestones.find(x => String(x.id) === milSel.value);
       if (wrap) wrap.style.display = m && ['sm-001','sm-002'].includes(m.code) ? '' : 'none';
     });
 
     // 기본 날짜
-    const dateEl = $('#riDate') as HTMLInputElement;
+    const dateEl = $('#riDate');
     if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
   });
 
   async function saveRevenueEntry() {
-    const milestoneDefinitionId = Number(($('#riMilestoneId') as HTMLSelectElement).value);
-    const revenueDate = ($('#riDate') as HTMLInputElement).value;
-    const amount = Number(($('#riAmount') as HTMLInputElement).value);
-    const amountUnit = ($('#riUnit') as HTMLSelectElement).value;
-    const note = ($('#riNote') as HTMLInputElement).value.trim();
-    const isCampaignRouted = ($('#riCampaignRouted') as HTMLSelectElement)?.value === 'true';
+    const milestoneDefinitionId = Number(($('#riMilestoneId')).value);
+    const revenueDate = ($('#riDate')).value;
+    const amount = Number(($('#riAmount')).value);
+    const amountUnit = ($('#riUnit')).value;
+    const note = ($('#riNote')).value.trim();
+    const isCampaignRouted = ($('#riCampaignRouted'))?.value === 'true';
     if (!milestoneDefinitionId) { toast('마일스톤을 선택하세요', 'error'); return; }
     if (!revenueDate) { toast('날짜를 입력하세요', 'error'); return; }
     if (!amount || amount <= 0) { toast('금액/수량을 입력하세요', 'error'); return; }
-    const btn = $('#riBtnSave') as HTMLButtonElement;
+    const btn = $('#riBtnSave');
     btn.disabled = true;
     try {
       await api('/api/milestone-revenue', {
@@ -342,10 +342,10 @@
         body: { milestoneDefinitionId, quarterId: state.currentQuarterId, revenueDate, amount, amountUnit, note: note||null, isCampaignRouted },
       });
       toast('입력 완료 (검증 대기)', 'success');
-      ($('#riAmount') as HTMLInputElement).value = '';
-      ($('#riNote') as HTMLInputElement).value = '';
+      ($('#riAmount')).value = '';
+      ($('#riNote')).value = '';
       await loadAndRenderRevenueList();
-    } catch (e) { toast('입력 실패: ' + (e as any).message, 'error'); }
+    } catch (e) { toast('입력 실패: ' + (e).message, 'error'); }
     finally { btn.disabled = false; }
   }
 
@@ -354,12 +354,12 @@
     const list = $('#rvList');
     if (!list) return;
     list.innerHTML = '<div class="ms-loading">불러오는 중...</div>';
-    const status = ($('#rvStatusFilter') as HTMLSelectElement)?.value || 'PENDING';
+    const status = ($('#rvStatusFilter'))?.value || 'PENDING';
     try {
       const res = await api(`/api/admin-milestone-revenue?quarterId=${state.currentQuarterId}&status=${status}`);
       state.pendingVerifications = res.data?.entries || res.entries || [];
       renderVerifyList();
-    } catch (e) { list.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e as any).message)}</div>`; }
+    } catch (e) { list.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e).message)}</div>`; }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -402,52 +402,52 @@
 
     // EVENT_RANGE 입력 필드 활성화 (렌더 후 이벤트 바인딩)
     state.pendingVerifications.forEach(e => {
-      const input = document.getElementById(`eventRangeAmount_${e.id}`) as HTMLInputElement;
+      const input = document.getElementById(`eventRangeAmount_${e.id}`);
       if (input) input.disabled = false;
     });
   }
 
   window.__msVerifyEventRange = async function(id) {
-    const input = document.getElementById(`eventRangeAmount_${id}`) as HTMLInputElement;
+    const input = document.getElementById(`eventRangeAmount_${id}`);
     const eventRangeAmount = input ? Number(input.value) : 0;
     if (!eventRangeAmount || eventRangeAmount <= 0) { toast('금액을 입력하세요', 'error'); return; }
     try {
       await api('/api/admin-milestone-revenue', { method: 'PUT', body: { id, action: 'verify', eventRangeAmount } });
       toast('검증 및 금액 확정 완료', 'success');
       await loadAndRenderVerifyList();
-    } catch (e) { toast('처리 실패: ' + (e as any).message, 'error'); }
+    } catch (e) { toast('처리 실패: ' + (e).message, 'error'); }
   };
 
   window.__msVerify = async function(type, action, id) {
     if (action === 'reject') {
       state.rejectTarget = { type, id };
-      ($('#rejectReason') as HTMLTextAreaElement).value = '';
-      ($('#rejectModal') as HTMLElement).style.display = '';
+      ($('#rejectReason')).value = '';
+      ($('#rejectModal')).style.display = '';
       return;
     }
     try {
       await api(`/api/admin-milestone-${type}/${id}/${action}`, { method: 'POST' });
       toast(action === 'verify' ? '승인 완료' : '처리 완료', 'success');
       await loadAndRenderVerifyList();
-    } catch (e) { toast('처리 실패: ' + (e as any).message, 'error'); }
+    } catch (e) { toast('처리 실패: ' + (e).message, 'error'); }
   };
 
   // 반려 모달
   document.addEventListener('DOMContentLoaded', () => {
-    $('#rejectCancel')?.addEventListener('click', () => { ($('#rejectModal') as HTMLElement).style.display = 'none'; });
+    $('#rejectCancel')?.addEventListener('click', () => { ($('#rejectModal')).style.display = 'none'; });
     $('#rejectConfirm')?.addEventListener('click', async () => {
-      const reason = ($('#rejectReason') as HTMLTextAreaElement).value.trim();
+      const reason = ($('#rejectReason')).value.trim();
       if (!reason) { toast('반려 사유를 입력하세요', 'error'); return; }
       if (!state.rejectTarget) return;
-      const btn = $('#rejectConfirm') as HTMLButtonElement;
+      const btn = $('#rejectConfirm');
       btn.disabled = true;
       try {
         await api(`/api/admin-milestone-${state.rejectTarget.type}/${state.rejectTarget.id}/reject`, { method: 'POST', body: { rejectReason: reason } });
         toast('반려 완료', 'success');
-        ($('#rejectModal') as HTMLElement).style.display = 'none';
+        ($('#rejectModal')).style.display = 'none';
         state.rejectTarget = null;
         if ($('#msTabs .ms-tab.active')?.dataset?.tab === 'revenue-verify') await loadAndRenderVerifyList();
-      } catch (e) { toast('반려 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('반려 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; }
     });
   });
@@ -517,7 +517,7 @@
         <span style="color:#6b7280;margin-left:8px">(${selectedCount}/2)</span>
       </div>`;
 
-    const saveBtn = $('#nrBtnSaveSelect') as HTMLElement;
+    const saveBtn = $('#nrBtnSaveSelect');
     if (saveBtn) saveBtn.style.display = achs.some(a => a.status === 'VERIFIED') ? '' : 'none';
   }
 
@@ -538,7 +538,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     $('#nrBtnSaveSelect')?.addEventListener('click', async () => {
-      const btn = $('#nrBtnSaveSelect') as HTMLButtonElement;
+      const btn = $('#nrBtnSaveSelect');
       btn.disabled = true;
       try {
         await api('/api/milestone-nonrevenue/select', {
@@ -547,7 +547,7 @@
         toast('선택 저장 완료', 'success');
         await loadDashboard();
         renderNonRevenue();
-      } catch (e) { toast('저장 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('저장 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; }
     });
 
@@ -559,27 +559,27 @@
         const nrMs = res.data?.milestones || res.milestones || [];
         buildMilestoneSelect('#nrMilestoneId', nrMs);
       } catch { /* ignore */ }
-      ($('#nrAchievedDate') as HTMLInputElement).value = new Date().toISOString().slice(0,10);
-      ($('#nrModal') as HTMLElement).style.display = '';
+      ($('#nrAchievedDate')).value = new Date().toISOString().slice(0,10);
+      ($('#nrModal')).style.display = '';
     });
 
-    $('#nrModalClose')?.addEventListener('click', () => { ($('#nrModal') as HTMLElement).style.display = 'none'; });
+    $('#nrModalClose')?.addEventListener('click', () => { ($('#nrModal')).style.display = 'none'; });
     $('#nrModalSave')?.addEventListener('click', async () => {
-      const milestoneDefinitionId = Number(($('#nrMilestoneId') as HTMLSelectElement).value);
-      const achievedDate = ($('#nrAchievedDate') as HTMLInputElement).value;
-      const description = ($('#nrDescription') as HTMLTextAreaElement).value.trim();
+      const milestoneDefinitionId = Number(($('#nrMilestoneId')).value);
+      const achievedDate = ($('#nrAchievedDate')).value;
+      const description = ($('#nrDescription')).value.trim();
       if (!milestoneDefinitionId || !achievedDate) { toast('마일스톤과 달성일을 입력하세요', 'error'); return; }
-      const btn = $('#nrModalSave') as HTMLButtonElement;
+      const btn = $('#nrModalSave');
       btn.disabled = true;
       try {
         await api('/api/milestone-nonrevenue', {
           method: 'POST', body: { milestoneDefinitionId, quarterId: state.currentQuarterId, achievedDate, description },
         });
         toast('성과 제출 완료 (검증 대기)', 'success');
-        ($('#nrModal') as HTMLElement).style.display = 'none';
+        ($('#nrModal')).style.display = 'none';
         await loadDashboard();
         renderNonRevenue();
-      } catch (e) { toast('제출 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('제출 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; }
     });
   });
@@ -593,12 +593,12 @@
       const tasks = res.data?.tasks || [];
       const defs  = res.data?.milestones || [];
       if (!tasks.length) {
-        (container as HTMLElement).innerHTML =
+        (container).innerHTML =
           '<div style="font-size:13px;color:#9ca3af;padding:12px 0">분류 대기 카드가 없습니다.</div>';
         return;
       }
       const defsOpts = defs.map(d => `<option value="${d.id}">${escHtml(d.name)}</option>`).join('');
-      (container as HTMLElement).innerHTML = `
+      (container).innerHTML = `
         <p style="font-size:12.5px;color:#6b7280;margin:0 0 10px">완료 카드 중 성과 분류가 필요한 항목입니다. AI가 처리하지 못한 건을 직접 지정하세요.</p>
         ${tasks.map(t => `
           <div class="ms-pending-item" data-task-id="${t.id}" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6">
@@ -611,32 +611,32 @@
           </div>
         `).join('')}`;
 
-      (container as HTMLElement).querySelectorAll('.p25-confirm').forEach(btn => {
+      (container).querySelectorAll('.p25-confirm').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const taskId = Number((btn as HTMLElement).dataset.taskId);
-          const sel = (container as HTMLElement).querySelector(`.p25-def-sel[data-task-id="${taskId}"]`) as HTMLSelectElement;
+          const taskId = Number((btn).dataset.taskId);
+          const sel = (container).querySelector(`.p25-def-sel[data-task-id="${taskId}"]`);
           const milestoneDefId = Number(sel?.value || 0);
           if (!milestoneDefId) { toast('마일스톤을 선택하세요', 'error'); return; }
-          (btn as HTMLButtonElement).disabled = true;
+          (btn).disabled = true;
           try {
             await api('/api/workspace-milestone-task-match', { method:'POST', body:{ taskId, milestoneDefId, action:'confirm' } });
             toast('성과에 연결되었습니다', 'success');
             await loadAndRenderPendingQueue();
-          } catch (e) { toast('오류: ' + (e as any).message, 'error'); (btn as HTMLButtonElement).disabled = false; }
+          } catch (e) { toast('오류: ' + (e).message, 'error'); (btn).disabled = false; }
         });
       });
 
-      (container as HTMLElement).querySelectorAll('.p25-skip').forEach(btn => {
+      (container).querySelectorAll('.p25-skip').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const taskId = Number((btn as HTMLElement).dataset.taskId);
+          const taskId = Number((btn).dataset.taskId);
           try {
             await api('/api/workspace-milestone-task-match', { method:'POST', body:{ taskId, action:'skip' } });
             await loadAndRenderPendingQueue();
-          } catch (e) { toast('오류: ' + (e as any).message, 'error'); }
+          } catch (e) { toast('오류: ' + (e).message, 'error'); }
         });
       });
     } catch (e) {
-      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+      (container).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e).message)}</div>`;
     }
   }
 
@@ -644,13 +644,13 @@
   async function loadAndRenderDoneTasks() {
     const container = $('#p25DoneSection');
     if (!container) return;
-    (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af">불러오는 중...</div>';
+    (container).innerHTML = '<div style="font-size:13px;color:#9ca3af">불러오는 중...</div>';
     try {
       const res = await api(`/api/workspace-milestone-done-tasks?quarterId=${state.currentQuarterId||''}`);
       const grouped  = res.data?.grouped || [];
       const unmatched = res.data?.unmatched || [];
       if (!grouped.length && !unmatched.length) {
-        (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:8px 0">이번 분기 완료 카드가 없습니다.</div>';
+        (container).innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:8px 0">이번 분기 완료 카드가 없습니다.</div>';
         return;
       }
       const parts = [];
@@ -668,9 +668,9 @@
           ${unmatched.map(t => `<div style="font-size:12.5px;color:#9ca3af;padding:3px 0 3px 14px">${escHtml(t.title)}</div>`).join('')}
         </div>`);
       }
-      (container as HTMLElement).innerHTML = parts.join('');
+      (container).innerHTML = parts.join('');
     } catch (e) {
-      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+      (container).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e).message)}</div>`;
     }
   }
 
@@ -682,10 +682,10 @@
       const res = await api(`/api/milestone-definitions?role=${state.member.milestoneRole}&category=NON_REVENUE`);
       const defs = res.data?.milestones || res.milestones || [];
       if (!defs.length) {
-        (container as HTMLElement).innerHTML = '<div style="font-size:13px;color:#9ca3af">비매출 마일스톤이 없습니다.</div>';
+        (container).innerHTML = '<div style="font-size:13px;color:#9ca3af">비매출 마일스톤이 없습니다.</div>';
         return;
       }
-      (container as HTMLElement).innerHTML = `
+      (container).innerHTML = `
         <p style="font-size:12.5px;color:#6b7280;margin:0 0 10px">선택한 비매출 마일스톤에 맞는 WBS 카드를 자동 생성합니다. 생성된 카드를 완료하면 성과 달성에 카운트됩니다.</p>
         ${defs.map(d => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6">
@@ -698,21 +698,21 @@
           </div>
         `).join('')}`;
 
-      (container as HTMLElement).querySelectorAll('.p25-create-card').forEach(btn => {
+      (container).querySelectorAll('.p25-create-card').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const milestoneDefId = Number((btn as HTMLElement).dataset.defId);
-          const defName = (btn as HTMLElement).dataset.defName;
+          const milestoneDefId = Number((btn).dataset.defId);
+          const defName = (btn).dataset.defName;
           if (!confirm(`"${defName}" 관련 WBS 카드를 생성하시겠습니까?`)) return;
-          (btn as HTMLButtonElement).disabled = true;
+          (btn).disabled = true;
           try {
             const res = await api('/api/workspace-milestone-create-tasks', { method:'POST', body:{ milestoneDefId } });
             toast(res.message || '카드 생성 완료', 'success');
-          } catch (e) { toast('카드 생성 실패: ' + (e as any).message, 'error'); }
-          finally { (btn as HTMLButtonElement).disabled = false; }
+          } catch (e) { toast('카드 생성 실패: ' + (e).message, 'error'); }
+          finally { (btn).disabled = false; }
         });
       });
     } catch (e) {
-      (container as HTMLElement).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e as any).message)}</div>`;
+      (container).innerHTML = `<div style="font-size:13px;color:#ef4444">로드 실패: ${escHtml((e).message)}</div>`;
     }
   }
 
@@ -728,7 +728,7 @@
       state.settlement = settle;
       renderSettlementPanel(settle);
     } catch (e) {
-      panel.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e as any).message)}</div>`;
+      panel.innerHTML = `<div class="ms-empty">로드 실패: ${escHtml((e).message)}</div>`;
     }
   }
 
@@ -772,26 +772,26 @@
       </div>`;
 
     $('#btnCalc')?.addEventListener('click', async () => {
-      const btn = $('#btnCalc') as HTMLButtonElement;
+      const btn = $('#btnCalc');
       btn.disabled = true; btn.textContent = '계산 중...';
       try {
         const res = await api('/api/milestone-settlement/calculate', { method:'POST', body:{ quarterId: state.currentQuarterId } });
         const calc = res.data || res;
-        ($('#calcPreview') as HTMLElement).innerHTML = `
+        ($('#calcPreview')).innerHTML = `
           <div class="ms-settle-breakdown">
             <div class="ms-kpi"><div class="ms-kpi-label">매출연동</div><div class="ms-kpi-val blue">${fmt(calc.revenueLinkedTotal)}</div></div>
             <div class="ms-kpi"><div class="ms-kpi-label">비매출</div><div class="ms-kpi-val green">${fmt(calc.nonRevenueTotal)}</div></div>
           </div>
           <div style="margin-top:12px;font-size:20px;font-weight:800">예상 합계: ${fmt(calc.totalBonus)}</div>`;
-      } catch (e) { toast('계산 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('계산 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; btn.textContent = '📊 계산하기'; }
     });
 
     $('#btnAiCoach')?.addEventListener('click', async () => {
-      const selfEvalText = ($('#settleSelf') as HTMLTextAreaElement).value.trim();
+      const selfEvalText = ($('#settleSelf')).value.trim();
       if (!selfEvalText) { toast('자가평가 내용을 먼저 작성하세요', 'error'); return; }
-      const btn = $('#btnAiCoach') as HTMLButtonElement;
-      const resultEl = $('#aiCoachResult') as HTMLElement;
+      const btn = $('#btnAiCoach');
+      const resultEl = $('#aiCoachResult');
       btn.disabled = true; btn.textContent = '분석 중...';
       resultEl.style.display = 'none';
       try {
@@ -799,20 +799,20 @@
         const text = res.data?.text || res.text || '';
         resultEl.style.display = '';
         resultEl.innerHTML = `<strong>💡 AI 코칭</strong><br>${escHtml(text).replace(/\n/g,'<br>')}`;
-      } catch (e) { toast('AI 코칭 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('AI 코칭 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; btn.textContent = '💡 AI 코칭'; }
     });
 
     $('#btnSubmitSettle')?.addEventListener('click', async () => {
       if (!confirm('분기 결산을 제출하시겠습니까?')) return;
-      const selfEvaluation = ($('#settleSelf') as HTMLTextAreaElement).value.trim();
-      const btn = $('#btnSubmitSettle') as HTMLButtonElement;
+      const selfEvaluation = ($('#settleSelf')).value.trim();
+      const btn = $('#btnSubmitSettle');
       btn.disabled = true;
       try {
         await api('/api/milestone-settlement/submit', { method:'POST', body:{ quarterId: state.currentQuarterId, selfEvaluation } });
         toast('결산 제출 완료', 'success');
         await renderSettlement();
-      } catch (e) { toast('제출 실패: ' + (e as any).message, 'error'); }
+      } catch (e) { toast('제출 실패: ' + (e).message, 'error'); }
       finally { btn.disabled = false; }
     });
   }

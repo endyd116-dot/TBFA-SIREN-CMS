@@ -78,7 +78,7 @@
      탭 1: 출퇴근
   ═══════════════════════════════════ */
   async function initCheckin() {
-    const btnIn = document.getElementById('attBtnCheckin') as HTMLButtonElement;
+    const btnIn = document.getElementById('attBtnCheckin');
     try {
     // 오늘 날짜 표시
     const now = new Date();
