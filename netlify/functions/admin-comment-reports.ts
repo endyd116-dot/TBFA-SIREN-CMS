@@ -1,100 +1,83 @@
-// netlify/functions/admin-comment-reports.ts
-// 라운드 10 — 어드민 신고 목록 조회
-//
-// GET /api/admin-comment-reports?status=pending&page=1&limit=20
-// 응답: { ok, reports:[{id, reportType, commentId, reason, status, reporterName, createdAt}], total }
-
-import type { Context } from "@netlify/functions";
-import { sql } from "drizzle-orm";
+﻿import type { Context } from "@netlify/functions";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "../../db";
+import { commentReports, members } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
-export const config = { path: "/api/admin-comment-reports" };
-
-function json(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
+function jsonOk(data: object) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
     headers: { "Content-Type": "application/json" },
   });
 }
 
-function jsonError(step: string, err: any, status = 500) {
-  return json({
-    ok: false,
-    error: "신고 목록 조회 실패",
-    step,
-    detail: String(err?.message || err).slice(0, 500),
-    stack: String(err?.stack || "").slice(0, 1000),
-  }, status);
-}
-
-const VALID_STATUS = new Set(["pending", "reviewed", "dismissed", "resolved"]);
-
 export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "GET") return json({ ok: false, error: "GET only" }, 405);
+  if (req.method === "OPTIONS") return corsPreflight();
+  if (req.method !== "GET") return methodNotAllowed();
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
 
   const url = new URL(req.url);
-  const status = url.searchParams.get("status") || "";
-  const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-  const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 20)));
+  const status = url.searchParams.get("status") || undefined;
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10)));
   const offset = (page - 1) * limit;
 
-  const useStatus = VALID_STATUS.has(status);
-
   try {
-    // total
-    const totalRes: any = useStatus
-      ? await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM comment_reports WHERE status = ${status}`)
-      : await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM comment_reports`);
-    const total = Number((totalRes?.rows ?? totalRes)?.[0]?.cnt || 0);
+    // 신고 목록 조회 (신고자 이름 포함)
+    let reports: any[] = [];
+    let total = 0;
 
-    // list (separate query + JS map for reporter name)
-    const listRes: any = useStatus
-      ? await db.execute(sql`
-          SELECT id, report_type, comment_id, incident_id, member_id, reason, status, created_at
-          FROM comment_reports
-          WHERE status = ${status}
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `)
-      : await db.execute(sql`
-          SELECT id, report_type, comment_id, incident_id, member_id, reason, status, created_at
-          FROM comment_reports
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `);
-    const rows = (listRes?.rows ?? listRes) as any[];
+    try {
+      const rows = await db
+        .select({
+          id: commentReports.id,
+          reportType: commentReports.reportType,
+          commentId: commentReports.commentId,
+          incidentId: commentReports.incidentId,
+          reason: commentReports.reason,
+          status: commentReports.status,
+          createdAt: commentReports.createdAt,
+          reporterName: members.name,
+        })
+        .from(commentReports)
+        .leftJoin(members, eq(commentReports.memberId, members.id))
+        .where(status ? eq(commentReports.status as any, status) : undefined)
+        .orderBy(desc(commentReports.createdAt))
+        .limit(limit)
+        .offset(offset);
 
-    // reporter name 매핑 (separate query + Map)
-    const memberIds = Array.from(new Set(rows.map(r => r.member_id).filter((x: any) => x != null))) as number[];
-    const nameMap = new Map<number, string>();
-    if (memberIds.length > 0) {
-      try {
-        const memRes: any = await db.execute(sql`
-          SELECT id, name FROM members WHERE id IN ${sql.raw(`(${memberIds.join(",")})`)}
-        `);
-        for (const m of (memRes?.rows ?? memRes) as any[]) {
-          nameMap.set(Number(m.id), m.name || "");
-        }
-      } catch (e) { console.warn("[admin-comment-reports] name 조회 실패:", e); }
+      reports = rows.map((r) => ({
+        id: r.id,
+        reportType: r.reportType,
+        commentId: r.commentId ?? null,
+        incidentId: r.incidentId ?? null,
+        reason: r.reason,
+        status: r.status,
+        reporterName: r.reporterName ?? "알 수 없음",
+        createdAt: r.createdAt,
+      }));
+    } catch (err) {
+      console.warn("[admin-comment-reports] 목록 조회 실패:", err);
     }
 
-    const reports = rows.map(r => ({
-      id: r.id,
-      reportType: r.report_type,
-      commentId: r.comment_id,
-      incidentId: r.incident_id,
-      reason: r.reason,
-      status: r.status,
-      reporterName: r.member_id ? (nameMap.get(Number(r.member_id)) || null) : null,
-      createdAt: r.created_at,
-    }));
+    try {
+      const countRow = await db
+        .select({ cnt: sql<number>`count(*)` })
+        .from(commentReports)
+        .where(status ? eq(commentReports.status as any, status) : undefined);
+      total = Number(countRow[0]?.cnt ?? 0);
+    } catch (err) {
+      console.warn("[admin-comment-reports] 카운트 조회 실패:", err);
+    }
 
-    return json({ ok: true, reports, total });
+    return jsonOk({ ok: true, reports, total });
   } catch (err: any) {
-    return jsonError("select", err);
+    return serverError("신고 목록 조회 중 오류가 발생했습니다", err);
   }
 };
+
+export const config = { path: "/api/admin-comment-reports" };
+

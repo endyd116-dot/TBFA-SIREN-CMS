@@ -1,96 +1,75 @@
-// netlify/functions/comment-report.ts
-// 라운드 10 — 사건 댓글/사건 신고 (중복 체크)
-//
-// POST /api/comment-report
-//   { commentId?: number, incidentId?: number, reportType: "comment"|"incident", reason: string }
-// 응답: { ok, reportId }
-
-import type { Context } from "@netlify/functions";
-import { sql } from "drizzle-orm";
+﻿import type { Context } from "@netlify/functions";
+import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
+import { commentReports } from "../../db/schema";
 import { requireActiveUser } from "../../lib/auth";
+import { badRequest, serverError, corsPreflight, methodNotAllowed, parseJson } from "../../lib/response";
 
-export const config = { path: "/api/comment-report" };
-
-function json(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
+function jsonOk(data: object) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
     headers: { "Content-Type": "application/json" },
   });
 }
 
-function jsonError(step: string, err: any, status = 500) {
-  return json({
-    ok: false,
-    error: "신고 처리 실패",
-    step,
-    detail: String(err?.message || err).slice(0, 500),
-    stack: String(err?.stack || "").slice(0, 1000),
-  }, status);
-}
-
 export default async (req: Request, _ctx: Context) => {
-  if (req.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+  if (req.method === "OPTIONS") return corsPreflight();
+  if (req.method !== "POST") return methodNotAllowed();
 
-  const _r = await requireActiveUser(req);
-  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
-  const memberId: number = _r.user.uid;
+  const auth = await requireActiveUser(req);
+  if (!auth.ok) return (auth as { ok: false; res: Response }).res;
+  const user = auth.user;
 
-  let body: any;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "JSON 파싱 오류" }, 400); }
-
-  const reportType = String(body?.reportType || "").trim();
-  const reason = String(body?.reason || "").trim();
-  const commentId = body?.commentId != null ? Number(body.commentId) : null;
-  const incidentId = body?.incidentId != null ? Number(body.incidentId) : null;
-
-  if (reportType !== "comment" && reportType !== "incident") {
-    return json({ ok: false, error: "reportType은 comment 또는 incident" }, 400);
-  }
-  if (!reason || reason.length < 1) {
-    return json({ ok: false, error: "신고 사유를 입력해주세요" }, 400);
-  }
-  if (reportType === "comment" && (!commentId || !Number.isFinite(commentId))) {
-    return json({ ok: false, error: "commentId 필요" }, 400);
-  }
-  if (reportType === "incident" && (!incidentId || !Number.isFinite(incidentId))) {
-    return json({ ok: false, error: "incidentId 필요" }, 400);
-  }
-
-  // check_duplicate
+  let commentId: number | null, incidentId: number | null, reportType: string, reason: string;
   try {
-    let dupRes: any;
-    if (reportType === "comment") {
-      dupRes = await db.execute(sql`
-        SELECT id FROM comment_reports
-        WHERE member_id = ${memberId} AND comment_id = ${commentId}
-        LIMIT 1
-      `);
-    } else {
-      dupRes = await db.execute(sql`
-        SELECT id FROM comment_reports
-        WHERE member_id = ${memberId} AND incident_id = ${incidentId}
-        LIMIT 1
-      `);
-    }
-    const dupRows = dupRes?.rows ?? dupRes;
-    if (dupRows?.length > 0) {
-      return json({ ok: false, error: "이미 신고한 항목입니다." }, 409);
-    }
-  } catch (err: any) {
-    return jsonError("check_duplicate", err);
+    const body: any = await parseJson(req);
+    if (!body) return badRequest("요청 본문이 비어있습니다");
+    commentId = body.commentId ? Number(body.commentId) : null;
+    incidentId = body.incidentId ? Number(body.incidentId) : null;
+    reportType = String(body.reportType || "comment");
+    reason = String(body.reason || "").trim();
+  } catch (_) {
+    return badRequest("잘못된 요청 형식입니다");
   }
 
-  // insert
+  if (!["comment", "incident"].includes(reportType)) {
+    return badRequest("reportType은 comment 또는 incident 이어야 합니다");
+  }
+  if (!reason) return badRequest("신고 사유는 필수입니다");
+  if (!commentId && !incidentId) return badRequest("commentId 또는 incidentId 중 하나는 필수입니다");
+
   try {
-    const insRes: any = await db.execute(sql`
-      INSERT INTO comment_reports (comment_id, incident_id, member_id, report_type, reason, status, created_at)
-      VALUES (${commentId}, ${incidentId}, ${memberId}, ${reportType}, ${reason.slice(0, 500)}, 'pending', now())
-      RETURNING id
-    `);
-    const row = (insRes?.rows ?? insRes)?.[0];
-    return json({ ok: true, reportId: Number(row?.id) });
+    // 중복 신고 체크 (동일 commentId+memberId)
+    if (commentId) {
+      const [dup] = await db
+        .select({ id: commentReports.id })
+        .from(commentReports)
+        .where(and(eq(commentReports.commentId, commentId), eq(commentReports.memberId, user.uid)))
+        .limit(1);
+      if (dup) {
+        return new Response(JSON.stringify({ ok: false, error: "이미 신고한 항목입니다." }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    const [inserted] = await db
+      .insert(commentReports)
+      .values({
+        commentId: commentId ?? undefined,
+        incidentId: incidentId ?? undefined,
+        memberId: user.uid,
+        reportType,
+        reason,
+        status: "pending",
+      } as any)
+      .returning({ id: commentReports.id });
+
+    return jsonOk({ ok: true, reportId: (inserted as any).id });
   } catch (err: any) {
-    return jsonError("insert", err);
+    return serverError("신고 처리 중 오류가 발생했습니다", err);
   }
 };
+
+export const config = { path: "/api/comment-report" };
