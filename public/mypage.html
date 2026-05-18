@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>留덉씠?섏씠吏 | 援먯궗?좉?議깊삊?섑쉶</title>
-<meta name="description" content="?섏쓽 ?꾩썝 ?댁뿭怨?湲곕?湲??곸닔利앹쓣 愿由ы븯?몄슂.">
+<title>마이페이지 | 교사유가족협의회</title>
+<meta name="description" content="나의 후원 내역과 기부금 영수증을 관리하세요.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="/css/pages.css">
 
 <style>
-/* ===== 梨꾪똿 紐⑤떖 ?꾩슜 ?ㅽ???===== */
+/* ===== 채팅 모달 전용 스타일 ===== */
 #chatCategoryModal, #chatWindowModal {
   display: none !important;
   position: fixed;
@@ -207,7 +207,7 @@
   padding: 0 6px;
 }
 
-/* ??K-2: ?뚯썝 ?덊눜 ?꾪뿕 ?곸뿭 */
+/* ★ K-2: 회원 탈퇴 위험 영역 */
 .mp-danger-zone {
   margin-top: 40px;
   padding: 24px;
@@ -266,7 +266,7 @@
   background: #e8a8b0;
   cursor: not-allowed;
 }
-/* ===== ??L-7: ?뺢린 ?꾩썝 移대뱶 (mypage > ?꾩썝 ?댁뿭 ?? ===== */
+/* ===== ★ L-7: 정기 후원 카드 (mypage > 후원 내역 탭) ===== */
 .mp-billing-card {
   background: linear-gradient(135deg, #fff, var(--brand-soft, #fef9f5));
   border: 2px solid var(--brand);
@@ -448,7 +448,7 @@
   font-weight: 600;
 }
 
-/* ?뺢린 ?꾩썝 ?댁? 紐⑤떖 */
+/* 정기 후원 해지 모달 */
 #billingCancelModal {
   display: none !important;
   position: fixed;
@@ -553,7 +553,7 @@
   border: 1px solid var(--line);
 }
 
-/* ===== ??M-9: ?좎껌 ?댁뿭 ?듯빀 ??===== */
+/* ===== ★ M-9: 신청 내역 통합 탭 ===== */
 .app-subtabs {
   display: flex;
   gap: 4px;
@@ -720,7 +720,7 @@
   font-weight: 600;
 }
 
-/* ===== M-9 ?곸꽭 紐⑤떖 ===== */
+/* ===== M-9 상세 모달 ===== */
 #appDetailModal {
   display: none !important;
   position: fixed;
@@ -805,13 +805,13 @@
 
     <section class="page-hero">
       <div class="container">
-        <h1>留덉씠?섏씠吏</h1>
-        <p>?섏쓽 ?꾩썝 ?댁뿭 諛?利앸챸?쒕? 愿由ы븯?몄슂</p>
+        <h1>마이페이지</h1>
+        <p>나의 후원 내역 및 증명서를 관리하세요</p>
       </div>
     </section>
 
     <div class="container breadcrumb">
-      <a href="/index.html">??/a> &nbsp;??nbsp; 留덉씠?섏씠吏 &nbsp;??nbsp; <span id="mpCrumb">???꾩썝 ?댁뿭</span>
+      <a href="/index.html">홈</a> &nbsp;›&nbsp; 마이페이지 &nbsp;›&nbsp; <span id="mpCrumb">내 후원 내역</span>
     </div>
 
     <section class="block">
@@ -821,297 +821,298 @@
           <aside class="mp-side">
             <div class="mp-user">
               <div class="mp-avatar">?</div>
-              <strong>?뚯썝??/strong>
-              <span>濡쒕뵫 以?..</span>
+              <strong>회원님</strong>
+              <span>로딩 중...</span>
             </div>
             <ul id="mpMenu">
-              <li class="on" data-mp="donations">???꾩썝 ?댁뿭</li>
-              <li data-mp="receipts">利앸챸??諛쒓툒</li>
-              <li data-mp="support">?뱥 ?좎껌 ?댁뿭</li>
-              <li data-mp="consult">?뮠 1:1 ?곷떞 ?댁뿭</li>
-              <li data-mp="profile">?뚯썝 ?뺣낫 ?섏젙</li>
-              <li data-mp="eligibility">?럳 援먯썝 ?먭꺽 ?몄쬆 諛?蹂寃?/li>
-              <li data-mp="expertMatch">?뽳툘 ?꾨Ц媛 ?곷떞</li>
-              <li data-mp="messages">?벉 諛쏆? 硫붿떆吏</li>
-              <li data-mp="points">?룇 ?ъ씤?맞룸같吏</li>
-              <li data-mp="ranking">?쪍 ??궧</li>
+              <li class="on" data-mp="donations">내 후원 내역</li>
+              <li data-mp="receipts">증명서 발급</li>
+              <li data-mp="support">📋 신청 내역</li>
+              <li data-mp="consult">💬 1:1 상담 내역</li>
+              <li data-mp="profile">회원 정보 수정</li>
+              <li data-mp="eligibility">🎓 교원 자격 인증 및 변경</li>
+              <li data-mp="expertMatch">⚖️ 전문가 상담</li>
+              <li data-mp="messages">📬 받은 메시지</li>
+              <li data-mp="points">🏆 포인트·배지</li>
+              <li data-mp="ranking">🥇 랭킹</li>
               <li data-mp="notifications" id="mpNotifyTab">&#128236; 알림</li>
-              <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">濡쒓렇?꾩썐</li>
+              <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
             </ul>
           </aside>
 
           <div class="mp-content">
 
-          <!-- Phase 21 R3: ?댁쁺??遺???좉? 移대뱶 (?댁쁺?먯뿉寃뚮쭔 ?먮룞 ?쒖떆 ??mypage-out-of-office.js媛 留덉슫?? -->
+          <!-- Phase 21 R3: 운영자 부재 토글 카드 (운영자에게만 자동 표시 — mypage-out-of-office.js가 마운트) -->
           <div id="mpOutOfOfficeCard" style="display:none"></div>
 
-          <!-- Phase 21 R4: WBS 湲곕낯 蹂닿린 紐⑤뱶 移대뱶 (?댁쁺?먯뿉寃뚮쭔 ?먮룞 ?쒖떆) -->
+          <!-- Phase 21 R4: WBS 기본 보기 모드 카드 (운영자에게만 자동 표시) -->
           <div id="mpWbsViewCard" style="display:none"></div>
 
-          <!-- 1. ???꾩썝 ?댁뿭 -->
+          <!-- 1. 내 후원 내역 -->
             <div class="mp-panel" data-mp-panel="donations">
-                 <h3 class="serif">???꾩썝 ?댁뿭</h3>
-                 <p class="sub">理쒓렐 1?꾧컙???꾩썝 湲곕줉???뺤씤?섏떎 ???덉뒿?덈떎.</p>
+                 <h3 class="serif">내 후원 내역</h3>
+                 <p class="sub">최근 1년간의 후원 기록을 확인하실 수 있습니다.</p>
 
             <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-             <div class="kpi"><div class="kpi-label">?꾩쟻 ?꾩썝湲?/div><div class="kpi-value">0??/div></div>
-             <div class="kpi"><div class="kpi-label">?뺢린 ?꾩썝 ?뚯감</div><div class="kpi-value">0??/div></div>
-            <div class="kpi"><div class="kpi-label">湲곕?湲??곸닔利?/div><div class="kpi-value" style="font-size:20px;color:var(--text-3)">?댁뿭 ?놁쓬</div></div>
+             <div class="kpi"><div class="kpi-label">누적 후원금</div><div class="kpi-value">0원</div></div>
+             <div class="kpi"><div class="kpi-label">정기 후원 회차</div><div class="kpi-value">0회</div></div>
+            <div class="kpi"><div class="kpi-label">기부금 영수증</div><div class="kpi-value" style="font-size:20px;color:var(--text-3)">내역 없음</div></div>
              </div>
-            <!-- ??L-7: ?뺢린 ?꾩썝 移대뱶 (auth.js媛 ?숈쟻 ?뚮뜑) -->
+            <!-- ★ L-7: 정기 후원 카드 (auth.js가 동적 렌더) -->
             <div id="mpBillingContainer"></div>
             <div style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">>
                 <div style="display:flex;gap:6px">
                   <select style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">
-                    <option>理쒓렐 1??/option><option>理쒓렐 6媛쒖썡</option><option>理쒓렐 3媛쒖썡</option>
+                    <option>최근 1년</option><option>최근 6개월</option><option>최근 3개월</option>
                   </select>
                   <select style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px">
-                    <option>?꾩껜 ?좏삎</option><option>?뺢린 ?꾩썝</option><option>?쇱떆 ?꾩썝</option>
+                    <option>전체 유형</option><option>정기 후원</option><option>일시 후원</option>
                   </select>
                 </div>
-                <button class="btn-sm btn-sm-ghost" id="btnCancelRegular" type="button" style="white-space:nowrap">?뺢린 ?꾩썝 ?댁? ?덈궡</button>
+                <button class="btn-sm btn-sm-ghost" id="btnCancelRegular" type="button" style="white-space:nowrap">정기 후원 해지 안내</button>
               </div>
 
               <table class="tbl" style="margin-top:14px">
-                <thead><tr><th>?쇱옄</th><th>援щ텇</th><th>湲덉븸</th><th>寃곗젣?섎떒</th><th>?곹깭</th><th>?곸닔利?/th></tr></thead>
+                <thead><tr><th>일자</th><th>구분</th><th>금액</th><th>결제수단</th><th>상태</th><th>영수증</th></tr></thead>
                 <tbody>
                   <tr>
                     <td colspan="6" style="text-align:center;color:var(--text-3);padding:40px">
-                      ?꾩썝 ?댁뿭??遺덈윭?ㅻ뒗 以?.. ?럸
+                      후원 내역을 불러오는 중... 🎗
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <!-- 2. 利앸챸??諛쒓툒 -->
+            <!-- 2. 증명서 발급 -->
             <div class="mp-panel" data-mp-panel="receipts" style="display:none">
-              <h3 class="serif">利앸챸??諛쒓툒</h3>
-              <p class="sub">湲곕?湲??곸닔利앹쓣 PDF濡?利됱떆 諛쒓툒諛쏆쑝?????덉뒿?덈떎.</p>
+              <h3 class="serif">증명서 발급</h3>
+              <p class="sub">기부금 영수증을 PDF로 즉시 발급받으실 수 있습니다.</p>
 
               <div class="panel" style="background:linear-gradient(135deg,#fff,var(--brand-soft));border-color:#f0e0e3;margin-bottom:18px">
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-                  <div style="font-size:48px">?뱞</div>
+                  <div style="font-size:48px">📄</div>
                   <div style="flex:1;min-width:200px">
-                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025??洹??湲곕?湲??곸닔利?/div>
-                    <div style="font-size:13px;color:var(--text-2)">珥?湲곕?湲덉븸: <strong style="color:var(--brand)" id="receiptAmount">0??/strong> 쨌 <span id="receiptCount">0</span>嫄?/div>
+                    <div style="font-weight:700;margin-bottom:4px" id="receiptYear">2025년 귀속 기부금 영수증</div>
+                    <div style="font-size:13px;color:var(--text-2)">총 기부금액: <strong style="color:var(--brand)" id="receiptAmount">0원</strong> · <span id="receiptCount">0</span>건</div>
                   </div>
-                  <button class="btn btn-primary" data-demo-action="receipt-yearly" data-demo-message="?곌컙 湲곕?湲??곸닔利?PDF瑜?諛쒓툒?⑸땲??>PDF 諛쒓툒</button>
+                  <button class="btn btn-primary" data-demo-action="receipt-yearly" data-demo-message="연간 기부금 영수증 PDF를 발급합니다">PDF 발급</button>
                 </div>
               </div>
 
               <p style="font-size:12.5px;color:var(--text-3);line-height:1.85;padding:14px 18px;background:var(--bg-soft);border-radius:8px">
-                ?뮕 紐⑤뱺 湲곕?湲덉? 留ㅻ뀈 1??援?꽭泥??곕쭚?뺤궛 媛꾩냼???쒕퉬?ㅼ뿉 ?먮룞 ?깆옱?⑸땲??<br />
-                蹂꾨룄 諛쒓툒???꾩슂?섏떊 寃쎌슦 ?꾩쓽 PDF 諛쒓툒 踰꾪듉???댁슜??二쇱꽭??
+                💡 모든 기부금은 매년 1월 국세청 연말정산 간소화 서비스에 자동 등재됩니다.<br />
+                별도 발급이 필요하신 경우 위의 PDF 발급 버튼을 이용해 주세요.
               </p>
             </div>
 
-            <!-- ??M-9: ?뱥 ?좎껌 ?댁뿭 ?듯빀 (4媛??쒕툕?? -->
+            <!-- ★ M-9: 📋 신청 내역 통합 (4개 서브탭) -->
             <div class="mp-panel" data-mp-panel="support" style="display:none">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span style="display:inline-block;width:4px;height:24px;background:var(--brand);border-radius:2px"></span>
-                <h3 class="serif" style="margin:0">?뱥 ?좎껌 ?댁뿭 議고쉶</h3>
+                <h3 class="serif" style="margin:0">📋 신청 내역 조회</h3>
               </div>
-              <p class="sub">?좉?議?吏?? ?ш굔 ?쒕낫, ?낆꽦誘쇱썝 ?좉퀬, 踰뺣쪧吏???좎껌 ?댁뿭??紐⑤몢 ?뺤씤?섏떎 ???덉뒿?덈떎.</p>
+              <p class="sub">유가족 지원, 사건 제보, 악성민원 신고, 법률지원 신청 내역을 모두 확인하실 수 있습니다.</p>
 
-              <!-- ?쒕툕??-->
+              <!-- 서브탭 -->
               <div class="app-subtabs">
                 <button class="app-subtab active" data-app-tab="family">
-                  ?쩃 <span>?좉?議?吏??/span>
+                  🤝 <span>유가족 지원</span>
                   <span class="count-badge" data-count="family">0</span>
                 </button>
                 <button class="app-subtab" data-app-tab="incident">
-                  ?뵇 <span>?ш굔 ?쒕낫</span>
+                  🔍 <span>사건 제보</span>
                   <span class="count-badge" data-count="incident">0</span>
                 </button>
                 <button class="app-subtab" data-app-tab="harassment">
-                  ?좑툘 <span>?낆꽦誘쇱썝</span>
+                  ⚠️ <span>악성민원</span>
                   <span class="count-badge" data-count="harassment">0</span>
                 </button>
                 <button class="app-subtab" data-app-tab="legal">
-                  ?뽳툘 <span>踰뺣쪧吏??/span>
+                  ⚖️ <span>법률지원</span>
                   <span class="count-badge" data-count="legal">0</span>
                 </button>
               </div>
 
-              <!-- 媛???而⑦뀒?대꼫 (mypage-applications.js媛 梨꾩?) -->
+              <!-- 각 탭 컨테이너 (mypage-applications.js가 채움) -->
               <div data-app-pane="family">
-                <div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">濡쒕뵫 以?..</div>
+                <div style="text-align:center;color:var(--text-3);padding:40px;font-size:13px">로딩 중...</div>
               </div>
               <div data-app-pane="incident" style="display:none"></div>
               <div data-app-pane="harassment" style="display:none"></div>
               <div data-app-pane="legal" style="display:none"></div>
             </div>
 
-            <!-- 4. ?뮠 1:1 ?곷떞 ?댁뿭 -->
+            <!-- 4. 💬 1:1 상담 내역 -->
             <div class="mp-panel" data-mp-panel="consult" style="display:none">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span style="display:inline-block;width:4px;height:24px;background:var(--info,#1a5ec4);border-radius:2px"></span>
-                <h3 class="serif" style="margin:0">?뮠 1:1 ?곷떞</h3>
+                <h3 class="serif" style="margin:0">💬 1:1 상담</h3>
               </div>
-              <p class="sub">?꾩썝 諛⑸쾿, ?덊럹?댁? ?댁슜, ?뚯썝 媛????<strong>?쇰컲 臾몄쓽</strong>?????愿由ъ옄? 1:1 梨꾪똿?쇰줈 ?곷떞?섏떎 ???덉뒿?덈떎.</p>
+              <p class="sub">후원 방법, 홈페이지 이용, 회원 가입 등 <strong>일반 문의</strong>에 대해 관리자와 1:1 채팅으로 상담하실 수 있습니다.</p>
 
               <div class="panel" style="background:linear-gradient(135deg,#fff,#eef4fc);border-color:#cee0f2;margin-bottom:18px;padding:16px 20px">
                 <div style="display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
-                  <div style="font-size:32px">?뭽</div>
+                  <div style="font-size:32px">💌</div>
                   <div style="flex:1">
-                    ?덊럹?댁? ?댁슜쨌?꾩썝 ?덉감쨌湲곕?湲??곸닔利???<strong style="color:var(--info,#1a5ec4)">?쇰컲?곸씤 沅곴툑利?/strong>? 梨꾪똿 ?곷떞???듯빐 鍮좊Ⅴ寃??덈궡諛쏆쑝?????덉뒿?덈떎.<br />
-                    <span style="color:var(--text-3);font-size:12px">???뱀젙 ?꾨줈洹몃옩(?щ━?곷떞/踰뺣쪧?먮Ц/?ν븰)???좎껌?섏떆?ㅻ㈃ '?렞 ??吏???댁뿭'???댁슜??二쇱꽭??</span>
+                    홈페이지 이용·후원 절차·기부금 영수증 등 <strong style="color:var(--info,#1a5ec4)">일반적인 궁금증</strong>은 채팅 상담을 통해 빠르게 안내받으실 수 있습니다.<br />
+                    <span style="color:var(--text-3);font-size:12px">※ 특정 프로그램(심리상담/법률자문/장학)에 신청하시려면 '🎯 내 지원 내역'을 이용해 주세요.</span>
                   </div>
-                  <button class="btn btn-primary" id="btnNewChat" style="white-space:nowrap">+ ???곷떞 ?쒖옉</button>
+                  <button class="btn btn-primary" id="btnNewChat" style="white-space:nowrap">+ 새 상담 시작</button>
                 </div>
               </div>
 
               <div id="chatRoomsList">
                 <div style="text-align:center;color:var(--text-3);padding:40px">
-                  梨꾪똿 ?댁뿭??遺덈윭?ㅻ뒗 以?..
+                  채팅 내역을 불러오는 중...
                 </div>
               </div>
             </div>
 
-                        <!-- 5. ?뚯썝 ?뺣낫 ?섏젙 -->
+                        <!-- 5. 회원 정보 수정 -->
             <div class="mp-panel" data-mp-panel="profile" style="display:none">
-              <h3 class="serif">?뚯썝 ?뺣낫 ?섏젙</h3>
-              <p class="sub">媛쒖씤?뺣낫??蹂몄씤留??섏젙 媛?ν븯硫? 紐⑤뱺 蹂寃??대젰? ?덉쟾?섍쾶 湲곕줉?⑸땲??</p>
+              <h3 class="serif">회원 정보 수정</h3>
+              <p class="sub">개인정보는 본인만 수정 가능하며, 모든 변경 이력은 안전하게 기록됩니다.</p>
 
-              <!-- ??K-2: ?대찓???몄쬆 ?곹깭 諛곕꼫 -->
+              <!-- ★ K-2: 이메일 인증 상태 배너 -->
               <div id="emailVerifyBanner" class="mp-verify-banner" style="display:none">
-                <div class="icon">?됵툘</div>
+                <div class="icon">✉️</div>
                 <div class="text">
-                  <strong>?대찓???몄쬆???꾩슂?⑸땲??/strong><br />
-                  鍮꾨?踰덊샇 李얘린 ??蹂댁븞 湲곕뒫???댁슜?섎젮硫??대찓???몄쬆???꾨즺??二쇱꽭??
+                  <strong>이메일 인증이 필요합니다</strong><br />
+                  비밀번호 찾기 등 보안 기능을 이용하려면 이메일 인증을 완료해 주세요.
                 </div>
-                <button type="button" id="btnResendVerify">?몄쬆 硫붿씪 ?щ컻??/button>
+                <button type="button" id="btnResendVerify">인증 메일 재발송</button>
               </div>
 
-              <!-- ??K-6: ?뚯썝 ?뺣낫 ??(???숈옉) -->
+              <!-- ★ K-6: 회원 정보 폼 (실 동작) -->
               <div style="max-width:520px">
                 <form id="profileForm">
-                  <div class="fg"><label>?대쫫 <span class="hint">(2???댁긽)</span></label><input type="text" id="mpName" name="name" required minlength="2" maxlength="50"></div>
-                  <div class="fg"><label>?대찓??<span class="hint">(蹂寃?遺덇? ???몄쬆???대찓??</span></label><input type="email" id="mpEmail" readonly style="background:var(--bg-soft)"></div>
-                  <div class="fg"><label>?곕씫泥?/label><input type="tel" id="mpPhone" name="phone" placeholder="010-0000-0000"></div>
+                  <div class="fg"><label>이름 <span class="hint">(2자 이상)</span></label><input type="text" id="mpName" name="name" required minlength="2" maxlength="50"></div>
+                  <div class="fg"><label>이메일 <span class="hint">(변경 불가 — 인증된 이메일)</span></label><input type="email" id="mpEmail" readonly style="background:var(--bg-soft)"></div>
+                  <div class="fg"><label>연락처</label><input type="tel" id="mpPhone" name="phone" placeholder="010-0000-0000"></div>
 
-                  <div class="fg"><label>?뚮┝ ?섏떊 ?숈쓽</label>
+                  <div class="fg"><label>알림 수신 동의</label>
                     <div style="display:flex;gap:18px;margin-top:6px;flex-wrap:wrap">
-                      <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeEmail" name="agreeEmail"> ?대찓??/label>
+                      <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeEmail" name="agreeEmail"> 이메일</label>
                       <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeSms" name="agreeSms"> SMS</label>
-                      <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeMail" name="agreeMail"> ?고렪臾?/label>
+                      <label class="checkbox-line" style="margin:0"><input type="checkbox" id="mpAgreeMail" name="agreeMail"> 우편물</label>
                     </div>
                   </div>
 
-                  <button type="submit" class="btn btn-primary" id="btnProfileSave">蹂寃??ы빆 ???/button>
+                  <button type="submit" class="btn btn-primary" id="btnProfileSave">변경 사항 저장</button>
                 </form>
 
-                <!-- ??K-6: 鍮꾨?踰덊샇 蹂寃???(蹂꾨룄) -->
+                <!-- ★ K-6: 비밀번호 변경 폼 (별도) -->
                 <div style="margin-top:36px;padding-top:24px;border-top:2px dashed var(--line)">
-                  <h4 style="font-size:14px;font-weight:700;margin:0 0 6px;color:var(--ink)">?뵏 鍮꾨?踰덊샇 蹂寃?/h4>
-                  <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.6">?꾩옱 鍮꾨?踰덊샇濡?蹂몄씤 ?몄쬆 ????鍮꾨?踰덊샇瑜??ㅼ젙?⑸땲?? (鍮꾨?踰덊샇 李얘린? ?ㅻ쫫)</p>
+                  <h4 style="font-size:14px;font-weight:700;margin:0 0 6px;color:var(--ink)">🔒 비밀번호 변경</h4>
+                  <p style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.6">현재 비밀번호로 본인 인증 후 새 비밀번호를 설정합니다. (비밀번호 찾기와 다름)</p>
 
                   <form id="passwordForm">
                     <div class="fg">
-                      <label>?꾩옱 鍮꾨?踰덊샇</label>
-                      <input type="password" id="mpCurrentPw" name="currentPassword" required autocomplete="current-password" placeholder="?꾩옱 ?ъ슜 以묒씤 鍮꾨?踰덊샇">
+                      <label>현재 비밀번호</label>
+                      <input type="password" id="mpCurrentPw" name="currentPassword" required autocomplete="current-password" placeholder="현재 사용 중인 비밀번호">
                     </div>
                     <div class="fg">
-                      <label>??鍮꾨?踰덊샇 <span class="hint">(8???댁긽, ?곷Ц+?レ옄)</span></label>
-                      <input type="password" id="mpNewPw" name="newPassword" required minlength="8" maxlength="100" autocomplete="new-password" placeholder="??鍮꾨?踰덊샇">
+                      <label>새 비밀번호 <span class="hint">(8자 이상, 영문+숫자)</span></label>
+                      <input type="password" id="mpNewPw" name="newPassword" required minlength="8" maxlength="100" autocomplete="new-password" placeholder="새 비밀번호">
                     </div>
                     <div class="fg">
-                      <label>??鍮꾨?踰덊샇 ?뺤씤</label>
-                      <input type="password" id="mpNewPw2" required minlength="8" autocomplete="new-password" placeholder="??鍮꾨?踰덊샇 ?ㅼ떆 ?낅젰">
+                      <label>새 비밀번호 확인</label>
+                      <input type="password" id="mpNewPw2" required minlength="8" autocomplete="new-password" placeholder="새 비밀번호 다시 입력">
                       <div id="mpPwMatch" style="font-size:11.5px;color:var(--text-3);margin-top:4px"></div>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="btnPasswordSave">鍮꾨?踰덊샇 蹂寃?/button>
+                    <button type="submit" class="btn btn-primary" id="btnPasswordSave">비밀번호 변경</button>
                   </form>
                 </div>
 
-                <!-- ??K-2: ?뚯썝 ?덊눜 ?뱀뀡 -->
+                <!-- ★ K-2: 회원 탈퇴 섹션 -->
                 <details class="mp-withdraw-section">
-                  <summary>?좑툘 ?뚯썝 ?덊눜瑜??먰븯?쒕굹??</summary>
+                  <summary>⚠️ 회원 탈퇴를 원하시나요?</summary>
                   <div class="mp-withdraw-box">
-                    <h4>?뚯썝 ?덊눜 ?덈궡</h4>
+                    <h4>회원 탈퇴 안내</h4>
                     <ul class="warn-list">
-                      <li>?덊눜 ??利됱떆 濡쒓렇?꾩썐?섎ŉ, ?ㅼ떆 濡쒓렇?명븷 ???놁뒿?덈떎</li>
-                      <li>?뚯썝 ?뺣낫(?대쫫쨌?곕씫泥???利됱떆 ?듬챸??泥섎━?⑸땲??/li>
-                      <li>?꾩썝 ?댁뿭? <strong>愿??踰뺣졊???곕씪 5?꾧컙 蹂닿?</strong> ???먮룞 ??젣?⑸땲??/li>
-                      <li>梨꾪똿 湲곕줉怨?吏???좎껌 ?댁뿭? ?듬챸 泥섎━?섏뼱 蹂댁〈?⑸땲??/li>
-                      <li>?덊눜 ??媛숈? ?대찓?쇰줈 ?ш??낆? 遺덇??ν빀?덈떎 (蹂꾨룄 臾몄쓽 ?꾩슂)</li>
+                      <li>탈퇴 시 즉시 로그아웃되며, 다시 로그인할 수 없습니다</li>
+                      <li>회원 정보(이름·연락처)는 즉시 익명화 처리됩니다</li>
+                      <li>후원 내역은 <strong>관련 법령에 따라 5년간 보관</strong> 후 자동 삭제됩니다</li>
+                      <li>채팅 기록과 지원 신청 내역은 익명 처리되어 보존됩니다</li>
+                      <li>탈퇴 후 같은 이메일로 재가입은 불가능합니다 (별도 문의 필요)</li>
                     </ul>
 
                     <form id="withdrawForm">
                       <div class="fg">
-                        <label>?꾩옱 鍮꾨?踰덊샇 <span class="hint">(蹂몄씤 ?뺤씤??</span></label>
-                        <input type="password" id="withdrawPassword" required autocomplete="current-password" placeholder="鍮꾨?踰덊샇瑜??낅젰??二쇱꽭??>
+                        <label>현재 비밀번호 <span class="hint">(본인 확인용)</span></label>
+                        <input type="password" id="withdrawPassword" required autocomplete="current-password" placeholder="비밀번호를 입력해 주세요">
                       </div>
                       <div class="fg">
-                        <label>?덊눜 ?ъ쑀 <span class="hint">(?좏깮, ?묓쉶 媛쒖꽑???꾩??⑸땲??</span></label>
-                        <textarea id="withdrawReason" maxlength="500" placeholder="媛쒖꽑???꾩슂??遺遺꾩씠 ?덈떎硫??뚮젮二쇱꽭??(?좏깮?ы빆)"></textarea>
+                        <label>탈퇴 사유 <span class="hint">(선택, 협회 개선에 도움됩니다)</span></label>
+                        <textarea id="withdrawReason" maxlength="500" placeholder="개선이 필요한 부분이 있다면 알려주세요 (선택사항)"></textarea>
                       </div>
                       <label class="confirm-line">
                         <input type="checkbox" id="withdrawConfirm" required>
-                        <span>???덈궡 ?ы빆??紐⑤몢 ?쎄퀬 ?댄빐?덉쑝硫? <strong>?덊눜 ??蹂듦뎄媛 遺덇??ν븿</strong>???뺤씤?⑸땲??</span>
+                        <span>위 안내 사항을 모두 읽고 이해했으며, <strong>탈퇴 후 복구가 불가능함</strong>을 확인합니다.</span>
                       </label>
-                      <button type="submit" class="btn-withdraw" id="btnWithdraw" disabled>?뚯썝 ?덊눜?섍린</button>
+                      <button type="submit" class="btn-withdraw" id="btnWithdraw" disabled>회원 탈퇴하기</button>
                     </form>
                   </div>
                 </details>
               </div>
             </div>
 
-            <!-- 6?쒖쐞 #6: 援먯썝 ?먭꺽 蹂寃?(mypage-eligibility.js媛 ?숈쟻 ?뚮뜑) -->
+            <!-- 6순위 #6: 교원 자격 변경 (mypage-eligibility.js가 동적 렌더) -->
             <div class="mp-panel" data-mp-panel="eligibility" style="display:none">
-              <p style="color:var(--text-3);padding:24px">遺덈윭?ㅻ뒗 以?..</p>
+              <p style="color:var(--text-3);padding:24px">불러오는 중...</p>
             </div>
 
-            <!-- 6?쒖쐞 #8: ?꾨Ц媛 ?곷떞 (mypage-expert-match.js媛 ?숈쟻 ?뚮뜑) -->
+            <!-- 6순위 #8: 전문가 상담 (mypage-expert-match.js가 동적 렌더) -->
             <div class="mp-panel" data-mp-panel="expertMatch" style="display:none">
-              <p style="color:var(--text-3);padding:24px">遺덈윭?ㅻ뒗 以?..</p>
+              <p style="color:var(--text-3);padding:24px">불러오는 중...</p>
             </div>
 
-            <!-- Phase 15: 留ㅼ묶 醫낃껐 蹂꾩젏 ?쇰뱶諛?(mypage-match-feedback.js媛 ?숈쟻 ?뚮뜑) -->
+            <!-- Phase 15: 매칭 종결 별점 피드백 (mypage-match-feedback.js가 동적 렌더) -->
             <div id="matchFeedbackContainer" style="display:none"></div>
 
-            <!-- 諛쏆? 硫붿떆吏 ?⑤꼸 -->
+            <!-- 받은 메시지 패널 -->
             <div class="mp-panel" data-mp-panel="messages" style="display:none">
-              <h3 class="serif">?벉 諛쏆? 硫붿떆吏</h3>
-              <p class="sub">愿由ъ옄쨌?댁쁺?먮줈遺??諛쏆? 諛쒖넚 硫붿떆吏 ?댁뿭?낅땲??</p>
+              <h3 class="serif">📬 받은 메시지</h3>
+              <p class="sub">관리자·운영자로부터 받은 발송 메시지 내역입니다.</p>
               <div id="mpMessagesContent">
-                <div style="color:var(--text-3);padding:30px;text-align:center">遺덈윭?ㅻ뒗 以?..</div>
+                <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
               </div>
             </div>
 
-            <!-- ?ъ씤?맞룸같吏 ?⑤꼸 -->
+            <!-- 포인트·배지 패널 -->
             <div class="mp-panel" data-mp-panel="points" style="display:none">
-              <h3 class="serif">?룇 ?ъ씤?맞룸같吏</h3>
-              <p class="sub">?쒕룞 ?ъ씤?몄? ?띾뱷 諛곗?瑜??뺤씤?섏꽭??</p>
+              <h3 class="serif">🏆 포인트·배지</h3>
+              <p class="sub">활동 포인트와 획득 배지를 확인하세요.</p>
               <div id="mpPointsBanner" style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:12px;padding:24px 28px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:20px">
-                <div style="font-size:40px">狩?/div>
+                <div style="font-size:40px">⭐</div>
                 <div>
-                  <div style="font-size:12px;opacity:0.85;margin-bottom:2px">???ъ씤???붿븸</div>
+                  <div style="font-size:12px;opacity:0.85;margin-bottom:2px">내 포인트 잔액</div>
                   <div id="mpPointsBalance" style="font-size:36px;font-weight:800;letter-spacing:-1px">0 P</div>
                 </div>
               </div>
               <div class="panel" style="margin-bottom:18px">
-                <div style="font-weight:700;margin-bottom:14px">?럷 蹂댁쑀 諛곗?</div>
+                <div style="font-weight:700;margin-bottom:14px">🎖 보유 배지</div>
                 <div id="mpBadgeList" style="display:flex;flex-wrap:wrap;gap:10px">
-                  <span style="color:var(--text-3);font-size:13px">遺덈윭?ㅻ뒗 以?..</span>
+                  <span style="color:var(--text-3);font-size:13px">불러오는 중...</span>
                 </div>
               </div>
               <div class="panel">
-                <div style="font-weight:700;margin-bottom:14px">?뱥 ?ъ씤???댁뿭</div>
+                <div style="font-weight:700;margin-bottom:14px">📋 포인트 내역</div>
                 <div id="mpPointsLog"></div>
               </div>
             </div>
 
-            <!-- ??궧 ?⑤꼸 -->
+            <!-- 랭킹 패널 -->
             <div class="mp-panel" data-mp-panel="ranking" style="display:none">
-              <h3 class="serif">?쪍 ??궧</h3>
-              <p class="sub">?ъ씤??湲곗? ?꾩껜 ?뚯썝 ?쒖쐞瑜??뺤씤?섏꽭??</p>
+              <h3 class="serif">🥇 랭킹</h3>
+              <p class="sub">포인트 기준 전체 회원 순위를 확인하세요.</p>
               <div id="mpRankingContent">
-                <div style="color:var(--text-3);padding:30px;text-align:center">遺덈윭?ㅻ뒗 以?..</div>
+                <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
               </div>
             </div>
-            <!-- Round 12: 알림 패널 -->
+
+            <!-- 알림 패널 -->
             <div class="mp-panel" data-mp-panel="notifications" style="display:none">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap">
                 <div style="display:flex;align-items:center;gap:10px">
@@ -1132,114 +1133,114 @@
 
   </main>
 
-  <!-- ??G-3: 移댄뀒怨좊━ ?좏깮 紐⑤떖 -->
+  <!-- ★ G-3: 카테고리 선택 모달 -->
   <div id="chatCategoryModal">
     <div class="modal-content">
       <div class="chat-modal-header">
         <div>
-          <div style="font-weight:700;font-size:15px">?뮠 ???곷떞 ?쒖옉</div>
-          <div style="font-size:11.5px;opacity:0.8;margin-top:2px">臾몄쓽 ?좏삎???좏깮??二쇱꽭??/div>
+          <div style="font-weight:700;font-size:15px">💬 새 상담 시작</div>
+          <div style="font-size:11.5px;opacity:0.8;margin-top:2px">문의 유형을 선택해 주세요</div>
         </div>
         <button class="close-btn" data-chat-close>&times;</button>
       </div>
       <div style="padding:24px">
         <button class="chat-cat-btn" data-cat="support_donation">
-          <span class="emoji">?뮑</span>
-          <span class="label">?꾩썝 愿??臾몄쓽<div class="desc">?뺢린/?쇱떆 ?꾩썝, ?곸닔利?諛쒓툒, ?꾩썝 蹂寃???/div></span>
+          <span class="emoji">💝</span>
+          <span class="label">후원 관련 문의<div class="desc">정기/일시 후원, 영수증 발급, 후원 변경 등</div></span>
         </button>
         <button class="chat-cat-btn" data-cat="support_homepage">
-          <span class="emoji">?뙋</span>
-          <span class="label">?덊럹?댁? ?댁슜 臾몄쓽<div class="desc">?ъ씠???ъ슜踰? 留덉씠?섏씠吏, ?ㅻ쪟 ?좉퀬 ??/div></span>
+          <span class="emoji">🌐</span>
+          <span class="label">홈페이지 이용 문의<div class="desc">사이트 사용법, 마이페이지, 오류 신고 등</div></span>
         </button>
         <button class="chat-cat-btn" data-cat="support_signup">
-          <span class="emoji">?뱷</span>
-          <span class="label">媛???덉감 臾몄쓽<div class="desc">?뚯썝 媛?? ?좉?議??몄쬆, 鍮꾨?踰덊샇 ??/div></span>
+          <span class="emoji">📝</span>
+          <span class="label">가입 절차 문의<div class="desc">회원 가입, 유가족 인증, 비밀번호 등</div></span>
         </button>
         <button class="chat-cat-btn" data-cat="support_other">
-          <span class="emoji">?뮠</span>
-          <span class="label">湲고? 臾몄쓽<div class="desc">????ぉ???대떦?섏? ?딅뒗 ?쇰컲 臾몄쓽</div></span>
+          <span class="emoji">💬</span>
+          <span class="label">기타 문의<div class="desc">위 항목에 해당하지 않는 일반 문의</div></span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ??G-3: 梨꾪똿 李?紐⑤떖 -->
+  <!-- ★ G-3: 채팅 창 모달 -->
   <div id="chatWindowModal">
     <div class="modal-content">
       <div class="chat-modal-header">
         <div>
-          <div id="chatWinTitle" style="font-weight:700;font-size:15px">?곷떞 梨꾪똿</div>
-          <div id="chatWinStatus" style="font-size:11.5px;opacity:0.8;margin-top:2px">?곌껐 以?..</div>
+          <div id="chatWinTitle" style="font-weight:700;font-size:15px">상담 채팅</div>
+          <div id="chatWinStatus" style="font-size:11.5px;opacity:0.8;margin-top:2px">연결 중...</div>
         </div>
         <button class="close-btn" data-chat-close>&times;</button>
       </div>
       <div id="chatMessages">
-        <div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">濡쒕뵫 以?..</div>
+        <div style="text-align:center;color:var(--text-3);padding:30px;font-size:12.5px">로딩 중...</div>
       </div>
       <div id="chatInputArea">
         <input type="file" id="chatImageInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
-        <button id="chatImageBtn" title="?대?吏 ?꾩넚" style="background:transparent;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;flex-shrink:0;color:var(--text-2)">?벜</button>
-        <textarea id="chatInputText" rows="1" placeholder="硫붿떆吏瑜??낅젰?섏꽭??.. (Enter: ?꾩넚 / Shift+Enter: 以꾨컮轅?"></textarea>
-        <button id="chatSendBtn" title="?꾩넚">??/button>
+        <button id="chatImageBtn" title="이미지 전송" style="background:transparent;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;flex-shrink:0;color:var(--text-2)">📷</button>
+        <textarea id="chatInputText" rows="1" placeholder="메시지를 입력하세요... (Enter: 전송 / Shift+Enter: 줄바꿈)"></textarea>
+        <button id="chatSendBtn" title="전송">➤</button>
       </div>
     </div>
   </div>
-<!-- ??L-7: ?뺢린 ?꾩썝 ?댁? ?뺤씤 紐⑤떖 -->
+<!-- ★ L-7: 정기 후원 해지 확인 모달 -->
 <div id="billingCancelModal">
   <div class="bcm-content">
     <div class="bcm-header">
-      <h3>?썞 ?뺢린 ?꾩썝 ?댁?</h3>
-      <button type="button" class="bcm-close" data-bcm-close aria-label="?リ린">&times;</button>
+      <h3>🛑 정기 후원 해지</h3>
+      <button type="button" class="bcm-close" data-bcm-close aria-label="닫기">&times;</button>
     </div>
     <div class="bcm-body">
       <div class="warn-box">
-        ?좑툘 <strong>?댁? 泥섎━ ?덈궡</strong><br />
-        ???ㅼ쓬 寃곗젣?쇰????먮룞 泥?뎄媛 利됱떆 以묐떒?⑸땲??br />
-        ???대? 泥섎━??寃곗젣遺꾩? ?곹뼢??諛쏆? ?딆뒿?덈떎<br />
-        ???곸닔利?諛쒓툒? ?댄썑?먮룄 留덉씠?섏씠吏?먯꽌 媛?ν빀?덈떎<br />
-        ???ㅼ떆 ?쒖옉?섎젮硫?<strong>?덈줈 移대뱶 ?깅줉</strong>???꾩슂?⑸땲??
+        ⚠️ <strong>해지 처리 안내</strong><br />
+        • 다음 결제일부터 자동 청구가 즉시 중단됩니다<br />
+        • 이미 처리된 결제분은 영향을 받지 않습니다<br />
+        • 영수증 발급은 이후에도 마이페이지에서 가능합니다<br />
+        • 다시 시작하려면 <strong>새로 카드 등록</strong>이 필요합니다
       </div>
 
       <form id="billingCancelForm">
         <input type="hidden" id="billingCancelId" value="">
-        <label>?댁? ?ъ쑀 <span class="hint">(?좏깮, ?묓쉶 媛쒖꽑???쒖슜?⑸땲??</span></label>
-        <textarea id="billingCancelReason" maxlength="200" placeholder="(?좏깮) ?댁? ?ъ쑀瑜??뚮젮二쇱떆硫????섏? ?쒕퉬?ㅻ? 留뚮뱶?????꾩????⑸땲??"></textarea>
+        <label>해지 사유 <span class="hint">(선택, 협회 개선에 활용됩니다)</span></label>
+        <textarea id="billingCancelReason" maxlength="200" placeholder="(선택) 해지 사유를 알려주시면 더 나은 서비스를 만드는 데 도움이 됩니다."></textarea>
 
         <div class="bcm-actions">
-          <button type="button" class="btn-cancel" data-bcm-close>痍⑥냼</button>
-          <button type="submit" class="btn-confirm" id="billingCancelConfirmBtn">?썞 ?댁??섍린</button>
+          <button type="button" class="btn-cancel" data-bcm-close>취소</button>
+          <button type="submit" class="btn-confirm" id="billingCancelConfirmBtn">🛑 해지하기</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-  <!-- ??v11 臾띠쓬 B-1: ?뺢린 ?꾩썝 ?댁? ?덈궡 紐⑤떖 -->
+  <!-- ★ v11 묶음 B-1: 정기 후원 해지 안내 모달 -->
   <div id="cancelGuideModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
     <div style="background:#fff;border-radius:12px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;overflow:hidden">
       <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#fef9f5,#fff)">
-        <h3 id="cgmTitle" style="margin:0;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--brand)">?럸 ?뺢린 ?꾩썝 ?댁? ?덈궡</h3>
-        <button type="button" data-cgm-close style="background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--text-3);line-height:1" aria-label="?リ린">&times;</button>
+        <h3 id="cgmTitle" style="margin:0;font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--brand)">🎗 정기 후원 해지 안내</h3>
+        <button type="button" data-cgm-close style="background:transparent;border:none;font-size:24px;cursor:pointer;color:var(--text-3);line-height:1" aria-label="닫기">&times;</button>
       </div>
       <div style="padding:24px 28px;max-height:calc(100vh - 200px);overflow-y:auto">
-        <div id="cgmLoading" style="text-align:center;padding:40px;color:var(--text-3)">遺덈윭?ㅻ뒗 以?..</div>
+        <div id="cgmLoading" style="text-align:center;padding:40px;color:var(--text-3)">불러오는 중...</div>
 
         <div id="cgmContent" style="display:none">
-          <!-- 1. ?몄궗留?-->
+          <!-- 1. 인사말 -->
           <div id="cgmGreeting" style="font-size:14px;line-height:1.85;color:var(--text-1);margin-bottom:22px;padding:14px 16px;background:linear-gradient(135deg,#fef9f5,#fff);border-left:4px solid var(--brand);border-radius:4px;white-space:pre-wrap"></div>
 
-          <!-- 2. ?댁? ?덉감 -->
+          <!-- 2. 해지 절차 -->
           <div id="cgmProcedure" style="font-size:13.5px;line-height:1.85;color:var(--text-1);margin-bottom:18px;padding:16px 18px;background:#f9f9fb;border-radius:6px;white-space:pre-wrap"></div>
 
-          <!-- 3. 二쇱쓽?ы빆 -->
+          <!-- 3. 주의사항 -->
           <div id="cgmWarnings" style="font-size:13.5px;line-height:1.85;color:#6a5400;margin-bottom:18px;padding:16px 18px;background:#fff8ec;border:1px solid #f0e3c4;border-radius:6px;white-space:pre-wrap"></div>
 
-          <!-- 4. 臾몄쓽泥?-->
+          <!-- 4. 문의처 -->
           <div id="cgmContact" style="font-size:13.5px;line-height:1.85;color:var(--text-2);padding:16px 18px;background:#eef4fc;border:1px solid #cee0f2;border-radius:6px;white-space:pre-wrap"></div>
         </div>
       </div>
       <div style="padding:14px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#fafafa">
-        <button type="button" data-cgm-close style="padding:10px 24px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">?뺤씤</button>
+        <button type="button" data-cgm-close style="padding:10px 24px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">확인</button>
       </div>
     </div>
   </div>
@@ -1247,15 +1248,15 @@
   <div id="modals-slot"></div>
   <div id="footer-slot"></div>
 
-  <!-- ??M-9: ?좎껌 ?댁뿭 ?곸꽭 紐⑤떖 -->
+  <!-- ★ M-9: 신청 내역 상세 모달 -->
   <div id="appDetailModal">
     <div class="adm-content">
       <div class="adm-header">
-        <h3 id="appDetailTitle">?좎껌 ?곸꽭</h3>
-        <button type="button" class="adm-close" data-app-close aria-label="?リ린">&times;</button>
+        <h3 id="appDetailTitle">신청 상세</h3>
+        <button type="button" class="adm-close" data-app-close aria-label="닫기">&times;</button>
       </div>
       <div class="adm-body" id="appDetailBody">
-        <div style="text-align:center;color:var(--text-3);padding:40px">濡쒕뵫 以?..</div>
+        <div style="text-align:center;color:var(--text-3);padding:40px">로딩 중...</div>
       </div>
     </div>
   </div>
@@ -1264,19 +1265,20 @@
   <script src="/js/auth.js?v=6"></script>
   <script src="/js/support.js?v=4"></script>
   <script src="/js/donate.js?v=5"></script>
-  <script src="/js/chat-user.js?v=3"></script>
+  <script src="/js/chat-user.js?v=2"></script>
   <script src="/js/mypage-applications.js?v=2026-05-18-r8"></script>
   <script src="/js/mypage-eligibility.js?v=20260516-cert-attach"></script>
-  <!-- 6?쒖쐞 #8: ?꾨Ц媛 ?곷떞 -->
+  <!-- 6순위 #8: 전문가 상담 -->
   <script src="/js/mypage-expert-match.js?v=2026-05-11-phase15"></script>
-  <!-- Phase 15: 留ㅼ묶 醫낃껐 蹂꾩젏 ?쇰뱶諛?-->
+  <!-- Phase 15: 매칭 종결 별점 피드백 -->
   <script src="/js/mypage-match-feedback.js?v=2026-05-11-phase15"></script>
-  <!-- Phase 21 R3+R4: ?댁쁺??遺???좉? + WBS 湲곕낯 蹂닿린 紐⑤뱶 移대뱶 (?댁쁺?먮쭔 ?먮룞 留덉슫?? -->
+  <!-- Phase 21 R3+R4: 운영자 부재 토글 + WBS 기본 보기 모드 카드 (운영자만 자동 마운트) -->
   <script src="/js/mypage-out-of-office.js?v=2" defer></script>
+  <!-- R12: 알림 탭 -->
   <script src="/js/mypage-notifications.js?v=1" defer></script>
 
   <script>
-    /* ?? ?ъ씤?맞룸같吏쨌??궧쨌硫붿떆吏 濡쒕뜑 (?꾩뿭 ??SIREN_PAGE_INIT 諛붽묑) ?? */
+    /* ── 포인트·배지·랭킹·메시지 로더 (전역 — SIREN_PAGE_INIT 바깥) ── */
     var _pointsLoaded = false, _rankingLoaded = false, _messagesLoaded = false;
 
     async function mpLoadPoints() {
@@ -1295,16 +1297,16 @@
         const badgeEl = document.getElementById('mpBadgeList');
         if (badgeEl) {
           badgeEl.innerHTML = badges.length
-            ? badges.map(b => `<span style="display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 12px;font-size:13px"><span style="font-size:18px">${b.icon||'?럷'}</span><span>${b.nameKo||b.code}</span></span>`).join('')
-            : '<span style="color:var(--text-3);font-size:13px">?꾩쭅 ?띾뱷??諛곗?媛 ?놁뒿?덈떎.</span>';
+            ? badges.map(b => `<span style="display:inline-flex;align-items:center;gap:6px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:20px;padding:5px 12px;font-size:13px"><span style="font-size:18px">${b.icon||'🎖'}</span><span>${b.nameKo||b.code}</span></span>`).join('')
+            : '<span style="color:var(--text-3);font-size:13px">아직 획득한 배지가 없습니다.</span>';
         }
         const logEl = document.getElementById('mpPointsLog');
         if (logEl) {
           logEl.innerHTML = !logs.length
-            ? '<p style="color:var(--text-3);font-size:13px;padding:12px 0">?ъ씤???댁뿭???놁뒿?덈떎.</p>'
-            : `<table class="tbl" style="margin-top:0"><thead><tr><th>?쇱떆</th><th>?대깽??/th><th>蹂??/th><th>?ъ쑀</th></tr></thead><tbody>${logs.slice(0,50).map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt).toLocaleDateString('ko')}</td><td>${l.eventType||'??}</td><td style="color:${l.delta>=0?'#16a34a':'#dc2626'};font-weight:600">${l.delta>=0?'+':''}${l.delta}P</td><td style="font-size:12px;color:var(--text-2)">${l.reason||'??}</td></tr>`).join('')}</tbody></table>`;
+            ? '<p style="color:var(--text-3);font-size:13px;padding:12px 0">포인트 내역이 없습니다.</p>'
+            : `<table class="tbl" style="margin-top:0"><thead><tr><th>일시</th><th>이벤트</th><th>변동</th><th>사유</th></tr></thead><tbody>${logs.slice(0,50).map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt).toLocaleDateString('ko')}</td><td>${l.eventType||'—'}</td><td style="color:${l.delta>=0?'#16a34a':'#dc2626'};font-weight:600">${l.delta>=0?'+':''}${l.delta}P</td><td style="font-size:12px;color:var(--text-2)">${l.reason||'—'}</td></tr>`).join('')}</tbody></table>`;
         }
-      } catch { const el=document.getElementById('mpPointsLog'); if(el) el.innerHTML='<p style="color:var(--danger)">遺덈윭?ㅺ린 ?ㅽ뙣</p>'; }
+      } catch { const el=document.getElementById('mpPointsLog'); if(el) el.innerHTML='<p style="color:var(--danger)">불러오기 실패</p>'; }
     }
 
     async function mpLoadRanking() {
@@ -1316,9 +1318,9 @@
         const r = await fetch('/api/ranking', { credentials: 'include' });
         const json = await r.json().catch(() => ({}));
         const ranking = json.data?.ranking ?? json.ranking ?? [];
-        if (!ranking.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">??궧 ?곗씠?곌? ?놁뒿?덈떎.</p>'; return; }
-        el.innerHTML = `<table class="tbl"><thead><tr><th style="width:48px">?쒖쐞</th><th>?대쫫</th><th>?ъ씤??/th></tr></thead><tbody>${ranking.map(m=>{const medal=m.rank<=3?['?쪍','?쪎','?쪏'][m.rank-1]:String(m.rank);return`<tr><td style="text-align:center">${medal}</td><td>${m.name||'?듬챸'}</td><td style="color:#1d4ed8;font-weight:600">狩?${(m.points||0).toLocaleString()}P</td></tr>`;}).join('')}</tbody></table>`;
-      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">遺덈윭?ㅺ린 ?ㅽ뙣</p>'; }
+        if (!ranking.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">랭킹 데이터가 없습니다.</p>'; return; }
+        el.innerHTML = `<table class="tbl"><thead><tr><th style="width:48px">순위</th><th>이름</th><th>포인트</th></tr></thead><tbody>${ranking.map(m=>{const medal=m.rank<=3?['🥇','🥈','🥉'][m.rank-1]:String(m.rank);return`<tr><td style="text-align:center">${medal}</td><td>${m.name||'익명'}</td><td style="color:#1d4ed8;font-weight:600">⭐ ${(m.points||0).toLocaleString()}P</td></tr>`;}).join('')}</tbody></table>`;
+      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>'; }
     }
 
     async function mpLoadMessages() {
@@ -1330,12 +1332,12 @@
         const r = await fetch('/api/my-send-history', { credentials: 'include' });
         const json = await r.json().catch(() => ({}));
         const logs = json.data?.logs ?? json.logs ?? [];
-        if (!logs.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">諛쏆? 硫붿떆吏媛 ?놁뒿?덈떎.</p>'; return; }
-        el.innerHTML = `<table class="tbl"><thead><tr><th>?쇱떆</th><th>梨꾨꼸</th><th>?쒕ぉ</th><th>?댁슜</th></tr></thead><tbody>${logs.map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt||l.sentAt).toLocaleDateString('ko')}</td><td>${l.channel||'??}</td><td style="font-weight:600">${l.title||'??}</td><td style="font-size:12px;color:var(--text-2)">${(l.content||'').slice(0,60)}</td></tr>`).join('')}</tbody></table>`;
-      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">遺덈윭?ㅺ린 ?ㅽ뙣</p>'; }
+        if (!logs.length) { el.innerHTML = '<p style="color:var(--text-3);padding:20px;text-align:center">받은 메시지가 없습니다.</p>'; return; }
+        el.innerHTML = `<table class="tbl"><thead><tr><th>일시</th><th>채널</th><th>제목</th><th>내용</th></tr></thead><tbody>${logs.map(l=>`<tr><td style="font-size:12px;white-space:nowrap">${new Date(l.createdAt||l.sentAt).toLocaleDateString('ko')}</td><td>${l.channel||'—'}</td><td style="font-weight:600">${l.title||'—'}</td><td style="font-size:12px;color:var(--text-2)">${(l.content||'').slice(0,60)}</td></tr>`).join('')}</tbody></table>`;
+      } catch { el.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center">불러오기 실패</p>'; }
     }
 
-    /* ?? ?대갚 ?몃뱾????SIREN_PAGE_INIT ?놁씠???ъ씤?맞룸옲?뮤룸찓?쒖? ?⑤꼸 ?꾪솚 ?묐룞 ?? */
+    /* ── 폴백 핸들러 — SIREN_PAGE_INIT 없이도 포인트·랭킹·메시지 패널 전환 작동 ── */
     document.addEventListener('DOMContentLoaded', function() {
       document.addEventListener('click', function(e) {
         var li = e.target.closest('#mpMenu li[data-mp="points"], #mpMenu li[data-mp="ranking"], #mpMenu li[data-mp="messages"]');
@@ -1371,15 +1373,15 @@
         if (target) target.style.display = 'block';
         if (crumb) crumb.textContent = li.textContent.trim();
 
-        /* 1:1 ?곷떞 ???쒖꽦 ??梨꾪똿 紐⑸줉 濡쒕뱶 */
+        /* 1:1 상담 탭 활성 시 채팅 목록 로드 */
         if (key === 'consult' && window.SIREN_CHAT && typeof window.SIREN_CHAT.loadRooms === 'function') {
           window.SIREN_CHAT.loadRooms();
         }
-        /* 6?쒖쐞 #8: ?꾨Ц媛 ?곷떞 ???쒖꽦 ??紐⑤뱢 濡쒕뱶 */
+        /* 6순위 #8: 전문가 상담 탭 활성 시 모듈 로드 */
         if (key === 'expertMatch' && window.SIREN_MYPAGE_EXPERT_MATCH && typeof window.SIREN_MYPAGE_EXPERT_MATCH.load === 'function') {
           window.SIREN_MYPAGE_EXPERT_MATCH.load();
         }
-        /* ?ъ씤?맞룸같吏쨌??궧쨌硫붿떆吏 ???꾩뿭 ?⑥닔 ?몄텧 */
+        /* 포인트·배지·랭킹·메시지 — 전역 함수 호출 */
         if (key === 'points')   mpLoadPoints();
         if (key === 'ranking')  mpLoadRanking();
         if (key === 'messages') mpLoadMessages();
@@ -1391,9 +1393,9 @@
         if (!li) return;
         const key = li.dataset.mp;
         if (key === 'logout') {
-          if (confirm('濡쒓렇?꾩썐 ?섏떆寃좎뒿?덇퉴?')) {
+          if (confirm('로그아웃 하시겠습니까?')) {
             if (window.SIREN_AUTH) window.SIREN_AUTH.logout();
-            SIREN.toast('濡쒓렇?꾩썐 ?섏뿀?듬땲??);
+            SIREN.toast('로그아웃 되었습니다');
             setTimeout(() => location.href = '/index.html', 800);
           }
           return;
@@ -1432,9 +1434,9 @@
         const stats = window.SIREN_AUTH?.stats;
         if (!stats) return false;
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '??);
+        set('receiptAmount', (stats.totalAmount || 0).toLocaleString() + '원');
         set('receiptCount', stats.totalCount || 0);
-        set('receiptYear', `${new Date().getFullYear() - 1}??洹??湲곕?湲??곸닔利?);
+        set('receiptYear', `${new Date().getFullYear() - 1}년 귀속 기부금 영수증`);
         return true;
       };
       let rTries = 0;

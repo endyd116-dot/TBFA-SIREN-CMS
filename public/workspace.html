@@ -1,22 +1,22 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>?뚰겕?ㅽ럹?댁뒪 | 援먯궗?좉?議깊삊?섑쉶</title>
+<title>워크스페이스 | 교사유가족협의회</title>
 <meta name="robots" content="noindex,nofollow">
 
-<!-- ?고듃 -->
+<!-- 폰트 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- 怨듯넻 CSS -->
+<!-- 공통 CSS -->
 <link rel="stylesheet" href="/css/base.css?v=3">
 <link rel="stylesheet" href="/css/components.css?v=3">
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
-<!-- ?뚰겕?ㅽ럹?댁뒪 ?꾩슜 CSS -->
+<!-- 워크스페이스 전용 CSS -->
 <link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
 <link rel="stylesheet" href="/css/workspace-notifications.css?v=1">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
@@ -24,390 +24,390 @@
 
 <body class="ws-body">
 
-<!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??
-     ?щ┝ ?ъ씠?쒕컮 (?됱긽??60px ???몃쾭 ??240px)
-?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??-->
+<!-- ═══════════════════════════════════════════════════════
+     슬림 사이드바 (평상시 60px → 호버 시 240px)
+═══════════════════════════════════════════════════════ -->
 <aside class="ws-sidebar" id="wsSidebar">
   <div class="ws-sidebar-inner">
-    <!-- ?듭씠??(醫뚯륫 ?곷떒 怨좎젙) -->
+    <!-- 퀵이동 (좌측 상단 고정) -->
     <div class="quick-jump" data-quick-jump></div>
 
-    <!-- 濡쒓퀬 ?곸뿭 -->
-    <a href="/admin-hub.html" class="ws-sidebar-logo" title="?덈툕濡??뚯븘媛湲?>
-      <span class="ws-logo-icon">?룧</span>
-      <span class="ws-logo-text">?덈툕</span>
+    <!-- 로고 영역 -->
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
     </a>
 
-    <!-- 硫붿씤 硫붾돱 -->
+    <!-- 메인 메뉴 -->
     <nav class="ws-sidebar-nav">
       <ul>
-        <!-- 1?곸뒪: ?뚰겕?ㅽ럹?댁뒪 (?섏씠吏 ?대룞 ?좉?, ?뚰겕?ㅽ럹?댁뒪 吏꾩엯 ???먮룞 ?쇱묠) -->
+        <!-- 1뎁스: 워크스페이스 (페이지 이동 토글, 워크스페이스 진입 시 자동 펼침) -->
         <li class="ws-nav-group">
           <a href="#" data-sidebar-group="workspace" aria-expanded="true">
-            <span class="ws-nav-icon">?썱</span>
-            <span class="ws-nav-text">?뚰겕?ㅽ럹?댁뒪</span>
-            <span class="sidebar-group-chevron">??/span>
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
           </a>
           <ul data-sidebar-submenu="workspace" aria-hidden="false">
-            <li><a href="/workspace.html" data-ws-nav="dashboard" title="?뚰겕??><span class="ws-nav-icon">?뱤</span><span class="ws-nav-text">?뚰겕??/span></a></li>
-            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">?뱥</span><span class="ws-nav-text">WBS</span></a></li>
-            <li><a href="/workspace-calendar.html" title="罹섎┛??><span class="ws-nav-icon">?뿎</span><span class="ws-nav-text">罹섎┛??/span></a></li>
-            <li><a href="/workspace-templates.html" title="?쒗뵆由?><span class="ws-nav-icon">?뱫</span><span class="ws-nav-text">?쒗뵆由?/span></a></li>
-            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="?뚯씪??><span class="ws-nav-icon">?뱚</span><span class="ws-nav-text">?뚯씪??/span></a></li>
+            <li><a href="/workspace.html" data-ws-nav="dashboard" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
           </ul>
         </li>
       </ul>
     </nav>
 
-    <!-- ?섎떒 ?ъ슜???곸뿭 -->
+    <!-- 하단 사용자 영역 -->
     <div class="ws-sidebar-user">
-      <a href="/mypage.html" title="留덉씠?섏씠吏" id="wsSidebarUser">
-        <span class="ws-user-avatar">?뫀</span>
-        <span class="ws-nav-text" id="wsSidebarUserName">?ъ슜??/span>
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
       </a>
-      <button class="ws-sidebar-logout" id="wsBtnLogout" title="濡쒓렇?꾩썐">
-        <span class="ws-nav-icon">?슞</span>
-        <span class="ws-nav-text">濡쒓렇?꾩썐</span>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
       </button>
     </div>
   </div>
 </aside>
 
-<!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??
-     硫붿씤 而⑦뀗痢??곸뿭
-?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??-->
+<!-- ═══════════════════════════════════════════════════════
+     메인 컨텐츠 영역
+═══════════════════════════════════════════════════════ -->
 <main class="ws-main">
 
-  <!-- ?곷떒 諛?-->
+  <!-- 상단 바 -->
   <header class="ws-topbar">
     <div class="ws-topbar-left">
-      <h1 class="ws-page-title">?뱟 ?뚰겕?ㅽ럹?댁뒪</h1>
-      <span class="ws-greeting" id="wsGreeting">?덈뀞?섏꽭???몝</span>
+      <h1 class="ws-page-title">📅 워크스페이스</h1>
+      <span class="ws-greeting" id="wsGreeting">안녕하세요 👋</span>
     </div>
 
-    <!-- ?듯빀 寃??(Step 7-C.4.b.2) -->
+    <!-- 통합 검색 (Step 7-C.4.b.2) -->
     <div class="ws-search-wrap" id="wsSearchWrap">
       <input type="search" id="wsSearchInput" class="ws-search-input"
-             placeholder="?뵇 ?묒뾽쨌?쇱젙쨌硫붾え쨌?뚯씪 ?듯빀 寃??(Ctrl+K)" autocomplete="off">
+             placeholder="🔍 작업·일정·메모·파일 통합 검색 (Ctrl+K)" autocomplete="off">
       <div class="ws-search-results" id="wsSearchResults" hidden></div>
     </div>
     <div class="ws-topbar-right">
       <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task">
-        <span>?뱥</span> <span class="ws-btn-label">???묒뾽</span>
+        <span>📋</span> <span class="ws-btn-label">새 작업</span>
       </button>
       <button class="ws-btn-quick ws-btn-event" data-ws-action="new-event">
-        <span>?뱟</span> <span class="ws-btn-label">???쇱젙</span>
+        <span>📅</span> <span class="ws-btn-label">새 일정</span>
       </button>
       <button class="ws-btn-quick ws-btn-memo" data-ws-action="new-memo">
-        <span>?뱷</span> <span class="ws-btn-label">硫붾え</span>
+        <span>📝</span> <span class="ws-btn-label">메모</span>
       </button>
-      <button class="ws-btn-quick ws-btn-files" data-ws-action="toggle-files" title="?뚯씪???⑤꼸 ?좉?">
-        <span>?뱚</span> <span class="ws-btn-label">?뚯씪</span>
+      <button class="ws-btn-quick ws-btn-files" data-ws-action="toggle-files" title="파일함 패널 토글">
+        <span>📁</span> <span class="ws-btn-label">파일</span>
       </button>
-      <button class="ws-btn-refresh" data-ws-action="refresh" title="?덈줈怨좎묠">
-        <span>?봽</span>
+      <button class="ws-btn-refresh" data-ws-action="refresh" title="새로고침">
+        <span>🔄</span>
       </button>
-      <span class="ws-notif-bell" id="wsNotifBell" title="?뚮┝" style="position:relative">
-        <span>?뵒</span>
+      <span class="ws-notif-bell" id="wsNotifBell" title="알림" style="position:relative">
+        <span>🔔</span>
         <span class="ws-notif-count" id="wsNotifCount" style="display:none">0</span>
-        <!-- Phase 21 R2 ???뚰겕?ㅽ럹?댁뒪 ?뚮┝ ?쒕∼?ㅼ슫 -->
+        <!-- Phase 21 R2 — 워크스페이스 알림 드롭다운 -->
         <div class="ws-notif-dropdown" id="wsNotifDropdown" hidden>
           <div class="ws-notif-dropdown-header">
-            <span class="ws-notif-dropdown-title">?뚮┝</span>
-            <button type="button" class="ws-notif-mark-all" id="wsNotifMarkAll">紐⑤몢 ?쎌쓬</button>
+            <span class="ws-notif-dropdown-title">알림</span>
+            <button type="button" class="ws-notif-mark-all" id="wsNotifMarkAll">모두 읽음</button>
           </div>
           <ul class="ws-notif-dropdown-list" id="wsNotifDropdownList">
-            <li class="ws-notif-dropdown-empty">遺덈윭?ㅻ뒗 以?..</li>
+            <li class="ws-notif-dropdown-empty">불러오는 중...</li>
           </ul>
           <div class="ws-notif-dropdown-footer">
-            <a href="/workspace-notifications.html">?꾩껜 蹂닿린 ??/a>
+            <a href="/workspace-notifications.html">전체 보기 →</a>
           </div>
         </div>
       </span>
-      <!-- 硫섏뀡 ?뚮┝ 諛곗? (#2) -->
-      <span class="ws-mention-bell" id="wsMentionBell" title="??硫섏뀡" style="position:relative;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:18px;user-select:none" aria-label="硫섏뀡 ?뚮┝">
+      <!-- 멘션 알림 배지 (#2) -->
+      <span class="ws-mention-bell" id="wsMentionBell" title="내 멘션" style="position:relative;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:18px;user-select:none" aria-label="멘션 알림">
         <span>@</span>
         <span class="ws-notif-count" id="wsMentionCount" style="display:none">0</span>
         <div class="ws-notif-dropdown" id="wsMentionDropdown" hidden style="min-width:320px">
           <div class="ws-notif-dropdown-header">
-            <span class="ws-notif-dropdown-title">@ ??硫섏뀡</span>
+            <span class="ws-notif-dropdown-title">@ 내 멘션</span>
           </div>
           <ul class="ws-notif-dropdown-list" id="wsMentionDropdownList">
-            <li class="ws-notif-dropdown-empty">遺덈윭?ㅻ뒗 以?..</li>
+            <li class="ws-notif-dropdown-empty">불러오는 중...</li>
           </ul>
         </div>
       </span>
     </div>
   </header>
 
-  <!-- ?????????????????????????????????????????????????
-       ?ㅻ뒛??釉뚮━???뱀뀡
-  ????????????????????????????????????????????????? -->
+  <!-- ─────────────────────────────────────────────────
+       오늘의 브리핑 섹션
+  ───────────────────────────────────────────────── -->
   <section class="ws-briefing">
     <div class="ws-briefing-header">
-      <h2>?뱤 ?ㅻ뒛??釉뚮━??/h2>
+      <h2>📊 오늘의 브리핑</h2>
       <span class="ws-briefing-date" id="wsBriefingDate"></span>
     </div>
 
     <div class="ws-briefing-grid">
       <a href="#overdue" class="ws-stat-card ws-stat-urgent" data-ws-filter="overdue">
-        <span class="ws-stat-icon">?뵶</span>
+        <span class="ws-stat-icon">🔴</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatOverdue">-</strong>
-          <small class="ws-stat-label">吏??/small>
+          <small class="ws-stat-label">지연</small>
         </div>
       </a>
       <a href="#today" class="ws-stat-card" data-ws-filter="today">
-        <span class="ws-stat-icon">?뱟</span>
+        <span class="ws-stat-icon">📅</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatToday">-</strong>
-          <small class="ws-stat-label">?ㅻ뒛 留덇컧</small>
+          <small class="ws-stat-label">오늘 마감</small>
         </div>
       </a>
       <a href="#tomorrow" class="ws-stat-card" data-ws-filter="tomorrow">
-        <span class="ws-stat-icon">?뱦</span>
+        <span class="ws-stat-icon">📌</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatTomorrow">-</strong>
-          <small class="ws-stat-label">?댁씪 留덇컧</small>
+          <small class="ws-stat-label">내일 마감</small>
         </div>
       </a>
       <a href="#inbox" class="ws-stat-card" data-ws-filter="inbox">
-        <span class="ws-stat-icon">?뱿</span>
+        <span class="ws-stat-icon">📥</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatInbox">-</strong>
-          <small class="ws-stat-label">吏?쒕컺? ?묒뾽</small>
+          <small class="ws-stat-label">지시받은 작업</small>
         </div>
       </a>
       <a href="#urgent" class="ws-stat-card" data-ws-filter="urgent">
-        <span class="ws-stat-icon">?뵦</span>
+        <span class="ws-stat-icon">🔥</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatUrgent">-</strong>
-          <small class="ws-stat-label">湲닿툒</small>
+          <small class="ws-stat-label">긴급</small>
         </div>
       </a>
       <a href="#events" class="ws-stat-card" data-ws-filter="today-events">
-        <span class="ws-stat-icon">?뱠</span>
+        <span class="ws-stat-icon">📆</span>
         <div class="ws-stat-body">
           <strong class="ws-stat-num" id="wsStatEvents">-</strong>
-          <small class="ws-stat-label">?ㅻ뒛 ?쇱젙</small>
+          <small class="ws-stat-label">오늘 일정</small>
         </div>
       </a>
     </div>
 
-    <!-- Agent-8 AI ?쒖븞 (Step 5?먯꽌 ?곕룞) -->
+    <!-- Agent-8 AI 제안 (Step 5에서 연동) -->
     <div class="ws-ai-suggestion" id="wsAiSuggestion" style="display:none">
-      <span class="ws-ai-icon">?쨼</span>
-      <span class="ws-ai-text">AI媛 ?쒖븞?섎뒗 ?ㅻ뒛???곗꽑?쒖쐞:</span>
+      <span class="ws-ai-icon">🤖</span>
+      <span class="ws-ai-text">AI가 제안하는 오늘의 우선순위:</span>
       <ul class="ws-ai-list" id="wsAiList"></ul>
     </div>
   </section>
 
-  <!-- ?????????????????????????????????????????????????
-       ?곗꽑 ?묒뾽 TOP 5 誘몃땲 ?꾩젽 (Phase 3 Step 7-A ?섏씠釉뚮━??
-  ????????????????????????????????????????????????? -->
+  <!-- ─────────────────────────────────────────────────
+       우선 작업 TOP 5 미니 위젯 (Phase 3 Step 7-A 하이브리드)
+  ───────────────────────────────────────────────── -->
   <section class="ws-priority-widget" id="wsPriorityWidget">
     <div class="ws-priority-header">
-      <h2>?렞 ?곗꽑 ?묒뾽 TOP 5</h2>
-      <a href="/workspace-kanban.html" class="ws-priority-more" onclick="window.location.href='/workspace-kanban.html';return false;">移몃컲 ?꾩껜 蹂닿린 ??/a>
+      <h2>🎯 우선 작업 TOP 5</h2>
+      <a href="/workspace-kanban.html" class="ws-priority-more" onclick="window.location.href='/workspace-kanban.html';return false;">칸반 전체 보기 →</a>
     </div>
     <div class="ws-priority-cards" id="wsPriorityCards">
-      <div class="ws-priority-loading">遺덈윭?ㅻ뒗 以?..</div>
+      <div class="ws-priority-loading">불러오는 중...</div>
     </div>
   </section>
 
-  <!-- ?????????????????????????????????????????????????
-       2x2 硫붿씤 洹몃━??
-  ????????????????????????????????????????????????? -->
+  <!-- ─────────────────────────────────────────────────
+       2x2 메인 그리드
+  ───────────────────────────────────────────────── -->
   <section class="ws-grid-2x2">
 
-    <!-- [1] ???묒뾽 -->
+    <!-- [1] 내 작업 -->
     <div class="ws-panel" id="wsPanelMyTasks">
       <div class="ws-panel-header">
-        <h3>?뱥 ???묒뾽</h3>
+        <h3>📋 내 작업</h3>
         <div class="ws-panel-controls">
-          <select class="ws-filter-select" id="wsFilterTaskStatus" aria-label="?곹깭 ?꾪꽣">
-            <option value="">?꾩껜</option>
-            <option value="todo" selected>????/option>
-            <option value="doing">吏꾪뻾 以?/option>
-            <option value="blocked">李⑤떒</option>
-            <option value="done">?꾨즺</option>
+          <select class="ws-filter-select" id="wsFilterTaskStatus" aria-label="상태 필터">
+            <option value="">전체</option>
+            <option value="todo" selected>할 일</option>
+            <option value="doing">진행 중</option>
+            <option value="blocked">차단</option>
+            <option value="done">완료</option>
           </select>
-          <button class="ws-panel-add" data-ws-action="new-task" title="???묒뾽">+</button>
+          <button class="ws-panel-add" data-ws-action="new-task" title="새 작업">+</button>
         </div>
       </div>
       <div class="ws-panel-body">
         <ul class="ws-task-list" id="wsMyTaskList">
-          <li class="ws-loading">遺덈윭?ㅻ뒗 以?..</li>
+          <li class="ws-loading">불러오는 중...</li>
         </ul>
       </div>
       <div class="ws-panel-footer">
-        <a href="#my-tasks-all" class="ws-panel-more" data-ws-action="view-all-tasks">?꾩껜 蹂닿린 ??/a>
+        <a href="#my-tasks-all" class="ws-panel-more" data-ws-action="view-all-tasks">전체 보기 →</a>
       </div>
     </div>
 
-    <!-- [2] ?좊떦諛쏆? ?묒뾽 (援?吏?쒕컺? ?묒뾽) -->
+    <!-- [2] 할당받은 작업 (구 지시받은 작업) -->
     <div class="ws-panel" id="wsPanelInbox">
       <div class="ws-panel-header">
-        <h3>?뱿 ?좊떦諛쏆? ?묒뾽</h3>
+        <h3>📥 할당받은 작업</h3>
         <div class="ws-panel-controls">
           <span class="ws-panel-badge" id="wsInboxBadge">0</span>
         </div>
       </div>
       <div class="ws-panel-body">
         <ul class="ws-task-list" id="wsInboxList">
-          <li class="ws-loading">遺덈윭?ㅻ뒗 以?..</li>
+          <li class="ws-loading">불러오는 중...</li>
         </ul>
       </div>
       <div class="ws-panel-footer">
-        <a href="#inbox-all" class="ws-panel-more" data-ws-action="view-all-inbox">?꾩껜 蹂닿린 ??/a>
+        <a href="#inbox-all" class="ws-panel-more" data-ws-action="view-all-inbox">전체 보기 →</a>
       </div>
     </div>
 
-    <!-- [3] ?대쾲 二??쇱젙 -->
+    <!-- [3] 이번 주 일정 -->
     <div class="ws-panel" id="wsPanelEvents">
       <div class="ws-panel-header">
-        <h3>?뱟 ?대쾲 二??쇱젙</h3>
+        <h3>📅 이번 주 일정</h3>
         <div class="ws-panel-controls">
-          <button class="ws-panel-add" data-ws-action="new-event" title="???쇱젙">+</button>
+          <button class="ws-panel-add" data-ws-action="new-event" title="새 일정">+</button>
         </div>
       </div>
       <div class="ws-panel-body">
         <ul class="ws-event-list" id="wsEventList">
-          <li class="ws-loading">遺덈윭?ㅻ뒗 以?..</li>
+          <li class="ws-loading">불러오는 중...</li>
         </ul>
       </div>
       <div class="ws-panel-footer">
-        <a href="#calendar" class="ws-panel-more" data-ws-action="open-calendar">?щ젰 蹂닿린 ??/a>
+        <a href="#calendar" class="ws-panel-more" data-ws-action="open-calendar">달력 보기 →</a>
       </div>
     </div>
 
-    <!-- [4] 硫붾え -->
+    <!-- [4] 메모 -->
     <div class="ws-panel ws-panel-memo" id="wsPanelMemos">
       <div class="ws-panel-header">
-        <h3>?뱷 硫붾え</h3>
+        <h3>📝 메모</h3>
         <div class="ws-panel-controls">
-          <button class="ws-panel-add" data-ws-action="new-memo" title="??硫붾え">+</button>
+          <button class="ws-panel-add" data-ws-action="new-memo" title="새 메모">+</button>
         </div>
       </div>
       <div class="ws-panel-body">
         <div class="ws-memo-grid" id="wsMemoGrid">
-          <div class="ws-loading">遺덈윭?ㅻ뒗 以?..</div>
+          <div class="ws-loading">불러오는 중...</div>
         </div>
       </div>
       <div class="ws-panel-footer">
-        <a href="#memos-all" class="ws-panel-more" data-ws-action="view-all-memos">?꾩껜 蹂닿린 ??/a>
+        <a href="#memos-all" class="ws-panel-more" data-ws-action="view-all-memos">전체 보기 →</a>
       </div>
     </div>
 
-    <!-- [5] ?좊떦???묒뾽 (Phase 21 R2) ???닿? ?ㅻⅨ ?щ엺?먭쾶 ?좎뒪쨌?좊떦??移대뱶 -->
+    <!-- [5] 할당한 작업 (Phase 21 R2) — 내가 다른 사람에게 토스·할당한 카드 -->
     <div class="ws-panel" id="wsPanelAssignedByMe">
       <div class="ws-panel-header">
-        <h3>?뱾 ?좊떦???묒뾽</h3>
+        <h3>📤 할당한 작업</h3>
         <div class="ws-panel-controls">
           <span class="ws-panel-badge" id="wsAssignedByMeBadge">0</span>
         </div>
       </div>
       <div class="ws-panel-body">
         <ul class="ws-task-list" id="wsAssignedByMeList">
-          <li class="ws-loading">遺덈윭?ㅻ뒗 以?..</li>
+          <li class="ws-loading">불러오는 중...</li>
         </ul>
       </div>
     </div>
 
-    <!-- [6] ?슚 誘명븷???쒕퉬??(Phase 21 R2) ???대뱶誘쇰쭔 ?몄텧 -->
+    <!-- [6] 🚨 미할당 서비스 (Phase 21 R2) — 어드민만 노출 -->
     <div class="ws-panel ws-panel-unassigned" id="wsPanelUnassigned" style="display:none">
       <div class="ws-panel-header">
-        <h3>?슚 誘명븷???쒕퉬??/h3>
+        <h3>🚨 미할당 서비스</h3>
         <div class="ws-panel-controls">
           <span class="ws-panel-badge ws-panel-badge-alert" id="wsUnassignedBadge">0</span>
         </div>
       </div>
       <div class="ws-panel-body">
         <ul class="ws-task-list" id="wsUnassignedList">
-          <li class="ws-empty">誘명븷??移대뱶媛 ?놁뒿?덈떎</li>
+          <li class="ws-empty">미할당 카드가 없습니다</li>
         </ul>
       </div>
     </div>
 
   </section>
 
-  <!-- ?????????????????????????????????????????????????
-       ? ?쒕룞 ?쇰뱶
-  ????????????????????????????????????????????????? -->
+  <!-- ─────────────────────────────────────────────────
+       팀 활동 피드
+  ───────────────────────────────────────────────── -->
   <section class="ws-feed">
     <div class="ws-feed-header">
-      <h2>?뵒 ? ?쒕룞 ?쇰뱶</h2>
+      <h2>🔔 팀 활동 피드</h2>
       <div class="ws-feed-controls">
-        <select class="ws-filter-select" id="wsFilterFeedType" aria-label="?쒕룞 ?좏삎">
-          <option value="">?꾩껜</option>
-          <option value="task">?묒뾽</option>
-          <option value="event">?쇱젙</option>
-          <option value="due_request">留덇컧??蹂寃?/option>
+        <select class="ws-filter-select" id="wsFilterFeedType" aria-label="활동 유형">
+          <option value="">전체</option>
+          <option value="task">작업</option>
+          <option value="event">일정</option>
+          <option value="due_request">마감일 변경</option>
         </select>
-        <a href="#feed-all" class="ws-feed-more" data-ws-action="view-all-feed">??蹂닿린 ??/a>
+        <a href="#feed-all" class="ws-feed-more" data-ws-action="view-all-feed">더 보기 →</a>
       </div>
     </div>
     <ul class="ws-feed-list" id="wsFeedList">
-      <li class="ws-loading">遺덈윭?ㅻ뒗 以?..</li>
+      <li class="ws-loading">불러오는 중...</li>
     </ul>
   </section>
 
 </main>
 
-<!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??
-     ?곗륫 ?뚯씪???ъ씠???⑤꼸 (Phase 3-extra Step 9)
-?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??-->
+<!-- ═══════════════════════════════════════════════════════
+     우측 파일함 사이드 패널 (Phase 3-extra Step 9)
+═══════════════════════════════════════════════════════ -->
 <aside class="ws-file-panel" id="wsFilePanel" aria-hidden="true">
-  <button class="ws-file-panel-handle" id="wsFilePanelHandle" type="button" aria-label="?뚯씪???닿린">
-    <span class="ws-file-handle-icon">?뱚</span>
-    <span class="ws-file-handle-label">?뚯씪??/span>
+  <button class="ws-file-panel-handle" id="wsFilePanelHandle" type="button" aria-label="파일함 열기">
+    <span class="ws-file-handle-icon">📁</span>
+    <span class="ws-file-handle-label">파일함</span>
   </button>
   <div class="ws-file-panel-body">
     <header class="ws-file-panel-header">
-      <h3>?뱚 ?뚯씪??/h3>
+      <h3>📁 파일함</h3>
       <div class="ws-file-panel-actions-top">
-        <a href="/workspace-files.html" class="ws-file-panel-full" title="?꾩껜 蹂닿린">?꾩껜 ??/a>
-        <button class="ws-file-panel-close" id="wsFilePanelClose" type="button" aria-label="?リ린">??/button>
+        <a href="/workspace-files.html" class="ws-file-panel-full" title="전체 보기">전체 ↗</a>
+        <button class="ws-file-panel-close" id="wsFilePanelClose" type="button" aria-label="닫기">✕</button>
       </div>
     </header>
 
     <div class="ws-file-panel-search">
-      <input type="search" id="wsFilePanelSearch" placeholder="?뚯씪/?대뜑 寃??(Enter)" />
+      <input type="search" id="wsFilePanelSearch" placeholder="파일/폴더 검색 (Enter)" />
     </div>
 
     <div class="ws-file-panel-quick">
-      <button class="ws-file-panel-btn" id="wsFilePanelUpload" type="button">?뱾 鍮좊Ⅸ ?낅줈??/button>
-      <button class="ws-file-panel-btn" id="wsFilePanelNewFolder" type="button">?뱚 ???대뜑</button>
+      <button class="ws-file-panel-btn" id="wsFilePanelUpload" type="button">📤 빠른 업로드</button>
+      <button class="ws-file-panel-btn" id="wsFilePanelNewFolder" type="button">📁 새 폴더</button>
       <input type="file" id="wsFilePanelFileInput" multiple style="display:none" />
     </div>
 
     <section class="ws-file-panel-section">
-      <h4>?뱚 ?대뜑</h4>
+      <h4>📁 폴더</h4>
       <ul class="ws-file-panel-tree" id="wsFilePanelTree">
-        <li class="ws-file-panel-loading">遺덈윭?ㅻ뒗 以?..</li>
+        <li class="ws-file-panel-loading">불러오는 중...</li>
       </ul>
     </section>
 
     <section class="ws-file-panel-section">
-      <h4>?븩 理쒓렐 ?뚯씪</h4>
+      <h4>🕒 최근 파일</h4>
       <ul class="ws-file-panel-list" id="wsFilePanelRecent">
-        <li class="ws-file-panel-loading">遺덈윭?ㅻ뒗 以?..</li>
+        <li class="ws-file-panel-loading">불러오는 중...</li>
       </ul>
     </section>
   </div>
 </aside>
 
-<!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??
-     紐⑤떖 而⑦뀒?대꼫 (Step 4?먯꽌 ?숈쟻 ?앹꽦)
-?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??-->
+<!-- ═══════════════════════════════════════════════════════
+     모달 컨테이너 (Step 4에서 동적 생성)
+═══════════════════════════════════════════════════════ -->
 <div id="wsModalRoot"></div>
 
-<!-- ?좎뒪??而⑦뀒?대꼫 -->
+<!-- 토스트 컨테이너 -->
 <div id="wsToastRoot" class="ws-toast-root"></div>
 
-<!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??
-     ?ㅽ겕由쏀듃
-?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧??-->
+<!-- ═══════════════════════════════════════════════════════
+     스크립트
+═══════════════════════════════════════════════════════ -->
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/common.js?v=3"></script>
 <script src="/js/notification-bell.js?v=1" defer></script>
@@ -415,7 +415,7 @@
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
-<script src="/js/workspace.js?v=10" defer></script>
+<script src="/js/workspace.js?v=9" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
