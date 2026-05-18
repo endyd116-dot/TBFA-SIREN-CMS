@@ -12,6 +12,7 @@ export enum NotifyEvent {
   BILLING_CANCELED            = "billing.canceled",
   CARD_EXPIRING               = "card.expiring",
   WORKSPACE_ACTIVITY          = "workspace.activity",
+  WORKSPACE_MENTION           = "workspace.mention",
   ADMIN_DAILY_BRIEFING        = "admin.daily_briefing",
   SUPPORT_REPLY               = "support.reply",
   SIREN_ASSIGNED              = "siren.assigned",
@@ -44,6 +45,7 @@ export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.BILLING_CANCELED]:           ["inapp", "email"],
   [NotifyEvent.CARD_EXPIRING]:              ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
   [NotifyEvent.WORKSPACE_ACTIVITY]:         ["inapp"],
+  [NotifyEvent.WORKSPACE_MENTION]:          ["inapp"],
   [NotifyEvent.ADMIN_DAILY_BRIEFING]:       ["email"],
   [NotifyEvent.SUPPORT_REPLY]:              ["inapp", "email"],
   [NotifyEvent.SIREN_ASSIGNED]:             ["inapp", "email"],

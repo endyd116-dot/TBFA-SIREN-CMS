@@ -18,10 +18,13 @@ import {
   workspaceTasks,
   workspaceActivityLog,
   workspaceTaskTemplates,
+  workspaceTaskMentions,
   members,
 } from "../../db/schema";
 import { eq, and, or, desc, asc, sql, lte, gte, isNull, isNotNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { dispatch } from "../../lib/notify-dispatcher";
+import { NotifyEvent } from "../../lib/notify-events";
 import {
   ok, badRequest, methodNotAllowed, serverError,
   notFound, forbidden, parseJson,
@@ -52,6 +55,82 @@ function triggerAiCompletion(taskId: number, authorMemberId: number) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ taskId, authorMemberId, secret }),
   }).catch((err) => console.warn("[ai-completion trigger]", err?.message || err));
+}
+
+/* ─── @멘션 파싱 + 알림 (fire-and-forget 전용) ─── */
+async function parseMentionsAndNotify(opts: {
+  taskId: number;
+  actorId: number;
+  actorName: string;
+  texts: string[];
+}): Promise<void> {
+  const { taskId, actorId, actorName, texts } = opts;
+
+  // /@([\w가-힣]+)/g 패턴으로 멘션명 추출
+  const names = new Set<string>();
+  for (const text of texts) {
+    for (const m of text.matchAll(/@([\w가-힣]+)/g)) names.add(m[1]);
+  }
+  if (names.size === 0) return;
+
+  // 멤버 이름 ILIKE 매칭 (각 이름별 개별 쿼리)
+  let matched: { id: number; name: string; type: string }[] = [];
+  for (const name of names) {
+    try {
+      const rows: any = await db
+        .select({ id: members.id, name: members.name, type: members.type })
+        .from(members)
+        .where(sql`${members.name} ILIKE ${name}`)
+        .limit(5);
+      matched = matched.concat(rows as any[]);
+    } catch (err) {
+      console.warn("[parseMentions] 멤버 조회 실패:", err);
+    }
+  }
+
+  // 중복 제거 + 자기 자신 멘션 스킵
+  const seen = new Set<number>();
+  matched = matched.filter((m) => {
+    if (seen.has(m.id) || m.id === actorId) return false;
+    seen.add(m.id);
+    return true;
+  });
+
+  const contextSnippet = texts.join(" ").slice(0, 100);
+
+  for (const member of matched) {
+    // workspaceTaskMentions INSERT (taskId + mentionedMemberId 중복 방지)
+    try {
+      await db.execute(sql`
+        INSERT INTO workspace_task_mentions
+          (workspace_id, task_id, mentioned_member_id, mentioner_member_id, context, is_read, created_at)
+        SELECT 0, ${taskId}, ${member.id}, ${actorId}, ${contextSnippet}, false, NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM workspace_task_mentions
+          WHERE task_id = ${taskId} AND mentioned_member_id = ${member.id}
+        )
+      `);
+    } catch (err) {
+      console.warn(`[parseMentions] mention INSERT 실패 memberId=${member.id}:`, err);
+    }
+
+    // 인앱 알림 발송 (실패해도 throw 없음)
+    try {
+      dispatch({
+        event: NotifyEvent.WORKSPACE_MENTION,
+        target: { type: member.type === "admin" ? "admin" : "member", id: member.id },
+        params: {
+          category: "workspace",
+          severity: "info",
+          title: `📌 ${actorName}님이 작업에서 회원님을 멘션했습니다`,
+          message: contextSnippet,
+          link: `/workspace-kanban.html#task=${taskId}`,
+        },
+      });
+    } catch (err) {
+      console.warn(`[parseMentions] dispatch 실패 memberId=${member.id}:`, err);
+    }
+  }
 }
 
 export default async (req: Request, _ctx: Context) => {
@@ -312,7 +391,38 @@ export default async (req: Request, _ctx: Context) => {
           )
           .limit(limit);
 
-        return ok({ items, total: items.length });
+        // 서브태스크 집계 (별도 GROUP BY 쿼리 — drizzle 다중 leftJoin 금지 원칙)
+        const taskIds = (items as any[]).map((t: any) => t.id) as number[];
+        let subtaskMap: Record<number, { subtaskCount: number; subtaskDoneCount: number }> = {};
+        if (taskIds.length > 0) {
+          try {
+            const subRes: any = await db.execute(sql`
+              SELECT parent_task_id,
+                     COUNT(*)::int                                       AS subtask_count,
+                     COUNT(*) FILTER (WHERE status = 'done')::int        AS subtask_done_count
+              FROM workspace_tasks
+              WHERE parent_task_id = ANY(${taskIds})
+              GROUP BY parent_task_id
+            `);
+            const subRows = subRes?.rows ?? subRes ?? [];
+            for (const r of subRows) {
+              subtaskMap[Number(r.parent_task_id)] = {
+                subtaskCount:     Number(r.subtask_count     || 0),
+                subtaskDoneCount: Number(r.subtask_done_count || 0),
+              };
+            }
+          } catch (err) {
+            console.warn("[admin-workspace-tasks] subtask count 조회 실패 — 0 폴백", err);
+          }
+        }
+
+        const enriched = (items as any[]).map((t: any) => ({
+          ...t,
+          subtaskCount:     subtaskMap[t.id]?.subtaskCount     ?? 0,
+          subtaskDoneCount: subtaskMap[t.id]?.subtaskDoneCount ?? 0,
+        }));
+
+        return ok({ items: enriched, total: enriched.length });
       }
 
       return badRequest("list=1 / id=N / stats=1 / feed=1 중 하나 필수");
@@ -441,6 +551,14 @@ export default async (req: Request, _ctx: Context) => {
       if (newTask.description && String(newTask.description).length >= 100) {
         triggerAiSummary(newTask.id);
       }
+
+      // @멘션 파싱 (fire-and-forget — 메인 저장 실패 원인 안 됨)
+      parseMentionsAndNotify({
+        taskId: newTask.id,
+        actorId: meId,
+        actorName: adminMember.name,
+        texts: [newTask.title, newTask.description].filter((t): t is string => typeof t === "string" && t.length > 0),
+      }).catch(() => {});
 
       return ok(newTask, "작업이 생성되었습니다");
     }
@@ -869,6 +987,19 @@ export default async (req: Request, _ctx: Context) => {
         action: "workspace.task.update", target: `task:${id}`,
         detail: { changed: Object.keys(updateData) }, req,
       });
+
+      // @멘션 파싱 (fire-and-forget — title/description 변경 시에만)
+      const mentionTexts = [body.title, body.description].filter(
+        (t): t is string => typeof t === "string" && t.length > 0,
+      );
+      if (mentionTexts.length > 0) {
+        parseMentionsAndNotify({
+          taskId: id,
+          actorId: meId,
+          actorName: adminMember.name,
+          texts: mentionTexts,
+        }).catch(() => {});
+      }
 
       return ok(updated, "작업이 수정되었습니다");
     }
