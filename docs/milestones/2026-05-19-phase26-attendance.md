@@ -536,7 +536,9 @@ FIELD:
 **검증 브랜치**: `main` (머지 완료 후)
 **작업 디렉토리**: `../tbfa-mis-C` (또는 별도 C 환경)
 
-### 검증 항목 (15개)
+### 검증 항목 (21개)
+
+> Q1~Q15: Phase 26 근태관리 / Q16~Q21: 성과관리 설정 (메인이 별도 구현 완료, 844fbfc)
 
 | # | 항목 | 확인 방법 |
 |---|---|---|
@@ -555,6 +557,12 @@ FIELD:
 | Q13 | admin-hub.html에 워크스페이스 관리 카드 존재 | admin-hub.html 내 grep |
 | Q14 | workspace-attendance.js GPS 분기 (REMOTE는 geolocation 호출 안 함) | JS 코드 확인 |
 | Q15 | 캐시버스터 workspace-attendance.js?v=1, admin-workspace-management.js?v=1 | HTML 파일 확인 |
+| Q16 | admin-milestone-definitions API — `export const config = { path }` 존재 + super_admin 체크 | admin-milestone-definitions.ts 상단 |
+| Q17 | admin-milestone-role-assign API — `export const config = { path }` 존재 + super_admin 체크 | admin-milestone-role-assign.ts 상단 |
+| Q18 | 워크스페이스 사이드바 7개 파일 모두 `wsNavMilestoneSettings` id 항목 존재 | grep `wsNavMilestoneSettings` public/workspace*.html |
+| Q19 | ws-sidebar-role.js — super_admin일 때만 `wsNavMilestoneSettings` 표시 | public/js/ws-sidebar-role.js 로직 확인 |
+| Q20 | admin-milestone-settings.html — 비슈퍼어드민 접근 시 차단 메시지 표시 (리다이렉트 X) | admin-milestone-settings.js 초기화 분기 |
+| Q21 | 성과관리 패널 "로딩 중..." 해결 확인 — workspace-milestones.js가 `/api/admin/me?light=1` 호출 | workspace-milestones.js 60번째 줄 |
 
 ---
 
