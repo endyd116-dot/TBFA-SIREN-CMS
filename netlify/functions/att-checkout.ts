@@ -1,0 +1,119 @@
+import { db } from "../../db/index";
+import { members, attRecords } from "../../db/schema";
+import { eq, and } from "drizzle-orm";
+import { requireActiveUser } from "../../lib/auth";
+import { getDefaultPolicy, calcWorkingMins, determineStatus } from "../../lib/att-utils";
+
+export const config = { path: "/api/att-checkout" };
+
+function jsonOk(data: unknown) {
+  return new Response(JSON.stringify({ ok: true, data }), {
+    status: 200, headers: { "Content-Type": "application/json" },
+  });
+}
+function jsonError(step: string, err: any, status = 500) {
+  return new Response(JSON.stringify({
+    ok: false, error: "퇴근 처리 실패", step,
+    detail: String(err?.message ?? err).slice(0, 500),
+    stack: String(err?.stack ?? "").slice(0, 1000),
+  }), { status, headers: { "Content-Type": "application/json" } });
+}
+
+export default async function handler(req: Request) {
+  const auth = await requireActiveUser(req);
+  if (!auth.ok) return auth.res;
+
+  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+
+  let body: any;
+  try { body = await req.json(); } catch { body = {}; }
+
+  const { lat, lng } = body;
+
+  // members.uid 조회
+  let memberUid: string;
+  try {
+    const [member] = await db
+      .select({ uid: members.uid })
+      .from(members)
+      .where(eq(members.id, auth.user.uid))
+      .limit(1);
+    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
+    memberUid = member.uid;
+  } catch (err) {
+    return jsonError("select_member", err);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+
+  // 오늘 출근 기록 확인
+  let existing: any;
+  try {
+    const rows = await db
+      .select()
+      .from(attRecords)
+      .where(and(eq(attRecords.memberUid, memberUid), eq(attRecords.date, today)))
+      .limit(1);
+    existing = rows[0];
+  } catch (err) {
+    return jsonError("select_record", err);
+  }
+
+  if (!existing) {
+    return new Response(JSON.stringify({
+      ok: false, error: "출근 기록 없음 — 출근 먼저 처리해 주세요", step: "no_checkin",
+    }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
+
+  if (existing.checkOutTime) {
+    return new Response(JSON.stringify({
+      ok: false, error: "이미 퇴근 처리됨", step: "already_checkout",
+    }), { status: 409, headers: { "Content-Type": "application/json" } });
+  }
+
+  // 정책
+  const policy = await getDefaultPolicy();
+  if (!policy) return jsonError("no_policy", new Error("근무 정책 없음"), 500);
+
+  // 근무시간 계산
+  const checkIn = existing.checkInTime ? new Date(existing.checkInTime) : now;
+  const { workingMins, overtimeMins } = calcWorkingMins(checkIn, now, {
+    dailyHours: Number(policy.dailyHours),
+    breakMins: policy.breakMins,
+    breakThresholdHours: Number(policy.breakThresholdHours),
+  });
+
+  // 조퇴 판정 (checkIn 재사용, checkOut=now)
+  const status = determineStatus(
+    checkIn,
+    now,
+    {
+      checkInTime: String(policy.checkInTime),
+      checkOutTime: String(policy.checkOutTime),
+      lateGraceMins: policy.lateGraceMins,
+      earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+    },
+    false,
+    false
+  );
+
+  try {
+    const [record] = await db
+      .update(attRecords)
+      .set({
+        checkOutTime: now,
+        checkOutLat: lat != null ? String(lat) : null,
+        checkOutLng: lng != null ? String(lng) : null,
+        workingMins,
+        overtimeMins,
+        status,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(attRecords.memberUid, memberUid), eq(attRecords.date, today)))
+      .returning();
+    return jsonOk(record);
+  } catch (err) {
+    return jsonError("update_record", err);
+  }
+}
