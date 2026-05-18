@@ -168,20 +168,17 @@
     try {
       const res = await api('/api/admin-user-preferences');
       const state = (res && res.data) || res || {};
-      card.style.display = '';
       renderCard(card, state);
       // WBS 기본 보기 카드도 함께 렌더
       renderWbsViewCard(state);
+      // 관리자 도구 탭 표시
+      const tab = document.getElementById('mpAdminToolsTab');
+      if (tab) tab.style.display = '';
     } catch (err) {
       if (err.status === 401 || err.status === 403) {
-        card.style.display = 'none';
-        const wbsCard = document.getElementById('mpWbsViewCard');
-        if (wbsCard) wbsCard.style.display = 'none';
+        // 일반 회원 — 탭 숨김 유지 (이미 display:none)
       } else {
         console.warn('[mp-ooo] 로드 실패:', err);
-        card.style.display = 'none';
-        const wbsCard = document.getElementById('mpWbsViewCard');
-        if (wbsCard) wbsCard.style.display = 'none';
       }
     }
   }

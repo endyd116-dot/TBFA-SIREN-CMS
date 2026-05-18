@@ -836,17 +836,12 @@
               <li data-mp="points">🏆 포인트·배지</li>
               <li data-mp="ranking">🥇 랭킹</li>
               <li data-mp="notifications" id="mpNotifyTab">&#128236; 알림</li>
+              <li data-mp="admin-tools" id="mpAdminToolsTab" style="display:none">&#128295; 관리자 도구</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">로그아웃</li>
             </ul>
           </aside>
 
           <div class="mp-content">
-
-          <!-- Phase 21 R3: 운영자 부재 토글 카드 (운영자에게만 자동 표시 — mypage-out-of-office.js가 마운트) -->
-          <div id="mpOutOfOfficeCard" style="display:none"></div>
-
-          <!-- Phase 21 R4: WBS 기본 보기 모드 카드 (운영자에게만 자동 표시) -->
-          <div id="mpWbsViewCard" style="display:none"></div>
 
           <!-- 1. 내 후원 내역 -->
             <div class="mp-panel" data-mp-panel="donations">
@@ -1124,6 +1119,17 @@
               <div id="mpNotifyList">
                 <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
               </div>
+            </div>
+
+            <!-- 관리자 도구 (운영자 전용 — mypage-out-of-office.js가 로그인 확인 후 표시) -->
+            <div class="mp-panel" data-mp-panel="admin-tools" style="display:none">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+                <span style="display:inline-block;width:4px;height:24px;background:var(--brand);border-radius:2px"></span>
+                <h3 class="serif" style="margin:0">&#128295; 관리자 도구</h3>
+              </div>
+              <p class="sub" style="margin-bottom:20px;color:var(--text-3)">운영자 전용 설정입니다.</p>
+              <div id="mpOutOfOfficeCard"></div>
+              <div id="mpWbsViewCard"></div>
             </div>
 
           </div>
