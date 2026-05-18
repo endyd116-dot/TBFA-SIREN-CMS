@@ -1,0 +1,88 @@
+import { db } from "../../db/index";
+import { attPolicies } from "../../db/schema";
+import { eq } from "drizzle-orm";
+import { requireAdmin } from "../../lib/admin-guard";
+
+export const config = { path: "/api/admin-att-policy" };
+
+function jsonOk(data: unknown) {
+  return new Response(JSON.stringify({ ok: true, data }), {
+    status: 200, headers: { "Content-Type": "application/json" },
+  });
+}
+function jsonError(step: string, err: any, status = 500) {
+  return new Response(JSON.stringify({
+    ok: false, error: "정책 처리 실패", step,
+    detail: String(err?.message ?? err).slice(0, 500),
+    stack: String(err?.stack ?? "").slice(0, 1000),
+  }), { status, headers: { "Content-Type": "application/json" } });
+}
+
+export default async function handler(req: Request) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.res;
+  if (auth.member.role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // GET — is_default=true 정책 조회
+  if (req.method === "GET") {
+    try {
+      const rows = await db
+        .select()
+        .from(attPolicies)
+        .where(eq(attPolicies.isDefault, true))
+        .limit(1);
+      return jsonOk(rows[0] ?? null);
+    } catch (err) {
+      return jsonError("select_policy", err);
+    }
+  }
+
+  // PUT — 정책 수정 (is_default=true 레코드 업데이트)
+  if (req.method === "PUT") {
+    let body: any;
+    try { body = await req.json(); } catch { body = {}; }
+
+    try {
+      // is_default=true 레코드 확인
+      const existing = await db
+        .select()
+        .from(attPolicies)
+        .where(eq(attPolicies.isDefault, true))
+        .limit(1);
+
+      if (existing.length === 0) {
+        return jsonError("not_found", new Error("기본 정책 없음"), 404);
+      }
+
+      const [row] = await db
+        .update(attPolicies)
+        .set({
+          name:                 body.name               ?? existing[0].name,
+          checkInTime:          body.checkInTime        ?? existing[0].checkInTime,
+          checkOutTime:         body.checkOutTime       ?? existing[0].checkOutTime,
+          lateGraceMins:        body.lateGraceMins      ?? existing[0].lateGraceMins,
+          earlyLeaveGraceMins:  body.earlyLeaveGraceMins ?? existing[0].earlyLeaveGraceMins,
+          dailyHours:           body.dailyHours != null  ? String(body.dailyHours) : existing[0].dailyHours,
+          breakMins:            body.breakMins           ?? existing[0].breakMins,
+          breakThresholdHours:  body.breakThresholdHours != null ? String(body.breakThresholdHours) : existing[0].breakThresholdHours,
+          weeklyMaxHours:       body.weeklyMaxHours     ?? existing[0].weeklyMaxHours,
+          coreStartTime:        body.coreStartTime      ?? existing[0].coreStartTime,
+          coreEndTime:          body.coreEndTime        ?? existing[0].coreEndTime,
+          flexEnabled:          body.flexEnabled        ?? existing[0].flexEnabled,
+          remoteMaxPerMonth:    body.remoteMaxPerMonth  ?? existing[0].remoteMaxPerMonth,
+          updatedAt:            new Date(),
+        })
+        .where(eq(attPolicies.id, existing[0].id))
+        .returning();
+      return jsonOk(row);
+    } catch (err) {
+      return jsonError("update_policy", err);
+    }
+  }
+
+  return new Response("Method Not Allowed", { status: 405 });
+}
