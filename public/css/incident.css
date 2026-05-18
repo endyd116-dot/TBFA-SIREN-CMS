@@ -496,3 +496,267 @@
   #incidentReportModal .ir-body { padding: 18px; }
   .ir-ai-decision .decision-buttons button { min-width: auto; }
 }
+/* ===== R10: 사건 댓글 시스템 ===== */
+.incident-comments {
+  margin-top: 40px;
+  padding: 28px;
+  background: #fff;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 12px;
+}
+.incident-comments .ic-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  color: var(--text-1, #1a1f2b);
+}
+.incident-comments .ic-title span {
+  color: var(--text-3, #888);
+  font-weight: 500;
+  font-size: 14px;
+}
+.ic-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+.ic-form textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d1d5db);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+.ic-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ic-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2, #4b5563);
+  cursor: pointer;
+}
+.ic-login-notice {
+  padding: 16px;
+  background: var(--bg-soft, #f8fafc);
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--text-2, #4b5563);
+  text-align: center;
+}
+.ic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ic-comment {
+  padding: 14px 16px;
+  background: var(--bg-soft, #fafafa);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.12s;
+}
+.ic-comment.hidden-comment {
+  opacity: 0.55;
+  background: #f3f4f6;
+}
+.ic-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ic-comment-author {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text-1, #1a1f2b);
+}
+.ic-comment-time {
+  font-size: 12px;
+  color: var(--text-3, #888);
+  margin-left: auto;
+}
+.ic-badge-anon {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.ic-comment-content {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-1, #1a1f2b);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 10px;
+}
+.ic-comment-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ic-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid var(--line, #d1d5db);
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-2, #4b5563);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.ic-action-btn:hover {
+  background: var(--bg-hover, #f1f5f9);
+  border-color: #94a3b8;
+}
+.ic-action-btn.voted {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1e40af;
+  font-weight: 600;
+}
+.ic-action-btn.report-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+.ic-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.ic-btn-primary {
+  background: var(--brand, #7a1f2b);
+  color: #fff;
+}
+.ic-btn-primary:hover { opacity: 0.9; }
+.ic-btn-default {
+  background: #fff;
+  border: 1px solid var(--line, #d1d5db);
+  color: var(--text-2, #4b5563);
+}
+.ic-btn-default:hover { background: var(--bg-hover, #f1f5f9); }
+.ic-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+.ic-btn-danger:hover { background: #b91c1c; }
+
+/* 신고 모달 */
+.ic-report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ic-report-modal.show { display: flex; }
+.ic-report-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+.ic-report-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.ic-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+.ic-report-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ic-report-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-3, #888);
+  cursor: pointer;
+  line-height: 1;
+}
+.ic-report-body {
+  padding: 18px 20px;
+}
+.ic-report-desc {
+  font-size: 13px;
+  color: var(--text-2, #4b5563);
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+.ic-report-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ic-report-reasons label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: background 0.12s;
+}
+.ic-report-reasons label:hover { background: var(--bg-soft, #f8fafc); }
+.ic-report-body textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d1d5db);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  resize: vertical;
+}
+.ic-report-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line, #e5e7eb);
+}
+
+@media (max-width: 600px) {
+  .incident-comments { padding: 18px 16px; }
+  .ic-comment { padding: 12px 14px; }
+  .ic-action-btn { font-size: 12px; padding: 4px 8px; }
+}
