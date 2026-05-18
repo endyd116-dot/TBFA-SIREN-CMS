@@ -1620,6 +1620,10 @@ export const workspaceTasks = pgTable("workspace_tasks", {
   recurringParentId: integer("recurring_parent_id"),
   // ⭐ AI 생성 식별
   createdByAgent: varchar("created_by_agent", { length: 20 }),               // 'user' | 'agent-1' | 'agent-8' ...
+  // ★ Phase 25 — WBS↔마일스톤 연동
+  milestoneDefId: integer("milestone_def_id"),                               // FK milestone_definitions(id) ON DELETE SET NULL
+  milestoneMatchStatus: varchar("milestone_match_status", { length: 20 }),  // 'auto' | 'user' | 'skipped' | null
+  milestoneMatchConfidence: integer("milestone_match_confidence"),           // AI 신뢰도 0~100
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -1631,6 +1635,7 @@ export const workspaceTasks = pgTable("workspace_tasks", {
   parentIdx: index("workspace_tasks_parent_idx").on(t.parentTaskId),
   sourceIdx: index("workspace_tasks_source_idx").on(t.sourceType, t.sourceId),
   recurringIdx: index("workspace_tasks_recurring_idx").on(t.recurringParentId),
+  milestoneDefIdx: index("workspace_tasks_milestone_def_idx").on(t.milestoneDefId),
 }));
 
 // 2. 개인 메모
