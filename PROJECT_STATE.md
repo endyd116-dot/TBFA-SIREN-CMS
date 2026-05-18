@@ -25,7 +25,7 @@
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
 | 2026-05-18 | **메인** | **📐 라운드 8·9·10 설계 완료** — R8 수정/삭제 API 5종+보고↔작업 자동동기화(DB 마이그 불필요) / R9 WBS 고급+채팅 편집/삭제(DB 마이그 필요: migrate-chat-edit) / R10 댓글 투표·공유·알림 구독+AI 법률 배정(DB 마이그 불필요). B·A·C 트리거 3종 준비됨 |
-| 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 머지 완료** (main @ `8b06826`) — Layer 3 힌트 시스템(suggestedNextSteps 15핸들러) + Layer 4 스케줄 도구 3개(schedule_command·scheduled_commands_list·schedule_cancel) + C BUG 3건 fix 포함. **⚠️ 마이그레이션 호출 필요**: `https://tbfa.co.kr/api/migrate-ai-schedule?run=1` |
+| 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 완결** (main @ `8b06826`) — Layer 3 힌트 시스템 + Layer 4 스케줄 도구 3개 + C BUG 3건 fix + 마이그레이션 완료 (ae04a13) |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
 | 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료. 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
 | 2026-05-17 | **메인** | **🏁 라운드 1~6 전체 완결** (main @ `5086322`) — C 검증 54항목 전부 통과. R2 BUG 2건 포함 모두 해소. 게이미피케이션·큐레이션·팝업 DB 8테이블 + API 18개 + UI 5페이지 운영 중. |
@@ -47,8 +47,8 @@
 
 ```
 ✅ 라운드 7 Phase 2 완료 — main @ 8b06826 (2026-05-18)
-   - ⚠️ Swain 마이그레이션 호출 필요: https://tbfa.co.kr/api/migrate-ai-schedule?run=1
-   - C Q1~Q6 라이브 검증 대기 중 (마이그 후)
+   - ai_scheduled_commands 테이블 마이그레이션 완료 (ae04a13)
+   - C Q1~Q6 라이브 검증은 Swain 직접 확인 시 가능
 
 📐 라운드 8·9·10 설계 완료 (2026-05-18)
    - R8: 수정/삭제 API 5종 + 보고↔작업 자동동기화 (DB 마이그 불필요)
@@ -181,7 +181,7 @@
 | B | AI 스케줄 도구 | Layer 4: ai_scheduled_commands 테이블 + cron runner + schedule 3도구 | ✅ 완료 (d723cc2, 머지됨) |
 | C | 버그픽스 + 검증 | BUG 3건 fix + Q1~Q6 라이브 검증 | 🔄 BUG fix 머지됨, 라이브 검증 마이그 후 |
 
-**⚠️ Swain 액션 필요**: `https://tbfa.co.kr/api/migrate-ai-schedule?run=1` 호출 후 메인에 알림
+**✅ 마이그레이션 완료**: ai_scheduled_commands 테이블 생성됨 (ae04a13)
 
 ### 4.6 라운드 6 게이미피케이션 + 큐레이션·팝업 (2026-05-17 ✅ 전체 완결)
 
