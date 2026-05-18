@@ -373,6 +373,62 @@ document.getElementById('settlQuarterFilter')?.addEventListener('change', loadSe
 document.getElementById('settlStatusFilter')?.addEventListener('change', loadSettlements);
 document.getElementById('btnReloadSettlements')?.addEventListener('click', loadSettlements);
 
+/* ───── 급여 내보내기 ───── */
+document.getElementById('btnExportSalary')?.addEventListener('click', async () => {
+  const quarterId = document.getElementById('settlQuarterFilter')?.value || '';
+  const btn = document.getElementById('btnExportSalary');
+  if (btn) btn.textContent = '내보내는 중...';
+  try {
+    const url = '/api/admin/milestone-settlement-export' + (quarterId ? `?quarterId=${quarterId}` : '');
+    const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      amToast((err.error || '내보내기 실패'), 'error');
+      return;
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    const qLabel = quarterId ? `_Q${quarterId}` : '';
+    a.href = URL.createObjectURL(blob);
+    a.download = `milestone_salary${qLabel}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    amToast('CSV 다운로드 완료', 'success');
+  } catch (e) { amToast('내보내기 실패: ' + e.message, 'error'); }
+  finally { if (btn) btn.textContent = '📥 급여 내보내기'; }
+});
+
+/* ───── AI 인사이트 ───── */
+async function callAiInsight(type) {
+  const quarterId = document.getElementById('settlQuarterFilter')?.value || '';
+  const resultEl = document.getElementById('aiInsightResult');
+  if (!resultEl) return;
+  resultEl.innerHTML = '<span style="color:#6b7280">분석 중...</span>';
+
+  const body = { type };
+  if (type !== 'recommend' && quarterId) body.quarterId = Number(quarterId);
+
+  try {
+    const res = await amApi('/api/ai-milestone-insight', { method: 'POST', body });
+    if (!res.ok) { resultEl.innerHTML = `<span style="color:#dc2626">오류: ${res.data?.error || '분석 실패'}</span>`; return; }
+    const text = res.data?.data?.text || res.data?.text || '';
+    const items = res.data?.data?.items || res.data?.items || [];
+    if (items.length) {
+      resultEl.innerHTML = `<ul style="margin:0;padding-left:18px">${items.map(it => `<li style="margin-bottom:4px">${escHtmlAm(it)}</li>`).join('')}</ul>`;
+    } else {
+      resultEl.innerHTML = escHtmlAm(text).replace(/\n/g, '<br>') || '<span style="color:#9ca3af">결과 없음</span>';
+    }
+  } catch (e) { resultEl.innerHTML = `<span style="color:#dc2626">오류: ${e.message}</span>`; }
+}
+
+function escHtmlAm(s) {
+  return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+document.getElementById('btnAiSummary')?.addEventListener('click', () => callAiInsight('summary'));
+document.getElementById('btnAiAnomaly')?.addEventListener('click', () => callAiInsight('anomaly'));
+document.getElementById('btnAiRecommend')?.addEventListener('click', () => callAiInsight('recommend'));
+
 async function approveSettlement(id) {
   if (!confirm('이 결산을 승인하시겠습니까?')) return;
   const res = await amApi(`/api/admin-milestone-settlement/${id}/approve`, { method: 'POST' });

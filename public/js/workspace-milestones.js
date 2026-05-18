@@ -360,21 +360,50 @@
     if (!state.pendingVerifications.length) { list.innerHTML = '<div class="ms-empty"><div class="ms-empty-icon">✅</div>검증할 항목이 없습니다.</div>'; return; }
     list.innerHTML = `<table class="ms-table">
       <thead><tr><th>날짜</th><th>입력자</th><th>마일스톤</th><th>금액/수량</th><th>상태</th><th>액션</th></tr></thead>
-      <tbody>${state.pendingVerifications.map(e => `
+      <tbody>${state.pendingVerifications.map(e => {
+        const formula = e.bonusFormula || {};
+        const isEventRange = formula.type === 'EVENT_RANGE' || formula.formula_type === 'EVENT_RANGE';
+        const rangeMin = formula.minAmount || formula.min || 0;
+        const rangeMax = formula.maxAmount || formula.max || 0;
+        const rangeHint = isEventRange
+          ? `<div style="font-size:11px;color:#7c3aed;margin-top:3px">범위: ${Number(rangeMin).toLocaleString()}~${Number(rangeMax).toLocaleString()}만원</div>
+             <input type="number" id="eventRangeAmount_${e.id}" placeholder="금액 입력" min="${rangeMin}" max="${rangeMax}" disabled
+               style="margin-top:4px;width:120px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12.5px">`
+          : '';
+        const actionBtn = e.status === 'PENDING' ? `
+          ${isEventRange ? `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerifyEventRange(${e.id})" style="background:#ede9fe;color:#5b21b6;border:none">검증 + 금액 확정</button>` :
+            `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">✅ 승인</button>`}
+          <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="window.__msVerify('revenue','reject',${e.id})">반려</button>
+        ` : '';
+        return `
         <tr>
           <td style="font-size:12px;white-space:nowrap">${fmtDate(e.revenueDate)}</td>
           <td style="font-size:12.5px">${escHtml(e.enteredByName||'')}</td>
-          <td>${escHtml(e.milestoneName||'')} <small style="color:#9ca3af">${escHtml(e.milestoneCode||'')}</small></td>
+          <td>${escHtml(e.milestoneName||'')} <small style="color:#9ca3af">${escHtml(e.milestoneCode||'')}</small>${rangeHint}</td>
           <td style="font-weight:600">${Number(e.amount||0).toLocaleString()} ${escHtml(e.amountUnit||'')}</td>
           <td><span class="ms-badge ${e.status}">${{PENDING:'대기',VERIFIED:'완료',REJECTED:'반려'}[e.status]||e.status}</span></td>
-          <td>${e.status === 'PENDING' ? `
-            <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">✅ 승인</button>
-            <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="window.__msVerify('revenue','reject',${e.id})">반려</button>
-          ` : ''}</td>
-        </tr>
-      `).join('')}</tbody>
+          <td>${actionBtn}</td>
+        </tr>`;
+      }).join('')}</tbody>
     </table>`;
+
+    // EVENT_RANGE 입력 필드 활성화 (렌더 후 이벤트 바인딩)
+    state.pendingVerifications.forEach(e => {
+      const input = document.getElementById(`eventRangeAmount_${e.id}`) as HTMLInputElement;
+      if (input) input.disabled = false;
+    });
   }
+
+  window.__msVerifyEventRange = async function(id) {
+    const input = document.getElementById(`eventRangeAmount_${id}`) as HTMLInputElement;
+    const eventRangeAmount = input ? Number(input.value) : 0;
+    if (!eventRangeAmount || eventRangeAmount <= 0) { toast('금액을 입력하세요', 'error'); return; }
+    try {
+      await api('/api/admin-milestone-revenue', { method: 'PUT', body: { id, action: 'verify', eventRangeAmount } });
+      toast('검증 및 금액 확정 완료', 'success');
+      await loadAndRenderVerifyList();
+    } catch (e) { toast('처리 실패: ' + (e as any).message, 'error'); }
+  };
 
   window.__msVerify = async function(type, action, id) {
     if (action === 'reject') {
@@ -425,26 +454,63 @@
   function renderNrCards(achs) {
     const list = $('#nrList');
     if (!list) return;
-    list.innerHTML = achs.map(a => {
-      const selIdx = state.nrSelectedIds.indexOf(a.id);
-      const isSelected = selIdx >= 0;
-      const checkClass = isSelected ? (selIdx === 0 ? 'selected' : 'selected-2') : '';
-      const canSelect = a.status === 'VERIFIED';
-      return `
-        <div class="ms-ach-card">
-          ${canSelect ? `<div class="ms-ach-check ${checkClass}" onclick="window.__nrToggle(${a.id})">${isSelected ? (selIdx+1) : ''}</div>` : '<div style="width:22px"></div>'}
-          <div class="ms-ach-body">
-            <div class="ms-ach-name">${escHtml(a.name||a.milestoneName||'')}</div>
-            <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
-            ${a.description ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">${escHtml(a.description)}</div>` : ''}
-          </div>
-          <div class="ms-ach-bonus">${fmt(a.bonusAmount)}</div>
-        </div>
-      `;
-    }).join('');
+
+    const selectedCount = state.nrSelectedIds.length;
+    const maxReached = selectedCount >= 2;
+
+    // 섹션 헤더 배지
+    const badge = `<span class="ms-select-badge" style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;background:${selectedCount===2?'#dcfce7':'#eff6ff'};color:${selectedCount===2?'#15803d':'#1d4ed8'};margin-left:8px">선택됨 ${selectedCount}/2개</span>`;
+
+    // 선택된 항목들의 보너스 합산
+    const selectedBonus = achs
+      .filter(a => state.nrSelectedIds.includes(a.id))
+      .reduce((sum, a) => sum + Number(a.bonusAmount || 0), 0);
+
+    list.innerHTML = `
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <span style="font-size:14px;font-weight:700;color:#111">비매출 성과 항목</span>${badge}
+      </div>
+      ${achs.map(a => {
+        const selIdx = state.nrSelectedIds.indexOf(a.id);
+        const isSelected = selIdx >= 0;
+        const checkClass = isSelected ? (selIdx === 0 ? 'selected' : 'selected-2') : '';
+        const canSelect = a.status === 'VERIFIED';
+        const isDisabled = canSelect && !isSelected && maxReached;
+        const cardStyle = isSelected
+          ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#f0fdf4'
+          : isDisabled
+            ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.5;background:#f9fafb'
+            : 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#fff';
+        const checkEl = canSelect
+          ? `<div class="ms-ach-check ${checkClass}" onclick="${isDisabled ? "window.__nrMaxToast()" : `window.__nrToggle(${a.id})`}"
+               title="${isDisabled ? '최대 2개 선택 가능' : ''}"
+               style="cursor:${isDisabled?'not-allowed':'pointer'}">${isSelected ? (selIdx+1) : ''}</div>`
+          : '<div style="width:22px"></div>';
+        const nameStyle = isSelected ? 'font-weight:700;color:#111' : 'font-weight:500;color:#374151';
+        const bonusStyle = isSelected ? 'font-weight:700;color:#15803d' : 'color:#6b7280';
+        return `
+          <div style="${cardStyle}">
+            ${checkEl}
+            <div class="ms-ach-body" style="flex:1">
+              <div class="ms-ach-name" style="${nameStyle}">${escHtml(a.name||a.milestoneName||'')}</div>
+              <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
+              ${a.description ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">${escHtml(a.description)}</div>` : ''}
+            </div>
+            <div class="ms-ach-bonus" style="${bonusStyle}">${fmt(a.bonusAmount)}</div>
+          </div>`;
+      }).join('')}
+      <div style="margin-top:14px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13.5px">
+        <span style="font-weight:700;color:#111">선택된 비매출 보너스: ${fmt(selectedBonus)}</span>
+        <span style="color:#6b7280;margin-left:8px">(${selectedCount}/2)</span>
+      </div>`;
+
     const saveBtn = $('#nrBtnSaveSelect') as HTMLElement;
     if (saveBtn) saveBtn.style.display = achs.some(a => a.status === 'VERIFIED') ? '' : 'none';
   }
+
+  window.__nrMaxToast = function() {
+    toast('최대 2개까지만 선택 가능합니다', 'error');
+  };
 
   window.__nrToggle = function(id) {
     const idx = state.nrSelectedIds.indexOf(id);
@@ -682,7 +748,11 @@
       </div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px">
         <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">자가평가 의견</h3>
-        <textarea id="settleSelf" rows="4" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13.5px;box-sizing:border-box" placeholder="이번 분기 성과에 대한 의견을 작성하세요"></textarea>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <textarea id="settleSelf" rows="4" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13.5px;box-sizing:border-box" placeholder="이번 분기 성과에 대한 의견을 작성하세요"></textarea>
+          <button class="ms-btn ms-btn-ghost" id="btnAiCoach" style="white-space:nowrap;padding:8px 14px;font-size:12.5px;border:1px solid #3b82f6;color:#3b82f6">💡 AI 코칭</button>
+        </div>
+        <div id="aiCoachResult" style="display:none;margin-top:10px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;color:#1e40af;line-height:1.6"></div>
         <div style="margin-top:12px">
           <button class="ms-btn ms-btn-primary" id="btnSubmitSettle">결산 제출</button>
         </div>
@@ -702,6 +772,22 @@
           <div style="margin-top:12px;font-size:20px;font-weight:800">예상 합계: ${fmt(calc.totalBonus)}</div>`;
       } catch (e) { toast('계산 실패: ' + (e as any).message, 'error'); }
       finally { btn.disabled = false; btn.textContent = '📊 계산하기'; }
+    });
+
+    $('#btnAiCoach')?.addEventListener('click', async () => {
+      const selfEvalText = ($('#settleSelf') as HTMLTextAreaElement).value.trim();
+      if (!selfEvalText) { toast('자가평가 내용을 먼저 작성하세요', 'error'); return; }
+      const btn = $('#btnAiCoach') as HTMLButtonElement;
+      const resultEl = $('#aiCoachResult') as HTMLElement;
+      btn.disabled = true; btn.textContent = '분석 중...';
+      resultEl.style.display = 'none';
+      try {
+        const res = await api('/api/ai-milestone-insight', { method:'POST', body:{ type:'coach', selfEvalText } });
+        const text = res.data?.text || res.text || '';
+        resultEl.style.display = '';
+        resultEl.innerHTML = `<strong>💡 AI 코칭</strong><br>${escHtml(text).replace(/\n/g,'<br>')}`;
+      } catch (e) { toast('AI 코칭 실패: ' + (e as any).message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '💡 AI 코칭'; }
     });
 
     $('#btnSubmitSettle')?.addEventListener('click', async () => {
