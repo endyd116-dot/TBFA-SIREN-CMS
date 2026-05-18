@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="/css/layout.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/pages.css">
-<link rel="stylesheet" href="/css/incident.css?v=m5">
+<link rel="stylesheet" href="/css/incident.css?v=2026-05-18-r10">
 <link rel="stylesheet" href="/css/attachment.css?v=m2">
 </head>
 <body data-page="incident-detail">
@@ -44,9 +44,55 @@
         </p>
         <button class="cta-btn" id="btnOpenReportModal">제보하기 →</button>
       </div>
+
+      <!-- ★ R10: 사건 댓글 영역 -->
+      <section class="incident-comments" id="incidentCommentSection" style="display:none">
+        <h3 class="ic-title">💬 댓글 <span id="icCommentCount">(0)</span></h3>
+
+        <div class="ic-form" id="icCommentForm" style="display:none">
+          <textarea id="icCommentInput" placeholder="댓글을 입력해 주세요 (최대 1000자)" maxlength="1000"></textarea>
+          <div class="ic-form-actions">
+            <label class="ic-checkbox"><input type="checkbox" id="icAnonymous"> <span>익명</span></label>
+            <button type="button" class="ic-btn ic-btn-primary" id="icCommentSubmit">등록</button>
+          </div>
+        </div>
+        <div class="ic-login-notice" id="icLoginNotice" style="display:none">
+          댓글을 작성하려면 <a href="#" data-target="loginModal" style="color:var(--brand);font-weight:600">로그인</a>이 필요합니다.
+        </div>
+
+        <div class="ic-list" id="icCommentList">
+          <div style="text-align:center;padding:20px;color:var(--text-3)">댓글 불러오는 중...</div>
+        </div>
+      </section>
     </div>
 
   </main>
+
+  <!-- ★ R10: 댓글 신고 모달 -->
+  <div class="ic-report-modal" id="icReportModal" role="dialog" aria-hidden="true">
+    <div class="ic-report-backdrop" data-icr-close></div>
+    <div class="ic-report-content">
+      <div class="ic-report-header">
+        <h3>🚨 댓글 신고</h3>
+        <button type="button" class="ic-report-close" data-icr-close aria-label="닫기">&times;</button>
+      </div>
+      <div class="ic-report-body">
+        <p class="ic-report-desc">부적절한 댓글을 신고하시려면 사유를 선택해 주세요. 운영진이 검토 후 처리합니다.</p>
+        <div class="ic-report-reasons" id="icReportReasons">
+          <label><input type="radio" name="icReportReason" value="욕설/혐오 발언"> <span>욕설·혐오 발언</span></label>
+          <label><input type="radio" name="icReportReason" value="허위 사실·비방"> <span>허위 사실·비방</span></label>
+          <label><input type="radio" name="icReportReason" value="스팸·도배"> <span>스팸·도배</span></label>
+          <label><input type="radio" name="icReportReason" value="개인정보 노출"> <span>개인정보 노출</span></label>
+          <label><input type="radio" name="icReportReason" value="기타"> <span>기타</span></label>
+        </div>
+        <textarea id="icReportDetail" placeholder="상세 사유 (선택, 500자 이내)" maxlength="500"></textarea>
+      </div>
+      <div class="ic-report-footer">
+        <button type="button" class="ic-btn ic-btn-default" data-icr-close>취소</button>
+        <button type="button" class="ic-btn ic-btn-danger" id="icReportSubmit">신고하기</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================================================
        제보 모달
@@ -167,6 +213,6 @@
   <script src="/js/auth.js?v=6"></script>
   <script src="/js/editor.js?v=2026-05"></script>
   <script src="/js/attachment.js?v=2026-05"></script>
-  <script src="/js/incident.js?v=2026-05"></script>
+  <script src="/js/incident.js?v=2026-05-18-r10"></script>
 </body>
 </html>

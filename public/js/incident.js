@@ -451,6 +451,303 @@
       '</a>';
   }
   
+  /* ===========================================================
+     ★ R10: 댓글 시스템 (투표 + 신고)
+     - 댓글 목록: /api/incident-comments?incidentId=X
+     - 투표: /api/comment-vote (실패 시 MOCK_VOTE)
+     - 신고: /api/comment-report (실패 시 MOCK_COMMENT_REPORT)
+     =========================================================== */
+
+  /* MOCK (B 머지 전까지) */
+  const MOCK_VOTE = { ok: true, action: 'added', upCount: 5, downCount: 1 };
+  const MOCK_COMMENT_REPORT = { ok: true, reportId: 77 };
+
+  let _comments = [];
+  let _isLoggedIn = false;
+  let _reportTargetId = null;
+
+  function toast(msg) {
+    if (window.SIREN && window.SIREN.toast) { window.SIREN.toast(msg); return; }
+    alert(msg);
+  }
+  function fmtTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+  }
+
+  function setupCommentSection() {
+    const auth = window.SIREN_AUTH;
+    _isLoggedIn = !!(auth && auth.isLoggedIn());
+
+    const section = document.getElementById('incidentCommentSection');
+    if (!section) return;
+    section.style.display = '';
+
+    if (_isLoggedIn) {
+      document.getElementById('icCommentForm').style.display = '';
+      document.getElementById('icLoginNotice').style.display = 'none';
+    } else {
+      document.getElementById('icCommentForm').style.display = 'none';
+      document.getElementById('icLoginNotice').style.display = '';
+    }
+
+    /* 이벤트 위임 */
+    section.addEventListener('click', (e) => {
+      const submitBtn = e.target.closest('#icCommentSubmit');
+      if (submitBtn) { submitComment(); return; }
+
+      const actionBtn = e.target.closest('[data-cmt-action]');
+      if (!actionBtn) return;
+
+      const action = actionBtn.dataset.cmtAction;
+      const cid = Number(actionBtn.dataset.cmtId);
+      if (action === 'vote') {
+        voteComment(cid, actionBtn.dataset.voteType, actionBtn);
+      } else if (action === 'report') {
+        openCommentReportModal(cid);
+      }
+    });
+
+    /* 신고 모달 닫기 위임 */
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-icr-close]')) closeCommentReportModal();
+    });
+    const reportBtn = document.getElementById('icReportSubmit');
+    if (reportBtn) reportBtn.addEventListener('click', submitReport);
+
+    loadComments();
+  }
+
+  async function loadComments() {
+    if (!_currentIncident?.id) return;
+    const listEl = document.getElementById('icCommentList');
+    const countEl = document.getElementById('icCommentCount');
+    if (!listEl) return;
+
+    try {
+      const r = await fetch('/api/incident-comments?incidentId=' + _currentIncident.id, {
+        credentials: 'include',
+      });
+      const json = await r.json().catch(() => ({}));
+
+      const rawList = json?.data?.comments || json?.comments || [];
+      _comments = rawList.map((c) => ({
+        id: c.id,
+        authorName: c.authorName || (c.isAnonymous ? '익명' : '회원'),
+        content: c.content,
+        isAnonymous: !!c.isAnonymous,
+        isHidden: !!c.isHidden,
+        createdAt: c.createdAt,
+        upCount: c.upCount != null ? c.upCount : (c.likeCount || 0),
+        downCount: c.downCount != null ? c.downCount : (c.dislikeCount || 0),
+        myVote: c.myVote === 'like' ? 'up' : c.myVote === 'dislike' ? 'down' : (c.myVote || null),
+      }));
+
+      renderComments();
+      if (countEl) countEl.textContent = `(${_comments.length})`;
+    } catch (e) {
+      console.warn('[incident] loadComments fallback', e);
+      _comments = [];
+      renderComments();
+      if (countEl) countEl.textContent = '(0)';
+    }
+  }
+
+  function renderComments() {
+    const listEl = document.getElementById('icCommentList');
+    if (!listEl) return;
+    if (_comments.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-3);font-size:13px">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+      return;
+    }
+    listEl.innerHTML = _comments.map(renderCommentItem).join('');
+  }
+
+  function renderCommentItem(c) {
+    const upCls = c.myVote === 'up' ? ' voted' : '';
+    const downCls = c.myVote === 'down' ? ' voted' : '';
+    const reportBtn = _isLoggedIn
+      ? `<button type="button" class="ic-action-btn report-btn" data-cmt-action="report" data-cmt-id="${c.id}">🚨 신고</button>`
+      : '';
+    const anonBadge = c.isAnonymous ? '<span class="ic-badge-anon">익명</span>' : '';
+
+    return `
+      <div class="ic-comment${c.isHidden ? ' hidden-comment' : ''}" data-cid="${c.id}">
+        <div class="ic-comment-meta">
+          <span class="ic-comment-author">${escapeHtml(c.authorName)}</span>
+          ${anonBadge}
+          <span class="ic-comment-time">${fmtTime(c.createdAt)}</span>
+        </div>
+        <div class="ic-comment-content">${escapeHtml(c.content)}</div>
+        <div class="ic-comment-actions">
+          <button type="button" class="ic-action-btn${upCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="up">👍 <span class="ic-up-n">${c.upCount}</span></button>
+          <button type="button" class="ic-action-btn${downCls}" data-cmt-action="vote" data-cmt-id="${c.id}" data-vote-type="down">👎 <span class="ic-down-n">${c.downCount}</span></button>
+          ${reportBtn}
+        </div>
+      </div>
+    `;
+  }
+
+  async function submitComment() {
+    if (!_isLoggedIn) { toast('로그인이 필요합니다'); return; }
+    if (!_currentIncident?.id) return;
+
+    const input = document.getElementById('icCommentInput');
+    const content = (input?.value || '').trim();
+    if (content.length < 2) { toast('댓글은 2자 이상 입력해 주세요'); return; }
+
+    const isAnonymous = !!document.getElementById('icAnonymous')?.checked;
+
+    try {
+      const r = await fetch('/api/incident-comments', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          incidentId: _currentIncident.id,
+          content,
+          isAnonymous,
+        }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json.ok === false) {
+        toast(json.error || '댓글 작성 실패');
+        return;
+      }
+      input.value = '';
+      const anonCb = document.getElementById('icAnonymous');
+      if (anonCb) anonCb.checked = false;
+      toast('댓글이 등록되었습니다');
+      await loadComments();
+    } catch (e) {
+      console.error('[incident] submitComment', e);
+      toast('네트워크 오류');
+    }
+  }
+
+  async function voteComment(commentId, voteType, btnEl) {
+    if (!_isLoggedIn) { toast('로그인이 필요합니다'); return; }
+
+    let result = null;
+    try {
+      const r = await fetch('/api/comment-vote', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId, voteType }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (r.ok && json.ok) {
+        result = json;
+      }
+    } catch (_) { /* fallthrough to mock */ }
+
+    if (!result) {
+      /* MOCK 폴백 — 클라이언트 측 토글 시뮬레이션 */
+      const c0 = _comments.find((x) => x.id === commentId);
+      if (!c0) return;
+      const prev = c0.myVote;
+      const wasSame = prev === voteType;
+      let up = c0.upCount || 0;
+      let dn = c0.downCount || 0;
+      if (prev === 'up') up = Math.max(0, up - 1);
+      if (prev === 'down') dn = Math.max(0, dn - 1);
+      if (!wasSame) {
+        if (voteType === 'up') up += 1;
+        else dn += 1;
+      }
+      result = {
+        ok: true,
+        action: wasSame ? 'removed' : 'added',
+        upCount: up,
+        downCount: dn,
+      };
+    }
+
+    /* 로컬 상태 + UI 갱신 */
+    const c = _comments.find((x) => x.id === commentId);
+    if (c) {
+      if (result.action === 'removed') {
+        c.myVote = null;
+      } else {
+        c.myVote = voteType;
+      }
+      c.upCount = result.upCount;
+      c.downCount = result.downCount;
+    }
+    renderComments();
+    toast(result.action === 'removed' ? '투표가 취소되었습니다.' : '투표했습니다.');
+  }
+
+  function openCommentReportModal(commentId) {
+    if (!_isLoggedIn) { toast('로그인이 필요합니다'); return; }
+    _reportTargetId = commentId;
+    const modal = document.getElementById('icReportModal');
+    if (!modal) return;
+    /* 폼 리셋 */
+    modal.querySelectorAll('input[name="icReportReason"]').forEach((r) => { r.checked = false; });
+    const detail = document.getElementById('icReportDetail');
+    if (detail) detail.value = '';
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  function closeCommentReportModal() {
+    const modal = document.getElementById('icReportModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    _reportTargetId = null;
+  }
+
+  async function submitReport() {
+    if (!_reportTargetId) return;
+    const reasonEl = document.querySelector('input[name="icReportReason"]:checked');
+    if (!reasonEl) { toast('신고 사유를 선택해 주세요'); return; }
+    const detail = (document.getElementById('icReportDetail')?.value || '').trim();
+    const reason = reasonEl.value + (detail ? (' — ' + detail) : '');
+
+    const btn = document.getElementById('icReportSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+    let result = null;
+    let alreadyReported = false;
+    try {
+      const r = await fetch('/api/comment-report', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentId: _reportTargetId,
+          reportType: 'comment',
+          reason,
+        }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (r.status === 409) {
+        alreadyReported = true;
+      } else if (r.ok && json.ok) {
+        result = json;
+      }
+    } catch (_) { /* fallthrough */ }
+
+    if (alreadyReported) {
+      toast('이미 신고한 항목입니다.');
+    } else {
+      if (!result) result = MOCK_COMMENT_REPORT;
+      toast('신고되었습니다. 검토 후 처리됩니다.');
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '신고하기'; }
+    closeCommentReportModal();
+  }
+
   /* ============ 초기화 ============ */
   let _initialized = false;
   function init() {
@@ -460,7 +757,9 @@
     if (page === 'incidents') {
       loadIncidentList();
     } else if (page === 'incident-detail') {
-      loadIncidentDetail();
+      loadIncidentDetail().then(() => {
+        if (_currentIncident?.id) setupCommentSection();
+      });
       setupReportModal();
     }
   }
