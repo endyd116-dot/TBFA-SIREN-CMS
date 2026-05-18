@@ -184,6 +184,29 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* ★ round8: 수정/삭제 버튼 */
+.rpt-edit-btn, .rpt-del-btn {
+  background: none;
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 12px;
+  font-weight: 600;
+  transition: background 0.1s;
+}
+.rpt-edit-btn {
+  border-color: #1a56db;
+  color: #1a56db;
+}
+.rpt-edit-btn:hover { background: #eff6ff; }
+.rpt-del-btn {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+.rpt-del-btn:hover { background: #fef2f2; }
 </style>
 </head>
 <body data-page="my-reports">
@@ -228,6 +251,6 @@
 
   <script src="/js/common.js?v=6"></script>
   <script src="/js/auth.js?v=6"></script>
-  <script src="/js/my-reports.js?v=2"></script>
+  <script src="/js/my-reports.js?v=3"></script>
 </body>
 </html>
