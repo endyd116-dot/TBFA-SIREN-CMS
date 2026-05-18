@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-settlement" };
 
@@ -91,6 +92,14 @@ export default async function handler(req: Request, _ctx: Context) {
           )
         `);
       }
+      // 슈퍼어드민 전체에게 결산 제출 알림 (fire-and-forget)
+      notifyAllSuperAdmins({
+        category: "milestone", severity: "info",
+        title: `분기 결산 제출: ${admin.name || admin.email}`,
+        message: `총 변동급 ${calc.totalBonus.toLocaleString()}원 결산이 제출되었습니다.`,
+        link: "/admin#settlement-review",
+      }).catch(() => {});
+
       return Response.json({ ok: true, data: calc });
     } catch (err) { return jsonError("submit", err); }
   }

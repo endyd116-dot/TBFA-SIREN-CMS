@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { createNotification } from "../../lib/notify";
 
 export const config = { path: "/api/admin-milestone-settlement" };
 
@@ -70,7 +71,12 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any = {};
     try { body = await req.json(); } catch { /* optional body */ }
     try {
-      const rows = await db.execute(sql`SELECT status FROM quarterly_settlements WHERE id = ${id}`);
+      const rows = await db.execute(sql`
+        SELECT qs.status, qs.member_id, qs.total_bonus, q.year, q.quarter
+        FROM quarterly_settlements qs
+        JOIN quarters q ON q.id = qs.quarter_id
+        WHERE qs.id = ${id}
+      `);
       const settle = (rows as any).rows?.[0] || rows[0];
       if (!settle) return Response.json({ ok: false, error: "결산 없음" }, { status: 404 });
       if (!transition.from.includes(settle.status)) {
@@ -90,6 +96,22 @@ export default async function handler(req: Request, _ctx: Context) {
         .map(([k, v]) => `${k} = ${v.startsWith("NOW()") || v.startsWith("'") ? v : `'${v}'`}`)
         .join(", ");
       await db.execute(sql.raw(`UPDATE quarterly_settlements SET ${setClauses} WHERE id = ${id}`));
+
+      // 해당 어드민에게 결산 처리 결과 알림 (fire-and-forget)
+      if (settle.member_id && (action === "approve" || action === "reject")) {
+        const periodLabel = `${settle.year}년 ${settle.quarter}분기`;
+        const isApprove = action === "approve";
+        createNotification({
+          recipientId: settle.member_id, recipientType: "admin",
+          category: "milestone", severity: isApprove ? "info" : "warning",
+          title: isApprove ? `결산 승인 완료: ${periodLabel}` : `결산 반려: ${periodLabel}`,
+          message: isApprove
+            ? `총 변동급 ${Number(settle.total_bonus || 0).toLocaleString()}원이 승인되었습니다.`
+            : body?.reviewNote || "결산이 반려되었습니다. 내용을 확인해주세요.",
+          link: "/admin#settlement-my",
+        }).catch(() => {});
+      }
+
       return Response.json({ ok: true });
     } catch (err) { return jsonError(action, err); }
   }

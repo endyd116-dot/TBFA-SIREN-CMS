@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { createNotification } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-revenue" };
 
@@ -83,6 +84,20 @@ export default async function handler(req: Request, _ctx: Context) {
         RETURNING *
       `);
       const entry = (insertRows as any).rows?.[0] || insertRows[0];
+
+      // 담당 어드민에게 검증 요청 알림 (fire-and-forget)
+      if (adminId) {
+        const mdNameRows = await db.execute(sql`SELECT name FROM milestone_definitions WHERE id = ${Number(milestoneDefinitionId)}`);
+        const mdName = ((mdNameRows as any).rows?.[0] || mdNameRows[0])?.name || "마일스톤";
+        createNotification({
+          recipientId: adminId, recipientType: "admin",
+          category: "milestone", severity: "info",
+          title: `매출 입력 검증 대기: ${mdName}`,
+          message: `${member.name || member.email}이 ${Number(amount).toLocaleString()}원 입력`,
+          link: "/admin#revenue-verify",
+        }).catch(() => {});
+      }
+
       return Response.json({ ok: true, data: { entry: formatEntry(entry) } }, { status: 201 });
     } catch (err) { return jsonError("insert", err); }
   }

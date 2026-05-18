@@ -1,6 +1,7 @@
 import type { Config, Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { notifyMany, notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config: Config = {
   schedule: "0 0 * * *",  // 매일 UTC 00:00 (KST 09:00)
@@ -29,7 +30,7 @@ export default async function handler(_req: Request, _ctx: Context) {
     const ended = (endRes as any).rows || (endRes as any[]);
     if (ended.length > 0) results.push(`ENDED 전환: ${ended.map((r: any) => `${r.year}Q${r.quarter}`).join(", ")}`);
 
-    // ENDED → SETTLED (결산일 도래 + 모든 결산 PAID)
+    // ENDED → SETTLED (모든 결산 PAID/APPROVED 시)
     const endedQRows = await db.execute(sql`SELECT id, year, quarter FROM quarters WHERE status = 'ENDED'`);
     const endedQs = (endedQRows as any).rows || (endedQRows as any[]);
     for (const q of endedQs) {
@@ -44,15 +45,125 @@ export default async function handler(_req: Request, _ctx: Context) {
       }
     }
 
-    // D-7 알림: 분기 종료 7일 전
+    // ── D-7 알림: 분기 종료 7일 전 모든 어드민에게 ──
     const d7Date = new Date();
     d7Date.setDate(d7Date.getDate() + 7);
     const d7 = d7Date.toISOString().slice(0, 10);
-    const d7Rows = await db.execute(sql`SELECT id FROM quarters WHERE status = 'ACTIVE' AND end_date = ${d7}`);
+    const d7Rows = await db.execute(sql`
+      SELECT id, year, quarter FROM quarters WHERE status = 'ACTIVE' AND end_date = ${d7}
+    `);
     const d7Qs = (d7Rows as any).rows || (d7Rows as any[]);
     if (d7Qs.length > 0) {
-      results.push(`D-7 알림 대상 분기: ${d7Qs.length}개 (알림 발송은 workspace-logger 통해 구현 예정)`);
+      for (const q of d7Qs) {
+        try {
+          const adminRows = await db.execute(sql`
+            SELECT id FROM members WHERE type = 'admin' AND status = 'active' AND milestone_role IS NOT NULL
+          `);
+          const adminIds = ((adminRows as any).rows || (adminRows as any[])).map((r: any) => r.id);
+          if (adminIds.length > 0) {
+            await notifyMany(adminIds, {
+              recipientType: "admin",
+              category: "milestone", severity: "warning",
+              title: `결산 작성 기한 D-7: ${q.year}년 ${q.quarter}분기`,
+              message: "분기 종료 7일 전입니다. 결산을 제출해주세요.",
+              link: "/admin#settlement-my",
+            });
+          }
+          results.push(`D-7 알림 발송: ${q.year}Q${q.quarter} → ${adminIds.length}명`);
+        } catch (e: any) {
+          results.push(`D-7 알림 오류: ${String(e?.message).slice(0, 100)}`);
+        }
+      }
     }
+
+    // ── 미제출 에스컬레이션: ENDED 분기 중 DRAFT/미제출 결산 ──
+    const endedIds = endedQs.map((q: any) => q.id);
+    if (endedIds.length > 0) {
+      const milestoneMembers = await db.execute(sql`
+        SELECT id, name FROM members
+        WHERE type = 'admin' AND status = 'active' AND milestone_role IS NOT NULL
+      `);
+      const members = (milestoneMembers as any).rows || (milestoneMembers as any[]);
+
+      for (const q of endedQs) {
+        const submittedRows = await db.execute(sql`
+          SELECT member_id FROM quarterly_settlements
+          WHERE quarter_id = ${q.id} AND status NOT IN ('DRAFT')
+        `);
+        const submittedIds = new Set(
+          ((submittedRows as any).rows || (submittedRows as any[])).map((r: any) => r.member_id)
+        );
+        const unsubmitted = members.filter((m: any) => !submittedIds.has(m.id));
+        if (unsubmitted.length > 0) {
+          const names = unsubmitted.map((m: any) => m.name || `ID:${m.id}`).join(", ");
+          try {
+            await notifyAllSuperAdmins({
+              category: "milestone", severity: "warning",
+              title: `결산 미제출 에스컬레이션: ${q.year}년 ${q.quarter}분기`,
+              message: `미제출자: ${names}`,
+              link: "/admin#settlement-review",
+            });
+            results.push(`미제출 에스컬레이션: ${q.year}Q${q.quarter} — ${unsubmitted.length}명`);
+          } catch (e: any) {
+            results.push(`에스컬레이션 오류: ${String(e?.message).slice(0, 100)}`);
+          }
+        }
+      }
+    }
+
+    // ── 임계점 도달 체크: 매일 REVENUE_LINKED 누적치 임계점 초과 여부 ──
+    const activeQRows = await db.execute(sql`SELECT id, year, quarter FROM quarters WHERE status = 'ACTIVE'`);
+    const activeQs = (activeQRows as any).rows || (activeQRows as any[]);
+    for (const q of activeQs) {
+      const milestonesRows = await db.execute(sql`
+        SELECT id, name, target_milestone_role, threshold_enabled, threshold_value, bonus_formula
+        FROM milestone_definitions
+        WHERE is_active = TRUE AND category = 'REVENUE_LINKED' AND threshold_enabled = TRUE
+      `);
+      const milestones = (milestonesRows as any).rows || (milestonesRows as any[]);
+
+      for (const m of milestones) {
+        try {
+          // 임계점을 초과한 총 검증 매출 조회
+          const sumRows = await db.execute(sql`
+            SELECT COALESCE(SUM(amount::numeric), 0) as total, entered_by
+            FROM revenue_entries
+            WHERE milestone_definition_id = ${m.id} AND quarter_id = ${q.id} AND status = 'VERIFIED'
+            GROUP BY entered_by
+          `);
+          const sums = (sumRows as any).rows || (sumRows as any[]);
+          const thrVal = Number(m.threshold_value || 0);
+
+          for (const row of sums) {
+            const total = Number(row.total || 0);
+            if (total <= thrVal) continue;
+
+            // 중복 알림 방지: 이미 이번 분기에 같은 마일스톤 임계점 알림을 받았는지 확인
+            const dupRows = await db.execute(sql`
+              SELECT id FROM notifications
+              WHERE recipient_id = ${row.entered_by}
+                AND ref_table = 'milestone_threshold'
+                AND ref_id = ${m.id}
+                AND created_at >= (SELECT start_date FROM quarters WHERE id = ${q.id})
+              LIMIT 1
+            `);
+            const dup = (dupRows as any).rows || (dupRows as any[]);
+            if (dup.length > 0) continue;
+
+            await notifyMany([row.entered_by], {
+              recipientType: "admin",
+              category: "milestone", severity: "info",
+              title: `임계점 달성: ${m.name}`,
+              message: `누적 ${total.toLocaleString()}원으로 임계점 ${thrVal.toLocaleString()}원 초과! 인센티브 대상입니다.`,
+              link: "/admin#revenue-my",
+              refTable: "milestone_threshold",
+              refId: m.id,
+            });
+          }
+        } catch { /* 개별 마일스톤 오류는 건너뜀 */ }
+      }
+    }
+    if (activeQs.length > 0) results.push(`임계점 체크 완료: ${activeQs.length}개 활성 분기`);
 
     console.log("[cron-milestone-quarter]", results.join(" | ") || "변경 없음");
   } catch (err: any) {

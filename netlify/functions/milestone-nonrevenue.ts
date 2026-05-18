@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-nonrevenue" };
 
@@ -72,7 +73,17 @@ export default async function handler(req: Request, _ctx: Context) {
         )
         RETURNING *
       `);
-      return Response.json({ ok: true, data: { achievement: formatAch((insertRows as any).rows?.[0] || insertRows[0]) } }, { status: 201 });
+      const achievement = (insertRows as any).rows?.[0] || insertRows[0];
+
+      // 슈퍼어드민 전체에게 검증 요청 알림 (fire-and-forget)
+      notifyAllSuperAdmins({
+        category: "milestone", severity: "info",
+        title: `비매출 성과 검증 요청: ${md.name}`,
+        message: `${admin.name || admin.email}의 성과 검증을 해주세요`,
+        link: "/admin#nonrevenue-verify",
+      }).catch(() => {});
+
+      return Response.json({ ok: true, data: { achievement: formatAch(achievement) } }, { status: 201 });
     } catch (err) { return jsonError("insert", err); }
   }
 

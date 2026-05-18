@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { createNotification } from "../../lib/notify";
 
 export const config = { path: "/api/admin-milestone-nonrevenue" };
 
@@ -58,11 +59,28 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── POST /:id/verify ──
   if (req.method === "POST" && action === "verify" && idStr) {
     try {
+      const rows = await db.execute(sql`
+        SELECT nra.submitted_by, md.name as milestone_name
+        FROM non_revenue_achievements nra
+        JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
+        WHERE nra.id = ${Number(idStr)}
+      `);
+      const ach = (rows as any).rows?.[0] || rows[0];
       await db.execute(sql`
         UPDATE non_revenue_achievements SET status = 'VERIFIED',
           reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()
         WHERE id = ${Number(idStr)}
       `);
+      // 제출자에게 검증 완료 알림 (fire-and-forget)
+      if (ach?.submitted_by) {
+        createNotification({
+          recipientId: ach.submitted_by, recipientType: "admin",
+          category: "milestone", severity: "info",
+          title: `비매출 성과 검증 완료: ${ach.milestone_name || "마일스톤"}`,
+          message: "제출하신 비매출 성과가 검증 완료되었습니다.",
+          link: "/admin#nonrevenue-my",
+        }).catch(() => {});
+      }
       return Response.json({ ok: true });
     } catch (err) { return jsonError("verify", err); }
   }
@@ -74,12 +92,29 @@ export default async function handler(req: Request, _ctx: Context) {
     const rejectReason = body?.rejectReason || body?.reason || "";
     if (!rejectReason) return Response.json({ ok: false, error: "반려 사유 필수" }, { status: 400 });
     try {
+      const rows = await db.execute(sql`
+        SELECT nra.submitted_by, md.name as milestone_name
+        FROM non_revenue_achievements nra
+        JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
+        WHERE nra.id = ${Number(idStr)}
+      `);
+      const ach = (rows as any).rows?.[0] || rows[0];
       await db.execute(sql`
         UPDATE non_revenue_achievements SET status = 'REJECTED',
           reviewed_by = ${admin.id}, reviewed_at = NOW(),
           reject_reason = ${rejectReason}, updated_at = NOW()
         WHERE id = ${Number(idStr)}
       `);
+      // 제출자에게 반려 알림 (fire-and-forget)
+      if (ach?.submitted_by) {
+        createNotification({
+          recipientId: ach.submitted_by, recipientType: "admin",
+          category: "milestone", severity: "warning",
+          title: `비매출 성과 검증 반려: ${ach.milestone_name || "마일스톤"}`,
+          message: rejectReason,
+          link: "/admin#nonrevenue-my",
+        }).catch(() => {});
+      }
       return Response.json({ ok: true });
     } catch (err) { return jsonError("reject", err); }
   }
