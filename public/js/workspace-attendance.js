@@ -69,6 +69,7 @@
         if (btn.dataset.tab === 'stats' && !window._attStatsInit) initStats();
         if (btn.dataset.tab === 'leave' && !window._attLeaveInit) initLeave();
         if (btn.dataset.tab === 'amend' && !window._attAmendInit) initAmend();
+        if (btn.dataset.tab === 'report') loadReport();
       });
     });
   }
@@ -238,6 +239,13 @@
       return;
     }
     toast('퇴근이 기록되었습니다 🔴');
+    // 재택근무이고 보고서 미제출이면 안내
+    const resData = res.data?.data || res.data || {};
+    if (resData.reportSubmitted === false) {
+      setTimeout(() => {
+        toast('📝 재택보고서를 작성해주세요. "재택보고서" 탭을 확인하세요.', 4000);
+      }, 900);
+    }
     setTimeout(() => location.reload(), 800);
   }
 
@@ -546,6 +554,153 @@
         <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</td>
         <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span></td>
       </tr>`).join('');
+  }
+
+  /* ═══════════════════════════════════
+     탭 6: 재택보고서
+  ═══════════════════════════════════ */
+  async function loadReport() {
+    const dateStr = toDateStr();
+    const statusBar = document.getElementById('attReportStatusBar');
+    const statusText = document.getElementById('attReportStatusText');
+    const metaEl = document.getElementById('attReportMeta');
+    const wbsEl = document.getElementById('attReportWbsCards');
+    const contentEl = document.getElementById('attReportContent');
+    const btnDraft = document.getElementById('attBtnSaveDraft');
+    const btnSubmit = document.getElementById('attBtnSubmitReport');
+
+    if (statusText) statusText.textContent = '보고서 상태를 불러오는 중...';
+
+    const res = await api('/api/att/remote-report?date=' + dateStr);
+    const report = res.data?.data || res.data || null;
+
+    // WBS 카드 목록 (보고서 응답 내 포함 or 별도 조회)
+    const wbsCards = (report && Array.isArray(report.wbsCards)) ? report.wbsCards : [];
+    renderReportWbsCards(wbsEl, wbsCards);
+
+    renderReport(report, { statusBar, statusText, metaEl, contentEl, btnDraft, btnSubmit, dateStr });
+
+    // 버튼 이벤트 (중복 방지)
+    if (btnDraft && !btnDraft._bound) {
+      btnDraft._bound = true;
+      btnDraft.addEventListener('click', saveReportDraft);
+    }
+    if (btnSubmit && !btnSubmit._bound) {
+      btnSubmit._bound = true;
+      btnSubmit.addEventListener('click', submitReport);
+    }
+    const btnAi = document.getElementById('attBtnAiDraft');
+    if (btnAi && !btnAi._bound) {
+      btnAi._bound = true;
+      btnAi.addEventListener('click', generateAIDraft);
+    }
+  }
+
+  function renderReportWbsCards(container, cards) {
+    if (!container) return;
+    if (!cards || cards.length === 0) {
+      container.innerHTML = '<span style="font-size:13px;color:#9ca3af">오늘 할당된 WBS 카드가 없습니다</span>';
+      return;
+    }
+    container.innerHTML = cards.map(c => `
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#ede9fe;color:#5b21b6;border-radius:99px;font-size:12.5px;font-weight:500">
+        📌 ${escHtml(c.title || c.name || '카드')}
+      </span>`).join('');
+  }
+
+  function renderReport(report, { statusBar, statusText, metaEl, contentEl, btnDraft, btnSubmit, dateStr }) {
+    if (!report) {
+      // 미작성
+      if (statusBar) statusBar.style.background = '#f8fafc';
+      if (statusText) statusText.innerHTML = '⬜ 오늘 재택보고서가 아직 작성되지 않았습니다.';
+      if (metaEl) metaEl.textContent = dateStr;
+      if (contentEl) { contentEl.value = ''; contentEl.disabled = false; }
+      if (btnDraft) { btnDraft.style.display = ''; btnDraft.disabled = false; }
+      if (btnSubmit) { btnSubmit.style.display = ''; btnSubmit.disabled = false; }
+      return;
+    }
+    if (report.status === 'SUBMITTED') {
+      if (statusBar) statusBar.style.background = '#dcfce7';
+      if (statusText) statusText.innerHTML = '✅ <strong>제출 완료</strong> — 보고서가 제출되었습니다.';
+      if (metaEl) metaEl.textContent = '제출 시각: ' + fmtTime(report.submittedAt);
+      if (contentEl) { contentEl.value = report.content || ''; contentEl.disabled = true; }
+      if (btnDraft) btnDraft.style.display = 'none';
+      if (btnSubmit) { btnSubmit.style.display = 'none'; }
+    } else {
+      // DRAFT
+      if (statusBar) statusBar.style.background = '#fefce8';
+      if (statusText) statusText.innerHTML = '📝 <strong>임시저장</strong> — 작성 중인 보고서가 있습니다.';
+      if (metaEl) metaEl.textContent = '마지막 저장';
+      if (contentEl) { contentEl.value = report.content || report.aiDraft || ''; contentEl.disabled = false; }
+      if (btnDraft) { btnDraft.style.display = ''; btnDraft.disabled = false; }
+      if (btnSubmit) { btnSubmit.style.display = ''; btnSubmit.disabled = false; }
+    }
+  }
+
+  async function generateAIDraft() {
+    const btn = document.getElementById('attBtnAiDraft');
+    const contentEl = document.getElementById('attReportContent');
+    if (btn) { btn.disabled = true; btn.textContent = '✨ 생성 중...'; }
+
+    const res = await api('/api/att/ai-draft', { method: 'POST', body: { date: toDateStr() } });
+
+    if (btn) { btn.disabled = false; btn.textContent = '✨ AI 초안 생성'; }
+
+    if (!res.ok) {
+      toast('AI 초안 생성 실패: ' + (res.data?.error || 'HTTP ' + res.status));
+      return;
+    }
+    const draft = res.data?.draft || res.data?.data?.draft || '';
+    if (contentEl && draft) {
+      contentEl.value = draft;
+      toast('AI 초안이 생성되었습니다. 내용을 검토 후 수정하세요.');
+    }
+  }
+
+  async function saveReportDraft() {
+    const contentEl = document.getElementById('attReportContent');
+    const content = contentEl?.value?.trim();
+    if (!content) { toast('보고서 내용을 입력하세요'); return; }
+
+    const btn = document.getElementById('attBtnSaveDraft');
+    if (btn) btn.disabled = true;
+
+    const res = await api('/api/att/remote-report', {
+      method: 'POST',
+      body: { date: toDateStr(), content },
+    });
+
+    if (!res.ok) {
+      toast('임시저장 실패: ' + (res.data?.error || 'HTTP ' + res.status));
+      if (btn) btn.disabled = false;
+      return;
+    }
+    toast('임시저장 완료 💾');
+    if (btn) btn.disabled = false;
+  }
+
+  async function submitReport() {
+    const contentEl = document.getElementById('attReportContent');
+    const content = contentEl?.value?.trim();
+    if (!content) { toast('보고서 내용을 입력하세요'); return; }
+    if (!confirm('보고서를 최종 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
+
+    const btn = document.getElementById('attBtnSubmitReport');
+    if (btn) btn.disabled = true;
+
+    const res = await api('/api/att/remote-report', {
+      method: 'PUT',
+      body: { date: toDateStr(), content },
+    });
+
+    if (!res.ok) {
+      toast('제출 실패: ' + (res.data?.error || 'HTTP ' + res.status));
+      if (btn) btn.disabled = false;
+      return;
+    }
+    toast('보고서가 제출되었습니다 📤');
+    // 상태 갱신
+    await loadReport();
   }
 
   /* ─── 유틸 ─── */
