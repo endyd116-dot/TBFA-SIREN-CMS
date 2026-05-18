@@ -44,7 +44,7 @@ export default async (req: Request, _ctx: Context) => {
 
     const dataRs: any = await db.execute(sql`
       SELECT
-        pd.id, pd.name, pd.phone, pd.address, pd.birthdate,
+        pd.id, pd.name, pd.phone, pd.email, pd.address, pd.birthdate,
         pd.event_name, pd.participated_at, pd.entry_path, pd.memo,
         pd.linked_member_id, pd.linked_at,
         m.name AS linked_member_name,
@@ -92,6 +92,7 @@ export default async (req: Request, _ctx: Context) => {
     id: Number(r.id),
     name: r.name || "",
     phone: r.phone || null,
+    email: r.email || null,
     address: r.address || null,
     birthdate: r.birthdate || null,
     eventName: r.event_name || null,

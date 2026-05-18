@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>근태관리 설정 | 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
+<style>
+.att-tab-nav { display:flex; gap:4px; margin-bottom:24px; border-bottom:2px solid #e5e7eb; padding-bottom:0; }
+.att-tab { padding:9px 18px; border:none; background:none; cursor:pointer; font-size:14px; color:#6b7280; border-bottom:2px solid transparent; margin-bottom:-2px; border-radius:0; font-weight:500; }
+.att-tab.active { color:#2563eb; border-bottom-color:#2563eb; }
+.att-tab-panel { display:none; }
+.att-tab-panel.active { display:block; }
+.att-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.att-table th { background:#f8fafc; color:#374151; font-weight:600; padding:10px 14px; text-align:left; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+.att-table td { padding:10px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.att-table tr:hover td { background:#f9fafb; }
+.att-btn { padding:6px 14px; border-radius:7px; font-size:13px; cursor:pointer; border:none; font-weight:500; }
+.att-btn.primary { background:#2563eb; color:#fff; }
+.att-btn.primary:hover { background:#1d4ed8; }
+.att-btn.secondary { background:#f1f5f9; color:#374151; }
+.att-btn.secondary:hover { background:#e2e8f0; }
+.att-btn.danger { background:#fee2e2; color:#b91c1c; }
+.att-btn.danger:hover { background:#fecaca; }
+.att-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+.att-overlay.open { display:flex; }
+.att-modal { background:#fff; border-radius:14px; padding:28px 32px; width:100%; max-width:500px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.18); }
+.att-modal h3 { font-size:17px; font-weight:700; margin:0 0 20px; color:#111827; }
+.att-form-group { margin-bottom:14px; }
+.att-form-group label { display:block; font-size:12.5px; color:#374151; font-weight:600; margin-bottom:5px; }
+.att-form-group input, .att-form-group select, .att-form-group textarea {
+  width:100%; padding:8px 11px; border:1px solid #d1d5db; border-radius:7px;
+  font-size:13.5px; box-sizing:border-box; outline:none; font-family:inherit;
+}
+.att-form-group input:focus, .att-form-group select:focus { border-color:#2563eb; box-shadow:0 0 0 2px #dbeafe; }
+.att-form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.att-form-hint { font-size:11.5px; color:#9ca3af; margin-top:3px; }
+.att-modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }
+.att-badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11.5px; font-weight:600; }
+.att-badge.active { background:#dcfce7; color:#15803d; }
+.att-badge.inactive { background:#fee2e2; color:#b91c1c; }
+.att-policy-field { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+.att-policy-label { font-size:13.5px; color:#374151; font-weight:500; min-width:160px; }
+.att-policy-value { font-size:13.5px; color:#6b7280; flex:1; }
+.att-policy-edit { display:none; flex:1; gap:8px; }
+</style>
+</head>
+<body class="ws-body ms-body">
+
+<!-- 사이드바 -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <div class="quick-jump" data-quick-jump></div>
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="true">
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="false">
+            <li><a href="/workspace.html"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-templates.html"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+            <li id="wsNavMilestoneSettings" style="display:none"><a href="/admin-milestone-settings.html"><span class="ws-nav-icon">⚙️</span><span class="ws-nav-text">성과관리 설정</span></a></li>
+            <li id="wsNavAttendanceSettings" style="background:#eef2ff;border-radius:6px;">
+              <a href="/admin-attendance-settings.html" style="color:#2563eb!important;font-weight:600">
+                <span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리 설정</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+<!-- 메인 -->
+<main class="ws-main" id="wsMain">
+  <div style="padding:28px 32px; max-width:1000px; margin:0 auto;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;color:#111827;margin:0">🕐 근태관리 설정</h2>
+        <p style="font-size:13px;color:#6b7280;margin:4px 0 0" id="attSubtitle">로딩 중...</p>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="att-tab-nav">
+      <button class="att-tab active" data-tab="workplaces">🏢 거점 관리</button>
+      <button class="att-tab" data-tab="leavetypes">🏖 휴가 종류</button>
+      <button class="att-tab" data-tab="policy">⚙️ 근태 정책</button>
+    </div>
+
+    <!-- 탭 1: 거점 관리 -->
+    <div class="att-tab-panel active" id="tabWorkplaces">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-size:13px;color:#6b7280;margin:0">출퇴근 체크인 가능한 거점(사무실·외근지)을 관리합니다. 거점마다 허용 반경을 설정합니다.</p>
+        <button class="att-btn primary" id="btnAddWp">+ 거점 추가</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="att-table">
+          <thead>
+            <tr><th>거점명</th><th>주소</th><th>위도</th><th>경도</th><th>허용 반경</th><th>상태</th><th style="width:120px">액션</th></tr>
+          </thead>
+          <tbody id="wpBody">
+            <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 탭 2: 휴가 종류 -->
+    <div class="att-tab-panel" id="tabLeavetypes">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-size:13px;color:#6b7280;margin:0">연차·반차·병가 등 휴가 종류와 기본 부여 일수를 설정합니다.</p>
+        <button class="att-btn primary" id="btnAddLt">+ 휴가 종류 추가</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="att-table">
+          <thead>
+            <tr><th>코드</th><th>이름</th><th>기본 부여일</th><th>반일 허용</th><th>유급</th><th>상태</th><th style="width:120px">액션</th></tr>
+          </thead>
+          <tbody id="ltBody">
+            <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 탭 3: 근태 정책 -->
+    <div class="att-tab-panel" id="tabPolicy">
+      <p style="font-size:13px;color:#6b7280;margin:0 0 20px">전사 근태 정책을 설정합니다. 업무 시간·위치 인증 반경·지각 기준을 정의합니다.</p>
+      <div id="policyView" style="background:#f8fafc;border-radius:12px;padding:20px;border:1px solid #e5e7eb;">
+        <div style="text-align:center;color:#9ca3af;padding:24px">로딩 중...</div>
+      </div>
+      <div style="margin-top:16px;text-align:right;display:none" id="policyEditRow">
+        <button class="att-btn secondary" id="btnPolicyCancel" style="margin-right:8px">취소</button>
+        <button class="att-btn primary" id="btnPolicySave">저장</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- 거점 모달 -->
+<div class="att-overlay" id="wpModal">
+  <div class="att-modal">
+    <h3 id="wpModalTitle">거점 추가</h3>
+    <input type="hidden" id="wpId">
+    <div class="att-form-group">
+      <label>거점명 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="wpName" placeholder="예: 본사 사무실">
+    </div>
+    <div class="att-form-group">
+      <label>주소 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="wpAddress" placeholder="예: 서울시 종로구 ···">
+    </div>
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>위도</label>
+        <input type="number" id="wpLat" placeholder="37.5665" step="0.000001">
+        <div class="att-form-hint">카카오 API 연동 시 자동 채워짐</div>
+      </div>
+      <div class="att-form-group">
+        <label>경도</label>
+        <input type="number" id="wpLng" placeholder="126.9780" step="0.000001">
+      </div>
+    </div>
+    <div class="att-form-group">
+      <label>허용 반경 (m)</label>
+      <input type="number" id="wpRadius" placeholder="200" min="50" max="5000">
+      <div class="att-form-hint">출퇴근 체크인 허용 반경 (기본 200m)</div>
+    </div>
+    <div class="att-modal-footer">
+      <button class="att-btn secondary" id="btnWpCancel">취소</button>
+      <button class="att-btn primary" id="btnWpSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 휴가 종류 모달 -->
+<div class="att-overlay" id="ltModal">
+  <div class="att-modal">
+    <h3 id="ltModalTitle">휴가 종류 추가</h3>
+    <input type="hidden" id="ltId">
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>코드 <span style="color:#ef4444">*</span></label>
+        <input type="text" id="ltCode" placeholder="예: annual" maxlength="30">
+      </div>
+      <div class="att-form-group">
+        <label>이름 <span style="color:#ef4444">*</span></label>
+        <input type="text" id="ltName" placeholder="예: 연차" maxlength="50">
+      </div>
+    </div>
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>기본 부여 일수</label>
+        <input type="number" id="ltDefaultDays" placeholder="15" min="0" step="0.5">
+      </div>
+      <div class="att-form-group">
+        <label>최대 사용 일수</label>
+        <input type="number" id="ltMaxDays" placeholder="15" min="0" step="0.5">
+      </div>
+    </div>
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>
+          <input type="checkbox" id="ltHalfDay" style="width:auto;margin-right:5px">
+          반일 사용 허용
+        </label>
+      </div>
+      <div class="att-form-group">
+        <label>
+          <input type="checkbox" id="ltPaid" style="width:auto;margin-right:5px" checked>
+          유급
+        </label>
+      </div>
+    </div>
+    <div class="att-form-group">
+      <label>설명</label>
+      <input type="text" id="ltDesc" placeholder="예: 법정 연차 휴가" maxlength="200">
+    </div>
+    <div class="att-modal-footer">
+      <button class="att-btn secondary" id="btnLtCancel">취소</button>
+      <button class="att-btn primary" id="btnLtSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="attToast" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px"></div>
+
+<script src="/js/quick-jump.js?v=2026-05-10-q3" defer></script>
+<script src="/js/ws-sidebar-role.js?v=2" defer></script>
+<script src="/js/admin-attendance-settings.js?v=1" defer></script>
+</body>
+</html>

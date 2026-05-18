@@ -88,17 +88,17 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ── POST: 등록 ── */
   if (req.method === "POST") {
-    const { name, phone, address, birthdate, eventName, participatedAt, entryPath, memo } = body;
+    const { name, phone, email, address, birthdate, eventName, participatedAt, entryPath, memo } = body;
     if (!name?.trim()) return badRequest("이름은 필수입니다");
 
     try {
       const insRs: any = await db.execute(sql`
         INSERT INTO potential_donors (
-          name, phone, address, birthdate,
+          name, phone, email, address, birthdate,
           event_name, participated_at, entry_path, memo,
           created_by, created_at, updated_at
         ) VALUES (
-          ${name.trim()}, ${phone?.trim() || null}, ${address?.trim() || null}, ${birthdate?.trim() || null},
+          ${name.trim()}, ${phone?.trim() || null}, ${email?.trim() || null}, ${address?.trim() || null}, ${birthdate?.trim() || null},
           ${eventName?.trim() || null},
           ${participatedAt ? new Date(participatedAt).toISOString() : null}::timestamptz,
           ${entryPath?.trim() || null}, ${memo?.trim() || null},
@@ -116,7 +116,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ── PUT: 수정 ── */
   if (req.method === "PUT") {
-    const { id, name, phone, address, birthdate, eventName, participatedAt, entryPath, memo } = body;
+    const { id, name, phone, email, address, birthdate, eventName, participatedAt, entryPath, memo } = body;
     if (!id) return badRequest("id 필수");
     if (!name?.trim()) return badRequest("이름은 필수입니다");
 
@@ -125,6 +125,7 @@ export default async (req: Request, _ctx: Context) => {
         UPDATE potential_donors SET
           name = ${name.trim()},
           phone = ${phone?.trim() || null},
+          email = ${email?.trim() || null},
           address = ${address?.trim() || null},
           birthdate = ${birthdate?.trim() || null},
           event_name = ${eventName?.trim() || null},

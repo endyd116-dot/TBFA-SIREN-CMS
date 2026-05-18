@@ -7,9 +7,12 @@
     fetch('/api/admin/me?light=1', { credentials: 'include' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d && d.admin && d.admin.role === 'super_admin') {
-          var el = document.getElementById('wsNavMilestoneSettings');
-          if (el) el.style.display = '';
+        var admin = (d && d.data && d.data.admin) || (d && d.admin) || {};
+        if (admin.role === 'super_admin') {
+          var ms = document.getElementById('wsNavMilestoneSettings');
+          if (ms) ms.style.display = '';
+          var att = document.getElementById('wsNavAttendanceSettings');
+          if (att) att.style.display = '';
         }
       })
       .catch(function () {});

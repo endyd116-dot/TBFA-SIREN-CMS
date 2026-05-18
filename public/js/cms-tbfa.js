@@ -2917,7 +2917,7 @@ async function renderPotentialDonor() {
     resp = unwrap(res.data, ['data', 'kpi', 'total']);
   } catch (err) {
     console.error('[potential-donor] fetch fail', err);
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#c5293a">불러오기 실패: ' + escapeHtml(String(err?.message || err)) + '</td></tr>';
     return;
   }
 
@@ -2930,7 +2930,7 @@ async function renderPotentialDonor() {
   set('pdKpiUnlinked', (kpi.unlinked != null ? kpi.unlinked : 0).toLocaleString() + '명');
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#888">조회 결과가 없습니다</td></tr>';
     renderPotentialDonorPagination(0);
     return;
   }
@@ -2946,6 +2946,8 @@ async function renderPotentialDonor() {
       + '<td style="font-family:Inter;font-size:11.5px">PD-' + String(d.id).padStart(5,'0') + '</td>'
       + '<td><strong>' + escapeHtml(d.name || '') + '</strong></td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + escapeHtml(d.phone || '—') + '</td>'
+      + '<td style="font-size:12px;color:#444">' + escapeHtml(d.email || '—') + '</td>'
+      + '<td style="font-size:12px;color:#666;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.address || '') + '">' + escapeHtml(d.address || '—') + '</td>'
       + '<td style="font-size:12px">' + escapeHtml(d.eventName || '—') + '</td>'
       + '<td style="font-family:Inter;font-size:11.5px">' + formatDate(d.participatedAt) + '</td>'
       + '<td style="font-size:12px;color:#666">' + escapeHtml(d.entryPath || '—') + '</td>'
@@ -2975,12 +2977,13 @@ function pdEditRow(id) {
   const name = prompt('이름:');
   if (!name) return;
   const phone = prompt('연락처:', '');
+  const email = prompt('이메일:', '');
   const address = prompt('주소:', '');
   const birthdate = prompt('생년월일 (YYYY-MM-DD):', '');
   const eventName = prompt('이벤트·활동명:', '');
   const entryPath = prompt('유입 경로:', '');
   const memo = prompt('메모:', '');
-  api('/api/admin/potential-donor-crud', { method: 'PUT', body: { id, name, phone, address, birthdate, eventName, entryPath, memo } })
+  api('/api/admin/potential-donor-crud', { method: 'PUT', body: { id, name, phone, email, address, birthdate, eventName, entryPath, memo } })
     .then(function(res) { if (!res.ok) return toast('수정 실패: ' + (res.data?.error || '')); toast('수정 완료'); renderPotentialDonor(); });
 }
 
@@ -3044,6 +3047,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var payload = {
       name:           document.getElementById('pdfName').value.trim(),
       phone:          document.getElementById('pdfPhone').value.trim(),
+      email:          document.getElementById('pdfEmail').value.trim(),
       birthdate:      document.getElementById('pdfBirthdate').value,
       address:        document.getElementById('pdfAddress').value.trim(),
       eventName:      document.getElementById('pdfEventName').value.trim(),
@@ -3353,7 +3357,7 @@ function openPdAddModal() {
   var m = document.getElementById('pdAddModal');
   if (!m) return;
   /* 폼 초기화 */
-  ['pdfName','pdfPhone','pdfBirthdate','pdfAddress','pdfEventName','pdfParticipatedAt','pdfMemo','pdAiEventHint'].forEach(function(id){
+  ['pdfName','pdfPhone','pdfEmail','pdfBirthdate','pdfAddress','pdfEventName','pdfParticipatedAt','pdfMemo','pdAiEventHint'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   var sel = document.getElementById('pdfEntryPath'); if (sel) sel.value = '';
@@ -3382,7 +3386,7 @@ function _pdRenderAiPreview(items) {
   if (!prev || !body) return;
   if (cnt) cnt.textContent = items.length;
   if (!items.length) {
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#888">추출된 항목이 없습니다</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#888">추출된 항목이 없습니다</td></tr>';
   } else {
     var esc = window._cmsEsc || function(s){ return String(s||''); };
     body.innerHTML = items.map(function(it){
@@ -3392,6 +3396,7 @@ function _pdRenderAiPreview(items) {
         +'<td><input type="checkbox" checked data-item="'+esc(JSON.stringify(it)).replace(/"/g,'&quot;')+'"></td>'
         +'<td><strong>'+esc(it.name)+'</strong></td>'
         +'<td>'+esc(it.phone||'—')+'</td>'
+        +'<td style="font-size:11.5px;color:#444">'+esc(it.email||'—')+'</td>'
         +'<td style="font-size:11.5px;color:#666">'+esc(it.address||'—')+'</td>'
         +'<td style="font-size:11.5px">'+esc(it.eventName||'—')+'</td>'
         +'<td style="font-family:Inter;color:'+confColor+';font-weight:600">'+conf+'%</td>'
