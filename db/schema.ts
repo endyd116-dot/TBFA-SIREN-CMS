@@ -3405,3 +3405,104 @@ export const rolePermissions = pgTable("role_permissions", {
   updatedAt:       timestamp("updated_at").defaultNow().notNull(),
 });
 
+/* === Phase 24: 마일스톤·성과급 관리 === */
+
+export const quarters = pgTable("quarters", {
+  id:             serial("id").primaryKey(),
+  year:           integer("year").notNull(),
+  quarter:        integer("quarter").notNull(),
+  startDate:      date("start_date").notNull(),
+  endDate:        date("end_date").notNull(),
+  settlementDate: date("settlement_date").notNull(),
+  status:         varchar("status", { length: 20 }).notNull().default("UPCOMING"),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+  updatedAt:      timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  yearQuarterUq: uniqueIndex("quarters_year_q_uq").on(t.year, t.quarter),
+}));
+
+export const milestoneDefinitions = pgTable("milestone_definitions", {
+  id:                   serial("id").primaryKey(),
+  code:                 varchar("code", { length: 20 }).notNull().unique(),
+  name:                 varchar("name", { length: 200 }).notNull(),
+  category:             varchar("category", { length: 20 }).notNull(),
+  targetMilestoneRole:  varchar("target_milestone_role", { length: 10 }).notNull(),
+  businessUnit:         varchar("business_unit", { length: 30 }),
+  revenueSource:        varchar("revenue_source", { length: 100 }),
+  thresholdEnabled:     boolean("threshold_enabled").notNull().default(false),
+  thresholdValue:       numeric("threshold_value", { precision: 15, scale: 2 }),
+  thresholdUnit:        varchar("threshold_unit", { length: 30 }),
+  bonusFormula:         jsonb("bonus_formula").notNull(),
+  quarterApplicable:    varchar("quarter_applicable", { length: 5 }),
+  isSharedThreshold:    boolean("is_shared_threshold").notNull().default(false),
+  sharedThresholdGroup: varchar("shared_threshold_group", { length: 20 }),
+  isActive:             boolean("is_active").notNull().default(true),
+  effectiveFrom:        date("effective_from"),
+  effectiveTo:          date("effective_to"),
+  sortOrder:            integer("sort_order").notNull().default(0),
+  createdAt:            timestamp("created_at").defaultNow().notNull(),
+  updatedAt:            timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const revenueEntries = pgTable("revenue_entries", {
+  id:                    serial("id").primaryKey(),
+  milestoneDefinitionId: integer("milestone_definition_id").notNull().references(() => milestoneDefinitions.id),
+  quarterId:             integer("quarter_id").notNull().references(() => quarters.id),
+  enteredBy:             integer("entered_by").notNull().references(() => members.id),
+  responsibleAdminId:    integer("responsible_admin_id").references(() => members.id),
+  revenueDate:           date("revenue_date").notNull(),
+  amount:                numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  amountUnit:            varchar("amount_unit", { length: 20 }).notNull().default("원"),
+  note:                  text("note"),
+  isCampaignRouted:      boolean("is_campaign_routed").default(false),
+  evidenceFiles:         jsonb("evidence_files").default([]),
+  status:                varchar("status", { length: 20 }).notNull().default("PENDING"),
+  reviewedBy:            integer("reviewed_by").references(() => members.id),
+  reviewedAt:            timestamp("reviewed_at"),
+  rejectReason:          text("reject_reason"),
+  createdAt:             timestamp("created_at").defaultNow().notNull(),
+  updatedAt:             timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const nonRevenueAchievements = pgTable("non_revenue_achievements", {
+  id:                    serial("id").primaryKey(),
+  milestoneDefinitionId: integer("milestone_definition_id").notNull().references(() => milestoneDefinitions.id),
+  quarterId:             integer("quarter_id").notNull().references(() => quarters.id),
+  submittedBy:           integer("submitted_by").notNull().references(() => members.id),
+  achievedDate:          date("achieved_date").notNull(),
+  description:           text("description"),
+  evidenceFiles:         jsonb("evidence_files").default([]),
+  bonusAmount:           numeric("bonus_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  eventRangeAmount:      numeric("event_range_amount", { precision: 15, scale: 2 }),
+  isSelectedForQuarter:  boolean("is_selected_for_quarter").notNull().default(false),
+  selectionOrder:        integer("selection_order"),
+  status:                varchar("status", { length: 20 }).notNull().default("PENDING"),
+  reviewedBy:            integer("reviewed_by").references(() => members.id),
+  reviewedAt:            timestamp("reviewed_at"),
+  rejectReason:          text("reject_reason"),
+  createdAt:             timestamp("created_at").defaultNow().notNull(),
+  updatedAt:             timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quarterlySettlements = pgTable("quarterly_settlements", {
+  id:                  serial("id").primaryKey(),
+  quarterId:           integer("quarter_id").notNull().references(() => quarters.id),
+  memberId:            integer("member_id").notNull().references(() => members.id),
+  revenueLinkedTotal:  numeric("revenue_linked_total", { precision: 15, scale: 2 }).notNull().default("0"),
+  nonRevenueTotal:     numeric("non_revenue_total", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalBonus:          numeric("total_bonus", { precision: 15, scale: 2 }).notNull().default("0"),
+  calculationSnapshot: jsonb("calculation_snapshot"),
+  selfEvaluation:      text("self_evaluation"),
+  status:              varchar("status", { length: 20 }).notNull().default("DRAFT"),
+  submittedAt:         timestamp("submitted_at"),
+  reviewedBy:          integer("reviewed_by").references(() => members.id),
+  reviewedAt:          timestamp("reviewed_at"),
+  reviewNote:          text("review_note"),
+  approvedAt:          timestamp("approved_at"),
+  paidAt:              timestamp("paid_at"),
+  createdAt:           timestamp("created_at").defaultNow().notNull(),
+  updatedAt:           timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  quarterMemberUq: uniqueIndex("qs_quarter_member_uq").on(t.quarterId, t.memberId),
+}));
+

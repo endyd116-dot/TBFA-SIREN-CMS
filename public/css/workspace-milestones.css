@@ -1,0 +1,101 @@
+/* workspace-milestones.css — Phase 24 성과 관리 */
+.ms-body { --brand: #3b82f6; --danger: #dc2626; --success: #16a34a; --warn: #d97706; --line: #e5e7eb; --text-2: #6b7280; --text-3: #9ca3af; }
+
+.ms-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.ms-header h2 { font-size:20px; font-weight:700; margin:0; }
+.ms-quarter-badge { padding:4px 12px; border-radius:20px; font-size:12.5px; font-weight:600; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.ms-quarter-badge.active { background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
+.ms-quarter-badge.ended  { background:#f3f4f6; color:#4b5563; border-color:#d1d5db; }
+
+/* 탭 */
+.ms-tabs { display:flex; gap:4px; border-bottom:2px solid var(--line); margin-bottom:20px; flex-wrap:wrap; }
+.ms-tab  { padding:8px 16px; font-size:13.5px; font-weight:500; border:none; background:none;
+           cursor:pointer; color:var(--text-2); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+.ms-tab:hover  { color:#111; }
+.ms-tab.active { color:var(--brand); border-bottom-color:var(--brand); font-weight:600; }
+
+/* KPI 카드 */
+.ms-kpi-row  { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+@media (max-width:700px) { .ms-kpi-row { grid-template-columns:1fr 1fr; } }
+.ms-kpi      { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+.ms-kpi-label{ font-size:12px; color:var(--text-2); margin-bottom:6px; }
+.ms-kpi-val  { font-size:22px; font-weight:700; color:#111; }
+.ms-kpi-val.green { color:var(--success); }
+.ms-kpi-val.blue  { color:var(--brand); }
+
+/* 진행률 카드 */
+.ms-progress-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:12px; }
+.ms-progress-top  { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.ms-progress-name { font-size:14px; font-weight:600; }
+.ms-progress-code { font-size:11px; color:var(--text-3); }
+.ms-progress-amt  { font-size:13px; font-weight:700; color:var(--brand); white-space:nowrap; }
+.ms-progress-bar-wrap { background:#f3f4f6; border-radius:6px; height:8px; overflow:hidden; margin-bottom:8px; }
+.ms-progress-bar  { height:100%; border-radius:6px; background:var(--brand); transition:width .4s; }
+.ms-progress-bar.above { background:var(--success); }
+.ms-progress-bar.below { background:#fbbf24; }
+.ms-progress-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--text-2); }
+.ms-threshold-tag { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600; }
+.ms-threshold-tag.above { background:#dcfce7; color:var(--success); }
+.ms-threshold-tag.below { background:#fef9c3; color:#92400e; }
+.ms-threshold-tag.na    { background:#f3f4f6; color:var(--text-2); }
+
+/* 테이블 */
+.ms-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.ms-table th { padding:10px 12px; background:#f9fafb; font-weight:600; text-align:left; border-bottom:2px solid var(--line); font-size:12.5px; color:var(--text-2); }
+.ms-table td { padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.ms-table tr:last-child td { border-bottom:none; }
+
+/* 상태 뱃지 */
+.ms-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11.5px; font-weight:600; }
+.ms-badge.PENDING  { background:#fef3c7; color:#92400e; }
+.ms-badge.VERIFIED { background:#dcfce7; color:#15803d; }
+.ms-badge.REJECTED { background:#fee2e2; color:var(--danger); }
+.ms-badge.DRAFT     { background:#f3f4f6; color:#4b5563; }
+.ms-badge.SUBMITTED { background:#eff6ff; color:#1d4ed8; }
+.ms-badge.APPROVED  { background:#dcfce7; color:#15803d; }
+.ms-badge.PAID      { background:#f3e8ff; color:#7c3aed; }
+
+/* 폼 */
+.ms-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:600px) { .ms-form-grid { grid-template-columns:1fr; } }
+.ms-form-group label { display:block; font-size:12.5px; color:var(--text-2); margin-bottom:4px; font-weight:500; }
+.ms-form-group input, .ms-form-group select, .ms-form-group textarea {
+  width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px;
+  font-size:13.5px; box-sizing:border-box; background:#fff; }
+.ms-form-group input:focus, .ms-form-group select:focus, .ms-form-group textarea:focus {
+  outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+
+/* 비매출 성과 카드 */
+.ms-ach-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:10px;
+               display:flex; align-items:flex-start; gap:14px; }
+.ms-ach-check { width:22px; height:22px; border-radius:6px; border:2px solid var(--line); cursor:pointer;
+                flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.ms-ach-check.selected { background:var(--brand); border-color:var(--brand); color:#fff; }
+.ms-ach-check.selected-2 { background:var(--success); border-color:var(--success); color:#fff; }
+.ms-ach-body { flex:1; }
+.ms-ach-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+.ms-ach-meta { font-size:12px; color:var(--text-2); }
+.ms-ach-bonus { font-size:16px; font-weight:700; color:var(--brand); white-space:nowrap; }
+
+/* 결산 패널 */
+.ms-settle-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:20px 24px; margin-bottom:16px; }
+.ms-settle-total { font-size:28px; font-weight:800; color:var(--success); }
+.ms-settle-breakdown { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+
+/* 빈 상태 */
+.ms-empty { text-align:center; padding:40px 20px; color:var(--text-3); font-size:14px; }
+.ms-empty-icon { font-size:36px; margin-bottom:8px; }
+
+/* 버튼 */
+.ms-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:8px;
+          font-size:13.5px; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+.ms-btn-primary  { background:var(--brand); color:#fff; }
+.ms-btn-primary:hover { background:#2563eb; }
+.ms-btn-ghost    { background:#f3f4f6; color:#374151; }
+.ms-btn-ghost:hover { background:#e5e7eb; }
+.ms-btn-danger   { background:#fee2e2; color:var(--danger); }
+.ms-btn-sm       { padding:5px 12px; font-size:12.5px; }
+.ms-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* 로딩 */
+.ms-loading { text-align:center; padding:30px; color:var(--text-3); }
