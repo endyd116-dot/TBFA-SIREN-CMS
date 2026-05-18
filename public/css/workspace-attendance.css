@@ -1,0 +1,400 @@
+/* ═══════════════════════════════════════════════════════
+   workspace-attendance.css — Phase 26 근태관리
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --att-normal:  #22c55e;
+  --att-late:    #f59e0b;
+  --att-absent:  #ef4444;
+  --att-leave:   #3b82f6;
+  --att-remote:  #8b5cf6;
+  --att-field:   #f97316;
+  --att-holiday: #9ca3af;
+  --att-bg:      #f8f9fb;
+  --att-card:    #fff;
+  --att-line:    #e5e7eb;
+  --att-text:    #1a1f2b;
+  --att-text2:   #6b7280;
+  --att-text3:   #9ca3af;
+  --att-radius:  12px;
+  --att-shadow:  0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ═══ 탭 네비게이션 ═══ */
+.att-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--att-line);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.att-tab {
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--att-text2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.att-tab:hover { color: var(--att-text); }
+.att-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+}
+
+/* ═══ 탭 패널 ═══ */
+.att-panel { display: none; }
+.att-panel.active { display: block; }
+
+/* ═══ 날짜·근무형태 헤더 ═══ */
+.att-today-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.att-today-date {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--att-text);
+}
+.att-today-day {
+  font-size: 14px;
+  color: var(--att-text2);
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+/* ═══ 근무형태 배지 ═══ */
+.att-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1.5px solid;
+}
+.att-mode-badge.OFFICE        { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.att-mode-badge.REMOTE        { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.att-mode-badge.FIELD         { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.att-mode-badge.BUSINESS_TRIP { background: #fefce8; color: #92400e; border-color: #fde68a; }
+.att-mode-badge.UNKNOWN       { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+
+/* ═══ 출근·퇴근 버튼 영역 ═══ */
+.att-checkin-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 20px;
+  background: var(--att-card);
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  margin-bottom: 24px;
+  box-shadow: var(--att-shadow);
+}
+.att-current-status {
+  font-size: 13.5px;
+  color: var(--att-text2);
+  text-align: center;
+}
+.att-current-status strong {
+  color: var(--att-text);
+  font-weight: 600;
+}
+.att-btn-checkin,
+.att-btn-checkout {
+  min-width: 220px;
+  min-height: 80px;
+  border: none;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform .1s, box-shadow .15s, opacity .15s;
+  letter-spacing: -0.3px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.att-btn-checkin:active,
+.att-btn-checkout:active { transform: scale(0.97); }
+.att-btn-checkin:disabled,
+.att-btn-checkout:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.att-btn-checkin {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+.att-btn-checkout {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+}
+.att-btn-done {
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-size: 16px;
+  min-height: 60px;
+  cursor: default;
+}
+
+/* ═══ 이번달 요약 그리드 ═══ */
+.att-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) {
+  .att-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 400px) {
+  .att-summary-grid { grid-template-columns: 1fr; }
+}
+.att-summary-card {
+  background: var(--att-card);
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  padding: 16px 18px;
+  box-shadow: var(--att-shadow);
+}
+.att-summary-label {
+  font-size: 12px;
+  color: var(--att-text2);
+  margin-bottom: 6px;
+}
+.att-summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--att-text);
+}
+.att-summary-value.green { color: var(--att-normal); }
+.att-summary-value.yellow { color: var(--att-late); }
+.att-summary-value.blue  { color: var(--att-leave); }
+.att-summary-value.purple { color: var(--att-remote); }
+.att-summary-sub {
+  font-size: 11.5px;
+  color: var(--att-text3);
+  margin-top: 2px;
+}
+
+/* ═══ 통계 탭 숫자 카드 ═══ */
+.att-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) {
+  .att-stat-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ═══ 차트 컨테이너 ═══ */
+.att-chart-wrap {
+  background: var(--att-card);
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  padding: 20px;
+  box-shadow: var(--att-shadow);
+  max-width: 340px;
+}
+.att-chart-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--att-text);
+}
+
+/* ═══ 섹션 헤더 ═══ */
+.att-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.att-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--att-text);
+}
+
+/* ═══ 범용 테이블 ═══ */
+.att-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  margin-bottom: 20px;
+  box-shadow: var(--att-shadow);
+}
+.att-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--att-card);
+}
+.att-table th {
+  padding: 10px 14px;
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid var(--att-line);
+  font-size: 12.5px;
+  color: var(--att-text2);
+  white-space: nowrap;
+}
+.att-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--att-line);
+  vertical-align: middle;
+}
+.att-table tr:last-child td { border-bottom: none; }
+.att-table tr:hover td { background: #f9fafb; }
+
+/* ═══ 상태 배지 ═══ */
+.att-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.att-badge.normal  { background: #dcfce7; color: #166534; }
+.att-badge.late    { background: #fef9c3; color: #92400e; }
+.att-badge.absent  { background: #fee2e2; color: #991b1b; }
+.att-badge.leave   { background: #dbeafe; color: #1e40af; }
+.att-badge.remote  { background: #ede9fe; color: #5b21b6; }
+.att-badge.field   { background: #ffedd5; color: #9a3412; }
+.att-badge.holiday { background: #f3f4f6; color: #4b5563; }
+.att-badge.PENDING   { background: #fef3c7; color: #92400e; }
+.att-badge.APPROVED  { background: #dcfce7; color: #166534; }
+.att-badge.REJECTED  { background: #fee2e2; color: #991b1b; }
+
+/* ═══ 폼 카드 ═══ */
+.att-form-card {
+  background: var(--att-card);
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--att-shadow);
+}
+.att-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin-bottom: 14px;
+}
+@media (max-width: 540px) {
+  .att-form-row { grid-template-columns: 1fr; }
+}
+.att-form-row.full { grid-template-columns: 1fr; }
+.att-form-group label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--att-text2);
+  margin-bottom: 5px;
+}
+.att-form-group input,
+.att-form-group select,
+.att-form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--att-line);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--att-text);
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.att-form-group input:focus,
+.att-form-group select:focus,
+.att-form-group textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+.att-form-group textarea { min-height: 80px; resize: vertical; }
+
+/* ═══ 버튼 ═══ */
+.att-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+.att-btn:active { transform: scale(0.97); }
+.att-btn-primary { background: #2563eb; color: #fff; }
+.att-btn-primary:hover { background: #1d4ed8; }
+.att-btn-default { background: #f3f4f6; color: #374151; border: 1px solid var(--att-line); }
+.att-btn-default:hover { background: #e5e7eb; }
+.att-btn-danger  { background: #ef4444; color: #fff; }
+.att-btn-danger:hover  { background: #dc2626; }
+.att-btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ═══ 빈 상태 ═══ */
+.att-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--att-text3);
+  font-size: 14px;
+}
+
+/* ═══ FullCalendar 색상 오버라이드 ═══ */
+.fc .fc-event.att-ev-normal  { background: var(--att-normal);  border-color: var(--att-normal);  }
+.fc .fc-event.att-ev-late    { background: var(--att-late);    border-color: var(--att-late);    }
+.fc .fc-event.att-ev-absent  { background: var(--att-absent);  border-color: var(--att-absent);  }
+.fc .fc-event.att-ev-leave   { background: var(--att-leave);   border-color: var(--att-leave);   }
+.fc .fc-event.att-ev-remote  { background: var(--att-remote);  border-color: var(--att-remote);  }
+.fc .fc-event.att-ev-field   { background: var(--att-field);   border-color: var(--att-field);   }
+.fc .fc-event.att-ev-holiday { background: var(--att-holiday); border-color: var(--att-holiday); }
+#attCalendar .fc-daygrid-day.att-bg-normal  { background: rgba(34,197,94,0.08); }
+#attCalendar .fc-daygrid-day.att-bg-late    { background: rgba(245,158,11,0.1); }
+#attCalendar .fc-daygrid-day.att-bg-absent  { background: rgba(239,68,68,0.1);  }
+#attCalendar .fc-daygrid-day.att-bg-leave   { background: rgba(59,130,246,0.1); }
+#attCalendar .fc-daygrid-day.att-bg-remote  { background: rgba(139,92,246,0.1); }
+#attCalendar .fc-daygrid-day.att-bg-field   { background: rgba(249,115,22,0.1); }
+#attCalendar .fc-daygrid-day.att-bg-holiday { background: rgba(156,163,175,0.12); }
+
+/* ═══ 범례 ═══ */
+.att-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.att-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--att-text2);
+}
+.att-legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

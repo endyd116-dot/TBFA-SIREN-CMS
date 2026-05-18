@@ -57,6 +57,17 @@ function triggerAiCompletion(taskId: number, authorMemberId: number) {
   }).catch((err) => console.warn("[ai-completion trigger]", err?.message || err));
 }
 
+/* ★ Phase 25 — 카드 완료 시 비매출 마일스톤 AI 매칭 트리거 (fire-and-forget) */
+function triggerMilestoneMatch(taskId: number, memberId: number) {
+  const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  fetch(`${base}/.netlify/functions/ai-task-milestone-match-background`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, memberId, secret }),
+  }).catch((err) => console.warn("[milestone-match trigger]", err?.message || err));
+}
+
 /* ─── @멘션 파싱 + 알림 (fire-and-forget 전용) ─── */
 async function parseMentionsAndNotify(opts: {
   taskId: number;
@@ -640,6 +651,11 @@ export default async (req: Request, _ctx: Context) => {
         // ★ Phase 3 Step 7-C.2 — AI-3 완료 보고서 초안 자동 트리거 (done 이동 시)
         if (newStatus === "done" && task.status !== "done") {
           triggerAiCompletion(id, meId);
+        }
+
+        // ★ Phase 25 — 비매출 마일스톤 AI 매칭 트리거 (done 이동 시, 아직 매칭 안 된 경우)
+        if (newStatus === "done" && task.status !== "done" && !task.milestone_def_id) {
+          triggerMilestoneMatch(id, meId);
         }
 
         // ★ Phase 21 R3 — 카드 done → 원본 서비스 closed 동기화 (양방향)

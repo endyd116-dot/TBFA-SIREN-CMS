@@ -24,8 +24,10 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **📐 Phase 26 근태관리 시스템 설계 진입** — 명세서 정독 완료. 2-Phase 분할(핵심 Step1~8 / AI·자동화 Step9~17). DB 10테이블·API 20개·신규 페이지 2개 설계 확정. A·B 트리거 작성 중 |
+| 2026-05-19 | **메인** | **✅ Phase 25 WBS↔마일스톤 연동 완결** (main @ `bf9a4bb`) — C Q1~Q11 중 10 PASS·BUG-P25-1은 `49be67d`에서 이미 수정(milestones.html v=2). 마이그 3컬럼 완료·schema 활성화·마이그 파일 삭제 |
+| 2026-05-19 | **메인** | **✅ Phase 24 성과 관리 시스템 완결** (main @ `bf5bfc6`) — C Q1~Q20 전원 PASS·BUG 0. 마이그 완료·단독 구현. R9도 이전 세션에서 이미 구현 완료(마이그 포함) |
 | 2026-05-18 | **메인** | **✅ 라운드 8 완결** (main @ `6bfd66e`) — C Q1~Q10 PASS + BUG-R8-1·R8-2 fix. R9 B·A 병렬 진행 중 |
-| 2026-05-18 | **메인** | **📐 라운드 8·9·10 설계 완료** — R8 수정/삭제 API 5종+보고↔작업 자동동기화(DB 마이그 불필요) / R9 WBS 고급+채팅 편집/삭제(DB 마이그 필요: migrate-chat-edit) / R10 댓글 투표·공유·알림 구독+AI 법률 배정(DB 마이그 불필요). B·A·C 트리거 3종 준비됨 |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 완결** (main @ `8b06826`) — Layer 3 힌트 시스템 + Layer 4 스케줄 도구 3개 + C BUG 3건 fix + 마이그레이션 완료 (ae04a13) |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
 | 2026-05-18 | **메인** | **🚀 라운드 7 AI Layer 1+2 Phase 1 발사** (main @ `0a31dc7`) — AI 에이전트 구조 확장 설계 완료. 설계서: docs/milestones/2026-05-18-round7-ai-layers.md |
@@ -47,20 +49,17 @@
 ## 3. 현재 작업 모드
 
 ```
-✅ 라운드 7 Phase 2 완료 — main @ 8b06826 (2026-05-18)
-   - ai_scheduled_commands 테이블 마이그레이션 완료 (ae04a13)
-   - C Q1~Q6 라이브 검증은 Swain 직접 확인 시 가능
+📐 Phase 26 근태관리 시스템 설계·메인 작업 완료 — main push 대기 (2026-05-19)
+   - 설계서: docs/milestones/2026-05-19-phase26-attendance.md
+   - schema.ts: att_* 10개 테이블 추가 (append-only)
+   - 마이그레이션 함수: migrate-phase26-attendance.ts (미실행)
+   - lib/att-utils.ts: 위치검증·근무시간계산·지각판정 유틸리티
+   - 🔄 다음: A·B 트리거 복붙 → A·B 병렬 구현 → 머지 → 마이그 실행 → C 검증
 
-📐 라운드 8·9·10 설계 완료 (2026-05-18)
-   - R8: 수정/삭제 API 5종 + 보고↔작업 자동동기화 (DB 마이그 불필요)
-   - R9: WBS 서브태스크·체크리스트·반복·리마인더 + 채팅 편집/삭제/검색 (DB 마이그 필요)
-   - R10: 댓글 투표·신고 + 파일 공유 + 알림 구독 + AI 법률 자동배정 (DB 마이그 불필요)
-   - 🔄 다음: R8 B 트리거 → B 구현 → 머지 → A 구현 → C 검증
-
-🔧 도구 사용 주의
-   - Edit: old/new_string 작게 쪼갤 것 (긴 코드 블록 전송 중 잘림)
-   - Bash: cd 쓰지 말 것 (작업 폴더에 이미 위치, cd "한글경로" 깨짐)
-   - 설명·검증: CLAUDE.md §6.14 — 함수명 말고 기능·시나리오 위주 (Swain 절대명제)
+⚠️ Swain 필수 액션
+   - Kakao REST API 키 확인 (기존 키가 REST API 키인지 확인)
+     developers.kakao.com > 내 애플리케이션 > 앱 키 > "REST API 키"
+     → KAKAO_REST_API_KEY 환경변수 등록
 
 🔧 정책 (2026-05-15 발효, 유지)
    - push 자동화: feature/·fix/ 브랜치 push 자율. main·force는 ask/deny
@@ -68,6 +67,7 @@
 ```
 
 **Swain 운영 액션** (작업 흐름 외):
+- **KAKAO_REST_API_KEY** 환경변수 등록 (Phase 26 거점 주소 검색 필수)
 - 카카오 심사 통과 후 환경변수 2개 등록 (ALIGO_TEMPLATE_BILLING_FAILED, ALIGO_TEMPLATE_CARD_EXPIRING) → 자동 발송
 
 ---
@@ -141,15 +141,15 @@
 | A | 프론트 | mypage-applications.js·mypage.html + my-reports.js·my-reports.html 수정 버튼·모달 | ✅ 완료 (720567b) |
 | C | 검증 | Q1~Q10 라이브 검증 | ✅ 완료 (10/10 PASS, BUG 2건 fix, 6bfd66e) |
 
-### 4.9 라운드 9 WBS 고급 + 채팅 편집 + 폼 응답 삭제 (2026-05-18 📐 설계 완료)
+### 4.9 라운드 9 WBS 고급 + 채팅 편집 + 폼 응답 삭제 (이전 세션 구현 완료·C 검증 대기)
 
 설계서: [docs/milestones/2026-05-18-round9-wbs-chat.md](docs/milestones/2026-05-18-round9-wbs-chat.md)
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| 메인 | DB 마이그·머지 | migrate-chat-edit.ts (chatMessages: editedAt, isDeleted, deletedAt) | ⏸ 대기 (R8 완료 후) |
-| B | 백엔드 | 서브태스크·체크리스트·반복·리마인더·채팅 편집/삭제/검색·폼 응답 삭제 API 9개 | ⏸ 대기 |
-| A | 프론트 | workspace-kanban.js·workspace.js·chat-user.js·admin-form-submissions.html | ⏸ 대기 |
+| 메인 | DB 마이그·머지 | migrate-chat-edit.ts 실행 완료·삭제 완료, schema.ts 컬럼 활성화 완료 | ✅ 완료 |
+| B | 백엔드 | 서브태스크·체크리스트·반복·리마인더·채팅 편집/삭제/검색·폼 응답 삭제 API | ✅ 완료 (이전 세션) |
+| A | 프론트 | workspace-kanban.js·chat-user.js·admin-form-submissions.html | ✅ 완료 (이전 세션) |
 | C | 검증 | Q1~Q10+ 라이브 검증 | ⏸ 대기 |
 
 ### 4.10 라운드 10 댓글 투표·신고 + 파일 공유 + 알림 구독 (2026-05-18 📐 설계 완료)
@@ -244,7 +244,9 @@
 | **라운드 1~6 (2026-05-17 사이클)** | ✅ 100% 완결 — SIREN 4건·워크스페이스 9건·CMS 6건·3단 권한·발송 UX·게이미피케이션+큐레이션·팝업 / C 검증 54항목 전부 통과 (R2 BUG 2건 제외 0) |
 | **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1+2 머지 완료 (main @ `8b06826`) — Layer 1~4 총 9개 도구 추가 + 힌트 시스템 + 스케줄 cron. **마이그레이션 호출 대기 → C Q1~Q6 라이브 검증 남음** |
 | **라운드 8 수정 API 4종 + 보고 동기화** | ✅ 100% 완결 (main @ `6bfd66e`) — C Q1~Q10 전부 PASS + BUG-R8-1(MOCK→실 API) + BUG-R8-2(sync 상태값 enum 불일치) fix |
-| **라운드 9 WBS 고급 + 채팅 편집** | 📐 설계 완료 (2026-05-18) — DB 마이그 필요 (migrate-chat-edit). R8 완료 후 시작 |
+| **라운드 9 WBS 고급 + 채팅 편집** | 🔄 구현 완료 (이전 세션) — 마이그·백엔드·프론트 모두 완료. **C 라이브 검증 남음** |
+| **Phase 24 성과 관리 시스템** | ✅ 100% 완결 (2026-05-19) — 단독 구현 + C Q1~Q20 전원 PASS·BUG 0. workspace.html 내부 패널 전환 방식 |
+| **Phase 25 WBS↔마일스톤 유기적 연동** | 🔄 코드 완성 (2026-05-19) — 마이그 파일·AI 백그라운드 매칭·5개 API·게이지·보류큐·카드생성. **마이그레이션 대기**: `migrate-phase25-milestone-tasks?run=1` |
 | **라운드 10 댓글·공유·알림·AI 법률** | 📐 설계 완료 (2026-05-18) — DB 마이그 불필요. R9 완료 후 시작 |
 
 **누적**: 약 87% / 약 820h+

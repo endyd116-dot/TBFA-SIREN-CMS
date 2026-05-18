@@ -1,0 +1,112 @@
+/**
+ * Phase 25 — WBS 대시보드용 비매출 마일스톤 진행률 API
+ * GET /api/workspace-milestone-progress?quarterId=N
+ */
+import type { Context } from "@netlify/functions";
+import { requireAdmin } from "../../lib/admin-guard";
+import { db } from "../../db";
+import { sql } from "drizzle-orm";
+
+export const config = { path: "/api/workspace-milestone-progress" };
+
+export default async function handler(req: Request, _ctx: Context) {
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.res;
+  const member = auth.ctx.member as any;
+
+  const url = new URL(req.url);
+  const quarterIdParam = url.searchParams.get("quarterId");
+
+  function jsonError(step: string, err: any) {
+    return Response.json({
+      ok: false, error: "진행률 조회 실패", step,
+      detail: String(err?.message || err).slice(0, 500),
+    }, { status: 500 });
+  }
+
+  // 활성 분기 조회
+  let quarter: any;
+  try {
+    if (quarterIdParam) {
+      const rows = await db.execute(sql`SELECT * FROM quarters WHERE id = ${Number(quarterIdParam)}`);
+      quarter = (rows as any).rows?.[0] || (rows as any[])[0];
+    } else {
+      const rows = await db.execute(sql`
+        SELECT * FROM quarters WHERE status = 'ACTIVE' ORDER BY year DESC, quarter DESC LIMIT 1
+      `);
+      quarter = (rows as any).rows?.[0] || (rows as any[])[0];
+    }
+  } catch (err) { return jsonError("select_quarter", err); }
+
+  if (!quarter) {
+    return Response.json({ ok: true, data: { quarter: null, milestones: [], pendingCount: 0 } });
+  }
+
+  const milestoneRole = member.milestoneRole || member.milestone_role || null;
+  if (!milestoneRole) {
+    return Response.json({ ok: true, data: { quarter, milestones: [], pendingCount: 0 } });
+  }
+
+  // 비매출 마일스톤 정의 조회
+  let defs: any[] = [];
+  try {
+    const rows = await db.execute(sql`
+      SELECT id, code, name, threshold_value, threshold_unit, sort_order
+      FROM milestone_definitions
+      WHERE target_milestone_role = ${milestoneRole}
+        AND category != 'REVENUE_LINKED'
+        AND is_active = TRUE
+      ORDER BY sort_order
+    `);
+    defs = (rows as any).rows || (rows as any[]);
+  } catch (err) { return jsonError("select_defs", err); }
+
+  // 각 마일스톤별 달성 카드 수
+  const milestones: any[] = [];
+  for (const def of defs) {
+    let achieved = 0;
+    try {
+      const cntRows = await db.execute(sql`
+        SELECT COUNT(*) as cnt FROM workspace_tasks
+        WHERE member_id = ${member.id}
+          AND milestone_def_id = ${def.id}
+          AND milestone_match_status IN ('auto', 'user')
+          AND status = 'done'
+          AND completed_at >= ${quarter.start_date}
+          AND completed_at <= ${quarter.end_date}
+      `);
+      achieved = Number((cntRows as any).rows?.[0]?.cnt || (cntRows as any[])[0]?.cnt || 0);
+    } catch { achieved = 0; }
+
+    const target = Number(def.threshold_value || 0);
+    const pct = target > 0 ? Math.min(Math.round((achieved / target) * 100), 100) : (achieved > 0 ? 100 : 0);
+    milestones.push({
+      defId: def.id, code: def.code, name: def.name,
+      target, unit: def.threshold_unit || "건",
+      achieved, pct,
+    });
+  }
+
+  // 분류 대기 카드 수
+  let pendingCount = 0;
+  try {
+    const pRows = await db.execute(sql`
+      SELECT COUNT(*) as cnt FROM workspace_tasks
+      WHERE member_id = ${member.id}
+        AND status = 'done'
+        AND milestone_def_id IS NULL
+        AND milestone_match_status IS NULL
+        AND completed_at >= ${quarter.start_date}
+    `);
+    pendingCount = Number((pRows as any).rows?.[0]?.cnt || (pRows as any[])[0]?.cnt || 0);
+  } catch { pendingCount = 0; }
+
+  return Response.json({
+    ok: true,
+    data: {
+      quarter: { id: quarter.id, year: quarter.year, quarter: quarter.quarter, status: quarter.status },
+      milestones,
+      pendingCount,
+    },
+  });
+}

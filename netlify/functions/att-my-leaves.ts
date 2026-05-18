@@ -1,0 +1,66 @@
+import { db } from "../../db/index";
+import { members } from "../../db/schema";
+import { eq, sql } from "drizzle-orm";
+import { requireActiveUser } from "../../lib/auth";
+
+export const config = { path: "/api/att-my-leaves" };
+
+function jsonOk(data: unknown) {
+  return new Response(JSON.stringify({ ok: true, data }), {
+    status: 200, headers: { "Content-Type": "application/json" },
+  });
+}
+function jsonError(step: string, err: any, status = 500) {
+  return new Response(JSON.stringify({
+    ok: false, error: "잔여 휴가 조회 실패", step,
+    detail: String(err?.message ?? err).slice(0, 500),
+    stack: String(err?.stack ?? "").slice(0, 1000),
+  }), { status, headers: { "Content-Type": "application/json" } });
+}
+
+export default async function handler(req: Request) {
+  const auth = await requireActiveUser(req);
+  if (!auth.ok) return auth.res;
+
+  if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
+
+  let memberUid: string;
+  try {
+    const [member] = await db
+      .select({ uid: members.uid })
+      .from(members)
+      .where(eq(members.id, auth.user.uid))
+      .limit(1);
+    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
+    memberUid = member.uid;
+  } catch (err) {
+    return jsonError("select_member", err);
+  }
+
+  const year = new Date().getFullYear();
+
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        b.id,
+        b.leave_type_id,
+        b.year,
+        b.total_days,
+        b.used_days,
+        (b.total_days - b.used_days) AS remaining_days,
+        lt.name AS leave_type_name,
+        lt.is_paid,
+        lt.unit,
+        lt.display_order
+      FROM att_leave_balances b
+      JOIN att_leave_types lt ON lt.id = b.leave_type_id
+      WHERE b.member_uid = ${memberUid}
+        AND b.year = ${year}
+        AND lt.is_active = true
+      ORDER BY lt.display_order, lt.id
+    `);
+    return jsonOk({ year, memberUid, balances: result.rows });
+  } catch (err) {
+    return jsonError("select_balances", err);
+  }
+}

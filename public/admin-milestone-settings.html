@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>성과관리 설정 | 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
+<link rel="stylesheet" href="/css/workspace-milestones.css?v=1">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
+<style>
+/* ── 성과관리 설정 전용 ── */
+.mst-tab-nav { display:flex; gap:4px; margin-bottom:24px; border-bottom:2px solid #e5e7eb; padding-bottom:0; }
+.mst-tab { padding:9px 18px; border:none; background:none; cursor:pointer; font-size:14px; color:#6b7280; border-bottom:2px solid transparent; margin-bottom:-2px; border-radius:0; font-weight:500; }
+.mst-tab.active { color:#2563eb; border-bottom-color:#2563eb; }
+.mst-tab-panel { display:none; }
+.mst-tab-panel.active { display:block; }
+
+/* 테이블 */
+.mst-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.mst-table th { background:#f8fafc; color:#374151; font-weight:600; padding:10px 14px; text-align:left; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+.mst-table td { padding:10px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.mst-table tr:hover td { background:#f9fafb; }
+
+/* 배지 */
+.mst-badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11.5px; font-weight:600; }
+.mst-badge.sm { background:#dbeafe; color:#1d4ed8; }
+.mst-badge.pm { background:#d1fae5; color:#065f46; }
+.mst-badge.si { background:#fef3c7; color:#92400e; }
+.mst-badge.none { background:#f3f4f6; color:#9ca3af; }
+.mst-badge.rev { background:#ede9fe; color:#5b21b6; }
+.mst-badge.nonrev { background:#e0f2fe; color:#0369a1; }
+.mst-badge.active { background:#dcfce7; color:#15803d; }
+.mst-badge.inactive { background:#fee2e2; color:#b91c1c; }
+
+/* 버튼 */
+.mst-btn { padding:6px 14px; border-radius:7px; font-size:13px; cursor:pointer; border:none; font-weight:500; }
+.mst-btn.primary { background:#2563eb; color:#fff; }
+.mst-btn.primary:hover { background:#1d4ed8; }
+.mst-btn.secondary { background:#f1f5f9; color:#374151; }
+.mst-btn.secondary:hover { background:#e2e8f0; }
+.mst-btn.danger { background:#fee2e2; color:#b91c1c; }
+.mst-btn.danger:hover { background:#fecaca; }
+
+/* 모달 */
+.mst-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+.mst-overlay.open { display:flex; }
+.mst-modal { background:#fff; border-radius:14px; padding:28px 32px; width:100%; max-width:560px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.18); }
+.mst-modal h3 { font-size:17px; font-weight:700; margin:0 0 20px; color:#111827; }
+.mst-form-group { margin-bottom:14px; }
+.mst-form-group label { display:block; font-size:12.5px; color:#374151; font-weight:600; margin-bottom:5px; }
+.mst-form-group input, .mst-form-group select, .mst-form-group textarea {
+  width:100%; padding:8px 11px; border:1px solid #d1d5db; border-radius:7px;
+  font-size:13.5px; box-sizing:border-box; outline:none; font-family:inherit;
+}
+.mst-form-group input:focus, .mst-form-group select:focus, .mst-form-group textarea:focus {
+  border-color:#2563eb; box-shadow:0 0 0 2px #dbeafe;
+}
+.mst-form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.mst-form-group .mst-hint { font-size:11.5px; color:#9ca3af; margin-top:3px; }
+.mst-modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }
+
+/* 역할 드롭다운 */
+.role-select { padding:5px 9px; border:1px solid #e5e7eb; border-radius:6px; font-size:13px; cursor:pointer; }
+.role-select:focus { outline:none; border-color:#2563eb; }
+</style>
+</head>
+<body class="ws-body ms-body">
+
+<!-- 사이드바 -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <div class="quick-jump" data-quick-jump></div>
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="true">
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="false">
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li id="wsNavMilestoneSettings" style="background:#eef2ff;border-radius:6px;">
+              <a href="/admin-milestone-settings.html" title="성과관리 설정" style="color:#2563eb!important;font-weight:600">
+                <span class="ws-nav-icon">⚙️</span>
+                <span class="ws-nav-text">성과관리 설정</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+<!-- 메인 -->
+<main class="ws-main" id="wsMain">
+  <div style="padding:28px 32px; max-width:1000px; margin:0 auto;">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;color:#111827;margin:0">⚙️ 성과관리 설정</h2>
+        <p style="font-size:13px;color:#6b7280;margin:4px 0 0" id="mstSubtitle">로딩 중...</p>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="mst-tab-nav">
+      <button class="mst-tab active" data-tab="definitions">📋 마일스톤 정의</button>
+      <button class="mst-tab" data-tab="roles">👥 직원 역할 배정</button>
+    </div>
+
+    <!-- 탭 패널 1: 마일스톤 정의 -->
+    <div class="mst-tab-panel active" id="tabDefinitions">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-size:13px;color:#6b7280;margin:0">분기별 성과 목표 항목을 정의합니다. 각 항목은 직원 역할(SM/PM/SI)에 연결됩니다.</p>
+        <button class="mst-btn primary" id="btnAddDef">+ 마일스톤 추가</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="mst-table">
+          <thead>
+            <tr>
+              <th>코드</th>
+              <th>마일스톤명</th>
+              <th>카테고리</th>
+              <th>대상 역할</th>
+              <th>목표값</th>
+              <th>분기</th>
+              <th>상태</th>
+              <th>정렬</th>
+              <th style="width:100px">액션</th>
+            </tr>
+          </thead>
+          <tbody id="defTableBody">
+            <tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 탭 패널 2: 직원 역할 배정 -->
+    <div class="mst-tab-panel" id="tabRoles">
+      <p style="font-size:13px;color:#6b7280;margin:0 0 16px">각 직원에게 성과 담당 역할(SM/PM/SI)을 배정합니다. 역할이 없으면 성과관리 메뉴가 보이지 않습니다.</p>
+      <div style="overflow-x:auto;">
+        <table class="mst-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>이메일</th>
+              <th>계정 역할</th>
+              <th>성과 담당 역할</th>
+              <th>저장</th>
+            </tr>
+          </thead>
+          <tbody id="roleTableBody">
+            <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- 마일스톤 정의 모달 -->
+<div class="mst-overlay" id="defModal">
+  <div class="mst-modal">
+    <h3 id="defModalTitle">마일스톤 추가</h3>
+    <input type="hidden" id="defId">
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>코드 <span style="color:#ef4444">*</span></label>
+        <input type="text" id="defCode" placeholder="예: SM-01" maxlength="20">
+        <div class="mst-hint">고유 식별 코드 (수정 불가)</div>
+      </div>
+      <div class="mst-form-group">
+        <label>카테고리 <span style="color:#ef4444">*</span></label>
+        <select id="defCategory">
+          <option value="REVENUE_LINKED">매출연동 (REVENUE_LINKED)</option>
+          <option value="NON_REVENUE">비매출 (NON_REVENUE)</option>
+        </select>
+      </div>
+    </div>
+    <div class="mst-form-group">
+      <label>마일스톤명 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="defName" placeholder="예: 정기후원 신규 유치" maxlength="200">
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>대상 역할 <span style="color:#ef4444">*</span></label>
+        <select id="defRole">
+          <option value="SM">SM — 사무국장</option>
+          <option value="PM">PM — 정책국장</option>
+          <option value="SI">SI — SI관리자</option>
+        </select>
+      </div>
+      <div class="mst-form-group">
+        <label>적용 분기</label>
+        <select id="defQuarter">
+          <option value="">전체 (ALL)</option>
+          <option value="Q1">Q1</option>
+          <option value="Q2">Q2</option>
+          <option value="Q3">Q3</option>
+          <option value="Q4">Q4</option>
+        </select>
+      </div>
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>
+          <input type="checkbox" id="defThresholdEnabled" style="width:auto;margin-right:5px">
+          목표값 사용
+        </label>
+        <input type="number" id="defThresholdValue" placeholder="목표 수치" min="0" step="0.01">
+      </div>
+      <div class="mst-form-group">
+        <label>목표 단위</label>
+        <input type="text" id="defThresholdUnit" placeholder="예: 건, 명, 원" maxlength="30">
+      </div>
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>사업 단위</label>
+        <input type="text" id="defBusinessUnit" placeholder="예: 후원사업" maxlength="30">
+      </div>
+      <div class="mst-form-group">
+        <label>매출 출처</label>
+        <input type="text" id="defRevenueSource" placeholder="예: 정기후원" maxlength="100">
+      </div>
+    </div>
+    <div class="mst-form-group">
+      <label>보너스 공식 (JSON)</label>
+      <textarea id="defBonusFormula" rows="3" placeholder='{"type":"fixed","amount":100000}'></textarea>
+      <div class="mst-hint">JSON 형식으로 입력. 예: {"type":"fixed","amount":100000} 또는 {}</div>
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>유효 시작일</label>
+        <input type="date" id="defEffectiveFrom">
+      </div>
+      <div class="mst-form-group">
+        <label>유효 종료일</label>
+        <input type="date" id="defEffectiveTo">
+      </div>
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>정렬 순서</label>
+        <input type="number" id="defSortOrder" placeholder="0" min="0">
+      </div>
+      <div class="mst-form-group" id="defActiveGroup" style="display:none">
+        <label>
+          <input type="checkbox" id="defIsActive" style="width:auto;margin-right:5px" checked>
+          활성화
+        </label>
+      </div>
+    </div>
+    <div class="mst-modal-footer">
+      <button class="mst-btn secondary" id="btnDefCancel">취소</button>
+      <button class="mst-btn primary" id="btnDefSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="mstToast" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px"></div>
+
+<script src="/js/quick-jump.js?v=2026-05-10-q3" defer></script>
+<script src="/js/admin-milestone-settings.js?v=1" defer></script>
+</body>
+</html>

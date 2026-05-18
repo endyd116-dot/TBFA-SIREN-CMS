@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>워크스페이스 관리 - SIREN 어드민</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- 공통 CSS -->
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace-attendance.css?v=1">
+
+<style>
+/* ─── 어드민 레이아웃 ─── */
+.awm-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+.awm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 10px; }
+.awm-header h1 { font-size: 20px; font-weight: 700; margin: 0; }
+.awm-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #6b7280; text-decoration: none; }
+.awm-back:hover { color: #111; }
+
+/* ─── 현황 카드 그리드 ─── */
+.awm-status-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 700px) { .awm-status-cards { grid-template-columns: repeat(2,1fr); } }
+.awm-status-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
+.awm-status-card-label { font-size: 11.5px; color: #6b7280; margin-bottom: 4px; }
+.awm-status-card-val { font-size: 22px; font-weight: 700; }
+
+/* ─── 테이블 컨테이너 ─── */
+.awm-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+.awm-section-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+
+/* ─── 스케줄 설정 폼 ─── */
+.awm-schedule-hybrid { display: none; margin-top: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; }
+.awm-day-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.awm-day-item label { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #374151; cursor: pointer; }
+
+/* ─── 인라인 태그 ─── */
+.awm-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; }
+.awm-tag.OFFICE   { background: #eff6ff; color: #1d4ed8; }
+.awm-tag.REMOTE   { background: #f5f3ff; color: #5b21b6; }
+.awm-tag.FIELD    { background: #fff7ed; color: #c2410c; }
+.awm-tag.HYBRID   { background: #ecfdf5; color: #065f46; }
+.awm-tag.BUSINESS_TRIP { background: #fefce8; color: #92400e; }
+.awm-tag.FLEXIBLE { background: #f0fdf4; color: #166534; }
+</style>
+</head>
+
+<body style="background:#f5f6fa;min-height:100vh;font-family:'Noto Sans KR',sans-serif">
+
+<div class="awm-wrap">
+
+  <!-- 헤더 -->
+  <div class="awm-header">
+    <div>
+      <a href="/admin-hub.html" class="awm-back">← 허브로 돌아가기</a>
+      <h1 style="margin-top:6px">🏢 워크스페이스 관리</h1>
+    </div>
+    <span style="font-size:12.5px;color:#9ca3af" id="awmAdminName">로딩 중...</span>
+  </div>
+
+  <!-- 탭 네비게이션 -->
+  <nav class="att-tabs" id="awmTabs">
+    <button class="att-tab active" data-tab="records">근태 현황</button>
+    <button class="att-tab" data-tab="schedule">직원 스케줄</button>
+    <button class="att-tab" data-tab="workplaces">거점 관리</button>
+    <button class="att-tab" data-tab="policy">근무 정책</button>
+    <button class="att-tab" data-tab="leavetypes">휴가 종류</button>
+    <button class="att-tab" data-tab="holidays">공휴일</button>
+  </nav>
+
+  <!-- ════════════ 탭 1: 근태 현황 ════════════ -->
+  <div class="att-panel active" id="awmPanelRecords">
+
+    <!-- 날짜 선택 -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="att-form-group" style="margin:0">
+        <label style="display:inline;font-size:13px;font-weight:600;color:#374151;margin-right:8px">날짜</label>
+        <input type="date" id="awmRecordsDate" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+      </div>
+      <button class="att-btn att-btn-primary" id="awmBtnLoadRecords">조회</button>
+    </div>
+
+    <!-- 현황 카드 -->
+    <div class="awm-status-cards" id="awmStatusCards">
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">출근</div>
+        <div class="awm-status-card-val" id="awmCntCheckin" style="color:#22c55e">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">지각</div>
+        <div class="awm-status-card-val" id="awmCntLate" style="color:#f59e0b">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">결근</div>
+        <div class="awm-status-card-val" id="awmCntAbsent" style="color:#ef4444">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">휴가</div>
+        <div class="awm-status-card-val" id="awmCntLeave" style="color:#3b82f6">—</div>
+      </div>
+    </div>
+
+    <!-- 기록 테이블 -->
+    <div class="awm-section">
+      <div class="awm-section-title">출퇴근 기록</div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>직원</th>
+              <th>근무형태</th>
+              <th>출근</th>
+              <th>퇴근</th>
+              <th>상태</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="awmRecordsBody">
+            <tr><td colspan="6" class="att-empty">날짜를 선택 후 조회하세요</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 대기 중인 수정 요청 -->
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="awm-section-title" style="margin:0">대기 중인 수정 요청</div>
+        <span class="att-badge PENDING" id="awmPendingAmendCount">0건</span>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>직원</th>
+              <th>날짜</th>
+              <th>유형</th>
+              <th>요청 시각</th>
+              <th>사유</th>
+              <th>처리</th>
+            </tr>
+          </thead>
+          <tbody id="awmPendingAmendBody">
+            <tr><td colspan="6" class="att-empty">대기 중인 요청이 없습니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 2: 직원 스케줄 ════════════ -->
+  <div class="att-panel" id="awmPanelSchedule">
+    <div class="awm-section">
+      <div class="awm-section-title">직원 근무 스케줄 설정</div>
+
+      <div class="att-form-card" style="border:none;padding:0;box-shadow:none">
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>직원 선택</label>
+            <select id="awmScheduleMember">
+              <option value="">직원을 선택하세요</option>
+            </select>
+          </div>
+          <div class="att-form-group">
+            <label>근무형태</label>
+            <select id="awmScheduleMode">
+              <option value="OFFICE">🏢 사무실</option>
+              <option value="REMOTE">🏠 재택</option>
+              <option value="HYBRID">🔀 혼합 (요일별)</option>
+              <option value="FLEXIBLE">⏱ 탄력근무</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- HYBRID 선택 시 노출 -->
+        <div class="awm-schedule-hybrid" id="awmHybridConfig">
+          <div style="font-size:12.5px;font-weight:600;color:#374151;margin-bottom:10px">요일별 근무 형태</div>
+          <div class="awm-day-grid">
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="1"> 월</label>
+              <select class="hybrid-day-mode" data-day="1" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="2"> 화</label>
+              <select class="hybrid-day-mode" data-day="2" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="3"> 수</label>
+              <select class="hybrid-day-mode" data-day="3" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="4"> 목</label>
+              <select class="hybrid-day-mode" data-day="4" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="5"> 금</label>
+              <select class="hybrid-day-mode" data-day="5" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="att-form-row" style="margin-top:14px">
+          <div class="att-form-group">
+            <label>적용 시작일</label>
+            <input type="date" id="awmScheduleFrom">
+          </div>
+          <div class="att-form-group">
+            <label>적용 종료일 (선택)</label>
+            <input type="date" id="awmScheduleTo">
+          </div>
+        </div>
+
+        <button class="att-btn att-btn-primary" id="awmBtnSaveSchedule" style="margin-top:4px">스케줄 저장</button>
+      </div>
+
+      <!-- 직원별 현재 스케줄 목록 -->
+      <div style="margin-top:24px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px">현재 스케줄 현황</div>
+        <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+          <table class="att-table">
+            <thead>
+              <tr>
+                <th>직원</th>
+                <th>근무형태</th>
+                <th>적용 기간</th>
+              </tr>
+            </thead>
+            <tbody id="awmScheduleListBody">
+              <tr><td colspan="3" class="att-empty">스케줄 정보를 불러오는 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 3: 거점 관리 ════════════ -->
+  <div class="att-panel" id="awmPanelWorkplaces">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">거점 목록</div>
+        <button class="att-btn att-btn-primary" id="awmBtnAddWorkplace">+ 거점 추가</button>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>거점명</th>
+              <th>주소</th>
+              <th>반경(m)</th>
+              <th>좌표</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="awmWorkplacesBody">
+            <tr><td colspan="5" class="att-empty">거점 정보를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 거점 추가/수정 폼 -->
+    <div class="awm-section" id="awmWorkplaceForm" style="display:none">
+      <div class="awm-section-title" id="awmWorkplaceFormTitle">거점 추가</div>
+      <input type="hidden" id="awmWpId">
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>거점명</label>
+          <input type="text" id="awmWpName" placeholder="예: 본사, 강남지점">
+        </div>
+        <div class="att-form-group">
+          <label>허용 반경 (미터)</label>
+          <input type="number" id="awmWpRadius" value="200" min="50" max="2000">
+        </div>
+      </div>
+      <div class="att-form-row">
+        <div class="att-form-group" style="grid-column:1/-1">
+          <label>주소</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="awmWpAddress" placeholder="주소 입력 후 좌표 조회" style="flex:1">
+            <button class="att-btn att-btn-default" id="awmBtnGeocode">좌표 조회</button>
+          </div>
+        </div>
+      </div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>위도 (lat)</label>
+          <input type="number" id="awmWpLat" step="0.000001" placeholder="37.123456">
+        </div>
+        <div class="att-form-group">
+          <label>경도 (lng)</label>
+          <input type="number" id="awmWpLng" step="0.000001" placeholder="127.123456">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="att-btn att-btn-primary" id="awmBtnSaveWorkplace">저장</button>
+        <button class="att-btn att-btn-default" id="awmBtnCancelWorkplace">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 4: 근무 정책 ════════════ -->
+  <div class="att-panel" id="awmPanelPolicy">
+    <div class="awm-section">
+      <div class="awm-section-title">근무 정책 설정</div>
+      <div class="att-form-card" style="border:none;padding:0;box-shadow:none">
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>표준 출근 시각</label>
+            <input type="time" id="awmPolicyCheckinTime" value="09:00">
+          </div>
+          <div class="att-form-group">
+            <label>표준 퇴근 시각</label>
+            <input type="time" id="awmPolicyCheckoutTime" value="18:00">
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>지각 허용 (분)</label>
+            <input type="number" id="awmPolicyLateGrace" value="10" min="0" max="60">
+          </div>
+          <div class="att-form-group">
+            <label>조기 퇴근 허용 (분)</label>
+            <input type="number" id="awmPolicyEarlyLeave" value="0" min="0" max="60">
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>야근 기준 시간 (시간)</label>
+            <input type="number" id="awmPolicyOvertimeAfter" value="8" min="6" max="12" step="0.5">
+          </div>
+          <div class="att-form-group">
+            <label>연간 기본 연차 (일)</label>
+            <input type="number" id="awmPolicyAnnualLeave" value="15" min="0" max="30">
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>주 소정 근무일</label>
+            <select id="awmPolicyWorkDaysPerWeek">
+              <option value="5">5일 (월~금)</option>
+              <option value="6">6일 (월~토)</option>
+            </select>
+          </div>
+          <div class="att-form-group">
+            <label>GPS 위치 검증 사용</label>
+            <select id="awmPolicyGpsCheck">
+              <option value="true">사용</option>
+              <option value="false">미사용</option>
+            </select>
+          </div>
+        </div>
+        <button class="att-btn att-btn-primary" id="awmBtnSavePolicy">정책 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 5: 휴가 종류 ════════════ -->
+  <div class="att-panel" id="awmPanelLeavetypes">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">휴가 종류</div>
+        <button class="att-btn att-btn-primary" id="awmBtnAddLeaveType">+ 종류 추가</button>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>기본 일수</th>
+              <th>이월 여부</th>
+              <th>설명</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="awmLeaveTypesBody">
+            <tr><td colspan="5" class="att-empty">휴가 종류를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 추가/수정 폼 -->
+    <div class="awm-section" id="awmLeaveTypeForm" style="display:none">
+      <div class="awm-section-title" id="awmLeaveTypeFormTitle">휴가 종류 추가</div>
+      <input type="hidden" id="awmLtId">
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>이름</label>
+          <input type="text" id="awmLtName" placeholder="예: 연차, 병가, 경조사">
+        </div>
+        <div class="att-form-group">
+          <label>기본 부여 일수</label>
+          <input type="number" id="awmLtDays" value="0" min="0" max="365">
+        </div>
+      </div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>이월 허용</label>
+          <select id="awmLtCarryover">
+            <option value="false">미허용</option>
+            <option value="true">허용</option>
+          </select>
+        </div>
+        <div class="att-form-group">
+          <label>반차 사용 가능</label>
+          <select id="awmLtHalfDay">
+            <option value="true">가능</option>
+            <option value="false">불가</option>
+          </select>
+        </div>
+      </div>
+      <div class="att-form-row full">
+        <div class="att-form-group">
+          <label>설명</label>
+          <input type="text" id="awmLtDesc" placeholder="간단한 설명">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="att-btn att-btn-primary" id="awmBtnSaveLeaveType">저장</button>
+        <button class="att-btn att-btn-default" id="awmBtnCancelLeaveType">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 6: 공휴일 ════════════ -->
+  <div class="att-panel" id="awmPanelHolidays">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">공휴일 목록</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="awmHolidayYear" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"></select>
+          <button class="att-btn att-btn-primary" id="awmBtnAddHoliday">+ 공휴일 추가</button>
+        </div>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>명칭</th>
+              <th>종류</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="awmHolidaysBody">
+            <tr><td colspan="4" class="att-empty">공휴일 정보를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 공휴일 추가 폼 -->
+    <div class="awm-section" id="awmHolidayForm" style="display:none">
+      <div class="awm-section-title">공휴일 추가</div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>날짜</label>
+          <input type="date" id="awmHolidayDate">
+        </div>
+        <div class="att-form-group">
+          <label>명칭</label>
+          <input type="text" id="awmHolidayName" placeholder="예: 개천절">
+        </div>
+      </div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>종류</label>
+          <select id="awmHolidayType">
+            <option value="NATIONAL">법정공휴일</option>
+            <option value="COMPANY">회사 휴무일</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="att-btn att-btn-primary" id="awmBtnSaveHoliday">저장</button>
+        <button class="att-btn att-btn-default" id="awmBtnCancelHoliday">취소</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /awm-wrap -->
+
+<!-- 토스트 -->
+<div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
+
+<script src="/js/admin-workspace-management.js?v=1"></script>
+</body>
+</html>
