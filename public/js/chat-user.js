@@ -370,6 +370,11 @@
 
   /* ============ ★ H-1: 메시지 본문 빌드 (텍스트 + 이미지) ============ */
   function buildMessageBody(m) {
+    /* ★ R9: 삭제된 메시지 */
+    if (m.isDeleted) {
+      return `<div class="msg-bubble msg-deleted" style="color:#94a3b8;font-style:italic">삭제된 메시지입니다</div>`;
+    }
+
     const att = m.attachment;
 
     /* 이미지 첨부가 있는 경우 */
@@ -382,14 +387,21 @@
       /* 이미지 외 텍스트 메시지 본문이 "[이미지] xxx" 형식이면 표시 안 함 */
       const text = (m.content || '').trim();
       const textHtml = text && !text.startsWith('[이미지]')
-        ? `<div class="msg-bubble">${escapeHtml(text).replace(/\n/g, '<br />')}</div>`
+        ? `<div class="msg-bubble" data-msg-text="1">${escapeHtml(text).replace(/\n/g, '<br />')}</div>`
         : '';
 
       return textHtml + imgTag;
     }
 
     /* 일반 텍스트 메시지 */
-    return `<div class="msg-bubble">${escapeHtml(m.content || '').replace(/\n/g, '<br />')}</div>`;
+    return `<div class="msg-bubble" data-msg-text="1">${escapeHtml(m.content || '').replace(/\n/g, '<br />')}</div>`;
+  }
+
+  /* ★ R9: 5분 이내 수정 가능 여부 */
+  function isEditableByTime(createdAt) {
+    if (!createdAt) return false;
+    const diff = Date.now() - new Date(createdAt).getTime();
+    return diff <= 5 * 60 * 1000;
   }
 
   /* ============ 메시지 렌더 ============ */
@@ -415,10 +427,19 @@
       const isMine = m.senderId === myUid;
       const time = formatTime(m.createdAt);
       const body = buildMessageBody(m);
-      const meta = `<span class="msg-meta">${time}</span>`;
+      /* ★ R9: editedAt 표시 */
+      const editedTag = (m.editedAt && !m.isDeleted) ? ' <span class="msg-edited" style="color:#94a3b8;font-size:11px">(수정됨)</span>' : '';
+      const meta = `<span class="msg-meta">${time}${editedTag}</span>`;
+
+      /* ★ R9: 본인 메시지(삭제·시스템 제외) 액션 메뉴 */
+      const showActions = isMine && !m.isDeleted;
+      const actionsBtn = showActions
+        ? `<button type="button" class="msg-actions-btn" data-msg-id="${m.id}" data-msg-created="${escapeHtml(m.createdAt || '')}" data-msg-content="${escapeHtml(m.content || '')}" aria-label="메시지 메뉴" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:2px 6px;font-size:14px">⋯</button>`
+        : '';
+
       return isMine
-        ? `<div class="msg-row mine">${meta}${body}</div>`
-        : `<div class="msg-row theirs">${body}${meta}</div>`;
+        ? `<div class="msg-row mine" data-msg-row="${m.id}">${actionsBtn}${meta}${body}</div>`
+        : `<div class="msg-row theirs" data-msg-row="${m.id}">${body}${meta}</div>`;
     }).join('');
 
     if (html) {
@@ -634,6 +655,184 @@
     }
   }
 
+  /* ============ ★ R9: 메시지 수정/삭제 메뉴 ============ */
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_CHAT_UPDATE = { ok: true, messageId: 0, editedAt: new Date().toISOString() };
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_CHAT_DELETE = { ok: true };
+
+  function closeMsgMenu() {
+    const menu = document.getElementById('chatMsgMenu');
+    if (menu) menu.remove();
+  }
+
+  function setupMessageActions() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.msg-actions-btn');
+      if (!btn) {
+        closeMsgMenu();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+
+      const msgId = Number(btn.dataset.msgId);
+      const createdAt = btn.dataset.msgCreated;
+      const original = btn.dataset.msgContent || '';
+      const editable = isEditableByTime(createdAt);
+
+      closeMsgMenu();
+      const menu = document.createElement('div');
+      menu.id = 'chatMsgMenu';
+      menu.style.cssText = 'position:absolute;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);padding:4px;z-index:9999;font-size:13px;min-width:96px';
+      const rect = btn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+      menu.style.left = (rect.left + window.scrollX - 60) + 'px';
+
+      menu.innerHTML = `
+        <button type="button" data-msg-edit="${msgId}" ${editable ? '' : 'disabled style="color:#cbd5e1"'} style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:${editable ? 'pointer' : 'not-allowed'};font-size:13px">✏️ 수정${editable ? '' : ' (5분 초과)'}</button>
+        <button type="button" data-msg-delete="${msgId}" style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px 12px;cursor:pointer;font-size:13px;color:#dc2626">🗑 삭제</button>
+      `;
+      menu.dataset.msgOriginal = original;
+      document.body.appendChild(menu);
+
+      menu.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const editBtn = ev.target.closest('[data-msg-edit]');
+        const delBtn = ev.target.closest('[data-msg-delete]');
+        if (editBtn && !editBtn.disabled) {
+          closeMsgMenu();
+          startInlineEdit(msgId, original);
+        } else if (delBtn) {
+          closeMsgMenu();
+          deleteMessage(msgId);
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMsgMenu();
+    });
+  }
+
+  function startInlineEdit(msgId, originalContent) {
+    const row = document.querySelector('[data-msg-row="' + msgId + '"]');
+    if (!row) return;
+    const bubble = row.querySelector('[data-msg-text="1"]');
+    if (!bubble) {
+      SIREN.toast('이 메시지는 수정할 수 없습니다');
+      return;
+    }
+
+    const editor = document.createElement('div');
+    editor.className = 'msg-inline-edit';
+    editor.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:6px;background:#f8fafc;border-radius:8px;max-width:320px';
+    editor.innerHTML = `
+      <textarea class="msg-edit-input" rows="2" style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;font-size:13.5px;font-family:inherit;resize:vertical">${escapeHtml(originalContent)}</textarea>
+      <div style="display:flex;gap:6px;justify-content:flex-end">
+        <button type="button" class="msg-edit-cancel" style="border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px">취소</button>
+        <button type="button" class="msg-edit-save" style="border:none;background:#1e40af;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px">저장</button>
+      </div>
+    `;
+    bubble.replaceWith(editor);
+    const textarea = editor.querySelector('.msg-edit-input');
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+    editor.querySelector('.msg-edit-cancel').addEventListener('click', () => {
+      editor.replaceWith(bubble);
+    });
+    editor.querySelector('.msg-edit-save').addEventListener('click', async () => {
+      const newContent = textarea.value.trim();
+      if (!newContent) { SIREN.toast('내용을 입력하세요'); return; }
+      if (newContent === originalContent) {
+        editor.replaceWith(bubble);
+        return;
+      }
+      const saveBtn = editor.querySelector('.msg-edit-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '저장 중...';
+      try {
+        let res;
+        try {
+          res = await api('/api/chat-message-update', {
+            method: 'PATCH',
+            body: { messageId: msgId, content: newContent },
+          });
+        } catch (_) {
+          /* ★ B 머지 전 mock 사용 */
+          res = { status: 200, ok: true, data: { ...MOCK_CHAT_UPDATE, messageId: msgId } };
+        }
+        if (!res.ok) {
+          const errMsg = (res.data && res.data.error) || '수정 실패';
+          if (errMsg.includes('5분')) {
+            SIREN.toast('5분이 지난 메시지는 수정할 수 없습니다.');
+          } else {
+            SIREN.toast(errMsg);
+          }
+          editor.replaceWith(bubble);
+          return;
+        }
+        // 수정 성공 → DOM 직접 갱신
+        const newBubble = document.createElement('div');
+        newBubble.className = 'msg-bubble';
+        newBubble.dataset.msgText = '1';
+        newBubble.innerHTML = escapeHtml(newContent).replace(/\n/g, '<br />');
+        editor.replaceWith(newBubble);
+        // (수정됨) 태그가 없으면 추가
+        const meta = row.querySelector('.msg-meta');
+        if (meta && !meta.querySelector('.msg-edited')) {
+          const tag = document.createElement('span');
+          tag.className = 'msg-edited';
+          tag.style.cssText = 'color:#94a3b8;font-size:11px';
+          tag.textContent = ' (수정됨)';
+          meta.appendChild(tag);
+        }
+        SIREN.toast('메시지가 수정되었습니다.');
+      } catch (err) {
+        SIREN.toast('수정 실패: ' + err.message);
+        editor.replaceWith(bubble);
+      }
+    });
+  }
+
+  async function deleteMessage(msgId) {
+    if (!confirm('이 메시지를 삭제하시겠습니까?')) return;
+    try {
+      let res;
+      try {
+        res = await api('/api/chat-message-delete', {
+          method: 'DELETE',
+          body: { messageId: msgId },
+        });
+      } catch (_) {
+        /* ★ B 머지 전 mock 사용 */
+        res = { status: 200, ok: true, data: MOCK_CHAT_DELETE };
+      }
+      if (!res.ok) {
+        SIREN.toast((res.data && res.data.error) || '삭제 실패');
+        return;
+      }
+      // 삭제 성공 → DOM 자리표시자로 교체
+      const row = document.querySelector('[data-msg-row="' + msgId + '"]');
+      if (row) {
+        const old = row.querySelector('.msg-bubble');
+        const img = row.querySelector('.chat-msg-image');
+        if (img) img.remove();
+        const placeholder = document.createElement('div');
+        placeholder.className = 'msg-bubble msg-deleted';
+        placeholder.style.cssText = 'color:#94a3b8;font-style:italic';
+        placeholder.textContent = '삭제된 메시지입니다';
+        if (old) old.replaceWith(placeholder);
+        const actionsBtn = row.querySelector('.msg-actions-btn');
+        if (actionsBtn) actionsBtn.remove();
+      }
+      SIREN.toast('메시지가 삭제되었습니다.');
+    } catch (err) {
+      SIREN.toast('삭제 실패: ' + err.message);
+    }
+  }
+
   /* ============ 초기화 ============ */
   function init() {
     if (_chatInitDone) return;
@@ -645,6 +844,7 @@
     setupSend();
     setupImageUpload();
     setupImageClick(); // ★ H-1
+    setupMessageActions(); // ★ R9
   }
 
   /* 전역 노출 */

@@ -25,6 +25,9 @@
   tr:hover td { background: #f8fafc; }
   .meta-cell { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
   .empty { padding: 60px; text-align: center; color: #94a3b8; }
+  .btn-danger { background: #fff; color: #dc2626; border: 1px solid #fca5a5; padding: 3px 9px; font-size: 0.75rem; border-radius: 5px; cursor: pointer; font-family: inherit; }
+  .btn-danger:hover { background: #fef2f2; }
+  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -78,9 +81,10 @@ function render() {
     <thead><tr>
       <th>#</th><th>제출일시</th><th>응답자</th>
       ${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}
+      <th>관리</th>
     </tr></thead>
     <tbody>
-      ${_data.submissions.map((s, i) => `<tr>
+      ${_data.submissions.map((s, i) => `<tr data-submission-row="${s.id}">
         <td class="meta-cell">${s.id}</td>
         <td class="meta-cell">${fmtDateTime(s.createdAt)}</td>
         <td>${esc(s.memberName || s.memberEmail || s.memberPhone || '(비회원)')}</td>
@@ -89,10 +93,60 @@ function render() {
           const txt = Array.isArray(v) ? v.join(', ') : (v == null ? '—' : String(v));
           return `<td>${esc(txt)}</td>`;
         }).join('')}
+        <td class="meta-cell"><button class="btn-danger" onclick="deleteSubmission(${s.id})">🗑 삭제</button></td>
       </tr>`).join('')}
     </tbody>
   </table>`;
   document.getElementById("tableWrap").innerHTML = html;
+}
+
+/* ★ R9: 응답 삭제 (관리자) */
+/* ★ B 머지 전 mock 사용 */
+const MOCK_FORM_DELETE = { ok: true };
+
+async function deleteSubmission(submissionId) {
+  if (!confirm(`응답 #${submissionId}을(를) 삭제하시겠습니까? 되돌릴 수 없습니다.`)) return;
+  const row = document.querySelector(`[data-submission-row="${submissionId}"]`);
+  const btn = row && row.querySelector('.btn-danger');
+  if (btn) { btn.disabled = true; btn.textContent = '삭제 중...'; }
+  try {
+    let data;
+    let resOk = false;
+    try {
+      const r = await fetch('/api/admin-form-submission-delete', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId }),
+      });
+      data = await r.json().catch(() => ({}));
+      resOk = r.ok && data && data.ok !== false;
+    } catch (_) {
+      /* ★ B 머지 전 mock 사용 */
+      data = MOCK_FORM_DELETE;
+      resOk = true;
+    }
+    if (!resOk) {
+      alert('삭제 실패: ' + ((data && data.error) || '서버 오류'));
+      if (btn) { btn.disabled = false; btn.textContent = '🗑 삭제'; }
+      return;
+    }
+    // 응답 목록·총계 갱신
+    if (_data && Array.isArray(_data.submissions)) {
+      _data.submissions = _data.submissions.filter(x => x.id !== submissionId);
+      _data.total = _data.submissions.length;
+    }
+    if (row) row.remove();
+    const totalEl = document.getElementById('totalCount');
+    if (totalEl) totalEl.textContent = String((_data && _data.total) || 0);
+    if (_data && _data.submissions.length === 0) {
+      document.getElementById('tableWrap').innerHTML = `<p class="empty">아직 응답이 없습니다</p>`;
+    }
+    alert('응답이 삭제되었습니다.');
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 삭제'; }
+  }
 }
 
 function downloadCsv() {
