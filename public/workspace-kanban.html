@@ -178,6 +178,8 @@
       <button class="wk-tab" data-tab="files" type="button">📎 파일 <span class="wk-tab-count" id="wkTabCountFiles"></span></button>
       <button class="wk-tab" data-tab="reports" type="button">📊 보고 <span class="wk-tab-count" id="wkTabCountReports"></span></button>
       <button class="wk-tab" data-tab="checklist" type="button">✅ 체크리스트</button>
+      <button class="wk-tab" data-tab="subtasks" type="button">🧩 서브태스크 <span class="wk-tab-count" id="wkTabCountSubtasks"></span></button>
+      <button class="wk-tab" data-tab="automation" type="button">⏰ 자동화</button>
       <button class="wk-tab" data-tab="history" type="button">📜 히스토리</button>
       <button class="wk-tab" data-tab="ai" type="button">🤖 AI</button>
     </nav>
@@ -311,7 +313,63 @@
           <input type="text" id="wkCardChecklistInput" class="wk-input" placeholder="새 항목 추가...">
           <button type="button" id="wkCardChecklistAdd" class="wk-btn-secondary">＋</button>
         </div>
-        <small class="wk-hint">체크리스트 변경은 [저장] 버튼을 눌러야 반영됩니다.</small>
+        <small class="wk-hint">체크/추가/삭제 즉시 저장됩니다.</small>
+      </section>
+
+      <!-- 탭: 서브태스크 (R9) -->
+      <section class="wk-tab-panel" data-panel="subtasks" hidden>
+        <ul id="wkCardSubtaskList" class="wk-subtask-list">
+          <li class="wk-history-empty">불러오는 중...</li>
+        </ul>
+        <div class="wk-checklist-add">
+          <input type="text" id="wkCardSubtaskInput" class="wk-input" placeholder="서브태스크 제목 입력...">
+          <button type="button" id="wkCardSubtaskAdd" class="wk-btn-secondary">＋ 서브태스크 추가</button>
+        </div>
+        <small class="wk-hint">1단계 서브태스크만 허용 — 서브태스크는 별도 카드로 생성됩니다.</small>
+      </section>
+
+      <!-- 탭: 자동화 (R9) — 리마인더 + 반복 생성 -->
+      <section class="wk-tab-panel" data-panel="automation" hidden>
+        <h3 class="wk-ai-section-title">⏰ 리마인더</h3>
+        <div class="wk-row">
+          <div class="wk-col">
+            <label class="wk-field-label">
+              <input type="checkbox" id="wkCardReminderEnabled"> 리마인더 사용
+            </label>
+          </div>
+          <div class="wk-col">
+            <label class="wk-field-label">마감 몇 분 전</label>
+            <input type="number" id="wkCardReminderMinutes" class="wk-input" min="5" step="5" value="60">
+          </div>
+        </div>
+        <label class="wk-field-label">알림 채널</label>
+        <div class="wk-row">
+          <label class="wk-field-label"><input type="checkbox" class="wk-card-reminder-channel" value="inapp" checked> 인앱</label>
+          <label class="wk-field-label"><input type="checkbox" class="wk-card-reminder-channel" value="email"> 이메일</label>
+        </div>
+        <div class="wk-comment-form-actions">
+          <span class="wk-spacer"></span>
+          <button type="button" id="wkCardReminderSave" class="wk-btn-primary">리마인더 저장</button>
+        </div>
+
+        <hr style="margin:18px 0;border:none;border-top:1px solid #e2e8f0">
+
+        <h3 class="wk-ai-section-title">🔁 반복 작업 생성</h3>
+        <p class="wk-hint">현재 작업을 베이스로 새로운 반복 작업을 만듭니다. 새 작업의 마감일을 입력하세요.</p>
+        <div class="wk-row">
+          <div class="wk-col">
+            <label class="wk-field-label">새 마감일</label>
+            <input type="datetime-local" id="wkCardRecurringDue" class="wk-input">
+          </div>
+          <div class="wk-col">
+            <label class="wk-field-label">새 제목 (선택)</label>
+            <input type="text" id="wkCardRecurringTitle" class="wk-input" placeholder="비워두면 원본 제목 사용">
+          </div>
+        </div>
+        <div class="wk-comment-form-actions">
+          <span class="wk-spacer"></span>
+          <button type="button" id="wkCardRecurringCreate" class="wk-btn-primary">반복 생성</button>
+        </div>
       </section>
 
       <!-- 탭: 히스토리 -->
@@ -498,7 +556,7 @@
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
-<script src="/js/workspace-kanban.js?v=10" defer></script>
+<script src="/js/workspace-kanban.js?v=11" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>

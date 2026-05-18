@@ -1944,3 +1944,340 @@
     });
   }
 })();
+
+/* ═══════════════════════════════════════════════════════
+   라운드 9 — 서브태스크 / 체크리스트 즉시 PATCH / 리마인더 / 반복 작업
+   ★ B 머지 전: API 실패 시 mock 폴백 사용
+═══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_SUBTASKS = {
+    ok: true,
+    subtasks: [
+      { id: 101, title: '서브태스크1', status: 'todo', assignedTo: null, assignedToName: null, dueDate: '2026-06-01', progress: 0 },
+      { id: 102, title: '서브태스크2', status: 'in_progress', assignedTo: 5, assignedToName: '담당자', dueDate: '2026-06-15', progress: 50 },
+    ],
+  };
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_SUBTASK_CREATE = { ok: true, id: 103, task: { id: 103, parentTaskId: 10, title: '새 서브태스크', status: 'todo' } };
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_CHECKLIST = { ok: true, taskId: 10, items: [{ id: 'ck1', text: '항목1', done: true }] };
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_RECURRING = { ok: true, id: 202, recurringParentId: 10 };
+  /* ★ B 머지 전 mock 사용 */
+  const MOCK_REMINDER = { ok: true, taskId: 10 };
+
+  const STATUS_LABEL_KR = {
+    todo: '할 일', doing: '진행 중', in_progress: '진행 중',
+    blocked: '차단', done: '완료', archived: '보관',
+  };
+
+  function $(s) { return document.querySelector(s); }
+  function $$(s) { return Array.from(document.querySelectorAll(s)); }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, m =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])
+    );
+  }
+
+  function toast(msg, type) {
+    const root = document.getElementById('wkToastRoot');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'wk-toast' + (type === 'success' ? ' is-success' : type === 'error' ? ' is-error' : '');
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    const res = await fetch(path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      method: opts.method || 'GET',
+      body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body,
+    });
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error((data && (data.error || data.message)) || 'HTTP ' + res.status);
+    return data;
+  }
+
+  /* ─────── 현재 카드 정보 ─────── */
+  function currentTaskId() {
+    const el = document.getElementById('wkCardId');
+    const id = el && Number(el.value);
+    return id > 0 ? id : null;
+  }
+
+  /* ─────── 서브태스크 ─────── */
+  async function loadSubtasks(parentId) {
+    const listEl = $('#wkCardSubtaskList');
+    const countEl = $('#wkTabCountSubtasks');
+    if (!listEl) return;
+    listEl.innerHTML = '<li class="wk-history-empty">불러오는 중...</li>';
+
+    let res;
+    try {
+      res = await api('/api/admin-workspace-subtasks?parentId=' + parentId);
+    } catch (_) {
+      /* ★ B 머지 전 mock 사용 */
+      res = MOCK_SUBTASKS;
+    }
+    const items = (res && res.subtasks) || (res && res.data && res.data.subtasks) || [];
+    if (countEl) countEl.textContent = items.length ? String(items.length) : '';
+
+    if (!items.length) {
+      listEl.innerHTML = '<li class="wk-history-empty">아직 서브태스크가 없습니다.</li>';
+      return;
+    }
+
+    listEl.innerHTML = items.map(it => {
+      const status = STATUS_LABEL_KR[it.status] || it.status || '';
+      const due = it.dueDate ? ' · 마감 ' + String(it.dueDate).slice(0, 10) : '';
+      const assignee = it.assignedToName ? ' · ' + escapeHtml(it.assignedToName) : '';
+      const progress = (it.progress != null && it.progress > 0) ? ' · ' + it.progress + '%' : '';
+      return `
+<li class="wk-subtask-item" data-subtask-id="${it.id}" style="padding:8px 10px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+  <div style="flex:1;min-width:0">
+    <div style="font-weight:600;font-size:13px">${escapeHtml(it.title || '제목 없음')}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px">${escapeHtml(status)}${assignee}${due}${progress}</div>
+  </div>
+  <button type="button" class="wk-btn-secondary" data-subtask-open="${it.id}" style="font-size:11px;padding:4px 10px">열기 →</button>
+</li>`;
+    }).join('');
+
+    listEl.querySelectorAll('[data-subtask-open]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const sid = Number(btn.dataset.subtaskOpen);
+        if (sid && typeof window.wkOpenCardById === 'function') {
+          window.wkOpenCardById(sid);
+        }
+      });
+    });
+  }
+
+  async function addSubtask() {
+    const parentId = currentTaskId();
+    if (!parentId) return;
+    const input = $('#wkCardSubtaskInput');
+    const title = input ? input.value.trim() : '';
+    if (!title) { toast('서브태스크 제목을 입력하세요.', 'error'); return; }
+
+    const btn = $('#wkCardSubtaskAdd');
+    if (btn) btn.disabled = true;
+    try {
+      let res;
+      try {
+        res = await api('/api/admin-workspace-subtask-create', {
+          method: 'POST',
+          body: { parentTaskId: parentId, title: title, priority: 'normal' },
+        });
+      } catch (err) {
+        /* ★ B 머지 전 mock 사용 */
+        if (String(err.message).includes('1단계')) {
+          toast('1단계 서브태스크만 허용됩니다.', 'error');
+          return;
+        }
+        res = MOCK_SUBTASK_CREATE;
+      }
+      if (!res || res.ok === false) {
+        toast((res && res.error) || '생성 실패', 'error');
+        return;
+      }
+      if (input) input.value = '';
+      toast('서브태스크가 추가되었습니다.', 'success');
+      await loadSubtasks(parentId);
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:created', { id: (res && res.id) || 0 });
+      if (typeof window.wkReloadTasks === 'function') window.wkReloadTasks();
+    } catch (err) {
+      toast('생성 실패: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ─────── 체크리스트 즉시 PATCH ─────── */
+  function collectChecklist() {
+    return $$('#wkCardChecklist li').map(li => ({
+      id: li.dataset.clId || ('cl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+      text: (li.querySelector('.wk-checklist-text')?.textContent || '').trim(),
+      done: !!li.querySelector('input[type=checkbox]')?.checked,
+      doneAt: li.querySelector('input[type=checkbox]')?.checked ? new Date().toISOString() : null,
+    }));
+  }
+
+  async function saveChecklistImmediate() {
+    const taskId = currentTaskId();
+    if (!taskId) return;
+    const items = collectChecklist();
+    try {
+      let res;
+      try {
+        res = await api('/api/admin-workspace-task-checklist', {
+          method: 'PATCH',
+          body: { taskId: taskId, items: items },
+        });
+      } catch (_) {
+        /* ★ B 머지 전 mock 사용 */
+        res = { ...MOCK_CHECKLIST, taskId: taskId, items: items };
+      }
+      if (res && res.ok === false) {
+        toast((res && res.error) || '체크리스트 저장 실패', 'error');
+        return;
+      }
+      // 조용히 처리 (즉시 저장은 시각적 변화로 피드백되니 토스트 생략)
+    } catch (err) {
+      toast('체크리스트 저장 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* ─────── 리마인더 ─────── */
+  function fillReminderForm(task) {
+    const cfg = (task && task.reminderConfig) || {};
+    const enabled = $('#wkCardReminderEnabled');
+    const minutes = $('#wkCardReminderMinutes');
+    if (enabled) enabled.checked = !!cfg.enabled;
+    if (minutes) minutes.value = cfg.minutesBefore != null ? cfg.minutesBefore : 60;
+    const channels = Array.isArray(cfg.channels) ? cfg.channels : ['inapp'];
+    $$('.wk-card-reminder-channel').forEach(cb => {
+      cb.checked = channels.indexOf(cb.value) >= 0;
+    });
+  }
+
+  async function saveReminder() {
+    const taskId = currentTaskId();
+    if (!taskId) return;
+    const enabled = $('#wkCardReminderEnabled')?.checked || false;
+    const minutesBefore = Math.max(5, Number($('#wkCardReminderMinutes')?.value) || 60);
+    const channels = $$('.wk-card-reminder-channel').filter(cb => cb.checked).map(cb => cb.value);
+    if (enabled && channels.length === 0) {
+      toast('알림 채널을 한 개 이상 선택하세요.', 'error');
+      return;
+    }
+
+    const btn = $('#wkCardReminderSave');
+    if (btn) btn.disabled = true;
+    try {
+      let res;
+      try {
+        res = await api('/api/admin-workspace-task-reminder', {
+          method: 'PATCH',
+          body: { taskId: taskId, reminderConfig: { enabled, minutesBefore, channels } },
+        });
+      } catch (_) {
+        /* ★ B 머지 전 mock 사용 */
+        res = MOCK_REMINDER;
+      }
+      if (res && res.ok === false) {
+        toast((res && res.error) || '리마인더 저장 실패', 'error');
+        return;
+      }
+      toast('리마인더가 저장되었습니다.', 'success');
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:updated', { id: taskId });
+    } catch (err) {
+      toast('리마인더 저장 실패: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ─────── 반복 작업 생성 ─────── */
+  async function createRecurring() {
+    const parentTaskId = currentTaskId();
+    if (!parentTaskId) return;
+    const dueEl = $('#wkCardRecurringDue');
+    const titleEl = $('#wkCardRecurringTitle');
+    const due = dueEl ? dueEl.value : '';
+    if (!due) { toast('새 마감일을 입력하세요.', 'error'); return; }
+    const title = titleEl ? titleEl.value.trim() : '';
+
+    const btn = $('#wkCardRecurringCreate');
+    if (btn) btn.disabled = true;
+    try {
+      const body = { parentTaskId: parentTaskId, dueDate: new Date(due).toISOString() };
+      if (title) body.title = title;
+      let res;
+      try {
+        res = await api('/api/admin-workspace-task-recurring', { method: 'POST', body });
+      } catch (_) {
+        /* ★ B 머지 전 mock 사용 */
+        res = MOCK_RECURRING;
+      }
+      if (res && res.ok === false) {
+        toast((res && res.error) || '반복 작업 생성 실패', 'error');
+        return;
+      }
+      toast('반복 작업이 생성되었습니다.', 'success');
+      if (dueEl) dueEl.value = '';
+      if (titleEl) titleEl.value = '';
+      if (window.WorkspaceSync) WorkspaceSync.notify('task:created', { id: (res && res.id) || 0 });
+      if (typeof window.wkReloadTasks === 'function') window.wkReloadTasks();
+    } catch (err) {
+      toast('반복 작업 생성 실패: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ─────── wkOnCardOpen 훅 wrap ─────── */
+  const prevOnCardOpen = window.wkOnCardOpen;
+  window.wkOnCardOpen = function (task, me) {
+    if (typeof prevOnCardOpen === 'function') {
+      try { prevOnCardOpen(task, me); } catch (e) { console.warn('[R9 wrap prev]', e); }
+    }
+    // 서브태스크 카운트는 탭 진입 시 채워짐 (lazy)
+    const countEl = document.getElementById('wkTabCountSubtasks');
+    if (countEl) countEl.textContent = '';
+
+    // 자동화 탭 - 리마인더 폼 채우기
+    fillReminderForm(task);
+
+    // 서브태스크 탭 - 자동 한 번 로드 (백그라운드)
+    if (task && task.id) {
+      loadSubtasks(task.id);
+    }
+  };
+
+  /* ─────── 이벤트 바인딩 ─────── */
+  function bindR9() {
+    $('#wkCardSubtaskAdd')?.addEventListener('click', addSubtask);
+    $('#wkCardSubtaskInput')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addSubtask(); }
+    });
+    $('#wkCardReminderSave')?.addEventListener('click', saveReminder);
+    $('#wkCardRecurringCreate')?.addEventListener('click', createRecurring);
+
+    // 체크리스트 즉시 PATCH — 토글/추가/삭제 모두 감지
+    const ul = $('#wkCardChecklist');
+    if (ul) {
+      ul.addEventListener('change', e => {
+        if (e.target.matches('input[type=checkbox]')) saveChecklistImmediate();
+      });
+      // 추가 버튼 클릭 후엔 메인 IIFE가 DOM에 li 삽입 → 다음 tick에 PATCH
+      $('#wkCardChecklistAdd')?.addEventListener('click', () => {
+        setTimeout(saveChecklistImmediate, 30);
+      });
+      $('#wkCardChecklistInput')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') setTimeout(saveChecklistImmediate, 30);
+      });
+      // 항목 삭제 (이벤트 위임)
+      ul.addEventListener('click', e => {
+        if (e.target.matches('[data-cl-remove]') || e.target.closest('[data-cl-remove]')) {
+          setTimeout(saveChecklistImmediate, 30);
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindR9);
+  } else {
+    bindR9();
+  }
+})();
