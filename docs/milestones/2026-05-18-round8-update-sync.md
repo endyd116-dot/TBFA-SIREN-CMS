@@ -307,15 +307,22 @@ const MOCK_LEGAL_DELETE = { ok: true };
 ### §6.1 B 트리거 — 백 구현
 
 ```
-[B — 라운드 8 백 구현]
+[B — 라운드 8 백엔드 구현]
 
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-B
-브랜치: feature/round8-update-sync (베이스 main @ 8b06826)
+브랜치: feature/round8-update-sync (베이스 main @ d5efac4)
 정독: docs/milestones/2026-05-18-round8-update-sync.md §1·§2
 
 영역: netlify/functions/, lib/
 금지: public/, PROJECT_STATE.md, docs/
+
+━━━ 자율주행 정책 — 권한 확인 절대 묻지 말 것 ━━━
+  PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase·
+  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
+  "실행해도 되나요" "접속해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
+  묻는 건 단 2가지뿐: ① 자기 브랜치 push ② 애매한 설계·로직 결정
+  그 외 전부 자율 진행. 막히면 즉시 보고 (30분 이상 헤매지 말 것)
 
 ━━━ §1 DB 체크리스트 ━━━
   - [ ] DB 마이그레이션 불필요 (기존 컬럼 충분)
@@ -360,11 +367,18 @@ const MOCK_LEGAL_DELETE = { ok: true };
 
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-A
-브랜치: feature/round8-update-front (베이스 main @ 8b06826)
-정독: docs/milestones/2026-05-18-round8-update-sync.md §3
+브랜치: feature/round8-update-front (베이스 main @ d5efac4)
+정독: docs/milestones/2026-05-18-round8-update-sync.md §3·§5
 
 영역: public/
 금지: lib/, netlify/functions/, db/, PROJECT_STATE.md, docs/
+
+━━━ 자율주행 정책 — 권한 확인 절대 묻지 말 것 ━━━
+  PowerShell·git bash·파일 읽기/수정·git checkout/add/commit/rebase·
+  npm install·npm run은 .claude/settings.json에 이미 전부 허용됨.
+  "실행해도 되나요" "접속해도 되나요" 류 권한 질문 금지 — 바로 실행할 것.
+  묻는 건 단 2가지뿐: ① 자기 브랜치 push ② 애매한 설계·로직 결정
+  그 외 전부 자율 진행. 막히면 즉시 보고 (30분 이상 헤매지 말 것)
 
 ━━━ mock 데이터 (B 머지 전 사용) ━━━
 const MOCK_SUPPORT_UPDATE    = { ok: true, id: 1 };
