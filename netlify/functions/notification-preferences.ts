@@ -93,9 +93,46 @@ export default async function handler(req: Request, _ctx: Context) {
         };
       });
 
-      return jsonOk({ events, phoneVerified });
+      /* 라운드 10: 평탄 키 별칭(preferences) 추가 — 신규 프론트 호환 */
+      const preferences = events.map(e => ({ eventType: e.eventType, channels: e.channels }));
+      return new Response(JSON.stringify({
+        ok: true,
+        preferences,
+        data: { events, phoneVerified },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("select", err);
+    }
+  }
+
+  /* ── PUT: 라운드 10 — 여러 이벤트 일괄 upsert ── */
+  if (req.method === "PUT") {
+    let body: any;
+    try { body = await req.json(); } catch { return jsonBad("JSON 파싱 오류"); }
+    const list = Array.isArray(body?.preferences) ? body.preferences : null;
+    if (!list) return jsonBad("preferences 배열이 필요합니다");
+
+    try {
+      for (const p of list) {
+        const eventType = String(p?.eventType || "");
+        if (!eventType || !VALID_EVENTS.includes(eventType)) continue;
+        const rawChannels = Array.isArray(p?.channels) ? p.channels : [];
+        const filtered = rawChannels.filter((c: any) => VALID_CHANNELS.includes(c)) as ChannelName[];
+        const forced: ChannelName[] = FORCED_CHANNELS[eventType as NotifyEvent] ?? [];
+        const merged = [...new Set([...forced, ...filtered])] as ChannelName[];
+
+        await db.execute(sql`
+          INSERT INTO notification_preferences (member_id, event_type, channels, updated_at)
+          VALUES (${memberId}, ${eventType}, ${JSON.stringify(merged)}::jsonb, now())
+          ON CONFLICT (member_id, event_type)
+          DO UPDATE SET channels = EXCLUDED.channels, updated_at = now()
+        `);
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: any) {
+      return jsonError("put_upsert", err);
     }
   }
 
@@ -149,7 +186,7 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  return new Response(JSON.stringify({ ok: false, error: "GET/PATCH/DELETE only" }), {
+  return new Response(JSON.stringify({ ok: false, error: "GET/PUT/PATCH/DELETE only" }), {
     status: 405, headers: { "Content-Type": "application/json" },
   });
 }

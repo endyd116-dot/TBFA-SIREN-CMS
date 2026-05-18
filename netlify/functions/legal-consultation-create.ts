@@ -135,6 +135,53 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[legal-consultation-create] 카드 생성 훅 실패:", hookErr);
     }
 
+    /* ★ 라운드 10 — AI 전문 분야 분석 결과 기반 변호사 자동 배정 (fire-and-forget)
+     *   실제 schema: members 테이블에 expert_specialty 컬럼은 없음.
+     *   변호사는 member_subtype='lawyer'로 식별, 카테고리/전문분야는 assigned_categories jsonb 배열로 운영.
+     *   1차) assigned_categories::text ILIKE %specialty% 매칭
+     *   2차) member_subtype='lawyer' 중 첫 활성 회원 폴백
+     *   실패 시 throw 없음, console.warn만 (fire-and-forget) */
+    try {
+      const specialty = aiResult?.lawyerSpecialty ? String(aiResult.lawyerSpecialty).trim() : "";
+      if (specialty) {
+        const { sql } = await import("drizzle-orm");
+        const like = "%" + specialty.replace(/[%_]/g, "") + "%";
+
+        // 1차: 카테고리 매칭
+        let matchRes: any = await db.execute(sql`
+          SELECT id, name FROM members
+          WHERE member_subtype = 'lawyer'
+            AND status = 'active'
+            AND COALESCE(assigned_categories::text, '') ILIKE ${like}
+          ORDER BY id ASC
+          LIMIT 1
+        `);
+        let rows = (matchRes?.rows ?? matchRes) as any[];
+
+        // 2차: 폴백 (어떤 변호사든)
+        if (!rows?.length) {
+          matchRes = await db.execute(sql`
+            SELECT id, name FROM members
+            WHERE member_subtype = 'lawyer' AND status = 'active'
+            ORDER BY id ASC
+            LIMIT 1
+          `);
+          rows = (matchRes?.rows ?? matchRes) as any[];
+        }
+
+        const lawyer = rows?.[0];
+        if (lawyer) {
+          await db.update(legalConsultations).set({
+            assignedLawyerId: Number(lawyer.id),
+            assignedLawyerName: lawyer.name || null,
+            assignedAt: new Date(),
+          } as any).where(eq(legalConsultations.id, consultationId));
+        }
+      }
+    } catch (assignErr) {
+      console.warn("[legal-consultation-create] AI 변호사 자동 배정 실패:", assignErr);
+    }
+
    // netlify/functions/legal-consultation-create.ts — 감사 로그 + return 블록 교체
     /* ★ M-17: 후원자 검증 */
     const donorCheck = await hasAnyCompletedDonation(user.uid);
