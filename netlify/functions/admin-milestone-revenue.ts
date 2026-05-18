@@ -18,8 +18,13 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const url = new URL(req.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
-  const action = pathParts[pathParts.length - 1]; // verify | reject | or id
-  const id = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : null;
+  const last = pathParts[pathParts.length - 1]; // verify | reject | or id
+  const prev = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : null;
+  /* ★ R29-MS-GAP1-I: PUT /:id 라우팅에서 마지막 세그먼트가 숫자 id면 그 id로,
+     아니면 기존 액션 라우팅(/:id/verify, /:id/reject) 적용 */
+  const lastIsNum = last && !isNaN(Number(last));
+  const action = lastIsNum ? null : last;
+  const id = lastIsNum ? last : prev;
 
   // ── GET PENDING 목록 ──
   if (req.method === "GET") {
@@ -113,13 +118,39 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // ── PUT /:id — EVENT_RANGE 금액 결정 저장 ──
   if (req.method === "PUT" && id && !isNaN(Number(id))) {
+    /* ★ R29-MS-GAP1-A: EVENT_RANGE 금액 결정은 super_admin 전용 */
+    if (admin.role !== "super_admin") {
+      return Response.json({ ok: false, error: "EVENT_RANGE 금액 결정은 슈퍼어드민 전용입니다" }, { status: 403 });
+    }
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { eventRangeAmount } = body;
     if (eventRangeAmount == null) return Response.json({ ok: false, error: "eventRangeAmount 필수" }, { status: 400 });
     try {
+      /* ★ R29-MS-GAP1-I: bonus_formula의 minAmount~maxAmount 범위 검증 */
+      const mdRows = await db.execute(sql`
+        SELECT md.bonus_formula, md.name FROM revenue_entries re
+        JOIN milestone_definitions md ON md.id = re.milestone_definition_id
+        WHERE re.id = ${Number(id)}
+      `);
+      const md = ((mdRows as any).rows?.[0] || (mdRows as any[])[0]) as any;
+      if (!md) return Response.json({ ok: false, error: "매출 항목 없음" }, { status: 404 });
+      const formula = md.bonus_formula || {};
+      const isEventRange = formula?.type === "EVENT_RANGE" || formula?.formula_type === "EVENT_RANGE";
+      if (isEventRange) {
+        const minA = Number(formula.minAmount ?? formula.min ?? 0);
+        const maxA = Number(formula.maxAmount ?? formula.max ?? 0);
+        const amt  = Number(eventRangeAmount);
+        if (maxA > 0 && (amt < minA || amt > maxA)) {
+          return Response.json({
+            ok: false,
+            error: `범위 내 금액을 입력하세요 (${minA.toLocaleString()}~${maxA.toLocaleString()}만원)`
+          }, { status: 400 });
+        }
+      }
       await db.execute(sql`
-        UPDATE revenue_entries SET amount = ${String(eventRangeAmount)}, updated_at = NOW()
+        UPDATE revenue_entries SET amount = ${String(eventRangeAmount)}, status = 'VERIFIED',
+          reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()
         WHERE id = ${Number(id)}
       `);
       return Response.json({ ok: true });

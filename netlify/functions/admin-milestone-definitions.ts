@@ -24,8 +24,27 @@ export default async function handler(req: Request, _ctx: Context) {
     return Response.json({ ok: false, error: "슈퍼어드민 전용 기능입니다" }, { status: 403 });
   }
 
-  /* ── GET: 전체 목록 ── */
+  /* ── GET: 전체 목록 또는 ?id=X&history=1 이력 조회 ── */
   if (req.method === "GET") {
+    const url = new URL(req.url);
+    const histId = url.searchParams.get("id");
+    const history = url.searchParams.get("history");
+
+    /* ★ R29-MS-GAP1-E: 변경 이력 조회 */
+    if (histId && history === "1") {
+      try {
+        const rows = await db.execute(sql`
+          SELECT h.*, m.name as changed_by_name
+          FROM milestone_definition_history h
+          LEFT JOIN members m ON m.id = h.changed_by
+          WHERE h.definition_id = ${Number(histId)}
+          ORDER BY h.changed_at DESC
+          LIMIT 200
+        `);
+        return Response.json({ ok: true, data: { history: (rows as any).rows ?? rows } });
+      } catch (err) { return jsonErr("history", err); }
+    }
+
     try {
       const rows = await db.execute(sql`
         SELECT id, code, name, category, target_milestone_role,
@@ -99,6 +118,17 @@ export default async function handler(req: Request, _ctx: Context) {
     catch { return Response.json({ ok: false, error: "bonusFormula가 유효한 JSON이 아닙니다" }, { status: 400 }); }
 
     try {
+      /* ★ R29-MS-GAP1-E: 변경 이력 추적 — UPDATE 전 기존 값 조회 */
+      const oldRows = await db.execute(sql`
+        SELECT name, category, target_milestone_role, business_unit, revenue_source,
+               threshold_enabled, threshold_value, threshold_unit,
+               bonus_formula, quarter_applicable,
+               is_shared_threshold, shared_threshold_group,
+               is_active, effective_from, effective_to, sort_order
+        FROM milestone_definitions WHERE id = ${id}
+      `);
+      const oldDef = ((oldRows as any).rows?.[0] || (oldRows as any[])[0]) as any;
+
       await db.execute(sql`
         UPDATE milestone_definitions SET
           name                  = ${body.name},
@@ -120,6 +150,40 @@ export default async function handler(req: Request, _ctx: Context) {
           updated_at            = now()
         WHERE id = ${id}
       `);
+
+      /* ★ R29-MS-GAP1-E: 필드별 변경 이력 INSERT */
+      if (oldDef) {
+        const fieldMap: Array<[string, any, any]> = [
+          ["name", oldDef.name, body.name],
+          ["category", oldDef.category, body.category],
+          ["target_milestone_role", oldDef.target_milestone_role, body.targetMilestoneRole],
+          ["business_unit", oldDef.business_unit, body.businessUnit || null],
+          ["revenue_source", oldDef.revenue_source, body.revenueSource || null],
+          ["threshold_enabled", oldDef.threshold_enabled, body.thresholdEnabled ?? false],
+          ["threshold_value", oldDef.threshold_value, body.thresholdValue ?? null],
+          ["threshold_unit", oldDef.threshold_unit, body.thresholdUnit || null],
+          ["bonus_formula", JSON.stringify(oldDef.bonus_formula), formulaJson],
+          ["quarter_applicable", oldDef.quarter_applicable, body.quarterApplicable || null],
+          ["is_shared_threshold", oldDef.is_shared_threshold, body.isSharedThreshold ?? false],
+          ["shared_threshold_group", oldDef.shared_threshold_group, body.sharedThresholdGroup || null],
+          ["is_active", oldDef.is_active, body.isActive ?? true],
+          ["effective_from", oldDef.effective_from, body.effectiveFrom || null],
+          ["effective_to", oldDef.effective_to, body.effectiveTo || null],
+          ["sort_order", oldDef.sort_order, body.sortOrder ?? 0],
+        ];
+        for (const [field, oldV, newV] of fieldMap) {
+          const oldStr = oldV == null ? null : String(oldV);
+          const newStr = newV == null ? null : String(newV);
+          if (oldStr === newStr) continue;
+          try {
+            await db.execute(sql`
+              INSERT INTO milestone_definition_history
+                (definition_id, changed_by, field_name, old_value, new_value)
+              VALUES (${id}, ${auth.ctx.member.id}, ${field}, ${oldStr}, ${newStr})
+            `);
+          } catch { /* 이력 기록 실패는 본 응답에 영향 없음 */ }
+        }
+      }
 
       // 모든 어드민에게 마일스톤 정의 변경 알림 (fire-and-forget)
       try {

@@ -7,13 +7,16 @@ import { createNotification } from "../../lib/notify";
 export const config = { path: "/api/milestone-revenue" };
 
 export default async function handler(req: Request, _ctx: Context) {
+  /* ★ R29-MS-GAP1: 운영자도 type='admin'으로 등록되므로 requireAdmin 통과.
+     본인 milestoneRole 기준 필터로 권한 분리. super_admin은 전체 우회. */
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
   const member = auth.ctx.member as any;
 
   function jsonError(step: string, err: any) {
     return Response.json({ ok: false, error: "매출 입력 오류", step,
-      detail: String(err?.message || err).slice(0, 500) }, { status: 500 });
+      detail: String(err?.message || err).slice(0, 500),
+      stack: String(err?.stack || "").slice(0, 1000) }, { status: 500 });
   }
 
   const url = new URL(req.url);
@@ -21,7 +24,6 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── GET 내역 조회 ──
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
-    const milestoneRole = member.milestoneRole;
     try {
       let q = `
         SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role,
@@ -44,33 +46,65 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { milestoneDefinitionId, quarterId, revenueDate, amount, amountUnit,
-            note, isCampaignRouted, evidenceFiles } = body;
+            note, isCampaignRouted, evidenceFiles, revenueSource, businessUnit } = body;
     if (!milestoneDefinitionId || !quarterId || !revenueDate || amount == null) {
       return Response.json({ ok: false, error: "필수 필드 누락 (milestoneDefinitionId, quarterId, revenueDate, amount)" }, { status: 400 });
     }
     try {
       // 해당 분기가 ACTIVE 상태인지 확인
       const qRows = await db.execute(sql`SELECT status FROM quarters WHERE id = ${Number(quarterId)}`);
-      const qStatus = ((qRows as any).rows?.[0] || qRows[0])?.status;
+      const qStatus = ((qRows as any).rows?.[0] || (qRows as any[])[0])?.status;
       if (!qStatus) return Response.json({ ok: false, error: "존재하지 않는 분기" }, { status: 404 });
       if (qStatus !== "ACTIVE") return Response.json({ ok: false, error: "활성 분기에만 입력 가능합니다" }, { status: 400 });
 
+      /* ★ R29-MS-GAP1-J: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
+      const settleRows = await db.execute(sql`
+        SELECT status FROM quarterly_settlements
+        WHERE quarter_id = ${Number(quarterId)} AND member_id = ${member.id}
+      `);
+      const settleStatus = ((settleRows as any).rows?.[0] || (settleRows as any[])[0])?.status;
+      if (settleStatus && ["SUBMITTED", "APPROVED", "PAID"].includes(settleStatus)) {
+        return Response.json({ ok: false, error: "결산 제출 후 매출 입력 불가. 슈퍼어드민에게 문의하세요." }, { status: 400 });
+      }
+
       // 마일스톤 소유권 확인 (본인 milestoneRole과 일치)
       const mdRows = await db.execute(sql`
-        SELECT target_milestone_role FROM milestone_definitions
+        SELECT id, code, name, target_milestone_role, bonus_formula
+        FROM milestone_definitions
         WHERE id = ${Number(milestoneDefinitionId)} AND is_active = TRUE
       `);
-      const md = (mdRows as any).rows?.[0] || mdRows[0];
+      const md = (mdRows as any).rows?.[0] || (mdRows as any[])[0];
       if (!md) return Response.json({ ok: false, error: "존재하지 않는 마일스톤" }, { status: 404 });
       if (md.target_milestone_role !== member.milestoneRole && member.role !== "super_admin") {
         return Response.json({ ok: false, error: "본인 담당 마일스톤에만 입력 가능합니다" }, { status: 403 });
+      }
+
+      /* ★ R29-MS-GAP1-H: sm-001(직접 모집)은 후원자 경유 강제 false */
+      let finalCampaignRouted = isCampaignRouted ?? false;
+      if (md.code === "sm-001" && finalCampaignRouted === true) {
+        return Response.json({ ok: false, error: "sm-001(직접 모집)은 후원자 경유 불가" }, { status: 400 });
+      }
+
+      /* ★ R29-MS-GAP1-H: 동일 분기 + 동일 마일스톤 + 동일 날짜 + 동일 금액 중복 차단 (PENDING/VERIFIED) */
+      const dupRows = await db.execute(sql`
+        SELECT id FROM revenue_entries
+        WHERE milestone_definition_id = ${Number(milestoneDefinitionId)}
+          AND quarter_id = ${Number(quarterId)}
+          AND entered_by = ${member.id}
+          AND revenue_date = ${revenueDate}
+          AND amount = ${String(amount)}
+          AND status IN ('PENDING', 'VERIFIED')
+        LIMIT 1
+      `);
+      if (((dupRows as any).rows?.length || (dupRows as any[]).length) > 0) {
+        return Response.json({ ok: false, error: "동일 분기·동일 마일스톤·동일 날짜·동일 금액 기록이 존재합니다" }, { status: 400 });
       }
 
       // 담당 어드민 조회 (같은 milestoneRole을 가진 admin)
       const adminRows = await db.execute(sql`
         SELECT id FROM members WHERE role = 'admin' AND milestone_role = ${md.target_milestone_role} LIMIT 1
       `);
-      const adminId = ((adminRows as any).rows?.[0] || adminRows[0])?.id ?? null;
+      const adminId = ((adminRows as any).rows?.[0] || (adminRows as any[])[0])?.id ?? null;
 
       const insertRows = await db.execute(sql`
         INSERT INTO revenue_entries
@@ -79,20 +113,18 @@ export default async function handler(req: Request, _ctx: Context) {
         VALUES (
           ${Number(milestoneDefinitionId)}, ${Number(quarterId)}, ${member.id}, ${adminId},
           ${revenueDate}, ${String(amount)}, ${amountUnit || "원"},
-          ${note ?? null}, ${isCampaignRouted ?? false}, ${JSON.stringify(evidenceFiles || [])}
+          ${note ?? null}, ${finalCampaignRouted}, ${JSON.stringify(evidenceFiles || [])}
         )
         RETURNING *
       `);
-      const entry = (insertRows as any).rows?.[0] || insertRows[0];
+      const entry = (insertRows as any).rows?.[0] || (insertRows as any[])[0];
 
       // 담당 어드민에게 검증 요청 알림 (fire-and-forget)
       if (adminId) {
-        const mdNameRows = await db.execute(sql`SELECT name FROM milestone_definitions WHERE id = ${Number(milestoneDefinitionId)}`);
-        const mdName = ((mdNameRows as any).rows?.[0] || mdNameRows[0])?.name || "마일스톤";
         createNotification({
           recipientId: adminId, recipientType: "admin",
           category: "milestone", severity: "info",
-          title: `매출 입력 검증 대기: ${mdName}`,
+          title: `매출 입력 검증 대기: ${md.name}`,
           message: `${member.name || member.email}이 ${Number(amount).toLocaleString()}원 입력`,
           link: "/admin#revenue-verify",
         }).catch(() => {});
@@ -112,7 +144,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const rows = await db.execute(sql`
         SELECT id, status, entered_by FROM revenue_entries WHERE id = ${Number(id)}
       `);
-      const entry = (rows as any).rows?.[0] || rows[0];
+      const entry = (rows as any).rows?.[0] || (rows as any[])[0];
       if (!entry) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
       if (entry.entered_by !== member.id && member.role !== "super_admin") {
         return Response.json({ ok: false, error: "본인 항목만 수정 가능" }, { status: 403 });
@@ -142,7 +174,7 @@ export default async function handler(req: Request, _ctx: Context) {
     if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
     try {
       const rows = await db.execute(sql`SELECT entered_by, status FROM revenue_entries WHERE id = ${Number(id)}`);
-      const entry = (rows as any).rows?.[0] || rows[0];
+      const entry = (rows as any).rows?.[0] || (rows as any[])[0];
       if (!entry) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
       if (entry.entered_by !== member.id && member.role !== "super_admin") {
         return Response.json({ ok: false, error: "본인 항목만 삭제 가능" }, { status: 403 });

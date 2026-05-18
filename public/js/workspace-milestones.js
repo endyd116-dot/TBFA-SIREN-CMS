@@ -307,6 +307,9 @@
     </table>`;
   }
 
+  /* ★ R29-MS-GAP1-C: 업로드한 증빙 파일 URL 캐시 */
+  let riUploadedEvidence = [];
+
   // 입력 폼 이벤트
   document.addEventListener('DOMContentLoaded', () => {
     const savBtn = $('#riBtnSave');
@@ -317,11 +320,50 @@
       const wrap = $('#riCampaignWrap') as HTMLElement;
       const m = state.milestones.find(x => String(x.id) === milSel.value);
       if (wrap) wrap.style.display = m && ['sm-001','sm-002'].includes(m.code) ? '' : 'none';
+
+      /* ★ R29-MS-GAP1-B: 마일스톤 정의의 사업체/원천을 드롭다운에 prefill */
+      if (m) {
+        const buSel = $('#riBusinessUnit') as HTMLSelectElement;
+        const rsSel = $('#riRevenueSource') as HTMLSelectElement;
+        if (buSel && m.businessUnit) buSel.value = m.businessUnit;
+        if (rsSel && m.revenueSource) rsSel.value = m.revenueSource;
+      }
     });
 
     // 기본 날짜
     const dateEl = $('#riDate') as HTMLInputElement;
     if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+
+    /* ★ R29-MS-GAP1-C: 파일 선택 시 즉시 R2 업로드 */
+    const fileEl = $('#riEvidenceFile') as HTMLInputElement;
+    if (fileEl) fileEl.addEventListener('change', async () => {
+      const files = Array.from(fileEl.files || []);
+      if (!files.length) return;
+      const listEl = $('#riEvidenceList') as HTMLElement;
+      for (const file of files) {
+        const itemId = 'ev_' + Math.random().toString(36).slice(2, 9);
+        const itemHtml = `<div id="${itemId}" style="margin-top:3px">⏳ ${escHtml(file.name)} 업로드 중...</div>`;
+        listEl.insertAdjacentHTML('beforeend', itemHtml);
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('context', 'milestone_evidence');
+          const res = await fetch('/api/blob-upload', { method: 'POST', body: fd, credentials: 'include' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || 'HTTP ' + res.status);
+          const url = data.url || data.data?.url;
+          const name = data.originalName || data.data?.originalName || file.name;
+          const mime = data.mimeType || data.data?.mimeType || file.type;
+          riUploadedEvidence.push({ url, name, mime });
+          const itemEl = document.getElementById(itemId) as HTMLElement;
+          if (itemEl) itemEl.innerHTML = `✅ ${escHtml(name)} <a href="${url}" target="_blank" style="color:#3b82f6">미리보기</a>`;
+        } catch (e) {
+          const itemEl = document.getElementById(itemId) as HTMLElement;
+          if (itemEl) itemEl.innerHTML = `❌ ${escHtml(file.name)} 업로드 실패: ${escHtml((e as any).message)}`;
+        }
+      }
+      fileEl.value = '';
+    });
   });
 
   async function saveRevenueEntry() {
@@ -331,6 +373,8 @@
     const amountUnit = ($('#riUnit') as HTMLSelectElement).value;
     const note = ($('#riNote') as HTMLInputElement).value.trim();
     const isCampaignRouted = ($('#riCampaignRouted') as HTMLSelectElement)?.value === 'true';
+    const businessUnit = ($('#riBusinessUnit') as HTMLSelectElement)?.value || null;
+    const revenueSource = ($('#riRevenueSource') as HTMLSelectElement)?.value || null;
     if (!milestoneDefinitionId) { toast('마일스톤을 선택하세요', 'error'); return; }
     if (!revenueDate) { toast('날짜를 입력하세요', 'error'); return; }
     if (!amount || amount <= 0) { toast('금액/수량을 입력하세요', 'error'); return; }
@@ -339,11 +383,18 @@
     try {
       await api('/api/milestone-revenue', {
         method: 'POST',
-        body: { milestoneDefinitionId, quarterId: state.currentQuarterId, revenueDate, amount, amountUnit, note: note||null, isCampaignRouted },
+        body: {
+          milestoneDefinitionId, quarterId: state.currentQuarterId,
+          revenueDate, amount, amountUnit, note: note||null, isCampaignRouted,
+          businessUnit, revenueSource,
+          evidenceFiles: riUploadedEvidence.slice(),
+        },
       });
       toast('입력 완료 (검증 대기)', 'success');
       ($('#riAmount') as HTMLInputElement).value = '';
       ($('#riNote') as HTMLInputElement).value = '';
+      riUploadedEvidence = [];
+      ($('#riEvidenceList') as HTMLElement).innerHTML = '';
       await loadAndRenderRevenueList();
     } catch (e) { toast('입력 실패: ' + (e as any).message, 'error'); }
     finally { btn.disabled = false; }
@@ -388,11 +439,21 @@
             `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerify('revenue','verify',${e.id})">✅ 승인</button>`}
           <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="window.__msVerify('revenue','reject',${e.id})">반려</button>
         ` : '';
+        /* ★ R29-MS-GAP1-C: 증빙 파일 표시 */
+        const evidence = Array.isArray(e.evidenceFiles) ? e.evidenceFiles : [];
+        const evidenceHtml = evidence.length
+          ? `<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${evidence.map(f => {
+              const isImg = (f.mime || '').startsWith('image/');
+              return isImg
+                ? `<a href="${escHtml(f.url)}" target="_blank" title="${escHtml(f.name||'증빙')}"><img src="${escHtml(f.url)}" alt="증빙" style="width:46px;height:46px;object-fit:cover;border:1px solid #e5e7eb;border-radius:4px"></a>`
+                : `<a href="${escHtml(f.url)}" target="_blank" style="display:inline-block;padding:3px 8px;background:#f3f4f6;border-radius:4px;font-size:11.5px;color:#374151">📄 ${escHtml(f.name||'파일')}</a>`;
+            }).join('')}</div>`
+          : '<div style="margin-top:4px;font-size:11px;color:#9ca3af">증빙 없음</div>';
         return `
         <tr>
           <td style="font-size:12px;white-space:nowrap">${fmtDate(e.revenueDate)}</td>
           <td style="font-size:12.5px">${escHtml(e.enteredByName||'')}</td>
-          <td>${escHtml(e.milestoneName||'')} <small style="color:#9ca3af">${escHtml(e.milestoneCode||'')}</small>${rangeHint}</td>
+          <td>${escHtml(e.milestoneName||'')} <small style="color:#9ca3af">${escHtml(e.milestoneCode||'')}</small>${rangeHint}${evidenceHtml}</td>
           <td style="font-weight:600">${Number(e.amount||0).toLocaleString()} ${escHtml(e.amountUnit||'')}</td>
           <td><span class="ms-badge ${e.status}">${{PENDING:'대기',VERIFIED:'완료',REJECTED:'반려'}[e.status]||e.status}</span></td>
           <td>${actionBtn}</td>
@@ -411,8 +472,15 @@
     const input = document.getElementById(`eventRangeAmount_${id}`) as HTMLInputElement;
     const eventRangeAmount = input ? Number(input.value) : 0;
     if (!eventRangeAmount || eventRangeAmount <= 0) { toast('금액을 입력하세요', 'error'); return; }
+    /* ★ R29-MS-GAP1-I: 클라이언트 사이드 범위 검증 */
+    const minA = Number(input.min || 0);
+    const maxA = Number(input.max || 0);
+    if (maxA > 0 && (eventRangeAmount < minA || eventRangeAmount > maxA)) {
+      toast(`범위 내 금액을 입력하세요 (${minA.toLocaleString()}~${maxA.toLocaleString()}만원)`, 'error');
+      return;
+    }
     try {
-      await api('/api/admin-milestone-revenue', { method: 'PUT', body: { id, action: 'verify', eventRangeAmount } });
+      await api(`/api/admin-milestone-revenue/${id}`, { method: 'PUT', body: { eventRangeAmount } });
       toast('검증 및 금액 확정 완료', 'success');
       await loadAndRenderVerifyList();
     } catch (e) { toast('처리 실패: ' + (e as any).message, 'error'); }

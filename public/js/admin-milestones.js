@@ -355,8 +355,15 @@ function renderSettlements(list) {
             <td style="font-weight:700">${amFmt(s.totalAmount)}</td>
             <td>${amBadge(s.status)}</td>
             <td>
-              ${s.status === 'SUBMITTED' ? `
+              ${s.status === 'SUBMITTED' || s.status === 'REVIEWED' ? `
                 <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="approveSettlement(${s.id})">승인</button>
+                <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa" onclick="holdSettlement(${s.id})">⏸ 보류</button>
+                <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rejectSettlement(${s.id})">반려</button>
+              ` : ''}
+              ${s.status === 'HOLD' ? `
+                <div style="font-size:11px;color:#c2410c;margin-bottom:3px">사유: ${escHtmlAm(s.holdReason || '-')}</div>
+                <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="resumeSettlement(${s.id})">재검토 복귀</button>
+                <button class="ms-btn ms-btn-primary ms-btn-sm" style="margin-left:4px" onclick="approveSettlement(${s.id})">승인</button>
                 <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rejectSettlement(${s.id})">반려</button>
               ` : ''}
               ${s.status === 'APPROVED' ? `
@@ -451,6 +458,25 @@ async function paidSettlement(id) {
   const res = await amApi(`/api/admin-milestone-settlement/${id}/paid`, { method: 'POST' });
   if (!res.ok) { amToast(res.data?.error || '실패', 'error'); return; }
   amToast('지급 완료 처리되었습니다.', 'success');
+  loadSettlements();
+}
+
+/* ★ R29-MS-GAP1-D: HOLD 처리 (자료 보완 요청) */
+async function holdSettlement(id) {
+  const holdReason = prompt('보류 사유를 입력하세요 (운영자에게 알림 전송):');
+  if (!holdReason || !holdReason.trim()) return;
+  const res = await amApi(`/api/admin-milestone-settlement/${id}/hold`, { method: 'POST', body: { holdReason: holdReason.trim() } });
+  if (!res.ok) { amToast(res.data?.error || '실패', 'error'); return; }
+  amToast('보류 처리되었습니다. 운영자에게 자료 보완 요청 알림이 발송되었습니다.', 'success');
+  loadSettlements();
+}
+
+/* ★ R29-MS-GAP1-D: HOLD → REVIEWED 복귀 */
+async function resumeSettlement(id) {
+  if (!confirm('재검토 상태로 복귀시키시겠습니까?')) return;
+  const res = await amApi(`/api/admin-milestone-settlement/${id}/resume`, { method: 'POST' });
+  if (!res.ok) { amToast(res.data?.error || '실패', 'error'); return; }
+  amToast('재검토 복귀되었습니다.', 'success');
   loadSettlements();
 }
 

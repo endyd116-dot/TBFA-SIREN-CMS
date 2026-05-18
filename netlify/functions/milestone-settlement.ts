@@ -112,10 +112,22 @@ async function calcSettlement(memberId: number, quarterId: number) {
   const mRows = await db.execute(sql`SELECT milestone_role FROM members WHERE id = ${memberId}`);
   const milestoneRole = ((mRows as any).rows?.[0] || mRows[0])?.milestone_role;
 
-  // 담당 마일스톤 조회
+  /* ★ R29-MS-GAP1-F: 분기 시작일·종료일 기준 정의 격리.
+     분기 중간에 정의가 변경되어도 해당 분기 결산에는 기존 공식 적용.
+     - effectiveFrom <= 분기시작일 AND (effectiveTo IS NULL OR effectiveTo >= 분기시작일)
+     - effectiveFrom/To 모두 NULL인 정의는 "항상 유효"로 처리 */
+  const qRows = await db.execute(sql`SELECT start_date, end_date FROM quarters WHERE id = ${quarterId}`);
+  const qRow = ((qRows as any).rows?.[0] || (qRows as any[])[0]) as any;
+  const quarterStart = qRow?.start_date;
+
+  // 담당 마일스톤 조회 (분기 시작 시점 유효한 정의만)
   const mdRows = await db.execute(sql`
     SELECT * FROM milestone_definitions
-    WHERE target_milestone_role = ${milestoneRole} AND is_active = TRUE ORDER BY sort_order
+    WHERE target_milestone_role = ${milestoneRole}
+      AND is_active = TRUE
+      AND (effective_from IS NULL OR effective_from <= ${quarterStart})
+      AND (effective_to IS NULL OR effective_to >= ${quarterStart})
+    ORDER BY sort_order
   `);
   const milestones = (mdRows as any).rows || (mdRows as any[]);
 

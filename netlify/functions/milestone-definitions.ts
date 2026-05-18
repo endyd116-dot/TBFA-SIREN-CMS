@@ -27,7 +27,17 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       let q = `SELECT * FROM milestone_definitions WHERE 1=1`;
       const params: any[] = [];
-      if (role) { params.push(role); q += ` AND target_milestone_role = $${params.length}`; }
+      /* ★ R29-MS-GAP1-A: 운영자(super_admin 외)는 본인 milestoneRole 기준으로 강제 필터.
+         role 파라미터를 본인 외 값으로 보내도 본인 것만 반환. */
+      if (!isSuperAdmin) {
+        if (!admin?.milestoneRole) {
+          return Response.json({ ok: true, data: { milestones: [] } });
+        }
+        params.push(admin.milestoneRole);
+        q += ` AND target_milestone_role = $${params.length}`;
+      } else if (role) {
+        params.push(role); q += ` AND target_milestone_role = $${params.length}`;
+      }
       if (cat)  { params.push(cat);  q += ` AND category = $${params.length}`; }
       if (url.searchParams.get("activeOnly") !== "0") q += ` AND is_active = TRUE`;
       q += ` ORDER BY sort_order, id`;
