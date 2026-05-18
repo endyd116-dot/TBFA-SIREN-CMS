@@ -835,6 +835,7 @@
               <li data-mp="messages">?벉 諛쏆? 硫붿떆吏</li>
               <li data-mp="points">?룇 ?ъ씤?맞룸같吏</li>
               <li data-mp="ranking">?쪍 ??궧</li>
+              <li data-mp="notifications" id="mpNotifyTab">&#128236; 알림</li>
               <li data-mp="logout" style="color:var(--danger);margin-top:14px;border-top:1px solid var(--line);padding-top:14px">濡쒓렇?꾩썐</li>
             </ul>
           </aside>
@@ -1110,6 +1111,19 @@
                 <div style="color:var(--text-3);padding:30px;text-align:center">遺덈윭?ㅻ뒗 以?..</div>
               </div>
             </div>
+            <!-- Round 12: 알림 패널 -->
+            <div class="mp-panel" data-mp-panel="notifications" style="display:none">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="display:inline-block;width:4px;height:24px;background:var(--brand);border-radius:2px"></span>
+                  <h3 class="serif" style="margin:0">&#128236; 알림</h3>
+                </div>
+                <button type="button" id="mpNotifyReadAll" class="btn-sm btn-sm-ghost" style="font-size:12.5px">모두 읽음</button>
+              </div>
+              <div id="mpNotifyList">
+                <div style="color:var(--text-3);padding:30px;text-align:center">불러오는 중...</div>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -1259,6 +1273,7 @@
   <script src="/js/mypage-match-feedback.js?v=2026-05-11-phase15"></script>
   <!-- Phase 21 R3+R4: ?댁쁺??遺???좉? + WBS 湲곕낯 蹂닿린 紐⑤뱶 移대뱶 (?댁쁺?먮쭔 ?먮룞 留덉슫?? -->
   <script src="/js/mypage-out-of-office.js?v=2" defer></script>
+  <script src="/js/mypage-notifications.js?v=1" defer></script>
 
   <script>
     /* ?? ?ъ씤?맞룸같吏쨌??궧쨌硫붿떆吏 濡쒕뜑 (?꾩뿭 ??SIREN_PAGE_INIT 諛붽묑) ?? */
