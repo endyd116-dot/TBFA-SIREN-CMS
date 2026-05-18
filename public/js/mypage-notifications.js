@@ -1,8 +1,8 @@
 /**
  * Round 12 — 마이페이지 알림 탭
- * GET /api/notifications-mine  → 목록 렌더링
- * PATCH /api/notifications-read { id } → 단건 읽음
- * PATCH /api/notifications-read { all: true } → 전체 읽음
+ * GET /api/notifications/mine  → 목록 렌더링
+ * PATCH /api/notifications/read { id } → 단건 읽음
+ * PATCH /api/notifications/read { all: true } → 전체 읽음
  */
 (function () {
   'use strict';
@@ -88,8 +88,8 @@
       return;
     }
     try {
-      await fetch('/api/notifications-read', {
-        method: 'PATCH',
+      await fetch('/api/notifications/read', {
+        method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -102,8 +102,8 @@
 
   async function handleReadAll() {
     try {
-      await fetch('/api/notifications-read', {
-        method: 'PATCH',
+      await fetch('/api/notifications/read', {
+        method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ all: true }),
@@ -137,7 +137,7 @@
 
     let data;
     try {
-      const res = await fetch('/api/notifications-mine', { credentials: 'include' });
+      const res = await fetch('/api/notifications/mine', { credentials: 'include' });
       const json = await res.json().catch(() => null);
       if (json && json.ok) {
         data = json;
