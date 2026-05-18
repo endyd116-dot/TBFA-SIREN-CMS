@@ -534,7 +534,31 @@ export default async (req: Request, _ctx: Context) => {
           }
         }
 
-        return ok(updated, "상태가 변경되었습니다");
+        // ★ Round 8 — status=done 시 sourceType/sourceId 연결 테이블 status='resolved' 업데이트
+        let syncedReport: { type: string; id: number } | null = null;
+        if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
+          const sourceType = task.sourceType as string;
+          const sourceId = Number(task.sourceId);
+          const tableMap: Record<string, string> = {
+            support:    "support_requests",
+            incident:   "incident_reports",
+            harassment: "harassment_reports",
+            legal:      "legal_consultations",
+          };
+          const tableName = tableMap[sourceType];
+          if (tableName) {
+            try {
+              await db.execute(
+                sql`UPDATE ${sql.raw(tableName)} SET status = 'resolved', updated_at = NOW() WHERE id = ${sourceId}`
+              );
+              syncedReport = { type: sourceType, id: sourceId };
+            } catch (syncErr) {
+              console.warn("[round8-sync] 연결 테이블 resolved 업데이트 실패:", syncErr);
+            }
+          }
+        }
+
+        return ok({ ...updated, syncedReport }, "상태가 변경되었습니다");
       }
 
       /* ─── action=checklist ─── */
