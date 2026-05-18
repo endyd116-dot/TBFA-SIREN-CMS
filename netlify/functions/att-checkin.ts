@@ -152,7 +152,10 @@ export default async function handler(req: Request) {
       checkInIp: ip,
       workplaceId,
     }).returning();
-    return jsonOk(record, 201);
+    return jsonOk({
+      ...record,
+      remoteReportRequired: workMode.mode === "REMOTE",
+    }, 201);
   } catch (err) {
     if (String(err).includes("unique") || String(err).includes("att_records_member_date_uq")) {
       return new Response(JSON.stringify({

@@ -1,5 +1,5 @@
 import { db } from "../../db/index";
-import { members, attRecords } from "../../db/schema";
+import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { getDefaultPolicy, calcWorkingMins, determineStatus } from "../../lib/att-utils";
@@ -98,6 +98,25 @@ export default async function handler(req: Request) {
     false
   );
 
+  // REMOTE 퇴근 시 오늘 보고서 제출 여부 체크
+  let reportSubmitted = false;
+  if (existing.workMode === "REMOTE") {
+    try {
+      const memberId = auth.ctx.member.id;
+      const reportRows = await db
+        .select({ status: attRemoteWorkReports.status })
+        .from(attRemoteWorkReports)
+        .where(and(
+          eq(attRemoteWorkReports.memberUid, memberId),
+          eq(attRemoteWorkReports.date, today),
+        ))
+        .limit(1);
+      reportSubmitted = reportRows.length > 0 && reportRows[0].status === "SUBMITTED";
+    } catch {
+      // 조회 실패해도 퇴근은 처리
+    }
+  }
+
   try {
     const [record] = await db
       .update(attRecords)
@@ -112,7 +131,7 @@ export default async function handler(req: Request) {
       })
       .where(and(eq(attRecords.memberUid, memberUid), eq(attRecords.date, today)))
       .returning();
-    return jsonOk(record);
+    return jsonOk({ ...record, reportSubmitted });
   } catch (err) {
     return jsonError("update_record", err);
   }
