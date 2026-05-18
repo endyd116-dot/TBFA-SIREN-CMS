@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-18 | **메인** | **✅ 라운드 8 완결** (main @ `6bfd66e`) — C Q1~Q10 PASS + BUG-R8-1·R8-2 fix. R9 B·A 병렬 진행 중 |
 | 2026-05-18 | **메인** | **📐 라운드 8·9·10 설계 완료** — R8 수정/삭제 API 5종+보고↔작업 자동동기화(DB 마이그 불필요) / R9 WBS 고급+채팅 편집/삭제(DB 마이그 필요: migrate-chat-edit) / R10 댓글 투표·공유·알림 구독+AI 법률 배정(DB 마이그 불필요). B·A·C 트리거 3종 준비됨 |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 2 완결** (main @ `8b06826`) — Layer 3 힌트 시스템 + Layer 4 스케줄 도구 3개 + C BUG 3건 fix + 마이그레이션 완료 (ae04a13) |
 | 2026-05-18 | **메인** | **✅ 라운드 7 Phase 1 머지 완료** (main @ `7e00835`) — Layer 1 배치 도구 4개 + Layer 2 파이프라인 2개 총 6개 도구 추가 (116→122개). Phase 2 시작: A(Layer3 힌트)+B(Layer4 스케줄)+C(검증) 동시 진행 |
@@ -135,10 +136,10 @@
 
 | 채팅 | 영역 | 작업 항목 | 상태 |
 |---|---|---|---|
-| 메인 | 설계·머지 | 설계서 작성, 트리거 준비 | ✅ 설계 완료 |
-| B | 백엔드 | support/incident/harassment/legal update API 4종 + delete 1종 + workspace sync | ⏸ 대기 |
-| A | 프론트 | mypage-applications.js·mypage.html + my-reports.js·my-reports.html 수정 버튼·모달 | ⏸ 대기 (B 머지 후) |
-| C | 검증 | Q1~Q10 라이브 검증 | ⏸ 대기 |
+| 메인 | 설계·머지 | 설계서 작성·머지 조율 | ✅ 완료 (6bfd66e) |
+| B | 백엔드 | support/incident/harassment/legal update API 4종 + delete 1종 + workspace sync | ✅ 완료 (a74e3f6) |
+| A | 프론트 | mypage-applications.js·mypage.html + my-reports.js·my-reports.html 수정 버튼·모달 | ✅ 완료 (720567b) |
+| C | 검증 | Q1~Q10 라이브 검증 | ✅ 완료 (10/10 PASS, BUG 2건 fix, 6bfd66e) |
 
 ### 4.9 라운드 9 WBS 고급 + 채팅 편집 + 폼 응답 삭제 (2026-05-18 📐 설계 완료)
 
@@ -242,7 +243,7 @@
 
 | **라운드 1~6 (2026-05-17 사이클)** | ✅ 100% 완결 — SIREN 4건·워크스페이스 9건·CMS 6건·3단 권한·발송 UX·게이미피케이션+큐레이션·팝업 / C 검증 54항목 전부 통과 (R2 BUG 2건 제외 0) |
 | **라운드 7 AI Layer 1~4 (2026-05-18~)** | 🔄 Phase 1+2 머지 완료 (main @ `8b06826`) — Layer 1~4 총 9개 도구 추가 + 힌트 시스템 + 스케줄 cron. **마이그레이션 호출 대기 → C Q1~Q6 라이브 검증 남음** |
-| **라운드 8 수정 API 4종 + 보고 동기화** | 📐 설계 완료 (2026-05-18) — DB 마이그 불필요, B·A·C 트리거 준비됨. **다음: B 트리거 실행** |
+| **라운드 8 수정 API 4종 + 보고 동기화** | ✅ 100% 완결 (main @ `6bfd66e`) — C Q1~Q10 전부 PASS + BUG-R8-1(MOCK→실 API) + BUG-R8-2(sync 상태값 enum 불일치) fix |
 | **라운드 9 WBS 고급 + 채팅 편집** | 📐 설계 완료 (2026-05-18) — DB 마이그 필요 (migrate-chat-edit). R8 완료 후 시작 |
 | **라운드 10 댓글·공유·알림·AI 법률** | 📐 설계 완료 (2026-05-18) — DB 마이그 불필요. R9 완료 후 시작 |
 
