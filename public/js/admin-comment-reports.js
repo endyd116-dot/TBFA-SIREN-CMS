@@ -1,21 +1,6 @@
 (function () {
   'use strict';
 
-  /* ── mock 데이터 (B 머지 전 폴백) ── */
-  var MOCK_COMMENT_REPORTS = {
-    ok: true,
-    reports: [
-      { id: 77, reportType: 'comment', commentId: 33, incidentId: null,
-        reason: '욕설/혐오 발언', status: 'pending', reporterName: '홍길동',
-        createdAt: '2026-05-18T10:00:00Z' },
-      { id: 78, reportType: 'incident', commentId: null, incidentId: 5,
-        reason: '허위사실 유포', status: 'reviewed', reporterName: '김영희',
-        createdAt: '2026-05-18T09:00:00Z' }
-    ],
-    total: 2
-  };
-  var MOCK_REPORT_REVIEW = { ok: true };
-
   /* ── 상태 ── */
   var state = { status: '', page: 1, limit: 20, total: 0 };
   var currentReportId = null;
@@ -76,12 +61,9 @@
       reports = res.data.data?.reports || res.data.reports || [];
       total   = res.data.data?.total   || res.data.total   || 0;
     } else {
-      /* API 실패 → mock 폴백 */
-      var filtered = MOCK_COMMENT_REPORTS.reports.filter(function (r) {
-        return !state.status || r.status === state.status;
-      });
-      reports = filtered;
-      total   = filtered.length;
+      toast(res.data?.error || '신고 목록 조회 실패');
+      reports = [];
+      total   = 0;
     }
 
     state.total = total;
@@ -175,16 +157,13 @@
     if (!currentReportId) return;
     var action = document.querySelector('input[name="reviewAction"]:checked')?.value || 'none';
 
+    var status = action === 'none' ? 'dismissed' : 'resolved';
     var res = await api('/api/admin-comment-report-review', {
       method: 'PATCH',
-      body: { reportId: parseInt(currentReportId, 10), action: action },
+      body: { reportId: parseInt(currentReportId, 10), status: status, action: action },
     });
 
     var ok = res.ok && (res.data.ok !== false);
-    if (!ok && !res.data.ok) {
-      /* mock 폴백 */
-      ok = MOCK_REPORT_REVIEW.ok;
-    }
 
     if (ok) {
       var msg = action === 'none' ? '신고가 기각되었습니다.' : '처리되었습니다.';

@@ -41,15 +41,24 @@ export default async (req: Request, _ctx: Context) => {
     return jsonError(400, "validate", "reminderConfig 객체 필수");
   }
 
-  const reminderConfig = body.reminderConfig;
+  const rawConfig = body.reminderConfig;
 
   try {
     const [task]: any = await db
-      .select({ id: workspaceTasks.id })
+      .select({ id: workspaceTasks.id, dueDate: workspaceTasks.dueDate })
       .from(workspaceTasks)
       .where(eq(workspaceTasks.id, taskId))
       .limit(1);
     if (!task) return jsonError(404, "select_task", "작업을 찾을 수 없습니다");
+
+    // remindAt 계산: enabled=true + minutesBefore + dueDate 모두 있을 때
+    let reminderConfig = { ...rawConfig };
+    if (rawConfig.enabled && rawConfig.minutesBefore && task.dueDate) {
+      const remindAt = new Date(new Date(task.dueDate).getTime() - rawConfig.minutesBefore * 60 * 1000);
+      reminderConfig = { ...rawConfig, remindAt: remindAt.toISOString(), firedAt: null };
+    } else if (!rawConfig.enabled) {
+      reminderConfig = { ...rawConfig, remindAt: null, firedAt: null };
+    }
 
     await db
       .update(workspaceTasks)
