@@ -1,7 +1,6 @@
 import { db } from "../../db/index";
-import { attCorrections, attRecords } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { attCorrections, attRecords, members } from "../../db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { determineStatus, getDefaultPolicy } from "../../lib/att-utils";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
@@ -28,6 +27,58 @@ export default async function handler(req: Request) {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // GET — 결재 대기/처리 목록 (status=PENDING 기본)
+  if (req.method === "GET") {
+    try {
+      const url = new URL(req.url);
+      const status = url.searchParams.get("status") ?? "PENDING";
+
+      const rows = await db
+        .select()
+        .from(attCorrections)
+        .where(eq(attCorrections.status, status))
+        .orderBy(attCorrections.createdAt)
+        .limit(100);
+
+      // member 이름·이메일 조인 (memberUid 는 members.id 의 문자열 형태)
+      const memberIds = Array.from(
+        new Set(rows.map(r => Number(r.memberUid)).filter(n => Number.isFinite(n) && n > 0))
+      );
+      let memberMap = new Map<number, { name: string; email: string }>();
+      if (memberIds.length > 0) {
+        try {
+          const mRows = await db
+            .select({ id: members.id, name: members.name, email: members.email })
+            .from(members)
+            .where(inArray(members.id, memberIds));
+          for (const m of mRows) memberMap.set(m.id, { name: m.name, email: m.email });
+        } catch (e) {
+          console.warn("[admin-att-correction-review] member 조인 실패:", e);
+        }
+      }
+
+      const corrections = rows.map(r => {
+        const info = memberMap.get(Number(r.memberUid));
+        return {
+          id: r.id,
+          memberUid: r.memberUid,
+          memberName: info?.name ?? "—",
+          memberEmail: info?.email ?? "",
+          targetDate: r.targetDate,
+          correctionType: r.correctionType,
+          requestedCheckIn: r.requestedCheckIn,
+          requestedCheckOut: r.requestedCheckOut,
+          reason: r.reason,
+          status: r.status,
+          submittedAt: r.createdAt,
+        };
+      });
+      return jsonOk({ corrections });
+    } catch (err) {
+      return jsonError("select_corrections", err);
+    }
   }
 
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });

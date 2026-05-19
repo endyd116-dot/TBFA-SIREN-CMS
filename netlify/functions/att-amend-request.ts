@@ -9,7 +9,7 @@
 import { db } from "../../db/index";
 import { attCorrections, members } from "../../db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireOperator } from "../../lib/operator-guard";
 import { broadcastNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/att-amend-request" };
@@ -36,8 +36,8 @@ const AMEND_TO_CORRECTION: Record<string, "CHECK_IN" | "CHECK_OUT" | "BOTH"> = {
 };
 
 export default async function handler(req: Request) {
-  const auth = await requireAdmin(req);
-  if (!auth.ok) return (auth as any).res;
+  const auth = await requireOperator(req);
+  if (!auth.ok) return auth.res;
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
   let body: any;
