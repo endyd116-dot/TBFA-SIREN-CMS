@@ -3681,6 +3681,8 @@ export const attRecords = pgTable("att_records", {
   overtimeMins:        integer("overtime_mins").default(0).notNull(),
   isManuallyAdjusted:  boolean("is_manually_adjusted").default(false).notNull(),
   note:                text("note"),
+  /* R39 Stage 7: 디바이스 타입 (MOBILE·TABLET·DESKTOP) — 클라이언트가 전송, 운영 분석용 */
+  deviceType:          varchar("device_type", { length: 20 }),
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -3912,3 +3914,47 @@ export const milestoneRoles = pgTable("milestone_roles", {
 
 export type MilestoneRole    = typeof milestoneRoles.$inferSelect;
 export type NewMilestoneRole = typeof milestoneRoles.$inferInsert;
+
+/* =========================================================
+   === R39 Stage 7: 휴가 수동 조정 이력 + 어드민 출퇴근 수정 이력 ===
+   ========================================================= */
+
+/* 휴가 잔여 수동 조정 이력 (감사 추적) */
+export const attLeaveBalanceAdjustments = pgTable("att_leave_balance_adjustments", {
+  id:          serial("id").primaryKey(),
+  memberUid:   varchar("member_uid", { length: 36 }).notNull(),
+  leaveTypeId: integer("leave_type_id").notNull(),
+  year:        integer("year").notNull(),
+  deltaDays:   numeric("delta_days", { precision: 6, scale: 2 }).notNull(),
+  reason:      text("reason").notNull(),
+  adjustedBy:  varchar("adjusted_by", { length: 36 }).notNull(),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx:     index("att_lba_member_idx").on(t.memberUid),
+  typeIdx:       index("att_lba_type_idx").on(t.leaveTypeId),
+  memberYearIdx: index("att_lba_member_year_idx").on(t.memberUid, t.year),
+}));
+
+export type AttLeaveBalanceAdjustment    = typeof attLeaveBalanceAdjustments.$inferSelect;
+export type NewAttLeaveBalanceAdjustment = typeof attLeaveBalanceAdjustments.$inferInsert;
+
+/* 어드민 출퇴근 수정 이력 (감사 추적) */
+export const attRecordAdminEdits = pgTable("att_record_admin_edits", {
+  id:           serial("id").primaryKey(),
+  recordId:     integer("record_id").notNull().references(() => attRecords.id, { onDelete: "cascade" }),
+  editedBy:     varchar("edited_by", { length: 36 }).notNull(),
+  oldCheckIn:   timestamp("old_check_in"),
+  oldCheckOut:  timestamp("old_check_out"),
+  oldWorkMode:  varchar("old_work_mode", { length: 30 }),
+  newCheckIn:   timestamp("new_check_in"),
+  newCheckOut:  timestamp("new_check_out"),
+  newWorkMode:  varchar("new_work_mode", { length: 30 }),
+  reason:       text("reason").notNull(),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  recordIdx:   index("att_rae_record_idx").on(t.recordId),
+  editedByIdx: index("att_rae_edited_by_idx").on(t.editedBy),
+}));
+
+export type AttRecordAdminEdit    = typeof attRecordAdminEdits.$inferSelect;
+export type NewAttRecordAdminEdit = typeof attRecordAdminEdits.$inferInsert;
