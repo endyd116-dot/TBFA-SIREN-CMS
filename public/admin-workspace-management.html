@@ -75,6 +75,7 @@
     <button class="att-tab" data-tab="policy">근무 정책</button>
     <button class="att-tab" data-tab="leavetypes">휴가 종류</button>
     <button class="att-tab" data-tab="holidays">공휴일</button>
+    <button class="att-tab" data-tab="monthrecords">📅 출퇴근 기록</button>
   </nav>
 
   <!-- ════════════ 탭 1: 근태 현황 ════════════ -->
@@ -649,6 +650,59 @@
     </div>
   </div>
 
+  <!-- ════════════ R38 A-2: 출퇴근 기록 (월/기간) ════════════ -->
+  <div class="att-panel" id="awmPanelMonthrecords">
+    <div class="awm-section">
+      <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="att-form-group" style="margin:0">
+          <label style="display:block;font-size:12px;color:#374151;font-weight:600;margin-bottom:4px">직원</label>
+          <select id="awmMrMember" style="min-width:220px;padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+            <option value="">— 직원 선택 —</option>
+          </select>
+        </div>
+        <div class="att-form-group" style="margin:0">
+          <label style="display:block;font-size:12px;color:#374151;font-weight:600;margin-bottom:4px">기간 시작</label>
+          <input type="date" id="awmMrFrom" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+        <div class="att-form-group" style="margin:0">
+          <label style="display:block;font-size:12px;color:#374151;font-weight:600;margin-bottom:4px">기간 종료</label>
+          <input type="date" id="awmMrTo" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+        <div class="att-form-group" style="margin:0">
+          <label style="display:block;font-size:12px;color:#374151;font-weight:600;margin-bottom:4px">빠른 선택</label>
+          <select id="awmMrMonth" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+            <option value="">— 월 선택 —</option>
+          </select>
+        </div>
+        <button class="att-btn att-btn-primary" id="awmBtnMrLoad">조회</button>
+        <button class="att-btn att-btn-default" id="awmBtnMrCsv">CSV 다운로드</button>
+      </div>
+
+      <div style="margin-bottom:12px;font-size:12.5px;color:#6b7280" id="awmMrSummary">직원과 기간을 선택 후 [조회]를 누르세요.</div>
+
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>요일</th>
+              <th>근무형태</th>
+              <th>상태</th>
+              <th>출근</th>
+              <th>퇴근</th>
+              <th>근무시간</th>
+              <th>야근</th>
+              <th>휴가</th>
+            </tr>
+          </thead>
+          <tbody id="awmMrBody">
+            <tr><td colspan="9" class="att-empty">직원과 기간을 선택 후 조회하세요</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /awm-wrap -->
 
 <!-- 주소 검색 모달 -->
@@ -676,6 +730,6 @@
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-workspace-management.js?v=10"></script>
+<script src="/js/admin-workspace-management.js?v=11-r38"></script>
 </body>
 </html>

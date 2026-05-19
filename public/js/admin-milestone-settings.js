@@ -375,6 +375,174 @@
     }
   }
 
+  /* ════════════════════════════════════════
+     R38 A-1: 직원별 마일스톤 탭
+     - 직원 일람 (이름·이메일·성과 역할·정의 수·매출 수)
+     - 행 클릭 → 모달: 해당 직원 milestoneRole 정의 일람 + CRUD
+  ════════════════════════════════════════ */
+  state.bmCurrent = null; // 현재 모달이 보고 있는 직원
+
+  async function loadByMember() {
+    var tbody = $('#byMemberTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>';
+    try {
+      // 직원 목록과 정의 목록을 병렬 로드
+      var tasks = [api('/api/admin-milestone-role-assign')];
+      if (!state.defs.length) tasks.push(api('/api/admin-milestone-definitions'));
+      var results = await Promise.all(tasks);
+      var memRes = results[0];
+      state.members = (memRes && memRes.data) || [];
+      if (results[1]) {
+        var defRes = results[1];
+        state.defs =
+          (defRes && defRes.data && defRes.data.milestones) ||
+          (defRes && defRes.data && defRes.data.definitions) ||
+          (Array.isArray(defRes && defRes.data) ? defRes.data : null) ||
+          defRes.defs || [];
+      }
+      renderByMemberTable();
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
+    }
+  }
+
+  function renderByMemberTable() {
+    var tbody = $('#byMemberTableBody');
+    if (!state.members.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">등록된 어드민 계정이 없습니다</td></tr>';
+      return;
+    }
+    // milestoneRole별 정의 수 집계
+    var defCountByRole = { SM: 0, PM: 0, SI: 0 };
+    var revCountByRole = { SM: 0, PM: 0, SI: 0 };
+    state.defs.forEach(function(d) {
+      var r = d.target_milestone_role || d.targetMilestoneRole;
+      if (!r || !(r in defCountByRole)) return;
+      if (d.is_active === false) return;
+      defCountByRole[r] += 1;
+      if (d.category === 'REVENUE_LINKED') revCountByRole[r] += 1;
+    });
+
+    tbody.innerHTML = state.members.map(function(m) {
+      var mr = m.milestone_role || '';
+      var roleBadge = mr
+        ? '<span class="mst-badge ' + mr.toLowerCase() + '">' + esc(mr) + '</span>'
+        : '<span class="mst-badge none">— 미배정 —</span>';
+      var defCnt = mr ? (defCountByRole[mr] || 0) : 0;
+      var revCnt = mr ? (revCountByRole[mr] || 0) : 0;
+      var manageBtn = mr
+        ? '<button class="mst-btn secondary" style="padding:4px 10px;font-size:12px" onclick="openByMember(' + m.id + ')">상세</button>'
+        : '<span style="color:#9ca3af;font-size:12px">역할 배정 필요</span>';
+      return '<tr>' +
+        '<td style="font-weight:500">' + esc(m.name) + '</td>' +
+        '<td style="color:#6b7280;font-size:13px">' + esc(m.email) + '</td>' +
+        '<td>' + roleBadge + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + defCnt + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:#5b21b6">' + revCnt + '</td>' +
+        '<td>' + manageBtn + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  window.openByMember = function(memberId) {
+    var m = state.members.find(function(x){ return x.id === memberId; });
+    if (!m || !m.milestone_role) return;
+    state.bmCurrent = m;
+    $('#byMemberModalTitle').textContent = m.name + '의 ' + m.milestone_role + ' 마일스톤';
+    $('#byMemberModalSubtitle').textContent =
+      m.email + ' · 성과 역할 ' + m.milestone_role + ' — 본 직원이 담당하는 마일스톤 정의 일람';
+    renderByMemberDefsBody(m.milestone_role);
+    $('#byMemberModal').classList.add('open');
+  };
+
+  function renderByMemberDefsBody(role) {
+    var tbody = $('#byMemberDefsBody');
+    var rows = state.defs.filter(function(d) {
+      var r = d.target_milestone_role || d.targetMilestoneRole;
+      return r === role;
+    });
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">' + esc(role) + ' 역할로 정의된 마일스톤이 없습니다. 우측 상단 [+ 마일스톤 추가] 버튼으로 추가하세요.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(d) {
+      var catBadge = d.category === 'REVENUE_LINKED'
+        ? '<span class="mst-badge rev">매출연동</span>'
+        : '<span class="mst-badge nonrev">비매출</span>';
+      var activeBadge = d.is_active
+        ? '<span class="mst-badge active">활성</span>'
+        : '<span class="mst-badge inactive">비활성</span>';
+      var threshold = d.threshold_enabled
+        ? esc(d.threshold_value || '-') + ' ' + esc(d.threshold_unit || '')
+        : '<span style="color:#9ca3af">-</span>';
+      var toggleLabel = d.is_active ? '비활성화' : '활성화';
+      return '<tr>' +
+        '<td>' + activeBadge + '</td>' +
+        '<td><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + esc(d.code) + '</code></td>' +
+        '<td style="font-weight:500">' + esc(d.name) + '</td>' +
+        '<td>' + catBadge + '</td>' +
+        '<td>' + threshold + '</td>' +
+        '<td style="color:#6b7280;font-size:12.5px">' + esc(d.quarter_applicable || '전체') + '</td>' +
+        '<td><div style="display:flex;gap:6px">' +
+          '<button class="mst-btn secondary" style="padding:4px 8px;font-size:11.5px" onclick="bmEditDef(' + d.id + ')">편집</button>' +
+          '<button class="mst-btn ' + (d.is_active ? 'danger' : 'primary') + '" style="padding:4px 8px;font-size:11.5px" onclick="bmToggleDef(' + d.id + ')">' + toggleLabel + '</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function closeByMemberModal() {
+    $('#byMemberModal').classList.remove('open');
+  }
+
+  // 편집은 기존 editDef 흐름에 위임 (모달 닫고 정의 모달 오픈)
+  window.bmEditDef = function(id) {
+    closeByMemberModal();
+    window.editDef(id);
+  };
+
+  // 활성/비활성 토글 — 기존 PUT 활용 (id + 기존 필드 전체)
+  window.bmToggleDef = async function(id) {
+    var d = state.defs.find(function(x){ return x.id === id; });
+    if (!d) return;
+    var nextActive = !d.is_active;
+    if (!confirm('[' + d.name + '] 마일스톤을 ' + (nextActive ? '활성화' : '비활성화') + '하시겠습니까?')) return;
+    try {
+      await api('/api/admin-milestone-definitions', {
+        method: 'PUT',
+        body: {
+          id: d.id,
+          name: d.name,
+          category: d.category,
+          targetMilestoneRole: d.target_milestone_role || d.targetMilestoneRole,
+          businessUnit: d.business_unit || null,
+          revenueSource: d.revenue_source || null,
+          thresholdEnabled: d.threshold_enabled,
+          thresholdValue: d.threshold_value,
+          thresholdUnit: d.threshold_unit,
+          bonusFormula: d.bonus_formula || {},
+          quarterApplicable: d.quarter_applicable || null,
+          isSharedThreshold: d.is_shared_threshold,
+          sharedThresholdGroup: d.shared_threshold_group,
+          isActive: nextActive,
+          effectiveFrom: d.effective_from || null,
+          effectiveTo: d.effective_to || null,
+          sortOrder: d.sort_order ?? 0,
+        },
+      });
+      toast(nextActive ? '활성화 완료' : '비활성화 완료', 'success');
+      // 정의 목록 새로 받아오고 모달 갱신
+      var defRes = await api('/api/admin-milestone-definitions');
+      state.defs =
+        (defRes && defRes.data && defRes.data.milestones) ||
+        (defRes && defRes.data && defRes.data.definitions) || [];
+      if (state.bmCurrent) renderByMemberDefsBody(state.bmCurrent.milestone_role);
+      renderByMemberTable();
+    } catch (e) {
+      toast('변경 실패: ' + e.message, 'error');
+    }
+  };
+
   /* ── 초기화 ── */
   document.addEventListener('DOMContentLoaded', async function() {
     // super_admin 체크
@@ -398,6 +566,7 @@
       btn.addEventListener('click', function() {
         if (btn.dataset.tab === 'roles' && !state.members.length) loadMembers();
         if (btn.dataset.tab === 'quarters') loadQuarters();
+        if (btn.dataset.tab === 'bymember') loadByMember();
       });
     });
 
@@ -407,6 +576,22 @@
     $('#btnDefSave').addEventListener('click', saveDef);
     $('#defModal').addEventListener('click', function(e) {
       if (e.target === $('#defModal')) $('#defModal').classList.remove('open');
+    });
+
+    // 모달 이벤트 — 직원별 마일스톤 (R38 A-1)
+    $('#btnBmClose').addEventListener('click', closeByMemberModal);
+    $('#byMemberModal').addEventListener('click', function(e) {
+      if (e.target === $('#byMemberModal')) closeByMemberModal();
+    });
+    $('#btnBmAddDef').addEventListener('click', function() {
+      if (!state.bmCurrent) return;
+      closeByMemberModal();
+      window.openAddDef();
+      // 새 마일스톤은 해당 직원의 성과 역할로 강제 — 사용자가 자유롭게 변경 가능
+      var roleSel = $('#defRole');
+      if (roleSel && state.bmCurrent.milestone_role) {
+        roleSel.value = state.bmCurrent.milestone_role;
+      }
     });
 
     // 모달 이벤트 — 분기 관리

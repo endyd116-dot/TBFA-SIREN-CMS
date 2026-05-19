@@ -78,6 +78,7 @@
         if (btn.dataset.tab === 'policy' && !window._awmPolInit) initPolicyTab();
         if (btn.dataset.tab === 'leavetypes' && !window._awmLtInit) initLeaveTypesTab();
         if (btn.dataset.tab === 'holidays' && !window._awmHolInit) initHolidaysTab();
+        if (btn.dataset.tab === 'monthrecords' && !window._awmMrInit) initMonthRecordsTab();
       });
     });
   }
@@ -903,6 +904,233 @@
     if (btn) btn.disabled = false;
     hideEl('awmBalanceAdjustForm');
     await loadBalances();
+  }
+
+  /* ═══════════════════════════════════
+     R38 A-2: 출퇴근 기록 (월/기간) 탭
+  ═══════════════════════════════════ */
+  async function initMonthRecordsTab() {
+    window._awmMrInit = true;
+
+    // 직원 드롭다운
+    try {
+      const res = await api('/api/admin-att-members');
+      const members = res.data?.data?.members || res.data?.members || [];
+      const sel = document.getElementById('awmMrMember');
+      if (sel) {
+        const opts = ['<option value="">— 직원 선택 —</option>'];
+        members.forEach(m => {
+          opts.push('<option value="' + m.uid + '">' + escHtml(m.name) + ' (' + escHtml(m.email || '') + ')</option>');
+        });
+        sel.innerHTML = opts.join('');
+      }
+    } catch (e) {
+      console.warn('[월 기록] 직원 목록 로드 실패', e);
+    }
+
+    // 월 빠른 선택 — 최근 12개월
+    const monthSel = document.getElementById('awmMrMonth');
+    if (monthSel) {
+      const now = new Date();
+      const months = ['<option value="">— 월 선택 —</option>'];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const ym = y + '-' + m;
+        months.push('<option value="' + ym + '">' + y + '년 ' + (d.getMonth() + 1) + '월</option>');
+      }
+      monthSel.innerHTML = months.join('');
+
+      monthSel.addEventListener('change', () => {
+        const ym = monthSel.value;
+        if (!ym) return;
+        const [yy, mm] = ym.split('-').map(Number);
+        const firstDay = new Date(yy, mm - 1, 1);
+        const lastDay = new Date(yy, mm, 0);
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('awmMrFrom').value = firstDay.getFullYear() + '-' + pad(firstDay.getMonth() + 1) + '-' + pad(firstDay.getDate());
+        document.getElementById('awmMrTo').value   = lastDay.getFullYear()  + '-' + pad(lastDay.getMonth() + 1)  + '-' + pad(lastDay.getDate());
+      });
+    }
+
+    // 기본 기간 — 이번 달
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const pad = n => String(n).padStart(2, '0');
+    const fromStr = firstDay.getFullYear() + '-' + pad(firstDay.getMonth() + 1) + '-01';
+    const toStr   = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+    document.getElementById('awmMrFrom').value = fromStr;
+    document.getElementById('awmMrTo').value   = toStr;
+
+    document.getElementById('awmBtnMrLoad')?.addEventListener('click', loadMonthRecords);
+    document.getElementById('awmBtnMrCsv')?.addEventListener('click', downloadMonthRecordsCsv);
+  }
+
+  // 기간 내 일자별 라인 빌드 (records + leaves 병합)
+  function buildMonthLines(payload) {
+    const dateFrom = payload.dateFrom;
+    const dateTo   = payload.dateTo;
+    const recs = Array.isArray(payload.records) ? payload.records : [];
+    const leaves = Array.isArray(payload.leaves) ? payload.leaves : [];
+
+    // 날짜 → 레코드 매핑
+    const recByDate = new Map();
+    recs.forEach(r => { recByDate.set(String(r.date).slice(0, 10), r); });
+
+    // 날짜 → 휴가 매핑
+    const leaveByDate = new Map();
+    leaves.forEach(lv => {
+      const start = new Date(String(lv.start_date).slice(0, 10) + 'T00:00:00');
+      const end   = new Date(String(lv.end_date).slice(0, 10) + 'T00:00:00');
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        if (!leaveByDate.has(ds)) leaveByDate.set(ds, []);
+        leaveByDate.get(ds).push(lv);
+      }
+    });
+
+    // 기간 전체 일자 순회
+    const fromDt = new Date(dateFrom + 'T00:00:00');
+    const toDt   = new Date(dateTo + 'T00:00:00');
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const lines = [];
+    for (let d = new Date(fromDt); d <= toDt; d.setDate(d.getDate() + 1)) {
+      const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const r = recByDate.get(ds);
+      const lvs = leaveByDate.get(ds) || [];
+      lines.push({ date: ds, dayName: days[d.getDay()], record: r, leaves: lvs });
+    }
+    return lines;
+  }
+
+  function fmtMins(mins) {
+    if (mins == null) return '—';
+    const n = Number(mins);
+    if (!isFinite(n) || n <= 0) return '—';
+    const h = Math.floor(n / 60);
+    const m = n % 60;
+    if (h === 0) return m + '분';
+    if (m === 0) return h + '시간';
+    return h + '시간 ' + m + '분';
+  }
+
+  async function fetchMonthRecords() {
+    const memberUid = document.getElementById('awmMrMember').value;
+    const dateFrom  = document.getElementById('awmMrFrom').value;
+    const dateTo    = document.getElementById('awmMrTo').value;
+    if (!memberUid) { toast('직원을 선택하세요'); return null; }
+    if (!dateFrom || !dateTo) { toast('기간을 선택하세요'); return null; }
+    if (dateFrom > dateTo) { toast('기간 시작이 종료보다 늦습니다'); return null; }
+
+    const qs = '?dateFrom=' + encodeURIComponent(dateFrom)
+             + '&dateTo='   + encodeURIComponent(dateTo)
+             + '&memberUid=' + encodeURIComponent(memberUid);
+    const res = await api('/api/admin-att-records' + qs);
+    if (!res.ok) {
+      toast('조회 실패: ' + (res.data?.error || ''));
+      return null;
+    }
+    const payload = res.data?.data || res.data || {};
+    return { memberUid, payload };
+  }
+
+  async function loadMonthRecords() {
+    const result = await fetchMonthRecords();
+    if (!result) return;
+    const payload = result.payload;
+    const lines = buildMonthLines(payload);
+
+    // 요약
+    let workdays = 0, totalMins = 0, leaveDays = 0;
+    lines.forEach(ln => {
+      if (ln.record && ln.record.check_in_time) workdays++;
+      if (ln.record && ln.record.working_mins) totalMins += Number(ln.record.working_mins) || 0;
+      if (ln.leaves.length) leaveDays++;
+    });
+    document.getElementById('awmMrSummary').textContent =
+      payload.dateFrom + ' ~ ' + payload.dateTo + ' · ' +
+      '근무 ' + workdays + '일 / 휴가 ' + leaveDays + '일 / 총 근무시간 ' + fmtMins(totalMins);
+
+    // 표
+    const tbody = document.getElementById('awmMrBody');
+    if (!lines.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="att-empty">기간 내 데이터 없음</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lines.map(ln => {
+      const r = ln.record;
+      const isWeekend = (ln.dayName === '토' || ln.dayName === '일');
+      const dayColor = ln.dayName === '일' ? '#ef4444' : (ln.dayName === '토' ? '#3b82f6' : '#374151');
+      let workMode = '—', status = '—', checkIn = '—', checkOut = '—', mins = '—', ot = '—';
+      if (r) {
+        workMode = r.work_mode ? (MODE_LABEL[r.work_mode] || r.work_mode) : '—';
+        status   = r.status ? (STATUS_LABEL[r.status] || r.status) : '—';
+        checkIn  = fmtTime(r.check_in_time);
+        checkOut = fmtTime(r.check_out_time);
+        mins     = fmtMins(r.working_mins);
+        ot       = r.overtime_mins ? fmtMins(r.overtime_mins) : '—';
+      }
+      const leaveTxt = ln.leaves.length
+        ? ln.leaves.map(lv => lv.is_half_day ? '반차' : '휴가').join(', ')
+        : '—';
+      return '<tr' + (isWeekend ? ' style="background:#fafbfc"' : '') + '>' +
+        '<td style="font-variant-numeric:tabular-nums">' + ln.date + '</td>' +
+        '<td style="color:' + dayColor + ';font-weight:600">' + ln.dayName + '</td>' +
+        '<td>' + escHtml(workMode) + '</td>' +
+        '<td>' + escHtml(status) + '</td>' +
+        '<td style="font-variant-numeric:tabular-nums">' + checkIn + '</td>' +
+        '<td style="font-variant-numeric:tabular-nums">' + checkOut + '</td>' +
+        '<td>' + mins + '</td>' +
+        '<td>' + ot + '</td>' +
+        '<td>' + (ln.leaves.length ? '<span style="color:#3b82f6;font-weight:600">' + leaveTxt + '</span>' : leaveTxt) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function csvEsc(v) {
+    if (v == null) return '';
+    const s = String(v);
+    if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  async function downloadMonthRecordsCsv() {
+    const result = await fetchMonthRecords();
+    if (!result) return;
+    const payload = result.payload;
+    const lines = buildMonthLines(payload);
+    const memberSel = document.getElementById('awmMrMember');
+    const memberLabel = memberSel.options[memberSel.selectedIndex]?.text || result.memberUid;
+
+    const header = ['날짜', '요일', '근무형태', '상태', '출근', '퇴근', '근무시간(분)', '야근(분)', '휴가'];
+    const csvLines = [header.map(csvEsc).join(',')];
+    lines.forEach(ln => {
+      const r = ln.record;
+      const workMode = r && r.work_mode ? (MODE_LABEL[r.work_mode] || r.work_mode) : '';
+      const status   = r && r.status ? (STATUS_LABEL[r.status] || r.status) : '';
+      const checkIn  = r && r.check_in_time ? fmtTime(r.check_in_time) : '';
+      const checkOut = r && r.check_out_time ? fmtTime(r.check_out_time) : '';
+      const mins     = r && r.working_mins != null ? r.working_mins : '';
+      const ot       = r && r.overtime_mins != null ? r.overtime_mins : '';
+      const leaveTxt = ln.leaves.length
+        ? ln.leaves.map(lv => lv.is_half_day ? '반차' : '휴가').join('; ')
+        : '';
+      csvLines.push([ln.date, ln.dayName, workMode, status, checkIn, checkOut, mins, ot, leaveTxt].map(csvEsc).join(','));
+    });
+    // UTF-8 BOM
+    const blob = new Blob(['﻿' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '출퇴근_' + memberLabel.replace(/[<>:"/\\|?*]/g, '_') + '_' + payload.dateFrom + '_' + payload.dateTo + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('CSV 다운로드 완료');
   }
 
   /* ─── 초기화 ─── */
