@@ -40,8 +40,11 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const settlements = (rows as any).rows || (rows as any[]);
 
-    // 직책 레이블 매핑
+    // 직책 레이블 매핑 (R32-P0-MS-C4: 실제 컬럼은 대문자 SM/PM/SI — 대소문자 동시 매핑)
     const roleLabel: Record<string, string> = {
+      SM: "사무국장",
+      PM: "정책국장",
+      SI: "SI 영업관리자",
       sm: "사무국장",
       pm: "정책국장",
       si: "SI 영업관리자",
