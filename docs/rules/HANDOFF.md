@@ -4,8 +4,9 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-20 / **명세 정합 시리즈(R29~R37) 공식 종결 + 운영 시작 선언 + 문서 4영역 분리**
-> main @ `283395f` (현재 cleanup/docs-memory-reorg 브랜치 작업 중)
+> **마지막 갱신**: 2026-05-20 22:00 KST / **R39 Stage 7 머지·Stage 8 남음·Netlify 사고 진행 중**
+> main @ `91282b6`
+> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → docs/active/2026-05-20-r39-roles-and-ux.md 순서로 정독
 
 ---
 
@@ -140,18 +141,41 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 
 ---
 
-## 7. 다음 메인 채팅이 할 일 (옵션)
+## 7. 다음 메인 채팅이 할 일 (즉시 진행)
 
-R29~R37 시리즈 모두 종결·운영 시작 공식 선언 완료. 새 메인이 진입했을 때 진행 가능한 작업:
+### 🚨 Netlify 사고 복구 우선 (외부 변수)
+- 사고 시작: 2026-05-19 21:08 UTC (Elevated response times affecting origin services)
+- status 페이지 모니터링: https://www.netlifystatus.com
+- 복구 시점에 라이브 사이트(tbfa.co.kr) 정상 접속 확인
 
-| 후보 | 부담 | 시점 |
-|---|---|---|
-| 운영 사용 패턴 관찰 후 잔여 영역 선별 | 운영 학습 단계 | 1~2분기 후 |
-| Phase 23 재정 v3.0 설계·진행 | 별도 합의 | 2026-08-20 이후 |
-| R37 사용 학습 — base_salary 입력·이메일 발송 검증 | Swain 액션 | 즉시 |
-| 새 기능 요청 (Swain 비즈니스 우선순위) | 미정 | 우선순위 합의 시 |
+### 우선 1. R39 Stage 7 마이그 호출 (Swain·Netlify 복구 후)
+```
+https://tbfa.co.kr/api/migrate-r39-stage7?run=1
+```
+- 어드민 로그인 상태에서 호출
+- 기대 응답: `{ok:true, verify:{att_leave_balance_adjustments:true, att_record_admin_edits:true, att_records_device_type:true}}`
+- 진단 모드(인증 불필요): `https://tbfa.co.kr/api/migrate-r39-stage7`
 
-**기본 모드**: 새 라운드 진입 없음·운영 모니터링·발생 시점에 작업 분배.
+### 우선 2. Stage 7 후속 commit·머지·Stage 8 트리거
+- 마이그 호출 성공 후 B에게 schema 활성화·마이그 파일 삭제 후속 commit 지시 (Swain 복붙 메시지 제공)
+- 메인이 머지 후 Stage 8 트리거 발사 (비매출 검토 + 로딩 fix + 통합 검증)
+- 설계서 `docs/active/2026-05-20-r39-roles-and-ux.md §2 Stage 8` 참조
+
+### 우선 3. C 메뉴얼 진행 모니터링
+- 다음 응답: 어드민 60문항
+- 그 다음: 통합 CMS 150 (75+75 분할)
+- 마지막: AI 비서 30 + 옛 100문항 archive
+
+### R39 종결 시점에 박을 작업
+- 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`)
+- AI 비서 동기화·권한 정책·메뉴얼·명세·HANDOFF·알림·CSV/PDF·iframe·schema·환경변수 등 15개
+
+### R40 후속 예약 (R39 종결 후 합의)
+- PG 전환 (토스 → KICC) — `docs/kicc.md` Swain 추가 API 문서 정리 중·KICC 추가 API 필요·기존 토스 회원 처리 정책 결정 필요
+- Netlify 배포 시간 단축 (netlify-plugin-cache·dead code 정리)
+- RAG 인프라 구축 (Q&A 300문항 임베딩·Gemini Embedding·검색 로직)
+- 운영 사용 패턴 관찰 후 §6.2 부가 8건 선별
+- Phase 23 재정 v3.0 (2026-08-20 이후 별도 합의)
 
 ---
 

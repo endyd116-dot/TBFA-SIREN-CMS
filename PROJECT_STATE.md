@@ -39,20 +39,49 @@
 
 ---
 
-## 3. 진행 중 작업
+## 3. 진행 중 작업 (2026-05-20 22:00 KST 시점)
+
+### main HEAD: `91282b6` (R39 Stage 7 머지 직후·마이그 호출 대기)
 
 | 작업 | 채팅 | 상태 |
 |---|---|---|
-| 문서·메모리 대정리 (4영역 분리·완료) | 메인 | ✅ 완료 (main da29a51) |
-| **R39 통합 라운드 (역할 동적 CRUD + Admin UX 12건·8단계)** | B | 🟢 Stage 1 진행 중 (브랜치 feature/r39-roles-and-ux) |
-| **사용자 메뉴얼 + AI 학습용 메뉴얼** (admin-manual.html·ai-assistant-knowledge.md·ai-training.jsonl) | C | 🟢 진행 중·톤 매칭 PASS·영역 B 완료·C/D/E 영역 남음 |
-| 운영 fix 누적 (어드민 자가 점검 발견 12건) | 메인 | ✅ 머지 완료 (main b8ad9cc) |
+| **R39 통합 라운드 8단계** | B | 🟡 Stage 1·2·3·5·6·7 완료·**Stage 7 마이그 호출 + schema 활성화 대기**·Stage 8 (비매출 검토·로딩 fix·통합 검증) 남음 |
+| **사용자 메뉴얼 + AI 학습용 메뉴얼** | C | 🟢 진행 중·manual.html + manual-admin.html 1차 본문 완성·층1 압축 7,888자·Q&A 싸이렌 사용자 60문항 완료·**어드민 60 + 통합 CMS 150 + AI 비서 30 남음** |
+| **Netlify 측 장애 (Elevated response times affecting origin services)** | 외부 | 🔴 진행 중·21:08 UTC 시작·Investigating·복구 후 마이그 호출 가능 |
 
-**R38 폐기 사실**: 옛 R38(Admin UX 3건)은 main에 머지됐고·R39 Stage 4·5 일부로 흡수됨. R39 설계서 §0~§7 참조.
+### R39 진행 상세
+- ✅ Stage 1: milestone_roles 테이블·시드 SM/PM/SI (마이그 호출 완료)
+- ✅ Stage 2: 역할 카탈로그 API + 백엔드 검증 동적화
+- ✅ Stage 3: 프론트 라벨 동적화 + 역할 관리 UI (5번째 탭)
+- ✅ Stage 4: R38 선완료로 스킵 (사람별 마일스톤·안내 박스)
+- ✅ Stage 5: 실시간 출퇴근 + 카카오 지도 + PC 위치 + R38 월별 표 회귀 fix
+- ✅ Stage 6: 워크툴 상단 출퇴근 버튼 + 상태별 라벨
+- 🟡 **Stage 7**: 휴가 수동 CRUD + 출퇴근 양방향 수정 + 마이그 함수 신설·**Swain 마이그 호출 대기 (`/api/migrate-r39-stage7?run=1`)** + schema 활성화 후속 commit 남음
+- ⏳ Stage 8: 비매출 검토 + 로딩 fix + 통합 검증 (Stage 7 완전 종결 후)
 
-**R39 12건**: ①역할 동적 CRUD ②사람별 마일스톤 ③비매출 검토 화면 ④출퇴근 월/리스트 ⑤실시간 출퇴근 ⑥카카오 지도 시각화 ⑦직원 잔여 휴가 수동 CRUD ⑧출퇴근 양방향 수정 ⑨PC 위치정보 강제 ⑩워크툴 상단 출퇴근 버튼 ⑪회원 안내 박스 ⑫로딩 지연 fix.
+### 옛 R38 (Admin UX 3건) — 머지 완료·R39 Stage 4·5 일부로 흡수
+사람별 마일스톤·출퇴근 월/리스트·회원 안내 박스 모두 main에 안착. R39 Stage 3 동적화로 라벨 자동 적응.
 
-**R39 종결 후 예약**: 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`).
+### C 메뉴얼 진행 상세 (`docs/manual/`)
+- ✅ manual.html (회원·신고자·후원자) — 영역 A/B/C 1차 본문 완성·검색·인쇄·모바일 4차 마무리 완성
+- ✅ manual-admin.html (운영자·간사·슈퍼어드민) — 권한·신고 운영·영역 D 워크스페이스·영역 E 후원·결제 1차 본문 완성
+- ✅ ai-assistant-knowledge.md — 11,447 → 7,888자 압축 완성 (목표 5,000~8,000 정합)
+- ✅ ai-training-siren-user.jsonl — 60문항 (후원 20·회원 18·SIREN 16·콘텐츠 6)
+- ⏳ ai-training-siren-admin.jsonl — 어드민 60문항 (다음 응답)
+- ⏳ ai-training-cms.jsonl — 통합 CMS 150문항 (75+75 분할)
+- ⏳ ai-training-ai-assistant.jsonl — AI 비서 30문항
+- ⏳ 옛 ai-training.jsonl 100문항 → docs/history/로 archive 이동
+
+### Swain 액션 대기 (Netlify 복구 후)
+1. **마이그 호출**: `https://tbfa.co.kr/api/migrate-r39-stage7?run=1`
+   - 진단 모드: `https://tbfa.co.kr/api/migrate-r39-stage7` (인증 불필요)
+   - 기대: `{ok:true, verify:{att_leave_balance_adjustments:true, att_record_admin_edits:true, att_records_device_type:true}}`
+2. 호출 결과 알려주면 B가 schema 활성화·마이그 파일 삭제 후속 commit·메인 머지 후 Stage 8 트리거 발사
+
+### R39 종결 후 예약
+- 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`)
+- R40 후속: **PG 전환 (토스 → KICC)** — KICC API 문서 일부 받음·`docs/kicc.md`에 정리 중·추가 API 문서(빌키 발급·자동 결제·해지·조회) 필요·기존 토스 회원 처리 정책 결정 필요
+- R40 추가: Netlify 배포 시간 단축 (netlify-plugin-cache·dead code 정리)·RAG 인프라 구축 (Q&A 300문항 임베딩)
 
 설계서: `docs/active/2026-05-20-r39-roles-and-ux.md`
 
@@ -103,4 +132,4 @@
 
 ---
 
-**마지막 갱신**: 2026-05-20 (R29~R37 명세 정합 시리즈 종결 + 문서 4영역 분리 + 운영 시작 공식 선언)
+**마지막 갱신**: 2026-05-20 22:00 KST (R39 Stage 7 머지·Netlify 사고 진행 중·새 메인 채팅 인수인계 시점)
