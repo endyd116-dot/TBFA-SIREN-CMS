@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **✅ R29-GAP-P2-B 머지·push 완료** (main @ 56e9db1) — d113b98 임계점 알림 SM/PM/SI 담당 그룹 발송·정의 API 응답 표준화·결산 단건 키 추가. A P2 작업 대기 (근태 M1~M5) |
 | 2026-05-19 | **메인** | **✅ R29-GAP-P1 머지 완료 + C 검증 트리거 발사** (main @ b8f52d5) — B 175c0ea(성과 H1~H5)·A 2e61cac(근태 H1~H5 + 카카오 H4b) 양쪽 main 머지·push. operator-guard 신규·admin-att-workplace 단수 삭제·att-geocode-search 신규. C 검증 트리거 대기 |
 | 2026-05-19 | **메인** | **🔧 사이드바 메뉴 누락 fix + R29-GAP 카카오 거점 흡수 + R30 KST 설계** (main @ a1b56ef) — workspace-attendance·admin-milestone-settings 사이드바 통일 + ws-sidebar-role.js 로드. P1 A에 H4b 카카오 주소 검색 추가. R30(KST 표시 영역) 설계서 작성, P1 머지 후 발사 |
 | 2026-05-19 | **메인** | **📐 R29-GAP 설계 완료 + P1 트리거 발사 대기** (main @ 8554e8a) — 설계서 docs/milestones/2026-05-19-r29-gap-fix.md / P1 H 10건(A=근태 5·B=성과 5) / P2 M 8건은 P1 머지 후 / L 10건 REMAINING_WORK로 이관 / gap.md 삭제 |
