@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **✅ R30 전체 머지·push 완료** (main @ 5b5b1ff) — A 61f45e1(프론트 14페이지)+B 1e0c594(어드민 33+이메일 9+lib/datetime). 사용자/워크스페이스/어드민/이메일 모두 Asia/Seoul KST 통일. DB(UTC)·cron 변경 0. R30 C 검증 트리거 대기 |
 | 2026-05-19 | **메인** | **🎯 R29-GAP-P2 C 검증 + Critical BUG 2건 fix 머지** (main @ bc8bb8e) — Q1~Q10 중 Q9 FAIL→fix. drizzle sql.raw 파라미터 미바인딩으로 성과 GET API 7개 500 → sql 템플릿 합성 정정. milestone_definitions.amount_unit 컬럼 부재 dead code 제거. 운영 복구 |
 | 2026-05-19 | **메인** | **✅ R30-A KST 프론트 머지·push + R29-GAP L 반차 마이그 종결** (main @ 61f45e1) — lib-kst.js 신설·사용자/워크스페이스 14페이지 시간 표시 KST 통일. 반차 옛 행 hide(id=2·3)·일반 휴가 4건 allowHalfDay=true. R30-B 작업 중 (어드민/이메일) |
 | 2026-05-19 | **메인** | **🎯 R29-GAP-P1 C 검증 PASS 13/13 BUG 0** (verify/r29-gap-p1 @ 49702f3) — 사이드바·근태(H1~H5)·카카오·성과(H1~H5)·회귀 모두 PASS. 운영 후속: ① 카카오 키 종류 재확인 ② OP-1 2026 Q2 분기 등록. P2 검증·R30 발사 가능 |
@@ -68,9 +69,9 @@
 📐 R29-GAP 설계 완료 (docs/milestones/2026-05-19-r29-gap-fix.md)
 
 🔍 진행 중
-   - R29-GAP-P1·P2 전체 머지 완료 (main @ 48a19c9)
-   - C 채팅: P1 라이브 검증 진행 중 (Q1~Q12)
-   - R30(KST) 발사 대기 — C P1 PASS 확인 후
+   - R29 시리즈 전체 종결 (P1·P2·L 반차·BUG fix 모두 머지)
+   - R30 KST 전체 머지 (main @ 5b5b1ff)
+   - C R30 통합 검증 트리거 발사 대기
 
 📋 운영 액션 (Swain 직접)
    - OP-1: 2026 Q2 분기 등록 (admin-milestone-settings.html 분기관리 탭)
