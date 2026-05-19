@@ -30,6 +30,86 @@ export default async function handler(req: Request) {
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
   const url = new URL(req.url);
+  const dateFromQ = url.searchParams.get("dateFrom");
+  const dateToQ   = url.searchParams.get("dateTo");
+  const memberUid = url.searchParams.get("memberUid");
+
+  /* ── R38 A-2: 기간(dateFrom~dateTo) + 직원(memberUid) 조회 분기 ──
+     기존 단일 ?date= 응답은 변경 없이 유지.
+     기간 조회 응답: { dateFrom, dateTo, memberUid, records, leaves } */
+  if (dateFromQ && dateToQ) {
+    try {
+      // 기간 형식 검증 (YYYY-MM-DD)
+      const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRe.test(dateFromQ) || !dateRe.test(dateToQ)) {
+        return new Response(JSON.stringify({
+          ok: false, error: "dateFrom·dateTo 형식이 잘못되었습니다 (YYYY-MM-DD 필수)",
+        }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      if (dateFromQ > dateToQ) {
+        return new Response(JSON.stringify({
+          ok: false, error: "dateFrom이 dateTo보다 늦을 수 없습니다",
+        }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+
+      const baseWhere = memberUid
+        ? and(
+            gte(attRecords.date, dateFromQ),
+            lte(attRecords.date, dateToQ),
+            eq(attRecords.memberUid, memberUid),
+          )
+        : and(
+            gte(attRecords.date, dateFromQ),
+            lte(attRecords.date, dateToQ),
+          );
+
+      const rangeRecords = await db
+        .select()
+        .from(attRecords)
+        .where(baseWhere)
+        .orderBy(attRecords.date, attRecords.memberUid);
+
+      // 기간 내 승인 휴가 (memberUid 필터 적용 — 일자별 휴가 표시용)
+      let leaveRows: any[] = [];
+      try {
+        const leaveRes = memberUid
+          ? await db.execute(sql`
+              SELECT id, member_uid, leave_type_id, start_date, end_date,
+                     is_half_day, half_day_type, reason
+              FROM att_leave_requests
+              WHERE status = 'APPROVED'
+                AND start_date <= ${dateToQ}::date
+                AND end_date   >= ${dateFromQ}::date
+                AND member_uid = ${memberUid}
+              ORDER BY start_date
+            `)
+          : await db.execute(sql`
+              SELECT id, member_uid, leave_type_id, start_date, end_date,
+                     is_half_day, half_day_type, reason
+              FROM att_leave_requests
+              WHERE status = 'APPROVED'
+                AND start_date <= ${dateToQ}::date
+                AND end_date   >= ${dateFromQ}::date
+              ORDER BY start_date
+            `);
+        leaveRows = ((leaveRes as any).rows ?? leaveRes) as any[];
+      } catch (err) {
+        console.warn("[admin-att-records range] leave query 실패:", err);
+      }
+
+      return jsonOk({
+        dateFrom: dateFromQ,
+        dateTo:   dateToQ,
+        memberUid: memberUid || null,
+        records:  rangeRecords,
+        leaves:   leaveRows,
+      });
+    } catch (err) {
+      return jsonError("select_range", err);
+    }
+  }
+
+  /* ── 기존 단일 ?date= 흐름 (호환 유지) ── */
   const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   const statusFilter = url.searchParams.get("status");
 
