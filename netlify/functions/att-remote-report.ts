@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att/remote-report" };
@@ -21,7 +21,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   const memberId = auth.ctx.member.id;
   // att_remote_work_reports.member_uid 는 R29-ATT-GAP1 부터 varchar(36)
@@ -78,14 +78,14 @@ export default async function handler(req: Request) {
           content: content ?? null,
           wbsCardIds,
           status: "DRAFT",
-        })
+        } as any)
         .onConflictDoUpdate({
           target: [attRemoteWorkReports.memberUid, attRemoteWorkReports.date],
           set: {
             content: content ?? null,
             wbsCardIds,
             updatedAt: new Date(),
-          },
+          } as any,
         })
         .returning({ id: attRemoteWorkReports.id });
       return jsonOk({ id: row.id }, 201);
@@ -131,7 +131,7 @@ export default async function handler(req: Request) {
           content,
           status: "SUBMITTED",
           submittedAt: now,
-        })
+        } as any)
         .onConflictDoUpdate({
           target: [attRemoteWorkReports.memberUid, attRemoteWorkReports.date],
           set: {
@@ -139,7 +139,7 @@ export default async function handler(req: Request) {
             status: "SUBMITTED",
             submittedAt: now,
             updatedAt: now,
-          },
+          } as any,
         });
 
       return jsonOk({ message: "제출 완료" });

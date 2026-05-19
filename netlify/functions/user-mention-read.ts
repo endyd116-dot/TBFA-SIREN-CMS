@@ -43,11 +43,11 @@ export default async (req: Request) => {
   try {
     if (mentionId) {
       await db.update(mentions)
-        .set({ isRead: true, readAt: now })
+        .set({ isRead: true, readAt: now } as any)
         .where(and(eq(mentions.id, mentionId), eq(mentions.mentionedId, memberId)));
     } else {
       await db.update(mentions)
-        .set({ isRead: true, readAt: now })
+        .set({ isRead: true, readAt: now } as any)
         .where(and(eq(mentions.mentionedId, memberId), eq(mentions.isRead, false)));
     }
   } catch (err) {

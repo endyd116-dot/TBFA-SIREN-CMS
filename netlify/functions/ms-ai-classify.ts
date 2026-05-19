@@ -8,7 +8,7 @@
  * AI 실패·파싱 실패 시 throw 없이 { milestoneId: null, confidence: 0, reason: '' } 반환.
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { callGeminiJSON } from "../../lib/ai-gemini";
 
 export const config = { path: "/api/ms-ai-classify" };
@@ -21,7 +21,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   let body: any;
   try { body = await req.json(); }

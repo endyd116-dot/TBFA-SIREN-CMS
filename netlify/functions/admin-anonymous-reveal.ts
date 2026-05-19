@@ -1,7 +1,7 @@
 // admin-anonymous-reveal.ts — 익명 신고자 신원 단계적 식별 + 감사 로그
 // POST /api/admin-anonymous-reveal
 // body: { reportType: 'incident'|'harassment'|'legal', reportId, revealLevel: 1|2, reason }
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import {
   incidentReports, harassmentReports, legalConsultations,
@@ -33,7 +33,7 @@ export default async (req: Request) => {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const adminId = auth.ctx.admin.uid as number;
 
   let body: any;
@@ -114,7 +114,7 @@ export default async (req: Request) => {
       revealedBy: adminId,
       reason,
       ipAddress,
-    });
+    } as any);
   } catch (err) {
     return jsonError("insert_audit_log", err);
   }

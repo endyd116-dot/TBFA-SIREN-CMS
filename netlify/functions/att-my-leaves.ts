@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att-my-leaves" };
 
@@ -19,7 +19,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
@@ -47,7 +47,7 @@ export default async function handler(req: Request) {
         AND lt.is_active = true
       ORDER BY lt.display_order, lt.id
     `);
-    return jsonOk({ year, memberUid, balances: result.rows });
+    return jsonOk({ year, memberUid, balances: (result as any).rows ?? result });
   } catch (err) {
     return jsonError("select_balances", err);
   }

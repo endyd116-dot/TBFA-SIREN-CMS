@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attCorrections, members } from "../../db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { broadcastNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/att-correction-request" };
@@ -21,7 +21,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   const method = req.method;
 
@@ -69,7 +69,7 @@ export default async function handler(req: Request) {
         reason:       reason,
         evidenceUrl:  evidenceUrl  ?? null,
         status: "PENDING",
-      }).returning();
+      } as any).returning();
       insertedRow = row;
     } catch (err) {
       return jsonError("insert_correction", err);

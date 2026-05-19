@@ -1,6 +1,6 @@
 // admin-anonymous-reveal-logs.ts — 익명 식별 감사 로그 조회
 // GET /api/admin-anonymous-reveal-logs?reportType=&reportId=&page=1
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { anonymousRevealLogs, members } from "../../db/schema";
 import { and, eq, desc, inArray, sql } from "drizzle-orm";
@@ -23,7 +23,7 @@ export default async (req: Request) => {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
   const reportType = url.searchParams.get("reportType");

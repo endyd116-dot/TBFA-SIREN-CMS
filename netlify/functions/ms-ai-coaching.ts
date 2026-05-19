@@ -6,7 +6,7 @@
  * response: { ok: true, coaching: string } | { ok: false, error: string }
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { callGemini } from "../../lib/ai-gemini";
@@ -19,7 +19,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   let body: any;

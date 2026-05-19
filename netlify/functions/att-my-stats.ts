@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att-my-stats" };
 
@@ -19,7 +19,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
@@ -48,7 +48,7 @@ export default async function handler(req: Request) {
         AND EXTRACT(YEAR FROM date) = ${year}
         AND EXTRACT(MONTH FROM date) = ${month}
     `);
-    monthly = result.rows[0] ?? null;
+    monthly = ((result as any).rows?.[0] ?? (result as any[])[0]) ?? null;
   } catch (err) {
     console.warn("[att-my-stats] 월별 집계 실패:", err);
   }
@@ -71,7 +71,7 @@ export default async function handler(req: Request) {
       GROUP BY EXTRACT(WEEK FROM date)
       ORDER BY week_num
     `);
-    weekly = result.rows as any[];
+    weekly = ((result as any).rows ?? (result as any[])) as any[];
   } catch (err) {
     console.warn("[att-my-stats] 주별 집계 실패:", err);
   }

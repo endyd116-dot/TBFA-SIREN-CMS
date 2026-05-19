@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attHolidays } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-holidays" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -39,7 +39,7 @@ export default async function handler(req: Request) {
         WHERE EXTRACT(YEAR FROM date) = ${Number(year)}
         ORDER BY date
       `);
-      return jsonOk(rows.rows);
+      return jsonOk((rows as any).rows ?? rows);
     } catch (err) {
       return jsonError("select_holidays", err);
     }
@@ -60,7 +60,7 @@ export default async function handler(req: Request) {
         date,
         name,
         type: type ?? "PUBLIC",
-      }).returning();
+      } as any).returning();
       return jsonOk(row, 201);
     } catch (err) {
       if (String(err).includes("unique")) {

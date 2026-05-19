@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { workspaceTasks, attRemoteWorkReports } from "../../db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { callGemini } from "../../lib/ai-gemini";
 
 export const config = { path: "/api/att/ai-draft" };
@@ -21,7 +21,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
@@ -127,10 +127,10 @@ ${prevContext}
           date,
           aiDraft: result.text,
           status: "DRAFT",
-        })
+        } as any)
         .onConflictDoUpdate({
           target: [attRemoteWorkReports.memberUid, attRemoteWorkReports.date],
-          set: { aiDraft: result.text, updatedAt: new Date() },
+          set: { aiDraft: result.text, updatedAt: new Date() } as any,
         });
     } catch (err) {
       console.warn("[ai-draft] aiDraft 저장 실패:", err);

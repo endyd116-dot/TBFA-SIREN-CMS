@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att-my-status" };
@@ -21,7 +21,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
@@ -68,7 +68,7 @@ export default async function handler(req: Request) {
         AND date >= ${monthStart}::date
         AND date <= ${monthEnd}::date
     `);
-    const row = result.rows[0] as any;
+    const row = ((result as any).rows?.[0] ?? (result as any[])[0]) as any;
     if (row) {
       monthlySummary = {
         workDays:         Number(row.work_days),
@@ -99,7 +99,7 @@ export default async function handler(req: Request) {
       ORDER BY lt.display_order, lt.id
       LIMIT 1
     `);
-    annualLeaveBalance = (rows.rows[0] as any) ?? null;
+    annualLeaveBalance = ((rows as any).rows?.[0] as any) ?? null;
   } catch (err) {
     console.warn("[att-my-status] 잔여 연차 조회 실패:", err);
   }

@@ -3,7 +3,7 @@
  * 마일스톤 정의 CRUD — super_admin 전용
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { notifyMany } from "../../lib/notify";
@@ -19,7 +19,7 @@ function jsonErr(step: string, err: any) {
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth.ctx.member as any).role !== "super_admin") {
     return Response.json({ ok: false, error: "슈퍼어드민 전용 기능입니다" }, { status: 403 });
   }

@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attWorkplaces } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { getScheduledWorkMode, todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att-schedule-today" };
@@ -21,7 +21,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 

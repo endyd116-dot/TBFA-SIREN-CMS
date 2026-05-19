@@ -67,7 +67,7 @@ export default async (req: Request) => {
     }
 
     try {
-      await db.insert(postSubscriptions).values({ memberId, postId, boardCategory });
+      await db.insert(postSubscriptions).values({ memberId, postId, boardCategory } as any);
     } catch (err) {
       return jsonError("insert_sub", err);
     }
