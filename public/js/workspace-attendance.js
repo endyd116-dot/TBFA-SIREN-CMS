@@ -783,6 +783,13 @@
     // 3) 둘 다 실패 → 로그인 페이지
     if (!user) { location.href = '/login.html'; return null; }
 
+    // R35-GAP-P2 M-G7: regular 회원(operatorActive=false·non-admin)은 근태 페이지 부적합 — 안내 후 홈으로
+    if (!isAdmin && user.operatorActive === false) {
+      alert('근태관리 페이지는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
+      location.href = '/index.html';
+      return null;
+    }
+
     const roleLabel = isAdmin
       ? '관리자'
       : (user.operatorActive ? '운영자' : '직원');

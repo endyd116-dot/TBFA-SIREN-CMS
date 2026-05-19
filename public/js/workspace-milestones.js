@@ -81,6 +81,12 @@
     state.member = memberData;
     state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
     state.isSuperAdmin = state.member.role === 'super_admin';
+    // R35-GAP-P2 M-G7: regular 회원은 워크스페이스 부적합
+    if (!state.isAdmin && state.member.operatorActive === false) {
+      alert('워크스페이스는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
+      window.location.href = '/index.html';
+      return;
+    }
 
     // 사용자 정보 표시 (early return 전에 먼저)
     const roleLabel = { SM: '사무국장', PM: '정책국장', SI: 'SI관리자' };

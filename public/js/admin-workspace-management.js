@@ -122,6 +122,11 @@
     setText('awmCntLate',    summary.lateCount    ?? '—');
     setText('awmCntAbsent',  summary.absentCount  ?? '—');
     setText('awmCntLeave',   summary.leaveCount   ?? '—');
+    // R35-GAP-P2 M-G1: work_mode별 카드 노출
+    setText('awmCntOffice',       summary.officeCount       ?? '—');
+    setText('awmCntRemote',       summary.remoteCount       ?? '—');
+    setText('awmCntField',        summary.fieldCount        ?? '—');
+    setText('awmCntBusinessTrip', summary.businessTripCount ?? '—');
 
     const tbody = document.getElementById('awmRecordsBody');
     if (!tbody) return;

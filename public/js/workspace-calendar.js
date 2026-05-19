@@ -480,6 +480,13 @@
       } catch (_) {}
     }
     if (me) {
+      // R35-GAP-P2 M-G7: regular 회원은 워크스페이스 부적합
+      const isAdmin = me.role === 'admin' || me.role === 'super_admin';
+      if (!isAdmin && me.operatorActive === false) {
+        alert('워크스페이스는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
+        location.href = '/index.html';
+        return;
+      }
       STATE.me = me;
       const nameEl = $('#wsSidebarUserName');
       if (nameEl) nameEl.textContent = me.name || me.email || '사용자';
