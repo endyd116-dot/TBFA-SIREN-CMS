@@ -3608,6 +3608,8 @@ export const attLeaveRequests = pgTable("att_leave_requests", {
   startDate:   date("start_date").notNull(),
   endDate:     date("end_date").notNull(),
   days:        numeric("days", { precision: 5, scale: 2 }).notNull(),
+  isHalfDay:   boolean("is_half_day").default(false).notNull(),
+  halfDayPeriod: varchar("half_day_period", { length: 10 }),            // AM | PM | null
   reason:      text("reason"),
   status:      varchar("status", { length: 20 }).default("PENDING").notNull(),  // PENDING|APPROVED|REJECTED
   reviewedBy:  varchar("reviewed_by", { length: 36 }),
