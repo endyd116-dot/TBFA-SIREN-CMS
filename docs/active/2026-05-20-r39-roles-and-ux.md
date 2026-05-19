@@ -251,8 +251,47 @@
 
 ---
 
+## §6.5 R39 종결 후 후속 작업 (Swain 결정 — 메모리 등록 예정)
+
+R39 8단계 모두 머지·검증 PASS 후 진행. 다음 세션에서도 자동 발견되도록 본 섹션에 박아둠.
+
+### 메모리 등록 — 라운드 종결 체크리스트 (`operational_standards.md` 갱신 또는 신규 `release_checklist.md`)
+
+매 라운드 종결 시점에 마지막으로 점검할 15가지 항목을 정식 메모리로 등록.
+
+**자주 디벨롭 (매 기능 추가마다 필수)**
+1. **권한 정책 관리** — 통합 CMS → 운영 관리 → 권한 정책 관리 (admin-role-policy.html) 동기화·권한 토글 추가
+2. **AI 비서 3종 동기화** — 통합 CMS → AI 에이전트 → 설정·도구 관리 (admin-ai-config.html)
+   - 도구 카탈로그 (`lib/ai-agent-tools.ts` + UI 도구 탭)
+   - 권한 매트릭스 (4계층)
+   - 시스템 프롬프트 (`ai_agent_settings.system_prompt`)
+3. **사용자 메뉴얼** — admin이 읽는 메뉴얼 해당 섹션 추가
+4. **AI 학습용 메뉴얼** — `ai-assistant-knowledge.md` 부록 + `ai-training.jsonl` Q&A 페어 추가
+5. **명세 마스터** — `docs/specs/*.md` 단서 추가 (근태·성과·재정·phase24·26·27·28)
+6. **PROJECT_STATE / HANDOFF** — 진행률·운영 상태 반영
+7. **알림 시스템** — `lib/notify`·`notify-adapters` 새 카테고리·템플릿
+8. **CSV·PDF export 컬럼** — 새 데이터 출력 추가 (한글·BOM·NotoSansKR)
+9. **iframe 라우팅 4곳** — cms-tbfa 신규 어드민 페이지 ① 사이드바 ② section ③ tabLabels ④ 탭 분기·렌더 함수
+10. **권한 매트릭스 4계층** — 새 API → super_admin/admin/operator/regular 가드 결정
+
+**가끔 디벨롭 (덜 빈번)**
+11. **cron 자동화** — 새 시계열 작업 추가 (KST 통일)
+12. **C 검증 시나리오** — 새 기능 → E2E 추가 (현재 12 시나리오)
+13. **메모리 (`feedback_*`)** — 새 사고 패턴·함정 발견 시 정착
+14. **schema·마이그·시드** — 새 테이블·컬럼 멱등 정착
+15. **환경변수·외부 API 키** — 새 외부 통합 시 등록
+
+### 작업 흐름 (R39 종결 시)
+1. 위 15가지 항목을 정리한 메모리 `release_checklist.md` 신설 (또는 `operational_standards.md`에 §라운드 종결 체크리스트 추가)
+2. MEMORY.md 인덱스에 등록
+3. CLAUDE.md §13 체크리스트에도 "라운드 종결 시 release_checklist.md 본문 정독" 항목 추가
+4. `docs/rules/PARALLEL_TEMPLATE.md`에 push 전 체크 항목으로 박음
+
+---
+
 ## §7 갱신 이력
 
 | 시각 | 변경 |
 |---|---|
 | 2026-05-20 | R38 흡수·R39 신설·5단계 → 8단계 확장 (추가 7건 흡수 — 역할 동적·실시간·지도·PC 위치·휴가 CRUD·출퇴근 수정·워크툴 버튼·로딩 fix·비매출 검토) |
+| 2026-05-20 | §6.5 종결 후 후속 작업 추가 — 라운드 종결 체크리스트 15가지 메모리 등록 예정 (Swain 결정·R39 종결 시점) |
