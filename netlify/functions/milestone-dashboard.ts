@@ -81,6 +81,11 @@ export default async function handler(req: Request, _ctx: Context) {
       }
     }
 
+    /* ★ R35-GAP-P2-🟡B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 */
+    for (const grp of Object.values(sharedGroups)) {
+      grp.items.sort((a, b) => Number(a.milestone.id) - Number(b.milestone.id));
+    }
+
     for (const m of revMilestones) {
       let currentAmt = 0;
       if (m.is_shared_threshold && m.shared_threshold_group) {

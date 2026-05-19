@@ -49,9 +49,9 @@ export default async function handler(req: Request, _ctx: Context) {
     return Response.json({ ok: false, error: "매출 마일스톤은 카드 자동 생성을 지원하지 않습니다" }, { status: 400 });
   }
 
-  // 담당 역할 확인
+  // 담당 역할 확인 (★ R35-GAP-P2-M3: super_admin은 milestoneRole=null이라도 모든 정의에 카드 생성 가능)
   const milestoneRole = member.milestoneRole || member.milestone_role || null;
-  if (def.target_milestone_role !== milestoneRole) {
+  if (def.target_milestone_role !== milestoneRole && member.role !== "super_admin") {
     return Response.json({ ok: false, error: "본인 담당 마일스톤이 아닙니다" }, { status: 403 });
   }
 

@@ -155,7 +155,9 @@ export const quarterlySettlements = pgTable("quarterly_settlements", {
   calculationSnapshot:  jsonb("calculation_snapshot"),
   selfEvaluation:       text("self_evaluation"),
   status:               varchar("status", { length: 20 }).notNull().default("DRAFT"),
-  // DRAFT | SUBMITTED | REVIEWED | APPROVED | REJECTED | PAID
+  // DRAFT | SUBMITTED | APPROVED | REJECTED | PAID | HOLD | REVIEWED
+  // ★ R35-GAP-P2-M2: REVIEWED는 HOLD 복귀용 상태로만 사용 (SUBMITTED → APPROVED/REJECTED/HOLD 직접 전이.
+  //                  HOLD → resume → REVIEWED → APPROVED/REJECTED 흐름). 1차 검토 단계 별도 신설 X — 운영 흐름 유지
   submittedAt:          timestamp("submitted_at"),
   reviewedBy:           integer("reviewed_by").references(() => members.id),
   reviewedAt:           timestamp("reviewed_at"),

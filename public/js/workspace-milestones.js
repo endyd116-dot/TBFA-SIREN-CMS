@@ -1041,12 +1041,13 @@
     const panel = $('#settlementPanel');
     if (!panel) return;
 
+    /* ★ R35-GAP-P2-M1: 결산 상태 박스에 REJECTED·HOLD 사유 표시 + 재제출 안내 */
     if (settle && ['SUBMITTED','APPROVED','PAID'].includes(settle.status)) {
       panel.innerHTML = `
         <div class="ms-settle-box">
           <div style="font-size:13px;color:#6b7280;margin-bottom:6px">결산 상태</div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <span class="ms-badge ${settle.status}" style="font-size:14px;padding:4px 14px">${{SUBMITTED:'검토 대기',APPROVED:'승인됨',PAID:'지급 완료',REJECTED:'반려됨'}[settle.status]||settle.status}</span>
+            <span class="ms-badge ${settle.status}" style="font-size:14px;padding:4px 14px">${{SUBMITTED:'검토 대기',APPROVED:'승인됨',PAID:'지급 완료'}[settle.status]||settle.status}</span>
             <div>
               <div class="ms-settle-total">${fmt(settle.totalBonus)}</div>
               <div style="font-size:12px;color:#6b7280">매출연동 ${fmt(settle.revenueLinkedTotal)} + 비매출 ${fmt(settle.nonRevenueTotal)}</div>
@@ -1056,7 +1057,25 @@
       return;
     }
 
-    panel.innerHTML = `
+    /* ★ R35-GAP-P2-M1: REJECTED·HOLD 상태는 사유 표시 + 재제출 안내 (이어서 자동 계산/제출 폼 노출) */
+    let statusBanner = '';
+    if (settle && settle.status === 'REJECTED') {
+      statusBanner = `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ 결산이 반려되었습니다</div>
+          <div style="font-size:13px;color:#7f1d1d;line-height:1.5">사유: ${escHtml(settle.reviewNote || '(사유 미입력)')}</div>
+          <div style="font-size:11.5px;color:#991b1b;margin-top:6px">아래에서 보완 후 재제출할 수 있습니다.</div>
+        </div>`;
+    } else if (settle && settle.status === 'HOLD') {
+      statusBanner = `
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#c2410c;margin-bottom:6px">⏸ 자료 보완이 요청되었습니다 (HOLD)</div>
+          <div style="font-size:13px;color:#7c2d12;line-height:1.5">요청 사유: ${escHtml(settle.holdReason || '(사유 미입력)')}</div>
+          <div style="font-size:11.5px;color:#9a3412;margin-top:6px">자료 보완 후 재제출하면 검토 단계로 복귀됩니다.</div>
+        </div>`;
+    }
+
+    panel.innerHTML = statusBanner + `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:16px">
         <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">자동 계산 미리보기</h3>
         <div id="calcPreview" style="color:#9ca3af;font-size:13px">아래 "계산" 버튼을 눌러 인센티브를 계산하세요.</div>
