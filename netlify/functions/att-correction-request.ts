@@ -1,7 +1,8 @@
 import { db } from "../../db/index";
-import { attCorrections } from "../../db/schema";
-import { eq, sql } from "drizzle-orm";
+import { attCorrections, members } from "../../db/schema";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { requireOperator } from "../../lib/operator-guard";
+import { broadcastNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/att-correction-request" };
 
@@ -53,7 +54,11 @@ export default async function handler(req: Request) {
     if (!["CHECK_IN", "CHECK_OUT", "BOTH"].includes(correctionType)) {
       return jsonError("validate_type", new Error("correctionType은 CHECK_IN|CHECK_OUT|BOTH"), 400);
     }
+    if (!reason || !String(reason).trim()) {
+      return jsonError("validate_reason", new Error("사유는 필수입니다"), 400);
+    }
 
+    let insertedRow: any;
     try {
       const [row] = await db.insert(attCorrections).values({
         memberUid,
@@ -61,14 +66,45 @@ export default async function handler(req: Request) {
         correctionType,
         requestedCheckIn:  requestedCheckIn  ? new Date(requestedCheckIn)  : null,
         requestedCheckOut: requestedCheckOut ? new Date(requestedCheckOut) : null,
-        reason:       reason       ?? null,
+        reason:       reason,
         evidenceUrl:  evidenceUrl  ?? null,
         status: "PENDING",
       }).returning();
-      return jsonOk(row, 201);
+      insertedRow = row;
     } catch (err) {
       return jsonError("insert_correction", err);
     }
+
+    // R34-P2 (round2 P4 해소): 슈퍼어드민 전원에게 알림 (fire-and-forget)
+    const actorId   = auth.ctx.member.id;
+    const actorName = auth.ctx.member.name ?? "직원";
+    try {
+      const sup = await db
+        .select({ id: members.id })
+        .from(members)
+        .where(and(
+          eq(members.role, "super_admin"),
+          eq(members.operatorActive as any, true),
+          isNull(members.withdrawnAt),
+        ));
+      const recipientIds = sup.map(s => s.id).filter(id => id !== actorId);
+      if (recipientIds.length > 0) {
+        await broadcastNotification(recipientIds, {
+          sourceType: "event" as any,
+          sourceId: insertedRow.id,
+          notifType: "reminder_3d" as any,
+          channel: "bell",
+          title: `근태 수정 요청 — ${actorName}`,
+          body: `${targetDate} 출퇴근 수정 요청이 접수되었습니다. 사유: ${String(reason).slice(0, 60)}`,
+          actionUrl: "/admin-workspace-management.html",
+          category: "system",
+        });
+      }
+    } catch (err) {
+      console.warn("[att-correction-request] 슈퍼어드민 알림 실패:", err);
+    }
+
+    return jsonOk(insertedRow, 201);
   }
 
   return new Response("Method Not Allowed", { status: 405 });
