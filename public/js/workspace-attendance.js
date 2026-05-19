@@ -51,6 +51,7 @@
     REMOTE: '🏠 재택',
     FIELD: '🚗 외근',
     BUSINESS_TRIP: '✈️ 출장',
+    HYBRID: '🔀 혼합',
   };
 
   /* ─── 탭 전환 ─── */
@@ -553,13 +554,15 @@
     const btn = document.getElementById('attBtnAmendSubmit');
     if (btn) btn.disabled = true;
 
-    const res = await api('/api/att-amend-request', {
+    // R34-P2: amend → correction 마이그
+    const CORRECTION_TYPE = { CHECKIN: 'CHECK_IN', CHECKOUT: 'CHECK_OUT', BOTH: 'BOTH' };
+    const res = await api('/api/att-correction-request', {
       method: 'POST',
       body: {
         targetDate: date,
-        amendType: type,
-        requestedCheckin: ci ? `${date}T${ci}:00` : null,
-        requestedCheckout: co ? `${date}T${co}:00` : null,
+        correctionType: CORRECTION_TYPE[type] || type,
+        requestedCheckIn:  ci ? `${date}T${ci}:00` : null,
+        requestedCheckOut: co ? `${date}T${co}:00` : null,
         reason,
       },
     });
@@ -576,7 +579,8 @@
   }
 
   async function loadAmendHistory() {
-    const res = await api('/api/att-amend-history');
+    // R34-P2: amend → correction 마이그 (GET /api/att-correction-request)
+    const res = await api('/api/att-correction-request');
     const rows = res.data?.data || res.data || [];
     const tbody = document.getElementById('attAmendHistoryBody');
     if (!tbody) return;
@@ -584,14 +588,14 @@
       tbody.innerHTML = '<tr><td colspan="5" class="att-empty">요청 내역이 없습니다</td></tr>';
       return;
     }
-    const typeLabel = { CHECKIN: '출근', CHECKOUT: '퇴근', BOTH: '출퇴근' };
+    const typeLabel = { CHECK_IN: '출근', CHECK_OUT: '퇴근', BOTH: '출퇴근' };
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td>${escHtml(r.targetDate || '—')}</td>
-        <td>${typeLabel[r.amendType] || r.amendType || '—'}</td>
+        <td>${typeLabel[r.correctionType] || r.correctionType || '—'}</td>
         <td style="font-size:12px">
-          ${r.requestedCheckin ? '출근 ' + fmtTime(r.requestedCheckin) : ''}
-          ${r.requestedCheckout ? '<br>퇴근 ' + fmtTime(r.requestedCheckout) : ''}
+          ${r.requestedCheckIn ? '출근 ' + fmtTime(r.requestedCheckIn) : ''}
+          ${r.requestedCheckOut ? '<br>퇴근 ' + fmtTime(r.requestedCheckOut) : ''}
         </td>
         <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</td>
         <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span></td>

@@ -258,13 +258,24 @@
             <select id="awmScheduleMode">
               <option value="OFFICE">🏢 사무실</option>
               <option value="REMOTE">🏠 재택</option>
+              <option value="FIELD">🚗 외근</option>
+              <option value="BUSINESS_TRIP">✈️ 출장</option>
               <option value="HYBRID">🔀 혼합 (요일별)</option>
-              <option value="FLEXIBLE">⏱ 탄력근무</option>
             </select>
           </div>
         </div>
 
-        <!-- HYBRID 선택 시 노출 -->
+        <!-- FIELD 모드 선택 시 노출 (round2 P2) -->
+        <div class="att-form-row" id="awmScheduleWorkplaceWrap" style="display:none;margin-top:8px">
+          <div class="att-form-group">
+            <label>거점 (FIELD)</label>
+            <select id="awmScheduleWorkplace">
+              <option value="">— 선택 —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- HYBRID 선택 시 노출 — 월~일 7요일 (round2 M5) -->
         <div class="awm-schedule-hybrid" id="awmHybridConfig">
           <div style="font-size:12.5px;font-weight:600;color:#374151;margin-bottom:10px">요일별 근무 형태</div>
           <div class="awm-day-grid">
@@ -273,6 +284,7 @@
               <select class="hybrid-day-mode" data-day="1" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
                 <option value="OFFICE">사무실</option>
                 <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
               </select>
             </div>
             <div class="awm-day-item">
@@ -280,6 +292,7 @@
               <select class="hybrid-day-mode" data-day="2" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
                 <option value="OFFICE">사무실</option>
                 <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
               </select>
             </div>
             <div class="awm-day-item">
@@ -287,6 +300,7 @@
               <select class="hybrid-day-mode" data-day="3" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
                 <option value="OFFICE">사무실</option>
                 <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
               </select>
             </div>
             <div class="awm-day-item">
@@ -294,6 +308,7 @@
               <select class="hybrid-day-mode" data-day="4" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
                 <option value="OFFICE">사무실</option>
                 <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
               </select>
             </div>
             <div class="awm-day-item">
@@ -301,6 +316,23 @@
               <select class="hybrid-day-mode" data-day="5" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
                 <option value="OFFICE">사무실</option>
                 <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="6"> 토</label>
+              <select class="hybrid-day-mode" data-day="6" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
+              </select>
+            </div>
+            <div class="awm-day-item">
+              <label><input type="checkbox" name="hybridDay" value="7"> 일</label>
+              <select class="hybrid-day-mode" data-day="7" style="margin-left:4px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:12px">
+                <option value="OFFICE">사무실</option>
+                <option value="REMOTE">재택</option>
+                <option value="FIELD">외근</option>
               </select>
             </div>
           </div>
@@ -493,7 +525,7 @@
             <tr>
               <th>이름</th>
               <th>기본 일수</th>
-              <th>이월 여부</th>
+              <th>반차 가능</th>
               <th>설명</th>
               <th>관리</th>
             </tr>
@@ -520,13 +552,6 @@
         </div>
       </div>
       <div class="att-form-row">
-        <div class="att-form-group">
-          <label>이월 허용</label>
-          <select id="awmLtCarryover">
-            <option value="false">미허용</option>
-            <option value="true">허용</option>
-          </select>
-        </div>
         <div class="att-form-group">
           <label>반차 사용 가능</label>
           <select id="awmLtHalfDay">
@@ -631,6 +656,6 @@
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-workspace-management.js?v=7"></script>
+<script src="/js/admin-workspace-management.js?v=8"></script>
 </body>
 </html>

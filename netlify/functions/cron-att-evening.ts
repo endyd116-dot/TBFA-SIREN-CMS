@@ -138,7 +138,8 @@ export default async (req: Request, _ctx: Context) => {
             channel: "bell" as any,
             title: `전일 미퇴근자 ${missingNames.length}명`,
             body: `${today} 미퇴근: ${missingNames.slice(0, 10).join(", ")}${missingNames.length > 10 ? ` 외 ${missingNames.length - 10}명` : ""}`,
-            actionUrl: "/admin-attendance-settings.html",
+            // R34-P2 (round2 M10): 미퇴근 → 근태 현황 탭
+            actionUrl: "/admin-workspace-management.html",
             category: "system" as any,
           });
           missingCheckoutAlertCount++;
@@ -214,7 +215,8 @@ export default async (req: Request, _ctx: Context) => {
             channel: "bell" as any,
             title: `[근태] 52시간 초과 ${over52Names.length}명`,
             body: `${over52Names.join(", ")}이(가) 주 52시간을 초과했습니다. 즉시 확인해 주세요.`,
-            actionUrl: "/admin-attendance-settings.html",
+            // R34-P2 (round2 M10): 52h 초과 → 근태 현황 탭
+            actionUrl: "/admin-workspace-management.html",
             category: "system" as any,
           });
         } catch (err) {

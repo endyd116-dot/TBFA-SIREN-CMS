@@ -73,6 +73,18 @@ export default async function handler(req: Request) {
   let memberName = "";
   if (memberUidParam) {
     targetMemberId = parseInt(memberUidParam);
+    // R34-P2 (round2 M9): 본인 데이터가 아니면 슈퍼어드민·admin만 허용
+    if (targetMemberId !== auth.ctx.member.id) {
+      const isSuper = auth.ctx.member.role === "super_admin";
+      const isAdmin = auth.ctx.member.type === "admin";
+      if (!isSuper && !isAdmin) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: "본인 데이터만 export할 수 있습니다",
+          step: "permission",
+        }), { status: 403, headers: { "Content-Type": "application/json" } });
+      }
+    }
     try {
       const [m] = await db
         .select({ id: members.id, name: members.name })

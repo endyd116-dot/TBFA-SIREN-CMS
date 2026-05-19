@@ -126,7 +126,9 @@ export default async (_req: Request, _ctx: Context) => {
     }
 
     // ─── 2. 입사 1년 도래 직원 → 연차 15일 일괄 부여 ───
-    // 가입일(createdAt)로 1년 도래 체크 (이번 달 도래)
+    // R34-P2 (round3 M-G2): members 테이블에 hire_date 컬럼이 없어 회원가입일(createdAt)을
+    // 입사일 대용으로 사용. 현재 NPO 규모(전원 채용 = 가입)에서는 동등하나, 향후 외부 채용·
+    // 기존 직원에 계정 부여 시점이 분리될 경우 members.hire_date 추가 마이그 + 본 cron 변경 필요.
     for (const op of activeOps) {
       try {
         if (!op.createdAt) continue;

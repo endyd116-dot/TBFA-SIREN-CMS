@@ -75,7 +75,7 @@ export default async function handler(req: Request) {
     breakThresholdHours: Number(policy.breakThresholdHours),
   });
 
-  // 조퇴 판정 (checkIn 재사용, checkOut=now)
+  // 조퇴 판정 — R34-P2: workMode + coreStartTime 전달 (existing.workMode 사용)
   const status = determineStatus(
     checkIn,
     now,
@@ -84,9 +84,12 @@ export default async function handler(req: Request) {
       checkOutTime: String(policy.checkOutTime),
       lateGraceMins: policy.lateGraceMins,
       earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+      coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
+      coreEndTime:   policy.coreEndTime   ? String(policy.coreEndTime)   : null,
     },
     false,
-    false
+    false,
+    existing.workMode,
   );
 
   // REMOTE 퇴근 시 오늘 보고서 제출 여부 체크

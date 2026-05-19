@@ -204,11 +204,41 @@
     }
   }
 
+  // R34-P2 (round2 M7): recurringRule을 요일별 사람 친화 텍스트로 포맷
+  function formatRecurringRule(rule) {
+    if (!rule || typeof rule !== 'object') return '—';
+    var DAY_LABEL = { MON:'월', TUE:'화', WED:'수', THU:'목', FRI:'금', SAT:'토', SUN:'일' };
+    var MODE_SHORT = { OFFICE:'사무', REMOTE:'재택', FIELD:'외근' };
+    var parts = [];
+    DAY_KEYS.forEach(function(k) {
+      if (rule[k]) parts.push(DAY_LABEL[k] + '=' + (MODE_SHORT[rule[k]] || rule[k]));
+    });
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
   function renderWorkModeEditor(data) {
     var schedules = Array.isArray(data.schedules) ? data.schedules : [];
     var tbody = document.getElementById('wmScheduleBody');
 
-    // 기존 스케줄 테이블
+    // R34-P2 (round2 M8): 가장 최근 스케줄을 라디오·요일 셀렉트에 prefill
+    if (schedules.length) {
+      var latest = schedules[schedules.length - 1];
+      var radio = document.querySelector('input[name="wmMode"][value="' + latest.workMode + '"]');
+      if (radio) radio.checked = true;
+      var hybridDays = document.getElementById('wmHybridDays');
+      if (hybridDays) hybridDays.style.display = latest.workMode === 'HYBRID' ? '' : 'none';
+      if (latest.workMode === 'HYBRID' && latest.recurringRule && typeof latest.recurringRule === 'object') {
+        DAY_KEYS.forEach(function(k) {
+          var sel = document.getElementById('wmDay_' + k);
+          if (sel) sel.value = latest.recurringRule[k] || '';
+        });
+      }
+      var startEl = document.getElementById('wmStartDate');
+      var endEl = document.getElementById('wmEndDate');
+      if (startEl && latest.startDate) startEl.value = latest.startDate;
+      if (endEl) endEl.value = latest.endDate || '';
+    }
+
     if (!schedules.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:24px">등록된 스케줄이 없습니다</td></tr>';
     } else {
@@ -218,7 +248,7 @@
           + '<td style="font-weight:500">' + (modeLabel[s.workMode] || esc(s.workMode)) + '</td>'
           + '<td style="font-family:Inter;font-size:12.5px">' + esc(s.startDate || '—') + '</td>'
           + '<td style="font-family:Inter;font-size:12.5px">' + esc(s.endDate || '무기한') + '</td>'
-          + '<td style="font-size:12px;color:#6b7280">' + esc(s.recurringRule || '—') + '</td>'
+          + '<td style="font-size:12px;color:#6b7280">' + esc(formatRecurringRule(s.recurringRule)) + '</td>'
           + '<td><button class="att-btn danger" style="padding:3px 8px;font-size:12px" onclick="deleteWorkMode(' + s.id + ',\'schedule\')">삭제</button></td>'
           + '</tr>';
       }).join('');

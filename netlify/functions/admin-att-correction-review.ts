@@ -151,9 +151,12 @@ export default async function handler(req: Request) {
                 checkOutTime:        String(policy.checkOutTime),
                 lateGraceMins:       policy.lateGraceMins,
                 earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+                coreStartTime:       policy.coreStartTime ? String(policy.coreStartTime) : null,
+                coreEndTime:         policy.coreEndTime   ? String(policy.coreEndTime)   : null,
               },
               false,
               false,
+              existing?.workMode,
             );
           }
         } catch (innerErr) {
