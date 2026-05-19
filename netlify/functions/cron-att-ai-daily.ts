@@ -121,7 +121,8 @@ export default async (_req: Request, _ctx: Context) => {
           channel: "bell" as any,
           title: `[AI 근태요약] ${today}`,
           body: summaryText,
-          actionUrl: "/admin-attendance-settings.html",
+          // R34-P2 (round2 M10): AI 근태요약 → 근태 현황 탭
+          actionUrl: "/admin-workspace-management.html",
           category: "system" as any,
         });
       } catch (err) {

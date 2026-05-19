@@ -10,7 +10,7 @@
 
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { members, attRecords, attSchedules } from "../../db/schema";
+import { members, attRecords, attSchedules, attHolidays } from "../../db/schema";
 import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
@@ -27,12 +27,31 @@ export default async (_req: Request, _ctx: Context) => {
   console.info("[cron-att-morning] 시작", today);
 
   try {
-    // 오늘 출근 스케줄 있는 운영자 목록 (attSchedules 기준)
+    // R34-P2 (round3 M-G6): 오늘이 공휴일이면 전체 처리 스킵
+    const holidayCheck: any = await db.execute(sql`
+      SELECT 1 FROM att_holidays WHERE date = ${today}::date LIMIT 1
+    `);
+    const isHoliday = (Array.isArray(holidayCheck) ? holidayCheck.length : (holidayCheck as any).rows?.length) > 0;
+    if (isHoliday) {
+      console.info("[cron-att-morning] 오늘은 공휴일 — 알림 스킵");
+      return new Response(JSON.stringify({ ok: true, message: "공휴일", absentCount: 0 }),
+        { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+
+    // 오늘 출근 스케줄 있는 운영자 목록 (attSchedules 기준 — 휴가 승인 직원 제외)
+    // REMOTE·BUSINESS_TRIP 직원도 출근 체크는 필요하므로 work_mode로는 제외하지 않음
     const scheduledRows: any = await db.execute(sql`
       SELECT DISTINCT s.member_uid::integer AS member_id
       FROM att_schedules s
       WHERE s.start_date <= ${today}::date
         AND (s.end_date IS NULL OR s.end_date >= ${today}::date)
+        AND NOT EXISTS (
+          SELECT 1 FROM att_leave_requests lr
+          WHERE lr.member_uid = s.member_uid
+            AND lr.status = 'APPROVED'
+            AND lr.start_date <= ${today}::date
+            AND lr.end_date >= ${today}::date
+        )
     `);
     const scheduledIds: number[] = (Array.isArray(scheduledRows) ? scheduledRows : (scheduledRows as any).rows ?? [])
       .map((r: any) => parseInt(r.member_id))
@@ -111,7 +130,8 @@ export default async (_req: Request, _ctx: Context) => {
           channel: "bell" as any,
           title: `[근태] 미출근 ${absentIds.length}명`,
           body: `${today} 출근 미체크: ${absentNames}`,
-          actionUrl: "/admin-attendance-settings.html",
+          // R34-P2 (round2 M10): 미출근 요약 → 근태 현황 탭
+          actionUrl: "/admin-workspace-management.html",
           category: "system" as any,
         });
       } catch (err) {
