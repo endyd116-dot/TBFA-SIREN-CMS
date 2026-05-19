@@ -39,25 +39,33 @@
 
 ---
 
-## 3. 진행 중 작업 (2026-05-20 22:00 KST 시점)
+## 3. 진행 중 작업 (2026-05-20 23:30 KST 시점)
 
-### main HEAD: `91282b6` (R39 Stage 7 머지 직후·마이그 호출 대기)
+### main HEAD: `905a433` (R39 Stage 8 머지 직후·R39 시리즈 본 구현 종결)
 
 | 작업 | 채팅 | 상태 |
 |---|---|---|
-| **R39 통합 라운드 8단계** | B | 🟡 Stage 1·2·3·5·6·7 완료·**Stage 7 마이그 호출 + schema 활성화 대기**·Stage 8 (비매출 검토·로딩 fix·통합 검증) 남음 |
+| **R39 통합 라운드 8단계** | B | 🟢 Stage 1~8 본 구현 완료·**C 라이브 검증 대기** (브라우저 시나리오) |
 | **사용자 메뉴얼 + AI 학습용 메뉴얼** | C | 🟢 진행 중·manual.html + manual-admin.html 1차 본문 완성·층1 압축 7,888자·Q&A 싸이렌 사용자 60문항 완료·**어드민 60 + 통합 CMS 150 + AI 비서 30 남음** |
-| **Netlify 측 장애 (Elevated response times affecting origin services)** | 외부 | 🔴 진행 중·21:08 UTC 시작·Investigating·복구 후 마이그 호출 가능 |
+| **Netlify 사고** | 외부 | 🟢 복구 완료 (Stage 7 마이그 호출 성공으로 확인) |
 
-### R39 진행 상세
-- ✅ Stage 1: milestone_roles 테이블·시드 SM/PM/SI (마이그 호출 완료)
+### R39 진행 상세 (Stage 1~8 모두 main 머지 완료)
+- ✅ Stage 1: milestone_roles 테이블·시드 SM/PM/SI
 - ✅ Stage 2: 역할 카탈로그 API + 백엔드 검증 동적화
 - ✅ Stage 3: 프론트 라벨 동적화 + 역할 관리 UI (5번째 탭)
-- ✅ Stage 4: R38 선완료로 스킵 (사람별 마일스톤·안내 박스)
+- ✅ Stage 4: R38 선완료로 스킵 (사람별 마일스톤·안내 박스 — R38 머지로 흡수)
 - ✅ Stage 5: 실시간 출퇴근 + 카카오 지도 + PC 위치 + R38 월별 표 회귀 fix
-- ✅ Stage 6: 워크툴 상단 출퇴근 버튼 + 상태별 라벨
-- 🟡 **Stage 7**: 휴가 수동 CRUD + 출퇴근 양방향 수정 + 마이그 함수 신설·**Swain 마이그 호출 대기 (`/api/migrate-r39-stage7?run=1`)** + schema 활성화 후속 commit 남음
-- ⏳ Stage 8: 비매출 검토 + 로딩 fix + 통합 검증 (Stage 7 완전 종결 후)
+- ✅ Stage 6: 워크툴 상단 출퇴근 버튼 + 상태별 라벨 + visibilitychange 동기화
+- ✅ Stage 7: 휴가 수동 CRUD + 어드민 출퇴근 양방향 수정 + 이력 2테이블 + device_type 컬럼 (마이그 호출 + schema 활성화 + 파일 삭제 완료)
+- ✅ Stage 8: 비매출 검토 화면(5번째 탭 + 4가지 액션) + 워크스페이스 로딩 fix(병렬화·성과 ~200ms·근태 ~600ms 단축) + B 자체 회귀 8/8 PASS
+
+### Swain 라이브 검증 권장 시나리오
+브라우저(어드민 로그인) 라이브 확인 권장:
+1. 비매출 검토 — 운영 관리 → 비매출 검토 탭 진입·일람·상세 모달·1차 검토·승인·반려·EVENT_RANGE 금액 결정
+2. 워크스페이스 진입 속도 — 성과·근태 메뉴 진입 시 체감 빨라졌는지
+3. Stage 5·6·7 회귀 — 실시간 출퇴근·카카오 지도·워크툴 상단 버튼·휴가 수동 조정·어드민 출퇴근 수정·확인 요청 알림
+4. R37 급여 자동 집계 회귀
+5. SM/PM/SI 매출·비매출·결산·진행률 회귀
 
 ### 옛 R38 (Admin UX 3건) — 머지 완료·R39 Stage 4·5 일부로 흡수
 사람별 마일스톤·출퇴근 월/리스트·회원 안내 박스 모두 main에 안착. R39 Stage 3 동적화로 라벨 자동 적응.
@@ -72,15 +80,10 @@
 - ⏳ ai-training-ai-assistant.jsonl — AI 비서 30문항
 - ⏳ 옛 ai-training.jsonl 100문항 → docs/history/로 archive 이동
 
-### Swain 액션 대기 (Netlify 복구 후)
-1. **마이그 호출**: `https://tbfa.co.kr/api/migrate-r39-stage7?run=1`
-   - 진단 모드: `https://tbfa.co.kr/api/migrate-r39-stage7` (인증 불필요)
-   - 기대: `{ok:true, verify:{att_leave_balance_adjustments:true, att_record_admin_edits:true, att_records_device_type:true}}`
-2. 호출 결과 알려주면 B가 schema 활성화·마이그 파일 삭제 후속 commit·메인 머지 후 Stage 8 트리거 발사
-
-### R39 종결 후 예약
+### R39 시리즈 완전 종결(C 라이브 검증 PASS) 후 예약
+- 설계서 `docs/active/2026-05-20-r39-roles-and-ux.md` → `docs/history/milestones/`로 archive 이동
 - 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`)
-- R40 후속: **PG 전환 (토스 → KICC)** — KICC API 문서 일부 받음·`docs/kicc.md`에 정리 중·추가 API 문서(빌키 발급·자동 결제·해지·조회) 필요·기존 토스 회원 처리 정책 결정 필요
+- R40 후속: **PG 전환 (토스 → KICC)** — `docs/kicc.md` 기반 옵션 A(듀얼 PG 점진 전환) 추천·추가 KICC 문서 필요(빌키·자동결제·해지·조회)·기존 토스 회원 처리 정책 결정 필요
 - R40 추가: Netlify 배포 시간 단축 (netlify-plugin-cache·dead code 정리)·RAG 인프라 구축 (Q&A 300문항 임베딩)
 
 설계서: `docs/active/2026-05-20-r39-roles-and-ux.md`
@@ -132,4 +135,4 @@
 
 ---
 
-**마지막 갱신**: 2026-05-20 22:00 KST (R39 Stage 7 머지·Netlify 사고 진행 중·새 메인 채팅 인수인계 시점)
+**마지막 갱신**: 2026-05-20 23:30 KST (R39 Stage 8 머지·R39 시리즈 본 구현 종결·C 라이브 검증 대기)

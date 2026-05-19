@@ -4,9 +4,9 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-20 22:00 KST / **R39 Stage 7 머지·Stage 8 남음·Netlify 사고 진행 중**
-> main @ `91282b6`
-> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → docs/active/2026-05-20-r39-roles-and-ux.md 순서로 정독
+> **마지막 갱신**: 2026-05-20 23:30 KST / **R39 Stage 8 머지·R39 본 구현 종결·C 라이브 검증 대기**
+> main @ `905a433`
+> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → (필요 시) docs/active/2026-05-20-r39-roles-and-ux.md 순서로 정독
 
 ---
 
@@ -143,35 +143,36 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 
 ## 7. 다음 메인 채팅이 할 일 (즉시 진행)
 
-### 🚨 Netlify 사고 복구 우선 (외부 변수)
-- 사고 시작: 2026-05-19 21:08 UTC (Elevated response times affecting origin services)
-- status 페이지 모니터링: https://www.netlifystatus.com
-- 복구 시점에 라이브 사이트(tbfa.co.kr) 정상 접속 확인
+### 우선 1. R39 C 라이브 검증 트리거 발사 + 결과 모니터링
 
-### 우선 1. R39 Stage 7 마이그 호출 (Swain·Netlify 복구 후)
-```
-https://tbfa.co.kr/api/migrate-r39-stage7?run=1
-```
-- 어드민 로그인 상태에서 호출
-- 기대 응답: `{ok:true, verify:{att_leave_balance_adjustments:true, att_record_admin_edits:true, att_records_device_type:true}}`
-- 진단 모드(인증 불필요): `https://tbfa.co.kr/api/migrate-r39-stage7`
+C 채팅(verify/* 워크트리)에 라이브 시나리오 검증 트리거 발사 — Stage 5·6·7·8 전체 합산.
 
-### 우선 2. Stage 7 후속 commit·머지·Stage 8 트리거
-- 마이그 호출 성공 후 B에게 schema 활성화·마이그 파일 삭제 후속 commit 지시 (Swain 복붙 메시지 제공)
-- 메인이 머지 후 Stage 8 트리거 발사 (비매출 검토 + 로딩 fix + 통합 검증)
-- 설계서 `docs/active/2026-05-20-r39-roles-and-ux.md §2 Stage 8` 참조
+핵심 검증 시나리오:
+- **비매출 검토 화면** (Stage 8 신규): 운영 관리 → 비매출 검토 진입·일람·상세 모달·4가지 액션(1차 검토·반려·최종 승인·EVENT_RANGE 금액 결정)
+- **워크스페이스 로딩 속도** (Stage 8 fix): 성과·근태 메뉴 진입 체감 개선 (~200ms·~600ms 단축 예상)
+- **실시간 출퇴근 + 카카오 지도 + PC 위치 강제** (Stage 5)
+- **워크툴 상단 출퇴근 버튼** (Stage 6 — 3상태 자동 라벨·visibilitychange 동기화)
+- **휴가 수동 CRUD + 어드민 출퇴근 양방향 수정 + 확인 요청 알림** (Stage 7)
+- **회귀**: R37 급여 자동 집계·SM/PM/SI 매출·비매출·결산·진행률·E2E 12 시나리오
 
-### 우선 3. C 메뉴얼 진행 모니터링
+C 검증 정책 (operational-standards §4): C는 코드·응답 키·스키마 정합·tsc·라이브 자산 배포 확인까지·브라우저 UI는 Swain.
+
+### 우선 2. C 메뉴얼 진행 모니터링
 - 다음 응답: 어드민 60문항
 - 그 다음: 통합 CMS 150 (75+75 분할)
 - 마지막: AI 비서 30 + 옛 100문항 archive
 
-### R39 종결 시점에 박을 작업
-- 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`)
+### 우선 3. C 라이브 검증 PASS 후 R39 정식 종결
+- 설계서 `docs/active/2026-05-20-r39-roles-and-ux.md` → `docs/history/milestones/`로 이동
+- 라운드 종결 체크리스트 15가지 메모리 정식 등록 (§6.5)
 - AI 비서 동기화·권한 정책·메뉴얼·명세·HANDOFF·알림·CSV/PDF·iframe·schema·환경변수 등 15개
 
-### R40 후속 예약 (R39 종결 후 합의)
-- PG 전환 (토스 → KICC) — `docs/kicc.md` Swain 추가 API 문서 정리 중·KICC 추가 API 필요·기존 토스 회원 처리 정책 결정 필요
+### R40 후속 예약 (R39 정식 종결 후 합의)
+- **PG 전환 (토스 → KICC)** — `docs/kicc.md` 정독 완료·옵션 A(듀얼 PG 점진 전환) 추천
+  - 기존 토스 빌링키 회원은 KICC로 마이그 불가(체계 완전 다름·KICC cardNo vs 토스 customerKey)
+  - 신규 회원만 KICC·기존 회원은 토스 cron 자연 종료까지 유지
+  - KICC 추가 문서 필요(빌키 발급·자동 결제·해지·조회 — 현재 kicc.md엔 일시 결제·웹훅 위주)
+  - Swain 결정 필요: 기존 토스 정기 후원 회원 규모 + 옵션 A/B/C 확정
 - Netlify 배포 시간 단축 (netlify-plugin-cache·dead code 정리)
 - RAG 인프라 구축 (Q&A 300문항 임베딩·Gemini Embedding·검색 로직)
 - 운영 사용 패턴 관찰 후 §6.2 부가 8건 선별
