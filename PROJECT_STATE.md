@@ -24,7 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
-| 2026-05-19 | **메인** | **📐 R29-GAP 설계 완료 + P1 트리거 발사 대기** (main @ a3d8fc3) — 설계서 docs/milestones/2026-05-19-r29-gap-fix.md / P1 H 10건(A=근태 5·B=성과 5) / P2 M 8건은 P1 머지 후 / L 10건 REMAINING_WORK로 이관 / gap.md 삭제 |
+| 2026-05-19 | **메인** | **🔧 사이드바 메뉴 누락 fix + R29-GAP 카카오 거점 흡수 + R30 KST 설계** (main @ a1b56ef) — workspace-attendance·admin-milestone-settings 사이드바 통일 + ws-sidebar-role.js 로드. P1 A에 H4b 카카오 주소 검색 추가. R30(KST 표시 영역) 설계서 작성, P1 머지 후 발사 |
+| 2026-05-19 | **메인** | **📐 R29-GAP 설계 완료 + P1 트리거 발사 대기** (main @ 8554e8a) — 설계서 docs/milestones/2026-05-19-r29-gap-fix.md / P1 H 10건(A=근태 5·B=성과 5) / P2 M 8건은 P1 머지 후 / L 10건 REMAINING_WORK로 이관 / gap.md 삭제 |
 | 2026-05-19 | **메인** | **✅ Phase 28 성과관리 완성 C 검증 완료** (main @ a3d8fc3) — 10/10 PASS. A·B Opus 전환 후 근태·성과 정밀 갭 분석 진행 중 |
 | 2026-05-19 | **메인** | **✅ Phase 27 근태관리 Step9~17 + Phase 28 머지** (main @ 461603d) — A·B 무충돌 자동머지. 씨드 59개 skipped(기존 존재). 버그 4건 fix 동시 포함 |
 | 2026-05-19 | **메인** | **✅ 성과관리 분기 설정 UI 추가** (main @ 5f90a34) — admin-milestone-settings.html 분기관리 탭 신설. 분기 추가·상태 변경 동작. API PATCH 버그 fix 포함 |
@@ -69,6 +70,8 @@
 📋 운영 액션 (Swain 직접)
    - OP-1: 2026 Q2 분기 등록 (admin-milestone-settings.html 분기관리 탭)
      → 현재 ACTIVE 분기 0개 (C curl 검증 이슈-1)
+   - OP-3: KAKAO_REST_API_KEY 환경변수 등록 (P1 A H4b 거점 주소 검색 필수)
+     → developers.kakao.com > 내 애플리케이션 > REST API 키
 
 ⚠️ Swain 필수 액션
    - Kakao REST API 키 확인 (기존 키가 REST API 키인지 확인)
