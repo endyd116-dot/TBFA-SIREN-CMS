@@ -51,6 +51,7 @@
     REMOTE: '🏠 재택',
     FIELD: '🚗 외근',
     BUSINESS_TRIP: '✈️ 출장',
+    HYBRID: '🔀 혼합',
   };
 
   /* ─── 탭 전환 ─── */

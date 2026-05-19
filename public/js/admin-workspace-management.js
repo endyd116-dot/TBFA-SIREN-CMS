@@ -198,10 +198,14 @@
   async function initScheduleTab() {
     window._awmSchInit = true;
     await loadMemberDropdown('awmScheduleMember');
+    await loadWorkplaceDropdown('awmScheduleWorkplace');
 
+    // R34-P2 (P2): FIELD 모드 선택 시 거점 셀렉트 노출
     document.getElementById('awmScheduleMode')?.addEventListener('change', (e) => {
       const hybrid = document.getElementById('awmHybridConfig');
+      const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
       if (hybrid) hybrid.style.display = e.target.value === 'HYBRID' ? '' : 'none';
+      if (wpWrap) wpWrap.style.display = e.target.value === 'FIELD' ? '' : 'none';
     });
 
     const today = toDateStr();
@@ -210,6 +214,20 @@
 
     document.getElementById('awmBtnSaveSchedule')?.addEventListener('click', saveSchedule);
     await loadScheduleList();
+  }
+
+  async function loadWorkplaceDropdown(selId) {
+    const res = await api('/api/admin-att-workplaces');
+    const wps = res.data?.data || res.data || [];
+    const sel = document.getElementById(selId);
+    if (!sel || !Array.isArray(wps)) return;
+    while (sel.options.length > 1) sel.remove(1);
+    wps.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = `${w.name}${w.type ? ' [' + w.type + ']' : ''}`;
+      sel.appendChild(opt);
+    });
   }
 
   async function loadMemberDropdown(selId) {
@@ -252,9 +270,14 @@
     const btn = document.getElementById('awmBtnSaveSchedule');
     if (btn) btn.disabled = true;
 
+    // R34-P2 (P2): FIELD 모드면 workplaceId 첨부
+    const workplaceId = mode === 'FIELD'
+      ? Number(document.getElementById('awmScheduleWorkplace')?.value) || null
+      : null;
+
     const res = await api('/api/admin-att-schedules', {
       method: 'POST',
-      body: { memberUid: uid, workMode: mode, startDate: from, endDate: to || null, recurringRule: hybridConfig },
+      body: { memberUid: uid, workMode: mode, startDate: from, endDate: to || null, recurringRule: hybridConfig, workplaceId },
     });
     if (!res.ok) {
       toast('저장 실패: ' + (res.data?.error || ''));
@@ -555,7 +578,7 @@
       <tr>
         <td><strong>${escHtml(r.name || '—')}</strong></td>
         <td>${r.defaultDays ?? '—'}</td>
-        <td>${r.carryover ? '허용' : '미허용'}</td>
+        <td>${r.allowHalfDay ? '가능' : '불가'}</td>
         <td>${escHtml(r.description || '—')}</td>
         <td>
           <button class="att-btn att-btn-default att-btn-sm" onclick="awmEditLeaveType(${r.id})">수정</button>
@@ -580,8 +603,9 @@
     document.getElementById('awmLtId').value = id;
     document.getElementById('awmLtName').value = row.name || '';
     document.getElementById('awmLtDays').value = row.defaultDays ?? 0;
-    document.getElementById('awmLtCarryover').value = row.carryover ? 'true' : 'false';
-    document.getElementById('awmLtHalfDay').value = row.halfDayAllowed !== false ? 'true' : 'false';
+    // R34-P2 (M4): carryover 제거 — DB·API 미지원 필드. allowHalfDay만 사용
+    const hdEl = document.getElementById('awmLtHalfDay');
+    if (hdEl) hdEl.value = row.allowHalfDay !== false ? 'true' : 'false';
     document.getElementById('awmLtDesc').value = row.description || '';
     setText('awmLeaveTypeFormTitle', '휴가 종류 수정');
     showEl('awmLeaveTypeForm');
@@ -600,7 +624,7 @@
     const id = document.getElementById('awmLtId')?.value;
     const name = document.getElementById('awmLtName')?.value?.trim();
     const defaultDays = Number(document.getElementById('awmLtDays')?.value) || 0;
-    const carryover = document.getElementById('awmLtCarryover')?.value === 'true';
+    // R34-P2 (M4): carryover 필드 제거
     const halfDayAllowed = document.getElementById('awmLtHalfDay')?.value === 'true';
     const description = document.getElementById('awmLtDesc')?.value?.trim();
 
