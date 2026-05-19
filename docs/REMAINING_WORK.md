@@ -153,7 +153,7 @@
 | 항목 | 상태 | 비고 |
 |---|---|---|
 | 로컬 main → origin/main push | ⏸ 차단 (`.claude/settings.json` deny) | 어제 두 커밋(`66f93a5`, `1ef315a`)이 ahead 상태. Swain 직접 push 또는 worktree 경유 |
-| 도메인 마이그레이션 | ⏸ 미착수 | `tbfa.co.kr` 메인 + `yoonsiren.com` 리다이렉트 (CLAUDE.md §1) |
+| ~~도메인 마이그레이션~~ | 🗑 폐기 (2026-05-20) | `tbfa.co.kr` 단독 운영 — yoonsiren.com은 미보유·옛 기획 흔적·삭제 |
 | 안전 의존성 갱신 (patch/minor 4건) | ⏸ 미결정 | aws-sdk·@types/node·resend (어제 점검) |
 | Major 의존성 갱신 (7건) | ⏸ 미결정 | netlify/blobs·functions, drizzle, typescript, zod, bcryptjs 등 |
 
