@@ -246,13 +246,14 @@ countRemoteDaysThisMonth(memberUid, year, month, db): Promise<number>
 | 21 | `/api/att-my-leaves` | GET | 잔여 휴가 현황 |
 | 22 | `/api/att-correction-request` | POST/GET | 수정 요청 + 내역 |
 
-### 공통
+### 공통 (실제로는 super_admin 전용 — R35-GAP-P2 P-G1 명시)
 
-| # | 경로 | 메서드 | 기능 |
-|---|---|---|---|
-| 23 | `/api/att-geocode` | POST | 주소 → 위도/경도 (Kakao REST API 프록시) |
+| # | 경로 | 메서드 | 권한 | 기능 |
+|---|---|---|---|---|
+| 23 | `/api/att-geocode` | POST | super_admin | 주소 → 위도/경도 (Kakao REST API 프록시, 거점 등록 시 사용) |
+| 24 | `/api/att-geocode-search` | GET  | super_admin | 주소 검색 (다중 결과·거점 등록 화면) |
 
-> 총 23개 API (함수 파일은 메서드 통합으로 18개)
+> 총 24개 API (함수 파일은 메서드 통합으로 19개). `att-geocode`·`att-geocode-search` 모두 슈퍼어드민 전용 — 거점 관리 화면이 유일한 호출처.
 
 ---
 
@@ -512,6 +513,7 @@ FIELD:
 
 - [ ] **§B-15** 직원 휴가 API
   - `POST /api/att-leave-request` — 잔여 검증, 충돌 검사 후 att_leave_requests INSERT
+    - **사후 휴가 신청 허용**(R35-GAP-P2 M-G6 정책): startDate < today 신청 허용. 슈퍼어드민 승인 시 R35-GAP-P1 H-G2 fix로 기존 출근 기록 보존 (status='LEAVE'만 변경, check_in_time·working_mins 유지)
   - `GET /api/att-leave-request` — 본인 신청 내역
   - `GET /api/att-my-leaves` — att_leave_balances + att_leave_types JOIN (올해 기준)
 
