@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { sql, eq } from "drizzle-orm";
 import { milestoneDefinitions } from "../../db/schema";
 
-export const config = { path: "/api/milestone-definitions" };
+export const config = { path: "/api/milestone-definitions*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
@@ -111,7 +111,8 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── DELETE /:id (비활성화) ──
   if (req.method === "DELETE") {
     if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
-    const id = url.pathname.split("/").pop();
+    /* ★ R32-P0-FIX-1: ?id= query fallback */
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
     if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
     try {
       await db.execute(sql`UPDATE milestone_definitions SET is_active = FALSE, updated_at = NOW() WHERE id = ${Number(id)}`);
