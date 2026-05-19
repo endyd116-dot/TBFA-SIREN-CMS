@@ -220,15 +220,15 @@ countRemoteDaysThisMonth(memberUid, year, month, db): Promise<number>
 |---|---|---|---|
 | 1 | `/api/admin-att-workplaces` | GET | 거점 목록 |
 | 2 | `/api/admin-att-workplaces` | POST | 거점 생성 |
-| 3 | `/api/admin-att-workplace` | PUT | 거점 수정 (?id=) |
-| 4 | `/api/admin-att-workplace` | DELETE | 거점 삭제 (?id=) |
+| 3 | `/api/admin-att-workplaces` | PUT | 거점 수정 (?id=) (R29-GAP-P1·M-G5 정합 — 복수형으로 통일) |
+| 4 | `/api/admin-att-workplaces` | DELETE | 거점 삭제 (?id=) |
 | 5 | `/api/admin-att-policy` | GET | 근무 정책 조회 |
 | 6 | `/api/admin-att-policy` | PUT | 근무 정책 수정 |
-| 7 | `/api/admin-att-leave-types` | GET/POST/PUT/DELETE | 휴가 종류 CRUD |
-| 8 | `/api/admin-att-schedules` | GET/POST | 직원 스케줄 조회·설정 |
-| 9 | `/api/admin-att-records` | GET | 전체 근태 현황 (?date=&status=) |
-| 10 | `/api/admin-att-leave-review` | POST | 휴가 승인/반려 |
-| 11 | `/api/admin-att-correction-review` | POST | 수정 요청 승인/반려 |
+| 7 | `/api/admin-att-leave-types` | GET/POST/PUT/DELETE | 휴가 종류 CRUD (DELETE는 R34-P2 soft delete — 사용 이력 있을 때 is_active=false) |
+| 8 | `/api/admin-att-schedules` | GET/POST/PUT/DELETE | 직원 스케줄 조회·등록·수정·삭제 (R34-P2: PUT·DELETE 추가) |
+| 9 | `/api/admin-att-records` | GET | 전체 근태 현황 (?date=&status=) — summary는 status·work_mode 양쪽 집계 (R34-P2) |
+| 10 | `/api/admin-att-leave-review` | GET/POST | GET: 대기/처리 목록, POST: 승인/반려 (R34-P2: GET 명시) |
+| 11 | `/api/admin-att-correction-review` | GET/POST | GET: 대기/처리 목록, POST: 승인/반려 |
 | 12 | `/api/admin-att-holidays` | GET/POST/DELETE | 공휴일 CRUD |
 | 13 | `/api/admin-att-leave-balances` | GET/PUT | 직원별 잔여휴가 조회·조정 |
 
@@ -496,9 +496,10 @@ FIELD:
   - `POST /api/att-checkout`
   - body: `{ lat?, lng? }`
   - 출근 기록 없으면 400
-  - 동일 위치 검증 로직
+  - 위치 정보(lat/lng) 저장만, 별도 거리 검증은 의도된 단순화 (퇴근은 거점 떠난 후 누르는 케이스 정상 — R34-P2 P1 명시)
   - `calcWorkingMins()` → working_mins, overtime_mins 계산
   - 조퇴 판정: 기준 퇴근 - early_leave_grace_mins 미달 → 'EARLY_LEAVE'
+  - REMOTE·BUSINESS_TRIP은 coreStartTime 기준 LATE 판정 (R34-P2 M-G7)
   - att_records UPDATE
 
 - [ ] **§B-13** 직원 본인 상태 API
