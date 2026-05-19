@@ -56,16 +56,52 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch (err) { return jsonError("select", err); }
   }
 
+  /* ★ R29-MS-GAP2-D: REVIEWED 중간 상태 (1차 검토 완료) — 2단계 UX */
+  if (req.method === "POST" && action === "review" && idStr) {
+    try {
+      const rows = await db.execute(sql`
+        SELECT nra.submitted_by, nra.status, md.name as milestone_name
+        FROM non_revenue_achievements nra
+        JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
+        WHERE nra.id = ${Number(idStr)}
+      `);
+      const ach = (rows as any).rows?.[0] || (rows as any[])[0];
+      if (!ach) return Response.json({ ok: false, error: "항목 없음" }, { status: 404 });
+      if (ach.status !== "PENDING") {
+        return Response.json({ ok: false, error: `현재 상태(${ach.status})에서 review 불가` }, { status: 400 });
+      }
+      await db.execute(sql`
+        UPDATE non_revenue_achievements SET status = 'REVIEWED',
+          reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()
+        WHERE id = ${Number(idStr)}
+      `);
+      if (ach.submitted_by) {
+        createNotification({
+          recipientId: ach.submitted_by, recipientType: "admin",
+          category: "milestone", severity: "info",
+          title: `비매출 성과 검토 완료: ${ach.milestone_name || "마일스톤"}`,
+          message: "1차 검토 완료. 최종 승인 대기 중입니다.",
+          link: "/admin#nonrevenue-my",
+        }).catch(() => {});
+      }
+      return Response.json({ ok: true });
+    } catch (err) { return jsonError("review", err); }
+  }
+
   // ── POST /:id/verify ──
   if (req.method === "POST" && action === "verify" && idStr) {
     try {
       const rows = await db.execute(sql`
-        SELECT nra.submitted_by, md.name as milestone_name
+        SELECT nra.submitted_by, nra.status, md.name as milestone_name
         FROM non_revenue_achievements nra
         JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
         WHERE nra.id = ${Number(idStr)}
       `);
       const ach = (rows as any).rows?.[0] || rows[0];
+      /* ★ R29-MS-GAP2-D: PENDING 또는 REVIEWED에서만 VERIFIED 허용 */
+      if (ach && !["PENDING", "REVIEWED"].includes(ach.status)) {
+        return Response.json({ ok: false, error: `현재 상태(${ach.status})에서 verify 불가` }, { status: 400 });
+      }
       await db.execute(sql`
         UPDATE non_revenue_achievements SET status = 'VERIFIED',
           reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()

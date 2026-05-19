@@ -153,6 +153,39 @@
     if (!badge || !q) return;
     badge.textContent = { ACTIVE:'진행 중', UPCOMING:'예정', ENDED:'종료', SETTLED:'정산 완료' }[q.status] || q.status;
     badge.className = 'ms-quarter-badge ' + (q.status === 'ACTIVE' ? 'active' : q.status === 'ENDED' || q.status === 'SETTLED' ? 'ended' : '');
+
+    /* ★ R29-MS-GAP2-F: D-N 카운트다운 배지 */
+    renderCountdownBadge(q);
+  }
+
+  function renderCountdownBadge(q) {
+    const old = document.getElementById('msCountdown');
+    if (old) old.remove();
+    if (!q || !q.endDate) return;
+    if (q.status !== 'ACTIVE' && q.status !== 'UPCOMING' && q.status !== 'ENDED') return;
+    const endDate = new Date(String(q.endDate).slice(0, 10) + 'T23:59:59+09:00');
+    const now = new Date();
+    const diffMs = endDate.getTime() - now.getTime();
+    const days = Math.ceil(diffMs / (24 * 3600 * 1000));
+    if (days > 30) return;
+
+    let cls = 'gray', label = '';
+    if (days < 0) { cls = 'gray'; label = '분기 종료'; }
+    else if (days === 0) { cls = 'red'; label = '오늘 마감'; }
+    else if (days <= 7) { cls = 'red'; label = `🔴 D-${days} 마감 임박`; }
+    else { cls = 'orange'; label = `⏰ D-${days}`; }
+
+    const badge = document.createElement('span');
+    badge.id = 'msCountdown';
+    badge.className = 'ms-countdown ' + cls;
+    badge.textContent = label;
+    badge.title = '클릭하면 분기 결산 탭으로 이동';
+    badge.addEventListener('click', () => {
+      const tab = document.querySelector('#msTabs .ms-tab[data-tab="settlement"]');
+      if (tab) (tab).click();
+    });
+    const quarterBadge = $('#msQuarterBadge');
+    quarterBadge?.insertAdjacentElement('afterend', badge);
   }
 
   /* ─── 대시보드 ─── */
@@ -222,6 +255,13 @@
     $('#kpiTotal').textContent    = fmt(inc.total || 0);
     ($('#msKpiRow')).style.display = '';
 
+    /* ★ R29-MS-GAP2-E: KPI 카드 클릭 시 breakdown 토글 */
+    const kpiRow = $('#msKpiRow');
+    if (kpiRow && !kpiRow.dataset.breakdownBound) {
+      kpiRow.dataset.breakdownBound = '1';
+      kpiRow.addEventListener('click', () => toggleBreakdown());
+    }
+
     const progress = d.revenueProgress || [];
     if (!progress.length) {
       content.innerHTML = '<div class="ms-empty" style="margin-bottom:16px"><div class="ms-empty-icon">📊</div>담당 매출연동 마일스톤이 없습니다.</div>';
@@ -271,14 +311,90 @@
         <div id="p25CardCreate" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px">
           <div style="font-size:13px;color:#9ca3af">불러오는 중...</div>
         </div>
+      </div>
+      <!-- ★ R29-MS-GAP2-B: AI 코칭 -->
+      <div style="margin-top:24px">
+        <button class="ms-btn ms-btn-ghost" id="btnAiCoaching"
+          style="background:#f5f3ff;color:#5b21b6;border:1px solid #ede9fe;font-weight:600">
+          🤖 AI 코칭 받기
+        </button>
+        <div id="aiCoachingBox" style="display:none;margin-top:12px"></div>
       </div>`);
     loadAndRenderPendingQueue();
     loadAndRenderDoneTasks();
     if (state.member.milestoneRole) loadNonRevMilestonesForCardCreate();
+
+    /* ★ R29-MS-GAP2-B: AI 코칭 버튼 바인딩 */
+    $('#btnAiCoaching')?.addEventListener('click', requestAiCoaching);
+
+    /* ★ R29-MS-GAP2-H: overview 렌더 시점에 SUBMITTED 배지 노출용 잠금 상태 반영 */
+    const settle = state.settlement || state.dashboard?.settlement;
+    if (settle && ['SUBMITTED','APPROVED','PAID'].includes(settle.status)) {
+      const tip = document.createElement('div');
+      tip.className = 'ms-locked-banner';
+      tip.style.marginTop = '14px';
+      tip.innerHTML = `🔒 이 분기는 결산이 ${settle.status}되어 매출/비매출 추가가 마감됐습니다.`;
+      content.appendChild(tip);
+    }
+  }
+
+  async function requestAiCoaching() {
+    const btn = $('#btnAiCoaching');
+    if (!btn || !state.currentQuarterId) return;
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = '🤖 생성 중...';
+    try {
+      const res = await api('/api/ms-ai-coaching', {
+        method: 'POST', body: { quarterId: state.currentQuarterId },
+      });
+      if (!res?.ok || !res.coaching) {
+        toast('AI 코칭을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+        return;
+      }
+      const box = $('#aiCoachingBox');
+      if (box) {
+        box.style.display = '';
+        box.innerHTML = `
+          <div class="ms-coaching-box">
+            <div class="ms-coaching-label">🤖 AI 코칭</div>
+            <div class="ms-coaching-text">${escHtml(res.coaching).replace(/\n/g,'<br>')}</div>
+            <button class="ms-btn ms-btn-ghost ms-btn-sm" id="coachingRefresh" style="margin-top:8px">↻ 새로고침</button>
+          </div>`;
+        $('#coachingRefresh')?.addEventListener('click', requestAiCoaching);
+      }
+    } catch (e) {
+      toast('AI 코칭을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel || '🤖 AI 코칭 받기';
+    }
+  }
+
+  /* ★ R29-MS-GAP2-H: SUBMITTED 잠금 안내 배너 적용 */
+  function applySubmittedLock() {
+    const settle = state.settlement || state.dashboard?.settlement;
+    const isLocked = settle && ['SUBMITTED', 'APPROVED', 'PAID'].includes(settle.status);
+    const tabRev = document.getElementById('tabRevenueInput');
+    if (!tabRev) return;
+    // 기존 배너 제거
+    const old = document.getElementById('msLockBanner');
+    if (old) old.remove();
+    // 폼 입력 활성/비활성 토글
+    const formInputs = tabRev.querySelectorAll('input, select, textarea, button');
+    formInputs.forEach(el => { (el).disabled = !!isLocked; });
+    if (isLocked) {
+      const banner = document.createElement('div');
+      banner.id = 'msLockBanner';
+      banner.className = 'ms-locked-banner';
+      banner.innerHTML = '🔒 이 분기는 결산이 제출되어 실적 입력이 마감되었습니다. 수정이 필요하면 슈퍼어드민에게 문의하세요.';
+      tabRev.prepend(banner);
+    }
   }
 
   /* ─── 매출 입력 탭 ─── */
   async function loadAndRenderRevenueList() {
+    applySubmittedLock();
     const list = $('#riList');
     if (!list) return;
     list.innerHTML = '<div class="ms-loading">불러오는 중...</div>';
@@ -364,7 +480,117 @@
       }
       fileEl.value = '';
     });
+
+    /* ★ R29-MS-GAP2-A: AI 자동 분류 (비고 입력 시 debounce 600ms) */
+    let aiClassifyTimer = null;
+    let aiClassifyLastReq = 0;
+    const triggerAiClassify = () => {
+      clearTimeout(aiClassifyTimer);
+      aiClassifyTimer = setTimeout(async () => {
+        const note = ($('#riNote'))?.value?.trim() || '';
+        if (note.length < 4) { renderAiBadge(null); return; }
+        const amount = Number(($('#riAmount'))?.value || 0);
+        const unit = ($('#riUnit'))?.value || '원';
+        const date = ($('#riDate'))?.value || '';
+        const ms = (state.milestones || []).map(m => ({ id: m.id, name: m.name }));
+        if (!ms.length) return;
+        const reqId = ++aiClassifyLastReq;
+        try {
+          const res = await api('/api/ms-ai-classify', {
+            method: 'POST',
+            body: { note, amount, unit, date, milestones: ms },
+          });
+          // 새 요청이 추가로 발생한 경우 stale 응답 무시
+          if (reqId !== aiClassifyLastReq) return;
+          if (res?.ok && res.milestoneId && res.confidence >= 0.5) {
+            const matched = state.milestones.find(x => x.id === res.milestoneId);
+            renderAiBadge(matched ? { id: matched.id, name: matched.name, confidence: res.confidence } : null);
+          } else {
+            renderAiBadge(null);
+          }
+        } catch (e) {
+          console.warn('[ms-ai-classify]', (e)?.message);
+          renderAiBadge(null);
+        }
+      }, 600);
+    };
+
+    const noteEl = $('#riNote');
+    if (noteEl) noteEl.addEventListener('input', triggerAiClassify);
+    const amountEl = $('#riAmount');
+    if (amountEl) amountEl.addEventListener('input', triggerAiClassify);
   });
+
+  /* ★ R29-MS-GAP2-E: 인센티브 breakdown 토글 */
+  function toggleBreakdown() {
+    const kpiRow = $('#msKpiRow');
+    if (!kpiRow) return;
+    const existing = document.getElementById('msBreakdownPanel');
+    if (existing) { existing.remove(); return; }
+    const bd = state.dashboard?.breakdown;
+    const panel = document.createElement('div');
+    panel.id = 'msBreakdownPanel';
+    panel.className = 'ms-breakdown-panel';
+    if (!bd || (!bd.revenue?.length && !bd.nonRevenue?.length)) {
+      panel.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px">상세 내역을 불러올 수 없습니다.</div>';
+    } else {
+      const revRows = (bd.revenue || []).map(r => `
+        <tr>
+          <td>${escHtml(r.milestoneName || '')} <small style="color:#9ca3af">${escHtml(r.milestoneCode || '')}</small></td>
+          <td style="text-align:right">${Number(r.currentAmount || 0).toLocaleString()}</td>
+          <td style="text-align:right">${Number(r.thresholdValue || 0).toLocaleString()}</td>
+          <td style="text-align:right;font-weight:600">${Number(r.subtotal || 0).toLocaleString()}원</td>
+        </tr>`).join('');
+      const nrRows = (bd.nonRevenue || []).map(r => `
+        <tr>
+          <td>${escHtml(r.milestoneName || '')} <small style="color:#9ca3af">${escHtml(r.milestoneCode || '')}</small></td>
+          <td style="text-align:right;font-weight:600">${Number(r.bonus || 0).toLocaleString()}원</td>
+        </tr>`).join('');
+      const inc = state.dashboard?.estimatedIncentive || {};
+      panel.innerHTML = `
+        <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">📊 인센티브 계산 근거</div>
+        ${revRows ? `
+          <div style="font-size:12.5px;font-weight:600;color:#1d4ed8;margin:8px 0 4px">매출연동</div>
+          <table>
+            <thead><tr><th>마일스톤</th><th style="text-align:right">달성액</th><th style="text-align:right">임계점</th><th style="text-align:right">소계</th></tr></thead>
+            <tbody>${revRows}
+              <tr class="total"><td colspan="3" style="text-align:right">소계</td><td style="text-align:right">${Number(inc.revenueLinked || 0).toLocaleString()}원</td></tr>
+            </tbody>
+          </table>` : ''}
+        ${nrRows ? `
+          <div style="font-size:12.5px;font-weight:600;color:#15803d;margin:10px 0 4px">비매출 보너스 (선택 2개)</div>
+          <table>
+            <thead><tr><th>마일스톤</th><th style="text-align:right">보너스</th></tr></thead>
+            <tbody>${nrRows}
+              <tr class="total"><td style="text-align:right">소계</td><td style="text-align:right">${Number(inc.nonRevenue || 0).toLocaleString()}원</td></tr>
+            </tbody>
+          </table>` : ''}
+        <div style="text-align:right;margin-top:10px;font-size:14px;font-weight:800">합계: ${Number(inc.total || 0).toLocaleString()}원</div>`;
+    }
+    kpiRow.insertAdjacentElement('afterend', panel);
+  }
+
+  /* ★ R29-MS-GAP2-A: AI 추천 배지 렌더링 */
+  function renderAiBadge(rec) {
+    const milSel = $('#riMilestoneId');
+    if (!milSel) return;
+    let badge = document.getElementById('riAiBadge');
+    if (!rec) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'riAiBadge';
+      badge.className = 'ms-ai-badge';
+      badge.style.cssText = 'display:inline-block;margin-left:8px;padding:4px 10px;background:#ede9fe;color:#5b21b6;border-radius:12px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid #c4b5fd';
+      milSel.parentElement?.appendChild(badge);
+    }
+    badge.textContent = `🤖 추천: ${rec.name} (${Math.round(rec.confidence*100)}%)`;
+    badge.title = '클릭하여 적용';
+    badge.onclick = () => {
+      milSel.value = String(rec.id);
+      milSel.dispatchEvent(new Event('change'));
+      badge.remove();
+    };
+  }
 
   async function saveRevenueEntry() {
     const milestoneDefinitionId = Number(($('#riMilestoneId')).value);
@@ -574,7 +800,7 @@
             ${checkEl}
             <div class="ms-ach-body" style="flex:1">
               <div class="ms-ach-name" style="${nameStyle}">${escHtml(a.name||a.milestoneName||'')}</div>
-              <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
+              <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',REVIEWED:'검토 완료',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
               ${a.description ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">${escHtml(a.description)}</div>` : ''}
             </div>
             <div class="ms-ach-bonus" style="${bonusStyle}">${fmt(a.bonusAmount)}</div>
