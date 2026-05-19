@@ -73,6 +73,11 @@
       return;
     }
 
+    // 사용자 정보 표시 (early return 전에 먼저)
+    const roleLabel = { SM: '사무국장', PM: '정책국장', SI: 'SI관리자' };
+    const _sub = $('#msSubtitle');
+    if (_sub) _sub.textContent = `${state.member.name || ''} · ${roleLabel[state.member.milestoneRole] || state.member.milestoneRole || state.member.role || ''}`;
+
     // milestoneRole 없으면 안내
     if (!state.member.milestoneRole && !state.isSuperAdmin) {
       const _loading = $('#overviewLoading');
@@ -86,10 +91,6 @@
     if (state.isAdmin) {
       $$('.admin-only').forEach(el => { el.style.display = ''; });
     }
-
-    // 사용자 정보 표시
-    const roleLabel = { SM: '사무국장', PM: '정책국장', SI: 'SI관리자' };
-    $('#msSubtitle').textContent = `${state.member.name || ''} · ${roleLabel[state.member.milestoneRole] || state.member.milestoneRole || ''} · ${state.member.role}`;
 
     // 분기 목록 로드
     await loadQuarters();
