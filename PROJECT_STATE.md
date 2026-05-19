@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **✅ R29-GAP-P1 머지 완료 + C 검증 트리거 발사** (main @ b8f52d5) — B 175c0ea(성과 H1~H5)·A 2e61cac(근태 H1~H5 + 카카오 H4b) 양쪽 main 머지·push. operator-guard 신규·admin-att-workplace 단수 삭제·att-geocode-search 신규. C 검증 트리거 대기 |
 | 2026-05-19 | **메인** | **🔧 사이드바 메뉴 누락 fix + R29-GAP 카카오 거점 흡수 + R30 KST 설계** (main @ a1b56ef) — workspace-attendance·admin-milestone-settings 사이드바 통일 + ws-sidebar-role.js 로드. P1 A에 H4b 카카오 주소 검색 추가. R30(KST 표시 영역) 설계서 작성, P1 머지 후 발사 |
 | 2026-05-19 | **메인** | **📐 R29-GAP 설계 완료 + P1 트리거 발사 대기** (main @ 8554e8a) — 설계서 docs/milestones/2026-05-19-r29-gap-fix.md / P1 H 10건(A=근태 5·B=성과 5) / P2 M 8건은 P1 머지 후 / L 10건 REMAINING_WORK로 이관 / gap.md 삭제 |
 | 2026-05-19 | **메인** | **✅ Phase 28 성과관리 완성 C 검증 완료** (main @ a3d8fc3) — 10/10 PASS. A·B Opus 전환 후 근태·성과 정밀 갭 분석 진행 중 |
@@ -62,10 +63,9 @@
 📐 R29-GAP 설계 완료 (docs/milestones/2026-05-19-r29-gap-fix.md)
 
 🔍 진행 중
-   - R29-GAP-P1 트리거 발사 대기 (Swain 복붙 → A·B 채팅 시작)
-   - A 채팅 (Opus): 근태 어드민 H1~H5 — feature/r29-gap-p1-att-admin
-   - B 채팅 (Opus): 성과 어드민 H1~H5 — feature/r29-gap-p1-milestone-keys
-   - P2 (M 우선순위)는 P1 머지·C 검증 PASS 후 발사
+   - R29-GAP-P1 머지 완료 (main @ b8f52d5) — A·B 둘 다 main 안착
+   - C 검증 트리거 발사 (Q1~Q10 + 카카오 거점 검증 추가)
+   - P2 (M 우선순위)·R30(KST)은 C 검증 PASS 후 발사
 
 📋 운영 액션 (Swain 직접)
    - OP-1: 2026 Q2 분기 등록 (admin-milestone-settings.html 분기관리 탭)
