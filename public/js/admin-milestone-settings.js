@@ -5,8 +5,14 @@
 (function () {
   'use strict';
 
-  var state = { defs: [], members: [], quarters: [], editingId: null };
-  var ROLE_LABEL = { SM: 'SM — 사무국장', PM: 'PM — 정책국장', SI: 'SI — SI관리자' };
+  var state = { defs: [], members: [], quarters: [], editingId: null, roles: [] };
+  /* R39 Stage 3: ROLE_LABEL 상수 제거 — 헬퍼·DB 카탈로그에서 동적 해석.
+     fallback 함수: 카탈로그 응답 도착 전에도 코드 그대로 노출. */
+  function _roleLabel(code) {
+    if (!code) return '— 미배정 —';
+    var r = (state.roles || []).find(function(x){ return x.code === code; });
+    return r ? (r.code + ' — ' + (r.name || r.code)) : code;
+  }
   var CAT_LABEL  = { REVENUE_LINKED: '매출연동', NON_REVENUE: '비매출' };
 
   function $(s) { return document.querySelector(s); }
@@ -115,7 +121,8 @@
     $('#defCode').disabled = false;
     $('#defCategory').value = 'REVENUE_LINKED';
     $('#defName').value = '';
-    $('#defRole').value = 'SM';
+    /* R39 Stage 3: 첫 옵션을 기본값 (역할 카탈로그 동적·SM 고정 불가) */
+    (function(){ var r = $('#defRole'); if (r && r.options.length > 0) r.selectedIndex = 0; })();
     $('#defQuarter').value = '';
     $('#defThresholdEnabled').checked = false;
     $('#defThresholdValue').value = '';
@@ -142,7 +149,24 @@
     $('#defCode').disabled = true;
     $('#defCategory').value = d.category;
     $('#defName').value = d.name;
-    $('#defRole').value = d.target_milestone_role;
+    /* R39 Stage 3: 옛 정의의 역할 코드가 카탈로그에서 비활성/삭제된 경우 옵션 추가 후 선택 */
+    (function(){
+      var sel = $('#defRole');
+      var code = d.target_milestone_role || '';
+      if (sel && code) {
+        var has = false;
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === code) { has = true; break; }
+        }
+        if (!has) {
+          var o = document.createElement('option');
+          o.value = code;
+          o.textContent = code + ' (비활성·이전 정의)';
+          sel.appendChild(o);
+        }
+        sel.value = code;
+      }
+    })();
     $('#defQuarter').value = d.quarter_applicable || '';
     $('#defThresholdEnabled').checked = !!d.threshold_enabled;
     $('#defThresholdValue').value = d.threshold_value || '';
@@ -242,10 +266,20 @@
         operator: '<span class="mst-badge si">오퍼레이터</span>',
       }[m.role] || '<span class="mst-badge none">' + esc(m.role||'-') + '</span>';
 
-      var milestoneOpts = ['', 'SM', 'PM', 'SI'].map(function(v) {
+      /* R39 Stage 3: 옵션 동적 — 활성 역할 카탈로그 기준 */
+      var roleCodes = (state.roles || []).map(function(x){ return x.code; });
+      var milestoneOpts = [''].concat(roleCodes).map(function(v) {
+        var label = v ? (function(){
+          var rr = (state.roles || []).find(function(x){ return x.code === v; });
+          return rr ? (rr.code + ' — ' + (rr.name || rr.code)) : v;
+        })() : '— 미배정 —';
         return '<option value="' + v + '"' + (m.milestone_role === v ? ' selected' : '') + '>'
-          + (v ? ROLE_LABEL[v] : '— 미배정 —') + '</option>';
+          + label + '</option>';
       }).join('');
+      /* 현재 직원의 역할이 카탈로그에 없는 경우(비활성 코드) 옵션 추가 */
+      if (m.milestone_role && !roleCodes.includes(m.milestone_role)) {
+        milestoneOpts += '<option value="' + m.milestone_role + '" selected>' + m.milestone_role + ' (비활성)</option>';
+      }
 
       return '<tr id="member-row-' + m.id + '">' +
         '<td style="font-weight:500">' + esc(m.name) + '</td>' +
@@ -372,6 +406,29 @@
       await loadQuarters();
     } catch(e) {
       toast('저장 실패: ' + e.message, 'error');
+    }
+  }
+
+  /* ════════════════════════════════════════
+     R39 Stage 3: 역할 카탈로그 로드 + 드롭다운 동적 채움
+  ════════════════════════════════════════ */
+  async function loadRolesAndFillDropdowns() {
+    try {
+      if (window.MilestoneRoles) {
+        state.roles = await window.MilestoneRoles.loadActiveRoles();
+      } else {
+        var res = await api('/api/milestone-roles');
+        state.roles = (res && res.data && res.data.roles) || [];
+      }
+    } catch (e) {
+      state.roles = [];
+    }
+    // defRole 동적 채움
+    var defRole = $('#defRole');
+    if (defRole) {
+      defRole.innerHTML = state.roles.map(function(r) {
+        return '<option value="' + r.code + '">' + r.code + ' — ' + (r.name || r.code) + '</option>';
+      }).join('');
     }
   }
 
@@ -543,6 +600,169 @@
     }
   };
 
+  /* ════════════════════════════════════════
+     R39 Stage 3: 대상 역할 관리 탭 (5번째 탭)
+     - /api/milestone-roles GET·POST·PATCH·DELETE 사용
+     - 변경 시 sessionStorage 캐시 무효화 + 드롭다운 재구성
+  ════════════════════════════════════════ */
+  state.editingRoleId = null;
+
+  async function loadRoleMgmt() {
+    var tbody = $('#roleMgmtBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>';
+    try {
+      // 비활성 포함 — 관리 화면이므로 전체 노출
+      var res = await api('/api/milestone-roles?includeInactive=1');
+      var roles = (res && res.data && res.data.roles) || [];
+      renderRoleMgmtTable(roles);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
+    }
+  }
+
+  function renderRoleMgmtTable(roles) {
+    var tbody = $('#roleMgmtBody');
+    if (!roles.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">등록된 역할이 없습니다. "+ 신규 등록" 버튼을 누르세요.</td></tr>';
+      return;
+    }
+    // id 매핑 캐시 (편집·삭제 버튼에서 사용)
+    state._rolesById = {};
+    roles.forEach(function(r){ state._rolesById[r.id] = r; });
+
+    tbody.innerHTML = roles.map(function(r) {
+      var activeBadge = r.isActive
+        ? '<span class="mst-badge active">활성</span>'
+        : '<span class="mst-badge inactive">비활성</span>';
+      var actionBtns = r.isActive
+        ? '<button class="mst-btn secondary" style="padding:4px 10px;font-size:12px" onclick="editRole(' + r.id + ')">편집</button>'
+          + '<button class="mst-btn danger" style="padding:4px 10px;font-size:12px;margin-left:6px" onclick="deactivateRole(' + r.id + ')">비활성화</button>'
+        : '<button class="mst-btn secondary" style="padding:4px 10px;font-size:12px" onclick="editRole(' + r.id + ')">편집</button>'
+          + '<button class="mst-btn primary" style="padding:4px 10px;font-size:12px;margin-left:6px" onclick="reactivateRole(' + r.id + ')">활성화</button>';
+      return '<tr>' +
+        '<td><code style="font-size:12.5px;background:#f1f5f9;padding:2px 6px;border-radius:4px;font-weight:600">' + esc(r.code) + '</code></td>' +
+        '<td style="font-weight:500">' + esc(r.name) + '</td>' +
+        '<td style="color:#6b7280;font-size:12.5px">' + esc(r.description || '-') + '</td>' +
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">' + (r.sortOrder ?? 0) + '</td>' +
+        '<td>' + activeBadge + '</td>' +
+        '<td>' + actionBtns + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function openAddRole() {
+    state.editingRoleId = null;
+    $('#roleModalTitle').textContent = '역할 등록';
+    $('#roleId').value = '';
+    $('#roleCode').value = '';
+    $('#roleCode').disabled = false;
+    $('#roleName').value = '';
+    $('#roleDescription').value = '';
+    $('#roleSortOrder').value = '0';
+    $('#roleIsActive').checked = true;
+    $('#roleActiveGroup').style.display = 'none';
+    $('#roleModal').classList.add('open');
+    setTimeout(function(){ $('#roleCode').focus(); }, 50);
+  }
+
+  window.editRole = function(id) {
+    var r = state._rolesById && state._rolesById[id];
+    if (!r) return;
+    state.editingRoleId = id;
+    $('#roleModalTitle').textContent = '역할 편집';
+    $('#roleId').value = id;
+    $('#roleCode').value = r.code;
+    $('#roleCode').disabled = true; // 코드는 변경 불가
+    $('#roleName').value = r.name || '';
+    $('#roleDescription').value = r.description || '';
+    $('#roleSortOrder').value = r.sortOrder ?? 0;
+    $('#roleIsActive').checked = !!r.isActive;
+    $('#roleActiveGroup').style.display = '';
+    $('#roleModal').classList.add('open');
+  };
+
+  window.deactivateRole = async function(id) {
+    var r = state._rolesById && state._rolesById[id];
+    if (!r) return;
+    if (!confirm('[' + r.code + ' (' + r.name + ')] 역할을 비활성화하시겠습니까?\n과거 결산·정의는 그대로 보존되고 드롭다운에서만 사라집니다.')) return;
+    try {
+      await api('/api/milestone-roles/' + id, { method: 'DELETE' });
+      toast('비활성화 완료', 'success');
+      if (window.MilestoneRoles) window.MilestoneRoles.invalidateCache();
+      await loadRoleMgmt();
+      await loadRolesAndFillDropdowns();
+    } catch (e) {
+      toast('비활성화 실패: ' + e.message, 'error');
+    }
+  };
+
+  window.reactivateRole = async function(id) {
+    var r = state._rolesById && state._rolesById[id];
+    if (!r) return;
+    try {
+      await api('/api/milestone-roles/' + id, {
+        method: 'PATCH',
+        body: { isActive: true },
+      });
+      toast('활성화 완료', 'success');
+      if (window.MilestoneRoles) window.MilestoneRoles.invalidateCache();
+      await loadRoleMgmt();
+      await loadRolesAndFillDropdowns();
+    } catch (e) {
+      toast('활성화 실패: ' + e.message, 'error');
+    }
+  };
+
+  async function saveRole() {
+    var codeRaw = ($('#roleCode').value || '').trim().toUpperCase();
+    var name = ($('#roleName').value || '').trim();
+    var description = ($('#roleDescription').value || '').trim();
+    var sortOrder = Number($('#roleSortOrder').value || 0);
+    var isActive = $('#roleIsActive').checked;
+
+    if (!state.editingRoleId) {
+      // 신규: 코드 형식 검증
+      if (!/^[A-Z]{2,10}$/.test(codeRaw)) {
+        toast('코드는 영문 대문자 2~10자 (예: SM, MARKETING)', 'error'); return;
+      }
+    }
+    if (!name) { toast('이름은 필수입니다', 'error'); return; }
+    if (name.length > 50) { toast('이름은 50자 이내', 'error'); return; }
+
+    try {
+      if (state.editingRoleId) {
+        await api('/api/milestone-roles/' + state.editingRoleId, {
+          method: 'PATCH',
+          body: {
+            name: name,
+            description: description || null,
+            sortOrder: sortOrder,
+            isActive: isActive,
+          },
+        });
+        toast('역할 수정 완료', 'success');
+      } else {
+        await api('/api/milestone-roles', {
+          method: 'POST',
+          body: {
+            code: codeRaw,
+            name: name,
+            description: description || null,
+            sortOrder: sortOrder,
+          },
+        });
+        toast('역할 등록 완료', 'success');
+      }
+      $('#roleModal').classList.remove('open');
+      if (window.MilestoneRoles) window.MilestoneRoles.invalidateCache();
+      await loadRoleMgmt();
+      await loadRolesAndFillDropdowns();
+    } catch (e) {
+      // 중복 코드 409·검증 400 등 서버 detail 노출
+      toast('저장 실패: ' + e.message, 'error');
+    }
+  }
+
   /* ── 초기화 ── */
   document.addEventListener('DOMContentLoaded', async function() {
     // super_admin 체크
@@ -561,12 +781,16 @@
 
     initTabs();
 
+    /* R39 Stage 3: 역할 카탈로그 1회 로드 → defRole 동적 채움 (이후 역할 관리 탭에서 갱신) */
+    await loadRolesAndFillDropdowns();
+
     // 탭 전환 시 데이터 로드
     $$('.mst-tab').forEach(function(btn) {
       btn.addEventListener('click', function() {
         if (btn.dataset.tab === 'roles' && !state.members.length) loadMembers();
         if (btn.dataset.tab === 'quarters') loadQuarters();
         if (btn.dataset.tab === 'bymember') loadByMember();
+        if (btn.dataset.tab === 'rolemgmt') loadRoleMgmt();
       });
     });
 
@@ -592,6 +816,20 @@
       if (roleSel && state.bmCurrent.milestone_role) {
         roleSel.value = state.bmCurrent.milestone_role;
       }
+    });
+
+    // 모달 이벤트 — 대상 역할 관리 (R39 Stage 3)
+    $('#btnAddRole').addEventListener('click', openAddRole);
+    $('#btnRoleCancel').addEventListener('click', function(){ $('#roleModal').classList.remove('open'); });
+    $('#btnRoleSave').addEventListener('click', saveRole);
+    $('#roleModal').addEventListener('click', function(e) {
+      if (e.target === $('#roleModal')) $('#roleModal').classList.remove('open');
+    });
+    // 코드 입력 시 자동 대문자 변환
+    $('#roleCode').addEventListener('input', function(e) {
+      var v = e.target.value;
+      var up = v.toUpperCase().replace(/[^A-Z]/g, '');
+      if (v !== up) e.target.value = up;
     });
 
     // 모달 이벤트 — 분기 관리

@@ -94,6 +94,7 @@
       <button class="mst-tab" data-tab="roles">👥 직원 역할 배정</button>
       <button class="mst-tab" data-tab="quarters">📅 분기 관리</button>
       <button class="mst-tab" data-tab="bymember">👤 직원별 마일스톤</button>
+      <button class="mst-tab" data-tab="rolemgmt">🎯 대상 역할 관리</button>
     </div>
 
     <!-- 탭 패널 1: 마일스톤 정의 -->
@@ -171,6 +172,35 @@
       </div>
     </div>
 
+    <!-- 탭 패널 5: 대상 역할 관리 (R39 Stage 3) -->
+    <div class="mst-tab-panel" id="tabRolemgmt">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <p style="font-size:13px;color:#6b7280;margin:0">성과 담당 역할을 자유롭게 추가·수정·비활성화합니다. 신규 역할은 모든 화면에 즉시 반영됩니다.</p>
+        <button class="mst-btn primary" id="btnAddRole">+ 신규 등록</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="mst-table">
+          <thead>
+            <tr>
+              <th style="width:90px">코드</th>
+              <th>이름</th>
+              <th>설명</th>
+              <th style="text-align:right;width:80px">정렬</th>
+              <th style="width:80px">활성</th>
+              <th style="width:160px">관리</th>
+            </tr>
+          </thead>
+          <tbody id="roleMgmtBody">
+            <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;margin-top:12px;line-height:1.7">
+        💡 비활성화한 역할은 신규 마일스톤·직원 배정 드롭다운에서 사라지지만 과거 결산·정의는 그대로 보존됩니다.
+        다시 활성화하면 즉시 복귀합니다.
+      </p>
+    </div>
+
     <!-- 탭 패널 4: 직원별 마일스톤 (R38 A-1) -->
     <div class="mst-tab-panel" id="tabBymember">
       <p style="font-size:13px;color:#6b7280;margin:0 0 16px">직원별로 본인이 담당하는 마일스톤을 일람·관리합니다. 행을 클릭하면 해당 직원의 성과 역할에 매핑된 마일스톤 정의가 모달로 열립니다.</p>
@@ -195,6 +225,43 @@
 
   </div><!-- /content -->
 </main>
+
+<!-- 역할 등록·편집 모달 (R39 Stage 3) -->
+<div class="mst-overlay" id="roleModal">
+  <div class="mst-modal" style="max-width:480px">
+    <h3 id="roleModalTitle">역할 등록</h3>
+    <input type="hidden" id="roleId">
+    <div class="mst-form-group">
+      <label>코드 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="roleCode" placeholder="예: SM, MARKETING" maxlength="10" style="text-transform:uppercase">
+      <div class="mst-hint">영문 대문자 2~10자 (수정 시 변경 불가)</div>
+    </div>
+    <div class="mst-form-group">
+      <label>이름 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="roleName" placeholder="예: 사무국장, 마케팅실장" maxlength="50">
+    </div>
+    <div class="mst-form-group">
+      <label>설명</label>
+      <input type="text" id="roleDescription" placeholder="간단한 설명 (선택)">
+    </div>
+    <div class="mst-form-row">
+      <div class="mst-form-group">
+        <label>정렬순서</label>
+        <input type="number" id="roleSortOrder" value="0" min="0" step="1">
+      </div>
+      <div class="mst-form-group" id="roleActiveGroup" style="display:none">
+        <label>
+          <input type="checkbox" id="roleIsActive" style="width:auto;margin-right:5px" checked>
+          활성화
+        </label>
+      </div>
+    </div>
+    <div class="mst-modal-footer">
+      <button class="mst-btn secondary" id="btnRoleCancel">취소</button>
+      <button class="mst-btn primary" id="btnRoleSave">저장</button>
+    </div>
+  </div>
+</div>
 
 <!-- 직원별 마일스톤 모달 (R38 A-1) -->
 <div class="mst-overlay" id="byMemberModal">
@@ -295,11 +362,8 @@
     <div class="mst-form-row">
       <div class="mst-form-group">
         <label>대상 역할 <span style="color:#ef4444">*</span></label>
-        <select id="defRole">
-          <option value="SM">SM — 사무국장</option>
-          <option value="PM">PM — 정책국장</option>
-          <option value="SI">SI — SI관리자</option>
-        </select>
+        <!-- R39 Stage 3: 옵션은 admin-milestone-settings.js에서 /api/milestone-roles 응답으로 동적 채움 -->
+        <select id="defRole"></select>
       </div>
       <div class="mst-form-group">
         <label>적용 분기</label>
@@ -373,7 +437,8 @@
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3" defer></script>
-<script src="/js/admin-milestone-settings.js?v=4-r38" defer></script>
+<script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
+<script src="/js/admin-milestone-settings.js?v=5-r39" defer></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
 </body>
 </html>
