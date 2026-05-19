@@ -31,14 +31,14 @@
     window._attToast = setTimeout(() => { el.style.opacity = '0'; }, ms);
   }
 
-  /* ─── 날짜 포맷 ─── */
+  /* ─── 날짜 포맷 (KST 통일) ─── */
   function fmtDate(d) {
     const dt = d ? new Date(d) : new Date();
-    return dt.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return dt.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });
   }
   function fmtTime(d) {
     if (!d) return '—';
-    return new Date(d).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
   }
   function toDateStr(d) {
     const dt = d ? new Date(d) : new Date();
