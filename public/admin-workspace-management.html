@@ -415,47 +415,64 @@
         <div class="att-form-row">
           <div class="att-form-group">
             <label>표준 출근 시각</label>
-            <input type="time" id="awmPolicyCheckinTime" value="09:00">
+            <input type="time" id="awmPolicyCheckInTime" value="09:00">
           </div>
           <div class="att-form-group">
             <label>표준 퇴근 시각</label>
-            <input type="time" id="awmPolicyCheckoutTime" value="18:00">
+            <input type="time" id="awmPolicyCheckOutTime" value="18:00">
           </div>
         </div>
         <div class="att-form-row">
           <div class="att-form-group">
             <label>지각 허용 (분)</label>
-            <input type="number" id="awmPolicyLateGrace" value="10" min="0" max="60">
+            <input type="number" id="awmPolicyLateGraceMins" value="10" min="0" max="60">
           </div>
           <div class="att-form-group">
             <label>조기 퇴근 허용 (분)</label>
-            <input type="number" id="awmPolicyEarlyLeave" value="0" min="0" max="60">
+            <input type="number" id="awmPolicyEarlyLeaveGraceMins" value="10" min="0" max="60">
           </div>
         </div>
         <div class="att-form-row">
           <div class="att-form-group">
-            <label>야근 기준 시간 (시간)</label>
-            <input type="number" id="awmPolicyOvertimeAfter" value="8" min="6" max="12" step="0.5">
+            <label>일 표준 근로 (시간)</label>
+            <input type="number" id="awmPolicyDailyHours" value="8" min="1" max="12" step="0.5">
           </div>
           <div class="att-form-group">
-            <label>연간 기본 연차 (일)</label>
-            <input type="number" id="awmPolicyAnnualLeave" value="15" min="0" max="30">
+            <label>휴게 시간 (분)</label>
+            <input type="number" id="awmPolicyBreakMins" value="60" min="0" max="180">
           </div>
         </div>
         <div class="att-form-row">
           <div class="att-form-group">
-            <label>주 소정 근무일</label>
-            <select id="awmPolicyWorkDaysPerWeek">
-              <option value="5">5일 (월~금)</option>
-              <option value="6">6일 (월~토)</option>
-            </select>
+            <label>휴게 부여 기준 (시간)</label>
+            <input type="number" id="awmPolicyBreakThresholdHours" value="4" min="0" max="12" step="0.5">
           </div>
           <div class="att-form-group">
-            <label>GPS 위치 검증 사용</label>
-            <select id="awmPolicyGpsCheck">
-              <option value="true">사용</option>
+            <label>주간 최대 근로 (시간)</label>
+            <input type="number" id="awmPolicyWeeklyMaxHours" value="52" min="20" max="80">
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>코어타임 시작</label>
+            <input type="time" id="awmPolicyCoreStartTime" value="10:00">
+          </div>
+          <div class="att-form-group">
+            <label>코어타임 종료</label>
+            <input type="time" id="awmPolicyCoreEndTime" value="16:00">
+          </div>
+        </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>탄력근무 사용</label>
+            <select id="awmPolicyFlexEnabled">
               <option value="false">미사용</option>
+              <option value="true">사용</option>
             </select>
+          </div>
+          <div class="att-form-group">
+            <label>월 재택 최대 (일)</label>
+            <input type="number" id="awmPolicyRemoteMaxPerMonth" value="10" min="0" max="31">
           </div>
         </div>
         <button class="att-btn att-btn-primary" id="awmBtnSavePolicy">정책 저장</button>
@@ -614,6 +631,6 @@
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-workspace-management.js?v=5"></script>
+<script src="/js/admin-workspace-management.js?v=7"></script>
 </body>
 </html>

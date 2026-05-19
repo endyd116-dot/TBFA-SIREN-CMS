@@ -212,7 +212,7 @@
 
   async function loadMemberDropdown(selId) {
     const res = await api('/api/admin-att-members');
-    const members = res.data?.data || res.data || [];
+    const members = res.data?.data?.members ?? [];
     const sel = document.getElementById(selId);
     if (!sel || !Array.isArray(members)) return;
     while (sel.options.length > 1) sel.remove(1);
@@ -247,9 +247,9 @@
     const btn = document.getElementById('awmBtnSaveSchedule');
     if (btn) btn.disabled = true;
 
-    const res = await api('/api/admin-att-member-schedule', {
+    const res = await api('/api/admin-att-schedules', {
       method: 'POST',
-      body: { memberUid: uid, mode, fromDate: from, toDate: to || null, hybridConfig },
+      body: { memberUid: uid, workMode: mode, startDate: from, endDate: to || null, recurringRule: hybridConfig },
     });
     if (!res.ok) {
       toast('저장 실패: ' + (res.data?.error || ''));
@@ -262,7 +262,7 @@
   }
 
   async function loadScheduleList() {
-    const res = await api('/api/admin-att-member-schedule');
+    const res = await api('/api/admin-att-schedules');
     const rows = res.data?.data || res.data || [];
     const tbody = document.getElementById('awmScheduleListBody');
     if (!tbody) return;
@@ -273,8 +273,8 @@
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td>${escHtml(r.memberName || r.memberUid || '—')}</td>
-        <td><span class="awm-tag ${r.mode || ''}">${MODE_LABEL[r.mode] || r.mode || '—'}</span></td>
-        <td>${escHtml(r.fromDate || '—')} ~ ${escHtml(r.toDate || '계속')}</td>
+        <td><span class="awm-tag ${r.workMode || ''}">${MODE_LABEL[r.workMode] || r.workMode || '—'}</span></td>
+        <td>${escHtml(r.startDate || '—')} ~ ${escHtml(r.endDate || '계속')}</td>
       </tr>`).join('');
   }
 
@@ -476,15 +476,19 @@
     const res = await api('/api/admin-att-policy');
     const p = res.data?.data || res.data || {};
 
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
-    setVal('awmPolicyCheckinTime', p.checkinTime || '09:00');
-    setVal('awmPolicyCheckoutTime', p.checkoutTime || '18:00');
-    setVal('awmPolicyLateGrace', p.lateGraceMinutes ?? 10);
-    setVal('awmPolicyEarlyLeave', p.earlyLeaveMinutes ?? 0);
-    setVal('awmPolicyOvertimeAfter', p.overtimeAfterHours ?? 8);
-    setVal('awmPolicyAnnualLeave', p.annualLeaveDays ?? 15);
-    setVal('awmPolicyWorkDaysPerWeek', p.workDaysPerWeek ?? 5);
-    setVal('awmPolicyGpsCheck', p.gpsCheckEnabled !== false ? 'true' : 'false');
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+    setVal('awmPolicyCheckInTime', p.checkInTime || '09:00');
+    setVal('awmPolicyCheckOutTime', p.checkOutTime || '18:00');
+    setVal('awmPolicyLateGraceMins', p.lateGraceMins ?? 10);
+    setVal('awmPolicyEarlyLeaveGraceMins', p.earlyLeaveGraceMins ?? 10);
+    setVal('awmPolicyDailyHours', p.dailyHours ?? 8);
+    setVal('awmPolicyBreakMins', p.breakMins ?? 60);
+    setVal('awmPolicyBreakThresholdHours', p.breakThresholdHours ?? 4);
+    setVal('awmPolicyWeeklyMaxHours', p.weeklyMaxHours ?? 52);
+    setVal('awmPolicyCoreStartTime', p.coreStartTime || '10:00');
+    setVal('awmPolicyCoreEndTime', p.coreEndTime || '16:00');
+    setVal('awmPolicyFlexEnabled', p.flexEnabled ? 'true' : 'false');
+    setVal('awmPolicyRemoteMaxPerMonth', p.remoteMaxPerMonth ?? 10);
 
     document.getElementById('awmBtnSavePolicy')?.addEventListener('click', savePolicy);
   }
@@ -492,14 +496,18 @@
   async function savePolicy() {
     const val = (id) => document.getElementById(id)?.value;
     const body = {
-      checkinTime: val('awmPolicyCheckinTime'),
-      checkoutTime: val('awmPolicyCheckoutTime'),
-      lateGraceMinutes: Number(val('awmPolicyLateGrace')) || 0,
-      earlyLeaveMinutes: Number(val('awmPolicyEarlyLeave')) || 0,
-      overtimeAfterHours: parseFloat(val('awmPolicyOvertimeAfter')) || 8,
-      annualLeaveDays: Number(val('awmPolicyAnnualLeave')) || 15,
-      workDaysPerWeek: Number(val('awmPolicyWorkDaysPerWeek')) || 5,
-      gpsCheckEnabled: val('awmPolicyGpsCheck') === 'true',
+      checkInTime:         val('awmPolicyCheckInTime'),
+      checkOutTime:        val('awmPolicyCheckOutTime'),
+      lateGraceMins:       Number(val('awmPolicyLateGraceMins')) || 0,
+      earlyLeaveGraceMins: Number(val('awmPolicyEarlyLeaveGraceMins')) || 0,
+      dailyHours:          parseFloat(val('awmPolicyDailyHours')) || 8,
+      breakMins:           Number(val('awmPolicyBreakMins')) || 0,
+      breakThresholdHours: parseFloat(val('awmPolicyBreakThresholdHours')) || 4,
+      weeklyMaxHours:      Number(val('awmPolicyWeeklyMaxHours')) || 52,
+      coreStartTime:       val('awmPolicyCoreStartTime') || null,
+      coreEndTime:         val('awmPolicyCoreEndTime') || null,
+      flexEnabled:         val('awmPolicyFlexEnabled') === 'true',
+      remoteMaxPerMonth:   Number(val('awmPolicyRemoteMaxPerMonth')) || 0,
     };
     const btn = document.getElementById('awmBtnSavePolicy');
     if (btn) btn.disabled = true;
