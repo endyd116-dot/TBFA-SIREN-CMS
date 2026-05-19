@@ -27,6 +27,8 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status");
+    /* ★ R29-GAP-P2-M3: memberId 필터 + 단건 응답 키 */
+    const memberIdQ = url.searchParams.get("memberId");
     try {
       let q = `
         SELECT qs.*, q.year, q.quarter, m.name as member_name, m.milestone_role
@@ -38,6 +40,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const params: any[] = [];
       if (status && status !== "ALL") { params.push(status); q += ` AND qs.status = $${params.length}`; }
       if (quarterId) { params.push(Number(quarterId)); q += ` AND qs.quarter_id = $${params.length}`; }
+      if (memberIdQ) { params.push(Number(memberIdQ)); q += ` AND qs.member_id = $${params.length}`; }
       q += ` ORDER BY q.year DESC, q.quarter DESC, qs.submitted_at DESC LIMIT 100`;
       const rows = await db.execute(sql.raw(q, params));
       const settlements = ((rows as any).rows || (rows as any[])).map((r: any) => ({
@@ -52,7 +55,15 @@ export default async function handler(req: Request, _ctx: Context) {
         approvedAt: r.approved_at, paidAt: r.paid_at,
         calculationSnapshot: r.calculation_snapshot,
       }));
-      return Response.json({ ok: true, data: { settlements } });
+      /* ★ R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키, 아니면 null */
+      let settlement: any = null;
+      if (quarterId && memberIdQ) {
+        settlement = settlements.find((s: any) =>
+          Number(s.quarterId) === Number(quarterId) &&
+          Number(s.memberId) === Number(memberIdQ)
+        ) || null;
+      }
+      return Response.json({ ok: true, data: { settlements, settlement } });
     } catch (err) { return jsonError("select", err); }
   }
 

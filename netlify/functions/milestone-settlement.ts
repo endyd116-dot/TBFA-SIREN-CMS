@@ -22,6 +22,8 @@ export default async function handler(req: Request, _ctx: Context) {
   // ── GET 내 결산 ──
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
+    /* ★ R29-GAP-P2-M3: memberId 파라미터 수용 (본인 결산 강제 — 다른 id는 무시) */
+    const memberIdQ = url.searchParams.get("memberId");
     try {
       let q = `SELECT qs.*, q.year, q.quarter, q.status as quarter_status
                FROM quarterly_settlements qs
@@ -32,7 +34,15 @@ export default async function handler(req: Request, _ctx: Context) {
       q += ` ORDER BY q.year DESC, q.quarter DESC LIMIT 10`;
       const rows = await db.execute(sql.raw(q, params));
       const settlements = ((rows as any).rows || (rows as any[])).map(formatSettle);
-      return Response.json({ ok: true, data: { settlements } });
+      /* ★ R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키 추가 */
+      let settlement: any = null;
+      const memberIdMatch = !memberIdQ || Number(memberIdQ) === Number(admin.id);
+      if (quarterId && memberIdMatch) {
+        settlement = settlements.find((s: any) =>
+          Number(s.quarterId) === Number(quarterId)
+        ) || null;
+      }
+      return Response.json({ ok: true, data: { settlements, settlement } });
     } catch (err) { return jsonError("select", err); }
   }
 

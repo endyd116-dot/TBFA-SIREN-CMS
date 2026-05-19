@@ -57,7 +57,9 @@ export default async function handler(req: Request, _ctx: Context) {
         FROM milestone_definitions
         ORDER BY sort_order, id
       `);
-      return Response.json({ ok: true, data: (rows as any).rows ?? rows });
+      /* ★ R29-GAP-P2-M2: 두 정의 API 응답 표준 통일 — { data: { milestones: [...] } } */
+      const milestones = (rows as any).rows ?? rows;
+      return Response.json({ ok: true, data: { milestones } });
     } catch (err) { return jsonErr("select", err); }
   }
 
@@ -97,10 +99,11 @@ export default async function handler(req: Request, _ctx: Context) {
           ${formulaJson}::jsonb, ${quarterApplicable || null},
           ${isSharedThreshold ?? false}, ${sharedThresholdGroup || null},
           true, ${effectiveFrom || null}, ${effectiveTo || null}, ${sortOrder ?? 0}
-        ) RETURNING id
+        ) RETURNING *
       `);
-      const id = ((rows as any).rows ?? rows)[0]?.id;
-      return Response.json({ ok: true, id });
+      const row = ((rows as any).rows ?? rows)[0];
+      /* ★ R29-GAP-P2-M2: 단건 응답도 { data: { milestone: {...} } }로 통일 (id 키 호환 병행 유지) */
+      return Response.json({ ok: true, id: row?.id, data: { milestone: row } });
     } catch (err) { return jsonErr("insert", err); }
   }
 

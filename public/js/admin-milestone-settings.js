@@ -57,7 +57,13 @@
   async function loadDefs() {
     try {
       var res = await api('/api/admin-milestone-definitions');
-      state.defs = res.data || res.defs || [];
+      /* ★ R29-GAP-P2-M2: 정의 API 응답 표준화 — { data: { milestones } } 우선, 옛 키도 흡수 */
+      state.defs =
+        (res && res.data && res.data.milestones) ||
+        (res && res.data && res.data.definitions) ||
+        (Array.isArray(res && res.data) ? res.data : null) ||
+        res.defs ||
+        [];
       renderDefsTable();
     } catch(e) {
       $('#defTableBody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
