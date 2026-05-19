@@ -30,13 +30,15 @@ export default async function handler(req: Request) {
 
   const method = req.method;
 
-  // GET — 거점 목록
+  // GET — 거점 목록 (R35-GAP-P2 M-G2: 기본 is_active=true·?includeInactive=1로 전체 보기)
   if (method === "GET") {
     try {
-      const rows = await db
-        .select()
-        .from(attWorkplaces)
-        .orderBy(attWorkplaces.id);
+      const url = new URL(req.url);
+      const includeInactive = url.searchParams.get("includeInactive") === "1";
+      const query = includeInactive
+        ? db.select().from(attWorkplaces).orderBy(attWorkplaces.id)
+        : db.select().from(attWorkplaces).where(eq(attWorkplaces.isActive, true)).orderBy(attWorkplaces.id);
+      const rows = await query;
       return jsonOk(rows);
     } catch (err) {
       return jsonError("select_workplaces", err);

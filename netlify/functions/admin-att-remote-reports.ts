@@ -1,7 +1,30 @@
 import { db } from "../../db/index";
-import { attRemoteWorkReports, members } from "../../db/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { attRemoteWorkReports, members, workspaceTasks } from "../../db/schema";
+import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+
+// R35-GAP-P2 M-G5: wbsCardIds → wbsCards JOIN helper
+async function fetchWbsCardsMap(allCardIds: number[]): Promise<Record<number, any>> {
+  if (allCardIds.length === 0) return {};
+  try {
+    const cards = await db
+      .select({
+        id: workspaceTasks.id,
+        title: workspaceTasks.title,
+        status: workspaceTasks.status,
+        progress: workspaceTasks.progress,
+      })
+      .from(workspaceTasks)
+      .where(inArray(workspaceTasks.id, allCardIds));
+    return Object.fromEntries(cards.map(c => [c.id, c]));
+  } catch {
+    return {};
+  }
+}
+function buildWbsCards(ids: any, cardMap: Record<number, any>): any[] {
+  if (!Array.isArray(ids)) return [];
+  return ids.map((id: any) => cardMap[Number(id)]).filter((c: any) => c != null);
+}
 
 export const config = { path: "/api/admin/att/remote-reports" };
 
@@ -63,7 +86,11 @@ export default async function handler(req: Request) {
             .limit(1);
           if (m) memberName = m.name ?? memberName;
         } catch {}
-        return jsonOk({ ...r, memberName });
+        // R35-GAP-P2 M-G5: wbsCardIds → wbsCards JOIN
+        const ids = Array.isArray((r as any).wbsCardIds) ? (r as any).wbsCardIds.map((v: any) => Number(v)).filter((n: any) => Number.isFinite(n)) : [];
+        const cardMap = await fetchWbsCardsMap(ids);
+        const wbsCards = buildWbsCards(ids, cardMap);
+        return jsonOk({ ...r, memberName, wbsCards });
       } catch (err) {
         return jsonError("select_one", err);
       }
@@ -107,10 +134,21 @@ export default async function handler(req: Request) {
         } catch {}
       }
 
-      const data = reports.map(r => ({
-        ...r,
-        memberName: memberMap[String(r.memberUid)] ?? `멤버 #${r.memberUid}`,
-      }));
+      // R35-GAP-P2 M-G5: wbsCardIds → wbsCards JOIN (목록 전체에서 한번에 카드 조회)
+      const allCardIds = Array.from(new Set(
+        reports.flatMap(r => Array.isArray((r as any).wbsCardIds) ? (r as any).wbsCardIds.map((v: any) => Number(v)) : [])
+              .filter(n => Number.isFinite(n))
+      ));
+      const cardMap = await fetchWbsCardsMap(allCardIds);
+
+      const data = reports.map(r => {
+        const ids = Array.isArray((r as any).wbsCardIds) ? (r as any).wbsCardIds.map((v: any) => Number(v)).filter((n: any) => Number.isFinite(n)) : [];
+        return {
+          ...r,
+          memberName: memberMap[String(r.memberUid)] ?? `멤버 #${r.memberUid}`,
+          wbsCards: buildWbsCards(ids, cardMap),
+        };
+      });
 
       return jsonOk(data);
     } catch (err) {
