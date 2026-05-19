@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **📐 R29-GAP 설계 완료 + P1 트리거 발사 대기** (main @ a3d8fc3) — 설계서 docs/milestones/2026-05-19-r29-gap-fix.md / P1 H 10건(A=근태 5·B=성과 5) / P2 M 8건은 P1 머지 후 / L 10건 REMAINING_WORK로 이관 / gap.md 삭제 |
 | 2026-05-19 | **메인** | **✅ Phase 28 성과관리 완성 C 검증 완료** (main @ a3d8fc3) — 10/10 PASS. A·B Opus 전환 후 근태·성과 정밀 갭 분석 진행 중 |
 | 2026-05-19 | **메인** | **✅ Phase 27 근태관리 Step9~17 + Phase 28 머지** (main @ 461603d) — A·B 무충돌 자동머지. 씨드 59개 skipped(기존 존재). 버그 4건 fix 동시 포함 |
 | 2026-05-19 | **메인** | **✅ 성과관리 분기 설정 UI 추가** (main @ 5f90a34) — admin-milestone-settings.html 분기관리 탭 신설. 분기 추가·상태 변경 동작. API PATCH 버그 fix 포함 |
@@ -56,12 +57,18 @@
 ✅ Phase 26 근태관리 완료 (2026-05-19)
 ✅ Phase 27 근태관리 Step9~17 완료 (2026-05-19)
 ✅ Phase 28 성과관리 완성 완료 (2026-05-19, C 10/10 PASS, main @ a3d8fc3)
-✅ 버그 4건 fix (파일함 사이드바·근태설정 권한·성과관리 스피너·초기로딩)
+✅ A·B 갭 분석 완료 (근태 H5·M5 / 성과 H5·M3 / L 10건)
+📐 R29-GAP 설계 완료 (docs/milestones/2026-05-19-r29-gap-fix.md)
 
 🔍 진행 중
-   - A 채팅: 근태관리 명세서 기준 정밀 갭 분석 (Opus 전환 후)
-   - B 채팅: 성과관리 명세서 기준 정밀 갭 분석 (Opus 전환 후)
-   - 분석 완료 후 메인에 보고서 복붙 → 다음 구현 라운드 설계
+   - R29-GAP-P1 트리거 발사 대기 (Swain 복붙 → A·B 채팅 시작)
+   - A 채팅 (Opus): 근태 어드민 H1~H5 — feature/r29-gap-p1-att-admin
+   - B 채팅 (Opus): 성과 어드민 H1~H5 — feature/r29-gap-p1-milestone-keys
+   - P2 (M 우선순위)는 P1 머지·C 검증 PASS 후 발사
+
+📋 운영 액션 (Swain 직접)
+   - OP-1: 2026 Q2 분기 등록 (admin-milestone-settings.html 분기관리 탭)
+     → 현재 ACTIVE 분기 0개 (C curl 검증 이슈-1)
 
 ⚠️ Swain 필수 액션
    - Kakao REST API 키 확인 (기존 키가 REST API 키인지 확인)
