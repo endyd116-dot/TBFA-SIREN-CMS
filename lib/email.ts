@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { fmtKSTSimple, fmtKSTDate } from "./datetime";
 
 /* 환경변수에서만 로드 — 하드코딩 절대 금지 (Netlify Secrets Scanning 차단) */
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -256,7 +257,7 @@ export function layoutGradient(opts: LayoutOpts) {
 export function layoutEditorial(opts: LayoutOpts) {
   const { title, bodyHtml, ctaText, ctaUrl } = opts;
   const now = new Date();
-  const dateStr = now.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = now.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "long", day: "numeric" });
   const ctaBlock = ctaText && ctaUrl
     ? `<tr><td style="padding:0 48px 36px;">
          <a href="${ctaUrl}" target="_blank"
@@ -505,13 +506,8 @@ export function tplDonationThanks(opts: {
     payMethod === "bank" ? "계좌이체" :
     payMethod === "cms"  ? "자동이체(CMS)" : payMethod;
 
-  /* 날짜/시간 포맷팅 */
-  const yyyy = donationDate.getFullYear();
-  const mm = String(donationDate.getMonth() + 1).padStart(2, "0");
-  const dd = String(donationDate.getDate()).padStart(2, "0");
-  const hh = String(donationDate.getHours()).padStart(2, "0");
-  const min = String(donationDate.getMinutes()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  /* 날짜/시간 포맷팅 (KST) */
+  const dateStr = fmtKSTSimple(donationDate);
 
   const donationNo = `D-${String(donationId).padStart(7, "0")}`;
 
@@ -658,13 +654,8 @@ export function tplSupportReceiptUser(opts: {
   const categoryKr = CATEGORY_KR[category] || category;
   const isUrgent = priority === "urgent";
 
-  /* 날짜/시간 포맷팅 */
-  const yyyy = createdAt.getFullYear();
-  const mm = String(createdAt.getMonth() + 1).padStart(2, "0");
-  const dd = String(createdAt.getDate()).padStart(2, "0");
-  const hh = String(createdAt.getHours()).padStart(2, "0");
-  const min = String(createdAt.getMinutes()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  /* 날짜/시간 포맷팅 (KST) */
+  const dateStr = fmtKSTSimple(createdAt);
 
   /* 우선순위별 안내 박스 (긴급/일반 분기) */
   const priorityNoticeHtml = isUrgent
@@ -960,12 +951,7 @@ export function tplWithdrawConfirm(opts: {
 }) {
   const { userName, email, withdrawnAt } = opts;
 
-  const yyyy = withdrawnAt.getFullYear();
-  const mm = String(withdrawnAt.getMonth() + 1).padStart(2, "0");
-  const dd = String(withdrawnAt.getDate()).padStart(2, "0");
-  const hh = String(withdrawnAt.getHours()).padStart(2, "0");
-  const min = String(withdrawnAt.getMinutes()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  const dateStr = fmtKSTSimple(withdrawnAt);
 
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
@@ -1065,12 +1051,9 @@ export function tplBillingChargeSuccess(opts: {
     cardCompany, cardNumberMasked, isMember,
   } = opts;
 
-  const yyyy = chargedAt.getFullYear();
-  const mm = String(chargedAt.getMonth() + 1).padStart(2, "0");
-  const dd = String(chargedAt.getDate()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd}`;
+  const dateStr = fmtKSTDate(chargedAt);
 
-  const nextDateStr = `${nextChargeAt.getFullYear()}-${String(nextChargeAt.getMonth() + 1).padStart(2, "0")}-${String(nextChargeAt.getDate()).padStart(2, "0")}`;
+  const nextDateStr = fmtKSTDate(nextChargeAt);
   const donationNo = `D-${String(donationId).padStart(7, "0")}`;
 
   const bodyHtml = `
@@ -1993,12 +1976,7 @@ export function tplMemberApproved(opts: {
   };
   const subtypeInfo = SUBTYPE_LABEL[memberSubtype] || { label: "회원", icon: "✅", color: "#7a1f2b" };
 
-  const yyyy = approvedAt.getFullYear();
-  const mm = String(approvedAt.getMonth() + 1).padStart(2, "0");
-  const dd = String(approvedAt.getDate()).padStart(2, "0");
-  const hh = String(approvedAt.getHours()).padStart(2, "0");
-  const min = String(approvedAt.getMinutes()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  const dateStr = fmtKSTSimple(approvedAt);
 
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:15px;color:#0f0f0f;">
@@ -2106,10 +2084,7 @@ export function tplMemberRejected(opts: {
   };
   const subtypeLabel = SUBTYPE_LABEL[memberSubtype] || "회원";
 
-  const yyyy = rejectedAt.getFullYear();
-  const mm = String(rejectedAt.getMonth() + 1).padStart(2, "0");
-  const dd = String(rejectedAt.getDate()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd}`;
+  const dateStr = fmtKSTDate(rejectedAt);
 
   const safeReason = esc(rejectedReason || "증빙 서류 미비").replace(/\n/g, "<br />");
 

@@ -64,7 +64,7 @@
 
       const customCnt = customCounts[ev.eventType] ?? 0;
       const updatedStr = ev.updatedAt
-        ? new Date(ev.updatedAt).toLocaleDateString("ko-KR")
+        ? new Date(ev.updatedAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })
         : "미설정";
 
       /* 이벤트명 셀 */
@@ -154,7 +154,7 @@
       if (tr) {
         const meta = tr.querySelector(".event-meta");
         if (meta) {
-          const today = new Date().toLocaleDateString("ko-KR");
+          const today = new Date().toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
           const customCnt = customCounts[eventType] ?? 0;
           meta.textContent = `최종 수정: ${today}${customCnt > 0 ? " · 커스텀 " + customCnt + "명" : ""}`;
         }
@@ -186,7 +186,7 @@
       const before = Array.isArray(changes.before) ? changes.before.join(", ") : "-";
       const after  = Array.isArray(changes.after)  ? changes.after.join(", ")  : "-";
       return `<tr>
-        <td>${new Date(r.created_at).toLocaleString("ko-KR")}</td>
+        <td>${new Date(r.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
         <td>${r.target_id ?? "-"}</td>
         <td>${r.admin_name ?? "-"}</td>
         <td><span style="color:#64748b;">${before}</span> → <strong>${after}</strong></td>

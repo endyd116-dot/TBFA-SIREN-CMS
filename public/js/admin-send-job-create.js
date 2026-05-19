@@ -882,7 +882,7 @@
   function fmtDate(d) {
     if (!d) return '';
     const dt = new Date(d);
-    return isNaN(dt) ? '' : dt.toLocaleDateString('ko-KR');
+    return isNaN(dt) ? '' : dt.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
   }
 
   let _pickerFiles = [];

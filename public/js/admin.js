@@ -5219,7 +5219,7 @@ const OPERATOR_CATEGORIES = [
         return;
       }
       tbody.innerHTML = items.map(function (m) {
-        const at = m.blacklistedAt ? new Date(m.blacklistedAt).toLocaleString('ko-KR') : '';
+        const at = m.blacklistedAt ? new Date(m.blacklistedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '';
         const reason = (m.blacklistReason || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return '<tr data-blk-row="' + m.id + '" style="cursor:pointer" title="클릭하면 회원 상세 정보가 열립니다">' +
           '<td>' + at + '</td>' +

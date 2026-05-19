@@ -17,7 +17,7 @@
   function fmtDate(s) {
     if (!s) return "-";
     const d = new Date(s);
-    return d.toLocaleString("ko-KR", { hour12: false });
+    return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false });
   }
   function fmtMs(ms) {
     if (ms == null) return "-";

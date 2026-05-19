@@ -2549,7 +2549,7 @@ async function loadTbKeys() {
       const failBadge = (r.consecutiveFailCount || 0) > 0
         ? `<span style="color:#c62828;font-weight:600">${r.consecutiveFailCount}회</span>`
         : '<span style="color:#999">-</span>';
-      const nextCharge = r.nextBillingDate ? new Date(r.nextBillingDate).toLocaleDateString('ko-KR') : '-';
+      const nextCharge = r.nextBillingDate ? new Date(r.nextBillingDate).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-';
       const expiryDisplay = r.cardExpiryMonth || '<span style="color:#c62828">미입력</span>';
       const toggleBtn = r.isActive
         ? `<button class="cms-btn" onclick="tbToggleKeyActive(${r.id}, false)" style="background:#d32f2f;color:#fff;padding:4px 8px;font-size:12px">해지</button>`
@@ -2709,7 +2709,7 @@ async function loadTbLogs() {
     }
 
     tbody.innerHTML = rows.map(r => {
-      const dt = r.requestedAt ? new Date(r.requestedAt).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+      const dt = r.requestedAt ? new Date(r.requestedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
       const statusBadge = r.status === 'success'
         ? '<span style="padding:2px 8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;font-size:12px">✓ 성공</span>'
         : r.status === 'failed'
@@ -2790,7 +2790,7 @@ async function loadTbSchedule() {
             <div style="padding:8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
               <div>
                 <strong>${escapeHtml(r.memberName || '-')}</strong>
-                <span style="color:#888;font-size:12px">${new Date(r.nextBillingDate).toLocaleDateString('ko-KR')}</span>
+                <span style="color:#888;font-size:12px">${new Date(r.nextBillingDate).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}</span>
               </div>
               <span style="color:#2e7d32;font-weight:600">${(r.amount || 0).toLocaleString()}원</span>
             </div>

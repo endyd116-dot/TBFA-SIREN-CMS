@@ -554,7 +554,7 @@ export default async (req: Request, _ctx: Context) => {
         notifyMemberIds: isAssignment ? [assignedTo!] : [],
         notifyType: "assigned",
         notifyTitle: `📋 새 작업이 지시되었습니다: ${newTask.title}`,
-        notifyBody: `마감: ${dueDateObj.toLocaleString("ko-KR")}`,
+        notifyBody: `마감: ${dueDateObj.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`,
         actionUrl: `/admin#task-${newTask.id}`,
       });
 
