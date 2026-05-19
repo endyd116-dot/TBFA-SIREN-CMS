@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRecords, attLeaveRequests, attHolidays, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-records" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -55,7 +55,7 @@ export default async function handler(req: Request) {
         WHERE date = ${date}::date
         GROUP BY status
       `);
-      for (const row of sRes.rows as any[]) statusCnt[row.status] = row.cnt;
+      for (const row of (((sRes as any).rows ?? sRes) as any[])) statusCnt[row.status] = row.cnt;
     } catch (err) {
       console.warn("[admin-att-records] status 집계 실패:", err);
     }
@@ -67,7 +67,7 @@ export default async function handler(req: Request) {
           AND work_mode IS NOT NULL
         GROUP BY work_mode
       `);
-      for (const row of wRes.rows as any[]) workModeCnt[row.work_mode] = row.cnt;
+      for (const row of (((wRes as any).rows ?? wRes) as any[])) workModeCnt[row.work_mode] = row.cnt;
     } catch (err) {
       console.warn("[admin-att-records] work_mode 집계 실패:", err);
     }
@@ -82,7 +82,7 @@ export default async function handler(req: Request) {
           AND start_date <= ${date}::date
           AND end_date >= ${date}::date
       `);
-      leaveCount = Number((leaveResult.rows[0] as any)?.cnt ?? 0);
+      leaveCount = Number(((leaveResult as any).rows?.[0] as any)?.cnt ?? 0);
     } catch (err) {
       console.warn("[admin-att-records] 휴가 집계 실패:", err);
     }

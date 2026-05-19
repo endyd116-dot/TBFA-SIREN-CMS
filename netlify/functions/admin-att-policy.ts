@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attPolicies } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-policy" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -75,7 +75,7 @@ export default async function handler(req: Request) {
           flexEnabled:          body.flexEnabled        ?? existing[0].flexEnabled,
           remoteMaxPerMonth:    body.remoteMaxPerMonth  ?? existing[0].remoteMaxPerMonth,
           updatedAt:            new Date(),
-        })
+        } as any)
         .where(eq(attPolicies.id, existing[0].id))
         .returning();
       return jsonOk(row);

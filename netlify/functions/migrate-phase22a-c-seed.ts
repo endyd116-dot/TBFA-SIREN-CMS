@@ -45,7 +45,7 @@ export default async function handler(req: Request, ctx: Context) {
   // ── 인증 ──────────────────────────────────────────────────
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  const adminId = auth.ctx.adminId;
+  const adminId = auth.ctx.admin.uid;
 
   // ── Cleanup 모드 ──────────────────────────────────────────
   if (doCleanup) {

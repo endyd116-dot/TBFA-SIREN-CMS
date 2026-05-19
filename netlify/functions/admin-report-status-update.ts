@@ -1,7 +1,7 @@
 // admin-report-status-update.ts — 신고 단계 변경 + 이력 기록 + 사용자 알림
 // PATCH /api/admin-report-status-update
 // body: { reportType: 'incident'|'harassment'|'legal', reportId, toStatus, note? }
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import {
   incidentReports, harassmentReports, legalConsultations,
@@ -44,7 +44,7 @@ export default async (req: Request) => {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const adminId = auth.ctx.admin.uid as number;
 
   let body: any;
@@ -110,7 +110,7 @@ export default async (req: Request) => {
       toStatus,
       changedBy: adminId,
       note,
-    }).returning({ id: reportStatusLogs.id });
+    } as any).returning({ id: reportStatusLogs.id });
     logId = inserted[0]?.id;
   } catch (err) {
     console.warn("[admin-report-status-update] 이력 기록 실패", err);
@@ -139,7 +139,7 @@ export default async (req: Request) => {
       // notified_at 갱신
       if (logId) {
         await db.update(reportStatusLogs)
-          .set({ notifiedAt: new Date() })
+          .set({ notifiedAt: new Date() } as any)
           .where(eq(reportStatusLogs.id, logId));
       }
     } catch (err) {

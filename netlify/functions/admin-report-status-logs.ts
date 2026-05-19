@@ -1,6 +1,6 @@
 // admin-report-status-logs.ts — 신고 단계 변경 이력 조회
 // GET /api/admin-report-status-logs?reportType=incident&reportId=1
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { reportStatusLogs, members } from "../../db/schema";
 import { and, eq, desc, inArray } from "drizzle-orm";
@@ -23,7 +23,7 @@ export default async (req: Request) => {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
   const reportType = url.searchParams.get("reportType");

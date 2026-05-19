@@ -88,7 +88,7 @@ interface GeminiResult {
   /** ★ Phase 1.5 — 어드민이 기능을 끄거나 한도를 넘긴 경우 true */
   disabled?: boolean;
   /** disabled=true일 때 사유 */
-  disabledReason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded";
+  disabledReason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded" | "surge_cooldown";
 }
 
 async function callSingleModel(

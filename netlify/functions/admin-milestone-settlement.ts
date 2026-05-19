@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { createNotification, notifyAllSuperAdmins } from "../../lib/notify";
@@ -8,7 +8,7 @@ export const config = { path: "/api/admin-milestone-settlement*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   const isSuperAdmin = admin?.role === "super_admin";
   if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });

@@ -7,7 +7,7 @@
  */
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-leave-types" };
 
@@ -38,7 +38,7 @@ async function hasExtCols(): Promise<boolean> {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if (auth.ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ export default async function handler(req: Request) {
         FROM att_leave_types
         ORDER BY display_order, id
       `);
-      const rows = (result.rows as any[]).map(r => ({
+      const rows = (((result as any).rows ?? result) as any[]).map(r => ({
         id:               Number(r.id),
         name:             r.name,
         isPaid:           r.is_paid,

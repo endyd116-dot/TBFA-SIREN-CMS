@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attLeaveRequests, attLeaveBalances } from "../../db/schema";
 import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att-leave-request" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   const method = req.method;
 

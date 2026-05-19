@@ -3,7 +3,7 @@
  * GET /api/workspace-milestone-progress?quarterId=N
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -11,7 +11,7 @@ export const config = { path: "/api/workspace-milestone-progress" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   const url = new URL(req.url);

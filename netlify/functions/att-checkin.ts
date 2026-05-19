@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRecords, attWorkplaces, attHolidays, attLeaveRequests } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import {
   getScheduledWorkMode,
   getDefaultPolicy,
@@ -30,7 +30,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
 
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
@@ -147,7 +147,7 @@ export default async function handler(req: Request) {
       checkInLng: lng != null ? String(lng) : null,
       checkInIp: ip,
       workplaceId,
-    }).returning();
+    } as any).returning();
 
     // R29-ATT-GAP2 PHASE E 알림 1: 출근 확인 (fire-and-forget — 메인 흐름 차단 X)
     sendWorkspaceNotification({

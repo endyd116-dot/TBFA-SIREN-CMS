@@ -3,7 +3,7 @@
 // 응답: { ok:true, data:{ results:[{ address, roadAddress, lat, lng, placeName }] } }
 //
 // KAKAO_REST_API_KEY 환경변수 필수. 미설정 시 503 + 안내 메시지.
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-geocode-search" };
 
@@ -22,7 +22,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 

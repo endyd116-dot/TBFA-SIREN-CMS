@@ -105,7 +105,7 @@ export default async function handler(req: Request) {
           workplaceId: workplaceId ?? null,
           note: note ?? null,
           createdBy: String(auth.ctx.member.id),
-        })
+        } as any)
         .returning({ id: attSchedules.id });
       return jsonOk({ id: row.id });
     } catch (err) {

@@ -245,7 +245,7 @@ export async function countRemoteDaysThisMonth(
       AND date >= ${from}::date
       AND date <= ${to}::date
   `);
-  return Number((result.rows[0] as any)?.cnt ?? 0);
+  return Number(((result as any).rows?.[0])?.cnt ?? 0);
 }
 
 // ─────────────────────────────────────────────────────────

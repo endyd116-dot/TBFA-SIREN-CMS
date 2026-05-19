@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { attScheduleOverrides } from "../../db/schema";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-schedule-override" };
 
@@ -19,7 +19,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -47,7 +47,7 @@ export default async function handler(req: Request) {
         workplaceId: workplaceId ?? null,
         reason: reason ?? null,
         createdBy: String(auth.ctx.member.id),
-      })
+      } as any)
       .onConflictDoUpdate({
         target: [attScheduleOverrides.memberUid, attScheduleOverrides.date],
         set: {
@@ -55,7 +55,7 @@ export default async function handler(req: Request) {
           workplaceId: workplaceId ?? null,
           reason: reason ?? null,
           createdBy: String(auth.ctx.member.id),
-        },
+        } as any,
       })
       .returning();
     return jsonOk(row, 201);

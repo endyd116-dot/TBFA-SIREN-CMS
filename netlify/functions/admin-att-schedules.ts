@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attSchedules } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-schedules" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -63,7 +63,7 @@ export default async function handler(req: Request) {
         workplaceId: workplaceId ?? null,
         note: note ?? null,
         createdBy: String(auth.ctx.member.id),
-      }).returning();
+      } as any).returning();
       return jsonOk(row, 201);
     } catch (err) {
       return jsonError("insert_schedule", err);
@@ -97,7 +97,7 @@ export default async function handler(req: Request) {
           workplaceId:   body.workplaceId !== undefined ? body.workplaceId : existing[0].workplaceId,
           note:          body.note !== undefined ? body.note : existing[0].note,
           updatedAt:     new Date(),
-        })
+        } as any)
         .where(eq(attSchedules.id, id))
         .returning();
       return jsonOk(row);

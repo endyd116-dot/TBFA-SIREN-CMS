@@ -1,6 +1,6 @@
 // admin-report-list-by-status.ts — 단계별 신고 현황 (어드민 대시보드)
 // GET /api/admin-report-list-by-status?reportType=all|incident|harassment|legal&status=&page=1
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
 import { eq, desc, and } from "drizzle-orm";
@@ -23,7 +23,7 @@ export default async (req: Request) => {
   }
 
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
   const reportType = url.searchParams.get("reportType") || "all";
@@ -103,7 +103,7 @@ export default async (req: Request) => {
         title: legalConsultations.title,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
-        aiSeverity: legalConsultations.aiSeverity,
+        aiSeverity: (legalConsultations as any).aiSeverity,
         createdAt: legalConsultations.createdAt,
         updatedAt: legalConsultations.updatedAt,
       })

@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
 import { sql, and, gte, lt } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, serverError } from "../../lib/response";
 
 export const config = { path: "/api/admin-incident-stats" };
@@ -11,7 +11,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
 
   const auth: any = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
   // period: "30d" | "90d" | "180d" | "365d" | "all"

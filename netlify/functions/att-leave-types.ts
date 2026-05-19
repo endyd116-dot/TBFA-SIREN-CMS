@@ -6,7 +6,7 @@
 import { db } from "../../db/index";
 import { attLeaveTypes } from "../../db/schema";
 import { eq, asc } from "drizzle-orm";
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att-leave-types" };
 
@@ -25,7 +25,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
   try {

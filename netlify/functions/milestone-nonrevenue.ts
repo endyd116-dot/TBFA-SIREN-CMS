@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { notifyAllSuperAdmins } from "../../lib/notify";
@@ -8,7 +8,7 @@ export const config = { path: "/api/milestone-nonrevenue*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
 
   function jsonError(step: string, err: any) {

@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attLeaveBalances, attLeaveTypes, members } from "../../db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-leave-balances" };
 
@@ -20,7 +20,7 @@ function jsonError(step: string, err: any, status = 500) {
 
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
-  if (!auth.ok) return auth.res;
+  if (guardFailed(auth)) return auth.res;
   if ((auth as any).ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
@@ -129,10 +129,10 @@ export default async function handler(req: Request) {
             year: Number(year),
             totalDays: String(next),
             usedDays: existing ? String(existing.usedDays) : "0",
-          })
+          } as any)
           .onConflictDoUpdate({
             target: [attLeaveBalances.memberUid, attLeaveBalances.leaveTypeId, attLeaveBalances.year],
-            set: { totalDays: String(next) },
+            set: { totalDays: String(next) } as any,
           })
           .returning();
         return jsonOk(row);
@@ -147,10 +147,10 @@ export default async function handler(req: Request) {
           year: Number(year),
           totalDays: String(totalDays),
           usedDays: "0",
-        })
+        } as any)
         .onConflictDoUpdate({
           target: [attLeaveBalances.memberUid, attLeaveBalances.leaveTypeId, attLeaveBalances.year],
-          set: { totalDays: String(totalDays) },
+          set: { totalDays: String(totalDays) } as any,
         })
         .returning();
       return jsonOk(row);
