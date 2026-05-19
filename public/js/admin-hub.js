@@ -52,10 +52,12 @@
       const period = hour < 6 ? '새벽' : hour < 12 ? '오전' : hour < 18 ? '오후' : '저녁';
       greetEl.innerHTML = `${period} 인사드립니다, <strong style="color:#b8935a">${escapeHtml(admin.name)}</strong>님`;
     }
-    // super_admin만 워크스페이스 관리 카드 노출
+    // super_admin만 워크스페이스 관리 + 재택·근무형태 카드 노출
     if (admin.role === 'super_admin' || admin.isSuperAdmin) {
       const card = document.getElementById('hubCardWorkspaceMgmt');
       if (card) card.style.display = '';
+      const attCard = document.getElementById('hubCardAttendanceSettings');
+      if (attCard) attCard.style.display = '';
     }
   }
 

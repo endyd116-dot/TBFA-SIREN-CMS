@@ -88,6 +88,7 @@
 | ID | 항목 | 위치 | 심각도 | 상태 | 원본 출처 |
 |---|---|---|---|---|---|
 | **#BUG-2** | cms-tbfa 통합 회원·웹후원자·태그 더미 데이터 | `public/js/cms-tbfa.js:61, 71, 78` (사용처 92, 546) | 🟠 High | 진행 예정 (마일스톤 #16-B에서 해결) | docs/issues/2026-05-10-cms-tbfa-demo-data.md |
+| **#L-1** | amend ↔ correction 별칭 함수 통합 — `att-amend-request` / `att-amend-history`는 워크스페이스 v1 호환 별칭. att-correction-* 와 데이터·동작 동일. 새 호출은 correction 권장, 기존 amend 호출처 정리 후 amend 함수 삭제 | `netlify/functions/att-amend-request.ts`, `att-amend-history.ts` | 🟢 Low | 미착수 (별칭 유지 정책, R29-GAP-P2 명문화) | R29-GAP-P2-A M4 |
 | ~~#BUG-1~~ | requireActiveUser user.id → user.uid | `lib/auth.ts:128` | 🔴 Critical | ✅ 해결 (`bb529f9`) | PROJECT_STATE §6.6 |
 
 ---
