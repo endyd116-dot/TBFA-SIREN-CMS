@@ -65,6 +65,7 @@ document.querySelectorAll('.adm-tab').forEach(btn => {
     if (btn.dataset.panel === 'quarters') loadQuarters();
     if (btn.dataset.panel === 'settlements') loadSettlements();
     if (btn.dataset.panel === 'roles') loadRoles();
+    if (btn.dataset.panel === 'nonrevenue') nrLoad();
   });
 });
 
@@ -634,6 +635,205 @@ async function saveRole(memberId) {
 })();
 
 loadDefs();
+
+/* ════════════════════════════════════════
+   R39 Stage 8: 비매출 검토 패널
+   - GET /api/admin-milestone-nonrevenue?status=&quarterId=
+   - POST /api/admin-milestone-nonrevenue/:id/review
+   - POST /api/admin-milestone-nonrevenue/:id/verify
+   - POST /api/admin-milestone-nonrevenue/:id/reject
+   - PATCH /api/admin-milestone-nonrevenue/:id/event-range
+   ════════════════════════════════════════ */
+const NR = { rows: [], current: null };
+
+function nrEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function nrStatusBadge(s) {
+  const map = {
+    PENDING:  ['#fef3c7','#92400e','검토 대기'],
+    REVIEWED: ['#dbeafe','#1d4ed8','1차 검토'],
+    VERIFIED: ['#dcfce7','#15803d','최종 승인'],
+    REJECTED: ['#fee2e2','#b91c1c','반려'],
+  };
+  const [bg,c,l] = map[s] || ['#f3f4f6','#6b7280', s || '—'];
+  return `<span style="background:${bg};color:${c};padding:2px 8px;border-radius:12px;font-size:11.5px;font-weight:600">${l}</span>`;
+}
+
+async function nrLoad() {
+  const status = document.getElementById('nrStatusFilter')?.value || 'PENDING';
+  const quarterId = document.getElementById('nrQuarterFilter')?.value || '';
+  const qs = '?status=' + encodeURIComponent(status) + (quarterId ? '&quarterId=' + encodeURIComponent(quarterId) : '');
+  const el = document.getElementById('nrList');
+  if (el) el.textContent = '로딩 중...';
+  const res = await amApi('/api/admin-milestone-nonrevenue' + qs);
+  if (!res.ok) {
+    if (el) el.innerHTML = '<p style="color:#dc2626">조회 실패: ' + nrEsc(res.data?.error || '') + '</p>';
+    return;
+  }
+  NR.rows = res.data?.data?.achievements || [];
+  nrRender();
+  // 분기 필터 동적 채움 (분기 일람 활용)
+  nrFillQuarterFilter();
+}
+
+async function nrFillQuarterFilter() {
+  const sel = document.getElementById('nrQuarterFilter');
+  if (!sel || sel.options.length > 1) return; // 이미 채워졌으면 스킵
+  try {
+    if (!AM.quarters || !AM.quarters.length) {
+      const r = await amApi('/api/milestone-quarters');
+      AM.quarters = r.data?.data?.quarters || r.data?.quarters || [];
+    }
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">전체 분기</option>'
+      + AM.quarters.map(q => `<option value="${q.id}">${q.year} Q${q.quarter}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch (_) {}
+}
+
+function nrRender() {
+  const el = document.getElementById('nrList');
+  const cntEl = document.getElementById('nrCount');
+  if (cntEl) cntEl.textContent = (NR.rows.length || 0) + '건';
+  if (!NR.rows.length) {
+    el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">해당 상태의 비매출 성과가 없습니다.</p>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="ms-table">
+      <thead><tr>
+        <th>제출자</th><th>역할</th><th>마일스톤</th><th>달성일</th>
+        <th style="text-align:right">금액</th><th>상태</th><th>관리</th>
+      </tr></thead>
+      <tbody>
+        ${NR.rows.map(r => `
+          <tr>
+            <td style="font-weight:600">${nrEsc(r.submittedByName || '—')}</td>
+            <td>${nrEsc(r.milestoneRole || '-')}</td>
+            <td>
+              <code style="font-size:11.5px;background:#f1f5f9;padding:2px 5px;border-radius:4px">${nrEsc(r.milestoneCode || '')}</code>
+              <span style="margin-left:5px">${nrEsc(r.milestoneName || '')}</span>
+            </td>
+            <td style="font-size:12.5px">${nrEsc(amDate(r.achievedDate))}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums">${amFmt(r.eventRangeAmount || r.bonusAmount)}</td>
+            <td>${nrStatusBadge(r.status)}</td>
+            <td><button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="nrOpenDetail(${r.id})">상세</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+window.nrOpenDetail = function (id) {
+  const r = NR.rows.find(x => x.id === id);
+  if (!r) return;
+  NR.current = r;
+  document.getElementById('nrModalId').value = id;
+
+  const formulaType = (r.bonusFormula && (r.bonusFormula.type || r.bonusFormula.kind)) || '';
+  const isEventRange = String(formulaType).toUpperCase() === 'EVENT_RANGE';
+
+  const body = document.getElementById('nrModalBody');
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:120px 1fr;gap:8px 16px">
+      <div style="color:#9ca3af">제출자</div><div><strong>${nrEsc(r.submittedByName || '—')}</strong></div>
+      <div style="color:#9ca3af">담당 역할</div><div>${nrEsc(r.milestoneRole || '-')}</div>
+      <div style="color:#9ca3af">마일스톤</div><div><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${nrEsc(r.milestoneCode || '')}</code> ${nrEsc(r.milestoneName || '')}</div>
+      <div style="color:#9ca3af">달성일</div><div>${nrEsc(amDate(r.achievedDate))}</div>
+      <div style="color:#9ca3af">현재 상태</div><div>${nrStatusBadge(r.status)}</div>
+      <div style="color:#9ca3af">기본 금액</div><div style="font-variant-numeric:tabular-nums">${amFmt(r.bonusAmount)}</div>
+      ${isEventRange ? `<div style="color:#9ca3af">EVENT_RANGE 금액</div><div style="font-variant-numeric:tabular-nums">${r.eventRangeAmount != null ? amFmt(r.eventRangeAmount) : '<span style="color:#dc2626">미설정 — 슈퍼어드민이 결정 필요</span>'}</div>` : ''}
+      <div style="color:#9ca3af">공식</div><div style="font-size:12px;color:#6b7280">${nrEsc(formulaType || '—')}</div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="color:#9ca3af;font-size:12px;margin-bottom:4px">내용</div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;font-size:13px;white-space:pre-wrap">${nrEsc(r.description || '—')}</div>
+    </div>
+    ${r.evidenceFiles && r.evidenceFiles.length ? `
+      <div style="margin-top:10px">
+        <div style="color:#9ca3af;font-size:12px;margin-bottom:4px">증빙 파일 (${r.evidenceFiles.length})</div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px">
+          ${r.evidenceFiles.map(f => `<li><a href="${nrEsc(f.url || f)}" target="_blank">${nrEsc(f.name || f.url || f)}</a></li>`).join('')}
+        </ul>
+      </div>` : ''}
+    ${r.rejectReason ? `
+      <div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px;font-size:12.5px;color:#b91c1c">
+        <strong>이전 반려 사유:</strong> ${nrEsc(r.rejectReason)}
+      </div>` : ''}
+  `;
+
+  // EVENT_RANGE 금액 결정 영역 토글
+  const evBox = document.getElementById('nrEventRangeBox');
+  evBox.style.display = isEventRange ? '' : 'none';
+  document.getElementById('nrEventRangeAmount').value = r.eventRangeAmount || '';
+  document.getElementById('nrEventRangeHint').textContent =
+    'EVENT_RANGE 마일스톤 — 슈퍼어드민이 직접 금액을 결정한 뒤 최종 승인하세요.';
+
+  // 액션 버튼 활성/비활성 (상태별)
+  const btnReview = document.getElementById('nrBtnReview');
+  const btnVerify = document.getElementById('nrBtnVerify');
+  const btnReject = document.getElementById('nrBtnReject');
+  btnReview.disabled = (r.status !== 'PENDING');
+  btnVerify.disabled = !(r.status === 'PENDING' || r.status === 'REVIEWED');
+  btnReject.disabled = (r.status === 'VERIFIED' || r.status === 'REJECTED');
+
+  document.getElementById('nrDetailModal').style.display = 'block';
+};
+
+function nrCloseDetail() {
+  document.getElementById('nrDetailModal').style.display = 'none';
+  NR.current = null;
+}
+
+async function nrAction(action) {
+  if (!NR.current) return;
+  const id = NR.current.id;
+  let body = null;
+  if (action === 'reject') {
+    const reason = prompt('반려 사유를 입력하세요 (필수):', '');
+    if (reason == null) return;
+    if (!reason.trim()) { amToast('반려 사유 필수', 'error'); return; }
+    body = { rejectReason: reason.trim() };
+  }
+  const res = await amApi('/api/admin-milestone-nonrevenue/' + id + '/' + action, {
+    method: 'POST',
+    body: body || undefined,
+  });
+  if (!res.ok) { amToast('처리 실패: ' + (res.data?.error || ''), 'error'); return; }
+  amToast(action === 'verify' ? '최종 승인 완료' : action === 'reject' ? '반려 처리 완료' : '1차 검토 완료', 'success');
+  nrCloseDetail();
+  await nrLoad();
+}
+
+async function nrSetEventRangeAmount() {
+  if (!NR.current) return;
+  const id = NR.current.id;
+  const amt = parseFloat(document.getElementById('nrEventRangeAmount').value);
+  if (!Number.isFinite(amt) || amt < 0) { amToast('금액을 올바르게 입력하세요', 'error'); return; }
+  const res = await amApi('/api/admin-milestone-nonrevenue/' + id + '/event-range', {
+    method: 'PATCH',
+    body: { eventRangeAmount: amt },
+  });
+  if (!res.ok) { amToast('금액 저장 실패: ' + (res.data?.error || ''), 'error'); return; }
+  amToast('EVENT_RANGE 금액 저장 완료 (' + amt.toLocaleString('ko-KR') + '원)', 'success');
+  // current 갱신
+  NR.current.eventRangeAmount = String(amt);
+  // 모달 본문 일부만 다시 그림
+  nrOpenDetail(id);
+}
+
+document.getElementById('nrStatusFilter')?.addEventListener('change', nrLoad);
+document.getElementById('nrQuarterFilter')?.addEventListener('change', nrLoad);
+document.getElementById('btnNrReload')?.addEventListener('click', nrLoad);
+document.getElementById('nrModalClose')?.addEventListener('click', nrCloseDetail);
+document.getElementById('nrDetailModal')?.addEventListener('click', function (e) {
+  if (e.target === this) nrCloseDetail();
+});
+document.getElementById('nrBtnReview')?.addEventListener('click', () => nrAction('review'));
+document.getElementById('nrBtnVerify')?.addEventListener('click', () => nrAction('verify'));
+document.getElementById('nrBtnReject')?.addEventListener('click', () => nrAction('reject'));
+document.getElementById('nrBtnSetAmount')?.addEventListener('click', nrSetEventRangeAmount);
 
 // URL 해시로 초기 탭 설정
 const hash = location.hash.replace('#', '');

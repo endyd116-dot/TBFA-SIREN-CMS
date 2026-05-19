@@ -294,6 +294,7 @@
           'popups': '📢 팝업 관리',
           'payroll': '💰 급여관리',
           'milestone-settings': '🏆 성과관리 설정',
+          'milestone-review':   '📋 비매출 검토',
           'attendance-settings': '📝 근태관리 설정',
         };
         const titleEl = document.getElementById('cmsPageTitle');
@@ -385,6 +386,7 @@
         else if (tab === 'comment-reports') _nfLoadIframe('page-comment-reports'); /* Round 11: 신고 관리 */
         else if (tab === 'payroll')         _nfLoadIframe('page-payroll');         /* R37: 급여관리 */
         else if (tab === 'milestone-settings')  _nfLoadIframe('page-milestone-settings');  /* 2026-05-20: 성과관리 설정 (워크스페이스→cms-tbfa 이관) */
+        else if (tab === 'milestone-review')    _nfLoadIframe('page-milestone-review');    /* R39 Stage 8: 비매출 검토 */
         else if (tab === 'attendance-settings') _nfLoadIframe('page-attendance-settings'); /* 2026-05-20: 근태관리 설정 (워크스페이스→cms-tbfa 이관) */
       });
     });
