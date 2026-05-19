@@ -1,15 +1,17 @@
 /**
  * GET /api/payroll-my-pdf?id=N
  *
- * 본인 명세서 PDF 다운로드. status≥SENT 본인 명세서만 허용.
- * 권한: requireOperator (운영자 본인만).
+ * 본인 명세서 PDF 다운로드. SENT 상태 본인 명세서만 허용.
+ * lib/payroll-pdf.ts 의 generatePayrollSlipPdf 공유.
  *
- * R37 1일차 — 본인 소유권·상태 검증까지 골격. 실제 PDF 생성은 3일차에서 구현.
+ * R37 3일차 — A4 1페이지·NotoSansKR·on-demand 생성.
  */
+import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
-import { payrollSlips } from "../../db/schema";
+import { payrollSlips, members } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
+import { generatePayrollSlipPdf, payrollSlipFilename } from "../../lib/payroll-pdf";
 
 export const config = { path: "/api/payroll-my-pdf" };
 
@@ -26,7 +28,7 @@ function jsonBadRequest(msg: string, status = 400) {
   });
 }
 
-export default async function handler(req: Request) {
+export default async function handler(req: Request, _ctx: Context): Promise<Response> {
   const auth = await requireOperator(req);
   if (operatorGuardFailed(auth)) return auth.res;
   const me = (auth as any).ctx.member;
@@ -35,25 +37,39 @@ export default async function handler(req: Request) {
   const idNum = Number(url.searchParams.get("id") || 0);
   if (!idNum) return jsonBadRequest("id 필수");
 
+  let slip: any;
   try {
-    const [slip] = await db.select().from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+    [slip] = await db.select().from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
     if (!slip) return jsonBadRequest("명세서를 찾을 수 없습니다", 404);
-
-    // 본인 소유권
-    if (slip.memberUid !== String(me.id)) {
-      return jsonBadRequest("본인 명세서만 다운로드할 수 있습니다", 403);
-    }
-    // 발송 전 상태는 비공개
-    if (slip.status !== "SENT") {
-      return jsonBadRequest("발송 완료된 명세서만 다운로드할 수 있습니다", 403);
-    }
-
-    // 3일차에서 구현: pdf-lib 생성·R2 캐싱
-    return new Response(JSON.stringify({
-      ok: false,
-      error: "본인 PDF 생성은 R37 3일차에서 구현 예정",
-      step: "pdf_not_ready",
-      slipId: slip.id,
-    }), { status: 501, headers: { "Content-Type": "application/json" } });
   } catch (err) { return jsonError("select_slip", err); }
+
+  // 본인 소유권
+  if (slip.memberUid !== String(me.id)) {
+    return jsonBadRequest("본인 명세서만 다운로드할 수 있습니다", 403);
+  }
+  // SENT 상태만 본인 노출
+  if (slip.status !== "SENT") {
+    return jsonBadRequest("발송 완료된 명세서만 다운로드할 수 있습니다", 403);
+  }
+
+  let memberInfo: any = {
+    name: me.name,
+    email: me.email,
+    role: me.role,
+    milestoneRole: me.milestoneRole,
+  };
+  // me는 operator-guard에서 가져온 members row — 보장됨
+  try {
+    const bytes = await generatePayrollSlipPdf({ slip, member: memberInfo });
+    const fileName = payrollSlipFilename(slip, memberInfo.name);
+    const encoded = encodeURIComponent(fileName);
+    return new Response(Buffer.from(bytes) as any, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${encoded}"; filename*=UTF-8''${encoded}`,
+        "Content-Length": String(bytes.length),
+      },
+    });
+  } catch (err) { return jsonError("generate_pdf", err); }
 }
