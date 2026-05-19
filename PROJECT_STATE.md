@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-20 | **메인** | **✅ R34-P1 A·B 모두 머지·push** (main @ 798f38d) — A 0741a23(인증 모델 통합) + B adb0c97(성과 M 13건+부수 1건: EVENT_RANGE 단위·AI 함수 정리·권한 시드·settleDt 14일·quarterApplicable·HOLD 재제출·dashboard 표준·역할 API 통합·snake/camel 동시·HOLD escape). 권한 시드 마이그 호출 Swain 대기. R34-P2-A(근태 M 묶음+amend 마이그) 발사 대기 |
 | 2026-05-20 | **메인** | **✅ R34-P1-A 인증 모델 통합 머지·push** (main @ 0741a23) — operator-guard 사용자/어드민 토큰 fallback·att-* 8개 함수 requireOperator 교체·workspace-attendance 페이지 인증 fallback·역할 라벨. round2 H3 amend 마이그는 R34-P2-A로 분리. B R34-P1-B 성과 M 묶음 13건 진행 중 |
 | 2026-05-19 | **메인** | **🎯 R33-GAP 3차 분석 + R33-P0 즉시 fix 4건** (main @ 902532d) — A 15bdd7e(근태 H 3·M 8·P 1) + B 8d11765(성과 H 3·M 4·P 1) 분석 안착. 메인 자율 fix: B H1 와일드카드 7개·B H2 EVENT_RANGE case·A H-G1 HYBRID 키 변환·A H-G3 wbsCards JOIN. A H-G2(인증 통합) + round2·3 잔여 M·L은 R34 분리 |
 | 2026-05-19 | **메인** | **🏁 R32-P0 종결 + 라우팅 FIX-1·FIX-2 적용** (main @ bca7673) — C 검증 Before 6/6 깨짐 → After 4/6 PASS·잔여 2건 라우팅 BUG 메인 fix. milestone-definitions·milestone-nonrevenue config.path 와일드카드 + ?id= fallback. base_salary 마이그·schema 활성화 완료. R33-GAP 3차 분석 진행 중 |
