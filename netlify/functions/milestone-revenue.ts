@@ -25,17 +25,18 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     try {
-      let q = `
-        SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role,
-               md.amount_unit as default_unit
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성
+         + milestone_definitions.amount_unit 컬럼 부재(threshold_unit만 존재)로 인한 SELECT 오류 제거.
+         default_unit alias는 사용처 없음 → 안전 삭제. */
+      let baseSql = sql`
+        SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role
         FROM revenue_entries re
         JOIN milestone_definitions md ON md.id = re.milestone_definition_id
-        WHERE re.entered_by = $1
+        WHERE re.entered_by = ${member.id}
       `;
-      const params: any[] = [member.id];
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND re.quarter_id = $${params.length}`; }
-      q += ` ORDER BY re.revenue_date DESC, re.created_at DESC LIMIT 200`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (quarterId) baseSql = sql`${baseSql} AND re.quarter_id = ${Number(quarterId)}`;
+      baseSql = sql`${baseSql} ORDER BY re.revenue_date DESC, re.created_at DESC LIMIT 200`;
+      const rows = await db.execute(baseSql);
       const entries = ((rows as any).rows || (rows as any[])).map(formatEntry);
       return Response.json({ ok: true, data: { entries } });
     } catch (err) { return jsonError("select", err); }

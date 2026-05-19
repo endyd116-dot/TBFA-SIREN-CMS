@@ -30,19 +30,20 @@ export default async function handler(req: Request, _ctx: Context) {
     /* ★ R29-GAP-P2-M3: memberId 필터 + 단건 응답 키 */
     const memberIdQ = url.searchParams.get("memberId");
     try {
-      let q = `
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
+         sql 템플릿 합성으로 변경 (status·quarterId·memberId 동적 조건 안전 바인딩) */
+      let baseSql = sql`
         SELECT qs.*, q.year, q.quarter, m.name as member_name, m.milestone_role
         FROM quarterly_settlements qs
         JOIN quarters q ON q.id = qs.quarter_id
         LEFT JOIN members m ON m.id = qs.member_id
         WHERE 1=1
       `;
-      const params: any[] = [];
-      if (status && status !== "ALL") { params.push(status); q += ` AND qs.status = $${params.length}`; }
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND qs.quarter_id = $${params.length}`; }
-      if (memberIdQ) { params.push(Number(memberIdQ)); q += ` AND qs.member_id = $${params.length}`; }
-      q += ` ORDER BY q.year DESC, q.quarter DESC, qs.submitted_at DESC LIMIT 100`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (status && status !== "ALL") baseSql = sql`${baseSql} AND qs.status = ${status}`;
+      if (quarterId) baseSql = sql`${baseSql} AND qs.quarter_id = ${Number(quarterId)}`;
+      if (memberIdQ) baseSql = sql`${baseSql} AND qs.member_id = ${Number(memberIdQ)}`;
+      baseSql = sql`${baseSql} ORDER BY q.year DESC, q.quarter DESC, qs.submitted_at DESC LIMIT 100`;
+      const rows = await db.execute(baseSql);
       const settlements = ((rows as any).rows || (rows as any[])).map((r: any) => ({
         id: r.id, quarterId: r.quarter_id, memberId: r.member_id,
         memberName: r.member_name, milestoneRole: r.milestone_role,

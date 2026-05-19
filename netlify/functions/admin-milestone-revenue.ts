@@ -31,7 +31,8 @@ export default async function handler(req: Request, _ctx: Context) {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status") || "PENDING";
     try {
-      let q = `
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      let baseSql = sql`
         SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role,
                md.category as milestone_category, md.bonus_formula,
                m.name as entered_by_name
@@ -40,16 +41,14 @@ export default async function handler(req: Request, _ctx: Context) {
         LEFT JOIN members m ON m.id = re.entered_by
         WHERE 1=1
       `;
-      const params: any[] = [];
       // 어드민은 본인 milestoneRole 담당만 조회
       if (admin.role !== "super_admin") {
-        params.push(admin.milestoneRole);
-        q += ` AND md.target_milestone_role = $${params.length}`;
+        baseSql = sql`${baseSql} AND md.target_milestone_role = ${admin.milestoneRole}`;
       }
-      if (status && status !== "ALL") { params.push(status); q += ` AND re.status = $${params.length}`; }
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND re.quarter_id = $${params.length}`; }
-      q += ` ORDER BY re.created_at DESC LIMIT 200`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (status && status !== "ALL") baseSql = sql`${baseSql} AND re.status = ${status}`;
+      if (quarterId) baseSql = sql`${baseSql} AND re.quarter_id = ${Number(quarterId)}`;
+      baseSql = sql`${baseSql} ORDER BY re.created_at DESC LIMIT 200`;
+      const rows = await db.execute(baseSql);
       const entries = ((rows as any).rows || (rows as any[])).map(formatEntry);
       return Response.json({ ok: true, data: { entries } });
     } catch (err) { return jsonError("select", err); }
