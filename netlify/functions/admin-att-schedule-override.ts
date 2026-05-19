@@ -46,7 +46,7 @@ export default async function handler(req: Request) {
         workMode,
         workplaceId: workplaceId ?? null,
         reason: reason ?? null,
-        createdBy: (auth as any).ctx.member.uid,
+        createdBy: String(auth.ctx.member.id),
       })
       .onConflictDoUpdate({
         target: [attScheduleOverrides.memberUid, attScheduleOverrides.date],
@@ -54,7 +54,7 @@ export default async function handler(req: Request) {
           workMode,
           workplaceId: workplaceId ?? null,
           reason: reason ?? null,
-          createdBy: (auth as any).ctx.member.uid,
+          createdBy: String(auth.ctx.member.id),
         },
       })
       .returning();

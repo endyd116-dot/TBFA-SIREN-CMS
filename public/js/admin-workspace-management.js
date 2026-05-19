@@ -113,13 +113,15 @@
   async function loadRecords() {
     const date = document.getElementById('awmRecordsDate')?.value || toDateStr();
     const res = await api(`/api/admin-att-records?date=${date}`);
-    const rows = res.data?.data || res.data?.records || res.data || [];
-    const summary = res.data?.summary || {};
+    // R34-P2 (round2 M3): 응답 구조 { ok, data: { date, records, summary } }
+    const payload = res.data?.data || res.data || {};
+    const rows = Array.isArray(payload.records) ? payload.records : [];
+    const summary = payload.summary || {};
 
-    setText('awmCntCheckin', summary.checkinCount ?? (Array.isArray(rows) ? rows.filter(r => r.checkinAt).length : '—'));
-    setText('awmCntLate', summary.lateCount ?? (Array.isArray(rows) ? rows.filter(r => r.status === 'LATE').length : '—'));
-    setText('awmCntAbsent', summary.absentCount ?? (Array.isArray(rows) ? rows.filter(r => r.status === 'ABSENT').length : '—'));
-    setText('awmCntLeave', summary.leaveCount ?? (Array.isArray(rows) ? rows.filter(r => r.status === 'LEAVE').length : '—'));
+    setText('awmCntCheckin', summary.checkinCount ?? '—');
+    setText('awmCntLate',    summary.lateCount    ?? '—');
+    setText('awmCntAbsent',  summary.absentCount  ?? '—');
+    setText('awmCntLeave',   summary.leaveCount   ?? '—');
 
     const tbody = document.getElementById('awmRecordsBody');
     if (!tbody) return;

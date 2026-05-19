@@ -62,7 +62,7 @@ export default async function handler(req: Request) {
         endDate: endDate ?? null,
         workplaceId: workplaceId ?? null,
         note: note ?? null,
-        createdBy: (auth as any).ctx.member.uid,
+        createdBy: String(auth.ctx.member.id),
       }).returning();
       return jsonOk(row, 201);
     } catch (err) {
