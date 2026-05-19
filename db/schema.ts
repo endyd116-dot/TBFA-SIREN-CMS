@@ -3892,3 +3892,23 @@ export const attWorkmodeChangeRequests = pgTable("att_workmode_change_requests",
 
 export type AttWorkmodeChangeRequest    = typeof attWorkmodeChangeRequests.$inferSelect;
 export type NewAttWorkmodeChangeRequest = typeof attWorkmodeChangeRequests.$inferInsert;
+
+/* =========================================================
+   === R39 Stage 1: 역할 카탈로그 (milestone_roles) ===
+   ========================================================= */
+
+export const milestoneRoles = pgTable("milestone_roles", {
+  id:          serial("id").primaryKey(),
+  code:        varchar("code", { length: 10 }).notNull().unique(),
+  name:        varchar("name", { length: 50 }).notNull(),
+  description: text("description"),
+  sortOrder:   integer("sort_order").default(0).notNull(),
+  isActive:    boolean("is_active").default(true).notNull(),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  isActiveIdx: index("milestone_roles_is_active_idx").on(t.isActive),
+}));
+
+export type MilestoneRole    = typeof milestoneRoles.$inferSelect;
+export type NewMilestoneRole = typeof milestoneRoles.$inferInsert;
