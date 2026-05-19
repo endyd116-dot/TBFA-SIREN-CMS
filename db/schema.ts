@@ -3794,7 +3794,7 @@ export const milestoneDefinitionHistory = pgTable("milestone_definition_history"
 }));
 
 /* === R36-Att-Optional A-1: 직원 역방향 근무형태 변경 신청 ===
- * 마이그레이션 migrate-att-r36-workmode-change 적용 후 활성
+ * 마이그레이션 migrate-att-r36-workmode-change 적용 완료 (2026-05-20, main @ 5328383)
  * 직원이 슈퍼어드민에게 근무형태(OFFICE/REMOTE/FIELD/BUSINESS_TRIP/HYBRID) 변경을 신청
  * APPROVED 시 att_schedule_overrides INSERT 또는 schedule 갱신 (admin 결재 측 처리)
  */
