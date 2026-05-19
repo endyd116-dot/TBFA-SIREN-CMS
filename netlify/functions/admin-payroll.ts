@@ -14,6 +14,7 @@ import { db } from "../../db/index";
 import { payrollSlips, members } from "../../db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { calculatePayrollForMonth } from "../../lib/payroll-calc";
 
 export const config = { path: "/api/admin-payroll" };
 
@@ -180,13 +181,18 @@ export default async function handler(req: Request) {
       } catch (err) { return jsonError("hold_slip", err); }
     }
 
-    // 월별 수동 재집계 — 2일차 cron 로직 완성 후 활성화
+    // 월별 수동 재집계 — lib/payroll-calc.ts 의 calculatePayrollForMonth 공유
     if (action === "recalculate") {
-      return new Response(JSON.stringify({
-        ok: false,
-        error: "월별 수동 재집계는 2일차 자동 집계 로직 완성 후 활성화됩니다",
-        step: "recalculate_not_ready",
-      }), { status: 501, headers: { "Content-Type": "application/json" } });
+      const y = Number(url.searchParams.get("year") || 0);
+      const m = Number(url.searchParams.get("month") || 0);
+      if (!y || !m) return jsonBadRequest("year·month 필수");
+      let body: any = {};
+      try { body = await req.json(); } catch { /* 본문 없어도 허용 */ }
+      const force = body?.force === true;
+      try {
+        const r = await calculatePayrollForMonth(y, m, { force });
+        return jsonOk(r);
+      } catch (err) { return jsonError("recalculate", err); }
     }
 
     return jsonBadRequest("action 값 부적합 (approve|hold|recalculate)");
