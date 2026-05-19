@@ -38,6 +38,8 @@ export default async function handler(req: Request) {
   try { body = await req.json(); } catch { body = {}; }
 
   const { lat, lng } = body;
+  const selectedWorkplaceId: number | null =
+    body.workplaceId != null ? Number(body.workplaceId) : null;
 
   // 회원 식별자 (att_*.member_uid varchar 컬럼용 — members.id의 문자열 변환)
   const memberUid: string = String(auth.ctx.member.id);
@@ -53,8 +55,28 @@ export default async function handler(req: Request) {
   // 오늘 근무형태
   const workMode = await getScheduledWorkMode(memberUid, today);
 
+  // R36 A-2: FIELD 모드에서 workplaceId 미명시·스케줄 거점도 없을 때 활성 FIELD 거점 목록 반환
+  let workplaceId: number | null = selectedWorkplaceId ?? workMode.workplaceId;
+  if (workMode.mode === "FIELD" && !workplaceId) {
+    try {
+      const fieldList = await db.select({
+        id: attWorkplaces.id, name: attWorkplaces.name, address: attWorkplaces.address,
+        lat: attWorkplaces.lat, lng: attWorkplaces.lng, radius: attWorkplaces.radius,
+      })
+        .from(attWorkplaces)
+        .where(and(eq(attWorkplaces.isActive, true), eq(attWorkplaces.type, "FIELD")));
+      return new Response(JSON.stringify({
+        ok: false,
+        needsWorkplaceSelection: true,
+        error: "외근지를 선택해 주세요",
+        workplaces: fieldList,
+      }), { status: 422, headers: { "Content-Type": "application/json" } });
+    } catch (err) {
+      console.warn("[att-checkin] FIELD 거점 목록 조회 실패:", err);
+    }
+  }
+
   // OFFICE / FIELD: 위치 검증
-  let workplaceId: number | null = workMode.workplaceId;
   if (workMode.mode === "OFFICE" || workMode.mode === "FIELD") {
     if (lat == null || lng == null) {
       return jsonError("no_location", new Error("위치 정보 필요 (lat, lng)"), 400);
@@ -171,9 +193,49 @@ export default async function handler(req: Request) {
       category: "system",
     }).catch(e => console.warn("[att-checkin] 알림 실패:", e));
 
+    // R36 A-5: REMOTE 출근 시 WBS 자동 카드 생성 (중복 방지)
+    //   sourceType='att_remote_report' + sourceRefUrl=date 로 중복 판정
+    let autoCardId: number | null = null;
+    if (workMode.mode === "REMOTE") {
+      try {
+        const memberId = auth.ctx.member.id;
+        // 오늘자 자동 카드 중복 체크
+        const existsRows: any = await db.execute(sql`
+          SELECT id FROM workspace_tasks
+          WHERE member_id = ${memberId}
+            AND source_type = 'att_remote_report'
+            AND source_ref_url = ${today}
+          LIMIT 1
+        `);
+        const existsList: any[] = Array.isArray(existsRows) ? existsRows : (existsRows as any).rows ?? [];
+        if (existsList.length === 0) {
+          // 오늘 KST 23:59 마감 (UTC 14:59)
+          const dueDate = new Date(today + "T23:59:59+09:00");
+          const insRows: any = await db.execute(sql`
+            INSERT INTO workspace_tasks
+              (member_id, title, description, status, priority, due_date,
+               source_type, source_id, source_ref_url, created_by_agent)
+            VALUES
+              (${memberId}, ${today + " 재택근무 보고서"},
+               ${"재택근무 일일 보고서 작성 (자동 생성)"},
+               'todo', 'normal', ${dueDate.toISOString()}::timestamp,
+               'att_remote_report', ${record.id}, ${today}, 'user')
+            RETURNING id
+          `);
+          const insList: any[] = Array.isArray(insRows) ? insRows : (insRows as any).rows ?? [];
+          autoCardId = insList[0]?.id ?? null;
+        } else {
+          autoCardId = existsList[0]?.id ?? null;
+        }
+      } catch (err) {
+        console.warn("[att-checkin] WBS 자동 카드 생성 실패:", err);
+      }
+    }
+
     return jsonOk({
       ...record,
       remoteReportRequired: workMode.mode === "REMOTE",
+      autoCardId,
     }, 201);
   } catch (err) {
     if (String(err).includes("unique") || String(err).includes("att_records_member_date_uq")) {

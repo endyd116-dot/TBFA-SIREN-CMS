@@ -124,6 +124,47 @@
         <span id="attPolicyNoteText">정책 정보 로드 중…</span>
       </div>
 
+      <!-- R36 A-1: 근무형태 변경 신청 버튼 -->
+      <div style="margin-top:12px;text-align:right">
+        <button type="button" id="attBtnWorkmodeChange" style="padding:8px 14px;background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer">
+          🔄 근무형태 변경 신청
+        </button>
+      </div>
+
+      <!-- 근무형태 변경 신청 모달 -->
+      <div id="wmChangeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:480px">
+          <h3 style="margin:0 0 16px;font-size:17px">근무형태 변경 신청</h3>
+          <div style="margin-bottom:12px">
+            <label style="display:block;margin-bottom:6px;font-size:13px;color:#374151">희망 근무형태</label>
+            <select id="wmChangeMode" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px">
+              <option value="">선택</option>
+              <option value="OFFICE">🏢 사무실</option>
+              <option value="REMOTE">🏠 재택</option>
+              <option value="FIELD">🚗 외근</option>
+              <option value="BUSINESS_TRIP">✈️ 출장</option>
+              <option value="HYBRID">🔀 혼합</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;margin-bottom:6px;font-size:13px;color:#374151">적용 희망일</label>
+            <input type="date" id="wmChangeDate" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px">
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="display:block;margin-bottom:6px;font-size:13px;color:#374151">사유 (필수)</label>
+            <textarea id="wmChangeReason" rows="3" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;resize:vertical" placeholder="변경이 필요한 사유를 작성해 주세요"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button type="button" id="wmChangeCancel" style="padding:8px 14px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer">취소</button>
+            <button type="button" id="wmChangeSubmit" style="padding:8px 14px;background:#3b82f6;color:#fff;border:0;border-radius:6px;cursor:pointer">신청</button>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:12px;color:#6b7280;margin-bottom:6px">최근 신청 이력</div>
+            <div id="wmChangeHistory" style="font-size:12px;color:#374151;max-height:120px;overflow-y:auto">조회 중...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 이번달 요약 -->
       <div class="att-section-header">
         <span class="att-section-title">이번달 요약</span>
@@ -415,7 +456,7 @@
 <!-- 워크스페이스 공통 JS -->
 <script src="/js/workspace-common.js?v=20260515bugfix2"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=10"></script>
+<script src="/js/workspace-attendance.js?v=11"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
 </body>
 </html>
