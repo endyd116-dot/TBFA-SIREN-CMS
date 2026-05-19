@@ -1,12 +1,15 @@
 /**
- * cron-att-evening: 퇴근 미체크 + 재택보고서 알림 + 52시간 체크 (KST 자정 = UTC 15:00)
+ * cron-att-evening: 야간 정리 cron (KST 자정 = UTC 15:00)
  * schedule: 0 15 * * *
  *
- * 동작:
- * 1. 오늘 출근 기록은 있으나 퇴근 null인 직원 → EARLY_LEAVE 자동 처리
- * 2. 재택근무자 중 보고서 미제출 직원 → 인앱 알림
+ * 동작 (R29-ATT-GAP2: 강제 퇴근 제거):
+ * 1. 오늘 출근 기록은 있으나 퇴근 null 인 직원 — 명단을 슈퍼어드민에게 통보 (강제 변경 X)
+ *    현장직·야간직 부당 처리 방지: DB 변경 없이 운영자가 사후 판정.
+ * 2. 재택근무자 중 보고서 미제출 직원 → 본인 인앱 알림
  * 3. 주간 누적 48시간 임박 직원 → 임박 알림
  * 4. 주간 누적 52시간 초과 직원 → 슈퍼어드민 즉시 알림
+ *
+ * 디버그/검증 모드: 어떤 URL이든 ?dryRun=1 → DB 변경·알림 발송 없이 탐지 명단만 JSON 반환
  */
 
 import type { Context } from "@netlify/functions";
@@ -30,48 +33,43 @@ function kstWeekStart(): string {
   return kst.toISOString().slice(0, 10);
 }
 
-export default async (_req: Request, _ctx: Context) => {
+export default async (req: Request, _ctx: Context) => {
   const start = Date.now();
   const today = kstToday();
   const weekStart = kstWeekStart();
-  console.info("[cron-att-evening] 시작", today);
 
-  let autoCheckoutCount = 0;
+  // ?dryRun=1 : DB 변경·알림 발송 없이 탐지 결과만 반환 (운영자 검증용)
+  let dryRun = false;
+  try {
+    const u = new URL(req.url);
+    dryRun = u.searchParams.get("dryRun") === "1";
+  } catch {}
+  console.info("[cron-att-evening] 시작", today, dryRun ? "(dryRun)" : "");
+
   let reportAlertCount = 0;
   let overtimeAlertCount = 0;
 
   try {
-    // 1. 오늘 출근은 했으나 퇴근 기록 null인 직원 → EARLY_LEAVE 자동 처리
+    // 1. 미퇴근자 명단 수집 (R29-ATT-GAP2: 강제 퇴근 처리 제거)
+    //    슈퍼어드민에게 명단만 통보 → 운영자가 사후 판정.
     const noCheckoutRows: any = await db.execute(sql`
-      SELECT id, member_uid, check_in_time, work_mode
-      FROM att_records
-      WHERE date = ${today}::date
-        AND check_in_time IS NOT NULL
-        AND check_out_time IS NULL
+      SELECT r.id, r.member_uid, r.check_in_time, r.work_mode, m.name
+      FROM att_records r
+      LEFT JOIN members m ON m.id = r.member_uid::integer
+      WHERE r.date = ${today}::date
+        AND r.check_in_time IS NOT NULL
+        AND r.check_out_time IS NULL
     `);
-    const noCheckoutList = Array.isArray(noCheckoutRows) ? noCheckoutRows : (noCheckoutRows as any).rows ?? [];
-
-    for (const row of noCheckoutList) {
-      try {
-        await db.execute(sql`
-          UPDATE att_records
-          SET check_out_time = NOW(),
-              status = 'EARLY_LEAVE',
-              updated_at = NOW()
-          WHERE id = ${row.id}
-        `);
-        autoCheckoutCount++;
-      } catch (err) {
-        console.warn(`[cron-att-evening] 자동 퇴근 처리 실패 id=${row.id}:`, err);
-      }
-    }
+    const noCheckoutList: any[] = Array.isArray(noCheckoutRows) ? noCheckoutRows : (noCheckoutRows as any).rows ?? [];
+    const missingNames = noCheckoutList.map(r => r.name ?? `#${r.member_uid}`);
 
     // 2. 재택근무자 중 보고서 미제출 알림
+    //    R29-ATT-GAP1 이후 att_remote_work_reports.member_uid 는 varchar — 캐스트 불필요
     const remoteNoReportRows: any = await db.execute(sql`
       SELECT r.member_uid::integer AS member_id
       FROM att_records r
       LEFT JOIN att_remote_work_reports rep
-        ON rep.member_uid = r.member_uid::integer
+        ON rep.member_uid = r.member_uid
         AND rep.date = r.date
         AND rep.status = 'SUBMITTED'
       WHERE r.date = ${today}::date
@@ -82,22 +80,24 @@ export default async (_req: Request, _ctx: Context) => {
       .map((r: any) => parseInt(r.member_id))
       .filter((id: number) => !isNaN(id));
 
-    for (const memberId of remoteNoReportIds) {
-      try {
-        await sendWorkspaceNotification({
-          memberId,
-          sourceType: "event" as any,
-          sourceId: 0,
-          notifType: "reminder_3d" as any,
-          channel: "bell" as any,
-          title: "재택근무 보고서 미제출",
-          body: `${today} 재택근무 일일 보고서를 아직 제출하지 않았습니다.`,
-          actionUrl: "/workspace-attendance.html",
-          category: "system" as any,
-        });
-        reportAlertCount++;
-      } catch (err) {
-        console.warn(`[cron-att-evening] 보고서 알림 실패 memberId=${memberId}:`, err);
+    if (!dryRun) {
+      for (const memberId of remoteNoReportIds) {
+        try {
+          await sendWorkspaceNotification({
+            memberId,
+            sourceType: "event" as any,
+            sourceId: 0,
+            notifType: "reminder_3d" as any,
+            channel: "bell" as any,
+            title: "재택근무 보고서 미제출",
+            body: `${today} 재택근무 일일 보고서를 아직 제출하지 않았습니다.`,
+            actionUrl: "/workspace-attendance.html",
+            category: "system" as any,
+          });
+          reportAlertCount++;
+        } catch (err) {
+          console.warn(`[cron-att-evening] 보고서 알림 실패 memberId=${memberId}:`, err);
+        }
       }
     }
 
@@ -112,7 +112,7 @@ export default async (_req: Request, _ctx: Context) => {
     `);
     const weeklyList = Array.isArray(weeklyRows) ? weeklyRows : (weeklyRows as any).rows ?? [];
 
-    // 슈퍼어드민 조회 (52시간 초과 알림용)
+    // 슈퍼어드민 조회 (미퇴근 명단·52시간 초과 알림 공통)
     const superAdmins = await db
       .select({ id: members.id })
       .from(members)
@@ -122,6 +122,29 @@ export default async (_req: Request, _ctx: Context) => {
         isNull(members.withdrawnAt),
       ))
       .limit(10);
+
+    // 1-b. 미퇴근자 슈퍼어드민 통보 (강제 처리 대신 명단 알림만)
+    let missingCheckoutAlertCount = 0;
+    if (!dryRun && missingNames.length > 0 && superAdmins.length > 0) {
+      for (const sa of superAdmins) {
+        try {
+          await sendWorkspaceNotification({
+            memberId: sa.id,
+            sourceType: "event" as any,
+            sourceId: 0,
+            notifType: "reminder_3d" as any,
+            channel: "bell" as any,
+            title: `전일 미퇴근자 ${missingNames.length}명`,
+            body: `${today} 미퇴근: ${missingNames.slice(0, 10).join(", ")}${missingNames.length > 10 ? ` 외 ${missingNames.length - 10}명` : ""}`,
+            actionUrl: "/admin-attendance-settings.html",
+            category: "system" as any,
+          });
+          missingCheckoutAlertCount++;
+        } catch (err) {
+          console.warn(`[cron-att-evening] 미퇴근 슈퍼어드민 알림 실패:`, err);
+        }
+      }
+    }
 
     const over52Names: string[] = [];
 
@@ -139,6 +162,7 @@ export default async (_req: Request, _ctx: Context) => {
           const name = m?.name ?? `#${memberId}`;
           over52Names.push(`${name}(${totalHours}h)`);
 
+          if (dryRun) continue;
           await sendWorkspaceNotification({
             memberId,
             sourceType: "event" as any,
@@ -157,6 +181,7 @@ export default async (_req: Request, _ctx: Context) => {
       } else if (totalMins >= 2880) {
         // 48시간(2880분) 임박 → 당사자만
         try {
+          if (dryRun) continue;
           await sendWorkspaceNotification({
             memberId,
             sourceType: "event" as any,
@@ -176,7 +201,7 @@ export default async (_req: Request, _ctx: Context) => {
     }
 
     // 슈퍼어드민 52시간 초과 요약
-    if (over52Names.length > 0 && superAdmins.length > 0) {
+    if (!dryRun && over52Names.length > 0 && superAdmins.length > 0) {
       for (const sa of superAdmins) {
         try {
           await sendWorkspaceNotification({
@@ -197,10 +222,16 @@ export default async (_req: Request, _ctx: Context) => {
     }
 
     const durationMs = Date.now() - start;
-    console.info(`[cron-att-evening] 완료 — 자동퇴근:${autoCheckoutCount} 보고서알림:${reportAlertCount} 초과근무알림:${overtimeAlertCount} (${durationMs}ms)`);
+    console.info(`[cron-att-evening] 완료 — 미퇴근:${missingNames.length}명 보고서알림:${reportAlertCount} 초과근무알림:${overtimeAlertCount} (${durationMs}ms)${dryRun ? " [dryRun]" : ""}`);
 
     return new Response(JSON.stringify({
-      ok: true, autoCheckoutCount, reportAlertCount, overtimeAlertCount, durationMs,
+      ok: true,
+      dryRun,
+      missingCheckout: { count: missingNames.length, names: missingNames, alertSent: missingCheckoutAlertCount },
+      reportAlertCount,
+      overtimeAlertCount,
+      over52Names,
+      durationMs,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {

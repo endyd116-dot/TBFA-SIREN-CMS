@@ -50,7 +50,7 @@ export default async function handler(req: Request) {
       })
       .from(attRemoteWorkReports)
       .where(and(
-        eq(attRemoteWorkReports.memberUid, memberId),
+        eq(attRemoteWorkReports.memberUid, String(memberId)),
         gte(attRemoteWorkReports.date, startDate),
         lte(attRemoteWorkReports.date, endDate),
       ))

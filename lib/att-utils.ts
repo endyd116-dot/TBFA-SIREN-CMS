@@ -8,6 +8,27 @@ import { eq, and, lte, or, isNull } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 // ─────────────────────────────────────────────────────────
+// 0. 타임존 헬퍼 (R29-ATT-GAP2)
+//    Netlify 함수는 UTC 환경 → 시각 비교·판정 전 KST(+9h) 변환 필수.
+//    DB 저장값은 UTC 유지 (Postgres timestamp). KST 변환은 비교·판정 시점에만.
+// ─────────────────────────────────────────────────────────
+
+/** UTC Date 를 KST 시각으로 옮긴 Date (getUTC*() 로 읽으면 KST 값) */
+export const toKST = (d: Date) => new Date(d.getTime() + 9 * 3_600_000);
+
+/** 지금(서버 UTC) → KST Date */
+export const nowKST = () => toKST(new Date());
+
+/** KST 기준 'YYYY-MM-DD' 날짜 문자열 */
+export const todayKST = () => nowKST().toISOString().slice(0, 10);
+
+/** KST 기준 'HH:MM' 시각 문자열 */
+export const hhmmKST = (d?: Date) => {
+  const k = d ? toKST(d) : nowKST();
+  return `${String(k.getUTCHours()).padStart(2, "0")}:${String(k.getUTCMinutes()).padStart(2, "0")}`;
+};
+
+// ─────────────────────────────────────────────────────────
 // 1. 위치 관련
 // ─────────────────────────────────────────────────────────
 
@@ -157,7 +178,7 @@ export function determineStatus(
   checkInTime: Date | null,
   checkOutTime: Date | null,
   policy: {
-    checkInTime: string;  // 'HH:MM'
+    checkInTime: string;  // 'HH:MM' (정책 = KST 시각)
     checkOutTime: string; // 'HH:MM'
     lateGraceMins: number;
     earlyLeaveGraceMins: number;
@@ -175,15 +196,16 @@ export function determineStatus(
   const stdCheckIn  = ciH * 60 + ciM + policy.lateGraceMins;
   const stdCheckOut = coH * 60 + coM - policy.earlyLeaveGraceMins;
 
-  const actualCheckInMins =
-    checkInTime.getHours() * 60 + checkInTime.getMinutes();
+  // R29-ATT-GAP2: 서버 TZ 의존 제거 — 입력 Date 를 KST 로 변환 후 UTC 게터로 시·분 추출
+  const ckIn = toKST(checkInTime);
+  const actualCheckInMins = ckIn.getUTCHours() * 60 + ckIn.getUTCMinutes();
 
   const isLate = actualCheckInMins > stdCheckIn;
 
   if (!checkOutTime) return isLate ? "LATE" : "NORMAL";
 
-  const actualCheckOutMins =
-    checkOutTime.getHours() * 60 + checkOutTime.getMinutes();
+  const ckOut = toKST(checkOutTime);
+  const actualCheckOutMins = ckOut.getUTCHours() * 60 + ckOut.getUTCMinutes();
 
   const isEarlyLeave = actualCheckOutMins < stdCheckOut;
 

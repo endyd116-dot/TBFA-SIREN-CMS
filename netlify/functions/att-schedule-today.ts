@@ -2,7 +2,7 @@ import { db } from "../../db/index";
 import { attWorkplaces } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import { getScheduledWorkMode } from "../../lib/att-utils";
+import { getScheduledWorkMode, todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att-schedule-today" };
 
@@ -28,7 +28,7 @@ export default async function handler(req: Request) {
   // att_*.member_uid (varchar) — members.id 문자열
   const memberUid: string = String(auth.ctx.member.id);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
 
   try {
     const workMode = await getScheduledWorkMode(memberUid, today);
