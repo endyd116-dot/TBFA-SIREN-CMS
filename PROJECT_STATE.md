@@ -43,9 +43,18 @@
 
 | 작업 | 채팅 | 상태 |
 |---|---|---|
-| 문서·메모리 대정리 (4영역 분리 + CLAUDE.md 경로 갱신 + HANDOFF/REMAINING_WORK 최신화 + 메모리 통폐합) | 메인 | 진행 중 (cleanup/docs-memory-reorg @ 283395f) |
+| 문서·메모리 대정리 (4영역 분리·완료) | 메인 | ✅ 완료 (main da29a51) |
+| **R39 통합 라운드 (역할 동적 CRUD + Admin UX 12건·8단계)** | B | 🟢 Stage 1 진행 중 (브랜치 feature/r39-roles-and-ux) |
+| **사용자 메뉴얼 + AI 학습용 메뉴얼** (admin-manual.html·ai-assistant-knowledge.md·ai-training.jsonl) | C | 🟢 진행 중·톤 매칭 PASS·영역 B 완료·C/D/E 영역 남음 |
+| 운영 fix 누적 (어드민 자가 점검 발견 12건) | 메인 | ✅ 머지 완료 (main b8ad9cc) |
 
-**A·B·C 채팅**: 모두 휴식 모드. 새 라운드 트리거 도착 시 재가동.
+**R38 폐기 사실**: 옛 R38(Admin UX 3건)은 main에 머지됐고·R39 Stage 4·5 일부로 흡수됨. R39 설계서 §0~§7 참조.
+
+**R39 12건**: ①역할 동적 CRUD ②사람별 마일스톤 ③비매출 검토 화면 ④출퇴근 월/리스트 ⑤실시간 출퇴근 ⑥카카오 지도 시각화 ⑦직원 잔여 휴가 수동 CRUD ⑧출퇴근 양방향 수정 ⑨PC 위치정보 강제 ⑩워크툴 상단 출퇴근 버튼 ⑪회원 안내 박스 ⑫로딩 지연 fix.
+
+**R39 종결 후 예약**: 라운드 종결 체크리스트 15가지 메모리 정식 등록 (`docs/active/2026-05-20-r39-roles-and-ux.md §6.5`).
+
+설계서: `docs/active/2026-05-20-r39-roles-and-ux.md`
 
 ---
 
