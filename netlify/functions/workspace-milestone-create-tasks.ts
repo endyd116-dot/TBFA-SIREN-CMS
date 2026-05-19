@@ -5,7 +5,7 @@
  */
 import type { Context } from "@netlify/functions";
 /* ★ R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -15,7 +15,7 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST only" }, { status: 405 });
 
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   let body: any = {};

@@ -41,6 +41,13 @@ export default async function handler(req: Request) {
   const selectedWorkplaceId: number | null =
     body.workplaceId != null ? Number(body.workplaceId) : null;
 
+  /* R39 Stage 7 후속 fix: 디바이스 타입 수신 (MOBILE·TABLET·DESKTOP만 허용) */
+  const VALID_DEVICE_TYPES = ["MOBILE", "TABLET", "DESKTOP"] as const;
+  const rawDeviceType = String(body.deviceType || "").toUpperCase();
+  const deviceType: string | null = (VALID_DEVICE_TYPES as readonly string[]).includes(rawDeviceType)
+    ? rawDeviceType
+    : null;
+
   // 회원 식별자 (att_*.member_uid varchar 컬럼용 — members.id의 문자열 변환)
   const memberUid: string = String(auth.ctx.member.id);
 
@@ -178,6 +185,7 @@ export default async function handler(req: Request) {
       checkInLng: lng != null ? String(lng) : null,
       checkInIp: ip,
       workplaceId,
+      deviceType,
     } as any).returning();
 
     // R29-ATT-GAP2 PHASE E 알림 1: 출근 확인 (fire-and-forget — 메인 흐름 차단 X)

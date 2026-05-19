@@ -31,6 +31,13 @@ export default async function handler(req: Request) {
 
   const { lat, lng } = body;
 
+  /* R39 Stage 7 후속 fix: 디바이스 타입 수신 (퇴근 시 다른 디바이스일 수 있어 갱신·없으면 기존 값 유지) */
+  const VALID_DEVICE_TYPES = ["MOBILE", "TABLET", "DESKTOP"] as const;
+  const rawDeviceType = String(body.deviceType || "").toUpperCase();
+  const deviceType: string | null = (VALID_DEVICE_TYPES as readonly string[]).includes(rawDeviceType)
+    ? rawDeviceType
+    : null;
+
   // 회원 식별자 (att_*.member_uid varchar — members.id 문자열)
   const memberUid: string = String(auth.ctx.member.id);
 
@@ -111,17 +118,21 @@ export default async function handler(req: Request) {
   }
 
   try {
+    const updatePayload: any = {
+      checkOutTime: now,
+      checkOutLat: lat != null ? String(lat) : null,
+      checkOutLng: lng != null ? String(lng) : null,
+      workingMins,
+      overtimeMins,
+      status,
+      updatedAt: new Date(),
+    };
+    /* deviceType은 명시된 경우만 갱신 — 미명시 시 출근 시점 값 유지 */
+    if (deviceType) updatePayload.deviceType = deviceType;
+
     const [record] = await db
       .update(attRecords)
-      .set({
-        checkOutTime: now,
-        checkOutLat: lat != null ? String(lat) : null,
-        checkOutLng: lng != null ? String(lng) : null,
-        workingMins,
-        overtimeMins,
-        status,
-        updatedAt: new Date(),
-      } as any)
+      .set(updatePayload)
       .where(and(eq(attRecords.memberUid, memberUid), eq(attRecords.date, today)))
       .returning();
 

@@ -4,7 +4,7 @@
  */
 import type { Context } from "@netlify/functions";
 /* ★ R35-GAP-P1-B-H1: requireAdmin → requireOperator (operator+admin 명세 정합) */
-import { requireOperator } from "../../lib/operator-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -12,7 +12,7 @@ export const config = { path: "/api/workspace-milestone-progress" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireOperator(req);
-  if (!auth.ok) return auth.res;
+  if (operatorGuardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   const url = new URL(req.url);

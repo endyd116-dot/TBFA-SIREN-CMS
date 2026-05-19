@@ -243,7 +243,7 @@
   }
 
   async function sendCheckin(lat, lng, workplaceId) {
-    const body = {};
+    const body = { deviceType: detectDeviceType() };
     if (lat !== null) { body.lat = lat; body.lng = lng; }
     if (workplaceId != null) body.workplaceId = workplaceId;
     const res = await api('/api/att-checkin', { method: 'POST', body });
@@ -319,6 +319,14 @@
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
+  /* R39 Stage 7 후속 fix: 디바이스 타입 감지 (출퇴근 기록 시 서버에 전송) */
+  function detectDeviceType() {
+    var ua = (navigator.userAgent || '').toLowerCase();
+    if (/mobile|android|iphone|ipod|blackberry|iemobile|opera mini/.test(ua)) return 'MOBILE';
+    if (/ipad|tablet|kindle/.test(ua)) return 'TABLET';
+    return 'DESKTOP';
+  }
+
   /* R39 Stage 5 A-3: 퇴근도 모든 모드 위치 강제 수집 */
   async function doCheckout(mode) {
     const btn = document.getElementById('attBtnCheckout');
@@ -346,7 +354,7 @@
   }
 
   async function sendCheckout(lat, lng) {
-    const body = {};
+    const body = { deviceType: detectDeviceType() };
     if (lat !== null) { body.lat = lat; body.lng = lng; }
     const res = await api('/api/att-checkout', { method: 'POST', body });
     if (!res.ok) {
