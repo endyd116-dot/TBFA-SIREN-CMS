@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
-import { attSchedules, attScheduleOverrides } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { attSchedules } from "../../db/schema";
+import { eq } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-schedules" };
@@ -67,6 +67,55 @@ export default async function handler(req: Request) {
       return jsonOk(row, 201);
     } catch (err) {
       return jsonError("insert_schedule", err);
+    }
+  }
+
+  // R34-P2 (round2 M6): PUT — 스케줄 수정 (?id=)
+  if (method === "PUT") {
+    const id = Number(url.searchParams.get("id"));
+    if (!id) return jsonError("validate_id", new Error("id 필수"), 400);
+
+    let body: any;
+    try { body = await req.json(); } catch { body = {}; }
+
+    try {
+      const existing = await db
+        .select()
+        .from(attSchedules)
+        .where(eq(attSchedules.id, id))
+        .limit(1);
+      if (existing.length === 0) {
+        return jsonError("not_found", new Error("스케줄 없음"), 404);
+      }
+      const [row] = await db
+        .update(attSchedules)
+        .set({
+          workMode:      body.workMode       ?? existing[0].workMode,
+          recurringRule: body.recurringRule !== undefined ? body.recurringRule : existing[0].recurringRule,
+          startDate:     body.startDate      ?? existing[0].startDate,
+          endDate:       body.endDate !== undefined ? body.endDate : existing[0].endDate,
+          workplaceId:   body.workplaceId !== undefined ? body.workplaceId : existing[0].workplaceId,
+          note:          body.note !== undefined ? body.note : existing[0].note,
+          updatedAt:     new Date(),
+        })
+        .where(eq(attSchedules.id, id))
+        .returning();
+      return jsonOk(row);
+    } catch (err) {
+      return jsonError("update_schedule", err);
+    }
+  }
+
+  // R34-P2 (round2 M6): DELETE — 스케줄 삭제 (?id=)
+  if (method === "DELETE") {
+    const id = Number(url.searchParams.get("id"));
+    if (!id) return jsonError("validate_id", new Error("id 필수"), 400);
+
+    try {
+      await db.delete(attSchedules).where(eq(attSchedules.id, id));
+      return jsonOk({ deleted: id });
+    } catch (err) {
+      return jsonError("delete_schedule", err);
     }
   }
 
