@@ -57,14 +57,17 @@ export default async function handler(req: Request, _ctx: Context) {
       if (!qStatus) return Response.json({ ok: false, error: "존재하지 않는 분기" }, { status: 404 });
       if (qStatus !== "ACTIVE") return Response.json({ ok: false, error: "활성 분기에만 입력 가능합니다" }, { status: 400 });
 
-      /* ★ R29-MS-GAP1-J: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
+      /* ★ R29-MS-GAP1-J/GAP2-H: 결산이 이미 SUBMITTED/APPROVED/PAID이면 매출 입력 차단 */
       const settleRows = await db.execute(sql`
         SELECT status FROM quarterly_settlements
         WHERE quarter_id = ${Number(quarterId)} AND member_id = ${member.id}
       `);
       const settleStatus = ((settleRows as any).rows?.[0] || (settleRows as any[])[0])?.status;
       if (settleStatus && ["SUBMITTED", "APPROVED", "PAID"].includes(settleStatus)) {
-        return Response.json({ ok: false, error: "결산 제출 후 매출 입력 불가. 슈퍼어드민에게 문의하세요." }, { status: 400 });
+        return Response.json({
+          ok: false,
+          error: "결산이 제출된 분기에는 실적을 추가할 수 없습니다.",
+        }, { status: 409 });
       }
 
       // 마일스톤 소유권 확인 (본인 milestoneRole과 일치)

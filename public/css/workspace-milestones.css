@@ -48,12 +48,14 @@
 /* 상태 뱃지 */
 .ms-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11.5px; font-weight:600; }
 .ms-badge.PENDING  { background:#fef3c7; color:#92400e; }
+.ms-badge.REVIEWED { background:#fffbeb; color:#b45309; border:1px solid #fcd34d; }
 .ms-badge.VERIFIED { background:#dcfce7; color:#15803d; }
 .ms-badge.REJECTED { background:#fee2e2; color:var(--danger); }
 .ms-badge.DRAFT     { background:#f3f4f6; color:#4b5563; }
 .ms-badge.SUBMITTED { background:#eff6ff; color:#1d4ed8; }
 .ms-badge.APPROVED  { background:#dcfce7; color:#15803d; }
 .ms-badge.PAID      { background:#f3e8ff; color:#7c3aed; }
+.ms-badge.HOLD      { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
 
 /* 폼 */
 .ms-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -99,3 +101,25 @@
 
 /* 로딩 */
 .ms-loading { text-align:center; padding:30px; color:var(--text-3); }
+
+/* ★ R29-MS-GAP2-B: AI 코칭 박스 */
+.ms-coaching-box   { background:#f5f3ff; border:1px solid #ede9fe; border-radius:10px; padding:16px; }
+.ms-coaching-label { font-size:12.5px; font-weight:700; color:#5b21b6; margin-bottom:6px; }
+.ms-coaching-text  { font-size:13.5px; color:#1f2937; line-height:1.6; white-space:pre-wrap; }
+
+/* ★ R29-MS-GAP2-F: D-N 카운트다운 배지 */
+.ms-countdown        { display:inline-block; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600; cursor:pointer; margin-left:8px; }
+.ms-countdown.orange { background:#fff7ed; color:#c2410c; }
+.ms-countdown.red    { background:#fef2f2; color:#dc2626; }
+.ms-countdown.gray   { background:#f9fafb; color:#6b7280; }
+
+/* ★ R29-MS-GAP2-H: SUBMITTED 마감 배너 */
+.ms-locked-banner    { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:14px; }
+
+/* ★ R29-MS-GAP2-E: KPI breakdown 토글 */
+.ms-kpi              { cursor:pointer; }
+.ms-breakdown-panel  { background:#fff; border:1px solid #e5e7eb; border-radius:10px; margin-top:12px; padding:14px; }
+.ms-breakdown-panel table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.ms-breakdown-panel th, .ms-breakdown-panel td { padding:6px 8px; border-bottom:1px solid #f3f4f6; text-align:left; }
+.ms-breakdown-panel tr.total { background:#f9fafb; font-weight:700; }
+

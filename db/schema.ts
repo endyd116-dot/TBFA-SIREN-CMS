@@ -3511,6 +3511,8 @@ export const quarterlySettlements = pgTable("quarterly_settlements", {
   reviewNote:          text("review_note"),
   approvedAt:          timestamp("approved_at"),
   paidAt:              timestamp("paid_at"),
+  /* ★ R29-MS-GAP1: HOLD 사유 (마이그레이션 migrate-ms-r29-hold-reason 적용 완료) */
+  holdReason:          text("hold_reason"),
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -3758,3 +3760,19 @@ export type AttRemoteWorkReport    = typeof attRemoteWorkReports.$inferSelect;
 export type NewAttRemoteWorkReport = typeof attRemoteWorkReports.$inferInsert;
 
 /* === Phase 27 정의 끝 === */
+
+/* === R29-MS-GAP1 === */
+/* 마일스톤 정의 변경 이력 (마이그레이션 migrate-ms-r29-hold-reason 적용 완료)
+ * 컬럼: id, definition_id, changed_by(members.id), changed_at, field_name, old_value, new_value
+ * 인덱스: (definition_id, changed_at DESC) */
+export const milestoneDefinitionHistory = pgTable("milestone_definition_history", {
+  id:           serial("id").primaryKey(),
+  definitionId: integer("definition_id").notNull(),
+  changedBy:    integer("changed_by").notNull(),
+  changedAt:    timestamp("changed_at", { withTimezone: true }).defaultNow().notNull(),
+  fieldName:    varchar("field_name", { length: 60 }).notNull(),
+  oldValue:     text("old_value"),
+  newValue:     text("new_value"),
+}, (t) => ({
+  defChangedIdx: index("ms_def_hist_def_idx").on(t.definitionId, t.changedAt),
+}));

@@ -194,6 +194,23 @@ export default async function handler(req: Request, _ctx: Context) {
         nonRevenue: nonRevenueTotal,
         total: revenueLinkedTotal + nonRevenueTotal,
       },
+      /* ★ R29-MS-GAP2-E: 인센티브 계산 breakdown 상세 */
+      breakdown: {
+        revenue: revenueProgress.map((p: any) => ({
+          milestoneName: p.name,
+          milestoneCode: p.code,
+          currentAmount: Number(p.currentVerifiedAmount || 0),
+          thresholdValue: Number(p.thresholdValue || 0),
+          subtotal: Number(p.estimatedIncentive || 0),
+        })).filter((r: any) => r.subtotal > 0 || r.currentAmount > 0),
+        nonRevenue: nonRevenueAchievements
+          .filter((a: any) => a.status === "VERIFIED" && a.isSelectedForQuarter)
+          .map((a: any) => ({
+            milestoneName: a.name,
+            milestoneCode: a.milestoneCode,
+            bonus: Number(a.bonusAmount || 0),
+          })),
+      },
     },
   });
 }

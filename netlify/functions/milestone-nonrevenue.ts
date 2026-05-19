@@ -49,6 +49,19 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "필수 필드 누락" }, { status: 400 });
     }
     try {
+      /* ★ R29-MS-GAP2-H: 결산 SUBMITTED/APPROVED/PAID 후 비매출 제출 차단 */
+      const settleRows = await db.execute(sql`
+        SELECT status FROM quarterly_settlements
+        WHERE quarter_id = ${Number(quarterId)} AND member_id = ${admin.id}
+      `);
+      const settleStatus = ((settleRows as any).rows?.[0] || (settleRows as any[])[0])?.status;
+      if (settleStatus && ["SUBMITTED", "APPROVED", "PAID"].includes(settleStatus)) {
+        return Response.json({
+          ok: false,
+          error: "결산이 제출된 분기에는 실적을 추가할 수 없습니다.",
+        }, { status: 409 });
+      }
+
       // 마일스톤 소유권 확인
       const mdRows = await db.execute(sql`
         SELECT * FROM milestone_definitions
