@@ -95,6 +95,14 @@
       <div class="ws-search-results" id="wsSearchResults" hidden></div>
     </div>
     <div class="ws-topbar-right">
+      <!-- R39 Stage 6: 상단 출퇴근 버튼 (운영자만·상태별 라벨 자동 변경) -->
+      <button class="ws-btn-quick ws-btn-attendance" id="wsAttBtn"
+              data-state="loading"
+              style="background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb"
+              title="출근·퇴근">
+        <span id="wsAttBtnIcon">⏳</span>
+        <span class="ws-btn-label" id="wsAttBtnLabel">확인 중...</span>
+      </button>
       <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task">
         <span>📋</span> <span class="ws-btn-label">새 작업</span>
       </button>
@@ -612,6 +620,7 @@
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
 <script src="/js/workspace.js?v=10" defer></script>
+<script src="/js/workspace-topbar-attendance.js?v=1-r39" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
