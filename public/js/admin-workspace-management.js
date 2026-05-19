@@ -351,7 +351,7 @@
         <td><strong>${escHtml(r.name || '—')}</strong></td>
         <td>${escHtml(r.address || '—')}</td>
         <td>${r.radius ?? '—'}</td>
-        <td style="font-size:12px;color:#6b7280">${r.lat ? r.lat.toFixed(5) + ', ' + r.lng.toFixed(5) : '—'}</td>
+        <td style="font-size:12px;color:#6b7280">${r.lat != null && r.lng != null ? Number(r.lat).toFixed(5) + ', ' + Number(r.lng).toFixed(5) : '—'}</td>
         <td>
           <button class="att-btn att-btn-default att-btn-sm" onclick="awmEditWorkplace(${r.id})">수정</button>
           <button class="att-btn att-btn-danger att-btn-sm" style="margin-left:4px" onclick="awmDeleteWorkplace(${r.id})">삭제</button>

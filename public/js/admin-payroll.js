@@ -54,21 +54,24 @@
     return '<span class="status-badge s-' + esc(s) + '">' + esc(s) + '</span>';
   }
 
-  /* ── 권한 확인 ── */
+  /* ── 권한 확인 (응답 구조 fallback 강화) ── */
   async function checkSuperAdmin() {
+    let isSuper = false;
     try {
-      const res = await api('/api/admin/me');
-      const role = res.data?.data?.admin?.role || res.data?.data?.role || res.data?.role;
-      const isSuper = role === 'super_admin';
-      if (isSuper) {
-        document.querySelectorAll('.super-only-card').forEach(el => el.style.display = '');
-        $('nonSuperBlock').style.display = 'none';
-        return true;
-      }
-    } catch (_) { /* 무시 */ }
-    $('nonSuperBlock').style.display = '';
-    document.querySelectorAll('.super-only-card').forEach(el => el.style.display = 'none');
-    return false;
+      const res = await api('/api/admin/me?light=1');
+      const d = res.data || {};
+      const role =
+        d?.data?.admin?.role ||
+        d?.admin?.role ||
+        d?.data?.role ||
+        d?.role ||
+        null;
+      isSuper = role === 'super_admin';
+    } catch (_) { /* 네트워크 오류 시 본문 표시·서버 가드가 차단 */ }
+    /* 본문은 기본 표시 — 실제 데이터 호출은 서버 requireAdmin이 한 번 더 검증 */
+    document.querySelectorAll('.super-only-card').forEach(el => el.style.display = '');
+    $('nonSuperBlock').style.display = isSuper ? 'none' : '';
+    return isSuper;
   }
 
   /* ── 연·월 셀렉트 초기화 (직전 달 기본) ── */
