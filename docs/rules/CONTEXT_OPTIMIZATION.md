@@ -63,8 +63,8 @@
 ## 4. 실행 계획 (체크포인트)
 
 ### Phase 1 — 분할/이전
-- [x] `docs/PARALLEL_GUIDE.md` 신설
-- [x] `docs/PAGES.md` 신설
+- [x] `docs/rules/PARALLEL_GUIDE.md` 신설
+- [x] `docs/rules/PAGES.md` 신설
 
 ### Phase 2 — 슬림화
 - [x] `PROJECT_STATE.md` 슬림화 (§4.0·§4.5·§6.1~§6.5·§7·§8 제거)
@@ -102,9 +102,9 @@
 ### 신규 정적 가이드 (자동·명시 로드 X — 필요 시만 참조)
 | 파일 | 크기 |
 |---|---:|
-| `docs/PARALLEL_GUIDE.md` | 5,717 B |
-| `docs/PAGES.md` | 1,004 B |
-| `docs/CONTEXT_OPTIMIZATION.md` | (본 문서) |
+| `docs/rules/PARALLEL_GUIDE.md` | 5,717 B |
+| `docs/rules/PAGES.md` | 1,004 B |
+| `docs/rules/CONTEXT_OPTIMIZATION.md` | (본 문서) |
 
 ### 행동 변화 정책 (CLAUDE.md §14에 영구 등록)
 - §14.1 정독 정책: PROJECT_STATE만 정독, HANDOFF는 발췌, archive 자발적 안 읽음

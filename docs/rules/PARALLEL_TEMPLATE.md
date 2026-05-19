@@ -1,7 +1,7 @@
 # PARALLEL_TEMPLATE.md — 라운드 설계서 표준 양식
 
 > **용도**: 메인(Opus 4.7)이 새 라운드를 시작할 때 이 파일을 복사해서 빈 칸을 채운다.
-> **저장 위치**: `docs/milestones/{YYYY-MM-DD}-phase{N}-r{M}-{키워드}.md`
+> **저장 위치**: `docs/active/{YYYY-MM-DD}-phase{N}-r{M}-{키워드}.md`
 > **목적**: Sonnet 4.6(A·B)이 헤매지 않도록 모든 결정을 미리 못박는다.
 > **참조**: [`PARALLEL_GUIDE.md`](PARALLEL_GUIDE.md) §1·§2 (역할·머지 순서)
 
@@ -227,11 +227,11 @@ INSERT INTO {table_name} (...) VALUES (...) ON CONFLICT DO NOTHING;
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-B
 브랜치: feature/phase{N}-r{M}-back (베이스 main @ {커밋})
-정독 (필수): docs/milestones/{날짜}-phase{N}-r{M}-{키워드}.md §1·§2
-참고: docs/PARALLEL_GUIDE.md §3 (영역 분담), §7 (자체 검증)
+정독 (필수): docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §1·§2
+참고: docs/rules/PARALLEL_GUIDE.md §3 (영역 분담), §7 (자체 검증)
 
 영역: netlify/functions/, lib/, db/schema.ts, drizzle/, .env.example, package.json
-금지: public/, assets/, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
+금지: public/, assets/, PROJECT_STATE.md, docs/rules/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §1 DB 체크리스트 (설계서 §1.1·§1.2·§1.3 1:1 매핑)
@@ -284,11 +284,11 @@ push 후 메인에 보고:
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-A
 브랜치: feature/phase{N}-r{M}-front (베이스 main @ {커밋})
-정독 (필수): docs/milestones/{날짜}-phase{N}-r{M}-{키워드}.md §3
-참고: docs/PARALLEL_GUIDE.md §3 (영역 분담)
+정독 (필수): docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §3
+참고: docs/rules/PARALLEL_GUIDE.md §3 (영역 분담)
 
 영역: public/, assets/
-금지: lib/, netlify/functions/, db/, drizzle/, .env.example, PROJECT_STATE.md, docs/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
+금지: lib/, netlify/functions/, db/, drizzle/, .env.example, PROJECT_STATE.md, docs/rules/HANDOFF.md, docs/ (상태 기록은 push 후 메인에 보고 텍스트로만)
 
 모드: {직렬 / 평행 mock / 평행 단계머지}
 
@@ -330,15 +330,15 @@ push 후 메인에 보고:
 모델: Opus 4.7
 워크트리: ../tbfa-mis-C
 브랜치: verify/phase{N}-r{M} (베이스 main @ {머지 후 커밋})
-정독: docs/milestones/{날짜}-phase{N}-r{M}-{키워드}.md §4
-참고: docs/PARALLEL_GUIDE.md §7 (검증 책임), §8 (대기열)
+정독: docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §4
+참고: docs/rules/PARALLEL_GUIDE.md §7 (검증 책임), §8 (대기열)
 
 작업 순서:
   1) §4.1 Q1~Qn 라이브 시나리오 (사용자 동작·결과 기록)
   2) §4.2 회귀 점검 영역 1건씩 확인
   3) bug 발견 시 fix 커밋 (브랜치 그대로) → 메인 보고
   4) §4.3 백필 필요 시 1회용 마이그 작성·Swain 호출 안내·삭제
-  5) 보고서 docs/verify/{날짜}-phase{N}-r{M}.md 작성
+  5) 보고서 docs/history/verify/{날짜}-phase{N}-r{M}.md 작성
   6) push → 메인 보고
 
 표현 규칙 (CLAUDE.md §6.14):
