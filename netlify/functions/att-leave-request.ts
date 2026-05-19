@@ -1,5 +1,5 @@
 import { db } from "../../db/index";
-import { members, attLeaveRequests, attLeaveBalances, attLeaveTypes } from "../../db/schema";
+import { attLeaveRequests, attLeaveBalances } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
@@ -24,18 +24,7 @@ export default async function handler(req: Request) {
 
   const method = req.method;
 
-  let memberUid: string;
-  try {
-    const [member] = await db
-      .select({ uid: members.uid })
-      .from(members)
-      .where(eq(members.id, auth.ctx.member.id))
-      .limit(1);
-    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
-    memberUid = member.uid;
-  } catch (err) {
-    return jsonError("select_member", err);
-  }
+  const memberUid: string = String(auth.ctx.member.id);
 
   // GET — 본인 신청 내역
   if (method === "GET") {

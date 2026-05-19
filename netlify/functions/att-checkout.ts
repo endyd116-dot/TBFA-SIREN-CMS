@@ -1,5 +1,5 @@
 import { db } from "../../db/index";
-import { members, attRecords, attRemoteWorkReports } from "../../db/schema";
+import { attRecords, attRemoteWorkReports } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { getDefaultPolicy, calcWorkingMins, determineStatus } from "../../lib/att-utils";
@@ -30,19 +30,8 @@ export default async function handler(req: Request) {
 
   const { lat, lng } = body;
 
-  // members.uid 조회
-  let memberUid: string;
-  try {
-    const [member] = await db
-      .select({ uid: members.uid })
-      .from(members)
-      .where(eq(members.id, auth.ctx.member.id))
-      .limit(1);
-    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
-    memberUid = member.uid;
-  } catch (err) {
-    return jsonError("select_member", err);
-  }
+  // 회원 식별자 (att_*.member_uid varchar — members.id 문자열)
+  const memberUid: string = String(auth.ctx.member.id);
 
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date();

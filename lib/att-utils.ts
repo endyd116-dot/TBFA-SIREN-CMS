@@ -89,19 +89,22 @@ export async function getScheduledWorkMode(
     let mode = sched.workMode;
 
     // HYBRID: recurring_rule에서 해당 요일 근무형태 조회
+    //   DB 저장 규약: 키는 대문자 3자(SUN|MON|TUE|WED|THU|FRI|SAT), 값은 OFFICE|REMOTE|FIELD|BUSINESS_TRIP
+    //   기존 소문자 데이터도 호환되도록 양쪽 모두 조회
     if (mode === "HYBRID" && sched.recurringRule) {
-      const dayOfWeek = new Date(dateStr).toLocaleDateString("en-US", { weekday: "short" }).toLowerCase();
-      // 'mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun'
-      const dayMap: Record<string, string> = {
-        "sun": "sun", "mon": "mon", "tue": "tue",
-        "wed": "wed", "thu": "thu", "fri": "fri", "sat": "sat",
-      };
+      const DAY_KEYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+      const dayIdx = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+      const dayKeyUpper = DAY_KEYS[dayIdx];
+      const dayKeyLower = dayKeyUpper.toLowerCase();
+      const isWeekend = dayIdx === 0 || dayIdx === 6;
+
       const rule = sched.recurringRule as Record<string, string>;
-      const dayKey = dayMap[dayOfWeek];
-      if (dayKey && rule[dayKey]) {
-        mode = rule[dayKey];
+      const picked = rule[dayKeyUpper] ?? rule[dayKeyLower];
+      if (picked) {
+        mode = picked;
       } else {
-        mode = "OFFICE"; // 미지정 요일 = 사무실
+        // 미지정: 평일은 OFFICE, 주말은 HOLIDAY 로 fallback
+        mode = isWeekend ? "HOLIDAY" : "OFFICE";
       }
     }
 

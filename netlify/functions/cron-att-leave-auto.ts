@@ -59,11 +59,10 @@ export default async (_req: Request, _ctx: Context) => {
         { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
-    // 활성 운영자 목록 (uid 필요)
-    const activeOps = await db
+    // 활성 운영자 목록 (att_*.member_uid 는 members.id 문자열)
+    const activeOpsRaw = await db
       .select({
         id: members.id,
-        uid: members.uid,
         name: members.name,
         createdAt: members.createdAt,
       })
@@ -72,23 +71,30 @@ export default async (_req: Request, _ctx: Context) => {
         eq(members.operatorActive as any, true),
         isNull(members.withdrawnAt),
       ));
+    const activeOps = activeOpsRaw.map(o => ({ ...o, uid: String(o.id) }));
 
     // ─── 1. 전월 만근 직원 → +1일 ───
+    //   만근 조건: 결근(ABSENT) + 무단지각(LATE & is_manually_adjusted=false) +
+    //              무단조퇴(EARLY_LEAVE & is_manually_adjusted=false) 모두 0건
+    //   ※ is_manually_adjusted=true 는 어드민이 사유 인정한 케이스로 만근에서 제외하지 않음
     for (const op of activeOps) {
       try {
-        const absentRows: any = await db.execute(sql`
-          SELECT COUNT(*) AS cnt
+        const violationRows: any = await db.execute(sql`
+          SELECT
+            COUNT(*) FILTER (WHERE status = 'ABSENT')                                  AS absent_cnt,
+            COUNT(*) FILTER (WHERE status = 'LATE'        AND is_manually_adjusted = false) AS late_cnt,
+            COUNT(*) FILTER (WHERE status = 'EARLY_LEAVE' AND is_manually_adjusted = false) AS early_cnt
           FROM att_records
-          WHERE member_uid = ${String(op.id)}
+          WHERE member_uid = ${op.uid}
             AND date >= ${prevMonthStart}::date
             AND date <= ${prevMonthEnd}::date
-            AND status = 'ABSENT'
         `);
-        const absentCnt = parseInt(
-          (Array.isArray(absentRows) ? absentRows[0] : ((absentRows as any).rows ?? [])[0])?.cnt ?? "0"
-        );
+        const v = (Array.isArray(violationRows) ? violationRows[0] : ((violationRows as any).rows ?? [])[0]) ?? {};
+        const absentCnt = Number(v.absent_cnt ?? 0);
+        const lateCnt   = Number(v.late_cnt ?? 0);
+        const earlyCnt  = Number(v.early_cnt ?? 0);
 
-        if (absentCnt === 0) {
+        if (absentCnt === 0 && lateCnt === 0 && earlyCnt === 0) {
           // 만근 → +1일 upsert
           await db.execute(sql`
             INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)

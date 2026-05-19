@@ -21,6 +21,11 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  if (auth.ctx.member.role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용", step: "role_check" }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
 
   // GET: 특정 직원의 스케줄 + 오버라이드 조회
   if (req.method === "GET") {
@@ -72,13 +77,29 @@ export default async function handler(req: Request) {
         { status: 400, headers: { "Content-Type": "application/json" } });
     }
 
+    // recurringRule 정규화: 문자열("MON:OFFICE,TUE:REMOTE")이면 객체로 파싱.
+    //                       객체이면 키를 모두 대문자 3자로 통일.
+    let normalizedRule: Record<string, string> | null = null;
+    if (recurringRule && typeof recurringRule === "string") {
+      normalizedRule = {};
+      for (const part of recurringRule.split(",")) {
+        const [k, v] = part.split(":").map(s => s.trim());
+        if (k && v) normalizedRule[k.toUpperCase()] = v.toUpperCase();
+      }
+    } else if (recurringRule && typeof recurringRule === "object") {
+      normalizedRule = {};
+      for (const [k, v] of Object.entries(recurringRule)) {
+        if (k && v) normalizedRule[k.toUpperCase()] = String(v).toUpperCase();
+      }
+    }
+
     try {
       const [row] = await db
         .insert(attSchedules)
         .values({
           memberUid: String(memberUid),
           workMode,
-          recurringRule: recurringRule ?? null,
+          recurringRule: normalizedRule,
           startDate,
           endDate: endDate ?? null,
           workplaceId: workplaceId ?? null,

@@ -58,7 +58,11 @@
   async function loadWorkplaces() {
     try {
       var res = await api('/api/admin-att-workplaces');
-      state.wps = (res.data && res.data.workplaces) || res.workplaces || [];
+      var rows = res && res.data;
+      state.wps = Array.isArray(rows) ? rows
+                : Array.isArray(rows && rows.workplaces) ? rows.workplaces
+                : Array.isArray(res && res.workplaces) ? res.workplaces
+                : [];
       renderWpTable();
     } catch(e) {
       $('#wpBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
@@ -80,7 +84,7 @@
         + '<td style="font-size:12.5px;color:#6b7280">' + esc(w.address || '—') + '</td>'
         + '<td style="font-family:Inter;font-size:12px">' + (w.lat != null ? w.lat : '—') + '</td>'
         + '<td style="font-family:Inter;font-size:12px">' + (w.lng != null ? w.lng : '—') + '</td>'
-        + '<td>' + esc(w.allowedRadius || 200) + 'm</td>'
+        + '<td>' + esc(w.radius != null ? w.radius : 200) + 'm</td>'
         + '<td>' + badge + '</td>'
         + '<td><div style="display:flex;gap:6px">'
           + '<button class="att-btn secondary" style="padding:4px 10px;font-size:12px" onclick="editWp(' + w.id + ')">수정</button>'
@@ -97,7 +101,7 @@
     $('#wpAddress').value = wp ? (wp.address || '') : '';
     $('#wpLat').value = wp && wp.lat != null ? wp.lat : '';
     $('#wpLng').value = wp && wp.lng != null ? wp.lng : '';
-    $('#wpRadius').value = wp ? (wp.allowedRadius || 200) : 200;
+    $('#wpRadius').value = wp ? (wp.radius != null ? wp.radius : 200) : 200;
     $('#wpModal').classList.add('open');
   }
 
@@ -109,7 +113,7 @@
   window.deleteWp = async function(id, name) {
     if (!confirm('[' + name + '] 거점을 삭제하시겠습니까?')) return;
     try {
-      await api('/api/admin-att-workplaces?id=' + id, { method: 'DELETE' });
+      await api('/api/admin-att-workplaces?id=' + encodeURIComponent(id), { method: 'DELETE' });
       toast('삭제 완료', 'success');
       await loadWorkplaces();
     } catch(e) { toast('삭제 실패: ' + e.message, 'error'); }
@@ -119,16 +123,16 @@
     var id = $('#wpId').value;
     var payload = {
       name: $('#wpName').value.trim(),
+      type: 'OFFICE',
       address: $('#wpAddress').value.trim(),
       lat: $('#wpLat').value ? parseFloat($('#wpLat').value) : null,
       lng: $('#wpLng').value ? parseFloat($('#wpLng').value) : null,
-      allowedRadius: parseInt($('#wpRadius').value || 200),
+      radius: parseInt($('#wpRadius').value || 200),
     };
     if (!payload.name) { toast('거점명은 필수입니다', 'error'); return; }
     try {
       if (id) {
-        payload.id = Number(id);
-        await api('/api/admin-att-workplaces', { method: 'PUT', body: payload });
+        await api('/api/admin-att-workplaces?id=' + encodeURIComponent(id), { method: 'PUT', body: payload });
         toast('거점 수정 완료', 'success');
       } else {
         await api('/api/admin-att-workplaces', { method: 'POST', body: payload });
@@ -145,7 +149,11 @@
   async function loadLeaveTypes() {
     try {
       var res = await api('/api/admin-att-leave-types');
-      state.lts = (res.data && res.data.leaveTypes) || res.leaveTypes || [];
+      var rows = res && res.data;
+      state.lts = Array.isArray(rows) ? rows
+                : Array.isArray(rows && rows.leaveTypes) ? rows.leaveTypes
+                : Array.isArray(res && res.leaveTypes) ? res.leaveTypes
+                : [];
       renderLtTable();
     } catch(e) {
       $('#ltBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + esc(e.message) + '</td></tr>';
@@ -199,7 +207,7 @@
   window.deleteLt = async function(id, name) {
     if (!confirm('[' + name + '] 휴가 종류를 삭제하시겠습니까?')) return;
     try {
-      await api('/api/admin-att-leave-types?id=' + id, { method: 'DELETE' });
+      await api('/api/admin-att-leave-types?id=' + encodeURIComponent(id), { method: 'DELETE' });
       toast('삭제 완료', 'success');
       await loadLeaveTypes();
     } catch(e) { toast('삭제 실패: ' + e.message, 'error'); }
@@ -219,8 +227,7 @@
     if (!payload.code || !payload.name) { toast('코드와 이름은 필수입니다', 'error'); return; }
     try {
       if (id) {
-        payload.id = Number(id);
-        await api('/api/admin-att-leave-types', { method: 'PUT', body: payload });
+        await api('/api/admin-att-leave-types?id=' + encodeURIComponent(id), { method: 'PUT', body: payload });
         toast('수정 완료', 'success');
       } else {
         await api('/api/admin-att-leave-types', { method: 'POST', body: payload });
@@ -237,7 +244,9 @@
   async function loadPolicy() {
     try {
       var res = await api('/api/admin-att-policy');
-      state.policy = (res.data && res.data.policy) || res.policy || {};
+      // BE 응답: { ok:true, data: {<정책row>} | null }
+      var d = res && res.data;
+      state.policy = (d && typeof d === 'object' && !Array.isArray(d)) ? (d.policy || d) : {};
       renderPolicy();
     } catch(e) {
       $('#policyView').innerHTML = '<div style="color:#ef4444">로드 실패: ' + esc(e.message) + '</div>';
@@ -245,13 +254,17 @@
   }
 
   var _policyEditing = false;
+  // BE attPolicies 컬럼명에 맞춤 (FE 별칭 제거)
   var POLICY_FIELDS = [
-    { key: 'workStartTime',     label: '업무 시작 시간',       unit: '' },
-    { key: 'workEndTime',       label: '업무 종료 시간',       unit: '' },
-    { key: 'lateThresholdMin',  label: '지각 기준 (분)',       unit: '분' },
-    { key: 'earlyLeaveThresholdMin', label: '조기퇴근 기준', unit: '분' },
-    { key: 'defaultLocationRadius', label: '기본 위치 허용 반경', unit: 'm' },
-    { key: 'overtimeThresholdMin',  label: '야근 기준 (분)',  unit: '분' },
+    { key: 'checkInTime',         label: '업무 시작 시각',       unit: '', type: 'time' },
+    { key: 'checkOutTime',        label: '업무 종료 시각',       unit: '', type: 'time' },
+    { key: 'lateGraceMins',       label: '지각 허용 (분)',       unit: '분', type: 'int' },
+    { key: 'earlyLeaveGraceMins', label: '조퇴 허용 (분)',       unit: '분', type: 'int' },
+    { key: 'dailyHours',          label: '하루 근무 (시간)',     unit: '시간', type: 'num' },
+    { key: 'breakMins',           label: '휴게 시간 (분)',       unit: '분', type: 'int' },
+    { key: 'breakThresholdHours', label: '휴게 적용 기준 (시간)', unit: '시간', type: 'num' },
+    { key: 'weeklyMaxHours',      label: '주 최대 근무 (시간)',   unit: '시간', type: 'int' },
+    { key: 'remoteMaxPerMonth',   label: '월 재택 최대 일수',     unit: '일', type: 'int' },
   ];
 
   function renderPolicy() {
@@ -286,16 +299,20 @@
   }
 
   async function savePolicy() {
+    // BE 가 평탄 구조 body (policy 래퍼 없음) 를 받도록 통일
     var p = {};
     POLICY_FIELDS.forEach(function(f) {
       var el = document.getElementById('pi-' + f.key);
-      if (el && el.value.trim()) {
-        var v = el.value.trim();
-        p[f.key] = isNaN(Number(v)) ? v : (v.includes(':') ? v : Number(v));
-      }
+      if (!el) return;
+      var raw = String(el.value || '').trim();
+      if (!raw) return;
+      if (f.type === 'time')      p[f.key] = raw;                    // 'HH:MM'
+      else if (f.type === 'int')  p[f.key] = parseInt(raw, 10);
+      else if (f.type === 'num')  p[f.key] = parseFloat(raw);
+      else                        p[f.key] = raw;
     });
     try {
-      await api('/api/admin-att-policy', { method: 'PUT', body: { policy: p } });
+      await api('/api/admin-att-policy', { method: 'PUT', body: p });
       state.policy = Object.assign(state.policy || {}, p);
       _policyEditing = false;
       renderPolicy();
@@ -486,12 +503,12 @@
 
     var recurringRule = null;
     if (workMode === 'HYBRID') {
-      var parts = [];
+      var obj = {};
       DAY_KEYS.forEach(function(key) {
         var sel = document.getElementById('wmDay_' + key);
-        if (sel && sel.value) parts.push(key + ':' + sel.value);
+        if (sel && sel.value) obj[key] = sel.value;
       });
-      if (parts.length) recurringRule = parts.join(',');
+      if (Object.keys(obj).length) recurringRule = obj;
     }
 
     try {

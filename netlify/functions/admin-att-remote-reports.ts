@@ -21,14 +21,53 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  if (auth.ctx.member.role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용", step: "role_check" }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
 
-  // GET: 보고서 목록 조회
+  // GET: 보고서 목록 조회 또는 단건 조회 (?id=)
   if (req.method === "GET") {
     const url = new URL(req.url);
+    const idParam = url.searchParams.get("id");
     const memberUid = url.searchParams.get("memberUid");
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
     const status = url.searchParams.get("status"); // DRAFT | SUBMITTED
+
+    // 단건 조회 — ?id=
+    if (idParam) {
+      const reportId = Number(idParam);
+      if (!Number.isFinite(reportId)) {
+        return new Response(JSON.stringify({ ok: false, error: "id 형식 오류", step: "validate" }),
+          { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      try {
+        const [r] = await db
+          .select()
+          .from(attRemoteWorkReports)
+          .where(eq(attRemoteWorkReports.id, reportId))
+          .limit(1);
+        if (!r) {
+          return new Response(JSON.stringify({ ok: false, error: "보고서 없음", step: "not_found" }),
+            { status: 404, headers: { "Content-Type": "application/json" } });
+        }
+        // memberName 보강
+        let memberName = `멤버 #${r.memberUid}`;
+        try {
+          const [m] = await db
+            .select({ name: members.name })
+            .from(members)
+            .where(eq(members.id, Number(r.memberUid)))
+            .limit(1);
+          if (m) memberName = m.name ?? memberName;
+        } catch {}
+        return jsonOk({ ...r, memberName });
+      } catch (err) {
+        return jsonError("select_one", err);
+      }
+    }
 
     try {
       // 보고서 목록 조회

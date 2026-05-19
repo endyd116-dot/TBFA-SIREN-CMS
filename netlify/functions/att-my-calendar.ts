@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
-import { members, attRecords } from "../../db/schema";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { attRecords } from "../../db/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/att-my-calendar" };
@@ -29,18 +29,7 @@ export default async function handler(req: Request) {
   const year  = Number(url.searchParams.get("year")  ?? now.getFullYear());
   const month = Number(url.searchParams.get("month") ?? now.getMonth() + 1);
 
-  let memberUid: string;
-  try {
-    const [member] = await db
-      .select({ uid: members.uid })
-      .from(members)
-      .where(eq(members.id, auth.ctx.member.id))
-      .limit(1);
-    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
-    memberUid = member.uid;
-  } catch (err) {
-    return jsonError("select_member", err);
-  }
+  const memberUid: string = String(auth.ctx.member.id);
 
   const padM = String(month).padStart(2, "0");
   const from = `${year}-${padM}-01`;
