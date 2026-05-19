@@ -77,34 +77,33 @@ export default async function handler(req: Request, _ctx: Context) {
       `);
       const ex = (existing as any).rows?.[0] || existing[0];
 
-      if (ex && !["DRAFT", "REJECTED"].includes(ex.status)) {
+      /* ★ R34-P1-B-7: HOLD(자료 보완 요청) 상태에서도 재제출 허용 */
+      if (ex && !["DRAFT", "REJECTED", "HOLD"].includes(ex.status)) {
         return Response.json({ ok: false, error: `현재 상태(${ex.status})에서는 재제출 불가입니다` }, { status: 400 });
       }
 
+      /* ★ R34-P1-B-8: UPSERT 원자화 — ON CONFLICT로 race 차단 (더블 클릭·동시 호출 시 UNIQUE 위반 500 방지) */
       const snapshot = JSON.stringify(calc);
-      if (ex) {
-        await db.execute(sql`
-          UPDATE quarterly_settlements SET
-            revenue_linked_total = ${String(calc.revenueLinkedTotal)},
-            non_revenue_total = ${String(calc.nonRevenueTotal)},
-            total_bonus = ${String(calc.totalBonus)},
-            calculation_snapshot = ${snapshot}::jsonb,
-            self_evaluation = ${selfEvaluation ?? null},
-            status = 'SUBMITTED', submitted_at = NOW(), updated_at = NOW()
-          WHERE id = ${ex.id}
-        `);
-      } else {
-        await db.execute(sql`
-          INSERT INTO quarterly_settlements
-            (quarter_id, member_id, revenue_linked_total, non_revenue_total, total_bonus,
-             calculation_snapshot, self_evaluation, status, submitted_at)
-          VALUES (
-            ${Number(quarterId)}, ${admin.id},
-            ${String(calc.revenueLinkedTotal)}, ${String(calc.nonRevenueTotal)}, ${String(calc.totalBonus)},
-            ${snapshot}::jsonb, ${selfEvaluation ?? null}, 'SUBMITTED', NOW()
-          )
-        `);
-      }
+      await db.execute(sql`
+        INSERT INTO quarterly_settlements
+          (quarter_id, member_id, revenue_linked_total, non_revenue_total, total_bonus,
+           calculation_snapshot, self_evaluation, status, submitted_at, hold_reason)
+        VALUES (
+          ${Number(quarterId)}, ${admin.id},
+          ${String(calc.revenueLinkedTotal)}, ${String(calc.nonRevenueTotal)}, ${String(calc.totalBonus)},
+          ${snapshot}::jsonb, ${selfEvaluation ?? null}, 'SUBMITTED', NOW(), NULL
+        )
+        ON CONFLICT (quarter_id, member_id) DO UPDATE SET
+          revenue_linked_total = EXCLUDED.revenue_linked_total,
+          non_revenue_total    = EXCLUDED.non_revenue_total,
+          total_bonus          = EXCLUDED.total_bonus,
+          calculation_snapshot = EXCLUDED.calculation_snapshot,
+          self_evaluation      = EXCLUDED.self_evaluation,
+          status               = 'SUBMITTED',
+          submitted_at         = NOW(),
+          hold_reason          = NULL,
+          updated_at           = NOW()
+      `);
       // 슈퍼어드민 전체에게 결산 제출 알림 (fire-and-forget)
       notifyAllSuperAdmins({
         category: "milestone", severity: "info",

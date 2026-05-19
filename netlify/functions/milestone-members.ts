@@ -37,24 +37,14 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch (err) { return jsonError("select", err); }
   }
 
-  // ── PATCH /:id/role — milestoneRole 설정 ──
+  /* ★ R34-P1-B-11: PATCH /:id/role deprecated — /api/admin-milestone-role-assign으로 통일.
+     레거시 호출이 들어와도 410 Gone + 안내 메시지로 마이그 유도. 호출처(admin-milestones.js)는 신 endpoint로 전환됨. */
   if (req.method === "PATCH") {
-    const id = url.pathname.split("/").filter(Boolean).slice(-2)[0];
-    if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
-    let body: any;
-    try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
-    const { milestoneRole } = body;
-    const VALID = [null, "SM", "PM", "SI"];
-    if (!VALID.includes(milestoneRole)) {
-      return Response.json({ ok: false, error: "유효한 값: SM, PM, SI, null" }, { status: 400 });
-    }
-    try {
-      await db.execute(sql`
-        UPDATE members SET milestone_role = ${milestoneRole}, updated_at = NOW()
-        WHERE id = ${Number(id)}
-      `);
-      return Response.json({ ok: true });
-    } catch (err) { return jsonError("update", err); }
+    return Response.json({
+      ok: false,
+      error: "이 엔드포인트는 사용 중단되었습니다",
+      detail: "PUT /api/admin-milestone-role-assign { memberId, milestoneRole }로 호출하세요",
+    }, { status: 410 });
   }
 
   return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });

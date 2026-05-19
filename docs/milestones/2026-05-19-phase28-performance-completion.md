@@ -108,12 +108,13 @@ GET /api/migrate-phase28-milestone-seed?run=1
 
 ## 2. A (프론트) 작업 분담
 
-### 2-A-1. admin-milestone-settings.html + admin-milestone-settings.js
-- [ ] 매출 검증 탭에서 EVENT_RANGE 마일스톤 항목 표시 시 **금액 범위 표시 + 결정 금액 입력 필드** 추가
-  - 항목 행에 "범위: 20~110만원" 텍스트 표시
-  - `<input type="number" class="event-range-amount-input">` 필드 (검증 전까지 비활성)
-  - "검증 + 금액 확정" 버튼 → `verifyWithEventRange(id, amount)` 호출
-  - POST body에 `eventRangeAmount` 포함하여 `PUT /api/admin-milestone-revenue` 전송
+### 2-A-1. workspace-milestones.html + workspace-milestones.js (★ R34-P1-B-3 위치 정정)
+- [x] 매출 검증 탭에서 EVENT_RANGE 마일스톤 항목 표시 시 **금액 범위 표시 + 결정 금액 입력 필드** (구현 완료)
+  - 항목 행에 "범위: {min/10000}~{max/10000}만원 (원 단위 입력)" 표시 — DB는 원 단위 저장, UI 표시만 만원 변환 (R34-P1-B-1)
+  - `<input type="number" id="eventRangeAmount_{id}" min={원} max={원}>` (검증 전까지 비활성, 렌더 후 활성)
+  - "검증 + 금액 확정" 버튼 → `__msVerifyEventRange(id)` 호출
+  - PUT body에 `eventRangeAmount`(원) 포함하여 `/api/admin-milestone-revenue/:id` 전송
+  - 실제 위치는 admin-milestone-settings.html이 아닌 workspace-milestones.html이며, 매출 검증 권한이 슈퍼어드민으로 제한됨
 
 ### 2-A-2. workspace-milestones.html + workspace-milestones.js
 - [ ] 비매출 섹션 헤더에 **"선택됨 N/2개"** 배지 실시간 표시

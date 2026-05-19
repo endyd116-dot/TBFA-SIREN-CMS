@@ -142,9 +142,10 @@ export default async function handler(req: Request, _ctx: Context) {
         const maxA = Number(formula.maxAmount ?? formula.max ?? 0);
         const amt  = Number(eventRangeAmount);
         if (maxA > 0 && (amt < minA || amt > maxA)) {
+          /* ★ R34-P1-B-1: DB 단위는 원, 표시만 만원 변환 */
           return Response.json({
             ok: false,
-            error: `범위 내 금액을 입력하세요 (${minA.toLocaleString()}~${maxA.toLocaleString()}만원)`
+            error: `범위 내 금액을 입력하세요 (${(minA/10000).toLocaleString()}~${(maxA/10000).toLocaleString()}만원)`
           }, { status: 400 });
         }
       }
