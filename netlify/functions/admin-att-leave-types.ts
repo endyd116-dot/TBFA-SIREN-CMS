@@ -1,6 +1,12 @@
+/**
+ * /api/admin-att-leave-types — 휴가 종류 CRUD (슈퍼어드민 전용)
+ *
+ * FE 확장 컬럼(code, max_days, allow_half_day, description)은
+ * migrate-att-r29-leave-type-cols 적용 후 DB에 존재.
+ * 적용 전이라도 동작하도록 raw SQL + COALESCE 으로 안전 처리.
+ */
 import { db } from "../../db/index";
-import { attLeaveTypes } from "../../db/schema";
-import { eq, asc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-leave-types" };
@@ -18,10 +24,22 @@ function jsonError(step: string, err: any, status = 500) {
   }), { status, headers: { "Content-Type": "application/json" } });
 }
 
+async function hasExtCols(): Promise<boolean> {
+  try {
+    const res: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS cnt FROM information_schema.columns
+      WHERE table_name = 'att_leave_types'
+        AND column_name IN ('code', 'max_days', 'allow_half_day', 'description')
+    `);
+    const row = (Array.isArray(res) ? res[0] : (res?.rows ?? [])[0]) ?? {};
+    return Number(row.cnt ?? 0) >= 4;
+  } catch { return false; }
+}
+
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
-  if ((auth as any).ctx.member.role !== "super_admin") {
+  if (auth.ctx.member.role !== "super_admin") {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
@@ -29,14 +47,43 @@ export default async function handler(req: Request) {
 
   const method = req.method;
   const url = new URL(req.url);
+  const extOk = await hasExtCols();
 
   // GET — 휴가 종류 목록
   if (method === "GET") {
     try {
-      const rows = await db
-        .select()
-        .from(attLeaveTypes)
-        .orderBy(asc(attLeaveTypes.displayOrder), asc(attLeaveTypes.id));
+      const result = await db.execute(extOk ? sql`
+        SELECT
+          id, name, is_paid, unit, requires_approval, default_days, is_active, display_order,
+          code, max_days, allow_half_day, description,
+          created_at, updated_at
+        FROM att_leave_types
+        ORDER BY display_order, id
+      ` : sql`
+        SELECT
+          id, name, is_paid, unit, requires_approval, default_days, is_active, display_order,
+          NULL::varchar AS code, NULL::numeric AS max_days,
+          false AS allow_half_day, NULL::text AS description,
+          created_at, updated_at
+        FROM att_leave_types
+        ORDER BY display_order, id
+      `);
+      const rows = (result.rows as any[]).map(r => ({
+        id:               Number(r.id),
+        name:             r.name,
+        isPaid:           r.is_paid,
+        unit:             r.unit,
+        requiresApproval: r.requires_approval,
+        defaultDays:      r.default_days != null ? Number(r.default_days) : null,
+        maxDays:          r.max_days != null ? Number(r.max_days) : null,
+        allowHalfDay:     r.allow_half_day === true,
+        code:             r.code,
+        description:      r.description,
+        isActive:         r.is_active,
+        displayOrder:     r.display_order,
+        createdAt:        r.created_at,
+        updatedAt:        r.updated_at,
+      }));
       return jsonOk(rows);
     } catch (err) {
       return jsonError("select_leave_types", err);
@@ -48,20 +95,43 @@ export default async function handler(req: Request) {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const { name, isPaid, unit, requiresApproval, defaultDays, isActive, displayOrder } = body;
+    const { name, isPaid, unit, requiresApproval, defaultDays, isActive, displayOrder,
+            code, maxDays, allowHalfDay, description } = body;
     if (!name) return jsonError("validate", new Error("name 필수"), 400);
 
     try {
-      const [row] = await db.insert(attLeaveTypes).values({
-        name,
-        isPaid:           isPaid !== false,
-        unit:             unit ?? "day",
-        requiresApproval: requiresApproval !== false,
-        defaultDays:      defaultDays != null ? String(defaultDays) : "0",
-        isActive:         isActive !== false,
-        displayOrder:     displayOrder ?? 0,
-      }).returning();
-      return jsonOk(row, 201);
+      const result: any = await (extOk ? db.execute(sql`
+        INSERT INTO att_leave_types
+          (name, is_paid, unit, requires_approval, default_days, is_active, display_order,
+           code, max_days, allow_half_day, description)
+        VALUES
+          (${name},
+           ${isPaid !== false},
+           ${unit ?? "day"},
+           ${requiresApproval !== false},
+           ${defaultDays != null ? String(defaultDays) : "0"},
+           ${isActive !== false},
+           ${displayOrder ?? 0},
+           ${code ?? null},
+           ${maxDays != null ? String(maxDays) : null},
+           ${allowHalfDay === true},
+           ${description ?? null})
+        RETURNING id
+      `) : db.execute(sql`
+        INSERT INTO att_leave_types
+          (name, is_paid, unit, requires_approval, default_days, is_active, display_order)
+        VALUES
+          (${name},
+           ${isPaid !== false},
+           ${unit ?? "day"},
+           ${requiresApproval !== false},
+           ${defaultDays != null ? String(defaultDays) : "0"},
+           ${isActive !== false},
+           ${displayOrder ?? 0})
+        RETURNING id
+      `));
+      const row = (result.rows ?? [])[0];
+      return jsonOk({ id: row?.id }, 201);
     } catch (err) {
       return jsonError("insert_leave_type", err);
     }
@@ -76,22 +146,64 @@ export default async function handler(req: Request) {
     try { body = await req.json(); } catch { body = {}; }
 
     try {
-      const [row] = await db
-        .update(attLeaveTypes)
-        .set({
-          name:             body.name,
-          isPaid:           body.isPaid,
-          unit:             body.unit,
-          requiresApproval: body.requiresApproval,
-          defaultDays:      body.defaultDays != null ? String(body.defaultDays) : undefined,
-          isActive:         body.isActive,
-          displayOrder:     body.displayOrder,
-          updatedAt:        new Date(),
-        })
-        .where(eq(attLeaveTypes.id, id))
-        .returning();
-      if (!row) return jsonError("not_found", new Error("휴가 종류 없음"), 404);
-      return jsonOk(row);
+      // 기존 row 조회 → undefined 필드는 기존값 유지
+      const cur: any = await db.execute(sql`
+        SELECT * FROM att_leave_types WHERE id = ${id} LIMIT 1
+      `);
+      const existing = (cur.rows ?? [])[0];
+      if (!existing) return jsonError("not_found", new Error("휴가 종류 없음"), 404);
+
+      const m = (k: string, v: any) => v === undefined ? existing[k] : v;
+      const next = {
+        name:             m("name", body.name),
+        is_paid:          body.isPaid           !== undefined ? !!body.isPaid           : existing.is_paid,
+        unit:             m("unit", body.unit),
+        requires_approval: body.requiresApproval !== undefined ? !!body.requiresApproval : existing.requires_approval,
+        default_days:     body.defaultDays      !== undefined
+                            ? (body.defaultDays != null ? String(body.defaultDays) : "0")
+                            : existing.default_days,
+        is_active:        body.isActive         !== undefined ? !!body.isActive         : existing.is_active,
+        display_order:    body.displayOrder     !== undefined ? Number(body.displayOrder) : existing.display_order,
+      };
+
+      if (extOk) {
+        const ext = {
+          max_days:       body.maxDays      !== undefined
+                            ? (body.maxDays != null ? String(body.maxDays) : null)
+                            : existing.max_days,
+          allow_half_day: body.allowHalfDay !== undefined ? !!body.allowHalfDay : existing.allow_half_day,
+          description:    body.description  !== undefined ? (body.description ?? null) : existing.description,
+        };
+        await db.execute(sql`
+          UPDATE att_leave_types SET
+            name = ${next.name},
+            is_paid = ${next.is_paid},
+            unit = ${next.unit},
+            requires_approval = ${next.requires_approval},
+            default_days = ${next.default_days},
+            is_active = ${next.is_active},
+            display_order = ${next.display_order},
+            max_days = ${ext.max_days},
+            allow_half_day = ${ext.allow_half_day},
+            description = ${ext.description},
+            updated_at = NOW()
+          WHERE id = ${id}
+        `);
+      } else {
+        await db.execute(sql`
+          UPDATE att_leave_types SET
+            name = ${next.name},
+            is_paid = ${next.is_paid},
+            unit = ${next.unit},
+            requires_approval = ${next.requires_approval},
+            default_days = ${next.default_days},
+            is_active = ${next.is_active},
+            display_order = ${next.display_order},
+            updated_at = NOW()
+          WHERE id = ${id}
+        `);
+      }
+      return jsonOk({ id });
     } catch (err) {
       return jsonError("update_leave_type", err);
     }
@@ -103,7 +215,7 @@ export default async function handler(req: Request) {
     if (!id) return jsonError("validate_id", new Error("id 필수"), 400);
 
     try {
-      await db.delete(attLeaveTypes).where(eq(attLeaveTypes.id, id));
+      await db.execute(sql`DELETE FROM att_leave_types WHERE id = ${id}`);
       return jsonOk({ deleted: id });
     } catch (err) {
       return jsonError("delete_leave_type", err);

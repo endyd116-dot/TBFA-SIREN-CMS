@@ -1,7 +1,10 @@
 import { db } from "../../db/index";
 import { attCorrections, attRecords } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { determineStatus, getDefaultPolicy } from "../../lib/att-utils";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-att-correction-review" };
 
@@ -57,45 +60,93 @@ export default async function handler(req: Request) {
       .update(attCorrections)
       .set({
         status: action,
-        reviewedBy: (auth as any).ctx.member.uid,
+        reviewedBy: String(auth.ctx.member.id),
         reviewNote: note ?? null,
         updatedAt: new Date(),
       })
       .where(eq(attCorrections.id, requestId))
       .returning();
 
-    // APPROVED: att_records 해당 날짜 기록 업데이트
+    // APPROVED: att_records 해당 날짜 기록 UPSERT (없으면 INSERT, 있으면 UPDATE)
+    //           + 변경된 출퇴근으로 status 재산정
     if (action === "APPROVED") {
       try {
-        const updateFields: Record<string, any> = {
-          isManuallyAdjusted: true,
-          updatedAt: new Date(),
-        };
-        if (
-          correction.correctionType === "CHECK_IN" ||
-          correction.correctionType === "BOTH"
-        ) {
-          updateFields.checkInTime = correction.requestedCheckIn;
-        }
-        if (
-          correction.correctionType === "CHECK_OUT" ||
-          correction.correctionType === "BOTH"
-        ) {
-          updateFields.checkOutTime = correction.requestedCheckOut;
+        const wantCI = correction.correctionType === "CHECK_IN"  || correction.correctionType === "BOTH";
+        const wantCO = correction.correctionType === "CHECK_OUT" || correction.correctionType === "BOTH";
+
+        // 기존 row 조회 (status 재산정 시 기존 lat/lng 유지)
+        const [existing] = await db
+          .select()
+          .from(attRecords)
+          .where(and(
+            eq(attRecords.memberUid, correction.memberUid),
+            eq(attRecords.date, correction.targetDate),
+          ))
+          .limit(1);
+
+        const newCheckIn  = wantCI ? correction.requestedCheckIn  : (existing?.checkInTime ?? null);
+        const newCheckOut = wantCO ? correction.requestedCheckOut : (existing?.checkOutTime ?? null);
+
+        // status 재산정
+        let newStatus = existing?.status ?? "NORMAL";
+        try {
+          const policy = await getDefaultPolicy();
+          if (policy) {
+            newStatus = determineStatus(
+              newCheckIn ? new Date(newCheckIn as any) : null,
+              newCheckOut ? new Date(newCheckOut as any) : null,
+              {
+                checkInTime:         String(policy.checkInTime),
+                checkOutTime:        String(policy.checkOutTime),
+                lateGraceMins:       policy.lateGraceMins,
+                earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+              },
+              false,
+              false,
+            );
+          }
+        } catch (innerErr) {
+          console.warn("[admin-att-correction-review] status 재산정 실패:", innerErr);
         }
 
-        await db
-          .update(attRecords)
-          .set(updateFields)
-          .where(
-            and(
-              eq(attRecords.memberUid, correction.memberUid),
-              eq(attRecords.date, correction.targetDate)
-            )
-          );
+        // UPSERT
+        await db.execute(sql`
+          INSERT INTO att_records
+            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted)
+          VALUES
+            (${correction.memberUid}, ${String(correction.targetDate)}::date,
+             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true)
+          ON CONFLICT (member_uid, date)
+          DO UPDATE SET
+            check_in_time  = ${newCheckIn as any},
+            check_out_time = ${newCheckOut as any},
+            status         = ${newStatus},
+            is_manually_adjusted = true,
+            updated_at     = NOW()
+        `);
       } catch (err) {
         console.warn("[admin-att-correction-review] 출퇴근 기록 반영 실패:", err);
       }
+    }
+
+    // 결과 알림 → 신청자
+    try {
+      const recipientId = Number(correction.memberUid);
+      if (Number.isFinite(recipientId) && recipientId > 0) {
+        await sendWorkspaceNotification({
+          memberId: recipientId,
+          sourceType: "event" as any,
+          sourceId: correction.id,
+          notifType: action === "APPROVED" ? "approved" : "rejected",
+          channel: "bell",
+          title: action === "APPROVED" ? "근태 수정 요청 승인" : "근태 수정 요청 반려",
+          body: `${correction.targetDate} 수정 요청이 ${action === "APPROVED" ? "승인" : "반려"}되었습니다.${note ? ` · ${String(note).slice(0, 100)}` : ""}`,
+          actionUrl: "/workspace-attendance.html",
+          category: "system",
+        });
+      }
+    } catch (err) {
+      console.warn("[admin-att-correction-review] 결과 알림 실패:", err);
     }
 
     return jsonOk(updated);

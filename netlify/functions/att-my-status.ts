@@ -1,5 +1,5 @@
 import { db } from "../../db/index";
-import { members, attRecords, attLeaveBalances, attLeaveTypes } from "../../db/schema";
+import { attRecords } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
@@ -24,18 +24,7 @@ export default async function handler(req: Request) {
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
-  let memberUid: string;
-  try {
-    const [member] = await db
-      .select({ uid: members.uid })
-      .from(members)
-      .where(eq(members.id, auth.ctx.member.id))
-      .limit(1);
-    if (!member) return jsonError("member_not_found", new Error("회원 없음"), 404);
-    memberUid = member.uid;
-  } catch (err) {
-    return jsonError("select_member", err);
-  }
+  const memberUid: string = String(auth.ctx.member.id);
 
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date();
