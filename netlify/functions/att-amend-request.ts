@@ -5,6 +5,11 @@
  * 응답: { ok:true, data: { id } }
  *
  * 등록 시 슈퍼어드민 전원에게 워크스페이스 알림 발송.
+ *
+ * [Deprecation Note 2026-05-19] att-amend-*는 워크스페이스 v1 호환 별칭.
+ * 새 호출은 att-correction-* 사용 권장. 데이터·동작은 동일.
+ * 운영 데이터(기존 호출처)가 amend 경로에 의존하므로 즉시 제거하지 않음.
+ * 통합 작업은 docs/REMAINING_WORK.md L 인벤토리 참조.
  */
 import { db } from "../../db/index";
 import { attCorrections, members } from "../../db/schema";

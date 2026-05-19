@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>근태관리 설정 | 워크스페이스</title>
+<title>재택·근무형태 설정 | 워크스페이스</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +83,7 @@
             <li id="wsNavMilestoneSettings" style="display:none"><a href="/admin-milestone-settings.html"><span class="ws-nav-icon">⚙️</span><span class="ws-nav-text">성과관리 설정</span></a></li>
             <li id="wsNavAttendanceSettings" style="background:#eef2ff;border-radius:6px;">
               <a href="/admin-attendance-settings.html" style="color:#2563eb!important;font-weight:600">
-                <span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리 설정</span>
+                <span class="ws-nav-icon">📝</span><span class="ws-nav-text">재택·근무형태</span>
               </a>
             </li>
           </ul>
@@ -99,70 +99,24 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
       <div>
-        <h2 style="font-size:20px;font-weight:700;color:#111827;margin:0">🕐 근태관리 설정</h2>
+        <h2 style="font-size:20px;font-weight:700;color:#111827;margin:0">📝 재택·근무형태 설정</h2>
         <p style="font-size:13px;color:#6b7280;margin:4px 0 0" id="attSubtitle">로딩 중...</p>
+        <p style="font-size:12px;color:#9ca3af;margin:6px 0 0">
+          거점·휴가 종류·근태 정책·공휴일·결재·잔여휴가 관리는
+          <a href="/admin-workspace-management.html" style="color:#2563eb;text-decoration:underline">워크스페이스 관리</a>
+          에서 진행합니다.
+        </p>
       </div>
     </div>
 
     <!-- 탭 -->
     <div class="att-tab-nav">
-      <button class="att-tab active" data-tab="workplaces">🏢 거점 관리</button>
-      <button class="att-tab" data-tab="leavetypes">🏖 휴가 종류</button>
-      <button class="att-tab" data-tab="policy">⚙️ 근태 정책</button>
-      <button class="att-tab" data-tab="remotereports">📝 재택보고서</button>
+      <button class="att-tab active" data-tab="remotereports">📝 재택보고서</button>
       <button class="att-tab" data-tab="workmodes">🗂 근무형태 관리</button>
     </div>
 
-    <!-- 탭 1: 거점 관리 -->
-    <div class="att-tab-panel active" id="tabWorkplaces">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <p style="font-size:13px;color:#6b7280;margin:0">출퇴근 체크인 가능한 거점(사무실·외근지)을 관리합니다. 거점마다 허용 반경을 설정합니다.</p>
-        <button class="att-btn primary" id="btnAddWp">+ 거점 추가</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="att-table">
-          <thead>
-            <tr><th>거점명</th><th>주소</th><th>위도</th><th>경도</th><th>허용 반경</th><th>상태</th><th style="width:120px">액션</th></tr>
-          </thead>
-          <tbody id="wpBody">
-            <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 탭 2: 휴가 종류 -->
-    <div class="att-tab-panel" id="tabLeavetypes">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <p style="font-size:13px;color:#6b7280;margin:0">연차·반차·병가 등 휴가 종류와 기본 부여 일수를 설정합니다.</p>
-        <button class="att-btn primary" id="btnAddLt">+ 휴가 종류 추가</button>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="att-table">
-          <thead>
-            <tr><th>코드</th><th>이름</th><th>기본 부여일</th><th>반일 허용</th><th>유급</th><th>상태</th><th style="width:120px">액션</th></tr>
-          </thead>
-          <tbody id="ltBody">
-            <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">로딩 중...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 탭 3: 근태 정책 -->
-    <div class="att-tab-panel" id="tabPolicy">
-      <p style="font-size:13px;color:#6b7280;margin:0 0 20px">전사 근태 정책을 설정합니다. 업무 시간·위치 인증 반경·지각 기준을 정의합니다.</p>
-      <div id="policyView" style="background:#f8fafc;border-radius:12px;padding:20px;border:1px solid #e5e7eb;">
-        <div style="text-align:center;color:#9ca3af;padding:24px">로딩 중...</div>
-      </div>
-      <div style="margin-top:16px;text-align:right;display:none" id="policyEditRow">
-        <button class="att-btn secondary" id="btnPolicyCancel" style="margin-right:8px">취소</button>
-        <button class="att-btn primary" id="btnPolicySave">저장</button>
-      </div>
-    </div>
-
-    <!-- 탭 4: 재택보고서 모니터링 -->
-    <div class="att-tab-panel" id="tabRemotereports">
+    <!-- 탭 1: 재택보고서 모니터링 -->
+    <div class="att-tab-panel active" id="tabRemotereports">
       <p style="font-size:13px;color:#6b7280;margin:0 0 18px">직원별 재택근무 일일 보고서를 조회·별표·댓글 기록합니다.</p>
 
       <!-- 필터 영역 -->
@@ -235,7 +189,7 @@
       </div>
     </div><!-- /tabRemotereports -->
 
-    <!-- 탭 5: 근무형태 관리 -->
+    <!-- 탭 2: 근무형태 관리 -->
     <div class="att-tab-panel" id="tabWorkmodes">
       <p style="font-size:13px;color:#6b7280;margin:0 0 18px">직원별 기본 근무형태(OFFICE/REMOTE/FIELD/HYBRID) 및 HYBRID 시 요일별 설정을 관리합니다.</p>
 
@@ -322,96 +276,10 @@
   </div>
 </main>
 
-<!-- 거점 모달 -->
-<div class="att-overlay" id="wpModal">
-  <div class="att-modal">
-    <h3 id="wpModalTitle">거점 추가</h3>
-    <input type="hidden" id="wpId">
-    <div class="att-form-group">
-      <label>거점명 <span style="color:#ef4444">*</span></label>
-      <input type="text" id="wpName" placeholder="예: 본사 사무실">
-    </div>
-    <div class="att-form-group">
-      <label>주소 <span style="color:#ef4444">*</span></label>
-      <input type="text" id="wpAddress" placeholder="예: 서울시 종로구 ···">
-    </div>
-    <div class="att-form-row">
-      <div class="att-form-group">
-        <label>위도</label>
-        <input type="number" id="wpLat" placeholder="37.5665" step="0.000001">
-        <div class="att-form-hint">카카오 API 연동 시 자동 채워짐</div>
-      </div>
-      <div class="att-form-group">
-        <label>경도</label>
-        <input type="number" id="wpLng" placeholder="126.9780" step="0.000001">
-      </div>
-    </div>
-    <div class="att-form-group">
-      <label>허용 반경 (m)</label>
-      <input type="number" id="wpRadius" placeholder="200" min="50" max="5000">
-      <div class="att-form-hint">출퇴근 체크인 허용 반경 (기본 200m)</div>
-    </div>
-    <div class="att-modal-footer">
-      <button class="att-btn secondary" id="btnWpCancel">취소</button>
-      <button class="att-btn primary" id="btnWpSave">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- 휴가 종류 모달 -->
-<div class="att-overlay" id="ltModal">
-  <div class="att-modal">
-    <h3 id="ltModalTitle">휴가 종류 추가</h3>
-    <input type="hidden" id="ltId">
-    <div class="att-form-row">
-      <div class="att-form-group">
-        <label>코드 <span style="color:#ef4444">*</span></label>
-        <input type="text" id="ltCode" placeholder="예: annual" maxlength="30">
-      </div>
-      <div class="att-form-group">
-        <label>이름 <span style="color:#ef4444">*</span></label>
-        <input type="text" id="ltName" placeholder="예: 연차" maxlength="50">
-      </div>
-    </div>
-    <div class="att-form-row">
-      <div class="att-form-group">
-        <label>기본 부여 일수</label>
-        <input type="number" id="ltDefaultDays" placeholder="15" min="0" step="0.5">
-      </div>
-      <div class="att-form-group">
-        <label>최대 사용 일수</label>
-        <input type="number" id="ltMaxDays" placeholder="15" min="0" step="0.5">
-      </div>
-    </div>
-    <div class="att-form-row">
-      <div class="att-form-group">
-        <label>
-          <input type="checkbox" id="ltHalfDay" style="width:auto;margin-right:5px">
-          반일 사용 허용
-        </label>
-      </div>
-      <div class="att-form-group">
-        <label>
-          <input type="checkbox" id="ltPaid" style="width:auto;margin-right:5px" checked>
-          유급
-        </label>
-      </div>
-    </div>
-    <div class="att-form-group">
-      <label>설명</label>
-      <input type="text" id="ltDesc" placeholder="예: 법정 연차 휴가" maxlength="200">
-    </div>
-    <div class="att-modal-footer">
-      <button class="att-btn secondary" id="btnLtCancel">취소</button>
-      <button class="att-btn primary" id="btnLtSave">저장</button>
-    </div>
-  </div>
-</div>
-
 <div id="attToast" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px"></div>
 
 <script src="/js/quick-jump.js?v=2026-05-10-q3" defer></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
-<script src="/js/admin-attendance-settings.js?v=4" defer></script>
+<script src="/js/admin-attendance-settings.js?v=5" defer></script>
 </body>
 </html>

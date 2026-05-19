@@ -4,6 +4,10 @@
  * 응답: { ok:true, data: [{ id, targetDate, amendType, requestedCheckin, requestedCheckout, reason, status, reviewNote, createdAt }] }
  *
  * DB 컬럼명(CHECK_IN/CHECK_OUT)을 FE 명세(CHECKIN/CHECKOUT)에 맞춰 변환.
+ *
+ * [Deprecation Note 2026-05-19] att-amend-*는 워크스페이스 v1 호환 별칭.
+ * 새 호출은 att-correction-* 사용 권장. 데이터·동작은 동일.
+ * 통합 작업은 docs/REMAINING_WORK.md L 인벤토리 참조.
  */
 import { db } from "../../db/index";
 import { attCorrections } from "../../db/schema";
