@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>급여관리 — SIREN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      font-size: 14px; color: #1a2035; background: #f4f6fa;
+      padding: 24px; min-height: 100vh;
+    }
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #1a2035; }
+    .page-desc { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+    .super-only-card { display: none; }
+
+    .card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 20px 24px; margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 700; color: #374151;
+      margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* 상단 컨트롤 */
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .controls label { font-size: 12px; color: #4b5563; font-weight: 600; }
+    .controls input, .controls select {
+      padding: 6px 10px; font-size: 13px; border: 1px solid #d1d5db;
+      border-radius: 6px; background: #fff;
+    }
+    .controls input:focus, .controls select:focus { outline: none; border-color: #6366f1; }
+
+    /* 통계 카드 */
+    .stat-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(5, 1fr);
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border-left: 4px solid #6366f1;
+    }
+    .stat-card.draft    { border-left-color: #9ca3af; }
+    .stat-card.reviewed { border-left-color: #f59e0b; }
+    .stat-card.approved { border-left-color: #6366f1; }
+    .stat-card.sent     { border-left-color: #16a34a; }
+    .stat-card.hold     { border-left-color: #dc2626; }
+    .stat-label { font-size: 11.5px; color: #6b7280; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .stat-value { font-size: 22px; font-weight: 700; color: #1a2035; }
+
+    /* 버튼 */
+    .btn { padding: 7px 14px; font-size: 12.5px; font-weight: 600; border: none;
+      border-radius: 6px; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-warning { background: #f59e0b; color: #fff; }
+    .btn-warning:hover { background: #d97706; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-light { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-light:hover { background: #e5e7eb; }
+    .btn-sm { padding: 4px 10px; font-size: 11.5px; }
+
+    /* 표 */
+    table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.list th, table.list td {
+      padding: 9px 12px; border-bottom: 1px solid #e5e7eb; text-align: left;
+    }
+    table.list th { background: #f9fafb; font-weight: 600; color: #374151; font-size: 12px; }
+    table.list td.r { text-align: right; font-variant-numeric: tabular-nums; }
+    table.list td.c { text-align: center; }
+    table.list tbody tr:hover td { background: #f8fafc; }
+    .loading-row td { text-align: center; padding: 24px; color: #6b7280; font-style: italic; }
+
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .s-DRAFT    { background: #f3f4f6; color: #4b5563; }
+    .s-REVIEWED { background: #fef3c7; color: #92400e; }
+    .s-APPROVED { background: #e0e7ff; color: #3730a3; }
+    .s-SENT     { background: #dcfce7; color: #166534; }
+    .s-HOLD     { background: #fee2e2; color: #991b1b; }
+
+    /* 모달 */
+    .modal-bg {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-bg.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 12px; padding: 24px;
+      max-width: 720px; width: 92%; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+    .modal-head h3 { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; color: #6b7280; cursor: pointer; }
+    .modal-body dt { font-size: 12px; color: #6b7280; font-weight: 600; margin-top: 12px; }
+    .modal-body dd { font-size: 13px; color: #1a2035; margin-top: 4px; line-height: 1.5; }
+    .snapshot {
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;
+      padding: 12px; font-family: 'D2Coding', 'Consolas', monospace; font-size: 11px;
+      max-height: 280px; overflow: auto; white-space: pre-wrap; color: #374151;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+
+    /* 토스트 */
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      color: #fff; opacity: 0; transition: opacity 0.2s; z-index: 200;
+    }
+    #toast.show { opacity: 1; }
+    #toast.ok  { background: #16a34a; }
+    #toast.err { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <h2>💰 급여관리</h2>
+  <p class="page-desc">월별 급여 명세서 자동 집계·검토·승인·발송 (슈퍼어드민 전용)</p>
+
+  <!-- 슈퍼어드민이 아닌 경우 안내 -->
+  <div class="card" id="nonSuperBlock" style="display:none">
+    <div style="color:#dc2626;font-weight:600">슈퍼어드민 전용 화면입니다.</div>
+    <div style="color:#6b7280;font-size:12.5px;margin-top:6px">
+      관리자(super_admin) 권한이 없는 계정에서는 본 화면을 사용할 수 없습니다. 본인 명세서는 <strong>워크스페이스 → 마이페이지</strong>에서 확인하세요.
+    </div>
+  </div>
+
+  <div class="super-only-card">
+    <!-- 상단 컨트롤 -->
+    <div class="card">
+      <div class="card-title">📅 조회 기간</div>
+      <div class="controls">
+        <label for="selYear">연도</label>
+        <select id="selYear"></select>
+        <label for="selMonth">월</label>
+        <select id="selMonth"></select>
+        <button class="btn btn-primary" id="btnLoad">조회</button>
+        <button class="btn btn-warning" id="btnRecalc" title="해당 월 명세서 자동 재집계 (DRAFT만 갱신)">🔄 재집계</button>
+        <button class="btn btn-warning" id="btnRecalcForce" title="REVIEWED/APPROVED/SENT도 강제 덮어쓰기">⚠ 강제 재집계</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-success" id="btnSendAll" title="APPROVED 명세서 일괄 이메일 발송">📧 전체 발송</button>
+      </div>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="stat-grid">
+      <div class="stat-card draft">    <div class="stat-label">DRAFT (초안)</div>     <div class="stat-value" id="cntDraft">0</div></div>
+      <div class="stat-card reviewed"> <div class="stat-label">REVIEWED (검토)</div>  <div class="stat-value" id="cntReviewed">0</div></div>
+      <div class="stat-card approved"> <div class="stat-label">APPROVED (승인)</div>  <div class="stat-value" id="cntApproved">0</div></div>
+      <div class="stat-card sent">     <div class="stat-label">SENT (발송)</div>      <div class="stat-value" id="cntSent">0</div></div>
+      <div class="stat-card hold">     <div class="stat-label">HOLD (보류)</div>      <div class="stat-value" id="cntHold">0</div></div>
+    </div>
+
+    <!-- 명세서 표 -->
+    <div class="card">
+      <div class="card-title">📋 명세서 일람</div>
+      <table class="list">
+        <thead>
+          <tr>
+            <th>회원</th>
+            <th>직책</th>
+            <th class="r">근무일</th>
+            <th class="r">야근(h)</th>
+            <th class="r">월기본급</th>
+            <th class="r">성과</th>
+            <th class="r">차감</th>
+            <th class="r">세전총액</th>
+            <th class="c">상태</th>
+            <th class="c">동작</th>
+          </tr>
+        </thead>
+        <tbody id="slipTbody">
+          <tr class="loading-row"><td colspan="10">조회를 시작하세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 상세 모달 -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">명세서 상세</h3>
+        <button class="modal-close" type="button" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- JS 채움 -->
+      </div>
+      <div class="modal-actions" id="modalActions">
+        <!-- JS 채움 -->
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/js/admin-payroll.js?v=20260520r37"></script>
+</body>
+</html>
