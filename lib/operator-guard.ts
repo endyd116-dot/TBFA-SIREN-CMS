@@ -1,13 +1,17 @@
 // lib/operator-guard.ts
 // 운영자(사용자 JWT + operatorActive=true 또는 type='admin') 가드.
-// 근태 사용자 API(att-checkin/checkout/my-status 등 9개)는 일반 회원이지만
+// 근태 사용자 API(att-checkin/checkout/my-status 등)는 일반 회원이지만
 // 운영자 권한이 있는 사람이 사용. admin-guard(슈퍼/일반 어드민 전용)는 너무 엄격.
 //
+// R34-P1: user JWT 우선 + admin JWT fallback.
+// 어드민(siren_admin_token만 보유)이 워크스페이스 근태 페이지를 사용할 때도 통과.
+// 두 토큰의 uid 모두 members.id를 가리키므로 동일 member 조회 가능.
+//
 // 반환: requireAdmin 과 동일한 모양 ({ok:true, ctx:{member}} | {ok:false, res})
-// 호출부 호환성을 위해 ctx.member 만 노출. 어드민 토큰은 admin 시스템 전용.
+// 호출부 호환성을 위해 ctx.member 만 노출.
 import { eq } from "drizzle-orm";
 import { db, members } from "../db";
-import { authenticateUser } from "./auth";
+import { authenticateUser, authenticateAdmin } from "./auth";
 
 export interface OperatorContext {
   member: typeof members.$inferSelect;
@@ -17,8 +21,12 @@ export async function requireOperator(req: Request): Promise<
   | { ok: true; ctx: OperatorContext }
   | { ok: false; res: Response }
 > {
-  const payload = authenticateUser(req);
-  if (!payload) {
+  // R34-P1: user JWT(siren_token) 우선 → admin JWT(siren_admin_token) fallback
+  const userPayload = authenticateUser(req);
+  const adminPayload = userPayload ? null : authenticateAdmin(req);
+  const uid = userPayload?.uid ?? adminPayload?.uid ?? null;
+
+  if (uid == null) {
     return {
       ok: false,
       res: new Response(
@@ -31,7 +39,7 @@ export async function requireOperator(req: Request): Promise<
   const [member] = await db
     .select()
     .from(members)
-    .where(eq(members.id, payload.uid))
+    .where(eq(members.id, uid))
     .limit(1);
 
   if (!member) {
