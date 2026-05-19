@@ -1417,7 +1417,7 @@
     if (diffH < 24)   return `${diffH}시간 전`;
     if (diffD === 1)  return '어제';
     if (diffD < 7)    return `${diffD}일 전`;
-    return d.toLocaleDateString('ko-KR');
+    return (typeof window.fmtKSTDate === 'function') ? window.fmtKSTDate(d) : d.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
   }
 
   function renderActivityItems(items, listEl) {
@@ -1428,7 +1428,7 @@
     listEl.innerHTML = items.map(it => {
       const natural = formatActivityNatural(it);
       const relTime = formatActivityTime(it.createdAt);
-      const absTime = it.createdAt ? new Date(it.createdAt).toLocaleString('ko-KR') : '';
+      const absTime = it.createdAt ? ((typeof window.fmtKSTLong === 'function') ? window.fmtKSTLong(it.createdAt) : new Date(it.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })) : '';
       return `
 <li class="wk-history-item">
   <span>${natural}</span>

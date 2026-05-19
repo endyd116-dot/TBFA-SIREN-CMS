@@ -44,7 +44,7 @@
     if (sec < 3600) return Math.floor(sec / 60) + '분 전';
     if (sec < 86400) return Math.floor(sec / 3600) + '시간 전';
     if (sec < 604800) return Math.floor(sec / 86400) + '일 전';
-    return new Date(ts).toLocaleDateString('ko-KR');
+    return (typeof window.fmtKSTDate === 'function') ? window.fmtKSTDate(ts) : new Date(ts).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
   }
 
   function showToast(msg, type) {

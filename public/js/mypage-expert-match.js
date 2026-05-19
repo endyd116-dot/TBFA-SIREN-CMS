@@ -42,7 +42,10 @@
 
   function fmtDate(s) {
     if (!s) return '';
-    try { return new Date(s).toLocaleString('ko-KR'); } catch (e) { return String(s); }
+    try {
+      if (typeof window.fmtKSTDateTime === 'function') return window.fmtKSTDateTime(s);
+      return new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    } catch (e) { return String(s); }
   }
 
   async function api(path, opts) {
