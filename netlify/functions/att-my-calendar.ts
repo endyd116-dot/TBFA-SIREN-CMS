@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireOperator } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att-my-calendar" };
 
@@ -19,8 +19,8 @@ function jsonError(step: string, err: any, status = 500) {
 }
 
 export default async function handler(req: Request) {
-  const auth = await requireAdmin(req);
-  if (!auth.ok) return (auth as any).res;
+  const auth = await requireOperator(req);
+  if (!auth.ok) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 

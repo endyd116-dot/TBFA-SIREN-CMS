@@ -753,15 +753,40 @@
     return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  /* ─── 인증 확인 ─── */
+  /* ─── 인증 확인 (R34-P1: user JWT 우선 + admin JWT fallback) ─── */
   async function checkAuth() {
-    const res = await api('/api/admin/me?light=1');
-    if (!res.ok) { location.href = '/admin-hub.html'; return null; }
-    const user = res.admin || res.data?.data || res.data || {};
+    // 1) 일반 사용자 토큰 우선
+    let user = null;
+    let isAdmin = false;
+    try {
+      const userRes = await api('/api/auth/me');
+      if (userRes.ok) {
+        user = userRes.data?.data || userRes.data?.user || userRes.data || null;
+      }
+    } catch (_) {}
+
+    // 2) 사용자 토큰 없으면 어드민 토큰 fallback
+    if (!user) {
+      try {
+        const adminRes = await api('/api/admin/me?light=1');
+        if (adminRes.ok) {
+          user = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
+          isAdmin = !!user;
+        }
+      } catch (_) {}
+    }
+
+    // 3) 둘 다 실패 → 로그인 페이지
+    if (!user) { location.href = '/login.html'; return null; }
+
+    const roleLabel = isAdmin
+      ? '관리자'
+      : (user.operatorActive ? '운영자' : '직원');
+
     const nameEl = document.getElementById('wsSidebarUserName');
     if (nameEl) nameEl.textContent = user.name || user.username || '사용자';
     const subtitleEl = document.getElementById('attUserSubtitle');
-    if (subtitleEl) subtitleEl.textContent = `${user.name || ''}님의 근태 현황`;
+    if (subtitleEl) subtitleEl.textContent = `${user.name || ''}님의 근태 현황 · ${roleLabel}`;
     return user;
   }
 
