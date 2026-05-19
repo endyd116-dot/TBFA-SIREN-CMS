@@ -82,6 +82,14 @@ export default async function handler(req: Request) {
       });
     }
 
+    // FK 제약 먼저 DROP (있으면) — 없으면 무시
+    try {
+      await db.execute(sql`
+        ALTER TABLE att_remote_work_reports
+        DROP CONSTRAINT IF EXISTS att_remote_work_reports_member_uid_fkey
+      `);
+    } catch (_) { /* 제약 없으면 무시 */ }
+
     // ALTER COLUMN: integer → varchar(36), 값은 USING CAST 로 보존
     await db.execute(sql`
       ALTER TABLE att_remote_work_reports
