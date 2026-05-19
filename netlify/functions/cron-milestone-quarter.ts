@@ -114,8 +114,17 @@ export default async function handler(_req: Request, _ctx: Context) {
     }
 
     // ── 임계점 도달 체크: 매일 REVENUE_LINKED 누적치 임계점 초과 여부 ──
-    const activeQRows = await db.execute(sql`SELECT id, year, quarter FROM quarters WHERE status = 'ACTIVE'`);
-    const activeQs = (activeQRows as any).rows || (activeQRows as any[]);
+    /* ★ R35-GAP-P2-M4: ACTIVE → ENDED 전환된 분기도 1회 일괄 알림 발송 (분기 종료일 직전 매출 누락 방지).
+       dedup은 기존 notifications(ref_table='milestone_threshold' AND ref_id=m.id AND created_at>=quarter.start_date)
+       조건으로 분기 내 중복 자동 차단 — ENDED 전환 cron에서도 동일 분기 ID 매칭. */
+    const activeQRows = await db.execute(sql`SELECT id, year, quarter, 'ACTIVE' as phase FROM quarters WHERE status = 'ACTIVE'`);
+    const activeQsBase = (activeQRows as any).rows || (activeQRows as any[]);
+    const thresholdQs = [
+      ...activeQsBase,
+      ...ended.map((q: any) => ({ ...q, phase: "JUST_ENDED" })), // 이번 cron에서 ACTIVE → ENDED 전환된 것
+    ];
+    /* 호환을 위해 기존 변수명 유지 */
+    const activeQs = thresholdQs;
     for (const q of activeQs) {
       const milestonesRows = await db.execute(sql`
         SELECT id, name, target_milestone_role, threshold_enabled, threshold_value, bonus_formula
@@ -150,6 +159,9 @@ export default async function handler(_req: Request, _ctx: Context) {
           const roleAdminIds: number[] = ((roleAdminRows as any).rows || (roleAdminRows as any[]))
             .map((r: any) => Number(r.id));
 
+          /* ★ R35-GAP-P2-M4: JUST_ENDED 분기는 메시지에 "분기 종료 후" 명시 (운영자 인식 보조) */
+          const phaseLabel = (q as any).phase === "JUST_ENDED" ? " (분기 종료 후)" : "";
+
           for (const row of sums) {
             const total = Number(row.total || 0);
             if (total <= thrVal) continue;
@@ -171,7 +183,7 @@ export default async function handler(_req: Request, _ctx: Context) {
               await notifyMany([enteredById], {
                 recipientType: "admin",
                 category: "milestone", severity: "info",
-                title: `임계점 달성: ${m.name}`,
+                title: `임계점 달성${phaseLabel}: ${m.name}`,
                 message: `누적 ${total.toLocaleString()}원으로 임계점 ${thrVal.toLocaleString()}원 초과! 인센티브 대상입니다.`,
                 link: "/admin#revenue-my",
                 refTable: "milestone_threshold",
@@ -199,7 +211,7 @@ export default async function handler(_req: Request, _ctx: Context) {
                 await notifyMany(sendIds, {
                   recipientType: "admin",
                   category: "milestone", severity: "info",
-                  title: `[성과 임계점] ${memberName}의 ${m.name} 임계 도달`,
+                  title: `[성과 임계점${phaseLabel}] ${memberName}의 ${m.name} 임계 도달`,
                   message: `${memberName}님이 ${m.name} 임계점(${thrVal.toLocaleString()}원)을 초과했습니다. 누적 ${total.toLocaleString()}원.`,
                   link: "/admin#milestone-settings",
                   refTable: "milestone_threshold",
@@ -210,7 +222,7 @@ export default async function handler(_req: Request, _ctx: Context) {
               /* 3. ★ R29-GAP-P2-M1: 담당 admin 0명 → 슈퍼어드민 fallback */
               await notifyAllSuperAdmins({
                 category: "milestone", severity: "warning",
-                title: `[성과 임계점] ${memberName}의 ${m.name} 임계 도달 (담당 미배정)`,
+                title: `[성과 임계점${phaseLabel}] ${memberName}의 ${m.name} 임계 도달 (담당 미배정)`,
                 message: `${m.target_milestone_role} 담당 admin이 배정되지 않았습니다. ${memberName}님 ${m.name} 임계점(${thrVal.toLocaleString()}원) 초과 — 누적 ${total.toLocaleString()}원.`,
                 link: "/admin#milestone-settings",
                 refTable: "milestone_threshold",

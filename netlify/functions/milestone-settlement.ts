@@ -6,6 +6,11 @@ import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-settlement*" };
 
+/* ★ R35-GAP-P2-M5: 사용자 입력 오류(400)와 시스템 오류(500) 구분용 */
+class SettlementBadRequest extends Error {
+  constructor(message: string) { super(message); this.name = "SettlementBadRequest"; }
+}
+
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -58,7 +63,13 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const result = await calcSettlement(admin.id, Number(quarterId));
       return Response.json({ ok: true, data: result });
-    } catch (err) { return jsonError("calculate", err); }
+    } catch (err) {
+      /* ★ R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
+      if (err instanceof SettlementBadRequest) {
+        return Response.json({ ok: false, error: err.message }, { status: 400 });
+      }
+      return jsonError("calculate", err);
+    }
   }
 
   // ── POST /submit — 결산 제출 ──
@@ -113,7 +124,13 @@ export default async function handler(req: Request, _ctx: Context) {
       }).catch(() => {});
 
       return Response.json({ ok: true, data: calc });
-    } catch (err) { return jsonError("submit", err); }
+    } catch (err) {
+      /* ★ R35-GAP-P2-M5: 사용자 입력 오류는 400 분기 */
+      if (err instanceof SettlementBadRequest) {
+        return Response.json({ ok: false, error: err.message }, { status: 400 });
+      }
+      return jsonError("submit", err);
+    }
   }
 
   return Response.json({ ok: false, error: "지원하지 않는 메서드 또는 경로" }, { status: 405 });
@@ -159,6 +176,11 @@ async function calcSettlement(memberId: number, quarterId: number) {
     sharedGroups[m.shared_threshold_group].items.push({ milestone: m, amount: amt });
   }
 
+  /* ★ R35-GAP-P2-🟡B: SI 공유 임계점 첫 항목을 milestone.id 오름차순으로 명시 정렬 (sort_order 변경 시 디버깅 혼란 차단) */
+  for (const grp of Object.values(sharedGroups)) {
+    grp.items.sort((a, b) => Number(a.milestone.id) - Number(b.milestone.id));
+  }
+
   for (const m of milestones.filter((m: any) => m.category === "REVENUE_LINKED")) {
     let incentive = 0;
     let verifiedAmount = 0;
@@ -193,7 +215,10 @@ async function calcSettlement(memberId: number, quarterId: number) {
     ORDER BY nra.selection_order
   `);
   const selected = (nrRows as any).rows || (nrRows as any[]);
-  if (selected.length > 2) throw new Error("비매출 선택 항목이 2개를 초과합니다");
+  /* ★ R35-GAP-P2-M5: 사용자 입력 오류(400) 분기 — outer try/catch에서 status:400 분기 */
+  if (selected.length > 2) {
+    throw new SettlementBadRequest("선택된 비매출 항목이 2개를 초과합니다 (마이페이지에서 다시 선택해주세요)");
+  }
 
   let nonRevenueTotal = 0;
   const nonRevenueBreakdown: any[] = [];
@@ -254,6 +279,8 @@ function formatSettle(r: any) {
     nonRevenueTotal: r.non_revenue_total, totalBonus: r.total_bonus,
     calculationSnapshot: r.calculation_snapshot,
     selfEvaluation: r.self_evaluation, status: r.status,
+    /* ★ R35-GAP-P2-M1: 반려·HOLD 사유 응답에 포함 (UI 표시용) */
+    reviewNote: r.review_note, holdReason: r.hold_reason,
     submittedAt: r.submitted_at, approvedAt: r.approved_at, paidAt: r.paid_at,
   };
 }
