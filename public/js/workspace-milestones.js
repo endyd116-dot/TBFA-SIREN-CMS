@@ -62,16 +62,25 @@
       if (_c) _c.style.display = '';
     };
     try {
-    // 로그인 확인
+    // 로그인 확인 (R35-GAP-P1 H-G1: user JWT 우선 + admin JWT fallback)
+    let memberData = null;
     try {
-      const meData = await api('/api/admin/me?light=1');
-      state.member = meData.admin || (meData.data && meData.data.admin) || meData.data || meData.member || meData;
-      state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
-      state.isSuperAdmin = state.member.role === 'super_admin';
-    } catch {
-      window.location.href = '/admin-hub.html';
+      const userRes = await api('/api/auth/me');
+      if (userRes.ok) memberData = userRes.data?.data || userRes.data?.user || userRes.data || null;
+    } catch (_) {}
+    if (!memberData) {
+      try {
+        const adminRes = await api('/api/admin/me?light=1');
+        if (adminRes.ok) memberData = adminRes.data?.admin || adminRes.data?.data?.admin || adminRes.data?.data || adminRes.data || null;
+      } catch (_) {}
+    }
+    if (!memberData) {
+      window.location.href = '/login.html';
       return;
     }
+    state.member = memberData;
+    state.isAdmin = state.member.role === 'admin' || state.member.role === 'super_admin';
+    state.isSuperAdmin = state.member.role === 'super_admin';
 
     // 사용자 정보 표시 (early return 전에 먼저)
     const roleLabel = { SM: '사무국장', PM: '정책국장', SI: 'SI관리자' };

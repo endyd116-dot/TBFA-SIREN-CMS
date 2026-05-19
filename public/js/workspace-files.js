@@ -1388,14 +1388,23 @@
     }
   }
 
-  /* ───────── 사이드바 초기화 ───────── */
+  /* ───────── 사이드바 초기화 (R35-GAP-P1 H-G1: user JWT 우선 + admin JWT fallback) ───────── */
   async function initSidebar() {
+    let me = null;
     try {
-      const res = await api('/api/admin/me');
-      const me = (res.data && res.data.admin) || res.data || res;
+      const userRes = await api('/api/auth/me');
+      if (userRes.ok) me = userRes.data?.data || userRes.data?.user || userRes.data || null;
+    } catch { /* 무시 */ }
+    if (!me) {
+      try {
+        const adminRes = await api('/api/admin/me?light=1');
+        if (adminRes.ok) me = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
+      } catch { /* 무시 */ }
+    }
+    if (me) {
       const nameEl = document.getElementById('wsSidebarUserName');
       if (nameEl) nameEl.textContent = me.name || me.email || '사용자';
-    } catch { /* 무시 */ }
+    }
 
     const logoutBtn = document.getElementById('wsBtnLogout');
     if (logoutBtn) {

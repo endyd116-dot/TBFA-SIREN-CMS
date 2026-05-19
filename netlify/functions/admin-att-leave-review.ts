@@ -177,7 +177,8 @@ export default async function handler(req: Request) {
           cur = new Date(cur.getTime() + 24 * 60 * 60 * 1000);
         }
 
-        // UPSERT per date — 충돌(memberUid, date) 시 status='LEAVE', 출퇴근 비움
+        // R35-GAP-P1 H-G2: 출근 기록 있는 날은 시각·근무시간 보존, status만 'LEAVE'로 변경
+        // 새 INSERT는 빈 행(check_in/out NULL), ON CONFLICT 시 기존 시각 유지
         for (const d of dates) {
           try {
             await db.execute(sql`
@@ -186,10 +187,6 @@ export default async function handler(req: Request) {
               ON CONFLICT (member_uid, date)
               DO UPDATE SET
                 status = 'LEAVE',
-                check_in_time = NULL,
-                check_out_time = NULL,
-                working_mins = NULL,
-                overtime_mins = 0,
                 updated_at = NOW()
             `);
           } catch (innerErr) {

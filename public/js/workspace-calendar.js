@@ -466,15 +466,24 @@
     if (syncBtn) syncBtn.style.display = connected ? '' : 'none';
   }
 
-  /* ═══════════════════ 사용자 정보 ═══════════════════ */
+  /* ═══════════════════ 사용자 정보 (R35-GAP-P1 H-G1: user JWT 우선 + admin JWT fallback) ═══════════════════ */
   async function loadMe() {
+    let me = null;
     try {
-      const res = await api('/api/admin/me');
-      const me = res.data || res;
+      const userRes = await api('/api/auth/me');
+      if (userRes.ok) me = userRes.data?.data || userRes.data?.user || userRes.data || null;
+    } catch (_) {}
+    if (!me) {
+      try {
+        const adminRes = await api('/api/admin/me?light=1');
+        if (adminRes.ok) me = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
+      } catch (_) {}
+    }
+    if (me) {
       STATE.me = me;
       const nameEl = $('#wsSidebarUserName');
       if (nameEl) nameEl.textContent = me.name || me.email || '사용자';
-    } catch (_) {}
+    }
   }
 
   /* ═══════════════════ 캘린더 초기화 ═══════════════════ */
