@@ -705,6 +705,8 @@
   /* ============ 회원 상세 모달 ============ */
   let modalActiveTab = 'info';
   let modalCurrentMember = null;
+  /* ★ R35-Light-B-L2: 현재 로그인 어드민 정보 (init 시점에 캐시 — baseSalary UI 분기) */
+  let currentAdmin = null;
 
   function openMemberDetailModal(memberId) {
     const m = allMembers.find(x => x.id === memberId);
@@ -738,6 +740,17 @@
       || (SIGNUP_SOURCE_LABEL[m.signupSource]?.text || '—'));
     setText('#mdmInfoDonor', DONOR_TYPE_LABEL[m.donorType]?.text || '비후원');
     setText('#mdmInfoCreated', formatDate(m.createdAt));
+
+    /* ★ R35-Light-B-L2: 기본연봉 입력 행 — super_admin만 노출 + 현재값 prefill */
+    const baseSalaryRow = modal.querySelector('#mdmBaseSalaryRow');
+    const baseSalaryInput = modal.querySelector('#mdmBaseSalaryInput');
+    if (baseSalaryRow && baseSalaryInput) {
+      const isSuper = currentAdmin?.role === 'super_admin';
+      baseSalaryRow.style.display = isSuper ? '' : 'none';
+      if (isSuper) {
+        baseSalaryInput.value = m.baseSalary != null ? Number(m.baseSalary) : 0;
+      }
+    }
 
     // 기본 정보 탭으로 시작
     switchModalTab('info');
@@ -883,6 +896,44 @@
         closeMemberDetailModal();
       }
     });
+    /* ★ R35-Light-B-L2: 기본연봉 저장 버튼 */
+    const saveBtn = modal.querySelector('#mdmBaseSalarySave');
+    if (saveBtn) saveBtn.addEventListener('click', saveBaseSalary);
+  }
+
+  /* ★ R35-Light-B-L2: 기본연봉 저장 — super_admin 전용, PATCH /api/admin/members */
+  async function saveBaseSalary() {
+    if (!modalCurrentMember) { toast('회원이 선택되지 않았습니다'); return; }
+    if (currentAdmin?.role !== 'super_admin') { toast('슈퍼어드민만 변경 가능합니다'); return; }
+    const input = document.querySelector('#memberDetailModal #mdmBaseSalaryInput');
+    const btn = document.querySelector('#memberDetailModal #mdmBaseSalarySave');
+    if (!input || !btn) return;
+    const raw = Number(input.value);
+    if (!Number.isFinite(raw) || raw < 0) { toast('0 이상의 숫자를 입력하세요'); return; }
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = '저장 중…';
+    try {
+      const res = await api('/api/admin/members', {
+        method: 'PATCH',
+        body: { id: modalCurrentMember.id, baseSalary: raw },
+      });
+      if (!res.ok || res.data?.ok === false) {
+        toast(res.data?.error || '저장 실패');
+        return;
+      }
+      const newVal = res.data?.data?.member?.baseSalary ?? String(raw);
+      modalCurrentMember.baseSalary = newVal;
+      const idx = allMembers.findIndex(x => x.id === modalCurrentMember.id);
+      if (idx >= 0) allMembers[idx].baseSalary = newVal;
+      input.value = Number(newVal);
+      toast('기본연봉이 저장되었습니다');
+    } catch (e) {
+      toast('저장 실패: ' + (e?.message || e));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel || '저장';
+    }
   }
 
   /* ============ 3. Import (수기 등록) ============ */
@@ -2422,6 +2473,9 @@
   async function init() {
     const auth = await checkAuth();
     if (!auth) return;
+
+    /* ★ R35-Light-B-L2: 어드민 정보 캐시 (baseSalary UI 권한 분기) */
+    currentAdmin = auth.admin || null;
 
     /* 사용자 정보 표시 */
     const nameEl = document.getElementById('cmsUserName');
