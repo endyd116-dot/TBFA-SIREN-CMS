@@ -304,6 +304,12 @@ export const members = pgTable("members", {
    */
   milestoneRole: varchar("milestone_role", { length: 10 }),
 
+  /* ───────── ★ R32-P0 C4: 기본연봉 (성과 결산 CSV용) ─────────
+   * 마이그레이션: migrate-members-base-salary (완료 2026-05-19)
+   * DEFAULT 0 NOT NULL — 실 운영 입력은 어드민 UI에서
+   */
+  baseSalary: numeric("base_salary", { precision: 15, scale: 2 }).default("0").notNull(),
+
   // 메타
   memo: text("memo"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
