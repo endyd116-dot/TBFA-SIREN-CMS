@@ -124,41 +124,97 @@ export default async function handler(_req: Request, _ctx: Context) {
 
       for (const m of milestones) {
         try {
-          // 임계점을 초과한 총 검증 매출 조회
+          /* ★ R29-GAP-P2-M1: 입력자 이름·담당 admin 함께 조회 (그룹 알림용) */
           const sumRows = await db.execute(sql`
-            SELECT COALESCE(SUM(amount::numeric), 0) as total, entered_by
-            FROM revenue_entries
-            WHERE milestone_definition_id = ${m.id} AND quarter_id = ${q.id} AND status = 'VERIFIED'
-            GROUP BY entered_by
+            SELECT COALESCE(SUM(re.amount::numeric), 0) as total,
+                   re.entered_by,
+                   mem.name as entered_by_name
+            FROM revenue_entries re
+            LEFT JOIN members mem ON mem.id = re.entered_by
+            WHERE re.milestone_definition_id = ${m.id}
+              AND re.quarter_id = ${q.id}
+              AND re.status = 'VERIFIED'
+            GROUP BY re.entered_by, mem.name
           `);
           const sums = (sumRows as any).rows || (sumRows as any[]);
           const thrVal = Number(m.threshold_value || 0);
+
+          /* ★ R29-GAP-P2-M1: 담당 admin(milestone_role 일치) 조회 — 그룹 알림 대상 */
+          const roleAdminRows = await db.execute(sql`
+            SELECT id FROM members
+            WHERE type = 'admin' AND status = 'active'
+              AND milestone_role = ${m.target_milestone_role}
+          `);
+          const roleAdminIds: number[] = ((roleAdminRows as any).rows || (roleAdminRows as any[]))
+            .map((r: any) => Number(r.id));
 
           for (const row of sums) {
             const total = Number(row.total || 0);
             if (total <= thrVal) continue;
 
-            // 중복 알림 방지: 이미 이번 분기에 같은 마일스톤 임계점 알림을 받았는지 확인
+            const enteredById = Number(row.entered_by);
+            const memberName = row.entered_by_name || `ID:${enteredById}`;
+
+            /* 1. 입력자 본인 알림 (인센티브 대상 안내) — 기존 유지 */
             const dupRows = await db.execute(sql`
               SELECT id FROM notifications
-              WHERE recipient_id = ${row.entered_by}
+              WHERE recipient_id = ${enteredById}
                 AND ref_table = 'milestone_threshold'
                 AND ref_id = ${m.id}
                 AND created_at >= (SELECT start_date FROM quarters WHERE id = ${q.id})
               LIMIT 1
             `);
             const dup = (dupRows as any).rows || (dupRows as any[]);
-            if (dup.length > 0) continue;
+            if (dup.length === 0) {
+              await notifyMany([enteredById], {
+                recipientType: "admin",
+                category: "milestone", severity: "info",
+                title: `임계점 달성: ${m.name}`,
+                message: `누적 ${total.toLocaleString()}원으로 임계점 ${thrVal.toLocaleString()}원 초과! 인센티브 대상입니다.`,
+                link: "/admin#revenue-my",
+                refTable: "milestone_threshold",
+                refId: m.id,
+              });
+            }
 
-            await notifyMany([row.entered_by], {
-              recipientType: "admin",
-              category: "milestone", severity: "info",
-              title: `임계점 달성: ${m.name}`,
-              message: `누적 ${total.toLocaleString()}원으로 임계점 ${thrVal.toLocaleString()}원 초과! 인센티브 대상입니다.`,
-              link: "/admin#revenue-my",
-              refTable: "milestone_threshold",
-              refId: m.id,
-            });
+            /* 2. ★ R29-GAP-P2-M1: 담당 admin 그룹 알림 (입력자 본인 제외, 분기 내 중복 제외) */
+            const targetAdminIds = roleAdminIds.filter((id) => id !== enteredById);
+            if (targetAdminIds.length > 0) {
+              const sendIds: number[] = [];
+              for (const adminId of targetAdminIds) {
+                const adminDupRows = await db.execute(sql`
+                  SELECT id FROM notifications
+                  WHERE recipient_id = ${adminId}
+                    AND ref_table = 'milestone_threshold'
+                    AND ref_id = ${m.id}
+                    AND created_at >= (SELECT start_date FROM quarters WHERE id = ${q.id})
+                  LIMIT 1
+                `);
+                const adminDup = (adminDupRows as any).rows || (adminDupRows as any[]);
+                if (adminDup.length === 0) sendIds.push(adminId);
+              }
+              if (sendIds.length > 0) {
+                await notifyMany(sendIds, {
+                  recipientType: "admin",
+                  category: "milestone", severity: "info",
+                  title: `[성과 임계점] ${memberName}의 ${m.name} 임계 도달`,
+                  message: `${memberName}님이 ${m.name} 임계점(${thrVal.toLocaleString()}원)을 초과했습니다. 누적 ${total.toLocaleString()}원.`,
+                  link: "/admin#milestone-settings",
+                  refTable: "milestone_threshold",
+                  refId: m.id,
+                });
+              }
+            } else {
+              /* 3. ★ R29-GAP-P2-M1: 담당 admin 0명 → 슈퍼어드민 fallback */
+              await notifyAllSuperAdmins({
+                category: "milestone", severity: "warning",
+                title: `[성과 임계점] ${memberName}의 ${m.name} 임계 도달 (담당 미배정)`,
+                message: `${m.target_milestone_role} 담당 admin이 배정되지 않았습니다. ${memberName}님 ${m.name} 임계점(${thrVal.toLocaleString()}원) 초과 — 누적 ${total.toLocaleString()}원.`,
+                link: "/admin#milestone-settings",
+                refTable: "milestone_threshold",
+                refId: m.id,
+              }).catch(() => {});
+            }
           }
         } catch { /* 개별 마일스톤 오류는 건너뜀 */ }
       }
