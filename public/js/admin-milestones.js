@@ -84,7 +84,13 @@ async function loadDefs() {
 
   const res = await amApi(url);
   if (!res.ok) { document.getElementById('defsList').innerHTML = '<p style="color:#dc2626">불러오기 실패</p>'; return; }
-  AM.defs = res.data?.data?.definitions || res.data?.definitions || [];
+  AM.defs =
+    res.data?.data?.milestones ||
+    res.data?.milestones ||
+    res.data?.data?.definitions ||
+    res.data?.definitions ||
+    (Array.isArray(res.data?.data) ? res.data.data : null) ||
+    [];
   renderDefs();
 }
 
@@ -102,11 +108,13 @@ function renderDefs() {
         <th>코드</th><th>이름</th><th>역할</th><th>카테고리</th><th>사업체</th><th>정렬</th><th>관리</th>
       </tr></thead>
       <tbody>
-        ${AM.defs.map(d => `
+        ${AM.defs.map(d => {
+          const r = d.targetMilestoneRole || d.milestoneRole;
+          return `
           <tr>
             <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
             <td style="font-weight:600">${d.name}</td>
-            <td>${roleLabel[d.milestoneRole] || d.milestoneRole}</td>
+            <td>${roleLabel[r] || r || '-'}</td>
             <td>${catLabel[d.category] || d.category}</td>
             <td style="font-size:12px">${d.businessUnit || '-'}</td>
             <td style="font-size:12px">${d.sortOrder ?? 0}</td>
@@ -114,8 +122,8 @@ function renderDefs() {
               <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
               <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="deleteDef(${d.id})">삭제</button>
             </td>
-          </tr>
-        `).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }
@@ -147,17 +155,18 @@ function openDefEdit(id) {
     title.textContent = '마일스톤 수정';
     document.getElementById('fCode').value = d.code;
     document.getElementById('fName').value = d.name;
-    document.getElementById('fRole').value = d.milestoneRole;
+    document.getElementById('fRole').value = d.targetMilestoneRole || d.milestoneRole || 'SM';
     document.getElementById('fCategory').value = d.category;
     document.getElementById('fBU').value = d.businessUnit || 'ASSOCIATION';
     document.getElementById('fRevSrc').value = d.revenueSource || '';
     document.getElementById('fSortOrder').value = d.sortOrder ?? 0;
     document.getElementById('fQApplicable').value = d.quarterApplicable || '';
-    const thr = d.threshold || {};
-    document.getElementById('fThrEnabled').checked = !!thr.enabled;
-    document.getElementById('fThrVal').value = thr.value || '';
-    document.getElementById('fThrUnit').value = thr.unit || '';
-    document.getElementById('thrFields').style.display = thr.enabled ? '' : 'none';
+    /* ★ R29-GAP-P1-H3: threshold 객체 분해 → 평탄 키(schema 일치) */
+    const thrEnabled = !!d.thresholdEnabled;
+    document.getElementById('fThrEnabled').checked = thrEnabled;
+    document.getElementById('fThrVal').value = d.thresholdValue ?? '';
+    document.getElementById('fThrUnit').value = d.thresholdUnit ?? '';
+    document.getElementById('thrFields').style.display = thrEnabled ? '' : 'none';
     document.getElementById('fFormula').value = d.bonusFormula ? JSON.stringify(d.bonusFormula, null, 2) : '';
   }
   modal.style.display = '';
@@ -171,9 +180,14 @@ document.getElementById('defModalClose')?.addEventListener('click', () => {
 });
 
 document.getElementById('defModalSave')?.addEventListener('click', async () => {
+  /* ★ R29-GAP-P1-H3: 필수 4개(code/name/category/targetMilestoneRole) 입력 차단 */
   const code = document.getElementById('fCode').value.trim();
   const name = document.getElementById('fName').value.trim();
-  if (!code || !name) { amToast('코드와 이름은 필수입니다.', 'error'); return; }
+  const category = document.getElementById('fCategory').value;
+  const targetMilestoneRole = document.getElementById('fRole').value;
+  if (!code || !name || !category || !targetMilestoneRole) {
+    amToast('코드·이름·카테고리·담당 역할은 필수입니다.', 'error'); return;
+  }
 
   let bonusFormula = null;
   const formulaStr = document.getElementById('fFormula').value.trim();
@@ -182,23 +196,25 @@ document.getElementById('defModalSave')?.addEventListener('click', async () => {
     catch { amToast('인센티브 공식 JSON 형식이 올바르지 않습니다.', 'error'); return; }
   }
 
-  const thrEnabled = document.getElementById('fThrEnabled').checked;
-  const threshold = thrEnabled ? {
-    enabled: true,
-    value: parseFloat(document.getElementById('fThrVal').value) || 0,
-    unit: document.getElementById('fThrUnit').value.trim(),
-  } : { enabled: false };
+  /* ★ R29-GAP-P1-H3: threshold 평탄 키 — schema(milestone_definitions)와 일치 */
+  const thresholdEnabled = document.getElementById('fThrEnabled').checked;
+  const thresholdValue = thresholdEnabled
+    ? (parseFloat(document.getElementById('fThrVal').value) || 0) : null;
+  const thresholdUnit = thresholdEnabled
+    ? (document.getElementById('fThrUnit').value.trim() || null) : null;
 
   const body = {
     code,
     name,
-    milestoneRole: document.getElementById('fRole').value,
-    category: document.getElementById('fCategory').value,
+    category,
+    targetMilestoneRole,
     businessUnit: document.getElementById('fBU').value,
     revenueSource: document.getElementById('fRevSrc').value.trim() || null,
     sortOrder: parseInt(document.getElementById('fSortOrder').value) || 0,
     quarterApplicable: document.getElementById('fQApplicable').value || null,
-    threshold,
+    thresholdEnabled,
+    thresholdValue,
+    thresholdUnit,
     bonusFormula,
   };
 
@@ -207,7 +223,8 @@ document.getElementById('defModalSave')?.addEventListener('click', async () => {
     isEdit ? `/api/milestone-definitions/${AM.editingDefId}` : '/api/milestone-definitions',
     { method: isEdit ? 'PATCH' : 'POST', body }
   );
-  if (!res.ok) {
+  /* ★ R29-GAP-P1-H3: HTTP ok + 응답 본문 ok 이중 검증 */
+  if (!res.ok || res.data?.ok === false) {
     amToast((res.data?.error || '저장 실패') + (res.data?.detail ? ': ' + res.data.detail : ''), 'error');
     return;
   }
@@ -273,6 +290,15 @@ function renderQuarters() {
         sel.appendChild(opt);
       }
     });
+    /* ★ R29-GAP-P1-H5: 기본 선택 — ACTIVE 우선, 없으면 최신 SETTLED */
+    if (!sel.value) {
+      const active = AM.quarters.find(q => q.status === 'ACTIVE');
+      const latestSettled = [...AM.quarters]
+        .filter(q => q.status === 'SETTLED')
+        .sort((a, b) => (b.year - a.year) || (b.quarter - a.quarter))[0];
+      const pick = active || latestSettled;
+      if (pick) sel.value = String(pick.id);
+    }
   }
 }
 
@@ -349,10 +375,10 @@ function renderSettlements(list) {
           <tr>
             <td>${roleLabel[s.milestoneRole] || s.milestoneRole || '-'}</td>
             <td style="font-weight:600">${s.memberName || '-'}</td>
-            <td style="font-size:12px">${s.quarterYear ? s.quarterYear + '년 Q' + s.quarterQ : '-'}</td>
-            <td>${amFmt(s.revenueIncentive)}</td>
-            <td>${amFmt(s.nonRevenueBonus)}</td>
-            <td style="font-weight:700">${amFmt(s.totalAmount)}</td>
+            <td style="font-size:12px">${s.year ? s.year + '년 Q' + s.quarter : '-'}</td>
+            <td>${amFmt(s.revenueLinkedTotal)}</td>
+            <td>${amFmt(s.nonRevenueTotal)}</td>
+            <td style="font-weight:700">${amFmt(s.totalBonus)}</td>
             <td>${amBadge(s.status)}</td>
             <td>
               ${s.status === 'SUBMITTED' || s.status === 'REVIEWED' ? `

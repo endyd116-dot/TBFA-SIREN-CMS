@@ -33,6 +33,7 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       let q = `
         SELECT re.*, md.code, md.name as milestone_name, md.target_milestone_role,
+               md.category as milestone_category, md.bonus_formula,
                m.name as entered_by_name
         FROM revenue_entries re
         JOIN milestone_definitions md ON md.id = re.milestone_definition_id
@@ -165,6 +166,9 @@ function formatEntry(r: any) {
     id: r.id, milestoneDefinitionId: r.milestone_definition_id,
     milestoneCode: r.code, milestoneName: r.milestone_name,
     milestoneRole: r.target_milestone_role,
+    /* ★ R29-GAP-P1-H4: EVENT_RANGE UI 분기 + 범위 라벨 노출 */
+    milestoneCategory: r.milestone_category,
+    bonusFormula: r.bonus_formula,
     quarterId: r.quarter_id, enteredBy: r.entered_by,
     enteredByName: r.entered_by_name,
     revenueDate: r.revenue_date, amount: r.amount, amountUnit: r.amount_unit,
