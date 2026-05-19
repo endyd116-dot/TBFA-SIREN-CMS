@@ -68,6 +68,8 @@
   <!-- 탭 네비게이션 -->
   <nav class="att-tabs" id="awmTabs">
     <button class="att-tab active" data-tab="records">근태 현황</button>
+    <button class="att-tab" data-tab="leaves">휴가 결재</button>
+    <button class="att-tab" data-tab="balances">잔여 휴가</button>
     <button class="att-tab" data-tab="schedule">직원 스케줄</button>
     <button class="att-tab" data-tab="workplaces">거점 관리</button>
     <button class="att-tab" data-tab="policy">근무 정책</button>
@@ -151,6 +153,89 @@
             <tr><td colspan="6" class="att-empty">대기 중인 요청이 없습니다</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 신규: 휴가 결재 ════════════ -->
+  <div class="att-panel" id="awmPanelLeaves">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">대기 중인 휴가 신청</div>
+        <span class="att-badge PENDING" id="awmLvPendingCount">0건</span>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>신청자</th>
+              <th>휴가종류</th>
+              <th>시작일</th>
+              <th>종료일</th>
+              <th>일수</th>
+              <th>사유</th>
+              <th>신청일</th>
+              <th>처리</th>
+            </tr>
+          </thead>
+          <tbody id="awmLeavesBody">
+            <tr><td colspan="8" class="att-empty">휴가 신청 정보를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 신규: 잔여 휴가 ════════════ -->
+  <div class="att-panel" id="awmPanelBalances">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">직원별 잔여 휴가</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="awmBalanceYear" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"></select>
+          <input type="text" id="awmBalanceSearch" placeholder="이름·이메일 검색" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+        </div>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>이메일</th>
+              <th>휴가종류</th>
+              <th>총일수</th>
+              <th>사용</th>
+              <th>잔여</th>
+              <th>조정</th>
+            </tr>
+          </thead>
+          <tbody id="awmBalancesBody">
+            <tr><td colspan="7" class="att-empty">잔여 휴가 정보를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 조정 모달 -->
+    <div class="awm-section" id="awmBalanceAdjustForm" style="display:none">
+      <div class="awm-section-title">잔여 휴가 조정</div>
+      <div style="font-size:12.5px;color:#6b7280;margin-bottom:10px" id="awmBalanceAdjustTarget">—</div>
+      <input type="hidden" id="awmBalAdjMemberUid">
+      <input type="hidden" id="awmBalAdjTypeId">
+      <input type="hidden" id="awmBalAdjYear">
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>증감 일수 (±N일)</label>
+          <input type="number" id="awmBalAdjDelta" step="0.5" placeholder="예: +1 또는 -0.5">
+        </div>
+        <div class="att-form-group">
+          <label>사유</label>
+          <input type="text" id="awmBalAdjReason" placeholder="조정 사유">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="att-btn att-btn-primary" id="awmBtnSaveBalanceAdjust">적용</button>
+        <button class="att-btn att-btn-default" id="awmBtnCancelBalanceAdjust">취소</button>
       </div>
     </div>
   </div>
@@ -299,19 +384,20 @@
         <div class="att-form-group" style="grid-column:1/-1">
           <label>주소</label>
           <div style="display:flex;gap:8px">
-            <input type="text" id="awmWpAddress" placeholder="주소 입력 후 좌표 조회" style="flex:1">
-            <button class="att-btn att-btn-default" id="awmBtnGeocode">좌표 조회</button>
+            <input type="text" id="awmWpAddress" placeholder="주소 검색 버튼을 누르세요" readonly style="flex:1;background:#f9fafb">
+            <button class="att-btn att-btn-default" id="awmBtnSearchAddress">주소 검색</button>
           </div>
+          <input type="text" id="awmWpRoadAddress" placeholder="도로명 주소 (자동 입력)" readonly style="margin-top:6px;background:#f9fafb;width:100%">
         </div>
       </div>
       <div class="att-form-row">
         <div class="att-form-group">
           <label>위도 (lat)</label>
-          <input type="number" id="awmWpLat" step="0.000001" placeholder="37.123456">
+          <input type="number" id="awmWpLat" step="0.000001" placeholder="검색으로 자동 입력" readonly style="background:#f9fafb;color:#6b7280">
         </div>
         <div class="att-form-group">
           <label>경도 (lng)</label>
-          <input type="number" id="awmWpLng" step="0.000001" placeholder="127.123456">
+          <input type="number" id="awmWpLng" step="0.000001" placeholder="검색으로 자동 입력" readonly style="background:#f9fafb;color:#6b7280">
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
@@ -489,7 +575,7 @@
         <div class="att-form-group">
           <label>종류</label>
           <select id="awmHolidayType">
-            <option value="NATIONAL">법정공휴일</option>
+            <option value="PUBLIC">법정공휴일</option>
             <option value="COMPANY">회사 휴무일</option>
           </select>
         </div>
@@ -503,9 +589,27 @@
 
 </div><!-- /awm-wrap -->
 
+<!-- 주소 검색 모달 -->
+<div id="awmAddrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:22px 24px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:15px">주소 검색</strong>
+      <button id="awmBtnAddrModalClose" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280">✕</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="awmAddrQuery" placeholder="예: 서울특별시 강남구 테헤란로 152"
+        style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+      <button class="att-btn att-btn-primary" id="awmBtnAddrSearch">검색</button>
+    </div>
+    <div id="awmAddrResults" style="flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:8px;min-height:200px;max-height:50vh;background:#fafafa">
+      <div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">주소를 입력 후 검색하세요</div>
+    </div>
+  </div>
+</div>
+
 <!-- 토스트 -->
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
-<script src="/js/admin-workspace-management.js?v=1"></script>
+<script src="/js/admin-workspace-management.js?v=3"></script>
 </body>
 </html>

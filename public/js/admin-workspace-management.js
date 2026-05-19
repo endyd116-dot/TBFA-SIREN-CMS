@@ -71,6 +71,8 @@
         const panel = document.getElementById(id);
         if (panel) panel.classList.add('active');
 
+        if (btn.dataset.tab === 'leaves' && !window._awmLvInit) initLeavesTab();
+        if (btn.dataset.tab === 'balances' && !window._awmBalInit) initBalancesTab();
         if (btn.dataset.tab === 'schedule' && !window._awmSchInit) initScheduleTab();
         if (btn.dataset.tab === 'workplaces' && !window._awmWpInit) initWorkplacesTab();
         if (btn.dataset.tab === 'policy' && !window._awmPolInit) initPolicyTab();
@@ -137,8 +139,8 @@
   }
 
   async function loadPendingAmends() {
-    const res = await api('/api/admin-att-amend-requests?status=PENDING');
-    const rows = res.data?.data || res.data || [];
+    const res = await api('/api/admin-att-correction-review?status=PENDING');
+    const rows = res.data?.data?.corrections || res.data?.corrections || [];
     const cntEl = document.getElementById('awmPendingAmendCount');
     if (cntEl) cntEl.textContent = `${Array.isArray(rows) ? rows.length : 0}건`;
 
@@ -148,15 +150,15 @@
       tbody.innerHTML = '<tr><td colspan="6" class="att-empty">대기 중인 요청이 없습니다</td></tr>';
       return;
     }
-    const typeLabel = { CHECKIN: '출근', CHECKOUT: '퇴근', BOTH: '출퇴근' };
+    const typeLabel = { CHECK_IN: '출근', CHECK_OUT: '퇴근', BOTH: '출퇴근' };
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td>${escHtml(r.memberName || '—')}</td>
         <td>${escHtml(r.targetDate || '—')}</td>
-        <td>${typeLabel[r.amendType] || r.amendType || '—'}</td>
+        <td>${typeLabel[r.correctionType] || r.correctionType || '—'}</td>
         <td style="font-size:12px">
-          ${r.requestedCheckin ? '출근 ' + fmtTime(r.requestedCheckin) : ''}
-          ${r.requestedCheckout ? '<br>퇴근 ' + fmtTime(r.requestedCheckout) : ''}
+          ${r.requestedCheckIn ? '출근 ' + fmtTime(r.requestedCheckIn) : ''}
+          ${r.requestedCheckOut ? '<br>퇴근 ' + fmtTime(r.requestedCheckOut) : ''}
         </td>
         <td>${escHtml(r.reason || '—')}</td>
         <td>
@@ -168,17 +170,23 @@
 
   window.awmApproveAmend = async (id) => {
     if (!confirm('이 수정 요청을 승인하시겠습니까?')) return;
-    const res = await api(`/api/admin-att-amend-requests/${id}/approve`, { method: 'POST' });
+    const res = await api('/api/admin-att-correction-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'APPROVED', note: '' },
+    });
     if (!res.ok) { toast('승인 실패: ' + (res.data?.error || '')); return; }
-    toast('승인되었습니다');
+    toast('수정요청 승인 완료');
     await loadPendingAmends();
   };
 
   window.awmRejectAmend = async (id) => {
     const reason = prompt('반려 사유를 입력하세요 (선택)');
-    const res = await api(`/api/admin-att-amend-requests/${id}/reject`, { method: 'POST', body: { reason: reason || '' } });
+    const res = await api('/api/admin-att-correction-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'REJECTED', note: reason || '' },
+    });
     if (!res.ok) { toast('반려 실패: ' + (res.data?.error || '')); return; }
-    toast('반려되었습니다');
+    toast('수정요청 반려 완료');
     await loadPendingAmends();
   };
 
@@ -283,7 +291,15 @@
       showEl('awmWorkplaceForm');
     });
     document.getElementById('awmBtnCancelWorkplace')?.addEventListener('click', () => hideEl('awmWorkplaceForm'));
-    document.getElementById('awmBtnGeocode')?.addEventListener('click', doGeocode);
+    document.getElementById('awmBtnSearchAddress')?.addEventListener('click', openAddrModal);
+    document.getElementById('awmBtnAddrModalClose')?.addEventListener('click', closeAddrModal);
+    document.getElementById('awmBtnAddrSearch')?.addEventListener('click', searchAddress);
+    document.getElementById('awmAddrQuery')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); searchAddress(); }
+    });
+    document.getElementById('awmAddrModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'awmAddrModal') closeAddrModal();
+    });
     document.getElementById('awmBtnSaveWorkplace')?.addEventListener('click', saveWorkplace);
   }
 
@@ -311,7 +327,7 @@
   }
 
   function clearWpForm() {
-    ['awmWpId', 'awmWpName', 'awmWpAddress', 'awmWpRadius', 'awmWpLat', 'awmWpLng'].forEach(id => {
+    ['awmWpId', 'awmWpName', 'awmWpAddress', 'awmWpRoadAddress', 'awmWpRadius', 'awmWpLat', 'awmWpLng'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = id === 'awmWpRadius' ? '200' : '';
     });
@@ -323,6 +339,8 @@
     document.getElementById('awmWpId').value = id;
     document.getElementById('awmWpName').value = row.name || '';
     document.getElementById('awmWpAddress').value = row.address || '';
+    const roadEl = document.getElementById('awmWpRoadAddress');
+    if (roadEl) roadEl.value = '';
     document.getElementById('awmWpRadius').value = row.radius || 200;
     document.getElementById('awmWpLat').value = row.lat || '';
     document.getElementById('awmWpLng').value = row.lng || '';
@@ -333,29 +351,90 @@
 
   window.awmDeleteWorkplace = async (id) => {
     if (!confirm('이 거점을 삭제하시겠습니까?')) return;
-    const res = await api(`/api/admin-att-workplaces/${id}`, { method: 'DELETE' });
+    const res = await api(`/api/admin-att-workplaces?id=${id}`, { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || '')); return; }
     toast('삭제되었습니다');
     await loadWorkplaces();
   };
 
-  async function doGeocode() {
-    const address = document.getElementById('awmWpAddress')?.value?.trim();
-    if (!address) { toast('주소를 입력하세요'); return; }
-    const btn = document.getElementById('awmBtnGeocode');
+  function openAddrModal() {
+    const modal = document.getElementById('awmAddrModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const q = document.getElementById('awmAddrQuery');
+    if (q) {
+      const existing = document.getElementById('awmWpAddress')?.value || '';
+      q.value = existing;
+      setTimeout(() => q.focus(), 30);
+    }
+    const results = document.getElementById('awmAddrResults');
+    if (results && !q?.value) {
+      results.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">주소를 입력 후 검색하세요</div>';
+    }
+  }
+
+  function closeAddrModal() {
+    const modal = document.getElementById('awmAddrModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function searchAddress() {
+    const query = document.getElementById('awmAddrQuery')?.value?.trim();
+    if (!query) { toast('검색어를 입력하세요'); return; }
+
+    const btn = document.getElementById('awmBtnAddrSearch');
     if (btn) btn.disabled = true;
-    const res = await api('/api/att-geocode', { method: 'POST', body: { address } });
+    const resultsEl = document.getElementById('awmAddrResults');
+    if (resultsEl) resultsEl.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">검색 중...</div>';
+
+    const res = await api(`/api/att-geocode-search?query=${encodeURIComponent(query)}`);
     if (btn) btn.disabled = false;
-    const coords = res.data?.data || res.data || {};
-    if (!res.ok || !coords.lat) {
-      toast('좌표를 찾을 수 없습니다. 주소를 확인하세요.');
+
+    if (res.status === 503) {
+      const errMsg = res.data?.error || '거점 주소 검색 환경변수가 등록되지 않았습니다 (KAKAO_REST_API_KEY)';
+      toast(errMsg);
+      if (resultsEl) resultsEl.innerHTML = `<div style="text-align:center;color:#dc2626;font-size:12.5px;padding:30px 14px;line-height:1.5">${escHtml(errMsg)}</div>`;
       return;
     }
+    if (!res.ok) {
+      toast('검색 실패: ' + (res.data?.error || ''));
+      if (resultsEl) resultsEl.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">검색 결과 없음</div>';
+      return;
+    }
+
+    const results = res.data?.data?.results || res.data?.results || [];
+    if (!Array.isArray(results) || results.length === 0) {
+      if (resultsEl) resultsEl.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">검색 결과가 없습니다</div>';
+      return;
+    }
+    window._awmAddrResults = results;
+    if (!resultsEl) return;
+    resultsEl.innerHTML = results.map((r, idx) => `
+      <button type="button" data-idx="${idx}" class="awm-addr-item"
+        style="display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;margin-bottom:6px;cursor:pointer;font-family:inherit">
+        <div style="font-weight:600;font-size:13px">${escHtml(r.roadAddress || r.address || '주소 없음')}</div>
+        ${r.address && r.address !== r.roadAddress ? `<div style="font-size:11.5px;color:#6b7280;margin-top:2px">지번: ${escHtml(r.address)}</div>` : ''}
+        ${r.placeName ? `<div style="font-size:11.5px;color:#3b82f6;margin-top:2px">${escHtml(r.placeName)}</div>` : ''}
+      </button>
+    `).join('');
+    resultsEl.querySelectorAll('.awm-addr-item').forEach(el => {
+      el.addEventListener('click', () => pickAddress(Number(el.dataset.idx)));
+    });
+  }
+
+  function pickAddress(idx) {
+    const result = (window._awmAddrResults || [])[idx];
+    if (!result) return;
+    const addrEl = document.getElementById('awmWpAddress');
+    const roadEl = document.getElementById('awmWpRoadAddress');
     const latEl = document.getElementById('awmWpLat');
     const lngEl = document.getElementById('awmWpLng');
-    if (latEl) latEl.value = coords.lat;
-    if (lngEl) lngEl.value = coords.lng;
-    toast('좌표가 입력되었습니다 (' + coords.lat.toFixed(5) + ', ' + coords.lng.toFixed(5) + ')');
+    if (addrEl) addrEl.value = result.address || result.roadAddress || '';
+    if (roadEl) roadEl.value = result.roadAddress || '';
+    if (latEl) latEl.value = result.lat;
+    if (lngEl) lngEl.value = result.lng;
+    closeAddrModal();
+    toast('주소가 입력되었습니다');
   }
 
   async function saveWorkplace() {
@@ -373,8 +452,10 @@
     if (btn) btn.disabled = true;
 
     const method = id ? 'PUT' : 'POST';
-    const path = id ? `/api/admin-att-workplaces/${id}` : '/api/admin-att-workplaces';
-    const res = await api(path, { method, body: { name, address, radius, lat, lng } });
+    const path = id ? `/api/admin-att-workplaces?id=${id}` : '/api/admin-att-workplaces';
+    const body = { name, address, radius, lat, lng };
+    if (!id) body.type = 'OFFICE';
+    const res = await api(path, { method, body });
 
     if (!res.ok) {
       toast('저장 실패: ' + (res.data?.error || ''));
@@ -496,7 +577,7 @@
 
   window.awmDeleteLeaveType = async (id) => {
     if (!confirm('이 휴가 종류를 삭제하시겠습니까?')) return;
-    const res = await api(`/api/admin-att-leave-types/${id}`, { method: 'DELETE' });
+    const res = await api(`/api/admin-att-leave-types?id=${id}`, { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || '')); return; }
     toast('삭제되었습니다');
     await loadLeaveTypes();
@@ -516,8 +597,8 @@
     if (btn) btn.disabled = true;
 
     const method = id ? 'PUT' : 'POST';
-    const path = id ? `/api/admin-att-leave-types/${id}` : '/api/admin-att-leave-types';
-    const res = await api(path, { method, body: { name, defaultDays, carryover, halfDayAllowed, description } });
+    const path = id ? `/api/admin-att-leave-types?id=${id}` : '/api/admin-att-leave-types';
+    const res = await api(path, { method, body: { name, defaultDays, allowHalfDay: halfDayAllowed, description } });
 
     if (!res.ok) {
       toast('저장 실패: ' + (res.data?.error || ''));
@@ -574,7 +655,7 @@
       <tr>
         <td>${escHtml(r.date || '—')}</td>
         <td>${escHtml(r.name || '—')}</td>
-        <td>${r.type === 'NATIONAL' ? '법정공휴일' : '회사 휴무일'}</td>
+        <td>${r.type === 'COMPANY' ? '회사 휴무일' : '법정공휴일'}</td>
         <td>
           <button class="att-btn att-btn-danger att-btn-sm" onclick="awmDeleteHoliday(${r.id})">삭제</button>
         </td>
@@ -583,7 +664,7 @@
 
   window.awmDeleteHoliday = async (id) => {
     if (!confirm('이 공휴일을 삭제하시겠습니까?')) return;
-    const res = await api(`/api/admin-att-holidays/${id}`, { method: 'DELETE' });
+    const res = await api(`/api/admin-att-holidays?id=${id}`, { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || '')); return; }
     toast('삭제되었습니다');
     await loadHolidays();
@@ -609,6 +690,176 @@
     if (btn) btn.disabled = false;
     hideEl('awmHolidayForm');
     await loadHolidays();
+  }
+
+  /* ═══════════════════════════════════
+     탭 신규: 휴가 결재
+  ═══════════════════════════════════ */
+  async function initLeavesTab() {
+    window._awmLvInit = true;
+    await loadPendingLeaves();
+  }
+
+  async function loadPendingLeaves() {
+    const res = await api('/api/admin-att-leave-review?status=PENDING');
+    const rows = res.data?.data?.leaves || res.data?.leaves || [];
+    const cntEl = document.getElementById('awmLvPendingCount');
+    if (cntEl) cntEl.textContent = `${Array.isArray(rows) ? rows.length : 0}건`;
+
+    const tbody = document.getElementById('awmLeavesBody');
+    if (!tbody) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="att-empty">대기 중인 휴가 신청이 없습니다</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const halfTag = r.isHalfDay
+        ? `<span class="awm-tag" style="background:#fef3c7;color:#92400e;margin-left:4px">${escHtml(r.halfDayPeriod || '반차')}</span>`
+        : '';
+      return `
+      <tr>
+        <td>${escHtml(r.memberName || '—')}<div style="font-size:11px;color:#9ca3af">${escHtml(r.memberEmail || '')}</div></td>
+        <td>${escHtml(r.leaveTypeName || '—')}${halfTag}</td>
+        <td>${escHtml(r.startDate || '—')}</td>
+        <td>${escHtml(r.endDate || '—')}</td>
+        <td>${escHtml(String(r.days ?? '—'))}</td>
+        <td style="font-size:12px;max-width:240px;word-break:break-word">${escHtml(r.reason || '—')}</td>
+        <td style="font-size:12px;color:#6b7280">${r.submittedAt ? new Date(r.submittedAt).toLocaleString('ko-KR', {year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+        <td>
+          <button class="att-btn att-btn-primary att-btn-sm" onclick="awmApproveLeave(${r.id})">승인</button>
+          <button class="att-btn att-btn-danger att-btn-sm" style="margin-left:4px" onclick="awmRejectLeave(${r.id})">반려</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.awmApproveLeave = async (id) => {
+    if (!confirm('이 휴가 신청을 승인하시겠습니까?')) return;
+    const res = await api('/api/admin-att-leave-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'APPROVED' },
+    });
+    if (!res.ok) { toast('승인 실패: ' + (res.data?.error || '')); return; }
+    toast('휴가 신청 승인 완료');
+    await loadPendingLeaves();
+  };
+
+  window.awmRejectLeave = async (id) => {
+    const reason = prompt('반려 사유를 입력하세요');
+    if (reason === null) return;
+    const res = await api('/api/admin-att-leave-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'REJECTED', note: reason || '' },
+    });
+    if (!res.ok) { toast('반려 실패: ' + (res.data?.error || '')); return; }
+    toast('휴가 신청 반려 완료');
+    await loadPendingLeaves();
+  };
+
+  /* ═══════════════════════════════════
+     탭 신규: 잔여 휴가
+  ═══════════════════════════════════ */
+  async function initBalancesTab() {
+    window._awmBalInit = true;
+
+    const sel = document.getElementById('awmBalanceYear');
+    const curYear = new Date().getFullYear();
+    if (sel) {
+      for (let y = curYear - 1; y <= curYear + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + '년';
+        if (y === curYear) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', loadBalances);
+    }
+
+    const searchEl = document.getElementById('awmBalanceSearch');
+    if (searchEl) {
+      searchEl.addEventListener('input', () => renderBalances(window._awmBalRows || []));
+    }
+
+    document.getElementById('awmBtnCancelBalanceAdjust')?.addEventListener('click',
+      () => hideEl('awmBalanceAdjustForm'));
+    document.getElementById('awmBtnSaveBalanceAdjust')?.addEventListener('click', saveBalanceAdjust);
+
+    await loadBalances();
+  }
+
+  async function loadBalances() {
+    const year = document.getElementById('awmBalanceYear')?.value || new Date().getFullYear();
+    const res = await api(`/api/admin-att-leave-balances?year=${year}`);
+    const rows = res.data?.data || res.data || [];
+    window._awmBalRows = Array.isArray(rows) ? rows : [];
+    renderBalances(window._awmBalRows);
+  }
+
+  function renderBalances(rows) {
+    const tbody = document.getElementById('awmBalancesBody');
+    if (!tbody) return;
+
+    const q = (document.getElementById('awmBalanceSearch')?.value || '').trim().toLowerCase();
+    const filtered = q
+      ? rows.filter(r => (r.memberName || '').toLowerCase().includes(q) || (r.memberEmail || '').toLowerCase().includes(q))
+      : rows;
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="att-empty">잔여 휴가 정보가 없습니다</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td>${escHtml(r.memberName || '—')}</td>
+        <td style="font-size:12px;color:#6b7280">${escHtml(r.memberEmail || '')}</td>
+        <td>${escHtml(r.leaveTypeName || '—')}</td>
+        <td>${escHtml(String(r.totalDays ?? '—'))}</td>
+        <td>${escHtml(String(r.usedDays ?? '—'))}</td>
+        <td><strong>${escHtml(String(r.remainingDays ?? '—'))}</strong></td>
+        <td>
+          <button class="att-btn att-btn-default att-btn-sm"
+            onclick="awmOpenBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}')">조정</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  window.awmOpenBalanceAdjust = (memberUid, typeId, year, memberName, typeName) => {
+    document.getElementById('awmBalAdjMemberUid').value = memberUid;
+    document.getElementById('awmBalAdjTypeId').value = typeId;
+    document.getElementById('awmBalAdjYear').value = year;
+    document.getElementById('awmBalAdjDelta').value = '';
+    document.getElementById('awmBalAdjReason').value = '';
+    setText('awmBalanceAdjustTarget', `${memberName} · ${typeName} · ${year}년`);
+    showEl('awmBalanceAdjustForm');
+    document.getElementById('awmBalanceAdjustForm').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  async function saveBalanceAdjust() {
+    const memberUid = document.getElementById('awmBalAdjMemberUid')?.value;
+    const leaveTypeId = Number(document.getElementById('awmBalAdjTypeId')?.value);
+    const year = Number(document.getElementById('awmBalAdjYear')?.value);
+    const deltaDays = parseFloat(document.getElementById('awmBalAdjDelta')?.value);
+    const reason = document.getElementById('awmBalAdjReason')?.value?.trim();
+
+    if (!memberUid || !leaveTypeId || !year) { toast('대상 정보가 비어있습니다'); return; }
+    if (!Number.isFinite(deltaDays) || deltaDays === 0) { toast('증감 일수를 입력하세요'); return; }
+
+    const btn = document.getElementById('awmBtnSaveBalanceAdjust');
+    if (btn) btn.disabled = true;
+
+    const res = await api('/api/admin-att-leave-balances', {
+      method: 'PUT',
+      body: { memberUid, leaveTypeId, year, deltaDays, reason: reason || null },
+    });
+    if (!res.ok) {
+      toast('조정 실패: ' + (res.data?.error || ''));
+      if (btn) btn.disabled = false;
+      return;
+    }
+    toast('잔여 휴가가 조정되었습니다');
+    if (btn) btn.disabled = false;
+    hideEl('awmBalanceAdjustForm');
+    await loadBalances();
   }
 
   /* ─── 초기화 ─── */

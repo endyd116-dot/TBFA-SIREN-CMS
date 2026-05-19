@@ -1,7 +1,6 @@
 import { db } from "../../db/index";
-import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords } from "../../db/schema";
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, attLeaveTypes, members } from "../../db/schema";
+import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
@@ -27,6 +26,77 @@ export default async function handler(req: Request) {
     return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // GET — 결재 대기/처리 목록 (status=PENDING 기본)
+  if (req.method === "GET") {
+    try {
+      const url = new URL(req.url);
+      const status = url.searchParams.get("status") ?? "PENDING";
+
+      const rows = await db
+        .select()
+        .from(attLeaveRequests)
+        .where(eq(attLeaveRequests.status, status))
+        .orderBy(attLeaveRequests.createdAt)
+        .limit(100);
+
+      // 신청자(members) + 휴가종류명 조인
+      const memberIds = Array.from(
+        new Set(rows.map(r => Number(r.memberUid)).filter(n => Number.isFinite(n) && n > 0))
+      );
+      const typeIds = Array.from(new Set(rows.map(r => r.leaveTypeId).filter(n => n != null)));
+
+      let memberMap = new Map<number, { name: string; email: string }>();
+      if (memberIds.length > 0) {
+        try {
+          const mRows = await db
+            .select({ id: members.id, name: members.name, email: members.email })
+            .from(members)
+            .where(inArray(members.id, memberIds));
+          for (const m of mRows) memberMap.set(m.id, { name: m.name, email: m.email });
+        } catch (e) {
+          console.warn("[admin-att-leave-review] member 조인 실패:", e);
+        }
+      }
+
+      let typeMap = new Map<number, { name: string; unit: string }>();
+      if (typeIds.length > 0) {
+        try {
+          const tRows = await db
+            .select({ id: attLeaveTypes.id, name: attLeaveTypes.name, unit: attLeaveTypes.unit })
+            .from(attLeaveTypes)
+            .where(inArray(attLeaveTypes.id, typeIds));
+          for (const t of tRows) typeMap.set(t.id, { name: t.name, unit: t.unit });
+        } catch (e) {
+          console.warn("[admin-att-leave-review] leave-type 조인 실패:", e);
+        }
+      }
+
+      const leaves = rows.map(r => {
+        const mInfo = memberMap.get(Number(r.memberUid));
+        const tInfo = typeMap.get(r.leaveTypeId);
+        return {
+          id: r.id,
+          memberUid: r.memberUid,
+          memberName: mInfo?.name ?? "—",
+          memberEmail: mInfo?.email ?? "",
+          leaveTypeId: r.leaveTypeId,
+          leaveTypeName: tInfo?.name ?? "—",
+          startDate: r.startDate,
+          endDate: r.endDate,
+          days: r.days,
+          isHalfDay: r.isHalfDay,
+          halfDayPeriod: r.halfDayPeriod,
+          reason: r.reason,
+          status: r.status,
+          submittedAt: r.createdAt,
+        };
+      });
+      return jsonOk({ leaves });
+    } catch (err) {
+      return jsonError("select_leaves", err);
+    }
   }
 
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });

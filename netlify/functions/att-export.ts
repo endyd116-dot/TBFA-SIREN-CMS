@@ -1,7 +1,7 @@
 import { db } from "../../db/index";
 import { attRecords, members } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAdmin } from "../../lib/admin-guard";
+import { requireOperator } from "../../lib/operator-guard";
 
 export const config = { path: "/api/att/export" };
 
@@ -48,8 +48,8 @@ const WORK_MODE_LABEL: Record<string, string> = {
 };
 
 export default async function handler(req: Request) {
-  const auth = await requireAdmin(req);
-  if (!auth.ok) return (auth as any).res;
+  const auth = await requireOperator(req);
+  if (!auth.ok) return auth.res;
 
   if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405 });
 
