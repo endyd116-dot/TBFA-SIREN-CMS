@@ -89,6 +89,7 @@
       <button class="att-tab" data-tab="leave">휴가</button>
       <button class="att-tab" data-tab="amend">수정 요청</button>
       <button class="att-tab" data-tab="report">📝 재택보고서</button>
+      <button class="att-tab" data-tab="payroll">💰 급여명세서</button>
     </nav>
 
     <!-- ══════════ 탭 1: 출퇴근 ══════════ -->
@@ -441,6 +442,24 @@
 
     </div><!-- /attPanelReport -->
 
+    <!-- ══════════ 탭 7: 본인 급여명세서 (R37) ══════════ -->
+    <div class="att-panel" id="attPanelPayroll">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <h3 style="font-size:15px;font-weight:700;margin:0">💰 내 급여명세서</h3>
+        <span style="flex:1"></span>
+        <label style="font-size:12.5px;color:#4b5563;font-weight:600">연도</label>
+        <select id="payrollYear" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"></select>
+        <button id="payrollLoadBtn" style="padding:6px 12px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">조회</button>
+      </div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#4b5563;line-height:1.6">
+        ※ 발송이 완료된 명세서만 표시됩니다.<br>
+        ※ 본 명세서는 세전 금액(Gross) 기준이며, 소득세·4대보험 공제는 외부 회계 처리에서 반영됩니다.
+      </div>
+      <div id="payrollList" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px">
+        <div style="padding:30px;text-align:center;color:#9ca3af;font-size:13px">조회 버튼을 누르세요.</div>
+      </div>
+    </div><!-- /attPanelPayroll -->
+
   </div><!-- /inner -->
 </main>
 
@@ -457,6 +476,8 @@
 <script src="/js/workspace-common.js?v=20260515bugfix2"></script>
 <!-- 근태관리 JS -->
 <script src="/js/workspace-attendance.js?v=11"></script>
+<!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
+<script src="/js/workspace-payroll.js?v=20260520r37"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>
 </body>
 </html>
