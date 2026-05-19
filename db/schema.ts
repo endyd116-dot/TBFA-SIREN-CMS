@@ -3792,3 +3792,28 @@ export const milestoneDefinitionHistory = pgTable("milestone_definition_history"
 }, (t) => ({
   defChangedIdx: index("ms_def_hist_def_idx").on(t.definitionId, t.changedAt),
 }));
+
+/* === R36-Att-Optional A-1: 직원 역방향 근무형태 변경 신청 ===
+ * 마이그레이션 migrate-att-r36-workmode-change 적용 후 활성
+ * 직원이 슈퍼어드민에게 근무형태(OFFICE/REMOTE/FIELD/BUSINESS_TRIP/HYBRID) 변경을 신청
+ * APPROVED 시 att_schedule_overrides INSERT 또는 schedule 갱신 (admin 결재 측 처리)
+ */
+export const attWorkmodeChangeRequests = pgTable("att_workmode_change_requests", {
+  id:           serial("id").primaryKey(),
+  memberUid:    varchar("member_uid", { length: 36 }).notNull(),
+  targetMode:   varchar("target_mode", { length: 30 }).notNull(),    // OFFICE|REMOTE|FIELD|BUSINESS_TRIP|HYBRID
+  targetDate:   date("target_date").notNull(),                        // 적용 희망일 (단발)
+  reason:       text("reason"),
+  status:       varchar("status", { length: 20 }).default("PENDING").notNull(),  // PENDING|APPROVED|REJECTED
+  reviewedBy:   varchar("reviewed_by", { length: 36 }),
+  reviewNote:   text("review_note"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberIdx: index("att_wm_change_member_idx").on(t.memberUid),
+  statusIdx: index("att_wm_change_status_idx").on(t.status),
+  dateIdx:   index("att_wm_change_date_idx").on(t.targetDate),
+}));
+
+export type AttWorkmodeChangeRequest    = typeof attWorkmodeChangeRequests.$inferSelect;
+export type NewAttWorkmodeChangeRequest = typeof attWorkmodeChangeRequests.$inferInsert;

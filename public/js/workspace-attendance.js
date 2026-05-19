@@ -236,10 +236,32 @@
     );
   }
 
-  async function sendCheckin(lat, lng) {
+  async function sendCheckin(lat, lng, workplaceId) {
     const body = {};
     if (lat !== null) { body.lat = lat; body.lng = lng; }
+    if (workplaceId != null) body.workplaceId = workplaceId;
     const res = await api('/api/att-checkin', { method: 'POST', body });
+
+    // R36 A-2: FIELD 모드 거점 선택 요청
+    if (!res.ok && res.data?.needsWorkplaceSelection) {
+      const list = res.data.workplaces || [];
+      if (!Array.isArray(list) || list.length === 0) {
+        toast('외근지 거점이 등록되어 있지 않습니다');
+        const btn = document.getElementById('attBtnCheckin');
+        if (btn) btn.disabled = false;
+        return;
+      }
+      promptFieldWorkplace(list, async (chosenId) => {
+        if (chosenId == null) {
+          const btn = document.getElementById('attBtnCheckin');
+          if (btn) btn.disabled = false;
+          return;
+        }
+        await sendCheckin(lat, lng, chosenId);
+      });
+      return;
+    }
+
     if (!res.ok) {
       toast('출근 기록 실패: ' + (res.data?.error || 'HTTP ' + res.status));
       const btn = document.getElementById('attBtnCheckin');
@@ -248,6 +270,47 @@
     }
     toast('출근이 기록되었습니다 🟢');
     setTimeout(() => location.reload(), 800);
+  }
+
+  /* R36 A-2: 외근지 선택 모달 (동적 생성) */
+  function promptFieldWorkplace(workplaces, callback) {
+    const existing = document.getElementById('fieldWpModal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'fieldWpModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    const items = workplaces.map(w =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:6px;cursor:pointer">
+        <input type="radio" name="fieldWp" value="${w.id}">
+        <div>
+          <div style="font-weight:600">${escapeHtml(w.name)}</div>
+          ${w.address ? `<div style="font-size:12px;color:#6b7280">${escapeHtml(w.address)}</div>` : ''}
+        </div>
+      </label>`
+    ).join('');
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:420px;max-height:80vh;overflow-y:auto">
+        <h3 style="margin:0 0 12px;font-size:17px">🚗 외근지 선택</h3>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:12px">오늘 출근할 외근지를 선택해 주세요</div>
+        ${items}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button type="button" id="fieldWpCancel" style="padding:8px 14px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer">취소</button>
+          <button type="button" id="fieldWpOk" style="padding:8px 14px;background:#3b82f6;color:#fff;border:0;border-radius:6px;cursor:pointer">출근</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#fieldWpCancel').addEventListener('click', () => { modal.remove(); callback(null); });
+    modal.querySelector('#fieldWpOk').addEventListener('click', () => {
+      const sel = modal.querySelector('input[name="fieldWp"]:checked');
+      if (!sel) { toast('외근지를 선택해 주세요'); return; }
+      const id = Number(sel.value);
+      modal.remove();
+      callback(id);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
   async function doCheckout(mode) {
@@ -839,6 +902,71 @@
     });
   }
 
+  /* R36 A-1: 근무형태 변경 신청 모달 */
+  function setupWorkmodeChange() {
+    const btnOpen = document.getElementById('attBtnWorkmodeChange');
+    const modal = document.getElementById('wmChangeModal');
+    const btnCancel = document.getElementById('wmChangeCancel');
+    const btnSubmit = document.getElementById('wmChangeSubmit');
+    if (!btnOpen || !modal) return;
+
+    async function loadHistory() {
+      const histEl = document.getElementById('wmChangeHistory');
+      if (!histEl) return;
+      try {
+        const res = await api('/api/att-workmode-change-request');
+        const list = res.data?.data || res.data || [];
+        if (!Array.isArray(list) || list.length === 0) {
+          histEl.innerHTML = '<span style="color:#9ca3af">신청 이력이 없습니다</span>';
+          return;
+        }
+        const STATUS = { PENDING: '⏳ 대기', APPROVED: '✅ 승인', REJECTED: '❌ 반려' };
+        histEl.innerHTML = list.slice(0, 10).map(r =>
+          `<div style="padding:4px 0;border-bottom:1px dashed #e5e7eb">` +
+          `${r.targetDate} · ${MODE_LABEL[r.targetMode] || r.targetMode} · ${STATUS[r.status] || r.status}` +
+          (r.reviewNote ? ` <span style="color:#6b7280">(${r.reviewNote})</span>` : '') +
+          `</div>`
+        ).join('');
+      } catch (e) {
+        histEl.innerHTML = '<span style="color:#ef4444">이력 조회 실패</span>';
+      }
+    }
+
+    function openModal() {
+      modal.style.display = 'flex';
+      document.getElementById('wmChangeMode').value = '';
+      document.getElementById('wmChangeDate').value = toDateStr();
+      document.getElementById('wmChangeReason').value = '';
+      loadHistory();
+    }
+    function closeModal() { modal.style.display = 'none'; }
+
+    btnOpen.addEventListener('click', openModal);
+    btnCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    btnSubmit.addEventListener('click', async () => {
+      const targetMode = document.getElementById('wmChangeMode').value;
+      const targetDate = document.getElementById('wmChangeDate').value;
+      const reason = document.getElementById('wmChangeReason').value.trim();
+      if (!targetMode) { toast('근무형태를 선택해 주세요'); return; }
+      if (!targetDate) { toast('적용 희망일을 선택해 주세요'); return; }
+      if (!reason) { toast('사유는 필수입니다'); return; }
+      btnSubmit.disabled = true;
+      const res = await api('/api/att-workmode-change-request', {
+        method: 'POST',
+        body: { targetMode, targetDate, reason },
+      });
+      btnSubmit.disabled = false;
+      if (!res.ok) {
+        toast('신청 실패: ' + (res.data?.error || 'HTTP ' + res.status));
+        return;
+      }
+      toast('신청이 접수되었습니다 📨');
+      closeModal();
+    });
+  }
+
   /* ─── 초기화 ─── */
   async function init() {
     const user = await checkAuth();
@@ -846,6 +974,7 @@
 
     setupTabs();
     setupLogout();
+    setupWorkmodeChange();
     await initCheckin();
   }
 
