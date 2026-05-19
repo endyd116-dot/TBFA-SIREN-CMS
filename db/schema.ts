@@ -3793,6 +3793,81 @@ export const milestoneDefinitionHistory = pgTable("milestone_definition_history"
   defChangedIdx: index("ms_def_hist_def_idx").on(t.definitionId, t.changedAt),
 }));
 
+/* =========================================================
+   === R37 Payroll === (2026-05-20)
+   설계서: docs/milestones/2026-05-20-r37-payroll-integration.md
+   마이그레이션: migrate-r37-payroll (호출 완료 → 파일 삭제)
+   범위: 근태(att_records) + 성과(quarterly_settlements) + 회원(baseSalary) 월별 통합 명세서
+   ========================================================= */
+
+/* 1. 월별 급여 명세서 */
+export const payrollSlips = pgTable("payroll_slips", {
+  id:                   serial("id").primaryKey(),
+  memberUid:            varchar("member_uid", { length: 36 }).notNull(),   // members.id 문자열 (att_records 규약)
+  payYear:              integer("pay_year").notNull(),
+  payMonth:             integer("pay_month").notNull(),                    // CHECK 1~12 (DB 제약)
+
+  // 근태 집계
+  workingDays:          integer("working_days").default(0).notNull(),
+  workingMins:          integer("working_mins").default(0).notNull(),
+  overtimeMins:         integer("overtime_mins").default(0).notNull(),
+  lateCount:            integer("late_count").default(0).notNull(),
+  absentCount:          integer("absent_count").default(0).notNull(),
+  paidLeaveDays:        numeric("paid_leave_days", { precision: 5, scale: 1 }).default("0").notNull(),
+  unpaidLeaveDays:      numeric("unpaid_leave_days", { precision: 5, scale: 1 }).default("0").notNull(),
+  perfectAttendance:    boolean("perfect_attendance").default(false).notNull(),
+
+  // 급여 구성 (KRW·세전)
+  baseSalaryMonth:      numeric("base_salary_month", { precision: 15, scale: 2 }).default("0").notNull(),
+  overtimePay:          numeric("overtime_pay", { precision: 15, scale: 2 }).default("0").notNull(),
+  deductionUnpaid:      numeric("deduction_unpaid", { precision: 15, scale: 2 }).default("0").notNull(),
+  performanceBonus:     numeric("performance_bonus", { precision: 15, scale: 2 }).default("0").notNull(),
+  perfectBonus:         numeric("perfect_bonus", { precision: 15, scale: 2 }).default("0").notNull(),
+  grossPay:             numeric("gross_pay", { precision: 15, scale: 2 }).default("0").notNull(),
+
+  // 상태·발송 (DRAFT|REVIEWED|APPROVED|SENT|HOLD)
+  status:               varchar("status", { length: 20 }).default("DRAFT").notNull(),
+  reviewedBy:           varchar("reviewed_by", { length: 36 }),
+  reviewedAt:           timestamp("reviewed_at"),
+  reviewNote:           text("review_note"),
+  approvedBy:           varchar("approved_by", { length: 36 }),
+  approvedAt:           timestamp("approved_at"),
+  sentAt:               timestamp("sent_at"),
+  emailSentTo:          text("email_sent_to"),
+  pdfUrl:               text("pdf_url"),
+
+  calculationSnapshot:  jsonb("calculation_snapshot"),
+  createdAt:            timestamp("created_at").defaultNow().notNull(),
+  updatedAt:            timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberMonthUq: uniqueIndex("payroll_slips_member_month_uq").on(t.memberUid, t.payYear, t.payMonth),
+  memberIdx:     index("idx_payroll_slips_member").on(t.memberUid),
+  monthIdx:      index("idx_payroll_slips_month").on(t.payYear, t.payMonth),
+  statusIdx:     index("idx_payroll_slips_status").on(t.status),
+}));
+
+/* 2. 발송 감사 추적 */
+export const payrollSendHistory = pgTable("payroll_send_history", {
+  id:           serial("id").primaryKey(),
+  slipId:       integer("slip_id").notNull().references(() => payrollSlips.id, { onDelete: "cascade" }),
+  sentBy:       varchar("sent_by", { length: 36 }).notNull(),
+  sentTo:       text("sent_to").notNull(),
+  status:       varchar("status", { length: 20 }).notNull(),   // SUCCESS|FAILED
+  errorMessage: text("error_message"),
+  resendId:     text("resend_id"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  slipIdx:   index("idx_payroll_send_history_slip").on(t.slipId),
+  statusIdx: index("idx_payroll_send_history_status").on(t.status),
+}));
+
+export type PayrollSlip          = typeof payrollSlips.$inferSelect;
+export type NewPayrollSlip       = typeof payrollSlips.$inferInsert;
+export type PayrollSendHistory   = typeof payrollSendHistory.$inferSelect;
+export type NewPayrollSendHistory = typeof payrollSendHistory.$inferInsert;
+
+/* === R37 Payroll 정의 끝 === */
+
 /* === R36-Att-Optional A-1: 직원 역방향 근무형태 변경 신청 ===
  * 마이그레이션 migrate-att-r36-workmode-change 적용 완료 (2026-05-20, main @ 5328383)
  * 직원이 슈퍼어드민에게 근무형태(OFFICE/REMOTE/FIELD/BUSINESS_TRIP/HYBRID) 변경을 신청
