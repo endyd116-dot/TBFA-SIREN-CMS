@@ -30,6 +30,8 @@ export default async function handler(req: Request) {
 
   const date: string = body.date ?? new Date().toISOString().slice(0, 10);
   const memberId: number = auth.ctx.member.id;
+  // att_remote_work_reports.member_uid 는 R29-ATT-GAP1 부터 varchar(36) — 문자열 변환 필요
+  const memberUidStr = String(memberId);
 
   // 오늘 할당된 WBS 카드 수집 (assignedTo = memberId, 오늘 이후 updatedAt)
   let todayCards: any[] = [];
@@ -67,7 +69,7 @@ export default async function handler(req: Request) {
       })
       .from(attRemoteWorkReports)
       .where(and(
-        eq(attRemoteWorkReports.memberUid, memberId),
+        eq(attRemoteWorkReports.memberUid, memberUidStr),
         gte(attRemoteWorkReports.date, since),
       ))
       .orderBy(desc(attRemoteWorkReports.date))
@@ -121,7 +123,7 @@ ${prevContext}
       await db
         .insert(attRemoteWorkReports)
         .values({
-          memberUid: memberId,
+          memberUid: memberUidStr,
           date,
           aiDraft: result.text,
           status: "DRAFT",

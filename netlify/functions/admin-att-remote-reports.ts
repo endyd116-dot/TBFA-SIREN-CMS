@@ -72,7 +72,8 @@ export default async function handler(req: Request) {
     try {
       // 보고서 목록 조회
       const conditions: any[] = [];
-      if (memberUid) conditions.push(eq(attRemoteWorkReports.memberUid, parseInt(memberUid)));
+      // R29-ATT-GAP1 이후 member_uid 는 varchar(36) — 문자열 비교
+      if (memberUid) conditions.push(eq(attRemoteWorkReports.memberUid, String(memberUid)));
       if (startDate) conditions.push(gte(attRemoteWorkReports.date, startDate));
       if (endDate) conditions.push(lte(attRemoteWorkReports.date, endDate));
       if (status) conditions.push(eq(attRemoteWorkReports.status, status));
@@ -95,30 +96,20 @@ export default async function handler(req: Request) {
         .orderBy(desc(attRemoteWorkReports.date))
         .limit(100);
 
-      // memberUid → name 매핑 (separate query)
-      const memberIds = [...new Set(reports.map(r => r.memberUid))];
-      let memberMap: Record<number, string> = {};
-      if (memberIds.length > 0) {
+      // memberUid(varchar) → name 매핑
+      let memberMap: Record<string, string> = {};
+      if (reports.length > 0) {
         try {
-          const memberRows = await db
-            .select({ id: members.id, name: members.name })
-            .from(members)
-            .where(
-              memberIds.length === 1
-                ? eq(members.id, memberIds[0])
-                : eq(members.id, memberIds[0]) // fallback: 인 절 없이
-            );
-          // 모든 memberIds 처리
           const allMembers = await db
             .select({ id: members.id, name: members.name })
             .from(members);
-          memberMap = Object.fromEntries(allMembers.map(m => [m.id, m.name]));
+          memberMap = Object.fromEntries(allMembers.map(m => [String(m.id), m.name]));
         } catch {}
       }
 
       const data = reports.map(r => ({
         ...r,
-        memberName: memberMap[r.memberUid] ?? `멤버 #${r.memberUid}`,
+        memberName: memberMap[String(r.memberUid)] ?? `멤버 #${r.memberUid}`,
       }));
 
       return jsonOk(data);

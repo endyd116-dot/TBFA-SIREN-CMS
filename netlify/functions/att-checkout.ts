@@ -91,12 +91,11 @@ export default async function handler(req: Request) {
   let reportSubmitted = false;
   if (existing.workMode === "REMOTE") {
     try {
-      const memberId = auth.ctx.member.id;
       const reportRows = await db
         .select({ status: attRemoteWorkReports.status })
         .from(attRemoteWorkReports)
         .where(and(
-          eq(attRemoteWorkReports.memberUid, memberId),
+          eq(attRemoteWorkReports.memberUid, memberUid),
           eq(attRemoteWorkReports.date, today),
         ))
         .limit(1);

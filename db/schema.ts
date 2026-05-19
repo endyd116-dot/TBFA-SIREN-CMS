@@ -3574,6 +3574,11 @@ export const attLeaveTypes = pgTable("att_leave_types", {
   defaultDays:      numeric("default_days", { precision: 5, scale: 2 }).default("0").notNull(),
   isActive:         boolean("is_active").default(true).notNull(),
   displayOrder:     integer("display_order").default(0).notNull(),
+  /* === R29-ATT-GAP1: migrate-att-r29-leave-type-cols 적용 완료 (2026-05-19) === */
+  code:             varchar("code", { length: 50 }),                                  // 'ANNUAL' | 'SICK' | 'PERSONAL' 등 (partial unique idx)
+  maxDays:          numeric("max_days", { precision: 5, scale: 2 }),                  // 연간 최대 사용 한도 (null = 제한 없음)
+  allowHalfDay:     boolean("allow_half_day").default(false).notNull(),               // 반차 허용 (PHASE D에서 활용)
+  description:      text("description"),                                              // 사용 안내문
   createdAt:        timestamp("created_at").defaultNow().notNull(),
   updatedAt:        timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
@@ -3735,7 +3740,10 @@ export type NewAttHoliday          = typeof attHolidays.$inferInsert;
 
 export const attRemoteWorkReports = pgTable("att_remote_work_reports", {
   id:             serial("id").primaryKey(),
-  memberUid:      integer("member_uid").notNull(),
+  /* === R29-ATT-GAP1: migrate-att-r29-uid-fix 적용 완료 (2026-05-19)
+     integer → varchar(36) 으로 변환. 다른 att_*.member_uid 9개 테이블과 컬럼 타입 통일.
+     값은 members.id 의 문자열(예: "12") — att_records 등과 동일 규약. */
+  memberUid:      varchar("member_uid", { length: 36 }).notNull(),
   date:           date("date").notNull(),
   wbsCardIds:     jsonb("wbs_card_ids").default([]),
   content:        text("content"),
