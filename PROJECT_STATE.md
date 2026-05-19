@@ -24,6 +24,7 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **🏁 R30 KST C 검증 7/7 PASS BUG 0 — 시리즈 종결** (main @ 714441b) — 헬퍼 6함수·47페이지 로드·시각 표시 18건+이메일 7군데·회귀 0·TZ 무관성 PASS. OP-2 카카오 안내·OP-1 분기 마이그 처리 (마이그 호출 Swain 대기) |
 | 2026-05-19 | **메인** | **✅ R30 전체 머지·push 완료** (main @ 5b5b1ff) — A 61f45e1(프론트 14페이지)+B 1e0c594(어드민 33+이메일 9+lib/datetime). 사용자/워크스페이스/어드민/이메일 모두 Asia/Seoul KST 통일. DB(UTC)·cron 변경 0. R30 C 검증 트리거 대기 |
 | 2026-05-19 | **메인** | **🎯 R29-GAP-P2 C 검증 + Critical BUG 2건 fix 머지** (main @ bc8bb8e) — Q1~Q10 중 Q9 FAIL→fix. drizzle sql.raw 파라미터 미바인딩으로 성과 GET API 7개 500 → sql 템플릿 합성 정정. milestone_definitions.amount_unit 컬럼 부재 dead code 제거. 운영 복구 |
 | 2026-05-19 | **메인** | **✅ R30-A KST 프론트 머지·push + R29-GAP L 반차 마이그 종결** (main @ 61f45e1) — lib-kst.js 신설·사용자/워크스페이스 14페이지 시간 표시 KST 통일. 반차 옛 행 hide(id=2·3)·일반 휴가 4건 allowHalfDay=true. R30-B 작업 중 (어드민/이메일) |
@@ -68,10 +69,10 @@
 ✅ A·B 갭 분석 완료 (근태 H5·M5 / 성과 H5·M3 / L 10건)
 📐 R29-GAP 설계 완료 (docs/milestones/2026-05-19-r29-gap-fix.md)
 
-🔍 진행 중
-   - R29 시리즈 전체 종결 (P1·P2·L 반차·BUG fix 모두 머지)
-   - R30 KST 전체 머지 (main @ 5b5b1ff)
-   - C R30 통합 검증 트리거 발사 대기
+🔍 진행 중 — 모든 라운드 종결, 대기 모드
+   - R29 시리즈 전체 종결 (P1 13/13·P2 10+fix·L 반차)
+   - R30 KST 전체 종결 (C 7/7 PASS·BUG 0)
+   - OP-1 마이그 호출 Swain 대기 (migrate-quarter-2026-q2?run=1)
 
 📋 운영 액션 (Swain 직접)
    - OP-1: 2026 Q2 분기 등록 (admin-milestone-settings.html 분기관리 탭)
