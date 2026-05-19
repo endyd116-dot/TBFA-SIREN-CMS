@@ -93,25 +93,36 @@
     const smEl = document.getElementById('attSummaryMonth');
     if (smEl) smEl.textContent = `${yr}년 ${mo}월`;
 
-    // 오늘 근무형태 조회
-    const schedRes = await api('/api/att-schedule-today');
-    const mode = (schedRes.data?.data?.mode || schedRes.data?.mode || 'UNKNOWN');
+    /* R39 Stage 8: 4개 API 직렬 호출 → Promise.allSettled 병렬화로 로딩 시간 단축
+       (att-schedule-today·att-checkin-today·att-my-stats·att-my-status 모두 독립적·
+        ~4 RTT → ~1 RTT) */
+    const [schedRes, recRes, sumRes, statusRes] = await Promise.allSettled([
+      api('/api/att-schedule-today'),
+      api('/api/att-checkin-today'),
+      api(`/api/att-my-stats?year=${yr}&month=${mo}`),
+      api('/api/att-my-status'),
+    ]);
+
+    // 오늘 근무형태 렌더
+    const schedData = (schedRes.status === 'fulfilled') ? schedRes.value : { data: {} };
+    const mode = (schedData.data?.data?.mode || schedData.data?.mode || 'UNKNOWN');
     renderModeBadge(mode);
 
-    // 오늘 기록 조회
-    const recRes = await api('/api/att-checkin-today');
-    const rec = recRes.data?.data || recRes.data || {};
+    // 오늘 기록 렌더
+    const recData = (recRes.status === 'fulfilled') ? recRes.value : { data: {} };
+    const rec = recData.data?.data || recData.data || {};
     renderCheckinStatus(rec, mode);
 
-    // 이번달 요약
-    const sumRes = await api(`/api/att-my-stats?year=${yr}&month=${mo}`);
-    const stats = sumRes.data?.data || sumRes.data || {};
+    // 이번달 요약 렌더
+    const sumData = (sumRes.status === 'fulfilled') ? sumRes.value : { data: {} };
+    const stats = sumData.data?.data || sumData.data || {};
     renderSummary(stats);
 
-    // R35-GAP-P2 M-G4: 정책 안내 (att-my-status.policy 활용)
+    // R35-GAP-P2 M-G4: 정책 안내 (att-my-status.policy 활용·이미 병렬 호출 결과 재사용)
     try {
-      const statusRes = await api('/api/att-my-status');
-      const policy = statusRes.data?.data?.policy || statusRes.data?.policy || null;
+      const policy = (statusRes.status === 'fulfilled')
+        ? (statusRes.value.data?.data?.policy || statusRes.value.data?.policy || null)
+        : null;
       renderPolicyNote(policy, mode);
     } catch (_) { /* 정책 안내 실패는 메인 흐름 차단 X */ }
     } catch (e) {

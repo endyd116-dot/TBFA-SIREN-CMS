@@ -62,17 +62,21 @@
       if (_c) _c.style.display = '';
     };
     try {
-    // 로그인 확인 (R35-GAP-P1 H-G1: user JWT 우선 + admin JWT fallback)
+    /* 로그인 확인 — R39 Stage 8: 직렬 호출 → Promise.allSettled 병렬로 로딩 시간 단축
+       (R35-GAP-P1 H-G1 호환: user JWT 우선·없으면 admin JWT fallback)
+       두 응답을 동시에 받아 우선순위로 선택 → 직렬 대비 ~1RTT 절감 */
     let memberData = null;
-    try {
-      const userRes = await api('/api/auth/me');
-      if (userRes.ok) memberData = userRes.data?.data || userRes.data?.user || userRes.data || null;
-    } catch (_) {}
-    if (!memberData) {
-      try {
-        const adminRes = await api('/api/admin/me?light=1');
-        if (adminRes.ok) memberData = adminRes.data?.admin || adminRes.data?.data?.admin || adminRes.data?.data || adminRes.data || null;
-      } catch (_) {}
+    const [userRes, adminRes] = await Promise.allSettled([
+      api('/api/auth/me'),
+      api('/api/admin/me?light=1'),
+    ]);
+    if (userRes.status === 'fulfilled' && userRes.value.ok) {
+      const v = userRes.value;
+      memberData = v.data?.data || v.data?.user || v.data || null;
+    }
+    if (!memberData && adminRes.status === 'fulfilled' && adminRes.value.ok) {
+      const v = adminRes.value;
+      memberData = v.data?.admin || v.data?.data?.admin || v.data?.data || v.data || null;
     }
     if (!memberData) {
       window.location.href = '/login.html';
