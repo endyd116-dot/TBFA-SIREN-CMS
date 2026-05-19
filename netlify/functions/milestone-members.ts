@@ -3,7 +3,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
-export const config = { path: "/api/milestone-members" };
+export const config = { path: "/api/milestone-members*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);

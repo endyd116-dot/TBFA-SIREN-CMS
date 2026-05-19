@@ -235,11 +235,14 @@
 
     let hybridConfig = null;
     if (mode === 'HYBRID') {
+      /* ★ R33-FIX H-G1: 체크박스 value "1"~"7" → 서버 키 "MON"~"SUN" 변환 (att-utils.getScheduledWorkMode 기대 형식) */
+      const DAY_MAP = { "1":"MON", "2":"TUE", "3":"WED", "4":"THU", "5":"FRI", "6":"SAT", "7":"SUN" };
       const days = {};
       document.querySelectorAll('[name="hybridDay"]:checked').forEach(cb => {
         const day = cb.value;
+        const dayKey = DAY_MAP[day] || day;
         const modeEl = document.querySelector(`.hybrid-day-mode[data-day="${day}"]`);
-        days[day] = modeEl ? modeEl.value : 'OFFICE';
+        days[dayKey] = modeEl ? modeEl.value : 'OFFICE';
       });
       hybridConfig = days;
     }

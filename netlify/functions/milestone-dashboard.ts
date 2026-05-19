@@ -231,7 +231,8 @@ function calcIncentive(formula: any, thresholdEnabled: number, thrVal: number, c
       const matched = brackets.sort((a, b) => b.min - a.min).find(b => current >= b.min && (b.max == null || current <= b.max));
       return matched ? matched.amount : 0;
     }
-    case "EVENT_RANGE": return 0; // 수동 결정
+    /* ★ R33-FIX H2: EVENT_RANGE — 어드민 결정 amount를 그대로 인센티브로 (수동 결정 0 반환은 옛 정책) */
+    case "EVENT_RANGE": return Math.floor(current);
     default: return 0;
   }
 }

@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { notifyAllSuperAdmins } from "../../lib/notify";
 
-export const config = { path: "/api/milestone-settlement" };
+export const config = { path: "/api/milestone-settlement*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
@@ -228,6 +228,8 @@ function applyFormula(formula: any, thresholdEnabled: boolean, thrVal: number, c
         .find(b => current >= b.min && (b.max == null || current <= b.max));
       return matched ? matched.amount : 0;
     }
+    /* ★ R33-FIX H2: EVENT_RANGE — 어드민이 결정한 amount 그대로 인센티브 처리 */
+    case "EVENT_RANGE": return Math.floor(current);
     default: return 0;
   }
 }

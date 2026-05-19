@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { createNotification, notifyAllSuperAdmins } from "../../lib/notify";
 
-export const config = { path: "/api/admin-milestone-settlement" };
+export const config = { path: "/api/admin-milestone-settlement*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);

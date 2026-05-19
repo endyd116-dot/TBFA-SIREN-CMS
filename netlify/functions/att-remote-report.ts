@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { todayKST } from "../../lib/att-utils";
 
@@ -41,7 +41,19 @@ export default async function handler(req: Request) {
           eq(attRemoteWorkReports.date, date),
         ))
         .limit(1);
-      return jsonOk(rows[0] ?? null);
+      const report = rows[0] ?? null;
+      /* ★ R33-FIX H-G3: wbsCardIds → workspace_tasks title JOIN으로 wbsCards: [{id, title}] 응답 */
+      let wbsCards: Array<{ id: number; title: string }> = [];
+      if (report && Array.isArray((report as any).wbsCardIds) && (report as any).wbsCardIds.length > 0) {
+        try {
+          const ids = (report as any).wbsCardIds as number[];
+          const cardRows = await db.execute(sql`
+            SELECT id, title FROM workspace_tasks WHERE id = ANY(${ids}::int[])
+          `);
+          wbsCards = ((cardRows as any).rows ?? cardRows ?? []).map((r: any) => ({ id: r.id, title: r.title }));
+        } catch { /* JOIN 실패 시 빈 배열 fallback */ }
+      }
+      return jsonOk(report ? { ...report, wbsCards } : null);
     } catch (err) {
       return jsonError("select_report", err);
     }

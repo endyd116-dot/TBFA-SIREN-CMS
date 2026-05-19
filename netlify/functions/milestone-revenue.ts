@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { createNotification } from "../../lib/notify";
 
-export const config = { path: "/api/milestone-revenue" };
+export const config = { path: "/api/milestone-revenue*" };
 
 export default async function handler(req: Request, _ctx: Context) {
   /* ★ R29-MS-GAP1: 운영자도 type='admin'으로 등록되므로 requireAdmin 통과.
