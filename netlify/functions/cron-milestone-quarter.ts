@@ -30,13 +30,15 @@ export default async function handler(_req: Request, _ctx: Context) {
     const ended = (endRes as any).rows || (endRes as any[]);
     if (ended.length > 0) results.push(`ENDED 전환: ${ended.map((r: any) => `${r.year}Q${r.quarter}`).join(", ")}`);
 
-    // ENDED → SETTLED (모든 결산 PAID/APPROVED 시)
+    // ENDED → SETTLED (모든 결산 PAID 완료 시)
+    /* ★ R34-P2-B-1: 'APPROVED' 제거 — 명세 의도는 100% PAID일 때만 SETTLED 마감.
+       APPROVED 단계에서도 SETTLED 마감되면 후속 PAID 트리거가 누락될 위험 */
     const endedQRows = await db.execute(sql`SELECT id, year, quarter FROM quarters WHERE status = 'ENDED'`);
     const endedQs = (endedQRows as any).rows || (endedQRows as any[]);
     for (const q of endedQs) {
       const unpaidRows = await db.execute(sql`
         SELECT COUNT(*) as cnt FROM quarterly_settlements
-        WHERE quarter_id = ${q.id} AND status NOT IN ('PAID', 'APPROVED')
+        WHERE quarter_id = ${q.id} AND status NOT IN ('PAID')
       `);
       const unpaid = Number(((unpaidRows as any).rows?.[0] || unpaidRows[0])?.cnt || 0);
       if (unpaid === 0) {

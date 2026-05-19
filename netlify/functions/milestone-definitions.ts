@@ -87,23 +87,90 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
-      /* ★ R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM */
+      /* ★ R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM
+         ★ R34-P2-B-2: null·typeof 검증 추가 (NOT NULL constraint 위반 + jsonb 파싱 오류 사전 차단)
+         ★ R34-P2-B-3: history INSERT 추가 (admin-milestone-definitions와 변경 이력 일관성 확보) */
       const allowed = ["name","thresholdEnabled","thresholdValue","thresholdUnit","bonusFormula",
                        "quarterApplicable","isActive","effectiveFrom","effectiveTo","sortOrder","businessUnit","revenueSource"];
       const patch: Record<string, any> = {};
+
+      // R34-P2-B-2: name이 들어오면 빈 문자열·null 차단 (NOT NULL 필드)
+      if ("name" in body) {
+        if (typeof body.name !== "string" || !body.name.trim()) {
+          return Response.json({ ok: false, error: "name은 빈 문자열·null 불가" }, { status: 400 });
+        }
+        patch.name = body.name.trim();
+      }
+      // bonusFormula는 객체/JSON 문자열 모두 허용
+      if ("bonusFormula" in body) {
+        try {
+          patch.bonusFormula = typeof body.bonusFormula === "object" && body.bonusFormula !== null
+            ? body.bonusFormula
+            : JSON.parse(String(body.bonusFormula || "{}"));
+        } catch {
+          return Response.json({ ok: false, error: "bonusFormula JSON 형식 오류" }, { status: 400 });
+        }
+      }
+      // boolean 검증
+      for (const k of ["thresholdEnabled", "isActive"]) {
+        if (k in body) {
+          if (typeof body[k] !== "boolean") {
+            return Response.json({ ok: false, error: `${k}는 boolean이어야 합니다` }, { status: 400 });
+          }
+          patch[k] = body[k];
+        }
+      }
+      // 그 외 allowed 키 — null/undefined/string/number 모두 허용 (DB가 nullable)
       for (const key of allowed) {
+        if (key === "name" || key === "bonusFormula" || key === "thresholdEnabled" || key === "isActive") continue;
         if (key in body) patch[key] = body[key];
       }
       if (!Object.keys(patch).length) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
+
+      // R34-P2-B-3: UPDATE 전 기존 값 조회 (history 비교용)
+      const oldRows = await db.execute(sql`SELECT * FROM milestone_definitions WHERE id = ${Number(id)}`);
+      const oldDef = (oldRows as any).rows?.[0] || (oldRows as any[])[0];
+      if (!oldDef) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+
       patch.updatedAt = new Date();
       const updatedRows = await db.update(milestoneDefinitions)
         .set(patch)
         .where(eq(milestoneDefinitions.id, Number(id)))
         .returning({ id: milestoneDefinitions.id });
       if (!updatedRows?.length) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+
       // formatDef는 snake_case 접근이라 raw SELECT 재조회
       const rawRows = await db.execute(sql`SELECT * FROM milestone_definitions WHERE id = ${Number(id)}`);
       const updated = (rawRows as any).rows?.[0] || (rawRows as any[])[0];
+
+      /* R34-P2-B-3: 변경 필드별 milestone_definition_history INSERT (admin-milestone-definitions와 동일 패턴) */
+      const fieldMap: Array<[string, any, any]> = [
+        ["name", oldDef.name, updated.name],
+        ["threshold_enabled", oldDef.threshold_enabled, updated.threshold_enabled],
+        ["threshold_value", oldDef.threshold_value, updated.threshold_value],
+        ["threshold_unit", oldDef.threshold_unit, updated.threshold_unit],
+        ["bonus_formula", JSON.stringify(oldDef.bonus_formula), JSON.stringify(updated.bonus_formula)],
+        ["quarter_applicable", oldDef.quarter_applicable, updated.quarter_applicable],
+        ["is_active", oldDef.is_active, updated.is_active],
+        ["effective_from", oldDef.effective_from, updated.effective_from],
+        ["effective_to", oldDef.effective_to, updated.effective_to],
+        ["sort_order", oldDef.sort_order, updated.sort_order],
+        ["business_unit", oldDef.business_unit, updated.business_unit],
+        ["revenue_source", oldDef.revenue_source, updated.revenue_source],
+      ];
+      for (const [field, oldV, newV] of fieldMap) {
+        const oldStr = oldV == null ? null : String(oldV);
+        const newStr = newV == null ? null : String(newV);
+        if (oldStr === newStr) continue;
+        try {
+          await db.execute(sql`
+            INSERT INTO milestone_definition_history
+              (definition_id, changed_by, field_name, old_value, new_value)
+            VALUES (${Number(id)}, ${admin.id}, ${field}, ${oldStr}, ${newStr})
+          `);
+        } catch { /* 이력 INSERT 실패는 본 응답에 영향 없음 */ }
+      }
+
       return Response.json({ ok: true, data: { milestone: formatDef(updated) } });
     } catch (err) { return jsonError("update", err); }
   }
