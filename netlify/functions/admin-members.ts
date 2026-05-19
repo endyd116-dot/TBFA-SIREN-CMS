@@ -887,6 +887,19 @@ export default async (req: Request) => {
         changedFields.push("agreeMail");
       }
 
+      /* ★ R35-Light-B-L2: 기본연봉(base_salary) — 슈퍼어드민 전용 */
+      if (body.baseSalary !== undefined) {
+        if (adminMember?.role !== "super_admin") {
+          return badRequest("기본연봉은 슈퍼어드민만 변경할 수 있습니다");
+        }
+        const bs = Number(body.baseSalary);
+        if (!Number.isFinite(bs) || bs < 0) {
+          return badRequest("기본연봉은 0 이상의 숫자여야 합니다");
+        }
+        updatePayload.baseSalary = String(bs);  // numeric(15,2) → string 입력
+        changedFields.push("baseSalary");
+      }
+
       if (changedFields.length === 0) {
         return badRequest("변경할 항목이 없습니다");
       }
@@ -907,6 +920,8 @@ export default async (req: Request) => {
           agreeEmail: members.agreeEmail,
           agreeSms: members.agreeSms,
           agreeMail: members.agreeMail,
+          /* ★ R35-Light-B-L2: 응답에 baseSalary 포함 (UI prefill 갱신용) */
+          baseSalary: members.baseSalary,
         });
 
       await logAdminAction(req, admin.uid, admin.name, "member_update", {
