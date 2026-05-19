@@ -24,6 +24,8 @@
 
 | 시각 | 갱신자 | 내용 |
 |---|---|---|
+| 2026-05-19 | **메인** | **✅ R32-P0 Critical 6건 머지·push** (main @ 9b408cb) — A 3bbc129(C5 스케줄 API + C6 정책 키) + B 67ef291(C1·C2·C3 sql.raw 잔존 fix + C4 base_salary 마이그). base_salary 마이그 호출 Swain 대기. C Before 라이브 재현 진행 중 + After 대기 |
+| 2026-05-19 | **메인** | **🚀 R31-GAP 2차 분석 완료 + R32 통합 후보 작성** (main @ 5aa5935) — A 5aec4cc(근태 갭 H4·M12)·B 9663c9a(성과 갭 H5·M7) + 메인 진단(46da373) 통합 → Critical 6건 신규 발견 (R29-P2-C 누락 sql.raw 3건 포함). R32-P0 A·B·C 트리거 발사 |
 | 2026-05-19 | **메인** | **🏁 R30 KST C 검증 7/7 PASS BUG 0 — 시리즈 종결** (main @ 714441b) — 헬퍼 6함수·47페이지 로드·시각 표시 18건+이메일 7군데·회귀 0·TZ 무관성 PASS. OP-2 카카오 안내·OP-1 분기 마이그 처리 (마이그 호출 Swain 대기) |
 | 2026-05-19 | **메인** | **✅ R30 전체 머지·push 완료** (main @ 5b5b1ff) — A 61f45e1(프론트 14페이지)+B 1e0c594(어드민 33+이메일 9+lib/datetime). 사용자/워크스페이스/어드민/이메일 모두 Asia/Seoul KST 통일. DB(UTC)·cron 변경 0. R30 C 검증 트리거 대기 |
 | 2026-05-19 | **메인** | **🎯 R29-GAP-P2 C 검증 + Critical BUG 2건 fix 머지** (main @ bc8bb8e) — Q1~Q10 중 Q9 FAIL→fix. drizzle sql.raw 파라미터 미바인딩으로 성과 GET API 7개 500 → sql 템플릿 합성 정정. milestone_definitions.amount_unit 컬럼 부재 dead code 제거. 운영 복구 |
