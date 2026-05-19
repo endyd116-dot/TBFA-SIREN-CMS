@@ -440,19 +440,27 @@
       tbody.innerHTML = '<tr><td colspan="5" class="att-empty">신청 내역이 없습니다</td></tr>';
       return;
     }
-    tbody.innerHTML = rows.map(r => `
+    tbody.innerHTML = rows.map(r => {
+      const halfLabel = r.isHalfDay
+        ? (r.halfDayPeriod === 'AM' ? ' · 반차(오전)' : r.halfDayPeriod === 'PM' ? ' · 반차(오후)' : ' · 반차')
+        : '';
+      const periodText = r.startDate === r.endDate
+        ? fmtDate(r.startDate)
+        : `${fmtDate(r.startDate)} ~ ${fmtDate(r.endDate)}`;
+      return `
       <tr>
-        <td>${escHtml(r.typeName || '—')}</td>
-        <td>${fmtDate(r.startDate)} ~ ${fmtDate(r.endDate)}</td>
+        <td>${escHtml(r.typeName || '—')}${halfLabel}</td>
+        <td>${periodText}</td>
         <td>${r.days ?? '—'}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</td>
         <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   async function submitLeave() {
     const typeId = document.getElementById('attLeaveType')?.value;
-    const half = document.getElementById('attLeaveHalf')?.value;
+    const half = document.getElementById('attLeaveHalf')?.value;  // '' | 'AM' | 'PM'
     const start = document.getElementById('attLeaveStart')?.value;
     const end = document.getElementById('attLeaveEnd')?.value;
     const reason = document.getElementById('attLeaveReason')?.value?.trim();
@@ -461,12 +469,27 @@
     if (!start || !end) { toast('날짜를 입력하세요'); return; }
     if (start > end) { toast('종료일이 시작일보다 빠를 수 없습니다'); return; }
 
+    // 반차 — 시작=종료 단일 날짜 강제
+    const isHalfDay = half === 'AM' || half === 'PM';
+    if (isHalfDay && start !== end) {
+      toast('반차는 단일 날짜만 신청할 수 있습니다');
+      return;
+    }
+
     const btn = document.getElementById('attBtnLeaveSubmit');
     if (btn) btn.disabled = true;
 
     const res = await api('/api/att-leave-request', {
       method: 'POST',
-      body: { leaveTypeId: typeId, halfDay: half || null, startDate: start, endDate: end, reason },
+      body: {
+        leaveTypeId: typeId,
+        startDate: start,
+        endDate: end,
+        reason,
+        // 반차 정보 — R29-ATT-GAP2 PHASE D
+        isHalfDay,
+        halfDayPeriod: isHalfDay ? half : null,
+      },
     });
 
     if (!res.ok) {
@@ -474,7 +497,8 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('휴가가 신청되었습니다');
+    const d = res.data?.data || res.data || {};
+    toast(`휴가가 신청되었습니다 (${d.days ?? ''}일${isHalfDay ? ' · 반차' : ''})`);
     if (btn) btn.disabled = false;
     await loadLeaveBalance();
     await loadLeaveHistory();

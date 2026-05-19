@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att-my-status" };
 
@@ -26,7 +27,7 @@ export default async function handler(req: Request) {
 
   const memberUid: string = String(auth.ctx.member.id);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKST();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;

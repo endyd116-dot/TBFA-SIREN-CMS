@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attRemoteWorkReports, members } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { todayKST } from "../../lib/att-utils";
 
 export const config = { path: "/api/att/remote-report" };
 
@@ -29,7 +30,7 @@ export default async function handler(req: Request) {
   // GET: 오늘 또는 특정 날짜 보고서 조회
   if (req.method === "GET") {
     const url = new URL(req.url);
-    const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+    const date = url.searchParams.get("date") ?? todayKST();
 
     try {
       const rows = await db
@@ -51,7 +52,7 @@ export default async function handler(req: Request) {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const date: string = body.date ?? new Date().toISOString().slice(0, 10);
+    const date: string = body.date ?? todayKST();
     const content: string | undefined = body.content;
     const wbsCardIds: number[] = Array.isArray(body.wbsCardIds) ? body.wbsCardIds : [];
 
@@ -86,7 +87,7 @@ export default async function handler(req: Request) {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const date: string = body.date ?? new Date().toISOString().slice(0, 10);
+    const date: string = body.date ?? todayKST();
     const content: string = body.content ?? "";
 
     if (!content.trim()) {

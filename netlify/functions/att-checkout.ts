@@ -2,7 +2,8 @@ import { db } from "../../db/index";
 import { attRecords, attRemoteWorkReports } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import { getDefaultPolicy, calcWorkingMins, determineStatus } from "../../lib/att-utils";
+import { getDefaultPolicy, calcWorkingMins, determineStatus, todayKST, hhmmKST } from "../../lib/att-utils";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/att-checkout" };
 
@@ -33,8 +34,9 @@ export default async function handler(req: Request) {
   // 회원 식별자 (att_*.member_uid varchar — members.id 문자열)
   const memberUid: string = String(auth.ctx.member.id);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const now = new Date();
+  // R29-ATT-GAP2: 오늘 날짜는 KST 기준
+  const today = todayKST();
+  const now = new Date();  // DB 저장은 UTC 유지
 
   // 오늘 출근 기록 확인
   let existing: any;
@@ -119,6 +121,20 @@ export default async function handler(req: Request) {
       })
       .where(and(eq(attRecords.memberUid, memberUid), eq(attRecords.date, today)))
       .returning();
+
+    // R29-ATT-GAP2 PHASE E 알림 2: 퇴근 확인 (fire-and-forget)
+    sendWorkspaceNotification({
+      memberId: auth.ctx.member.id,
+      sourceType: "event" as any,
+      sourceId: record?.id ?? 0,
+      notifType: "completed" as any,
+      channel: "bell",
+      title: "퇴근 완료",
+      body: `${hhmmKST(now)} 퇴근이 등록되었습니다. 오늘도 수고하셨습니다!`,
+      actionUrl: "/workspace-attendance.html",
+      category: "system",
+    }).catch(e => console.warn("[att-checkout] 알림 실패:", e));
+
     return jsonOk({ ...record, reportSubmitted });
   } catch (err) {
     return jsonError("update_record", err);

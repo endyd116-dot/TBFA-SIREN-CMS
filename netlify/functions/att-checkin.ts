@@ -8,7 +8,10 @@ import {
   haversineDistance,
   isWithinRadius,
   determineStatus,
+  todayKST,
+  hhmmKST,
 } from "../../lib/att-utils";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/att-checkin" };
 
@@ -39,8 +42,9 @@ export default async function handler(req: Request) {
   // 회원 식별자 (att_*.member_uid varchar 컬럼용 — members.id의 문자열 변환)
   const memberUid: string = String(auth.ctx.member.id);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const now = new Date();
+  // R29-ATT-GAP2: 오늘 날짜는 KST 기준 (서버 UTC + 9h)
+  const today = todayKST();
+  const now = new Date();  // DB 저장은 UTC 유지
 
   // 정책 조회
   const policy = await getDefaultPolicy();
@@ -141,6 +145,20 @@ export default async function handler(req: Request) {
       checkInIp: ip,
       workplaceId,
     }).returning();
+
+    // R29-ATT-GAP2 PHASE E 알림 1: 출근 확인 (fire-and-forget — 메인 흐름 차단 X)
+    sendWorkspaceNotification({
+      memberId: auth.ctx.member.id,
+      sourceType: "event" as any,
+      sourceId: record.id,
+      notifType: "completed" as any,
+      channel: "bell",
+      title: "출근 완료",
+      body: `${hhmmKST(now)} 출근이 등록되었습니다.${status === "LATE" ? " (지각 처리)" : ""}`,
+      actionUrl: "/workspace-attendance.html",
+      category: "system",
+    }).catch(e => console.warn("[att-checkin] 알림 실패:", e));
+
     return jsonOk({
       ...record,
       remoteReportRequired: workMode.mode === "REMOTE",

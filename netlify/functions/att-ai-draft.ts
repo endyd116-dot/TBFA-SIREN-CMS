@@ -28,7 +28,7 @@ export default async function handler(req: Request) {
   let body: any;
   try { body = await req.json(); } catch { body = {}; }
 
-  const date: string = body.date ?? new Date().toISOString().slice(0, 10);
+  const date: string = body.date ?? new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);  // KST
   const memberId: number = auth.ctx.member.id;
   // att_remote_work_reports.member_uid 는 R29-ATT-GAP1 부터 varchar(36) — 문자열 변환 필요
   const memberUidStr = String(memberId);
