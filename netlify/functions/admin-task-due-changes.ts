@@ -227,7 +227,7 @@ export default async (req: Request, _ctx: Context) => {
           notifType: "assigned",
           channel: "bell",
           title: `📅 마감일 변경 요청: ${task.title}`,
-          body: `${new Date(task.dueDate).toLocaleDateString("ko-KR")} → ${newDue.toLocaleDateString("ko-KR")}\n사유: ${body.reason}`,
+          body: `${new Date(task.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })} → ${newDue.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}\n사유: ${body.reason}`,
           actionUrl: `/admin#due-change-${newRequest.id}`,
         });
       }
@@ -333,7 +333,7 @@ export default async (req: Request, _ctx: Context) => {
           ? `✅ 마감일 변경 승인: ${task.title}`
           : `❌ 마감일 변경 반려: ${task.title}`,
         body: action === "approve"
-          ? `새 마감일: ${new Date(request.newDue).toLocaleString("ko-KR")}`
+          ? `새 마감일: ${new Date(request.newDue).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`
           : `사유: ${body.reviewNote || ""}`,
         actionUrl: `/admin#task-${request.taskId}`,
       });

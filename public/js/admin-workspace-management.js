@@ -37,7 +37,7 @@
   }
   function fmtTime(d) {
     if (!d) return '—';
-    return new Date(d).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
   }
   function toDateStr(d) {
     const dt = d ? new Date(d) : new Date();
@@ -724,7 +724,7 @@
         <td>${escHtml(r.endDate || '—')}</td>
         <td>${escHtml(String(r.days ?? '—'))}</td>
         <td style="font-size:12px;max-width:240px;word-break:break-word">${escHtml(r.reason || '—')}</td>
-        <td style="font-size:12px;color:#6b7280">${r.submittedAt ? new Date(r.submittedAt).toLocaleString('ko-KR', {year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+        <td style="font-size:12px;color:#6b7280">${r.submittedAt ? new Date(r.submittedAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
         <td>
           <button class="att-btn att-btn-primary att-btn-sm" onclick="awmApproveLeave(${r.id})">승인</button>
           <button class="att-btn att-btn-danger att-btn-sm" style="margin-left:4px" onclick="awmRejectLeave(${r.id})">반려</button>

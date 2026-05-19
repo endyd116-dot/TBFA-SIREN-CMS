@@ -23,12 +23,12 @@
 
   function fmtDate(s) {
     if (!s) return '';
-    try { return new Date(s).toLocaleDateString('ko-KR'); } catch (e) { return String(s); }
+    try { return new Date(s).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }); } catch (e) { return String(s); }
   }
 
   function fmtDateTime(s) {
     if (!s) return '';
-    try { return new Date(s).toLocaleString('ko-KR'); } catch (e) { return String(s); }
+    try { return new Date(s).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }); } catch (e) { return String(s); }
   }
 
   function fmtAmount(n) {

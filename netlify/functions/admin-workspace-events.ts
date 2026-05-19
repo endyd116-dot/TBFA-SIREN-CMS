@@ -333,7 +333,7 @@ export default async (req: Request, _ctx: Context) => {
           notifType: "invited",
           channel: "bell",
           title: `📅 새 일정 초대: ${newEvent.title}`,
-          body: `${startDate.toLocaleString("ko-KR")} · ${body.location || "장소 미정"}`,
+          body: `${startDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} · ${body.location || "장소 미정"}`,
           actionUrl: `/admin#event-${newEvent.id}`,
         });
       }
@@ -503,7 +503,7 @@ export default async (req: Request, _ctx: Context) => {
           notifType: "rejected",
           channel: "bell",
           title: `❌ 일정이 취소되었습니다: ${ev.title}`,
-          body: new Date(ev.startAt).toLocaleString("ko-KR"),
+          body: new Date(ev.startAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
         });
       }
 

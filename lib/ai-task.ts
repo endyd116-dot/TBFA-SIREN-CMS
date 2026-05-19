@@ -212,7 +212,7 @@ export async function generateCompletionReport(taskId: number, authorMemberId: n
 
     const activitySummary = activities
       .slice(0, 10)
-      .map((a: any) => `- ${a.actionType}: ${a.targetTitle || ""} (${new Date(a.createdAt).toLocaleDateString("ko-KR")})`)
+      .map((a: any) => `- ${a.actionType}: ${a.targetTitle || ""} (${new Date(a.createdAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })})`)
       .join("\n");
 
     const commentSummary = comments

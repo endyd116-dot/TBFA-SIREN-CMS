@@ -35,7 +35,7 @@
     if (!s) return "-";
     const d = new Date(s);
     if (isNaN(d.getTime())) return "-";
-    return d.toLocaleDateString("ko-KR");
+    return d.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
   }
 
   /* ── api 헬퍼 ── */
