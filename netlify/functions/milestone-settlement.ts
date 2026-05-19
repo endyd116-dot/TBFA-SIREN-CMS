@@ -25,14 +25,17 @@ export default async function handler(req: Request, _ctx: Context) {
     /* ★ R29-GAP-P2-M3: memberId 파라미터 수용 (본인 결산 강제 — 다른 id는 무시) */
     const memberIdQ = url.searchParams.get("memberId");
     try {
-      let q = `SELECT qs.*, q.year, q.quarter, q.status as quarter_status
-               FROM quarterly_settlements qs
-               JOIN quarters q ON q.id = qs.quarter_id
-               WHERE qs.member_id = $1`;
-      const params: any[] = [admin.id];
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND qs.quarter_id = $${params.length}`; }
-      q += ` ORDER BY q.year DESC, q.quarter DESC LIMIT 10`;
-      const rows = await db.execute(sql.raw(q, params));
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params)는 drizzle에서 파라미터 바인딩 미지원 →
+         sql 템플릿 합성으로 변경 (member_id·quarterId 안전 바인딩) */
+      let baseSql = sql`
+        SELECT qs.*, q.year, q.quarter, q.status as quarter_status
+        FROM quarterly_settlements qs
+        JOIN quarters q ON q.id = qs.quarter_id
+        WHERE qs.member_id = ${admin.id}
+      `;
+      if (quarterId) baseSql = sql`${baseSql} AND qs.quarter_id = ${Number(quarterId)}`;
+      baseSql = sql`${baseSql} ORDER BY q.year DESC, q.quarter DESC LIMIT 10`;
+      const rows = await db.execute(baseSql);
       const settlements = ((rows as any).rows || (rows as any[])).map(formatSettle);
       /* ★ R29-GAP-P2-M3: quarterId·memberId 둘 다 지정 시 단건 settlement 키 추가 */
       let settlement: any = null;

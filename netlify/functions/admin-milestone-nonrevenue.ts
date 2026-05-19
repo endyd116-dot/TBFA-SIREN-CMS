@@ -28,7 +28,8 @@ export default async function handler(req: Request, _ctx: Context) {
     const quarterId = url.searchParams.get("quarterId");
     const status = url.searchParams.get("status") || "PENDING";
     try {
-      let q = `
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      let baseSql = sql`
         SELECT nra.*, md.code, md.name as milestone_name, md.target_milestone_role,
                md.bonus_formula, m.name as submitted_by_name
         FROM non_revenue_achievements nra
@@ -36,11 +37,10 @@ export default async function handler(req: Request, _ctx: Context) {
         LEFT JOIN members m ON m.id = nra.submitted_by
         WHERE 1=1
       `;
-      const params: any[] = [];
-      if (status && status !== "ALL") { params.push(status); q += ` AND nra.status = $${params.length}`; }
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND nra.quarter_id = $${params.length}`; }
-      q += ` ORDER BY nra.created_at DESC LIMIT 200`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (status && status !== "ALL") baseSql = sql`${baseSql} AND nra.status = ${status}`;
+      if (quarterId) baseSql = sql`${baseSql} AND nra.quarter_id = ${Number(quarterId)}`;
+      baseSql = sql`${baseSql} ORDER BY nra.created_at DESC LIMIT 200`;
+      const rows = await db.execute(baseSql);
       const achievements = ((rows as any).rows || (rows as any[])).map((r: any) => ({
         id: r.id, milestoneCode: r.code, milestoneName: r.milestone_name,
         milestoneRole: r.target_milestone_role,

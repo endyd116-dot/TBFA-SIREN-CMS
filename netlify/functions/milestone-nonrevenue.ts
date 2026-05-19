@@ -24,17 +24,17 @@ export default async function handler(req: Request, _ctx: Context) {
   if (req.method === "GET") {
     const quarterId = url.searchParams.get("quarterId");
     try {
-      let q = `
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      let baseSql = sql`
         SELECT nra.*, md.code, md.name as milestone_name, md.quarter_applicable,
                md.bonus_formula, md.target_milestone_role
         FROM non_revenue_achievements nra
         JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
-        WHERE nra.submitted_by = $1
+        WHERE nra.submitted_by = ${admin.id}
       `;
-      const params: any[] = [admin.id];
-      if (quarterId) { params.push(Number(quarterId)); q += ` AND nra.quarter_id = $${params.length}`; }
-      q += ` ORDER BY nra.created_at DESC`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (quarterId) baseSql = sql`${baseSql} AND nra.quarter_id = ${Number(quarterId)}`;
+      baseSql = sql`${baseSql} ORDER BY nra.created_at DESC`;
+      const rows = await db.execute(baseSql);
       const achievements = ((rows as any).rows || (rows as any[])).map(formatAch);
       return Response.json({ ok: true, data: { achievements } });
     } catch (err) { return jsonError("select", err); }

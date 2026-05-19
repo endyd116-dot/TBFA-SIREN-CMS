@@ -25,23 +25,22 @@ export default async function handler(req: Request, _ctx: Context) {
     const role = url.searchParams.get("role");   // SM|PM|SI
     const cat  = url.searchParams.get("category"); // REVENUE_LINKED|NON_REVENUE
     try {
-      let q = `SELECT * FROM milestone_definitions WHERE 1=1`;
-      const params: any[] = [];
+      /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      let baseSql = sql`SELECT * FROM milestone_definitions WHERE 1=1`;
       /* ★ R29-MS-GAP1-A: 운영자(super_admin 외)는 본인 milestoneRole 기준으로 강제 필터.
          role 파라미터를 본인 외 값으로 보내도 본인 것만 반환. */
       if (!isSuperAdmin) {
         if (!admin?.milestoneRole) {
           return Response.json({ ok: true, data: { milestones: [] } });
         }
-        params.push(admin.milestoneRole);
-        q += ` AND target_milestone_role = $${params.length}`;
+        baseSql = sql`${baseSql} AND target_milestone_role = ${admin.milestoneRole}`;
       } else if (role) {
-        params.push(role); q += ` AND target_milestone_role = $${params.length}`;
+        baseSql = sql`${baseSql} AND target_milestone_role = ${role}`;
       }
-      if (cat)  { params.push(cat);  q += ` AND category = $${params.length}`; }
-      if (url.searchParams.get("activeOnly") !== "0") q += ` AND is_active = TRUE`;
-      q += ` ORDER BY sort_order, id`;
-      const rows = await db.execute(sql.raw(q, params));
+      if (cat) baseSql = sql`${baseSql} AND category = ${cat}`;
+      if (url.searchParams.get("activeOnly") !== "0") baseSql = sql`${baseSql} AND is_active = TRUE`;
+      baseSql = sql`${baseSql} ORDER BY sort_order, id`;
+      const rows = await db.execute(baseSql);
       const milestones = ((rows as any).rows || (rows as any[])).map(formatDef);
       return Response.json({ ok: true, data: { milestones } });
     } catch (err) { return jsonError("select", err); }
