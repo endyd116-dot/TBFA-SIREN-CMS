@@ -100,7 +100,10 @@ function renderDefs() {
     el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">등록된 마일스톤이 없습니다.</p>';
     return;
   }
-  const roleLabel = { SM: 'SM(사무국장)', PM: 'PM(정책국장)', SI: 'SI(관리자)' };
+  /* R39 Stage 3: 역할 라벨 동적 — 캐시된 카탈로그 사용·없으면 코드 그대로 */
+  const _roleLabel = (code) =>
+    (window.MilestoneRoles ? window.MilestoneRoles.getRoleLabelSync(code) : null)
+    || code || '-';
   const catLabel = { REVENUE_LINKED: '매출연동', NON_REVENUE: '비매출' };
   el.innerHTML = `
     <table class="ms-table">
@@ -110,11 +113,12 @@ function renderDefs() {
       <tbody>
         ${AM.defs.map(d => {
           const r = d.targetMilestoneRole || d.milestoneRole;
+          const rLabel = r ? (_roleLabel(r) === r ? r : `${r}(${_roleLabel(r)})`) : '-';
           return `
           <tr>
             <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
             <td style="font-weight:600">${d.name}</td>
-            <td>${roleLabel[r] || r || '-'}</td>
+            <td>${rLabel}</td>
             <td>${catLabel[d.category] || d.category}</td>
             <td style="font-size:12px">${d.businessUnit || '-'}</td>
             <td style="font-size:12px">${d.sortOrder ?? 0}</td>
@@ -142,7 +146,9 @@ function openDefEdit(id) {
       const el = document.getElementById(f);
       if (el) el.value = '';
     });
-    document.getElementById('fRole').value = 'SM';
+    /* R39 Stage 3: 첫 옵션을 기본값 (역할 카탈로그가 동적이므로 SM 고정 불가) */
+    const _fRole = document.getElementById('fRole');
+    if (_fRole && _fRole.options.length > 0) _fRole.selectedIndex = 0;
     document.getElementById('fCategory').value = 'REVENUE_LINKED';
     document.getElementById('fBU').value = 'ASSOCIATION';
     document.getElementById('fSortOrder').value = '0';
@@ -155,7 +161,21 @@ function openDefEdit(id) {
     title.textContent = '마일스톤 수정';
     document.getElementById('fCode').value = d.code;
     document.getElementById('fName').value = d.name;
-    document.getElementById('fRole').value = d.targetMilestoneRole || d.milestoneRole || 'SM';
+    /* R39 Stage 3: 기존 정의의 역할 코드로 설정. 카탈로그에서 비활성/삭제된 경우 옵션 추가 후 선택 */
+    (function () {
+      const code = d.targetMilestoneRole || d.milestoneRole || '';
+      const sel = document.getElementById('fRole');
+      if (sel && code) {
+        const found = Array.from(sel.options).some(o => o.value === code);
+        if (!found) {
+          const opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code + ' (비활성·이전 정의)';
+          sel.appendChild(opt);
+        }
+        sel.value = code;
+      }
+    })();
     document.getElementById('fCategory').value = d.category;
     document.getElementById('fBU').value = d.businessUnit || 'ASSOCIATION';
     document.getElementById('fRevSrc').value = d.revenueSource || '';
@@ -364,7 +384,8 @@ function renderSettlements(list) {
     el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">결산 내역이 없습니다.</p>';
     return;
   }
-  const roleLabel = { SM: 'SM', PM: 'PM', SI: 'SI' };
+  /* R39 Stage 3: 결산 표 역할 동적 라벨 */
+  const _roleLabel = (code) => code || '-';  // 결산 표는 코드만 보여주는 원본 동작 유지
   el.innerHTML = `
     <table class="ms-table">
       <thead><tr>
@@ -373,7 +394,7 @@ function renderSettlements(list) {
       <tbody>
         ${list.map(s => `
           <tr>
-            <td>${roleLabel[s.milestoneRole] || s.milestoneRole || '-'}</td>
+            <td>${_roleLabel(s.milestoneRole)}</td>
             <td style="font-weight:600">${s.memberName || '-'}</td>
             <td style="font-size:12px">${s.year ? s.year + '년 Q' + s.quarter : '-'}</td>
             <td>${amFmt(s.revenueLinkedTotal)}</td>
@@ -520,11 +541,13 @@ function renderRoles(members) {
     el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">운영 중인 멤버가 없습니다.</p>';
     return;
   }
+  /* R39 Stage 3: 드롭다운 옵션 동적 — 캐시된 카탈로그 사용·로딩 시점 보장 위해 fillSelect 콜로 갱신 */
+  const _roles = (window.MilestoneRoles && (typeof MilestoneRoles.getRoleLabelSync === 'function')
+    ? (sessionStorage.getItem('tbfa.milestoneRoles.v1') ? (function(){ try { return JSON.parse(sessionStorage.getItem('tbfa.milestoneRoles.v1')).roles || []; } catch(_) { return []; } })() : [])
+    : []);
   const roleOptions = `
     <option value="">미배정</option>
-    <option value="SM">SM (사무국장)</option>
-    <option value="PM">PM (정책국장)</option>
-    <option value="SI">SI (SI관리자)</option>
+    ${_roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('')}
   `;
   el.innerHTML = `
     <table class="ms-table">
@@ -550,11 +573,28 @@ function renderRoles(members) {
       </tbody>
     </table>`;
 
-  // 현재 역할 세팅
-  members.forEach(m => {
-    const sel = document.getElementById('msRole_' + m.id);
-    if (sel && m.milestoneRole) sel.value = m.milestoneRole;
-  });
+  // 현재 역할 세팅 — R39 Stage 3: 캐시 비어있던 경우 비동기로 옵션 재구성·현재 값 복원
+  function _applySelections() {
+    members.forEach(m => {
+      const sel = document.getElementById('msRole_' + m.id);
+      if (sel && m.milestoneRole) sel.value = m.milestoneRole;
+    });
+  }
+  _applySelections();
+  if (window.MilestoneRoles) {
+    window.MilestoneRoles.loadActiveRoles().then(function (roles) {
+      if (!roles.length) return;
+      // 옵션이 이미 동일하면 갱신 불필요
+      members.forEach(m => {
+        const sel = document.getElementById('msRole_' + m.id);
+        if (!sel) return;
+        const opts = ['<option value="">미배정</option>']
+          .concat(roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`));
+        sel.innerHTML = opts.join('');
+      });
+      _applySelections();
+    });
+  }
 }
 
 async function saveRole(memberId) {
@@ -570,6 +610,29 @@ async function saveRole(memberId) {
 }
 
 /* ───── 초기 로드 ───── */
+/* R39 Stage 3: 정의 모달·필터 드롭다운 동적 채움 */
+(function fillRoleDropdownsDynamic() {
+  if (!window.MilestoneRoles) return;
+  window.MilestoneRoles.loadActiveRoles().then(function (roles) {
+    if (!roles.length) return;
+    // 정의 모달 fRole — 미배정 옵션 없음
+    const fRole = document.getElementById('fRole');
+    if (fRole) {
+      fRole.innerHTML = roles.map(r =>
+        `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`
+      ).join('');
+    }
+    // 정의 필터 defRoleFilter — 전체 옵션 + 역할들
+    const filter = document.getElementById('defRoleFilter');
+    if (filter) {
+      const cur = filter.value;
+      filter.innerHTML = '<option value="">전체 역할</option>'
+        + roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
+      if (cur) filter.value = cur;
+    }
+  });
+})();
+
 loadDefs();
 
 // URL 해시로 초기 탭 설정

@@ -88,10 +88,16 @@
       return;
     }
 
-    // 사용자 정보 표시 (early return 전에 먼저)
-    const roleLabel = { SM: '사무국장', PM: '정책국장', SI: 'SI관리자' };
+    // 사용자 정보 표시 (early return 전에 먼저) — R39 Stage 3: 역할 라벨 DB 동적
     const _sub = $('#msSubtitle');
-    if (_sub) _sub.textContent = `${state.member.name || ''} · ${roleLabel[state.member.milestoneRole] || state.member.milestoneRole || state.member.role || ''}`;
+    if (_sub) {
+      _sub.textContent = `${state.member.name || ''} · ${state.member.milestoneRole || state.member.role || ''}`;
+      if (window.MilestoneRoles && state.member.milestoneRole) {
+        window.MilestoneRoles.getRoleLabel(state.member.milestoneRole).then(function (label) {
+          _sub.textContent = `${state.member.name || ''} · ${label || state.member.milestoneRole || state.member.role || ''}`;
+        });
+      }
+    }
 
     // milestoneRole 없으면 안내
     if (!state.member.milestoneRole && !state.isSuperAdmin) {

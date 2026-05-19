@@ -38,11 +38,9 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <div id="panelDefs" class="adm-panel active">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div style="display:flex;gap:8px">
+      <!-- R39 Stage 3: 옵션은 admin-milestones.js에서 /api/milestone-roles 응답으로 동적 채움 -->
       <select id="defRoleFilter" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
         <option value="">전체 역할</option>
-        <option value="SM">SM (사무국장)</option>
-        <option value="PM">PM (정책국장)</option>
-        <option value="SI">SI (SI관리자)</option>
       </select>
       <select id="defCatFilter" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
         <option value="">전체 카테고리</option>
@@ -109,7 +107,8 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
     <div class="form-row">
       <div class="form-group"><label>코드 (예: sm-001)</label><input id="fCode" maxlength="20"></div>
       <div class="form-group"><label>담당 역할</label>
-        <select id="fRole"><option value="SM">SM</option><option value="PM">PM</option><option value="SI">SI</option></select>
+        <!-- R39 Stage 3: 옵션은 admin-milestones.js에서 /api/milestone-roles 응답으로 동적 채움 -->
+        <select id="fRole"></select>
       </div>
       <div class="form-group" style="grid-column:1/-1"><label>이름</label><input id="fName" maxlength="200"></div>
       <div class="form-group"><label>카테고리</label>
@@ -172,6 +171,7 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <div id="amToast" style="position:fixed;bottom:24px;right:24px;z-index:99999"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-milestones.js?v=4" defer></script>
+<script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
+<script src="/js/admin-milestones.js?v=5-r39" defer></script>
 </body>
 </html>
