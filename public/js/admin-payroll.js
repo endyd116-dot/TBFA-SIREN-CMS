@@ -68,9 +68,9 @@
         null;
       isSuper = role === 'super_admin';
     } catch (_) { /* 네트워크 오류 시 본문 표시·서버 가드가 차단 */ }
-    /* 본문은 기본 표시 — 실제 데이터 호출은 서버 requireAdmin이 한 번 더 검증 */
-    document.querySelectorAll('.super-only-card').forEach(el => el.style.display = '');
-    $('nonSuperBlock').style.display = isSuper ? 'none' : '';
+    /* 본문은 기본 표시 — CSS의 display:none을 인라인으로 덮어쓰기 (block 명시) */
+    document.querySelectorAll('.super-only-card').forEach(el => el.style.display = 'block');
+    $('nonSuperBlock').style.display = isSuper ? 'none' : 'block';
     return isSuper;
   }
 

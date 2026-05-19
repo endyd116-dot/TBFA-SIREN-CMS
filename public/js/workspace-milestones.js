@@ -633,10 +633,10 @@
         },
       });
       toast('입력 완료 (검증 대기)', 'success');
-      ($('#riAmount')).value = '';
-      ($('#riNote')).value = '';
+      const _amt = $('#riAmount'); if (_amt) _amt.value = '';
+      const _note = $('#riNote'); if (_note) _note.value = '';
       riUploadedEvidence = [];
-      ($('#riEvidenceList')).innerHTML = '';
+      const _ev = $('#riEvidenceList'); if (_ev) _ev.innerHTML = '';
       await loadAndRenderRevenueList();
     } catch (e) { toast('입력 실패: ' + (e).message, 'error'); }
     finally { btn.disabled = false; }

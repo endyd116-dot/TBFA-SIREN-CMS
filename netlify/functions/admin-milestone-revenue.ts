@@ -67,6 +67,10 @@ export default async function handler(req: Request, _ctx: Context) {
       if (entry.target_milestone_role !== admin.milestoneRole && admin.role !== "super_admin") {
         return Response.json({ ok: false, error: "담당 영역이 아닙니다" }, { status: 403 });
       }
+      /* 2026-05-20: 4-eye 원칙 — 본인이 입력한 매출은 본인 검증 불가 (super_admin 예외) */
+      if (entry.entered_by === admin.id && admin.role !== "super_admin") {
+        return Response.json({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 검증할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
+      }
       await db.execute(sql`
         UPDATE revenue_entries SET status = 'VERIFIED', reviewed_by = ${admin.id},
           reviewed_at = NOW(), updated_at = NOW()
@@ -97,6 +101,10 @@ export default async function handler(req: Request, _ctx: Context) {
         WHERE re.id = ${Number(id)}
       `);
       const entry = (rows as any).rows?.[0] || rows[0];
+      /* 2026-05-20: 4-eye 원칙 — 본인이 입력한 매출은 본인 반려 불가 (super_admin 예외) */
+      if (entry?.entered_by === admin.id && admin.role !== "super_admin") {
+        return Response.json({ ok: false, error: "본인이 입력한 매출은 슈퍼어드민만 반려할 수 있습니다 (셀프 검증 방지)" }, { status: 403 });
+      }
       await db.execute(sql`
         UPDATE revenue_entries SET status = 'REJECTED', reviewed_by = ${admin.id},
           reviewed_at = NOW(), reject_reason = ${rejectReason}, updated_at = NOW()
