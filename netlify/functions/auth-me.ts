@@ -32,6 +32,8 @@ export default async (req: Request) => {
         name: members.name,
         phone: members.phone,
         type: members.type,
+        role: members.role,                     /* ★ 슈퍼어드민·관리자 식별 */
+        milestoneRole: members.milestoneRole,   /* ★ 성과 담당 역할 SM/PM/SI */
         status: members.status,
         emailVerified: members.emailVerified,  /* ★ K-2 추가 */
         agreeEmail: members.agreeEmail,
@@ -77,6 +79,9 @@ export default async (req: Request) => {
         name: user.name,
         phone: user.phone,
         type: user.type,
+        role: user.role,                       /* ★ 'super_admin'·'admin'·기타 */
+        milestoneRole: user.milestoneRole,     /* ★ SM/PM/SI 또는 null */
+        operatorActive: user.operatorActive,   /* ★ 운영자 토글 (workspace 진입 판정용) */
         status: user.status,
         emailVerified: user.emailVerified,  /* ★ K-2 추가 */
         agreeEmail: user.agreeEmail,
