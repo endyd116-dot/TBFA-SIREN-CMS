@@ -89,7 +89,7 @@
       <button class="att-btn att-btn-primary" id="awmBtnLoadRecords">조회</button>
     </div>
 
-    <!-- 현황 카드 -->
+    <!-- 현황 카드 (R35-GAP-P2 M-G1: 상태 4 + work_mode 4) -->
     <div class="awm-status-cards" id="awmStatusCards">
       <div class="awm-status-card">
         <div class="awm-status-card-label">출근</div>
@@ -106,6 +106,26 @@
       <div class="awm-status-card">
         <div class="awm-status-card-label">휴가</div>
         <div class="awm-status-card-val" id="awmCntLeave" style="color:#3b82f6">—</div>
+      </div>
+    </div>
+
+    <!-- work_mode별 카드 (R35-GAP-P2 M-G1) -->
+    <div class="awm-status-cards" id="awmWorkModeCards">
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">🏢 사무실</div>
+        <div class="awm-status-card-val" id="awmCntOffice" style="color:#1d4ed8">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">🏠 재택</div>
+        <div class="awm-status-card-val" id="awmCntRemote" style="color:#5b21b6">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">🚗 외근</div>
+        <div class="awm-status-card-val" id="awmCntField" style="color:#c2410c">—</div>
+      </div>
+      <div class="awm-status-card">
+        <div class="awm-status-card-label">✈️ 출장</div>
+        <div class="awm-status-card-val" id="awmCntBusinessTrip" style="color:#92400e">—</div>
       </div>
     </div>
 
@@ -656,6 +676,6 @@
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
-<script src="/js/admin-workspace-management.js?v=8"></script>
+<script src="/js/admin-workspace-management.js?v=9"></script>
 </body>
 </html>

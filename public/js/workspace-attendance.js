@@ -107,11 +107,40 @@
     const sumRes = await api(`/api/att-my-stats?year=${yr}&month=${mo}`);
     const stats = sumRes.data?.data || sumRes.data || {};
     renderSummary(stats);
+
+    // R35-GAP-P2 M-G4: 정책 안내 (att-my-status.policy 활용)
+    try {
+      const statusRes = await api('/api/att-my-status');
+      const policy = statusRes.data?.data?.policy || statusRes.data?.policy || null;
+      renderPolicyNote(policy, mode);
+    } catch (_) { /* 정책 안내 실패는 메인 흐름 차단 X */ }
     } catch (e) {
       console.error('[att] initCheckin 오류:', e);
       if (btnIn) { btnIn.disabled = false; btnIn.textContent = '🟢 출근 (새로고침 필요)'; }
       toast('출퇴근 정보를 불러오지 못했습니다. 새로고침해 주세요.');
     }
+  }
+
+  /* R35-GAP-P2 M-G4: 정책 안내 라인 */
+  function renderPolicyNote(policy, mode) {
+    const wrap = document.getElementById('attPolicyNote');
+    const txt = document.getElementById('attPolicyNoteText');
+    if (!wrap || !txt || !policy) return;
+    const parts = [];
+    if (policy.checkInTime) {
+      parts.push(`표준 출근 ${policy.checkInTime} (지각 허용 ${policy.lateGraceMins ?? 0}분)`);
+    }
+    if (mode === 'REMOTE' || mode === 'BUSINESS_TRIP') {
+      if (policy.coreStartTime) {
+        parts.push(`${mode === 'REMOTE' ? '재택' : '출장'} 코어타임 ${policy.coreStartTime} (자율 출근)`);
+      }
+    }
+    if (mode === 'REMOTE' && policy.remoteMaxPerMonth) {
+      parts.push(`월 재택 한도 ${policy.remoteMaxPerMonth}일`);
+    }
+    if (parts.length === 0) { wrap.style.display = 'none'; return; }
+    txt.textContent = parts.join(' · ');
+    wrap.style.display = '';
   }
 
   function renderModeBadge(mode) {
@@ -782,6 +811,13 @@
 
     // 3) 둘 다 실패 → 로그인 페이지
     if (!user) { location.href = '/login.html'; return null; }
+
+    // R35-GAP-P2 M-G7: regular 회원(operatorActive=false·non-admin)은 근태 페이지 부적합 — 안내 후 홈으로
+    if (!isAdmin && user.operatorActive === false) {
+      alert('근태관리 페이지는 운영자(직원)만 사용할 수 있습니다.\n관리자에게 운영자 권한을 요청해 주세요.');
+      location.href = '/index.html';
+      return null;
+    }
 
     const roleLabel = isAdmin
       ? '관리자'

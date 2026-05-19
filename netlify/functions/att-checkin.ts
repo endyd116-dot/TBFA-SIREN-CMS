@@ -60,17 +60,26 @@ export default async function handler(req: Request) {
       return jsonError("no_location", new Error("위치 정보 필요 (lat, lng)"), 400);
     }
 
-    // 거점 조회 (할당된 거점 우선, 없으면 활성 OFFICE 거점 중 가장 가까운 곳)
+    // 거점 조회 — R35-GAP-P2 M-G2·M-G3: isActive·type 필터 정합
     let workplace: any = null;
     if (workplaceId) {
       try {
-        const [wp] = await db.select().from(attWorkplaces).where(eq(attWorkplaces.id, workplaceId)).limit(1);
+        // M-G2: workplaceId 명시 시 isActive=true 검증 — 비활성 거점은 매칭 안 함
+        const [wp] = await db.select().from(attWorkplaces)
+          .where(and(eq(attWorkplaces.id, workplaceId), eq(attWorkplaces.isActive, true)))
+          .limit(1);
         workplace = wp ?? null;
       } catch {}
     }
     if (!workplace) {
       try {
-        const wps = await db.select().from(attWorkplaces).where(eq(attWorkplaces.isActive, true));
+        // M-G3: OFFICE 모드 자동 거점 선택 시 type='OFFICE' 필터 추가
+        // FIELD 모드는 workplaceId 명시 필수 — 자동 선택 케이스는 OFFICE 한정
+        const wps = workMode.mode === "OFFICE"
+          ? await db.select().from(attWorkplaces)
+              .where(and(eq(attWorkplaces.isActive, true), eq(attWorkplaces.type, "OFFICE")))
+          : await db.select().from(attWorkplaces)
+              .where(eq(attWorkplaces.isActive, true));
         // 가장 가까운 거점
         let minDist = Infinity;
         for (const wp of wps) {

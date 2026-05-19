@@ -2,7 +2,7 @@ import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { todayKST } from "../../lib/att-utils";
+import { todayKST, getDefaultPolicy } from "../../lib/att-utils";
 
 export const config = { path: "/api/att-my-status" };
 
@@ -104,10 +104,31 @@ export default async function handler(req: Request) {
     console.warn("[att-my-status] 잔여 연차 조회 실패:", err);
   }
 
+  // R35-GAP-P2 M-G4: 직원 정책 안내용 요약 (코어타임·지각 허용 등)
+  let policySummary: any = null;
+  try {
+    const policy = await getDefaultPolicy();
+    if (policy) {
+      policySummary = {
+        checkInTime:        String(policy.checkInTime),
+        checkOutTime:       String(policy.checkOutTime),
+        lateGraceMins:      policy.lateGraceMins,
+        earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+        coreStartTime:      policy.coreStartTime ? String(policy.coreStartTime) : null,
+        coreEndTime:        policy.coreEndTime   ? String(policy.coreEndTime)   : null,
+        remoteMaxPerMonth:  policy.remoteMaxPerMonth,
+        dailyHours:         policy.dailyHours,
+      };
+    }
+  } catch (err) {
+    console.warn("[att-my-status] 정책 조회 실패:", err);
+  }
+
   return jsonOk({
     memberUid,
     today: todayRecord,
     monthly: monthlySummary,
     annualLeave: annualLeaveBalance,
+    policy: policySummary,
   });
 }

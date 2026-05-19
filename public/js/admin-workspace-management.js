@@ -122,6 +122,11 @@
     setText('awmCntLate',    summary.lateCount    ?? '—');
     setText('awmCntAbsent',  summary.absentCount  ?? '—');
     setText('awmCntLeave',   summary.leaveCount   ?? '—');
+    // R35-GAP-P2 M-G1: work_mode별 카드 노출
+    setText('awmCntOffice',       summary.officeCount       ?? '—');
+    setText('awmCntRemote',       summary.remoteCount       ?? '—');
+    setText('awmCntField',        summary.fieldCount        ?? '—');
+    setText('awmCntBusinessTrip', summary.businessTripCount ?? '—');
 
     const tbody = document.getElementById('awmRecordsBody');
     if (!tbody) return;
@@ -332,7 +337,8 @@
   }
 
   async function loadWorkplaces() {
-    const res = await api('/api/admin-att-workplaces');
+    // R35-GAP-P2 M-G2: 어드민 거점 관리는 비활성 포함 전체 보기
+    const res = await api('/api/admin-att-workplaces?includeInactive=1');
     const rows = res.data?.data || res.data || [];
     const tbody = document.getElementById('awmWorkplacesBody');
     if (!tbody) return;
