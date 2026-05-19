@@ -7,6 +7,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { isValidRoleCode } from "../../lib/milestone-roles";
 
 export const config = { path: "/api/admin-milestone-role-assign" };
 
@@ -44,9 +45,13 @@ export default async function handler(req: Request, _ctx: Context) {
     const { memberId, milestoneRole } = body;
     if (!memberId) return Response.json({ ok: false, error: "memberId 필수" }, { status: 400 });
 
-    const valid = ["SM", "PM", "SI", null, ""];
-    if (!valid.includes(milestoneRole)) {
-      return Response.json({ ok: false, error: "유효하지 않은 역할값 (SM/PM/SI/빈값)" }, { status: 400 });
+    /* R39 Stage 2: 활성 역할 코드 DB 조회로 동적 검증 (null·빈값 허용은 헬퍼 내부 처리) */
+    const valid = await isValidRoleCode(milestoneRole);
+    if (!valid) {
+      return Response.json({
+        ok: false,
+        error: "유효하지 않은 역할값입니다 (활성 역할 카탈로그에 없음)",
+      }, { status: 400 });
     }
     try {
       await db.execute(sql`

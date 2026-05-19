@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { loadAllRoles } from "../../lib/milestone-roles";
 
 export const config = { path: "/api/admin/milestone-settlement-export" };
 
@@ -40,15 +41,18 @@ export default async function handler(req: Request, _ctx: Context) {
     `);
     const settlements = (rows as any).rows || (rows as any[]);
 
-    // 직책 레이블 매핑 (R32-P0-MS-C4: 실제 컬럼은 대문자 SM/PM/SI — 대소문자 동시 매핑)
-    const roleLabel: Record<string, string> = {
-      SM: "사무국장",
-      PM: "정책국장",
-      SI: "SI 영업관리자",
-      sm: "사무국장",
-      pm: "정책국장",
-      si: "SI 영업관리자",
-    };
+    /* R39 Stage 2: 역할 라벨 DB 동적 매핑 (milestone_roles 비활성도 포함 — 과거 결산도 라벨 보장).
+       대소문자 둘 다 매핑 (실 컬럼은 대문자 SM/PM/SI). */
+    const roleLabel: Record<string, string> = {};
+    try {
+      const allRoles = await loadAllRoles();
+      for (const r of allRoles) {
+        roleLabel[r.code] = r.name;
+        roleLabel[r.code.toLowerCase()] = r.name;
+      }
+    } catch (e) {
+      console.warn("[settlement-export] 역할 라벨 로드 실패·코드 그대로 노출:", e);
+    }
 
     // UTF-8 BOM + CSV 생성
     const BOM = "﻿";
