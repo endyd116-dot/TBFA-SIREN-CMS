@@ -105,22 +105,15 @@ export default async function handler(req: Request, _ctx: Context) {
         return Response.json({ ok: false, error: "HOLD 사유를 입력하세요" }, { status: 400 });
       }
 
-      const sets: Record<string, string> = {
-        status: transition.to,
-        reviewed_by: String(admin.id),
-        reviewed_at: "NOW()",
-        updated_at: "NOW()",
-      };
-      if (action === "approve") sets.approved_at = "NOW()";
-      if (action === "paid") sets.paid_at = "NOW()";
-      if (action === "hold") sets.hold_reason = `'${String(body.holdReason).replace(/'/g, "''")}'`;
-      if (action === "resume") sets.hold_reason = "NULL";
-      if (body?.reviewNote) sets.review_note = `'${String(body.reviewNote).replace(/'/g, "''")}'`;
-
-      const setClauses = Object.entries(sets)
-        .map(([k, v]) => `${k} = ${v === "NULL" || v.startsWith("NOW()") || v.startsWith("'") ? v : `'${v}'`}`)
-        .join(", ");
-      await db.execute(sql.raw(`UPDATE quarterly_settlements SET ${setClauses} WHERE id = ${id}`));
+      /* ★ R34-P1-B-13: sql.raw + escape 패턴 → sql 템플릿 합성 (R32-P0-C2·C3 동일 패턴 적용) */
+      let updateSql = sql`UPDATE quarterly_settlements SET status = ${transition.to}, reviewed_by = ${admin.id}, reviewed_at = NOW(), updated_at = NOW()`;
+      if (action === "approve") updateSql = sql`${updateSql}, approved_at = NOW()`;
+      if (action === "paid")    updateSql = sql`${updateSql}, paid_at = NOW()`;
+      if (action === "hold")    updateSql = sql`${updateSql}, hold_reason = ${String(body.holdReason)}`;
+      if (action === "resume")  updateSql = sql`${updateSql}, hold_reason = NULL`;
+      if (body?.reviewNote)     updateSql = sql`${updateSql}, review_note = ${String(body.reviewNote)}`;
+      updateSql = sql`${updateSql} WHERE id = ${id}`;
+      await db.execute(updateSql);
 
       const periodLabel = `${settle.year}년 ${settle.quarter}분기`;
 
@@ -201,8 +194,9 @@ async function ensureNextQuarter(year: number, quarter: number) {
   const startDate = `${nextY}-${String(startMonth).padStart(2, "0")}-01`;
   const endMonthDate = new Date(nextY, startMonth + 2, 0); // 분기 마지막 달의 말일
   const endDate = `${nextY}-${String(endMonthDate.getMonth() + 1).padStart(2, "0")}-${String(endMonthDate.getDate()).padStart(2, "0")}`;
-  /* 결산일은 분기 종료 다음 달 말일 */
-  const settleDt = new Date(endMonthDate.getFullYear(), endMonthDate.getMonth() + 2, 0);
+  /* ★ R34-P1-B-5: 결산일은 분기 종료일 + 14일 (UI 안내 "10~14일"과 정합) */
+  const settleDt = new Date(endMonthDate);
+  settleDt.setDate(settleDt.getDate() + 14);
   const settlementDate = `${settleDt.getFullYear()}-${String(settleDt.getMonth() + 1).padStart(2, "0")}-${String(settleDt.getDate()).padStart(2, "0")}`;
 
   await db.execute(sql`

@@ -560,9 +560,10 @@ function renderRoles(members) {
 async function saveRole(memberId) {
   const sel = document.getElementById('msRole_' + memberId);
   const milestoneRole = sel?.value || null;
-  const res = await amApi(`/api/milestone-members/${memberId}/role`, {
-    method: 'PATCH',
-    body: { milestoneRole: milestoneRole || null },
+  /* ★ R34-P1-B-11: 단일 endpoint(admin-milestone-role-assign)로 통일 — milestone-members PATCH /:id/role deprecated */
+  const res = await amApi('/api/admin-milestone-role-assign', {
+    method: 'PUT',
+    body: { memberId, milestoneRole: milestoneRole || null },
   });
   if (!res.ok) { amToast(res.data?.error || '저장 실패', 'error'); return; }
   amToast('역할이 저장되었습니다.', 'success');

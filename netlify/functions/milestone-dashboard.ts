@@ -178,41 +178,57 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   } catch (err) { /* non-critical */ }
 
+  /* ★ R34-P1-B-9: formatDashboard 헬퍼로 응답 키 표준화 (재사용·테스트 용이성 + 키 일관성) */
   return Response.json({
     ok: true,
-    data: {
-      quarter: {
-        id: quarter.id, year: quarter.year, quarter: quarter.quarter,
-        startDate: quarter.start_date, endDate: quarter.end_date, status: quarter.status,
-      },
-      milestoneRole,
-      revenueProgress,
-      nonRevenueAchievements,
-      settlement,
-      estimatedIncentive: {
-        revenueLinked: revenueLinkedTotal,
-        nonRevenue: nonRevenueTotal,
-        total: revenueLinkedTotal + nonRevenueTotal,
-      },
-      /* ★ R29-MS-GAP2-E: 인센티브 계산 breakdown 상세 */
-      breakdown: {
-        revenue: revenueProgress.map((p: any) => ({
-          milestoneName: p.name,
-          milestoneCode: p.code,
-          currentAmount: Number(p.currentVerifiedAmount || 0),
-          thresholdValue: Number(p.thresholdValue || 0),
-          subtotal: Number(p.estimatedIncentive || 0),
-        })).filter((r: any) => r.subtotal > 0 || r.currentAmount > 0),
-        nonRevenue: nonRevenueAchievements
-          .filter((a: any) => a.status === "VERIFIED" && a.isSelectedForQuarter)
-          .map((a: any) => ({
-            milestoneName: a.name,
-            milestoneCode: a.milestoneCode,
-            bonus: Number(a.bonusAmount || 0),
-          })),
-      },
-    },
+    data: formatDashboard({
+      quarter, milestoneRole, revenueProgress, nonRevenueAchievements, settlement,
+      revenueLinkedTotal, nonRevenueTotal,
+    }),
   });
+}
+
+function formatDashboard(d: {
+  quarter: any;
+  milestoneRole: string | null;
+  revenueProgress: any[];
+  nonRevenueAchievements: any[];
+  settlement: any;
+  revenueLinkedTotal: number;
+  nonRevenueTotal: number;
+}) {
+  return {
+    quarter: {
+      id: d.quarter.id, year: d.quarter.year, quarter: d.quarter.quarter,
+      startDate: d.quarter.start_date, endDate: d.quarter.end_date, status: d.quarter.status,
+    },
+    milestoneRole: d.milestoneRole,
+    revenueProgress: d.revenueProgress,
+    nonRevenueAchievements: d.nonRevenueAchievements,
+    settlement: d.settlement,
+    estimatedIncentive: {
+      revenueLinked: d.revenueLinkedTotal,
+      nonRevenue: d.nonRevenueTotal,
+      total: d.revenueLinkedTotal + d.nonRevenueTotal,
+    },
+    /* ★ R29-MS-GAP2-E: 인센티브 계산 breakdown 상세 */
+    breakdown: {
+      revenue: d.revenueProgress.map((p: any) => ({
+        milestoneName: p.name,
+        milestoneCode: p.code,
+        currentAmount: Number(p.currentVerifiedAmount || 0),
+        thresholdValue: Number(p.thresholdValue || 0),
+        subtotal: Number(p.estimatedIncentive || 0),
+      })).filter((r: any) => r.subtotal > 0 || r.currentAmount > 0),
+      nonRevenue: d.nonRevenueAchievements
+        .filter((a: any) => a.status === "VERIFIED" && a.isSelectedForQuarter)
+        .map((a: any) => ({
+          milestoneName: a.name,
+          milestoneCode: a.milestoneCode,
+          bonus: Number(a.bonusAmount || 0),
+        })),
+    },
+  };
 }
 
 function calcIncentive(formula: any, thresholdEnabled: number, thrVal: number, current: number): number {

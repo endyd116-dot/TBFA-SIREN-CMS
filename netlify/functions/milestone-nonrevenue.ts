@@ -72,6 +72,18 @@ export default async function handler(req: Request, _ctx: Context) {
       if (md.target_milestone_role !== admin.milestoneRole && admin.role !== "super_admin") {
         return Response.json({ ok: false, error: "본인 담당 마일스톤만 제출 가능" }, { status: 403 });
       }
+
+      /* ★ R34-P1-B-6: quarterApplicable 검증 — sm-q1-*는 Q1, sm-q2-*는 Q2, 'ALL'·null은 분기 무관 */
+      if (md.quarter_applicable && md.quarter_applicable !== "ALL") {
+        const qInfo = await db.execute(sql`SELECT quarter FROM quarters WHERE id = ${Number(quarterId)}`);
+        const qRow = (qInfo as any).rows?.[0] || (qInfo as any[])[0];
+        if (qRow && `Q${qRow.quarter}` !== md.quarter_applicable) {
+          return Response.json({
+            ok: false,
+            error: `이 마일스톤은 ${md.quarter_applicable} 전용입니다 (현재 분기 Q${qRow.quarter})`,
+          }, { status: 400 });
+        }
+      }
       // bonusFormula에서 기본 보너스 금액 추출
       const formula = md.bonus_formula as any;
       const bonusAmount = formula?.type === "FLAT" ? String(formula.unitAmount || 0) : "0";
@@ -112,10 +124,10 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "분기당 비매출 보너스는 최대 2개까지만 선택 가능합니다" }, { status: 400 });
     }
     try {
-      // 선택 전 VERIFIED 확인
-      /* ★ R32-P0-MS-C1 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
-      if (selectedIds.length > 0) {
-        const ids = selectedIds.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n));
+      /* ★ R32-P0-MS-C1 + R34-P1-B-8: sql 템플릿 + 단일 UPDATE로 원자화 (race 차단) */
+      const ids = selectedIds.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n));
+      if (ids.length > 0) {
+        // VERIFIED + 본인 소유 사전 검증
         const checkRows = await db.execute(sql`
           SELECT id, status FROM non_revenue_achievements
           WHERE id = ANY(${ids}::int[]) AND submitted_by = ${admin.id}
@@ -126,19 +138,21 @@ export default async function handler(req: Request, _ctx: Context) {
           return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
         }
       }
-      // 기존 선택 초기화
+
+      // 단일 SQL로 모든 본인 분기 행을 일괄 갱신 (선택된 ids는 selection_order 부여, 나머지는 NULL/false)
+      const id1 = ids[0] ?? -1;
+      const id2 = ids[1] ?? -1;
       await db.execute(sql`
-        UPDATE non_revenue_achievements SET is_selected_for_quarter = FALSE, selection_order = NULL
+        UPDATE non_revenue_achievements
+        SET is_selected_for_quarter = (id = ANY(${ids}::int[])),
+            selection_order = CASE
+              WHEN id = ${id1} THEN 1
+              WHEN id = ${id2} THEN 2
+              ELSE NULL
+            END,
+            updated_at = NOW()
         WHERE submitted_by = ${admin.id} AND quarter_id = ${Number(quarterId)}
       `);
-      // 새로 선택
-      for (let i = 0; i < selectedIds.length; i++) {
-        await db.execute(sql`
-          UPDATE non_revenue_achievements
-          SET is_selected_for_quarter = TRUE, selection_order = ${i + 1}
-          WHERE id = ${Number(selectedIds[i])} AND submitted_by = ${admin.id}
-        `);
-      }
       return Response.json({ ok: true });
     } catch (err) { return jsonError("select", err); }
   }

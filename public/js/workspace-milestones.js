@@ -656,10 +656,11 @@
         const isEventRange = formula.type === 'EVENT_RANGE' || formula.formula_type === 'EVENT_RANGE';
         const rangeMin = formula.minAmount || formula.min || 0;
         const rangeMax = formula.maxAmount || formula.max || 0;
+        /* ★ R34-P1-B-1: EVENT_RANGE 단위 일관성 — DB 저장은 원 단위, UI 표시만 만원 변환. 입력값(min/max)은 원 단위 그대로 */
         const rangeHint = isEventRange
-          ? `<div style="font-size:11px;color:#7c3aed;margin-top:3px">범위: ${Number(rangeMin).toLocaleString()}~${Number(rangeMax).toLocaleString()}만원</div>
-             <input type="number" id="eventRangeAmount_${e.id}" placeholder="금액 입력" min="${rangeMin}" max="${rangeMax}" disabled
-               style="margin-top:4px;width:120px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12.5px">`
+          ? `<div style="font-size:11px;color:#7c3aed;margin-top:3px">범위: ${(Number(rangeMin)/10000).toLocaleString()}만원 ~ ${(Number(rangeMax)/10000).toLocaleString()}만원 (원 단위 입력)</div>
+             <input type="number" id="eventRangeAmount_${e.id}" placeholder="원 단위 금액" min="${rangeMin}" max="${rangeMax}" disabled
+               style="margin-top:4px;width:140px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12.5px">`
           : '';
         const actionBtn = e.status === 'PENDING' ? `
           ${isEventRange ? `<button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="window.__msVerifyEventRange(${e.id})" style="background:#ede9fe;color:#5b21b6;border:none">검증 + 금액 확정</button>` :
@@ -699,11 +700,11 @@
     const input = document.getElementById(`eventRangeAmount_${id}`);
     const eventRangeAmount = input ? Number(input.value) : 0;
     if (!eventRangeAmount || eventRangeAmount <= 0) { toast('금액을 입력하세요', 'error'); return; }
-    /* ★ R29-MS-GAP1-I: 클라이언트 사이드 범위 검증 */
+    /* ★ R29-MS-GAP1-I + R34-P1-B-1: 클라이언트 범위 검증 (원 단위, 표시는 만원 변환) */
     const minA = Number(input.min || 0);
     const maxA = Number(input.max || 0);
     if (maxA > 0 && (eventRangeAmount < minA || eventRangeAmount > maxA)) {
-      toast(`범위 내 금액을 입력하세요 (${minA.toLocaleString()}~${maxA.toLocaleString()}만원)`, 'error');
+      toast(`범위 내 금액을 입력하세요 (${(minA/10000).toLocaleString()}~${(maxA/10000).toLocaleString()}만원)`, 'error');
       return;
     }
     try {

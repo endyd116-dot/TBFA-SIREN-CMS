@@ -57,8 +57,9 @@ export default async function handler(req: Request, _ctx: Context) {
         FROM milestone_definitions
         ORDER BY sort_order, id
       `);
-      /* ★ R29-GAP-P2-M2: 두 정의 API 응답 표준 통일 — { data: { milestones: [...] } } */
-      const milestones = (rows as any).rows ?? rows;
+      /* ★ R29-GAP-P2-M2: 두 정의 API 응답 표준 통일 — { data: { milestones: [...] } }
+         ★ R34-P1-B-12: snake_case 원본 유지 + camelCase 보조 키 동시 노출 (클라이언트 양쪽 호환) */
+      const milestones = ((rows as any).rows ?? rows).map(addCamelKeys);
       return Response.json({ ok: true, data: { milestones } });
     } catch (err) { return jsonErr("select", err); }
   }
@@ -102,8 +103,9 @@ export default async function handler(req: Request, _ctx: Context) {
         ) RETURNING *
       `);
       const row = ((rows as any).rows ?? rows)[0];
-      /* ★ R29-GAP-P2-M2: 단건 응답도 { data: { milestone: {...} } }로 통일 (id 키 호환 병행 유지) */
-      return Response.json({ ok: true, id: row?.id, data: { milestone: row } });
+      /* ★ R29-GAP-P2-M2: 단건 응답도 { data: { milestone: {...} } }로 통일 (id 키 호환 병행 유지)
+         ★ R34-P1-B-12: camelCase 보조 키 추가 */
+      return Response.json({ ok: true, id: row?.id, data: { milestone: addCamelKeys(row) } });
     } catch (err) { return jsonErr("insert", err); }
   }
 
@@ -219,4 +221,28 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });
+}
+
+/* ★ R34-P1-B-12: snake_case 원본 + camelCase 보조 키 동시 노출 (양쪽 클라이언트 호환) */
+function addCamelKeys(r: any) {
+  if (!r) return r;
+  return {
+    ...r,
+    targetMilestoneRole: r.target_milestone_role,
+    businessUnit: r.business_unit,
+    revenueSource: r.revenue_source,
+    thresholdEnabled: r.threshold_enabled,
+    thresholdValue: r.threshold_value,
+    thresholdUnit: r.threshold_unit,
+    bonusFormula: r.bonus_formula,
+    quarterApplicable: r.quarter_applicable,
+    isSharedThreshold: r.is_shared_threshold,
+    sharedThresholdGroup: r.shared_threshold_group,
+    isActive: r.is_active,
+    effectiveFrom: r.effective_from,
+    effectiveTo: r.effective_to,
+    sortOrder: r.sort_order,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
