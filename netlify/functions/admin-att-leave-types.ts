@@ -209,12 +209,33 @@ export default async function handler(req: Request) {
     }
   }
 
-  // DELETE — 삭제 (?id=)
+  // DELETE — soft delete (is_active=false) — R34-P2 (round3 M-G1)
+  // 기존 hard DELETE는 attLeaveBalances cascade로 잔액 손실, attLeaveRequests RESTRICT로 실패.
+  // 사용 이력이 있는 경우 비활성화로 처리 — 화면 조회에서는 is_active=true만 표시.
   if (method === "DELETE") {
     const id = Number(url.searchParams.get("id"));
     if (!id) return jsonError("validate_id", new Error("id 필수"), 400);
 
     try {
+      // 사용 이력 확인
+      const usageRes: any = await db.execute(sql`
+        SELECT
+          (SELECT COUNT(*)::int FROM att_leave_requests WHERE leave_type_id = ${id}) AS req_cnt,
+          (SELECT COUNT(*)::int FROM att_leave_balances WHERE leave_type_id = ${id}) AS bal_cnt
+      `);
+      const usage = (Array.isArray(usageRes) ? usageRes[0] : (usageRes.rows ?? [])[0]) ?? {};
+      const reqCnt = Number(usage.req_cnt ?? 0);
+      const balCnt = Number(usage.bal_cnt ?? 0);
+
+      if (reqCnt > 0 || balCnt > 0) {
+        // 사용 이력 있음 — soft delete
+        await db.execute(sql`
+          UPDATE att_leave_types SET is_active = false, updated_at = NOW() WHERE id = ${id}
+        `);
+        return jsonOk({ softDeleted: id, reason: "사용 이력 존재 — 비활성화로 처리", reqCnt, balCnt });
+      }
+
+      // 사용 이력 없음 — 진짜 삭제
       await db.execute(sql`DELETE FROM att_leave_types WHERE id = ${id}`);
       return jsonOk({ deleted: id });
     } catch (err) {

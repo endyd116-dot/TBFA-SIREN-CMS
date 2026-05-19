@@ -26,20 +26,39 @@ export default async function handler(req: Request) {
 
   const memberUid: string = String(auth.ctx.member.id);
 
-  // GET — 본인 신청 내역
+  // GET — 본인 신청 내역 (R34-P2 round3 P-G1: camelCase 정합)
   if (method === "GET") {
     try {
-      const rows = await db.execute(sql`
+      const result: any = await db.execute(sql`
         SELECT
-          r.*,
-          lt.name AS leave_type_name
+          r.id, r.member_uid, r.leave_type_id, r.start_date, r.end_date,
+          r.days, r.reason, r.status, r.reviewed_by, r.review_note,
+          r.created_at, r.updated_at,
+          lt.name AS leave_type_name, lt.unit, lt.is_paid
         FROM att_leave_requests r
         JOIN att_leave_types lt ON lt.id = r.leave_type_id
         WHERE r.member_uid = ${memberUid}
         ORDER BY r.created_at DESC
         LIMIT 100
       `);
-      return jsonOk(rows.rows);
+      const rows = (result.rows as any[]).map(r => ({
+        id:           Number(r.id),
+        memberUid:    r.member_uid,
+        leaveTypeId:  Number(r.leave_type_id),
+        leaveTypeName: r.leave_type_name,
+        unit:         r.unit,
+        isPaid:       r.is_paid,
+        startDate:    r.start_date,
+        endDate:      r.end_date,
+        days:         r.days,
+        reason:       r.reason,
+        status:       r.status,
+        reviewedBy:   r.reviewed_by,
+        reviewNote:   r.review_note,
+        createdAt:    r.created_at,
+        updatedAt:    r.updated_at,
+      }));
+      return jsonOk(rows);
     } catch (err) {
       return jsonError("select_requests", err);
     }

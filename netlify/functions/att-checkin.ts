@@ -118,7 +118,7 @@ export default async function handler(req: Request) {
     } catch {}
   }
 
-  // 지각 판정
+  // 지각 판정 — R34-P2: workMode + coreStartTime 전달 (REMOTE LATE 정합)
   const status = determineStatus(
     now, null,
     {
@@ -126,9 +126,12 @@ export default async function handler(req: Request) {
       checkOutTime: String(policy.checkOutTime),
       lateGraceMins: policy.lateGraceMins,
       earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
+      coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
+      coreEndTime:   policy.coreEndTime   ? String(policy.coreEndTime)   : null,
     },
     isLeave,
-    isHoliday
+    isHoliday,
+    workMode.mode,
   );
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

@@ -182,15 +182,23 @@ export function determineStatus(
     checkOutTime: string; // 'HH:MM'
     lateGraceMins: number;
     earlyLeaveGraceMins: number;
+    coreStartTime?: string | null;  // R34-P2: REMOTE LATE 기준 (코어타임 시작)
+    coreEndTime?:   string | null;
   },
   isLeave: boolean,
-  isHoliday: boolean
+  isHoliday: boolean,
+  workMode?: string,  // R34-P2 (round3 M-G7): REMOTE는 코어타임 기준으로 LATE 판정
 ): string {
   if (isHoliday) return "HOLIDAY";
   if (isLeave) return "LEAVE";
   if (!checkInTime) return "ABSENT";
 
-  const [ciH, ciM] = policy.checkInTime.split(":").map(Number);
+  // R34-P2 (M-G7): REMOTE·BUSINESS_TRIP은 코어타임 시작 기준 LATE 판정 (자율 출근 정책)
+  //   coreStartTime 정책 미설정 시 fallback으로 표준 출근시각 적용
+  const useCoreTime = (workMode === "REMOTE" || workMode === "BUSINESS_TRIP") && policy.coreStartTime;
+  const checkInRef = useCoreTime ? (policy.coreStartTime as string) : policy.checkInTime;
+
+  const [ciH, ciM] = checkInRef.split(":").map(Number);
   const [coH, coM] = policy.checkOutTime.split(":").map(Number);
 
   const stdCheckIn  = ciH * 60 + ciM + policy.lateGraceMins;
