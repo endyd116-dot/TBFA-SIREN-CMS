@@ -15,6 +15,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { callGeminiJSON } from "../../lib/ai-gemini";
+/* ★ R35-GAP-P1-B-H3: 자동 제출 시 슈퍼어드민 알림 (사용자 직접 제출과 알림 정책 일관) */
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
@@ -199,6 +201,20 @@ async function checkAndAutoSubmitAchievement(opts: {
          'PENDING', NOW(), NOW())
     `);
     console.info(`[ms-match-bg] 비매출 성과 자동 제출 완료: memberId=${memberId} defId=${milestoneDefId}`);
+
+    /* ★ R35-GAP-P1-B-H3: 슈퍼어드민 검증 요청 알림 (사용자 직접 제출 milestone-nonrevenue.ts:92-97과 동일 패턴, AI 명시) */
+    let memberName: string | null = null;
+    try {
+      const mRows = await db.execute(sql`SELECT name, email FROM members WHERE id = ${memberId}`);
+      const mRow = (mRows as any).rows?.[0] || (mRows as any[])[0];
+      memberName = mRow?.name || mRow?.email || null;
+    } catch { /* 이름 조회 실패는 알림 영향 없음 */ }
+    notifyAllSuperAdmins({
+      category: "milestone", severity: "info",
+      title: `비매출 성과 자동 제출 (AI): ${def.name}`,
+      message: `${memberName || `회원 ID ${memberId}`}의 WBS 카드 ${achieved}건 완료로 자동 매칭·제출되었습니다. 검증 필요.`,
+      link: "/admin#nonrevenue-verify",
+    }).catch(() => {});
   } catch (err) {
     console.warn(`[ms-match-bg] checkAndAutoSubmitAchievement 실패:`, err);
   }

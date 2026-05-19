@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+/* ★ R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator (operatorActive=true 일반 회원도 매출 입력) */
+import { requireOperator } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { createNotification } from "../../lib/notify";
@@ -7,10 +8,10 @@ import { createNotification } from "../../lib/notify";
 export const config = { path: "/api/milestone-revenue*" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  /* ★ R29-MS-GAP1: 운영자도 type='admin'으로 등록되므로 requireAdmin 통과.
+  /* ★ R35-GAP-P1-B-H1: operator+admin 모두 허용 (명세 §0 정합).
      본인 milestoneRole 기준 필터로 권한 분리. super_admin은 전체 우회. */
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  const auth = await requireOperator(req);
+  if (!auth.ok) return auth.res;
   const member = auth.ctx.member as any;
 
   function jsonError(step: string, err: any) {

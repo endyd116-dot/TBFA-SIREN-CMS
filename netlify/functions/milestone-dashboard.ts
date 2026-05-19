@@ -1,13 +1,14 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+/* ★ R35-GAP-P1-B-H1: operator+admin 명세 정합 — requireAdmin → requireOperator */
+import { requireOperator } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/milestone-dashboard" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  const auth = await requireOperator(req);
+  if (!auth.ok) return auth.res;
   const member = auth.ctx.member as any;
 
   const url = new URL(req.url);
