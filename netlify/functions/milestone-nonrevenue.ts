@@ -113,15 +113,17 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     try {
       // 선택 전 VERIFIED 확인
+      /* ★ R32-P0-MS-C1 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       if (selectedIds.length > 0) {
-        const checkRows = await db.execute(sql.raw(
-          `SELECT id, status FROM non_revenue_achievements WHERE id = ANY($1::int[]) AND submitted_by = $2`,
-          [selectedIds, admin.id]
-        ));
+        const ids = selectedIds.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n));
+        const checkRows = await db.execute(sql`
+          SELECT id, status FROM non_revenue_achievements
+          WHERE id = ANY(${ids}::int[]) AND submitted_by = ${admin.id}
+        `);
         const items = (checkRows as any).rows || (checkRows as any[]);
         const notVerified = items.filter((i: any) => i.status !== "VERIFIED");
-        if (notVerified.length > 0) {
-          return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 항목만 선택 가능합니다" }, { status: 400 });
+        if (notVerified.length > 0 || items.length !== ids.length) {
+          return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
         }
       }
       // 기존 선택 초기화

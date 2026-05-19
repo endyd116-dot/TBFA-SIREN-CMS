@@ -1,7 +1,8 @@
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
+import { milestoneDefinitions } from "../../db/schema";
 
 export const config = { path: "/api/milestone-definitions" };
 
@@ -86,24 +87,23 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     try {
+      /* ★ R32-P0-MS-C3 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → drizzle update().set() ORM */
       const allowed = ["name","thresholdEnabled","thresholdValue","thresholdUnit","bonusFormula",
                        "quarterApplicable","isActive","effectiveFrom","effectiveTo","sortOrder","businessUnit","revenueSource"];
-      const sets: string[] = [];
-      const vals: any[] = [];
+      const patch: Record<string, any> = {};
       for (const key of allowed) {
-        if (key in body) {
-          const col = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-          const val = key === "bonusFormula" ? JSON.stringify(body[key]) : body[key];
-          sets.push(`${col} = $${vals.push(val)}`);
-        }
+        if (key in body) patch[key] = body[key];
       }
-      if (!sets.length) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
-      sets.push(`updated_at = NOW()`);
-      vals.push(Number(id));
-      const q = `UPDATE milestone_definitions SET ${sets.join(",")} WHERE id = $${vals.length} RETURNING *`;
-      const rows = await db.execute(sql.raw(q, vals));
-      const updated = (rows as any).rows?.[0] || rows[0];
-      if (!updated) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+      if (!Object.keys(patch).length) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
+      patch.updatedAt = new Date();
+      const updatedRows = await db.update(milestoneDefinitions)
+        .set(patch)
+        .where(eq(milestoneDefinitions.id, Number(id)))
+        .returning({ id: milestoneDefinitions.id });
+      if (!updatedRows?.length) return Response.json({ ok: false, error: "해당 마일스톤 없음" }, { status: 404 });
+      // formatDef는 snake_case 접근이라 raw SELECT 재조회
+      const rawRows = await db.execute(sql`SELECT * FROM milestone_definitions WHERE id = ${Number(id)}`);
+      const updated = (rawRows as any).rows?.[0] || (rawRows as any[])[0];
       return Response.json({ ok: true, data: { milestone: formatDef(updated) } });
     } catch (err) { return jsonError("update", err); }
   }

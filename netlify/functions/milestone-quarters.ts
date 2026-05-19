@@ -62,13 +62,16 @@ export default async function handler(req: Request, _ctx: Context) {
       return Response.json({ ok: false, error: "유효하지 않은 상태값" }, { status: 400 });
     }
     try {
-      const sets: string[] = [`updated_at = NOW()`];
-      const vals: any[] = [];
-      if (status) { vals.push(status); sets.push(`status = $${vals.length}`); }
-      if (settlementDate) { vals.push(settlementDate); sets.push(`settlement_date = $${vals.length}`); }
-      vals.push(Number(id));
-      const rows = await db.execute(sql.raw(`UPDATE quarters SET ${sets.join(",")} WHERE id = $${vals.length} RETURNING *`, vals));
-      const q = (rows as any).rows?.[0] || rows[0];
+      /* ★ R32-P0-MS-C2 BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
+      if (!status && !settlementDate) {
+        return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
+      }
+      let updateSql = sql`UPDATE quarters SET updated_at = NOW()`;
+      if (status) updateSql = sql`${updateSql}, status = ${status}`;
+      if (settlementDate) updateSql = sql`${updateSql}, settlement_date = ${settlementDate}::date`;
+      updateSql = sql`${updateSql} WHERE id = ${Number(id)} RETURNING *`;
+      const rows = await db.execute(updateSql);
+      const q = (rows as any).rows?.[0] || (rows as any[])[0];
       if (!q) return Response.json({ ok: false, error: "분기 없음" }, { status: 404 });
       return Response.json({ ok: true, data: { quarter: formatQ(q) } });
     } catch (err) { return jsonError("update", err); }
