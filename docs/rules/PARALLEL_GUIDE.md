@@ -12,7 +12,7 @@
 
 | 채팅 | 모델 | 역할 | 변경 가능 영역 | 절대 금지 영역 |
 |---|---|---|---|---|
-| **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/milestones/`, `PROJECT_STATE.md`, 머지 커밋 | 코드 직접 작성 (설계만) |
+| **메인** | Opus 4.7 | 로직·DB 설계 + 머지·조율 | `docs/active/`, `PROJECT_STATE.md`, 머지 커밋 | 코드 직접 작성 (설계만) |
 | **A** | Sonnet 4.6 | 프론트 구현 | `public/**` (HTML·CSS·JS), `assets/**` | `lib/`, `netlify/functions/`, `db/`, `drizzle/` |
 | **B** | Sonnet 4.6 | 백 구현 | `netlify/functions/`, `lib/`, `db/schema.ts`, `drizzle/`, `.env.example` | `public/`, `assets/` |
 | **C** | Opus 4.7 | 라이브 검증 + fix + 백필 | 모든 영역 (단 fix·백필·검증 보고서 한정) | 신규 기능 추가 |
@@ -82,7 +82,7 @@ A·B 영역이 폴더 단위로 분리되므로 이전의 복잡한 매트릭스
 | `drizzle/**` | ❌ | ✅ | ✅ |
 | `package.json`, `package-lock.json` | ❌ | ✅ | ✅ |
 | `.env.example` | ❌ | ✅ | ✅ |
-| `PROJECT_STATE.md`, `docs/HANDOFF.md` | ❌ **절대 금지** | ❌ **절대 금지** | ✅ (보고서만) |
+| `PROJECT_STATE.md`, `docs/rules/HANDOFF.md` | ❌ **절대 금지** | ❌ **절대 금지** | ✅ (보고서만) |
 | `docs/**` (그 외) | ❌ | ❌ | ✅ |
 
 > **A·B가 PROJECT_STATE.md / HANDOFF.md를 수정하면 반드시 머지 충돌 발생** — 메인이 B 머지 기록을 먼저 쓰고, A가 이전 베이스로 덮어쓰기 때문. 상태 기록은 push 후 메인에 보고 텍스트로 전달하는 것으로 충분. (2026-05-11 사고 사례: A가 자발적으로 PROJECT_STATE.md 갱신 → 메인 머지 2회 충돌)
@@ -172,7 +172,7 @@ C 검증 시나리오:
 2. 회귀 점검 — 어드민 로그인·기존 화면·핵심 흐름 깨짐 여부
 3. bug 발견 시 fix 커밋 (verify 브랜치 그대로) → 메인 보고 → 머지
 4. 백필 필요 시 1회용 마이그 작성·Swain 호출·삭제
-5. 보고서 `docs/verify/{날짜}-phase{N}-r{M}.md`
+5. 보고서 `docs/history/verify/{날짜}-phase{N}-r{M}.md`
 
 ### Swain 검증 (외부 시스템 한정)
 
