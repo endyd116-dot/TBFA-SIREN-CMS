@@ -199,40 +199,35 @@
     if (el) el.textContent = val;
   }
 
+  /**
+   * R39 Stage 5 A-3: 모든 디바이스(모바일·PC·노트북) 위치 강제 수집.
+   * - 권한 거부·실패 시 출근 차단
+   * - PC에선 Wi-Fi 기반(낮은 정확도)도 기록 가치 ↑ → enableHighAccuracy:false
+   * - timeout 30초 (PC Wi-Fi 측위가 느린 경우 대비)
+   * - 단, OFFICE/FIELD 모드는 거점 반경 검증을 위해 가급적 고정밀(enableHighAccuracy:true)
+   */
   async function doCheckin(mode) {
     const btn = document.getElementById('attBtnCheckin');
     if (btn) btn.disabled = true;
 
-    const noGps = (mode === 'REMOTE' || mode === 'BUSINESS_TRIP');
-    const needsGps = (mode === 'OFFICE' || mode === 'FIELD');
-    if (noGps) {
-      await sendCheckin(null, null);
-      return;
-    }
     if (!navigator.geolocation) {
-      if (!needsGps) {
-        await sendCheckin(null, null);
-      } else {
-        toast('이 기기에서는 위치 정보를 사용할 수 없습니다');
-        if (btn) btn.disabled = false;
-      }
+      toast('이 브라우저는 위치 정보를 지원하지 않습니다. PC 출퇴근은 위치 권한이 필요합니다.');
+      if (btn) btn.disabled = false;
       return;
     }
+    const wantHighAccuracy = (mode === 'OFFICE' || mode === 'FIELD');
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await sendCheckin(pos.coords.latitude, pos.coords.longitude);
       },
-      async (err) => {
-        if (!needsGps) {
-          // 사무실·외근 모드가 아니면 GPS 없이 출근 허용
-          toast('위치 권한 없음 — GPS 없이 출근합니다 📡');
-          await sendCheckin(null, null);
-        } else {
-          toast('위치 정보를 허용해주세요 (설정 → 권한 → 위치)');
-          if (btn) btn.disabled = false;
-        }
+      (err) => {
+        const msg = (err && err.code === 1)
+          ? '위치 권한이 필요합니다. 브라우저 주소창 좌측 자물쇠 아이콘에서 위치 권한을 [허용]으로 변경 후 다시 시도하세요.'
+          : '위치 정보를 가져오지 못했습니다 (' + (err?.message || '시간 초과') + '). PC라면 Wi-Fi 연결을 확인해 주세요.';
+        toast(msg);
+        if (btn) btn.disabled = false;
       },
-      { timeout: 8000 }
+      { timeout: 30000, enableHighAccuracy: wantHighAccuracy, maximumAge: 60000 }
     );
   }
 
@@ -313,29 +308,29 @@
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
+  /* R39 Stage 5 A-3: 퇴근도 모든 모드 위치 강제 수집 */
   async function doCheckout(mode) {
     const btn = document.getElementById('attBtnCheckout');
     if (btn) btn.disabled = true;
 
-    const noGps = (mode === 'REMOTE' || mode === 'BUSINESS_TRIP');
-    if (noGps) {
-      await sendCheckout(null, null);
-      return;
-    }
     if (!navigator.geolocation) {
-      toast('이 기기에서는 위치 정보를 사용할 수 없습니다');
+      toast('이 브라우저는 위치 정보를 지원하지 않습니다. PC 출퇴근은 위치 권한이 필요합니다.');
       if (btn) btn.disabled = false;
       return;
     }
+    const wantHighAccuracy = (mode === 'OFFICE' || mode === 'FIELD');
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await sendCheckout(pos.coords.latitude, pos.coords.longitude);
       },
-      () => {
-        toast('위치 정보를 허용해주세요 (설정 → 권한 → 위치)');
+      (err) => {
+        const msg = (err && err.code === 1)
+          ? '위치 권한이 필요합니다. 브라우저 주소창 좌측 자물쇠 아이콘에서 위치 권한을 [허용]으로 변경 후 다시 시도하세요.'
+          : '위치 정보를 가져오지 못했습니다 (' + (err?.message || '시간 초과') + '). PC라면 Wi-Fi 연결을 확인해 주세요.';
+        toast(msg);
         if (btn) btn.disabled = false;
       },
-      { timeout: 10000 }
+      { timeout: 30000, enableHighAccuracy: wantHighAccuracy, maximumAge: 60000 }
     );
   }
 

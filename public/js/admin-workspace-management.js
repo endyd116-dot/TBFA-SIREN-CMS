@@ -1055,24 +1055,50 @@
     // 표
     const tbody = document.getElementById('awmMrBody');
     if (!lines.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="att-empty">기간 내 데이터 없음</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="att-empty">기간 내 데이터 없음</td></tr>';
       return;
     }
+    /* R39 Stage 5: drizzle .select() 응답은 camelCase. snake_case·camelCase 양쪽 호환. */
+    const _g = (o, ca, sn) => (o && (o[ca] != null ? o[ca] : o[sn]));
+    const memberSel = document.getElementById('awmMrMember');
+    const memberName = memberSel ? (memberSel.options[memberSel.selectedIndex]?.text || '직원') : '직원';
     tbody.innerHTML = lines.map(ln => {
       const r = ln.record;
       const isWeekend = (ln.dayName === '토' || ln.dayName === '일');
       const dayColor = ln.dayName === '일' ? '#ef4444' : (ln.dayName === '토' ? '#3b82f6' : '#374151');
       let workMode = '—', status = '—', checkIn = '—', checkOut = '—', mins = '—', ot = '—';
+      let mapCells = '—';
       if (r) {
-        workMode = r.work_mode ? (MODE_LABEL[r.work_mode] || r.work_mode) : '—';
-        status   = r.status ? (STATUS_LABEL[r.status] || r.status) : '—';
-        checkIn  = fmtTime(r.check_in_time);
-        checkOut = fmtTime(r.check_out_time);
-        mins     = fmtMins(r.working_mins);
-        ot       = r.overtime_mins ? fmtMins(r.overtime_mins) : '—';
+        const wm  = _g(r, 'workMode', 'work_mode');
+        const stt = r.status;
+        const cit = _g(r, 'checkInTime', 'check_in_time');
+        const cot = _g(r, 'checkOutTime', 'check_out_time');
+        const wmins = _g(r, 'workingMins', 'working_mins');
+        const otm = _g(r, 'overtimeMins', 'overtime_mins');
+        const ciLat = _g(r, 'checkInLat', 'check_in_lat');
+        const ciLng = _g(r, 'checkInLng', 'check_in_lng');
+        const coLat = _g(r, 'checkOutLat', 'check_out_lat');
+        const coLng = _g(r, 'checkOutLng', 'check_out_lng');
+        const wpId  = _g(r, 'workplaceId', 'workplace_id');
+        workMode = wm ? (MODE_LABEL[wm] || wm) : '—';
+        status   = stt ? (STATUS_LABEL[stt] || stt) : '—';
+        checkIn  = fmtTime(cit);
+        checkOut = fmtTime(cot);
+        mins     = fmtMins(wmins);
+        ot       = otm ? fmtMins(otm) : '—';
+
+        const inBtn = (ciLat != null && ciLng != null)
+          ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
+              name: memberName + ' — ' + ln.date, type:'in', lat:ciLat, lng:ciLng, workplaceId:wpId, workMode:wm,
+            }))})" style="padding:2px 6px;font-size:11px" title="출근 위치">📍출</button>` : '';
+        const outBtn = (coLat != null && coLng != null)
+          ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
+              name: memberName + ' — ' + ln.date, type:'out', lat:coLat, lng:coLng, workplaceId:wpId, workMode:wm,
+            }))})" style="padding:2px 6px;font-size:11px;margin-left:3px" title="퇴근 위치">📍퇴</button>` : '';
+        mapCells = (inBtn + outBtn) || '—';
       }
       const leaveTxt = ln.leaves.length
-        ? ln.leaves.map(lv => lv.is_half_day ? '반차' : '휴가').join(', ')
+        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join(', ')
         : '—';
       return '<tr' + (isWeekend ? ' style="background:#fafbfc"' : '') + '>' +
         '<td style="font-variant-numeric:tabular-nums">' + ln.date + '</td>' +
@@ -1084,6 +1110,7 @@
         '<td>' + mins + '</td>' +
         '<td>' + ot + '</td>' +
         '<td>' + (ln.leaves.length ? '<span style="color:#3b82f6;font-weight:600">' + leaveTxt + '</span>' : leaveTxt) + '</td>' +
+        '<td>' + mapCells + '</td>' +
       '</tr>';
     }).join('');
   }
@@ -1107,16 +1134,24 @@
 
     const header = ['날짜', '요일', '근무형태', '상태', '출근', '퇴근', '근무시간(분)', '야근(분)', '휴가'];
     const csvLines = [header.map(csvEsc).join(',')];
+    /* R39 Stage 5: camelCase·snake_case 양쪽 호환 */
+    const _g = (o, ca, sn) => (o && (o[ca] != null ? o[ca] : o[sn]));
     lines.forEach(ln => {
       const r = ln.record;
-      const workMode = r && r.work_mode ? (MODE_LABEL[r.work_mode] || r.work_mode) : '';
-      const status   = r && r.status ? (STATUS_LABEL[r.status] || r.status) : '';
-      const checkIn  = r && r.check_in_time ? fmtTime(r.check_in_time) : '';
-      const checkOut = r && r.check_out_time ? fmtTime(r.check_out_time) : '';
-      const mins     = r && r.working_mins != null ? r.working_mins : '';
-      const ot       = r && r.overtime_mins != null ? r.overtime_mins : '';
+      const wm  = r ? _g(r, 'workMode', 'work_mode') : null;
+      const stt = r && r.status;
+      const cit = r ? _g(r, 'checkInTime', 'check_in_time') : null;
+      const cot = r ? _g(r, 'checkOutTime', 'check_out_time') : null;
+      const wmins = r ? _g(r, 'workingMins', 'working_mins') : null;
+      const otm = r ? _g(r, 'overtimeMins', 'overtime_mins') : null;
+      const workMode = wm ? (MODE_LABEL[wm] || wm) : '';
+      const status   = stt ? (STATUS_LABEL[stt] || stt) : '';
+      const checkIn  = cit ? fmtTime(cit) : '';
+      const checkOut = cot ? fmtTime(cot) : '';
+      const mins     = wmins != null ? wmins : '';
+      const ot       = otm != null ? otm : '';
       const leaveTxt = ln.leaves.length
-        ? ln.leaves.map(lv => lv.is_half_day ? '반차' : '휴가').join('; ')
+        ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join('; ')
         : '';
       csvLines.push([ln.date, ln.dayName, workMode, status, checkIn, checkOut, mins, ot, leaveTxt].map(csvEsc).join(','));
     });
@@ -1133,6 +1168,166 @@
     toast('CSV 다운로드 완료');
   }
 
+  /* ═══════════════════════════════════
+     R39 Stage 5 A-1: 실시간 출퇴근 현황 (자동 새로고침 30초)
+     ═══════════════════════════════════ */
+  var _liveTimer = null;
+  var _liveMembersById = {}; // 직원 uid → { name, email, role }
+  var _liveWorkplacesById = {}; // 거점 id → { name, lat, lng }
+
+  async function loadLiveMembersAndPlaces() {
+    // 직원 목록 1회 로드 후 캐싱
+    try {
+      const resM = await api('/api/admin-att-members');
+      const list = resM.data?.data?.members || resM.data?.members || [];
+      list.forEach(m => { _liveMembersById[String(m.uid || m.id)] = m; });
+    } catch (e) { console.warn('[실시간] 직원 목록 로드 실패', e); }
+
+    // 거점 목록 — 위치 보기에서 거점 핀 표시용
+    try {
+      const resW = await api('/api/admin-att-workplaces');
+      const wps = resW.data?.data?.workplaces || resW.data?.workplaces || [];
+      wps.forEach(w => { _liveWorkplacesById[Number(w.id)] = w; });
+    } catch (e) { console.warn('[실시간] 거점 목록 로드 실패', e); }
+  }
+
+  function _liveMemberName(uid) {
+    const m = _liveMembersById[String(uid)];
+    return (m && m.name) || ('직원 #' + uid);
+  }
+
+  async function loadLiveStatus() {
+    const today = toDateStr();
+    const res = await api(`/api/admin-att-records?date=${today}`);
+    const payload = res.data?.data || res.data || {};
+    const rows = Array.isArray(payload.records) ? payload.records : [];
+
+    // 분류: 출근 중·퇴근 완료
+    let working = [], done = [];
+    rows.forEach(r => {
+      // attRecords는 camelCase로 반환됨 (checkInTime·checkOutTime·workMode·memberUid·workplaceId)
+      if (r.checkInTime) {
+        if (r.checkOutTime) done.push(r);
+        else working.push(r);
+      }
+    });
+
+    // 미출근 = 활성 직원 - 오늘 출근 기록 보유 직원
+    const todayUids = new Set(rows.filter(r => r.checkInTime).map(r => String(r.memberUid)));
+    const allActive = Object.values(_liveMembersById);
+    const absent = allActive.filter(m => !todayUids.has(String(m.uid || m.id)));
+
+    setText('awmLiveCntWorking', working.length);
+    setText('awmLiveCntDone', done.length);
+    setText('awmLiveCntAbsent', absent.length);
+
+    // 갱신 시각 표시
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    setText('awmLiveRefreshAt', '갱신: ' + hh + ':' + mm + ':' + ss);
+
+    // 표 렌더
+    const tbody = document.getElementById('awmLiveBody');
+    if (!tbody) return;
+
+    // 출근 중 → 퇴근 완료 순 정렬, 미출근은 아래
+    const ordered = working.concat(done);
+
+    if (ordered.length === 0 && absent.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="att-empty">오늘 등록된 직원이 없습니다</td></tr>';
+      return;
+    }
+
+    let html = '';
+    ordered.forEach(r => {
+      const name = _liveMemberName(r.memberUid);
+      const modeTag = `<span class="awm-tag ${r.workMode || ''}">${MODE_LABEL[r.workMode] || r.workMode || '—'}</span>`;
+      const statusBadge = r.checkOutTime
+        ? '<span class="att-badge holiday" style="background:#f3f4f6;color:#6b7280">퇴근</span>'
+        : '<span class="att-badge normal" style="background:#dcfce7;color:#15803d">근무 중</span>';
+      const checkInBtn = r.checkInTime
+        ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
+            name, type:'in', lat:r.checkInLat, lng:r.checkInLng, workplaceId:r.workplaceId, workMode:r.workMode,
+          }))})" style="padding:3px 8px;font-size:11px" title="출근 위치 보기">📍 출근</button>`
+        : '—';
+      const checkOutBtn = r.checkOutTime
+        ? `<button class="att-btn att-btn-default att-btn-sm" onclick="awmShowLiveLocation(${escAttr(JSON.stringify({
+            name, type:'out', lat:r.checkOutLat, lng:r.checkOutLng, workplaceId:r.workplaceId, workMode:r.workMode,
+          }))})" style="padding:3px 8px;font-size:11px" title="퇴근 위치 보기">📍 퇴근</button>`
+        : '—';
+      html += `<tr>
+        <td style="font-weight:600">${escHtml(name)}</td>
+        <td>${modeTag}</td>
+        <td>${statusBadge}</td>
+        <td>${fmtTime(r.checkInTime)}</td>
+        <td>${fmtTime(r.checkOutTime)}</td>
+        <td>${checkInBtn} ${checkOutBtn}</td>
+      </tr>`;
+    });
+    absent.forEach(m => {
+      html += `<tr style="opacity:.65">
+        <td style="font-weight:600">${escHtml(m.name)}</td>
+        <td><span style="color:#9ca3af;font-size:12px">—</span></td>
+        <td><span class="att-badge absent" style="background:#fee2e2;color:#b91c1c">미출근</span></td>
+        <td>—</td><td>—</td><td>—</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  function escAttr(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /** 실시간 표에서 호출 — 위치 모달 오픈 (인자가 JSON 문자열로 직렬화되어 들어옴) */
+  window.awmShowLiveLocation = function (jsonStr) {
+    let data;
+    try { data = (typeof jsonStr === 'string') ? JSON.parse(jsonStr) : jsonStr; } catch (_) { return; }
+    if (!window.AttMap) { alert('지도 헬퍼 로드 실패'); return; }
+
+    const place = data.workplaceId ? _liveWorkplacesById[Number(data.workplaceId)] : null;
+    window.AttMap.show({
+      title: data.name + ' — ' + (data.type === 'in' ? '출근' : '퇴근') + ' 위치',
+      userLat: data.lat, userLng: data.lng,
+      placeLat: place ? place.lat : null,
+      placeLng: place ? place.lng : null,
+      placeName: place ? place.name : null,
+      workMode: data.workMode,
+    });
+  };
+
+  function startLiveAutoRefresh() {
+    stopLiveAutoRefresh();
+    _liveTimer = setInterval(function () {
+      if (document.visibilityState !== 'visible') return; // 비활성 탭은 새로고침 스킵 (배터리)
+      // 근태 현황 탭 활성 상태일 때만
+      const recPanel = document.getElementById('awmPanelRecords');
+      if (!recPanel || !recPanel.classList.contains('active')) return;
+      loadLiveStatus().catch(function (e) { console.warn('[실시간 새로고침]', e); });
+    }, 30_000);
+  }
+  function stopLiveAutoRefresh() {
+    if (_liveTimer) { clearInterval(_liveTimer); _liveTimer = null; }
+  }
+
+  async function initLiveStatus() {
+    await loadLiveMembersAndPlaces();
+    await loadLiveStatus();
+    document.getElementById('awmBtnLiveRefresh')?.addEventListener('click', loadLiveStatus);
+    startLiveAutoRefresh();
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        // 다시 활성화 시 즉시 1회 갱신
+        const recPanel = document.getElementById('awmPanelRecords');
+        if (recPanel && recPanel.classList.contains('active')) {
+          loadLiveStatus().catch(function () {});
+        }
+      }
+    });
+  }
+
   /* ─── 초기화 ─── */
   async function init() {
     const admin = await checkAuth();
@@ -1140,6 +1335,7 @@
 
     setupTabs();
     await initRecordsTab();
+    await initLiveStatus();
   }
 
   if (document.readyState === 'loading') {
