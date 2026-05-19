@@ -852,6 +852,7 @@
       tbody.innerHTML = '<tr><td colspan="7" class="att-empty">잔여 휴가 정보가 없습니다</td></tr>';
       return;
     }
+    /* R39 Stage 7: [+1] [-1] [상세] 빠른 조정 버튼 + 기존 폼 */
     tbody.innerHTML = filtered.map(r => `
       <tr>
         <td>${escHtml(r.memberName || '—')}</td>
@@ -860,12 +861,36 @@
         <td>${escHtml(String(r.totalDays ?? '—'))}</td>
         <td>${escHtml(String(r.usedDays ?? '—'))}</td>
         <td><strong>${escHtml(String(r.remainingDays ?? '—'))}</strong></td>
-        <td>
-          <button class="att-btn att-btn-default att-btn-sm"
-            onclick="awmOpenBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}')">조정</button>
+        <td style="white-space:nowrap">
+          <button class="att-btn att-btn-default att-btn-sm" title="+1일 부여"
+            onclick="awmQuickBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}', 1)">+1</button>
+          <button class="att-btn att-btn-default att-btn-sm" title="-1일 차감" style="margin-left:3px"
+            onclick="awmQuickBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}', -1)">-1</button>
+          <button class="att-btn att-btn-default att-btn-sm" title="직접 입력" style="margin-left:3px"
+            onclick="awmOpenBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}')">상세</button>
         </td>
       </tr>`).join('');
   }
+
+  /* R39 Stage 7: +1/-1 빠른 조정 — 사유 prompt 후 즉시 PUT */
+  window.awmQuickBalanceAdjust = async (memberUid, typeId, year, memberName, typeName, delta) => {
+    const direction = delta > 0 ? '부여' : '차감';
+    const reason = prompt(
+      `${memberName} · ${typeName} · ${year}년\n잔여 휴가를 ${Math.abs(delta)}일 ${direction}합니다.\n\n사유를 입력하세요 (필수·감사 추적용):`,
+      ''
+    );
+    if (reason == null) return; // 취소
+    const trimmed = String(reason).trim();
+    if (!trimmed) { toast('사유는 필수입니다'); return; }
+
+    const res = await api('/api/admin-att-leave-balances', {
+      method: 'PUT',
+      body: { memberUid, leaveTypeId: typeId, year, deltaDays: delta, reason: trimmed },
+    });
+    if (!res.ok) { toast('조정 실패: ' + (res.data?.error || '')); return; }
+    toast(`${memberName} · ${typeName} · ${delta > 0 ? '+' : ''}${delta}일 조정 완료`);
+    await loadBalances();
+  };
 
   window.awmOpenBalanceAdjust = (memberUid, typeId, year, memberName, typeName) => {
     document.getElementById('awmBalAdjMemberUid').value = memberUid;
@@ -887,13 +912,15 @@
 
     if (!memberUid || !leaveTypeId || !year) { toast('대상 정보가 비어있습니다'); return; }
     if (!Number.isFinite(deltaDays) || deltaDays === 0) { toast('증감 일수를 입력하세요'); return; }
+    /* R39 Stage 7: 사유 필수 검증 */
+    if (!reason) { toast('사유는 필수입니다 (감사 추적용)'); return; }
 
     const btn = document.getElementById('awmBtnSaveBalanceAdjust');
     if (btn) btn.disabled = true;
 
     const res = await api('/api/admin-att-leave-balances', {
       method: 'PUT',
-      body: { memberUid, leaveTypeId, year, deltaDays, reason: reason || null },
+      body: { memberUid, leaveTypeId, year, deltaDays, reason },
     });
     if (!res.ok) {
       toast('조정 실패: ' + (res.data?.error || ''));
@@ -1100,6 +1127,11 @@
       const leaveTxt = ln.leaves.length
         ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join(', ')
         : '—';
+      /* R39 Stage 7 A-2: 어드민 수정 버튼 — 기록이 있는 일자만 */
+      const recId = r && r.id;
+      const editBtn = recId
+        ? `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmOpenRecordEdit(${recId})" title="어드민 직접 수정">✏️</button>`
+        : '';
       return '<tr' + (isWeekend ? ' style="background:#fafbfc"' : '') + '>' +
         '<td style="font-variant-numeric:tabular-nums">' + ln.date + '</td>' +
         '<td style="color:' + dayColor + ';font-weight:600">' + ln.dayName + '</td>' +
@@ -1110,7 +1142,7 @@
         '<td>' + mins + '</td>' +
         '<td>' + ot + '</td>' +
         '<td>' + (ln.leaves.length ? '<span style="color:#3b82f6;font-weight:600">' + leaveTxt + '</span>' : leaveTxt) + '</td>' +
-        '<td>' + mapCells + '</td>' +
+        '<td>' + mapCells + editBtn + '</td>' +
       '</tr>';
     }).join('');
   }
@@ -1166,6 +1198,129 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast('CSV 다운로드 완료');
+  }
+
+  /* ═══════════════════════════════════
+     R39 Stage 7 A-2/A-3: 어드민 출퇴근 직접 수정 모달 + 직원 확인 요청
+  ═══════════════════════════════════ */
+  let _recEditCurrent = null; // { id, date, member }
+
+  function _toLocalDateTimeInputValue(ts) {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      // datetime-local은 YYYY-MM-DDTHH:MM 로 표시 (브라우저 로컬 타임존)
+      const pad = (n) => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+        + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    } catch (_) { return ''; }
+  }
+
+  window.awmOpenRecordEdit = async function (recordId) {
+    if (!recordId) return;
+    // 월별 표 데이터에서 해당 record 찾기 (이미 로드된 lines 사용)
+    // 별도 API 호출 없이 client 상태에서 매칭 — buildMonthLines를 재계산
+    // 단, 별도 호출 API가 없으니 직접 SELECT가 어려움 → 클라가 가진 last payload에서 추출
+    // 가장 간단: 현재 month records 조회 결과 재활용
+    let foundRec = null, foundDate = null;
+    try {
+      // memberUid·dateFrom·dateTo 그대로 재호출
+      const memberUid = document.getElementById('awmMrMember').value;
+      const dateFrom  = document.getElementById('awmMrFrom').value;
+      const dateTo    = document.getElementById('awmMrTo').value;
+      if (memberUid && dateFrom && dateTo) {
+        const qs = '?dateFrom=' + encodeURIComponent(dateFrom)
+                 + '&dateTo='   + encodeURIComponent(dateTo)
+                 + '&memberUid=' + encodeURIComponent(memberUid);
+        const res = await api('/api/admin-att-records' + qs);
+        if (res.ok) {
+          const payload = res.data?.data || res.data || {};
+          const recs = Array.isArray(payload.records) ? payload.records : [];
+          foundRec = recs.find(r => Number(r.id) === Number(recordId));
+        }
+      }
+    } catch (e) { console.warn('[record-edit] 조회 실패', e); }
+
+    if (!foundRec) { toast('해당 출퇴근 기록을 찾을 수 없습니다 (재조회 후 다시 시도)'); return; }
+
+    const _g = (o, ca, sn) => (o && (o[ca] != null ? o[ca] : o[sn]));
+    const cit = _g(foundRec, 'checkInTime', 'check_in_time');
+    const cot = _g(foundRec, 'checkOutTime', 'check_out_time');
+    const wm  = _g(foundRec, 'workMode', 'work_mode');
+    const note = foundRec.note || '';
+    foundDate = _g(foundRec, 'date', 'date');
+
+    _recEditCurrent = {
+      id: Number(recordId),
+      date: foundDate,
+      memberUid: _g(foundRec, 'memberUid', 'member_uid'),
+    };
+
+    document.getElementById('awmRecEditId').value = recordId;
+    document.getElementById('awmRecEditMeta').innerHTML =
+      '<strong>' + escHtml(_liveMemberName(_recEditCurrent.memberUid)) + '</strong> · '
+      + escHtml(String(foundDate || '')).slice(0, 10);
+    document.getElementById('awmRecEditCheckIn').value  = _toLocalDateTimeInputValue(cit);
+    document.getElementById('awmRecEditCheckOut').value = _toLocalDateTimeInputValue(cot);
+    document.getElementById('awmRecEditWorkMode').value = wm || '';
+    document.getElementById('awmRecEditNote').value = note;
+    document.getElementById('awmRecEditReason').value = '';
+
+    document.getElementById('awmRecEditModal').style.display = 'flex';
+  };
+
+  function _closeRecEditModal() {
+    document.getElementById('awmRecEditModal').style.display = 'none';
+    _recEditCurrent = null;
+  }
+
+  async function _saveRecEdit() {
+    if (!_recEditCurrent) return;
+    const recordId = _recEditCurrent.id;
+    const ci = document.getElementById('awmRecEditCheckIn').value;
+    const co = document.getElementById('awmRecEditCheckOut').value;
+    const wm = document.getElementById('awmRecEditWorkMode').value;
+    const note = document.getElementById('awmRecEditNote').value;
+    const reason = document.getElementById('awmRecEditReason').value.trim();
+
+    if (!reason) { toast('사유는 필수입니다'); return; }
+
+    const body = { recordId, reason };
+    // datetime-local 입력은 로컬 타임존 — Date로 ISO 변환
+    if (ci) body.checkInTime  = new Date(ci).toISOString();
+    if (co) body.checkOutTime = new Date(co).toISOString();
+    if (wm) body.workMode = wm;
+    if (note !== '') body.note = note;
+
+    const btn = document.getElementById('awmBtnRecEditSave');
+    if (btn) btn.disabled = true;
+    try {
+      const res = await api('/api/admin-att-record-edit', { method: 'PATCH', body });
+      if (!res.ok) { toast('수정 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
+      toast('출퇴근 기록이 수정되었습니다 (이력 적재 완료)');
+      _closeRecEditModal();
+      // 표 새로고침
+      try { await loadMonthRecords(); } catch (_) {}
+      try { await loadLiveStatus(); } catch (_) {}
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function _requestConfirm() {
+    if (!_recEditCurrent) return;
+    const message = prompt(
+      '직원에게 보낼 안내 메시지를 입력하세요 (비워두면 기본 안내문 사용):',
+      ''
+    );
+    if (message == null) return; // 취소
+
+    const res = await api('/api/admin-att-record-request-confirm', {
+      method: 'POST',
+      body: { recordId: _recEditCurrent.id, message: message || '' },
+    });
+    if (!res.ok) { toast('알림 발송 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
+    toast('📨 직원에게 확인 요청 알림을 보냈습니다');
   }
 
   /* ═══════════════════════════════════
@@ -1336,6 +1491,15 @@
     setupTabs();
     await initRecordsTab();
     await initLiveStatus();
+
+    /* R39 Stage 7: 어드민 출퇴근 수정 모달 이벤트 */
+    document.getElementById('awmBtnRecEditClose')?.addEventListener('click', _closeRecEditModal);
+    document.getElementById('awmBtnRecEditCancel')?.addEventListener('click', _closeRecEditModal);
+    document.getElementById('awmBtnRecEditSave')?.addEventListener('click', _saveRecEdit);
+    document.getElementById('awmBtnRecRequestConfirm')?.addEventListener('click', _requestConfirm);
+    document.getElementById('awmRecEditModal')?.addEventListener('click', function (e) {
+      if (e.target === this) _closeRecEditModal();
+    });
   }
 
   if (document.readyState === 'loading') {

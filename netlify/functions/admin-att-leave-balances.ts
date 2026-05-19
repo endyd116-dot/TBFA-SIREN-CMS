@@ -91,23 +91,31 @@ export default async function handler(req: Request) {
     }
   }
 
-  // PUT — 수동 조정. { memberUid, leaveTypeId, year, deltaDays?, totalDays?, reason? }
+  // PUT — 수동 조정. { memberUid, leaveTypeId, year, deltaDays?, totalDays?, reason }
   //   deltaDays 우선 (잔여휴가 ±N일 조정). 없으면 totalDays 절대값.
+  //   R39 Stage 7: reason 필수 + att_leave_balance_adjustments 이력 적재.
   if (method === "PUT") {
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
 
-    const { memberUid, leaveTypeId, year, deltaDays, totalDays } = body;
+    const { memberUid, leaveTypeId, year, deltaDays, totalDays, reason } = body;
     if (!memberUid || !leaveTypeId || !year) {
       return jsonError("validate", new Error("memberUid, leaveTypeId, year 필수"), 400);
     }
     if (deltaDays == null && totalDays == null) {
       return jsonError("validate", new Error("deltaDays 또는 totalDays 필수"), 400);
     }
+    /* R39 Stage 7: 사유 필수 (감사 추적) */
+    const reasonTrimmed = typeof reason === "string" ? reason.trim() : "";
+    if (!reasonTrimmed) {
+      return jsonError("validate", new Error("사유(reason) 필수 — 잔여 휴가 수동 조정 시 감사 추적용"), 400);
+    }
 
     try {
+      let resultRow: any;
+      let appliedDelta: number; // 이력 기록용
+
       if (deltaDays != null) {
-        // 기존 row 조회 (없으면 0 기준)
         const [existing] = await db
           .select()
           .from(attLeaveBalances)
@@ -118,8 +126,9 @@ export default async function handler(req: Request) {
           ))
           .limit(1);
 
-          const base = existing ? Number(existing.totalDays) : 0;
+        const base = existing ? Number(existing.totalDays) : 0;
         const next = base + Number(deltaDays);
+        appliedDelta = Number(deltaDays);
 
         const [row] = await db
           .insert(attLeaveBalances)
@@ -135,25 +144,53 @@ export default async function handler(req: Request) {
             set: { totalDays: String(next) } as any,
           })
           .returning();
-        return jsonOk(row);
+        resultRow = row;
+      } else {
+        // totalDays 절대값 경로
+        const [existing] = await db
+          .select()
+          .from(attLeaveBalances)
+          .where(and(
+            eq(attLeaveBalances.memberUid, String(memberUid)),
+            eq(attLeaveBalances.leaveTypeId, Number(leaveTypeId)),
+            eq(attLeaveBalances.year, Number(year)),
+          ))
+          .limit(1);
+        const base = existing ? Number(existing.totalDays) : 0;
+        appliedDelta = Number(totalDays) - base;
+
+        const [row] = await db
+          .insert(attLeaveBalances)
+          .values({
+            memberUid: String(memberUid),
+            leaveTypeId: Number(leaveTypeId),
+            year: Number(year),
+            totalDays: String(totalDays),
+            usedDays: existing ? String(existing.usedDays) : "0",
+          } as any)
+          .onConflictDoUpdate({
+            target: [attLeaveBalances.memberUid, attLeaveBalances.leaveTypeId, attLeaveBalances.year],
+            set: { totalDays: String(totalDays) } as any,
+          })
+          .returning();
+        resultRow = row;
       }
 
-      // totalDays 절대값 경로 (기존 호환)
-      const [row] = await db
-        .insert(attLeaveBalances)
-        .values({
-          memberUid: String(memberUid),
-          leaveTypeId: Number(leaveTypeId),
-          year: Number(year),
-          totalDays: String(totalDays),
-          usedDays: "0",
-        } as any)
-        .onConflictDoUpdate({
-          target: [attLeaveBalances.memberUid, attLeaveBalances.leaveTypeId, attLeaveBalances.year],
-          set: { totalDays: String(totalDays) } as any,
-        })
-        .returning();
-      return jsonOk(row);
+      /* R39 Stage 7: 이력 적재 (실패해도 본 응답 영향 0) */
+      try {
+        const adminUid = String((auth as any).ctx.member.id);
+        await db.execute(sql`
+          INSERT INTO att_leave_balance_adjustments
+            (member_uid, leave_type_id, year, delta_days, reason, adjusted_by)
+          VALUES
+            (${String(memberUid)}, ${Number(leaveTypeId)}, ${Number(year)},
+             ${String(appliedDelta)}, ${reasonTrimmed}, ${adminUid})
+        `);
+      } catch (e) {
+        console.warn("[admin-att-leave-balances] 이력 적재 실패:", e);
+      }
+
+      return jsonOk(resultRow);
     } catch (err) {
       return jsonError("upsert_balance", err);
     }
