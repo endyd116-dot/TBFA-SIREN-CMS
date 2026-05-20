@@ -4,9 +4,8 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-20 23:30 KST / **R39 Stage 8 머지·R39 본 구현 종결·C 라이브 검증 대기**
-> main @ `905a433`
-> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → (필요 시) docs/active/2026-05-20-r39-roles-and-ux.md 순서로 정독
+> **마지막 갱신**: 2026-05-20 24:00 KST / **R39 정식 종결·라이브 검증 15/15 PASS·메뉴얼 300문항 통합·R40 KICC 대기**
+> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → docs/rules/REMAINING_WORK.md 순서로 정독
 
 ---
 
@@ -141,33 +140,34 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 
 ---
 
-## 7. 다음 메인 채팅이 할 일 (즉시 진행)
+## 7. R39 정식 종결 (2026-05-20) — 완료 기록
 
-### 우선 1. R39 C 라이브 검증 트리거 발사 + 결과 모니터링
+- **Stage 1~8 전부 머지 + 라이브 검증(메인 직접) 15/15 PASS**
+- 라이브 검증 BUG 2건 즉시 fix:
+  - BUG-R39V-01: operator-guard tsc narrowing 사전 5건 (런타임 0·`operatorGuardFailed` 헬퍼 적용)
+  - BUG-R39V-02: att-checkin/checkout deviceType 미수신·미저장 (att_records.device_type NULL 방지)
+- 메뉴얼 2종 + AI 학습 자료 300문항 통합 (`public/manual*.html`·`docs/manual/`)
+- 설계서 → `docs/history/milestones/2026-05-20-r39-roles-and-ux.md` archive
+- 라운드 종결 체크리스트 15가지 메모리 등록 (`memory/release_checklist.md`)
 
-C 채팅(verify/* 워크트리)에 라이브 시나리오 검증 트리거 발사 — Stage 5·6·7·8 전체 합산.
+### Swain 브라우저 라이브 확인 권장 (잔여)
+- 워크툴 상단 출퇴근 버튼 위치 (상태 메시지 옆 시각 확인)
+- 어드민 → 운영 관리 → 비매출 검토 4가지 액션
+- 워크스페이스 진입 속도 체감
 
-핵심 검증 시나리오:
-- **비매출 검토 화면** (Stage 8 신규): 운영 관리 → 비매출 검토 진입·일람·상세 모달·4가지 액션(1차 검토·반려·최종 승인·EVENT_RANGE 금액 결정)
-- **워크스페이스 로딩 속도** (Stage 8 fix): 성과·근태 메뉴 진입 체감 개선 (~200ms·~600ms 단축 예상)
-- **실시간 출퇴근 + 카카오 지도 + PC 위치 강제** (Stage 5)
-- **워크툴 상단 출퇴근 버튼** (Stage 6 — 3상태 자동 라벨·visibilitychange 동기화)
-- **휴가 수동 CRUD + 어드민 출퇴근 양방향 수정 + 확인 요청 알림** (Stage 7)
-- **회귀**: R37 급여 자동 집계·SM/PM/SI 매출·비매출·결산·진행률·E2E 12 시나리오
+## 8. 다음 메인 채팅이 할 일 (즉시 진행)
 
-C 검증 정책 (operational-standards §4): C는 코드·응답 키·스키마 정합·tsc·라이브 자산 배포 확인까지·브라우저 UI는 Swain.
+### 우선 1. R40 PG 전환 (토스 → KICC) — Swain 옵션 결정 후 시작
+- `docs/kicc.md` 정독 완료·**옵션 A(듀얼 PG 점진 전환) 추천**
+- 기존 토스 빌링키는 KICC 마이그 불가(체계 완전 다름) → 신규만 KICC·기존은 토스 cron 자연 종료
+- Swain 결정 대기: ① 기존 토스 정기 후원 회원 규모 ② 옵션 A/B/C 확정
+- KICC 추가 문서 필요(빌키 발급·자동 결제·해지·조회 — 현재 kicc.md엔 일시 결제·웹훅 위주)
 
-### 우선 2. C 메뉴얼 진행 모니터링
-- 다음 응답: 어드민 60문항
-- 그 다음: 통합 CMS 150 (75+75 분할)
-- 마지막: AI 비서 30 + 옛 100문항 archive
+### 우선 2. 메뉴얼 R39 기능 본문 갱신
+- 메뉴얼에 R39 기능 '예정' 표기 → 실제 안내로 갱신
+- `docs/manual/ai-training-cms-2.jsonl` R39 표시 문항도 본 기능 안내로
 
-### 우선 3. C 라이브 검증 PASS 후 R39 정식 종결
-- 설계서 `docs/active/2026-05-20-r39-roles-and-ux.md` → `docs/history/milestones/`로 이동
-- 라운드 종결 체크리스트 15가지 메모리 정식 등록 (§6.5)
-- AI 비서 동기화·권한 정책·메뉴얼·명세·HANDOFF·알림·CSV/PDF·iframe·schema·환경변수 등 15개
-
-### R40 후속 예약 (R39 정식 종결 후 합의)
+### R40 후속 예약
 - **PG 전환 (토스 → KICC)** — `docs/kicc.md` 정독 완료·옵션 A(듀얼 PG 점진 전환) 추천
   - 기존 토스 빌링키 회원은 KICC로 마이그 불가(체계 완전 다름·KICC cardNo vs 토스 customerKey)
   - 신규 회원만 KICC·기존 회원은 토스 cron 자연 종료까지 유지
@@ -180,8 +180,8 @@ C 검증 정책 (operational-standards §4): C는 코드·응답 키·스키마 
 
 ---
 
-## 8. 갱신 정책
+## 9. 갱신 정책
 
-- 새 라운드 종결 후 §3·§4·§5·§7 갱신
+- 새 라운드 종결 후 §3·§4·§5·§8 갱신
 - 단일 최신 유지 (이전 시점 보존 시 `docs/history/handover/vN.md`로 archive)
 - §2 진입 흐름은 정독 순서 변경 시만 갱신
