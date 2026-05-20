@@ -76,8 +76,13 @@ export default async (req: Request, _ctx: Context) => {
     }
     /* 명시적 발송 실패(번호 오류·알리고 거부 등)만 롤백 — rate limit 부정 누적 방지 */
     await deleteVerification(id);
+    /* 안정화 2: 사용자에겐 친절한 안내, 기술 사유(sms.error)는 서버 로그·detail로만 */
+    console.warn("[phone-verify-send] SMS 발송 실패:", sms.error);
     return new Response(JSON.stringify({
-      ok: false, error: "SMS 발송 실패", step: "send", detail: (sms.error || "").slice(0, 200),
+      ok: false,
+      error: "인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요. 계속 안 되면 협회로 문의해 주세요.",
+      step: "send",
+      detail: (sms.error || "").slice(0, 200),
     }), { status: 500, headers: JSON_HEADER });
   }
 
