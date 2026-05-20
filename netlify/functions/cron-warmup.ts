@@ -1,4 +1,8 @@
 import type { Config } from "@netlify/functions";
+import { sql } from "drizzle-orm";
+import { db } from "../../db";
+import { createNotification } from "../../lib/notify";
+import { sendEmail } from "../../lib/email";
 
 /* 5분마다 주요 API에 자동 요청 → 콜드 스타트 방지 */
 const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
@@ -29,6 +33,69 @@ function getProxyHealthUrl(): string | null {
   }
 }
 
+/* 안정화 1: 프록시 다운 감지 시 슈퍼어드민 인앱 알림 + 관리자 이메일.
+   - 30분 쿨다운: 최근 30분 내 동일 알림(ref_table='proxy_health')이 있으면 스킵 (도배 방지)
+   - 발송 실패해도 warmup 본 흐름 차단 안 함 (fire-and-forget catch) */
+async function alertProxyDown(): Promise<void> {
+  /* 중복 방지 — 최근 30분 내 proxy_health 알림 존재 시 스킵 */
+  try {
+    const recent: any = await db.execute(sql`
+      SELECT 1 FROM notifications
+      WHERE ref_table = 'proxy_health'
+        AND created_at >= NOW() - INTERVAL '30 minutes'
+      LIMIT 1
+    `);
+    const rows = recent?.rows ?? recent ?? [];
+    if (rows.length > 0) return;
+  } catch (e) {
+    console.warn("[warmup] 프록시 알림 중복 확인 실패 (계속 진행):", e);
+  }
+
+  const title = "⚠️ 문자·알림톡 발송 서버(프록시) 응답 없음";
+  const message =
+    "SMS·카카오 알림톡 발송을 중계하는 서버가 응답하지 않습니다. " +
+    "회원가입 휴대폰 인증·알림톡 발송이 지연·실패할 수 있습니다. " +
+    "Oracle 콘솔에서 aligo-proxy 인스턴스를 재부팅해 주세요.";
+
+  /* 슈퍼어드민 인앱 알림 */
+  try {
+    const admins: any = await db.execute(sql`
+      SELECT id FROM members WHERE role = 'super_admin' AND status = 'active'
+    `);
+    const adminRows = admins?.rows ?? admins ?? [];
+    for (const a of adminRows) {
+      await createNotification({
+        recipientId: Number(a.id),
+        recipientType: "admin",
+        category: "system",
+        severity: "warning",
+        title,
+        message,
+        link: "/cms-tbfa.html",
+        refTable: "proxy_health",
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.warn("[warmup] 슈퍼어드민 인앱 알림 실패:", e);
+  }
+
+  /* 관리자 이메일 */
+  const notifyEmail = process.env.ADMIN_NOTIFY_EMAIL;
+  if (notifyEmail) {
+    await sendEmail({
+      to: notifyEmail,
+      subject: "[SIREN] 문자·알림톡 발송 서버(프록시) 응답 없음",
+      html:
+        `<p>${title}</p>` +
+        `<p>${message}</p>` +
+        `<p>확인: Oracle Cloud 콘솔 → Compute → Instances → <b>aligo-proxy</b> → Reboot</p>` +
+        `<p style="color:#888;font-size:12px">SIREN 자동 모니터링 (cron-warmup) · ${new Date().toISOString()}</p>`,
+    }).catch((e) => console.warn("[warmup] 프록시 다운 이메일 실패:", e));
+  }
+
+  console.warn("[warmup] ⚠️ 프록시 다운 알림 발송 완료");
+}
+
 export default async () => {
   const results: { path: string; status: number; ms: number }[] = [];
 
@@ -48,8 +115,9 @@ export default async () => {
     })
   );
 
-  /* Oracle 알리고 프록시 warm 유지 */
+  /* Oracle 알리고 프록시 warm 유지 + 다운 감지 */
   const proxyHealthUrl = getProxyHealthUrl();
+  let proxyDown = false;
   if (proxyHealthUrl) {
     const t = Date.now();
     try {
@@ -58,10 +126,17 @@ export default async () => {
         signal: AbortSignal.timeout(9000),
       });
       results.push({ path: "aligo-proxy/health", status: res.status, ms: Date.now() - t });
+      if (!res.ok) proxyDown = true;
     } catch {
-      /* 프록시가 9초 안에 응답 못 하면 잠들었거나 다운 — 로그로 남겨 모니터링 */
+      /* 프록시가 9초 안에 응답 못 하면 잠들었거나 다운 */
       results.push({ path: "aligo-proxy/health", status: 0, ms: Date.now() - t });
+      proxyDown = true;
     }
+  }
+
+  /* 안정화 1: 다운 감지 시 슈퍼어드민 알림 (30분 쿨다운·발송 실패해도 무시) */
+  if (proxyDown) {
+    await alertProxyDown().catch((e) => console.error("[warmup] 프록시 다운 알림 처리 실패:", e));
   }
 
   console.log("[warmup]", JSON.stringify(results));
