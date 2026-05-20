@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { createNotification } from "../../lib/notify";
 import { sendEmail } from "../../lib/email";
+import { resetProxyInstance, ociConfigured } from "../../lib/oci-client";
 
 /* 5분마다 주요 API에 자동 요청 → 콜드 스타트 방지 */
 const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
@@ -96,6 +97,76 @@ async function alertProxyDown(): Promise<void> {
   console.warn("[warmup] ⚠️ 프록시 다운 알림 발송 완료");
 }
 
+/* 안정화 3 (2026-05-21): 프록시 다운 시 OCI 인스턴스 자동 재부팅.
+   - OCI 환경변수 6개 미설정이면 skip (resetProxyInstance가 skipped 반환)
+   - 무한 재부팅 방지: 최근 60분 내 재부팅 시도(ref_table='proxy_reboot') 있으면 skip
+   - 재부팅 시도 결과를 슈퍼어드민 인앱 알림 + proxy_reboot 마커로 기록 */
+async function maybeAutoReboot(): Promise<void> {
+  if (!ociConfigured()) return;   // 키 미등록 — 기존 알림(alertProxyDown)만 동작
+
+  /* 쿨다운 — 최근 60분 내 자동 재부팅 시도가 있으면 스킵 (부팅 시간 고려) */
+  try {
+    const recent: any = await db.execute(sql`
+      SELECT 1 FROM notifications
+      WHERE ref_table = 'proxy_reboot'
+        AND created_at >= NOW() - INTERVAL '60 minutes'
+      LIMIT 1
+    `);
+    const rows = recent?.rows ?? recent ?? [];
+    if (rows.length > 0) {
+      console.warn("[warmup] 자동 재부팅 쿨다운(60분) — skip");
+      return;
+    }
+  } catch (e) {
+    console.warn("[warmup] 자동 재부팅 쿨다운 확인 실패 (계속 진행):", e);
+  }
+
+  const result = await resetProxyInstance("RESET");
+  if (result.skipped) return;
+
+  const title = result.ok
+    ? "🔄 문자·알림톡 발송 서버(프록시) 자동 재부팅 시도"
+    : "❗ 프록시 자동 재부팅 실패 — 수동 재부팅 필요";
+  const message = result.ok
+    ? "프록시 응답 없음을 감지해 Oracle 인스턴스를 자동 재부팅했습니다. 1~2분 후 발송이 정상화됩니다. (안 되면 콘솔에서 수동 재부팅)"
+    : `프록시 자동 재부팅에 실패했습니다(${result.detail}). Oracle 콘솔에서 aligo-proxy를 수동 재부팅해 주세요.`;
+
+  /* 슈퍼어드민 인앱 알림 + 쿨다운 마커(ref_table='proxy_reboot') */
+  try {
+    const admins: any = await db.execute(sql`
+      SELECT id FROM members WHERE role = 'super_admin' AND status = 'active'
+    `);
+    const adminRows = admins?.rows ?? admins ?? [];
+    for (const a of adminRows) {
+      await createNotification({
+        recipientId: Number(a.id),
+        recipientType: "admin",
+        category: "system",
+        severity: result.ok ? "info" : "warning",
+        title,
+        message,
+        link: "/cms-tbfa.html",
+        refTable: "proxy_reboot",
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.warn("[warmup] 자동 재부팅 알림 실패:", e);
+  }
+
+  const notifyEmail = process.env.ADMIN_NOTIFY_EMAIL;
+  if (notifyEmail) {
+    await sendEmail({
+      to: notifyEmail,
+      subject: `[SIREN] 프록시 자동 재부팅 ${result.ok ? "시도" : "실패"}`,
+      html:
+        `<p>${title}</p><p>${message}</p>` +
+        `<p style="color:#888;font-size:12px">SIREN 자동 복구 (cron-warmup → OCI) · ${new Date().toISOString()}</p>`,
+    }).catch((e) => console.warn("[warmup] 자동 재부팅 이메일 실패:", e));
+  }
+
+  console.warn(`[warmup] 🔄 프록시 자동 재부팅 ${result.ok ? "성공" : "실패"}: ${result.detail}`);
+}
+
 export default async () => {
   const results: { path: string; status: number; ms: number }[] = [];
 
@@ -137,6 +208,8 @@ export default async () => {
   /* 안정화 1: 다운 감지 시 슈퍼어드민 알림 (30분 쿨다운·발송 실패해도 무시) */
   if (proxyDown) {
     await alertProxyDown().catch((e) => console.error("[warmup] 프록시 다운 알림 처리 실패:", e));
+    /* 안정화 3: OCI 인스턴스 자동 재부팅 (키 설정 시·60분 쿨다운) */
+    await maybeAutoReboot().catch((e) => console.error("[warmup] 자동 재부팅 처리 실패:", e));
   }
 
   console.log("[warmup]", JSON.stringify(results));
