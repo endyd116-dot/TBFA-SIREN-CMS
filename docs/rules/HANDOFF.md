@@ -4,7 +4,7 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-20 24:00 KST / **R39 정식 종결·라이브 검증 15/15 PASS·메뉴얼 300문항 통합·R40 KICC 대기**
+> **마지막 갱신**: 2026-05-20 / **R39 정식 종결 + SMS 프록시 인시던트 대응 + 안정화 1·2 완료·안정화 3(OCI 자동재시작) 잔여**
 > 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → docs/rules/REMAINING_WORK.md 순서로 정독
 
 ---
@@ -155,7 +155,34 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 - 어드민 → 운영 관리 → 비매출 검토 4가지 액션
 - 워크스페이스 진입 속도 체감
 
+## 7.5 SMS·알림톡 프록시 인시던트 + 안정화 (2026-05-20)
+
+**인시던트**: 회원가입 휴대폰 인증이 "발송중 10초 후 실패 + 15분 뒤 문자 도착"으로 막힘.
+- 원인: SMS·카카오 알림톡은 **Oracle Cloud 무료 VM 프록시**(고정 IP `168.107.37.197:8080`) 경유 발송. 무료 VM(RAM 약 500MB) 메모리 부족으로 **hang** → 발송 응답이 함수 한도(Pro 26초) 초과 → `ERR_HTTP2_PROTOCOL_ERROR`로 함수 죽음. 게다가 timeout을 발송 실패로 보고 인증 row를 롤백 → 늦게 온 문자가 무효.
+- 복구: Swain Oracle 콘솔 재부팅 (SSH는 hang으로 불가). 프록시 systemd `Restart=always`라 프로세스 크래시는 자동복구되나 VM 레벨 hang은 콘솔 재부팅 필요.
+
+**적용한 fix (모두 main 머지)**:
+- SMS UX fix: 프록시 abort 10→8초(함수 한도 전 응답)·timeout이면 row 유지+입력칸 표시(`pending`)·인증 유효시간 5→10분·친절 안내
+- 안정화 1: `cron-warmup`이 프록시 `/health` 5분마다 ping → warm 유지 + 다운 감지 시 슈퍼어드민 인앱 알림 + `ADMIN_NOTIFY_EMAIL` 이메일 (30분 쿨다운)
+- 안정화 2: 명시적 발송 실패 시 사용자 친절 안내 (기술 사유는 로그·detail로만)
+
+### ⏳ 안정화 3 (잔여 작업) — 프록시 자동 재시작 (OCI 연동)
+프록시가 죽으면 사람 없이 자동 재부팅. **OCI API 키 준비(Swain) + signing 코드(메인) 필요.**
+
+**Swain 준비 (OCI 콘솔)**: API 키 생성(User settings→API Keys→Generate→private key 다운로드) 후 Netlify 환경변수 6개 등록:
+`OCI_TENANCY_OCID`·`OCI_USER_OCID`·`OCI_FINGERPRINT`·`OCI_REGION`(예: ap-chuncheon-1)·`OCI_INSTANCE_OCID`(aligo-proxy)·`OCI_PRIVATE_KEY`(.pem 전체). 앞 4개는 API 키 생성 시 뜨는 Configuration File Preview에 다 있음.
+
+**코드 (새 세션 구현)**:
+- `lib/oci-client.ts` — OCI request signing(RSA-SHA256·Signature v1) + 인스턴스 SOFTRESET 호출
+- `cron-warmup` — proxyDown 감지(이미 있음) 시 자동 재부팅 + **무한 재부팅 방지 쿨다운**(예: 1시간 1회)
+- 프록시 정보: instance OCID는 환경변수·복구 명령은 `systemctl restart aligo-proxy`
+
+**중기 검토**: 무료 VM 메모리(500MB) 한계가 근본 원인 → ① 유료 소액 인스턴스 업그레이드 또는 ② IP 제한 없는 SMS 업체(쿨SMS·NHN 등)로 교체해 프록시 자체 제거. R40 KICC 전환과 함께 "외부 연동 정리"로 검토 가능.
+
 ## 8. 다음 메인 채팅이 할 일 (즉시 진행)
+
+### 우선 0. 안정화 3 (OCI 자동 재시작) — Swain OCI 키 등록 후 새 세션
+§7.5 참조. OCI 환경변수 6개 등록 완료되면 `lib/oci-client.ts` + cron 연동 구현.
 
 ### 우선 1. R40 PG 전환 (토스 → KICC) — Swain 옵션 결정 후 시작
 - `docs/kicc.md` 정독 완료·**옵션 A(듀얼 PG 점진 전환) 추천**
