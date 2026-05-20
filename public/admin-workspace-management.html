@@ -76,6 +76,7 @@
     <button class="att-tab" data-tab="leavetypes">휴가 종류</button>
     <button class="att-tab" data-tab="holidays">공휴일</button>
     <button class="att-tab" data-tab="monthrecords">📅 출퇴근 기록</button>
+    <button class="att-tab" data-tab="workmodeChanges">🔄 근무형태 변경</button>
   </nav>
 
   <!-- ════════════ 탭 1: 근태 현황 ════════════ -->
@@ -248,6 +249,33 @@
           </thead>
           <tbody id="awmLeavesBody">
             <tr><td colspan="8" class="att-empty">휴가 신청 정보를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ 탭 신규: 근무형태 변경 결재 (G1) ════════════ -->
+  <div class="att-panel" id="awmPanelWorkmodeChanges">
+    <div class="awm-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="awm-section-title" style="margin:0">대기 중인 근무형태 변경 신청</div>
+        <span class="att-badge PENDING" id="awmWmcPendingCount">0건</span>
+      </div>
+      <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>신청자</th>
+              <th>희망일</th>
+              <th>요청 근무형태</th>
+              <th>사유</th>
+              <th>신청일</th>
+              <th>처리</th>
+            </tr>
+          </thead>
+          <tbody id="awmWmcBody">
+            <tr><td colspan="6" class="att-empty">근무형태 변경 신청 정보를 불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -841,6 +869,6 @@
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-att-map.js?v=1-r39"></script>
-<script src="/js/admin-workspace-management.js?v=13-r39s7"></script>
+<script src="/js/admin-workspace-management.js?v=14-attgap"></script>
 </body>
 </html>

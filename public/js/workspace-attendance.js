@@ -52,6 +52,7 @@
     FIELD: '🚗 외근',
     BUSINESS_TRIP: '✈️ 출장',
     HYBRID: '🔀 혼합',
+    HOLIDAY: '🏖️ 휴무',   // G15: 주말·공휴일 스케줄 → 배지 '미정' 대신 '휴무' 표기
   };
 
   /* ─── 탭 전환 ─── */
@@ -199,10 +200,13 @@
   }
 
   function renderSummary(stats) {
-    setText('sumWorkDays', stats.workDays ?? '—');
-    setText('sumWorkHours', stats.workHours ?? '—');
-    setText('sumLateCount', stats.lateCount ?? '—');
-    setText('sumRemoteDays', stats.remoteDays ?? '—');
+    // G2: 서버 응답은 { data: { monthly: { work_days, total_working_mins, late_count, remote_days, ... } } }
+    //     (snake_case·monthly 중첩). 근무시간은 분→시간 환산.
+    const m = stats.monthly || {};
+    setText('sumWorkDays', m.work_days ?? '—');
+    setText('sumWorkHours', m.total_working_mins != null ? (Number(m.total_working_mins) / 60).toFixed(1) : '—');
+    setText('sumLateCount', m.late_count ?? '—');
+    setText('sumRemoteDays', m.remote_days ?? '—');
   }
 
   function setText(id, val) {
@@ -377,22 +381,32 @@
   /* ═══════════════════════════════════
      탭 2: 캘린더
   ═══════════════════════════════════ */
+  /* G4: 출퇴근 상태 한글 라벨 (조퇴 EARLY_LEAVE 포함) — 캘린더 이벤트 제목용 */
+  const ATT_STATUS_LABEL = {
+    NORMAL: '정상',
+    LATE: '지각',
+    EARLY_LEAVE: '조퇴',
+    ABSENT: '결근',
+    LEAVE: '휴가',
+    HOLIDAY: '공휴일',
+  };
+  /* 캘린더 색상 — 실제 출퇴근 상태(status) 기준.
+     REMOTE/FIELD는 근무형태(work_mode) 값이라 status 색칠에서 제외(죽은 매핑 정리).
+     G4: EARLY_LEAVE(조퇴) 추가. */
   const STATUS_CLASS = {
     NORMAL: 'att-ev-normal',
     LATE: 'att-ev-late',
+    EARLY_LEAVE: 'att-ev-early',
     ABSENT: 'att-ev-absent',
     LEAVE: 'att-ev-leave',
-    REMOTE: 'att-ev-remote',
-    FIELD: 'att-ev-field',
     HOLIDAY: 'att-ev-holiday',
   };
   const BG_CLASS = {
     NORMAL: 'att-bg-normal',
     LATE: 'att-bg-late',
+    EARLY_LEAVE: 'att-bg-early',
     ABSENT: 'att-bg-absent',
     LEAVE: 'att-bg-leave',
-    REMOTE: 'att-bg-remote',
-    FIELD: 'att-bg-field',
     HOLIDAY: 'att-bg-holiday',
   };
 
@@ -422,13 +436,15 @@
   async function loadCalendarData(calendar, yr, mo) {
     calendar.removeAllEvents();
     const res = await api(`/api/att-my-calendar?year=${yr}&month=${mo}`);
-    const rows = res.data?.data || res.data?.rows || res.data || [];
+    // G3: 서버 응답은 { data: { year, month, records: [...] } } — records 배열을 꺼내야 함
+    //     (기존엔 래퍼 객체 전체를 배열로 기대 → Array.isArray 실패로 빈 캘린더)
+    const rows = res.data?.data?.records || res.data?.records || [];
     if (!Array.isArray(rows)) return;
 
     rows.forEach(row => {
       const cls = STATUS_CLASS[row.status] || '';
       calendar.addEvent({
-        title: row.label || row.status || '',
+        title: ATT_STATUS_LABEL[row.status] || row.status || '',
         start: row.date,
         allDay: true,
         classNames: [cls],
@@ -450,27 +466,31 @@
     const now = new Date();
     const res = await api(`/api/att-my-stats?year=${now.getFullYear()}&month=${now.getMonth() + 1}`);
     const stats = res.data?.data || res.data || {};
+    // G2: monthly 중첩·snake_case 매핑 (출퇴근 탭 요약과 동일 규약)
+    const m = stats.monthly || {};
 
-    setText('statWorkDays', stats.workDays ?? '—');
-    setText('statWorkHours', stats.workHours ?? '—');
-    setText('statLateCount', stats.lateCount ?? '—');
-    setText('statRemoteDays', stats.remoteDays ?? '—');
+    setText('statWorkDays', m.work_days ?? '—');
+    setText('statWorkHours', m.total_working_mins != null ? (Number(m.total_working_mins) / 60).toFixed(1) : '—');
+    setText('statLateCount', m.late_count ?? '—');
+    setText('statRemoteDays', m.remote_days ?? '—');
 
-    renderDonut(stats);
+    renderDonut(m);
   }
 
-  function renderDonut(stats) {
+  function renderDonut(monthly) {
     const ctx = document.getElementById('attDonutChart');
     if (!ctx || typeof Chart === 'undefined') return;
 
-    const dist = stats.modeDist || {};
+    // G2: 서버 monthly 집계로 근무형태 분포 구성 (기존 modeDist 가정 제거).
+    //     사무실 일수 = 전체 근무일 − (재택+외근+출장)  (work_mode가 OFFICE/HYBRID/미지정인 날)
+    const m = monthly || {};
+    const remote = Number(m.remote_days || 0);
+    const field = Number(m.field_days || 0);
+    const trip = Number(m.business_trip_days || 0);
+    const office = Math.max(0, Number(m.work_days || 0) - remote - field - trip);
+
     const labels = ['사무실', '재택', '외근', '출장'];
-    const values = [
-      dist.OFFICE || 0,
-      dist.REMOTE || 0,
-      dist.FIELD || 0,
-      dist.BUSINESS_TRIP || 0,
-    ];
+    const values = [office, remote, field, trip];
     const colors = ['#3b82f6', '#8b5cf6', '#f97316', '#f59e0b'];
 
     if (window._attDonut) { window._attDonut.destroy(); }
