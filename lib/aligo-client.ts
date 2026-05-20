@@ -38,6 +38,8 @@ export interface AligoSendResult {
   message?: string;
   /** 오류 사유 */
   error?: string;
+  /** 프록시 호출 timeout 여부 — true면 발송이 진행 중일 수 있어 호출부에서 롤백 금지 */
+  timeout?: boolean;
 }
 
 /* =========================================================
@@ -108,8 +110,11 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     /* 프록시 콜드 스타트 또는 다운 시 Netlify 함수 자체가 30초 timeout으로 죽으면
        send 핸들러의 SMS 실패 분기(deleteVerification 롤백)까지 도달 못 함 → row 남음 →
        사용자 5분 갇힘. AbortController로 10초 안에 명확히 ok:false 반환되도록 안전망. */
+    /* ★ 2026-05-20: 8초로 단축 — Netlify 함수 기본 timeout(10초)과 경합해 함수가
+       응답 못 보내고 죽는(ERR_HTTP2_PROTOCOL_ERROR) 문제 방지. 함수 한도 전에 확실히
+       AbortError로 잡아 호출부가 "발송 중(pending)" 응답을 정상 반환하게 한다. */
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const timer = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch(proxyUrl, {
         method: "POST",
@@ -138,8 +143,8 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     } catch (err: any) {
       clearTimeout(timer);
       const isTimeout = err?.name === "AbortError";
-      return { ok: false, error: isTimeout
-        ? "SMS 프록시 호출 timeout (10초) — 프록시 콜드 스타트 또는 다운"
+      return { ok: false, timeout: isTimeout, error: isTimeout
+        ? "SMS 프록시 호출 timeout (8초) — 프록시 콜드 스타트 또는 다운"
         : `SMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
     }
   }

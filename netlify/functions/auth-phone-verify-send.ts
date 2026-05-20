@@ -62,8 +62,19 @@ export default async (req: Request, _ctx: Context) => {
 
   const sms = await sendVerifyCodeSms(phone, code);
   if (!sms.ok) {
-    /* SMS 실패 시 방금 INSERT한 row 롤백 — rate limit 부정 누적 방지
-       (사용자가 코드 못 받았는데 5분 갇히는 UX 결함 차단) */
+    /* timeout(프록시 응답 지연)은 발송이 백그라운드로 진행 중일 수 있음 →
+       row를 지우지 않고 유지하고, 입력창을 띄우는 응답(ok:true, pending)을 보낸다.
+       (롤백하면 늦게 도착한 문자의 코드가 "발송 기록 없음"으로 무효가 되는 결함 차단) */
+    if (sms.timeout) {
+      return new Response(JSON.stringify({
+        ok: true,
+        pending: true,
+        sentAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + CODE_EXPIRES_MS).toISOString(),
+        message: "인증번호를 발송 중입니다. 문자가 1~2분 늦게 도착할 수 있어요. 받으시면 입력해 주세요. (유효시간 10분)",
+      }), { status: 200, headers: JSON_HEADER });
+    }
+    /* 명시적 발송 실패(번호 오류·알리고 거부 등)만 롤백 — rate limit 부정 누적 방지 */
     await deleteVerification(id);
     return new Response(JSON.stringify({
       ok: false, error: "SMS 발송 실패", step: "send", detail: (sms.error || "").slice(0, 200),
@@ -74,6 +85,6 @@ export default async (req: Request, _ctx: Context) => {
     ok: true,
     sentAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + CODE_EXPIRES_MS).toISOString(),
-    message: "인증번호를 발송했습니다. 5분 이내에 입력해 주세요.",
+    message: "인증번호를 발송했습니다. 10분 이내에 입력해 주세요.",
   }), { status: 200, headers: JSON_HEADER });
 };

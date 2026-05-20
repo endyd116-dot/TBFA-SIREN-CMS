@@ -312,7 +312,8 @@ document.addEventListener('change', async function (e) {
         }
         codeRow.style.display = '';
         codeInput.focus();
-        setStatus('📩 인증번호를 발송했습니다. 5분 이내에 입력해 주세요.', 'var(--success)');
+        /* 서버 안내 메시지 사용 (정상: "10분 이내" / 발송 지연: "1~2분 늦을 수 있어요") */
+        setStatus('📩 ' + (data.message || '인증번호를 발송했습니다. 10분 이내에 입력해 주세요.'), 'var(--success)');
         verifyBtn.textContent = '재발송';
         setTimeout(function () { verifyBtn.disabled = false; }, 30000);  /* 30초 동안 재발송 차단 */
       } catch (err) {

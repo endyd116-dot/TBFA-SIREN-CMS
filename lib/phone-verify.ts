@@ -18,7 +18,7 @@ export function normalizePhone(raw: string): string {
 }
 
 /* 정책 */
-export const CODE_EXPIRES_MS = 5 * 60 * 1000;        // 5분
+export const CODE_EXPIRES_MS = 10 * 60 * 1000;       // 10분 (프록시 발송 지연 대응 — 늦게 온 문자도 유효)
 export const TOKEN_EXPIRES_MS = 10 * 60 * 1000;      // 10분
 export const MAX_ATTEMPTS = 5;                        // 코드 입력 시도 횟수
 export const RATE_LIMIT_5MIN = 1;                    // 5분 동안 발송 가능 횟수
@@ -36,12 +36,13 @@ export function generateVerifyToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-/** Aligo SMS로 인증 코드 발송 */
-export async function sendVerifyCodeSms(phone: string, code: string): Promise<{ ok: boolean; error?: string }> {
-  const message = `[교사유가족협의회] 인증번호 ${code} (5분 이내 입력해 주세요)`;
+/** Aligo SMS로 인증 코드 발송.
+ *  timeout=true는 프록시 응답 지연 — 발송이 진행 중일 수 있어 호출부에서 row 롤백 금지. */
+export async function sendVerifyCodeSms(phone: string, code: string): Promise<{ ok: boolean; error?: string; timeout?: boolean }> {
+  const message = `[교사유가족협의회] 인증번호 ${code} (10분 이내 입력해 주세요)`;
   try {
     const r = await aligoSend({ receiver: phone, msg: message });
-    if (!r.ok) return { ok: false, error: r.error || `Aligo error code=${r.resultCode}` };
+    if (!r.ok) return { ok: false, error: r.error || `Aligo error code=${r.resultCode}`, timeout: r.timeout };
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: String(e?.message || e).slice(0, 200) };
