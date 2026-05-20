@@ -21,6 +21,15 @@
     }
   }
 
+  /* ─── 흡수 코드(재택보고서·근무형태 관리)용 API 헬퍼 ───
+     구 admin-attendance-settings.js의 api()는 응답 본문을 반환하고 실패 시 throw하는 계약이었음.
+     흡수 함수의 응답 파싱(res.data.X || res.X)을 그대로 보존하기 위해 awm api()를 한 번 더 감싼다. */
+  async function apiThrow(path, opts = {}) {
+    const r = await api(path, opts);
+    if (!r.ok) throw new Error((r.data && (r.data.error || r.data.message)) || 'HTTP ' + r.status);
+    return r.data;
+  }
+
   /* ─── 토스트 ─── */
   function toast(msg, ms = 2600) {
     const el = document.getElementById('awmToast');
@@ -80,8 +89,28 @@
         if (btn.dataset.tab === 'holidays' && !window._awmHolInit) initHolidaysTab();
         if (btn.dataset.tab === 'monthrecords' && !window._awmMrInit) initMonthRecordsTab();
         if (btn.dataset.tab === 'workmodeChanges' && !window._awmWmcInit) initWorkmodeChangesTab();
+        if (btn.dataset.tab === 'remotereports' && !window._awmRrInit) initRemoteReportsTab();
+        if (btn.dataset.tab === 'workmodes' && !window._awmWmInit) initWorkModesTab();
       });
     });
+  }
+
+  /* ─── group 필터 (?group=ops|config) — 해당 그룹 탭만 노출 + 첫 탭 활성화 ─── */
+  function applyGroupFilter(group) {
+    const g = (group === 'config') ? 'config' : 'ops';
+    let firstVisible = null;
+    document.querySelectorAll('#awmTabs .att-tab').forEach(btn => {
+      const show = (btn.dataset.group || 'ops') === g;
+      btn.style.display = show ? '' : 'none';
+      if (show && !firstVisible) firstVisible = btn;
+    });
+    // 헤더 타이틀 + 돌아가기 버튼
+    setText('awmTitle', g === 'config' ? '⚙ 근태 설정' : '🟢 근태 현황');
+    const backBtn = document.getElementById('awmBackToOps');
+    if (backBtn) backBtn.style.display = (g === 'config') ? '' : 'none';
+    // 현재 활성 탭이 숨겨졌으면 첫 노출 탭으로 전환 (click → 패널 활성화 + lazy init)
+    const active = document.querySelector('#awmTabs .att-tab.active');
+    if ((!active || active.style.display === 'none') && firstVisible) firstVisible.click();
   }
 
   /* ═══════════════════════════════════
@@ -1542,6 +1571,325 @@
     });
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     흡수: 재택보고서 모니터링 (구 admin-attendance-settings.js)
+     ═══════════════════════════════════════════════════════════ */
+  var _rrCurrentId = null;
+
+  async function loadAttMemberList(selId) {
+    try {
+      const res = await apiThrow('/api/admin-att-members');
+      const members = (res.data && res.data.members) || res.members || [];
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- 직원 선택 --</option>';
+      members.forEach(function (m) {
+        const opt = document.createElement('option');
+        opt.value = m.uid || m.id;
+        opt.textContent = (m.name || m.username || '?') + ' (' + (m.email || '') + ')';
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      console.warn('[loadAttMemberList]', e.message);
+    }
+  }
+
+  async function loadRemoteReports(memberUid) {
+    const startDate = document.getElementById('rrStartDate').value;
+    const endDate = document.getElementById('rrEndDate').value;
+    const status = document.getElementById('rrStatusFilter').value;
+    const tbody = document.getElementById('rrListBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="att-empty">조회 중...</td></tr>';
+
+    try {
+      let qs = '?memberUid=' + encodeURIComponent(memberUid || '');
+      if (startDate) qs += '&startDate=' + startDate;
+      if (endDate)   qs += '&endDate='   + endDate;
+      if (status)    qs += '&status='    + status;
+
+      const res = await apiThrow('/api/admin/att/remote-reports' + qs);
+      const rows = (res.data && Array.isArray(res.data.data)) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+      renderReportList(rows);
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + escHtml(e.message) + '</td></tr>';
+    }
+  }
+
+  function renderReportList(rows) {
+    const tbody = document.getElementById('rrListBody');
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="att-empty">보고서가 없습니다</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function (r) {
+      const statusBadge = r.status === 'SUBMITTED'
+        ? '<span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">제출완료</span>'
+        : '<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600">임시저장</span>';
+      const star = r.isStarred ? '⭐' : '☆';
+      const score = r.qualityScore != null ? r.qualityScore : '—';
+      return '<tr>'
+        + '<td style="font-family:Inter;font-size:13px">' + escHtml(r.date || '—') + '</td>'
+        + '<td style="font-weight:500">' + escHtml(r.memberName || r.name || '—') + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td style="text-align:center;font-weight:600;color:#2563eb">' + score + '</td>'
+        + '<td style="text-align:center;font-size:16px;cursor:pointer" onclick="toggleStar(' + r.id + ',' + (r.isStarred ? 'true' : 'false') + ')" title="별표 토글">' + star + '</td>'
+        + '<td><button class="att-btn att-btn-default att-btn-sm" onclick="openReportDetail(' + r.id + ',\'' + escHtml(r.date) + '\',\'' + escHtml(r.memberName || '') + '\')">상세</button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function renderReportDetail(report) {
+    const area = document.getElementById('rrDetailArea');
+    const title = document.getElementById('rrDetailTitle');
+    const content = document.getElementById('rrDetailContent');
+    const noteInput = document.getElementById('rrNoteInput');
+    if (!area) return;
+    area.style.display = '';
+    if (title) title.textContent = (report.date || '') + ' — ' + (report.memberName || report.name || '');
+    if (content) content.textContent = report.content || report.aiDraft || '(내용 없음)';
+    if (noteInput) noteInput.value = report.supervisorNote || '';
+  }
+
+  window.toggleStar = async function (id, currentStarred) {
+    try {
+      await apiThrow('/api/admin/att/remote-reports', { method: 'PUT', body: { id: id, isStarred: !currentStarred } });
+      toast(!currentStarred ? '별표 추가됨' : '별표 제거됨');
+      const memberUid = document.getElementById('rrMemberSel').value;
+      await loadRemoteReports(memberUid);
+    } catch (e) { toast('별표 변경 실패: ' + e.message); }
+  };
+
+  window.openReportDetail = async function (id, date, memberName) {
+    _rrCurrentId = id;
+    try {
+      const res = await apiThrow('/api/admin/att/remote-reports?id=' + id);
+      const report = (res.data && (res.data.data || res.data)) || { id: id, date: date, memberName: memberName };
+      renderReportDetail(report);
+    } catch (e) {
+      renderReportDetail({ id: id, date: date, memberName: memberName });
+    }
+  };
+
+  async function starReport(id, isStarred) {
+    await apiThrow('/api/admin/att/remote-reports', { method: 'PUT', body: { id: id, isStarred: isStarred } });
+  }
+
+  async function addSupervisorNote(id, note) {
+    await apiThrow('/api/admin/att/remote-reports', { method: 'PUT', body: { id: id, supervisorNote: note } });
+  }
+
+  function initRemoteReportsTab() {
+    window._awmRrInit = true;
+    loadAttMemberList('rrMemberSel');
+
+    // 기본 날짜: 이번 달 1일 ~ 오늘
+    (function () {
+      const now = new Date();
+      const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const startEl = document.getElementById('rrStartDate');
+      const endEl = document.getElementById('rrEndDate');
+      if (startEl) startEl.value = y + '-' + m + '-01';
+      if (endEl) endEl.value = y + '-' + m + '-' + d;
+    })();
+
+    document.getElementById('btnRrSearch')?.addEventListener('click', function () {
+      const uid = document.getElementById('rrMemberSel').value;
+      if (!uid) { toast('직원을 선택하세요'); return; }
+      loadRemoteReports(uid);
+    });
+
+    document.getElementById('rrBtnCloseDetail')?.addEventListener('click', function () {
+      document.getElementById('rrDetailArea').style.display = 'none';
+      _rrCurrentId = null;
+    });
+
+    document.getElementById('rrBtnStar')?.addEventListener('click', async function () {
+      if (!_rrCurrentId) return;
+      try {
+        await starReport(_rrCurrentId, true);
+        toast('별표 추가됨');
+      } catch (e) { toast('실패: ' + e.message); }
+    });
+
+    document.getElementById('rrBtnSaveNote')?.addEventListener('click', async function () {
+      if (!_rrCurrentId) { toast('보고서를 먼저 선택하세요'); return; }
+      const note = document.getElementById('rrNoteInput').value.trim();
+      try {
+        await addSupervisorNote(_rrCurrentId, note);
+        toast('코멘트 저장 완료');
+      } catch (e) { toast('저장 실패: ' + e.message); }
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     흡수: 근무형태 관리 (구 admin-attendance-settings.js)
+     ═══════════════════════════════════════════════════════════ */
+  var _wmCurrentUid = null;
+  var WM_DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+  var WM_DAY_KEYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+  function buildDayGrid() {
+    const grid = document.getElementById('wmDayGrid');
+    if (!grid || grid.children.length) return;
+    WM_DAY_KEYS.forEach(function (key, i) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px';
+      wrap.innerHTML = '<div style="font-size:12.5px;font-weight:600;color:#374151;margin-bottom:6px">' + WM_DAYS[i] + '</div>'
+        + '<select id="wmDay_' + key + '" style="width:100%;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:12px">'
+        + '<option value="OFFICE">🏢 사무실</option>'
+        + '<option value="REMOTE">🏠 재택</option>'
+        + '<option value="FIELD">🚗 외근</option>'
+        + '<option value="">—</option>'
+        + '</select>';
+      grid.appendChild(wrap);
+    });
+  }
+
+  async function loadWorkModes(memberUid) {
+    const editorArea = document.getElementById('wmEditorArea');
+    const editorTitle = document.getElementById('wmEditorTitle');
+    const schedBody = document.getElementById('wmScheduleBody');
+
+    _wmCurrentUid = memberUid;
+    if (editorArea) editorArea.style.display = '';
+    if (editorTitle) editorTitle.textContent = document.getElementById('wmMemberSel')?.selectedOptions[0]?.textContent + ' — 근무형태 설정';
+
+    schedBody.innerHTML = '<tr><td colspan="5" class="att-empty">조회 중...</td></tr>';
+
+    try {
+      const res = await apiThrow('/api/admin/att/work-mode?memberUid=' + encodeURIComponent(memberUid));
+      const data = (res.data && (res.data.data || res.data)) || {};
+      renderWorkModeEditor(data);
+    } catch (e) {
+      schedBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:24px">로드 실패: ' + escHtml(e.message) + '</td></tr>';
+    }
+  }
+
+  // recurringRule을 요일별 사람 친화 텍스트로 포맷
+  function formatRecurringRule(rule) {
+    if (!rule || typeof rule !== 'object') return '—';
+    const DAY_LABEL = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' };
+    const MODE_SHORT = { OFFICE: '사무', REMOTE: '재택', FIELD: '외근' };
+    const parts = [];
+    WM_DAY_KEYS.forEach(function (k) {
+      if (rule[k]) parts.push(DAY_LABEL[k] + '=' + (MODE_SHORT[rule[k]] || rule[k]));
+    });
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
+  function renderWorkModeEditor(data) {
+    const schedules = Array.isArray(data.schedules) ? data.schedules : [];
+    const tbody = document.getElementById('wmScheduleBody');
+
+    // 가장 최근 스케줄을 라디오·요일 셀렉트에 prefill
+    if (schedules.length) {
+      const latest = schedules[schedules.length - 1];
+      const radio = document.querySelector('input[name="wmMode"][value="' + latest.workMode + '"]');
+      if (radio) radio.checked = true;
+      const hybridDays = document.getElementById('wmHybridDays');
+      if (hybridDays) hybridDays.style.display = latest.workMode === 'HYBRID' ? '' : 'none';
+      if (latest.workMode === 'HYBRID' && latest.recurringRule && typeof latest.recurringRule === 'object') {
+        WM_DAY_KEYS.forEach(function (k) {
+          const sel = document.getElementById('wmDay_' + k);
+          if (sel) sel.value = latest.recurringRule[k] || '';
+        });
+      }
+      const startEl = document.getElementById('wmStartDate');
+      const endEl = document.getElementById('wmEndDate');
+      if (startEl && latest.startDate) startEl.value = latest.startDate;
+      if (endEl) endEl.value = latest.endDate || '';
+    }
+
+    if (!schedules.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="att-empty">등록된 스케줄이 없습니다</td></tr>';
+    } else {
+      const modeLabel = { OFFICE: '🏢 사무실', REMOTE: '🏠 재택', FIELD: '🚗 외근', HYBRID: '🔀 HYBRID' };
+      tbody.innerHTML = schedules.map(function (s) {
+        return '<tr>'
+          + '<td style="font-weight:500">' + (modeLabel[s.workMode] || escHtml(s.workMode)) + '</td>'
+          + '<td style="font-family:Inter;font-size:12.5px">' + escHtml(s.startDate || '—') + '</td>'
+          + '<td style="font-family:Inter;font-size:12.5px">' + escHtml(s.endDate || '무기한') + '</td>'
+          + '<td style="font-size:12px;color:#6b7280">' + escHtml(formatRecurringRule(s.recurringRule)) + '</td>'
+          + '<td><button class="att-btn att-btn-danger att-btn-sm" onclick="deleteWorkMode(' + s.id + ',\'schedule\')">삭제</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+  }
+
+  async function saveWorkMode() {
+    if (!_wmCurrentUid) { toast('직원을 선택하세요'); return; }
+    const modeEl = document.querySelector('input[name="wmMode"]:checked');
+    if (!modeEl) { toast('근무형태를 선택하세요'); return; }
+    const workMode = modeEl.value;
+    const startDate = document.getElementById('wmStartDate').value;
+    const endDate = document.getElementById('wmEndDate').value;
+    if (!startDate) { toast('시작일을 입력하세요'); return; }
+
+    let recurringRule = null;
+    if (workMode === 'HYBRID') {
+      const obj = {};
+      WM_DAY_KEYS.forEach(function (key) {
+        const sel = document.getElementById('wmDay_' + key);
+        if (sel && sel.value) obj[key] = sel.value;
+      });
+      if (Object.keys(obj).length) recurringRule = obj;
+    }
+
+    try {
+      await apiThrow('/api/admin/att/work-mode', {
+        method: 'POST',
+        body: {
+          memberUid: _wmCurrentUid,
+          workMode: workMode,
+          recurringRule: recurringRule,
+          startDate: startDate,
+          endDate: endDate || null,
+        },
+      });
+      toast('근무형태 저장 완료');
+      await loadWorkModes(_wmCurrentUid);
+    } catch (e) { toast('저장 실패: ' + e.message); }
+  }
+
+  window.deleteWorkMode = async function (id, type) {
+    if (!confirm('이 스케줄을 삭제하시겠습니까?')) return;
+    try {
+      await apiThrow('/api/admin/att/work-mode', { method: 'DELETE', body: { id: id, type: type } });
+      toast('삭제 완료');
+      if (_wmCurrentUid) await loadWorkModes(_wmCurrentUid);
+    } catch (e) { toast('삭제 실패: ' + e.message); }
+  };
+
+  function initWorkModesTab() {
+    window._awmWmInit = true;
+    buildDayGrid();
+    loadAttMemberList('wmMemberSel');
+
+    document.getElementById('btnWmLoad')?.addEventListener('click', function () {
+      const uid = document.getElementById('wmMemberSel').value;
+      if (!uid) { toast('직원을 선택하세요'); return; }
+      loadWorkModes(uid);
+    });
+
+    document.getElementById('btnWmSave')?.addEventListener('click', saveWorkMode);
+
+    // HYBRID 선택 시 요일별 설정 표시
+    document.querySelectorAll('input[name="wmMode"]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        const hybridDays = document.getElementById('wmHybridDays');
+        if (hybridDays) hybridDays.style.display = radio.value === 'HYBRID' ? '' : 'none';
+      });
+    });
+
+    // 기본 시작일 오늘
+    (function () {
+      const today = new Date().toISOString().slice(0, 10);
+      const el = document.getElementById('wmStartDate');
+      if (el) el.value = today;
+    })();
+  }
+
   /* ─── 초기화 ─── */
   async function init() {
     const admin = await checkAuth();
@@ -1550,6 +1898,16 @@
     setupTabs();
     await initRecordsTab();
     await initLiveStatus();
+
+    /* 근태 메뉴 재배치: ?group=ops|config 필터 + 돌아가기 버튼 */
+    const group = new URLSearchParams(location.search).get('group') || 'ops';
+    applyGroupFilter(group);
+    document.getElementById('awmBackToOps')?.addEventListener('click', function () {
+      const url = new URL(location.href);
+      url.searchParams.set('group', 'ops');
+      history.replaceState(null, '', url);
+      applyGroupFilter('ops');
+    });
 
     /* R39 Stage 7: 어드민 출퇴근 수정 모달 이벤트 */
     document.getElementById('awmBtnRecEditClose')?.addEventListener('click', _closeRecEditModal);

@@ -549,7 +549,8 @@ if (window.self !== window.top) {
           <li><a href="#payroll" data-tab="payroll"><i>💰</i><span>급여관리</span></a></li>
           <li><a href="#role-policy" data-tab="role-policy"><i>🛡️</i><span>권한정책관리</span></a></li>
           <li><a href="#milestone-review" data-tab="milestone-review"><i>🏆</i><span>성과관리 설정</span></a></li>
-          <li><a href="#attendance-settings" data-tab="attendance-settings"><i>📝</i><span>근태관리 설정</span></a></li>
+          <li><a href="#att-ops" data-tab="att-ops"><i>🟢</i><span>근태 현황</span></a></li>
+          <li><a href="#att-config" data-tab="att-config"><i>⚙️</i><span>근태 설정</span></a></li>
         </ul>
       </li>
 
@@ -2236,9 +2237,12 @@ if (window.self !== window.top) {
         <iframe class="nf-iframe" data-nf-src="/admin-milestones.html" title="성과관리 설정"></iframe>
       </section>
 
-      <!-- 2026-05-20: 근태관리 설정 (워크스페이스에서 이관) -->
-      <section class="cms-page nf-iframe-page" id="page-attendance-settings">
-        <iframe class="nf-iframe" data-nf-src="/admin-attendance-settings.html" title="근태관리 설정"></iframe>
+      <!-- 2026-05-21 근태 메뉴 재배치: 조회(ops) / 설정(config) 2메뉴 분리 -->
+      <section class="cms-page nf-iframe-page" id="page-att-ops">
+        <iframe class="nf-iframe" data-nf-src="/admin-workspace-management.html?group=ops" title="근태 현황"></iframe>
+      </section>
+      <section class="cms-page nf-iframe-page" id="page-att-config">
+        <iframe class="nf-iframe" data-nf-src="/admin-workspace-management.html?group=config" title="근태 설정"></iframe>
       </section>
 
       <!-- 옛 정적 안내 (참고용 — 보이지 않음) -->
@@ -2485,7 +2489,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260520r5"></script>
+  <script src="/js/cms-tbfa.js?v=20260521-attreorg"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

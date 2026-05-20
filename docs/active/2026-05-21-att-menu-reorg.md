@@ -2,7 +2,7 @@
 
 > 작성: 2026-05-21 / 메인 · Swain 요청(5번)
 > 영역: cms-tbfa 운영관리 근태 메뉴 + admin-workspace-management.html + admin-attendance-settings.html
-> 상태: 설계·구현 중
+> 상태: ✅ 구현 완료 — Swain 라이브 검증 대기 (커밋 후 1회 push)
 
 ## §0 배경·기준 (Swain)
 현재 근태 조회 탭들이 "근태관리 설정 → (안내 링크) → 워크스페이스 관리" 2단계 안에 묻혀 있음. 기준: **자주 보는 조회는 메인(바로), 한 번 설정하면 안 바뀌는 것만 안쪽**.
@@ -69,3 +69,18 @@
 |---|---|
 | 2026-05-21 | Swain 5번 요청·분류 확정·설계 작성 |
 | 2026-05-21 | Explore 흡수 코드 정독 → §6 구현 가이드 추가 (새 세션 인수인계) |
+| 2026-05-21 | ✅ 구현 완료 — 흡수 12탭 통합·group 필터·돌아가기·cms 2메뉴·옛 화면 리다이렉트 (아래 §7) |
+
+## §7 구현 결과 (2026-05-21)
+
+**변경 파일 6개**:
+- `public/admin-workspace-management.html` — 탭 nav에 `data-group="ops|config"` 부여 + 재택보고서·근무형태 관리 2탭 추가(ops, 총 12탭)·조회/설정 순서 재배열, 헤더에 동적 타이틀(`#awmTitle`) + "← 근태 현황으로" 버튼(`#awmBackToOps`), 흡수 패널 2개(`#awmPanelRemotereports`·`#awmPanelWorkmodes`) 추가. JS 캐시버스터 `?v=15-menureorg`.
+- `public/js/admin-workspace-management.js` — `apiThrow` 헬퍼(흡수 코드 응답 파싱 보존), 재택보고서·근무형태 함수 전량 이관(`esc→escHtml`·`api→apiThrow`·toast 2번째 인자 제거), `setupTabs` lazy 분기 2개(`initRemoteReportsTab`·`initWorkModesTab`), `applyGroupFilter(group)` + init에서 `?group` 읽어 필터 + 돌아가기 버튼 바인딩.
+- `public/cms-tbfa.html` — 사이드바 "근태관리 설정" 1개 → "🟢 근태 현황"(`att-ops`)·"⚙️ 근태 설정"(`att-config`) 2메뉴. iframe 섹션 2개(`page-att-ops`→`?group=ops`·`page-att-config`→`?group=config`). cms-tbfa.js 캐시버스터 `?v=20260521-attreorg`.
+- `public/js/cms-tbfa.js` — tabLabels 2개·라우팅 분기 2개(`_nfLoadIframe('page-att-ops'|'page-att-config')`). 섹션 표시는 `page-${tab}` 규칙으로 자동.
+- `public/admin-attendance-settings.html` — `admin-workspace-management.html?group=ops` 리다이렉트 페이지로 전환(admin-hub 숨김 카드·옛 링크 안전 처리).
+- `public/js/admin-attendance-settings.js` — **삭제**(흡수 완료, git history 보존).
+
+**검증 완료(코드)**: JS 문법 통과(node --check 2/2)·DOM id 충돌 0(awm `awmXxx` vs 흡수 `rr/wm` prefix)·옛 함수명/2-인자 toast 잔존 0·흡수 API 3종 서버 가드 `super_admin` 강제 확인(비-super 어드민은 403 그레이스풀).
+
+**남은 검증(Swain 라이브)**: ① cms 운영관리에 2메뉴 노출 ② 근태 현황 8탭(첫 탭 근태 현황)·근태 설정 4탭(+돌아가기 버튼) ③ 흡수된 재택보고서·근무형태 관리 정상 동작 ④ 기존 결재·기록·설정 회귀 0.
