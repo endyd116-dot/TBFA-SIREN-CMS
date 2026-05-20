@@ -269,19 +269,21 @@ feature/xxx (A·B·C 작업) → dev (테스트 서버 검증) → main (운영 
 
 ---
 
-## 12. 자율주행 정책 (2026-05-14 정착)
+## 12. 자율주행 정책 (2026-05-14 정착 · 2026-05-21 push 금지 개정)
 
-A·B·C 서브 채팅은 **완전 자율주행** — 작업 흐름을 끊지 않게 push와 애매한 로직만 묻고 나머지는 자율 진행.
+A·B·C 서브 채팅은 **자기 worktree에서 commit까지 자율, `git push`는 안 한다.** 완료 시 메인에 머지 요청 → **메인이 여러 작업을 모아 한 번에 main 머지·push.**
+
+> ⚠️ **2026-05-21 배포 비용 정책 (Swain 지시)**: `push` 1회 = Netlify production 배포 1회 = 크레딧 과금. 한 달 1,426배포로 비용 폭증(Production deploys가 크레딧 79%). 그래서 **push 주체를 메인으로 단일화 + 검증 단위 배치**한다. **이하 본 문서의 모든 "A push / B push / C push" 표현은 "A/B/C가 commit·보고 → 메인이 fetch·머지 → 검증 단위로 묶어 1회 push"로 해석한다.** 상세: CLAUDE.md §9.3·§6.17.
 
 ### 12.1 정책 표
 
 | 카테고리 | 정책 |
 |---|---|
 | 파일 Read·Edit·Write | ✅ 자율 (lib/auth.ts·admin-guard.ts·hyosung-parser.ts deny 항목 제외) |
-| git status·log·diff·fetch·pull·add·commit·rebase·restore·worktree | ✅ 자율 |
+| git status·log·diff·fetch·pull·add·**commit**·rebase·restore·worktree | ✅ 자율 |
 | bash·PowerShell 일반 명령 | ✅ 자율 |
 | npm install·run | ✅ 자율 |
-| **git push** | ❓ ask (push 직전 1회 확인) |
+| **git push** | ❌ **deny — A·B·C는 push 안 함. commit 후 메인에 머지 요청** |
 | 설계·로직 결정 (애매한 영역) | ❓ ask |
 | package.json·package-lock 수정 | ❓ ask |
 | npm uninstall·update, netlify, curl, Invoke-WebRequest | ❓ ask |
@@ -289,14 +291,19 @@ A·B·C 서브 채팅은 **완전 자율주행** — 작업 흐름을 끊지 않
 | lib/auth.ts·admin-guard.ts·hyosung-parser.ts 수정 | ❌ deny |
 | public/js/auth.js·admin-mypage-cancellation.js·admin-eligibility.js | ❌ deny |
 
-### 12.2 적용 위치
+### 12.2 완료 보고 → 메인 배치 머지·push
 
-1. **`.claude/settings.json`** — 메인 + A + B + C 4개 워크트리에 동일 배포 (`.claude/`는 gitignored이므로 직접 cp)
+A·B·C는 작업 끝나면 push 대신 **메인에 보고**: 브랜치명·커밋 해시·변경 파일·검증 필요 여부. 메인이 `git fetch` → 다른 완료 작업과 함께 main 머지 → **라이브 검증이 필요한 단위로 묶어 1회 push.**
+
+### 12.3 적용 위치
+
+1. **`.claude/settings.json`** — 메인 + A + B + C 4개 워크트리에 배포. **A·B·C는 `git push` deny, 메인 폴더만 push 허용.** (`.claude/`는 gitignored이므로 직접 cp)
 2. **트리거 본문** 첫 줄 박스에 명시:
    ```
    [자율주행 정책]
-   - push와 애매한 로직만 묻고 나머지는 자율 진행
-   - 파일 읽기·수정·git·bash·PowerShell·npm install은 묻지 말 것
+   - git push 안 함 (메인 단독) — commit까지만, 완료 시 메인에 머지 요청
+   - 파일 읽기·수정·git(push 제외)·bash·PowerShell·npm install은 묻지 말 것
+   - 설계·로직·package.json·netlify/curl만 묻기
    - 막히면 즉시 보고 (혼자 30분 이상 헤매지 말 것)
    ```
 

@@ -184,6 +184,13 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 - "직원 역할 배정" 무한로딩 버그: 옛 화면 제거로 소멸.
 - 종결 문서: **`docs/history/milestones/2026-05-20-milestone-screen-unify.md`** (PART 3 종결 요약).
 
+## 7.7 배포 비용 — Push 배치 정책 (2026-05-21·Swain 지시)
+
+Netlify 크레딧 과금 인시던트: 한 달 **1,426 production 배포**로 크레딧 79% 소모 → $10 auto-recharge 반복(거의 매일). `push`=배포=과금이라 **push 횟수 최소화 워크플로우로 전환**(상한은 정상 push 차단 위험이라 미사용).
+- **A·B·C push 금지** → commit 후 메인에 머지 요청 → **메인이 검증 단위로 묶어 1회 push.**
+- 중간 진행·문서·env 변경 단독 push 금지(동봉). 즉시 push는 운영 장애 핫픽스만.
+- 정책 본문: **CLAUDE.md §9.3·§6.17·§6.9**, PARALLEL_GUIDE §12, PARALLEL_TEMPLATE 상단, 메모리 operational_standards §2·§2-1.
+
 ## 8. 다음 메인 채팅이 할 일 (즉시 진행)
 
 ### 진행 중 트랙 (2026-05-21)

@@ -4,6 +4,8 @@
 > **저장 위치**: `docs/active/{YYYY-MM-DD}-phase{N}-r{M}-{키워드}.md`
 > **목적**: Sonnet 4.6(A·B)이 헤매지 않도록 모든 결정을 미리 못박는다.
 > **참조**: [`PARALLEL_GUIDE.md`](PARALLEL_GUIDE.md) §1·§2 (역할·머지 순서)
+>
+> ⚠️ **2026-05-21 push 정책 개정**: `push`=Netlify 배포=크레딧 과금이라, **A·B·C는 push 안 함.** commit 후 메인에 **머지 요청**(브랜치명·해시·변경 요약) → **메인이 여러 작업을 모아 검증 단위로 1회 push.** 본 양식의 모든 "A push / B push / C push" 표현은 "commit·보고 → 메인 fetch·머지 → 배치 push"로 해석. 트리거 `[자율주행 정책]` 박스엔 "git push 안 함(메인 단독)·commit 후 머지 요청"을 넣을 것. 상세: CLAUDE.md §9.3·§6.17.
 
 ---
 
