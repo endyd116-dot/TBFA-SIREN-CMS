@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIREN 운영자 메뉴얼 · (사)교사유가족협의회</title>
+<meta name="description" content="SIREN 운영자·간사·슈퍼어드민용 메뉴얼. 신고 운영·워크스페이스·후원 운영을 실제 화면과 함께.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* 디자인 토큰 — manual.html과 동일 (tbfa.co.kr 실제 시스템 매칭) */
+  :root {
+    --brand: #7a1f2b; --brand-deep: #5a141d; --brand-soft: #f5ecec;
+    --gold: #b8935a; --gold-soft: #ede1cd; --siren: #c5293a;
+    --text: #1a1a1a; --text-2: #525252; --text-3: #8a8a8a; --text-4: #b5b5b5;
+    --bg: #ffffff; --bg-soft: #fafaf9; --bg-mute: #f4f4f2;
+    --bg-dark: #0a0a0a; --bg-cta: #0f0f0f;
+    --line: #e8e6e3; --line-soft: #f0eeeb;
+    --ok: #4a7a4d; --warn: #b8773a; --danger: #c5293a;
+    --radius-sm: 6px; --radius: 10px; --radius-lg: 16px; --radius-pill: 30px;
+    --shadow-sm: 0 2px 8px rgba(15,15,15,.04);
+    --shadow: 0 8px 24px rgba(15,15,15,.06);
+    --shadow-lg: 0 20px 50px rgba(15,15,15,.10);
+    --font-sans: 'Noto Sans KR','Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-serif: 'Noto Serif KR','Times New Roman',serif;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg-soft); color: var(--text);
+    font-family: var(--font-sans); line-height: 1.7; font-size: 15.5px;
+    -webkit-font-smoothing: antialiased; font-weight: 400; letter-spacing: -0.01em; }
+  a { color: var(--brand); text-decoration: none; transition: color .15s; }
+  a:hover { color: var(--brand-deep); text-decoration: underline; }
+  code, kbd { font-family: var(--mono); font-size: .9em; background: var(--bg-mute);
+    color: var(--brand); padding: 2px 7px; border-radius: 4px; font-weight: 500; }
+
+  /* 레이아웃 */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  aside.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    border-right: 1px solid var(--line); background: var(--bg); padding: 26px 20px 40px; }
+  @media (max-width: 900px) { aside.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); } }
+  .toc-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+  .toc-brand .name { font-family: var(--font-serif); font-weight: 700; font-size: 17px;
+    color: var(--text); letter-spacing: -0.02em; }
+  .toc-brand .sub { font-size: 9.5px; color: var(--text-3); margin-top: 2px;
+    letter-spacing: .15em; font-weight: 500; }
+  .toc-brand .pill { display:inline-block; background:var(--brand); color:#fff;
+    font-size:9px; padding:2px 7px; border-radius:var(--radius-pill);
+    font-weight:700; letter-spacing:.1em; margin-top:4px; }
+  .toc nav { display: flex; flex-direction: column; gap: 1px; }
+  .toc-section { font-size: 10.5px; font-weight: 700; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: .14em; margin: 18px 8px 6px; }
+  .toc a { display: block; padding: 8px 12px; border-radius: var(--radius-sm);
+    color: var(--text-2); font-size: 14px; font-weight: 500;
+    border-left: 2px solid transparent; }
+  .toc a:hover { background: var(--bg-soft); color: var(--brand);
+    text-decoration: none; border-left-color: var(--gold); }
+  .toc a.lvl-2 { padding-left: 24px; font-size: 13px; color: var(--text-3); font-weight: 400; }
+  .toc a.external { color: var(--brand); font-weight: 600; }
+
+  main { padding: 56px max(40px, 5vw) 120px; max-width: 1100px; background: var(--bg-soft); }
+  @media (max-width: 900px) { main { padding: 30px 20px 80px; } }
+
+  h1 { font-family: var(--font-serif); font-size: 42px; font-weight: 600;
+    letter-spacing: -1px; margin: 0 0 12px; line-height: 1.2; }
+  h2 { font-family: var(--font-serif); font-size: 30px; font-weight: 600;
+    letter-spacing: -0.5px; margin: 72px 0 18px; padding-bottom: 14px;
+    border-bottom: 2px solid var(--brand); display: flex; align-items: center; gap: 14px; }
+  h2 .badge-area { display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 700;
+    background: var(--brand); color: #fff; letter-spacing: 0; }
+  h3 { font-family: var(--font-sans); font-size: 19px; font-weight: 700;
+    margin: 38px 0 12px; color: var(--text); letter-spacing: -0.02em; }
+  h4 { font-size: 15px; font-weight: 700; margin: 22px 0 8px;
+    color: var(--text-2); letter-spacing: -0.01em; }
+  p { margin: 0 0 14px; color: var(--text-2); }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; color: var(--text-2); }
+  li { margin-bottom: 5px; }
+  strong { color: var(--text); font-weight: 700; }
+
+  /* Hero — 운영자 톤 (조금 더 진중) */
+  .hero { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-lg);
+    padding: 56px 48px; margin-bottom: 36px; position: relative; overflow: hidden;
+    box-shadow: var(--shadow); }
+  .hero::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: linear-gradient(to bottom, var(--brand) 0%, var(--gold) 100%); }
+  .hero::after { content: ''; position: absolute; right: -80px; bottom: -80px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: radial-gradient(circle, var(--gold-soft) 0%, transparent 70%); z-index: 0; }
+  .hero > * { position: relative; z-index: 1; }
+  .hero .tag { display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; padding: 6px 14px;
+    border-radius: var(--radius-pill); background: var(--gold-soft);
+    color: var(--warn); margin-bottom: 18px; letter-spacing: .06em;
+    border: 1px solid rgba(184,147,90,.3); }
+  .hero h1 { color: var(--text); margin-bottom: 14px; }
+  .hero h1 em { font-style: normal; color: var(--brand); }
+  .hero p { font-size: 16.5px; max-width: 640px; color: var(--text-2); }
+  .hero-meta { display: flex; gap: 28px; margin-top: 24px; flex-wrap: wrap;
+    padding-top: 22px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--text-3); }
+  .hero-meta strong { color: var(--text); font-family: var(--font-serif); font-weight: 600; }
+
+  /* 카드·표·뱃지 — manual.html과 동일 */
+  .card { background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 24px 28px; margin: 18px 0;
+    box-shadow: var(--shadow-sm); }
+  .card h3:first-child, .card h4:first-child { margin-top: 0; }
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 720px) { .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; } }
+  .stat { background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 22px 20px; text-align: center; }
+  .stat .num { font-family: var(--font-serif); font-size: 36px; font-weight: 600;
+    color: var(--brand); letter-spacing: -1px; line-height: 1; }
+  .stat .label { font-size: 11.5px; color: var(--text-3); margin-top: 8px;
+    font-weight: 600; letter-spacing: .04em; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text-2); }
+  th { background: var(--bg-mute); font-weight: 700; color: var(--text); font-size: 13px; letter-spacing: -0.01em; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill);
+    font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .badge.brand { background: var(--brand-soft); color: var(--brand); }
+  .badge.gold { background: var(--gold-soft); color: var(--gold); }
+  .badge.ok { background: rgba(74,122,77,.10); color: var(--ok); }
+  .badge.warn { background: rgba(184,119,58,.12); color: var(--warn); }
+  .badge.danger { background: rgba(197,41,58,.10); color: var(--siren); }
+  .badge.muted { background: var(--bg-mute); color: var(--text-3); }
+  .callout { padding: 16px 20px; border-radius: var(--radius); margin: 16px 0;
+    border-left: 3px solid var(--brand); background: var(--brand-soft); color: var(--text-2); }
+  .callout.gold { border-left-color: var(--gold); background: var(--gold-soft); }
+  .callout.warn { border-left-color: var(--warn); background: rgba(184,119,58,.06); }
+  .callout.danger { border-left-color: var(--siren); background: rgba(197,41,58,.06); }
+  .callout.ok { border-left-color: var(--ok); background: rgba(74,122,77,.06); }
+  .callout .title { font-weight: 700; margin-bottom: 6px; color: var(--text); font-size: 14.5px; }
+
+  /* 플로우 */
+  .flow { display: flex; gap: 0; margin: 20px 0; overflow-x: auto; padding-bottom: 4px; }
+  .flow .step { flex: 1; min-width: 150px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; position: relative; margin-right: 28px; }
+  .flow .step:last-child { margin-right: 0; }
+  .flow .step::after { content: '›'; position: absolute; right: -22px; top: 50%;
+    transform: translateY(-50%); color: var(--brand); font-size: 28px; font-weight: 700; line-height: 1; }
+  .flow .step:last-child::after { display: none; }
+  .flow .step .num { display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff;
+    font-size: 12px; font-weight: 700; margin-bottom: 10px; font-family: var(--font-serif); }
+  .flow .step .title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--text); }
+  .flow .step .desc { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+
+  /* mock */
+  .mock { border: 1px solid var(--line); border-radius: var(--radius-lg);
+    overflow: hidden; margin: 18px 0; background: var(--bg); box-shadow: var(--shadow); }
+  .mock-bar { background: #ebebeb; padding: 9px 14px; display: flex; align-items: center;
+    gap: 7px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .mock-bar .dot { width: 11px; height: 11px; border-radius: 50%; background: #ccd2dd; }
+  .mock-bar .dot.r { background: #ff5f57; }
+  .mock-bar .dot.y { background: #febc2e; }
+  .mock-bar .dot.g { background: #28c93f; }
+  .mock-bar .url { background: #fff; border-radius: 4px; padding: 4px 12px; margin-left: 10px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-2); flex: 1; border: 1px solid var(--line); }
+  .mock-body { background: var(--bg); }
+
+  /* 어드민 mock 헤더 (좌측 사이드바 + 우측 본문) */
+  .mock-admin {
+    display: grid; grid-template-columns: 200px 1fr; min-height: 380px;
+  }
+  .mock-admin-side {
+    background: var(--bg-dark); padding: 20px 14px; color: #ccc; font-size: 12px;
+  }
+  .mock-admin-side .group { color: #777; font-size: 10px; font-weight: 700;
+    letter-spacing: .15em; margin: 14px 8px 6px; }
+  .mock-admin-side .item { padding: 6px 10px; border-radius: 4px; margin: 1px 0; }
+  .mock-admin-side .item.active { background: var(--brand); color: #fff; font-weight: 600; }
+  .mock-admin-main { padding: 22px 24px; background: var(--bg); }
+
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px 16px; margin: 12px 0; font-size: 14px; }
+  .kv dt { font-weight: 700; color: var(--text-2); }
+  .kv dd { margin: 0; color: var(--text-2); }
+
+  .role { display: inline-block; font-size: 11px; padding: 3px 9px;
+    border-radius: var(--radius-pill); font-weight: 600; margin-right: 5px; border: 1px solid; }
+  .role.admin { background: var(--brand-soft); color: var(--brand); border-color: rgba(122,31,43,.2); }
+  .role.op { background: var(--gold-soft); color: var(--gold); border-color: rgba(184,147,90,.3); }
+  .role.member { background: #e8eef5; color: #2c4d75; border-color: #c8d4e3; }
+  .role.guest { background: var(--bg-mute); color: var(--text-2); border-color: var(--line); }
+
+  /* 칸반 mock */
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+  .kanban-col { background: var(--bg-mute); border-radius: var(--radius); padding: 10px; min-height: 200px; }
+  .kanban-col h5 { margin: 0 0 8px; font-size: 11.5px; font-weight: 700;
+    color: var(--text-2); letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; }
+  .kanban-col h5 .count { background: var(--bg); color: var(--text-3); padding: 1px 7px;
+    border-radius: var(--radius-pill); font-size: 10px; }
+  .kanban-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 10px; margin-bottom: 6px; font-size: 12px; box-shadow: var(--shadow-sm); }
+  .kanban-card .tag { font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+    padding: 1px 6px; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+  .kanban-card .tag.r { background: rgba(197,41,58,.12); color: var(--siren); }
+  .kanban-card .tag.b { background: var(--brand-soft); color: var(--brand); }
+  .kanban-card .tag.g { background: var(--gold-soft); color: var(--gold); }
+  .kanban-card .tag.o { background: rgba(74,122,77,.12); color: var(--ok); }
+  .kanban-card .title { font-weight: 600; color: var(--text); margin: 2px 0; font-size: 12.5px; }
+  .kanban-card .meta { font-size: 10.5px; color: var(--text-3); margin-top: 4px; display: flex; justify-content: space-between; }
+
+  /* 푸터 */
+  footer.page-footer { margin-top: 100px; padding: 40px 0; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--text-3); text-align: center; }
+  footer.page-footer strong { color: var(--text-2); }
+
+  .search-wrap { margin-bottom: 16px; }
+  .search-wrap input { width: 100%; padding: 10px 14px; border-radius: var(--radius);
+    border: 1px solid var(--line); background: var(--bg-soft); color: var(--text);
+    font-size: 13.5px; font-family: var(--font-sans); }
+  .search-wrap input:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+
+  /* ============ 모바일 추가 다듬기 (720px / 480px) ============ */
+  @media (max-width: 720px) {
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; margin: 50px 0 12px; padding-bottom: 10px; }
+    h2 .badge-area { width: 32px; height: 32px; font-size: 12px; }
+    h3 { font-size: 17px; margin: 28px 0 10px; }
+    .hero { padding: 32px 24px; border-radius: 12px; }
+    .hero h1 { font-size: 30px; }
+    main { padding: 24px 16px 80px; }
+    .stat { padding: 16px 12px; }
+    .stat .num { font-size: 28px; }
+    .flow { flex-direction: column; gap: 0; }
+    .flow .step { margin-right: 0; margin-bottom: 26px; min-width: 0; }
+    .flow .step::after {
+      content: '↓'; right: 50%; top: auto; bottom: -22px;
+      transform: translateX(50%); font-size: 22px;
+    }
+    .flow .step:last-child::after { display: none; }
+    table { font-size: 12.5px; }
+    th, td { padding: 8px 10px; }
+    .kv { grid-template-columns: 90px 1fr; gap: 6px 12px; }
+    .mock-bar .url { font-size: 10.5px; padding: 3px 8px; }
+    .mock-body { padding: 16px !important; }
+    .kanban { grid-template-columns: repeat(2, 1fr); }
+    .mock-admin { grid-template-columns: 1fr; }
+    .mock-admin-side { display: none; }
+  }
+  @media (max-width: 480px) {
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; gap: 10px; }
+    .hero h1 { font-size: 26px; }
+    .hero p { font-size: 14px; }
+    .hero { padding: 28px 20px; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+    .kanban { grid-template-columns: 1fr; }
+  }
+
+  /* ============ 인쇄용 CSS (다듬음) ============ */
+  @media print {
+    @page { margin: 1.5cm; size: A4; }
+    body { font-size: 10.5pt; line-height: 1.5; background: #fff; }
+    aside.toc, .search-wrap, .toc-brand { display: none !important; }
+    .layout { grid-template-columns: 1fr; }
+    main { padding: 0; max-width: 100%; background: #fff; }
+    h1 { font-size: 22pt; }
+    h2 { font-size: 16pt; page-break-after: avoid; break-after: avoid; margin-top: 24pt; }
+    h3 { font-size: 13pt; page-break-after: avoid; break-after: avoid; }
+    h4 { font-size: 11pt; page-break-after: avoid; }
+    p, ul, ol, dl { orphans: 3; widows: 3; }
+    .hero {
+      background: #fff !important; border: 1.5px solid #7a1f2b;
+      box-shadow: none; padding: 24pt 28pt; page-break-after: avoid;
+    }
+    .hero::before, .hero::after { display: none; }
+    .card, .mock, .callout {
+      page-break-inside: avoid; break-inside: avoid; box-shadow: none;
+    }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    thead { display: table-header-group; }
+    .flow .step { box-shadow: none; }
+    .kanban-card { box-shadow: none; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    a { color: #1a1a1a !important; text-decoration: none; }
+    a[href^="http"]::after, a[href^="/"]::after {
+      content: " (" attr(href) ")";
+      font-size: 8.5pt; color: #8a8a8a; font-weight: normal;
+    }
+    a[href^="#"]::after { content: ''; }
+    footer.page-footer { page-break-before: always; border-top: 1.5px solid #7a1f2b; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ===================== 좌측 TOC ===================== -->
+  <aside class="toc">
+    <div class="toc-brand">
+      <svg viewBox="0 0 24 28" width="28" height="32" aria-hidden="true">
+        <path d="M3 0 L21 0 L21 22 L12 28 L3 22 Z" fill="#7a1f2b"/>
+        <path d="M3 0 L12 0 L12 28 L3 22 Z" fill="#5a141d"/>
+        <circle cx="12" cy="10" r="3" fill="#b8935a"/>
+      </svg>
+      <div>
+        <div class="name">SIREN 운영자 메뉴얼</div>
+        <div class="sub">ADMIN GUIDE v1</div>
+        <span class="pill">🛡️ ADMIN</span>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="🔍 검색 ( / 키로 빠른 이동, ESC 초기화)" autocomplete="off">
+    </div>
+
+    <nav>
+      <div class="toc-section">시작하기</div>
+      <a href="#overview">운영자 메뉴얼 개요</a>
+      <a href="#permission">권한 체계</a>
+
+      <div class="toc-section">신고 운영</div>
+      <a href="#admin-report" class="lvl-2">신고 처리 흐름</a>
+      <a href="#admin-action" class="lvl-2">운영자 5가지 액션</a>
+      <a href="#admin-similar" class="lvl-2">유사 사건 매칭</a>
+      <a href="#admin-anon" class="lvl-2">🔐 익명 신원 식별</a>
+      <a href="#admin-audit" class="lvl-2">📜 감사 로그</a>
+
+      <div class="toc-section">D. 워크스페이스 운영</div>
+      <a href="#d-overview" class="lvl-2">메인·8개 메뉴</a>
+      <a href="#d-kanban" class="lvl-2">WBS 칸반</a>
+      <a href="#d-calendar" class="lvl-2">캘린더 · 이벤트</a>
+      <a href="#d-files" class="lvl-2">파일함 · 공유</a>
+      <a href="#d-milestone" class="lvl-2">성과·마일스톤</a>
+      <a href="#d-attendance" class="lvl-2">근태 · 본인 명세서</a>
+      <a href="#d-ai" class="lvl-2">AI 비서</a>
+
+      <div class="toc-section">E. 어드민 후원·결제</div>
+      <a href="#area-e" class="lvl-2">화면 한눈에</a>
+      <a href="#e-payment" class="lvl-2">결제 수단 3종 운영</a>
+      <a href="#e-flow" class="lvl-2">후원 처리 흐름</a>
+      <a href="#e-receipt" class="lvl-2">영수증·기부금 영수증</a>
+      <a href="#e-send" class="lvl-2">📤 발송 운영</a>
+      <a href="#e-trigger" class="lvl-2">🤖 AI 자동 트리거</a>
+      <a href="#e-stats" class="lvl-2">통계·KPI</a>
+      <a href="#e-member-action" class="lvl-2">회원 상세 작업</a>
+      <a href="#e-payroll" class="lvl-2">급여 관리(R37)</a>
+      <a href="#e-ai-ops" class="lvl-2">🛡️ AI 운영·비용</a>
+      <a href="#e-emergency" class="lvl-2">비상·예외 처리</a>
+
+      <div class="toc-section">🌐 일반 사용자용</div>
+      <a href="/manual.html" class="lvl-2 external">→ manual.html</a>
+    </nav>
+  </aside>
+
+  <!-- ===================== 본문 ===================== -->
+  <main>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <span class="tag">🛠️ SIREN 운영자 메뉴얼 · v1 · 2026-05-20</span>
+      <h1>운영자가 직접 보는<br><em>SIREN 어드민 가이드</em></h1>
+      <p>신고 운영 · 워크스페이스 협업 · 후원/결제 관리 — 어드민 화면에서 무엇을, 어디서, 어떻게 하는지 실제 화면과 함께 안내합니다.</p>
+      <div class="hero-meta">
+        <span>운영 주체 <strong>(사)교사유가족협의회</strong></span>
+        <span>진입 <strong>admin.html · admin-hub.html</strong></span>
+        <span>세션 <strong>2시간 (관리자 JWT)</strong></span>
+      </div>
+    </section>
+
+    <!-- 일반 사용자용 안내 -->
+    <div class="callout" style="margin-bottom:24px;">
+      <div class="title">👥 일반 회원·후원자·신고자세요?</div>
+      이 메뉴얼은 운영자·간사·슈퍼어드민용입니다. 일반 사용자 화면(donate·mypage·report 등)은 <a href="/manual.html"><strong>manual.html</strong></a>을 참고하세요.
+    </div>
+
+    <!-- ============ 개요 ============ -->
+    <section id="overview">
+      <h2><span class="badge-area">📖</span>운영자 메뉴얼 개요</h2>
+      <p>본 메뉴얼은 어드민 화면(<code>admin-*.html</code>) 사용 권한을 가진 운영진을 대상으로 합니다. 일반 회원이 보는 화면 안내는 <a href="/manual.html">manual.html</a>을 참고하세요.</p>
+
+      <div class="grid cols-4" style="margin-top:24px;">
+        <div class="stat"><div class="num">59</div><div class="label">어드민 화면</div></div>
+        <div class="stat"><div class="num">~500</div><div class="label">API 함수</div></div>
+        <div class="stat"><div class="num">11</div><div class="label">자동 Cron 작업</div></div>
+        <div class="stat"><div class="num">84</div><div class="label">AI 비서 도구</div></div>
+      </div>
+
+      <h3>1차 본문 — R37/R38 종결 영역만</h3>
+      <div class="callout warn">
+        <div class="title">⏳ R39 신규 12건은 종결 시점에 추가</div>
+        역할 동적 CRUD · 카카오 지도 위치 시각화 · 실시간 출퇴근 현황 · 어드민 수동 휴가·출퇴근 수정 · 비매출 검토 화면 · 워크툴 메인 출퇴근 버튼 등 R39 신규 기능은 단계 종결 시점에 본 메뉴얼에 보강 추가됩니다. 현재 1차 본문은 <strong>R37/R38 머지 완료된 영역</strong>까지 다룹니다.
+      </div>
+
+      <h3>운영자 메뉴얼 구성</h3>
+      <div class="grid cols-3">
+        <a href="#admin-report" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--siren);">
+          <h4 style="color:var(--siren);">🚨 신고 운영</h4>
+          <p style="font-size:13px;margin-bottom:0;">사건·괴롭힘·법률 신고를 검토·회신·확정·반려. 익명 신원 식별 + 감사 로그.</p>
+        </a>
+        <a href="#area-d" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--brand);">
+          <h4 style="color:var(--brand);">📋 워크스페이스</h4>
+          <p style="font-size:13px;margin-bottom:0;">내부 협업 — 칸반·캘린더·파일함·성과·근태·AI 비서.</p>
+        </a>
+        <a href="#area-e" class="card" style="text-decoration:none;color:inherit;display:block;border-top:3px solid var(--gold);">
+          <h4 style="color:var(--gold);">💳 어드민 후원·결제</h4>
+          <p style="font-size:13px;margin-bottom:0;">결제 수단 운영·영수증·발송 작업·자동 트리거.</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ 권한 체계 (공통, 짧게) ============ -->
+    <section id="permission">
+      <h2><span class="badge-area">🔑</span>권한 체계</h2>
+
+      <table>
+        <thead><tr><th width="160">권한</th><th>설명</th><th width="220">대표 화면</th></tr></thead>
+        <tbody>
+          <tr><td><span class="role admin">🛡️ 슈퍼어드민</span></td><td>시스템 전체 권한. 운영자 추가·역할 변경·익명 식별 감사·AI 설정 전권.</td><td>/admin-hub.html 전 메뉴</td></tr>
+          <tr><td><span class="role op">🤝 운영자</span></td><td>회원·후원·신고·발송 등 일상 운영. 슈퍼어드민 전용 메뉴 일부 제한.</td><td>/admin.html, /admin-send-jobs.html</td></tr>
+          <tr><td><span class="role op">🤝 간사</span></td><td>워크스페이스(협업) 위주. 신고 운영 권한은 정책에 따라 부여.</td><td>/workspace.html 전 메뉴</td></tr>
+          <tr><td><span class="role member">👥 일반 회원</span></td><td>본인 마이페이지·신고 등. 어드민 진입 불가.</td><td><a href="/manual.html">manual.html 참고</a></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <div class="title">📅 세션 시간</div>
+        관리자 JWT는 <strong>2시간</strong>(일반 회원은 7일). 보안상 짧게 설정. 만료 시 재로그인 필요.
+      </div>
+    </section>
+
+    <!-- ===================== 신고 운영 ===================== -->
+    <section id="admin-report">
+      <h2><span class="badge-area">🚨</span>신고 운영</h2>
+      <p><span class="role op">🤝 운영자</span> <span class="role admin">🛡️ 슈퍼어드민</span> · 사건·괴롭힘·법률 신고를 어드민에서 처리하는 공통 흐름. 회원 측 신고 작성 안내는 <a href="/manual.html#area-c">manual.html C 영역</a>.</p>
+
+      <h3 id="admin-report">신고 처리 흐름 (어드민 관점)</h3>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">알림 수신</div><div class="desc">신규 신고 도착 시 즉시 알림</div></div>
+        <div class="step"><div class="num">2</div><div class="title">상세 진입</div><div class="desc">AI 시급도 점수 + 분류 확인</div></div>
+        <div class="step"><div class="num">3</div><div class="title">유사 사건 참조</div><div class="desc">과거 처리 사례 일관성 확보</div></div>
+        <div class="step"><div class="num">4</div><div class="title">AI 회신 초안</div><div class="desc">자동 생성 + 운영자 편집</div></div>
+        <div class="step"><div class="num">5</div><div class="title">액션 결정</div><div class="desc">확정 / 보완 / 반려</div></div>
+      </div>
+
+      <h3>신고 상세 화면</h3>
+      <p>각 신고 트랙(사건·괴롭힘·법률)에 별도 페이지가 있지만 처리 구조는 동일합니다.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/admin-hub.html (신고 상세)</span></div>
+        <div class="mock-body" style="padding:24px 28px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--line);">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-3);">
+                <span class="badge danger">사건</span>
+                <span>#INC-2026-0287</span>
+                <span>2026-05-20 09:42</span>
+                <span class="badge warn">검토 중</span>
+              </div>
+              <div style="font-family:var(--font-serif);font-size:20px;font-weight:600;margin-top:8px;color:var(--text);">[익명] 학생 사건 신고</div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-top:4px;">분류 · 학생 안전 / 발생 · ○○초등학교 / 첨부 3개</div>
+            </div>
+            <div style="text-align:right;min-width:120px;">
+              <div style="font-size:11px;color:var(--text-3);letter-spacing:.1em;">AI 시급도</div>
+              <div style="font-family:var(--font-serif);font-size:24px;font-weight:600;color:var(--siren);">7.8 / 10</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">즉각 검토 권고</div>
+            </div>
+          </div>
+
+          <div style="background:var(--brand-soft);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;border-left:3px solid var(--brand);">
+            <div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:6px;">🤖 AI 자동 분류 · 분석 결과</div>
+            <div style="font-size:13px;color:var(--text-2);">학생 안전 관련 · 즉각 검토 권고 · 신뢰도 92%<br>과거 유사 사건 3건: #INC-2025-0142, #INC-2024-0891, #INC-2024-0517</div>
+          </div>
+
+          <div style="background:var(--gold-soft);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;border-left:3px solid var(--gold);">
+            <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px;">⚠️ 익명 신고</div>
+            <div style="font-size:12.5px;color:var(--text-2);">신원 정보 저장 안 됨. 회신 채널 없음. 식별이 필요하면 별도 권한 페이지 사용 (감사 로그 기록).</div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button style="background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">✍️ AI 회신 초안</button>
+            <button style="background:var(--bg);color:var(--text);border:1px solid var(--line);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">🔍 유사 사건 보기</button>
+            <button style="background:var(--bg);color:var(--warn);border:1px solid var(--warn);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">📝 보완 요청</button>
+            <button style="background:var(--bg);color:var(--ok);border:1px solid var(--ok);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">✅ 확정</button>
+            <button style="background:var(--bg);color:var(--siren);border:1px solid var(--siren);padding:9px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">⛔ 반려</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5가지 액션 -->
+      <h3 id="admin-action">운영자 5가지 액션 상세</h3>
+
+      <table>
+        <thead><tr><th width="180">액션</th><th>언제 쓰나</th><th>회원 측 결과</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--brand);">✍️ AI 회신 초안</strong></td>
+            <td>회원에게 답변할 때 AI가 사안 맥락에 맞춰 초안 자동 생성</td>
+            <td>운영자가 [발송]하면 회원이 메시지로 받음</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--brand);">🔍 유사 사건</strong></td>
+            <td>과거 처리 사례 참조 (일관성 확보)</td>
+            <td>운영자 화면에만 표시</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--warn);">📝 보완 요청</strong></td>
+            <td>추가 정보가 필요할 때</td>
+            <td>회원에게 보완 요청 메시지 + 상태 → "보완 요청"</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--ok);">✅ 확정</strong></td>
+            <td>공식 사건으로 등록</td>
+            <td>상태 → "확정" · 공개 목록 게시(회원 동의 시)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--siren);">⛔ 반려</strong></td>
+            <td>접수 불가 · 사유 입력 필수</td>
+            <td>상태 → "반려" · 회원에게 사유 알림</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>AI 회신 초안 사용 팁</h4>
+      <ul>
+        <li>초안은 그대로 보내지 말고 <strong>반드시 운영자가 검토·편집</strong> 후 발송</li>
+        <li>AI가 사실관계를 추측한 부분(예: "○○씨께서는...")이 있으면 삭제</li>
+        <li>익명 신고에는 회신 발송이 불가능하므로 초안은 운영자 메모용으로 활용</li>
+        <li>AI 회신은 별도 비용으로 청구되니 <a href="#e-coming">AI 비용 관리</a>에서 월 한도 확인</li>
+      </ul>
+
+      <h3 id="admin-similar">유사 사건 매칭 자세히</h3>
+      <p>운영자가 [🔍 유사 사건 보기]를 누르면 AI가 같은 분류·유사 키워드의 과거 사건을 자동 검색합니다.</p>
+      <ul>
+        <li><strong>점수 기준</strong>: 분류 일치도 + 키워드 유사도 + 발생 시기 가중</li>
+        <li><strong>표시 정보</strong>: 사건 번호·요약·처리 결과(확정/반려)·처리 기간</li>
+        <li><strong>활용 방법</strong>: 비슷한 사건이 반려됐다면 사유 참고. 확정 사건의 회신 톤도 참조</li>
+      </ul>
+
+      <h3>유족 지원 운영 (별도 트랙)</h3>
+      <p>유족 지원금·심리상담·장학금은 신고 트랙과 구분되며 <code>/admin-hub.html</code>의 유족 지원 심사 화면에서 처리합니다.</p>
+      <ul>
+        <li>서류 검토 · 보충 서류 요청 · 지급 결정</li>
+        <li>지급 결정 시 회원 알림 + 회계 시스템 연동</li>
+        <li>익명 보호 정책은 신고와 동일하게 적용</li>
+      </ul>
+
+      <!-- 익명 신원 식별 -->
+      <h3 id="admin-anon">🔐 익명 신원 식별 페이지 <span class="role admin">🛡️ 슈퍼어드민</span></h3>
+      <p>익명 신고자의 신원을 봐야 할 정당한 사유(법적 의무 보고, 회원 본인 요청 등)가 있을 때만 사용. 진입 <code>/admin-anon-reveal.html</code></p>
+
+      <h4>사용 절차</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">페이지 진입</div><div class="desc">/admin-anon-reveal.html · 슈퍼어드민 권한 필수</div></div>
+        <div class="step"><div class="num">2</div><div class="title">신고 번호 입력</div><div class="desc">대상 신고의 ID (예: #INC-2026-0287)</div></div>
+        <div class="step"><div class="num">3</div><div class="title">사유 입력</div><div class="desc">왜 식별이 필요한지 구체적으로</div></div>
+        <div class="step"><div class="num">4</div><div class="title">식별 실행</div><div class="desc">신원 일시 공개 + 감사 로그 자동 기록</div></div>
+        <div class="step"><div class="num">5</div><div class="title">세션 종료</div><div class="desc">페이지 떠나면 다시 마스킹</div></div>
+      </div>
+
+      <div class="callout danger">
+        <div class="title">⚠️ 절대 금지 행위</div>
+        호기심 · 개인적 친분 · 비공식 요청으로 익명 신원을 식별하는 것. 시스템은 막지 않지만 행위가 감사 로그에 영구 기록되고, 최고관리자가 정기 점검합니다. <strong>부적절한 식별은 사후 추궁됩니다.</strong>
+      </div>
+
+      <h4>정당한 식별 사유 (예시)</h4>
+      <ul>
+        <li>법적 의무 보고가 필요한 사안(아동학대 등) — 외부 기관 통보 전 신원 확인</li>
+        <li>회원 본인이 "내가 신고한 건이 맞는지 확인해 달라"고 요청한 경우</li>
+        <li>이중·중복 신고 여부 확인 (같은 사안을 여러 번 신고)</li>
+        <li>법원·수사기관의 정식 영장·요청</li>
+      </ul>
+
+      <!-- 감사 로그 -->
+      <h3 id="admin-audit">📜 감사 로그 페이지 <span class="role admin">🛡️ 슈퍼어드민</span></h3>
+      <p>모든 익명 신원 식별 행위가 영구 기록되는 곳. 진입 <code>/admin-anon-audit.html</code></p>
+
+      <h4>로그에 기록되는 정보</h4>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📌 식별 정보</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>식별 일시 (분 단위까지)</li>
+            <li>식별한 운영자 ID·이름</li>
+            <li>대상 신고 번호</li>
+            <li>입력한 식별 사유 전문</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>🔍 점검 도구</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>기간·운영자·신고 번호 필터</li>
+            <li>의심스러운 식별 패턴 알림 (단시간 다건 등)</li>
+            <li>CSV 내보내기</li>
+            <li>자동 삭제 없음 (영구 보관)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>정기 감사 운영</h4>
+      <ul>
+        <li>최고관리자가 <strong>매월 1회</strong> 감사 로그 점검</li>
+        <li>이상 패턴 발견 시 해당 운영자에게 사유 재확인</li>
+        <li>중대 위반 발생 시 운영자 권한 회수 + 감사 위원회 회부</li>
+      </ul>
+
+      <div class="callout gold">
+        <div class="title">💡 운영자도 자기 행위 이력을 볼 수 있나?</div>
+        본인이 한 식별 이력은 본인이 조회할 수 있습니다. 다만 <strong>로그 자체는 수정·삭제 불가</strong>이며, 본인이 자기 이력을 봐도 그 조회 또한 별도 로그에 기록됩니다.
+      </div>
+    </section>
+
+    <!-- ===================== 영역 D ===================== -->
+    <section id="area-d">
+      <h2><span class="badge-area">D</span>워크스페이스 운영</h2>
+      <p><span class="role op">🤝 간사·운영자</span> <span class="role admin">🛡️ 슈퍼어드민</span> · 내부 협업 도구. 진입 <code>/workspace.html</code></p>
+
+      <h3 id="d-overview">D-0. 페이지 한눈에</h3>
+      <table>
+        <thead><tr><th width="180">페이지</th><th width="240">경로</th><th>무엇을</th></tr></thead>
+        <tbody>
+          <tr><td>워크스페이스 메인</td><td><code>/workspace.html</code></td><td>내 업무·일정·알림 요약</td></tr>
+          <tr><td>WBS 칸반</td><td><code>/workspace-kanban.html</code></td><td>업무 칸반 보드</td></tr>
+          <tr><td>캘린더</td><td><code>/workspace-calendar.html</code></td><td>일정·이벤트·마감</td></tr>
+          <tr><td>파일함</td><td><code>/workspace-files.html</code></td><td>폴더·파일 (R2)</td></tr>
+          <tr><td>템플릿</td><td><code>/workspace-templates.html</code></td><td>업무 템플릿</td></tr>
+          <tr><td>성과 관리</td><td><code>/workspace-milestones.html</code></td><td>마일스톤·KPI</td></tr>
+          <tr><td>근태 관리</td><td><code>/workspace-attendance.html</code></td><td>출근·재택·연차·본인 명세서</td></tr>
+          <tr><td>알림</td><td><code>/workspace-notifications.html</code></td><td>알림 인박스</td></tr>
+          <tr><td>AI 비서</td><td><code>/admin-ai-assistant.html</code></td><td>자연어 명령·84개 도구</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 메인 mock -->
+      <h3>워크스페이스 메인</h3>
+      <p>로그인 후 가장 먼저 보이는 종합 대시보드. 내 업무·일정·알림이 한 화면에.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/workspace.html</span></div>
+        <div class="mock-body" style="padding:24px 28px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+            <div>
+              <div style="font-family:var(--font-serif);font-size:20px;font-weight:600;color:var(--text);">👋 안녕하세요, 김간사 님</div>
+              <div style="font-size:12.5px;color:var(--text-3);margin-top:2px;">오늘은 2026년 5월 20일 화요일</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button style="background:var(--ok);color:#fff;border:none;padding:8px 18px;border-radius:var(--radius-pill);font-weight:600;font-size:12.5px;">🟢 출근</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div style="background:var(--brand-soft);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.1em;">📋 내 업무</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">7건</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">이번주 마감 3 · 지연 1</div>
+            </div>
+            <div style="background:var(--gold-soft);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">📅 오늘 일정</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">2개</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">14:00 운영회의 · 16:00 면담</div>
+            </div>
+            <div style="background:rgba(197,41,58,.08);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--siren);font-weight:700;letter-spacing:.1em;">🔔 알림</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">5건</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">멘션 2 · 할당 2 · 코멘트 1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D-1 칸반 -->
+      <h3 id="d-kanban">D-1. WBS 칸반</h3>
+      <p><code>/workspace-kanban.html</code> — 업무 단위로 카드를 만들고 컬럼을 옮기며 진행을 시각화합니다.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/workspace-kanban.html</span></div>
+        <div class="mock-body" style="padding:20px;">
+          <div class="kanban">
+            <div class="kanban-col">
+              <h5>📥 대기 <span class="count">4</span></h5>
+              <div class="kanban-card">
+                <span class="tag b">기획</span>
+                <div class="title">5월 정기 캠페인 기획안</div>
+                <div class="meta"><span>김간사</span><span>D-7</span></div>
+              </div>
+              <div class="kanban-card">
+                <span class="tag g">행정</span>
+                <div class="title">분기 보고서 수합</div>
+                <div class="meta"><span>박운영</span><span>D-12</span></div>
+              </div>
+            </div>
+            <div class="kanban-col">
+              <h5>🔄 진행 <span class="count">3</span></h5>
+              <div class="kanban-card">
+                <span class="tag r">긴급</span>
+                <div class="title">사건 #INC-0287 회신 작성</div>
+                <div class="meta"><span>이심사</span><span style="color:var(--siren);">D-1 ⚠️</span></div>
+              </div>
+              <div class="kanban-card">
+                <span class="tag b">기획</span>
+                <div class="title">변호사 풀 업데이트</div>
+                <div class="meta"><span>김간사</span><span>D-5</span></div>
+              </div>
+            </div>
+            <div class="kanban-col">
+              <h5>🔍 검토 <span class="count">2</span></h5>
+              <div class="kanban-card">
+                <span class="tag o">완료대기</span>
+                <div class="title">후원자 안내 메일 초안</div>
+                <div class="meta"><span>박운영</span><span>D-2</span></div>
+              </div>
+            </div>
+            <div class="kanban-col">
+              <h5>✅ 완료 <span class="count">12</span></h5>
+              <div class="kanban-card" style="opacity:.7;">
+                <span class="tag o">완료</span>
+                <div class="title">R37 명세서 발급</div>
+                <div class="meta"><span>김간사</span><span>05.18</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4>카드 만들기 · 관리</h4>
+      <table>
+        <thead><tr><th width="160">요소</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td>제목</td><td>컬럼 상단 [+ 추가] → 자동 저장</td></tr>
+          <tr><td>설명</td><td>Toast UI 에디터. 이미지 붙여넣기 자동 업로드(R2)</td></tr>
+          <tr><td>담당자</td><td>다중 지정 가능 · 추가 시 알림 자동 발송</td></tr>
+          <tr><td>감시자(watcher)</td><td>코멘트·상태 변경 시 알림 받음. 담당 아니어도 추적</td></tr>
+          <tr><td>마감일</td><td>설정 시 카드에 D-day 표시 + 임박 시 자동 알림</td></tr>
+          <tr><td>체크리스트</td><td>하위 업무를 체크박스로. 진행률 카드에 표시</td></tr>
+          <tr><td>첨부</td><td>R2 업로드. 카드 안에서 직접 다운로드</td></tr>
+          <tr><td>코멘트</td><td>@멘션으로 알림 발송. 멘션된 사람만</td></tr>
+        </tbody>
+      </table>
+
+      <h4>🤖 AI 자동화 3종</h4>
+      <div class="grid cols-3">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>📝 AI 작업 요약</h4>
+          <p style="font-size:13px;margin-bottom:0;">설명이 100자 이상이면 카드 생성 시 자동으로 1줄 요약 생성. 카드 목록에서 한눈에 파악.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warn);">
+          <h4>⚠️ AI 리스크 점수</h4>
+          <p style="font-size:13px;margin-bottom:0;">매일 새벽 6시 30분(KST) 자동 갱신. 마감 임박·지연·우선순위 종합. 카드에 색상 표시.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--ok);">
+          <h4>✅ AI 완료 보고서</h4>
+          <p style="font-size:13px;margin-bottom:0;">카드를 [완료]로 이동 시 완료 보고서 초안 자동 생성. 운영자 검수 후 회의록·결산에 활용.</p>
+        </div>
+      </div>
+
+      <h4>반복 업무 · 템플릿</h4>
+      <ul>
+        <li><strong>반복 업무</strong>: 카드 상세 > [반복 설정] · 매일/매주/매월 · 마감 도래 시 자동 복제 + 알림</li>
+        <li><strong>업무 템플릿</strong> (<code>/workspace-templates.html</code>): 자주 쓰는 업무(분기 결산·캠페인 기획 등)를 템플릿화. 카드 생성 시 [템플릿에서 시작]</li>
+      </ul>
+
+      <!-- D-2 캘린더 -->
+      <h3 id="d-calendar">D-2. 캘린더 · 이벤트</h3>
+      <p><code>/workspace-calendar.html</code> — FullCalendar 6 기반. 월/주/일/리스트 뷰.</p>
+
+      <h4>이벤트 종류</h4>
+      <div class="grid cols-3">
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">📅</div>
+          <h4 style="margin-top:6px;">업무 마감</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">칸반 카드의 마감일 자동 표시</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">👥</div>
+          <h4 style="margin-top:6px;">회의·면담</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">참석자 지정 + RSVP</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">🏖️</div>
+          <h4 style="margin-top:6px;">휴가·외근</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">근태 시스템과 연동 자동 반영</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">📣</div>
+          <h4 style="margin-top:6px;">캠페인</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">시작·종료 자동 등록</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">🕯️</div>
+          <h4 style="margin-top:6px;">협의회 일정</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">기일·정기 행사</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">📞</div>
+          <h4 style="margin-top:6px;">출장·외근</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">위치 + 일정 일원 관리</p>
+        </div>
+      </div>
+
+      <h4>RSVP (참석 응답)</h4>
+      <p>회의·면담 이벤트는 참석자에게 RSVP 요청이 발송됩니다. 참석/불참/미정 응답 후 회의 진행자 화면에서 한눈에 확인.</p>
+
+      <!-- D-3 파일함 -->
+      <h3 id="d-files">D-3. 파일함 · 공유</h3>
+      <p><code>/workspace-files.html</code> — Cloudflare R2 저장. 폴더·권한·외부 공유 링크 통합.</p>
+
+      <h4>업로드 흐름 (Pre-signed URL)</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">파일 선택</div><div class="desc">최대 100MB</div></div>
+        <div class="step"><div class="num">2</div><div class="title">URL 발급</div><div class="desc">서버가 R2 업로드 URL 발급</div></div>
+        <div class="step"><div class="num">3</div><div class="title">직접 업로드</div><div class="desc">클라이언트 → R2 (서버 부하 0)</div></div>
+        <div class="step"><div class="num">4</div><div class="title">완료 처리</div><div class="desc">DB 등록 + 폴더 권한 적용</div></div>
+      </div>
+
+      <h4>외부 공유 링크</h4>
+      <p>외부 파트너·변호사·기자에게 안전하게 파일을 보낼 때 사용. 만료·비밀번호·횟수 제한 모두 지원.</p>
+
+      <div class="grid cols-3">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;">⏳</div>
+          <h4 style="margin-top:6px;">만료일 설정</h4>
+          <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">예: 7일 후 자동 비활성화</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;">🔒</div>
+          <h4 style="margin-top:6px;">비밀번호 보호</h4>
+          <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">받는 사람에게 별도 안내</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;">🔢</div>
+          <h4 style="margin-top:6px;">다운로드 횟수</h4>
+          <p style="font-size:12.5px;color:var(--text-3);margin-bottom:0;">예: 5회 후 자동 비활성화</p>
+        </div>
+      </div>
+
+      <h4>휴지통 · 영구 삭제</h4>
+      <ul>
+        <li>삭제한 파일은 휴지통에 <strong>30일 보관</strong></li>
+        <li>30일 경과 후 자동 영구 삭제 (cron 작업)</li>
+        <li>즉시 영구 삭제는 별도 [완전 삭제] 권한 필요</li>
+      </ul>
+
+      <!-- D-4 성과 -->
+      <h3 id="d-milestone">D-4. 성과 관리 · 마일스톤</h3>
+      <p><code>/workspace-milestones.html</code> · 설정 <code>/admin-milestone-settings.html</code></p>
+
+      <h4>마일스톤 운영</h4>
+      <ul>
+        <li>분기·반기·연간 단위 목표 설정</li>
+        <li>하위에 업무 카드를 매핑 → <strong>진행률 자동 집계</strong></li>
+        <li>사람별 마일스톤 화면 (R38 추가): 어드민이 직원 클릭 → 그 직원의 마일스톤 일람·수정·추가</li>
+        <li>KPI는 어드민의 성과관리 설정에서 정의</li>
+      </ul>
+
+      <h4>🤖 AI 자동화</h4>
+      <div class="grid cols-3">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>🎯 AI 자동 분류</h4>
+          <p style="font-size:13px;margin-bottom:0;">새 업무 카드 생성 시 적합한 마일스톤 자동 추천.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warn);">
+          <h4>💬 AI 코칭</h4>
+          <p style="font-size:13px;margin-bottom:0;">마일스톤 지연·정체 시 행동 제안 메시지 자동 발송.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--ok);">
+          <h4>📊 AI 인사이트</h4>
+          <p style="font-size:13px;margin-bottom:0;">분기 종료 시 회고 보고서 초안 자동 작성.</p>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="title">⏳ R39에서 추가 예정 — 비매출 검토 화면</div>
+        운영자가 제출한 비매출 성과를 슈퍼어드민이 검토·승인·반려하는 화면은 R39 Stage 8에서 추가됩니다. 현재는 알림만 도착하고 처리 화면이 없습니다.
+      </div>
+
+      <!-- D-5 근태 -->
+      <h3 id="d-attendance">D-5. 근태 관리</h3>
+      <p><code>/workspace-attendance.html</code> · 설정 <code>/admin-attendance-settings.html</code></p>
+
+      <h4>출퇴근 기록</h4>
+      <ul>
+        <li>매일 출근 시 [출근] 클릭 → 위치/IP 기록 (정책에 따라)</li>
+        <li>근무 형태 선택: 출근 / 재택 / 출장 / 외근 / 연차 / 반차</li>
+        <li>본인 기록은 <code>/workspace-attendance.html</code>에서 일·주·월 조회</li>
+        <li><strong>출퇴근 월기록 화면 (R38 추가)</strong>: 어드민이 직원 + 월 선택 → 일자별 표·CSV 다운로드</li>
+      </ul>
+
+      <div class="callout warn">
+        <div class="title">⏳ R39에서 추가 예정 — 출퇴근 보강 5건</div>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li>실시간 출퇴근 현황 (지금 출근·퇴근·미출근 직원)</li>
+          <li>카카오 지도 위치 시각화 (직원이 찍은 좌표·거점 비교)</li>
+          <li>PC·노트북 위치정보 강제 수집</li>
+          <li>워크툴 메인 상단 출퇴근 버튼 (한 번에 출퇴근)</li>
+          <li>어드민이 직원 출퇴근 직접 수정 + 직원 확인 알림</li>
+        </ul>
+      </div>
+
+      <h4>휴가 관리</h4>
+      <ul>
+        <li>휴가 신청 → 결재 라인 → 승인 후 캘린더 자동 반영</li>
+        <li>연차 잔여 자동 계산</li>
+      </ul>
+
+      <div class="callout warn">
+        <div class="title">⏳ R39에서 추가 예정 — 휴가 수동 부여·차감</div>
+        어드민이 직원 잔여 휴가를 직접 +1·-1 하거나 숫자 직접 입력하는 UI는 R39 Stage 7에서 추가됩니다. 자동 부여 외 수동 조정 시 사유 입력 필수.
+      </div>
+
+      <h4>본인 명세서 (R37 추가)</h4>
+      <p><code>/workspace-attendance.html</code>의 <strong>명세서 탭</strong>에서 본인 급여 명세서(PDF)를 다운로드할 수 있습니다. 발급은 어드민의 <a href="#e-coming">급여 관리</a>(<code>/admin-payroll.html</code>)에서 진행되며, 발급된 분량만 본인 탭에 표시됩니다.</p>
+
+      <!-- D-6 AI 비서 -->
+      <h3 id="d-ai">D-6. SIREN AI 비서</h3>
+      <p><code>/admin-ai-assistant.html</code> — 자연어로 84개 도구를 호출하는 운영자 비서.</p>
+
+      <h4>사용 흐름</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">진입</div><div class="desc">/admin-ai-assistant.html</div></div>
+        <div class="step"><div class="num">2</div><div class="title">자연어 명령</div><div class="desc">"이번 달 후원 총액 알려줘"</div></div>
+        <div class="step"><div class="num">3</div><div class="title">도구 자동 선택</div><div class="desc">Gemini가 적합 도구 호출</div></div>
+        <div class="step"><div class="num">4</div><div class="title">변경 작업?</div><div class="desc">조회면 즉시 결과 / 변경이면 dry-run</div></div>
+        <div class="step"><div class="num">5</div><div class="title">운영자 승인</div><div class="desc">변경 작업만 — [승인] 후 실행</div></div>
+      </div>
+
+      <h4>예시 명령</h4>
+      <table>
+        <thead><tr><th width="40%">명령</th><th>비서가 하는 일</th></tr></thead>
+        <tbody>
+          <tr><td>"이번 주 마감 업무 보여줘"</td><td>본인 + 팀 마감 카드 목록</td></tr>
+          <tr><td>"이번 달 후원 총액"</td><td>월별 결제수단 비중 + 전년 동월 대비</td></tr>
+          <tr><td>"김간사 담당 카드 통계"</td><td>담당자별 진행·지연·완료</td></tr>
+          <tr><td>"이탈 위험 회원 보여줘"</td><td>이탈 예측 점수 높은 회원 정렬</td></tr>
+          <tr><td>"○○님에게 안내 메시지 보내줘"</td><td>dry-run 미리보기 → [승인] 후 발송</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <div class="title">🔒 변경 작업은 항상 dry-run</div>
+        생성·수정·삭제·발송 같은 변경 작업은 비서가 절대 자동 실행하지 않습니다. 어떤 데이터가 어떻게 바뀌는지 먼저 보여주고, 운영자가 [승인]해야 실제 수행됩니다.
+      </div>
+
+      <p>비서 설정·도구 권한·월 비용 한도는 <a href="#e-coming">E 영역의 AI 운영</a>에서 다룹니다.</p>
+
+      <!-- D FAQ -->
+      <h3>D 영역 · 자주 묻는 질문</h3>
+      <table>
+        <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
+        <tbody>
+          <tr><td>칸반 카드를 다른 사람에게 넘기려면?</td><td>카드 상세 > 담당자 변경 또는 [담당자 이전].</td></tr>
+          <tr><td>첨부파일이 안 올라간다</td><td>100MB 초과·확장자 차단·R2 권한 문제. 콘솔 에러 확인.</td></tr>
+          <tr><td>마감 알림이 안 와요</td><td>알림 수신 설정에서 채널 ON 여부 확인.</td></tr>
+          <tr><td>휴가 신청이 결재 안 됨</td><td>결재자 부재. <code>/admin-role-policy.html</code>에서 대리 결재자 지정.</td></tr>
+          <tr><td>AI 비서가 잘못된 답을 한다</td><td>시스템 프롬프트(<code>/admin-ai-config.html</code>)를 다듬거나 도구 권한 점검.</td></tr>
+          <tr><td>외부 공유 링크가 만료됐다</td><td>새 링크 발급. 만료된 링크는 보안상 자동 비활성화.</td></tr>
+          <tr><td>본인 명세서가 안 보여요</td><td>어드민이 해당 기간 명세서를 발급했는지 확인. 미발급이면 발급 요청.</td></tr>
+        </tbody>
+      </table>
+
+    </section>
+
+    <!-- ===================== 영역 E ===================== -->
+    <section id="area-e">
+      <h2><span class="badge-area">E</span>어드민 후원·결제 운영</h2>
+      <p><span class="role admin">🛡️ 슈퍼어드민</span> <span class="role op">🤝 후원 담당 운영자</span> · 진입 <code>/admin.html</code> · <code>/admin-hub.html</code></p>
+
+      <div class="callout">
+        <div class="title">🎯 이 영역에서 운영자가 매일 하는 일</div>
+        결제 모니터링 · 실패 회원 안내 · 영수증 재발송 · 발송 작업 만들기 · 자동 트리거 점검 · 통계 확인 — 후원 흐름을 끊김 없이 유지합니다.
+      </div>
+
+      <h3>화면 한눈에</h3>
+      <table>
+        <thead><tr><th width="180">메뉴</th><th width="240">페이지</th><th>무엇을</th></tr></thead>
+        <tbody>
+          <tr><td>관리자 허브</td><td><code>/admin-hub.html</code></td><td>전체 어드민 메뉴 진입</td></tr>
+          <tr><td>회원 목록</td><td><code>/admin.html</code></td><td>회원·후원자 통합 (검색·필터·Excel)</td></tr>
+          <tr><td>회원 상세</td><td>회원 클릭 → 모달</td><td>후원·정기·포인트·발송·블랙·메모 탭</td></tr>
+          <tr><td>발송 작업</td><td><code>/admin-send-jobs.html</code></td><td>이메일·SMS 일괄 발송 작업 목록</td></tr>
+          <tr><td>새 발송</td><td><code>/admin-send-job-create.html</code></td><td>수신자 그룹 + 템플릿으로 작업 생성</td></tr>
+          <tr><td>발송 분석</td><td><code>/admin-send-analytics.html</code></td><td>발송·열람·클릭·반송 분석</td></tr>
+          <tr><td>발송 템플릿</td><td><code>/admin-templates.html</code> · <code>/admin-template-edit.html</code></td><td>재사용 메시지 템플릿</td></tr>
+          <tr><td>수신자 그룹</td><td><code>/admin-recipient-groups.html</code></td><td>등급·후원·기간 필터 조합</td></tr>
+          <tr><td>발송 이력</td><td><code>/admin-member-send-history.html</code></td><td>회원별 받은 메시지</td></tr>
+          <tr><td>AI 자동 트리거</td><td><code>/admin-auto-triggers.html</code> · <code>/admin-auto-trigger-edit.html</code></td><td>조건·메시지 자동 발송</td></tr>
+          <tr><td>시스템 자동 발송</td><td><code>/admin-system-notification.html</code></td><td>결제 실패·인증 등 고정 이벤트</td></tr>
+          <tr><td>급여 관리</td><td><code>/admin-payroll.html</code> <span class="badge brand">R37</span></td><td>직원 급여 명세서 일괄 발급</td></tr>
+          <tr><td>AI 비용 관리</td><td><code>/admin-ai-cost.html</code></td><td>기능별 월 한도·누적 비용</td></tr>
+          <tr><td>AI 비서 설정</td><td><code>/admin-ai-config.html</code></td><td>시스템 프롬프트·도구 권한 (슈퍼어드민)</td></tr>
+        </tbody>
+      </table>
+
+      <!-- E-1 결제 수단 운영 -->
+      <h3 id="e-payment">E-1. 결제 수단 3종 운영</h3>
+      <p>회원이 쓰는 결제는 토스(카드)·효성(계좌)·계좌이체(무통장) 3가지. 운영자가 신경 써야 할 포인트가 각기 다릅니다.</p>
+
+      <div class="grid cols-3">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>💳 토스페이먼츠</h4>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">카드 결제 · 일시 + 정기</p>
+          <ul style="font-size:13px;margin-bottom:0;">
+            <li><strong>설정</strong>: 환경변수 <code>TOSS_MODE=test|live</code></li>
+            <li><strong>일시</strong>: 즉시 결제 + 즉시 영수증</li>
+            <li><strong>정기</strong>: 빌링키 발급 → 매월 자동 청구</li>
+            <li><strong>실패 처리</strong>: 자동 재시도 + 회원 안내</li>
+            <li><strong>운영자 액션</strong>: 토스 콘솔에서 수동 환불 + 시스템 메모</li>
+          </ul>
+        </div>
+        <div class="card" style="border-top:3px solid var(--gold);">
+          <h4>🏦 효성 CMS+</h4>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">계좌 자동이체 · 일시 + 정기</p>
+          <ul style="font-size:13px;margin-bottom:0;">
+            <li><strong>등록</strong>: 회원이 계좌·생년월일·인감 등록</li>
+            <li><strong>본인인증</strong>: 효성 측 확인 절차</li>
+            <li><strong>출금</strong>: 매월 지정일 효성 파일 송수신</li>
+            <li><strong>운영자 액션</strong>: 효성 결과 파일 업로드 → 회원별 매칭</li>
+            <li><strong>실패 회원</strong>: 자동 안내 발송 + 운영자 확인</li>
+          </ul>
+        </div>
+        <div class="card" style="border-top:3px solid var(--text-3);">
+          <h4>📮 계좌이체</h4>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">무통장 입금 · 일시만</p>
+          <ul style="font-size:13px;margin-bottom:0;">
+            <li><strong>흐름</strong>: 회원이 직접 협의회 계좌로 입금</li>
+            <li><strong>운영자 액션</strong>: 회원 상세에서 [입금 확인]</li>
+            <li><strong>영수증</strong>: 입금 확인 시점 발급</li>
+            <li><strong>자동 매칭 X</strong>: 수기 작업 필수</li>
+            <li><strong>매칭 누락 방지</strong>: 매일 1회 미확인 입금 점검 권장</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- E-2 후원 처리 흐름 -->
+      <h3 id="e-flow">E-2. 후원 처리 운영 흐름</h3>
+
+      <h4>일시 후원 운영</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">결제 발생</div><div class="desc">회원/비회원이 /donate.html에서 결제</div></div>
+        <div class="step"><div class="num">2</div><div class="title">자동 처리</div><div class="desc">영수증 발급 + 누적 후원금 갱신</div></div>
+        <div class="step"><div class="num">3</div><div class="title">대시보드 확인</div><div class="desc">이상 결제·거액·반복 점검</div></div>
+        <div class="step"><div class="num">4</div><div class="title">필요 시 대응</div><div class="desc">환불 요청·문의 회신</div></div>
+      </div>
+
+      <h4>정기 후원 운영</h4>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📈 신규 등록 모니터링</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">매일 신규 빌링 등록 수 확인. 캠페인 효과·이상 가입 패턴 점검.</p>
+        </div>
+        <div class="card">
+          <h4>💔 결제 실패 처리</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">실패 회원 목록을 사유(잔액·카드정지·만료)별로 정리. 사유별 다른 안내 메시지.</p>
+        </div>
+        <div class="card">
+          <h4>⏳ 카드 만료 알림</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">시스템이 만료 2개월 전 자동 알림. 응답 없는 회원에게 운영자가 추가 안내.</p>
+        </div>
+        <div class="card">
+          <h4>⛔ 강제 해지</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">회원 직접 해지 외에도 운영자가 블랙·환불 등 사유로 강제 해지 가능. 사유 입력 필수.</p>
+        </div>
+      </div>
+
+      <h4>후원자 보상·소통 (자동화 도구)</h4>
+      <div class="grid cols-3">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>🎂 기념일 알림</h4>
+          <p style="font-size:13px;margin-bottom:0;">시스템이 매일 기일·후원 시작일을 체크해 자동 메시지 트리거.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warn);">
+          <h4>🔮 이탈 예측</h4>
+          <p style="font-size:13px;margin-bottom:0;">2회 연속 실패·6개월 무결제 등 패턴 감지 → 운영자에게 회복 캠페인 제안.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--gold);">
+          <h4>📄 계약서 일괄 생성</h4>
+          <p style="font-size:13px;margin-bottom:0;">회원 목록에서 선택 → [계약서 일괄 생성] → 협의회 양식 PDF 일괄 다운로드.</p>
+        </div>
+      </div>
+
+      <!-- E-3 영수증 -->
+      <h3 id="e-receipt">E-3. 영수증 · 기부금 영수증 운영</h3>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📧 일반 영수증</h4>
+          <dl class="kv">
+            <dt>발급 시점</dt><dd>결제 직후 자동 (PDF + NotoSansKR 폰트 임베드)</dd>
+            <dt>회원 다운로드</dt><dd>마이페이지에서 상시</dd>
+            <dt>운영자 재발송</dt><dd>회원 상세 → 후원 내역 → [영수증 재발송]</dd>
+            <dt>비회원 재발급</dt><dd>이메일 확인 후 운영자가 수동 재발송</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h4>🧾 연말 기부금 영수증</h4>
+          <dl class="kv">
+            <dt>발급 시점</dt><dd>매년 1~2월 일괄 트리거</dd>
+            <dt>발급 기준</dt><dd>주민번호 등록된 회원만</dd>
+            <dt>사전 캠페인</dt><dd>주민번호 미등록자에게 사전 입력 안내 발송</dd>
+            <dt>발급 후</dt><dd>마이페이지 비치 + 이메일 일괄 발송</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="title">⚠️ 주민번호 미등록 회원 사전 캠페인</div>
+        매년 11~12월에 주민번호 미등록 회원만 골라 사전 입력 안내를 발송하는 것이 권장됩니다. 1월 일괄 발급 직전엔 너무 늦습니다. 수신자 그룹 [주민번호 미등록 + 후원 이력 있음]을 활용.
+      </div>
+
+      <!-- E-4 발송 운영 -->
+      <h3 id="e-send">E-4. 발송 운영 📤</h3>
+      <p>후원 운영자가 가장 자주 쓰는 영역. 결제 실패 안내·카드 만료·연말 영수증·신규 캠페인·기념일 메시지 등을 일괄 발송합니다.</p>
+
+      <h4>발송 작업 만들기 6단계</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">새 작업</div><div class="desc">/admin-send-job-create.html</div></div>
+        <div class="step"><div class="num">2</div><div class="title">수신자 그룹</div><div class="desc">사전 정의된 그룹 선택</div></div>
+        <div class="step"><div class="num">3</div><div class="title">템플릿 선택</div><div class="desc">기존 템플릿 또는 새 작성</div></div>
+        <div class="step"><div class="num">4</div><div class="title">예약/즉시</div><div class="desc">발송 시각 결정</div></div>
+        <div class="step"><div class="num">5</div><div class="title">발송 시작</div><div class="desc">배치 처리 자동 실행</div></div>
+        <div class="step"><div class="num">6</div><div class="title">분석</div><div class="desc">/admin-send-analytics.html</div></div>
+      </div>
+
+      <h4>새 발송 만들기 화면</h4>
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/admin-send-job-create.html</span></div>
+        <div class="mock-body" style="padding:24px 28px;">
+          <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin-bottom:18px;color:var(--text);">📤 새 발송 작업</div>
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">1. 수신자 그룹</div>
+            <div style="display:flex;gap:10px;align-items:center;padding:10px 14px;background:var(--brand-soft);border-radius:var(--radius);border:1px solid rgba(122,31,43,.18);">
+              <div style="font-size:13px;font-weight:600;color:var(--brand);">💳 카드 만료 임박 (60일 내)</div>
+              <div style="font-size:11.5px;color:var(--text-3);margin-left:auto;">예상 수신자 247명</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">2. 템플릿</div>
+            <div style="padding:10px 14px;background:var(--bg-mute);border-radius:var(--radius);border:1px solid var(--line);font-size:13px;color:var(--text-2);">📧 카드 만료 안내 v3 (한글 · 변수 4개)</div>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px;">3. 발송 시각</div>
+            <div style="display:flex;gap:8px;">
+              <div style="padding:8px 16px;border:1.5px solid var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700;border-radius:var(--radius-pill);font-size:13px;">⏰ 예약</div>
+              <div style="padding:8px 16px;border:1px solid var(--line);font-size:13px;color:var(--text-2);border-radius:var(--radius-pill);">즉시 발송</div>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:8px;">📅 2026-05-21 09:00 (KST)</div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--line);">
+            <div style="font-size:12px;color:var(--text-3);">예상 비용 · 약 ₩2,470 (이메일 + 첨부 없음)</div>
+            <button style="background:var(--brand);color:#fff;border:none;padding:10px 24px;border-radius:var(--radius-pill);font-weight:600;font-size:13px;">🚀 발송 시작</button>
+          </div>
+        </div>
+      </div>
+
+      <h4>수신자 그룹 만들기</h4>
+      <p><code>/admin-recipient-groups.html</code>에서 조건 조합으로 동적 그룹 생성. 회원 상태가 바뀌면 자동 갱신.</p>
+
+      <div class="grid cols-3">
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">🏆</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">등급 필터</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">Bronze ~ Platinum</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">💝</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">후원 상태</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">정기·일시·일시정지·해지</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">📅</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">기간</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">가입일·최근 후원일</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">🌐</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">가입 채널</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">?src=캠페인 추적</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">⚠️</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">위험 신호</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">카드 만료·결제 실패</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:22px;">🔄</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">조합</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">위 조건 AND/OR 조합</p>
+        </div>
+      </div>
+
+      <h4>발송 분석 (반응 측정)</h4>
+      <table>
+        <thead><tr><th width="180">지표</th><th>의미</th><th width="120">권장 기준</th></tr></thead>
+        <tbody>
+          <tr><td>📨 발송 성공률</td><td>실제 발송된 건 / 전체 대상</td><td>≥ 95%</td></tr>
+          <tr><td>👀 열람률 (open)</td><td>이메일을 연 회원 비율</td><td>20~30%</td></tr>
+          <tr><td>🖱️ 클릭률 (click)</td><td>본문 링크를 누른 비율</td><td>3~8%</td></tr>
+          <tr><td>↩️ 반송률 (bounce)</td><td>주소 오류로 반송된 비율</td><td>≤ 2%</td></tr>
+          <tr><td>🚫 수신거부</td><td>이번 발송으로 거부 전환된 비율</td><td>≤ 0.5%</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout danger">
+        <div class="title">⚠️ 잘못 발송된 작업 멈추기</div>
+        <code>/admin-send-jobs.html</code>에서 해당 작업 → <strong>[일시 정지] 또는 [취소]</strong>. 이미 발송된 건은 회수 불가이므로, 잘못 받은 회원에게 정정 안내를 후속 발송하세요.
+      </div>
+
+      <!-- E-5 자동 트리거 -->
+      <h3 id="e-trigger">E-5. AI 자동 트리거 🤖</h3>
+      <p><code>/admin-auto-triggers.html</code> — 조건을 정의하면 AI가 메시지를 자동 생성해 발송. 운영자 검수 옵션도 지원.</p>
+
+      <h4>트리거 예시 4가지</h4>
+      <table>
+        <thead><tr><th width="240">트리거 조건</th><th>발송 내용</th></tr></thead>
+        <tbody>
+          <tr><td>정기 후원 등록 7일 후</td><td>환영 메시지 + 협의회 활동 소개</td></tr>
+          <tr><td>최근 3개월 후원 없음</td><td>회복 캠페인 (개인화된 안부)</td></tr>
+          <tr><td>카드 만료 60일 전</td><td>새 카드 등록 안내 + 단축 링크</td></tr>
+          <tr><td>2회 연속 결제 실패</td><td>실패 사유 안내 + 결제수단 변경 권유</td></tr>
+        </tbody>
+      </table>
+
+      <h4>시스템 자동 발송과 차이</h4>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📌 시스템 자동 발송</h4>
+          <p style="font-size:13.5px;color:var(--text-3);"><code>/admin-system-notification.html</code></p>
+          <ul style="font-size:13px;margin-bottom:0;">
+            <li>결제 실패·이메일 인증 같은 <strong>고정 이벤트</strong></li>
+            <li>메시지 본문 운영자가 직접 정의</li>
+            <li>AI 생성 없음</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>🤖 AI 자동 트리거</h4>
+          <p style="font-size:13.5px;color:var(--text-3);"><code>/admin-auto-triggers.html</code></p>
+          <ul style="font-size:13px;margin-bottom:0;">
+            <li>운영자가 <strong>조건만</strong> 정의</li>
+            <li>AI가 회원 맥락에 맞춰 메시지 생성</li>
+            <li>운영자 검수 옵션 (사전 검수 ON/OFF)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- E-6 통계 -->
+      <h3 id="e-stats">E-6. 통계 · KPI</h3>
+
+      <h4>대시보드 (대표 지표)</h4>
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/admin.html (대시보드)</span></div>
+        <div class="mock-body" style="padding:24px 28px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+            <div style="background:var(--brand-soft);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.1em;">이번 달 후원</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">₩ 18.4M</div>
+              <div style="font-size:11px;color:var(--ok);margin-top:2px;">▲ 12.3% (전월)</div>
+            </div>
+            <div style="background:var(--gold-soft);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">신규 정기</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">42명</div>
+              <div style="font-size:11px;color:var(--ok);margin-top:2px;">▲ 8명 (전월)</div>
+            </div>
+            <div style="background:rgba(74,122,77,.08);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--ok);font-weight:700;letter-spacing:.1em;">유지율</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">93.1%</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">정기 후원자</div>
+            </div>
+            <div style="background:rgba(197,41,58,.08);border-radius:var(--radius);padding:14px;">
+              <div style="font-size:11px;color:var(--siren);font-weight:700;letter-spacing:.1em;">이탈 위험</div>
+              <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:4px;color:var(--text);">17명</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">회복 캠페인 권장</div>
+            </div>
+          </div>
+
+          <div style="font-size:12.5px;color:var(--text-3);">결제수단별 비중 · 일별 추이 · 등급별 분포 그래프 영역</div>
+          <div style="height:80px;background:linear-gradient(90deg,var(--brand-soft) 0%,var(--gold-soft) 50%,var(--bg-mute) 100%);border-radius:var(--radius);margin-top:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px;">📊 Chart.js 차트</div>
+        </div>
+      </div>
+
+      <h4>가입 채널 KPI</h4>
+      <p><code>/admin.html</code> 회원 목록 > [채널별 KPI]. URL 파라미터 <code>?src=캠페인명</code>으로 유입된 회원의 후원 전환률·LTV를 채널별로 비교.</p>
+
+      <ul>
+        <li><strong>채널별 가입 수</strong> · 후원 전환률 · 평균 후원금 · 12개월 LTV</li>
+        <li>마케팅 채널 ROI 판단 근거</li>
+        <li>저성과 채널 발견 시 다음 캠페인에 미반영</li>
+      </ul>
+
+      <!-- E-7 회원 상세 -->
+      <h3 id="e-member-action">E-7. 회원 상세 작업</h3>
+      <p>회원 목록에서 회원을 클릭하면 상세 모달이 열립니다. 6개 탭에서 모든 후원 관련 작업을 처리.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/admin.html (회원 상세 모달)</span></div>
+        <div class="mock-body">
+          <div style="padding:18px 24px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,var(--brand) 0%,var(--brand-deep) 100%);color:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;opacity:.8;letter-spacing:.1em;">GOLD · 회원 #2871</div>
+                <div style="font-family:var(--font-serif);font-size:20px;font-weight:600;margin-top:4px;">홍길동</div>
+                <div style="font-size:12px;opacity:.85;margin-top:2px;">hong@example.com · 010-1234-5678</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;opacity:.8;letter-spacing:.1em;">누적 후원</div>
+                <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;">₩ 2,450,000</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;border-bottom:1px solid var(--line);overflow-x:auto;">
+            <div style="padding:12px 18px;border-bottom:2px solid var(--brand);color:var(--brand);font-weight:700;font-size:13px;white-space:nowrap;">💝 후원 내역</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">🔄 정기 후원</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">⭐ 포인트</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">📨 발송 이력</div>
+            <div style="padding:12px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">📝 메모</div>
+            <div style="padding:12px 18px;color:var(--siren);font-size:13px;white-space:nowrap;">⛔ 블랙</div>
+          </div>
+          <div style="padding:16px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+              <div>
+                <div style="font-size:13.5px;font-weight:600;color:var(--text);">정기 · 토스 카드 · 매월 25일</div>
+                <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2025.03 ~ 진행 중</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📄 영수증</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📨 재발송</button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
+              <div>
+                <div style="font-size:13.5px;font-weight:600;color:var(--text);">일시 · 캠페인 #12 · ₩50,000</div>
+                <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2026.05.18</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📄 영수증</button>
+                <button style="background:var(--bg);border:1px solid var(--line);color:var(--text-2);padding:5px 12px;font-size:11.5px;border-radius:var(--radius-pill);">📨 재발송</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4>탭별 액션</h4>
+      <table>
+        <thead><tr><th width="160">탭</th><th>가능한 작업</th></tr></thead>
+        <tbody>
+          <tr><td>💝 후원 내역</td><td>전체 후원 + 영수증 재발송 · 환불 메모</td></tr>
+          <tr><td>🔄 정기 후원</td><td>빌링 상태 확인 · 금액 변경 권장 · 강제 해지 (사유 필수)</td></tr>
+          <tr><td>⭐ 포인트</td><td>수동 적립/차감 (사유 입력 필수)</td></tr>
+          <tr><td>📨 발송 이력</td><td>이 회원에게 보낸 모든 메시지 · 열람 여부</td></tr>
+          <tr><td>📝 메모</td><td>운영자 간 공유 메모 (회원은 못 봄)</td></tr>
+          <tr><td>⛔ 블랙</td><td>후원·신고·게시판 접근 차단 (사유 필수)</td></tr>
+        </tbody>
+      </table>
+
+      <!-- E-8 급여 관리 -->
+      <h3 id="e-payroll">E-8. 급여 관리 <span class="badge brand">R37 추가</span></h3>
+      <p><code>/admin-payroll.html</code> — 직원·간사 급여 명세서 일괄 발급. 발급 후 본인이 워크스페이스 명세서 탭에서 다운로드.</p>
+
+      <h4>발급 흐름</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">기간 선택</div><div class="desc">예: 2026년 5월</div></div>
+        <div class="step"><div class="num">2</div><div class="title">대상 직원</div><div class="desc">전체 또는 개별 선택</div></div>
+        <div class="step"><div class="num">3</div><div class="title">항목 확인</div><div class="desc">기본급·수당·공제 자동 집계</div></div>
+        <div class="step"><div class="num">4</div><div class="title">일괄 발급</div><div class="desc">PDF 자동 생성 + 직원 알림</div></div>
+        <div class="step"><div class="num">5</div><div class="title">본인 다운로드</div><div class="desc">/workspace-attendance.html 명세서 탭</div></div>
+      </div>
+
+      <ul>
+        <li><strong>R37 자동 집계</strong>: 출퇴근·연차·재택 기록을 바탕으로 자동 계산</li>
+        <li><strong>발급 후 수정</strong>: 가능하나 재발급 알림이 직원에게 발송됨</li>
+        <li><strong>회귀 주의</strong>: R37 흐름은 R39 출퇴근 보강 시에도 영향 없도록 검증</li>
+      </ul>
+
+      <!-- E-9 AI 운영 -->
+      <h3 id="e-ai-ops">E-9. AI 운영 · 비용 관리 🛡️</h3>
+      <p>AI 비서·자동 트리거·회신 초안 등 모든 AI 호출은 비용을 발생시킵니다. 운영자가 월 한도와 도구 권한을 통제합니다.</p>
+
+      <div class="grid cols-2">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>💰 AI 비용 관리 <code>/admin-ai-cost.html</code></h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>기능별 월 한도 설정 (자동 트리거·AI 회신·작업 요약 등)</li>
+            <li>한도 초과 시 자동 차단 (추가 과금 0)</li>
+            <li>일·월 누적 비용 그래프</li>
+            <li>가장 비용이 큰 기능 Top 5</li>
+          </ul>
+        </div>
+        <div class="card" style="border-top:3px solid var(--gold);">
+          <h4>🛡️ AI 비서 설정 <code>/admin-ai-config.html</code></h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>시스템 프롬프트 편집 (슈퍼어드민)</li>
+            <li>84개 도구별 활성/비활성 토글</li>
+            <li>도구별 필요 권한 등급 설정 (위험 도구는 슈퍼어드민만)</li>
+            <li>60초 캐시 후 자동 반영</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>비용 절감 팁</h4>
+      <ul>
+        <li>자주 호출되는 도구는 <strong>저가 모델(Gemini Flash)</strong>로 우선 매핑</li>
+        <li>자동 트리거 빈도 조정 (예: 매일 → 매주)</li>
+        <li>AI 회신 초안은 운영자 검수 시점에만 호출 (자동 생성 OFF)</li>
+        <li>월 한도를 보수적으로 설정 → 초과 차단 발생 시 한도 재검토</li>
+      </ul>
+
+      <h4>AI 호출 로그</h4>
+      <p><code>/admin-ai-logs-list.html</code>에서 모든 AI 호출(누가·어떤 도구·어떤 결과)을 시간순 조회. 비서 대화 단위로 보고 싶으면 <code>/admin-ai-conversations-list.html</code>.</p>
+
+      <!-- E-10 비상 -->
+      <h3 id="e-emergency">E-10. 비상 · 예외 처리</h3>
+      <table>
+        <thead><tr><th width="220">상황</th><th>대응</th></tr></thead>
+        <tbody>
+          <tr><td>토스 결제 다운</td><td>토스 콘솔에서 상태 확인 → 회원에게 점검 안내 발송 → 자동 트리거 일시 정지</td></tr>
+          <tr><td>효성 출금 파일 오류</td><td>효성 측 응답 파일 재요청 → 매칭 실패 회원 수기 처리</td></tr>
+          <tr><td>영수증 PDF 미수신 회원</td><td>회원 상세 → [영수증 재발송] · 스팸함 안내</td></tr>
+          <tr><td>환불 요청</td><td>토스/효성 콘솔에서 수동 환불 → 시스템 메모 + 후원 내역 상태 변경</td></tr>
+          <tr><td>카드 정보 유출 의심</td><td>즉시 빌링키 폐기 → 회원에게 재등록 안내</td></tr>
+          <tr><td>대량 결제 실패 발생</td><td>토스/효성 상태 확인 → 자동 트리거 일시 정지 → 원인 파악 후 재개</td></tr>
+          <tr><td>발송 작업 잘못 송출</td><td>/admin-send-jobs.html 즉시 [일시 정지] → 정정 안내 후속 발송</td></tr>
+          <tr><td>AI 비용 폭증</td><td>/admin-ai-cost.html에서 해당 기능 즉시 차단 → 호출 패턴 조사</td></tr>
+          <tr><td>익명 식별 이상 패턴</td><td>/admin-anon-audit.html 즉시 점검 → 해당 운영자 사유 재확인</td></tr>
+        </tbody>
+      </table>
+
+      <h3>E 영역 · 자주 묻는 질문</h3>
+      <table>
+        <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
+        <tbody>
+          <tr><td>회원이 영수증을 못 받았다고 한다</td><td>회원 상세 > [영수증 재발송]. 이메일 오타·스팸함 확인 권유.</td></tr>
+          <tr><td>정기 후원이 두 번 결제됐다</td><td>결제 로그·토스 콘솔 확인 → 중복 결제면 토스에서 환불 + 시스템 메모.</td></tr>
+          <tr><td>환불은 시스템에서 되나?</td><td>자동 환불 없음. 토스/효성 콘솔에서 수동 + 시스템 메모.</td></tr>
+          <tr><td>카드 만료 회원 한 번에 알리려면?</td><td>수신자 그룹 [카드 만료 임박] → 발송 작업 생성. 자동 트리거가 이미 처리 중일 수 있음.</td></tr>
+          <tr><td>후원자 명단을 엑셀로 받고 싶다</td><td>회원 목록 필터 적용 → [Excel 내보내기].</td></tr>
+          <tr><td>연말 기부금 영수증 절차는?</td><td>1~2월 별도 일괄 발급 트리거. 주민번호 미등록자 11~12월 사전 캠페인.</td></tr>
+          <tr><td>신규 후원 채널 성과를 보고 싶다</td><td>회원 목록 > 채널별 KPI. URL <code>?src=채널명</code>으로 유입되어야 분류됨.</td></tr>
+          <tr><td>급여 명세서를 잘못 발급했다</td><td>/admin-payroll.html에서 재발급. 직원에게 재발급 알림 자동 발송.</td></tr>
+          <tr><td>AI 비용이 갑자기 늘었다</td><td>/admin-ai-cost.html Top 5 기능 확인 → 해당 트리거·기능 점검 또는 일시 차단.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout gold">
+        <div class="title">📚 manual-admin.html 1차 본문 완성</div>
+        신고 운영 · 워크스페이스(D) · 어드민 후원·결제(E) — <strong>R37/R38 종결 영역</strong>까지 완성. <strong>R39 신규 12건</strong>은 단계 종결 시점에 본문 보강 추가 예정입니다.
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <p><strong>SIREN 운영자 메뉴얼</strong> · (사)교사유가족협의회 · 2026-05-20</p>
+      <p>R37/R38 종결 영역 1차 본문 · R39 신규 12건은 단계 종결 시점에 보강 추가</p>
+      <p>일반 사용자 메뉴얼은 <a href="/manual.html">manual.html</a> 참고.</p>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+/* ============ 4차 — TOC 검색 + 키보드 단축키 ============ */
+(function(){
+  const search = document.getElementById('search');
+  if (!search) return;
+  const tocNav = document.querySelector('aside.toc nav');
+  if (!tocNav) return;
+
+  const links = Array.from(tocNav.querySelectorAll('a'));
+  const sections = Array.from(tocNav.querySelectorAll('.toc-section'));
+
+  function applyFilter(q){
+    q = q.trim().toLowerCase();
+    if (!q) {
+      links.forEach(a => a.style.display = '');
+      sections.forEach(s => s.style.display = '');
+      return;
+    }
+    links.forEach(a => {
+      const match = a.textContent.toLowerCase().includes(q);
+      a.style.display = match ? '' : 'none';
+    });
+    sections.forEach(s => {
+      let visible = false;
+      let next = s.nextElementSibling;
+      while (next && !next.classList.contains('toc-section')) {
+        if (next.tagName === 'A' && next.style.display !== 'none') { visible = true; break; }
+        next = next.nextElementSibling;
+      }
+      s.style.display = visible ? '' : 'none';
+    });
+  }
+
+  search.addEventListener('input', e => applyFilter(e.target.value));
+  search.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { search.value = ''; applyFilter(''); search.blur(); }
+  });
+
+  // 전역 단축키: "/"로 검색 포커스
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    const isTyping = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (e.key === '/' && !isTyping) {
+      e.preventDefault();
+      search.focus();
+      search.select();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

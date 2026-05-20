@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SIREN 사용자 메뉴얼 · (사)교사유가족협의회</title>
+<meta name="description" content="SIREN 통합 플랫폼 사용자·운영자 메뉴얼. 홈페이지·마이페이지·신고·워크스페이스·후원 운영을 한 화면에서.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ 디자인 토큰 (tbfa.co.kr 실제 시스템 매칭) ============ */
+  :root {
+    /* 브랜드 — 진 적색 + 골드 (협의회 정체성) */
+    --brand: #7a1f2b;
+    --brand-deep: #5a141d;
+    --brand-soft: #f5ecec;
+    --gold: #b8935a;
+    --gold-soft: #ede1cd;
+    --siren: #c5293a;       /* 사이렌(신고) 강조 */
+
+    /* 텍스트 4단계 */
+    --text: #1a1a1a;
+    --text-2: #525252;
+    --text-3: #8a8a8a;
+    --text-4: #b5b5b5;
+
+    /* 배경 3단계 */
+    --bg: #ffffff;
+    --bg-soft: #fafaf9;
+    --bg-mute: #f4f4f2;
+    --bg-dark: #0a0a0a;
+    --bg-cta: #0f0f0f;
+
+    /* 보조 */
+    --line: #e8e6e3;
+    --line-soft: #f0eeeb;
+    --ok: #4a7a4d;
+    --warn: #b8773a;
+    --danger: #c5293a;
+
+    /* 형상 */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --radius-pill: 30px;
+    --shadow-sm: 0 2px 8px rgba(15,15,15,.04);
+    --shadow: 0 8px 24px rgba(15,15,15,.06);
+    --shadow-lg: 0 20px 50px rgba(15,15,15,.10);
+
+    --font-sans: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Noto Serif KR', 'Times New Roman', serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  *,*::before,*::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg-soft); color: var(--text);
+    font-family: var(--font-sans); line-height: 1.7; font-size: 15.5px;
+    -webkit-font-smoothing: antialiased; font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  a { color: var(--brand); text-decoration: none; transition: color .15s; }
+  a:hover { color: var(--brand-deep); text-decoration: underline; }
+  code, kbd {
+    font-family: var(--mono); font-size: .9em;
+    background: var(--bg-mute); color: var(--brand); padding: 2px 7px;
+    border-radius: 4px; font-weight: 500;
+  }
+
+  /* ============ 레이아웃 ============ */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ===== 좌측 TOC (실제 사이트 헤더 분위기를 차용) ===== */
+  aside.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    border-right: 1px solid var(--line); background: var(--bg);
+    padding: 26px 20px 40px;
+  }
+  @media (max-width: 900px) {
+    aside.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+  }
+  .toc-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+  .toc-brand svg { flex-shrink: 0; }
+  .toc-brand .name {
+    font-family: var(--font-serif); font-weight: 700; font-size: 17px;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+  .toc-brand .sub {
+    font-size: 9.5px; color: var(--text-3); margin-top: 2px;
+    letter-spacing: .15em; font-weight: 500;
+  }
+  .toc nav { display: flex; flex-direction: column; gap: 1px; }
+  .toc-section {
+    font-size: 10.5px; font-weight: 700; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: .14em; margin: 18px 8px 6px;
+  }
+  .toc a {
+    display: block; padding: 8px 12px; border-radius: var(--radius-sm);
+    color: var(--text-2); font-size: 14px; font-weight: 500;
+    border-left: 2px solid transparent;
+  }
+  .toc a:hover {
+    background: var(--bg-soft); color: var(--brand);
+    text-decoration: none; border-left-color: var(--gold);
+  }
+  .toc a.lvl-2 { padding-left: 24px; font-size: 13px; color: var(--text-3); font-weight: 400; }
+
+  /* ===== 본문 ===== */
+  main { padding: 56px max(40px, 5vw) 120px; max-width: 1100px; background: var(--bg-soft); }
+  @media (max-width: 900px) { main { padding: 30px 20px 80px; } }
+
+  h1 {
+    font-family: var(--font-serif); font-size: 42px; font-weight: 600;
+    letter-spacing: -1px; margin: 0 0 12px; line-height: 1.2;
+  }
+  h2 {
+    font-family: var(--font-serif); font-size: 30px; font-weight: 600;
+    letter-spacing: -0.5px; margin: 72px 0 18px;
+    padding-bottom: 14px; border-bottom: 2px solid var(--brand);
+    display: flex; align-items: center; gap: 14px;
+  }
+  h2 .badge-area {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 700;
+    background: var(--brand); color: #fff; letter-spacing: 0;
+  }
+  h3 {
+    font-family: var(--font-sans); font-size: 19px; font-weight: 700;
+    margin: 38px 0 12px; color: var(--text); letter-spacing: -0.02em;
+  }
+  h4 {
+    font-size: 15px; font-weight: 700; margin: 22px 0 8px;
+    color: var(--text-2); letter-spacing: -0.01em;
+  }
+  p { margin: 0 0 14px; color: var(--text-2); }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; color: var(--text-2); }
+  li { margin-bottom: 5px; }
+  strong { color: var(--text); font-weight: 700; }
+
+  /* ============ Hero (실제 사이트의 차분한 톤) ============ */
+  .hero {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 56px 48px; margin-bottom: 36px;
+    position: relative; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .hero::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+    background: linear-gradient(to bottom, var(--brand) 0%, var(--brand-deep) 100%);
+  }
+  .hero::after {
+    content: ''; position: absolute; right: -80px; bottom: -80px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: radial-gradient(circle, var(--brand-soft) 0%, transparent 70%);
+    z-index: 0;
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero .tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; padding: 6px 14px;
+    border-radius: var(--radius-pill); background: var(--brand-soft);
+    color: var(--brand); margin-bottom: 18px; letter-spacing: .06em;
+    border: 1px solid rgba(122,31,43,.18);
+  }
+  .hero h1 { color: var(--text); margin-bottom: 14px; }
+  .hero h1 em { font-style: normal; color: var(--brand); }
+  .hero p { font-size: 16.5px; max-width: 640px; color: var(--text-2); }
+  .hero-meta {
+    display: flex; gap: 28px; margin-top: 24px; flex-wrap: wrap;
+    padding-top: 22px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--text-3);
+  }
+  .hero-meta strong { color: var(--text); font-family: var(--font-serif); font-weight: 600; }
+
+  /* ============ 카드 ============ */
+  .card {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 24px 28px; margin: 18px 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .card h3:first-child, .card h4:first-child { margin-top: 0; }
+
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 720px) {
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+  }
+
+  /* 통계 */
+  .stat {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 22px 20px; text-align: center;
+  }
+  .stat .num {
+    font-family: var(--font-serif); font-size: 36px; font-weight: 600;
+    color: var(--brand); letter-spacing: -1px; line-height: 1;
+  }
+  .stat .label {
+    font-size: 11.5px; color: var(--text-3); margin-top: 8px;
+    font-weight: 600; letter-spacing: .04em;
+  }
+
+  /* 영역 카드 (5축) */
+  .area-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 26px 0 8px; }
+  .area-card {
+    border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 18px;
+    background: var(--bg); transition: all .2s;
+    text-decoration: none; color: var(--text); display: block;
+    position: relative; overflow: hidden;
+  }
+  .area-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--brand); opacity: 0; transition: opacity .2s;
+  }
+  .area-card:hover {
+    transform: translateY(-3px); border-color: var(--brand);
+    box-shadow: var(--shadow-lg); text-decoration: none;
+  }
+  .area-card:hover::before { opacity: 1; }
+  .area-card .icon { font-size: 26px; margin-bottom: 10px; display: block; line-height: 1; }
+  .area-card .area-tag {
+    font-size: 10.5px; font-weight: 700; color: var(--gold);
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  .area-card .title {
+    font-family: var(--font-serif); font-weight: 600; font-size: 16px;
+    margin: 6px 0 8px; letter-spacing: -0.02em;
+  }
+  .area-card .desc { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+
+  /* 표 */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text-2); }
+  th { background: var(--bg-mute); font-weight: 700; color: var(--text); font-size: 13px; letter-spacing: -0.01em; }
+  tr:last-child td { border-bottom: none; }
+
+  /* 뱃지 */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill);
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  }
+  .badge.brand { background: var(--brand-soft); color: var(--brand); }
+  .badge.gold { background: var(--gold-soft); color: var(--gold); }
+  .badge.ok { background: rgba(74,122,77,.10); color: var(--ok); }
+  .badge.warn { background: rgba(184,119,58,.12); color: var(--warn); }
+  .badge.danger { background: rgba(197,41,58,.10); color: var(--siren); }
+  .badge.muted { background: var(--bg-mute); color: var(--text-3); }
+
+  /* 콜아웃 */
+  .callout {
+    padding: 16px 20px; border-radius: var(--radius); margin: 16px 0;
+    border-left: 3px solid var(--brand); background: var(--brand-soft);
+    color: var(--text-2);
+  }
+  .callout.gold { border-left-color: var(--gold); background: var(--gold-soft); }
+  .callout.warn { border-left-color: var(--warn); background: rgba(184,119,58,.06); }
+  .callout.danger { border-left-color: var(--siren); background: rgba(197,41,58,.06); }
+  .callout.ok { border-left-color: var(--ok); background: rgba(74,122,77,.06); }
+  .callout .title {
+    font-weight: 700; margin-bottom: 6px; color: var(--text);
+    font-size: 14.5px;
+  }
+
+  /* 단계 플로우 */
+  .flow { display: flex; gap: 0; margin: 20px 0; overflow-x: auto; padding-bottom: 4px; }
+  .flow .step {
+    flex: 1; min-width: 150px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; position: relative; margin-right: 28px;
+  }
+  .flow .step:last-child { margin-right: 0; }
+  .flow .step::after {
+    content: '›'; position: absolute; right: -22px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--brand); font-size: 28px; font-weight: 700; line-height: 1;
+  }
+  .flow .step:last-child::after { display: none; }
+  .flow .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--brand); color: #fff;
+    font-size: 12px; font-weight: 700; margin-bottom: 10px;
+    font-family: var(--font-serif);
+  }
+  .flow .step .title {
+    font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--text);
+  }
+  .flow .step .desc { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+
+  /* mock UI — 실제 tbfa.co.kr 분위기 */
+  .mock {
+    border: 1px solid var(--line); border-radius: var(--radius-lg);
+    overflow: hidden; margin: 18px 0; background: var(--bg);
+    box-shadow: var(--shadow);
+  }
+  .mock-bar {
+    background: #ebebeb; padding: 9px 14px;
+    display: flex; align-items: center; gap: 7px; border-bottom: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .mock-bar .dot { width: 11px; height: 11px; border-radius: 50%; background: #ccd2dd; }
+  .mock-bar .dot.r { background: #ff5f57; }
+  .mock-bar .dot.y { background: #febc2e; }
+  .mock-bar .dot.g { background: #28c93f; }
+  .mock-bar .url {
+    background: #fff; border-radius: 4px; padding: 4px 12px; margin-left: 10px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-2); flex: 1;
+    border: 1px solid var(--line);
+  }
+  .mock-body { background: var(--bg); }
+
+  /* mock 안 헤더 (실제 사이트 분위기) */
+  .mock-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--bg);
+  }
+  .mock-header .brand { display: flex; align-items: center; gap: 10px; }
+  .mock-header .brand-text { font-family: var(--font-serif); font-weight: 700; font-size: 15px; color: var(--text); }
+  .mock-header .brand-sub { font-size: 8.5px; color: var(--text-3); letter-spacing: .14em; margin-top: 1px; }
+  .mock-header .menu { display: flex; gap: 22px; font-size: 13px; color: var(--text-2); font-weight: 500; }
+  .mock-header .menu .siren-m { color: var(--siren); font-weight: 700; }
+  .mock-header .cta {
+    background: var(--bg-cta); color: #fff; padding: 8px 18px;
+    border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 600;
+    border: none;
+  }
+
+  /* mock 안 푸터 (검은 배경) */
+  .mock-footer {
+    background: var(--bg-dark); padding: 22px 24px;
+    color: #888; font-size: 11.5px; display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .mock-footer .ft-brand { font-family: var(--font-serif); color: #ddd; font-weight: 600; font-size: 13px; }
+
+  /* 키-값 */
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px 16px; margin: 12px 0; font-size: 14px; }
+  .kv dt { font-weight: 700; color: var(--text-2); }
+  .kv dd { margin: 0; color: var(--text-2); }
+
+  /* 권한 칩 */
+  .role {
+    display: inline-block; font-size: 11px; padding: 3px 9px;
+    border-radius: var(--radius-pill); font-weight: 600; margin-right: 5px;
+    border: 1px solid;
+  }
+  .role.admin { background: var(--brand-soft); color: var(--brand); border-color: rgba(122,31,43,.2); }
+  .role.op { background: var(--gold-soft); color: var(--gold); border-color: rgba(184,147,90,.3); }
+  .role.member { background: #e8eef5; color: #2c4d75; border-color: #c8d4e3; }
+  .role.guest { background: var(--bg-mute); color: var(--text-2); border-color: var(--line); }
+
+  /* 푸터 (전체 페이지) */
+  footer.page-footer {
+    margin-top: 100px; padding: 40px 0; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--text-3); text-align: center;
+  }
+  footer.page-footer strong { color: var(--text-2); }
+
+  /* 검색박스 (4차에서 활성) */
+  .search-wrap { margin-bottom: 16px; }
+  .search-wrap input {
+    width: 100%; padding: 10px 14px; border-radius: var(--radius);
+    border: 1px solid var(--line); background: var(--bg-soft); color: var(--text);
+    font-size: 13.5px; font-family: var(--font-sans);
+  }
+  .search-wrap input:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+
+  /* 익명 보호 다이어그램 (C 영역에서 사용) */
+  .anon-diagram {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 24px; margin: 18px 0;
+  }
+
+  /* ============ 모바일 추가 다듬기 (720px / 480px) ============ */
+  @media (max-width: 720px) {
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; margin: 50px 0 12px; padding-bottom: 10px; }
+    h2 .badge-area { width: 32px; height: 32px; font-size: 12px; }
+    h3 { font-size: 17px; margin: 28px 0 10px; }
+    .hero { padding: 32px 24px; border-radius: 12px; }
+    .hero h1 { font-size: 30px; }
+    main { padding: 24px 16px 80px; }
+    .stat { padding: 16px 12px; }
+    .stat .num { font-size: 28px; }
+    .flow { flex-direction: column; gap: 0; }
+    .flow .step { margin-right: 0; margin-bottom: 26px; min-width: 0; }
+    .flow .step::after {
+      content: '↓'; right: 50%; top: auto; bottom: -22px;
+      transform: translateX(50%); font-size: 22px;
+    }
+    .flow .step:last-child::after { display: none; }
+    table { font-size: 12.5px; }
+    th, td { padding: 8px 10px; }
+    .kv { grid-template-columns: 90px 1fr; gap: 6px 12px; }
+    .mock-bar .url { font-size: 10.5px; padding: 3px 8px; }
+    .mock-header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    .mock-header .menu { display: none; }
+    .mock-body { padding: 16px !important; }
+    .anon-diagram { padding: 16px; }
+    .anon-diagram > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; gap: 12px !important; }
+  }
+  @media (max-width: 480px) {
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; gap: 10px; }
+    .hero h1 { font-size: 26px; }
+    .hero p { font-size: 14px; }
+    .hero { padding: 28px 20px; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ============ 인쇄용 CSS (다듬음) ============ */
+  @media print {
+    @page { margin: 1.5cm; size: A4; }
+    body { font-size: 10.5pt; line-height: 1.5; background: #fff; }
+    aside.toc, .search-wrap, .toc-brand { display: none !important; }
+    .layout { grid-template-columns: 1fr; }
+    main { padding: 0; max-width: 100%; background: #fff; }
+    h1 { font-size: 22pt; }
+    h2 { font-size: 16pt; page-break-after: avoid; break-after: avoid; margin-top: 24pt; }
+    h3 { font-size: 13pt; page-break-after: avoid; break-after: avoid; }
+    h4 { font-size: 11pt; page-break-after: avoid; }
+    p, ul, ol, dl { orphans: 3; widows: 3; }
+    .hero {
+      background: #fff !important; border: 1.5px solid #7a1f2b;
+      box-shadow: none; padding: 24pt 28pt; page-break-after: avoid;
+    }
+    .hero::before, .hero::after { display: none; }
+    .card, .mock, .callout, .anon-diagram {
+      page-break-inside: avoid; break-inside: avoid; box-shadow: none;
+    }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    thead { display: table-header-group; }
+    .flow .step { box-shadow: none; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    a { color: #1a1a1a !important; text-decoration: none; }
+    a[href^="http"]::after, a[href^="/"]::after {
+      content: " (" attr(href) ")";
+      font-size: 8.5pt; color: #8a8a8a; font-weight: normal;
+    }
+    a[href^="#"]::after { content: ''; }
+    footer.page-footer { page-break-before: always; border-top: 1.5px solid #7a1f2b; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ===================== 좌측 TOC ===================== -->
+  <aside class="toc">
+    <div class="toc-brand">
+      <!-- 실제 사이트의 리본 SVG 로고 분위기 -->
+      <svg viewBox="0 0 24 28" width="28" height="32" aria-hidden="true">
+        <path d="M3 0 L21 0 L21 22 L12 28 L3 22 Z" fill="#7a1f2b"/>
+        <path d="M3 0 L12 0 L12 28 L3 22 Z" fill="#5a141d"/>
+        <circle cx="12" cy="10" r="3" fill="#b8935a"/>
+      </svg>
+      <div>
+        <div class="name">SIREN 메뉴얼</div>
+        <div class="sub">사용자 가이드 v1</div>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="🔍 검색 ( / 키로 빠른 이동, ESC 초기화)" autocomplete="off">
+    </div>
+
+    <nav>
+      <div class="toc-section">시작하기</div>
+      <a href="#overview">개요 · 한눈에 보기</a>
+      <a href="#guide">메뉴얼 사용법</a>
+
+      <div class="toc-section">A. 홈페이지(공개)</div>
+      <a href="#a-main" class="lvl-2">메인 화면</a>
+      <a href="#a-auth" class="lvl-2">회원가입 · 로그인</a>
+      <a href="#a-donate" class="lvl-2">후원하기</a>
+      <a href="#a-campaign" class="lvl-2">캠페인</a>
+      <a href="#a-board" class="lvl-2">게시판 · 자료실</a>
+      <a href="#a-report-entry" class="lvl-2">신고 진입</a>
+
+      <div class="toc-section">B. 회원 마이페이지</div>
+      <a href="#b-overview" class="lvl-2">마이페이지 메인</a>
+      <a href="#b-donate" class="lvl-2">후원 내역</a>
+      <a href="#b-subscription" class="lvl-2">정기 후원 · 구독</a>
+      <a href="#b-points" class="lvl-2">포인트 · 등급 · 뱃지</a>
+      <a href="#b-notify" class="lvl-2">알림 · 받은 메시지</a>
+
+      <div class="toc-section">C. SIREN 신고</div>
+      <a href="#area-c" class="lvl-2">신고 3종 비교</a>
+      <a href="#c-anon" class="lvl-2">🔒 익명 보호 다이어그램</a>
+      <a href="#c-incident" class="lvl-2">사건 신고</a>
+      <a href="#c-harassment" class="lvl-2">악성민원·괴롭힘</a>
+      <a href="#c-legal" class="lvl-2">법률 상담</a>
+      <a href="#c-status" class="lvl-2">진행 상태 6단계</a>
+      <a href="#c-admin" class="lvl-2">운영자 처리 화면</a>
+      <a href="#c-anon-reveal" class="lvl-2">신원 식별·감사 로그</a>
+
+      <div class="toc-section">🛠️ 운영자용</div>
+      <a href="/manual-admin.html" class="lvl-2" style="color:var(--brand);font-weight:600;">→ manual-admin.html</a>
+    </nav>
+  </aside>
+
+  <!-- ===================== 본문 ===================== -->
+  <main>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <span class="tag">📘 SIREN 사용자 메뉴얼 · v1 · 2026-05-20</span>
+      <h1>한 화면에서 익히는<br><em>SIREN 통합 플랫폼</em></h1>
+      <p>후원 · 회원 · 신고 · 협업 · 운영까지 — (사)교사유가족협의회 SIREN의 모든 기능을 실제 화면과 함께 안내합니다.</p>
+      <div class="hero-meta">
+        <span>운영 주체 <strong>(사)교사유가족협의회</strong></span>
+        <span>라이브 <strong>tbfa.co.kr</strong></span>
+        <span>버전 <strong>v1 · 회원·신고자용</strong></span>
+      </div>
+    </section>
+
+    <!-- 운영자용 메뉴얼 안내 -->
+    <div class="callout gold" style="margin-bottom:24px;">
+      <div class="title">🛠️ 운영자·간사·슈퍼어드민이세요?</div>
+      이 메뉴얼은 일반 회원·후원자·신고자용입니다. 어드민 화면(workspace·admin-*) 사용법은 별도 운영자 메뉴얼 <a href="/manual-admin.html"><strong>manual-admin.html</strong></a>을 참고하세요.
+    </div>
+
+    <!-- ============ 개요 ============ -->
+    <section id="overview">
+      <h2><span class="badge-area">📖</span>한눈에 보기</h2>
+      <p>SIREN은 (사)교사유가족협의회의 통합 NPO 플랫폼입니다. 일반 방문자가 보는 <strong>홈페이지</strong>부터 로그인 회원의 <strong>마이페이지</strong>, 익명 보호되는 <strong>신고 3종</strong>, 내부 협업용 <strong>워크스페이스</strong>, 운영자가 쓰는 <strong>통합 CMS 어드민</strong>까지 한 시스템 안에 있습니다.</p>
+
+      <div class="grid cols-4" style="margin-top: 24px;">
+        <div class="stat"><div class="num">20+</div><div class="label">공개 페이지</div></div>
+        <div class="stat"><div class="num">10</div><div class="label">마이페이지 화면</div></div>
+        <div class="stat"><div class="num">3</div><div class="label">신고 트랙(익명)</div></div>
+        <div class="stat"><div class="num">8</div><div class="label">워크스페이스</div></div>
+        <div class="stat" style="grid-column: span 2;"><div class="num">59</div><div class="label">어드민 화면</div></div>
+        <div class="stat" style="grid-column: span 2;"><div class="num">~500</div><div class="label">API 함수 (백엔드)</div></div>
+      </div>
+
+      <h3 style="margin-top:40px">5개 영역, 한 시스템</h3>
+      <div class="area-cards">
+        <a href="#area-a" class="area-card">
+          <span class="icon">🌐</span>
+          <span class="area-tag">A</span>
+          <div class="title">홈페이지(공개)</div>
+          <div class="desc">비회원도 보는 첫 화면. 후원·캠페인·신고 진입.</div>
+        </a>
+        <a href="#area-b" class="area-card">
+          <span class="icon">👤</span>
+          <span class="area-tag">B</span>
+          <div class="title">회원 마이페이지</div>
+          <div class="desc">본인 후원·구독·포인트·알림 설정.</div>
+        </a>
+        <a href="#c-coming" class="area-card">
+          <span class="icon">🚨</span>
+          <span class="area-tag">C</span>
+          <div class="title">SIREN 신고</div>
+          <div class="desc">사건·괴롭힘·법률 상담 — 익명 보호.</div>
+        </a>
+        <a href="#d-coming" class="area-card">
+          <span class="icon">📋</span>
+          <span class="area-tag">D</span>
+          <div class="title">워크스페이스</div>
+          <div class="desc">칸반·캘린더·파일·근태·AI 비서.</div>
+        </a>
+        <a href="#e-coming" class="area-card">
+          <span class="icon">🛠️</span>
+          <span class="area-tag">E</span>
+          <div class="title">어드민 후원·결제</div>
+          <div class="desc">결제 운영·영수증·발송 관리.</div>
+        </a>
+      </div>
+
+      <h3>권한 표시</h3>
+      <p>본 문서에서 사용하는 권한 칩 — 어떤 사람이 어떤 화면에 들어갈 수 있는지 색상으로 구분합니다.</p>
+      <p>
+        <span class="role guest">🌐 비회원</span>
+        <span class="role member">👥 회원</span>
+        <span class="role op">🤝 간사·운영자</span>
+        <span class="role admin">🛡️ 최고관리자</span>
+      </p>
+    </section>
+
+    <!-- ============ 메뉴얼 사용법 ============ -->
+    <section id="guide">
+      <h2><span class="badge-area">📘</span>이 메뉴얼 보는 법</h2>
+      <div class="grid cols-3">
+        <div class="card">
+          <h4>📑 영역별 탐색</h4>
+          <p style="font-size: 14px; margin-bottom:0;">좌측 목차에서 5개 영역(A~E)으로 들어가세요. 각 영역은 화면 구성·사용 흐름·자주 묻는 질문 순서입니다.</p>
+        </div>
+        <div class="card">
+          <h4>🖼️ 그림으로 이해</h4>
+          <p style="font-size: 14px; margin-bottom:0;">단계가 있는 작업은 <strong>플로우 다이어그램</strong>으로, 화면 위치는 <strong>실제 사이트 분위기의 mock UI</strong>로 표현했습니다.</p>
+        </div>
+        <div class="card">
+          <h4>🔖 색상 뱃지</h4>
+          <p style="font-size: 14px; margin-bottom:0;"><span class="badge brand">기능</span> <span class="badge gold">권한</span> <span class="badge warn">주의</span> <span class="badge danger">위험</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 영역 A ===================== -->
+    <section id="area-a">
+      <h2><span class="badge-area">A</span>홈페이지(공개)</h2>
+      <p><span class="role guest">🌐 비회원</span> <span class="role member">👥 회원</span> · 라이브 <code>https://tbfa.co.kr</code> · 약 20개 페이지로 구성</p>
+
+      <h3>페이지 한눈에</h3>
+      <table>
+        <thead><tr><th width="160">페이지</th><th width="240">경로</th><th>무엇을</th></tr></thead>
+        <tbody>
+          <tr><td>메인</td><td><code>/</code> · <code>/index.html</code></td><td>협의회 첫 화면, 캠페인·소식·후원 진입</td></tr>
+          <tr><td>소개</td><td><code>/about.html</code></td><td>협의회 미션·연혁·임원</td></tr>
+          <tr><td>주요 활동</td><td><code>/activities.html</code> · <code>/activity.html</code></td><td>활동 카테고리 / 활동 상세</td></tr>
+          <tr><td>캠페인</td><td><code>/campaigns.html</code> · <code>/campaign.html</code></td><td>목록 / 참여·서명·모금</td></tr>
+          <tr><td>자유게시판</td><td><code>/board.html</code> · <code>/board-view.html</code> · <code>/board-write.html</code></td><td>글 목록 / 상세 / 작성(로그인)</td></tr>
+          <tr><td>소식</td><td><code>/news.html</code></td><td>협의회 발신 소식</td></tr>
+          <tr><td>자료실</td><td><code>/resources.html</code></td><td>자료 다운로드</td></tr>
+          <tr><td>사건 제보</td><td><code>/incidents.html</code> · <code>/incident.html</code></td><td>공개 사건 목록 / 상세</td></tr>
+          <tr><td>법률 지원 안내</td><td><code>/legal-support.html</code></td><td>법률 상담 안내 + 신청 진입</td></tr>
+          <tr><td>후원</td><td><code>/donate.html</code></td><td>일시·정기 후원 결제</td></tr>
+          <tr><td>윤리경영</td><td><code>/ethics.html</code></td><td>윤리헌장</td></tr>
+          <tr><td>약관</td><td><code>/terms.html</code> · <code>/privacy.html</code> · <code>/email-reject.html</code></td><td>이용약관 / 개인정보 / 이메일 무단수집 거부</td></tr>
+        </tbody>
+      </table>
+
+      <!-- A-1 메인 -->
+      <h3 id="a-main">A-1. 메인 화면</h3>
+      <p>홈페이지에 처음 들어왔을 때 보이는 화면. 운영자는 어드민의 <strong>사이트 빌더</strong>에서 섹션 순서·노출을 코드 없이 바꿀 수 있습니다.</p>
+
+      <!-- 실제 사이트 톤의 메인 mock -->
+      <div class="mock">
+        <div class="mock-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="url">tbfa.co.kr</span>
+        </div>
+        <div class="mock-body">
+          <!-- 실제 헤더 -->
+          <div class="mock-header">
+            <div class="brand">
+              <svg viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
+                <path d="M3 0 L21 0 L21 22 L12 28 L3 22 Z" fill="#7a1f2b"/>
+                <path d="M3 0 L12 0 L12 28 L3 22 Z" fill="#5a141d"/>
+                <circle cx="12" cy="10" r="2.4" fill="#b8935a"/>
+              </svg>
+              <div>
+                <div class="brand-text">교사유가족협의회</div>
+                <div class="brand-sub">연대·존엄</div>
+              </div>
+            </div>
+            <div class="menu">
+              <span>협의회 소개</span>
+              <span>주요 활동</span>
+              <span class="siren-m">사이렌</span>
+              <span>소식/참여</span>
+              <span>후원안내</span>
+              <span>마이페이지</span>
+            </div>
+            <button class="cta">후원하기</button>
+          </div>
+          <!-- 메인 히어로 -->
+          <div style="padding:48px 32px;background:linear-gradient(180deg,var(--bg) 0%,var(--bg-soft) 100%);text-align:center;border-bottom:1px solid var(--line);">
+            <div style="font-size:10.5px;color:var(--siren);font-weight:700;letter-spacing:.18em;">진행 중 캠페인</div>
+            <div style="font-family:var(--font-serif);font-size:26px;font-weight:600;margin:10px 0 6px;color:var(--text);letter-spacing:-0.5px;">함께 만드는 따뜻한 학교</div>
+            <div style="font-size:12.5px;color:var(--text-3);">D-12 · 모금 38% · 1,247명 참여</div>
+            <button style="margin-top:18px;background:var(--brand);color:#fff;border:none;padding:11px 28px;border-radius:var(--radius-pill);font-weight:600;font-size:13.5px;font-family:var(--font-sans);">참여하기</button>
+          </div>
+          <!-- 빠른 메뉴 3종 -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:0;">
+            <div style="padding:22px 16px;text-align:center;border-right:1px solid var(--line);"><div style="font-size:24px;">💝</div><div style="font-family:var(--font-serif);font-weight:600;font-size:14px;margin-top:6px;color:var(--text);">후원하기</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">정기·일시 후원</div></div>
+            <div style="padding:22px 16px;text-align:center;border-right:1px solid var(--line);"><div style="font-size:24px;">🚨</div><div style="font-family:var(--font-serif);font-weight:600;font-size:14px;margin-top:6px;color:var(--siren);">사이렌</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">사건·괴롭힘·법률</div></div>
+            <div style="padding:22px 16px;text-align:center;"><div style="font-size:24px;">📰</div><div style="font-family:var(--font-serif);font-weight:600;font-size:14px;margin-top:6px;color:var(--text);">소식·참여</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">캠페인·게시판</div></div>
+          </div>
+          <!-- 푸터 -->
+          <div class="mock-footer">
+            <div>
+              <div class="ft-brand">교사유가족협의회</div>
+              <div style="font-size:10.5px;color:#555;margin-top:4px;">사업자등록번호 118-82-71215</div>
+            </div>
+            <div style="font-size:10.5px;color:#555;">© 2026 TBFA. 모든 권리 보유.</div>
+          </div>
+        </div>
+      </div>
+
+      <h4>방문자가 메인에서 자주 가는 길</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">메인 진입</div><div class="desc">tbfa.co.kr 접속</div></div>
+        <div class="step"><div class="num">2</div><div class="title">진입점 선택</div><div class="desc">후원 · 사이렌 · 소식·참여</div></div>
+        <div class="step"><div class="num">3</div><div class="title">상세 진입</div><div class="desc">해당 페이지로 이동</div></div>
+        <div class="step"><div class="num">4</div><div class="title">행동 완료</div><div class="desc">결제 · 제출 · 참여</div></div>
+      </div>
+
+      <!-- A-2 -->
+      <h3 id="a-auth">A-2. 회원가입 · 로그인</h3>
+
+      <h4>회원가입 4단계</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">이메일 인증</div><div class="desc">6자리 코드 입력 (5분 유효)</div></div>
+        <div class="step"><div class="num">2</div><div class="title">기본 정보</div><div class="desc">비밀번호·이름·휴대폰</div></div>
+        <div class="step"><div class="num">3</div><div class="title">휴대폰 본인인증</div><div class="desc">SMS 코드로 본인 확인</div></div>
+        <div class="step"><div class="num">4</div><div class="title">약관 동의</div><div class="desc">가입 완료 + 웰컴 포인트</div></div>
+      </div>
+
+      <div class="callout">
+        <div class="title">📊 가입 채널 추적</div>
+        URL 파라미터로 들어온 회원(<code>?src=캠페인A</code>)은 어드민에서 채널별 KPI로 자동 분리 집계됩니다. 마케팅 성과 측정용입니다.
+      </div>
+
+      <h4>로그인 정책</h4>
+      <ul>
+        <li>이메일 / 비밀번호 → 7일 유효 JWT 발급(httpOnly 쿠키, 안전)</li>
+        <li>로그인 <strong>5회 연속 실패</strong> → 일시 잠금</li>
+        <li>비밀번호 재설정: 모달 안 <strong>"비밀번호를 잊으셨나요?"</strong> → 이메일로 재설정 링크</li>
+      </ul>
+
+      <div class="callout danger">
+        <div class="title">⚠️ 블랙리스트 회원</div>
+        로그인은 되지만 <strong>후원·신고·게시글 작성 등 핵심 기능 차단</strong>됩니다. "귀하의 서비스가 차단되었습니다." 메시지가 표시됩니다.
+      </div>
+
+      <h4>회원 탈퇴</h4>
+      <ul>
+        <li><code>/mypage.html</code> 하단 <strong>[회원 탈퇴]</strong></li>
+        <li>진행 중 정기후원이 있으면 <strong>먼저 해지</strong> 필요</li>
+        <li>탈퇴 후 <strong>30일 보관</strong> → 영구 삭제</li>
+      </ul>
+
+      <!-- A-3 후원 -->
+      <h3 id="a-donate">A-3. 후원하기</h3>
+      <p><code>/donate.html</code> — 일시·정기 모두 한 페이지에서 진행합니다.</p>
+
+      <h4>결제 수단 3종 비교</h4>
+      <table>
+        <thead><tr><th>수단</th><th width="80">일시</th><th width="80">정기</th><th>특징</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>💳 토스페이먼츠</strong><br><span style="font-size:12px;color:var(--text-3);">카드 결제</span></td>
+            <td><span class="badge ok">✓</span></td>
+            <td><span class="badge ok">✓</span></td>
+            <td>즉시 결제·즉시 영수증. 정기는 토스 빌링으로 매월 자동 청구.</td>
+          </tr>
+          <tr>
+            <td><strong>🏦 효성 CMS+</strong><br><span style="font-size:12px;color:var(--text-3);">계좌 자동이체</span></td>
+            <td><span class="badge ok">✓</span></td>
+            <td><span class="badge ok">✓</span></td>
+            <td>계좌 등록 + 본인인증 후 매월 출금. 카드 안 쓰는 회원에게 적합.</td>
+          </tr>
+          <tr>
+            <td><strong>📮 계좌이체</strong><br><span style="font-size:12px;color:var(--text-3);">무통장 입금</span></td>
+            <td><span class="badge ok">✓</span></td>
+            <td><span class="badge muted">✗</span></td>
+            <td>회원이 직접 입금 → 운영자가 입금 확인 후 영수증 발급.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>일시 후원 흐름</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">금액 선택</div><div class="desc">1만 / 3만 / 5만 / 10만 / 직접</div></div>
+        <div class="step"><div class="num">2</div><div class="title">후원자 정보</div><div class="desc">비회원도 가능 (이메일 영수증)</div></div>
+        <div class="step"><div class="num">3</div><div class="title">결제 수단</div><div class="desc">토스 / 효성 / 계좌이체</div></div>
+        <div class="step"><div class="num">4</div><div class="title">결제 완료</div><div class="desc">영수증 PDF 자동 이메일</div></div>
+      </div>
+
+      <h4>정기 후원 등록 화면</h4>
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/donate.html</span></div>
+        <div class="mock-body" style="padding:28px 32px;">
+          <div style="display:flex;gap:0;margin-bottom:22px;border-bottom:1px solid var(--line);">
+            <div style="padding:10px 22px;border-bottom:2px solid var(--brand);color:var(--brand);font-weight:700;font-size:13.5px;">정기 후원</div>
+            <div style="padding:10px 22px;color:var(--text-3);font-size:13.5px;">일시 후원</div>
+          </div>
+          <div style="font-family:var(--font-serif);font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text);">월 후원 금액</div>
+          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+            <div style="padding:10px 18px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:13px;color:var(--text-2);">1만</div>
+            <div style="padding:10px 18px;border:1.5px solid var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700;border-radius:var(--radius-pill);font-size:13px;">3만 ✓</div>
+            <div style="padding:10px 18px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:13px;color:var(--text-2);">5만</div>
+            <div style="padding:10px 18px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:13px;color:var(--text-2);">10만</div>
+            <div style="padding:10px 18px;border:1px solid var(--line);border-radius:var(--radius-pill);font-size:13px;color:var(--text-3);">직접 입력</div>
+          </div>
+          <div style="font-family:var(--font-serif);font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text);">결제일</div>
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:22px;">매월 25일 자동 청구</div>
+          <button style="background:var(--brand);color:#fff;border:none;padding:13px 32px;border-radius:var(--radius-pill);font-weight:600;font-size:14px;font-family:var(--font-sans);">카드 등록하고 시작하기 →</button>
+        </div>
+      </div>
+
+      <h4>영수증 · 기부금 영수증</h4>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📧 결제 직후 영수증</h4>
+          <ul style="font-size: 14px; margin-bottom:0;">
+            <li>입력한 이메일로 PDF 자동 발송</li>
+            <li>NotoSansKR 폰트 임베드 (한글 깨짐 없음)</li>
+            <li>회원은 마이페이지에서 상시 다운로드</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>🧾 연말 기부금 영수증</h4>
+          <ul style="font-size: 14px; margin-bottom:0;">
+            <li>매년 1~2월 일괄 발급</li>
+            <li>가입 시 입력한 <strong>주민번호</strong> 기준</li>
+            <li>미입력 회원은 마이페이지에서 사전 등록 필요</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- A-4 캠페인 -->
+      <h3 id="a-campaign">A-4. 캠페인</h3>
+      <p><code>/campaigns.html</code> 목록 → <code>/campaign.html</code> 상세. 캠페인마다 참여 방식이 다릅니다 — 단순 서명, 모금 후원, 댓글 응원, 응답폼 제출 등.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/campaign.html?id=12</span></div>
+        <div class="mock-body" style="padding:28px 32px;">
+          <div style="font-size:10.5px;color:var(--siren);font-weight:700;letter-spacing:.18em;">진행 중 · D-12</div>
+          <div style="font-family:var(--font-serif);font-size:26px;font-weight:600;margin:6px 0 16px;color:var(--text);letter-spacing:-0.5px;">함께 만드는 따뜻한 학교</div>
+          <!-- 진행 바 -->
+          <div style="background:var(--bg-mute);height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+            <div style="width:38%;height:100%;background:linear-gradient(to right,var(--brand),var(--gold));"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:22px;">
+            <span><strong style="color:var(--brand);font-size:14px;font-family:var(--font-serif);">₩ 3,820,000</strong> 모금</span>
+            <span>목표 ₩10,000,000 · 38%</span>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button style="flex:1;background:var(--brand);color:#fff;border:none;padding:12px;border-radius:var(--radius-pill);font-weight:600;font-size:13px;">💝 후원하기</button>
+            <button style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:var(--radius-pill);font-weight:600;font-size:13px;">✍️ 서명하기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A-5 게시판 -->
+      <h3 id="a-board">A-5. 게시판 · 자료실</h3>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📋 자유게시판 <code>/board.html</code></h4>
+          <dl class="kv">
+            <dt>열람</dt><dd><span class="role guest">🌐 비회원</span> 가능</dd>
+            <dt>작성·댓글</dt><dd><span class="role member">👥 회원</span> 만</dd>
+            <dt>수정·삭제</dt><dd>본인 글만</dd>
+            <dt>에디터</dt><dd>Toast UI (이미지 붙여넣기 OK)</dd>
+            <dt>신고</dt><dd>🚩 부적절 글·댓글 → 운영자 검토</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h4>📚 자료실 <code>/resources.html</code></h4>
+          <dl class="kv">
+            <dt>등록</dt><dd>어드민의 자료실 관리</dd>
+            <dt>카테고리</dt><dd>운영자가 사전 정의</dd>
+            <dt>검색</dt><dd>제목·태그</dd>
+            <dt>다운로드</dt><dd>안전 URL(만료 시간 있음)</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- A-6 신고 진입 -->
+      <h3 id="a-report-entry">A-6. 신고 진입 (사건 · 괴롭힘 · 법률)</h3>
+      <p>홈페이지에서는 신고의 <strong>진입점</strong>만 안내합니다. 실제 작성 흐름은 <a href="#c-coming">C. SIREN 신고</a>에서 자세히 다룹니다.</p>
+
+      <div class="grid cols-3">
+        <div class="card" style="border-top:3px solid var(--siren);">
+          <h4>🚨 사건 신고</h4>
+          <p style="font-size:13px;margin-bottom:8px;">학교·교실 내 사건, 학대, 사망 사건 등</p>
+          <code style="font-size:11.5px;">/incidents.html</code>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warn);">
+          <h4>😡 괴롭힘</h4>
+          <p style="font-size:13px;margin-bottom:8px;">학부모·관리자 등으로부터의 악성민원</p>
+          <code style="font-size:11.5px;">/report-harassment.html</code>
+        </div>
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>⚖️ 법률 상담</h4>
+          <p style="font-size:13px;margin-bottom:8px;">법적 분쟁·소송·자문이 필요한 사안</p>
+          <code style="font-size:11.5px;">/legal-support.html</code>
+        </div>
+      </div>
+
+      <div class="callout ok">
+        <div class="title">🔒 익명 보호가 기본</div>
+        세 종류 모두 <strong>익명으로 신고할 수 있습니다.</strong> 운영자도 별도 권한(신원 식별 페이지) + 사유 입력 + 감사 로그 없이는 신원을 볼 수 없습니다. 자세한 보호 메커니즘은 C 영역에서 다룹니다.
+      </div>
+
+      <h3>A 영역 · 자주 묻는 질문</h3>
+      <table>
+        <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
+        <tbody>
+          <tr><td>비회원도 후원할 수 있나요?</td><td>가능합니다. 영수증은 입력한 이메일로 발송됩니다.</td></tr>
+          <tr><td>후원 영수증을 다시 받으려면?</td><td>회원이면 마이페이지에서 다운로드. 비회원은 협의회 문의.</td></tr>
+          <tr><td>정기 후원 중단은 어떻게?</td><td>마이페이지 → 내 구독 관리 → [해지]. 즉시 다음 회차부터 미청구.</td></tr>
+          <tr><td>게시판 글이 삭제됐어요.</td><td>본인 또는 운영자 삭제. 운영자 삭제는 신고 접수 결과로 발생합니다.</td></tr>
+          <tr><td>신고하면 신원이 노출되나요?</td><td>익명 보호. 운영자도 별도 권한 + 감사 로그 없이는 못 봅니다.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===================== 영역 B ===================== -->
+    <section id="area-b">
+      <h2><span class="badge-area">B</span>회원 마이페이지</h2>
+      <p><span class="role member">👥 회원</span> · 로그인한 일반 회원이 본인 데이터를 관리하는 영역. 진입 <code>/mypage.html</code></p>
+
+      <h3>페이지 한눈에</h3>
+      <table>
+        <thead><tr><th width="180">페이지</th><th width="220">경로</th><th>무엇을</th></tr></thead>
+        <tbody>
+          <tr><td>마이페이지 메인</td><td><code>/mypage.html</code></td><td>후원·신고·포인트 요약 + 6개 탭</td></tr>
+          <tr><td>포인트·뱃지</td><td><code>/mypage-points.html</code></td><td>적립 / 사용 / 만료 + 획득 배지</td></tr>
+          <tr><td>포인트 랭킹</td><td><code>/ranking.html</code></td><td>회원 전체 랭킹</td></tr>
+          <tr><td>내 구독 관리</td><td><code>/my-subscriptions.html</code></td><td>정기 후원 · 뉴스레터 구독</td></tr>
+          <tr><td>받은 메시지</td><td><code>/my-send-history.html</code></td><td>운영자가 보낸 이메일·SMS 이력</td></tr>
+          <tr><td>알림 수신 설정</td><td><code>/settings-notifications.html</code></td><td>카테고리별 ON/OFF</td></tr>
+          <tr><td>정기후원 카드 등록</td><td><code>/billing-register.html</code></td><td>토스 빌링 카드 등록</td></tr>
+          <tr><td>결제 결과</td><td><code>/payment-success.html</code> 외 3개</td><td>결제·정기등록 결과 안내</td></tr>
+        </tbody>
+      </table>
+
+      <!-- B-1 메인 -->
+      <h3 id="b-overview">B-1. 마이페이지 메인</h3>
+      <p>로그인하면 가장 먼저 보이는 화면. 상단 카드에 등급·누적 후원금·포인트가 한눈에 표시되고, 아래로 6개 탭이 이어집니다.</p>
+
+      <div class="mock">
+        <div class="mock-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">tbfa.co.kr/mypage.html</span></div>
+        <div class="mock-body">
+          <div class="mock-header">
+            <div class="brand">
+              <svg viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
+                <path d="M3 0 L21 0 L21 22 L12 28 L3 22 Z" fill="#7a1f2b"/>
+                <path d="M3 0 L12 0 L12 28 L3 22 Z" fill="#5a141d"/>
+                <circle cx="12" cy="10" r="2.4" fill="#b8935a"/>
+              </svg>
+              <div>
+                <div class="brand-text">교사유가족협의회</div>
+                <div class="brand-sub">연대·존엄</div>
+              </div>
+            </div>
+            <div class="menu">
+              <span>협의회 소개</span><span>주요 활동</span>
+              <span class="siren-m">사이렌</span><span>소식/참여</span>
+              <span>후원안내</span><span style="color:var(--brand);font-weight:700;">마이페이지</span>
+            </div>
+            <button class="cta">후원하기</button>
+          </div>
+          <!-- 회원 카드 -->
+          <div style="padding:30px 32px;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-deep) 100%);color:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;letter-spacing:.16em;opacity:.85;">GOLD 등급 회원</div>
+                <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;margin-top:6px;">홍길동 님 환영합니다</div>
+              </div>
+              <div style="font-size:36px;">🥇</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.18);">
+              <div><div style="font-size:10.5px;opacity:.75;letter-spacing:.1em;">누적 후원금</div><div style="font-family:var(--font-serif);font-size:20px;font-weight:600;margin-top:3px;">₩ 2,450,000</div></div>
+              <div><div style="font-size:10.5px;opacity:.75;letter-spacing:.1em;">포인트 잔액</div><div style="font-family:var(--font-serif);font-size:20px;font-weight:600;margin-top:3px;">12,300 P</div></div>
+              <div><div style="font-size:10.5px;opacity:.75;letter-spacing:.1em;">활동 뱃지</div><div style="font-family:var(--font-serif);font-size:20px;font-weight:600;margin-top:3px;">7개</div></div>
+            </div>
+          </div>
+          <!-- 탭 -->
+          <div style="display:flex;border-bottom:1px solid var(--line);padding:0 16px;overflow-x:auto;">
+            <div style="padding:14px 18px;border-bottom:2px solid var(--brand);color:var(--brand);font-weight:700;font-size:13px;white-space:nowrap;">내 후원</div>
+            <div style="padding:14px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">내 신고</div>
+            <div style="padding:14px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">내 게시글</div>
+            <div style="padding:14px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">내 구독</div>
+            <div style="padding:14px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">내 캠페인</div>
+            <div style="padding:14px 18px;color:var(--text-2);font-size:13px;white-space:nowrap;">본인 명세서</div>
+          </div>
+          <!-- 후원 리스트 -->
+          <div style="padding:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 32px;border-bottom:1px solid var(--line-soft);">
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text);">정기 후원 · 토스 카드</div>
+                <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">매월 25일 · 2025.03 ~</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;color:var(--brand);">₩ 30,000</div>
+                <div style="font-size:11px;color:var(--ok);margin-top:2px;">● 정상</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 32px;border-bottom:1px solid var(--line-soft);">
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text);">일시 후원 · 캠페인 #12</div>
+                <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2026.05.18 · 영수증 발급 완료</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;color:var(--text);">₩ 50,000</div>
+                <a style="font-size:11px;color:var(--brand);margin-top:2px;display:inline-block;">📄 영수증</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4>6개 탭 안내</h4>
+      <table>
+        <thead><tr><th width="160">탭</th><th>내용</th></tr></thead>
+        <tbody>
+          <tr><td><strong>내 후원</strong></td><td>일시·정기 후원 전체 이력, 영수증 다운로드</td></tr>
+          <tr><td><strong>내 신고</strong></td><td>사건·괴롭힘·법률 상담 본인 신고 상태(접수/검토/확정/종결/반려)</td></tr>
+          <tr><td><strong>내 게시글</strong></td><td>작성한 글·댓글</td></tr>
+          <tr><td><strong>내 구독</strong></td><td>정기 후원·뉴스레터 구독 관리</td></tr>
+          <tr><td><strong>내 캠페인</strong></td><td>서명·참여한 캠페인 이력</td></tr>
+          <tr><td><strong>본인 명세서</strong> <span class="role op">🤝 운영자·간사 한정</span></td><td>급여 명세서 본인 탭 (어드민이 발급한 분량만)</td></tr>
+        </tbody>
+      </table>
+
+      <!-- B-2 후원 내역 -->
+      <h3 id="b-donate">B-2. 후원 내역 관리</h3>
+
+      <h4>일시 후원</h4>
+      <ul>
+        <li>결제일·금액·결제 수단·영수증(PDF) 다운로드</li>
+        <li>환불 요청은 협의회에 문의 (시스템 자동 환불 없음)</li>
+      </ul>
+
+      <h4>정기 후원 상태</h4>
+      <div class="grid cols-4">
+        <div class="card" style="text-align:center;padding:18px 14px;">
+          <div style="font-size:24px;">🟢</div>
+          <div style="font-weight:700;font-size:13px;margin-top:6px;">정상</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:3px;">매월 자동 결제 중</div>
+        </div>
+        <div class="card" style="text-align:center;padding:18px 14px;">
+          <div style="font-size:24px;">⏸️</div>
+          <div style="font-weight:700;font-size:13px;margin-top:6px;">일시정지</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:3px;">사용자 요청 / 카드 실패</div>
+        </div>
+        <div class="card" style="text-align:center;padding:18px 14px;">
+          <div style="font-size:24px;">⚠️</div>
+          <div style="font-weight:700;font-size:13px;margin-top:6px;">카드 만료</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:3px;">새 카드 등록 필요</div>
+        </div>
+        <div class="card" style="text-align:center;padding:18px 14px;">
+          <div style="font-size:24px;">⛔</div>
+          <div style="font-weight:700;font-size:13px;margin-top:6px;">해지</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:3px;">즉시 중단, 재시작 가능</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="title">💳 카드 만료 임박 알림</div>
+        매일 자동 점검 → 만료 2개월 전부터 이메일·앱 알림. 받으시면 가능한 빨리 <code>/billing-register.html</code>에서 새 카드를 등록하세요.
+      </div>
+
+      <h4>기부금 영수증</h4>
+      <ul>
+        <li>연 1회(1~2월) 일괄 발급 + 마이페이지 상시 다운로드</li>
+        <li>발급 기준: 가입 시 입력한 <strong>주민번호</strong></li>
+        <li>미입력 회원은 마이페이지 > 개인정보 수정에서 추가</li>
+      </ul>
+
+      <!-- B-3 구독 -->
+      <h3 id="b-subscription">B-3. 정기 후원 · 구독</h3>
+      <p><code>/my-subscriptions.html</code> — 정기 후원과 뉴스레터를 한 화면에서 관리합니다.</p>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>🔄 정기 후원 액션</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li><strong>금액 변경</strong> → 다음 결제부터 반영</li>
+            <li><strong>결제일 변경</strong> → 다음 달부터 적용</li>
+            <li><strong>일시정지</strong> → 다음 회차 1회 건너뜀</li>
+            <li><strong>해지</strong> → 즉시 중단, 다음 회차 미청구</li>
+            <li><strong>결제수단 변경</strong> → 토스: 카드 재등록 / 효성: 신규 신청</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>📰 뉴스레터 카테고리</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>협의회 소식</li>
+            <li>캠페인 시작·종료</li>
+            <li>법률 이슈 · 정책 동향</li>
+            <li>활동 보고서</li>
+            <li>기념일·기일 안내</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="title">🔮 이탈 예측 · 운영자가 먼저 손 내미는 시스템</div>
+        시스템이 매일 후원 패턴을 분석해 이탈 위험이 높은 회원을 자동 감지합니다. 운영자가 회복 캠페인(개인화된 메시지)을 보낼 수 있어, <strong>구독 해지 전에 먼저 안부를 받게 됩니다</strong>.
+      </div>
+
+      <!-- B-4 포인트 -->
+      <h3 id="b-points">B-4. 포인트 · 등급 · 뱃지</h3>
+
+      <h4>포인트는 어떻게 쌓이나</h4>
+      <div class="grid cols-3">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:32px;">🎁</div>
+          <h4 style="margin-top:8px;">웰컴 포인트</h4>
+          <p style="font-size:13px;margin-bottom:0;">가입 즉시 자동 적립</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:32px;">💝</div>
+          <h4 style="margin-top:8px;">후원 적립</h4>
+          <p style="font-size:13px;margin-bottom:0;">금액 × 규칙 (어드민 정의)</p>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:32px;">✍️</div>
+          <h4 style="margin-top:8px;">활동 적립</h4>
+          <p style="font-size:13px;margin-bottom:0;">캠페인 참여 · 게시글 추천 · 출석</p>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <div class="title">⏳ 12개월 자동 만료</div>
+        적립일 기준 <strong>12개월</strong>이 지나면 자동 만료됩니다. <code>/mypage-points.html</code> 하단의 만료 이력에서 어느 적립분이 만료되었는지 확인할 수 있습니다.
+      </div>
+
+      <h4>등급 시스템 (자동 재계산)</h4>
+      <div class="grid cols-4">
+        <div class="card" style="text-align:center;border-top:3px solid #cd7f32;padding:16px 12px;">
+          <div style="font-size:28px;">🥉</div>
+          <h4 style="margin-top:6px;">BRONZE</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">신규·소액 후원</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid #999;padding:16px 12px;">
+          <div style="font-size:28px;">🥈</div>
+          <h4 style="margin-top:6px;">SILVER</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">꾸준한 정기 후원</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid var(--gold);padding:16px 12px;">
+          <div style="font-size:28px;">🥇</div>
+          <h4 style="margin-top:6px;">GOLD</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">누적 다회 후원자</p>
+        </div>
+        <div class="card" style="text-align:center;border-top:3px solid var(--brand);padding:16px 12px;">
+          <div style="font-size:28px;">💎</div>
+          <h4 style="margin-top:6px;">PLATINUM</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">최상위 기여자</p>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-3);margin-top:8px;">매일 새벽 시스템이 누적 후원금을 기준으로 자동 재계산합니다. 등급별 혜택은 어드민이 정의합니다.</p>
+
+      <h4>뱃지 (자동 발급)</h4>
+      <p>"첫 후원", "10회 후원", "3년 연속 후원", "10명 추천" 등의 조건을 충족하면 시스템이 자동으로 뱃지를 발급합니다. 프로필 노출 여부는 회원이 직접 선택할 수 있습니다.</p>
+
+      <!-- B-5 알림 -->
+      <h3 id="b-notify">B-5. 알림 · 받은 메시지</h3>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>📩 받은 메시지 <code>/my-send-history.html</code></h4>
+          <p style="font-size:13.5px;">운영자가 발송한 이메일·SMS·푸시 알림 이력을 시간순으로 확인합니다. 채널·열람 여부도 표시됩니다.</p>
+        </div>
+        <div class="card">
+          <h4>🔔 알림 수신 설정 <code>/settings-notifications.html</code></h4>
+          <p style="font-size:13.5px;">카테고리별로 이메일·웹·앱푸시를 각각 ON/OFF. 기본값은 어드민이 정의합니다.</p>
+        </div>
+      </div>
+
+      <h4>알림 카테고리 (각각 채널별 ON/OFF)</h4>
+      <table>
+        <thead><tr><th width="200">카테고리</th><th>내용</th><th width="100">필수</th></tr></thead>
+        <tbody>
+          <tr><td>💳 후원 처리 결과</td><td>일시 후원 결제 성공·실패</td><td><span class="badge danger">필수</span></td></tr>
+          <tr><td>📅 정기 후원 일정</td><td>결제 예정·완료 알림</td><td><span class="badge danger">필수</span></td></tr>
+          <tr><td>🚨 내 신고 상태 변경</td><td>접수·보완·확정·반려 통지</td><td><span class="badge muted">선택</span></td></tr>
+          <tr><td>📣 캠페인 시작·종료</td><td>새 캠페인 안내</td><td><span class="badge muted">선택</span></td></tr>
+          <tr><td>📰 뉴스레터</td><td>협의회 소식·법률 이슈</td><td><span class="badge muted">선택</span></td></tr>
+          <tr><td>💬 댓글·답글</td><td>내 게시글에 달린 반응</td><td><span class="badge muted">선택</span></td></tr>
+          <tr><td>📢 시스템 공지</td><td>약관 변경·점검 안내</td><td><span class="badge danger">필수</span></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout danger">
+        <div class="title">⚠️ 필수 알림은 끌 수 없습니다</div>
+        결제 실패·약관 변경처럼 회원의 법적·재정적 이익에 직접 영향을 주는 알림은 수신 설정과 무관하게 발송됩니다.
+      </div>
+
+      <!-- B-6 개인정보 -->
+      <h3>B-6. 개인정보 · 결제 결과 페이지</h3>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>🔐 개인정보 보호</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li><strong>휴대폰·주소</strong>: 본인만 수정. 운영자 발송 외 조회 안 함</li>
+            <li><strong>주민번호</strong>: 영수증 발급 목적으로만 저장(암호화)</li>
+            <li><strong>이메일 변경</strong>: 새 이메일 재인증 필요</li>
+            <li><strong>비밀번호 변경</strong>: 기존 비밀번호 확인 필수</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>💳 결제 결과 페이지 4종</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li><code>/payment-success.html</code> · 일시 후원 성공</li>
+            <li><code>/payment-fail.html</code> · 결제 실패 + 사유</li>
+            <li><code>/billing-success.html</code> · 정기 카드 등록 성공</li>
+            <li><code>/billing-fail.html</code> · 카드 등록 실패 + 재시도</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>B 영역 · 자주 묻는 질문</h3>
+      <table>
+        <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
+        <tbody>
+          <tr><td>후원 금액을 바꾸려면?</td><td><code>/my-subscriptions.html</code> → 해당 정기 후원 → [금액 변경]. 다음 결제부터 반영.</td></tr>
+          <tr><td>카드가 만료됐어요.</td><td><code>/billing-register.html</code>에서 새 카드 등록. 자동으로 기존 정기 후원에 연결.</td></tr>
+          <tr><td>포인트가 사라졌어요.</td><td>적립일 12개월 경과 시 자동 만료. <code>/mypage-points.html</code> 하단에서 확인.</td></tr>
+          <tr><td>운영자가 내 글을 삭제했어요.</td><td>신고 처리 결과. 알림으로 사유 전달.</td></tr>
+          <tr><td>신고 답변이 안 와요.</td><td>[내 신고] 탭에서 상태 확인. 운영자 검토 중일 수 있음.</td></tr>
+          <tr><td>받는 메일이 너무 많아요.</td><td><code>/settings-notifications.html</code>에서 카테고리별 끄기. 법정 통지는 끌 수 없음.</td></tr>
+          <tr><td>본인 명세서 탭이 안 보여요.</td><td>운영자·간사 자격이 있어야 표시됩니다. 일반 회원에게는 노출되지 않음.</td></tr>
+        </tbody>
+      </table>
+
+    </section>
+
+    <!-- ===================== 자리표시자 ===================== -->
+    <!-- ===================== 영역 C ===================== -->
+    <section id="area-c">
+      <h2><span class="badge-area">C</span>SIREN 신고</h2>
+      <p><span class="role guest">🌐 비회원</span> <span class="role member">👥 회원</span> <span class="role op">🤝 운영자</span> · 사건·괴롭힘·법률 상담 — <strong>익명 보호가 기본 원칙</strong></p>
+
+      <div class="callout danger">
+        <div class="title">🚨 SIREN의 핵심 약속</div>
+        세 종류 신고 모두 <strong>익명으로 접수 가능합니다.</strong> 익명 신고자의 신원은 운영자도 <strong>별도 권한 + 사유 입력 + 감사 로그</strong>를 거치지 않으면 볼 수 없도록 시스템이 강제합니다.
+      </div>
+
+      <h3>신고 3종 — 어느 걸 선택해야 할까?</h3>
+
+      <div class="grid cols-3">
+        <div class="card" style="border-top:4px solid var(--siren);position:relative;">
+          <div style="position:absolute;top:14px;right:14px;font-size:32px;opacity:.18;">🚨</div>
+          <h4 style="margin-top:0;color:var(--siren);">사건 신고</h4>
+          <div style="font-size:11px;color:var(--text-3);letter-spacing:.1em;margin-bottom:8px;">INCIDENT</div>
+          <p style="font-size:13px;">학교·교실 내 사건, 학대, 사망 사건, 안전사고처럼 <strong>구체적 사실관계</strong>가 있는 사안.</p>
+          <code style="font-size:11.5px;">/incidents.html</code>
+        </div>
+        <div class="card" style="border-top:4px solid var(--warn);position:relative;">
+          <div style="position:absolute;top:14px;right:14px;font-size:32px;opacity:.18;">😡</div>
+          <h4 style="margin-top:0;color:var(--warn);">악성민원 · 괴롭힘</h4>
+          <div style="font-size:11px;color:var(--text-3);letter-spacing:.1em;margin-bottom:8px;">HARASSMENT</div>
+          <p style="font-size:13px;">학부모·관리자·동료로부터의 <strong>반복적 괴롭힘·악성 민원</strong>. 심리·법률·행정 지원 연결.</p>
+          <code style="font-size:11.5px;">/report-harassment.html</code>
+        </div>
+        <div class="card" style="border-top:4px solid var(--brand);position:relative;">
+          <div style="position:absolute;top:14px;right:14px;font-size:32px;opacity:.18;">⚖️</div>
+          <h4 style="margin-top:0;color:var(--brand);">법률 상담</h4>
+          <div style="font-size:11px;color:var(--text-3);letter-spacing:.1em;margin-bottom:8px;">LEGAL</div>
+          <p style="font-size:13px;"><strong>법적 분쟁·소송·자문</strong>이 필요한 사안. AI 추천 + 변호사 풀 매칭, 협의회 지원금 범위 내 무료.</p>
+          <code style="font-size:11.5px;">/legal-support.html</code>
+        </div>
+      </div>
+
+      <!-- ============ 익명 보호 다이어그램 ============ -->
+      <h3 id="c-anon">🔒 익명 보호는 어떻게 동작하나</h3>
+      <p>신고자가 익명을 선택하면 시스템은 <strong>3겹의 보호 장치</strong>로 신원을 차단합니다. 운영자도 마음대로 못 봅니다.</p>
+
+      <div class="anon-diagram">
+        <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:stretch;">
+          <!-- 좌: 신고자 -->
+          <div style="background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;text-align:center;">
+            <div style="font-size:42px;">🕵️</div>
+            <div style="font-family:var(--font-serif);font-weight:600;font-size:16px;margin-top:8px;color:var(--text);">신고자</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:4px;">익명 선택</div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--text-2);">실명·이메일·휴대폰<br>모두 <strong>저장 안 함</strong></div>
+          </div>
+          <!-- 화살표 -->
+          <div style="display:flex;align-items:center;justify-content:center;">
+            <div style="text-align:center;">
+              <div style="font-size:28px;color:var(--brand);">→</div>
+              <div style="font-size:10.5px;color:var(--text-3);margin-top:4px;">익명 ID 토큰</div>
+            </div>
+          </div>
+          <!-- 우: 시스템 -->
+          <div style="background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;text-align:center;">
+            <div style="font-size:42px;">🗄️</div>
+            <div style="font-family:var(--font-serif);font-weight:600;font-size:16px;margin-top:8px;color:var(--text);">시스템 DB</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:4px;">신고 내용만 저장</div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--text-2);">신고 본문 · 첨부<br>분류 · AI 분석 결과</div>
+          </div>
+        </div>
+
+        <!-- 운영자 접근 흐름 -->
+        <div style="margin-top:24px;padding:20px;background:var(--gold-soft);border:1px solid rgba(184,147,90,.3);border-radius:var(--radius);">
+          <div style="font-family:var(--font-serif);font-weight:600;font-size:15px;color:var(--text);margin-bottom:14px;">🔐 운영자가 신원을 보려면 3관문 통과</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+            <div style="background:var(--bg);border-radius:var(--radius);padding:14px;text-align:center;border:1px solid var(--line);">
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">관문 1</div>
+              <div style="font-size:24px;margin:4px 0;">🛡️</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">전용 권한</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px;">/admin-anon-reveal.html<br>접근 권한 필수</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius);padding:14px;text-align:center;border:1px solid var(--line);">
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">관문 2</div>
+              <div style="font-size:24px;margin:4px 0;">✍️</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">사유 입력</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px;">왜 신원이<br>필요한지 명시</div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius);padding:14px;text-align:center;border:1px solid var(--line);">
+              <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.1em;">관문 3</div>
+              <div style="font-size:24px;margin:4px 0;">📜</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">감사 로그</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px;">/admin-anon-audit.html<br>영구 기록</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결과 -->
+        <div style="margin-top:18px;text-align:center;padding:16px;background:var(--brand-soft);border-radius:var(--radius);border:1px solid rgba(122,31,43,.18);">
+          <div style="font-size:13px;color:var(--text);">👁️ 식별 행위 자체가 영구 기록 → 최고관리자가 정기 감사 → <strong style="color:var(--brand);">부적절한 식별은 사후 추궁</strong></div>
+        </div>
+      </div>
+
+      <div class="callout ok">
+        <div class="title">💡 회원이 안심하고 신고할 수 있는 이유</div>
+        <strong>운영자도 마음대로 익명 신원을 보지 못합니다.</strong> 본인이 그 행위를 한 기록이 영구 남아 있기 때문에, 정당한 사유 없이 신원을 열어보는 것 자체가 운영자에게 위험합니다.
+      </div>
+
+      <!-- C-1 사건 신고 -->
+      <h3 id="c-incident">C-1. 사건 신고</h3>
+      <p>학교·교실 내 사건, 학대, 사망 사건처럼 구체적 사실관계가 있는 사안을 신고합니다.</p>
+
+      <h4>신고 작성 7단계</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">진입</div><div class="desc">/incidents.html → [신고하기]</div></div>
+        <div class="step"><div class="num">2</div><div class="title">익명/실명</div><div class="desc">선택 (익명 = 회신 불가)</div></div>
+        <div class="step"><div class="num">3</div><div class="title">사건 분류</div><div class="desc">학생·교사·학부모 관련 등</div></div>
+        <div class="step"><div class="num">4</div><div class="title">기본 정보</div><div class="desc">발생일·장소·경위</div></div>
+        <div class="step"><div class="num">5</div><div class="title">증빙 첨부</div><div class="desc">파일·이미지 (최대 100MB)</div></div>
+        <div class="step"><div class="num">6</div><div class="title">제출</div><div class="desc">AI 자동 분석 즉시 실행</div></div>
+        <div class="step"><div class="num">7</div><div class="title">접수 확인</div><div class="desc">/my-reports.html에서 상태 추적</div></div>
+      </div>
+
+      <h4>제출 직후 — AI가 즉시 분석</h4>
+      <div class="card" style="background:linear-gradient(135deg,var(--brand-soft) 0%,var(--gold-soft) 100%);border-color:rgba(122,31,43,.2);">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;">
+          <div style="font-size:42px;">🤖</div>
+          <div>
+            <div style="font-family:var(--font-serif);font-weight:600;font-size:16px;color:var(--text);">Google Gemini AI 자동 분류</div>
+            <div style="font-size:13px;color:var(--text-2);margin-top:4px;">분류 정합성(어떤 카테고리에 가장 맞는지) · 시급도 점수(긴급 대응 필요한지) 자동 분석 → 운영자 검토 우선순위 반영</div>
+            <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;">개인 식별 정보는 사전 제거 후 분석. 회원이 거부하면 분석 없이 사람 검토로 진행.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C-2 괴롭힘 -->
+      <h3 id="c-harassment">C-2. 악성민원 · 괴롭힘 신고</h3>
+      <p><code>/report-harassment.html</code> — 반복적 괴롭힘에 특화된 구조화 폼.</p>
+
+      <h4>입력 항목 5가지</h4>
+      <table>
+        <thead><tr><th width="180">항목</th><th>선택지 (복수 선택 지원)</th></tr></thead>
+        <tbody>
+          <tr><td>👤 가해자 유형</td><td>학부모 · 관리자 · 동료 · 학생 · 기타</td></tr>
+          <tr><td>🔁 반복 여부</td><td>단발 · 반복(횟수 입력)</td></tr>
+          <tr><td>💢 피해 유형</td><td>언어폭력 · 문자/통화 · SNS · 대면 · 서면 · 기타</td></tr>
+          <tr><td>📅 피해 기간</td><td>시작일 ~ 현재 또는 종료일</td></tr>
+          <tr><td>🎯 희망 지원</td><td>심리 상담 · 법률 자문 · 학교 행정 개입 · 단순 기록</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <div class="title">⚡ AI가 법률 검토 필요성을 판단</div>
+        AI 분석이 <strong>법적 대응 필요</strong>로 판단하면 <code>/legal-support.html</code> 트랙으로 자동 연결 제안. 회원이 동의하면 법률 상담으로 함께 진행됩니다.
+      </div>
+
+      <h4>운영자가 보는 유사 사건 매칭</h4>
+      <p>운영자는 신고 검토 시 <strong>과거 유사 사건</strong>을 AI로 찾아 일관성 있게 대응합니다. 같은 가해자 유형·같은 피해 유형의 처리 사례를 참고해 회신을 작성합니다.</p>
+
+      <!-- C-3 법률 -->
+      <h3 id="c-legal">C-3. 법률 상담</h3>
+      <p><code>/legal-support.html</code> — 지원 범위 확인 후 [법률 상담 신청].</p>
+
+      <h4>매칭 흐름</h4>
+      <div class="flow">
+        <div class="step"><div class="num">1</div><div class="title">사안 입력</div><div class="desc">분쟁 유형(민사·형사·행정·노동) + 사실관계</div></div>
+        <div class="step"><div class="num">2</div><div class="title">희망 결과</div><div class="desc">합의·소송·자문 등</div></div>
+        <div class="step"><div class="num">3</div><div class="title">AI 매칭</div><div class="desc">변호사 풀에서 사안별 후보 추천</div></div>
+        <div class="step"><div class="num">4</div><div class="title">운영자 확정</div><div class="desc">최종 변호사 배정 + 지원금 확인</div></div>
+        <div class="step"><div class="num">5</div><div class="title">상담 진행</div><div class="desc">변호사와 직접 소통</div></div>
+      </div>
+
+      <div class="callout gold">
+        <div class="title">💰 비용</div>
+        협의회 지원금 범위 내 <strong>무료</strong>. 범위 초과 가능성이 있으면 운영자가 사전 안내합니다.
+      </div>
+
+      <!-- C-4 상태값 -->
+      <h3 id="c-status">C-4. 신고 진행 상태</h3>
+      <p>회원은 <code>/my-reports.html</code> 또는 마이페이지 [내 신고] 탭에서 사건·괴롭힘·법률 상담을 통합 확인합니다.</p>
+
+      <div style="display:flex;gap:0;margin:18px 0;overflow-x:auto;padding-bottom:4px;">
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--text-3);border-radius:var(--radius);padding:14px;margin-right:8px;">
+          <div style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:.1em;">STATUS 1</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">⏳ 접수 대기</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">운영자 검토 전</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:var(--radius);padding:14px;margin-right:8px;">
+          <div style="font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.1em;">STATUS 2</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">🔍 검토 중</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">운영자 배정 · 심사</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--radius);padding:14px;margin-right:8px;">
+          <div style="font-size:11px;color:var(--warn);font-weight:700;letter-spacing:.1em;">STATUS 3</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">📝 보완 요청</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">추가 정보 필요</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:var(--radius);padding:14px;margin-right:8px;">
+          <div style="font-size:11px;color:var(--ok);font-weight:700;letter-spacing:.1em;">STATUS 4</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">✅ 확정</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">공식 접수 완료</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--text-2);border-radius:var(--radius);padding:14px;margin-right:8px;">
+          <div style="font-size:11px;color:var(--text-2);font-weight:700;letter-spacing:.1em;">STATUS 5</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">🏁 종결</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">처리 완료</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--siren);border-radius:var(--radius);padding:14px;">
+          <div style="font-size:11px;color:var(--siren);font-weight:700;letter-spacing:.1em;">STATUS 6</div>
+          <div style="font-weight:700;font-size:13.5px;margin-top:4px;color:var(--text);">⛔ 반려</div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;">접수 불가 + 사유</div>
+        </div>
+      </div>
+
+      <!-- C-5 운영자 처리 (회원 관점 요약) -->
+      <h3 id="c-admin">C-5. 운영자가 어떻게 처리하나 (회원이 알아야 할 부분)</h3>
+      <p>신고가 접수되면 운영자는 <strong>AI 분류·시급도 점수</strong>를 참고해 검토하고, 다음 4가지 액션 중 하나로 회신합니다. 처리 결과는 마이페이지 [내 신고] 탭의 상태값으로 전달됩니다.</p>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <h4 style="color:var(--brand);">✍️ AI 회신 초안 발송</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">사안 맥락에 맞춘 답변을 AI가 자동 생성 → 운영자 편집 후 발송.</p>
+        </div>
+        <div class="card">
+          <h4 style="color:var(--warn);">📝 보완 요청</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">추가 정보 요청 메시지가 회원에게 도착. 답변하면 검토 재개.</p>
+        </div>
+        <div class="card">
+          <h4 style="color:var(--ok);">✅ 확정 (공식 접수)</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">정식 사건으로 등록. 회원 동의 시 익명화해 공개 목록 게시 가능.</p>
+        </div>
+        <div class="card">
+          <h4 style="color:var(--siren);">⛔ 반려</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">사유 명시. 회원이 보완 후 재제출 가능.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="title">📘 운영자 측 자세한 처리 절차는 별도 메뉴얼에</div>
+        AI 회신 초안 생성·유사 사건 매칭·익명 신원 식별·감사 로그 운영 등 <strong>운영자가 직접 수행하는 작업</strong>은 <a href="/manual-admin.html">manual-admin.html</a> 의 [신고 운영] 영역을 참고하세요.
+      </div>
+
+      <h4>유족 지원 (별도 트랙)</h4>
+      <p><code>/support.html</code>에서 지원금·심리상담·장학금 신청. 서류 업로드·보충 서류 요청·심사 결과 통지. 신고와 구분되지만 익명 보호 정책은 동일하게 적용.</p>
+
+      <!-- C-6 익명 신원 보호 (회원 관점 요약) -->
+      <h3 id="c-anon-reveal">C-6. 운영자도 마음대로 못 보는 익명 신원</h3>
+      <p>운영자가 익명 신원을 보려면 <strong>전용 페이지(<code>/admin-anon-reveal.html</code>) + 식별 사유 입력 + 감사 로그(<code>/admin-anon-audit.html</code>) 영구 기록</strong>을 모두 거쳐야 합니다. 즉, 운영자 본인이 "왜 봤는지"의 기록이 영구 남기 때문에 함부로 보지 못합니다.</p>
+
+      <div class="callout danger">
+        <div class="title">⚠️ 운영자가 호기심으로 신원을 식별하면?</div>
+        시스템은 막지 않지만 행위가 감사 로그에 영구 기록됩니다. 최고관리자가 정기 감사하며, 부적절한 식별은 사후 추궁됩니다.
+      </div>
+
+      <div class="callout">
+        <div class="title">📘 운영자 측 식별·감사 운영 절차는 별도 메뉴얼에</div>
+        식별 페이지·감사 로그의 운영자 측 사용 절차는 <a href="/manual-admin.html#admin-anon">manual-admin.html</a>에서 다룹니다.
+      </div>
+
+      <!-- C-7 비공개·공개 -->
+      <h3>C-7. 신고 공개 정책</h3>
+      <table>
+        <thead><tr><th width="180">분류</th><th>기본</th><th>예외</th></tr></thead>
+        <tbody>
+          <tr><td>신고 본문</td><td>비공개</td><td>회원 동의 + 익명화 후 <code>/incidents.html</code> 공개 사건 목록에 게시 가능</td></tr>
+          <tr><td>신고자 신원</td><td>비공개 (익명이면 저장 안 됨)</td><td>법적 의무 보고(아동학대 등) — 사전 안내</td></tr>
+          <tr><td>첨부 파일</td><td>비공개 (만료 URL)</td><td>운영자만, 권한 내에서</td></tr>
+          <tr><td>운영자 메모</td><td>운영자 간만 공유</td><td>회원 조회 안 됨</td></tr>
+        </tbody>
+      </table>
+
+      <h3>C 영역 · 자주 묻는 질문</h3>
+      <table>
+        <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
+        <tbody>
+          <tr><td>신고하면 학교/회사에 알려지나요?</td><td>회원 동의 없이 외부 전달하지 않음. 법적 의무 보고는 예외 (사전 안내).</td></tr>
+          <tr><td>익명으로 했는데 답변을 받을 수 있나요?</td><td>익명은 회신 채널이 없어 불가. 답변 원하면 이메일·휴대폰 입력 필요 (신원과 분리 보호).</td></tr>
+          <tr><td>증빙 파일이 너무 큰데?</td><td>단일 100MB까지. 분할 또는 압축 권장.</td></tr>
+          <tr><td>신고 내용을 수정할 수 있나요?</td><td>운영자 검토 전까지 본인 수정 가능. 검토 시작 후엔 보완 요청에 답변하는 방식.</td></tr>
+          <tr><td>AI가 외부 서비스로 분석한다는데?</td><td>Google Gemini로 전송되지만 개인 식별 정보는 사전 제거. 회원이 동의해야 분석.</td></tr>
+          <tr><td>법률 상담 비용은?</td><td>협의회 지원금 범위 내 무료. 초과 가능성 시 사전 안내.</td></tr>
+          <tr><td>운영자가 내 신원을 마음대로 볼 수 있나요?</td><td>아니요. 별도 권한 + 사유 입력 + 감사 로그 영구 기록 필수. 부적절한 식별은 사후 추궁됩니다.</td></tr>
+          <tr><td>신고를 취소하고 싶어요</td><td>/my-reports.html에서 [취소]. 운영자 검토 시작 후엔 제한될 수 있음.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 운영자 메뉴얼로 안내 -->
+    <section>
+      <h2><span class="badge-area">🛠️</span>운영자 영역은 별도 메뉴얼에</h2>
+      <p>아래 영역은 운영자·간사·슈퍼어드민이 보는 화면이라 본 메뉴얼에서 분리되었습니다. 해당 권한이 있으시면 <a href="/manual-admin.html"><strong>manual-admin.html</strong></a>로 이동하세요.</p>
+
+      <div class="grid cols-3">
+        <a href="/manual-admin.html#admin-report" class="area-card">
+          <span class="icon">🚨</span>
+          <span class="area-tag">신고 운영</span>
+          <div class="title">신고 처리·익명 식별</div>
+          <div class="desc">AI 회신 초안·유사 사건 매칭·익명 신원 식별·감사 로그</div>
+        </a>
+        <a href="/manual-admin.html#area-d" class="area-card">
+          <span class="icon">📋</span>
+          <span class="area-tag">D 영역</span>
+          <div class="title">워크스페이스</div>
+          <div class="desc">칸반·캘린더·파일함·근태·성과·AI 비서</div>
+        </a>
+        <a href="/manual-admin.html#area-e" class="area-card">
+          <span class="icon">💳</span>
+          <span class="area-tag">E 영역</span>
+          <div class="title">어드민 후원·결제</div>
+          <div class="desc">결제 수단별 운영·영수증·발송 관리·자동 트리거</div>
+        </a>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <p><strong>SIREN 사용자 메뉴얼</strong> · (사)교사유가족협의회 · 2026-05-20</p>
+      <p>본 문서는 일반 사용자·운영자용입니다. AI 비서 학습 데이터는 <code>docs/manual/</code> 폴더에 별도 관리됩니다.</p>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+/* ============ 4차 — TOC 검색 + 키보드 단축키 ============ */
+(function(){
+  const search = document.getElementById('search');
+  if (!search) return;
+  const tocNav = document.querySelector('aside.toc nav');
+  if (!tocNav) return;
+
+  const links = Array.from(tocNav.querySelectorAll('a'));
+  const sections = Array.from(tocNav.querySelectorAll('.toc-section'));
+
+  function applyFilter(q){
+    q = q.trim().toLowerCase();
+    if (!q) {
+      links.forEach(a => a.style.display = '');
+      sections.forEach(s => s.style.display = '');
+      return;
+    }
+    links.forEach(a => {
+      const match = a.textContent.toLowerCase().includes(q);
+      a.style.display = match ? '' : 'none';
+    });
+    sections.forEach(s => {
+      let visible = false;
+      let next = s.nextElementSibling;
+      while (next && !next.classList.contains('toc-section')) {
+        if (next.tagName === 'A' && next.style.display !== 'none') { visible = true; break; }
+        next = next.nextElementSibling;
+      }
+      s.style.display = visible ? '' : 'none';
+    });
+  }
+
+  search.addEventListener('input', e => applyFilter(e.target.value));
+  search.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { search.value = ''; applyFilter(''); search.blur(); }
+  });
+
+  // 전역 단축키: "/"로 검색 포커스
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    const isTyping = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (e.key === '/' && !isTyping) {
+      e.preventDefault();
+      search.focus();
+      search.select();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
