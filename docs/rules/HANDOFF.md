@@ -166,18 +166,15 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 - 안정화 1: `cron-warmup`이 프록시 `/health` 5분마다 ping → warm 유지 + 다운 감지 시 슈퍼어드민 인앱 알림 + `ADMIN_NOTIFY_EMAIL` 이메일 (30분 쿨다운)
 - 안정화 2: 명시적 발송 실패 시 사용자 친절 안내 (기술 사유는 로그·detail로만)
 
-### ⏳ 안정화 3 (잔여 작업) — 프록시 자동 재시작 (OCI 연동)
-프록시가 죽으면 사람 없이 자동 재부팅. **OCI API 키 준비(Swain) + signing 코드(메인) 필요.**
+### ✅ 안정화 3 — 프록시 자동 재부팅 (OCI 연동) 완료 (2026-05-21)
+프록시 다운 시 `cron-warmup`이 OCI 인스턴스를 자동 RESET → 사람 개입 없이 5분 내 복구.
+- `lib/oci-client.ts` — OCI Signature v1(RSA-SHA256) 직접 서명(외부 SDK 0) + InstanceAction **RESET**(hard·hang 복구) + 읽기전용 `getInstanceState` 검증.
+- `cron-warmup` — proxyDown 감지 시 `resetProxyInstance()` 호출 + **60분 쿨다운**(무한 재부팅 방지) + 시도/실패 슈퍼어드민 알림.
+- **OCI 설정 6개는 Netlify Blobs(`siren-oci`/`config`)에 저장** — ⚠️ AWS Lambda **환경변수 4KB 한도** 때문에 env 금지(private key 1.7KB가 한도 초과 → 505 함수 배포 실패 사고). Blobs는 4KB 무관.
+- 등록·검증 도구(`public/oci-setup.html`·`admin-oci-config-set.ts`)는 1회용으로 **삭제됨**(커밋 history에 보존). 키 교체·재검증 필요 시 git에서 복원해 재사용.
+- 검증: 2026-05-21 `getInstanceState` → `RUNNING` 200 OK (서명·인증·권한 정상 확인). 실제 RESET은 다음 자연 다운 때 작동·알림으로 확인 예정.
 
-**Swain 준비 (OCI 콘솔)**: API 키 생성(User settings→API Keys→Generate→private key 다운로드) 후 Netlify 환경변수 6개 등록:
-`OCI_TENANCY_OCID`·`OCI_USER_OCID`·`OCI_FINGERPRINT`·`OCI_REGION`(예: ap-chuncheon-1)·`OCI_INSTANCE_OCID`(aligo-proxy)·`OCI_PRIVATE_KEY`(.pem 전체). 앞 4개는 API 키 생성 시 뜨는 Configuration File Preview에 다 있음.
-
-**코드 (새 세션 구현)**:
-- `lib/oci-client.ts` — OCI request signing(RSA-SHA256·Signature v1) + 인스턴스 SOFTRESET 호출
-- `cron-warmup` — proxyDown 감지(이미 있음) 시 자동 재부팅 + **무한 재부팅 방지 쿨다운**(예: 1시간 1회)
-- 프록시 정보: instance OCID는 환경변수·복구 명령은 `systemctl restart aligo-proxy`
-
-**중기 검토**: 무료 VM 메모리(500MB) 한계가 근본 원인 → ① 유료 소액 인스턴스 업그레이드 또는 ② IP 제한 없는 SMS 업체(쿨SMS·NHN 등)로 교체해 프록시 자체 제거. R40 KICC 전환과 함께 "외부 연동 정리"로 검토 가능.
+**중기 검토**: VM 실측 RAM 498MB·swap 498MB(shape 표기 1GB지만 실측 498)가 hang 근본 원인. 자동 재부팅으로 복구는 해결됐으나, 영구 해결은 ① ARM A1.Flex(무료 2~24GB) 이전(단 IP 변경→알리고 화이트리스트 재등록 동반) 또는 ② IP 제한 없는 SMS 업체(쿨SMS·NHN) 교체로 프록시 제거. R40 KICC 전환과 함께 검토.
 
 ## 7.6 성과관리 화면 통합 — ✅ 완료·종결 (2026-05-21)
 
@@ -194,8 +191,7 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 - **근태 연동 갭 수정(G1·G2·G3·G4)** — C 작업 `c2a4fa2` → main 머지(`a189fe9`)·tsc PASS·메인 코드검증 PASS. **Swain 라이브 검증 후 최종 종결** 남음. 설계: `docs/active/2026-05-20-att-gap-fix.md`.
 - ✅ **성과관리 화면 통합** — 종결(§7.6).
 
-### 우선 0-B. 안정화 3 (OCI 자동 재시작) — Swain OCI 키 등록 후 새 세션
-§7.5 참조. OCI 환경변수 6개 등록 완료되면 `lib/oci-client.ts` + cron 연동 구현.
+### ✅ 안정화 3 (OCI 자동 재부팅) — 완료 (§7.5 참조)
 
 ### 우선 1. R40 PG 전환 (토스 → KICC) — Swain 옵션 결정 후 시작
 - `docs/kicc.md` 정독 완료·**옵션 A(듀얼 PG 점진 전환) 추천**
