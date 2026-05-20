@@ -160,14 +160,12 @@
   <main>
     <div class="bs-wrap">
 
-      <!-- 처리 중 -->
+      <!-- 처리 중 (즉시 결과 화면으로 전환) -->
       <div id="bsLoading" class="bs-card">
         <div class="bs-loading"></div>
-        <h1 class="bs-title">카드 등록 처리 중...</h1>
+        <h1 class="bs-title">카드 등록 결과 확인 중...</h1>
         <p class="bs-message">
-          토스페이먼츠로부터 카드 정보를 확인하고<br />
-          첫 결제를 진행하고 있습니다.<br /><br />
-          ⏰ 약 5~10초 정도 소요됩니다. 페이지를 닫지 마세요.
+          잠시만 기다려 주세요.
         </p>
       </div>
 
@@ -181,27 +179,27 @@
         </p>
 
         <div class="bs-info-box">
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowDonationNo">
             <span class="bs-info-label">후원 번호</span>
             <span class="bs-info-value" id="bsDonationNo">—</span>
           </div>
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowAmount" style="display:none">
             <span class="bs-info-label">월 후원 금액</span>
             <span class="bs-info-value amount" id="bsAmount">—</span>
           </div>
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowDonorName" style="display:none">
             <span class="bs-info-label">후원자</span>
             <span class="bs-info-value" id="bsDonorName">—</span>
           </div>
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowCardInfo" style="display:none">
             <span class="bs-info-label">등록 카드</span>
             <span class="bs-info-value" id="bsCardInfo">—</span>
           </div>
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowFirstChargedAt" style="display:none">
             <span class="bs-info-label">첫 결제일</span>
             <span class="bs-info-value" id="bsFirstChargedAt">—</span>
           </div>
-          <div class="bs-info-row">
+          <div class="bs-info-row" id="bsRowNextChargeAt" style="display:none">
             <span class="bs-info-label">다음 결제 예정</span>
             <span class="bs-info-value" id="bsNextChargeAt">—</span>
           </div>
@@ -278,89 +276,88 @@
     }
 
     function formatDate(iso) {
-      if (!iso) return '—';
+      if (!iso) return '';
       var d = new Date(iso);
-      if (isNaN(d.getTime())) return '—';
+      if (isNaN(d.getTime())) return '';
       return d.getFullYear() + '.' +
         String(d.getMonth() + 1).padStart(2, '0') + '.' +
         String(d.getDate()).padStart(2, '0');
     }
+    function setRow(rowId, valId, value) {
+      var row = $(rowId);
+      if (value) {
+        $(valId).textContent = value;
+        if (row) row.style.display = '';
+      } else if (row) {
+        row.style.display = 'none';
+      }
+    }
+    function unwrap(json) {
+      if (!json || typeof json !== 'object') return {};
+      return (json.data && json.data.data) || json.data || json || {};
+    }
 
-    /* 1. 토스 콜백 파라미터 */
+    /* ★ R40: 표시 전용 — 백엔드 billing-approve가 KICC POST 복귀로 빌링키 발급·첫 결제를
+       처리한 뒤 302 /billing-success.html?donationId=&donationNo= 로 리다이렉트해 준다.
+       이 페이지는 approve를 호출하지 않고 쿼리만 읽어 결과를 보여준다.
+       카드정보·다음 결제일은 billing-mine 조회로 보강(로그인 사용자 한정·실패 무시). */
     var params = new URLSearchParams(location.search);
-    var authKey = params.get('authKey') || '';
-    var customerKey = params.get('customerKey') || '';
+    var donationId = params.get('donationId') || '';
+    var donationNo = params.get('donationNo') || '';
 
-    if (!authKey || !customerKey) {
+    if (!donationId && !donationNo) {
       show('bsInvalid');
       return;
     }
 
-    /* 2. sessionStorage에서 intent 다시 읽기 (amount/name 등) */
-    var intent = null;
+    /* 후원 의도 데이터(sessionStorage)에서 표시용 보조 정보 활용 */
+    var intent = {};
     try {
       var raw = sessionStorage.getItem('siren_billing_intent');
-      if (raw) intent = JSON.parse(raw);
+      if (raw) intent = JSON.parse(raw) || {};
     } catch (e) {}
 
-    /* intent 만료 검증 (60분으로 여유) */
-    var INTENT_TTL_MS = 60 * 60 * 1000;
-    if (!intent || !intent.amount || !intent.timestamp ||
-        Date.now() - intent.timestamp > INTENT_TTL_MS) {
-      /* intent 없어도 confirm은 customerKey + authKey만으로 시도 */
-      intent = intent || {};
-    }
+    /* 기본 표시: 후원 번호 + intent의 금액·후원자(있으면) */
+    var displayNo = donationNo || ('D-' + String(donationId).padStart(7, '0'));
+    setRow('bsRowDonationNo', 'bsDonationNo', displayNo);
+    if (intent.amount) setRow('bsRowAmount', 'bsAmount', '₩ ' + Number(intent.amount).toLocaleString() + ' / 월');
+    if (intent.name && !intent.isAnonymous) setRow('bsRowDonorName', 'bsDonorName', intent.name);
 
-    /* 3. 백엔드 confirm 호출 */
-    (async function confirmBilling() {
+    show('bsSuccess');
+
+    /* sessionStorage 정리 */
+    try { sessionStorage.removeItem('siren_billing_intent'); } catch (e) {}
+
+    /* 카드 정보·다음 결제일 보강 (billing-mine — 로그인 사용자만, 실패 무시) */
+    (async function enrich() {
       try {
-        var res = await fetch('/api/billing-confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            authKey: authKey,
-            customerKey: customerKey,
-            amount: intent.amount,
-            name: intent.name,
-            phone: intent.phone,
-            email: intent.email,
-            isAnonymous: !!intent.isAnonymous,
-          }),
-        });
-
-        var data = await res.json().catch(function () { return {}; });
-
-        if (res.ok && data.ok !== false && data.data) {
-          var d = data.data;
-          $('bsDonationNo').textContent = d.donationNo || '—';
-          $('bsAmount').textContent = '₩ ' + (d.amount || 0).toLocaleString() + ' / 월';
-          $('bsDonorName').textContent = d.donorName || '—';
-          $('bsCardInfo').textContent =
-            (d.cardCompany || '카드') + ' ' + (d.cardNumberMasked || '****-****-****-****');
-          $('bsFirstChargedAt').textContent = formatDate(d.firstChargedAt);
-          $('bsNextChargeAt').textContent = formatDate(d.nextChargeAt);
-
-          show('bsSuccess');
-
-          /* sessionStorage 정리 */
-          try {
-            sessionStorage.removeItem('siren_billing_intent');
-          } catch (e) {}
-        } else {
-          $('bsErrorMessage').textContent = data.error || '처리 중 오류가 발생했습니다.';
-          if (data.detail) {
-            $('bsErrorDetail').style.display = 'block';
-            $('bsErrorReason').textContent = String(data.detail).slice(0, 200);
-          }
-          show('bsError');
+        var res = await fetch('/api/billing-mine', { credentials: 'include' });
+        if (!res.ok) return;
+        var json = await res.json().catch(function () { return {}; });
+        var d = unwrap(json);
+        /* active는 기존 auth.js 기준 단일 객체 — 혹시 배열로 와도 첫 항목 사용 */
+        var active = d.active;
+        if (Array.isArray(active)) active = active[0] || null;
+        if (active) {
+          var card = (active.cardCompany || '카드') + ' ' +
+            (active.cardNumberMasked || '****-****-****-****');
+          setRow('bsRowCardInfo', 'bsCardInfo', card);
+          if (active.amount) setRow('bsRowAmount', 'bsAmount', '₩ ' + Number(active.amount).toLocaleString() + ' / 월');
+          setRow('bsRowNextChargeAt', 'bsNextChargeAt', formatDate(active.nextChargeAt));
         }
-      } catch (err) {
-        console.error('[billing-success]', err);
-        $('bsErrorMessage').textContent = '네트워크 오류가 발생했습니다.';
-        show('bsError');
+        var firstCharge = (d.recentCharges && d.recentCharges[0]) || null;
+        if (firstCharge && firstCharge.chargedAt) {
+          setRow('bsRowFirstChargedAt', 'bsFirstChargedAt', formatDate(firstCharge.chargedAt));
+        }
+      } catch (e) {
+        /* 비회원·미로그인 등은 보강 생략 — 후원 번호만 표시 */
       }
     })();
+
+    /* 마이페이지 자동 갱신(열려 있을 경우) */
+    if (typeof window.SIREN_REFRESH_MYPAGE === 'function') {
+      try { window.SIREN_REFRESH_MYPAGE(); } catch (e) {}
+    }
   })();
   </script>
 </body>

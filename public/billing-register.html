@@ -239,7 +239,7 @@
         <div class="br-info-box">
           <h4>💡 카드 등록 안내</h4>
           <ul>
-            <li>토스페이먼츠의 안전한 결제창에서 카드 정보를 입력합니다</li>
+            <li>카드사의 안전한 결제창에서 카드 정보를 입력합니다</li>
             <li>등록 후 <strong>오늘 즉시 첫 결제가 진행됩니다</strong></li>
             <li>이후 매월 같은 날짜에 자동으로 결제됩니다</li>
             <li>언제든 마이페이지에서 해지하실 수 있습니다</li>
@@ -248,7 +248,7 @@
 
         <div class="br-warn-box">
           🔒 <strong>보안 안내</strong><br />
-          • 카드 정보는 토스페이먼츠가 직접 처리하며, 협회는 카드 번호를 보관하지 않습니다<br />
+          • 카드 정보는 인증된 결제대행사가 직접 처리하며, 협회는 카드 번호를 보관하지 않습니다<br />
           • PCI-DSS 인증된 보안 결제 시스템을 사용합니다<br />
           • 결제 결과는 즉시 이메일로 안내됩니다
         </div>
@@ -349,43 +349,21 @@
     $('brDonorEmail').textContent = intent.email;
     $('brSummary').style.display = '';
 
-    /* 3. 토스 SDK 로드 */
-    var _tossSdkLoaded = false;
-    function loadTossSdk() {
-      return new Promise(function (resolve, reject) {
-        if (_tossSdkLoaded || window.TossPayments) {
-          _tossSdkLoaded = true;
-          resolve();
-          return;
-        }
-        var script = document.createElement('script');
-        script.src = 'https://js.tosspayments.com/v2/standard';
-        script.async = true;
-        script.onload = function () {
-          _tossSdkLoaded = true;
-          resolve();
-        };
-        script.onerror = function () {
-          reject(new Error('토스 SDK 로드 실패'));
-        };
-        document.head.appendChild(script);
-      });
+    /* 응답 봉투 다중 fallback */
+    function unwrap(json) {
+      if (!json || typeof json !== 'object') return {};
+      return (json.data && json.data.data) || json.data || json || {};
     }
 
-    function getTossClientKey() {
-      if (window.SIREN_TOSS_CLIENT_KEY) return window.SIREN_TOSS_CLIENT_KEY;
-      var meta = document.querySelector('meta[name="toss-client-key"]');
-      if (meta && meta.content) return meta.content;
-      return 'test_ck_vZnjEJeQVxeemRee2PBMrPmOoBN0';
-    }
-
-    /* 4. "카드 등록하기" 버튼 클릭 */
+    /* 3. "카드 등록하기" 버튼 클릭
+       ★ R40: KICC 빌링 등록 — billing-register API로 결제창 주소(authPageUrl)를 받아 리다이렉트.
+       KICC가 결제 완료 후 백엔드 returnUrl(approve)로 POST 복귀 → 302로 billing-success/fail 이동.
+       이 페이지는 approve를 직접 호출하지 않음 */
     $('brStartBtn').addEventListener('click', async function () {
       show('brProcessing');
 
       try {
-        /* 4-1. 백엔드에 빌링 준비 요청 */
-        var prepRes = await fetch('/api/billing-prepare', {
+        var res = await fetch('/api/billing-register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -397,41 +375,19 @@
             isAnonymous: !!intent.isAnonymous,
           }),
         });
-        var prepData = await prepRes.json().catch(function () { return {}; });
+        var json = await res.json().catch(function () { return {}; });
+        var d = unwrap(json);
 
-        if (!prepRes.ok || !prepData.ok || !prepData.data) {
-          throw new Error(prepData.error || '빌링 준비 실패');
+        if (!res.ok || json.ok === false || !d.authPageUrl) {
+          throw new Error(json.error || d.error || '빌링 등록 준비 실패');
         }
 
-        var customerKey = prepData.data.customerKey;
-        var memberIdent = prepData.data.memberIdent || customerKey;
-
-        /* 4-2. 토스 SDK 로드 */
-        await loadTossSdk();
-
-        /* 4-3. 빌링키 발급 요청 */
-        var clientKey = getTossClientKey();
-        var tossPayments = window.TossPayments(clientKey);
-        var billing = tossPayments.payment({ customerKey: customerKey });
-
-        var origin = location.origin;
-        await billing.requestBillingAuth({
-          method: 'CARD',
-          successUrl: origin + '/billing-success.html',
-          failUrl: origin + '/billing-fail.html',
-          customerEmail: intent.email,
-          customerName: intent.name,
-        });
-        /* 토스가 자동으로 billing-success.html?customerKey=...&authKey=... 로 리다이렉트 */
+        /* KICC 결제창으로 이동 */
+        window.location.href = d.authPageUrl;
       } catch (err) {
         console.error('[billing-register]', err);
-        if (err.code === 'USER_CANCEL') {
-          show('brMain');
-          showError('등록이 취소되었습니다');
-        } else {
-          show('brMain');
-          showError(err.message || '카드 등록 중 오류가 발생했습니다');
-        }
+        show('brMain');
+        showError(err.message || '카드 등록 중 오류가 발생했습니다');
       }
     });
   })();

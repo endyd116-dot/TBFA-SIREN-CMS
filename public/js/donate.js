@@ -1,33 +1,16 @@
 /* =========================================================
-   SIREN — donate.js (★ 2026-05: _hyosungShowing 중복 수정)
+   SIREN — donate.js
+   (★ R40: 토스 SDK 팝업 → KICC authPageUrl 리다이렉트 전면 교체)
    ========================================================= */
 (function () {
   'use strict';
 
-  let _tossSdkLoaded = false;
-  let _tossSdkLoading = null;
   let _hyosungShowing = false;
 
-  function loadTossSdk() {
-    if (_tossSdkLoaded) return Promise.resolve();
-    if (_tossSdkLoading) return _tossSdkLoading;
-    _tossSdkLoading = new Promise((resolve, reject) => {
-      if (window.TossPayments) { _tossSdkLoaded = true; resolve(); return; }
-      const script = document.createElement('script');
-      script.src = 'https://js.tosspayments.com/v2/standard';
-      script.async = true;
-      script.onload = () => { _tossSdkLoaded = true; resolve(); };
-      script.onerror = () => { _tossSdkLoading = null; reject(new Error('토스 SDK 로드 실패')); };
-      document.head.appendChild(script);
-    });
-    return _tossSdkLoading;
-  }
-
-  function getTossClientKey() {
-    if (window.SIREN_TOSS_CLIENT_KEY) return window.SIREN_TOSS_CLIENT_KEY;
-    const meta = document.querySelector('meta[name="toss-client-key"]');
-    if (meta && meta.content) return meta.content;
-    return 'test_ck_vZnjEJeQVxeemRee2PBMrPmOoBN0';
+  /* 응답 봉투 다중 fallback — { ok, data } 또는 한 단계 더 감싼 경우 모두 흡수 */
+  function unwrap(json) {
+    if (!json || typeof json !== 'object') return {};
+    return json.data?.data || json.data || json || {};
   }
 
   let _policyCache = null;
@@ -218,8 +201,8 @@
       const data = Object.fromEntries(new FormData(form).entries());
       const amount = Number(data.amount);
       const dtype = data.dtype || 'regular';
-      const payChoice = data.payMethodChoice || 'toss_card';
-      const onetimeChoice = data.onetimeChoice || 'toss_card';
+      const payChoice = data.payMethodChoice || 'card';
+      const onetimeChoice = data.onetimeChoice || 'card';
       const isAnonymous = !!data.isAnonymous;
       const auth = window.SIREN_AUTH;
       const isLoggedIn = !!(auth && auth.isLoggedIn());
@@ -244,8 +227,8 @@
         const campaignSelect = document.getElementById('donateCampaignSelect');
         const campaignId = campaignSelect?.value ? Number(campaignSelect.value) : null;
 
-        if (dtype === 'onetime' && onetimeChoice === 'toss_card') {
-          await handleTossOnetime({ name: data.name, phone: data.phone, email, amount, isAnonymous, isLoggedIn, campaignId });
+        if (dtype === 'onetime' && onetimeChoice === 'card') {
+          await handleKiccOnetime({ name: data.name, phone: data.phone, email, amount, isAnonymous, isLoggedIn, campaignId });
           return;
         }
 
@@ -259,7 +242,7 @@
           return;
         }
 
-        if (dtype === 'regular' && payChoice === 'toss_card') {
+        if (dtype === 'regular' && payChoice === 'card') {
           sessionStorage.setItem('siren_billing_intent', JSON.stringify({
             name: data.name, phone: data.phone, email, amount, isAnonymous, campaignId, timestamp: Date.now(),
           }));
@@ -284,56 +267,36 @@
     });
   }
 
-  async function handleTossOnetime(opts) {
-    const { name, phone, email, amount, isAnonymous } = opts;
-    console.log('[Donate] 🟦 토스 일시 결제 시작', { name, amount, email });
+  /* ★ R40: KICC 일시 결제 — register API로 결제창 주소(authPageUrl) 받아 리다이렉트.
+     KICC가 결제 완료 후 백엔드 returnUrl(approve)로 POST 복귀 → 302로 payment-success/fail 이동.
+     A는 approve를 직접 호출하지 않음 */
+  async function handleKiccOnetime(opts) {
+    const { name, phone, email, amount, isAnonymous, campaignId } = opts;
+    console.log('[Donate] 🟧 KICC 일시 결제 시작', { name, amount, email });
 
-    const prepRes = await fetch('/api/donate-toss-prepare', {
+    const body = { name, phone, email, amount, type: 'onetime', isAnonymous };
+    /* 캠페인 식별자: 폼은 숫자 id만 보유 → 계약 키(campaignTag)에 문자열 id로 매핑.
+       (B가 어느 키로 합산하는지 확정 시 단일화 — 그때까지 campaignId도 함께 전송) */
+    if (campaignId) {
+      body.campaignTag = String(campaignId);
+      body.campaignId = campaignId;
+    }
+
+    const res = await fetch('/api/donate-kicc-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({
-        name, phone, email, amount, type: 'onetime', isAnonymous,
-        campaignId: opts.campaignId || null,
-      }),
+      body: JSON.stringify(body),
     });
-    console.log('[Donate] prepare 응답 status:', prepRes.status);
-    const prepData = await prepRes.json().catch(() => ({}));
+    const json = await res.json().catch(() => ({}));
+    const d = unwrap(json);
 
-    if (!prepRes.ok || !prepData.ok || !prepData.data?.orderId) {
-      throw new Error(prepData.error || '결제 준비 실패');
+    if (!res.ok || json.ok === false || !d.authPageUrl) {
+      throw new Error(json.error || d.error || '결제 준비 실패');
     }
-    const { orderId, donationId } = prepData.data;
 
-    await loadTossSdk();
-    const clientKey = getTossClientKey();
-    if (!window.TossPayments) throw new Error('토스 SDK가 로드되지 않았습니다');
-
-    const tossPayments = window.TossPayments(clientKey);
-    const payment = tossPayments.payment({ customerKey: 'ANONYMOUS' });
-    const successUrl = location.origin + '/payment-success.html';
-    const failUrl = location.origin + '/payment-fail.html';
-
-    try {
-      await payment.requestPayment({
-        method: 'CARD',
-        amount: { currency: 'KRW', value: amount },
-        orderId: orderId,
-        orderName: '교사유가족협의회 일시 후원',
-        successUrl: successUrl + '?donationId=' + encodeURIComponent(donationId),
-        failUrl: failUrl + '?donationId=' + encodeURIComponent(donationId),
-        customerName: name,
-        customerEmail: email,
-        customerMobilePhone: phone.replace(/[^0-9]/g, ''),
-      });
-    } catch (tossErr) {
-      console.error('[Donate] ❌ Toss:', tossErr);
-      if (tossErr.code === 'USER_CANCEL') {
-        window.SIREN.toast('결제가 취소되었습니다');
-      } else {
-        window.SIREN.toast(tossErr.message || '결제창 호출 실패');
-      }
-    }
+    window.SIREN.toast('결제창으로 이동합니다...');
+    setTimeout(() => { window.location.href = d.authPageUrl; }, 300);
   }
 
   async function handleBankIntent(opts) {

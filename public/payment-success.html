@@ -179,17 +179,13 @@
   <main>
     <div class="ps-wrap">
 
-      <!-- 처리 중 화면 (기본) -->
+      <!-- 처리 중 화면 (기본 — 즉시 결과 화면으로 전환) -->
       <div id="psLoading" class="ps-card">
         <div class="ps-loading"></div>
-        <h1 class="ps-title">결제 확인 중...</h1>
+        <h1 class="ps-title">결제 결과 확인 중...</h1>
         <p class="ps-message">
-          토스페이먼츠로부터 결제 결과를 확인하고 있습니다.<br />
           잠시만 기다려 주세요.
         </p>
-        <div style="font-size:12px;color:var(--text-3);margin-top:14px">
-          ⚠️ 이 페이지를 닫지 마세요. 자동으로 다음 화면으로 이동합니다.
-        </div>
       </div>
 
       <!-- 성공 화면 -->
@@ -204,25 +200,25 @@
         </p>
 
         <div class="ps-info-box">
-          <div class="ps-info-row">
+          <div class="ps-info-row" id="psRowDonationNo">
             <span class="ps-info-label">후원 번호</span>
             <span class="ps-info-value" id="psDonationNo">—</span>
           </div>
-          <div class="ps-info-row">
+          <div class="ps-info-row" id="psRowDonorName" style="display:none">
             <span class="ps-info-label">후원자</span>
             <span class="ps-info-value" id="psDonorName">—</span>
           </div>
-          <div class="ps-info-row">
+          <div class="ps-info-row" id="psRowAmount" style="display:none">
             <span class="ps-info-label">후원 금액</span>
             <span class="ps-info-value amount" id="psAmount">—</span>
           </div>
-          <div class="ps-info-row">
+          <div class="ps-info-row" id="psRowPaidAt" style="display:none">
             <span class="ps-info-label">결제 일시</span>
             <span class="ps-info-value" id="psPaidAt">—</span>
           </div>
           <div class="ps-info-row">
             <span class="ps-info-label">결제 수단</span>
-            <span class="ps-info-value" id="psMethod">신용카드 (토스)</span>
+            <span class="ps-info-value" id="psMethod">신용카드</span>
           </div>
         </div>
 
@@ -297,84 +293,59 @@
     }
 
     function formatDateTime(iso) {
-      if (!iso) return '—';
+      if (!iso) return '';
       var d = new Date(iso);
-      if (isNaN(d.getTime())) return '—';
+      if (isNaN(d.getTime())) return '';
       return d.getFullYear() + '.' +
         String(d.getMonth() + 1).padStart(2, '0') + '.' +
         String(d.getDate()).padStart(2, '0') + ' ' +
         String(d.getHours()).padStart(2, '0') + ':' +
         String(d.getMinutes()).padStart(2, '0');
     }
+    function setRow(rowId, valId, value) {
+      var row = $(rowId);
+      if (value) {
+        $(valId).textContent = value;
+        if (row) row.style.display = '';
+      } else if (row) {
+        row.style.display = 'none';
+      }
+    }
 
-    /* 1. 토스 콜백 파라미터 추출 */
+    /* ★ R40: 표시 전용 — 백엔드 approve가 KICC POST 복귀를 승인 처리한 뒤
+       302 /payment-success.html?donationId=&donationNo= 로 리다이렉트해 준다.
+       이 페이지는 approve를 호출하지 않고 쿼리 파라미터만 읽어 결과를 보여준다. */
     var params = new URLSearchParams(location.search);
-    var paymentKey = params.get('paymentKey') || '';
-    var orderId = params.get('orderId') || '';
-    var amount = params.get('amount') || '';
     var donationId = params.get('donationId') || '';
+    var donationNo = params.get('donationNo') || '';
+    /* 백엔드가 부가 정보를 함께 넘기면 표시(선택) */
+    var amount = params.get('amount') || '';
+    var donorName = params.get('name') || params.get('donorName') || '';
+    var paidAt = params.get('paidAt') || '';
 
-    /* 필수 파라미터 검증 */
-    if (!paymentKey || !orderId || !amount) {
+    /* 정상 복귀 판정: 후원 번호 또는 후원 ID 중 하나라도 있어야 한다 */
+    if (!donationId && !donationNo) {
       show('psInvalid');
       return;
     }
 
-    /* 2. 백엔드에 confirm 요청 */
-    (async function confirmPayment() {
-      try {
-        var res = await fetch('/api/donate-toss-confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            paymentKey: paymentKey,
-            orderId: orderId,
-            amount: Number(amount),
-            donationId: donationId ? Number(donationId) : undefined,
-          }),
-        });
+    var displayNo = donationNo || ('D-' + String(donationId).padStart(7, '0'));
+    setRow('psRowDonationNo', 'psDonationNo', displayNo);
+    setRow('psRowDonorName', 'psDonorName', donorName);
+    setRow('psRowAmount', 'psAmount', amount ? ('₩ ' + Number(amount).toLocaleString()) : '');
+    setRow('psRowPaidAt', 'psPaidAt', formatDateTime(paidAt));
 
-        var data = await res.json().catch(function () { return {}; });
+    show('psSuccess');
 
-        if (res.ok && data.ok !== false && data.data) {
-          /* 성공 처리 */
-          var d = data.data;
-          var donationNo = d.donationNo || ('D-' + String(d.donationId || '').padStart(7, '0'));
+    /* sessionStorage 정리 (정기 후원 의도 데이터 잔존 제거) */
+    try {
+      sessionStorage.removeItem('siren_billing_intent');
+    } catch (e) {}
 
-          $('psDonationNo').textContent = donationNo;
-          $('psDonorName').textContent = d.donorName || '—';
-          $('psAmount').textContent = '₩ ' + (d.amount || 0).toLocaleString();
-          $('psPaidAt').textContent = formatDateTime(d.paidAt || new Date().toISOString());
-          $('psMethod').textContent = d.method || '신용카드 (토스)';
-
-          show('psSuccess');
-
-          /* sessionStorage 정리 (정기 후원 시 사용) */
-          try {
-            sessionStorage.removeItem('siren_billing_intent');
-          } catch (e) {}
-
-          /* 마이페이지 영수증 링크 ID 주입 */
-          if (d.donationId) {
-            var link = $('psMyPageLink');
-            if (link) link.href = '/mypage.html#donations';
-          }
-        } else {
-          /* 실패 처리 */
-          $('psErrorMessage').textContent = data.error || '결제 확인에 실패했습니다.';
-          if (data.detail) {
-            $('psErrorDetail').style.display = 'block';
-            $('psErrorReason').textContent = String(data.detail).slice(0, 200);
-          }
-          show('psError');
-        }
-      } catch (err) {
-        console.error('[payment-success]', err);
-        $('psErrorMessage').textContent = '네트워크 오류가 발생했습니다.';
-        show('psError');
-      }
-    })();
+    /* 마이페이지 결제 내역 자동 갱신 (열려 있을 경우) */
+    if (typeof window.SIREN_REFRESH_MYPAGE === 'function') {
+      try { window.SIREN_REFRESH_MYPAGE(); } catch (e) {}
+    }
   })();
   </script>
 </body>
