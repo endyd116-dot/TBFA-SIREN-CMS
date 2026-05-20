@@ -57,8 +57,8 @@
   }
 
   const MODE_LABEL = { OFFICE: '🏢 사무실', REMOTE: '🏠 재택', FIELD: '🚗 외근', HYBRID: '🔀 혼합', BUSINESS_TRIP: '✈️ 출장', FLEXIBLE: '⏱ 탄력' };
-  const STATUS_LABEL = { NORMAL: '정상', LATE: '지각', ABSENT: '결근', LEAVE: '휴가', REMOTE: '재택', FIELD: '외근', HOLIDAY: '공휴일' };
-  const STATUS_CLASS = { NORMAL: 'normal', LATE: 'late', ABSENT: 'absent', LEAVE: 'leave', REMOTE: 'remote', FIELD: 'field', HOLIDAY: 'holiday' };
+  const STATUS_LABEL = { NORMAL: '정상', LATE: '지각', EARLY_LEAVE: '조퇴', ABSENT: '결근', LEAVE: '휴가', REMOTE: '재택', FIELD: '외근', HOLIDAY: '공휴일' };
+  const STATUS_CLASS = { NORMAL: 'normal', LATE: 'late', EARLY_LEAVE: 'early', ABSENT: 'absent', LEAVE: 'leave', REMOTE: 'remote', FIELD: 'field', HOLIDAY: 'holiday' };
 
   /* ─── 탭 전환 ─── */
   function setupTabs() {
@@ -79,6 +79,7 @@
         if (btn.dataset.tab === 'leavetypes' && !window._awmLtInit) initLeaveTypesTab();
         if (btn.dataset.tab === 'holidays' && !window._awmHolInit) initHolidaysTab();
         if (btn.dataset.tab === 'monthrecords' && !window._awmMrInit) initMonthRecordsTab();
+        if (btn.dataset.tab === 'workmodeChanges' && !window._awmWmcInit) initWorkmodeChangesTab();
       });
     });
   }
@@ -798,6 +799,64 @@
     if (!res.ok) { toast('반려 실패: ' + (res.data?.error || '')); return; }
     toast('휴가 신청 반려 완료');
     await loadPendingLeaves();
+  };
+
+  /* ═══════════════════════════════════
+     탭 신규: 근무형태 변경 결재 (G1 — 직원 신청↔어드민 결재 연결)
+     결재 API는 이미 구현됨. 승인 시 att_schedule_overrides 단발 재정의 자동 반영.
+  ═══════════════════════════════════ */
+  async function initWorkmodeChangesTab() {
+    window._awmWmcInit = true;
+    await loadPendingWorkmodeChanges();
+  }
+
+  async function loadPendingWorkmodeChanges() {
+    const res = await api('/api/admin-att-workmode-change-review?status=PENDING');
+    const rows = res.data?.data?.requests || res.data?.requests || [];
+    const cntEl = document.getElementById('awmWmcPendingCount');
+    if (cntEl) cntEl.textContent = `${Array.isArray(rows) ? rows.length : 0}건`;
+
+    const tbody = document.getElementById('awmWmcBody');
+    if (!tbody) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="att-empty">대기 중인 근무형태 변경 신청이 없습니다</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${escHtml(r.memberName || '—')}<div style="font-size:11px;color:#9ca3af">${escHtml(r.memberEmail || '')}</div></td>
+        <td>${escHtml(r.targetDate || '—')}</td>
+        <td><span class="awm-tag ${escHtml(r.targetMode || '')}">${MODE_LABEL[r.targetMode] || escHtml(r.targetMode) || '—'}</span></td>
+        <td style="font-size:12px;max-width:240px;word-break:break-word">${escHtml(r.reason || '—')}</td>
+        <td style="font-size:12px;color:#6b7280">${r.submittedAt ? new Date(r.submittedAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+        <td>
+          <button class="att-btn att-btn-primary att-btn-sm" onclick="awmApproveWorkmodeChange(${r.id})">승인</button>
+          <button class="att-btn att-btn-danger att-btn-sm" style="margin-left:4px" onclick="awmRejectWorkmodeChange(${r.id})">반려</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  window.awmApproveWorkmodeChange = async (id) => {
+    if (!confirm('이 근무형태 변경 신청을 승인하시겠습니까?\n승인 시 해당 날짜 근무형태가 자동 반영됩니다.')) return;
+    const res = await api('/api/admin-att-workmode-change-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'APPROVED' },
+    });
+    if (!res.ok) { toast('승인 실패: ' + (res.data?.error || '')); return; }
+    toast('근무형태 변경 승인 완료');
+    await loadPendingWorkmodeChanges();
+  };
+
+  window.awmRejectWorkmodeChange = async (id) => {
+    const reason = prompt('반려 사유를 입력하세요');
+    if (reason === null) return;
+    const res = await api('/api/admin-att-workmode-change-review', {
+      method: 'POST',
+      body: { requestId: id, action: 'REJECTED', note: reason || '' },
+    });
+    if (!res.ok) { toast('반려 실패: ' + (res.data?.error || '')); return; }
+    toast('근무형태 변경 반려 완료');
+    await loadPendingWorkmodeChanges();
   };
 
   /* ═══════════════════════════════════

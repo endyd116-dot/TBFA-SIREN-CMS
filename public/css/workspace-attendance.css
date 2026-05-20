@@ -365,6 +365,7 @@
 /* ═══ FullCalendar 색상 오버라이드 ═══ */
 .fc .fc-event.att-ev-normal  { background: var(--att-normal);  border-color: var(--att-normal);  }
 .fc .fc-event.att-ev-late    { background: var(--att-late);    border-color: var(--att-late);    }
+.fc .fc-event.att-ev-early   { background: #fb7185;            border-color: #fb7185;            }  /* G4 조퇴 */
 .fc .fc-event.att-ev-absent  { background: var(--att-absent);  border-color: var(--att-absent);  }
 .fc .fc-event.att-ev-leave   { background: var(--att-leave);   border-color: var(--att-leave);   }
 .fc .fc-event.att-ev-remote  { background: var(--att-remote);  border-color: var(--att-remote);  }
@@ -372,6 +373,7 @@
 .fc .fc-event.att-ev-holiday { background: var(--att-holiday); border-color: var(--att-holiday); }
 #attCalendar .fc-daygrid-day.att-bg-normal  { background: rgba(34,197,94,0.08); }
 #attCalendar .fc-daygrid-day.att-bg-late    { background: rgba(245,158,11,0.1); }
+#attCalendar .fc-daygrid-day.att-bg-early   { background: rgba(251,113,133,0.12); }  /* G4 조퇴 */
 #attCalendar .fc-daygrid-day.att-bg-absent  { background: rgba(239,68,68,0.1);  }
 #attCalendar .fc-daygrid-day.att-bg-leave   { background: rgba(59,130,246,0.1); }
 #attCalendar .fc-daygrid-day.att-bg-remote  { background: rgba(139,92,246,0.1); }
