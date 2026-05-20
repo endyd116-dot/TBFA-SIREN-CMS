@@ -80,6 +80,16 @@
   function init() {
     var nodes = document.querySelectorAll('[data-quick-jump]');
     nodes.forEach(renderInto);
+
+    /* 출퇴근 토글 위젯 자동 로드 (운영자 공통·퀵이동 버튼 아래)
+       HTML 수정 없이 quick-jump 쓰는 모든 어드민 화면에 전파 */
+    if (nodes.length && !document.getElementById('attQuickToggleScript')) {
+      var s = document.createElement('script');
+      s.id = 'attQuickToggleScript';
+      s.src = '/js/att-quick-toggle.js?v=1';
+      s.defer = true;
+      document.head.appendChild(s);
+    }
   }
 
   if (document.readyState === 'loading') {
