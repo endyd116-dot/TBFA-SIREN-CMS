@@ -85,8 +85,13 @@ Netlify 배포 크레딧 폭증(한 달 1,426 production 배포 → 크레딧 79
 ### 🟡 근태 메뉴 재배치 — 구현 완료·라이브 검증 대기 (2026-05-21)
 cms 운영관리 "근태관리 설정" 1메뉴 → **"🟢 근태 현황"(조회 8탭)·"⚙️ 근태 설정"(설정 4탭)** 2메뉴 분리. 재택보고서·근무형태 관리 탭을 워크스페이스 관리 화면으로 흡수(12탭 통합) + `?group=ops|config` 필터 + "← 근태 현황으로" 버튼. 옛 `admin-attendance-settings.html`은 리다이렉트로 전환, `.js` 삭제. 변경 6파일·코드 검증 통과. 설계·결과 `docs/active/2026-05-21-att-menu-reorg.md` §7.
 
+### 🟡 R40 PG 전환 (토스 → KICC) — 백엔드+프론트 머지·배포 완료·검증 대기 (2026-05-21)
+오픈 전 전면 즉시 전환(효성 유지·카드 PG만 교체). A·B·C 전부 Opus·main직결·KICC_MODE=test.
+- 마이그 적용(컬럼 toss_*→pg_*·테스트데이터 purge: toss 22건·빌키 3건·효성 보존) → B STEP2/3(`da94154`)+A(`1836943`) 머지·1회 push·tsc 0.
+- 토스 함수 10개 삭제·KICC 8개 신규(lib/kicc·donate-kicc-*·billing-register/approve·cron-kicc-billing·kicc-webhook)·cron 단일 통합.
+- **대기**: ① Swain Netlify KICC env 4개 설정(KICC_MALL_ID·SECRET_KEY·API_DOMAIN·MODE=test) ② C 검증 ③ 실거래 테스트로 KICC 명세 미세조정(msgAuthValue 순서·resCd·returnUrl casing). 설계 `docs/active/2026-05-21-r40-kicc.md`.
+
 ### 🚀 다음 라운드 후보 (Swain 결정 대기)
-- **R40 PG 전환 (토스 → KICC)** — `docs/kicc.md` 정독 완료·옵션 A(듀얼 PG 점진 전환) 추천 (근태 메뉴 재배치 종결 후 착수)
 - 메뉴얼 R39 기능 본문 갱신 (현재 '예정' 표기 → 실제 안내)
 - Netlify 배포 시간 단축·RAG 인프라 구축
 
