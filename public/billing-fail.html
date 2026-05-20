@@ -199,31 +199,39 @@
       });
     }
 
+    /* ★ R40: 표시 전용 — 백엔드 billing-approve가 302 /billing-fail.html?reason= 로 복귀.
+       reason 쿼리만 읽어 안내(백엔드 호출 없음). 구 토스 code/message 호환. */
     var params = new URLSearchParams(location.search);
+    var reason = params.get('reason') || '';
     var code = params.get('code') || '';
     var message = params.get('message') || '';
 
     var FRIENDLY_MESSAGES = {
+      'user_cancel': '카드 등록을 취소하셨습니다.',
+      'card_declined': '카드사에서 등록을 거절했습니다.',
+      'expired_card': '카드 유효기간이 지났습니다.',
+      'invalid_card': '카드 정보가 올바르지 않습니다.',
+      'insufficient_balance': '카드 한도 또는 잔액이 부족합니다.',
+      'timeout': '카드 등록 시간이 초과되었습니다.',
       'PAY_PROCESS_CANCELED': '카드 등록을 취소하셨습니다.',
       'PAY_PROCESS_ABORTED': '카드 등록이 중단되었습니다.',
       'REJECT_CARD_COMPANY': '카드사에서 등록을 거절했습니다.',
       'INVALID_CARD_EXPIRATION': '카드 유효기간이 지났습니다.',
       'INVALID_STOPPED_CARD': '정지된 카드입니다.',
       'NOT_REGISTERED_CARD': '등록되지 않은 카드입니다.',
-      'NOT_SUPPORTED_INSTALLMENT_PLAN': '지원하지 않는 카드 종류입니다.',
       'BLOCKED_OVERSEAS_USAGE': '해외 결제 차단 카드입니다.',
       'INVALID_AUTHORIZE_AUTH': '카드 인증에 실패했습니다.',
       'INVALID_PASSWORD': '카드 비밀번호가 일치하지 않습니다.',
       'FDS_ERROR': '결제 보안 검증에 실패했습니다.',
     };
 
-    if (code || message) {
+    var rawCode = reason || code;
+    if (rawCode || message) {
       $('bfErrorDetail').style.display = 'block';
-      var friendlyMsg = FRIENDLY_MESSAGES[code] || message || '알 수 없는 오류';
-      $('bfErrorReason').textContent = friendlyMsg;
-      if (code) {
+      $('bfErrorReason').textContent = FRIENDLY_MESSAGES[rawCode] || message || rawCode || '알 수 없는 오류';
+      if (rawCode) {
         $('bfErrorCode').style.display = 'inline-block';
-        $('bfErrorCode').textContent = 'Code: ' + escapeHtml(code);
+        $('bfErrorCode').textContent = 'Code: ' + escapeHtml(rawCode);
       }
     }
 
