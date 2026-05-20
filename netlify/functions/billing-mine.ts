@@ -113,7 +113,7 @@ export default async (req: Request) => {
         and(
           eq(donations.memberId, user.id),
           eq(donations.type, "regular"),
-          eq(donations.pgProvider, "toss"),
+          eq(donations.pgProvider, "kicc"),
         ),
       )
       .orderBy(desc(donations.createdAt))

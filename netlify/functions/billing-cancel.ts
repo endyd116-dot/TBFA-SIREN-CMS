@@ -4,7 +4,7 @@
  * 정기 후원 해지 (빌링키 비활성화)
  * - 회원 본인만 호출 가능
  * - billingKeys.isActive = false + deactivatedAt
- * - 토스 측 빌링키는 그대로 유지 (재활성화 가능)
+ * - KICC 빌키(batchKey)는 removeBatchKey로 삭제 (실패해도 DB 해지는 유지)
  * - 다음 결제부터 자동 청구 중단
  *
  * Body: { billingKeyId, reason? }
@@ -21,6 +21,8 @@ import {
 import { logUserAction } from "../../lib/audit";
 // ★ Phase 2 (마일스톤 #16 단계 C): donor_type 재평가 후크
 import { safeReevaluate } from "../../lib/donor-status";
+// ★ R40: KICC 빌키 삭제
+import { removeBillingKey } from "../../lib/kicc";
 
 const cancelSchema = z.object({
   billingKeyId: z.number().int().positive(),
@@ -104,12 +106,25 @@ export default async (req: Request) => {
         amount: billingKeys.amount,
       });
 
+    /* 7-B. KICC 빌키 삭제 (removeBatchKey) — 실패해도 DB 해지는 유지 */
+    let kiccRemoved = false;
+    try {
+      if (billing.billingKey) {
+        const r = await removeBillingKey({ billingKey: billing.billingKey });
+        kiccRemoved = r.success;
+        if (!r.success) console.warn(`[billing-cancel] KICC 빌키 삭제 실패(무시): ${r.errorCode} ${r.errorMessage}`);
+      }
+    } catch (e) {
+      console.warn("[billing-cancel] KICC 빌키 삭제 예외(무시):", e);
+    }
+
     /* 8. 감사 로그 */
     await logUserAction(req, user.id, user.name, "billing_cancel_success", {
       target: `BK-${billingKeyId}`,
       detail: {
         amount: updated.amount,
         reasonProvided: !!reason,
+        kiccRemoved,
       },
     });
 

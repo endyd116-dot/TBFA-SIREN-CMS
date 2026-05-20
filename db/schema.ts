@@ -377,9 +377,9 @@ export const donations = pgTable("donations", {
 
   isAnonymous: boolean("is_anonymous").default(false),
 
-  /* 토스 */
-  tossPaymentKey: varchar("toss_payment_key", { length: 200 }),
-  tossOrderId: varchar("toss_order_id", { length: 64 }),
+  /* PG (KICC) — R40: 토스→KICC 전면 교체로 PG 비종속 네이밍 */
+  pgTid: varchar("pg_tid", { length: 200 }),
+  pgOrderNo: varchar("pg_order_no", { length: 64 }),
   billingKeyId: integer("billing_key_id"),
   failureReason: varchar("failure_reason", { length: 500 }),
 
@@ -415,8 +415,8 @@ export const donations = pgTable("donations", {
   createdIdx: index("donations_created_idx").on(t.createdAt),
   paidAtIdx: index("donations_paid_at_idx").on(t.paidAt),
   receiptNoIdx: index("donations_receipt_no_idx").on(t.receiptNumber),
-  tossPaymentKeyIdx: index("donations_toss_payment_key_idx").on(t.tossPaymentKey),
-  tossOrderIdIdx: index("donations_toss_order_id_idx").on(t.tossOrderId),
+  pgTidIdx: index("donations_pg_tid_idx").on(t.pgTid),
+  pgOrderNoIdx: index("donations_pg_order_no_idx").on(t.pgOrderNo),
   billingKeyIdx: index("donations_billing_key_idx").on(t.billingKeyId),
   hyosungMemberNoIdx: index("donations_hyosung_member_no_idx").on(t.hyosungMemberNo),
   hyosungBillNoIdx: index("donations_hyosung_bill_no_idx").on(t.hyosungBillNo),
@@ -684,6 +684,7 @@ export const billingKeys = pgTable("billing_keys", {
   memberId: integer("member_id").references(() => members.id, { onDelete: "cascade" }).notNull(),
   billingKey: varchar("billing_key", { length: 200 }).notNull().unique(),
   customerKey: varchar("customer_key", { length: 64 }).notNull().unique(),
+  pgProvider: varchar("pg_provider", { length: 30 }).default("kicc"),
   cardCompany: varchar("card_company", { length: 30 }),
   cardNumberMasked: varchar("card_number_masked", { length: 30 }),
   cardType: varchar("card_type", { length: 20 }),
@@ -1540,10 +1541,11 @@ export const billingLogs = pgTable("billing_logs", {
   attemptNumber: integer("attempt_number").default(1).notNull(),
   amount: integer("amount").notNull(),
   status: varchar("status", { length: 20 }).notNull(),
-  tossOrderId: varchar("toss_order_id", { length: 100 }),
-  tossPaymentKey: varchar("toss_payment_key", { length: 200 }),
-  tossResponseCode: varchar("toss_response_code", { length: 50 }),
-  tossResponseMessage: varchar("toss_response_message", { length: 500 }),
+  pgOrderNo: varchar("pg_order_no", { length: 100 }),
+  pgTid: varchar("pg_tid", { length: 200 }),
+  pgResponseCode: varchar("pg_response_code", { length: 50 }),
+  pgResponseMessage: varchar("pg_response_message", { length: 500 }),
+  pgProvider: varchar("pg_provider", { length: 30 }).default("kicc"),
   errorDetail: jsonb("error_detail"),
   donationId: integer("donation_id").references(() => donations.id, { onDelete: "set null" }),
   requestedAt: timestamp("requested_at").defaultNow().notNull(),

@@ -15,7 +15,7 @@
  *   비후원(none): 위 어느 것도 아님
  *
  * 사용처:
- *   - 후크: billing-confirm / cron-toss-billing / billing-cancel / admin-donation-confirm
+ *   - 후크: billing-approve / cron-kicc-billing / billing-cancel / admin-donation-confirm
  *           (실패해도 메인 트랜잭션 영향 0 — fire-and-forget)
  *   - cron: cron-donor-status-sync (매일 KST 03:00 일괄 재평가, bulk SQL)
  */

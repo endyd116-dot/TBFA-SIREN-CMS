@@ -111,8 +111,9 @@
 [functions."cleanup-chat-images"]
   schedule = "0 18 * * *"
 
-# ★ Phase L-5: 정기 결제 cron (매일 새벽 3시 KST = UTC 18:00)
-[functions."cron-billing-monthly"]
+# ★ R40: KICC 정기 결제 자동청구 cron (매일 새벽 3시 KST = UTC 18:00)
+# cron-toss-billing·cron-billing-monthly 통합 대체(A안) — 이중청구 원천 제거
+[functions."cron-kicc-billing"]
   schedule = "0 18 * * *"
 
 # netlify.toml — cron-grade-recalc 블록 다음에 추가
