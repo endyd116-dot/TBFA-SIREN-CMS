@@ -3,6 +3,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql, eq } from "drizzle-orm";
 import { milestoneDefinitions } from "../../db/schema";
+import { notifyMany } from "../../lib/notify";
 
 export const config = { path: "/api/milestone-definitions*" };
 
@@ -170,6 +171,23 @@ export default async function handler(req: Request, _ctx: Context) {
           `);
         } catch { /* 이력 INSERT 실패는 본 응답에 영향 없음 */ }
       }
+
+      /* 통합 라운드(2026-05-20): admin-milestone-definitions PUT의 "모든 어드민 알림"을
+         통일 기준 API로 이식. 설정 화면 흡수 후에도 정의 변경 알림이 끊기지 않게 함.
+         fire-and-forget — 알림 실패는 본 응답에 영향 없음. */
+      try {
+        const adminRows = await db.execute(sql`
+          SELECT id FROM members WHERE type = 'admin' AND status = 'active'
+        `);
+        const adminIds = ((adminRows as any).rows || (adminRows as any[])).map((r: any) => r.id);
+        notifyMany(adminIds, {
+          recipientType: "admin",
+          category: "milestone", severity: "info",
+          title: `마일스톤 정의 변경: ${updated.name || ""}`,
+          message: "성과 마일스톤 정의가 수정되었습니다. 확인해주세요.",
+          link: "/admin#milestone-review",
+        }).catch(() => {});
+      } catch { /* 알림 실패는 본 응답에 영향 없음 */ }
 
       return Response.json({ ok: true, data: { milestone: formatDef(updated) } });
     } catch (err) { return jsonError("update", err); }
