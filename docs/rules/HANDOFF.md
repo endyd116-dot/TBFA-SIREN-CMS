@@ -4,8 +4,8 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-20 / **R39 정식 종결 + SMS 프록시 인시던트 대응 + 안정화 1·2 완료·안정화 3(OCI 자동재시작) 잔여**
-> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → docs/rules/REMAINING_WORK.md 순서로 정독
+> **마지막 갱신**: 2026-05-20 / **R39 종결 + SMS 프록시 인시던트 + 안정화 1·2 완료 + 어드민 공통 출퇴근 토글 + 성과관리 통합 진단(설계 대기)**
+> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → (성과관리 통합 작업이면) docs/active/2026-05-20-performance-screen-unify.md 순서로 정독
 
 ---
 
@@ -179,9 +179,26 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 
 **중기 검토**: 무료 VM 메모리(500MB) 한계가 근본 원인 → ① 유료 소액 인스턴스 업그레이드 또는 ② IP 제한 없는 SMS 업체(쿨SMS·NHN 등)로 교체해 프록시 자체 제거. R40 KICC 전환과 함께 "외부 연동 정리"로 검토 가능.
 
+## 7.6 성과관리 화면 통합 (진단 완료·설계 대기) — 다음 라운드 후보
+
+통합 CMS 운영 관리의 **성과관리 설정**(`admin-milestone-settings.html`) + **비매출 검토**(`admin-milestones.html`) 두 메뉴가 겹쳐 통합 검토.
+
+**핵심 위험**: 마일스톤 정의·분기 관리를 **두 화면이 따로 CRUD**(정의는 API조차 `admin-milestone-definitions` vs `milestone-definitions` 2개) → 2중 수정·불일치 위험. 역할 배정 탭은 사실상 동일.
+
+**통합안**: "성과관리" 단일 화면 6탭으로 (정의·분기 중복 제거·고유 기능 전부 보존). `admin-milestones.html`로 흡수.
+
+⚠️ **매우 신중 의무** (Swain 명시): 마일스톤 정의·결산·**급여까지 연동**. 회귀 위험 큼. 정의 API 통일 시 사용처 전수 grep + 단계 분할 + 각 단계 회귀 검증 필수.
+
+**알려진 버그**: 성과관리 설정 "직원 역할 배정" 탭 **무한로딩** — 통합 시 원인 진단 포함.
+
+→ 상세 진단·통합안·신중 체크리스트: **`docs/active/2026-05-20-performance-screen-unify.md`** (새 세션 정독 출발점)
+
 ## 8. 다음 메인 채팅이 할 일 (즉시 진행)
 
-### 우선 0. 안정화 3 (OCI 자동 재시작) — Swain OCI 키 등록 후 새 세션
+### 우선 0-A. 성과관리 화면 통합 — 설계부터 (§7.6·신중)
+`docs/active/2026-05-20-performance-screen-unify.md` 정독 → 사전 정독(§9.1.9) → 정의 API 2개 사용처 전수 grep → Swain과 범위·단계 합의 → 8섹션 설계서 → 단계 분할 구현·각 단계 회귀 검증.
+
+### 우선 0-B. 안정화 3 (OCI 자동 재시작) — Swain OCI 키 등록 후 새 세션
 §7.5 참조. OCI 환경변수 6개 등록 완료되면 `lib/oci-client.ts` + cron 연동 구현.
 
 ### 우선 1. R40 PG 전환 (토스 → KICC) — Swain 옵션 결정 후 시작
