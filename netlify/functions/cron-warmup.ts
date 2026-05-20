@@ -102,7 +102,7 @@ async function alertProxyDown(): Promise<void> {
    - 무한 재부팅 방지: 최근 60분 내 재부팅 시도(ref_table='proxy_reboot') 있으면 skip
    - 재부팅 시도 결과를 슈퍼어드민 인앱 알림 + proxy_reboot 마커로 기록 */
 async function maybeAutoReboot(): Promise<void> {
-  if (!ociConfigured()) return;   // 키 미등록 — 기존 알림(alertProxyDown)만 동작
+  if (!(await ociConfigured())) return;   // 설정 미등록(env·Blobs) — 기존 알림(alertProxyDown)만 동작
 
   /* 쿨다운 — 최근 60분 내 자동 재부팅 시도가 있으면 스킵 (부팅 시간 고려) */
   try {
