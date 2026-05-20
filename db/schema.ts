@@ -3838,6 +3838,21 @@ export const payrollSlips = pgTable("payroll_slips", {
   emailSentTo:          text("email_sent_to"),
   pdfUrl:               text("pdf_url"),
 
+  // 급여 고도화 (2026-05-20): 수동 수정 잠금·조정 라인·공제·실수령·지급 확정
+  manuallyEdited:       boolean("manually_edited").default(false).notNull(),
+  adjustments:          jsonb("adjustments").default(sql`'[]'::jsonb`).notNull(),  // [{label, amount, kind:'ADD'|'DEDUCT', reason}]
+  incomeTax:            numeric("income_tax", { precision: 15, scale: 2 }).default("0").notNull(),
+  localTax:             numeric("local_tax", { precision: 15, scale: 2 }).default("0").notNull(),
+  nationalPension:      numeric("national_pension", { precision: 15, scale: 2 }).default("0").notNull(),
+  healthInsurance:      numeric("health_insurance", { precision: 15, scale: 2 }).default("0").notNull(),
+  longTermCare:         numeric("long_term_care", { precision: 15, scale: 2 }).default("0").notNull(),
+  employmentInsurance:  numeric("employment_insurance", { precision: 15, scale: 2 }).default("0").notNull(),
+  otherDeduction:       numeric("other_deduction", { precision: 15, scale: 2 }).default("0").notNull(),
+  totalDeduction:       numeric("total_deduction", { precision: 15, scale: 2 }).default("0").notNull(),
+  netPay:               numeric("net_pay", { precision: 15, scale: 2 }).default("0").notNull(),
+  paidAt:               timestamp("paid_at"),
+  paidBy:               varchar("paid_by", { length: 36 }),
+
   calculationSnapshot:  jsonb("calculation_snapshot"),
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
@@ -3867,6 +3882,40 @@ export type PayrollSlip          = typeof payrollSlips.$inferSelect;
 export type NewPayrollSlip       = typeof payrollSlips.$inferInsert;
 export type PayrollSendHistory   = typeof payrollSendHistory.$inferSelect;
 export type NewPayrollSendHistory = typeof payrollSendHistory.$inferInsert;
+
+/* 3. 급여 계산 기준 (단일행 id=1) — 2026-05-20 급여 고도화 */
+export const payrollSettings = pgTable("payroll_settings", {
+  id:                  serial("id").primaryKey(),
+  overtimeMultiplier:  numeric("overtime_multiplier", { precision: 5, scale: 2 }).default("1.5").notNull(),
+  annualHours:         integer("annual_hours").default(2080).notNull(),
+  monthlyWorkDays:     integer("monthly_work_days").default(22).notNull(),
+  pensionRate:         numeric("pension_rate", { precision: 6, scale: 5 }).default("0.045").notNull(),
+  healthRate:          numeric("health_rate", { precision: 6, scale: 5 }).default("0.03545").notNull(),
+  longtermRate:        numeric("longterm_rate", { precision: 6, scale: 5 }).default("0.1295").notNull(),
+  employmentRate:      numeric("employment_rate", { precision: 6, scale: 5 }).default("0.009").notNull(),
+  incomeTaxRate:       numeric("income_tax_rate", { precision: 6, scale: 5 }).default("0").notNull(),
+  updatedAt:           timestamp("updated_at").defaultNow().notNull(),
+  updatedBy:           varchar("updated_by", { length: 36 }),
+});
+
+/* 4. 급여 명세서 수정 이력 (감사) — 2026-05-20 급여 고도화 */
+export const payrollAudit = pgTable("payroll_audit", {
+  id:         serial("id").primaryKey(),
+  slipId:     integer("slip_id").notNull().references(() => payrollSlips.id, { onDelete: "cascade" }),
+  changedBy:  varchar("changed_by", { length: 36 }).notNull(),
+  field:      varchar("field", { length: 60 }).notNull(),
+  oldValue:   text("old_value"),
+  newValue:   text("new_value"),
+  reason:     text("reason"),
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  slipIdx: index("idx_payroll_audit_slip").on(t.slipId),
+}));
+
+export type PayrollSettings    = typeof payrollSettings.$inferSelect;
+export type NewPayrollSettings = typeof payrollSettings.$inferInsert;
+export type PayrollAudit       = typeof payrollAudit.$inferSelect;
+export type NewPayrollAudit    = typeof payrollAudit.$inferInsert;
 
 /* === R37 Payroll 정의 끝 === */
 
