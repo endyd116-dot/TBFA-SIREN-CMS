@@ -548,8 +548,7 @@ if (window.self !== window.top) {
         <ul class="cms-submenu" data-submenu="ops-mgmt" style="display:none">
           <li><a href="#payroll" data-tab="payroll"><i>💰</i><span>급여관리</span></a></li>
           <li><a href="#role-policy" data-tab="role-policy"><i>🛡️</i><span>권한정책관리</span></a></li>
-          <li><a href="#milestone-settings" data-tab="milestone-settings"><i>🏆</i><span>성과관리 설정</span></a></li>
-          <li><a href="#milestone-review" data-tab="milestone-review"><i>📋</i><span>비매출 검토</span></a></li>
+          <li><a href="#milestone-review" data-tab="milestone-review"><i>🏆</i><span>성과관리</span></a></li>
           <li><a href="#attendance-settings" data-tab="attendance-settings"><i>📝</i><span>근태관리 설정</span></a></li>
         </ul>
       </li>
@@ -2232,14 +2231,9 @@ if (window.self !== window.top) {
         <iframe class="nf-iframe" data-nf-src="/admin-payroll.html" title="급여관리"></iframe>
       </section>
 
-      <!-- 2026-05-20: 성과관리 설정 (워크스페이스에서 이관) -->
-      <section class="cms-page nf-iframe-page" id="page-milestone-settings">
-        <iframe class="nf-iframe" data-nf-src="/admin-milestone-settings.html" title="성과관리 설정"></iframe>
-      </section>
-
-      <!-- R39 Stage 8: 비매출 검토 (admin-milestones.html 의 비매출 검토 탭으로 진입) -->
+      <!-- 2026-05-20 성과관리 통합: 단일 화면(6탭 — 정의·분기·역할카탈로그·직원역할·비매출·결산) -->
       <section class="cms-page nf-iframe-page" id="page-milestone-review">
-        <iframe class="nf-iframe" data-nf-src="/admin-milestones.html#nonrevenue" title="비매출 검토"></iframe>
+        <iframe class="nf-iframe" data-nf-src="/admin-milestones.html" title="성과관리"></iframe>
       </section>
 
       <!-- 2026-05-20: 근태관리 설정 (워크스페이스에서 이관) -->
@@ -2491,7 +2485,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260520r3"></script>
+  <script src="/js/cms-tbfa.js?v=20260520r4"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
