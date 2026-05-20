@@ -70,7 +70,38 @@ export default async function handler(req: Request) {
         } catch (err) {
           console.warn("[admin-payroll] member lookup failed:", err);
         }
-        return jsonOk({ slip, member: memberInfo });
+
+        // 수정 이력 (누가·무엇·사유·언제) — 보조 SELECT 실패 시 빈 배열
+        let audit: any[] = [];
+        try {
+          const rows = await db.select()
+            .from(payrollAudit)
+            .where(eq(payrollAudit.slipId, idNum))
+            .orderBy(desc(payrollAudit.createdAt))
+            .limit(100);
+          // changedBy(=관리자 members.id) → 이름 매핑
+          const editorIds = Array.from(new Set(
+            rows.map(r => Number(r.changedBy)).filter(n => !isNaN(n))
+          ));
+          let editorMap = new Map<number, string>();
+          if (editorIds.length > 0) {
+            try {
+              const es = await db.select({ id: members.id, name: members.name })
+                .from(members).where(inArray(members.id, editorIds));
+              editorMap = new Map(es.map(e => [e.id, e.name]));
+            } catch (err) {
+              console.warn("[admin-payroll] audit editor lookup failed:", err);
+            }
+          }
+          audit = rows.map(r => ({
+            ...r,
+            changedByName: editorMap.get(Number(r.changedBy)) ?? null,
+          }));
+        } catch (err) {
+          console.warn("[admin-payroll] audit lookup failed:", err);
+        }
+
+        return jsonOk({ slip, member: memberInfo, audit });
       } catch (err) { return jsonError("select_slip_detail", err); }
     }
 
@@ -109,7 +140,7 @@ export default async function handler(req: Request) {
 
       // 통계 카드용 카운트
       const counts = {
-        DRAFT: 0, REVIEWED: 0, APPROVED: 0, SENT: 0, HOLD: 0,
+        DRAFT: 0, REVIEWED: 0, APPROVED: 0, SENT: 0, HOLD: 0, PAID: 0,
       };
       for (const r of rows) {
         if (r.status in counts) counts[r.status as keyof typeof counts]++;

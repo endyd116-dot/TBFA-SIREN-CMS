@@ -1,7 +1,7 @@
 /**
  * GET /api/payroll-my?year=
  *
- * 본인 월별 명세서 일람. status≥SENT(발송 완료)만 노출.
+ * 본인 월별 명세서 일람. status≥SENT(발송 완료·지급 완료 PAID)만 노출.
  * 권한: requireOperator (운영자 본인만).
  *
  * R37 1일차 — 골격 + 본 동작 (별도 5일차 로직 의존 없음).
@@ -38,7 +38,7 @@ export default async function handler(req: Request) {
   try {
     const conds = [
       eq(payrollSlips.memberUid, String(me.id)),
-      inArray(payrollSlips.status, ["SENT"]),
+      inArray(payrollSlips.status, ["SENT", "PAID"]),
     ];
     if (year) conds.push(eq(payrollSlips.payYear, year));
 
@@ -58,8 +58,20 @@ export default async function handler(req: Request) {
       performanceBonus: payrollSlips.performanceBonus,
       perfectBonus: payrollSlips.perfectBonus,
       grossPay: payrollSlips.grossPay,
+      // 공제·실수령 (급여 고도화 2026-05-20)
+      adjustments: payrollSlips.adjustments,
+      incomeTax: payrollSlips.incomeTax,
+      localTax: payrollSlips.localTax,
+      nationalPension: payrollSlips.nationalPension,
+      healthInsurance: payrollSlips.healthInsurance,
+      longTermCare: payrollSlips.longTermCare,
+      employmentInsurance: payrollSlips.employmentInsurance,
+      otherDeduction: payrollSlips.otherDeduction,
+      totalDeduction: payrollSlips.totalDeduction,
+      netPay: payrollSlips.netPay,
       status: payrollSlips.status,
       sentAt: payrollSlips.sentAt,
+      paidAt: payrollSlips.paidAt,
       pdfUrl: payrollSlips.pdfUrl,
     }).from(payrollSlips)
       .where(and(...conds))

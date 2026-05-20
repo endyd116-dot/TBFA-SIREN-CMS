@@ -3,7 +3,8 @@
  *
  * 회계 시스템용 CSV export. UTF-8 BOM 포함 (한글 엑셀 호환).
  * 컬럼: 회원UID·이름·이메일·연도·월·근무일·총근무분·야근분·지각·결근·유급휴가·무급휴가·만근여부·
- *       월기본급·야근수당·무급차감·성과보너스·만근보너스·세전총액·상태
+ *       월기본급·야근수당·무급차감·성과보너스·만근보너스·조정합계·세전총액·
+ *       소득세·지방소득세·국민연금·건강보험·장기요양·고용보험·기타공제·공제합계·실수령액·상태·승인일·발송일·지급일
  *
  * R37 1일차 — 골격 + 실 CSV 출력 (외부 라이브러리 없이 직접 생성).
  * 권한: super_admin 전용.
@@ -71,20 +72,27 @@ export default async function handler(req: Request) {
       "회원UID", "이름", "이메일", "연도", "월",
       "근무일수", "총근무분", "야근분", "지각횟수", "결근횟수",
       "유급휴가일", "무급휴가일", "만근여부",
-      "월기본급", "야근수당", "무급차감", "성과보너스", "만근보너스", "세전총액",
-      "상태", "승인일", "발송일",
+      "월기본급", "야근수당", "무급차감", "성과보너스", "만근보너스", "조정합계", "세전총액",
+      "소득세", "지방소득세", "국민연금", "건강보험", "장기요양", "고용보험", "기타공제", "공제합계", "실수령액",
+      "상태", "승인일", "발송일", "지급일",
     ];
     const lines: string[] = [header.map(csvEscape).join(",")];
     for (const r of rows) {
       const m = memberMap.get(Number(r.memberUid));
+      // 조정 라인 합계 (ADD − DEDUCT)
+      const adj = Array.isArray(r.adjustments) ? (r.adjustments as any[]) : [];
+      const adjNet = adj.reduce((s, a) =>
+        s + (a?.kind === "DEDUCT" ? -(Number(a?.amount) || 0) : (Number(a?.amount) || 0)), 0);
       lines.push([
         r.memberUid, m?.name ?? "", m?.email ?? "", r.payYear, r.payMonth,
         r.workingDays, r.workingMins, r.overtimeMins, r.lateCount, r.absentCount,
         r.paidLeaveDays, r.unpaidLeaveDays, r.perfectAttendance ? "Y" : "N",
-        r.baseSalaryMonth, r.overtimePay, r.deductionUnpaid, r.performanceBonus, r.perfectBonus, r.grossPay,
+        r.baseSalaryMonth, r.overtimePay, r.deductionUnpaid, r.performanceBonus, r.perfectBonus, adjNet, r.grossPay,
+        r.incomeTax, r.localTax, r.nationalPension, r.healthInsurance, r.longTermCare, r.employmentInsurance, r.otherDeduction, r.totalDeduction, r.netPay,
         r.status,
         r.approvedAt ? new Date(r.approvedAt as any).toISOString().slice(0, 10) : "",
         r.sentAt ? new Date(r.sentAt as any).toISOString().slice(0, 10) : "",
+        r.paidAt ? new Date(r.paidAt as any).toISOString().slice(0, 10) : "",
       ].map(csvEscape).join(","));
     }
 

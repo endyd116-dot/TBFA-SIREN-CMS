@@ -47,8 +47,8 @@ export default async function handler(req: Request, _ctx: Context): Promise<Resp
   if (slip.memberUid !== String(me.id)) {
     return jsonBadRequest("본인 명세서만 다운로드할 수 있습니다", 403);
   }
-  // SENT 상태만 본인 노출
-  if (slip.status !== "SENT") {
+  // 발송(SENT)·지급 완료(PAID) 상태만 본인 노출
+  if (slip.status !== "SENT" && slip.status !== "PAID") {
     return jsonBadRequest("발송 완료된 명세서만 다운로드할 수 있습니다", 403);
   }
 

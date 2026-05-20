@@ -35,9 +35,21 @@ export interface PayrollSlipPdfInput {
     performanceBonus: number | string;
     perfectBonus: number | string;
     grossPay: number | string;
+    // 공제·실수령·조정 (급여 고도화 2026-05-20)
+    adjustments?: Array<{ label?: string; amount?: number | string; kind?: string; reason?: string }> | null;
+    incomeTax?: number | string;
+    localTax?: number | string;
+    nationalPension?: number | string;
+    healthInsurance?: number | string;
+    longTermCare?: number | string;
+    employmentInsurance?: number | string;
+    otherDeduction?: number | string;
+    totalDeduction?: number | string;
+    netPay?: number | string;
     status: string;
     sentAt?: Date | string | null;
     approvedAt?: Date | string | null;
+    paidAt?: Date | string | null;
   };
   member: {
     name: string;
@@ -147,8 +159,8 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   hr(ctx);
   ctx.y -= 22;
 
-  // ── 급여 구성 ──
-  text(ctx, "급여 구성", ctx.margin, 13, rgb(0.1, 0.1, 0.4));
+  // ── 급여 구성 (지급 항목) ──
+  text(ctx, "지급 항목", ctx.margin, 13, rgb(0.1, 0.1, 0.4));
   ctx.y -= 22;
 
   type Row = [string, string, "plus" | "minus" | "calc"];
@@ -159,28 +171,63 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
     ["성과 보너스", won(slip.performanceBonus),"plus"],
     ["만근 보너스", won(slip.perfectBonus),    "plus"],
   ];
+  // 조정 라인 (수기 가감)
+  const adjList = Array.isArray(slip.adjustments) ? slip.adjustments : [];
+  for (const a of adjList) {
+    const isDeduct = a?.kind === "DEDUCT";
+    const label = `조정: ${String(a?.label || "").slice(0, 30)}`;
+    payRows.push([label, won(a?.amount), isDeduct ? "minus" : "plus"]);
+  }
   for (const [label, val, kind] of payRows) {
     const sign = kind === "minus" ? "−" : "+";
     const color = kind === "minus" ? rgb(0.6, 0.1, 0.1) : rgb(0.1, 0.35, 0.1);
     text(ctx, `${sign}  ${label}`, labelX, 11, color);
     textRight(ctx, val, rightX, 11);
-    ctx.y -= 20;
+    ctx.y -= 18;
   }
 
-  ctx.y -= 4;
-  hr(ctx, 1, rgb(0.2, 0.2, 0.2));
-  ctx.y -= 22;
+  ctx.y -= 2;
+  hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
+  ctx.y -= 18;
+  text(ctx, "세전 총액 (Gross Pay)", ctx.margin, 12, rgb(0.1, 0.1, 0.5));
+  textRight(ctx, won(slip.grossPay), rightX, 12, rgb(0.1, 0.1, 0.5));
+  ctx.y -= 24;
 
-  text(ctx, "세전 총액 (Gross Pay)", ctx.margin, 13, rgb(0.1, 0.1, 0.5));
-  textRight(ctx, won(slip.grossPay), rightX, 15, rgb(0.1, 0.1, 0.5));
+  // ── 공제 내역 ──
+  text(ctx, "공제 항목", ctx.margin, 13, rgb(0.4, 0.1, 0.1));
+  ctx.y -= 22;
+  const dedRows: Array<[string, number | string]> = [
+    ["국민연금",     slip.nationalPension ?? 0],
+    ["건강보험",     slip.healthInsurance ?? 0],
+    ["장기요양",     slip.longTermCare ?? 0],
+    ["고용보험",     slip.employmentInsurance ?? 0],
+    ["소득세",       slip.incomeTax ?? 0],
+    ["지방소득세",   slip.localTax ?? 0],
+  ];
+  if (Number(slip.otherDeduction || 0) !== 0) dedRows.push(["기타 공제", slip.otherDeduction ?? 0]);
+  for (const [label, val] of dedRows) {
+    text(ctx, `−  ${label}`, labelX, 11, rgb(0.5, 0.15, 0.15));
+    textRight(ctx, won(val), rightX, 11);
+    ctx.y -= 18;
+  }
+  ctx.y -= 2;
+  hr(ctx, 0.8, rgb(0.4, 0.4, 0.4));
+  ctx.y -= 18;
+  text(ctx, "공제 합계", ctx.margin, 12, rgb(0.4, 0.1, 0.1));
+  textRight(ctx, won(slip.totalDeduction), rightX, 12, rgb(0.4, 0.1, 0.1));
+  ctx.y -= 24;
+
+  // ── 실수령액 ──
+  hr(ctx, 1, rgb(0.1, 0.1, 0.1));
+  ctx.y -= 22;
+  text(ctx, "실수령액 (Net Pay)", ctx.margin, 14, rgb(0.05, 0.2, 0.05));
+  textRight(ctx, won(slip.netPay), rightX, 16, rgb(0.05, 0.2, 0.05));
   ctx.y -= 28;
 
   // ── 안내 ──
   hr(ctx, 0.4, rgb(0.7, 0.7, 0.7));
-  ctx.y -= 20;
-  text(ctx, "※ 본 명세서는 세전 금액(Gross) 기준입니다.", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
-  ctx.y -= 13;
-  text(ctx, "※ 소득세·4대보험 공제는 외부 회계 처리에서 반영됩니다.", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
+  ctx.y -= 18;
+  text(ctx, "※ 실수령액은 세전 총액에서 소득세·4대보험 등 공제를 차감한 금액입니다.", ctx.margin, 9, rgb(0.5, 0.5, 0.5));
   ctx.y -= 13;
   if (slip.approvedAt) {
     const d = new Date(slip.approvedAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
@@ -190,6 +237,11 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   if (slip.sentAt) {
     const d = new Date(slip.sentAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     text(ctx, `※ 발송일: ${d}`, ctx.margin, 9, rgb(0.5, 0.5, 0.5));
+    ctx.y -= 13;
+  }
+  if (slip.paidAt) {
+    const d = new Date(slip.paidAt as any).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    text(ctx, `※ 지급일: ${d}`, ctx.margin, 9, rgb(0.5, 0.5, 0.5));
     ctx.y -= 13;
   }
 

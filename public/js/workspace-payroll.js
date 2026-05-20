@@ -71,6 +71,8 @@
       '<th style="padding:9px 12px;text-align:right;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">월기본급</th>' +
       '<th style="padding:9px 12px;text-align:right;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">성과</th>' +
       '<th style="padding:9px 12px;text-align:right;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">세전 총액</th>' +
+      '<th style="padding:9px 12px;text-align:right;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">공제</th>' +
+      '<th style="padding:9px 12px;text-align:right;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">실수령</th>' +
       '<th style="padding:9px 12px;text-align:left;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">발송일</th>' +
       '<th style="padding:9px 12px;text-align:center;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:12px">PDF</th>' +
       '</tr></thead><tbody>';
@@ -83,7 +85,9 @@
         '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right">' + hours(r.overtimeMins) + 'h</td>' +
         '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right">' + won(r.baseSalaryMonth) + '</td>' +
         '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right">' + won(r.performanceBonus) + '</td>' +
-        '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:700;color:#3730a3">' + won(r.grossPay) + ' 원</td>' +
+        '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600;color:#3730a3">' + won(r.grossPay) + '</td>' +
+        '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right;color:#b91c1c">' + (Number(r.totalDeduction) > 0 ? '−' + won(r.totalDeduction) : '0') + '</td>' +
+        '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:700;color:#0f766e">' + won(r.netPay) + ' 원</td>' +
         '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px">' + esc(sentDate) + '</td>' +
         '<td style="padding:9px 12px;border-bottom:1px solid #f3f4f6;text-align:center"><a href="/api/payroll-my-pdf?id=' + r.id + '" target="_blank" rel="noopener" style="padding:4px 10px;background:#6366f1;color:#fff;border-radius:4px;font-size:11.5px;text-decoration:none;font-weight:600">PDF</a></td>' +
         '</tr>';
