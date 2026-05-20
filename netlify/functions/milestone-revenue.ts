@@ -131,7 +131,7 @@ export default async function handler(req: Request, _ctx: Context) {
           category: "milestone", severity: "info",
           title: `매출 입력 검증 대기: ${md.name}`,
           message: `${member.name || member.email}이 ${Number(amount).toLocaleString()}원 입력`,
-          link: "/admin#revenue-verify",
+          link: "/admin#milestone-review",
         }).catch(() => {});
       }
 

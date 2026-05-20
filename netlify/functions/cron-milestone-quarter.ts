@@ -103,7 +103,7 @@ export default async function handler(_req: Request, _ctx: Context) {
               category: "milestone", severity: "warning",
               title: `결산 미제출 에스컬레이션: ${q.year}년 ${q.quarter}분기`,
               message: `미제출자: ${names}`,
-              link: "/admin#settlement-review",
+              link: "/admin#milestone-review",
             });
             results.push(`미제출 에스컬레이션: ${q.year}Q${q.quarter} — ${unsubmitted.length}명`);
           } catch (e: any) {

@@ -32,6 +32,7 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   <button class="adm-tab" data-panel="quarters">🗓 분기 관리</button>
   <button class="adm-tab" data-panel="rolecat">🎯 역할 카탈로그 관리</button>
   <button class="adm-tab" data-panel="roles">👥 직원 역할·마일스톤</button>
+  <button class="adm-tab" data-panel="revenue">💵 매출 검토</button>
   <button class="adm-tab" data-panel="nonrevenue">📋 비매출 검토</button>
   <button class="adm-tab" data-panel="settlements">✅ 결산 승인·지급</button>
 </div>
@@ -71,9 +72,12 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
     </select>
     <select id="settlStatusFilter" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
       <option value="SUBMITTED">검토 대기</option>
-      <option value="">전체</option>
+      <option value="REVIEWED">1차 검토</option>
+      <option value="HOLD">보류</option>
       <option value="APPROVED">승인됨</option>
       <option value="PAID">지급 완료</option>
+      <option value="REJECTED">반려</option>
+      <option value="">전체</option>
     </select>
     <button class="ms-btn ms-btn-ghost ms-btn-sm" id="btnReloadSettlements">새로고침</button>
     <button class="ms-btn ms-btn-primary ms-btn-sm" id="btnExportSalary" style="margin-left:auto">📥 급여 내보내기</button>
@@ -110,6 +114,28 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <div id="panelRoles" class="adm-panel">
   <p style="font-size:13px;color:#6b7280;margin-bottom:16px">각 운영자·어드민에게 마일스톤 담당 역할을 배정하고, '상세'로 그 직원이 담당하는 마일스톤 정의를 일람·관리합니다.</p>
   <div id="rolesList"></div>
+</div>
+
+<!-- 매출 검토 패널 (워크스페이스 검토 UI를 통합 화면으로 이관) -->
+<div id="panelRevenue" class="adm-panel">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <select id="rvStatusFilter" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
+      <option value="PENDING" selected>검토 대기 (PENDING)</option>
+      <option value="VERIFIED">검증 완료 (VERIFIED)</option>
+      <option value="REJECTED">반려 (REJECTED)</option>
+      <option value="ALL">전체</option>
+    </select>
+    <select id="rvQuarterFilter" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
+      <option value="">전체 분기</option>
+    </select>
+    <button class="ms-btn ms-btn-ghost ms-btn-sm" id="btnRvReload">새로고침</button>
+    <span style="font-size:11.5px;color:#9ca3af;margin-left:auto" id="rvCount">—</span>
+  </div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#1e3a8a;line-height:1.7;margin-bottom:14px">
+    💡 <strong>매출 실적 검토 흐름</strong>: 직원이 입력한 매출(PENDING)을 담당자가 승인(VERIFIED) 또는 반려(REJECTED).<br>
+    <strong>4-eye 원칙</strong>: 본인이 입력한 매출은 본인이 검증할 수 없습니다(슈퍼어드민 예외). EVENT_RANGE 마일스톤은 금액 확정 후 검증됩니다.
+  </div>
+  <div id="rvList" style="font-size:13.5px;color:#6b7280">로딩 중...</div>
 </div>
 
 <!-- R39 Stage 8: 비매출 검토 패널 -->
@@ -281,6 +307,6 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
-<script src="/js/admin-milestones.js?v=7-unify" defer></script>
+<script src="/js/admin-milestones.js?v=8-rev" defer></script>
 </body>
 </html>

@@ -215,7 +215,7 @@ async function checkAndAutoSubmitAchievement(opts: {
       category: "milestone", severity: "info",
       title: `비매출 성과 자동 제출 (AI): ${def.name}`,
       message: `${memberName || `회원 ID ${memberId}`}의 WBS 카드 ${achieved}건 완료로 자동 매칭·제출되었습니다. 검증 필요.`,
-      link: "/admin#nonrevenue-verify",
+      link: "/admin#milestone-review",
     }).catch(() => {});
   } catch (err) {
     console.warn(`[ms-match-bg] checkAndAutoSubmitAchievement 실패:`, err);

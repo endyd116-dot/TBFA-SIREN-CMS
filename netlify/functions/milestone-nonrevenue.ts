@@ -105,7 +105,7 @@ export default async function handler(req: Request, _ctx: Context) {
         category: "milestone", severity: "info",
         title: `비매출 성과 검증 요청: ${md.name}`,
         message: `${admin.name || admin.email}의 성과 검증을 해주세요`,
-        link: "/admin#nonrevenue-verify",
+        link: "/admin#milestone-review",
       }).catch(() => {});
 
       return Response.json({ ok: true, data: { achievement: formatAch(achievement) } }, { status: 201 });

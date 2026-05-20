@@ -120,7 +120,7 @@ export default async function handler(req: Request, _ctx: Context) {
         category: "milestone", severity: "info",
         title: `분기 결산 제출: ${admin.name || admin.email}`,
         message: `총 변동급 ${calc.totalBonus.toLocaleString()}원 결산이 제출되었습니다.`,
-        link: "/admin#settlement-review",
+        link: "/admin#milestone-review",
       }).catch(() => {});
 
       return Response.json({ ok: true, data: calc });

@@ -66,6 +66,7 @@ document.querySelectorAll('.adm-tab').forEach(btn => {
     if (btn.dataset.panel === 'settlements') loadSettlements();
     if (btn.dataset.panel === 'rolecat') loadRoleMgmt();
     if (btn.dataset.panel === 'roles') loadRoles();
+    if (btn.dataset.panel === 'revenue') rvLoad();
     if (btn.dataset.panel === 'nonrevenue') nrLoad();
   });
 });
@@ -1140,3 +1141,141 @@ document.getElementById('roleCode')?.addEventListener('input', function (e) {
   const up = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
   if (e.target.value !== up) e.target.value = up;
 });
+
+/* ════════════════════════════════════════
+   매출 검토 패널 (워크스페이스 검토 UI를 통합 화면으로 이관 — 갭2)
+   - GET  /api/admin-milestone-revenue?status=&quarterId=
+   - POST /api/admin-milestone-revenue/:id/verify
+   - POST /api/admin-milestone-revenue/:id/reject { rejectReason }
+   - PUT  /api/admin-milestone-revenue/:id { eventRangeAmount }  (EVENT_RANGE·super only)
+   ════════════════════════════════════════ */
+const RV = { rows: [] };
+
+async function rvLoad() {
+  const status = document.getElementById('rvStatusFilter')?.value || 'PENDING';
+  const quarterId = document.getElementById('rvQuarterFilter')?.value || '';
+  const qs = '?status=' + encodeURIComponent(status) + (quarterId ? '&quarterId=' + encodeURIComponent(quarterId) : '');
+  const el = document.getElementById('rvList');
+  if (el) el.textContent = '로딩 중...';
+  const res = await amApi('/api/admin-milestone-revenue' + qs);
+  if (!res.ok) {
+    if (el) el.innerHTML = '<p style="color:#dc2626">조회 실패: ' + escHtmlAm(res.data?.error || '') + '</p>';
+    return;
+  }
+  RV.rows = res.data?.data?.entries || res.data?.entries || [];
+  rvRender();
+  rvFillQuarterFilter();
+}
+
+async function rvFillQuarterFilter() {
+  const sel = document.getElementById('rvQuarterFilter');
+  if (!sel || sel.options.length > 1) return; // 이미 채워졌으면 스킵
+  try {
+    if (!AM.quarters || !AM.quarters.length) {
+      const r = await amApi('/api/milestone-quarters');
+      AM.quarters = r.data?.data?.quarters || r.data?.quarters || [];
+    }
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">전체 분기</option>'
+      + AM.quarters.map(q => `<option value="${q.id}">${q.year} Q${q.quarter}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch (_) {}
+}
+
+function rvStatusBadge(s) {
+  const map = { PENDING: ['#fef3c7','#92400e','대기'], VERIFIED: ['#dcfce7','#15803d','완료'], REJECTED: ['#fee2e2','#b91c1c','반려'] };
+  const [bg, c, l] = map[s] || ['#f3f4f6','#6b7280', s || '—'];
+  return `<span style="background:${bg};color:${c};padding:2px 8px;border-radius:12px;font-size:11.5px;font-weight:600">${l}</span>`;
+}
+
+function rvRender() {
+  const el = document.getElementById('rvList');
+  const cntEl = document.getElementById('rvCount');
+  if (cntEl) cntEl.textContent = (RV.rows.length || 0) + '건';
+  if (!RV.rows.length) {
+    el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">해당 상태의 매출 실적이 없습니다.</p>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="ms-table">
+      <thead><tr>
+        <th>날짜</th><th>입력자</th><th>마일스톤</th><th style="text-align:right">금액</th><th>증빙</th><th>상태</th><th>관리</th>
+      </tr></thead>
+      <tbody>
+        ${RV.rows.map(e => {
+          const formula = e.bonusFormula || {};
+          const isEventRange = String(formula.type || formula.formula_type || '').toUpperCase() === 'EVENT_RANGE';
+          const rangeMin = Number(formula.minAmount ?? formula.min ?? 0);
+          const rangeMax = Number(formula.maxAmount ?? formula.max ?? 0);
+          const evidence = Array.isArray(e.evidenceFiles) ? e.evidenceFiles : [];
+          const evidenceHtml = evidence.length
+            ? evidence.map(f => `<a href="${escHtmlAm(f.url || f)}" target="_blank" style="font-size:11.5px;margin-right:6px">📎${escHtmlAm(f.name || '파일')}</a>`).join('')
+            : '<span style="color:#9ca3af;font-size:11.5px">없음</span>';
+          let actions;
+          if (e.status === 'PENDING') {
+            if (isEventRange) {
+              actions = `
+                <div style="font-size:11px;color:#7c3aed;margin-bottom:3px">범위 ${(rangeMin/10000).toLocaleString()}~${(rangeMax/10000).toLocaleString()}만원 (원 단위 입력)</div>
+                <input type="number" id="rvEvAmt_${e.id}" placeholder="원 단위 금액" min="${rangeMin}" max="${rangeMax}" style="width:130px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12.5px">
+                <button class="ms-btn ms-btn-primary ms-btn-sm" style="margin-left:4px" onclick="rvEventRange(${e.id})">검증+금액확정</button>
+                <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rvReject(${e.id})">반려</button>`;
+            } else {
+              actions = `
+                <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="rvVerify(${e.id})">✅ 승인</button>
+                <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="rvReject(${e.id})">반려</button>`;
+            }
+          } else if (e.status === 'REJECTED' && e.rejectReason) {
+            actions = `<span style="font-size:11px;color:#b91c1c">사유: ${escHtmlAm(e.rejectReason)}</span>`;
+          } else {
+            actions = '<span style="color:#9ca3af;font-size:12px">—</span>';
+          }
+          return `
+          <tr>
+            <td style="font-size:12px;white-space:nowrap">${amDate(e.revenueDate)}</td>
+            <td style="font-size:12.5px">${escHtmlAm(e.enteredByName || '—')}</td>
+            <td><code style="font-size:11.5px;background:#f1f5f9;padding:2px 5px;border-radius:4px">${escHtmlAm(e.milestoneCode || '')}</code> ${escHtmlAm(e.milestoneName || '')}</td>
+            <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${Number(e.amount || 0).toLocaleString()} ${escHtmlAm(e.amountUnit || '원')}</td>
+            <td>${evidenceHtml}</td>
+            <td>${rvStatusBadge(e.status)}</td>
+            <td>${actions}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+window.rvVerify = async function (id) {
+  if (!confirm('이 매출 실적을 검증(승인) 처리하시겠습니까?')) return;
+  const res = await amApi(`/api/admin-milestone-revenue/${id}/verify`, { method: 'POST' });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '승인 실패'), 'error'); return; }
+  amToast('매출 검증 완료', 'success');
+  await rvLoad();
+};
+
+window.rvReject = async function (id) {
+  const reason = prompt('반려 사유를 입력하세요 (필수):', '');
+  if (reason == null) return;
+  if (!reason.trim()) { amToast('반려 사유 필수', 'error'); return; }
+  const res = await amApi(`/api/admin-milestone-revenue/${id}/reject`, { method: 'POST', body: { rejectReason: reason.trim() } });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '반려 실패'), 'error'); return; }
+  amToast('반려 처리 완료', 'success');
+  await rvLoad();
+};
+
+window.rvEventRange = async function (id) {
+  const input = document.getElementById(`rvEvAmt_${id}`);
+  const amt = input ? Number(input.value) : 0;
+  if (!Number.isFinite(amt) || amt <= 0) { amToast('금액을 입력하세요', 'error'); return; }
+  const minA = Number(input.min || 0), maxA = Number(input.max || 0);
+  if (maxA > 0 && (amt < minA || amt > maxA)) {
+    amToast(`범위 내 금액을 입력하세요 (${(minA/10000).toLocaleString()}~${(maxA/10000).toLocaleString()}만원)`, 'error'); return;
+  }
+  const res = await amApi(`/api/admin-milestone-revenue/${id}`, { method: 'PUT', body: { eventRangeAmount: amt } });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '금액 확정 실패'), 'error'); return; }
+  amToast('검증 및 금액 확정 완료', 'success');
+  await rvLoad();
+};
+
+document.getElementById('rvStatusFilter')?.addEventListener('change', rvLoad);
+document.getElementById('rvQuarterFilter')?.addEventListener('change', rvLoad);
+document.getElementById('btnRvReload')?.addEventListener('click', rvLoad);

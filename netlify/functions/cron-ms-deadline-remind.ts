@@ -74,7 +74,7 @@ export default async function handler(_req: Request, _ctx: Context) {
             severity: dn <= 3 ? "warning" : "info",
             title: `성과관리 마감 D-${dn}일 — 미입력 ${operators.length}명`,
             message: `${quarterLabel} 미제출 운영자: ${operators.map((o: any) => o.name || "-").join(", ").slice(0, 200)}`,
-            link: "/admin#settlement-review",
+            link: "/admin#milestone-review",
           });
         } catch (e: any) {
           console.warn("[ms-deadline-remind:super]", e?.message);
