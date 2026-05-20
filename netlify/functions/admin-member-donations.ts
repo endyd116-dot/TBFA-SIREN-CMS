@@ -24,7 +24,7 @@ import { ok, badRequest, notFound, corsPreflight, methodNotAllowed } from "../..
    ========================================================= */
 
 export type DonationKind = "regular" | "onetime";
-export type DonationChannel = "toss" | "hyosung" | "ibk" | "manual";
+export type DonationChannel = "kicc" | "hyosung" | "ibk" | "manual";
 
 export interface AdminMemberDonationsQuery {
   memberId: number;            // required
@@ -71,16 +71,16 @@ function jsonError(step: string, err: any, status: number = 500) {
 }
 
 /** donations row → DonationChannel 매핑.
- *  payMethod / pgProvider / hyosung* / toss* 컬럼을 종합해 결정.
- *  순서: 토스 > 효성 > IBK(은행) > manual */
+ *  payMethod / pgProvider / hyosung* / pg* 컬럼을 종합해 결정.
+ *  순서: KICC(카드) > 효성 > IBK(은행) > manual */
 function resolveChannel(row: any): DonationChannel {
   const payMethod: string | null = row.payMethod || null;
   const pgProvider: string | null = row.pgProvider || null;
-  const hasToss = !!row.tossPaymentKey || !!row.tossOrderId || !!row.billingKeyId;
+  const hasCard = !!row.pgTid || !!row.pgOrderNo || !!row.billingKeyId;
   const hasHyosung = !!row.hyosungBillNo || !!row.hyosungContractNo || !!row.hyosungBillingId || !!row.hyosungMemberNo;
 
-  if (hasToss || pgProvider === "toss" || payMethod === "card" || payMethod === "toss_card") {
-    return "toss";
+  if (hasCard || pgProvider === "kicc" || payMethod === "card" || payMethod === "toss_card") {
+    return "kicc";
   }
   if (hasHyosung || payMethod === "cms" || payMethod === "hyosung") {
     return "hyosung";
@@ -148,8 +148,8 @@ export default async (req: Request) => {
           amount: donations.amount,
           payMethod: donations.payMethod,
           pgProvider: donations.pgProvider,
-          tossPaymentKey: donations.tossPaymentKey,
-          tossOrderId: donations.tossOrderId,
+          pgTid: donations.pgTid,
+          pgOrderNo: donations.pgOrderNo,
           billingKeyId: donations.billingKeyId,
           hyosungBillNo: donations.hyosungBillNo,
           hyosungContractNo: donations.hyosungContractNo,

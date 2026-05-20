@@ -1,0 +1,280 @@
+/**
+ * POST|GET /api/billing-approve   ← ★ KICC returnUrl 핸들러 (정기 빌키 등록 복귀 지점)
+ *
+ * KICC 정기 후원 2단계 — 빌키 발급(approval) + 1회차 즉시결제(approval/batch).
+ * - KICC가 빌키 등록창 인증 후 이 URL로 POST 복귀(authorizationId·shopOrderNo)
+ * - register 때 저장한 pending(type=regular) 로드 → ★ 서버 금액 기준
+ * - 발급 승인 → 빌키 회신 → billing_keys 저장 → 빌키로 1회차 청구
+ * - 영수증 + 감사 메일 + 등급 재계산 + donor_type 재평가
+ * - 처리 후 302 redirect → /billing-success.html(성공) / /payment-fail.html(실패)
+ *
+ * 프론트(A)는 이 API를 직접 호출하지 않음 — success/fail 페이지는 표시 전용.
+ */
+import { eq, and, sql } from "drizzle-orm";
+import crypto from "crypto";
+import { db, billingKeys, donations } from "../../db";
+import { logUserAction } from "../../lib/audit";
+import { sendEmail, tplDonationThanks } from "../../lib/email";
+import { recalculateGrade } from "../../lib/grade-calculator";
+import { safeReevaluate } from "../../lib/donor-status";
+import { approveTrade, chargeWithBillingKey, generateShopOrderNo, calculateNextBillingDate } from "../../lib/kicc";
+
+const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
+
+function redirect(path: string): Response {
+  return new Response(null, { status: 302, headers: { Location: `${SITE_URL}${path}`, "Cache-Control": "no-store" } });
+}
+function failRedirect(reason: string): Response {
+  return redirect(`/payment-fail.html?reason=${encodeURIComponent(reason.slice(0, 100))}`);
+}
+function successRedirect(donationId: number): Response {
+  return redirect(`/billing-success.html?donationId=${donationId}&donationNo=D-${String(donationId).padStart(7, "0")}`);
+}
+
+async function parseReturn(req: Request): Promise<Record<string, string>> {
+  const obj: Record<string, string> = {};
+  const url = new URL(req.url);
+  for (const [k, val] of url.searchParams) obj[k] = val;
+  if (req.method === "POST") {
+    const ct = req.headers.get("content-type") || "";
+    const raw = await req.text().catch(() => "");
+    if (raw) {
+      if (ct.includes("application/json")) {
+        try {
+          Object.assign(obj, JSON.parse(raw));
+        } catch {
+          /* noop */
+        }
+      } else {
+        for (const [k, val] of new URLSearchParams(raw)) obj[k] = val;
+      }
+    }
+  }
+  return obj;
+}
+
+function generateCustomerKey(memberId: number | null): string {
+  const rand = crypto.randomBytes(memberId ? 4 : 8).toString("hex");
+  return memberId ? `M${memberId}-${rand}` : `G-${rand}`;
+}
+function generateReceiptNumber(donationId: number): string {
+  return `TBFA-${new Date().getFullYear()}-${String(donationId).padStart(6, "0")}`;
+}
+function addMonth(from: Date): Date {
+  const d = new Date(from);
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+export default async (req: Request) => {
+  if (req.method !== "POST" && req.method !== "GET") return failRedirect("잘못된 접근입니다");
+
+  try {
+    const p = await parseReturn(req);
+    const authorizationId = p.authorizationId || p.authorizationid || "";
+    const pgOrderNo = p.shopOrderNo || p.shoporderno || p.pgOrderNo || "";
+
+    if (p.resCd && p.resCd !== "0000") {
+      if (pgOrderNo) {
+        await db
+          .update(donations)
+          .set({ status: "failed", failureReason: (p.resMsg || "빌키 등록 인증 실패").slice(0, 500), updatedAt: new Date() } as any)
+          .where(eq(donations.pgOrderNo, pgOrderNo));
+      }
+      return failRedirect(p.resMsg || "정기 후원 등록이 취소되었습니다");
+    }
+    if (!authorizationId || !pgOrderNo) return failRedirect("결제 정보가 누락되었습니다");
+
+    /* pending(type=regular) 로드 — 서버 신뢰 기준 */
+    const [donation] = await db.select().from(donations).where(eq(donations.pgOrderNo, pgOrderNo)).limit(1);
+    if (!donation) return failRedirect("주문 정보를 찾을 수 없습니다");
+    if (donation.status === "completed") return successRedirect(donation.id);
+
+    const memberId: number | null = donation.memberId ?? null;
+    const amount = donation.amount;
+
+    /* 회원 1인당 활성 빌키 1개 — 재확인(중복 제출 방지) */
+    if (memberId) {
+      const [activeKey] = await db
+        .select({ id: billingKeys.id })
+        .from(billingKeys)
+        .where(and(eq(billingKeys.memberId, memberId), eq(billingKeys.isActive, true)))
+        .limit(1);
+      if (activeKey) return successRedirect(donation.id);
+    }
+
+    /* 1) 빌키 발급 승인 */
+    const issue = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo, amount });
+    if (!issue.success || !issue.billKey) {
+      await db
+        .update(donations)
+        .set({ status: "failed", failureReason: (issue.errorMessage || "빌키 발급 실패").slice(0, 500), updatedAt: new Date() } as any)
+        .where(eq(donations.id, donation.id));
+      await logUserAction(req, memberId, donation.donorName, "billing_issue_failed", {
+        target: pgOrderNo,
+        detail: { code: issue.errorCode, message: issue.errorMessage },
+        success: false,
+      });
+      return failRedirect(issue.errorMessage || "카드 등록에 실패했습니다");
+    }
+
+    const billKey = issue.billKey;
+    const cardCompany = issue.cardCompany || "카드";
+    const cardNumberMasked = issue.cardNumberMasked || "****-****-****-****";
+    const cardType = issue.cardType === "체크" ? "체크" : "신용";
+
+    /* 2) 빌키로 1회차 즉시결제 */
+    const chargeOrderNo = generateShopOrderNo("SIREN-BILL");
+    const charge = await chargeWithBillingKey({
+      billingKey: billKey,
+      shopOrderNo: chargeOrderNo,
+      amount,
+      goodsName: "교사유가족협의회 정기 후원 (1회차)",
+      customerName: donation.donorName,
+      customerEmail: donation.donorEmail || undefined,
+    });
+
+    if (!charge.success) {
+      /* 빌키는 발급됐으나 첫 결제 실패 → 비활성 빌키로 기록 + donation failed */
+      let custKey = "";
+      for (let i = 0; i < 3; i++) {
+        custKey = generateCustomerKey(memberId);
+        const [dup] = await db.select({ id: billingKeys.id }).from(billingKeys).where(eq(billingKeys.customerKey, custKey)).limit(1);
+        if (!dup) break;
+      }
+      await db
+        .insert(billingKeys)
+        .values({
+          memberId: memberId ?? undefined,
+          billingKey: billKey,
+          customerKey: custKey,
+          pgProvider: "kicc",
+          cardCompany,
+          cardNumberMasked,
+          cardType,
+          amount,
+          isActive: false,
+          consecutiveFailCount: 1,
+          lastFailureReason: (charge.errorMessage || "첫 결제 실패").slice(0, 500),
+          deactivatedAt: new Date(),
+          deactivatedReason: "first_charge_failed",
+        } as any)
+        .catch(() => {});
+      await db
+        .update(donations)
+        .set({ status: "failed", failureReason: (charge.errorMessage || "첫 결제 실패").slice(0, 500), updatedAt: new Date() } as any)
+        .where(eq(donations.id, donation.id));
+      await logUserAction(req, memberId, donation.donorName, "billing_first_charge_failed", {
+        target: pgOrderNo,
+        detail: { code: charge.errorCode, message: charge.errorMessage, amount },
+        success: false,
+      });
+      return failRedirect(charge.errorMessage || "첫 결제에 실패했습니다");
+    }
+
+    /* 3) billing_keys INSERT (활성) */
+    const now = new Date();
+    const nextCharge = addMonth(now);
+    let customerKey = "";
+    for (let i = 0; i < 3; i++) {
+      customerKey = generateCustomerKey(memberId);
+      const [dup] = await db.select({ id: billingKeys.id }).from(billingKeys).where(eq(billingKeys.customerKey, customerKey)).limit(1);
+      if (!dup) break;
+    }
+    const [insertedBilling] = await db
+      .insert(billingKeys)
+      .values({
+        memberId: memberId ?? undefined,
+        billingKey: billKey,
+        customerKey,
+        pgProvider: "kicc",
+        cardCompany,
+        cardNumberMasked,
+        cardType,
+        amount,
+        isActive: true,
+        nextChargeAt: nextCharge,
+        lastChargedAt: now,
+        consecutiveFailCount: 0,
+      } as any)
+      .returning({ id: billingKeys.id });
+
+    /* 4) pending donation → completed (첫 결제) */
+    const receiptNumber = generateReceiptNumber(donation.id);
+    const [updated] = await db
+      .update(donations)
+      .set({
+        status: "completed",
+        pgTid: charge.pgTid,
+        transactionId: charge.pgTid,
+        billingKeyId: insertedBilling.id,
+        receiptIssued: true,
+        receiptIssuedAt: now,
+        receiptNumber,
+        receiptRequested: true,
+        paidAt: now,
+        updatedAt: now,
+      } as any)
+      .where(eq(donations.id, donation.id))
+      .returning({
+        id: donations.id,
+        donorName: donations.donorName,
+        donorEmail: donations.donorEmail,
+        amount: donations.amount,
+        memberId: donations.memberId,
+      });
+
+    /* 5) members 약정일·다음청구일 (회원만) */
+    if (memberId) {
+      try {
+        await db.execute(sql`
+          UPDATE members
+          SET billing_day = ${now.getDate()},
+              next_billing_date = ${nextCharge.toISOString().slice(0, 10)}::date,
+              updated_at = NOW()
+          WHERE id = ${memberId}
+        `);
+      } catch (e) {
+        console.warn("[billing-approve] members 약정일 갱신 실패(무시):", e);
+      }
+    }
+
+    /* 6) 감사 메일 */
+    try {
+      const tpl = tplDonationThanks({
+        donorName: updated.donorName,
+        amount: updated.amount,
+        donationType: "regular",
+        payMethod: "card",
+        donationId: updated.id,
+        donationDate: now,
+        isMember: !!updated.memberId,
+      });
+      await sendEmail({ to: updated.donorEmail || donation.donorEmail || "", subject: tpl.subject, html: tpl.html });
+    } catch (e) {
+      console.error("[billing-approve] 메일 예외:", e);
+    }
+
+    /* 7) 등급 재계산 + donor_type 재평가 (fire-and-forget) */
+    if (memberId) {
+      try {
+        await recalculateGrade(memberId);
+      } catch (e) {
+        console.error("[billing-approve] 등급 재계산 실패:", e);
+      }
+    }
+    await safeReevaluate(memberId, "billing-approve");
+
+    await logUserAction(req, memberId, updated.donorName, "billing_register_success", {
+      target: pgOrderNo,
+      detail: { billingKeyId: insertedBilling.id, donationId: updated.id, amount, cardCompany, cardNumberMasked, nextChargeAt: nextCharge.toISOString() },
+    });
+
+    return successRedirect(updated.id);
+  } catch (err) {
+    console.error("[billing-approve]", err);
+    return failRedirect("정기 후원 등록 중 오류가 발생했습니다");
+  }
+};
+
+export const config = { path: "/api/billing-approve" };

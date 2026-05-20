@@ -49,12 +49,12 @@ export default async (req: Request, _ctx: Context) => {
 
         // 실패 사유 Top 5
         const errorRes: any = await db.execute(sql`
-          SELECT toss_response_code AS code, COUNT(*) AS cnt
+          SELECT pg_response_code AS code, COUNT(*) AS cnt
           FROM billing_logs
           WHERE status = 'failed'
             AND requested_at >= ${startDate.toISOString()}::timestamp
-            AND toss_response_code IS NOT NULL
-          GROUP BY toss_response_code
+            AND pg_response_code IS NOT NULL
+          GROUP BY pg_response_code
           ORDER BY cnt DESC
           LIMIT 5
         `);
@@ -107,10 +107,10 @@ export default async (req: Request, _ctx: Context) => {
             attemptNumber: billingLogs.attemptNumber,
             amount: billingLogs.amount,
             status: billingLogs.status,
-            tossOrderId: billingLogs.tossOrderId,
-            tossPaymentKey: billingLogs.tossPaymentKey,
-            tossResponseCode: billingLogs.tossResponseCode,
-            tossResponseMessage: billingLogs.tossResponseMessage,
+            pgOrderNo: billingLogs.pgOrderNo,
+            pgTid: billingLogs.pgTid,
+            pgResponseCode: billingLogs.pgResponseCode,
+            pgResponseMessage: billingLogs.pgResponseMessage,
             donationId: billingLogs.donationId,
             requestedAt: billingLogs.requestedAt,
             completedAt: billingLogs.completedAt,
