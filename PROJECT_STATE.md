@@ -23,6 +23,12 @@
 
 ## 2. 현재 상태 (2026-05-21)
 
+### 🏁 급여 고도화 정식 종결 (2026-05-21)
+- 세전까지였던 급여 → **직접편집·조정라인·법정공제·실수령·지급확정(PAID)·계산기준 설정·수정이력**까지 확장.
+- Stage1 `00f6140`+`87bb7eb`(스키마) → Stage2 `ff48c18`(백엔드) → Stage3 `a30c23f`(프론트). 3단계 머지 + Swain 라이브 검증 완료.
+- 직원 마이페이지·PDF·CSV에 공제·실수령 노출, PAID 후에도 조회 유지.
+- 종결 문서 → `docs/history/milestones/2026-05-20-payroll-enhance.md`.
+
 ### 🏁 성과관리 화면 통합 정식 종결 (2026-05-21)
 - 통합 CMS 운영 관리 **성과관리 설정 + 비매출 검토 2메뉴 → 단일 "성과관리" 6탭** 통합.
 - 마일스톤 정의 단일 API(`milestone-definitions`)·소프트삭제로 결산 참조 보존. 중복 API(`admin-milestone-definitions.ts`)·옛 설정 화면(`admin-milestone-settings.html`/`.js`) 완전 제거. DB/마이그 변경 0.
@@ -59,8 +65,8 @@
 ### 현재 진행 트랙 (2026-05-21)
 | 트랙 | 상태 | 다음 |
 |---|---|---|
-| **급여 고도화 Stage3** (편집·조정·공제·실수령·PAID·계산기준·이력) | 🟡 머지 `a30c23f` | Swain 라이브 검증 → 종결. 설계 `docs/active/2026-05-20-payroll-enhance.md` |
-| **근태 연동 갭 수정** (G1 결재단절·G2 통계·G3 캘린더·G4 라벨) | 🟡 설계·C 트리거 발행 `610e64e` | C가 worktree 수정 → push → 메인 머지·검증. 설계 `docs/active/2026-05-20-att-gap-fix.md` |
+| **급여 고도화** (편집·조정·공제·실수령·PAID·계산기준·이력) | 🟢 **종결** — 3단계 머지 + Swain 라이브 검증 완료 | 종결 문서 `docs/history/milestones/2026-05-20-payroll-enhance.md` |
+| **근태 연동 갭 수정** (G1 결재단절·G2 통계·G3 캘린더·G4 라벨) | 🟡 머지 `a189fe9`(c2a4fa2)·메인 코드검증 PASS | Swain 라이브 검증 → 종결. 설계 `docs/active/2026-05-20-att-gap-fix.md` |
 | **성과관리 화면 통합** | 🟢 종결(§2) | — |
 
 ---
