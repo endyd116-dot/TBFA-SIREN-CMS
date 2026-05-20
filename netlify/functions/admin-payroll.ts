@@ -11,7 +11,7 @@
  * R37 1일차 — API 골격. 자동 집계·발송은 후속 일차에서 구현.
  */
 import { db } from "../../db/index";
-import { payrollSlips, members } from "../../db/schema";
+import { payrollSlips, payrollAudit, members } from "../../db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { calculatePayrollForMonth } from "../../lib/payroll-calc";
@@ -119,28 +119,104 @@ export default async function handler(req: Request) {
     } catch (err) { return jsonError("select_slips", err); }
   }
 
-  // PATCH — review_note·status 수정
+  // PATCH — 금액 직접편집·조정라인·검토메모·상태
   if (method === "PATCH") {
     if (!idNum) return jsonBadRequest("id 필수");
     let body: any;
     try { body = await req.json(); } catch { return jsonBadRequest("JSON 본문 필수"); }
 
+    const MONEY_FIELDS = [
+      "baseSalaryMonth", "overtimePay", "deductionUnpaid", "performanceBonus", "perfectBonus",
+      "incomeTax", "localTax", "nationalPension", "healthInsurance", "longTermCare",
+      "employmentInsurance", "otherDeduction",
+    ];
+    const SNAKE: Record<string, string> = {
+      baseSalaryMonth: "base_salary_month", overtimePay: "overtime_pay", deductionUnpaid: "deduction_unpaid",
+      performanceBonus: "performance_bonus", perfectBonus: "perfect_bonus",
+      incomeTax: "income_tax", localTax: "local_tax", nationalPension: "national_pension",
+      healthInsurance: "health_insurance", longTermCare: "long_term_care",
+      employmentInsurance: "employment_insurance", otherDeduction: "other_deduction",
+    };
+    const isEdit = MONEY_FIELDS.some(f => f in body) || "adjustments" in body;
+
     try {
+      const [cur] = await db.select().from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+      if (!cur) return jsonBadRequest("명세서를 찾을 수 없습니다");
+
       const update: any = { updatedAt: new Date() };
+      const auditRows: Array<{ field: string; oldValue: string; newValue: string }> = [];
+
+      if (isEdit) {
+        const r2 = (n: number) => Math.round(n * 100) / 100;
+        const next: Record<string, number> = {};
+        for (const f of MONEY_FIELDS) {
+          next[f] = (f in body) ? Number(body[f]) : Number((cur as any)[f] || 0);
+          if (!Number.isFinite(next[f])) return jsonBadRequest(`${f} 숫자 오류`);
+        }
+        // 조정 라인 [{label, amount, kind:'ADD'|'DEDUCT', reason}]
+        let adjustments: any[] = Array.isArray((cur as any).adjustments) ? (cur as any).adjustments : [];
+        if ("adjustments" in body) {
+          if (!Array.isArray(body.adjustments)) return jsonBadRequest("adjustments는 배열이어야 합니다");
+          adjustments = body.adjustments.map((a: any) => ({
+            label: String(a?.label || "").slice(0, 60),
+            amount: Number(a?.amount) || 0,
+            kind: a?.kind === "DEDUCT" ? "DEDUCT" : "ADD",
+            reason: String(a?.reason || "").slice(0, 200),
+          }));
+        }
+        const adjAdd = adjustments.filter(a => a.kind === "ADD").reduce((s, a) => s + (Number(a.amount) || 0), 0);
+        const adjDeduct = adjustments.filter(a => a.kind === "DEDUCT").reduce((s, a) => s + (Number(a.amount) || 0), 0);
+
+        const grossPay = next.baseSalaryMonth + next.overtimePay - next.deductionUnpaid
+          + next.performanceBonus + next.perfectBonus + adjAdd - adjDeduct;
+        const totalDeduction = next.incomeTax + next.localTax + next.nationalPension
+          + next.healthInsurance + next.longTermCare + next.employmentInsurance + next.otherDeduction;
+        const netPay = grossPay - totalDeduction;
+
+        for (const f of MONEY_FIELDS) {
+          const oldV = Number((cur as any)[f] || 0);
+          if (r2(oldV) !== r2(next[f])) {
+            auditRows.push({ field: SNAKE[f], oldValue: String(r2(oldV)), newValue: String(r2(next[f])) });
+          }
+          update[f] = String(r2(next[f]));
+        }
+        if ("adjustments" in body) {
+          const oldAdj = JSON.stringify((cur as any).adjustments || []);
+          const newAdj = JSON.stringify(adjustments);
+          if (oldAdj !== newAdj) auditRows.push({ field: "adjustments", oldValue: oldAdj.slice(0, 500), newValue: newAdj.slice(0, 500) });
+          update.adjustments = adjustments;
+        }
+        update.grossPay = String(r2(grossPay));
+        update.totalDeduction = String(r2(totalDeduction));
+        update.netPay = String(r2(netPay));
+        update.manuallyEdited = true;   // 재집계가 덮지 않도록 잠금
+      }
+
       if (typeof body.reviewNote === "string") update.reviewNote = body.reviewNote;
       if (typeof body.status === "string") {
         const allowed = ["DRAFT", "REVIEWED", "APPROVED", "SENT", "HOLD"];
-        if (!allowed.includes(body.status)) return jsonBadRequest("status 값 부적합");
+        if (!allowed.includes(body.status)) return jsonBadRequest("status 값 부적합 (PAID는 지급 확정 액션으로)");
         update.status = body.status;
         if (body.status === "REVIEWED") {
           update.reviewedBy = String(admin.id);
           update.reviewedAt = new Date();
         }
       }
+
       const [updated] = await db.update(payrollSlips).set(update)
-        .where(eq(payrollSlips.id, idNum))
-        .returning();
+        .where(eq(payrollSlips.id, idNum)).returning();
       if (!updated) return jsonBadRequest("명세서를 찾을 수 없습니다");
+
+      // 수정 이력 기록 (누가·무엇·사유)
+      if (auditRows.length) {
+        const reason = String(body.reason || "").slice(0, 200);
+        try {
+          await db.insert(payrollAudit).values(auditRows.map(a => ({
+            slipId: idNum, changedBy: String(admin.id),
+            field: a.field, oldValue: a.oldValue, newValue: a.newValue, reason,
+          })));
+        } catch (e) { console.warn("[admin-payroll] audit insert failed:", e); }
+      }
       return jsonOk(updated);
     } catch (err) { return jsonError("update_slip", err); }
   }
@@ -181,6 +257,25 @@ export default async function handler(req: Request) {
       } catch (err) { return jsonError("hold_slip", err); }
     }
 
+    // 지급 확정 (PAID·지급일·처리자 기록 — APPROVED/SENT에서만)
+    if (action === "paid") {
+      if (!idNum) return jsonBadRequest("id 필수");
+      try {
+        const [cur] = await db.select({ status: payrollSlips.status })
+          .from(payrollSlips).where(eq(payrollSlips.id, idNum)).limit(1);
+        if (!cur) return jsonBadRequest("명세서를 찾을 수 없습니다");
+        if (!["APPROVED", "SENT"].includes(cur.status)) {
+          return jsonBadRequest("승인(APPROVED) 또는 발송(SENT) 상태에서만 지급 확정 가능합니다");
+        }
+        const paidUpdate: any = {
+          status: "PAID", paidBy: String(admin.id), paidAt: new Date(), updatedAt: new Date(),
+        };
+        const [updated] = await db.update(payrollSlips).set(paidUpdate)
+          .where(eq(payrollSlips.id, idNum)).returning();
+        return jsonOk(updated);
+      } catch (err) { return jsonError("paid_slip", err); }
+    }
+
     // 월별 수동 재집계 — lib/payroll-calc.ts 의 calculatePayrollForMonth 공유
     if (action === "recalculate") {
       const y = Number(url.searchParams.get("year") || 0);
@@ -195,7 +290,7 @@ export default async function handler(req: Request) {
       } catch (err) { return jsonError("recalculate", err); }
     }
 
-    return jsonBadRequest("action 값 부적합 (approve|hold|recalculate)");
+    return jsonBadRequest("action 값 부적합 (approve|hold|paid|recalculate)");
   }
 
   return new Response(JSON.stringify({ ok: false, error: "지원하지 않는 메서드" }), {

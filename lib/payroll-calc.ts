@@ -14,6 +14,48 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
+/* === 급여 고도화 (2026-05-20): 계산 기준 + 공제 === */
+export interface PayrollSettings {
+  overtimeMultiplier: number; annualHours: number; monthlyWorkDays: number;
+  pensionRate: number; healthRate: number; longtermRate: number;
+  employmentRate: number; incomeTaxRate: number;
+}
+const DEFAULT_PAYROLL_SETTINGS: PayrollSettings = {
+  overtimeMultiplier: 1.5, annualHours: 2080, monthlyWorkDays: 22,
+  pensionRate: 0.045, healthRate: 0.03545, longtermRate: 0.1295,
+  employmentRate: 0.009, incomeTaxRate: 0,
+};
+
+/** payroll_settings(id=1) 로드 — 행 없으면 기본값. */
+export async function loadPayrollSettings(): Promise<PayrollSettings> {
+  try {
+    const r = await db.execute(sql`SELECT * FROM payroll_settings WHERE id = 1 LIMIT 1`);
+    const row = (r as any).rows?.[0] || (r as any[])[0];
+    if (!row) return { ...DEFAULT_PAYROLL_SETTINGS };
+    return {
+      overtimeMultiplier: Number(row.overtime_multiplier ?? 1.5),
+      annualHours:        Number(row.annual_hours ?? 2080),
+      monthlyWorkDays:    Number(row.monthly_work_days ?? 22),
+      pensionRate:        Number(row.pension_rate ?? 0.045),
+      healthRate:         Number(row.health_rate ?? 0.03545),
+      longtermRate:       Number(row.longterm_rate ?? 0.1295),
+      employmentRate:     Number(row.employment_rate ?? 0.009),
+      incomeTaxRate:      Number(row.income_tax_rate ?? 0),
+    };
+  } catch { return { ...DEFAULT_PAYROLL_SETTINGS }; }
+}
+
+/** 세전총액 기준 법정 공제 자동 산출 (장기요양=건강보험액×요율·지방세=소득세×10%). */
+export function computeDeductions(gross: number, s: PayrollSettings) {
+  const nationalPension = gross * s.pensionRate;
+  const healthInsurance = gross * s.healthRate;
+  const longTermCare = healthInsurance * s.longtermRate;
+  const employmentInsurance = gross * s.employmentRate;
+  const incomeTax = gross * s.incomeTaxRate;
+  const localTax = incomeTax * 0.1;
+  return { nationalPension, healthInsurance, longTermCare, employmentInsurance, incomeTax, localTax };
+}
+
 export interface PayrollCalcResult {
   year: number;
   month: number;
@@ -51,6 +93,7 @@ export async function calculatePayrollForMonth(
   const force = !!options.force;
   const { first, last } = monthRange(year, month);
   const q = quarterOfMonth(month);
+  const settings = await loadPayrollSettings();
 
   const result: PayrollCalcResult = {
     year, month,
@@ -137,14 +180,21 @@ export async function calculatePayrollForMonth(
       const qs = ((qsRows as any).rows || (qsRows as any[]))[0] || {};
       const quarterTotalBonus = Number(qs.total_bonus || 0);
 
-      // 3. 급여 구성 계산
+      // 3. 급여 구성 계산 (계산 기준은 payroll_settings)
       const baseSalaryMonth = baseSalary / 12;
-      const hourly = baseSalary / 2080;                       // 연 2080시간 기준 시급
-      const overtimePay = (overtimeMins / 60) * hourly * 1.5;
-      const deductionUnpaid = unpaidLeaveDays * (baseSalaryMonth / 22);
+      const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급
+      const overtimePay = (overtimeMins / 60) * hourly * settings.overtimeMultiplier;
+      const deductionUnpaid = unpaidLeaveDays * (baseSalaryMonth / settings.monthlyWorkDays);
       const performanceBonus = quarterTotalBonus / 3;         // 분기 3개월 균등 안분
-      const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (회귀 위험 §10)
+      const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (이번 범위 외)
       const grossPay = baseSalaryMonth + overtimePay - deductionUnpaid + performanceBonus + perfectBonus;
+
+      // 3-2. 공제·실수령 (4대보험 요율 자동 + 소득세 정률 + 지방세 10%)
+      const ded = computeDeductions(grossPay, settings);
+      const totalDeduction =
+        ded.nationalPension + ded.healthInsurance + ded.longTermCare +
+        ded.employmentInsurance + ded.incomeTax + ded.localTax;
+      const netPay = grossPay - totalDeduction;
 
       // 4. 4-자리 반올림
       const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -165,20 +215,33 @@ export async function calculatePayrollForMonth(
           performanceBonus: r2(performanceBonus),
           perfectBonus,
           grossPay: r2(grossPay),
+          deductions: {
+            nationalPension: r2(ded.nationalPension),
+            healthInsurance: r2(ded.healthInsurance),
+            longTermCare: r2(ded.longTermCare),
+            employmentInsurance: r2(ded.employmentInsurance),
+            incomeTax: r2(ded.incomeTax),
+            localTax: r2(ded.localTax),
+            totalDeduction: r2(totalDeduction),
+          },
+          netPay: r2(netPay),
         },
+        settings,
         calculatedAt: new Date().toISOString(),
       };
 
       // 5. UPSERT — 기존 status≥REVIEWED은 force=false면 보존 (skip)
       const existing = await db.execute(sql`
-        SELECT id, status FROM payroll_slips
+        SELECT id, status, manually_edited FROM payroll_slips
         WHERE member_uid = ${memberUid} AND pay_year = ${year} AND pay_month = ${month}
         LIMIT 1
       `);
       const existingRow = ((existing as any).rows || (existing as any[]))[0];
 
       if (existingRow) {
-        const lockable = ["REVIEWED", "APPROVED", "SENT"].includes(existingRow.status);
+        // REVIEWED 이상·PAID·수동 수정된 슬립은 재집계가 덮지 않음 (force 제외)
+        const lockable = ["REVIEWED", "APPROVED", "SENT", "PAID"].includes(existingRow.status)
+          || existingRow.manually_edited === true;
         if (lockable && !force) {
           result.skipped++;
           result.slipIds.push(Number(existingRow.id));
@@ -201,6 +264,14 @@ export async function calculatePayrollForMonth(
             performance_bonus = ${r2(performanceBonus)},
             perfect_bonus = ${r2(perfectBonus)},
             gross_pay = ${r2(grossPay)},
+            national_pension = ${r2(ded.nationalPension)},
+            health_insurance = ${r2(ded.healthInsurance)},
+            long_term_care = ${r2(ded.longTermCare)},
+            employment_insurance = ${r2(ded.employmentInsurance)},
+            income_tax = ${r2(ded.incomeTax)},
+            local_tax = ${r2(ded.localTax)},
+            total_deduction = ${r2(totalDeduction)},
+            net_pay = ${r2(netPay)},
             calculation_snapshot = ${JSON.stringify(snapshot)}::jsonb,
             status = 'DRAFT',
             updated_at = NOW()
@@ -220,12 +291,14 @@ export async function calculatePayrollForMonth(
             working_days, working_mins, overtime_mins, late_count, absent_count,
             paid_leave_days, unpaid_leave_days, perfect_attendance,
             base_salary_month, overtime_pay, deduction_unpaid, performance_bonus, perfect_bonus, gross_pay,
+            national_pension, health_insurance, long_term_care, employment_insurance, income_tax, local_tax, total_deduction, net_pay,
             status, calculation_snapshot
           ) VALUES (
             ${memberUid}, ${year}, ${month},
             ${workingDays}, ${workingMins}, ${overtimeMins}, ${lateCount}, ${absentCount},
             ${paidLeaveDays}, ${unpaidLeaveDays}, ${perfectAttendance},
             ${r2(baseSalaryMonth)}, ${r2(overtimePay)}, ${r2(deductionUnpaid)}, ${r2(performanceBonus)}, ${r2(perfectBonus)}, ${r2(grossPay)},
+            ${r2(ded.nationalPension)}, ${r2(ded.healthInsurance)}, ${r2(ded.longTermCare)}, ${r2(ded.employmentInsurance)}, ${r2(ded.incomeTax)}, ${r2(ded.localTax)}, ${r2(totalDeduction)}, ${r2(netPay)},
             'DRAFT', ${JSON.stringify(snapshot)}::jsonb
           )
           RETURNING id

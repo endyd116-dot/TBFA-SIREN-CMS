@@ -3840,7 +3840,7 @@ export const payrollSlips = pgTable("payroll_slips", {
 
   // 급여 고도화 (2026-05-20): 수동 수정 잠금·조정 라인·공제·실수령·지급 확정
   manuallyEdited:       boolean("manually_edited").default(false).notNull(),
-  adjustments:          jsonb("adjustments").default(sql`'[]'::jsonb`).notNull(),  // [{label, amount, kind:'ADD'|'DEDUCT', reason}]
+  adjustments:          jsonb("adjustments").$type<any[]>().default([]).notNull(),  // [{label, amount, kind:'ADD'|'DEDUCT', reason}]
   incomeTax:            numeric("income_tax", { precision: 15, scale: 2 }).default("0").notNull(),
   localTax:             numeric("local_tax", { precision: 15, scale: 2 }).default("0").notNull(),
   nationalPension:      numeric("national_pension", { precision: 15, scale: 2 }).default("0").notNull(),
