@@ -293,7 +293,7 @@
           'gamification': '🎮 게이미피케이션',
           'popups': '📢 팝업 관리',
           'payroll': '💰 급여관리',
-          'milestone-review':   '🏆 성과관리',
+          'milestone-review':   '🏆 성과관리 설정',
           'attendance-settings': '📝 근태관리 설정',
         };
         const titleEl = document.getElementById('cmsPageTitle');
