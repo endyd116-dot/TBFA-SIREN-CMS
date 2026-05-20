@@ -30,9 +30,10 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 <div class="adm-tabs">
   <button class="adm-tab active" data-panel="defs">📋 마일스톤 정의</button>
   <button class="adm-tab" data-panel="quarters">🗓 분기 관리</button>
-  <button class="adm-tab" data-panel="settlements">✅ 결산 승인</button>
-  <button class="adm-tab" data-panel="roles">👥 담당 역할 설정</button>
+  <button class="adm-tab" data-panel="rolecat">🎯 역할 카탈로그 관리</button>
+  <button class="adm-tab" data-panel="roles">👥 직원 역할·마일스톤</button>
   <button class="adm-tab" data-panel="nonrevenue">📋 비매출 검토</button>
+  <button class="adm-tab" data-panel="settlements">✅ 결산 승인·지급</button>
 </div>
 
 <!-- 마일스톤 정의 패널 -->
@@ -95,9 +96,19 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   </div>
 </div>
 
-<!-- 담당 역할 설정 패널 -->
+<!-- 역할 카탈로그 관리 패널 (설정 화면에서 이식) -->
+<div id="panelRolecat" class="adm-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <p style="font-size:13px;color:#6b7280;margin:0">성과 담당 역할(SM·PM·SI 등)을 추가·수정·비활성화합니다. 변경은 모든 화면에 즉시 반영됩니다.</p>
+    <button class="ms-btn ms-btn-primary ms-btn-sm" id="btnAddRole">+ 신규 등록</button>
+  </div>
+  <div id="roleMgmtList">로딩 중...</div>
+  <p style="font-size:12px;color:#9ca3af;margin-top:12px;line-height:1.7">💡 비활성화한 역할은 신규 마일스톤·직원 배정 드롭다운에서 사라지지만 과거 결산·정의는 그대로 보존됩니다. 다시 활성화하면 즉시 복귀합니다.</p>
+</div>
+
+<!-- 직원 역할·마일스톤 패널 (역할 배정 + 직원별 정의 뷰 통합) -->
 <div id="panelRoles" class="adm-panel">
-  <p style="font-size:13px;color:#6b7280;margin-bottom:16px">각 운영자·어드민에게 마일스톤 담당 역할을 설정합니다.</p>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px">각 운영자·어드민에게 마일스톤 담당 역할을 배정하고, '상세'로 그 직원이 담당하는 마일스톤 정의를 일람·관리합니다.</p>
   <div id="rolesList"></div>
 </div>
 
@@ -224,10 +235,52 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   </div>
 </div>
 
+<!-- 역할 카탈로그 등록/편집 모달 (설정 화면에서 이식) -->
+<div id="roleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;overflow:auto">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:480px;margin:60px auto">
+    <h3 id="roleModalTitle" style="margin:0 0 16px;font-size:16px;font-weight:700">역할 등록</h3>
+    <input type="hidden" id="roleId">
+    <div class="form-group"><label>코드 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="roleCode" placeholder="예: SM, MARKETING" maxlength="10" style="text-transform:uppercase">
+      <div style="font-size:11.5px;color:#9ca3af;margin-top:4px">영문 대문자 2~10자 (수정 시 변경 불가)</div>
+    </div>
+    <div class="form-group"><label>이름 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="roleName" placeholder="예: 사무국장, 마케팅실장" maxlength="50"></div>
+    <div class="form-group"><label>설명</label>
+      <input type="text" id="roleDescription" placeholder="간단한 설명 (선택)"></div>
+    <div class="form-row">
+      <div class="form-group"><label>정렬순서</label><input type="number" id="roleSortOrder" value="0" min="0" step="1"></div>
+      <div class="form-group" id="roleActiveGroup" style="display:none">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" id="roleIsActive" style="width:auto" checked> 활성화</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="ms-btn ms-btn-ghost" id="btnRoleCancel">취소</button>
+      <button class="ms-btn ms-btn-primary" id="btnRoleSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 직원별 마일스톤 상세 모달 (설정 화면에서 이식) -->
+<div id="byMemberModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;overflow:auto">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:820px;margin:40px auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h3 id="byMemberModalTitle" style="margin:0;font-size:16px;font-weight:700">직원별 마일스톤</h3>
+      <button id="byMemberModalClose" type="button" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6b7280">✕</button>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <p id="byMemberModalSubtitle" style="font-size:12.5px;color:#6b7280;margin:0">—</p>
+      <button class="ms-btn ms-btn-primary ms-btn-sm" id="btnBmAddDef">+ 마일스톤 추가</button>
+    </div>
+    <div id="byMemberDefsList">—</div>
+  </div>
+</div>
+
 <div id="amToast" style="position:fixed;bottom:24px;right:24px;z-index:99999"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
-<script src="/js/admin-milestones.js?v=6-r39s8" defer></script>
+<script src="/js/admin-milestones.js?v=7-unify" defer></script>
 </body>
 </html>

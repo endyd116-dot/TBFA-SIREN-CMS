@@ -64,6 +64,7 @@ document.querySelectorAll('.adm-tab').forEach(btn => {
     if (btn.dataset.panel === 'defs') loadDefs();
     if (btn.dataset.panel === 'quarters') loadQuarters();
     if (btn.dataset.panel === 'settlements') loadSettlements();
+    if (btn.dataset.panel === 'rolecat') loadRoleMgmt();
     if (btn.dataset.panel === 'roles') loadRoles();
     if (btn.dataset.panel === 'nonrevenue') nrLoad();
   });
@@ -77,11 +78,11 @@ function capitalize(s) {
 async function loadDefs() {
   const role = document.getElementById('defRoleFilter')?.value || '';
   const cat = document.getElementById('defCatFilter')?.value || '';
-  let url = '/api/milestone-definitions';
-  const params = [];
+  /* 통합: 비활성(소프트삭제) 정의도 표시해 재활성화 가능하게 함 */
+  const params = ['activeOnly=0'];
   if (role) params.push('role=' + role);
   if (cat) params.push('category=' + cat);
-  if (params.length) url += '?' + params.join('&');
+  const url = '/api/milestone-definitions?' + params.join('&');
 
   const res = await amApi(url);
   if (!res.ok) { document.getElementById('defsList').innerHTML = '<p style="color:#dc2626">불러오기 실패</p>'; return; }
@@ -109,14 +110,19 @@ function renderDefs() {
   el.innerHTML = `
     <table class="ms-table">
       <thead><tr>
-        <th>코드</th><th>이름</th><th>역할</th><th>카테고리</th><th>사업체</th><th>정렬</th><th>관리</th>
+        <th>활성</th><th>코드</th><th>이름</th><th>역할</th><th>카테고리</th><th>사업체</th><th>정렬</th><th>관리</th>
       </tr></thead>
       <tbody>
         ${AM.defs.map(d => {
           const r = d.targetMilestoneRole || d.milestoneRole;
           const rLabel = r ? (_roleLabel(r) === r ? r : `${r}(${_roleLabel(r)})`) : '-';
+          const active = d.isActive !== false;
+          const activeBadge = active
+            ? '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">활성</span>'
+            : '<span style="background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">비활성</span>';
           return `
-          <tr>
+          <tr${active ? '' : ' style="opacity:.6"'}>
+            <td>${activeBadge}</td>
             <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
             <td style="font-weight:600">${d.name}</td>
             <td>${rLabel}</td>
@@ -125,13 +131,26 @@ function renderDefs() {
             <td style="font-size:12px">${d.sortOrder ?? 0}</td>
             <td>
               <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
-              <button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="deleteDef(${d.id})">삭제</button>
+              <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="toggleDefActive(${d.id})">${active ? '비활성화' : '활성화'}</button>
             </td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>`;
 }
+
+/* 통합: 정의 활성/비활성 토글 (소프트삭제와 동일·milestone-definitions PATCH) */
+async function toggleDefActive(id) {
+  const d = AM.defs.find(x => x.id === id);
+  if (!d) return;
+  const next = d.isActive === false; // 비활성이면 활성화로
+  if (!confirm(`[${d.name}] 마일스톤을 ${next ? '활성화' : '비활성화'}하시겠습니까?`)) return;
+  const res = await amApi(`/api/milestone-definitions/${id}`, { method: 'PATCH', body: { isActive: next } });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '변경 실패'), 'error'); return; }
+  amToast(next ? '활성화되었습니다.' : '비활성화되었습니다.', 'success');
+  loadDefs();
+}
+window.toggleDefActive = toggleDefActive;
 
 document.getElementById('defRoleFilter')?.addEventListener('change', loadDefs);
 document.getElementById('defCatFilter')?.addEventListener('change', loadDefs);
@@ -528,12 +547,24 @@ async function resumeSettlement(id) {
   loadSettlements();
 }
 
-/* ───── 담당 역할 설정 ───── */
+/* ───── 직원 역할·마일스톤 (역할 배정 + 직원별 정의 뷰 통합) ───── */
 async function loadRoles() {
-  const res = await amApi('/api/milestone-members');
-  if (!res.ok) { document.getElementById('rolesList').innerHTML = '<p style="color:#dc2626">불러오기 실패</p>'; return; }
-  const members = res.data?.data?.members || res.data?.members || [];
-  renderRoles(members);
+  const el = document.getElementById('rolesList');
+  if (el) el.innerHTML = '<p style="color:#9ca3af;padding:20px">로딩 중...</p>';
+  /* 멤버(운영자+어드민) + 전체 정의(비활성 포함) 병렬 로드 */
+  const [memRes, defRes] = await Promise.all([
+    amApi('/api/milestone-members'),
+    amApi('/api/milestone-definitions?activeOnly=0'),
+  ]);
+  if (!memRes.ok) { if (el) el.innerHTML = '<p style="color:#dc2626">불러오기 실패</p>'; return; }
+  AM.staffMembers = memRes.data?.data?.members || memRes.data?.members || [];
+  AM.staffDefs = defRes.ok ? (defRes.data?.data?.milestones || defRes.data?.milestones || []) : [];
+  renderRoles(AM.staffMembers);
+}
+
+function _staffRoleOptionsHtml(roles) {
+  return '<option value="">미배정</option>'
+    + (roles || []).map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
 }
 
 function renderRoles(members) {
@@ -542,21 +573,36 @@ function renderRoles(members) {
     el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">운영 중인 멤버가 없습니다.</p>';
     return;
   }
-  /* R39 Stage 3: 드롭다운 옵션 동적 — 캐시된 카탈로그 사용·로딩 시점 보장 위해 fillSelect 콜로 갱신 */
-  const _roles = (window.MilestoneRoles && (typeof MilestoneRoles.getRoleLabelSync === 'function')
-    ? (sessionStorage.getItem('tbfa.milestoneRoles.v1') ? (function(){ try { return JSON.parse(sessionStorage.getItem('tbfa.milestoneRoles.v1')).roles || []; } catch(_) { return []; } })() : [])
-    : []);
-  const roleOptions = `
-    <option value="">미배정</option>
-    ${_roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('')}
-  `;
+  /* 역할별 활성 정의 수 집계 */
+  const defCnt = {}, revCnt = {};
+  (AM.staffDefs || []).forEach(d => {
+    if (d.isActive === false) return;
+    const r = d.targetMilestoneRole || d.milestoneRole;
+    if (!r) return;
+    defCnt[r] = (defCnt[r] || 0) + 1;
+    if (d.category === 'REVENUE_LINKED') revCnt[r] = (revCnt[r] || 0) + 1;
+  });
+  /* 드롭다운 옵션 — 캐시된 카탈로그 우선, 이후 비동기 갱신 */
+  const cachedRoles = (function () {
+    try { return JSON.parse(sessionStorage.getItem('tbfa.milestoneRoles.v1') || '{}').roles || []; }
+    catch (_) { return []; }
+  })();
+  const roleOptions = _staffRoleOptionsHtml(cachedRoles);
   el.innerHTML = `
     <table class="ms-table">
       <thead><tr>
-        <th>이름</th><th>이메일</th><th>시스템 역할</th><th>마일스톤 역할</th><th>저장</th>
+        <th>이름</th><th>이메일</th><th>시스템 역할</th><th>성과 역할</th>
+        <th style="text-align:right">정의 수</th><th style="text-align:right">매출연동</th><th>관리</th>
       </tr></thead>
       <tbody>
-        ${members.map(m => `
+        ${members.map(m => {
+          const mr = m.milestoneRole || '';
+          const dCnt = mr ? (defCnt[mr] || 0) : 0;
+          const rCnt = mr ? (revCnt[mr] || 0) : 0;
+          const detailBtn = mr
+            ? `<button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px" onclick="openStaffDetail(${m.id})">상세</button>`
+            : `<span style="color:#9ca3af;font-size:11.5px;margin-left:4px">역할 배정 필요</span>`;
+          return `
           <tr>
             <td style="font-weight:600">${m.name || '-'}</td>
             <td style="font-size:12.5px;color:#6b7280">${m.email || '-'}</td>
@@ -566,15 +612,17 @@ function renderRoles(members) {
                 ${roleOptions}
               </select>
             </td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums">${dCnt}</td>
+            <td style="text-align:right;font-variant-numeric:tabular-nums;color:#5b21b6">${rCnt}</td>
             <td>
               <button class="ms-btn ms-btn-primary ms-btn-sm" onclick="saveRole(${m.id})">저장</button>
+              ${detailBtn}
             </td>
-          </tr>
-        `).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 
-  // 현재 역할 세팅 — R39 Stage 3: 캐시 비어있던 경우 비동기로 옵션 재구성·현재 값 복원
   function _applySelections() {
     members.forEach(m => {
       const sel = document.getElementById('msRole_' + m.id);
@@ -585,13 +633,9 @@ function renderRoles(members) {
   if (window.MilestoneRoles) {
     window.MilestoneRoles.loadActiveRoles().then(function (roles) {
       if (!roles.length) return;
-      // 옵션이 이미 동일하면 갱신 불필요
       members.forEach(m => {
         const sel = document.getElementById('msRole_' + m.id);
-        if (!sel) return;
-        const opts = ['<option value="">미배정</option>']
-          .concat(roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`));
-        sel.innerHTML = opts.join('');
+        if (sel) sel.innerHTML = _staffRoleOptionsHtml(roles);
       });
       _applySelections();
     });
@@ -601,14 +645,106 @@ function renderRoles(members) {
 async function saveRole(memberId) {
   const sel = document.getElementById('msRole_' + memberId);
   const milestoneRole = sel?.value || null;
-  /* ★ R34-P1-B-11: 단일 endpoint(admin-milestone-role-assign)로 통일 — milestone-members PATCH /:id/role deprecated */
+  /* 단일 endpoint(admin-milestone-role-assign)로 통일 */
   const res = await amApi('/api/admin-milestone-role-assign', {
     method: 'PUT',
     body: { memberId, milestoneRole: milestoneRole || null },
   });
-  if (!res.ok) { amToast(res.data?.error || '저장 실패', 'error'); return; }
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '저장 실패'), 'error'); return; }
   amToast('역할이 저장되었습니다.', 'success');
+  /* 로컬 반영 후 정의 수 카운트 갱신 */
+  const m = (AM.staffMembers || []).find(x => x.id === memberId);
+  if (m) m.milestoneRole = milestoneRole;
+  renderRoles(AM.staffMembers);
 }
+
+/* ── 직원별 마일스톤 상세 모달 (설정 화면 bymember 이식) ── */
+window.openStaffDetail = function (memberId) {
+  const m = (AM.staffMembers || []).find(x => x.id === memberId);
+  if (!m || !m.milestoneRole) { amToast('먼저 성과 역할을 배정·저장하세요.', 'error'); return; }
+  AM.bmCurrent = m;
+  document.getElementById('byMemberModalTitle').textContent = `${m.name}의 ${m.milestoneRole} 마일스톤`;
+  document.getElementById('byMemberModalSubtitle').textContent =
+    `${m.email} · 성과 역할 ${m.milestoneRole} — 담당 마일스톤 정의 일람`;
+  renderStaffDefs(m.milestoneRole);
+  document.getElementById('byMemberModal').style.display = 'block';
+};
+
+function renderStaffDefs(role) {
+  const el = document.getElementById('byMemberDefsList');
+  const catLabel = { REVENUE_LINKED: '매출연동', NON_REVENUE: '비매출' };
+  const rows = (AM.staffDefs || []).filter(d => (d.targetMilestoneRole || d.milestoneRole) === role);
+  if (!rows.length) {
+    el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:24px">${role} 역할로 정의된 마일스톤이 없습니다. 우측 상단 [+ 마일스톤 추가]로 추가하세요.</p>`;
+    return;
+  }
+  el.innerHTML = `
+    <table class="ms-table">
+      <thead><tr>
+        <th>활성</th><th>코드</th><th>이름</th><th>카테고리</th><th>목표값</th><th>분기</th><th>관리</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(d => {
+          const active = d.isActive !== false;
+          const activeBadge = active
+            ? '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">활성</span>'
+            : '<span style="background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">비활성</span>';
+          const threshold = d.thresholdEnabled
+            ? `${d.thresholdValue ?? '-'} ${d.thresholdUnit || ''}`
+            : '<span style="color:#9ca3af">-</span>';
+          return `
+          <tr${active ? '' : ' style="opacity:.6"'}>
+            <td>${activeBadge}</td>
+            <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
+            <td style="font-weight:600">${d.name}</td>
+            <td>${catLabel[d.category] || d.category}</td>
+            <td style="font-size:12.5px">${threshold}</td>
+            <td style="font-size:12.5px;color:#6b7280">${d.quarterApplicable || '전체'}</td>
+            <td>
+              <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="bmEditDef(${d.id})">편집</button>
+              <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="bmToggleDef(${d.id})">${active ? '비활성화' : '활성화'}</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+window.bmEditDef = function (id) {
+  /* 정의 탭 목록(AM.defs)에 없으면 상세 목록(staffDefs)에서 채워 openDefEdit가 찾도록 보장 */
+  const d = (AM.staffDefs || []).find(x => x.id === id);
+  if (d && !(AM.defs || []).some(x => x.id === id)) AM.defs = (AM.defs || []).concat([d]);
+  document.getElementById('byMemberModal').style.display = 'none';
+  openDefEdit(id);
+};
+
+window.bmToggleDef = async function (id) {
+  const d = (AM.staffDefs || []).find(x => x.id === id);
+  if (!d) return;
+  const next = d.isActive === false;
+  if (!confirm(`[${d.name}] 마일스톤을 ${next ? '활성화' : '비활성화'}하시겠습니까?`)) return;
+  const res = await amApi(`/api/milestone-definitions/${id}`, { method: 'PATCH', body: { isActive: next } });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '변경 실패'), 'error'); return; }
+  amToast(next ? '활성화되었습니다.' : '비활성화되었습니다.', 'success');
+  const defRes = await amApi('/api/milestone-definitions?activeOnly=0');
+  AM.staffDefs = defRes.data?.data?.milestones || defRes.data?.milestones || [];
+  if (AM.bmCurrent) renderStaffDefs(AM.bmCurrent.milestoneRole);
+  renderRoles(AM.staffMembers);
+};
+
+document.getElementById('byMemberModalClose')?.addEventListener('click', () => {
+  document.getElementById('byMemberModal').style.display = 'none';
+});
+document.getElementById('byMemberModal')?.addEventListener('click', function (e) {
+  if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('btnBmAddDef')?.addEventListener('click', () => {
+  if (!AM.bmCurrent) return;
+  document.getElementById('byMemberModal').style.display = 'none';
+  openDefEdit(null);
+  const sel = document.getElementById('fRole');
+  if (sel && AM.bmCurrent.milestoneRole) sel.value = AM.bmCurrent.milestoneRole;
+});
 
 /* ───── 초기 로드 ───── */
 /* R39 Stage 3: 정의 모달·필터 드롭다운 동적 채움 */
@@ -841,3 +977,166 @@ if (hash) {
   const btn = document.querySelector(`.adm-tab[data-panel="${hash}"]`);
   if (btn) btn.click();
 }
+
+/* ════════════════════════════════════════
+   역할 카탈로그 관리 (설정 화면 rolemgmt 이식)
+   - /api/milestone-roles GET·POST·PATCH·DELETE
+   - 변경 시 sessionStorage 캐시 무효화 + 정의 모달·필터 드롭다운 재구성
+   ════════════════════════════════════════ */
+async function loadRoleMgmt() {
+  const el = document.getElementById('roleMgmtList');
+  if (el) el.innerHTML = '<p style="color:#9ca3af;padding:20px">로딩 중...</p>';
+  const res = await amApi('/api/milestone-roles?includeInactive=1');
+  if (!res.ok) { if (el) el.innerHTML = '<p style="color:#dc2626">불러오기 실패</p>'; return; }
+  renderRoleMgmt(res.data?.data?.roles || []);
+}
+
+function renderRoleMgmt(roles) {
+  const el = document.getElementById('roleMgmtList');
+  AM._rolesById = {};
+  roles.forEach(r => { AM._rolesById[r.id] = r; });
+  if (!roles.length) {
+    el.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:30px">등록된 역할이 없습니다. "+ 신규 등록"으로 추가하세요.</p>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="ms-table">
+      <thead><tr>
+        <th style="width:90px">코드</th><th>이름</th><th>설명</th>
+        <th style="text-align:right;width:70px">정렬</th><th style="width:70px">활성</th><th style="width:170px">관리</th>
+      </tr></thead>
+      <tbody>
+        ${roles.map(r => {
+          const activeBadge = r.isActive
+            ? '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">활성</span>'
+            : '<span style="background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">비활성</span>';
+          const toggleBtn = r.isActive
+            ? `<button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="deactivateRoleCat(${r.id})">비활성화</button>`
+            : `<button class="ms-btn ms-btn-primary ms-btn-sm" style="margin-left:4px" onclick="reactivateRoleCat(${r.id})">활성화</button>`;
+          return `
+          <tr${r.isActive ? '' : ' style="opacity:.6"'}>
+            <td style="font-family:monospace;font-size:12.5px;font-weight:600">${r.code}</td>
+            <td style="font-weight:600">${r.name}</td>
+            <td style="font-size:12.5px;color:#6b7280">${r.description || '-'}</td>
+            <td style="text-align:right">${r.sortOrder ?? 0}</td>
+            <td>${activeBadge}</td>
+            <td>
+              <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="editRoleCat(${r.id})">편집</button>
+              ${toggleBtn}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openAddRoleCat() {
+  AM.editingRoleId = null;
+  document.getElementById('roleModalTitle').textContent = '역할 등록';
+  document.getElementById('roleId').value = '';
+  document.getElementById('roleCode').value = '';
+  document.getElementById('roleCode').disabled = false;
+  document.getElementById('roleName').value = '';
+  document.getElementById('roleDescription').value = '';
+  document.getElementById('roleSortOrder').value = '0';
+  document.getElementById('roleIsActive').checked = true;
+  document.getElementById('roleActiveGroup').style.display = 'none';
+  document.getElementById('roleModal').style.display = 'block';
+  setTimeout(() => document.getElementById('roleCode').focus(), 50);
+}
+
+window.editRoleCat = function (id) {
+  const r = AM._rolesById && AM._rolesById[id];
+  if (!r) return;
+  AM.editingRoleId = id;
+  document.getElementById('roleModalTitle').textContent = '역할 편집';
+  document.getElementById('roleId').value = id;
+  document.getElementById('roleCode').value = r.code;
+  document.getElementById('roleCode').disabled = true; // 코드는 변경 불가
+  document.getElementById('roleName').value = r.name || '';
+  document.getElementById('roleDescription').value = r.description || '';
+  document.getElementById('roleSortOrder').value = r.sortOrder ?? 0;
+  document.getElementById('roleIsActive').checked = !!r.isActive;
+  document.getElementById('roleActiveGroup').style.display = '';
+  document.getElementById('roleModal').style.display = 'block';
+};
+
+async function saveRoleCat() {
+  const codeRaw = (document.getElementById('roleCode').value || '').trim().toUpperCase();
+  const name = (document.getElementById('roleName').value || '').trim();
+  const description = (document.getElementById('roleDescription').value || '').trim();
+  const sortOrder = Number(document.getElementById('roleSortOrder').value || 0);
+  const isActive = document.getElementById('roleIsActive').checked;
+
+  if (!AM.editingRoleId && !/^[A-Z]{2,10}$/.test(codeRaw)) {
+    amToast('코드는 영문 대문자 2~10자 (예: SM, MARKETING)', 'error'); return;
+  }
+  if (!name) { amToast('이름은 필수입니다.', 'error'); return; }
+  if (name.length > 50) { amToast('이름은 50자 이내', 'error'); return; }
+
+  const res = AM.editingRoleId
+    ? await amApi(`/api/milestone-roles/${AM.editingRoleId}`, {
+        method: 'PATCH', body: { name, description: description || null, sortOrder, isActive },
+      })
+    : await amApi('/api/milestone-roles', {
+        method: 'POST', body: { code: codeRaw, name, description: description || null, sortOrder },
+      });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '저장 실패'), 'error'); return; }
+  amToast(AM.editingRoleId ? '역할 수정 완료' : '역할 등록 완료', 'success');
+  document.getElementById('roleModal').style.display = 'none';
+  await _afterRoleCatChange();
+}
+
+window.deactivateRoleCat = async function (id) {
+  const r = AM._rolesById && AM._rolesById[id];
+  if (!r) return;
+  if (!confirm(`[${r.code} (${r.name})] 역할을 비활성화하시겠습니까?\n과거 결산·정의는 보존되고 드롭다운에서만 사라집니다.`)) return;
+  const res = await amApi(`/api/milestone-roles/${id}`, { method: 'DELETE' });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '비활성화 실패'), 'error'); return; }
+  amToast('비활성화 완료', 'success');
+  await _afterRoleCatChange();
+};
+
+window.reactivateRoleCat = async function (id) {
+  const res = await amApi(`/api/milestone-roles/${id}`, { method: 'PATCH', body: { isActive: true } });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '활성화 실패'), 'error'); return; }
+  amToast('활성화 완료', 'success');
+  await _afterRoleCatChange();
+};
+
+async function _afterRoleCatChange() {
+  if (window.MilestoneRoles) window.MilestoneRoles.invalidateCache();
+  await loadRoleMgmt();
+  const roles = window.MilestoneRoles ? await window.MilestoneRoles.loadActiveRoles() : [];
+  _refillDefRoleDropdowns(roles);
+}
+
+function _refillDefRoleDropdowns(roles) {
+  const fRole = document.getElementById('fRole');
+  if (fRole) {
+    const cur = fRole.value;
+    fRole.innerHTML = (roles || []).map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
+    if (cur) fRole.value = cur;
+  }
+  const filter = document.getElementById('defRoleFilter');
+  if (filter) {
+    const cur = filter.value;
+    filter.innerHTML = '<option value="">전체 역할</option>'
+      + (roles || []).map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
+    if (cur) filter.value = cur;
+  }
+}
+
+/* 역할 카탈로그 모달 이벤트 */
+document.getElementById('btnAddRole')?.addEventListener('click', openAddRoleCat);
+document.getElementById('btnRoleCancel')?.addEventListener('click', () => {
+  document.getElementById('roleModal').style.display = 'none';
+});
+document.getElementById('btnRoleSave')?.addEventListener('click', saveRoleCat);
+document.getElementById('roleModal')?.addEventListener('click', function (e) {
+  if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('roleCode')?.addEventListener('input', function (e) {
+  const up = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+  if (e.target.value !== up) e.target.value = up;
+});
