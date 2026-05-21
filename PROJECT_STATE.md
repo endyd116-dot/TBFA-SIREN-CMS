@@ -90,7 +90,8 @@ cms 운영관리 "근태관리 설정" 1메뉴 → **"🟢 근태 현황"(조회
 - 마이그 적용(컬럼 toss_*→pg_*·테스트데이터 purge: toss 22건·빌키 3건·효성 보존) → B STEP2/3(`da94154`)+A(`1836943`) 머지·1회 push·tsc 0.
 - 토스 함수 10개 삭제·KICC 8개 신규(lib/kicc·donate-kicc-*·billing-register/approve·cron-kicc-billing·kicc-webhook)·cron 단일 통합.
 - ✅ C 검증 완료(`81d9381`) — 코드·계약·회귀·보안 PASS. 회귀 1건 fix(어드민 KICC 자동환불 UI 복구)·빌링탭 라벨 정정. 보고서 `docs/history/verify/2026-05-21-r40-kicc.md`.
-- **남은 것(Swain 핸즈온)**: ① Netlify KICC env 4개 설정(KICC_MALL_ID·SECRET_KEY·API_DOMAIN·MODE=test) ② 브라우저+테스트카드 실거래 Q1~Q7(결제창 이동→복귀→성사) ③ 실거래로 드러나는 KICC 명세 미세조정(msgAuthValue 평문순서·resCd표·returnUrl POST casing — lib/kicc.ts 주석 표기·소규모 B 후속). 통과 시 설계서 history 이동·메뉴얼 '토스'→KICC. 설계 `docs/active/2026-05-21-r40-kicc.md`.
+- ✅ 실거래 1차 막힘 → URL 스킴 핫픽스(`afac58f`) + **KICC 명세 정합 fix(`0328320`)**: 메인·B 독립 정독 동일 결론, 메인이 kicc.md 교차검증 후 B 버전 채택. webpay clientTypeCode "00"·요청 서명 제거·승인 shopTransactionId/approvalReqDate·batch 중첩·revise 서명(pgCno\|shopTransactionId)·빌키삭제/조회 필수필드 전부 명세 정합. 실측 스펙 설계서 §9.
+- **남은 것(Swain 핸즈온)**: ① Netlify KICC env 4개 설정 확인(KICC_MALL_ID·SECRET_KEY·API_DOMAIN·MODE=test) ② 브라우저+테스트카드 실거래 Q1~Q7(거래등록부터 통과 예상) ③ 응답 msgAuthValue 검증은 비차단(경고)·실거래 해시 포맷 확인 후 차단 전환 가능. 통과 시 설계서 history 이동·메뉴얼 '토스'→KICC. 설계 `docs/active/2026-05-21-r40-kicc.md`.
 
 ### 🚀 다음 라운드 후보 (Swain 결정 대기)
 - 메뉴얼 R39 기능 본문 갱신 (현재 '예정' 표기 → 실제 안내)
