@@ -273,7 +273,7 @@
           export: '데이터 추출',
           'receipt-settings': '영수증 설정',
           hyosung: '효성 CMS+ 관리',
-          'toss-billing': '💳 토스 빌링 (자동 청구)',
+          'toss-billing': '💳 KICC 빌링 (자동 청구)',
           'donations': '📒 후원 결제 내역',
           'finance-income': '📊 손익 현황',
           'other-revenues': '💼 후원 외 매출',
