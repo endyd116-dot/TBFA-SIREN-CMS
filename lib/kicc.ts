@@ -1,14 +1,19 @@
 // lib/kicc.ts
 // R40: KICC(이지페이) 결제 API 라이브러리 — 토스 lib/toss-billing.ts 전면 대체.
+// ★ fix/r40-kicc-spec: docs/kicc.md(EP9 실측 명세)와 정합화.
 // - 일시: 거래등록(webpay)→authPageUrl→승인(approval)
-// - 정기: 빌키 발급창(webpay clientTypeCode=81)→승인(빌키 회신)→자동결제(approval/batch)
+// - 정기: 빌키 등록창(webpay payMethodTypeCode=81·amount 0)→빌키발급(approval·cardNo=빌키)→자동결제(approval/batch)
 // - 취소·환불(revise) / 빌키삭제(removeBatchKey) / 거래조회(retrieveTransaction)
-// - PG 비종속 키명(pg_*) — billingLogs 로깅 통합 (logBillingAttempt/logBillingResult)
+// - PG 비종속 키명(pg_*) — billingLogs 로깅 통합
 // - 효성 CMS+(계좌이체)는 별도 경로(불변)
 //
-// ※ KICC 요청 필드 구성·msgAuthValue 평문 순서·resCd 코드표는 실거래 테스트 시
-//   KICC EP9 매뉴얼로 최종 검증 필요(아래 each 함수 주석 참고). 본 모듈의 "반환 shape"는
-//   A mock·C 검증의 고정 계약이므로 변경 금지.
+// ※ msgAuthValue 규칙(kicc.md):
+//   - 요청 body에 넣는 곳은 revise(취소/환불)뿐 → HmacSHA256(secret, `pgCno|shopTransactionId`) (kicc.md:1841-1844)
+//   - webpay/approval/approval/batch/removeBatchKey/retrieveTransaction 요청엔 msgAuthValue 없음
+//   - 승인/빌키발급/자동결제 "응답" 무결성 검증 → HmacSHA256(secret, `pgCno|amount|transactionDate`) (kicc.md:746-749)
+//   응답 검증은 비차단(경고 로그) — 1차 보안 게이트는 호출부의 서버 금액 대조.
+//
+// 본 모듈의 "반환 shape"는 A mock·C 검증의 고정 계약이므로 변경 금지.
 
 import { db } from "../db";
 import { billingLogs } from "../db/schema";
@@ -16,7 +21,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
 /* =========================================================
-   타입
+   타입 (반환 shape 고정)
    ========================================================= */
 
 export type ErrorCategory =
@@ -30,7 +35,7 @@ export type ErrorCategory =
 /** 자동결제(빌키 청구) 결과 — cron-kicc-billing·billing-approve 1회차 공용 */
 export interface ChargeResult {
   success: boolean;
-  pgTid?: string;        // KICC pgCno
+  pgTid?: string; // KICC pgCno
   shopOrderNo?: string;
   amount?: number;
   statusCode?: string;
@@ -44,7 +49,7 @@ export interface ChargeResult {
 
 export interface RegisterResult {
   success: boolean;
-  authPageUrl?: string;  // 결제창/빌키등록창 URL
+  authPageUrl?: string;
   shopOrderNo?: string;
   errorCode?: string;
   errorMessage?: string;
@@ -53,13 +58,13 @@ export interface RegisterResult {
 
 export interface ApproveResult {
   success: boolean;
-  pgTid?: string;            // pgCno
+  pgTid?: string; // pgCno
   amount?: number;
   statusCode?: string;
-  cardCompany?: string;      // paymentInfo.cardInfo.cardName/issuerName
-  cardNumberMasked?: string; // 마스킹 표시용
-  cardType?: string;
-  billKey?: string;          // 정기 발급 시 빌키(batchKey, 최대 60자)
+  cardCompany?: string; // cardInfo.issuerName
+  cardNumberMasked?: string; // cardInfo.cardMaskNo(빌키발급) | cardInfo.cardNo(일시)
+  cardType?: string; // 신용 | 체크 | 기프트
+  billKey?: string; // 빌키발급 시 cardInfo.cardNo
   approvedAt?: string;
   errorCode?: string;
   errorMessage?: string;
@@ -104,7 +109,7 @@ export function getKiccConfig(): {
   let apiDomain =
     process.env.KICC_API_DOMAIN ||
     (mode === "live" ? "https://pgapi.easypay.co.kr" : "https://testpgapi.easypay.co.kr");
-  // env에 스킴 없이(testpgapi.easypay.co.kr) 넣어도 동작하도록 정규화 — 없으면 https:// 보정, 끝 슬래시 제거
+  // env에 스킴 없이(testpgapi.easypay.co.kr) 넣어도 동작하도록 정규화
   apiDomain = apiDomain.trim().replace(/\/+$/, "");
   if (!/^https?:\/\//i.test(apiDomain)) apiDomain = "https://" + apiDomain;
   const mallId = process.env.KICC_MALL_ID || "";
@@ -112,36 +117,35 @@ export function getKiccConfig(): {
   return { mode, apiDomain, mallId, secretKey };
 }
 
-/**
- * msgAuthValue — HMAC-SHA256(secretKey, plain) → hex.
- * 평문(plain) 필드 순서는 KICC EP9 매뉴얼 기준이며 엔드포인트별로 다름(실거래 검증 필요).
- */
+/** HmacSHA256(secretKey, plain) → hex (소문자) */
 export function signMsgAuth(plain: string): string {
   const { secretKey } = getKiccConfig();
   return crypto.createHmac("sha256", secretKey).update(plain, "utf8").digest("hex");
 }
 
-/** 응답 무결성 검증 — 평문 pgCno|amount|transactionDate (kicc.md §msgAuth). 불일치 시 false */
-export function verifyResponseMsgAuth(j: any): boolean {
-  if (!j || !j.msgAuthValue) return true; // 인증값 미제공 응답(조회 등)은 통과
-  const plain = `${j.pgCno ?? ""}|${j.amount ?? ""}|${j.transactionDate ?? ""}`;
-  try {
-    return signMsgAuth(plain) === String(j.msgAuthValue);
-  } catch {
-    return true; // 검증 실패해도 결제 자체는 막지 않음(로깅용)
-  }
+/** 응답 무결성 검증 — HmacSHA256(secret, `pgCno|amount|transactionDate`) === resp.msgAuthValue (비차단) */
+export function verifyMsgAuth(j: any): boolean {
+  const { secretKey } = getKiccConfig();
+  if (!secretKey || !j?.msgAuthValue || j?.pgCno == null) return false;
+  const plain = `${j.pgCno}|${j.amount}|${j.transactionDate}`;
+  return signMsgAuth(plain) === String(j.msgAuthValue);
 }
 
-/** KST 기준 요청일자 yyyyMMdd (approvalReqDate·cancelReqDate·removeReqDate 공통) */
-function reqDateYmd(d: Date = new Date()): string {
-  const kst = new Date(d.getTime() + 9 * 3600 * 1000);
+/* =========================================================
+   요청 식별자·날짜 헬퍼
+   ========================================================= */
+
+/** 승인/취소 요청일자 yyyyMMdd (KST 기준) */
+function reqDateYmd(): string {
+  const kst = new Date(Date.now() + 9 * 3600 * 1000);
   return `${kst.getUTCFullYear()}${String(kst.getUTCMonth() + 1).padStart(2, "0")}${String(kst.getUTCDate()).padStart(2, "0")}`;
 }
 
-/** 상점 거래고유번호(API 멱등성 키, ≤60). 인자 있으면 그대로(멱등·복구 가능), 없으면 랜덤 */
-function txnId(seed?: string): string {
-  if (seed && seed.length <= 60) return seed;
-  return crypto.randomUUID().replace(/-/g, "");
+/** 멱등 거래키 shopTransactionId(≤60Byte) — 같은 논리 거래는 같은 키(네트워크 재시도 시 중복방지),
+ *  서로 다른 시도는 다른 키. base(shopOrderNo)에 접미사. */
+function makeTxId(base: string, suffix: string): string {
+  const s = `${base}-${suffix}`;
+  return s.length > 60 ? s.slice(s.length - 60) : s;
 }
 
 /* =========================================================
@@ -181,7 +185,7 @@ function isOk(j: any): boolean {
 }
 
 /* =========================================================
-   에러 정규화 — resCd/resMsg 키워드 기반 (KICC 코드표 실거래 검증)
+   에러 정규화 — resCd(code) + resMsg 키워드 분류
    ========================================================= */
 
 export function normalizeKiccError(input: any): {
@@ -194,41 +198,19 @@ export function normalizeKiccError(input: any): {
   const message = String(input?.resMsg || input?.message || input?.errorMessage || "알 수 없는 오류");
   if (/한도|초과|잔액|부족/.test(message))
     return { code, message, category: "insufficient_funds", retryable: true };
-  if (/만료|유효기간|분실|도난|정지|해지|등록되지|유효하지|비밀번호/.test(message))
+  if (/만료|유효기간|분실|도난|정지|해지|등록되지|유효하지|비밀번호|타입오류|불일치/.test(message))
     return { code, message, category: "card_invalid", retryable: false };
-  if (/거절|불가|실패/.test(message)) return { code, message, category: "declined", retryable: true };
-  if (/타임아웃|timeout|네트워크|통신/i.test(message))
+  if (/거절|불가|실패|취소/.test(message)) return { code, message, category: "declined", retryable: true };
+  if (/타임아웃|timeout|네트워크|통신|지연/i.test(message))
     return { code, message, category: "network", retryable: true };
   return { code, message, category: "unknown", retryable: true };
 }
 
-/* =========================================================
-   빌키 추출 헬퍼 (발급 approval 응답)
-   ========================================================= */
-
-function pickBillKey(j: any): string | undefined {
-  const cardInfo = (j?.paymentInfo && j.paymentInfo.cardInfo) || j?.cardInfo || {};
-  const candidates = [
-    j?.batchKey,
-    j?.billKey,
-    j?.billKeyMethodInfo?.batchKey,
-    j?.paymentInfo?.batchKeyInfo?.batchKey,
-    j?.paymentInfo?.cardInfo?.batchKey,
-    cardInfo?.batchKey,
-    cardInfo?.cardNo, // KICC: 빌키(60자)를 cardNo로 회신하는 케이스
-  ];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.length >= 20) return c;
-  }
-  return undefined;
-}
-
-function pickMaskedCardNo(cardInfo: any): string | undefined {
-  const m = cardInfo?.cardNoMasked || cardInfo?.maskCardNo || cardInfo?.cardNum;
-  if (typeof m === "string" && m.length > 0) return m;
-  // cardNo가 짧으면(마스킹 표시번호) 사용, 길면(빌키) 제외
-  if (typeof cardInfo?.cardNo === "string" && cardInfo.cardNo.length <= 20) return cardInfo.cardNo;
-  return undefined;
+/** cardGubun(N/Y/G) → 한글 카드종류 */
+function cardTypeKo(cardGubun: any): string {
+  if (cardGubun === "Y") return "체크";
+  if (cardGubun === "G") return "기프트";
+  return "신용";
 }
 
 /* =========================================================
@@ -240,33 +222,32 @@ export interface RegisterTradeParams {
   amount: number;
   goodsName: string;
   returnUrl: string;
-  // 일시 신용카드 "11"(기본) / 정기 빌키등록 "81". clientTypeCode는 통합형 "00" 고정(kicc.md).
-  payMethodTypeCode?: string;
-  certType?: string;   // 빌키등록(정기) 시 카드 인증타입 "0"(기본)
-  deviceTypeCode?: string; // "pc"(기본)/"mobile"
-  customerName?: string;   // (현재 KICC webpay 요청 미포함·호출부 호환용)
+  isBillingKey?: boolean; // true면 정기 빌키 등록창(payMethodTypeCode 81·amount 0·certType 0)
+  customerName?: string;
   customerEmail?: string;
 }
 
 export async function registerTrade(p: RegisterTradeParams): Promise<RegisterResult> {
   const { mallId } = getKiccConfig();
-  const payMethodTypeCode = p.payMethodTypeCode || "11";
-  const isBillKey = payMethodTypeCode === "81";
-  // kicc.md: 거래등록(webpay) 요청에 msgAuthValue 없음 / clientTypeCode 통합형 "00" 고정 /
-  //          빌키등록은 amount:0 + payMethodInfo.billKeyMethodInfo.certType
   const body: any = {
     mallId,
     shopOrderNo: p.shopOrderNo,
-    amount: isBillKey ? 0 : p.amount,
-    payMethodTypeCode,
+    amount: p.isBillingKey ? 0 : p.amount,
+    payMethodTypeCode: p.isBillingKey ? "81" : "11",
     currency: "00",
-    clientTypeCode: "00",
+    clientTypeCode: "00", // 통합형 고정
     returnUrl: p.returnUrl,
-    deviceTypeCode: p.deviceTypeCode || "pc",
-    orderInfo: { goodsName: p.goodsName },
+    deviceTypeCode: "pc",
+    orderInfo: {
+      goodsName: p.goodsName,
+      customerInfo: {
+        customerName: p.customerName || "",
+        customerMail: p.customerEmail || "",
+      },
+    },
   };
-  if (isBillKey) {
-    body.payMethodInfo = { billKeyMethodInfo: { certType: p.certType || "0" } };
+  if (p.isBillingKey) {
+    body.payMethodInfo = { billKeyMethodInfo: { certType: "0" } };
   }
   const r = await kiccPost("/api/ep9/trades/webpay", body);
   if (r.networkError)
@@ -286,21 +267,19 @@ export async function registerTrade(p: RegisterTradeParams): Promise<RegisterRes
 
 /* =========================================================
    2. 승인 (POST /api/ep9/trades/approval) — 일시 결제 / 빌키 발급 공용
+   요청: mallId·shopTransactionId(멱등키)·authorizationId·shopOrderNo·approvalReqDate (amount·msgAuthValue 없음)
    ========================================================= */
 
 export interface ApproveTradeParams {
   authorizationId: string;
   shopOrderNo: string;
-  amount: number;
 }
 
 export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult> {
   const { mallId } = getKiccConfig();
-  // kicc.md 승인 요청 필수: mallId·shopTransactionId(멱등키)·authorizationId·shopOrderNo·approvalReqDate(yyyyMMdd)
-  //   amount·msgAuthValue는 요청에 없음(amount는 응답으로 받아 서버 금액과 대조).
   const body: any = {
     mallId,
-    shopTransactionId: txnId(p.shopOrderNo),
+    shopTransactionId: makeTxId(p.shopOrderNo, "AP"),
     authorizationId: p.authorizationId,
     shopOrderNo: p.shopOrderNo,
     approvalReqDate: reqDateYmd(),
@@ -327,23 +306,30 @@ export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult
       raw: j,
     };
   }
-  const cardInfo = (j.paymentInfo && j.paymentInfo.cardInfo) || j.cardInfo || {};
+  if (j.msgAuthValue && !verifyMsgAuth(j)) {
+    console.warn(`[kicc] approval 응답 msgAuthValue 불일치(비차단) shopOrderNo=${p.shopOrderNo}`);
+  }
+  const cardInfo = (j.paymentInfo && j.paymentInfo.cardInfo) || {};
+  // 빌키발급 응답: cardInfo.cardNo = 빌키, cardInfo.cardMaskNo = 마스킹번호.
+  // 일시 승인 응답: cardInfo.cardNo = 마스킹번호(빌키 없음).
+  const hasBillKey = typeof cardInfo.cardMaskNo === "string" && cardInfo.cardMaskNo.length > 0;
   return {
     success: true,
-    pgTid: j.pgCno || j.pgTid,
-    amount: Number(j.amount) || p.amount,
-    statusCode: j.statusCode || j.transStatus,
-    cardCompany: cardInfo.cardName || cardInfo.issuerName || cardInfo.acquirerName,
-    cardNumberMasked: pickMaskedCardNo(cardInfo),
-    cardType: cardInfo.cardType,
-    billKey: pickBillKey(j),
-    approvedAt: j.transDt || j.approvalDate || j.transDate,
+    pgTid: j.pgCno,
+    amount: Number(j.amount),
+    statusCode: j.statusCode,
+    cardCompany: cardInfo.issuerName || cardInfo.acquirerName,
+    cardNumberMasked: hasBillKey ? cardInfo.cardMaskNo : cardInfo.cardNo,
+    cardType: cardTypeKo(cardInfo.cardGubun),
+    billKey: hasBillKey ? cardInfo.cardNo : undefined,
+    approvedAt: j.transactionDate,
     raw: j,
   };
 }
 
 /* =========================================================
    3. 자동결제 (POST /api/trades/approval/batch) — 빌키 청구
+   요청: mallId·shopTransactionId·shopOrderNo·approvalReqDate·amount·currency·orderInfo·payMethodInfo (msgAuthValue 없음)
    ========================================================= */
 
 export interface ChargeParams {
@@ -357,11 +343,9 @@ export interface ChargeParams {
 
 export async function chargeWithBillingKey(p: ChargeParams): Promise<ChargeResult> {
   const { mallId } = getKiccConfig();
-  // kicc.md 자동결제(approval/batch) 필수: mallId·shopTransactionId·shopOrderNo·approvalReqDate·amount·currency·orderInfo
-  //   + payMethodInfo.billKeyMethodInfo.batchKey + payMethodInfo.cardMethodInfo.installmentMonth. msgAuthValue 없음.
   const body: any = {
     mallId,
-    shopTransactionId: txnId(p.shopOrderNo),
+    shopTransactionId: makeTxId(p.shopOrderNo, "BT"),
     shopOrderNo: p.shopOrderNo,
     approvalReqDate: reqDateYmd(),
     amount: p.amount,
@@ -396,33 +380,35 @@ export async function chargeWithBillingKey(p: ChargeParams): Promise<ChargeResul
       raw: j,
     };
   }
+  if (j.msgAuthValue && !verifyMsgAuth(j)) {
+    console.warn(`[kicc] batch 응답 msgAuthValue 불일치(비차단) shopOrderNo=${p.shopOrderNo}`);
+  }
   return {
     success: true,
-    pgTid: j.pgCno || j.pgTid,
+    pgTid: j.pgCno,
     shopOrderNo: j.shopOrderNo || p.shopOrderNo,
     amount: Number(j.amount) || p.amount,
     statusCode: j.statusCode,
-    approvedAt: j.transDt || j.approvalDate,
+    approvedAt: j.transactionDate,
     raw: j,
   };
 }
 
 /* =========================================================
-   4. 취소·환불 (POST /api/trades/revise) — 일시·정기 공용
+   4. 취소·환불 (POST /api/trades/revise) — ★ 요청 msgAuthValue 필수
+   msgAuthValue = HmacSHA256(secret, `pgCno|shopTransactionId`)
    ========================================================= */
 
 export async function cancelPayment(p: {
   pgTid: string;
   amount?: number;
-  reviseTypeCode?: string; // 전체취소 기본
+  reviseTypeCode?: string; // 기본 "40" 전체취소 (32=신용카드 부분취소)
   reason?: string;
 }): Promise<CancelResult> {
   if (!p.pgTid) return { success: false, errorCode: "MISSING_PG_TID", errorMessage: "pgTid(pgCno)가 없습니다" };
   const { mallId } = getKiccConfig();
-  const isPartial = typeof p.amount === "number" && p.amount > 0;
-  // kicc.md reviseTypeCode: 40=전체취소 / 32=신용카드 부분취소. (revise는 msgAuthValue 필수·평문 pgCno|shopTransactionId)
-  const reviseTypeCode = p.reviseTypeCode || (isPartial ? "32" : "40");
-  const shopTransactionId = txnId();
+  const reviseTypeCode = p.reviseTypeCode || "40"; // 40=전체취소
+  const shopTransactionId = makeTxId(p.pgTid, `CX${Date.now().toString(36)}`);
   const body: any = {
     mallId,
     shopTransactionId,
@@ -430,9 +416,9 @@ export async function cancelPayment(p: {
     reviseTypeCode,
     cancelReqDate: reqDateYmd(),
     msgAuthValue: signMsgAuth(`${p.pgTid}|${shopTransactionId}`),
-    reviseMessage: (p.reason || "관리자 환불").slice(0, 100),
+    reviseMessage: (p.reason || "관리자 취소").slice(0, 100),
   };
-  if (isPartial) body.amount = Math.floor(p.amount as number);
+  if (typeof p.amount === "number" && p.amount > 0) body.amount = Math.floor(p.amount);
   const r = await kiccPost("/api/trades/revise", body);
   if (r.networkError)
     return { success: false, errorCode: "NETWORK_ERROR", errorMessage: r.networkError, raw: { networkError: r.networkError } };
@@ -443,28 +429,27 @@ export async function cancelPayment(p: {
   }
   return {
     success: true,
-    status: j.statusCode || "CANCELED",
-    canceledAt: j.transDt || j.reviseDate,
-    cancelAmount: Number(j.amount) || p.amount,
-    pgTid: j.pgCno || p.pgTid,
+    status: j.statusCode || "TS02",
+    canceledAt: j.transactionDate,
+    cancelAmount: Number(j.cancelAmount) || p.amount,
+    pgTid: j.cancelPgCno || j.oriPgCno || p.pgTid,
     raw: j,
   };
 }
 
 /* =========================================================
    5. 빌키 삭제 (POST /api/trades/removeBatchKey)
+   요청: mallId·shopTransactionId·batchKey·removeReqDate (msgAuthValue 없음)
    ========================================================= */
 
 export async function removeBillingKey(p: {
   billingKey: string;
-  shopOrderNo?: string;
 }): Promise<{ success: boolean; raw?: any; errorCode?: string; errorMessage?: string }> {
   if (!p.billingKey) return { success: false, errorCode: "MISSING_BILLKEY", errorMessage: "빌키가 없습니다" };
   const { mallId } = getKiccConfig();
-  // kicc.md 빌키삭제 필수: mallId·shopTransactionId·batchKey·removeReqDate. msgAuthValue 없음.
   const body: any = {
     mallId,
-    shopTransactionId: txnId(p.shopOrderNo),
+    shopTransactionId: makeTxId(p.billingKey.slice(0, 30), `RM${Date.now().toString(36)}`),
     batchKey: p.billingKey,
     removeReqDate: reqDateYmd(),
   };
@@ -481,11 +466,12 @@ export async function removeBillingKey(p: {
 
 /* =========================================================
    6. 거래조회 (POST /api/trades/retrieveTransaction)
+   요청: mallId·shopTransactionId·transactionDate(yyyyMMdd) — 승인/취소 미수신 복구용
    ========================================================= */
 
 export async function retrieveTransaction(p: {
-  shopTransactionId: string;  // 승인/취소 요청 시 사용한 멱등키(= 우리 shopOrderNo)
-  transactionDate?: string;   // 요청일자 yyyyMMdd (기본 오늘·전일~당일만 지원)
+  shopTransactionId: string;
+  transactionDate?: string; // yyyyMMdd (기본 오늘 KST)
 }): Promise<{
   success: boolean;
   statusCode?: string;
@@ -496,7 +482,6 @@ export async function retrieveTransaction(p: {
   errorMessage?: string;
 }> {
   const { mallId } = getKiccConfig();
-  // kicc.md 조회 필수: mallId·shopTransactionId·transactionDate(yyyyMMdd). msgAuthValue 미제공.
   const body: any = {
     mallId,
     shopTransactionId: p.shopTransactionId,
@@ -514,7 +499,7 @@ export async function retrieveTransaction(p: {
 }
 
 /* =========================================================
-   shopOrderNo 생성 (멱등) — 토스 generate*OrderId 이식, pg 비종속
+   shopOrderNo 생성 (멱등) — pg 비종속
    ========================================================= */
 
 /** 일시 결제용 주문번호 — SIREN-{YYYYMM}-{rand} (≤40자) */
@@ -541,7 +526,7 @@ export function generateBillingOrderId(
 }
 
 /* =========================================================
-   재시도 스케줄 / 청구일 / 연월 — 토스 이식(불변)
+   재시도 스케줄 / 청구일 / 연월 — pg 비종속(불변)
    ========================================================= */
 
 /** 1차 실패→+1일 / 2차 실패→+3일 / 3차 이상→null(자동해지) */

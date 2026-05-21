@@ -104,7 +104,7 @@ export default async (req: Request) => {
     }
 
     /* 1) 빌키 발급 승인 */
-    const issue = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo, amount });
+    const issue = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo });
     if (!issue.success || !issue.billKey) {
       await db
         .update(donations)
