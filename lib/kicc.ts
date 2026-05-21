@@ -101,9 +101,12 @@ export function getKiccConfig(): {
   const mode = ((process.env.KICC_MODE || "test").toLowerCase() === "live" ? "live" : "test") as
     | "test"
     | "live";
-  const apiDomain =
+  let apiDomain =
     process.env.KICC_API_DOMAIN ||
     (mode === "live" ? "https://pgapi.easypay.co.kr" : "https://testpgapi.easypay.co.kr");
+  // env에 스킴 없이(testpgapi.easypay.co.kr) 넣어도 동작하도록 정규화 — 없으면 https:// 보정, 끝 슬래시 제거
+  apiDomain = apiDomain.trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(apiDomain)) apiDomain = "https://" + apiDomain;
   const mallId = process.env.KICC_MALL_ID || "";
   const secretKey = process.env.KICC_SECRET_KEY || "";
   return { mode, apiDomain, mallId, secretKey };
