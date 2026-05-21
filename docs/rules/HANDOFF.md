@@ -176,6 +176,12 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 
 **중기 검토**: VM 실측 RAM 498MB·swap 498MB(shape 표기 1GB지만 실측 498)가 hang 근본 원인. 자동 재부팅으로 복구는 해결됐으나, 영구 해결은 ① ARM A1.Flex(무료 2~24GB) 이전(단 IP 변경→알리고 화이트리스트 재등록 동반) 또는 ② IP 제한 없는 SMS 업체(쿨SMS·NHN) 교체로 프록시 제거. R40 KICC 전환과 함께 검토.
 
+### ✅ 안정화 4 — 프록시 실패 시 알리고 직접 발송 폴백 (2026-05-21·`6e5541b`)
+프록시 VM이 반복적으로 hang(자동 재부팅해도 또 hang·알림 도배)하는 문제 → **프록시는 알리고 IP 제한 회피용일 뿐**이라, 코드를 다음과 같이 개선:
+- `lib/aligo-client.ts`(SMS)·`lib/aligo-kakao-client.ts`(알림톡): **프록시 호출 실패(다운·timeout) 시 알리고에 직접 호출(폴백)** → 프록시가 죽어도 발송 자가복구. (단 직접 호출이 통하려면 **알리고 IP 제한 해제** 필요 — 안 하면 직접도 -101.)
+- `cron-warmup`: 프록시 다운 알림 쿨다운 30분→6시간·문구 순화(직접 폴백 안내).
+- **★ 영구 해결(Swain 액션)**: ① 알리고 관리자에서 **API IP 제한 해제**(SMS=smartsms.aligo.in / 알림톡=kakaoapi.aligo.in의 IP보안 설정) → ② 프록시 죽은 상태에서 회원가입 SMS 인증이 직접 발송으로 성공하는지 확인 → ③ Netlify 환경변수 **`ALIGO_SMS_PROXY_URL`·`ALIGO_PROXY_URL` 제거** → 전 발송이 직접 경로로 전환·프록시 ping/알림 자동 중단(`getProxyHealthUrl` null) → **Oracle VM 삭제**. 보안: IP 제한 해제 시 API 키만으로 인증(키는 env secret이라 위험 제한적·NPO 수용 가능).
+
 ## 7.6 성과관리 화면 통합 — ✅ 완료·종결 (2026-05-21)
 
 통합 CMS 운영 관리의 **성과관리 설정** + **비매출 검토** 2메뉴 → 단일 "성과관리" **6탭**으로 통합 완료. 중복 정의 API(`admin-milestone-definitions`)·옛 설정 화면(`admin-milestone-settings.html`/`.js`) 완전 제거. 정의는 단일 API(`milestone-definitions`)·소프트삭제로 결산 참조 보존. DB/마이그 변경 0.
