@@ -180,7 +180,10 @@ CSV export → 외부 회계 시스템 (세금·4대보험 처리)
 프록시 VM이 반복적으로 hang(자동 재부팅해도 또 hang·알림 도배)하는 문제 → **프록시는 알리고 IP 제한 회피용일 뿐**이라, 코드를 다음과 같이 개선:
 - `lib/aligo-client.ts`(SMS)·`lib/aligo-kakao-client.ts`(알림톡): **프록시 호출 실패(다운·timeout) 시 알리고에 직접 호출(폴백)** → 프록시가 죽어도 발송 자가복구. (단 직접 호출이 통하려면 **알리고 IP 제한 해제** 필요 — 안 하면 직접도 -101.)
 - `cron-warmup`: 프록시 다운 알림 쿨다운 30분→6시간·문구 순화(직접 폴백 안내).
-- **★ 영구 해결(Swain 액션)**: ① 알리고 관리자에서 **API IP 제한 해제**(SMS=smartsms.aligo.in / 알림톡=kakaoapi.aligo.in의 IP보안 설정) → ② 프록시 죽은 상태에서 회원가입 SMS 인증이 직접 발송으로 성공하는지 확인 → ③ Netlify 환경변수 **`ALIGO_SMS_PROXY_URL`·`ALIGO_PROXY_URL` 제거** → 전 발송이 직접 경로로 전환·프록시 ping/알림 자동 중단(`getProxyHealthUrl` null) → **Oracle VM 삭제**. 보안: IP 제한 해제 시 API 키만으로 인증(키는 env secret이라 위험 제한적·NPO 수용 가능).
+- **영구 해결안 (Swain 미결정 — IP 제한 해제는 원치 않음)**: 핵심 제약 = "알리고가 고정 화이트리스트 IP 요구". IP 해제 외 대안:
+  - **① Oracle ARM A1.Flex 무료(24GB)로 프록시 이전 ⭐추천** — 메모리 충분→hang 소멸·무료·IP제한 유지(보안). 1회: 새 인스턴스+프록시 재배포+새 IP 알리고 재등록(예약IP 쓰면 재등록 1회). OCI 설정(Blobs)·`ALIGO_SMS_PROXY_URL` IP 갱신 필요.
+  - **② 유료 VPS 고정IP**(Lightsail/fly.io 월 $3~5) / **③ 정적IP 아웃바운드 프록시 서비스 경유**(QuotaGuard/Fixie류·코드가 알리고 호출을 그 IP로 라우팅·VM 불필요) / **④ 예방 야간 자동 재부팅**(band-aid·무료·코드로 즉시 구현 가능·미적용).
+  - ※ 앞서 배포한 "직접 발송 폴백"(`6e5541b`)은 **알리고 IP 제한이 켜져 있으면 작동 안 함**(직접도 -101) → IP 유지 시 ①~④로 "고정 IP 안정화"가 본질. Swain 결정 대기.
 
 ## 7.6 성과관리 화면 통합 — ✅ 완료·종결 (2026-05-21)
 
