@@ -85,8 +85,8 @@ export default async (req: Request) => {
       return redirect(`/payment-success.html?donationId=${donation.id}&donationNo=D-${String(donation.id).padStart(7, "0")}`);
     }
 
-    /* KICC 승인 — 금액은 서버(pending) 기준 */
-    const result = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo, amount: donation.amount });
+    /* KICC 승인 — 응답 금액을 서버(pending) 금액과 대조 */
+    const result = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo });
 
     if (!result.success) {
       await db
