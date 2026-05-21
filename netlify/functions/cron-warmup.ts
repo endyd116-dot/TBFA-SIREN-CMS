@@ -43,7 +43,7 @@ async function alertProxyDown(): Promise<void> {
     const recent: any = await db.execute(sql`
       SELECT 1 FROM notifications
       WHERE ref_table = 'proxy_health'
-        AND created_at >= NOW() - INTERVAL '30 minutes'
+        AND created_at >= NOW() - INTERVAL '6 hours'
       LIMIT 1
     `);
     const rows = recent?.rows ?? recent ?? [];
@@ -52,11 +52,11 @@ async function alertProxyDown(): Promise<void> {
     console.warn("[warmup] 프록시 알림 중복 확인 실패 (계속 진행):", e);
   }
 
-  const title = "⚠️ 문자·알림톡 발송 서버(프록시) 응답 없음";
+  const title = "ℹ️ 문자·알림톡 프록시 응답 없음 (직접 발송으로 자동 폴백 중)";
   const message =
-    "SMS·카카오 알림톡 발송을 중계하는 서버가 응답하지 않습니다. " +
-    "회원가입 휴대폰 인증·알림톡 발송이 지연·실패할 수 있습니다. " +
-    "Oracle 콘솔에서 aligo-proxy 인스턴스를 재부팅해 주세요.";
+    "SMS·카카오 알림톡 중계 프록시가 응답하지 않습니다. " +
+    "단, 프록시 실패 시 알리고로 직접 발송(폴백)하도록 개선돼 발송 자체는 계속됩니다(알리고 IP 제한 해제 시). " +
+    "프록시를 완전히 끄려면 환경변수 ALIGO_SMS_PROXY_URL·ALIGO_PROXY_URL 을 제거하세요(그러면 본 알림도 멈춤). 자동 재부팅도 함께 시도 중입니다.";
 
   /* 슈퍼어드민 인앱 알림 */
   try {
@@ -85,11 +85,11 @@ async function alertProxyDown(): Promise<void> {
   if (notifyEmail) {
     await sendEmail({
       to: notifyEmail,
-      subject: "[SIREN] 문자·알림톡 발송 서버(프록시) 응답 없음",
+      subject: "ℹ️ [SIREN] 문자·알림톡 프록시 응답 없음 (직접 발송 폴백 중)",
       html:
         `<p>${title}</p>` +
         `<p>${message}</p>` +
-        `<p>확인: Oracle Cloud 콘솔 → Compute → Instances → <b>aligo-proxy</b> → Reboot</p>` +
+        `<p>영구 해결: ① 알리고 관리자에서 <b>API IP 제한 해제</b> → ② Netlify에서 <b>ALIGO_SMS_PROXY_URL·ALIGO_PROXY_URL 환경변수 제거</b> → 알리고 직접 발송으로 전환되어 프록시 VM이 불필요해집니다. (급할 때만: Oracle 콘솔 → aligo-proxy → Reboot)</p>` +
         `<p style="color:#888;font-size:12px">SIREN 자동 모니터링 (cron-warmup) · ${new Date().toISOString()}</p>`,
     }).catch((e) => console.warn("[warmup] 프록시 다운 이메일 실패:", e));
   }

@@ -82,18 +82,14 @@ export async function sendAligoAlimtalk(
           message: json.message,
         };
       }
-      return {
-        ok: false,
-        code: json?.code,
-        message: json?.message,
-        error: String(json?.error || `프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500),
-      };
+      console.warn(`[aligo-kakao] 알림톡 프록시 응답 실패 → 직접 호출 폴백: ${String(json?.error || json?.message || res.status).slice(0, 200)}`);
     } catch (err: any) {
-      return { ok: false, error: `프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+      console.warn(`[aligo-kakao] 알림톡 프록시 호출 실패 → 직접 호출 폴백: ${String(err?.message || err).slice(0, 200)}`);
     }
+    /* ★ 2026-05-21: 프록시 실패 시 return하지 않고 아래 직접 호출(폴백)로 진행 — 프록시 다운에도 발송 자가복구(알리고 IP 제한 해제 시) */
   }
 
-  /* === 직접 호출 모드 (옛 경로, IP 화이트리스트 통과 시) === */
+  /* === 직접 호출 (프록시 미설정 시 기본 / 프록시 실패 시 폴백·알리고 IP 제한 해제 시 성공) === */
   const apikey = process.env.ALIGO_API_KEY || "";
   const userid = process.env.ALIGO_USER_ID || "";
 

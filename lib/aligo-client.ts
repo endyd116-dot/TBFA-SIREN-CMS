@@ -103,10 +103,11 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
   const proxySecret = process.env.ALIGO_PROXY_SECRET || "";
   let raw: any;
 
-  if (proxyUrl) {
-    if (!proxySecret) {
-      return { ok: false, error: "ALIGO_PROXY_SECRET 미설정 — SMS 프록시 인증 불가" };
-    }
+  /* ★ 2026-05-21: 프록시 우선 시도 → 실패(다운·timeout) 시 알리고 직접 호출 폴백.
+     프록시 VM이 죽어도 발송이 자가복구됨(알리고 IP 제한 해제 시). */
+  let proxyTimedOut = false;
+  if (proxyUrl && !proxySecret) console.warn("[aligo-client] ALIGO_PROXY_SECRET 미설정 → 직접 호출 폴백");
+  if (proxyUrl && proxySecret) {
     /* 프록시 콜드 스타트 또는 다운 시 Netlify 함수 자체가 30초 timeout으로 죽으면
        send 핸들러의 SMS 실패 분기(deleteVerification 롤백)까지 도달 못 함 → row 남음 →
        사용자 5분 갇힘. AbortController로 10초 안에 명확히 ok:false 반환되도록 안전망. */
@@ -134,22 +135,16 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
           message: raw.message || "",
         };
       }
-      return {
-        ok: false,
-        resultCode: raw?.resultCode,
-        message: raw?.message,
-        error: String(raw?.error || `SMS 프록시 응답 실패 (HTTP ${res.status})`).slice(0, 500),
-      };
+      console.warn(`[aligo-client] SMS 프록시 응답 실패 → 직접 호출 폴백: ${String(raw?.error || raw?.message || res.status).slice(0, 200)}`);
     } catch (err: any) {
       clearTimeout(timer);
-      const isTimeout = err?.name === "AbortError";
-      return { ok: false, timeout: isTimeout, error: isTimeout
-        ? "SMS 프록시 호출 timeout (8초) — 프록시 콜드 스타트 또는 다운"
-        : `SMS 프록시 호출 실패: ${String(err?.message || err).slice(0, 400)}` };
+      proxyTimedOut = err?.name === "AbortError";
+      console.warn(`[aligo-client] SMS 프록시 ${proxyTimedOut ? "timeout(8초)" : "호출 실패"} → 직접 호출 폴백`);
     }
   }
 
-  /* ===== 직접 호출 모드 (옛 경로, IP 화이트리스트 통과 시) ===== */
+  /* ===== 직접 호출 (프록시 미설정 시 기본 / 프록시 실패 시 폴백)
+     ※ 알리고 IP 제한 해제(또는 IP 화이트리스트 통과) 시 성공 → 프록시 없이도 발송됨 ===== */
   const body = new URLSearchParams({
     key:         apiKey,
     user_id:     userId,
@@ -169,7 +164,7 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     });
     raw = await res.json();
   } catch (err: any) {
-    return { ok: false, error: `Aligo 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
+    return { ok: false, timeout: proxyTimedOut, error: `Aligo 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
   }
 
   const code = String(raw?.result_code ?? "");
@@ -187,6 +182,7 @@ export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
     resultCode: code,
     message:    String(raw?.message ?? ""),
     error:      `Aligo 오류 result_code=${code} message=${raw?.message ?? ""}`,
+    timeout:    proxyTimedOut,
   };
 }
 
