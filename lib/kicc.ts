@@ -121,6 +121,29 @@ export function signMsgAuth(plain: string): string {
   return crypto.createHmac("sha256", secretKey).update(plain, "utf8").digest("hex");
 }
 
+/** 응답 무결성 검증 — 평문 pgCno|amount|transactionDate (kicc.md §msgAuth). 불일치 시 false */
+export function verifyResponseMsgAuth(j: any): boolean {
+  if (!j || !j.msgAuthValue) return true; // 인증값 미제공 응답(조회 등)은 통과
+  const plain = `${j.pgCno ?? ""}|${j.amount ?? ""}|${j.transactionDate ?? ""}`;
+  try {
+    return signMsgAuth(plain) === String(j.msgAuthValue);
+  } catch {
+    return true; // 검증 실패해도 결제 자체는 막지 않음(로깅용)
+  }
+}
+
+/** KST 기준 요청일자 yyyyMMdd (approvalReqDate·cancelReqDate·removeReqDate 공통) */
+function reqDateYmd(d: Date = new Date()): string {
+  const kst = new Date(d.getTime() + 9 * 3600 * 1000);
+  return `${kst.getUTCFullYear()}${String(kst.getUTCMonth() + 1).padStart(2, "0")}${String(kst.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** 상점 거래고유번호(API 멱등성 키, ≤60). 인자 있으면 그대로(멱등·복구 가능), 없으면 랜덤 */
+function txnId(seed?: string): string {
+  if (seed && seed.length <= 60) return seed;
+  return crypto.randomUUID().replace(/-/g, "");
+}
+
 /* =========================================================
    공용 HTTP — TLS1.2 기본(undici) + 30초 타임아웃
    ========================================================= */
@@ -217,33 +240,34 @@ export interface RegisterTradeParams {
   amount: number;
   goodsName: string;
   returnUrl: string;
-  clientTypeCode?: string; // 일시 PC표준 "0030" 기본 / 정기 빌키등록 "81"
-  payMethodTypeCode?: string; // 신용카드 "11" 기본
-  customerName?: string;
+  // 일시 신용카드 "11"(기본) / 정기 빌키등록 "81". clientTypeCode는 통합형 "00" 고정(kicc.md).
+  payMethodTypeCode?: string;
+  certType?: string;   // 빌키등록(정기) 시 카드 인증타입 "0"(기본)
+  deviceTypeCode?: string; // "pc"(기본)/"mobile"
+  customerName?: string;   // (현재 KICC webpay 요청 미포함·호출부 호환용)
   customerEmail?: string;
 }
 
 export async function registerTrade(p: RegisterTradeParams): Promise<RegisterResult> {
   const { mallId } = getKiccConfig();
-  const plain = `${mallId}${p.shopOrderNo}${p.amount}`;
+  const payMethodTypeCode = p.payMethodTypeCode || "11";
+  const isBillKey = payMethodTypeCode === "81";
+  // kicc.md: 거래등록(webpay) 요청에 msgAuthValue 없음 / clientTypeCode 통합형 "00" 고정 /
+  //          빌키등록은 amount:0 + payMethodInfo.billKeyMethodInfo.certType
   const body: any = {
     mallId,
-    payMethodTypeCode: p.payMethodTypeCode || "11",
-    currency: "00",
-    amount: p.amount,
-    clientTypeCode: p.clientTypeCode || "0030",
-    returnUrl: p.returnUrl,
-    deviceTypeCode: "pc",
     shopOrderNo: p.shopOrderNo,
-    orderInfo: {
-      goodsName: p.goodsName,
-      customerInfo: {
-        customerName: p.customerName || "",
-        customerMail: p.customerEmail || "",
-      },
-    },
-    msgAuthValue: signMsgAuth(plain),
+    amount: isBillKey ? 0 : p.amount,
+    payMethodTypeCode,
+    currency: "00",
+    clientTypeCode: "00",
+    returnUrl: p.returnUrl,
+    deviceTypeCode: p.deviceTypeCode || "pc",
+    orderInfo: { goodsName: p.goodsName },
   };
+  if (isBillKey) {
+    body.payMethodInfo = { billKeyMethodInfo: { certType: p.certType || "0" } };
+  }
   const r = await kiccPost("/api/ep9/trades/webpay", body);
   if (r.networkError)
     return { success: false, errorCode: "NETWORK_ERROR", errorMessage: r.networkError, raw: { networkError: r.networkError } };
@@ -272,13 +296,14 @@ export interface ApproveTradeParams {
 
 export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult> {
   const { mallId } = getKiccConfig();
-  const plain = `${mallId}${p.shopOrderNo}${p.authorizationId}${p.amount}`;
+  // kicc.md 승인 요청 필수: mallId·shopTransactionId(멱등키)·authorizationId·shopOrderNo·approvalReqDate(yyyyMMdd)
+  //   amount·msgAuthValue는 요청에 없음(amount는 응답으로 받아 서버 금액과 대조).
   const body: any = {
     mallId,
-    shopOrderNo: p.shopOrderNo,
+    shopTransactionId: txnId(p.shopOrderNo),
     authorizationId: p.authorizationId,
-    amount: p.amount,
-    msgAuthValue: signMsgAuth(plain),
+    shopOrderNo: p.shopOrderNo,
+    approvalReqDate: reqDateYmd(),
   };
   const r = await kiccPost("/api/ep9/trades/approval", body);
   if (r.networkError)
@@ -332,21 +357,20 @@ export interface ChargeParams {
 
 export async function chargeWithBillingKey(p: ChargeParams): Promise<ChargeResult> {
   const { mallId } = getKiccConfig();
-  const plain = `${mallId}${p.shopOrderNo}${p.amount}${p.billingKey}`;
+  // kicc.md 자동결제(approval/batch) 필수: mallId·shopTransactionId·shopOrderNo·approvalReqDate·amount·currency·orderInfo
+  //   + payMethodInfo.billKeyMethodInfo.batchKey + payMethodInfo.cardMethodInfo.installmentMonth. msgAuthValue 없음.
   const body: any = {
     mallId,
+    shopTransactionId: txnId(p.shopOrderNo),
     shopOrderNo: p.shopOrderNo,
+    approvalReqDate: reqDateYmd(),
     amount: p.amount,
     currency: "00",
-    billKeyMethodInfo: { batchKey: p.billingKey },
-    orderInfo: {
-      goodsName: p.goodsName,
-      customerInfo: {
-        customerName: p.customerName || "",
-        customerMail: p.customerEmail || "",
-      },
+    orderInfo: { goodsName: p.goodsName },
+    payMethodInfo: {
+      billKeyMethodInfo: { batchKey: p.billingKey },
+      cardMethodInfo: { installmentMonth: 0 },
     },
-    msgAuthValue: signMsgAuth(plain),
   };
   const r = await kiccPost("/api/trades/approval/batch", body);
   if (r.networkError)
@@ -395,16 +419,20 @@ export async function cancelPayment(p: {
 }): Promise<CancelResult> {
   if (!p.pgTid) return { success: false, errorCode: "MISSING_PG_TID", errorMessage: "pgTid(pgCno)가 없습니다" };
   const { mallId } = getKiccConfig();
-  const reviseTypeCode = p.reviseTypeCode || "10"; // 10=전체취소 (KICC 매뉴얼 검증)
-  const plain = `${mallId}${p.pgTid}${reviseTypeCode}`;
+  const isPartial = typeof p.amount === "number" && p.amount > 0;
+  // kicc.md reviseTypeCode: 40=전체취소 / 32=신용카드 부분취소. (revise는 msgAuthValue 필수·평문 pgCno|shopTransactionId)
+  const reviseTypeCode = p.reviseTypeCode || (isPartial ? "32" : "40");
+  const shopTransactionId = txnId();
   const body: any = {
     mallId,
+    shopTransactionId,
     pgCno: p.pgTid,
     reviseTypeCode,
+    cancelReqDate: reqDateYmd(),
+    msgAuthValue: signMsgAuth(`${p.pgTid}|${shopTransactionId}`),
     reviseMessage: (p.reason || "관리자 환불").slice(0, 100),
-    msgAuthValue: signMsgAuth(plain),
   };
-  if (typeof p.amount === "number" && p.amount > 0) body.amount = Math.floor(p.amount);
+  if (isPartial) body.amount = Math.floor(p.amount as number);
   const r = await kiccPost("/api/trades/revise", body);
   if (r.networkError)
     return { success: false, errorCode: "NETWORK_ERROR", errorMessage: r.networkError, raw: { networkError: r.networkError } };
@@ -433,9 +461,13 @@ export async function removeBillingKey(p: {
 }): Promise<{ success: boolean; raw?: any; errorCode?: string; errorMessage?: string }> {
   if (!p.billingKey) return { success: false, errorCode: "MISSING_BILLKEY", errorMessage: "빌키가 없습니다" };
   const { mallId } = getKiccConfig();
-  const plain = `${mallId}${p.billingKey}`;
-  const body: any = { mallId, batchKey: p.billingKey, msgAuthValue: signMsgAuth(plain) };
-  if (p.shopOrderNo) body.shopOrderNo = p.shopOrderNo;
+  // kicc.md 빌키삭제 필수: mallId·shopTransactionId·batchKey·removeReqDate. msgAuthValue 없음.
+  const body: any = {
+    mallId,
+    shopTransactionId: txnId(p.shopOrderNo),
+    batchKey: p.billingKey,
+    removeReqDate: reqDateYmd(),
+  };
   const r = await kiccPost("/api/trades/removeBatchKey", body);
   if (r.networkError)
     return { success: false, errorCode: "NETWORK_ERROR", errorMessage: r.networkError, raw: { networkError: r.networkError } };
@@ -452,8 +484,8 @@ export async function removeBillingKey(p: {
    ========================================================= */
 
 export async function retrieveTransaction(p: {
-  pgTid?: string;
-  shopOrderNo?: string;
+  shopTransactionId: string;  // 승인/취소 요청 시 사용한 멱등키(= 우리 shopOrderNo)
+  transactionDate?: string;   // 요청일자 yyyyMMdd (기본 오늘·전일~당일만 지원)
 }): Promise<{
   success: boolean;
   statusCode?: string;
@@ -464,11 +496,12 @@ export async function retrieveTransaction(p: {
   errorMessage?: string;
 }> {
   const { mallId } = getKiccConfig();
-  const ref = p.pgTid || p.shopOrderNo || "";
-  const plain = `${mallId}${ref}`;
-  const body: any = { mallId, msgAuthValue: signMsgAuth(plain) };
-  if (p.pgTid) body.pgCno = p.pgTid;
-  if (p.shopOrderNo) body.shopOrderNo = p.shopOrderNo;
+  // kicc.md 조회 필수: mallId·shopTransactionId·transactionDate(yyyyMMdd). msgAuthValue 미제공.
+  const body: any = {
+    mallId,
+    shopTransactionId: p.shopTransactionId,
+    transactionDate: p.transactionDate || reqDateYmd(),
+  };
   const r = await kiccPost("/api/trades/retrieveTransaction", body);
   if (r.networkError)
     return { success: false, errorCode: "NETWORK_ERROR", errorMessage: r.networkError, raw: { networkError: r.networkError } };
@@ -477,7 +510,7 @@ export async function retrieveTransaction(p: {
     const e = normalizeKiccError(j);
     return { success: false, errorCode: e.code, errorMessage: e.message, raw: j };
   }
-  return { success: true, statusCode: j.statusCode, amount: Number(j.amount), pgTid: j.pgCno || p.pgTid, raw: j };
+  return { success: true, statusCode: j.statusCode, amount: Number(j.amount), pgTid: j.pgCno, raw: j };
 }
 
 /* =========================================================

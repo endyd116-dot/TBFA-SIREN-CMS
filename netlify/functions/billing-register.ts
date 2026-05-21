@@ -114,7 +114,7 @@ export default async (req: Request) => {
       amount: data.amount,
       goodsName: "교사유가족협의회 정기 후원",
       returnUrl: `${SITE_URL}/api/billing-approve`,
-      clientTypeCode: "81", // 정기 빌키 등록
+      payMethodTypeCode: "81", // 정기 빌키 등록 (KICC: payMethodTypeCode 81·clientTypeCode는 통합형 00 고정)
       customerName: data.name,
       customerEmail: data.email,
     });

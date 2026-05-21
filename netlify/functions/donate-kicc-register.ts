@@ -98,7 +98,6 @@ export default async (req: Request) => {
       amount: data.amount,
       goodsName: "교사유가족협의회 후원",
       returnUrl: `${SITE_URL}/api/donate-kicc-approve`,
-      clientTypeCode: "0030", // PC 표준결제창
       customerName: data.name,
       customerEmail: data.email,
     });
