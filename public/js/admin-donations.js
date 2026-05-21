@@ -161,7 +161,7 @@
           <div class="modal-body">
             <div class="rc-warn-box">
               ⚠️ <strong>환불 처리 안내</strong><br />
-              • 토스 결제는 <strong>"토스 자동 환불 진행" 체크 시 PG에서 실제 환불</strong>이 됩니다 (즉시·비가역)<br />
+              • KICC 카드 결제는 <strong>"KICC 자동 환불 진행" 체크 시 PG에서 실제 환불</strong>이 됩니다 (즉시·비가역)<br />
               • 효성·계좌이체는 시스템 상태만 변경되니, 실제 환불은 효성 사이트 또는 계좌 송금으로 별도 진행<br />
               • 환불 후 상태는 'refunded'로 변경 — 영수증 발급에 영향이 갈 수 있습니다<br />
               • 사유는 후원 메모에 누적 기록됩니다 (감사 로그용)
@@ -170,15 +170,14 @@
             <form id="refundForm">
               <input type="hidden" id="rcRefundId" value="">
               <input type="hidden" id="rcRefundPg" value="">
-              <input type="hidden" id="rcRefundPaymentKey" value="">
 
-              <!-- 토스 자동 환불 체크박스 (토스 결제일 때만 노출) -->
+              <!-- KICC 자동 환불 체크박스 (KICC 카드 결제일 때만 노출) -->
               <div id="rcTossAutoRefundWrap" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:11px 14px;margin-top:14px;font-size:12.5px;line-height:1.65">
                 <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer">
                   <input type="checkbox" id="rcTossAutoRefund" style="margin-top:2px;width:16px;height:16px;cursor:pointer">
                   <span>
-                    <strong>💳 토스에서 실제 환불까지 진행 (자동)</strong><br>
-                    <span style="color:#7d5400">체크 시 토스 PG에 즉시 환불 요청 → 카드사 환불 절차 시작.<br>
+                    <strong>💳 KICC에서 실제 환불까지 진행 (자동)</strong><br>
+                    <span style="color:#7d5400">체크 시 KICC PG에 즉시 환불 요청 → 카드사 환불 절차 시작.<br>
                     실패 시 DB 상태도 변경되지 않습니다 (안전 롤백).</span>
                   </span>
                 </label>
@@ -322,7 +321,7 @@
       const actions = '<div class="dm-row-actions">' +
         '<button type="button" class="detail" data-dm-action="detail" data-id="' + d.id + '">📝 상세</button>' +
         (canReceipt ? '<button type="button" class="detail" data-dm-action="receipt" data-id="' + d.id + '" style="color:#1a5e2c;border-color:#a3d9b4">📄 영수증</button>' : '') +
-        (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '" data-payment-key="' + escapeHtml(d.tossPaymentKey || '') + '">💸 환불</button>' : '') +
+        (canRefund ? '<button type="button" class="refund" data-dm-action="refund" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '" data-pg="' + escapeHtml(d.pgProvider || '') + '">💸 환불</button>' : '') +
         (canCancel ? '<button type="button" class="cancel" data-dm-action="cancel" data-id="' + d.id + '" data-name="' + escapeHtml(d.donorName || '') + '" data-amount="' + (d.amount || 0) + '">❌ 취소</button>' : '') +
         '</div>';
 
@@ -425,28 +424,26 @@
   }
 
   /* ── 환불 모달 ── */
-  function openRefundModal(id, donorName, amount, pgProvider, tossPaymentKey) {
+  function openRefundModal(id, donorName, amount, pgProvider) {
     const modal = document.getElementById('refundReasonModal');
     if (!modal) return;
     document.getElementById('rcRefundId').value = String(id);
     document.getElementById('rcRefundReason').value = '';
     document.getElementById('rcRefundPg').value = pgProvider || '';
-    document.getElementById('rcRefundPaymentKey').value = tossPaymentKey || '';
 
-    /* 토스 자동 환불 체크박스 — 토스+paymentKey 있을 때만 노출 */
-    const isToss = pgProvider === 'toss' && !!tossPaymentKey;
+    /* R40: KICC 카드 결제일 때만 자동 환불 체크박스 노출 (pgTid는 백엔드가 donationId로 검증) */
+    const isKicc = pgProvider === 'kicc';
     const tossWrap = document.getElementById('rcTossAutoRefundWrap');
     const tossCb   = document.getElementById('rcTossAutoRefund');
     const nonToss  = document.getElementById('rcNonTossNotice');
     const nonTossLabel = document.getElementById('rcNonTossPgLabel');
-    if (tossWrap) tossWrap.style.display = isToss ? 'block' : 'none';
+    if (tossWrap) tossWrap.style.display = isKicc ? 'block' : 'none';
     if (tossCb)   tossCb.checked = false;
-    if (nonToss)  nonToss.style.display = isToss ? 'none' : 'block';
+    if (nonToss)  nonToss.style.display = isKicc ? 'none' : 'block';
     if (nonTossLabel) {
       const pgLabel = !pgProvider ? '미지정' :
-        pgProvider === 'hyosung' ? '효성 CMS+' :
-        pgProvider === 'manual'  ? '직접 계좌이체/수기' :
-        pgProvider === 'toss'    ? '토스 (paymentKey 없음)' :
+        (pgProvider === 'hyosung' || pgProvider === 'hyosung_cms') ? '효성 CMS+' :
+        (pgProvider === 'manual' || pgProvider === 'ibk_bank')  ? '직접 계좌이체/수기' :
         pgProvider;
       nonTossLabel.textContent = pgLabel;
     }
@@ -454,9 +451,9 @@
     const infoEl = document.getElementById('rcRefundInfo');
     if (infoEl) {
       const pgLabelShort = !pgProvider ? '—' :
-        pgProvider === 'toss'    ? '💳 토스' :
-        pgProvider === 'hyosung' ? '🏦 효성 CMS+' :
-        pgProvider === 'manual'  ? '✍️ 직접/수기' :
+        pgProvider === 'kicc'    ? '💳 KICC 카드' :
+        (pgProvider === 'hyosung' || pgProvider === 'hyosung_cms') ? '🏦 효성 CMS+' :
+        (pgProvider === 'manual' || pgProvider === 'ibk_bank')  ? '✍️ 직접/수기' :
         pgProvider;
       infoEl.innerHTML =
         '<div>후원 ID</div><div style="font-family:Inter;font-weight:600">D-' + String(id).padStart(7, '0') + '</div>' +
@@ -603,7 +600,7 @@
       const id = Number(btn.dataset.id);
       if (!id) return;
       if (action === 'detail') { openDonationDetailModal(id); return; }
-      if (action === 'refund') { openRefundModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0, btn.dataset.pg || '', btn.dataset.paymentKey || ''); return; }
+      if (action === 'refund') { openRefundModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0, btn.dataset.pg || ''); return; }
       if (action === 'cancel') { openCancelModal(id, btn.dataset.name || '', Number(btn.dataset.amount) || 0); return; }
       if (action === 'receipt') {
         window.open('/api/donation-receipt?id=' + id, '_blank', 'noopener');
@@ -618,19 +615,19 @@
         e.preventDefault();
         const id = Number(document.getElementById('rcRefundId').value);
         const reason = (document.getElementById('rcRefundReason').value || '').trim();
-        const autoRefundToss = !!document.getElementById('rcTossAutoRefund')?.checked;
+        const autoRefundPg = !!document.getElementById('rcTossAutoRefund')?.checked;
         if (!id) return;
-        const confirmMsg = autoRefundToss
-          ? '⚠️ 토스 PG에 실제 환불을 요청합니다.\n\n• 카드사 환불 절차가 즉시 시작됩니다\n• 결제 자체가 비가역적으로 취소됨\n• 시스템 상태도 refunded로 변경\n\n정말 진행하시겠습니까?'
+        const confirmMsg = autoRefundPg
+          ? '⚠️ KICC(카드사)에 실제 환불을 요청합니다.\n\n• 카드사 환불 절차가 즉시 시작됩니다\n• 결제 자체가 비가역적으로 취소됨\n• 시스템 상태도 refunded로 변경\n\n정말 진행하시겠습니까?'
           : '시스템 상태만 환불(refunded)로 변경합니다.\n\n• 실제 PG사 환불은 별도 진행 필요\n• 되돌릴 수 없습니다\n\n진행할까요?';
         if (!confirm(confirmMsg)) return;
         const btn = document.getElementById('btnRefundConfirm');
         const oldText = btn ? btn.textContent : '';
-        if (btn) { btn.disabled = true; btn.textContent = autoRefundToss ? '토스 환불 요청 중...' : '처리 중...'; }
+        if (btn) { btn.disabled = true; btn.textContent = autoRefundPg ? 'KICC 환불 요청 중...' : '처리 중...'; }
         try {
           const res = await api('/api/admin/donations', {
             method: 'PATCH',
-            body: { id, refundOne: true, reason: reason || undefined, autoRefundToss },
+            body: { id, refundOne: true, reason: reason || undefined, autoRefundPg },
           });
           if (res.ok) {
             toast(res.data?.message || '환불 처리되었습니다');
