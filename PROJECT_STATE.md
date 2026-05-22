@@ -92,6 +92,10 @@ cms 운영관리 "근태관리 설정" 1메뉴 → **"🟢 근태 현황"(조회
 - ✅ C 검증 완료(`81d9381`) — 코드·계약·회귀·보안 PASS. 회귀 1건 fix(어드민 KICC 자동환불 UI 복구)·빌링탭 라벨 정정. 보고서 `docs/history/verify/2026-05-21-r40-kicc.md`.
 - ✅ 실거래 1차 막힘 → URL 스킴 핫픽스(`afac58f`) + **KICC 명세 정합 fix(`0328320`)**: 메인·B 독립 정독 동일 결론, 메인이 kicc.md 교차검증 후 B 버전 채택. webpay clientTypeCode "00"·요청 서명 제거·승인 shopTransactionId/approvalReqDate·batch 중첩·revise 서명(pgCno\|shopTransactionId)·빌키삭제/조회 필수필드 전부 명세 정합. 실측 스펙 설계서 §9.
 - **남은 것(Swain 핸즈온)**: ① Netlify KICC env 4개 설정 확인(KICC_MALL_ID·SECRET_KEY·API_DOMAIN·MODE=test) ② 브라우저+테스트카드 실거래 Q1~Q7(거래등록부터 통과 예상) ③ 응답 msgAuthValue 검증은 비차단(경고)·실거래 해시 포맷 확인 후 차단 전환 가능. 통과 시 설계서 history 이동·메뉴얼 '토스'→KICC. 설계 `docs/active/2026-05-21-r40-kicc.md`.
+- **✅ 미결정 2건 Swain 결정(2026-05-22)**: ① 일시 결제수단 = **전체(+가상계좌)** → B 정정 필요(payMethodTypeCode "00"·입금 웹훅(이벤트30)·미입금 만료) ② 정기 = **효성 CMS+ 유지** → 정기 UI 효성 노출 점검. ⏸️ 둘 다 **KICC MID 권한 활성화 대기** 후 착수(설계 §10-C·D).
+
+### 🟡 알리고 SMS·알림톡 프록시 안정화 — 스왑 우선·출장 복귀 후 재개 (2026-05-22)
+무료 VM 프록시 간헐 hang(노트북 세션에서 **80초 라이브 먹통 포착**·안정화3 5분주기로는 짧은 hang 미감지). Swain 결정: **스왑(가상메모리) 무료로 먼저 늘리고 부족 시 ARM 이전**. ⚠️ 규격 모순(SETUP.md=6GB ARM vs 실측=498MB/1GB) → 적용 전 `free -h` 실측 확정 필요. **블로커**: 스왑 적용=SSH 키 필요, 노트북엔 키 없음(데스크톱) → Swain 출장 복귀 후 재개. 절차·재개 가이드 HANDOFF §7.5(2026-05-22).
 
 ### 🚀 다음 라운드 후보 (Swain 결정 대기)
 - 메뉴얼 R39 기능 본문 갱신 (현재 '예정' 표기 → 실제 안내)
