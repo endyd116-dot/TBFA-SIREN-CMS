@@ -14,6 +14,8 @@
 // Aligo API: POST https://apis.aligo.in/send/
 //   result_code "1" = 성공, 음수 = 오류
 
+import { solapiSendSms } from "./solapi-client";
+
 const ALIGO_SEND_URL = "https://apis.aligo.in/send/";
 
 /* =========================================================
@@ -51,138 +53,28 @@ function normalizePhone(raw: string): string {
   return raw.replace(/[^0-9]/g, "");
 }
 
-/** 메시지 바이트 수 계산 (한글 2바이트, 나머지 1바이트) */
-function byteLength(str: string): number {
-  let len = 0;
-  for (let i = 0; i < str.length; i++) {
-    len += str.charCodeAt(i) > 0x7f ? 2 : 1;
-  }
-  return len;
-}
-
 /* =========================================================
    send — 단일 수신자에게 SMS / LMS 발송
+   ★ 2026-05-23: 알리고 + Oracle 프록시 → 솔라피(SOLAPI) 직접 발송으로 교체.
+     솔라피는 API Key(HMAC) 인증이라 IP 화이트리스트가 불필요 → Netlify에서 직접 호출
+     (중간 프록시 폐기). 호출부(phone-verify·sms-aligo 어댑터) 호환 위해
+     이 함수의 시그니처(AligoSendOpts)와 결과(AligoSendResult)는 그대로 유지한다.
    ========================================================= */
 export async function aligoSend(opts: AligoSendOpts): Promise<AligoSendResult> {
-  const apiKey  = process.env.ALIGO_API_KEY;
-  const userId  = process.env.ALIGO_USER_ID;
-  const sender  = process.env.ALIGO_SENDER;
-
-  if (!apiKey || !userId || !sender) {
-    return {
-      ok:    false,
-      error: "Aligo 환경변수 미설정 (ALIGO_API_KEY / ALIGO_USER_ID / ALIGO_SENDER)",
-    };
-  }
-
-  const testMode = process.env.NOTIFICATION_TEST_MODE === "true";
-  const receiver = normalizePhone(opts.receiver);
-
-  if (!receiver || receiver.length < 10) {
-    return { ok: false, error: `수신번호 형식 오류: ${opts.receiver}` };
-  }
-
-  const bytes   = byteLength(opts.msg);
-  const msgType = bytes > 90 ? "LMS" : "SMS";
-  const title   = opts.title ?? "알림";
-
-  if (testMode) {
-    console.log(
-      `[aligo-client] TEST_MODE 발송 (실제 전송 안 됨)` +
-      ` type=${msgType} to=${receiver} bytes=${bytes}` +
-      ` msg="${opts.msg.slice(0, 50)}${opts.msg.length > 50 ? "…" : ""}"`,
-    );
-    return { ok: true, msgId: `test-${Date.now()}`, resultCode: "1", message: "테스트모드" };
-  }
-
-  /* ★ 2026-05-16: Oracle 프록시 경유 모드 (카카오 알림톡과 동일 패턴).
-     ALIGO_SMS_PROXY_URL이 설정되어 있으면 Oracle 고정 IP 프록시로 호출 →
-     Netlify 변동 IP가 알리고 화이트리스트 차단되는 문제(result_code=-101) 해결.
-     아래는 lib/notify-adapters/kakao-aligo.ts·aligo-kakao-client.ts 동일 흐름. */
-  const proxyUrl    = process.env.ALIGO_SMS_PROXY_URL || "";
-  const proxySecret = process.env.ALIGO_PROXY_SECRET || "";
-  let raw: any;
-
-  /* ★ 2026-05-21: 프록시 우선 시도 → 실패(다운·timeout) 시 알리고 직접 호출 폴백.
-     프록시 VM이 죽어도 발송이 자가복구됨(알리고 IP 제한 해제 시). */
-  let proxyTimedOut = false;
-  if (proxyUrl && !proxySecret) console.warn("[aligo-client] ALIGO_PROXY_SECRET 미설정 → 직접 호출 폴백");
-  if (proxyUrl && proxySecret) {
-    /* 프록시 콜드 스타트 또는 다운 시 Netlify 함수 자체가 30초 timeout으로 죽으면
-       send 핸들러의 SMS 실패 분기(deleteVerification 롤백)까지 도달 못 함 → row 남음 →
-       사용자 5분 갇힘. AbortController로 10초 안에 명확히 ok:false 반환되도록 안전망. */
-    /* ★ 2026-05-20: 8초로 단축 — Netlify 함수 기본 timeout(10초)과 경합해 함수가
-       응답 못 보내고 죽는(ERR_HTTP2_PROTOCOL_ERROR) 문제 방지. 함수 한도 전에 확실히
-       AbortError로 잡아 호출부가 "발송 중(pending)" 응답을 정상 반환하게 한다. */
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    try {
-      const res = await fetch(proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-proxy-secret": proxySecret },
-        body: JSON.stringify({
-          receiver, msg: opts.msg, msgType, title, testmode: false,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      raw = await res.json().catch(() => ({}));
-      if (raw?.ok === true) {
-        return {
-          ok: true,
-          msgId: raw.msgId || `proxy-${Date.now()}`,
-          resultCode: raw.resultCode || "1",
-          message: raw.message || "",
-        };
-      }
-      console.warn(`[aligo-client] SMS 프록시 응답 실패 → 직접 호출 폴백: ${String(raw?.error || raw?.message || res.status).slice(0, 200)}`);
-    } catch (err: any) {
-      clearTimeout(timer);
-      proxyTimedOut = err?.name === "AbortError";
-      console.warn(`[aligo-client] SMS 프록시 ${proxyTimedOut ? "timeout(8초)" : "호출 실패"} → 직접 호출 폴백`);
-    }
-  }
-
-  /* ===== 직접 호출 (프록시 미설정 시 기본 / 프록시 실패 시 폴백)
-     ※ 알리고 IP 제한 해제(또는 IP 화이트리스트 통과) 시 성공 → 프록시 없이도 발송됨 ===== */
-  const body = new URLSearchParams({
-    key:         apiKey,
-    user_id:     userId,
-    sender:      normalizePhone(sender),
-    receiver,
-    msg:         opts.msg,
-    msg_type:    msgType,
-    testmode_yn: "N",
-    ...(msgType === "LMS" ? { title } : {}),
+  const r = await solapiSendSms({
+    receiver: opts.receiver,
+    msg:      opts.msg,
+    title:    opts.title,
   });
-
-  try {
-    const res = await fetch(ALIGO_SEND_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body:    body.toString(),
-    });
-    raw = await res.json();
-  } catch (err: any) {
-    return { ok: false, timeout: proxyTimedOut, error: `Aligo 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
-  }
-
-  const code = String(raw?.result_code ?? "");
-  if (code === "1") {
-    return {
-      ok:         true,
-      msgId:      String(raw?.msg_id ?? ""),
-      resultCode: code,
-      message:    String(raw?.message ?? ""),
-    };
-  }
-
   return {
-    ok:         false,
-    resultCode: code,
-    message:    String(raw?.message ?? ""),
-    error:      `Aligo 오류 result_code=${code} message=${raw?.message ?? ""}`,
-    timeout:    proxyTimedOut,
+    ok:         r.ok,
+    msgId:      r.msgId,
+    resultCode: r.statusCode,
+    message:    r.message,
+    error:      r.error,
+    /* 솔라피는 프록시 없이 즉시 응답 → "발송 중(timeout)" 보류 개념 없음.
+       호출부가 실패 시 정상적으로 롤백하도록 false 고정. */
+    timeout:    false,
   };
 }
 
