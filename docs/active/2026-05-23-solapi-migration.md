@@ -140,6 +140,22 @@
 변수: 회원이름·변경항목·변경후내용·처리일시 / 버튼: 웹링크 "교사유가족협의회 홈이동"
 코드: 미구현 → 후원 정보 변경 시 발송 로직 신규 필요
 
+## 솔라피 등록 결과 (2026-05-23 — API로 등록·검수요청 완료, 카카오 심사중)
+- 발신프로필(pfId/channelId): `KA01PF260523120325582xPyYFhJqfpX` (@교사유가족협의회)
+- 카테고리: 전부 `004001`(이용안내/공지) · 강조표기형(emphasizeTitle=각 제목, emphasizeSubtitle="교사유가족협의회") · 버튼 웹링크
+- 등록 API: `POST /kakao/v2/templates` (필드: **channelId**·name·content·categoryCode·emphasizeType:"TEXT"·emphasizeTitle·emphasizeSubtitle·buttons[{buttonType:"WL",buttonName,linkMo,linkPc}]). 검수요청: `PUT /kakao/v2/templates/{id}/inspection`.
+
+| 템플릿 | templateId | 변수(한글) |
+|---|---|---|
+| 등록 카드 만료 안내 | `KA01TP260523121256837nKbXfT9yJmh` | 회원이름·카드만료일·잔여일수 |
+| 정기 결제 실패 | `KA01TP2605231214003525WUwOGmim0W` | 회원이름·금액·실패사유·연속실패횟수·재시도일자 |
+| 정기 후원금 출금 완료 안내 | `KA01TP260523121400847w7Zc33l4Rh2` | 회원이름·출금금액·출금일시·누적후원금액 |
+| 정기 후원금 자동 출금 예정 안내 | `KA01TP260523121401287K1HFcLOPAtS` | 회원이름·출금금액·출금예정일·결제수단 |
+| 연간 기부금 영수증 발급 안내 | `KA01TP260523121401738OKTpRObBtvl` | 회원이름·연도·연간후원금액·발급가능기간·영수증종류 |
+| 후원 정보 변경 처리 완료 | `KA01TP260523121402219EEVDf8bclV2` | 회원이름·변경항목·변경후내용·처리일시 |
+
+→ env 후보: `SOLAPI_KAKAO_PFID` + 템플릿별 `SOLAPI_TPL_CARD_EXPIRING`·`SOLAPI_TPL_BILLING_FAILED`·`SOLAPI_TPL_BILLING_SUCCESS`·`SOLAPI_TPL_BILLING_UPCOMING`·`SOLAPI_TPL_RECEIPT`·`SOLAPI_TPL_DONOR_CHANGE`. 카카오 승인(APPROVED) 후 코드 연결.
+
 ## 코드 교체 시 할 일 (승인·pfId·templateId 확보 후)
 1. `lib/solapi-client.ts solapiSendAlimtalk` 사용 — env `SOLAPI_KAKAO_PFID` + 템플릿별 `SOLAPI_TEMPLATE_*`(templateId).
 2. `lib/notify-adapters/kakao-aligo.ts` → 솔라피 어댑터로 교체. 변수 맵을 한글 변수명으로 구성(회원이름·금액 등).
