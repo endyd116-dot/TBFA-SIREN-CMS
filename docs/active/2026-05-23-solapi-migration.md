@@ -1,13 +1,35 @@
 # 발송 업체 이전: 알리고+Oracle프록시 → 솔라피(SOLAPI)
 
-> 2026-05-23 시작. SMS 완료·검증, 알림톡 진행 중.
-> 배경/인프라 상세는 메모리 `reference_sms_kakao_proxy.md` 참조.
+> 2026-05-23 시작. 배경/인프라 상세는 메모리 `reference_sms_kakao_proxy.md` 참조.
 
-## 진행 상태
-- ✅ **SMS(휴대폰 인증)** — 솔라피 직접 발송 전환 완료·라이브 검증. `lib/solapi-client.ts`(`solapiSendSms`)·`lib/aligo-client.ts aligoSend()` 위임. env `SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER`(01028075242·임시). 인증 유효 3분+타이머(`59ce13e`).
-- ⏳ **알림톡 6종** — 솔라피 재등록 중(Swain). 승인 후 코드 교체.
-- ⏳ **MMS** — `aligoSendMms` 솔라피 교체 미완(이미지는 SOLAPI Storage 업로드→imageId 방식).
-- ⏳ **프록시·OCI 폐기** — 알림톡 전환 후 `proxy-server/`·`lib/oci-client.ts`·`cron-warmup` 프록시 로직·`ALIGO_*`/`OCI_*` env·Oracle 인스턴스 삭제.
+## ★ 재개 절차 (2026-05-23 세션 종료 시점 — 새 세션은 여기부터)
+
+**코드는 사실상 100% 완료·배포됨.** 알림톡은 env 미설정이라 placeholder(미발송)로 대기 중. 외부 승인 2건만 기다리는 상태.
+
+### 완료 (배포됨)
+- ✅ SMS(휴대폰 인증) 솔라피 전환·라이브 검증. SMS는 시스템·AI·수동 발송 전부 솔라피.
+- ✅ 인증 유효 10분→3분 + 3:00 카운트다운 타이머.
+- ✅ 알림톡 6종 솔라피 등록 + 카카오 검수요청(INSPECTING). pfId·templateId 아래 표.
+- ✅ 알림톡 어댑터(`lib/notify-adapters/kakao-aligo.ts`) 6종 전부 + 신규 이벤트 3종(`notify-events.ts`).
+- ✅ 발송 트리거 6종 전부 연결: 결제실패·카드만료·출금완료(기존 cron-kicc-billing) / 출금예정(`cron-billing-upcoming`)·영수증(`cron-donation-receipt-annual`) 신규 cron / 후원변경(`billing-approve` 재등록 시).
+- ✅ 발송템플릿 DB 카카오 코드 UH→솔라피 재연결(migration 호출 완료·파일 삭제).
+
+### 대기 1 — 카카오 알림톡 승인 (1~3 영업일) → 승인되면 (내가):
+1. **Netlify env 7개 설정** (아래 값) → placeholder 자동 해제 → 6종 솔라피 발송 시작:
+   - `SOLAPI_KAKAO_PFID=KA01PF260523120325582xPyYFhJqfpX`
+   - `SOLAPI_TPL_BILLING_FAILED=KA01TP2605231214003525WUwOGmim0W`
+   - `SOLAPI_TPL_CARD_EXPIRING=KA01TP260523121256837nKbXfT9yJmh`
+   - `SOLAPI_TPL_BILLING_SUCCESS=KA01TP260523121400847w7Zc33l4Rh2`
+   - `SOLAPI_TPL_BILLING_UPCOMING=KA01TP260523121401287K1HFcLOPAtS`
+   - `SOLAPI_TPL_RECEIPT=KA01TP260523121401738OKTpRObBtvl`
+   - `SOLAPI_TPL_DONOR_CHANGE=KA01TP260523121402219EEVDf8bclV2`
+2. 알림톡 라이브 테스트(실제 카톡 도착 확인).
+3. (검증 후) **MMS 솔라피 교체** + **프록시·OCI 폐기**(`proxy-server/`·`lib/oci-client.ts`·`cron-warmup`·`lib/aligo-kakao-client.ts` 삭제 + `ALIGO_*PROXY*`·`OCI_*` env 제거) + Oracle VM 삭제. ※ 프록시는 검증 전엔 살려둠(유일 폴백).
+
+### 대기 2 — KICC MID 권한 (별도 트랙·`docs/active/2026-05-21-r40-kicc.md`): Swain이 KICC에 권한 요청 → 풀리면 일시 가상계좌 구현 + 정기 효성 노출 점검 + 라이브 결제.
+
+### 환경변수 현황 (Netlify·설정됨)
+`SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER`(=01028075242·Swain 개인폰 임시). SMS 발송 중. 솔라피 한도: 사업자인증+한도증설 신청 진행 중(기본 50건/일).
 
 ## 알림톡 6종 (알리고 원본 = 카카오 승인본·솔라피 재등록 기준)
 모두 **강조표기형**(노란 강조제목 바). 변수는 `#{한글변수}`. 버튼은 별도 표기 외 전부 웹링크 "교사유가족협의회 홈이동" → `https://tbfa.co.kr/`(모바일/PC 동일).
