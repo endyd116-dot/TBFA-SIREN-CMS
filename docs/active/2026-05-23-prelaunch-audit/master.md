@@ -14,7 +14,7 @@
 | A (SIREN신고·유족지원·공개사이트) | Sonnet | 0 | 4 | 3 (+관찰 4) |
 | B (워크스페이스·근태·성과급여·AI) | Sonnet | 0 | 12 | 23 |
 | C (어드민CMS·재정·권한·빌더·인프라) | Sonnet(직접 재검증) | 1 | 1 | 7 |
-| **마스터 (중복 통합 후)** | — | **2** | **19** | **~38** |
+| **마스터 (중복 통합 후)** | — | **2** | **19** (P1-9 정책 해소 → 실수정 **18**) | **~38** |
 
 **핵심 통찰 3가지**
 1. **운영 즉시 다운·데이터 유실급 P0는 사실상 없음.** 확정 P0 2건은 ① 이메일 운영 게이트(env) ② operator 권한 상승(operator 등급 발급 시에만 발현). 코드 베이스는 전반적으로 견고.
@@ -30,7 +30,7 @@
 | **P0-1** | **이메일 전체가 테스트 redirect 모드에 묶임** — `RESEND_TEST_RECIPIENT` 설정 시 모든 메일이 1개 테스트 주소로 / `EMAIL_FROM` 미검증 도메인 시 발송 불가 | 메인 | `lib/email.ts:6,17,28~45` | 비번재설정·후원영수증·결제 성공/실패·가입메일이 사용자에게 안 감. 결제 알림 강제채널이라 백업도 동시 마비 | **운영 env 게이트** |
 | **P0-2** | **운영자 관리 API 권한 상승** — `requireAdmin`만 통과하면(operator 포함) 임의 회원을 super_admin으로 승급·역할 변경 가능 | C | `admin-operators.ts:51,139-140,197-198` | operator 등급이 자신을 super_admin으로 자가 승격 → 4계층 권한 무력화. **전제: 이미 operator 계정 존재**(외부 공격 아님) | 코드(super_admin 게이팅) |
 
-> **P0-2 조건부**: super_admin·admin만 운영하고 operator 등급을 발급 안 하면 실위험 낮음. **operator 등급을 1명이라도 발급할 계획이면 운영 전 필수 차단.** 형제 함수(`admin-service-rnr.ts`·`admin-role-permissions.ts`)는 super_admin을 강제하는데 이 함수만 누락.
+> **P0-2 확정 (2026-05-23 Swain)**: **슈퍼어드민·어드민·운영자 3계층 전부 운영 예정** → operator 등급을 실제 발급하므로 **운영 전 필수 차단 확정**(조건부 아님). operator가 자신/타인을 super_admin으로 승급하는 경로를 막아야 함. 형제 함수(`admin-service-rnr.ts`·`admin-role-permissions.ts`)는 super_admin을 강제하는데 이 함수만 누락.
 
 ---
 
@@ -39,7 +39,7 @@
 ### 2-A. 교차·인프라
 | # | 발견 | 영역 | 위치 | 영향 |
 |---|---|---|---|---|
-| **P1-1** | **cron 7~12종 netlify.toml 미등록** (인라인 config.schedule만 의존) | 메인·B·C | `netlify.toml` ↔ `cron-payroll-monthly`·`cron-agent-8`·`cron-task-risk`·`cron-billing-card-expiry`·`cron-workspace-trash-cleanup`·`cron-milestone-quarter`·`cron-att-late/remote-streak`·`cron-ms-*`·`cron-auto-trigger-evaluator`·`cron-tracking-stats-rollup` | 인라인이 안 먹는 환경이면 급여 월집계·일일브리핑·카드만료알림·휴지통정리 영구 무동작. **C는 인라인 공식 지원이라 무해(P2) 판정** → §4 대시보드 1회 확인으로 종결 |
+| **P1-1** | **cron 7~12종 netlify.toml 미등록** (인라인 config.schedule만 의존) | 메인·B·C | `netlify.toml` ↔ `cron-payroll-monthly`·`cron-agent-8`·`cron-task-risk`·`cron-billing-card-expiry`·`cron-workspace-trash-cleanup`·`cron-milestone-quarter`·`cron-att-late/remote-streak`·`cron-ms-*`·`cron-auto-trigger-evaluator`·`cron-tracking-stats-rollup` | 인라인이 안 먹는 환경이면 급여 월집계·일일브리핑·카드만료알림·휴지통정리 영구 무동작. ✅ **해결책 확정(2026-05-23): 대시보드 확인 불필요 — 수정 라운드에서 빠진 cron을 netlify.toml에 마저 등록(이중 등록은 무해)하면 논쟁 자체 종결.** C 담당 |
 
 ### 2-B. 결제·알림 (메인)
 | # | 발견 | 위치 | 영향 |
@@ -55,7 +55,7 @@
 | **P1-6** | **신고 수정 시 본문·분류 손실** (프론트 `content` ↔ 서버 `contentHtml`, 3종 동일) + 수정 모달 빈 본문 | `my-reports.js:471` ↔ `incident/harassment/legal-*-update.ts:35` / `user-my-reports.ts:46~118` | "수정됨" 토스트는 뜨나 제목만 저장·내용 사라짐 |
 | **P1-7** | **전문가 상담 내역 항상 "내역 없음"** (서버 `{active,closed}` ↔ 프론트 `items/matches`) | `expert-match-list.ts:102~109` ↔ `mypage-expert-match.js:195` | 매칭돼도 채팅입장 버튼 안 뜸 |
 | **P1-8** | **게시글 구독 버튼 항상 실패** (미존재 엔드포인트 `board-subscription-status/toggle` 호출) | `board.js:476,497` (실제는 `user-post-subscribe`) | 클릭 시 "네트워크 오류"(404) |
-| **P1-9** | **익명 신원공개 super_admin 게이팅 부재** (`requireAdmin`만, 일반 관리자 전원 허용) | `admin-anonymous-reveal.ts:35~37` | SIREN 핵심 가치(익명성)·기본연봉보다 약한 보호. **정책 결정 필요** |
+| ~~P1-9~~ | ~~익명 신원공개 super_admin 게이팅 부재~~ → ✅ **정책상 해소 (2026-05-23 Swain): 일반 관리자 전원 허용이 의도** | `admin-anonymous-reveal.ts:35~37` | **수정 불필요.** 신원 열람은 의도적으로 전 관리자 허용. 전건 감사로그(`anonymous_reveal_logs`: adminId·사유·IP·레벨)로 사후 추적 유지 |
 
 ### 2-D. 워크스페이스·근태·성과급여·AI (B)
 | # | 발견 | 위치 | 영향 |
@@ -105,7 +105,7 @@
 
 ## 5. 도메인 경계 교차검증 결과
 
-- **cron 미등록**: 메인(card-expiry)·B(7종)·C(전수) 독립 발견 → P1-1 단일 통합. **C 판정(인라인 무해)과 B·메인 판정(P1) 상충** → §4 대시보드 확인으로 종결.
+- **cron 미등록**: 메인(card-expiry)·B(7종)·C(전수) 독립 발견 → P1-1 단일 통합. C 판정(인라인 무해)과 B·메인 판정(P1) 상충 → **수정 라운드에서 netlify.toml 일괄 등록(무해)으로 종결 확정(2026-05-23 Swain)** — 대시보드 확인 불요.
 - **KICC 빌링 화면 404**: C 발견(어드민 화면)·메인 교차확인(결제). 메인 fan-out은 P0, C 재검증은 P1(cron 독립 정상) → **P1 채택**.
 - **채널 "toss" 라벨**(P2): donor-status.ts(메인·후크) + admin 통계(C) 양쪽 동기 정정.
 - **발송 어댑터 alligo import**(C 교차질문): **메인 확인 완료** — `aligo-client`·`sms-aligo`·`kakao-aligo`는 전부 솔라피 위임 래퍼(`solapiSendSms/Mms/Alimtalk`). `admin-system-notification-list`의 import는 미리보기 헬퍼라 실발송 무관 → **기능 잔재 아님, 파일명 잔재(P2)만.** SMS는 라이브 검증 완료(HANDOFF §8).
@@ -116,12 +116,13 @@
 
 ## 6. 다음 단계 (Swain 결정 요청)
 
-1. **P0 2건 오픈 전 필수**: P0-1(이메일 env 게이트·§4)·P0-2(operator 권한 — 코드, operator 등급 발급 계획 시).
-2. **수정 라운드 도메인 분배 제안**(검수와 동일 = 충돌 0):
+1. **P0 2건 오픈 전 필수 (둘 다 확정)**: P0-1(이메일 env 게이트·§4) · P0-2(operator 권한 차단 — **운영자 3계층 운영 확정으로 필수**).
+2. **Swain 검토 결정 반영(2026-05-23)**: P1-9(익명공개 게이팅) = **의도된 정책으로 해소·수정 불필요** / P1-1(cron) = **netlify.toml 일괄 등록으로 종결·대시보드 확인 불요**.
+3. **수정 라운드 도메인 분배 제안**(검수와 동일 = 충돌 0):
    - **메인** = KICC 빌링화면 config·카드만료 저장·웹훅 하드닝·AI시크릿 하드닝·잔재(P1-2,3,4,5 / P2)
-   - **A** = 신고수정·전문가내역·구독버튼·익명게이팅(P1-6,7,8,9) — 필드명/응답키/엔드포인트라 소규모
+   - **A** = 신고수정·전문가내역·구독버튼(P1-6,7,8) — 필드명/응답키/엔드포인트라 소규모 (P1-9 제외)
    - **B** = 이중래핑·멘션·복원·휴가합산·분기경계·급여정합·Agent-9(P1-10~18)
-   - **C** = operator 권한 차단·게이미피케이션 라우팅·migrate 삭제·FK(P0-2 / P2)
+   - **C** = operator 권한 차단(P0-2)·cron toml 일괄 등록(P1-1)·게이미피케이션 라우팅·migrate 삭제·FK(P2)
 3. **§4 게이트 7종은 Swain이 Netlify·DB에서 직접 확인**(코드 무관·1회).
 4. 합의 후 본 master.md → `docs/history/`로 이동, PROJECT_STATE·HANDOFF 갱신.
 
