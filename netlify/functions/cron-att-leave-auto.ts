@@ -2,20 +2,23 @@
  * cron-att-leave-auto: 유급휴가 자동 부여 (매월 1일 KST 09:00 = UTC 00:00)
  * schedule: 0 0 1 * *
  *
- * 동작:
- * 1. 전월 만근 직원 → 유급휴가 +1일 부여
- *    **만근 기준**: ABSENT + LATE(미인정) + EARLY_LEAVE(미인정) 모두 0건
- *    무단지각·무단조퇴까지 만근 기준에 포함하는 보수적 정책 (어드민이 사유 인정한
- *    is_manually_adjusted=true 케이스는 만근에서 제외하지 않음).
- *    명세 동기화: docs/milestones/2026-05-19-phase27-att-step9-17.md §6 cron-att-leave-auto.
- * 2. 입사 1년 도래 직원 → 연차 15일 일괄 부여
- * 3. 연차 소진 D-30 직원(만료 30일 이내) → 사용 촉진 알림
+ * 연차 산정 정책(att_policies 기본행 is_default=true)에 따라 모드 분기:
+ *  - 모드 A (5인 이하): 전월 만근 직원 → +perfect_bonus_per_month 일 (기본 1일)
+ *       만근 기준: ABSENT + 무단 LATE + 무단 EARLY_LEAVE 모두 0건
+ *       (is_manually_adjusted=true 인정 케이스는 만근에서 제외하지 않음).
+ *  - 모드 B (5인 이상): 입사 N주년 도래(입사월=당월·1주년 이상) 직원 → 근속 기반 연차 부여
+ *       days = annual_base_days + floor((근속년수-1)/annual_increment_years)*annual_increment_days
+ *       (상한 annual_cap_days). 입사일 = members.hire_date ?? createdAt(가입일 폴백).
+ *       예) base12·inc1·incYears2 → 1주년 12 / 3년차 13 / 5년차 14.
+ *  - 공통: 연차 소진 D-30 사용 촉진 알림 (모드 무관).
+ *
+ * 정책 설정 UI: /api/admin-att-leave-policy (슈퍼어드민). 정책 부재 시 기본값(모드 A).
  */
 
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { members, attLeaveBalances, attLeaveTypes } from "../../db/schema";
-import { eq, and, isNull, sql, gte, lte } from "drizzle-orm";
+import { members, attLeaveBalances, attLeaveTypes, attPolicies } from "../../db/schema";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { schedule: "0 0 1 * *" };
@@ -45,6 +48,31 @@ export default async (_req: Request, _ctx: Context) => {
   const errors: string[] = [];
 
   try {
+    // ─── 연차 산정 정책 로드 (is_default=true 기본행·부재 시 기본값 모드 A) ───
+    const policy = {
+      mode: "A" as "A" | "B",
+      baseDays: 12,
+      incDays: 1,
+      incYears: 2,
+      capDays: 25,
+      perfectBonus: 1,
+    };
+    try {
+      const prow = await db.select().from(attPolicies)
+        .where(eq(attPolicies.isDefault, true)).limit(1);
+      if (prow[0]) {
+        policy.mode         = prow[0].leaveAccrualMode === "B" ? "B" : "A";
+        policy.baseDays     = Number(prow[0].annualBaseDays);
+        policy.incDays      = Number(prow[0].annualIncrementDays);
+        policy.incYears     = Math.max(1, Number(prow[0].annualIncrementYears));
+        policy.capDays      = Number(prow[0].annualCapDays);
+        policy.perfectBonus = Number(prow[0].perfectBonusPerMonth);
+      }
+    } catch (err: any) {
+      console.warn("[cron-att-leave-auto] 정책 로드 실패 — 기본값(모드 A) 사용:", err?.message);
+    }
+    console.info(`[cron-att-leave-auto] 정책 모드=${policy.mode} base=${policy.baseDays} inc=${policy.incDays}/${policy.incYears}y cap=${policy.capDays} bonus=${policy.perfectBonus}`);
+
     // "연차" 휴가 타입 조회 (is_paid=true, 이름에 "연차" 포함 우선)
     const leaveTypes = await db
       .select({ id: attLeaveTypes.id, name: attLeaveTypes.name })
@@ -69,6 +97,7 @@ export default async (_req: Request, _ctx: Context) => {
         id: members.id,
         name: members.name,
         createdAt: members.createdAt,
+        hireDate: members.hireDate,
       })
       .from(members)
       .where(and(
@@ -77,11 +106,10 @@ export default async (_req: Request, _ctx: Context) => {
       ));
     const activeOps = activeOpsRaw.map(o => ({ ...o, uid: String(o.id) }));
 
-    // ─── 1. 전월 만근 직원 → +1일 ───
+    // ─── 1. [모드 A] 전월 만근 직원 → +perfect_bonus 일 ───
     //   만근 조건: 결근(ABSENT) + 무단지각(LATE & is_manually_adjusted=false) +
     //              무단조퇴(EARLY_LEAVE & is_manually_adjusted=false) 모두 0건
-    //   ※ is_manually_adjusted=true 는 어드민이 사유 인정한 케이스로 만근에서 제외하지 않음
-    for (const op of activeOps) {
+    for (const op of (policy.mode === "A" ? activeOps : [])) {
       try {
         const violationRows: any = await db.execute(sql`
           SELECT
@@ -98,13 +126,13 @@ export default async (_req: Request, _ctx: Context) => {
         const lateCnt   = Number(v.late_cnt ?? 0);
         const earlyCnt  = Number(v.early_cnt ?? 0);
 
-        if (absentCnt === 0 && lateCnt === 0 && earlyCnt === 0) {
-          // 만근 → +1일 upsert
+        if (absentCnt === 0 && lateCnt === 0 && earlyCnt === 0 && policy.perfectBonus > 0) {
+          // 만근 → +perfectBonus 일 upsert
           await db.execute(sql`
             INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)
-            VALUES (${op.uid}, ${annualLeaveType.id}, ${thisYear}, 1, 0)
+            VALUES (${op.uid}, ${annualLeaveType.id}, ${thisYear}, ${policy.perfectBonus}, 0)
             ON CONFLICT (member_uid, leave_type_id, year)
-            DO UPDATE SET total_days = att_leave_balances.total_days + 1
+            DO UPDATE SET total_days = att_leave_balances.total_days + ${policy.perfectBonus}
           `);
           perfectAttendanceCount++;
 
@@ -114,8 +142,8 @@ export default async (_req: Request, _ctx: Context) => {
             sourceId: 0,
             notifType: "reminder_3d" as any,
             channel: "bell" as any,
-            title: "만근 보너스 연차 +1일",
-            body: `${prevYear}년 ${prevMonth}월 만근으로 연차 1일이 추가되었습니다.`,
+            title: `만근 보너스 연차 +${policy.perfectBonus}일`,
+            body: `${prevYear}년 ${prevMonth}월 만근으로 연차 ${policy.perfectBonus}일이 추가되었습니다.`,
             actionUrl: "/workspace-attendance.html",
             category: "system" as any,
           });
@@ -125,35 +153,31 @@ export default async (_req: Request, _ctx: Context) => {
       }
     }
 
-    // ─── 2. 입사 1년 도래 직원 → 근속 기반 연차 일괄 부여 (모드 B · 5인 이상) ───
-    // ★ 2026-05-23 운영 전 검수 후속: 교사유가족협의회는 5인 이하 사업장 = 모드 A(월 만근 시 +1일만
-    //   운영) → 근속 기반 1주년 일괄부여는 현재 미운영. "연차 산정 정책"(모드 A/B 선택 + 모드 B의
-    //   1주년 기본일수·증가일수·증가주기·상한을 슈퍼어드민이 CRUD)은 다음 라운드에서 설계·구현 예정.
-    //   그때 아래 플래그를 정책 설정값으로 대체한다. (아래 +15 로직도 그때 모드 B 파라미터로 재작성)
-    // R34-P2 (round3 M-G2): members 테이블에 hire_date 컬럼이 없어 회원가입일(createdAt)을
-    // 입사일 대용으로 사용 — 모드 B 도입 시 hire_date 추가 마이그 + 본 cron 변경 필요.
-    const SERVICE_BASED_ANNUAL_ENABLED = false;  // 모드 B 활성 시 true (정책 기능 도입 시 설정값 참조)
-    for (const op of (SERVICE_BASED_ANNUAL_ENABLED ? activeOps : [])) {
+    // ─── 2. [모드 B] 입사 N주년 도래 직원 → 근속 기반 연차 부여 ───
+    //   입사월 == 당월 && 1주년 이상. 입사일 = hire_date ?? createdAt(가입일 폴백).
+    //   days = base + floor((근속년수-1)/incYears)*incDays, 상한 cap.
+    //   ON CONFLICT 시 GREATEST 로 기존 잔여 보존(P1-14: 적립분 손실 방지).
+    for (const op of (policy.mode === "B" ? activeOps : [])) {
       try {
-        if (!op.createdAt) continue;
-        const joinDate = new Date(op.createdAt);
-        const joinMonth = joinDate.getMonth() + 1;
-        const joinYear = joinDate.getFullYear();
+        const hireRaw = op.hireDate ?? op.createdAt;
+        if (!hireRaw) continue;
+        const hire = new Date(hireRaw as any);
+        if (isNaN(hire.getTime())) continue;
+        const hireMonth = hire.getMonth() + 1;
+        const hireYear = hire.getFullYear();
 
-        // 정확히 1년 도래 = 가입 1년 후 연도·월이 현재와 같음
-        const targetYear = joinYear + 1;
-        const targetMonth = joinMonth;
-        if (targetYear === thisYear && targetMonth === thisMonth) {
-          // ★ P1-14 fix: 기존 GREATEST(total,15)는 같은 해 적립된 만근 보너스(+1/월)를
-          // 덮어써(예: 만근 3일 → 15로 고정되어 3일 손실) 잔여일이 사라졌다.
-          // 1주년 연차 15일을 기존 적립분에 "더해" 부여(만근 보너스 보존).
-          // (cron 월 1회 실행 + targetYear/Month 가드로 1주년 1회만 발화)
+        // 입사월 == 당월 && 최소 1주년 도래
+        if (hireMonth === thisMonth && thisYear > hireYear) {
+          const serviceYears = thisYear - hireYear; // 근속 만 N년
+          let days = policy.baseDays + Math.floor((serviceYears - 1) / policy.incYears) * policy.incDays;
+          days = Math.min(days, policy.capDays);
+          if (days <= 0) continue;
+
           await db.execute(sql`
             INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)
-            VALUES (${op.uid}, ${annualLeaveType.id}, ${thisYear}, 15, 0)
+            VALUES (${op.uid}, ${annualLeaveType.id}, ${thisYear}, ${days}, 0)
             ON CONFLICT (member_uid, leave_type_id, year)
-            DO UPDATE SET
-              total_days = att_leave_balances.total_days + 15
+            DO UPDATE SET total_days = GREATEST(att_leave_balances.total_days, ${days})
           `);
           anniversaryCount++;
 
@@ -163,20 +187,19 @@ export default async (_req: Request, _ctx: Context) => {
             sourceId: 0,
             notifType: "reminder_3d" as any,
             channel: "bell" as any,
-            title: "입사 1주년 🎉 연차 15일 지급",
-            body: `입사 1주년을 축하합니다! 연차 15일이 부여되었습니다.`,
+            title: `입사 ${serviceYears}주년 🎉 연차 ${days}일`,
+            body: `입사 ${serviceYears}주년을 축하합니다! 근속 연차 ${days}일이 부여되었습니다.`,
             actionUrl: "/workspace-attendance.html",
             category: "system" as any,
           });
         }
       } catch (err: any) {
-        errors.push(`연차 15일 처리 실패(${op.name}): ${err?.message}`);
+        errors.push(`근속 연차 처리 실패(${op.name}): ${err?.message}`);
       }
     }
 
-    // ─── 3. 연차 소진 D-30 알림 ───
-    // 올해 잔여 연차 < 3일이고 아직 2일 이상 있는 직원 (촉진 대상)
-    // 간단하게: remaining_days > 0 AND total_days > 0이며 used_days/total_days > 0.8
+    // ─── 3. [공통] 연차 소진 D-30 알림 ───
+    // 올해 잔여 연차가 총 휴가의 20% 이하로 떨어진 직원 (촉진 대상)
     for (const op of activeOps) {
       try {
         const balRows: any = await db.execute(sql`
@@ -213,10 +236,11 @@ export default async (_req: Request, _ctx: Context) => {
     }
 
     const durationMs = Date.now() - start;
-    console.info(`[cron-att-leave-auto] 완료 — 만근:${perfectAttendanceCount} 1주년:${anniversaryCount} 촉진알림:${expiryAlertCount} (${durationMs}ms)`);
+    console.info(`[cron-att-leave-auto] 완료 — 모드:${policy.mode} 만근:${perfectAttendanceCount} 근속:${anniversaryCount} 촉진알림:${expiryAlertCount} (${durationMs}ms)`);
 
     return new Response(JSON.stringify({
       ok: true,
+      mode: policy.mode,
       perfectAttendanceCount,
       anniversaryCount,
       expiryAlertCount,

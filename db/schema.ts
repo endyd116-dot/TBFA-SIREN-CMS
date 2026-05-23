@@ -182,6 +182,9 @@ export const members = pgTable("members", {
      default false로 변경 + 옛 회원 일괄 정리 마이그레이션(migrate-fix-operator-active)
      로 운영 데이터 정정. */
   operatorActive: boolean("operator_active").default(false),
+  /* ★ 연차 산정 정책(모드B 근속 계산용) — migrate-att-leave-policy 적용 2026-05-23.
+     NULL이면 가입일(createdAt)을 입사일 대용으로 사용. */
+  hireDate: date("hire_date"),
 
   // 보안 / 인증
   emailVerified: boolean("email_verified").default(false),
@@ -3567,6 +3570,13 @@ export const attPolicies = pgTable("att_policies", {
   coreEndTime:           time("core_end_time").default(sql`'16:00'`),
   flexEnabled:           boolean("flex_enabled").default(false).notNull(),
   remoteMaxPerMonth:     integer("remote_max_per_month").default(10).notNull(),
+  /* === 연차 산정 정책 (migrate-att-leave-policy 적용 완료 2026-05-23) === */
+  leaveAccrualMode:      varchar("leave_accrual_mode", { length: 1 }).default("A").notNull(),        // 'A'(만근 누적·5인 이하) | 'B'(근속 기반·5인 이상)
+  annualBaseDays:        numeric("annual_base_days", { precision: 5, scale: 2 }).default("12").notNull(),    // 모드B: 1주년 기준 일수
+  annualIncrementDays:   numeric("annual_increment_days", { precision: 5, scale: 2 }).default("1").notNull(),  // 모드B: 증가 일수
+  annualIncrementYears:  integer("annual_increment_years").default(2).notNull(),                     // 모드B: 증가 주기(년)
+  annualCapDays:         numeric("annual_cap_days", { precision: 5, scale: 2 }).default("25").notNull(),     // 모드B: 상한
+  perfectBonusPerMonth:  numeric("perfect_bonus_per_month", { precision: 5, scale: 2 }).default("1").notNull(),  // 모드A: 월 만근 보너스
   isDefault:             boolean("is_default").default(false).notNull(),
   createdAt:             timestamp("created_at").defaultNow().notNull(),
   updatedAt:             timestamp("updated_at").defaultNow().notNull(),

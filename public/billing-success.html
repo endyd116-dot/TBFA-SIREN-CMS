@@ -151,6 +151,31 @@
     margin-bottom: 20px;
     text-align: left;
   }
+  .bs-expiry-box {
+    background: var(--bg-soft, #f7f8fa);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .bs-expiry-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .bs-expiry-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.6; margin: 0 0 12px; word-break: keep-all; }
+  .bs-expiry-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bs-expiry-input {
+    width: 64px; padding: 10px; text-align: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    font-size: 15px; font-family: 'Inter', monospace;
+  }
+  .bs-expiry-sep { font-size: 18px; color: var(--text-3); font-weight: 600; }
+  .bs-expiry-btn {
+    padding: 10px 20px; background: var(--brand); color: #fff;
+    border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .bs-expiry-btn:disabled { opacity: .6; cursor: default; }
+  .bs-expiry-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
+  .bs-expiry-msg.err { color: #a01e2c; }
+  .bs-expiry-msg.ok { color: var(--brand); }
 </style>
 </head>
 <body data-page="billing-success">
@@ -203,6 +228,19 @@
             <span class="bs-info-label">다음 결제 예정</span>
             <span class="bs-info-value" id="bsNextChargeAt">—</span>
           </div>
+        </div>
+
+        <!-- 카드 유효기간 등록 (사전 만료 알림용·선택) -->
+        <div class="bs-expiry-box" id="bsExpiryBox">
+          <div class="bs-expiry-title">💳 카드 유효기간 등록 <span style="font-weight:400;color:var(--text-3)">(선택)</span></div>
+          <p class="bs-expiry-desc">유효기간을 등록하시면 카드 만료 <strong>30일·14일 전</strong>에 갱신 안내를 미리 보내드려, 정기 후원이 끊기지 않습니다.</p>
+          <div class="bs-expiry-form">
+            <input type="text" id="bsExpiryMM" inputmode="numeric" maxlength="2" placeholder="MM" class="bs-expiry-input" aria-label="만료 월">
+            <span class="bs-expiry-sep">/</span>
+            <input type="text" id="bsExpiryYY" inputmode="numeric" maxlength="2" placeholder="YY" class="bs-expiry-input" aria-label="만료 연도">
+            <button type="button" id="bsExpirySave" class="bs-expiry-btn">등록</button>
+          </div>
+          <div class="bs-expiry-msg" id="bsExpiryMsg"></div>
         </div>
 
         <div class="bs-info-side">
@@ -328,6 +366,46 @@
 
     /* sessionStorage 정리 */
     try { sessionStorage.removeItem('siren_billing_intent'); } catch (e) {}
+
+    /* 카드 유효기간 등록 (KICC 만료월 미제공 보완·방식② — donationId 있을 때만) */
+    (function bindExpiry() {
+      var box = $('bsExpiryBox');
+      if (!donationId) { if (box) box.style.display = 'none'; return; }
+      var btn = $('bsExpirySave');
+      if (!btn) return;
+      btn.addEventListener('click', async function () {
+        var mm = ($('bsExpiryMM').value || '').trim();
+        var yy = ($('bsExpiryYY').value || '').trim();
+        var msg = $('bsExpiryMsg');
+        var mmN = Number(mm), yyN = Number(yy);
+        if (!/^\d{1,2}$/.test(mm) || !/^\d{2}$/.test(yy) || mmN < 1 || mmN > 12) {
+          if (msg) { msg.textContent = '유효기간을 정확히 입력해 주세요 (예: 12 / 27)'; msg.className = 'bs-expiry-msg err'; }
+          return;
+        }
+        btn.disabled = true;
+        if (msg) { msg.textContent = '등록 중...'; msg.className = 'bs-expiry-msg'; }
+        try {
+          var res = await fetch('/api/billing-card-expiry-set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ donationId: Number(donationId), expiryMM: mmN, expiryYY: yyN })
+          });
+          var j = await res.json().catch(function () { return {}; });
+          if (res.ok && j.ok) {
+            if (box) box.innerHTML =
+              '<div class="bs-expiry-title" style="color:var(--brand)">✅ 카드 유효기간이 등록되었습니다</div>' +
+              '<p class="bs-expiry-desc" style="margin:0">만료 30일·14일 전에 갱신 안내를 보내드립니다.</p>';
+          } else {
+            if (msg) { msg.textContent = (j.error || '저장에 실패했습니다'); msg.className = 'bs-expiry-msg err'; }
+            btn.disabled = false;
+          }
+        } catch (e) {
+          if (msg) { msg.textContent = '네트워크 오류로 저장하지 못했습니다'; msg.className = 'bs-expiry-msg err'; }
+          btn.disabled = false;
+        }
+      });
+    })();
 
     /* 카드 정보·다음 결제일 보강 (billing-mine — 로그인 사용자만, 실패 무시) */
     (async function enrich() {

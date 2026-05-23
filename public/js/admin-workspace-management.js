@@ -556,6 +556,63 @@
     setVal('awmPolicyRemoteMaxPerMonth', p.remoteMaxPerMonth ?? 10);
 
     document.getElementById('awmBtnSavePolicy')?.addEventListener('click', savePolicy);
+
+    // 연차 산정 정책 (같은 패널·별도 저장)
+    await loadLeavePolicy();
+    document.getElementById('awmBtnSaveLeavePolicy')?.addEventListener('click', saveLeavePolicy);
+    document.querySelectorAll('input[name="awmLeaveMode"]').forEach(function (r) {
+      r.addEventListener('change', toggleLeaveModeUI);
+    });
+  }
+
+  /* ── 연차 산정 정책 ── */
+  async function loadLeavePolicy() {
+    const res = await api('/api/admin-att-leave-policy');
+    if (!res.ok) { toast('연차 정책 로드 실패: ' + (res.data?.error || '')); return; }
+    const lp = res.data?.data || res.data || {};
+    const mode = lp.leaveAccrualMode === 'B' ? 'B' : 'A';
+    const radio = document.querySelector('input[name="awmLeaveMode"][value="' + mode + '"]');
+    if (radio) radio.checked = true;
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+    setVal('awmLeavePerfectBonus', lp.perfectBonusPerMonth ?? 1);
+    setVal('awmLeaveBaseDays', lp.annualBaseDays ?? 12);
+    setVal('awmLeaveIncDays', lp.annualIncrementDays ?? 1);
+    setVal('awmLeaveIncYears', lp.annualIncrementYears ?? 2);
+    setVal('awmLeaveCapDays', lp.annualCapDays ?? 25);
+    toggleLeaveModeUI();
+  }
+
+  function toggleLeaveModeUI() {
+    const checked = document.querySelector('input[name="awmLeaveMode"]:checked');
+    const mode = checked ? checked.value : 'A';
+    const a = document.getElementById('awmLeaveModeA');
+    const b = document.getElementById('awmLeaveModeB');
+    if (a) a.style.display = mode === 'A' ? '' : 'none';
+    if (b) b.style.display = mode === 'B' ? '' : 'none';
+  }
+
+  async function saveLeavePolicy() {
+    const val = (id) => document.getElementById(id)?.value;
+    const checked = document.querySelector('input[name="awmLeaveMode"]:checked');
+    const mode = checked ? checked.value : 'A';
+    const body = {
+      leaveAccrualMode:     mode,
+      perfectBonusPerMonth: parseFloat(val('awmLeavePerfectBonus')) || 0,
+      annualBaseDays:       parseFloat(val('awmLeaveBaseDays')) || 0,
+      annualIncrementDays:  parseFloat(val('awmLeaveIncDays')) || 0,
+      annualIncrementYears: Number(val('awmLeaveIncYears')) || 1,
+      annualCapDays:        parseFloat(val('awmLeaveCapDays')) || 0,
+    };
+    const btn = document.getElementById('awmBtnSaveLeavePolicy');
+    if (btn) btn.disabled = true;
+    const res = await api('/api/admin-att-leave-policy', { method: 'PUT', body });
+    if (!res.ok) {
+      toast('저장 실패: ' + (res.data?.error || ''));
+      if (btn) btn.disabled = false;
+      return;
+    }
+    toast('연차 산정 정책이 저장되었습니다');
+    if (btn) btn.disabled = false;
   }
 
   async function savePolicy() {

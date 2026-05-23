@@ -31,6 +31,15 @@
 - **🔴 Swain env 게이트(코드 무관·오픈 전 필수)**: ① `INTERNAL_TRIGGER_SECRET` 설정(미설정 시 AI 자동요약 멈춤·fail-closed) ② 이메일 `RESEND_TEST_RECIPIENT` 제거+도메인검증+`EMAIL_FROM` ③ KICC env 4 ④ 솔라피 알림톡 env(승인 후) ⑤ DB 시드(payroll_settings·근태 정책/거점/휴가종류).
 - **➡️ 다음 라운드(새 세션 설계)**: **연차 산정 정책 기능** — 모드 A(5인 이하·월 만근 +1) / 모드 B(5인 이상·근속 기반 1주년 기본12일·2년마다+1, 슈퍼어드민 CRUD) 선택. 스키마+마이그+어드민UI+cron 재작성. 현재 협회=5인 이하라 cron은 모드 A(만근만)로 임시 가드(`SERVICE_BASED_ANNUAL_ENABLED=false`).
 
+### 🟡 연차 산정 정책 기능 + 카드 만료 유효기간 입력 — 구현 완료·라이브 검증 대기 (2026-05-24)
+연차 정책 라운드 전 단계(Stage1~3) + 카드 만료 부록(방식②) 구현 완료. **마이그 적용 완료(appliedCount 7)** → schema 활성화·마이그 삭제. tsc 0. **메인 자율 진행(Swain 수면)·1회 push.**
+- **데이터모델(Swain 확정)**: `att_policies` 확장(연차 6컬럼) + `members.hire_date`(NULL이면 가입일 폴백). 신규 테이블 대신 기존 근무 정책 행 재활용.
+- **백엔드**: `admin-att-leave-policy`(super_admin·UPSERT 시드) + `cron-att-leave-auto` 모드 분기 재작성(`SERVICE_BASED_ANNUAL_ENABLED` 가드 제거→정책값). 모드 A=만근 보너스/모드 B=근속(1주년12·3주년13·5주년14·상한).
+- **프론트**: 근태 설정 '근무 정책' 탭에 연차 산정 정책 섹션(모드 라디오+파라미터 토글·`?v=17-leavepol`).
+- **카드 만료(방식②)**: `billing-card-expiry-set` + billing-success 유효기간 입력. ⚠️ `billing_keys.card_expiry_month`는 schema 정의엔 없으나 **DB엔 존재**(cron 운영 중) → **raw SQL UPDATE로만 접근**(billing_keys SELECT 격리·회귀 0).
+- **TODO(모드 B 실사용 전)**: 회원 상세에 입사일 입력 칸 추가(현재 가입일 폴백). 설계·결과 = `docs/active/2026-05-24-leave-policy-design.md` 구현 결과.
+- **Swain 라이브 검증**: ① 근무 정책 탭 연차 섹션 노출·모드 토글·저장/재로드 ② billing-success 유효기간 입력·저장. 통과 시 설계서 history 이동.
+
 ### 🔧 Push 배치 정책 신설 (2026-05-21·배포 비용 절감)
 Netlify 배포 크레딧 폭증(한 달 1,426 production 배포 → 크레딧 79%·$10 auto-recharge 반복). `push`=배포=과금이라 **A·B·C push 금지 + 메인이 검증 단위로 묶어 1회 push**로 전환. 상세: CLAUDE.md §9.3·§6.17 / HANDOFF §7.7.
 
