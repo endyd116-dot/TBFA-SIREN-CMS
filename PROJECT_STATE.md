@@ -39,6 +39,8 @@
 - **카드 만료(방식②)**: `billing-card-expiry-set` + billing-success 유효기간 입력. ⚠️ `billing_keys.card_expiry_month`는 schema 정의엔 없으나 **DB엔 존재**(cron 운영 중) → **raw SQL UPDATE로만 접근**(billing_keys SELECT 격리·회귀 0).
 - **TODO(모드 B 실사용 전)**: 회원 상세에 입사일 입력 칸 추가(현재 가입일 폴백). 설계·결과 = `docs/active/2026-05-24-leave-policy-design.md` 구현 결과.
 - **Swain 라이브 검증**: ① 근무 정책 탭 연차 섹션 노출·모드 토글·저장/재로드 ② billing-success 유효기간 입력·저장. 통과 시 설계서 history 이동.
+- **후속 보강(2026-05-24 Swain 요청)**: ① 잔여 휴가 탭에 **'휴가 부여/회수' 폼** 추가(직원·휴가종류 선택 → 잔여 기록 없는 직원도 첫 부여 가능·회수는 음수 입력·기존 행 +1/-1/상세 조정은 유지) ② **실시간 출퇴근 현황 직원 이름 클릭 → '출퇴근 기록' 탭 자동 이동·해당 직원 조회**. 캐시버스터 v18-leavegrant. (휴가 잔여 조정 API·이력은 기존 `admin-att-leave-balances` 재활용 — 신규 API 0)
+- **검증 답변(출퇴근 장소 제한)**: 출근(check-in)은 OFFICE·FIELD 모드에서 거점 반경 내에서만 허용(초과 차단). 단 ① 재택(REMOTE)은 위치 미검증 ② 거점에 GPS 좌표 없으면 검증 스킵 ③ **퇴근(check-out)은 위치 검증 안 함**(어디서든 가능). 거점 강제 퇴근까지 원하면 별도 작업 필요.
 
 ### 🔧 Push 배치 정책 신설 (2026-05-21·배포 비용 절감)
 Netlify 배포 크레딧 폭증(한 달 1,426 production 배포 → 크레딧 79%·$10 auto-recharge 반복). `push`=배포=과금이라 **A·B·C push 금지 + 메인이 검증 단위로 묶어 1회 push**로 전환. 상세: CLAUDE.md §9.3·§6.17 / HANDOFF §7.7.

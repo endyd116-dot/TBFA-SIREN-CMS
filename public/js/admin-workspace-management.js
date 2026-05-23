@@ -973,6 +973,63 @@
       () => hideEl('awmBalanceAdjustForm'));
     document.getElementById('awmBtnSaveBalanceAdjust')?.addEventListener('click', saveBalanceAdjust);
 
+    /* 신규 휴가 부여/회수 폼 (직원·종류 선택) */
+    document.getElementById('awmBtnOpenGrant')?.addEventListener('click', openGrantForm);
+    document.getElementById('awmBtnCancelGrant')?.addEventListener('click', () => hideEl('awmBalanceGrantForm'));
+    document.getElementById('awmBtnSaveGrant')?.addEventListener('click', saveGrant);
+
+    await loadBalances();
+  }
+
+  /* 신규 휴가 부여/회수 — 잔여 기록이 없는 직원에게도 처음 부여 가능 */
+  let _grantDropdownsLoaded = false;
+  async function openGrantForm() {
+    if (!_grantDropdownsLoaded) {
+      try {
+        const resM = await api('/api/admin-att-members');
+        const memberList = resM.data?.data?.members || resM.data?.members || [];
+        const mSel = document.getElementById('awmGrantMember');
+        if (mSel) mSel.innerHTML = '<option value="">— 직원 선택 —</option>' +
+          memberList.map(m => `<option value="${escHtml(String(m.uid || m.id))}">${escHtml(m.name)} (${escHtml(m.email || '')})</option>`).join('');
+      } catch (e) { console.warn('[휴가 부여] 직원 목록 로드 실패', e); }
+      try {
+        const resT = await api('/api/admin-att-leave-types');
+        const types = resT.data?.data || resT.data || [];
+        const tSel = document.getElementById('awmGrantType');
+        if (tSel) tSel.innerHTML = '<option value="">— 종류 선택 —</option>' +
+          (Array.isArray(types) ? types : []).map(t => `<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
+      } catch (e) { console.warn('[휴가 부여] 휴가 종류 로드 실패', e); }
+      _grantDropdownsLoaded = true;
+    }
+    ['awmGrantMember', 'awmGrantType', 'awmGrantDays', 'awmGrantReason'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    showEl('awmBalanceGrantForm');
+    document.getElementById('awmBalanceGrantForm')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function saveGrant() {
+    const memberUid = document.getElementById('awmGrantMember')?.value;
+    const leaveTypeId = Number(document.getElementById('awmGrantType')?.value);
+    const year = Number(document.getElementById('awmBalanceYear')?.value) || new Date().getFullYear();
+    const deltaDays = parseFloat(document.getElementById('awmGrantDays')?.value);
+    const reason = document.getElementById('awmGrantReason')?.value?.trim();
+
+    if (!memberUid) { toast('직원을 선택하세요'); return; }
+    if (!leaveTypeId) { toast('휴가 종류를 선택하세요'); return; }
+    if (!Number.isFinite(deltaDays) || deltaDays === 0) { toast('일수를 입력하세요 (부여 +N / 회수 -N)'); return; }
+    if (!reason) { toast('사유는 필수입니다 (감사 추적용)'); return; }
+
+    const btn = document.getElementById('awmBtnSaveGrant');
+    if (btn) btn.disabled = true;
+    const res = await api('/api/admin-att-leave-balances', {
+      method: 'PUT',
+      body: { memberUid, leaveTypeId, year, deltaDays, reason },
+    });
+    if (!res.ok) { toast('처리 실패: ' + (res.data?.error || '')); if (btn) btn.disabled = false; return; }
+    toast(`${deltaDays > 0 ? '부여' : '회수'} 완료 (${deltaDays > 0 ? '+' : ''}${deltaDays}일)`);
+    if (btn) btn.disabled = false;
+    hideEl('awmBalanceGrantForm');
     await loadBalances();
   }
 
@@ -1560,7 +1617,7 @@
           }))})" style="padding:3px 8px;font-size:11px" title="퇴근 위치 보기">📍 퇴근</button>`
         : '—';
       html += `<tr>
-        <td style="font-weight:600">${escHtml(name)}</td>
+        <td style="font-weight:600"><a href="javascript:void(0)" onclick="awmGoToMemberRecords('${String(r.memberUid)}')" style="color:#c2410c;cursor:pointer;text-decoration:none" title="이 직원의 출퇴근 기록 보기">${escHtml(name)}</a></td>
         <td>${modeTag}</td>
         <td>${statusBadge}</td>
         <td>${fmtTime(r.checkInTime)}</td>
@@ -1570,7 +1627,7 @@
     });
     absent.forEach(m => {
       html += `<tr style="opacity:.65">
-        <td style="font-weight:600">${escHtml(m.name)}</td>
+        <td style="font-weight:600"><a href="javascript:void(0)" onclick="awmGoToMemberRecords('${String(m.uid || m.id)}')" style="color:#c2410c;cursor:pointer;text-decoration:none" title="이 직원의 출퇴근 기록 보기">${escHtml(m.name)}</a></td>
         <td><span style="color:#9ca3af;font-size:12px">—</span></td>
         <td><span class="att-badge absent" style="background:#fee2e2;color:#b91c1c">미출근</span></td>
         <td>—</td><td>—</td><td>—</td>
@@ -1611,6 +1668,23 @@
     });
     if (points.length === 0) { toast('좌표가 기록된 출퇴근이 없습니다 (재택·구버전 기록은 좌표 미수집)'); return; }
     window.AttMap.showAll({ title: '전체 출퇴근 위치 — ' + toDateStr(), points: points });
+  };
+
+  /** ★ 실시간 현황에서 직원 이름 클릭 → '출퇴근 기록' 탭으로 이동 + 해당 직원 자동 조회 */
+  window.awmGoToMemberRecords = async function (memberUid) {
+    const uid = String(memberUid);
+    const tabBtn = document.querySelector('.att-tab[data-tab="monthrecords"]');
+    if (tabBtn) tabBtn.click();   // 탭 전환 + lazy init 트리거
+    // 직원 드롭다운이 채워질 때까지 대기 (initMonthRecordsTab 내부 비동기 로드 완료 보장)
+    const sel = document.getElementById('awmMrMember');
+    for (let i = 0; i < 40; i++) {
+      if (sel && sel.options.length > 1) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    if (!sel || sel.options.length <= 1) { toast('직원 목록 로딩 실패 — 다시 시도해 주세요'); return; }
+    sel.value = uid;
+    if (sel.value !== uid) { toast('해당 직원의 출퇴근 기록을 찾을 수 없습니다'); return; }
+    await loadMonthRecords();
   };
 
   function startLiveAutoRefresh() {

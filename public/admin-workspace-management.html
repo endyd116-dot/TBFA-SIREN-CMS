@@ -297,6 +297,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select id="awmBalanceYear" style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit"></select>
           <input type="text" id="awmBalanceSearch" placeholder="이름·이메일 검색" style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
+          <button class="att-btn att-btn-primary att-btn-sm" id="awmBtnOpenGrant" style="white-space:nowrap">+ 휴가 부여</button>
         </div>
       </div>
       <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
@@ -316,6 +317,36 @@
             <tr><td colspan="7" class="att-empty">잔여 휴가 정보를 불러오는 중...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 신규 휴가 부여 / 회수 (직원·종류 선택 — 잔여 기록 없는 직원도 가능) -->
+    <div class="awm-section" id="awmBalanceGrantForm" style="display:none">
+      <div class="awm-section-title">휴가 부여 / 회수</div>
+      <div style="font-size:12.5px;color:#6b7280;margin-bottom:10px">아직 잔여 기록이 없는 직원에게도 부여할 수 있습니다. <strong>회수는 음수</strong>(예: -2)로 입력하세요. 사유는 감사 추적을 위해 필수입니다.</div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>직원</label>
+          <select id="awmGrantMember"><option value="">— 직원 선택 —</option></select>
+        </div>
+        <div class="att-form-group">
+          <label>휴가 종류</label>
+          <select id="awmGrantType"><option value="">— 종류 선택 —</option></select>
+        </div>
+      </div>
+      <div class="att-form-row">
+        <div class="att-form-group">
+          <label>일수 (부여 +N / 회수 -N)</label>
+          <input type="number" id="awmGrantDays" step="0.5" placeholder="예: 15 또는 -2">
+        </div>
+        <div class="att-form-group">
+          <label>사유</label>
+          <input type="text" id="awmGrantReason" placeholder="부여·회수 사유 (필수)">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="att-btn att-btn-primary" id="awmBtnSaveGrant">적용</button>
+        <button class="att-btn att-btn-default" id="awmBtnCancelGrant">취소</button>
       </div>
     </div>
 
@@ -1098,6 +1129,6 @@
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-att-map.js?v=2-loc"></script>
-<script src="/js/admin-workspace-management.js?v=17-leavepol"></script>
+<script src="/js/admin-workspace-management.js?v=18-leavegrant"></script>
 </body>
 </html>
