@@ -255,6 +255,28 @@
     </div>
   </div>
 
+  <!-- 직원 정보 수정 모달 -->
+  <div class="modal-overlay" id="editInfoModal">
+    <div class="modal-box">
+      <div class="modal-title">✏️ 직원 정보 수정</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin:14px 0;text-align:left">
+        <label style="font-size:13px;font-weight:600;color:#374151">이름
+          <input type="text" id="editName" maxlength="50" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;box-sizing:border-box">
+        </label>
+        <label style="font-size:13px;font-weight:600;color:#374151">연락처
+          <input type="text" id="editPhone" maxlength="20" placeholder="010-0000-0000" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;box-sizing:border-box">
+        </label>
+        <label style="font-size:13px;font-weight:600;color:#374151">입사일 <span style="font-weight:400;color:#9ca3af">(연차 근속 계산용)</span>
+          <input type="date" id="editHireDate" style="width:100%;margin-top:4px;padding:9px 11px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;box-sizing:border-box">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditInfo()">취소</button>
+        <button id="editInfoSaveBtn" onclick="saveEditInfo()" style="background:#2563eb;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer">저장</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script>
@@ -262,6 +284,8 @@
     let currentRole = null;
     let _demoteTargetId = null;
     let _demoteTargetName = '';
+    let _opsCache = [];
+    let _editInfoId = null;
 
     /* ─── 유틸 ─── */
     function toast(msg, type) {
@@ -311,6 +335,7 @@
 
       const res = await api(API);
       const ops = res.data?.data?.operators || res.data?.operators || [];
+      _opsCache = ops;
       const stats = res.data?.data?.stats || res.data?.stats || {};
 
       /* KPI */
@@ -346,6 +371,7 @@
 
         const actionCell = isSuperAdmin
           ? `<td>
+              <button class="btn btn-edit" onclick="openEditInfo(${op.id})">✏ 정보</button>
               <button class="btn btn-toggle" onclick="toggleActive(${op.id}, ${!!op.operatorActive})">${op.operatorActive !== false ? '⏸ 비활성' : '▶ 활성'}</button>
               <button class="btn btn-demote" onclick="confirmDemote(${op.id}, '${esc(op.name)}')">🔻 강등</button>
             </td>`
@@ -377,6 +403,39 @@
       } else {
         toast(res.data?.error || '변경 실패', 'error');
         select.value = origRole;
+      }
+    }
+
+    /* ─── 직원 정보 수정 (이름·연락처·입사일) ─── */
+    function openEditInfo(opId) {
+      const op = (_opsCache || []).find(o => o.id === opId);
+      if (!op) { toast('직원 정보를 찾을 수 없습니다.', 'error'); return; }
+      _editInfoId = opId;
+      document.getElementById('editName').value = op.name || '';
+      document.getElementById('editPhone').value = op.phone || '';
+      document.getElementById('editHireDate').value = op.hireDate ? String(op.hireDate).slice(0, 10) : '';
+      document.getElementById('editInfoModal').classList.add('show');
+    }
+    function closeEditInfo() {
+      document.getElementById('editInfoModal').classList.remove('show');
+      _editInfoId = null;
+    }
+    async function saveEditInfo() {
+      if (!_editInfoId) return;
+      const name = document.getElementById('editName').value.trim();
+      const phone = document.getElementById('editPhone').value.trim();
+      const hireDate = document.getElementById('editHireDate').value;  // "YYYY-MM-DD" 또는 ''
+      if (!name) { toast('이름은 필수입니다.', 'error'); return; }
+      const btn = document.getElementById('editInfoSaveBtn');
+      if (btn) btn.disabled = true;
+      const res = await api(API, { method: 'PATCH', body: { id: _editInfoId, name, phone, hireDate } });
+      if (btn) btn.disabled = false;
+      if (res.ok || res.data?.ok) {
+        toast('직원 정보가 수정되었습니다.', 'ok');
+        closeEditInfo();
+        loadOperators();
+      } else {
+        toast(res.data?.error || '수정 실패', 'error');
       }
     }
 

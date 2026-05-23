@@ -114,6 +114,7 @@ export default async (req: Request) => {
           assignedCategories: members.assignedCategories,  // ★ M-15
           lastLoginAt: members.lastLoginAt,
           createdAt: members.createdAt,
+          hireDate: members.hireDate,                       // 입사일(연차 모드B 근속 계산)
         })
         .from(members)
         .where(eq(members.type, "admin"))
@@ -208,6 +209,19 @@ export default async (req: Request) => {
       }
       if (typeof body.operatorActive === "boolean") {
         updateData.operatorActive = body.operatorActive;
+      }
+
+      /* 직원 개인정보 수정 (이름·연락처·입사일) — Swain 2026-05-24 */
+      if (typeof body.name === "string" && body.name.trim()) {
+        updateData.name = body.name.trim().slice(0, 50);
+      }
+      if (typeof body.phone === "string") {
+        updateData.phone = body.phone.trim().slice(0, 20) || null;
+      }
+      if (body.hireDate !== undefined) {
+        const hd = String(body.hireDate || "").trim();
+        // "YYYY-MM-DD" 형식만 저장, 빈값이면 null
+        updateData.hireDate = /^\d{4}-\d{2}-\d{2}$/.test(hd) ? hd : null;
       }
 
       /* ★ M-15: assigned_categories 수정 */
