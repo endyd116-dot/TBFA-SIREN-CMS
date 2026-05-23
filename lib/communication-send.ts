@@ -9,7 +9,6 @@ import { eq } from "drizzle-orm";
 import { members, communicationTemplates, recipientGroups } from "../db";
 import { sendEmail } from "./email";
 import { aligoSend, aligoSendMms } from "./aligo-client";
-import { sendAligoAlimtalk, normalizePhone } from "./aligo-kakao-client";
 import { createNotification } from "./notify";
 
 export type SendChannel = "email" | "sms" | "kakao" | "inapp";
@@ -176,80 +175,20 @@ async function sendInappDirect(
   return { ok: true, providerMessageId: String(notifId) };
 }
 
-/* ─── 카카오 알림톡 직접 발송 (Aligo) ───
-   ★ 2026-05-16: dispatcher 통합 — 옛 코드는 무조건 skip → 항상 '발송 안 함'.
-   communication_templates에 등록된 alimtalk_template_code(UH_XXXX) + 변수
-   치환된 본문(payload.body) + 버튼 JSON으로 알리고 API 호출. */
+/* ─── 카카오 알림톡 직접 발송 ───
+   ★ 2026-05-23 솔라피 전환: 마케팅 발송의 "임의 본문" 카카오는 솔라피 미지원
+   (솔라피 알림톡은 등록 템플릿ID + 변수맵만 허용). 시스템 이벤트 알림톡(결제·
+   후원 안내 등)은 notify-adapters/kakao-aligo(솔라피)가 담당. → 본 경로는 정책 스킵. */
 async function sendKakaoDirect(
-  member: { id: number; phone: string | null; name: string | null },
-  payload: SendPayload,
+  _member: { id: number; phone: string | null; name: string | null },
+  _payload: SendPayload,
 ): Promise<SendResult> {
-  /* 1) 템플릿 코드 누락 — 카카오 전용 템플릿 아닌 경우(일반 카카오 채널 템플릿
-     예: 단순 안내) → 정책 스킵으로 status=sent + 안내 라벨 */
-  if (!payload.alimtalkTemplateCode) {
-    return {
-      ok: true,
-      skipped: true,
-      providerMessageId: "kakao-no-template-code",
-      error: "[정책 스킵] 카카오 채널은 알리고 사전심사 통과 템플릿(UH_XXXX) 등록 후에만 실제 발송됩니다.",
-    } as SendResult & { error?: string };
-  }
-
-  /* 2) 수신자 검증 */
-  if (!member.phone) {
-    return { ok: false, error: `전화번호 없음 (memberId=${member.id})` };
-  }
-  const receiver = normalizePhone(member.phone);
-  if (!receiver || receiver.length < 10) {
-    return { ok: false, error: `유효하지 않은 전화번호 (${member.phone})` };
-  }
-
-  /* 3) 환경변수 확인 */
-  const senderKey = process.env.ALIGO_KAKAO_CHANNEL_ID || "";
-  const sender   = process.env.ALIGO_SENDER || "";
-  if (!senderKey) {
-    return { ok: false, error: "ALIGO_KAKAO_CHANNEL_ID(senderkey) 미설정 — Netlify 환경변수 확인" };
-  }
-  if (!sender) {
-    return { ok: false, error: "ALIGO_SENDER(발신번호) 미설정 — Netlify 환경변수 확인" };
-  }
-
-  /* 4) 버튼 JSON 직렬화 (jsonb로 저장된 경우 객체로 옴) */
-  const buttonJsonStr = payload.alimtalkButtonJson
-    ? (typeof payload.alimtalkButtonJson === "string"
-        ? payload.alimtalkButtonJson
-        : JSON.stringify(payload.alimtalkButtonJson))
-    : undefined;
-
-  /* 5) 알리고 호출 — payload.body는 dispatcher가 변수 치환 완료한 최종 본문 */
-  const result = await sendAligoAlimtalk({
-    tplCode: payload.alimtalkTemplateCode,
-    receiver,
-    message: String(payload.body),
-    subject: payload.subject || "",
-    buttonJson: buttonJsonStr,
-    senderKey,
-    sender,
-  });
-
-  if (!result.ok) {
-    /* ★ 2026-05-16: 알리고 IP 화이트리스트 거부(code=-99) 진단 — 호출 실패 시 그
-       시점의 Netlify 송신 IP를 즉시 조회해 에러 메시지에 포함. 사용자가 화면
-       실패 사유에서 IP를 그대로 보고 알리고 콘솔에 등록 가능. AWS Lambda IP가
-       cold start마다 변동되는 환경에서 매번 등록·재발송하는 단발 검증용. */
-    let outboundIp = "";
-    try {
-      const ipRes = await fetch("https://api.ipify.org?format=json", {
-        signal: AbortSignal.timeout(3000),
-      });
-      const ipData: any = await ipRes.json().catch(() => ({}));
-      outboundIp = String(ipData.ip || "").slice(0, 50);
-    } catch (_) { /* IP 조회 실패해도 본 에러는 그대로 반환 */ }
-    const baseErr = result.error || `알리고 카카오 발송 실패 (code=${result.code} ${result.message || ""})`;
-    const ipMark = outboundIp ? ` | Netlify outbound IP=${outboundIp} (알리고 콘솔에 등록 필요)` : "";
-    return { ok: false, error: (baseErr + ipMark).slice(0, 500) };
-  }
-  return { ok: true, providerMessageId: result.providerMessageId };
+  return {
+    ok: true,
+    skipped: true,
+    providerMessageId: "kakao-skip-solapi",
+    error: "[정책 스킵] 카카오 알림톡은 시스템 이벤트(결제·후원 안내)만 발송됩니다. 마케팅은 이메일/문자를 이용해 주세요.",
+  } as SendResult & { error?: string };
 }
 
 /* =========================================================

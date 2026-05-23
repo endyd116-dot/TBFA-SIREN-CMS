@@ -24,7 +24,11 @@
    - `SOLAPI_TPL_RECEIPT=KA01TP260523121401738OKTpRObBtvl`
    - `SOLAPI_TPL_DONOR_CHANGE=KA01TP260523121402219EEVDf8bclV2`
 2. 알림톡 라이브 테스트(실제 카톡 도착 확인).
-3. (검증 후) **MMS 솔라피 교체** + **프록시·OCI 폐기**(`proxy-server/`·`lib/oci-client.ts`·`cron-warmup`·`lib/aligo-kakao-client.ts` 삭제 + `ALIGO_*PROXY*`·`OCI_*` env 제거) + Oracle VM 삭제. ※ 프록시는 검증 전엔 살려둠(유일 폴백).
+
+### ✅ 2026-05-23 추가 완료 (프록시 폐기까지 끝냄 — 코드상 알리고/프록시 흔적 0)
+- **MMS 솔라피 교체·실발송 테스트 완료**(`solapiSendMms` — 스토리지 업로드→imageId→MMS, statusCode 2000 확인).
+- **프록시·OCI 코드 전면 폐기**: `proxy-server/`·`lib/oci-client.ts`·`netlify/functions/cron-warmup.ts`·`lib/aligo-kakao-client.ts` 삭제 + netlify.toml cron-warmup 제거 + `.env.example` 알리고→솔라피 교체. `aligo-client.ts`는 SMS·MMS 둘 다 솔라피 위임. `communication-send.ts` 마케팅 카카오는 정책 스킵.
+- **남은 것 = Oracle VM(인스턴스) 실제 삭제**: Swain이 OCI 콘솔 → `aligo-proxy` 인스턴스 + 예약 IP 삭제 (코드는 이미 안 쓰니 아무 때나). cron-warmup 제거로 자동 ping/재부팅도 중단됨.
 
 ### 대기 2 — KICC MID 권한 (별도 트랙·`docs/active/2026-05-21-r40-kicc.md`): Swain이 KICC에 권한 요청 → 풀리면 일시 가상계좌 구현 + 정기 효성 노출 점검 + 라이브 결제.
 

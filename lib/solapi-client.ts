@@ -22,6 +22,7 @@ import { createHmac, randomBytes } from "crypto";
 
 const SOLAPI_BASE = "https://api.solapi.com";
 const SEND_URL = `${SOLAPI_BASE}/messages/v4/send`;
+const STORAGE_URL = `${SOLAPI_BASE}/storage/v1/files`;
 
 /* =========================================================
    공통
@@ -192,4 +193,77 @@ export async function solapiSendAlimtalk(opts: SolapiAlimtalkOpts): Promise<Sola
   if (opts.text && !opts.disableSms) message.text = opts.text;
 
   return postSend(message);
+}
+
+/* =========================================================
+   MMS — 이미지 첨부 발송 (이미지를 솔라피 스토리지에 업로드 후 imageId로 발송)
+   - SOLAPI는 알리고와 달리 "스토리지 업로드 → fileId → 메시지 imageId" 방식.
+   - 이미지 200KB 초과 시 자동 압축(jpg).
+   ========================================================= */
+export interface SolapiMmsOpts {
+  receiver: string;
+  msg: string;
+  title?: string;
+  /** 첨부 이미지 URL (R2 또는 절대 URL) */
+  imageUrl: string;
+}
+
+export async function solapiSendMms(opts: SolapiMmsOpts): Promise<SolapiResult> {
+  const { apiKey, apiSecret, sender } = getCreds();
+  if (!apiKey || !apiSecret) return { ok: false, error: "SOLAPI 환경변수 미설정 (SOLAPI_API_KEY / SOLAPI_API_SECRET)" };
+  if (!sender) return { ok: false, error: "SOLAPI 발신번호 미설정 (SOLAPI_SENDER)" };
+
+  const to = normalizePhone(opts.receiver);
+  if (!to || to.length < 10) return { ok: false, error: `수신번호 형식 오류: ${opts.receiver}` };
+  if (!opts.imageUrl) return { ok: false, error: "MMS 이미지 URL 미지정" };
+
+  if (process.env.NOTIFICATION_TEST_MODE === "true") {
+    console.log(`[solapi] TEST_MODE MMS (실제 전송 안 됨) to=${to} img=${opts.imageUrl.slice(0, 60)}`);
+    return { ok: true, msgId: `test-mms-${Date.now()}`, statusCode: "2000", message: "테스트모드(MMS)" };
+  }
+
+  /* 1) 이미지 다운로드 + 200KB 초과 시 압축 */
+  let base64: string;
+  try {
+    const imgRes = await fetch(opts.imageUrl);
+    if (!imgRes.ok) return { ok: false, error: `이미지 다운로드 실패: HTTP ${imgRes.status}` };
+    const orig = await imgRes.arrayBuffer();
+    let outBuf: Buffer = Buffer.from(orig);
+    if (orig.byteLength > 200 * 1024) {
+      const { compressToMaxBytes } = await import("./image-compress");
+      const c = await compressToMaxBytes(orig, 200 * 1024);
+      if (!c) return { ok: false, error: `이미지 크기 초과 — 200KB 이하로 압축 실패. 더 작은 이미지로 올려주세요.` };
+      outBuf = Buffer.from(c.buffer);
+    }
+    base64 = outBuf.toString("base64");
+  } catch (err: any) {
+    return { ok: false, error: `이미지 처리 오류: ${String(err?.message || err).slice(0, 300)}` };
+  }
+
+  /* 2) 솔라피 스토리지 업로드 → fileId */
+  let fileId = "";
+  try {
+    const res = await fetch(STORAGE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader(apiKey, apiSecret) },
+      body: JSON.stringify({ file: base64, name: "mms.jpg", type: "MMS" }),
+    });
+    const raw: any = await res.json().catch(() => ({}));
+    fileId = String(raw?.fileId || "");
+    if (!res.ok || !fileId) {
+      return { ok: false, error: `이미지 업로드 실패 (HTTP ${res.status}) ${raw?.errorMessage || JSON.stringify(raw).slice(0, 200)}`.slice(0, 400) };
+    }
+  } catch (err: any) {
+    return { ok: false, error: `이미지 업로드 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
+  }
+
+  /* 3) MMS 발송 (imageId 포함 → type MMS) */
+  return postSend({
+    to,
+    from: normalizePhone(sender),
+    text: opts.msg,
+    subject: opts.title ?? "알림",
+    imageId: fileId,
+    type: "MMS",
+  });
 }
