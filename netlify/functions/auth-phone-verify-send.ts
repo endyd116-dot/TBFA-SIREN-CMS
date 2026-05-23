@@ -71,7 +71,7 @@ export default async (req: Request, _ctx: Context) => {
         pending: true,
         sentAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + CODE_EXPIRES_MS).toISOString(),
-        message: "인증번호를 발송 중입니다. 문자가 1~2분 늦게 도착할 수 있어요. 받으시면 입력해 주세요. (유효시간 10분)",
+        message: "인증번호를 발송 중입니다. 받으시면 입력해 주세요. (유효시간 3분)",
       }), { status: 200, headers: JSON_HEADER });
     }
     /* 명시적 발송 실패(번호 오류·알리고 거부 등)만 롤백 — rate limit 부정 누적 방지 */
@@ -90,6 +90,6 @@ export default async (req: Request, _ctx: Context) => {
     ok: true,
     sentAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + CODE_EXPIRES_MS).toISOString(),
-    message: "인증번호를 발송했습니다. 10분 이내에 입력해 주세요.",
+    message: "인증번호를 발송했습니다. 3분 이내에 입력해 주세요.",
   }), { status: 200, headers: JSON_HEADER });
 };

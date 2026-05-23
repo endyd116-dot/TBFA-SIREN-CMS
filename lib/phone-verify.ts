@@ -18,10 +18,10 @@ export function normalizePhone(raw: string): string {
 }
 
 /* 정책 */
-export const CODE_EXPIRES_MS = 10 * 60 * 1000;       // 10분 (프록시 발송 지연 대응 — 늦게 온 문자도 유효)
-export const TOKEN_EXPIRES_MS = 10 * 60 * 1000;      // 10분
+export const CODE_EXPIRES_MS = 3 * 60 * 1000;        // 3분 (솔라피 즉시 발송 — 짧은 유효시간으로 복귀)
+export const TOKEN_EXPIRES_MS = 10 * 60 * 1000;      // 10분 (인증 후 가입 완료 제한시간)
 export const MAX_ATTEMPTS = 5;                        // 코드 입력 시도 횟수
-export const RATE_LIMIT_5MIN = 1;                    // 5분 동안 발송 가능 횟수
+export const RATE_LIMIT_SHORT = 1;                   // 단기(3분) 발송 가능 횟수 — 코드 만료 후 재발송 허용
 export const RATE_LIMIT_1HOUR = 5;                   // 1시간
 export const RATE_LIMIT_1DAY = 10;                   // 1일
 
@@ -39,7 +39,7 @@ export function generateVerifyToken(): string {
 /** Aligo SMS로 인증 코드 발송.
  *  timeout=true는 프록시 응답 지연 — 발송이 진행 중일 수 있어 호출부에서 row 롤백 금지. */
 export async function sendVerifyCodeSms(phone: string, code: string): Promise<{ ok: boolean; error?: string; timeout?: boolean }> {
-  const message = `[교사유가족협의회] 인증번호 ${code} (10분 이내 입력해 주세요)`;
+  const message = `[교사유가족협의회] 인증번호 ${code} (3분 이내 입력해 주세요)`;
   try {
     const r = await aligoSend({ receiver: phone, msg: message });
     if (!r.ok) return { ok: false, error: r.error || `Aligo error code=${r.resultCode}`, timeout: r.timeout };
@@ -54,14 +54,14 @@ export async function checkRateLimit(phone: string): Promise<{ ok: boolean; mess
   try {
     const r: any = await db.execute(sql`
       SELECT
-        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '5 minutes')::int  AS c5min,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '3 minutes')::int  AS cshort,
         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 hour')::int     AS c1hour,
         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '1 day')::int      AS c1day
       FROM phone_verifications
       WHERE phone = ${phone}
     `);
     const row = (r?.rows ?? r ?? [])[0] || {};
-    if (Number(row.c5min) >= RATE_LIMIT_5MIN)  return { ok: false, message: "5분 이내에 이미 인증번호를 발송했습니다. 잠시 후 다시 시도해 주세요." };
+    if (Number(row.cshort) >= RATE_LIMIT_SHORT) return { ok: false, message: "방금 인증번호를 발송했습니다. 인증번호는 3분간 유효하며, 만료 후 재발송할 수 있습니다." };
     if (Number(row.c1hour) >= RATE_LIMIT_1HOUR) return { ok: false, message: "1시간 이내 발송 횟수를 초과했습니다." };
     if (Number(row.c1day) >= RATE_LIMIT_1DAY)  return { ok: false, message: "오늘 발송 횟수를 초과했습니다." };
     return { ok: true };

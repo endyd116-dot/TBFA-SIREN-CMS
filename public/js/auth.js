@@ -285,6 +285,36 @@ document.addEventListener('change', async function (e) {
     var codeInput      = document.getElementById('signupPhoneCode');
     var statusEl       = document.getElementById('signupPhoneStatus');
     var tokenInput     = document.getElementById('signupVerifyToken');
+    var timerEl        = document.getElementById('signupPhoneTimer');
+    var countdownTimer = null;
+
+    function stopCountdown() {
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    }
+    /* 인증번호 유효시간 카운트다운 (m:ss). 만료 시 재발송 버튼 자동 활성화. */
+    function startCountdown(seconds) {
+      stopCountdown();
+      var remain = seconds;
+      function render() {
+        if (!timerEl) return;
+        var m = Math.floor(remain / 60);
+        var s = remain % 60;
+        timerEl.textContent = '남은 시간 ' + m + ':' + String(s).padStart(2, '0');
+        timerEl.style.color = remain <= 30 ? 'var(--danger)' : 'var(--text-3)';
+      }
+      render();
+      countdownTimer = setInterval(function () {
+        remain -= 1;
+        if (remain <= 0) {
+          stopCountdown();
+          if (timerEl) { timerEl.textContent = '인증번호가 만료되었습니다. 재발송해 주세요.'; timerEl.style.color = 'var(--danger)'; }
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = '재발송';
+          return;
+        }
+        render();
+      }, 1000);
+    }
 
     function setStatus(html, color) {
       if (!statusEl) return;
@@ -312,10 +342,12 @@ document.addEventListener('change', async function (e) {
         }
         codeRow.style.display = '';
         codeInput.focus();
-        /* 서버 안내 메시지 사용 (정상: "10분 이내" / 발송 지연: "1~2분 늦을 수 있어요") */
-        setStatus('📩 ' + (data.message || '인증번호를 발송했습니다. 10분 이내에 입력해 주세요.'), 'var(--success)');
+        /* 서버 안내 메시지 사용 (정상: "3분 이내") */
+        setStatus('📩 ' + (data.message || '인증번호를 발송했습니다. 3분 이내에 입력해 주세요.'), 'var(--success)');
         verifyBtn.textContent = '재발송';
-        setTimeout(function () { verifyBtn.disabled = false; }, 30000);  /* 30초 동안 재발송 차단 */
+        /* 3분 카운트다운 시작 — 만료 시 재발송 버튼 자동 활성화 (그 전엔 재발송 차단·서버 rate limit과 정합) */
+        verifyBtn.disabled = true;
+        startCountdown(180);
       } catch (err) {
         setStatus('❌ 네트워크 오류: ' + (err.message || ''), 'var(--danger)');
         verifyBtn.disabled = false;
@@ -345,6 +377,8 @@ document.addEventListener('change', async function (e) {
 
         /* 인증 통과 — verifyToken 저장 + 매칭 결과 안내 */
         tokenInput.value = data.verifyToken || '';
+        stopCountdown();
+        if (timerEl) { timerEl.textContent = '✅ 인증 완료'; timerEl.style.color = 'var(--success)'; }
         codeBtn.disabled = true;
         codeBtn.textContent = '인증 완료';
         codeInput.disabled = true;
