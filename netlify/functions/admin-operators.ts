@@ -51,6 +51,10 @@ export default async (req: Request) => {
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin } = guard.ctx;
+  /* ★ P0-2 fix: 운영자 관리의 변경 작업(승급·역할변경·강등)은 super_admin 전용.
+     DB role(ctx.member.role)로 판정 — admin JWT role은 type=admin이면 전부 super_admin이라 신뢰 불가.
+     형제 함수 admin-service-rnr.ts:42와 동일 패턴. GET(목록 조회)은 전 운영자 허용. */
+  const isSuperAdmin = (guard.ctx.member?.role || "") === "super_admin";
 
   try {
     /* ===== GET ===== */
@@ -130,6 +134,7 @@ export default async (req: Request) => {
    // admin-operators.ts — POST (승급) 블록 전체 교체
     /* ===== POST (승급) ===== */
     if (req.method === "POST") {
+      if (!isSuperAdmin) return forbidden("운영자 승급은 슈퍼 관리자만 가능합니다");
       const body = await parseJson(req);
       if (!body?.memberId) return badRequest("memberId가 필요합니다");
 
@@ -187,6 +192,7 @@ export default async (req: Request) => {
 // admin-operators.ts — PATCH (수정) 블록 전체 교체
     /* ===== PATCH (운영자 정보 수정) ===== */
     if (req.method === "PATCH") {
+      if (!isSuperAdmin) return forbidden("운영자 정보 수정은 슈퍼 관리자만 가능합니다");
       const body = await parseJson(req);
       if (!body?.id) return badRequest("id가 필요합니다");
 
@@ -244,6 +250,7 @@ export default async (req: Request) => {
 
     /* ===== DELETE (강등) ===== */
     if (req.method === "DELETE") {
+      if (!isSuperAdmin) return forbidden("운영자 강등은 슈퍼 관리자만 가능합니다");
       const url = new URL(req.url);
       const idStr = url.searchParams.get("id");
       if (!idStr) return badRequest("id가 필요합니다");

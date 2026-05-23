@@ -131,9 +131,11 @@ JSON 형식으로만 응답:
   if (notifyEmail) toList.push({ email: notifyEmail, name: "SIREN 관리자" });
 
   try {
+    /* ★ P1-18 fix: super_admin은 members.role에 저장됨(member_subtype은 회원 4분류용).
+       cron-agent-8·cron-att-ai-daily와 동일하게 role로 식별. */
     const superAdmins = await db.select({ id: members.id, name: members.name, email: members.email })
       .from(members)
-      .where(eq(members.memberSubtype, "super_admin"))
+      .where(eq(members.role, "super_admin"))
       .limit(10);
     for (const a of superAdmins) {
       if (a.email && !toList.find(t => t.email === a.email)) {

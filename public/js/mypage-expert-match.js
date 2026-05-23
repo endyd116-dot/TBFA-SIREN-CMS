@@ -191,9 +191,10 @@
       return;
     }
 
-    /* 다중 fallback: data.data.items || data.data.matches || data.items || data.matches */
+    /* ★ P1-7 fix: 서버는 { active:[...], closed:[...] }로 응답 → 현재 탭 키로 읽음.
+       (기존 items/matches 키는 존재하지 않아 항상 빈 목록이었음) */
     var payload = (r.data && r.data.data) || r.data || {};
-    var items   = payload.items || payload.matches || [];
+    var items   = payload[_currentTab] || payload.items || payload.matches || [];
 
     if (!items.length) {
       var msg = _currentTab === 'active'

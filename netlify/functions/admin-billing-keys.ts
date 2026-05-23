@@ -246,3 +246,6 @@ export default async (req: Request, _ctx: Context) => {
     return serverError(error?.message || "서버 오류");
   }
 };
+
+/* ★ P1-2 fix: 라우팅 경로 누락 → 클라이언트(/api/admin/billing-keys) 404 복구 */
+export const config = { path: "/api/admin/billing-keys" };

@@ -749,8 +749,10 @@
     const id = Number($('#wkCardId').value);
     if (!id) return;
     try {
-      await api(`/api/admin-workspace-tasks?id=${id}&action=restore`, { method: 'PATCH', body: {} });
-      toast('복원됐어요 — todo로 이동', 'success');
+      /* ★ P1-12 fix: action=restore는 없는 deleted_at 컬럼을 갱신해 무동작 →
+         보관해제(드래그)와 동일한 검증된 경로 action=unarchive 사용. */
+      await api(`/api/admin-workspace-tasks?id=${id}&action=unarchive`, { method: 'PATCH', body: {} });
+      toast('복원됐어요 — 완료(done) 컬럼으로 이동', 'success');
       closeModal('wkCardModal');
       history.replaceState(null, '', '/workspace-kanban.html');
       if (window.WorkspaceSync) WorkspaceSync.notify('task:updated', { id });
@@ -1558,7 +1560,8 @@
     if (TAB_STATE.members.length > 0) return;
     try {
       const res = await api('/api/admin-workspace-members');
-      const items = res.data?.items || res.data || res.items || [];
+      /* ★ P1-10 fix: 서버가 ok({data:rows})로 한 겹 더 감싸므로 res.data.data가 배열(파일공유 화면과 동일). */
+      const items = res.data?.data || res.data?.items || res.items || [];
       TAB_STATE.members = Array.isArray(items) ? items : [];
     } catch (_) { /* 실패 무시 — 멘션 자동완성만 비활성 */ }
   }
