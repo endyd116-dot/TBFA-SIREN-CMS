@@ -116,6 +116,14 @@
 [functions."cron-kicc-billing"]
   schedule = "0 18 * * *"
 
+# ★ 2026-05-23: 정기 후원금 자동 출금 "예정" 사전 안내 (출금 3일 전·매일 KST 10:00 = UTC 01:00)
+[functions."cron-billing-upcoming"]
+  schedule = "0 1 * * *"
+
+# ★ 2026-05-23: 연간 기부금 영수증 발급 안내 (매년 1월 15일 KST 10:00 = UTC 01:00)
+[functions."cron-donation-receipt-annual"]
+  schedule = "0 1 15 1 *"
+
 # netlify.toml — cron-grade-recalc 블록 다음에 추가
 # ★ Phase M-19-1: 회원 등급 일괄 재계산 (매일 새벽 3:30 KST = UTC 18:30)
 [functions."cron-grade-recalc"]
