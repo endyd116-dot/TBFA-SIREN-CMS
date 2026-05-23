@@ -11,6 +11,10 @@ export enum NotifyEvent {
   BILLING_FAILED              = "billing.failed",
   BILLING_CANCELED            = "billing.canceled",
   CARD_EXPIRING               = "card.expiring",
+  /* ★ 2026-05-23 솔라피 알림톡 4종 신규(출금예정·연간영수증·후원정보변경) — 출금완료는 BILLING_SUCCESS 재사용 */
+  BILLING_UPCOMING            = "billing.upcoming",
+  DONATION_RECEIPT_ANNUAL     = "donation.receipt_annual",
+  DONOR_INFO_CHANGED          = "donor.info_changed",
   WORKSPACE_ACTIVITY          = "workspace.activity",
   WORKSPACE_MENTION           = "workspace.mention",
   ADMIN_DAILY_BRIEFING        = "admin.daily_briefing",
@@ -40,10 +44,13 @@ export const FORCED_CHANNELS: Partial<Record<NotifyEvent, ChannelName[]>> = {
 };
 
 export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
-  [NotifyEvent.BILLING_SUCCESS]:            ["inapp", "email"],
-  [NotifyEvent.BILLING_FAILED]:             ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
+  [NotifyEvent.BILLING_SUCCESS]:            ["inapp", "email", "kakao"],          // kakao: 솔라피 알림톡(출금완료)
+  [NotifyEvent.BILLING_FAILED]:             ["inapp", "email", "sms", "kakao"],   // sms·kakao: 솔라피
   [NotifyEvent.BILLING_CANCELED]:           ["inapp", "email"],
-  [NotifyEvent.CARD_EXPIRING]:              ["inapp", "email", "sms", "kakao"],  // sms: Aligo / kakao: placeholder
+  [NotifyEvent.CARD_EXPIRING]:              ["inapp", "email", "sms", "kakao"],   // sms·kakao: 솔라피
+  [NotifyEvent.BILLING_UPCOMING]:           ["inapp", "kakao"],                   // 출금 예정 사전 안내
+  [NotifyEvent.DONATION_RECEIPT_ANNUAL]:    ["inapp", "email", "kakao"],          // 연간 기부금 영수증 안내
+  [NotifyEvent.DONOR_INFO_CHANGED]:         ["inapp", "kakao"],                   // 후원 정보 변경 완료
   [NotifyEvent.WORKSPACE_ACTIVITY]:         ["inapp"],
   [NotifyEvent.WORKSPACE_MENTION]:          ["inapp"],
   [NotifyEvent.ADMIN_DAILY_BRIEFING]:       ["email"],
