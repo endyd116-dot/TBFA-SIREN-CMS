@@ -18,6 +18,8 @@ import { sendEmail, tplDonationThanks } from "../../lib/email";
 import { recalculateGrade } from "../../lib/grade-calculator";
 import { safeReevaluate } from "../../lib/donor-status";
 import { approveTrade, chargeWithBillingKey, generateShopOrderNo, calculateNextBillingDate } from "../../lib/kicc";
+import { dispatch } from "../../lib/notify-dispatcher";
+import { NotifyEvent } from "../../lib/notify-events";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -269,6 +271,34 @@ export default async (req: Request) => {
       target: pgOrderNo,
       detail: { billingKeyId: insertedBilling.id, donationId: updated.id, amount, cardCompany, cardNumberMasked, nextChargeAt: nextCharge.toISOString() },
     });
+
+    /* 8) 후원 정보 변경 알림 — 이전 빌키가 있던 회원의 재등록(카드/금액 변경) 시에만 (첫 등록은 제외) */
+    if (memberId) {
+      try {
+        const prior: any = await db.execute(sql`
+          SELECT COUNT(*)::int AS n FROM billing_keys WHERE member_id = ${memberId} AND id <> ${insertedBilling.id}`);
+        const hadPrior = Number((prior?.rows ?? prior ?? [])[0]?.n) > 0;
+        if (hadPrior) {
+          dispatch({
+            event: NotifyEvent.DONOR_INFO_CHANGED,
+            target: { type: "member", id: memberId },
+            params: {
+              memberName: updated.donorName,
+              changeField: "결제 카드",
+              changeValue: `${cardCompany} ${cardNumberMasked} · 월 ${Number(amount).toLocaleString()}원`,
+              changedAt: now,
+              title: "후원 정보 변경 처리 완료",
+              message: "후원 결제 정보가 변경되었습니다.",
+              link: "/mypage.html",
+              category: "donation",
+              severity: "info",
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("[billing-approve] 후원변경 알림 예외(무시):", e);
+      }
+    }
 
     return successRedirect(updated.id);
   } catch (err) {
