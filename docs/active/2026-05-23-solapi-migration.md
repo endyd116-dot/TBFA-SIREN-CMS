@@ -156,6 +156,30 @@
 
 → env 후보: `SOLAPI_KAKAO_PFID` + 템플릿별 `SOLAPI_TPL_CARD_EXPIRING`·`SOLAPI_TPL_BILLING_FAILED`·`SOLAPI_TPL_BILLING_SUCCESS`·`SOLAPI_TPL_BILLING_UPCOMING`·`SOLAPI_TPL_RECEIPT`·`SOLAPI_TPL_DONOR_CHANGE`. 카카오 승인(APPROVED) 후 코드 연결.
 
+## 잔존 알리고 경로 전수조사 (2026-05-23) + 4종 트리거 결정
+
+**Swain 확정 4종 발송 시점**: 출금완료=정기결제 성공 직후 / 출금예정=출금 3일 전 / 영수증=매년 1월 중순 / 후원변경=변경 처리 즉시.
+
+**발송 경로 2갈래**:
+- (A) 시스템 이벤트 = `notify-dispatcher` → 어댑터(`sms-aligo`✅솔라피위임 / `kakao-aligo`✅솔라피 2종). BILLING_FAILED·CARD_EXPIRING dispatch는 `cron-kicc-billing.ts:342`·`cron-billing-card-expiry.ts:176`.
+- (B) 마케팅/AI자동/수동 발송 = `communication-send.ts`(`sendViaAdapter`) ← `cron-communication-send-dispatcher`·`cron-auto-trigger-evaluator`. SMS는 `aligoSend()`(✅솔라피). **카카오는 `sendKakaoDirect()`가 알리고 직접 호출이나 "임의본문 불가 정책"으로 이미 skip 처리**(주석 line4-5). MMS는 `aligoSendMms()`(⚠️알리고).
+
+**아직 알리고 쓰는 곳(교체/폐기 대상)**:
+| 파일·함수 | 처리 |
+|---|---|
+| `lib/aligo-kakao-client.ts` 전체 | 폐기(어댑터가 솔라피로 대체) |
+| `lib/communication-send.ts sendKakaoDirect()` | 현재 skip 중 — 솔라피도 등록템플릿만 → 유지(또는 등록 6종 매핑) |
+| `lib/aligo-client.ts aligoSendMms()` | 솔라피 이미지(Storage 업로드→imageId)로 재구현 |
+| `cron-kicc-billing.ts:264` BILLING_SUCCESS | 출금완료 알림톡 트리거 미연결(현재 이메일만) |
+
+**4종 트리거 구현 메모**:
+- 출금완료(UH_9633): BILLING_SUCCESS는 이미 dispatch됨(params: amount·chargedAt·nextChargeAt). 어댑터에 case 추가 + **누적후원금액은 별도 쿼리** 필요. 변수 회원이름·출금금액·출금일시·누적후원금액.
+- 출금예정(UH_9632): **신규 cron** — billingKeys.nextChargeAt = today+3 스캔 → 신규 이벤트 dispatch. 변수 회원이름·출금금액·출금예정일·결제수단.
+- 영수증(UH_9636): **신규 cron**(연 1회·1월 중순) — 전년 완료 후원 합산. 변수 회원이름·연도·연간후원금액·발급가능기간·영수증종류.
+- 후원변경(UH_9635): 후원정보(카드·금액) 변경 처리 함수에 dispatch 추가(사이트 미확정 — 추가 조사 필요). 변수 회원이름·변경항목·변경후내용·처리일시.
+
+**권장 실행 순서 = 카카오 승인(APPROVED) 직후 일괄**: env(pfId+6 templateId) 설정 → push 배포 → 알림톡 2종 라이브 테스트 → 4종 트리거 구현 → MMS 솔라피 → 발송템플릿 DB 카카오본문 정리(SMS대체용) → 프록시·OCI 폐기. (미승인 시 알림톡 발송 불가라 블라인드 코딩 지양)
+
 ## 코드 교체 시 할 일 (승인·pfId·templateId 확보 후)
 1. `lib/solapi-client.ts solapiSendAlimtalk` 사용 — env `SOLAPI_KAKAO_PFID` + 템플릿별 `SOLAPI_TEMPLATE_*`(templateId).
 2. `lib/notify-adapters/kakao-aligo.ts` → 솔라피 어댑터로 교체. 변수 맵을 한글 변수명으로 구성(회원이름·금액 등).
