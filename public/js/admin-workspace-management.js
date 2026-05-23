@@ -974,7 +974,7 @@
     document.getElementById('awmBtnSaveBalanceAdjust')?.addEventListener('click', saveBalanceAdjust);
 
     /* 신규 휴가 부여/회수 폼 (직원·종류 선택) */
-    document.getElementById('awmBtnOpenGrant')?.addEventListener('click', openGrantForm);
+    document.getElementById('awmBtnOpenGrant')?.addEventListener('click', () => openGrantForm());
     document.getElementById('awmBtnCancelGrant')?.addEventListener('click', () => hideEl('awmBalanceGrantForm'));
     document.getElementById('awmBtnSaveGrant')?.addEventListener('click', saveGrant);
 
@@ -983,7 +983,9 @@
 
   /* 신규 휴가 부여/회수 — 잔여 기록이 없는 직원에게도 처음 부여 가능 */
   let _grantDropdownsLoaded = false;
-  async function openGrantForm() {
+  /* 잔여 휴가 표의 '+ 부여' 버튼(미부여 직원)에서 호출 — 해당 직원 프리필 */
+  window.awmOpenGrantFor = (uid) => openGrantForm(uid);
+  async function openGrantForm(prefillUid) {
     if (!_grantDropdownsLoaded) {
       try {
         const resM = await api('/api/admin-att-members');
@@ -1004,6 +1006,10 @@
     ['awmGrantMember', 'awmGrantType', 'awmGrantDays', 'awmGrantReason'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
+    if (prefillUid) {
+      const mSel = document.getElementById('awmGrantMember');
+      if (mSel) mSel.value = String(prefillUid);
+    }
     showEl('awmBalanceGrantForm');
     document.getElementById('awmBalanceGrantForm')?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -1051,12 +1057,24 @@
       : rows;
 
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="att-empty">잔여 휴가 정보가 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="att-empty">표시할 직원이 없습니다</td></tr>';
       return;
     }
-    /* R39 Stage 7: [+1] [-1] [상세] 빠른 조정 버튼 + 기존 폼 */
-    tbody.innerHTML = filtered.map(r => `
-      <tr>
+    /* 직원 전체 표시 — 잔여 기록 없는 직원(hasBalance=false)은 '부여' 버튼만 */
+    tbody.innerHTML = filtered.map(r => {
+      if (r.hasBalance === false) {
+        return `<tr style="opacity:.75">
+          <td>${escHtml(r.memberName || '—')}</td>
+          <td style="font-size:12px;color:#6b7280">${escHtml(r.memberEmail || '')}</td>
+          <td colspan="3" style="color:#9ca3af">부여된 휴가 없음</td>
+          <td><strong>0</strong></td>
+          <td style="white-space:nowrap">
+            <button class="att-btn att-btn-primary att-btn-sm" title="휴가 부여"
+              onclick="awmOpenGrantFor('${escHtml(r.memberUid)}')">+ 부여</button>
+          </td>
+        </tr>`;
+      }
+      return `<tr>
         <td>${escHtml(r.memberName || '—')}</td>
         <td style="font-size:12px;color:#6b7280">${escHtml(r.memberEmail || '')}</td>
         <td>${escHtml(r.leaveTypeName || '—')}</td>
@@ -1071,7 +1089,8 @@
           <button class="att-btn att-btn-default att-btn-sm" title="직접 입력" style="margin-left:3px"
             onclick="awmOpenBalanceAdjust('${escHtml(r.memberUid)}', ${r.leaveTypeId}, ${r.year}, '${escHtml(r.memberName)}', '${escHtml(r.leaveTypeName)}')">상세</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   /* R39 Stage 7: +1/-1 빠른 조정 — 사유 prompt 후 즉시 PUT */

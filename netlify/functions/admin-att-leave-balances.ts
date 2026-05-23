@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { attLeaveBalances, attLeaveTypes, members } from "../../db/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-att-leave-balances" };
@@ -30,61 +30,74 @@ export default async function handler(req: Request) {
   const method = req.method;
   const url = new URL(req.url);
 
-  // GET — 전체 직원 잔여 목록 (?year=)
+  // GET — 전체 직원 잔여 목록 (?year=). 잔여 기록이 없는 직원도 0으로 표시(직원 전체 노출).
   if (method === "GET") {
     const year = Number(url.searchParams.get("year") ?? new Date().getFullYear());
     try {
-      const rows: any = await db.execute(sql`
-        SELECT
-          b.id,
-          b.member_uid,
-          b.leave_type_id,
-          b.year,
-          b.total_days,
-          b.used_days,
-          (b.total_days - b.used_days) AS remaining_days,
-          lt.name AS leave_type_name,
-          lt.unit
-        FROM att_leave_balances b
-        JOIN att_leave_types lt ON lt.id = b.leave_type_id
-        WHERE b.year = ${year}
-        ORDER BY b.member_uid, lt.display_order, lt.id
-      `);
+      // 1) 활성 직원 목록 — admin-att-members 와 동일 기준(operatorActive=true OR 운영진 role)
+      const memberRows = await db
+        .select({
+          id: members.id, name: members.name, email: members.email,
+          role: members.role, operatorActive: members.operatorActive,
+        })
+        .from(members)
+        .where(isNull(members.withdrawnAt));
+      const staff = memberRows
+        .filter(m => m.operatorActive === true ||
+          (m.role != null && ["super_admin", "admin", "operator"].includes(m.role)))
+        .map(m => ({ uid: String(m.id), name: m.name, email: m.email }));
+      staff.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? ""), "ko"));
 
-      const balanceRows = (rows.rows ?? []) as any[];
-      // member 이름·이메일 조인
-      const memberIds = Array.from(
-        new Set(balanceRows.map((r: any) => Number(r.member_uid)).filter((n: number) => Number.isFinite(n) && n > 0))
-      );
-      let memberMap = new Map<number, { name: string; email: string }>();
-      if (memberIds.length > 0) {
-        try {
-          const mRows = await db
-            .select({ id: members.id, name: members.name, email: members.email })
-            .from(members)
-            .where(inArray(members.id, memberIds));
-          for (const m of mRows) memberMap.set(m.id, { name: m.name, email: m.email });
-        } catch (e) {
-          console.warn("[admin-att-leave-balances] member 조인 실패:", e);
-        }
+      // 2) 해당 연도 잔여 (단일 leftJoin — drizzle 다중 체인 금지 §6.3 준수)
+      const balRows = await db
+        .select({
+          id:           attLeaveBalances.id,
+          memberUid:    attLeaveBalances.memberUid,
+          leaveTypeId:  attLeaveBalances.leaveTypeId,
+          totalDays:    attLeaveBalances.totalDays,
+          usedDays:     attLeaveBalances.usedDays,
+          year:         attLeaveBalances.year,
+          leaveTypeName: attLeaveTypes.name,
+          unit:          attLeaveTypes.unit,
+          displayOrder:  attLeaveTypes.displayOrder,
+        })
+        .from(attLeaveBalances)
+        .leftJoin(attLeaveTypes, eq(attLeaveTypes.id, attLeaveBalances.leaveTypeId))
+        .where(eq(attLeaveBalances.year, year));
+
+      const balByMember = new Map<string, any[]>();
+      for (const b of balRows) {
+        const arr = balByMember.get(b.memberUid) || [];
+        arr.push(b);
+        balByMember.set(b.memberUid, arr);
+      }
+      for (const arr of balByMember.values()) {
+        arr.sort((a, b) =>
+          (Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0)) ||
+          (Number(a.leaveTypeId) - Number(b.leaveTypeId)));
       }
 
-      const balances = balanceRows.map((r: any) => {
-        const info = memberMap.get(Number(r.member_uid));
-        return {
-          id:            Number(r.id),
-          memberUid:     r.member_uid,
-          memberName:    info?.name ?? "—",
-          memberEmail:   info?.email ?? "",
-          leaveTypeId:   Number(r.leave_type_id),
-          leaveTypeName: r.leave_type_name,
-          unit:          r.unit,
-          year:          Number(r.year),
-          totalDays:     Number(r.total_days),
-          usedDays:      Number(r.used_days),
-          remainingDays: Number(r.remaining_days),
-        };
-      });
+      // 3) flat 결과 — 직원 전체. 잔여 기록 없으면 빈 행 1개(hasBalance=false)
+      const balances: any[] = [];
+      for (const s of staff) {
+        const bals = balByMember.get(s.uid) || [];
+        if (bals.length === 0) {
+          balances.push({
+            id: null, memberUid: s.uid, memberName: s.name, memberEmail: s.email,
+            leaveTypeId: null, leaveTypeName: null, unit: null,
+            year, totalDays: 0, usedDays: 0, remainingDays: 0, hasBalance: false,
+          });
+        } else {
+          for (const b of bals) {
+            balances.push({
+              id: Number(b.id), memberUid: s.uid, memberName: s.name, memberEmail: s.email,
+              leaveTypeId: Number(b.leaveTypeId), leaveTypeName: b.leaveTypeName, unit: b.unit,
+              year: Number(b.year), totalDays: Number(b.totalDays), usedDays: Number(b.usedDays),
+              remainingDays: Number(b.totalDays) - Number(b.usedDays), hasBalance: true,
+            });
+          }
+        }
+      }
       return jsonOk(balances);
     } catch (err) {
       return jsonError("select_balances", err);
