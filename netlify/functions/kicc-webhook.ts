@@ -87,6 +87,19 @@ export default async (req: Request) => {
     /* 멱등 — 이미 같은 상태면 skip */
     if (donation.status === newStatus) return ack({ idempotent: true });
 
+    /* ★ P1-4 하드닝: KICC 노티는 서명 검증이 없어 위조 가능 → 미결제(pending) 후원을
+       completed로 승격하는 경우, 노티 금액이 저장(서버 신뢰) 금액과 정확히 일치할 때만 허용.
+       금액 누락·불일치면 승격 보류(fail-safe) — 정상 결제는 동기 승인 경로(approve)가 이미 확정함. */
+    if (newStatus === "completed" && donation.status !== "completed") {
+      const notiAmount = Number(p.amount ?? p.amt ?? NaN);
+      if (!Number.isFinite(notiAmount) || notiAmount !== Number(donation.amount)) {
+        console.warn(
+          `[kicc-webhook] completed 승격 보류 — 금액 불일치/누락 (noti=${p.amount}, db=${donation.amount}) donationId=${donation.id}`,
+        );
+        return ack({ skipped: "amount_mismatch" });
+      }
+    }
+
     /* 상태 우선순위 — 후퇴 방지 (단, completed→cancelled/refunded는 허용) */
     const priority: Record<string, number> = { pending: 1, completed: 2, failed: 3, cancelled: 4, refunded: 5 };
     const cur = priority[donation.status] || 0;

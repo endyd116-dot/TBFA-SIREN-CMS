@@ -47,6 +47,8 @@ export default async (req: Request) => {
         id: incidentReports.id,
         reportNo: incidentReports.reportNo,
         title: incidentReports.title,
+        contentHtml: incidentReports.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        category: incidentReports.category,
         status: incidentReports.status,
         isAnonymous: incidentReports.isAnonymous,
         adminResponse: incidentReports.adminResponse,
@@ -73,6 +75,8 @@ export default async (req: Request) => {
         id: harassmentReports.id,
         reportNo: harassmentReports.reportNo,
         title: harassmentReports.title,
+        contentHtml: harassmentReports.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        category: harassmentReports.category,
         status: harassmentReports.status,
         isAnonymous: harassmentReports.isAnonymous,
         adminResponse: harassmentReports.adminResponse,
@@ -99,6 +103,8 @@ export default async (req: Request) => {
         id: legalConsultations.id,
         reportNo: legalConsultations.consultationNo,
         title: legalConsultations.title,
+        contentHtml: legalConsultations.contentHtml,   /* ★ P1-6: 수정 모달 본문 채움용 */
+        category: legalConsultations.category,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
         adminResponse: legalConsultations.adminResponse,

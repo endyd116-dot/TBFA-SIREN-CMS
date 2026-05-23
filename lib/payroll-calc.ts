@@ -232,7 +232,7 @@ export async function calculatePayrollForMonth(
 
       // 5. UPSERT — 기존 status≥REVIEWED은 force=false면 보존 (skip)
       const existing = await db.execute(sql`
-        SELECT id, status, manually_edited FROM payroll_slips
+        SELECT id, status, manually_edited, adjustments, other_deduction FROM payroll_slips
         WHERE member_uid = ${memberUid} AND pay_year = ${year} AND pay_month = ${month}
         LIMIT 1
       `);
@@ -247,6 +247,17 @@ export async function calculatePayrollForMonth(
           result.slipIds.push(Number(existingRow.id));
           continue;
         }
+        /* ★ P1-16 fix: force 재집계가 기본 구성요소만 다시 계산하고 어드민이 추가한 조정라인
+           (adjustments)·기타공제(other_deduction)는 컬럼에 남겨두면서 gross/net 합계엔 반영 안 해
+           "라인은 보이는데 세전·실수령엔 빠진" 모순이 생긴다. 편집 공식(admin-payroll.ts)과 동일하게
+           기존 조정분을 합계에 접어 넣어 일관성 유지(조정라인·기타공제 컬럼은 그대로 보존). */
+        const _adjArr = Array.isArray(existingRow.adjustments) ? existingRow.adjustments : [];
+        const _adjAdd = _adjArr.filter((a: any) => a?.kind === "ADD").reduce((s: number, a: any) => s + (Number(a?.amount) || 0), 0);
+        const _adjDeduct = _adjArr.filter((a: any) => a?.kind === "DEDUCT").reduce((s: number, a: any) => s + (Number(a?.amount) || 0), 0);
+        const _otherDeduction = Number(existingRow.other_deduction || 0);
+        const grossPayFinal = grossPay + _adjAdd - _adjDeduct;
+        const totalDeductionFinal = totalDeduction + _otherDeduction;
+        const netPayFinal = grossPayFinal - totalDeductionFinal;
         // 갱신
         const upd = await db.execute(sql`
           UPDATE payroll_slips SET
@@ -263,15 +274,15 @@ export async function calculatePayrollForMonth(
             deduction_unpaid = ${r2(deductionUnpaid)},
             performance_bonus = ${r2(performanceBonus)},
             perfect_bonus = ${r2(perfectBonus)},
-            gross_pay = ${r2(grossPay)},
+            gross_pay = ${r2(grossPayFinal)},
             national_pension = ${r2(ded.nationalPension)},
             health_insurance = ${r2(ded.healthInsurance)},
             long_term_care = ${r2(ded.longTermCare)},
             employment_insurance = ${r2(ded.employmentInsurance)},
             income_tax = ${r2(ded.incomeTax)},
             local_tax = ${r2(ded.localTax)},
-            total_deduction = ${r2(totalDeduction)},
-            net_pay = ${r2(netPay)},
+            total_deduction = ${r2(totalDeductionFinal)},
+            net_pay = ${r2(netPayFinal)},
             calculation_snapshot = ${JSON.stringify(snapshot)}::jsonb,
             status = 'DRAFT',
             updated_at = NOW()

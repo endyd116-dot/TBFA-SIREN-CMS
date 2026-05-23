@@ -32,7 +32,10 @@ export default async (req: Request, _ctx: Context) => {
 
     /* validate */
     const title = body.title !== undefined ? String(body.title).trim().slice(0, 200) : undefined;
-    const contentHtml = body.contentHtml !== undefined ? String(body.contentHtml).trim() : undefined;
+    /* ★ P1-6 fix: 프론트가 본문을 content 키로 보냄 → contentHtml 우선, content 폴백(미반영 데이터손실 해소) */
+    const _content = body.contentHtml !== undefined ? body.contentHtml : body.content;
+    const contentHtml = _content !== undefined ? String(_content).trim() : undefined;
+    const category = body.category !== undefined ? String(body.category).trim() : undefined;
 
     if (title !== undefined && !title) return badRequest("제목은 비워둘 수 없습니다");
     if (contentHtml !== undefined && contentHtml.length < 10) return badRequest("내용을 10자 이상 입력해주세요");
@@ -57,6 +60,7 @@ export default async (req: Request, _ctx: Context) => {
     const updateData: any = { updatedAt: new Date() };
     if (title !== undefined) updateData.title = title;
     if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
+    if (category !== undefined && category) updateData.category = category;
 
     const [updated]: any = await db
       .update(incidentReports)

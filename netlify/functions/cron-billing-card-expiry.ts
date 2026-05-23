@@ -4,6 +4,14 @@
 // - 30일 전 + 14일 전 만료 예정 카드 감지
 // - card_expiry_alerts 중복 발송 방지
 // - 이메일 + SMS + 알림톡 통보 (Phase 8 Stub)
+//
+// ⚠️ R40 KICC 제약(2026-05-23 운영 전 검수 P1-3): KICC 빌키발급 응답(cardInfo)에는
+//    카드 "만료월"이 포함되지 않는다(빌키·발급사·마스킹번호·카드종류만 회신 — docs/kicc.md cardInfo).
+//    따라서 KICC 빌키는 billing_keys.card_expiry_month가 NULL이라 본 cron의 사전 알림 대상에
+//    "잡히지 않는다"(만료 데이터 자체가 없음 → 사전 알림 불가). 이는 코드 결함이 아니라 PG 제약.
+//    대체 커버: 카드가 실제 만료되어 월 자동청구가 실패하면 cron-kicc-billing이 BILLING_FAILED
+//    알림(인앱·이메일·SMS·알림톡)을 발송한다(사후·반응형). 사전 안내가 꼭 필요하면 KICC에 빌키
+//    조회로 만료월을 받을 수 있는지 별도 확인 필요(현 명세엔 없음).
 
 import type { Config } from "@netlify/functions";
 import { db } from "../../db";

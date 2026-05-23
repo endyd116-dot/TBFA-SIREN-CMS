@@ -150,17 +150,27 @@ ADMIN_JWT_SECRET, ADMIN_JWT_EXPIRES_IN=2h
 BCRYPT_ROUNDS=10
 
 # 이메일
-RESEND_API_KEY, RESEND_TEST_RECIPIENT
+RESEND_API_KEY
 EMAIL_FROM, SITE_URL, ADMIN_NOTIFY_EMAIL
+RESEND_TEST_RECIPIENT          # ⚠️ 설정 시 모든 메일이 이 주소로 redirect(테스트용) — 운영 전 반드시 제거 + 발신 도메인 검증
 
-# 토스
-TOSS_TEST_CLIENT_KEY, TOSS_TEST_SECRET_KEY
-TOSS_MODE=test (운영 시 'live')
+# 결제 PG — KICC(이지페이) [토스 전면 교체·R40]
+KICC_MALL_ID, KICC_SECRET_KEY
+KICC_API_DOMAIN                # 미설정 시 mode별 기본값(test: testpgapi.easypay.co.kr)
+KICC_MODE=test                 # 운영 시 'live'
+# (효성 CMS+ 계좌이체는 별도 경로·불변)
+
+# 발송 — 솔라피(SOLAPI) [알리고+프록시 전면 교체]
+SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER
+SOLAPI_KAKAO_PFID              # 알림톡 발신프로필(카카오 승인 후)
+SOLAPI_TPL_BILLING_FAILED, SOLAPI_TPL_CARD_EXPIRING, SOLAPI_TPL_BILLING_SUCCESS
+SOLAPI_TPL_BILLING_UPCOMING, SOLAPI_TPL_RECEIPT, SOLAPI_TPL_DONOR_CHANGE   # 알림톡 6종 templateId
 
 # AI
 GEMINI_API_KEY
 GEMINI_MODEL_PRO=gemini-3-flash
 GEMINI_MODEL_FLASH=gemini-3-flash
+INTERNAL_TRIGGER_SECRET        # ⚠️ AI 백그라운드 함수 내부 호출 인증 — 미설정 시 AI 자동요약 비활성(fail-closed)
 
 # Cloudflare R2
 R2_ACCOUNT_ID, R2_BUCKET=siren-uploads

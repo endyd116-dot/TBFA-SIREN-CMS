@@ -27,7 +27,10 @@ export default async (req: Request, _ctx: Context) => {
 
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
-  if (expected && secret !== expected) {
+  /* ★ P1-5 fix: fail-closed — 기존 (expected && …)은 env 미설정 시 인증 통째로 스킵돼
+     외부에서 무제한 Gemini 호출 가능했음. 시크릿이 없거나 불일치하면 차단.
+     (호출부 admin-workspace-tasks가 같은 env로 secret 전달 → 설정 시 정상 동작) */
+  if (!expected || secret !== expected) {
     return new Response(JSON.stringify({ ok: false, error: "권한 없음" }), { status: 403 });
   }
 

@@ -32,7 +32,8 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const secret = String(body?.secret || "");
   const expected = process.env.INTERNAL_TRIGGER_SECRET || "";
-  if (expected && secret !== expected) {
+  /* ★ P1-5 fix: fail-closed — env 미설정 시 무인증 호출 차단(호출부가 같은 env로 secret 전달). */
+  if (!expected || secret !== expected) {
     return Response.json({ ok: false, error: "권한 없음" }, { status: 403 });
   }
 
