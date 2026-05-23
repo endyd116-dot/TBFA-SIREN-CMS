@@ -125,11 +125,15 @@ export default async (_req: Request, _ctx: Context) => {
       }
     }
 
-    // ─── 2. 입사 1년 도래 직원 → 연차 15일 일괄 부여 ───
+    // ─── 2. 입사 1년 도래 직원 → 근속 기반 연차 일괄 부여 (모드 B · 5인 이상) ───
+    // ★ 2026-05-23 운영 전 검수 후속: 교사유가족협의회는 5인 이하 사업장 = 모드 A(월 만근 시 +1일만
+    //   운영) → 근속 기반 1주년 일괄부여는 현재 미운영. "연차 산정 정책"(모드 A/B 선택 + 모드 B의
+    //   1주년 기본일수·증가일수·증가주기·상한을 슈퍼어드민이 CRUD)은 다음 라운드에서 설계·구현 예정.
+    //   그때 아래 플래그를 정책 설정값으로 대체한다. (아래 +15 로직도 그때 모드 B 파라미터로 재작성)
     // R34-P2 (round3 M-G2): members 테이블에 hire_date 컬럼이 없어 회원가입일(createdAt)을
-    // 입사일 대용으로 사용. 현재 NPO 규모(전원 채용 = 가입)에서는 동등하나, 향후 외부 채용·
-    // 기존 직원에 계정 부여 시점이 분리될 경우 members.hire_date 추가 마이그 + 본 cron 변경 필요.
-    for (const op of activeOps) {
+    // 입사일 대용으로 사용 — 모드 B 도입 시 hire_date 추가 마이그 + 본 cron 변경 필요.
+    const SERVICE_BASED_ANNUAL_ENABLED = false;  // 모드 B 활성 시 true (정책 기능 도입 시 설정값 참조)
+    for (const op of (SERVICE_BASED_ANNUAL_ENABLED ? activeOps : [])) {
       try {
         if (!op.createdAt) continue;
         const joinDate = new Date(op.createdAt);
