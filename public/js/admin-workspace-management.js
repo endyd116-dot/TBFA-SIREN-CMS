@@ -1417,6 +1417,7 @@
   var _liveTimer = null;
   var _liveMembersById = {}; // 직원 uid → { name, email, role }
   var _liveWorkplacesById = {}; // 거점 id → { name, lat, lng }
+  var _liveOrderedRows = []; // ★ 전체보기용 — 오늘 출근 기록 행(좌표 포함)
 
   async function loadLiveMembersAndPlaces() {
     // 직원 목록 1회 로드 후 캐싱
@@ -1477,6 +1478,7 @@
 
     // 출근 중 → 퇴근 완료 순 정렬, 미출근은 아래
     const ordered = working.concat(done);
+    _liveOrderedRows = ordered;   // ★ 전체보기용 저장
 
     if (ordered.length === 0 && absent.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="att-empty">오늘 등록된 직원이 없습니다</td></tr>';
@@ -1541,6 +1543,19 @@
     });
   };
 
+  /** ★ 전체보기 — 좌표가 기록된 모든 직원의 출퇴근 위치를 한 지도에 표시 */
+  window.awmShowAllLocations = function () {
+    if (!window.AttMap || !window.AttMap.showAll) { alert('지도 헬퍼 로드 실패'); return; }
+    const points = [];
+    (_liveOrderedRows || []).forEach(function (r) {
+      const name = _liveMemberName(r.memberUid);
+      if (r.checkInLat != null && r.checkInLng != null) points.push({ name: name, lat: r.checkInLat, lng: r.checkInLng, type: 'in', workMode: r.workMode });
+      if (r.checkOutLat != null && r.checkOutLng != null) points.push({ name: name, lat: r.checkOutLat, lng: r.checkOutLng, type: 'out', workMode: r.workMode });
+    });
+    if (points.length === 0) { toast('좌표가 기록된 출퇴근이 없습니다 (재택·구버전 기록은 좌표 미수집)'); return; }
+    window.AttMap.showAll({ title: '전체 출퇴근 위치 — ' + toDateStr(), points: points });
+  };
+
   function startLiveAutoRefresh() {
     stopLiveAutoRefresh();
     _liveTimer = setInterval(function () {
@@ -1559,6 +1574,7 @@
     await loadLiveMembersAndPlaces();
     await loadLiveStatus();
     document.getElementById('awmBtnLiveRefresh')?.addEventListener('click', loadLiveStatus);
+    document.getElementById('awmBtnLiveMap')?.addEventListener('click', window.awmShowAllLocations);
     startLiveAutoRefresh();
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') {

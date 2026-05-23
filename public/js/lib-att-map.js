@@ -20,6 +20,10 @@
   var _sdkLoadPromise = null;
   var _configPromise = null;
 
+  /* ★ 위치보기 fix: site-config(KAKAO_JS_APP_KEY) 미설정 시 about.html과 동일한
+     도메인 등록 카카오 JS 키로 폴백(클라이언트 키·도메인 제한·비밀 아님) → env 없이도 지도 동작. */
+  var FALLBACK_KAKAO_JS_KEY = '6082d30d107baf30d2fd17f14a2f48e7';
+
   function loadConfig() {
     if (_configPromise) return _configPromise;
     _configPromise = (async function () {
@@ -130,13 +134,13 @@
       return;
     }
 
-    // 카카오 키 로드
+    // 카카오 키 로드 — env(site-config) 우선, 없으면 도메인 등록 폴백 키
     var cfg = await loadConfig();
-    if (!cfg.kakaoJsAvailable) {
+    var appKey = (cfg && cfg.kakaoJsAppKey) || FALLBACK_KAKAO_JS_KEY;
+    if (!appKey) {
       canvas.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:#6b7280;font-size:13px;line-height:1.7">'
-        + '🛈 카카오 지도 키(KAKAO_JS_APP_KEY)가 등록되지 않았습니다.<br>'
-        + '관리자에게 환경변수 등록을 요청해주세요.<br><br>'
+        + '🛈 카카오 지도 키가 없습니다.<br><br>'
         + '<a href="https://map.kakao.com/?q=' + encodeURIComponent(userLat + ',' + userLng) + '" target="_blank" style="color:#2563eb;text-decoration:underline">'
         + '카카오맵에서 좌표 확인하기 ↗</a>'
         + '</div>';
@@ -145,7 +149,7 @@
     }
 
     try {
-      await loadSdk(cfg.kakaoJsAppKey);
+      await loadSdk(appKey);
     } catch (e) {
       canvas.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:13px">카카오 SDK 로드 실패: ' + esc(e.message || e) + '</div>';
       return;
@@ -202,8 +206,54 @@
       + (dist != null ? ' &nbsp;·&nbsp; 거점 거리 <strong>' + fmtDist(dist) + '</strong>' : '');
   }
 
+  /* ★ 전체보기: 여러 직원의 출퇴근 좌표를 한 지도에 모두 표시.
+     opts.points = [{ name, lat, lng, type:'in'|'out', workMode }] */
+  async function showAll(opts) {
+    opts = opts || {};
+    var points = (opts.points || []).filter(function (p) {
+      return p && p.lat != null && p.lng != null && isFinite(Number(p.lat)) && isFinite(Number(p.lng))
+        && (Number(p.lat) !== 0 || Number(p.lng) !== 0);
+    });
+    var modal = buildModal({ title: opts.title || ('전체 출퇴근 위치 (' + points.length + '건)') });
+    var canvas = modal.querySelector('#attMapCanvas');
+    var info = modal.querySelector('#attMapInfo');
+    var footer = modal.querySelector('#attMapFooter');
+
+    info.innerHTML = '🧍 좌표가 기록된 ' + points.length + '건';
+    if (points.length === 0) {
+      canvas.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:13px">표시할 위치 좌표가 없습니다 (좌표 미기록 출퇴근은 제외)</div>';
+      return;
+    }
+
+    var cfg = await loadConfig();
+    var appKey = (cfg && cfg.kakaoJsAppKey) || FALLBACK_KAKAO_JS_KEY;
+    if (!appKey) {
+      canvas.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:13px">카카오 지도 키가 없습니다</div>';
+      return;
+    }
+    try { await loadSdk(appKey); }
+    catch (e) { canvas.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:13px">카카오 SDK 로드 실패</div>'; return; }
+
+    canvas.innerHTML = '';
+    var map = new kakao.maps.Map(canvas, {
+      center: new kakao.maps.LatLng(Number(points[0].lat), Number(points[0].lng)),
+      level: 7,
+    });
+    var bounds = new kakao.maps.LatLngBounds();
+    points.forEach(function (p) {
+      var pos = new kakao.maps.LatLng(Number(p.lat), Number(p.lng));
+      var marker = new kakao.maps.Marker({ position: pos, map: map });
+      var label = esc(p.name || '직원') + (p.type ? ' (' + (p.type === 'in' ? '출근' : '퇴근') + ')' : '');
+      new kakao.maps.InfoWindow({ content: '<div style="padding:4px 8px;font-size:11.5px;font-weight:600">' + label + '</div>' }).open(map, marker);
+      bounds.extend(pos);
+    });
+    map.setBounds(bounds);
+    footer.textContent = '총 ' + points.length + '건 표시';
+  }
+
   window.AttMap = {
     show: show,
+    showAll: showAll,
     haversineMeters: haversineMeters,
     fmtDist: fmtDist,
   };
