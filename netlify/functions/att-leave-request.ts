@@ -118,9 +118,29 @@ export default async function handler(req: Request) {
     } catch (err) {
       console.warn("[att-leave-request] 잔여 검증 실패:", err);
     }
-    if (remaining < days) {
+    /* ★ P1-13 fix: used_days는 승인 시점에만 증가 → 승인 대기(PENDING) 다건이 각각 통과해
+       잔여를 초과할 수 있음. 같은 연도·종류의 PENDING 합산을 잔여에서 차감해 막는다. */
+    let pendingDays = 0;
+    try {
+      const pendRows: any = await db
+        .select({ s: sql<string>`COALESCE(SUM(${attLeaveRequests.days}), 0)` })
+        .from(attLeaveRequests)
+        .where(and(
+          eq(attLeaveRequests.memberUid, memberUid),
+          eq(attLeaveRequests.leaveTypeId, leaveTypeId),
+          eq(attLeaveRequests.status, "PENDING"),
+          sql`EXTRACT(YEAR FROM ${attLeaveRequests.startDate}) = ${year}`,
+        ));
+      pendingDays = Number(pendRows[0]?.s || 0);
+    } catch (err) {
+      console.warn("[att-leave-request] PENDING 합산 실패:", err);
+    }
+    const effectiveRemaining = remaining - pendingDays;
+    if (effectiveRemaining < days) {
       return new Response(JSON.stringify({
-        ok: false, error: `휴가 잔여일이 부족합니다 (잔여: ${remaining}일, 신청: ${days}일)`, step: "balance_check",
+        ok: false,
+        error: `휴가 잔여일이 부족합니다 (잔여: ${effectiveRemaining}일${pendingDays > 0 ? ` · 승인대기 ${pendingDays}일 차감 후` : ""}, 신청: ${days}일)`,
+        step: "balance_check",
       }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
 

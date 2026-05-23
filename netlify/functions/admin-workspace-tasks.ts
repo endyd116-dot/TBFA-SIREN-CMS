@@ -115,7 +115,7 @@ async function parseMentionsAndNotify(opts: {
       await db.execute(sql`
         INSERT INTO workspace_task_mentions
           (workspace_id, task_id, mentioned_member_id, mentioner_member_id, context, is_read, created_at)
-        SELECT 0, ${taskId}, ${member.id}, ${actorId}, ${contextSnippet}, false, NOW()
+        SELECT 1, ${taskId}, ${member.id}, ${actorId}, ${contextSnippet}, false, NOW()
         WHERE NOT EXISTS (
           SELECT 1 FROM workspace_task_mentions
           WHERE task_id = ${taskId} AND mentioned_member_id = ${member.id}

@@ -168,13 +168,17 @@ async function checkAndAutoSubmitAchievement(opts: {
 }) {
   const { memberId, milestoneDefId, quarterId, def } = opts;
   try {
-    // 이 분기 내 해당 마일스톤의 완료 카드 수
+    // ★ P1-15 fix: 주석대로 "이 분기 내" 완료 카드만 카운트해야 하는데 분기 기간 필터가
+    // 빠져 과거 분기 완료분까지 합산 → 목표 도달 오판·엉뚱한 분기 보너스 자동생성.
+    // quarter_id의 start~end 기간으로 제한(quarters 서브쿼리).
     const countRows = await db.execute(sql`
       SELECT COUNT(*) as cnt FROM workspace_tasks
       WHERE member_id = ${memberId}
         AND milestone_def_id = ${milestoneDefId}
         AND milestone_match_status IN ('auto', 'user')
         AND status = 'done'
+        AND completed_at >= (SELECT start_date FROM quarters WHERE id = ${quarterId})
+        AND completed_at <= (SELECT end_date FROM quarters WHERE id = ${quarterId})
     `);
     const achieved = Number((countRows as any).rows?.[0]?.cnt || (countRows as any[])[0]?.cnt || 0);
     const target = Number(def.threshold_value || 0);

@@ -96,6 +96,8 @@ export default async function handler(req: Request, _ctx: Context) {
           AND milestone_def_id = ${milestoneDefId}
           AND milestone_match_status IN ('auto', 'user')
           AND status = 'done'
+          AND completed_at >= ${quarter.start_date}
+          AND completed_at <= ${quarter.end_date}
       `);
       const achieved = Number((cntRows as any).rows?.[0]?.cnt || (cntRows as any[])[0]?.cnt || 0);
       const target = Number(def.threshold_value || 0);

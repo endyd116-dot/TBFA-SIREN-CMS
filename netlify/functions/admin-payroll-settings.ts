@@ -62,6 +62,12 @@ export default async function handler(req: Request, _ctx: Context) {
     if (!changed) return Response.json({ ok: false, error: "변경 필드 없음" }, { status: 400 });
     upd = sql`${upd} WHERE id = 1 RETURNING *`;
 
+    /* ★ P1-17 fix: id=1 행이 없으면 UPDATE가 0행이라 "저장 완료"로 보여도 미반영.
+       기본값으로 시드 후 UPDATE 보장(모든 컬럼 NOT NULL+default라 id만으로 INSERT 가능). */
+    try {
+      await db.execute(sql`INSERT INTO payroll_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`);
+    } catch (err) { return jsonError("seed", err); }
+
     try {
       const r = await db.execute(upd);
       const row = (r as any).rows?.[0] || (r as any[])[0];

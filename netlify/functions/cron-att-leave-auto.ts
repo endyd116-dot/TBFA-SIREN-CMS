@@ -140,13 +140,16 @@ export default async (_req: Request, _ctx: Context) => {
         const targetYear = joinYear + 1;
         const targetMonth = joinMonth;
         if (targetYear === thisYear && targetMonth === thisMonth) {
-          // 연차 15일 설정 (이미 있으면 최대값으로 갱신)
+          // ★ P1-14 fix: 기존 GREATEST(total,15)는 같은 해 적립된 만근 보너스(+1/월)를
+          // 덮어써(예: 만근 3일 → 15로 고정되어 3일 손실) 잔여일이 사라졌다.
+          // 1주년 연차 15일을 기존 적립분에 "더해" 부여(만근 보너스 보존).
+          // (cron 월 1회 실행 + targetYear/Month 가드로 1주년 1회만 발화)
           await db.execute(sql`
             INSERT INTO att_leave_balances (member_uid, leave_type_id, year, total_days, used_days)
             VALUES (${op.uid}, ${annualLeaveType.id}, ${thisYear}, 15, 0)
             ON CONFLICT (member_uid, leave_type_id, year)
             DO UPDATE SET
-              total_days = GREATEST(att_leave_balances.total_days, 15)
+              total_days = att_leave_balances.total_days + 15
           `);
           anniversaryCount++;
 
