@@ -19,6 +19,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { getDefaultPolicy, calcWorkingMins } from "../../lib/att-utils";
 
 export const config = { path: "/api/admin-att-record-edit" };
 
@@ -103,6 +104,31 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonStepErr("select_old", err);
   }
 
+  /* ★ fix: 출퇴근 시각을 수정하면 업무시간(working_mins)·야근시간(overtime_mins)도 재계산.
+     (기존엔 시각만 바꾸고 파생 시간은 그대로라 표에 반영 안 됐음) — 양쪽 시각이 다 있을 때만. */
+  let recalcWorkingMins: number | undefined;
+  let recalcOvertimeMins: number | undefined;
+  if (newCheckIn !== undefined || newCheckOut !== undefined) {
+    const effIn  = newCheckIn  !== undefined ? newCheckIn  : (old.check_in_time  ? new Date(old.check_in_time).toISOString()  : null);
+    const effOut = newCheckOut !== undefined ? newCheckOut : (old.check_out_time ? new Date(old.check_out_time).toISOString() : null);
+    if (effIn && effOut) {
+      try {
+        const policy = await getDefaultPolicy();
+        if (policy) {
+          const r = calcWorkingMins(new Date(effIn), new Date(effOut), {
+            dailyHours: Number(policy.dailyHours),
+            breakMins: policy.breakMins,
+            breakThresholdHours: Number(policy.breakThresholdHours),
+          });
+          recalcWorkingMins = r.workingMins;
+          recalcOvertimeMins = r.overtimeMins;
+        }
+      } catch (e) {
+        console.warn("[admin-att-record-edit] 근무시간 재계산 실패(무시):", e);
+      }
+    }
+  }
+
   /* 2) UPDATE — 변경 필드만 SET, 미변경 필드는 그대로 (안전한 sql 템플릿 합성) */
   try {
     /* 동적 SET 합성 — sql.raw(values) 사용 금지·모든 값 파라미터 바인딩 */
@@ -118,6 +144,12 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     if (newNote !== undefined) {
       setExpr = sql`${setExpr}, note = ${newNote}`;
+    }
+    if (recalcWorkingMins !== undefined) {
+      setExpr = sql`${setExpr}, working_mins = ${recalcWorkingMins}`;
+    }
+    if (recalcOvertimeMins !== undefined) {
+      setExpr = sql`${setExpr}, overtime_mins = ${recalcOvertimeMins}`;
     }
 
     const updRes = await db.execute(sql`
