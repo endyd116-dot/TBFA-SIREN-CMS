@@ -470,13 +470,15 @@
     const leftDiv = document.querySelector('.board-view-actions .left');
     if (!leftDiv) return;
 
-    /* 현재 구독 상태 조회 */
+    /* 현재 구독 상태 조회 — ★ P1-8 fix: 미존재 엔드포인트(board-subscription-status) 대신
+       내 구독 목록(user-post-subscriptions)에서 이 게시글 포함 여부로 판정 */
     let subscribed = false;
     try {
-      const res = await fetch('/api/board-subscription-status?postId=' + postId, { credentials: 'include' });
+      const res = await fetch('/api/user-post-subscriptions', { credentials: 'include' });
       if (res.ok) {
         const json = await res.json();
-        subscribed = !!(json.data?.subscribed || json.subscribed);
+        const subs = json.postSubscriptions || [];
+        subscribed = subs.some(function (s) { return Number(s.postId) === Number(postId); });
       }
     } catch (_) {}
 
@@ -494,12 +496,19 @@
     const isSubscribed = btn.classList.contains('subscribed');
     btn.disabled = true;
     try {
-      const res = await fetch('/api/board-subscription-toggle', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, subscribe: !isSubscribed }),
-      });
+      /* ★ P1-8 fix: 미존재 엔드포인트(board-subscription-toggle) 대신
+         user-post-subscribe — POST=구독 / DELETE=해제 */
+      const res = isSubscribed
+        ? await fetch('/api/user-post-subscribe?postId=' + encodeURIComponent(postId), {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+        : await fetch('/api/user-post-subscribe', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId }),
+          });
       const json = await res.json();
       if (!res.ok || !json.ok) {
         window.SIREN.toast(json.error || '처리 실패');

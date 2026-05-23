@@ -4,7 +4,9 @@ import { eq } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, badRequest, notFound, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 
-export const config = { path: "/api/admin-rewards" };
+/* ★ 게이미피케이션 라우팅 fix: 클라이언트가 /api/admin-rewards/{id}(경로 세그먼트)로
+   PATCH·DELETE 호출 → base + 와일드카드 둘 다 매칭. id는 쿼리 또는 경로에서 추출. */
+export const config = { path: ["/api/admin-rewards", "/api/admin-rewards/*"] };
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -13,7 +15,11 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const id = Number(url.searchParams.get("id"));
+  let id = Number(url.searchParams.get("id"));
+  if (!id) {
+    const m = url.pathname.match(/\/api\/admin-rewards\/(\d+)/);
+    if (m) id = Number(m[1]);
+  }
 
   try {
     if (req.method === "GET") {

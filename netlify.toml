@@ -227,6 +227,34 @@
 [functions."cron-att-leave-auto"]
   schedule = "0 0 1 * *"
 
+# ★ 2026-05-23 운영 전 검수(P1-1): 인라인 config.schedule만 있던 cron 12종을 toml에 이중 등록.
+# (위 dispatcher·retry 주석과 동일 사유 — 일부 환경 인라인 미인식 대비. 급여 월집계·일일브리핑·
+#  카드만료알림·휴지통정리·분기 자동생성 등이 조용히 미실행되는 것을 방지.)
+[functions."cron-agent-8"]
+  schedule = "0 21 * * *"
+[functions."cron-task-risk"]
+  schedule = "30 21 * * *"
+[functions."cron-billing-card-expiry"]
+  schedule = "0 0 * * *"
+[functions."cron-workspace-trash-cleanup"]
+  schedule = "0 18 * * *"
+[functions."cron-payroll-monthly"]
+  schedule = "0 17 1 * *"
+[functions."cron-auto-trigger-evaluator"]
+  schedule = "*/30 * * * *"
+[functions."cron-att-late-streak"]
+  schedule = "5 23 * * *"
+[functions."cron-att-remote-streak"]
+  schedule = "0 23 * * *"
+[functions."cron-milestone-quarter"]
+  schedule = "0 0 * * *"
+[functions."cron-ms-anomaly"]
+  schedule = "0 22 * * *"
+[functions."cron-ms-deadline-remind"]
+  schedule = "0 0 * * *"
+[functions."cron-tracking-stats-rollup"]
+  schedule = "0 */6 * * *"
+
 # ============================================================
 # Dev 설정
 # ============================================================

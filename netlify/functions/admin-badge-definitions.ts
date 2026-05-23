@@ -4,7 +4,9 @@ import { eq } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, badRequest, notFound, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 
-export const config = { path: "/api/admin-badge-definitions" };
+/* ★ 게이미피케이션 라우팅 fix: 클라이언트가 /api/admin-badge-definitions/{code}(경로 세그먼트)로
+   PATCH·DELETE 호출 → base + 와일드카드 둘 다 매칭. code는 쿼리 또는 경로에서 추출. */
+export const config = { path: ["/api/admin-badge-definitions", "/api/admin-badge-definitions/*"] };
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -13,7 +15,11 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
+  let code = url.searchParams.get("code");
+  if (!code) {
+    const m = url.pathname.match(/\/api\/admin-badge-definitions\/([^/?]+)/);
+    if (m) code = decodeURIComponent(m[1]);
+  }
 
   try {
     if (req.method === "GET") {
