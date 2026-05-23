@@ -1,28 +1,31 @@
 // lib/notify-adapters/kakao-aligo.ts
-// Phase 9 — Aligo 카카오 알림톡 어댑터 (kakao-placeholder.ts 대체)
+// Phase 9 카카오 알림톡 어댑터 — 2026-05-23 알리고(프록시) → 솔라피(SOLAPI)로 발송 교체.
 //
-// 이벤트별 템플릿 매핑:
-//   BILLING_FAILED → ALIGO_TEMPLATE_BILLING_FAILED
-//   CARD_EXPIRING  → ALIGO_TEMPLATE_CARD_EXPIRING
+// 솔라피는 "templateId + 변수맵(#{한글변수})" 방식(알리고의 "렌더된 본문 + tplCode"와 다름).
+// 등록 템플릿(카카오 승인본)은 솔라피 콘솔/문서(docs/active/2026-05-23-solapi-migration.md) 참조.
 //
-// 변수 치환은 카카오 심사 통과한 템플릿 본문과 정확히 일치해야 발송됨.
-// (설계서 §8 — 협의회 따뜻한 톤 템플릿)
+// 이벤트 → 솔라피 templateId(env):
+//   BILLING_FAILED → SOLAPI_TPL_BILLING_FAILED  (정기 결제 실패)
+//   CARD_EXPIRING  → SOLAPI_TPL_CARD_EXPIRING   (등록 카드 만료 안내)
+//   ※ 출금완료/출금예정/영수증/후원변경 4종은 템플릿 등록 완료(승인 대기)이나 발송 트리거 설계 후 연결.
 //
-// Fallback 정책 (placeholder 동작):
-//   - 템플릿 ID 환경변수 미등록 → 콘솔 로그만, status=sent 기록
-//   - NOTIFICATION_TEST_MODE=true → 동일하게 콘솔 로그만
-//   - 카카오 심사 통과 전에도 전체 알림 흐름 회귀 검증 가능
+// Fallback(placeholder) 정책:
+//   - templateId/pfId 미등록 · NOTIFICATION_TEST_MODE=true · 수신번호 없음 → 콘솔 로그만, status=sent
+//   - 알림톡 실패 시 솔라피가 text를 SMS/LMS로 대체발송(disableSms:false)
+//   - 운영자가 어드민에서 카카오 채널 끄면(loadEventTemplate skip) 발송 차단
 
 import { db, members } from "../../db";
 import { eq } from "drizzle-orm";
 import { NotifyEvent } from "../notify-events";
-import {
-  sendAligoAlimtalk,
-  normalizePhone,
-} from "../aligo-kakao-client";
+import { solapiSendAlimtalk } from "../solapi-client";
 import type { NotifyAdapter, AdapterSendOpts, AdapterResult } from "./types";
-/* ★ 2026-05-16: 자동 발송 통합 CMS — 어드민 편집 본문 우선 사용. */
+/* ★ 2026-05-16: 자동 발송 통합 CMS — 어드민 편집 본문 우선(대체발송 SMS 문구) + 채널 on/off skip 신호 */
 import { loadEventTemplate } from "../notify-dispatcher";
+
+/* 전화번호 정규화 (숫자만) — 알리고 의존 제거용 로컬 헬퍼 */
+function normalizePhone(p: string | null | undefined): string {
+  return String(p || "").replace(/[^0-9]/g, "");
+}
 
 /* ─── 수신자 정보 조회 ─── */
 async function lookupRecipient(targetId: number): Promise<{ name: string; phone: string } | null> {
@@ -37,14 +40,6 @@ async function lookupRecipient(targetId: number): Promise<{ name: string; phone:
   } catch {
     return null;
   }
-}
-
-/* ─── 이벤트 → 템플릿 ID + 본문 빌더 ─── */
-interface BuildResult {
-  tplCode: string | null;
-  message: string;
-  subject: string;
-  buttonJson: string;
 }
 
 /* enriched params 추출 — DB 템플릿 변수 치환과 폴백 본문 양쪽에 사용 (★ export — list API 미리보기) */
@@ -76,7 +71,7 @@ export function enrichKakaoParams(event: NotifyEvent, params: Record<string, any
   }
 }
 
-/* 폴백 본문 (DB 템플릿 없을 때) — 박새로이가 받은 그 본문 그대로, enriched 변수 사용 (★ export — list API 미리보기) */
+/* 폴백 본문 (DB 템플릿 없을 때의 대체발송 SMS 문구) — enriched 변수 사용 (★ export — list API 미리보기) */
 export function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): string | null {
   switch (event) {
     case NotifyEvent.BILLING_FAILED:
@@ -126,44 +121,69 @@ ${e.name}님께서 보내주시는 마음이
   }
 }
 
+/* 이벤트 → 솔라피 templateId(env) */
+function templateIdFor(event: NotifyEvent): string {
+  switch (event) {
+    case NotifyEvent.BILLING_FAILED: return process.env.SOLAPI_TPL_BILLING_FAILED || "";
+    case NotifyEvent.CARD_EXPIRING:  return process.env.SOLAPI_TPL_CARD_EXPIRING || "";
+    default: return "";
+  }
+}
+
+/* 이벤트 → 솔라피 변수맵(#{한글변수}) — 등록 템플릿 변수명과 정확히 일치해야 함 */
+function kakaoVariables(event: NotifyEvent, e: Record<string, any>): Record<string, string> {
+  switch (event) {
+    case NotifyEvent.BILLING_FAILED:
+      return {
+        "#{회원이름}": String(e.name ?? ""),
+        "#{금액}": String(e.amountFmt ?? ""),
+        "#{실패사유}": String(e.failureReason ?? ""),
+        "#{연속실패횟수}": String(e.failCount ?? ""),
+        "#{재시도일자}": String(e.retryStr ?? ""),
+      };
+    case NotifyEvent.CARD_EXPIRING:
+      return {
+        "#{회원이름}": String(e.name ?? ""),
+        "#{카드만료일}": String(e.cardExpiryStr ?? ""),
+        "#{잔여일수}": String(e.daysUntilExpiry ?? ""),
+      };
+    default:
+      return {};
+  }
+}
+
+interface BuildResult {
+  templateId: string;
+  variables: Record<string, string>;
+  /* 알림톡 실패 시 솔라피 SMS 대체발송 문구 */
+  smsText: string;
+}
+
 async function buildAlimtalk(
   event: NotifyEvent,
   params: Record<string, any>,
   memberName: string,
 ): Promise<BuildResult | { skip: true } | null> {
-  const linkUrl = "https://tbfa.co.kr/mypage/donation";
-
-  /* 알림톡 정책 미대상 이벤트 — skip (DB 템플릿이 있어도 카카오 tplCode 매칭 안 됨) */
+  /* 알림톡 정책 대상 이벤트만 (현재 2종 — 나머지 4종은 트리거 설계 후) */
   if (event !== NotifyEvent.BILLING_FAILED && event !== NotifyEvent.CARD_EXPIRING) {
     return null;
   }
 
-  /* enriched params + DB 템플릿 로드 */
   const enriched = enrichKakaoParams(event, params, memberName);
+
+  /* 어드민 채널 on/off 신호 + 대체발송 SMS 본문(DB 우선) */
   const dbTpl = await loadEventTemplate({ event, channel: "kakao", params: enriched });
   if (dbTpl && "skip" in dbTpl) {
-    /* isActive=false → 운영자가 카카오 채널 끄짐. 발송 차단 신호 */
-    return { skip: true };
+    return { skip: true };  /* isActive=false → 카카오 채널 끔 */
   }
-
-  /* 본문: DB 우선, 없으면 폴백 (skip은 위에서 처리됨) */
-  const fallbackBody = fallbackBodyKakao(event, enriched);
   const dbBody = (dbTpl && !("skip" in dbTpl)) ? dbTpl.body : null;
-  const message = dbBody || fallbackBody;
-  if (!message) return null;
+  const smsText = dbBody || fallbackBodyKakao(event, enriched) || "";
 
-  /* tplCode·buttonJson은 카카오 심사 통과 템플릿과 매핑 (환경변수) */
-  const tplCodeEnv = event === NotifyEvent.BILLING_FAILED
-    ? process.env.ALIGO_TEMPLATE_BILLING_FAILED
-    : process.env.ALIGO_TEMPLATE_CARD_EXPIRING;
-  const tplCode = tplCodeEnv || "";
-
-  const buttonName = event === NotifyEvent.BILLING_FAILED ? "후원 정보 확인" : "카드 정보 갱신";
-  const buttonJson = JSON.stringify({
-    button: [{ name: buttonName, linkType: "WL", linkTypeName: "웹링크", linkM: linkUrl, linkP: linkUrl }],
-  });
-
-  return { tplCode: tplCode || null, message, subject: "", buttonJson };
+  return {
+    templateId: templateIdFor(event),
+    variables: kakaoVariables(event, enriched),
+    smsText,
+  };
 }
 
 /* ─── 어댑터 ─── */
@@ -177,86 +197,52 @@ export const kakaoAligoAdapter: NotifyAdapter = {
     try {
       const recipient = await lookupRecipient(opts.targetId);
       if (!recipient) {
-        return {
-          ok: false,
-          error: `수신자 조회 실패 (targetId=${opts.targetId})`,
-          latencyMs: Date.now() - t0,
-        };
+        return { ok: false, error: `수신자 조회 실패 (targetId=${opts.targetId})`, latencyMs: Date.now() - t0 };
       }
 
       const built = await buildAlimtalk(opts.event, opts.params, recipient.name);
       if (!built) {
-        // 알림톡 미대상 이벤트 — 실패 아닌 스킵
-        return {
-          ok: true,
-          providerMessageId: "skipped-no-template",
-          latencyMs: Date.now() - t0,
-        };
+        return { ok: true, providerMessageId: "skipped-no-template", latencyMs: Date.now() - t0 };
       }
       if ("skip" in built) {
-        // 운영자가 어드민에서 카카오 채널 끔 — 실패 아닌 의도된 스킵
-        return {
-          ok: true,
-          providerMessageId: `skipped-admin-disabled-${opts.logId}`,
-          latencyMs: Date.now() - t0,
-        };
+        return { ok: true, providerMessageId: `skipped-admin-disabled-${opts.logId}`, latencyMs: Date.now() - t0 };
       }
 
-      const senderKey = process.env.ALIGO_KAKAO_CHANNEL_ID || "";
-      const sender    = process.env.ALIGO_SENDER || "";
-      const phone     = normalizePhone(recipient.phone);
+      const pfId  = process.env.SOLAPI_KAKAO_PFID || "";
+      const phone = normalizePhone(recipient.phone);
 
-      // ── Placeholder fallback 조건 ──
-      // (1) 템플릿 ID 미등록  (2) 카카오 채널 키 미등록  (3) 테스트 모드  (4) 수신자 번호 없음
+      /* Placeholder fallback: templateId/pfId 미등록 · 테스트 · 수신번호 없음 */
       const fallbackReasons: string[] = [];
-      if (!built.tplCode)  fallbackReasons.push("템플릿ID 미등록");
-      if (!senderKey)      fallbackReasons.push("카카오채널키 미등록");
-      if (testMode)        fallbackReasons.push("TEST_MODE");
-      if (!phone)          fallbackReasons.push("수신번호 없음");
+      if (!built.templateId) fallbackReasons.push("템플릿ID 미등록");
+      if (!pfId)             fallbackReasons.push("발신프로필키 미등록");
+      if (testMode)          fallbackReasons.push("TEST_MODE");
+      if (!phone)            fallbackReasons.push("수신번호 없음");
 
       if (fallbackReasons.length > 0) {
         console.log(
-          `[kakao-aligo] PLACEHOLDER event=${opts.event} targetId=${opts.targetId}` +
+          `[kakao-solapi] PLACEHOLDER event=${opts.event} targetId=${opts.targetId}` +
           ` logId=${opts.logId} 사유=[${fallbackReasons.join(",")}]\n` +
-          `--- 본문 미리보기 ---\n${built.message}\n---`,
+          `--- 대체 SMS 본문 미리보기 ---\n${built.smsText}\n---`,
         );
-        return {
-          ok: true,
-          providerMessageId: `kakao-placeholder-${opts.logId}`,
-          latencyMs: Date.now() - t0,
-        };
+        return { ok: true, providerMessageId: `kakao-placeholder-${opts.logId}`, latencyMs: Date.now() - t0 };
       }
 
-      // ── 실 발송 ──
-      const result = await sendAligoAlimtalk({
-        tplCode:    built.tplCode!,
-        receiver:   phone,
-        message:    built.message,
-        subject:    built.subject,
-        buttonJson: built.buttonJson,
-        senderKey,
-        sender,
+      /* 실 발송 (솔라피 알림톡 + 실패 시 SMS 대체발송) */
+      const result = await solapiSendAlimtalk({
+        receiver: phone,
+        pfId,
+        templateId: built.templateId,
+        variables: built.variables,
+        disableSms: false,
+        text: built.smsText,
       });
 
       if (!result.ok) {
-        return {
-          ok: false,
-          error: result.error || `Aligo 발송 실패 (code=${result.code})`,
-          latencyMs: Date.now() - t0,
-        };
+        return { ok: false, error: result.error || `솔라피 알림톡 발송 실패 (status=${result.statusCode})`, latencyMs: Date.now() - t0 };
       }
-
-      return {
-        ok: true,
-        providerMessageId: result.providerMessageId,
-        latencyMs: Date.now() - t0,
-      };
+      return { ok: true, providerMessageId: result.msgId, latencyMs: Date.now() - t0 };
     } catch (err: any) {
-      return {
-        ok: false,
-        error: String(err?.message || err).slice(0, 500),
-        latencyMs: Date.now() - t0,
-      };
+      return { ok: false, error: String(err?.message || err).slice(0, 500), latencyMs: Date.now() - t0 };
     }
   },
 };
