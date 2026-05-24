@@ -48,24 +48,21 @@ function loadStory(id) {
     return;
   }
 
-  if (typeof api !== 'function') {
-    setTimeout(function() { loadStory(id); }, 200);
-    return;
-  }
-
-  api('/api/family-story?id=' + id).then(function(res) {
-    if (res.status === 404 || (res.data && res.data.ok === false)) {
+  /* 공개 페이지엔 전역 api() 헬퍼가 없음 → fetch 직접 호출 */
+  fetch('/api/family-story?id=' + id, { credentials: 'include' })
+    .then(function(r) {
+      if (r.status === 404) return null;
+      return r.json();
+    })
+    .then(function(data) {
+      if (!data || data.ok === false) { renderStory(null); return; }
+      var story = (data.data && data.data.story) || data.story || null;
+      renderStory(story);
+    })
+    .catch(function(err) {
+      console.error('[family-story]', err);
       renderStory(null);
-      return;
-    }
-    if (!res.ok) throw new Error(res.data && res.data.error || 'HTTP ' + res.status);
-    var story = (res.data && res.data.data && res.data.data.story) ||
-                (res.data && res.data.story) || null;
-    renderStory(story);
-  }).catch(function(err) {
-    console.error('[family-story]', err);
-    renderStory(null);
-  });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {

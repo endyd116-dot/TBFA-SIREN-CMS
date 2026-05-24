@@ -21,6 +21,8 @@
   ai: 'AI 추천 센터',
   content: '콘텐츠 관리',
   'receipt-settings': '영수증 설정',
+  'family-stories': '🕊️ 유가족 이야기',
+  'memorial-admin': '🕯️ 추모관 운영',
 // public/js/admin.js — PAGE_TITLES 객체 안에 추가
   hyosung: '효성 CMS+ 관리',
   campaigns: '📢 캠페인 관리',

@@ -2828,17 +2828,15 @@
           </ul>
         </li>
 
-        <!-- ── 🏆 성과 관리 (슈퍼어드민 전용) ── -->
-        <li class="adm-menu-toggle-group" data-super-only="1">
-          <a href="#" data-sidebar-group="milestone" aria-expanded="false">
-            <i>🏆</i><span>성과 관리</span>
+        <!-- ── 🕯️ 추모관 관리 (성과 관리는 통합 CMS로 이관 — 2026-05-24) ── -->
+        <li class="adm-menu-toggle-group">
+          <a href="#" data-sidebar-group="memorial" aria-expanded="false">
+            <i>🕯️</i><span>추모관 관리</span>
             <span class="sidebar-group-chevron">▾</span>
           </a>
-          <ul class="adm-submenu" data-sidebar-submenu="milestone" aria-hidden="true" style="display:none">
-            <li><a data-page="milestone-defs"><i>📋</i><span>마일스톤 정의 관리</span></a></li>
-            <li><a data-page="milestone-quarters"><i>🗓</i><span>분기 관리</span></a></li>
-            <li><a data-page="milestone-settlements"><i>✅</i><span>결산 승인</span></a></li>
-            <li><a data-page="milestone-roles"><i>👥</i><span>담당 역할 설정</span></a></li>
+          <ul class="adm-submenu" data-sidebar-submenu="memorial" aria-hidden="true" style="display:none">
+            <li><a data-page="family-stories"><i>🕊️</i><span>유가족 이야기</span></a></li>
+            <li><a data-page="memorial-admin"><i>🕯️</i><span>추모관 운영</span></a></li>
           </ul>
         </li>
 
@@ -4612,21 +4610,13 @@
         <!-- Phase 8 C: 알림 발송 로그 (admin-notification-logs.js가 동적 렌더) -->
         <div id="adm-notification-logs" class="adm-page"></div>
 
-        <!-- Phase 24: 성과 관리 패널들 (슈퍼어드민 전용) -->
-        <div id="adm-milestone-defs" class="adm-page" style="padding:0;overflow:hidden">
-          <iframe src="/admin-milestones.html#defs" title="마일스톤 정의 관리"
+        <!-- 추모관 관리 (iframe — 통합 CMS 추모관 운영과 동일 화면 재사용) -->
+        <div id="adm-family-stories" class="adm-page" style="padding:0;overflow:hidden">
+          <iframe src="/admin-family-stories.html" title="유가족 이야기"
             style="width:100%;height:100%;border:none;min-height:700px"></iframe>
         </div>
-        <div id="adm-milestone-quarters" class="adm-page" style="padding:0;overflow:hidden">
-          <iframe src="/admin-milestones.html#quarters" title="분기 관리"
-            style="width:100%;height:100%;border:none;min-height:700px"></iframe>
-        </div>
-        <div id="adm-milestone-settlements" class="adm-page" style="padding:0;overflow:hidden">
-          <iframe src="/admin-milestones.html#settlements" title="결산 승인"
-            style="width:100%;height:100%;border:none;min-height:700px"></iframe>
-        </div>
-        <div id="adm-milestone-roles" class="adm-page" style="padding:0;overflow:hidden">
-          <iframe src="/admin-milestones.html#roles" title="담당 역할 설정"
+        <div id="adm-memorial-admin" class="adm-page" style="padding:0;overflow:hidden">
+          <iframe src="/admin-memorial.html" title="추모관 운영"
             style="width:100%;height:100%;border:none;min-height:700px"></iframe>
         </div>
 
@@ -5603,7 +5593,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/lib-kst.js?v=1" defer></script>
   <script src="/js/charts.js?v=20260516siren-dash"></script>
-  <script src="/js/admin.js?v=20260517r8"></script>
+  <script src="/js/admin.js?v=20260524-memorial"></script>
   <script src="/js/admin-chat.js?v=1"></script>
   <script src="/js/admin-siren.js?v=2026-05-17-r2"></script>
   <script src="/js/editor.js?v=2026-05"></script>
