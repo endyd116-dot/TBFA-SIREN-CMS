@@ -47,6 +47,7 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "similar_cases",                name: "유사 사건 추천",            category: "admin_action",  description: "사건 본문을 받아 과거 유사 사건 자동 추천",              sortOrder: 280 },
   { key: "natural_search",               name: "자연어 검색 파싱",          category: "admin_action",  description: "관리자가 한국어로 입력한 검색 조건을 필터로 변환",       sortOrder: 290 },
   { key: "payroll_ai_summary",           name: "급여 집계 AI 분석",         category: "admin_action",  description: "월별 급여 명세 이상치·요약·점검을 AI가 분석 (수동 트리거)", sortOrder: 295 },
+  { key: "milestone_matrix_mapping",     name: "마일스톤 매트릭스 AI 매핑", category: "admin_action",  description: "분기 성과 기준표(매트릭스) 텍스트에서 마일스톤 정의 추출·기존 충돌 판정", sortOrder: 296 },
 
   /* === Cron 자동 실행 (4) === */
   { key: "task_daily_risk_evaluation",   name: "작업 리스크 일일 평가",     category: "cron_daily",    description: "매일 06:30 KST — 진행 중 작업 리스크 점수 갱신",        sortOrder: 310 },

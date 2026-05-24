@@ -51,7 +51,10 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
         <option value="NON_REVENUE">비매출</option>
       </select>
     </div>
-    <button class="ms-btn ms-btn-primary ms-btn-sm" id="btnNewDef">+ 신규 등록</button>
+    <div style="display:flex;gap:8px">
+      <button class="ms-btn ms-btn-ghost ms-btn-sm" id="btnMatrixImport">🤖 매트릭스 분석</button>
+      <button class="ms-btn ms-btn-primary ms-btn-sm" id="btnNewDef">+ 신규 등록</button>
+    </div>
   </div>
   <div id="defsList"></div>
 </div>
@@ -243,6 +246,51 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
   </div>
 </div>
 
+<!-- 🤖 매트릭스 AI 분석 모달 (③ 마일스톤 매트릭스 매핑) -->
+<div id="matrixModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;overflow:auto">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:860px;margin:32px auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h3 style="margin:0;font-size:16px;font-weight:700">🤖 분기 매트릭스 → 마일스톤 AI 매핑</h3>
+      <button id="matrixModalClose" type="button" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6b7280">✕</button>
+    </div>
+    <p style="font-size:12.5px;color:#6b7280;margin:0 0 14px;line-height:1.7">
+      분기 성과 기준표(매트릭스)를 표·문장 그대로 붙여넣으면 AI가 마일스톤 정의 후보를 추출하고,
+      기존 정의와 겹치는 항목·사라진 항목을 찾아 줍니다. <strong>고신뢰·충돌 없는 신규는 자동 선택</strong>되며,
+      충돌·삭제 후보는 직접 결정합니다. 적용 전 모든 값은 수정할 수 있습니다.
+    </p>
+
+    <!-- 입력부 -->
+    <div id="matrixInputBox">
+      <div class="form-group" style="max-width:280px">
+        <label>주 대상 역할 (선택·힌트)</label>
+        <select id="matrixRoleHint"><option value="">자동 판별</option></select>
+      </div>
+      <div class="form-group">
+        <label>매트릭스 텍스트</label>
+        <textarea id="matrixText" rows="9" placeholder="예)
+역할  | 항목            | 기준        | 보상
+SM    | 정기후원 신규    | 1건당        | 5만원
+SI    | 캠페인 모금       | 매출의       | 5%
+PM    | 정책 세미나 개최  | 분기 1회 이상 | 행사별 결정"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="ms-btn ms-btn-ghost" id="matrixModalCancel">닫기</button>
+        <button class="ms-btn ms-btn-primary" id="matrixParseBtn">🔍 분석</button>
+      </div>
+    </div>
+
+    <!-- 검토부 (분석 후 표시) -->
+    <div id="matrixReviewBox" style="display:none">
+      <div id="matrixSummary" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#1e3a8a;line-height:1.7;margin-bottom:14px"></div>
+      <div id="matrixReview" style="max-height:52vh;overflow:auto"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid #e5e7eb;padding-top:14px">
+        <button class="ms-btn ms-btn-ghost" id="matrixBackBtn">← 다시 입력</button>
+        <button class="ms-btn ms-btn-primary" id="matrixApplyBtn">선택 항목 적용</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 분기 추가 모달 -->
 <div id="quarterModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999">
   <div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;margin:80px auto">
@@ -307,6 +355,6 @@ body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; backg
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-milestone-roles.js?v=1-r39" defer></script>
-<script src="/js/admin-milestones.js?v=8-rev" defer></script>
+<script src="/js/admin-milestones.js?v=9-matrix" defer></script>
 </body>
 </html>

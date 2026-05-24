@@ -282,6 +282,242 @@ async function deleteDef(id) {
   loadDefs();
 }
 
+/* ───── 🤖 매트릭스 AI 매핑 (③) ───── */
+AM.matrix = { candidates: [], orphans: [] };
+
+function mxCatLabel(c) { return c === 'REVENUE_LINKED' ? '매출연동' : c === 'NON_REVENUE' ? '비매출' : c; }
+function mxConfBadge(conf) {
+  const pct = Math.round((conf || 0) * 100);
+  const [bg, fg] = conf >= 0.8 ? ['#f0fdf4', '#15803d'] : conf >= 0.6 ? ['#fefce8', '#a16207'] : ['#fee2e2', '#dc2626'];
+  return `<span style="background:${bg};color:${fg};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600">신뢰 ${pct}%</span>`;
+}
+/* 역할 옵션 HTML — 매트릭스 힌트 select에서 그대로 가져옴(이미 동적 채워짐) */
+function mxRoleOptions(selected) {
+  const src = document.getElementById('matrixRoleHint');
+  let opts = '';
+  if (src) {
+    Array.from(src.options).forEach(o => {
+      if (!o.value) return; // '자동 판별' 제외
+      opts += `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${escHtmlAm(o.textContent)}</option>`;
+    });
+  }
+  if (selected && opts.indexOf(`value="${selected}"`) === -1) {
+    opts = `<option value="${selected}" selected>${escHtmlAm(selected)} (미확인)</option>` + opts;
+  }
+  return opts;
+}
+
+function openMatrixModal() {
+  AM.matrix = { candidates: [], orphans: [] };
+  document.getElementById('matrixText').value = '';
+  document.getElementById('matrixReviewBox').style.display = 'none';
+  document.getElementById('matrixInputBox').style.display = '';
+  document.getElementById('matrixModal').style.display = '';
+}
+
+async function runMatrixParse() {
+  const text = document.getElementById('matrixText').value.trim();
+  if (text.length < 10) { amToast('매트릭스 텍스트를 붙여넣으세요 (최소 10자).', 'error'); return; }
+  const roleHint = document.getElementById('matrixRoleHint').value || '';
+  const btn = document.getElementById('matrixParseBtn');
+  btn.disabled = true; btn.textContent = '분석 중…';
+  try {
+    const res = await amApi('/api/admin-milestone-matrix-parse', { method: 'POST', body: { text, roleHint } });
+    if (!res.ok || res.data?.ok === false) {
+      amToast((res.data?.error || 'AI 분석 실패') + (res.data?.detail ? ': ' + res.data.detail : '') + ' — 실패 시 "+ 신규 등록"으로 직접 입력하세요.', 'error');
+      return;
+    }
+    const d = res.data.data || res.data;
+    AM.matrix.candidates = d.candidates || [];
+    AM.matrix.orphans = d.orphans || [];
+    renderMatrixReview(d);
+    document.getElementById('matrixInputBox').style.display = 'none';
+    document.getElementById('matrixReviewBox').style.display = '';
+  } catch (e) {
+    amToast('분석 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 분석';
+  }
+}
+
+/* 후보 1건 편집 카드 */
+function mxCandCard(c) {
+  const isUpdate = c.action === 'UPDATE' && c.matchExistingId;
+  const thrChk = c.thresholdEnabled ? 'checked' : '';
+  const formulaStr = c.bonusFormula ? JSON.stringify(c.bonusFormula) : '';
+  const flagsHtml = (c.flags || []).map(f => `<span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:9px;font-size:10.5px;margin-left:4px">${escHtmlAm(f)}</span>`).join('');
+
+  // 매출/역할/카테고리: UPDATE는 기존 정의 정체성 유지(PATCH 불가) → 읽기전용 표시
+  let identity;
+  if (isUpdate) {
+    const m = c.matchExisting || {};
+    identity = `<div style="font-size:11.5px;color:#6b7280;margin-bottom:6px">
+      🔁 기존 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">${escHtmlAm(m.code || '')}</code> 수정
+      · 역할 ${escHtmlAm(m.role || '')} · ${mxCatLabel(m.category)}
+      <span style="color:#9ca3af">(역할·카테고리·코드는 변경 안 됨)</span></div>
+      ${m.bonusFormula ? `<div style="font-size:11px;color:#9ca3af;margin-bottom:6px">기존 공식: <code>${escHtmlAm(JSON.stringify(m.bonusFormula))}</code></div>` : ''}`;
+  } else {
+    identity = `<div class="form-row" style="margin-bottom:6px">
+      <div class="form-group" style="margin-bottom:6px"><label>코드</label><input data-f="code" value="${escHtmlAm(c.code || '')}" maxlength="20"></div>
+      <div class="form-group" style="margin-bottom:6px"><label>담당 역할</label><select data-f="role">${mxRoleOptions(c.targetMilestoneRole)}</select></div>
+      <div class="form-group" style="margin-bottom:6px"><label>카테고리</label><select data-f="category">
+        <option value="REVENUE_LINKED"${c.category === 'REVENUE_LINKED' ? ' selected' : ''}>매출연동</option>
+        <option value="NON_REVENUE"${c.category === 'NON_REVENUE' ? ' selected' : ''}>비매출</option>
+      </select></div>
+    </div>`;
+  }
+
+  return `<div class="mx-cand" data-tempid="${c.tempId}" style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+      <input type="checkbox" class="mx-use" style="width:auto" ${c.autoApply ? 'checked' : ''}>
+      <strong style="font-size:13.5px">${escHtmlAm(c.name || '(이름 없음)')}</strong>
+      ${mxConfBadge(c.confidence)}${flagsHtml}
+    </label>
+    ${c.reason ? `<div style="font-size:11.5px;color:#9ca3af;margin-bottom:6px">💬 ${escHtmlAm(c.reason)}</div>` : ''}
+    ${identity}
+    <div class="form-group" style="margin-bottom:6px"><label>이름</label><input data-f="name" value="${escHtmlAm(c.name || '')}" maxlength="200"></div>
+    <div class="form-group" style="margin-bottom:6px"><label>인센티브 공식 (JSON)</label>
+      <input data-f="formula" value="${escHtmlAm(formulaStr)}" placeholder='{"type":"FLAT","unitAmount":50000}'></div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:6px"><label>사업체</label><select data-f="bu">
+        <option value="ASSOCIATION"${c.businessUnit === 'ASSOCIATION' ? ' selected' : ''}>협의회</option>
+        <option value="HAMKEWORK"${c.businessUnit === 'HAMKEWORK' ? ' selected' : ''}>함께워크ON</option>
+        <option value="PLEO"${c.businessUnit === 'PLEO' ? ' selected' : ''}>플레오</option>
+        <option value="POLICY"${c.businessUnit === 'POLICY' ? ' selected' : ''}>정책</option>
+      </select></div>
+      <div class="form-group" style="margin-bottom:6px"><label>분기 한정</label><select data-f="quarter">
+        <option value=""${!c.quarterApplicable ? ' selected' : ''}>해당없음</option>
+        <option value="ALL"${c.quarterApplicable === 'ALL' ? ' selected' : ''}>전체</option>
+        <option value="Q1"${c.quarterApplicable === 'Q1' ? ' selected' : ''}>Q1</option>
+        <option value="Q2"${c.quarterApplicable === 'Q2' ? ' selected' : ''}>Q2</option>
+        <option value="Q3"${c.quarterApplicable === 'Q3' ? ' selected' : ''}>Q3</option>
+        <option value="Q4"${c.quarterApplicable === 'Q4' ? ' selected' : ''}>Q4</option>
+      </select></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer"><input type="checkbox" data-f="thrEnabled" style="width:auto" ${thrChk}>임계점</label>
+      <div class="form-group" style="margin:0;max-width:130px"><input type="number" data-f="thrVal" step="any" value="${c.thresholdValue ?? ''}" placeholder="임계값"></div>
+      <div class="form-group" style="margin:0;max-width:110px"><input data-f="thrUnit" value="${escHtmlAm(c.thresholdUnit || '')}" placeholder="단위"></div>
+    </div>
+  </div>`;
+}
+
+function renderMatrixReview(d) {
+  const cands = AM.matrix.candidates;
+  const auto = cands.filter(c => c.autoApply);
+  const updates = cands.filter(c => c.action === 'UPDATE');
+  const review = cands.filter(c => !c.autoApply && c.action === 'NEW');
+  const keeps = cands.filter(c => c.action === 'KEEP');
+  const orphans = AM.matrix.orphans;
+  const s = d.summary || {};
+
+  document.getElementById('matrixSummary').innerHTML =
+    `📊 추출 <strong>${cands.length}</strong>건 · 자동선택(신규) <strong>${auto.length}</strong> · 충돌(수정) <strong>${updates.length}</strong> · 검토필요 <strong>${review.length}</strong> · 변경없음 ${keeps.length} · 삭제후보 <strong>${orphans.length}</strong>`
+    + `<br><span style="font-size:11.5px;color:#3b82f6">체크된 항목만 적용됩니다. 모든 값은 적용 전 수정 가능. 역할·카테고리는 기존 정의 수정 시 변경되지 않습니다.</span>`;
+
+  const sec = (title, color, items) => items.length
+    ? `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:${color}">${title} (${items.length})</div>` + items.map(mxCandCard).join('')
+    : '';
+
+  let html = '';
+  html += sec('✅ 자동 적용 — 고신뢰·충돌 없는 신규', '#15803d', auto);
+  html += sec('⚠️ 충돌 — 기존 정의 수정', '#a16207', updates);
+  html += sec('🔍 검토 필요 — 저신뢰·역할 미확인', '#dc2626', review);
+
+  // 변경 없음
+  if (keeps.length) {
+    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#6b7280">⏸ 변경 없음 (${keeps.length})</div>`;
+    html += keeps.map(c => `<div style="font-size:12.5px;color:#9ca3af;padding:4px 8px">• ${escHtmlAm(c.name)} <span style="font-size:11px">(기존과 동일)</span></div>`).join('');
+  }
+
+  // 삭제 후보 (orphans) — 기본 미선택(유지)
+  if (orphans.length) {
+    html += `<div style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#dc2626">🗑 삭제 후보 — 새 매트릭스에 없는 기존 정의 (${orphans.length})</div>`;
+    html += `<div style="font-size:11.5px;color:#9ca3af;margin-bottom:6px">체크하면 비활성화(소프트삭제)됩니다. 기본은 유지입니다.</div>`;
+    html += orphans.map(o => `<label class="mx-orphan" data-id="${o.id}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #fee2e2;border-radius:6px;margin-bottom:5px;font-size:12.5px;cursor:pointer">
+      <input type="checkbox" class="mx-orphan-del" style="width:auto">
+      <span><code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">${escHtmlAm(o.code)}</code> ${escHtmlAm(o.name)} <span style="color:#9ca3af">· ${escHtmlAm(o.role || '')} · ${mxCatLabel(o.category)}</span></span>
+    </label>`).join('');
+  }
+
+  if (!html) html = '<p style="color:#9ca3af;text-align:center;padding:24px">추출된 마일스톤이 없습니다. 텍스트를 확인하거나 직접 등록하세요.</p>';
+  document.getElementById('matrixReview').innerHTML = html;
+}
+
+async function mxApply() {
+  const cards = document.querySelectorAll('#matrixReview .mx-cand');
+  let created = 0, updated = 0, deactivated = 0, failed = 0;
+  const errs = [];
+  const get = (card, k) => card.querySelector(`[data-f="${k}"]`);
+
+  for (const card of cards) {
+    const use = card.querySelector('.mx-use');
+    if (!use || !use.checked) continue;
+    const c = AM.matrix.candidates.find(x => x.tempId === card.dataset.tempid);
+    if (!c) continue;
+
+    const name = (get(card, 'name')?.value || '').trim();
+    let formula;
+    try { formula = JSON.parse((get(card, 'formula')?.value || '').trim() || '{}'); }
+    catch { failed++; errs.push(`${name || card.dataset.tempid}: 공식 JSON 형식 오류`); continue; }
+    const thrEnabled = !!get(card, 'thrEnabled')?.checked;
+    const thrVal = thrEnabled ? (parseFloat(get(card, 'thrVal')?.value) || 0) : null;
+    const thrUnit = thrEnabled ? ((get(card, 'thrUnit')?.value || '').trim() || null) : null;
+    const bu = get(card, 'bu')?.value || null;
+    const quarter = get(card, 'quarter')?.value || null;
+
+    if (c.action === 'UPDATE' && c.matchExistingId) {
+      const body = { name, businessUnit: bu, quarterApplicable: quarter, thresholdEnabled: thrEnabled, thresholdValue: thrVal, thresholdUnit: thrUnit, bonusFormula: formula };
+      const res = await amApi(`/api/milestone-definitions/${c.matchExistingId}`, { method: 'PATCH', body });
+      if (!res.ok || res.data?.ok === false) { failed++; errs.push(`${name}: ${res.data?.error || '수정 실패'}`); } else updated++;
+    } else {
+      const code = (get(card, 'code')?.value || '').trim();
+      const category = get(card, 'category')?.value || c.category;
+      const role = get(card, 'role')?.value || c.targetMilestoneRole;
+      if (!name || !code || !category || !role) { failed++; errs.push(`${name || code}: 코드·이름·역할·카테고리 필수`); continue; }
+      const body = { code, name, category, targetMilestoneRole: role, businessUnit: bu, revenueSource: c.revenueSource || null, sortOrder: 0, quarterApplicable: quarter, thresholdEnabled: thrEnabled, thresholdValue: thrVal, thresholdUnit: thrUnit, bonusFormula: formula };
+      const res = await amApi('/api/milestone-definitions', { method: 'POST', body });
+      if (!res.ok || res.data?.ok === false) { failed++; errs.push(`${name}: ${res.data?.error || '등록 실패'}`); } else created++;
+    }
+  }
+
+  // 삭제 후보
+  for (const row of document.querySelectorAll('#matrixReview .mx-orphan')) {
+    const cb = row.querySelector('.mx-orphan-del');
+    if (!cb || !cb.checked) continue;
+    const id = Number(row.dataset.id);
+    const res = await amApi(`/api/milestone-definitions/${id}`, { method: 'PATCH', body: { isActive: false } });
+    if (!res.ok || res.data?.ok === false) { failed++; errs.push(`비활성#${id}: ${res.data?.error || '실패'}`); } else deactivated++;
+  }
+
+  const parts = [];
+  if (created) parts.push(`${created}건 등록`);
+  if (updated) parts.push(`${updated}건 수정`);
+  if (deactivated) parts.push(`${deactivated}건 비활성`);
+  amToast((parts.join(' · ') || '적용된 항목이 없습니다') + (failed ? ` (실패 ${failed}건)` : ''), failed ? 'error' : 'success');
+  if (errs.length) console.warn('[매트릭스 적용 실패]', errs);
+  document.getElementById('matrixModal').style.display = 'none';
+  loadDefs();
+}
+
+document.getElementById('btnMatrixImport')?.addEventListener('click', openMatrixModal);
+document.getElementById('matrixModalClose')?.addEventListener('click', () => { document.getElementById('matrixModal').style.display = 'none'; });
+document.getElementById('matrixModalCancel')?.addEventListener('click', () => { document.getElementById('matrixModal').style.display = 'none'; });
+document.getElementById('matrixParseBtn')?.addEventListener('click', runMatrixParse);
+document.getElementById('matrixBackBtn')?.addEventListener('click', () => {
+  document.getElementById('matrixReviewBox').style.display = 'none';
+  document.getElementById('matrixInputBox').style.display = '';
+});
+document.getElementById('matrixApplyBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('matrixApplyBtn');
+  const useCount = document.querySelectorAll('#matrixReview .mx-use:checked').length;
+  const delCount = document.querySelectorAll('#matrixReview .mx-orphan-del:checked').length;
+  if (!useCount && !delCount) { amToast('적용할 항목을 선택하세요.', 'error'); return; }
+  if (!confirm(`선택 ${useCount}건 등록·수정${delCount ? ` + ${delCount}건 비활성화` : ''}를 적용할까요?`)) return;
+  btn.disabled = true; btn.textContent = '적용 중…';
+  try { await mxApply(); } finally { btn.disabled = false; btn.textContent = '선택 항목 적용'; }
+});
+
 /* ───── 분기 관리 ───── */
 async function loadQuarters() {
   const res = await amApi('/api/milestone-quarters');
@@ -767,6 +1003,12 @@ document.getElementById('btnBmAddDef')?.addEventListener('click', () => {
       filter.innerHTML = '<option value="">전체 역할</option>'
         + roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
       if (cur) filter.value = cur;
+    }
+    // 매트릭스 분석 역할 힌트 (③) — 자동 판별 + 역할들
+    const mHint = document.getElementById('matrixRoleHint');
+    if (mHint) {
+      mHint.innerHTML = '<option value="">자동 판별</option>'
+        + roles.map(r => `<option value="${r.code}">${r.code} (${r.name || r.code})</option>`).join('');
     }
   });
 })();
