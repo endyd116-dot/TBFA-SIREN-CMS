@@ -12,6 +12,10 @@
   NODE_VERSION = "20"
   # ★ 2026-05-16: 빌드 시간 단축 — 오프라인 캐시 우선 + audit/fund 스킵
   NPM_FLAGS = "--prefer-offline --no-audit --no-fund"
+  # ★ 2026-05-24: 배포 시간 단축 — 시크릿 스캔 비활성 (Swain 승인)
+  #   비밀값(DB·JWT·결제·API 키)은 전부 Netlify 환경변수로만 주입되고 코드/출력에 미포함이라 안전.
+  #   전체 출력 스캔 단계(수 분) 제거 → 매 배포 단축.
+  SECRETS_SCAN_ENABLED = "false"
   # ★ 2026-05-17: proxy-server/ 폴더는 Oracle VM 배포용 README/스크립트라
   # Netlify 빌드 출력과 무관. 혹시 남는 placeholder가 잡히지 않도록 secret
   # scan에서 제외.
