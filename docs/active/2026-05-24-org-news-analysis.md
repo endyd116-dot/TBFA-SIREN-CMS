@@ -150,7 +150,13 @@ cron·수동 공용. fail-open(시드 불필요).
 - **마이그 `?reset=1` 추가**: Swain이 옛(틀린 타입) 마이그를 이미 호출 → keywords/scopes가 jsonb로 생성됨. ADD COLUMN으론 타입 못 고치고 Neon 콘솔 DROP 불가 → `?reset=1`이 두 빈 표 DROP 후 재생성(데이터 0·안전).
 - §4 문서를 구현 스키마로 정정(권위=마이그).
 
+### 메인 후속 fix (2026-05-24·C 검증 이후)
+- **text[] 배열 바인딩 버그**: drizzle `sql` 템플릿이 `${jsArray}`를 콤마로 펼쳐 레코드로 만들어 text[] INSERT가 전부 500(`?reset=1` 시드에서 표면화). 시드·refresh·cron·settings 4곳 모두 `lib/org-news-analyze.sqlTextArray()`(=`ARRAY[$1,$2,…]::text[]` 개별 바인딩)로 교체. C 코드검증이 라이브 미실행이라 미발견한 런타임 버그.
+- **여론 % 표시**: 백엔드 0~100 값에 프론트가 ×100 중복(8000%) → 제거. sentiment label 영문(negative)↔한글 배지 맵 불일치 → 양쪽 수용. `?v=3-sentiment`.
+
+### ✅ Swain 라이브 확인 (2026-05-24)
+`?reset=1` 7단계 성공 + 재조사 정상 동작(요약·워드클라우드·여론·추천·소스 링크 표시 확인). 1회용 마이그 삭제 완료.
+
 ### 종결 시 잔여
-- [ ] **Swain: `https://tbfa.co.kr/api/migrate-org-news?reset=1` 호출**(push 배포 후·옛 표 교체) → 재조사 라이브 테스트
-- [ ] 마이그 함수 삭제(reset 성공 후) + schema.ts append-only 정의(선택)
-- [ ] 매뉴얼·명세 동기화 + 설계서 history 이동
+- [ ] 여론 % fix(`?v=3-sentiment`) 렌더 최종 확인
+- [ ] 매뉴얼(`manual-admin.html`)·명세 동기화 + 설계서 history 이동

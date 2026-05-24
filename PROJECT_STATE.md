@@ -26,9 +26,9 @@
 ### 🟡 ④ 교유협 뉴스·여론 분석 — A·B 병렬 머지 완료·마이그+C검증 대기 (2026-05-24)
 네이버 검색 수집 + Gemini 분석(요약·워드클라우드·여론·추천·변경점) → 통합 CMS 새 메뉴 "📰 여론·뉴스 분석" + 매일 09:00 cron + 수동 재조사 + 히스토리. **메인·A(프론트)·B(백)·C(검증) 병렬.** A·B 작업 커밋 cherry-pick 머지(`3222cef`·`c686cc1`)·tsc 0·JS 문법 0·계약 정합 확인. featureKey `org_news_analysis`. 단일 출처 `docs/active/2026-05-24-org-news-analysis.md`.
 - **신규 2테이블**(raw SQL·schema.ts 미정의): `org_news_reports`(히스토리 누적)·`org_news_settings`(단일행 시드). 마이그 `migrate-org-news`.
-- **C 검증 완료**(`9c031cd`): BUG 2건 fix(P0 마이그 컬럼명·타입 ↔ 서버 불일치 = 베이스 어긋남 결과 / P1 화면 응답키 폴백)·나머지 PASS·tsc 0.
-- **⚠️ Swain 재마이그 필요**: 옛(틀린) 마이그를 이미 호출해 keywords/scopes가 jsonb로 생성됨 → 마이그에 `?reset=1`(빈 표 DROP+재생성) 추가. **push 배포 후 `tbfa.co.kr/api/migrate-org-news?reset=1` 호출**(데이터 0·안전) → 재조사 테스트.
-- **다음**: reset 성공 후 마이그 삭제 + Swain 브라우저 테스트(CMS→📰 여론·뉴스 분석→재조사) 통과 시 매뉴얼·명세·history.
+- **C 검증 + 메인 후속 fix 누적**: ① C BUG-2건(마이그 컬럼·화면 응답키) ② 메인: 마이그 `?reset=1`(타입 잘못된 표 DROP+재생성) ③ 메인: **text[] 배열 바인딩 버그**(drizzle가 `${배열}`을 레코드로 펼침 → 시드·refresh·cron·settings INSERT 전부 500) `sqlTextArray()` 헬퍼로 4곳 수정 ④ 메인: 여론 % ×100 중복(8000%)·영문 라벨 배지 표시 fix.
+- **✅ Swain 라이브 확인(2026-05-24)**: `?reset=1` 7단계 성공 + CMS 여론·뉴스 분석 재조사 **정상 동작**(요약·워드클라우드·여론·추천·소스). 1회용 마이그 삭제 완료.
+- **남은 종결**: 매뉴얼·명세 동기화 + 설계서 history 이동(% fix 렌더 최종 확인 후).
 
 ### 🟡 ③ 마일스톤 매트릭스 AI 매핑 — C 코드검증 PASS 8/8·BUG 0 / Swain 브라우저 클릭만 대기 (2026-05-24)
 분기 성과 기준표(매트릭스)를 텍스트로 붙여넣으면 AI가 마일스톤 정의 후보를 추출·기존 충돌 판정 → 고신뢰·충돌 없는 신규는 자동 선택, 충돌·삭제 후보는 수정/삭제/유지 선택. **스키마 0·마이그 0·외부연동 0** (기존 `milestone_definitions`·소프트삭제·변경이력 재활용). tsc 0·JS 문법 0. **C 검증 PASS 8/8·BUG 0**(리포트 `docs/history/verify/2026-05-24-milestone-matrix.md`·`f7e8ad6`) — 코드론 완료, AI 실호출·브라우저 UX만 Swain 클릭 검증.

@@ -42,9 +42,12 @@ function switchTab(name) {
 
 /* ── 여론 배지 ── */
 function sentimentBadge(label) {
-  var map = { '긍정': 'pos', '부정': 'neg', '중립': 'neu', '혼조': 'mix' };
-  var cls = map[label] || 'neu';
-  return '<span class="badge badge-' + cls + '">' + esc(label || '알 수 없음') + '</span>';
+  /* 백엔드 label은 영문(positive/neutral/negative/mixed), 설계 계약은 한글 — 양쪽 모두 수용해 한글로 표시 */
+  var toKo = { positive: '긍정', neutral: '중립', negative: '부정', mixed: '혼조',
+               '긍정': '긍정', '중립': '중립', '부정': '부정', '혼조': '혼조' };
+  var cls  = { '긍정': 'pos', '중립': 'neu', '부정': 'neg', '혼조': 'mix' };
+  var ko = toKo[label] || (label || '알 수 없음');
+  return '<span class="badge badge-' + (cls[ko] || 'neu') + '">' + esc(ko) + '</span>';
 }
 
 /* ── HTML escape ── */
@@ -164,9 +167,9 @@ function renderReport(report) {
     html += '<div class="card-title">📊 여론 분석 ' + sentimentBadge(sentiment.label) + '</div>';
     if (sentiment.positive != null || sentiment.neutral != null || sentiment.negative != null) {
       html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">';
-      html += '<span class="stat-chip">긍정 ' + (Math.round((sentiment.positive||0)*100)) + '%</span>';
-      html += '<span class="stat-chip">중립 ' + (Math.round((sentiment.neutral||0)*100)) + '%</span>';
-      html += '<span class="stat-chip">부정 ' + (Math.round((sentiment.negative||0)*100)) + '%</span>';
+      html += '<span class="stat-chip">긍정 ' + (Math.round(sentiment.positive||0)) + '%</span>';
+      html += '<span class="stat-chip">중립 ' + (Math.round(sentiment.neutral||0)) + '%</span>';
+      html += '<span class="stat-chip">부정 ' + (Math.round(sentiment.negative||0)) + '%</span>';
       html += '</div>';
     }
     if (sentiment.reason) {
