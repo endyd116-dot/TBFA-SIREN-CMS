@@ -4049,3 +4049,84 @@ export const familyStories = pgTable("family_stories", {
 
 export type FamilyStory    = typeof familyStories.$inferSelect;
 export type NewFamilyStory = typeof familyStories.$inferInsert;
+
+/* === 추모관 R2: 온라인 추모관 본체 (2026-05-24) === */
+export const memorialSettings = pgTable("memorial_settings", {
+  id:            serial("id").primaryKey(),
+  heroYoutubeId: varchar("hero_youtube_id", { length: 20 }),
+  heroCopy:      varchar("hero_copy", { length: 300 }),
+  bgmTracks:     jsonb("bgm_tracks"),                       // [{title,url}]
+  updatedAt:     timestamp("updated_at").defaultNow().notNull(),
+});
+export type MemorialSettings    = typeof memorialSettings.$inferSelect;
+export type NewMemorialSettings = typeof memorialSettings.$inferInsert;
+
+export const memorialTeachers = pgTable("memorial_teachers", {
+  id:           serial("id").primaryKey(),
+  name:         varchar("name", { length: 60 }).notNull(),
+  photoBlobId:  integer("photo_blob_id"),                  // null = 실루엣
+  schoolRegion: varchar("school_region", { length: 120 }),
+  birthDate:    date("birth_date"),
+  deathDate:    date("death_date"),
+  tributeLine:  varchar("tribute_line", { length: 200 }),
+  bioHtml:      text("bio_html"),
+  timeline:     jsonb("timeline"),                         // [{date,title,desc}]
+  isPublic:     boolean("is_public").default(true).notNull(),
+  sortOrder:    integer("sort_order").default(0).notNull(),
+  createdBy:    integer("created_by"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({ pubSortIdx: index("memorial_teachers_pub_sort_idx").on(t.isPublic, t.sortOrder) }));
+export type MemorialTeacher    = typeof memorialTeachers.$inferSelect;
+export type NewMemorialTeacher = typeof memorialTeachers.$inferInsert;
+
+export const memorialOfferings = pgTable("memorial_offerings", {
+  id:           serial("id").primaryKey(),
+  teacherId:    integer("teacher_id"),                     // null = 통합 헌화
+  memberId:     integer("member_id"),
+  nickname:     varchar("nickname", { length: 40 }),
+  offeringType: varchar("offering_type", { length: 10 }).notNull(),  // candle|flower
+  ipHash:       varchar("ip_hash", { length: 64 }),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({ teacherIdx: index("memorial_offerings_teacher_idx").on(t.teacherId) }));
+export type MemorialOffering    = typeof memorialOfferings.$inferSelect;
+export type NewMemorialOffering = typeof memorialOfferings.$inferInsert;
+
+export const memorialMessages = pgTable("memorial_messages", {
+  id:          serial("id").primaryKey(),
+  teacherId:   integer("teacher_id"),                      // null = 통합 방명록
+  memberId:    integer("member_id"),
+  authorName:  varchar("author_name", { length: 50 }).notNull(),
+  content:     varchar("content", { length: 1000 }).notNull(),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+  likeCount:   integer("like_count").default(0).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
+  isHidden:    boolean("is_hidden").default(false).notNull(),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({ teacherIdx: index("memorial_messages_teacher_idx").on(t.teacherId, t.isHidden) }));
+export type MemorialMessage    = typeof memorialMessages.$inferSelect;
+export type NewMemorialMessage = typeof memorialMessages.$inferInsert;
+
+export const memorialLetters = pgTable("memorial_letters", {
+  id:          serial("id").primaryKey(),
+  teacherId:   integer("teacher_id").notNull(),
+  memberId:    integer("member_id"),
+  authorName:  varchar("author_name", { length: 50 }).notNull(),
+  title:       varchar("title", { length: 150 }),
+  content:     text("content").notNull(),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
+  isHidden:    boolean("is_hidden").default(false).notNull(),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+});
+export type MemorialLetter    = typeof memorialLetters.$inferSelect;
+export type NewMemorialLetter = typeof memorialLetters.$inferInsert;
+
+export const memorialMessageLikes = pgTable("memorial_message_likes", {
+  id:        serial("id").primaryKey(),
+  messageId: integer("message_id").notNull(),
+  memberId:  integer("member_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({ uniq: uniqueIndex("memorial_msg_like_uniq").on(t.messageId, t.memberId) }));
+export type MemorialMessageLike    = typeof memorialMessageLikes.$inferSelect;
+export type NewMemorialMessageLike = typeof memorialMessageLikes.$inferInsert;
