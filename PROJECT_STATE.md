@@ -23,6 +23,17 @@
 
 ## 2. 현재 상태 (2026-05-24)
 
+### ✅ 온라인 추모관 (R1 유가족이야기 + R2 추모관 본체) — 라이브·릴리스 동기화 완료 (2026-05-24)
+- **R1 유가족이야기**: 추모관 GNB(DB 메뉴)·갤러리(/family-stories)·상세(영상+후원 연결)·운영자 도구(영상 추가·AI 초안·발행)·영상 4건 시드. C검증 PASS·장애 시 mock 폴백 제거.
+- **R2 추모관 본체**: /memorial(히어로 헌정영상·실시간 카운터·통합 촛불/국화 헌화·통합 방명록)·개별 선생님 페이지(프로필·약력·타임라인·개별 헌화·메시지·기억의 편지)·BGM 플레이어·운영자(선생님 CRUD·모더레이션·설정). C검증 PASS.
+- **교사 8분 추모 시드**(공개 보도 기반): 서이초·호원초(이영승·김은지)·상명대부설초·신목초·무녀도초·대전(관평·용산)·제주. is_public=true.
+- **상단 메뉴는 DB 렌더**(nav_menu_items + /api/public/nav-menus, 정적 header는 폴백) — 추모관·자유게시판 DB 메뉴 마이그로 추가. 홈 퀵메뉴 자유게시판 제거·소식/참여 이동. 게시판 소개문 '회원들'로.
+- **릴리스 동기화**: 메뉴얼(manual·manual-admin)·AI 시스템 프롬프트·AI 도구 3종(읽기: memorial_summary·memorial_teachers_list·family_stories_list)·권한 시드 마이그·AI 학습자료(jsonl·knowledge.md).
+- **배포 단축**: `SECRETS_SCAN_ENABLED=false`(시크릿 스캔 off).
+- **운영 잔여(Swain 액션)**: ① `/api/migrate-memorial-aitools?run=1` 호출(AI 도구 권한 시드) ② AI 설정에 갱신된 knowledge.md 재붙여넣기(라이브 프롬프트=DB) ③ 영정 사진 업로드 ④ BGM 음원 배치+설정 등록.
+- **2차 보류**: 자료실·공유카드(PNG·SNS)·추모일 구독 알림·다국어.
+- 설계: `docs/active/2026-05-24-memorial-r1-family-stories.md`·`-r2-hall.md`. 명세: `docs/specs/온라인추모관_기능명세_워크플로우.md`.
+
 ### 🟢 성과관리 v4 전환 — 1·2단계 완료 (2026-05-24)
 직원 연봉·성과급 v4(5:5 밸런스+R&R·정책국장/사무국장/SI) 반영. **메인 직접**(AI 추측 0).
 - **1단계 완료**(`migrate-milestone-v4` 호출됨·`upserted:71`): non_revenue_category 칸 추가 + 역할 3개(기존 PM/SM/SI 재사용 — **직원 재배정 불필요**) + 기존 정의 전면 비활성 + **v4 71개**(매출23·비매출5카테고리48) 정확 등록. 마이그 삭제 완료.

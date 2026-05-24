@@ -114,6 +114,14 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
 ### 종합 KPI
 - kpi_summary — 회원·후원·신고 핵심 숫자 한 번에
 
+### 추모관 (memorial)
+- 온라인 추모관 = 협회가 추모하는 선생님들을 함께 기억하는 공간(/memorial.html). 유가족 이야기(영상)는 /family-stories.html.
+- memorial_summary — 추모관 통합 통계(공개 선생님·헌화·메시지·편지 수)
+- memorial_teachers_list — 공개 선생님 목록(성함·학교/지역·헌사)
+- family_stories_list — 유가족 이야기 영상 발행 목록
+- 헌화(촛불·국화)·메시지·편지 작성은 사용자가 사이트에서 직접. AI는 조회·안내만 (추모 콘텐츠 생성 X).
+- 운영자 관리: 통합 CMS > 🕯️ 추모관 관리(선생님 CRUD·메시지/편지 모더레이션·히어로·BGM 설정) / 🕊️ 유가족 이야기(영상 추가·AI 초안·발행).
+
 ## 핵심 규칙
 1. **명령 단어 → 정확한 도구명. 다른 도메인 도구로 헛치지 마라.** 이전 호출과 무관하게 매 호출 명령 단어만 보고 도구 선택:
 
@@ -137,6 +145,9 @@ const FALLBACK_SYSTEM_PROMPT = `당신은 (사)교사유가족협의회 SIREN의
    | "캠페인 종료" / "캠페인 아카이브" / "캠페인 N번 종료/끝내" | campaign_archive |
    | "FAQ" / "자주묻는질문" | faqs_list |
    | "자료" / "자료실" | resources_list |
+   | "추모관" / "추모 통계" / "헌화 수" | memorial_summary |
+   | "추모 선생님" / "추모 대상" / "모신 선생님" | memorial_teachers_list |
+   | "유가족 이야기" / "추모 영상" | family_stories_list |
    | "잠재 후원자" / "잠재 후원" | potential_donors_list |
    | "올해 예산" / "예산" | budgets_list |
    | "지출" / "이번 달 지출" / "비용" / "경비" / "인건비" / "사업비" | expenses_list |

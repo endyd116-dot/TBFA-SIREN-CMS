@@ -36,6 +36,14 @@ export const TOOL_DECLARATIONS = [
   { name: "nav_menus_list", description: "네비 메뉴 트리 조회",
     parameters: { type: "OBJECT", properties: { location: { type: "STRING", description: "header|footer" }}}},
 
+  /* 추모관 (읽기 전용) */
+  { name: "memorial_summary", description: "온라인 추모관 통합 통계 (선생님·헌화·메시지·편지 수)",
+    parameters: { type: "OBJECT", properties: {} }},
+  { name: "memorial_teachers_list", description: "추모관 공개 선생님 목록 (성함·학교/지역·헌사)",
+    parameters: { type: "OBJECT", properties: { limit: { type: "INTEGER" }}}},
+  { name: "family_stories_list", description: "유가족 이야기(영상) 발행 목록",
+    parameters: { type: "OBJECT", properties: { limit: { type: "INTEGER" }}}},
+
   /* 회원 */
   { name: "members_search", description: "회원 이름·이메일·전화 검색",
     parameters: { type: "OBJECT", properties: {
@@ -928,6 +936,10 @@ export async function executeTool(
       case "notice_create":        return await tool_noticeCreate(args, adminId);
       case "campaign_create":      return await tool_campaignCreate(args, adminId);
       case "nav_menus_list":       return await tool_navMenusList(args);
+      /* 추모관 */
+      case "memorial_summary":       return await tool_memorialSummary();
+      case "memorial_teachers_list": return await tool_memorialTeachersList(args);
+      case "family_stories_list":    return await tool_familyStoriesList(args);
       /* 회원 */
       case "members_search":       return await tool_membersSearch(args);
       case "members_detail":       return await tool_membersDetail(args);
@@ -1178,6 +1190,47 @@ async function tool_navMenusList(args: any): Promise<ToolResult> {
     const rows = r?.rows ?? r ?? [];
     return { ok: true, output: { location, count: rows.length, menus: rows } };
   } catch (err: any) { return { ok: false, error: `메뉴 조회 실패: ${err?.message?.slice(0, 200)}` }; }
+}
+
+/* ─────────────────────────────────────────
+   추모관 (읽기 전용)
+   ───────────────────────────────────────── */
+
+async function tool_memorialSummary(): Promise<ToolResult> {
+  try {
+    const t: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM memorial_teachers WHERE is_public = true`);
+    const o: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM memorial_offerings`);
+    const m: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM memorial_messages WHERE is_hidden = false`);
+    const l: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM memorial_letters WHERE is_hidden = false`);
+    const num = (r: any) => Number((r?.rows ?? r ?? [])[0]?.n) || 0;
+    return { ok: true, output: {
+      teachers: num(t), offerings: num(o), messages: num(m), letters: num(l),
+    } };
+  } catch (err: any) { return { ok: false, error: `추모관 통계 조회 실패: ${err?.message?.slice(0, 200)}` }; }
+}
+
+async function tool_memorialTeachersList(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 20, 50);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, name, school_region, tribute_line, death_date, sort_order
+        FROM memorial_teachers WHERE is_public = true
+       ORDER BY sort_order ASC, id ASC LIMIT ${limit}`);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, teachers: rows } };
+  } catch (err: any) { return { ok: false, error: `선생님 목록 조회 실패: ${err?.message?.slice(0, 200)}` }; }
+}
+
+async function tool_familyStoriesList(args: any): Promise<ToolResult> {
+  const limit = Math.min(Number(args?.limit) || 20, 50);
+  try {
+    const r: any = await db.execute(sql`
+      SELECT id, title, subtitle, category, duration, view_count
+        FROM family_stories WHERE status = 'published'
+       ORDER BY sort_order ASC, id ASC LIMIT ${limit}`);
+    const rows = r?.rows ?? r ?? [];
+    return { ok: true, output: { count: rows.length, stories: rows } };
+  } catch (err: any) { return { ok: false, error: `유가족이야기 조회 실패: ${err?.message?.slice(0, 200)}` }; }
 }
 
 /* ─────────────────────────────────────────
