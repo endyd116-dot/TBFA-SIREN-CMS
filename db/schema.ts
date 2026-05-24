@@ -4022,3 +4022,30 @@ export const attRecordAdminEdits = pgTable("att_record_admin_edits", {
 
 export type AttRecordAdminEdit    = typeof attRecordAdminEdits.$inferSelect;
 export type NewAttRecordAdminEdit = typeof attRecordAdminEdits.$inferInsert;
+
+/* === 추모관 R1: 유가족 이야기 (2026-05-24) === */
+export const familyStories = pgTable("family_stories", {
+  id:           serial("id").primaryKey(),
+  youtubeId:    varchar("youtube_id", { length: 20 }),
+  youtubeUrl:   text("youtube_url"),
+  title:        varchar("title", { length: 200 }).notNull(),
+  subtitle:     varchar("subtitle", { length: 300 }),
+  thumbnailUrl: text("thumbnail_url"),
+  summary:      varchar("summary", { length: 500 }),
+  detailHtml:   text("detail_html"),
+  adminNotes:   text("admin_notes"),
+  duration:     varchar("duration", { length: 12 }),
+  category:     varchar("category", { length: 30 }).default("voice").notNull(),
+  status:       varchar("status", { length: 12 }).default("draft").notNull(),
+  sortOrder:    integer("sort_order").default(0).notNull(),
+  viewCount:    integer("view_count").default(0).notNull(),
+  publishedAt:  timestamp("published_at"),
+  createdBy:    integer("created_by"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  statusSortIdx: index("family_stories_status_sort_idx").on(t.status, t.sortOrder),
+}));
+
+export type FamilyStory    = typeof familyStories.$inferSelect;
+export type NewFamilyStory = typeof familyStories.$inferInsert;
