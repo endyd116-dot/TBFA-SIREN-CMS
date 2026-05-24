@@ -66,7 +66,9 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 
 .ctr{
   position:fixed;bottom:14px;right:20px;
-  font-size:12px;color:rgba(255,255,255,.5);z-index:999;font-weight:500
+  font-size:12px;color:rgba(255,255,255,.75);z-index:999;font-weight:600;
+  background:rgba(0,0,0,.4);padding:4px 12px;border-radius:100px;
+  backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12)
 }
 .sec-ind{
   position:fixed;bottom:14px;left:20px;
@@ -195,6 +197,18 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 }
 .cover-logo{font-size:15px;font-weight:800;color:#fff}
 .cover-yr{font-size:13px;color:rgba(255,255,255,.4)}
+
+/* ── 내보내기 툴바 ── */
+.exptools{position:fixed;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:1000}
+.expbtn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;cursor:pointer;transition:.2s;font-family:inherit}
+.expbtn:hover{background:var(--blue);border-color:var(--blue)}
+.expbtn:disabled{opacity:.5;cursor:default}
+.exp-overlay{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;color:#fff}
+.exp-overlay.on{display:flex}
+.exp-spin{width:46px;height:46px;border:4px solid rgba(255,255,255,.2);border-top-color:#60a5fa;border-radius:50%;animation:expspin .8s linear infinite}
+@keyframes expspin{to{transform:rotate(360deg)}}
+.exp-msg{font-size:15px;font-weight:600}
+.exp-sub{font-size:12px;color:#94a3b8}
 </style>
 </head>
 <body>
@@ -211,7 +225,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
       <span class="blue-grd">함께워크_SI</span><br>
       2026 사업소개서
     </h1>
-    <p class="cover-sub">15년 대기업 기획 × 실전 AI 엔지니어링.<br>여러 AI 에이전트가 병렬로 만드는 풀 플랫폼 — 시중가 절반, 검증된 결과물, 운영비는 줄이고 매출에 기여합니다.</p>
+    <p class="cover-sub">15년 대기업 기획 × 실전 AI 엔지니어링.<br>AI를 적극 활용해 검증된 품질과 빠른 개발을 동시에 — 시중가 절반, 운영비는 줄이고 매출에 기여합니다.</p>
     <div class="cover-chips">
       <span class="cover-chip">대기업 검증 기획</span>
       <span class="cover-chip">풀스택 인하우스</span>
@@ -248,7 +262,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
         <div class="feat-tag">AI VELOCITY</div>
         <div><span class="feat-val">3×</span><span class="feat-unit">Faster</span></div>
         <div class="feat-title">전 구간 AI 가속</div>
-        <div class="feat-desc">여러 AI 에이전트가 기획·개발·QA·운영을 병렬 수행. 동일 인력이 평균 3배 산출 → <strong style="color:var(--blue)">귀사는 더 빠른 출시와 낮은 단가</strong>를 얻습니다.</div>
+        <div class="feat-desc">기획·개발·QA 전 단계에 AI를 적극 도입해 반복 작업을 자동화. 같은 인력으로 개발 속도를 끌어올려 <strong style="color:var(--blue)">귀사는 더 빠른 출시와 낮은 단가</strong>를 얻습니다.</div>
       </div>
     </div>
     <div style="display:flex;gap:40px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px 32px;align-items:center">
@@ -349,8 +363,8 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 <div class="slide" id="g5">
   <div class="sw">
     <span class="sec-badge">04 · AI DIFFERENTIATION</span>
-    <h1 class="slide-h1">AI를 "쓰는" 것이 아니라, <em>파이프라인에 "박았습니다".</em></h1>
-    <p class="slide-sub">기획·디자인·개발·QA·운영 전 단계에서 AI 에이전트가 함께 일합니다. 인력은 줄지만 산출은 늘어납니다.</p>
+    <h1 class="slide-h1">AI를 "쓰는" 것이 아니라, <em>개발 파이프라인에 "이식했습니다".</em></h1>
+    <p class="slide-sub">기획·디자인·개발·QA 전 단계에 AI를 깊이 결합했습니다. 같은 인력으로 품질은 높이고 개발 기간은 단축합니다.</p>
     <div class="feat-grid">
       <div class="feat-card blue-top">
         <div class="feat-tag">PLANNING</div>
@@ -368,7 +382,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
           <span style="font-size:14px;font-weight:700;color:var(--blue)">AI Dev Pair</span>
         </div>
         <div class="feat-title">코드 생성·리뷰</div>
-        <div class="feat-desc">여러 AI 에이전트가 코드 생성·리뷰·자동 테스트·회귀 검증을 병렬 24/7 수행. <strong style="color:var(--blue)">같은 일정에 더 많은 기능</strong>을 안전하게 출시합니다.</div>
+        <div class="feat-desc">AI로 코드 생성·리뷰·자동 테스트·회귀 검증을 빠르게 반복. <strong style="color:var(--blue)">같은 일정에 더 많은 기능</strong>을 안전하게 출시합니다.</div>
       </div>
       <div class="feat-card blue-top">
         <div class="feat-tag">OPERATE</div>
@@ -1410,7 +1424,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
       <div style="width:1px;background:rgba(255,255,255,.12)"></div>
       <div style="text-align:center">
         <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px">채널</div>
-        <div style="font-size:18px;font-weight:700;color:#fff">크몽 · 위시켓 · 직접 메일</div>
+        <div style="font-size:18px;font-weight:700;color:#fff">위시켓 · 직접 문의</div>
       </div>
     </div>
     <div style="display:flex;gap:32px">
@@ -1590,6 +1604,17 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif
 </div><!-- /vp -->
 </div><!-- /deck -->
 
+<!-- 내보내기 툴바 -->
+<div class="exptools">
+  <button class="expbtn" id="btnPdf" onclick="exportDeck('pdf')">⬇ PDF 내보내기</button>
+  <button class="expbtn" id="btnPpt" onclick="exportDeck('ppt')">⬇ PPT 내보내기</button>
+</div>
+<div class="exp-overlay" id="expOverlay">
+  <div class="exp-spin"></div>
+  <div class="exp-msg" id="expMsg">내보내는 중…</div>
+  <div class="exp-sub" id="expSub">잠시만 기다려 주세요</div>
+</div>
+
 <!-- Nav -->
 <button class="nav-arr" id="aPrev" onclick="nav(-1)">&#8592;</button>
 <button class="nav-arr" id="aNext" onclick="nav(1)">&#8594;</button>
@@ -1650,6 +1675,65 @@ function scaleVP(){
 }
 window.addEventListener('resize',scaleVP);
 scaleVP();
+</script>
+
+<!-- ── PDF / PPT 내보내기 (라이브러리 지연 로드) ── -->
+<script>
+var _libs={
+  h2c:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  pptx:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'
+};
+function _load(src){return new Promise(function(res,rej){
+  if([].some.call(document.scripts,function(s){return s.src===src})) return res();
+  var sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=function(){rej(new Error('라이브러리 로드 실패'));};document.head.appendChild(sc);
+});}
+function _ov(on,msg,sub){var o=document.getElementById('expOverlay');o.classList.toggle('on',on);if(msg!=null)document.getElementById('expMsg').textContent=msg;if(sub!=null)document.getElementById('expSub').textContent=sub;}
+function _stamp(canvas,idx,total){
+  var ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,txt=idx+' / '+total;
+  ctx.save();ctx.font='600 24px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  var tw=ctx.measureText(txt).width,padX=18,padY=10,bw=tw+padX*2,bh=24+padY*2,x=w-bw-28,y=h-bh-22,r=14;
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+bw,y,x+bw,y+bh,r);ctx.arcTo(x+bw,y+bh,x,y+bh,r);ctx.arcTo(x,y+bh,x,y,r);ctx.arcTo(x,y,x+bw,y,r);ctx.closePath();
+  ctx.fillStyle='rgba(15,23,42,0.55)';ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.92)';ctx.textBaseline='middle';ctx.fillText(txt,x+padX,y+bh/2+1);ctx.restore();
+}
+async function _capture(onProg){
+  var vp=document.getElementById('vp'),vpT=vp.style.transform;vp.style.transform='none';
+  var ss=Array.from(document.querySelectorAll('.slide')),shots=[];
+  for(var i=0;i<ss.length;i++){
+    var s=ss[i],pc=s.className,pst=s.getAttribute('style')||'';
+    s.style.display='block';s.style.opacity='1';s.style.transform='none';s.style.animation='none';
+    onProg(i+1,ss.length);
+    var canvas=await html2canvas(s,{width:1280,height:720,windowWidth:1280,windowHeight:720,scale:2,backgroundColor:null,logging:false,
+      onclone:function(doc){doc.querySelectorAll('.blue-grd,.grad,.grad2').forEach(function(el){el.style.background='none';el.style.webkitTextFillColor='';el.style.color=el.classList.contains('grad2')?'#a78bfa':'#60a5fa';});}});
+    _stamp(canvas,i+1,ss.length);
+    shots.push(canvas.toDataURL('image/jpeg',0.92));
+    s.className=pc;s.setAttribute('style',pst);
+  }
+  vp.style.transform=vpT;scaleVP();
+  return shots;
+}
+async function exportDeck(kind){
+  var bP=document.getElementById('btnPdf'),bT=document.getElementById('btnPpt');bP.disabled=true;bT.disabled=true;
+  var name='함께워크_SI_사업소개서_2026';
+  try{
+    _ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 준비 중…','라이브러리 불러오는 중');
+    await _load(_libs.h2c);await _load(kind==='pdf'?_libs.jspdf:_libs.pptx);
+    var shots=await _capture(function(n,t){_ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 중…','슬라이드 캡처 '+n+' / '+t);});
+    _ov(true,'파일 저장 중…','거의 다 됐습니다');
+    if(kind==='pdf'){
+      var jsPDF=window.jspdf.jsPDF,pdf=new jsPDF({orientation:'landscape',unit:'px',format:[1280,720]});
+      shots.forEach(function(img,i){if(i>0)pdf.addPage([1280,720],'landscape');pdf.addImage(img,'JPEG',0,0,1280,720);});
+      pdf.save(name+'.pdf');
+    }else{
+      var pptx=new PptxGenJS();pptx.defineLayout({name:'W16',width:13.333,height:7.5});pptx.layout='W16';
+      shots.forEach(function(img){pptx.addSlide().addImage({data:img,x:0,y:0,w:13.333,h:7.5});});
+      await pptx.writeFile({fileName:name+'.pptx'});
+    }
+    _ov(false);
+  }catch(e){_ov(false);alert('내보내기 실패: '+(e&&e.message||e));}
+  finally{bP.disabled=false;bT.disabled=false;}
+}
 </script>
 </body>
 </html>

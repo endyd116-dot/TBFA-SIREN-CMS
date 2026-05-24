@@ -84,6 +84,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 .ss-header{background:#fff;padding:20px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;height:72px}
 .ss-body{padding:20px 40px;flex:1;display:flex;gap:20px;align-items:flex-start}
 .ss-note{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;width:260px;flex-shrink:0}
+
+/* ── 내보내기 툴바 ── */
+.exptools{position:fixed;top:11px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:400}
+.expbtn{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;padding:5px 13px;border-radius:100px;cursor:pointer;transition:.2s;font-family:inherit}
+.expbtn:hover{background:rgba(37,99,235,.7);border-color:#3b82f6}
+.expbtn:disabled{opacity:.5;cursor:default}
+.exp-overlay{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;color:#fff}
+.exp-overlay.on{display:flex}
+.exp-spin{width:46px;height:46px;border:4px solid rgba(255,255,255,.2);border-top-color:#60a5fa;border-radius:50%;animation:expspin .8s linear infinite}
+@keyframes expspin{to{transform:rotate(360deg)}}
+.exp-msg{font-size:15px;font-weight:600}
+.exp-sub{font-size:12px;color:#94a3b8}
 </style>
 </head>
 <body>
@@ -177,21 +189,21 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   <div class="top-bar bar-b"></div>
   <div class="pad" style="display:flex;gap:60px;align-items:center;height:100%">
     <div style="flex:1">
-      <div class="tag tag-blue" style="margin-bottom:20px">SIREN 플랫폼</div>
+      <div class="tag tag-blue" style="margin-bottom:20px">통합 운영 플랫폼</div>
       <h1 style="margin-bottom:16px">하나로 연결된<br>NPO 통합 운영 플랫폼</h1>
-      <p class="sub" style="margin-bottom:32px">후원·신고·유족지원·추모관·워크스페이스·AI까지<br>외부 툴 구독을 없애고 단일 플랫폼 하나로 완결합니다.</p>
+      <p class="sub" style="margin-bottom:28px">후원·회원·재정·근태·협업·AI까지 <strong style="color:#0f172a">공통 핵심은 기본 제공</strong>.<br>신고·추모관 등 <strong style="color:#2563eb">귀 단체 성격에 맞춘 전용 기능</strong>은 맞춤 개발합니다.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">💳</span><span style="font-size:14px;font-weight:600;color:#0f172a">통합 후원 관리</span>
+          <span style="font-size:20px">💳</span><span style="font-size:14px;font-weight:600;color:#0f172a">통합 후원·결제</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">👥</span><span style="font-size:14px;font-weight:600;color:#0f172a">회원 & 등급 관리</span>
+          <span style="font-size:20px">👥</span><span style="font-size:14px;font-weight:600;color:#0f172a">회원·등급 CRM</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">🤝</span><span style="font-size:14px;font-weight:600;color:#0f172a">유족 지원 시스템</span>
+          <span style="font-size:20px">📊</span><span style="font-size:14px;font-weight:600;color:#0f172a">재정·회계 자동화</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">🚨</span><span style="font-size:14px;font-weight:600;color:#0f172a">SIREN 신고 플랫폼</span>
+          <span style="font-size:20px">🗓️</span><span style="font-size:14px;font-weight:600;color:#0f172a">성과·근태 관리</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
           <span style="font-size:20px">📋</span><span style="font-size:14px;font-weight:600;color:#0f172a">워크스페이스 협업</span>
@@ -199,8 +211,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
         <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
           <span style="font-size:20px">🤖</span><span style="font-size:14px;font-weight:600;color:#0f172a">AI 에이전트 (AX)</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#f8fafc;border-radius:10px">
-          <span style="font-size:20px">🕯️</span><span style="font-size:14px;font-weight:600;color:#0f172a">추모관·유가족 이야기</span>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;grid-column:1 / -1">
+          <span style="font-size:20px">🎯</span><span style="font-size:14px;font-weight:700;color:#2563eb">NPO 맞춤 기능 — 신고·추모관·유족지원 등 단체별 전용 개발</span>
         </div>
       </div>
     </div>
@@ -248,19 +260,55 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
   </div>
 </div>
 
-<!-- ════ S6 6개 핵심 기능 ════ -->
+<!-- ════ S6 6개 핵심 기능 + 맞춤 확장 ════ -->
 <div class="slide" style="background:#0f172a" id="s6">
   <div style="padding:16px 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)">
     <div style="display:flex;align-items:center;gap:12px">
       <span style="display:inline-flex;width:10px;height:10px;border-radius:50%;background:#3b82f6"></span>
-      <span style="font-weight:800;font-size:16px;color:#fff">6개 핵심 기능 영역</span>
-      <span class="tag tag-white">SIREN CORE FEATURES</span>
+      <span style="font-weight:800;font-size:16px;color:#fff">6개 핵심 기능 + 무한 맞춤 확장</span>
+      <span class="tag tag-white">CORE + CUSTOM</span>
     </div>
-    <div style="font-size:13px;color:#64748b">후원·회원·지원·신고·워크스페이스·AI — 완전 통합</div>
+    <div style="font-size:13px;color:#94a3b8">모든 NPO에 필요한 공통 핵심 + 귀 단체 전용 맞춤 개발</div>
   </div>
-  <div style="padding:16px 36px 0">
-    <div class="screen" style="height:580px">
-      <img src="img/s2.png" alt="6개 핵심 기능">
+  <div style="padding:26px 36px 0">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">💳</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">통합 후원·결제</div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">정기·일시·CMS 자동청구·영수증 자동발급까지 후원 전 과정을 한 곳에서.</div>
+      </div>
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">👥</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">회원·등급 CRM</div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">가입·등급·이탈 예측·세그먼트 발송으로 후원자 관계를 데이터로 관리.</div>
+      </div>
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">📊</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">재정·회계 자동화</div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">AI 지출 분류·예산 대비 집행·투명 공시까지 회계 업무를 자동화.</div>
+      </div>
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">🗓️</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">성과·근태 관리 <span style="font-size:10px;color:#34d399;font-weight:700;vertical-align:middle">NEW</span></div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">출퇴근·급여·성과 평가까지 — 직원 인사 운영을 한 시스템에서.</div>
+      </div>
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">📋</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">워크스페이스 협업</div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">칸반·캘린더·파일함·문서·템플릿 — 외부 협업툴 구독 없이 한 곳에서.</div>
+      </div>
+      <div class="card-dark" style="padding:18px">
+        <div style="font-size:26px;margin-bottom:8px">🤖</div>
+        <div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:5px">AI 에이전트 (AX)</div>
+        <div style="font-size:12.5px;color:#94a3b8;line-height:1.55">업무 지시 한마디로 회원·후원·통계·발송을 시스템이 직접 실행.</div>
+      </div>
+    </div>
+    <div style="margin-top:18px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.32);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:14px">
+      <span style="font-size:22px">🎯</span>
+      <div style="font-size:13.5px;color:#cbd5e1;line-height:1.55">
+        <strong style="color:#fff">여기서 끝이 아닙니다.</strong> 귀 단체의 성격에 맞춘 전용 기능을 그대로 맞춤 개발합니다 —
+        <span style="color:#93c5fd;font-weight:600">싸이렌 사례: 🚨 신고 플랫폼 · 🕯️ 온라인 추모관 · 🤝 유족 지원 시스템</span>
+      </div>
     </div>
   </div>
 </div>
@@ -288,9 +336,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
     <div style="display:flex;align-items:center;gap:12px">
       <span style="display:inline-flex;width:10px;height:10px;border-radius:50%;background:#ef4444"></span>
       <span style="font-weight:800;font-size:16px;color:#0f172a">SIREN 신고 플랫폼</span>
-      <span class="tag" style="background:#fef2f2;color:#dc2626">AI 리스크 분석 자동</span>
+      <span class="tag" style="background:#eff6ff;color:#2563eb">🎯 NPO 맞춤 개발 예시</span>
     </div>
-    <div style="font-size:13px;color:#64748b">사건·괴롭힘·법률 3종 익명 신고 · AI 우선순위 · 담당자 배정</div>
+    <div style="font-size:13px;color:#64748b">단체 성격에 맞춘 전용 기능 사례 — 사건·괴롭힘·법률 3종 익명 신고 · AI 우선순위 자동</div>
   </div>
   <div style="padding:16px 36px 0">
     <div class="screen" style="height:580px">
@@ -1080,6 +1128,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111827;font-family:
 <div class="ctr" id="ctr">1 / 35</div>
 <div class="sec-ind" id="secInd">개요</div>
 
+<!-- 내보내기 툴바 -->
+<div class="exptools">
+  <button class="expbtn" id="btnPdf" onclick="exportDeck('pdf')">⬇ PDF 내보내기</button>
+  <button class="expbtn" id="btnPpt" onclick="exportDeck('ppt')">⬇ PPT 내보내기</button>
+</div>
+<div class="exp-overlay" id="expOverlay">
+  <div class="exp-spin"></div>
+  <div class="exp-msg" id="expMsg">내보내는 중…</div>
+  <div class="exp-sub" id="expSub">잠시만 기다려 주세요</div>
+</div>
+
 <script>
 // 섹션 라벨
 const sections = {
@@ -1144,6 +1203,65 @@ function scaleVP() {
 }
 scaleVP();
 window.addEventListener('resize', scaleVP);
+</script>
+
+<!-- ── PDF / PPT 내보내기 (라이브러리 지연 로드) ── -->
+<script>
+var _libs={
+  h2c:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  pptx:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'
+};
+function _load(src){return new Promise(function(res,rej){
+  if([].some.call(document.scripts,function(s){return s.src===src})) return res();
+  var sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=function(){rej(new Error('라이브러리 로드 실패'));};document.head.appendChild(sc);
+});}
+function _ov(on,msg,sub){var o=document.getElementById('expOverlay');o.classList.toggle('on',on);if(msg!=null)document.getElementById('expMsg').textContent=msg;if(sub!=null)document.getElementById('expSub').textContent=sub;}
+function _stamp(canvas,idx,total){
+  var ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,txt=idx+' / '+total;
+  ctx.save();ctx.font='600 24px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  var tw=ctx.measureText(txt).width,padX=18,padY=10,bw=tw+padX*2,bh=24+padY*2,x=w-bw-28,y=h-bh-22,r=14;
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+bw,y,x+bw,y+bh,r);ctx.arcTo(x+bw,y+bh,x,y+bh,r);ctx.arcTo(x,y+bh,x,y,r);ctx.arcTo(x,y,x+bw,y,r);ctx.closePath();
+  ctx.fillStyle='rgba(15,23,42,0.55)';ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.92)';ctx.textBaseline='middle';ctx.fillText(txt,x+padX,y+bh/2+1);ctx.restore();
+}
+async function _capture(onProg){
+  var vp=document.getElementById('vp'),vpT=vp.style.transform;vp.style.transform='none';
+  var ss=Array.from(document.querySelectorAll('.slide')),shots=[];
+  for(var i=0;i<ss.length;i++){
+    var s=ss[i],pst=s.getAttribute('style')||'';
+    s.style.opacity='1';s.style.transform='none';s.style.pointerEvents='auto';
+    onProg(i+1,ss.length);
+    var canvas=await html2canvas(s,{width:1280,height:720,windowWidth:1280,windowHeight:720,scale:2,backgroundColor:null,logging:false,
+      onclone:function(doc){doc.querySelectorAll('.grad,.grad2').forEach(function(el){el.style.background='none';el.style.webkitTextFillColor='';el.style.color=el.classList.contains('grad2')?'#a78bfa':'#60a5fa';});}});
+    _stamp(canvas,i+1,ss.length);
+    shots.push(canvas.toDataURL('image/jpeg',0.92));
+    s.setAttribute('style',pst);
+  }
+  vp.style.transform=vpT;scaleVP();
+  return shots;
+}
+async function exportDeck(kind){
+  var bP=document.getElementById('btnPdf'),bT=document.getElementById('btnPpt');bP.disabled=true;bT.disabled=true;
+  var name='함께워크_SI_NPO_AI_플랫폼_제안서';
+  try{
+    _ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 준비 중…','라이브러리 불러오는 중');
+    await _load(_libs.h2c);await _load(kind==='pdf'?_libs.jspdf:_libs.pptx);
+    var shots=await _capture(function(n,t){_ov(true,(kind==='pdf'?'PDF':'PPT')+' 생성 중…','슬라이드 캡처 '+n+' / '+t);});
+    _ov(true,'파일 저장 중…','거의 다 됐습니다');
+    if(kind==='pdf'){
+      var jsPDF=window.jspdf.jsPDF,pdf=new jsPDF({orientation:'landscape',unit:'px',format:[1280,720]});
+      shots.forEach(function(img,i){if(i>0)pdf.addPage([1280,720],'landscape');pdf.addImage(img,'JPEG',0,0,1280,720);});
+      pdf.save(name+'.pdf');
+    }else{
+      var pptx=new PptxGenJS();pptx.defineLayout({name:'W16',width:13.333,height:7.5});pptx.layout='W16';
+      shots.forEach(function(img){pptx.addSlide().addImage({data:img,x:0,y:0,w:13.333,h:7.5});});
+      await pptx.writeFile({fileName:name+'.pptx'});
+    }
+    _ov(false);
+  }catch(e){_ov(false);alert('내보내기 실패: '+(e&&e.message||e));}
+  finally{bP.disabled=false;bT.disabled=false;}
+}
 </script>
 </body>
 </html>
