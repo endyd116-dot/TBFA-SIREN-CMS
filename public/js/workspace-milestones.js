@@ -584,7 +584,7 @@
             </tbody>
           </table>` : ''}
         ${nrRows ? `
-          <div style="font-size:12.5px;font-weight:600;color:#15803d;margin:10px 0 4px">비매출 보너스 (선택 2개)</div>
+          <div style="font-size:12.5px;font-weight:600;color:#15803d;margin:10px 0 4px">비매출 보너스 (카테고리당 2개·분기 7개)</div>
           <table>
             <thead><tr><th>마일스톤</th><th style="text-align:right">보너스</th></tr></thead>
             <tbody>${nrRows}
@@ -789,11 +789,14 @@
     const list = $('#nrList');
     if (!list) return;
 
+    /* ★ v4 2단계: 분기 7개·카테고리당 2개 (카테고리 한도는 서버에서 최종 검증) */
+    const NR_MAX = 7;
     const selectedCount = state.nrSelectedIds.length;
-    const maxReached = selectedCount >= 2;
+    const maxReached = selectedCount >= NR_MAX;
 
     // 섹션 헤더 배지
-    const badge = `<span class="ms-select-badge" style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;background:${selectedCount===2?'#dcfce7':'#eff6ff'};color:${selectedCount===2?'#15803d':'#1d4ed8'};margin-left:8px">선택됨 ${selectedCount}/2개</span>`;
+    const badge = `<span class="ms-select-badge" style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;background:${selectedCount>=NR_MAX?'#dcfce7':'#eff6ff'};color:${selectedCount>=NR_MAX?'#15803d':'#1d4ed8'};margin-left:8px">선택됨 ${selectedCount}/${NR_MAX}개</span>`
+      + `<span style="font-size:11.5px;color:#9ca3af;margin-left:8px">카테고리당 최대 2개</span>`;
 
     // 선택된 항목들의 보너스 합산
     const selectedBonus = achs
@@ -817,7 +820,7 @@
             : 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#fff';
         const checkEl = canSelect
           ? `<div class="ms-ach-check ${checkClass}" onclick="${isDisabled ? "window.__nrMaxToast()" : `window.__nrToggle(${a.id})`}"
-               title="${isDisabled ? '최대 2개 선택 가능' : ''}"
+               title="${isDisabled ? '분기 최대 7개 선택 가능' : ''}"
                style="cursor:${isDisabled?'not-allowed':'pointer'}">${isSelected ? (selIdx+1) : ''}</div>`
           : '<div style="width:22px"></div>';
         const nameStyle = isSelected ? 'font-weight:700;color:#111' : 'font-weight:500;color:#374151';
@@ -843,7 +846,7 @@
   }
 
   window.__nrMaxToast = function() {
-    toast('최대 2개까지만 선택 가능합니다', 'error');
+    toast('분기 최대 7개까지만 선택 가능합니다 (카테고리당 2개)', 'error');
   };
 
   window.__nrToggle = function(id) {
@@ -851,7 +854,7 @@
     if (idx >= 0) {
       state.nrSelectedIds.splice(idx, 1);
     } else {
-      if (state.nrSelectedIds.length >= 2) { toast('최대 2개까지만 선택 가능합니다', 'error'); return; }
+      if (state.nrSelectedIds.length >= 7) { toast('분기 최대 7개까지만 선택 가능합니다 (카테고리당 2개)', 'error'); return; }
       state.nrSelectedIds.push(id);
     }
     renderNrCards(state.nonRevAchs);

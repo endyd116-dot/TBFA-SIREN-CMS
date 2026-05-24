@@ -23,12 +23,16 @@
 
 ## 2. 현재 상태 (2026-05-24)
 
-### 🟡 성과관리 v4 전환 — 1단계(정의 71 전면 교체) 셋업 완료·Swain 호출 대기 (2026-05-24)
-직원 연봉·성과급 v4(5:5 밸런스+R&R 재분배·정책국장/사무국장/SI) 반영. **1단계 = 메인 직접 셋업**(AI 추측 0).
-- **1회용 함수 `migrate-milestone-v4`**: ① `milestone_definitions.non_revenue_category` 컬럼 추가 ② 역할 3개(정책국장·사무국장·SI 영업관리자) find-or-create ③ 기존 정의 전면 비활성 ④ **v4 정의 71개**(매출 23·비매출 5카테고리 48) upsert. 공식=FLAT·PERCENT·BRACKET·EVENT_RANGE·SI 공유임계점(SI_SUJU). tsc 0.
-- **Swain 호출**: push 배포 후 `https://tbfa.co.kr/api/migrate-milestone-v4?run=1`(슈퍼어드민) → 71개 정확 등록. 이후 성과관리 화면에서 직원 3역할 재배정.
-- **2단계(후속)**: 매출/비매출 5:5 영역 캡(정책850/850·사무800/800·SI1110/740) + 카테고리당2/분기7 선택 규칙 enforce.
-- **병행 트랙**: ④ 사건·사고 섹션(A·B) / ③ AI 파싱 개선(B). 단일 출처는 추후 설계서.
+### 🟢 성과관리 v4 전환 — 1·2단계 완료 (2026-05-24)
+직원 연봉·성과급 v4(5:5 밸런스+R&R·정책국장/사무국장/SI) 반영. **메인 직접**(AI 추측 0).
+- **1단계 완료**(`migrate-milestone-v4` 호출됨·`upserted:71`): non_revenue_category 칸 추가 + 역할 3개(기존 PM/SM/SI 재사용 — **직원 재배정 불필요**) + 기존 정의 전면 비활성 + **v4 71개**(매출23·비매출5카테고리48) 정확 등록. 마이그 삭제 완료.
+- **2단계 완료**(`165f823`): 매출/비매출 **5:5 영역 캡**(PM 850/850·SM 800/800·SI 1110/740만·초과분 이전 X·상수·calculation_snapshot에 raw·cap 기록) + 비매출 **카테고리당2/분기7** 선택 룰(서버 milestone-nonrevenue + 직원 화면 workspace-milestones `?v=15-v4nr`). 마이그 0.
+- **잔여(선택)**: 5 카테고리 정의 탭 UI 표시·역할별 캡 편집 UI는 후속 폴리시.
+
+### ✅ 병행 트랙 — ④ 사건·사고 섹션 + ③ 매트릭스 AI 개선 (2026-05-24·C검증 PASS)
+A·B 병렬(베이스 정합 OK)·머지(`f650cfc`)·C검증 **BUG 0 전항목 PASS**(`docs/history/verify/2026-05-24-news-incidents.md`). `migrate-org-news-incidents` 호출됨(incidents 컬럼)·삭제 완료.
+- 뉴스 화면 '🚨 협회 관련 사건·사고' 섹션(네이버 수집+Gemini 협회 관련성·시급도 판정) + ③ matrix-parse maxTokens 8000·누락금지·warning.
+- C 관찰(비차단): summary.warning이 ③ 리뷰 화면에 미표시(폴리시).
 
 
 ### 🟡 ④ 교유협 뉴스·여론 분석 — A·B 병렬 머지 완료·마이그+C검증 대기 (2026-05-24)
