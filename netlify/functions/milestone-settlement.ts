@@ -11,6 +11,17 @@ class SettlementBadRequest extends Error {
   constructor(message: string) { super(message); this.name = "SettlementBadRequest"; }
 }
 
+/* ★ 성과 v4 2단계: 매출/비매출 영역별 변동급 캡(원·역할 코드 기준).
+   한쪽 영역 초과분이 다른쪽으로 이전되지 않음(독립 상한). 정책 850/850·사무 800/800·SI 1110/740(만원).
+   (역할 코드 PM=정책국장·SM=사무국장·SI — migrate-milestone-v4 매핑 결과. 미등록 역할은 무캡.) */
+const ROLE_CAPS: Record<string, { rev: number; nonRev: number }> = {
+  PM: { rev: 8500000,  nonRev: 8500000 },
+  SM: { rev: 8000000,  nonRev: 8000000 },
+  SI: { rev: 11100000, nonRev: 7400000 },
+};
+/* 비매출 분기 선택 한도(v4): 분기 전체 최대 7개 (카테고리당 2개는 선택 시점 milestone-nonrevenue에서 enforce) */
+const NON_REVENUE_MAX_PER_QUARTER = 7;
+
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -216,8 +227,8 @@ async function calcSettlement(memberId: number, quarterId: number) {
   `);
   const selected = (nrRows as any).rows || (nrRows as any[]);
   /* ★ R35-GAP-P2-M5: 사용자 입력 오류(400) 분기 — outer try/catch에서 status:400 분기 */
-  if (selected.length > 2) {
-    throw new SettlementBadRequest("선택된 비매출 항목이 2개를 초과합니다 (마이페이지에서 다시 선택해주세요)");
+  if (selected.length > NON_REVENUE_MAX_PER_QUARTER) {
+    throw new SettlementBadRequest(`선택된 비매출 항목이 ${NON_REVENUE_MAX_PER_QUARTER}개를 초과합니다 (마이페이지에서 다시 선택해주세요)`);
   }
 
   let nonRevenueTotal = 0;
@@ -228,9 +239,20 @@ async function calcSettlement(memberId: number, quarterId: number) {
     nonRevenueBreakdown.push({ code: r.code, name: r.milestone_name, bonus, selectionOrder: r.selection_order });
   }
 
+  /* ★ v4 2단계: 매출/비매출 5:5 영역 캡 — 역할별 상한 적용(초과분 이전 X). 캡 미정의 역할은 무캡. */
+  const cap = ROLE_CAPS[milestoneRole];
+  const revenueRaw = revenueLinkedTotal;
+  const nonRevenueRaw = nonRevenueTotal;
+  if (cap) {
+    revenueLinkedTotal = Math.min(revenueLinkedTotal, cap.rev);
+    nonRevenueTotal = Math.min(nonRevenueTotal, cap.nonRev);
+  }
+
   return {
     memberId, quarterId, milestoneRole,
     revenueLinkedTotal, nonRevenueTotal, totalBonus: revenueLinkedTotal + nonRevenueTotal,
+    revenueRaw, nonRevenueRaw,
+    revenueCap: cap?.rev ?? null, nonRevenueCap: cap?.nonRev ?? null,
     revenueBreakdown, nonRevenueBreakdown,
   };
 }

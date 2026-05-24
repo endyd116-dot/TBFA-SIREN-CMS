@@ -112,7 +112,7 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch (err) { return jsonError("insert", err); }
   }
 
-  // ── POST /select — 분기 2개 선택 ──
+  // ── POST /select — 분기 선택 (v4: 카테고리당 2개·분기 7개) ──
   if (req.method === "POST" && action === "select") {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
@@ -120,8 +120,8 @@ export default async function handler(req: Request, _ctx: Context) {
     if (!quarterId || !Array.isArray(selectedIds)) {
       return Response.json({ ok: false, error: "quarterId, selectedIds[] 필수" }, { status: 400 });
     }
-    if (selectedIds.length > 2) {
-      return Response.json({ ok: false, error: "분기당 비매출 보너스는 최대 2개까지만 선택 가능합니다" }, { status: 400 });
+    if (selectedIds.length > 7) {
+      return Response.json({ ok: false, error: "분기당 비매출 보너스는 최대 7개까지만 선택 가능합니다" }, { status: 400 });
     }
     try {
       /* ★ R32-P0-MS-C1 + R34-P1-B-8: sql 템플릿 + 단일 UPDATE로 원자화 (race 차단) */
@@ -137,19 +137,25 @@ export default async function handler(req: Request, _ctx: Context) {
         if (notVerified.length > 0 || items.length !== ids.length) {
           return Response.json({ ok: false, error: "검증(VERIFIED) 완료된 본인 항목만 선택 가능합니다" }, { status: 400 });
         }
+        /* ★ v4 2단계: 카테고리당 최대 2개 (분기 7개는 위 길이 검증) */
+        const catRows = await db.execute(sql`
+          SELECT md.non_revenue_category AS cat, COUNT(*)::int AS cnt
+          FROM non_revenue_achievements nra
+          JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
+          WHERE nra.id = ANY(${ids}::int[])
+          GROUP BY md.non_revenue_category
+          HAVING COUNT(*) > 2
+        `);
+        if (((catRows as any).rows || (catRows as any[])).length > 0) {
+          return Response.json({ ok: false, error: "한 카테고리에서 최대 2개까지만 선택할 수 있습니다 (카테고리당 2개·분기 7개)" }, { status: 400 });
+        }
       }
 
-      // 단일 SQL로 모든 본인 분기 행을 일괄 갱신 (선택된 ids는 selection_order 부여, 나머지는 NULL/false)
-      const id1 = ids[0] ?? -1;
-      const id2 = ids[1] ?? -1;
+      // 단일 SQL 일괄 갱신 — 선택 ids는 입력 순서대로 selection_order(1..N), 나머지 false/NULL
       await db.execute(sql`
         UPDATE non_revenue_achievements
         SET is_selected_for_quarter = (id = ANY(${ids}::int[])),
-            selection_order = CASE
-              WHEN id = ${id1} THEN 1
-              WHEN id = ${id2} THEN 2
-              ELSE NULL
-            END,
+            selection_order = CASE WHEN id = ANY(${ids}::int[]) THEN array_position(${ids}::int[], id) ELSE NULL END,
             updated_at = NOW()
         WHERE submitted_by = ${admin.id} AND quarter_id = ${Number(quarterId)}
       `);
