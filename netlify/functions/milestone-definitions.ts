@@ -193,16 +193,38 @@ export default async function handler(req: Request, _ctx: Context) {
     } catch (err) { return jsonError("update", err); }
   }
 
-  // ── DELETE /:id (비활성화) ──
+  // ── DELETE /:id — ?hard=1 영구삭제(이력 없을 때만) / 기본 비활성화(소프트삭제) ──
   if (req.method === "DELETE") {
     if (!isSuperAdmin) return Response.json({ ok: false, error: "슈퍼어드민 전용" }, { status: 403 });
     /* ★ R32-P0-FIX-1: ?id= query fallback */
     const id = url.searchParams.get("id") || url.pathname.split("/").pop();
     if (!id || isNaN(Number(id))) return Response.json({ ok: false, error: "ID 없음" }, { status: 400 });
+    const hard = url.searchParams.get("hard") === "1";
     try {
+      if (hard) {
+        /* 영구삭제: 매출/비매출 실적 참조가 있으면 과거 결산 보존을 위해 차단(비활성화만 가능).
+           결산 스냅샷은 JSONB라 FK 무관·정의 삭제해도 과거 결산은 무손상. */
+        const refRows = await db.execute(sql`
+          SELECT
+            (SELECT COUNT(*) FROM revenue_entries WHERE milestone_definition_id = ${Number(id)})::int AS rev,
+            (SELECT COUNT(*) FROM non_revenue_achievements WHERE milestone_definition_id = ${Number(id)})::int AS nonrev
+        `);
+        const ref: any = (refRows as any).rows?.[0] || (refRows as any[])[0] || {};
+        const used = (Number(ref.rev) || 0) + (Number(ref.nonrev) || 0);
+        if (used > 0) {
+          return Response.json({
+            ok: false,
+            error: `실적·매출 이력(${used}건)이 있어 영구삭제할 수 없습니다. 비활성화만 가능합니다.`,
+            refs: { revenue: Number(ref.rev) || 0, nonRevenue: Number(ref.nonrev) || 0 },
+          }, { status: 409 });
+        }
+        await db.execute(sql`DELETE FROM milestone_definition_history WHERE definition_id = ${Number(id)}`);
+        await db.execute(sql`DELETE FROM milestone_definitions WHERE id = ${Number(id)}`);
+        return Response.json({ ok: true, hard: true });
+      }
       await db.execute(sql`UPDATE milestone_definitions SET is_active = FALSE, updated_at = NOW() WHERE id = ${Number(id)}`);
       return Response.json({ ok: true });
-    } catch (err) { return jsonError("deactivate", err); }
+    } catch (err) { return jsonError(hard ? "hard_delete" : "deactivate", err); }
   }
 
   return Response.json({ ok: false, error: "지원하지 않는 메서드" }, { status: 405 });

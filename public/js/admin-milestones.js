@@ -123,6 +123,7 @@ function _defRow(d, _roleLabel) {
     <td>
       <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
       <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="toggleDefActive(${d.id})">${active ? '비활성화' : '활성화'}</button>
+      <button class="ms-btn ms-btn-ghost ms-btn-sm" style="margin-left:4px;color:#dc2626" title="영구 삭제 (이력 없을 때만)" onclick="deleteDefHard(${d.id})">🗑 삭제</button>
     </td>
   </tr>`;
 }
@@ -193,6 +194,18 @@ async function toggleDefActive(id) {
   loadDefs();
 }
 window.toggleDefActive = toggleDefActive;
+
+/* 영구 삭제 — 실적·매출 이력 없을 때만(서버 가드). 이력 있으면 비활성화만 가능. */
+async function deleteDefHard(id) {
+  const d = AM.defs.find(x => x.id === id);
+  if (!d) return;
+  if (!confirm(`[${d.name}] 마일스톤 정의를 영구 삭제합니다.\n\n실적·매출 이력이 없는 경우에만 삭제되며(과거 결산 보존), 이력이 있으면 비활성화만 가능합니다.\n계속할까요?`)) return;
+  const res = await amApi(`/api/milestone-definitions/${id}?hard=1`, { method: 'DELETE' });
+  if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '삭제 실패'), 'error'); return; }
+  amToast('영구 삭제되었습니다.', 'success');
+  loadDefs();
+}
+window.deleteDefHard = deleteDefHard;
 
 document.getElementById('defRoleFilter')?.addEventListener('change', loadDefs);
 document.getElementById('defCatFilter')?.addEventListener('change', loadDefs);
