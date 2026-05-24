@@ -23,6 +23,14 @@
 
 ## 2. 현재 상태 (2026-05-24)
 
+### 🟡 성과관리 v4 전환 — 1단계(정의 71 전면 교체) 셋업 완료·Swain 호출 대기 (2026-05-24)
+직원 연봉·성과급 v4(5:5 밸런스+R&R 재분배·정책국장/사무국장/SI) 반영. **1단계 = 메인 직접 셋업**(AI 추측 0).
+- **1회용 함수 `migrate-milestone-v4`**: ① `milestone_definitions.non_revenue_category` 컬럼 추가 ② 역할 3개(정책국장·사무국장·SI 영업관리자) find-or-create ③ 기존 정의 전면 비활성 ④ **v4 정의 71개**(매출 23·비매출 5카테고리 48) upsert. 공식=FLAT·PERCENT·BRACKET·EVENT_RANGE·SI 공유임계점(SI_SUJU). tsc 0.
+- **Swain 호출**: push 배포 후 `https://tbfa.co.kr/api/migrate-milestone-v4?run=1`(슈퍼어드민) → 71개 정확 등록. 이후 성과관리 화면에서 직원 3역할 재배정.
+- **2단계(후속)**: 매출/비매출 5:5 영역 캡(정책850/850·사무800/800·SI1110/740) + 카테고리당2/분기7 선택 규칙 enforce.
+- **병행 트랙**: ④ 사건·사고 섹션(A·B) / ③ AI 파싱 개선(B). 단일 출처는 추후 설계서.
+
+
 ### 🟡 ④ 교유협 뉴스·여론 분석 — A·B 병렬 머지 완료·마이그+C검증 대기 (2026-05-24)
 네이버 검색 수집 + Gemini 분석(요약·워드클라우드·여론·추천·변경점) → 통합 CMS 새 메뉴 "📰 여론·뉴스 분석" + 매일 09:00 cron + 수동 재조사 + 히스토리. **메인·A(프론트)·B(백)·C(검증) 병렬.** A·B 작업 커밋 cherry-pick 머지(`3222cef`·`c686cc1`)·tsc 0·JS 문법 0·계약 정합 확인. featureKey `org_news_analysis`. 단일 출처 `docs/active/2026-05-24-org-news-analysis.md`.
 - **신규 2테이블**(raw SQL·schema.ts 미정의): `org_news_reports`(히스토리 누적)·`org_news_settings`(단일행 시드). 마이그 `migrate-org-news`.
