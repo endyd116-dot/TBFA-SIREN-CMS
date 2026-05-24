@@ -27,7 +27,8 @@
 직원 연봉·성과급 v4(5:5 밸런스+R&R·정책국장/사무국장/SI) 반영. **메인 직접**(AI 추측 0).
 - **1단계 완료**(`migrate-milestone-v4` 호출됨·`upserted:71`): non_revenue_category 칸 추가 + 역할 3개(기존 PM/SM/SI 재사용 — **직원 재배정 불필요**) + 기존 정의 전면 비활성 + **v4 71개**(매출23·비매출5카테고리48) 정확 등록. 마이그 삭제 완료.
 - **2단계 완료**(`165f823`): 매출/비매출 **5:5 영역 캡**(PM 850/850·SM 800/800·SI 1110/740만·초과분 이전 X·상수·calculation_snapshot에 raw·cap 기록) + 비매출 **카테고리당2/분기7** 선택 룰(서버 milestone-nonrevenue + 직원 화면 workspace-milestones `?v=15-v4nr`). 마이그 0.
-- **잔여(선택)**: 5 카테고리 정의 탭 UI 표시·역할별 캡 편집 UI는 후속 폴리시.
+- **폴리시 완료**(`be0b5ea`): ① 비매출 5카테고리 묶음 보기(정의 탭·직원 선택 화면) ② **역할별 캡 화면 편집**(상수→`milestone_roles.revenue_cap/non_revenue_cap` DB 전환·`migrate-milestone-role-caps` 호출됨·삭제 완료·settlement try/catch 방어) ③ ③매트릭스 누락 경고 표시. `?v=10-polish`/`v16-polish`.
+- **기록 정리 완료**: 매뉴얼(manual-admin)·성과 명세 v4 배너 반영, 설계서 5종 history 이동. **성과 v4 전환 전체 종결.**
 
 ### ✅ 병행 트랙 — ④ 사건·사고 섹션 + ③ 매트릭스 AI 개선 (2026-05-24·C검증 PASS)
 A·B 병렬(베이스 정합 OK)·머지(`f650cfc`)·C검증 **BUG 0 전항목 PASS**(`docs/history/verify/2026-05-24-news-incidents.md`). `migrate-org-news-incidents` 호출됨(incidents 컬럼)·삭제 완료.
