@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>선생님을 기억합니다 | 온라인 추모관</title>
+<meta name="description" content="먼저 떠난 선생님 한 분의 이야기를 기억합니다. 촛불과 국화로, 그리고 기억의 편지로 마음을 전해주세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+
+<style>
+  body[data-page="memorial"] { background:#0c0c16; color:#fff; }
+  .mt-serif { font-family:'Noto Serif KR',serif; }
+
+  /* 프로필 */
+  .mt-profile {
+    background:linear-gradient(165deg,#0a0a14 0%,#15152a 60%,#0f3460 100%);
+    padding:72px 0 56px; text-align:center;
+  }
+  .mt-photo {
+    width:150px; height:150px; border-radius:50%; margin:0 auto 22px; overflow:hidden;
+    border:3px solid rgba(246,196,94,.5); box-shadow:0 8px 30px rgba(0,0,0,.5); background:#1a1a2e;
+  }
+  .mt-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .mt-photo .silhouette { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:4rem; color:rgba(255,255,255,.24); }
+  .mt-name { font-family:'Noto Serif KR',serif; font-size:clamp(1.5rem,4vw,2.1rem); font-weight:700; margin:0 0 10px; }
+  .mt-region { font-size:.92rem; opacity:.62; margin:0 0 6px; }
+  .mt-dates { font-size:.85rem; opacity:.5; margin:0 0 18px; letter-spacing:.04em; }
+  .mt-tribute {
+    font-family:'Noto Serif KR',serif; font-size:1.05rem; font-style:italic; opacity:.9;
+    max-width:560px; margin:0 auto; line-height:1.7;
+  }
+
+  .mt-section { padding:48px 0; border-top:1px solid #1d1d33; }
+  .mt-section.first { border-top:0; }
+  .mt-wrap { max-width:720px; margin:0 auto; }
+  .mt-h2 { font-family:'Noto Serif KR',serif; font-size:1.3rem; font-weight:700; margin:0 0 22px; text-align:center; }
+
+  /* 약력 */
+  .mt-bio { font-size:.96rem; line-height:1.9; opacity:.9; }
+  .mt-bio p { margin:0 0 16px; }
+
+  /* 타임라인 */
+  .mt-timeline { position:relative; padding-left:28px; }
+  .mt-timeline::before { content:''; position:absolute; left:7px; top:6px; bottom:6px; width:2px; background:rgba(246,196,94,.3); }
+  .mt-tl-item { position:relative; padding-bottom:24px; }
+  .mt-tl-item:last-child { padding-bottom:0; }
+  .mt-tl-item::before {
+    content:''; position:absolute; left:-26px; top:4px; width:14px; height:14px; border-radius:50%;
+    background:#f6c45e; box-shadow:0 0 0 4px rgba(246,196,94,.18);
+  }
+  .mt-tl-date { font-size:.78rem; color:#f6c45e; font-weight:600; margin-bottom:3px; }
+  .mt-tl-title { font-size:.98rem; font-weight:600; margin-bottom:3px; }
+  .mt-tl-desc { font-size:.86rem; opacity:.7; line-height:1.6; }
+
+  /* 헌화 */
+  .mt-offer-box { max-width:440px; margin:0 auto; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:26px 24px; position:relative; z-index:2; }
+  .mt-offer-section { position:relative; overflow:hidden; }
+  .mt-offer-counts { text-align:center; margin-bottom:20px; font-size:.9rem; opacity:.8; }
+  .mt-offer-counts b { color:#f6c45e; font-family:'Noto Serif KR',serif; font-size:1.1rem; }
+  .mt-offer-types { display:flex; gap:12px; margin-bottom:16px; }
+  .mt-offer-type { flex:1; cursor:pointer; text-align:center; padding:14px 10px; border-radius:12px; border:1.5px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03); transition:border-color .15s,background .15s; user-select:none; }
+  .mt-offer-type .emoji { font-size:1.7rem; display:block; }
+  .mt-offer-type .nm { font-size:.82rem; margin-top:5px; opacity:.85; }
+  .mt-offer-type.sel { border-color:#f6c45e; background:rgba(246,196,94,.12); }
+  .mt-offer-box input[type=text] { width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff; font-size:.9rem; margin-bottom:13px; font-family:inherit; }
+  .mt-offer-box input::placeholder { color:rgba(255,255,255,.4); }
+  .mt-btn-offer { width:100%; padding:12px; border:0; border-radius:10px; cursor:pointer; background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208; font-weight:700; font-size:.95rem; }
+  .mt-btn-offer:hover { opacity:.9; } .mt-btn-offer:disabled { opacity:.5; cursor:not-allowed; }
+  .mt-float-layer { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
+  .mt-float { position:absolute; bottom:60px; font-size:1.5rem; opacity:0; animation:mtRise 3.4s ease-out forwards; }
+  @keyframes mtRise { 0%{opacity:0;transform:translateY(0) scale(.6)} 15%{opacity:.95} 100%{opacity:0;transform:translateY(-220px) scale(1.1)} }
+
+  /* 메시지(방명록) */
+  .mt-gb-form { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:18px; margin-bottom:22px; }
+  .mt-gb-form textarea { width:100%; box-sizing:border-box; min-height:64px; resize:vertical; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff; font-size:.9rem; font-family:inherit; margin-bottom:10px; }
+  .mt-gb-form textarea::placeholder { color:rgba(255,255,255,.4); }
+  .mt-gb-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .mt-gb-anon { font-size:.8rem; opacity:.8; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .mt-gb-submit { padding:9px 20px; border:0; border-radius:9px; cursor:pointer; font-weight:700; font-size:.88rem; background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208; }
+  .mt-gb-submit:disabled { opacity:.5; cursor:not-allowed; }
+  .mt-msg-list { display:flex; flex-direction:column; gap:12px; }
+  .mt-msg { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 16px; }
+  .mt-msg-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .mt-msg-author { font-weight:600; font-size:.86rem; }
+  .mt-msg-date { font-size:.72rem; opacity:.5; }
+  .mt-msg-body { font-size:.88rem; line-height:1.6; opacity:.92; white-space:pre-wrap; word-break:break-word; }
+  .mt-msg-actions { display:flex; gap:16px; margin-top:10px; }
+  .mt-msg-actions button { background:none; border:0; color:rgba(255,255,255,.6); font-size:.78rem; cursor:pointer; display:flex; align-items:center; gap:5px; padding:0; }
+  .mt-msg-actions button:hover { color:#fff; }
+  .mt-msg-actions button.liked { color:#f08a8a; }
+
+  /* 기억의 편지 */
+  .mt-letter-form { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:18px; margin-bottom:22px; }
+  .mt-letter-form input[type=text] { width:100%; box-sizing:border-box; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff; font-size:.9rem; font-family:inherit; margin-bottom:10px; }
+  .mt-letter-form textarea { width:100%; box-sizing:border-box; min-height:120px; resize:vertical; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); color:#fff; font-size:.9rem; font-family:inherit; line-height:1.7; margin-bottom:10px; }
+  .mt-letter-form input::placeholder, .mt-letter-form textarea::placeholder { color:rgba(255,255,255,.4); }
+  .mt-letter-list { display:flex; flex-direction:column; gap:14px; }
+  .mt-letter { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:18px 20px; }
+  .mt-letter-title { font-family:'Noto Serif KR',serif; font-size:1rem; font-weight:600; margin:0 0 8px; }
+  .mt-letter-meta { font-size:.74rem; opacity:.5; margin-bottom:10px; }
+  .mt-letter-body { font-size:.9rem; line-height:1.8; opacity:.9; white-space:pre-wrap; word-break:break-word; max-height:5.6em; overflow:hidden; position:relative; transition:max-height .25s; }
+  .mt-letter-body.open { max-height:none; }
+  .mt-letter-toggle { background:none; border:0; color:#f6c45e; font-size:.8rem; cursor:pointer; margin-top:8px; padding:0; }
+
+  /* 공유 / 후원 / 목록 */
+  .mt-actions { text-align:center; padding:40px 0; border-top:1px solid #1d1d33; }
+  .mt-actions .row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
+  .mt-btn { display:inline-block; padding:11px 24px; border-radius:24px; cursor:pointer; font-size:.9rem; font-weight:600; text-decoration:none; }
+  .mt-btn.ghost { border:1px solid rgba(255,255,255,.25); background:transparent; color:#fff; }
+  .mt-btn.ghost:hover { background:rgba(255,255,255,.08); }
+  .mt-btn.primary { border:0; background:linear-gradient(90deg,#c98a2f,#e6b35a); color:#1a1208; }
+  .mt-btn.primary:hover { opacity:.9; }
+  .mt-back { font-size:.86rem; opacity:.6; text-decoration:none; color:#fff; }
+  .mt-back:hover { opacity:.9; }
+
+  .mt-empty { text-align:center; padding:30px; color:rgba(255,255,255,.45); font-size:.88rem; }
+  .mt-loading { text-align:center; padding:60px 20px; color:rgba(255,255,255,.5); }
+  .mt-notfound { text-align:center; padding:90px 20px; }
+  .mt-notfound .ic { font-size:2.6rem; display:block; margin-bottom:16px; opacity:.6; }
+</style>
+</head>
+<body data-page="memorial">
+
+  <div id="header-slot"></div>
+
+  <main>
+
+    <div id="mtNotFound" class="mt-notfound" style="display:none">
+      <span class="ic">🕊️</span>
+      <p>해당 추모 공간을 찾을 수 없습니다.</p>
+      <p><a class="mt-back" href="/memorial.html">← 추모관으로 돌아가기</a></p>
+    </div>
+
+    <div id="mtLoading" class="mt-loading">불러오는 중…</div>
+
+    <div id="mtContent" style="display:none">
+
+      <!-- 프로필 -->
+      <section class="mt-profile">
+        <div class="container">
+          <div class="mt-photo" id="mtPhoto"><div class="silhouette">👤</div></div>
+          <h1 class="mt-name" id="mtName"></h1>
+          <p class="mt-region" id="mtRegion"></p>
+          <p class="mt-dates" id="mtDates"></p>
+          <p class="mt-tribute" id="mtTribute"></p>
+        </div>
+      </section>
+
+      <!-- 약력 -->
+      <section class="mt-section first" id="mtBioSection" style="display:none">
+        <div class="container"><div class="mt-wrap">
+          <h2 class="mt-h2">약력</h2>
+          <div class="mt-bio" id="mtBio"></div>
+        </div></div>
+      </section>
+
+      <!-- 타임라인 -->
+      <section class="mt-section" id="mtTimelineSection" style="display:none">
+        <div class="container"><div class="mt-wrap">
+          <h2 class="mt-h2">기억의 발자취</h2>
+          <div class="mt-timeline" id="mtTimeline"></div>
+        </div></div>
+      </section>
+
+      <!-- 개별 헌화 -->
+      <section class="mt-section mt-offer-section">
+        <div class="mt-float-layer" id="mtFloatLayer"></div>
+        <div class="container"><div class="mt-wrap">
+          <h2 class="mt-h2">헌화</h2>
+          <div class="mt-offer-box">
+            <div class="mt-offer-counts">밝혀진 촛불·국화 <b id="mtOfferTotal">0</b></div>
+            <div class="mt-offer-types" id="mtOfferTypes">
+              <div class="mt-offer-type sel" data-type="candle"><span class="emoji">🕯️</span><span class="nm">촛불</span></div>
+              <div class="mt-offer-type" data-type="flower"><span class="emoji">🏵️</span><span class="nm">국화</span></div>
+            </div>
+            <input type="text" id="mtOfferNick" maxlength="40" placeholder="닉네임 (선택)">
+            <button type="button" class="mt-btn-offer" id="mtOfferBtn">🕯️ 헌화하기</button>
+          </div>
+        </div></div>
+      </section>
+
+      <!-- 추모 메시지 -->
+      <section class="mt-section">
+        <div class="container"><div class="mt-wrap">
+          <h2 class="mt-h2">추모 메시지</h2>
+          <div class="mt-gb-form">
+            <textarea id="mtMsgContent" maxlength="1000" placeholder="짧은 추모의 글을 남겨주세요. (회원만 작성 가능)"></textarea>
+            <div class="mt-gb-row">
+              <label class="mt-gb-anon"><input type="checkbox" id="mtMsgAnon"> 익명으로 작성</label>
+              <button type="button" class="mt-gb-submit" id="mtMsgSubmit">남기기</button>
+            </div>
+          </div>
+          <div id="mtMsgList" class="mt-msg-list"></div>
+          <div id="mtMsgEmpty" class="mt-empty" style="display:none">아직 메시지가 없습니다. 첫 마음을 전해주세요.</div>
+        </div></div>
+      </section>
+
+      <!-- 기억의 편지 -->
+      <section class="mt-section">
+        <div class="container"><div class="mt-wrap">
+          <h2 class="mt-h2">기억의 편지</h2>
+          <div class="mt-letter-form">
+            <input type="text" id="mtLetterTitle" maxlength="150" placeholder="제목 (선택)">
+            <textarea id="mtLetterContent" placeholder="선생님께 전하고 싶은 긴 글을 남겨주세요. (회원만 작성 가능)"></textarea>
+            <div class="mt-gb-row">
+              <label class="mt-gb-anon"><input type="checkbox" id="mtLetterAnon"> 익명으로 작성</label>
+              <button type="button" class="mt-gb-submit" id="mtLetterSubmit">편지 남기기</button>
+            </div>
+          </div>
+          <div id="mtLetterList" class="mt-letter-list"></div>
+          <div id="mtLetterEmpty" class="mt-empty" style="display:none">아직 편지가 없습니다. 첫 편지를 남겨주세요.</div>
+        </div></div>
+      </section>
+
+      <!-- 공유 / 후원 / 목록 -->
+      <section class="mt-actions">
+        <div class="container">
+          <div class="row">
+            <button type="button" class="mt-btn ghost" id="mtShareBtn">🔗 링크 복사</button>
+            <a href="#" class="mt-btn primary" data-action="open-modal" data-target="donateModal">후원하기</a>
+          </div>
+          <a class="mt-back" href="/memorial.html">← 추모관 전체 보기</a>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/auth.js?v=14"></script>
+  <script src="/js/memorial-teacher.js?v=1"></script>
+  <script src="/js/memorial-bgm.js?v=1"></script>
+</body>
+</html>

@@ -298,6 +298,7 @@
           'att-config': '⚙️ 근태 설정',
           'org-news':   '📰 여론·뉴스 분석',
           'family-stories': '🕊️ 유가족 이야기',
+          'memorial-admin': '🕯️ 추모관 운영',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -392,6 +393,7 @@
         else if (tab === 'att-config') _nfLoadIframe('page-att-config'); /* 2026-05-21: 근태 설정 (설정 4탭) */
         else if (tab === 'org-news')   _nfLoadIframe('page-org-news');   /* 2026-05-24: 여론·뉴스 분석 */
         else if (tab === 'family-stories') _nfLoadIframe('page-family-stories'); /* 2026-05-24: 유가족 이야기 */
+        else if (tab === 'memorial-admin') _nfLoadIframe('page-memorial-admin'); /* 2026-05-24: 온라인 추모관 R2 운영 */
       });
     });
 
