@@ -219,5 +219,6 @@ function formatDef(r: any) {
     isSharedThreshold: r.is_shared_threshold, sharedThresholdGroup: r.shared_threshold_group,
     isActive: r.is_active, effectiveFrom: r.effective_from, effectiveTo: r.effective_to,
     sortOrder: r.sort_order,
+    nonRevenueCategory: r.non_revenue_category ?? null,
   };
 }

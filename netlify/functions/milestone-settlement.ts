@@ -11,14 +11,7 @@ class SettlementBadRequest extends Error {
   constructor(message: string) { super(message); this.name = "SettlementBadRequest"; }
 }
 
-/* ★ 성과 v4 2단계: 매출/비매출 영역별 변동급 캡(원·역할 코드 기준).
-   한쪽 영역 초과분이 다른쪽으로 이전되지 않음(독립 상한). 정책 850/850·사무 800/800·SI 1110/740(만원).
-   (역할 코드 PM=정책국장·SM=사무국장·SI — migrate-milestone-v4 매핑 결과. 미등록 역할은 무캡.) */
-const ROLE_CAPS: Record<string, { rev: number; nonRev: number }> = {
-  PM: { rev: 8500000,  nonRev: 8500000 },
-  SM: { rev: 8000000,  nonRev: 8000000 },
-  SI: { rev: 11100000, nonRev: 7400000 },
-};
+/* 비매출 분기 선택 한도 — 역할 캡은 DB(milestone_roles.revenue_cap·non_revenue_cap) 에서 동적 로드 */
 /* 비매출 분기 선택 한도(v4): 분기 전체 최대 7개 (카테고리당 2개는 선택 시점 milestone-nonrevenue에서 enforce) */
 const NON_REVENUE_MAX_PER_QUARTER = 7;
 
@@ -239,20 +232,37 @@ async function calcSettlement(memberId: number, quarterId: number) {
     nonRevenueBreakdown.push({ code: r.code, name: r.milestone_name, bonus, selectionOrder: r.selection_order });
   }
 
-  /* ★ v4 2단계: 매출/비매출 5:5 영역 캡 — 역할별 상한 적용(초과분 이전 X). 캡 미정의 역할은 무캡. */
-  const cap = ROLE_CAPS[milestoneRole];
+  /* ★ v4 폴리시 P2: 캡 값을 DB에서 동적 로드 (null이면 무캡). 하드코딩 ROLE_CAPS 제거. */
+  let revenueCap: number | null = null;
+  let nonRevenueCap: number | null = null;
+  if (milestoneRole) {
+    try {
+      const capRows = await db.execute(sql`
+        SELECT revenue_cap, non_revenue_cap
+        FROM milestone_roles
+        WHERE code = ${milestoneRole}
+        LIMIT 1
+      `);
+      const capRow = ((capRows as any).rows?.[0] || (capRows as any[])[0]);
+      if (capRow) {
+        revenueCap = capRow.revenue_cap != null ? Number(capRow.revenue_cap) : null;
+        nonRevenueCap = capRow.non_revenue_cap != null ? Number(capRow.non_revenue_cap) : null;
+      }
+    } catch {
+      // DB 오류 시 무캡으로 계속 (fail-open — 보상 오지급보다 차단이 더 나쁨)
+    }
+  }
+
   const revenueRaw = revenueLinkedTotal;
   const nonRevenueRaw = nonRevenueTotal;
-  if (cap) {
-    revenueLinkedTotal = Math.min(revenueLinkedTotal, cap.rev);
-    nonRevenueTotal = Math.min(nonRevenueTotal, cap.nonRev);
-  }
+  if (revenueCap != null) revenueLinkedTotal = Math.min(revenueLinkedTotal, revenueCap);
+  if (nonRevenueCap != null) nonRevenueTotal = Math.min(nonRevenueTotal, nonRevenueCap);
 
   return {
     memberId, quarterId, milestoneRole,
     revenueLinkedTotal, nonRevenueTotal, totalBonus: revenueLinkedTotal + nonRevenueTotal,
     revenueRaw, nonRevenueRaw,
-    revenueCap: cap?.rev ?? null, nonRevenueCap: cap?.nonRev ?? null,
+    revenueCap, nonRevenueCap,
     revenueBreakdown, nonRevenueBreakdown,
   };
 }

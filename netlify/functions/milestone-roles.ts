@@ -131,7 +131,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const ins = await db.execute(sql`
         INSERT INTO milestone_roles (code, name, description, sort_order, is_active)
         VALUES (${code}, ${name}, ${description}, ${sortOrder}, TRUE)
-        RETURNING id, code, name, description, sort_order, is_active
+        RETURNING id, code, name, description, sort_order, is_active, revenue_cap, non_revenue_cap
       `);
       const row = ((ins as any).rows ?? ins)[0];
       invalidateRoleCache();
@@ -143,6 +143,8 @@ export default async function handler(req: Request, _ctx: Context) {
           description: row.description,
           sortOrder: Number(row.sort_order),
           isActive: Boolean(row.is_active),
+          revenueCap: row.revenue_cap != null ? Number(row.revenue_cap) : null,
+          nonRevenueCap: row.non_revenue_cap != null ? Number(row.non_revenue_cap) : null,
         },
       });
     } catch (err) {
@@ -180,6 +182,16 @@ export default async function handler(req: Request, _ctx: Context) {
     if (body.isActive !== undefined) {
       fields.push("is_active"); values.push(Boolean(body.isActive));
     }
+    if (body.revenueCap !== undefined) {
+      const v = body.revenueCap === null ? null : Number(body.revenueCap);
+      if (v !== null && !Number.isFinite(v)) return jsonErr("revenueCap은 숫자 또는 null", 400);
+      fields.push("revenue_cap"); values.push(v);
+    }
+    if (body.nonRevenueCap !== undefined) {
+      const v = body.nonRevenueCap === null ? null : Number(body.nonRevenueCap);
+      if (v !== null && !Number.isFinite(v)) return jsonErr("nonRevenueCap은 숫자 또는 null", 400);
+      fields.push("non_revenue_cap"); values.push(v);
+    }
     if (fields.length === 0) return jsonErr("변경할 필드가 없습니다", 400);
 
     // SET 절을 sql 조각으로 합성 (drizzle sql template literal 패턴)
@@ -193,13 +205,15 @@ export default async function handler(req: Request, _ctx: Context) {
         else if (f === "description") setExpr = sql`${setExpr}, description = ${v}`;
         else if (f === "sort_order") setExpr = sql`${setExpr}, sort_order = ${v}`;
         else if (f === "is_active") setExpr = sql`${setExpr}, is_active = ${v}`;
+        else if (f === "revenue_cap") setExpr = sql`${setExpr}, revenue_cap = ${v}`;
+        else if (f === "non_revenue_cap") setExpr = sql`${setExpr}, non_revenue_cap = ${v}`;
       }
 
       const upd = await db.execute(sql`
         UPDATE milestone_roles
         SET ${setExpr}
         WHERE id = ${id}
-        RETURNING id, code, name, description, sort_order, is_active
+        RETURNING id, code, name, description, sort_order, is_active, revenue_cap, non_revenue_cap
       `);
       const row = (((upd as any).rows ?? upd) as any[])[0];
       if (!row) return jsonErr("해당 역할을 찾을 수 없습니다", 404);
@@ -212,6 +226,8 @@ export default async function handler(req: Request, _ctx: Context) {
           description: row.description,
           sortOrder: Number(row.sort_order),
           isActive: Boolean(row.is_active),
+          revenueCap: row.revenue_cap != null ? Number(row.revenue_cap) : null,
+          nonRevenueCap: row.non_revenue_cap != null ? Number(row.non_revenue_cap) : null,
         },
       });
     } catch (err) {

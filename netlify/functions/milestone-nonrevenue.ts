@@ -27,7 +27,7 @@ export default async function handler(req: Request, _ctx: Context) {
       /* ★ R29-GAP-P2-C BUG fix: sql.raw(q, params) 파라미터 미바인딩 → sql 템플릿 합성 */
       let baseSql = sql`
         SELECT nra.*, md.code, md.name as milestone_name, md.quarter_applicable,
-               md.bonus_formula, md.target_milestone_role
+               md.bonus_formula, md.target_milestone_role, md.non_revenue_category
         FROM non_revenue_achievements nra
         JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
         WHERE nra.submitted_by = ${admin.id}
@@ -205,5 +205,6 @@ function formatAch(r: any) {
     selectionOrder: r.selection_order, status: r.status,
     reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, rejectReason: r.reject_reason,
     createdAt: r.created_at,
+    nonRevenueCategory: r.non_revenue_category ?? null,
   };
 }

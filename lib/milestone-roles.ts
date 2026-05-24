@@ -17,6 +17,8 @@ export interface RoleRow {
   description: string | null;
   sortOrder: number;
   isActive: boolean;
+  revenueCap: number | null;
+  nonRevenueCap: number | null;
 }
 
 const CACHE_TTL_MS = 30_000; // 30초 — 라벨·검증 둘 다 매 요청 SELECT 비용 회피
@@ -31,12 +33,12 @@ export function invalidateRoleCache(): void {
 async function loadFromDb(includeInactive: boolean): Promise<RoleRow[]> {
   const res = includeInactive
     ? await db.execute(sql`
-        SELECT code, name, description, sort_order, is_active
+        SELECT code, name, description, sort_order, is_active, revenue_cap, non_revenue_cap
         FROM milestone_roles
         ORDER BY sort_order, id
       `)
     : await db.execute(sql`
-        SELECT code, name, description, sort_order, is_active
+        SELECT code, name, description, sort_order, is_active, revenue_cap, non_revenue_cap
         FROM milestone_roles
         WHERE is_active = TRUE
         ORDER BY sort_order, id
@@ -48,6 +50,8 @@ async function loadFromDb(includeInactive: boolean): Promise<RoleRow[]> {
     description: r.description ?? null,
     sortOrder: Number(r.sort_order ?? 0),
     isActive: Boolean(r.is_active),
+    revenueCap: r.revenue_cap != null ? Number(r.revenue_cap) : null,
+    nonRevenueCap: r.non_revenue_cap != null ? Number(r.non_revenue_cap) : null,
   }));
 }
 
