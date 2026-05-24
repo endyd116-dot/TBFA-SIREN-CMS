@@ -19,9 +19,13 @@ const SEED_KEYWORDS = [
 export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const run = url.searchParams.get("run") === "1";
+  /* ★ C 검증 후속(2026-05-24·메인): 옛 마이그가 이미 돌아 keywords/scopes가 jsonp(잘못된 타입)으로
+     생성된 상태는 ADD COLUMN IF NOT EXISTS로 못 고침. Neon은 읽기전용이라 Swain이 콘솔 DROP 불가
+     → ?reset=1 로 두 표를 DROP 후 깨끗이 재생성(보고서 데이터 없음·설정 시드만 재생성하므로 안전). */
+  const reset = url.searchParams.get("reset") === "1";
 
   // 진단 모드 (인증 불필요)
-  if (!run) {
+  if (!run && !reset) {
     try {
       const r: any = await db.execute(sql`
         SELECT
@@ -42,6 +46,14 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const done: string[] = [];
   try {
+    /* ?reset=1 — 잘못된 타입(jsonb)으로 만들어진 옛 표를 DROP 후 깨끗이 재생성.
+       보고서 행은 옛 마이그 500으로 한 번도 INSERT된 적 없어 데이터 손실 0(설정 시드만 재생성). */
+    if (reset) {
+      await db.execute(sql`DROP TABLE IF EXISTS org_news_reports`);
+      await db.execute(sql`DROP TABLE IF EXISTS org_news_settings`);
+      done.push("dropped(reset)");
+    }
+
     /* ★ C 검증 fix(2026-05-24): 백엔드(naver-search·org-news-analyze·5엔드포인트·cron)가
        실제로 쓰는 컬럼·타입에 맞춤. 기존 설계 §4 스키마(source_count·sources·status·jsonb keywords)는
        서버 INSERT/SELECT(collected_count·items·ai_status·text[] keywords)와 어긋나 호출 시 전부 500이었음.

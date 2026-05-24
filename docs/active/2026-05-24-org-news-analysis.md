@@ -30,7 +30,12 @@
 
 ## 4. 데이터 모델 (메인이 마이그 작성·Swain 호출)
 
-### `org_news_reports` (보고서 = 행 누적 = 히스토리)
+> ⚠️ **2026-05-24 정정(C 검증 BUG-1)**: 아래 §4 표는 **설계 초안**이며, B 백엔드 구현이 더 풍부·일관된 컬럼을 사용해 **실제 스키마와 어긋났음**. **권위 스키마 = `netlify/functions/migrate-org-news.ts`(C fix 버전)**. 실제 사용 컬럼:
+> - `org_news_reports`: `id·keywords text[]·scopes text[]·per_combo·collected_count·items jsonb·summary·keyword_cloud jsonb·sentiment jsonb·recommendations jsonb·diff_summary·ai_status·trigger_type·generated_by·created_at` (+`created_at DESC` 인덱스). *period_from/to·source_count·sources·ai_model·status(varchar)는 미사용 — collected_count·items·ai_status로 대체.*
+> - `org_news_settings`: `id·keywords text[]·scopes text[]·per_combo·auto_enabled·cron_hour_kst·updated_at·updated_by` (싱글톤 CHECK·시드 keywords raw 배열).
+> - keywords/scopes는 서버가 **raw 배열 바인딩 → `text[]`**(jsonb 아님). 옛 마이그로 jsonb 생성된 DB는 `?reset=1`로 DROP·재생성.
+
+### `org_news_reports` (보고서 = 행 누적 = 히스토리) — ⚠️아래는 초안(권위=마이그)
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | id | serial PK | |
@@ -136,7 +141,16 @@ cron·수동 공용. fail-open(시드 불필요).
 - env `NAVER_SEARCH_CLIENT_ID`·`NAVER_SEARCH_CLIENT_SECRET` 등록 ✅(완료)
 - **마이그 호출**: `https://tbfa.co.kr/api/migrate-org-news?run=1` (어드민 로그인) → 2테이블 생성. **호출 전엔 보고서 목록/단건 500**(정상).
 
-### 종결 시 잔여(C 검증 통과 후)
-- [ ] C 검증(`verify/2026-05-24-org-news`) — 트리거 발사 대기(머지 push 후)
-- [ ] 마이그 함수 삭제(호출 성공 후) + schema.ts append-only 정의(선택)
+### C 검증 (2026-05-24·`04275b9`→머지 `9c031cd`) — BUG 2건 발견·fix·나머지 PASS·tsc 0
+- **BUG-1(P0)**: 마이그 컬럼명·타입이 서버 코드와 전면 불일치(설계 초안대로 `source_count·jsonb keywords` vs 서버 `collected_count·items·ai_status·text[]`) → 호출 시 전부 500. **베이스 어긋남으로 B가 설계서를 못 본 채 독자 컬럼 사용**한 결과(§6.1·§9.1.1 위반). → 마이그를 서버 실사용 스키마로 재작성.
+- **BUG-2(P1)**: 화면이 읽는 응답 키가 서버와 달라 보고서 있어도 빈 화면 → 화면에 서버 실응답 폴백 추가(양쪽 키 수용·회귀 0).
+- 정상: 수집·분석·5엔드포인트 권한·cron·워드클라우드 3단 폴백·CMS 4곳·featureKey 전부 PASS.
+
+### 메인 후속(2026-05-24)
+- **마이그 `?reset=1` 추가**: Swain이 옛(틀린 타입) 마이그를 이미 호출 → keywords/scopes가 jsonb로 생성됨. ADD COLUMN으론 타입 못 고치고 Neon 콘솔 DROP 불가 → `?reset=1`이 두 빈 표 DROP 후 재생성(데이터 0·안전).
+- §4 문서를 구현 스키마로 정정(권위=마이그).
+
+### 종결 시 잔여
+- [ ] **Swain: `https://tbfa.co.kr/api/migrate-org-news?reset=1` 호출**(push 배포 후·옛 표 교체) → 재조사 라이브 테스트
+- [ ] 마이그 함수 삭제(reset 성공 후) + schema.ts append-only 정의(선택)
 - [ ] 매뉴얼·명세 동기화 + 설계서 history 이동
