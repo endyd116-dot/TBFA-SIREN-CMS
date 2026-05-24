@@ -107,6 +107,10 @@
 [functions."admin-finance-report-pdf"]
   included_files = ["assets/fonts/**"]
 
+# ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
+[functions."cron-org-news"]
+  schedule = "0 0 * * *"
+
 # ★ STEP I-2: 채팅 이미지 자동 정리 (매일 새벽 3시 KST = UTC 18:00)
 [functions."cleanup-chat-images"]
   schedule = "0 18 * * *"
