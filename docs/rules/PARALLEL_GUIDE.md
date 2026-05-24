@@ -114,6 +114,23 @@ git worktree add ../tbfa-mis-C verify/{branch-C}  origin/main
 
 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**.
 
+### 4.1 베이스 정합 — origin/main 기준 분기 (2026-05-24 강화·필수)
+
+**A·B·C 분기 베이스는 언제나 `origin/main`(push된 ref).** 로컬 main(미push 커밋 포함)을 베이스로 지정하지 말 것.
+
+```bash
+cd ../tbfa-mis-{X}
+git fetch origin
+git checkout -B feature/{branch} origin/main      # 기존 워크트리가 옛 브랜치에 있어도 강제 재설정
+git log --oneline -1                               # 베이스 = 기대 커밋인지 눈으로 확인
+git merge-base --is-ancestor {BASE_HASH} HEAD && echo "베이스 OK" || echo "⚠️ 베이스 어긋남 — 메인에 보고"
+```
+
+- **메인 의무**: 라운드 분배 **전에** 설계서·마이그 등 라운드 베이스를 **origin/main에 push**한다(§9.3 push 최소화의 예외 아님 — 베이스 push는 마이그 배포처럼 필수 enabler·라운드당 1회). 베이스를 미push 로컬 main에만 두고 분배하면 A·B가 다른 베이스에서 시작한다.
+- **트리거 의무**: 위 셋업 블록 + **기대 베이스 해시**를 트리거에 명시 → 서브 채팅이 첫 줄에서 자가 검증.
+- **기존 워크트리 주의**: A·B·C 워크트리는 이전 라운드 브랜치에 머물러 있을 수 있다. `git checkout -B ... origin/main`(대문자 -B)로 강제 재설정해 옛 HEAD 베이스 잔류를 차단.
+- 사고: 2026-05-24 ④ 라운드 — 메인이 ④설계·마이그를 미push 로컬 main에만 두고 분배 → A는 origin/main(③만), B는 더 옛 베이스(9f8bc66)에서 시작 → 머지 시 옛 검수 커밋 혼입·`lib/ai-feature.ts` 충돌. §16 선택적 체크아웃(작업 커밋만 cherry-pick)으로 복구.
+
 ---
 
 ## 5. 머지 순서 (강제)
@@ -561,4 +578,13 @@ docs/ 폴더 67개 파일(16,260줄) 압축:
 
 ---
 
-**최종 갱신**: 2026-05-14 심야 (Phase 22-A·22-C 라운드 신규 정책 6개 추가 — §12 자율주행·§13 영역 라벨·§14 진행률·§15 머지 검증·§16 선택적 체크아웃·§17 C 자체 fix·§18 Subagent 병렬·§19 사고 사례 5건)
+### 2026-05-24 — 미push 로컬 main 베이스로 분배 → A·B 베이스 어긋남
+**원인**: 메인이 ④ 라운드 설계서·마이그를 push 비용 아끼려 **미push 로컬 main**에만 커밋하고 A·B에게 "베이스 main"으로 분배. A·B는 `origin/main`(④설계 없음) 또는 옛 워크트리 HEAD(9f8bc66)에서 분기 → 베이스 어긋남. 트리거에 베이스 해시 검증 단계도 없어 서브 채팅이 자가 발견 못 함. 더 근본: PARALLEL_GUIDE 미정독(§4 "origin/main 기준 분기" 위반).
+**영향**: 머지 시 옛 검수 커밋(ce5dcd8·cf0aaba) 혼입 + `lib/ai-feature.ts` FEATURE_REGISTRY 충돌. 운영 영향은 0(작업 커밋만 cherry-pick으로 복구·tsc 0).
+**대응**: §4.1 신설 — 베이스는 항상 origin/main, 메인이 분배 전 베이스 push, 트리거에 `git fetch + checkout -B origin/main + 베이스 해시 검증` 블록 + 기대 해시 명시. PARALLEL_TEMPLATE §6 셋업 블록 반영. 메모리 `feedback_parallel_base`.
+
+---
+
+**최종 갱신**: 2026-05-24 (§4.1 베이스 정합 강화 + §19 사고 사례 1건 — 미push 로컬 main 베이스 분배 → A·B 베이스 어긋남)
+
+이전: 2026-05-14 심야 (Phase 22-A·22-C 라운드 신규 정책 6개 — §12 자율주행·§13 영역 라벨·§14 진행률·§15 머지 검증·§16 선택적 체크아웃·§17 C 자체 fix·§18 Subagent 병렬·§19 사고 사례 5건)

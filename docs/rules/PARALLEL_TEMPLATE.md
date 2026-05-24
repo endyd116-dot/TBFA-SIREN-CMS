@@ -217,6 +217,20 @@ INSERT INTO {table_name} (...) VALUES (...) ON CONFLICT DO NOTHING;
 
 ## 6. 4채팅 시작 프롬프트 (Swain 복붙용)
 
+### 6.0 워크트리 셋업 (모든 채팅 공통·필수 — 2026-05-24 신설)
+
+> ⚠️ **베이스 정합 (PARALLEL_GUIDE §4.1)**: 분기 베이스는 **항상 `origin/main`**(push된 ref). 메인은 **분배 전에 설계서·마이그 등 라운드 베이스를 origin/main에 push**한다(베이스 push는 §9.3 예외 아님·라운드당 1회 필수 enabler). 각 트리거는 아래 셋업 블록 + **기대 베이스 해시**를 포함해 서브 채팅이 자가 검증하게 한다. 미push 로컬 main을 베이스로 지정하면 A·B가 다른 베이스에서 시작(2026-05-24 사고).
+
+모든 A·B·C 트리거 맨 위 "워크트리" 줄 아래에 박을 것:
+```
+■ 셋업 (그대로 실행)
+  cd ../tbfa-mis-{X}
+  git fetch origin
+  git checkout -B feature/{branch} origin/main     # 대문자 -B: 옛 브랜치에 있어도 강제 재설정
+  git log --oneline -1                              # 베이스가 {BASE_HASH} 인지 확인
+  git merge-base --is-ancestor {BASE_HASH} HEAD && echo "베이스 OK" || echo "⚠️ 어긋남 — 메인에 보고 후 중단"
+```
+
 ### 6.1 메인 (Opus 4.7) — 이미 작업 중이므로 생략 (이 설계서가 산출물)
 
 ### 6.2 B 채팅 — 백 구현
@@ -228,7 +242,8 @@ INSERT INTO {table_name} (...) VALUES (...) ON CONFLICT DO NOTHING;
 
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-B
-브랜치: feature/phase{N}-r{M}-back (베이스 main @ {커밋})
+브랜치: feature/phase{N}-r{M}-back (베이스 origin/main @ {push된 베이스 해시})
+■ 셋업 (§6.0 그대로): cd ../tbfa-mis-B; git fetch origin; git checkout -B feature/phase{N}-r{M}-back origin/main; git log --oneline -1; git merge-base --is-ancestor {BASE_HASH} HEAD && echo 베이스 OK || echo "⚠️ 어긋남-메인보고"
 정독 (필수): docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §1·§2
 참고: docs/rules/PARALLEL_GUIDE.md §3 (영역 분담), §7 (자체 검증)
 
@@ -285,7 +300,8 @@ push 후 메인에 보고:
 
 모델: Sonnet 4.6
 워크트리: ../tbfa-mis-A
-브랜치: feature/phase{N}-r{M}-front (베이스 main @ {커밋})
+브랜치: feature/phase{N}-r{M}-front (베이스 origin/main @ {push된 베이스 해시})
+■ 셋업 (§6.0 그대로): cd ../tbfa-mis-A; git fetch origin; git checkout -B feature/phase{N}-r{M}-front origin/main; git log --oneline -1; git merge-base --is-ancestor {BASE_HASH} HEAD && echo 베이스 OK || echo "⚠️ 어긋남-메인보고"
 정독 (필수): docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §3
 참고: docs/rules/PARALLEL_GUIDE.md §3 (영역 분담)
 
@@ -331,7 +347,8 @@ push 후 메인에 보고:
 
 모델: Opus 4.7
 워크트리: ../tbfa-mis-C
-브랜치: verify/phase{N}-r{M} (베이스 main @ {머지 후 커밋})
+브랜치: verify/phase{N}-r{M} (베이스 origin/main @ {A·B 머지 push 후 해시})
+■ 셋업 (§6.0 그대로): cd ../tbfa-mis-C; git fetch origin; git checkout -B verify/phase{N}-r{M} origin/main; git log --oneline -1; git merge-base --is-ancestor {BASE_HASH} HEAD && echo 베이스 OK || echo "⚠️ 어긋남-메인보고"
 정독: docs/active/{날짜}-phase{N}-r{M}-{키워드}.md §4
 참고: docs/rules/PARALLEL_GUIDE.md §7 (검증 책임), §8 (대기열)
 
@@ -361,4 +378,6 @@ push 후 메인에 보고:
 
 ---
 
-**템플릿 마지막 갱신**: 2026-05-12 (§6.2·§6.3 체크박스 패턴 + mock 트리거 임베드 강제 — memory/feedback_design_routine.md §4와 정합)
+**템플릿 마지막 갱신**: 2026-05-24 (§6.0 워크트리 셋업·베이스 정합 블록 신설 + 3개 트리거 베이스를 origin/main·해시 검증으로 — PARALLEL_GUIDE §4.1과 정합)
+
+이전: 2026-05-12 (§6.2·§6.3 체크박스 패턴 + mock 트리거 임베드 강제 — memory/feedback_design_routine.md §4와 정합)
