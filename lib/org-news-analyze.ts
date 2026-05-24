@@ -23,11 +23,17 @@ import type { NaverSearchItem } from "./naver-search";
 export const INCIDENT_KEYWORDS = [
   "교사 사망",
   "교사 순직",
-  "교권 침해",
-  "학교 사건사고",
-  "교사 추락",
-  "교사 극단적 선택",
   "교원 순직",
+  "교사 극단적 선택",
+  "교원 자살",
+  "교권 침해",
+  "교사 폭행",
+  "공무상 재해 교사",
+  "교사 과로사",
+  "신규교사 사망",
+  "교직원 사망",
+  "학교 안전사고",
+  "교사 추락",
 ] as const;
 
 export interface IncidentItem {
@@ -37,8 +43,10 @@ export interface IncidentItem {
   pubDate:         string;
   relevance:       number;   // 0~100 협회 관련도
   urgency:         "높음" | "보통" | "낮음";
+  incidentType:    string;   // 사건 유형(사망/순직/교권침해/사고 등)
+  affected:        string;   // 도와줘야 할 대상(유족·당사자 등) — 빠른 파악용
   reason:          string;
-  suggestedAction: string;
+  suggestedAction: string;   // 협회 지원 방안(심리상담·법률·장학·순직인정 지원·성명 등)
 }
 
 /** JS 문자열 배열 → Postgres text[] 바인딩.
@@ -201,16 +209,19 @@ export async function judgeIncidents(
     )
     .join("\n\n");
 
-  const prompt = `당신은 한국 교사유가족협의회의 사건·사고 모니터링 담당자입니다.
-아래는 최근 1주간 교사 관련 사건·사고 키워드로 수집된 뉴스 목록입니다.
-수집 건수: ${items.length}건
+  const prompt = `당신은 (사)교사유가족협의회의 "교육계 사망·사건사고" 모니터링 담당자입니다.
+협회의 목적은 교사·교직원의 사망(순직·자살·과로사·재해 등)과 교권 침해·학교 사건사고로 고통받는
+**당사자와 유가족을 빠르게 찾아 돕는 것**입니다. 협회가 제공하는 지원: 심리상담·법률 자문·장학·순직(공무상 재해) 인정 지원·연대 성명.
+
+아래는 최근 1주간 교육계 사건·사고 키워드로 수집된 뉴스 목록입니다. 수집 건수: ${items.length}건
 
 ---
 ${snippets}
 ---
 
-위 기사 중 "(사)교사유가족협의회"가 관심을 갖거나 실제 개입·지원·성명 발표를 고려할 만한 사건·사고만 추려내세요.
-단순 홍보·정책 기사·협회와 무관한 내용은 제외하세요.
+위 기사 중 **협회가 관심을 갖고 실제로 도와야 할 교육계 사망·사건사고**만 추려내세요.
+(교사·교직원·교육 종사자의 사망·순직·자살·재해, 교권 침해 피해, 학교 안전사고 등)
+단순 정책·홍보·통계 기사, 협회와 무관한 일반 사건은 제외하세요.
 
 아래 JSON 형식으로만 응답하세요(한국어, 코드블록 없이):
 {
@@ -220,25 +231,27 @@ ${snippets}
       "link": "기사 URL",
       "source": "수집 키워드",
       "pubDate": "날짜(ISO 또는 원본)",
+      "incidentType": "사망|순직|자살|과로사|공무상재해|교권침해|학교안전사고|기타",
       "relevance": 0~100,
       "urgency": "높음|보통|낮음",
-      "reason": "협회가 주목해야 하는 이유 1~2문장",
-      "suggestedAction": "협회가 취할 수 있는 구체 대응 1문장"
+      "affected": "도와줘야 할 대상 — 누가/어디 소속인지 구체적으로(예: '서울 OO초 신규교사 유가족'). 불명확하면 기사에서 파악되는 만큼.",
+      "reason": "협회가 주목·개입해야 하는 이유 1~2문장",
+      "suggestedAction": "협회의 구체 지원 방안(심리상담·법률·장학·순직 인정 지원·연대 성명 중 적합한 것) 1문장"
     }
   ]
 }
 
 urgency 기준:
-- 높음: 교사 사망·순직 등 즉각 대응 필요
-- 보통: 교권 침해·학교 사건 등 모니터링·준비 필요
+- 높음: 교사·교직원 사망·순직 등 즉각 접촉·지원 필요(유가족 있는 경우 최우선)
+- 보통: 교권 침해·학교 사건 등 모니터링·지원 준비 필요
 - 낮음: 관련 동향이나 잠재적 관심사
 
-관련 없으면 "incidents": [] 로 응답.`;
+협회가 도울 만한 사건이 없으면 "incidents": [] 로 응답.`;
 
   const result = await callGeminiJSON<{ incidents: IncidentItem[] }>(prompt, {
     featureKey:      "org_news_analysis",
     mode:            "pro",
-    maxOutputTokens: 2000,
+    maxOutputTokens: 3000,
   });
 
   if (result.ok && result.data && Array.isArray(result.data.incidents)) {
@@ -249,8 +262,10 @@ urgency 기준:
         link:            String(it.link            || ""),
         source:          String(it.source          || ""),
         pubDate:         String(it.pubDate         || ""),
+        incidentType:    String(it.incidentType    || "기타").slice(0, 20),
         relevance:       typeof it.relevance === "number" ? Math.max(0, Math.min(100, it.relevance)) : 50,
         urgency:         ["높음", "보통", "낮음"].includes(it.urgency) ? it.urgency : "보통",
+        affected:        String(it.affected        || "").slice(0, 200),
         reason:          String(it.reason          || "").slice(0, 300),
         suggestedAction: String(it.suggestedAction || "").slice(0, 300),
       }));

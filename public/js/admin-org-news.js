@@ -47,6 +47,41 @@ function urgencyBadge(urgency) {
   return '<span class="badge badge-' + (cls[label] || 'urg-low') + '">' + esc(label) + '</span>';
 }
 
+/* ── 🚨 교육계 사망·사건사고 카드 (협회 관심·지원 대상·빠른 파악용) ── */
+function renderIncidentsCard(incidents) {
+  var html = '<div class="card" style="border:1px solid #fecaca;background:#fff7f7">';
+  html += '<div class="card-title">🚨 교육계 사망·사건사고 — 협회 관심·지원 대상</div>';
+  if (!incidents || incidents.length === 0) {
+    html += '<div style="text-align:center;padding:20px 0;color:#9ca3af;font-size:13px">최근 협회가 도울 만한 교육계 사건이 없습니다. (🔄 최신 재조사로 갱신)</div>';
+    return html + '</div>';
+  }
+  var urgOrder = { '높음': 0, '보통': 1, '낮음': 2 };
+  var sorted = incidents.slice().sort(function(a, b) {
+    var ua = urgOrder[a.urgency] != null ? urgOrder[a.urgency] : 9;
+    var ub = urgOrder[b.urgency] != null ? urgOrder[b.urgency] : 9;
+    if (ua !== ub) return ua - ub;
+    return (b.relevance || 0) - (a.relevance || 0);
+  });
+  sorted.forEach(function(inc) {
+    html += '<div class="incident-card">';
+    html += '<div class="incident-card-header">';
+    html += urgencyBadge(inc.urgency);
+    if (inc.incidentType) html += '<span class="stat-chip">' + esc(inc.incidentType) + '</span>';
+    html += '<span class="incident-relevance">관련도 ' + (inc.relevance != null ? inc.relevance : '—') + '%</span>';
+    html += '</div>';
+    html += '<a class="incident-title" href="' + esc(inc.link || '#') + '" target="_blank" rel="noopener">' + esc(inc.title) + '</a>';
+    var meta = [];
+    if (inc.source) meta.push('#' + esc(inc.source));
+    if (inc.pubDate) meta.push(esc(fmtDateShort(inc.pubDate)));
+    if (meta.length) html += '<div class="incident-meta">' + meta.join(' · ') + '</div>';
+    if (inc.affected) html += '<div class="incident-action" style="background:#fef2f2;color:#991b1b">🧑‍🤝‍🧑 도움 대상: <b>' + esc(inc.affected) + '</b></div>';
+    if (inc.reason) html += '<div class="incident-reason">📌 ' + esc(inc.reason) + '</div>';
+    if (inc.suggestedAction) html += '<div class="incident-action">💬 지원 방안: ' + esc(inc.suggestedAction) + '</div>';
+    html += '</div>';
+  });
+  return html + '</div>';
+}
+
 /* ── 여론 배지 ── */
 function sentimentBadge(label) {
   /* 백엔드 label은 영문(positive/neutral/negative/mixed), 설계 계약은 한글 — 양쪽 모두 수용해 한글로 표시 */
@@ -189,6 +224,9 @@ function renderReport(report) {
     html += '</div>';
   }
 
+  /* 🚨 교육계 사망·사건사고 — 상단 배치(긴 소스 목록에 묻히지 않게·빠른 파악) */
+  html += renderIncidentsCard(incidents);
+
   /* 워드클라우드 */
   html += '<div class="card">';
   html += '<div class="card-title">☁️ 연관 키워드 클라우드</div>';
@@ -216,10 +254,11 @@ function renderReport(report) {
     html += '</div>';
   }
 
-  /* 소스 링크 */
+  /* 소스 링크 — 길어서 기본 접힘(사건·사고는 위로 이동) */
   if (sources.length) {
     html += '<div class="card">';
-    html += '<div class="card-title">🔗 수집 소스 목록 (' + sources.length + '건)</div>';
+    html += '<details><summary style="cursor:pointer;font-size:14px;font-weight:700;color:#111;outline:none">🔗 수집 소스 목록 (' + sources.length + '건) — 펼치기</summary>';
+    html += '<div style="margin-top:10px">';
     sources.forEach(function(s) {
       html += '<div class="source-row">';
       html += '<a class="source-title" href="' + esc(s.link) + '" target="_blank" rel="noopener">' + esc(s.title) + '</a>';
@@ -232,44 +271,9 @@ function renderReport(report) {
       }
       html += '</div>';
     });
+    html += '</div></details>';
     html += '</div>';
   }
-
-  /* 협회 관련 사건·사고 */
-  html += '<div class="card">';
-  html += '<div class="card-title">🚨 협회 관련 사건·사고</div>';
-  if (!incidents || incidents.length === 0) {
-    html += '<div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px">최근 관련 사건 없음</div>';
-  } else {
-    /* urgency 내림차순(높음→보통→낮음), 같으면 relevance 내림차순 */
-    var urgOrder = { '높음': 0, '보통': 1, '낮음': 2 };
-    var sorted = incidents.slice().sort(function(a, b) {
-      var ua = urgOrder[a.urgency] != null ? urgOrder[a.urgency] : 9;
-      var ub = urgOrder[b.urgency] != null ? urgOrder[b.urgency] : 9;
-      if (ua !== ub) return ua - ub;
-      return (b.relevance || 0) - (a.relevance || 0);
-    });
-    sorted.forEach(function(inc) {
-      html += '<div class="incident-card">';
-      html += '<div class="incident-card-header">';
-      html += urgencyBadge(inc.urgency);
-      html += '<span class="incident-relevance">관련도 ' + (inc.relevance != null ? inc.relevance : '—') + '%</span>';
-      html += '</div>';
-      html += '<a class="incident-title" href="' + esc(inc.link || '#') + '" target="_blank" rel="noopener">' + esc(inc.title) + '</a>';
-      var meta = [];
-      if (inc.source) meta.push(esc(inc.source));
-      if (inc.pubDate) meta.push(esc(fmtDateShort(inc.pubDate)));
-      if (meta.length) html += '<div class="incident-meta">' + meta.join(' · ') + '</div>';
-      if (inc.reason) {
-        html += '<div class="incident-reason">📌 ' + esc(inc.reason) + '</div>';
-      }
-      if (inc.suggestedAction) {
-        html += '<div class="incident-action">💬 제안 대응: ' + esc(inc.suggestedAction) + '</div>';
-      }
-      html += '</div>';
-    });
-  }
-  html += '</div>';
 
   return html;
 }
