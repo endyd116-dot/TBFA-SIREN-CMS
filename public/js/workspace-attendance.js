@@ -174,14 +174,13 @@
     if (gpsNote) gpsNote.textContent = noGps ? '📡 GPS 위치 확인 없이 기록됩니다' : '📍 GPS 위치 정보가 함께 기록됩니다';
 
     if (rec.checkoutAt) {
-      // 퇴근 완료
-      btnIn.style.display = 'none';
+      // 퇴근 완료 — 재출근/시각수정이 가능하도록 출근 버튼을 '재출근'으로 노출
+      btnIn.style.display = 'flex';
+      btnIn.disabled = false;
+      btnIn.textContent = '🔄 재출근 / 시각 수정';
       btnOut.style.display = 'none';
       if (statusEl) statusEl.innerHTML = `✅ 퇴근 완료<br><strong>출근 ${fmtTime(rec.checkinAt)} — 퇴근 ${fmtTime(rec.checkoutAt)}</strong>`;
-      const doneBtn = document.createElement('button');
-      doneBtn.className = 'att-btn-checkin att-btn-done';
-      doneBtn.textContent = '✅ 오늘 근무 완료';
-      btnIn.parentElement.appendChild(doneBtn);
+      btnIn.addEventListener('click', () => doCheckin(mode));
     } else if (rec.checkinAt) {
       // 출근 후 대기
       btnIn.style.display = 'none';
@@ -246,11 +245,23 @@
     );
   }
 
-  async function sendCheckin(lat, lng, workplaceId) {
+  async function sendCheckin(lat, lng, workplaceId, reentryMode) {
     const body = { deviceType: detectDeviceType() };
     if (lat !== null) { body.lat = lat; body.lng = lng; }
     if (workplaceId != null) body.workplaceId = workplaceId;
+    if (reentryMode) body.reentryMode = reentryMode;
     const res = await api('/api/att-checkin', { method: 'POST', body });
+
+    // 이미 퇴근한 상태에서 출근 → 재출근/퇴근취소/시각수정 선택
+    if (!res.ok && res.data?.needsReentryChoice) {
+      promptReentry(!!res.data.inWorkHours, async (choice) => {
+        const btn = document.getElementById('attBtnCheckin');
+        if (choice == null) { if (btn) btn.disabled = false; return; }
+        if (choice === 'edit') { if (btn) btn.disabled = false; promptSessionEdit(); return; }
+        await sendCheckin(lat, lng, workplaceId, choice); // 'new' | 'reopen'
+      });
+      return;
+    }
 
     // R36 A-2: FIELD 모드 거점 선택 요청
     if (!res.ok && res.data?.needsWorkplaceSelection) {
@@ -267,7 +278,7 @@
           if (btn) btn.disabled = false;
           return;
         }
-        await sendCheckin(lat, lng, chosenId);
+        await sendCheckin(lat, lng, chosenId, reentryMode);
       });
       return;
     }
@@ -278,8 +289,77 @@
       if (btn) btn.disabled = false;
       return;
     }
-    toast('출근이 기록되었습니다 🟢');
+    const d = res.data?.data || res.data || {};
+    toast(d.reopened ? '퇴근이 취소되어 다시 근무 중입니다 🟢'
+      : (d.reentry ? '재출근이 기록되었습니다 🟢' : '출근이 기록되었습니다 🟢'));
     setTimeout(() => location.reload(), 800);
+  }
+
+  /* 재출근/퇴근취소/시각수정 선택 모달 (동적 생성) */
+  function promptReentry(inWorkHours, callback) {
+    const ex = document.getElementById('reentryModal'); if (ex) ex.remove();
+    const modal = document.createElement('div');
+    modal.id = 'reentryModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    const bStyle = 'padding:12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px;text-align:left';
+    const pStyle = 'padding:12px;border-radius:8px;border:0;background:#16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:600';
+    const reopenBtn = inWorkHours ? `<button type="button" id="reReopen" style="${bStyle}">↩ 퇴근을 잘못 눌렀어요 (퇴근 취소)</button>` : '';
+    const editBtn = inWorkHours ? `<button type="button" id="reEdit" style="${bStyle}">⏱ 출퇴근 시각 직접 수정</button>` : '';
+    const notice = inWorkHours ? '' : '<div style="font-size:12.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px;margin-bottom:12px">업무시간이 지나 <b>재출근</b>만 가능합니다. 기존 퇴근 기록은 보존됩니다.</div>';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:420px">
+        <h3 style="margin:0 0 8px;font-size:17px">🔁 이미 퇴근한 상태입니다</h3>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:14px">어떻게 처리할까요?</div>
+        ${notice}
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" id="reNew" style="${pStyle}">🟢 재출근 (다시 근무 시작)</button>
+          ${reopenBtn}
+          ${editBtn}
+          <button type="button" id="reCancel" style="padding:10px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb;cursor:pointer;font-size:13px">닫기</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#reNew').addEventListener('click', () => { modal.remove(); callback('new'); });
+    if (inWorkHours) {
+      modal.querySelector('#reReopen').addEventListener('click', () => { modal.remove(); callback('reopen'); });
+      modal.querySelector('#reEdit').addEventListener('click', () => { modal.remove(); callback('edit'); });
+    }
+    modal.querySelector('#reCancel').addEventListener('click', () => { modal.remove(); callback(null); });
+  }
+
+  /* 출퇴근 시각 셀프수정 모달 (업무시간 내) */
+  function promptSessionEdit() {
+    const ex = document.getElementById('sessEditModal'); if (ex) ex.remove();
+    const modal = document.createElement('div');
+    modal.id = 'sessEditModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    const inputStyle = 'padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;margin-left:8px';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:10px;padding:24px;width:92%;max-width:380px">
+        <h3 style="margin:0 0 12px;font-size:17px">⏱ 출퇴근 시각 수정</h3>
+        <div style="font-size:12.5px;color:#6b7280;margin-bottom:14px">오늘 출근/퇴근 시각을 직접 수정합니다. 비워 두면 그 항목은 그대로 둡니다.</div>
+        <label style="display:block;margin-bottom:10px">출근<input type="time" id="seIn" style="${inputStyle}"></label>
+        <label style="display:block;margin-bottom:14px">퇴근<input type="time" id="seOut" style="${inputStyle}"></label>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" id="seCancel" style="padding:8px 14px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;cursor:pointer">취소</button>
+          <button type="button" id="seSave" style="padding:8px 14px;background:#3b82f6;color:#fff;border:0;border-radius:6px;cursor:pointer">저장</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#seCancel').addEventListener('click', () => modal.remove());
+    modal.querySelector('#seSave').addEventListener('click', async () => {
+      const ci = modal.querySelector('#seIn').value;
+      const co = modal.querySelector('#seOut').value;
+      if (!ci && !co) { toast('수정할 시각을 입력하세요'); return; }
+      const reqBody = {};
+      if (ci) reqBody.checkIn = ci;
+      if (co) reqBody.checkOut = co;
+      const res = await api('/api/att-session-edit', { method: 'POST', body: reqBody });
+      if (!res.ok) { toast('수정 실패: ' + (res.data?.error || res.data?.detail || res.status)); return; }
+      modal.remove();
+      toast('출퇴근 시각이 수정되었습니다');
+      setTimeout(() => location.reload(), 700);
+    });
   }
 
   /* R36 A-2: 외근지 선택 모달 (동적 생성) */

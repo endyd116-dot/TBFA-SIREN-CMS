@@ -3695,6 +3695,9 @@ export const attRecords = pgTable("att_records", {
   note:                text("note"),
   /* R39 Stage 7: 디바이스 타입 (MOBILE·TABLET·DESKTOP) — 클라이언트가 전송, 운영 분석용 */
   deviceType:          varchar("device_type", { length: 20 }),
+  /* 재출근 다중 세션 (migrate-att-sessions 적용 2026-05-24) — [{in,out,inLat,inLng,outLat,outLng}].
+     요약 컬럼(checkInTime=첫 출근·checkOutTime=마지막 퇴근·workingMins=합계)은 그대로 유지. */
+  sessions:            jsonb("sessions").default(sql`'[]'::jsonb`).notNull(),
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({
