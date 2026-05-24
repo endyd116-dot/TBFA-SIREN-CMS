@@ -297,6 +297,7 @@
           'att-ops':    '🟢 근태 현황',
           'att-config': '⚙️ 근태 설정',
           'org-news':   '📰 여론·뉴스 분석',
+          'family-stories': '🕊️ 유가족 이야기',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -390,6 +391,7 @@
         else if (tab === 'att-ops')    _nfLoadIframe('page-att-ops');    /* 2026-05-21: 근태 현황 (조회 8탭) */
         else if (tab === 'att-config') _nfLoadIframe('page-att-config'); /* 2026-05-21: 근태 설정 (설정 4탭) */
         else if (tab === 'org-news')   _nfLoadIframe('page-org-news');   /* 2026-05-24: 여론·뉴스 분석 */
+        else if (tab === 'family-stories') _nfLoadIframe('page-family-stories'); /* 2026-05-24: 유가족 이야기 */
       });
     });
 

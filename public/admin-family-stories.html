@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>유가족 이야기 관리 | 어드민</title>
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<style>
+body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; background:#f9fafb; font-size:14px; color:#111; }
+
+/* 공통 */
+.btn { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; transition:background 0.15s; }
+.btn-primary { background:#3b82f6; color:#fff; }
+.btn-primary:hover { background:#2563eb; }
+.btn-primary:disabled { background:#93c5fd; cursor:not-allowed; }
+.btn-success { background:#16a34a; color:#fff; }
+.btn-success:hover { background:#15803d; }
+.btn-ghost { background:#fff; color:#374151; border:1px solid #e5e7eb; }
+.btn-ghost:hover { background:#f9fafb; }
+.btn-danger { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
+.btn-danger:hover { background:#fecaca; }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-ai { background:#7c3aed; color:#fff; }
+.btn-ai:hover { background:#6d28d9; }
+.btn-ai:disabled { background:#c4b5fd; cursor:not-allowed; }
+
+/* 헤더 */
+.page-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+.page-hd h2 { margin:0; font-size:18px; font-weight:700; }
+
+/* 목록 테이블 */
+.tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:10px; overflow:auto; margin-bottom:24px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { background:#f3f4f6; padding:10px 12px; text-align:left; font-weight:600; color:#6b7280; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+td { padding:10px 12px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+.thumb-cell img { width:72px; height:40px; object-fit:cover; border-radius:4px; background:#ddd; display:block; }
+.thumb-cell .no-thumb { width:72px; height:40px; background:#e5e7eb; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:11px; }
+.status-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+.status-pill.published { background:#dcfce7; color:#166534; }
+.status-pill.draft     { background:#f3f4f6; color:#6b7280; }
+.row-actions { display:flex; gap:6px; flex-wrap:nowrap; }
+.tbl-empty { text-align:center; padding:40px; color:#9ca3af; font-size:13px; }
+
+/* 폼 패널 */
+.form-panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:24px; }
+.form-panel h3 { margin:0 0 20px; font-size:15px; font-weight:700; color:#1e293b; }
+.form-row { margin-bottom:16px; }
+.form-row label { display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px; }
+.form-row input, .form-row textarea, .form-row select {
+  width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #d1d5db;
+  border-radius:7px; font-size:13px; font-family:inherit; background:#fff; color:#111;
+  transition:border-color 0.15s;
+}
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus {
+  outline:none; border-color:#3b82f6;
+}
+.form-row textarea { min-height:90px; resize:vertical; }
+.form-row textarea.tall { min-height:160px; }
+
+.form-inline { display:flex; gap:8px; align-items:flex-end; }
+.form-inline input { flex:1; }
+
+.form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:600px) { .form-row-2 { grid-template-columns:1fr; } }
+
+.yt-preview { display:none; margin-top:10px; align-items:center; gap:12px; }
+.yt-preview img { width:100px; height:56px; object-fit:cover; border-radius:4px; border:1px solid #e5e7eb; }
+.yt-preview .yt-info { font-size:12px; color:#374151; }
+
+.form-divider { border:none; border-top:1px solid #f3f4f6; margin:20px 0; }
+
+.form-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+.form-cancel-area { margin-top:12px; }
+
+/* AI 초안 영역 */
+.ai-section { background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px; padding:16px; margin-bottom:16px; }
+.ai-section label { display:block; font-size:12px; font-weight:600; color:#7c3aed; margin-bottom:5px; }
+.ai-section textarea { background:#fff; }
+.ai-btn-row { display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.ai-note { font-size:11.5px; color:#7c3aed; }
+
+/* 토스트 */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:11px 22px;
+  border-radius:8px; font-size:13.5px; font-weight:600; color:#fff; background:#1e293b;
+  z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.18); opacity:0; transition:opacity 0.25s;
+  pointer-events:none; max-width:380px; text-align:center; }
+.toast.show { opacity:1; }
+.toast.success { background:#16a34a; }
+.toast.error   { background:#dc2626; }
+</style>
+</head>
+<body>
+
+<div class="page-hd">
+  <h2>🕊️ 유가족 이야기</h2>
+  <button class="btn btn-primary" onclick="openAddForm()">+ 영상 추가</button>
+</div>
+
+<!-- 목록 테이블 -->
+<div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>썸네일</th>
+        <th>제목</th>
+        <th>상태</th>
+        <th>분류</th>
+        <th>정렬</th>
+        <th>조회수</th>
+        <th>관리</th>
+      </tr>
+    </thead>
+    <tbody id="storyTbody">
+      <tr><td colspan="7" class="tbl-empty">불러오는 중…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 추가/수정 폼 패널 -->
+<div class="form-panel" id="formPanel" style="display:none">
+  <h3 id="formTitle">영상 추가</h3>
+
+  <input type="hidden" id="fId">
+
+  <!-- 유튜브 URL -->
+  <div class="form-row">
+    <label>유튜브 URL</label>
+    <div class="form-inline">
+      <input type="text" id="fYoutubeUrl" placeholder="https://youtu.be/XXXXXXXXXXX 또는 youtube.com/watch?v=...">
+      <button class="btn btn-ghost btn-sm" onclick="fetchYtInfo()" id="btnFetchYt">정보 가져오기</button>
+    </div>
+    <div class="yt-preview" id="ytPreview">
+      <img id="ytPreviewImg" src="" alt="">
+      <div class="yt-info" id="ytPreviewInfo"></div>
+    </div>
+  </div>
+
+  <!-- 제목·부제 -->
+  <div class="form-row-2">
+    <div class="form-row" style="margin-bottom:0">
+      <label>제목 <span style="color:#ef4444">*</span></label>
+      <input type="text" id="fTitle" placeholder="영상 제목">
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <label>부제</label>
+      <input type="text" id="fSubtitle" placeholder="카드/히어로 부제">
+    </div>
+  </div>
+
+  <!-- 카드 요약 -->
+  <div class="form-row" style="margin-top:16px">
+    <label>카드 요약 (1~2줄)</label>
+    <textarea id="fSummary" rows="2" placeholder="갤러리 카드에 표시될 짧은 소개"></textarea>
+  </div>
+
+  <!-- AI 초안 섹션 -->
+  <div class="ai-section">
+    <label>운영자 메모 (AI 초안 생성용)</label>
+    <textarea id="fAdminNotes" rows="3" placeholder="영상의 배경, 출연자, 협의회와의 관계 등 AI가 본문을 쓸 때 참고할 맥락을 자유롭게 입력하세요."></textarea>
+    <div class="ai-btn-row">
+      <button class="btn btn-ai btn-sm" id="btnAiDraft" onclick="requestAiDraft()">✨ AI 초안 생성</button>
+      <span class="ai-note" id="aiNote"></span>
+    </div>
+  </div>
+
+  <!-- 상세 본문 -->
+  <div class="form-row">
+    <label>상세 본문 (HTML)</label>
+    <textarea class="tall" id="fDetailHtml" placeholder="<p>상세 내용을 입력하거나 AI 초안을 생성하세요.</p>"></textarea>
+  </div>
+
+  <hr class="form-divider">
+
+  <!-- 분류·정렬·상태 -->
+  <div class="form-row-2">
+    <div class="form-row" style="margin-bottom:0">
+      <label>분류</label>
+      <select id="fCategory">
+        <option value="voice">목소리 (voice)</option>
+        <option value="intro">소개 (intro)</option>
+        <option value="tribute">헌정 (tribute)</option>
+        <option value="interview">인터뷰 (interview)</option>
+      </select>
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <label>정렬 순서 (낮을수록 앞)</label>
+      <input type="number" id="fSortOrder" value="0" min="0" max="9999">
+    </div>
+  </div>
+  <div class="form-row" style="margin-top:16px">
+    <label>상태</label>
+    <select id="fStatus">
+      <option value="draft">초안 (비공개)</option>
+      <option value="published">발행 (공개)</option>
+    </select>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-success" onclick="saveStory()">저장</button>
+    <button class="btn btn-ghost" onclick="closeForm()">취소</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin-family-stories.js?v=1"></script>
+</body>
+</html>
