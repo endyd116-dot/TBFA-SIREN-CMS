@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>여론·뉴스 분석 | 어드민</title>
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<style>
+body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; background:#f9fafb; }
+.adm-tabs { display:flex; flex-wrap:wrap; gap:2px 4px; border-bottom:2px solid #e5e7eb; margin-bottom:20px; }
+.adm-tab  { padding:8px 13px; font-size:13.5px; font-weight:500; border:none; background:none;
+            cursor:pointer; color:#6b7280; border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap; }
+.adm-tab.active { color:#3b82f6; border-bottom-color:#3b82f6; font-weight:600; }
+.adm-panel { display:none; }
+.adm-panel.active { display:block; }
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:16px; }
+.card-title { font-size:14px; font-weight:700; color:#111; margin-bottom:12px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+.badge-pos  { background:#dcfce7; color:#166534; }
+.badge-neg  { background:#fee2e2; color:#991b1b; }
+.badge-neu  { background:#f3f4f6; color:#374151; }
+.badge-mix  { background:#fef9c3; color:#854d0e; }
+.rec-card { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px; margin-bottom:10px; }
+.rec-card-title { font-size:13px; font-weight:700; color:#0369a1; margin-bottom:4px; }
+.rec-card-detail { font-size:13px; color:#374151; line-height:1.6; }
+.source-row { display:flex; flex-direction:column; gap:2px; padding:10px 0; border-bottom:1px solid #f3f4f6; }
+.source-row:last-child { border-bottom:none; }
+.source-title { font-size:13px; font-weight:600; color:#1d4ed8; text-decoration:none; }
+.source-title:hover { text-decoration:underline; }
+.source-meta { font-size:11.5px; color:#6b7280; }
+.diff-block { background:#fffbeb; border-left:3px solid #f59e0b; padding:12px 14px; border-radius:0 6px 6px 0; white-space:pre-wrap; font-size:13px; line-height:1.7; color:#374151; }
+#wc-canvas { width:100%; height:260px; border-radius:8px; background:#f8fafc; overflow:hidden; }
+.tag-cloud { display:flex; flex-wrap:wrap; gap:6px; padding:10px 0; }
+.tag-cloud .tag { padding:4px 10px; border-radius:20px; background:#e0f2fe; color:#0369a1; font-size:12px; cursor:default; }
+.history-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer; }
+.history-row:hover { background:#f3f4f6; }
+.history-row.selected { background:#eff6ff; }
+.history-meta { font-size:12px; color:#6b7280; }
+.settings-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.settings-tags .kw-tag { display:flex; align-items:center; gap:4px; padding:4px 10px; background:#f1f5f9; border-radius:20px; font-size:12px; }
+.settings-tags .kw-tag button { background:none; border:none; cursor:pointer; color:#6b7280; padding:0; font-size:13px; line-height:1; }
+.settings-tags .kw-tag button:hover { color:#ef4444; }
+.btn { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; }
+.btn-primary { background:#3b82f6; color:#fff; }
+.btn-primary:hover { background:#2563eb; }
+.btn-primary:disabled { background:#93c5fd; cursor:not-allowed; }
+.btn-ghost { background:#fff; color:#374151; border:1px solid #e5e7eb; }
+.btn-ghost:hover { background:#f9fafb; }
+.btn-danger { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.stat-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:6px; font-size:12px; background:#f3f4f6; color:#374151; }
+.loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.75); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.spinner { width:36px; height:36px; border:3px solid #e5e7eb; border-top-color:#3b82f6; border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:11px 22px; border-radius:8px; font-size:13.5px; font-weight:600; color:#fff; background:#1e293b; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.18); opacity:0; transition:opacity 0.25s; pointer-events:none; max-width:380px; text-align:center; }
+.toast.show { opacity:1; }
+.toast.success { background:#16a34a; }
+.toast.error   { background:#dc2626; }
+.empty-state { text-align:center; padding:48px 0; color:#9ca3af; font-size:14px; }
+.section-label { font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<div id="toastEl" class="toast"></div>
+<div id="loadingOverlay" class="loading-overlay" style="display:none"><div class="spinner"></div></div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <h2 style="margin:0;font-size:18px;font-weight:700">📰 여론·뉴스 분석</h2>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="lastGenAt" style="font-size:12px;color:#6b7280"></span>
+    <button class="btn btn-primary btn-sm" id="btnRefresh">🔄 최신 재조사</button>
+    <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 설정</button>
+  </div>
+</div>
+
+<div class="adm-tabs">
+  <button class="adm-tab active" data-panel="report">📊 최신 보고서</button>
+  <button class="adm-tab" data-panel="history">📜 히스토리</button>
+  <button class="adm-tab" data-panel="settings" id="tabSettings" style="display:none">⚙️ 설정</button>
+</div>
+
+<!-- ── 최신 보고서 패널 ── -->
+<div id="panelReport" class="adm-panel active">
+  <div id="reportBody">
+    <div class="empty-state">보고서를 불러오는 중...</div>
+  </div>
+</div>
+
+<!-- ── 히스토리 패널 ── -->
+<div id="panelHistory" class="adm-panel">
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+    <span style="font-size:13px;color:#374151;font-weight:600">과거 보고서 목록</span>
+    <span id="historyCount" class="stat-chip"></span>
+  </div>
+  <div id="historyList" style="max-height:420px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:10px;padding:4px 0">
+    <div class="empty-state" style="padding:32px 0">히스토리를 불러오는 중...</div>
+  </div>
+  <div id="historyDetail" style="margin-top:16px;display:none"></div>
+</div>
+
+<!-- ── 설정 패널 ── -->
+<div id="panelSettings" class="adm-panel">
+  <div class="card">
+    <div class="card-title">🔑 검색 키워드 편집</div>
+    <div class="section-label">현재 키워드</div>
+    <div class="settings-tags" id="kwTagList"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input type="text" id="kwInput" placeholder="새 키워드 입력 후 Enter" style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
+      <button class="btn btn-ghost btn-sm" id="btnAddKw">추가</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📡 수집 범위</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" value="news" id="scopeNews"> 뉴스
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" value="blog" id="scopeBlog"> 블로그
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" value="webkr" id="scopeWebkr"> 웹문서
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⏰ 자동 조사 (매일 KST 09:00)</div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="checkbox" id="autoEnabled" style="width:16px;height:16px">
+      <span style="font-size:13px">매일 아침 자동으로 뉴스·여론 분석 실행</span>
+    </label>
+  </div>
+
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn btn-ghost" id="btnSettingsCancel">취소</button>
+    <button class="btn btn-primary" id="btnSettingsSave">저장</button>
+  </div>
+</div>
+
+<!-- wordcloud2.js 3-tier CDN 폴백 -->
+<script>
+(function() {
+  var srcs = [
+    'https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js',
+    'https://unpkg.com/wordcloud@1.2.2/src/wordcloud2.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.1.0/wordcloud2.min.js'
+  ];
+  var idx = 0;
+  function loadNext() {
+    if (idx >= srcs.length) { window._wcFailed = true; return; }
+    var s = document.createElement('script');
+    s.src = srcs[idx++];
+    s.onload = function() { window._wcReady = true; };
+    s.onerror = loadNext;
+    document.head.appendChild(s);
+  }
+  loadNext();
+})();
+</script>
+<script src="/js/admin-org-news.js?v=1"></script>
+</body>
+</html>

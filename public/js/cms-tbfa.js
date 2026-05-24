@@ -296,6 +296,7 @@
           'milestone-review':   '🏆 성과관리 설정',
           'att-ops':    '🟢 근태 현황',
           'att-config': '⚙️ 근태 설정',
+          'org-news':   '📰 여론·뉴스 분석',
         };
         const titleEl = document.getElementById('cmsPageTitle');
         if (titleEl) titleEl.textContent = titles[tab] || '교유협 CMS';
@@ -388,6 +389,7 @@
         else if (tab === 'milestone-review')    _nfLoadIframe('page-milestone-review');    /* 2026-05-20: 성과관리 통합 단일 화면(6탭) */
         else if (tab === 'att-ops')    _nfLoadIframe('page-att-ops');    /* 2026-05-21: 근태 현황 (조회 8탭) */
         else if (tab === 'att-config') _nfLoadIframe('page-att-config'); /* 2026-05-21: 근태 설정 (설정 4탭) */
+        else if (tab === 'org-news')   _nfLoadIframe('page-org-news');   /* 2026-05-24: 여론·뉴스 분석 */
       });
     });
 
