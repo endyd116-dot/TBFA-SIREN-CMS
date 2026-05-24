@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>유가족 이야기 상세 | 교사유가족협의회</title>
+<meta name="description" content="교사유가족협의회 유가족 이야기 상세 페이지입니다.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/layout.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+
+<style>
+  .story-hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 64px 0 48px;
+    text-align: center;
+  }
+  .story-hero-cat {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .story-hero-cat.voice    { background: rgba(26,111,168,0.35); color: #a8d8f0; }
+  .story-hero-cat.intro    { background: rgba(42,122,59,0.35);  color: #a8e6b4; }
+  .story-hero-cat.tribute  { background: rgba(160,82,45,0.35);  color: #f0cba8; }
+  .story-hero-cat.interview{ background: rgba(106,59,163,0.35); color: #d4b8f0; }
+  .story-hero-cat.default  { background: rgba(255,255,255,0.15); color: #ddd; }
+
+  .story-hero h1 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-weight: 700;
+    margin: 0 0 12px;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+  }
+  .story-hero .story-subtitle {
+    font-size: 1rem;
+    opacity: 0.7;
+    font-weight: 300;
+    margin: 0;
+  }
+
+  .story-content {
+    padding: 52px 0 80px;
+  }
+  .story-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .yt-embed {
+    position: relative;
+    padding-top: 56.25%;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    margin-bottom: 40px;
+    background: #000;
+  }
+  .yt-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .story-detail-html {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: #2a2a3a;
+  }
+  .story-detail-html p {
+    margin: 0 0 1.4em;
+  }
+  .story-detail-html h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 2em 0 0.7em;
+    color: #1a1a2e;
+    font-family: 'Noto Serif KR', serif;
+    border-left: 3px solid #0f3460;
+    padding-left: 12px;
+  }
+
+  .story-divider {
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    margin: 48px 0;
+  }
+
+  .story-donate-cta {
+    background: #f5f7ff;
+    border: 1px solid #d0d8f0;
+    border-radius: 12px;
+    padding: 36px 32px;
+    text-align: center;
+  }
+  .story-donate-cta h3 {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0 0 10px;
+  }
+  .story-donate-cta p {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0 0 22px;
+    line-height: 1.6;
+  }
+  .story-donate-cta .cta {
+    display: inline-block;
+    background: #0f3460;
+    color: #fff;
+    border: none;
+    padding: 13px 36px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.15s;
+  }
+  .story-donate-cta .cta:hover {
+    background: #16213e;
+  }
+
+  .story-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 32px;
+    color: #555;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .story-back:hover { color: #0f3460; }
+
+  .story-not-found {
+    text-align: center;
+    padding: 80px 20px;
+    color: #888;
+  }
+  .story-not-found p { font-size: 1rem; margin: 0 0 16px; }
+  .story-not-found a {
+    color: #0f3460;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .story-not-found a:hover { text-decoration: underline; }
+</style>
+</head>
+<body data-page="memorial">
+
+  <div id="header-slot"></div>
+
+  <main>
+
+    <section class="story-hero" id="storyHero" style="display:none">
+      <div class="container">
+        <span class="story-hero-cat" id="heroCat"></span>
+        <h1 id="heroTitle"></h1>
+        <p class="story-subtitle" id="heroSubtitle"></p>
+      </div>
+    </section>
+
+    <section class="story-content" id="storyContent" style="display:none">
+      <div class="story-inner">
+
+        <div class="yt-embed" id="ytEmbed" style="display:none">
+          <iframe id="ytIframe" src="" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        </div>
+
+        <div class="story-detail-html" id="detailHtml"></div>
+
+        <hr class="story-divider">
+
+        <div class="story-donate-cta">
+          <h3>함께 기억해 주세요</h3>
+          <p>유가족의 이야기에 공감하셨다면, 후원으로 연대해 주세요.<br>
+             여러분의 작은 마음이 큰 힘이 됩니다.</p>
+          <button class="cta" type="button" data-action="open-modal" data-target="donateModal">후원하기</button>
+        </div>
+
+        <a href="/family-stories.html" class="story-back" onclick="window.location.href='/family-stories.html';return false;">← 목록으로 돌아가기</a>
+
+      </div>
+    </section>
+
+    <section class="story-content" id="storyNotFound" style="display:none">
+      <div class="story-not-found">
+        <p>준비 중인 이야기입니다.</p>
+        <a href="/family-stories.html" onclick="window.location.href='/family-stories.html';return false;">← 목록으로 돌아가기</a>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="modals-slot"></div>
+  <div id="footer-slot"></div>
+
+  <script src="/js/common.js?v=4"></script>
+  <script src="/js/family-story.js?v=1"></script>
+</body>
+</html>
