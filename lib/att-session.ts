@@ -87,6 +87,33 @@ export function recomputeSummary(
   return { checkInTime: firstIn, checkOutTime: lastOut, workingMins: total, overtimeMins: Math.max(0, total - dailyMins) };
 }
 
+/**
+ * 어드민 직접 수정·정정 결재용: 요약 출퇴근 시각(in/out)으로부터 sessions 배열을 재구성.
+ * 어드민이 요약 시각을 수정하면 권위값(summary)과 sessions가 어긋나, 같은 날 직원이
+ * 재출근·셀프수정·퇴근하면 stale sessions 기준 재계산이 어드민 수정을 되돌린다(회귀).
+ * 이를 막기 위해 sessions를 요약 시각과 정합화한다.
+ *  - 출근 시각이 없으면 빈 배열.
+ *  - 퇴근 시각이 없으면 진행 중(out=null) 단일 세션 → 직원이 정상 퇴근 가능.
+ *  - 다중 세션은 단일로 정규화(어드민 수정은 working_mins를 단일 span으로 재계산하므로 일치).
+ *  - carry 로 기존 위치·거점 정보를 보존.
+ */
+export function rebuildSingleSession(
+  checkInISO: string | null,
+  checkOutISO: string | null,
+  carry?: { inLat?: any; inLng?: any; outLat?: any; outLng?: any; workplaceId?: number | null }
+): AttSession[] {
+  if (!checkInISO) return [];
+  return [{
+    in: new Date(checkInISO).toISOString(),
+    out: checkOutISO ? new Date(checkOutISO).toISOString() : null,
+    inLat: carry?.inLat != null ? String(carry.inLat) : null,
+    inLng: carry?.inLng != null ? String(carry.inLng) : null,
+    outLat: carry?.outLat != null ? String(carry.outLat) : null,
+    outLng: carry?.outLng != null ? String(carry.outLng) : null,
+    workplaceId: carry?.workplaceId ?? null,
+  }];
+}
+
 /** KST 현재 시각이 정책 표준 근무시간(checkInTime~checkOutTime) 안인지. */
 export function isWithinWorkHours(policyCheckIn: string, policyCheckOut: string, nowKst: Date): boolean {
   const hh = String(nowKst.getUTCHours()).padStart(2, "0");

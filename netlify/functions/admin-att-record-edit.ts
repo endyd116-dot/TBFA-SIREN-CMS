@@ -20,6 +20,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { getDefaultPolicy, calcWorkingMins } from "../../lib/att-utils";
+import { rebuildSingleSession } from "../../lib/att-session";
 
 export const config = { path: "/api/admin-att-record-edit" };
 
@@ -95,7 +96,8 @@ export default async function handler(req: Request, _ctx: Context) {
     const r = await db.execute(sql`
       SELECT id, member_uid, date,
              check_in_time, check_out_time, work_mode, note,
-             status, working_mins, overtime_mins
+             status, working_mins, overtime_mins,
+             check_in_lat, check_in_lng, check_out_lat, check_out_lng, workplace_id
       FROM att_records WHERE id = ${recordId} LIMIT 1
     `);
     old = (((r as any).rows ?? r) as any[])[0];
@@ -108,6 +110,9 @@ export default async function handler(req: Request, _ctx: Context) {
      (기존엔 시각만 바꾸고 파생 시간은 그대로라 표에 반영 안 됐음) — 양쪽 시각이 다 있을 때만. */
   let recalcWorkingMins: number | undefined;
   let recalcOvertimeMins: number | undefined;
+  /* sessions 동기화: 어드민이 시각을 수정하면 sessions 배열도 요약 시각에 맞춰 재구성.
+     (안 하면 같은 날 직원의 재출근·정상 퇴근 시 stale sessions 재계산으로 어드민 수정이 되돌아감) */
+  let newSessions: any[] | undefined;
   if (newCheckIn !== undefined || newCheckOut !== undefined) {
     const effIn  = newCheckIn  !== undefined ? newCheckIn  : (old.check_in_time  ? new Date(old.check_in_time).toISOString()  : null);
     const effOut = newCheckOut !== undefined ? newCheckOut : (old.check_out_time ? new Date(old.check_out_time).toISOString() : null);
@@ -127,6 +132,11 @@ export default async function handler(req: Request, _ctx: Context) {
         console.warn("[admin-att-record-edit] 근무시간 재계산 실패(무시):", e);
       }
     }
+    newSessions = rebuildSingleSession(effIn, effOut, {
+      inLat: old.check_in_lat, inLng: old.check_in_lng,
+      outLat: old.check_out_lat, outLng: old.check_out_lng,
+      workplaceId: old.workplace_id ?? null,
+    });
   }
 
   /* 2) UPDATE — 변경 필드만 SET, 미변경 필드는 그대로 (안전한 sql 템플릿 합성) */
@@ -150,6 +160,9 @@ export default async function handler(req: Request, _ctx: Context) {
     }
     if (recalcOvertimeMins !== undefined) {
       setExpr = sql`${setExpr}, overtime_mins = ${recalcOvertimeMins}`;
+    }
+    if (newSessions !== undefined) {
+      setExpr = sql`${setExpr}, sessions = ${JSON.stringify(newSessions)}::jsonb`;
     }
 
     const updRes = await db.execute(sql`

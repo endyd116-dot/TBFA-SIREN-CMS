@@ -3,6 +3,7 @@ import { attCorrections, attRecords, members } from "../../db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { determineStatus, getDefaultPolicy } from "../../lib/att-utils";
+import { rebuildSingleSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-att-correction-review" };
@@ -163,19 +164,31 @@ export default async function handler(req: Request) {
           console.warn("[admin-att-correction-review] status 재산정 실패:", innerErr);
         }
 
+        /* sessions 동기화 — 요약 시각과 정합화(안 하면 같은 날 직원 재출근·퇴근 시 stale 재계산으로 정정이 되돌아감).
+           기존 위치·거점 정보는 보존. */
+        const ciISO = newCheckIn  ? new Date(newCheckIn  as any).toISOString() : null;
+        const coISO = newCheckOut ? new Date(newCheckOut as any).toISOString() : null;
+        const ns = rebuildSingleSession(ciISO, coISO, {
+          inLat: existing?.checkInLat, inLng: existing?.checkInLng,
+          outLat: existing?.checkOutLat, outLng: existing?.checkOutLng,
+          workplaceId: existing?.workplaceId ?? null,
+        });
+        const nsJson = JSON.stringify(ns);
+
         // UPSERT
         await db.execute(sql`
           INSERT INTO att_records
-            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted)
+            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted, sessions)
           VALUES
             (${correction.memberUid}, ${String(correction.targetDate)}::date,
-             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true)
+             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true, ${nsJson}::jsonb)
           ON CONFLICT (member_uid, date)
           DO UPDATE SET
             check_in_time  = ${newCheckIn as any},
             check_out_time = ${newCheckOut as any},
             status         = ${newStatus},
             is_manually_adjusted = true,
+            sessions       = ${nsJson}::jsonb,
             updated_at     = NOW()
         `);
       } catch (err) {
