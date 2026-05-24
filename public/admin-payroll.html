@@ -206,6 +206,7 @@
         <button class="btn btn-primary" id="btnLoad">조회</button>
         <button class="btn btn-warning" id="btnRecalc" title="해당 월 명세서 자동 재집계 (DRAFT만 갱신)">🔄 재집계</button>
         <button class="btn btn-warning" id="btnRecalcForce" title="REVIEWED/APPROVED/SENT도 강제 덮어쓰기">⚠ 강제 재집계</button>
+        <button class="btn btn-light" id="btnAnalyze" title="이상치 탐지·입력 점검·집계 요약 AI 분석">🤖 AI 분석</button>
         <span style="flex:1"></span>
         <button class="btn btn-light" id="btnSettings" title="급여 계산 기준 설정 (야근배율·기준시간·공제 요율)">⚙ 계산기준</button>
         <a class="btn btn-light" id="btnExport" title="해당 월 명세서 CSV 다운로드" target="_blank" rel="noopener">⬇ CSV</a>
@@ -240,6 +241,14 @@
       <div class="stat-card sent">     <div class="stat-label">SENT (발송)</div>      <div class="stat-value" id="cntSent">0</div></div>
       <div class="stat-card paid">     <div class="stat-label">PAID (지급완료)</div> <div class="stat-value" id="cntPaid">0</div></div>
       <div class="stat-card hold">     <div class="stat-label">HOLD (보류)</div>      <div class="stat-value" id="cntHold">0</div></div>
+    </div>
+
+    <!-- AI 분석 결과 -->
+    <div class="card" id="aiCard" style="display:none">
+      <div class="card-title">🤖 급여 AI 분석 <span id="aiCardMeta" style="font-weight:400;color:#9ca3af;font-size:12px"></span></div>
+      <div id="aiSummary" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.7;color:#374151;white-space:pre-wrap"></div>
+      <div id="aiAnomalies"></div>
+      <div id="aiChecklist"></div>
     </div>
 
     <!-- 명세서 표 -->
@@ -286,6 +295,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260520stage3"></script>
+  <script src="/js/admin-payroll.js?v=20260524-ai"></script>
 </body>
 </html>

@@ -163,6 +163,15 @@ export async function calculatePayrollForMonth(
       const paidLeaveDays = Number(leave.paid_days || 0);
       const unpaidLeaveDays = Number(leave.unpaid_days || 0);
 
+      // ★ Swain 2026-05-24: 급여 명세 대상 = 기본급 + 그달 근무실적 둘 다.
+      // 기본급만 있고 해당 월 출퇴근·야근·휴가가 전혀 없으면 명세서 생성/갱신 제외
+      // (운영 전 0원·무의미 명세서 방지). 기존 명세서가 있으면 보존(건드리지 않음).
+      const hasActivity = workingDays > 0 || overtimeMins > 0 || paidLeaveDays > 0 || unpaidLeaveDays > 0;
+      if (!hasActivity) {
+        result.skipped++;
+        continue;
+      }
+
       // 만근 — 근무일 1일 이상 + 지각·결근·무급 휴가 0
       const perfectAttendance =
         workingDays > 0 && lateCount === 0 && absentCount === 0 && unpaidLeaveDays === 0;

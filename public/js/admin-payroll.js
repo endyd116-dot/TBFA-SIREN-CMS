@@ -196,6 +196,41 @@
     }
   }
 
+  /* ── AI 분석 (이상치·점검·요약) ── */
+  async function analyzePayroll() {
+    const y = $('selYear').value, m = $('selMonth').value;
+    const btn = $('btnAnalyze');
+    if (btn) { btn.disabled = true; btn.textContent = '🤖 분석 중...'; }
+    try {
+      const res = await api('/api/admin-payroll?action=analyze&year=' + y + '&month=' + m, { method: 'POST' });
+      if (!res.ok) { toast('AI 분석 실패: ' + (res.data?.error || 'HTTP ' + res.status), 'err'); return; }
+      renderAnalysis(res.data?.data || res.data || {});
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 분석'; }
+    }
+  }
+
+  function renderAnalysis(d) {
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const won = (n) => Number(n || 0).toLocaleString();
+    $('aiCard').style.display = '';
+    $('aiCardMeta').textContent = '— ' + d.year + '년 ' + d.month + '월 · 명세서 ' + (d.slipCount || 0)
+      + '건 · 세전 ' + won(d.sumGross) + '원 · 실수령 ' + won(d.sumNet) + '원';
+    $('aiSummary').textContent = d.summary || '';
+
+    const an = Array.isArray(d.anomalies) ? d.anomalies : [];
+    $('aiAnomalies').innerHTML = an.length
+      ? '<div style="margin-top:14px;font-weight:700;color:#b91c1c">⚠ 이상치 ' + an.length + '건</div>'
+        + an.map(a => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(a.name) + '</strong> <span style="color:#b91c1c">[' + esc(a.type) + ']</span> ' + esc(a.detail) + '</div>').join('')
+      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 이상치 없음</div>';
+
+    const ck = Array.isArray(d.checklist) ? d.checklist : [];
+    $('aiChecklist').innerHTML = ck.length
+      ? '<div style="margin-top:14px;font-weight:700;color:#b45309">📋 점검 ' + ck.length + '건</div>'
+        + ck.map(c => '<div style="padding:6px 0;border-bottom:1px dashed #eee;font-size:13px">· <strong>' + esc(c.type) + '</strong>: ' + esc(c.detail) + '</div>').join('')
+      : '<div style="margin-top:14px;color:#16a34a;font-size:13px">✓ 점검 항목 없음</div>';
+  }
+
   /* ── 일괄 발송 ── */
   async function sendAll() {
     const y = $('selYear').value, m = $('selMonth').value;
@@ -588,6 +623,7 @@
     $('btnLoad').addEventListener('click', loadList);
     $('btnRecalc').addEventListener('click', () => recalc(false));
     $('btnRecalcForce').addEventListener('click', () => recalc(true));
+    $('btnAnalyze').addEventListener('click', analyzePayroll);
     $('btnSendAll').addEventListener('click', sendAll);
     $('btnSettings').addEventListener('click', toggleSettings);
     $('btnSaveSettings').addEventListener('click', saveSettings);
