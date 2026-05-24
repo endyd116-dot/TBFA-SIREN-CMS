@@ -5,21 +5,6 @@
 (function () {
   'use strict';
 
-  /* ───────── B 머지 전 mock (설계서 §5.1) ───────── */
-  var MOCK_TEACHER = {
-    id: 1, name: '故 ○○○ 선생님', photoUrl: null, schoolRegion: '서울 ○○초',
-    birthDate: null, deathDate: null, tributeLine: '아이들을 사랑한 선생님',
-    bioHtml: '<p>약력은 유가족 협조하에 작성됩니다.</p>',
-    timeline: [{ date: '2023-00-00', title: '추모', desc: '기억합니다' }],
-    candleCount: 128, messageCount: 34, letterCount: 5
-  };
-  var MOCK_MESSAGES = [
-    { id: 1, authorName: '시민', content: '잊지 않겠습니다.', likeCount: 12, createdAt: '2026-05-24T00:00:00Z', liked: false }
-  ];
-  var MOCK_LETTERS = [
-    { id: 1, authorName: '동료 교사', title: '선생님께', content: '함께한 시간을 잊지 않겠습니다.\n편히 쉬세요.', createdAt: '2026-05-24T00:00:00Z' }
-  ];
-
   /* ───────── 공통 헬퍼 ───────── */
   function api(path, options) {
     options = options || {};
@@ -133,14 +118,8 @@
   function loadTeacher() {
     if (!_teacherId) { renderTeacher(null); return; }
     api('/api/memorial-teacher?id=' + _teacherId).then(function (res) {
-      if (res.ok) {
-        renderTeacher(unwrap(res, 'teacher') || null);          /* 백엔드 정상 — 없으면 not found */
-      } else if (res.data && res.data.ok === false) {
-        renderTeacher(null);                                    /* 실제 백엔드의 '없음' 응답 */
-      } else {
-        renderTeacher(MOCK_TEACHER);                            /* 백엔드 미연결(mock 단계) */
-      }
-    }).catch(function () { renderTeacher(MOCK_TEACHER); });
+      renderTeacher(res.ok ? (unwrap(res, 'teacher') || null) : null);
+    }).catch(function () { renderTeacher(null); });
   }
 
   /* ───────── 개별 헌화 ───────── */
@@ -214,9 +193,8 @@
   }
   function loadMessages() {
     api('/api/memorial-messages?teacherId=' + _teacherId).then(function (res) {
-      var list = res.ok ? (unwrap(res, 'messages') || []) : MOCK_MESSAGES;
-      renderMessages(list);
-    }).catch(function () { renderMessages(MOCK_MESSAGES); });
+      renderMessages(res.ok ? (unwrap(res, 'messages') || []) : []);
+    }).catch(function () { renderMessages([]); });
   }
   function likeMsg(id, wrap) {
     if (!isLoggedIn()) { promptLogin('공감은 로그인 후 가능합니다.'); return; }
@@ -295,9 +273,8 @@
   }
   function loadLetters() {
     api('/api/memorial-letters?teacherId=' + _teacherId).then(function (res) {
-      var list = res.ok ? (unwrap(res, 'letters') || []) : MOCK_LETTERS;
-      renderLetters(list);
-    }).catch(function () { renderLetters(MOCK_LETTERS); });
+      renderLetters(res.ok ? (unwrap(res, 'letters') || []) : []);
+    }).catch(function () { renderLetters([]); });
   }
   function setupLetterForm() {
     var btn = document.getElementById('mtLetterSubmit');
