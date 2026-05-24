@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>온라인 추모관 운영 | 어드민</title>
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<style>
+body { margin:0; padding:20px 24px; font-family:'Noto Sans KR',sans-serif; background:#f9fafb; font-size:14px; color:#111; }
+
+.btn { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; transition:background 0.15s; }
+.btn-primary { background:#3b82f6; color:#fff; } .btn-primary:hover { background:#2563eb; } .btn-primary:disabled { background:#93c5fd; cursor:not-allowed; }
+.btn-success { background:#16a34a; color:#fff; } .btn-success:hover { background:#15803d; }
+.btn-ghost { background:#fff; color:#374151; border:1px solid #e5e7eb; } .btn-ghost:hover { background:#f9fafb; }
+.btn-danger { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; } .btn-danger:hover { background:#fecaca; }
+.btn-sm { padding:5px 12px; font-size:12px; }
+
+/* 탭 */
+.tabs { display:flex; gap:6px; margin-bottom:22px; border-bottom:1px solid #e5e7eb; }
+.tab { padding:10px 18px; font-size:13.5px; font-weight:600; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab.active { color:#1e293b; border-bottom-color:#3b82f6; }
+.tab-panel { display:none; } .tab-panel.active { display:block; }
+
+.page-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
+.page-hd h2 { margin:0; font-size:17px; font-weight:700; }
+
+/* 테이블 */
+.tbl-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:10px; overflow:auto; margin-bottom:24px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { background:#f3f4f6; padding:10px 12px; text-align:left; font-weight:600; color:#6b7280; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+td { padding:10px 12px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+.thumb-cell img { width:48px; height:48px; object-fit:cover; border-radius:50%; background:#ddd; display:block; }
+.thumb-cell .no-thumb { width:48px; height:48px; background:#e5e7eb; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:18px; }
+.status-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+.status-pill.on { background:#dcfce7; color:#166534; } .status-pill.off { background:#f3f4f6; color:#6b7280; }
+.report-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; background:#fef3c7; color:#92400e; }
+.report-badge.zero { background:#f3f4f6; color:#9ca3af; }
+.row-actions { display:flex; gap:6px; flex-wrap:nowrap; }
+.tbl-empty { text-align:center; padding:40px; color:#9ca3af; font-size:13px; }
+
+/* 폼 */
+.form-panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:24px; }
+.form-panel h3 { margin:0 0 20px; font-size:15px; font-weight:700; color:#1e293b; }
+.form-row { margin-bottom:16px; }
+.form-row label { display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:5px; }
+.form-row input[type=text], .form-row input[type=date], .form-row input[type=number], .form-row textarea, .form-row select {
+  width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #d1d5db; border-radius:7px;
+  font-size:13px; font-family:inherit; background:#fff; color:#111;
+}
+.form-row textarea { min-height:90px; resize:vertical; } .form-row textarea.tall { min-height:150px; }
+.form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:600px) { .form-row-2 { grid-template-columns:1fr; } }
+.form-divider { border:none; border-top:1px solid #f3f4f6; margin:20px 0; }
+.form-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+.hint { font-size:11.5px; color:#9ca3af; margin-top:4px; }
+
+/* 영정 업로드 */
+.photo-up { display:flex; align-items:center; gap:14px; }
+.photo-preview { width:80px; height:80px; border-radius:50%; object-fit:cover; background:#e5e7eb; border:1px solid #e5e7eb; }
+.photo-preview-empty { width:80px; height:80px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; font-size:26px; color:#9ca3af; }
+
+/* 타임라인 / BGM 동적 행 */
+.row-list { display:flex; flex-direction:column; gap:8px; }
+.dyn-row { display:grid; grid-template-columns:120px 1fr 1.4fr auto; gap:8px; align-items:center; }
+.dyn-row.bgm { grid-template-columns:1fr 1.6fr auto; }
+.dyn-row input { padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:12.5px; font-family:inherit; box-sizing:border-box; width:100%; }
+.dyn-del { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:6px; width:30px; height:32px; cursor:pointer; font-size:14px; }
+@media (max-width:600px){ .dyn-row, .dyn-row.bgm { grid-template-columns:1fr; } }
+
+/* 모더레이션 필터 */
+.mod-filter { display:flex; gap:8px; margin-bottom:16px; }
+.mod-filter .chip { padding:7px 16px; border-radius:20px; border:1px solid #e5e7eb; background:#fff; font-size:12.5px; font-weight:600; color:#6b7280; cursor:pointer; }
+.mod-filter .chip.active { background:#eff6ff; border-color:#3b82f6; color:#2563eb; }
+.mod-content { font-size:12.5px; color:#374151; max-width:420px; white-space:pre-wrap; word-break:break-word; }
+.mod-content.hidden-row { opacity:.5; text-decoration:line-through; }
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:11px 22px; border-radius:8px; font-size:13.5px; font-weight:600; color:#fff; background:#1e293b; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.18); opacity:0; transition:opacity 0.25s; pointer-events:none; max-width:380px; text-align:center; }
+.toast.show { opacity:1; } .toast.success { background:#16a34a; } .toast.error { background:#dc2626; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" data-tab="teachers" onclick="switchTab('teachers')">👨‍🏫 선생님 관리</div>
+  <div class="tab" data-tab="moderation" onclick="switchTab('moderation')">🛡️ 메시지·편지 모더레이션</div>
+  <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 추모관 설정</div>
+</div>
+
+<!-- ===== 1. 선생님 관리 ===== -->
+<div class="tab-panel active" id="panel-teachers">
+  <div class="page-hd">
+    <h2>👨‍🏫 선생님 관리</h2>
+    <button class="btn btn-primary" onclick="openAddTeacher()">+ 선생님 추가</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>영정</th><th>성함</th><th>학교/지역</th><th>공개</th><th>정렬</th><th>관리</th>
+      </tr></thead>
+      <tbody id="teacherTbody"><tr><td colspan="6" class="tbl-empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="form-panel" id="teacherForm" style="display:none">
+    <h3 id="teacherFormTitle">선생님 추가</h3>
+    <input type="hidden" id="fId">
+
+    <div class="form-row">
+      <label>영정 사진</label>
+      <div class="photo-up">
+        <div id="photoPreviewWrap"><div class="photo-preview-empty" id="photoEmpty">👤</div></div>
+        <div>
+          <input type="file" id="fPhotoFile" accept="image/*" onchange="uploadPhoto()">
+          <input type="hidden" id="fPhotoBlobId">
+          <div class="hint">비워두면 기본 실루엣으로 표시됩니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>성함 <span style="color:#ef4444">*</span></label>
+        <input type="text" id="fName" placeholder="故 ○○○ 선생님">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>학교 / 지역</label>
+        <input type="text" id="fSchoolRegion" placeholder="서울 ○○구 ○○초등학교">
+      </div>
+    </div>
+
+    <div class="form-row-2" style="margin-top:16px">
+      <div class="form-row" style="margin-bottom:0">
+        <label>출생일</label>
+        <input type="date" id="fBirthDate">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>별세일</label>
+        <input type="date" id="fDeathDate">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:16px">
+      <label>한줄 헌사</label>
+      <input type="text" id="fTributeLine" maxlength="200" placeholder="카드·프로필에 표시될 한 줄">
+    </div>
+
+    <div class="form-row">
+      <label>약력 (HTML)</label>
+      <textarea class="tall" id="fBioHtml" placeholder="<p>선생님의 이야기를 입력하세요.</p>"></textarea>
+    </div>
+
+    <hr class="form-divider">
+
+    <div class="form-row">
+      <label>타임라인 (기억의 발자취)</label>
+      <div class="row-list" id="timelineRows"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addTimelineRow()">+ 항목 추가</button>
+      <div class="hint">날짜는 자유 형식(예: 2023-07-18, 2023-12, 2021).</div>
+    </div>
+
+    <hr class="form-divider">
+
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>정렬 순서 (낮을수록 앞)</label>
+        <input type="number" id="fSortOrder" value="0" min="0" max="9999">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>공개 여부</label>
+        <select id="fIsPublic">
+          <option value="true">공개</option>
+          <option value="false">비공개</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-success" onclick="saveTeacher()">저장</button>
+      <button class="btn btn-ghost" onclick="closeTeacherForm()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2. 모더레이션 ===== -->
+<div class="tab-panel" id="panel-moderation">
+  <div class="page-hd"><h2>🛡️ 메시지·편지 모더레이션</h2></div>
+  <div class="mod-filter">
+    <div class="chip active" data-type="message" onclick="switchModType('message')">💬 추모 메시지</div>
+    <div class="chip" data-type="letter" onclick="switchModType('letter')">✉️ 기억의 편지</div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>작성자</th><th>내용</th><th>신고</th><th>상태</th><th>작성일</th><th>관리</th>
+      </tr></thead>
+      <tbody id="modTbody"><tr><td colspan="6" class="tbl-empty">불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== 3. 추모관 설정 ===== -->
+<div class="tab-panel" id="panel-settings">
+  <div class="page-hd"><h2>⚙️ 추모관 설정</h2></div>
+  <div class="form-panel">
+    <div class="form-row">
+      <label>히어로 유튜브 영상 ID</label>
+      <input type="text" id="sHeroYoutubeId" placeholder="예: l97eBPM_d9E">
+      <div class="hint">유튜브 주소 youtube.com/watch?v=<b>여기</b> 또는 youtu.be/<b>여기</b> 의 ID만 입력.</div>
+    </div>
+    <div class="form-row">
+      <label>헌사 카피 (히어로 문구)</label>
+      <input type="text" id="sHeroCopy" maxlength="300" placeholder="우리는 당신들을 기억합니다">
+    </div>
+
+    <hr class="form-divider">
+
+    <div class="form-row">
+      <label>BGM 트랙 목록</label>
+      <div class="row-list" id="bgmRows"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addBgmRow()">+ 트랙 추가</button>
+      <div class="hint">음원 파일을 <code>/assets/audio/</code> 에 올린 뒤 제목과 URL(예: /assets/audio/memorial-1.mp3)을 등록하세요. 비워두면 BGM이 표시되지 않습니다.</div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-success" onclick="saveSettings()">설정 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin-memorial.js?v=1"></script>
+</body>
+</html>
