@@ -35,6 +35,25 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const method = req.method.toUpperCase();
 
+  // ── GET ?ytOembed=URL: 유튜브 제목·썸네일 미리보기 ──
+  if (method === "GET" && url.searchParams.has("ytOembed")) {
+    const ytUrl = url.searchParams.get("ytOembed") || "";
+    const youtubeId = extractYoutubeId(ytUrl);
+    if (!youtubeId) {
+      return new Response(JSON.stringify({ ok: false, error: "올바른 유튜브 URL이 아닙니다" }), {
+        status: 400, headers: { "Content-Type": "application/json" },
+      });
+    }
+    const oembed = await fetchOembed(ytUrl);
+    return new Response(JSON.stringify({
+      ok: true,
+      data: { oembed: {
+        title: oembed.title || null,
+        thumbnailUrl: oembed.thumbnailUrl || `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`,
+      } },
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
   // ── GET: 전체 목록 ──
   if (method === "GET") {
     try {
