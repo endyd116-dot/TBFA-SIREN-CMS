@@ -1,4 +1,4 @@
-/* admin-org-news.js v=1 — 여론·뉴스 분석 어드민 프론트 */
+/* admin-org-news.js v=4-incidents — 여론·뉴스 분석 어드민 프론트 */
 
 /* ── api 헬퍼 ── */
 async function api(path, opts) {
@@ -38,6 +38,13 @@ function switchTab(name) {
   });
   if (name === 'history' && !_historyLoaded) loadHistory();
   if (name === 'settings') loadSettings();
+}
+
+/* ── 긴급도 배지 ── */
+function urgencyBadge(urgency) {
+  var cls = { '높음': 'urg-high', '보통': 'urg-mid', '낮음': 'urg-low' };
+  var label = urgency || '낮음';
+  return '<span class="badge badge-' + (cls[label] || 'urg-low') + '">' + esc(label) + '</span>';
 }
 
 /* ── 여론 배지 ── */
@@ -129,6 +136,10 @@ function renderReport(report) {
   var recs = report.recommendations || [];
   /* 서버(B)는 수집 기사를 items 로 반환. 계약 표기(sources)도 폴백 유지 */
   var sources = report.sources || report.items || [];
+  /* incidents: 다중 fallback */
+  var incidents = (report.incidents) ||
+                  (report.data && report.data.incidents) ||
+                  [];
   var sentiment = report.sentiment || {};
   var srcCount = report.sourceCount || report.source_count || report.collectedCount || 0;
   var genAt = report.generatedAt || report.generated_at || report.createdAt || report.created_at;
@@ -223,6 +234,42 @@ function renderReport(report) {
     });
     html += '</div>';
   }
+
+  /* 협회 관련 사건·사고 */
+  html += '<div class="card">';
+  html += '<div class="card-title">🚨 협회 관련 사건·사고</div>';
+  if (!incidents || incidents.length === 0) {
+    html += '<div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px">최근 관련 사건 없음</div>';
+  } else {
+    /* urgency 내림차순(높음→보통→낮음), 같으면 relevance 내림차순 */
+    var urgOrder = { '높음': 0, '보통': 1, '낮음': 2 };
+    var sorted = incidents.slice().sort(function(a, b) {
+      var ua = urgOrder[a.urgency] != null ? urgOrder[a.urgency] : 9;
+      var ub = urgOrder[b.urgency] != null ? urgOrder[b.urgency] : 9;
+      if (ua !== ub) return ua - ub;
+      return (b.relevance || 0) - (a.relevance || 0);
+    });
+    sorted.forEach(function(inc) {
+      html += '<div class="incident-card">';
+      html += '<div class="incident-card-header">';
+      html += urgencyBadge(inc.urgency);
+      html += '<span class="incident-relevance">관련도 ' + (inc.relevance != null ? inc.relevance : '—') + '%</span>';
+      html += '</div>';
+      html += '<a class="incident-title" href="' + esc(inc.link || '#') + '" target="_blank" rel="noopener">' + esc(inc.title) + '</a>';
+      var meta = [];
+      if (inc.source) meta.push(esc(inc.source));
+      if (inc.pubDate) meta.push(esc(fmtDateShort(inc.pubDate)));
+      if (meta.length) html += '<div class="incident-meta">' + meta.join(' · ') + '</div>';
+      if (inc.reason) {
+        html += '<div class="incident-reason">📌 ' + esc(inc.reason) + '</div>';
+      }
+      if (inc.suggestedAction) {
+        html += '<div class="incident-action">💬 제안 대응: ' + esc(inc.suggestedAction) + '</div>';
+      }
+      html += '</div>';
+    });
+  }
+  html += '</div>';
 
   return html;
 }
