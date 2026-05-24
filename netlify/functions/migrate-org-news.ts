@@ -42,49 +42,73 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const done: string[] = [];
   try {
+    /* ★ C 검증 fix(2026-05-24): 백엔드(naver-search·org-news-analyze·5엔드포인트·cron)가
+       실제로 쓰는 컬럼·타입에 맞춤. 기존 설계 §4 스키마(source_count·sources·status·jsonb keywords)는
+       서버 INSERT/SELECT(collected_count·items·ai_status·text[] keywords)와 어긋나 호출 시 전부 500이었음.
+       keywords·scopes 는 서버가 raw 배열 바인딩(${'${'}keywords${'}'}) → text[]. items·keyword_cloud 등은 ::jsonb. */
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS org_news_reports (
         id              SERIAL PRIMARY KEY,
-        generated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        trigger_type    VARCHAR(10) NOT NULL DEFAULT 'manual',
-        generated_by    INTEGER,
-        period_from     DATE,
-        period_to       DATE,
-        keywords        JSONB NOT NULL DEFAULT '[]'::jsonb,
-        source_count    INTEGER NOT NULL DEFAULT 0,
-        sources         JSONB NOT NULL DEFAULT '[]'::jsonb,
+        keywords        TEXT[] NOT NULL DEFAULT '{}',
+        scopes          TEXT[] NOT NULL DEFAULT '{}',
+        per_combo       INTEGER NOT NULL DEFAULT 20,
+        collected_count INTEGER NOT NULL DEFAULT 0,
+        items           JSONB NOT NULL DEFAULT '[]'::jsonb,
         summary         TEXT,
         keyword_cloud   JSONB NOT NULL DEFAULT '[]'::jsonb,
         sentiment       JSONB,
         recommendations JSONB NOT NULL DEFAULT '[]'::jsonb,
         diff_summary    TEXT,
-        ai_model        VARCHAR(60),
-        status          VARCHAR(10) NOT NULL DEFAULT 'ok',
+        ai_status       VARCHAR(10) NOT NULL DEFAULT 'partial',
+        trigger_type    VARCHAR(10) NOT NULL DEFAULT 'manual',
+        generated_by    INTEGER,
         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
     done.push("org_news_reports");
 
+    /* 옛 마이그가 이미 돈 경우(부분 테이블)를 위한 방어적 컬럼 추가 — 누락분만 채움(멱등). */
     await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS org_news_reports_gen_idx ON org_news_reports (generated_at DESC)
+      ALTER TABLE org_news_reports
+        ADD COLUMN IF NOT EXISTS scopes          TEXT[]      NOT NULL DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS per_combo       INTEGER     NOT NULL DEFAULT 20,
+        ADD COLUMN IF NOT EXISTS collected_count INTEGER     NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS items           JSONB       NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS ai_status       VARCHAR(10) NOT NULL DEFAULT 'partial'
     `);
-    done.push("org_news_reports_gen_idx");
+    done.push("org_news_reports_columns");
+
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS org_news_reports_created_idx ON org_news_reports (created_at DESC)
+    `);
+    done.push("org_news_reports_created_idx");
 
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS org_news_settings (
-        id           INTEGER PRIMARY KEY DEFAULT 1,
-        keywords     JSONB NOT NULL DEFAULT '[]'::jsonb,
-        scopes       JSONB NOT NULL DEFAULT '["news","blog","webkr"]'::jsonb,
-        auto_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-        updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        id            INTEGER PRIMARY KEY DEFAULT 1,
+        keywords      TEXT[] NOT NULL DEFAULT '{}',
+        scopes        TEXT[] NOT NULL DEFAULT ARRAY['news','blog','webkr'],
+        per_combo     INTEGER NOT NULL DEFAULT 20,
+        auto_enabled  BOOLEAN NOT NULL DEFAULT TRUE,
+        cron_hour_kst INTEGER NOT NULL DEFAULT 9,
+        updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_by    INTEGER,
         CONSTRAINT org_news_settings_singleton CHECK (id = 1)
       )
     `);
     done.push("org_news_settings");
 
     await db.execute(sql`
+      ALTER TABLE org_news_settings
+        ADD COLUMN IF NOT EXISTS per_combo     INTEGER NOT NULL DEFAULT 20,
+        ADD COLUMN IF NOT EXISTS cron_hour_kst INTEGER NOT NULL DEFAULT 9,
+        ADD COLUMN IF NOT EXISTS updated_by    INTEGER
+    `);
+    done.push("org_news_settings_columns");
+
+    await db.execute(sql`
       INSERT INTO org_news_settings (id, keywords)
-      VALUES (1, ${JSON.stringify(SEED_KEYWORDS)}::jsonb)
+      VALUES (1, ${SEED_KEYWORDS})
       ON CONFLICT (id) DO NOTHING
     `);
     done.push("seed_settings");

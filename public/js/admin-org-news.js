@@ -124,8 +124,13 @@ function renderReport(report) {
 
   var kc = report.keywordCloud || report.keyword_cloud || [];
   var recs = report.recommendations || [];
-  var sources = report.sources || [];
+  /* 서버(B)는 수집 기사를 items 로 반환. 계약 표기(sources)도 폴백 유지 */
+  var sources = report.sources || report.items || [];
   var sentiment = report.sentiment || {};
+  var srcCount = report.sourceCount || report.source_count || report.collectedCount || 0;
+  var genAt = report.generatedAt || report.generated_at || report.createdAt || report.created_at;
+  var periodFrom = report.periodFrom || report.period_from;
+  var periodTo = report.periodTo || report.period_to;
 
   var html = '';
 
@@ -134,9 +139,11 @@ function renderReport(report) {
   html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
   html += '<div>';
   html += '<div style="font-size:13px;color:#6b7280;margin-bottom:6px">';
-  html += '수집 기간: <b>' + esc(fmtDateShort(report.periodFrom || report.period_from)) + ' ~ ' + esc(fmtDateShort(report.periodTo || report.period_to)) + '</b>';
-  html += ' &nbsp;|&nbsp; 수집 건수: <b>' + (report.sourceCount || report.source_count || 0) + '건</b>';
-  html += ' &nbsp;|&nbsp; 생성: <b>' + esc(fmtDate(report.generatedAt || report.generated_at)) + '</b>';
+  if (periodFrom || periodTo) {
+    html += '수집 기간: <b>' + esc(fmtDateShort(periodFrom)) + ' ~ ' + esc(fmtDateShort(periodTo)) + '</b> &nbsp;|&nbsp; ';
+  }
+  html += '수집 건수: <b>' + srcCount + '건</b>';
+  html += ' &nbsp;|&nbsp; 생성: <b>' + esc(fmtDate(genAt)) + '</b>';
   var tt = report.triggerType || report.trigger_type;
   html += ' &nbsp;|&nbsp; <span class="stat-chip">' + (tt === 'cron' ? '자동(크론)' : '수동') + '</span>';
   html += '</div>';
@@ -202,7 +209,10 @@ function renderReport(report) {
     sources.forEach(function(s) {
       html += '<div class="source-row">';
       html += '<a class="source-title" href="' + esc(s.link) + '" target="_blank" rel="noopener">' + esc(s.title) + '</a>';
-      html += '<span class="source-meta">' + esc(s.sourceType || s.source_type || '') + ' · ' + esc(s.pubDate || s.pub_date || '') + (s.keyword ? ' · #' + esc(s.keyword) : '') + '</span>';
+      /* 서버(B) 항목은 scope·date 필드 — 계약 표기(sourceType·pubDate)도 폴백 유지 */
+      var sType = s.sourceType || s.source_type || s.scope || '';
+      var sDate = s.pubDate || s.pub_date || (s.date ? fmtDateShort(s.date) : '');
+      html += '<span class="source-meta">' + esc(sType) + ' · ' + esc(sDate) + (s.keyword ? ' · #' + esc(s.keyword) : '') + '</span>';
       if (s.description) {
         html += '<span style="font-size:12.5px;color:#4b5563;line-height:1.5">' + esc(s.description) + '</span>';
       }
@@ -214,11 +224,20 @@ function renderReport(report) {
   return html;
 }
 
+/* ── 응답 보고서 추출 ──
+   서버(B)는 {ok,data:{...필드 직접}} 평면 구조로 반환하고, 일부는 {data:{report:{...}}} 계약 구조.
+   둘 다 수용 — data.report 가 있으면 그것, 없으면 data 자체가 보고서(id 보유 시). */
+function extractReport(res) {
+  var d = (res && res.data) ? res.data : {};
+  var inner = d.data || d;
+  return inner.report || (inner && inner.id != null ? inner : null);
+}
+
 /* ── 최신 보고서 로드 ── */
 var _currentReport = null;
 function loadLatestReport() {
   api('/api/admin-org-news-get').then(function(res) {
-    var report = (res.data && (res.data.report || res.data.data && res.data.data.report)) || null;
+    var report = extractReport(res);
     if (!res.ok && res.status !== 404) {
       if (res.status === 401 || res.status === 403) {
         document.getElementById('reportBody').innerHTML = '<div class="empty-state">권한이 없습니다.</div>';
@@ -228,7 +247,7 @@ function loadLatestReport() {
     _currentReport = report;
     document.getElementById('reportBody').innerHTML = renderReport(report);
     if (report) {
-      var at = report.generatedAt || report.generated_at;
+      var at = report.generatedAt || report.generated_at || report.createdAt || report.created_at;
       document.getElementById('lastGenAt').textContent = at ? ('마지막 생성: ' + fmtDate(at)) : '';
       setTimeout(function() { renderWordCloud(report.keywordCloud || report.keyword_cloud || [], 'wc-canvas'); }, 100);
     }
@@ -253,9 +272,9 @@ function loadHistory() {
     }
     var html = '';
     reports.forEach(function(r, i) {
-      var at = r.generatedAt || r.generated_at;
+      var at = r.generatedAt || r.generated_at || r.createdAt || r.created_at;
       var label = r.sentimentLabel || (r.sentiment && r.sentiment.label) || '';
-      var sc = r.sourceCount || r.source_count || 0;
+      var sc = r.sourceCount || r.source_count || r.collectedCount || 0;
       var tt = r.triggerType || r.trigger_type;
       html += '<div class="history-row" data-id="' + r.id + '" data-idx="' + i + '">';
       html += '<span style="font-size:13px;font-weight:600;color:#1d4ed8">#' + r.id + '</span>';
@@ -282,7 +301,7 @@ function loadHistoryDetail(id) {
   detail.style.display = 'block';
   detail.innerHTML = '<div class="empty-state">보고서 불러오는 중...</div>';
   api('/api/admin-org-news-get?id=' + id).then(function(res) {
-    var report = (res.data && (res.data.report || (res.data.data && res.data.data.report))) || null;
+    var report = extractReport(res);
     if (!res.ok || !report) {
       detail.innerHTML = '<div class="empty-state">보고서를 불러올 수 없습니다.</div>';
       return;
@@ -307,10 +326,10 @@ function doRefresh() {
       return;
     }
     showToast('재조사가 완료됐습니다.', 'success');
-    _currentReport = (res.data && (res.data.report || (res.data.data && res.data.data.report))) || null;
+    _currentReport = extractReport(res);
     if (_currentReport) {
       document.getElementById('reportBody').innerHTML = renderReport(_currentReport);
-      var at = _currentReport.generatedAt || _currentReport.generated_at;
+      var at = _currentReport.generatedAt || _currentReport.generated_at || _currentReport.createdAt || _currentReport.created_at;
       document.getElementById('lastGenAt').textContent = at ? ('마지막 생성: ' + fmtDate(at)) : '';
       setTimeout(function() { renderWordCloud(_currentReport.keywordCloud || _currentReport.keyword_cloud || [], 'wc-canvas'); }, 100);
     }
