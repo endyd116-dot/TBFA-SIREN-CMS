@@ -125,5 +125,18 @@ cron·수동 공용. fail-open(시드 불필요).
 
 ---
 
-## 구현 결과
-(구현 후 누적)
+## 구현 결과 (2026-05-24·A·B 병렬 머지·tsc 0·JS 문법 0)
+
+- **B 백엔드**(`500700f`→cherry-pick `c686cc1`): `lib/naver-search.ts`(news/blog/webkr·1주 필터·dedup·8초 timeout·키 미설정 fail-closed)·`lib/org-news-analyze.ts`(Gemini pro·summary/keywordCloud/sentiment/recommendations/diff·AI 실패 휴리스틱 폴백 status partial)·5 엔드포인트(list/get/refresh/settings)·`cron-org-news.ts`(UTC 00:00=KST 09:00·auto_enabled 분기)+netlify.toml 등록·featureKey `org_news_analysis`.
+- **A 프론트**(`2d4e538`→cherry-pick `3222cef`): `admin-org-news.html`+`admin-org-news.js`(계약 5종 소비·다중 fallback 언래핑)·CMS 4곳 등록(메뉴 `#org-news`·iframe `page-org-news`·타이틀맵·로더)·워드클라우드 wordcloud2.js 3-tier CDN 폴백+CSS 폴백·히스토리·재조사·설정 패널(403 시 숨김).
+- **머지**: A·B 작업 커밋만 cherry-pick(옛 검수 커밋 ce5dcd8·cf0aaba 제외). 충돌 1건 = `lib/ai-feature.ts` FEATURE_REGISTRY(③ milestone_matrix_mapping + ④ org_news_analysis 둘 다 보존)로 해소. 파일 충돌 그 외 0.
+- **계약 정합**: A 언래핑(`res.data.data.X||res.data.X`) ↔ B 래핑(`{ok,data:{...}}`) 일치 확인.
+
+### Swain 액션 (push 배포 후)
+- env `NAVER_SEARCH_CLIENT_ID`·`NAVER_SEARCH_CLIENT_SECRET` 등록 ✅(완료)
+- **마이그 호출**: `https://tbfa.co.kr/api/migrate-org-news?run=1` (어드민 로그인) → 2테이블 생성. **호출 전엔 보고서 목록/단건 500**(정상).
+
+### 종결 시 잔여(C 검증 통과 후)
+- [ ] C 검증(`verify/2026-05-24-org-news`) — 트리거 발사 대기(머지 push 후)
+- [ ] 마이그 함수 삭제(호출 성공 후) + schema.ts append-only 정의(선택)
+- [ ] 매뉴얼·명세 동기화 + 설계서 history 이동

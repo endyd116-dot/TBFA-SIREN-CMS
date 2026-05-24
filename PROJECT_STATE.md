@@ -23,6 +23,12 @@
 
 ## 2. 현재 상태 (2026-05-24)
 
+### 🟡 ④ 교유협 뉴스·여론 분석 — A·B 병렬 머지 완료·마이그+C검증 대기 (2026-05-24)
+네이버 검색 수집 + Gemini 분석(요약·워드클라우드·여론·추천·변경점) → 통합 CMS 새 메뉴 "📰 여론·뉴스 분석" + 매일 09:00 cron + 수동 재조사 + 히스토리. **메인·A(프론트)·B(백)·C(검증) 병렬.** A·B 작업 커밋 cherry-pick 머지(`3222cef`·`c686cc1`)·tsc 0·JS 문법 0·계약 정합 확인. featureKey `org_news_analysis`. 단일 출처 `docs/active/2026-05-24-org-news-analysis.md`.
+- **신규 2테이블**(raw SQL·schema.ts 미정의): `org_news_reports`(히스토리 누적)·`org_news_settings`(단일행 시드). 마이그 `migrate-org-news`.
+- **Swain**: 네이버 키 env ✅ / **마이그 호출 `tbfa.co.kr/api/migrate-org-news?run=1`** 대기(push 배포 후·호출 전엔 보고서 조회 500 정상).
+- **다음**: 머지 push 후 C 트리거 발사(`verify/2026-05-24-org-news`) → 검증·fix → 통과 시 마이그 삭제·매뉴얼·명세·history.
+
 ### 🟡 ③ 마일스톤 매트릭스 AI 매핑 — C 코드검증 PASS 8/8·BUG 0 / Swain 브라우저 클릭만 대기 (2026-05-24)
 분기 성과 기준표(매트릭스)를 텍스트로 붙여넣으면 AI가 마일스톤 정의 후보를 추출·기존 충돌 판정 → 고신뢰·충돌 없는 신규는 자동 선택, 충돌·삭제 후보는 수정/삭제/유지 선택. **스키마 0·마이그 0·외부연동 0** (기존 `milestone_definitions`·소프트삭제·변경이력 재활용). tsc 0·JS 문법 0. **C 검증 PASS 8/8·BUG 0**(리포트 `docs/history/verify/2026-05-24-milestone-matrix.md`·`f7e8ad6`) — 코드론 완료, AI 실호출·브라우저 UX만 Swain 클릭 검증.
 - **Swain 결정**: 입력=텍스트 붙여넣기 / 반영=신뢰도 높으면 자동 / 매핑=상시 정의 집합 갱신 / 감사 테이블=신설 안 함.
