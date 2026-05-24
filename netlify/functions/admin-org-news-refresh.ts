@@ -18,7 +18,7 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { collectNaverSearch, type NaverSearchScope } from "../../lib/naver-search";
-import { analyzeOrgNews } from "../../lib/org-news-analyze";
+import { analyzeOrgNews, sqlTextArray } from "../../lib/org-news-analyze";
 
 export const config = { path: "/api/admin-org-news-refresh" };
 
@@ -115,7 +115,7 @@ export default async function handler(req: Request, _ctx: Context) {
          summary, keyword_cloud, sentiment, recommendations, diff_summary,
          ai_status, trigger_type, generated_by, created_at)
       VALUES
-        (${keywords}, ${scopes}, ${perCombo}, ${items.length},
+        (${sqlTextArray(keywords)}, ${sqlTextArray(scopes)}, ${perCombo}, ${items.length},
          ${JSON.stringify(items)}::jsonb,
          ${analysis.summary},
          ${JSON.stringify(analysis.keywordCloud)}::jsonb,

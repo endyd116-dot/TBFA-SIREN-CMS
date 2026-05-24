@@ -13,6 +13,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { sqlTextArray } from "../../lib/org-news-analyze";
 
 export const config = { path: "/api/admin-org-news-settings" };
 
@@ -108,7 +109,7 @@ export default async function handler(req: Request, _ctx: Context) {
         INSERT INTO org_news_settings
           (id, keywords, scopes, per_combo, auto_enabled, cron_hour_kst, updated_at, updated_by)
         VALUES
-          (1, ${keywords}, ${scopes}, ${perCombo}, ${autoEnabled}, ${cronHourKst}, NOW(), ${admin.id})
+          (1, ${sqlTextArray(keywords)}, ${sqlTextArray(scopes)}, ${perCombo}, ${autoEnabled}, ${cronHourKst}, NOW(), ${admin.id})
         ON CONFLICT (id) DO UPDATE SET
           keywords     = EXCLUDED.keywords,
           scopes       = EXCLUDED.scopes,

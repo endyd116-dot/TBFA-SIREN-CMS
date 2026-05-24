@@ -14,7 +14,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { collectNaverSearch, type NaverSearchScope } from "../../lib/naver-search";
-import { analyzeOrgNews } from "../../lib/org-news-analyze";
+import { analyzeOrgNews, sqlTextArray } from "../../lib/org-news-analyze";
 
 export const config = {
   schedule: "0 0 * * *",  // UTC 00:00 = KST 09:00
@@ -111,7 +111,7 @@ export default async (_req: Request, _ctx: Context) => {
          summary, keyword_cloud, sentiment, recommendations, diff_summary,
          ai_status, trigger_type, generated_by, created_at)
       VALUES
-        (${keywords}, ${scopes}, ${perCombo}, ${items.length},
+        (${sqlTextArray(keywords)}, ${sqlTextArray(scopes)}, ${perCombo}, ${items.length},
          ${JSON.stringify(items)}::jsonb,
          ${analysis.summary},
          ${JSON.stringify(analysis.keywordCloud)}::jsonb,

@@ -10,8 +10,17 @@
  *   status             — 'full' | 'partial' (AI 실패 시 partial)
  */
 
+import { sql } from "drizzle-orm";
 import { callGeminiJSON } from "./ai-gemini";
 import type { NaverSearchItem } from "./naver-search";
+
+/** JS 문자열 배열 → Postgres text[] 바인딩.
+ *  drizzle `sql` 템플릿은 `${jsArray}`를 콤마로 펼쳐 레코드(a,b,c)로 만들어
+ *  text[] 컬럼 INSERT 시 "expression is of type record" 오류가 난다.
+ *  ARRAY[$1,$2,...]::text[] 로 각 원소를 개별 파라미터 바인딩(한글·따옴표 안전). 빈 배열은 ARRAY[]::text[]. */
+export function sqlTextArray(arr: string[]) {
+  return sql`ARRAY[${sql.join((arr ?? []).map((x) => sql`${x}`), sql`, `)}]::text[]`;
+}
 
 export interface KeywordWeight {
   text: string;

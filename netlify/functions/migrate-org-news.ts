@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { sqlTextArray } from "../../lib/org-news-analyze";
 
 export const config = { path: "/api/migrate-org-news" };
 
@@ -120,7 +121,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
     await db.execute(sql`
       INSERT INTO org_news_settings (id, keywords)
-      VALUES (1, ${SEED_KEYWORDS})
+      VALUES (1, ${sqlTextArray(SEED_KEYWORDS)})
       ON CONFLICT (id) DO NOTHING
     `);
     done.push("seed_settings");
