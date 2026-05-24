@@ -5,19 +5,6 @@
 (function () {
   'use strict';
 
-  /* ───────── B 머지 전 mock (설계서 §5.1) ───────── */
-  var MOCK_SUMMARY = {
-    counters: { people: 1280, candles: 3540, messages: 870 },
-    hero: { youtubeId: 'l97eBPM_d9E', copy: '우리는 당신들을 기억합니다' },
-    bgmTracks: [{ title: '잔잔한 피아노', url: '/assets/audio/memorial-1.mp3' }]
-  };
-  var MOCK_TEACHERS = [
-    { id: 1, name: '故 ○○○ 선생님', photoUrl: null, schoolRegion: '서울', tributeLine: '아이들을 사랑한 선생님', candleCount: 128, messageCount: 34 }
-  ];
-  var MOCK_MESSAGES = [
-    { id: 1, authorName: '시민', content: '잊지 않겠습니다.', likeCount: 12, createdAt: '2026-05-24T00:00:00Z', liked: false }
-  ];
-
   /* ───────── 공통 헬퍼 ───────── */
   function api(path, options) {
     options = options || {};
@@ -178,19 +165,13 @@
   /* ───────── 요약(summary) 로드 ───────── */
   function loadSummary() {
     api('/api/memorial-summary').then(function (res) {
-      var c, hero;
-      if (res.ok) {
-        c = unwrap(res, 'counters') || {};
-        hero = unwrap(res, 'hero') || {};
-      } else {
-        c = MOCK_SUMMARY.counters; hero = MOCK_SUMMARY.hero;
-      }
+      var c = res.ok ? (unwrap(res, 'counters') || {}) : {};
+      var hero = res.ok ? (unwrap(res, 'hero') || {}) : {};
       setCounterTargets(c);
       setupHero(hero);
       watchCounter();
     }).catch(function () {
-      setCounterTargets(MOCK_SUMMARY.counters);
-      setupHero(MOCK_SUMMARY.hero);
+      setCounterTargets({});
       watchCounter();
     });
   }
@@ -285,9 +266,8 @@
   }
   function loadTeachers() {
     api('/api/memorial-teachers').then(function (res) {
-      var list = res.ok ? (unwrap(res, 'teachers') || []) : MOCK_TEACHERS;
-      renderTeachers(list);
-    }).catch(function () { renderTeachers(MOCK_TEACHERS); });
+      renderTeachers(res.ok ? (unwrap(res, 'teachers') || []) : []);
+    }).catch(function () { renderTeachers([]); });
   }
 
   /* ───────── ⑤ 통합 방명록 ───────── */
@@ -332,7 +312,7 @@
     api('/api/memorial-messages?page=' + nextPage).then(function (res) {
       _msgLoading = false;
       if (!res.ok) {
-        if (!append) renderMessages(MOCK_MESSAGES, false);
+        if (!append) renderMessages([], false);
         return;
       }
       _msgPage = nextPage;
@@ -343,7 +323,7 @@
       if (moreWrap) moreWrap.style.display = pg.hasMore ? '' : 'none';
     }).catch(function () {
       _msgLoading = false;
-      if (!append) renderMessages(MOCK_MESSAGES, false);
+      if (!append) renderMessages([], false);
     });
   }
   function likeMsg(id, wrap) {

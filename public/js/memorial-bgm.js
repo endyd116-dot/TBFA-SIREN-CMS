@@ -15,9 +15,6 @@
   var FADE_MS = 1100;
   var TARGET_VOLUME = 0.4;
 
-  /* B 머지 전 mock (설계서 §5.1) — 실제 응답 실패 시에만 사용 */
-  var MOCK_TRACKS = [{ title: '잔잔한 피아노', url: '/assets/audio/memorial-1.mp3' }];
-
   var tracks = [];
   var trackIndex = 0;
   var audio = null;
@@ -173,11 +170,9 @@
         applyState();
       })
       .catch(function () {
-        /* 백엔드 연결 전(mock 단계) — 디자인 확인용 더미 트랙 */
-        tracks = MOCK_TRACKS;
-        loadTrack(0);
-        showToggle();
-        applyState();
+        /* 요약 조회 실패 → 음원 없음과 동일하게 토글 숨김 */
+        tracks = [];
+        hideToggle();
       });
   }
 
