@@ -67,6 +67,7 @@ export default async function handler(req: Request, _ctx: Context) {
         recommendations: row.recommendations || [],
         diffSummary:     row.diff_summary    || "",
         aiStatus:        row.ai_status       || "partial",
+        incidents:       row.incidents       || [],
         triggerType:     row.trigger_type    || "manual",
         generatedBy:     row.generated_by    || null,
         createdAt:       row.created_at      || null,

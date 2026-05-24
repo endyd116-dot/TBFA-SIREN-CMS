@@ -86,13 +86,24 @@ export default async function handler(req: Request, _ctx: Context) {
   ).join("\n") || "(기존 정의 없음)";
   const rolesBrief = roles.map((r) => `${r.code}=${r.name}`).join(", ") || "(역할 카탈로그 비어있음)";
 
+  // 입력 텍스트의 대략적인 행 수 추정 (누락 감지용)
+  const inputLineCount = text.split(/\n/).filter((l) => l.trim()).length;
+
   const prompt = [
     "너는 비영리단체의 분기 성과(마일스톤) 운영 담당자다. 아래 '분기 성과 기준표(매트릭스)' 텍스트를 읽고,",
     "각 성과 항목을 마일스톤 정의 후보로 구조화 추출하라. 그리고 '기존 정의 목록'과 겹치는지 판정하라.",
     "",
+    "⚠️ 중요: 표의 모든 행을 빠짐없이 추출하라(누락 금지). 항목 수가 많아도 전부 포함해야 한다.",
+    "항목을 건너뛰거나 '...' 등으로 축약하지 말 것. 아무리 비슷해 보여도 행마다 별도 후보로 추출.",
+    "",
     "[활성 역할 코드] (targetMilestoneRole 은 반드시 이 중 하나, 표의 역할명을 코드로 매핑):",
     rolesBrief,
     roleHint ? `\n[힌트] 이 매트릭스는 주로 역할 '${roleHint}' 대상이다. 명시 없는 항목은 이 역할로.` : "",
+    "",
+    "[카테고리 인식 힌트]",
+    "- REVENUE_LINKED: 매출·후원금·수익 달성과 연동되는 성과 항목",
+    "- NON_REVENUE: 매출과 무관한 활동·건수·완료 기반 성과 항목 (1~5번 항목, 활동 실적, 지원건수, 완료건수, 참여율 등)",
+    "표에 '비매출' '활동' '건수' '참여' 등의 표현이 있으면 NON_REVENUE 로 분류.",
     "",
     "[기존 정의 목록] (matchExistingId 로 충돌 표시):",
     existingBrief,
@@ -134,7 +145,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const r = await callGeminiJSON<{ candidates: any[] }>(prompt, {
       featureKey: "milestone_matrix_mapping",
       mode: "pro",
-      maxOutputTokens: 4000,
+      maxOutputTokens: 8000,
       temperature: 0.2,
       adminId: admin?.id ?? null,
     });
@@ -228,6 +239,14 @@ export default async function handler(req: Request, _ctx: Context) {
     .filter((e) => !matchedIds.has(e.id))
     .map((e) => ({ id: e.id, code: e.code, name: e.name, role: e.role, category: e.category }));
 
+  // 입력 행 수 대비 추출 후보 수가 현저히 적으면 누락 가능성 경고
+  // (헤더·빈줄 제외 기준으로 입력 행 절반 이하이고 후보가 5개 미만일 때)
+  const extractionRatio = inputLineCount > 0 ? candidates.length / inputLineCount : 1;
+  const warningMsg =
+    candidates.length < inputLineCount / 2 && candidates.length < inputLineCount - 2
+      ? "일부 누락 가능 — 텍스트 분할 재시도 권장 (추출 후보 " + candidates.length + "개 / 입력 행 " + inputLineCount + "개)"
+      : undefined;
+
   const summary = {
     total: candidates.length,
     autoApply: candidates.filter((c: any) => c.autoApply).length,
@@ -235,6 +254,7 @@ export default async function handler(req: Request, _ctx: Context) {
     keep: candidates.filter((c: any) => c.action === "KEEP").length,
     needsReview: candidates.filter((c: any) => !c.autoApply && c.action === "NEW").length,
     orphans: orphans.length,
+    ...(warningMsg ? { warning: warningMsg } : {}),
   };
 
   return Response.json({ ok: true, data: { candidates, orphans, existingCount: existing.length, modelUsed, summary } });

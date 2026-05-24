@@ -14,7 +14,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { collectNaverSearch, type NaverSearchScope } from "../../lib/naver-search";
-import { analyzeOrgNews, sqlTextArray } from "../../lib/org-news-analyze";
+import { analyzeOrgNews, judgeIncidents, sqlTextArray, INCIDENT_KEYWORDS } from "../../lib/org-news-analyze";
 
 export const config = {
   schedule: "0 0 * * *",  // UTC 00:00 = KST 09:00
@@ -103,13 +103,24 @@ export default async (_req: Request, _ctx: Context) => {
     );
   }
 
+  /* 4-B. 사건·사고 수집 + 판정 */
+  let incidents: Awaited<ReturnType<typeof judgeIncidents>> = [];
+  try {
+    const incidentResult = await collectNaverSearch(INCIDENT_KEYWORDS as unknown as string[], ["news"], 20);
+    if (incidentResult.ok && incidentResult.items.length) {
+      incidents = await judgeIncidents(incidentResult.items);
+    }
+  } catch (err: any) {
+    console.warn("[cron-org-news] 사건·사고 수집/판정 실패 (무시):", err?.message);
+  }
+
   /* 5. 보고서 INSERT */
   try {
     await db.execute(sql`
       INSERT INTO org_news_reports
         (keywords, scopes, per_combo, collected_count, items,
          summary, keyword_cloud, sentiment, recommendations, diff_summary,
-         ai_status, trigger_type, generated_by, created_at)
+         ai_status, incidents, trigger_type, generated_by, created_at)
       VALUES
         (${sqlTextArray(keywords)}, ${sqlTextArray(scopes)}, ${perCombo}, ${items.length},
          ${JSON.stringify(items)}::jsonb,
@@ -119,6 +130,7 @@ export default async (_req: Request, _ctx: Context) => {
          ${JSON.stringify(analysis.recommendations)}::jsonb,
          ${analysis.diffSummary},
          ${analysis.status},
+         ${JSON.stringify(incidents)}::jsonb,
          'cron',
          NULL,
          NOW())

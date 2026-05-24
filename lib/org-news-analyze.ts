@@ -8,11 +8,38 @@
  *   recommendations    — [{title, detail}] 운영 대응 제안
  *   diffSummary        — 직전 보고서 대비 변화 요약 (없으면 빈 문자열)
  *   status             — 'full' | 'partial' (AI 실패 시 partial)
+ *
+ * judgeIncidents 반환 구조:
+ *   [{title, link, source, pubDate, relevance, urgency, reason, suggestedAction}]
+ *   — 협회 참여 여지 있는 사건·사고만 추려 relevance/urgency 산출
+ *   — AI 실패 시 빈 배열 (status 영향 없음)
  */
 
 import { sql } from "drizzle-orm";
 import { callGeminiJSON } from "./ai-gemini";
 import type { NaverSearchItem } from "./naver-search";
+
+/** 협회 관련 사건·사고 수집에 사용하는 키워드 상수 (설정 키워드와 별개) */
+export const INCIDENT_KEYWORDS = [
+  "교사 사망",
+  "교사 순직",
+  "교권 침해",
+  "학교 사건사고",
+  "교사 추락",
+  "교사 극단적 선택",
+  "교원 순직",
+] as const;
+
+export interface IncidentItem {
+  title:           string;
+  link:            string;
+  source:          string;   // 수집 키워드
+  pubDate:         string;
+  relevance:       number;   // 0~100 협회 관련도
+  urgency:         "높음" | "보통" | "낮음";
+  reason:          string;
+  suggestedAction: string;
+}
 
 /** JS 문자열 배열 → Postgres text[] 바인딩.
  *  drizzle `sql` 템플릿은 `${jsArray}`를 콤마로 펼쳐 레코드(a,b,c)로 만들어
@@ -155,4 +182,80 @@ ${snippets}
     diffSummary:     "",
     status:          "partial",
   };
+}
+
+/**
+ * 사건·사고 기사 목록 → Gemini가 협회 참여 여지 있는 사건만 추려 판정
+ *
+ * AI 실패 시 빈 배열 반환 (fire-and-forget 안전 — status 영향 없음)
+ */
+export async function judgeIncidents(
+  items: NaverSearchItem[],
+): Promise<IncidentItem[]> {
+  if (!items.length) return [];
+
+  const snippets = items
+    .slice(0, 50)
+    .map((it, i) =>
+      `[${i + 1}] (${it.keyword}) ${it.date.slice(0, 10)} — ${it.title}\n${it.description.slice(0, 150)}`
+    )
+    .join("\n\n");
+
+  const prompt = `당신은 한국 교사유가족협의회의 사건·사고 모니터링 담당자입니다.
+아래는 최근 1주간 교사 관련 사건·사고 키워드로 수집된 뉴스 목록입니다.
+수집 건수: ${items.length}건
+
+---
+${snippets}
+---
+
+위 기사 중 "(사)교사유가족협의회"가 관심을 갖거나 실제 개입·지원·성명 발표를 고려할 만한 사건·사고만 추려내세요.
+단순 홍보·정책 기사·협회와 무관한 내용은 제외하세요.
+
+아래 JSON 형식으로만 응답하세요(한국어, 코드블록 없이):
+{
+  "incidents": [
+    {
+      "title": "기사 제목",
+      "link": "기사 URL",
+      "source": "수집 키워드",
+      "pubDate": "날짜(ISO 또는 원본)",
+      "relevance": 0~100,
+      "urgency": "높음|보통|낮음",
+      "reason": "협회가 주목해야 하는 이유 1~2문장",
+      "suggestedAction": "협회가 취할 수 있는 구체 대응 1문장"
+    }
+  ]
+}
+
+urgency 기준:
+- 높음: 교사 사망·순직 등 즉각 대응 필요
+- 보통: 교권 침해·학교 사건 등 모니터링·준비 필요
+- 낮음: 관련 동향이나 잠재적 관심사
+
+관련 없으면 "incidents": [] 로 응답.`;
+
+  const result = await callGeminiJSON<{ incidents: IncidentItem[] }>(prompt, {
+    featureKey:      "org_news_analysis",
+    mode:            "pro",
+    maxOutputTokens: 2000,
+  });
+
+  if (result.ok && result.data && Array.isArray(result.data.incidents)) {
+    return result.data.incidents
+      .filter((it: any) => it && typeof it.title === "string" && it.title)
+      .map((it: any): IncidentItem => ({
+        title:           String(it.title           || "").slice(0, 300),
+        link:            String(it.link            || ""),
+        source:          String(it.source          || ""),
+        pubDate:         String(it.pubDate         || ""),
+        relevance:       typeof it.relevance === "number" ? Math.max(0, Math.min(100, it.relevance)) : 50,
+        urgency:         ["높음", "보통", "낮음"].includes(it.urgency) ? it.urgency : "보통",
+        reason:          String(it.reason          || "").slice(0, 300),
+        suggestedAction: String(it.suggestedAction || "").slice(0, 300),
+      }));
+  }
+
+  console.warn("[org-news-analyze] judgeIncidents AI 실패 — 빈 배열 반환:", result.error);
+  return [];
 }
