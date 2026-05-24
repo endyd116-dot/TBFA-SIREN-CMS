@@ -97,6 +97,36 @@ async function loadDefs() {
   renderDefs();
 }
 
+const NR_CAT_LABELS = {
+  1: '① 미션·정책 영향력',
+  2: '② 유족·회원 직접 지원',
+  3: '③ 사회적 가치·인식 변화',
+  4: '④ 조직 역량 강화',
+  5: '⑤ 운영 효율·시스템',
+};
+
+function _defRow(d, _roleLabel) {
+  const r = d.targetMilestoneRole || d.milestoneRole;
+  const rLabel = r ? (_roleLabel(r) === r ? r : `${r}(${_roleLabel(r)})`) : '-';
+  const active = d.isActive !== false;
+  const activeBadge = active
+    ? '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">활성</span>'
+    : '<span style="background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">비활성</span>';
+  return `
+  <tr${active ? '' : ' style="opacity:.6"'}>
+    <td>${activeBadge}</td>
+    <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
+    <td style="font-weight:600">${d.name}</td>
+    <td>${rLabel}</td>
+    <td style="font-size:12px">${d.businessUnit || '-'}</td>
+    <td style="font-size:12px">${d.sortOrder ?? 0}</td>
+    <td>
+      <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
+      <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="toggleDefActive(${d.id})">${active ? '비활성화' : '활성화'}</button>
+    </td>
+  </tr>`;
+}
+
 function renderDefs() {
   const el = document.getElementById('defsList');
   if (!AM.defs.length) {
@@ -107,37 +137,48 @@ function renderDefs() {
   const _roleLabel = (code) =>
     (window.MilestoneRoles ? window.MilestoneRoles.getRoleLabelSync(code) : null)
     || code || '-';
-  const catLabel = { REVENUE_LINKED: '매출연동', NON_REVENUE: '비매출' };
-  el.innerHTML = `
-    <table class="ms-table">
-      <thead><tr>
-        <th>활성</th><th>코드</th><th>이름</th><th>역할</th><th>카테고리</th><th>사업체</th><th>정렬</th><th>관리</th>
-      </tr></thead>
-      <tbody>
-        ${AM.defs.map(d => {
-          const r = d.targetMilestoneRole || d.milestoneRole;
-          const rLabel = r ? (_roleLabel(r) === r ? r : `${r}(${_roleLabel(r)})`) : '-';
-          const active = d.isActive !== false;
-          const activeBadge = active
-            ? '<span style="background:#f0fdf4;color:#15803d;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">활성</span>'
-            : '<span style="background:#f3f4f6;color:#9ca3af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">비활성</span>';
-          return `
-          <tr${active ? '' : ' style="opacity:.6"'}>
-            <td>${activeBadge}</td>
-            <td style="font-family:monospace;font-size:12px;color:#6b7280">${d.code}</td>
-            <td style="font-weight:600">${d.name}</td>
-            <td>${rLabel}</td>
-            <td>${catLabel[d.category] || d.category}</td>
-            <td style="font-size:12px">${d.businessUnit || '-'}</td>
-            <td style="font-size:12px">${d.sortOrder ?? 0}</td>
-            <td>
-              <button class="ms-btn ms-btn-ghost ms-btn-sm" onclick="openDefEdit(${d.id})">수정</button>
-              <button class="ms-btn ${active ? 'ms-btn-danger' : 'ms-btn-primary'} ms-btn-sm" style="margin-left:4px" onclick="toggleDefActive(${d.id})">${active ? '비활성화' : '활성화'}</button>
-            </td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
+
+  const revenue = AM.defs.filter(d => d.category === 'REVENUE_LINKED');
+  const nonRev  = AM.defs.filter(d => d.category === 'NON_REVENUE');
+
+  const tableHead = `<table class="ms-table">
+    <thead><tr>
+      <th>활성</th><th>코드</th><th>이름</th><th>역할</th><th>사업체</th><th>정렬</th><th>관리</th>
+    </tr></thead><tbody>`;
+  const tableClose = `</tbody></table>`;
+
+  let html = '';
+
+  /* ── 매출연동 섹션 ── */
+  if (revenue.length) {
+    html += `<div style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1d4ed8">매출연동 정의 (${revenue.length})</div>`;
+    html += tableHead + revenue.map(d => _defRow(d, _roleLabel)).join('') + tableClose;
+  }
+
+  /* ── 비매출 섹션 — 카테고리 1~5 소제목 묶음 ── */
+  if (nonRev.length) {
+    html += `<div style="margin:${revenue.length ? '18px' : '0'} 0 6px;font-size:13px;font-weight:700;color:#7c3aed">비매출 정의 (${nonRev.length})</div>`;
+
+    /* 카테고리별 그룹핑 — nonRevenueCategory 다중 fallback */
+    const groups = {};
+    nonRev.forEach(d => {
+      const cat = d.nonRevenueCategory ?? d.non_revenue_category ?? d.nrCategory ?? null;
+      const key = (cat >= 1 && cat <= 5) ? cat : 0;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(d);
+    });
+
+    /* 카테고리 1~5 순서로 출력, 미분류(0)는 맨 끝 */
+    const orderedKeys = [1, 2, 3, 4, 5, 0].filter(k => groups[k]);
+    orderedKeys.forEach(k => {
+      const items = groups[k];
+      const subtitle = k === 0 ? '미분류' : NR_CAT_LABELS[k];
+      html += `<div style="margin:10px 0 4px 2px;font-size:12px;font-weight:600;color:#6b7280;border-left:3px solid #e5e7eb;padding-left:8px">${subtitle} (${items.length})</div>`;
+      html += tableHead + items.map(d => _defRow(d, _roleLabel)).join('') + tableClose;
+    });
+  }
+
+  el.innerHTML = html || '<p style="color:#9ca3af;text-align:center;padding:30px">등록된 마일스톤이 없습니다.</p>';
 }
 
 /* 통합: 정의 활성/비활성 토글 (소프트삭제와 동일·milestone-definitions PATCH) */
@@ -410,6 +451,18 @@ function renderMatrixReview(d) {
   const keeps = cands.filter(c => c.action === 'KEEP');
   const orphans = AM.matrix.orphans;
   const s = d.summary || {};
+
+  /* warning 박스 — data.summary.warning 있을 때만 표시 */
+  const warnEl = document.getElementById('matrixWarning');
+  if (warnEl) {
+    const warning = s.warning || null;
+    if (warning) {
+      warnEl.innerHTML = `<span style="font-size:14px;margin-right:6px">⚠️</span>${escHtmlAm(warning)}`;
+      warnEl.style.display = 'flex';
+    } else {
+      warnEl.style.display = 'none';
+    }
+  }
 
   document.getElementById('matrixSummary').innerHTML =
     `📊 추출 <strong>${cands.length}</strong>건 · 자동선택(신규) <strong>${auto.length}</strong> · 충돌(수정) <strong>${updates.length}</strong> · 검토필요 <strong>${review.length}</strong> · 변경없음 ${keeps.length} · 삭제후보 <strong>${orphans.length}</strong>`
@@ -1246,6 +1299,7 @@ function renderRoleMgmt(roles) {
     <table class="ms-table">
       <thead><tr>
         <th style="width:90px">코드</th><th>이름</th><th>설명</th>
+        <th style="width:110px">매출 캡</th><th style="width:110px">비매출 캡</th>
         <th style="text-align:right;width:70px">정렬</th><th style="width:70px">활성</th><th style="width:170px">관리</th>
       </tr></thead>
       <tbody>
@@ -1256,11 +1310,16 @@ function renderRoleMgmt(roles) {
           const toggleBtn = r.isActive
             ? `<button class="ms-btn ms-btn-danger ms-btn-sm" style="margin-left:4px" onclick="deactivateRoleCat(${r.id})">비활성화</button>`
             : `<button class="ms-btn ms-btn-primary ms-btn-sm" style="margin-left:4px" onclick="reactivateRoleCat(${r.id})">활성화</button>`;
+          const rcap = r.revenueCap ?? r.revenue_cap ?? null;
+          const nrcap = r.nonRevenueCap ?? r.non_revenue_cap ?? null;
+          const fmtCap = (v) => v != null ? (Math.round(v / 10000).toLocaleString('ko-KR') + '만원') : '<span style="color:#9ca3af">무제한</span>';
           return `
           <tr${r.isActive ? '' : ' style="opacity:.6"'}>
             <td style="font-family:monospace;font-size:12.5px;font-weight:600">${r.code}</td>
             <td style="font-weight:600">${r.name}</td>
             <td style="font-size:12.5px;color:#6b7280">${r.description || '-'}</td>
+            <td style="font-size:12.5px">${fmtCap(rcap)}</td>
+            <td style="font-size:12.5px">${fmtCap(nrcap)}</td>
             <td style="text-align:right">${r.sortOrder ?? 0}</td>
             <td>${activeBadge}</td>
             <td>
@@ -1284,6 +1343,8 @@ function openAddRoleCat() {
   document.getElementById('roleSortOrder').value = '0';
   document.getElementById('roleIsActive').checked = true;
   document.getElementById('roleActiveGroup').style.display = 'none';
+  document.getElementById('roleRevenueCap').value = '';
+  document.getElementById('roleNonRevenueCap').value = '';
   document.getElementById('roleModal').style.display = 'block';
   setTimeout(() => document.getElementById('roleCode').focus(), 50);
 }
@@ -1301,6 +1362,11 @@ window.editRoleCat = function (id) {
   document.getElementById('roleSortOrder').value = r.sortOrder ?? 0;
   document.getElementById('roleIsActive').checked = !!r.isActive;
   document.getElementById('roleActiveGroup').style.display = '';
+  /* 캡: 원 단위 API 값 → 만원 단위로 표시 (null/undefined → 빈칸) */
+  const rcap = r.revenueCap ?? r.revenue_cap ?? null;
+  const nrcap = r.nonRevenueCap ?? r.non_revenue_cap ?? null;
+  document.getElementById('roleRevenueCap').value = rcap != null ? Math.round(rcap / 10000) : '';
+  document.getElementById('roleNonRevenueCap').value = nrcap != null ? Math.round(nrcap / 10000) : '';
   document.getElementById('roleModal').style.display = 'block';
 };
 
@@ -1311,6 +1377,12 @@ async function saveRoleCat() {
   const sortOrder = Number(document.getElementById('roleSortOrder').value || 0);
   const isActive = document.getElementById('roleIsActive').checked;
 
+  /* 캡: 만원 입력 → 원 환산. 빈칸 = null(무제한) */
+  const rcapMan = document.getElementById('roleRevenueCap').value.trim();
+  const nrcapMan = document.getElementById('roleNonRevenueCap').value.trim();
+  const revenueCap = rcapMan !== '' ? Math.round(Number(rcapMan) * 10000) : null;
+  const nonRevenueCap = nrcapMan !== '' ? Math.round(Number(nrcapMan) * 10000) : null;
+
   if (!AM.editingRoleId && !/^[A-Z]{2,10}$/.test(codeRaw)) {
     amToast('코드는 영문 대문자 2~10자 (예: SM, MARKETING)', 'error'); return;
   }
@@ -1319,10 +1391,10 @@ async function saveRoleCat() {
 
   const res = AM.editingRoleId
     ? await amApi(`/api/milestone-roles/${AM.editingRoleId}`, {
-        method: 'PATCH', body: { name, description: description || null, sortOrder, isActive },
+        method: 'PATCH', body: { name, description: description || null, sortOrder, isActive, revenueCap, nonRevenueCap },
       })
     : await amApi('/api/milestone-roles', {
-        method: 'POST', body: { code: codeRaw, name, description: description || null, sortOrder },
+        method: 'POST', body: { code: codeRaw, name, description: description || null, sortOrder, revenueCap, nonRevenueCap },
       });
   if (!res.ok || res.data?.ok === false) { amToast((res.data?.error || '저장 실패'), 'error'); return; }
   amToast(AM.editingRoleId ? '역할 수정 완료' : '역할 등록 완료', 'success');

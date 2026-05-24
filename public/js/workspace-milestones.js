@@ -785,6 +785,41 @@
     renderNrCards(achs);
   }
 
+  const NR_CAT_LABELS_WS = {
+    1: '① 미션·정책 영향력',
+    2: '② 유족·회원 직접 지원',
+    3: '③ 사회적 가치·인식 변화',
+    4: '④ 조직 역량 강화',
+    5: '⑤ 운영 효율·시스템',
+  };
+
+  function _nrCard(a, selIdx, maxReached) {
+    const isSelected = selIdx >= 0;
+    const checkClass = isSelected ? (selIdx === 0 ? 'selected' : 'selected-2') : '';
+    const canSelect = a.status === 'VERIFIED';
+    const isDisabled = canSelect && !isSelected && maxReached;
+    const cardStyle = isSelected
+      ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#f0fdf4'
+      : isDisabled
+        ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.5;background:#f9fafb'
+        : 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#fff';
+    const checkEl = canSelect
+      ? `<div class="ms-ach-check ${checkClass}" onclick="${isDisabled ? "window.__nrMaxToast()" : `window.__nrToggle(${a.id})`}"
+           title="${isDisabled ? '분기 최대 7개 선택 가능' : ''}"
+           style="cursor:${isDisabled?'not-allowed':'pointer'}">${isSelected ? (selIdx+1) : ''}</div>`
+      : '<div style="width:22px"></div>';
+    return `
+      <div style="${cardStyle}">
+        ${checkEl}
+        <div class="ms-ach-body" style="flex:1">
+          <div class="ms-ach-name" style="${isSelected?'font-weight:700;color:#111':'font-weight:500;color:#374151'}">${escHtml(a.name||a.milestoneName||'')}</div>
+          <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',REVIEWED:'검토 완료',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
+          ${a.description ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">${escHtml(a.description)}</div>` : ''}
+        </div>
+        <div class="ms-ach-bonus" style="${isSelected?'font-weight:700;color:#15803d':'color:#6b7280'}">${fmt(a.bonusAmount)}</div>
+      </div>`;
+  }
+
   function renderNrCards(achs) {
     const list = $('#nrList');
     if (!list) return;
@@ -803,42 +838,46 @@
       .filter(a => state.nrSelectedIds.includes(a.id))
       .reduce((sum, a) => sum + Number(a.bonusAmount || 0), 0);
 
+    /* 카테고리별 그룹핑 — nonRevenueCategory 다중 fallback */
+    const groups = {};
+    achs.forEach(a => {
+      const cat = a.nonRevenueCategory ?? a.non_revenue_category ?? a.nrCategory ?? null;
+      const key = (cat >= 1 && cat <= 5) ? cat : 0;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(a);
+    });
+
+    const orderedKeys = [1, 2, 3, 4, 5, 0].filter(k => groups[k]);
+    const useGroups = orderedKeys.length > 1 || (orderedKeys.length === 1 && orderedKeys[0] !== 0);
+
+    let cardsHtml = '';
+    if (useGroups) {
+      orderedKeys.forEach(k => {
+        const items = groups[k];
+        const subtitle = k === 0 ? '미분류' : NR_CAT_LABELS_WS[k];
+        const catSelCount = items.filter(a => state.nrSelectedIds.includes(a.id)).length;
+        const catMaxReached = catSelCount >= 2;
+        cardsHtml += `<div style="margin:10px 0 4px 2px;font-size:12px;font-weight:600;color:#6b7280;border-left:3px solid #e5e7eb;padding-left:8px">${subtitle} <span style="font-weight:400;color:#9ca3af">(카테고리 ${catSelCount}/2 선택)</span></div>`;
+        items.forEach(a => {
+          const selIdx = state.nrSelectedIds.indexOf(a.id);
+          /* 카테고리당 2개 한도 적용 — 전체 7개 한도와 AND 조건 */
+          const isDisabledByCat = a.status === 'VERIFIED' && selIdx < 0 && catMaxReached;
+          const effectiveMaxReached = maxReached || isDisabledByCat;
+          cardsHtml += _nrCard(a, selIdx, effectiveMaxReached);
+        });
+      });
+    } else {
+      achs.forEach(a => { cardsHtml += _nrCard(a, state.nrSelectedIds.indexOf(a.id), maxReached); });
+    }
+
     list.innerHTML = `
       <div style="display:flex;align-items:center;margin-bottom:12px">
         <span style="font-size:14px;font-weight:700;color:#111">비매출 성과 항목</span>${badge}
       </div>
-      ${achs.map(a => {
-        const selIdx = state.nrSelectedIds.indexOf(a.id);
-        const isSelected = selIdx >= 0;
-        const checkClass = isSelected ? (selIdx === 0 ? 'selected' : 'selected-2') : '';
-        const canSelect = a.status === 'VERIFIED';
-        const isDisabled = canSelect && !isSelected && maxReached;
-        const cardStyle = isSelected
-          ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#f0fdf4'
-          : isDisabled
-            ? 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.5;background:#f9fafb'
-            : 'border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#fff';
-        const checkEl = canSelect
-          ? `<div class="ms-ach-check ${checkClass}" onclick="${isDisabled ? "window.__nrMaxToast()" : `window.__nrToggle(${a.id})`}"
-               title="${isDisabled ? '분기 최대 7개 선택 가능' : ''}"
-               style="cursor:${isDisabled?'not-allowed':'pointer'}">${isSelected ? (selIdx+1) : ''}</div>`
-          : '<div style="width:22px"></div>';
-        const nameStyle = isSelected ? 'font-weight:700;color:#111' : 'font-weight:500;color:#374151';
-        const bonusStyle = isSelected ? 'font-weight:700;color:#15803d' : 'color:#6b7280';
-        return `
-          <div style="${cardStyle}">
-            ${checkEl}
-            <div class="ms-ach-body" style="flex:1">
-              <div class="ms-ach-name" style="${nameStyle}">${escHtml(a.name||a.milestoneName||'')}</div>
-              <div class="ms-ach-meta">달성일: ${fmtDate(a.achievedDate)} · <span class="ms-badge ${a.status}">${{PENDING:'검증 대기',REVIEWED:'검토 완료',VERIFIED:'검증 완료',REJECTED:'반려'}[a.status]||a.status}</span></div>
-              ${a.description ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">${escHtml(a.description)}</div>` : ''}
-            </div>
-            <div class="ms-ach-bonus" style="${bonusStyle}">${fmt(a.bonusAmount)}</div>
-          </div>`;
-      }).join('')}
+      ${cardsHtml}
       <div style="margin-top:14px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13.5px">
         <span style="font-weight:700;color:#111">선택된 비매출 보너스: ${fmt(selectedBonus)}</span>
-        <span style="color:#6b7280;margin-left:8px">(${selectedCount}/2)</span>
+        <span style="color:#6b7280;margin-left:8px">(${selectedCount}/${NR_MAX})</span>
       </div>`;
 
     const saveBtn = $('#nrBtnSaveSelect');
