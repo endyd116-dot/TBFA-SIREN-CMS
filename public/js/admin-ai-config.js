@@ -1,4 +1,4 @@
-/* admin-ai-config.js v3 */
+/* admin-ai-config.js v4 */
 
 // ── mock (B 머지 전 사용 · B 머지 완료로 실 API 전환) ──
 const USE_RAG_MOCK = false;
@@ -318,8 +318,16 @@ btnReindex.addEventListener("click", async () => {
       : await apiFetch(RAG_REINDEX_API, { method: "POST" });
 
     if (d.ok) {
-      toast("재색인을 시작했습니다 — 현황이 자동으로 갱신됩니다", "success");
-      pollReindexProgress();
+      // 트리거가 백그라운드 함수를 실제로 호출했는지 — bgStatus 202/200이 정상
+      const bg = d.data || {};
+      if (bg.bgError || (bg.bgStatus && bg.bgStatus !== 202 && bg.bgStatus !== 200)) {
+        toast("색인 시작은 했으나 백그라운드 호출에 문제: " + (bg.bgError || ("상태 " + bg.bgStatus)), "error");
+        reindexMsg.textContent = "백그라운드 호출 실패 — 서버 환경(트리거 시크릿·주소) 점검 필요";
+        btnReindex.disabled = false;
+      } else {
+        toast("재색인을 시작했습니다 — 현황이 자동으로 갱신됩니다", "success");
+        pollReindexProgress();
+      }
     } else {
       toast("재색인 시작 실패: " + (d.error || d.detail || ""), "error");
       reindexMsg.textContent = "";
@@ -366,11 +374,21 @@ function pollReindexProgress() {
       // 폴링 실패는 다음 tick에서 재시도
     }
 
+    // 0건이 30초(6틱) 이상 지속 → 색인 실패 가능성 조기 경고 (5분 상한까지 기다리지 않음)
+    if (ticks >= 6 && lastTotal === 0) {
+      clearInterval(reindexPollTimer);
+      reindexPollTimer = null;
+      reindexMsg.textContent = "색인 0건 — 실패 가능성(임베딩 키·데이터 파일 점검). 서버 로그 확인 권장";
+      btnReindex.disabled = false;
+      toast("색인 0건 — 재색인이 문서를 만들지 못했습니다", "error");
+      return;
+    }
+
     // 안전 상한 — 최대 약 5분(60틱 × 5초) 후 폴링 중단
     if (ticks >= 60) {
       clearInterval(reindexPollTimer);
       reindexPollTimer = null;
-      reindexMsg.textContent = "";
+      reindexMsg.textContent = lastTotal > 0 ? "" : "색인이 완료 판정되지 않았습니다 — 현황을 새로고침해 확인하세요";
       btnReindex.disabled = false;
     }
   }, 5000);
