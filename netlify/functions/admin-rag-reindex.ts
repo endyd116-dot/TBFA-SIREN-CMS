@@ -36,16 +36,33 @@ export default async function handler(req: Request, _ctx: Context) {
       }), { status: 503, headers: JSON_HEADER });
     }
 
-    /* background fire-and-forget — 응답 기다리지 않음 */
-    void fetch(`${base}/.netlify/functions/admin-rag-reindex-background`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret, adminId }),
-    }).catch((e) => console.warn("[rag-reindex] background 트리거 실패:", e?.message));
+    /* background 호출 — await로 요청 전송을 보장(미await 시 함수 종료로 fetch가 취소됨).
+       -background 함수는 호출 즉시 202를 반환하고 실제 색인은 15분 한도로 계속 실행. */
+    let bgStatus = 0;
+    let bgError = "";
+    try {
+      const resp = await fetch(`${base}/.netlify/functions/admin-rag-reindex-background`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret, adminId }),
+      });
+      bgStatus = resp.status;
+      if (bgStatus !== 202 && bgStatus !== 200) {
+        bgError = (await resp.text().catch(() => "")).slice(0, 200);
+      }
+    } catch (e: any) {
+      bgError = String(e?.message || e).slice(0, 200);
+      console.warn("[rag-reindex] background 트리거 실패:", bgError);
+    }
 
     return new Response(JSON.stringify({
       ok: true,
-      data: { started: true, message: "재색인을 시작했습니다. 현황은 잠시 후 새로고침하면 갱신됩니다." },
+      data: {
+        started: true,
+        bgStatus,
+        bgError: bgError || undefined,
+        message: "재색인을 시작했습니다. 현황은 잠시 후 새로고침하면 갱신됩니다.",
+      },
     }), { status: 202, headers: JSON_HEADER });
 
   } catch (err: any) {
