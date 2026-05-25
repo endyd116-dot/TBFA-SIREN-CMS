@@ -708,7 +708,7 @@
       <div class="flow">
         <div class="step"><div class="num">1</div><div class="title">이메일 인증</div><div class="desc">6자리 코드 입력 (5분 유효)</div></div>
         <div class="step"><div class="num">2</div><div class="title">기본 정보</div><div class="desc">비밀번호·이름·휴대폰</div></div>
-        <div class="step"><div class="num">3</div><div class="title">휴대폰 본인인증</div><div class="desc">SMS 코드로 본인 확인</div></div>
+        <div class="step"><div class="num">3</div><div class="title">휴대폰 본인인증</div><div class="desc">SMS 코드로 본인 확인 (솔라피 발송)</div></div>
         <div class="step"><div class="num">4</div><div class="title">약관 동의</div><div class="desc">가입 완료 + 웰컴 포인트</div></div>
       </div>
 
@@ -745,10 +745,10 @@
         <thead><tr><th>수단</th><th width="80">일시</th><th width="80">정기</th><th>특징</th></tr></thead>
         <tbody>
           <tr>
-            <td><strong>💳 토스페이먼츠</strong><br><span style="font-size:12px;color:var(--text-3);">카드 결제</span></td>
+            <td><strong>💳 KICC (이지페이)</strong><br><span style="font-size:12px;color:var(--text-3);">카드 결제</span></td>
             <td><span class="badge ok">✓</span></td>
             <td><span class="badge ok">✓</span></td>
-            <td>즉시 결제·즉시 영수증. 정기는 토스 빌링으로 매월 자동 청구.</td>
+            <td>즉시 결제·즉시 영수증. 정기 카드는 KICC 빌링키로 매월 자동 청구.</td>
           </tr>
           <tr>
             <td><strong>🏦 효성 CMS+</strong><br><span style="font-size:12px;color:var(--text-3);">계좌 자동이체</span></td>
@@ -769,7 +769,7 @@
       <div class="flow">
         <div class="step"><div class="num">1</div><div class="title">금액 선택</div><div class="desc">1만 / 3만 / 5만 / 10만 / 직접</div></div>
         <div class="step"><div class="num">2</div><div class="title">후원자 정보</div><div class="desc">비회원도 가능 (이메일 영수증)</div></div>
-        <div class="step"><div class="num">3</div><div class="title">결제 수단</div><div class="desc">토스 / 효성 / 계좌이체</div></div>
+        <div class="step"><div class="num">3</div><div class="title">결제 수단</div><div class="desc">KICC / 효성 / 계좌이체</div></div>
         <div class="step"><div class="num">4</div><div class="title">결제 완료</div><div class="desc">영수증 PDF 자동 이메일</div></div>
       </div>
 
@@ -814,6 +814,15 @@
           </ul>
         </div>
       </div>
+
+      <h4>💳 카드 유효기간 등록 (정기·빌키 카드 후원)</h4>
+      <p>카드로 <strong>정기 후원(빌키 등록)</strong>을 마치면, 결제 완료 화면에서 카드 유효기간(<strong>MM / YY</strong>)을 한 번 입력하는 칸이 나옵니다. 선택 입력이지만 등록해 두시면 좋습니다.</p>
+      <ul style="font-size:14px;">
+        <li>입력 위치: 후원 결제가 끝난 <strong>완료 화면</strong>의 "카드 유효기간 등록" 칸 (예: <code>12 / 27</code>)</li>
+        <li>등록하면 카드 만료 <strong>30일·14일 전</strong>에 갱신 안내를 미리 보내드려 정기 후원이 끊기지 않습니다.</li>
+        <li>카드번호·CVC가 아닌 <strong>만료 월/년만</strong> 입력합니다. 일시 후원·계좌이체에는 해당 없습니다.</li>
+        <li>나중에 카드를 바꾸면 마이페이지에서 카드를 재등록할 때 새 유효기간으로 갱신됩니다.</li>
+      </ul>
 
       <!-- A-4 캠페인 -->
       <h3 id="a-campaign">A-4. 캠페인</h3>
@@ -918,7 +927,7 @@
           <tr><td>내 구독 관리</td><td><code>/my-subscriptions.html</code></td><td>정기 후원 · 뉴스레터 구독</td></tr>
           <tr><td>받은 메시지</td><td><code>/my-send-history.html</code></td><td>운영자가 보낸 이메일·SMS 이력</td></tr>
           <tr><td>알림 수신 설정</td><td><code>/settings-notifications.html</code></td><td>카테고리별 ON/OFF</td></tr>
-          <tr><td>정기후원 카드 등록</td><td><code>/billing-register.html</code></td><td>토스 빌링 카드 등록</td></tr>
+          <tr><td>정기후원 카드 등록</td><td><code>/billing-register.html</code></td><td>KICC 빌링키 카드 등록</td></tr>
           <tr><td>결제 결과</td><td><code>/payment-success.html</code> 외 3개</td><td>결제·정기등록 결과 안내</td></tr>
         </tbody>
       </table>
@@ -977,7 +986,7 @@
           <div style="padding:0;">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 32px;border-bottom:1px solid var(--line-soft);">
               <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);">정기 후원 · 토스 카드</div>
+                <div style="font-size:14px;font-weight:600;color:var(--text);">정기 후원 · KICC 카드</div>
                 <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">매월 25일 · 2025.03 ~</div>
               </div>
               <div style="text-align:right;">
@@ -1069,7 +1078,7 @@
             <li><strong>결제일 변경</strong> → 다음 달부터 적용</li>
             <li><strong>일시정지</strong> → 다음 회차 1회 건너뜀</li>
             <li><strong>해지</strong> → 즉시 중단, 다음 회차 미청구</li>
-            <li><strong>결제수단 변경</strong> → 토스: 카드 재등록 / 효성: 신규 신청</li>
+            <li><strong>결제수단 변경</strong> → KICC: 카드 재등록 / 효성: 신규 신청</li>
           </ul>
         </div>
         <div class="card">

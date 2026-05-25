@@ -892,7 +892,15 @@
 
       <!-- D-5 근태 -->
       <h3 id="d-attendance">D-5. 근태 관리</h3>
-      <p><code>/workspace-attendance.html</code> · 설정 <code>/admin-attendance-settings.html</code></p>
+      <p>직원 본인 화면 <code>/workspace-attendance.html</code> · 운영 관리는 통합 CMS 안의 근태 메뉴에서.</p>
+
+      <div class="callout">
+        <div class="title">📂 근태 메뉴가 2개로 나뉘었습니다</div>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li><strong>🟢 근태 현황</strong> (8탭) — 실시간 현황·출퇴근 기록·휴가/잔여·근무형태 변경 결재 등 <em>매일 보는 운영 화면</em></li>
+          <li><strong>⚙️ 근태 설정</strong> (4탭) — 근무 정책·휴일·휴가 종류·근무 거점 등 <em>가끔 바꾸는 설정 화면</em></li>
+        </ul>
+      </div>
 
       <h4>출퇴근 기록</h4>
       <ul>
@@ -909,8 +917,20 @@
           <li>카카오 지도 위치 시각화 (직원이 찍은 좌표·거점 비교)</li>
           <li>PC·노트북 위치정보 수집</li>
           <li>워크툴 메인 상단 출퇴근 버튼 (한 번에 출퇴근)</li>
-          <li>어드민 직원 출퇴근 직접 수정 + 직원 확인 알림 — <strong>운영 관리 → 근태 → 출퇴근 기록</strong></li>
-          <li>근무형태 변경 신청·결재 — <strong>운영 관리 → 근태 → "🔄 근무형태 변경" 탭</strong> (직원 신청 → 어드민 승인 시 해당 날짜 자동 반영)</li>
+          <li><strong>퇴근 후 재출근·퇴근 취소·출퇴근 시각 셀프 수정</strong> — 직원이 본인 화면에서 같은 날 다시 일하거나, 잘못 누른 퇴근을 되돌리거나, 시각을 직접 고칠 수 있음</li>
+          <li><strong>퇴근도 사무실 거점 반경 강제</strong> — 일반근무(사무실) 직원은 출근뿐 아니라 <em>퇴근</em>도 거점 반경 안에서만 가능. 재택·외근·출장은 위치 검증 없음</li>
+          <li>실시간 현황에서 <strong>직원 이름 클릭 → 그 직원의 출퇴근 기록으로 바로 이동</strong></li>
+          <li>어드민 직원 출퇴근 직접 수정 + 직원 확인 알림 — <strong>근태 현황 → 출퇴근 기록</strong></li>
+          <li>근무형태 변경 신청·결재 — <strong>근태 현황 → "🔄 근무형태 변경" 탭</strong> (직원 신청 → 어드민 승인 시 해당 날짜 자동 반영)</li>
+        </ul>
+      </div>
+
+      <div class="callout ok">
+        <div class="title">✅ 직원 정보 편집 · 운영자 해제</div>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li>직원의 <strong>이름·연락처·입사일</strong>을 운영자 관리 화면에서 직접 수정 (입사일은 연차 근속 계산에 사용)</li>
+          <li>위치: <strong>통합 CMS → 운영 관리 → 권한·운영자 관리</strong> 화면의 직원 카드 [정보 수정]</li>
+          <li><strong>운영자 해제(강등)</strong> = 그 사람을 일반 회원으로 되돌리는 것. 운영자 권한이 사라지며, 마지막 슈퍼어드민·본인은 강등 불가(안전장치)</li>
         </ul>
       </div>
 
@@ -920,9 +940,20 @@
         <li>연차 잔여 자동 계산</li>
       </ul>
 
+      <div class="callout">
+        <div class="title">📐 연차 산정 정책 — 모드 A / 모드 B 택일 <span class="role admin">🛡️ 슈퍼어드민</span></div>
+        <p style="font-size:13.5px;margin:6px 0 8px;">연차를 <strong>어떤 방식으로 자동 적립</strong>할지 한 가지를 골라 둡니다. 위치: <strong>근태 설정 → "근무 정책" 탭</strong>의 연차 산정 정책 영역. 매월 1일 자동 부여가 선택한 모드대로 동작합니다.</p>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li><strong>모드 A — 월 만근 적립 (5인 이하 권장)</strong>: 전월을 결근·무단지각·무단조퇴 없이 만근한 직원에게 매월 <strong>+1일</strong>(보너스 일수 조정 가능)</li>
+          <li><strong>모드 B — 근속 기반 (5인 이상 권장)</strong>: 입사 주년이 도래하면 근속에 따라 부여. 기본값 예시 — <strong>1주년 12일, 이후 2년마다 +1일, 상한 25일</strong> (1주년 12 → 3년차 13 → 5년차 14…). 1주년 기준일·증가 일수·증가 주기·상한을 직접 설정</li>
+          <li>입사일은 직원 정보의 입사일(없으면 가입일)을 사용 → 입사일 입력을 권장</li>
+          <li>한 번에 한 방식만 적용됩니다. 모드·숫자를 바꾸고 [연차 정책 저장]</li>
+        </ul>
+      </div>
+
       <div class="callout ok">
         <div class="title">✅ 휴가 수동 부여·차감 운영 중</div>
-        어드민이 직원 잔여 휴가를 직접 +1·-1 하거나 숫자로 직접 입력해 조정할 수 있습니다. 위치: <strong>운영 관리 → 근태 → "잔여 휴가" 탭</strong>. 자동 부여 외 수동 조정 시 사유 입력 필수.
+        어드민이 직원 잔여 휴가를 직접 +1·-1 하거나 숫자로 직접 입력해 조정할 수 있습니다. 잔여 기록이 없던 직원에게도 <strong>첫 부여</strong>가 가능합니다. 위치: <strong>근태 현황 → "잔여 휴가" 탭</strong>. 자동 부여 외 수동 조정 시 사유 입력 필수(감사 추적).
       </div>
 
       <h4>본인 명세서 (R37 추가)</h4>
@@ -1010,18 +1041,19 @@
 
       <!-- E-1 결제 수단 운영 -->
       <h3 id="e-payment">E-1. 결제 수단 3종 운영</h3>
-      <p>회원이 쓰는 결제는 토스(카드)·효성(계좌)·계좌이체(무통장) 3가지. 운영자가 신경 써야 할 포인트가 각기 다릅니다.</p>
+      <p>회원이 쓰는 결제는 KICC(카드)·효성(계좌)·계좌이체(무통장) 3가지. 운영자가 신경 써야 할 포인트가 각기 다릅니다.</p>
 
       <div class="grid cols-3">
         <div class="card" style="border-top:3px solid var(--brand);">
-          <h4>💳 토스페이먼츠</h4>
-          <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">카드 결제 · 일시 + 정기</p>
+          <h4>💳 KICC (이지페이)</h4>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:10px;">카드 결제 · 일시 + 정기(빌링키)</p>
           <ul style="font-size:13px;margin-bottom:0;">
-            <li><strong>설정</strong>: 환경변수 <code>TOSS_MODE=test|live</code></li>
+            <li><strong>설정</strong>: 환경변수 <code>KICC_MODE=test|live</code></li>
             <li><strong>일시</strong>: 즉시 결제 + 즉시 영수증</li>
             <li><strong>정기</strong>: 빌링키 발급 → 매월 자동 청구</li>
+            <li><strong>유효기간</strong>: 카드 빌키 등록 시 만료 안내를 위해 회원이 결제 완료 화면에서 유효기간(MM/YY) 1회 입력</li>
             <li><strong>실패 처리</strong>: 자동 재시도 + 회원 안내</li>
-            <li><strong>운영자 액션</strong>: 토스 콘솔에서 수동 환불 + 시스템 메모</li>
+            <li><strong>운영자 액션</strong>: KICC(이지페이) 콘솔에서 수동 환불 + 시스템 메모</li>
           </ul>
         </div>
         <div class="card" style="border-top:3px solid var(--gold);">
@@ -1127,6 +1159,15 @@
       <!-- E-4 발송 운영 -->
       <h3 id="e-send">E-4. 발송 운영 📤</h3>
       <p>후원 운영자가 가장 자주 쓰는 영역. 결제 실패 안내·카드 만료·연말 영수증·신규 캠페인·기념일 메시지 등을 일괄 발송합니다.</p>
+
+      <div class="callout">
+        <div class="title">📡 발송 채널 — 이메일 · 문자(SMS) · 알림톡</div>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li><strong>이메일</strong>은 메일 발송 서비스로, <strong>문자(SMS)·알림톡과 휴대폰 본인인증은 솔라피(SOLAPI)</strong>를 통해 발송됩니다.</li>
+          <li>카카오 <strong>알림톡</strong>은 발신 프로필 승인 후 사용 가능하며, 결제 실패·카드 만료·청구 예정·영수증 등 정형 안내에 쓰입니다.</li>
+          <li>운영자는 채널을 신경 쓰기보다 <em>수신자 그룹·템플릿·시각</em>만 정하면 되고, 채널 연결은 시스템이 처리합니다.</li>
+        </ul>
+      </div>
 
       <h4>발송 작업 만들기 6단계</h4>
       <div class="flow">
@@ -1338,7 +1379,7 @@
           <div style="padding:16px 24px;">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);">
               <div>
-                <div style="font-size:13.5px;font-weight:600;color:var(--text);">정기 · 토스 카드 · 매월 25일</div>
+                <div style="font-size:13.5px;font-weight:600;color:var(--text);">정기 · KICC 카드 · 매월 25일</div>
                 <div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">2025.03 ~ 진행 중</div>
               </div>
               <div style="display:flex;gap:6px;">
@@ -1392,6 +1433,17 @@
         <li><strong>회귀 주의</strong>: R37 흐름은 R39 출퇴근 보강 시에도 영향 없도록 검증</li>
       </ul>
 
+      <div class="callout ok">
+        <div class="title">🤖 급여 AI 분석 — 발급 전 점검</div>
+        <p style="font-size:13.5px;margin:6px 0 8px;">급여 화면의 <strong>[분석] 버튼</strong>을 누르면 AI가 이번 달 급여 데이터를 훑어 발급 전에 짚어 줍니다.</p>
+        <ul style="margin:6px 0 0;font-size:13.5px;">
+          <li><strong>이상치 탐지</strong> — 평소보다 유난히 크거나 작은 금액, 튀는 항목을 표시</li>
+          <li><strong>입력 누락 점검</strong> — 기본급·수당·공제 등 빠진 항목이 있는 직원을 알려 줌</li>
+          <li><strong>집계 요약</strong> — 인원·총액·평균 등 한눈에 보는 요약 문장</li>
+          <li>어디까지나 <em>보조 점검</em>이며, 최종 확인·발급은 운영자가 합니다</li>
+        </ul>
+      </div>
+
       <!-- E-9 AI 운영 -->
       <h3 id="e-ai-ops">E-9. AI 운영 · 비용 관리 🛡️</h3>
       <p>AI 비서·자동 트리거·회신 초안 등 모든 AI 호출은 비용을 발생시킵니다. 운영자가 월 한도와 도구 권한을 통제합니다.</p>
@@ -1433,12 +1485,12 @@
       <table>
         <thead><tr><th width="220">상황</th><th>대응</th></tr></thead>
         <tbody>
-          <tr><td>토스 결제 다운</td><td>토스 콘솔에서 상태 확인 → 회원에게 점검 안내 발송 → 자동 트리거 일시 정지</td></tr>
+          <tr><td>KICC 결제 다운</td><td>KICC(이지페이) 콘솔에서 상태 확인 → 회원에게 점검 안내 발송 → 자동 트리거 일시 정지</td></tr>
           <tr><td>효성 출금 파일 오류</td><td>효성 측 응답 파일 재요청 → 매칭 실패 회원 수기 처리</td></tr>
           <tr><td>영수증 PDF 미수신 회원</td><td>회원 상세 → [영수증 재발송] · 스팸함 안내</td></tr>
-          <tr><td>환불 요청</td><td>토스/효성 콘솔에서 수동 환불 → 시스템 메모 + 후원 내역 상태 변경</td></tr>
+          <tr><td>환불 요청</td><td>KICC/효성 콘솔에서 수동 환불 → 시스템 메모 + 후원 내역 상태 변경</td></tr>
           <tr><td>카드 정보 유출 의심</td><td>즉시 빌링키 폐기 → 회원에게 재등록 안내</td></tr>
-          <tr><td>대량 결제 실패 발생</td><td>토스/효성 상태 확인 → 자동 트리거 일시 정지 → 원인 파악 후 재개</td></tr>
+          <tr><td>대량 결제 실패 발생</td><td>KICC/효성 상태 확인 → 자동 트리거 일시 정지 → 원인 파악 후 재개</td></tr>
           <tr><td>발송 작업 잘못 송출</td><td>/admin-send-jobs.html 즉시 [일시 정지] → 정정 안내 후속 발송</td></tr>
           <tr><td>AI 비용 폭증</td><td>/admin-ai-cost.html에서 해당 기능 즉시 차단 → 호출 패턴 조사</td></tr>
           <tr><td>익명 식별 이상 패턴</td><td>/admin-anon-audit.html 즉시 점검 → 해당 운영자 사유 재확인</td></tr>
@@ -1450,8 +1502,8 @@
         <thead><tr><th width="40%">질문</th><th>답변</th></tr></thead>
         <tbody>
           <tr><td>회원이 영수증을 못 받았다고 한다</td><td>회원 상세 > [영수증 재발송]. 이메일 오타·스팸함 확인 권유.</td></tr>
-          <tr><td>정기 후원이 두 번 결제됐다</td><td>결제 로그·토스 콘솔 확인 → 중복 결제면 토스에서 환불 + 시스템 메모.</td></tr>
-          <tr><td>환불은 시스템에서 되나?</td><td>자동 환불 없음. 토스/효성 콘솔에서 수동 + 시스템 메모.</td></tr>
+          <tr><td>정기 후원이 두 번 결제됐다</td><td>결제 로그·KICC 콘솔 확인 → 중복 결제면 KICC에서 환불 + 시스템 메모.</td></tr>
+          <tr><td>환불은 시스템에서 되나?</td><td>자동 환불 없음. KICC/효성 콘솔에서 수동 + 시스템 메모.</td></tr>
           <tr><td>카드 만료 회원 한 번에 알리려면?</td><td>수신자 그룹 [카드 만료 임박] → 발송 작업 생성. 자동 트리거가 이미 처리 중일 수 있음.</td></tr>
           <tr><td>후원자 명단을 엑셀로 받고 싶다</td><td>회원 목록 필터 적용 → [Excel 내보내기].</td></tr>
           <tr><td>연말 기부금 영수증 절차는?</td><td>1~2월 별도 일괄 발급 트리거. 주민번호 미등록자 11~12월 사전 캠페인.</td></tr>
