@@ -1,185 +1,58 @@
 /**
- * POST /api/admin-rag-reindex
- * Q&A jsonl + 메뉴얼 청킹 → embedText → ai_rag_documents UPSERT
- * super_admin 전용. 반복 실행 가능(멱등 UPSERT).
+ * POST /api/admin-rag-reindex — RAG 전체 재색인 트리거
+ *
+ * 실제 색인은 admin-rag-reindex-background(15분 한도)가 수행.
+ * 이 함수는 super_admin 인증 후 background를 fire-and-forget으로 호출하고
+ * 즉시 "색인 시작됨" 응답. (Q&A 328개 순차 임베딩은 일반 함수 10초로 불가)
+ *
+ * 진행 현황은 admin-rag-status GET이 ai_rag_documents 문서 수를 집계 → 폴링.
  */
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
-import { db } from "../../db";
-import { sql } from "drizzle-orm";
-import { embedText, chunkManual } from "../../lib/ai-embedding";
-import { recordFeatureUsage } from "../../lib/ai-feature";
-import * as fs from "fs";
-import * as path from "path";
 
 export const config = { path: "/api/admin-rag-reindex" };
 
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
-const RAG_FEATURE_KEY = "ai_rag_search";
 
-function jsonError(step: string, err: any, status = 500) {
-  return new Response(JSON.stringify({
-    ok: false,
-    error: "재색인 실패",
-    step,
-    detail: String(err?.message || err).slice(0, 500),
-    stack: String(err?.stack || "").slice(0, 1000),
-  }), { status, headers: JSON_HEADER });
-}
-
-/* ─── JSONL 파싱 ─── */
-interface QnaEntry { question: string; answer: string }
-
-function parseJsonl(text: string): QnaEntry[] {
-  const results: QnaEntry[] = [];
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const obj = JSON.parse(trimmed);
-      if (obj.question && obj.answer) {
-        results.push({ question: String(obj.question), answer: String(obj.answer) });
-      }
-    } catch { /* malformed line — skip */ }
-  }
-  return results;
-}
-
-/* ─── UPSERT 1건 ─── */
-async function upsertDoc(
-  sourceType: string,
-  sourceRef: string,
-  title: string,
-  content: string,
-  embedding: number[],
-  tokenCount: number,
-) {
-  const vectorLiteral = `[${embedding.join(",")}]`;
-  await db.execute(sql`
-    INSERT INTO ai_rag_documents
-      (source_type, source_ref, title, content, embedding, token_count, updated_at)
-    VALUES
-      (${sourceType}, ${sourceRef}, ${title}, ${content}, ${vectorLiteral}::vector, ${tokenCount}, now())
-    ON CONFLICT (source_ref) DO UPDATE SET
-      title       = EXCLUDED.title,
-      content     = EXCLUDED.content,
-      embedding   = EXCLUDED.embedding,
-      token_count = EXCLUDED.token_count,
-      updated_at  = now()
-  `);
-}
-
-/* ─── 파일 읽기 헬퍼 (Netlify Functions 환경 — process.cwd() 기준) ─── */
-function readFileSafe(relPath: string): string {
-  try {
-    const abs = path.resolve(process.cwd(), relPath);
-    return fs.readFileSync(abs, "utf-8");
-  } catch {
-    return "";
-  }
-}
-
-export default async function handler(req: Request, ctx: Context) {
+export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), { status: 405, headers: JSON_HEADER });
   }
 
-  let step = "auth";
   try {
     const auth = await requireAdmin(req);
     if (!auth.ok) return (auth as any).res;
 
-    const startMs = Date.now();
-    let qnaCount = 0;
-    let manualCount = 0;
-    let totalInputTokens = 0;
+    const adminId = (auth as any).ctx?.admin?.id ?? null;
 
-    /* ── §1. Q&A jsonl 로드 ── */
-    step = "load_qna";
-    const JSONL_FILES = [
-      "docs/manual/ai-training-cms-1.jsonl",
-      "docs/manual/ai-training-cms-2.jsonl",
-      "docs/manual/ai-training-ai-assistant.jsonl",
-      "docs/manual/ai-training-siren-admin.jsonl",
-      "docs/manual/ai-training-siren-user.jsonl",
-      "docs/manual/ai-training-memorial.jsonl",
-    ];
+    const base = process.env.URL
+      || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+    const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
 
-    const allQna: QnaEntry[] = [];
-    for (const filePath of JSONL_FILES) {
-      const text = readFileSafe(filePath);
-      if (text) allQna.push(...parseJsonl(text));
+    if (!secret) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "INTERNAL_TRIGGER_SECRET 미설정 — 재색인 비활성(fail-closed)",
+      }), { status: 503, headers: JSON_HEADER });
     }
 
-    /* ── §2. 메뉴얼 HTML + knowledge.md 청킹 ── */
-    step = "load_manual";
-    const manualChunks: Array<{ title: string; content: string; sourceRef: string }> = [];
-
-    const manualFiles: Array<{ path: string; type: "html" | "md" }> = [
-      { path: "public/manual.html",        type: "html" },
-      { path: "public/manual-admin.html",  type: "html" },
-      { path: "docs/manual/ai-assistant-knowledge.md", type: "md" },
-    ];
-    for (const f of manualFiles) {
-      const text = readFileSafe(f.path);
-      if (text) manualChunks.push(...chunkManual(text, f.type));
-    }
-
-    /* ── §3. 임베딩 + UPSERT ── */
-    step = "embed";
-
-    /* Q&A 처리 */
-    for (let i = 0; i < allQna.length; i++) {
-      const { question, answer } = allQna[i];
-      const content = `Q: ${question}\nA: ${answer}`;
-      const sourceRef = `qna#${i + 1}`;
-      try {
-        const emb = await embedText(content);
-        await upsertDoc("qna", sourceRef, question, content, emb, Math.ceil(content.length / 4));
-        totalInputTokens += Math.ceil(content.length / 4);
-        qnaCount++;
-      } catch (e) {
-        console.warn(`[rag-reindex] Q&A #${i + 1} 임베딩 실패:`, (e as any)?.message);
-      }
-    }
-
-    step = "upsert";
-
-    /* 메뉴얼 처리 */
-    for (const chunk of manualChunks) {
-      try {
-        const emb = await embedText(chunk.content);
-        await upsertDoc("manual", chunk.sourceRef, chunk.title, chunk.content, emb, Math.ceil(chunk.content.length / 4));
-        totalInputTokens += Math.ceil(chunk.content.length / 4);
-        manualCount++;
-      } catch (e) {
-        console.warn(`[rag-reindex] 메뉴얼 청크 ${chunk.sourceRef} 임베딩 실패:`, (e as any)?.message);
-      }
-    }
-
-    step = "summary";
-    const elapsedMs = Date.now() - startMs;
-    const indexed = qnaCount + manualCount;
-
-    /* 비용 기록 (fire-and-forget) */
-    try {
-      await recordFeatureUsage({
-        featureKey: RAG_FEATURE_KEY,
-        model: "text-embedding-004",
-        inputTokens: totalInputTokens,
-        outputTokens: 0,
-        adminId: (auth as any).ctx?.admin?.id ?? null,
-        durationMs: elapsedMs,
-        success: true,
-      });
-    } catch { /* 비용 기록 실패는 무시 */ }
+    /* background fire-and-forget — 응답 기다리지 않음 */
+    void fetch(`${base}/.netlify/functions/admin-rag-reindex-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret, adminId }),
+    }).catch((e) => console.warn("[rag-reindex] background 트리거 실패:", e?.message));
 
     return new Response(JSON.stringify({
       ok: true,
-      data: { indexed, qna: qnaCount, manual: manualCount, elapsedMs },
-    }), { headers: JSON_HEADER });
+      data: { started: true, message: "재색인을 시작했습니다. 현황은 잠시 후 새로고침하면 갱신됩니다." },
+    }), { status: 202, headers: JSON_HEADER });
 
   } catch (err: any) {
-    return jsonError(step, err);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: "재색인 시작 실패",
+      detail: String(err?.message || err).slice(0, 500),
+    }), { status: 500, headers: JSON_HEADER });
   }
 }

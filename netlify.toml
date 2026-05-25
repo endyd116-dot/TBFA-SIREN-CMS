@@ -97,6 +97,13 @@
     "sharp",
   ]
 
+# ★ 2026-05-26: RAG 재색인 background 함수만 메뉴얼·Q&A 데이터 파일 포함
+#   (전역 included_files에 넣으면 170+ 함수 전부 무거워짐 → 이 함수에만 한정)
+#   Q&A jsonl 6개 + 메뉴얼 HTML 2개 + AI 지식문서 1개를 번들에 포함해야
+#   운영(tbfa.co.kr) Functions 런타임에서 파일 읽기가 실제 내용을 반환함.
+[functions."admin-rag-reindex-background"]
+  included_files = ["docs/manual/**", "public/manual.html", "public/manual-admin.html"]
+
 # ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)
 [functions."donation-receipt"]
   included_files = ["assets/fonts/**"]

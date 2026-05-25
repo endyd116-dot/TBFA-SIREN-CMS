@@ -1,7 +1,7 @@
-/* admin-ai-config.js v2 */
+/* admin-ai-config.js v3 */
 
-// ── mock (B 머지 전 사용 · B 머지 완료 후 USE_RAG_MOCK = false 로 전환) ──
-const USE_RAG_MOCK = true;
+// ── mock (B 머지 전 사용 · B 머지 완료로 실 API 전환) ──
+const USE_RAG_MOCK = false;
 
 const MOCK_RAG_STATUS = {
   ok: true,
@@ -304,11 +304,13 @@ ragToggle.addEventListener("change", async () => {
   ragToggle.disabled = false;
 });
 
-// ③ 전체 재색인
+// ③ 전체 재색인 — 백그라운드 실행(즉시 시작 응답) 후 현황 폴링
+let reindexPollTimer = null;
+
 btnReindex.addEventListener("click", async () => {
   if (btnReindex.disabled) return;
   btnReindex.disabled = true;
-  reindexMsg.textContent = "색인 중… (약 40초 소요)";
+  reindexMsg.textContent = "색인 중… (백그라운드 실행, 수십 초 소요·현황 자동 갱신)";
 
   try {
     const d = USE_RAG_MOCK
@@ -316,21 +318,63 @@ btnReindex.addEventListener("click", async () => {
       : await apiFetch(RAG_REINDEX_API, { method: "POST" });
 
     if (d.ok) {
-      const { indexed, elapsedMs } = d.data || {};
-      const sec = elapsedMs != null ? Math.round(elapsedMs / 1000) : "?";
-      toast(`색인 완료 — ${indexed}개 문서 (${sec}초)`, "success");
-      reindexMsg.textContent = "";
-      await loadRagStatus();
+      toast("재색인을 시작했습니다 — 현황이 자동으로 갱신됩니다", "success");
+      pollReindexProgress();
     } else {
-      toast("재색인 실패: " + (d.error || d.detail || ""), "error");
+      toast("재색인 시작 실패: " + (d.error || d.detail || ""), "error");
       reindexMsg.textContent = "";
+      btnReindex.disabled = false;
     }
   } catch (e) {
     if (e.message !== "auth") toast("재색인 오류", "error");
     reindexMsg.textContent = "";
+    btnReindex.disabled = false;
   }
-  btnReindex.disabled = false;
 });
+
+// 백그라운드 색인 진행 폴링 — 문서 수가 안정될 때까지 현황 주기 갱신
+function pollReindexProgress() {
+  if (reindexPollTimer) clearInterval(reindexPollTimer);
+  let lastTotal = -1;
+  let stableCount = 0;
+  let ticks = 0;
+
+  reindexPollTimer = setInterval(async () => {
+    ticks++;
+    try {
+      const d = await apiFetch(RAG_STATUS_API);
+      const data = d.data || d;
+      renderRagStatus(data);
+      const total = data.total ?? 0;
+
+      if (total === lastTotal && total > 0) {
+        stableCount++;
+      } else {
+        stableCount = 0;
+      }
+      lastTotal = total;
+
+      // 문서 수가 3회 연속 동일 + 0 초과 → 색인 완료로 간주
+      if (stableCount >= 3) {
+        clearInterval(reindexPollTimer);
+        reindexPollTimer = null;
+        reindexMsg.textContent = "";
+        btnReindex.disabled = false;
+        toast(`색인 완료 — 총 ${total}개 문서`, "success");
+      }
+    } catch (e) {
+      // 폴링 실패는 다음 tick에서 재시도
+    }
+
+    // 안전 상한 — 최대 약 5분(60틱 × 5초) 후 폴링 중단
+    if (ticks >= 60) {
+      clearInterval(reindexPollTimer);
+      reindexPollTimer = null;
+      reindexMsg.textContent = "";
+      btnReindex.disabled = false;
+    }
+  }, 5000);
+}
 
 // ④ 검색 테스트
 btnSearch.addEventListener("click", () => runRagSearch());
