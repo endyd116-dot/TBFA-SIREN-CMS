@@ -21,7 +21,13 @@
 
 ---
 
-## 2. 현재 상태 (2026-05-25)
+## 2. 현재 상태 (2026-05-26)
+
+### 🟢 2026-05-26 RAG 검색 인프라 — 설계 완료·병렬 분배 대기
+- **결정(Swain)**: pgvector + Q&A 311 + 메뉴얼 본문 + 기존 고정 지식(knowledge.md) 유지·보강 + Gemini `text-embedding-004`. featureKey `ai_rag_search` 토글(OFF 시 기존 동작·안전망).
+- **설계서**: `docs/active/2026-05-26-rag-search.md` (8섹션). **베이스 origin/main @ `b593cd8` push 완료.**
+- **다음**: B(백·pgvector 마이그/`lib/ai-embedding`/reindex·status/`admin-ai-agent` 주입/featureKey) · A(프론트·`admin-ai-config` RAG 섹션) · C(검증) 트리거 발사 — PARALLEL_TEMPLATE §6 양식.
+
 
 > **2026-05-25 최신 — 메뉴얼·명세 동기화 라운드 (진행 중)**
 > - ✅ 연차 산정 정책 + 카드 만료 입력: C 라이브 검증 PASS·동작 BUG 0·권고 1건(카드만료 입력 무인증 = Swain "그대로" 결정·일회성 토큰 보강은 백로그). 보고서 `docs/history/verify/2026-05-25-leave-policy-live.md`.
