@@ -21,7 +21,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
-import { getFeatureStats, invalidateFeatureCache, isKnownFeature, FEATURE_REGISTRY } from "../../lib/ai-feature";
+import { getFeatureStats, invalidateFeatureCache, isKnownFeature, getFeatureMeta, FEATURE_REGISTRY } from "../../lib/ai-feature";
 import { getCostStats } from "../../lib/ai-cost-monitor";
 
 export const config = { path: "/api/admin-ai-features" };
@@ -112,36 +112,38 @@ async function handlePost(req: Request): Promise<Response> {
   }
 
   try {
-    /* UPDATE 1회 — 양쪽 다 들어왔으면 둘 다 갱신 */
-    if (updates.includes("enabled") && updates.includes("budget_null")) {
+    /* UPSERT — row 없는 신규 featureKey도 토글·한도 저장되도록 (UPDATE-only는 0건 영향)
+       INSERT 시 누락 메타(name·category·sortOrder)는 카탈로그에서 보충. */
+    const meta = getFeatureMeta(featureKey);
+    const hasEnabled = updates.includes("enabled");
+    const hasBudgetNull = updates.includes("budget_null");
+    const hasBudgetNum = updates.includes("budget_num");
+
+    /* 입력 안 된 항목의 INSERT 기본값: enabled=true(스키마 default), budget=NULL */
+    const enabledVal = hasEnabled ? (values[0] as boolean) : true;
+    const budgetVal: number | null = hasBudgetNum ? (values[hasEnabled ? 1 : 0] as number) : null;
+
+    /* ON CONFLICT에서 갱신할 컬럼 — 들어온 항목만 (보내지 않은 항목은 기존값 보존) */
+    if (hasEnabled && (hasBudgetNull || hasBudgetNum)) {
       await db.execute(sql`
-        UPDATE ai_feature_settings
-           SET enabled = ${values[0]}, monthly_budget_usd = NULL, updated_at = NOW()
-         WHERE feature_key = ${featureKey}
+        INSERT INTO ai_feature_settings (feature_key, feature_name, category, description, enabled, monthly_budget_usd, sort_order)
+        VALUES (${featureKey}, ${meta?.name ?? featureKey}, ${meta?.category ?? "admin_action"}, ${meta?.description ?? null}, ${enabledVal}, ${budgetVal}, ${meta?.sortOrder ?? 100})
+        ON CONFLICT (feature_key) DO UPDATE
+           SET enabled = ${enabledVal}, monthly_budget_usd = ${budgetVal}, updated_at = NOW()
       `);
-    } else if (updates.includes("enabled") && updates.includes("budget_num")) {
+    } else if (hasEnabled) {
       await db.execute(sql`
-        UPDATE ai_feature_settings
-           SET enabled = ${values[0]}, monthly_budget_usd = ${values[1]}, updated_at = NOW()
-         WHERE feature_key = ${featureKey}
+        INSERT INTO ai_feature_settings (feature_key, feature_name, category, description, enabled, sort_order)
+        VALUES (${featureKey}, ${meta?.name ?? featureKey}, ${meta?.category ?? "admin_action"}, ${meta?.description ?? null}, ${enabledVal}, ${meta?.sortOrder ?? 100})
+        ON CONFLICT (feature_key) DO UPDATE
+           SET enabled = ${enabledVal}, updated_at = NOW()
       `);
-    } else if (updates.includes("enabled")) {
+    } else if (hasBudgetNull || hasBudgetNum) {
       await db.execute(sql`
-        UPDATE ai_feature_settings
-           SET enabled = ${values[0]}, updated_at = NOW()
-         WHERE feature_key = ${featureKey}
-      `);
-    } else if (updates.includes("budget_null")) {
-      await db.execute(sql`
-        UPDATE ai_feature_settings
-           SET monthly_budget_usd = NULL, updated_at = NOW()
-         WHERE feature_key = ${featureKey}
-      `);
-    } else if (updates.includes("budget_num")) {
-      await db.execute(sql`
-        UPDATE ai_feature_settings
-           SET monthly_budget_usd = ${values[0]}, updated_at = NOW()
-         WHERE feature_key = ${featureKey}
+        INSERT INTO ai_feature_settings (feature_key, feature_name, category, description, enabled, monthly_budget_usd, sort_order)
+        VALUES (${featureKey}, ${meta?.name ?? featureKey}, ${meta?.category ?? "admin_action"}, ${meta?.description ?? null}, ${enabledVal}, ${budgetVal}, ${meta?.sortOrder ?? 100})
+        ON CONFLICT (feature_key) DO UPDATE
+           SET monthly_budget_usd = ${budgetVal}, updated_at = NOW()
       `);
     }
 
