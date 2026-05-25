@@ -2002,20 +2002,30 @@
       if (Object.keys(obj).length) recurringRule = obj;
     }
 
-    try {
-      await apiThrow('/api/admin/att/work-mode', {
-        method: 'POST',
-        body: {
-          memberUid: _wmCurrentUid,
-          workMode: workMode,
-          recurringRule: recurringRule,
-          startDate: startDate,
-          endDate: endDate || null,
-        },
-      });
-      toast('근무형태 저장 완료');
-      await loadWorkModes(_wmCurrentUid);
-    } catch (e) { toast('저장 실패: ' + e.message); }
+    const body = {
+      memberUid: _wmCurrentUid,
+      workMode: workMode,
+      recurringRule: recurringRule,
+      startDate: startDate,
+      endDate: endDate || null,
+    };
+
+    let res = await api('/api/admin/att/work-mode', { method: 'POST', body: body });
+
+    // 겹치는 근무형태 → 확인창 1회 후 대체
+    if (res.data && res.data.needsReplaceConfirm) {
+      const LBL = { OFFICE: '사무실', REMOTE: '재택', FIELD: '외근', BUSINESS_TRIP: '출장', HYBRID: '요일별' };
+      const lines = (res.data.conflicts || []).map(function (c) {
+        return '· ' + (LBL[c.workMode] || c.workMode) + ' (' + (c.startDate || '') + ' ~ ' + (c.endDate || '무기한') + ')';
+      }).join('\n');
+      const proceed = confirm('이미 겹치는 근무형태가 있습니다:\n' + lines + '\n\n기존을 종료(기록은 보존)하고 새 근무형태로 바꿀까요?');
+      if (!proceed) return;
+      res = await api('/api/admin/att/work-mode', { method: 'POST', body: Object.assign({}, body, { replaceConflicts: true }) });
+    }
+
+    if (!res.ok) { toast('저장 실패: ' + (res.data?.error || '')); return; }
+    toast('근무형태가 적용되었습니다');
+    await loadWorkModes(_wmCurrentUid);
   }
 
   window.deleteWorkMode = async function (id, type) {

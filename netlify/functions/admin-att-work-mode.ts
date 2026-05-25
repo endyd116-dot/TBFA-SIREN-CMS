@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { attSchedules, attScheduleOverrides } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lte, gte, or, isNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin/att/work-mode" };
@@ -90,6 +90,42 @@ export default async function handler(req: Request) {
       normalizedRule = {};
       for (const [k, v] of Object.entries(recurringRule)) {
         if (k && v) normalizedRule[k.toUpperCase()] = String(v).toUpperCase();
+      }
+    }
+
+    /* 겹치는 활성 스케줄 감지 (같은 직원·기간 겹침)
+       - 확인(replaceConflicts) 전이면 알림만 → 프론트가 확인창 1회
+       - 확인 후엔 기존 줄을 '새 시작일 전날'로 종료(이력 보존). 같은 날·이후 시작 줄은 0일이라 제거. */
+    const newEndForOverlap = endDate ?? "9999-12-31";
+    let overlaps: any[] = [];
+    try {
+      overlaps = await db.select().from(attSchedules).where(and(
+        eq(attSchedules.memberUid, String(memberUid)),
+        lte(attSchedules.startDate, newEndForOverlap),
+        or(isNull(attSchedules.endDate), gte(attSchedules.endDate, startDate)),
+      ));
+    } catch (e) { console.warn("[work-mode] 겹침 조회 실패:", e); }
+
+    if (overlaps.length > 0 && !body.replaceConflicts) {
+      return new Response(JSON.stringify({
+        ok: false, needsReplaceConfirm: true,
+        message: "겹치는 근무형태가 있습니다. 기존을 종료하고 대체할까요?",
+        conflicts: overlaps.map(c => ({ id: c.id, workMode: c.workMode, startDate: c.startDate, endDate: c.endDate })),
+      }), { status: 409, headers: { "Content-Type": "application/json" } });
+    }
+
+    if (body.replaceConflicts && overlaps.length > 0) {
+      const prev = new Date(`${startDate}T00:00:00Z`);
+      prev.setUTCDate(prev.getUTCDate() - 1);
+      const prevDay = prev.toISOString().slice(0, 10);
+      for (const c of overlaps) {
+        try {
+          if (String(c.startDate) < startDate) {
+            await db.update(attSchedules).set({ endDate: prevDay, updatedAt: new Date() } as any).where(eq(attSchedules.id, c.id));
+          } else {
+            await db.delete(attSchedules).where(eq(attSchedules.id, c.id));
+          }
+        } catch (e) { console.warn("[work-mode] 겹침 종료 실패:", e); }
       }
     }
 
