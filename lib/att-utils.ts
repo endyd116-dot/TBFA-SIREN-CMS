@@ -4,7 +4,7 @@
  */
 import { db } from "../db/index";
 import { attSchedules, attScheduleOverrides, attPolicies } from "../db/schema";
-import { eq, and, lte, or, isNull } from "drizzle-orm";
+import { eq, and, lte, or, isNull, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 // ─────────────────────────────────────────────────────────
@@ -103,6 +103,7 @@ export async function getScheduledWorkMode(
         or(isNull(attSchedules.endDate), sql`${attSchedules.endDate} >= ${dateStr}`)
       )
     )
+    .orderBy(desc(attSchedules.startDate))
     .limit(1);
 
   if (schedules.length > 0) {
