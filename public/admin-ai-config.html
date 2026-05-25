@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>🤖 AI 비서 설정 | 관리자</title>
+<title> AI 비서 설정 | 관리자</title>
 <meta name="robots" content="noindex,nofollow">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -129,14 +129,37 @@ th {
 .toast.success { background: #047857; }
 
 .loading { text-align: center; color: #64748b; padding: 40px; font-size: 13px; }
+
+/* ─ RAG 검색 ─ */
+.rag-stat-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.rag-stat-item { display: flex; flex-direction: column; }
+.rag-stat-label { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+.rag-stat-value { font-size: 14px; font-weight: 600; color: #1e293b; }
+
+.rag-hits { display: flex; flex-direction: column; gap: 8px; }
+.rag-hit {
+  border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px;
+  font-size: 13px;
+}
+.rag-hit-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.rag-hit-title { font-weight: 600; color: #1e293b; }
+.rag-hit-score { font-size: 11px; color: #64748b; margin-left: auto; }
+.rag-hit-snippet { font-size: 12px; color: #64748b; line-height: 1.5; }
+
+.source-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 9999px;
+  font-size: 10.5px; font-weight: 500;
+}
+.source-badge.qna { background: #dbeafe; color: #1e40af; }
+.source-badge.manual { background: #d1fae5; color: #065f46; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>🤖 AI 비서 설정</h1>
+  <h1> AI 비서 설정</h1>
   <div>
-    <a href="/admin-ai-cost.html">💰 비용 관리 →</a>
+    <a href="/admin-ai-cost.html"> 비용 관리 →</a>
     &nbsp;&nbsp;
     <a href="/admin-ai-assistant.html">AI 비서 채팅 →</a>
     &nbsp;&nbsp;
@@ -201,207 +224,51 @@ th {
     </table>
   </div>
 
+  <!-- RAG 검색 (지식 의미 검색) -->
+  <div class="section">
+    <h2>RAG 검색 (지식 의미 검색)</h2>
+    <div class="hint">
+      Q&amp;A 311문항 + 메뉴얼 본문을 의미 검색해 AI 비서 답변 정확도를 높입니다.
+      OFF 시 기존 동작 그대로 유지됩니다.
+    </div>
+
+    <!-- 토글 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <label class="toggle">
+        <input type="checkbox" id="ragToggle" />
+        <span class="slider"></span>
+      </label>
+      <span style="font-size:13px;font-weight:500">RAG 검색 사용</span>
+    </div>
+
+    <!-- 색인 현황 -->
+    <div id="ragStatus" style="font-size:13px;color:#475569;margin-bottom:14px;line-height:1.7">
+      <span style="color:#94a3b8">불러오는 중…</span>
+    </div>
+
+    <!-- 재색인 버튼 -->
+    <div style="margin-bottom:20px">
+      <button class="btn" id="btnReindex">전체 재색인</button>
+      <span id="reindexMsg" style="font-size:12px;color:#64748b;margin-left:10px"></span>
+    </div>
+
+    <!-- 검색 테스트 -->
+    <div style="border-top:1px solid #f1f5f9;padding-top:16px">
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">검색 테스트</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="text" id="ragQuery" placeholder="질문을 입력하세요"
+          style="flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit" />
+        <button class="btn" id="btnRagSearch">검색</button>
+      </div>
+      <div id="ragHits"></div>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast" class="toast"></div>
 
-<script>
-const API = "/api/admin-ai-config";
-let originalPrompt = "";
-let currentCategory = "all";
-let allTools = [];
-
-function toast(msg, type = "") {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.className = "toast show " + type;
-  setTimeout(() => el.classList.remove("show"), 2400);
-}
-
-async function loadConfig() {
-  try {
-    const res = await fetch(API);
-    if (res.status === 401 || res.status === 403) {
-      document.body.innerHTML =
-        '<div style="text-align:center;padding:80px 20px;color:#64748b">' +
-        '<h2>관리자 로그인이 필요합니다</h2>' +
-        '<a href="/" style="color:#2563eb">메인 홈페이지로 이동</a></div>';
-      return;
-    }
-    const data = await res.json();
-    if (!data.ok) { toast("불러오기 실패: " + (data.error || ""), "error"); return; }
-
-    /* 시스템 프롬프트 */
-    originalPrompt = data.systemPrompt || "";
-    document.getElementById("systemPrompt").value = originalPrompt;
-    updatePromptStats();
-
-    /* 도구 */
-    allTools = data.tools || [];
-    renderTools();
-  } catch (e) {
-    toast("네트워크 오류", "error");
-  }
-}
-
-/* ─ 시스템 프롬프트 편집 ─ */
-const ta = document.getElementById("systemPrompt");
-const btnSave = document.getElementById("btnSavePrompt");
-const btnReset = document.getElementById("btnReset");
-
-ta.addEventListener("input", () => {
-  updatePromptStats();
-  btnSave.disabled = ta.value === originalPrompt;
-});
-
-function updatePromptStats() {
-  const len = ta.value.length;
-  const stats = document.getElementById("promptStats");
-  stats.textContent = `${len.toLocaleString()} 자 / 30~8,000자`;
-  if (len < 30 || len > 8000) stats.style.color = "#b91c1c";
-  else stats.style.color = "#64748b";
-}
-
-btnReset.addEventListener("click", () => {
-  ta.value = originalPrompt;
-  updatePromptStats();
-  btnSave.disabled = true;
-});
-
-btnSave.addEventListener("click", async () => {
-  const value = ta.value.trim();
-  if (value.length < 30 || value.length > 8000) {
-    toast("30~8,000자 범위에 맞춰주세요", "error"); return;
-  }
-  btnSave.disabled = true;
-  try {
-    const r = await fetch(API, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ systemPrompt: value })
-    });
-    const d = await r.json();
-    if (d.ok) {
-      toast("시스템 프롬프트 저장됨", "success");
-      originalPrompt = value;
-    } else {
-      toast("저장 실패: " + (d.error || ""), "error");
-      btnSave.disabled = false;
-    }
-  } catch (e) {
-    toast("네트워크 오류", "error");
-    btnSave.disabled = false;
-  }
-});
-
-/* ─ 도구 표 ─ */
-document.getElementById("categoryTabs").addEventListener("click", e => {
-  const btn = e.target.closest("button[data-cat]");
-  if (!btn) return;
-  document.querySelectorAll("#categoryTabs button").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  currentCategory = btn.dataset.cat;
-  renderTools();
-});
-
-function renderTools() {
-  const tbody = document.getElementById("toolsTbody");
-  const filtered = currentCategory === "all"
-    ? allTools
-    : allTools.filter(t => t.category === currentCategory);
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading">해당 카테고리 도구 없음</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(t => `
-    <tr data-name="${t.toolName}">
-      <td>
-        <div style="font-weight:500">${escapeHtml(t.toolName)}</div>
-        <div style="font-size:11.5px;color:#94a3b8;margin-top:2px">${escapeHtml(t.description || "")}</div>
-      </td>
-      <td><span class="cat-badge ${t.category || ''}">${t.category || '-'}</span></td>
-      <td>${t.isMutation ? '<span class="tool-mutation">변경</span>' : '읽기'}</td>
-      <td>
-        <select class="role-select">
-          <option value="" ${!t.requiredRole ? 'selected' : ''}>모든 어드민</option>
-          <option value="admin" ${t.requiredRole === 'admin' ? 'selected' : ''}>관리자</option>
-          <option value="super_admin" ${t.requiredRole === 'super_admin' ? 'selected' : ''}>슈퍼관리자</option>
-        </select>
-      </td>
-      <td style="text-align:center">
-        <label class="toggle">
-          <input type="checkbox" ${t.enabled ? "checked" : ""} />
-          <span class="slider"></span>
-        </label>
-      </td>
-    </tr>
-  `).join("");
-
-  tbody.querySelectorAll("tr").forEach(tr => {
-    const name = tr.dataset.name;
-    const toggle = tr.querySelector('input[type="checkbox"]');
-    const sel = tr.querySelector(".role-select");
-
-    toggle.addEventListener("change", async () => {
-      toggle.disabled = true;
-      try {
-        const r = await fetch(API, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ toolName: name, enabled: toggle.checked })
-        });
-        const d = await r.json();
-        if (d.ok) {
-          toast((toggle.checked ? "활성화 " : "비활성화 ") + name, "success");
-          const t = allTools.find(x => x.toolName === name);
-          if (t) t.enabled = toggle.checked;
-        } else {
-          toggle.checked = !toggle.checked;
-          toast("변경 실패: " + (d.error || ""), "error");
-        }
-      } catch (e) {
-        toggle.checked = !toggle.checked;
-        toast("네트워크 오류", "error");
-      }
-      toggle.disabled = false;
-    });
-
-    sel.addEventListener("change", async () => {
-      const oldVal = sel.dataset.orig || "";
-      sel.disabled = true;
-      try {
-        const r = await fetch(API, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ toolName: name, requiredRole: sel.value || null })
-        });
-        const d = await r.json();
-        if (d.ok) {
-          toast("권한 변경: " + name + " → " + (sel.options[sel.selectedIndex].text), "success");
-          sel.dataset.orig = sel.value;
-          const t = allTools.find(x => x.toolName === name);
-          if (t) t.requiredRole = sel.value || null;
-        } else {
-          sel.value = oldVal;
-          toast("변경 실패: " + (d.error || ""), "error");
-        }
-      } catch (e) {
-        sel.value = oldVal;
-        toast("네트워크 오류", "error");
-      }
-      sel.disabled = false;
-    });
-
-    sel.dataset.orig = sel.value;
-  });
-}
-
-function escapeHtml(s) {
-  return String(s || "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-}
-
-loadConfig();
-</script>
-
-  <script src="/js/lib-kst.js?v=1" defer></script>
+<script src="/js/admin-ai-config.js?v=2"></script>
+<script src="/js/lib-kst.js?v=1" defer></script>
 </body>
 </html>

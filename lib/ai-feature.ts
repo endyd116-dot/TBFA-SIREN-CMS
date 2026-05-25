@@ -59,6 +59,9 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
 
   /* === AI 비서 채팅 (1) === */
   { key: "ai_agent_chat",                name: "AI 비서 채팅",              category: "agent_chat",    description: "관리자 CMS의 AI 비서 대화 (1턴당 1~5회 호출)",          sortOrder: 410 },
+
+  /* === RAG 검색 인프라 (1) === */
+  { key: "ai_rag_search",                name: "RAG 지식 의미 검색",        category: "agent_chat",    description: "AI 비서 질문 시 Q&A·메뉴얼 의미 검색 top-K 주입 (featureKey 토글)",  sortOrder: 420 },
 ];
 
 const FEATURE_KEYS = new Set(FEATURE_REGISTRY.map(f => f.key));

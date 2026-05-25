@@ -38,6 +38,9 @@ import { ensurePromptCache } from "../../lib/ai-prompt-cache";
 /* === Phase B AI 비서 설정 === */
 import { getSystemPrompt, checkToolAllowed } from "../../lib/ai-agent-config";
 
+/* === RAG 검색 인프라 === */
+import { searchRag } from "../../lib/ai-embedding";
+
 /* === 대화 요약용 (별도 가벼운 호출) === */
 import { callGemini } from "../../lib/ai-gemini";
 
@@ -669,6 +672,43 @@ export default async (req: Request, _ctx: Context) => {
     if (userMessage) parts.push({ text: userMessage });
     else if (inlineFiles.length > 0) parts.push({ text: "첨부된 파일을 분석해주세요." });
     messages.push({ role: "user", parts });
+  }
+
+  /* 2.5. RAG 주입 — featureKey ai_rag_search ON 시 top-5 검색 결과를 사용자 메시지 앞에 삽입 */
+  if (userMessage) {
+    try {
+      const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
+      if (ragCheck.ok) {
+        const ragHits = await searchRag(userMessage, 5);
+        if (ragHits.length > 0) {
+          const ragBlock = "[참고 자료]\n" + ragHits
+            .map(h => `- ${h.title || h.sourceRef}: ${h.content.slice(0, 300)}`)
+            .join("\n");
+          /* 마지막 user 메시지 첫 파트에 RAG 블록 prepend */
+          const lastMsg = messages[messages.length - 1];
+          if (lastMsg?.role === "user" && Array.isArray(lastMsg.parts)) {
+            const textIdx = lastMsg.parts.findIndex((p: any) => typeof p.text === "string");
+            if (textIdx >= 0) {
+              lastMsg.parts[textIdx] = { text: `${ragBlock}\n\n${lastMsg.parts[textIdx].text}` };
+            } else {
+              lastMsg.parts.unshift({ text: ragBlock });
+            }
+          }
+          /* 비용 기록 (fire-and-forget) */
+          void recordFeatureUsage({
+            featureKey: "ai_rag_search",
+            model: "text-embedding-004",
+            inputTokens: Math.ceil(userMessage.length / 4),
+            outputTokens: 0,
+            adminId,
+            conversationId,
+          });
+        }
+      }
+    } catch (ragErr) {
+      /* RAG 실패해도 기존 동작 그대로 진행 */
+      console.warn("[ai-agent] RAG 검색 실패 — 기존 동작 계속", (ragErr as any)?.message);
+    }
   }
 
   /* 3. Gemini 호출 — 최대 5회 멀티스텝 (도구 호출 → 결과 반영 → 또 도구 호출) */

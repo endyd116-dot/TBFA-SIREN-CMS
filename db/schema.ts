@@ -4130,3 +4130,23 @@ export const memorialMessageLikes = pgTable("memorial_message_likes", {
 }, (t) => ({ uniq: uniqueIndex("memorial_msg_like_uniq").on(t.messageId, t.memberId) }));
 export type MemorialMessageLike    = typeof memorialMessageLikes.$inferSelect;
 export type NewMemorialMessageLike = typeof memorialMessageLikes.$inferInsert;
+
+/* === RAG 검색 인프라 2026-05-26 ===
+ * ⚠️ 마이그레이션(migrate-rag-setup?run=1) 호출 전까지 주석 상태 유지
+ * Swain 확인 후 주석 해제 → schema 활성화
+ * embedding 컬럼은 raw SQL로만 접근 — 여기엔 정의하지 않음
+ */
+/*
+export const aiRagDocuments = pgTable("ai_rag_documents", {
+  id:         bigserial("id", { mode: "number" }).primaryKey(),
+  sourceType: varchar("source_type", { length: 16 }).notNull(),
+  sourceRef:  text("source_ref").notNull(),
+  title:      text("title"),
+  content:    text("content").notNull(),
+  tokenCount: integer("token_count").default(0),
+  createdAt:  timestamp("created_at").defaultNow(),
+  updatedAt:  timestamp("updated_at").defaultNow(),
+});
+export type AiRagDocument    = typeof aiRagDocuments.$inferSelect;
+export type NewAiRagDocument = typeof aiRagDocuments.$inferInsert;
+*/
