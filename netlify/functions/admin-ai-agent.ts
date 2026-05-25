@@ -339,6 +339,8 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["페이지", "콘텐츠", "정적", "내용"] },
   { name: "nav",      tools: ["nav_menus_list"],
     keywords: ["메뉴", "네비", "내비게이션"] },
+  { name: "memorial", tools: ["memorial_summary", "memorial_teachers_list", "family_stories_list"],
+    keywords: ["추모", "추모관", "헌화", "촛불", "국화", "방명록", "기억의 편지", "추모 영상", "유가족이야기", "모신 선생님", "헌사"] },
 ];
 
 /** 의도 분류 — 키워드 매칭.
