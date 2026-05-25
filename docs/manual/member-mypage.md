@@ -15,7 +15,7 @@
 | 내 구독 관리 | `/my-subscriptions.html` | 정기 후원·뉴스레터 구독 |
 | 받은 메시지 | `/my-send-history.html` | 운영자가 보낸 이메일·SMS 이력 |
 | 알림 수신 설정 | `/settings-notifications.html` | 카테고리별 ON/OFF |
-| 정기후원 카드 등록 | `/billing-register.html` | 토스 빌링 카드 등록 |
+| 정기후원 카드 등록 | `/billing-register.html` | KICC 빌키 카드 등록 |
 | 결제 결과 | `/payment-success.html`, `/payment-fail.html`, `/billing-success.html`, `/billing-fail.html` | 결제·정기등록 결과 안내 |
 
 ---
@@ -45,7 +45,7 @@
 - 현재 활성/일시정지/해지 상태
 - 다음 결제 예정일 표시
 - [해지] → 즉시 정기 등록 중단, 다음 회차부터 미청구
-- [결제수단 변경] → 토스 빌링은 카드 재등록(`/billing-register.html`), 효성은 신규 신청 필요
+- [결제수단 변경] → KICC 빌키는 카드 재등록(`/billing-register.html`), 효성은 신규 신청 필요
 - **카드 만료 임박 알림**: `cron-billing-card-expiry`가 매일 점검 → 만료 2개월 전부터 이메일·앱 알림 → 마이페이지에서 새 카드 등록
 
 ### 기부금 영수증
