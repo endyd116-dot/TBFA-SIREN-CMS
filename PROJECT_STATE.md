@@ -23,10 +23,15 @@
 
 ## 2. 현재 상태 (2026-05-26)
 
-### 🟢 2026-05-26 RAG 검색 인프라 — 설계 완료·병렬 분배 대기
-- **결정(Swain)**: pgvector + Q&A 311 + 메뉴얼 본문 + 기존 고정 지식(knowledge.md) 유지·보강 + Gemini `text-embedding-004`. featureKey `ai_rag_search` 토글(OFF 시 기존 동작·안전망).
-- **설계서**: `docs/active/2026-05-26-rag-search.md` (8섹션). **베이스 origin/main @ `b593cd8` push 완료.**
-- **다음**: B(백·pgvector 마이그/`lib/ai-embedding`/reindex·status/`admin-ai-agent` 주입/featureKey) · A(프론트·`admin-ai-config` RAG 섹션) · C(검증) 트리거 발사 — PARALLEL_TEMPLATE §6 양식.
+### 🏁 2026-05-26 RAG 검색 인프라 — 종결·운영 정상 작동 확인
+- **기능**: AI 비서가 질문 시 협회 Q&A(328문항)+메뉴얼 본문(총 535문서)을 의미 검색해 답변 근거로 자동 주입. pgvector + `gemini-embedding-001`(768차원). featureKey `ai_rag_search` 토글(OFF 시 기존 동작·안전망).
+- **운영 검증 PASS(2026-05-26)**: 전체 재색인 535문서 색인 성공 + 검색 테스트 "기부금 영수증 발급" → 관련 Q&A 5건 유사도순 정상 반환.
+- **결함 5건 수정 완료**(설계 Sonnet·fix 메인 Opus): ① AI 토글 저장 UPDATE-only → 신규 featureKey row 안 생김 → **UPSERT 전환**(`c109e21`·BUG-2) ② 재색인 background fire-and-forget이라 함수 종료로 취소 → `await fetch`(`5313ce8`) ③ 메뉴얼·Q&A 데이터 파일 함수 번들 누락 → `netlify.toml` included_files 추가(`b54a43c`) ④ 폴링이 색인 0건을 완료 판정 못 해 5분 무통지 → 진단 가시화(`1a37d6e`·BUG-R2-1) ⑤ 임베딩 모델 `text-embedding-004`가 이 API 키에서 404 → `gemini-embedding-001` 교체·모델명/차원 환경변수화·모델 조회 진단(`?diag=models`)(`9639e2e`).
+- **신규 운영 환경변수 2개**: `GEMINI_EMBED_MODEL=gemini-embedding-001`, `GEMINI_EMBED_OUTPUT_DIM=768`.
+- **C 2회 검증 PASS·미해결 0**: 보고서 `docs/history/verify/2026-05-26-rag-search.md`·`2026-05-26-rag-search-r2.md`.
+- **관련 커밋(최신순)**: `9639e2e`·`1a37d6e`·`5313ce8`·`c109e21`·`bf5f48a`·`b54a43c`·`ea1d831`·`2ede14b`.
+- 설계서 history 이동: `docs/history/milestones/2026-05-26-rag-search.md`.
+- **잔여(다음 메뉴얼 동기화 라운드)**: knowledge.md·메뉴얼에 "RAG 검색" 운영 안내 추가(release_checklist #3·#4).
 
 
 > **2026-05-25 최신 — 메뉴얼·명세 동기화 라운드 (진행 중)**
@@ -276,4 +281,4 @@ cms 운영관리 "근태관리 설정" 1메뉴 → **"🟢 근태 현황"(조회
 
 ---
 
-**마지막 갱신**: 2026-05-20 24:00 KST (R39 정식 종결·라이브 검증 15/15 PASS·메뉴얼 300문항 통합·R40 KICC 대기)
+**마지막 갱신**: 2026-05-26 (RAG 검색 인프라 종결·운영 535문서 색인·검색 정상 PASS·결함 5건 fix·신규 env 2개)
