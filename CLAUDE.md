@@ -170,7 +170,9 @@ SOLAPI_TPL_BILLING_UPCOMING, SOLAPI_TPL_RECEIPT, SOLAPI_TPL_DONOR_CHANGE   # 알
 GEMINI_API_KEY
 GEMINI_MODEL_PRO=gemini-3-flash
 GEMINI_MODEL_FLASH=gemini-3-flash
-INTERNAL_TRIGGER_SECRET        # ⚠️ AI 백그라운드 함수 내부 호출 인증 — 미설정 시 AI 자동요약 비활성(fail-closed)
+GEMINI_EMBED_MODEL=gemini-embedding-001    # RAG 임베딩 모델 (text-embedding-004는 이 키에서 404 — 가용 모델은 /api/admin-rag-status?diag=models 로 조회)
+GEMINI_EMBED_OUTPUT_DIM=768                # 임베딩 출력 차원 — ai_rag_documents.embedding vector(768) 호환(3072 모델을 768로 축소 출력)
+INTERNAL_TRIGGER_SECRET        # ⚠️ AI 백그라운드 함수 내부 호출 인증 — 미설정 시 AI 자동요약·RAG 재색인 비활성(fail-closed)
 
 # Cloudflare R2
 R2_ACCOUNT_ID, R2_BUCKET=siren-uploads
