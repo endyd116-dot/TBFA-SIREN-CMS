@@ -8,8 +8,16 @@ import { db } from "../db";
 import { sql } from "drizzle-orm";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const EMBED_MODEL = "text-embedding-004";
-const EMBED_DIM = 768;
+/* 모델명·차원은 환경변수로 교체 가능 — 키마다 지원 임베딩 모델이 달라 404 날 수 있음.
+   사용 가능 모델은 /api/admin-rag-status?diag=models 로 조회.
+   text-embedding-004(768)·embedding-001(768)·gemini-embedding-001(3072·outputDimensionality로 축소 가능) */
+const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || "text-embedding-004";
+/* ai_rag_documents.embedding 컬럼이 vector(768)이므로 기대 차원 기본 768.
+   3072 모델을 쓰려면 GEMINI_EMBED_OUTPUT_DIM=768로 축소 출력(컬럼 유지). */
+const EMBED_OUTPUT_DIM = process.env.GEMINI_EMBED_OUTPUT_DIM
+  ? Number(process.env.GEMINI_EMBED_OUTPUT_DIM)
+  : null;
+const EMBED_DIM = EMBED_OUTPUT_DIM || Number(process.env.GEMINI_EMBED_DIM) || 768;
 const MAX_CHUNK_CHARS = 1500;
 
 export interface RagHit {
@@ -32,10 +40,12 @@ export interface Chunk {
    ========================================================= */
 export async function embedText(text: string): Promise<number[]> {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent?key=${GEMINI_API_KEY}`;
-  const body = {
+  const body: any = {
     model: `models/${EMBED_MODEL}`,
     content: { parts: [{ text }] },
   };
+  /* 3072차원 모델(gemini-embedding-001 등)을 768로 축소 출력해 컬럼 호환 유지 */
+  if (EMBED_OUTPUT_DIM) body.outputDimensionality = EMBED_OUTPUT_DIM;
 
   const res = await fetch(endpoint, {
     method: "POST",

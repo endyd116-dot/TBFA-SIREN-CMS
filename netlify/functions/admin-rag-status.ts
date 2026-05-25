@@ -30,6 +30,28 @@ export default async function handler(req: Request, ctx: Context) {
     const auth = await requireAdmin(req);
     if (!auth.ok) return (auth as any).res;
 
+    /* ── GET ?diag=models: 이 API 키로 쓸 수 있는 임베딩 모델 조회 (404 진단용) ── */
+    if (req.method === "GET" && new URL(req.url).searchParams.get("diag") === "models") {
+      step = "diag_models";
+      const key = process.env.GEMINI_API_KEY || "";
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=1000`);
+      const j: any = await r.json().catch(() => ({}));
+      const all: any[] = j?.models ?? [];
+      const embedModels = all
+        .filter((m: any) => (m.supportedGenerationMethods || []).includes("embedContent"))
+        .map((m: any) => m.name);
+      return new Response(JSON.stringify({
+        ok: true,
+        data: {
+          httpStatus: r.status,
+          totalModels: all.length,
+          embedModels,                                  // ← 이 중 하나를 GEMINI_EMBED_MODEL에 설정
+          currentModel: process.env.GEMINI_EMBED_MODEL || "text-embedding-004",
+          apiError: j?.error?.message || null,
+        },
+      }), { headers: JSON_HEADER });
+    }
+
     /* ── GET: 색인 현황 ── */
     if (req.method === "GET") {
       step = "select_status";
