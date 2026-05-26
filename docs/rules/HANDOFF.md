@@ -4,9 +4,9 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-26 / **딥릴리프(순직 인정 지원) P1+P2 출시·Swain 라이브 검증 완료**. 다음 = P2 종결 정리 → P3(서면 생성).
-> 새 메인 채팅 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → `docs/active/2026-05-26-survivor-support.md`(딥릴리프 단일 설계서) 순서로 정독
-> **▶ 다음 작업은 §0 — 딥릴리프 P2 종결 정리(메뉴얼·명세·설계서 history) → P3 서면 생성.**
+> **마지막 갱신**: 2026-05-26 / **딥릴리프(순직 인정 지원) P1+P2 출시·검증 완료 + P2 종결 정리 완료**. 다음 = P3(서면 생성) 설계·분배.
+> 새 메인 채팅 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → `docs/active/2026-05-26-survivor-support.md`(딥릴리프 단일 설계서·이제 P3/P4 forward만) 순서로 정독
+> **▶ 다음 작업은 §0 — 딥릴리프 P3 서면 생성 설계·B·A·C 분배.**
 
 ---
 
@@ -28,10 +28,16 @@
 ### 🔧 push 정책 재정의 (2026-05-26·중요 — 새 메인 필독)
 **워크트리 공유 환경(현 SIREN)에선 베이스 origin push 불필요.** A·B·C가 같은 로컬 `.git` worktree라 **로컬 `main` HEAD에서 분기/rebase**(설계·마이그를 로컬 main commit) → 분배 시 배포 0. push는 **B 머지(마이그 라이브 호출)·A 머지(라이브 검증)** 등 라이브 필수 시점만. 핵심 = "트리거 베이스 = 설계가 올라간 베이스 일치"(베이스 push 강제 아님). 상세: CLAUDE.md §9.3#5·PARALLEL_GUIDE §4.1·PARALLEL_TEMPLATE §6.0·메모리 `feedback_parallel_base`.
 
-### ▶ 다음 작업 (새 메인)
-1. **P2 종결 정리**(release_checklist): 메뉴얼(manual-admin)·`docs/manual/ai-assistant-knowledge.md`·jsonl에 딥릴리프 P1/P2 안내 추가 + 설계서 §P1/§P2 → `docs/history/milestones/` 이동(P3/P4 forward는 보존) + 권한 시드(martyrdom_ai featureKey·super_admin) 라이브 확인.
-2. **P3 서면 생성**(설계서 §5.3 P3): ④유족급여신청서 초안(인정 보고서 형식 학습+법령 보완·섹션별 생성) + 출력물 검토 + ⑤전문가 검토 + ④논리맵 시각화 + G1 보고서 내보내기(HTML/PDF) + G4 사건 패키지 zip. **P3 트리거는 설계서 §6 양식으로 신규 작성**(P2 §P2.6 트리거가 양식 참고).
-3. 메모리 `project_next_survivor_support`.
+### ✅ P2 종결 정리 완료 (2026-05-26·`d4852a5`)
+- **메뉴얼·AI 학습자료**: 운영자 메뉴얼(manual-admin 🕊️ 딥릴리프 섹션·FAQ 9)·AI 지식(`ai-assistant-knowledge.md` §6-2)·학습 jsonl(`ai-training-cms-2` 10쌍)에 딥릴리프 P1/P2 운영 안내 추가. ⚠️ AI 비서가 새 지식 검색하려면 운영 반영 후 RAG [전체 재색인] 1회 필요.
+- **설계서 history 이동**: §1~§7·§P2.0~§P2.6(+부록 A·B) → `docs/history/milestones/2026-05-26-deeprelief-p1-p2.md`(1010줄). active 설계서는 §0·§8·§9(P3/P4 forward)·§10만 보존(195줄).
+- **권한 시드 확인(코드)**: 딥릴리프 API 16함수 전부 `requireAdmin`(운영자 전용)·인정요건 CRUD 쓰기 `super_admin`·featureKey `martyrdom_ai` AI 호출 8함수 연결. 라이브(브라우저) 게이트는 P1/P2 검증 때 확인됨.
+- **푸시 보류**: 위 종결 정리는 문서·메뉴얼만이라 §9.3 배치 — 단독 push 안 함·P3 첫 코드 push에 동봉.
+
+### ▶ 다음 작업 (새 메인) — P3 서면 생성
+1. **P3 서면 생성 설계·분배**: ④유족급여신청서 초안(인정 보고서 형식 통째 학습+법령 보완·섹션별 생성) + 출력물 검토 + ⑤전문가 검토 워크플로우 + ④논리맵 시각화 + ⑥종결 자동학습 완성 + G1 보고서 내보내기(HTML/PDF·pdf-lib) + G4 사건 패키지 zip(JSZip). 출처 = 설계서 §9.1(⑪⑫)·§9.2(보고서 통째 학습)·§9.3(G1·G4) + 단계화 전략 P3 행.
+2. **P3 트리거는 설계서 §6 양식으로 신규 작성**(milestone의 §P2.6 트리거가 양식 참고) → Swain 결정 확인 후 B·A·C 분배.
+3. 메모리 `project_next_survivor_support` 갱신.
 
 ---
 

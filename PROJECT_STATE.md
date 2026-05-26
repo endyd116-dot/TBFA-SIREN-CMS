@@ -23,13 +23,14 @@
 
 ## 2. 현재 상태 (2026-05-26)
 
-### ✅ 딥릴리프(순직 인정 지원) P1+P2 — 출시·Swain 라이브 검증 완료 (2026-05-26 최신·★상단)
-통합 CMS 1뎁스 "🕊️ 딥릴리프". 단일 설계서 `docs/active/2026-05-26-survivor-support.md`.
+### ✅ 딥릴리프(순직 인정 지원) P1+P2 출시·검증 완료 + P2 종결 정리 완료 (2026-05-26 최신·★상단)
+통합 CMS 1뎁스 "🕊️ 딥릴리프". P1·P2 구현 설계는 milestone `docs/history/milestones/2026-05-26-deeprelief-p1-p2.md`(1010줄)로 이동, active 설계서 `docs/active/2026-05-26-survivor-support.md`는 P3/P4 forward spec만 보존(195줄).
 - **P1**: 사건/자료 CRUD · 전 형식 추출(PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·**음성/영상 Gemini Files API 전사·전사후 원본 자동삭제**) · 8대 자동분류(증거강도) · RAG 색인(case_id 격리) · 사건구조 자동추출 · 자동체인 · 진행 오버레이 · 업로드 300MB.
 - **P2**(B·A·C 병렬·총 2배포): ③전략(+⑨모순·⑩마스터타임라인+공백·⑪반론) · ①골든 · ②인정요건 대조(법령 시드 8·super_admin) · ⑫준비도(**규칙 % + AI 첨언**·"인정 확률 아님") · 기한 cron(소멸시효·**저장용량 임계 알림**) · 부족증거 액션 · G3 다중사건 대시보드 · 코퍼스 검색 · 동의 기록. **추출→전략 자동**·나머지 버튼. 신규 3테이블(deadlines·criteria·actions)+컬럼3·featureKey martyrdom_ai. 마이그 호출·삭제·schema 활성화 완료.
 - **C 검증 PASS + 중대 fix**: 일반 AI 비서·RAG 진단이 순직 민감자료를 일반 검색에 노출하던 잠복 결함 → 일반 검색 `qna·manual` 한정(양방향 격리). iframe '관리자 홈' 중첩 → `target=_top`. 보고서 `docs/history/verify/2026-05-26-martyrdom-p2.md`. 배포 `3ce6bec`·`e8361f2`·`cacee0c`.
 - **🔧 push 정책 재정의(2026-05-26)**: 워크트리 공유 → 로컬 `main` 분기·push 0(배포 과금↓). 핵심="트리거 베이스=설계 베이스 일치". push는 머지·라이브 검증만. CLAUDE §9.3#5·PARALLEL_GUIDE §4.1·PARALLEL_TEMPLATE §6.0·메모리 `feedback_parallel_base`.
-- **▶ 다음**: ⑴ P2 종결 정리(메뉴얼·`ai-assistant-knowledge.md`·jsonl 딥릴리프 안내 + 설계서 §P1/§P2 history 이동·P3/P4 보존 + 권한 시드 확인) ⑵ **P3 서면 생성**(④신청서 초안·전문가 검토·논리맵·G1 내보내기·G4 zip — 설계서 §5.3·§6 양식으로 P3 트리거 신규 작성).
+- **✅ P2 종결 정리 완료(`d4852a5`)**: 메뉴얼(manual-admin 🕊️ 딥릴리프·FAQ9)·AI 지식(knowledge §6-2)·학습 jsonl(cms-2 10쌍) 딥릴리프 안내 추가 + 설계서 §1~§7·§P2 → milestone 이동(P3/P4 forward 보존) + 권한 시드 코드 확인(API 16함수 requireAdmin·인정요건 super_admin·featureKey martyrdom_ai). 문서·메뉴얼만이라 §9.3 배치 — push 보류·P3 코드 push에 동봉. ⚠️ 운영 반영 후 AI 비서 새 지식 검색하려면 RAG [전체 재색인] 1회.
+- **▶ 다음**: **P3 서면 생성 설계·분배** — ④유족급여신청서 초안(인정 보고서 형식 통째 학습+법령 보완·섹션별) + 출력물 검토 + ⑤전문가 검토 + ④논리맵 시각화 + ⑥종결 자동학습 + G1 내보내기(HTML/PDF·pdf-lib) + G4 사건 패키지 zip. 출처 = 설계서 §9.1·§9.2·§9.3 + 단계화 P3 행. §6 양식으로 P3 트리거 신규 작성 → Swain 결정 후 B·A·C 분배.
 
 ### 🕊️ (이전 로그) 딥릴리프 P1 — 추출·분류 대량 실패 근본 fix 배포·Swain 재검증 중 + A 가입집계·B 알림로그 동봉 (2026-05-26)
 재검증 결과 = **추출/분류 대부분 실패**(스크린샷). 4개 원인 진단·전부 fix·1회 배포(`501ae51..d59669d`):
