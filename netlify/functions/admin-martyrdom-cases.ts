@@ -218,6 +218,9 @@ export default async (req: Request, _ctx: Context) => {
     if (body.schoolName !== undefined)       sets.push(`school_name = ${body.schoolName ? `'${String(body.schoolName).slice(0,150).replace(/'/g,"''")}'` : "NULL"}`);
     if (body.position !== undefined)         sets.push(`position = ${body.position ? `'${String(body.position).slice(0,50).replace(/'/g,"''")}'` : "NULL"}`);
     if (body.deceasedAt !== undefined)       sets.push(`deceased_at = ${body.deceasedAt ? `'${String(body.deceasedAt).slice(0,10)}'` : "NULL"}`);
+    /* 라 유족 동의 기록 (§P2.0 #9 — 파기 안 함·기록만) */
+    if (body.consentNote !== undefined)       sets.push(`consent_note = ${body.consentNote ? `'${String(body.consentNote).slice(0,2000).replace(/'/g,"''")}'` : "NULL"}`);
+    if (body.consentObtainedAt !== undefined) sets.push(`consent_obtained_at = ${body.consentObtainedAt ? `'${String(body.consentObtainedAt).slice(0,30).replace(/'/g,"''")}'::timestamp` : "NULL"}`);
 
     if (sets.length === 0) return badRequest("변경할 필드 없음");
     sets.push("updated_at = NOW()");
