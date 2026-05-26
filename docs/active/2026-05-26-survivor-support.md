@@ -543,3 +543,239 @@ push 후 메인 보고: 브랜치명·커밋 해시·변경 파일·체크박스
 - [ ] C PASS 후 release_checklist: 메뉴얼·knowledge.md·jsonl P3 서면 안내 + 권한(검토 배정)·AI 도구는 P4 / docx 부록 기록
 - [ ] PROJECT_STATE·HANDOFF 갱신 / 설계서 §P3 → milestone 이동(P4 forward 보존)
 - [ ] push = B 머지(마이그)·A 머지(라이브)·C fix 등 라이브 필수 시점만(§9.3 배치)
+
+---
+
+# ★ P4 구현 설계 (확정 2026-05-27 — Swain 결정·딥릴리프 마감 라운드)
+
+> P3 서면 생성까지 라이브. P4 = **마감 라운드** — ① AI 비서 순직 읽기 도구(운영자 전용) ② 유족 전달용 쉬운 요약 ③ 인정률·성과 통계(G5) ④ 연구 발간지(R·§9.4). 사전 정독(§9.1.9)으로 AI 에이전트 도구 시스템·순직 격리·집계 패턴·산출물 저장 제약 확인 완료.
+
+## §P4.0 요구사항 확정 (Swain 2026-05-27)
+
+| # | 결정 | 값 |
+|---|---|---|
+| 1 | **범위** | 4개 전부 한 라운드 (AI 도구 + 유족 요약 + 통계 + 연구 발간) |
+| 2 | **AI 비서 순직 읽기** | **운영자 전용 읽기 도구 추가** — 사건 목록·상태·준비도·기한 조회. **일반 검색 격리(P2 fix·`qna·manual` 한정)는 절대 불변.** 도구는 순직 테이블 직접 조회(일반 RAG 안 거침) |
+| 3 | **연구 발간 구성** | **자체 조사(축적 사건·통계·인정패턴) + AI 최근 동향조사·분석 블렌드.** 비율 **운영자 설정**(기본 **자체 7 : AI 3**). ⚠️ AI 동향분석 = Gemini 일반지식 기반(실시간 웹검색 아님)·운영자 검수 필수 |
+| 4 | **발간 3종** | 종합 가이드·동향 보고서·익명 사례 연구 (§9.4). 경량 비식별화(실명 부분가림·제3자 가림·수준 조절)·외부 발간 검수 게이트·super_admin |
+
+**불변 원칙 유지**: AI 출력=검토용 초안 / 근거 추적 / 운영자 전용 / **순직 자료 격리(P2 fix 불변 — AI 비서 일반 검색은 계속 `qna·manual`만)** / 외부 발간물은 사람 검수·승인 후만.
+
+### ★ 분배 전 Swain 확인 (§6.10 — DB 스키마·AI 보안)
+1. **DB 스키마**: 신규 테이블 1개 `martyrdom_publications`(연구 발간물 — 여러 사건 집계라 사건ID 없음 → 산출물 저장소에 못 넣어 신규 필요) + `martyrdom_ai_outputs.outputType`에 값 `'family_summary'` 추가(varchar·DDL 없음) + `ai_tool_permissions` 시드(신규 순직 도구 권한 행).
+2. **AI 보안**: 순직 읽기 도구는 운영자 이상만(`ensureRole`)·`is_mutation=false`·순직 테이블 직접 조회. **`admin-ai-agent` 일반 검색의 `["qna","manual"]` 한정은 건드리지 않음**(P2 격리 불변).
+
+## §P4.1 DB 설계
+
+### 신규 테이블 1개 (append-only — schema.ts 끝 `/* === P4 발간 === */` 헤더)
+```typescript
+/* === P4 발간 === */
+// 연구 발간물 (여러 사건 집계·외부 발간용·비식별화) — caseId 없음(다중 사건)
+export const martyrdomPublications = pgTable("martyrdom_publications", {
+  id: serial("id").primaryKey(),
+  pubType: varchar("pub_type", { length: 20 }).notNull(),       // guide | trend | case_study
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html"),                             // 발간 본문(HTML·export 소스)
+  contentJson: jsonb("content_json"),                            // 섹션 구조·근거
+  blendRatio: jsonb("blend_ratio"),                              // {self:70, ai:30} 운영자 설정
+  sourceCaseIds: jsonb("source_case_ids"),                       // 포함 사건 ID 배열
+  anonymized: boolean("anonymized").notNull().default(true),
+  reidRisk: varchar("reid_risk", { length: 10 }).default("low"), // low|medium|high
+  ragSources: jsonb("rag_sources"),
+  status: varchar("status", { length: 12 }).notNull().default("draft"), // draft|reviewed|published
+  createdBy: integer("created_by").references(() => members.id),
+  reviewedBy: integer("reviewed_by").references(() => members.id),
+  publishedBy: integer("published_by").references(() => members.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  publishedAt: timestamp("published_at"),
+});
+```
+- **`outputType='family_summary'`**: 사건별 유족 요약 → 기존 `martyrdom_ai_outputs`(caseId 있음) 재사용·신규 컬럼 없음.
+- **`ai_tool_permissions` 시드**: 신규 순직 도구(아래 §P4.2) 행 — `enabled=true`·`required_role`=운영자 이상·`is_mutation=false`·`category='martyrdom'`. 마이그가 멱등 INSERT.
+- 마이그 `migrate-martyrdom-p4`(§6.8·B 작성): `CREATE TABLE IF NOT EXISTS martyrdom_publications` + 인덱스(pub_type·status) + `ai_tool_permissions` 시드 INSERT(ON CONFLICT DO NOTHING). outputType 'family_summary'는 DDL 불필요.
+
+## §P4.2 API·도구·lib
+
+### lib/martyrdom-ai.ts 신규 함수
+| 함수 | 동작 |
+|---|---|
+| `buildFamilySummary(caseId)` | 사건 진행을 **쉬운 말**로 요약 + 다음 할 일(전문용어 풀어서·유족 전달용). `family_summary` 저장 |
+| `buildPublication(pubType, caseIds, blendRatio, maskLevel)` | **자체 조사**(축적 사건 recognitionPattern·통계·인정요건 패턴) + **AI 동향조사·분석**(Gemini 지식 기반)을 `blendRatio`로 혼합 → 발간 본문. **비식별화 마스킹**(실명 부분가림·제3자 가림) + `reidRisk` 평가. ragSources 근거 |
+
+### lib/ai-agent-tools.ts 신규 순직 읽기 도구 (운영자 전용·읽기·격리 불변)
+`TOOL_DECLARATIONS`에 추가 + `tool_X(args, adminId)` 핸들러 + `executeTool` 케이스. 전부 `ensureRole`로 운영자 이상 게이트·순직 테이블 **직접 조회**(일반 RAG·`searchRag` 안 거침):
+| 도구 | 입력 | 반환 |
+|---|---|---|
+| `martyrdom_case_list` | `{status?}` | 진행 사건 목록(caseNo·title·status·준비도%·다음 기한) |
+| `martyrdom_case_status` | `{caseId 또는 caseNo}` | 사건 종합(상태·준비도·인정요건 충족 수·부족 증거·다음 기한) |
+| `martyrdom_deadlines_upcoming` | `{days?}` | 임박 기한 사건들(D-day) |
+- **시스템 프롬프트**(`ai_agent_settings.system_prompt`): "딥릴리프 순직 사건 조회 도구는 운영자 전용·민감자료" 1줄(메인이 admin-ai-config에서 갱신 or B가 시드).
+- ⚠️ **`netlify/functions/admin-ai-agent.ts`의 `searchRag(msg, 5, ["qna","manual"])`는 절대 변경 금지**(P2 격리 불변). 순직 노출은 위 명시적 도구로만.
+
+### 함수 목록 (netlify/functions·전부 `export const config = { path }`)
+| 함수 | 메서드 | 용도 |
+|---|---|---|
+| `admin-martyrdom-family-summary` | POST `{caseId}` / GET `?caseId` | 유족 요약 생성·로드 (ai_outputs family_summary) |
+| `admin-martyrdom-stats` | GET | G5 인정률·유형별·추이 집계(GROUP BY·dashboard 패턴) |
+| `admin-martyrdom-publication` | POST `{pubType,caseIds?,blendRatio?,maskLevel?}` / GET list / GET `?id` / PATCH `{id,status,...}` / DELETE `?id` | 발간물 생성·목록·상세·검수/발간·삭제 (super_admin) |
+| `admin-martyrdom-publication-generate-background` | POST INTERNAL | 발간 본문 생성(블렌드·비식별화·무거운 AI — background) |
+| `admin-martyrdom-publication-export` | POST `{id,format}` | 발간물 HTML/PDF export (pdf-lib·G1 패턴) |
+
+### 응답 JSON 계약 (A mock·B 동일·키 고정)
+```jsonc
+// family-summary POST/GET
+{ "ok": true, "summary": { "id": 50, "outputType":"family_summary", "contentText":"○○ 선생님 사건은 현재 …(쉬운 말)", "nextSteps":["자료 보완","전문가 검토 대기"], "status":"draft" } }
+// stats GET
+{ "ok": true, "totals": { "cases": 12, "approved": 5, "rejected": 2, "pending": 5 },
+  "recognitionRate": 0.71, "byCaseType": [{"type":"overwork","total":6,"approved":4}],
+  "byStatus": [{"status":"analysis","count":4}], "trend": [{"month":"2026-03","approved":1}] }
+// publication POST (생성 큐)
+{ "ok": true, "queued": true, "id": 9, "pubType":"guide", "status":"draft" }
+// publication GET ?id
+{ "ok": true, "publication": { "id":9, "pubType":"guide", "title":"교사 사망 시 순직 인정까지", "contentHtml":"<h1>…", "blendRatio":{"self":70,"ai":30}, "anonymized":true, "reidRisk":"low", "status":"draft", "ragSources":[…] } }
+// publication GET list
+{ "ok": true, "publications": [{ "id":9, "pubType":"guide", "title":"…", "status":"draft", "createdAt":"…" }] }
+// publication PATCH (검수/발간)
+{ "ok": true, "id": 9, "status": "published" }
+// publication-export POST
+{ "ok": true, "fileName":"종합가이드.pdf", "mimeType":"application/pdf", "base64":"JVBERi0…" }
+```
+
+## §P4.3 화면 설계 (`public/admin-martyrdom.js`·`admin-martyrdom.html`·캐시버스터 `?v=P4`)
+- **⑧ 유족 요약**: ④서면 탭(또는 디테일 헤더)에 [🧑‍🤝‍🧑 유족 전달용 요약 생성] → 쉬운 말 요약 + 다음 할 일 카드 → [복사][PDF]. 운영자가 유족에게 전달(유족 로그인 아님).
+- **G5 통계 탭(신규 `tab-stats`)**: 인정률 도넛·유형별 막대·월별 추이 선(Chart.js). 진행 사건 준비도 분포.
+- **연구 발간 탭(신규 `tab-publications`·super_admin)**: 유형 선택(가이드·동향·사례연구) → **혼합 비율 슬라이더(자체 ↔ AI·기본 70:30)** + 마스킹 수준 → [발간물 생성](background·진행 표시) → 미리보기 + 비식별화 검수(reidRisk 표시) → [검수 완료]→[발간] → [HTML/PDF export]. 발간물 목록.
+- **AI 도구**: 백엔드+프롬프트라 A 작업 없음(AI 비서 화면·admin-ai-config에 자동 노출). 도구 권한은 admin-ai-config 권한 테이블에서 운영자가 관리(§6.18).
+- 신규 탭 2개는 admin-martyrdom 내부 탭 → **cms-tbfa iframe 변경 없음**(딥릴리프 메뉴 그대로).
+
+## §P4.4 검증 시나리오 (C)
+| Q | 시나리오 | 기대 |
+|---|---|---|
+| Q1 | 유족 요약 생성 | 쉬운 말 요약·다음 할 일·복사/PDF |
+| Q2 | 통계 | 인정률·유형별·추이 차트 정상 집계 |
+| Q3 | 발간물 생성(가이드) | 자체+AI 블렌드·비율 반영·비식별화·reidRisk |
+| Q4 | 발간 비율 슬라이더 | 70:30 기본·운영자 변경 반영 |
+| Q5 | 발간 검수→발간→export | 상태 전이·HTML/PDF 다운로드·super_admin 게이트 |
+| Q6 | **AI 도구(운영자)** | AI 비서에 "진행 중 순직 사건 알려줘" → 목록/상태 응답(운영자 계정) |
+| Q7 | **격리 회귀(핵심)** | 비운영자/일반 질문엔 순직 안 나옴·일반 검색 여전히 `qna·manual`만 (P2 fix 불변) |
+| 회귀 | P1·P2·P3 | 업로드·분석·서면·검토·내보내기 무회귀 |
+
+## §P4.5 mock 데이터 (A — `USE_P4_MOCK` 토글)
+```javascript
+const USE_P4_MOCK = true; // B 머지·마이그 후 false
+const MOCK_FAMILY_SUMMARY = { id:50, outputType:"family_summary",
+  contentText:"○○ 선생님 사건은 현재 자료를 모아 전략을 분석하는 단계입니다. 쉽게 말씀드리면 …",
+  nextSteps:["병원 진료기록 보완","전문가 검토 대기"], status:"draft" };
+const MOCK_STATS = { totals:{cases:12,approved:5,rejected:2,pending:5}, recognitionRate:0.71,
+  byCaseType:[{type:"overwork",total:6,approved:4},{type:"harassment",total:4,approved:1}],
+  byStatus:[{status:"analysis",count:4},{status:"hearing",count:3}],
+  trend:[{month:"2026-03",approved:1},{month:"2026-04",approved:2}] };
+const MOCK_PUBLICATION = { id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지",
+  contentHtml:"<h1>교사 사망 시 순직 인정까지</h1><p>…</p>", blendRatio:{self:70,ai:30},
+  anonymized:true, reidRisk:"low", status:"draft", ragSources:[{title:"인정 사례 종합",sourceRef:"martyr_case",snippet:"…"}] };
+const MOCK_PUBLICATIONS = [{ id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지", status:"draft", createdAt:"2026-05-27T00:00:00Z" }];
+// publication 생성 큐: { ok:true, queued:true, id:9, pubType:"guide", status:"draft" }
+// export: { ok:true, fileName:"종합가이드.pdf", mimeType:"application/pdf", base64:"JVBERi0…" }
+```
+
+## §P4.6 4채팅 트리거 (PARALLEL_TEMPLATE §6 양식·Swain 복붙용)
+
+> **베이스**: 워크트리 공유 → 로컬 `main` 분기. `{BASE_HASH}` = **P3 종결 후** 메인이 채워 전달(P4는 P3 검증·종결 뒤 분배). 셋업 `checkout -B ... main`.
+> **머지 순서(§5)**: B 머지 → Swain `migrate-martyrdom-p4?run=1` → schema 활성화·마이그 삭제 → A 머지 → C 검증.
+
+### 6.P4-B — 🔧 백 구현 (프론트 작업 ❌)
+```
+[B — 딥릴리프 P4 백 구현]
+
+모델: Sonnet 4.6
+워크트리: ../tbfa-mis-B
+브랜치: feature/martyrdom-p4-back (베이스 로컬 main @ {BASE_HASH})
+■ 셋업: cd ../tbfa-mis-B; git fetch origin; git checkout -B feature/martyrdom-p4-back main; git log --oneline -1; git merge-base --is-ancestor {BASE_HASH} HEAD && echo 베이스 OK || echo "⚠️ 어긋남-메인보고"
+정독 (필수): docs/active/2026-05-26-survivor-support.md §P4.1·§P4.2
+참고: docs/rules/PARALLEL_GUIDE.md §3·§7
+
+[자율주행] Read·Edit·Write·git add/commit/rebase·tsc·node check 자율. git push 금지(메인 단독). 설계·로직만 메인 확인.
+영역: netlify/functions/, lib/, db/schema.ts, drizzle/, package.json
+금지: public/, assets/, PROJECT_STATE.md, docs/rules/HANDOFF.md, docs/
+
+━━━ §P4.1 DB ━━━
+ - [ ] 신규 테이블 martyrdom_publications (컬럼·default §P4.1 그대로) — schema.ts 끝 /* === P4 발간 === */ append-only
+ - [ ] import 점검(serial·integer·varchar·text·jsonb·boolean·timestamp·index) / schema 주석 상태 → 마이그 후 메인 활성화
+ - [ ] migrate-martyrdom-p4.ts — GET ?run=1·requireAdmin·CREATE TABLE IF NOT EXISTS·인덱스(pub_type·status)·ai_tool_permissions 시드 INSERT ON CONFLICT DO NOTHING·멱등
+ - [ ] outputType 'family_summary'는 값 추가일 뿐(varchar·DDL 없음)
+
+━━━ §P4.2 API·도구·lib ━━━
+ - [ ] lib/martyrdom-ai.ts: buildFamilySummary(caseId) / buildPublication(pubType,caseIds,blendRatio,maskLevel) — featureKey "martyrdom_ai"·timeoutMs 120000·internalBulk·blendRatio 기본 {self:70,ai:30}·비식별화 마스킹·reidRisk 평가
+ - [ ] lib/ai-agent-tools.ts: 순직 읽기 도구 3개(martyrdom_case_list·martyrdom_case_status·martyrdom_deadlines_upcoming) — TOOL_DECLARATIONS 추가 + tool_X(args,adminId) 핸들러 + executeTool 케이스. **ensureRole로 운영자 이상 게이트**·is_mutation=false·순직 테이블 직접 조회(searchRag 안 거침). ⚠️ 기존 requireAdmin/운영자 권한 모델 grep 후 정확한 역할값 적용(§9.1.9)
+ - [ ] ⚠️ netlify/functions/admin-ai-agent.ts의 searchRag(...,["qna","manual"]) **절대 변경 금지**(P2 격리 불변)
+ - [ ] 함수 5개 — 전부 export const config = { path }: family-summary / stats / publication(POST·GET·GET?id·PATCH·DELETE) / publication-generate-background(INTERNAL·config.path 없음) / publication-export
+ - [ ] 발간물 super_admin 게이트 / 응답 키 = §P4.2 계약 1글자도 안 바꿈(summary/totals,recognitionRate,byCaseType,byStatus,trend/publication{…}/publications[]/fileName,mimeType,base64/queued,id)
+ - [ ] requireAdmin auth.res / createdBy·reviewedBy·publishedBy = admin.uid / INTERNAL_TRIGGER_SECRET 검증 / try-catch step·detail·stack
+ - [ ] npx tsc --noEmit 통과
+작업 순서: 1)마이그 2)schema 주석 3)lib(ai 2함수·도구 3개) 4)API 5 5)tsc 6)commit·보고
+push 후 보고: 브랜치·해시·응답 키·마이그명·도구 3개 권한 게이트 방식·격리 불변 확인.
+```
+
+### 6.P4-A — 🎨 프론트 구현 (백·lib·db 작업 ❌)
+```
+[A — 딥릴리프 P4 프론트 구현]
+
+모델: Sonnet 4.6
+워크트리: ../tbfa-mis-A
+브랜치: feature/martyrdom-p4-front (베이스 로컬 main @ {BASE_HASH})
+■ 셋업: cd ../tbfa-mis-A; git fetch origin; git checkout -B feature/martyrdom-p4-front main; git log --oneline -1; git merge-base --is-ancestor {BASE_HASH} HEAD && echo 베이스 OK || echo "⚠️ 어긋남-메인보고"
+정독 (필수): docs/active/2026-05-26-survivor-support.md §P4.3
+참고: docs/rules/PARALLEL_GUIDE.md §3
+
+[자율주행] Read·Edit·Write·git add/commit/rebase·node check 자율. git push 금지. 순수 JS(as/interface/제네릭 금지·node --check).
+영역: public/ (admin-martyrdom.js·admin-martyrdom.html)
+금지: lib/, netlify/functions/, db/, drizzle/, package.json, PROJECT_STATE.md, docs/
+모드: 평행 mock (USE_P4_MOCK=true → B 머지·마이그 후 메인이 false)
+
+━━━ mock 데이터 (B 머지 전·키 1:1·B §P4.2와 동일) ━━━
+const USE_P4_MOCK = true;
+const MOCK_FAMILY_SUMMARY = { id:50, outputType:"family_summary", contentText:"○○ 선생님 사건은 현재 자료를 모아 전략을 분석하는 단계입니다. …", nextSteps:["병원 진료기록 보완","전문가 검토 대기"], status:"draft" };
+const MOCK_STATS = { totals:{cases:12,approved:5,rejected:2,pending:5}, recognitionRate:0.71, byCaseType:[{type:"overwork",total:6,approved:4},{type:"harassment",total:4,approved:1}], byStatus:[{status:"analysis",count:4},{status:"hearing",count:3}], trend:[{month:"2026-03",approved:1},{month:"2026-04",approved:2}] };
+const MOCK_PUBLICATION = { id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지", contentHtml:"<h1>교사 사망 시 순직 인정까지</h1><p>…</p>", blendRatio:{self:70,ai:30}, anonymized:true, reidRisk:"low", status:"draft", ragSources:[{title:"인정 사례 종합",sourceRef:"martyr_case",snippet:"…"}] };
+const MOCK_PUBLICATIONS = [{ id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지", status:"draft", createdAt:"2026-05-27T00:00:00Z" }];
+// publication 생성 큐: { ok:true, queued:true, id:9, pubType:"guide", status:"draft" } / export: { ok:true, fileName:"종합가이드.pdf", mimeType:"application/pdf", base64:"JVBERi0…" }
+
+━━━ §P4.3 화면 체크리스트 ━━━
+ - [ ] 유족 요약 — ④서면 탭/디테일에 [유족 전달용 요약 생성] → 쉬운 말 요약+다음 할 일 카드 → [복사][PDF]
+ - [ ] 통계 탭(신규 tab-stats) — 인정률 도넛·유형별 막대·월별 추이 선(Chart.js)·준비도 분포
+ - [ ] 연구 발간 탭(신규 tab-publications·super_admin) — 유형 선택·혼합 비율 슬라이더(자체↔AI·기본 70:30)·마스킹 수준 → [생성](진행 표시) → 미리보기+reidRisk 검수 → [검수][발간] → [HTML/PDF] · 발간물 목록
+ - [ ] 권한 조건부 — 발간 탭은 super_admin만 노출
+ - [ ] mock 키 ↔ B 응답 1:1 (apiFetch·pickContentJson·outputCache·pollGenerated·진행 오버레이 재사용)
+ - [ ] 탭 추가는 admin-martyrdom 내부 탭(switchTab) — cms-tbfa iframe 변경 0
+ - [ ] 캐시버스터 admin-martyrdom.js?v=P4 / node --check / public/ 외 변경 0
+push 후 보고: 브랜치·해시·체크박스·USE_P4_MOCK 키 정합·mock 위치.
+```
+
+### 6.P4-C — 🔍 검증·fix (B·A 머지 후·P3 종결 후)
+```
+[C — 딥릴리프 P4 검증·fix]
+
+모델: Opus 4.7
+워크트리: ../tbfa-mis-C
+브랜치: verify/martyrdom-p4 (베이스 로컬 main @ {머지 후 HEAD})
+■ 셋업: cd ../tbfa-mis-C; git fetch origin; git checkout -B verify/martyrdom-p4 main; git log --oneline -1
+정독: docs/active/2026-05-26-survivor-support.md §P4.4 / 참고 PARALLEL_GUIDE §7
+
+[자율주행] 검증·fix만(신규 기능 ❌). git push 금지(메인 단독).
+작업 순서:
+ 1) §P4.4 Q1~Q7 — 코드·응답키·schema 정합 + 라우팅(401·super_admin 게이트) + tsc + node --check + 라이브 자산
+ 2) ★ Q7 격리 회귀(최우선) — AI 비서 일반 검색이 여전히 qna·manual만인지·순직 도구가 운영자만인지·비운영자/일반 질문에 순직 안 나오는지
+ 3) 회귀 — P1·P2·P3 무회귀
+ 4) B 응답 키 vs A mock 키 1:1 대조
+ 5) fix 커밋(verify 브랜치) → 메인 보고 / 보고서 docs/history/verify/{날짜}-martyrdom-p4.md
+표현 규칙(§6.14): 사용자 동작·결과 위주. 검증 분담(§7): C=코드·라우팅·격리·tsc / Swain=브라우저(통계·발간·유족요약·AI 도구 대화).
+```
+
+## §P4.7 라운드 마감 체크리스트 (메인)
+- [ ] 분배 전 Swain 확인: martyrdom_publications 스키마·AI 도구 격리 (§P4.0)
+- [ ] **P3 종결 후** 설계 로컬 main commit → {BASE_HASH} 채움 → B·A·C 분배
+- [ ] B 머지 → migrate-martyrdom-p4?run=1 → schema 활성화·마이그 삭제 → A 머지 → C 검증
+- [ ] ★ 격리 회귀(Q7) 반드시 PASS — AI 도구가 P2 격리 안 깨는지
+- [ ] release_checklist: 메뉴얼·knowledge.md·jsonl P4 안내 + **AI 도구 카탈로그·권한·시스템 프롬프트 동기화(#2 — 코드·DB성·검토 필수)** + 발간 권한(super_admin)
+- [ ] **딥릴리프 전체(P1~P4) 설계서 → milestone 이동·active 비움**(연구 발간 후속 라운드 여지만 forward)
+- [ ] PROJECT_STATE·HANDOFF 갱신 / push = 머지·라이브 필수 시점만(§9.3)
