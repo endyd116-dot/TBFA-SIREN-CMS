@@ -1204,7 +1204,9 @@ export async function buildPublication(
         timeoutMs: 120000,
         internalBulk: true,
       });
-      aiSection = String(aiResult || "").trim();
+      // callGemini는 { ok, text } 반환 — .text 추출(이전 String(aiResult)는 "[object Object]" 버그)
+      aiSection = (aiResult && aiResult.ok && aiResult.text) ? String(aiResult.text).trim() : "";
+      aiSection = aiSection.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();   // 코드펜스 제거
       modelUsed = "gemini";
     } catch (aiErr: any) {
       console.warn(`[buildPublication] AI 생성 실패 (자체 데이터만 사용): ${aiErr?.message}`);
@@ -1354,7 +1356,7 @@ function buildPublicationPrompt(
     .join("\n");
 
   const selfSection = `
-자체 축적 데이터 (비율: 자체 ${blendRatio.self}%):
+자체 축적 데이터:
 - ${data.summary}
 - 유형별: ${data.byType.map(t => `${t.type}(${t.total}건·인정${t.approved}건)`).join(", ") || "데이터 없음"}
 ${data.patterns.length > 0 ? `- 주요 인정 패턴: ${data.patterns.filter(p => p.outcome === "approved").slice(0, 3).map(p => p.keyPattern).filter(Boolean).join(" / ")}` : ""}
@@ -1363,8 +1365,7 @@ ${data.patterns.length > 0 ? `- 주요 인정 패턴: ${data.patterns.filter(p =
   const ragSection = ragContext ? `\n관련 법령·사례 근거:\n${ragContext}` : "";
 
   return `당신은 교사 순직 인정 지원 분야의 전문 연구원입니다.
-다음 자료를 바탕으로 "${typeLabel}" 보고서의 **AI 동향분석 섹션**을 작성하세요.
-(전체 보고서에서 AI 기여 비율: ${blendRatio.ai}%)
+다음 자료를 바탕으로 "${typeLabel}" 보고서의 **동향분석 섹션**을 작성하세요.
 ${selfSection}${ragSection}
 
 요구사항:
@@ -1372,7 +1373,7 @@ ${selfSection}${ragSection}
 - 1000자~2000자 분량
 - 공무원재해보상법 기반 최근 심의 동향·인정 요건 트렌드 분석
 - 구체적 수치나 날짜 주장 시 "추정" 또는 "일반적으로" 표현 사용
-- "이 내용은 Gemini AI 일반지식 기반이며 전문가 검수가 필요합니다" 주석 포함`;
+- ⚠️ AI·인공지능·Gemini 등 생성 도구나 작성 비율(%)을 본문에 절대 언급하지 말 것 — 외부 발간용 협회 연구 자료로 서술`;
 }
 
 /* HTML 조합 */
@@ -1385,7 +1386,7 @@ function buildPublicationHtml(
   ragSources: RagSourceRef[],
 ): string {
   const selfHtml = `
-<h2>자체 조사 결과 (비율: ${blendRatio.self}%)</h2>
+<h2>자체 조사 결과</h2>
 <p>${data.summary}</p>
 ${data.byType.length > 0 ? `<ul>${data.byType.map(t => `<li>${t.type}: 총 ${t.total}건 · 인정 ${t.approved}건 (인정률 ${t.total > 0 ? Math.round((t.approved / t.total) * 100) : 0}%)</li>`).join("")}</ul>` : ""}
 ${data.patterns.filter(p => p.outcome === "approved").length > 0 ? `
@@ -1398,15 +1399,15 @@ ${data.patterns.filter(p => p.outcome === "approved").length > 0 ? `
 <ul>${ragSources.slice(0, 5).map(r => `<li><strong>${r.title}</strong>: ${r.snippet}</li>`).join("")}</ul>` : "";
 
   const aiHtml = aiSection ? `
-<h2>AI 동향분석 (비율: ${blendRatio.ai}% · Gemini 지식 기반)</h2>
+<h2>동향 분석</h2>
 ${aiSection}` : "";
 
   return `<article class="martyrdom-publication">
 <h1>${typeLabel}</h1>
-<p class="pub-meta">발간 유형: ${pubType} · 자체:AI = ${blendRatio.self}:${blendRatio.ai} · 비식별화 처리 완료</p>
+<p class="pub-meta">(사)교사유가족협의회 · 비식별화 처리 완료</p>
 ${selfHtml}${ragHtml}${aiHtml}
 <hr>
-<p class="disclaimer">⚠️ 본 보고서는 (사)교사유가족협의회의 내부 데이터 및 AI 지식 기반으로 작성된 초안입니다. 외부 발간 전 반드시 법률 전문가 검수를 받으시기 바랍니다.</p>
+<p class="disclaimer">⚠️ 본 보고서는 (사)교사유가족협의회의 내부 데이터를 바탕으로 작성된 초안입니다. 외부 발간 전 반드시 법률 전문가 검수를 받으시기 바랍니다.</p>
 </article>`;
 }
 
