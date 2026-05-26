@@ -151,10 +151,12 @@ export default async (req: Request, _ctx: Context) => {
     const assignedAdminId = doc.assignedAdminId ? Number(doc.assignedAdminId) : null;
     const caseKind = String(doc.caseKind || "active");
 
-    /* extract_status → processing (프론트 폴링·배지와 동일 어휘·§1 enum) */
+    /* extract_status → processing (프론트 폴링·배지와 동일 어휘·§1 enum)
+       ★ 2026-05-26: 재처리 시작 시 옛 오류·요약 초기화 — 재시도 중 이전 실패 사유가
+       화면에 남아 혼동되던 문제 방지(새 결과로 덮어쓰기 전까지 깨끗하게). */
     await db.execute(sql.raw(`
       UPDATE martyrdom_case_documents
-      SET extract_status = 'processing', updated_at = NOW()
+      SET extract_status = 'processing', extract_error = NULL, doc_summary = NULL, updated_at = NOW()
       WHERE id = ${docId}
     `));
 

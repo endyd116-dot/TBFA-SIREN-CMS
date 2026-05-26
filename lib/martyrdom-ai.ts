@@ -83,7 +83,7 @@ JSON만 응답하세요.`;
       mode: "pro",
       featureKey: "martyrdom_ai",
       inlineFiles: [{ data: cleanBase64, mimeType }],
-      maxOutputTokens: 512,
+      maxOutputTokens: 1536, // ★ 설명 섞여도 JSON 안 잘리게(512→1536)
       timeoutMs: 90000, // ★ background Vision 분류 — 8초 기본은 짧음
       internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     });
@@ -116,7 +116,7 @@ JSON만 응답하세요.`;
     {
       mode: "flash",
       featureKey: "martyrdom_ai",
-      maxOutputTokens: 512,
+      maxOutputTokens: 1536, // ★ 설명 섞여도 JSON 안 잘리게(512→1536)
       timeoutMs: 30000, // ★ background 텍스트 분류 — 8초 기본 상향
       internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     }

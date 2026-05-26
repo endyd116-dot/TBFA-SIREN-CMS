@@ -357,7 +357,16 @@ export async function callGeminiJSON<T = any>(
   try {
     const parsed = JSON.parse(cleaned) as T;
     return { ok: true, data: parsed, raw: result.text, modelUsed: result.modelUsed };
-  } catch (err: any) {
+  } catch (_first) {
+    /* ★ 2026-05-26: 폴백 — 모델이 JSON 앞뒤에 설명·마크다운을 섞어 보내거나
+       앞쪽에 코드펜스가 없어 strip이 안 된 경우, 첫 { 부터 마지막 } 까지(또는 배열)
+       만 추출해 재파싱. (딥릴리프 분류 "AI 응답 파싱 실패" 대량 발생 원인) */
+    const m = cleaned.match(/[\{\[][\s\S]*[\}\]]/);
+    if (m) {
+      try {
+        return { ok: true, data: JSON.parse(m[0]) as T, raw: result.text, modelUsed: result.modelUsed };
+      } catch (_second) { /* 아래 실패 처리로 */ }
+    }
     console.error("[Gemini] JSON 파싱 실패:", cleaned.slice(0, 300));
     return {
       ok: false,

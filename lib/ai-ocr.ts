@@ -211,8 +211,8 @@ async function extractGeminiOcr(base64: string, mimeType: string, fileName: stri
         inlineFiles: [{ data: base64.replace(/^data:[^;]+;base64,/, ""), mimeType }],
         maxOutputTokens: 8192,
         /* ★ 2026-05-26: 문서 전체 OCR은 8초 기본 타임아웃으로 자주 중단됨.
-           background(-background·15분) 호출이므로 넉넉히. */
-        timeoutMs: 120000,
+           background(-background·15분) 호출이므로 넉넉히(대용량 스캔 PDF 여유 180초). */
+        timeoutMs: 180000,
         internalBulk: true, // 일괄 추출 자기차단(surge) 방지
       }
     );
