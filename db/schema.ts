@@ -4302,3 +4302,50 @@ export const martyrdomActions = pgTable("martyrdom_actions", {
 export type MartyrdomAction    = typeof martyrdomActions.$inferSelect;
 export type NewMartyrdomAction = typeof martyrdomActions.$inferInsert;
 /* === P2 순직 인정 지원 끝 === */
+
+/* === P3 서면 ===
+   ⚠️ DB 적용 전(마이그 호출 전) 활성화 금지 (#9.1.1 — 운영 SELECT 깨짐).
+   순직 모듈 코드는 raw SQL(sql.raw)로 접근하므로 아래 정의는 타입·문서·drizzle-kit 정합용.
+   메인이 migrate-martyrdom-p3?run=1 적용 확인 후 아래 블록 주석 해제(활성화).
+
+// (1) 유족급여신청서 초안 섹션 — 목차 확인 후 섹션별 생성·편집
+export const martyrdomDraftSections = pgTable("martyrdom_draft_sections", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => martyrdomCases.id, { onDelete: "cascade" }),
+  outputId: integer("output_id").references(() => martyrdomAiOutputs.id, { onDelete: "cascade" }), // 부모 'draft' ai_outputs 행
+  sectionKey: varchar("section_key", { length: 40 }).notNull(),           // intro·deceased·duty·medical·timeline·criteria·counter·conclusion 등
+  title: varchar("title", { length: 200 }).notNull(),
+  sectionOrder: integer("section_order").notNull().default(0),
+  intent: text("intent"),                                                  // 목차 단계의 섹션 의도(생성 지시)
+  content: text("content"),                                                // 생성·편집된 본문
+  ragSources: jsonb("rag_sources"),                                        // [{title,sourceRef,snippet}]
+  status: varchar("status", { length: 20 }).notNull().default("pending"),  // pending|generating|done|edited
+  wordCount: integer("word_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (t) => ({
+  caseIdx: index("martyrdom_draft_sections_case_idx").on(t.caseId),
+  outputIdx: index("martyrdom_draft_sections_output_idx").on(t.outputId),
+}));
+export type MartyrdomDraftSection    = typeof martyrdomDraftSections.$inferSelect;
+export type NewMartyrdomDraftSection = typeof martyrdomDraftSections.$inferInsert;
+
+// (2) 전문가 검토 배정·결정 (협회 내부)
+export const martyrdomReviews = pgTable("martyrdom_reviews", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").notNull().references(() => martyrdomCases.id, { onDelete: "cascade" }),
+  outputId: integer("output_id").notNull().references(() => martyrdomAiOutputs.id, { onDelete: "cascade" }), // 검토 대상 'draft'
+  assignedTo: integer("assigned_to").notNull().references(() => members.id),         // 검토자(운영자)
+  assignedBy: integer("assigned_by").references(() => members.id),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),            // pending|approved|changes_requested
+  note: text("note"),                                                                // 검토 코멘트
+  createdAt: timestamp("created_at").defaultNow(),
+  decidedAt: timestamp("decided_at"),
+}, (t) => ({
+  caseIdx: index("martyrdom_reviews_case_idx").on(t.caseId),
+  outputIdx: index("martyrdom_reviews_output_idx").on(t.outputId),
+  assignedIdx: index("martyrdom_reviews_assigned_idx").on(t.assignedTo),
+}));
+export type MartyrdomReview    = typeof martyrdomReviews.$inferSelect;
+export type NewMartyrdomReview = typeof martyrdomReviews.$inferInsert;
+=== P3 서면 끝 === */

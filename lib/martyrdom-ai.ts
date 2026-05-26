@@ -9,7 +9,7 @@
  * 의존: callGemini·callGeminiJSON (기존 gemini 래퍼)·searchRag (RAG 검색)
  */
 import { callGemini, callGeminiJSON } from "./ai-gemini";
-import { searchRag, RagHit } from "./ai-embedding";
+import { searchRag, RagHit, embedText } from "./ai-embedding";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -769,5 +769,238 @@ export async function learnFromClosedCase(caseId: number): Promise<{ ok: boolean
     return { ok: true, recognitionPattern, promoted };
   } catch (err: any) {
     return { ok: false, promoted: 0, error: String(err?.message || err).slice(0, 300) };
+  }
+}
+
+/* =========================================================
+   P3 — 서면 생성 (④유족급여신청서 초안·§P3.2 계약 키 고정)
+   ⚠️ 응답 JSON 키는 §P3.2 계약과 1:1(A mock 동일). 1글자도 변경 금지.
+   draftOutline(목차) / draftSection(섹션 본문) / indexApprovedReport(인정 보고서 형식 모델 색인).
+   모든 AI 호출: featureKey 'martyrdom_ai' · internalBulk · temperature 0.4 · 정량 % 금지.
+   ========================================================= */
+
+export interface OutlineSection { sectionKey: string; title: string; intent: string; order: number; }
+export interface DraftOutlineJson { sections: OutlineSection[]; }
+export interface DraftSectionResult { content: string; ragSources: RagSourceRef[]; }
+
+/* 표준 유족급여신청서 목차 (AI 실패 시 폴백·§P3.5 mock과 동일 구조) */
+const DEFAULT_OUTLINE: OutlineSection[] = [
+  { sectionKey: "intro",      title: "신청 취지",            intent: "유족급여 청구 취지·근거 법령 개요", order: 1 },
+  { sectionKey: "deceased",   title: "고인 및 직무 개요",    intent: "고인 인적사항·담당 업무·근무 환경", order: 2 },
+  { sectionKey: "duty",       title: "공무상 과로·스트레스", intent: "업무량·시간외·민원 등 공무 관련성", order: 3 },
+  { sectionKey: "medical",    title: "의학적 인과관계",      intent: "진단·심리부검·사인과 공무의 연결", order: 4 },
+  { sectionKey: "criteria",   title: "인정 요건 충족",       intent: "공무원재해보상법 요건별 대조", order: 5 },
+  { sectionKey: "conclusion", title: "결론 및 신청",         intent: "순직 인정·유족급여 지급 요청", order: 6 },
+];
+
+function safeKey(v: any, fallback: string): string {
+  const k = String(v || "").trim().replace(/[^a-z0-9_]/gi, "_").slice(0, 40);
+  return k || fallback;
+}
+
+/* =========================================================
+   draftOutline — 인정 보고서 형식 모델 + 사건 구조로 목차 제안 (§9.2)
+   ========================================================= */
+export async function draftOutline(caseId: number): Promise<GenResult<DraftOutlineJson>> {
+  const ex = await loadExtraction(caseId);
+  const strategy = await loadLatestOutput(caseId, "strategy");
+  const criteria = await loadLatestOutput(caseId, "criteria_check");
+
+  /* 인정 보고서 exemplar 구조 (형식 모델·martyr_case) */
+  let exemplarHits: RagHit[] = [];
+  try {
+    exemplarHits = await searchRag(
+      "유족급여신청서 순직유족급여청구서 인정 보고서 목차 구성 신청취지 결론",
+      4, ["martyr_case"], caseId,
+    );
+  } catch { /* 검색 실패 무시 */ }
+  const refs = ragToRefs(exemplarHits);
+  const exemplarText = exemplarHits.length
+    ? exemplarHits.map((h, i) => `[인정 보고서 모델${i + 1}] ${h.title || h.sourceRef}\n${(h.content || "").slice(0, 600)}`).join("\n\n")
+    : "(인정 보고서 형식 모델 없음 — 표준 유족급여신청서 구성으로 작성)";
+
+  const systemPrompt = `당신은 교사 순직 인정 유족급여신청서를 설계하는 전문가입니다. 이 사건에 맞는 신청서 목차(섹션 구성)를 제안합니다.
+원칙:
+- [인정 보고서 모델]의 형식·전개 순서를 참고하되, 이 사건 구조에 맞춰 섹션을 구성.
+- 보통 6~9개 섹션 (신청 취지 → 고인·직무 → 공무 관련성 → 의학적 인과 → 인정 요건 → 예상 반론 대비 → 결론).
+- 각 섹션에 intent(그 섹션에서 무엇을 입증·서술할지) 1~2문장.
+- sectionKey는 영문 소문자·언더스코어(intro, deceased, duty, medical, criteria, counter, conclusion 등).
+- 한국어. JSON만.
+
+JSON 스키마:
+{ "sections": [ { "sectionKey": "intro", "title": "신청 취지", "intent": "...", "order": 1 } ] }`;
+
+  const userPrompt = `[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략 핵심]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, keyIssues: strategy.keyIssues, counterArguments: strategy.counterArguments }).slice(0, 3000) : "(전략 없음)"}\n\n[인정 요건]\n${criteria && Array.isArray(criteria.items) ? criteria.items.map((c: any) => `- ${c.title} (${c.status})`).join("\n").slice(0, 2000) : "(요건 대조 없음)"}\n\n[인정 보고서 형식 모델]\n${exemplarText.slice(0, 5000)}\n\n위 사건에 맞는 신청서 목차를 JSON으로 제안하세요.`;
+
+  const res = await callGeminiJSON<DraftOutlineJson>(`${systemPrompt}\n\n${userPrompt}`, {
+    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 4096, timeoutMs: 120000, internalBulk: true,
+  });
+
+  if (!res.ok || !res.data || !Array.isArray(res.data.sections) || res.data.sections.length === 0) {
+    return { contentJson: { sections: DEFAULT_OUTLINE }, ragSources: refs, modelUsed: res.modelUsed || MODEL_PRO() };
+  }
+  const sections: OutlineSection[] = res.data.sections
+    .map((x: any, i: number) => ({
+      sectionKey: safeKey(x.sectionKey, `sec${i + 1}`),
+      title: s(x.title, 200),
+      intent: s(x.intent, 1000),
+      order: Number(x.order) || i + 1,
+    }))
+    .filter((x: OutlineSection) => x.title)
+    .sort((a: OutlineSection, b: OutlineSection) => a.order - b.order);
+
+  return {
+    contentJson: { sections: sections.length ? sections : DEFAULT_OUTLINE },
+    ragSources: refs,
+    modelUsed: res.modelUsed || MODEL_PRO(),
+  };
+}
+
+/* =========================================================
+   draftSection — 섹션 1개 본문 생성 (입력 3종·§9.2)
+   ① 인정 보고서 exemplar(martyr_case) ② 사건 구조·전략·타임라인 ③ 법령(martyr_law)
+   ========================================================= */
+export async function draftSection(
+  caseId: number,
+  section: { sectionKey: string; title: string; intent?: string },
+  priorTitles: string[] = [],
+): Promise<GenResult<DraftSectionResult> & { ok: boolean; error?: string }> {
+  const ex = await loadExtraction(caseId);
+  const strategy = await loadLatestOutput(caseId, "strategy");
+  const title = String(section.title || "").slice(0, 200);
+  const intent = String(section.intent || "").slice(0, 1000);
+
+  /* ① exemplar few-shot (인정 보고서 형식·전개·증거 배열·martyr_case) */
+  let exemplarHits: RagHit[] = [];
+  try {
+    exemplarHits = await searchRag(`${title} ${intent} 순직 인정 유족급여신청서`, 3, ["martyr_case"], caseId);
+  } catch { /* 무시 */ }
+  /* ③ 법령 근거 (martyr_law) */
+  let lawHits: RagHit[] = [];
+  try {
+    lawHits = await searchRag(`${title} ${intent} 공무원재해보상법 순직 인정 요건 상당인과관계`, 3, ["martyr_law"], caseId);
+  } catch { /* 무시 */ }
+
+  const refs: RagSourceRef[] = [...ragToRefs(exemplarHits), ...ragToRefs(lawHits)];
+  const exemplarText = exemplarHits.length
+    ? exemplarHits.map((h, i) => `[인정 보고서 모델${i + 1}] ${h.title || h.sourceRef}\n${(h.content || "").slice(0, 700)}`).join("\n\n")
+    : "(형식 모델 없음 — 공식 신청서 문어체로 작성)";
+  const lawText = lawHits.length
+    ? lawHits.map((h, i) => `[법령${i + 1}] ${h.title || h.sourceRef}\n${(h.content || "").slice(0, 500)}`).join("\n\n")
+    : "(검색된 법령 근거 없음 — 일반 지식 보강하되 단정 금지)";
+
+  const systemPrompt = `당신은 교사 순직 인정 유족급여신청서를 작성하는 전문가입니다. 지정된 한 섹션의 본문만 작성합니다.
+원칙:
+- "전문가 검토용 초안" — 사실은 [사건 구조]에 근거. 자료에 없는 사실 창작 금지(불명확하면 "(확인 필요)"로 표기).
+- 법적 주장·인정 논리는 [법령 근거]·[인정 보고서 모델]에 연결. 정량 % 확률 숫자 금지.
+- [인정 보고서 모델]의 전개 방식·증거 배열을 형식으로 참고(내용 복제 금지).
+- 한국어 공식 문어체. 섹션 제목·머리말·마크다운 없이 본문 단락만 출력(빈 줄로 단락 구분).`;
+
+  const userPrompt = `[작성할 섹션]\n제목: ${title}\n의도: ${intent || "(미지정)"}\n\n[앞서 작성된 섹션 제목(중복 서술 방지)]\n${priorTitles.length ? priorTitles.join(", ") : "(없음)"}\n\n[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략·마스터 타임라인·예상 반론]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, masterTimeline: strategy.masterTimeline, counterArguments: strategy.counterArguments, causalChain: strategy.causalChain }).slice(0, 5000) : "(전략 없음)"}\n\n[인정 보고서 모델(형식·전개 참고)]\n${exemplarText.slice(0, 4000)}\n\n[법령 근거]\n${lawText.slice(0, 3000)}\n\n위 섹션의 본문을 작성하세요.`;
+
+  const res = await callGemini(`${systemPrompt}\n\n${userPrompt}`, {
+    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 4096, timeoutMs: 120000, internalBulk: true,
+  });
+
+  const ok = Boolean(res.ok && res.text && res.text.trim().length > 5);
+  const content = ok
+    ? res.text!.trim()
+    : `(섹션 생성 실패: ${String(res.error || res.disabledReason || "AI 응답 없음").slice(0, 120)}) — [재생성]을 누르거나 직접 작성하세요.`;
+
+  return {
+    contentJson: { content, ragSources: refs },
+    ragSources: refs,
+    modelUsed: res.modelUsed || MODEL_PRO(),
+    ok,
+    error: ok ? undefined : String(res.error || res.disabledReason || "AI 응답 없음").slice(0, 300),
+  };
+}
+
+/* =========================================================
+   indexApprovedReport — 인정(approved) 사건의 application 문서를
+   martyr_case·sourceRef "approved-report:{caseNo}"로 색인 = 형식 모델 exemplar (§9.2)
+   ========================================================= */
+const APPROVED_CHUNK_CHARS = 1500;
+function chunkPlainText(text: string, sourceRef: string, title: string): Array<{ title: string; content: string; sourceRef: string }> {
+  const paragraphs = text.split(/\n\n+/);
+  const chunks: Array<{ title: string; content: string; sourceRef: string }> = [];
+  let buf = "";
+  let idx = 0;
+  const flush = () => {
+    const content = buf.trim();
+    if (content.length < 30) { buf = ""; return; }
+    chunks.push({ title, content, sourceRef: `${sourceRef}#${idx++}` });
+    buf = "";
+  };
+  for (const para of paragraphs) {
+    if (buf.length + para.length > APPROVED_CHUNK_CHARS && buf.length > 0) flush();
+    buf += (buf ? "\n\n" : "") + para;
+  }
+  flush();
+  return chunks;
+}
+
+export async function indexApprovedReport(caseId: number): Promise<{ ok: boolean; indexed: number; error?: string }> {
+  try {
+    /* 사건 caseNo·outcome 확인 */
+    const cr: any = await db.execute(sql.raw(`
+      SELECT case_no AS "caseNo", outcome FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1
+    `));
+    const caseRow = (cr?.rows ?? cr ?? [])[0];
+    if (!caseRow) return { ok: false, indexed: 0, error: "사건 없음" };
+    const caseNo = String(caseRow.caseNo || `case-${caseId}`);
+    if (String(caseRow.outcome || "") !== "approved") {
+      return { ok: true, indexed: 0 }; // 인정 사건만 형식 모델로 색인
+    }
+
+    /* application(신청·행정 서류) 문서 텍스트 수집 */
+    const docsRes: any = await db.execute(sql.raw(`
+      SELECT id, file_name AS "fileName", extracted_text AS "extractedText"
+      FROM martyrdom_case_documents
+      WHERE case_id = ${caseId} AND doc_type = 'application'
+        AND extract_status = 'done' AND extracted_text IS NOT NULL
+      ORDER BY created_at ASC
+    `));
+    const docs = (docsRes?.rows ?? docsRes ?? []).filter((d: any) => d.extractedText && String(d.extractedText).length > 50);
+    if (docs.length === 0) return { ok: true, indexed: 0 }; // 신청서 문서 없으면 스킵
+
+    const safeCaseNo = caseNo.replace(/[^a-z0-9_-]/gi, "_");
+    const exemplarRef = `approved-report:${safeCaseNo}`;
+
+    /* 기존 동일 exemplar 청크 삭제(멱등·재색인) */
+    await db.execute(sql.raw(`
+      DELETE FROM ai_rag_documents
+      WHERE source_type = 'martyr_case' AND case_id = ${caseId}
+        AND source_ref LIKE '${exemplarRef.replace(/'/g, "''")}#%'
+    `));
+
+    let indexed = 0;
+    for (const d of docs) {
+      const chunks = chunkPlainText(String(d.extractedText), `${exemplarRef}:doc${Number(d.id)}`, `인정 보고서 모델 — ${caseNo}`);
+      for (const chunk of chunks) {
+        try {
+          const embedding = await embedText(chunk.content);
+          const vecLiteral = `[${embedding.join(",")}]`;
+          const safeContent = chunk.content.replace(/'/g, "''").slice(0, 4000);
+          const safeTitle = chunk.title.replace(/'/g, "''").slice(0, 200);
+          const safeChunkRef = chunk.sourceRef.replace(/'/g, "''").slice(0, 200);
+          await db.execute(sql.raw(`
+            INSERT INTO ai_rag_documents
+              (source_type, source_ref, case_id, title, content, embedding, created_at)
+            VALUES
+              ('martyr_case', '${safeChunkRef}', ${caseId}, '${safeTitle}', '${safeContent}', '${vecLiteral}'::vector, NOW())
+            ON CONFLICT (source_type, source_ref)
+            DO UPDATE SET content = EXCLUDED.content, embedding = EXCLUDED.embedding,
+                          case_id = EXCLUDED.case_id, title = EXCLUDED.title
+          `));
+          indexed++;
+        } catch (embedErr: any) {
+          console.warn(`[indexApprovedReport] 청크 임베딩 실패 ${chunk.sourceRef}: ${embedErr?.message}`);
+        }
+      }
+    }
+    return { ok: true, indexed };
+  } catch (err: any) {
+    return { ok: false, indexed: 0, error: String(err?.message || err).slice(0, 300) };
   }
 }

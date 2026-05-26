@@ -121,6 +121,11 @@
   included_files = ["assets/fonts/**"]
 [functions."admin-finance-report-pdf"]
   included_files = ["assets/fonts/**"]
+# ★ P3: 순직 유족급여신청서 PDF 내보내기·사건 패키지 zip(보고서 PDF 포함)도 폰트 필요
+[functions."admin-martyrdom-export"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-martyrdom-package"]
+  included_files = ["assets/fonts/**"]
 
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
 [functions."cron-org-news"]
