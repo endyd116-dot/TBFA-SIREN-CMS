@@ -15,7 +15,7 @@ import { callGemini } from "./ai-gemini";
 
 export interface OcrResult {
   text: string;
-  method: "native_pdf" | "docx" | "xlsx" | "plain_text" | "gemini_ocr" | "manual";
+  method: "native_pdf" | "docx" | "xlsx" | "hwp" | "plain_text" | "gemini_ocr" | "manual";
   error?: string;
 }
 
@@ -65,6 +65,12 @@ export async function extractDocText({
     ext === "xlsx" || ext === "xls"
   ) {
     return extractXlsx(base64);
+  }
+
+  /* ── 1.6. 한글 HWP (HWP5 바이너리) — 미리보기 텍스트(PrvText) 추출 ──
+     브라우저가 .hwp에 octet-stream을 보내는 경우가 많아 확장자 우선 판별. */
+  if (ext === "hwp" || mime === "application/x-hwp" || mime === "application/haansofthwp" || mime === "application/vnd.hancom.hwp") {
+    return extractHwp(base64);
   }
 
   /* ── 2. 텍스트 PDF ── */
@@ -182,6 +188,29 @@ function cellToText(v: any): string {
     if (v.formula) return String(v.formula);
   }
   return "";
+}
+
+/* ─────────────────────────────── 한글 HWP5 (cfb · PrvText) ─────────────────────────────── */
+/* HWP5(.hwp)는 OLE 복합문서. 본문(BodyText)은 zlib+레코드 구조로 파싱이 복잡하므로,
+   스펙상 항상 포함되는 'PrvText'(미리보기 텍스트·UTF-16LE) 스트림을 추출 → 분류·분석에 충분.
+   (.hwpx는 ZIP 기반 별도 포맷 — 여기선 미지원, 미지원 형식 안내로 폴백) */
+async function extractHwp(base64: string): Promise<OcrResult> {
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const CFB: any = await import("cfb");
+    const container = CFB.read(buffer, { type: "buffer" });
+    const entry = CFB.find(container, "PrvText") || CFB.find(container, "/PrvText");
+    if (!entry || !entry.content) {
+      return { text: "", method: "manual", error: "HWP 미리보기 텍스트(PrvText) 없음 — PDF로 변환 후 재업로드 또는 텍스트 직접 입력 권장" };
+    }
+    const text = Buffer.from(entry.content).toString("utf16le").trim();
+    if (text.length < MIN_TEXT_LENGTH) {
+      return { text, method: "hwp", error: "HWP 추출 텍스트가 너무 짧습니다 (PDF 변환 권장)" };
+    }
+    return { text, method: "hwp" };
+  } catch (err: any) {
+    return { text: "", method: "manual", error: `HWP 추출 실패: ${String(err?.message || err).slice(0, 150)} — PDF 변환 또는 텍스트 직접 입력 권장` };
+  }
 }
 
 /* ─────────────────────────────── 평문 UTF-8 ─────────────────────────────── */

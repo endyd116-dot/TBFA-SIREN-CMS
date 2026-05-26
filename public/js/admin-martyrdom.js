@@ -161,6 +161,14 @@ async function apiReanalyze(caseId) {
   if (USE_MOCK) return { ok: true, analyzeQueued: true };
   return apiFetch("/api/admin-martyrdom-reanalyze", { method: "POST", body: { caseId } });
 }
+async function apiDocDelete(docId) {
+  if (USE_MOCK) return { ok: true, docId };
+  return apiFetch("/api/admin-martyrdom-doc-delete?docId=" + encodeURIComponent(docId), { method: "DELETE" });
+}
+async function apiDocDeleteAll(caseId) {
+  if (USE_MOCK) return { ok: true, deleted: 0 };
+  return apiFetch("/api/admin-martyrdom-doc-delete?caseId=" + encodeURIComponent(caseId) + "&all=1", { method: "DELETE" });
+}
 
 // ── 사건 목록 ───────────────────────────────────────────────────────────────
 async function loadCases() {
@@ -308,7 +316,11 @@ function renderTabDocs(d) {
   <!-- 진행 표시 -->
   ${pendingCount > 0 ? `<div class="progress-banner">⏳ ${pendingCount}건 처리 중 — 자동으로 갱신됩니다</div>` : ""}
   ${failedCount  > 0 ? `<div class="error-banner">❌ ${failedCount}건 추출 실패 — 아래 행에서 재시도하거나 텍스트를 직접 입력해주세요</div>` : ""}
-  ${notDoneCount > 0 ? `<div style="margin-bottom:12px"><button class="btn-sm btn-warn" onclick="batchRetryDocs()">⟳ 미완료 ${notDoneCount}건 전체 재시도</button> <small style="color:#94a3b8">대기·처리중·실패 자료를 한 번에 재처리</small></div>` : ""}
+  ${docs.length > 0 ? `<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    ${notDoneCount > 0 ? `<button class="btn-sm btn-warn" onclick="batchRetryDocs()">⟳ 미완료 ${notDoneCount}건 전체 재시도</button>` : ""}
+    <button class="btn-sm btn-danger" onclick="deleteAllDocs()">🗑 전체 삭제 (${docs.length}건 · 처음부터)</button>
+    <small style="color:#94a3b8">완료 자료도 행에서 [재처리]·[삭제] 가능</small>
+  </div>` : ""}
 
   <!-- 업로드 영역 -->
   <div class="upload-area">
@@ -363,11 +375,15 @@ function renderDocRow(doc) {
 
   const actions = [];
   actions.push(`<button class="btn-sm" onclick="viewDoc(${doc.id})">보기</button>`);
-  /* 재시도·수동입력: 실패 + 대기(queued·옛 자료/체인 미작동) 모두 노출 — 재업로드 없이 재처리 */
-  if (doc.extractStatus === "failed" || doc.extractStatus === "queued") {
-    actions.push(`<button class="btn-sm btn-warn" onclick="retryDoc(${doc.id})">재시도</button>`);
+  /* 재처리: 완료 자료도 다시 추출·분류 가능(Swain 2026-05-26 — 한번 완료된 것도 다시).
+     진행 중(processing/pending)만 제외해 중복 트리거 방지. */
+  if (doc.extractStatus !== "processing" && doc.extractStatus !== "pending") {
+    const label = doc.extractStatus === "done" ? "재처리" : "재시도";
+    actions.push(`<button class="btn-sm btn-warn" onclick="retryDoc(${doc.id})">${label}</button>`);
     actions.push(`<button class="btn-sm btn-secondary" onclick="openManualTextModal(${doc.id})">텍스트 직접 입력</button>`);
   }
+  /* 개별 삭제 — R2 원본·RAG 색인·행 제거(CRUD) */
+  actions.push(`<button class="btn-sm btn-danger" onclick="deleteDoc(${doc.id})">삭제</button>`);
 
   // 분류 드롭다운 — 미분류면 ' 미분류' placeholder 선택(첫 옵션 오표시 방지)
   const typeDropdown = `<select class="type-select" onchange="reclassifyDoc(${doc.id}, this.value)" style="border-color:${typeColor}">
@@ -659,6 +675,39 @@ async function batchRetryDocs() {
   }
   toast(`${ok}/${targets.length}건 재시도 요청 완료 — 자동 갱신됩니다`);
   startPoll(currentCaseId);
+}
+
+/* 개별 자료 삭제 (R2 원본·RAG 색인·행 제거) */
+async function deleteDoc(docId) {
+  const doc = (currentDetail?.documents || []).find(d => d.id === docId);
+  const name = doc ? doc.fileName : "이 자료";
+  if (!confirm(`'${name}'을(를) 삭제합니다. 원본 파일·AI 색인도 함께 삭제되며 되돌릴 수 없습니다. 계속할까요?`)) return;
+  try {
+    const d = await apiDocDelete(docId);
+    if (!d.ok) { toast(d.error || "삭제 실패", "error"); return; }
+    toast("자료를 삭제했습니다");
+    if (currentCaseId) loadDetail(currentCaseId);
+  } catch (e) {
+    if (e.message !== "auth") toast("삭제 오류", "error");
+  }
+}
+
+/* 사건의 모든 자료 삭제 — 처음부터 다시 (Swain 2026-05-26) */
+async function deleteAllDocs() {
+  if (!currentDetail || !currentCaseId) return;
+  const n = (currentDetail.documents || []).length;
+  if (!n) { toast("삭제할 자료가 없습니다"); return; }
+  if (!confirm(`이 사건의 자료 ${n}건을 모두 삭제합니다.\n원본 파일·AI 색인까지 전부 제거되며 되돌릴 수 없습니다.\n처음부터 다시 업로드하려면 확인을 누르세요.`)) return;
+  if (!confirm(`정말 ${n}건 전체를 삭제할까요? 이 작업은 취소할 수 없습니다.`)) return;
+  toast(`${n}건 전체 삭제 중…`);
+  try {
+    const d = await apiDocDeleteAll(currentCaseId);
+    if (!d.ok) { toast(d.error || "전체 삭제 실패", "error"); return; }
+    toast(`자료 ${d.deleted ?? n}건을 모두 삭제했습니다`);
+    loadDetail(currentCaseId);
+  } catch (e) {
+    if (e.message !== "auth") toast("전체 삭제 오류", "error");
+  }
 }
 
 // ── 텍스트 직접 입력 모달 ────────────────────────────────────────────────────
