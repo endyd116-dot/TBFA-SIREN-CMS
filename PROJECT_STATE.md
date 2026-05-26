@@ -44,8 +44,11 @@
 ### B. 알림 발송 로그 메뉴 — admin.html(회원·문의) → 통합 CMS 알림·발송 그룹 이관 (2026-05-26·`cb88ac2`)
 - standalone `admin-notification-logs.html` 래퍼 신규(기존 발송 탭과 동일 iframe) + cms-tbfa 4곳 등록(사이드바·iframe섹션·타이틀·라우팅) + admin.html 항목 제거. cms-tbfa.js 캐시버스터 갱신(`d59669d`).
 
-### ⏭️ P2 설계·분배 — P1 검증 PASS 게이트(설계서 명시)
-P1 재검증 통과 후 착수: ③전략·①골든타임·②인정요건대조·⑨모순·⑩타임라인+공백·⑪반론·⑫준비도+G3+코퍼스검색·동의/보존. 설계서 `docs/active/2026-05-26-survivor-support.md` §5.3·§6.
+### 🟡 P2 설계 완료 — 분배 대기(베이스 push 직전·2026-05-26)
+설계서 `docs/active/2026-05-26-survivor-support.md`에 **P2 구현 설계 전 섹션 작성 완료**(§P2.0 결정~§P2.6 트리거). Swain 4결정 반영: ① **P2 한 번에 전부** ② 추출→전략 자동·나머지 버튼 ③ 인정요건=법령 시드 파싱+어드민 수정 ④ 준비도=규칙 % + AI 첨언. 소항목 기본안: 모순=날짜+사실+인과·심각도 / 코퍼스=martyr_case+law만 / 액션=자체목록(칸반 옵션) / 증거강도=분류 시 배지 / **라 유족동의·보존=파기 안 함(자산 축적)+저장용량 임계 알림+수동 파기**.
+- **신규**: 테이블 3(deadlines·criteria·actions) + martyrdom_case_documents.evidence_strength + martyrdom_cases.consent_note/at + ai_outputs type 4값(strategy·golden·criteria_check·readiness). lib 함수 5(analyzeStrategy[③⑨⑩⑪통합]·buildGoldenAdvice·checkCriteria·computeReadiness[규칙+AI첨언]·learnFromClosedCase). API ~12 + cron-martyrdom-deadline(+저장용량 알림) + analyze-bg에 전략 자동체인 + cases PATCH 종결학습 훅. 프론트 탭(골든·분석[전략·모순·타임라인·반론·요건매트릭스·근거펼치기]·준비도게이지·G3대시보드·코퍼스검색·기한·액션·동의).
+- **트리거**: §P2.6에 B(🔧백)·A(🎨프론트)·C(🔍검증) 전부 작성 — 병렬 규칙(워크트리·베이스해시·영역분리·schema append-only·키1:1·머지순서) + 작업 규칙(자율주행 push금지·진행률·**config.path 금지**·tsc/node check·캐시버스터·정량%금지·표현규칙) 임베드. §P2.5 mock 구체 상수 완비.
+- **분배 흐름(게이트)**: P1 라이브 검증(음성 m4a 포함) 통과 확인 → 설계서 origin/main push(베이스 1회) → {BASE_HASH}+JSON/mock 임베드 → B→마이그→A→C. push는 §9.3 배치(베이스 1회 + 머지 단위).
 
 ### 🕊️ (이전) 딥릴리프 P1 — 자동체인 근본 fix (2026-05-26)
 교유협 도메인+법률 기반 **교사 순직 인정 AI 지원** = **Deep-Relief AI v0**(내부 엔진·MVP·초기창업패키지 사업계획서 정합). 통합 CMS **1뎁스 독립 메뉴 "🕊️ 딥릴리프"**. 단일 설계서 = `docs/active/2026-05-26-survivor-support.md`(§0~§10 + 보완 12종 + G기능 6종 + §9.4 연구발간 + §10 점검).
