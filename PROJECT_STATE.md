@@ -23,7 +23,15 @@
 
 ## 2. 현재 상태 (2026-05-26)
 
-### 🕊️ 딥릴리프 P1 — 추출·분류 대량 실패 근본 fix 배포·Swain 재검증 중 + A 가입집계·B 알림로그 동봉 (2026-05-26 최신)
+### ✅ 딥릴리프(순직 인정 지원) P1+P2 — 출시·Swain 라이브 검증 완료 (2026-05-26 최신·★상단)
+통합 CMS 1뎁스 "🕊️ 딥릴리프". 단일 설계서 `docs/active/2026-05-26-survivor-support.md`.
+- **P1**: 사건/자료 CRUD · 전 형식 추출(PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·**음성/영상 Gemini Files API 전사·전사후 원본 자동삭제**) · 8대 자동분류(증거강도) · RAG 색인(case_id 격리) · 사건구조 자동추출 · 자동체인 · 진행 오버레이 · 업로드 300MB.
+- **P2**(B·A·C 병렬·총 2배포): ③전략(+⑨모순·⑩마스터타임라인+공백·⑪반론) · ①골든 · ②인정요건 대조(법령 시드 8·super_admin) · ⑫준비도(**규칙 % + AI 첨언**·"인정 확률 아님") · 기한 cron(소멸시효·**저장용량 임계 알림**) · 부족증거 액션 · G3 다중사건 대시보드 · 코퍼스 검색 · 동의 기록. **추출→전략 자동**·나머지 버튼. 신규 3테이블(deadlines·criteria·actions)+컬럼3·featureKey martyrdom_ai. 마이그 호출·삭제·schema 활성화 완료.
+- **C 검증 PASS + 중대 fix**: 일반 AI 비서·RAG 진단이 순직 민감자료를 일반 검색에 노출하던 잠복 결함 → 일반 검색 `qna·manual` 한정(양방향 격리). iframe '관리자 홈' 중첩 → `target=_top`. 보고서 `docs/history/verify/2026-05-26-martyrdom-p2.md`. 배포 `3ce6bec`·`e8361f2`·`cacee0c`.
+- **🔧 push 정책 재정의(2026-05-26)**: 워크트리 공유 → 로컬 `main` 분기·push 0(배포 과금↓). 핵심="트리거 베이스=설계 베이스 일치". push는 머지·라이브 검증만. CLAUDE §9.3#5·PARALLEL_GUIDE §4.1·PARALLEL_TEMPLATE §6.0·메모리 `feedback_parallel_base`.
+- **▶ 다음**: ⑴ P2 종결 정리(메뉴얼·`ai-assistant-knowledge.md`·jsonl 딥릴리프 안내 + 설계서 §P1/§P2 history 이동·P3/P4 보존 + 권한 시드 확인) ⑵ **P3 서면 생성**(④신청서 초안·전문가 검토·논리맵·G1 내보내기·G4 zip — 설계서 §5.3·§6 양식으로 P3 트리거 신규 작성).
+
+### 🕊️ (이전 로그) 딥릴리프 P1 — 추출·분류 대량 실패 근본 fix 배포·Swain 재검증 중 + A 가입집계·B 알림로그 동봉 (2026-05-26)
 재검증 결과 = **추출/분류 대부분 실패**(스크린샷). 4개 원인 진단·전부 fix·1회 배포(`501ae51..d59669d`):
 - **분류 대량 실패(핵심)**: 일괄 재시도가 짧은 시간에 Vision OCR 다수를 동시 실행 → 5분 누계 비용 $1 임계 초과로 **surge cooldown 자기차단** → 이후 호출 전부 fail-closed(AI 비서는 별개라 정상). → `checkFeatureBeforeCall(featureKey,{skipSurge})` + `GeminiOptions.internalBulk` → 딥릴리프 4개 호출 면제(월 $100 예산·기능 토글은 유지). `59d81fd`.
 - **엑셀 전부 실패**: 서버 엑셀 파서 부재 → `exceljs` 추가(시트→탭 텍스트). `c35208a`. **신규 dep exceljs(npm audit 경고 transitive·force 미적용).**

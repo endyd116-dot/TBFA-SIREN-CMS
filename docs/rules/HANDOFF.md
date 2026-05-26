@@ -4,9 +4,34 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-26 / **RAG 검색 인프라 종결**(AI 비서 의미 검색·운영 정상) + 제안서 2.html RAG 반영 + **다음 라운드 예고: 순직 인정 지원 시스템(§8 최상단·Swain 확정)**
-> 새 메인 채팅 진입 시 본 문서 → PROJECT_STATE.md → (진행 중 트랙이면) `docs/active/`의 해당 설계서 순서로 정독
-> **▶ 다음 작업은 §8 최상단 "순직 인정 지원 시스템" — Swain이 다음 세션 착수로 지정.**
+> **마지막 갱신**: 2026-05-26 / **딥릴리프(순직 인정 지원) P1+P2 출시·Swain 라이브 검증 완료**. 다음 = P2 종결 정리 → P3(서면 생성).
+> 새 메인 채팅 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → `docs/active/2026-05-26-survivor-support.md`(딥릴리프 단일 설계서) 순서로 정독
+> **▶ 다음 작업은 §0 — 딥릴리프 P2 종결 정리(메뉴얼·명세·설계서 history) → P3 서면 생성.**
+
+---
+
+## 0. ★ 지금 시점 (2026-05-26 최신 — 딥릴리프 P1+P2 출시)
+
+**딥릴리프(순직 인정 지원 시스템) = 통합 CMS 1뎁스 메뉴 "🕊️ 딥릴리프". 단일 설계서 [`docs/active/2026-05-26-survivor-support.md`](../active/2026-05-26-survivor-support.md)(§0~§10 + P2 구현설계 §P2.0~§P2.6 + P3/P4 forward spec).**
+
+### ✅ P1 출시·검증 완료
+사건 CRUD + **모든 형식 자료 업로드·자동 추출**(PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·**음성/영상 Gemini Files API 전사**) + **AI 8대 자동분류**(증거강도 강/중/약 포함) + RAG 색인(`martyr_active`/`martyr_case`/`martyr_law`·case_id 격리) + 사건구조 자동추출 + 자동체인 + 자료 CRUD(재처리·개별/전체삭제·진행 오버레이). 음성·영상은 **전사 후 R2 원본 자동 삭제**(텍스트로 분석·저장공간 절약). 업로드 상한 300MB.
+
+### ✅ P2 출시·Swain 라이브 검증 완료 (한 라운드·B·A·C 병렬)
+③전략(+⑨모순·⑩마스터타임라인+공백·⑪반론 1콜 통합) · ①골든타임 · ②인정요건 대조(법령 시드 8종·super_admin CRUD) · ⑫준비도 게이지(**규칙 계산 % + AI 첨언**·"인정 확률 아님" 라벨) · 기한 트래커(`cron-martyrdom-deadline`·D-day·소멸시효·**저장용량 임계 알림**) · 부족증거 액션 · G3 다중사건 대시보드 · 코퍼스 검색(과거사례+법령) · 유족 동의 기록.
+- **자동화**: 자료 업로드 → 추출 → **전략까지 자동**, 골든·요건·준비도는 [생성] 버튼.
+- **DB**: 신규 3테이블(martyrdom_deadlines·criteria·actions) + 컬럼 3(evidence_strength·consent_note·consent_obtained_at). 마이그 `migrate-martyrdom-p2` 호출·삭제 완료·schema 활성화 완료. featureKey `martyrdom_ai`(기존).
+- **C 검증 PASS + 중대 fix 1건**: 일반 AI 비서·RAG 진단이 코퍼스 미지정으로 **순직 민감자료를 일반 검색에 노출**하던 잠복 결함 → 일반 검색을 `qna·manual`로 한정(양방향 격리). 보고서 `docs/history/verify/2026-05-26-martyrdom-p2.md`.
+- **iframe fix**: 딥릴리프 "관리자 홈" 중첩 → `target=_top`.
+- 배포(최신순): `cacee0c`(C fix+홈) · `e8361f2`(A+정합) · `3ce6bec`(B+마이그). **이번 라운드 총 2회 배포로 완료.**
+
+### 🔧 push 정책 재정의 (2026-05-26·중요 — 새 메인 필독)
+**워크트리 공유 환경(현 SIREN)에선 베이스 origin push 불필요.** A·B·C가 같은 로컬 `.git` worktree라 **로컬 `main` HEAD에서 분기/rebase**(설계·마이그를 로컬 main commit) → 분배 시 배포 0. push는 **B 머지(마이그 라이브 호출)·A 머지(라이브 검증)** 등 라이브 필수 시점만. 핵심 = "트리거 베이스 = 설계가 올라간 베이스 일치"(베이스 push 강제 아님). 상세: CLAUDE.md §9.3#5·PARALLEL_GUIDE §4.1·PARALLEL_TEMPLATE §6.0·메모리 `feedback_parallel_base`.
+
+### ▶ 다음 작업 (새 메인)
+1. **P2 종결 정리**(release_checklist): 메뉴얼(manual-admin)·`docs/manual/ai-assistant-knowledge.md`·jsonl에 딥릴리프 P1/P2 안내 추가 + 설계서 §P1/§P2 → `docs/history/milestones/` 이동(P3/P4 forward는 보존) + 권한 시드(martyrdom_ai featureKey·super_admin) 라이브 확인.
+2. **P3 서면 생성**(설계서 §5.3 P3): ④유족급여신청서 초안(인정 보고서 형식 학습+법령 보완·섹션별 생성) + 출력물 검토 + ⑤전문가 검토 + ④논리맵 시각화 + G1 보고서 내보내기(HTML/PDF) + G4 사건 패키지 zip. **P3 트리거는 설계서 §6 양식으로 신규 작성**(P2 §P2.6 트리거가 양식 참고).
+3. 메모리 `project_next_survivor_support`.
 
 ---
 
@@ -29,13 +54,18 @@
 ## 2. 새 메인 채팅이 시작 시 해야 할 일
 
 ```
-1) 본 HANDOFF.md 정독
-2) docs/README.md (문서 4영역 구조 진입점) 정독
-3) PROJECT_STATE.md §2·§5 정독
-4) docs/rules/REMAINING_WORK.md 정독 — 잔여 작업 인벤토리
-5) memory/MEMORY.md 인덱스 + feedback_* 메모리 본문 정독
-   특히: feedback_design_routine·feedback_single_session·feedback_progress_reporting
-6) Swain과 다음 작업 확정 후 진행
+1) 본 HANDOFF.md §0(현재 시점) 정독
+2) CLAUDE.md (자동 로드 — 작업규칙·자율성·푸시 §9.3) — 다시 Read 금지
+3) PROJECT_STATE.md §2 정독
+4) 작업규칙·병렬평행규칙 정독 (필수):
+   - docs/rules/PARALLEL_GUIDE.md §4.1(베이스 정합·워크트리 공유 push 0)·§3·§7
+   - docs/rules/PARALLEL_TEMPLATE.md §6.0(워크트리 셋업)
+5) memory/MEMORY.md 인덱스 + 본문 정독 (필수):
+   - workflow_standards(설계 8섹션·트리거)·operational_standards(자율주행·검증)·code_standards(함정 #55~61)
+   - feedback_parallel_base(★ 2026-05-26 재정의 — 워크트리 공유 로컬 main 분기·push 0)
+   - project_next_survivor_support(딥릴리프 결정)
+6) 딥릴리프 작업이면: docs/active/2026-05-26-survivor-support.md (단일 설계서·§P2.6 트리거 양식)
+7) Swain과 다음 작업 확정 후 진행
 ```
 
 ---
