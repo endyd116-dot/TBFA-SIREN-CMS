@@ -107,10 +107,22 @@ export default async (req: Request, _ctx: Context) => {
         extractMethod: d.extractMethod ? String(d.extractMethod) : null,
         extractError: d.extractError ? String(d.extractError) : null,
         indexedToRag: Boolean(d.indexedToRag),
+        evidenceStrength: null as string | null,   // P2 — 아래 가드 쿼리로 채움(컬럼 미적용 시 null 유지)
         blobUrl: d.blobId ? `/api/blob-image?id=${d.blobId}` : null,
         createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : null,
       }));
     } catch (err: any) { console.warn("[martyrdom-case-detail] 자료 목록 실패", err?.message); }
+
+    /* ── 2.5. 증거강도(P2) 별도 가드 쿼리 — evidence_strength 컬럼은 migrate-martyrdom-p2 후 존재.
+       메인 자료 SELECT를 깨지 않도록 분리(마이그 적용 전엔 실패 무시·null 유지·§9.7). ── */
+    try {
+      const er: any = await db.execute(sql.raw(`
+        SELECT id, evidence_strength AS "evidenceStrength" FROM martyrdom_case_documents WHERE case_id = ${id}
+      `));
+      const strengthMap = new Map<number, string | null>();
+      for (const row of (er?.rows ?? er ?? [])) strengthMap.set(Number(row.id), row.evidenceStrength ? String(row.evidenceStrength) : null);
+      for (const d of documents) d.evidenceStrength = strengthMap.get(d.id) ?? null;
+    } catch (err: any) { console.warn("[martyrdom-case-detail] evidence_strength 스킵(컬럼 미적용?)", err?.message); }
 
     /* ── 3. AI 산출물 목록 (separate query) ── */
     let outputs: any[] = [];
