@@ -21,16 +21,18 @@
 
 ---
 
-## 2. 현재 상태 (2026-05-26)
+## 2. 현재 상태 (2026-05-27)
 
-### ✅ 딥릴리프(순직 인정 지원) P1+P2 출시·검증 완료 + P2 종결 정리 완료 (2026-05-26 최신·★상단)
-통합 CMS 1뎁스 "🕊️ 딥릴리프". P1·P2 구현 설계는 milestone `docs/history/milestones/2026-05-26-deeprelief-p1-p2.md`(1010줄)로 이동, active 설계서 `docs/active/2026-05-26-survivor-support.md`는 P3/P4 forward spec만 보존(195줄).
-- **P1**: 사건/자료 CRUD · 전 형식 추출(PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·**음성/영상 Gemini Files API 전사·전사후 원본 자동삭제**) · 8대 자동분류(증거강도) · RAG 색인(case_id 격리) · 사건구조 자동추출 · 자동체인 · 진행 오버레이 · 업로드 300MB.
-- **P2**(B·A·C 병렬·총 2배포): ③전략(+⑨모순·⑩마스터타임라인+공백·⑪반론) · ①골든 · ②인정요건 대조(법령 시드 8·super_admin) · ⑫준비도(**규칙 % + AI 첨언**·"인정 확률 아님") · 기한 cron(소멸시효·**저장용량 임계 알림**) · 부족증거 액션 · G3 다중사건 대시보드 · 코퍼스 검색 · 동의 기록. **추출→전략 자동**·나머지 버튼. 신규 3테이블(deadlines·criteria·actions)+컬럼3·featureKey martyrdom_ai. 마이그 호출·삭제·schema 활성화 완료.
-- **C 검증 PASS + 중대 fix**: 일반 AI 비서·RAG 진단이 순직 민감자료를 일반 검색에 노출하던 잠복 결함 → 일반 검색 `qna·manual` 한정(양방향 격리). iframe '관리자 홈' 중첩 → `target=_top`. 보고서 `docs/history/verify/2026-05-26-martyrdom-p2.md`. 배포 `3ce6bec`·`e8361f2`·`cacee0c`.
-- **🔧 push 정책 재정의(2026-05-26)**: 워크트리 공유 → 로컬 `main` 분기·push 0(배포 과금↓). 핵심="트리거 베이스=설계 베이스 일치". push는 머지·라이브 검증만. CLAUDE §9.3#5·PARALLEL_GUIDE §4.1·PARALLEL_TEMPLATE §6.0·메모리 `feedback_parallel_base`.
-- **✅ P2 종결 정리 완료(`d4852a5`)**: 메뉴얼(manual-admin 🕊️ 딥릴리프·FAQ9)·AI 지식(knowledge §6-2)·학습 jsonl(cms-2 10쌍) 딥릴리프 안내 추가 + 설계서 §1~§7·§P2 → milestone 이동(P3/P4 forward 보존) + 권한 시드 코드 확인(API 16함수 requireAdmin·인정요건 super_admin·featureKey martyrdom_ai). 문서·메뉴얼만이라 §9.3 배치 — push 보류·P3 코드 push에 동봉. ⚠️ 운영 반영 후 AI 비서 새 지식 검색하려면 RAG [전체 재색인] 1회.
-- **▶ 다음**: **P3 서면 생성 설계·분배** — ④유족급여신청서 초안(인정 보고서 형식 통째 학습+법령 보완·섹션별) + 출력물 검토 + ⑤전문가 검토 + ④논리맵 시각화 + ⑥종결 자동학습 + G1 내보내기(HTML/PDF·pdf-lib) + G4 사건 패키지 zip. 출처 = 설계서 §9.1·§9.2·§9.3 + 단계화 P3 행. §6 양식으로 P3 트리거 신규 작성 → Swain 결정 후 B·A·C 분배.
+### ✅ 딥릴리프 P3 종결·P4 거의 종결·SSO 완료·배포 8→5분 (2026-05-27 최신·★상단)
+통합 CMS 1뎁스 "🕊️ 딥릴리프". 단일 설계서 `docs/active/2026-05-26-survivor-support.md`(P3/P4 구현 설계 §P3·§P4). P1·P2는 milestone `2026-05-26-deeprelief-p1-p2.md`로 이동(P3·P4도 종결 시 이동).
+- **P1·P2**: 출시·검증·종결 완료(이전 세션).
+- **P3 서면 생성(종결)**: 유족급여신청서 목차 제안→섹션별 생성·편집·재생성·PDF/Word/zip 내보내기·전문가 검토 배정·승인·인과관계 논리맵·종결 자동학습. 신규 테이블 `martyrdom_draft_sections`·`martyrdom_reviews` + outputType `'draft'` + 의존성 `docx`. 마이그 `migrate-martyrdom-p3` 호출·삭제·schema 활성화 완료. C 코드+라이브(실서버 E2E) PASS(`verify/2026-05-27-martyrdom-p3*`).
+- **P4 마감(거의 종결)**: AI 순직 읽기 도구 3개(`martyrdom_case_list`·`case_status`·`deadlines_upcoming`·운영자+·격리 불변)·유족 쉬운 요약·인정률 통계(G5)·연구 발간(자체+AI 블렌드·비율 운영자 설정·비식별화). 신규 테이블 `martyrdom_publications` + outputType `'family_summary'` + `ai_tool_permissions` 시드. 마이그 `migrate-martyrdom-p4` 호출·삭제·schema 활성화 완료. C 검증+다수 fix(라이브 차단 3·권한 2·발간 본문 [object Object]·발간 탭 role 중첩). **R1 유족요약·R3 AI 도구 Swain 확인. R2 발간 본문 fix(push 9) 재확인만 남음.**
+- **SSO**: 허브(tbfa-mis)=IdP `/api/sso-on`→함께워크 ON(별도 사이트·별도 메인) SP 단일 로그인. E2E 14/14 PASS·라이브. memory `project_hamkke_on_sso`. **MIS repo 변경=MIS 메인 단독**(크로스 프로젝트 조율).
+- **배포 단축**: `netlify.toml` external_node_modules 7→20(drizzle·파서·DB클라·jwt) → 8분→5분. 검증됨.
+- **▶ P4 잔여(다음 메인)**: ⑴ **R2 발간 본문 재확인**(push 9 `b378765` [object Object] fix·비율 표기 제거 — 새 발간물 생성 시 동향분석 실제 본문·비율 표기 없음 확인·기존 버그본 삭제) ⑵ **P4 종결 정리**(메뉴얼·AI 학습·AI 도구 카탈로그/시스템 프롬프트 동기화·발간 권한 정책 UI 등록[Swain ⓐ·admin-role-policy]·설계서 §P1~§P4 milestone 이동·전체 종결 선언) ⑶ 후속(데이터 축적 G2·발간 상세 버튼 operator 숨김).
+- **git**: origin/main=`b378765`(코드 전부 push). 인수인계 doc 갱신 미push(다음 코드 push 동봉·§9.3). 워크트리 A·B·C P3·P4 머지 완료(재사용 가능).
+- **교훈**: callGemini는 `{ok,text}` 반환(`.text` 추출·전체 String은 [object Object]) / 라이브 검증이 코드검증 못 잡는 결함 다수 적발 / A 디스패치 중 메인 중복 fix 금지(P4 프론트 겹침·reconcile).
 
 ### 🕊️ (이전 로그) 딥릴리프 P1 — 추출·분류 대량 실패 근본 fix 배포·Swain 재검증 중 + A 가입집계·B 알림로그 동봉 (2026-05-26)
 재검증 결과 = **추출/분류 대부분 실패**(스크린샷). 4개 원인 진단·전부 fix·1회 배포(`501ae51..d59669d`):
