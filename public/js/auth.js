@@ -470,11 +470,15 @@ document.addEventListener('change', async function (e) {
              두 필드로 분리해서 검증함. 화면 체크박스 한 개로 둘 다 동의 처리는
              정상 UX이므로 클라이언트가 두 필드 모두 true로 전송. agree 한 필드만
              보내면 서버가 400 '이용약관에 동의해주세요'로 거절. */
+          /* ★ 2026-05-26 가입불가 핫픽스: 인증 후 전화칸이 disabled라 FormData에서 빠짐
+             → 입력칸 값을 직접 읽어 전송(빈 phone으로 "인증번호와 다름" 거절되던 버그). */
+          var signupPhoneEl = document.getElementById('signupPhone');
+          var signupPhoneVal = ((signupPhoneEl && signupPhoneEl.value) || data.phone || '').trim();
           res = await Auth.signup({
             email: data.email,
             password: data.password,
             name: data.name,
-            phone: data.phone,
+            phone: signupPhoneVal,
             memberType: data.memberType || 'regular',
             verifyToken: data.verifyToken,   /* ★ A안: 서버에서 phone_verifications 조회·matched_member 활성화 */
             agreeTerms: true,
