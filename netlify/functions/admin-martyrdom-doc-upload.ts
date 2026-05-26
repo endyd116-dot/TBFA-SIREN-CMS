@@ -20,7 +20,7 @@ import { getR2Client, R2_BUCKET, generateBlobKey } from "../../lib/r2-client";
 
 export const config = { path: "/api/admin-martyrdom-doc-upload" };
 
-const FILE_MAX = 100 * 1024 * 1024; // 100MB (대용량 자료 허용)
+const FILE_MAX = 300 * 1024 * 1024; // 300MB (대용량 음성·영상 허용 — 장시간 녹취 등)
 const PRESIGN_EXPIRES = 600; // 10분
 
 function jsonError(step: string, err: any) {

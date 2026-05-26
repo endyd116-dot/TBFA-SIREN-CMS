@@ -11,7 +11,7 @@
  *   - 실패 시 throw 금지 → { error } 반환 (업로드 유지·운영자 수동 입력 유도)
  *   - 빈 텍스트(< 10자) 도 { error } 처리 → extractStatus='failed' 로 간주
  */
-import { callGemini } from "./ai-gemini";
+import { callGemini, uploadToGeminiFiles, deleteGeminiFile } from "./ai-gemini";
 
 export interface OcrResult {
   text: string;
@@ -43,9 +43,6 @@ const VIDEO_MIME: Record<string, string> = {
   mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm",
   avi: "video/x-msvideo", mkv: "video/x-matroska", mpeg: "video/mpeg", mpg: "video/mpeg", "3gp": "video/3gpp",
 };
-/* Gemini 인라인 첨부 용량 한도(요청 약 20MB) — 원본 기준 보수치 */
-const INLINE_MEDIA_LIMIT = 15 * 1024 * 1024;
-
 function getExt(fileName: string): string {
   return (fileName.split(".").pop() || "").toLowerCase();
 }
@@ -98,16 +95,16 @@ export async function extractDocText({
     return extractZipOffice(base64, "pptx");
   }
 
-  /* ── 1.9. 음성 (녹취·면담·통화) — Gemini 전사 ── */
+  /* ── 1.9·1.10. 음성·영상 — Gemini Files API 전사(대용량 허용) ──
+     ★ 보통은 extract-background가 base64 변환 없이 bytes로 transcribeMedia를 직접 호출.
+     이 분기는 base64 진입 시의 폴백(메모리 위해 디코드). */
   if (AUDIO_EXTS.has(ext) || mime.startsWith("audio/")) {
     const gmime = AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3");
-    return extractGeminiMedia(base64, gmime, "audio");
+    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), gmime, "audio");
   }
-
-  /* ── 1.10. 영상 — Gemini 전사 + 화면 정리 ── */
   if (VIDEO_EXTS.has(ext) || mime.startsWith("video/")) {
     const gmime = VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4");
-    return extractGeminiMedia(base64, gmime, "video");
+    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), gmime, "video");
   }
 
   /* ── 2. 텍스트 PDF ── */
@@ -297,22 +294,54 @@ function decodeXmlEntities(s: string): string {
     .replace(/&amp;/g, "&");
 }
 
-/* ─────────────────────────────── 음성·영상 (Gemini 멀티모달) ─────────────────────────────── */
-async function extractGeminiMedia(base64: string, mimeType: string, kind: "audio" | "video"): Promise<OcrResult> {
+/* ─────────────────────────────── 음성·영상 (Gemini Files API · 대용량) ─────────────────────────────── */
+/* 메모리 안전 상한(다운로드+업로드 버퍼) — 인라인 한도와 무관. 초과 시 분할 안내(OOM 방지). */
+const MEDIA_BYTES_LIMIT = 350 * 1024 * 1024;
+const AUDIO_PROMPT =
+  "이 음성 녹음을 한국어로 가능한 한 정확히 전사(transcript)해 주세요.\n- 화자 구분이 가능하면 '화자1:', '화자2:' 로 표시\n- 들리지 않는 부분은 (불명) 으로 표기\n- 통화·면담·민원 등 정황이 드러나면 그대로 옮길 것\n전사 텍스트만 출력하세요.";
+const VIDEO_PROMPT =
+  "이 영상의 음성을 한국어로 전사하고, 화면의 중요한 시각 정보(장소·인물·자막·시각·행동)도 함께 텍스트로 정리해 주세요. 전사와 시각 요약만 출력하세요.";
+
+/** 업로드 시점 미디어 여부 판별(확장자·MIME) — extract-background가 base64 변환 전에 분기용 */
+export function isMediaFile(mimeType: string, fileName: string): boolean {
+  const ext = getExt(fileName);
+  const mime = (mimeType || "").toLowerCase();
+  return AUDIO_EXTS.has(ext) || VIDEO_EXTS.has(ext) || mime.startsWith("audio/") || mime.startsWith("video/");
+}
+
+/** 미디어 바이트 → 전사(Files API). extract-background에서 base64 변환 없이 직접 호출(메모리 절약). */
+export async function transcribeMedia(bytes: Buffer, mimeType: string, fileName: string): Promise<OcrResult> {
+  const ext = getExt(fileName);
+  const mime = (mimeType || "").toLowerCase();
+  const isAudio = AUDIO_EXTS.has(ext) || mime.startsWith("audio/");
+  const kind: "audio" | "video" = isAudio ? "audio" : "video";
+  const gmime = isAudio
+    ? (AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3"))
+    : (VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4"));
+  return extractGeminiMediaBytes(bytes, gmime, kind);
+}
+
+async function extractGeminiMediaBytes(bytes: Buffer, mimeType: string, kind: "audio" | "video"): Promise<OcrResult> {
   const method: OcrResult["method"] = kind === "audio" ? "gemini_audio" : "gemini_video";
-  const approxBytes = base64.length * 0.75;
-  if (approxBytes > INLINE_MEDIA_LIMIT) {
-    const mb = Math.round(approxBytes / 1024 / 1024);
-    return { text: "", method: "manual", error: `${kind === "audio" ? "음성" : "영상"} 파일이 큽니다(약 ${mb}MB·15MB 초과) — 짧게 분할 후 재업로드하거나 [텍스트 직접 입력]으로 핵심 내용을 넣어주세요` };
+  const ko = kind === "audio" ? "음성" : "영상";
+
+  if (bytes.length > MEDIA_BYTES_LIMIT) {
+    const mb = Math.round(bytes.length / 1024 / 1024);
+    return { text: "", method: "manual", error: `${ko} 파일이 매우 큽니다(약 ${mb}MB) — 처리 메모리 한계로 자동 전사가 어렵습니다. 시간대로 분할해 업로드하거나 [텍스트 직접 입력]을 이용해주세요` };
   }
-  const prompt = kind === "audio"
-    ? "이 음성 녹음을 한국어로 가능한 한 정확히 전사(transcript)해 주세요.\n- 화자 구분이 가능하면 '화자1:', '화자2:' 로 표시\n- 들리지 않는 부분은 (불명) 으로 표기\n- 통화·면담·민원 등 정황이 드러나면 그대로 옮길 것\n전사 텍스트만 출력하세요."
-    : "이 영상의 음성을 한국어로 전사하고, 화면의 중요한 시각 정보(장소·인물·자막·시각·행동)도 함께 텍스트로 정리해 주세요. 전사와 시각 요약만 출력하세요.";
+
+  /* 대용량은 Gemini Files API로 업로드(인라인 ~20MB 한도 우회·최대 2GB) */
+  const up = await uploadToGeminiFiles(bytes, mimeType, `martyrdom-${kind}-${Date.now()}`);
+  if (!up.ok || !up.fileUri) {
+    if (up.fileName) await deleteGeminiFile(up.fileName);
+    return { text: "", method, error: `${ko} 처리 실패: ${up.error || "업로드 실패"} — mp3/wav/mp4 변환 또는 텍스트 직접 입력 권장` };
+  }
+
   try {
-    const result = await callGemini(prompt, {
+    const result = await callGemini(kind === "audio" ? AUDIO_PROMPT : VIDEO_PROMPT, {
       mode: "pro",
       featureKey: "martyrdom_ai",
-      inlineFiles: [{ data: base64.replace(/^data:[^;]+;base64,/, ""), mimeType }],
+      fileParts: [{ fileUri: up.fileUri, mimeType }],
       maxOutputTokens: 8192,
       timeoutMs: 180000,
       internalBulk: true,
@@ -327,6 +356,8 @@ async function extractGeminiMedia(base64: string, mimeType: string, kind: "audio
     return { text, method };
   } catch (err: any) {
     return { text: "", method, error: `미디어 처리 실패: ${String(err?.message || err).slice(0, 150)}` };
+  } finally {
+    if (up.fileName) await deleteGeminiFile(up.fileName); // Gemini 임시 파일 정리
   }
 }
 

@@ -17,7 +17,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { downloadFromR2 } from "../../lib/r2-server";
-import { extractDocText } from "../../lib/ai-ocr";
+import { deleteFromR2 } from "../../lib/r2-delete";
+import { extractDocText, isMediaFile, transcribeMedia } from "../../lib/ai-ocr";
 import { classifyDocument } from "../../lib/martyrdom-ai";
 import { embedText } from "../../lib/ai-embedding";
 
@@ -180,13 +181,24 @@ export default async (req: Request, _ctx: Context) => {
         return new Response(JSON.stringify({ ok: false, error: "R2 다운로드 실패" }), { status: 500 });
       }
 
-      const base64 = Buffer.from(bytes).toString("base64");
-      const ocr = await extractDocText({ base64, mimeType, fileName });
-      text = ocr.text;
-      extractMethod = ocr.method;
-      if (ocr.error) {
-        extractError = ocr.error.slice(0, 1000);
-        console.warn(`[martyrdom-extract-bg] docId=${docId} OCR 경고: ${ocr.error}`);
+      if (isMediaFile(mimeType, fileName)) {
+        /* 음성·영상: base64 변환 없이 bytes로 Files API 전사(대용량·메모리 절약) */
+        const ocr = await transcribeMedia(Buffer.from(bytes), mimeType, fileName);
+        text = ocr.text;
+        extractMethod = ocr.method;
+        if (ocr.error) {
+          extractError = ocr.error.slice(0, 1000);
+          console.warn(`[martyrdom-extract-bg] docId=${docId} 미디어 전사 경고: ${ocr.error}`);
+        }
+      } else {
+        const base64 = Buffer.from(bytes).toString("base64");
+        const ocr = await extractDocText({ base64, mimeType, fileName });
+        text = ocr.text;
+        extractMethod = ocr.method;
+        if (ocr.error) {
+          extractError = ocr.error.slice(0, 1000);
+          console.warn(`[martyrdom-extract-bg] docId=${docId} OCR 경고: ${ocr.error}`);
+        }
       }
     } else {
       await markFailed(docId, "blob_key 없음");
@@ -232,6 +244,19 @@ export default async (req: Request, _ctx: Context) => {
       console.warn(`[martyrdom-extract-bg] docId=${docId} 분류 실패: ${classErr?.message}`);
     }
 
+    /* ── 3.5. 음성·영상 원본 삭제 (Swain 2026-05-26): 전사 성공 시 R2 원본은 지우고 텍스트로만 분석.
+       (여기 도달 = 텍스트 추출 성공·step 197 게이트 통과) 저장공간 절약. */
+    let mediaPurged = false;
+    if ((extractMethod === "gemini_audio" || extractMethod === "gemini_video") && blobKey) {
+      try {
+        await deleteFromR2(blobKey);
+        mediaPurged = true;
+        console.info(`[martyrdom-extract-bg] docId=${docId} 미디어 원본 삭제(전사 후) ${fileName}`);
+      } catch (e: any) {
+        console.warn(`[martyrdom-extract-bg] docId=${docId} 미디어 원본 삭제 실패: ${e?.message}`);
+      }
+    }
+
     /* ── 4. extracted_text + 분류 결과 저장 ── */
     const safeText = text.slice(0, 100000).replace(/'/g, "''");
     const safeMethod = extractMethod.replace(/'/g, "''");
@@ -245,7 +270,7 @@ export default async (req: Request, _ctx: Context) => {
           doc_type_auto         = '${docTypeAuto}',
           doc_summary           = ${safeSummary},
           classify_confidence   = ${classifyConfidence},
-          extract_error         = ${safeErrCol},
+          extract_error         = ${safeErrCol}${mediaPurged ? ",\n          blob_key = NULL,\n          blob_id = NULL" : ""},
           updated_at            = NOW()
       WHERE id = ${docId}
     `));

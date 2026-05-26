@@ -60,12 +60,20 @@ export interface InlineFile {
   mimeType: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
 }
 
+/* ★ 2026-05-26: Files API로 업로드한 대용량 파일 참조(음성·영상 등 인라인 20MB 초과) */
+export interface FilePart {
+  fileUri: string;     // 'https://generativelanguage.googleapis.com/v1beta/files/xxx'
+  mimeType: string;
+}
+
 export interface GeminiOptions {
   temperature?: number;
   maxOutputTokens?: number;
   systemInstruction?: string;
   mode?: "pro" | "flash";
   inlineFiles?: InlineFile[];
+  /** ★ 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상). inlineFiles와 별개. */
+  fileParts?: FilePart[];
   /** ★ Phase 1.5 — 어떤 AI 기능이 호출했는지 식별 (15개 feature_key 중 하나).
    *  생략하면 'unknown'으로 기록되며 토글·한도 적용 안 됨. 호출자가 명시할 것. */
   featureKey?: string;
@@ -112,6 +120,13 @@ async function callSingleModel(
 
   /* ★ v3.5 핵심: 파일을 먼저, 텍스트(질문)를 나중에 — Gemini 공식 권장 순서 */
   const parts: any[] = [];
+
+  /* ★ 2026-05-26: Files API 업로드 파일 참조(대용량 음성·영상) — 파일 먼저 */
+  if (opts.fileParts && opts.fileParts.length > 0) {
+    for (const fp of opts.fileParts) {
+      parts.push({ fileData: { mimeType: fp.mimeType, fileUri: fp.fileUri } });
+    }
+  }
 
   if (opts.inlineFiles && opts.inlineFiles.length > 0) {
     for (const f of opts.inlineFiles) {
@@ -374,6 +389,83 @@ export async function callGeminiJSON<T = any>(
       raw: result.text,
     };
   }
+}
+
+/* =========================================================
+   ★ 2026-05-26: Gemini Files API — 대용량 미디어(음성·영상) 업로드
+   인라인 한도(~20MB) 초과 파일을 업로드(최대 2GB)하고 fileUri로 generateContent 참조.
+   ========================================================= */
+const GEMINI_FILE_BASE = "https://generativelanguage.googleapis.com";
+
+export async function uploadToGeminiFiles(
+  bytes: Buffer | Uint8Array,
+  mimeType: string,
+  displayName: string,
+): Promise<{ ok: boolean; fileUri?: string; fileName?: string; error?: string }> {
+  if (!GEMINI_API_KEY) return { ok: false, error: "GEMINI_API_KEY 미설정" };
+  const numBytes = (bytes as any).length || (bytes as any).byteLength || 0;
+  try {
+    /* 1) resumable 업로드 시작 → 업로드 URL 수신 */
+    const startRes = await fetch(`${GEMINI_FILE_BASE}/upload/v1beta/files?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: {
+        "X-Goog-Upload-Protocol": "resumable",
+        "X-Goog-Upload-Command": "start",
+        "X-Goog-Upload-Header-Content-Length": String(numBytes),
+        "X-Goog-Upload-Header-Content-Type": mimeType,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ file: { display_name: displayName } }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!startRes.ok) {
+      return { ok: false, error: `start ${startRes.status}: ${(await startRes.text().catch(() => "")).slice(0, 150)}` };
+    }
+    const uploadUrl = startRes.headers.get("x-goog-upload-url") || startRes.headers.get("X-Goog-Upload-URL");
+    if (!uploadUrl) return { ok: false, error: "업로드 URL 수신 실패" };
+
+    /* 2) 바이트 업로드 + finalize */
+    const upRes = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "X-Goog-Upload-Offset": "0",
+        "X-Goog-Upload-Command": "upload, finalize",
+        "Content-Length": String(numBytes),
+      },
+      body: bytes as any,
+      signal: AbortSignal.timeout(300000), // 대용량 5분
+    });
+    if (!upRes.ok) return { ok: false, error: `upload ${upRes.status}` };
+    const data: any = await upRes.json();
+    const file = data?.file;
+    if (!file?.uri || !file?.name) return { ok: false, error: "파일 메타 수신 실패" };
+
+    /* 3) ACTIVE 될 때까지 폴링(미디어는 PROCESSING) — 최대 ~5분 */
+    let state = file.state;
+    let tries = 0;
+    while (state === "PROCESSING" && tries < 100) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const pRes = await fetch(`${GEMINI_FILE_BASE}/v1beta/${file.name}?key=${GEMINI_API_KEY}`, { signal: AbortSignal.timeout(20000) });
+        if (pRes.ok) { const pd: any = await pRes.json(); state = pd.state; }
+      } catch (_) { /* 폴링 실패는 다음 회차 재시도 */ }
+      tries++;
+    }
+    if (state !== "ACTIVE") return { ok: false, error: `파일 처리 상태=${state}`, fileName: file.name };
+    return { ok: true, fileUri: file.uri, fileName: file.name };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message || err).slice(0, 150) };
+  }
+}
+
+export async function deleteGeminiFile(fileName: string): Promise<void> {
+  if (!GEMINI_API_KEY || !fileName) return;
+  try {
+    await fetch(`${GEMINI_FILE_BASE}/v1beta/${fileName}?key=${GEMINI_API_KEY}`, {
+      method: "DELETE",
+      signal: AbortSignal.timeout(20000),
+    });
+  } catch (_) { /* 정리 실패 무시 — Gemini 파일은 48h 자동 만료 */ }
 }
 
 export async function pingGemini(): Promise<boolean> {

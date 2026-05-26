@@ -830,6 +830,14 @@ async function viewDoc(docId) {
     } else {
       content.innerHTML = `<a href="${escapeHtml(doc.blobUrl)}" target="_blank">파일 다운로드</a>`;
     }
+  } else if (doc.extractMethod === "gemini_audio" || doc.extractMethod === "gemini_video") {
+    /* 음성·영상은 전사 후 원본 삭제됨(저장공간 절약) — 전사 요약 표시 */
+    const ko = doc.extractMethod === "gemini_audio" ? "음성" : "영상";
+    content.innerHTML = `<div style="padding:20px;text-align:left">
+      <div style="color:#64748b;margin-bottom:12px;line-height:1.6">🎙 원본 ${ko}은 전사(텍스트 변환) 후 저장공간 절약을 위해 삭제되었습니다.<br>아래 요약과 추출된 전사 텍스트로 분류·분석이 이루어집니다.</div>
+      <div style="font-weight:600;margin-bottom:6px">한 줄 요약</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${escapeHtml(doc.docSummary || "-")}</div>
+    </div>`;
   } else {
     content.innerHTML = `<div style="padding:24px;color:#64748b;text-align:center">${USE_MOCK ? "(mock — 실 URL 없음)" : "파일 URL을 불러오는 중…"}</div>`;
   }
