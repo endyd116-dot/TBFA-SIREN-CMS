@@ -302,11 +302,13 @@ function renderTabDocs(d) {
   const extraction = d.case.extractionJson;
   const pendingCount = docs.filter(x => x.extractStatus === "processing" || x.extractStatus === "pending").length;
   const failedCount  = docs.filter(x => x.extractStatus === "failed").length;
+  const notDoneCount = docs.filter(x => x.extractStatus !== "done").length;
 
   return `<div class="tab-panel" id="tab-docs-panel" style="display:none">
   <!-- 진행 표시 -->
   ${pendingCount > 0 ? `<div class="progress-banner">⏳ ${pendingCount}건 처리 중 — 자동으로 갱신됩니다</div>` : ""}
   ${failedCount  > 0 ? `<div class="error-banner">❌ ${failedCount}건 추출 실패 — 아래 행에서 재시도하거나 텍스트를 직접 입력해주세요</div>` : ""}
+  ${notDoneCount > 0 ? `<div style="margin-bottom:12px"><button class="btn-sm btn-warn" onclick="batchRetryDocs()">⟳ 미완료 ${notDoneCount}건 전체 재시도</button> <small style="color:#94a3b8">대기·처리중·실패 자료를 한 번에 재처리</small></div>` : ""}
 
   <!-- 업로드 영역 -->
   <div class="upload-area">
@@ -630,6 +632,22 @@ async function retryDoc(docId) {
   } catch (e) {
     if (e.message !== "auth") toast("재시도 오류", "error");
   }
+}
+
+/* 일괄 재시도 — 미완료(대기·처리중·실패) 자료 전체 재처리 (Swain 2026-05-26·91건 대응) */
+async function batchRetryDocs() {
+  if (!currentDetail) return;
+  const targets = (currentDetail.documents || []).filter(x => x.extractStatus !== "done");
+  if (!targets.length) { toast("재시도할 자료가 없습니다"); return; }
+  if (!confirm(`미완료 ${targets.length}건을 전체 재시도합니다. 백그라운드에서 순차 처리됩니다. 시작할까요?`)) return;
+  toast(`${targets.length}건 재시도 요청 중…`);
+  let ok = 0;
+  for (const d of targets) {
+    try { const r = await apiDocRegister(d.id); if (r.ok) ok++; } catch (e) { /* 개별 실패 무시 */ }
+    await new Promise(res => setTimeout(res, 250));  /* 백그라운드 폭주 완화 */
+  }
+  toast(`${ok}/${targets.length}건 재시도 요청 완료 — 자동 갱신됩니다`);
+  startPoll(currentCaseId);
 }
 
 // ── 텍스트 직접 입력 모달 ────────────────────────────────────────────────────

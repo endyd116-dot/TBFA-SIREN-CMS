@@ -21,7 +21,8 @@ import { extractDocText } from "../../lib/ai-ocr";
 import { classifyDocument } from "../../lib/martyrdom-ai";
 import { embedText } from "../../lib/ai-embedding";
 
-export const config = { path: "/api/admin-martyrdom-extract-background" };
+/* ⚠️ Netlify 백그라운드 함수(-background)는 config.path 금지 — 붙이면 /.netlify/functions/ 비동기 호출이
+   안 먹혀 자동 체인이 시작 안 됨(2026-05-26 "처리 중 멈춤" 근본 원인). 정상 RAG background도 config 없음. */
 
 const MAX_CHUNK_CHARS = 1200;
 

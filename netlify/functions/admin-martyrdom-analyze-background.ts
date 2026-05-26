@@ -17,7 +17,7 @@ import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { extractCaseStructure } from "../../lib/martyrdom-ai";
 
-export const config = { path: "/api/admin-martyrdom-analyze-background" };
+/* ⚠️ 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인·extract-bg 참고) */
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
