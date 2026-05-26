@@ -34,6 +34,7 @@
 - **Swain 재검증 대기(2차 배포 후)**: [전체 재시도] → 엑셀·이미지·텍스트 모두 추출·분류되는지. 잔여 실패는 빨간 사유로 추가조치.
 - **자료 CRUD + hwp 추가(`02286c5`·Swain 요청)**: ⑴ 완료 자료도 행 [재처리](doc-register 상태무관·UI만) ⑵ 개별 [삭제]·상단 [전체 삭제] = 신규 `admin-martyrdom-doc-delete`(R2+RAG청크 doc-N#%+blob_uploads+행·전체는 case_id 격리·법령 시드 보존) ⑶ **.hwp(HWP5)** = `ai-ocr`에 cfb로 PrvText(미리보기·UTF-16LE) 추출. 신규 dep `cfb`. .hwpx(ZIP)는 미지원→수동입력 폴백. 캐시버스터 admin-martyrdom.js v7. tsc 0·node --check OK.
 - **업로드·전체삭제 진행 오버레이(`705dae7`·Swain 요청)**: 공용 진행창(전체 건수·현재 파일·전체 %·남은 건수·[취소]). 업로드는 R2 PUT을 XHR로 전환해 바이트 진행률·진행 중 abort. 전체삭제는 서버 일괄 1콜 → 파일별 순차 삭제 루프(진행률·취소)로 전환('10초 뒤 확 사라짐' 해소). 캐시버스터 v8.
+- **형식 커버리지 확대(`b2e862a`·Swain 요청)**: ai-ocr에 ⑴ 음성(m4a·mp3·wav·aac·ogg·flac 등)→Gemini 전사 ⑵ 영상(mp4·mov 등)→전사+화면요약(인라인 15MB 가드) ⑶ hwpx·pptx→fflate ZIP 해제+본문텍스트(hp:t/a:t) ⑷ 평문 tsv·json·xml·vtt·srt 추가. 신규 dep fflate. 자동커버=PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·음성·영상. ⚠️ m4a는 Gemini 미지원 가능(거부 시 빨간 사유)·구형 doc/ppt·odt/ods·zip은 변환 권장.
 
 ### A. 신규 웹 가입자 집계·가입경로 '싸이렌웹' — 배포·마이그 대기 (2026-05-26)
 - 원인 2개: ① `auth-signup`가 signup_source_id 미기록(NULL) ② `admin-dashboard-kpi` webonly 필터가 존재 않는 코드 'siren'으로 조회(실제 'website') → 웹 회원 항상 0집계. 둘 다 fix(`cb88ac2`). 통합분석·가입회원관리는 경로값 파생이라 자동 치유.
