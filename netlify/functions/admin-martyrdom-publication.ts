@@ -137,7 +137,7 @@ export default async (req: Request, _ctx: Context) => {
       if (secret) {
         const baseUrl = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
         try {
-          await fetch(`${baseUrl}/api/admin-martyrdom-publication-generate-background`, {
+          await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-publication-generate-background`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pubId, pubType, caseIds, blendRatio, maskLevel, secret }),

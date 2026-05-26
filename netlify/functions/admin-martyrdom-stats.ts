@@ -69,7 +69,7 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*)::int AS total,
         SUM(CASE WHEN outcome = 'approved' THEN 1 ELSE 0 END)::int AS approved
       FROM martyrdom_cases
-      GROUP BY extraction_json->>'caseType'
+      GROUP BY COALESCE(extraction_json->>'caseType', 'unknown')
       ORDER BY total DESC
     `));
     byCaseType = (r?.rows ?? r ?? []).map((row: any) => ({

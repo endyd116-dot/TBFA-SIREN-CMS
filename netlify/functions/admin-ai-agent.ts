@@ -344,6 +344,9 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["메뉴", "네비", "내비게이션"] },
   { name: "memorial", tools: ["memorial_summary", "memorial_teachers_list", "family_stories_list"],
     keywords: ["추모", "추모관", "헌화", "촛불", "국화", "방명록", "기억의 편지", "추모 영상", "유가족이야기", "모신 선생님", "헌사"] },
+  /* 순직 인정 지원(딥릴리프) 읽기 도구 — 운영자 전용·순직 테이블 직접 조회(일반 RAG 격리 불변·P4) */
+  { name: "martyrdom", tools: ["martyrdom_case_list", "martyrdom_case_status", "martyrdom_deadlines_upcoming"],
+    keywords: ["순직", "유족급여", "딥릴리프", "deep-relief", "재해보상", "공무상 사망", "공무상사망"] },
 ];
 
 /** 의도 분류 — 키워드 매칭.

@@ -1109,9 +1109,9 @@ ${deadlines.length > 0 ? `- 중요 기한: ${deadlines.join(" / ")}` : ""}
   const safeContent = contentText.replace(/'/g, "''");
   const upsertRes: any = await db.execute(sql.raw(`
     INSERT INTO martyrdom_ai_outputs
-      (case_id, output_type, content_text, content_json, status, created_at, updated_at)
+      (case_id, output_type, content_text, content_json, status, created_at)
     VALUES
-      (${caseId}, 'family_summary', '${safeContent}', '${contentJson}', 'draft', NOW(), NOW())
+      (${caseId}, 'family_summary', '${safeContent}', '${contentJson}', 'draft', NOW())
     RETURNING id
   `));
   const saved = (upsertRes?.rows ?? upsertRes ?? [])[0];
@@ -1272,7 +1272,7 @@ async function collectSelfData(caseIds: number[]): Promise<SelfData> {
              COUNT(*) AS total,
              SUM(CASE WHEN outcome='approved' THEN 1 ELSE 0 END) AS approved
       FROM martyrdom_cases WHERE status = 'closed'
-      GROUP BY extraction_json->>'caseType'
+      GROUP BY COALESCE(extraction_json->>'caseType', 'unknown')
     `));
     const byType = (typeRes?.rows ?? typeRes ?? []).map((r: any) => ({
       type: String(r.caseType || "unknown"),
@@ -1285,12 +1285,13 @@ async function collectSelfData(caseIds: number[]): Promise<SelfData> {
     if (caseIds.length > 0) {
       const ids = caseIds.map(Number).filter(n => n > 0);
       const patRes: any = await db.execute(sql.raw(`
-        SELECT case_no AS "caseNo", outcome, case_kind AS "caseKind",
-               (content_json->>'recognitionPattern') AS "keyPattern"
-        FROM martyrdom_ai_outputs
-        WHERE case_id = ANY(ARRAY[${ids.join(",")}]::int[])
-          AND output_type = 'strategy' AND status = 'draft'
-        ORDER BY case_id, created_at DESC
+        SELECT c.case_no AS "caseNo", c.outcome, c.case_kind AS "caseKind",
+               (ao.content_json->>'recognitionPattern') AS "keyPattern"
+        FROM martyrdom_ai_outputs ao
+        JOIN martyrdom_cases c ON c.id = ao.case_id
+        WHERE ao.case_id = ANY(ARRAY[${ids.join(",")}]::int[])
+          AND ao.output_type = 'strategy' AND ao.status = 'draft'
+        ORDER BY ao.case_id, ao.created_at DESC
       `));
       const seen = new Set<string>();
       for (const r of (patRes?.rows ?? patRes ?? [])) {

@@ -211,7 +211,7 @@ export default async (req: Request, _ctx: Context) => {
       const fullHtml = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${safeTitle}</title>
 <style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:20px}h1{color:#7a1e2b}h2{color:#7a1e2b}</style>
 </head><body>${htmlContent}<hr><p style="color:#888;font-size:12px">⚠️ 본 보고서는 AI 보조 초안입니다. 외부 발간 전 전문가 검수 필수.</p></body></html>`;
-      const base64 = Buffer.from(htmlContent).toString("base64");
+      const base64 = Buffer.from(fullHtml).toString("base64");
       return new Response(JSON.stringify({
         ok: true,
         fileName: `${safeTitle}.html`,
