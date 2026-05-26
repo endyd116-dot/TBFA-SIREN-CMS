@@ -4348,7 +4348,7 @@ export type MartyrdomReview    = typeof martyrdomReviews.$inferSelect;
 export type NewMartyrdomReview = typeof martyrdomReviews.$inferInsert;
 /* === P3 서면 끝 === */
 
-/* === P4 발간 === (migrate-martyrdom-p4 실행 후 아래 주석 해제 — 메인이 활성화)
+/* === P4 발간 === (migrate-martyrdom-p4 적용 완료·활성화 — 2026-05-27) */
 export const martyrdomPublications = pgTable("martyrdom_publications", {
   id: serial("id").primaryKey(),
   pubType: varchar("pub_type", { length: 20 }).notNull(),       // guide | trend | case_study
@@ -4372,4 +4372,4 @@ export const martyrdomPublications = pgTable("martyrdom_publications", {
 }));
 export type MartyrdomPublication    = typeof martyrdomPublications.$inferSelect;
 export type NewMartyrdomPublication = typeof martyrdomPublications.$inferInsert;
-=== P4 발간 끝 === */
+/* === P4 발간 끝 === */
