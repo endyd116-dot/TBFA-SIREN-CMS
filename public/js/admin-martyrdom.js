@@ -606,46 +606,116 @@ async function reclassifyDoc(docId, docType) {
 }
 
 // ── 파일 업로드 흐름 ─────────────────────────────────────────────────────────
+// ── 일괄 진행 오버레이 (업로드·전체삭제 공통) ───────────────────────────────
+let _bulkCancel = false;
+let _bulkXhr = null;
+
+function openBulkProgress(title, total, accent) {
+  _bulkCancel = false;
+  let el = document.getElementById("bulkProgressOverlay");
+  if (!el) { el = document.createElement("div"); el.id = "bulkProgressOverlay"; el.className = "modal-overlay"; document.body.appendChild(el); }
+  const cls = accent === "danger" ? "danger" : "";
+  el.innerHTML =
+    '<div class="modal-box">' +
+      '<div class="bp-title">' + title + '</div>' +
+      '<div class="bp-count"><b id="bpCur">0</b> / ' + total + '건</div>' +
+      '<div class="bp-file" id="bpFile">준비 중…</div>' +
+      '<div class="bp-bar"><div class="bp-bar-fill ' + cls + '" id="bpFill" style="width:0%"></div></div>' +
+      '<div class="bp-pct"><b id="bpPct">0</b>% 진행 · <span id="bpRemain">' + total + '</span>건 남음</div>' +
+      '<div class="bp-actions"><button class="btn-sm btn-danger" id="bpCancel">취소</button></div>' +
+    '</div>';
+  el.style.display = "flex";
+  el.querySelector("#bpCancel").onclick = () => {
+    _bulkCancel = true;
+    if (_bulkXhr) { try { _bulkXhr.abort(); } catch (_) {} }
+    const b = el.querySelector("#bpCancel");
+    if (b) { b.textContent = "취소 중… (현재 항목까지)"; b.disabled = true; }
+  };
+}
+function updateBulkProgress(done, total, fileLabel, fileFrac) {
+  const el = document.getElementById("bulkProgressOverlay");
+  if (!el) return;
+  const pct = total ? Math.min(100, Math.round(((done + (fileFrac || 0)) / total) * 100)) : 0;
+  const set = (id, v) => { const n = el.querySelector("#" + id); if (n) n.textContent = v; };
+  set("bpCur", Math.min(done + (fileFrac ? 1 : 0), total));
+  if (fileLabel != null) set("bpFile", fileLabel);
+  set("bpPct", pct);
+  set("bpRemain", Math.max(0, total - done));
+  const fill = el.querySelector("#bpFill"); if (fill) fill.style.width = pct + "%";
+}
+function finishBulkProgress(msg, state) {
+  const el = document.getElementById("bulkProgressOverlay");
+  if (!el) return;
+  const fill = el.querySelector("#bpFill");
+  if (fill) { fill.style.width = "100%"; fill.className = "bp-bar-fill " + (state === "cancel" ? "cancel" : "done"); }
+  const file = el.querySelector("#bpFile"); if (file) file.textContent = msg;
+  const actions = el.querySelector(".bp-actions");
+  if (actions) actions.innerHTML = '<button class="btn-sm" id="bpClose">닫기</button>';
+  const close = el.querySelector("#bpClose"); if (close) close.onclick = () => { el.style.display = "none"; };
+  setTimeout(() => { const e2 = document.getElementById("bulkProgressOverlay"); if (e2) e2.style.display = "none"; }, 2800);
+}
+
+/* R2 직접 업로드 — XHR로 바이트 진행률 + 취소(abort) 지원 */
+function putToR2(url, file, contentType, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    _bulkXhr = xhr;
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.upload.onprogress = (ev) => { if (ev.lengthComputable && onProgress) onProgress(ev.loaded / ev.total); };
+    xhr.onload = () => { _bulkXhr = null; (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error("R2 " + xhr.status)); };
+    xhr.onerror = () => { _bulkXhr = null; reject(new Error("network")); };
+    xhr.onabort = () => { _bulkXhr = null; reject(new Error("aborted")); };
+    xhr.send(file);
+  });
+}
+
 async function handleFileSelect(e) {
   const files = Array.from(e.target.files);
   if (!files.length || !currentCaseId) return;
   e.target.value = "";
 
-  for (const file of files) {
-    await uploadSingleFile(file);
+  openBulkProgress("📤 자료 업로드", files.length);
+  let ok = 0, fail = 0, done = 0;
+  for (let i = 0; i < files.length; i++) {
+    if (_bulkCancel) break;
+    const file = files[i];
+    const label = `(${i + 1}/${files.length}) ${file.name}`;
+    updateBulkProgress(done, files.length, label, 0.001);
+    const r = await uploadSingleFile(file, (frac) => updateBulkProgress(done, files.length, label, frac));
+    done++;
+    if (r) ok++; else fail++;
+    updateBulkProgress(done, files.length, label, 0);
   }
+  const cancelled = _bulkCancel;
+  finishBulkProgress(
+    cancelled ? `취소됨 — ${ok}건 완료, ${files.length - done}건 중단` : `완료 — ${ok}건 업로드${fail ? `, ${fail}건 실패` : ""} · AI 분류 중`,
+    cancelled ? "cancel" : "done"
+  );
   await loadDetail(currentCaseId);
   switchTab("tab-docs");
 }
 
-async function uploadSingleFile(file) {
-  toast(`업로드 중: ${file.name}`);
+/* 한 파일 업로드(presign→R2 PUT→완료통지). 진행률 콜백·성공 여부 반환. */
+async function uploadSingleFile(file, onProgress) {
   try {
-    // 1. presign 요청
     const meta = await apiDocUpload({
       caseId: currentCaseId,
       fileName: file.name,
       mimeType: file.type || "application/octet-stream",
       sizeBytes: file.size,
     });
-    if (!meta.ok) { toast("업로드 준비 실패: " + (meta.error || ""), "error"); return; }
+    if (!meta.ok) return false;
 
-    // 2. R2 직접 업로드 (mock이면 skip)
     if (!USE_MOCK && meta.uploadUrl !== "#mock-upload") {
-      const putRes = await fetch(meta.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      if (!putRes.ok) { toast("R2 업로드 실패", "error"); return; }
-    }
+      await putToR2(meta.uploadUrl, file, file.type || "application/octet-stream", onProgress);
+    } else if (onProgress) { onProgress(1); }
 
-    // 3. 완료 통지 → 추출+자동분류 background 트리거
     const reg = await apiDocRegister(meta.docId);
-    if (!reg.ok) { toast("업로드 통지 실패", "error"); return; }
-    toast(`${file.name} 업로드 완료 — AI 분류 중`);
+    return !!reg.ok;
   } catch (e) {
-    if (e.message !== "auth") toast(`업로드 오류: ${file.name}`, "error");
+    /* auth는 apiFetch가 로그인 유도 처리 — 여기선 실패로만 집계 */
+    return false;
   }
 }
 
@@ -695,19 +765,27 @@ async function deleteDoc(docId) {
 /* 사건의 모든 자료 삭제 — 처음부터 다시 (Swain 2026-05-26) */
 async function deleteAllDocs() {
   if (!currentDetail || !currentCaseId) return;
-  const n = (currentDetail.documents || []).length;
-  if (!n) { toast("삭제할 자료가 없습니다"); return; }
-  if (!confirm(`이 사건의 자료 ${n}건을 모두 삭제합니다.\n원본 파일·AI 색인까지 전부 제거되며 되돌릴 수 없습니다.\n처음부터 다시 업로드하려면 확인을 누르세요.`)) return;
-  if (!confirm(`정말 ${n}건 전체를 삭제할까요? 이 작업은 취소할 수 없습니다.`)) return;
-  toast(`${n}건 전체 삭제 중…`);
-  try {
-    const d = await apiDocDeleteAll(currentCaseId);
-    if (!d.ok) { toast(d.error || "전체 삭제 실패", "error"); return; }
-    toast(`자료 ${d.deleted ?? n}건을 모두 삭제했습니다`);
-    loadDetail(currentCaseId);
-  } catch (e) {
-    if (e.message !== "auth") toast("전체 삭제 오류", "error");
+  const docs = (currentDetail.documents || []).slice();
+  if (!docs.length) { toast("삭제할 자료가 없습니다"); return; }
+  if (!confirm(`이 사건의 자료 ${docs.length}건을 모두 삭제합니다.\n원본 파일·AI 색인까지 전부 제거되며 되돌릴 수 없습니다.\n계속할까요?`)) return;
+
+  /* 파일별 진행 표시(서버 일괄 1콜은 진행이 안 보여 헷갈림 → 한 건씩 + 진행률·취소) */
+  openBulkProgress("🗑 자료 전체 삭제", docs.length, "danger");
+  let ok = 0, done = 0;
+  for (let i = 0; i < docs.length; i++) {
+    if (_bulkCancel) break;
+    const d = docs[i];
+    updateBulkProgress(done, docs.length, `(${i + 1}/${docs.length}) ${d.fileName}`, 0.5);
+    try { const r = await apiDocDelete(d.id); if (r && r.ok) ok++; } catch (e) { /* 개별 실패 무시 */ }
+    done++;
+    updateBulkProgress(done, docs.length, `(${i + 1}/${docs.length}) ${d.fileName}`, 0);
   }
+  const cancelled = _bulkCancel;
+  finishBulkProgress(
+    cancelled ? `취소됨 — ${ok}건 삭제, ${docs.length - done}건 남김` : `${ok}건 삭제 완료 — 처음부터 다시 업로드할 수 있습니다`,
+    cancelled ? "cancel" : "done"
+  );
+  loadDetail(currentCaseId);
 }
 
 // ── 텍스트 직접 입력 모달 ────────────────────────────────────────────────────

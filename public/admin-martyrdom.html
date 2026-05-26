@@ -266,6 +266,24 @@ body {
 #viewerModal .modal-box { max-width: 860px; width: 95%; }
 #viewerContent { margin-top: 12px; text-align: center; }
 
+/* ─ 일괄 진행 오버레이(업로드·전체삭제) ─ */
+#bulkProgressOverlay .modal-box { max-width: 460px; }
+.bp-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.bp-count { font-size: 13px; color: #475569; margin-bottom: 10px; }
+.bp-count b { color: #1e293b; font-size: 15px; }
+.bp-file {
+  font-size: 13px; color: #1e40af; margin-bottom: 10px; min-height: 18px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bp-bar { height: 12px; background: #e2e8f0; border-radius: 7px; overflow: hidden; }
+.bp-bar-fill { height: 100%; width: 0%; background: #2563eb; border-radius: 7px; transition: width .2s; }
+.bp-bar-fill.done { background: #16a34a; }
+.bp-bar-fill.cancel { background: #ca8a04; }
+.bp-bar-fill.danger { background: #dc2626; }
+.bp-pct { font-size: 12px; color: #64748b; margin-top: 7px; }
+.bp-pct b { color: #1e293b; }
+.bp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
 /* ─ 토스트 ─ */
 .toast {
   position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
@@ -432,6 +450,6 @@ body {
 <!-- 토스트 -->
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-martyrdom.js?v=7-doc-crud"></script>
+<script src="/js/admin-martyrdom.js?v=8-progress-ui"></script>
 </body>
 </html>
