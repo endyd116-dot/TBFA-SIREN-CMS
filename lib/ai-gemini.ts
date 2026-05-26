@@ -73,6 +73,10 @@ export interface GeminiOptions {
   adminId?: number | null;
   /** ai_agent_chat용 — 대화 ID 연결 */
   conversationId?: number | null;
+  /** ★ 2026-05-26: fetch 타임아웃(ms). 미지정 시 8000(동기 함수 10초 한도 방어).
+   *  background 함수(-background·15분 한도)의 무거운 호출(Vision OCR·사건 구조 추출)은
+   *  8초가 턱없이 짧아 대량 abort 실패 → 호출처에서 넉넉히 지정(예: 60000~120000). */
+  timeoutMs?: number;
 }
 
 interface GeminiResult {
@@ -172,7 +176,7 @@ async function callSingleModel(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
     });
 
     if (!res.ok) {
@@ -286,6 +290,9 @@ export async function callGemini(
       lastError.includes("UNAVAILABLE") ||
       lastError.includes("NOT_FOUND") ||
       lastError.includes("timeout") ||
+      lastError.includes("timed out") ||
+      lastError.includes("abort") ||
+      lastError.includes("Abort") ||
       lastError.includes("network");
 
     if (!isRetryable) break;

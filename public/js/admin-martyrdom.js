@@ -350,8 +350,12 @@ function renderTabDocs(d) {
 }
 
 function renderDocRow(doc) {
-  const typeLabel = MARTYRDOM_DOC_TYPES[doc.docType] || doc.docType || "미분류";
-  const typeColor = DOC_TYPE_COLORS[doc.docType] || "#94a3b8";
+  /* ★ 2026-05-26: 유효 분류 = 수기수정(docType) 우선, 없으면 AI 자동판정(docTypeAuto).
+     기존엔 docType(수기·보통 NULL)만 봐서 자동분류가 성공해도 드롭다운이 첫 옵션
+     '신청·행정 서류'로 잘못 보였음. 둘 다 없으면 '미분류'. */
+  const effectiveType = doc.docType || doc.docTypeAuto || "";
+  const hasType = !!(effectiveType && MARTYRDOM_DOC_TYPES[effectiveType]);
+  const typeColor = DOC_TYPE_COLORS[effectiveType] || "#94a3b8";
   const conf = doc.classifyConfidence || 0;
   const confBadge = conf < 70 ? `<span class="conf-badge conf-low">확인 필요(${conf}%)</span>` : `<span class="conf-badge">${conf}%</span>`;
   const statusLabel = EXTRACT_STATUS_LABELS[doc.extractStatus] || doc.extractStatus;
@@ -365,17 +369,24 @@ function renderDocRow(doc) {
     actions.push(`<button class="btn-sm btn-secondary" onclick="openManualTextModal(${doc.id})">텍스트 직접 입력</button>`);
   }
 
-  // 분류 드롭다운
+  // 분류 드롭다운 — 미분류면 ' 미분류' placeholder 선택(첫 옵션 오표시 방지)
   const typeDropdown = `<select class="type-select" onchange="reclassifyDoc(${doc.id}, this.value)" style="border-color:${typeColor}">
-    ${Object.entries(MARTYRDOM_DOC_TYPES).map(([v,l])=>`<option value="${v}"${doc.docType===v?" selected":""}>${l}</option>`).join("")}
+    <option value=""${hasType ? "" : " selected"} disabled hidden>미분류</option>
+    ${Object.entries(MARTYRDOM_DOC_TYPES).map(([v,l])=>`<option value="${v}"${effectiveType===v?" selected":""}>${l}</option>`).join("")}
   </select>`;
+
+  /* ★ 2026-05-26: 실패/문제 자료는 요약칸에 실제 사유(extractError)를 빨강으로 노출 —
+     기존엔 '-'만 보여 왜 실패했는지(엑셀 미지원·AI 한도·타임아웃 등) 알 수 없었음. */
+  const summaryCell = (doc.extractError && doc.extractStatus !== "done")
+    ? `<span style="color:#c5293a;font-size:11.5px" title="${escapeHtml(doc.extractError)}">⚠ ${escapeHtml(String(doc.extractError).slice(0, 80))}</span>`
+    : escapeHtml(doc.docSummary || "-");
 
   return `<tr id="doc-row-${doc.id}">
     <td class="doc-filename" title="${escapeHtml(doc.fileName)}">${escapeHtml(doc.fileName)}</td>
     <td>${typeDropdown}</td>
-    <td class="doc-summary">${escapeHtml(doc.docSummary || "-")}</td>
+    <td class="doc-summary">${summaryCell}</td>
     <td>${confBadge}</td>
-    <td><span class="extract-badge ${statusClass}">${statusLabel}</span></td>
+    <td><span class="extract-badge ${statusClass}" title="${escapeHtml(doc.extractError || statusLabel)}">${statusLabel}</span></td>
     <td class="doc-actions">${actions.join(" ")}</td>
   </tr>`;
 }

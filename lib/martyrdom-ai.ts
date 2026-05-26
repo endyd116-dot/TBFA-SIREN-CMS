@@ -84,6 +84,7 @@ JSON만 응답하세요.`;
       featureKey: "martyrdom_ai",
       inlineFiles: [{ data: cleanBase64, mimeType }],
       maxOutputTokens: 512,
+      timeoutMs: 90000, // ★ background Vision 분류 — 8초 기본은 짧음
     });
 
     if (!result.ok || !result.text) return fallback;
@@ -113,6 +114,7 @@ JSON만 응답하세요.`;
       mode: "flash",
       featureKey: "martyrdom_ai",
       maxOutputTokens: 512,
+      timeoutMs: 30000, // ★ background 텍스트 분류 — 8초 기본 상향
     }
   );
 
@@ -267,6 +269,7 @@ JSON 스키마:
       mode: "pro",
       featureKey: "martyrdom_ai",
       maxOutputTokens: 4096,
+      timeoutMs: 120000, // ★ background 사건 구조 추출(대용량 입력·4096 출력) — 8초 기본 상향
     }
   );
 

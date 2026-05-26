@@ -31,11 +31,13 @@ export default async (req: Request, _ctx: Context) => {
   const run = url.searchParams.get("run") === "1";
 
   try {
-    /* 'website' 가입경로 id 확인 (없으면 백필 불가) */
+    /* 'website' 가입경로 id·현재 라벨 확인 (없으면 백필 불가) */
     const srcRows: any[] = await db.execute(sql`
-      SELECT id FROM signup_sources WHERE code = 'website' LIMIT 1
+      SELECT id, label FROM signup_sources WHERE code = 'website' LIMIT 1
     `);
     const websiteId = srcRows?.[0]?.id ?? null;
+    const currentLabel = srcRows?.[0]?.label ?? null;
+    const TARGET_LABEL = "싸이렌웹"; // Swain 2026-05-26: 웹 가입자는 '싸이렌웹'으로 표시
 
     /* 백필 대상 진단 (항상 계산) */
     const diagRows: any[] = await db.execute(sql`
@@ -54,6 +56,8 @@ export default async (req: Request, _ctx: Context) => {
     `);
     const diag = {
       websiteSourceId: websiteId,
+      currentLabel,
+      targetLabel: TARGET_LABEL,
       nullTotal: diagRows?.[0]?.null_total ?? 0,
       willBackfill: diagRows?.[0]?.will_backfill ?? 0,
       nullHyosungExcluded: diagRows?.[0]?.null_hyosung ?? 0,
@@ -77,6 +81,13 @@ export default async (req: Request, _ctx: Context) => {
       return json({ ok: false, step: "website_source", error: "signup_sources에 'website' 코드가 없습니다. 시드 먼저 필요." }, 400);
     }
 
+    /* 웹 가입경로 라벨을 '싸이렌웹'으로 통일 (회원 목록 가입경로 컬럼 표시) */
+    await db.execute(sql`
+      UPDATE signup_sources
+      SET label = ${TARGET_LABEL}, updated_at = NOW()
+      WHERE code = 'website' AND label IS DISTINCT FROM ${TARGET_LABEL}
+    `);
+
     const updRes: any = await db.execute(sql`
       UPDATE members
       SET signup_source_id = ${websiteId}, updated_at = NOW()
@@ -93,9 +104,11 @@ export default async (req: Request, _ctx: Context) => {
       ok: true,
       mode: "run",
       backfilledTo: websiteId,
+      labelSetTo: TARGET_LABEL,
+      labelWas: currentLabel,
       beforeWillBackfill: diag.willBackfill,
       remainingNullNonHyosung: afterRows?.[0]?.remaining ?? 0,
-      note: "remaining이 0이면 백필 완료. 효성 자동회원(hyosung_member_no)은 의도적으로 제외.",
+      note: "remaining이 0이면 백필 완료. 웹 가입경로 라벨='싸이렌웹'. 효성 자동회원(hyosung_member_no)은 의도적으로 제외.",
     });
   } catch (err: any) {
     return json({
