@@ -1,4 +1,4 @@
-/* admin-martyrdom.js v3(P3) — 순직 인정 지원 시스템 (Deep-Relief AI v0) */
+/* admin-martyrdom.js v4(P4) — 순직 인정 지원 시스템 (Deep-Relief AI v0) */
 
 // ── 8대분류 라벨 맵 (B lib/martyrdom-ai.ts MARTYRDOM_DOC_TYPES와 1:1) ──────
 const MARTYRDOM_DOC_TYPES = {
@@ -165,6 +165,27 @@ const MOCK_REVIEWS = [{ id:5, assignedTo:12, assignedToName:"김간사", status:
   createdAt:"2026-05-26T01:00:00Z", decidedAt:null }];
 const MOCK_REVIEWERS = [{ id:12, name:"김간사", role:"operator" }, { id:3, name:"이변호사", role:"super_admin" }];
 
+// ── P4 mock · 유족 요약·통계·발간 (B 머지 전 · 응답 키 §P4.2 계약과 1:1 · 키 1글자도 변경 금지) ──
+// B 백엔드 P4 머지·마이그레이션 후 메인이 false로 전환.
+const USE_P4_MOCK = true;
+
+const MOCK_FAMILY_SUMMARY = { id:50, outputType:"family_summary",
+  contentText:"○○ 선생님 사건은 현재 자료를 모아 전략을 분석하는 단계입니다. 쉽게 말씀드리면, 선생님이 많은 스트레스를 받으신 상황을 자료로 증명하는 과정을 진행 중입니다. 현재까지 수집된 자료들이 도움이 되고 있으며, 전문가가 검토할 예정입니다.",
+  nextSteps:["병원 진료기록 보완","전문가 검토 대기"], status:"draft" };
+
+const MOCK_STATS = { totals:{cases:12,approved:5,rejected:2,pending:5}, recognitionRate:0.71,
+  byCaseType:[{type:"overwork",total:6,approved:4},{type:"harassment",total:4,approved:1},{type:"accident",total:2,approved:0}],
+  byStatus:[{status:"analysis",count:4},{status:"hearing",count:3},{status:"collecting",count:3},{status:"closed",count:2}],
+  trend:[{month:"2026-01",approved:0},{month:"2026-02",approved:1},{month:"2026-03",approved:1},{month:"2026-04",approved:2},{month:"2026-05",approved:1}],
+  readinessDist:[{range:"0-40",count:2},{range:"41-60",count:3},{range:"61-80",count:4},{range:"81-100",count:3}] };
+
+const MOCK_PUBLICATION = { id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지",
+  contentHtml:"<h1>교사 사망 시 순직 인정까지</h1><p>본 가이드는 교사 사망 사건 발생 시 순직 인정을 위해 필요한 단계별 절차와 준비 자료를 안내합니다.</p><h2>1. 신청 절차</h2><p>사망 인지 후 60일 이내에 유족급여 청구서를 제출해야 합니다…</p>",
+  blendRatio:{self:70,ai:30}, anonymized:true, reidRisk:"low", status:"draft",
+  ragSources:[{title:"인정 사례 종합",sourceRef:"martyr_case",snippet:"과로·민원 스트레스 인정 …"}] };
+
+const MOCK_PUBLICATIONS = [{ id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지", status:"draft", createdAt:"2026-05-27T00:00:00Z" }];
+
 // ── P2 라벨 맵 ───────────────────────────────────────────────────────────────
 const STRENGTH_CLASS = { "강": "str-strong", "중": "str-mid", "약": "str-weak" };
 const CRITERIA_STATUS = {
@@ -206,6 +227,12 @@ let caseActions = [];          // 현재 사건 부족증거 액션 목록(marty
 let caseDraft = null;          // 현재 사건 서면 초안 { outputId,status,outline,sections[],reviews[] } (P3)
 let caseReviewers = [];        // 배정 가능 운영자 목록(members operatorActive) (P3)
 let _mockDraft = null;         // USE_P3_MOCK 평행 모드 — 서면 상태를 메모리에 보관(목차→본문→검토 흐름 재현)
+let familySummaryCache = null; // P4: 유족 요약 (현재 사건)
+let statsData = null;          // P4: G5 통계 데이터
+let statsCharts = {};          // P4: Chart 인스턴스 (사건 전환 시 destroy)
+let pubList = [];              // P4: 연구 발간물 목록
+let pubDetail = null;          // P4: 현재 선택된 발간물 상세
+let pubPollTimer = null;       // P4: 발간 생성 폴링 타이머
 
 // ── 공통 유틸 ──────────────────────────────────────────────────────────────
 function toast(msg, type = "") {
@@ -528,6 +555,73 @@ async function apiDraftPackage(caseId) {
   return apiFetch("/api/admin-martyrdom-package", { method: "POST", body: { caseId } });
 }
 
+// ── P4 API 래퍼 (USE_P4_MOCK 토글 · 응답 키 §P4.2 계약 고정 · 1글자도 변경 금지) ──────
+
+// 유족 요약 생성 (쉬운 말 요약 + 다음 할 일)
+async function apiP4FamilySummaryGenerate(caseId) {
+  if (USE_P4_MOCK) return { ok: true, summary: JSON.parse(JSON.stringify(MOCK_FAMILY_SUMMARY)) };
+  return apiFetch("/api/admin-martyrdom-family-summary", { method: "POST", body: { caseId } });
+}
+// 유족 요약 로드
+async function apiP4FamilySummaryLoad(caseId) {
+  if (USE_P4_MOCK) return { ok: true, summary: null }; // 초기 null — 생성 후 채워짐
+  return apiFetch("/api/admin-martyrdom-family-summary?caseId=" + encodeURIComponent(caseId));
+}
+// G5 인정률·성과 통계
+async function apiP4Stats() {
+  if (USE_P4_MOCK) return { ok: true, ...MOCK_STATS };
+  return apiFetch("/api/admin-martyrdom-stats");
+}
+// 발간물 생성 큐
+async function apiP4PublicationGenerate(pubType, blendRatio, maskLevel) {
+  if (USE_P4_MOCK) {
+    pubDetail = JSON.parse(JSON.stringify(MOCK_PUBLICATION));
+    pubDetail.pubType = pubType;
+    pubDetail.blendRatio = blendRatio;
+    return { ok: true, queued: true, id: 9, pubType: pubType, status: "draft" };
+  }
+  return apiFetch("/api/admin-martyrdom-publication", { method: "POST", body: { pubType, blendRatio, maskLevel } });
+}
+// 발간물 목록
+async function apiP4PublicationList() {
+  if (USE_P4_MOCK) return { ok: true, publications: JSON.parse(JSON.stringify(MOCK_PUBLICATIONS)) };
+  return apiFetch("/api/admin-martyrdom-publication");
+}
+// 발간물 상세
+async function apiP4PublicationGet(id) {
+  if (USE_P4_MOCK) return { ok: true, publication: JSON.parse(JSON.stringify(pubDetail || MOCK_PUBLICATION)) };
+  return apiFetch("/api/admin-martyrdom-publication?id=" + encodeURIComponent(id));
+}
+// 발간물 상태 갱신 (검수/발간/수정)
+async function apiP4PublicationPatch(id, patch) {
+  if (USE_P4_MOCK) {
+    if (pubDetail && pubDetail.id === id) Object.assign(pubDetail, patch);
+    const idx = pubList.findIndex(p => p.id === id);
+    if (idx >= 0) Object.assign(pubList[idx], patch);
+    return { ok: true, id: id, status: patch.status || (pubDetail && pubDetail.status) || "draft" };
+  }
+  return apiFetch("/api/admin-martyrdom-publication", { method: "PATCH", body: { id, ...patch } });
+}
+// 발간물 삭제
+async function apiP4PublicationDelete(id) {
+  if (USE_P4_MOCK) {
+    pubList = pubList.filter(p => p.id !== id);
+    if (pubDetail && pubDetail.id === id) pubDetail = null;
+    return { ok: true };
+  }
+  return apiFetch("/api/admin-martyrdom-publication?id=" + encodeURIComponent(id), { method: "DELETE" });
+}
+// 발간물 내보내기 (html|pdf)
+async function apiP4PublicationExport(id, format) {
+  if (USE_P4_MOCK) {
+    const pdf = format === "pdf";
+    return { ok: true, fileName: "종합가이드." + (pdf ? "pdf" : "html"),
+      mimeType: pdf ? "application/pdf" : "text/html",
+      base64: b64Mock((pubDetail && pubDetail.contentHtml) || "[mock] 발간물 내보내기 (" + format + ")") };
+  }
+  return apiFetch("/api/admin-martyrdom-publication-export", { method: "POST", body: { id, format } });
+}
+
 // ── 사건 목록 ───────────────────────────────────────────────────────────────
 async function loadCases() {
   const list = document.getElementById("caseList");
@@ -577,8 +671,11 @@ async function loadDetail(id) {
   pane.innerHTML = '<div class="list-loading">불러오는 중…</div>';
   clearPollTimer();
   clearDraftPollTimer();
+  clearPubPollTimer();
   outputCache = {}; caseDeadlines = []; caseActions = []; caseDraft = null;   // 이전 사건 데이터 잔상 방지
   _mockDraft = null;   // 평행 mock 서면 상태 초기화(사건 전환 시)
+  familySummaryCache = null; statsData = null;  // P4 상태 초기화(사건 전환 시)
+  destroyStatsCharts();  // Chart 인스턴스 해제(메모리 누수 방지)
   try {
     const d = await apiDetail(id);
     if (!d.ok) { toast("상세 불러오기 실패", "error"); return; }
@@ -626,12 +723,15 @@ function cacheFromResponse(type, res) {
 
 async function loadCaseSubData(id) {
   try {
-    const [dl, ac, dr, rv] = await Promise.all([apiDeadlines(id), apiActions(id), apiDraftLoad(id), apiReviewers()]);
+    const [dl, ac, dr, rv, fs] = await Promise.all([
+      apiDeadlines(id), apiActions(id), apiDraftLoad(id), apiReviewers(), apiP4FamilySummaryLoad(id),
+    ]);
     caseDeadlines = (dl && (dl.deadlines || (dl.data && dl.data.deadlines) || dl.items)) || [];
     caseActions   = (ac && (ac.actions   || (ac.data && ac.data.actions)   || ac.items)) || [];
     caseDraft     = normalizeDraft(dr);
     caseReviewers = (rv && (rv.reviewers || (rv.data && rv.data.reviewers))) || [];
-  } catch (_) { caseDeadlines = []; caseActions = []; caseDraft = null; caseReviewers = []; }
+    familySummaryCache = (fs && fs.ok && fs.summary) ? fs.summary : null;
+  } catch (_) { caseDeadlines = []; caseActions = []; caseDraft = null; caseReviewers = []; familySummaryCache = null; }
   refreshDeadlinesPanel();
   refreshActionsPanel();
   refreshDraft();
@@ -697,11 +797,13 @@ function renderDetail(d) {
   </div>
 </div>
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-golden"    onclick="switchTab('tab-golden')">① 골든타임</button>
-  <button class="tab-btn"        id="tab-docs"      onclick="switchTab('tab-docs')">② 자료</button>
-  <button class="tab-btn"        id="tab-analysis"  onclick="switchTab('tab-analysis')">③ 분석</button>
-  <button class="tab-btn"        id="tab-draft"     onclick="switchTab('tab-draft')">④ 서면</button>
-  <button class="tab-btn"        id="tab-deadlines" onclick="switchTab('tab-deadlines')">⑤ 기한</button>
+  <button class="tab-btn active" id="tab-golden"       onclick="switchTab('tab-golden')">① 골든타임</button>
+  <button class="tab-btn"        id="tab-docs"         onclick="switchTab('tab-docs')">② 자료</button>
+  <button class="tab-btn"        id="tab-analysis"     onclick="switchTab('tab-analysis')">③ 분석</button>
+  <button class="tab-btn"        id="tab-draft"        onclick="switchTab('tab-draft')">④ 서면</button>
+  <button class="tab-btn"        id="tab-deadlines"    onclick="switchTab('tab-deadlines')">⑤ 기한</button>
+  <button class="tab-btn"        id="tab-stats"        onclick="switchTab('tab-stats')">📊 통계</button>
+  ${isSuperAdmin ? `<button class="tab-btn" id="tab-publications" onclick="switchTab('tab-publications')">📚 발간</button>` : ""}
 </div>
 <div id="tab-content">
   ${renderTabGolden()}
@@ -709,6 +811,8 @@ function renderDetail(d) {
   ${renderTabAnalysis()}
   ${renderTabDraft()}
   ${renderTabDeadlines()}
+  ${renderTabStats()}
+  ${isSuperAdmin ? renderTabPublications() : ""}
 </div>`;
   switchTab(currentTab);          // 직전 탭 유지(재렌더 시)
   refreshActionsPanel();          // 전역 caseActions로 채움(없으면 안내)
@@ -725,6 +829,9 @@ function switchTab(tabId) {
   if (btn) btn.classList.add("active");
   const panel = document.getElementById(tabId + "-panel");
   if (panel) panel.style.display = "";
+  // P4 지연 로드
+  if (tabId === "tab-stats" && !statsData) loadStats();
+  if (tabId === "tab-publications") loadPublications();
 }
 
 // ── 공용 산출물 헬퍼 (검토 바·빈 안내·패널 갱신) ─────────────────────────────
@@ -1249,6 +1356,7 @@ function renderTabDraft() {
   </div>
 
   ${renderDraftSection()}
+  ${renderFamilySummarySection()}
 </div>`;
 }
 
@@ -1388,6 +1496,39 @@ function renderReviewBlock() {
     <div class="rv-list">${rows || `<div class="rva-hint">아직 배정된 검토가 없습니다.</div>`}</div>
   </div>`;
 }
+// ── ⑧ 유족 전달용 쉬운 요약 (P4) ──────────────────────────────────────────────
+function renderFamilySummarySection() {
+  const fs = familySummaryCache;
+  const hasContent = !!(fs && fs.contentText);
+  return `<div class="draft-stage" style="margin-top:14px">
+    <div class="ds-head"><span class="ds-step">⑧ 유족 전달용 요약</span>
+      <button class="btn-sm" onclick="generateFamilySummary()" id="familySummaryBtn">
+        ${hasContent ? "다시 생성" : "요약 생성"}
+      </button>
+    </div>
+    <p class="section-sub" style="margin:0 0 10px">쉬운 말로 현재 진행 상황과 다음 할 일을 정리해 유족에게 전달하는 요약입니다.</p>
+    <div id="familySummaryBody">
+      ${hasContent ? renderFamilySummaryCard(fs) : emptyHint("아직 요약이 없습니다", "[요약 생성]을 누르면 전문 용어 없이 현재 진행 상황과 다음 할 일을 요약합니다.")}
+    </div>
+  </div>`;
+}
+function renderFamilySummaryCard(fs) {
+  if (!fs || !fs.contentText) return "";
+  const steps = fs.nextSteps || [];
+  return `<div class="family-summary-card">
+    <div class="fsc-status">
+      <span class="rv-badge ${fs.status === "reviewed" ? "rv-approved" : "rv-pending"}">${fs.status === "reviewed" ? "검토 완료" : "초안"}</span>
+      <span class="fsc-hint">⚠️ 운영자가 내용을 확인 후 전달하세요</span>
+    </div>
+    <div class="fsc-content">${escapeHtml(fs.contentText)}</div>
+    ${steps.length ? `<div class="fsc-steps"><strong>다음 할 일:</strong><ul>${steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul></div>` : ""}
+    <div class="fsc-actions">
+      <button class="btn-sm btn-secondary" onclick="copyFamilySummary()">📋 복사</button>
+      <button class="btn-sm btn-secondary" onclick="exportFamilySummaryPdf()">📄 PDF 저장</button>
+    </div>
+  </div>`;
+}
+
 function renderReadiness(cj) {
   cj = cj || {};
   const score = cj.score != null ? cj.score : 0;
@@ -1684,6 +1825,82 @@ function renderTabDeadlines() {
   <div id="deadlineListBody" class="deadline-list">불러오는 중…</div>
 </div>`;
 }
+// ── P4: G5 통계 탭 ─────────────────────────────────────────────────────────
+function renderTabStats() {
+  return `<div class="tab-panel" id="tab-stats-panel" style="display:none">
+  <div class="section-head">
+    <div><h3>📊 인정률·성과 통계</h3>
+      <p class="section-sub">전체 사건의 인정률·유형별·월별 추이를 집계합니다.</p></div>
+    <button class="btn" onclick="loadStats(true)">새로고침</button>
+  </div>
+  <div id="statsBody"><div class="list-loading">불러오는 중…</div></div>
+</div>`;
+}
+
+// ── P4: 연구 발간 탭 (super_admin) ─────────────────────────────────────────
+function renderTabPublications() {
+  return `<div class="tab-panel" id="tab-publications-panel" style="display:none">
+  <div class="section-head">
+    <div><h3>📚 연구 발간</h3>
+      <p class="section-sub">축적된 사건·통계·인정 패턴을 종합해 외부 발간용 연구 자료를 생성합니다.</p></div>
+  </div>
+  <div class="alert-banner expert-warning">⚠️ 외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
+
+  <!-- 새 발간물 생성 -->
+  <div class="draft-stage">
+    <div class="ds-head"><span class="ds-step">새 발간물 생성</span></div>
+    <div class="pub-form">
+      <div class="pub-form-row">
+        <label>발간 유형</label>
+        <select id="pubTypeSelect">
+          <option value="guide">종합 가이드 — 단계별 절차·준비 자료 안내</option>
+          <option value="trend">순직 인정 동향 보고서 — 인정률·요인·정책 시사점</option>
+          <option value="case_study">익명 사례 연구 — 인정 논리·교훈 분석</option>
+        </select>
+      </div>
+      <div class="pub-form-row">
+        <label>혼합 비율 <span id="blendLabel" class="blend-label">자체 70 : AI 30</span></label>
+        <div class="blend-row">
+          <span class="blend-edge">자체</span>
+          <input type="range" id="blendSlider" min="0" max="100" value="70" step="10"
+            oninput="updateBlendLabel(this.value)" class="blend-slider">
+          <span class="blend-edge">AI</span>
+        </div>
+        <p class="section-sub">자체 = 축적 사건·통계·인정패턴 / AI = Gemini 동향분석(일반 지식 기반·실시간 웹검색 아님)</p>
+      </div>
+      <div class="pub-form-row">
+        <label>마스킹 수준</label>
+        <select id="maskLevelSelect">
+          <option value="light">경량 — 고인·유족 실명 부분가림(○○ 선생님 수준·학교명·지명 유지)</option>
+          <option value="strong">강 — 식별 가능 정보 전체 일반화</option>
+        </select>
+      </div>
+      <div class="pub-form-row">
+        <button class="btn" onclick="generatePublication()" id="pubGenBtn">발간물 생성</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 발간물 목록 -->
+  <div class="draft-stage">
+    <div class="ds-head"><span class="ds-step">발간물 목록</span>
+      <button class="btn-sm btn-secondary" onclick="loadPublications()" style="margin-left:auto">목록 새로고침</button>
+    </div>
+    <div id="pubListBody"><div class="list-loading">불러오는 중…</div></div>
+  </div>
+
+  <!-- 발간물 상세 미리보기 -->
+  <div id="pubDetailSection" style="display:none">
+    <div class="draft-stage">
+      <div class="ds-head"><span class="ds-step">발간물 미리보기</span>
+        <button class="btn-sm btn-secondary" onclick="closePubDetail()" style="margin-left:auto">닫기</button>
+      </div>
+      <div id="pubDetailBody"></div>
+    </div>
+  </div>
+</div>`;
+}
+
 function refreshDeadlinesPanel() {
   const body = document.getElementById("deadlineListBody");
   if (!body) return;
@@ -2429,6 +2646,297 @@ async function generateCriteria() {
     toast(`법령 파싱 완료 — 후보 ${n}건 (검토 후 반영)`);
     loadCriteriaMaster();
   } catch (e) { if (e.message !== "auth") toast("분석 오류", "error"); }
+}
+
+// ── P4: 유족 요약 핸들러 ─────────────────────────────────────────────────────
+async function generateFamilySummary() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("familySummaryBtn");
+  if (btn) { btn.textContent = "생성 중…"; btn.disabled = true; }
+  try {
+    const d = await apiP4FamilySummaryGenerate(currentCaseId);
+    if (!d.ok) { toast(d.error || "요약 생성 실패", "error"); return; }
+    familySummaryCache = (d.summary || d.data && d.data.summary) || null;
+    toast("유족 전달용 요약을 생성했습니다");
+    refreshDraft();
+  } catch (e) {
+    if (e.message !== "auth") toast("생성 오류", "error");
+  } finally {
+    const b = document.getElementById("familySummaryBtn");
+    if (b) { b.textContent = familySummaryCache ? "다시 생성" : "요약 생성"; b.disabled = false; }
+  }
+}
+function copyFamilySummary() {
+  const fs = familySummaryCache;
+  if (!fs) return;
+  const steps = (fs.nextSteps || []).map((s, i) => (i + 1) + ". " + s).join("\n");
+  const text = fs.contentText + (steps ? "\n\n다음 할 일:\n" + steps : "");
+  navigator.clipboard && navigator.clipboard.writeText(text).then(() => toast("클립보드에 복사했습니다")).catch(() => toast("복사 실패", "error"));
+}
+function exportFamilySummaryPdf() {
+  const fs = familySummaryCache;
+  if (!fs) return;
+  const steps = (fs.nextSteps || []).map(s => "<li>" + escapeHtml(s) + "</li>").join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>유족 전달 요약</title>
+<style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto;line-height:1.8}h1{font-size:20px}p{white-space:pre-wrap}ul{padding-left:20px}</style>
+</head><body><h1>진행 상황 안내</h1><p>${escapeHtml(fs.contentText)}</p>${steps ? "<h2>다음 할 일</h2><ul>" + steps + "</ul>" : ""}</body></html>`;
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "유족전달요약.html"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── P4: 통계 핸들러 ──────────────────────────────────────────────────────────
+async function loadStats(force) {
+  if (statsData && !force) return;
+  const body = document.getElementById("statsBody");
+  if (body) body.innerHTML = '<div class="list-loading">집계 중…</div>';
+  destroyStatsCharts();
+  try {
+    const d = await apiP4Stats();
+    if (!d.ok) { if (body) body.innerHTML = '<div class="empty-hint"><div class="eh-desc">통계 불러오기 실패</div></div>'; return; }
+    statsData = d;
+    renderStatsBody(d);
+  } catch (e) {
+    if (e.message !== "auth") { const b2 = document.getElementById("statsBody"); if (b2) b2.innerHTML = '<div class="empty-hint"><div class="eh-desc">네트워크 오류</div></div>'; }
+  }
+}
+function destroyStatsCharts() {
+  Object.values(statsCharts).forEach(c => { try { c.destroy(); } catch (_) {} });
+  statsCharts = {};
+}
+function renderStatsBody(d) {
+  const body = document.getElementById("statsBody");
+  if (!body) return;
+  const tot = d.totals || {};
+  const rate = d.recognitionRate != null ? Math.round(d.recognitionRate * 100) : 0;
+  const byCaseType = d.byCaseType || [];
+  const trend = d.trend || [];
+  const readinessDist = d.readinessDist || [];
+  const byStatus = d.byStatus || [];
+
+  const typeLabels = { overwork: "과로", harassment: "괴롭힘", accident: "사고/질병", other: "기타" };
+  const statusLabels = { intake: "접수", collecting: "수집", analyzing: "분석", drafting: "서면", submitted: "청구", closed: "종결", analysis: "분석", hearing: "심의" };
+
+  body.innerHTML = `
+  <div class="stats-summary-row">
+    <div class="stats-kpi"><div class="kpi-val">${tot.cases || 0}</div><div class="kpi-label">전체 사건</div></div>
+    <div class="stats-kpi"><div class="kpi-val kpi-green">${tot.approved || 0}</div><div class="kpi-label">인정</div></div>
+    <div class="stats-kpi"><div class="kpi-val kpi-red">${tot.rejected || 0}</div><div class="kpi-label">불인정</div></div>
+    <div class="stats-kpi"><div class="kpi-val">${tot.pending || 0}</div><div class="kpi-label">진행 중</div></div>
+    <div class="stats-kpi"><div class="kpi-val kpi-blue">${rate}%</div><div class="kpi-label">인정률</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stats-card"><div class="sc-title">인정률 (도넛)</div><canvas id="chartDonut" height="200"></canvas></div>
+    <div class="stats-card"><div class="sc-title">유형별 인정 현황 (막대)</div><canvas id="chartBar" height="200"></canvas></div>
+    <div class="stats-card"><div class="sc-title">월별 인정 추이 (선)</div><canvas id="chartLine" height="200"></canvas></div>
+    <div class="stats-card"><div class="sc-title">준비도 분포</div><canvas id="chartReadiness" height="200"></canvas></div>
+  </div>`;
+
+  if (!window.Chart) return;
+  // 도넛: 인정/불인정/진행 중
+  statsCharts.donut = new Chart(document.getElementById("chartDonut"), {
+    type: "doughnut",
+    data: { labels: ["인정", "불인정", "진행 중"],
+      datasets: [{ data: [tot.approved || 0, tot.rejected || 0, tot.pending || 0],
+        backgroundColor: ["#22c55e", "#ef4444", "#94a3b8"] }] },
+    options: { plugins: { legend: { position: "bottom" } }, cutout: "65%" },
+  });
+  // 막대: 유형별 전체/인정
+  statsCharts.bar = new Chart(document.getElementById("chartBar"), {
+    type: "bar",
+    data: { labels: byCaseType.map(x => typeLabels[x.type] || x.type),
+      datasets: [
+        { label: "전체", data: byCaseType.map(x => x.total), backgroundColor: "#93c5fd" },
+        { label: "인정", data: byCaseType.map(x => x.approved), backgroundColor: "#22c55e" },
+      ] },
+    options: { plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+  });
+  // 선: 월별 인정 추이
+  statsCharts.line = new Chart(document.getElementById("chartLine"), {
+    type: "line",
+    data: { labels: trend.map(x => x.month),
+      datasets: [{ label: "인정 건수", data: trend.map(x => x.approved),
+        borderColor: "#2563eb", backgroundColor: "rgba(37,99,235,.1)", tension: 0.3, fill: true }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+  });
+  // 준비도 분포 막대 (readinessDist 또는 byStatus fallback)
+  const distData = readinessDist.length ? readinessDist : byStatus.map(x => ({ range: statusLabels[x.status] || x.status, count: x.count }));
+  statsCharts.readiness = new Chart(document.getElementById("chartReadiness"), {
+    type: "bar",
+    data: { labels: distData.map(x => x.range),
+      datasets: [{ label: "건수", data: distData.map(x => x.count), backgroundColor: "#7c3aed" }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+  });
+}
+
+// ── P4: 발간 핸들러 ──────────────────────────────────────────────────────────
+function clearPubPollTimer() {
+  if (pubPollTimer) { clearInterval(pubPollTimer); pubPollTimer = null; }
+}
+function updateBlendLabel(val) {
+  const el = document.getElementById("blendLabel");
+  if (el) el.textContent = "자체 " + val + " : AI " + (100 - val);
+}
+async function generatePublication() {
+  const typeEl = document.getElementById("pubTypeSelect");
+  const maskEl = document.getElementById("maskLevelSelect");
+  const sliderEl = document.getElementById("blendSlider");
+  if (!typeEl) return;
+  const pubType = typeEl.value;
+  const maskLevel = maskEl ? maskEl.value : "light";
+  const selfRatio = sliderEl ? parseInt(sliderEl.value, 10) : 70;
+  const blendRatio = { self: selfRatio, ai: 100 - selfRatio };
+
+  const btn = document.getElementById("pubGenBtn");
+  if (btn) { btn.textContent = "생성 중…"; btn.disabled = true; }
+  try {
+    const d = await apiP4PublicationGenerate(pubType, blendRatio, maskLevel);
+    if (!d.ok) { toast(d.error || "생성 요청 실패", "error"); return; }
+    const pubId = d.id || (d.data && d.data.id);
+    if (d.queued && pubId) {
+      toast("발간물 생성 요청 — 완료되면 목록에 표시됩니다");
+      pollPublicationGenerated(pubId);
+    } else {
+      toast("발간물을 생성했습니다");
+      loadPublications();
+    }
+  } catch (e) {
+    if (e.message !== "auth") toast("생성 오류", "error");
+  } finally {
+    const b = document.getElementById("pubGenBtn"); if (b) { b.textContent = "발간물 생성"; b.disabled = false; }
+  }
+}
+function pollPublicationGenerated(pubId) {
+  clearPubPollTimer();
+  let tries = 0;
+  pubPollTimer = setInterval(async () => {
+    tries++;
+    if (tries > 30) { clearPubPollTimer(); return; }
+    try {
+      const d = await apiP4PublicationGet(pubId);
+      if (d.ok && d.publication && d.publication.contentHtml) {
+        clearPubPollTimer();
+        pubDetail = d.publication;
+        loadPublications();
+        showPublicationDetail(pubId);
+        toast("발간물 생성 완료");
+      }
+    } catch (_) {}
+  }, 4000);
+}
+async function loadPublications() {
+  const body = document.getElementById("pubListBody");
+  if (!body) return;
+  try {
+    const d = await apiP4PublicationList();
+    if (!d.ok) { body.innerHTML = '<div class="empty-hint"><div class="eh-desc">목록 불러오기 실패</div></div>'; return; }
+    pubList = (d.publications || d.data && d.data.publications) || [];
+    renderPubList();
+  } catch (e) {
+    if (e.message !== "auth") { const b2 = document.getElementById("pubListBody"); if (b2) b2.innerHTML = '<div class="empty-hint"><div class="eh-desc">네트워크 오류</div></div>'; }
+  }
+}
+const PUB_TYPE_LABELS = { guide: "종합 가이드", trend: "동향 보고서", case_study: "사례 연구" };
+const PUB_STATUS_LABELS = { draft: "초안", reviewed: "검수 완료", published: "발간됨" };
+const PUB_STATUS_CLS = { draft: "rv-pending", reviewed: "rv-changes", published: "rv-approved" };
+function renderPubList() {
+  const body = document.getElementById("pubListBody");
+  if (!body) return;
+  if (!pubList.length) { body.innerHTML = '<div class="empty-hint"><div class="eh-desc">발간물이 없습니다. 위 폼에서 생성하세요.</div></div>'; return; }
+  body.innerHTML = pubList.map(p => {
+    const st = PUB_STATUS_LABELS[p.status] || p.status;
+    const cls = PUB_STATUS_CLS[p.status] || "rv-pending";
+    return `<div class="pub-item">
+      <div class="pi-main">
+        <div class="pi-title">${escapeHtml(p.title || "제목 생성 중…")}</div>
+        <div class="pi-meta">${PUB_TYPE_LABELS[p.pubType] || p.pubType || "–"} · ${fmtDate(p.createdAt)}</div>
+      </div>
+      <div class="pi-right">
+        <span class="rv-badge ${cls}">${st}</span>
+        <button class="btn-xs" onclick="showPublicationDetail(${p.id})">상세</button>
+        <button class="btn-xs btn-danger" onclick="deletePublication(${p.id})">삭제</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+async function showPublicationDetail(id) {
+  const d = await apiP4PublicationGet(id);
+  if (!d.ok || !d.publication) { toast("상세 불러오기 실패", "error"); return; }
+  pubDetail = d.publication;
+  const sec = document.getElementById("pubDetailSection");
+  const body = document.getElementById("pubDetailBody");
+  if (!sec || !body) return;
+  sec.style.display = "";
+  const p = d.publication;
+  const reidCls = { low: "rv-approved", medium: "rv-changes", high: "rv-pending" }[p.reidRisk] || "rv-pending";
+  const reidLabel = { low: "재식별 위험 낮음", medium: "위험 보통", high: "⚠️ 위험 높음" }[p.reidRisk] || p.reidRisk;
+  body.innerHTML = `
+    <div class="pub-detail-meta">
+      <span class="rv-badge ${PUB_STATUS_CLS[p.status] || "rv-pending"}">${PUB_STATUS_LABELS[p.status] || p.status}</span>
+      <span class="rv-badge ${reidCls}">${reidLabel}</span>
+      ${p.blendRatio ? `<span class="blend-tag">자체 ${p.blendRatio.self}:AI ${p.blendRatio.ai}</span>` : ""}
+      ${p.anonymized ? `<span class="blend-tag">비식별화 적용</span>` : ""}
+    </div>
+    <div class="pub-preview">${p.contentHtml || "<p>(본문 생성 중…)</p>"}</div>
+    ${renderPubActions(p)}`;
+  sec.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderPubActions(p) {
+  const canReview  = p.status === "draft";
+  const canPublish = p.status === "reviewed";
+  return `<div class="pub-actions">
+    ${canReview  ? `<button class="btn-sm" onclick="reviewPublication(${p.id})">✅ 검수 완료</button>` : ""}
+    ${canPublish ? `<button class="btn-sm" onclick="publishPublication(${p.id})">📢 발간 확정</button>` : ""}
+    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'pdf')">📄 PDF</button>
+    <button class="btn-sm btn-secondary" onclick="exportPublication(${p.id},'html')">🌐 HTML</button>
+  </div>`;
+}
+async function reviewPublication(id) {
+  try {
+    const d = await apiP4PublicationPatch(id, { status: "reviewed" });
+    if (!d.ok) { toast(d.error || "검수 실패", "error"); return; }
+    toast("검수 완료로 변경했습니다");
+    showPublicationDetail(id);
+    renderPubList();
+  } catch (e) { if (e.message !== "auth") toast("오류", "error"); }
+}
+async function publishPublication(id) {
+  if (!confirm("발간을 확정하면 외부 배포 준비 상태가 됩니다. 내용을 최종 확인하셨나요?")) return;
+  try {
+    const d = await apiP4PublicationPatch(id, { status: "published" });
+    if (!d.ok) { toast(d.error || "발간 실패", "error"); return; }
+    toast("발간 확정했습니다");
+    showPublicationDetail(id);
+    renderPubList();
+  } catch (e) { if (e.message !== "auth") toast("오류", "error"); }
+}
+async function exportPublication(id, format) {
+  try {
+    const d = await apiP4PublicationExport(id, format);
+    if (!d.ok) { toast(d.error || "내보내기 실패", "error"); return; }
+    const bytes = Uint8Array.from(atob(d.base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: d.mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = d.fileName || ("발간물." + format); a.click();
+    URL.revokeObjectURL(url);
+    toast("다운로드 시작");
+  } catch (e) { if (e.message !== "auth") toast("내보내기 오류", "error"); }
+}
+async function deletePublication(id) {
+  if (!confirm("이 발간물을 삭제할까요?")) return;
+  try {
+    const d = await apiP4PublicationDelete(id);
+    if (!d.ok) { toast(d.error || "삭제 실패", "error"); return; }
+    toast("발간물을 삭제했습니다");
+    if (pubDetail && pubDetail.id === id) closePubDetail();
+    loadPublications();
+  } catch (e) { if (e.message !== "auth") toast("삭제 오류", "error"); }
+}
+function closePubDetail() {
+  const sec = document.getElementById("pubDetailSection");
+  if (sec) sec.style.display = "none";
+  pubDetail = null;
 }
 
 // ── 종류 토글 (지원대상 / 과거사례) ────────────────────────────────────────
