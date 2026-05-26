@@ -32,6 +32,7 @@
 - ℹ️ `martyrdom_ai` 토글은 **'비용 관리' 화면**에 있음(설정·도구 관리 아님)·라이브 등록됨·기본 켜짐.
 - **2차 재진단(배포 후 실제 사유 노출로 확정)**: ⑴ 텍스트 분류 "AI 응답 파싱 실패" = 모델이 JSON 앞뒤에 설명 혼합 → `callGeminiJSON` **JSON 블록 추출 폴백** + 분류 maxOutputTokens 512→1536 ⑵ OCR "aborted due to timeout"(처리중 잔여) = 재처리 시 옛 오류 미정리 + 8초 잔여 → **재처리 시 extract_error/doc_summary 초기화** + OCR 120→180초. 2차 fix 배포. (surge 가설은 실제 사유상 부차적.)
 - **Swain 재검증 대기(2차 배포 후)**: [전체 재시도] → 엑셀·이미지·텍스트 모두 추출·분류되는지. 잔여 실패는 빨간 사유로 추가조치.
+- **자료 CRUD + hwp 추가(`02286c5`·Swain 요청)**: ⑴ 완료 자료도 행 [재처리](doc-register 상태무관·UI만) ⑵ 개별 [삭제]·상단 [전체 삭제] = 신규 `admin-martyrdom-doc-delete`(R2+RAG청크 doc-N#%+blob_uploads+행·전체는 case_id 격리·법령 시드 보존) ⑶ **.hwp(HWP5)** = `ai-ocr`에 cfb로 PrvText(미리보기·UTF-16LE) 추출. 신규 dep `cfb`. .hwpx(ZIP)는 미지원→수동입력 폴백. 캐시버스터 admin-martyrdom.js v7. tsc 0·node --check OK.
 
 ### A. 신규 웹 가입자 집계·가입경로 '싸이렌웹' — 배포·마이그 대기 (2026-05-26)
 - 원인 2개: ① `auth-signup`가 signup_source_id 미기록(NULL) ② `admin-dashboard-kpi` webonly 필터가 존재 않는 코드 'siren'으로 조회(실제 'website') → 웹 회원 항상 0집계. 둘 다 fix(`cb88ac2`). 통합분석·가입회원관리는 경로값 파생이라 자동 치유.
