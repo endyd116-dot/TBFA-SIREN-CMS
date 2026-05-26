@@ -4140,18 +4140,14 @@ export const aiRagDocuments = pgTable("ai_rag_documents", {
   title:      text("title"),
   content:    text("content").notNull(),
   tokenCount: integer("token_count").default(0),
+  caseId:     integer("case_id"),   // 순직 사건 격리 검색용 (migrate-martyrdom-setup 적용 2026-05-26·martyr_active/martyr_case row만 채움)
   createdAt:  timestamp("created_at").defaultNow(),
   updatedAt:  timestamp("updated_at").defaultNow(),
 });
 export type AiRagDocument    = typeof aiRagDocuments.$inferSelect;
 export type NewAiRagDocument = typeof aiRagDocuments.$inferInsert;
 
-/* === 순직 인정 지원 시스템 (2026-05-26) ===
- * ★ 마이그레이션 전 활성화 금지 — migrate-martyrdom-setup?run=1 호출 후 주석 해제
- * 아래 4테이블은 마이그 적용 전 코드에서 참조하지 않음 (raw SQL + background만 접근)
- * aiRagDocuments.caseId 컬럼도 마이그 후 실 schema 반영 예정 */
-
-/*
+/* === 순직 인정 지원 시스템 (2026-05-26) === 마이그 적용 완료·활성화 (migrate-martyrdom-setup 호출됨 2026-05-26) */
 export const martyrdomCases = pgTable("martyrdom_cases", {
   id: serial("id").primaryKey(),
   caseNo: varchar("case_no", { length: 30 }).unique().notNull(),
@@ -4244,4 +4240,3 @@ export const martyrdomGoldenItems = pgTable("martyrdom_golden_items", {
 });
 export type MartyrdomGoldenItem    = typeof martyrdomGoldenItems.$inferSelect;
 export type NewMartyrdomGoldenItem = typeof martyrdomGoldenItems.$inferInsert;
-*/
