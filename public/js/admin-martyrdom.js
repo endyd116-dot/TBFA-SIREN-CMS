@@ -220,6 +220,7 @@ let pollTimer = null;
 let genPollTimer = null;       // 전략/요건 생성 결과 폴링
 let draftPollTimer = null;     // 서면 섹션 생성 결과 폴링(P3)
 let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
+let isAdmin = false;           // role ∈ {admin, super_admin} — 발간 생성·발간 권한(ⓐ)
 let myMemberId = null;         // /api/admin/me id — 검토 결정 권한 분기용(P3)
 let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
 let caseDeadlines = [];        // 현재 사건 기한 목록(martyrdom_deadlines)
@@ -336,8 +337,10 @@ async function detectSuperAdmin() {
     const r = await fetch("/api/admin/me", { credentials: "include" });
     if (!r.ok) return;
     const d = await r.json().catch(() => ({}));
-    const me = (d && (d.data || d)) || {};
+    const root = (d && (d.data || d)) || {};
+    const me = (root && root.admin) || root;   // admin-me 응답: { data: { admin: { role, id, ... } } } — role이 admin 아래 중첩
     isSuperAdmin = !!(me && me.role === "super_admin");
+    isAdmin = !!(me && (me.role === "super_admin" || me.role === "admin"));
     myMemberId = (me && (me.id || me.uid || me.memberId)) || null;   // 검토 결정 권한 분기용
   } catch (_) { /* 감지 실패 시 비-super_admin로 간주 */ }
 }
@@ -803,7 +806,7 @@ function renderDetail(d) {
   <button class="tab-btn"        id="tab-draft"        onclick="switchTab('tab-draft')">④ 서면</button>
   <button class="tab-btn"        id="tab-deadlines"    onclick="switchTab('tab-deadlines')">⑤ 기한</button>
   <button class="tab-btn"        id="tab-stats"        onclick="switchTab('tab-stats')">📊 통계</button>
-  ${isSuperAdmin ? `<button class="tab-btn" id="tab-publications" onclick="switchTab('tab-publications')">📚 발간</button>` : ""}
+  <button class="tab-btn"        id="tab-publications" onclick="switchTab('tab-publications')">📚 발간</button>
 </div>
 <div id="tab-content">
   ${renderTabGolden()}
@@ -812,7 +815,7 @@ function renderDetail(d) {
   ${renderTabDraft()}
   ${renderTabDeadlines()}
   ${renderTabStats()}
-  ${isSuperAdmin ? renderTabPublications() : ""}
+  ${renderTabPublications()}
 </div>`;
   switchTab(currentTab);          // 직전 탭 유지(재렌더 시)
   refreshActionsPanel();          // 전역 caseActions로 채움(없으면 안내)
@@ -1846,7 +1849,8 @@ function renderTabPublications() {
   </div>
   <div class="alert-banner expert-warning">⚠️ 외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
 
-  <!-- 새 발간물 생성 -->
+  ${isAdmin ? `
+  <!-- 새 발간물 생성 (관리자 이상·ⓐ) -->
   <div class="draft-stage">
     <div class="ds-head"><span class="ds-step">새 발간물 생성</span></div>
     <div class="pub-form">
@@ -1879,7 +1883,8 @@ function renderTabPublications() {
         <button class="btn" onclick="generatePublication()" id="pubGenBtn">발간물 생성</button>
       </div>
     </div>
-  </div>
+  </div>` : `
+  <div class="alert-banner">📖 운영자는 발간물 조회만 가능합니다. 생성·검수·발간은 관리자 이상 권한입니다.</div>`}
 
   <!-- 발간물 목록 -->
   <div class="draft-stage">
