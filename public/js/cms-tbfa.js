@@ -267,6 +267,7 @@
           'system-notification': '🔔 시스템 자동 발송',
           'forms-builder': '📋 응답폼·신청폼 관리',
           'send-analytics': '📊 발송 분석',
+          'notification-logs': '📋 알림 발송 로그',
           import: '외부 등록',
           transfer: '웹 후원자 이관',
           tags: '태그 관리',
@@ -321,6 +322,7 @@
         else if (tab === 'system-notification') renderSystemNotification();
         else if (tab === 'forms-builder') renderFormsBuilder();
         else if (tab === 'send-analytics') renderSendAnalytics();
+        else if (tab === 'notification-logs') _nfLoadIframe('page-notification-logs');
         else if (tab === 'csv-import') {
           /* ★ 작업 C(#15): CSV 자동 매핑 — 별도 모듈에서 init */
           if (window.CsvImport && typeof window.CsvImport.init === 'function') {

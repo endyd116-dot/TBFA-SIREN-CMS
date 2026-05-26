@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>알림 발송 로그 | SIREN 어드민</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Noto Sans KR', sans-serif;
+  background: #f1f5f9; color: #1e293b;
+}
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+
+/* admin-notification-logs.js 가 사용하는 클래스 (admin.html CSS 호환 최소셋) */
+.panel {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 16px 18px;
+}
+.panel h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; }
+.panel h3 { font-size: 0.95rem; font-weight: 600; }
+
+.kpi-grid { display: grid; }
+.card { background: #fff; }
+
+.filter-bar label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; color: #475569;
+}
+.filter-bar input[type="date"],
+.filter-bar select {
+  padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 0.85rem; font-family: inherit; background: #fff;
+}
+
+.btn {
+  padding: 7px 14px; border: 1px solid #cbd5e1; background: #fff;
+  border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+  font-family: inherit; color: #1e293b;
+}
+.btn:hover { background: #f8fafc; }
+
+.basic-table { width: 100%; border-collapse: collapse; }
+.basic-table thead th {
+  background: #f8fafc; padding: 10px 12px; font-size: 0.78rem;
+  font-weight: 600; color: #64748b; text-align: left;
+  border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+}
+.basic-table tbody td {
+  padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.basic-table tbody tr:last-child td { border-bottom: none; }
+.basic-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<main class="page-wrap">
+  <!-- admin-notification-logs.js 가 이 컨테이너에 화면을 렌더 -->
+  <div id="adm-notification-logs"></div>
+</main>
+
+<!-- 실패 사유 차트용 (없으면 텍스트로 자동 폴백) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/js/lib-kst.js?v=1" defer></script>
+<script src="/js/admin-notification-logs.js?v=20260526cms"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();
+  });
+</script>
+</body>
+</html>

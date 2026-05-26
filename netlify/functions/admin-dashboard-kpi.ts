@@ -53,7 +53,7 @@ export default async (req: Request, _ctx: Context) => {
   const days = PERIOD_MAP[periodParam] ?? 30;
   /* ★ 2026-05-16: 싸이렌 어드민 대시보드는 SIREN 웹 가입자만 집계. 효성·수기·
      이벤트 등으로 확보된 회원은 통합 CMS에서 보므로 ?webonly=1 옵션으로 필터.
-     필터 조건: signup_sources.code='siren' (사이렌 웹 가입). */
+     필터 조건: signup_sources.code='website' (사이렌 웹 가입). */
   const webOnly = url.searchParams.get("webonly") === "1";
 
   /* ── 1. 후원 KPI ── */
@@ -153,10 +153,12 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 2. 회원 KPI ── */
   let member: any;
   try {
-    /* ★ 2026-05-16: webonly=1 시 가입경로 'siren'(웹) 회원만 집계. 효성·수기·
-       이벤트 등은 제외 — 싸이렌 어드민 대시보드는 SIREN 플랫폼 가입자만 본다. */
+    /* ★ 2026-05-16: webonly=1 시 가입경로 'website'(웹) 회원만 집계. 효성·수기·
+       이벤트 등은 제외 — 싸이렌 어드민 대시보드는 SIREN 플랫폼 가입자만 본다.
+       ★ 2026-05-26 FIX: DB 가입경로 코드는 'website'. 'siren'은 API enum 표기일 뿐
+       signup_sources에는 없어 서브쿼리가 NULL→웹 회원이 항상 0집계되던 버그 수정. */
     const webFilter = webOnly
-      ? sql`AND m.signup_source_id = (SELECT id FROM signup_sources WHERE code = 'siren' LIMIT 1)`
+      ? sql`AND m.signup_source_id = (SELECT id FROM signup_sources WHERE code = 'website' LIMIT 1)`
       : sql``;
 
     const memberRes = await db.execute(sql`

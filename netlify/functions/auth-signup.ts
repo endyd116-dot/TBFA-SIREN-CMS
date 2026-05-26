@@ -35,6 +35,8 @@ import {
 } from "../../lib/response";
 /* ★ 2026-05-16 A안: 효성 후원자 사이트 가입 흐름 — 전화 인증 토큰 처리 */
 import { consumeVerifyToken, normalizePhone as normPhoneVerify } from "../../lib/phone-verify";
+/* ★ 2026-05-26: 웹 가입자 가입경로(signup_source_id) 기록 — 미기록 시 NULL→집계 누락 */
+import { getSignupSourceId } from "../../lib/member-classifier";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
 const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
@@ -302,6 +304,9 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 8. 회원 생성 */
     const now = new Date();
+    /* ★ 2026-05-26: 웹 가입자는 가입경로 'website'로 기록. 미기록(NULL) 시 대시보드·
+       통합분석·가입회원관리 집계에서 누락됨. 시드 미존재 등으로 null이면 기존과 동일. */
+    const webSignupSourceId = await getSignupSourceId("website");
     const insertData: any = {
       email,
       passwordHash,
@@ -311,6 +316,7 @@ export default async (req: Request, _ctx: Context) => {
       status: config.initialStatus,
       memberCategory: config.memberCategory,
       memberSubtype: config.subtype,
+      signupSourceId: webSignupSourceId,
       certificateBlobId,
       certificateUploadedAt: certificateBlobId ? now : null,
       agreeEmail: body.agreeEmail !== false,
