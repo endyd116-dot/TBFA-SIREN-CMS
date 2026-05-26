@@ -114,22 +114,30 @@ git worktree add ../tbfa-mis-C verify/{branch-C}  origin/main
 
 새 채팅 시작 시 **반드시 본인 worktree 폴더에서 시작**.
 
-### 4.1 베이스 정합 — origin/main 기준 분기 (2026-05-24 강화·필수)
+### 4.1 베이스 정합 — 라운드 베이스 일치 (2026-05-24 사고 → 2026-05-26 워크트리 공유 최적화)
 
-**A·B·C 분기 베이스는 언제나 `origin/main`(push된 ref).** 로컬 main(미push 커밋 포함)을 베이스로 지정하지 말 것.
+**핵심 원칙: A·B·C는 라운드 설계(설계서·마이그 등)를 포함한 동일 베이스에서 분기한다.** 베이스 어긋남·설계 빠진 베이스면 머지 시 충돌·옛 커밋 혼입. **요점은 "베이스 push 자체"가 아니라 "트리거가 가리키는 베이스 = 설계가 올라간 베이스가 일치"하는 것.**
+
+#### (권장·현 SIREN 환경) 워크트리 공유 → 로컬 main 분기·push 0
+A·B·C가 **같은 로컬 `.git`을 공유하는 git worktree**면(`git worktree list`로 확인), origin push 없이 **로컬 `main` HEAD**(설계 포함)에서 분기/rebase한다. 로컬 커밋이 공유 객체저장소에 즉시 보이므로 모든 워크트리가 동일 로컬 main에서 분기 = 베이스 일치. `push`=배포=과금이라 **베이스 push 생략 → 분배 시 배포 0**. push는 **B 머지(마이그 라이브 호출용)·A 머지(라이브 검증)** 등 라이브 필수 시점만(§9.3).
 
 ```bash
 cd ../tbfa-mis-{X}
-git fetch origin
-git checkout -B feature/{branch} origin/main      # 기존 워크트리가 옛 브랜치에 있어도 강제 재설정
-git log --oneline -1                               # 베이스 = 기대 커밋인지 눈으로 확인
-git merge-base --is-ancestor {BASE_HASH} HEAD && echo "베이스 OK" || echo "⚠️ 베이스 어긋남 — 메인에 보고"
+git fetch origin                                   # (선택·harmless)
+git checkout -B feature/{branch} main              # ★ 로컬 main(설계 포함) — origin/main 아님
+git log --oneline -1                               # 베이스 = 로컬 main HEAD {BASE_HASH} 확인
+git merge-base --is-ancestor {BASE_HASH} HEAD && echo "베이스 OK" || echo "⚠️ 어긋남 — 메인 보고"
+# 이미 옛 베이스로 분기한 워크트리: git rebase main
 ```
 
-- **메인 의무**: 라운드 분배 **전에** 설계서·마이그 등 라운드 베이스를 **origin/main에 push**한다(§9.3 push 최소화의 예외 아님 — 베이스 push는 마이그 배포처럼 필수 enabler·라운드당 1회). 베이스를 미push 로컬 main에만 두고 분배하면 A·B가 다른 베이스에서 시작한다.
-- **트리거 의무**: 위 셋업 블록 + **기대 베이스 해시**를 트리거에 명시 → 서브 채팅이 첫 줄에서 자가 검증.
-- **기존 워크트리 주의**: A·B·C 워크트리는 이전 라운드 브랜치에 머물러 있을 수 있다. `git checkout -B ... origin/main`(대문자 -B)로 강제 재설정해 옛 HEAD 베이스 잔류를 차단.
-- 사고: 2026-05-24 ④ 라운드 — 메인이 ④설계·마이그를 미push 로컬 main에만 두고 분배 → A는 origin/main(③만), B는 더 옛 베이스(9f8bc66)에서 시작 → 머지 시 옛 검수 커밋 혼입·`lib/ai-feature.ts` 충돌. §16 선택적 체크아웃(작업 커밋만 cherry-pick)으로 복구.
+- **메인 의무**: 분배 **전에** 설계서·마이그를 **로컬 main에 commit**(push 불필요) → 그 HEAD 해시를 `{BASE_HASH}`로 트리거에 명시.
+- **⚠️ 절대 금지(2026-05-24 사고 핵심)**: 설계는 로컬 main에 두고 트리거는 `origin/main`(stale)을 가리키면 어긋남. **로컬 main에 설계 두면 트리거도 `main`을 가리킬 것**(origin/main 아님).
+- **기존 워크트리 주의**: `git checkout -B`(대문자) 강제 재설정 또는 `git rebase main`으로 옛 HEAD 잔류 차단.
+
+#### (예외) cross-machine / repo 분리 → origin/main push
+A·B·C가 서로 다른 머신이거나 `.git`을 공유하지 않으면, 종전대로 라운드 베이스를 **origin/main에 push**(라운드당 1회·§9.3 필수 enabler) 후 `checkout -B ... origin/main`.
+
+- 사고: 2026-05-24 ④ — 메인이 ④설계·마이그를 로컬 main에 두고 트리거는 origin/main(③만·stale) 지정 → A·B 베이스 어긋남·`lib/ai-feature.ts` 충돌. §16 cherry-pick 복구. **교훈: 베이스 push 강제가 아니라 "트리거 베이스 = 설계 베이스 일치"가 진짜 규칙. 워크트리 공유면 로컬 main 일치로 push 없이 해결.**
 
 ---
 

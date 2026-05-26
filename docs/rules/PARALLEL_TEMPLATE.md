@@ -217,19 +217,24 @@ INSERT INTO {table_name} (...) VALUES (...) ON CONFLICT DO NOTHING;
 
 ## 6. 4채팅 시작 프롬프트 (Swain 복붙용)
 
-### 6.0 워크트리 셋업 (모든 채팅 공통·필수 — 2026-05-24 신설)
+### 6.0 워크트리 셋업 (모든 채팅 공통·필수 — 2026-05-24 신설·2026-05-26 push 0 최적화)
 
-> ⚠️ **베이스 정합 (PARALLEL_GUIDE §4.1)**: 분기 베이스는 **항상 `origin/main`**(push된 ref). 메인은 **분배 전에 설계서·마이그 등 라운드 베이스를 origin/main에 push**한다(베이스 push는 §9.3 예외 아님·라운드당 1회 필수 enabler). 각 트리거는 아래 셋업 블록 + **기대 베이스 해시**를 포함해 서브 채팅이 자가 검증하게 한다. 미push 로컬 main을 베이스로 지정하면 A·B가 다른 베이스에서 시작(2026-05-24 사고).
+> ⚠️ **베이스 정합 (PARALLEL_GUIDE §4.1)**: 요점은 "트리거가 가리키는 베이스 = 설계가 올라간 베이스 일치".
+> - **(권장·현 환경) 워크트리 공유**: A·B·C가 같은 로컬 `.git` worktree면 **로컬 `main` HEAD**(설계 포함)에서 분기 — **origin push 불필요**(배포 과금 0). 메인은 설계·마이그를 **로컬 main에 commit**(push X)하고 그 HEAD를 `{BASE_HASH}`로 명시. 셋업은 `checkout -B ... main`(origin/main 아님).
+> - **(예외) cross-machine**: `.git` 비공유면 종전대로 **origin/main에 push**(라운드당 1회) 후 `origin/main` 분기.
+> - **⚠️ 2026-05-24 사고**: 설계는 로컬 main, 트리거는 stale origin/main 지정 → 베이스 어긋남. 로컬 main에 두면 트리거도 `main`을 가리킬 것. push는 머지·라이브 검증 시점만(§9.3).
 
-모든 A·B·C 트리거 맨 위 "워크트리" 줄 아래에 박을 것:
+모든 A·B·C 트리거 맨 위 "워크트리" 줄 아래에 박을 것 (워크트리 공유·권장):
 ```
 ■ 셋업 (그대로 실행)
   cd ../tbfa-mis-{X}
-  git fetch origin
-  git checkout -B feature/{branch} origin/main     # 대문자 -B: 옛 브랜치에 있어도 강제 재설정
-  git log --oneline -1                              # 베이스가 {BASE_HASH} 인지 확인
+  git fetch origin                                 # (선택·harmless)
+  git checkout -B feature/{branch} main            # ★ 로컬 main(설계 포함)·origin/main 아님 / 대문자 -B 강제 재설정
+  git log --oneline -1                             # 베이스가 {BASE_HASH}(로컬 main HEAD) 인지 확인
   git merge-base --is-ancestor {BASE_HASH} HEAD && echo "베이스 OK" || echo "⚠️ 어긋남 — 메인에 보고 후 중단"
+  # 이미 옛 베이스로 분기돼 있으면: git rebase main
 ```
+(cross-machine 예외 시 위 `main` → `origin/main`, 분배 전 origin push)
 
 ### 6.1 메인 (Opus 4.7) — 이미 작업 중이므로 생략 (이 설계서가 산출물)
 
