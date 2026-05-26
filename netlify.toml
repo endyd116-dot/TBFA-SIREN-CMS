@@ -87,12 +87,29 @@
   # ★ 2026-05-16: 무거운 의존성 외부화로 함수 번들 시간·크기 단축.
   #   런타임에 node_modules에서 직접 로드되므로 콜드 스타트는 거의 영향 없고
   #   빌드 시간은 함수 수(170+) × 의존성 트리만큼 단축됨 (특히 aws-sdk 약 5MB).
+  # ★ 2026-05-27: 배포 8분+ → 외부화 확대(Swain 요청). drizzle-orm은 거의 모든 함수가
+  #   import → 170× 번들이 최대 병목이라 외부화. 대형 파서(exceljs·mammoth·pdf-parse·docx)
+  #   + DB 클라이언트·인증·검증 lib까지 외부화 = esbuild 번들 작업 대폭 감소.
+  #   (@netlify/functions는 런타임 제공이라 번들 유지)
   external_node_modules = [
     "postgres",
+    "@neondatabase/serverless",
+    "@netlify/neon",
+    "@netlify/blobs",
+    "drizzle-orm",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
     "pdf-lib",
     "@pdf-lib/fontkit",
+    "docx",
+    "exceljs",
+    "mammoth",
+    "pdf-parse",
+    "cfb",
+    "fflate",
+    "bcryptjs",
+    "jsonwebtoken",
+    "zod",
     "resend",
     "sharp",
   ]
