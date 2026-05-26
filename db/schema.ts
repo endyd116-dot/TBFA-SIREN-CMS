@@ -4303,10 +4303,8 @@ export type MartyrdomAction    = typeof martyrdomActions.$inferSelect;
 export type NewMartyrdomAction = typeof martyrdomActions.$inferInsert;
 /* === P2 순직 인정 지원 끝 === */
 
-/* === P3 서면 ===
-   ⚠️ DB 적용 전(마이그 호출 전) 활성화 금지 (#9.1.1 — 운영 SELECT 깨짐).
-   순직 모듈 코드는 raw SQL(sql.raw)로 접근하므로 아래 정의는 타입·문서·drizzle-kit 정합용.
-   메인이 migrate-martyrdom-p3?run=1 적용 확인 후 아래 블록 주석 해제(활성화).
+/* === P3 서면 === (마이그 migrate-martyrdom-p3 적용 확인 후 활성화 — 2026-05-27)
+   순직 모듈 코드는 raw SQL(sql.raw)로 접근·아래 정의는 타입·문서·drizzle-kit 정합용. */
 
 // (1) 유족급여신청서 초안 섹션 — 목차 확인 후 섹션별 생성·편집
 export const martyrdomDraftSections = pgTable("martyrdom_draft_sections", {
@@ -4348,4 +4346,4 @@ export const martyrdomReviews = pgTable("martyrdom_reviews", {
 }));
 export type MartyrdomReview    = typeof martyrdomReviews.$inferSelect;
 export type NewMartyrdomReview = typeof martyrdomReviews.$inferInsert;
-=== P3 서면 끝 === */
+/* === P3 서면 끝 === */
