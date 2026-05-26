@@ -473,7 +473,9 @@ async function submitNewCase() {
     currentKind = caseKind;
     setKindToggle(caseKind);
     await loadCases();
-    if (d.case?.id) selectCase(d.case.id);
+    // 서버 응답은 최상위 id·caseNo 반환(§2.3) — mock의 d.case.id 도 폴백 지원
+    const newId = d.id || d.case?.id;
+    if (newId) selectCase(newId);
   } catch (e) {
     if (e.message !== "auth") toast("생성 오류", "error");
   }

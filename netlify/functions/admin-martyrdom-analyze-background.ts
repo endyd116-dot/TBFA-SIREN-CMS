@@ -44,7 +44,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     /* ── 1. 사건 존재 확인 ── */
     const caseRes: any = await db.execute(sql.raw(`
-      SELECT id, case_no AS "caseNo", status FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1
+      SELECT id, case_no AS "caseNo", status, case_kind AS "caseKind" FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1
     `));
     const mc = (caseRes?.rows ?? caseRes ?? [])[0];
     if (!mc) {
@@ -78,8 +78,8 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(JSON.stringify({ ok: true, caseId, skipped: true, reason: "추출 완료 자료 없음" }));
     }
 
-    /* ── 3. 사건 구조 추출 (§2.5) ── */
-    const extraction = await extractCaseStructure(caseId, docs);
+    /* ── 3. 사건 구조 추출 (§2.5) — reference 사건만 recognitionPattern 추출 ── */
+    const extraction = await extractCaseStructure(caseId, docs, String(mc.caseKind || "active"));
 
     /* ── 4. martyrdom_cases.extraction_json 갱신 ── */
     const safeJson = JSON.stringify(extraction).replace(/'/g, "''");

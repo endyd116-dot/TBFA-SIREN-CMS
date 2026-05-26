@@ -173,6 +173,7 @@ interface DocSummary {
 export async function extractCaseStructure(
   caseId: number,
   docs: DocSummary[],
+  caseKind?: string,
 ): Promise<ExtractionResult> {
   const empty: ExtractionResult = {
     deceased: { name: "", school: "", position: "", servicePeriod: "", deceasedAt: "" },
@@ -220,7 +221,9 @@ export async function extractCaseStructure(
     }
   }
 
-  const isReference = docs.some(d => d.docType === "application");
+  /* recognitionPattern(인정/불인정 패턴)은 과거 학습사례(reference)에서만 추출(§2.5).
+     caseKind 미전달 시(레거시 호출) 기존 휴리스틱(신청서 보유)으로 폴백. */
+  const isReference = caseKind ? caseKind === "reference" : docs.some(d => d.docType === "application");
   const recognitionPatternSection = isReference
     ? `
   "recognitionPattern": {

@@ -14,15 +14,25 @@ import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-martyrdom-reanalyze" };
 
-function triggerAnalyze(caseId: number) {
+/* background 호출은 await로 요청 전송을 보장(미await 시 함수 종료로 fetch가 취소됨·5313ce8). */
+async function triggerAnalyze(caseId: number): Promise<{ bgStatus: number; bgError?: string }> {
   const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
   const baseUrl = base.startsWith("http") ? base : `https://${base}`;
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
-  fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-analyze-background`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ caseId, secret }),
-  }).catch((err) => console.warn("[martyrdom-reanalyze trigger]", err?.message || err));
+  try {
+    const resp = await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-analyze-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, secret }),
+    });
+    if (resp.status !== 202 && resp.status !== 200) {
+      return { bgStatus: resp.status, bgError: (await resp.text().catch(() => "")).slice(0, 200) };
+    }
+    return { bgStatus: resp.status };
+  } catch (err: any) {
+    console.warn("[martyrdom-reanalyze trigger]", err?.message || err);
+    return { bgStatus: 0, bgError: String(err?.message || err).slice(0, 200) };
+  }
 }
 
 export default async (req: Request, _ctx: Context) => {
@@ -58,12 +68,14 @@ export default async (req: Request, _ctx: Context) => {
       });
     }
 
-    triggerAnalyze(caseId);
+    const bg = await triggerAnalyze(caseId);
 
     return new Response(JSON.stringify({
       ok: true,
       caseId,
       analyzeQueued: true,
+      bgStatus: bg.bgStatus,
+      bgError: bg.bgError || undefined,
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
