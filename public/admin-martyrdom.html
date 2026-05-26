@@ -415,6 +415,10 @@ body {
 /* G3 대시보드 */
 .dash-wrap { padding: 20px; }
 .dash-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; } .dash-head h2 { margin: 0; font-size: 18px; }
+.dash-head-actions { display: flex; gap: 8px; }
+.global-view { padding: 20px; }
+.global-view-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; } .global-view-head h2 { margin: 0; font-size: 18px; }
+.global-view .tab-panel { display: block; }
 .dash-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .dash-kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center; }
 .dash-kpi.kpi-warn { border-color: #fde68a; background: #fffbeb; } .dash-kpi.kpi-danger { border-color: #fecaca; background: #fef2f2; }
@@ -606,6 +610,8 @@ body {
   <h1>🕊️ 순직 인정 지원 시스템</h1>
   <div class="topbar-right">
     <button class="topbar-btn" onclick="showDashboard()">📊 현황</button>
+    <button class="topbar-btn" onclick="showGlobalStats()">📈 통계</button>
+    <button class="topbar-btn" onclick="showGlobalPublications()">📚 발간</button>
     <button class="topbar-btn" onclick="openCorpusModal()">🔎 사례·법령</button>
     <button class="topbar-btn" onclick="openCriteriaMaster()">⚙️ 인정 요건</button>
     <a href="/cms-tbfa.html" target="_top">← 관리자 홈</a>
@@ -895,6 +901,6 @@ body {
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/js/admin-martyrdom.js?v=P4b"></script>
+<script src="/js/admin-martyrdom.js?v=P4c"></script>
 </body>
 </html>

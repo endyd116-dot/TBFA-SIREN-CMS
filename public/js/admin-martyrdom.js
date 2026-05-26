@@ -220,7 +220,9 @@ let pollTimer = null;
 let genPollTimer = null;       // 전략/요건 생성 결과 폴링
 let draftPollTimer = null;     // 서면 섹션 생성 결과 폴링(P3)
 let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
-let isAdmin = false;           // role ∈ {admin, super_admin} — 발간 생성·발간 권한(ⓐ)
+let isAdmin = false;           // role ∈ admin·super_admin — 발간 생성·검수·발간·삭제 권한(P4)
+let isOperator = false;        // role ∈ operator 이상 — 발간·통계 조회 권한(P4)
+let myRole = null;             // /api/admin/me role 원본값
 let myMemberId = null;         // /api/admin/me id — 검토 결정 권한 분기용(P3)
 let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
 let caseDeadlines = [];        // 현재 사건 기한 목록(martyrdom_deadlines)
@@ -332,17 +334,19 @@ function pickOutputId(res) {
     (res.data && (res.data.outputId || (res.data.output && res.data.output.id))))) || null;
 }
 
-async function detectSuperAdmin() {
+async function detectRole() {
   try {
     const r = await fetch("/api/admin/me", { credentials: "include" });
     if (!r.ok) return;
     const d = await r.json().catch(() => ({}));
     const root = (d && (d.data || d)) || {};
     const me = (root && root.admin) || root;   // admin-me 응답: { data: { admin: { role, id, ... } } } — role이 admin 아래 중첩
-    isSuperAdmin = !!(me && me.role === "super_admin");
-    isAdmin = !!(me && (me.role === "super_admin" || me.role === "admin"));
-    myMemberId = (me && (me.id || me.uid || me.memberId)) || null;   // 검토 결정 권한 분기용
-  } catch (_) { /* 감지 실패 시 비-super_admin로 간주 */ }
+    myRole       = (me && me.role) || null;
+    isSuperAdmin = myRole === "super_admin";
+    isAdmin      = myRole === "admin" || myRole === "super_admin";   // 발간 쓰기 권한(백엔드 requireRole admin과 정합)
+    isOperator   = isAdmin || myRole === "operator";                 // 발간·통계 조회 권한
+    myMemberId   = (me && (me.id || me.uid || me.memberId)) || null;  // 검토 결정 권한 분기용
+  } catch (_) { /* 감지 실패 시 최소 권한으로 간주 */ }
 }
 
 // 전략/골든/요건 생성 디스패처 (type=strategy|golden|criteria → background / readiness 별도)
@@ -832,8 +836,11 @@ function switchTab(tabId) {
   if (btn) btn.classList.add("active");
   const panel = document.getElementById(tabId + "-panel");
   if (panel) panel.style.display = "";
-  // P4 지연 로드
-  if (tabId === "tab-stats" && !statsData) loadStats();
+  // P4 지연 로드 (사건 전환·전역↔사건 이동 시 패널이 새로 그려지므로 캐시가 있어도 재렌더)
+  if (tabId === "tab-stats") {
+    if (statsData) { destroyStatsCharts(); renderStatsBody(statsData); }
+    else loadStats();
+  }
   if (tabId === "tab-publications") loadPublications();
 }
 
@@ -1840,7 +1847,7 @@ function renderTabStats() {
 </div>`;
 }
 
-// ── P4: 연구 발간 탭 (super_admin) ─────────────────────────────────────────
+// ── P4: 연구 발간 탭 (조회 operator+ · 생성·검수·발간·삭제 admin+) ──────────
 function renderTabPublications() {
   return `<div class="tab-panel" id="tab-publications-panel" style="display:none">
   <div class="section-head">
@@ -1848,9 +1855,8 @@ function renderTabPublications() {
       <p class="section-sub">축적된 사건·통계·인정 패턴을 종합해 외부 발간용 연구 자료를 생성합니다.</p></div>
   </div>
   <div class="alert-banner expert-warning">⚠️ 외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
-
-  ${isAdmin ? `
-  <!-- 새 발간물 생성 (관리자 이상·ⓐ) -->
+${isAdmin ? `
+  <!-- 새 발간물 생성 (admin 이상) -->
   <div class="draft-stage">
     <div class="ds-head"><span class="ds-step">새 발간물 생성</span></div>
     <div class="pub-form">
@@ -1884,7 +1890,7 @@ function renderTabPublications() {
       </div>
     </div>
   </div>` : `
-  <div class="alert-banner">📖 운영자는 발간물 조회만 가능합니다. 생성·검수·발간은 관리자 이상 권한입니다.</div>`}
+  <div class="empty-hint"><div class="eh-desc">📖 조회 전용입니다. 발간물 생성·검수·발간·삭제는 관리자(admin) 권한이 필요합니다. 아래 목록과 미리보기는 열람·PDF/HTML 내보내기가 가능합니다.</div></div>`}
 
   <!-- 발간물 목록 -->
   <div class="draft-stage">
@@ -2506,7 +2512,11 @@ function renderDashboard(d, pane) {
   });
   pane.innerHTML = `<div class="dash-wrap">
     <div class="dash-head"><h2>📊 순직 인정 지원 — 현황</h2>
-      <button class="btn-sm btn-secondary" onclick="showDashboard()">새로고침</button></div>
+      <div class="dash-head-actions">
+        <button class="btn-sm" onclick="showGlobalStats()">📊 통계</button>
+        <button class="btn-sm" onclick="showGlobalPublications()">📚 발간</button>
+        <button class="btn-sm btn-secondary" onclick="showDashboard()">새로고침</button>
+      </div></div>
     <div class="dash-cards">
       <div class="dash-kpi"><div class="kpi-num">${summary.activeCount != null ? summary.activeCount : cases.length}</div><div class="kpi-lbl">진행 사건</div></div>
       <div class="dash-kpi ${summary.urgentCount ? "kpi-warn" : ""}"><div class="kpi-num">${summary.urgentCount || 0}</div><div class="kpi-lbl">기한 임박</div></div>
@@ -2527,6 +2537,47 @@ function renderDashboard(d, pane) {
         <td>${c.docCount != null ? c.docCount : "-"}</td></tr>`;
     }).join("") || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">진행 사건이 없습니다</td></tr>'}</tbody></table>
   </div>`;
+}
+
+// ── P4: 전역 통계·발간 진입 (사건 선택 없이 — 여러 사건 종합 기능) ───────────
+function clearGlobalView() {
+  currentCaseId = null; currentDetail = null;
+  clearPollTimer();
+  document.querySelectorAll(".case-item").forEach(el => el.classList.remove("active"));
+}
+function showGlobalStats() {
+  clearGlobalView();
+  destroyStatsCharts();
+  statsData = null;
+  const pane = document.getElementById("detailPane");
+  if (!pane) return;
+  pane.innerHTML = `<div class="global-view">
+    <div class="global-view-head">
+      <h2>📊 인정률·성과 통계 — 전체 사건</h2>
+      <button class="btn-sm btn-secondary" onclick="showDashboard()">← 현황</button>
+    </div>
+    ${renderTabStats()}
+  </div>`;
+  const panel = document.getElementById("tab-stats-panel");
+  if (panel) panel.style.display = "";
+  loadStats(true);
+}
+function showGlobalPublications() {
+  clearGlobalView();
+  clearPubPollTimer();
+  pubDetail = null;
+  const pane = document.getElementById("detailPane");
+  if (!pane) return;
+  pane.innerHTML = `<div class="global-view">
+    <div class="global-view-head">
+      <h2>📚 연구 발간 — 전체 사건 종합</h2>
+      <button class="btn-sm btn-secondary" onclick="showDashboard()">← 현황</button>
+    </div>
+    ${renderTabPublications()}
+  </div>`;
+  const panel = document.getElementById("tab-publications-panel");
+  if (panel) panel.style.display = "";
+  loadPublications();
 }
 
 // ── 코퍼스 검색 (과거사례 + 법령) ───────────────────────────────────────────
@@ -2860,7 +2911,7 @@ function renderPubList() {
       <div class="pi-right">
         <span class="rv-badge ${cls}">${st}</span>
         <button class="btn-xs" onclick="showPublicationDetail(${p.id})">상세</button>
-        <button class="btn-xs btn-danger" onclick="deletePublication(${p.id})">삭제</button>
+        ${isAdmin ? `<button class="btn-xs btn-danger" onclick="deletePublication(${p.id})">삭제</button>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -2888,8 +2939,8 @@ async function showPublicationDetail(id) {
   sec.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function renderPubActions(p) {
-  const canReview  = p.status === "draft";
-  const canPublish = p.status === "reviewed";
+  const canReview  = isAdmin && p.status === "draft";      // 검수: admin 이상
+  const canPublish = isAdmin && p.status === "reviewed";   // 발간 확정: admin 이상
   return `<div class="pub-actions">
     ${canReview  ? `<button class="btn-sm" onclick="reviewPublication(${p.id})">✅ 검수 완료</button>` : ""}
     ${canPublish ? `<button class="btn-sm" onclick="publishPublication(${p.id})">📢 발간 확정</button>` : ""}
@@ -2951,8 +3002,8 @@ function setKindToggle(kind) {
 }
 
 // ── 초기화 ─────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  detectSuperAdmin();   // 요건 master 편집 권한 분기용(fire-and-forget)
+document.addEventListener("DOMContentLoaded", async () => {
+  await detectRole();   // 권한(super_admin·admin·operator) 확정 후 첫 렌더 — 발간 탭·버튼 노출 정합(레이스 방지)
   loadCases();
   showDashboard();      // 랜딩: G3 현황 대시보드
 });
