@@ -171,12 +171,20 @@ function checkSurgeCooldown(): { blocked: boolean; secondsRemaining: number; mes
   return { blocked: false, secondsRemaining: 0, message: "" };
 }
 
-/** 호출 직전 체크 — 비활성·기능별 한도·전체 월 한도 + 분 단위 cooldown */
-export async function checkFeatureBeforeCall(featureKey: string): Promise<FeatureCheck> {
-  /* 0) 분 단위 비용 급증 cooldown */
-  const surge = checkSurgeCooldown();
-  if (surge.blocked) {
-    return { ok: false, enabled: true, reason: "surge_cooldown", message: surge.message };
+/** 호출 직전 체크 — 비활성·기능별 한도·전체 월 한도 + 분 단위 cooldown
+ *  @param opts.skipSurge 운영자가 의도한 대량 background 작업(예: 딥릴리프 자료 일괄
+ *    추출·분류)은 자기 비용 급증으로 5분 마이크로가드를 스스로 발동시켜 나머지 호출이
+ *    줄줄이 차단됨 → 이런 내부 일괄 작업은 surge 체크 면제. (월 $100 예산·기능 토글은 유지) */
+export async function checkFeatureBeforeCall(
+  featureKey: string,
+  opts?: { skipSurge?: boolean },
+): Promise<FeatureCheck> {
+  /* 0) 분 단위 비용 급증 cooldown (내부 일괄 작업은 면제) */
+  if (!opts?.skipSurge) {
+    const surge = checkSurgeCooldown();
+    if (surge.blocked) {
+      return { ok: false, enabled: true, reason: "surge_cooldown", message: surge.message };
+    }
   }
 
   /* 1) 토글 + 기능별 한도 */

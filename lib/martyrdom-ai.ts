@@ -85,9 +85,12 @@ JSON만 응답하세요.`;
       inlineFiles: [{ data: cleanBase64, mimeType }],
       maxOutputTokens: 512,
       timeoutMs: 90000, // ★ background Vision 분류 — 8초 기본은 짧음
+      internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     });
 
-    if (!result.ok || !result.text) return fallback;
+    if (!result.ok || !result.text) {
+      return { docType: "other", summary: `(분류 실패: ${String(result.error || "응답 없음").slice(0, 80)})`, confidence: 0 };
+    }
     try {
       const jsonMatch = result.text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return fallback;
@@ -115,10 +118,13 @@ JSON만 응답하세요.`;
       featureKey: "martyrdom_ai",
       maxOutputTokens: 512,
       timeoutMs: 30000, // ★ background 텍스트 분류 — 8초 기본 상향
+      internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     }
   );
 
-  if (!parsed.ok || !parsed.data) return fallback;
+  if (!parsed.ok || !parsed.data) {
+    return { docType: "other", summary: `(분류 실패: ${String(parsed.error || "응답 없음").slice(0, 80)})`, confidence: 0 };
+  }
   const d = parsed.data;
   return {
     docType: DOC_TYPE_KEYS.includes(d.docType) ? d.docType : "other",
@@ -270,6 +276,7 @@ JSON 스키마:
       featureKey: "martyrdom_ai",
       maxOutputTokens: 4096,
       timeoutMs: 120000, // ★ background 사건 구조 추출(대용량 입력·4096 출력) — 8초 기본 상향
+      internalBulk: true, // 일괄 처리 자기차단(surge) 방지
     }
   );
 

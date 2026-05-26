@@ -77,6 +77,10 @@ export interface GeminiOptions {
    *  background 함수(-background·15분 한도)의 무거운 호출(Vision OCR·사건 구조 추출)은
    *  8초가 턱없이 짧아 대량 abort 실패 → 호출처에서 넉넉히 지정(예: 60000~120000). */
   timeoutMs?: number;
+  /** ★ 2026-05-26: 운영자가 의도한 대량 background 작업(딥릴리프 일괄 추출·분류 등).
+   *  true면 5분 비용 급증 cooldown(마이크로가드)을 면제 — 작업 자신의 비용 급증으로
+   *  나머지 호출이 줄줄이 차단되는 자기차단 방지. (월 예산·기능 토글은 그대로 적용) */
+  internalBulk?: boolean;
 }
 
 interface GeminiResult {
@@ -234,7 +238,7 @@ export async function callGemini(
     console.warn(`[Gemini] 등록되지 않은 featureKey='${featureKey}' — 그대로 기록`);
   }
 
-  const featureCheck = await checkFeatureBeforeCall(featureKey);
+  const featureCheck = await checkFeatureBeforeCall(featureKey, { skipSurge: opts.internalBulk });
   if (!featureCheck.ok) {
     return {
       ok: false,

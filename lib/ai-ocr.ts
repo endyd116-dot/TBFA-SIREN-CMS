@@ -213,6 +213,7 @@ async function extractGeminiOcr(base64: string, mimeType: string, fileName: stri
         /* ★ 2026-05-26: 문서 전체 OCR은 8초 기본 타임아웃으로 자주 중단됨.
            background(-background·15분) 호출이므로 넉넉히. */
         timeoutMs: 120000,
+        internalBulk: true, // 일괄 추출 자기차단(surge) 방지
       }
     );
 
