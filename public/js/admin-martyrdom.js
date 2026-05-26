@@ -146,7 +146,7 @@ const MOCK_DASHBOARD = { ok: true,
 
 // ── P3 mock · 서면 생성 (B 머지 전 · 응답 키 §P3.2 계약과 1:1 · 키 1글자도 변경 금지) ──
 // B 백엔드 P3 머지·마이그레이션 후 메인이 false로 전환. 그 전까지 프론트 단독 동작용.
-const USE_P3_MOCK = true;
+const USE_P3_MOCK = false; // 2026-05-27 B 머지·마이그 완료 → 실 API 연결
 
 const MOCK_DRAFT_OUTLINE = { sections: [
   { sectionKey:"intro",      title:"신청 취지",         intent:"유족급여 청구 취지·근거 법령 개요", order:1 },
