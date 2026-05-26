@@ -1,4 +1,4 @@
-/* admin-martyrdom.js v1 — 순직 인정 지원 시스템 (Deep-Relief AI v0) */
+/* admin-martyrdom.js v3(P3) — 순직 인정 지원 시스템 (Deep-Relief AI v0) */
 
 // ── 8대분류 라벨 맵 (B lib/martyrdom-ai.ts MARTYRDOM_DOC_TYPES와 1:1) ──────
 const MARTYRDOM_DOC_TYPES = {
@@ -144,6 +144,27 @@ const MOCK_DASHBOARD = { ok: true,
   summary: { activeCount: 2, urgentCount: 1, avgReadiness: 62 }
 };
 
+// ── P3 mock · 서면 생성 (B 머지 전 · 응답 키 §P3.2 계약과 1:1 · 키 1글자도 변경 금지) ──
+// B 백엔드 P3 머지·마이그레이션 후 메인이 false로 전환. 그 전까지 프론트 단독 동작용.
+const USE_P3_MOCK = true;
+
+const MOCK_DRAFT_OUTLINE = { sections: [
+  { sectionKey:"intro",      title:"신청 취지",         intent:"유족급여 청구 취지·근거 법령 개요", order:1 },
+  { sectionKey:"deceased",   title:"고인 및 직무 개요", intent:"고인 인적사항·담당 업무·근무 환경", order:2 },
+  { sectionKey:"duty",       title:"공무상 과로·스트레스", intent:"업무량·시간외·민원 등 공무 관련성", order:3 },
+  { sectionKey:"medical",    title:"의학적 인과관계",   intent:"진단·심리부검·사인과 공무의 연결", order:4 },
+  { sectionKey:"criteria",   title:"인정 요건 충족",   intent:"공무원재해보상법 요건별 대조", order:5 },
+  { sectionKey:"conclusion", title:"결론 및 신청",     intent:"순직 인정·유족급여 지급 요청", order:6 },
+]};
+const MOCK_DRAFT_SECTION = { id:101, sectionKey:"intro", title:"신청 취지",
+  content:"본 신청은 고(故) ○○○ 교사의 사망이 공무로 인한 것임을 근거로 유족급여 지급을 청구하는 것입니다. 고인은 ○○초등학교에서 담임 및 학교 행정 업무를 동시에 수행하던 중 지속적인 악성 민원과 과중한 업무에 노출되었고, 이로 인한 직무 스트레스가 사망과 상당인과관계에 있음을 공무원 재해보상법 제4조·제5조에 근거하여 청구합니다. …",
+  ragSources:[{title:"공무원재해보상법 제4조", sourceRef:"martyr_law", snippet:"공무로 인한 사망 …"},
+    {title:"유사 인정 사례(2024)", sourceRef:"martyr_case", snippet:"과로·민원 스트레스 인정 …"}],
+  status:"done", order:1, wordCount:320 };
+const MOCK_REVIEWS = [{ id:5, assignedTo:12, assignedToName:"김간사", status:"pending", note:null,
+  createdAt:"2026-05-26T01:00:00Z", decidedAt:null }];
+const MOCK_REVIEWERS = [{ id:12, name:"김간사", role:"operator" }, { id:3, name:"이변호사", role:"super_admin" }];
+
 // ── P2 라벨 맵 ───────────────────────────────────────────────────────────────
 const STRENGTH_CLASS = { "강": "str-strong", "중": "str-mid", "약": "str-weak" };
 const CRITERIA_STATUS = {
@@ -156,6 +177,19 @@ const ACTION_STATUS_NEXT = { todo: "doing", doing: "done", done: "todo" };
 const DEADLINE_KIND = { statute_limit: "소멸시효", submission: "자료 제출", hearing: "심의", custom: "기타" };
 const OUTPUT_TYPE_LABELS = { strategy: "전략 분석", criteria_check: "요건 대조", readiness: "준비도", golden: "골든타임 제언" };
 
+// ── P3 라벨 맵 (서면·검토) ──────────────────────────────────────────────────
+const DRAFT_SEC_STATUS = {
+  pending:    { label: "대기",   cls: "dss-pending" },
+  generating: { label: "생성 중", cls: "dss-gen" },
+  done:       { label: "생성됨", cls: "dss-done" },
+  edited:     { label: "편집됨", cls: "dss-edited" },
+};
+const REVIEW_STATUS = {
+  pending:            { label: "검토 대기", cls: "rv-pending" },
+  approved:           { label: "승인",     cls: "rv-approved" },
+  changes_requested:  { label: "수정요청", cls: "rv-changes" },
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 let currentKind = "active";   // "active" | "reference"
@@ -163,10 +197,15 @@ let currentCaseId = null;
 let currentDetail = null;
 let pollTimer = null;
 let genPollTimer = null;       // 전략/요건 생성 결과 폴링
+let draftPollTimer = null;     // 서면 섹션 생성 결과 폴링(P3)
 let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
+let myMemberId = null;         // /api/admin/me id — 검토 결정 권한 분기용(P3)
 let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
 let caseDeadlines = [];        // 현재 사건 기한 목록(martyrdom_deadlines)
 let caseActions = [];          // 현재 사건 부족증거 액션 목록(martyrdom_actions)
+let caseDraft = null;          // 현재 사건 서면 초안 { outputId,status,outline,sections[],reviews[] } (P3)
+let caseReviewers = [];        // 배정 가능 운영자 목록(members operatorActive) (P3)
+let _mockDraft = null;         // USE_P3_MOCK 평행 모드 — 서면 상태를 메모리에 보관(목차→본문→검토 흐름 재현)
 
 // ── 공통 유틸 ──────────────────────────────────────────────────────────────
 function toast(msg, type = "") {
@@ -272,6 +311,7 @@ async function detectSuperAdmin() {
     const d = await r.json().catch(() => ({}));
     const me = (d && (d.data || d)) || {};
     isSuperAdmin = !!(me && me.role === "super_admin");
+    myMemberId = (me && (me.id || me.uid || me.memberId)) || null;   // 검토 결정 권한 분기용
   } catch (_) { /* 감지 실패 시 비-super_admin로 간주 */ }
 }
 
@@ -353,6 +393,141 @@ async function apiCriteriaGenerate() {
   return apiFetch("/api/admin-martyrdom-criteria-generate", { method: "POST", body: {} });
 }
 
+// ── P3 API 래퍼 (USE_P3_MOCK 토글 · 응답 키 §P3.2 계약 고정 · 1글자도 변경 금지) ───
+function b64Mock(s) { return btoa(unescape(encodeURIComponent(String(s || "")))); } // mock 다운로드용 유효 base64
+
+// 서면 로드: 목차 + 섹션 + 검토 이력 (화면 렌더용)
+async function apiDraftLoad(caseId) {
+  if (USE_P3_MOCK) {
+    return { ok: true,
+      outputId: (_mockDraft && _mockDraft.outputId) || null,
+      status:   (_mockDraft && _mockDraft.status)   || "draft",
+      outline:  (_mockDraft && _mockDraft.outline)  || { sections: [] },
+      sections: (_mockDraft && _mockDraft.sections) || [],
+      reviews:  (_mockDraft && _mockDraft.reviews)  || [] };
+  }
+  return apiFetch("/api/admin-martyrdom-draft?caseId=" + encodeURIComponent(caseId));
+}
+// 목차 제안 생성 (draft ai_outputs 행 INSERT/UPDATE)
+async function apiDraftOutline(caseId) {
+  if (USE_P3_MOCK) {
+    _mockDraft = {
+      outputId: 30, status: "draft",
+      outline: JSON.parse(JSON.stringify(MOCK_DRAFT_OUTLINE)),
+      sections: MOCK_DRAFT_OUTLINE.sections.map((s, i) => ({
+        id: 100 + i, sectionKey: s.sectionKey, title: s.title, content: "",
+        ragSources: [], status: "pending", order: s.order, wordCount: 0,
+      })),
+      reviews: [],
+    };
+    return { ok: true, outputId: 30, outputType: "draft", status: "draft", outline: _mockDraft.outline };
+  }
+  return apiFetch("/api/admin-martyrdom-draft-outline", { method: "POST", body: { caseId } });
+}
+// 목차 편집 저장 (제목·intent·순서·추가/삭제)
+async function apiDraftOutlineSave(caseId, outputId, sections) {
+  if (USE_P3_MOCK) {
+    if (_mockDraft) {
+      _mockDraft.outline = { sections: sections };
+      const prev = _mockDraft.sections || [];
+      _mockDraft.sections = sections.map((s, i) => {
+        const ex = prev.find(x => x.sectionKey === s.sectionKey);
+        return ex
+          ? { ...ex, title: s.title, order: s.order }
+          : { id: 300 + i, sectionKey: s.sectionKey, title: s.title, content: "", ragSources: [], status: "pending", order: s.order, wordCount: 0 };
+      });
+    }
+    return { ok: true, outputId: outputId, status: "draft" };
+  }
+  return apiFetch("/api/admin-martyrdom-draft-outline", { method: "PATCH", body: { caseId, outputId, sections } });
+}
+// 본문 생성: sectionKey 있으면 1섹션 동기, 없으면 전 섹션 background 큐
+async function apiDraftGenerate(caseId, sectionKey) {
+  if (USE_P3_MOCK) {
+    if (sectionKey) {
+      const base = (_mockDraft && _mockDraft.sections.find(s => s.sectionKey === sectionKey)) || {};
+      const sec = {
+        id: base.id || 101, sectionKey: sectionKey, title: base.title || MOCK_DRAFT_SECTION.title,
+        content: MOCK_DRAFT_SECTION.content, ragSources: MOCK_DRAFT_SECTION.ragSources,
+        status: "done", order: base.order || 1, wordCount: MOCK_DRAFT_SECTION.wordCount,
+      };
+      if (_mockDraft) {
+        const idx = _mockDraft.sections.findIndex(s => s.sectionKey === sectionKey);
+        if (idx >= 0) _mockDraft.sections[idx] = sec;
+      }
+      return { ok: true, section: sec };
+    }
+    const total = (_mockDraft && _mockDraft.outline.sections.length) || 6;
+    // 평행 mock: background 대신 즉시 전 섹션 채움(폴링이 done을 감지)
+    if (_mockDraft) {
+      _mockDraft.sections = _mockDraft.sections.map(s => ({
+        ...s, content: MOCK_DRAFT_SECTION.content.replace("신청 취지", s.title),
+        ragSources: MOCK_DRAFT_SECTION.ragSources, status: "done", wordCount: 320,
+      }));
+    }
+    return { ok: true, queued: true, total: total, outputId: (_mockDraft && _mockDraft.outputId) || 30 };
+  }
+  return apiFetch("/api/admin-martyrdom-draft-generate", { method: "POST", body: sectionKey ? { caseId, sectionKey } : { caseId } });
+}
+// 섹션 본문 편집 저장 (status→edited·wordCount 갱신)
+async function apiDraftSectionSave(sectionId, content) {
+  if (USE_P3_MOCK) {
+    if (_mockDraft) {
+      const s = _mockDraft.sections.find(x => x.id === sectionId);
+      if (s) { s.content = content; s.status = "edited"; s.wordCount = (content || "").length; }
+    }
+    return { ok: true, section: { id: sectionId, status: "edited", wordCount: (content || "").length } };
+  }
+  return apiFetch("/api/admin-martyrdom-draft-section", { method: "PATCH", body: { sectionId, content } });
+}
+// 배정 가능 검토자 목록
+async function apiReviewers() {
+  if (USE_P3_MOCK) return { ok: true, reviewers: MOCK_REVIEWERS };
+  return apiFetch("/api/admin-martyrdom-reviewers");
+}
+// 검토자 배정
+async function apiReviewAssign(caseId, outputId, assignedTo) {
+  if (USE_P3_MOCK) {
+    const who = MOCK_REVIEWERS.find(x => x.id === assignedTo) || {};
+    const r = { id: (Date.now() % 100000), assignedTo: assignedTo, assignedToName: who.name || "검토자",
+      status: "pending", note: null, createdAt: new Date().toISOString(), decidedAt: null };
+    if (_mockDraft) _mockDraft.reviews.push(r);
+    return { ok: true, reviewId: r.id, status: "pending", assignedTo: assignedTo };
+  }
+  return apiFetch("/api/admin-martyrdom-review", { method: "POST", body: { caseId, outputId, assignedTo } });
+}
+// 검토 결정 (승인/수정요청 · +draft status→reviewed)
+async function apiReviewDecide(reviewId, status, note) {
+  if (USE_P3_MOCK) {
+    if (_mockDraft) {
+      const r = _mockDraft.reviews.find(x => x.id === reviewId);
+      if (r) { r.status = status; r.note = note || null; r.decidedAt = new Date().toISOString(); }
+      if (status === "approved") _mockDraft.status = "reviewed";
+    }
+    return { ok: true, reviewId: reviewId, status: status };
+  }
+  const body = (note != null && note !== "") ? { reviewId, status, note } : { reviewId, status };
+  return apiFetch("/api/admin-martyrdom-review", { method: "PATCH", body });
+}
+// 내보내기 (pdf|docx → base64)
+async function apiDraftExport(caseId, outputId, format) {
+  if (USE_P3_MOCK) {
+    const pdf = format === "pdf";
+    return { ok: true, fileName: "유족급여신청서_2026-001." + (pdf ? "pdf" : "docx"),
+      mimeType: pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      base64: b64Mock("[mock] 유족급여신청서 초안 (" + format + ") — 실제 내보내기는 B 머지 후") };
+  }
+  return apiFetch("/api/admin-martyrdom-export", { method: "POST", body: { caseId, outputId, format } });
+}
+// 사건 패키지 zip
+async function apiDraftPackage(caseId) {
+  if (USE_P3_MOCK) {
+    return { ok: true, fileName: "사건패키지_2026-001.zip",
+      base64: b64Mock("[mock] 사건 패키지 zip — 실제 묶음은 B 머지 후") };
+  }
+  return apiFetch("/api/admin-martyrdom-package", { method: "POST", body: { caseId } });
+}
+
 // ── 사건 목록 ───────────────────────────────────────────────────────────────
 async function loadCases() {
   const list = document.getElementById("caseList");
@@ -401,7 +576,9 @@ async function loadDetail(id) {
   const pane = document.getElementById("detailPane");
   pane.innerHTML = '<div class="list-loading">불러오는 중…</div>';
   clearPollTimer();
-  outputCache = {}; caseDeadlines = []; caseActions = [];   // 이전 사건 데이터 잔상 방지
+  clearDraftPollTimer();
+  outputCache = {}; caseDeadlines = []; caseActions = []; caseDraft = null;   // 이전 사건 데이터 잔상 방지
+  _mockDraft = null;   // 평행 mock 서면 상태 초기화(사건 전환 시)
   try {
     const d = await apiDetail(id);
     if (!d.ok) { toast("상세 불러오기 실패", "error"); return; }
@@ -449,12 +626,27 @@ function cacheFromResponse(type, res) {
 
 async function loadCaseSubData(id) {
   try {
-    const [dl, ac] = await Promise.all([apiDeadlines(id), apiActions(id)]);
+    const [dl, ac, dr, rv] = await Promise.all([apiDeadlines(id), apiActions(id), apiDraftLoad(id), apiReviewers()]);
     caseDeadlines = (dl && (dl.deadlines || (dl.data && dl.data.deadlines) || dl.items)) || [];
     caseActions   = (ac && (ac.actions   || (ac.data && ac.data.actions)   || ac.items)) || [];
-  } catch (_) { caseDeadlines = []; caseActions = []; }
+    caseDraft     = normalizeDraft(dr);
+    caseReviewers = (rv && (rv.reviewers || (rv.data && rv.data.reviewers))) || [];
+  } catch (_) { caseDeadlines = []; caseActions = []; caseDraft = null; caseReviewers = []; }
   refreshDeadlinesPanel();
   refreshActionsPanel();
+  refreshDraft();
+}
+// 서면 로드 응답을 caseDraft 형태로 정규화(envelope 다중 fallback)
+function normalizeDraft(d) {
+  if (!d || !d.ok) return null;
+  const x = (d.data && d.data.outline) ? d.data : d;
+  return {
+    outputId: x.outputId || null,
+    status:   x.status || "draft",
+    outline:  x.outline || { sections: [] },
+    sections: x.sections || [],
+    reviews:  x.reviews || [],
+  };
 }
 
 function renderDetail(d) {
@@ -855,7 +1047,7 @@ function renderTabAnalysis() {
 function renderStrategy(cj) {
   cj = cj || {};
   const logics  = cj.possibleLogics  || [];
-  const missing = cj.missingEvidence || [];
+  const missing = cj.missingEvidence || cj.evidenceMissing || [];
   const issues  = cj.keyIssues       || [];
   const chain   = cj.causalChain     || [];
   const similar = cj.similarCases    || [];
@@ -877,8 +1069,7 @@ function renderStrategy(cj) {
   if (issues.length) out.push(`<div class="an-block"><div class="an-h">🎯 핵심 쟁점</div>
     <div>${issues.map(i => `<span class="tag">${escapeHtml(i)}</span>`).join(" ")}</div></div>`);
 
-  if (chain.length) out.push(`<div class="an-block"><div class="an-h">🔗 인과관계 논리체인</div>
-    ${chain.map(c => `<div class="chain-row"><span class="chain-factor">${escapeHtml(c.factor)}</span> <span class="chain-arrow">${escapeHtml(c.link || "→")}</span>${c.evidence ? ` <span class="chain-ev">근거: ${escapeHtml(c.evidence)}</span>` : ""}</div>`).join("")}</div>`);
+  if (chain.length) out.push(renderCausalMap(chain, missing));
 
   if (similar.length) out.push(`<div class="an-block"><div class="an-h">📚 유사 사례 비교</div>
     ${similar.map(s => `<div class="sim-card"><span class="badge outcome-${s.outcome}">${OUTCOME_LABELS[s.outcome] || s.outcome || "-"}</span> <strong>${escapeHtml(s.ref)}</strong>
@@ -913,6 +1104,36 @@ function renderRagSources(rag) {
       <div class="rag-title">${escapeHtml(r.title || r.sourceRef || "근거")}</div>
       ${r.sourceRef ? `<div class="rag-ref">${escapeHtml(r.sourceRef)}</div>` : ""}
       ${r.snippet ? `<div class="rag-snip">"${escapeHtml(r.snippet)}"</div>` : ""}</div>`).join("")}</div></details>`;
+}
+
+// 인과관계 논리맵 (④ 시각화) — 요인 노드 → 화살표(근거) → 결과 노드.
+// 근거 있으면 초록·없거나 부족자료(evidenceMissing)와 매칭되면 빨강. 순수 HTML/CSS/SVG.
+function renderCausalMap(chain, missing) {
+  if (!chain || !chain.length) return "";
+  const miss = (missing || []).map(m => String(m || ""));
+  const isWeak = (ev) => {
+    if (!ev) return true;
+    const s = String(ev);
+    return miss.some(m => m && (s.indexOf(m) >= 0 || m.indexOf(s) >= 0));
+  };
+  const rows = chain.map(c => {
+    const weak = isWeak(c.evidence);
+    const ncls = "cm-node " + (weak ? "bad" : "good");
+    const effect = String(c.link || "").replace(/^\s*→\s*/, "") || "—";
+    return `<div class="cm-row">
+      <div class="${ncls}">${escapeHtml(c.factor || "-")}</div>
+      <div class="cm-arrow">
+        <svg width="64" height="22" viewBox="0 0 64 22" aria-hidden="true">
+          <line x1="2" y1="11" x2="52" y2="11" stroke="${weak ? "#dc2626" : "#16a34a"}" stroke-width="2"></line>
+          <polygon points="52,5 62,11 52,17" fill="${weak ? "#dc2626" : "#16a34a"}"></polygon>
+        </svg>
+        <div class="cm-ev ${weak ? "bad" : "good"}">${c.evidence ? "근거: " + escapeHtml(c.evidence) : "근거 없음 (보완 필요)"}</div>
+      </div>
+      <div class="${ncls}">${escapeHtml(effect)}</div>
+    </div>`;
+  }).join("");
+  return `<div class="an-block"><div class="an-h">🔗 인과관계 논리맵 <span class="an-sub">(초록=근거 있음 · 빨강=근거 부족)</span></div>
+    <div class="causal-map">${rows}</div></div>`;
 }
 
 function renderCriteriaMatrix(cj) {
@@ -1027,14 +1248,145 @@ function renderTabDraft() {
     ${r && r.contentJson ? renderReadiness(r.contentJson) : emptyHint("아직 준비도가 계산되지 않았습니다", "[준비도 계산]을 누르면 요건·증거·타임라인·모순을 합산한 완성도 %와 보완 항목을 보여줍니다.")}
   </div>
 
-  <div class="section-head" style="margin-top:26px"><div><h4>📄 청구서·의견서 초안</h4></div></div>
-  <div class="alert-banner expert-warning">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
-  <div class="placeholder-box">
-    <div class="placeholder-icon">📄</div>
-    <div class="placeholder-title">서면 자동 생성은 P3</div>
-    <div class="placeholder-desc">인정 받은 과거 사례를 모델로 유족급여신청서(순직신청서) 초안을 자동 생성하는 기능은 다음 단계(P3)에서 제공됩니다.</div>
-  </div>
+  ${renderDraftSection()}
 </div>`;
+}
+
+// ── ④ 서면 초안 (P3) — 1단계 목차 → 2단계 본문 → 3단계 합본·검토·내보내기 ──────
+function renderDraftSection() {
+  const dr = caseDraft;
+  const hasOutline  = !!(dr && dr.outline && (dr.outline.sections || []).length);
+  const sections    = (dr && dr.sections) || [];
+  const hasSections = sections.some(s => s.content || s.status === "done" || s.status === "edited");
+  const readyScore  = (outputCache.readiness && outputCache.readiness.contentJson && outputCache.readiness.contentJson.score);
+  const gaps        = (outputCache.readiness && outputCache.readiness.contentJson && outputCache.readiness.contentJson.gaps) || [];
+  const weak = (typeof readyScore === "number" && readyScore < 60);
+  const weakGaps = gaps.slice(0, 3).map(g => escapeHtml(g.label)).join(" · ");
+
+  return `<div class="section-head" style="margin-top:26px">
+    <div><h4>📄 유족급여신청서 초안</h4>
+      <p class="section-sub">인정 받은 과거 사례를 형식 모델로, 목차를 확정한 뒤 섹션별로 본문을 생성합니다.</p></div>
+  </div>
+  <div class="alert-banner expert-warning">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
+  ${weak ? `<div class="weak-banner">⚠️ 준비도 ${readyScore}% — 아직 약한 보고서입니다. ${weakGaps ? `<strong>${weakGaps}</strong> 보완을 권장`: "부족 자료 보완을 권장"}합니다. 그래도 초안 생성은 가능합니다.</div>` : ""}
+
+  <!-- 1단계 목차 -->
+  <div class="draft-stage">
+    <div class="ds-head"><span class="ds-step">1단계</span> 목차
+      <button class="btn-sm" onclick="genDraftOutline()" id="draftOutlineBtn">${hasOutline ? "목차 다시 제안" : "목차 제안 생성"}</button>
+    </div>
+    <div id="draftOutlineBody">
+      ${hasOutline ? renderDraftOutline(dr.outline.sections) : emptyHint("아직 목차가 없습니다", "[목차 제안 생성]을 누르면 사건 구조·전략·인정 사례 형식을 토대로 섹션 목차를 제안합니다.")}
+    </div>
+  </div>
+
+  <!-- 2단계 본문 -->
+  <div class="draft-stage">
+    <div class="ds-head"><span class="ds-step">2단계</span> 본문
+      <button class="btn-sm" onclick="genDraftBody()" id="draftBodyBtn" ${hasOutline ? "" : "disabled"}>${hasSections ? "본문 다시 생성" : "본문 생성 시작"}</button>
+    </div>
+    <div id="draftSectionsBody">
+      ${hasOutline
+        ? (hasSections ? renderDraftSections(sections) : emptyHint("아직 본문이 없습니다", "[본문 생성 시작]을 누르면 섹션을 순서대로 생성합니다. 각 섹션은 근거(인용)와 함께 표시됩니다."))
+        : `<div class="ds-locked">먼저 1단계에서 목차를 만들어 주세요.</div>`}
+    </div>
+  </div>
+
+  <!-- 3단계 합본·검토·내보내기 -->
+  <div class="draft-stage">
+    <div class="ds-head"><span class="ds-step">3단계</span> 합본 · 검토 · 내보내기</div>
+    <div class="export-btns">
+      <button class="btn-sm btn-secondary" onclick="previewAssembled()" ${hasSections ? "" : "disabled"}>🔎 합본 미리보기</button>
+      <button class="btn-sm" onclick="exportDraft('pdf')"  ${hasSections ? "" : "disabled"}>📄 PDF</button>
+      <button class="btn-sm" onclick="exportDraft('docx')" ${hasSections ? "" : "disabled"}>📝 Word</button>
+      <button class="btn-sm btn-secondary" onclick="exportPackage()">📦 사건 패키지 zip</button>
+    </div>
+    ${renderReviewBlock()}
+  </div>`;
+}
+
+// 1단계 목차 — 편집 가능 목록(제목·intent·순서·추가/삭제) + 저장
+function renderDraftOutline(sections) {
+  const rows = sections.slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i, arr) => {
+    return `<div class="outline-row" data-key="${escapeHtml(s.sectionKey)}">
+      <div class="ol-no">${i + 1}</div>
+      <div class="ol-fields">
+        <input class="ol-title" type="text" value="${escapeHtml(s.title)}" placeholder="섹션 제목"
+          onchange="updateOutlineField('${jsStr(s.sectionKey)}','title',this.value)">
+        <input class="ol-intent" type="text" value="${escapeHtml(s.intent || "")}" placeholder="이 섹션에서 다룰 내용(생성 지시)"
+          onchange="updateOutlineField('${jsStr(s.sectionKey)}','intent',this.value)">
+      </div>
+      <div class="ol-btns">
+        <button class="btn-xs" onclick="moveOutline('${jsStr(s.sectionKey)}',-1)" ${i === 0 ? "disabled" : ""} title="위로">↑</button>
+        <button class="btn-xs" onclick="moveOutline('${jsStr(s.sectionKey)}',1)" ${i === arr.length - 1 ? "disabled" : ""} title="아래로">↓</button>
+        <button class="btn-xs btn-danger" onclick="removeOutline('${jsStr(s.sectionKey)}')" title="삭제">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="outline-list">${rows}</div>
+    <div class="outline-foot">
+      <button class="btn-sm btn-secondary" onclick="addOutlineRow()">+ 섹션 추가</button>
+      <button class="btn-sm" onclick="saveDraftOutline()">목차 저장</button>
+    </div>`;
+}
+
+// 2단계 본문 — 섹션별 편집 textarea + 재생성 + 근거 펼치기
+function renderDraftSections(sections) {
+  const sorted = sections.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  return `<div class="draft-sections">${sorted.map((s, i) => {
+    const st = DRAFT_SEC_STATUS[s.status] || { label: s.status || "-", cls: "dss-pending" };
+    const rag = s.ragSources || [];
+    const editable = (s.status === "done" || s.status === "edited") && typeof s.id === "number";
+    return `<div class="draft-sec">
+      <div class="dsec-head">
+        <span class="dsec-no">${i + 1}.</span>
+        <span class="dsec-title">${escapeHtml(s.title)}</span>
+        <span class="dsec-status ${st.cls}">${st.label}</span>
+        <span class="dsec-wc">${s.wordCount ? s.wordCount + "자" : ""}</span>
+        <button class="btn-xs" onclick="regenSection('${jsStr(s.sectionKey)}')" title="이 섹션만 다시 생성">재생성</button>
+      </div>
+      <textarea class="dsec-body" rows="6" ${editable ? "" : "disabled"}
+        placeholder="${editable ? "" : "아직 생성되지 않았습니다 — [재생성] 또는 상단 [본문 생성]을 누르세요"}"
+        ${editable ? `onchange="saveSection(${s.id}, this.value)"` : ""}>${escapeHtml(s.content || "")}</textarea>
+      ${rag.length ? renderRagSources(rag) : ""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// 전문가 검토 블록 — 배정 드롭다운 + 검토 이력 + (배정자) 결정 버튼
+function renderReviewBlock() {
+  const dr = caseDraft;
+  const canAssign = !!(dr && dr.outputId);
+  const reviews = (dr && dr.reviews) || [];
+  const opts = caseReviewers.map(r => `<option value="${r.id}">${escapeHtml(r.name)}${r.role === "super_admin" ? " (전문가)" : ""}</option>`).join("");
+  const rows = reviews.map(rv => {
+    const st = REVIEW_STATUS[rv.status] || { label: rv.status || "-", cls: "rv-pending" };
+    const mine = (myMemberId != null && rv.assignedTo === myMemberId) || isSuperAdmin;
+    const canDecide = mine && rv.status === "pending";
+    return `<div class="rv-row">
+      <span class="rv-badge ${st.cls}">${st.label}</span>
+      <span class="rv-who">${escapeHtml(rv.assignedToName || ("검토자 #" + rv.assignedTo))}</span>
+      <span class="rv-date">${rv.decidedAt ? "결정 " + fmtDate(rv.decidedAt) : "배정 " + fmtDate(rv.createdAt)}</span>
+      ${rv.note ? `<span class="rv-note">— ${escapeHtml(rv.note)}</span>` : ""}
+      ${canDecide ? `<span class="rv-acts">
+        <button class="btn-xs" onclick="decideReview(${rv.id},'approved')">승인</button>
+        <button class="btn-xs btn-warn" onclick="decideReview(${rv.id},'changes_requested')">수정요청</button>
+      </span>` : ""}
+    </div>`;
+  }).join("");
+  return `<div class="review-assign">
+    <div class="rva-head">🧑‍⚖️ 전문가 검토
+      ${dr && dr.status === "reviewed" ? `<span class="rv-badge rv-approved">검토 완료</span>` : ""}
+    </div>
+    <div class="rva-row">
+      <select id="reviewerSelect" ${canAssign && caseReviewers.length ? "" : "disabled"}>
+        <option value="">검토자 선택…</option>${opts}
+      </select>
+      <button class="btn-sm" onclick="assignReviewer()" ${canAssign && caseReviewers.length ? "" : "disabled"}>배정</button>
+    </div>
+    ${!canAssign ? `<div class="rva-hint">목차·본문을 먼저 생성하면 검토자를 배정할 수 있습니다.</div>` : ""}
+    <div class="rv-list">${rows || `<div class="rva-hint">아직 배정된 검토가 없습니다.</div>`}</div>
+  </div>`;
 }
 function renderReadiness(cj) {
   cj = cj || {};
@@ -1078,6 +1430,247 @@ async function computeReadiness() {
     else { toast("준비도 계산 요청 — 잠시 후 표시됩니다"); pollGenerated("readiness"); }
   } catch (e) { if (e.message !== "auth") toast("계산 오류", "error"); }
   finally { const b = document.getElementById("readinessBtn"); if (b) b.disabled = false; }
+}
+
+// ── ④ 서면 핸들러 (P3) ──────────────────────────────────────────────────────
+// 서면 상태 재로드(GET) — 목차 편집 in-memory 외 모든 변경 후 호출(canonical)
+async function reloadDraft() {
+  if (!currentCaseId) return;
+  try {
+    const dr = await apiDraftLoad(currentCaseId);
+    caseDraft = normalizeDraft(dr);
+  } catch (_) { /* 유지 */ }
+  refreshDraft();
+}
+
+// 1단계 — 목차 제안 생성
+async function genDraftOutline() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("draftOutlineBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "제안 중…"; }
+  try {
+    const res = await apiDraftOutline(currentCaseId);
+    if (!res.ok) { toast(res.error || "목차 제안 실패", "error"); return; }
+    await reloadDraft();
+    toast("목차를 제안했습니다 — 필요하면 수정 후 저장하세요");
+  } catch (e) { if (e.message !== "auth") toast("목차 오류", "error"); }
+  finally { const b = document.getElementById("draftOutlineBtn"); if (b) b.disabled = false; }
+}
+// 목차 편집 — 제목·intent (onchange 시 in-memory 반영, 재렌더 불필요)
+function updateOutlineField(key, field, value) {
+  if (!caseDraft || !caseDraft.outline) return;
+  const s = (caseDraft.outline.sections || []).find(x => x.sectionKey === key);
+  if (s) s[field] = value;
+}
+// 순서 이동 (위/아래)
+function moveOutline(key, dir) {
+  if (!caseDraft || !caseDraft.outline) return;
+  const arr = (caseDraft.outline.sections || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const i = arr.findIndex(x => x.sectionKey === key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= arr.length) return;
+  const t = arr[i].order; arr[i].order = arr[j].order; arr[j].order = t;
+  caseDraft.outline.sections = arr;
+  refreshDraft();
+}
+// 섹션 삭제
+function removeOutline(key) {
+  if (!caseDraft || !caseDraft.outline) return;
+  caseDraft.outline.sections = (caseDraft.outline.sections || []).filter(x => x.sectionKey !== key);
+  refreshDraft();
+}
+// 섹션 추가
+function addOutlineRow() {
+  if (!caseDraft) caseDraft = { outputId: null, status: "draft", outline: { sections: [] }, sections: [], reviews: [] };
+  if (!caseDraft.outline) caseDraft.outline = { sections: [] };
+  const arr = caseDraft.outline.sections || [];
+  const maxOrder = arr.reduce((m, s) => Math.max(m, s.order || 0), 0);
+  arr.push({ sectionKey: "custom_" + Date.now().toString(36), title: "새 섹션", intent: "", order: maxOrder + 1 });
+  caseDraft.outline.sections = arr;
+  refreshDraft();
+}
+// 목차 저장(PATCH) — order 1..N 정규화 후 전송
+async function saveDraftOutline() {
+  if (!caseDraft || !caseDraft.outline) return;
+  const arr = (caseDraft.outline.sections || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => ({ ...s, order: i + 1 }));
+  caseDraft.outline.sections = arr;
+  if (!arr.length) { toast("섹션이 하나도 없습니다", "error"); return; }
+  try {
+    const res = await apiDraftOutlineSave(currentCaseId, caseDraft.outputId, arr);
+    if (!res.ok) { toast(res.error || "목차 저장 실패", "error"); return; }
+    toast("목차를 저장했습니다");
+    await reloadDraft();
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+
+// 2단계 — 전 섹션 본문 생성(background 큐) + 진행 오버레이·폴링
+async function genDraftBody() {
+  if (!currentCaseId || !caseDraft || !caseDraft.outputId) { toast("먼저 목차를 생성하세요"); return; }
+  const total = (caseDraft.outline.sections || []).length || 0;
+  const btn = document.getElementById("draftBodyBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "생성 시작…"; }
+  try {
+    const res = await apiDraftGenerate(currentCaseId);   // sectionKey 없음 → 전 섹션 큐
+    if (!res.ok) { toast(res.error || "본문 생성 실패", "error"); if (btn) btn.disabled = false; return; }
+    const t = res.total || total || 0;
+    openBulkProgress("📝 본문 생성", t || 1);
+    pollDraftSections(t);
+  } catch (e) {
+    if (e.message !== "auth") toast("생성 오류", "error");
+    if (btn) btn.disabled = false;
+  }
+}
+// 섹션 생성 결과 폴링(4초) — done 개수로 진행률·완료 감지
+function pollDraftSections(total) {
+  clearDraftPollTimer();
+  let tries = 0;
+  draftPollTimer = setInterval(async () => {
+    tries++;
+    if (_bulkCancel) { clearDraftPollTimer(); finishBulkProgress("취소됨", "cancel"); reloadDraft(); return; }
+    if (tries > 40 || !currentCaseId) {
+      clearDraftPollTimer();
+      finishBulkProgress("생성이 길어집니다 — 잠시 후 다시 확인하세요", "cancel");
+      reloadDraft();
+      return;
+    }
+    try {
+      const dr = await apiDraftLoad(currentCaseId);
+      const nd = normalizeDraft(dr);
+      const secs = (nd && nd.sections) || [];
+      const cap = total || secs.length || 1;
+      const done = secs.filter(s => s.status === "done" || s.status === "edited").length;
+      const cur = secs.find(s => s.status === "generating");
+      updateBulkProgress(done, cap, cur ? ("생성 중 — " + cur.title) : (done >= cap ? "마무리 중…" : "생성 중…"), 0);
+      if (cap > 0 && done >= cap) {
+        clearDraftPollTimer();
+        caseDraft = nd;
+        finishBulkProgress("완료 — " + done + "개 섹션 생성", "done");
+        refreshDraft();
+        toast("본문 초안을 생성했습니다");
+      }
+    } catch (_) { /* 일시 오류 무시·계속 */ }
+  }, 4000);
+}
+// 단일 섹션 재생성(동기)
+async function regenSection(sectionKey) {
+  if (!currentCaseId) return;
+  toast("섹션 재생성 중…");
+  try {
+    const res = await apiDraftGenerate(currentCaseId, sectionKey);
+    if (!res.ok) { toast(res.error || "재생성 실패", "error"); return; }
+    const sec = res.section || (res.data && res.data.section);
+    if (sec && caseDraft) {
+      const idx = caseDraft.sections.findIndex(s => s.sectionKey === sectionKey);
+      if (idx >= 0) caseDraft.sections[idx] = { ...caseDraft.sections[idx], ...sec };
+      else caseDraft.sections.push(sec);
+      refreshDraft();
+      toast("섹션을 다시 생성했습니다");
+    } else {
+      // 동기 응답이 아니면(큐) 재로드로 반영
+      await reloadDraft();
+    }
+  } catch (e) { if (e.message !== "auth") toast("재생성 오류", "error"); }
+}
+// 섹션 본문 편집 저장(PATCH)
+async function saveSection(sectionId, content) {
+  if (typeof sectionId !== "number") return;   // 생성 전 임시 행 보호
+  try {
+    const res = await apiDraftSectionSave(sectionId, content);
+    if (!res.ok) { toast(res.error || "섹션 저장 실패", "error"); return; }
+    if (caseDraft) {
+      const s = caseDraft.sections.find(x => x.id === sectionId);
+      if (s) { s.content = content; s.status = "edited"; s.wordCount = (content || "").length; }
+    }
+    toast("섹션을 저장했습니다");
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+
+// 3단계 — 합본 미리보기 모달
+function previewAssembled() {
+  if (!caseDraft || !(caseDraft.sections || []).length) { toast("먼저 본문을 생성하세요"); return; }
+  const secs = caseDraft.sections.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const inner = secs.map((s, i) => `<h3 class="ap-h">${i + 1}. ${escapeHtml(s.title)}</h3>
+    <div class="ap-body">${escapeHtml(s.content || "(미생성)").replace(/\n/g, "<br>")}</div>
+    ${(s.ragSources || []).length ? `<div class="ap-rag">근거: ${s.ragSources.map(r => escapeHtml(r.title || r.sourceRef || "")).join(" · ")}</div>` : ""}`).join("");
+  let el = document.getElementById("assembledOverlay");
+  if (!el) { el = document.createElement("div"); el.id = "assembledOverlay"; el.className = "modal-overlay"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="modal-box ap-box">
+    <div class="ap-title">📄 합본 미리보기 <button class="btn-xs" onclick="closeAssembled()">닫기</button></div>
+    <div class="ap-warn">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
+    <div class="ap-scroll">${inner}</div>
+    <div class="ap-foot"><button class="btn-sm" onclick="exportDraft('pdf')">📄 PDF</button> <button class="btn-sm" onclick="exportDraft('docx')">📝 Word</button></div>
+  </div>`;
+  el.style.display = "flex";
+}
+function closeAssembled() { const el = document.getElementById("assembledOverlay"); if (el) el.style.display = "none"; }
+
+// base64 → Blob 다운로드(PDF·Word·zip 공용)
+function downloadBase64(fileName, mimeType, base64) {
+  try {
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mimeType || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName || "download";
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    return true;
+  } catch (e) { toast("다운로드 변환 실패", "error"); return false; }
+}
+// 내보내기 — PDF·Word
+async function exportDraft(format) {
+  if (!currentCaseId || !caseDraft || !caseDraft.outputId) { toast("먼저 본문을 생성하세요"); return; }
+  toast((format === "pdf" ? "PDF" : "Word") + " 생성 중…");
+  try {
+    const res = await apiDraftExport(currentCaseId, caseDraft.outputId, format);
+    if (!res.ok) { toast(res.error || "내보내기 실패", "error"); return; }
+    const fileName = res.fileName || (res.data && res.data.fileName) || ("유족급여신청서." + (format === "pdf" ? "pdf" : "docx"));
+    const mimeType = res.mimeType || (res.data && res.data.mimeType);
+    const base64 = res.base64 || (res.data && res.data.base64);
+    if (!base64) { toast("내보내기 데이터가 비어 있습니다", "error"); return; }
+    if (downloadBase64(fileName, mimeType, base64)) toast(fileName + " 다운로드");
+  } catch (e) { if (e.message !== "auth") toast("내보내기 오류", "error"); }
+}
+// 사건 패키지 zip
+async function exportPackage() {
+  if (!currentCaseId) return;
+  toast("사건 패키지 생성 중…");
+  try {
+    const res = await apiDraftPackage(currentCaseId);
+    if (!res.ok) { toast(res.error || "패키지 생성 실패", "error"); return; }
+    if (res.queued) { toast("패키지 생성 요청 — 잠시 후 다시 시도하세요"); return; }
+    const fileName = res.fileName || (res.data && res.data.fileName) || "사건패키지.zip";
+    const base64 = res.base64 || (res.data && res.data.base64);
+    if (!base64) { toast("패키지 데이터가 비어 있습니다", "error"); return; }
+    if (downloadBase64(fileName, "application/zip", base64)) toast(fileName + " 다운로드");
+  } catch (e) { if (e.message !== "auth") toast("패키지 오류", "error"); }
+}
+
+// 전문가 검토 — 배정
+async function assignReviewer() {
+  if (!caseDraft || !caseDraft.outputId) { toast("먼저 목차·본문을 생성하세요"); return; }
+  const sel = document.getElementById("reviewerSelect");
+  const assignedTo = sel ? Number(sel.value) : 0;
+  if (!assignedTo) { toast("검토자를 선택하세요"); return; }
+  try {
+    const res = await apiReviewAssign(currentCaseId, caseDraft.outputId, assignedTo);
+    if (!res.ok) { toast(res.error || "배정 실패", "error"); return; }
+    toast("검토자를 배정했습니다");
+    await reloadDraft();
+  } catch (e) { if (e.message !== "auth") toast("배정 오류", "error"); }
+}
+// 전문가 검토 — 결정(승인·수정요청)
+async function decideReview(reviewId, status) {
+  const note = prompt(status === "approved" ? "검토 메모 (선택):" : "수정요청 사유:", "");
+  if (note === null) return;   // 취소
+  try {
+    const res = await apiReviewDecide(reviewId, status, note.trim());
+    if (!res.ok) { toast(res.error || "검토 저장 실패", "error"); return; }
+    toast(status === "approved" ? "승인했습니다" : "수정요청을 보냈습니다");
+    await reloadDraft();
+  } catch (e) { if (e.message !== "auth") toast("검토 오류", "error"); }
 }
 
 // ── ⑤ 기한 탭 (martyrdom_deadlines · CRUD) ──────────────────────────────────
@@ -1535,6 +2128,9 @@ async function reanalyze() {
 function clearPollTimer() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; }
+}
+function clearDraftPollTimer() {
+  if (draftPollTimer) { clearInterval(draftPollTimer); draftPollTimer = null; }
 }
 
 function startPoll(caseId) {
