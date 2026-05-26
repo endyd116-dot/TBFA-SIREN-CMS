@@ -77,12 +77,96 @@ const MOCK_DETAIL = { ok:true,
   outputs:[ { id:50, outputType:"extraction", version:1, status:"draft", contentJson:{}, ragSources:[],
     modelUsed:"gemini-3-flash", createdAt:"..." } ] };
 
+// ── P2 mock · 응답 키 §P2.2 계약 + B 실제 응답(2026-05-26 대조)과 1:1 ──────────
+// B 백엔드 P2 머지·마이그레이션 완료 → 실 API 연결(false). 키 정합 확인 끝.
+// P1 API(USE_MOCK=false)는 이미 라이브 — P2 신규 API만 이 토글을 따른다.
+const USE_P2_MOCK = false;
+
+const MOCK_STRATEGY = {
+  possibleLogics: [
+    { title: "지속적 악성민원으로 인한 직무 스트레스 → 적응장애 → 사망", reasoning: "3~5월 민원 폭주와 정신과 진료 시점이 일치, 직무관련성 인정 논리 성립", strength: "강" },
+    { title: "과중한 업무부담(담임+행정) 누적 과로", reasoning: "근무기록상 초과근무 확인되나 직접 인과는 보강 필요", strength: "중" }
+  ],
+  missingEvidence: ["심리부검 자료", "2024년 3월 근무기록(공백)", "동료 진술서"],
+  keyIssues: ["기존 질환 여부 반박", "민원과 사망 사이 시간적 인과 입증"],
+  causalChain: [{ factor: "악성민원 반복", link: "→ 불면·불안·적응장애", evidence: "진료기록·동료 증언" }],
+  similarCases: [{ ref: "○○초 교사 인정 사례(2023)", outcome: "approved", match: "악성민원+정신과 진료", diff: "유서 존재 여부" }],
+  counterArguments: [{ argument: "개인적 성격·기존 우울증 기여", rebuttal: "초진이 민원 발생 후이며 이전 정신과력 없음", basis: "진료기록 초진일" }],
+  conflicts: [{ severity: "주의", desc: "진술서상 사망일과 사망진단서 날짜 1일 차이", sources: ["동료진술서", "사망진단서"] }],
+  masterTimeline: [
+    { date: "2024-03-04", event: "담임 배정", source: "인사기록", gap: false },
+    { date: "2024-03-18", event: "악성민원 시작", source: "통화기록", gap: false },
+    { date: "2024-04", event: "(근무기록 공백 — 자료 필요)", source: "", gap: true },
+    { date: "2024-06-11", event: "사망", source: "사망진단서", gap: false }
+  ],
+  ragSources: [{ title: "공무원 재해보상법 §5", sourceRef: "martyr_law#12", snippet: "공무수행과 상당인과관계…" }]
+};
+const MOCK_CRITERIA_CHECK = {
+  items: [
+    { code: "duty_performance", category: "공무수행성", title: "공무 수행 중 발생", status: "met", evidence: "담임·교육활동 중 스트레스", ragSources: [] },
+    { code: "causation_medical", category: "인과관계", title: "공무-사망 상당인과관계", status: "partial", evidence: "진료기록 있으나 심리부검 부족", ragSources: [] },
+    { code: "mental_causation", category: "인과관계", title: "정신질환 공무관련성", status: "unmet", evidence: "심리부검 자료 없음", ragSources: [] }
+  ],
+  metCount: 5, totalCount: 8
+};
+const MOCK_READINESS = {
+  score: 78,
+  breakdown: { criteria: 32, evidence: 24, timeline: 12, conflicts: 10 },
+  max: { criteria: 40, evidence: 30, timeline: 15, conflicts: 15 },
+  gaps: [{ label: "심리부검 자료", plus: 12 }, { label: "2024.3 근무기록 공백", plus: 6 }, { label: "동료 진술", plus: 4 }],
+  aiNote: "전반적으로 직무 스트레스 입증은 탄탄하나, 심리부검 자료가 없어 의학적 인과관계 고리가 약합니다. 이 자료를 보완하면 인정 논리가 크게 강해집니다.",
+  label: "보고서 준비도 — 인정 확률 아님·내부 가늠용"
+};
+const MOCK_GOLDEN = {
+  items: [
+    { channel: "online", label: "고인 SNS·메신저 보존", guidance: "계정 잠금 전 캡처·내보내기", volatility: "high", priority: 1, caseFit: "민원·업무 토로가 메신저에 집중" },
+    { channel: "offline", label: "동료 진술 확보", guidance: "기억이 선명할 때 서면화", volatility: "low", priority: 2, caseFit: "목격 동료 다수" }
+  ]
+};
+const MOCK_DEADLINES = [{ id: 1, label: "소멸시효(3년)", dueDate: "2027-06-11", kind: "statute_limit", status: "pending" }];
+const MOCK_ACTIONS = [{ id: 1, item: "심리부검 자료 확보", status: "todo", source: "missing_evidence", dueDate: null }];
+
+// 코퍼스 검색·요건 master·대시보드 mock (B 실제 응답 키와 1:1 — 2026-05-26 B 대조 반영)
+const MOCK_CORPUS = { ok: true, query: "", hits: [
+  { id: 1, sourceType: "martyr_case", sourceRef: "martyr_case#7", title: "○○초 교사 순직 인정 사례(2023)", snippet: "지속적 악성민원으로 인한 적응장애와 사망 사이 상당인과관계 인정…", score: 0.89 },
+  { id: 2, sourceType: "martyr_law", sourceRef: "martyr_law#12", title: "공무원 재해보상법 §5(공무상 재해의 인정기준)", snippet: "공무수행과 사망 사이에 상당인과관계가 있는 경우 공무상 재해로 본다…", score: 0.83 }
+] };
+const MOCK_CRITERIA_MASTER = { ok: true, total: 2, criteria: [
+  { id: 1, code: "duty_performance", category: "공무수행성", title: "공무(교육활동·부수업무) 수행 중 발생", description: "사망·질병이 공무 수행과 시간적·장소적으로 연결됨을 입증", evidenceHint: "근무기록·업무분장·복무기록", lawRef: "공무원 재해보상법 §4", weight: 3, sortOrder: 1, active: true },
+  { id: 2, code: "causation_medical", category: "인과관계", title: "공무와 사망 사이 상당인과관계(의학)", description: "의학적 소견으로 공무-질병 인과 입증", evidenceHint: "진단서·의학소견·심리부검", lawRef: "공무원 재해보상법 §5", weight: 3, sortOrder: 2, active: true }
+] };
+const MOCK_DASHBOARD = { ok: true,
+  cases: [
+    { caseId: 1, caseNo: "MTR-20260526-0001", title: "○○초 △△ 선생님 사건", status: "collecting", caseKind: "active", readinessScore: 78, nextDeadlineAt: "2026-06-15", nextDeadlineLabel: "순직유족급여 청구 기한", dDay: 20, docCount: 3 },
+    { caseId: 3, caseNo: "MTR-20260520-0002", title: "△△중 □□ 선생님 사건", status: "analyzing", caseKind: "active", readinessScore: 45, nextDeadlineAt: "2026-06-02", nextDeadlineLabel: "심의위 자료 제출", dDay: 7, docCount: 7 }
+  ],
+  storage: { usedGb: 14.2, limitGb: 20, overThreshold: false, bytes: 15246000000, gb: 14.2, alertGb: 20, over: false },
+  summary: { activeCount: 2, urgentCount: 1, avgReadiness: 62 }
+};
+
+// ── P2 라벨 맵 ───────────────────────────────────────────────────────────────
+const STRENGTH_CLASS = { "강": "str-strong", "중": "str-mid", "약": "str-weak" };
+const CRITERIA_STATUS = {
+  met:     { label: "충족",   cls: "cs-met" },
+  partial: { label: "부분충족", cls: "cs-partial" },
+  unmet:   { label: "미흡",   cls: "cs-unmet" },
+};
+const ACTION_STATUS = { todo: "할 일", doing: "진행 중", done: "완료" };
+const ACTION_STATUS_NEXT = { todo: "doing", doing: "done", done: "todo" };
+const DEADLINE_KIND = { statute_limit: "소멸시효", submission: "자료 제출", hearing: "심의", custom: "기타" };
+const OUTPUT_TYPE_LABELS = { strategy: "전략 분석", criteria_check: "요건 대조", readiness: "준비도", golden: "골든타임 제언" };
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 let currentKind = "active";   // "active" | "reference"
 let currentCaseId = null;
 let currentDetail = null;
 let pollTimer = null;
+let genPollTimer = null;       // 전략/요건 생성 결과 폴링
+let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
+let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
+let caseDeadlines = [];        // 현재 사건 기한 목록(martyrdom_deadlines)
+let caseActions = [];          // 현재 사건 부족증거 액션 목록(martyrdom_actions)
 
 // ── 공통 유틸 ──────────────────────────────────────────────────────────────
 function toast(msg, type = "") {
@@ -170,6 +254,105 @@ async function apiDocDeleteAll(caseId) {
   return apiFetch("/api/admin-martyrdom-doc-delete?caseId=" + encodeURIComponent(caseId) + "&all=1", { method: "DELETE" });
 }
 
+// ── P2 API 래퍼 (USE_P2_MOCK 토글 · 응답 키 §P2.2 계약 고정) ───────────────────
+// 응답 envelope에서 contentJson·outputId를 안전하게 꺼냄(다중 fallback)
+function pickContentJson(res) {
+  return (res && (res.contentJson || (res.output && res.output.contentJson) ||
+    (res.data && (res.data.contentJson || (res.data.output && res.data.output.contentJson))))) || null;
+}
+function pickOutputId(res) {
+  return (res && (res.outputId || (res.output && res.output.id) || res.id ||
+    (res.data && (res.data.outputId || (res.data.output && res.data.output.id))))) || null;
+}
+
+async function detectSuperAdmin() {
+  try {
+    const r = await fetch("/api/admin/me", { credentials: "include" });
+    if (!r.ok) return;
+    const d = await r.json().catch(() => ({}));
+    const me = (d && (d.data || d)) || {};
+    isSuperAdmin = !!(me && me.role === "super_admin");
+  } catch (_) { /* 감지 실패 시 비-super_admin로 간주 */ }
+}
+
+// 전략/골든/요건 생성 디스패처 (type=strategy|golden|criteria → background / readiness 별도)
+async function apiGenerate(caseId, type) {
+  if (USE_P2_MOCK) {
+    const map = { strategy: MOCK_STRATEGY, golden: MOCK_GOLDEN, criteria: MOCK_CRITERIA_CHECK };
+    return { ok: true, status: "done", mock: true, contentJson: map[type] || {}, outputId: 900 };
+  }
+  return apiFetch("/api/admin-martyrdom-generate", { method: "POST", body: { caseId, type } });
+}
+async function apiReadiness(caseId) {
+  if (USE_P2_MOCK) return { ok: true, contentJson: MOCK_READINESS, outputId: 901 };
+  return apiFetch("/api/admin-martyrdom-readiness", { method: "POST", body: { caseId } });
+}
+async function apiOutputReview(outputId, status, reviewNote) {
+  if (USE_P2_MOCK) return { ok: true, outputId, status, reviewNote };
+  return apiFetch("/api/admin-martyrdom-output-review", { method: "PATCH", body: { outputId, status, reviewNote } });
+}
+// 기한 CRUD (martyrdom_deadlines)
+async function apiDeadlines(caseId) {
+  if (USE_P2_MOCK) return { ok: true, deadlines: MOCK_DEADLINES.map(d => ({ ...d, caseId })) };
+  return apiFetch("/api/admin-martyrdom-deadlines?caseId=" + encodeURIComponent(caseId));
+}
+async function apiDeadlineSave(body) {
+  if (USE_P2_MOCK) return { ok: true, id: body.id || Date.now() };
+  return apiFetch("/api/admin-martyrdom-deadlines", { method: body.id ? "PATCH" : "POST", body });
+}
+async function apiDeadlineDelete(id) {
+  if (USE_P2_MOCK) return { ok: true };
+  return apiFetch("/api/admin-martyrdom-deadlines?id=" + encodeURIComponent(id), { method: "DELETE" });
+}
+// 부족증거 액션 CRUD (martyrdom_actions)
+async function apiActions(caseId) {
+  if (USE_P2_MOCK) return { ok: true, actions: MOCK_ACTIONS.map(a => ({ ...a, caseId })) };
+  return apiFetch("/api/admin-martyrdom-actions?caseId=" + encodeURIComponent(caseId));
+}
+async function apiActionSave(body) {
+  if (USE_P2_MOCK) return { ok: true, id: body.id || Date.now() };
+  return apiFetch("/api/admin-martyrdom-actions", { method: body.id ? "PATCH" : "POST", body });
+}
+async function apiActionDelete(id) {
+  if (USE_P2_MOCK) return { ok: true };
+  return apiFetch("/api/admin-martyrdom-actions?id=" + encodeURIComponent(id), { method: "DELETE" });
+}
+// G3 대시보드
+async function apiDashboard() {
+  if (USE_P2_MOCK) return MOCK_DASHBOARD;
+  return apiFetch("/api/admin-martyrdom-dashboard");
+}
+// 코퍼스 검색 (martyr_case + martyr_law)
+async function apiCorpusSearch(query) {
+  if (USE_P2_MOCK) return MOCK_CORPUS;
+  return apiFetch("/api/admin-martyrdom-corpus-search", { method: "POST", body: { query } });
+}
+// 요건 master CRUD (GET 전체 · 쓰기 super_admin)
+async function apiCriteriaList() {
+  if (USE_P2_MOCK) return MOCK_CRITERIA_MASTER;
+  return apiFetch("/api/admin-martyrdom-criteria");
+}
+async function apiCriteriaSave(body) {
+  if (USE_P2_MOCK) return { ok: true, id: body.id || Date.now() };
+  // 403도 토스트로 보여주려고 직접 fetch (apiFetch는 403 시 로그인 리다이렉트)
+  const r = await fetch("/api/admin-martyrdom-criteria", {
+    method: body.id ? "PATCH" : "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  return r.ok ? data : { ok: false, status: r.status, error: data.error };
+}
+async function apiCriteriaDelete(id) {
+  if (USE_P2_MOCK) return { ok: true };
+  const r = await fetch("/api/admin-martyrdom-criteria?id=" + encodeURIComponent(id), { method: "DELETE", credentials: "include" });
+  const data = await r.json().catch(() => ({}));
+  return r.ok ? data : { ok: false, status: r.status, error: data.error };
+}
+async function apiCriteriaGenerate() {
+  if (USE_P2_MOCK) return { ok: true, candidates: MOCK_CRITERIA_MASTER.items };
+  return apiFetch("/api/admin-martyrdom-criteria-generate", { method: "POST", body: {} });
+}
+
 // ── 사건 목록 ───────────────────────────────────────────────────────────────
 async function loadCases() {
   const list = document.getElementById("caseList");
@@ -218,15 +401,60 @@ async function loadDetail(id) {
   const pane = document.getElementById("detailPane");
   pane.innerHTML = '<div class="list-loading">불러오는 중…</div>';
   clearPollTimer();
+  outputCache = {}; caseDeadlines = []; caseActions = [];   // 이전 사건 데이터 잔상 방지
   try {
     const d = await apiDetail(id);
     if (!d.ok) { toast("상세 불러오기 실패", "error"); return; }
     currentDetail = d;
+    buildOutputCache(d);
     renderDetail(d);
     startPoll(id);
+    loadCaseSubData(id);   // 기한·액션 비동기 로드(렌더 후 채움)
   } catch (e) {
     if (e.message !== "auth") toast("네트워크 오류", "error");
   }
+}
+
+// d.outputs[] → outputCache (type별 최신 version) — 전략/요건/준비도/골든
+function buildOutputCache(d) {
+  outputCache = {};
+  const outs = (d && d.outputs) || [];
+  ["strategy", "criteria_check", "readiness", "golden"].forEach(type => {
+    const rows = outs.filter(o => o.outputType === type);
+    if (!rows.length) return;
+    rows.sort((a, b) => (b.version || 0) - (a.version || 0) || (b.id || 0) - (a.id || 0));
+    setOutputCache(type, rows[0]);
+  });
+}
+function setOutputCache(type, o) {
+  if (!o) return;
+  outputCache[type] = {
+    id: o.id, status: o.status || "draft", version: o.version || 1,
+    reviewNote: o.reviewNote || "",
+    contentJson: o.contentJson || {},
+    ragSources: (o.contentJson && o.contentJson.ragSources) || o.ragSources || [],
+    processing: o.status === "processing",
+  };
+}
+// 생성 응답(mock 또는 inline)을 outputCache에 반영
+function cacheFromResponse(type, res) {
+  const cj = pickContentJson(res);
+  if (!cj) return false;
+  outputCache[type] = {
+    id: pickOutputId(res), status: "draft", version: (outputCache[type]?.version || 0) + 1,
+    reviewNote: "", contentJson: cj, ragSources: cj.ragSources || [], processing: false,
+  };
+  return true;
+}
+
+async function loadCaseSubData(id) {
+  try {
+    const [dl, ac] = await Promise.all([apiDeadlines(id), apiActions(id)]);
+    caseDeadlines = (dl && (dl.deadlines || (dl.data && dl.data.deadlines) || dl.items)) || [];
+    caseActions   = (ac && (ac.actions   || (ac.data && ac.data.actions)   || ac.items)) || [];
+  } catch (_) { caseDeadlines = []; caseActions = []; }
+  refreshDeadlinesPanel();
+  refreshActionsPanel();
 }
 
 function renderDetail(d) {
@@ -268,23 +496,37 @@ function renderDetail(d) {
     </span>
     <button class="btn-sm btn-secondary" onclick="openDeadlineModal()">기한 편집</button>
   </div>
+  <div class="detail-procedure-row" style="border-top:none;padding-top:4px">
+    <span class="consent-info">🔏 유족 동의:
+      ${c.consentObtainedAt ? `<strong style="color:#15803d">기록됨 (${fmtDate(c.consentObtainedAt)})</strong>` : `<span style="color:#b45309">미기록</span>`}
+      ${c.consentNote ? ` · <span style="color:#64748b">${escapeHtml(String(c.consentNote).slice(0,40))}</span>` : ""}
+    </span>
+    <button class="btn-sm btn-secondary" onclick="openConsentModal()">동의 기록</button>
+  </div>
 </div>
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-golden"   onclick="switchTab('tab-golden')">① 골든타임</button>
-  <button class="tab-btn"        id="tab-docs"     onclick="switchTab('tab-docs')">② 자료</button>
-  <button class="tab-btn"        id="tab-analysis" onclick="switchTab('tab-analysis')">③ 분석</button>
-  <button class="tab-btn"        id="tab-draft"    onclick="switchTab('tab-draft')">④ 서면</button>
+  <button class="tab-btn active" id="tab-golden"    onclick="switchTab('tab-golden')">① 골든타임</button>
+  <button class="tab-btn"        id="tab-docs"      onclick="switchTab('tab-docs')">② 자료</button>
+  <button class="tab-btn"        id="tab-analysis"  onclick="switchTab('tab-analysis')">③ 분석</button>
+  <button class="tab-btn"        id="tab-draft"     onclick="switchTab('tab-draft')">④ 서면</button>
+  <button class="tab-btn"        id="tab-deadlines" onclick="switchTab('tab-deadlines')">⑤ 기한</button>
 </div>
 <div id="tab-content">
   ${renderTabGolden()}
   ${renderTabDocs(d)}
   ${renderTabAnalysis()}
   ${renderTabDraft()}
+  ${renderTabDeadlines()}
 </div>`;
+  switchTab(currentTab);          // 직전 탭 유지(재렌더 시)
+  refreshActionsPanel();          // 전역 caseActions로 채움(없으면 안내)
+  refreshDeadlinesPanel();
 }
 
 // ── 탭 전환 ─────────────────────────────────────────────────────────────────
+let currentTab = "tab-docs";
 function switchTab(tabId) {
+  currentTab = tabId;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach(p => p.style.display = "none");
   const btn = document.getElementById(tabId);
@@ -293,15 +535,133 @@ function switchTab(tabId) {
   if (panel) panel.style.display = "";
 }
 
-// ── ① 골든타임 탭 (P2 placeholder) ─────────────────────────────────────────
+// ── 공용 산출물 헬퍼 (검토 바·빈 안내·패널 갱신) ─────────────────────────────
+function emptyHint(title, desc) {
+  return `<div class="empty-hint"><div class="eh-title">${escapeHtml(title)}</div><div class="eh-desc">${escapeHtml(desc)}</div></div>`;
+}
+function genBanner() {
+  /* 정량 % 일치율 금지·검토용 라벨(§P2.0 #10) */
+  return `<div class="alert-banner expert-warning" style="margin-bottom:14px">⚠️ AI 생성 — 운영자 검토용입니다. 인정 확률·정량 수치가 아니며, 변호사·노무사 확인이 필요합니다.</div>`;
+}
+// 산출물 검토 바: [검토 완료]/[폐기] + 메모 (output-review)
+function outputReviewBar(type) {
+  const o = outputCache[type];
+  if (!o || !o.id) return "";
+  const label = OUTPUT_TYPE_LABELS[type] || type;
+  const note = o.reviewNote ? ` <span class="rb-note">— ${escapeHtml(o.reviewNote)}</span>` : "";
+  let state, btns;
+  if (o.status === "reviewed") {
+    state = `<span class="rb-state ok">✅ 검토 완료</span>`;
+    btns  = `<button class="btn-sm btn-warn" onclick="reviewOutput('${type}','discarded')">폐기</button>`;
+  } else if (o.status === "discarded") {
+    state = `<span class="rb-state bad">🗑 폐기됨 (참고용)</span>`;
+    btns  = `<button class="btn-sm" onclick="reviewOutput('${type}','reviewed')">검토 완료</button>`;
+  } else {
+    state = `<span class="rb-state">초안 — 검토 대기</span>`;
+    btns  = `<button class="btn-sm" onclick="reviewOutput('${type}','reviewed')">검토 완료</button> <button class="btn-sm btn-warn" onclick="reviewOutput('${type}','discarded')">폐기</button>`;
+  }
+  return `<div class="review-bar"><span>📋 ${label} ${state}${note}</span><span class="rb-btns">${btns}</span></div>`;
+}
+async function reviewOutput(type, status) {
+  const o = outputCache[type];
+  if (!o || !o.id) { toast("검토할 산출물이 없습니다"); return; }
+  const input = prompt(status === "reviewed" ? "검토 메모 (선택):" : "폐기 사유 (선택):", o.reviewNote || "");
+  if (input === null) return; // 취소
+  const note = input.trim();
+  try {
+    const d = await apiOutputReview(o.id, status, note);
+    if (!d.ok) { toast(d.error || "검토 저장 실패", "error"); return; }
+    o.status = status; o.reviewNote = note;
+    toast(status === "reviewed" ? "검토 완료로 표시했습니다" : "폐기로 표시했습니다");
+    rerenderForType(type);
+  } catch (e) { if (e.message !== "auth") toast("검토 오류", "error"); }
+}
+// 패널 innerHTML 교체(표시 상태 유지)
+function refreshPanel(panelId, html) {
+  const old = document.getElementById(panelId);
+  if (!old) return;
+  const wasVisible = old.style.display !== "none";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = String(html).trim();
+  const fresh = tmp.firstElementChild;
+  if (!fresh) return;
+  fresh.style.display = wasVisible ? "" : "none";
+  old.replaceWith(fresh);
+}
+function refreshGolden()    { refreshPanel("tab-golden-panel", renderTabGolden()); }
+function refreshAnalysis()  { refreshPanel("tab-analysis-panel", renderTabAnalysis()); refreshActionsPanel(); }
+function refreshDraft()     { refreshPanel("tab-draft-panel", renderTabDraft()); }
+function refreshDeadlines()  { refreshPanel("tab-deadlines-panel", renderTabDeadlines()); refreshDeadlinesPanel(); }
+function rerenderForType(type) {
+  if (type === "golden") refreshGolden();
+  else if (type === "readiness") refreshDraft();
+  else refreshAnalysis();   // strategy · criteria_check
+}
+// 비동기 생성(background) 결과 폴링 — mock은 즉시 반환이라 미사용
+function pollGenerated(type) {
+  if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; }
+  let tries = 0;
+  genPollTimer = setInterval(async () => {
+    tries++;
+    if (tries > 20 || !currentCaseId) { clearInterval(genPollTimer); genPollTimer = null; return; }
+    try {
+      const d = await apiDetail(currentCaseId);
+      if (d && d.ok) {
+        currentDetail = d; buildOutputCache(d);
+        const o = outputCache[type];
+        if (o && !o.processing) {
+          clearInterval(genPollTimer); genPollTimer = null;
+          rerenderForType(type);
+          toast((OUTPUT_TYPE_LABELS[type] || "분석") + " 생성 완료");
+        }
+      }
+    } catch (_) {}
+  }, 4000);
+}
+
+// ── ① 골든타임 탭 ───────────────────────────────────────────────────────────
 function renderTabGolden() {
+  const cj = outputCache.golden && outputCache.golden.contentJson;
+  const items = (cj && cj.items) || [];
+  const sorted = items.slice().sort((a, b) => (a.priority || 99) - (b.priority || 99));
   return `<div class="tab-panel" id="tab-golden-panel" style="display:none">
-  <div class="placeholder-box">
-    <div class="placeholder-icon">⏱️</div>
-    <div class="placeholder-title">① 골든타임 자료 제언</div>
-    <div class="placeholder-desc">P2에서 구현됩니다. 휘발성 높은 자료(메신저·CCTV 등)의 우선 확보 체크리스트와 AI 맞춤 제언을 제공합니다.</div>
+  <div class="section-head">
+    <div>
+      <h3>⏱️ 골든타임 — 휘발성 자료 우선 확보</h3>
+      <p class="section-sub">계정 잠금·삭제 전에 사라지는 자료(온라인·메신저·CCTV 등)를 우선순위로 안내합니다. <span class="vol-online">●</span> 빨강=휘발성 높음(즉시 확보), <span class="vol-offline">●</span> 회색=비교적 안정.</p>
+    </div>
+    <button class="btn" onclick="generateGolden()" id="goldenGenBtn">🔔 AI 맞춤 제언${items.length ? " 다시 생성" : " 생성"}</button>
+  </div>
+  ${outputReviewBar("golden")}
+  <div id="goldenBody">
+    ${items.length ? renderGoldenItems(sorted) : emptyHint("아직 제언이 없습니다", "[🔔 AI 맞춤 제언 생성]을 누르면 이 사건 정황에 맞춰 우선 확보할 자료를 휘발성 순으로 안내합니다.")}
   </div>
 </div>`;
+}
+function renderGoldenItems(items) {
+  return `<div class="golden-list">${items.map(it => {
+    const online = it.channel === "online" || it.volatility === "high";
+    return `<div class="golden-card ${online ? "g-online" : "g-offline"}">
+      <div class="g-prio">${it.priority || "·"}</div>
+      <div class="g-main">
+        <div class="g-label">${escapeHtml(it.label)} <span class="vol-badge ${online ? "vol-online" : "vol-offline"}">${online ? "휘발성 높음" : "안정"}</span></div>
+        ${it.guidance ? `<div class="g-guide">${escapeHtml(it.guidance)}</div>` : ""}
+        ${it.caseFit ? `<div class="g-fit">📌 맞춤 사유: ${escapeHtml(it.caseFit)}</div>` : ""}
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+async function generateGolden() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("goldenGenBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "생성 중…"; }
+  try {
+    const res = await apiGenerate(currentCaseId, "golden");
+    if (!res.ok) { toast(res.error || "제언 생성 실패", "error"); return; }
+    if (cacheFromResponse("golden", res)) { refreshGolden(); toast("골든타임 제언을 생성했습니다"); }
+    else { toast("제언 생성 요청 — 잠시 후 표시됩니다"); pollGenerated("golden"); }
+  } catch (e) { if (e.message !== "auth") toast("생성 오류", "error"); }
+  finally { const b = document.getElementById("goldenGenBtn"); if (b) b.disabled = false; }
 }
 
 // ── ② 자료 탭 ───────────────────────────────────────────────────────────────
@@ -447,27 +807,336 @@ function renderExtraction(ex) {
   </div>`;
 }
 
-// ── ③ 분석 탭 (P2 placeholder) ──────────────────────────────────────────────
+// onclick 인라인 인자용 문자열 escape
+function jsStr(s) {
+  return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/[\r\n]+/g, " ");
+}
+
+// ── ③ 분석 탭 (핵심) ─────────────────────────────────────────────────────────
 function renderTabAnalysis() {
+  const strat = outputCache.strategy;
+  const crit  = outputCache.criteria_check;
+  const hasAny = (strat && strat.id) || (crit && crit.id);
   return `<div class="tab-panel" id="tab-analysis-panel" style="display:none">
-  <div class="placeholder-box">
-    <div class="placeholder-icon">🔍</div>
-    <div class="placeholder-title">③ 전략 분석</div>
-    <div class="placeholder-desc">P2에서 구현됩니다. 인정 가능 논리·부족 자료·핵심 쟁점·예상 반론·타임라인을 AI가 자동으로 분석합니다.</div>
+  ${hasAny ? genBanner() : ""}
+
+  <!-- 전략 분석 (③+⑨+⑩+⑪) -->
+  <div class="section-head">
+    <div><h3>🔍 전략 분석</h3>
+      <p class="section-sub">인정 가능 논리·부족 자료·쟁점·모순·타임라인·예상 반론을 통합 분석합니다. (자료 업로드 시 자동 생성)</p></div>
+    <button class="btn" onclick="generateStrategy()" id="strategyGenBtn">전략 분석 ${strat && strat.id ? "다시 생성" : "생성"}</button>
   </div>
+  ${outputReviewBar("strategy")}
+  <div id="strategyBody">
+    ${strat && strat.contentJson ? renderStrategy(strat.contentJson) : emptyHint("아직 전략 분석이 없습니다", "[전략 분석 생성]을 누르면 인정 가능 논리·부족 자료·모순·타임라인·예상 반론을 한 번에 분석합니다.")}
+  </div>
+
+  <!-- 요건 매트릭스 ② -->
+  <div class="section-head" style="margin-top:26px">
+    <div><h4>📋 인정 요건 대조</h4>
+      <p class="section-sub">표준 인정 요건별로 충족/부분충족/미흡을 대조합니다.</p></div>
+    <button class="btn-sm" onclick="checkCriteria()" id="criteriaGenBtn">요건 대조 ${crit && crit.id ? "다시" : ""}</button>
+  </div>
+  ${outputReviewBar("criteria_check")}
+  <div id="criteriaBody">
+    ${crit && crit.contentJson ? renderCriteriaMatrix(crit.contentJson) : emptyHint("요건 대조 결과가 없습니다", "[요건 대조]를 누르면 인정 요건별 충족 여부와 근거를 표시합니다.")}
+  </div>
+
+  <!-- 부족 증거 확보 액션 ③ -->
+  <div class="section-head" style="margin-top:26px">
+    <div><h4>🎯 부족 증거 확보 액션</h4>
+      <p class="section-sub">부족 자료를 확보 작업으로 추적합니다. 상태 배지를 눌러 할 일→진행 중→완료로 전환.</p></div>
+    <button class="btn-sm" onclick="openActionModal()">+ 액션 추가</button>
+  </div>
+  <div id="actionListBody" class="action-list">불러오는 중…</div>
 </div>`;
 }
 
-// ── ④ 서면 탭 (P3 placeholder) ──────────────────────────────────────────────
+function renderStrategy(cj) {
+  cj = cj || {};
+  const logics  = cj.possibleLogics  || [];
+  const missing = cj.missingEvidence || [];
+  const issues  = cj.keyIssues       || [];
+  const chain   = cj.causalChain     || [];
+  const similar = cj.similarCases    || [];
+  const conflicts = cj.conflicts     || [];
+  const timeline  = cj.masterTimeline|| [];
+  const counter   = cj.counterArguments || [];
+  const rag       = cj.ragSources    || [];
+  const out = [];
+
+  if (logics.length) out.push(`<div class="an-block"><div class="an-h">⚖️ 인정 가능 논리</div>
+    ${logics.map(l => `<div class="logic-card">
+      <div class="lc-top"><span class="strength ${STRENGTH_CLASS[l.strength] || "str-mid"}">${escapeHtml(l.strength || "-")}</span> <strong>${escapeHtml(l.title)}</strong></div>
+      ${l.reasoning ? `<div class="lc-reason">${escapeHtml(l.reasoning)}</div>` : ""}</div>`).join("")}</div>`);
+
+  if (missing.length) out.push(`<div class="an-block"><div class="an-h">⚠️ 부족 자료 — 확보 액션으로</div>
+    <div class="missing-list">${missing.map(m => `<div class="missing-row"><span class="ev-tag ev-missing">${escapeHtml(m)}</span>
+      <button class="btn-sm" onclick="addActionFromEvidence('${jsStr(m)}')">+ 액션 추가</button></div>`).join("")}</div></div>`);
+
+  if (issues.length) out.push(`<div class="an-block"><div class="an-h">🎯 핵심 쟁점</div>
+    <div>${issues.map(i => `<span class="tag">${escapeHtml(i)}</span>`).join(" ")}</div></div>`);
+
+  if (chain.length) out.push(`<div class="an-block"><div class="an-h">🔗 인과관계 논리체인</div>
+    ${chain.map(c => `<div class="chain-row"><span class="chain-factor">${escapeHtml(c.factor)}</span> <span class="chain-arrow">${escapeHtml(c.link || "→")}</span>${c.evidence ? ` <span class="chain-ev">근거: ${escapeHtml(c.evidence)}</span>` : ""}</div>`).join("")}</div>`);
+
+  if (similar.length) out.push(`<div class="an-block"><div class="an-h">📚 유사 사례 비교</div>
+    ${similar.map(s => `<div class="sim-card"><span class="badge outcome-${s.outcome}">${OUTCOME_LABELS[s.outcome] || s.outcome || "-"}</span> <strong>${escapeHtml(s.ref)}</strong>
+      ${s.match ? `<div class="sim-line">✔ 일치: ${escapeHtml(s.match)}</div>` : ""}${s.diff ? `<div class="sim-line">✖ 차이: ${escapeHtml(s.diff)}</div>` : ""}</div>`).join("")}</div>`);
+
+  if (conflicts.length) out.push(`<div class="an-block"><div class="an-h">🚨 모순·불일치 탐지</div>
+    ${conflicts.map(cf => {
+      const fatal = cf.severity === "치명";
+      return `<div class="conflict-card ${fatal ? "cf-fatal" : "cf-warn"}"><span class="sev-badge ${fatal ? "sev-fatal" : "sev-warn"}">${escapeHtml(cf.severity || "주의")}</span>
+        <span class="cf-desc">${escapeHtml(cf.desc)}</span>
+        ${(cf.sources || []).length ? `<div class="cf-src">출처: ${cf.sources.map(s => `<span class="tag">${escapeHtml(s)}</span>`).join(" ")}</div>` : ""}</div>`;
+    }).join("")}</div>`);
+
+  if (timeline.length) out.push(`<div class="an-block"><div class="an-h">🗓 마스터 타임라인 <span class="an-sub">(회색=자료 공백)</span></div>
+    <div class="timeline">${timeline.map(t => `<div class="tl-row ${t.gap ? "tl-gap" : ""}">
+      <div class="tl-date">${escapeHtml(t.date || "")}</div><div class="tl-dot"></div>
+      <div class="tl-body"><span class="tl-event">${escapeHtml(t.event)}</span>${t.source ? ` <span class="tl-src">(${escapeHtml(t.source)})</span>` : (t.gap ? ` <span class="tl-src">자료 필요</span>` : "")}</div>
+    </div>`).join("")}</div></div>`);
+
+  if (counter.length) out.push(`<div class="an-block"><div class="an-h">🛡 예상 반론 & 대비 논리</div>
+    ${counter.map(c => `<div class="counter-card"><div class="cc-arg">❓ ${escapeHtml(c.argument)}</div>
+      <div class="cc-reb">↳ 대비: ${escapeHtml(c.rebuttal)}</div>${c.basis ? `<div class="cc-basis">근거: ${escapeHtml(c.basis)}</div>` : ""}</div>`).join("")}</div>`);
+
+  if (rag.length) out.push(renderRagSources(rag));
+
+  return out.join("") || emptyHint("분석 결과가 비어 있습니다", "자료를 더 업로드한 뒤 다시 생성해보세요.");
+}
+
+function renderRagSources(rag) {
+  return `<details class="rag-box"><summary>📎 근거 자료 ${rag.length}건 펼치기 (인용·환각 방지)</summary>
+    <div class="rag-list">${rag.map(r => `<div class="rag-item">
+      <div class="rag-title">${escapeHtml(r.title || r.sourceRef || "근거")}</div>
+      ${r.sourceRef ? `<div class="rag-ref">${escapeHtml(r.sourceRef)}</div>` : ""}
+      ${r.snippet ? `<div class="rag-snip">"${escapeHtml(r.snippet)}"</div>` : ""}</div>`).join("")}</div></details>`;
+}
+
+function renderCriteriaMatrix(cj) {
+  cj = cj || {};
+  const items = cj.items || [];
+  if (!items.length) return emptyHint("요건 대조 결과가 없습니다", "[요건 대조]를 누르면 인정 요건별 충족 여부를 표시합니다.");
+  const met   = cj.metCount   != null ? cj.metCount   : items.filter(i => i.status === "met").length;
+  const total = cj.totalCount != null ? cj.totalCount : items.length;
+  return `<div class="crit-summary">충족 <strong>${met}</strong> / ${total} 요건</div>
+    <div class="crit-list">${items.map(it => {
+      const st = CRITERIA_STATUS[it.status] || { label: it.status || "-", cls: "cs-unmet" };
+      const rag = it.ragSources || [];
+      return `<div class="crit-row">
+        <div class="crit-status ${st.cls}">${st.label}</div>
+        <div class="crit-main">
+          <div class="crit-title">${escapeHtml(it.title)}${it.category ? ` <span class="crit-cat">${escapeHtml(it.category)}</span>` : ""}</div>
+          ${it.evidence ? `<div class="crit-ev">${escapeHtml(it.evidence)}</div>` : ""}
+          ${rag.length ? renderRagSources(rag) : ""}
+        </div></div>`;
+    }).join("")}</div>`;
+}
+
+async function generateStrategy() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("strategyGenBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "분석 중…"; }
+  try {
+    const res = await apiGenerate(currentCaseId, "strategy");
+    if (!res.ok) { toast(res.error || "전략 분석 실패", "error"); return; }
+    if (cacheFromResponse("strategy", res)) { refreshAnalysis(); toast("전략 분석을 생성했습니다"); }
+    else { toast("전략 분석 요청 — 잠시 후 표시됩니다"); pollGenerated("strategy"); }
+  } catch (e) { if (e.message !== "auth") toast("분석 오류", "error"); }
+  finally { const b = document.getElementById("strategyGenBtn"); if (b) b.disabled = false; }
+}
+async function checkCriteria() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("criteriaGenBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "대조 중…"; }
+  try {
+    const res = await apiGenerate(currentCaseId, "criteria");
+    if (!res.ok) { toast(res.error || "요건 대조 실패", "error"); return; }
+    if (cacheFromResponse("criteria_check", res)) { refreshAnalysis(); toast("요건 대조를 완료했습니다"); }
+    else { toast("요건 대조 요청 — 잠시 후 표시됩니다"); pollGenerated("criteria_check"); }
+  } catch (e) { if (e.message !== "auth") toast("대조 오류", "error"); }
+  finally { const b = document.getElementById("criteriaGenBtn"); if (b) b.disabled = false; }
+}
+
+// ── 부족증거 액션 패널 (martyrdom_actions) ──────────────────────────────────
+function refreshActionsPanel() {
+  const body = document.getElementById("actionListBody");
+  if (!body) return;
+  if (!caseActions.length) {
+    body.innerHTML = `<div class="empty-hint"><div class="eh-desc">아직 확보 액션이 없습니다. 위 [+ 액션 추가] 또는 부족 자료 옆 [+ 액션 추가]로 등록하세요.</div></div>`;
+    return;
+  }
+  body.innerHTML = caseActions.map(a => {
+    const st = a.status || "todo";
+    return `<div class="action-row">
+      <button class="ast-toggle ast-${st}" onclick="toggleAction(${a.id})" title="상태 전환">${ACTION_STATUS[st] || st}</button>
+      <div class="action-main">
+        <div class="action-item">${escapeHtml(a.item)}</div>
+        <div class="action-meta">${a.source === "missing_evidence" ? '<span class="tag">AI 부족자료</span>' : '<span class="tag">수동</span>'}${a.dueDate ? ` · 기한 ${fmtDate(a.dueDate)}` : ""}${a.detail ? ` · ${escapeHtml(a.detail)}` : ""}</div>
+      </div>
+      <div class="action-actions">
+        <button class="btn-sm btn-secondary" onclick="openActionModal(${a.id})">수정</button>
+        <button class="btn-sm btn-danger" onclick="deleteAction(${a.id})">삭제</button>
+      </div></div>`;
+  }).join("");
+}
+async function toggleAction(id) {
+  const a = caseActions.find(x => x.id === id);
+  if (!a) return;
+  const next = ACTION_STATUS_NEXT[a.status || "todo"] || "todo";
+  try {
+    const d = await apiActionSave({ id, status: next });
+    if (!d.ok) { toast(d.error || "상태 변경 실패", "error"); return; }
+    a.status = next; refreshActionsPanel();
+  } catch (e) { if (e.message !== "auth") toast("상태 오류", "error"); }
+}
+async function addActionFromEvidence(item) {
+  if (!currentCaseId || !item) return;
+  try {
+    const d = await apiActionSave({ caseId: currentCaseId, item, source: "missing_evidence", status: "todo" });
+    if (!d.ok) { toast(d.error || "액션 추가 실패", "error"); return; }
+    caseActions.push({ id: d.id || Date.now(), caseId: currentCaseId, item, source: "missing_evidence", status: "todo", dueDate: null });
+    toast("확보 액션에 추가했습니다");
+    refreshActionsPanel();
+  } catch (e) { if (e.message !== "auth") toast("추가 오류", "error"); }
+}
+async function deleteAction(id) {
+  if (!confirm("이 액션을 삭제할까요?")) return;
+  try {
+    const d = await apiActionDelete(id);
+    if (!d.ok) { toast(d.error || "삭제 실패", "error"); return; }
+    caseActions = caseActions.filter(a => a.id !== id);
+    toast("액션을 삭제했습니다");
+    refreshActionsPanel();
+  } catch (e) { if (e.message !== "auth") toast("삭제 오류", "error"); }
+}
+
+// ── ④ 서면 탭 (준비도 게이지 ⑫ + 서면 초안 P3) ──────────────────────────────
 function renderTabDraft() {
+  const r = outputCache.readiness;
   return `<div class="tab-panel" id="tab-draft-panel" style="display:none">
+  <div class="section-head">
+    <div><h3>📊 보고서 준비도</h3>
+      <p class="section-sub">최종 서면 생성 전, 지금 얼마나 채워졌고 무엇을 보완하면 강해지는지 가늠합니다.</p></div>
+    <button class="btn" onclick="computeReadiness()" id="readinessBtn">준비도 ${r && r.id ? "다시 계산" : "계산"}</button>
+  </div>
+  ${outputReviewBar("readiness")}
+  <div id="readinessBody">
+    ${r && r.contentJson ? renderReadiness(r.contentJson) : emptyHint("아직 준비도가 계산되지 않았습니다", "[준비도 계산]을 누르면 요건·증거·타임라인·모순을 합산한 완성도 %와 보완 항목을 보여줍니다.")}
+  </div>
+
+  <div class="section-head" style="margin-top:26px"><div><h4>📄 청구서·의견서 초안</h4></div></div>
   <div class="alert-banner expert-warning">⚠️ 전문가 검토용 초안 — 변호사·노무사 확인 필수</div>
   <div class="placeholder-box">
     <div class="placeholder-icon">📄</div>
-    <div class="placeholder-title">④ 청구서·의견서 초안</div>
-    <div class="placeholder-desc">P3에서 구현됩니다. 인정 받은 과거 사례를 모델로 삼아 유족급여신청서(순직신청서) 초안을 자동 생성합니다.</div>
+    <div class="placeholder-title">서면 자동 생성은 P3</div>
+    <div class="placeholder-desc">인정 받은 과거 사례를 모델로 유족급여신청서(순직신청서) 초안을 자동 생성하는 기능은 다음 단계(P3)에서 제공됩니다.</div>
   </div>
 </div>`;
+}
+function renderReadiness(cj) {
+  cj = cj || {};
+  const score = cj.score != null ? cj.score : 0;
+  const bd = cj.breakdown || {};
+  const mx = cj.max || {};
+  const gaps = cj.gaps || [];
+  const segs = [
+    { key: "criteria",  label: "요건",     color: "#2563eb" },
+    { key: "evidence",  label: "증거",     color: "#0891b2" },
+    { key: "timeline",  label: "타임라인", color: "#7c3aed" },
+    { key: "conflicts", label: "모순 없음", color: "#059669" },
+  ];
+  const maxTotal = segs.reduce((s, x) => s + (mx[x.key] || 0), 0) || 100;
+  return `<div class="readiness-wrap">
+    <div class="rd-score-row">
+      <div class="rd-score">${score}<span class="rd-pct">%</span></div>
+      <div class="rd-bar-wrap">
+        <div class="rd-bar">${segs.map(s => {
+          const w = (bd[s.key] || 0) / maxTotal * 100;
+          return `<div class="rd-seg" style="width:${w}%;background:${s.color}" title="${s.label} ${bd[s.key] || 0}/${mx[s.key] || 0}"></div>`;
+        }).join("")}</div>
+        <div class="rd-legend">${segs.map(s => `<span class="rd-leg"><i style="background:${s.color}"></i>${s.label} ${bd[s.key] || 0}/${mx[s.key] || 0}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div class="rd-label">${escapeHtml(cj.label || "보고서 준비도 — 인정 확률 아님·내부 가늠용")}</div>
+    ${gaps.length ? `<div class="rd-gaps"><div class="an-h">➕ 채우면 올라가는 항목</div>
+      ${gaps.map(g => `<div class="gap-row"><span class="gap-plus">+${g.plus}%</span> <span class="gap-label">${escapeHtml(g.label)}</span>
+        <button class="btn-sm" onclick="addActionFromEvidence('${jsStr(g.label)}')">+ 액션</button></div>`).join("")}</div>` : ""}
+    ${cj.aiNote ? `<div class="rd-note"><strong>💬 AI 첨언</strong><div>${escapeHtml(cj.aiNote)}</div></div>` : ""}
+  </div>`;
+}
+async function computeReadiness() {
+  if (!currentCaseId) return;
+  const btn = document.getElementById("readinessBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "계산 중…"; }
+  try {
+    const res = await apiReadiness(currentCaseId);
+    if (!res.ok) { toast(res.error || "준비도 계산 실패", "error"); return; }
+    if (cacheFromResponse("readiness", res)) { refreshDraft(); toast("준비도를 계산했습니다"); }
+    else { toast("준비도 계산 요청 — 잠시 후 표시됩니다"); pollGenerated("readiness"); }
+  } catch (e) { if (e.message !== "auth") toast("계산 오류", "error"); }
+  finally { const b = document.getElementById("readinessBtn"); if (b) b.disabled = false; }
+}
+
+// ── ⑤ 기한 탭 (martyrdom_deadlines · CRUD) ──────────────────────────────────
+function renderTabDeadlines() {
+  return `<div class="tab-panel" id="tab-deadlines-panel" style="display:none">
+  <div class="section-head">
+    <div><h3>🗓 절차·기한 관리</h3>
+      <p class="section-sub">소멸시효·자료 제출·심의 등 기한을 D-day로 추적합니다.</p></div>
+    <button class="btn" onclick="openDeadlineItemModal()">+ 기한 추가</button>
+  </div>
+  <div id="deadlineListBody" class="deadline-list">불러오는 중…</div>
+</div>`;
+}
+function refreshDeadlinesPanel() {
+  const body = document.getElementById("deadlineListBody");
+  if (!body) return;
+  if (!caseDeadlines.length) {
+    body.innerHTML = `<div class="empty-hint"><div class="eh-desc">등록된 기한이 없습니다. [+ 기한 추가]로 소멸시효·제출 기한 등을 등록하세요.</div></div>`;
+    return;
+  }
+  const sorted = caseDeadlines.slice().sort((a, b) => String(a.dueDate || "").localeCompare(String(b.dueDate || "")));
+  body.innerHTML = sorted.map(d => {
+    const done = d.status === "done";
+    const ds = dday(d.dueDate);
+    const diff = d.dueDate ? Math.ceil((new Date(d.dueDate) - Date.now()) / 86400000) : null;
+    const urgent = !done && diff != null && diff <= 7;
+    const overdue = !done && diff != null && diff < 0;
+    return `<div class="deadline-row ${done ? "dl-done" : ""}">
+      <div class="dl-dday ${overdue ? "dl-over" : (urgent ? "dl-urgent" : "")}">${done ? "완료" : (ds || "-")}</div>
+      <div class="dl-main">
+        <div class="dl-label">${escapeHtml(d.label)} <span class="tag">${DEADLINE_KIND[d.kind] || d.kind || "기타"}</span></div>
+        <div class="dl-meta">${fmtDate(d.dueDate)}${d.note ? ` · ${escapeHtml(d.note)}` : ""}</div>
+      </div>
+      <div class="dl-actions">
+        <button class="btn-sm ${done ? "btn-secondary" : ""}" onclick="toggleDeadline(${d.id})">${done ? "되돌리기" : "완료"}</button>
+        <button class="btn-sm btn-secondary" onclick="openDeadlineItemModal(${d.id})">수정</button>
+        <button class="btn-sm btn-danger" onclick="deleteDeadlineItem(${d.id})">삭제</button>
+      </div></div>`;
+  }).join("");
+}
+async function toggleDeadline(id) {
+  const d = caseDeadlines.find(x => x.id === id);
+  if (!d) return;
+  const next = d.status === "done" ? "pending" : "done";
+  try {
+    const res = await apiDeadlineSave({ id, status: next });
+    if (!res.ok) { toast(res.error || "상태 변경 실패", "error"); return; }
+    d.status = next; refreshDeadlinesPanel();
+  } catch (e) { if (e.message !== "auth") toast("상태 오류", "error"); }
+}
+async function deleteDeadlineItem(id) {
+  if (!confirm("이 기한을 삭제할까요?")) return;
+  try {
+    const res = await apiDeadlineDelete(id);
+    if (!res.ok) { toast(res.error || "삭제 실패", "error"); return; }
+    caseDeadlines = caseDeadlines.filter(x => x.id !== id);
+    toast("기한을 삭제했습니다");
+    refreshDeadlinesPanel();
+  } catch (e) { if (e.message !== "auth") toast("삭제 오류", "error"); }
 }
 
 // ── PATCH 사건 필드 ─────────────────────────────────────────────────────────
@@ -865,6 +1534,7 @@ async function reanalyze() {
 // ── extractStatus 폴링 ───────────────────────────────────────────────────────
 function clearPollTimer() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (genPollTimer) { clearInterval(genPollTimer); genPollTimer = null; }
 }
 
 function startPoll(caseId) {
@@ -898,6 +1568,273 @@ function startPoll(caseId) {
   }, 5000);
 }
 
+// ── 동의 기록 모달 (라 — 유족 동의 최소 기록) ───────────────────────────────
+function openConsentModal() {
+  if (!currentDetail) return;
+  const c = currentDetail.case;
+  document.getElementById("cs_note").value = c.consentNote || "";
+  document.getElementById("cs_date").value = c.consentObtainedAt ? String(c.consentObtainedAt).slice(0, 10) : "";
+  document.getElementById("consentModal").style.display = "flex";
+}
+function closeConsentModal() { document.getElementById("consentModal").style.display = "none"; }
+async function submitConsent() {
+  if (!currentCaseId) return;
+  const consentNote = document.getElementById("cs_note").value.trim();
+  const consentObtainedAt = document.getElementById("cs_date").value || null;
+  try {
+    const d = await apiPatchCase(currentCaseId, { consentNote, consentObtainedAt });
+    if (!d.ok) { toast(d.error || "저장 실패", "error"); return; }
+    toast("동의 기록을 저장했습니다");
+    closeConsentModal();
+    if (currentDetail && currentDetail.case) {
+      currentDetail.case.consentNote = consentNote;
+      currentDetail.case.consentObtainedAt = consentObtainedAt;
+      renderDetail(currentDetail);   // 헤더 표시 갱신(현재 탭 유지)
+    }
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+
+// ── 확보 액션 추가/수정 모달 ─────────────────────────────────────────────────
+let editingActionId = null;
+function openActionModal(id) {
+  editingActionId = id || null;
+  const a = id ? caseActions.find(x => x.id === id) : null;
+  document.getElementById("ac_item").value   = a ? (a.item || "") : "";
+  document.getElementById("ac_detail").value = a ? (a.detail || "") : "";
+  document.getElementById("ac_status").value = a ? (a.status || "todo") : "todo";
+  document.getElementById("ac_due").value    = a && a.dueDate ? String(a.dueDate).slice(0, 10) : "";
+  document.getElementById("actionModalTitle").textContent = id ? "액션 수정" : "확보 액션 추가";
+  document.getElementById("actionModal").style.display = "flex";
+}
+function closeActionModal() { document.getElementById("actionModal").style.display = "none"; editingActionId = null; }
+async function submitAction() {
+  const item = document.getElementById("ac_item").value.trim();
+  if (!item) { toast("내용을 입력해주세요", "error"); return; }
+  const body = {
+    item,
+    detail: document.getElementById("ac_detail").value.trim(),
+    status: document.getElementById("ac_status").value,
+    dueDate: document.getElementById("ac_due").value || null,
+  };
+  const eid = editingActionId;
+  if (eid) body.id = eid; else { body.caseId = currentCaseId; body.source = "manual"; }
+  try {
+    const d = await apiActionSave(body);
+    if (!d.ok) { toast(d.error || "저장 실패", "error"); return; }
+    if (eid) { const a = caseActions.find(x => x.id === eid); if (a) Object.assign(a, body); }
+    else caseActions.push({ id: d.id || Date.now(), caseId: currentCaseId, source: "manual", ...body });
+    toast("저장했습니다");
+    closeActionModal();
+    refreshActionsPanel();
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+
+// ── 기한 추가/수정 모달 (martyrdom_deadlines) ───────────────────────────────
+let editingDeadlineId = null;
+function openDeadlineItemModal(id) {
+  editingDeadlineId = id || null;
+  const d = id ? caseDeadlines.find(x => x.id === id) : null;
+  document.getElementById("di_label").value = d ? (d.label || "") : "";
+  document.getElementById("di_kind").value  = d ? (d.kind || "custom") : "custom";
+  document.getElementById("di_due").value   = d && d.dueDate ? String(d.dueDate).slice(0, 10) : "";
+  document.getElementById("di_note").value  = d ? (d.note || "") : "";
+  document.getElementById("deadlineItemModalTitle").textContent = id ? "기한 수정" : "기한 추가";
+  document.getElementById("deadlineItemModal").style.display = "flex";
+}
+function closeDeadlineItemModal() { document.getElementById("deadlineItemModal").style.display = "none"; editingDeadlineId = null; }
+async function submitDeadlineItem() {
+  const label = document.getElementById("di_label").value.trim();
+  const dueDate = document.getElementById("di_due").value;
+  if (!label) { toast("기한 설명을 입력해주세요", "error"); return; }
+  if (!dueDate) { toast("기한일을 선택해주세요", "error"); return; }
+  const body = { label, kind: document.getElementById("di_kind").value, dueDate, note: document.getElementById("di_note").value.trim() };
+  const eid = editingDeadlineId;
+  if (eid) body.id = eid; else body.caseId = currentCaseId;
+  try {
+    const res = await apiDeadlineSave(body);
+    if (!res.ok) { toast(res.error || "저장 실패", "error"); return; }
+    if (eid) { const d = caseDeadlines.find(x => x.id === eid); if (d) Object.assign(d, body); }
+    else caseDeadlines.push({ id: res.id || Date.now(), caseId: currentCaseId, status: "pending", ...body });
+    toast("기한을 저장했습니다");
+    closeDeadlineItemModal();
+    refreshDeadlinesPanel();
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+
+// ── G3 다중 사건 대시보드 ────────────────────────────────────────────────────
+async function showDashboard() {
+  currentCaseId = null; currentDetail = null;
+  clearPollTimer();
+  document.querySelectorAll(".case-item").forEach(el => el.classList.remove("active"));
+  const pane = document.getElementById("detailPane");
+  pane.innerHTML = '<div class="list-loading">현황 불러오는 중…</div>';
+  try {
+    const d = await apiDashboard();
+    if (!d || !d.ok) { pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">📊</div><div>현황을 불러오지 못했습니다</div></div>'; return; }
+    renderDashboard(d, pane);
+  } catch (e) {
+    if (e.message !== "auth") pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">📊</div><div>현황을 불러오지 못했습니다</div></div>';
+  }
+}
+function renderDashboard(d, pane) {
+  const cases   = d.cases   || (d.data && d.data.cases)   || [];
+  const storage = d.storage || (d.data && d.data.storage) || {};
+  const summary = d.summary || (d.data && d.data.summary) || {};
+  const overGb = !!storage.overThreshold;
+  const sorted = cases.slice().sort((a, b) => {
+    const da = a.nextDeadlineAt ? new Date(a.nextDeadlineAt).getTime() : Infinity;
+    const db = b.nextDeadlineAt ? new Date(b.nextDeadlineAt).getTime() : Infinity;
+    return da - db;
+  });
+  pane.innerHTML = `<div class="dash-wrap">
+    <div class="dash-head"><h2>📊 순직 인정 지원 — 현황</h2>
+      <button class="btn-sm btn-secondary" onclick="showDashboard()">새로고침</button></div>
+    <div class="dash-cards">
+      <div class="dash-kpi"><div class="kpi-num">${summary.activeCount != null ? summary.activeCount : cases.length}</div><div class="kpi-lbl">진행 사건</div></div>
+      <div class="dash-kpi ${summary.urgentCount ? "kpi-warn" : ""}"><div class="kpi-num">${summary.urgentCount || 0}</div><div class="kpi-lbl">기한 임박</div></div>
+      <div class="dash-kpi"><div class="kpi-num">${summary.avgReadiness != null ? summary.avgReadiness + "%" : "-"}</div><div class="kpi-lbl">평균 준비도</div></div>
+      <div class="dash-kpi ${overGb ? "kpi-danger" : ""}"><div class="kpi-num">${storage.usedGb != null ? storage.usedGb : "-"}<small>/${storage.limitGb || "-"}GB</small></div><div class="kpi-lbl">저장 용량${overGb ? " ⚠️" : ""}</div></div>
+    </div>
+    ${overGb ? `<div class="error-banner">⚠️ 저장 용량이 임계치를 초과했습니다. 백업 후 오래된 자료를 정리하세요.</div>` : ""}
+    <table class="dash-table"><thead><tr><th>사건</th><th>상태</th><th>준비도</th><th>다음 기한</th><th>자료</th></tr></thead>
+    <tbody>${sorted.map(c => {
+      const cid = c.caseId != null ? c.caseId : c.id;
+      const diff = c.nextDeadlineAt ? Math.ceil((new Date(c.nextDeadlineAt) - Date.now()) / 86400000) : null;
+      const urgent = diff != null && diff <= 7;
+      return `<tr onclick="selectCase(${cid})" style="cursor:pointer">
+        <td><strong>${escapeHtml(c.title || c.caseNo || "")}</strong><div class="dash-cn">${escapeHtml(c.caseNo || "")}</div></td>
+        <td><span class="badge status-badge">${STATUS_LABELS[c.status] || c.status || "-"}</span></td>
+        <td>${c.readinessScore != null ? `<span class="dash-rd">${c.readinessScore}%</span>` : "-"}</td>
+        <td>${c.nextDeadlineAt ? `${fmtDate(c.nextDeadlineAt)} <span class="dday-badge ${urgent ? "dl-urgent" : ""}">${dday(c.nextDeadlineAt)}</span>` : "-"}${c.nextDeadlineLabel ? `<div class="dash-cn">${escapeHtml(c.nextDeadlineLabel)}</div>` : ""}</td>
+        <td>${c.docCount != null ? c.docCount : "-"}</td></tr>`;
+    }).join("") || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px">진행 사건이 없습니다</td></tr>'}</tbody></table>
+  </div>`;
+}
+
+// ── 코퍼스 검색 (과거사례 + 법령) ───────────────────────────────────────────
+function openCorpusModal() {
+  document.getElementById("corpusModal").style.display = "flex";
+  const inp = document.getElementById("corpusQuery"); if (inp) inp.focus();
+}
+function closeCorpusModal() { document.getElementById("corpusModal").style.display = "none"; }
+function corpusKey(e) { if (e && e.key === "Enter") runCorpusSearch(); }
+async function runCorpusSearch() {
+  const q = document.getElementById("corpusQuery").value.trim();
+  if (!q) { toast("검색어를 입력해주세요", "error"); return; }
+  const res = document.getElementById("corpusResults");
+  res.innerHTML = '<div class="list-loading">검색 중…</div>';
+  try {
+    const d = await apiCorpusSearch(q);
+    const hits = (d && (d.hits || (d.data && d.data.hits) || d.results)) || [];
+    if (!hits.length) { res.innerHTML = '<div class="empty-hint"><div class="eh-desc">결과가 없습니다.</div></div>'; return; }
+    res.innerHTML = hits.map(r => `<div class="corpus-item">
+      <div class="corpus-top"><strong>${escapeHtml(r.title || r.sourceRef || "")}</strong>
+        <span class="corpus-type ${r.sourceType === "martyr_law" ? "ct-law" : "ct-case"}">${r.sourceType === "martyr_law" ? "법령" : (r.sourceType === "martyr_case" ? "사례" : (r.sourceType || ""))}</span></div>
+      ${r.snippet ? `<div class="corpus-snip">${escapeHtml(r.snippet)}</div>` : ""}
+      ${r.sourceRef ? `<div class="corpus-ref">${escapeHtml(r.sourceRef)}</div>` : ""}</div>`).join("");
+  } catch (e) {
+    if (e.message !== "auth") res.innerHTML = '<div class="empty-hint"><div class="eh-desc">검색 오류</div></div>';
+  }
+}
+
+// ── 요건 master 관리 (조회 전체 · 편집 super_admin) ──────────────────────────
+let _criteriaCache = [];
+let editingCriteriaId = null;
+function openCriteriaMaster() {
+  document.getElementById("criteriaMasterModal").style.display = "flex";
+  hideCriteriaForm();
+  loadCriteriaMaster();
+}
+function closeCriteriaMaster() { document.getElementById("criteriaMasterModal").style.display = "none"; }
+async function loadCriteriaMaster() {
+  const body = document.getElementById("criteriaMasterList");
+  body.innerHTML = '<div class="list-loading">불러오는 중…</div>';
+  try {
+    const d = await apiCriteriaList();
+    _criteriaCache = (d && (d.criteria || (d.data && d.data.criteria) || d.items)) || [];
+    renderCriteriaMasterList();
+  } catch (e) {
+    if (e.message !== "auth") body.innerHTML = '<div class="empty-hint"><div class="eh-desc">불러오기 오류</div></div>';
+  }
+}
+function renderCriteriaMasterList() {
+  const items = _criteriaCache;
+  const canEdit = isSuperAdmin;
+  const toolbar = document.getElementById("criteriaMasterTools");
+  if (toolbar) {
+    toolbar.innerHTML = canEdit
+      ? `<button class="btn-sm" onclick="showCriteriaForm()">+ 요건 추가</button>
+         <button class="btn-sm btn-secondary" onclick="generateCriteria()">⚙️ 법령에서 후보 생성</button>`
+      : `<span class="cm-readonly">보기 전용 — 요건 편집은 슈퍼어드민만 가능합니다.</span>`;
+  }
+  const body = document.getElementById("criteriaMasterList");
+  body.innerHTML = items.length ? items.map(it => `<div class="cm-row">
+    <div class="cm-main">
+      <div class="cm-title">${escapeHtml(it.title)}${it.category ? ` <span class="crit-cat">${escapeHtml(it.category)}</span>` : ""} <span class="tag">가중치 ${it.weight != null ? it.weight : "-"}</span>${it.active === false ? ' <span class="tag" style="color:#991b1b">비활성</span>' : ""}</div>
+      <div class="cm-code">${escapeHtml(it.code || "")}${it.lawRef ? ` · ${escapeHtml(it.lawRef)}` : ""}</div>
+      ${it.description ? `<div class="cm-desc">${escapeHtml(it.description)}</div>` : ""}
+    </div>
+    ${canEdit ? `<div class="cm-actions"><button class="btn-sm btn-secondary" onclick="editCriteria(${it.id})">수정</button><button class="btn-sm btn-danger" onclick="deleteCriteria(${it.id})">삭제</button></div>` : ""}
+  </div>`).join("") : '<div class="empty-hint"><div class="eh-desc">요건이 없습니다.</div></div>';
+}
+function showCriteriaForm(id) {
+  editingCriteriaId = id || null;
+  const it = id ? _criteriaCache.find(x => x.id === id) : null;
+  document.getElementById("cm_code").value     = it ? (it.code || "") : "";
+  document.getElementById("cm_category").value = it ? (it.category || "") : "";
+  document.getElementById("cm_title").value    = it ? (it.title || "") : "";
+  document.getElementById("cm_weight").value   = it ? (it.weight != null ? it.weight : 1) : 1;
+  document.getElementById("cm_lawref").value   = it ? (it.lawRef || "") : "";
+  document.getElementById("cm_desc").value     = it ? (it.description || "") : "";
+  document.getElementById("criteriaFormTitle").textContent = id ? "요건 수정" : "요건 추가";
+  document.getElementById("criteriaForm").style.display = "block";
+}
+function hideCriteriaForm() {
+  const f = document.getElementById("criteriaForm");
+  if (f) f.style.display = "none";
+  editingCriteriaId = null;
+}
+function editCriteria(id) { showCriteriaForm(id); }
+async function submitCriteria() {
+  const code = document.getElementById("cm_code").value.trim();
+  const title = document.getElementById("cm_title").value.trim();
+  if (!code || !title) { toast("코드·제목은 필수입니다", "error"); return; }
+  const body = {
+    code, title,
+    category: document.getElementById("cm_category").value.trim(),
+    weight: parseInt(document.getElementById("cm_weight").value, 10) || 1,
+    lawRef: document.getElementById("cm_lawref").value.trim(),
+    description: document.getElementById("cm_desc").value.trim(),
+  };
+  if (editingCriteriaId) body.id = editingCriteriaId;
+  try {
+    const d = await apiCriteriaSave(body);
+    if (!d.ok) { toast(d.status === 403 ? "슈퍼어드민만 편집할 수 있습니다" : (d.error || "저장 실패"), "error"); return; }
+    toast("요건을 저장했습니다");
+    hideCriteriaForm();
+    loadCriteriaMaster();
+  } catch (e) { if (e.message !== "auth") toast("저장 오류", "error"); }
+}
+async function deleteCriteria(id) {
+  if (!confirm("이 요건을 삭제할까요?")) return;
+  try {
+    const d = await apiCriteriaDelete(id);
+    if (!d.ok) { toast(d.status === 403 ? "슈퍼어드민만 삭제할 수 있습니다" : (d.error || "삭제 실패"), "error"); return; }
+    toast("요건을 삭제했습니다");
+    loadCriteriaMaster();
+  } catch (e) { if (e.message !== "auth") toast("삭제 오류", "error"); }
+}
+async function generateCriteria() {
+  toast("법령에서 요건 후보를 분석 중…");
+  try {
+    const d = await apiCriteriaGenerate();
+    if (!d.ok) { toast(d.status === 403 ? "슈퍼어드민 전용" : (d.error || "분석 실패"), "error"); return; }
+    const n = ((d.candidates || (d.data && d.data.candidates)) || []).length;
+    toast(`법령 파싱 완료 — 후보 ${n}건 (검토 후 반영)`);
+    loadCriteriaMaster();
+  } catch (e) { if (e.message !== "auth") toast("분석 오류", "error"); }
+}
+
 // ── 종류 토글 (지원대상 / 과거사례) ────────────────────────────────────────
 function setKindToggle(kind) {
   currentKind = kind;
@@ -906,5 +1843,7 @@ function setKindToggle(kind) {
 
 // ── 초기화 ─────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  detectSuperAdmin();   // 요건 master 편집 권한 분기용(fire-and-forget)
   loadCases();
+  showDashboard();      // 랜딩: G3 현황 대시보드
 });
