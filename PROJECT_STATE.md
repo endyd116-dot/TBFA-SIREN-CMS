@@ -23,7 +23,26 @@
 
 ## 2. 현재 상태 (2026-05-26)
 
-### 🕊️ 딥릴리프(순직 인정 지원) P1 — 배포 완료·자동체인 근본 fix 후 Swain 재검증 중 (2026-05-26)
+### 🕊️ 딥릴리프 P1 — 추출·분류 대량 실패 근본 fix 배포·Swain 재검증 중 + A 가입집계·B 알림로그 동봉 (2026-05-26 최신)
+재검증 결과 = **추출/분류 대부분 실패**(스크린샷). 4개 원인 진단·전부 fix·1회 배포(`501ae51..d59669d`):
+- **분류 대량 실패(핵심)**: 일괄 재시도가 짧은 시간에 Vision OCR 다수를 동시 실행 → 5분 누계 비용 $1 임계 초과로 **surge cooldown 자기차단** → 이후 호출 전부 fail-closed(AI 비서는 별개라 정상). → `checkFeatureBeforeCall(featureKey,{skipSurge})` + `GeminiOptions.internalBulk` → 딥릴리프 4개 호출 면제(월 $100 예산·기능 토글은 유지). `59d81fd`.
+- **엑셀 전부 실패**: 서버 엑셀 파서 부재 → `exceljs` 추가(시트→탭 텍스트). `c35208a`. **신규 dep exceljs(npm audit 경고 transitive·force 미적용).**
+- **이미지·스캔PDF 실패**: ai-gemini 8초 고정 타임아웃이 15분 background OCR엔 짧음 → `timeoutMs` 옵션화(동기 8초 유지)·딥릴리프 OCR 120s/분류 30~90s. `69ca729`.
+- **'신청·행정 서류' 오표시**: 드롭다운이 docType(수기·NULL)만 봐서 자동분류 성공해도 첫옵션 표시 → `docType||docTypeAuto`+'미분류'. 실패 사유(extractError·분류 사유) 화면 빨강 노출. `69ca729`·`59d81fd`. 캐시버스터 admin-martyrdom.js v6.
+- ℹ️ `martyrdom_ai` 토글은 **'비용 관리' 화면**에 있음(설정·도구 관리 아님)·라이브 등록됨·기본 켜짐.
+- **Swain 재검증 대기**: 배포 후 [전체 재시도] → 엑셀·이미지·텍스트 모두 추출·분류되는지. 실패 시 빨간 사유 문구로 추가조치.
+
+### A. 신규 웹 가입자 집계·가입경로 '싸이렌웹' — 배포·마이그 대기 (2026-05-26)
+- 원인 2개: ① `auth-signup`가 signup_source_id 미기록(NULL) ② `admin-dashboard-kpi` webonly 필터가 존재 않는 코드 'siren'으로 조회(실제 'website') → 웹 회원 항상 0집계. 둘 다 fix(`cb88ac2`). 통합분석·가입회원관리는 경로값 파생이라 자동 치유.
+- 라벨: 웹 가입경로 → **'싸이렌웹'**(`69ca729`). 과거 NULL 회원 백필 + 라벨 통일 = 1회용 `migrate-signup-source-backfill`(진단/실행 분리·효성 제외). **Swain 호출 대기**: `/api/migrate-signup-source-backfill?run=1` → 성공 후 파일 삭제.
+
+### B. 알림 발송 로그 메뉴 — admin.html(회원·문의) → 통합 CMS 알림·발송 그룹 이관 (2026-05-26·`cb88ac2`)
+- standalone `admin-notification-logs.html` 래퍼 신규(기존 발송 탭과 동일 iframe) + cms-tbfa 4곳 등록(사이드바·iframe섹션·타이틀·라우팅) + admin.html 항목 제거. cms-tbfa.js 캐시버스터 갱신(`d59669d`).
+
+### ⏭️ P2 설계·분배 — P1 검증 PASS 게이트(설계서 명시)
+P1 재검증 통과 후 착수: ③전략·①골든타임·②인정요건대조·⑨모순·⑩타임라인+공백·⑪반론·⑫준비도+G3+코퍼스검색·동의/보존. 설계서 `docs/active/2026-05-26-survivor-support.md` §5.3·§6.
+
+### 🕊️ (이전) 딥릴리프 P1 — 자동체인 근본 fix (2026-05-26)
 교유협 도메인+법률 기반 **교사 순직 인정 AI 지원** = **Deep-Relief AI v0**(내부 엔진·MVP·초기창업패키지 사업계획서 정합). 통합 CMS **1뎁스 독립 메뉴 "🕊️ 딥릴리프"**. 단일 설계서 = `docs/active/2026-05-26-survivor-support.md`(§0~§10 + 보완 12종 + G기능 6종 + §9.4 연구발간 + §10 점검).
 - **P1 범위(배포됨)**: 사건 CRUD(수정·삭제) + 자료 업로드(모든 형식·R2 presign·100MB) + 추출(pdf-parse·mammoth·Gemini Vision OCR) + **AI 8대 자동분류** + RAG 색인(`martyr_active`/`martyr_case`/`martyr_law`·`case_id` 격리) + **사건 구조 자동 추출** + 자동 체인 + 일괄 재시도. 부수: 근태(퇴근 미달 경고·유연근무 ±X).
 - **배포 커밋(최신순)**: `501ae51`(자동체인 근본fix+일괄재시도)·`e3b9dff`(여론504 bg분리)·`fe72eb0`(사건CRUD+queued재시도)·`c398079`(C검증 6fix)·`3d7098f`(빈화면fix+1뎁스)·`53084d1`(가입 핫픽스)·`2bf7d90`(B·A머지·schema활성·USE_MOCK off)·`dac2db4`(설계 베이스). **로컬 main이 origin보다 1 docs 커밋 앞설 수 있음(이 갱신)·다음 코드 push에 동봉.**
@@ -31,12 +50,13 @@
 - **마이그 호출 완료**(Swain): `migrate-martyrdom-setup`(4테이블·`ai_rag_documents.case_id`·golden_items 10·featureKey `martyrdom_ai`) + `migrate-att-flex-range`(`flex_range_mins`). 둘 다 schema 활성화·파일 삭제 완료. `INTERNAL_TRIGGER_SECRET` 설정됨.
 - **C 검증 PASS**: 6결함 fix(자동체인 await·과거사례 색인·상태값·알림 컬럼·인정패턴·응답키) — `docs/history/verify/2026-05-26-martyrdom-p1.md`. tsc 0.
 
-### ➡️ 다음 세션 즉시 할 일 (Swain "(나)" — 새 채팅 분리·2026-05-26)
-1. **딥릴리프 P1 재검증 결과 확인** → 자료 [전체 재시도]→자동분류·완료 되면 **P1 종결**·본 블록 정리·설계서 history 이동 보류(P2~P4 남음).
-2. **A. 신규 웹 가입자 집계·가입경로 안 보임(운영 이슈)**: `auth-signup.ts`가 `signupSourceId`(가입경로) 미기록 + **대시보드·통합분석·가입회원관리**에 신규 웹 회원 미집계('통합 일반 회원'엔 보임). **4곳(대시보드 stats·통합분석·가입회원관리 화면·auth-signup) 같이 보고 정조준 수정.** Swain 원칙=웹 관련 전부 싸이렌 어드민에서 관리·조회·컨트롤.
-3. **B. 알림 발송 로그 메뉴 이동**(판단 완료): 회원문의 → **알림·발송 메뉴**로(발송 작업·템플릿·수신자·AI자동·시스템자동·발송분석과 함께). cms-tbfa 메뉴 위치 소규모 이동.
-4. **P2 설계·분배**: ③전략 분석·①골든타임·②인정요건 대조·⑨모순 탐지·⑩마스터 타임라인+공백·⑪반론 대비·⑫준비도 게이지 + G3 다중사건 대시보드 (+다 코퍼스 검색·라 동의/보존). 설계서 §6에 P2 트리거 추가 후 B·A·C 분배.
+### ➡️ 다음 세션 즉시 할 일 (배포 `d59669d` 후 Swain 검증 대기·2026-05-26)
+1. **딥릴리프 P1 재검증**: 배포 후 [전체 재시도] → 엑셀·이미지·텍스트 모두 추출·분류 되는지. PASS면 P1 종결. 실패 자료는 요약칸 빨간 사유로 추가조치. (혹시 '비용 관리'에서 martyrdom_ai 켜짐 확인.)
+2. **A 마이그 호출**: `https://tbfa.co.kr/api/migrate-signup-source-backfill?run=1`(가입경로 백필+싸이렌웹 라벨) → 성공 후 파일 삭제·커밋.
+3. **A·B 라이브 확인**: 가입경로 '싸이렌웹' 표시·신규 웹 가입 집계·알림·발송 그룹의 '알림 발송 로그' 메뉴.
+4. **P2 설계·분배** (P1 PASS 게이트): 설계서 §5.3·§6 — ③전략·①골든타임·②인정요건대조·⑨모순·⑩타임라인+공백·⑪반론·⑫준비도+G3+코퍼스검색·동의/보존 → §6 P2 트리거 추가 후 B·A·C 분배.
 - 메모리 `project_next_survivor_support`(§0 결정·Deep-Relief 정합).
+- **잔여 정리**: 마이그 호출 성공 후 `migrate-signup-source-backfill.ts` 삭제. exceljs npm audit 경고(transitive) 모니터.
 
 ### 🏁 2026-05-26 RAG 검색 인프라 — 종결·운영 정상 작동 확인
 - **기능**: AI 비서가 질문 시 협회 Q&A(328문항)+메뉴얼 본문(총 535문서)을 의미 검색해 답변 근거로 자동 주입. pgvector + `gemini-embedding-001`(768차원). featureKey `ai_rag_search` 토글(OFF 시 기존 동작·안전망).
@@ -296,4 +316,4 @@ cms 운영관리 "근태관리 설정" 1메뉴 → **"🟢 근태 현황"(조회
 
 ---
 
-**마지막 갱신**: 2026-05-26 (RAG 검색 인프라 종결·운영 535문서 색인·검색 정상 PASS·결함 5건 fix·신규 env 2개)
+**마지막 갱신**: 2026-05-26 (딥릴리프 P1 추출·분류 대량실패 4원인 fix 배포 `d59669d`[surge 자기차단 면제·엑셀 exceljs·타임아웃 옵션화·미분류 표시·사유 노출] + A 가입집계·싸이렌웹 라벨 + B 알림로그 메뉴 이관 — Swain 재검증·마이그 호출 대기)
