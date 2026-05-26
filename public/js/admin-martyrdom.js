@@ -167,7 +167,7 @@ const MOCK_REVIEWERS = [{ id:12, name:"김간사", role:"operator" }, { id:3, na
 
 // ── P4 mock · 유족 요약·통계·발간 (B 머지 전 · 응답 키 §P4.2 계약과 1:1 · 키 1글자도 변경 금지) ──
 // B 백엔드 P4 머지·마이그레이션 후 메인이 false로 전환.
-const USE_P4_MOCK = true;
+const USE_P4_MOCK = false; // 2026-05-27 B 머지·마이그 완료 → 실 API 연결
 
 const MOCK_FAMILY_SUMMARY = { id:50, outputType:"family_summary",
   contentText:"○○ 선생님 사건은 현재 자료를 모아 전략을 분석하는 단계입니다. 쉽게 말씀드리면, 선생님이 많은 스트레스를 받으신 상황을 자료로 증명하는 과정을 진행 중입니다. 현재까지 수집된 자료들이 도움이 되고 있으며, 전문가가 검토할 예정입니다.",
