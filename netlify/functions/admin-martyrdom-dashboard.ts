@@ -96,16 +96,52 @@ export default async (req: Request, _ctx: Context) => {
     } catch (err: any) { console.warn("[martyrdom-dashboard] 준비도 실패", err?.message); }
 
     /* ── 저장 용량 (size_bytes 합계) ── */
-    let storage = { bytes: 0, gb: 0, alertGb: Number(process.env.MARTYRDOM_STORAGE_ALERT_GB || 20), over: false };
+    let storage: any = { bytes: 0, gb: 0, alertGb: Number(process.env.MARTYRDOM_STORAGE_ALERT_GB || 20), over: false };
     try {
       const sr: any = await db.execute(sql.raw(`SELECT COALESCE(SUM(size_bytes), 0)::bigint AS bytes FROM martyrdom_case_documents`));
       const bytes = Number((sr?.rows ?? sr ?? [])[0]?.bytes || 0);
       const gb = Math.round((bytes / (1024 ** 3)) * 100) / 100;
       storage = { bytes, gb, alertGb: storage.alertGb, over: gb >= storage.alertGb };
     } catch (err: any) { console.warn("[martyrdom-dashboard] 용량 실패", err?.message); }
+    /* 프론트 키 별칭 (A 대시보드 usedGb/limitGb/overThreshold) */
+    storage.usedGb = storage.gb; storage.limitGb = storage.alertGb; storage.overThreshold = storage.over;
+
+    /* ── 사건별 행 (per-case 표·A 대시보드) + 요약 ── */
+    let cases: any[] = [];
+    let summary = { activeCount: kindCounts.active, urgentCount: 0, avgReadiness: 0 };
+    try {
+      const cr2: any = await db.execute(sql.raw(`
+        SELECT c.id, c.case_no AS "caseNo", c.title, c.status, c.case_kind AS "caseKind",
+               c.next_deadline_at AS "nextDeadlineAt", c.next_deadline_label AS "nextDeadlineLabel",
+               (SELECT COUNT(*)::int FROM martyrdom_case_documents d WHERE d.case_id = c.id) AS "docCount"
+        FROM martyrdom_cases c
+        ORDER BY c.case_kind ASC, c.updated_at DESC
+        LIMIT 200
+      `));
+      const readinessMap = new Map<number, number>();
+      for (const r of readiness) readinessMap.set(Number(r.caseId), Number(r.score || 0));
+      const ddayMap = new Map<number, number>();
+      for (const d of upcomingDeadlines) { if (!ddayMap.has(Number(d.caseId))) ddayMap.set(Number(d.caseId), d.dDay); }
+      cases = (cr2?.rows ?? cr2 ?? []).map((c: any) => {
+        const cid = Number(c.id);
+        const due = c.nextDeadlineAt ? String(c.nextDeadlineAt).slice(0, 10) : null;
+        return {
+          caseId: cid, caseNo: String(c.caseNo || ""), title: String(c.title || ""),
+          status: String(c.status || ""), caseKind: String(c.caseKind || "active"),
+          readinessScore: readinessMap.has(cid) ? readinessMap.get(cid) : null,
+          nextDeadlineAt: due, nextDeadlineLabel: c.nextDeadlineLabel ? String(c.nextDeadlineLabel) : null,
+          dDay: ddayMap.has(cid) ? ddayMap.get(cid) : null,
+          docCount: Number(c.docCount || 0),
+        };
+      });
+      const activeScores = cases.filter(x => x.caseKind === "active" && x.readinessScore != null).map(x => x.readinessScore as number);
+      summary.urgentCount = upcomingDeadlines.filter((d: any) => d.dDay != null && d.dDay <= 7).length;
+      summary.avgReadiness = activeScores.length ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length) : 0;
+    } catch (err: any) { console.warn("[martyrdom-dashboard] cases 실패", err?.message); }
 
     return new Response(JSON.stringify({
       ok: true, totalCases, statusCounts, kindCounts, upcomingDeadlines, readiness, storage,
+      cases, summary,
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {
