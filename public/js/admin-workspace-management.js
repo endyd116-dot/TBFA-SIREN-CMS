@@ -554,6 +554,7 @@
     setVal('awmPolicyCoreEndTime', p.coreEndTime || '16:00');
     setVal('awmPolicyFlexEnabled', p.flexEnabled ? 'true' : 'false');
     setVal('awmPolicyRemoteMaxPerMonth', p.remoteMaxPerMonth ?? 10);
+    setVal('awmPolicyFlexRangeMins', p.flexRangeMins ?? 120);
 
     document.getElementById('awmBtnSavePolicy')?.addEventListener('click', savePolicy);
 
@@ -630,6 +631,7 @@
       coreEndTime:         val('awmPolicyCoreEndTime') || null,
       flexEnabled:         val('awmPolicyFlexEnabled') === 'true',
       remoteMaxPerMonth:   Number(val('awmPolicyRemoteMaxPerMonth')) || 0,
+      flexRangeMins:       Number(val('awmPolicyFlexRangeMins')) || 0,
     };
     const btn = document.getElementById('awmBtnSavePolicy');
     if (btn) btn.disabled = true;

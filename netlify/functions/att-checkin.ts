@@ -10,6 +10,7 @@ import {
   determineStatus,
   todayKST,
   hhmmKST,
+  getFlexRangeMins,
 } from "../../lib/att-utils";
 import { normalizeSessions, isWorking, isWithinWorkHours, type AttSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
@@ -212,11 +213,13 @@ export default async function handler(req: Request) {
     } catch {}
   }
 
+  const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
   const status = determineStatus(now, null, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),
     lateGraceMins: policy.lateGraceMins, earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
     coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
+    flexEnabled: policy.flexEnabled, flexRangeMins,
   }, isLeave, isHoliday, workMode.mode);
 
   const firstSession: AttSession = { in: now.toISOString(), out: null, inLat: inLatStr, inLng: inLngStr, workplaceId };

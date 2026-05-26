@@ -1,7 +1,8 @@
 import { db } from "../../db/index";
 import { attPolicies } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { getFlexRangeMins } from "../../lib/att-utils";
 
 export const config = { path: "/api/admin-att-policy" };
 
@@ -35,7 +36,10 @@ export default async function handler(req: Request) {
         .from(attPolicies)
         .where(eq(attPolicies.isDefault, true))
         .limit(1);
-      return jsonOk(rows[0] ?? null);
+      if (!rows[0]) return jsonOk(null);
+      // flex_range_mins는 schema 정의 밖(raw SQL 격리) → 별도 병합
+      const flexRangeMins = await getFlexRangeMins();
+      return jsonOk({ ...rows[0], flexRangeMins });
     } catch (err) {
       return jsonError("select_policy", err);
     }
@@ -78,7 +82,18 @@ export default async function handler(req: Request) {
         } as any)
         .where(eq(attPolicies.id, existing[0].id))
         .returning();
-      return jsonOk(row);
+
+      // 유연 허용범위(±X분) — schema 정의 밖이라 raw SQL UPDATE (마이그 전이면 무시)
+      let flexRangeMins: number | undefined;
+      if (body.flexRangeMins != null) {
+        const v = Math.max(0, Math.min(360, Math.round(Number(body.flexRangeMins)) || 0));
+        try {
+          await db.execute(sql`UPDATE att_policies SET flex_range_mins = ${v} WHERE id = ${existing[0].id}`);
+          flexRangeMins = v;
+        } catch (e) { console.warn("[admin-att-policy] flex_range_mins 저장 실패(마이그 전?):", e); }
+      }
+      if (flexRangeMins == null) { try { flexRangeMins = await getFlexRangeMins(); } catch {} }
+      return jsonOk({ ...row, flexRangeMins });
     } catch (err) {
       return jsonError("update_policy", err);
     }

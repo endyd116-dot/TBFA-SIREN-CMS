@@ -641,6 +641,13 @@
             <input type="number" id="awmPolicyRemoteMaxPerMonth" value="10" min="0" max="31">
           </div>
         </div>
+        <div class="att-form-row">
+          <div class="att-form-group">
+            <label>유연 출퇴근 허용범위 (±분)</label>
+            <input type="number" id="awmPolicyFlexRangeMins" value="120" min="0" max="360" step="10">
+            <small style="color:#888;display:block;margin-top:4px">탄력근무 사용 시 출근을 표준 시각 ±이 범위 내에서 자율(지각 아님). 예: 120 = ±2시간. 단 일 표준 근로시간은 채워야 함(미달 시 퇴근 경고).</small>
+          </div>
+        </div>
         <button class="att-btn att-btn-primary" id="awmBtnSavePolicy">정책 저장</button>
       </div>
     </div>
@@ -1129,6 +1136,6 @@
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-att-map.js?v=2-loc"></script>
-<script src="/js/admin-workspace-management.js?v=20-wmconflict"></script>
+<script src="/js/admin-workspace-management.js?v=21-flexrange"></script>
 </body>
 </html>

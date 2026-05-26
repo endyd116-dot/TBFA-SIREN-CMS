@@ -185,6 +185,8 @@ export function determineStatus(
     earlyLeaveGraceMins: number;
     coreStartTime?: string | null;  // R34-P2: REMOTE LATE 기준 (코어타임 시작)
     coreEndTime?:   string | null;
+    flexEnabled?: boolean;       // 유연출퇴근제 ON (2026-05-26)
+    flexRangeMins?: number;      // 출근 ±X 자율 허용범위(분) — flexEnabled 시 lateGrace 대체
   },
   isLeave: boolean,
   isHoliday: boolean,
@@ -202,21 +204,25 @@ export function determineStatus(
   const [ciH, ciM] = checkInRef.split(":").map(Number);
   const [coH, coM] = policy.checkOutTime.split(":").map(Number);
 
-  const stdCheckIn  = ciH * 60 + ciM + policy.lateGraceMins;
+  // 유연출퇴근제(2026-05-26): ON이면 출근 허용범위가 ±flexRangeMins(고정 lateGrace 대체),
+  //   조퇴(시각 기준)는 판정 안 함 — '8시간 근무 미달'은 퇴근 시 별도 경고가 담당.
+  const flexOn = !!policy.flexEnabled && policy.flexRangeMins != null;
+  const ciBase = ciH * 60 + ciM;
+  const lateThreshold = ciBase + (flexOn ? (policy.flexRangeMins as number) : policy.lateGraceMins);
   const stdCheckOut = coH * 60 + coM - policy.earlyLeaveGraceMins;
 
   // R29-ATT-GAP2: 서버 TZ 의존 제거 — 입력 Date 를 KST 로 변환 후 UTC 게터로 시·분 추출
   const ckIn = toKST(checkInTime);
   const actualCheckInMins = ckIn.getUTCHours() * 60 + ckIn.getUTCMinutes();
 
-  const isLate = actualCheckInMins > stdCheckIn;
+  const isLate = actualCheckInMins > lateThreshold;
 
   if (!checkOutTime) return isLate ? "LATE" : "NORMAL";
 
   const ckOut = toKST(checkOutTime);
   const actualCheckOutMins = ckOut.getUTCHours() * 60 + ckOut.getUTCMinutes();
 
-  const isEarlyLeave = actualCheckOutMins < stdCheckOut;
+  const isEarlyLeave = flexOn ? false : (actualCheckOutMins < stdCheckOut);
 
   if (isLate && isEarlyLeave) return "LATE"; // 지각+조퇴 → 지각 우선
   if (isLate) return "LATE";
@@ -260,4 +266,21 @@ export async function getDefaultPolicy() {
     .where(eq(attPolicies.isDefault, true))
     .limit(1);
   return rows[0] ?? null;
+}
+
+/**
+ * 유연 허용범위(분) 조회 — flex_range_mins 컬럼은 schema 정의 밖(raw SQL 격리·billing_keys 패턴).
+ * migrate-att-flex-range 적용 전이면 컬럼 없음 → catch로 기본 120(±2시간) 반환(배포 안전).
+ */
+export async function getFlexRangeMins(): Promise<number> {
+  try {
+    const r: any = await db.execute(
+      sql`SELECT flex_range_mins FROM att_policies WHERE is_default = true LIMIT 1`
+    );
+    const rows: any[] = r?.rows ?? r ?? [];
+    const v = rows[0]?.flex_range_mins;
+    return v == null ? 120 : Number(v);
+  } catch {
+    return 120;
+  }
 }

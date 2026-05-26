@@ -2,7 +2,7 @@ import { db } from "../../db/index";
 import { attRecords, attRemoteWorkReports, attWorkplaces } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { getDefaultPolicy, determineStatus, todayKST, hhmmKST, haversineDistance, isWithinRadius } from "../../lib/att-utils";
+import { getDefaultPolicy, determineStatus, todayKST, hhmmKST, haversineDistance, isWithinRadius, getFlexRangeMins } from "../../lib/att-utils";
 import { normalizeSessions, isWorking, recomputeSummary, type AttSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
@@ -60,6 +60,22 @@ export default async function handler(req: Request) {
   const policy = await getDefaultPolicy();
   if (!policy) return jsonError("no_policy", new Error("근무 정책 없음"), 500);
 
+  // ① 근무시간 미달 경고용 미리보기 (DB 미반영·위치검증 전) — Swain 2026-05-26
+  //   프론트가 퇴근 확정 전 호출 → 표준 근무시간 미달이면 확인창 표시(막지 않음)
+  if (body.preview === true) {
+    const pv: AttSession[] = sessions.slice();
+    pv[pv.length - 1] = { ...pv[pv.length - 1], out: now.toISOString() };
+    const ps = recomputeSummary(pv, {
+      dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
+    });
+    const requiredMins = Math.round(Number(policy.dailyHours) * 60);
+    const underHours = ps.workingMins < requiredMins;
+    return jsonOk({
+      preview: true, workingMins: ps.workingMins, requiredMins,
+      underHours, shortfallMins: underHours ? requiredMins - ps.workingMins : 0,
+    });
+  }
+
   // 퇴근 위치 검증 — 일반근무(OFFICE)만 거점 반경 강제 (재택·외근·출장 제외) · Swain 2026-05-24
   if (existing.workMode === "OFFICE") {
     if (lat == null || lng == null) return jsonError("no_location", new Error("위치 정보 필요 (lat, lng)"), 400);
@@ -104,13 +120,15 @@ export default async function handler(req: Request) {
     dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
   });
 
-  // 조퇴 판정 — 첫 출근 ~ 현재 기준
+  // 조퇴 판정 — 첫 출근 ~ 현재 기준 (유연근무 시 ±X 범위·조퇴 미판정)
+  const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
   const checkInForStatus = summary.checkInTime ?? new Date(existing.checkInTime ?? now);
   const status = determineStatus(checkInForStatus, now, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),
     lateGraceMins: policy.lateGraceMins, earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
     coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
+    flexEnabled: policy.flexEnabled, flexRangeMins,
   }, false, false, existing.workMode);
 
   // REMOTE 퇴근 시 오늘 보고서 제출 여부
@@ -143,6 +161,11 @@ export default async function handler(req: Request) {
       actionUrl: "/workspace-attendance.html", category: "system",
     }).catch(e => console.warn("[att-checkout] 알림 실패:", e));
 
-    return jsonOk({ ...record, reportSubmitted });
+    const requiredMins = Math.round(Number(policy.dailyHours) * 60);
+    const underHours = (summary.workingMins ?? 0) < requiredMins;
+    return jsonOk({
+      ...record, reportSubmitted,
+      underHours, requiredMins, shortfallMins: underHours ? requiredMins - (summary.workingMins ?? 0) : 0,
+    });
   } catch (err) { return jsonError("update_record", err); }
 }

@@ -440,6 +440,23 @@
   async function sendCheckout(lat, lng) {
     const body = { deviceType: detectDeviceType() };
     if (lat !== null) { body.lat = lat; body.lng = lng; }
+    const cBtn = document.getElementById('attBtnCheckout');
+
+    /* ① 근무시간 미달 확인 (DB 미반영 미리보기) — Swain 2026-05-26 */
+    try {
+      const pv = await api('/api/att-checkout', { method: 'POST', body: Object.assign({ preview: true }, body) });
+      const p = (pv.data && (pv.data.data || pv.data)) || {};
+      if (pv.ok && p.underHours) {
+        const sm = p.shortfallMins || 0;
+        const h = Math.floor(sm / 60), m = sm % 60;
+        const lack = (h ? h + '시간 ' : '') + m + '분';
+        if (!confirm('아직 근무시간이 ' + lack + ' 부족합니다.\n그래도 퇴근하시겠어요?')) {
+          if (cBtn) cBtn.disabled = false;
+          return;
+        }
+      }
+    } catch (e) { /* 미리보기 실패해도 퇴근은 진행 */ }
+
     const res = await api('/api/att-checkout', { method: 'POST', body });
     if (!res.ok) {
       toast('퇴근 기록 실패: ' + (res.data?.error || 'HTTP ' + res.status));
