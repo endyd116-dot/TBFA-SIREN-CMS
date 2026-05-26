@@ -40,6 +40,22 @@ function buildCaseNoPrefix() {
   return `MTR-${ymd}-`;
 }
 
+/* ── 종결(closed+outcome) 시 학습 루프 트리거(⑥·P2) — await로 요청 전송 보장 ── */
+async function triggerCloseLearn(caseId: number): Promise<void> {
+  const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+  const baseUrl = base.startsWith("http") ? base : `https://${base}`;
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  try {
+    await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-close-learn-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, secret }),
+    });
+  } catch (err: any) {
+    console.warn("[martyrdom-cases→close-learn trigger]", err?.message || err);
+  }
+}
+
 export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
@@ -216,7 +232,23 @@ export default async (req: Request, _ctx: Context) => {
         detail: { fields: Object.keys(body).filter(k => allowed.includes(k)) },
       });
 
-      return jsonOk({ id });
+      /* 종결(status→closed) + outcome 확정 시 학습 루프 트리거(⑥). outcome은 본 PATCH 또는 기존 값. */
+      let closeLearnQueued = false;
+      if (body.status === "closed") {
+        try {
+          const oc: any = await db.execute(sql.raw(`
+            SELECT outcome, case_kind AS "caseKind" FROM martyrdom_cases WHERE id = ${id} LIMIT 1
+          `));
+          const row = (oc?.rows ?? oc ?? [])[0];
+          /* 이미 reference(학습 전환 완료)면 재실행 안 함 */
+          if (row?.outcome && String(row.caseKind || "active") !== "reference") {
+            await triggerCloseLearn(id);
+            closeLearnQueued = true;
+          }
+        } catch (e: any) { console.warn("[martyrdom-cases] close-learn 판정 실패", e?.message); }
+      }
+
+      return jsonOk({ id, closeLearnQueued });
     } catch (err: any) {
       return jsonError("update", err);
     }

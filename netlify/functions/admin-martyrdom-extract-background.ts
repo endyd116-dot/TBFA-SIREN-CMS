@@ -227,10 +227,11 @@ export default async (req: Request, _ctx: Context) => {
       return new Response(JSON.stringify({ ok: false, docId, error: errMsg }));
     }
 
-    /* ── 3. 자동 분류 (텍스트·이미지 분기) ── */
+    /* ── 3. 자동 분류 (텍스트·이미지 분기) + 증거강도 판정(P2·§P2.0 #8) ── */
     let docTypeAuto = "other";
     let docSummary: string | null = null;
     let classifyConfidence = 0;
+    let evidenceStrength = "medium";
 
     try {
       const isImage = mimeType.startsWith("image/") || (mimeType === "application/pdf" && extractMethod === "gemini_ocr");
@@ -246,6 +247,7 @@ export default async (req: Request, _ctx: Context) => {
       docTypeAuto = classified.docType;
       docSummary = classified.summary;
       classifyConfidence = classified.confidence;
+      evidenceStrength = classified.evidenceStrength || "medium";
     } catch (classErr: any) {
       console.warn(`[martyrdom-extract-bg] docId=${docId} 분류 실패: ${classErr?.message}`);
     }
@@ -280,6 +282,15 @@ export default async (req: Request, _ctx: Context) => {
           updated_at            = NOW()
       WHERE id = ${docId}
     `));
+
+    /* 증거강도(P2) — evidence_strength 컬럼은 migrate-martyrdom-p2 적용 후 존재.
+       마이그 적용 전 배포 구간(B push→Swain 마이그) 회귀 0을 위해 별도 가드 UPDATE(실패 무시). */
+    try {
+      const safeStrength = ["strong", "medium", "weak"].includes(evidenceStrength) ? evidenceStrength : "medium";
+      await db.execute(sql.raw(`UPDATE martyrdom_case_documents SET evidence_strength = '${safeStrength}' WHERE id = ${docId}`));
+    } catch (e: any) {
+      console.warn(`[martyrdom-extract-bg] docId=${docId} evidence_strength 저장 스킵(컬럼 미적용?): ${e?.message}`);
+    }
 
     /* ── 5. RAG 청킹·임베딩 UPSERT (§1.2: active→martyr_active / reference→martyr_case·둘 다 case_id 격리) ── */
     let indexedCount = 0;

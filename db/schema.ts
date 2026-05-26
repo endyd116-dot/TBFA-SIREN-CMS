@@ -4240,3 +4240,64 @@ export const martyrdomGoldenItems = pgTable("martyrdom_golden_items", {
 });
 export type MartyrdomGoldenItem    = typeof martyrdomGoldenItems.$inferSelect;
 export type NewMartyrdomGoldenItem = typeof martyrdomGoldenItems.$inferInsert;
+
+/* === P2 순직 인정 지원 (2026-05-26) ===
+   ⚠️ migrate-martyrdom-p2?run=1 호출 전까지 비활성(주석) — DB 적용 후 메인이 활성화(§9.2).
+   순직 모듈 코드는 전부 raw SQL(sql.raw)로 접근하므로 아래 정의는 타입·문서용(런타임 영향 0).
+   추가 컬럼: martyrdom_case_documents.evidence_strength varchar(10) strong|medium|weak,
+            martyrdom_cases.consent_note text · consent_obtained_at timestamp.
+
+export const martyrdomDeadlines = pgTable("martyrdom_deadlines", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").references(() => martyrdomCases.id, { onDelete: "cascade" }).notNull(),
+  label: varchar("label", { length: 200 }).notNull(),
+  kind: varchar("kind", { length: 30 }).default("custom"),          // statute_limit | submission | hearing | custom
+  dueDate: date("due_date").notNull(),
+  stage: varchar("stage", { length: 40 }),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending|done|overdue
+  alertedAt: timestamp("alerted_at"),
+  note: text("note"),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  caseIdx: index("martyrdom_deadlines_case_idx").on(t.caseId),
+  dueIdx: index("martyrdom_deadlines_due_idx").on(t.dueDate),
+}));
+export type MartyrdomDeadline    = typeof martyrdomDeadlines.$inferSelect;
+export type NewMartyrdomDeadline = typeof martyrdomDeadlines.$inferInsert;
+
+export const martyrdomCriteria = pgTable("martyrdom_criteria", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  category: varchar("category", { length: 60 }).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  evidenceHint: text("evidence_hint"),
+  lawRef: varchar("law_ref", { length: 300 }),
+  weight: integer("weight").default(1),
+  sortOrder: integer("sort_order").default(0),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type MartyrdomCriterion    = typeof martyrdomCriteria.$inferSelect;
+export type NewMartyrdomCriterion = typeof martyrdomCriteria.$inferInsert;
+
+export const martyrdomActions = pgTable("martyrdom_actions", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").references(() => martyrdomCases.id, { onDelete: "cascade" }).notNull(),
+  item: varchar("item", { length: 300 }).notNull(),
+  detail: text("detail"),
+  status: varchar("status", { length: 20 }).default("todo").notNull(),  // todo|doing|done
+  source: varchar("source", { length: 30 }).default("manual"),          // missing_evidence(AI)|manual
+  dueDate: date("due_date"),
+  workspaceTaskId: integer("workspace_task_id"),
+  sortOrder: integer("sort_order").default(0),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({ caseIdx: index("martyrdom_actions_case_idx").on(t.caseId) }));
+export type MartyrdomAction    = typeof martyrdomActions.$inferSelect;
+export type NewMartyrdomAction = typeof martyrdomActions.$inferInsert;
+=== P2 순직 인정 지원 끝 === */

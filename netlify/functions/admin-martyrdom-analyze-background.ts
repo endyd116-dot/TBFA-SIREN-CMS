@@ -19,6 +19,22 @@ import { extractCaseStructure } from "../../lib/martyrdom-ai";
 
 /* ⚠️ 백그라운드 함수(-background)는 config.path 금지 (2026-05-26 자동체인 멈춤 근본 원인·extract-bg 참고) */
 
+/* ── P2 자동체인: 추출 후 active 사건이면 전략 분석(generate-background) 자동 트리거 ── */
+async function triggerStrategy(caseId: number): Promise<void> {
+  const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+  const baseUrl = base.startsWith("http") ? base : `https://${base}`;
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  try {
+    await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-generate-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, type: "strategy", secret }),
+    });
+  } catch (err: any) {
+    console.warn("[martyrdom-analyze→strategy trigger]", err?.message || err);
+  }
+}
+
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false }), { status: 405 });
@@ -110,6 +126,11 @@ export default async (req: Request, _ctx: Context) => {
       RETURNING id
     `));
     const outputId = Number((outputInserted?.rows ?? outputInserted ?? [])[0]?.id || 0);
+
+    /* ── 6. active 사건이면 전략 분석 자동 트리거 (자동 체인 연장·§P2.0 #2) ── */
+    if (String(mc.caseKind || "active") === "active") {
+      await triggerStrategy(caseId);
+    }
 
     console.info(`[martyrdom-analyze-bg] done caseId=${caseId} outputId=${outputId} v=${nextVersion} confidence=${extraction.confidence}`);
     return new Response(JSON.stringify({

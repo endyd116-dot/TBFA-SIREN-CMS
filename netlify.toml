@@ -104,6 +104,10 @@
 [functions."admin-rag-reindex-background"]
   included_files = ["docs/manual/**", "public/manual.html", "public/manual-admin.html", "docs/law/martyrdom/**"]
 
+# ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
+[functions."admin-martyrdom-criteria-generate"]
+  included_files = ["docs/law/martyrdom/**"]
+
 # ★ 폰트 필요한 5개 함수만 NotoSansKR 포함 (PDF 한글 렌더링용)
 [functions."donation-receipt"]
   included_files = ["assets/fonts/**"]
@@ -201,6 +205,10 @@
 # ★ 라운드 11: 워크스페이스 태스크 리마인더 (15분 주기) — reminder_config.remindAt 기반
 [functions."cron-workspace-task-reminder"]
   schedule = "*/15 * * * *"
+
+# ★ P2 순직 인정 지원: 기한 임박·소멸시효 + 저장용량 임계 알림 (매일 KST 08:00 = UTC 23:00)
+[functions."cron-martyrdom-deadline"]
+  schedule = "0 23 * * *"
 
 # ★ Phase 21 R2+R3: 워크스페이스 카드 마감 24h/72h 알림 (매일 KST 09:00 = UTC 00:00)
 # - status NOT IN ('done','archived') 카드 중 마감 시각이 23~25h 또는 71~73h 후인 카드
