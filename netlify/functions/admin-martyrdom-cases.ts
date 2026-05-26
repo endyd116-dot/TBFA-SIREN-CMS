@@ -184,7 +184,8 @@ export default async (req: Request, _ctx: Context) => {
     if (!id) return badRequest("id 필수");
 
     const allowed = ["status","outcome","outcomeNote","assignedAdminId","procedureStage",
-                     "nextDeadlineAt","nextDeadlineLabel","title","occurredSummary","caseKind"];
+                     "nextDeadlineAt","nextDeadlineLabel","title","occurredSummary","caseKind",
+                     "deceasedName","schoolName","position","deceasedAt"];
     const sets: string[] = [];
 
     if (body.status !== undefined)           sets.push(`status = '${String(body.status).replace(/'/g, "''")}'`);
@@ -196,6 +197,11 @@ export default async (req: Request, _ctx: Context) => {
     if (body.nextDeadlineLabel !== undefined) sets.push(`next_deadline_label = ${body.nextDeadlineLabel ? `'${String(body.nextDeadlineLabel).slice(0,100).replace(/'/g,"''")}'` : "NULL"}`);
     if (body.title !== undefined && body.title) sets.push(`title = '${String(body.title).slice(0,200).replace(/'/g,"''")}'`);
     if (body.occurredSummary !== undefined)  sets.push(`occurred_summary = ${body.occurredSummary ? `'${String(body.occurredSummary).slice(0,2000).replace(/'/g,"''")}'` : "NULL"}`);
+    /* 사건 기본정보 편집 (CRUD·Swain 2026-05-26) */
+    if (body.deceasedName !== undefined)     sets.push(`deceased_name = ${body.deceasedName ? `'${String(body.deceasedName).slice(0,50).replace(/'/g,"''")}'` : "NULL"}`);
+    if (body.schoolName !== undefined)       sets.push(`school_name = ${body.schoolName ? `'${String(body.schoolName).slice(0,150).replace(/'/g,"''")}'` : "NULL"}`);
+    if (body.position !== undefined)         sets.push(`position = ${body.position ? `'${String(body.position).slice(0,50).replace(/'/g,"''")}'` : "NULL"}`);
+    if (body.deceasedAt !== undefined)       sets.push(`deceased_at = ${body.deceasedAt ? `'${String(body.deceasedAt).slice(0,10)}'` : "NULL"}`);
 
     if (sets.length === 0) return badRequest("변경할 필드 없음");
     sets.push("updated_at = NOW()");

@@ -35,6 +35,7 @@ const STATUS_LABELS = {
 const OUTCOME_LABELS = { approved: "인정", rejected: "불인정" };
 const PROCEDURE_LABELS = { apply: "신청", review: "심의", decided: "결정", reappeal: "재심" };
 const EXTRACT_STATUS_LABELS = {
+  queued:     "대기(재처리 필요)",
   pending:    "대기",
   processing: "처리 중",
   done:       "완료",
@@ -229,6 +230,8 @@ function renderDetail(d) {
   <div class="detail-title">
     <span class="case-no">${escapeHtml(c.caseNo)}</span>
     <span class="case-title">${escapeHtml(c.title)}</span>
+    <button class="btn-sm btn-secondary" onclick="openEditCaseModal()" style="margin-left:auto">✏️ 수정</button>
+    <button class="btn-sm btn-warn" onclick="deleteCase()">🗑 삭제</button>
   </div>
   <div class="detail-meta-row">
     <label>작업 상태
@@ -354,7 +357,8 @@ function renderDocRow(doc) {
 
   const actions = [];
   actions.push(`<button class="btn-sm" onclick="viewDoc(${doc.id})">보기</button>`);
-  if (doc.extractStatus === "failed") {
+  /* 재시도·수동입력: 실패 + 대기(queued·옛 자료/체인 미작동) 모두 노출 — 재업로드 없이 재처리 */
+  if (doc.extractStatus === "failed" || doc.extractStatus === "queued") {
     actions.push(`<button class="btn-sm btn-warn" onclick="retryDoc(${doc.id})">재시도</button>`);
     actions.push(`<button class="btn-sm btn-secondary" onclick="openManualTextModal(${doc.id})">텍스트 직접 입력</button>`);
   }
@@ -450,12 +454,30 @@ async function patchCase(field, value) {
 }
 
 // ── 새 사건 모달 ─────────────────────────────────────────────────────────────
+let editingCaseId = null;  // null = 새 사건 / 값 = 수정 중
+
 function openNewCaseModal() {
+  editingCaseId = null;
+  document.getElementById("newCaseForm").reset();
+  const t = document.getElementById("newCaseModalTitle"); if (t) t.textContent = "새 사건 등록";
+  document.getElementById("newCaseModal").style.display = "flex";
+}
+function openEditCaseModal() {
+  if (!currentDetail) return;
+  const c = currentDetail.case;
+  editingCaseId = c.id;
+  document.getElementById("nc_title").value        = c.title || "";
+  document.getElementById("nc_deceasedName").value = c.deceasedName || "";
+  document.getElementById("nc_schoolName").value   = c.schoolName || "";
+  document.getElementById("nc_deceasedAt").value   = c.deceasedAt ? String(c.deceasedAt).slice(0,10) : "";
+  document.getElementById("nc_caseKind").value     = c.caseKind || "active";
+  const t = document.getElementById("newCaseModalTitle"); if (t) t.textContent = "사건 정보 수정";
   document.getElementById("newCaseModal").style.display = "flex";
 }
 function closeNewCaseModal() {
   document.getElementById("newCaseModal").style.display = "none";
   document.getElementById("newCaseForm").reset();
+  editingCaseId = null;
 }
 
 async function submitNewCase() {
@@ -465,7 +487,19 @@ async function submitNewCase() {
   const deceasedAt   = document.getElementById("nc_deceasedAt").value;
   const caseKind     = document.getElementById("nc_caseKind").value;
   if (!title) { toast("사건 제목을 입력해주세요", "error"); return; }
+  const eid = editingCaseId;  // 닫기 전에 캡처(close가 editingCaseId 초기화)
   try {
+    if (eid) {
+      /* 수정 (CRUD·PATCH) */
+      const d = await apiPatchCase(eid, { title, deceasedName, schoolName, deceasedAt, caseKind });
+      if (!d.ok) { toast("수정 실패: " + (d.error || ""), "error"); return; }
+      toast("사건 정보를 수정했습니다");
+      closeNewCaseModal();
+      await loadCases();
+      await loadDetail(eid);
+      return;
+    }
+    /* 생성 */
     const d = await apiCreateCase({ title, deceasedName, schoolName, deceasedAt, caseKind });
     if (!d.ok) { toast("생성 실패: " + (d.error || ""), "error"); return; }
     toast("사건이 생성되었습니다");
@@ -477,7 +511,29 @@ async function submitNewCase() {
     const newId = d.id || d.case?.id;
     if (newId) selectCase(newId);
   } catch (e) {
-    if (e.message !== "auth") toast("생성 오류", "error");
+    if (e.message !== "auth") toast(eid ? "수정 오류" : "생성 오류", "error");
+  }
+}
+
+/* 사건 삭제 (CRUD·super_admin 전용·자료·분석 함께 삭제) */
+async function deleteCase() {
+  if (!currentCaseId) return;
+  if (!confirm("이 사건과 모든 자료·AI 분석이 삭제됩니다. 되돌릴 수 없습니다. 삭제할까요?")) return;
+  try {
+    /* 권한 거절(403)도 토스트로 보여주려고 직접 fetch (apiFetch는 403이면 로그인으로 리다이렉트) */
+    const r = await fetch(`/api/admin-martyrdom-cases?id=${currentCaseId}`, { method: "DELETE", credentials: "include" });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      toast(data.error || (r.status === 403 ? "삭제 권한이 없습니다 (슈퍼어드민 전용)" : "삭제 실패"), "error");
+      return;
+    }
+    toast("사건을 삭제했습니다");
+    currentCaseId = null; currentDetail = null;
+    const pane = document.getElementById("detailPane");
+    if (pane) pane.innerHTML = '<div class="empty-detail"><div class="empty-icon">🕊️</div><div>왼쪽에서 사건을 선택하거나 새 사건을 등록하세요</div></div>';
+    await loadCases();
+  } catch (e) {
+    toast("삭제 오류", "error");
   }
 }
 
