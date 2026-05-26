@@ -167,11 +167,17 @@ export default async (req: Request, _ctx: Context) => {
     let extractError: string | null = null;
 
     const hasManualText = doc.extractMethod === "manual" && doc.extractedText && String(doc.extractedText).length >= 10;
+    /* 원본 없음 + 저장된 추출 텍스트 있음 = 전사 후 삭제된 미디어 등 → 저장 텍스트로 재분류 */
+    const hasStoredText = !blobKey && doc.extractedText && String(doc.extractedText).length >= 10;
 
     if (hasManualText) {
       text = String(doc.extractedText);
       extractMethod = "manual";
       console.info(`[martyrdom-extract-bg] docId=${docId} 수동 텍스트 사용 (${text.length}자)`);
+    } else if (hasStoredText) {
+      text = String(doc.extractedText);
+      extractMethod = String(doc.extractMethod || "manual");
+      console.info(`[martyrdom-extract-bg] docId=${docId} 저장 텍스트 재분류 (원본 없음·${text.length}자)`);
     } else if (blobKey) {
       /* R2에서 다운로드 */
       const bytes = await downloadFromR2(blobKey);
