@@ -452,10 +452,106 @@ body {
 .topbar-btn { background: #334155; color: #e2e8f0; border: 1px solid #475569; border-radius: 6px; padding: 5px 11px; font-size: 12px; cursor: pointer; font-family: inherit; }
 .topbar-btn:hover { background: #475569; color: #fff; }
 
+/* ═══ P3 서면(④)·논리맵 ═══════════════════════════════════════════════ */
+.btn-xs {
+  padding: 2px 7px; font-size: 11px; border-radius: 4px; cursor: pointer;
+  border: 1px solid #cbd5e1; background: #fff; color: #475569; font-family: inherit;
+}
+.btn-xs:hover { background: #f1f5f9; }
+.btn-xs.btn-danger { border-color: #dc2626; color: #dc2626; }
+.btn-xs.btn-danger:hover { background: #fef2f2; }
+.btn-xs.btn-warn { border-color: #f97316; color: #f97316; }
+.btn-xs.btn-warn:hover { background: #fff7ed; }
+.btn-xs[disabled] { opacity: .4; cursor: not-allowed; }
+.btn-sm[disabled] { opacity: .4; cursor: not-allowed; }
+
+/* 준비도 약함 경고 */
+.weak-banner {
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+  padding: 9px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 12.5px; line-height: 1.5;
+}
+.weak-banner strong { color: #b45309; }
+
+/* 서면 단계 */
+.draft-stage { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+.ds-head { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
+.ds-head .btn-sm { margin-left: auto; }
+.ds-step { background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.ds-locked { font-size: 12.5px; color: #94a3b8; padding: 8px 2px; }
+
+/* 목차 편집 */
+.outline-list { display: flex; flex-direction: column; gap: 8px; }
+.outline-row { display: flex; align-items: flex-start; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; }
+.ol-no { flex: 0 0 20px; text-align: center; font-weight: 700; color: #64748b; padding-top: 7px; }
+.ol-fields { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.ol-title { border: 1px solid #cbd5e1; border-radius: 5px; padding: 5px 8px; font-size: 13px; font-weight: 600; font-family: inherit; }
+.ol-intent { border: 1px solid #e2e8f0; border-radius: 5px; padding: 5px 8px; font-size: 12px; color: #475569; font-family: inherit; }
+.ol-btns { flex: 0 0 auto; display: flex; gap: 3px; align-items: center; padding-top: 4px; }
+.outline-foot { display: flex; justify-content: space-between; margin-top: 12px; }
+
+/* 본문 섹션 */
+.draft-sections { display: flex; flex-direction: column; gap: 12px; }
+.draft-sec { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; }
+.dsec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+.dsec-no { font-weight: 700; color: #64748b; }
+.dsec-title { font-weight: 600; font-size: 13px; color: #1e293b; }
+.dsec-wc { font-size: 11px; color: #94a3b8; }
+.dsec-head .btn-xs { margin-left: auto; }
+.dsec-status { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 9px; }
+.dss-pending { background: #f1f5f9; color: #64748b; }
+.dss-gen { background: #eff6ff; color: #1d4ed8; }
+.dss-done { background: #dcfce7; color: #15803d; }
+.dss-edited { background: #fef9c3; color: #a16207; }
+.dsec-body { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 12.5px; font-family: inherit; line-height: 1.6; resize: vertical; box-sizing: border-box; }
+.dsec-body[disabled] { background: #f8fafc; color: #94a3b8; }
+
+/* 내보내기 버튼줄 */
+.export-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+/* 전문가 검토 */
+.review-assign { border-top: 1px dashed #e2e8f0; padding-top: 12px; }
+.rva-head { font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.rva-row { display: flex; gap: 8px; align-items: center; }
+.rva-row select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 9px; font-size: 12.5px; font-family: inherit; min-width: 180px; }
+.rva-hint { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+.rv-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.rv-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; }
+.rv-who { font-weight: 600; color: #1e293b; }
+.rv-date { font-size: 11px; color: #94a3b8; }
+.rv-note { color: #475569; }
+.rv-acts { margin-left: auto; display: flex; gap: 4px; }
+.rv-badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 9px; }
+.rv-pending { background: #f1f5f9; color: #64748b; }
+.rv-approved { background: #dcfce7; color: #15803d; }
+.rv-changes { background: #ffedd5; color: #c2410c; }
+
+/* 합본 미리보기 모달 */
+#assembledOverlay .modal-box { max-width: 720px; width: 95%; max-height: 88vh; display: flex; flex-direction: column; }
+.ap-title { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.ap-warn { background: #fff7ed; border: 1px solid #fed7aa; color: #92400e; padding: 7px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; }
+.ap-scroll { overflow-y: auto; flex: 1; padding-right: 4px; }
+.ap-h { font-size: 14px; font-weight: 700; color: #1e293b; margin: 14px 0 6px; }
+.ap-body { font-size: 12.5px; color: #334155; line-height: 1.7; white-space: normal; }
+.ap-rag { font-size: 11px; color: #2563eb; margin-top: 5px; }
+.ap-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+
+/* 인과관계 논리맵 */
+.causal-map { display: flex; flex-direction: column; gap: 10px; }
+.cm-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cm-node { border-radius: 7px; padding: 7px 11px; font-size: 12.5px; font-weight: 600; max-width: 240px; }
+.cm-node.good { background: #f0fdf4; border: 1.5px solid #86efac; color: #166534; }
+.cm-node.bad { background: #fef2f2; border: 1.5px solid #fca5a5; color: #991b1b; }
+.cm-arrow { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+.cm-ev { font-size: 10.5px; line-height: 1.3; text-align: center; max-width: 150px; margin-top: 1px; }
+.cm-ev.good { color: #16a34a; }
+.cm-ev.bad { color: #dc2626; font-weight: 600; }
+
 /* ─ 반응형 ─ */
 @media (max-width: 680px) {
   .case-sidebar { width: 200px; min-width: 160px; }
   .cm-form-grid { grid-template-columns: 1fr; }
+  .cm-row { flex-direction: column; align-items: stretch; }
+  .cm-arrow { flex-direction: row; gap: 6px; }
 }
 </style>
 </head>
@@ -754,6 +850,6 @@ body {
 <!-- 토스트 -->
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-martyrdom.js?v=P2"></script>
+<script src="/js/admin-martyrdom.js?v=P3"></script>
 </body>
 </html>
