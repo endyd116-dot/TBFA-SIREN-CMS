@@ -62,6 +62,9 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
 
   /* === RAG 검색 인프라 (1) === */
   { key: "ai_rag_search",                name: "RAG 지식 의미 검색",        category: "agent_chat",    description: "AI 비서 질문 시 Q&A·메뉴얼 의미 검색 top-K 주입 (featureKey 토글)",  sortOrder: 420 },
+
+  /* === 순직 인정 지원 AI (1) === */
+  { key: "martyrdom_ai",                 name: "순직 인정 지원 AI",         category: "agent_chat",    description: "교사 순직 인정 지원 — 자료 분류·구조 추출·전략 분석·서면 초안 생성", sortOrder: 430 },
 ];
 
 const FEATURE_KEYS = new Set(FEATURE_REGISTRY.map(f => f.key));
