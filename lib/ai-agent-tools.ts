@@ -857,6 +857,21 @@ export const TOOL_DECLARATIONS = [
       scheduleId:      { type: "INTEGER", description: "비활성화할 스케줄 ID" },
       requireApproval: { type: "BOOLEAN", description: "true=dry-run 확인 (기본 true)" },
     }, required: ["scheduleId"] }},
+
+  /* === 순직 인정 지원 — 읽기 도구 (운영자 전용·순직 테이블 직접 조회·P4) === */
+  { name: "martyrdom_case_list", description: "진행 중 순직 사건 목록 조회 (상태·준비도·다음 기한) — 운영자 전용",
+    parameters: { type: "OBJECT", properties: {
+      status: { type: "STRING", description: "상태 필터 (intake|collection|analysis|draft|hearing|appeal|closed). 미입력 시 전체" },
+    }}},
+  { name: "martyrdom_case_status", description: "순직 사건 종합 상태 조회 (준비도·인정요건 충족·부족 증거·기한) — 운영자 전용",
+    parameters: { type: "OBJECT", properties: {
+      caseId:  { type: "INTEGER", description: "사건 ID (caseId 또는 caseNo 중 하나 필수)" },
+      caseNo:  { type: "STRING",  description: "사건 번호 (예: DR-001)" },
+    }}},
+  { name: "martyrdom_deadlines_upcoming", description: "임박 기한 순직 사건 목록 조회 (D-day) — 운영자 전용",
+    parameters: { type: "OBJECT", properties: {
+      days: { type: "INTEGER", description: "몇 일 이내 기한을 조회할지 (기본 30일)" },
+    }}},
 ];
 
 /* =========================================================
@@ -1081,6 +1096,10 @@ export async function executeTool(
       case "schedule_command":        return await tool_scheduleCommand(args, adminId);
       case "scheduled_commands_list": return await tool_scheduledCommandsList(args);
       case "schedule_cancel":         return await tool_scheduleCancel(args, adminId);
+      /* === 순직 인정 지원 읽기 도구 (P4) === */
+      case "martyrdom_case_list":          return await tool_martyrdomCaseList(args, adminId);
+      case "martyrdom_case_status":        return await tool_martyrdomCaseStatus(args, adminId);
+      case "martyrdom_deadlines_upcoming": return await tool_martyrdomDeadlinesUpcoming(args, adminId);
       default:
         return { ok: false, error: `알 수 없는 도구: ${name}` };
     }
@@ -5678,5 +5697,190 @@ async function tool_scheduleCancel(args: any, adminId: number): Promise<ToolResu
     };
   } catch (e: any) {
     return { ok: false, error: `schedule_cancel 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+/* =========================================================
+   === 순직 인정 지원 읽기 도구 (P4) ===
+   운영자 이상 게이트 · 순직 테이블 직접 조회 · searchRag 안 거침
+   ========================================================= */
+
+async function tool_martyrdomCaseList(args: any, adminId: number | null): Promise<ToolResult> {
+  const roleGuard = await ensureRole(adminId, ["operator", "admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
+  try {
+    const statusFilter = String(args?.status || "").trim();
+    const whereClause = statusFilter
+      ? `WHERE status = '${statusFilter.replace(/'/g, "''")}'`
+      : "WHERE status != 'closed'";
+
+    const rows: any = await db.execute(sql.raw(`
+      SELECT
+        c.id,
+        c.case_no   AS "caseNo",
+        c.title,
+        c.status,
+        (
+          SELECT (ao.content_json->>'score')::int
+          FROM martyrdom_ai_outputs ao
+          WHERE ao.case_id = c.id AND ao.output_type = 'readiness'
+          ORDER BY ao.version DESC LIMIT 1
+        ) AS "readinessScore",
+        (
+          SELECT MIN(d.due_date)
+          FROM martyrdom_deadlines d
+          WHERE d.case_id = c.id AND d.status = 'pending'
+        ) AS "nextDeadline"
+      FROM martyrdom_cases c
+      ${whereClause}
+      ORDER BY c.created_at DESC
+      LIMIT 30
+    `));
+    const list = (rows?.rows ?? rows ?? []).map((r: any) => ({
+      id:            Number(r.id),
+      caseNo:        String(r.caseNo || ""),
+      title:         String(r.title || ""),
+      status:        String(r.status || ""),
+      readinessPct:  r.readinessScore !== null && r.readinessScore !== undefined
+                       ? Math.round(Number(r.readinessScore)) : null,
+      nextDeadline:  r.nextDeadline ? String(r.nextDeadline).slice(0, 10) : null,
+    }));
+
+    return { ok: true, output: { total: list.length, cases: list } };
+  } catch (e: any) {
+    return { ok: false, error: `martyrdom_case_list 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+async function tool_martyrdomCaseStatus(args: any, adminId: number | null): Promise<ToolResult> {
+  const roleGuard = await ensureRole(adminId, ["operator", "admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
+  try {
+    const caseId = Number(args?.caseId || 0);
+    const caseNo = String(args?.caseNo || "").trim();
+    if (!caseId && !caseNo) return { ok: false, error: "caseId 또는 caseNo 중 하나 필수" };
+
+    const whereStr = caseId
+      ? `id = ${caseId}`
+      : `case_no = '${caseNo.replace(/'/g, "''")}'`;
+    const caseRows: any = await db.execute(sql.raw(`
+      SELECT id, case_no AS "caseNo", title, status,
+             (
+               SELECT (ao.content_json->>'score')::int
+               FROM martyrdom_ai_outputs ao
+               WHERE ao.case_id = martyrdom_cases.id AND ao.output_type = 'readiness'
+               ORDER BY ao.version DESC LIMIT 1
+             ) AS "readinessScore",
+             outcome, assigned_admin_id AS "assignedAdminId"
+      FROM martyrdom_cases
+      WHERE ${whereStr}
+      LIMIT 1
+    `));
+    const c = (caseRows?.rows ?? caseRows ?? [])[0];
+    if (!c) return { ok: false, error: "사건을 찾을 수 없습니다" };
+
+    const id = Number(c.id);
+
+    /* 인정요건 충족 수 — 최신 criteria_check 산출물에서 */
+    let criteriaFulfilled = 0;
+    let criteriaTotalChecked = 0;
+    try {
+      const crRows: any = await db.execute(sql.raw(`
+        SELECT content_json
+        FROM martyrdom_ai_outputs
+        WHERE case_id = ${id} AND output_type = 'criteria_check'
+        ORDER BY version DESC LIMIT 1
+      `));
+      const crRow = (crRows?.rows ?? crRows ?? [])[0];
+      if (crRow?.content_json) {
+        const cj = typeof crRow.content_json === "string"
+          ? JSON.parse(crRow.content_json) : crRow.content_json;
+        criteriaFulfilled    = Number(cj?.metCount ?? 0);
+        criteriaTotalChecked = Number(cj?.totalCount ?? 0);
+      }
+    } catch {}
+
+    /* 부족 증거 (pending 액션) */
+    let missingEvidence: string[] = [];
+    try {
+      const actRows: any = await db.execute(sql.raw(`
+        SELECT item FROM martyrdom_actions
+        WHERE case_id = ${id} AND status != 'done'
+        ORDER BY sort_order, created_at LIMIT 5
+      `));
+      missingEvidence = (actRows?.rows ?? actRows ?? []).map((r: any) => String(r.item || ""));
+    } catch {}
+
+    /* 다음 기한 */
+    let nextDeadlines: Array<{ label: string; dueDate: string; dDay: number }> = [];
+    try {
+      const dlRows: any = await db.execute(sql.raw(`
+        SELECT label, due_date AS "dueDate"
+        FROM martyrdom_deadlines
+        WHERE case_id = ${id} AND status = 'pending'
+        ORDER BY due_date ASC LIMIT 3
+      `));
+      const today = new Date().toISOString().slice(0, 10);
+      nextDeadlines = (dlRows?.rows ?? dlRows ?? []).map((r: any) => {
+        const due = String(r.dueDate || "").slice(0, 10);
+        const diffMs = new Date(due + "T00:00:00Z").getTime() - new Date(today + "T00:00:00Z").getTime();
+        return { label: String(r.label || ""), dueDate: due, dDay: Math.round(diffMs / 86400000) };
+      });
+    } catch {}
+
+    return {
+      ok: true,
+      output: {
+        id,
+        caseNo:            String(c.caseNo || ""),
+        title:             String(c.title || ""),
+        status:            String(c.status || ""),
+        readinessPct:      c.readinessScore !== null && c.readinessScore !== undefined
+                             ? Math.round(Number(c.readinessScore)) : null,
+        criteriaFulfilled,
+        criteriaTotalChecked,
+        missingEvidence,
+        nextDeadlines,
+      },
+    };
+  } catch (e: any) {
+    return { ok: false, error: `martyrdom_case_status 실패: ${e?.message?.slice(0, 300)}` };
+  }
+}
+
+async function tool_martyrdomDeadlinesUpcoming(args: any, adminId: number | null): Promise<ToolResult> {
+  const roleGuard = await ensureRole(adminId, ["operator", "admin"]);
+  if (!roleGuard.ok) return { ok: false, error: roleGuard.error };
+
+  try {
+    const days = Math.min(Math.max(Number(args?.days || 30), 1), 365);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const rows: any = await db.execute(sql.raw(`
+      SELECT d.id, d.label, d.kind, d.due_date AS "dueDate",
+             c.case_no AS "caseNo", c.title AS "caseTitle",
+             (d.due_date - CURRENT_DATE) AS "dDay"
+      FROM martyrdom_deadlines d
+      JOIN martyrdom_cases c ON c.id = d.case_id
+      WHERE d.status = 'pending'
+        AND d.due_date <= CURRENT_DATE + INTERVAL '${days} days'
+      ORDER BY d.due_date ASC
+      LIMIT 20
+    `));
+    const list = (rows?.rows ?? rows ?? []).map((r: any) => ({
+      id:        Number(r.id),
+      caseNo:    String(r.caseNo || ""),
+      caseTitle: String(r.caseTitle || ""),
+      label:     String(r.label || ""),
+      kind:      String(r.kind || ""),
+      dueDate:   String(r.dueDate || "").slice(0, 10),
+      dDay:      Number(r.dDay ?? 0),
+    }));
+
+    return { ok: true, output: { days, today, total: list.length, deadlines: list } };
+  } catch (e: any) {
+    return { ok: false, error: `martyrdom_deadlines_upcoming 실패: ${e?.message?.slice(0, 300)}` };
   }
 }

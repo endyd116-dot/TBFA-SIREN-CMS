@@ -4347,3 +4347,29 @@ export const martyrdomReviews = pgTable("martyrdom_reviews", {
 export type MartyrdomReview    = typeof martyrdomReviews.$inferSelect;
 export type NewMartyrdomReview = typeof martyrdomReviews.$inferInsert;
 /* === P3 서면 끝 === */
+
+/* === P4 발간 === (migrate-martyrdom-p4 실행 후 아래 주석 해제 — 메인이 활성화)
+export const martyrdomPublications = pgTable("martyrdom_publications", {
+  id: serial("id").primaryKey(),
+  pubType: varchar("pub_type", { length: 20 }).notNull(),       // guide | trend | case_study
+  title: varchar("title", { length: 200 }).notNull(),
+  contentHtml: text("content_html"),
+  contentJson: jsonb("content_json"),
+  blendRatio: jsonb("blend_ratio"),                              // {self:70, ai:30}
+  sourceCaseIds: jsonb("source_case_ids"),
+  anonymized: boolean("anonymized").notNull().default(true),
+  reidRisk: varchar("reid_risk", { length: 10 }).default("low"),
+  ragSources: jsonb("rag_sources"),
+  status: varchar("status", { length: 12 }).notNull().default("draft"),
+  createdBy: integer("created_by").references(() => members.id),
+  reviewedBy: integer("reviewed_by").references(() => members.id),
+  publishedBy: integer("published_by").references(() => members.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  publishedAt: timestamp("published_at"),
+}, (t) => ({
+  pubTypeIdx: index("martyrdom_pub_type_idx").on(t.pubType),
+  statusIdx: index("martyrdom_pub_status_idx").on(t.status),
+}));
+export type MartyrdomPublication    = typeof martyrdomPublications.$inferSelect;
+export type NewMartyrdomPublication = typeof martyrdomPublications.$inferInsert;
+=== P4 발간 끝 === */
