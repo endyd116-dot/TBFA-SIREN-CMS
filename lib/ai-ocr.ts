@@ -15,7 +15,7 @@ import { callGemini } from "./ai-gemini";
 
 export interface OcrResult {
   text: string;
-  method: "native_pdf" | "docx" | "plain_text" | "gemini_ocr" | "manual";
+  method: "native_pdf" | "docx" | "xlsx" | "plain_text" | "gemini_ocr" | "manual";
   error?: string;
 }
 
@@ -56,6 +56,15 @@ export async function extractDocText({
   /* ── 1. Word docx ── */
   if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === "docx") {
     return extractDocx(base64);
+  }
+
+  /* ── 1.5. 엑셀 (xlsx·xls) — 표 데이터를 텍스트(탭 구분)로 변환 ── */
+  if (
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    ext === "xlsx" || ext === "xls"
+  ) {
+    return extractXlsx(base64);
   }
 
   /* ── 2. 텍스트 PDF ── */
@@ -125,6 +134,54 @@ async function extractDocx(base64: string): Promise<OcrResult> {
   } catch (err: any) {
     return { text: "", method: "docx", error: `docx 추출 실패: ${String(err?.message || err).slice(0, 200)}` };
   }
+}
+
+/* ─────────────────────────────── exceljs (xlsx) ─────────────────────────────── */
+async function extractXlsx(base64: string): Promise<OcrResult> {
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const ExcelJS: any = await import("exceljs");
+    const Workbook = ExcelJS.Workbook || ExcelJS.default?.Workbook;
+    const wb = new Workbook();
+    await wb.xlsx.load(buffer);
+
+    const lines: string[] = [];
+    wb.eachSheet((sheet: any) => {
+      if (sheet.rowCount === 0) return;
+      lines.push(`# 시트: ${sheet.name}`);
+      sheet.eachRow({ includeEmpty: false }, (row: any) => {
+        const cells: string[] = [];
+        row.eachCell({ includeEmpty: false }, (cell: any) => {
+          cells.push(cellToText(cell.value));
+        });
+        const line = cells.filter(Boolean).join("\t");
+        if (line.trim()) lines.push(line);
+      });
+    });
+
+    const text = lines.join("\n").trim();
+    if (text.length < MIN_TEXT_LENGTH) {
+      return { text, method: "xlsx", error: "엑셀 내용이 너무 짧습니다 (빈 시트)" };
+    }
+    return { text, method: "xlsx" };
+  } catch (err: any) {
+    /* .xls(구형 바이너리)는 exceljs 미지원 → 수동 입력 유도 */
+    return { text: "", method: "xlsx", error: `엑셀 추출 실패: ${String(err?.message || err).slice(0, 200)} (xlsx 권장·또는 텍스트 직접 입력)` };
+  }
+}
+
+/* 엑셀 셀 값 → 텍스트 (수식·날짜·하이퍼링크·리치텍스트 방어) */
+function cellToText(v: any): string {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    if (typeof v.text === "string") return v.text;                          // hyperlink
+    if (Array.isArray(v.richText)) return v.richText.map((r: any) => r.text).join("");
+    if (v.result != null) return String(v.result);                          // formula
+    if (v.formula) return String(v.formula);
+  }
+  return "";
 }
 
 /* ─────────────────────────────── 평문 UTF-8 ─────────────────────────────── */
