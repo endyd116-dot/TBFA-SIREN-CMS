@@ -23,12 +23,20 @@
 
 ## 2. 현재 상태 (2026-05-26)
 
-### 🎯 다음 라운드 (Swain 확정·설계 대기) — 순직 인정 지원 시스템
-- **Swain이 다음 메인 세션 착수로 명시 지정(2026-05-26).** 교유협 도메인지식+법률지식 기반 **교사 순직 인정 AI 지원** 시스템.
-- **데이터 방식(확정)**: 사례 카드 수동작성 X. **사건별로 순직 신청보고서 등 자료를 업로드 → AI가 자료에서 사건 구조 자동 추출 → 순직 인정 지원**(골든타임 자료 제언·전략 분석·청구서 초안).
-- **토대**: 이번 RAG 인프라(pgvector·임베딩·의미 검색). 신규: 자료 업로드·파싱(한글/워드/PDF·스캔본 OCR)·사건 구조 추출·제언 엔진·서면 초안.
-- **불변 원칙**: AI 출력은 항상 "전문가 검토용 초안"(법적 책임 경계)·RAG 근거 추적·인정+불인정 사례 둘 다 색인.
-- 상세 설계는 다음 세션에서 §0 요구사항부터. 메모리 `project_next_survivor_support`·HANDOFF §8 최상단.
+### 🕊️ 딥릴리프(순직 인정 지원) P1 — 배포 완료·자동체인 근본 fix 후 Swain 재검증 중 (2026-05-26)
+교유협 도메인+법률 기반 **교사 순직 인정 AI 지원** = **Deep-Relief AI v0**(내부 엔진·MVP·초기창업패키지 사업계획서 정합). 통합 CMS **1뎁스 독립 메뉴 "🕊️ 딥릴리프"**. 단일 설계서 = `docs/active/2026-05-26-survivor-support.md`(§0~§10 + 보완 12종 + G기능 6종 + §9.4 연구발간 + §10 점검).
+- **P1 범위(배포됨)**: 사건 CRUD(수정·삭제) + 자료 업로드(모든 형식·R2 presign·100MB) + 추출(pdf-parse·mammoth·Gemini Vision OCR) + **AI 8대 자동분류** + RAG 색인(`martyr_active`/`martyr_case`/`martyr_law`·`case_id` 격리) + **사건 구조 자동 추출** + 자동 체인 + 일괄 재시도. 부수: 근태(퇴근 미달 경고·유연근무 ±X).
+- **배포 커밋(최신순)**: `501ae51`(자동체인 근본fix+일괄재시도)·`e3b9dff`(여론504 bg분리)·`fe72eb0`(사건CRUD+queued재시도)·`c398079`(C검증 6fix)·`3d7098f`(빈화면fix+1뎁스)·`53084d1`(가입 핫픽스)·`2bf7d90`(B·A머지·schema활성·USE_MOCK off)·`dac2db4`(설계 베이스). **로컬 main이 origin보다 1 docs 커밋 앞설 수 있음(이 갱신)·다음 코드 push에 동봉.**
+- **🔴 자동체인 근본 fix(`501ae51`·핵심)**: Netlify `-background` 함수에 `config.path`가 붙어 `/.netlify/functions/` 비동기 호출이 안 먹혀 추출/분류/분석 체인이 시작 못 하고 doc-register가 박은 '처리 중'에 영구 멈춤(정상 RAG background는 config 없음) → **config 제거**. **Swain이 [⟳ 전체 재시도]로 재검증 중 — 이게 PASS면 P1 동작 확정.**
+- **마이그 호출 완료**(Swain): `migrate-martyrdom-setup`(4테이블·`ai_rag_documents.case_id`·golden_items 10·featureKey `martyrdom_ai`) + `migrate-att-flex-range`(`flex_range_mins`). 둘 다 schema 활성화·파일 삭제 완료. `INTERNAL_TRIGGER_SECRET` 설정됨.
+- **C 검증 PASS**: 6결함 fix(자동체인 await·과거사례 색인·상태값·알림 컬럼·인정패턴·응답키) — `docs/history/verify/2026-05-26-martyrdom-p1.md`. tsc 0.
+
+### ➡️ 다음 세션 즉시 할 일 (Swain "(나)" — 새 채팅 분리·2026-05-26)
+1. **딥릴리프 P1 재검증 결과 확인** → 자료 [전체 재시도]→자동분류·완료 되면 **P1 종결**·본 블록 정리·설계서 history 이동 보류(P2~P4 남음).
+2. **A. 신규 웹 가입자 집계·가입경로 안 보임(운영 이슈)**: `auth-signup.ts`가 `signupSourceId`(가입경로) 미기록 + **대시보드·통합분석·가입회원관리**에 신규 웹 회원 미집계('통합 일반 회원'엔 보임). **4곳(대시보드 stats·통합분석·가입회원관리 화면·auth-signup) 같이 보고 정조준 수정.** Swain 원칙=웹 관련 전부 싸이렌 어드민에서 관리·조회·컨트롤.
+3. **B. 알림 발송 로그 메뉴 이동**(판단 완료): 회원문의 → **알림·발송 메뉴**로(발송 작업·템플릿·수신자·AI자동·시스템자동·발송분석과 함께). cms-tbfa 메뉴 위치 소규모 이동.
+4. **P2 설계·분배**: ③전략 분석·①골든타임·②인정요건 대조·⑨모순 탐지·⑩마스터 타임라인+공백·⑪반론 대비·⑫준비도 게이지 + G3 다중사건 대시보드 (+다 코퍼스 검색·라 동의/보존). 설계서 §6에 P2 트리거 추가 후 B·A·C 분배.
+- 메모리 `project_next_survivor_support`(§0 결정·Deep-Relief 정합).
 
 ### 🏁 2026-05-26 RAG 검색 인프라 — 종결·운영 정상 작동 확인
 - **기능**: AI 비서가 질문 시 협회 Q&A(328문항)+메뉴얼 본문(총 535문서)을 의미 검색해 답변 근거로 자동 주입. pgvector + `gemini-embedding-001`(768차원). featureKey `ai_rag_search` 토글(OFF 시 기존 동작·안전망).
