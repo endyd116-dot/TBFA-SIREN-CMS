@@ -16,8 +16,8 @@
 | ★ 외부화 스모크(L0) — 다양한 의존성 함수 모듈 로드 | ✅ PASS (모듈 오류 0건) |
 | 회귀 — P1·P2·P3 | ✅ PASS (P4는 순수 추가·기존 함수 본문 미수정) |
 | 라이브 기능(L1 유족요약·L3 발간 생성·L4 AI 도구) | ❌→🔧 **배포본에서 차단 결함 3건** → 검증 브랜치에서 수정 |
-| 수정 건수 | **6건**(차단 3 + 품질 3) — 전부 tsc 통과 |
-| 추가 보고(정책·권한) | 2건 (메인/Swain 판단) |
+| 수정 건수 | **8건**(차단 3 + 품질 3 + 권한 2) — 전부 tsc 통과 |
+| 권한 정책 | Swain 결정 2건 반영·수정 완료 (§5) |
 
 배포본(현 main)으로 라이브를 돌려 **사용자가 실제로 쓰는 3개 기능이 막혀 있던 것**을 찾아냈습니다. 모두 검증 브랜치에 고쳤고, 메인이 머지·배포하면 동작합니다.
 
@@ -100,16 +100,26 @@
 | 4 | 품질/잠재 | `lib/martyrdom-ai.ts` | 발간 자체조사에서 사건 메타(`case_no·outcome·case_kind`)를 **잘못된 테이블에서 조회**(SQL 오류) → 사건 테이블 JOIN으로 수정. 현재 화면은 사건 미지정으로 호출해 미발현이나, 사례연구(사건 지정) 경로에서 깨짐 |
 | 5 | 품질 | `netlify/functions/admin-martyrdom-publication-export.ts` | HTML 내보내기가 조립본(charset·면책) 대신 본문 원본만 인코딩 → 조립본 인코딩으로 수정 |
 | 6 | 품질 | `admin-martyrdom-stats.ts` + `lib/martyrdom-ai.ts` | 유형별 집계 묶음 기준을 표시값과 일치(`GROUP BY COALESCE…`) → "미분류" 중복 막대 제거 |
+| 7 | 권한(Swain ⓐ) | `netlify/functions/admin-martyrdom-publication.ts` | 발간 쓰기(생성·상태변경·발간·삭제)를 **admin 이상**으로 정합(`requireRole(member,"admin")`) — 운영자는 조회·내보내기만. 기존 PATCH/DELETE의 super_admin 단독을 admin+로 통일, POST에 게이트 신설 |
+| 8 | 권한(Swain ⓑ) | `lib/ai-agent-config.ts` | AI 비서 권한 판정(`isRoleAllowed`)을 등급제(super_admin>admin>operator)로 교정 — `required_role='operator'` 도구를 운영자·admin·super_admin 모두 사용 가능(이전엔 'admin'을 과잉 차단). 비표준 역할값은 기존 규칙 유지(동작 불변) |
 
 전부 `npx tsc --noEmit` 통과.
 
 ---
 
-## 5. 추가 보고 (코드 수정 안 함 — 메인/Swain 판단)
+## 5. 권한 정책 — Swain 결정 2건 반영·수정 완료 (2026-05-27)
 
-**(가) 발간물 생성·조회 권한 단계** — 설계서는 발간 기능 전체를 슈퍼관리자로 보지만, 현재 서버는 **상태변경·삭제만** 슈퍼관리자이고 **생성·목록·상세는 운영자 레벨**로 열려 있음. 화면은 발간 탭을 슈퍼관리자에게만 노출하므로 평상시엔 문제없으나, API 직접 호출 시 운영자도 초안 생성/열람 가능. → 외부 발간 책임(슈퍼관리자) 일관성을 위해 생성·조회도 슈퍼관리자로 좁힐지 결정 필요(권한 정책 = §6.10 Swain 확인 영역이라 임의 변경 안 함).
+**(ⓐ) 연구 발간 권한 단계화** — Swain 결정: **쓰기는 admin 이상, 운영자는 조회만.**
+- GET(목록·상세 조회): 운영자 이상 그대로(`requireAdmin`) — 운영자도 발간물 열람 가능.
+- POST(생성)·PATCH(상태변경·발간)·DELETE: **admin 이상**으로 통일(`requireRole(member,"admin")` → 운영자 차단). 기존엔 PATCH/DELETE만 super_admin 단독, POST는 운영자 레벨로 제각각이던 것을 admin+로 일관화.
+- publication-export(내보내기): 조회·출력 성격 → 운영자 이상 유지(이미 GET 상세로 본문 열람 가능하므로 정합). publication-generate-background는 내부 시크릿 게이트(INTERNAL)라 권한 변경 불필요.
+- (※ 권한 정책 관리 UI 컨트롤은 메인이 라운드 종결 단계에서 처리 — C는 코드 게이트만.)
 
-**(나) AI 도구 권한값과 권한 모델 불일치** — 순직 도구 권한 시드가 `required_role='operator'`인데, AI 비서 권한 판정 함수(`isRoleAllowed`)는 슈퍼관리자/관리자/없음 계층만 알고 **'운영자(operator)' 계층을 모름**. 그 결과 역할이 정확히 **'admin'인 계정**은 권한 레이어에서 순직 도구가 **차단**됨(슈퍼관리자·운영자는 정상). 이는 **과잉 제한**이지 격리 누수가 아님(Q7 안전). → 시드를 `NULL`로 재설정(핸들러의 운영자 게이트에 위임)하거나 권한 판정 함수에 운영자 계층 추가 권장. (현 슈퍼관리자 운영 계정은 영향 없음.)
+**(ⓑ) AI 순직 도구 권한 — 운영자가 쓰게 교정** — Swain 결정: **운영자·admin·super_admin 모두 3개 도구 사용 가능.**
+- 원인: 권한 판정 함수(`isRoleAllowed`)가 super_admin/admin/없음 계층만 알아 `required_role='operator'`인 도구에서 **'admin'을 과잉 차단**(격리 누수 아님).
+- 선택: **판정 로직 교정(등급제)** 채택 — DB 시드(`required_role='operator'`)는 그대로 두고 `isRoleAllowed`를 등급제(super_admin>admin>operator)로 고침. 1회용 마이그 불필요·재배포 외 라이브 액션 없음·`required_role='operator'`=‘운영자 이상’ 의미가 정확·기존 `ROLE_RANK` 패턴과 정합. (시드값 변경 마이그 방식은 라이브 호출 1회 추가가 필요해 비채택.)
+- 비표준 역할값은 기존 규칙 유지(동작 불변). 핸들러 `ensureRole(["operator","admin"])`는 이미 정합. 격리 불변(순직 테이블 직접 조회·일반 검색 `qna·manual` 유지).
+- 영향: `required_role='operator'` 도구는 현재 순직 3개뿐 → 다른 도구 동작 변화 없음. 운영자/admin/super_admin 모두 정상 사용.
 
 ---
 
@@ -117,7 +127,7 @@
 
 1. 검증 브랜치(`verify/martyrdom-p4`) 머지 → **배포 1회**.
 2. 배포 후 라이브 재검증: **L1 유족요약 생성**(쉬운 말 요약·다음 할 일) / **L3 발간 본문 실제 생성**(자체+AI 블렌드·비식별화·reidRisk) / **L4 AI 비서 "진행 중 순직 사건 알려줘" → 사건 목록 응답**.
-3. (가)·(나) 권한 결정 → 필요 시 재시드/소폭 수정.
+3. 권한 ⓐ·ⓑ는 Swain 결정대로 코드 반영 완료(재시드 불필요) — 배포 후 확인: **운영자 계정으로 발간 생성 차단·조회 허용 / admin 계정으로 AI 순직 도구 사용 가능**. 권한 정책 관리 UI 컨트롤은 메인 종결 단계 처리.
 4. 라운드 마감 체크리스트(§P4.7): 메뉴얼·knowledge.md·AI 도구 카탈로그 동기화 + 딥릴리프 전체 설계서 → milestone 이동.
 
 ---

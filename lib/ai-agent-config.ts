@@ -332,8 +332,16 @@ export async function checkToolAllowed(
 function isRoleAllowed(adminRole: string | null, requiredRole: string | null): boolean {
   if (!requiredRole) return true;
   if (!adminRole) return false;
+  /* 표준 역할 등급 비교 (super_admin > admin > operator) — lib/admin-role.ts ROLE_RANK 정합.
+     2026-05-27: operator 계층 인식 추가 — required_role='operator' 도구(순직 읽기 도구 등)를
+     admin도 쓸 수 있게. 이전엔 정확 일치만 봐서 'admin'이 operator 요구 도구를 거부(과잉 차단·BUG). */
+  const RANK: Record<string, number> = { super_admin: 3, admin: 2, operator: 1 };
+  const a = RANK[adminRole];
+  const r = RANK[requiredRole];
+  if (a !== undefined && r !== undefined) return a >= r;
+  /* 비표준 역할값은 기존 규칙 유지(동작 불변): 정확 일치 + super_admin 통과 */
   if (adminRole === requiredRole) return true;
-  if (adminRole === "super_admin") return true;  /* super_admin은 모든 권한 포함 */
+  if (adminRole === "super_admin") return true;
   return false;
 }
 

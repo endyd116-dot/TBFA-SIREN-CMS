@@ -98,8 +98,10 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  /* ── POST 생성 큐 ── */
+  /* ── POST 생성 큐 (admin 이상 — 운영자는 조회만) ── */
   if (req.method === "POST") {
+    if (!requireRole(member, "admin")) return roleForbidden("admin");
+
     let body: any;
     try { body = await req.json(); } catch { return badRequest("요청 본문 파싱 실패"); }
 
@@ -157,9 +159,9 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  /* ── PATCH 상태 변경 (super_admin) ── */
+  /* ── PATCH 상태 변경·발간 (admin 이상) ── */
   if (req.method === "PATCH") {
-    if (!requireRole(member, "super_admin")) return roleForbidden("super_admin");
+    if (!requireRole(member, "admin")) return roleForbidden("admin");
 
     let body: any;
     try { body = await req.json(); } catch { return badRequest("요청 본문 파싱 실패"); }
@@ -195,9 +197,9 @@ export default async (req: Request, _ctx: Context) => {
     }
   }
 
-  /* ── DELETE (super_admin) ── */
+  /* ── DELETE (admin 이상) ── */
   if (req.method === "DELETE") {
-    if (!requireRole(member, "super_admin")) return roleForbidden("super_admin");
+    if (!requireRole(member, "admin")) return roleForbidden("admin");
     if (!idParam) return badRequest("id 필수 (?id=N)");
 
     try {
