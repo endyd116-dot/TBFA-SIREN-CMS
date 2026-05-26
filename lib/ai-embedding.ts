@@ -70,38 +70,92 @@ export async function embedText(text: string): Promise<number[]> {
 /* =========================================================
    RAG 검색 — 코사인 유사도 top-K
    ========================================================= */
-export async function searchRag(query: string, topK = 5): Promise<RagHit[]> {
+/**
+ * @param query       검색 쿼리
+ * @param topK        반환 최대 건수
+ * @param sourceTypes 필터할 source_type 목록 (생략 시 전체·하위호환)
+ *                    순직 분석: ['martyr_active','martyr_case','martyr_law']
+ * @param caseId      martyr_active 검색 시 특정 사건만 격리 (사건별 민감정보 분리)
+ */
+export async function searchRag(
+  query: string,
+  topK = 5,
+  sourceTypes?: string[],
+  caseId?: number,
+): Promise<RagHit[]> {
   try {
     const embedding = await embedText(query);
     const vectorLiteral = `[${embedding.join(",")}]`;
 
-    const r: any = await db.execute(sql`
+    /* sourceTypes 필터 없으면 기존과 동일(전체) */
+    if (!sourceTypes || sourceTypes.length === 0) {
+      const r: any = await db.execute(sql`
+        SELECT
+          id,
+          source_type AS "sourceType",
+          source_ref  AS "sourceRef",
+          title,
+          content,
+          1 - (embedding <=> ${vectorLiteral}::vector) AS score
+        FROM ai_rag_documents
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> ${vectorLiteral}::vector
+        LIMIT ${topK}
+      `);
+      const rows: any[] = r?.rows ?? r ?? [];
+      return rows.map((row: any) => mapRagRow(row));
+    }
+
+    /* sourceTypes 있을 때 — 문자열 안전 처리 후 raw SQL */
+    const safeMime = (t: string) => t.replace(/[^a-z_]/g, "");
+    const typeList = sourceTypes.map(t => `'${safeMime(t)}'`).join(",");
+    const hasMartyrActive = sourceTypes.includes("martyr_active");
+    const safeVec = vectorLiteral; // 이미 숫자 배열이므로 injection 없음
+    const safeTopK = Math.min(50, Math.max(1, Number(topK)));
+    const safeCaseId = caseId != null ? Number(caseId) : null;
+
+    /* martyr_active는 case_id 강제 격리 */
+    let caseFilter = "";
+    if (hasMartyrActive && safeCaseId !== null) {
+      caseFilter = `AND (
+        (source_type = 'martyr_active' AND case_id = ${safeCaseId})
+        OR source_type != 'martyr_active'
+      )`;
+    }
+
+    const r: any = await db.execute(sql.raw(`
       SELECT
         id,
         source_type AS "sourceType",
         source_ref  AS "sourceRef",
         title,
         content,
-        1 - (embedding <=> ${vectorLiteral}::vector) AS score
+        1 - (embedding <=> '${safeVec}'::vector) AS score
       FROM ai_rag_documents
       WHERE embedding IS NOT NULL
-      ORDER BY embedding <=> ${vectorLiteral}::vector
-      LIMIT ${topK}
-    `);
+        AND source_type IN (${typeList})
+        ${caseFilter}
+      ORDER BY embedding <=> '${safeVec}'::vector
+      LIMIT ${safeTopK}
+    `));
 
     const rows: any[] = r?.rows ?? r ?? [];
-    return rows.map((row: any) => ({
-      id: Number(row.id),
-      sourceType: String(row.sourceType || ""),
-      sourceRef: String(row.sourceRef || ""),
-      title: row.title ? String(row.title) : null,
-      content: String(row.content || ""),
-      score: Number(row.score) || 0,
-    }));
+    return rows.map((row: any) => mapRagRow(row));
   } catch (err) {
     console.warn("[ai-embedding] searchRag 실패 — 빈 배열 반환", (err as any)?.message);
     return [];
   }
+}
+
+function mapRagRow(row: any): RagHit {
+  return {
+    id: Number(row.id),
+    sourceType: String(row.sourceType || row.source_type || ""),
+    sourceRef: String(row.sourceRef || row.source_ref || ""),
+    title: (row.title) ? String(row.title) : null,
+    content: String(row.content || ""),
+    score: Number(row.score) || 0,
+  };
 }
 
 /* =========================================================

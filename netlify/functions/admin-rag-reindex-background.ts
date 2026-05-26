@@ -94,6 +94,7 @@ export default async (req: Request, _ctx: Context) => {
   const startMs = Date.now();
   let qnaCount = 0;
   let manualCount = 0;
+  let martyrLawCount = 0;
   let totalInputTokens = 0;
 
   try {
@@ -153,9 +154,38 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
 
+    /* ── §4. 순직 법령 시드 (martyr_law) ── */
+    const LAW_FILES = [
+      "docs/law/martyrdom/01-public-service-disaster-act.md",
+      "docs/law/martyrdom/02-martyrdom-recognition-standards.md",
+      "docs/law/martyrdom/03-survivor-benefit-application-guide.md",
+    ];
+
+    for (const lawPath of LAW_FILES) {
+      const text = readFileSafe(lawPath);
+      if (!text) {
+        console.warn(`[rag-reindex-bg] 법령 파일 없음: ${lawPath}`);
+        continue;
+      }
+      /* 헤더(##) 단위로 청킹 */
+      const lawChunks = chunkManual(text, "md");
+      const fileRef = lawPath.split("/").pop()?.replace(".md", "") || lawPath;
+      for (const chunk of lawChunks) {
+        const sourceRef = `martyr_law#${fileRef}#${chunk.sourceRef}`;
+        try {
+          const emb = await embedText(chunk.content);
+          await upsertDoc("martyr_law", sourceRef, chunk.title, chunk.content, emb, Math.ceil(chunk.content.length / 4));
+          totalInputTokens += Math.ceil(chunk.content.length / 4);
+          martyrLawCount++;
+        } catch (e) {
+          console.warn(`[rag-reindex-bg] 법령 청크 ${sourceRef} 임베딩 실패:`, (e as any)?.message);
+        }
+      }
+    }
+
     const elapsedMs = Date.now() - startMs;
-    const indexed = qnaCount + manualCount;
-    console.info(`[rag-reindex-bg] done — indexed ${indexed} (Q&A ${qnaCount} · 메뉴얼 ${manualCount}) in ${elapsedMs}ms`);
+    const indexed = qnaCount + manualCount + martyrLawCount;
+    console.info(`[rag-reindex-bg] done — indexed ${indexed} (Q&A ${qnaCount} · 메뉴얼 ${manualCount} · 법령 ${martyrLawCount}) in ${elapsedMs}ms`);
 
     /* 비용 기록 (fire-and-forget) */
     try {
@@ -172,7 +202,7 @@ export default async (req: Request, _ctx: Context) => {
 
     return new Response(JSON.stringify({
       ok: true,
-      data: { indexed, qna: qnaCount, manual: manualCount, elapsedMs },
+      data: { indexed, qna: qnaCount, manual: manualCount, martyrLaw: martyrLawCount, elapsedMs },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (err: any) {

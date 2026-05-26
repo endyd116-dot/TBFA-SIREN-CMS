@@ -4145,3 +4145,103 @@ export const aiRagDocuments = pgTable("ai_rag_documents", {
 });
 export type AiRagDocument    = typeof aiRagDocuments.$inferSelect;
 export type NewAiRagDocument = typeof aiRagDocuments.$inferInsert;
+
+/* === 순직 인정 지원 시스템 (2026-05-26) ===
+ * ★ 마이그레이션 전 활성화 금지 — migrate-martyrdom-setup?run=1 호출 후 주석 해제
+ * 아래 4테이블은 마이그 적용 전 코드에서 참조하지 않음 (raw SQL + background만 접근)
+ * aiRagDocuments.caseId 컬럼도 마이그 후 실 schema 반영 예정 */
+
+/*
+export const martyrdomCases = pgTable("martyrdom_cases", {
+  id: serial("id").primaryKey(),
+  caseNo: varchar("case_no", { length: 30 }).unique().notNull(),
+  caseKind: varchar("case_kind", { length: 12 }).default("active").notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  deceasedName: varchar("deceased_name", { length: 50 }),
+  schoolName: varchar("school_name", { length: 150 }),
+  position: varchar("position", { length: 50 }),
+  deceasedAt: date("deceased_at"),
+  occurredSummary: text("occurred_summary"),
+  status: varchar("status", { length: 20 }).default("intake").notNull(),
+  outcome: varchar("outcome", { length: 12 }),
+  outcomeNote: text("outcome_note"),
+  procedureStage: varchar("procedure_stage", { length: 20 }),
+  nextDeadlineAt: date("next_deadline_at"),
+  nextDeadlineLabel: varchar("next_deadline_label", { length: 100 }),
+  extractionJson: jsonb("extraction_json"),
+  extractedAt: timestamp("extracted_at"),
+  assignedAdminId: integer("assigned_admin_id").references(() => members.id, { onDelete: "set null" }),
+  workspaceTaskId: integer("workspace_task_id"),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  caseNoIdx: index("martyrdom_cases_case_no_idx").on(t.caseNo),
+  kindIdx: index("martyrdom_cases_kind_idx").on(t.caseKind),
+  statusIdx: index("martyrdom_cases_status_idx").on(t.status),
+  outcomeIdx: index("martyrdom_cases_outcome_idx").on(t.outcome),
+}));
+export type MartyrdomCase    = typeof martyrdomCases.$inferSelect;
+export type NewMartyrdomCase = typeof martyrdomCases.$inferInsert;
+
+export const martyrdomCaseDocuments = pgTable("martyrdom_case_documents", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").references(() => martyrdomCases.id, { onDelete: "cascade" }).notNull(),
+  blobId: integer("blob_id"),
+  fileName: varchar("file_name", { length: 500 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }),
+  sizeBytes: integer("size_bytes").default(0),
+  docType: varchar("doc_type", { length: 30 }),
+  docTypeAuto: varchar("doc_type_auto", { length: 30 }),
+  docSummary: text("doc_summary"),
+  classifyConfidence: integer("classify_confidence").default(0),
+  extractStatus: varchar("extract_status", { length: 20 }).default("pending").notNull(),
+  extractMethod: varchar("extract_method", { length: 20 }),
+  extractedText: text("extracted_text"),
+  extractError: text("extract_error"),
+  indexedToRag: boolean("indexed_to_rag").default(false),
+  blobKey: varchar("blob_key", { length: 1000 }),
+  createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  caseIdx: index("martyrdom_docs_case_idx").on(t.caseId),
+  statusIdx: index("martyrdom_docs_status_idx").on(t.extractStatus),
+}));
+export type MartyrdomCaseDocument    = typeof martyrdomCaseDocuments.$inferSelect;
+export type NewMartyrdomCaseDocument = typeof martyrdomCaseDocuments.$inferInsert;
+
+export const martyrdomAiOutputs = pgTable("martyrdom_ai_outputs", {
+  id: serial("id").primaryKey(),
+  caseId: integer("case_id").references(() => martyrdomCases.id, { onDelete: "cascade" }).notNull(),
+  outputType: varchar("output_type", { length: 20 }).notNull(),
+  version: integer("version").default(1).notNull(),
+  contentText: text("content_text"),
+  contentJson: jsonb("content_json"),
+  ragSources: jsonb("rag_sources"),
+  modelUsed: varchar("model_used", { length: 40 }),
+  status: varchar("status", { length: 12 }).default("draft").notNull(),
+  reviewedBy: integer("reviewed_by").references(() => members.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  caseIdx: index("martyrdom_outputs_case_idx").on(t.caseId),
+  typeIdx: index("martyrdom_outputs_type_idx").on(t.outputType),
+}));
+export type MartyrdomAiOutput    = typeof martyrdomAiOutputs.$inferSelect;
+export type NewMartyrdomAiOutput = typeof martyrdomAiOutputs.$inferInsert;
+
+export const martyrdomGoldenItems = pgTable("martyrdom_golden_items", {
+  id: serial("id").primaryKey(),
+  channel: varchar("channel", { length: 12 }).notNull(),
+  label: varchar("label", { length: 150 }).notNull(),
+  guidance: text("guidance"),
+  volatility: integer("volatility").default(3),
+  sortOrder: integer("sort_order").default(0),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type MartyrdomGoldenItem    = typeof martyrdomGoldenItems.$inferSelect;
+export type NewMartyrdomGoldenItem = typeof martyrdomGoldenItems.$inferInsert;
+*/
