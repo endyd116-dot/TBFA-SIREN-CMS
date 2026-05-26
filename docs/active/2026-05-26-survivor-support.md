@@ -971,9 +971,10 @@ const MOCK_ACTIONS = [{ id: 1, item: "심리부검 자료 확보", status: "todo
 
 ## §P2.6 4채팅 트리거 (병렬 평행 + 작업 규칙 전부 포함·복사용)
 
-> **베이스 정합(PARALLEL_GUIDE §4.1·필수)**: 분배 **전에** 본 설계서를 `origin/main`에 **push**(베이스 push는 §9.3 예외·라운드당 1회 enabler). 그 해시를 `{BASE_HASH}`에 채워 발사. 미push 로컬 베이스 금지(2026-05-24 어긋남 사고).
+> **베이스 정합 — push 불필요(2026-05-26 확정)**: A·B·C 워크트리가 **같은 로컬 `.git`을 공유**하므로, 베이스를 origin에 push할 필요 없이 **로컬 `main` HEAD**(= P2 설계 포함)에서 분기/rebase한다. `{BASE_HASH}` = 현재 로컬 main HEAD. (워크트리 공유라 PARALLEL_GUIDE §4.1의 origin push는 이 환경에선 생략 가능 — 배포 과금 절감·§9.3.) **이미 옛 베이스(dfa65ec)로 분기한 A·B는 `git rebase main`으로 베이스 이동.**
+> **push 시점**: 베이스는 push 안 함. **B 머지 후** `migrate-martyrdom-p2` 라이브 호출용 1회 + **A 머지 후** 라이브 검증 1회만 push(§9.3 배치).
 > **모드**: 평행 — A는 §P2.5 mock으로 시작·B 머지 후 실 API 자동 전환. 폴더 분리(A=`public/` / B=`netlify·lib·db·drizzle·package.json`)로 충돌 0.
-> **머지 순서**: B → Swain `migrate-martyrdom-p2?run=1` → schema 활성화·마이그 삭제 → A → C. (**B 응답 키 ↔ A mock 키 1:1 대조 후** 머지·workflow_standards §6.)
+> **머지 순서**: B → (push·) Swain `migrate-martyrdom-p2?run=1` → schema 활성화·마이그 삭제 → A → C. (**B 응답 키 ↔ A mock 키 1:1 대조 후** 머지·workflow_standards §6.)
 
 ### 6.0 워크트리 셋업 (모든 트리거 공통·그대로 실행)
 ```
