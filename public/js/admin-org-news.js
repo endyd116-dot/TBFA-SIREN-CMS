@@ -365,35 +365,59 @@ function loadHistoryDetail(id) {
   });
 }
 
-/* ── 재조사 ── */
+/* ── 재조사 (백그라운드 위임 + 폴링·2026-05-26 504 fix) ── */
 function doRefresh() {
   var btn = document.getElementById('btnRefresh');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 조사 중...'; }
   showLoading(true);
+  var prevId = (_currentReport && (_currentReport.id || _currentReport.reportId)) || 0;
   api('/api/admin-org-news-refresh', { method: 'POST' }).then(function(res) {
     showLoading(false);
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
     if (!res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
       var msg = (res.data && (res.data.error || (res.data.data && res.data.data.error))) || ('오류 ' + res.status);
       if (res.status === 403) msg = '슈퍼어드민만 재조사를 실행할 수 있습니다.';
       showToast(msg, 'error');
       return;
     }
-    showToast('재조사가 완료됐습니다.', 'success');
-    _currentReport = extractReport(res);
-    if (_currentReport) {
-      document.getElementById('reportBody').innerHTML = renderReport(_currentReport);
-      var at = _currentReport.generatedAt || _currentReport.generated_at || _currentReport.createdAt || _currentReport.created_at;
-      document.getElementById('lastGenAt').textContent = at ? ('마지막 생성: ' + fmtDate(at)) : '';
-      setTimeout(function() { renderWordCloud(_currentReport.keywordCloud || _currentReport.keyword_cloud || [], 'wc-canvas'); }, 100);
-    }
-    /* 히스토리 새로고침 */
-    _historyLoaded = false;
+    /* 백그라운드 분석 시작됨 → 새 보고서 등장까지 폴링 */
+    showToast('재조사를 시작했습니다. 1~2분 정도 걸립니다…', 'success');
+    if (btn) btn.textContent = '⏳ 분석 중...';
+    pollNewReport(prevId, 0);
   }).catch(function(e) {
     showLoading(false);
     if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
     showToast('네트워크 오류: ' + e.message, 'error');
   });
+}
+
+function pollNewReport(prevId, tries) {
+  var btn = document.getElementById('btnRefresh');
+  if (tries >= 18) {  /* 약 3.6분(12초 × 18) 후 중단 */
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+    showToast('분석이 지연되고 있습니다. 잠시 후 "최신 재조사"를 다시 누르거나 새로고침해 주세요.', 'error');
+    return;
+  }
+  setTimeout(function() {
+    api('/api/admin-org-news-get').then(function(res) {
+      var report = extractReport(res);
+      var newId = report && (report.id || report.reportId);
+      if (report && newId && newId !== prevId) {
+        _currentReport = report;
+        document.getElementById('reportBody').innerHTML = renderReport(report);
+        var at = report.generatedAt || report.generated_at || report.createdAt || report.created_at;
+        document.getElementById('lastGenAt').textContent = at ? ('마지막 생성: ' + fmtDate(at)) : '';
+        setTimeout(function() { renderWordCloud(report.keywordCloud || report.keyword_cloud || [], 'wc-canvas'); }, 100);
+        _historyLoaded = false;
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 최신 재조사'; }
+        showToast('재조사가 완료됐습니다.', 'success');
+        return;
+      }
+      pollNewReport(prevId, tries + 1);
+    }).catch(function() {
+      pollNewReport(prevId, tries + 1);
+    });
+  }, 12000);
 }
 
 /* ── 설정 로드/저장 ── */
