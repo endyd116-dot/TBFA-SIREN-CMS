@@ -114,7 +114,8 @@ export default async function handler(req: Request, ctx: Context) {
 
       /* featureKey 체크 (OFF여도 테스트는 허용 — admin 도구이므로) */
       step = "search";
-      const hits = await searchRag(query, 5);
+      /* AI 비서 RAG 진단 — 일반 코퍼스(qna·manual)만(순직 민감 자료 격리·AI 비서 실제 검색 범위와 일치) */
+      const hits = await searchRag(query, 5, ["qna", "manual"]);
 
       step = "map";
       const mapped = hits.map(h => ({

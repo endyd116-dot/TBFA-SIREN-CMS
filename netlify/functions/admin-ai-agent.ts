@@ -679,7 +679,9 @@ export default async (req: Request, _ctx: Context) => {
     try {
       const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
       if (ragCheck.ok) {
-        const ragHits = await searchRag(userMessage, 5);
+        /* AI 비서는 일반 코퍼스(qna·manual)만 검색 — 순직(martyr_*) 민감 자료 격리(§2.8·§P2.0 #10).
+           필터 누락 시 전체 테이블 검색이라 진행 사건 민감정보가 AI 비서에 노출됨. */
+        const ragHits = await searchRag(userMessage, 5, ["qna", "manual"]);
         if (ragHits.length > 0) {
           const ragBlock = "[참고 자료]\n" + ragHits
             .map(h => `- ${h.title || h.sourceRef}: ${h.content.slice(0, 300)}`)
