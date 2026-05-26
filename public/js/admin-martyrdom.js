@@ -42,7 +42,8 @@ const EXTRACT_STATUS_LABELS = {
 };
 
 // ── mock (B 머지 전 · 키명 1글자도 변경 금지) ────────────────────────────────
-const USE_MOCK = true;
+// B 백엔드 머지 완료(2026-05-26) → 실 API 연결
+const USE_MOCK = false;
 
 const MOCK_CASES = { ok:true, total:2, cases:[
   { id:1, caseNo:"MTR-20260526-0001", caseKind:"active", title:"○○초 △△ 선생님 사건",
