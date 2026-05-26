@@ -77,10 +77,10 @@ const MOCK_DETAIL = { ok:true,
   outputs:[ { id:50, outputType:"extraction", version:1, status:"draft", contentJson:{}, ragSources:[],
     modelUsed:"gemini-3-flash", createdAt:"..." } ] };
 
-// ── P2 mock (B 머지 전 사용 · 응답 키 §P2.2 계약과 1글자도 변경 금지) ──────────
-// B 백엔드 P2 머지 완료 시 메인이 USE_P2_MOCK = false 로 전환 → 실 API 연결.
+// ── P2 mock · 응답 키 §P2.2 계약 + B 실제 응답(2026-05-26 대조)과 1:1 ──────────
+// B 백엔드 P2 머지·마이그레이션 완료 → 실 API 연결(false). 키 정합 확인 끝.
 // P1 API(USE_MOCK=false)는 이미 라이브 — P2 신규 API만 이 토글을 따른다.
-const USE_P2_MOCK = true;
+const USE_P2_MOCK = false;
 
 const MOCK_STRATEGY = {
   possibleLogics: [
@@ -126,21 +126,21 @@ const MOCK_GOLDEN = {
 const MOCK_DEADLINES = [{ id: 1, label: "소멸시효(3년)", dueDate: "2027-06-11", kind: "statute_limit", status: "pending" }];
 const MOCK_ACTIONS = [{ id: 1, item: "심리부검 자료 확보", status: "todo", source: "missing_evidence", dueDate: null }];
 
-// 코퍼스 검색·요건 master·대시보드 mock (§P2.2에 정확 키 미고정 — 합리적 형태로 구성·B 머지 시 정합)
-const MOCK_CORPUS = { ok: true, results: [
-  { title: "○○초 교사 순직 인정 사례(2023)", sourceRef: "martyr_case#7", sourceType: "martyr_case", outcome: "approved", snippet: "지속적 악성민원으로 인한 적응장애와 사망 사이 상당인과관계 인정…" },
-  { title: "공무원 재해보상법 §5(공무상 재해의 인정기준)", sourceRef: "martyr_law#12", sourceType: "martyr_law", outcome: null, snippet: "공무수행과 사망 사이에 상당인과관계가 있는 경우 공무상 재해로 본다…" }
+// 코퍼스 검색·요건 master·대시보드 mock (B 실제 응답 키와 1:1 — 2026-05-26 B 대조 반영)
+const MOCK_CORPUS = { ok: true, query: "", hits: [
+  { id: 1, sourceType: "martyr_case", sourceRef: "martyr_case#7", title: "○○초 교사 순직 인정 사례(2023)", snippet: "지속적 악성민원으로 인한 적응장애와 사망 사이 상당인과관계 인정…", score: 0.89 },
+  { id: 2, sourceType: "martyr_law", sourceRef: "martyr_law#12", title: "공무원 재해보상법 §5(공무상 재해의 인정기준)", snippet: "공무수행과 사망 사이에 상당인과관계가 있는 경우 공무상 재해로 본다…", score: 0.83 }
 ] };
-const MOCK_CRITERIA_MASTER = { ok: true, items: [
+const MOCK_CRITERIA_MASTER = { ok: true, total: 2, criteria: [
   { id: 1, code: "duty_performance", category: "공무수행성", title: "공무(교육활동·부수업무) 수행 중 발생", description: "사망·질병이 공무 수행과 시간적·장소적으로 연결됨을 입증", evidenceHint: "근무기록·업무분장·복무기록", lawRef: "공무원 재해보상법 §4", weight: 3, sortOrder: 1, active: true },
   { id: 2, code: "causation_medical", category: "인과관계", title: "공무와 사망 사이 상당인과관계(의학)", description: "의학적 소견으로 공무-질병 인과 입증", evidenceHint: "진단서·의학소견·심리부검", lawRef: "공무원 재해보상법 §5", weight: 3, sortOrder: 2, active: true }
 ] };
 const MOCK_DASHBOARD = { ok: true,
   cases: [
-    { id: 1, caseNo: "MTR-20260526-0001", title: "○○초 △△ 선생님 사건", status: "collecting", readinessScore: 78, nextDeadlineAt: "2026-06-15", nextDeadlineLabel: "순직유족급여 청구 기한", docCount: 3 },
-    { id: 3, caseNo: "MTR-20260520-0002", title: "△△중 □□ 선생님 사건", status: "analyzing", readinessScore: 45, nextDeadlineAt: "2026-06-02", nextDeadlineLabel: "심의위 자료 제출", docCount: 7 }
+    { caseId: 1, caseNo: "MTR-20260526-0001", title: "○○초 △△ 선생님 사건", status: "collecting", caseKind: "active", readinessScore: 78, nextDeadlineAt: "2026-06-15", nextDeadlineLabel: "순직유족급여 청구 기한", dDay: 20, docCount: 3 },
+    { caseId: 3, caseNo: "MTR-20260520-0002", title: "△△중 □□ 선생님 사건", status: "analyzing", caseKind: "active", readinessScore: 45, nextDeadlineAt: "2026-06-02", nextDeadlineLabel: "심의위 자료 제출", dDay: 7, docCount: 7 }
   ],
-  storage: { usedGb: 14.2, limitGb: 20, overThreshold: false },
+  storage: { usedGb: 14.2, limitGb: 20, overThreshold: false, bytes: 15246000000, gb: 14.2, alertGb: 20, over: false },
   summary: { activeCount: 2, urgentCount: 1, avgReadiness: 62 }
 };
 
@@ -1698,9 +1698,10 @@ function renderDashboard(d, pane) {
     ${overGb ? `<div class="error-banner">⚠️ 저장 용량이 임계치를 초과했습니다. 백업 후 오래된 자료를 정리하세요.</div>` : ""}
     <table class="dash-table"><thead><tr><th>사건</th><th>상태</th><th>준비도</th><th>다음 기한</th><th>자료</th></tr></thead>
     <tbody>${sorted.map(c => {
+      const cid = c.caseId != null ? c.caseId : c.id;
       const diff = c.nextDeadlineAt ? Math.ceil((new Date(c.nextDeadlineAt) - Date.now()) / 86400000) : null;
       const urgent = diff != null && diff <= 7;
-      return `<tr onclick="selectCase(${c.id})" style="cursor:pointer">
+      return `<tr onclick="selectCase(${cid})" style="cursor:pointer">
         <td><strong>${escapeHtml(c.title || c.caseNo || "")}</strong><div class="dash-cn">${escapeHtml(c.caseNo || "")}</div></td>
         <td><span class="badge status-badge">${STATUS_LABELS[c.status] || c.status || "-"}</span></td>
         <td>${c.readinessScore != null ? `<span class="dash-rd">${c.readinessScore}%</span>` : "-"}</td>
@@ -1724,11 +1725,11 @@ async function runCorpusSearch() {
   res.innerHTML = '<div class="list-loading">검색 중…</div>';
   try {
     const d = await apiCorpusSearch(q);
-    const results = (d && (d.results || (d.data && d.data.results) || d.items)) || [];
-    if (!results.length) { res.innerHTML = '<div class="empty-hint"><div class="eh-desc">결과가 없습니다.</div></div>'; return; }
-    res.innerHTML = results.map(r => `<div class="corpus-item">
-      <div class="corpus-top">${r.outcome ? `<span class="badge outcome-${r.outcome}">${OUTCOME_LABELS[r.outcome] || r.outcome}</span> ` : ""}<strong>${escapeHtml(r.title || r.sourceRef || "")}</strong>
-        <span class="corpus-type">${r.sourceType === "martyr_law" ? "법령" : (r.sourceType === "martyr_case" ? "사례" : (r.sourceType || ""))}</span></div>
+    const hits = (d && (d.hits || (d.data && d.data.hits) || d.results)) || [];
+    if (!hits.length) { res.innerHTML = '<div class="empty-hint"><div class="eh-desc">결과가 없습니다.</div></div>'; return; }
+    res.innerHTML = hits.map(r => `<div class="corpus-item">
+      <div class="corpus-top"><strong>${escapeHtml(r.title || r.sourceRef || "")}</strong>
+        <span class="corpus-type ${r.sourceType === "martyr_law" ? "ct-law" : "ct-case"}">${r.sourceType === "martyr_law" ? "법령" : (r.sourceType === "martyr_case" ? "사례" : (r.sourceType || ""))}</span></div>
       ${r.snippet ? `<div class="corpus-snip">${escapeHtml(r.snippet)}</div>` : ""}
       ${r.sourceRef ? `<div class="corpus-ref">${escapeHtml(r.sourceRef)}</div>` : ""}</div>`).join("");
   } catch (e) {
@@ -1750,7 +1751,7 @@ async function loadCriteriaMaster() {
   body.innerHTML = '<div class="list-loading">불러오는 중…</div>';
   try {
     const d = await apiCriteriaList();
-    _criteriaCache = (d && (d.items || (d.data && d.data.items))) || [];
+    _criteriaCache = (d && (d.criteria || (d.data && d.data.criteria) || d.items)) || [];
     renderCriteriaMasterList();
   } catch (e) {
     if (e.message !== "auth") body.innerHTML = '<div class="empty-hint"><div class="eh-desc">불러오기 오류</div></div>';
