@@ -4164,6 +4164,8 @@ export const martyrdomCases = pgTable("martyrdom_cases", {
   procedureStage: varchar("procedure_stage", { length: 20 }),
   nextDeadlineAt: date("next_deadline_at"),
   nextDeadlineLabel: varchar("next_deadline_label", { length: 100 }),
+  consentNote: text("consent_note"),                          // P2 라 유족 동의 기록
+  consentObtainedAt: timestamp("consent_obtained_at"),        // P2 라 동의 일시
   extractionJson: jsonb("extraction_json"),
   extractedAt: timestamp("extracted_at"),
   assignedAdminId: integer("assigned_admin_id").references(() => members.id, { onDelete: "set null" }),
@@ -4197,6 +4199,7 @@ export const martyrdomCaseDocuments = pgTable("martyrdom_case_documents", {
   extractError: text("extract_error"),
   indexedToRag: boolean("indexed_to_rag").default(false),
   blobKey: varchar("blob_key", { length: 1000 }),
+  evidenceStrength: varchar("evidence_strength", { length: 10 }),   // P2 증거강도 strong|medium|weak
   createdBy: integer("created_by").references(() => members.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -4241,11 +4244,9 @@ export const martyrdomGoldenItems = pgTable("martyrdom_golden_items", {
 export type MartyrdomGoldenItem    = typeof martyrdomGoldenItems.$inferSelect;
 export type NewMartyrdomGoldenItem = typeof martyrdomGoldenItems.$inferInsert;
 
-/* === P2 순직 인정 지원 (2026-05-26) ===
-   ⚠️ migrate-martyrdom-p2?run=1 호출 전까지 비활성(주석) — DB 적용 후 메인이 활성화(§9.2).
-   순직 모듈 코드는 전부 raw SQL(sql.raw)로 접근하므로 아래 정의는 타입·문서용(런타임 영향 0).
-   추가 컬럼: martyrdom_case_documents.evidence_strength varchar(10) strong|medium|weak,
-            martyrdom_cases.consent_note text · consent_obtained_at timestamp.
+/* === P2 순직 인정 지원 (2026-05-26) — ✅ 활성화(migrate-martyrdom-p2 적용 후·§9.2) ===
+   순직 모듈 코드는 raw SQL(sql.raw) 접근 — 아래 정의는 타입·문서·drizzle-kit 정합용.
+   기존 테이블 추가 컬럼은 각 정의에 반영(martyrdomCaseDocuments.evidenceStrength / martyrdomCases.consentNote·consentObtainedAt). */
 
 export const martyrdomDeadlines = pgTable("martyrdom_deadlines", {
   id: serial("id").primaryKey(),
@@ -4300,4 +4301,4 @@ export const martyrdomActions = pgTable("martyrdom_actions", {
 }, (t) => ({ caseIdx: index("martyrdom_actions_case_idx").on(t.caseId) }));
 export type MartyrdomAction    = typeof martyrdomActions.$inferSelect;
 export type NewMartyrdomAction = typeof martyrdomActions.$inferInsert;
-=== P2 순직 인정 지원 끝 === */
+/* === P2 순직 인정 지원 끝 === */
