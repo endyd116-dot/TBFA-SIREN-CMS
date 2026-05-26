@@ -15,7 +15,7 @@ import { callGemini } from "./ai-gemini";
 
 export interface OcrResult {
   text: string;
-  method: "native_pdf" | "docx" | "xlsx" | "hwp" | "plain_text" | "gemini_ocr" | "manual";
+  method: "native_pdf" | "docx" | "xlsx" | "hwp" | "hwpx" | "pptx" | "plain_text" | "gemini_ocr" | "gemini_audio" | "gemini_video" | "manual";
   error?: string;
 }
 
@@ -29,7 +29,22 @@ const GEMINI_OCR_MIMES = new Set([
 ]);
 
 /* 평문 처리 가능 확장자 */
-const PLAIN_EXTS = new Set(["txt", "md", "csv", "rtf", "log", "text"]);
+const PLAIN_EXTS = new Set(["txt", "md", "csv", "tsv", "rtf", "log", "text", "json", "xml", "vtt", "srt"]);
+
+/* 음성·영상 — Gemini 멀티모달 전사. ext→Gemini가 받는 mimeType 매핑(브라우저 mime이 불안정) */
+const AUDIO_EXTS = new Set(["m4a", "mp3", "wav", "aac", "ogg", "oga", "flac", "aiff", "aif", "opus", "amr", "wma"]);
+const VIDEO_EXTS = new Set(["mp4", "m4v", "mov", "webm", "avi", "mkv", "mpeg", "mpg", "3gp"]);
+const AUDIO_MIME: Record<string, string> = {
+  mp3: "audio/mp3", wav: "audio/wav", aac: "audio/aac", ogg: "audio/ogg", oga: "audio/ogg",
+  opus: "audio/ogg", flac: "audio/flac", aiff: "audio/aiff", aif: "audio/aiff",
+  m4a: "audio/mp4", amr: "audio/amr", wma: "audio/x-ms-wma",
+};
+const VIDEO_MIME: Record<string, string> = {
+  mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm",
+  avi: "video/x-msvideo", mkv: "video/x-matroska", mpeg: "video/mpeg", mpg: "video/mpeg", "3gp": "video/3gpp",
+};
+/* Gemini 인라인 첨부 용량 한도(요청 약 20MB) — 원본 기준 보수치 */
+const INLINE_MEDIA_LIMIT = 15 * 1024 * 1024;
 
 function getExt(fileName: string): string {
   return (fileName.split(".").pop() || "").toLowerCase();
@@ -73,6 +88,28 @@ export async function extractDocText({
     return extractHwp(base64);
   }
 
+  /* ── 1.7. 한글 HWPX (신형·OWPML ZIP) — 압축 해제 후 본문 텍스트 ── */
+  if (ext === "hwpx" || mime === "application/hwp+zip" || mime === "application/vnd.hancom.hwpx") {
+    return extractZipOffice(base64, "hwpx");
+  }
+
+  /* ── 1.8. PowerPoint pptx — 슬라이드 텍스트 ── */
+  if (ext === "pptx" || mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+    return extractZipOffice(base64, "pptx");
+  }
+
+  /* ── 1.9. 음성 (녹취·면담·통화) — Gemini 전사 ── */
+  if (AUDIO_EXTS.has(ext) || mime.startsWith("audio/")) {
+    const gmime = AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3");
+    return extractGeminiMedia(base64, gmime, "audio");
+  }
+
+  /* ── 1.10. 영상 — Gemini 전사 + 화면 정리 ── */
+  if (VIDEO_EXTS.has(ext) || mime.startsWith("video/")) {
+    const gmime = VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4");
+    return extractGeminiMedia(base64, gmime, "video");
+  }
+
   /* ── 2. 텍스트 PDF ── */
   if (mime === "application/pdf" || ext === "pdf") {
     const pdfResult = await extractPdf(base64);
@@ -100,11 +137,13 @@ export async function extractDocText({
     return extractGeminiOcr(base64, mime, fileName);
   }
 
-  /* ── 5. 미지원 형식 (hwp·pptx 등) — 업로드 거부 안 함, error 반환 ── */
+  /* ── 5. 미지원 형식 (구형 doc/ppt·odt/ods·zip 등) — 업로드 거부 안 함, error 반환 ──
+     자동 추출 가능: PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·음성·영상.
+     불가(변환 권장): 구형 .doc/.ppt(바이너리)·.odt/.ods(오픈오피스)·.zip 등. */
   return {
     text: "",
     method: "manual",
-    error: `미지원 형식(${ext || mime}) — 워드/PDF 변환 후 재업로드 권장. 또는 화면에서 직접 텍스트 입력 가능`,
+    error: `자동 추출이 안 되는 형식(${ext || mime})입니다 — PDF로 변환 후 재업로드하거나, 화면에서 [텍스트 직접 입력]으로 내용을 넣어주세요.`,
   };
 }
 
@@ -210,6 +249,84 @@ async function extractHwp(base64: string): Promise<OcrResult> {
     return { text, method: "hwp" };
   } catch (err: any) {
     return { text: "", method: "manual", error: `HWP 추출 실패: ${String(err?.message || err).slice(0, 150)} — PDF 변환 또는 텍스트 직접 입력 권장` };
+  }
+}
+
+/* ─────────────────────────────── HWPX·PPTX (ZIP+XML · fflate) ─────────────────────────────── */
+/* OWPML(hwpx)·OOXML(pptx)은 ZIP 컨테이너. 본문 XML을 풀어 텍스트 런만 뽑는다. */
+async function extractZipOffice(base64: string, kind: "hwpx" | "pptx"): Promise<OcrResult> {
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const fflate: any = await import("fflate");
+    const files = fflate.unzipSync(new Uint8Array(buffer));
+    const isTarget = kind === "hwpx"
+      ? (n: string) => /(^|\/)section\d+\.xml$/i.test(n)            // Contents/section0.xml ...
+      : (n: string) => /ppt\/slides\/slide\d+\.xml$/i.test(n);     // ppt/slides/slide1.xml ...
+    const textTag = kind === "hwpx" ? "hp:t" : "a:t";
+
+    const names = Object.keys(files).filter(isTarget).sort();
+    let text = "";
+    for (const n of names) {
+      const xml = Buffer.from(files[n] as Uint8Array).toString("utf-8");
+      text += " " + xmlTagText(xml, textTag);
+    }
+    text = decodeXmlEntities(text).replace(/\s+/g, " ").trim();
+
+    if (text.length < MIN_TEXT_LENGTH) {
+      return { text, method: kind, error: `${kind.toUpperCase()} 본문 텍스트가 너무 짧습니다 (PDF 변환 권장)` };
+    }
+    return { text, method: kind };
+  } catch (err: any) {
+    return { text: "", method: "manual", error: `${kind.toUpperCase()} 추출 실패: ${String(err?.message || err).slice(0, 150)} — PDF 변환 또는 텍스트 직접 입력 권장` };
+  }
+}
+
+/* XML에서 특정 텍스트 태그 내용만 추출(없으면 전체 태그 제거 폴백) */
+function xmlTagText(xml: string, tag: string): string {
+  const re = new RegExp("<" + tag + "[^>]*>([\\s\\S]*?)</" + tag + ">", "g");
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml))) out.push(m[1].replace(/<[^>]+>/g, ""));
+  if (out.length === 0) return xml.replace(/<[^>]+>/g, " ");
+  return out.join(" ");
+}
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/* ─────────────────────────────── 음성·영상 (Gemini 멀티모달) ─────────────────────────────── */
+async function extractGeminiMedia(base64: string, mimeType: string, kind: "audio" | "video"): Promise<OcrResult> {
+  const method: OcrResult["method"] = kind === "audio" ? "gemini_audio" : "gemini_video";
+  const approxBytes = base64.length * 0.75;
+  if (approxBytes > INLINE_MEDIA_LIMIT) {
+    const mb = Math.round(approxBytes / 1024 / 1024);
+    return { text: "", method: "manual", error: `${kind === "audio" ? "음성" : "영상"} 파일이 큽니다(약 ${mb}MB·15MB 초과) — 짧게 분할 후 재업로드하거나 [텍스트 직접 입력]으로 핵심 내용을 넣어주세요` };
+  }
+  const prompt = kind === "audio"
+    ? "이 음성 녹음을 한국어로 가능한 한 정확히 전사(transcript)해 주세요.\n- 화자 구분이 가능하면 '화자1:', '화자2:' 로 표시\n- 들리지 않는 부분은 (불명) 으로 표기\n- 통화·면담·민원 등 정황이 드러나면 그대로 옮길 것\n전사 텍스트만 출력하세요."
+    : "이 영상의 음성을 한국어로 전사하고, 화면의 중요한 시각 정보(장소·인물·자막·시각·행동)도 함께 텍스트로 정리해 주세요. 전사와 시각 요약만 출력하세요.";
+  try {
+    const result = await callGemini(prompt, {
+      mode: "pro",
+      featureKey: "martyrdom_ai",
+      inlineFiles: [{ data: base64.replace(/^data:[^;]+;base64,/, ""), mimeType }],
+      maxOutputTokens: 8192,
+      timeoutMs: 180000,
+      internalBulk: true,
+    });
+    if (!result.ok || !result.text) {
+      return { text: "", method, error: `${kind === "audio" ? "음성 전사" : "영상 분석"} 실패: ${result.error || "응답 없음"} — 형식 미지원일 수 있어 mp3/wav/mp4 변환 또는 텍스트 직접 입력 권장` };
+    }
+    const text = result.text.trim();
+    if (text.length < 5) {
+      return { text, method, error: "전사 결과가 비었습니다 (무음·잡음일 수 있음)" };
+    }
+    return { text, method };
+  } catch (err: any) {
+    return { text: "", method, error: `미디어 처리 실패: ${String(err?.message || err).slice(0, 150)}` };
   }
 }
 
