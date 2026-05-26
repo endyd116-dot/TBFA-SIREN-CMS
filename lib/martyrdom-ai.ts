@@ -1004,3 +1004,407 @@ export async function indexApprovedReport(caseId: number): Promise<{ ok: boolean
     return { ok: false, indexed: 0, error: String(err?.message || err).slice(0, 300) };
   }
 }
+
+/* =========================================================
+   P4: buildFamilySummary — 유족 전달용 쉬운 요약 (⑧)
+   ========================================================= */
+
+export interface FamilySummaryResult {
+  id: number;
+  outputType: "family_summary";
+  contentText: string;
+  nextSteps: string[];
+  status: "draft";
+}
+
+/**
+ * 사건 진행 상황을 쉬운 말로 요약 + 다음 할 일 목록 생성.
+ * ai_outputs(outputType='family_summary')에 저장 후 반환.
+ */
+export async function buildFamilySummary(caseId: number): Promise<FamilySummaryResult> {
+  /* 사건 기본 정보 */
+  const cr: any = await db.execute(sql.raw(`
+    SELECT case_no AS "caseNo", title, status, readiness_score AS "readinessScore",
+           deceased_name AS "deceasedName", case_kind AS "caseKind"
+    FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1
+  `));
+  const c = (cr?.rows ?? cr ?? [])[0];
+  if (!c) throw new Error(`사건 없음: caseId=${caseId}`);
+
+  /* 최근 전략 산출물 로드 */
+  const latestStrategy = await loadLatestOutputForFamily(caseId, "strategy");
+  /* 최근 부족 증거 액션 */
+  const actRes: any = await db.execute(sql.raw(`
+    SELECT item FROM martyrdom_actions
+    WHERE case_id = ${caseId} AND status != 'done'
+    ORDER BY sort_order, created_at
+    LIMIT 5
+  `));
+  const pendingActions = (actRes?.rows ?? actRes ?? []).map((r: any) => String(r.item || ""));
+
+  /* 임박 기한 */
+  const dlRes: any = await db.execute(sql.raw(`
+    SELECT label, due_date AS "dueDate"
+    FROM martyrdom_deadlines
+    WHERE case_id = ${caseId} AND status = 'pending'
+    ORDER BY due_date ASC LIMIT 3
+  `));
+  const deadlines = (dlRes?.rows ?? dlRes ?? []).map((r: any) =>
+    `${r.label} (${String(r.dueDate || "").slice(0, 10)})`
+  );
+
+  const statusLabel: Record<string, string> = {
+    intake: "초기 접수",
+    collection: "자료 수집",
+    analysis: "전략 분석",
+    draft: "서면 초안 작성",
+    hearing: "심의 진행",
+    appeal: "이의신청",
+    closed: "종결",
+  };
+
+  const prompt = `당신은 교사 유가족에게 순직 인정 절차를 쉬운 말로 설명하는 복지사입니다.
+
+다음은 현재 사건 진행 상황입니다:
+- 사건: ${c.deceasedName ? `${c.deceasedName} 선생님` : c.caseNo}
+- 현재 단계: ${statusLabel[c.status] || c.status}
+- 준비도: ${c.readinessScore !== null && c.readinessScore !== undefined ? `${Math.round(Number(c.readinessScore))}%` : "분석 전"}
+${latestStrategy ? `- 전략 요약: ${latestStrategy}` : ""}
+${pendingActions.length > 0 ? `- 아직 보완이 필요한 자료: ${pendingActions.join(", ")}` : ""}
+${deadlines.length > 0 ? `- 중요 기한: ${deadlines.join(" / ")}` : ""}
+
+다음 형식으로 JSON을 반환하세요. 법률 용어나 행정 용어는 **쉬운 말로 풀어서** 작성하세요:
+{
+  "contentText": "250자 내외의 현재 상황 설명 (유족이 이해할 수 있는 쉬운 표현)",
+  "nextSteps": ["다음에 해야 할 일 1", "다음에 해야 할 일 2", "다음에 해야 할 일 3"]
+}`;
+
+  const fallbackContent = `${c.deceasedName ? `${c.deceasedName} 선생님` : "해당"} 사건은 현재 "${statusLabel[c.status] || c.status}" 단계로 진행 중입니다.${c.readinessScore !== null && c.readinessScore !== undefined ? ` 인정 준비도는 ${Math.round(Number(c.readinessScore))}%입니다.` : ""}`;
+  const fallbackSteps = pendingActions.length > 0 ? pendingActions.slice(0, 3) : ["담당 간사에게 문의하세요"];
+
+  let contentText = fallbackContent;
+  let nextSteps = fallbackSteps;
+
+  try {
+    const result = await callGeminiJSON<{ contentText: string; nextSteps: string[] }>(prompt, {
+      featureKey: "martyrdom_ai",
+      timeoutMs: 30000,
+    });
+    if (result?.data?.contentText) contentText = String(result.data.contentText).slice(0, 500);
+    if (Array.isArray(result?.data?.nextSteps)) {
+      nextSteps = result.data.nextSteps.filter((s: any) => typeof s === "string" && s.trim()).slice(0, 5);
+    }
+  } catch (aiErr: any) {
+    console.warn(`[buildFamilySummary] AI 호출 실패 (폴백 사용): ${aiErr?.message}`);
+  }
+
+  /* ai_outputs에 저장(upsert) */
+  const contentJson = JSON.stringify({ nextSteps }).replace(/'/g, "''");
+  const safeContent = contentText.replace(/'/g, "''");
+  const upsertRes: any = await db.execute(sql.raw(`
+    INSERT INTO martyrdom_ai_outputs
+      (case_id, output_type, content_text, content_json, status, created_at, updated_at)
+    VALUES
+      (${caseId}, 'family_summary', '${safeContent}', '${contentJson}', 'draft', NOW(), NOW())
+    RETURNING id
+  `));
+  const saved = (upsertRes?.rows ?? upsertRes ?? [])[0];
+  const id = Number(saved?.id || 0);
+
+  return { id, outputType: "family_summary", contentText, nextSteps, status: "draft" };
+}
+
+async function loadLatestOutputForFamily(caseId: number, outputType: string): Promise<string | null> {
+  try {
+    const r: any = await db.execute(sql.raw(`
+      SELECT content_json FROM martyrdom_ai_outputs
+      WHERE case_id = ${caseId} AND output_type = '${outputType}' AND status = 'draft'
+      ORDER BY created_at DESC LIMIT 1
+    `));
+    const row = (r?.rows ?? r ?? [])[0];
+    if (!row?.content_json) return null;
+    const j = typeof row.content_json === "string" ? JSON.parse(row.content_json) : row.content_json;
+    /* strategy JSON에서 핵심 한줄 요약 추출 */
+    const summary = j?.overallAssessment?.summary || j?.summary || j?.recommendation?.strategy;
+    return summary ? String(summary).slice(0, 200) : null;
+  } catch { return null; }
+}
+
+/* =========================================================
+   P4: buildPublication — 연구 발간지 생성 (R·§9.4)
+   ========================================================= */
+
+export interface PublicationResult {
+  title: string;
+  contentHtml: string;
+  contentJson: any;
+  ragSources: RagSourceRef[];
+  blendRatio: { self: number; ai: number };
+  anonymized: boolean;
+  reidRisk: "low" | "medium" | "high";
+  modelUsed: string;
+}
+
+const PUB_TYPE_LABEL: Record<string, string> = {
+  guide:      "교사 사망 시 순직 인정 종합 가이드",
+  trend:      "순직 인정 최근 동향 보고서",
+  case_study: "익명 순직 인정 사례 연구",
+};
+
+/**
+ * 연구 발간지 본문 생성.
+ * - 자체 조사(축적 사건·인정패턴·통계) + AI 동향분석(Gemini 지식 기반) 블렌드
+ * - 비식별화 마스킹 + reidRisk 평가
+ */
+export async function buildPublication(
+  pubType: string,
+  caseIds: number[],
+  blendRatio: { self: number; ai: number } = { self: 70, ai: 30 },
+  maskLevel: "light" | "medium" | "full" = "medium",
+): Promise<PublicationResult> {
+  const typeLabel = PUB_TYPE_LABEL[pubType] || pubType;
+
+  /* 자체 조사 데이터 수집 */
+  const selfData = await collectSelfData(caseIds);
+
+  /* RAG 검색 (법령·인정사례) */
+  let ragSources: RagSourceRef[] = [];
+  try {
+    const { searchRag } = await import("./ai-embedding");
+    const hits = await searchRag(`${typeLabel} 순직 인정 법령 기준 심의 패턴`, 8, ["martyr_case", "martyr_law"]);
+    ragSources = hits.map((h: any) => ({
+      title:     String(h.title || "").slice(0, 100),
+      sourceRef: String(h.sourceRef || h.source_ref || "").slice(0, 100),
+      snippet:   String(h.content || h.snippet || "").slice(0, 200),
+    }));
+  } catch (ragErr: any) {
+    console.warn(`[buildPublication] RAG 검색 실패: ${ragErr?.message}`);
+  }
+
+  /* 비식별화 마스킹 */
+  const maskedData = maskCaseData(selfData, maskLevel);
+
+  /* reidRisk 평가 */
+  const reidRisk = evaluateReidRisk(maskedData, maskLevel);
+
+  /* AI 동향분석 섹션 (blendRatio.ai > 0 일 때만) */
+  let aiSection = "";
+  let modelUsed = "none";
+  if (blendRatio.ai > 0) {
+    try {
+      const aiPrompt = buildPublicationPrompt(pubType, typeLabel, maskedData, ragSources, blendRatio);
+      const aiResult = await callGemini(aiPrompt, {
+        featureKey: "martyrdom_ai",
+        timeoutMs: 120000,
+        internalBulk: true,
+      });
+      aiSection = String(aiResult || "").trim();
+      modelUsed = "gemini";
+    } catch (aiErr: any) {
+      console.warn(`[buildPublication] AI 생성 실패 (자체 데이터만 사용): ${aiErr?.message}`);
+      aiSection = "";
+    }
+  }
+
+  /* HTML 조합 */
+  const contentHtml = buildPublicationHtml(pubType, typeLabel, maskedData, aiSection, blendRatio, ragSources);
+  const contentJson = {
+    pubType,
+    blendRatio,
+    maskLevel,
+    sections: extractSections(contentHtml),
+    selfDataSummary: maskedData.summary,
+    ragSourceCount: ragSources.length,
+  };
+
+  const title = typeLabel;
+  return {
+    title,
+    contentHtml,
+    contentJson,
+    ragSources,
+    blendRatio,
+    anonymized: true,
+    reidRisk,
+    modelUsed,
+  };
+}
+
+/* 자체 조사 데이터 수집 */
+interface SelfData {
+  totalCases: number;
+  approvedCount: number;
+  rejectedCount: number;
+  recognitionRate: number;
+  byType: Array<{ type: string; total: number; approved: number }>;
+  patterns: Array<{ caseNo: string; outcome: string; keyPattern: string; caseKind: string }>;
+  summary: string;
+}
+
+async function collectSelfData(caseIds: number[]): Promise<SelfData> {
+  const empty: SelfData = {
+    totalCases: 0, approvedCount: 0, rejectedCount: 0,
+    recognitionRate: 0, byType: [], patterns: [], summary: "데이터 없음",
+  };
+  try {
+    /* 전체 통계 */
+    const statRes: any = await db.execute(sql.raw(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN outcome = 'approved' THEN 1 ELSE 0 END) AS approved,
+        SUM(CASE WHEN outcome = 'rejected' THEN 1 ELSE 0 END) AS rejected
+      FROM martyrdom_cases WHERE status = 'closed'
+    `));
+    const st = (statRes?.rows ?? statRes ?? [])[0] || {};
+    const total = Number(st.total || 0);
+    const approved = Number(st.approved || 0);
+    const rejected = Number(st.rejected || 0);
+
+    /* 종류별 통계 */
+    const typeRes: any = await db.execute(sql.raw(`
+      SELECT case_type AS "caseType",
+             COUNT(*) AS total,
+             SUM(CASE WHEN outcome='approved' THEN 1 ELSE 0 END) AS approved
+      FROM martyrdom_cases WHERE status = 'closed'
+      GROUP BY case_type
+    `));
+    const byType = (typeRes?.rows ?? typeRes ?? []).map((r: any) => ({
+      type: String(r.caseType || "unknown"),
+      total: Number(r.total || 0),
+      approved: Number(r.approved || 0),
+    }));
+
+    /* 지정 사건 인정패턴 (비식별화 대상) */
+    let patterns: SelfData["patterns"] = [];
+    if (caseIds.length > 0) {
+      const ids = caseIds.map(Number).filter(n => n > 0);
+      const patRes: any = await db.execute(sql.raw(`
+        SELECT case_no AS "caseNo", outcome, case_kind AS "caseKind",
+               (content_json->>'recognitionPattern') AS "keyPattern"
+        FROM martyrdom_ai_outputs
+        WHERE case_id = ANY(ARRAY[${ids.join(",")}]::int[])
+          AND output_type = 'strategy' AND status = 'draft'
+        ORDER BY case_id, created_at DESC
+      `));
+      const seen = new Set<string>();
+      for (const r of (patRes?.rows ?? patRes ?? [])) {
+        if (!seen.has(String(r.caseNo))) {
+          seen.add(String(r.caseNo));
+          patterns.push({
+            caseNo:     String(r.caseNo || ""),
+            outcome:    String(r.outcome || ""),
+            caseKind:   String(r.caseKind || ""),
+            keyPattern: String(r.keyPattern || "").slice(0, 300),
+          });
+        }
+      }
+    }
+
+    const rate = total > 0 ? Math.round((approved / total) * 100) / 100 : 0;
+    const summary = `총 ${total}건 지원 · 인정 ${approved}건 · 불인정 ${rejected}건 · 인정률 ${Math.round(rate * 100)}%`;
+    return { totalCases: total, approvedCount: approved, rejectedCount: rejected, recognitionRate: rate, byType, patterns, summary };
+  } catch (e: any) {
+    console.warn(`[collectSelfData] 실패: ${e?.message}`);
+    return empty;
+  }
+}
+
+/* 비식별화 마스킹 */
+function maskCaseData(data: SelfData, level: "light" | "medium" | "full"): SelfData {
+  if (level === "light") return data;
+  const patterns = data.patterns.map(p => {
+    let caseNo = p.caseNo;
+    let keyPattern = p.keyPattern;
+    if (level === "medium") {
+      caseNo = caseNo.replace(/[가-힣A-Za-z]{2,}/g, "○○").replace(/\d{4}/g, "20XX");
+      keyPattern = keyPattern.replace(/[가-힣]{2,4}\s*(선생님|교사|씨)/g, "○○ 선생님");
+    } else {
+      caseNo = "익명 사례";
+      keyPattern = keyPattern.replace(/[가-힣A-Za-z]{2,}/g, "○○");
+    }
+    return { ...p, caseNo, keyPattern };
+  });
+  return { ...data, patterns };
+}
+
+/* reidRisk 평가 */
+function evaluateReidRisk(data: SelfData, level: "light" | "medium" | "full"): "low" | "medium" | "high" {
+  if (level === "full") return "low";
+  if (level === "medium") return data.totalCases >= 5 ? "low" : "medium";
+  return data.totalCases >= 10 ? "medium" : "high";
+}
+
+/* AI 프롬프트 빌드 */
+function buildPublicationPrompt(
+  pubType: string,
+  typeLabel: string,
+  data: SelfData,
+  ragSources: RagSourceRef[],
+  blendRatio: { self: number; ai: number },
+): string {
+  const ragContext = ragSources.slice(0, 5)
+    .map(r => `[${r.title}] ${r.snippet}`)
+    .join("\n");
+
+  const selfSection = `
+자체 축적 데이터 (비율: 자체 ${blendRatio.self}%):
+- ${data.summary}
+- 유형별: ${data.byType.map(t => `${t.type}(${t.total}건·인정${t.approved}건)`).join(", ") || "데이터 없음"}
+${data.patterns.length > 0 ? `- 주요 인정 패턴: ${data.patterns.filter(p => p.outcome === "approved").slice(0, 3).map(p => p.keyPattern).filter(Boolean).join(" / ")}` : ""}
+`;
+
+  const ragSection = ragContext ? `\n관련 법령·사례 근거:\n${ragContext}` : "";
+
+  return `당신은 교사 순직 인정 지원 분야의 전문 연구원입니다.
+다음 자료를 바탕으로 "${typeLabel}" 보고서의 **AI 동향분석 섹션**을 작성하세요.
+(전체 보고서에서 AI 기여 비율: ${blendRatio.ai}%)
+${selfSection}${ragSection}
+
+요구사항:
+- HTML 형식으로 반환 (제목은 <h2>, 문단은 <p>, 중요 사항은 <ul><li>)
+- 1000자~2000자 분량
+- 공무원재해보상법 기반 최근 심의 동향·인정 요건 트렌드 분석
+- 구체적 수치나 날짜 주장 시 "추정" 또는 "일반적으로" 표현 사용
+- "이 내용은 Gemini AI 일반지식 기반이며 전문가 검수가 필요합니다" 주석 포함`;
+}
+
+/* HTML 조합 */
+function buildPublicationHtml(
+  pubType: string,
+  typeLabel: string,
+  data: SelfData,
+  aiSection: string,
+  blendRatio: { self: number; ai: number },
+  ragSources: RagSourceRef[],
+): string {
+  const selfHtml = `
+<h2>자체 조사 결과 (비율: ${blendRatio.self}%)</h2>
+<p>${data.summary}</p>
+${data.byType.length > 0 ? `<ul>${data.byType.map(t => `<li>${t.type}: 총 ${t.total}건 · 인정 ${t.approved}건 (인정률 ${t.total > 0 ? Math.round((t.approved / t.total) * 100) : 0}%)</li>`).join("")}</ul>` : ""}
+${data.patterns.filter(p => p.outcome === "approved").length > 0 ? `
+<h3>주요 인정 패턴 (익명 사례)</h3>
+<ul>${data.patterns.filter(p => p.outcome === "approved").map(p => `<li>${p.keyPattern || "상세 패턴 없음"}</li>`).join("")}</ul>` : ""}
+`;
+
+  const ragHtml = ragSources.length > 0 ? `
+<h2>법령·판례 근거</h2>
+<ul>${ragSources.slice(0, 5).map(r => `<li><strong>${r.title}</strong>: ${r.snippet}</li>`).join("")}</ul>` : "";
+
+  const aiHtml = aiSection ? `
+<h2>AI 동향분석 (비율: ${blendRatio.ai}% · Gemini 지식 기반)</h2>
+${aiSection}` : "";
+
+  return `<article class="martyrdom-publication">
+<h1>${typeLabel}</h1>
+<p class="pub-meta">발간 유형: ${pubType} · 자체:AI = ${blendRatio.self}:${blendRatio.ai} · 비식별화 처리 완료</p>
+${selfHtml}${ragHtml}${aiHtml}
+<hr>
+<p class="disclaimer">⚠️ 본 보고서는 (사)교사유가족협의회의 내부 데이터 및 AI 지식 기반으로 작성된 초안입니다. 외부 발간 전 반드시 법률 전문가 검수를 받으시기 바랍니다.</p>
+</article>`;
+}
+
+/* HTML에서 섹션 추출 (contentJson용) */
+function extractSections(html: string): Array<{ title: string }> {
+  const matches = html.matchAll(/<h[12][^>]*>(.*?)<\/h[12]>/gi);
+  return Array.from(matches).map(m => ({ title: m[1].replace(/<[^>]+>/g, "").trim() }));
+}
