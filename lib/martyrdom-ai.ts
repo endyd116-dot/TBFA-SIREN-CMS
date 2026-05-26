@@ -1024,8 +1024,14 @@ export interface FamilySummaryResult {
 export async function buildFamilySummary(caseId: number): Promise<FamilySummaryResult> {
   /* 사건 기본 정보 */
   const cr: any = await db.execute(sql.raw(`
-    SELECT case_no AS "caseNo", title, status, readiness_score AS "readinessScore",
-           deceased_name AS "deceasedName", case_kind AS "caseKind"
+    SELECT case_no AS "caseNo", title, status,
+           deceased_name AS "deceasedName", case_kind AS "caseKind",
+           (
+             SELECT (ao.content_json->>'score')::int
+             FROM martyrdom_ai_outputs ao
+             WHERE ao.case_id = martyrdom_cases.id AND ao.output_type = 'readiness'
+             ORDER BY ao.version DESC LIMIT 1
+           ) AS "readinessScore"
     FROM martyrdom_cases WHERE id = ${caseId} LIMIT 1
   `));
   const c = (cr?.rows ?? cr ?? [])[0];
@@ -1260,13 +1266,13 @@ async function collectSelfData(caseIds: number[]): Promise<SelfData> {
     const approved = Number(st.approved || 0);
     const rejected = Number(st.rejected || 0);
 
-    /* 종류별 통계 */
+    /* 종류별 통계 — extraction_json->>'caseType' 기준 */
     const typeRes: any = await db.execute(sql.raw(`
-      SELECT case_type AS "caseType",
+      SELECT COALESCE(extraction_json->>'caseType', 'unknown') AS "caseType",
              COUNT(*) AS total,
              SUM(CASE WHEN outcome='approved' THEN 1 ELSE 0 END) AS approved
       FROM martyrdom_cases WHERE status = 'closed'
-      GROUP BY case_type
+      GROUP BY extraction_json->>'caseType'
     `));
     const byType = (typeRes?.rows ?? typeRes ?? []).map((r: any) => ({
       type: String(r.caseType || "unknown"),

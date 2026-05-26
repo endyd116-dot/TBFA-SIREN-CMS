@@ -5715,23 +5715,28 @@ async function tool_martyrdomCaseList(args: any, adminId: number | null): Promis
       ? `WHERE status = '${statusFilter.replace(/'/g, "''")}'`
       : "WHERE status != 'closed'";
 
-    const rows: any = await db.execute(sql`
+    const rows: any = await db.execute(sql.raw(`
       SELECT
         c.id,
         c.case_no   AS "caseNo",
         c.title,
         c.status,
-        c.readiness_score AS "readinessScore",
+        (
+          SELECT (ao.content_json->>'score')::int
+          FROM martyrdom_ai_outputs ao
+          WHERE ao.case_id = c.id AND ao.output_type = 'readiness'
+          ORDER BY ao.version DESC LIMIT 1
+        ) AS "readinessScore",
         (
           SELECT MIN(d.due_date)
           FROM martyrdom_deadlines d
           WHERE d.case_id = c.id AND d.status = 'pending'
         ) AS "nextDeadline"
       FROM martyrdom_cases c
-      ${sql.raw(whereClause)}
+      ${whereClause}
       ORDER BY c.created_at DESC
       LIMIT 30
-    `);
+    `));
     const list = (rows?.rows ?? rows ?? []).map((r: any) => ({
       id:            Number(r.id),
       caseNo:        String(r.caseNo || ""),
@@ -5757,36 +5762,43 @@ async function tool_martyrdomCaseStatus(args: any, adminId: number | null): Prom
     const caseNo = String(args?.caseNo || "").trim();
     if (!caseId && !caseNo) return { ok: false, error: "caseId 또는 caseNo 중 하나 필수" };
 
-    const whereCase = caseId
-      ? sql.raw(`id = ${caseId}`)
-      : sql.raw(`case_no = '${caseNo.replace(/'/g, "''")}'`);
-
-    const caseRows: any = await db.execute(sql`
-      SELECT id, case_no AS "caseNo", title, status, readiness_score AS "readinessScore",
+    const whereStr = caseId
+      ? `id = ${caseId}`
+      : `case_no = '${caseNo.replace(/'/g, "''")}'`;
+    const caseRows: any = await db.execute(sql.raw(`
+      SELECT id, case_no AS "caseNo", title, status,
+             (
+               SELECT (ao.content_json->>'score')::int
+               FROM martyrdom_ai_outputs ao
+               WHERE ao.case_id = martyrdom_cases.id AND ao.output_type = 'readiness'
+               ORDER BY ao.version DESC LIMIT 1
+             ) AS "readinessScore",
              outcome, assigned_admin_id AS "assignedAdminId"
       FROM martyrdom_cases
-      WHERE ${whereCase}
+      WHERE ${whereStr}
       LIMIT 1
-    `);
+    `));
     const c = (caseRows?.rows ?? caseRows ?? [])[0];
     if (!c) return { ok: false, error: "사건을 찾을 수 없습니다" };
 
     const id = Number(c.id);
 
-    /* 인정요건 충족 수 */
+    /* 인정요건 충족 수 — 최신 criteria_check 산출물에서 */
     let criteriaFulfilled = 0;
     let criteriaTotalChecked = 0;
     try {
       const crRows: any = await db.execute(sql.raw(`
-        SELECT fulfilled, COUNT(*) AS cnt
-        FROM martyrdom_case_criteria
-        WHERE case_id = ${id}
-        GROUP BY fulfilled
+        SELECT content_json
+        FROM martyrdom_ai_outputs
+        WHERE case_id = ${id} AND output_type = 'criteria_check'
+        ORDER BY version DESC LIMIT 1
       `));
-      for (const r of (crRows?.rows ?? crRows ?? [])) {
-        const cnt = Number(r.cnt || 0);
-        criteriaTotalChecked += cnt;
-        if (r.fulfilled === true) criteriaFulfilled += cnt;
+      const crRow = (crRows?.rows ?? crRows ?? [])[0];
+      if (crRow?.content_json) {
+        const cj = typeof crRow.content_json === "string"
+          ? JSON.parse(crRow.content_json) : crRow.content_json;
+        criteriaFulfilled    = Number(cj?.metCount ?? 0);
+        criteriaTotalChecked = Number(cj?.totalCount ?? 0);
       }
     } catch {}
 

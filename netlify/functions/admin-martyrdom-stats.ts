@@ -65,11 +65,11 @@ export default async (req: Request, _ctx: Context) => {
   try {
     const r: any = await db.execute(sql.raw(`
       SELECT
-        COALESCE(case_type, 'unknown') AS type,
+        COALESCE(extraction_json->>'caseType', 'unknown') AS type,
         COUNT(*)::int AS total,
         SUM(CASE WHEN outcome = 'approved' THEN 1 ELSE 0 END)::int AS approved
       FROM martyrdom_cases
-      GROUP BY case_type
+      GROUP BY extraction_json->>'caseType'
       ORDER BY total DESC
     `));
     byCaseType = (r?.rows ?? r ?? []).map((row: any) => ({
