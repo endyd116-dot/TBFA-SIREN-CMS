@@ -24,15 +24,20 @@ function jsonError(step: string, err: any) {
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 
-function triggerExtract(docId: number) {
+/* background 호출은 await로 요청 전송을 보장(미await 시 함수 종료로 fetch가 취소됨·5313ce8). */
+async function triggerExtract(docId: number): Promise<void> {
   const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
   const baseUrl = base.startsWith("http") ? base : `https://${base}`;
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
-  fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-extract-background`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ docId, secret, reindex: true }),
-  }).catch((err) => console.warn("[martyrdom-reextract trigger]", err?.message || err));
+  try {
+    await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-extract-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ docId, secret, reindex: true }),
+    });
+  } catch (err: any) {
+    console.warn("[martyrdom-reextract trigger]", err?.message || err);
+  }
 }
 
 const VALID_DOC_TYPES = Object.keys(MARTYRDOM_DOC_TYPES);
@@ -102,7 +107,7 @@ export default async (req: Request, _ctx: Context) => {
       const safeText = extractedText.replace(/'/g, "''");
       sets.push(`extracted_text = '${safeText}'`);
       sets.push(`extract_method = 'manual'`);
-      sets.push(`extract_status = 'queued'`);
+      sets.push(`extract_status = 'processing'`);
     } else if (docType) {
       /* 유형만 변경 — 텍스트는 그대로, 상태 유지 */
     }
@@ -113,9 +118,9 @@ export default async (req: Request, _ctx: Context) => {
       WHERE id = ${docId}
     `));
 
-    /* 수동 텍스트 제공 시 RAG 재청킹·임베딩 트리거 */
+    /* 수동 텍스트 제공 시 RAG 재청킹·임베딩 트리거 (await로 전송 보장) */
     if (extractedText) {
-      triggerExtract(docId);
+      await triggerExtract(docId);
     }
 
     const finalDocType = docType || String(doc.docType || "other");

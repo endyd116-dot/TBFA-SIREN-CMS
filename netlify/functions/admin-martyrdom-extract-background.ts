@@ -50,16 +50,20 @@ function chunkText(text: string, sourceRef: string): Array<{ title: string; cont
   return chunks;
 }
 
-/* ── analyze-background 트리거 (fire-and-forget) ── */
-function triggerAnalyze(caseId: number) {
+/* ── analyze-background 트리거 (await로 요청 전송 보장·5313ce8) ── */
+async function triggerAnalyze(caseId: number): Promise<void> {
   const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
   const baseUrl = base.startsWith("http") ? base : `https://${base}`;
   const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
-  fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-analyze-background`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ caseId, secret }),
-  }).catch((err) => console.warn("[martyrdom-analyze trigger]", err?.message || err));
+  try {
+    await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-analyze-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, secret }),
+    });
+  } catch (err: any) {
+    console.warn("[martyrdom-analyze trigger]", err?.message || err);
+  }
 }
 
 /* ── 어드민 알림 (DB insert — console fallback) ── */
@@ -81,14 +85,13 @@ async function notifyAdmins(caseId: number, assignedAdminId: number | null, msg:
     if (targets.length === 0) return;
     const safeMsg = msg.replace(/'/g, "''").slice(0, 500);
     const values = targets
-      .map(uid => `(${uid}, 'system', '순직 지원', '${safeMsg}', '{"caseId":${caseId}}', NOW())`)
+      .map(uid => `(${uid}, 'admin', 'system', '순직 지원', '${safeMsg}', 'martyrdom_cases', ${caseId}, NOW())`)
       .join(",");
 
     await db.execute(sql.raw(`
       INSERT INTO notifications
-        (member_id, notification_type, title, message, meta, created_at)
+        (recipient_id, recipient_type, category, title, message, ref_table, ref_id, created_at)
       VALUES ${values}
-      ON CONFLICT DO NOTHING
     `));
   } catch (err) {
     /* 알림 실패는 조용히 넘김 */
@@ -147,10 +150,10 @@ export default async (req: Request, _ctx: Context) => {
     const assignedAdminId = doc.assignedAdminId ? Number(doc.assignedAdminId) : null;
     const caseKind = String(doc.caseKind || "active");
 
-    /* extract_status → extracting */
+    /* extract_status → processing (프론트 폴링·배지와 동일 어휘·§1 enum) */
     await db.execute(sql.raw(`
       UPDATE martyrdom_case_documents
-      SET extract_status = 'extracting', updated_at = NOW()
+      SET extract_status = 'processing', updated_at = NOW()
       WHERE id = ${docId}
     `));
 
@@ -244,14 +247,15 @@ export default async (req: Request, _ctx: Context) => {
       WHERE id = ${docId}
     `));
 
-    /* ── 5. RAG 청킹·임베딩 UPSERT (martyr_active, case_id 격리) ── */
+    /* ── 5. RAG 청킹·임베딩 UPSERT (§1.2: active→martyr_active / reference→martyr_case·둘 다 case_id 격리) ── */
     let indexedCount = 0;
+    const ragSourceType = caseKind === "reference" ? "martyr_case" : "martyr_active";
 
     /* reindex 시 기존 청크 삭제 */
     if (reindex) {
       await db.execute(sql.raw(`
         DELETE FROM ai_rag_documents
-        WHERE source_type = 'martyr_active'
+        WHERE source_type = '${ragSourceType}'
           AND case_id = ${caseId}
           AND source_ref LIKE 'doc-${docId}#%'
       `));
@@ -272,7 +276,7 @@ export default async (req: Request, _ctx: Context) => {
           INSERT INTO ai_rag_documents
             (source_type, source_ref, case_id, title, content, embedding, created_at)
           VALUES
-            ('martyr_active', '${safeChunkRef}', ${caseId},
+            ('${ragSourceType}', '${safeChunkRef}', ${caseId},
              '${safeTitle}', '${safeContent}',
              '${vecLiteral}'::vector, NOW())
           ON CONFLICT (source_type, source_ref)
@@ -304,9 +308,9 @@ export default async (req: Request, _ctx: Context) => {
       `[순직 자료 추출 완료] ${fileName} — 분류: ${docTypeAuto}, 청크 ${indexedCount}개 색인`,
     );
 
-    /* ── 8. active 사건이면 analyze-background 트리거 ── */
+    /* ── 8. active 사건이면 analyze-background 트리거 (await로 전송 보장) ── */
     if (caseKind === "active") {
-      triggerAnalyze(caseId);
+      await triggerAnalyze(caseId);
     }
 
     console.info(`[martyrdom-extract-bg] done docId=${docId} chunks=${indexedCount} docType=${docTypeAuto}`);
