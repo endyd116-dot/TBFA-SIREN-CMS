@@ -23,14 +23,15 @@
 
 ## 2. 현재 상태 (2026-05-27)
 
-### ✅ 딥릴리프 P3 종결·P4 거의 종결·SSO 완료·배포 8→5분 (2026-05-27 최신·★상단)
-통합 CMS 1뎁스 "🕊️ 딥릴리프". 단일 설계서 `docs/active/2026-05-26-survivor-support.md`(P3/P4 구현 설계 §P3·§P4). P1·P2는 milestone `2026-05-26-deeprelief-p1-p2.md`로 이동(P3·P4도 종결 시 이동).
+### 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료·배포 8→5분 (2026-05-27 최신·★상단)
+통합 CMS 1뎁스 "🕊️ 딥릴리프". 설계서 P3·P4 master는 milestone `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`로 이동(archive). P1·P2는 `2026-05-26-deeprelief-p1-p2.md`. **P1~P4 전체 종결 — 다음 메인은 후속(데이터 축적·발간 풍부화)만 선택적.**
 - **P1·P2**: 출시·검증·종결 완료(이전 세션).
 - **P3 서면 생성(종결)**: 유족급여신청서 목차 제안→섹션별 생성·편집·재생성·PDF/Word/zip 내보내기·전문가 검토 배정·승인·인과관계 논리맵·종결 자동학습. 신규 테이블 `martyrdom_draft_sections`·`martyrdom_reviews` + outputType `'draft'` + 의존성 `docx`. 마이그 `migrate-martyrdom-p3` 호출·삭제·schema 활성화 완료. C 코드+라이브(실서버 E2E) PASS(`verify/2026-05-27-martyrdom-p3*`).
-- **P4 마감(거의 종결)**: AI 순직 읽기 도구 3개(`martyrdom_case_list`·`case_status`·`deadlines_upcoming`·운영자+·격리 불변)·유족 쉬운 요약·인정률 통계(G5)·연구 발간(자체+AI 블렌드·비율 운영자 설정·비식별화). 신규 테이블 `martyrdom_publications` + outputType `'family_summary'` + `ai_tool_permissions` 시드. 마이그 `migrate-martyrdom-p4` 호출·삭제·schema 활성화 완료. C 검증+다수 fix(라이브 차단 3·권한 2·발간 본문 [object Object]·발간 탭 role 중첩). **R1 유족요약·R3 AI 도구 Swain 확인. R2 발간 본문 fix(push 9) 재확인만 남음.**
+- **P4 종결**: AI 순직 읽기 도구 3개(`martyrdom_case_list`·`case_status`·`deadlines_upcoming`·운영자+·격리 불변)·유족 쉬운 요약·인정률 통계(G5)·연구 발간(자체+AI 블렌드·비율 운영자 설정·비식별화). 신규 테이블 `martyrdom_publications` + outputType `'family_summary'` + `ai_tool_permissions` 시드. C 검증+다수 fix(라이브 차단 3·권한 2·발간 본문 [object Object]·발간 탭 role 중첩). **R1·R2·R3 Swain 라이브 확인 완료(R2 발간 본문 정상·비율 표기 없음).**
+- **P4 종결 정리(2026-05-27)**: ⑴ AI 비서 안내문(`FALLBACK_SYSTEM_PROMPT`)에 딥릴리프 도메인+읽기 도구 3개 정식 정착 ⑵ 발간 쓰기 권한을 권한 정책(`role_permissions.martyrdom_publication`·cms 탭)과 **실제 연동**(`canAccess`)+화면 버튼 정책 반영(`canWrite`·기본 admin ON/operator OFF로 현행 보존) ⑶ 메뉴얼·AI 학습자료(P3 서면+P4) 동기화 ⑷ 설계서 milestone 이동·종결 선언. **Swain 잔여 액션 1건: `migrate-martyrdom-pub-perm?run=1` 호출(발간 권한 항목 시드)→권한 정책 cms 탭 노출 확인.**
 - **SSO**: 허브(tbfa-mis)=IdP `/api/sso-on`→함께워크 ON(별도 사이트·별도 메인) SP 단일 로그인. E2E 14/14 PASS·라이브. memory `project_hamkke_on_sso`. **MIS repo 변경=MIS 메인 단독**(크로스 프로젝트 조율).
 - **배포 단축**: `netlify.toml` external_node_modules 7→20(drizzle·파서·DB클라·jwt) → 8분→5분. 검증됨.
-- **▶ P4 잔여(다음 메인)**: ⑴ **R2 발간 본문 재확인**(push 9 `b378765` [object Object] fix·비율 표기 제거 — 새 발간물 생성 시 동향분석 실제 본문·비율 표기 없음 확인·기존 버그본 삭제) ⑵ **P4 종결 정리**(메뉴얼·AI 학습·AI 도구 카탈로그/시스템 프롬프트 동기화·발간 권한 정책 UI 등록[Swain ⓐ·admin-role-policy]·설계서 §P1~§P4 milestone 이동·전체 종결 선언) ⑶ 후속(데이터 축적 G2·발간 상세 버튼 operator 숨김).
+- **▶ 후속(선택·다음 메인)**: 데이터 축적(사건 더 등록 + 과거 인정/불인정 사례·법령 RAG 색인 G2 일괄 이관) → 통계·발간 풍부화. (현재 사건 2건뿐 → 통계·발간 자체조사 빈약·설계상 데이터 의존.) 발간 상세 버튼 operator 숨김은 종결 정리 ⑵에서 완료(정책 반영).
 - **git**: origin/main=`b378765`(코드 전부 push). 인수인계 doc 갱신 미push(다음 코드 push 동봉·§9.3). 워크트리 A·B·C P3·P4 머지 완료(재사용 가능).
 - **교훈**: callGemini는 `{ok,text}` 반환(`.text` 추출·전체 String은 [object Object]) / 라이브 검증이 코드검증 못 잡는 결함 다수 적발 / A 디스패치 중 메인 중복 fix 금지(P4 프론트 겹침·reconcile).
 

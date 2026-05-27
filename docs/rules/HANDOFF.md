@@ -4,15 +4,15 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-27 / **딥릴리프 P3 종결·P4 거의 종결(R2 발간 본문 재확인+종결정리 남음)·SSO 완료·배포 8→5분**. 다음 = P4 종결.
-> 새 메인 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → 병렬규칙(PARALLEL_GUIDE/TEMPLATE) → 메모리(MEMORY.md + project_hamkke_on_sso·project_next_survivor_support 등) → `docs/active/2026-05-26-survivor-support.md`(딥릴리프 P3/P4 구현 설계) 순서로 정독
-> **▶ 다음 작업은 §0 — 딥릴리프 P4 종결(R2 발간 본문 재확인 → 메뉴얼·AI 도구·권한정책·milestone 이동·종결 선언).**
+> **마지막 갱신**: 2026-05-27 / **🏁 딥릴리프 P1~P4 전체 종결·SSO 완료·배포 8→5분**. 다음 = (선택) 데이터 축적·발간 풍부화.
+> 새 메인 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → 병렬규칙(PARALLEL_GUIDE/TEMPLATE) → 메모리(MEMORY.md + project_hamkke_on_sso·project_next_survivor_support 등) 순서로 정독. 딥릴리프 설계 master = `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`(archive)
+> **▶ 딥릴리프는 종결. 다음 작업은 §0 잔여(Swain 발간 권한 마이그 호출 1건) + 후속(선택·데이터 축적).**
 
 ---
 
-## 0. ★ 지금 시점 (2026-05-27 최신 — 딥릴리프 P3 종결·P4 거의 종결·SSO 완료)
+## 0. ★ 지금 시점 (2026-05-27 최신 — 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료)
 
-**딥릴리프(순직 인정 지원) = 통합 CMS 1뎁스 "🕊️ 딥릴리프". 단일 설계서 [`docs/active/2026-05-26-survivor-support.md`](../active/2026-05-26-survivor-support.md)(P3/P4 구현 설계 §P3·§P4 포함).** P1·P2 구현 설계는 milestone `docs/history/milestones/2026-05-26-deeprelief-p1-p2.md`로 이동됨(P3·P4도 종결 시 이동 예정).
+**딥릴리프(순직 인정 지원) = 통합 CMS 1뎁스 "🕊️ 딥릴리프". P1~P4 전체 종결.** 설계 master는 milestone [`docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`](../history/milestones/2026-05-27-deeprelief-p3-p4.md)(P3·P4·archive) + `2026-05-26-deeprelief-p1-p2.md`(P1·P2). `docs/active/`에서 이동 완료.
 
 ### ✅ 이번 세션(2026-05-27) 완료
 - **P1·P2**: 출시·검증·종결 정리 완료(이전 세션·milestone).
@@ -21,20 +21,19 @@
 - **SSO** — 허브(tbfa-mis)=IdP `/api/sso-on`(requireAdmin→60s HS256·`SIREN_SSO_SECRET`) → 함께워크 ON(별도 사이트·별도 메인) SP 단일 로그인. E2E 14/14 PASS·라이브. 메모리 `project_hamkke_on_sso`.
 - **배포 시간 단축** — `netlify.toml` external_node_modules 7→20(drizzle-orm·exceljs·mammoth·pdf-parse·docx·DB클라·jwt 등) → **8분→5분**. 로그인·함수 정상 검증됨. 추가(skip_processing) 보류.
 
-### ⏳ P4 잔여 = 내일 새 메인 다음 작업
-1. **R2 발간 본문 재확인(라이브)** — push 9(`b378765`)에서 ① 발간 본문 `[object Object]` 버그(`callGemini` 반환 `{ok,text}`를 통째 `String()`화→객체 문자열) → **`.text` 추출** fix ② 보고서 출력의 AI 비율/도구 표기 제거(외부 발간용·Swain 요청) 배포함. **새 발간물 생성 → 동향분석에 실제 본문·비율 표기 없음 확인**(기존 [object Object] 발간물은 삭제 후 새로 생성). R1 유족요약·R3 AI 도구는 Swain 확인 완료.
-2. **P4 종결 정리(release_checklist)**:
-   - 메뉴얼(manual-admin)·AI 학습자료(`ai-assistant-knowledge.md`·jsonl)에 **P3 서면 + P4(AI도구·유족요약·통계·발간) 운영 안내** 추가. (반영 후 RAG [전체 재색인] 1회)
-   - **AI 도구 카탈로그·시스템 프롬프트 동기화(#2)**: 순직 읽기 도구 3개 + 시스템 프롬프트. ※ R3은 Swain이 **AI 시스템 프롬프트(UI)에 딥릴리프 도구 안내를 임시 추가**해 동작 확인됨 → 코드 `FALLBACK_SYSTEM_PROMPT`(`lib/ai-agent-config.ts`) 또는 `ai_agent_settings` DB에 정식 정착.
-   - **발간 권한 정책 관리 UI 등록(#1·Swain ⓐ 요청)**: 발간 권한(쓰기 super+admin·조회 operator)을 `admin-role-policy`에 컨트롤 항목으로.
-   - 설계서 §P1~§P4 → milestone 이동(active 비우거나 forward만)·PROJECT_STATE·HANDOFF 갱신·**딥릴리프 전체(P1~P4) 종결 선언**.
-   - (폴리시·선택) 발간 상세 검수/발간/삭제 버튼 operator 숨김(현재 backend 403로 안전).
-3. (후속·선택) **데이터 축적**: 사건 더 등록 + 과거 인정/불인정 사례·법령 RAG 색인(G2 일괄 이관·코퍼스 부트스트랩) → 발간·통계 풍부화. (현재 사건 2건뿐 → 통계·발간 자체조사 빈약·설계상 데이터 의존.)
+### ✅ P4 종결 정리 완료 (2026-05-27)
+1. **R2 발간 본문 재확인 — Swain 라이브 PASS.** push 9(`b378765`) [object Object] fix(`callGemini` `.text` 추출)·비율 표기 제거 정상 확인. R1 유족요약·R3 AI 도구도 확인 완료.
+2. **AI 비서 정식 정착** — `FALLBACK_SYSTEM_PROMPT`(`lib/ai-agent-config.ts`)에 딥릴리프 도메인+순직 읽기 도구 3개+명령 매핑 정착(라이브 DB 프롬프트는 Swain UI 추가분이 이미 작동·코드 폴백 동일화). 도구 3개는 카탈로그·핸들러 기존 존재.
+3. **발간 권한 정책 연동** — 발간 쓰기를 `role_permissions.martyrdom_publication`(cms 탭)과 실제 연동(`canAccess`)+화면 버튼 정책 반영(`canWrite`·기본 admin ON/operator OFF로 현행 보존·미시드도 동일). 마이그 `migrate-martyrdom-pub-perm`(시드 1행) 작성.
+4. **메뉴얼·AI 학습자료** — manual-admin·`ai-assistant-knowledge.md`·`ai-training-cms-2.jsonl`에 P3 서면+P4 안내(RAG는 기존 완비라 생략).
+5. **설계서 milestone 이동·종결 선언** — `docs/active/2026-05-26-survivor-support.md` → `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`.
+- **🔔 Swain 잔여 액션 1건(배포 후)**: 어드민 로그인 → `https://tbfa.co.kr/api/migrate-martyrdom-pub-perm?run=1` 호출 → 권한 정책 관리 📦 통합 CMS 탭에 "딥릴리프 연구 발간" 항목 노출 확인. (호출 후 마이그 파일 삭제 커밋.)
+- **(후속·선택) 데이터 축적**: 사건 더 등록 + 과거 인정/불인정 사례·법령 RAG 색인(G2 일괄 이관) → 발간·통계 풍부화. (현재 사건 2건뿐 → 통계·발간 자체조사 빈약·설계상 데이터 의존.)
 
 ### 🔧 R&R·환경·git (새 메인 필독)
 - **함께워크 ON = 별도 사이트(hamkkework-on.netlify.app→won.tbfa.co.kr)·별도 메인 채팅.** 두 메인 Swain 중계 메시지 조율. **MIS(tbfa-mis) repo 변경은 MIS 메인 단독** — 함께워크 ON 연동(SSO 등)은 트리거로 받아 처리(2026-05-27 cms-on 혼입 사고·memory `project_hamkke_on_sso`).
 - **push 정책(불변)**: 워크트리 공유 → 로컬 `main` 분기·베이스 push 0. push=배포=과금(~5분), 라이브 검증 필수 단위만. (CLAUDE §9.3·PARALLEL_GUIDE §4.1·memory `feedback_parallel_base`)
-- git: **origin/main = `b378765`(코드 전부 push 완료)**. 이 인수인계 doc 갱신은 미push(다음 코드 push 동봉·§9.3). 워크트리 A·B·C = P3·P4 브랜치 머지 완료(다음 라운드 재사용).
+- git: **P4 종결 정리 커밋 5개(프롬프트·발간권한 연동·프론트 동기화·메뉴얼·종결 docs) + 마이그 = 단일 push 1회로 배포**(R2 PASS 후·§9.3 배치). 워크트리 A·B·C = P3·P4 브랜치 머지 완료(다음 라운드 재사용).
 
 ### 💡 교훈(이번 세션·새 메인 참고)
 - **`callGemini`는 `{ok, text}` 반환** — `.text` 추출(전체 `String()`은 "[object Object]" 버그). 발간 본문 무내용의 진짜 원인이었음.

@@ -1,4 +1,6 @@
-# 순직 인정 지원 시스템 = Deep-Relief AI v0 (내부 엔진·PoC) — 설계서
+# 순직 인정 지원 시스템 = Deep-Relief AI v0 (딥릴리프) — 설계서 [P1~P4 전체 종결·archive]
+
+> **🏁 2026-05-27 딥릴리프 P1~P4 전체 종결.** P3 서면·P4(AI도구·유족요약·통계·발간) 출시·검증 완료. P4 종결 정리(AI 비서 프롬프트 정착·발간 권한 정책 연동·메뉴얼/AI 학습자료·발간 권한 마이그 시드) 완료. 본 문서는 P3·P4 설계 master로 `docs/active/`에서 milestone으로 이동(archive). P1·P2 구현 설계는 [`2026-05-26-deeprelief-p1-p2.md`](2026-05-26-deeprelief-p1-p2.md). 검증 기록 `docs/history/verify/2026-05-27-martyrdom-p3*·-p4.md`. 현 DB·API 현황은 db/schema.ts·netlify/functions/*martyrdom* 참조.
 
 > **P1·P2 구현 완료·Swain 라이브 검증 완료(2026-05-26).** 완료된 P1·P2 구현 설계(§1~§7·§P2.0~§P2.6)는 [`docs/history/milestones/2026-05-26-deeprelief-p1-p2.md`](../history/milestones/2026-05-26-deeprelief-p1-p2.md)로 이동. 현 DB·API 현황은 milestone + db/schema.ts 참조. 이하는 **P3·P4 설계 진행용 forward spec**.
 
