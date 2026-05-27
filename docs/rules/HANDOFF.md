@@ -27,13 +27,14 @@
 3. **발간 권한 정책 연동** — 발간 쓰기를 `role_permissions.martyrdom_publication`(cms 탭)과 실제 연동(`canAccess`)+화면 버튼 정책 반영(`canWrite`·기본 admin ON/operator OFF로 현행 보존·미시드도 동일). 마이그 `migrate-martyrdom-pub-perm`(시드 1행) 작성.
 4. **메뉴얼·AI 학습자료** — manual-admin·`ai-assistant-knowledge.md`·`ai-training-cms-2.jsonl`에 P3 서면+P4 안내(RAG는 기존 완비라 생략).
 5. **설계서 milestone 이동·종결 선언** — `docs/active/2026-05-26-survivor-support.md` → `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`.
-- **🔔 Swain 잔여 액션 1건(배포 후)**: 어드민 로그인 → `https://tbfa.co.kr/api/migrate-martyrdom-pub-perm?run=1` 호출 → 권한 정책 관리 📦 통합 CMS 탭에 "딥릴리프 연구 발간" 항목 노출 확인. (호출 후 마이그 파일 삭제 커밋.)
+- **✅ Swain 발간 권한 마이그 호출 완료** — `migrate-martyrdom-pub-perm?run=1` 응답 `ok:true`·시드 1행(`martyrdom_publication`·admin 허용/operator 불가). 1회용 파일 삭제 완료. 권한 정책 관리 📦 통합 CMS 탭에 "딥릴리프 연구 발간" 항목 등록. **딥릴리프 잔여 액션 0 — 완전 종결.**
+6. **종결 후 자료 추출 개선(Swain 마지막 요청)** — ⑴ **m4a** 전사 mime 폴백(`audio/mp4`→`audio/aac`) ⑵ 음성·영상 **전사 전문 열람**(자료 [보기] 요약 1줄→추출/전사 전문·on-demand `admin-martyrdom-doc-text`·복사) ⑶ 구형 **.doc** 본문 추출(`word-extractor`·신규 dep) ⑷ **.hwp** 본문 전체 추출 강화(BodyText 레코드 파싱·실패 시 PrvText 폴백). tsc 0. **Swain 라이브 검증 권장**: m4a 업로드 전사·.doc/.hwp 본문 추출·전사 전문 [보기].
 - **(후속·선택) 데이터 축적**: 사건 더 등록 + 과거 인정/불인정 사례·법령 RAG 색인(G2 일괄 이관) → 발간·통계 풍부화. (현재 사건 2건뿐 → 통계·발간 자체조사 빈약·설계상 데이터 의존.)
 
 ### 🔧 R&R·환경·git (새 메인 필독)
 - **함께워크 ON = 별도 사이트(hamkkework-on.netlify.app→won.tbfa.co.kr)·별도 메인 채팅.** 두 메인 Swain 중계 메시지 조율. **MIS(tbfa-mis) repo 변경은 MIS 메인 단독** — 함께워크 ON 연동(SSO 등)은 트리거로 받아 처리(2026-05-27 cms-on 혼입 사고·memory `project_hamkke_on_sso`).
 - **push 정책(불변)**: 워크트리 공유 → 로컬 `main` 분기·베이스 push 0. push=배포=과금(~5분), 라이브 검증 필수 단위만. (CLAUDE §9.3·PARALLEL_GUIDE §4.1·memory `feedback_parallel_base`)
-- git: **P4 종결 정리 커밋 5개(프롬프트·발간권한 연동·프론트 동기화·메뉴얼·종결 docs) + 마이그 = 단일 push 1회로 배포**(R2 PASS 후·§9.3 배치). 워크트리 A·B·C = P3·P4 브랜치 머지 완료(다음 라운드 재사용).
+- git: **종결 정리 push 1회(`878ca88`·프롬프트·발간권한·메뉴얼·종결 docs·마이그) + 자료 추출 개선 push 1회(전사 열람·m4a·.doc/.hwp·마이그 삭제)**. 워크트리 A·B·C = P3·P4 브랜치 머지 완료(다음 라운드 재사용).
 
 ### 💡 교훈(이번 세션·새 메인 참고)
 - **`callGemini`는 `{ok, text}` 반환** — `.text` 추출(전체 `String()`은 "[object Object]" 버그). 발간 본문 무내용의 진짜 원인이었음.
