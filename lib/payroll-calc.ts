@@ -223,6 +223,11 @@ export async function calculatePayrollForMonth(
           deductionUnpaid: r2(deductionUnpaid),
           performanceBonus: r2(performanceBonus),
           perfectBonus,
+          /* ★ R41 Q3-052: force 재집계 시 조정분(ADD/DEDUCT)·기타공제를 스냅샷에 기록(기본 0).
+             아래 force 분기에서 실제값으로 덮어써 저장 컬럼(grossPayFinal/netPayFinal)과 정합 유지. */
+          adjustmentAdd: 0,
+          adjustmentDeduct: 0,
+          otherDeduction: 0,
           grossPay: r2(grossPay),
           deductions: {
             nationalPension: r2(ded.nationalPension),
