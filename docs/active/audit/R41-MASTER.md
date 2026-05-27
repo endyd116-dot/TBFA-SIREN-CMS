@@ -101,10 +101,22 @@
 - **충돌 회피**: 각자 자기 영역 파일만 수정 → 다른 파일이라 머지 무충돌. `login.html` 등 교차 항목은 파일별로 각자 자기 파일만(중복 아님).
 - **공용/P0 = 메인 단독**: `blob-image.ts`(Q2-001 P0), `lib/auth`·`admin-guard` 류, featureKey 레지스트리·admin-role-policy UI.
 
-### 3배치 순서
-1. **배치 1: P0 + P1 (29건)** — A 8 / B 14 / C 4 / 메인 Q1-001 + blob-image P0. → 머지 → tsc → **1회 push** → 라이브 검증
-2. **배치 2: P2 (65건)** + 정책 P-1(featureKey)·P-2(발송)·P-3(추모 AI) 반영 → 머지 → **1회 push**
-3. **배치 3: P3 (60건)** — CL-9(CMS 등록)·CL-10(기술부채) → 머지 → **1회 push**
+### 실행 = 전부 고친 뒤 1회 푸쉬 (Swain 확정 2026-05-27)
+> 배치 사이 push 없음. 154건 전부 수정·머지 → **종합 보고서 1개** → **push 1회**. 배포 1회.
+- A: 자기 Q2 56건(P1 8 완료 → P2 21 + P3 26) `fix/r41-b1-A` 계속 커밋
+- B: 자기 Q3 52건(P1 14 → P2 24 + P3 14)
+- C: 자기 Q4 37건(P1 4 완료 → P2 16 + P3 16, Q4-005 schema 동기화 포함)
+- 메인: Q1 9건(P0·P1 완료 → P2 4 + P3 4) + **권한 토글 인프라(P-1)** + 4브랜치 머지·종합보고서·push
+
+### 권한 토글 featureKey (P-1 — 메인이 레지스트리·시드·admin-role-policy UI, 각 영역은 canAccess 호출만 부착)
+> 시드 기본값 = **현행 유지**(admin·operator 모두 허용), super_admin이 정책 메뉴에서 토글.
+| featureKey | 대상 엔드포인트 | 담당 |
+|---|---|---|
+| `donation_confirm` | admin-donation-confirm (Q1-009) | 메인 |
+| `finance_refund` | admin-expense-refund·admin-revenue-refund (Q4-010) | C |
+| `settlement_view` | ai-milestone-insight summary/anomaly (Q3-033) | B |
+| `ai_config_prompt` | admin-ai-config 시스템프롬프트 (Q3-034) | B |
+| `martyrdom_pub_export` | admin-martyrdom-publication-export·package·export (Q2-054) | A |
 
 ---
 
