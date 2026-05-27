@@ -13,10 +13,14 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { requireRole, roleForbidden } from "../../lib/admin-role";
+import { roleForbidden } from "../../lib/admin-role";
+import { canAccess } from "../../lib/role-permission-check";
 import { logAdminAction } from "../../lib/audit";
 
 export const config = { path: "/api/admin-martyrdom-publication" };
+
+/* 발간 쓰기(생성·발간·삭제) 권한 — 권한 정책 관리에서 토글 (기본 admin ON·operator OFF·super 항상). 조회(GET)는 운영자 이상 그대로 */
+const PUB_WRITE_FEATURE = "martyrdom_publication";
 
 function jsonError(step: string, err: any) {
   return new Response(JSON.stringify({
@@ -100,7 +104,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ── POST 생성 큐 (admin 이상 — 운영자는 조회만) ── */
   if (req.method === "POST") {
-    if (!requireRole(member, "admin")) return roleForbidden("admin");
+    if (!(await canAccess(member.role ?? "", PUB_WRITE_FEATURE))) return roleForbidden("admin");
 
     let body: any;
     try { body = await req.json(); } catch { return badRequest("요청 본문 파싱 실패"); }
@@ -161,7 +165,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ── PATCH 상태 변경·발간 (admin 이상) ── */
   if (req.method === "PATCH") {
-    if (!requireRole(member, "admin")) return roleForbidden("admin");
+    if (!(await canAccess(member.role ?? "", PUB_WRITE_FEATURE))) return roleForbidden("admin");
 
     let body: any;
     try { body = await req.json(); } catch { return badRequest("요청 본문 파싱 실패"); }
@@ -199,7 +203,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ── DELETE (admin 이상) ── */
   if (req.method === "DELETE") {
-    if (!requireRole(member, "admin")) return roleForbidden("admin");
+    if (!(await canAccess(member.role ?? "", PUB_WRITE_FEATURE))) return roleForbidden("admin");
     if (!idParam) return badRequest("id 필수 (?id=N)");
 
     try {
