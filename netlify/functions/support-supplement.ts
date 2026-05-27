@@ -50,10 +50,12 @@ export default async (req: Request) => {
       return badRequest("보완 내용은 5000자 이내로 작성해 주세요");
     }
 
+    /* ★ R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 병합 허용 — 타인 키 끼워넣기 차단 */
+    const ownPrefix = `support/${auth.uid}/`;
     const newAttachments: string[] = Array.isArray(body.attachmentIds)
       ? body.attachmentIds
           .map((v: any) => String(v).trim())
-          .filter((v: string) => v.length > 0)
+          .filter((v: string) => v.length > 0 && v.startsWith(ownPrefix))
       : [];
 
     /* 3. 신청 조회 */

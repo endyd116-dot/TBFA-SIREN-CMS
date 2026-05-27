@@ -16,7 +16,8 @@ import {
   corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 
-const BLOCKED_STATUSES = ["reviewing", "matching", "matched", "in_progress"];
+/* ★ R41 Q2-056: 'matching'은 support_status enum에 없는 값(드리프트) — 제거 */
+const BLOCKED_STATUSES = ["reviewing", "matched", "in_progress"];
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
