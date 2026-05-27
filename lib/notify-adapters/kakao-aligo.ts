@@ -121,7 +121,7 @@ export function enrichKakaoParams(event: NotifyEvent, params: Record<string, any
   }
 }
 
-/* 이벤트 → 솔라피 templateId(env) */
+/* 이벤트 → 솔라피 templateId(env·폴백용) */
 function templateIdFor(event: NotifyEvent): string {
   switch (event) {
     case NotifyEvent.BILLING_FAILED:          return process.env.SOLAPI_TPL_BILLING_FAILED || "";
@@ -131,6 +131,26 @@ function templateIdFor(event: NotifyEvent): string {
     case NotifyEvent.DONATION_RECEIPT_ANNUAL: return process.env.SOLAPI_TPL_RECEIPT || "";
     case NotifyEvent.DONOR_INFO_CHANGED:      return process.env.SOLAPI_TPL_DONOR_CHANGE || "";
     default: return "";
+  }
+}
+
+/* 이벤트 → DB에 등록된 "승인" 알림톡 템플릿(solapi templateId + pfId) 조회.
+   운영자가 CMS에서 관리하는 kakao_alimtalk_templates가 단일 출처. 테이블 미생성(마이그 전)·
+   미승인이면 null → 호출부가 env 폴백 또는 placeholder 처리. */
+async function loadApprovedKakaoTemplate(event: NotifyEvent): Promise<{ templateId: string; pfId: string } | null> {
+  try {
+    const r: any = await db.execute(sql`
+      SELECT solapi_template_id AS "tid", pf_id AS "pfId"
+        FROM kakao_alimtalk_templates
+       WHERE event_key = ${String(event)} AND status = 'approved' AND is_active = true
+         AND solapi_template_id IS NOT NULL
+       ORDER BY approved_at DESC NULLS LAST, id DESC
+       LIMIT 1`);
+    const row = (r?.rows ?? r ?? [])[0];
+    if (!row || !row.tid) return null;
+    return { templateId: String(row.tid), pfId: String(row.pfId || "") };
+  } catch {
+    return null;
   }
 }
 
@@ -177,6 +197,7 @@ export function fallbackBodyKakao(event: NotifyEvent, e: Record<string, any>): s
 
 interface BuildResult {
   templateId: string;
+  pfId: string;
   variables: Record<string, string>;
   smsText: string;
 }
@@ -210,7 +231,12 @@ async function buildAlimtalk(
   const dbBody = (dbTpl && !("skip" in dbTpl)) ? dbTpl.body : null;
   const smsText = dbBody || fallbackBodyKakao(event, enriched) || "";
 
-  return { templateId: templateIdFor(event), variables: kakaoVariables(event, enriched), smsText };
+  /* 발송 템플릿ID·발신프로필 = DB(운영자 관리) 우선, 없으면 env 폴백 */
+  const tpl = await loadApprovedKakaoTemplate(event);
+  const templateId = tpl?.templateId || templateIdFor(event);
+  const pfId = tpl?.pfId || process.env.SOLAPI_KAKAO_PFID || "";
+
+  return { templateId, pfId, variables: kakaoVariables(event, enriched), smsText };
 }
 
 /* ─── 어댑터 ─── */
@@ -235,11 +261,11 @@ export const kakaoAligoAdapter: NotifyAdapter = {
         return { ok: true, providerMessageId: `skipped-admin-disabled-${opts.logId}`, latencyMs: Date.now() - t0 };
       }
 
-      const pfId  = process.env.SOLAPI_KAKAO_PFID || "";
+      const pfId  = built.pfId || process.env.SOLAPI_KAKAO_PFID || "";
       const phone = normalizePhone(recipient.phone);
 
       const fallbackReasons: string[] = [];
-      if (!built.templateId) fallbackReasons.push("템플릿ID 미등록");
+      if (!built.templateId) fallbackReasons.push("템플릿ID 미등록(CMS 알림톡 템플릿 승인 필요)");
       if (!pfId)             fallbackReasons.push("발신프로필키 미등록");
       if (testMode)          fallbackReasons.push("TEST_MODE");
       if (!phone)            fallbackReasons.push("수신번호 없음");

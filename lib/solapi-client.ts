@@ -267,3 +267,107 @@ export async function solapiSendMms(opts: SolapiMmsOpts): Promise<SolapiResult> 
     type: "MMS",
   });
 }
+
+/* =========================================================
+   카카오 알림톡 템플릿 관리 API (운영자 CMS 자동 CRUD)
+   - 등록/검수요청/상태조회/삭제 + 채널·카테고리 조회.
+   - 솔라피 카카오 API: https://api.solapi.com/kakao/v2/...  (동일 HMAC 인증)
+   - 템플릿 상태(status): PENDING(등록) / INSPECTING(검수중) / APPROVED(승인) / REJECTED(반려)
+   ========================================================= */
+export interface SolapiApiResult<T = any> {
+  ok: boolean;
+  data?: T;
+  status?: number;
+  error?: string;
+}
+
+/** 카카오 관리 API 공통 호출 (HMAC 인증) */
+async function kakaoApi(method: string, path: string, body?: Record<string, any>): Promise<SolapiApiResult> {
+  const { apiKey, apiSecret } = getCreds();
+  if (!apiKey || !apiSecret) {
+    return { ok: false, error: "SOLAPI 환경변수 미설정 (SOLAPI_API_KEY / SOLAPI_API_SECRET)" };
+  }
+  try {
+    const res = await fetch(`${SOLAPI_BASE}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader(apiKey, apiSecret),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const raw: any = await res.json().catch(() => ({}));
+    if (res.ok) return { ok: true, data: raw, status: res.status };
+    const reason = String(raw?.errorMessage ?? raw?.message ?? raw?.statusMessage ?? JSON.stringify(raw).slice(0, 300));
+    return {
+      ok: false, status: res.status,
+      error: `솔라피 카카오 API 실패 (HTTP ${res.status}${raw?.errorCode ? `, ${raw.errorCode}` : ""}) ${reason}`.slice(0, 500),
+    };
+  } catch (err: any) {
+    return { ok: false, error: `솔라피 카카오 API 요청 실패: ${String(err?.message || err).slice(0, 300)}` };
+  }
+}
+
+/** 카카오 채널(발신프로필) 목록 — pfId(channelId) 자동 조회용 */
+export async function solapiListChannels(): Promise<SolapiApiResult> {
+  const r = await kakaoApi("GET", "/kakao/v2/channels");
+  if (!r.ok) return r;
+  /* 응답이 배열 또는 {channelList:[...]} 형태 모두 대응 */
+  const list = Array.isArray(r.data) ? r.data : (r.data?.channelList ?? r.data?.channels ?? []);
+  return { ok: true, data: list };
+}
+
+export interface SolapiTemplateButton {
+  buttonType: string;     // WL(웹링크)·AC(채널추가)·BK·MD 등
+  buttonName: string;
+  linkMo?: string;
+  linkPc?: string;
+}
+export interface SolapiCreateTemplateOpts {
+  channelId: string;      // pfId
+  name: string;
+  content: string;        // #{변수} 포함
+  categoryCode: string;   // 예: 004001
+  emphasizeType?: string; // NONE | TEXT | IMAGE
+  emphasizeTitle?: string;
+  emphasizeSubtitle?: string;
+  buttons?: SolapiTemplateButton[];
+}
+
+/** 템플릿 등록 — 성공 시 data.templateId·status 반환 */
+export async function solapiCreateTemplate(opts: SolapiCreateTemplateOpts): Promise<SolapiApiResult> {
+  const body: Record<string, any> = {
+    channelId: opts.channelId,
+    name: opts.name,
+    content: opts.content,
+    categoryCode: opts.categoryCode,
+    emphasizeType: opts.emphasizeType || (opts.emphasizeTitle ? "TEXT" : "NONE"),
+  };
+  if (opts.emphasizeTitle) body.emphasizeTitle = opts.emphasizeTitle;
+  if (opts.emphasizeSubtitle) body.emphasizeSubtitle = opts.emphasizeSubtitle;
+  if (opts.buttons && opts.buttons.length) body.buttons = opts.buttons;
+  return kakaoApi("POST", "/kakao/v2/templates", body);
+}
+
+/** 검수 요청 — 등록 후 카카오 심사 시작 */
+export async function solapiRequestInspection(templateId: string): Promise<SolapiApiResult> {
+  return kakaoApi("PUT", `/kakao/v2/templates/${encodeURIComponent(templateId)}/inspection`);
+}
+
+/** 템플릿 단건 조회 — status·comments(반려사유) 확인 */
+export async function solapiGetTemplate(templateId: string): Promise<SolapiApiResult> {
+  return kakaoApi("GET", `/kakao/v2/templates/${encodeURIComponent(templateId)}`);
+}
+
+/** 템플릿 삭제 */
+export async function solapiDeleteTemplate(templateId: string): Promise<SolapiApiResult> {
+  return kakaoApi("DELETE", `/kakao/v2/templates/${encodeURIComponent(templateId)}`);
+}
+
+/** 알림톡 카테고리 목록 (CMS 등록 폼 드롭다운용) */
+export async function solapiListCategories(): Promise<SolapiApiResult> {
+  const r = await kakaoApi("GET", "/kakao/v2/templates/categories");
+  if (!r.ok) return r;
+  const list = Array.isArray(r.data) ? r.data : (r.data?.categoryList ?? r.data?.categories ?? r.data ?? []);
+  return { ok: true, data: list };
+}
