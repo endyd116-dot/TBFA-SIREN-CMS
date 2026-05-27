@@ -5,7 +5,7 @@ import type { Context } from "@netlify/functions";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { incidentComments, commentVotes, commentReports, members } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import {
   ok, created, badRequest, unauthorized, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -93,8 +93,10 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ===== POST — 댓글 작성 / 투표 / 신고 ===== */
   if (req.method === "POST") {
-    const user = authenticateUser(req);
-    if (!user) return unauthorized("로그인이 필요합니다");
+    /* ★ R41 Q2-043: 차단(블랙) 사용자 쓰기 차단 — requireActiveUser 패턴 */
+    const _r = await requireActiveUser(req);
+    if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+    const user = _r.user;
 
     const body: any = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");

@@ -39,9 +39,13 @@ export default async (req: Request, _ctx: Context) => {
     const partyInfo = body.partyInfo !== undefined
       ? (body.partyInfo === null ? null : String(body.partyInfo).trim().slice(0, 200))
       : undefined;
+    /* ★ R41 Q2-011: 클라가 보내는 긴급도(urgency) 반영 */
+    const VALID_URGENCY = ["urgent", "normal", "reference"];
+    const urgency = body.urgency !== undefined ? String(body.urgency).trim() : undefined;
 
     if (title !== undefined && !title) return badRequest("제목은 비워둘 수 없습니다");
     if (contentHtml !== undefined && contentHtml.length < 10) return badRequest("내용을 10자 이상 입력해주세요");
+    if (urgency !== undefined && urgency && !VALID_URGENCY.includes(urgency)) return badRequest("긴급도 값이 올바르지 않습니다");
 
     /* select — WHERE id=? AND memberId=auth.uid */
     const [row]: any = await db
@@ -65,6 +69,8 @@ export default async (req: Request, _ctx: Context) => {
     if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
     if (category !== undefined && category) updateData.category = category;
     if (partyInfo !== undefined) updateData.partyInfo = partyInfo;
+    /* ★ R41 Q2-011: 긴급도 반영 */
+    if (urgency !== undefined && urgency) updateData.urgency = urgency;
 
     const [updated]: any = await db
       .update(legalConsultations)

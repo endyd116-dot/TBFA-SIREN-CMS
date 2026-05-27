@@ -267,6 +267,8 @@
           'system-notification': '🔔 시스템 자동 발송',
           'forms-builder': '📋 응답폼·신청폼 관리',
           'send-analytics': '📊 발송 분석',
+          memorial: '🕊️ 온라인 추모관 관리',
+          'family-stories': '📖 유가족 이야기 관리',
           'notification-logs': '📋 알림 발송 로그',
           'kakao-templates': '💬 카카오 알림톡 템플릿',
           import: '외부 등록',
@@ -396,6 +398,8 @@
         else if (tab === 'att-config') _nfLoadIframe('page-att-config'); /* 2026-05-21: 근태 설정 (설정 4탭) */
         else if (tab === 'org-news')   _nfLoadIframe('page-org-news');   /* 2026-05-24: 여론·뉴스 분석 */
         else if (tab === 'martyrdom')  _nfLoadIframe('page-martyrdom');  /* 2026-05-26: 딥릴리프(순직 인정 지원) — 빈화면 fix */
+        else if (tab === 'memorial')        _nfLoadIframe('page-memorial');        /* R41 Q2-037: 온라인 추모관 관리 */
+        else if (tab === 'family-stories')  _nfLoadIframe('page-family-stories');  /* R41 Q2-037: 유가족 이야기 관리 */
       });
     });
 

@@ -3,7 +3,7 @@
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ilike, count } from "drizzle-orm";
 
 export const config = { path: "/api/admin-report-list-by-status" };
 
@@ -26,22 +26,43 @@ export default async (req: Request) => {
   if (guardFailed(auth)) return auth.res;
 
   const url = new URL(req.url);
-  const reportType = url.searchParams.get("reportType") || "all";
+  const reportType = url.searchParams.get("reportType") || url.searchParams.get("type") || "all";
   const statusFilter = url.searchParams.get("status") || undefined;
   const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-  const limit = 30;
-  const offset = (page - 1) * limit;
+  // ★ R41 Q2-019: 프론트가 보내는 limit 수용 (기본 30, 안전 상한 100)
+  const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 30)));
+  // ★ R41 Q2-019: onlyAnonymous=1 이면 익명 신고만 (서버 필터)
+  const onlyAnonymous = url.searchParams.get("onlyAnonymous") === "1";
+  // ★ R41 Q2-019: q 키워드(제목 부분일치)
+  const keyword = (url.searchParams.get("q") || "").trim();
+  // 단일 타입일 때만 page 기반 offset 적용 (all은 3종 합산이라 0)
+  const offset = reportType === "all" ? 0 : (page - 1) * limit;
+  const perTypeLimit = reportType === "all" ? Math.ceil(limit / 3) : limit;
+
+  /**
+   * 신고 테이블별 공통 WHERE 조건 빌더.
+   * - status 필터
+   * - onlyAnonymous=1 → is_anonymous=true
+   * - q → title ILIKE %q%
+   */
+  function buildCond(table: any) {
+    const conds: any[] = [];
+    if (statusFilter) conds.push(eq(table.status, statusFilter as any));
+    if (onlyAnonymous) conds.push(eq(table.isAnonymous, true));
+    if (keyword) conds.push(ilike(table.title, `%${keyword}%`));
+    if (conds.length === 0) return undefined;
+    if (conds.length === 1) return conds[0];
+    return and(...conds);
+  }
 
   const results: any[] = [];
+  let total = 0;
 
   // 사건 신고
   if (reportType === "all" || reportType === "incident") {
-    let rows: any[] = [];
+    const cond = buildCond(incidentReports);
     try {
-      const cond = statusFilter
-        ? eq(incidentReports.status, statusFilter as any)
-        : undefined;
-      rows = await db.select({
+      const rows = await db.select({
         id: incidentReports.id,
         reportNo: incidentReports.reportNo,
         title: incidentReports.title,
@@ -54,22 +75,26 @@ export default async (req: Request) => {
         .from(incidentReports)
         .where(cond)
         .orderBy(desc(incidentReports.createdAt))
-        .limit(reportType === "all" ? Math.ceil(limit / 3) : limit)
-        .offset(reportType === "all" ? 0 : offset);
+        .limit(perTypeLimit)
+        .offset(offset);
+      results.push(...rows.map((r) => ({ ...r, reportType: "incident" })));
     } catch (err) {
       console.warn("[admin-report-list-by-status] incident 조회 실패", err);
     }
-    results.push(...rows.map((r) => ({ ...r, reportType: "incident" })));
+    // ★ R41 Q2-019: 별도 count로 정확한 total 산출
+    try {
+      const [c] = await db.select({ n: count() }).from(incidentReports).where(cond);
+      total += Number(c?.n ?? 0);
+    } catch (err) {
+      console.warn("[admin-report-list-by-status] incident count 실패", err);
+    }
   }
 
   // 괴롭힘 신고
   if (reportType === "all" || reportType === "harassment") {
-    let rows: any[] = [];
+    const cond = buildCond(harassmentReports);
     try {
-      const cond = statusFilter
-        ? eq(harassmentReports.status, statusFilter as any)
-        : undefined;
-      rows = await db.select({
+      const rows = await db.select({
         id: harassmentReports.id,
         reportNo: harassmentReports.reportNo,
         title: harassmentReports.title,
@@ -82,45 +107,55 @@ export default async (req: Request) => {
         .from(harassmentReports)
         .where(cond)
         .orderBy(desc(harassmentReports.createdAt))
-        .limit(reportType === "all" ? Math.ceil(limit / 3) : limit)
-        .offset(reportType === "all" ? 0 : offset);
+        .limit(perTypeLimit)
+        .offset(offset);
+      results.push(...rows.map((r) => ({ ...r, reportType: "harassment" })));
     } catch (err) {
       console.warn("[admin-report-list-by-status] harassment 조회 실패", err);
     }
-    results.push(...rows.map((r) => ({ ...r, reportType: "harassment" })));
+    try {
+      const [c] = await db.select({ n: count() }).from(harassmentReports).where(cond);
+      total += Number(c?.n ?? 0);
+    } catch (err) {
+      console.warn("[admin-report-list-by-status] harassment count 실패", err);
+    }
   }
 
   // 법률 상담
   if (reportType === "all" || reportType === "legal") {
-    let rows: any[] = [];
+    const cond = buildCond(legalConsultations);
     try {
-      const cond = statusFilter
-        ? eq(legalConsultations.status, statusFilter as any)
-        : undefined;
-      rows = await db.select({
+      const rows = await db.select({
         id: legalConsultations.id,
         reportNo: legalConsultations.consultationNo,
         title: legalConsultations.title,
         status: legalConsultations.status,
         isAnonymous: legalConsultations.isAnonymous,
-        aiSeverity: (legalConsultations as any).aiSeverity,
+        // ★ R41 Q2-021: legalConsultations엔 aiSeverity 컬럼 없음 → aiUrgency로 매핑 (런타임 컬럼 오류 방지)
+        aiSeverity: legalConsultations.aiUrgency,
         createdAt: legalConsultations.createdAt,
         updatedAt: legalConsultations.updatedAt,
       })
         .from(legalConsultations)
         .where(cond)
         .orderBy(desc(legalConsultations.createdAt))
-        .limit(reportType === "all" ? Math.ceil(limit / 3) : limit)
-        .offset(reportType === "all" ? 0 : offset);
+        .limit(perTypeLimit)
+        .offset(offset);
+      results.push(...rows.map((r) => ({ ...r, reportType: "legal" })));
     } catch (err) {
       console.warn("[admin-report-list-by-status] legal 조회 실패", err);
     }
-    results.push(...rows.map((r) => ({ ...r, reportType: "legal" })));
+    try {
+      const [c] = await db.select({ n: count() }).from(legalConsultations).where(cond);
+      total += Number(c?.n ?? 0);
+    } catch (err) {
+      console.warn("[admin-report-list-by-status] legal count 실패", err);
+    }
   }
 
   results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return new Response(JSON.stringify({ ok: true, page, items: results }), {
+  return new Response(JSON.stringify({ ok: true, page, limit, total, items: results }), {
     headers: { "Content-Type": "application/json" },
   });
 };

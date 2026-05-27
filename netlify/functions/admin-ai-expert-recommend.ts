@@ -67,6 +67,11 @@ export default async (req: Request) => {
     const tableInfo = tableMap[sourceType];
 
     if (tableInfo) {
+      // Q2-055: sourceId를 sql.raw에 직접 끼우기 전 양의 정수 검증.
+      // (NaN·음수·소수면 "WHERE id = NaN" 같은 깨진 SQL이 만들어져 쿼리 오류 발생)
+      if (!Number.isInteger(sourceId) || sourceId <= 0) {
+        return badRequest("sourceId가 유효하지 않습니다");
+      }
       const result = await db.execute(sql.raw(`
         SELECT title, ${tableInfo.contentCol} AS content, ai_summary
         FROM ${tableInfo.table}

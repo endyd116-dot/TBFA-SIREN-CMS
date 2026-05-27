@@ -65,6 +65,9 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
 
   /* === 순직 인정 지원 AI (1) === */
   { key: "martyrdom_ai",                 name: "순직 인정 지원 AI",         category: "agent_chat",    description: "교사 순직 인정 지원 — 자료 분류·구조 추출·전략 분석·서면 초안 생성", sortOrder: 430 },
+
+  /* === 추모 콘텐츠 사전 검토 (1) — R41 Q2-013 === */
+  { key: "memorial_moderation",          name: "추모 글 사전 검토",         category: "user_request",  description: "추모 메시지·편지 작성 시 부적절(욕설·스팸·모욕) 자동 검토 → 보류·운영자 통지. 실패 시 통과(fail-open)", sortOrder: 170 },
 ];
 
 const FEATURE_KEYS = new Set(FEATURE_REGISTRY.map(f => f.key));

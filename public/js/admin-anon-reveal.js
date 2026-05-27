@@ -67,15 +67,13 @@
       return;
     }
 
-    let allRows = res.data?.items || res.data?.data?.items || res.data?.rows || res.data?.data?.rows || [];
-    // 익명 신고만 필터링 (onlyAnonymous=1)
-    const onlyAnon = params.get('onlyAnonymous') === '1';
-    const anonLevelParam = params.get('anonLevel');
-    if (onlyAnon) allRows = allRows.filter((r) => r.isAnonymous);
-    // anonLevel은 현재 DB에 미존재 — 필터 스킵 (UI는 항상 0단계 표시)
-    const rows = allRows;
-    const total = rows.length;
+    const payload = res.data?.data || res.data || {};
+    // ★ R41 Q2-019: onlyAnonymous 필터는 서버 파라미터로 전달됨 → 클라 측 페이지 내 필터 제거
+    const rows = payload.items || payload.rows || [];
+    // ★ R41 Q2-019: total은 서버가 산출한 전체 건수 사용 (현재 페이지 길이로 totalPages 계산하던 것 교정)
+    const total = Number(payload.total != null ? payload.total : rows.length);
     const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+    // anonLevel은 현재 DB에 미존재 — 필터 스킵 (UI는 항상 0단계 표시)
 
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">익명 신고가 없습니다</td></tr>';

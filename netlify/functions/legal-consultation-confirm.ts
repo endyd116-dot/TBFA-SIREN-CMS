@@ -2,13 +2,13 @@
 // ★ Phase M-7: 변호사 매칭 신청 여부 결정
 
 import type { Context } from "@netlify/functions";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../../db";
 import { legalConsultations } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { requireActiveUser } from "../../lib/auth";
 import { notifyAllOperators } from "../../lib/notify";
 import {
-  ok, badRequest, unauthorized, forbidden, notFound, serverError,
+  ok, badRequest, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
@@ -19,8 +19,10 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* ★ R41 Q2-043: 차단(블랙) 사용자 차단 — requireActiveUser 패턴 */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);
@@ -31,21 +33,30 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!Number.isFinite(consultationId)) return badRequest("consultationId가 유효하지 않습니다");
 
+    /* 본인 상담 존재 확인 (알림 메시지·로그용 consultationNo/title 확보) */
     const [row] = await db.select().from(legalConsultations)
       .where(and(eq(legalConsultations.id, consultationId), eq(legalConsultations.memberId, user.uid)))
       .limit(1);
 
     if (!row) return notFound("상담 신청을 찾을 수 없습니다");
-    if ((row as any).sirenReportRequested !== null && (row as any).sirenReportRequested !== undefined) {
-      return forbidden("이미 결정이 완료된 상담입니다");
-    }
 
+    /* ★ R41 Q2-046: select→update 비원자 경합 제거 — siren_report_requested IS NULL 원자 갱신 */
     const updateData: any = {
       sirenReportRequested: requested,
       sirenReportRequestedAt: new Date(),
       status: requested ? "matching" : "closed",
     };
-    await db.update(legalConsultations).set(updateData).where(eq(legalConsultations.id, consultationId));
+    const updatedRows = await db.update(legalConsultations)
+      .set(updateData)
+      .where(and(
+        eq(legalConsultations.id, consultationId),
+        eq(legalConsultations.memberId, user.uid),
+        isNull(legalConsultations.sirenReportRequested),
+      ))
+      .returning({ id: legalConsultations.id });
+    if (updatedRows.length === 0) {
+      return forbidden("이미 결정이 완료된 상담입니다");
+    }
 
     if (requested) {
 // netlify/functions/legal-consultation-confirm.ts — notifyAllOperators 호출부 교체
@@ -72,7 +83,8 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     try {
-      await logUserAction(req, user.uid, "user", "legal_consultation_confirm", {
+      /* ★ R41 Q2-044: 행위자 표기를 리터럴 "user" 대신 실제 회원명으로 */
+      await logUserAction(req, user.uid, user.name || "user", "legal_consultation_confirm", {
         target: (row as any).consultationNo,
         detail: { sirenReportRequested: requested },
         success: true,

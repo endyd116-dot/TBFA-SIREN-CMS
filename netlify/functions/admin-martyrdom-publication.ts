@@ -139,17 +139,31 @@ export default async (req: Request, _ctx: Context) => {
       const pubId = Number((insertRes?.rows ?? insertRes ?? [])[0]?.id || 0);
       if (!pubId) throw new Error("INSERT 실패");
 
-      /* background 트리거 */
+      /* background 트리거 — 결과를 bgStatus로 가시화(조용한 스킵 방지·generate.ts:128 패턴) */
       const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
-      if (secret) {
-        const baseUrl = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
+      let bgStatus: string | number = "ok";
+      let bgError: string | undefined;
+      if (!secret) {
+        /* ★ R41 Q2-028: 시크릿 미설정 시 백그라운드 생성 불가 — 응답에 경고 노출 */
+        bgStatus = "secret_missing";
+        console.warn("[martyrdom-publication] INTERNAL_TRIGGER_SECRET 미설정 — 발간물 본문 자동 생성 스킵(draft만 생성)");
+      } else {
+        /* ★ R41 Q2-051: baseUrl http 정규화 가드(generate.ts:52-53 패턴) */
+        const base = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
+        const baseUrl = base.startsWith("http") ? base : `https://${base}`;
         try {
-          await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-publication-generate-background`, {
+          const resp = await fetch(`${baseUrl}/.netlify/functions/admin-martyrdom-publication-generate-background`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pubId, pubType, caseIds, blendRatio, maskLevel, secret }),
           });
+          bgStatus = resp.status;
+          if (resp.status !== 200 && resp.status !== 202) {
+            bgError = (await resp.text().catch(() => "")).slice(0, 200);
+          }
         } catch (triggerErr: any) {
+          bgStatus = 0;
+          bgError = String(triggerErr?.message || triggerErr).slice(0, 200);
           console.warn(`[martyrdom-publication] background 트리거 실패: ${triggerErr?.message}`);
         }
       }
@@ -158,6 +172,7 @@ export default async (req: Request, _ctx: Context) => {
 
       return new Response(JSON.stringify({
         ok: true, queued: true, id: pubId, pubType, status: "draft",
+        bgStatus, bgError: bgError || undefined,
       }), { status: 201, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {
       return jsonError("create_publication", err);

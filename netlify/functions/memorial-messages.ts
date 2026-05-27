@@ -2,6 +2,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialMessages, memorialMessageLikes } from "../../db/schema";
 import { authenticateUser, requireActiveUser } from "../../lib/auth";
+import { moderateMemorialText } from "../../lib/memorial-moderation";
+import { notifyAllOperators } from "../../lib/notify";
 import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
 
 export const config = { path: "/api/memorial-messages" };
@@ -99,6 +101,12 @@ export default async function handler(req: Request, _ctx: Context) {
     if (action === "like") {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
+        /* ★ R41 Q2-047: 존재·미숨김 메시지에만 공감 허용 (삭제·숨김 글에 고아 좋아요 방지) */
+        const [msg] = await db.select({ id: memorialMessages.id, isHidden: memorialMessages.isHidden })
+          .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
+        if (!msg || msg.isHidden) {
+          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
         const existing = await db
           .select({ id: memorialMessageLikes.id })
           .from(memorialMessageLikes)
@@ -134,6 +142,12 @@ export default async function handler(req: Request, _ctx: Context) {
     if (action === "report") {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
+        /* ★ R41 Q2-047: 존재하는 메시지에만 신고 누적 */
+        const [msg] = await db.select({ id: memorialMessages.id })
+          .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
+        if (!msg) {
+          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
         const setReport: any = { reportCount: sql`${memorialMessages.reportCount} + 1` };
         await db.update(memorialMessages)
           .set(setReport)
@@ -162,14 +176,32 @@ export default async function handler(req: Request, _ctx: Context) {
 
     try {
       const authorName = isAnonymous ? "익명" : (user.name || "회원");
+
+      /* ★ R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
+      const mod = await moderateMemorialText(content);
+
       const insertData: any = {
         teacherId: bodyTeacherId ?? undefined,
         memberId: user.uid,
         authorName,
         content,
         isAnonymous,
+        isHidden: mod.flagged ? true : undefined,
       };
       const [row] = await db.insert(memorialMessages).values(insertData).returning();
+
+      if (mod.flagged) {
+        /* 부적절 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 (fire-and-forget) */
+        notifyAllOperators({
+          category: "support",
+          severity: "warning",
+          title: "🛡️ 추모 메시지 자동 보류 — 검토 필요",
+          message: `AI가 부적절로 판단해 비공개 처리했습니다. (사유: ${mod.reason || "검토 필요"})`,
+          link: `/admin.html#memorial`,
+          refTable: "memorial_messages",
+          refId: row.id,
+        }).catch(() => {});
+      }
 
       return new Response(JSON.stringify({
         ok: true,
@@ -180,6 +212,7 @@ export default async function handler(req: Request, _ctx: Context) {
           likeCount: row.likeCount,
           createdAt: row.createdAt,
           liked: false,
+          pendingReview: mod.flagged,
         } },
       }), { status: 201, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {

@@ -62,7 +62,9 @@ export default async (req: Request, _ctx: Context) => {
       post: {
         id: r.id, postNo: r.postNo, category: r.category,
         title: r.title, contentHtml: r.contentHtml,
-        authorName: r.authorName, memberId: r.memberId,
+        authorName: r.authorName,
+        // Q2-024: 익명 글은 본인이 아니면 작성자 식별값(memberId) 노출 차단
+        memberId: (r.isAnonymous && !isOwner) ? null : r.memberId,
         isAnonymous: r.isAnonymous, isPinned: r.isPinned,
         views: r.views + (isOwner ? 0 : 1),
         likeCount: r.likeCount, commentCount: r.commentCount,
@@ -70,12 +72,17 @@ export default async (req: Request, _ctx: Context) => {
         attachments,
         isOwner: !!isOwner,
       },
-      comments: comments.map((c: any) => ({
-        id: c.id, content: c.content, authorName: c.authorName,
-        memberId: c.memberId, isAnonymous: c.isAnonymous,
-        parentId: c.parentId, createdAt: c.createdAt,
-        isOwner: user && c.memberId === user.uid,
-      })),
+      comments: comments.map((c: any) => {
+        const cIsOwner = !!(user && c.memberId === user.uid);
+        return {
+          id: c.id, content: c.content, authorName: c.authorName,
+          // Q2-024: 익명 댓글은 본인이 아니면 작성자 식별값(memberId) 노출 차단
+          memberId: (c.isAnonymous && !cIsOwner) ? null : c.memberId,
+          isAnonymous: c.isAnonymous,
+          parentId: c.parentId, createdAt: c.createdAt,
+          isOwner: cIsOwner,
+        };
+      }),
     });
   } catch (e: any) {
     console.error("[board-detail]", e);

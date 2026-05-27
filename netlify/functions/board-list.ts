@@ -3,7 +3,7 @@
 // - 공개 GET (로그인 불필요)
 
 import type { Context } from "@netlify/functions";
-import { eq, and, desc, sql as sqlExp, count, or, like } from "drizzle-orm";
+import { eq, and, desc, sql as sqlExp, count, or, ilike } from "drizzle-orm";
 import { db } from "../../db";
 import { boardPosts } from "../../db/schema";
 import { ok, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
@@ -28,9 +28,10 @@ export default async (req: Request, _ctx: Context) => {
       conds.push(eq(boardPosts.category, category as any));
     }
     if (q) {
+      // Q2-042: 대소문자 무시 검색 (ilike)
       conds.push(or(
-        like(boardPosts.title, `%${q}%`),
-        like(boardPosts.contentHtml, `%${q}%`),
+        ilike(boardPosts.title, `%${q}%`),
+        ilike(boardPosts.contentHtml, `%${q}%`),
       ));
     }
     const where = conds.length === 1 ? conds[0] : and(...conds);

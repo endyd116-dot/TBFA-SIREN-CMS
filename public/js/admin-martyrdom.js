@@ -237,6 +237,7 @@ let statsCharts = {};          // P4: Chart 인스턴스 (사건 전환 시 dest
 let pubList = [];              // P4: 연구 발간물 목록
 let pubDetail = null;          // P4: 현재 선택된 발간물 상세
 let pubPollTimer = null;       // P4: 발간 생성 폴링 타이머
+let pubGenBusy = false;        // P4: 발간 생성 진행 중 플래그(연타 중복 draft 방지·Q2-052)
 
 // ── 공통 유틸 ──────────────────────────────────────────────────────────────
 function toast(msg, type = "") {
@@ -2824,7 +2825,7 @@ function renderStatsBody(d) {
     <div class="stats-kpi"><div class="kpi-val kpi-green">${tot.approved || 0}</div><div class="kpi-label">인정</div></div>
     <div class="stats-kpi"><div class="kpi-val kpi-red">${tot.rejected || 0}</div><div class="kpi-label">불인정</div></div>
     <div class="stats-kpi"><div class="kpi-val">${tot.pending || 0}</div><div class="kpi-label">진행 중</div></div>
-    <div class="stats-kpi"><div class="kpi-val kpi-blue">${rate}%</div><div class="kpi-label">인정률</div></div>
+    <div class="stats-kpi"><div class="kpi-val kpi-blue">${rate}%</div><div class="kpi-label" title="종결 사건 대비 인정 비율">인정률(종결)</div></div>
   </div>
   <div class="stats-grid">
     <div class="stats-card"><div class="sc-title">인정률 (도넛)</div><canvas id="chartDonut" height="200"></canvas></div>
@@ -2888,15 +2889,27 @@ async function generatePublication() {
   const selfRatio = sliderEl ? parseInt(sliderEl.value, 10) : 70;
   const blendRatio = { self: selfRatio, ai: 100 - selfRatio };
 
+  // ★ R41 Q2-052: 연타로 인한 중복 draft 생성 방지 — 진행 중이면 무시
+  if (pubGenBusy) return;
+  pubGenBusy = true;
   const btn = document.getElementById("pubGenBtn");
   if (btn) { btn.textContent = "생성 중…"; btn.disabled = true; }
+  let pollingStarted = false;   // 폴링으로 넘어가면 폴링 종료 시점까지 버튼 유지
   try {
     const d = await apiP4PublicationGenerate(pubType, blendRatio, maskLevel);
     if (!d.ok) { toast(d.error || "생성 요청 실패", "error"); return; }
     const pubId = d.id || (d.data && d.data.id);
     if (d.queued && pubId) {
+      // 시크릿 미설정 등 백그라운드 생성 불가 가시화
+      const bg = d.bgStatus != null ? d.bgStatus : (d.data && d.data.bgStatus);
+      if (bg === "secret_missing") {
+        toast("발간물 초안만 생성됨 — 본문 자동 생성이 비활성화되어 있습니다(관리자 설정 필요)", "warning");
+        loadPublications();
+        return;   // 폴링 불필요 — finally에서 버튼 복구
+      }
       toast("발간물 생성 요청 — 완료되면 목록에 표시됩니다");
-      pollPublicationGenerated(pubId);
+      pollingStarted = true;
+      pollPublicationGenerated(pubId);   // 버튼 복구는 폴링 종료(finishPubGen)에서
     } else {
       toast("발간물을 생성했습니다");
       loadPublications();
@@ -2904,19 +2917,27 @@ async function generatePublication() {
   } catch (e) {
     if (e.message !== "auth") toast("생성 오류", "error");
   } finally {
-    const b = document.getElementById("pubGenBtn"); if (b) { b.textContent = "발간물 생성"; b.disabled = false; }
+    // 폴링이 시작되지 않은 경우에만 즉시 복구. 폴링 중이면 finishPubGen()이 복구.
+    if (!pollingStarted) finishPubGen();
   }
+}
+// 발간 생성 버튼·진행 플래그 복구 (즉시 종료·폴링 완료·폴링 타임아웃 공통)
+function finishPubGen() {
+  pubGenBusy = false;
+  const b = document.getElementById("pubGenBtn");
+  if (b) { b.textContent = "발간물 생성"; b.disabled = false; }
 }
 function pollPublicationGenerated(pubId) {
   clearPubPollTimer();
   let tries = 0;
   pubPollTimer = setInterval(async () => {
     tries++;
-    if (tries > 30) { clearPubPollTimer(); return; }
+    if (tries > 30) { clearPubPollTimer(); finishPubGen(); toast("생성이 지연되고 있습니다 — 잠시 후 목록을 확인하세요", "warning"); return; }
     try {
       const d = await apiP4PublicationGet(pubId);
       if (d.ok && d.publication && d.publication.contentHtml) {
         clearPubPollTimer();
+        finishPubGen();   // 폴링 완료 시 버튼 복구
         pubDetail = d.publication;
         loadPublications();
         showPublicationDetail(pubId);

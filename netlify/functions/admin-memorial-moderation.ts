@@ -23,11 +23,16 @@ export default async function handler(req: Request, _ctx: Context) {
   const url = new URL(req.url);
   const method = req.method.toUpperCase();
   const type = url.searchParams.get("type") === "letter" ? "letter" : "message";
+  /* ★ R41 Q2-013: sort=recent → 최신순(미검토 탭). 기본은 신고순 */
+  const sortRecent = url.searchParams.get("sort") === "recent";
 
-  /* ── GET: 신고순 목록 ── */
+  /* ── GET: 신고순(기본) 또는 최신순(미검토) 목록 ── */
   if (method === "GET") {
     try {
       if (type === "letter") {
+        const order = sortRecent
+          ? [desc(memorialLetters.createdAt)]
+          : [desc(memorialLetters.reportCount), desc(memorialLetters.createdAt)];
         const items = await db
           .select({
             id:          memorialLetters.id,
@@ -40,12 +45,15 @@ export default async function handler(req: Request, _ctx: Context) {
             createdAt:   memorialLetters.createdAt,
           })
           .from(memorialLetters)
-          .orderBy(desc(memorialLetters.reportCount), desc(memorialLetters.createdAt))
+          .orderBy(...order)
           .limit(500);
         return new Response(JSON.stringify({ ok: true, data: { items } }), {
           status: 200, headers: { "Content-Type": "application/json" },
         });
       }
+      const order = sortRecent
+        ? [desc(memorialMessages.createdAt)]
+        : [desc(memorialMessages.reportCount), desc(memorialMessages.createdAt)];
       const items = await db
         .select({
           id:          memorialMessages.id,
@@ -58,7 +66,7 @@ export default async function handler(req: Request, _ctx: Context) {
           createdAt:   memorialMessages.createdAt,
         })
         .from(memorialMessages)
-        .orderBy(desc(memorialMessages.reportCount), desc(memorialMessages.createdAt))
+        .orderBy(...order)
         .limit(500);
       return new Response(JSON.stringify({ ok: true, data: { items } }), {
         status: 200, headers: { "Content-Type": "application/json" },

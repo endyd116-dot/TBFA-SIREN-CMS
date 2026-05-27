@@ -2,7 +2,7 @@
 // ★ M-10: 자유게시판 관리자 목록 + 상세 + 숨김/메모/답변
 
 import type { Context } from "@netlify/functions";
-import { eq, and, desc, count, or, like, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, count, or, ilike, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { boardPosts, boardComments, members, blobUploads } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -91,10 +91,11 @@ export default async (req: Request, _ctx: Context) => {
       if (hidden === "1") conds.push(eq(boardPosts.isHidden, true));
       else if (hidden === "0") conds.push(eq(boardPosts.isHidden, false));
       if (q) {
+        // Q2-042: 대소문자 무시 검색 (ilike)
         conds.push(or(
-          like(boardPosts.title, `%${q}%`),
-          like(boardPosts.postNo, `%${q}%`),
-          like(boardPosts.authorName, `%${q}%`),
+          ilike(boardPosts.title, `%${q}%`),
+          ilike(boardPosts.postNo, `%${q}%`),
+          ilike(boardPosts.authorName, `%${q}%`),
         ));
       }
       const where = conds.length === 0 ? undefined : (conds.length === 1 ? conds[0] : and(...conds));

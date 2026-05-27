@@ -87,7 +87,9 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*) FILTER (WHERE ai_urgency = 'urgent')::int  AS "urgentCount"
       FROM legal_consultations
     `);
-    const s: any = stats[0] || {};
+    /* ★ R41 Q2-010: drizzle.execute 결과 표준 처리 — postgres-js는 배열, 일부 드라이버는 .rows */
+    const sr = Array.isArray(stats) ? stats : ((stats as any)?.rows || []);
+    const s: any = sr[0] || {};
 
     return ok({
       list: maskedList,

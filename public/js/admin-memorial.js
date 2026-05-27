@@ -6,6 +6,7 @@
 var _teachers = [];
 var _editingTeacherId = null;
 var _modType = 'message';
+var _modSort = 'report'; /* ★ R41 Q2-013: 'report'(신고순) | 'recent'(최신순·미검토) */
 
 /* ─── 토스트 ─── */
 function toast(msg, type) {
@@ -251,15 +252,24 @@ function deleteTeacher(id) {
    ========================================================= */
 function switchModType(type) {
   _modType = type;
-  Array.prototype.forEach.call(document.querySelectorAll('.mod-filter .chip'), function (el) {
+  Array.prototype.forEach.call(document.querySelectorAll('.mod-filter .chip[data-type]'), function (el) {
     el.classList.toggle('active', el.dataset.type === type);
+  });
+  loadMod();
+}
+/* ★ R41 Q2-013: 신고순 ↔ 최신순(미검토) 전환 */
+function switchModSort(sort) {
+  _modSort = sort;
+  Array.prototype.forEach.call(document.querySelectorAll('.mod-filter .chip[data-sort]'), function (el) {
+    el.classList.toggle('active', el.dataset.sort === sort);
   });
   loadMod();
 }
 function loadMod() {
   var tbody = document.getElementById('modTbody');
   tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">불러오는 중…</td></tr>';
-  callApi('GET', '/api/admin-memorial-moderation?type=' + _modType).then(function (res) {
+  var qs = '/api/admin-memorial-moderation?type=' + _modType + (_modSort === 'recent' ? '&sort=recent' : '');
+  callApi('GET', qs).then(function (res) {
     if (!res.ok) { tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">로드 실패</td></tr>'; toast((res.data && res.data.error) || '로드 실패', 'error'); return; }
     var items = pick(res, 'items') || [];
     renderMod(items);

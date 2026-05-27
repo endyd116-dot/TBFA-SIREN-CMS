@@ -30,7 +30,7 @@ export default async (req: Request, _ctx: Context) => {
     const postId = Number(body.postId);
     const content = String(body.content || "").trim().slice(0, 1000);
     const isAnonymous = !!body.isAnonymous;
-    const parentId = Number.isFinite(Number(body.parentId)) ? Number(body.parentId) : null;
+    let parentId = Number.isFinite(Number(body.parentId)) ? Number(body.parentId) : null;
 
     if (!Number.isFinite(postId)) return badRequest("postId 필요");
     if (!content || content.length < 1) return badRequest("댓글 내용을 입력해주세요");
@@ -38,6 +38,18 @@ export default async (req: Request, _ctx: Context) => {
     const [post] = await db.select().from(boardPosts).where(eq(boardPosts.id, postId)).limit(1);
     if (!post) return notFound("게시글을 찾을 수 없습니다");
     if ((post as any).isHidden) return badRequest("숨김 처리된 게시글에는 댓글을 작성할 수 없습니다");
+
+    /* Q2-040: 대댓글 부모 검증 — 같은 게시글 소속·미숨김·존재 확인. 불일치 시 일반 댓글(parentId=null)로 강등 */
+    if (parentId !== null) {
+      const [parent] = await db.select({
+        id: boardComments.id,
+        postId: boardComments.postId,
+        isHidden: boardComments.isHidden,
+      }).from(boardComments).where(eq(boardComments.id, parentId)).limit(1);
+      if (!parent || (parent as any).postId !== postId || (parent as any).isHidden) {
+        parentId = null;
+      }
+    }
 
     const [me] = await db.select().from(members).where(eq(members.id, user.uid)).limit(1);
     const authorName = isAnonymous ? "익명" : (me as any)?.name || "회원";
