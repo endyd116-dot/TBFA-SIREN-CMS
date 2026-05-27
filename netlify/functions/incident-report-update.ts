@@ -49,8 +49,8 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!row) return notFound("제보를 찾을 수 없습니다");
 
-    /* check_status */
-    if (row.status !== "submitted") {
+    /* check_status — ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
+    if (row.status !== "submitted" && row.status !== "ai_analyzed") {
       return new Response(
         JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
         { status: 403, headers: { "Content-Type": "application/json" } }

@@ -8,6 +8,7 @@ import { legalConsultations, members } from "../../db/schema";
 // netlify/functions/legal-consultation-create.ts — import 영역 교체
 import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeLegalConsultation } from "../../lib/ai-legal";
+import { notifyAllOperators } from "../../lib/notify";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
   created, badRequest, unauthorized, serverError,
@@ -201,6 +202,23 @@ export default async (req: Request, _ctx: Context) => {
       }
     } catch (assignErr) {
       console.warn("[legal-consultation-create] AI 변호사 자동 배정 실패:", assignErr);
+    }
+
+    /* ★ R41 Q2-009: AI 건너뛴(skipAi) 신청은 변호사 매칭 결정 단계가 없어 운영자 통지 누락 → 생성 시점 1회 발송 */
+    if (skipAi) {
+      try {
+        await notifyAllOperators({
+          category: "support",
+          severity: "info",
+          title: `⚖️ 법률 상담 신청 접수(직접 검토 요청): ${consultationNo}`,
+          message: title,
+          link: `/admin.html#legal-consultations`,
+          refTable: "legal_consultations",
+          refId: consultationId,
+        }, { category: "legal" });
+      } catch (e) {
+        console.warn("[legal-consultation-create] skipAi 운영자 알림 실패:", e);
+      }
     }
 
    // netlify/functions/legal-consultation-create.ts — 감사 로그 + return 블록 교체

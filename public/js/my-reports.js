@@ -113,14 +113,14 @@
     const anonBadge = report.isAnonymous ? '<span class="anon-badge">익명</span>' : '';
     const title = report.title || report.subject || cfg.typeLabel;
     const cardId = 'card-tl-' + report.id;
-    const isSubmitted = (report.status || '') === 'submitted';
+    /* ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용 */
+    const isEditable = ['submitted', 'ai_analyzed'].includes(report.status || '');
 
-    /* ★ round8: submitted 상태일 때만 수정/삭제 버튼 표시 */
-    const editBtn = isSubmitted
+    const editBtn = isEditable
       ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">✏️ 수정</button>`
       : '';
-    /* 법률 상담만 삭제 버튼 추가 (submitted 상태) */
-    const deleteBtn = (tabKey === 'legal' && isSubmitted)
+    /* 법률 상담만 삭제 버튼 추가 */
+    const deleteBtn = (tabKey === 'legal' && isEditable)
       ? `<button type="button" class="rpt-del-btn" data-rpt-del="${report.id}" data-tab="${tabKey}" data-no="${escapeHtml(String(report.reportNo || report.id))}">🗑 삭제</button>`
       : '';
 

@@ -77,6 +77,9 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
+    /* ★ R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+    const maskedList = list.map((r: any) => (r.isAnonymous ? { ...r, memberName: null } : r));
+
     /* 통계 — ★ 패치: drizzle.execute 결과 표준 처리 */
     const statsResult: any = await db.execute(sql`
       SELECT
@@ -95,7 +98,7 @@ export default async (req: Request, _ctx: Context) => {
     const s: any = statsRows[0] || {};
 
     return ok({
-      list,
+      list: maskedList,
       pagination: {
         page,
         limit,

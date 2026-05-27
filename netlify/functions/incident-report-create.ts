@@ -10,6 +10,7 @@ import { db } from "../../db";
 import { incidents, incidentReports, members } from "../../db/schema";
 import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { analyzeIncidentReport } from "../../lib/ai-incident";
+import { notifyAllOperators } from "../../lib/notify";
 import { hasAnyCompletedDonation, getNonDonorPremiumNotice } from "../../lib/donor-check";
 import {
   created, badRequest, unauthorized, serverError,
@@ -136,6 +137,23 @@ export default async (req: Request, _ctx: Context) => {
       }
     } catch (hookErr) {
       console.warn("[incident-report-create] 카드 생성 훅 실패:", hookErr);
+    }
+
+    /* ★ R41 Q2-009: AI 건너뛴(skipAi) 제보는 정식접수 결정 단계가 없어 운영자 통지 누락 → 생성 시점 1회 발송 */
+    if (skipAi) {
+      try {
+        await notifyAllOperators({
+          category: "support",
+          severity: "info",
+          title: `📋 사건 제보 접수(직접 검토 요청): ${reportNo}`,
+          message: title,
+          link: `/admin.html#incident-reports`,
+          refTable: "incident_reports",
+          refId: reportId,
+        }, { category: "incident" });
+      } catch (e) {
+        console.warn("[incident-report-create] skipAi 운영자 알림 실패:", e);
+      }
     }
 
     /* 감사 로그 */

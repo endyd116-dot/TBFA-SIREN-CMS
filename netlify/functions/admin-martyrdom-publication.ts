@@ -178,6 +178,28 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     try {
+      /* ★ R41 Q2-007: 현재 상태 확인 후 전이 검증 — 검수(reviewed) 없이 발간(published) 직행 차단 */
+      const curRes: any = await db.execute(sql.raw(
+        `SELECT status FROM martyrdom_publications WHERE id = ${id} LIMIT 1`
+      ));
+      const curRow = (curRes?.rows ?? curRes ?? [])[0];
+      if (!curRow) return badRequest("발간물을 찾을 수 없습니다");
+      const cur = String(curRow.status || "draft");
+
+      /* 허용 전이: draft→reviewed, reviewed→published, 발간/검수 취소(→draft), 동일 상태(멱등) */
+      const allowed: Record<string, string[]> = {
+        draft:     ["reviewed", "draft"],
+        reviewed:  ["published", "draft", "reviewed"],
+        published: ["draft", "published"],
+      };
+      if (!(allowed[cur] || []).includes(status)) {
+        return badRequest(
+          status === "published"
+            ? "검수 완료(reviewed) 상태에서만 발간할 수 있습니다"
+            : `'${cur}' → '${status}' 전이는 허용되지 않습니다`
+        );
+      }
+
       const sets: string[] = [`status = '${status}'`];
       if (status === "reviewed") {
         sets.push(`reviewed_by = ${admin.uid}`);
