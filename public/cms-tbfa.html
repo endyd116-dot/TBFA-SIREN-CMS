@@ -597,20 +597,6 @@ if (window.self !== window.top) {
       </div>
     </header>
 
-    <!-- 세션 만료 임박 연장 팝업 -->
-    <div id="sessionWarnModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center">
-      <div style="background:#fff;border-radius:14px;padding:26px 28px;width:min(420px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center">
-        <div style="font-size:32px;margin-bottom:8px">⏰</div>
-        <h3 style="margin:0 0 8px;font-size:18px;color:#1e293b">세션이 곧 만료됩니다</h3>
-        <p style="margin:0 0 6px;color:#475569;font-size:14px;line-height:1.6">보안을 위해 관리자 세션은 일정 시간 후 자동 만료됩니다.<br>계속 사용하시려면 세션을 연장해 주세요.</p>
-        <p style="margin:0 0 18px;color:#dc2626;font-weight:700;font-size:15px">남은 시간 <span id="sessionWarnCountdown">5:00</span></p>
-        <div style="display:flex;gap:10px;justify-content:center">
-          <button type="button" onclick="logoutAdminSession()" style="padding:9px 18px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;font-size:14px;font-weight:600;cursor:pointer">로그아웃</button>
-          <button type="button" onclick="extendAdminSession()" style="padding:9px 22px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer">세션 연장</button>
-        </div>
-      </div>
-    </div>
-
     <div class="cms-content">
 
       <!-- ============ 1. 대시보드 ============ -->
@@ -2537,7 +2523,7 @@ if (window.self !== window.top) {
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
   <script src="/js/cms-tbfa.js?v=20260527-session"></script>
-  <script src="/js/admin-session-timer.js?v=20260527-1"></script>
+  <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
   <script src="/js/cms-tbfa-import.js?v=2026-05-10-d5"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
