@@ -2863,6 +2863,7 @@
       <div class="adm-top">
         <div class="adm-page-title" id="admPageTitle">대시보드</div>
         <div class="adm-user">
+          <button type="button" id="sessionTimer" onclick="extendAdminSession()" style="display:none"></button>
           <span style="color:var(--text-3)">총괄 관리자</span>
           <div class="adm-avatar">A</div>
           <button class="btn-sm btn-sm-ghost" data-action="admin-logout">로그아웃</button>
@@ -5740,5 +5741,6 @@
   <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
   <!-- ★ 어드민 내 정보 수정 모달 (우상단 사용자 영역 클릭 시) -->
   <script src="/js/admin-profile-modal.js?v=20260516"></script>
+  <script src="/js/admin-session-timer.js?v=20260527-1"></script>
 </body>
 </html>
