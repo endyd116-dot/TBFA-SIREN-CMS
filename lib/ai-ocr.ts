@@ -183,25 +183,105 @@ async function extractDocx(base64: string): Promise<OcrResult> {
   }
 }
 
-/* ─────────────────────────────── word-extractor (구형 .doc) ─────────────────────────────── */
+/* ─────────────────────────────── .doc (다형식) ───────────────────────────────
+   ".doc" 확장자는 실제로 ① 정통 바이너리 워드(OLE2·D0CF) ② docx 위장(zip·PK)
+   ③ "웹 페이지로 저장" HTML(종종 UTF-16) ④ RTF ⑤ 평문 등 여러 실체가 섞임.
+   word-extractor는 OLE/zip만 읽으므로(그 외 "Unable to read this type of file"),
+   매직·BOM을 직접 보고 형식별로 분기한다. */
 async function extractDoc(base64: string): Promise<OcrResult> {
-  try {
-    const buffer = Buffer.from(base64, "base64");
-    const mod: any = await import("word-extractor");
-    const WordExtractor = mod.default ?? mod;
-    const extractor = new WordExtractor();
-    const doc = await extractor.extract(buffer);   // Buffer 입력 지원(임시파일 불필요)
-    let text = String(doc.getBody?.() || "").trim();
-    const foot = String(doc.getFootnotes?.() || "").trim();
-    if (foot) text += "\n" + foot;
-    text = text.trim();
-    if (text.length < MIN_TEXT_LENGTH) {
-      return { text, method: "doc", error: "doc 텍스트가 너무 짧습니다 (빈 문서·이미지 전용·PDF 변환 권장)" };
+  const buffer = Buffer.from(base64, "base64");
+  const magic = buffer.length >= 2 ? buffer.readUInt16BE(0) : 0;
+
+  /* ① zip(PK) → docx 가 .doc 확장자로 위장 */
+  if (magic === 0x504b) return extractDocx(base64);
+
+  /* ② OLE2(0xD0CF) → 정통 바이너리 .doc → word-extractor */
+  if (magic === 0xd0cf) {
+    try {
+      const mod: any = await import("word-extractor");
+      const WordExtractor = mod.default ?? mod;
+      const doc = await new WordExtractor().extract(buffer);   // Buffer 입력(임시파일 불필요)
+      let text = String(doc.getBody?.() || "").trim();
+      const foot = String(doc.getFootnotes?.() || "").trim();
+      if (foot) text += "\n" + foot;
+      text = text.trim();
+      if (text.length < MIN_TEXT_LENGTH) {
+        return { text, method: "doc", error: "doc 텍스트가 너무 짧습니다 (빈 문서·이미지 전용·PDF 변환 권장)" };
+      }
+      return { text, method: "doc" };
+    } catch (err: any) {
+      return { text: "", method: "manual", error: `doc 추출 실패: ${String(err?.message || err).slice(0, 150)} — docx/PDF 변환 또는 텍스트 직접 입력 권장` };
     }
-    return { text, method: "doc" };
-  } catch (err: any) {
-    return { text: "", method: "manual", error: `doc 추출 실패: ${String(err?.message || err).slice(0, 150)} — docx/PDF 변환 또는 텍스트 직접 입력 권장` };
   }
+
+  /* ③④⑤ 그 외 — 인코딩(BOM) 감지 후 HTML/RTF/평문 처리 */
+  const content = decodeTextByBom(buffer);
+  const head = content.replace(/^﻿/, "").trimStart().slice(0, 400).toLowerCase();
+
+  /* RTF */
+  if (head.startsWith("{\\rtf")) {
+    const text = stripRtf(content);
+    if (text.length >= MIN_TEXT_LENGTH) return { text, method: "doc" };
+  }
+  /* HTML / XML (Word "웹 페이지로 저장"·Word2003 XML) */
+  if (/^(<\?xml|<!doctype|<html|<w:|<o:|<body|<)/.test(head)) {
+    const text = htmlToText(content);
+    if (text.length >= MIN_TEXT_LENGTH) return { text, method: "doc" };
+  }
+  /* 평문 폴백 */
+  const plain = content.replace(/ /g, "").trim();
+  if (plain.length >= MIN_TEXT_LENGTH && (plain.match(/�/g)?.length || 0) < plain.length * 0.1) {
+    return { text: plain, method: "doc" };
+  }
+
+  return { text: "", method: "manual", error: "doc 추출 실패: 지원되지 않는 .doc 내부 형식입니다 — docx/PDF로 변환 후 재업로드 또는 텍스트 직접 입력 권장" };
+}
+
+/* BOM으로 인코딩 판별해 문자열 디코드 (UTF-16LE/BE·UTF-8 BOM·기본 UTF-8) */
+function decodeTextByBom(buffer: Buffer): string {
+  if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
+    return buffer.subarray(2).toString("utf16le");                     // UTF-16LE
+  }
+  if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) { // UTF-16BE → swap
+    const sw = Buffer.from(buffer.subarray(2));
+    for (let i = 0; i + 1 < sw.length; i += 2) { const t = sw[i]; sw[i] = sw[i + 1]; sw[i + 1] = t; }
+    return sw.toString("utf16le");
+  }
+  if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+    return buffer.subarray(3).toString("utf-8");                       // UTF-8 BOM
+  }
+  return buffer.toString("utf-8");
+}
+
+/* HTML → 텍스트 (스타일·스크립트·Word XML 아일랜드·주석 제거 후 태그 제거·엔티티 디코드) */
+function htmlToText(html: string): string {
+  let s = html;
+  s = s.replace(/<!--[\s\S]*?-->/g, " ");
+  s = s.replace(/<xml[\s\S]*?<\/xml>/gi, " ");
+  s = s.replace(/<style[\s\S]*?<\/style>/gi, " ");
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, " ");
+  s = s.replace(/<head[\s\S]*?<\/head>/gi, " ");
+  s = s.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|tr|li|h[1-6]|td|th)>/gi, "\n");
+  s = s.replace(/<[^>]+>/g, " ");
+  s = s.replace(/&nbsp;/gi, " ");
+  s = decodeXmlEntities(s);
+  s = s.replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)));
+  s = s.replace(/&#x([0-9a-f]+);/gi, (_m, h) => String.fromCharCode(parseInt(h, 16)));
+  return s.replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/* RTF → 텍스트 (유니코드 \uN 우선·destination 그룹 제거·컨트롤워드 제거) */
+function stripRtf(rtf: string): string {
+  let s = rtf;
+  s = s.replace(/\{\\\*?\\(fonttbl|colortbl|stylesheet|info|pict|object|themedata|colorschememapping|latentstyles|datastore|generator|listtable|listoverridetable|rsidtbl)[\s\S]*?\}/gi, " ");
+  s = s.replace(/\\u(-?\d+)(?:\\?'[0-9a-fA-F]{2}|[^\\{} ])?/g, (_m, n) => {
+    let code = parseInt(n, 10); if (code < 0) code += 65536; return String.fromCharCode(code);
+  });
+  s = s.replace(/\\'([0-9a-fA-F]{2})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)));
+  s = s.replace(/\\(par|pard|line|sect|page)\b ?/g, "\n").replace(/\\tab\b ?/g, "\t");
+  s = s.replace(/\\[a-zA-Z]+-?\d* ?/g, "");
+  s = s.replace(/[{}]/g, "").replace(/\\\*/g, "").replace(/\\[^a-zA-Z]/g, "");
+  return s.replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 /* ─────────────────────────────── exceljs (xlsx) ─────────────────────────────── */
