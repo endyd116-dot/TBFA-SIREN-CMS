@@ -32,15 +32,18 @@ function calcNextRunAt(cronExpr: string): Date {
     }
   }
 
-  // 특정 시각(0 21 * * * 등) — 다음 날 동일 시각
+  // 특정 시각(0 21 * * * 등) — cron 시각을 KST로 해석해 UTC next_run_at 계산 (시스템 전반 KST 기준).
+  // ★ Q3-050 fix: 기존 setHours(컨테이너 로컬=UTC) → KST 의도와 9시간 어긋남. setUTCHours로 KST 벽시계 적용.
+  // (요일/일 필드는 미지원 — 매일로 처리. 정밀 cron은 별도 라이브러리 필요 — P3 범위 외.)
   if (parts.length >= 2) {
     const minute = parseInt(parts[0], 10);
     const hour = parseInt(parts[1], 10);
     if (!isNaN(hour) && !isNaN(minute)) {
-      const candidate = new Date(now);
-      candidate.setHours(hour, minute, 0, 0);
-      if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
-      return candidate;
+      const kst = new Date(now.getTime() + 9 * 3600 * 1000); // now를 KST로
+      kst.setUTCHours(hour, minute, 0, 0);                    // KST 벽시계로 목표 시각 설정
+      let nextUtcMs = kst.getTime() - 9 * 3600 * 1000;        // 다시 UTC로
+      if (nextUtcMs <= now.getTime()) nextUtcMs += 24 * 3600 * 1000; // 항상 미래
+      return new Date(nextUtcMs);
     }
   }
 

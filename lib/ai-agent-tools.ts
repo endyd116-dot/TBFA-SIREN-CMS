@@ -5423,6 +5423,13 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
       return { ok: false, error: `source="${source}"에서 action="${action}"은 지원하지 않습니다. 가능: ${allowedActions[source]?.join(", ")}` };
     }
 
+    // ★ Q3-036 fix: 필터값 화이트리스트/검증 — AI·운영자 매개 raw SQL 인젝션 표면 제거 (보간 전 정제).
+    const safeEnum = (v: any): string | null => (typeof v === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) ? v : null;
+    const safeDate = (v: any): string | null => {
+      if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/.test(v)) return null;
+      return isNaN(new Date(v).getTime()) ? null : v;
+    };
+
     // source별 SELECT
     let rows: any[] = [];
 
@@ -5436,28 +5443,28 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
 
     } else if (source === "legal_consultations") {
       const conds: string[] = [];
-      if (filter.status) conds.push(`status = '${filter.status}'`);
-      if (filter.category) conds.push(`category = '${filter.category}'`);
-      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
-      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      { const _st = safeEnum(filter.status); if (_st) conds.push(`status = '${_st}'`); }
+      { const _cat = safeEnum(filter.category); if (_cat) conds.push(`category = '${_cat}'`); }
+      { const _gte = safeDate(filter.dateRange?.gte); if (_gte) conds.push(`created_at >= '${_gte}'`); }
+      { const _lte = safeDate(filter.dateRange?.lte); if (_lte) conds.push(`created_at <= '${_lte}'`); }
       const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
       rows = await db.execute(sql.raw(`SELECT id, consultation_no, title, status, member_id FROM legal_consultations ${where} ORDER BY id LIMIT 500`)) as any;
 
     } else if (source === "harassment_reports") {
       const conds: string[] = [];
-      if (filter.status) conds.push(`status = '${filter.status}'`);
-      if (filter.category) conds.push(`category = '${filter.category}'`);
-      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
-      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      { const _st = safeEnum(filter.status); if (_st) conds.push(`status = '${_st}'`); }
+      { const _cat = safeEnum(filter.category); if (_cat) conds.push(`category = '${_cat}'`); }
+      { const _gte = safeDate(filter.dateRange?.gte); if (_gte) conds.push(`created_at >= '${_gte}'`); }
+      { const _lte = safeDate(filter.dateRange?.lte); if (_lte) conds.push(`created_at <= '${_lte}'`); }
       const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
       rows = await db.execute(sql.raw(`SELECT id, report_no, title, status, member_id FROM harassment_reports ${where} ORDER BY id LIMIT 500`)) as any;
 
     } else if (source === "chat_rooms") {
       const conds: string[] = [];
       if (filter.status && ["active", "closed"].includes(filter.status)) conds.push(`status = '${filter.status}'`);
-      if (filter.category) conds.push(`category = '${filter.category}'`);
-      if (filter.dateRange?.gte) conds.push(`created_at >= '${filter.dateRange.gte}'`);
-      if (filter.dateRange?.lte) conds.push(`created_at <= '${filter.dateRange.lte}'`);
+      { const _cat = safeEnum(filter.category); if (_cat) conds.push(`category = '${_cat}'`); }
+      { const _gte = safeDate(filter.dateRange?.gte); if (_gte) conds.push(`created_at >= '${_gte}'`); }
+      { const _lte = safeDate(filter.dateRange?.lte); if (_lte) conds.push(`created_at <= '${_lte}'`); }
       const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
       rows = await db.execute(sql.raw(`SELECT id, title, status, category, member_id FROM chat_rooms ${where} ORDER BY id LIMIT 500`)) as any;
     }
@@ -5485,9 +5492,12 @@ async function tool_bulkPipeline(args: any, adminId: number): Promise<ToolResult
 
     for (const row of rows) {
       try {
-        const toolArgs = { ...actionParams, id: row.id };
+        // ★ Q3-035 fix: 내부 도구가 dry-run preview를 반환하지 않도록 실제 실행 강제(requireApproval:false).
+        //   기존엔 미지정이라 각 변경 도구가 자기 dry-run을 반환 → 실제 변경 0건인데 result.ok=true라 "처리 완료" 거짓 카운트.
+        const toolArgs = { ...actionParams, id: row.id, requireApproval: false };
         const result = await executeTool(action, toolArgs, adminId);
-        if (result.ok) processed++;
+        if (result.preview) errors.push(`id=${row.id}: 미실행(dry-run preview 반환)`);
+        else if (result.ok) processed++;
         else errors.push(`id=${row.id}: ${result.error}`);
       } catch (e: any) {
         errors.push(`id=${row.id}: ${e?.message?.slice(0, 100)}`);

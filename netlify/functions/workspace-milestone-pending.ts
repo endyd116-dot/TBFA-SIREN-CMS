@@ -3,15 +3,18 @@
  * GET /api/workspace-milestone-pending
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+/* ★ Q3-010 fix: requireAdmin → requireOperator — 형제 함수(progress·done-tasks·create-tasks·task-match)는
+   모두 requireOperator라 operatorActive 운영자가 사용 가능한데 이 목록만 admin 전용이라 운영자가
+   완료 카드 성과 분류 흐름 중간에서 막혔다(R35-GAP-P1-B-H1 전환 시 누락). */
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/workspace-milestone-pending" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  const auth = await requireOperator(req);
+  if (operatorGuardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   function jsonError(step: string, err: any) {

@@ -49,11 +49,22 @@ export default async (req: Request, _ctx: Context) => {
 
   try {
     const [task]: any = await db
-      .select({ id: workspaceTasks.id })
+      .select({
+        id: workspaceTasks.id,
+        memberId: workspaceTasks.memberId,
+        assignedTo: workspaceTasks.assignedTo,
+        assignedBy: workspaceTasks.assignedBy,
+      })
       .from(workspaceTasks)
       .where(eq(workspaceTasks.id, taskId))
       .limit(1);
     if (!task) return jsonError(404, "select_task", "작업을 찾을 수 없습니다");
+
+    /* ★ Q3-004 fix: 작업 접근 권한 검증 (메인 PATCH와 동일 — 소유/담당/지시/super) */
+    const meId = auth.ctx.member.id as number;
+    const isSuperAdmin = (auth.ctx.member as any).role === "super_admin";
+    const canEdit = isSuperAdmin || task.memberId === meId || (task.assignedTo === meId && task.assignedBy) || task.assignedBy === meId;
+    if (!canEdit) return jsonError(403, "forbidden", "이 작업을 수정할 권한이 없습니다");
 
     await db
       .update(workspaceTasks)

@@ -38,6 +38,9 @@ const PRICING: Record<string, ModelPricing> = {
   "gemini-3.0-flash":              { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },
   "gemini-2.5-flash":              { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },
   "gemini-2.5-flash-lite":         { inputPerMTok: 0.025, outputPerMTok: 0.10,  cachedInputPerMTok: 0.00625 },
+  /* ★ Q3-049: 임베딩 모델 — output 없음(0). 미등록 시 __default(flash $0.075/$0.30)로 과대계상되던 문제 해소 */
+  "gemini-embedding-001":          { inputPerMTok: 0.15,  outputPerMTok: 0 },
+  "text-embedding-004":            { inputPerMTok: 0.025, outputPerMTok: 0 },
   /* fallback for unknown model — flash 가격으로 보수적 계산 */
   "__default":                     { inputPerMTok: 0.075, outputPerMTok: 0.30 },
 };
@@ -162,7 +165,7 @@ export async function checkMonthlyBudget(): Promise<BudgetCheck> {
     const r: any = await db.execute(sql`
       SELECT total_cost_usd::float AS cost
         FROM ai_cost_summary
-       WHERE period_type = 'monthly' AND period_key = ${mKey}
+       WHERE period_type = 'monthly' AND period_key = ${mKey} AND feature_key IS NULL
        LIMIT 1
     `);
     const row = (r?.rows ?? r ?? [])[0];
@@ -213,7 +216,7 @@ export async function getCostStats(): Promise<CostStats> {
                total_output_tokens::bigint AS output_tokens,
                call_count AS calls
           FROM ai_cost_summary
-         WHERE period_type = ${type} AND period_key = ${key}
+         WHERE period_type = ${type} AND period_key = ${key} AND feature_key IS NULL
          LIMIT 1
       `);
       const row = (r?.rows ?? r ?? [])[0];

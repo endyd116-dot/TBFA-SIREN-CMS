@@ -77,12 +77,15 @@ export function recomputeSummary(
     return { checkInTime: firstIn, checkOutTime: lastOut, workingMins, overtimeMins };
   }
 
-  // 다중 세션: 각 세션 실근무분 합산 (세션 사이 = 휴게)
+  // 다중 세션: 각 세션 실근무분 합산
   let total = 0;
   for (const s of completed) {
     total += Math.max(0, (new Date(s.out as string).getTime() - new Date(s.in).getTime()) / 60000);
   }
   total = Math.round(total);
+  // ★ Q3-026 fix(P-4): 단일 세션과 동일하게 임계 초과 시 휴게 차감 — 세션 분할 여부로 근무시간이 달라지지 않게 일관화.
+  const thresholdMins = Number(policy.breakThresholdHours) * 60;
+  if (thresholdMins > 0 && total >= thresholdMins) total = Math.max(0, total - Number(policy.breakMins || 0));
   const dailyMins = Number(policy.dailyHours) * 60;
   return { checkInTime: firstIn, checkOutTime: lastOut, workingMins: total, overtimeMins: Math.max(0, total - dailyMins) };
 }

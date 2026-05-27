@@ -1,5 +1,5 @@
 import { db } from "../../db/index";
-import { attLeaveRequests, attLeaveBalances } from "../../db/schema";
+import { attLeaveRequests, attLeaveBalances, attHolidays } from "../../db/schema";
 import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 
@@ -92,10 +92,32 @@ export default async function handler(req: Request) {
       }
       days = 0.5;
     } else {
-      days = Math.ceil((endMs - startMs) / 86_400_000) + 1;
+      // ★ Q3-008 fix: 달력일 전체가 아니라 영업일(주말·att_holidays 제외)만 차감.
+      //   승인 시 att_records LEAVE 스탬프는 영업일에만 찍히므로(admin-att-leave-review),
+      //   기존 달력일 계산은 금~월 등 주말 낀 휴가에서 연차를 과다 차감했다.
+      let holidaySet = new Set<string>();
+      try {
+        const hRows = await db
+          .select({ date: attHolidays.date })
+          .from(attHolidays)
+          .where(and(gte(attHolidays.date, startDate), lte(attHolidays.date, endDate)));
+        holidaySet = new Set(hRows.map((h: any) => String(h.date)));
+      } catch (err) {
+        console.warn("[att-leave-request] 공휴일 조회 실패 — 주말만 제외:", err);
+      }
+      let biz = 0;
+      let cur = new Date(`${startDate}T00:00:00Z`);
+      const endD = new Date(`${endDate}T00:00:00Z`);
+      while (cur.getTime() <= endD.getTime()) {
+        const dow = cur.getUTCDay();              // 0=일 6=토
+        const ds = cur.toISOString().slice(0, 10);
+        if (dow !== 0 && dow !== 6 && !holidaySet.has(ds)) biz++;
+        cur = new Date(cur.getTime() + 86_400_000);
+      }
+      days = biz;
     }
     if (days <= 0) {
-      return jsonError("validate_range", new Error("신청 기간이 올바르지 않습니다"), 400);
+      return jsonError("validate_range", new Error("신청 기간에 영업일이 없습니다 (주말·공휴일 제외)"), 400);
     }
 
     // 2. 잔여일 검증 (잔액 row 없으면 0일로 간주 → 미배정 휴가종류는 차단)
@@ -212,6 +234,24 @@ export default async function handler(req: Request) {
       return jsonOk({ leaveId: Number(row.id), days, remaining: remaining - days }, 201);
     } catch (err) {
       return jsonError("insert_request", err);
+    }
+  }
+
+  // DELETE — 본인 PENDING 신청 셀프 철회 (Q3-009 잔여)
+  //   PENDING은 아직 잔여 차감 전이라 복원 불필요 — 행 삭제만. 승인 후 취소는 관리자(admin-att-leave-review CANCELLED).
+  if (method === "DELETE") {
+    const url = new URL(req.url);
+    const reqId = Number(url.searchParams.get("id"));
+    if (!reqId) return jsonError("validate", new Error("id 필수"), 400);
+    try {
+      const [r] = await db.select().from(attLeaveRequests).where(eq(attLeaveRequests.id, reqId)).limit(1);
+      if (!r) return jsonError("not_found", new Error("신청을 찾을 수 없습니다"), 404);
+      if (String(r.memberUid) !== memberUid) return jsonError("forbidden", new Error("본인 신청만 철회할 수 있습니다"), 403);
+      if (r.status !== "PENDING") return jsonError("invalid_status", new Error("승인 대기 중인 신청만 철회할 수 있습니다"), 409);
+      await db.delete(attLeaveRequests).where(eq(attLeaveRequests.id, reqId));
+      return jsonOk({ withdrawn: true, id: reqId });
+    } catch (err) {
+      return jsonError("withdraw", err);
     }
   }
 

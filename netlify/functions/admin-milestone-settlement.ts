@@ -168,6 +168,18 @@ export default async function handler(req: Request, _ctx: Context) {
         await ensureNextQuarter(settle.year, settle.quarter).catch((e: any) => {
           console.warn("[next-quarter-create]", e?.message);
         });
+
+        /* ★ Q3-032 fix: PAID 시 해당 분기 3개월 급여 재집계 — 분기 성과급(/3 안분)이 앞 달 명세에도
+           반영되도록. force=false라 확정(REVIEWED↑)·수동수정 명세는 보존(미반영). */
+        try {
+          const { calculatePayrollForMonth } = await import("../../lib/payroll-calc");
+          const baseMonth = (Number(settle.quarter) - 1) * 3;
+          for (let i = 1; i <= 3; i++) {
+            await calculatePayrollForMonth(Number(settle.year), baseMonth + i, { force: false });
+          }
+        } catch (e: any) {
+          console.warn("[settlement paid] 급여 재집계 트리거 실패:", e?.message);
+        }
       }
 
       return Response.json({ ok: true });

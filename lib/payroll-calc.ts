@@ -267,6 +267,14 @@ export async function calculatePayrollForMonth(
         const grossPayFinal = grossPay + _adjAdd - _adjDeduct;
         const totalDeductionFinal = totalDeduction + _otherDeduction;
         const netPayFinal = grossPayFinal - totalDeductionFinal;
+        /* ★ Q3-052 fix: 저장 컬럼(gross_pay/net_pay)은 조정분 반영(Final)인데 snapshot.derived는 조정 전 값이라
+           둘이 어긋났다. 스냅샷의 합계를 실제 저장값과 일치시키고 조정분도 함께 기록(감사 추적 정합). */
+        snapshot.derived.adjustmentAdd = r2(_adjAdd);
+        snapshot.derived.adjustmentDeduct = r2(_adjDeduct);
+        snapshot.derived.otherDeduction = r2(_otherDeduction);
+        snapshot.derived.grossPay = r2(grossPayFinal);
+        snapshot.derived.deductions.totalDeduction = r2(totalDeductionFinal);
+        snapshot.derived.netPay = r2(netPayFinal);
         // 갱신
         const upd = await db.execute(sql`
           UPDATE payroll_slips SET

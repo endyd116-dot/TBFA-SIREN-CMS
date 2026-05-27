@@ -49,7 +49,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     /* select_message — 본인 메시지만 */
     const sel: any = await db.execute(sql`
-      SELECT id, sender_id, is_deleted
+      SELECT id, sender_id, is_deleted, room_id
         FROM chat_messages
        WHERE id = ${messageId}
        LIMIT 1
@@ -63,6 +63,13 @@ export default async (req: Request, _ctx: Context) => {
       /* 멱등 — 이미 삭제된 경우 ok */
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers: JSON_HEADER });
     }
+
+    /* ★ Q3-051 fix: 종료(closed)된 채팅방의 메시지는 삭제 금지 (기록 불변성 — 전송 경로와 일관) */
+    try {
+      const rr: any = await db.execute(sql`SELECT status FROM chat_rooms WHERE id = ${row.room_id} LIMIT 1`);
+      const rst = (rr?.rows ?? rr ?? [])[0]?.status;
+      if (rst && rst !== "active") return jsonError(403, "room_closed", "종료된 채팅방의 메시지는 삭제할 수 없습니다.");
+    } catch (_) { /* 방 상태 조회 실패 시 기존 동작 */ }
 
     /* update — soft delete */
     await db.execute(sql`

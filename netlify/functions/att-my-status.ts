@@ -59,7 +59,7 @@ export default async function handler(req: Request) {
   try {
     const result = await db.execute(sql`
       SELECT
-        COUNT(*)                                                  AS work_days,
+        COUNT(*) FILTER (WHERE status IN ('NORMAL','LATE','EARLY_LEAVE','PARTIAL_LEAVE') AND check_in_time IS NOT NULL) AS work_days,  -- Q3-025: 실출근일만
         COALESCE(SUM(working_mins), 0)                           AS total_working_mins,
         COUNT(*) FILTER (WHERE status = 'LATE')                  AS late_count,
         COUNT(*) FILTER (WHERE work_mode = 'REMOTE')             AS remote_days

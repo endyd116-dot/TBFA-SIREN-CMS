@@ -171,7 +171,24 @@ export default async (req: Request, _ctx: Context) => {
 
         let conds: any;
         if (taskId) {
-          // 특정 task의 활동 로그 — visibility 무관 (카드 모달 히스토리 탭용)
+          // ★ Q3-016 fix: 특정 task 활동 로그도 단건 상세와 동일한 접근 권한 검증 (소유/담당/지시/완료/super).
+          // 기존엔 visibility 무관 전체 반환이라 작업 ID만 바꾸면 남의 작업 활동 로그가 노출됐다.
+          const [ft]: any = await db
+            .select({
+              memberId: workspaceTasks.memberId,
+              assignedTo: workspaceTasks.assignedTo,
+              assignedBy: workspaceTasks.assignedBy,
+              completedBy: workspaceTasks.completedBy,
+            })
+            .from(workspaceTasks)
+            .where(eq(workspaceTasks.id, taskId))
+            .limit(1);
+          if (ft) {
+            const canViewTask =
+              isSuperAdmin || ft.memberId === meId || ft.assignedTo === meId ||
+              ft.assignedBy === meId || ft.completedBy === meId;
+            if (!canViewTask) return forbidden("조회 권한이 없습니다");
+          }
           conds = and(
             eq(workspaceActivityLog.targetType, "task"),
             eq(workspaceActivityLog.targetId, taskId)
@@ -654,41 +671,26 @@ export default async (req: Request, _ctx: Context) => {
         }
 
         // ★ Phase 25 — 비매출 마일스톤 AI 매칭 트리거 (done 이동 시, 아직 매칭 안 된 경우)
-        if (newStatus === "done" && task.status !== "done" && !task.milestone_def_id) {
+        if (newStatus === "done" && task.status !== "done" && !task.milestoneDefId) {  /* Q3-015 fix: snake_case→camelCase (drizzle select 결과) */
           triggerMilestoneMatch(id, meId);
         }
 
-        // ★ Phase 21 R3 — 카드 done → 원본 서비스 closed 동기화 (양방향)
+        // ★ Phase 21 R3 / Q3-002 — 카드 done → 원본 서비스 종결 동기화 (양방향·단일 경로로 통합)
+        //   기존엔 closeServiceFromTask(lib) + 인라인 tableMap 이 같은 종결을 이중 실행했다.
+        //   lib의 pickClosedStatus가 incident/harassment/legal에 없는 'completed'를 반환해 매번
+        //   예외(인라인이 결과적으로 종결)였는데, pickClosedStatus를 정확한 'closed'로 교정하고
+        //   인라인 중복 경로를 제거해 하나로 통합한다.
+        let syncedReport: { type: string; id: number } | null = null;
         if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
           try {
             const { closeServiceFromTask } = await import("../../lib/workspace-sync");
             await closeServiceFromTask({ taskId: id, closedBy: meId });
+            const st = String(task.sourceType);
+            if (["incident", "harassment", "legal", "support"].includes(st)) {
+              syncedReport = { type: st, id: Number(task.sourceId) };
+            }
           } catch (err) {
             console.warn("[workspace-sync] closeServiceFromTask 실패:", err);
-          }
-        }
-
-        // ★ Round 8 — status=done 시 sourceType/sourceId 연결 테이블 완료 상태 업데이트
-        let syncedReport: { type: string; id: number } | null = null;
-        if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
-          const sourceType = task.sourceType as string;
-          const sourceId = Number(task.sourceId);
-          const tableMap: Record<string, { table: string; status: string }> = {
-            support:    { table: "support_requests",   status: "completed" },
-            incident:   { table: "incident_reports",   status: "closed" },
-            harassment: { table: "harassment_reports", status: "closed" },
-            legal:      { table: "legal_consultations", status: "closed" },
-          };
-          const mapping = tableMap[sourceType];
-          if (mapping) {
-            try {
-              await db.execute(
-                sql`UPDATE ${sql.raw(mapping.table)} SET status = ${mapping.status}, updated_at = NOW() WHERE id = ${sourceId}`
-              );
-              syncedReport = { type: sourceType, id: sourceId };
-            } catch (syncErr) {
-              console.warn("[round8-sync] 연결 테이블 완료 업데이트 실패:", syncErr);
-            }
           }
         }
 
@@ -818,10 +820,26 @@ export default async (req: Request, _ctx: Context) => {
       /* ─── action=unarchive ─── */
       if (action === "unarchive") {
         if (task.status !== "archived") return badRequest("보관 상태가 아닙니다");
+        // ★ Q3-017 fix: 무조건 done이 아니라 보관 직전 상태를 복원 (archive 시 기록한 metadata.prevStatus).
+        let restoreStatus = "todo";
+        try {
+          const [arch]: any = await db
+            .select({ metadata: workspaceActivityLog.metadata })
+            .from(workspaceActivityLog)
+            .where(and(
+              eq(workspaceActivityLog.targetType, "task"),
+              eq(workspaceActivityLog.targetId, id),
+              eq(workspaceActivityLog.actionType, "task.archive")
+            ))
+            .orderBy(desc(workspaceActivityLog.createdAt))
+            .limit(1);
+          const prev = (arch?.metadata as any)?.prevStatus;
+          if (prev && ["todo", "doing", "done", "blocked"].includes(prev)) restoreStatus = prev;
+        } catch (_) { /* 로그 조회 실패 시 todo로 복원 */ }
         const [updated]: any = await db
           .update(workspaceTasks)
           .set({
-            status: "done",
+            status: restoreStatus,
             archivedAt: null,
             updatedAt: new Date(),
           } as any)
@@ -834,7 +852,7 @@ export default async (req: Request, _ctx: Context) => {
           targetType: "task",
           targetId: id,
           targetTitle: task.title,
-          metadata: {},
+          metadata: { restoredTo: restoreStatus },
           visibility: "team",
         });
         return ok(updated, "보관 해제되었습니다");
@@ -900,29 +918,8 @@ export default async (req: Request, _ctx: Context) => {
         return ok(updated, "보류 해제되었습니다");
       }
 
-      /* ─── action=restore (휴지통 복원) ─── */
-      if (action === "restore") {
-        if (!isOwner && !isSuperAdmin) return forbidden("복원 권한이 없습니다");
-        const [updated]: any = await db
-          .update(workspaceTasks)
-          .set({
-            deletedAt: null,
-            updatedAt: new Date(),
-          } as any)
-          .where(eq(workspaceTasks.id, id))
-          .returning();
-        await logWorkspaceActivity({
-          actorId: meId,
-          actorName: adminMember.name,
-          actionType: "task.unarchive",
-          targetType: "task",
-          targetId: id,
-          targetTitle: task.title,
-          metadata: {},
-          visibility: "team",
-        });
-        return ok(updated, "작업이 복원되었습니다");
-      }
+      /* ─── (Q3-039 제거) action=restore: workspaceTasks에 deleted_at 컬럼이 없어 무동작이던 죽은 분기.
+             삭제는 하드 삭제(아래 DELETE)이고 복원 흐름은 unarchive가 담당. 혼동 방지 위해 제거. ─── */
 
       /* ─── action=bookmark / unbookmark ─── */
       if (action === "bookmark" || action === "unbookmark") {
@@ -1040,6 +1037,9 @@ export default async (req: Request, _ctx: Context) => {
         return forbidden("지시받은 작업은 삭제할 수 없습니다. 지시자에게 요청하세요");
       }
 
+      // ★ Q3-018 fix: parentTaskId는 FK가 아니라(schema:1604) 부모 삭제 시 서브태스크가 고아로 남는다.
+      // 서브태스크를 먼저 삭제(그 하위 코멘트·첨부·워처 등은 FK onDelete cascade로 정리)한 뒤 부모 삭제.
+      await db.delete(workspaceTasks).where(eq(workspaceTasks.parentTaskId, id));
       await db.delete(workspaceTasks).where(eq(workspaceTasks.id, id));
 
       await logWorkspaceActivity({

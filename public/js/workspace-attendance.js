@@ -677,9 +677,27 @@
         <td>${periodText}</td>
         <td>${r.days ?? '—'}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '—')}</td>
-        <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span></td>
+        <td><span class="att-badge ${r.status || ''}">${statusLabel(r.status)}</span>${(r.status === 'PENDING' && r.id) ? ` <button type="button" class="att-leave-withdraw" data-id="${r.id}" style="margin-left:6px;font-size:11px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer">철회</button>` : ''}</td>
       </tr>`;
     }).join('');
+
+    // Q3-009: 본인 PENDING 신청 셀프 철회 (delegated · 1회 바인딩)
+    if (tbody && !tbody.dataset.withdrawBound) {
+      tbody.dataset.withdrawBound = '1';
+      tbody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.att-leave-withdraw');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        if (!id || !confirm('이 휴가 신청을 철회하시겠습니까?')) return;
+        try {
+          await api('/api/att-leave-request?id=' + id, { method: 'DELETE' });
+          toast('신청이 철회되었습니다');
+          loadLeaveHistory();
+        } catch (err) {
+          toast('철회 실패: ' + (err?.message || ''));
+        }
+      });
+    }
   }
 
   async function submitLeave() {

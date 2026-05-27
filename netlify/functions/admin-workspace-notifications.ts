@@ -49,6 +49,9 @@ export default async (req: Request, _ctx: Context) => {
       const limit = Math.min(MAX_LIMIT, Math.max(1, Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : DEFAULT_LIMIT));
       const category = url.searchParams.get("category");
       const onlyUnread = url.searchParams.get("onlyUnread") === "1";
+      // ★ Q3-019 fix: offset 페이지네이션 + 실제 총건수 반환 (기존엔 offset 미지원·total=현재페이지수라 '더 보기' 불능)
+      const offsetRaw = Number(url.searchParams.get("offset"));
+      const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
 
       step = "select_items";
       const conditions: any[] = [eq(workspaceNotifications.memberId, meId)];
@@ -73,7 +76,8 @@ export default async (req: Request, _ctx: Context) => {
         .from(workspaceNotifications)
         .where(and(...conditions))
         .orderBy(desc(workspaceNotifications.sentAt))
-        .limit(limit);
+        .limit(limit)
+        .offset(offset);
 
       step = "select_unread_count";
       let unreadCount = 0;
@@ -89,7 +93,19 @@ export default async (req: Request, _ctx: Context) => {
         console.warn("[notifications] unreadCount 조회 실패:", e);
       }
 
-      return jsonOk({ items, total: items.length, unreadCount });
+      // 전체 건수 (페이지네이션 '더 보기' 판단용)
+      let total = items.length;
+      try {
+        const tc: any = await db
+          .select({ c: sql<number>`COUNT(*)::int` })
+          .from(workspaceNotifications)
+          .where(and(...conditions));
+        const trow = Array.isArray(tc) ? tc[0] : (tc as any).rows?.[0];
+        total = Number(trow?.c ?? items.length);
+      } catch (e) {
+        console.warn("[notifications] total 조회 실패:", e);
+      }
+      return jsonOk({ items, total, offset, limit, unreadCount });
     }
 
     /* ───── POST — 읽음 처리 ───── */

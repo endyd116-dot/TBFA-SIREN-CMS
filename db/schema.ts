@@ -3490,6 +3490,8 @@ export const milestoneDefinitions = pgTable("milestone_definitions", {
   effectiveFrom:        date("effective_from"),
   effectiveTo:          date("effective_to"),
   sortOrder:            integer("sort_order").notNull().default(0),
+  /* ★ Q3-045: 라이브 DB에 이미 존재(migrate-milestone-v4) — schema 정의만 동기화(회귀 예방·append-only) */
+  nonRevenueCategory:   varchar("non_revenue_category", { length: 50 }),
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
 });
@@ -3998,6 +4000,9 @@ export const milestoneRoles = pgTable("milestone_roles", {
   description: text("description"),
   sortOrder:   integer("sort_order").default(0).notNull(),
   isActive:    boolean("is_active").default(true).notNull(),
+  /* ★ Q3-045: 라이브 DB에 이미 존재(migrate-milestone-role-caps) — schema 정의만 동기화(회귀 예방·append-only) */
+  revenueCap:    numeric("revenue_cap", { precision: 15, scale: 2 }),
+  nonRevenueCap: numeric("non_revenue_cap", { precision: 15, scale: 2 }),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
   updatedAt:   timestamp("updated_at").defaultNow().notNull(),
 }, (t) => ({

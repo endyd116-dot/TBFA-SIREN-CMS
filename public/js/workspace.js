@@ -1535,7 +1535,8 @@
       const taskId = Number(item.dataset.taskId);
       try {
         if (mentionId) {
-          await api(`/api/workspace-task-mentions?id=${mentionId}`, { method: 'PATCH', body: { isRead: true } });
+          // Q3-003 fix: 서버 PATCH 계약(body.ids 배열)과 일치 — 기존 ?id=&isRead 는 서버가 무시해 항상 400
+          await api(`/api/workspace-task-mentions`, { method: 'PATCH', body: { ids: [mentionId] } });
         }
       } catch (_) {}
       if (taskId) location.href = `/workspace-kanban.html#task=${taskId}`;

@@ -212,7 +212,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
 
   // 비매출 보너스 (선택된 2개)
   const nrRows = await db.execute(sql`
-    SELECT nra.*, md.code FROM non_revenue_achievements nra
+    SELECT nra.*, md.code, md.name AS milestone_name FROM non_revenue_achievements nra
     JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
     WHERE nra.submitted_by = ${memberId} AND nra.quarter_id = ${quarterId}
       AND nra.status = 'VERIFIED' AND nra.is_selected_for_quarter = TRUE

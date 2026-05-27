@@ -47,36 +47,8 @@ export default async function handler(_req: Request, _ctx: Context) {
       }
     }
 
-    // ── D-7 알림: 분기 종료 7일 전 모든 어드민에게 ──
-    const d7Date = new Date();
-    d7Date.setDate(d7Date.getDate() + 7);
-    const d7 = d7Date.toISOString().slice(0, 10);
-    const d7Rows = await db.execute(sql`
-      SELECT id, year, quarter FROM quarters WHERE status = 'ACTIVE' AND end_date = ${d7}
-    `);
-    const d7Qs = (d7Rows as any).rows || (d7Rows as any[]);
-    if (d7Qs.length > 0) {
-      for (const q of d7Qs) {
-        try {
-          const adminRows = await db.execute(sql`
-            SELECT id FROM members WHERE type = 'admin' AND status = 'active' AND milestone_role IS NOT NULL
-          `);
-          const adminIds = ((adminRows as any).rows || (adminRows as any[])).map((r: any) => r.id);
-          if (adminIds.length > 0) {
-            await notifyMany(adminIds, {
-              recipientType: "admin",
-              category: "milestone", severity: "warning",
-              title: `결산 작성 기한 D-7: ${q.year}년 ${q.quarter}분기`,
-              message: "분기 종료 7일 전입니다. 결산을 제출해주세요.",
-              link: "/admin#settlement-my",
-            });
-          }
-          results.push(`D-7 알림 발송: ${q.year}Q${q.quarter} → ${adminIds.length}명`);
-        } catch (e: any) {
-          results.push(`D-7 알림 오류: ${String(e?.message).slice(0, 100)}`);
-        }
-      }
-    }
+    // ── D-7 알림 제거 (Q3-030): 분기 마감 독촉은 cron-ms-deadline-remind(D-1~D-7·미제출자 한정)로 일원화.
+    //    기존엔 이 cron이 D-7에 전 어드민(이미 제출한 사람 포함)에게 또 보내 같은 날 중복 발송됐다.
 
     // ── 미제출 에스컬레이션: ENDED 분기 중 DRAFT/미제출 결산 ──
     const endedIds = endedQs.map((q: any) => q.id);

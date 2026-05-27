@@ -10,6 +10,7 @@
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { requireRole, roleForbidden } from "../../lib/admin-role";
+import { canAccess } from "../../lib/role-permission-check";
 import {
   getSystemPrompt, setSystemPrompt,
   listToolPermissions, updateToolPermission,
@@ -54,6 +55,12 @@ async function handlePost(req: Request, adminId: number, adminMember: { role?: s
 
   /* 1) 시스템 프롬프트 변경 */
   if (typeof body.systemPrompt === "string") {
+    /* ★ Q3-034 fix: 시스템 프롬프트는 AI 비서의 업무범위·dry-run·금지사항 등 가드레일 전체를 규정 —
+       도구 권한 변경과 동급의 권한 게이트 적용 (기존엔 admin 누구나 변경 가능했음). ai_config_prompt 시드는 메인. */
+    if (!(await canAccess(adminMember.role || "", "ai_config_prompt"))) {
+      return new Response(JSON.stringify({ ok: false, error: "AI 시스템 프롬프트 변경 권한이 없습니다" }),
+        { status: 403, headers: JSON_HEADER });
+    }
     const newPrompt = body.systemPrompt.trim();
     if (newPrompt.length < 30) {
       return new Response(JSON.stringify({ ok: false, error: "시스템 프롬프트가 너무 짧습니다 (30자 이상)" }),

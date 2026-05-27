@@ -160,11 +160,33 @@ export default async function handler(req: Request, _ctx: Context) {
     let body: any;
     try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
     const { eventRangeAmount } = body;
-    if (eventRangeAmount == null) return Response.json({ ok: false, error: "eventRangeAmount 필수" }, { status: 400 });
+    const amt = Number(eventRangeAmount);
+    if (eventRangeAmount == null || !Number.isFinite(amt) || amt < 0) {
+      return Response.json({ ok: false, error: "eventRangeAmount는 0 이상 숫자여야 합니다" }, { status: 400 });
+    }
     try {
+      /* ★ Q3-031 fix: 존재 확인 + bonus_formula의 minAmount~maxAmount 범위 검증 (매출 카운터파트와 동일 보호).
+         기존엔 검증 없이 무조건 UPDATE라 0행도 ok:true(저장 오인)·범위 밖/음수도 정산에 반영됐다. */
+      const mdRows = await db.execute(sql`
+        SELECT md.bonus_formula FROM non_revenue_achievements nra
+        JOIN milestone_definitions md ON md.id = nra.milestone_definition_id
+        WHERE nra.id = ${Number(idStr)}
+        LIMIT 1
+      `);
+      const md = ((mdRows as any).rows?.[0] || (mdRows as any[])[0]) as any;
+      if (!md) return Response.json({ ok: false, error: "비매출 성과를 찾을 수 없습니다" }, { status: 404 });
+      const formula = md.bonus_formula || {};
+      const isEventRange = formula?.type === "EVENT_RANGE" || formula?.formula_type === "EVENT_RANGE";
+      if (isEventRange) {
+        const minA = Number(formula.minAmount ?? formula.min ?? 0);
+        const maxA = Number(formula.maxAmount ?? formula.max ?? 0);
+        if (maxA > 0 && (amt < minA || amt > maxA)) {
+          return Response.json({ ok: false, error: `금액은 ${minA.toLocaleString()}~${maxA.toLocaleString()}원 범위여야 합니다` }, { status: 400 });
+        }
+      }
       await db.execute(sql`
         UPDATE non_revenue_achievements SET
-          event_range_amount = ${String(eventRangeAmount)}, updated_at = NOW()
+          event_range_amount = ${String(amt)}, updated_at = NOW()
         WHERE id = ${Number(idStr)}
       `);
       return Response.json({ ok: true });
