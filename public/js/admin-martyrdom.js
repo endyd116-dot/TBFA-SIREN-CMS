@@ -2310,30 +2310,73 @@ async function viewDoc(docId) {
   if (!doc) return;
   const modal = document.getElementById("viewerModal");
   const content = document.getElementById("viewerContent");
+  document.getElementById("viewerTitle").textContent = doc.fileName;
 
+  const isMedia = doc.extractMethod === "gemini_audio" || doc.extractMethod === "gemini_video";
+
+  /* ── 1. 원본 영역 ── */
+  let originalHtml = "";
   if (doc.blobUrl && doc.blobUrl !== "#") {
     const isPdf   = doc.mimeType === "application/pdf";
     const isImage = doc.mimeType?.startsWith("image/");
     if (isPdf) {
-      content.innerHTML = `<iframe src="${escapeHtml(doc.blobUrl)}" style="width:100%;height:70vh;border:none"></iframe>`;
+      originalHtml = `<iframe src="${escapeHtml(doc.blobUrl)}" style="width:100%;height:56vh;border:none"></iframe>`;
     } else if (isImage) {
-      content.innerHTML = `<img src="${escapeHtml(doc.blobUrl)}" style="max-width:100%;max-height:70vh;object-fit:contain">`;
+      originalHtml = `<img src="${escapeHtml(doc.blobUrl)}" style="max-width:100%;max-height:56vh;object-fit:contain">`;
     } else {
-      content.innerHTML = `<a href="${escapeHtml(doc.blobUrl)}" target="_blank">파일 다운로드</a>`;
+      originalHtml = `<a href="${escapeHtml(doc.blobUrl)}" target="_blank">파일 다운로드</a>`;
     }
-  } else if (doc.extractMethod === "gemini_audio" || doc.extractMethod === "gemini_video") {
-    /* 음성·영상은 전사 후 원본 삭제됨(저장공간 절약) — 전사 요약 표시 */
+  } else if (isMedia) {
     const ko = doc.extractMethod === "gemini_audio" ? "음성" : "영상";
-    content.innerHTML = `<div style="padding:20px;text-align:left">
-      <div style="color:#64748b;margin-bottom:12px;line-height:1.6">🎙 원본 ${ko}은 전사(텍스트 변환) 후 저장공간 절약을 위해 삭제되었습니다.<br>아래 요약과 추출된 전사 텍스트로 분류·분석이 이루어집니다.</div>
-      <div style="font-weight:600;margin-bottom:6px">한 줄 요약</div>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${escapeHtml(doc.docSummary || "-")}</div>
-    </div>`;
+    originalHtml = `<div style="color:#64748b;margin-bottom:4px;line-height:1.6">🎙 원본 ${ko}은 전사(텍스트 변환) 후 저장공간 절약을 위해 삭제되었습니다. 아래 전사 전문으로 분류·분석이 이루어집니다.</div>`;
   } else {
-    content.innerHTML = `<div style="padding:24px;color:#64748b;text-align:center">${USE_MOCK ? "(mock — 실 URL 없음)" : "파일 URL을 불러오는 중…"}</div>`;
+    originalHtml = `<div style="color:#94a3b8;margin-bottom:4px">원본 미리보기가 없습니다 — 아래 추출 텍스트를 확인하세요.</div>`;
   }
-  document.getElementById("viewerTitle").textContent = doc.fileName;
+
+  /* ── 2. 추출/전사 텍스트 영역 (on-demand 로드) ── */
+  const textLabel = isMedia ? "전사 전문" : "추출 텍스트";
+  content.innerHTML = `<div style="padding:8px 4px;text-align:left">
+    ${originalHtml}
+    <div style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-weight:600">📄 ${textLabel}</span>
+        <button class="btn-xs btn-secondary" onclick="copyDocText()" id="docTextCopyBtn" style="display:none">복사</button>
+      </div>
+      ${doc.docSummary ? `<div style="color:#475569;font-size:12px;margin-bottom:8px">한 줄 요약: ${escapeHtml(doc.docSummary)}</div>` : ""}
+      <div id="docTextBody" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;white-space:pre-wrap;max-height:48vh;overflow:auto;line-height:1.6;font-size:13px;color:#334155">불러오는 중…</div>
+    </div>
+  </div>`;
   modal.style.display = "flex";
+
+  const body = document.getElementById("docTextBody");
+  const copyBtn = document.getElementById("docTextCopyBtn");
+  if (USE_MOCK || (typeof USE_P4_MOCK !== "undefined" && USE_P4_MOCK)) {
+    if (body) body.textContent = doc.docSummary || "(mock — 추출 텍스트 없음)";
+    return;
+  }
+  try {
+    const d = await apiFetch("/api/admin-martyrdom-doc-text?id=" + encodeURIComponent(docId));
+    if (!body) return;
+    if (d.ok && d.extractedText && d.extractedText.trim()) {
+      body.textContent = d.extractedText;
+      if (copyBtn) copyBtn.style.display = "";
+    } else if (d.ok && d.extractError) {
+      body.innerHTML = `<span style="color:#dc2626">추출 실패: ${escapeHtml(d.extractError)}</span>`;
+    } else {
+      const st = d.extractStatus || doc.extractStatus;
+      body.textContent = (st === "processing" || st === "pending") ? "추출 처리 중입니다… 잠시 후 다시 열어주세요." : (doc.docSummary || "추출 텍스트가 없습니다.");
+    }
+  } catch (e) {
+    if (body) body.textContent = doc.docSummary || "추출 텍스트를 불러오지 못했습니다.";
+  }
+}
+function copyDocText() {
+  const body = document.getElementById("docTextBody");
+  if (!body) return;
+  navigator.clipboard?.writeText(body.textContent || "").then(
+    () => toast("추출 텍스트를 복사했습니다"),
+    () => toast("복사 실패", "error")
+  );
 }
 function closeViewer() {
   document.getElementById("viewerModal").style.display = "none";

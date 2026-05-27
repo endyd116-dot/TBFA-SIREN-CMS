@@ -99,12 +99,10 @@ export async function extractDocText({
      ★ 보통은 extract-background가 base64 변환 없이 bytes로 transcribeMedia를 직접 호출.
      이 분기는 base64 진입 시의 폴백(메모리 위해 디코드). */
   if (AUDIO_EXTS.has(ext) || mime.startsWith("audio/")) {
-    const gmime = AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3");
-    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), gmime, "audio");
+    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), audioMimeCandidates(ext, mime), "audio");
   }
   if (VIDEO_EXTS.has(ext) || mime.startsWith("video/")) {
-    const gmime = VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4");
-    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), gmime, "video");
+    return extractGeminiMediaBytes(Buffer.from(base64, "base64"), videoMimeCandidates(ext, mime), "video");
   }
 
   /* ── 2. 텍스트 PDF ── */
@@ -309,51 +307,70 @@ export function isMediaFile(mimeType: string, fileName: string): boolean {
   return AUDIO_EXTS.has(ext) || VIDEO_EXTS.has(ext) || mime.startsWith("audio/") || mime.startsWith("video/");
 }
 
+/* Gemini에 보낼 전사 mimeType 후보(첫 후보 실패 시 차례로 재시도).
+   ★ m4a: 브라우저/매핑이 audio/mp4를 주는데 Gemini가 거부하는 경우가 있어, m4a=AAC 코덱이므로 audio/aac로 폴백.
+   wma·amr 등도 미지원 가능 → 마지막으로 audio/mp3 시도(컨테이너 디코드 운에 맡김). */
+function audioMimeCandidates(ext: string, mime: string): string[] {
+  const primary = AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3");
+  const list = [primary];
+  if (ext === "m4a" || primary === "audio/mp4") { if (!list.includes("audio/aac")) list.push("audio/aac"); }
+  if (ext === "wma" || ext === "amr") { if (!list.includes("audio/mp3")) list.push("audio/mp3"); }
+  return list;
+}
+function videoMimeCandidates(ext: string, mime: string): string[] {
+  return [VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4")];
+}
+
 /** 미디어 바이트 → 전사(Files API). extract-background에서 base64 변환 없이 직접 호출(메모리 절약). */
 export async function transcribeMedia(bytes: Buffer, mimeType: string, fileName: string): Promise<OcrResult> {
   const ext = getExt(fileName);
   const mime = (mimeType || "").toLowerCase();
   const isAudio = AUDIO_EXTS.has(ext) || mime.startsWith("audio/");
   const kind: "audio" | "video" = isAudio ? "audio" : "video";
-  const gmime = isAudio
-    ? (AUDIO_MIME[ext] || (mime.startsWith("audio/") ? mime : "audio/mp3"))
-    : (VIDEO_MIME[ext] || (mime.startsWith("video/") ? mime : "video/mp4"));
-  return extractGeminiMediaBytes(bytes, gmime, kind);
+  const candidates = isAudio ? audioMimeCandidates(ext, mime) : videoMimeCandidates(ext, mime);
+  return extractGeminiMediaBytes(bytes, candidates, kind);
 }
 
-async function extractGeminiMediaBytes(bytes: Buffer, mimeType: string, kind: "audio" | "video"): Promise<OcrResult> {
+async function extractGeminiMediaBytes(bytes: Buffer, mimeCandidates: string[], kind: "audio" | "video"): Promise<OcrResult> {
   const method: OcrResult["method"] = kind === "audio" ? "gemini_audio" : "gemini_video";
   const ko = kind === "audio" ? "음성" : "영상";
+  const candidates = mimeCandidates.length ? mimeCandidates : [kind === "audio" ? "audio/mp3" : "video/mp4"];
 
   if (bytes.length > MEDIA_BYTES_LIMIT) {
     const mb = Math.round(bytes.length / 1024 / 1024);
     return { text: "", method: "manual", error: `${ko} 파일이 매우 큽니다(약 ${mb}MB) — 처리 메모리 한계로 자동 전사가 어렵습니다. 시간대로 분할해 업로드하거나 [텍스트 직접 입력]을 이용해주세요` };
   }
 
-  /* 대용량은 Gemini Files API로 업로드(인라인 ~20MB 한도 우회·최대 2GB) */
-  const up = await uploadToGeminiFiles(bytes, mimeType, `martyrdom-${kind}-${Date.now()}`);
+  /* 대용량은 Gemini Files API로 업로드(인라인 ~20MB 한도 우회·최대 2GB).
+     업로드는 1회(첫 후보 mime)로 끝내고, 전사 호출만 후보 mime을 바꿔가며 재시도(같은 fileUri 재참조). */
+  const up = await uploadToGeminiFiles(bytes, candidates[0], `martyrdom-${kind}-${Date.now()}`);
   if (!up.ok || !up.fileUri) {
     if (up.fileName) await deleteGeminiFile(up.fileName);
     return { text: "", method, error: `${ko} 처리 실패: ${up.error || "업로드 실패"} — mp3/wav/mp4 변환 또는 텍스트 직접 입력 권장` };
   }
 
   try {
-    const result = await callGemini(kind === "audio" ? AUDIO_PROMPT : VIDEO_PROMPT, {
-      mode: "pro",
-      featureKey: "martyrdom_ai",
-      fileParts: [{ fileUri: up.fileUri, mimeType }],
-      maxOutputTokens: 8192,
-      timeoutMs: 180000,
-      internalBulk: true,
-    });
-    if (!result.ok || !result.text) {
-      return { text: "", method, error: `${kind === "audio" ? "음성 전사" : "영상 분석"} 실패: ${result.error || "응답 없음"} — 형식 미지원일 수 있어 mp3/wav/mp4 변환 또는 텍스트 직접 입력 권장` };
+    let lastErr = "응답 없음";
+    for (const m of candidates) {
+      const result = await callGemini(kind === "audio" ? AUDIO_PROMPT : VIDEO_PROMPT, {
+        mode: "pro",
+        featureKey: "martyrdom_ai",
+        fileParts: [{ fileUri: up.fileUri, mimeType: m }],
+        maxOutputTokens: 8192,
+        timeoutMs: 180000,
+        internalBulk: true,
+      });
+      if (result.ok && result.text && result.text.trim().length >= 5) {
+        return { text: result.text.trim(), method };
+      }
+      if (result.ok) {
+        /* 성공했으나 빈 결과 — 무음·잡음. mime 재시도해도 동일하므로 종료 */
+        return { text: (result.text || "").trim(), method, error: "전사 결과가 비었습니다 (무음·잡음일 수 있음)" };
+      }
+      /* 실패(포맷 거부 등) → 다음 후보 mime으로 재시도 */
+      lastErr = result.error || "응답 없음";
     }
-    const text = result.text.trim();
-    if (text.length < 5) {
-      return { text, method, error: "전사 결과가 비었습니다 (무음·잡음일 수 있음)" };
-    }
-    return { text, method };
+    return { text: "", method, error: `${kind === "audio" ? "음성 전사" : "영상 분석"} 실패: ${lastErr} — 형식 미지원일 수 있어 mp3/wav/mp4 변환 또는 텍스트 직접 입력 권장` };
   } catch (err: any) {
     return { text: "", method, error: `미디어 처리 실패: ${String(err?.message || err).slice(0, 150)}` };
   } finally {
