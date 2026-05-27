@@ -18,10 +18,12 @@
  * - 향후 결제 자동 중단 (정기결제 PG 연동 시 의미 있음)
  * - 한 번 cancelled 되면 사용자는 다시 활성화 불가 (재가입/재신청 필요)
  */
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db, donations } from "../../db";
+import { db, donations, billingKeys } from "../../db";
 import { authenticateUser } from "../../lib/auth";
+import { removeBillingKey } from "../../lib/kicc";
+import { safeReevaluate } from "../../lib/donor-status";
 import { safeValidate } from "../../lib/validation";
 import {
   ok, badRequest, unauthorized, forbidden, notFound, serverError,
@@ -113,6 +115,29 @@ export default async (req: Request) => {
         type: donations.type,
         amount: donations.amount,
       });
+
+    /* 7-B. ★ R41 Q1-005 FIX: 정기 후원 '해지'는 빌링키도 비활성화해야 실제 자동청구가 멈춤.
+       이전엔 후원 레코드만 cancelled로 바꿔 "해지되었습니다" 안내를 띄우면서도 빌링키가 살아있어
+       다음 달 자동청구가 계속될 수 있었음. 본인 활성 빌링키 해지 + KICC 빌키 삭제 + 다음청구일 해제. */
+    try {
+      const activeKeys = await db
+        .select({ id: billingKeys.id, billingKey: billingKeys.billingKey })
+        .from(billingKeys)
+        .where(and(eq(billingKeys.memberId, auth.uid), eq(billingKeys.isActive, true)));
+      for (const bk of activeKeys) {
+        await db
+          .update(billingKeys)
+          .set({ isActive: false, deactivatedAt: now, deactivatedReason: "user_canceled (donations-cancel)", nextChargeAt: null, updatedAt: now } as any)
+          .where(eq(billingKeys.id, bk.id));
+        if (bk.billingKey) {
+          try { await removeBillingKey({ billingKey: bk.billingKey }); } catch (e) { console.warn("[donations-cancel] KICC 빌키 삭제 예외(무시)", e); }
+        }
+      }
+      await db.execute(sql`UPDATE members SET next_billing_date = NULL, updated_at = NOW() WHERE id = ${auth.uid}`);
+    } catch (e) {
+      console.warn("[donations-cancel] 빌키 해지 예외(무시):", e);
+    }
+    await safeReevaluate(auth.uid, "donations-cancel");
 
     /* 8. 감사 로그 */
     await logUserAction(req, auth.uid, auth.name, "donation_cancel_success", {

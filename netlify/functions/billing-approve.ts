@@ -17,7 +17,7 @@ import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
 import { recalculateGrade } from "../../lib/grade-calculator";
 import { safeReevaluate } from "../../lib/donor-status";
-import { approveTrade, chargeWithBillingKey, generateShopOrderNo, calculateNextBillingDate } from "../../lib/kicc";
+import { approveTrade, chargeWithBillingKey, calculateNextBillingDate } from "../../lib/kicc";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
 
@@ -125,8 +125,12 @@ export default async (req: Request) => {
     const cardNumberMasked = issue.cardNumberMasked || "****-****-****-****";
     const cardType = issue.cardType === "체크" ? "체크" : "신용";
 
-    /* 2) 빌키로 1회차 즉시결제 */
-    const chargeOrderNo = generateShopOrderNo("SIREN-BILL");
+    /* 2) 빌키로 1회차 즉시결제
+       ★ R41 Q1-002 FIX: 1회차 주문번호를 pending 주문(pgOrderNo) 기반 결정값으로.
+       이전엔 generateShopOrderNo(랜덤)이라 KICC 복귀(returnUrl) 중복 수신·재시도 시
+       매번 다른 거래로 인식 → 첫 회차 이중청구 가능. 이제 같은 등록건은 같은
+       shopOrderNo → KICC shopTransactionId 멱등으로 1회만 청구. */
+    const chargeOrderNo = `${pgOrderNo}-B1`;
     const charge = await chargeWithBillingKey({
       billingKey: billKey,
       shopOrderNo: chargeOrderNo,

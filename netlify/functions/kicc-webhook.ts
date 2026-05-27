@@ -11,6 +11,8 @@
 import { eq } from "drizzle-orm";
 import { db, donations } from "../../db";
 import { logAudit } from "../../lib/audit";
+import { verifyMsgAuth } from "../../lib/kicc";
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 function ack(extra?: Record<string, any>): Response {
   return new Response(JSON.stringify({ resCd: "0000", resMsg: "정상", ...(extra || {}) }), {
@@ -105,6 +107,37 @@ export default async (req: Request) => {
     const cur = priority[donation.status] || 0;
     const next = priority[newStatus] || 0;
     const downgradeAllowed = donation.status === "completed" && (newStatus === "cancelled" || newStatus === "refunded");
+
+    /* ★ R41 Q1-003 FIX: 완료건 취소/환불 다운그레이드는 노티 서명(msgAuthValue) 검증 통과 시에만 자동 반영.
+       KICC 노티는 서명이 없을 수 있어, 미검증 취소/환불 노티를 그대로 적용하면 내부 ID(pgCno·shopOrderNo)를
+       아는 자가 위조 노티로 완료 후원을 취소·환불 상태로 둔갑시킬 수 있음(회계·영수증 무결성).
+       미검증이면 자동 반영 보류 + 감사로그 + 슈퍼어드민 통지로 수동 확인 유도. */
+    if (downgradeAllowed && !verifyMsgAuth(p)) {
+      await logAudit({
+        userId: donation.memberId,
+        userType: "system",
+        userName: "kicc-webhook",
+        action: "webhook_downgrade_unverified",
+        target: pgOrderNo || donation.pgOrderNo || `D-${donation.id}`,
+        detail: { donationId: donation.id, requestedStatus: newStatus, note: "서명 미검증 — 자동 반영 보류" },
+        success: false,
+      }).catch(() => {});
+      try {
+        await notifyAllSuperAdmins({
+          category: "donation",
+          severity: "warning",
+          title: "⚠️ 미검증 결제 취소/환불 노티 — 확인 필요",
+          message: `후원 D-${donation.id}에 외부 ${newStatus} 노티가 수신됐으나 서명 검증이 안 돼 자동 반영을 보류했습니다. 실제 취소/환불 여부를 확인해 주세요.`,
+          link: "/admin.html",
+          refTable: "donations",
+          refId: donation.id,
+        });
+      } catch (e) {
+        console.warn("[kicc-webhook] 미검증 다운그레이드 통지 실패", e);
+      }
+      return ack({ skipped: "downgrade_unverified" });
+    }
+
     if (cur > next && !downgradeAllowed) return ack({ skipped: "already_advanced" });
 
     const updatePayload: any = { status: newStatus, updatedAt: new Date() };
