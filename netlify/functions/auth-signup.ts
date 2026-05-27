@@ -475,7 +475,7 @@ export default async (req: Request, _ctx: Context) => {
                     ${approvalNote}
 
                     <div style="text-align:center;margin-top:30px">
-                      <a href="${SITE_URL}/${config.requiresApproval ? "" : "login.html"}"
+                      <a href="${SITE_URL}/"
                          style="display:inline-block;padding:13px 32px;background:#7a1f2b;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">
                         ${config.requiresApproval ? "사이트 둘러보기" : "로그인하기"}
                       </a>

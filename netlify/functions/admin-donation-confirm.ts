@@ -23,8 +23,9 @@ import {
   hyosungContracts, hyosungBillings, signupSources,
 } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import {
-  ok, badRequest, serverError, methodNotAllowed, corsPreflight, parseJson,
+  ok, badRequest, forbidden, serverError, methodNotAllowed, corsPreflight, parseJson,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { safeReevaluate } from "../../lib/donor-status";
@@ -303,6 +304,12 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
   const { admin, member: adminMember } = (auth as any).ctx;
+
+  /* ★ R41 Q1-009: 후원 통과 처리 권한 게이트 — 권한 정책 메뉴(admin-role-policy)에서 토글.
+     시드 기본값 operator 허용(현행 유지)이라 미시드/현행 동작 동일, super_admin이 제한 가능. */
+  if (!(await canAccess(admin.role ?? "", "donation_confirm"))) {
+    return forbidden("후원 통과 처리 권한이 없습니다");
+  }
 
   try {
     const body = await parseJson<Body>(req);

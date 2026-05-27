@@ -59,15 +59,12 @@ export default async (req: Request, _ctx: Context) => {
   /* ── 1. 후원 KPI ── */
   let donation: any;
   try {
+    /* ★ R41 Q1-007 FIX: prev_donors 서브쿼리 제거 — 조건(>=N일전 AND <2N일전)이 상호배타라
+       항상 0이었고 응답에도 미사용(죽은·잘못된 코드). 신규 후원자는 아래 newDonorRes로 별도 계산. */
     const donationRes = await db.execute(sql`
       SELECT
-        COALESCE(SUM(amount), 0)::bigint               AS total_amount,
-        COUNT(*)::int                                   AS total_count,
-        COUNT(DISTINCT member_id)
-          FILTER (WHERE created_at >= NOW() - (${days} || ' days')::interval
-                    AND created_at < NOW() - (${days} * 2 || ' days')::interval
-                  ) -- 직전 기간은 신규 기준 비교용이라 아래에서 별도 계산
-                                                         AS prev_donors
+        COALESCE(SUM(amount), 0)::bigint AS total_amount,
+        COUNT(*)::int                    AS total_count
       FROM donations
       WHERE status = 'completed'
         AND created_at >= NOW() - (${days} || ' days')::interval
