@@ -20,6 +20,7 @@ import {
   reconcileIncome, reconcileExpense,
   type NormalizedTxn,
 } from "../../lib/bank-reconcile";
+import { nextVoucherNumber } from "../../lib/voucher-number";
 
 export const config = { path: "/api/admin-bank-reconcile" };
 
@@ -31,41 +32,35 @@ function jsonError(step: string, err: any) {
   }), { status: 500, headers: { "Content-Type": "application/json" } });
 }
 
-/** voucher draft 자동 생성 — voucher_number 'YYYYMM-NNN' */
-async function createVoucherDraft(params: {
+/** voucher draft 자동 생성 — voucher_number 'YYYYMM-NNN'.
+ *  Q4-023/Q4-024: 트랜잭션(tx) 안에서 advisory lock 발번 후 INSERT. 실패 시 throw → 호출 tx 롤백.
+ *  (이전엔 분리 실행 + null 반환이라 전표만 생기고 거래는 pending → 재실행 시 중복 전표 위험) */
+async function createVoucherDraftTx(tx: any, params: {
   txnDate: string; accountCode: string; accountName: string;
   description: string; payeeName: string | null; amount: number;
   budgetLineId: number | null; bankTxnId: number; createdBy: string;
-}): Promise<number | null> {
+}): Promise<number> {
   const { txnDate, accountCode, accountName, description, payeeName,
           amount, budgetLineId, bankTxnId, createdBy } = params;
-  try {
-    const yyyymm = String(txnDate).slice(0, 7).replace("-", "");
-    const maxR: any = await db.execute(sql`
-      SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-      FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}`);
-    const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-    const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
-    const fiscalYear = parseInt(String(txnDate).slice(0, 4));
+  const yyyymm = String(txnDate).slice(0, 7).replace("-", "");
+  const voucherNumber = await nextVoucherNumber(tx, yyyymm);
+  const fiscalYear = parseInt(String(txnDate).slice(0, 4));
 
-    const r: any = await db.execute(sql`
-      INSERT INTO vouchers (
-        voucher_number, voucher_date, fiscal_year,
-        account_code, account_name, description, payee_name, amount,
-        evidence_type, budget_line_id, bank_txn_id,
-        status, created_by, created_at, updated_at
-      ) VALUES (
-        ${voucherNumber}, ${txnDate}, ${fiscalYear},
-        ${accountCode}, ${accountName}, ${description}, ${payeeName}, ${amount},
-        'transfer_confirm', ${budgetLineId}, ${bankTxnId},
-        'draft', ${createdBy}, NOW(), NOW()
-      ) RETURNING id`);
-    const row = (r?.rows ?? r ?? [])[0];
-    return row ? Number(row.id) : null;
-  } catch (e) {
-    console.warn("[bank-reconcile] voucher draft 생성 실패:", e);
-    return null;
-  }
+  const r: any = await tx.execute(sql`
+    INSERT INTO vouchers (
+      voucher_number, voucher_date, fiscal_year,
+      account_code, account_name, description, payee_name, amount,
+      evidence_type, budget_line_id, bank_txn_id,
+      status, created_by, created_at, updated_at
+    ) VALUES (
+      ${voucherNumber}, ${txnDate}, ${fiscalYear},
+      ${accountCode}, ${accountName}, ${description}, ${payeeName}, ${amount},
+      'transfer_confirm', ${budgetLineId}, ${bankTxnId},
+      'draft', ${createdBy}, NOW(), NOW()
+    ) RETURNING id`);
+  const row = (r?.rows ?? r ?? [])[0];
+  if (!row) throw new Error("voucher draft INSERT가 id를 반환하지 않음");
+  return Number(row.id);
 }
 
 export default async function handler(req: Request, _ctx: Context) {
@@ -174,27 +169,30 @@ export default async function handler(req: Request, _ctx: Context) {
         // ── 출금 대사 ──────────────────────────────────────
         const result = await reconcileExpense(txn, threshold);
         if (result.autoCreateVoucher && result.accountCode && result.accountName) {
-          const voucherId = await createVoucherDraft({
-            txnDate: txn.txnDate,
-            accountCode: result.accountCode,
-            accountName: result.accountName,
-            description: txn.description || `통장 출금 — ${txn.counterpartName || ""}`,
-            payeeName: txn.counterpartName,
-            amount: Math.abs(txn.amount),
-            budgetLineId: result.budgetLineId ?? null,
-            bankTxnId: Number(t.id),
-            createdBy,
+          /* Q4-023: 전표 INSERT + 통장거래 UPDATE를 한 트랜잭션으로 — 중간 실패 시 양쪽 롤백 */
+          await db.transaction(async (tx) => {
+            const voucherId = await createVoucherDraftTx(tx, {
+              txnDate: txn.txnDate,
+              accountCode: result.accountCode!,
+              accountName: result.accountName!,
+              description: txn.description || `통장 출금 — ${txn.counterpartName || ""}`,
+              payeeName: txn.counterpartName,
+              amount: Math.abs(txn.amount),
+              budgetLineId: result.budgetLineId ?? null,
+              bankTxnId: Number(t.id),
+              createdBy,
+            });
+            await tx.execute(sql`
+              UPDATE bank_transactions SET
+                match_type = 'voucher', status = 'voucher_created',
+                counterparty_id = ${result.counterpartyId ?? null},
+                ai_account_code = ${result.accountCode},
+                ai_confidence = ${result.confidence},
+                ai_reasoning = ${result.reasoning},
+                voucher_id = ${voucherId},
+                confirmed_at = NOW(), confirmed_by = ${createdBy}
+              WHERE id = ${t.id}`);
           });
-          await db.execute(sql`
-            UPDATE bank_transactions SET
-              match_type = 'voucher', status = 'voucher_created',
-              counterparty_id = ${result.counterpartyId ?? null},
-              ai_account_code = ${result.accountCode},
-              ai_confidence = ${result.confidence},
-              ai_reasoning = ${result.reasoning},
-              voucher_id = ${voucherId},
-              confirmed_at = NOW(), confirmed_by = ${createdBy}
-            WHERE id = ${t.id}`);
           stats.expenseVoucher++;
         } else {
           // 신뢰도 부족 — 추정 계정과목 기록, 관리자 확인 대기

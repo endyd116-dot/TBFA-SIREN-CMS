@@ -59,7 +59,9 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select", err);
   }
 
-  const approverUid = String(auth.ctx.member.email);
+  /* Q4-026: approved_by에 회원 id 저장(타 재정 테이블 expense/revenue/budget과 형식 통일).
+     이전엔 이메일 문자열을 저장해 감사 필드 형식이 테이블마다 섞였음. */
+  const approverUid = String(auth.ctx.admin.uid);
   const label = action === "approve" ? "승인" : "반려";
 
   try {

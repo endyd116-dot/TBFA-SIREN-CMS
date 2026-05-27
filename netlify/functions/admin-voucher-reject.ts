@@ -59,7 +59,8 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select", err);
   }
 
-  const approverUid = String(auth.ctx.member.email);
+  /* Q4-026: approved_by에 회원 id 저장(타 재정 테이블과 형식 통일·이전엔 이메일) */
+  const approverUid = String(auth.ctx.admin.uid);
 
   try {
     await db.execute(sql`

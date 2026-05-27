@@ -33,10 +33,13 @@ async function recalcOne(campaignId: number): Promise<{
   donorCount: number;
   donationCount: number;
 }> {
+  /* Q4-012: 비회원(member_id NULL) 후원자가 COALESCE(...,0)로 전부 1명으로 합쳐지던 결함.
+     회원 후원자는 distinct member_id, 비회원 후원은 건당 1명으로 각각 세어 합산. */
   const result: any = await db.execute(sql`
     SELECT
       COALESCE(SUM(amount), 0)::bigint AS "totalAmount",
-      COUNT(DISTINCT COALESCE(member_id, 0))::int AS "uniqueDonors",
+      (COUNT(DISTINCT member_id) FILTER (WHERE member_id IS NOT NULL)
+        + COUNT(*) FILTER (WHERE member_id IS NULL))::int AS "uniqueDonors",
       COUNT(*)::int AS "donationCount"
     FROM donations
     WHERE campaign_id = ${campaignId}

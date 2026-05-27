@@ -168,6 +168,9 @@
         <label><input type="checkbox" id="fAllowDuplicates"> 같은 회원의 중복 응답 허용</label>
       </div>
       <div class="form-row">
+        <label><input type="checkbox" id="fRequiresAuth"> 로그인 필수 (체크 시 비로그인 응답 차단)</label>
+      </div>
+      <div class="form-row">
         <label>정원 마감 시 안내 메시지</label>
         <input type="text" id="fClosedMessage" placeholder="응답 정원이 마감되었습니다 (기본)">
       </div>
@@ -259,6 +262,7 @@ async function openModal(id) {
   /* 초기화 */
   ['fTitle','fSlug','fDescription','fInstructions','fMaxResponses','fClosedMessage','fAdminNotifyEmail'].forEach(k => document.getElementById(k).value = '');
   document.getElementById("fAccessLevel").value = 'public';
+  document.getElementById("fRequiresAuth").checked = false;
   document.getElementById("fAllowDuplicates").checked = true;
   document.getElementById("fNotifyOnSubmit").checked = true;
   document.getElementById("fIsActive").checked = true;
@@ -273,6 +277,7 @@ async function openModal(id) {
     document.getElementById("fDescription").value = f.description || '';
     document.getElementById("fInstructions").value = f.instructions || '';
     document.getElementById("fAccessLevel").value = f.accessLevel || 'public';
+    document.getElementById("fRequiresAuth").checked = f.requiresAuth === true;
     document.getElementById("fMaxResponses").value = f.maxResponses || '';
     document.getElementById("fAllowDuplicates").checked = f.allowDuplicates !== false;
     document.getElementById("fClosedMessage").value = f.closedMessage || '';
@@ -376,7 +381,7 @@ async function saveForm() {
     description: document.getElementById("fDescription").value.trim() || null,
     instructions: document.getElementById("fInstructions").value.trim() || null,
     accessLevel: document.getElementById("fAccessLevel").value,
-    requiresAuth: false,
+    requiresAuth: document.getElementById("fRequiresAuth").checked,
     isActive: document.getElementById("fIsActive").checked,
     isPublished: document.getElementById("fIsPublished").checked,
     maxResponses: document.getElementById("fMaxResponses").value ? Number(document.getElementById("fMaxResponses").value) : null,

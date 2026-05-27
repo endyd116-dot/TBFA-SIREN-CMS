@@ -4,7 +4,7 @@
 // 게시글·댓글 API 내부에서 호출 (fire-and-forget 패턴)
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
-import { postSubscriptions, boardPosts } from "../../db/schema";
+import { postSubscriptions, boardPosts, boardComments } from "../../db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { createNotification } from "../../lib/notify";
 
@@ -43,8 +43,8 @@ export default async (req: Request) => {
 
   const postId = Number(body.postId);
   const commentId = Number(body.commentId);
-  const commentPreview: string = String(body.commentPreview || "").slice(0, 100);
-  const commentAuthorName: string = body.commentAuthorName || "누군가";
+  /* ★ Q4-001 fix: 발신자명·본문은 클라 입력을 신뢰하지 않는다(사칭·스팸 차단).
+     댓글 레코드를 DB에서 조회해 실제 author_name·content 로만 알림을 만든다. */
 
   if (!postId || !commentId) {
     return new Response(JSON.stringify({ ok: false, error: "postId, commentId 필요" }), {
@@ -66,6 +66,47 @@ export default async (req: Request) => {
       status: 404, headers: { "Content-Type": "application/json" },
     });
   }
+
+  /* ★ Q4-001 fix: 댓글 레코드 조회 + 검증.
+     - 댓글이 실제 그 게시글(postId) 소속인지 확인
+     - 호출 주체(auth.user.uid)가 그 댓글 작성자 본인인지 확인 → 타인이 임의 댓글ID로
+       구독자 전원에게 알림을 쏘는 사칭/스팸을 차단(정상 호출은 댓글 작성 직후 작성자 본인).
+     - 발신자명·본문은 DB의 author_name·content 만 사용(익명 댓글의 author_name 은
+       작성 시점에 이미 익명 처리되어 저장됨). */
+  const callerUid = auth.user.uid as number;
+  let commentRow: any;
+  try {
+    const rows = await db.select({
+      id: boardComments.id,
+      postId: boardComments.postId,
+      memberId: boardComments.memberId,
+      authorName: boardComments.authorName,
+      content: boardComments.content,
+      isHidden: boardComments.isHidden,
+    }).from(boardComments).where(eq(boardComments.id, commentId)).limit(1);
+    commentRow = rows[0];
+  } catch (err) {
+    return jsonError("select_comment", err);
+  }
+  if (!commentRow || Number(commentRow.postId) !== postId) {
+    return new Response(JSON.stringify({ ok: false, error: "댓글을 찾을 수 없거나 게시글과 일치하지 않습니다" }), {
+      status: 404, headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (commentRow.memberId == null || Number(commentRow.memberId) !== callerUid) {
+    /* 본인 댓글이 아님 — 사칭 시도. fire-and-forget 호출이라 200으로 조용히 차단. */
+    return new Response(JSON.stringify({ ok: true, notified: 0, skipped: "댓글 작성자 본인만 알림 발송 가능" }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (commentRow.isHidden) {
+    /* 숨김(모더레이션) 댓글은 알림 안 보냄 */
+    return new Response(JSON.stringify({ ok: true, notified: 0, skipped: "숨김 처리된 댓글" }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    });
+  }
+  const commentAuthorName: string = String(commentRow.authorName || "누군가");
+  const commentPreview: string = String(commentRow.content || "").slice(0, 100);
 
   // 게시글 직접 구독자
   let postSubs: any[] = [];

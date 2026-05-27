@@ -18,6 +18,7 @@ import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
 import { learnCounterparty } from "../../lib/bank-reconcile";
+import { nextVoucherNumber } from "../../lib/voucher-number";
 
 export const config = { path: "/api/admin-bank-batch-voucher" };
 
@@ -114,37 +115,35 @@ export default async function handler(req: Request, _ctx: Context) {
       const fiscalYear = parseInt(txnDate.slice(0, 4));
       const yyyymm = txnDate.slice(0, 7).replace("-", "");
 
-      // voucher_number 생성 (월별 순번)
-      const maxR: any = await db.execute(sql`
-        SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-        FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}`);
-      const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-      const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
-
-      const vr: any = await db.execute(sql`
-        INSERT INTO vouchers (
-          voucher_number, voucher_date, fiscal_year,
-          account_code, account_name,
-          description, payee_name, amount,
-          evidence_type, bank_txn_id,
-          status, created_by, created_at, updated_at
-        ) VALUES (
-          ${voucherNumber}, ${txnDate}, ${fiscalYear},
-          ${accountCode}, ${acRow.name},
-          ${txn.description || `통장 출금 — ${txn.counterpart_name || ""}`},
-          ${txn.counterpart_name || null}, ${amount},
-          'transfer_confirm', ${id},
-          'draft', ${adminEmail}, NOW(), NOW()
-        ) RETURNING id`);
-      const voucherId = Number((vr?.rows ?? vr ?? [])[0].id);
-
-      await db.execute(sql`
-        UPDATE bank_transactions SET
-          match_type = 'voucher', status = 'voucher_created',
-          admin_account_code = ${accountCode},
-          voucher_id = ${voucherId},
-          confirmed_at = NOW(), confirmed_by = ${adminEmail}
-        WHERE id = ${id}`);
+      /* Q4-023/Q4-024: 발번(advisory lock) + 전표 INSERT + 통장거래 UPDATE를 한 트랜잭션으로.
+         이전엔 분리돼 있어 중간 실패 시 전표만 생기고 거래는 pending → 재실행 시 중복 전표 위험. */
+      const voucherNumber = await db.transaction(async (tx) => {
+        const vnum = await nextVoucherNumber(tx, yyyymm);
+        const vr: any = await tx.execute(sql`
+          INSERT INTO vouchers (
+            voucher_number, voucher_date, fiscal_year,
+            account_code, account_name,
+            description, payee_name, amount,
+            evidence_type, bank_txn_id,
+            status, created_by, created_at, updated_at
+          ) VALUES (
+            ${vnum}, ${txnDate}, ${fiscalYear},
+            ${accountCode}, ${acRow.name},
+            ${txn.description || `통장 출금 — ${txn.counterpart_name || ""}`},
+            ${txn.counterpart_name || null}, ${amount},
+            'transfer_confirm', ${id},
+            'draft', ${adminEmail}, NOW(), NOW()
+          ) RETURNING id`);
+        const voucherId = Number((vr?.rows ?? vr ?? [])[0].id);
+        await tx.execute(sql`
+          UPDATE bank_transactions SET
+            match_type = 'voucher', status = 'voucher_created',
+            admin_account_code = ${accountCode},
+            voucher_id = ${voucherId},
+            confirmed_at = NOW(), confirmed_by = ${adminEmail}
+          WHERE id = ${id}`);
+        return vnum;
+      });
 
       // 거래처 자동 학습 (실패해도 전표는 유지)
       if (learnCp && txn.counterpart_name) {

@@ -117,7 +117,7 @@
 </style>
 </head>
 <body>
-<div id="header-mount"></div>
+<div id="header-slot"></div>
 
 <main class="res-page">
   <h1>📁 자료실</h1>
@@ -146,8 +146,8 @@
   </div>
 </main>
 
-<div id="footer-mount"></div>
-<div id="modals-mount"></div>
+<div id="footer-slot"></div>
+<div id="modals-slot"></div>
 
 <script src="/js/common.js?v=3"></script>
 <script src="/js/auth.js?v=15"></script>
@@ -232,7 +232,9 @@
       }
 
       grid.innerHTML = list.map(r => {
-        const catLabel = r.categoryIcon ? `${r.categoryIcon} ${escapeHtml(r.categoryName || '')}` : '';
+        const catIcon = r.category?.icon || r.categoryIcon;
+        const catName = r.category?.nameKo || r.categoryName;
+        const catLabel = catIcon ? `${catIcon} ${escapeHtml(catName || '')}` : (catName ? escapeHtml(catName) : '');
         const fileMark = r.fileBlobId ? '📎 ' : '';
         const lockMark = r.accessLevel === 'members_only'
           ? '<span class="res-card-lock">🔐 회원전용</span>' : '';
@@ -267,9 +269,18 @@
     if (!id) return;
     try {
       const res = await fetch('/api/resources?id=' + id, { credentials: 'include' });
-      const d = await res.json();
+      const d = await res.json().catch(() => ({}));
+
+      /* Q4-015: 회원전용 자료는 서버가 403 + { requireLogin:true } 로 응답 → 로그인 안내로 분기 */
+      if (res.status === 403 && (d.requireLogin || d.requiresLogin)) {
+        if (confirm('이 자료는 회원 전용입니다. 로그인 페이지로 이동하시겠습니까?')) {
+          location.href = '/login.html';
+        }
+        return;
+      }
       if (!res.ok || !d.ok) return alert('자료를 찾을 수 없습니다');
-      const r = d.data.resource;
+      const r = (d.data && d.data.resource) || d.resource;
+      if (!r) return alert('자료를 찾을 수 없습니다');
 
       if (r.requiresLogin) {
         if (confirm('이 자료는 회원 전용입니다. 로그인 페이지로 이동하시겠습니까?')) {
@@ -279,14 +290,9 @@
       }
 
       if (r.fileBlobId) {
-        const dlUrl = `/api/blob-image?id=${r.fileBlobId}&download=1`;
-        fetch('/api/resources', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ id: r.id }),
-        }).catch(() => {});
-        window.open(dlUrl, '_blank', 'noopener');
+        /* Q4-015: 다운로드 카운트 증가는 /api/resources?id=N&download=1 GET 흐름이 담당
+           (서버가 count++ 후 R2로 redirect). 옛 POST(/api/resources)는 405라 카운트 누락됐음. */
+        window.open(`/api/resources?id=${r.id}&download=1`, '_blank', 'noopener');
       } else {
         const msg = `【${r.title}】\n\n${r.description || '(설명 없음)'}\n\n📎 첨부된 파일이 없습니다.`;
         alert(msg);

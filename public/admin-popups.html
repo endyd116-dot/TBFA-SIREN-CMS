@@ -518,7 +518,7 @@
     /* 캠페인 */
     try {
       var cr = await api('/api/admin/campaigns?limit=10');
-      var cs = cr.data?.data?.campaigns || cr.data?.campaigns || [];
+      var cs = cr.data?.data?.list || cr.data?.list || cr.data?.data?.campaigns || cr.data?.campaigns || [];
       cs.forEach(function (c) {
         items.push({ label: '캠페인', title: c.title, url: '/campaign.html?id=' + c.id });
       });

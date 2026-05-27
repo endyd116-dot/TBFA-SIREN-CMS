@@ -101,9 +101,6 @@ function render() {
 }
 
 /* ★ R9: 응답 삭제 (관리자) */
-/* ★ B 머지 전 mock 사용 */
-const MOCK_FORM_DELETE = { ok: true };
-
 async function deleteSubmission(submissionId) {
   if (!confirm(`응답 #${submissionId}을(를) 삭제하시겠습니까? 되돌릴 수 없습니다.`)) return;
   const row = document.querySelector(`[data-submission-row="${submissionId}"]`);
@@ -121,10 +118,10 @@ async function deleteSubmission(submissionId) {
       });
       data = await r.json().catch(() => ({}));
       resOk = r.ok && data && data.ok !== false;
-    } catch (_) {
-      /* ★ B 머지 전 mock 사용 */
-      data = MOCK_FORM_DELETE;
-      resOk = true;
+    } catch (netErr) {
+      /* 네트워크 오류는 성공으로 위장하지 않는다 — 실제 삭제 여부 불명이므로 실패로 처리 */
+      data = { error: '네트워크 오류 — 삭제 요청을 보내지 못했습니다' };
+      resOk = false;
     }
     if (!resOk) {
       alert('삭제 실패: ' + ((data && data.error) || '서버 오류'));

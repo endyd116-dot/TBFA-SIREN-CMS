@@ -86,6 +86,20 @@
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  /* Q4-019: 어드민 작성 리치 HTML을 innerHTML로 넣기 전 최소 살균(방어적).
+     <script>·이벤트 핸들러(on*=)·javascript:/data: URL을 제거해 계정탈취·DB변조 시 XSS 차단.
+     서식 태그(p/b/img/a 등)는 유지. 완전한 살균이 필요하면 서버 화이트리스트/ DOMPurify 도입 권장. */
+  function sanitizeHtml(html) {
+    var s = String(html == null ? '' : html);
+    s = s.replace(/<\s*(script|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
+    s = s.replace(/<\s*(script|iframe|object|embed)\b[^>]*>/gi, '');
+    s = s.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+    s = s.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+    s = s.replace(/\son\w+\s*=\s*[^\s>]+/gi, '');
+    s = s.replace(/(href|src)\s*=\s*("|')\s*(javascript|data)\s*:[^"']*\2/gi, '$1="#"');
+    return s;
+  }
+
   async function load() {
     const root = document.getElementById('cmpRoot');
     const params = new URLSearchParams(location.search);
@@ -100,7 +114,7 @@
       const res = await fetch('/api/campaigns?' + (slug ? 'slug=' + encodeURIComponent(slug) : 'id=' + id));
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error('실패');
-      const c = data.data.campaign;
+      const c = data.data?.campaign || data.campaign;
 
       const thumb = c.thumbnailBlobId
         ? `background-image:url('/api/blob-image?id=${c.thumbnailBlobId}')`
@@ -138,7 +152,7 @@
           ${progressHtml}
         </div>
 
-        <div class="cmp-detail-content">${c.contentHtml || ''}</div>
+        <div class="cmp-detail-content">${sanitizeHtml(c.contentHtml || '')}</div>
 
         ${isClosed
           ? '<div style="text-align:center;padding:30px;background:#f5f4f2;border-radius:8px;color:var(--text-3)">이 캠페인은 종료되었습니다. 함께해주신 모든 분들께 감사드립니다. 🙏</div>'

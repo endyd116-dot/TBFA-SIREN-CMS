@@ -148,7 +148,9 @@ export default async (req: Request, _ctx: Context) => {
     }), { status: 200, headers: JSON_HEADER });
   } catch (e: any) {
     return new Response(JSON.stringify({
-      ok: false, error: "저장 실패", detail: String(e?.message || e).slice(0, 300),
+      ok: false, error: "저장 실패", step: "save",
+      detail: String(e?.message || e).slice(0, 500),
+      stack: String(e?.stack || "").slice(0, 1000),
     }), { status: 500, headers: JSON_HEADER });
   }
 };

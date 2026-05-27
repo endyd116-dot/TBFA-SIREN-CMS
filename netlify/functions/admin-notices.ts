@@ -179,27 +179,33 @@ export default async (req: Request) => {
 
       if (!existing) return notFound("공지사항을 찾을 수 없습니다");
 
-      /* 입력 검증 (id 제외) */
+      /* 입력 검증 (id 제외) — Q4-016: PATCH는 부분 수정 허용. 발행/고정 토글만 보내도
+         제목·본문을 강제하지 않는다. 보낸 필드만 검증·반영. */
       const { id: _ignore, ...patchData } = body;
-      const v: any = safeValidate(noticeSchema, patchData);
+      const v: any = safeValidate(noticeSchema.partial(), patchData);
       if (!v.ok) return badRequest("입력값을 확인해 주세요", v.errors);
 
       const data = v.data;
-      const updatePayload: any = {
-        category: data.category || "general",
-        title: data.title,
-        content: data.content,
-        excerpt: data.excerpt || null,
-        thumbnailUrl: data.thumbnailUrl || null,
-        isPinned: data.isPinned === true,
-        isPublished: data.isPublished !== false,
-        updatedAt: new Date(),
-      };
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(patchData, k);
+      const updatePayload: any = { updatedAt: new Date() };
+      if (has("category"))     updatePayload.category = data.category || "general";
+      if (has("title"))        updatePayload.title = data.title;
+      if (has("content"))      updatePayload.content = data.content;
+      if (has("excerpt"))      updatePayload.excerpt = data.excerpt || null;
+      if (has("thumbnailUrl")) updatePayload.thumbnailUrl = data.thumbnailUrl || null;
+      if (has("isPinned"))     updatePayload.isPinned = data.isPinned === true;
+      if (has("isPublished"))  updatePayload.isPublished = data.isPublished === true;
 
-      /* 비공개 → 공개로 전환 시 publishedAt 갱신 */
-      if (existing.isPublished === false && updatePayload.isPublished === true) {
-        updatePayload.publishedAt = new Date();
+      /* publishedAt 동기화 — 공개 전환 시 발행시각 갱신, 비공개 전환 시 초기화(Q4-028) */
+      if (has("isPublished")) {
+        if (existing.isPublished === false && data.isPublished === true) {
+          updatePayload.publishedAt = new Date();
+        } else if (existing.isPublished === true && data.isPublished === false) {
+          updatePayload.publishedAt = null;
+        }
       }
+
+      if (Object.keys(updatePayload).length <= 1) return badRequest("수정할 항목이 없습니다");
 
       const [updated] = await db
         .update(notices)

@@ -112,45 +112,44 @@ export default async function handler(req: Request, _ctx: Context) {
     }), { headers: { "Content-Type": "application/json" } });
   }
 
-  // ── bank_imports 생성 ──────────────────────────────────────
+  // ── bank_imports + bank_transactions 적재 ───────────────────
+  // Q4-023: 업로드 헤더 INSERT와 거래 적재를 한 트랜잭션으로 — 중간 실패 시 양쪽 롤백.
+  //         (이전엔 분리돼 헤더만 남고 일부 거래만 적재된 고아 import 가능)
   let importId: number;
+  let insertedRows = 0;
   try {
     // 기간 자동 추출 (body 미지정 시 거래 범위로)
     const dates = toInsert.map(n => n.txnDate).sort();
     const pFrom = periodFrom || dates[0];
     const pTo   = periodTo || dates[dates.length - 1];
-    const r: any = await db.execute(sql`
-      INSERT INTO bank_imports
-        (filename, bank_name, period_from, period_to, total_rows,
-         auto_matched, pending_review, ignored_rows, imported_by, status, imported_at)
-      VALUES
-        (${filename}, ${bankName || "IBK기업은행"}, ${pFrom}, ${pTo}, ${toInsert.length},
-         0, ${toInsert.length}, 0, ${importedBy}, 'review', NOW())
-      RETURNING id`);
-    importId = Number((r?.rows ?? r ?? [])[0].id);
-  } catch (err: any) {
-    return jsonError("insert_import", err);
-  }
-
-  // ── bank_transactions 적재 ─────────────────────────────────
-  let insertedRows = 0;
-  try {
-    for (const n of toInsert) {
-      await db.execute(sql`
-        INSERT INTO bank_transactions
-          (import_id, txn_date, amount, description, counterpart, balance_after, txn_type,
-           counterpart_account, counterpart_bank, counterpart_name, txn_method, memo, cms_code,
-           match_type, dedup_hash, status, created_at)
+    importId = await db.transaction(async (tx) => {
+      const r: any = await tx.execute(sql`
+        INSERT INTO bank_imports
+          (filename, bank_name, period_from, period_to, total_rows,
+           auto_matched, pending_review, ignored_rows, imported_by, status, imported_at)
         VALUES
-          (${importId}, ${n.txnDate}, ${n.amount}, ${n.description},
-           ${n.counterpartName || null}, ${n.balanceAfter}, ${n.txnType},
-           ${n.counterpartAccount}, ${n.counterpartBank}, ${n.counterpartName},
-           ${n.txnMethod}, ${n.memo}, ${n.cmsCode},
-           'pending', ${n.dedupHash}, 'pending', NOW())`);
-      insertedRows++;
-    }
+          (${filename}, ${bankName || "IBK기업은행"}, ${pFrom}, ${pTo}, ${toInsert.length},
+           0, ${toInsert.length}, 0, ${importedBy}, 'review', NOW())
+        RETURNING id`);
+      const impId = Number((r?.rows ?? r ?? [])[0].id);
+      for (const n of toInsert) {
+        await tx.execute(sql`
+          INSERT INTO bank_transactions
+            (import_id, txn_date, amount, description, counterpart, balance_after, txn_type,
+             counterpart_account, counterpart_bank, counterpart_name, txn_method, memo, cms_code,
+             match_type, dedup_hash, status, created_at)
+          VALUES
+            (${impId}, ${n.txnDate}, ${n.amount}, ${n.description},
+             ${n.counterpartName || null}, ${n.balanceAfter}, ${n.txnType},
+             ${n.counterpartAccount}, ${n.counterpartBank}, ${n.counterpartName},
+             ${n.txnMethod}, ${n.memo}, ${n.cmsCode},
+             'pending', ${n.dedupHash}, 'pending', NOW())`);
+        insertedRows++;
+      }
+      return impId;
+    });
   } catch (err: any) {
-    return jsonError(`insert_txn_at_${insertedRows}`, err);
+    return jsonError("insert_import_txn", err);
   }
 
   return new Response(JSON.stringify({

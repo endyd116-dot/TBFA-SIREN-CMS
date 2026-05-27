@@ -455,9 +455,17 @@ export async function discardMenuDraft(id: number): Promise<boolean> {
 
 export async function deleteMenuItem(id: number): Promise<boolean> {
   try {
-    /* 자식부터 삭제 (parent_id가 자기참조이므로 cascade 안 됨) */
-    await db.delete(navMenuItems).where(eq(navMenuItems.parentId, id));
-    await db.delete(navMenuItems).where(eq(navMenuItems.id, id));
+    /* Q4-017: 자손 전체를 재귀로 삭제 (parent_id 자기참조라 cascade 안 됨).
+       직계 자식만 지우면 3단계 이상 손자가 고아로 남아 트리 렌더 시 루트로 승격 노출됨. */
+    await db.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM nav_menu_items WHERE id = ${id}
+        UNION ALL
+        SELECT c.id FROM nav_menu_items c
+          JOIN descendants d ON c.parent_id = d.id
+      )
+      DELETE FROM nav_menu_items WHERE id IN (SELECT id FROM descendants)
+    `);
     return true;
   } catch (e) {
     console.error("[site-settings.deleteMenuItem]", e);

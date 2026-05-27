@@ -50,14 +50,51 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("status", `현재 상태(${job.status})는 재시도할 수 없습니다. failed 또는 cancelled만 가능.`, 400);
   }
 
-  /* 기존 수신자 스냅샷 삭제 (startJob이 새로 INSERT) */
+  /* Q4-011: 이미 발송된 수신자가 있으면(부분발송 후 취소 등) 스냅샷 전체삭제·재발송 시
+     기수신자에게 중복 발송됨. 발송 이력 유무로 분기한다. */
+  let sentCount = 0;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT COUNT(*)::int AS n FROM communication_send_recipients
+       WHERE job_id = ${id} AND status = 'sent'
+    `);
+    sentCount = ((r?.rows ?? r)[0] ?? {}).n ?? 0;
+  } catch (err) { return jsonError("count_sent", err); }
+
+  if (sentCount > 0) {
+    /* 부분발송 재개 — 기수신자(sent)는 보존, 미발송분(failed/cancelled/sending)만 pending 복구.
+       스냅샷을 지우지 않으므로 startJob 재실행(전원 재INSERT) 없이 미발송분만 다시 보냄. */
+    try {
+      await db.execute(sql`
+        UPDATE communication_send_recipients
+           SET status = 'pending', error = NULL, retry_count = retry_count + 1, updated_at = NOW()
+         WHERE job_id = ${id} AND status IN ('failed','cancelled','sending')
+      `);
+      await db.execute(sql`
+        UPDATE communication_send_jobs
+           SET status = 'processing',
+               last_error = NULL,
+               failure_count = 0,
+               success_count = (SELECT COUNT(*) FROM communication_send_recipients WHERE job_id = ${id} AND status = 'sent'),
+               completed_at = NULL,
+               updated_at = NOW()
+         WHERE id = ${id}
+      `);
+    } catch (err) { return jsonError("resume_job", err); }
+
+    return new Response(JSON.stringify({
+      ok: true, id, resumed: true,
+      message: "이미 발송된 수신자는 제외하고 미발송분만 재개합니다 (1분 내 자동 시작).",
+    }), { status: 200, headers: JSON_HEADER });
+  }
+
+  /* 발송 이력 없음 — 깨끗한 전체 재시작(스냅샷 삭제 후 startJob이 재생성) */
   try {
     await db.execute(sql`
       DELETE FROM communication_send_recipients WHERE job_id = ${id}
     `);
   } catch (err) { return jsonError("delete_recipients", err); }
 
-  /* 작업 status 리셋 */
   try {
     await db.execute(sql`
       UPDATE communication_send_jobs

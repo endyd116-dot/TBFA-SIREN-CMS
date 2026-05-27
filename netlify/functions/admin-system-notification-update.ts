@@ -34,6 +34,13 @@ export const config = { path: "/api/admin-system-notification-update" };
 
 const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"] as const;
+/* Q4-037: 채널→템플릿 컬럼 고정 매핑 — sql.raw로 컬럼명 동적 삽입하던 패턴 제거 */
+const TEMPLATE_COL = {
+  email: sql`email_template_id`,
+  sms:   sql`sms_template_id`,
+  kakao: sql`kakao_template_id`,
+  inapp: sql`inapp_template_id`,
+} as const;
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "PATCH" && req.method !== "POST") {
@@ -73,10 +80,8 @@ export default async (req: Request, _ctx: Context) => {
   const warnings: string[] = [];
 
   /* 1) 이벤트별 isActive·defaultChannels·forcedChannels */
-  const settingUpdates: string[] = [];
   const settingValues: any = {};
   if (typeof body.isActive === "boolean") {
-    settingUpdates.push(`is_active = ${body.isActive}`);
     settingValues.isActive = body.isActive;
   }
   if (Array.isArray(body.defaultChannels)) {
@@ -137,9 +142,8 @@ export default async (req: Request, _ctx: Context) => {
             RETURNING id
           `);
           const newId = Number((inserted?.rows ?? inserted ?? [])[0]?.id);
-          const col = `${ch}_template_id`;
           await db.execute(sql`
-            UPDATE notification_admin_settings SET ${sql.raw(col)} = ${newId}, updated_at = NOW()
+            UPDATE notification_admin_settings SET ${TEMPLATE_COL[ch]} = ${newId}, updated_at = NOW()
              WHERE event_type = ${eventType}
           `);
           updates.push(`${ch}_created_${newId}`);

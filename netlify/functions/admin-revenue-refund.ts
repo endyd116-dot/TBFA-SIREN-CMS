@@ -1,6 +1,8 @@
 import { db } from "../../db";
 import { otherRevenues } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
+import { roleForbidden } from "../../lib/admin-role";
 import { eq } from "drizzle-orm";
 
 export const config = { path: "/api/admin-revenue-refund" };
@@ -12,6 +14,10 @@ export default async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
+
+  /* Q4-010: 환불은 재정 쓰기 — finance_refund 권한 게이트(승인과 동일 통제).
+     미시드 시 admin+ 허용·operator 차단(canAccess 기본값). super_admin은 항상 허용. */
+  if (!(await canAccess(auth.ctx.member.role ?? "", "finance_refund"))) return roleForbidden("admin");
 
   let body: any;
   try {

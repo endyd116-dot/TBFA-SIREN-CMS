@@ -55,6 +55,26 @@ export interface ResolveOptions {
   limit?: number;
   offset?: number;
   countOnly?: boolean;
+  /** Q4-007(정책 P-2): 발송 채널 — 번호 미인증·카카오 미동의 강제 제외 판정에 사용 */
+  channel?: string;
+}
+
+/* =========================================================
+   Q4-007 (정책 P-2): 대량발송 수신자 강제 제외(hard-exclude)
+   - 탈퇴자(status='withdrawn')는 채널 무관 항상 제외
+   - SMS/카카오: 번호 미인증(phone_verified_at NULL) 제외
+   - 카카오: 광고성 미동의(kakao_marketing_consent_at NULL) 제외
+   (이메일은 별도 전역 수신거부 컬럼이 없어 탈퇴자 제외만 적용)
+   ========================================================= */
+function buildHardExcludeSql(channel?: string): ReturnType<typeof sql> {
+  const conds: ReturnType<typeof sql>[] = [sql`status <> 'withdrawn'`];
+  if (channel === "sms" || channel === "kakao") {
+    conds.push(sql`phone_verified_at IS NOT NULL`);
+  }
+  if (channel === "kakao") {
+    conds.push(sql`kakao_marketing_consent_at IS NOT NULL`);
+  }
+  return conds.reduce((a, b, i) => (i === 0 ? b : sql`${a} AND ${b}`), sql``);
 }
 
 export interface ResolvedMember {
@@ -261,17 +281,19 @@ export async function resolveRecipients(
   opts: ResolveOptions = {},
 ): Promise<ResolveResult> {
   const { limit, offset = 0, countOnly = false } = opts;
+  /* Q4-007: 대량발송 강제 제외 조건(탈퇴자·채널별 미인증/미동의) */
+  const hardExclude = buildHardExcludeSql(opts.channel);
 
   /* manual 분기 */
   if (criteria.type === "manual") {
     const ids = Array.isArray(criteria.memberIds) ? criteria.memberIds.filter((x) => Number.isInteger(x) && x > 0) : [];
     if (ids.length === 0) return { count: 0, memberIds: [], members: [] };
 
-    /* 실재 회원만 필터 */
+    /* 실재 회원만 필터 + 강제 제외 */
     const countRes: any = await db.execute(sql`
       SELECT COUNT(*)::int AS n
       FROM members
-      WHERE id = ANY(${ids}::int[])
+      WHERE id = ANY(${ids}::int[]) AND ${hardExclude}
     `);
     const count = ((countRes?.rows ?? countRes)[0] ?? {}).n ?? 0;
 
@@ -281,7 +303,7 @@ export async function resolveRecipients(
     const rowsRes: any = await db.execute(sql`
       SELECT id, name, email, phone, type, status
       FROM members
-      WHERE id = ANY(${ids}::int[])
+      WHERE id = ANY(${ids}::int[]) AND ${hardExclude}
       ORDER BY id ASC
       ${lim != null ? sql`LIMIT ${lim} OFFSET ${offset}` : sql``}
     `);
@@ -314,7 +336,10 @@ export async function resolveRecipients(
     const joined = fragments.reduce((a, b, idx) =>
       idx === 0 ? b : sql`${a}${joiner}${b}`,
     sql``);
-    whereFragment = sql`WHERE ${joined}`;
+    /* Q4-007: 그룹 조건 + 강제 제외(탈퇴자·미인증). OR 그룹이라도 강제제외는 AND로 항상 적용. */
+    whereFragment = sql`WHERE (${joined}) AND ${hardExclude}`;
+  } else {
+    whereFragment = sql`WHERE ${hardExclude}`;
   }
 
   const countRes: any = await db.execute(sql`

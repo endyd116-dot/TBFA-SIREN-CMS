@@ -105,6 +105,9 @@ export default async (req: Request) => {
 
     /* ── 목록 (발행된 것만) ── */
     const limit = Math.min(50, Math.max(5, Number(url.searchParams.get("limit") || 20)));
+    /* Q4-029: page 파라미터 + offset — 보고서 50개 초과 시 아카이브 접근 가능 */
+    const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+    const offset = (page - 1) * limit;
     const yearParam = url.searchParams.get("year");
 
     const conds: any[] = [
@@ -137,7 +140,18 @@ export default async (req: Request) => {
         desc(activityPosts.month),
         desc(activityPosts.publishedAt),
       )
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
+
+    /* 전체 건수 (페이지네이션 메타) */
+    let total = 0;
+    try {
+      const cnt: any = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(activityPosts)
+        .where(and(...conds));
+      total = Number((cnt?.[0] ?? {}).n ?? 0);
+    } catch (_) { total = 0; }
 
     /* 각 보고서마다 PDF blob 정보 추출 (단일 쿼리로 일괄 조회) */
     const allBlobIds: number[] = [];
@@ -192,7 +206,10 @@ export default async (req: Request) => {
       };
     });
 
-    return ok({ list: enriched });
+    return ok({
+      list: enriched,
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    });
   } catch (err: any) {
     console.error("[public-activity-reports]", err);
     return serverError("보고서 조회 중 오류", err?.message);

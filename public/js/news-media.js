@@ -46,7 +46,9 @@
 
       grid.innerHTML = '<div class="media-grid">' + list.map((m) => {
         const isExternal = m.category === 'press' && m.externalUrl;
-        const href = isExternal ? m.externalUrl : `/api/media-posts?id=${m.id}`;
+        /* Q4-031: 내부 항목은 클릭 핸들러(data-media-id)로만 처리 — href에 API URL을 두면
+           키보드 엔터·새탭 열기 시 JSON 응답이 그대로 노출됨. '#'로 두고 click에서 preventDefault. */
+        const href = isExternal ? m.externalUrl : '#';
         const targetAttr = isExternal ? 'target="_blank" rel="noopener"' : '';
 
         /* 외부 링크가 아니면 모달이 더 적합하지만 단순화를 위해 alert로 본문 표시 */

@@ -53,9 +53,14 @@ function validateRedirectUrl(raw: string): string | null {
   }
   /* http(s)만 허용 */
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-  /* 자기 자신의 /api/* 경로로 루프 방지 */
-  if (parsed.hostname === new URL(SITE_URL).hostname && parsed.pathname.startsWith("/api/")) {
-    return null;
+  /* Q4-027: 내부 함수 경로(/api/·/.netlify/)로의 리다이렉트는 도메인 무관 차단.
+     SITE_URL 호스트만 비교하던 기존 로직은 공식 도메인(tbfa.co.kr)을 못 막아
+     u=tbfa.co.kr/api/track-click 자기호출 루프(함수 과호출·크레딧 소진) 위험이 있었음. */
+  const path = parsed.pathname.toLowerCase();
+  if (path.startsWith("/api/") || path.startsWith("/.netlify/")) {
+    const internalHosts = new Set<string>(["tbfa.co.kr", "tbfa-siren-cms.netlify.app"]);
+    try { internalHosts.add(new URL(SITE_URL).hostname); } catch { /* noop */ }
+    if (internalHosts.has(parsed.hostname)) return null;
   }
   return parsed.href;
 }
