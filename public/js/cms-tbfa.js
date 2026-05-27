@@ -4099,3 +4099,89 @@ function renderAiConfig() {
     if (p) p.style.display = 'none';
   });
 }
+
+/* ============================================================
+   관리자 세션 타이머 + 연장 (우상단 타이머·5분 전 연장 팝업·클릭 연장)
+   - httpOnly 쿠키라 만료시각을 서버(/api/admin/session GET)에서 받아 카운트다운
+   - 5분 전 경고 팝업, 타이머/버튼 클릭 시 POST로 세션 재발급(만료시각 갱신)
+   - 만료 시 로그인(/admin.html) 이동. 2분마다 서버 동기화(드리프트·다른 탭 연장 반영)
+   ============================================================ */
+(function () {
+  var WARN_SEC = 300;        // 5분 전 경고
+  var remain = 0;            // 남은 초(로컬 카운트다운)
+  var tick = null, resync = null;
+  var warnOpen = false, busy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function fmt(s) { s = Math.max(0, s | 0); var m = Math.floor(s / 60), ss = s % 60; return m + ':' + (ss < 10 ? '0' : '') + ss; }
+
+  async function call(method) {
+    try {
+      var res = await fetch('/api/admin/session', { method: method, credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      if (res.status === 401) return { expired: true };
+      var body = {}; try { body = await res.json(); } catch (e) {}
+      var d = (body && body.data) ? body.data : body;
+      return { expiresInSec: (d && typeof d.expiresInSec === 'number') ? d.expiresInSec : null };
+    } catch (e) { return { netErr: true }; }
+  }
+
+  function render() {
+    var btn = $('sessionTimer'), txt = $('sessionTimerText'), icon = $('sessionTimerIcon');
+    if (!btn || !txt) return;
+    btn.style.display = 'inline-flex';
+    txt.textContent = fmt(remain);
+    var warn = remain <= WARN_SEC;
+    btn.style.borderColor = warn ? '#fca5a5' : '#e2e8f0';
+    btn.style.background = warn ? '#fef2f2' : '#f8fafc';
+    btn.style.color = warn ? '#dc2626' : '#475569';
+    if (icon) icon.textContent = warn ? '⏰' : '🔓';
+    btn.title = '관리자 세션 남은 시간 — 클릭하면 연장됩니다';
+  }
+
+  function onExpired() {
+    stopTick(); if (resync) { clearInterval(resync); resync = null; }
+    var m = $('sessionWarnModal'); if (m) m.style.display = 'none';
+    alert('관리자 세션이 만료되었습니다. 다시 로그인해 주세요.');
+    location.href = '/admin.html';
+  }
+
+  function stopTick() { if (tick) { clearInterval(tick); tick = null; } }
+
+  function startTick() {
+    stopTick(); render();
+    tick = setInterval(function () {
+      remain--;
+      render();
+      if (remain <= WARN_SEC && !warnOpen) openWarn();
+      if (warnOpen) { var c = $('sessionWarnCountdown'); if (c) c.textContent = fmt(Math.max(0, remain)); }
+      if (remain <= 0) onExpired();
+    }, 1000);
+  }
+
+  function openWarn() { warnOpen = true; var m = $('sessionWarnModal'); if (m) m.style.display = 'flex'; }
+  function closeWarn() { warnOpen = false; var m = $('sessionWarnModal'); if (m) m.style.display = 'none'; }
+
+  async function load(extend) {
+    if (busy) return; busy = true;
+    try {
+      var r = await call(extend ? 'POST' : 'GET');
+      if (r.expired) { onExpired(); return; }
+      if (typeof r.expiresInSec === 'number') {
+        remain = r.expiresInSec;
+        if (remain > WARN_SEC) closeWarn();
+        startTick();
+      }
+    } finally { busy = false; }
+  }
+
+  window.extendAdminSession = function () { load(true); };
+  window.logoutAdminSession = function () { location.href = '/admin.html'; };
+
+  function boot() {
+    if (!$('sessionTimer')) return;
+    load(false);  // 최초 만료시각 조회
+    resync = setInterval(function () { if (!warnOpen) load(false); }, 120000); // 2분 동기화(연장 아님·표시 보정)
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
