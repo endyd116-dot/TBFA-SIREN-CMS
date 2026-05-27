@@ -23,7 +23,16 @@
 
 ## 2. 현재 상태 (2026-05-27)
 
-### 💬 카카오 알림톡 템플릿 자동 CRUD 시스템 — 라이브 종결 (2026-05-27 최신·★상단)
+### 🔍 R41 플랫폼 전수 디버그 감사·수정 — 라이브 종결 (2026-05-27 최신·★상단)
+메인·A·B·C **4영역 분할 전수 감사**(읽기 전용)로 결함 **154건**(P0 1·P1 28·P2 65·P3 60) 도출 → 영역별 분배 수정 → 일괄 머지·tsc 0 → **배포 2회·마이그 2회**로 종결. 보류 7건 전부 해소.
+- **P0**: 비공개 첨부(신고 증거·딥릴리프 유족자료)를 로그인만 하면 ID 추측 다운로드 가능 → 관리자·본인 업로드만 허용(`blob-image`).
+- **P1 핵심**: 정기결제 실패 무한 재청구·자동해지 붕괴 복구(`cron-kicc-billing`) / 파일공유·작업 IDOR / 익명 신고자 신원 노출(reveal 우회) / 댓글·발간 워크플로우 단절 / AI 비용 스트리밍 안전장치 누락 이식 / 휴가 과다차감·취소경로 부재.
+- **정책 반영**: 민감작업 권한 토글 5종(`role_permissions` 시드 + `admin-role-policy` UI, 현행 유지·super_admin 토글) / 대량발송 수신거부·번호미인증·탈퇴 강제제외(`recipient-resolve`) / 추모 AI 사전검토(부적절 자동 비공개+운영자 통지·`lib/memorial-moderation`).
+- **마이그(둘 다 Swain 호출·확인·파일삭제 완료)**: `migrate-r41-featurekeys`(권한키 5종, alreadyExist 5 확인) / `migrate-r41-followup`(댓글투표 `(comment_id,member_id)` UNIQUE + 추모 좋아요 `message_id` FK, steps 4 done).
+- **보류→전부 해소**: Q2-023·047-FK(후속 마이그) / 이메일수신거부(신규 컬럼 불필요·`agreeEmail` 재사용) / Q2-025·017(현행·안내 유지 결정) / Q2-038·039(2-어드민 원칙상 정상=홈페이지 기능은 싸이렌 어드민).
+- **기록**: `docs/active/audit/` (R41-AUDIT-PLAN·R41-MASTER·R41-FINAL-REPORT·report-{main/A/B/C}). 커밋 a022061→…→85dd174.
+
+### 💬 카카오 알림톡 템플릿 자동 CRUD 시스템 — 라이브 종결 (2026-05-27)
 운영자가 통합 CMS(알림·발송 → "💬 카카오 알림톡 템플릿")에서 템플릿을 **등록→솔라피 자동 검수요청→cron 승인확인→발송 사용·삭제**까지 코드 없이 관리. **템플릿마다 env 만들던 방식 폐지**(§6.18). Swain 라이브 검증 PASS(CMS 6종 승인 표시 + 테스트 발송 카카오톡 도착).
 - **신규**: 테이블 `kakao_alimtalk_templates`(event_key=NotifyEvent값·솔라피ID·검수상태·반려사유) + `migrate-kakao-templates`(테이블+승인 6종 시드·**Swain 호출 완료 total:6**·1회용 파일 삭제) + solapi-client 카카오 관리 API(채널·등록·검수·상태·삭제·카테고리) + `cron-kakao-template-status`(매시간 검수 상태 자동반영) + `admin-kakao-templates`(API)+화면 + cms-tbfa iframe 4곳.
 - **어댑터 전환**: `kakao-aligo`가 env(`SOLAPI_TPL_*`) 대신 **DB에서 이벤트별 승인 템플릿ID·pfId 조회**(env 폴백 유지). → 결제실패·카드만료·출금완료/예정·영수증·후원변경이 카카오톡 자동 발송.
