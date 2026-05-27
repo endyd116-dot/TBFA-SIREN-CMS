@@ -222,6 +222,7 @@ let draftPollTimer = null;     // 서면 섹션 생성 결과 폴링(P3)
 let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
 let isAdmin = false;           // role ∈ admin·super_admin — 발간 생성·검수·발간·삭제 권한(P4)
 let isOperator = false;        // role ∈ operator 이상 — 발간·통계 조회 권한(P4)
+let canPubWrite = false;       // 발간 쓰기 권한 — 권한 정책(martyrdom_publication) 서버 canWrite 반영(기본 isAdmin)
 let myRole = null;             // /api/admin/me role 원본값
 let myMemberId = null;         // /api/admin/me id — 검토 결정 권한 분기용(P3)
 let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
@@ -1855,9 +1856,9 @@ function renderTabPublications() {
       <p class="section-sub">축적된 사건·통계·인정 패턴을 종합해 외부 발간용 연구 자료를 생성합니다.</p></div>
   </div>
   <div class="alert-banner expert-warning">⚠️ 외부 발간 전 운영자(책임자) 검수·승인 필수. 실명·식별정보 자동 경량 마스킹 적용.</div>
-${isAdmin ? `
-  <!-- 새 발간물 생성 (admin 이상) -->
-  <div class="draft-stage">
+
+  <!-- 새 발간물 생성 (발간 쓰기 권한자) — 권한 정책 반영(loadPublications에서 표시 토글) -->
+  <div class="draft-stage" id="pubCreateStage" style="display:${isAdmin ? '' : 'none'}">
     <div class="ds-head"><span class="ds-step">새 발간물 생성</span></div>
     <div class="pub-form">
       <div class="pub-form-row">
@@ -1889,8 +1890,8 @@ ${isAdmin ? `
         <button class="btn" onclick="generatePublication()" id="pubGenBtn">발간물 생성</button>
       </div>
     </div>
-  </div>` : `
-  <div class="empty-hint"><div class="eh-desc">📖 조회 전용입니다. 발간물 생성·검수·발간·삭제는 관리자(admin) 권한이 필요합니다. 아래 목록과 미리보기는 열람·PDF/HTML 내보내기가 가능합니다.</div></div>`}
+  </div>
+  <div class="empty-hint" id="pubReadonlyHint" style="display:${isAdmin ? 'none' : ''}"><div class="eh-desc">📖 조회 전용입니다. 발간물 생성·검수·발간·삭제는 발간 권한이 필요합니다. 아래 목록과 미리보기는 열람·PDF/HTML 내보내기가 가능합니다.</div></div>
 
   <!-- 발간물 목록 -->
   <div class="draft-stage">
@@ -2888,10 +2889,19 @@ async function loadPublications() {
     const d = await apiP4PublicationList();
     if (!d.ok) { body.innerHTML = '<div class="empty-hint"><div class="eh-desc">목록 불러오기 실패</div></div>'; return; }
     pubList = (d.publications || d.data && d.data.publications) || [];
+    canPubWrite = (typeof d.canWrite === "boolean") ? d.canWrite : isAdmin;   // 서버 권한 정책 반영(없으면 isAdmin 폴백)
+    applyPubWriteVisibility();
     renderPubList();
   } catch (e) {
     if (e.message !== "auth") { const b2 = document.getElementById("pubListBody"); if (b2) b2.innerHTML = '<div class="empty-hint"><div class="eh-desc">네트워크 오류</div></div>'; }
   }
+}
+// 발간 쓰기 권한에 따라 생성 폼/조회 전용 안내 표시 토글 (권한 정책 반영)
+function applyPubWriteVisibility() {
+  const stage = document.getElementById("pubCreateStage");
+  const hint  = document.getElementById("pubReadonlyHint");
+  if (stage) stage.style.display = canPubWrite ? "" : "none";
+  if (hint)  hint.style.display  = canPubWrite ? "none" : "";
 }
 const PUB_TYPE_LABELS = { guide: "종합 가이드", trend: "동향 보고서", case_study: "사례 연구" };
 const PUB_STATUS_LABELS = { draft: "초안", reviewed: "검수 완료", published: "발간됨" };
@@ -2911,7 +2921,7 @@ function renderPubList() {
       <div class="pi-right">
         <span class="rv-badge ${cls}">${st}</span>
         <button class="btn-xs" onclick="showPublicationDetail(${p.id})">상세</button>
-        ${isAdmin ? `<button class="btn-xs btn-danger" onclick="deletePublication(${p.id})">삭제</button>` : ""}
+        ${canPubWrite ? `<button class="btn-xs btn-danger" onclick="deletePublication(${p.id})">삭제</button>` : ""}
       </div>
     </div>`;
   }).join("");
@@ -2939,8 +2949,8 @@ async function showPublicationDetail(id) {
   sec.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function renderPubActions(p) {
-  const canReview  = isAdmin && p.status === "draft";      // 검수: admin 이상
-  const canPublish = isAdmin && p.status === "reviewed";   // 발간 확정: admin 이상
+  const canReview  = canPubWrite && p.status === "draft";      // 검수: 발간 쓰기 권한자
+  const canPublish = canPubWrite && p.status === "reviewed";   // 발간 확정: 발간 쓰기 권한자
   return `<div class="pub-actions">
     ${canReview  ? `<button class="btn-sm" onclick="reviewPublication(${p.id})">✅ 검수 완료</button>` : ""}
     ${canPublish ? `<button class="btn-sm" onclick="publishPublication(${p.id})">📢 발간 확정</button>` : ""}

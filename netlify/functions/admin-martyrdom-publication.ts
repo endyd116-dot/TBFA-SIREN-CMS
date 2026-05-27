@@ -58,7 +58,8 @@ export default async (req: Request, _ctx: Context) => {
         status:    String(row.status || "draft"),
         createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
       }));
-      return new Response(JSON.stringify({ ok: true, publications }), {
+      const canWrite = await canAccess(member.role ?? "", PUB_WRITE_FEATURE);
+      return new Response(JSON.stringify({ ok: true, publications, canWrite }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
