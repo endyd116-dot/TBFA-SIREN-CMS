@@ -4,13 +4,21 @@
 > 새 메인 채팅 시작 시 정독.
 > 이전 시점 스냅샷은 [`docs/history/handover/v20.md`](../history/handover/v20.md) 영구 archive (자발적 안 읽음).
 >
-> **마지막 갱신**: 2026-05-27 / **🏁 딥릴리프 P1~P4 전체 종결·SSO 완료·배포 8→5분**. 다음 = (선택) 데이터 축적·발간 풍부화.
+> **마지막 갱신**: 2026-05-27 / **💬 카카오 알림톡 템플릿 자동관리 시스템 종결 + 🏁 딥릴리프 P1~P4 전체 종결·SSO·배포 8→5분**. 다음 = (선택) 후속.
 > 새 메인 진입 시 본 문서 §0 → CLAUDE.md(자동로드) → PROJECT_STATE.md §2 → 병렬규칙(PARALLEL_GUIDE/TEMPLATE) → 메모리(MEMORY.md + project_hamkke_on_sso·project_next_survivor_support 등) 순서로 정독. 딥릴리프 설계 master = `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`(archive)
-> **▶ 딥릴리프는 종결. 다음 작업은 §0 잔여(Swain 발간 권한 마이그 호출 1건) + 후속(선택·데이터 축적).**
+> **▶ 딥릴리프·알림톡 시스템 모두 종결. 다음 작업은 Swain 지시 대기(후속·신규).**
 
 ---
 
-## 0. ★ 지금 시점 (2026-05-27 최신 — 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료)
+## 0. ★ 지금 시점 (2026-05-27 최신)
+
+### 💬 카카오 알림톡 템플릿 자동 CRUD 시스템 — 라이브 종결
+운영자가 통합 CMS(알림·발송 → "💬 카카오 알림톡 템플릿")에서 템플릿 **등록→솔라피 자동 검수요청→cron(매시간) 승인확인→발송 사용·삭제**까지 코드 없이 관리. **템플릿마다 env(`SOLAPI_TPL_*`) 만들던 방식 폐지**(§6.18). Swain 라이브 PASS(6종 승인 표시 + 테스트 발송 카카오톡 도착).
+- 신규: 테이블 `kakao_alimtalk_templates`(event_key=NotifyEvent값·솔라피ID·검수상태) + solapi-client 카카오 관리 API + `cron-kakao-template-status` + `admin-kakao-templates`(API)+화면 + cms-tbfa iframe 4곳. 마이그 `migrate-kakao-templates` **호출 완료(total:6)·파일 삭제**·schema 활성화.
+- 어댑터 `kakao-aligo`: env 대신 **DB에서 이벤트별 승인 템플릿ID·pfId 조회**(env 폴백). 결제실패·카드만료·출금완료/예정·영수증·후원변경 카카오톡 자동 발송.
+- **env 추가 0개**(pfId 자동조회·6종 시드·기존 SOLAPI_API_KEY/SECRET/SENDER만). → **솔라피 알림톡 트랙 종결**(SMS·MMS·프록시폐기 기완료 + 알림톡 DB관리 완성). 검증 `docs/history/verify/2026-05-27-kakao-templates.md`(아래 작성). 잔여(선택): 새 템플릿 직접 등록→검수 실사용 테스트.
+
+### 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료
 
 **딥릴리프(순직 인정 지원) = 통합 CMS 1뎁스 "🕊️ 딥릴리프". P1~P4 전체 종결.** 설계 master는 milestone [`docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`](../history/milestones/2026-05-27-deeprelief-p3-p4.md)(P3·P4·archive) + `2026-05-26-deeprelief-p1-p2.md`(P1·P2). `docs/active/`에서 이동 완료.
 

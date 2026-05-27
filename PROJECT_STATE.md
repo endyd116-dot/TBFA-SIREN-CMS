@@ -23,7 +23,14 @@
 
 ## 2. 현재 상태 (2026-05-27)
 
-### 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료·배포 8→5분 (2026-05-27 최신·★상단)
+### 💬 카카오 알림톡 템플릿 자동 CRUD 시스템 — 라이브 종결 (2026-05-27 최신·★상단)
+운영자가 통합 CMS(알림·발송 → "💬 카카오 알림톡 템플릿")에서 템플릿을 **등록→솔라피 자동 검수요청→cron 승인확인→발송 사용·삭제**까지 코드 없이 관리. **템플릿마다 env 만들던 방식 폐지**(§6.18). Swain 라이브 검증 PASS(CMS 6종 승인 표시 + 테스트 발송 카카오톡 도착).
+- **신규**: 테이블 `kakao_alimtalk_templates`(event_key=NotifyEvent값·솔라피ID·검수상태·반려사유) + `migrate-kakao-templates`(테이블+승인 6종 시드·**Swain 호출 완료 total:6**·1회용 파일 삭제) + solapi-client 카카오 관리 API(채널·등록·검수·상태·삭제·카테고리) + `cron-kakao-template-status`(매시간 검수 상태 자동반영) + `admin-kakao-templates`(API)+화면 + cms-tbfa iframe 4곳.
+- **어댑터 전환**: `kakao-aligo`가 env(`SOLAPI_TPL_*`) 대신 **DB에서 이벤트별 승인 템플릿ID·pfId 조회**(env 폴백 유지). → 결제실패·카드만료·출금완료/예정·영수증·후원변경이 카카오톡 자동 발송.
+- **env 추가 0개**: pfId는 솔라피 채널 API 자동 조회·기존 승인 6종은 시드. 기존 `SOLAPI_API_KEY/SECRET/SENDER`만 사용. → **솔라피 알림톡 트랙 종결**(SMS·MMS·프록시폐기 기완료 + 알림톡 DB관리 시스템으로 완성).
+- **커밋**: `e3a7ced`(시스템) + 마이그 삭제·schema 활성화·메뉴얼 동기화(이 push). **잔여(선택)**: 운영자가 새 템플릿 직접 등록→검수 흐름 실사용 테스트.
+
+### 🏁 딥릴리프 P1~P4 전체 종결·SSO 완료·배포 8→5분 (2026-05-27·딥릴리프)
 통합 CMS 1뎁스 "🕊️ 딥릴리프". 설계서 P3·P4 master는 milestone `docs/history/milestones/2026-05-27-deeprelief-p3-p4.md`로 이동(archive). P1·P2는 `2026-05-26-deeprelief-p1-p2.md`. **P1~P4 전체 종결 — 다음 메인은 후속(데이터 축적·발간 풍부화)만 선택적.**
 - **P1·P2**: 출시·검증·종결 완료(이전 세션).
 - **P3 서면 생성(종결)**: 유족급여신청서 목차 제안→섹션별 생성·편집·재생성·PDF/Word/zip 내보내기·전문가 검토 배정·승인·인과관계 논리맵·종결 자동학습. 신규 테이블 `martyrdom_draft_sections`·`martyrdom_reviews` + outputType `'draft'` + 의존성 `docx`. 마이그 `migrate-martyrdom-p3` 호출·삭제·schema 활성화 완료. C 코드+라이브(실서버 E2E) PASS(`verify/2026-05-27-martyrdom-p3*`).

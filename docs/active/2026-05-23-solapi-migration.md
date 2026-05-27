@@ -2,6 +2,8 @@
 
 > 2026-05-23 시작. 배경/인프라 상세는 메모리 `reference_sms_kakao_proxy.md` 참조.
 
+> **🏁 2026-05-27 종결 — 알림톡 DB 관리 시스템으로 완성.** 아래 "재개 절차"의 *"env 7개(SOLAPI_TPL_*) 설정"*은 **폐기**됨. 카카오 알림톡은 이제 **운영자 CMS에서 등록→검수→승인 자동 관리**(테이블 `kakao_alimtalk_templates` + 솔라피 관리 API + cron 상태추적 + `admin-kakao-templates` 화면)하며, 어댑터가 **DB에서 이벤트별 승인 템플릿ID·pfId 조회**(env 추가 0개·pfId 자동조회). 기존 승인 6종은 마이그(`migrate-kakao-templates`·호출·삭제 완료)로 시드. 검증 `docs/history/verify/2026-05-27-kakao-templates.md`. SMS·MMS·프록시폐기는 기완료 → **솔라피 이전 전체 종결**. (KICC 대기 2는 별도 트랙·유지.)
+
 ## ★ 재개 절차 (2026-05-23 세션 종료 시점 — 새 세션은 여기부터)
 
 **코드는 사실상 100% 완료·배포됨.** 알림톡은 env 미설정이라 placeholder(미발송)로 대기 중. 외부 승인 2건만 기다리는 상태.

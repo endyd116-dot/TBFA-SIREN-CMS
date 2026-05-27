@@ -2222,6 +2222,34 @@ export const notificationAdminSettings = pgTable("notification_admin_settings", 
 export type NotificationAdminSetting = typeof notificationAdminSettings.$inferSelect;
 export type NewNotificationAdminSetting = typeof notificationAdminSettings.$inferInsert;
 
+/* === 2026-05-27: 카카오 알림톡 템플릿 관리 (운영자 CMS 자동 CRUD·솔라피 API 연동) ===
+   migrate-kakao-templates.ts로 생성. 운영자가 등록→검수요청→승인 관리.
+   event_key = NotifyEvent 값(billing.failed 등)으로 시스템 자동 발송에 연결.
+   런타임 쿼리는 raw SQL(어댑터·cron·admin API) — 본 정의는 타입·문서용. */
+export const kakaoAlimtalkTemplates = pgTable("kakao_alimtalk_templates", {
+  id:                    serial("id").primaryKey(),
+  eventKey:              varchar("event_key", { length: 40 }),
+  name:                  varchar("name", { length: 120 }).notNull(),
+  content:               text("content").notNull(),
+  variables:             jsonb("variables").default(sql`'[]'::jsonb`),
+  categoryCode:          varchar("category_code", { length: 20 }).default("004001"),
+  emphasizeTitle:        varchar("emphasize_title", { length: 50 }),
+  emphasizeSubtitle:     varchar("emphasize_subtitle", { length: 50 }).default("교사유가족협의회"),
+  buttons:               jsonb("buttons").default(sql`'[]'::jsonb`),
+  pfId:                  varchar("pf_id", { length: 60 }),
+  solapiTemplateId:      varchar("solapi_template_id", { length: 80 }),
+  status:                varchar("status", { length: 16 }).notNull().default("draft"),
+  solapiStatus:          varchar("solapi_status", { length: 20 }),
+  rejectReason:          text("reject_reason"),
+  isActive:              boolean("is_active").notNull().default(true),
+  inspectionRequestedAt: timestamp("inspection_requested_at"),
+  approvedAt:            timestamp("approved_at"),
+  createdBy:             integer("created_by").references(() => members.id),
+  createdAt:             timestamp("created_at").defaultNow(),
+  updatedAt:             timestamp("updated_at").defaultNow(),
+});
+export type KakaoAlimtalkTemplate = typeof kakaoAlimtalkTemplates.$inferSelect;
+
 /* === 2026-05-16: 효성 후원자 사이트 가입 흐름 A안 — 전화 인증 코드 저장 ===
    migrate-phone-verifications.ts로 테이블 생성됨. */
 export const phoneVerifications = pgTable("phone_verifications", {
