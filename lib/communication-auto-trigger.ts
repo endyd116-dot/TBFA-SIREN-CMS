@@ -23,7 +23,7 @@ export interface TriggerEvalResult {
   /** 발송 대상 회원 ID 목록 (쿨다운 제외 후) */
   memberIds: number[];
   /** 쿨다운으로 제외된 회원 수 */
-  skippedByCooldwon: number;
+  skippedByCooldown: number;
 }
 
 /* =========================================================
@@ -40,7 +40,7 @@ export async function evaluateTrigger(trigger: {
   const rawCandidates = await getCandidates(trigger);
 
   if (rawCandidates.length === 0) {
-    return { memberIds: [], skippedByCooldwon: 0 };
+    return { memberIds: [], skippedByCooldown: 0 };
   }
 
   /* 쿨다운 체크 — auto_trigger_runs에 triggerId+memberId 최근 N일 이내 ok 기록이 있으면 제외 */
@@ -68,7 +68,7 @@ export async function evaluateTrigger(trigger: {
   const eligible = rawCandidates.filter((id) => !cooledDown.has(id));
   return {
     memberIds: eligible,
-    skippedByCooldwon: rawCandidates.length - eligible.length,
+    skippedByCooldown: rawCandidates.length - eligible.length,
   };
 }
 

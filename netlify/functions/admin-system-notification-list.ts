@@ -13,7 +13,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
-import { NotifyEvent } from "../../lib/notify-events";
+import { NotifyEvent, EVENT_CHANNEL_POLICY, FORCED_CHANNELS } from "../../lib/notify-events";
 import { buildEmailContent } from "../../lib/notify-adapters/email";
 import { buildSmsContent } from "../../lib/notify-adapters/sms-aligo";
 import { enrichKakaoParams, fallbackBodyKakao } from "../../lib/notify-adapters/kakao-aligo";
@@ -92,6 +92,24 @@ export default async (req: Request, _ctx: Context) => {
       ORDER BY s.event_type ASC
     `);
     const rows = res?.rows ?? res ?? [];
+
+    /* Q4-020: DB에 설정 row가 없는(시드 안 된) 관리 이벤트도 코드 기본값으로 합성해서 노출.
+       이전엔 DB 행만 매핑해 시드 없으면 화면이 완전히 빈 상태가 됐음. */
+    const present = new Set(rows.map((r: any) => r.event_type));
+    for (const et of Object.keys(SAMPLE_PARAMS)) {
+      if (!present.has(et)) {
+        rows.push({
+          event_type: et,
+          display_label: null,
+          description: null,
+          is_active: true,
+          default_channels: (EVENT_CHANNEL_POLICY as any)[et] ?? [],
+          forced_channels:  (FORCED_CHANNELS as any)[et] ?? [],
+          email_template_id: null, sms_template_id: null, kakao_template_id: null, inapp_template_id: null,
+        });
+      }
+    }
+    rows.sort((a: any, b: any) => String(a.event_type).localeCompare(String(b.event_type)));
 
     const events = rows.map((r: any) => ({
       eventType:       r.event_type,

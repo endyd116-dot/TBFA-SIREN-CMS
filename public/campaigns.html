@@ -75,7 +75,7 @@
 <div id="footer-slot"></div>
 <div id="modals-slot"></div>
 
-<script src="/js/common.js?v=3"></script>
+<script src="/js/common.js?v=6"></script>
 <script src="/js/auth.js?v=15"></script>
 <script src="/js/donate.js?v=r40"></script>
 <script>
@@ -101,7 +101,7 @@
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error('실패');
 
-      const list = data.data.list || [];
+      const list = data.data?.list || data.list || [];
       if (list.length === 0) {
         grid.innerHTML = '<div class="cmp-card-empty">진행 중인 캠페인이 없습니다.</div>';
         return;

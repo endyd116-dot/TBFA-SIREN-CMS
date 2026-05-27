@@ -29,7 +29,7 @@ export default async function handler(req: Request, _ctx: Context) {
     return Response.json({ ok: false, error: "INTERNAL_TRIGGER_SECRET 미설정 — 재조사 비활성(fail-closed)" }, { status: 503 });
   }
 
-  const base = process.env.URL || process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+  const base = process.env.URL || process.env.SITE_URL || "https://tbfa.co.kr";
   const baseUrl = base.startsWith("http") ? base : `https://${base}`;
 
   try {

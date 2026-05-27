@@ -39,17 +39,17 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const donRows = await db
       .select({
-        month: sql<string>`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`,
+        month: sql<string>`EXTRACT(MONTH FROM COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt}))`,
         gross: sql<string>`COALESCE(SUM(${donations.amount}), 0)`,
       })
       .from(donations)
       .where(
         and(
           eq(donations.status, "completed"),
-          sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
+          sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
         )
       )
-      .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`);
+      .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt}))`);
 
     for (const row of donRows) {
       const m = Number(row.month);
@@ -65,17 +65,17 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const refundRows = await db
       .select({
-        month: sql<string>`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`,
+        month: sql<string>`EXTRACT(MONTH FROM COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt}))`,
         total: sql<string>`COALESCE(SUM(${donations.amount}), 0)`,
       })
       .from(donations)
       .where(
         and(
           eq(donations.status, "refunded"),
-          sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
+          sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
         )
       )
-      .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt}))`);
+      .groupBy(sql`EXTRACT(MONTH FROM COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt}))`);
 
     for (const row of refundRows) {
       const m = Number(row.month);

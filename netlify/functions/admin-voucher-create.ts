@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { nextVoucherNumber } from "../../lib/voucher-number";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-voucher-create" };
@@ -54,44 +55,36 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("select_account_code", err);
   }
 
-  // voucher_number 자동 생성: YYYYMM-NNN (트랜잭션 내 MAX+1)
+  // voucher_number 자동 생성: YYYYMM-NNN
+  // Q4-024: 발번(MAX+1)과 INSERT를 한 트랜잭션 + advisory lock으로 묶어 동시 발번 충돌 방지.
   const yyyymm = String(voucherDate).slice(0, 7).replace("-", "");
-  let voucherNumber: string;
-  try {
-    const maxR: any = await db.execute(sql`
-      SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-      FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}
-    `);
-    const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-    voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
-  } catch (err: any) {
-    return jsonError("gen_voucher_number", err);
-  }
-
   const fiscalYear = parseInt(String(voucherDate).slice(0, 4));
   const createdBy = String(memberUid || adminId);
 
   try {
-    const result: any = await db.execute(sql`
-      INSERT INTO vouchers (
-        voucher_number, voucher_date, fiscal_year,
-        account_code, account_name, sub_account,
-        description, payee_name, amount,
-        evidence_type, evidence_number, evidence_url,
-        budget_line_id, expense_id,
-        is_template, template_name,
-        status, created_by, created_at, updated_at
-      ) VALUES (
-        ${voucherNumber}, ${voucherDate}, ${fiscalYear},
-        ${accountCode}, ${accountName}, ${subAccount || null},
-        ${description}, ${payeeName || null}, ${Number(amount)},
-        ${evidenceType || "none"}, ${evidenceNumber || null}, ${evidenceUrl || null},
-        ${budgetLineId ? Number(budgetLineId) : null}, ${expenseId ? Number(expenseId) : null},
-        ${Boolean(isTemplate)}, ${templateName || null},
-        'draft', ${createdBy}, NOW(), NOW()
-      ) RETURNING id, voucher_number
-    `);
-    const created = (result?.rows ?? result ?? [])[0];
+    const created = await db.transaction(async (tx) => {
+      const voucherNumber = await nextVoucherNumber(tx, yyyymm);
+      const result: any = await tx.execute(sql`
+        INSERT INTO vouchers (
+          voucher_number, voucher_date, fiscal_year,
+          account_code, account_name, sub_account,
+          description, payee_name, amount,
+          evidence_type, evidence_number, evidence_url,
+          budget_line_id, expense_id,
+          is_template, template_name,
+          status, created_by, created_at, updated_at
+        ) VALUES (
+          ${voucherNumber}, ${voucherDate}, ${fiscalYear},
+          ${accountCode}, ${accountName}, ${subAccount || null},
+          ${description}, ${payeeName || null}, ${Number(amount)},
+          ${evidenceType || "none"}, ${evidenceNumber || null}, ${evidenceUrl || null},
+          ${budgetLineId ? Number(budgetLineId) : null}, ${expenseId ? Number(expenseId) : null},
+          ${Boolean(isTemplate)}, ${templateName || null},
+          'draft', ${createdBy}, NOW(), NOW()
+        ) RETURNING id, voucher_number
+      `);
+      return (result?.rows ?? result ?? [])[0];
+    });
 
     return new Response(JSON.stringify({
       ok: true,

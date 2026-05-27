@@ -162,6 +162,11 @@
     kakao.maps.load(function () {
       var container = document.getElementById('kakao-map');
       if (!container) return;
+      /* Q4-030(운영 자립성): 주소·안내문구를 코드에 박지 않고 #kakao-map data 속성에서 읽는다.
+         about.js가 DB(about_location)에서 data-address/data-info를 세팅하면 코드 배포 없이 변경 가능.
+         미설정 시 아래 기본값으로 동작(현행 유지). */
+      var orgAddress = (container.dataset.address || '서울특별시 강서구 공항대로 426').trim();
+      var orgInfo = container.dataset.info || '(사)교사유가족협의회<br>공항대로 426 VIP오피스텔 618호';
       var defaultLatLng = new kakao.maps.LatLng(37.5663, 126.8008);
       var options = { center: defaultLatLng, level: 3 };
       var map = new kakao.maps.Map(container, options);
@@ -169,14 +174,14 @@
       function placeMarker(latlng) {
         var marker = new kakao.maps.Marker({ map: map, position: latlng });
         var infowindow = new kakao.maps.InfoWindow({
-          content: '<div style="padding:6px 10px;font-size:13px;white-space:nowrap;">(사)교사유가족협의회<br>공항대로 426 VIP오피스텔 618호</div>'
+          content: '<div style="padding:6px 10px;font-size:13px;white-space:nowrap;">' + orgInfo + '</div>'
         });
         infowindow.open(map, marker);
         map.setCenter(latlng);
       }
 
       var geocoder = new kakao.maps.services.Geocoder();
-      geocoder.addressSearch('서울특별시 강서구 공항대로 426', function (result, status) {
+      geocoder.addressSearch(orgAddress, function (result, status) {
         if (status === kakao.maps.services.Status.OK && result.length > 0) {
           placeMarker(new kakao.maps.LatLng(result[0].y, result[0].x));
         } else {

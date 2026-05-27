@@ -4401,3 +4401,37 @@ export const martyrdomPublications = pgTable("martyrdom_publications", {
 export type MartyrdomPublication    = typeof martyrdomPublications.$inferSelect;
 export type NewMartyrdomPublication = typeof martyrdomPublications.$inferInsert;
 /* === P4 발간 끝 === */
+
+/* === Q4-005 (R41): org-news 테이블 정의 동기화 (append-only) ===
+   라이브 DB에는 1회용 마이그로 이미 생성·사용 중(모든 접근이 raw db.execute(sql)).
+   drizzle 타입/문서 동기화 목적의 정의 — 컬럼은 실제 INSERT/SELECT(raw SQL)와 일치. */
+export const orgNewsSettings = pgTable("org_news_settings", {
+  id:          integer("id").primaryKey(),          // 단일 행(id=1) upsert
+  keywords:    text("keywords").array(),
+  scopes:      text("scopes").array(),
+  perCombo:    integer("per_combo"),
+  autoEnabled: boolean("auto_enabled"),
+  cronHourKst: integer("cron_hour_kst"),
+  updatedAt:   timestamp("updated_at"),
+  updatedBy:   integer("updated_by"),
+});
+
+export const orgNewsReports = pgTable("org_news_reports", {
+  id:              serial("id").primaryKey(),
+  keywords:        text("keywords").array(),
+  scopes:          text("scopes").array(),
+  perCombo:        integer("per_combo"),
+  collectedCount:  integer("collected_count"),
+  items:           jsonb("items"),
+  summary:         text("summary"),
+  keywordCloud:    jsonb("keyword_cloud"),
+  sentiment:       jsonb("sentiment"),
+  recommendations: jsonb("recommendations"),
+  diffSummary:     text("diff_summary"),
+  aiStatus:        varchar("ai_status", { length: 20 }),
+  incidents:       jsonb("incidents"),
+  triggerType:     varchar("trigger_type", { length: 20 }),
+  generatedBy:     integer("generated_by"),
+  createdAt:       timestamp("created_at").defaultNow(),
+});
+/* === Q4-005 org-news 끝 === */

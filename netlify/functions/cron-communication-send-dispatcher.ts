@@ -85,7 +85,7 @@ export default async function handler(_req: Request) {
      0단계 — 고아 'sending' 수신자 복구 (버그픽스3 #14-B)
        발송 도중 함수 타임아웃/중단 시 수신자가 'sending'에 영구히 갇힘.
        processChunk는 'pending'만 재픽업 → 자력 복구 불가 → 작업이 영원히 'processing'.
-       5분 이상 'sending'이면 고아로 간주:
+       90초 이상 'sending'이면 고아로 간주 (아래 INTERVAL '90 seconds'와 일치):
          retry_count<3 → 'pending' 재시도 (retry_count++)
          retry_count>=3 → 'failed' 종결 + 작업 failure_count 동기화
      ============================================================ */
@@ -379,8 +379,9 @@ async function startJob(job: any) {
   if (!group) throw new Error(`그룹을 찾을 수 없음 (id=${job.recipient_group_id})`);
   if (!group.is_active) throw new Error("그룹이 비활성 상태");
 
-  /* 그룹 resolve — 모든 회원 (limit 없음) */
-  const resolved = await resolveRecipients(group.criteria, { limit: 0 });
+  /* 그룹 resolve — 모든 회원 (limit 없음).
+     Q4-007: 채널을 전달해 탈퇴자·번호미인증(SMS/카카오)·카카오 미동의 수신자를 강제 제외. */
+  const resolved = await resolveRecipients(group.criteria, { limit: 0, channel: job.channel });
   /* limit=0이면 전체 — resolveRecipients가 limit 양수일 때만 LIMIT 적용 */
   let memberIds = resolved.memberIds || [];
 
@@ -707,13 +708,16 @@ async function processChunk(job: any) {
          분기 가능. 옛 코드는 카카오만 하드코딩된 문구였는데 result.error 사용으로
          변경 → 카카오 외 다른 정책 스킵 사유(예: alimtalk_template_code 미등록)도
          정확히 표시. */
-      const skipMark = (result as any).skipped === true
-        ? ((result as any).error || "정책 스킵 (발송 안 함)")
-        : "";
+      const isSkip = (result as any).skipped === true;
+      const skipMark = isSkip ? ((result as any).error || "정책 스킵 (발송 안 함)") : "";
+      /* Q4-022: status='sending' 가드(고아 복구로 다른 tick이 가져간 경우 덮어쓰기 방지)
+         + Q4-025: 정책 스킵(예: 카카오 대량발송)은 'skipped'로 기록 → 발송 분석의 '전송'
+         집계에서 제외(실제 미발송인데 sent로 잡혀 통계 왜곡되던 문제). 작업 완료 판정·
+         success_count에는 포함(처리 완료로 간주). */
       await db.execute(sql`
         UPDATE communication_send_recipients
-           SET status = 'sent', sent_at = NOW(), error = ${skipMark || null}, updated_at = NOW()
-         WHERE id = ${rec.id}
+           SET status = ${isSkip ? "skipped" : "sent"}, sent_at = NOW(), error = ${skipMark || null}, updated_at = NOW()
+         WHERE id = ${rec.id} AND status = 'sending'
       `);
       success++;
     } else {
@@ -723,7 +727,7 @@ async function processChunk(job: any) {
                error = ${(result.error || "").slice(0, 500)},
                retry_count = retry_count + 1,
                updated_at = NOW()
-         WHERE id = ${rec.id}
+         WHERE id = ${rec.id} AND status = 'sending'
       `);
       failure++;
     }

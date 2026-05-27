@@ -428,7 +428,7 @@ function loadSettings() {
   if (_settingsLoaded) return;
   api('/api/admin-org-news-settings').then(function(res) {
     _settingsLoaded = true;
-    var s = (res.data && (res.data.settings || (res.data.data && res.data.data.settings))) || {};
+    var s = (res.data && (res.data.data || res.data.settings || res.data)) || {};
     _settings = {
       keywords: s.keywords || [],
       scopes: s.scopes || ['news','blog','webkr'],

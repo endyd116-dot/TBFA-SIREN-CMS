@@ -16,6 +16,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
+import { nextVoucherNumber } from "../../lib/voucher-number";
 
 export default async (_req: Request, _ctx: Context) => {
   const start = Date.now();
@@ -44,7 +45,12 @@ export default async (_req: Request, _ctx: Context) => {
       WHERE is_template = TRUE
         AND recurring_active = TRUE
         AND recurring_day IS NOT NULL
-        AND (recurring_day = ${kD} OR (recurring_day = 0 AND ${isLastDay}))
+        AND (
+          recurring_day = ${kD}
+          OR (recurring_day = 0 AND ${isLastDay})
+          -- Q4-009: 29~31일 등 그 달 말일보다 큰 지정일은 말일에 발화(짧은 달 누락 방지)
+          OR (recurring_day > ${lastDayOfMonth} AND ${isLastDay})
+        )
     `);
     const templates = (tplRows?.rows ?? tplRows ?? []) as any[];
 
@@ -75,32 +81,28 @@ export default async (_req: Request, _ctx: Context) => {
           continue;
         }
 
-        // 3. voucher_number 발번 (YYYYMM-NNN)
-        const maxR: any = await db.execute(sql`
-          SELECT COALESCE(MAX(CAST(SPLIT_PART(voucher_number, '-', 2) AS INTEGER)), 0) AS maxn
-          FROM vouchers WHERE voucher_number LIKE ${`${yyyymm}-%`}
-        `);
-        const nextN = Number((maxR?.rows ?? maxR ?? [])[0]?.maxn ?? 0) + 1;
-        const voucherNumber = `${yyyymm}-${String(nextN).padStart(3, "0")}`;
-
-        // 4. draft 전표 생성 — 템플릿 필드 복사 + 마커 포함 description
+        // 3·4. 발번(YYYYMM-NNN) + draft 전표 INSERT를 한 트랜잭션 + advisory lock으로 묶음
+        //       (Q4-024 동시 발번 충돌 방지). 템플릿 필드 복사 + 마커 포함 description.
         const newDesc = `${t.description} ${marker}`;
-        const ins: any = await db.execute(sql`
-          INSERT INTO vouchers (
-            voucher_number, voucher_date, fiscal_year,
-            account_code, account_name, sub_account,
-            description, payee_name, amount,
-            evidence_type, budget_line_id,
-            is_template, status, created_by, created_at, updated_at
-          ) VALUES (
-            ${voucherNumber}, ${voucherDate}, ${kY},
-            ${t.account_code}, ${t.account_name}, ${t.sub_account || null},
-            ${newDesc}, ${t.payee_name || null}, ${Number(t.amount)},
-            ${t.evidence_type || "none"}, ${t.budget_line_id ? Number(t.budget_line_id) : null},
-            FALSE, 'draft', ${t.created_by}, NOW(), NOW()
-          ) RETURNING voucher_number
-        `);
-        const vn = (ins?.rows ?? ins ?? [])[0]?.voucher_number;
+        const vn = await db.transaction(async (tx) => {
+          const voucherNumber = await nextVoucherNumber(tx, yyyymm);
+          const ins: any = await tx.execute(sql`
+            INSERT INTO vouchers (
+              voucher_number, voucher_date, fiscal_year,
+              account_code, account_name, sub_account,
+              description, payee_name, amount,
+              evidence_type, budget_line_id,
+              is_template, status, created_by, created_at, updated_at
+            ) VALUES (
+              ${voucherNumber}, ${voucherDate}, ${kY},
+              ${t.account_code}, ${t.account_name}, ${t.sub_account || null},
+              ${newDesc}, ${t.payee_name || null}, ${Number(t.amount)},
+              ${t.evidence_type || "none"}, ${t.budget_line_id ? Number(t.budget_line_id) : null},
+              FALSE, 'draft', ${t.created_by}, NOW(), NOW()
+            ) RETURNING voucher_number
+          `);
+          return (ins?.rows ?? ins ?? [])[0]?.voucher_number;
+        });
         created++;
         results.push({ templateId, status: "created", voucherNumber: vn });
       } catch (err: any) {

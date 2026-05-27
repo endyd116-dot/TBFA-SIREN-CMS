@@ -90,13 +90,16 @@ export function tooManyRequests(message = "요청이 너무 많습니다", retry
   );
 }
 
-export function serverError(message = "서버 오류가 발생했습니다", err?: any) {
+export function serverError(message = "서버 오류가 발생했습니다", err?: any, step = "server_error") {
   console.error("[ServerError]", err);
+  /* Q4-033: §6.2 표준 — step·detail·stack 포함(운영 장애 단계 진단). 하위호환: (message, err) 호출 유지. */
   return new Response(
     JSON.stringify({
       ok: false,
       error: message,
-      detail: process.env.NODE_ENV === "development" ? String(err) : undefined,
+      step,
+      detail: (String(err?.message ?? err ?? "").slice(0, 500)) || undefined,
+      stack: (String(err?.stack ?? "").slice(0, 1000)) || undefined,
     }),
     { status: 500, headers: JSON_HEADERS }
   );
