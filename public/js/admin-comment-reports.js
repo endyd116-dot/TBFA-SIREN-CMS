@@ -35,10 +35,11 @@
     return iso.slice(0, 10) + ' ' + iso.slice(11, 16);
   }
 
+  /* ★ R41 Q2-006: 서버 허용 상태집합(pending/approved/dismissed)과 일치 */
   var STATUS_MAP = {
-    pending:  { cls: 'badge-pending',  txt: '🟡 대기' },
-    reviewed: { cls: 'badge-reviewed', txt: '✅ 완료' },
-    rejected: { cls: 'badge-rejected', txt: '⬜ 기각' },
+    pending:   { cls: 'badge-pending',  txt: '🟡 검토대기' },
+    approved:  { cls: 'badge-reviewed', txt: '✅ 처리완료' },
+    dismissed: { cls: 'badge-rejected', txt: '⬜ 기각' },
   };
 
   var TYPE_MAP = {
@@ -157,7 +158,8 @@
     if (!currentReportId) return;
     var action = document.querySelector('input[name="reviewAction"]:checked')?.value || 'none';
 
-    var status = action === 'none' ? 'dismissed' : 'resolved';
+    /* ★ R41 Q2-006: 처리(숨김/삭제)=approved, 기각=dismissed (서버 허용 상태값) */
+    var status = action === 'none' ? 'dismissed' : 'approved';
     var res = await api('/api/admin-comment-report-review', {
       method: 'PATCH',
       body: { reportId: parseInt(currentReportId, 10), status: status, action: action },
@@ -170,7 +172,7 @@
       toast(msg);
       closeModal();
       /* 해당 행 상태 갱신 */
-      var newStatus = action === 'none' ? 'rejected' : 'reviewed';
+      var newStatus = action === 'none' ? 'dismissed' : 'approved';
       var row = document.querySelector('tr[data-id="' + currentReportId + '"]');
       if (row) {
         var badgeCell = row.cells[5];

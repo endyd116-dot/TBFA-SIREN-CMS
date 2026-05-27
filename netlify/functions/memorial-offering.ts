@@ -61,14 +61,16 @@ export default async function handler(req: Request, _ctx: Context) {
     /* 과도 방지 — 같은 디바이스·대상 최근 N초 내 중복은 카운트만 반환 */
     let throttled = false;
     try {
+      /* ★ R41 Q2-015: 로그인 회원은 (memberId,대상) 기준, 비회원만 IP 기준으로 중복 판정.
+         — 공유망(학교·회사)에서 서로 다른 회원의 헌화가 같은 IP로 과차단되던 문제 해소 */
+      const idCond = memberId != null
+        ? sql`member_id = ${memberId}`
+        : sql`member_id IS NULL AND ip_hash = ${ipHash}`;
+      const scopeCond = teacherId ? sql`teacher_id = ${teacherId}` : sql`teacher_id IS NULL`;
       const dup: any = await db.execute(
-        teacherId
-          ? sql`SELECT 1 FROM memorial_offerings
-                 WHERE ip_hash = ${ipHash} AND teacher_id = ${teacherId}
-                   AND created_at > NOW() - (${THROTTLE_SECONDS} * INTERVAL '1 second') LIMIT 1`
-          : sql`SELECT 1 FROM memorial_offerings
-                 WHERE ip_hash = ${ipHash} AND teacher_id IS NULL
-                   AND created_at > NOW() - (${THROTTLE_SECONDS} * INTERVAL '1 second') LIMIT 1`
+        sql`SELECT 1 FROM memorial_offerings
+             WHERE ${idCond} AND ${scopeCond}
+               AND created_at > NOW() - (${THROTTLE_SECONDS} * INTERVAL '1 second') LIMIT 1`
       );
       throttled = (dup?.rows ?? dup ?? []).length > 0;
     } catch (err) {

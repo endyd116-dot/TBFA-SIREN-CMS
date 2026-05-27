@@ -191,6 +191,10 @@ tr:last-child td { border-bottom:none; }
     <div class="chip active" data-type="message" onclick="switchModType('message')">💬 추모 메시지</div>
     <div class="chip" data-type="letter" onclick="switchModType('letter')">✉️ 기억의 편지</div>
   </div>
+  <div class="mod-filter">
+    <div class="chip active" data-sort="report" onclick="switchModSort('report')">🚩 신고순</div>
+    <div class="chip" data-sort="recent" onclick="switchModSort('recent')">🆕 최신순(미검토)</div>
+  </div>
   <div class="tbl-wrap">
     <table>
       <thead><tr>
@@ -232,6 +236,6 @@ tr:last-child td { border-bottom:none; }
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-memorial.js?v=1"></script>
+<script src="/js/admin-memorial.js?v=2-r41b2"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ import type { Context } from "@netlify/functions";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db";
 import { boardPosts } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { requireActiveUser } from "../../lib/auth";
 import {
   ok, badRequest, unauthorized, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -16,12 +16,26 @@ export const config = { path: "/api/board/update" };
 
 const VALID_CATEGORIES = ["general", "share", "question", "info", "etc"];
 
+// Q2-049: 저장형 XSS 표면 완화 — board-create.ts와 동일 경량 정화
+// <script> 블록 / on*= 이벤트 핸들러 속성 / javascript: 스킴 제거
+function sanitizeContentHtml(html: string): string {
+  return String(html || "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+    .replace(/<script\b[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
 export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST" && req.method !== "PATCH") return methodNotAllowed();
 
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* Q2-043: 인증 + 차단 사용자 차단 (requireActiveUser) */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);
@@ -43,7 +57,8 @@ export default async (req: Request, _ctx: Context) => {
       updateData.title = t;
     }
     if (body.contentHtml !== undefined) {
-      const c = String(body.contentHtml).trim();
+      // Q2-049: 저장 전 경량 정화 적용 (길이 검증은 정화 후 기준)
+      const c = sanitizeContentHtml(String(body.contentHtml).trim());
       if (c.length < 5) return badRequest("내용을 5자 이상 입력해주세요");
       if (c.length > 100000) return badRequest("내용이 너무 깁니다");
       updateData.contentHtml = c;

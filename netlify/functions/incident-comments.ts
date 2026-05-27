@@ -5,7 +5,7 @@ import type { Context } from "@netlify/functions";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { incidentComments, commentVotes, commentReports, members } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import {
   ok, created, badRequest, unauthorized, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -93,8 +93,10 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ===== POST — 댓글 작성 / 투표 / 신고 ===== */
   if (req.method === "POST") {
-    const user = authenticateUser(req);
-    if (!user) return unauthorized("로그인이 필요합니다");
+    /* ★ R41 Q2-043: 차단(블랙) 사용자 쓰기 차단 — requireActiveUser 패턴 */
+    const _r = await requireActiveUser(req);
+    if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+    const user = _r.user;
 
     const body: any = await parseJson(req);
     if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -152,13 +154,21 @@ export default async (req: Request, _ctx: Context) => {
         const existRows = Array.isArray(existing) ? existing : (existing?.rows || []);
         const prev = existRows[0];
 
+        /* ★ R41 Q2-003: 처리 후 갱신된 카운트를 응답에 포함 (프론트 즉시 반영) */
+        const fetchCounts = async () => {
+          const cRes: any = await db.execute(sql`SELECT like_count, dislike_count FROM incident_comments WHERE id = ${commentId}`);
+          const cRows = Array.isArray(cRes) ? cRes : (cRes?.rows || []);
+          const c0 = cRows[0] || {};
+          return { likeCount: Number(c0.like_count || 0), dislikeCount: Number(c0.dislike_count || 0) };
+        };
+
         if (prev) {
           if (prev.vote_type === voteType) {
             /* 같은 투표 → 취소 */
             await db.execute(sql`DELETE FROM comment_votes WHERE id = ${prev.id}`);
             const col = voteType === "like" ? sql`like_count` : sql`dislike_count`;
             await db.execute(sql`UPDATE incident_comments SET ${col} = GREATEST(${col} - 1, 0) WHERE id = ${commentId}`);
-            return ok({ action: "cancelled", voteType }, "투표가 취소되었습니다");
+            return ok({ action: "cancelled", voteType, ...(await fetchCounts()) }, "투표가 취소되었습니다");
           } else {
             /* 다른 투표 → 변경 */
             await db.execute(sql`UPDATE comment_votes SET vote_type = ${voteType} WHERE id = ${prev.id}`);
@@ -167,7 +177,7 @@ export default async (req: Request, _ctx: Context) => {
             } else {
               await db.execute(sql`UPDATE incident_comments SET dislike_count = dislike_count + 1, like_count = GREATEST(like_count - 1, 0) WHERE id = ${commentId}`);
             }
-            return ok({ action: "changed", voteType }, "투표가 변경되었습니다");
+            return ok({ action: "changed", voteType, ...(await fetchCounts()) }, "투표가 변경되었습니다");
           }
         } else {
           /* 새 투표 */
@@ -178,7 +188,7 @@ export default async (req: Request, _ctx: Context) => {
           } as any);
           const col = voteType === "like" ? sql`like_count` : sql`dislike_count`;
           await db.execute(sql`UPDATE incident_comments SET ${col} = ${col} + 1 WHERE id = ${commentId}`);
-          return ok({ action: "voted", voteType }, voteType === "like" ? "👍" : "👎");
+          return ok({ action: "voted", voteType, ...(await fetchCounts()) }, voteType === "like" ? "👍" : "👎");
         }
       } catch (e: any) {
         console.error("[incident-comments POST vote]", e);

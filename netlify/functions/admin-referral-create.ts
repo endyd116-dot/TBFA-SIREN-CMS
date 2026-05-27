@@ -209,6 +209,32 @@ export default async (req: Request, _ctx: Context) => {
     );
   }
 
+  /* Q2-030: 동일 인계 중복 방지 — 같은 (신고유형, 신고원본, 기관)으로 이미 인계 이력이
+     있으면 차단(중복 인계로 동일 PDF가 재생성·재업로드되는 것을 방지).
+     PDF 생성·R2 업로드 전에 검사해 불필요한 작업을 피함. */
+  try {
+    const dup = await db.execute(sql`
+      SELECT id FROM referral_logs
+      WHERE source_type = ${sourceType}
+        AND source_id = ${Number(sourceId)}
+        AND agency_id = ${Number(agencyId)}
+      LIMIT 1
+    `);
+    const dupRows = Array.isArray(dup) ? dup : ((dup as any)?.rows ?? []);
+    if (dupRows.length > 0) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "이미 동일 기관으로 인계된 신고입니다 (중복 인계 방지)",
+          duplicateLogId: dupRows[0].id,
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  } catch (err: any) {
+    return jsonError("check_duplicate", err);
+  }
+
   /* 변수 치환 */
   const victimName = source.is_anonymous ? "익명" : (source.reporter_name || "미기재");
   const vars: Record<string, string> = {

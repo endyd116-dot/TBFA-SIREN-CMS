@@ -10,6 +10,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { buildPublication } from "../../lib/martyrdom-ai";
+import { notifyMartyrdomAdmins } from "../../lib/martyrdom-notify";
 
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") {
@@ -66,7 +67,25 @@ export default async (req: Request, _ctx: Context) => {
     return new Response(JSON.stringify({ ok: true, pubId }), { status: 200 });
   } catch (err: any) {
     console.error(`[publication-generate-bg] 실패 pubId=${pubId}`, err?.message);
-    /* 실패해도 행은 남김(draft 상태 유지) */
+    /* ★ R41 Q2-029: 생성 실패 시 (1) 행 제목에 실패 마커 + 본문에 안내, (2) 운영자 경고 알림 — 조용한 멈춤 방지(generate-bg:136 패턴) */
+    const failMsg = String(err?.message || err).replace(/'/g, "''").slice(0, 300);
+    try {
+      await db.execute(sql.raw(`
+        UPDATE martyrdom_publications
+        SET
+          title = CASE WHEN title LIKE '%(생성 실패)%' THEN title ELSE title || ' (생성 실패)' END,
+          content_html = '<article class="martyrdom-publication"><h1>발간물 생성 실패</h1><p>본문 자동 생성 중 오류가 발생했습니다. 재시도가 필요합니다.</p><p class="disclaimer">오류: ${failMsg}</p></article>',
+          status = 'draft'
+        WHERE id = ${pubId}
+      `));
+    } catch (markErr: any) {
+      console.warn(`[publication-generate-bg] 실패 마커 기록 실패 pubId=${pubId}`, markErr?.message);
+    }
+    await notifyMartyrdomAdmins({
+      title: "순직 지원 — 발간물 생성 실패",
+      message: `발간물(#${pubId}) 본문 생성에 실패했습니다 — 재시도가 필요합니다.`,
+      severity: "warning",
+    });
     return new Response(JSON.stringify({
       ok: false,
       error: String(err?.message || err).slice(0, 300),

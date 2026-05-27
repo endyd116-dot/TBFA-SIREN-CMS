@@ -3493,7 +3493,7 @@ const OPERATOR_CATEGORIES = [
           '<span style="background:' + scoreColor + ';color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">' +
           '매칭 ' + r.score + '%</span>' +
           '<button type="button" class="k3-assign-btn" data-k3-assign="' + safeLabel + '">' +
-          '✓ 이 전문가로 배정' +
+          '✓ 이름 입력(참고용)' +
           '</button>' +
           '</div>' +
           '</div>' +
@@ -3504,6 +3504,10 @@ const OPERATOR_CATEGORIES = [
 
       container.innerHTML =
         '<span class="support-detail-label">🤝 AI 추천 전문가 <span style="font-weight:400;color:var(--text-3);font-size:11px">(Gemini 분석)</span></span>' +
+        '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11.5px;color:#9a3412;line-height:1.5">' +
+        '⚠️ AI가 제안하는 <strong>이상적 전문가 상(참고용)</strong>입니다. 실제 인물·매칭이 아닙니다. ' +
+        '사용자-전문가 연결·채팅 개설은 목록의 <strong>⚕️ 전문가 배정</strong>으로 진행하세요.' +
+        '</div>' +
         cardsHtml;
     } catch (err) {
       console.error('[loadExpertMatch]', err);
@@ -3711,9 +3715,9 @@ const OPERATOR_CATEGORIES = [
         btn.textContent = '✓ 입력됨';
         setTimeout(() => {
           btn.classList.remove('assigned');
-          btn.textContent = '✓ 이 전문가로 배정';
+          btn.textContent = '✓ 이름 입력(참고용)';
         }, 2000);
-        toast('전문가 정보가 입력되었습니다. 저장 버튼을 눌러주세요.');
+        toast('참고용 이름이 입력되었습니다. 실제 매칭·채팅은 "⚕️ 전문가 배정"을 사용하세요.');
       }
     });
   }

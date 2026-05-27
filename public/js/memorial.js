@@ -205,12 +205,9 @@
       }).then(function (res) {
         btn.disabled = false;
         if (res.ok) {
-          var total = unwrap(res, 'total');
-          if (typeof total === 'number') {
-            _counterTargets.candles = total;
-            var el = document.getElementById('cntCandles');
-            if (el && _countUpDone) el.textContent = total.toLocaleString('ko-KR');
-          } else { bumpCandle(1); }
+          /* ★ R41 Q2-014: 응답 total은 통합(teacher_id IS NULL) 범위만의 합계라,
+             전체 합계 카운터를 덮어쓰면 숫자가 급감한다 → 1만 증가시킨다 */
+          bumpCandle(1);
           toast('헌화해 주셔서 감사합니다.');
         } else {
           /* 백엔드 연결 전(mock) — 화면만 반영 */

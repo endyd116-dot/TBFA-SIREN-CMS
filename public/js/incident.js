@@ -452,10 +452,10 @@
   }
   
   /* ===========================================================
-     ★ R10: 댓글 시스템 (투표 + 신고)
+     ★ R10 / R41 Q2-003: 댓글 시스템 (투표 + 신고)
      - 댓글 목록: /api/incident-comments?incidentId=X
-     - 투표: /api/comment-vote (실패 시 MOCK_VOTE)
-     - 신고: /api/comment-report (실패 시 MOCK_COMMENT_REPORT)
+     - 투표: /api/incident-comments (action=vote, voteType=like|dislike)
+     - 신고: /api/incident-comments (action=report)
      =========================================================== */
 
 
@@ -632,17 +632,20 @@
   async function voteComment(commentId, voteType, btnEl) {
     if (!_isLoggedIn) { toast('로그인이 필요합니다'); return; }
 
-    let result = null;
+    /* 로컬 표기(up/down) → 서버 표기(like/dislike) */
+    const serverVoteType = voteType === 'up' ? 'like' : 'dislike';
+
+    let data = null;
     try {
-      const r = await fetch('/api/comment-vote', {
+      const r = await fetch('/api/incident-comments', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commentId, voteType }),
+        body: JSON.stringify({ action: 'vote', commentId, voteType: serverVoteType }),
       });
       const json = await r.json().catch(() => ({}));
       if (r.ok && json.ok) {
-        result = json;
+        data = json.data || json;
       } else {
         toast(json.error || '투표 처리 실패');
         return;
@@ -652,19 +655,15 @@
       return;
     }
 
-    /* 로컬 상태 + UI 갱신 */
+    /* 로컬 상태 + UI 갱신 (취소면 myVote 해제, 서버 갱신 카운트 반영) */
     const c = _comments.find((x) => x.id === commentId);
     if (c) {
-      if (result.action === 'removed') {
-        c.myVote = null;
-      } else {
-        c.myVote = voteType;
-      }
-      c.upCount = result.upCount;
-      c.downCount = result.downCount;
+      c.myVote = data.action === 'cancelled' ? null : voteType;
+      if (data.likeCount != null) c.upCount = data.likeCount;
+      if (data.dislikeCount != null) c.downCount = data.dislikeCount;
     }
     renderComments();
-    toast(result.action === 'removed' ? '투표가 취소되었습니다.' : '투표했습니다.');
+    toast(data.action === 'cancelled' ? '투표가 취소되었습니다.' : '투표했습니다.');
   }
 
   function openCommentReportModal(commentId) {
@@ -697,45 +696,31 @@
     const btn = document.getElementById('icReportSubmit');
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
 
-    let result = null;
-    let alreadyReported = false;
     try {
-      const r = await fetch('/api/comment-report', {
+      const r = await fetch('/api/incident-comments', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'report',
           commentId: _reportTargetId,
-          reportType: 'comment',
           reason,
         }),
       });
       const json = await r.json().catch(() => ({}));
-      if (r.status === 409) {
-        alreadyReported = true;
-      } else if (r.ok && json.ok) {
-        result = json;
+      if (r.ok && json.ok) {
+        toast('신고되었습니다. 검토 후 처리됩니다.');
+      } else if (r.status === 409) {
+        toast('이미 신고한 항목입니다.');
       } else {
-        console.warn('[incident] comment-report API 미연결 — mock 사용', json.error);
-        result = MOCK_COMMENT_REPORT;
+        toast(json.error || '신고 처리 실패. 잠시 후 다시 시도해 주세요.');
       }
     } catch (_) {
       toast('오류가 발생했습니다.');
+    } finally {
       if (btn) { btn.disabled = false; btn.textContent = '신고하기'; }
       closeCommentReportModal();
-      return;
     }
-
-    if (alreadyReported) {
-      toast('이미 신고한 항목입니다.');
-    } else if (result) {
-      toast('신고되었습니다. 검토 후 처리됩니다.');
-    } else {
-      toast('신고 처리 실패. 잠시 후 다시 시도해 주세요.');
-    }
-
-    if (btn) { btn.disabled = false; btn.textContent = '신고하기'; }
-    closeCommentReportModal();
   }
 
   /* ============ 초기화 ============ */

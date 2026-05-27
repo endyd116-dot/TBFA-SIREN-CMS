@@ -113,14 +113,14 @@
     const anonBadge = report.isAnonymous ? '<span class="anon-badge">익명</span>' : '';
     const title = report.title || report.subject || cfg.typeLabel;
     const cardId = 'card-tl-' + report.id;
-    const isSubmitted = (report.status || '') === 'submitted';
+    /* ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용 */
+    const isEditable = ['submitted', 'ai_analyzed'].includes(report.status || '');
 
-    /* ★ round8: submitted 상태일 때만 수정/삭제 버튼 표시 */
-    const editBtn = isSubmitted
+    const editBtn = isEditable
       ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">✏️ 수정</button>`
       : '';
-    /* 법률 상담만 삭제 버튼 추가 (submitted 상태) */
-    const deleteBtn = (tabKey === 'legal' && isSubmitted)
+    /* 법률 상담만 삭제 버튼 추가 */
+    const deleteBtn = (tabKey === 'legal' && isEditable)
       ? `<button type="button" class="rpt-del-btn" data-rpt-del="${report.id}" data-tab="${tabKey}" data-no="${escapeHtml(String(report.reportNo || report.id))}">🗑 삭제</button>`
       : '';
 
@@ -296,30 +296,38 @@
     /* 탭별 추가 필드 */
     let extraFields = '';
     if (tabKey === 'harassment') {
+      /* ★ R41 Q2-011: 발생일은 occurredAt 키로 통일(서버·신고폼 일치), 빈도는 enum(once|recurring|ongoing) 선택 */
       const freq = report.frequency || '';
-      const incidentDate = report.incidentDate ? report.incidentDate.slice(0, 10) : '';
+      const occurred = report.occurredAt ? String(report.occurredAt).slice(0, 10) : '';
+      const freqOptions = [
+        { value: '', label: '선택 안 함' },
+        { value: 'once', label: '1회성' },
+        { value: 'recurring', label: '반복적' },
+        { value: 'ongoing', label: '진행 중' },
+      ].map((o) => `<option value="${o.value}" ${freq === o.value ? 'selected' : ''}>${o.label}</option>`).join('');
       extraFields = `
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">발생일</label>
-          <input type="date" id="reIncidentDate" value="${escapeHtml(incidentDate)}"
+          <input type="date" id="reOccurredAt" value="${escapeHtml(occurred)}"
             style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
         </div>
         <div style="margin-bottom:14px">
-          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">빈도</label>
-          <input type="text" id="reFrequency" maxlength="100" value="${escapeHtml(freq)}"
-            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box"
-            placeholder="예: 주 3회, 매일 등">
+          <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:6px;color:var(--text-2)">발생 빈도</label>
+          <select id="reFrequency"
+            style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box">
+            ${freqOptions}
+          </select>
         </div>
       `;
     }
     if (tabKey === 'legal') {
       const urgency = report.urgency || report.aiUrgency || '';
       const partyInfo = report.partyInfo || '';
+      /* ★ R41 Q2-011: 긴급도 값을 서버 검증(urgent|normal|reference)·신고폼과 일치 */
       const urgencyOptions = [
         { value: 'urgent', label: '🚨 긴급' },
-        { value: 'high', label: '⚠️ 높음' },
         { value: 'normal', label: '⚖️ 보통' },
-        { value: 'low', label: '💡 낮음' },
+        { value: 'reference', label: '💡 참고' },
       ].map((o) => `<option value="${o.value}" ${urgency === o.value ? 'selected' : ''}>${o.label}</option>`).join('');
       extraFields = `
         <div style="margin-bottom:14px">
@@ -445,10 +453,11 @@
     /* 탭별 추가 필드 수집 */
     const extra = {};
     if (tabKey === 'harassment') {
-      const dateEl = document.getElementById('reIncidentDate');
+      /* ★ R41 Q2-011: 발생일 occurredAt 키·빈도 enum 전송 */
+      const dateEl = document.getElementById('reOccurredAt');
       const freqEl = document.getElementById('reFrequency');
-      if (dateEl) extra.incidentDate = dateEl.value;
-      if (freqEl) extra.frequency = freqEl.value.trim();
+      if (dateEl && dateEl.value) extra.occurredAt = dateEl.value;
+      if (freqEl && freqEl.value) extra.frequency = freqEl.value;
     }
     if (tabKey === 'legal') {
       const urgEl   = document.getElementById('reUrgency');

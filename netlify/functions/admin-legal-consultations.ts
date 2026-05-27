@@ -73,6 +73,9 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
+    /* ★ R41 Q2-002: 익명 신고는 신원(회원명) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+    const maskedList = list.map((r: any) => (r.isAnonymous ? { ...r, memberName: null } : r));
+
     const stats = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE status = 'submitted')::int  AS "submittedCount",
@@ -84,10 +87,12 @@ export default async (req: Request, _ctx: Context) => {
         COUNT(*) FILTER (WHERE ai_urgency = 'urgent')::int  AS "urgentCount"
       FROM legal_consultations
     `);
-    const s: any = stats[0] || {};
+    /* ★ R41 Q2-010: drizzle.execute 결과 표준 처리 — postgres-js는 배열, 일부 드라이버는 .rows */
+    const sr = Array.isArray(stats) ? stats : ((stats as any)?.rows || []);
+    const s: any = sr[0] || {};
 
     return ok({
-      list,
+      list: maskedList,
       pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
       stats: {
         submitted: s.submittedCount || 0,

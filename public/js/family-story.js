@@ -35,7 +35,13 @@ function renderStory(story) {
     document.getElementById('ytEmbed').style.display = '';
   }
 
-  document.getElementById('detailHtml').innerHTML = story.detailHtml || '';
+  /* ★ R41 Q2-048: 관리자/AI 작성 HTML — script·이벤트핸들러·javascript: 경량 제거 */
+  var safeDetail = String(story.detailHtml || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript:/gi, '');
+  document.getElementById('detailHtml').innerHTML = safeDetail;
 
   document.title = (story.title || '유가족 이야기') + ' | 교사유가족협의회';
 

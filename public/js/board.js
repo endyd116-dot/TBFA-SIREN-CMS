@@ -261,6 +261,7 @@
               <span>🆔 ${escapeHtml(post.postNo)}</span>
             </div>
           </div>
+          <!-- Q2-049: contentHtml은 서버 측 경량 sanitize 적용됨(작성/수정 시 script·on이벤트·javascript: 제거) -->
           <div class="board-view-content">${post.contentHtml || ''}</div>
           ${attachHtml}
           <div class="board-view-actions">

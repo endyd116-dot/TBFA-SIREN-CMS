@@ -10,10 +10,15 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { roleForbidden } from "../../lib/admin-role";
+import { canAccess } from "../../lib/role-permission-check";
 import { logAdminAction } from "../../lib/audit";
 import { buildCasePackageZip } from "../../lib/martyrdom-export";
 
 export const config = { path: "/api/admin-martyrdom-package" };
+
+/* 발간물 내보내기 쓰기 권한 — 권한 정책 관리에서 토글 (operator 허용 기본·메인 시드) */
+const PUB_EXPORT_FEATURE = "martyrdom_pub_export";
 
 function jsonError(step: string, err: any) {
   return new Response(JSON.stringify({
@@ -35,6 +40,8 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   const { admin, member } = auth.ctx;
+  /* ★ R41 Q2-054: 내보내기 쓰기 권한 게이트 (미정의 키면 admin 허용 기본) */
+  if (!(await canAccess(member.role ?? "", PUB_EXPORT_FEATURE))) return roleForbidden("operator");
 
   let body: any;
   try { body = await req.json(); } catch { return badRequest("요청 본문 파싱 실패"); }

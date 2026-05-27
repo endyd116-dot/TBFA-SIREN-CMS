@@ -36,9 +36,18 @@ export default async (req: Request, _ctx: Context) => {
     const _content = body.contentHtml !== undefined ? body.contentHtml : body.content;
     const contentHtml = _content !== undefined ? String(_content).trim() : undefined;
     const category = body.category !== undefined ? String(body.category).trim() : undefined;
+    /* ★ R41 Q2-011: 클라가 보내는 발생빈도(frequency)·발생일(occurredAt) 반영 */
+    const VALID_FREQUENCIES = ["once", "recurring", "ongoing"];
+    const frequency = body.frequency !== undefined ? String(body.frequency).trim() : undefined;
+    let occurredAt: Date | undefined;
+    if (body.occurredAt !== undefined && body.occurredAt !== null && body.occurredAt !== "") {
+      const d = new Date(body.occurredAt);
+      if (!isNaN(d.getTime())) occurredAt = d;
+    }
 
     if (title !== undefined && !title) return badRequest("제목은 비워둘 수 없습니다");
     if (contentHtml !== undefined && contentHtml.length < 10) return badRequest("내용을 10자 이상 입력해주세요");
+    if (frequency !== undefined && frequency && !VALID_FREQUENCIES.includes(frequency)) return badRequest("발생 빈도 값이 올바르지 않습니다");
 
     /* select — WHERE id=? AND memberId=auth.uid */
     const [row]: any = await db
@@ -49,8 +58,8 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!row) return notFound("신고를 찾을 수 없습니다");
 
-    /* check_status */
-    if (row.status !== "submitted") {
+    /* check_status — ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
+    if (row.status !== "submitted" && row.status !== "ai_analyzed") {
       return new Response(
         JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
         { status: 403, headers: { "Content-Type": "application/json" } }
@@ -61,6 +70,9 @@ export default async (req: Request, _ctx: Context) => {
     if (title !== undefined) updateData.title = title;
     if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
     if (category !== undefined && category) updateData.category = category;
+    /* ★ R41 Q2-011: 발생빈도·발생일 반영 */
+    if (frequency !== undefined && frequency) updateData.frequency = frequency;
+    if (occurredAt !== undefined) updateData.occurredAt = occurredAt;
 
     const [updated]: any = await db
       .update(harassmentReports)

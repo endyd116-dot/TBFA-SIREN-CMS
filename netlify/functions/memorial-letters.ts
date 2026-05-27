@@ -2,6 +2,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialLetters } from "../../db/schema";
 import { requireActiveUser } from "../../lib/auth";
+import { moderateMemorialText } from "../../lib/memorial-moderation";
+import { notifyAllOperators } from "../../lib/notify";
 import { eq, and, desc } from "drizzle-orm";
 
 export const config = { path: "/api/memorial-letters" };
@@ -72,6 +74,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
     try {
       const authorName = isAnonymous ? "익명" : (user.name || "회원");
+
+      /* ★ R41 Q2-013: 추모 글 AI 사전 검토 — 부적절 시 비공개 보류 + 운영자 통지. 실패 시 통과(fail-open) */
+      const mod = await moderateMemorialText(`${title || ""}\n${content}`);
+
       const insertData: any = {
         teacherId,
         memberId: user.uid,
@@ -79,8 +85,22 @@ export default async function handler(req: Request, _ctx: Context) {
         title: title ?? undefined,
         content,
         isAnonymous,
+        isHidden: mod.flagged ? true : undefined,
       };
       const [row] = await db.insert(memorialLetters).values(insertData).returning();
+
+      if (mod.flagged) {
+        /* 부적절 보류 → 운영자·슈퍼어드민에게 검토 요청 통지 (fire-and-forget) */
+        notifyAllOperators({
+          category: "support",
+          severity: "warning",
+          title: "🛡️ 기억의 편지 자동 보류 — 검토 필요",
+          message: `AI가 부적절로 판단해 비공개 처리했습니다. (사유: ${mod.reason || "검토 필요"})`,
+          link: `/admin.html#memorial`,
+          refTable: "memorial_letters",
+          refId: row.id,
+        }).catch(() => {});
+      }
 
       return new Response(JSON.stringify({
         ok: true,
@@ -90,6 +110,7 @@ export default async function handler(req: Request, _ctx: Context) {
           title: row.title,
           content: row.content,
           createdAt: row.createdAt,
+          pendingReview: mod.flagged,
         } },
       }), { status: 201, headers: { "Content-Type": "application/json" } });
     } catch (err: any) {

@@ -14,7 +14,7 @@
  *   adminNote? : string
  */
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, notInArray, desc } from "drizzle-orm";
 import { db, members, chatRooms, expertMatches } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
@@ -103,7 +103,9 @@ export default async (req: Request) => {
 
   const sourceDomain = sourceType; // 'support' | 'legal'
 
-  /* 3. 중복 체크 — 같은 sourceId에 진행 중인 매칭이 있으면 차단 */
+  /* 3. 중복 체크 — 같은 sourceId에 진행 중인(종료/거절 제외) 매칭이 있으면 차단
+     (Q2-016: 정렬·상태필터 없는 limit(1)은 임의 1건만 보아 활성 매칭이 있어도 통과 가능.
+      종료 상태(closed/rejected)를 WHERE에서 제외하고 최신순 1건으로 활성 건만 판정) */
   try {
     const existing = await db
       .select({ id: expertMatches.id, status: expertMatches.status })
@@ -113,10 +115,12 @@ export default async (req: Request) => {
           eq(expertMatches.sourceId, sourceId),
           eq(expertMatches.sourceDomain, sourceDomain),
           eq(expertMatches.userId, userId),
+          notInArray(expertMatches.status, ["closed", "rejected"]),
         ),
       )
+      .orderBy(desc(expertMatches.createdAt))
       .limit(1);
-    if (existing.length > 0 && !["closed", "rejected"].includes(existing[0].status)) {
+    if (existing.length > 0) {
       return badRequest(
         `이미 진행 중인 매칭이 있습니다 (match_id=${existing[0].id}, status=${existing[0].status})`,
       );

@@ -597,11 +597,21 @@
       body: { reportId: id },
     });
 
-    if (!res.ok) {
-      toast('이메일 발송 실패: ' + ((res.data && res.data.error) || '알 수 없는 오류'));
+    /* ★ R41 Q2-033: 응답의 발송/실패 건수를 토스트에 노출 (res.ok만 보고 성공 표시하던 것 교정) */
+    var payload = (res.data && (res.data.data || res.data)) || {};
+    var sentCount = Number(payload.sentCount || 0);
+    var failedCount = Number(payload.failedCount || 0);
+
+    if (!res.ok || sentCount === 0) {
+      // 전체 실패(0건 발송)는 서버가 ok:false로 응답 — 명시적 실패 노출
+      toast('이메일 발송 실패: ' + ((res.data && res.data.error) || (failedCount ? failedCount + '건 모두 실패' : '알 수 없는 오류')));
       return;
     }
-    toast('이메일이 재발송되었습니다');
+
+    // 부분/전체 성공 — 실제 발송 건수 노출
+    toast(failedCount > 0
+      ? (sentCount + '건 발송 (' + failedCount + '건 실패)')
+      : (sentCount + '건 발송 완료'));
   }
 
   /* ---- 노출 ---- */

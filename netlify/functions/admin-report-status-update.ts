@@ -9,6 +9,7 @@ import {
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { createNotification } from "../../lib/notify";
+import { logAdminAction } from "../../lib/audit";
 
 export const config = { path: "/api/admin-report-status-update" };
 
@@ -17,6 +18,14 @@ const REPORT_TABLES = {
   harassment: harassmentReports,
   legal:      legalConsultations,
 } as const;
+
+/* ★ R41 Q2-022: reportType별 허용 status 화이트리스트 (DB enum과 1:1).
+   incident/harassment 신고 enum과 legal 상담 enum이 다르다(legal에만 matching/matched/in_progress). */
+const VALID_STATUSES: Record<"incident" | "harassment" | "legal", string[]> = {
+  incident:   ["submitted", "ai_analyzed", "reviewing", "responded", "closed", "rejected"],
+  harassment: ["submitted", "ai_analyzed", "reviewing", "responded", "closed", "rejected"],
+  legal:      ["submitted", "ai_analyzed", "reviewing", "responded", "closed", "rejected", "matching", "matched", "in_progress"],
+};
 
 const STATUS_LABELS: Record<string, string> = {
   submitted:    "접수",
@@ -46,6 +55,7 @@ export default async (req: Request) => {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
   const adminId = auth.ctx.admin.uid as number;
+  const adminName = (auth.ctx.admin.name as string) || "관리자";
 
   let body: any;
   try {
@@ -63,6 +73,15 @@ export default async (req: Request) => {
     return new Response(JSON.stringify({ ok: false, error: "reportType, reportId, toStatus 필수" }), {
       status: 400, headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // ★ R41 Q2-022: toStatus를 reportType별 허용 status 화이트리스트와 대조
+  if (!VALID_STATUSES[reportType].includes(toStatus)) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: `허용되지 않는 상태값입니다 (${reportType})`,
+      detail: `허용: ${VALID_STATUSES[reportType].join(", ")}`,
+    }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   const table = REPORT_TABLES[reportType];
@@ -123,7 +142,8 @@ export default async (req: Request) => {
     try {
       const typeLabel = reportType === "incident" ? "사건 신고" : reportType === "harassment" ? "괴롭힘 신고" : "법률 상담";
       const statusLabel = STATUS_LABELS[toStatus] || toStatus;
-      await createNotification({
+      // ★ R41 Q2-032: createNotification 반환값(number|null)으로 실제 발송 여부 판정
+      const nid = await createNotification({
         recipientId: memberId,
         recipientType: "user",
         category: "system",
@@ -135,9 +155,9 @@ export default async (req: Request) => {
         refId: reportId,
         expiresInDays: 60,
       });
-      notified = true;
-      // notified_at 갱신
-      if (logId) {
+      notified = !!nid;
+      // notified_at 갱신 (실제 알림 생성된 경우에만)
+      if (nid && logId) {
         await db.update(reportStatusLogs)
           .set({ notifiedAt: new Date() } as any)
           .where(eq(reportStatusLogs.id, logId));
@@ -145,6 +165,16 @@ export default async (req: Request) => {
     } catch (err) {
       console.warn("[admin-report-status-update] 알림 발송 실패", err);
     }
+  }
+
+  // ★ R41 Q2-031: 상태 변경 성공 후 감사 로그 기록 (실패해도 본 흐름에 영향 없음)
+  try {
+    await logAdminAction(req, adminId, adminName, "report_status_update", {
+      target: `${reportType}#${reportId}`,
+      detail: { from: fromStatus, to: toStatus, notified },
+    });
+  } catch (err) {
+    console.warn("[admin-report-status-update] 감사 로그 기록 실패", err);
   }
 
   return new Response(JSON.stringify({ ok: true, changed: true, fromStatus, toStatus, notified }), {

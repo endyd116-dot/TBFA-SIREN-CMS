@@ -1376,6 +1376,17 @@ ${selfSection}${ragSection}
 - ⚠️ AI·인공지능·Gemini 등 생성 도구나 작성 비율(%)을 본문에 절대 언급하지 말 것 — 외부 발간용 협회 연구 자료로 서술`;
 }
 
+/* ★ R41 Q2-053: HTML 이스케이프 — 자체조사·RAG 텍스트를 본문에 raw 삽입하지 않도록 감쌈
+   (AI 동향분석 섹션 aiSection은 의도적 HTML이므로 제외) */
+function escHtml(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* HTML 조합 */
 function buildPublicationHtml(
   pubType: string,
@@ -1387,16 +1398,16 @@ function buildPublicationHtml(
 ): string {
   const selfHtml = `
 <h2>자체 조사 결과</h2>
-<p>${data.summary}</p>
-${data.byType.length > 0 ? `<ul>${data.byType.map(t => `<li>${t.type}: 총 ${t.total}건 · 인정 ${t.approved}건 (인정률 ${t.total > 0 ? Math.round((t.approved / t.total) * 100) : 0}%)</li>`).join("")}</ul>` : ""}
+<p>${escHtml(data.summary)}</p>
+${data.byType.length > 0 ? `<ul>${data.byType.map(t => `<li>${escHtml(t.type)}: 총 ${t.total}건 · 인정 ${t.approved}건 (인정률 ${t.total > 0 ? Math.round((t.approved / t.total) * 100) : 0}%)</li>`).join("")}</ul>` : ""}
 ${data.patterns.filter(p => p.outcome === "approved").length > 0 ? `
 <h3>주요 인정 패턴 (익명 사례)</h3>
-<ul>${data.patterns.filter(p => p.outcome === "approved").map(p => `<li>${p.keyPattern || "상세 패턴 없음"}</li>`).join("")}</ul>` : ""}
+<ul>${data.patterns.filter(p => p.outcome === "approved").map(p => `<li>${escHtml(p.keyPattern || "상세 패턴 없음")}</li>`).join("")}</ul>` : ""}
 `;
 
   const ragHtml = ragSources.length > 0 ? `
 <h2>법령·판례 근거</h2>
-<ul>${ragSources.slice(0, 5).map(r => `<li><strong>${r.title}</strong>: ${r.snippet}</li>`).join("")}</ul>` : "";
+<ul>${ragSources.slice(0, 5).map(r => `<li><strong>${escHtml(r.title)}</strong>: ${escHtml(r.snippet)}</li>`).join("")}</ul>` : "";
 
   const aiHtml = aiSection ? `
 <h2>동향 분석</h2>

@@ -7,6 +7,7 @@
  */
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
+import { logAdminAction } from "../../lib/audit";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { downloadFromR2 } from "../../lib/r2-server";
@@ -81,6 +82,8 @@ function jsonError(step: string, err: any) {
 export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
+  const adminId: number = auth.ctx.admin.uid;
+  const adminName: string = auth.ctx.member?.name ?? "어드민";
 
   const url = new URL(req.url);
   const referralId = Number(url.searchParams.get("referralId") || "0");
@@ -113,6 +116,17 @@ export default async (req: Request, _ctx: Context) => {
       { status: 404, headers: { "Content-Type": "application/json" } }
     );
   }
+
+  /* Q2-018: 인계 의뢰서 PDF(사건 PII) 다운로드 감사 로그 — 반환 직전 기록.
+     R2 원본·재생성 폴백 어느 경로로 내려가든 동일하게 남도록 응답 생성 전에 1회 기록. */
+  await logAdminAction(req, adminId, adminName, "referral_pdf_download", {
+    target: String(referralId),
+    detail: {
+      sourceType: log.source_type ?? null,
+      sourceNo: log.source_no ?? null,
+      agencyName: log.agency_name ?? null,
+    },
+  });
 
   const fileName = `referral_${log.source_type}_${log.source_no || referralId}.pdf`;
   const encoded = encodeURIComponent(fileName);

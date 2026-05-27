@@ -85,9 +85,14 @@
     document.getElementById('mtDates').textContent = dates;
     document.getElementById('mtTribute').textContent = t.tributeLine || '';
 
-    /* 약력 (관리자 작성 HTML) */
+    /* 약력 (관리자/AI 작성 HTML) — ★ R41 Q2-048: script·이벤트핸들러·javascript: 경량 제거 */
     if (t.bioHtml) {
-      document.getElementById('mtBio').innerHTML = t.bioHtml;
+      var safeBio = String(t.bioHtml)
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+        .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+        .replace(/javascript:/gi, '');
+      document.getElementById('mtBio').innerHTML = safeBio;
       document.getElementById('mtBioSection').style.display = '';
     }
 

@@ -66,12 +66,15 @@ export default async (req: Request, _ctx: Context) => {
         responder = resp || null;
       }
 
+      /* ★ R41 Q2-002: 익명 신고는 신원(회원명·이메일·전화) 노출 차단 — 신원 식별은 admin-anonymous-reveal로만 (감사 기록) */
+      const anon = !!r.isAnonymous;
+
       return ok({
         report: {
           ...r,
-          memberName: row.memberName,
-          memberEmail: row.memberEmail,
-          memberPhone: row.memberPhone,
+          memberName: anon ? null : row.memberName,
+          memberEmail: anon ? null : row.memberEmail,
+          memberPhone: anon ? null : row.memberPhone,
           attachments,
           responder,
         },

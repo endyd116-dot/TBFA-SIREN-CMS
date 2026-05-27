@@ -92,18 +92,36 @@ export default async (req: Request, _ctx: Context) => {
     const note = body.note ? String(body.note).slice(0, 2000) : null;
 
     try {
-      const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId" FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
+      /* ★ R41 Q2-027: 현재 status 포함 SELECT — pending일 때만 결정 허용(이미 결정된 건 재결정 차단·전이 보호) */
+      const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId", status FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
       const row = (rv?.rows ?? rv ?? [])[0];
       if (!row) {
         return new Response(JSON.stringify({ ok: false, error: "검토 배정을 찾을 수 없습니다" }), {
           status: 404, headers: { "Content-Type": "application/json" },
         });
       }
+      const curStatus = String(row.status || "pending");
+      if (curStatus !== "pending") {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: curStatus === "approved" ? "이미 승인된 검토입니다" : "이미 수정 요청된 검토입니다",
+          step: "already_decided",
+          currentStatus: curStatus,
+        }), { status: 409, headers: { "Content-Type": "application/json" } });
+      }
 
+      /* pending → 결정으로만 원자 전이 (동시 PATCH 경합 방어) */
       const noteSql = note ? `'${note.replace(/'/g, "''")}'` : "NULL";
-      await db.execute(sql.raw(`
-        UPDATE martyrdom_reviews SET status = '${status}', note = ${noteSql}, decided_at = NOW() WHERE id = ${reviewId}
+      const upd: any = await db.execute(sql.raw(`
+        UPDATE martyrdom_reviews SET status = '${status}', note = ${noteSql}, decided_at = NOW()
+        WHERE id = ${reviewId} AND status = 'pending'
+        RETURNING id
       `));
+      if (!(upd?.rows ?? upd ?? []).length) {
+        return new Response(JSON.stringify({
+          ok: false, error: "이미 처리된 검토입니다", step: "already_decided",
+        }), { status: 409, headers: { "Content-Type": "application/json" } });
+      }
 
       /* 승인 시 draft 산출물 status → reviewed */
       if (status === "approved" && row.outputId) {

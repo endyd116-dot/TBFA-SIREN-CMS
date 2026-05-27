@@ -4,13 +4,13 @@
 // - sirenReportRequested = false → AI 답변만 받고 종료 (status='closed')
 
 import type { Context } from "@netlify/functions";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../../db";
 import { incidentReports } from "../../db/schema";
-import { authenticateUser } from "../../lib/auth";
+import { requireActiveUser } from "../../lib/auth";
 import { notifyAllOperators } from "../../lib/notify";
 import {
-  ok, badRequest, unauthorized, forbidden, notFound, serverError,
+  ok, badRequest, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
@@ -21,8 +21,10 @@ export default async (req: Request, _ctx: Context) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
 
-  const user = authenticateUser(req);
-  if (!user) return unauthorized("로그인이 필요합니다");
+  /* ★ R41 Q2-043: 차단(블랙) 사용자 차단 — requireActiveUser 패턴 */
+  const _r = await requireActiveUser(req);
+  if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+  const user = _r.user;
 
   try {
     const body: any = await parseJson(req);
@@ -33,23 +35,31 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!Number.isFinite(reportId)) return badRequest("reportId가 유효하지 않습니다");
 
-    /* 본인 제보만 수정 가능 */
+    /* 본인 제보 존재 확인 (알림 메시지·로그용 reportNo/title 확보) */
     const [row] = await db.select().from(incidentReports)
       .where(and(eq(incidentReports.id, reportId), eq(incidentReports.memberId, user.uid)))
       .limit(1);
 
     if (!row) return notFound("제보를 찾을 수 없습니다");
-    if ((row as any).sirenReportRequested !== null && (row as any).sirenReportRequested !== undefined) {
-      return forbidden("이미 결정이 완료된 제보입니다");
-    }
 
-    /* 상태 갱신 */
+    /* ★ R41 Q2-046: select→update 비원자 경합 제거 — siren_report_requested IS NULL 조건으로 원자적 갱신.
+       이미 결정된 건이면 affected 0 (RETURNING 비어있음) → 중복 처리 차단 */
     const updateData: any = {
       sirenReportRequested: requested,
       sirenReportRequestedAt: new Date(),
       status: requested ? "reviewing" : "closed",
     };
-    await db.update(incidentReports).set(updateData).where(eq(incidentReports.id, reportId));
+    const updatedRows = await db.update(incidentReports)
+      .set(updateData)
+      .where(and(
+        eq(incidentReports.id, reportId),
+        eq(incidentReports.memberId, user.uid),
+        isNull(incidentReports.sirenReportRequested),
+      ))
+      .returning({ id: incidentReports.id });
+    if (updatedRows.length === 0) {
+      return forbidden("이미 결정이 완료된 제보입니다");
+    }
 
     /* 정식 접수 시 운영자 알림 */
     if (requested) {
@@ -78,7 +88,8 @@ export default async (req: Request, _ctx: Context) => {
 
     /* 감사 로그 */
     try {
-      await logUserAction(req, user.uid, "user", "incident_report_confirm", {
+      /* ★ R41 Q2-044: 행위자 표기를 리터럴 "user" 대신 실제 회원명으로 */
+      await logUserAction(req, user.uid, user.name || "user", "incident_report_confirm", {
         target: (row as any).reportNo,
         detail: { sirenReportRequested: requested },
         success: true,

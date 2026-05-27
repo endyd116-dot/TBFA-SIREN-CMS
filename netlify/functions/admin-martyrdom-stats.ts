@@ -5,8 +5,9 @@
  *
  * 응답: {
  *   ok,
- *   totals: { cases, approved, rejected, pending },
- *   recognitionRate,
+ *   totals: { cases, approved, rejected, pending, closed },
+ *   recognitionRate,            // 종결(closed) 사건 대비 인정 비율 (발간 자체조사와 분모 통일)
+ *   recognitionRateBasis,       // 'closed' — 분모 기준 라벨
  *   byCaseType: [{ type, total, approved }],
  *   byStatus:   [{ status, count }],
  *   trend:      [{ month, approved }]
@@ -34,15 +35,16 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
 
-  /* 총계 */
-  let totals = { cases: 0, approved: 0, rejected: 0, pending: 0 };
+  /* 총계 (closed = 종결 사건 — 인정률 분모로 사용) */
+  let totals = { cases: 0, approved: 0, rejected: 0, pending: 0, closed: 0 };
   try {
     const r: any = await db.execute(sql.raw(`
       SELECT
         COUNT(*)::int AS cases,
         SUM(CASE WHEN outcome = 'approved'  THEN 1 ELSE 0 END)::int AS approved,
         SUM(CASE WHEN outcome = 'rejected'  THEN 1 ELSE 0 END)::int AS rejected,
-        SUM(CASE WHEN status  != 'closed'   THEN 1 ELSE 0 END)::int AS pending
+        SUM(CASE WHEN status  != 'closed'   THEN 1 ELSE 0 END)::int AS pending,
+        SUM(CASE WHEN status  =  'closed'   THEN 1 ELSE 0 END)::int AS closed
       FROM martyrdom_cases
     `));
     const row = (r?.rows ?? r ?? [])[0] || {};
@@ -51,13 +53,16 @@ export default async (req: Request, _ctx: Context) => {
       approved: Number(row.approved || 0),
       rejected: Number(row.rejected || 0),
       pending:  Number(row.pending || 0),
+      closed:   Number(row.closed || 0),
     };
   } catch (err: any) {
     return jsonError("select_totals", err);
   }
 
-  const recognitionRate = totals.cases > 0
-    ? Math.round((totals.approved / totals.cases) * 100) / 100
+  /* ★ R41 Q2-050: 인정률 분모를 종결(closed) 사건 기준으로 통일 — 발간 자체조사(lib/martyrdom-ai.ts: closed만)와 일치.
+     종결 사건이 없으면 0 (진행중 사건은 인정/불인정 미확정이므로 분모 제외) */
+  const recognitionRate = totals.closed > 0
+    ? Math.round((totals.approved / totals.closed) * 100) / 100
     : 0;
 
   /* 사건 유형별 */
@@ -116,6 +121,7 @@ export default async (req: Request, _ctx: Context) => {
     ok: true,
     totals,
     recognitionRate,
+    recognitionRateBasis: "closed",   // 분모 = 종결 사건 (발간 자체조사와 통일)
     byCaseType,
     byStatus,
     trend,

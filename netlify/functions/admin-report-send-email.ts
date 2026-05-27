@@ -168,15 +168,21 @@ export default async (req: Request) => {
   );
   const subject = `[SIREN 주간 보고] ${periodLabel}`;
 
-  /* 7. 이메일 발송 */
+  /* 7. 이메일 발송 — ★ R41 Q2-033: 수신자별 발송 실패 집계 */
   const sentTo: Array<{ email: string; name: string }> = [];
+  const failedTo: Array<{ email: string; error: string }> = [];
   try {
     for (const to of toList) {
       try {
         const r = await sendEmail({ to: to.email, subject, html: emailHtml });
-        if (r.ok) sentTo.push(to);
-        else console.warn("[admin-report-send-email] 발송 실패", to.email, r.error);
+        if (r.ok) {
+          sentTo.push(to);
+        } else {
+          failedTo.push({ email: to.email, error: String(r.error || "알 수 없는 오류").slice(0, 200) });
+          console.warn("[admin-report-send-email] 발송 실패", to.email, r.error);
+        }
       } catch (err: any) {
+        failedTo.push({ email: to.email, error: String(err?.message || err).slice(0, 200) });
         console.warn("[admin-report-send-email] 발송 예외", to.email, err);
       }
     }
@@ -204,11 +210,35 @@ export default async (req: Request) => {
   }
 
   console.log(
-    `[admin-report-send-email] 완료 — reportId=${reportId}, 발송=${sentTo.length}건`
+    `[admin-report-send-email] 완료 — reportId=${reportId}, 발송=${sentTo.length}건, 실패=${failedTo.length}건`
   );
 
+  const attempted = toList.length;
+  const sentCount = sentTo.length;
+  const failedCount = failedTo.length;
+
+  // ★ R41 Q2-033: 전체 실패(0건 발송)는 ok 대신 명시적 경고 응답으로 가시화
+  // serverError는 본문에 집계를 싣지 못하므로 직접 Response 구성(프론트가 sentCount=0 인지)
+  if (sentCount === 0) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: "이메일을 한 건도 발송하지 못했습니다",
+      step: "send_email_all_failed",
+      attempted,
+      sentCount,
+      failedCount,
+      failedTo,
+    }), { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  }
+
+  // 부분 실패는 ok 응답에 실패 건수를 함께 노출
   return ok({
-    sentCount: sentTo.length,
+    sentCount,
+    failedCount,
+    attempted,
     sentTo,
-  });
+    failedTo,
+  }, failedCount > 0
+    ? `${sentCount}건 발송 완료 (${failedCount}건 실패)`
+    : `${sentCount}건 발송 완료`);
 };

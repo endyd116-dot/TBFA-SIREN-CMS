@@ -61,6 +61,15 @@ export default async (req: Request) => {
     const { category, title, content, attachments } = (v as any).data;
     const skipAi = !!body.skipAi;
 
+    /* ★ R41 Q2-026: 첨부 키는 본인 업로드(support/{uid}/...)만 허용 — 타인 키 끼워넣기로 남의 증빙 다운로드 차단 */
+    const ownPrefix = `support/${auth.uid}/`;
+    const safeAttachments: string[] = Array.isArray(attachments)
+      ? attachments.filter((k: any) => typeof k === "string" && k.startsWith(ownPrefix))
+      : [];
+    if (Array.isArray(attachments) && safeAttachments.length !== attachments.length) {
+      return badRequest("첨부 파일 키가 올바르지 않습니다");
+    }
+
     /* 4. 신청번호 */
     const requestNo = generateRequestNo("S");
 
@@ -86,8 +95,8 @@ export default async (req: Request) => {
       category,
       title,
       content,
-      attachments: attachments && attachments.length > 0
-        ? JSON.stringify(attachments)
+      attachments: safeAttachments.length > 0
+        ? JSON.stringify(safeAttachments)
         : null,
       status: "submitted",
       priority,
