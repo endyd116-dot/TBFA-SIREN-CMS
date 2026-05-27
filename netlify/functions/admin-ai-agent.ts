@@ -136,7 +136,8 @@ interface GeminiContent {
 }
 
 /* === 입력 토큰 추정 (1 토큰 ≈ 3.5자 — 한·영 혼합 기준) === */
-function estimateInputTokens(messages: GeminiContent[], systemPrompt: string, toolDeclarations: any[]): number {
+/* ★ Q3-012: 스트리밍 핸들러(admin-ai-agent-stream)와 공유 — 단일 출처 유지 위해 export */
+export function estimateInputTokens(messages: GeminiContent[], systemPrompt: string, toolDeclarations: any[]): number {
   let total = systemPrompt.length / 3.5;
   try { total += JSON.stringify(toolDeclarations).length / 3.5; } catch {}
   for (const m of messages) {
@@ -356,7 +357,8 @@ const TOOL_GROUPS: ToolGroup[] = [
  *  - 그 외 → 관련 도구만 */
 const GREETING_PATTERNS = /^(야|응|네|예|아니|아니오|ok|오케이|안녕|하이|hi|hello|뭐해|왜|진행|확인|취소|좋아|싫어|괜찮)/i;
 
-function selectRelevantTools(userMessage: string): string[] | null {
+/* ★ Q3-013: 스트리밍 핸들러와 공유 — TOOL_GROUPS 중복 정의 방지 위해 export */
+export function selectRelevantTools(userMessage: string): string[] | null {
   const text = (userMessage || "").trim();
   /* 짧은 메시지(4자↓) 또는 인사·확인 → 도구 안 보냄.
      2026-05-14: 8자 → 4자 완화 — "내 메모"(5자) 같은 짧은 도메인 명령도 도구 받음.

@@ -108,8 +108,8 @@ export default async function handler(req: Request) {
   if (!requestId || !action) {
     return jsonError("validate", new Error("requestId, action 필수"), 400);
   }
-  if (!["APPROVED", "REJECTED"].includes(action)) {
-    return jsonError("validate_action", new Error("action은 APPROVED|REJECTED"), 400);
+  if (!["APPROVED", "REJECTED", "CANCELLED"].includes(action)) {
+    return jsonError("validate_action", new Error("action은 APPROVED|REJECTED|CANCELLED"), 400);
   }
 
   try {
@@ -121,7 +121,12 @@ export default async function handler(req: Request) {
       .limit(1);
 
     if (!request) return jsonError("not_found", new Error("휴가 신청 없음"), 404);
-    if (request.status !== "PENDING") {
+    /* ★ Q3-009 fix: 승인취소(CANCELLED)는 APPROVED 건에만, 승인/반려는 PENDING 건에만 허용 */
+    if (action === "CANCELLED") {
+      if (request.status !== "APPROVED") {
+        return jsonError("invalid_transition", new Error("승인된 휴가만 취소할 수 있습니다"), 409);
+      }
+    } else if (request.status !== "PENDING") {
       return jsonError("already_reviewed", new Error("이미 처리된 신청"), 409);
     }
 
@@ -215,6 +220,36 @@ export default async function handler(req: Request) {
       }
     }
 
+    // ★ Q3-009 fix: CANCELLED(승인 취소) — 차감했던 연차 복원 + 빈 LEAVE 행 제거
+    if (action === "CANCELLED") {
+      const year = new Date(request.startDate).getFullYear();
+      try {
+        await db.execute(sql`
+          UPDATE att_leave_balances
+          SET used_days = GREATEST(0, used_days - ${request.days})
+          WHERE member_uid = ${request.memberUid}
+            AND leave_type_id = ${request.leaveTypeId}
+            AND year = ${year}
+        `);
+      } catch (err) {
+        console.warn("[admin-att-leave-review] 연차 복원 실패:", err);
+      }
+      // 직원이 그 날 실제 출근하지 않은(빈) LEAVE 행만 제거 — 출근 기록 있는 날은 보존
+      try {
+        await db.execute(sql`
+          DELETE FROM att_records
+          WHERE member_uid = ${request.memberUid}
+            AND date >= ${String(request.startDate)}::date
+            AND date <= ${String(request.endDate)}::date
+            AND status = 'LEAVE'
+            AND check_in_time IS NULL
+            AND check_out_time IS NULL
+        `);
+      } catch (err) {
+        console.warn("[admin-att-leave-review] 취소 시 LEAVE 행 제거 실패:", err);
+      }
+    }
+
     // 결과 알림 → 신청자
     try {
       const recipientId = Number(request.memberUid);
@@ -225,8 +260,8 @@ export default async function handler(req: Request) {
           sourceId: request.id,
           notifType: action === "APPROVED" ? "approved" : "rejected",
           channel: "bell",
-          title: action === "APPROVED" ? "휴가 신청 승인" : "휴가 신청 반려",
-          body: `${request.startDate} ~ ${request.endDate} (${request.days}일) — ${action === "APPROVED" ? "승인" : "반려"}${note ? ` · ${String(note).slice(0, 100)}` : ""}`,
+          title: action === "APPROVED" ? "휴가 신청 승인" : action === "CANCELLED" ? "휴가 승인 취소" : "휴가 신청 반려",
+          body: `${request.startDate} ~ ${request.endDate} (${request.days}일) — ${action === "APPROVED" ? "승인" : action === "CANCELLED" ? "승인 취소(연차 복원)" : "반려"}${note ? ` · ${String(note).slice(0, 100)}` : ""}`,
           actionUrl: "/workspace-attendance.html",
           category: "system",
         });

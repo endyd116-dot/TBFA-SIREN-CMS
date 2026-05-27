@@ -346,15 +346,93 @@
     if (STATE.datePopup && !STATE.datePopup.contains(e.target)) closeDatePopup();
   }
 
-  function openEventModal(opts) {
-    // R2+R3에서 만든 일정 모달 연결 (있으면 사용, 없으면 기본 네비)
-    if (window.WorkspaceEventModal) {
-      WorkspaceEventModal.openCreate(opts);
+  /* ═══════════════════ 일정 생성/수정 모달 (Q3-005) ═══════════════════
+     기존엔 openEventModal이 정의되지 않은 window.WorkspaceEventModal을 호출하거나
+     읽히지 않는 ?newEvent= URL로 폴백해, 캘린더에서 일정을 만들 방법이 없었다.
+     실제 생성/수정 폼 모달을 admin-workspace-events POST/PATCH에 연결한다. */
+  function toLocalInput(d) {
+    // Date|string → datetime-local 값(YYYY-MM-DDTHH:mm, 로컬 시각)
+    const dt = d ? new Date(d) : new Date();
+    if (isNaN(dt.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  }
+
+  function openEventEditModal(opts) {
+    opts = opts || {};
+    const isEdit = opts.mode === 'edit' && opts.event;
+    const ev = opts.event || {};
+    $('#wcEventEditId').value = isEdit ? (ev.id || '') : '';
+    $('#wcEventEditTitleInput').value = isEdit ? (ev.title || '') : '';
+    $('#wcEventEditAllDay').checked = isEdit ? !!ev.allDay : false;
+    $('#wcEventEditLocation').value = isEdit ? (ev.location || '') : '';
+    $('#wcEventEditDesc').value = isEdit ? (ev.description || '') : '';
+    if (isEdit) {
+      $('#wcEventEditStart').value = toLocalInput(ev.start);
+      $('#wcEventEditEnd').value = toLocalInput(ev.end || ev.start);
     } else {
-      const url = '/workspace-calendar.html' + (opts && opts.startDate ? '?newEvent=1&date=' + opts.startDate : '');
-      location.href = url;
+      const base = opts.startDate ? `${opts.startDate}T09:00` : toLocalInput(new Date());
+      $('#wcEventEditStart').value = base;
+      const endD = new Date(base);
+      if (!isNaN(endD.getTime())) { endD.setHours(endD.getHours() + 1); $('#wcEventEditEnd').value = toLocalInput(endD); }
+    }
+    const titleEl = $('#wcEventEditTitle');
+    if (titleEl) titleEl.textContent = isEdit ? '일정 수정' : '새 일정';
+    const m = $('#wcEventEditModal');
+    m.classList.add('is-open');
+    m.setAttribute('aria-hidden', 'false');
+  }
+
+  async function saveEvent() {
+    const id = $('#wcEventEditId').value;
+    const title = $('#wcEventEditTitleInput').value.trim();
+    const startVal = $('#wcEventEditStart').value;
+    const endVal = $('#wcEventEditEnd').value;
+    if (!title) { toast('제목을 입력하세요', 'error'); return; }
+    if (!startVal || !endVal) { toast('시작·종료 시각을 입력하세요', 'error'); return; }
+    const startAt = new Date(startVal);
+    const endAt = new Date(endVal);
+    if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) { toast('시각 형식 오류', 'error'); return; }
+    if (endAt < startAt) { toast('종료가 시작보다 빠릅니다', 'error'); return; }
+    const payload = {
+      title,
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+      allDay: $('#wcEventEditAllDay').checked,
+      location: $('#wcEventEditLocation').value.trim() || null,
+      description: $('#wcEventEditDesc').value.trim() || null,
+    };
+    const btn = $('#wcEventSaveBtn');
+    if (btn) btn.disabled = true;
+    try {
+      if (id) {
+        await api(`/api/admin-workspace-events?id=${id}`, { method: 'PATCH', body: payload });
+        toast('일정이 수정되었습니다', 'success');
+      } else {
+        await api('/api/admin-workspace-events', { method: 'POST', body: payload });
+        toast('일정이 등록되었습니다', 'success');
+      }
+      ['wcEventEditModal', 'wcEventModal'].forEach(mid => {
+        const m = $('#' + mid);
+        if (m) { m.classList.remove('is-open'); m.setAttribute('aria-hidden', 'true'); }
+      });
+      try { STATE.calendar?.refetchEvents(); } catch (_) {}
+    } catch (err) {
+      toast('저장 실패: ' + (err?.message || ''), 'error');
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
+
+  function openEventModal(opts) {
+    openEventEditModal({ mode: 'create', startDate: opts && opts.startDate });
+  }
+
+  // 외부(다른 모듈)에서도 호출 가능하도록 노출
+  window.WorkspaceEventModal = {
+    openCreate: (o) => openEventEditModal({ mode: 'create', startDate: o && o.startDate }),
+    openEdit: (ev) => openEventEditModal({ mode: 'edit', event: ev }),
+  };
 
   /* ═══════════════════ 이벤트 클릭 처리 ═══════════════════ */
   function onEventClick(info) {
@@ -389,6 +467,15 @@
 
     // RSVP 초기화
     STATE.currentEventId = ext.eventId || null;
+    // Q3-005: 보기 모달의 '수정' 버튼이 쓸 현재 일정 상세 보관
+    STATE.currentEventDetail = {
+      id: ext.eventId || null,
+      title: info.event.title.replace(/^\[일정\]\s?/, ''),
+      start, end,
+      allDay: !!info.event.allDay,
+      location: ext.location || '',
+      description: ext.description || '',
+    };
     resetRsvpButtons();
     if (STATE.currentEventId) loadRsvps(STATE.currentEventId);
 
@@ -591,6 +678,15 @@
     $('#wcBtnNewEvent')?.addEventListener('click', () => {
       const today = new Date().toISOString().slice(0, 10);
       openEventModal({ startDate: today });
+    });
+    // Q3-005: 일정 저장(생성/수정) + 보기 모달의 수정 버튼
+    $('#wcEventSaveBtn')?.addEventListener('click', saveEvent);
+    $('#wcEventEditBtn')?.addEventListener('click', () => {
+      if (STATE.currentEventDetail && STATE.currentEventDetail.id) {
+        openEventEditModal({ mode: 'edit', event: STATE.currentEventDetail });
+      } else {
+        toast('수정할 일정 정보를 찾을 수 없습니다', 'error');
+      }
     });
 
     // 모달 닫기

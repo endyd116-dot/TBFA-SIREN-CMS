@@ -658,37 +658,22 @@ export default async (req: Request, _ctx: Context) => {
           triggerMilestoneMatch(id, meId);
         }
 
-        // ★ Phase 21 R3 — 카드 done → 원본 서비스 closed 동기화 (양방향)
+        // ★ Phase 21 R3 / Q3-002 — 카드 done → 원본 서비스 종결 동기화 (양방향·단일 경로로 통합)
+        //   기존엔 closeServiceFromTask(lib) + 인라인 tableMap 이 같은 종결을 이중 실행했다.
+        //   lib의 pickClosedStatus가 incident/harassment/legal에 없는 'completed'를 반환해 매번
+        //   예외(인라인이 결과적으로 종결)였는데, pickClosedStatus를 정확한 'closed'로 교정하고
+        //   인라인 중복 경로를 제거해 하나로 통합한다.
+        let syncedReport: { type: string; id: number } | null = null;
         if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
           try {
             const { closeServiceFromTask } = await import("../../lib/workspace-sync");
             await closeServiceFromTask({ taskId: id, closedBy: meId });
+            const st = String(task.sourceType);
+            if (["incident", "harassment", "legal", "support"].includes(st)) {
+              syncedReport = { type: st, id: Number(task.sourceId) };
+            }
           } catch (err) {
             console.warn("[workspace-sync] closeServiceFromTask 실패:", err);
-          }
-        }
-
-        // ★ Round 8 — status=done 시 sourceType/sourceId 연결 테이블 완료 상태 업데이트
-        let syncedReport: { type: string; id: number } | null = null;
-        if (newStatus === "done" && task.status !== "done" && task.sourceType && task.sourceId) {
-          const sourceType = task.sourceType as string;
-          const sourceId = Number(task.sourceId);
-          const tableMap: Record<string, { table: string; status: string }> = {
-            support:    { table: "support_requests",   status: "completed" },
-            incident:   { table: "incident_reports",   status: "closed" },
-            harassment: { table: "harassment_reports", status: "closed" },
-            legal:      { table: "legal_consultations", status: "closed" },
-          };
-          const mapping = tableMap[sourceType];
-          if (mapping) {
-            try {
-              await db.execute(
-                sql`UPDATE ${sql.raw(mapping.table)} SET status = ${mapping.status}, updated_at = NOW() WHERE id = ${sourceId}`
-              );
-              syncedReport = { type: sourceType, id: sourceId };
-            } catch (syncErr) {
-              console.warn("[round8-sync] 연결 테이블 완료 업데이트 실패:", syncErr);
-            }
           }
         }
 

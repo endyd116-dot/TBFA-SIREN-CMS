@@ -84,7 +84,9 @@ export default async (req: Request, _ctx: Context) => {
               and(
                 eq(workspaceFileShares.targetType, "file"),
                 eq(workspaceFileShares.targetId, file.id),
-                or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith))
+                or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith)),
+                // ★ Q3-007 fix: 만료된 공유는 접근 불가 (expiresAt NULL=무기한)
+                or(isNull(workspaceFileShares.expiresAt), sql`${workspaceFileShares.expiresAt} > NOW()`)
               )
             )
             .limit(1);

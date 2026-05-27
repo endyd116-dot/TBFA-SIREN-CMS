@@ -4,10 +4,11 @@
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { workspaceEventRsvps, members } from "../../db/schema";
+import { workspaceEventRsvps, workspaceEvents, members } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { ok, badRequest, methodNotAllowed, serverError, parseJson } from "../../lib/response";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 const VALID_STATUSES = ["yes", "no", "maybe"] as const;
 
@@ -66,6 +67,31 @@ export default async (req: Request, _ctx: Context) => {
         } as any)
         .returning();
       result = inserted;
+    }
+
+    /* ★ Q3-006 fix: 주최자에게 응답 알림 — 기존엔 RSVP가 workspace_event_rsvps에만 저장되고
+       주최자 알림이 전혀 없었다(주최자가 누가 응답했는지 알 수 없음). 일정 주최자(memberId)에게 통지. */
+    try {
+      const [ev]: any = await db
+        .select({ memberId: workspaceEvents.memberId, title: workspaceEvents.title })
+        .from(workspaceEvents)
+        .where(eq(workspaceEvents.id, eventId))
+        .limit(1);
+      if (ev && ev.memberId && ev.memberId !== meId) {
+        const label = status === "yes" ? "참석" : status === "no" ? "불참" : "미정";
+        await sendWorkspaceNotification({
+          memberId: ev.memberId,
+          sourceType: "event" as any,
+          sourceId: eventId,
+          notifType: (status === "yes" ? "approved" : "rejected") as any,
+          channel: "bell",
+          title: `${adminMember.name}님이 '${ev.title}' 일정에 ${label} 응답`,
+          actionUrl: "/workspace-calendar.html",
+          category: "system",
+        });
+      }
+    } catch (notifyErr) {
+      console.warn("[workspace-event-rsvp] 주최자 알림 실패:", notifyErr);
     }
 
     return ok({ id: result.id, eventId: result.eventId, memberId: result.memberId, status: result.status });

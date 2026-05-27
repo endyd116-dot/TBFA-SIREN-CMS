@@ -647,7 +647,8 @@
       const params = new URLSearchParams();
       params.set('targetType', type);
       params.set('targetId', String(id));
-      const res = await api(`/api/workspace-file-share?${params}`);
+      // Q3-001 fix: 소유자 검증 있는 보호판 엔드포인트로 일원화 (무검증 workspace-file-share 폐기)
+      const res = await api(`/api/admin-workspace-file-share?${params}`);
       const shares = res.shares || res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
       const isPublic = res.isShared || res.data?.isShared || false;
 
@@ -661,7 +662,7 @@
       } else {
         list.innerHTML = shares.map(s => `
           <li>
-            <span>${escapeHtml(s.memberName || ('#' + s.sharedWith))} <small>(${escapeHtml(s.permission)})</small></span>
+            <span>${escapeHtml(s.sharedWithName || s.memberName || ('#' + s.sharedWith))} <small>(${escapeHtml(s.permission)})</small></span>
             <span style="display:flex;gap:4px;">
               <select class="wf-perm-change" data-share-id="${s.id}" style="font-size:12px;padding:2px 4px;">
                 <option value="view" ${s.permission === 'view' ? 'selected' : ''}>조회</option>
@@ -699,7 +700,7 @@
         permission,
         expiresAt: null,
       };
-      await api('/api/workspace-file-share', { method: 'POST', body });
+      await api('/api/admin-workspace-file-share', { method: 'POST', body });
       toast('공유되었습니다.', 'success');
       await loadShareList(type, id);
     } catch (err) {
@@ -710,9 +711,9 @@
   async function removeShare(shareId, type, id) {
     if (!confirm('이 공유를 해제하시겠습니까?')) return;
     try {
-      await api('/api/workspace-file-share', {
+      // Q3-001 fix: 보호판은 ?id= 쿼리로 shareId 수신 (소유자/super 검증 포함)
+      await api(`/api/admin-workspace-file-share?id=${shareId}`, {
         method: 'DELETE',
-        body: { shareId },
       });
       toast('공유가 취소되었습니다.', 'success');
       await loadShareList(type, id);

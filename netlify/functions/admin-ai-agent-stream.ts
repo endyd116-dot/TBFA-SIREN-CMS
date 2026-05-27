@@ -21,6 +21,8 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
+/* ★ Q3-012/013: 비스트리밍(admin-ai-agent)의 동적 도구 로딩·입력 토큰 추정 헬퍼 재사용 (단일 출처) */
+import { selectRelevantTools, estimateInputTokens } from "./admin-ai-agent";
 
 /* === Phase 1~4 비용 안전장치 === */
 import { recordFeatureUsage, checkFeatureBeforeCall } from "../../lib/ai-feature";
@@ -100,6 +102,31 @@ export default async (req: Request, _ctx: Context) => {
 
   const systemPrompt = await getSystemPrompt();
 
+  /* ★ Q3-013 fix: 동적 도구 로딩 — 의도 분류로 관련 도구만 전송 (비스트리밍과 동일).
+     기존엔 매 호출 전체 도구(~131개) 선언을 보내 입력 토큰이 상시 폭증했다.
+     selectRelevantTools: [] = 인사·단문(도구 0), null = 매칭없음(전체), string[] = 매칭 도구만. */
+  const selectedToolNames = userMessage ? selectRelevantTools(userMessage) : null;
+  const toolDeclarations: any[] = selectedToolNames
+    ? (TOOL_DECLARATIONS as any[]).filter((t: any) => selectedToolNames.includes(t.name))
+    : (TOOL_DECLARATIONS as any[]);
+
+  /* ★ Q3-012 fix: 대화당 비용 상한 — 진입 시 누적 도구 호출 수·입력 토큰 한도 차단.
+     기존엔 MAX_TOOLS_PER_CONV·MAX_INPUT_TOKENS_PER_CONV 상수가 선언만 되고 적용 0이었다(비용 무제한). */
+  const priorToolCount = messages.reduce((n, m) => {
+    if (m.role === "user" && Array.isArray(m.parts)) {
+      return n + m.parts.filter((p: any) => p.functionResponse).length;
+    }
+    return n;
+  }, 0);
+  if (priorToolCount >= MAX_TOOLS_PER_CONV) {
+    return jsonError("tool_limit", `이 대화에서 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)를 초과했습니다. 새 대화를 시작해주세요.`, 429);
+  }
+  const estimatedInputTokens = estimateInputTokens(messages, systemPrompt, toolDeclarations);
+  if (estimatedInputTokens > MAX_INPUT_TOKENS_PER_CONV) {
+    return jsonError("input_token_limit",
+      `이 대화의 누적 입력이 한도(${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()} 토큰, 추정 ${estimatedInputTokens.toLocaleString()})를 초과해 비용 폭증 위험이 있습니다. 새 대화를 시작해주세요.`, 429);
+  }
+
   /* === SSE 응답 시작 === */
   const stream = createSSEStream(async (write: SSEWrite) => {
     write("start", { conversationId });
@@ -124,10 +151,11 @@ export default async (req: Request, _ctx: Context) => {
         for (let m = 0; m < MODEL_CHAIN.length; m++) {
           usedModel = MODEL_CHAIN[m];
           try {
-            const reqBody = {
+            const reqBody: any = {
               contents: messages,
               systemInstruction: { parts: [{ text: systemPrompt }] },
-              tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+              /* ★ Q3-013: 동적 선택된 도구만 전송 (0개면 tools 생략 — 인사·단문 빠르게) */
+              ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
               generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
             };
             for await (const chunk of streamGemini(usedModel, reqBody, GEMINI_API_KEY)) {
@@ -186,6 +214,14 @@ export default async (req: Request, _ctx: Context) => {
         messages.push({ role: "model", parts: stepParts });
 
         if (stepFnCalls.length === 0) break;
+
+        /* ★ Q3-012 fix: 대화당 누적 도구 호출 한도 — 초과 시 추가 호출 중단 */
+        if (priorToolCount + totalToolCalls + stepFnCalls.length > MAX_TOOLS_PER_CONV) {
+          const warn = `⚠️ 대화당 도구 호출 한도(${MAX_TOOLS_PER_CONV}회)에 가까워 추가 호출을 중단했습니다. 새 대화를 시작해주세요.`;
+          write("text", { text: `\n\n${warn}` });
+          finalReply += (finalReply ? "\n\n" : "") + warn;
+          break;
+        }
 
         /* 도구 호출 처리 */
         const fnResponses: any[] = [];

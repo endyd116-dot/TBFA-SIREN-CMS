@@ -131,6 +131,47 @@
     <footer class="wk-modal-footer">
       <span class="wk-spacer"></span>
       <button class="wk-btn-secondary" data-close-modal="wcEventModal" type="button">닫기</button>
+      <button class="wk-btn-primary" id="wcEventEditBtn" type="button">수정</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     모달: 일정 생성/수정 (Q3-005)
+═════════════════════════════════════════════════════ -->
+<div class="wk-modal" id="wcEventEditModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="wcEventEditModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2 id="wcEventEditTitle">새 일정</h2>
+      <button class="wk-modal-close" data-close-modal="wcEventEditModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="wcEventEditId">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label style="display:block;font-size:13px;color:#374151;font-weight:600">제목 *
+          <input type="text" id="wcEventEditTitleInput" maxlength="300" placeholder="일정 제목"
+                 style="width:100%;margin-top:4px;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;font-weight:400"></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151">
+          <input type="checkbox" id="wcEventEditAllDay"> 종일</label>
+        <label style="display:block;font-size:13px;color:#374151;font-weight:600">시작 *
+          <input type="datetime-local" id="wcEventEditStart"
+                 style="width:100%;margin-top:4px;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;font-weight:400"></label>
+        <label style="display:block;font-size:13px;color:#374151;font-weight:600">종료 *
+          <input type="datetime-local" id="wcEventEditEnd"
+                 style="width:100%;margin-top:4px;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;font-weight:400"></label>
+        <label style="display:block;font-size:13px;color:#374151;font-weight:600">장소
+          <input type="text" id="wcEventEditLocation" maxlength="200" placeholder="(선택)"
+                 style="width:100%;margin-top:4px;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;font-weight:400"></label>
+        <label style="display:block;font-size:13px;color:#374151;font-weight:600">설명
+          <textarea id="wcEventEditDesc" rows="3" placeholder="(선택)"
+                    style="width:100%;margin-top:4px;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;resize:vertical;font-weight:400"></textarea></label>
+      </div>
+    </div>
+    <footer class="wk-modal-footer">
+      <span class="wk-spacer"></span>
+      <button class="wk-btn-secondary" data-close-modal="wcEventEditModal" type="button">취소</button>
+      <button class="wk-btn-primary" id="wcEventSaveBtn" type="button">저장</button>
     </footer>
   </div>
 </div>
@@ -146,7 +187,7 @@
 <script src="/js/workspace-sync-channel.js?v=2" defer></script>
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
-<script src="/js/workspace-calendar.js?v=20260520auth2" defer></script>
+<script src="/js/workspace-calendar.js?v=20260527-r41b1" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>

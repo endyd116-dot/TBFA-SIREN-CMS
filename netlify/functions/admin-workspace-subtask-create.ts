@@ -53,6 +53,11 @@ export default async (req: Request, _ctx: Context) => {
       return jsonError(403, "check_parent", "1단계 서브태스크만 허용됩니다.");
     }
 
+    /* ★ Q3-004 fix: 부모 작업 접근 권한 검증 (메인 PATCH와 동일 — 소유/담당/지시/super) */
+    const isSuperAdmin = (auth.ctx.member as any).role === "super_admin";
+    const canEdit = isSuperAdmin || parent.memberId === meId || (parent.assignedTo === meId && parent.assignedBy) || parent.assignedBy === meId;
+    if (!canEdit) return jsonError(403, "forbidden", "이 작업에 서브태스크를 추가할 권한이 없습니다");
+
     /* dueDate 처리 — 미지정 시 부모 마감일 사용 (workspaceTasks.dueDate NOT NULL 제약) */
     let dueDate: Date;
     if (body?.dueDate) {

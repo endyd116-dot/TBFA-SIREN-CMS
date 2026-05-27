@@ -56,6 +56,8 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "donor_churn_daily_evaluation", name: "후원자 이탈 예측 일일",     category: "cron_daily",    description: "매일 04:00 KST — 활성 후원자 전체 이탈 예측",           sortOrder: 320 },
   { key: "daily_briefing_generation",    name: "일일 브리핑 생성",          category: "cron_daily",    description: "매일 06:00 KST — 운영자별 일일 브리핑 AI 작성",         sortOrder: 330 },
   { key: "weekly_report_generation",     name: "주간 대표 보고서 생성",     category: "cron_daily",    description: "매주 월 06:00 KST — 전주 활동 요약·위험경보 보고서",    sortOrder: 340 },
+  /* ★ Q3-014 fix: 미등록이라 callGemini가 토글·비용추적을 우회하던 키 등록 → 기능 토글로 제어 가능 */
+  { key: "schedule_runner",              name: "AI 예약 작업 실행",         category: "cron_daily",    description: "10분 주기 — AI 비서가 등록한 예약 작업(스케줄)을 실행 (cron-ai-schedule-runner)", sortOrder: 350 },
 
   /* === AI 비서 채팅 (1) === */
   { key: "ai_agent_chat",                name: "AI 비서 채팅",              category: "agent_chat",    description: "관리자 CMS의 AI 비서 대화 (1턴당 1~5회 호출)",          sortOrder: 410 },
