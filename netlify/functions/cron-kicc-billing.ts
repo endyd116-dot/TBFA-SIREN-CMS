@@ -335,7 +335,12 @@ async function handleFailure(target: BillingTarget, logId: number, result: Charg
     const nextRetry = target.attemptNumber === 1 ? addDays(new Date(), 1) : addDays(new Date(), 3);
     const nextRetryStr = `${nextRetry.getFullYear()}-${String(nextRetry.getMonth() + 1).padStart(2, "0")}-${String(nextRetry.getDate()).padStart(2, "0")}`;
 
-    await db.execute(sql`UPDATE members SET next_billing_date = ${nextRetryStr}::date, updated_at = NOW() WHERE id = ${target.memberId}`);
+    /* ★ R41 Q1-001 FIX: 재시도일을 next_billing_date에 쓰지 않는다 (이전엔 여기서 덮어썼음).
+       덮으면 다음날 collectScheduledTargets가 이 회원을 '정기(attempt 1)'로 재포착하고
+       dedup이 retry(attempt 2)를 버려 → 시도횟수가 영원히 1에 고정 → 1/3일 에스컬레이션·
+       3회 자동해지가 작동 안 함(무한 일일 재청구). 재시도는 billing_logs.next_retry_at +
+       collectRetryTargets 경로로만 처리한다. next_billing_date는 성공 시(다음달)·자동해지 시(NULL)에만 변경.
+       (billing_retry_count·billing_last_failed_at은 위 분기 이전 UPDATE에서 이미 갱신됨) */
 
     console.log(`[cron-kicc-billing] ⚠️ 실패: 회원 #${target.memberId} (${target.memberName}) — ${result.errorCode} (재시도 ${nextRetryStr})`);
 

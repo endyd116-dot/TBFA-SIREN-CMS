@@ -37,11 +37,20 @@ export default async (req: Request, _ctx: Context) => {
 
     if (!row) return new Response("Not Found", { status: 404 });
 
-    /* 비공개 파일은 인증 필요 */
+    /* 비공개 파일은 인증 + 소유/관리자 검증
+       ★ R41 P0(Q2-001): 기존엔 "로그인만 하면" 통과 → 일반 회원이 ID(연속번호)만 바꿔
+       남의 비공개 첨부(신고 증거·딥릴리프 유족자료 등)를 내려받을 수 있었음.
+       이제: 관리자(어드민 토큰)는 전부 허용, 일반 사용자는 '본인이 업로드한 파일'만 허용. */
     if (!(row as any).isPublic) {
       const admin = authenticateAdmin(req);
-      const user = !admin ? authenticateUser(req) : null;
-      if (!admin && !user) return new Response("Unauthorized", { status: 401 });
+      if (!admin) {
+        const user = authenticateUser(req);
+        if (!user) return new Response("Unauthorized", { status: 401 });
+        const ownerId = (row as any).uploadedBy;
+        if (!ownerId || ownerId !== user.uid) {
+          return new Response("Forbidden", { status: 403 });
+        }
+      }
     }
 
     /* 업로드 미완료 파일 */
