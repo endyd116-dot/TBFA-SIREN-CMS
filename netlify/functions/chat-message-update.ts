@@ -51,7 +51,7 @@ export default async (req: Request, _ctx: Context) => {
   try {
     /* select_message — 본인 메시지만 */
     const sel: any = await db.execute(sql`
-      SELECT id, sender_id, created_at, is_deleted
+      SELECT id, sender_id, created_at, is_deleted, room_id
         FROM chat_messages
        WHERE id = ${messageId}
        LIMIT 1
@@ -64,6 +64,13 @@ export default async (req: Request, _ctx: Context) => {
 
     /* check_deleted */
     if (row.is_deleted) return jsonError(403, "check_deleted", "삭제된 메시지입니다.");
+
+    /* ★ Q3-051 fix: 종료(closed)된 채팅방의 메시지는 수정 금지 (기록 불변성 — 전송 경로와 일관) */
+    try {
+      const rr: any = await db.execute(sql`SELECT status FROM chat_rooms WHERE id = ${row.room_id} LIMIT 1`);
+      const rst = (rr?.rows ?? rr ?? [])[0]?.status;
+      if (rst && rst !== "active") return jsonError(403, "room_closed", "종료된 채팅방의 메시지는 수정할 수 없습니다.");
+    } catch (_) { /* 방 상태 조회 실패 시 기존 동작 */ }
 
     /* check_time — 5분 초과 */
     const createdAt = new Date(row.created_at);

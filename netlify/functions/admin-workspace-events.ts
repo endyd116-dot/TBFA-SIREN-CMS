@@ -15,7 +15,7 @@
 
 import { Context } from "@netlify/functions";
 import { db } from "../../db";
-import { workspaceEvents, members } from "../../db/schema";
+import { workspaceEvents, members, workspaceEventRsvps } from "../../db/schema";
 import { eq, and, or, desc, asc, sql, gte, lte } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import {
@@ -152,6 +152,17 @@ export default async (req: Request, _ctx: Context) => {
           .where(eq(members.id, ev.memberId))
           .limit(1);
 
+        // ★ Q3-006 fix: RSVP 응답은 workspace_event_rsvps 단일 출처에서 조회 (attendees JSONB는 초대 명단 전용).
+        //   미응답 = 초대됐으나 rsvps에 행 없는 사람.
+        let rsvpMap: Record<number, string> = {};
+        try {
+          const rsvpRows: any = await db
+            .select({ memberId: workspaceEventRsvps.memberId, status: workspaceEventRsvps.status })
+            .from(workspaceEventRsvps)
+            .where(eq(workspaceEventRsvps.eventId, rowId));
+          for (const r of rsvpRows) rsvpMap[r.memberId] = r.status;
+        } catch (_) { /* rsvps 조회 실패 시 초대 명단만 표시 */ }
+
         return ok({
           ...ev,
           _computed: {
@@ -159,10 +170,11 @@ export default async (req: Request, _ctx: Context) => {
             attendeesWithNames: attendees.map((a: any) => ({
               ...a,
               name: memberMap[a.memberId] || null,
+              rsvp: rsvpMap[a.memberId] || null,   // 실제 응답(yes/no/maybe), 없으면 미응답
             })),
             isMine: ev.memberId === meId,
             isAttendee,
-            myRsvp: attendees.find((a: any) => a.memberId === meId)?.status || null,
+            myRsvp: rsvpMap[meId] || null,
           },
         });
       }
@@ -359,57 +371,53 @@ export default async (req: Request, _ctx: Context) => {
       if (!ev) return notFound("이벤트를 찾을 수 없습니다");
 
       /* ─── action=rsvp (참석 응답) ─── */
+      // ★ Q3-006 fix: 응답은 workspace_event_rsvps 단일 출처에 upsert (attendees JSONB는 초대 명단 전용으로 보존).
+      //   기존엔 응답을 attendees JSONB에 써서 캘린더 UI(workspace-event-rsvp)의 rsvps 테이블과 이원화됐다.
       if (action === "rsvp") {
-        const status = body.status;
-        if (!["accepted", "declined", "invited"].includes(status)) {
-          return badRequest("status는 accepted/declined/invited");
-        }
-        const attendees = Array.isArray(ev.attendees) ? [...ev.attendees] : [];
-        let found = false;
-        for (const a of attendees) {
-          if (a.memberId === meId) {
-            a.status = status;
-            a.respondedAt = new Date().toISOString();
-            found = true;
-            break;
+        const statusMap: Record<string, string> = { accepted: "yes", declined: "no", invited: "maybe", yes: "yes", no: "no", maybe: "maybe" };
+        const rsvpStatus = statusMap[String(body.status || "")];
+        if (!rsvpStatus) return badRequest("status는 yes/no/maybe (또는 accepted/declined)");
+        try {
+          const exist: any = await db
+            .select({ id: workspaceEventRsvps.id })
+            .from(workspaceEventRsvps)
+            .where(and(eq(workspaceEventRsvps.eventId, id), eq(workspaceEventRsvps.memberId, meId)))
+            .limit(1);
+          if (exist.length > 0) {
+            await db.update(workspaceEventRsvps).set({ status: rsvpStatus } as any).where(eq(workspaceEventRsvps.id, exist[0].id));
+          } else {
+            await db.insert(workspaceEventRsvps).values({ workspaceId: (ev as any).workspaceId ?? 1, eventId: id, memberId: meId, status: rsvpStatus } as any);
           }
+        } catch (e: any) {
+          return serverError("RSVP 저장 실패", e);
         }
-        if (!found) {
-          // 참석자 아닌데 응답 시도 → 추가
-          attendees.push({ memberId: meId, status, respondedAt: new Date().toISOString() });
-        }
-
-        const [updated]: any = await db
-          .update(workspaceEvents)
-          .set({ attendees, updatedAt: new Date() } as any)
-          .where(eq(workspaceEvents.id, id))
-          .returning();
 
         await logWorkspaceActivity({
           actorId: meId,
           actorName: adminMember.name,
-          actionType: status === "accepted" ? "event.rsvp.accept" : "event.rsvp.decline",
+          actionType: rsvpStatus === "yes" ? "event.rsvp.accept" : "event.rsvp.decline",
           targetType: "event",
           targetId: id,
           targetTitle: ev.title,
-          metadata: { status },
+          metadata: { status: rsvpStatus },
           visibility: "team",
         });
 
         // 주최자에게 응답 알림
         if (ev.memberId !== meId) {
+          const label = rsvpStatus === "yes" ? "참석" : rsvpStatus === "no" ? "불참" : "미정";
           await sendWorkspaceNotification({
             memberId: ev.memberId,
             sourceType: "event",
             sourceId: id,
-            notifType: status === "accepted" ? "approved" : "rejected",
+            notifType: rsvpStatus === "yes" ? "approved" : "rejected",
             channel: "bell",
-            title: `${adminMember.name}님이 ${status === "accepted" ? "참석 수락" : "참석 거절"}: ${ev.title}`,
+            title: `${adminMember.name}님이 ${label}: ${ev.title}`,
             actionUrl: `/admin#event-${id}`,
           });
         }
 
-        return ok(updated, "응답이 저장되었습니다");
+        return ok({ eventId: id, status: rsvpStatus }, "응답이 저장되었습니다");
       }
 
       /* ─── 일반 PATCH ─── */

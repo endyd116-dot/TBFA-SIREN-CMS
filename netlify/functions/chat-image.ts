@@ -4,6 +4,7 @@ import { getStore } from "@netlify/blobs";
 import { eq } from "drizzle-orm";
 import { db, chatAttachments, chatRooms } from "../../db";
 import { authenticateUser, authenticateAdmin } from "../../lib/auth";
+import { canEnterExpertRoom, ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 
 export const config = { path: "/api/chat/image" };
 
@@ -41,13 +42,16 @@ export default async (req: Request, _ctx: Context) => {
       }
       /* 첨부 → 채팅방 → 소유자(memberId) 일치 여부 */
       const [room] = await db
-        .select({ id: chatRooms.id, memberId: chatRooms.memberId })
+        .select({ id: chatRooms.id, memberId: chatRooms.memberId, expertId: chatRooms.expertId, roomType: chatRooms.roomType })
         .from(chatRooms)
         .where(eq(chatRooms.id, (att as any).roomId))
         .limit(1);
 
       if (!room) return new Response("Not Found", { status: 404 });
-      if (room.memberId !== user.uid) {
+      // ★ Q3-038 fix: expert_1on1 룸은 배정 전문가도 접근 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
+      if ((room as any).roomType === ROOM_TYPE_EXPERT) {
+        if (!canEnterExpertRoom(room as any, user.uid, false)) return new Response("Forbidden", { status: 403 });
+      } else if (room.memberId !== user.uid) {
         return new Response("Forbidden", { status: 403 });
       }
     }

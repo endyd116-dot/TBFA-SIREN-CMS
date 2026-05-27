@@ -163,6 +163,21 @@ export default async function handler(req: Request, _ctx: Context) {
       .reduce((s: number, a: any) => s + Number(a.bonusAmount), 0);
   } catch (err) { /* non-critical */ }
 
+  /* ★ Q3-029 fix: 역할 캡(milestone_roles)을 정산과 동일하게 적용 — 대시보드 '예상 인센티브'가
+     실제 결산액보다 부풀려 보이는 불일치 해소(캡 미설정이면 무영향). */
+  try {
+    if (milestoneRole) {
+      const capRows = await db.execute(sql`
+        SELECT revenue_cap, non_revenue_cap FROM milestone_roles WHERE code = ${milestoneRole} LIMIT 1
+      `);
+      const capRow = ((capRows as any).rows?.[0] || (capRows as any[])[0]);
+      if (capRow) {
+        if (capRow.revenue_cap != null) revenueLinkedTotal = Math.min(revenueLinkedTotal, Number(capRow.revenue_cap));
+        if (capRow.non_revenue_cap != null) nonRevenueTotal = Math.min(nonRevenueTotal, Number(capRow.non_revenue_cap));
+      }
+    }
+  } catch { /* 캡 로드 실패 시 무캡으로 표시 */ }
+
   // 분기 결산
   let settlement: any = null;
   try {

@@ -185,6 +185,8 @@ export default async function handler(req: Request) {
         // R35-GAP-P1 H-G2: 출근 기록 있는 날은 시각·근무시간 보존, status만 'LEAVE'로 변경
         // 새 INSERT는 빈 행(check_in/out NULL), ON CONFLICT 시 기존 시각 유지
         for (const d of dates) {
+          // ★ Q3-028: 반차는 종일 LEAVE 스탬프 금지 — 직원이 나머지 반나절 출근하면 att-checkin이 PARTIAL_LEAVE로 기록.
+          if (request.isHalfDay) continue;
           try {
             await db.execute(sql`
               INSERT INTO att_records (member_uid, date, status, work_mode)

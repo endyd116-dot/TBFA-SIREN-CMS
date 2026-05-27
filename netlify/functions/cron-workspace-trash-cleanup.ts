@@ -113,10 +113,10 @@ export default async (req: Request, context: Context) => {
     /* 4. 감사 로그 */
     try {
       await logAudit({
-        memberId: 0,
+        userId: null,
+        userType: "system",
         action: "CRON_WORKSPACE_TRASH_CLEANUP",
-        targetType: "workspace_trash",
-        targetId: 0,
+        target: "workspace_trash",   // ★ Q3-023 fix: logAudit 실제 필드(userId·target)로 교정 (시스템 작업 userId=null)
         detail: {
           cutoffDate: cutoffISO,
           retentionDays: RETENTION_DAYS,

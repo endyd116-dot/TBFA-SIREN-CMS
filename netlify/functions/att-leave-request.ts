@@ -237,5 +237,23 @@ export default async function handler(req: Request) {
     }
   }
 
+  // DELETE — 본인 PENDING 신청 셀프 철회 (Q3-009 잔여)
+  //   PENDING은 아직 잔여 차감 전이라 복원 불필요 — 행 삭제만. 승인 후 취소는 관리자(admin-att-leave-review CANCELLED).
+  if (method === "DELETE") {
+    const url = new URL(req.url);
+    const reqId = Number(url.searchParams.get("id"));
+    if (!reqId) return jsonError("validate", new Error("id 필수"), 400);
+    try {
+      const [r] = await db.select().from(attLeaveRequests).where(eq(attLeaveRequests.id, reqId)).limit(1);
+      if (!r) return jsonError("not_found", new Error("신청을 찾을 수 없습니다"), 404);
+      if (String(r.memberUid) !== memberUid) return jsonError("forbidden", new Error("본인 신청만 철회할 수 있습니다"), 403);
+      if (r.status !== "PENDING") return jsonError("invalid_status", new Error("승인 대기 중인 신청만 철회할 수 있습니다"), 409);
+      await db.delete(attLeaveRequests).where(eq(attLeaveRequests.id, reqId));
+      return jsonOk({ withdrawn: true, id: reqId });
+    } catch (err) {
+      return jsonError("withdraw", err);
+    }
+  }
+
   return new Response("Method Not Allowed", { status: 405 });
 }

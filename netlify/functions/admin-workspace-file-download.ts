@@ -35,7 +35,7 @@ export default async (req: Request, _ctx: Context) => {
     if (file.deletedAt) return notFound("삭제된 파일입니다");
     if (file.uploadStatus !== "completed") return badRequest("업로드가 완료되지 않았습니다");
 
-    // 권한 체크
+    // 권한 체크 (★ Q3-042: file.isShared=전체공개 토글은 공유대상·만료와 무관하게 모든 운영자 허용 — 의도된 동작)
     let canAccess = isSuperAdmin || file.ownerId === meId || file.isShared;
     if (!canAccess) {
       const shares: any = await db

@@ -191,7 +191,8 @@ export default async (req: Request, _ctx: Context) => {
     try {
       await recordFeatureUsage({
         featureKey: RAG_FEATURE_KEY,
-        model: "text-embedding-004",
+        model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",   // ★ Q3-049 fix: 실제 임베딩 모델명
+
         inputTokens: totalInputTokens,
         outputTokens: 0,
         adminId,

@@ -28,10 +28,11 @@ function kstToday(): string {
 }
 
 function kstWeekStart(): string {
+  // ★ Q3-044 fix: 서버 로컬TZ 의존 제거 — KST(+9h) Date를 getUTC*로 읽어 주 시작(월요일) 계산 (att-utils 패턴과 일관).
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const day = kst.getDay(); // 0=일,1=월,...
+  const day = kst.getUTCDay(); // 0=일,1=월,...
   const diff = day === 0 ? -6 : 1 - day;
-  kst.setDate(kst.getDate() + diff);
+  kst.setUTCDate(kst.getUTCDate() + diff);
   return kst.toISOString().slice(0, 10);
 }
 
@@ -104,13 +105,16 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     // 3. 주간 누적 근무시간 체크 (48시간 임박, 52시간 초과)
+    // ★ Q3-043 fix: 미퇴근일(check_in 있으나 working_mins NULL)을 8h(480분) 추정으로 보정 — 52h 경고 누락 방지.
+    //   (경고용 추정치이며 급여 계산과 무관. 휴가·결근 등 check_in 없는 날은 0.)
     const weeklyRows: any = await db.execute(sql`
-      SELECT member_uid, SUM(working_mins) AS total_mins
+      SELECT member_uid,
+             SUM(CASE WHEN check_in_time IS NOT NULL THEN COALESCE(working_mins, 480) ELSE 0 END) AS total_mins
       FROM att_records
       WHERE date >= ${weekStart}::date
         AND date <= ${today}::date
       GROUP BY member_uid
-      HAVING SUM(working_mins) >= 2880
+      HAVING SUM(CASE WHEN check_in_time IS NOT NULL THEN COALESCE(working_mins, 480) ELSE 0 END) >= 2880
     `);
     const weeklyList = Array.isArray(weeklyRows) ? weeklyRows : (weeklyRows as any).rows ?? [];
 

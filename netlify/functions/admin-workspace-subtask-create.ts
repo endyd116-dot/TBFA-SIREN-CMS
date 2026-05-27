@@ -9,7 +9,7 @@
  */
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
-import { db, workspaceTasks } from "../../db";
+import { db, workspaceTasks, members } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 
 export const config = { path: "/api/admin-workspace-subtask-create" };
@@ -71,6 +71,12 @@ export default async (req: Request, _ctx: Context) => {
     const description = body?.description ? String(body.description) : null;
     const assignedTo = body?.assignedTo ? Number(body.assignedTo) : null;
     const priority = String(body?.priority || "normal");
+
+    // ★ Q3-040 fix: 담당자 지정 시 관리자(type='admin')만 허용 — 메인 작업 생성과 동일 (일반회원·유족 등 비관리자 배정 방지)
+    if (assignedTo) {
+      const [target]: any = await db.select({ id: members.id, type: members.type }).from(members).where(eq(members.id, assignedTo)).limit(1);
+      if (!target || target.type !== "admin") return jsonError(400, "validate", "담당자는 관리자 계정만 지정할 수 있습니다");
+    }
 
     const insertData: any = {
       memberId: meId,

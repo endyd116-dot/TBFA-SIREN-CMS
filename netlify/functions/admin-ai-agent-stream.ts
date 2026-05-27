@@ -38,6 +38,8 @@ import { maskPII } from "../../lib/pii-mask";
 /* === SSE === */
 import { createSSEStream, sseHeaders, type SSEWrite } from "../../lib/sse-writer";
 import { streamGemini } from "../../lib/gemini-stream";
+/* ★ Q3-037: 비스트리밍과 동일한 RAG 격리 검색 주입 */
+import { searchRag } from "../../lib/ai-embedding";
 
 export const config = { path: "/api/admin-ai-agent-stream" };
 
@@ -99,6 +101,37 @@ export default async (req: Request, _ctx: Context) => {
 
   /* 사용자 메시지 추가 */
   if (userMessage) messages.push({ role: "user", parts: [{ text: userMessage }] });
+
+  /* ★ Q3-037 fix: RAG 주입 — 스트리밍(위젯 주 경로)에도 비스트리밍과 동일하게 qna·manual 격리 검색 top-5 주입.
+     기존엔 스트리밍에 RAG가 없어 사용법 답변 품질이 fallback보다 낮았다. 순직(martyr_*) 민감자료는 검색 제외(격리 필수). */
+  if (userMessage) {
+    try {
+      const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
+      if (ragCheck.ok) {
+        const ragHits = await searchRag(userMessage, 5, ["qna", "manual"]);
+        if (ragHits.length > 0) {
+          const ragBlock = "[참고 자료]\n" + ragHits
+            .map(h => `- ${h.title || h.sourceRef}: ${h.content.slice(0, 300)}`)
+            .join("\n");
+          const lastMsg = messages[messages.length - 1];
+          if (lastMsg?.role === "user" && Array.isArray(lastMsg.parts)) {
+            const textIdx = lastMsg.parts.findIndex((p: any) => typeof p.text === "string");
+            if (textIdx >= 0) lastMsg.parts[textIdx] = { text: `${ragBlock}\n\n${lastMsg.parts[textIdx].text}` };
+            else lastMsg.parts.unshift({ text: ragBlock });
+          }
+          void recordFeatureUsage({
+            featureKey: "ai_rag_search",
+            model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",
+            inputTokens: Math.ceil(userMessage.length / 4),
+            outputTokens: 0,
+            adminId, conversationId,
+          });
+        }
+      }
+    } catch (ragErr) {
+      console.warn("[ai-agent-stream] RAG 검색 실패 — 기존 동작 계속", (ragErr as any)?.message);
+    }
+  }
 
   const systemPrompt = await getSystemPrompt();
 

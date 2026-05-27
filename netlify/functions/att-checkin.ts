@@ -197,7 +197,7 @@ export default async function handler(req: Request) {
   const workplaceId = loc.workplaceId;
 
   // 공휴일·휴가 여부
-  let isHoliday = false, isLeave = false;
+  let isHoliday = false, isLeave = false, isHalfDayLeave = false;
   try {
     const holidays = await db.select().from(attHolidays).where(eq(attHolidays.date, today)).limit(1);
     isHoliday = holidays.length > 0;
@@ -209,18 +209,24 @@ export default async function handler(req: Request) {
         eq(attLeaveRequests.status, "APPROVED"),
         sql`${attLeaveRequests.startDate} <= ${today}::date AND ${attLeaveRequests.endDate} >= ${today}::date`,
       )).limit(1);
-      isLeave = leaves.length > 0;
+      // ★ Q3-028: 반차(isHalfDay)는 종일 휴가가 아니라 출근 허용 + PARTIAL_LEAVE 기록. 전일 휴가만 LEAVE로 차단.
+      if (leaves.length > 0) {
+        if ((leaves[0] as any).isHalfDay) isHalfDayLeave = true;
+        else isLeave = true;
+      }
     } catch {}
   }
 
   const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
-  const status = determineStatus(now, null, {
+  let status = determineStatus(now, null, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),
     lateGraceMins: policy.lateGraceMins, earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
     coreStartTime: policy.coreStartTime ? String(policy.coreStartTime) : null,
     coreEndTime: policy.coreEndTime ? String(policy.coreEndTime) : null,
     flexEnabled: policy.flexEnabled, flexRangeMins,
   }, isLeave, isHoliday, workMode.mode);
+  // ★ Q3-028: 반차일은 출근을 허용하되 상태를 PARTIAL_LEAVE로 기록 (지각/조퇴 판정 대신 — 오전/오후 반차 근무).
+  if (isHalfDayLeave) status = "PARTIAL_LEAVE";
 
   const firstSession: AttSession = { in: now.toISOString(), out: null, inLat: inLatStr, inLng: inLngStr, workplaceId };
 

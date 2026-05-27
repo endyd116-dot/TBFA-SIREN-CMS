@@ -75,7 +75,7 @@ export default async function handler(req: Request) {
         const leaveRes = memberUid
           ? await db.execute(sql`
               SELECT id, member_uid, leave_type_id, start_date, end_date,
-                     is_half_day, half_day_type, reason
+                     is_half_day, half_day_period, reason
               FROM att_leave_requests
               WHERE status = 'APPROVED'
                 AND start_date <= ${dateToQ}::date
@@ -85,7 +85,7 @@ export default async function handler(req: Request) {
             `)
           : await db.execute(sql`
               SELECT id, member_uid, leave_type_id, start_date, end_date,
-                     is_half_day, half_day_type, reason
+                     is_half_day, half_day_period, reason
               FROM att_leave_requests
               WHERE status = 'APPROVED'
                 AND start_date <= ${dateToQ}::date

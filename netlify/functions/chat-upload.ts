@@ -8,6 +8,7 @@ import { getStore } from "@netlify/blobs";
 import { eq } from "drizzle-orm";
 import { db, chatRooms, chatAttachments } from "../../db";
 import { authenticateUser } from "../../lib/auth";
+import { canEnterExpertRoom, ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 import { ok, badRequest, unauthorized, forbidden, serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -41,13 +42,18 @@ export default async (req: Request) => {
 
     /* 채팅방 소유자 검증 */
     const [room] = await db
-      .select({ id: chatRooms.id, memberId: chatRooms.memberId, status: chatRooms.status })
+      .select({ id: chatRooms.id, memberId: chatRooms.memberId, status: chatRooms.status, expertId: chatRooms.expertId, roomType: chatRooms.roomType })
       .from(chatRooms)
       .where(eq(chatRooms.id, roomId))
       .limit(1);
 
     if (!room) return badRequest("채팅방을 찾을 수 없습니다");
-    if (room.memberId !== auth.uid) return forbidden("접근 권한이 없습니다");
+    // ★ Q3-038 fix: expert_1on1 룸은 배정 전문가도 업로드 허용 (메시지 경로와 동일 canEnterExpertRoom 정책)
+    if ((room as any).roomType === ROOM_TYPE_EXPERT) {
+      if (!canEnterExpertRoom(room as any, auth.uid, false)) return forbidden("접근 권한이 없습니다");
+    } else if (room.memberId !== auth.uid) {
+      return forbidden("접근 권한이 없습니다");
+    }
     if (room.status !== "active") return forbidden("종료된 채팅방입니다");
 
     /* Blob 저장 */

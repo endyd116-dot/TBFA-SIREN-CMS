@@ -704,7 +704,8 @@ export default async (req: Request, _ctx: Context) => {
           /* 비용 기록 (fire-and-forget) */
           void recordFeatureUsage({
             featureKey: "ai_rag_search",
-            model: "text-embedding-004",
+            model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",   // ★ Q3-049 fix: 실제 임베딩 모델명
+
             inputTokens: Math.ceil(userMessage.length / 4),
             outputTokens: 0,
             adminId,

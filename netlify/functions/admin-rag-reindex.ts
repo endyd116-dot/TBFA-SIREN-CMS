@@ -23,7 +23,7 @@ export default async function handler(req: Request, _ctx: Context) {
     const auth = await requireAdmin(req);
     if (!auth.ok) return (auth as any).res;
 
-    const adminId = (auth as any).ctx?.admin?.id ?? null;
+    const adminId = (auth as any).ctx?.admin?.uid ?? null;   // ★ Q3-048 fix: 식별 필드는 admin.uid (admin.id는 undefined → 비용로그 adminId 누락)
 
     const base = process.env.URL
       || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");

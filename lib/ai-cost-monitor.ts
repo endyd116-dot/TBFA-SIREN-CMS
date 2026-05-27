@@ -38,6 +38,9 @@ const PRICING: Record<string, ModelPricing> = {
   "gemini-3.0-flash":              { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },
   "gemini-2.5-flash":              { inputPerMTok: 0.075, outputPerMTok: 0.30,  cachedInputPerMTok: 0.01875 },
   "gemini-2.5-flash-lite":         { inputPerMTok: 0.025, outputPerMTok: 0.10,  cachedInputPerMTok: 0.00625 },
+  /* ★ Q3-049: 임베딩 모델 — output 없음(0). 미등록 시 __default(flash $0.075/$0.30)로 과대계상되던 문제 해소 */
+  "gemini-embedding-001":          { inputPerMTok: 0.15,  outputPerMTok: 0 },
+  "text-embedding-004":            { inputPerMTok: 0.025, outputPerMTok: 0 },
   /* fallback for unknown model — flash 가격으로 보수적 계산 */
   "__default":                     { inputPerMTok: 0.075, outputPerMTok: 0.30 },
 };
