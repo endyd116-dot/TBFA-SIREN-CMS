@@ -11,11 +11,12 @@
  *   - 실패 시 throw 금지 → { error } 반환 (업로드 유지·운영자 수동 입력 유도)
  *   - 빈 텍스트(< 10자) 도 { error } 처리 → extractStatus='failed' 로 간주
  */
+import { inflateRawSync } from "zlib";
 import { callGemini, uploadToGeminiFiles, deleteGeminiFile } from "./ai-gemini";
 
 export interface OcrResult {
   text: string;
-  method: "native_pdf" | "docx" | "xlsx" | "hwp" | "hwpx" | "pptx" | "plain_text" | "gemini_ocr" | "gemini_audio" | "gemini_video" | "manual";
+  method: "native_pdf" | "docx" | "doc" | "xlsx" | "hwp" | "hwpx" | "pptx" | "plain_text" | "gemini_ocr" | "gemini_audio" | "gemini_video" | "manual";
   error?: string;
 }
 
@@ -68,6 +69,12 @@ export async function extractDocText({
   /* ── 1. Word docx ── */
   if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === "docx") {
     return extractDocx(base64);
+  }
+
+  /* ── 1.1. 구형 Word doc (바이너리 OLE) — word-extractor ──
+     브라우저가 .doc에 octet-stream을 보내는 경우가 많아 확장자 우선 판별. */
+  if (ext === "doc" || mime === "application/msword") {
+    return extractDoc(base64);
   }
 
   /* ── 1.5. 엑셀 (xlsx·xls) — 표 데이터를 텍스트(탭 구분)로 변환 ── */
@@ -132,9 +139,9 @@ export async function extractDocText({
     return extractGeminiOcr(base64, mime, fileName);
   }
 
-  /* ── 5. 미지원 형식 (구형 doc/ppt·odt/ods·zip 등) — 업로드 거부 안 함, error 반환 ──
-     자동 추출 가능: PDF·이미지·docx·xlsx·hwp/hwpx·pptx·평문·음성·영상.
-     불가(변환 권장): 구형 .doc/.ppt(바이너리)·.odt/.ods(오픈오피스)·.zip 등. */
+  /* ── 5. 미지원 형식 (구형 ppt·odt/ods·zip 등) — 업로드 거부 안 함, error 반환 ──
+     자동 추출 가능: PDF·이미지·docx·doc·xlsx·hwp/hwpx·pptx·평문·음성·영상.
+     불가(변환 권장): 구형 .ppt(바이너리)·.odt/.ods(오픈오피스)·.zip 등. */
   return {
     text: "",
     method: "manual",
@@ -173,6 +180,27 @@ async function extractDocx(base64: string): Promise<OcrResult> {
     return { text, method: "docx" };
   } catch (err: any) {
     return { text: "", method: "docx", error: `docx 추출 실패: ${String(err?.message || err).slice(0, 200)}` };
+  }
+}
+
+/* ─────────────────────────────── word-extractor (구형 .doc) ─────────────────────────────── */
+async function extractDoc(base64: string): Promise<OcrResult> {
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const mod: any = await import("word-extractor");
+    const WordExtractor = mod.default ?? mod;
+    const extractor = new WordExtractor();
+    const doc = await extractor.extract(buffer);   // Buffer 입력 지원(임시파일 불필요)
+    let text = String(doc.getBody?.() || "").trim();
+    const foot = String(doc.getFootnotes?.() || "").trim();
+    if (foot) text += "\n" + foot;
+    text = text.trim();
+    if (text.length < MIN_TEXT_LENGTH) {
+      return { text, method: "doc", error: "doc 텍스트가 너무 짧습니다 (빈 문서·이미지 전용·PDF 변환 권장)" };
+    }
+    return { text, method: "doc" };
+  } catch (err: any) {
+    return { text: "", method: "manual", error: `doc 추출 실패: ${String(err?.message || err).slice(0, 150)} — docx/PDF 변환 또는 텍스트 직접 입력 권장` };
   }
 }
 
@@ -233,18 +261,102 @@ async function extractHwp(base64: string): Promise<OcrResult> {
     const buffer = Buffer.from(base64, "base64");
     const CFB: any = await import("cfb");
     const container = CFB.read(buffer, { type: "buffer" });
+
+    /* 1) 본문 전체(BodyText/Section*) 레코드 파싱 시도 */
+    const body = extractHwpBodyText(container).trim();
+    if (body.length >= MIN_TEXT_LENGTH) {
+      return { text: body, method: "hwp" };
+    }
+
+    /* 2) 폴백 — PrvText(미리보기·문서 앞부분) */
     const entry = CFB.find(container, "PrvText") || CFB.find(container, "/PrvText");
-    if (!entry || !entry.content) {
-      return { text: "", method: "manual", error: "HWP 미리보기 텍스트(PrvText) 없음 — PDF로 변환 후 재업로드 또는 텍스트 직접 입력 권장" };
-    }
-    const text = Buffer.from(entry.content).toString("utf16le").trim();
-    if (text.length < MIN_TEXT_LENGTH) {
-      return { text, method: "hwp", error: "HWP 추출 텍스트가 너무 짧습니다 (PDF 변환 권장)" };
-    }
-    return { text, method: "hwp" };
+    const prev = (entry && entry.content) ? Buffer.from(entry.content).toString("utf16le").trim() : "";
+    const best = prev.length >= body.length ? prev : body;
+    if (best.length >= MIN_TEXT_LENGTH) return { text: best, method: "hwp" };
+    if (best.length > 0) return { text: best, method: "hwp", error: "HWP 추출 텍스트가 너무 짧습니다 (PDF 변환 권장)" };
+    return { text: "", method: "manual", error: "HWP 본문/미리보기 추출 실패 — 암호 설정 문서일 수 있습니다. PDF로 변환 후 재업로드 또는 텍스트 직접 입력 권장" };
   } catch (err: any) {
     return { text: "", method: "manual", error: `HWP 추출 실패: ${String(err?.message || err).slice(0, 150)} — PDF 변환 또는 텍스트 직접 입력 권장` };
   }
+}
+
+/* HWP5 본문 추출 — BodyText/Section{N} 스트림을 (필요 시 raw-inflate) 후 레코드 파싱.
+   FileHeader properties: bit0=압축 / bit1=암호화(암호화면 파싱 불가→빈 문자열로 PrvText 폴백). */
+function extractHwpBodyText(container: any): string {
+  try {
+    const fileIndex: any[] = container.FileIndex || [];
+    const fullPaths: string[] = container.FullPaths || [];
+
+    /* 압축·암호 플래그 */
+    let compressed = true;
+    const fhIdx = fileIndex.findIndex((e, i) => /(^|\/)FileHeader$/i.test(fullPaths[i] || "") || /^FileHeader$/i.test(e?.name || ""));
+    if (fhIdx >= 0 && fileIndex[fhIdx]?.content) {
+      const fh = Buffer.from(fileIndex[fhIdx].content);
+      if (fh.length >= 40) {
+        const props = fh.readUInt32LE(36);
+        compressed = (props & 0x01) === 0x01;
+        if ((props & 0x02) === 0x02) return ""; // 암호화 — 폴백
+      }
+    }
+
+    /* BodyText/Section0,1,... 수집·정렬 */
+    const sections: { num: number; content: any }[] = [];
+    for (let i = 0; i < fileIndex.length; i++) {
+      const e = fileIndex[i];
+      const path = fullPaths[i] || e?.name || "";
+      const m = /(?:^|\/)Section(\d+)$/i.exec(path) || /^Section(\d+)$/i.exec(e?.name || "");
+      if (m && e?.content) sections.push({ num: Number(m[1]), content: e.content });
+    }
+    sections.sort((a, b) => a.num - b.num);
+
+    let text = "";
+    for (const s of sections) {
+      let raw = Buffer.from(s.content);
+      if (compressed) {
+        try { raw = inflateRawSync(raw); } catch { continue; }
+      }
+      text += parseHwpSectionRecords(raw);
+    }
+    return text;
+  } catch { return ""; }
+}
+
+/* HWP5 레코드 스트림 파싱 — 헤더(4B: tag 10b·level 10b·size 12b, size=0xFFF면 다음 4B)에서
+   HWPTAG_PARA_TEXT(67) 레코드만 모아 텍스트화. */
+function parseHwpSectionRecords(buf: Buffer): string {
+  const HWPTAG_PARA_TEXT = 67; // HWPTAG_BEGIN(0x10) + 51
+  let out = "";
+  let pos = 0;
+  while (pos + 4 <= buf.length) {
+    const header = buf.readUInt32LE(pos); pos += 4;
+    const tagId = header & 0x3FF;
+    let size = (header >> 20) & 0xFFF;
+    if (size === 0xFFF) {
+      if (pos + 4 > buf.length) break;
+      size = buf.readUInt32LE(pos); pos += 4;
+    }
+    if (pos + size > buf.length) break;
+    if (tagId === HWPTAG_PARA_TEXT) out += decodeHwpParaText(buf.subarray(pos, pos + size)) + "\n";
+    pos += size;
+  }
+  return out;
+}
+
+/* PARA_TEXT 데이터(UTF-16LE wchar 배열) → 텍스트. 제어문자 폭 처리:
+   8 wchar(인라인/확장) 컨트롤은 16바이트 건너뜀, 나머지 제어문자는 2바이트. */
+function decodeHwpParaText(data: Buffer): string {
+  const EIGHT_WIDE = new Set([1, 2, 3, 4, 11, 12, 14, 15, 16, 17, 18, 21, 22, 23]);
+  let s = "";
+  let i = 0;
+  while (i + 1 < data.length) {
+    const code = data.readUInt16LE(i);
+    if (code >= 32) { s += String.fromCharCode(code); i += 2; continue; }
+    if (code === 9) { s += "\t"; i += 2; continue; }
+    if (code === 10 || code === 13) { s += "\n"; i += 2; continue; }
+    if (EIGHT_WIDE.has(code)) { i += 16; continue; }  // 인라인/확장 컨트롤(8 wchar)
+    i += 2;                                            // 그 외 1 wchar 컨트롤
+  }
+  return s;
 }
 
 /* ─────────────────────────────── HWPX·PPTX (ZIP+XML · fflate) ─────────────────────────────── */

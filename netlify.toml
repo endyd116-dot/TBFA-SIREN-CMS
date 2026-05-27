@@ -107,6 +107,7 @@
     "pdf-parse",
     "cfb",
     "fflate",
+    "word-extractor",
     "bcryptjs",
     "jsonwebtoken",
     "zod",

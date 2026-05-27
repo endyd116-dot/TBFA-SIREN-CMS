@@ -33,6 +33,7 @@
     "postgres": "^3.4.9",
     "resend": "^6.12.2",
     "sharp": "^0.33.5",
+    "word-extractor": "^1.0.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
