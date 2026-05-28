@@ -326,7 +326,7 @@ export async function indexExternalToRag(externalId: number): Promise<{ ok: bool
 
 /* =========================================================
    promoteToCase — 외부 자료 1건을 martyrdom_cases 새 행으로 승급 + RAG 키 전환
-     1) martyrdom_cases 새 행 INSERT (case_kind='precedent')
+     1) martyrdom_cases 새 행 INSERT (case_kind='reference' — 설계서 §3 정합·AI 수집 시각 구분은 promoted_case_id로)
      2) martyrdom_external_research status='approved', reviewed_*, promoted_case_id 설정
      3) ai_rag_documents에서 'martyr_external' 청크 삭제 → 'martyr_case' 청크로 재색인
    ========================================================= */
@@ -356,12 +356,12 @@ export async function promoteToCase(externalId: number, reviewerUid: number): Pr
     const title = String(ext.title || "외부 자료 사례").slice(0, 200);
     const occurredSummary = String(ext.contentFull || ext.snippet || "").slice(0, 4000);
 
-    /* martyrdom_cases INSERT — case_kind='precedent'(과거 인정 판례·사례), outcome=NULL(검토자가 추후 설정) */
+    /* martyrdom_cases INSERT — case_kind='reference'(설계서 §3 정합·기존 사건 종류 enum과 호환), outcome=NULL(검토자가 추후 설정) */
     const ins: any = await db.execute(sql`
       INSERT INTO martyrdom_cases
         (case_no, case_kind, title, occurred_summary, status, created_by, created_at, updated_at)
       VALUES
-        (${caseNo}, 'precedent', ${title}, ${occurredSummary}, 'closed', ${reviewerUid}, NOW(), NOW())
+        (${caseNo}, 'reference', ${title}, ${occurredSummary}, 'closed', ${reviewerUid}, NOW(), NOW())
       RETURNING id
     `);
     const promotedCaseId = Number((ins?.rows ?? ins ?? [])[0]?.id);
