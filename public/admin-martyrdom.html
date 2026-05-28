@@ -601,6 +601,177 @@ body {
 .pub-preview h1 { font-size: 18px; }
 .pub-preview h2 { font-size: 15px; }
 .pub-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* ════ R43: 사건 진행 정보 그룹 박스 + Stepper + 외부 자료 탭 ════════════════ */
+.case-progress-box {
+  margin: 12px 0 6px; padding: 12px 14px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+}
+.case-progress-box header { margin-bottom: 10px; }
+.case-progress-box h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: #1e293b; }
+.case-progress-box .hint { margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.55; }
+.case-progress-box .progress-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+}
+.case-progress-box .field { display: flex; flex-direction: column; gap: 4px; }
+.case-progress-box .field label {
+  font-size: 12px; font-weight: 600; color: #334155;
+  display: flex; align-items: center; gap: 4px;
+}
+.case-progress-box .field select {
+  border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px;
+  font-size: 13px; background: #fff; font-family: inherit;
+}
+.case-progress-box .tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #e2e8f0; color: #475569; font-size: 10px; cursor: help;
+}
+.case-progress-box .stepper-block { margin-top: 4px; }
+.case-progress-box .stepper-block > label {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px;
+}
+.stepper {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; gap: 0; counter-reset: stage;
+}
+.stepper li {
+  flex: 1; position: relative; padding: 8px 12px; text-align: center;
+  font-size: 12px; font-weight: 500; color: #64748b;
+  background: #fff; border: 1px solid #e2e8f0; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.stepper li:first-child { border-radius: 6px 0 0 6px; }
+.stepper li:last-child  { border-radius: 0 6px 6px 0; }
+.stepper li:not(:first-child) { border-left: none; }
+.stepper li::before {
+  counter-increment: stage; content: counter(stage) ". ";
+  font-weight: 600; color: #94a3b8;
+}
+.stepper li:hover { background: #f1f5f9; }
+.stepper li.active {
+  background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700;
+}
+.stepper li.active::before { color: #bfdbfe; }
+
+/* R43 배지: AI 분석 자료·검증 대기·AI 수집 출처 */
+.badge-ai {
+  background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe;
+}
+.badge-pending {
+  background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+}
+.badge-ai-promoted {
+  background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; font-weight: 600;
+}
+
+/* R43 외부 자료 탭 — 검색 행 */
+.ext-search-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px;
+}
+.ext-search-row input[type="text"] {
+  flex: 1; min-width: 200px; border: 1px solid #cbd5e1; border-radius: 6px;
+  padding: 7px 10px; font-size: 13px; font-family: inherit;
+}
+.ext-engine { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #475569; }
+.ext-stats { margin-left: auto; font-size: 11.5px; color: #64748b; }
+
+/* R43 외부 자료 탭 — 좌-우 레이아웃 */
+.ext-layout {
+  display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;
+  min-height: 360px;
+}
+.ext-list-col, .ext-detail-col {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 10px 12px; max-height: 60vh; overflow-y: auto;
+}
+.ext-section { margin-bottom: 14px; }
+.ext-section-title {
+  font-size: 12px; font-weight: 700; color: #475569;
+  border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;
+}
+.ext-item {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid transparent; margin-bottom: 4px;
+}
+.ext-item:hover { background: #f8fafc; }
+.ext-item.active { background: #eff6ff; border-color: #bfdbfe; }
+.ext-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.ext-engine-badge {
+  font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 9px;
+  background: #f1f5f9; color: #475569; flex-shrink: 0;
+}
+.ext-item-title {
+  font-size: 13px; font-weight: 600; color: #1e293b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ext-item-meta {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+  font-size: 11px; color: #64748b;
+}
+.ext-domain { color: #2563eb; }
+.ext-date   { color: #94a3b8; }
+
+/* R43 외부 자료 탭 — 상세 */
+.ext-detail-head { border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px; }
+.ext-detail-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 6px; line-height: 1.4; }
+.ext-detail-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: center; }
+.ext-detail-source { font-size: 12px; color: #64748b; }
+.ext-detail-source a { color: #2563eb; text-decoration: none; }
+.ext-detail-source a:hover { text-decoration: underline; }
+.ext-detail-body { margin-bottom: 12px; }
+.ext-snippet {
+  background: #f8fafc; border-left: 3px solid #cbd5e1;
+  padding: 8px 12px; font-size: 12.5px; color: #334155; line-height: 1.6; margin: 0 0 10px;
+}
+.ext-full summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: #2563eb; padding: 6px 0; }
+.ext-full-text {
+  font-size: 12.5px; color: #475569; line-height: 1.7;
+  background: #fff; border: 1px solid #f1f5f9; border-radius: 6px;
+  padding: 10px 12px; white-space: pre-wrap;
+}
+.ext-citations { margin-top: 10px; font-size: 12px; color: #475569; }
+.ext-citations ul { margin: 6px 0 0 18px; padding: 0; }
+.ext-citations li { margin-bottom: 3px; }
+.ext-citations a { color: #2563eb; word-break: break-all; }
+.ext-reject-reason {
+  margin-top: 10px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+  padding: 8px 12px; border-radius: 6px; font-size: 12px;
+}
+.ext-detail-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  border-top: 1px solid #e2e8f0; padding-top: 10px;
+}
+.ext-foot-note {
+  font-size: 11.5px; color: #94a3b8; margin: 14px 0 0; font-style: italic;
+}
+
+/* R43 상태 배지 */
+.ext-status-approved { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.ext-status-rejected { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* R43 합산 안내 (사이드바·통계·발간) */
+.case-total-note {
+  padding: 8px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  font-size: 12px; color: #475569;
+}
+.case-total-note b { color: #1e293b; font-size: 13px; }
+.case-total-note small { color: #94a3b8; font-size: 11px; }
+.ext-hybrid-note {
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+  padding: 8px 14px; border-radius: 6px; margin-bottom: 12px;
+  font-size: 12.5px;
+}
+.ext-hybrid-note b { font-size: 14px; }
+.ext-hybrid-note small { color: #64748b; font-weight: 400; }
+
+@media (max-width: 900px) {
+  .case-progress-box .progress-grid { grid-template-columns: 1fr; }
+  .ext-layout { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -901,6 +1072,6 @@ body {
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/js/admin-martyrdom.js?v=P4f"></script>
+<script src="/js/admin-martyrdom.js?v=R43-1"></script>
 </body>
 </html>

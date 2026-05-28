@@ -23,17 +23,20 @@ const DOC_TYPE_COLORS = {
   other:        "#94a3b8",
 };
 
-// ── 상태·결과 라벨 ──────────────────────────────────────────────────────────
+// ── 상태·결과 라벨 (R43 §5 임베드) ───────────────────────────────────────────
 const STATUS_LABELS = {
   intake:     "접수",
-  collecting: "수집 중",
-  analyzing:  "분석 중",
+  collecting: "자료 수집",
+  analyzing:  "분석",
   drafting:   "서면 작성",
-  submitted:  "청구 완료",
+  submitted:  "청구·제출",
   closed:     "종결",
 };
 const OUTCOME_LABELS = { approved: "인정", rejected: "불인정" };
 const PROCEDURE_LABELS = { apply: "신청", review: "심의", decided: "결정", reappeal: "재심" };
+// R43 외부 행정 단계 (PROCEDURE_LABELS와 동일 키 — 별칭으로 명시)
+const STAGE_LABELS = { apply: "신청", review: "심의", decided: "결정", reappeal: "재심" };
+const STAGE_ORDER  = ["apply", "review", "decided", "reappeal"];
 const EXTRACT_STATUS_LABELS = {
   queued:     "대기(재처리 필요)",
   pending:    "대기",
@@ -186,6 +189,32 @@ const MOCK_PUBLICATION = { id:9, pubType:"guide", title:"교사 사망 시 순�
 
 const MOCK_PUBLICATIONS = [{ id:9, pubType:"guide", title:"교사 사망 시 순직 인정까지", status:"draft", createdAt:"2026-05-27T00:00:00Z" }];
 
+// ── R43 mock · 외부 자료(딥릴리프 데이터 축적 하이브리드) — B 머지 전 페이지 단독 동작 ──
+// B 백엔드 R43 머지·마이그레이션 후 메인이 false로 전환. 키 1글자도 변경 금지(B 응답 1:1).
+const USE_MOCK_EXT = true;
+
+const MOCK_EXTERNAL_LIST = {
+  ok: true,
+  items: [
+    { id: 1, title: "교사 순직 인정 판례 — 대전지법 2024 결정", sourceUrl: "https://glaw.scourt.go.kr/...", sourceDomain: "glaw.scourt.go.kr", searchEngine: "gemini", publishedAt: "2026-04-12T00:00:00Z", snippet: "법원이 학교 교사의 공무상 사망을 인정한 판례. 직무 스트레스와 인과관계를 폭넓게 인정...", status: "pending" },
+    { id: 2, title: "공무원연금공단, 교사 순직 인정 기준 안내", sourceUrl: "https://geps.or.kr/...", sourceDomain: "geps.or.kr", searchEngine: "gemini", publishedAt: "2026-03-20T00:00:00Z", snippet: "직무수행 중 사망·공무상 질병 인정 기준 5가지 요건...", status: "pending" },
+    { id: 3, title: "서이초 교사 순직 인정 확정 — 연합", sourceUrl: "https://yna.co.kr/...", sourceDomain: "yna.co.kr", searchEngine: "naver", publishedAt: "2026-02-08T00:00:00Z", snippet: "유족이 신청한 순직 인정 청구가 최종 인용되었다...", status: "approved" }
+  ]
+};
+const MOCK_EXTERNAL_DETAIL = {
+  ok: true,
+  item: { id: 1, title: "교사 순직 인정 판례 — 대전지법 2024 결정", sourceUrl: "https://glaw.scourt.go.kr/...", sourceDomain: "glaw.scourt.go.kr", searchEngine: "gemini", publishedAt: "2026-04-12T00:00:00Z", snippet: "법원이 학교 교사의 공무상 사망을 인정한 판례. 직무 스트레스와 인과관계를 폭넓게 인정...", contentFull: "원고는 ○○초등학교 교사로서 담임·생활지도 업무를 수행하던 중 학부모의 지속적인 악성 민원에 노출되어 적응장애를 진단받았고, 그로 인한 정신적 고통으로 사망에 이르렀음이 인정된다. 이에 공무상 사망으로 인정한다.", status: "pending", meta: { geminiCitations: ["https://glaw.scourt.go.kr/...", "https://law.go.kr/..."] } }
+};
+const MOCK_EXTERNAL_STATS = { ok: true, pending: 12, approved: 5, rejected: 3, lastCronAt: "2026-05-15T18:00:00Z" };
+const MOCK_EXTERNAL_REVIEW_APPROVE = { ok: true, promotedCaseId: 42 };
+const MOCK_EXTERNAL_REVIEW_REJECT = { ok: true };
+const MOCK_EXTERNAL_SEARCH = { ok: true, queued: 8, jobId: "ext-job-12345" };
+const MOCK_EXTERNAL_SETTINGS = { ok: true, settings: { whitelistDomains: ["gov.kr","moe.go.kr","glaw.scourt.go.kr","yna.co.kr"], defaultQueries: ["교사 순직 인정","공무상 사망 판례"] } };
+
+// R43 외부 자료 라벨
+const EXTERNAL_STATUS_LABELS = { pending: "검토 대기", reviewing: "검토 중", approved: "승급됨", rejected: "기각" };
+const SEARCH_ENGINE_LABELS = { gemini: "Gemini", naver: "네이버" };
+
 // ── P2 라벨 맵 ───────────────────────────────────────────────────────────────
 const STRENGTH_CLASS = { "강": "str-strong", "중": "str-mid", "약": "str-weak" };
 const CRITERIA_STATUS = {
@@ -223,6 +252,10 @@ let isSuperAdmin = false;      // /api/admin/me role === 'super_admin'
 let isAdmin = false;           // role ∈ admin·super_admin — 발간 생성·검수·발간·삭제 권한(P4)
 let isOperator = false;        // role ∈ operator 이상 — 발간·통계 조회 권한(P4)
 let canPubWrite = false;       // 발간 쓰기 권한 — 권한 정책(martyrdom_publication) 서버 canWrite 반영(기본 isAdmin)
+let canExternalReview = true;  // R43 외부 자료 검토 권한 — 서버 canWrite 반영(mock·기본 true·라이브 머지 후 서버 응답)
+let extList = [];              // R43 외부 자료 목록
+let extCurrentId = null;       // R43 현재 선택된 외부 자료 id
+let extStats = null;           // R43 외부 자료 통계 (정식·AI 분석 합산용)
 let myRole = null;             // /api/admin/me role 원본값
 let myMemberId = null;         // /api/admin/me id — 검토 결정 권한 분기용(P3)
 let outputCache = {};          // { strategy:{...}, criteria_check:{...}, readiness:{...}, golden:{...} } (현재 사건)
@@ -646,15 +679,23 @@ async function loadCases() {
 
 function renderCaseList(cases) {
   const list = document.getElementById("caseList");
+  // R43: 합산 표기 — 정식(promotedFromExternalId 없음) + AI 분석(승급 출처)
+  const aiCount = cases.filter(c => c.promotedFromExternalId).length;
+  const normalCount = cases.length - aiCount;
+  const totalNote = cases.length
+    ? `<div class="case-total-note">사례 <b>${cases.length}</b>건 <small>(정식 ${normalCount}·AI 분석 ${aiCount})</small></div>`
+    : "";
   if (!cases.length) {
-    list.innerHTML = '<div class="list-empty">사건이 없습니다</div>';
+    list.innerHTML = totalNote + '<div class="list-empty">사건이 없습니다</div>';
     return;
   }
-  list.innerHTML = cases.map(c => {
+  list.innerHTML = totalNote + cases.map(c => {
     const active = c.id === currentCaseId ? " active" : "";
     const outcome = c.outcome ? `<span class="badge outcome-${c.outcome}">${OUTCOME_LABELS[c.outcome] || c.outcome}</span>` : "";
+    // R43: AI 수집 출처 사건 시각 구분(목록 카드 우상단)
+    const aiBadge = c.promotedFromExternalId ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">🤖 AI 수집</span>` : "";
     return `<div class="case-item${active}" onclick="selectCase(${c.id})">
-      <div class="case-item-title">${escapeHtml(c.title)}${outcome}</div>
+      <div class="case-item-title">${escapeHtml(c.title)}${outcome}${aiBadge}</div>
       <div class="case-item-meta">
         <span class="badge status-badge">${STATUS_LABELS[c.status] || c.status}</span>
         <span>자료 ${c.docCount}건</span>
@@ -762,35 +803,51 @@ function renderDetail(d) {
   const c = d.case;
   const pane = document.getElementById("detailPane");
   const ddayStr = c.nextDeadlineAt ? `<span class="dday-badge">${dday(c.nextDeadlineAt)}</span>` : "";
+  // R43: AI 수집 출처 사건(promotedFromExternal 표시) 배지
+  const aiPromotedBadge = c.promotedFromExternalId
+    ? `<span class="badge badge-ai-promoted" title="외부 자료 검토를 거쳐 정식 사례로 승급된 사건">🤖 AI 수집 출처</span>`
+    : "";
   pane.innerHTML = `
 <div class="detail-header">
   <div class="detail-title">
     <span class="case-no">${escapeHtml(c.caseNo)}</span>
     <span class="case-title">${escapeHtml(c.title)}</span>
+    ${aiPromotedBadge}
     <button class="btn-sm btn-secondary" onclick="openEditCaseModal()" style="margin-left:auto">✏️ 수정</button>
     <button class="btn-sm btn-warn" onclick="deleteCase()">🗑 삭제</button>
   </div>
-  <div class="detail-meta-row">
-    <label>작업 상태
-      <select id="selStatus" onchange="patchCase('status',this.value)">
-        ${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${c.status===v?" selected":""}>${l}</option>`).join("")}
-      </select>
-    </label>
-    <label>결과
-      <select id="selOutcome" onchange="patchCase('outcome',this.value||null)">
-        <option value="">진행 중</option>
-        <option value="approved"${c.outcome==="approved"?" selected":""}>인정</option>
-        <option value="rejected"${c.outcome==="rejected"?" selected":""}>불인정</option>
-      </select>
-    </label>
-  </div>
+
+  <!-- R43 §3.1: 사건 진행 정보 그룹 박스 (헤더 직하·운영자 한눈에 진행 상황 파악) -->
+  <section class="case-progress-box" id="caseProgressBox">
+    <header>
+      <h3>📊 사건 진행 정보</h3>
+      <p class="hint">우리 시스템 내부 작업 상태(왼쪽)와 외부 공단 심의 결과(오른쪽)는 별도로 관리됩니다. 외부 행정 절차 단계는 아래 진행 막대로 표시됩니다.</p>
+    </header>
+    <div class="progress-grid">
+      <div class="field">
+        <label>내부 작업 상태 (우리) <span class="tip" title="우리 협회가 이 사건을 어느 단계까지 지원했는지 — 운영자가 직접 갱신합니다.">❓</span></label>
+        <select id="caseStatus" onchange="patchCase('status',this.value)">
+          ${Object.entries(STATUS_LABELS).map(([v,l])=>`<option value="${v}"${c.status===v?" selected":""}>${l}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label>심의 최종 결과 (공단) <span class="tip" title="공무원연금공단·인사혁신처 심의위원회의 인정·불인정 결정 결과입니다.">❓</span></label>
+        <select id="caseOutcome" onchange="onCaseOutcomeChange(this.value)">
+          <option value="">-</option>
+          <option value="approved"${c.outcome==="approved"?" selected":""}>인정</option>
+          <option value="rejected"${c.outcome==="rejected"?" selected":""}>불인정</option>
+        </select>
+      </div>
+    </div>
+    <div class="stepper-block">
+      <label>외부 행정 단계 (외부 행정) <span class="tip" title="공무원연금공단·심의위원회의 행정 절차상 현재 단계입니다. 단계를 클릭하면 갱신됩니다.">❓</span></label>
+      <ol class="stepper" id="caseStepper">
+        ${STAGE_ORDER.map(s => `<li data-stage="${s}" class="${c.procedureStage===s?"active":""}" onclick="patchStepperStage('${s}')">${STAGE_LABELS[s]}</li>`).join("")}
+      </ol>
+    </div>
+  </section>
+
   <div class="detail-procedure-row">
-    <label>행정 절차 단계
-      <select id="selProcedure" onchange="patchCase('procedureStage',this.value)">
-        <option value="">-</option>
-        ${Object.entries(PROCEDURE_LABELS).map(([v,l])=>`<option value="${v}"${c.procedureStage===v?" selected":""}>${l}</option>`).join("")}
-      </select>
-    </label>
     <span class="deadline-info">
       ${c.nextDeadlineLabel ? `<strong>${escapeHtml(c.nextDeadlineLabel)}</strong>` : "기한 없음"}
       ${c.nextDeadlineAt ? `<span class="deadline-date">${fmtDate(c.nextDeadlineAt)}</span>${ddayStr}` : ""}
@@ -813,6 +870,7 @@ function renderDetail(d) {
   <button class="tab-btn"        id="tab-deadlines"    onclick="switchTab('tab-deadlines')">⑤ 기한</button>
   <button class="tab-btn"        id="tab-stats"        onclick="switchTab('tab-stats')">📊 통계</button>
   <button class="tab-btn"        id="tab-publications" onclick="switchTab('tab-publications')">📚 발간</button>
+  ${canExternalReview ? `<button class="tab-btn" id="tab-external" onclick="switchTab('tab-external')">🔍 외부 자료</button>` : ""}
 </div>
 <div id="tab-content">
   ${renderTabGolden()}
@@ -822,6 +880,7 @@ function renderDetail(d) {
   ${renderTabDeadlines()}
   ${renderTabStats()}
   ${renderTabPublications()}
+  ${canExternalReview ? renderTabExternal() : ""}
 </div>`;
   switchTab(currentTab);          // 직전 탭 유지(재렌더 시)
   refreshActionsPanel();          // 전역 caseActions로 채움(없으면 안내)
@@ -844,6 +903,7 @@ function switchTab(tabId) {
     else loadStats();
   }
   if (tabId === "tab-publications") loadPublications();
+  if (tabId === "tab-external")     loadExternalTab();   // R43 외부 자료 탭 진입 시 로드
 }
 
 // ── 공용 산출물 헬퍼 (검토 바·빈 안내·패널 갱신) ─────────────────────────────
@@ -2794,9 +2854,11 @@ async function loadStats(force) {
   if (body) body.innerHTML = '<div class="list-loading">집계 중…</div>';
   destroyStatsCharts();
   try {
-    const d = await apiP4Stats();
+    // R43: 통계 + 외부 자료 stats(승급 수) 병렬 — 합산 표기에 사용
+    const [d, ext] = await Promise.all([apiP4Stats(), apiExternalStats().catch(() => null)]);
     if (!d.ok) { if (body) body.innerHTML = '<div class="empty-hint"><div class="eh-desc">통계 불러오기 실패</div></div>'; return; }
     statsData = d;
+    if (ext && ext.ok) extStats = ext;
     renderStatsBody(d);
   } catch (e) {
     if (e.message !== "auth") { const b2 = document.getElementById("statsBody"); if (b2) b2.innerHTML = '<div class="empty-hint"><div class="eh-desc">네트워크 오류</div></div>'; }
@@ -2819,7 +2881,14 @@ function renderStatsBody(d) {
   const typeLabels = { overwork: "과로", harassment: "괴롭힘", accident: "사고/질병", other: "기타" };
   const statusLabels = { intake: "접수", collecting: "수집", analyzing: "분석", drafting: "서면", submitted: "청구", closed: "종결", analysis: "분석", hearing: "심의" };
 
+  // R43: 합산 표기 — 정식 + AI 분석 (외부 자료 승급 수)
+  const aiApproved = (extStats && extStats.approved) || 0;
+  const totalCases = tot.cases || 0;
+  const normalCases = Math.max(0, totalCases - aiApproved);
+  const hybridNote = `<div class="ext-hybrid-note">사례 <b>${totalCases}</b>건 <small>(정식 ${normalCases}·AI 분석 ${aiApproved})</small></div>`;
+
   body.innerHTML = `
+  ${hybridNote}
   <div class="stats-summary-row">
     <div class="stats-kpi"><div class="kpi-val">${tot.cases || 0}</div><div class="kpi-label">전체 사건</div></div>
     <div class="stats-kpi"><div class="kpi-val kpi-green">${tot.approved || 0}</div><div class="kpi-label">인정</div></div>
@@ -2973,8 +3042,15 @@ const PUB_STATUS_CLS = { draft: "rv-pending", reviewed: "rv-changes", published:
 function renderPubList() {
   const body = document.getElementById("pubListBody");
   if (!body) return;
-  if (!pubList.length) { body.innerHTML = '<div class="empty-hint"><div class="eh-desc">발간물이 없습니다. 위 폼에서 생성하세요.</div></div>'; return; }
-  body.innerHTML = pubList.map(p => {
+  // R43: 발간 합산 안내 — 통계처럼 정식·AI 분석 합산 (extStats 캐시 사용·없으면 표기 생략)
+  const aiApproved = (extStats && extStats.approved) || 0;
+  const totalCases = (statsData && statsData.totals && statsData.totals.cases) || 0;
+  const normalCases = Math.max(0, totalCases - aiApproved);
+  const hybridNote = (totalCases || aiApproved)
+    ? `<div class="ext-hybrid-note" style="margin-bottom:10px">📚 발간 합산 대상 — 사례 <b>${totalCases}</b>건 <small>(정식 ${normalCases}·AI 분석 ${aiApproved})</small></div>`
+    : "";
+  if (!pubList.length) { body.innerHTML = hybridNote + '<div class="empty-hint"><div class="eh-desc">발간물이 없습니다. 위 폼에서 생성하세요.</div></div>'; return; }
+  body.innerHTML = hybridNote + pubList.map(p => {
     const st = PUB_STATUS_LABELS[p.status] || p.status;
     const cls = PUB_STATUS_CLS[p.status] || "rv-pending";
     return `<div class="pub-item">
@@ -3081,3 +3157,253 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadCases();
   showDashboard();      // 랜딩: G3 현황 대시보드
 });
+
+/* ══ R43 딥릴리프 데이터 축적 하이브리드 — 외부 자료(AI 수집·운영자 검토·승급) ══════════ */
+
+// R43 §3.1: 심의 최종 결과(인정/불인정) 저장 시 내부 작업 상태 자동 종결 연동
+// — 운영자 결정 #8: 다이얼로그 1회로 실수 방지(자동 종결 강제 X)
+async function onCaseOutcomeChange(value) {
+  // 빈 값(진행 중으로 되돌리기) → 그대로 저장만
+  const outcome = value || null;
+  await patchCase("outcome", outcome);
+  if (!outcome) return;
+  // 인정·불인정 결정 → 내부 작업 상태도 종결로 바꿀지 묻기
+  if (!currentDetail || !currentDetail.case) return;
+  if (currentDetail.case.status === "closed") return;  // 이미 종결이면 묻지 않음
+  if (confirm('심의 최종 결과가 결정되었습니다. 내부 작업 상태도 "종결"로 바꿀까요?')) {
+    await patchCase("status", "closed");
+    // 드롭다운 표시 갱신
+    const sel = document.getElementById("caseStatus");
+    if (sel) sel.value = "closed";
+  }
+}
+
+// R43 §3.1: 외부 행정 단계 Stepper 클릭 → procedureStage PATCH
+async function patchStepperStage(stage) {
+  if (!currentCaseId) return;
+  if (!STAGE_LABELS[stage]) return;
+  try {
+    await patchCase("procedureStage", stage);
+    // active 클래스 이동 (DOM 갱신·렌더 폭주 방지)
+    document.querySelectorAll("#caseStepper li").forEach(li => {
+      li.classList.toggle("active", li.dataset.stage === stage);
+    });
+  } catch (e) { /* patchCase 자체에서 토스트 처리 */ }
+}
+
+// R43 §3.2: 외부 자료 탭 렌더링
+function renderTabExternal() {
+  return `<div class="tab-panel" id="tab-external-panel" style="display:none">
+  <div class="section-head">
+    <div><h3>🔍 외부 자료 (AI 수집·검토 대기)</h3>
+      <p class="section-sub">Gemini Search·네이버 검색으로 수집한 외부 자료를 검토해 정식 사례로 승급하거나 기각합니다. 검토 전 자료는 신청서 초안 RAG에서 격리됩니다.</p></div>
+    <button class="btn-sm btn-secondary" onclick="loadExternalTab(true)">새로고침</button>
+  </div>
+
+  <!-- 새 검색 트리거 -->
+  <div class="ext-search-row">
+    <input id="extQueryInput" type="text" placeholder="예: 교사 순직 인정 판례" onkeydown="if(event.key==='Enter') runExternalSearch()">
+    <label class="ext-engine"><input type="checkbox" id="extEngineGemini" checked> Gemini</label>
+    <label class="ext-engine"><input type="checkbox" id="extEngineNaver" checked> 네이버</label>
+    <button class="btn" onclick="runExternalSearch()">🤖 새 검색</button>
+    <span class="ext-stats" id="extStatsText"></span>
+  </div>
+
+  <div class="ext-layout">
+    <div class="ext-list-col">
+      <div id="extListBody"><div class="list-loading">불러오는 중…</div></div>
+    </div>
+    <div class="ext-detail-col">
+      <div id="extDetailBody"><div class="empty-hint"><div class="eh-desc">왼쪽에서 자료를 선택하세요.</div></div></div>
+    </div>
+  </div>
+
+  <p class="ext-foot-note">ⓘ 통계·발간 화면에는 검증된 자료만 합산되어 "사례 N건 (정식 X·AI 분석 Y)"로 표시됩니다.</p>
+</div>`;
+}
+
+// R43 §3.2: 외부 자료 탭 진입 시 목록·통계 동시 로드
+async function loadExternalTab(force) {
+  if (!force && extList.length) { renderExternalList(); return; }
+  try {
+    const [listRes, statsRes] = await Promise.all([apiExternalList("pending"), apiExternalStats()]);
+    extList  = (listRes && listRes.items) || [];
+    extStats = (statsRes && statsRes.ok) ? statsRes : null;
+    renderExternalList();
+    renderExternalStatsBar();
+  } catch (e) {
+    if (e.message !== "auth") toast("외부 자료 로드 실패", "error");
+    const body = document.getElementById("extListBody");
+    if (body) body.innerHTML = `<div class="empty-hint"><div class="eh-desc">목록을 불러오지 못했습니다.</div></div>`;
+  }
+}
+
+function renderExternalStatsBar() {
+  const el = document.getElementById("extStatsText");
+  if (!el || !extStats) return;
+  const last = extStats.lastCronAt ? `마지막 자동 검색 ${fmtDate(extStats.lastCronAt)}` : "자동 검색 이력 없음";
+  el.textContent = `검토 대기 ${extStats.pending || 0} · 승급 ${extStats.approved || 0} · 기각 ${extStats.rejected || 0} · ${last}`;
+}
+
+function renderExternalList() {
+  const body = document.getElementById("extListBody");
+  if (!body) return;
+  if (!extList.length) {
+    body.innerHTML = `<div class="empty-hint"><div class="eh-desc">검토 대기 중인 외부 자료가 없습니다. [🤖 새 검색]으로 수집을 시작하세요.</div></div>`;
+    return;
+  }
+  const pending  = extList.filter(x => x.status === "pending" || x.status === "reviewing");
+  const approved = extList.filter(x => x.status === "approved");
+  const rejected = extList.filter(x => x.status === "rejected");
+  const section = (title, arr, cls) => arr.length ? `
+    <div class="ext-section">
+      <div class="ext-section-title">${title} (${arr.length}건)</div>
+      ${arr.map(x => `
+        <div class="ext-item${x.id===extCurrentId?" active":""}" onclick="loadExternalDetail(${x.id})">
+          <div class="ext-item-top">
+            <span class="ext-engine-badge">${SEARCH_ENGINE_LABELS[x.searchEngine] || x.searchEngine}</span>
+            <span class="ext-item-title">${escapeHtml(x.title)}</span>
+          </div>
+          <div class="ext-item-meta">
+            <span class="badge badge-ai">AI 분석 자료</span>
+            ${x.status === "pending" ? `<span class="badge badge-pending">검증 대기</span>` : ""}
+            <span class="ext-domain">${escapeHtml(x.sourceDomain || "")}</span>
+            ${x.publishedAt ? `<span class="ext-date">${fmtDate(x.publishedAt)}</span>` : ""}
+          </div>
+        </div>`).join("")}
+    </div>` : "";
+  body.innerHTML =
+    section("⏳ 검토 대기", pending, "pending") +
+    section("✅ 승급됨", approved, "approved") +
+    section("❌ 기각", rejected, "rejected");
+}
+
+async function loadExternalDetail(id) {
+  extCurrentId = id;
+  const body = document.getElementById("extDetailBody");
+  if (body) body.innerHTML = '<div class="list-loading">불러오는 중…</div>';
+  // 목록 active 갱신
+  document.querySelectorAll(".ext-item").forEach(el => el.classList.remove("active"));
+  try {
+    const d = await apiExternalDetail(id);
+    if (!d.ok || !d.item) { if (body) body.innerHTML = `<div class="empty-hint"><div class="eh-desc">상세를 불러오지 못했습니다.</div></div>`; return; }
+    renderExternalDetail(d.item);
+  } catch (e) {
+    if (e.message !== "auth") toast("상세 로드 실패", "error");
+  }
+}
+
+function renderExternalDetail(it) {
+  const body = document.getElementById("extDetailBody");
+  if (!body) return;
+  const statusLabel = EXTERNAL_STATUS_LABELS[it.status] || it.status;
+  const isPending = it.status === "pending" || it.status === "reviewing";
+  const isRejected = it.status === "rejected";
+  const citations = (it.meta && it.meta.geminiCitations) || [];
+  body.innerHTML = `
+    <div class="ext-detail-head">
+      <div class="ext-detail-title">${escapeHtml(it.title)}</div>
+      <div class="ext-detail-meta">
+        <span class="ext-engine-badge">${SEARCH_ENGINE_LABELS[it.searchEngine] || it.searchEngine}</span>
+        <span class="badge badge-ai">AI 분석 자료</span>
+        ${isPending ? `<span class="badge badge-pending">검증 대기</span>` : `<span class="badge ext-status-${it.status}">${statusLabel}</span>`}
+      </div>
+      <div class="ext-detail-source">
+        ${it.sourceUrl ? `<a href="${escapeHtml(it.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(it.sourceDomain || it.sourceUrl)} ↗</a>` : ""}
+        ${it.publishedAt ? ` · <span class="ext-date">${fmtDate(it.publishedAt)}</span>` : ""}
+      </div>
+    </div>
+    <div class="ext-detail-body">
+      ${it.snippet ? `<p class="ext-snippet">${escapeHtml(it.snippet)}</p>` : ""}
+      ${it.contentFull ? `<details class="ext-full" open><summary>본문 전체</summary><div class="ext-full-text">${escapeHtml(it.contentFull)}</div></details>` : ""}
+      ${citations.length ? `<div class="ext-citations"><strong>Gemini 출처</strong><ul>${citations.map(u => `<li><a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(u)}</a></li>`).join("")}</ul></div>` : ""}
+      ${it.rejectionReason ? `<div class="ext-reject-reason"><strong>기각 사유</strong>: ${escapeHtml(it.rejectionReason)}</div>` : ""}
+    </div>
+    <div class="ext-detail-actions">
+      ${isPending ? `<button class="btn" onclick="approveExternal(${it.id})">✅ 승급 (정식 사례로)</button>` : ""}
+      ${isPending ? `<button class="btn-sm btn-warn" onclick="rejectExternal(${it.id})">❌ 기각</button>` : ""}
+      ${isRejected ? `<button class="btn-sm btn-danger" onclick="deleteExternal(${it.id})">🗑 삭제</button>` : ""}
+    </div>`;
+}
+
+async function approveExternal(id) {
+  if (!confirm("이 자료를 정식 사례로 승급할까요? 신청서 RAG에 색인되고 통계·발간 합산에 포함됩니다.")) return;
+  try {
+    const d = await apiExternalReview(id, "approve");
+    if (!d.ok) { toast(d.error || "승급 실패", "error"); return; }
+    toast(`승급 완료 (정식 사례 #${d.promotedCaseId || "-"})`);
+    await loadExternalTab(true);
+  } catch (e) { if (e.message !== "auth") toast("승급 오류", "error"); }
+}
+
+async function rejectExternal(id) {
+  const reason = prompt("기각 사유 (선택·기록 보존용):", "") ;
+  if (reason === null) return;
+  try {
+    const d = await apiExternalReview(id, "reject", reason || "");
+    if (!d.ok) { toast(d.error || "기각 실패", "error"); return; }
+    toast("기각 처리했습니다");
+    await loadExternalTab(true);
+  } catch (e) { if (e.message !== "auth") toast("기각 오류", "error"); }
+}
+
+async function deleteExternal(id) {
+  if (!confirm("이 기각 자료를 영구 삭제할까요? (RAG 색인은 이미 없습니다)")) return;
+  try {
+    const d = await apiExternalDelete(id);
+    if (!d.ok) { toast(d.error || "삭제 실패", "error"); return; }
+    toast("삭제 완료");
+    extCurrentId = null;
+    const body = document.getElementById("extDetailBody");
+    if (body) body.innerHTML = `<div class="empty-hint"><div class="eh-desc">왼쪽에서 자료를 선택하세요.</div></div>`;
+    await loadExternalTab(true);
+  } catch (e) { if (e.message !== "auth") toast("삭제 오류", "error"); }
+}
+
+async function runExternalSearch() {
+  const q = (document.getElementById("extQueryInput")?.value || "").trim();
+  if (!q) { toast("검색어를 입력하세요", "error"); return; }
+  const engines = [];
+  if (document.getElementById("extEngineGemini")?.checked) engines.push("gemini");
+  if (document.getElementById("extEngineNaver")?.checked)  engines.push("naver");
+  if (!engines.length) { toast("검색 엔진을 1개 이상 선택하세요", "error"); return; }
+  try {
+    const d = await apiExternalSearch(q, engines);
+    if (!d.ok) { toast(d.error || "검색 요청 실패", "error"); return; }
+    toast(`검색 요청 큐잉 (${d.queued || 0}건 예상·jobId=${d.jobId || "-"})`);
+    // 2초 후 목록 새로고침 (background 결과 일부 도착 가정)
+    setTimeout(() => loadExternalTab(true), 2000);
+  } catch (e) { if (e.message !== "auth") toast("검색 오류", "error"); }
+}
+
+// ── R43 API 헬퍼 (B 머지 전 USE_MOCK_EXT=true → mock 반환 / 머지 후 false → 실 API) ──
+async function apiExternalList(status) {
+  if (USE_MOCK_EXT) return Promise.resolve(MOCK_EXTERNAL_LIST);
+  const qs = status ? `?status=${encodeURIComponent(status)}&limit=50` : "?limit=50";
+  return apiFetch("/api/admin-martyrdom-external-list" + qs);
+}
+async function apiExternalDetail(id) {
+  if (USE_MOCK_EXT) return Promise.resolve(MOCK_EXTERNAL_DETAIL);
+  return apiFetch(`/api/admin-martyrdom-external-detail?id=${id}`);
+}
+async function apiExternalReview(id, action, rejectionReason) {
+  if (USE_MOCK_EXT) return Promise.resolve(action === "approve" ? MOCK_EXTERNAL_REVIEW_APPROVE : MOCK_EXTERNAL_REVIEW_REJECT);
+  return apiFetch("/api/admin-martyrdom-external-review", { method: "POST", body: { id, action, rejectionReason } });
+}
+async function apiExternalDelete(id) {
+  if (USE_MOCK_EXT) return Promise.resolve({ ok: true });
+  return apiFetch(`/api/admin-martyrdom-external-delete?id=${id}`, { method: "DELETE" });
+}
+async function apiExternalSearch(query, engines) {
+  if (USE_MOCK_EXT) return Promise.resolve(MOCK_EXTERNAL_SEARCH);
+  return apiFetch("/api/admin-martyrdom-external-search", { method: "POST", body: { query, engines } });
+}
+async function apiExternalStats() {
+  if (USE_MOCK_EXT) return Promise.resolve(MOCK_EXTERNAL_STATS);
+  return apiFetch("/api/admin-martyrdom-external-stats");
+}
+async function apiExternalSettings(body) {
+  if (USE_MOCK_EXT) return Promise.resolve(MOCK_EXTERNAL_SETTINGS);
+  if (body) return apiFetch("/api/admin-martyrdom-external-settings", { method: "PATCH", body });
+  return apiFetch("/api/admin-martyrdom-external-settings");
+}
