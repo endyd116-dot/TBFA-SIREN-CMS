@@ -215,6 +215,31 @@ export default async function handler(req: Request) {
         else isLeave = true;
       }
     } catch {}
+
+    /* 2026-05-29 BUG-2 fix — 결재 대기(PENDING) 휴가가 있으면 출근 차단.
+       Swain 시나리오: 직원이 휴가 신청 후 같은 날 출근 찍으면 PENDING이라 통과되던 사고. */
+    try {
+      const pendingLeaves = await db.select({
+        id: attLeaveRequests.id,
+        startDate: attLeaveRequests.startDate,
+        endDate: attLeaveRequests.endDate,
+        isHalfDay: attLeaveRequests.isHalfDay,
+      }).from(attLeaveRequests).where(and(
+        eq(attLeaveRequests.memberUid, memberUid),
+        eq(attLeaveRequests.status, "PENDING"),
+        sql`${attLeaveRequests.startDate} <= ${today}::date AND ${attLeaveRequests.endDate} >= ${today}::date`,
+      )).limit(1);
+      if (pendingLeaves.length > 0 && !pendingLeaves[0].isHalfDay) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: "결재 대기 중인 휴가 신청이 있습니다. 운영자의 결재가 완료된 후 출근하거나, 휴가를 철회한 후 다시 시도하세요",
+          step: "leave_pending",
+          conflict: pendingLeaves[0],
+        }), { status: 409, headers: { "Content-Type": "application/json" } });
+      }
+    } catch (err) {
+      console.warn("[att-checkin] PENDING 휴가 검사 실패:", err);
+    }
   }
 
   const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;
