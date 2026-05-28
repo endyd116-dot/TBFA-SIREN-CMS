@@ -27,7 +27,10 @@ export default async function handler(req: Request, _ctx: Context) {
     const url = new URL(req.url);
     const run = url.searchParams.get("run") === "1";
 
-    /* ── 진단 ── */
+    /* ── 진단 ──
+       v2(2026-05-29): NOT EXISTS의 `'doc-' || d.id || '#%'`가 PG 자동 캐스팅 실패로 항상 false 평가되던 BUG fix.
+       admin-rag-status로 martyr_* 0건 확정됐으니 NOT EXISTS 제거하고 단순화.
+       ai_rag_documents의 martyr_* 행수도 함께 진단해 안전성 확보 — martyr_* > 0이면 NOT EXISTS 패턴 재도입 필요. */
     step = "diag_count_total";
     const totalDone: any = await db.execute(sql.raw(`
       SELECT COUNT(*)::int AS n FROM martyrdom_case_documents
@@ -35,65 +38,97 @@ export default async function handler(req: Request, _ctx: Context) {
     `));
     const doneCount = (totalDone?.rows ?? totalDone ?? [])[0]?.n || 0;
 
-    step = "diag_count_orphan";
-    /* indexed_to_rag=true 인데 ai_rag_documents에 청크 0건인 자료 = 고아 마킹 */
-    const orphan: any = await db.execute(sql.raw(`
-      SELECT d.id, d.case_id AS "caseId", d.file_name AS "fileName"
-        FROM martyrdom_case_documents d
-       WHERE d.extract_status = 'done'
-         AND d.indexed_to_rag = true
-         AND NOT EXISTS (
-           SELECT 1 FROM ai_rag_documents r
-            WHERE r.source_ref LIKE 'doc-' || d.id || '#%'
-              AND r.source_type LIKE 'martyr%'
-         )
-       ORDER BY d.id DESC
-       LIMIT 500
+    step = "diag_count_martyr_rag";
+    const martyrCount: any = await db.execute(sql.raw(`
+      SELECT COUNT(*)::int AS n FROM ai_rag_documents WHERE source_type LIKE 'martyr%'
     `));
-    const orphanRows = (orphan?.rows ?? orphan ?? []);
-    const orphanCount = orphanRows.length;
+    const martyrRagCount = (martyrCount?.rows ?? martyrCount ?? [])[0]?.n || 0;
 
-    if (!run) {
+    /* 안전 가드: martyr_* RAG가 일부라도 있으면 무차별 되돌리기 위험 → 정밀 NOT EXISTS 모드 */
+    if (martyrRagCount > 0) {
+      step = "diag_orphan_precise";
+      const orphan: any = await db.execute(sql.raw(`
+        SELECT d.id, d.case_id AS "caseId", d.file_name AS "fileName"
+          FROM martyrdom_case_documents d
+         WHERE d.extract_status = 'done'
+           AND d.indexed_to_rag = true
+           AND NOT EXISTS (
+             SELECT 1 FROM ai_rag_documents r
+              WHERE r.source_ref LIKE concat('doc-', d.id::text, '#%')
+                AND r.source_type LIKE 'martyr%'
+           )
+         ORDER BY d.id DESC
+         LIMIT 1000
+      `));
+      const orphanRows = (orphan?.rows ?? orphan ?? []);
+      const orphanCount = orphanRows.length;
+
+      if (!run) {
+        return new Response(JSON.stringify({
+          ok: true, mode: "diagnose", precision: "partial",
+          doneIndexedCount: doneCount, martyrRagCount, orphanCount,
+          sampleOrphans: orphanRows.slice(0, 10),
+          hint: `martyr_* RAG ${martyrRagCount}건 존재 → 정밀 모드. ?run=1로 orphan만 되돌림.`,
+        }, null, 2), { headers: JSON_HEADER });
+      }
+
+      step = "auth_partial";
+      const auth = await requireAdmin(req);
+      if (!auth.ok) return (auth as any).res;
+
+      if (orphanCount === 0) {
+        return new Response(JSON.stringify({
+          ok: true, mode: "executed", precision: "partial", affected: 0,
+          hint: "되돌릴 자료 없음 (정밀 모드·이미 모두 정상 색인)",
+        }, null, 2), { headers: JSON_HEADER });
+      }
+
+      step = "rollback_precise";
+      const r1: any = await db.execute(sql.raw(`
+        UPDATE martyrdom_case_documents
+           SET indexed_to_rag = false, extract_status = 'queued', updated_at = NOW()
+         WHERE extract_status = 'done' AND indexed_to_rag = true
+           AND NOT EXISTS (
+             SELECT 1 FROM ai_rag_documents r
+              WHERE r.source_ref LIKE concat('doc-', martyrdom_case_documents.id::text, '#%')
+                AND r.source_type LIKE 'martyr%'
+           )
+      `));
+      const affected = r1?.rowCount ?? orphanCount;
       return new Response(JSON.stringify({
-        ok: true, mode: "diagnose",
-        doneIndexedCount: doneCount,
-        orphanCount,
-        sampleOrphans: orphanRows.slice(0, 10),
-        hint: doneCount === 0
-          ? "처리할 자료 없음"
-          : `?run=1 호출 시 ${orphanCount}건을 'queued'+indexed_to_rag=false로 되돌립니다. 어드민이 호출하세요.`,
+        ok: true, mode: "executed", precision: "partial", affected,
+        hint: "정밀 모드로 orphan 되돌림 완료. 어드민이 사건별 [⟳ 전체 재시도] 클릭하면 일괄 재색인.",
       }, null, 2), { headers: JSON_HEADER });
     }
 
-    /* ── 실행 ── */
-    step = "auth";
+    /* martyr_* RAG 0건 = 전체 자료가 orphan 확정·NOT EXISTS 없이 단순 되돌림 */
+    if (!run) {
+      return new Response(JSON.stringify({
+        ok: true, mode: "diagnose", precision: "bulk",
+        doneIndexedCount: doneCount, martyrRagCount: 0,
+        orphanCount: doneCount,
+        hint: `martyr_* RAG 0건 확정 → 전량 모드. ?run=1로 ${doneCount}건 모두 되돌림.`,
+      }, null, 2), { headers: JSON_HEADER });
+    }
+
+    step = "auth_bulk";
     const auth = await requireAdmin(req);
     if (!auth.ok) return (auth as any).res;
 
-    if (orphanCount === 0) {
+    if (doneCount === 0) {
       return new Response(JSON.stringify({
-        ok: true, mode: "executed",
-        affected: 0,
-        hint: "되돌릴 자료 없음 (이미 모두 정상 색인 또는 다른 상태)",
+        ok: true, mode: "executed", precision: "bulk", affected: 0,
+        hint: "되돌릴 자료 없음 (extract_status='done' + indexed_to_rag=true 자료 0건)",
       }, null, 2), { headers: JSON_HEADER });
     }
 
-    step = "rollback_marking";
-    /* 고아 마킹된 자료만 정확히 되돌림 (이미 정상 색인된 자료는 보존) */
+    step = "rollback_bulk";
     const result: any = await db.execute(sql.raw(`
       UPDATE martyrdom_case_documents
-         SET indexed_to_rag = false,
-             extract_status = 'queued',
-             updated_at = NOW()
-       WHERE extract_status = 'done'
-         AND indexed_to_rag = true
-         AND NOT EXISTS (
-           SELECT 1 FROM ai_rag_documents r
-            WHERE r.source_ref LIKE 'doc-' || martyrdom_case_documents.id || '#%'
-              AND r.source_type LIKE 'martyr%'
-         )
+         SET indexed_to_rag = false, extract_status = 'queued', updated_at = NOW()
+       WHERE extract_status = 'done' AND indexed_to_rag = true
     `));
-    const affected = result?.rowCount ?? orphanCount;
+    const affected = result?.rowCount ?? doneCount;
 
     return new Response(JSON.stringify({
       ok: true, mode: "executed",
