@@ -4,8 +4,8 @@
 (function () {
   'use strict';
 
-  /* ── B 머지 전 mock 모드 ── */
-  var USE_MOCK = true;
+  /* ── 라이브 모드 (B 머지 완료·키 align 완료) ── */
+  var USE_MOCK = false;
 
   var MOCK = {
     list: {
@@ -48,10 +48,12 @@
     defaults: {
       ok: true,
       defaults: {
-        og_image:    'https://tbfa.co.kr/og-default.png',
-        description: '교사 유가족들의 지원과 권익 보호를 위한 통합 NPO 플랫폼.',
-        site_name:   '교사유가족협의회',
-        twitter:     '',
+        default_og_image_url: 'https://tbfa.co.kr/og-default.png',
+        description:          '교사 유가족들의 지원과 권익 보호를 위한 통합 NPO 플랫폼.',
+        site_name:            '교사유가족협의회',
+        twitter_handle:       '',
+        locale:               'ko_KR',
+        title_suffix:         '| 교사유가족협의회',
       },
     },
   };
@@ -395,18 +397,18 @@
       return;
     }
     var d = res.data.defaults || {};
-    $('seoDefOgImage').value     = d.og_image    || '';
-    $('seoDefDescription').value = d.description || '';
-    $('seoDefSiteName').value    = d.site_name   || '';
-    $('seoDefTwitter').value     = d.twitter     || '';
+    $('seoDefOgImage').value     = d.default_og_image_url || '';
+    $('seoDefDescription').value = d.description          || '';
+    $('seoDefSiteName').value    = d.site_name            || '';
+    $('seoDefTwitter').value     = d.twitter_handle       || '';
   }
 
   async function saveDefaults() {
     var payload = {
-      og_image:    $('seoDefOgImage').value.trim(),
-      description: $('seoDefDescription').value.trim(),
-      site_name:   $('seoDefSiteName').value.trim(),
-      twitter:     $('seoDefTwitter').value.trim(),
+      default_og_image_url: $('seoDefOgImage').value.trim(),
+      description:          $('seoDefDescription').value.trim(),
+      site_name:            $('seoDefSiteName').value.trim(),
+      twitter_handle:       $('seoDefTwitter').value.trim(),
     };
     $('seoDefStatus').textContent = '저장 중...';
     var res;

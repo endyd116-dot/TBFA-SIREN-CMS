@@ -42,7 +42,8 @@ export interface OrgMeta {
   email: string;
   url: string;
   logo_url: string;
-  [k: string]: string;
+  same_as: string[];
+  [k: string]: any;
 }
 
 export interface DefaultMeta {
@@ -192,12 +193,15 @@ export async function getOrgMeta(preferDraft = false): Promise<OrgMeta> {
     name: "", legal_name: "", registration_no: "",
     representative: "", address: "", phone: "", email: "",
     url: "", logo_url: "",
+    same_as: [],
   };
   for (const [k, v] of Object.entries(map)) {
     if (k === "logo_blob_id") {
       if (v.blobId) out.logo_url = blobUrl(v.blobId);
+    } else if (k === "same_as") {
+      try { out.same_as = JSON.parse(v.value || "[]"); } catch { out.same_as = []; }
     } else {
-      out[k] = v.value;
+      (out as any)[k] = v.value;
     }
   }
   return out;

@@ -21,7 +21,11 @@ function jsonError(status: number, error: string) {
   });
 }
 
-const ALLOWED_FIELDS = ["site_name", "locale", "title_suffix", "default_og_image_blob_id"];
+const ALLOWED_FIELDS = [
+  "site_name", "locale", "title_suffix",
+  "default_og_image_blob_id", "default_og_image_url",
+  "description", "twitter_handle",
+];
 
 export default async (req: Request) => {
   const g = await requireAdmin(req);

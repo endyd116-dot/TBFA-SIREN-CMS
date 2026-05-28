@@ -28,6 +28,7 @@ const ALLOWED_FIELDS = [
   "name", "legal_name", "registration_no",
   "representative", "address", "phone", "email",
   "url", "logo_blob_id",
+  "same_as",
 ];
 
 export default async (req: Request) => {
@@ -61,6 +62,12 @@ export default async (req: Request) => {
         if (field === "logo_blob_id") {
           const blobId = body[field] == null ? null : Number(body[field]);
           await saveSeoKey(key, null, { blobId, updatedBy: g.ctx.admin.uid });
+        } else if (field === "same_as") {
+          // sameAs는 배열 → JSON 직렬화해서 valueText에 저장. getOrgMeta가 JSON.parse로 복원.
+          const arr = Array.isArray(body[field])
+            ? body[field].filter((s: any) => typeof s === "string" && s.trim()).map((s: any) => String(s).trim())
+            : [];
+          await saveSeoKey(key, JSON.stringify(arr), { updatedBy: g.ctx.admin.uid });
         } else {
           const v = body[field] == null ? "" : String(body[field]);
           await saveSeoKey(key, v, { updatedBy: g.ctx.admin.uid });
