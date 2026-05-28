@@ -23,7 +23,15 @@
 
 ## 2. 현재 상태 (2026-05-29)
 
-### 🕊️ R43 딥릴리프 데이터 축적 하이브리드 + 사건 진행 UX + 자료 업로드 강화 — 종결 (2026-05-29 최신·★상단)
+### 🕊️ R44 딥릴리프 서면 본문 출처 분리 — 종결 + BUG-A 후속 분리 (2026-05-29 최신·★상단)
+유족급여신청서 본문 생성 시 자료 출처를 Swain 3분류로 분리. 메인 단일 커밋(9d494e7)·라이브 검증 PASS·R43 종결 직후 후속.
+- **Swain 3분류 정책**: ① 사실·정황·진술 = 본 사건 자료에만 한정 (`martyr_active` + `loadExtraction` + `strategy`) ② 분석 기법·전개 = `martyr_case` 형식·전개만 (다른 사건 사실 인용 금지) ③ 통계·비교·법령 = `martyr_law` + `martyr_case`의 법령 인용 부분 자유 활용.
+- **격차·fix**: `lib/martyrdom-ai.ts:864` `draftSection`이 `martyr_active` RAG 검색을 안 해 자기 사건 자료 원문 청크가 본문 생성 입력에 누락 + 다른 사건 보고서 본문이 [인정 보고서 모델]로 들어가면서 AI가 다른 사건 사실(고인 이름·학교명) 환각 위험 → ① `searchRag(query, 6, ["martyr_active"], caseId)` 추가 ② 시스템 프롬프트 출처 3분류 + "다른 사건 사실 인용 금지" 명시 ③ user 프롬프트에 [본 사건 자료 원문] 섹션 신설·시각 구분선 분리 ④ `refs`에 `caseDocHits` 포함(본문 출처 추적).
+- **C 검증(0932e36·verify/martyrdom-draft-source)**: 코드 8/8 PASS·라이브 3/4 PASS(1 SKIP)·시나리오 1(사실관계 다른 사건 끼임 0건)·시나리오 4(자료 없음 폴백 정확)·시나리오 5(8192/120s/internalBulk) 통과. **Swain 정책 핵심 정확 작동.**
+- **▶ BUG-A(P1·후속 분리·종결 차단 아님)**: `ai_rag_documents` 라이브 진단 결과 `byType: {manual: 207, qna: 328}` 정상·`martyr_active`·`martyr_case`·`martyr_law` 모두 0건. R44 격리 가드는 정확하지만 RAG 인덱스가 비어서 placeholder 회피("(고인 성명)" 같은 안전 폴백)로만 동작·자료 1건도 본문에 인용 안 됨. lastIndexedAt 2026-05-25(R44 작업 전)·R44 영향 무관. 추정 원인: extract-background 실행 누락 / extract_status='done' 미진입 / 색인 함수 호출 누락 중 1. **별도 진단 라운드 필요** — 코드 정독으로 색인 흐름 점검 + Swain 어드민 점검(자료 상태 표시·`/api/admin-rag-status` byType 확인).
+- **메모리 보강**: `project_survivor_hybrid.md`에 "서면 본문 출처 분리 3분류" 정책 + "RAG 인덱스 빈 상태에선 placeholder 회피로만 동작" 함정 추가.
+
+### 🕊️ R43 딥릴리프 데이터 축적 하이브리드 + 사건 진행 UX + 자료 업로드 강화 — 종결 (2026-05-29)
 딥릴리프 데이터(통계·발간) 풍부화를 위한 외부 AI 검색·운영자 검토·승급 시스템 + 사건 진행 정보 그룹 박스 UX 개선 + 자료 업로드 강화(드래그/폴더/zip 자동 해제). C 검증 코드 15/15 + 라이브 API 5/5 PASS·P0/P1 0건·종결 권장.
 - **데이터 축적(파트1)**: Gemini Search Grounding + 네이버 검색 둘 다 호출·도메인 화이트리스트(정부·법원·언론 19개 시드)·검토 전 RAG 격리(`martyr_external` 키·신청서 초안 검색에서 제외)·승급 시 `martyr_case`로 키 전환 + `martyrdom_cases` 새 행(`EXT-YYYYMMDD-NNN`·`case_kind='reference'`·시각 구분은 `promoted_case_id`·🤖 AI 수집 배지) + 자동 RAG 색인.
 - **신규 테이블 2개**: `martyrdom_external_research`(수집함·검토→승급)·`martyrdom_external_settings`(whitelistDomains·defaultQueries·lastCronAt). 마이그 `migrate-martyrdom-external` Swain 호출 완료(appliedCount:5·파일 삭제 완료).
