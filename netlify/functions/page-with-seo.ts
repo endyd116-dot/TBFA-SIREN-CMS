@@ -13,16 +13,10 @@ import path from "node:path";
 import { getPageMeta, getOrgMeta, getDefaultMeta, getContentMeta } from "../../lib/seo-meta";
 import { injectMeta } from "../../lib/seo-injector";
 
-export const config = {
-  path: [
-    "/campaign.html",
-    "/incident.html",
-    "/activity.html",
-    "/board-view.html",
-    "/family-story.html",
-    "/memorial-teacher.html",
-  ],
-};
+// ★ P0 fix: Function v2의 config.path에서 ".html" 확장자 경로가 라우팅 미동작 →
+//   /api/page-with-seo 표준 경로로 변경. netlify.toml에서 각 .html → /api/page-with-seo?_p=/xxx.html rewrite.
+//   함수는 _p 쿼리로 원래 경로 식별 (직접 호출 시 url.pathname 사용 가능).
+export const config = { path: "/api/page-with-seo" };
 
 const PATH_TO_TABLE: Record<string, string> = {
   "/campaign.html": "campaigns",
@@ -60,7 +54,8 @@ function resolveHtml(pagePath: string): string | null {
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const pagePath = url.pathname;
+    // ★ rewrite 경유 시 url.pathname=/api/page-with-seo. 원래 경로는 _p 쿼리에서 받음.
+    const pagePath = url.searchParams.get("_p") || url.pathname;
     const html = resolveHtml(pagePath);
     if (!html) {
       return new Response("Page not found", { status: 404 });
@@ -104,10 +99,11 @@ export default async (req: Request) => {
     });
   } catch (e: any) {
     console.error("[page-with-seo]", e);
-    // 실패 시 원본 HTML이라도 반환 (SEO만 누락)
+    // 실패 시 원본 HTML이라도 반환 (SEO만 누락). _p 우선 처리 — try 본문과 동일.
     try {
       const url = new URL(req.url);
-      const html = resolveHtml(url.pathname);
+      const fallbackPath = url.searchParams.get("_p") || url.pathname;
+      const html = resolveHtml(fallbackPath);
       if (html) {
         return new Response(html, {
           status: 200,

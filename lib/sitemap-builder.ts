@@ -24,33 +24,32 @@ export interface SitemapUrl {
   priority?: number;       // 0.0 ~ 1.0
 }
 
-/** 고정 페이지 목록 (사용자/회원/유족지원/추모/신고/협회 안내 등) */
+/** 고정 페이지 목록 — 실재하는 public/*.html만 포함.
+ *  ★ R42-fix: 이전 25개 중 14개가 dead 파일(donate/signup/login/campaign-list/about-history/
+ *  about-team/contact/media/family-support 4종/report-incident/report-legal) → sitemap dead link 노출 위험.
+ *  동적 콘텐츠 페이지(campaign·incident·activity·board-view·family-story·memorial-teacher)는
+ *  builder가 DB 발행분만 자동 추가하므로 여기에 안 넣음(빈 템플릿 URL 검색 노출 방지).
+ */
 const STATIC_PAGES: SitemapUrl[] = [
-  { loc: "/",                          changefreq: "daily",   priority: 1.0 },
-  { loc: "/about.html",                changefreq: "monthly", priority: 0.8 },
-  { loc: "/about-history.html",        changefreq: "monthly", priority: 0.6 },
-  { loc: "/about-team.html",           changefreq: "monthly", priority: 0.6 },
-  { loc: "/contact.html",              changefreq: "monthly", priority: 0.6 },
-  { loc: "/donate.html",               changefreq: "weekly",  priority: 0.9 },
-  { loc: "/campaign-list.html",        changefreq: "daily",   priority: 0.9 },
-  { loc: "/activity.html",             changefreq: "daily",   priority: 0.8 },
-  { loc: "/media.html",                changefreq: "weekly",  priority: 0.7 },
-  { loc: "/board.html",                changefreq: "daily",   priority: 0.7 },
-  { loc: "/family-story.html",         changefreq: "weekly",  priority: 0.7 },
-  { loc: "/family-support.html",       changefreq: "monthly", priority: 0.7 },
-  { loc: "/family-support-counsel.html", changefreq: "monthly", priority: 0.6 },
-  { loc: "/family-support-legal.html",   changefreq: "monthly", priority: 0.6 },
-  { loc: "/family-support-scholarship.html", changefreq: "monthly", priority: 0.6 },
-  { loc: "/incident.html",             changefreq: "weekly",  priority: 0.8 },
-  { loc: "/report-incident.html",      changefreq: "monthly", priority: 0.7 },
-  { loc: "/report-harassment.html",    changefreq: "monthly", priority: 0.7 },
-  { loc: "/report-legal.html",         changefreq: "monthly", priority: 0.7 },
-  { loc: "/memorial.html",             changefreq: "weekly",  priority: 0.7 },
-  { loc: "/memorial-teacher.html",     changefreq: "weekly",  priority: 0.6 },
-  { loc: "/login.html",                changefreq: "yearly",  priority: 0.3 },
-  { loc: "/signup.html",               changefreq: "yearly",  priority: 0.5 },
-  { loc: "/terms.html",                changefreq: "yearly",  priority: 0.3 },
-  { loc: "/privacy.html",              changefreq: "yearly",  priority: 0.3 },
+  { loc: "/",                       changefreq: "daily",   priority: 1.0 },
+  { loc: "/about.html",             changefreq: "monthly", priority: 0.8 },
+  { loc: "/activities.html",        changefreq: "weekly",  priority: 0.7 },
+  { loc: "/news.html",              changefreq: "weekly",  priority: 0.7 },
+  { loc: "/campaigns.html",         changefreq: "daily",   priority: 0.9 },
+  { loc: "/support.html",           changefreq: "weekly",  priority: 0.8 },
+  { loc: "/memorial.html",          changefreq: "weekly",  priority: 0.7 },
+  { loc: "/family-stories.html",    changefreq: "weekly",  priority: 0.7 },
+  { loc: "/incidents.html",         changefreq: "weekly",  priority: 0.7 },
+  { loc: "/resources.html",         changefreq: "monthly", priority: 0.6 },
+  { loc: "/ethics.html",            changefreq: "yearly",  priority: 0.4 },
+  { loc: "/board.html",             changefreq: "daily",   priority: 0.7 },
+  { loc: "/ranking.html",           changefreq: "weekly",  priority: 0.6 },
+  { loc: "/legal-support.html",     changefreq: "monthly", priority: 0.6 },
+  { loc: "/manual.html",            changefreq: "monthly", priority: 0.5 },
+  { loc: "/report.html",            changefreq: "monthly", priority: 0.7 },
+  { loc: "/report-harassment.html", changefreq: "monthly", priority: 0.7 },
+  { loc: "/terms.html",             changefreq: "yearly",  priority: 0.3 },
+  { loc: "/privacy.html",           changefreq: "yearly",  priority: 0.3 },
 ];
 
 function fmtDate(d: Date | string | null | undefined): string | undefined {

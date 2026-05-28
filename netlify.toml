@@ -37,49 +37,52 @@
 
 # ============================================================
 # ★ R42 SEO (2026-05-28): 동적 sitemap + 콘텐츠별 OG 메타 주입
+# ★ R42-fix (2026-05-28): Function v2의 config.path에서 확장자(.xml·.html) 경로가
+#   라이브에서 라우팅 미동작 — 함수 path를 /api/* 표준으로 옮기고 여기서 rewrite로 매핑.
 # ============================================================
 # 동적 사이트맵 — DB 발행 콘텐츠 자동 포함
 [[redirects]]
   from = "/sitemap.xml"
-  to = "/.netlify/functions/sitemap"
+  to = "/api/sitemap"
   status = 200
   force = true
 
 # 동적 콘텐츠 페이지 — Function이 정적 HTML 읽어 콘텐츠 OG 메타 주입 후 반환
-# (정적 HTML도 fallback 메타는 들어가지만, 콘텐츠별 차별 메타는 Function이 동적 생성)
+# 각 .html → /api/page-with-seo?_p=/xxx.html 로 rewrite. 함수는 _p 쿼리로 원래 경로 식별.
+# (원래 페이지의 query string은 Netlify가 자동 전달 — slug=·id= 포함)
 [[redirects]]
   from = "/campaign.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/campaign.html"
   status = 200
   force = true
 
 [[redirects]]
   from = "/incident.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/incident.html"
   status = 200
   force = true
 
 [[redirects]]
   from = "/activity.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/activity.html"
   status = 200
   force = true
 
 [[redirects]]
   from = "/board-view.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/board-view.html"
   status = 200
   force = true
 
 [[redirects]]
   from = "/family-story.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/family-story.html"
   status = 200
   force = true
 
 [[redirects]]
   from = "/memorial-teacher.html"
-  to = "/.netlify/functions/page-with-seo"
+  to = "/api/page-with-seo?_p=/memorial-teacher.html"
   status = 200
   force = true
 
