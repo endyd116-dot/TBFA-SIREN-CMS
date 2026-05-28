@@ -19,7 +19,7 @@ import { sql } from "drizzle-orm";
 import { downloadFromR2 } from "../../lib/r2-server";
 import { deleteFromR2 } from "../../lib/r2-delete";
 import { extractDocText, isMediaFile, transcribeMedia } from "../../lib/ai-ocr";
-import { classifyDocument } from "../../lib/martyrdom-ai";
+import { classifyDocument, indexApprovedReport } from "../../lib/martyrdom-ai";
 import { embedText } from "../../lib/ai-embedding";
 
 /* ⚠️ Netlify 백그라운드 함수(-background)는 config.path 금지 — 붙이면 /.netlify/functions/ 비동기 호출이
@@ -356,6 +356,18 @@ export default async (req: Request, _ctx: Context) => {
     /* ── 8. active 사건이면 analyze-background 트리거 (await로 전송 보장) ── */
     if (caseKind === "active") {
       await triggerAnalyze(caseId);
+    }
+
+    /* ── 8a. 2026-05-28 Swain: reference(종결·인정) 사건에 신규 application(신청서) 추가 시
+       학습 모델(martyr_case)에 자동 재색인. 기존엔 사건 PATCH 종결 시점에만 색인 → 나중에 신청서 추가하면
+       학습 안 됨. 자료 추출 끝나는 즉시 자동 색인 → 다음 신청서 초안부터 형식 학습 자동 반영. */
+    if (caseKind === "reference" && docTypeAuto === "application") {
+      try {
+        const idx = await indexApprovedReport(caseId);
+        console.info(`[martyrdom-extract-bg] auto-reindex approved report caseId=${caseId} indexed=${idx.indexed || 0}`);
+      } catch (e: any) {
+        console.warn(`[martyrdom-extract-bg] auto-reindex 실패: ${e?.message}`);
+      }
     }
 
     console.info(`[martyrdom-extract-bg] done docId=${docId} chunks=${indexedCount} docType=${docTypeAuto}`);
