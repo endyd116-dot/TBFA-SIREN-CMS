@@ -476,3 +476,124 @@ export async function pingGemini(): Promise<boolean> {
   });
   return r.ok && (r.text || "").toLowerCase().includes("pong");
 }
+
+/* =========================================================
+   ★ R43 (2026-05-29): Gemini Search Grounding 신규 래퍼
+   - tools: [{ googleSearchRetrieval: {} }] 활성화
+   - 응답 candidates[0].groundingMetadata.groundingChunks에서 출처 URL 추출
+   - 기존 callGemini 미수정 (외부 검색 전용 신설)
+   - featureKey 'martyrdom_ai_external' 표준 사용 (토글·월cap·surge·로깅)
+   ========================================================= */
+export interface GeminiCitation {
+  uri: string;
+  title?: string;
+}
+
+export interface GeminiSearchResult {
+  ok: boolean;
+  text?: string;
+  citations?: GeminiCitation[];
+  error?: string;
+  disabled?: boolean;
+  disabledReason?: "disabled" | "feature_budget_exceeded" | "monthly_budget_exceeded" | "surge_cooldown";
+  modelUsed?: string;
+}
+
+export async function callGeminiWithSearch(
+  prompt: string,
+  opts: GeminiOptions = {},
+): Promise<GeminiSearchResult> {
+  if (!GEMINI_API_KEY) return { ok: false, error: "GEMINI_API_KEY not configured" };
+
+  /* featureKey 게이트 (토글·월cap·surge) — callGemini와 동일 절차 */
+  const featureKey = opts.featureKey || "unknown";
+  if (!isKnownFeature(featureKey)) {
+    console.warn(`[Gemini-search] 등록되지 않은 featureKey='${featureKey}'`);
+  }
+  const fc = await checkFeatureBeforeCall(featureKey, { skipSurge: opts.internalBulk });
+  if (!fc.ok) {
+    return { ok: false, disabled: true, disabledReason: fc.reason, error: fc.message || "AI 기능이 비활성화되었습니다." };
+  }
+
+  /* Search Grounding은 가장 안정적인 일반 flash 모델 1회 시도 — 폴백 chain 미사용
+     (lite 모델은 tool calling 미지원 가능성·실패 시 그대로 에러 반환) */
+  const model = opts.mode === "pro" ? PRO_MODEL : EFFECTIVE_FLASH;
+  const url = `${GEMINI_API_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const body: any = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    tools: [{ googleSearchRetrieval: {} }],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.4,
+      maxOutputTokens: opts.maxOutputTokens ?? 2000,
+      topP: 0.95,
+      topK: 40,
+    },
+  };
+  if (opts.systemInstruction) {
+    body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
+  }
+
+  const callStart = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),  // 검색은 일반 호출보다 느림(기본 30초)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      return { ok: false, error: `${res.status}: ${errText.slice(0, 200)}`, modelUsed: model };
+    }
+
+    const data: any = await res.json();
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data?.candidates?.[0]?.output ||
+      "";
+
+    /* 출처 추출 — groundingMetadata.groundingChunks[].web.{uri,title} */
+    const citations: GeminiCitation[] = [];
+    const gm = data?.candidates?.[0]?.groundingMetadata;
+    const chunks: any[] = gm?.groundingChunks || gm?.grounding_chunks || [];
+    for (const c of chunks) {
+      const web = c?.web || c?.retrievedContext || null;
+      if (web?.uri) citations.push({ uri: String(web.uri), title: web.title ? String(web.title) : undefined });
+    }
+
+    /* 사용량 기록 (fire-and-forget) */
+    const usage = data?.usageMetadata;
+    if (usage) {
+      try {
+        await recordFeatureUsage({
+          featureKey,
+          model,
+          inputTokens: usage.promptTokenCount || 0,
+          outputTokens: usage.candidatesTokenCount || 0,
+          adminId: opts.adminId ?? null,
+          conversationId: opts.conversationId ?? null,
+          durationMs: Date.now() - callStart,
+          success: true,
+        });
+      } catch (_) { /* noop */ }
+    }
+
+    return { ok: true, text: (text || "").trim(), citations, modelUsed: model };
+  } catch (err: any) {
+    /* 실패도 기록 */
+    try {
+      await recordFeatureUsage({
+        featureKey, model,
+        inputTokens: 0, outputTokens: 0,
+        adminId: opts.adminId ?? null,
+        conversationId: opts.conversationId ?? null,
+        durationMs: Date.now() - callStart,
+        success: false,
+        error: String(err?.message || err).slice(0, 200),
+      });
+    } catch (_) { /* noop */ }
+    return { ok: false, error: String(err?.message || err).slice(0, 200), modelUsed: model };
+  }
+}

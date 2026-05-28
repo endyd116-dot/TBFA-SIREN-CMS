@@ -4440,3 +4440,43 @@ export const orgNewsReports = pgTable("org_news_reports", {
   createdAt:       timestamp("created_at").defaultNow(),
 });
 /* === Q4-005 org-news 끝 === */
+
+/* === R43 딥릴리프 데이터 축적 하이브리드 (2026-05-29) ===
+   외부 자료(AI 검색 수집) — 내부 사건과 분리된 신규 테이블. 검토→승급 시 martyrdom_cases로 복사.
+   RAG 격리: source_type='martyr_external' 키로만 색인(신청서 초안 검색에서 제외).
+   마이그 migrate-martyrdom-external 호출 후 활성화 — 정의는 미리 추가(타입·drizzle-kit 정합용·접근은 raw SQL). */
+export const martyrdomExternalResearch = pgTable("martyrdom_external_research", {
+  id:              serial("id").primaryKey(),
+  title:           varchar("title", { length: 500 }).notNull(),
+  sourceUrl:       text("source_url"),
+  sourceDomain:    varchar("source_domain", { length: 200 }),
+  searchEngine:    varchar("search_engine", { length: 20 }).notNull(),     // 'gemini' | 'naver'
+  searchQuery:     text("search_query"),
+  publishedAt:     timestamp("published_at", { withTimezone: true }),
+  snippet:         text("snippet"),
+  contentFull:     text("content_full"),
+  status:          varchar("status", { length: 20 }).notNull().default("pending"),
+    // 'pending' | 'reviewing' | 'approved' | 'rejected'
+  reviewedByUid:   integer("reviewed_by_uid"),
+  reviewedAt:      timestamp("reviewed_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  promotedCaseId:  integer("promoted_case_id"),
+  meta:            jsonb("meta"),    // { geminiCitations?: string[]; naverThumbnail?: string; lang?: string }
+  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx:       index("martyrdom_external_status_idx").on(t.status),
+  engineIdx:       index("martyrdom_external_engine_idx").on(t.searchEngine),
+  createdIdx:      index("martyrdom_external_created_idx").on(t.createdAt),
+}));
+export type MartyrdomExternalResearch    = typeof martyrdomExternalResearch.$inferSelect;
+export type NewMartyrdomExternalResearch = typeof martyrdomExternalResearch.$inferInsert;
+
+export const martyrdomExternalSettings = pgTable("martyrdom_external_settings", {
+  id:               serial("id").primaryKey(),
+  whitelistDomains: jsonb("whitelist_domains").notNull().default(sql`'[]'::jsonb`),   // string[]
+  defaultQueries:   jsonb("default_queries").notNull().default(sql`'[]'::jsonb`),     // string[]
+  lastCronAt:       timestamp("last_cron_at", { withTimezone: true }),
+});
+export type MartyrdomExternalSettings    = typeof martyrdomExternalSettings.$inferSelect;
+export type NewMartyrdomExternalSettings = typeof martyrdomExternalSettings.$inferInsert;
+/* === R43 딥릴리프 데이터 축적 하이브리드 끝 === */
