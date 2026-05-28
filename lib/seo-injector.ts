@@ -49,7 +49,9 @@ export function injectMeta(html: string, input: InjectInput): string {
   const description = page.description || "";
   const ogTitle = page.og_title || page.title || finalTitle;
   const ogDescription = page.og_description || page.description || "";
-  const ogImage = abs(siteUrl, page.og_image_url || defaults?.default_og_image_url || "");
+  // ★ R42-fix: og:image fallback 체인 — 콘텐츠 메타 → 어드민 기본값 → 사이트 기본 OG 이미지(/og-default.png).
+  //   incidents 등 thumbnail 컬럼 없는 콘텐츠에서 og:image 누락 → 카톡/페북 미리보기 카드 이미지 부재 방지.
+  const ogImage = abs(siteUrl, page.og_image_url || defaults?.default_og_image_url || "/og-default.png");
   const canonical = page.canonical
     ? abs(siteUrl, page.canonical)
     : (input.currentPath ? abs(siteUrl, input.currentPath) : "");
