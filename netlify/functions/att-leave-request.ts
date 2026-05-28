@@ -1,7 +1,8 @@
 import { db } from "../../db/index";
-import { attLeaveRequests, attLeaveBalances, attHolidays } from "../../db/schema";
-import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
+import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, members } from "../../db/schema";
+import { eq, and, sql, inArray, gte, lte, isNotNull, notInArray } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
+import { notifyAllOperators } from "../../lib/notify";
 
 export const config = { path: "/api/att-leave-request" };
 
@@ -190,6 +191,36 @@ export default async function handler(req: Request) {
       console.warn("[att-leave-request] 충돌 검사 실패:", err);
     }
 
+    /* 3-2. 출근 기록 충돌 검사 (2026-05-29 운영 시작 전 P1-1 fix)
+       — 종일 휴가 신청 시 신청 기간 안에 이미 출근 기록(checkInTime 있는 NORMAL/LATE/EARLY_LEAVE 등)이 있으면 차단.
+       — 반차(isHalfDay)는 출근 후 반나절 휴가가 정상이라 패스.
+       — LEAVE/HOLIDAY/ABSENT 상태는 출근 안 한 날이라 충돌 아님. */
+    if (isHalfDay !== true) {
+      try {
+        const attOverlap = await db
+          .select({ id: attRecords.id, date: attRecords.date, status: attRecords.status })
+          .from(attRecords)
+          .where(and(
+            eq(attRecords.memberUid, memberUid),
+            gte(attRecords.date, startDate),
+            lte(attRecords.date, endDate),
+            isNotNull(attRecords.checkInTime),
+            notInArray(attRecords.status, ["LEAVE", "HOLIDAY", "ABSENT"]),
+          ))
+          .limit(1);
+        if (attOverlap.length > 0) {
+          return new Response(JSON.stringify({
+            ok: false,
+            error: `해당 기간(${attOverlap[0].date})에 이미 출근 기록이 있습니다. 반차로 신청하거나 관리자에게 출근 기록 정정을 문의하세요`,
+            step: "attendance_overlap",
+            conflict: attOverlap[0],
+          }), { status: 409, headers: { "Content-Type": "application/json" } });
+        }
+      } catch (err) {
+        console.warn("[att-leave-request] 출근 충돌 검사 실패:", err);
+      }
+    }
+
     // 4. INSERT — 반차 컬럼은 마이그(migrate-att-r29-halfday) 적용된 환경에서만 저장
     try {
       // 반차 컬럼 존재 여부 동적 확인
@@ -231,7 +262,31 @@ export default async function handler(req: Request) {
       }
 
       const row = (result.rows ?? [])[0] ?? {};
-      return jsonOk({ leaveId: Number(row.id), days, remaining: remaining - days }, 201);
+      const leaveId = Number(row.id);
+
+      /* 어드민·운영자에게 결재 대기 알림 (2026-05-29 P1-2 fix·운영 시작 전) */
+      try {
+        const [requester] = await db
+          .select({ name: members.name })
+          .from(members)
+          .where(eq(members.id, Number(memberUid)))
+          .limit(1);
+        const requesterName = requester?.name || "직원";
+        const periodText = startDate === endDate ? startDate : `${startDate}~${endDate}`;
+        await notifyAllOperators({
+          category: "system",
+          severity: "info",
+          title: `🌴 휴가 결재 대기 — ${requesterName}`,
+          message: `${periodText} (${days}일${isHalfDay === true ? `·반차 ${halfDayPeriod}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
+          link: "/admin.html#att-leave",
+          refTable: "att_leave_requests",
+          refId: leaveId,
+        });
+      } catch (notifyErr) {
+        console.warn("[att-leave-request] 어드민 결재 대기 알림 실패:", notifyErr);
+      }
+
+      return jsonOk({ leaveId, days, remaining: remaining - days }, 201);
     } catch (err) {
       return jsonError("insert_request", err);
     }

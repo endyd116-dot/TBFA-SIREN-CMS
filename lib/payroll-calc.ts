@@ -103,10 +103,11 @@ export async function calculatePayrollForMonth(
   };
 
   // 1. 후보 회원 — admin·또는 operatorActive 운영자·baseSalary>0·active
+  /* 2026-05-29 P2-5 fix — hire_date 동봉. 월 중 입사 시 일할 적용. */
   let memberRows: any[];
   try {
     const r = await db.execute(sql`
-      SELECT id, name, email, role, base_salary::numeric AS base_salary
+      SELECT id, name, email, role, base_salary::numeric AS base_salary, hire_date
       FROM members
       WHERE status = 'active'
         AND (type = 'admin' OR operator_active = TRUE)
@@ -190,7 +191,23 @@ export async function calculatePayrollForMonth(
       const quarterTotalBonus = Number(qs.total_bonus || 0);
 
       // 3. 급여 구성 계산 (계산 기준은 payroll_settings)
-      const baseSalaryMonth = baseSalary / 12;
+      /* 2026-05-29 P2-5 fix — 월 중 입사 시 일할(prorate). hire_date가 해당 월 안에 있으면
+         (월말 - 입사일 + 1) / (월 전체 일수) 만큼 baseSalaryMonth 축소. */
+      let prorationFactor = 1.0;
+      const hireDateStr = m.hire_date ? String(m.hire_date).slice(0, 10) : null;
+      if (hireDateStr) {
+        const hireT = new Date(`${hireDateStr}T00:00:00Z`).getTime();
+        const firstT = new Date(`${first}T00:00:00Z`).getTime();
+        const lastT = new Date(`${last}T00:00:00Z`).getTime();
+        if (Number.isFinite(hireT) && hireT >= firstT && hireT <= lastT) {
+          const totalDays = Math.round((lastT - firstT) / 86_400_000) + 1;
+          const remainDays = Math.round((lastT - hireT) / 86_400_000) + 1;
+          if (totalDays > 0 && remainDays > 0 && remainDays < totalDays) {
+            prorationFactor = remainDays / totalDays;
+          }
+        }
+      }
+      const baseSalaryMonth = (baseSalary / 12) * prorationFactor;
       const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급
       const overtimePay = (overtimeMins / 60) * hourly * settings.overtimeMultiplier;
       const deductionUnpaid = unpaidLeaveDays * (baseSalaryMonth / settings.monthlyWorkDays);

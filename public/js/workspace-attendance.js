@@ -638,21 +638,30 @@
   }
 
   async function loadLeaveBalance() {
-    const res = await api('/api/att-leave-balance');
-    const rows = res.data?.data || res.data || [];
     const tbody = document.getElementById('attLeaveBalanceBody');
     if (!tbody) return;
-    if (!Array.isArray(rows) || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="att-empty">조회된 휴가 정보가 없습니다</td></tr>';
-      return;
+    /* 2026-05-29 P2-4 fix — "조회 중…" 무한 멈춤 방지·실패/빈 결과별 안내 분리 */
+    try {
+      const res = await api('/api/att-leave-balance');
+      if (res && res.ok === false) {
+        tbody.innerHTML = '<tr><td colspan="4" class="att-empty">잔여 휴가를 불러오지 못했습니다 (잠시 후 다시 시도해주세요)</td></tr>';
+        return;
+      }
+      const rows = res.data?.data || res.data || [];
+      if (!Array.isArray(rows) || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="att-empty">아직 부여된 휴가가 없습니다. 운영자에게 휴가 부여를 요청하세요.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escHtml(r.name || r.typeName || '—')}</td>
+          <td>${r.granted ?? '—'}</td>
+          <td>${r.used ?? '—'}</td>
+          <td><strong>${r.remaining ?? '—'}</strong></td>
+        </tr>`).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="4" class="att-empty">잔여 휴가를 불러오지 못했습니다 (잠시 후 다시 시도해주세요)</td></tr>';
     }
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td>${escHtml(r.name || r.typeName || '—')}</td>
-        <td>${r.granted ?? '—'}</td>
-        <td>${r.used ?? '—'}</td>
-        <td><strong>${r.remaining ?? '—'}</strong></td>
-      </tr>`).join('');
   }
 
   async function loadLeaveHistory() {

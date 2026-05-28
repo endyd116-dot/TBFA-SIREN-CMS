@@ -14,6 +14,7 @@ export const config = { path: "/api/admin-milestone-matrix-parse" };
 const CATEGORIES = new Set(["REVENUE_LINKED", "NON_REVENUE"]);
 const BUSINESS_UNITS = new Set(["ASSOCIATION", "HAMKEWORK", "PLEO", "POLICY"]);
 const FORMULA_TYPES = new Set(["FLAT", "PERCENT", "BRACKET", "EVENT_RANGE"]);
+const VALID_QUARTERS = new Set(["Q1", "Q2", "Q3", "Q4", "ALL"]);
 
 function jsonError(step: string, err: any) {
   return Response.json({
@@ -47,6 +48,10 @@ export default async function handler(req: Request, _ctx: Context) {
   try { body = await req.json(); } catch { return Response.json({ ok: false, error: "JSON 파싱 실패" }, { status: 400 }); }
   const text = String(body?.text || "").trim();
   const roleHint = body?.roleHint ? String(body.roleHint).trim() : "";
+  /* 2026-05-29 P2-1 fix — 매트릭스 분기 인식. 운영자가 명시 안 하면 'Q1' 기본.
+     같은 정의가 여러 분기에 누적되는 사고 방지. 정의 매칭·후보 quarterApplicable에 반영. */
+  const rawQuarter = body?.quarter ? String(body.quarter).toUpperCase().trim() : "";
+  const quarter = VALID_QUARTERS.has(rawQuarter) ? rawQuarter : "Q1";
   if (text.length < 10) {
     return Response.json({ ok: false, error: "매트릭스 텍스트가 너무 짧습니다 (최소 10자)." }, { status: 400 });
   }
@@ -82,7 +87,7 @@ export default async function handler(req: Request, _ctx: Context) {
 
   // 2) Gemini 프롬프트 — 매트릭스 → 정의 후보 + 충돌 판정
   const existingBrief = existing.map((e) =>
-    `#${e.id} [${e.code}] ${e.name} | 역할:${e.role} | ${e.category} | 공식:${JSON.stringify(e.bonusFormula)}`
+    `#${e.id} [${e.code}] ${e.name} | 역할:${e.role} | ${e.category} | 분기:${e.quarterApplicable || "ALL"} | 공식:${JSON.stringify(e.bonusFormula)}`
   ).join("\n") || "(기존 정의 없음)";
   const rolesBrief = roles.map((r) => `${r.code}=${r.name}`).join(", ") || "(역할 카탈로그 비어있음)";
 
@@ -92,6 +97,10 @@ export default async function handler(req: Request, _ctx: Context) {
   const prompt = [
     "너는 비영리단체의 분기 성과(마일스톤) 운영 담당자다. 아래 '분기 성과 기준표(매트릭스)' 텍스트를 읽고,",
     "각 성과 항목을 마일스톤 정의 후보로 구조화 추출하라. 그리고 '기존 정의 목록'과 겹치는지 판정하라.",
+    "",
+    `⚠️ 이번 매트릭스는 ${quarter} 분기 기준이다. 모든 후보의 quarterApplicable은 '${quarter}'로 설정.`,
+    `   기존 정의와 매칭 시 같은 분기('${quarter}' 또는 'ALL')끼리만 충돌(UPDATE/KEEP)로 판정.`,
+    `   기존 정의의 분기가 다르면(예: Q1인 정의를 Q2에 추가) action=NEW(별도 정의 추가).`,
     "",
     "⚠️ 중요: 표의 모든 행을 빠짐없이 추출하라(누락 금지). 항목 수가 많아도 전부 포함해야 한다.",
     "항목을 건너뛰거나 '...' 등으로 축약하지 말 것. 아무리 비슷해 보여도 행마다 별도 후보로 추출.",
@@ -222,7 +231,10 @@ export default async function handler(req: Request, _ctx: Context) {
       thresholdValue: c.thresholdValue == null ? null : Number(c.thresholdValue),
       thresholdUnit: c.thresholdUnit ? String(c.thresholdUnit).slice(0, 30) : null,
       bonusFormula: formula,
-      quarterApplicable: c.quarterApplicable ? String(c.quarterApplicable).slice(0, 5) : null,
+      /* P2-1 fix: AI가 quarterApplicable 빠뜨려도 body.quarter 기본값 강제. 분기 누락 방지. */
+      quarterApplicable: c.quarterApplicable && VALID_QUARTERS.has(String(c.quarterApplicable).toUpperCase())
+        ? String(c.quarterApplicable).toUpperCase()
+        : quarter,
       confidence,
       matchExistingId,
       matchExisting: matched ? { id: matched.id, code: matched.code, name: matched.name, role: matched.role, category: matched.category, bonusFormula: matched.bonusFormula } : null,
@@ -257,5 +269,5 @@ export default async function handler(req: Request, _ctx: Context) {
     ...(warningMsg ? { warning: warningMsg } : {}),
   };
 
-  return Response.json({ ok: true, data: { candidates, orphans, existingCount: existing.length, modelUsed, summary } });
+  return Response.json({ ok: true, data: { candidates, orphans, existingCount: existing.length, modelUsed, summary, quarter } });
 }

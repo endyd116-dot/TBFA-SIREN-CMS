@@ -23,6 +23,10 @@ export enum NotifyEvent {
   MEMBER_ELIGIBILITY_DECIDED  = "member.eligibility_decided",
   COMMENT_REPORT_RESOLVED     = "comment.report_resolved",
   LEGAL_ASSIGNED              = "legal.assigned",
+  /* 2026-05-29 운영 시작 전 P1-2·P1-3 fix — 직원 휴가 결재·신규 가입 알림 */
+  LEAVE_REQUESTED             = "leave.requested",        // 직원→어드민 (결재 대기 알림)
+  LEAVE_DECIDED               = "leave.decided",          // 어드민→직원 (승인/반려 결과)
+  MEMBER_SIGNUP               = "member.signup",          // 직원 가입→슈퍼어드민 (신규 회원 가입 알림)
 }
 
 export type ChannelName = "inapp" | "email" | "sms" | "kakao";
@@ -59,4 +63,7 @@ export const EVENT_CHANNEL_POLICY: Record<NotifyEvent, ChannelName[]> = {
   [NotifyEvent.MEMBER_ELIGIBILITY_DECIDED]: ["inapp", "email"],
   [NotifyEvent.COMMENT_REPORT_RESOLVED]:    ["inapp"],
   [NotifyEvent.LEGAL_ASSIGNED]:             ["inapp", "email"],
+  [NotifyEvent.LEAVE_REQUESTED]:            ["inapp", "email"],          // 직원→어드민 결재 대기
+  [NotifyEvent.LEAVE_DECIDED]:              ["inapp", "email"],          // 어드민→직원 결과 통지
+  [NotifyEvent.MEMBER_SIGNUP]:              ["inapp", "email"],          // 신규 가입→슈퍼어드민
 };
