@@ -2777,6 +2777,7 @@
           <ul class="adm-submenu" data-sidebar-submenu="homepage" aria-hidden="true" style="display:none">
             <li><a href="/admin-site-builder.html" onclick="window.location.href='/admin-site-builder.html';return false;"><i>🎨</i><span>메인 화면 편집</span></a></li>
             <li><a data-page="content"><i>📝</i><span>콘텐츠 관리</span></a></li>
+            <li><a data-page="seo"><i>🔍</i><span>SEO 메타</span></a></li>
             <li><a data-page="report"><i>📋</i><span>주간 보고서</span></a></li>
             <li><a data-page="activity-report"><i>📊</i><span>AI 활동보고서</span></a></li>
           </ul>
@@ -4429,6 +4430,166 @@
             style="width:100%;height:100%;border:none;min-height:600px"></iframe>
         </div>
 
+        <!-- R42-A: SEO 메타 관리 -->
+        <div id="adm-seo" class="adm-page">
+          <!-- 탭 네비게이션 -->
+          <div class="content-tabs" id="seoTabs" style="margin-bottom:20px">
+            <button type="button" class="ct-tab on" data-seo-tab="pages">📄 페이지별 메타</button>
+            <button type="button" class="ct-tab" data-seo-tab="org">🏛️ 단체 구조화데이터</button>
+            <button type="button" class="ct-tab" data-seo-tab="defaults">⚙️ 사이트 기본값</button>
+          </div>
+
+          <!-- 탭 1: 페이지별 메타 -->
+          <div class="ct-pane" data-seo-pane="pages">
+            <div class="panel" style="display:grid;grid-template-columns:320px 1fr;gap:0;min-height:600px">
+              <!-- 좌: 페이지 목록 -->
+              <div style="border-right:1px solid var(--border, #e5e7eb);padding:16px;overflow-y:auto;max-height:720px">
+                <div class="p-head" style="padding:0 0 12px">
+                  <div class="p-title">페이지 목록</div>
+                </div>
+                <input type="search" id="seoPageSearch" placeholder="🔍 경로/제목 검색" style="width:100%;margin-bottom:12px">
+                <ul id="seoPageList" style="list-style:none;padding:0;margin:0">
+                  <li style="padding:14px;color:var(--text-3);text-align:center">불러오는 중...</li>
+                </ul>
+              </div>
+
+              <!-- 우: 편집 패널 -->
+              <div style="padding:20px;overflow-y:auto;max-height:720px">
+                <div id="seoEditorEmpty" style="text-align:center;padding:60px 20px;color:var(--text-3)">
+                  좌측에서 페이지를 선택하세요.
+                </div>
+                <form id="seoEditorForm" style="display:none">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                    <div>
+                      <div style="font-size:13px;color:var(--text-3)">편집 중</div>
+                      <div id="seoEditorPath" style="font-size:16px;font-weight:700">/</div>
+                    </div>
+                    <div>
+                      <span id="seoEditorBadge" class="adm-badge" style="display:none;background:#fef3c7;color:#92400e">초안 있음</span>
+                    </div>
+                  </div>
+
+                  <div class="fg">
+                    <label>Title <span class="hint">(50~60자 권장)</span></label>
+                    <input type="text" id="seoTitle" maxlength="120" placeholder="페이지 제목">
+                    <div id="seoTitleCount" class="adm-pw-hint">0자</div>
+                  </div>
+
+                  <div class="fg">
+                    <label>Description <span class="hint">(120~160자 권장)</span></label>
+                    <textarea id="seoDescription" rows="3" maxlength="300" placeholder="메타 설명"></textarea>
+                    <div id="seoDescCount" class="adm-pw-hint">0자</div>
+                  </div>
+
+                  <div class="fg">
+                    <label>OG Title <span class="hint">(소셜 공유 제목)</span></label>
+                    <input type="text" id="seoOgTitle" maxlength="120" placeholder="비워두면 Title 사용">
+                  </div>
+
+                  <div class="fg">
+                    <label>OG Description <span class="hint">(소셜 공유 설명)</span></label>
+                    <textarea id="seoOgDescription" rows="2" maxlength="300" placeholder="비워두면 Description 사용"></textarea>
+                  </div>
+
+                  <div class="fg">
+                    <label>OG Image <span class="hint">(1200x630 권장)</span></label>
+                    <div style="display:flex;gap:8px;align-items:center">
+                      <input type="text" id="seoOgImageUrl" placeholder="https://tbfa.co.kr/og-default.png" style="flex:1">
+                      <input type="file" id="seoOgImageFile" accept="image/*" style="display:none">
+                      <button type="button" class="btn-sm" id="seoOgImageUploadBtn">📤 업로드</button>
+                    </div>
+                    <div id="seoOgImagePreview" style="margin-top:8px"></div>
+                  </div>
+
+                  <div class="fg">
+                    <label>Canonical URL</label>
+                    <input type="url" id="seoCanonical" placeholder="https://tbfa.co.kr/path.html">
+                  </div>
+
+                  <div style="display:flex;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
+                    <button type="button" class="btn-sm" id="seoSaveDraftBtn">💾 Draft 저장</button>
+                    <button type="button" class="btn-sm btn-sm-primary" id="seoPublishBtn">🚀 발행</button>
+                    <div style="flex:1"></div>
+                    <span id="seoSaveStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- 탭 2: 단체 구조화데이터 -->
+          <div class="ct-pane" data-seo-pane="org" style="display:none">
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">🏛️ 단체 구조화데이터 (JSON-LD Organization)</div>
+              </div>
+              <p style="color:var(--text-3);font-size:13px;margin:0 0 16px">
+                index.html의 Organization 구조화 데이터를 편집합니다. 변경 사항은 발행 후 적용됩니다.
+              </p>
+              <form id="seoOrgForm">
+                <div class="fg">
+                  <label>단체명</label>
+                  <input type="text" id="seoOrgName" placeholder="교사유가족협의회">
+                </div>
+                <div class="fg">
+                  <label>공식 명칭(법인)</label>
+                  <input type="text" id="seoOrgLegalName" placeholder="(사)교사유가족협의회">
+                </div>
+                <div class="fg">
+                  <label>사업자등록번호</label>
+                  <input type="text" id="seoOrgRegistrationNo" placeholder="1188271215">
+                </div>
+                <div class="fg">
+                  <label>로고 URL</label>
+                  <input type="url" id="seoOrgLogoUrl" placeholder="https://tbfa.co.kr/og-default.png">
+                </div>
+                <div class="fg">
+                  <label>sameAs (관련 URL, 한 줄에 하나)</label>
+                  <textarea id="seoOrgSameAs" rows="4" placeholder="https://facebook.com/...&#10;https://instagram.com/..."></textarea>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
+                  <button type="button" class="btn-sm btn-sm-primary" id="seoOrgSaveBtn">💾 저장</button>
+                  <span id="seoOrgStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- 탭 3: 사이트 기본값 -->
+          <div class="ct-pane" data-seo-pane="defaults" style="display:none">
+            <div class="panel">
+              <div class="p-head">
+                <div class="p-title">⚙️ 사이트 SEO 기본값</div>
+              </div>
+              <p style="color:var(--text-3);font-size:13px;margin:0 0 16px">
+                개별 페이지에 메타가 없을 때 사용되는 기본 OG 이미지·디스크립션 등을 설정합니다.
+              </p>
+              <form id="seoDefaultsForm">
+                <div class="fg">
+                  <label>기본 OG Image URL</label>
+                  <input type="url" id="seoDefOgImage" placeholder="https://tbfa.co.kr/og-default.png">
+                </div>
+                <div class="fg">
+                  <label>기본 Description</label>
+                  <textarea id="seoDefDescription" rows="2" placeholder="교사 유가족들의 지원과 권익 보호..."></textarea>
+                </div>
+                <div class="fg">
+                  <label>사이트명</label>
+                  <input type="text" id="seoDefSiteName" placeholder="교사유가족협의회">
+                </div>
+                <div class="fg">
+                  <label>Twitter Handle (선택)</label>
+                  <input type="text" id="seoDefTwitter" placeholder="@tbfa">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
+                  <button type="button" class="btn-sm btn-sm-primary" id="seoDefSaveBtn">💾 저장</button>
+                  <span id="seoDefStatus" style="font-size:13px;color:var(--text-3);align-self:center"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
         <!-- 7. 시스템 설정 -->
         <div id="adm-settings" class="adm-page">
                 <!-- ★ C안 Step 3: AI 활동보고서 목록 (모듈에서 동적 렌더) -->
@@ -5728,6 +5889,8 @@
   </script>
 
   <script src="/js/admin-report.js?v=2026-05-27-r41b2"></script>
+  <!-- R42-A: SEO 메타 관리 -->
+  <script src="/js/admin-seo.js?v=1"></script>
   <!-- Phase 8 C: 알림 발송 로그 -->
   <script src="/js/admin-notification-logs.js?v=20260519kst"></script>
   <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>

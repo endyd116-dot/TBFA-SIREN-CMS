@@ -36,6 +36,7 @@
   'gamification': '🎮 게이미피케이션',
   'popups': '📢 팝업 관리',
   'curations': '🗂️ 큐레이션',
+  'seo': '🔍 SEO 메타',
   };
 
   const SUPPORT_CAT_LABEL = {
@@ -5448,6 +5449,9 @@ const OPERATOR_CATEGORIES = [
     } else if (page === 'report') {
       /* Phase 4: 대표 보고 시스템 */
       if (window.SIREN_ADMIN_REPORT) window.SIREN_ADMIN_REPORT.load();
+    } else if (page === 'seo') {
+      /* R42-A: SEO 메타 관리 */
+      if (window.SIREN_ADMIN_SEO) window.SIREN_ADMIN_SEO.init();
     } else if (page === 'notification-logs') {
       /* Phase 8 C: 알림 발송 로그 */
       if (window.SIREN_NOTIFICATION_LOGS) window.SIREN_NOTIFICATION_LOGS.load();
