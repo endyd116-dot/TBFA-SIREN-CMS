@@ -833,7 +833,8 @@ JSON 스키마:
   const userPrompt = `[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략 핵심]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, keyIssues: strategy.keyIssues, counterArguments: strategy.counterArguments }).slice(0, 3000) : "(전략 없음)"}\n\n[인정 요건]\n${criteria && Array.isArray(criteria.items) ? criteria.items.map((c: any) => `- ${c.title} (${c.status})`).join("\n").slice(0, 2000) : "(요건 대조 없음)"}\n\n[인정 보고서 형식 모델]\n${exemplarText.slice(0, 5000)}\n\n위 사건에 맞는 신청서 목차를 JSON으로 제안하세요.`;
 
   const res = await callGeminiJSON<DraftOutlineJson>(`${systemPrompt}\n\n${userPrompt}`, {
-    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 4096, timeoutMs: 120000, internalBulk: true,
+    // ★ 2026-05-28 Swain 요청: 초안 분량 2배 — 목차도 8192로 늘려 섹션 수·intent 풍부화 → 전체 초안 분량↑
+    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 8192, timeoutMs: 120000, internalBulk: true,
   });
 
   if (!res.ok || !res.data || !Array.isArray(res.data.sections) || res.data.sections.length === 0) {
@@ -899,7 +900,9 @@ export async function draftSection(
   const userPrompt = `[작성할 섹션]\n제목: ${title}\n의도: ${intent || "(미지정)"}\n\n[앞서 작성된 섹션 제목(중복 서술 방지)]\n${priorTitles.length ? priorTitles.join(", ") : "(없음)"}\n\n[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략·마스터 타임라인·예상 반론]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, masterTimeline: strategy.masterTimeline, counterArguments: strategy.counterArguments, causalChain: strategy.causalChain }).slice(0, 5000) : "(전략 없음)"}\n\n[인정 보고서 모델(형식·전개 참고)]\n${exemplarText.slice(0, 4000)}\n\n[법령 근거]\n${lawText.slice(0, 3000)}\n\n위 섹션의 본문을 작성하세요.`;
 
   const res = await callGemini(`${systemPrompt}\n\n${userPrompt}`, {
-    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 4096, timeoutMs: 120000, internalBulk: true,
+    // ★ 2026-05-28 Swain 요청: 초안 섹션 분량 2배 (4096 → 8192). Gemini 3-flash 출력 한도 내.
+    //   사례 누적 시 RAG exemplar가 풍부해도 4096 토큰에서 잘리던 문제 해소.
+    mode: "pro", featureKey: "martyrdom_ai", temperature: 0.4, maxOutputTokens: 8192, timeoutMs: 120000, internalBulk: true,
   });
 
   const ok = Boolean(res.ok && res.text && res.text.trim().length > 5);
