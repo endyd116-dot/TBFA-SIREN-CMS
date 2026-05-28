@@ -310,8 +310,8 @@ export async function indexExternalToRag(externalId: number): Promise<{ ok: bool
         await db.execute(sql`
           INSERT INTO ai_rag_documents (source_type, source_ref, title, content, embedding, created_at)
           VALUES ('martyr_external', ${ch.sourceRef}, ${ch.title}, ${ch.content.slice(0, 4000)}, ${vecLiteral}::vector, NOW())
-          ON CONFLICT (source_type, source_ref) DO UPDATE
-            SET content = EXCLUDED.content, embedding = EXCLUDED.embedding, title = EXCLUDED.title
+          ON CONFLICT (source_ref) DO UPDATE
+            SET source_type = EXCLUDED.source_type, content = EXCLUDED.content, embedding = EXCLUDED.embedding, title = EXCLUDED.title
         `);
         indexed++;
       } catch (embedErr: any) {
@@ -397,8 +397,8 @@ export async function promoteToCase(externalId: number, reviewerUid: number): Pr
           await db.execute(sql`
             INSERT INTO ai_rag_documents (source_type, source_ref, case_id, title, content, embedding, created_at)
             VALUES ('martyr_case', ${ch.sourceRef}, ${promotedCaseId}, ${ch.title}, ${ch.content.slice(0, 4000)}, ${vecLiteral}::vector, NOW())
-            ON CONFLICT (source_type, source_ref) DO UPDATE
-              SET content = EXCLUDED.content, embedding = EXCLUDED.embedding,
+            ON CONFLICT (source_ref) DO UPDATE
+              SET source_type = EXCLUDED.source_type, content = EXCLUDED.content, embedding = EXCLUDED.embedding,
                   case_id = EXCLUDED.case_id, title = EXCLUDED.title
           `);
         } catch (embedErr: any) {

@@ -1016,8 +1016,8 @@ export async function indexApprovedReport(caseId: number): Promise<{ ok: boolean
               (source_type, source_ref, case_id, title, content, embedding, created_at)
             VALUES
               ('martyr_case', '${safeChunkRef}', ${caseId}, '${safeTitle}', '${safeContent}', '${vecLiteral}'::vector, NOW())
-            ON CONFLICT (source_type, source_ref)
-            DO UPDATE SET content = EXCLUDED.content, embedding = EXCLUDED.embedding,
+            ON CONFLICT (source_ref)
+            DO UPDATE SET source_type = EXCLUDED.source_type, content = EXCLUDED.content, embedding = EXCLUDED.embedding,
                           case_id = EXCLUDED.case_id, title = EXCLUDED.title
           `));
           indexed++;

@@ -324,12 +324,13 @@ export default async (req: Request, _ctx: Context) => {
             ('${ragSourceType}', '${safeChunkRef}', ${caseId},
              '${safeTitle}', '${safeContent}',
              '${vecLiteral}'::vector, NOW())
-          ON CONFLICT (source_type, source_ref)
+          ON CONFLICT (source_ref)
           DO UPDATE SET
-            content   = EXCLUDED.content,
-            embedding = EXCLUDED.embedding,
-            case_id   = EXCLUDED.case_id,
-            title     = EXCLUDED.title
+            source_type = EXCLUDED.source_type,
+            content     = EXCLUDED.content,
+            embedding   = EXCLUDED.embedding,
+            case_id     = EXCLUDED.case_id,
+            title       = EXCLUDED.title
         `));
         indexedCount++;
       } catch (embedErr: any) {
@@ -337,11 +338,13 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
 
-    /* ── 6. extract_status = 'done' + indexed_to_rag = true ── */
+    /* ── 6. extract_status = 'done' + indexed_to_rag = (실제 색인 성공 여부) ── */
+    /* BUG-A fix(2026-05-29): 청크 INSERT 0건이어도 indexed_to_rag=true 마킹되던 silent fail 차단·정직 마킹 */
+    const indexedFlag = indexedCount > 0 ? "true" : "false";
     await db.execute(sql.raw(`
       UPDATE martyrdom_case_documents
       SET extract_status = 'done',
-          indexed_to_rag = true,
+          indexed_to_rag = ${indexedFlag},
           updated_at     = NOW()
       WHERE id = ${docId}
     `));
