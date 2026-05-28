@@ -213,6 +213,10 @@ export default async (req: Request, _ctx: Context) => {
     if (body.nextDeadlineLabel !== undefined) sets.push(`next_deadline_label = ${body.nextDeadlineLabel ? `'${String(body.nextDeadlineLabel).slice(0,100).replace(/'/g,"''")}'` : "NULL"}`);
     if (body.title !== undefined && body.title) sets.push(`title = '${String(body.title).slice(0,200).replace(/'/g,"''")}'`);
     if (body.occurredSummary !== undefined)  sets.push(`occurred_summary = ${body.occurredSummary ? `'${String(body.occurredSummary).slice(0,2000).replace(/'/g,"''")}'` : "NULL"}`);
+    /* 사건 종류 변경 (지원 대상 ↔ 과거 사례 양방향·재심·운영자 실수 복구 — R43 fix·2026-05-29) */
+    if (body.caseKind !== undefined && (body.caseKind === "active" || body.caseKind === "reference")) {
+      sets.push(`case_kind = '${body.caseKind}'`);
+    }
     /* 사건 기본정보 편집 (CRUD·Swain 2026-05-26) */
     if (body.deceasedName !== undefined)     sets.push(`deceased_name = ${body.deceasedName ? `'${String(body.deceasedName).slice(0,50).replace(/'/g,"''")}'` : "NULL"}`);
     if (body.schoolName !== undefined)       sets.push(`school_name = ${body.schoolName ? `'${String(body.schoolName).slice(0,150).replace(/'/g,"''")}'` : "NULL"}`);
