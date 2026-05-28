@@ -858,8 +858,10 @@ JSON 스키마:
 }
 
 /* =========================================================
-   draftSection — 섹션 1개 본문 생성 (입력 3종·§9.2)
-   ① 인정 보고서 exemplar(martyr_case) ② 사건 구조·전략·타임라인 ③ 법령(martyr_law)
+   draftSection — 섹션 1개 본문 생성 (Swain 2026-05-29 출처 3분류 정책)
+   ① 사실관계·정황·진술 → 본 사건 자료(martyr_active) + 사건 구조 + 전략·타임라인
+   ② 분석 기법·전개 → martyr_case (다른 인정 사건 보고서 형식·전개 참고)
+   ③ 통계·비교·법령 → martyr_law + martyr_case의 법령 인용 부분
    ========================================================= */
 export async function draftSection(
   caseId: number,
@@ -871,7 +873,12 @@ export async function draftSection(
   const title = String(section.title || "").slice(0, 200);
   const intent = String(section.intent || "").slice(0, 1000);
 
-  /* ① exemplar few-shot (인정 보고서 형식·전개·증거 배열·martyr_case) */
+  /* ① 본 사건 자료 원문 (martyr_active·case_id 격리·사실관계 1차 출처) — Swain 2026-05-29 추가 */
+  let caseDocHits: RagHit[] = [];
+  try {
+    caseDocHits = await searchRag(`${title} ${intent} ${ex?.deceased?.name || ""} ${ex?.deceased?.school || ""}`.trim(), 6, ["martyr_active"], caseId);
+  } catch { /* 무시 */ }
+  /* ② 분석 기법·전개·법령 인용 참고 (martyr_case·다른 인정 사건 보고서) */
   let exemplarHits: RagHit[] = [];
   try {
     exemplarHits = await searchRag(`${title} ${intent} 순직 인정 유족급여신청서`, 3, ["martyr_case"], caseId);
@@ -882,7 +889,10 @@ export async function draftSection(
     lawHits = await searchRag(`${title} ${intent} 공무원재해보상법 순직 인정 요건 상당인과관계`, 3, ["martyr_law"], caseId);
   } catch { /* 무시 */ }
 
-  const refs: RagSourceRef[] = [...ragToRefs(exemplarHits), ...ragToRefs(lawHits)];
+  const refs: RagSourceRef[] = [...ragToRefs(caseDocHits), ...ragToRefs(exemplarHits), ...ragToRefs(lawHits)];
+  const caseDocText = caseDocHits.length
+    ? caseDocHits.map((h, i) => `[본 사건 자료${i + 1}] ${h.title || h.sourceRef}\n${(h.content || "").slice(0, 600)}`).join("\n\n")
+    : "(본 사건 업로드 자료 없음 또는 추출 미완료 — 사건 구조·전략에서만 사실 인용)";
   const exemplarText = exemplarHits.length
     ? exemplarHits.map((h, i) => `[인정 보고서 모델${i + 1}] ${h.title || h.sourceRef}\n${(h.content || "").slice(0, 700)}`).join("\n\n")
     : "(형식 모델 없음 — 공식 신청서 문어체로 작성)";
@@ -891,13 +901,27 @@ export async function draftSection(
     : "(검색된 법령 근거 없음 — 일반 지식 보강하되 단정 금지)";
 
   const systemPrompt = `당신은 교사 순직 인정 유족급여신청서를 작성하는 전문가입니다. 지정된 한 섹션의 본문만 작성합니다.
-원칙:
-- "전문가 검토용 초안" — 사실은 [사건 구조]에 근거. 자료에 없는 사실 창작 금지(불명확하면 "(확인 필요)"로 표기).
-- 법적 주장·인정 논리는 [법령 근거]·[인정 보고서 모델]에 연결. 정량 % 확률 숫자 금지.
-- [인정 보고서 모델]의 전개 방식·증거 배열을 형식으로 참고(내용 복제 금지).
+
+원칙 (절대 준수·출처 분리):
+1) 사실·정황·진술·증거의 출처는 **본 사건 자료에만** 한정됩니다.
+   - [본 사건 자료]: 본 사건 첨부 자료의 원문 청크
+   - [사건 구조]: 본 사건 자료에서 추출한 구조화 데이터
+   - [전략·타임라인·반론]: 본 사건 자료 기반 분석 결과
+   → 이 세 가지에서만 사실을 인용하시오. 자료에 없는 사실은 창작하지 말고 "(확인 필요)"로 표기.
+
+2) 분석 기법·전개 방식·서술 구조는 [인정 보고서 모델]에서 참고합니다.
+   - 다른 인정 사건의 보고서가 어떤 순서로 사실을 배열하고 인과를 전개하는지, 어떤 증거를 강조하는지를 참고하시오.
+   - **다른 사건의 사실(고인 이름·학교명·날짜·진단·진술 등)을 본 사건 본문에 인용하지 마시오.** 형식·전개·문체만 가져옵니다.
+
+3) 통계·비교 분석·법령·인정 요건은 [법령 근거]·[인정 보고서 모델]의 법령 인용 부분에서 가져옵니다.
+   - 공무원재해보상법 등 법령·판례·요건은 자유롭게 인용·해석하시오.
+   - "다른 인정 사례에서 인정된 사유는 ...과 같다"식의 일반화·비교 분석은 [인정 보고서 모델]을 근거로 작성 가능.
+
+기타:
+- 정량 % 확률 숫자 금지.
 - 한국어 공식 문어체. 섹션 제목·머리말·마크다운 없이 본문 단락만 출력(빈 줄로 단락 구분).`;
 
-  const userPrompt = `[작성할 섹션]\n제목: ${title}\n의도: ${intent || "(미지정)"}\n\n[앞서 작성된 섹션 제목(중복 서술 방지)]\n${priorTitles.length ? priorTitles.join(", ") : "(없음)"}\n\n[사건 구조]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략·마스터 타임라인·예상 반론]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, masterTimeline: strategy.masterTimeline, counterArguments: strategy.counterArguments, causalChain: strategy.causalChain }).slice(0, 5000) : "(전략 없음)"}\n\n[인정 보고서 모델(형식·전개 참고)]\n${exemplarText.slice(0, 4000)}\n\n[법령 근거]\n${lawText.slice(0, 3000)}\n\n위 섹션의 본문을 작성하세요.`;
+  const userPrompt = `[작성할 섹션]\n제목: ${title}\n의도: ${intent || "(미지정)"}\n\n[앞서 작성된 섹션 제목(중복 서술 방지)]\n${priorTitles.length ? priorTitles.join(", ") : "(없음)"}\n\n━━━ 본 사건 자료 (사실·정황의 1차 출처·이 영역에서만 사실 인용) ━━━\n\n[본 사건 자료 원문]\n${caseDocText.slice(0, 5000)}\n\n[사건 구조 — 본 사건 자료에서 추출]\n${ex ? JSON.stringify(ex).slice(0, 6000) : "(구조 추출 없음)"}\n\n[전략·마스터 타임라인·예상 반론 — 본 사건 자료 기반 분석]\n${strategy ? JSON.stringify({ possibleLogics: strategy.possibleLogics, masterTimeline: strategy.masterTimeline, counterArguments: strategy.counterArguments, causalChain: strategy.causalChain }).slice(0, 5000) : "(전략 없음)"}\n\n━━━ 분석 기법·법령 코퍼스 (형식·법령 인용만 참고·다른 사건 사실 인용 금지) ━━━\n\n[인정 보고서 모델 — 분석 기법·전개·법령 인용 참고]\n${exemplarText.slice(0, 4000)}\n\n[법령 근거]\n${lawText.slice(0, 3000)}\n\n위 섹션의 본문을 작성하세요.`;
 
   const res = await callGemini(`${systemPrompt}\n\n${userPrompt}`, {
     // ★ 2026-05-28 Swain 요청: 초안 섹션 분량 2배 (4096 → 8192). Gemini 3-flash 출력 한도 내.
