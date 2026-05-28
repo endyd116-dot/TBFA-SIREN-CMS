@@ -1060,13 +1060,25 @@ function renderTabDocs(d) {
     <small style="color:#94a3b8">완료 자료도 행에서 [재처리]·[삭제] 가능</small>
   </div>` : ""}
 
-  <!-- 업로드 영역 -->
-  <div class="upload-area">
-    <label class="upload-label" for="fileInput">
+  <!-- 업로드 영역 (드래그앤드롭 + 파일/폴더 선택 + zip 자동 해제) -->
+  <div class="upload-area" id="uploadDropZone"
+       ondragover="onUploadDragOver(event)"
+       ondragleave="onUploadDragLeave(event)"
+       ondrop="onUploadDrop(event)">
+    <div class="upload-inner">
       <span class="upload-icon">⬆</span>
-      <span class="upload-text">아무 자료나 업로드<br><small>PDF·이미지·워드·텍스트 등 · 여러 파일 동시 선택 가능 · AI가 자동 분류합니다</small></span>
-      <input id="fileInput" type="file" multiple style="display:none" onchange="handleFileSelect(event)">
-    </label>
+      <div class="upload-text">
+        <strong>여기에 자료를 놓아주세요</strong>
+        <small>또는 아래 버튼으로 선택<br>PDF·이미지·워드·엑셀·한글·음성·영상 등 모두 가능 · AI가 자동 분류합니다</small>
+      </div>
+      <div class="upload-buttons">
+        <label class="btn-sm" for="fileInput">📄 파일 선택</label>
+        <input id="fileInput" type="file" multiple style="display:none" onchange="handleFileSelect(event)">
+        <label class="btn-sm" for="folderInput">📁 폴더 선택</label>
+        <input id="folderInput" type="file" multiple webkitdirectory directory style="display:none" onchange="handleFileSelect(event)">
+      </div>
+      <small class="upload-zip-hint">💡 zip 파일을 올리면 압축이 자동으로 풀려서 안에 있는 자료가 각각 등록됩니다 (최대 100개·합산 500MB).</small>
+    </div>
   </div>
 
   <!-- 자료 목록 -->
@@ -2233,26 +2245,175 @@ async function handleFileSelect(e) {
   const files = Array.from(e.target.files);
   if (!files.length || !currentCaseId) return;
   e.target.value = "";
+  // 폴더 선택(input[webkitdirectory]) 시 file.webkitRelativePath 자동 보존 — uploadSingleFile에서 그대로 fileName으로 사용
+  await processIncomingFiles(files);
+}
 
-  openBulkProgress("📤 자료 업로드", files.length);
+/* R43+ 드래그앤드롭·폴더·zip 통합 처리 — Swain 2026-05-29 요청
+   - .zip은 JSZip으로 1뎁스 해제(중첩 zip은 일반 파일)
+   - 폴더 업로드 시 file.webkitRelativePath 보존 → fileName에 폴더 경로 prefix 포함
+   - 보안: zip당 100개·합산 500MB 한도 */
+async function processIncomingFiles(rawFiles) {
+  if (!rawFiles.length || !currentCaseId) return;
+
+  /* zip 자동 해제 */
+  const flat = [];
+  let zipExtractedCount = 0;
+  for (const f of rawFiles) {
+    const isZip = /\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed";
+    if (isZip && typeof JSZip !== "undefined") {
+      try {
+        const extracted = await extractZipForUpload(f);
+        if (extracted && extracted.length) {
+          flat.push(...extracted);
+          zipExtractedCount += extracted.length;
+          continue;
+        }
+        // 해제 실패 시 원본 그대로 업로드
+        flat.push(f);
+      } catch (err) {
+        toast(`zip 파일을 풀지 못해 원본 그대로 업로드합니다 (${f.name})`, "error");
+        flat.push(f);
+      }
+    } else {
+      flat.push(f);
+    }
+  }
+
+  if (!flat.length) {
+    toast("업로드할 파일이 없습니다", "error");
+    return;
+  }
+
+  const startMsg = zipExtractedCount > 0
+    ? `📤 자료 업로드 (zip에서 ${zipExtractedCount}개 추출 포함)`
+    : "📤 자료 업로드";
+  openBulkProgress(startMsg, flat.length);
   let ok = 0, fail = 0, done = 0;
-  for (let i = 0; i < files.length; i++) {
+  for (let i = 0; i < flat.length; i++) {
     if (_bulkCancel) break;
-    const file = files[i];
-    const label = `(${i + 1}/${files.length}) ${file.name}`;
-    updateBulkProgress(done, files.length, label, 0.001);
-    const r = await uploadSingleFile(file, (frac) => updateBulkProgress(done, files.length, label, frac));
+    const file = flat[i];
+    const label = `(${i + 1}/${flat.length}) ${file.name}`;
+    updateBulkProgress(done, flat.length, label, 0.001);
+    const r = await uploadSingleFile(file, (frac) => updateBulkProgress(done, flat.length, label, frac));
     done++;
     if (r) ok++; else fail++;
-    updateBulkProgress(done, files.length, label, 0);
+    updateBulkProgress(done, flat.length, label, 0);
   }
   const cancelled = _bulkCancel;
   finishBulkProgress(
-    cancelled ? `취소됨 — ${ok}건 완료, ${files.length - done}건 중단` : `완료 — ${ok}건 업로드${fail ? `, ${fail}건 실패` : ""} · AI 분류 중`,
+    cancelled ? `취소됨 — ${ok}건 완료, ${flat.length - done}건 중단` : `완료 — ${ok}건 업로드${fail ? `, ${fail}건 실패` : ""} · AI 분류 중`,
     cancelled ? "cancel" : "done"
   );
   await loadDetail(currentCaseId);
   switchTab("tab-docs");
+}
+
+/* zip 1뎁스 해제 → File 객체 배열 반환 (보안 한도: 100개·합산 500MB) */
+async function extractZipForUpload(zipFile) {
+  const MAX_FILES = 100;
+  const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
+  const zip = await JSZip.loadAsync(zipFile);
+  const entries = [];
+  zip.forEach((path, entry) => { if (!entry.dir) entries.push({ path, entry }); });
+  if (entries.length === 0) {
+    toast(`'${zipFile.name}' 압축 안에 파일이 없습니다`, "error");
+    return [];
+  }
+  if (entries.length > MAX_FILES) {
+    toast(`'${zipFile.name}' 안에 파일이 너무 많습니다 (${entries.length}개·최대 ${MAX_FILES}개까지)`, "error");
+    return [];
+  }
+  const files = [];
+  let totalBytes = 0;
+  for (const { path, entry } of entries) {
+    const blob = await entry.async("blob");
+    totalBytes += blob.size;
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      toast(`'${zipFile.name}' 압축 풀린 합산 용량이 너무 큽니다 (최대 500MB)`, "error");
+      return [];
+    }
+    // 폴더 경로 prefix 보존 → 사건 자료 목록에서 출처 식별 가능
+    const safeName = path.replace(/^\/+/, "").slice(-200);
+    const file = new File([blob], safeName, { type: blob.type || "application/octet-stream", lastModified: entry.date ? entry.date.getTime() : Date.now() });
+    files.push(file);
+  }
+  return files;
+}
+
+/* 드래그앤드롭 핸들러 — upload-area 위에서 작동 */
+function onUploadDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("uploadDropZone");
+  if (zone) zone.classList.add("drop-active");
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+}
+function onUploadDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  // 자식 요소로 이동한 경우 leave가 잘못 발생할 수 있어 zone 밖으로 나갔을 때만 처리
+  const zone = document.getElementById("uploadDropZone");
+  if (!zone) return;
+  const rect = zone.getBoundingClientRect();
+  if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+    zone.classList.remove("drop-active");
+  }
+}
+async function onUploadDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("uploadDropZone");
+  if (zone) zone.classList.remove("drop-active");
+  if (!currentCaseId) { toast("사건을 먼저 선택해주세요", "error"); return; }
+
+  const dt = e.dataTransfer;
+  if (!dt) return;
+
+  // DataTransferItemList로 폴더 드롭 지원(webkitGetAsEntry 재귀 트래버스)
+  if (dt.items && dt.items.length && typeof dt.items[0].webkitGetAsEntry === "function") {
+    const entries = [];
+    for (let i = 0; i < dt.items.length; i++) {
+      const item = dt.items[i].webkitGetAsEntry();
+      if (item) entries.push(item);
+    }
+    const files = [];
+    for (const entry of entries) {
+      await readEntryRecursive(entry, "", files);
+    }
+    if (files.length) { await processIncomingFiles(files); return; }
+  }
+  // 폴더 미지원 브라우저 폴백
+  const files = Array.from(dt.files || []);
+  if (files.length) await processIncomingFiles(files);
+}
+
+/* webkitGetAsEntry 재귀 트래버스 — 폴더 안 파일을 모두 평탄화 + 경로 보존 */
+async function readEntryRecursive(entry, pathPrefix, out) {
+  if (entry.isFile) {
+    return new Promise(resolve => {
+      entry.file(f => {
+        // 경로 prefix를 fileName에 합성(폴더 출처 식별)
+        const fullName = (pathPrefix ? pathPrefix + "/" : "") + f.name;
+        const wrapped = new File([f], fullName, { type: f.type, lastModified: f.lastModified });
+        out.push(wrapped);
+        resolve();
+      }, () => resolve());
+    });
+  }
+  if (entry.isDirectory) {
+    const reader = entry.createReader();
+    return new Promise(resolve => {
+      const readAll = () => reader.readEntries(async children => {
+        if (!children.length) return resolve();
+        for (const child of children) {
+          await readEntryRecursive(child, (pathPrefix ? pathPrefix + "/" : "") + entry.name, out);
+        }
+        readAll(); // 큰 폴더 분할 응답 처리
+      }, () => resolve());
+      readAll();
+    });
+  }
 }
 
 /* 한 파일 업로드(presign→R2 PUT→완료통지). 진행률 콜백·성공 여부 반환. */

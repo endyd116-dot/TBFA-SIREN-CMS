@@ -140,16 +140,35 @@ body {
 }
 
 /* ─ 업로드 영역 ─ */
-.upload-area { margin-bottom: 16px; }
-.upload-label {
-  display: flex; align-items: center; gap: 14px;
-  border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px 20px;
-  cursor: pointer; background: #fff; transition: border-color .15s;
+.upload-area {
+  margin-bottom: 16px;
+  border: 2px dashed #cbd5e1; border-radius: 10px;
+  background: #fff; transition: border-color .15s, background .15s;
 }
-.upload-label:hover { border-color: #2563eb; background: #eff6ff; }
-.upload-icon { font-size: 24px; }
+.upload-area.drop-active {
+  border-color: #2563eb; background: #eff6ff;
+}
+.upload-area.drop-active .upload-text strong { color: #1d4ed8; }
+.upload-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 22px 20px; text-align: center;
+}
+.upload-icon { font-size: 32px; }
 .upload-text { font-size: 13px; color: #475569; line-height: 1.6; }
-.upload-text small { color: #94a3b8; }
+.upload-text strong { display: block; font-size: 14px; color: #1e293b; margin-bottom: 4px; }
+.upload-text small { color: #94a3b8; font-size: 11.5px; }
+.upload-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.upload-buttons label.btn-sm {
+  cursor: pointer; padding: 6px 14px;
+  background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 12.5px; color: #1e293b; transition: background .15s;
+}
+.upload-buttons label.btn-sm:hover { background: #e2e8f0; }
+.upload-zip-hint {
+  display: block; margin-top: 6px; padding-top: 8px;
+  border-top: 1px dashed #e2e8f0; width: 100%;
+  font-size: 11px; color: #64748b; line-height: 1.5;
+}
 
 /* ─ 자료 테이블 ─ */
 .doc-table-wrap { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 20px; }
@@ -1072,6 +1091,7 @@ body {
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/js/admin-martyrdom.js?v=R43-2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="/js/admin-martyrdom.js?v=R43-3"></script>
 </body>
 </html>
