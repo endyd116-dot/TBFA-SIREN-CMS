@@ -3574,7 +3574,7 @@ async function runExternalSearch() {
   try {
     const d = await apiExternalSearch(q, engines);
     if (!d.ok) { toast(d.error || "AI 수집을 시작하지 못했습니다", "error"); return; }
-    toast("AI가 외부 자료를 찾기 시작했습니다. 약 30~60초 후 [🔄 새로고침]을 눌러주세요.");
+    toast("AI가 외부 자료를 찾기 시작했습니다. 약 30~60초 후 [🔄 새로고침]을 눌러주세요. (이미 수집된 자료는 자동 제외됩니다)");
     // 2초 후 목록 새로고침 (background 결과 일부 도착 가정)
     setTimeout(() => loadExternalTab(true), 2000);
   } catch (e) { if (e.message !== "auth") toast("수집 처리 중 오류가 발생했습니다", "error"); }
