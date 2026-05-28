@@ -21,9 +21,23 @@
 
 ---
 
-## 2. 현재 상태 (2026-05-27)
+## 2. 현재 상태 (2026-05-28)
 
-### 🔍 R41 플랫폼 전수 디버그 감사·수정 — 라이브 종결 (2026-05-27 최신·★상단)
+### 🔍 R42 SEO — 검색·공유·구조화·운영자립 종결 (2026-05-28 최신·★상단)
+검색·공유 카드·구조화 데이터·운영 자립 풀세트. 정적 19 + 동적 26 = **45 페이지 sitemap.xml** + 어드민 SEO 메타 편집 화면 + 구글·네이버 검색콘솔 등록 완료.
+- **아키텍처(하이브리드)**: `site_settings` 재활용(신규 테이블 0). 고정 페이지는 어드민 편집→Build Hook→빌드 시 정적 HTML 정착. 동적 콘텐츠 6페이지(`/campaign·/incident·/activity·/board-view·/family-story·/memorial-teacher`)는 Function `page-with-seo`가 정적 HTML을 `fs`로 읽어 콘텐츠 OG 메타 런타임 주입. `/sitemap.xml`도 Function `sitemap`이 DB 발행분 동적 직렬화. `/robots.txt` 정적 + 어드민/내부 50+ 페이지 `noindex`(HTML 메타 + netlify.toml `X-Robots-Tag` 헤더 이중 안전망). `index.html` JSON-LD Organization(NGO) + WebSite.
+- **C P0 적발·hotfix**: Function v2 `config.path`에서 `.xml`·`.html` 확장자 path가 라이브 라우팅 미동작 → `/api/sitemap`·`/api/page-with-seo` 표준 경로 + netlify.toml `force=true` rewrite + 함수가 `_p` query로 원래 경로 식별. `page-with-seo` `included_files=["public/{6}.html"]` 필수. STATIC_PAGES dead 14개(donate·signup·login·campaign-list·about-history·family-support 4종 등) purge → 실재 19개만.
+- **P1 fix**: `og:image` hardcoded fallback `/og-default.png`(`injectMeta`) — `incidents` 등 thumbnail 컬럼 없는 콘텐츠도 카톡·페북 미리보기 카드 이미지 보장. fallback 체인: `page.og_image_url || defaults.default_og_image_url || "/og-default.png"`.
+- **운영 자립**: admin.html → 🌐 홈페이지 관리 → 🔍 SEO 메타 (사이드바). 3탭(페이지별·단체 구조화·사이트 기본값). "발행" 클릭 → `NETLIFY_BUILD_HOOK_URL` POST → 1~2분 후 정적 HTML 갱신. 권한 `seo_edit`(admin·super_admin O, operator X).
+- **검색콘솔 등록 완료**: 구글 도메인 속성(DNS TXT `tbfa.co.kr` — 모든 서브도메인 자동 포함) + sitemap 제출(45 페이지 발견). 네이버 HTML 메타 `<meta name="naver-site-verification">`(`index.html` head·`affbbcb`) + sitemap 제출 + 웹 페이지 수집 5건(/·about·campaigns·memorial·support).
+- **외부 도구 PASS**: 구글 Rich Results(Organization 유효), 페북 디버거(캠페인 미리보기 정상·메인 캐시 재스크랩으로 200), 카톡 공유 OK.
+- **Build Hook**: `NETLIFY_BUILD_HOOK_URL` env 등록(id 6a17afcd···). 운영자 "발행" 시 자동 빌드 트리거.
+- **마이그**: `migrate-seo-init`(`seo_edit` featureKey + `org:*`/`default:*` 11키 시드·Swain 호출 후 파일 삭제).
+- **메모리**: `project_seo_r42`(아키텍처·핵심 함정·검색콘솔 절차).
+- **주요 커밋**: `0aa3141`(step1) → `f2550e8`/`362d1d4`(B+머지) → `a35b3ab`/`341d43b`(A+머지·77파일) → `d8614a8`(키 align+USE_MOCK=false) → `a46eeaa`(마이그 정리) → `40cb1c9`(P0 hotfix) → `b8986ac`/`1fb8e92`(C 검증 보고서) → `6d2771e`(P1 fallback) → `affbbcb`(네이버 verification).
+- **▶ 후속(자동·수동 X)**: 색인은 며칠~수 주에 자동 진행. 운영자가 페이지별 OG 메타·기본값·단체정보 어드민에서 직접 편집 가능.
+
+### 🔍 R41 플랫폼 전수 디버그 감사·수정 — 라이브 종결 (2026-05-27)
 메인·A·B·C **4영역 분할 전수 감사**(읽기 전용)로 결함 **154건**(P0 1·P1 28·P2 65·P3 60) 도출 → 영역별 분배 수정 → 일괄 머지·tsc 0 → **배포 2회·마이그 2회**로 종결. 보류 7건 전부 해소.
 - **P0**: 비공개 첨부(신고 증거·딥릴리프 유족자료)를 로그인만 하면 ID 추측 다운로드 가능 → 관리자·본인 업로드만 허용(`blob-image`).
 - **P1 핵심**: 정기결제 실패 무한 재청구·자동해지 붕괴 복구(`cron-kicc-billing`) / 파일공유·작업 IDOR / 익명 신고자 신원 노출(reveal 우회) / 댓글·발간 워크플로우 단절 / AI 비용 스트리밍 안전장치 누락 이식 / 휴가 과다차감·취소경로 부재.
