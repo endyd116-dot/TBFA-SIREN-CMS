@@ -177,3 +177,56 @@
 ---
 
 **작성 완료**: 2026-05-28 (C) · 메인에 본 보고서 위치·핵심 결과 인계
+
+---
+
+## P0 재검증 (40cb1c9)
+
+> **2026-05-28 (C 2회차)** · 메인 hotfix `40cb1c9` 라이브 배포 후 재검증.
+> 빌드 폴링: `/sitemap.xml` 200 OK까지 **71초** 만에 회복.
+
+### 재검증 결과 — 전 항목 PASS
+
+| 체크 | 결과 | 근거 |
+|---|---|---|
+| `/sitemap.xml` 200 + XML | ✅ PASS | 200 · `application/xml; charset=utf-8` · 7,959 B · `<loc>` 다수(정적 19 + 동적 캠페인·사건·활동·게시판·유족이야기·추모교사) |
+| `/sitemap.xml` dead 14 제거 | ✅ PASS | STATIC_PAGES 19개 정확 매칭(about·activities·news·campaigns·support·memorial·family-stories·incidents·resources·ethics·board·ranking·legal-support·manual·report·report-harassment·terms·privacy + /) |
+| `/campaign.html?slug=<실제>` 동적 OG | ✅ PASS | title `선생님의 빈자리, 당신의 따뜻한 손길로 채워주세요 \| SIREN` · og:title·og:description·og:image `/api/blob-image?id=27`(캠페인 대표 이미지)·canonical 정확 — **정적 fallback과 다른 콘텐츠별 메타 확인** |
+| `/incident.html?slug=case-2023-seoul-elementary` 동적 OG | ✅ PASS | title `2023년 서울 초등학교 교사 사건 \| SIREN` · og:title·description 콘텐츠 매칭 |
+| `/activity.html?slug=activity-2024-launch` 동적 OG | ✅ PASS | title `교사유가족협의회 공식 출범 \| SIREN` 매칭 |
+| `/memorial-teacher.html?id=1` 동적 OG | ✅ PASS | title `故 서이초 선생님 \| SIREN` 매칭 |
+| `/family-story.html?id=1` 동적 OG | ✅ PASS | title `서이초 사건 그 이후... 교사유가족협의회란? \| SIREN` · og:image YouTube 썸네일 포함 |
+| `/board-view.html?id=1` 동적 OG | ✅ PASS | title `자유롭게 \| SIREN` 매칭 |
+| `/campaign.html` (slug 없음) 폴백 | ✅ PASS | title `SIREN \| 교사유가족협의회` (정적 기본 메타) — 함수가 정상 fallback |
+| `/api/sitemap` 직접 호출 | ✅ PASS | 200 · 7,959 B (라이브 `/sitemap.xml` rewrite 대상 함수 정상) |
+| `/api/page-with-seo?_p=/campaign.html` 직접 호출 | ✅ PASS | 200 · 11,589 B |
+| `/.netlify/functions/sitemap` 직접 호출 | ⚠️ 의도된 404 | hotfix에서 `config.path = "/api/sitemap"`로 변경 → Function v2의 path 기반 라우팅 특성상 `/.netlify/functions/<name>` URL은 더 이상 등록되지 않음. **사용자가 접근하는 `/sitemap.xml`은 200으로 회복했으므로 영향 0.** 트리거 체크박스의 "이전 404"→200 기대치는 path 변경 결과를 반영하지 않은 표현 |
+| `/index.html` JSON-LD 2건 + 사이즈 16,845 B | ✅ PASS | `<script type="application/ld+json">` 2개 카운트 — 회귀 없음 |
+| `/robots.txt` 200 + Sitemap 라인 + Disallow 22개 | ✅ PASS | 회귀 없음 |
+| `/admin.html` `X-Robots-Tag: noindex, nofollow` | ✅ PASS | 회귀 없음 |
+
+### BUG 상태 변화
+
+| ID | 1차 진단 | hotfix 조치 | 재검증 결과 |
+|---|---|---|---|
+| R42-V-P0-1 (`/sitemap.xml` 404) | P0 | `sitemap.ts` `config.path = "/api/sitemap"` + `netlify.toml` rewrite `/sitemap.xml → /api/sitemap force=true` | ✅ **해결** |
+| R42-V-P0-2 (동적 6P 404 회귀) | P0 | `page-with-seo.ts` `config.path = "/api/page-with-seo"` + 6개 rewrite `/{campaign,...}.html → /api/page-with-seo?_p=...` + catch 블록 `_p` 우선 처리 | ✅ **해결** — 6/6 페이지 200 + 동적 콘텐츠별 메타 주입 정상 |
+| R42-V-P1-1 (STATIC_PAGES dead 14건) | P1 | `lib/sitemap-builder.ts` STATIC_PAGES 19개로 재정의 (실재 파일 매칭) | ✅ **해결** |
+| R42-V-P2-1·P3-1 (미사용 import·설계 부정합) | P2·P3 | 미조치(영향 없음) | — |
+
+### 종합 판단 갱신
+
+> **라운드 종결 가능 (C 검증 영역).** 메인 hotfix로 P0 2건 + P1 1건 모두 해결.
+>
+> **잔여 위임 영역** (변동 없음 — Swain 브라우저·계정 권한 필요):
+> - 외부 도구: Facebook Debugger·Google Rich Results Test·Mobile-Friendly Test·카카오톡 실제 공유
+> - 어드민 SEO UI: super_admin 로그인 → 사이드바 진입 → 메타 편집 → Draft 저장 → 발행(빌드 트리거) → 1~2분 후 반영 확인
+> - 단체 구조화데이터·사이트 기본값 탭 시드 표시 + 추가 입력·저장
+> - operator 권한 테스트 계정 → `/api/admin-seo-*` 403 응답 확인
+> - 결제(KICC)·로그인·후원 1회 회귀 (SEO 추가가 흐름 영향 없는지)
+>
+> 라이브 코어 기능(공개 페이지 사용자 진입·sitemap·동적 OG)은 모두 PASS. 검색콘솔 sitemap 제출 단계로 진행 가능.
+
+---
+
+**재검증 완료**: 2026-05-28 (C 2회차) · 베이스 `origin/main 40cb1c9` · 코드 수정 0건 · push 안 함
