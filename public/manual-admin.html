@@ -363,6 +363,7 @@
       <a href="#dr-p2" class="lvl-2">P2. 분석</a>
       <a href="#dr-p3" class="lvl-2">P3. 서면 초안</a>
       <a href="#dr-p4" class="lvl-2">P4. AI 비서·요약·통계·발간</a>
+      <a href="#dr-p5" class="lvl-2">P5. 외부 자료·사건 진행·업로드 강화</a>
       <a href="#dr-permission" class="lvl-2">권한 · 비용</a>
       <a href="#dr-faq" class="lvl-2">자주 묻는 질문</a>
 
@@ -1808,6 +1809,101 @@
         연구 발간물의 <strong>생성·발간·삭제는 슈퍼어드민·관리자(admin)만</strong> 할 수 있습니다. <strong>운영자(operator)는 발간물 조회만</strong> 가능합니다. 외부로 내보내는 콘텐츠인 만큼 비식별화와 발간 권한을 분리해 관리합니다.
       </div>
 
+      <!-- P5 (R43) -->
+      <h3 id="dr-p5">P5. 외부 자료 수집·사건 진행 정보·업로드 강화 (R43)</h3>
+      <p>현재 사건 자료 외에 <strong>외부에서 비슷한 과거 사례를 AI가 찾아오는 기능</strong>과, 사건 상세 화면 상단에서 <strong>지금 사건이 어디까지 진행됐는지 한눈에 보는 그룹 박스</strong>, 그리고 <strong>자료를 더 편하게 올리는 방법(드래그·폴더·zip)</strong>이 추가됐습니다.</p>
+
+      <h4 id="dr-p5-ext">① 외부 자료 AI 수집·검토·정식 등록</h4>
+      <p>위치: 사건 상세 → <strong>🔍 외부 자료</strong> 탭. <span class="role admin">🛡️ 슈퍼어드민</span> <span class="role op">관리자(admin)</span> 기본 가능, 운영자(operator)는 통합 CMS 권한 정책에서 토글로 켤 수 있습니다.</p>
+      <div class="grid cols-2">
+        <div class="card" style="border-top:3px solid var(--brand);">
+          <h4>🤖 검색어로 AI가 자료를 찾아옴</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>검색어를 입력하고 <strong>AI 웹검색(Gemini)</strong> 또는 <strong>네이버 검색</strong> 중 골라 실행</li>
+            <li>30~60초 후 외부 자료가 수집되어 <strong>확인 대기</strong> 상태로 들어옴</li>
+            <li>운영자가 자료 내용을 보고 <strong>[정식 사례로 등록]</strong> 또는 <strong>[제외]</strong> 선택</li>
+            <li>정식 등록 시 사건 목록에 새 사건이 <strong>EXT-YYYYMMDD-NNN</strong> 형식·<strong>과거 사례</strong>·<strong>🤖 AI 수집 배지</strong>로 자동 추가</li>
+            <li>이 사례는 이후 <strong>신청서 작성 AI가 참고 자산으로 활용</strong></li>
+          </ul>
+        </div>
+        <div class="card" style="border-top:3px solid var(--gold);">
+          <h4>📅 2주마다 자동 수집</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">운영자가 설정한 <strong>기본 검색어로 2주에 한 번 자동 수집</strong>됩니다. 사건 자료 부족이 만성화되는 것을 막아주는 자동화입니다. 검색 출처는 <strong>화이트리스트 도메인 19개</strong>(정부·법원·언론)로 한정해 신뢰도를 관리합니다.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--ok);">
+          <h4>📊 사이드바·통계·발간 합산 표기</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">사건 목록과 통계에는 <strong>"사례 N건 (정식 X · AI 분석 Y)"</strong> 형태로 정식 등록 사례와 AI 수집 사례가 함께 표시됩니다.</p>
+        </div>
+        <div class="card" style="border-top:3px solid var(--warn);">
+          <h4>💰 비용 토글 분리</h4>
+          <p style="font-size:13.5px;margin-bottom:0;">외부 자료 수집 AI 비용은 별도 토글 <strong><code>martyrdom_ai_external</code></strong>(통합 CMS 비용 관리 화면·<strong>기본 켜짐</strong>·월 cap <strong>$30</strong>)로 관리합니다. 본체 딥릴리프 AI 토글(<code>martyrdom_ai</code>)과는 따로 끌 수 있습니다.</p>
+        </div>
+      </div>
+
+      <h4 id="dr-p5-status">② 사건 진행 정보 그룹 박스</h4>
+      <p>위치: 사건 상세 화면 헤더 바로 아래. 사건이 지금 <strong>어떤 종류</strong>이고 <strong>협회는 어디까지 진행</strong>했으며 <strong>공단 심의는 어떻게 됐는지</strong>를 한 박스에 모아 보여줍니다.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>표시 항목 4가지</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li><strong>사건 종류</strong> — 지원 대상 ↔ 과거 사례 (양방향 변경 가능)</li>
+            <li><strong>협회 진행 상태</strong> — 접수·자료수집·분석·서면·종결</li>
+            <li><strong>공단 심의 결과</strong> — 미확정·인정·불인정·재심</li>
+            <li><strong>공단 행정 단계 Stepper</strong> — 신청 → 심의 → 결정 → 재심</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>똑똑한 자동 연동·되돌리기</h4>
+          <ul style="font-size:13.5px;margin-bottom:0;">
+            <li>각 항목에 <strong>❓ 호버 툴팁</strong>으로 출처·정의를 안내</li>
+            <li>공단 심의 결과를 <strong>인정 / 불인정</strong>으로 저장하면 <strong>"협회 진행 상태도 종결로 바꿀까요?"</strong> 확인 다이얼로그가 뜸</li>
+            <li>한 번 <strong>과거 사례</strong>로 옮긴 사건도 <strong>언제든 지원 대상으로 되돌릴 수 있음</strong>(재심 신청·운영자 실수 복구용)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        <div class="title">💡 DB 변경 없는 UX 개선</div>
+        이 그룹 박스는 기존에 흩어져 있던 사건 종류·상태·심의 결과 정보를 <strong>화면에서 모아 보여주는 UX 개선</strong>입니다. 새 컬럼이나 새 테이블은 추가되지 않았습니다.
+      </div>
+
+      <h4 id="dr-p5-upload">③ 자료 업로드 강화 — 드래그앤드롭·폴더·zip 자동 해제</h4>
+      <p>위치: 사건 상세 → <strong>자료</strong> 탭. 자료를 더 편하게 한 번에 올릴 수 있게 됐습니다.</p>
+      <div class="grid cols-3">
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">🖱️</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">드래그앤드롭</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">윈도우 탐색기에서 파일·폴더를 끌어다 놓으면 자동 업로드</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">📁</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">폴더 단위 업로드</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">[📁 폴더 선택] 버튼으로 폴더 통째 — 파일명에 폴더 경로 보존 (예: 학교A/2024/회의록.pdf)</p>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 12px;">
+          <div style="font-size:24px;">🗜️</div>
+          <h4 style="margin-top:6px;font-size:13.5px;">zip 자동 해제</h4>
+          <p style="font-size:11.5px;color:var(--text-3);margin-bottom:0;">zip 파일을 올리면 안의 파일이 자동으로 풀려 각각 자료로 등록 (폴더 구조도 파일명에 보존)</p>
+        </div>
+      </div>
+      <ul style="font-size:13.5px;">
+        <li>한도: <strong>zip 1개당 100개</strong>·<strong>합산 500MB</strong>까지. 중첩 zip(zip 안에 또 zip)은 일반 파일로 들어갑니다.</li>
+        <li>업로드 후 처리(글자 추출·OCR·8대 분류·증거 강도)는 <strong>P1과 동일</strong>하게 자동 진행됩니다.</li>
+      </ul>
+
+      <h4 id="dr-p5-labels">④ 안내 메시지 사용자 친화 재작성</h4>
+      <p>딥릴리프 외부 자료 기능 전체의 안내 문구를 <strong>일상 한국어</strong>로 통일했습니다. 운영자가 일하면서 무슨 뜻인지 한 번 더 번역하지 않아도 되도록 다듬은 변화입니다.</p>
+      <table>
+        <thead><tr><th width="35%">예전 표현</th><th>지금 표현</th></tr></thead>
+        <tbody>
+          <tr><td>검토 대기</td><td><strong>확인 대기</strong></td></tr>
+          <tr><td>승급됨</td><td><strong>정식 등록됨</strong></td></tr>
+          <tr><td>기각</td><td><strong>제외됨</strong></td></tr>
+          <tr><td>Gemini</td><td><strong>AI 웹검색</strong></td></tr>
+          <tr><td>내부 작업 상태(우리)</td><td><strong>협회 진행 상태</strong></td></tr>
+          <tr><td>심의 최종 결과(공단)</td><td><strong>공단 심의 결과</strong></td></tr>
+        </tbody>
+      </table>
+
       <!-- 권한·비용 -->
       <h3 id="dr-permission">권한 · 비용 관리</h3>
       <table>
@@ -1817,12 +1913,18 @@
           <tr><td>인정 요건 추가·수정·삭제</td><td><span class="role admin">🛡️ 슈퍼어드민</span> 전용</td></tr>
           <tr><td>연구 발간물 생성·발간·삭제</td><td><span class="role admin">🛡️ 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 전용</td></tr>
           <tr><td>연구 발간물 조회</td><td><span class="role op">🤝 운영자(operator)</span>도 가능</td></tr>
+          <tr><td>외부 자료 AI 수집·검토·정식 등록(R43)</td><td><span class="role admin">🛡️ 슈퍼어드민</span> · <span class="role admin">관리자(admin)</span> 기본 / <span class="role op">🤝 운영자(operator)</span>는 권한 정책 토글 필요</td></tr>
         </tbody>
       </table>
 
       <div class="callout gold">
-        <div class="title">💰 AI 비용 토글</div>
-        딥릴리프의 AI 사용은 <strong>통합 CMS '비용 관리' 화면</strong>에서 켜고 끌 수 있습니다(기능 키 <code>martyrdom_ai</code>, <strong>기본 켜짐</strong>). AI 비용을 통제해야 할 때 이 화면에서 끄면 됩니다.
+        <div class="title">💰 AI 비용 토글 — 본체와 외부 자료가 분리</div>
+        딥릴리프의 AI 사용은 <strong>통합 CMS '비용 관리' 화면</strong>에서 켜고 끌 수 있습니다. 토글이 둘로 나뉘어 있습니다.
+        <ul style="margin:8px 0 0;font-size:13.5px;">
+          <li><code>martyrdom_ai</code> — 본체(전략·분석·서면 등 모든 AI 기능). <strong>기본 켜짐</strong></li>
+          <li><code>martyrdom_ai_external</code> — <strong>외부 자료 AI 수집(R43)</strong>. <strong>기본 켜짐 · 월 cap $30</strong></li>
+        </ul>
+        AI 비용을 통제해야 할 때는 필요한 토글만 골라 끌 수 있습니다.
       </div>
 
       <!-- FAQ -->
@@ -1843,13 +1945,19 @@
           <tr><td>AI 비서로 순직 사건을 조회할 수 있나요?</td><td>네. AI 비서에게 진행 중 사건 목록(상태·준비도·다음 기한), 특정 사건 종합 상태, 임박 기한(D-day)을 물어볼 수 있습니다. 단 AI 비서는 조회·안내만 하며, 전략·서면 생성은 딥릴리프 화면에서 합니다.</td></tr>
           <tr><td>유족에게 줄 쉬운 요약은 어떻게 만드나요?</td><td>딥릴리프 P4의 '쉬운 요약'으로 사건 진행 상황을 전문용어 없이 쉬운 말 + 다음 할 일로 정리합니다. 운영자가 만들어 유족에게 전달하며, 유족이 직접 로그인해 보는 화면은 아닙니다.</td></tr>
           <tr><td>연구 발간물은 누가 만들고 누가 보나요?</td><td>종합 가이드·최근 동향 보고서·익명 사례 연구의 생성·발간·삭제는 슈퍼어드민·관리자(admin)만 가능하고, 운영자(operator)는 조회만 할 수 있습니다. 협회 자체 조사와 AI 정리 비율을 운영자가 정하고 개인정보는 비식별화하며, 초안→검수→발간 단계로 관리합니다.</td></tr>
+          <tr><td>외부에서 AI가 찾아온 자료를 어떻게 정식 사례로 만드나요?(R43)</td><td>사건 상세 → 🔍 외부 자료 탭에서 검색어를 입력하고 AI 웹검색 또는 네이버 검색으로 자료를 모은 뒤, 운영자가 자료 내용을 확인해 [정식 사례로 등록] 또는 [제외]를 선택합니다. 정식 등록하면 사건 목록에 EXT-YYYYMMDD-NNN 형식의 과거 사례가 🤖 AI 수집 배지와 함께 자동 추가되고, 이후 신청서 작성 AI가 그 사례를 참고 자산으로 활용합니다.</td></tr>
+          <tr><td>외부 자료는 자동으로도 모이나요?(R43)</td><td>네. 운영자가 설정한 기본 검색어로 2주에 한 번 자동 수집됩니다. 검색 출처는 정부·법원·언론 등 화이트리스트 도메인 19개로 한정해 신뢰도를 관리합니다. 자동 수집된 자료도 똑같이 [정식 사례로 등록] / [제외] 확인 단계를 거쳐야 사건 목록에 들어갑니다.</td></tr>
+          <tr><td>외부 자료 AI 비용은 어떻게 관리되나요?(R43)</td><td>본체 딥릴리프 AI 토글(martyrdom_ai)과 분리되어 별도 토글 martyrdom_ai_external(통합 CMS 비용 관리 화면·기본 켜짐·월 cap $30)로 관리합니다. 외부 수집만 비용이 부담되면 이 토글만 끌 수 있습니다.</td></tr>
+          <tr><td>한 번 과거 사례로 옮긴 사건을 다시 지원 대상으로 되돌릴 수 있나요?(R43)</td><td>네. 사건 진행 정보 그룹 박스의 사건 종류 항목에서 언제든 지원 대상으로 되돌릴 수 있습니다. 재심 신청이 들어왔을 때나 운영자가 실수로 옮긴 경우에 활용합니다. 양방향 변경이 항상 가능합니다.</td></tr>
+          <tr><td>공단 심의 결과를 저장하면 어떻게 되나요?(R43)</td><td>사건 진행 정보 그룹 박스에서 공단 심의 결과를 인정 또는 불인정으로 저장하면 "협회 진행 상태도 종결로 바꿀까요?"라는 확인 다이얼로그가 뜹니다. 운영자가 한 번 더 확인한 뒤 종결로 함께 바꿀 수 있도록 도와주는 자동 연동입니다.</td></tr>
+          <tr><td>여러 파일이나 폴더를 한 번에 올릴 수 있나요?(R43)</td><td>네. 윈도우 탐색기에서 파일·폴더를 드래그앤드롭으로 끌어다 놓거나, [📁 폴더 선택] 버튼으로 폴더 통째 업로드할 수 있습니다. zip 파일을 올리면 안의 파일이 자동으로 풀려 각각 자료로 등록됩니다. 폴더 구조는 파일명에 보존됩니다(예: 학교A/2024/회의록.pdf). 한도는 zip 1개당 100개 · 합산 500MB입니다.</td></tr>
         </tbody>
       </table>
     </section>
 
     <footer class="page-footer">
-      <p><strong>SIREN 운영자 메뉴얼</strong> · (사)교사유가족협의회 · 2026-05-21</p>
-      <p>신고 운영·워크스페이스·후원·결제 전 영역 + R39 신규 기능 운영 안내 반영</p>
+      <p><strong>SIREN 운영자 메뉴얼</strong> · (사)교사유가족협의회 · 2026-05-28</p>
+      <p>신고 운영·워크스페이스·후원·결제 전 영역 + R39·R43 신규 기능 운영 안내 반영 (딥릴리프 P5 — 외부 자료 AI 수집·사건 진행 정보·업로드 강화)</p>
       <p>일반 사용자 메뉴얼은 <a href="/manual.html">manual.html</a> 참고.</p>
     </footer>
 
