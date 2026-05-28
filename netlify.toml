@@ -365,6 +365,12 @@
 [functions."cron-martyrdom-deadline"]
   schedule = "0 23 * * *"
 
+# ★ R43 딥릴리프 외부 자료 격주 자동 수집 (매주 화요일 18:00 UTC = 매주 수요일 03:00 KST)
+#   표준 cron은 격주 직접 지원 X — 함수 내부에서 last_cron_at 기준 "13일 이상 경과" 게이트로 격주.
+#   ai_feature_settings.martyrdom_ai_external.enabled=false면 즉시 종료(fail-closed·비용 0).
+[functions."cron-martyrdom-external"]
+  schedule = "0 18 * * 2"
+
 # ★ Phase 21 R2+R3: 워크스페이스 카드 마감 24h/72h 알림 (매일 KST 09:00 = UTC 00:00)
 # - status NOT IN ('done','archived') 카드 중 마감 시각이 23~25h 또는 71~73h 후인 카드
 # - 담당자(assigned_to) + 워처(workspace_task_watchers) 에게 알림 (category="due")
