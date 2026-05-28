@@ -120,7 +120,7 @@ CLAUDE.md §6.7 — **마이그 호출 확인 후** schema 활성화·push. B는
 
 - `callGeminiWithSearch` 호출 전 `checkFeatureBeforeCall('martyrdom_ai_external')`
 - 토글 OFF 시 fail-closed (배경 cron·수동 요청 둘 다 차단·UI에 "외부 검색 비활성화" 안내)
-- 5분 surge 카운터에 `internalBulk:false`로 합산(딥릴리프 P1 분류 surge 사고 교훈 — 외부 검색은 일반 호출로 취급)
+- 5분 surge 카운터에서 `internalBulk:true`로 **면제**(외부 검색은 운영자 명시 요청 또는 격주 cron 한정·일반 사용자 호출 아님·한 번의 수동 요청이 여러 도메인 호출로 surge에 과도 합산되어 정상 운영 차단되는 부작용 회피). 비용 안전장치는 ① featureKey 토글 ② 월 cap `$30` ③ 운영자 권한 게이트(`martyrdom_external_review`) 3중 layer로 충분 (R43 C 검증 BUG-1 결정·2026-05-29 코드 유지·설계 정정).
 - 월 cap `monthly_cost_cap=30` ($30) — Swain 운영 중 조정
 
 ### §2.3 응답 표준 (CLAUDE.md §6.2)

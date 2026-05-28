@@ -21,9 +21,24 @@
 
 ---
 
-## 2. 현재 상태 (2026-05-28)
+## 2. 현재 상태 (2026-05-29)
 
-### 🔍 R42 SEO — 검색·공유·구조화·운영자립 종결 (2026-05-28 최신·★상단)
+### 🕊️ R43 딥릴리프 데이터 축적 하이브리드 + 사건 진행 UX + 자료 업로드 강화 — 종결 (2026-05-29 최신·★상단)
+딥릴리프 데이터(통계·발간) 풍부화를 위한 외부 AI 검색·운영자 검토·승급 시스템 + 사건 진행 정보 그룹 박스 UX 개선 + 자료 업로드 강화(드래그/폴더/zip 자동 해제). C 검증 코드 15/15 + 라이브 API 5/5 PASS·P0/P1 0건·종결 권장.
+- **데이터 축적(파트1)**: Gemini Search Grounding + 네이버 검색 둘 다 호출·도메인 화이트리스트(정부·법원·언론 19개 시드)·검토 전 RAG 격리(`martyr_external` 키·신청서 초안 검색에서 제외)·승급 시 `martyr_case`로 키 전환 + `martyrdom_cases` 새 행(`EXT-YYYYMMDD-NNN`·`case_kind='reference'`·시각 구분은 `promoted_case_id`·🤖 AI 수집 배지) + 자동 RAG 색인.
+- **신규 테이블 2개**: `martyrdom_external_research`(수집함·검토→승급)·`martyrdom_external_settings`(whitelistDomains·defaultQueries·lastCronAt). 마이그 `migrate-martyrdom-external` Swain 호출 완료(appliedCount:5·파일 삭제 완료).
+- **새 featureKey `martyrdom_ai_external`**(martyrdom_ai와 독립·월 cap $30·OFF 시 fail-closed)·**3중 안전장치**: featureKey 토글 + 월 cap + 운영자 권한 게이트(`martyrdom_external_review` super_admin·admin ON / operator OFF). surge cooldown은 면제(`internalBulk:true`·외부 검색은 운영자 명시 요청 또는 cron 한정·BUG-1 결정·설계서 §2.2 갱신).
+- **격주 cron**: 매주 화요일 18:00 UTC + 내부 13일 게이트(Netlify cron 격주 미지원 회피).
+- **사건 진행 정보 UX(파트2·DB 변경 0)**: 사건 상세 헤더 직하 `case-progress-box` 그룹 박스 — 사건 종류 select(상단 전체 폭·양방향 변경)·협회 진행 상태·공단 심의 결과 2컬럼·공단 행정 단계 Stepper 4단계·❓ 호버 툴팁·outcome=인정/불인정 저장 시 줄바꿈 다이얼로그(자동 종결 강제 X).
+- **사건 종류 양방향 BUG fix(Swain 보고 "복구 불가능")**: `admin-martyrdom-cases.ts` PATCH의 SET 빌더에 `case_kind` 처리 라인 누락(silent drop) → `'active'|'reference'` 화이트리스트 검증 후 SET 추가·프론트에 종류 변경 드롭다운 신설.
+- **안내 메시지 사용자 친화 재작성(Swain "함수처럼 보인다" 보고)**: 외부 자료 기능 전체 toast·confirm·prompt·placeholder·라벨·배지 일상 한국어로 일괄 정리. ❌`검색 요청 큐잉 (8건 예상·jobId=ext-job-12345)` → ✅`AI가 외부 자료를 찾기 시작했습니다. 약 30~60초 후 [🔄 새로고침]을 눌러주세요.` 외 라벨·버튼 전수.
+- **자료 업로드 강화**: ① 드래그앤드롭(폴더 드롭도 재귀 트래버스·webkitGetAsEntry) ② 폴더 선택(`<input webkitdirectory>`·webkitRelativePath fileName 보존) ③ zip 자동 해제(JSZip 1뎁스·내부 경로 fileName prefix·zip당 100개·합산 500MB 한도·중첩 zip은 일반 파일·해제 실패 시 원본 폴백). `processIncomingFiles` 단일 진입점·기존 `uploadSingleFile` 미변경(회귀 위험 0).
+- **C 검증(2026-05-29)**: 코드 15/15 + 라이브 API 5/5 PASS·P0/P1 0건. 라이브 데이터 누적 확인(pending 17·approved 2·rejected 1·승급 chain `external#5→cases#4 EXT-20260528-002`). 시나리오 K 라이브 확인(`caseKind=reference` 응답에 EXT-* 2건 + MTR-* 3건 — 양방향 변경 라이브 검증). BUG-1(P2) `internalBulk` 정책은 설계서 갱신으로 정리. Swain UI 13건 검증 대기. 보고서 `docs/history/verify/2026-05-29-r43-external.md`.
+- **주요 커밋**: `abd1140`(설계서) → `40609fe`(A) → `f014ec4`/`bbf7962`/`5ae85e3`(B 3커밋) → `de5dec5`(A 머지) → `4a30997`(B 머지) → `027fc87`(case_kind fix+USE_MOCK_EXT=false+STATUS_LABELS fix) → `3e2187f`(마이그 삭제) → `c6b0c6b`(안내 메시지 + 사건 종류 양방향 BUG fix) → `3eb8537`(업로드 강화) → `0f1a158`(C 보고 머지).
+- **iframe 등록 4곳 추가 0**(§6.18·기존 admin-martyrdom 탭 추가)·환경변수 추가 0(GEMINI_API_KEY·NAVER_SEARCH_CLIENT_ID/SECRET 재활용).
+- **메모리**: `project_survivor_hybrid`(아키텍처·핵심 함정 7개·정책·승급 chain·업로드 강화 정책).
+
+### 🔍 R42 SEO — 검색·공유·구조화·운영자립 종결 (2026-05-28)
 검색·공유 카드·구조화 데이터·운영 자립 풀세트. 정적 19 + 동적 26 = **45 페이지 sitemap.xml** + 어드민 SEO 메타 편집 화면 + 구글·네이버 검색콘솔 등록 완료.
 - **아키텍처(하이브리드)**: `site_settings` 재활용(신규 테이블 0). 고정 페이지는 어드민 편집→Build Hook→빌드 시 정적 HTML 정착. 동적 콘텐츠 6페이지(`/campaign·/incident·/activity·/board-view·/family-story·/memorial-teacher`)는 Function `page-with-seo`가 정적 HTML을 `fs`로 읽어 콘텐츠 OG 메타 런타임 주입. `/sitemap.xml`도 Function `sitemap`이 DB 발행분 동적 직렬화. `/robots.txt` 정적 + 어드민/내부 50+ 페이지 `noindex`(HTML 메타 + netlify.toml `X-Robots-Tag` 헤더 이중 안전망). `index.html` JSON-LD Organization(NGO) + WebSite.
 - **C P0 적발·hotfix**: Function v2 `config.path`에서 `.xml`·`.html` 확장자 path가 라이브 라우팅 미동작 → `/api/sitemap`·`/api/page-with-seo` 표준 경로 + netlify.toml `force=true` rewrite + 함수가 `_p` query로 원래 경로 식별. `page-with-seo` `included_files=["public/{6}.html"]` 필수. STATIC_PAGES dead 14개(donate·signup·login·campaign-list·about-history·family-support 4종 등) purge → 실재 19개만.
