@@ -1,0 +1,36 @@
+# 교사유가족협의회 (SIREN) — https://tbfa.co.kr
+# 검색엔진 크롤링 지침
+# 이 파일은 1회 발행 후 거의 변경 없음. 어드민·내부 페이지 추가 시 이 파일도 함께 갱신.
+
+User-agent: *
+Allow: /
+
+# ===== 어드민·내부 영역 차단 =====
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /admin-
+Disallow: /cms-
+Disallow: /workspace
+Disallow: /workspace-
+Disallow: /mypage
+Disallow: /my-
+Disallow: /settings-
+Disallow: /billing-
+Disallow: /payment-
+Disallow: /email-verify
+Disallow: /email-reject
+Disallow: /password-reset
+Disallow: /manual-admin
+Disallow: /form.html
+Disallow: /1.html
+Disallow: /2.html
+Disallow: /test-attachment
+Disallow: /siren-mockup-slides
+Disallow: /ai-agent-pitch
+
+# ===== API·내부 함수 차단 =====
+Disallow: /api/
+Disallow: /.netlify/
+
+# ===== 사이트맵 =====
+Sitemap: https://tbfa.co.kr/sitemap.xml

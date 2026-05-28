@@ -35,6 +35,54 @@
   to = "/mypage.html"
   status = 200
 
+# ============================================================
+# ★ R42 SEO (2026-05-28): 동적 sitemap + 콘텐츠별 OG 메타 주입
+# ============================================================
+# 동적 사이트맵 — DB 발행 콘텐츠 자동 포함
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+  force = true
+
+# 동적 콘텐츠 페이지 — Function이 정적 HTML 읽어 콘텐츠 OG 메타 주입 후 반환
+# (정적 HTML도 fallback 메타는 들어가지만, 콘텐츠별 차별 메타는 Function이 동적 생성)
+[[redirects]]
+  from = "/campaign.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/incident.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/activity.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/board-view.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/family-story.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/memorial-teacher.html"
+  to = "/.netlify/functions/page-with-seo"
+  status = 200
+  force = true
+
 # ★ K-9: 커스텀 404 라우팅 (다른 redirects보다 아래에 위치해야 함)
 [[redirects]]
   from = "/*"
@@ -74,6 +122,81 @@
   for = "/api/*"
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate"
+    X-Robots-Tag = "noindex, nofollow"
+
+# ============================================================
+# ★ R42 SEO (2026-05-28): 어드민·내부 페이지 검색엔진 차단
+# robots.txt의 Disallow와 이중 안전망 — X-Robots-Tag는 응답 헤더라 더 강제력 있음
+# ============================================================
+[[headers]]
+  for = "/admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/cms-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/workspace*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/workspace-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/mypage*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/my-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/settings-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/billing-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/payment-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/email-*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/password-reset*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/manual-admin*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/form.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
 
 # ============================================================
 # Functions 설정
@@ -121,6 +244,12 @@
 #   운영(tbfa.co.kr) Functions 런타임에서 파일 읽기가 실제 내용을 반환함.
 [functions."admin-rag-reindex-background"]
   included_files = ["docs/manual/**", "public/manual.html", "public/manual-admin.html", "docs/law/martyrdom/**"]
+
+# ★ R42 SEO (2026-05-28): 동적 콘텐츠 페이지 메타 주입 함수
+#   campaign/incident/activity/board-view/family-story/memorial-teacher 정적 HTML을
+#   런타임에 읽어서 head에 콘텐츠별 OG 메타 주입 후 반환하므로 정적 HTML을 번들 포함.
+[functions."page-with-seo"]
+  included_files = ["public/campaign.html", "public/incident.html", "public/activity.html", "public/board-view.html", "public/family-story.html", "public/memorial-teacher.html"]
 
 # ★ P2: 순직 인정요건 법령 AI 파싱(criteria-generate)도 법령 문서 번들 포함 필요
 [functions."admin-martyrdom-criteria-generate"]
