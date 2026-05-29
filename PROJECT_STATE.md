@@ -29,7 +29,8 @@
 - **권한 정책(Swain 확정)**: 권한정책 편집만 super 전용, 그 외 **admin=super 기본**, operator는 근태결재·게시판중재·AI진입만 허용·나머지 차단, **전부 권한정책 UI(`admin-role-policy`)에서 토글**. → `canAccess(member.role, featureKey)` 통일 + featureKey 20종 시드.
 - **메인 직접 fix(보안 코어)**: ① 무인증 시뮬결제 `/api/donate` 삭제(US-011) ② elevate DB등급 발급 + JWT등급 게이트 7곳→DB등급(CLUSTER-1) ③ 익명 신고자 신원 마스킹 5곳 + reveal 권한 게이트(CLUSTER-2) ④ 감사로그 게이트·AI대화/워크스페이스/AI재생성/카드만료 IDOR(CLUSTER-3) ⑤ US-001 전문가·봉사자 가입 매핑(P0)·US-058 알림 수신거부 키·US-039 게시판 익명·SU-023 권한변경 감사·AD-021 검토 배정자.
 - **A·B·C 도메인 fix 머지**: A(어드민 38)·B(운영자 78)·C(사용자 66) 전부 main 통합·머지본 tsc 0·충돌 1곳(expert-assign 알림 3중복 통합) 해소. 신고 무통보·이력 단절 복구·효성 자동이체 단절·마감일변경 UI·게시글 영구삭제·예약발행 등.
-- **▶ Swain 액션(배포 후)**: 마이그 4종 순차 호출(`migrate-r45-rbac-seed`★먼저 → `migrate-r45-b` → `migrate-siren-rejected-reason` → `migrate-r45-memorial-report-log`·전부 `?run=1`) + env `SITE_URL=https://tbfa.co.kr`. 호출 후 메인이 schema 활성화(rejected status·deletedAt)·1회용 마이그 4파일 삭제.
+- **✅ 배포 완료(`93bce19`) + Swain 마이그 4종 호출 완료**: rbac-seed(totalRows 48·신규 키 삽입)·r45-b(member_status+='rejected'·콘텐츠 5테이블 deleted_at)·siren-rejected-reason(신고 3종 rejected_reason)·memorial-report-log(신고 1인1회). env `SITE_URL` 설정 완료. **1회용 마이그 4파일 삭제**(다음 배포 동봉).
+- **▶ 활성화 follow-up(P2·graceful degrade 중·비차단)**: OP-045(가입 반려 suspended→rejected 코드)·OP-075(콘텐츠 DELETE→soft-delete + deletedAt 필터 + 휴지통 UI)·rejected_reason 컬럼 채우기(현재 report_status_logs.note로 보존) — 컬럼/enum은 적용됐고 코드 활성화만 남음. 운영 안정화 후 별도 deploy.
 - **▶ 후속(P2/P3·비차단)**: SU-026 감사 위험등급 매핑·OP-055 1:1상담 cms 통합(독립 admin-chat.html iframe·라이브 검증 필요)·OP-031 정산 앵커·US-044 효성/계좌 모금현황 recalc·AD-022 발간 검수자 배정 등. R45-MASTER §2·§4 참조.
 - **C Phase 2**: 머지본 라이브 재검증(권한 경계·익명성·결제·핵심 여정) 대기 → `docs/history/verify/2026-05-29-r45-fix.md`.
 
