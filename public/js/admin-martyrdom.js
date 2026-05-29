@@ -615,14 +615,14 @@ async function apiP4Stats() {
   return apiFetch("/api/admin-martyrdom-stats");
 }
 // 발간물 생성 큐
-async function apiP4PublicationGenerate(pubType, blendRatio, maskLevel) {
+async function apiP4PublicationGenerate(pubType, blendRatio, maskLevel, caseIds) {
   if (USE_P4_MOCK) {
     pubDetail = JSON.parse(JSON.stringify(MOCK_PUBLICATION));
     pubDetail.pubType = pubType;
     pubDetail.blendRatio = blendRatio;
     return { ok: true, queued: true, id: 9, pubType: pubType, status: "draft" };
   }
-  return apiFetch("/api/admin-martyrdom-publication", { method: "POST", body: { pubType, blendRatio, maskLevel } });
+  return apiFetch("/api/admin-martyrdom-publication", { method: "POST", body: { pubType, blendRatio, maskLevel, caseIds: caseIds || [] } });
 }
 // 발간물 목록
 async function apiP4PublicationList() {
@@ -1678,6 +1678,9 @@ async function reloadDraft() {
 // 1단계 — 목차 제안 생성
 async function genDraftOutline() {
   if (!currentCaseId) return;
+  // AD-025: 이미 목차가 있으면 재제안 시 섹션 구성이 바뀌어 작성·편집한 섹션 본문이 사라질 수 있음 — 경고
+  const hasOutline = !!(caseDraft && caseDraft.outline && Array.isArray(caseDraft.outline.sections) && caseDraft.outline.sections.length);
+  if (hasOutline && !confirm("목차를 다시 제안하면 섹션 구성이 바뀌어, 이미 작성·편집한 섹션 본문이 사라질 수 있습니다.\n계속하시겠습니까?")) return;
   const btn = document.getElementById("draftOutlineBtn");
   if (btn) { btn.disabled = true; btn.textContent = "제안 중…"; }
   try {
@@ -1963,8 +1966,13 @@ function renderTabPublications() {
         <label>마스킹 수준</label>
         <select id="maskLevelSelect">
           <option value="light">경량 — 고인·유족 실명 부분가림(○○ 선생님 수준·학교명·지명 유지)</option>
-          <option value="strong">강 — 식별 가능 정보 전체 일반화</option>
+          <option value="medium" selected>중간 — 실명·학교명·지명 일반화 (권장 기본값)</option>
+          <option value="full">강 — 사례번호·고유표현까지 식별 가능 정보 전체 일반화</option>
         </select>
+      </div>
+      <div class="pub-form-row" id="pubCaseRow">
+        <label>출처 사건 <span class="hint" style="color:#888;font-weight:400">(사례 연구 시 선택한 사건의 인정 논리·패턴이 반영됩니다 · 미선택 시 전체 통계 기반)</span></label>
+        <div id="pubCaseList" style="max-height:160px;overflow:auto;border:1px solid #d6d3ce;border-radius:6px;padding:8px 10px;font-size:13px;background:#fff">불러오는 중…</div>
       </div>
       <div class="pub-form-row">
         <button class="btn" onclick="generatePublication()" id="pubGenBtn">발간물 생성</button>
@@ -3126,6 +3134,9 @@ async function generatePublication() {
   const maskLevel = maskEl ? maskEl.value : "light";
   const selfRatio = sliderEl ? parseInt(sliderEl.value, 10) : 70;
   const blendRatio = { self: selfRatio, ai: 100 - selfRatio };
+  // AD-024: 출처 사건 선택 — 사례 연구 등에서 선택 사건의 인정 논리가 반영되도록 caseIds 전달
+  const caseIds = Array.from(document.querySelectorAll('#pubCaseList .pub-case-cb:checked'))
+    .map(cb => Number(cb.value)).filter(n => n > 0);
 
   // ★ R41 Q2-052: 연타로 인한 중복 draft 생성 방지 — 진행 중이면 무시
   if (pubGenBusy) return;
@@ -3134,7 +3145,7 @@ async function generatePublication() {
   if (btn) { btn.textContent = "생성 중…"; btn.disabled = true; }
   let pollingStarted = false;   // 폴링으로 넘어가면 폴링 종료 시점까지 버튼 유지
   try {
-    const d = await apiP4PublicationGenerate(pubType, blendRatio, maskLevel);
+    const d = await apiP4PublicationGenerate(pubType, blendRatio, maskLevel, caseIds);
     if (!d.ok) { toast(d.error || "생성 요청 실패", "error"); return; }
     const pubId = d.id || (d.data && d.data.id);
     if (d.queued && pubId) {
@@ -3184,7 +3195,31 @@ function pollPublicationGenerated(pubId) {
     } catch (_) {}
   }, 4000);
 }
+// AD-024: 발간 출처 사건 picker — 종결(closed) 또는 과거사례(reference) 사건을 선택지로 제공
+async function loadPubCasePicker() {
+  const box = document.getElementById("pubCaseList");
+  if (!box) return;
+  box.innerHTML = '<div style="font-size:12px;color:#888">불러오는 중…</div>';
+  try {
+    const [a, r] = await Promise.all([apiCases("active"), apiCases("reference")]);
+    const all = [...(((a && a.cases) || [])), ...(((r && r.cases) || []))];
+    const usable = all.filter(c => c.status === "closed" || c.caseKind === "reference");
+    if (!usable.length) {
+      box.innerHTML = '<div style="font-size:12px;color:#888">선택 가능한 종결·과거 사례가 없습니다. (사건 종결 또는 외부 자료 승급 후 표시)</div>';
+      return;
+    }
+    box.innerHTML = usable.map(c =>
+      '<label style="display:block;padding:3px 0;cursor:pointer"><input type="checkbox" class="pub-case-cb" value="' + c.id + '" style="margin-right:6px">'
+      + '<strong>' + escapeHtml(c.caseNo || "") + '</strong> · ' + escapeHtml(c.title || "")
+      + (c.deceasedName ? ' <span style="color:#888">(' + escapeHtml(c.deceasedName) + ')</span>' : "")
+      + '</label>'
+    ).join("");
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:#c5293a">사건 목록을 불러오지 못했습니다.</div>';
+  }
+}
 async function loadPublications() {
+  loadPubCasePicker();  // AD-024: 출처 사건 선택지 채우기(비동기·실패 무해)
   const body = document.getElementById("pubListBody");
   if (!body) return;
   try {
@@ -3411,6 +3446,19 @@ function renderTabExternal() {
     <span class="ext-stats" id="extStatsText"></span>
   </div>
 
+  <!-- AD-026: 격주 자동 수집 설정 (백엔드 admin-martyrdom-external-settings + cron-martyrdom-external). 검색어가 비면 자동 수집이 동작하지 않음 -->
+  <details class="ext-settings" id="extSettingsBox" style="margin:0 0 14px;padding:8px 12px;border:1px solid #e8e6e3;border-radius:8px;background:#faf9f7">
+    <summary style="cursor:pointer;font-weight:600;font-size:13px">⚙️ 자동 수집 설정 (격주 자동 검색에 사용)</summary>
+    <div style="margin-top:10px">
+      <label style="display:block;font-size:12px;color:#525252;margin-bottom:4px">기본 검색어 <span style="color:#888">(한 줄에 하나·최대 50개)</span> — 비어 있으면 격주 자동 수집이 한 건도 실행되지 않습니다</label>
+      <textarea id="extDefaultQueries" rows="4" style="width:100%;padding:8px 10px;border:1px solid #d6d3ce;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box" placeholder="예: 교사 순직 인정 판례&#10;교권 침해 사망"></textarea>
+      <label style="display:block;font-size:12px;color:#525252;margin:8px 0 4px">신뢰 도메인 화이트리스트 <span style="color:#888">(한 줄에 하나·선택)</span></label>
+      <textarea id="extWhitelistDomains" rows="3" style="width:100%;padding:8px 10px;border:1px solid #d6d3ce;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box" placeholder="예: law.go.kr&#10;moe.go.kr"></textarea>
+      <div style="margin-top:8px"><button class="btn-sm btn-secondary" onclick="saveExternalSettings()">설정 저장</button>
+      <span id="extSettingsMsg" style="margin-left:8px;font-size:12px;color:#888"></span></div>
+    </div>
+  </details>
+
   <div class="ext-layout">
     <div class="ext-list-col">
       <div id="extListBody"><div class="list-loading">자료를 불러오는 중입니다…</div></div>
@@ -3424,8 +3472,40 @@ function renderTabExternal() {
 </div>`;
 }
 
+// AD-026: 외부 자동 수집 설정 로드·저장 (격주 cron이 사용하는 검색어·화이트리스트)
+async function loadExternalSettings() {
+  try {
+    const res = await apiExternalSettings();
+    const s = (res && res.settings) || {};
+    const q = document.getElementById("extDefaultQueries");
+    const w = document.getElementById("extWhitelistDomains");
+    if (q) q.value = (s.defaultQueries || []).join("\n");
+    if (w) w.value = (s.whitelistDomains || []).join("\n");
+  } catch (e) { /* 설정은 보조 기능 — 실패해도 목록 로드 방해 안 함 */ }
+}
+async function saveExternalSettings() {
+  const toLines = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value.split("\n").map(s => s.trim()).filter(Boolean) : [];
+  };
+  const msg = document.getElementById("extSettingsMsg");
+  try {
+    const res = await apiExternalSettings({
+      defaultQueries: toLines("extDefaultQueries"),
+      whitelistDomains: toLines("extWhitelistDomains"),
+    });
+    if (res && res.ok) {
+      if (msg) msg.textContent = "저장되었습니다 ✓";
+      toast("자동 수집 설정을 저장했습니다", "success");
+    } else {
+      toast((res && res.error) || "설정 저장 실패", "error");
+    }
+  } catch (e) { if (e.message !== "auth") toast("설정 저장 오류", "error"); }
+}
+
 // R43 §3.2: 외부 자료 탭 진입 시 목록·통계 동시 로드
 async function loadExternalTab(force) {
+  loadExternalSettings();  // AD-026: 설정 패널 채우기(비동기·실패 무해)
   if (!force && extList.length) { renderExternalList(); return; }
   try {
     const [listRes, statsRes] = await Promise.all([apiExternalList("pending"), apiExternalStats()]);

@@ -99,6 +99,7 @@ export default async (req: Request, _ctx: Context) => {
           mc.extracted_at AS "extractedAt",
           (mc.extraction_json IS NOT NULL)::boolean AS "hasExtraction",
           (SELECT COUNT(*)::int FROM martyrdom_case_documents md WHERE md.case_id = mc.id) AS "docCount",
+          (SELECT er.id FROM martyrdom_external_research er WHERE er.promoted_case_id = mc.id LIMIT 1) AS "promotedFromExternalId",
           m.name AS "assignedAdminName",
           mc.created_at AS "createdAt"
         FROM martyrdom_cases mc
@@ -123,6 +124,7 @@ export default async (req: Request, _ctx: Context) => {
         nextDeadlineLabel: r.nextDeadlineLabel ? String(r.nextDeadlineLabel) : null,
         hasExtraction: Boolean(r.hasExtraction),
         docCount: Number(r.docCount || 0),
+        promotedFromExternalId: r.promotedFromExternalId ? Number(r.promotedFromExternalId) : null,
         assignedAdminName: r.assignedAdminName ? String(r.assignedAdminName) : null,
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
       }));
