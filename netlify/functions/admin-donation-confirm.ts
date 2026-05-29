@@ -321,9 +321,9 @@ export default async (req: Request, _ctx: Context) => {
     if (ids.length === 0) return badRequest("ids 배열이 비어있습니다");
     if (ids.length > 200) return badRequest("한 번에 처리 가능한 ids는 200건입니다");
 
-    const action = body.action || "confirm";
-    if (!["confirm", "ignore", "rematch"].includes(action)) {
-      return badRequest("action은 confirm | ignore | rematch 중 하나여야 합니다");
+    const action: string = body.action || "confirm";
+    if (!["confirm", "ignore", "rematch", "restore", "hold"].includes(action)) {
+      return badRequest("action은 confirm | ignore | rematch | restore | hold 중 하나여야 합니다");
     }
 
     const memberIdOverride = (action === "confirm" || action === "rematch") && body.memberIdOverride
@@ -355,6 +355,40 @@ export default async (req: Request, _ctx: Context) => {
         });
       } catch {}
       return ok({ processed: ids.length, succeeded: ids.length, failed: 0, action: "ignore" }, `${ids.length}건 무시 처리`);
+    }
+
+    /* 2-b. AD-051 restore — 무시(ignored)·보류(held) 건을 검토 대기로 복원 (확정 건은 불변·별도 취소 경로)
+       매칭된 회원이 있으면 'matched', 없으면 'pending'으로 복귀. */
+    if (action === "restore") {
+      await db.execute(sql`
+        UPDATE pending_donations
+        SET status = CASE WHEN matched_member_id IS NOT NULL THEN 'matched' ELSE 'pending' END,
+            updated_at = now()
+        WHERE id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
+          AND status IN ('ignored', 'held')
+      `);
+      try {
+        await logAdminAction(req, admin.uid, admin.name, "donation_pending_restore", {
+          target: ids.join(","), detail: { count: ids.length },
+        });
+      } catch {}
+      return ok({ processed: ids.length, succeeded: ids.length, failed: 0, action: "restore" }, `${ids.length}건 복원`);
+    }
+
+    /* 2-c. AD-052 hold — 판단 보류. 미확정/매칭됨 건을 '보류(held)'로 격리(확정·무시 건은 제외). */
+    if (action === "hold") {
+      await db.execute(sql`
+        UPDATE pending_donations
+        SET status = 'held', updated_at = now()
+        WHERE id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
+          AND status IN ('pending', 'matched')
+      `);
+      try {
+        await logAdminAction(req, admin.uid, admin.name, "donation_pending_hold", {
+          target: ids.join(","), detail: { count: ids.length },
+        });
+      } catch {}
+      return ok({ processed: ids.length, succeeded: ids.length, failed: 0, action: "hold" }, `${ids.length}건 보류 처리`);
     }
 
     /* 3. rematch 처리 (수동 매칭 강제 지정 — 1건만) */
