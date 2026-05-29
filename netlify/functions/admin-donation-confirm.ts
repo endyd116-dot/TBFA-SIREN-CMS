@@ -305,8 +305,8 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   const { admin, member: adminMember } = (auth as any).ctx;
 
-  /* ★ R41 Q1-009: 후원 통과 처리 권한 게이트 — 권한 정책 메뉴(admin-role-policy)에서 토글.
-     시드 기본값 operator 허용(현행 유지)이라 미시드/현행 동작 동일, super_admin이 제한 가능. */
+  /* ★ R41 Q1-009 / R45 F2: 후원 통과 처리 권한 게이트 — 권한 정책 화면(admin-role-policy)에서 토글.
+     시드 기본값 operator 차단(재무성 작업·admin+ 전용), super_admin이 권한정책에서 운영자 허용으로 조정 가능. */
   if (!(await canAccess(adminMember.role ?? "", "donation_confirm"))) {
     return forbidden("후원 통과 처리 권한이 없습니다");
   }

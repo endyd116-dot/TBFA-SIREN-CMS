@@ -32,7 +32,10 @@
 - **✅ 배포 완료(`93bce19`) + Swain 마이그 4종 호출 완료**: rbac-seed(totalRows 48·신규 키 삽입)·r45-b(member_status+='rejected'·콘텐츠 5테이블 deleted_at)·siren-rejected-reason(신고 3종 rejected_reason)·memorial-report-log(신고 1인1회). env `SITE_URL` 설정 완료. **1회용 마이그 4파일 삭제**(다음 배포 동봉).
 - **▶ 활성화 follow-up(P2·graceful degrade 중·비차단)**: OP-045(가입 반려 suspended→rejected 코드)·OP-075(콘텐츠 DELETE→soft-delete + deletedAt 필터 + 휴지통 UI)·rejected_reason 컬럼 채우기(현재 report_status_logs.note로 보존) — 컬럼/enum은 적용됐고 코드 활성화만 남음. 운영 안정화 후 별도 deploy.
 - **▶ 후속(P2/P3·비차단)**: SU-026 감사 위험등급 매핑·OP-055 1:1상담 cms 통합(독립 admin-chat.html iframe·라이브 검증 필요)·OP-031 정산 앵커·US-044 효성/계좌 모금현황 recalc·AD-022 발간 검수자 배정 등. R45-MASTER §2·§4 참조.
-- **C Phase 2**: 머지본 라이브 재검증(권한 경계·익명성·결제·핵심 여정) 대기 → `docs/history/verify/2026-05-29-r45-fix.md`.
+- **C Phase 2 라이브 검증 ✅ PASS 23/0·FAIL 0·회귀 0·tsc 0** (`docs/history/verify/2026-05-29-r45-fix.md`). 보안 4대 클러스터 전부 닫힘 확인 + `/api/donate` 404 확정. FINDING 2건(보안 아님)도 처리:
+  - **F1 해결**: 권한 토글 8종 게이트 배선 완료(§4 정책). att_manage(근태 일상결재 5종 운영자 허용)·finance_view(재무열람 차단)·send_job(대량발송 차단)·comment_moderation(댓글중재 허용)·ai_config(AI설정/비용 차단)·member_directory_export(회원검색/내보내기 차단)·ai_agent_chat(AI비서 진입)·chat_expert_view/chat_blacklist(민감상담·블랙 차단). 권한정책 화면 토글 전부 실효화. KICC 정기결제 검증도 PASS(핵심 징수·재시도·자동해지·이중청구방지 정상·카드 만료 사전알림만 KICC 제약).
+  - **F2 해결**: donation_confirm 주석을 시드(operator 차단·재무성)와 일치하게 정정.
+- **▶ 추가 follow-up(P2·비차단)**: finance_bookkeeping 추가 함수(account-code/voucher/bank-import)·hyosung/billing-keys 열람 게이트·OP-020 att-ai-insight 임의직원·빌링키 평문토큰 제외 등 운영자 경계 hardening 잔여(R45-MASTER §2). 운영 안정화 후.
 
 ### 🕊️ R44 딥릴리프 서면 본문 출처 분리 — 종결 + BUG-A 후속 분리 (2026-05-29 최신·★상단)
 유족급여신청서 본문 생성 시 자료 출처를 Swain 3분류로 분리. 메인 단일 커밋(9d494e7)·라이브 검증 PASS·R43 종결 직후 후속.
