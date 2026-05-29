@@ -123,7 +123,7 @@ export default async function handler(req: Request, _ctx: Context) {
         category: "milestone", severity: "warning",
         title: "매출 이상 패턴 감지",
         message: `${a.memberName}: ${a.desc} (${a.date})`,
-        link: "/admin#milestone-review",
+        link: "/cms-tbfa.html#milestone-review",
         refTable: "revenue_entries",
         refId: a.memberId,
       });

@@ -115,7 +115,8 @@ export default async function handler(req: Request) {
       const rows = await db.select()
         .from(payrollSlips)
         .where(and(eq(payrollSlips.payYear, year), eq(payrollSlips.payMonth, month)))
-        .orderBy(desc(payrollSlips.grossPay));
+        .orderBy(desc(payrollSlips.grossPay))
+        .limit(500); // OP-030: 안전 상한(§6.3 페이지네이션 limit 명시)
 
       // 회원 정보 separate query + Map (drizzle leftJoin 체인 금지 §6.3)
       const memberIds = Array.from(new Set(rows.map(r => Number(r.memberUid)).filter(n => !isNaN(n))));

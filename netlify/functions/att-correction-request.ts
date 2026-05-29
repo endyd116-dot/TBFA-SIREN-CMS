@@ -3,6 +3,7 @@ import { attCorrections, members } from "../../db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { broadcastNotification } from "../../lib/workspace-logger";
+import { notifyAllOperators } from "../../lib/notify";
 
 export const config = { path: "/api/att-correction-request" };
 
@@ -75,33 +76,22 @@ export default async function handler(req: Request) {
       return jsonError("insert_correction", err);
     }
 
-    // R34-P2 (round2 P4 해소): 슈퍼어드민 전원에게 알림 (fire-and-forget)
-    const actorId   = auth.ctx.member.id;
+    /* OP-024: 결재 대기 알림 수신자를 휴가 신청(att-leave-request)과 동일하게 통일.
+       기존엔 정정 요청만 super_admin 한정이라 같은 '결재 대기' 워크플로우인데 수신 범위가 달랐다.
+       실제 결재 권한자(권한 계층 OP-019 결정 시 notifyAllOperators 대상도 함께 조정)에게 일관 발송. */
     const actorName = auth.ctx.member.name ?? "직원";
     try {
-      const sup = await db
-        .select({ id: members.id })
-        .from(members)
-        .where(and(
-          eq(members.role, "super_admin"),
-          eq(members.operatorActive as any, true),
-          isNull(members.withdrawnAt),
-        ));
-      const recipientIds = sup.map(s => s.id).filter(id => id !== actorId);
-      if (recipientIds.length > 0) {
-        await broadcastNotification(recipientIds, {
-          sourceType: "event" as any,
-          sourceId: insertedRow.id,
-          notifType: "reminder_3d" as any,
-          channel: "bell",
-          title: `근태 수정 요청 — ${actorName}`,
-          body: `${targetDate} 출퇴근 수정 요청이 접수되었습니다. 사유: ${String(reason).slice(0, 60)}`,
-          actionUrl: "/admin-workspace-management.html",
-          category: "system",
-        });
-      }
+      await notifyAllOperators({
+        category: "system",
+        severity: "info",
+        title: `🕒 근태 정정 결재 대기 — ${actorName}`,
+        message: `${targetDate} 출퇴근 정정 요청 접수${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
+        link: "/admin.html#att-leave",
+        refTable: "att_corrections",
+        refId: insertedRow.id,
+      });
     } catch (err) {
-      console.warn("[att-correction-request] 슈퍼어드민 알림 실패:", err);
+      console.warn("[att-correction-request] 결재 대기 알림 실패:", err);
     }
 
     return jsonOk(insertedRow, 201);
