@@ -6,6 +6,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { validateSendJob } from "../../lib/communication-send";
 
 export const config = { path: "/api/admin-send-job-create" };
@@ -35,6 +36,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  // R45 §4-7: 대량 발송은 admin+ (비용·평판 비가역·운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
+    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+  }
   /* fix(R3): BUG-5 패턴 회귀 — auth.admin?.id / user?.id는 항상 undefined.
      실제 어드민 ID는 auth.ctx.admin.uid에 있음. silent NULL 저장 방지. */
   const adminId = (auth as any).ctx?.admin?.uid ?? null;

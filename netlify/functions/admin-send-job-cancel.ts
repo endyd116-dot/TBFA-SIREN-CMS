@@ -7,6 +7,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin-send-job-cancel" };
 
@@ -35,6 +36,10 @@ export default async function handler(req: Request, _ctx: Context) {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  // R45 §4-7: 대량 발송 취소는 admin+ (운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
+    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+  }
 
   const url = new URL(req.url);
   const id = parseInt(url.searchParams.get("id") || "0", 10);

@@ -7,6 +7,7 @@
 //        → cron이 다음 tick에 자동 처리
 
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -15,6 +16,10 @@ export const config = { path: "/api/admin-send-job-retry" };
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as { ok: false; res: Response }).res;
+  // R45 §4-7: 개별 재발송은 admin+ (운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "send_job"))) {
+    return new Response(JSON.stringify({ ok: false, error: "대량 발송 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "POST만 허용" }), {
