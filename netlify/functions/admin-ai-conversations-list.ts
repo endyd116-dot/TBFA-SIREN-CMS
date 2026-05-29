@@ -30,10 +30,14 @@ export default async (req: Request, _ctx: Context) => {
   const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
   const adminFilter = url.searchParams.get("adminId");
   const q = (url.searchParams.get("q") || "").trim();  /* F-5: 검색어 */
+  // R45 OP-009: 본인 대화만(super_admin은 전체) — 타 관리자 대화·메시지 검색 노출 차단
+  const meId = (auth as any).ctx?.member?.id ?? null;
+  const isSuper = (auth as any).ctx?.member?.role === "super_admin";
 
   /* 조건 동적 조립 */
   const conds: any[] = [];
-  if (adminFilter) conds.push(sql`c.admin_id = ${Number(adminFilter)}`);
+  if (!isSuper) conds.push(sql`c.admin_id = ${meId}`);
+  else if (adminFilter) conds.push(sql`c.admin_id = ${Number(adminFilter)}`);
   if (q) {
     /* 제목 부분 일치 + messages 텍스트 안에 검색어 포함 (jsonb 텍스트 검색) */
     const pattern = `%${q}%`;

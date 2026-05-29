@@ -34,6 +34,12 @@ export default async (req: Request, _ctx: Context) => {
     const conv = (cr?.rows ?? cr ?? [])[0];
     if (!conv) return new Response(JSON.stringify({ ok: false, error: "대화 없음" }),
       { status: 404, headers: JSON_HEADER });
+    // R45 OP-010: 본인 대화만(super_admin은 전체) — id 추측으로 타인 대화·도구 입출력(PII) 노출 차단
+    const meId = (auth as any).ctx?.member?.id ?? null;
+    if ((auth as any).ctx?.member?.role !== "super_admin" && conv.admin_id !== meId) {
+      return new Response(JSON.stringify({ ok: false, error: "본인 대화만 조회할 수 있습니다" }),
+        { status: 403, headers: JSON_HEADER });
+    }
 
     const lr: any = await db.execute(sql`
       SELECT id, tool_name, input_args, output, status, duration_ms, error, created_at

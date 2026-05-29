@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { auditLogs } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { gte, sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-audit-stats" };
@@ -41,6 +42,10 @@ export default async function handler(req: Request) {
     if (guardFailed(auth)) return auth.res;
   } catch (err) {
     return jsonError("auth", err);
+  }
+  // R45 SU-018: 감사 통계도 동일 권한 게이트(operator 차단)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "audit_view"))) {
+    return new Response(JSON.stringify({ ok: false, error: "감사 로그 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
   }
 
   const url = new URL(req.url);
