@@ -80,7 +80,9 @@ export default async (req: Request) => {
         donorPhone: data.phone,
         donorEmail: data.email,
         amount: data.amount,
-        type: data.type,
+        /* ★ US-017: 이 경로는 일시(단건) 카드결제 전용 — 빌키를 만들지 않으므로 항상 onetime 으로 고정.
+           정기후원은 반드시 billing-register/billing-approve(빌키 발급) 경로로만 유입. */
+        type: "onetime",
         payMethod: "card",
         pgProvider: "kicc",
         status: "pending",

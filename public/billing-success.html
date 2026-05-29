@@ -425,8 +425,10 @@
           setRow('bsRowNextChargeAt', 'bsNextChargeAt', formatDate(active.nextChargeAt));
         }
         var firstCharge = (d.recentCharges && d.recentCharges[0]) || null;
-        if (firstCharge && firstCharge.chargedAt) {
-          setRow('bsRowFirstChargedAt', 'bsFirstChargedAt', formatDate(firstCharge.chargedAt));
+        /* ★ US-015: 서버 recentCharges는 createdAt 키로 내려줌(chargedAt 없음) → 다중 fallback */
+        var firstChargeAt = firstCharge && (firstCharge.chargedAt || firstCharge.createdAt);
+        if (firstChargeAt) {
+          setRow('bsRowFirstChargedAt', 'bsFirstChargedAt', formatDate(firstChargeAt));
         }
       } catch (e) {
         /* 비회원·미로그인 등은 보강 생략 — 후원 번호만 표시 */

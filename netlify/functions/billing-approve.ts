@@ -20,6 +20,7 @@ import { safeReevaluate } from "../../lib/donor-status";
 import { approveTrade, chargeWithBillingKey, calculateNextBillingDate } from "../../lib/kicc";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
+import { notifyAllSuperAdmins } from "../../lib/notify";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -175,6 +176,36 @@ export default async (req: Request) => {
         detail: { code: charge.errorCode, message: charge.errorMessage, amount },
         success: false,
       });
+      /* ★ US-014: 첫 회차 결제 실패 시 후원자·운영진 알림 (기존엔 알림 0·후속 안내 없음).
+         후원자는 정기후원이 시작됐는지 알 수 없었고 협회도 실패를 인지 못했음. */
+      if (memberId) {
+        try {
+          dispatch({
+            event: NotifyEvent.BILLING_FAILED,
+            target: { type: "member", id: memberId },
+            params: {
+              memberName: donation.donorName,
+              amount,
+              title: "정기후원 첫 결제 실패",
+              message: "카드 등록은 완료되었으나 첫 회차 결제가 실패했습니다. 마이페이지에서 다시 등록을 시도해 주세요.",
+              link: "/billing-register.html",
+              category: "donation",
+              severity: "warning",
+            },
+          });
+        } catch (e) { console.warn("[billing-approve] 첫결제실패 후원자 알림 예외(무시):", e); }
+      }
+      try {
+        await notifyAllSuperAdmins({
+          category: "donation",
+          severity: "warning",
+          title: "⚠️ 정기후원 첫 회차 결제 실패",
+          message: `${donation.donorName}님의 정기후원 첫 회차 결제가 실패했습니다 (${charge.errorMessage || "사유 미상"}).`,
+          link: "/admin.html#donations",
+          refTable: "donations",
+          refId: donation.id,
+        });
+      } catch (e) { console.warn("[billing-approve] 첫결제실패 운영진 알림 예외(무시):", e); }
       return failRedirect(charge.errorMessage || "첫 결제에 실패했습니다");
     }
 
