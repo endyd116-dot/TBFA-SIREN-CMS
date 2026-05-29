@@ -11,6 +11,12 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { generateTaskSummary, calculateTaskRisk, generateCompletionReport } from "../../lib/ai-task";
 import { ok, badRequest, methodNotAllowed, serverError } from "../../lib/response";
 
+/* OP-047: best-effort 연타 방지 — 같은 (task,type) 재생성을 짧은 쿨다운으로 제한.
+   인메모리라 콜드스타트 시 리셋되지만, 웜 인스턴스 연타(비용 폭증의 가장 흔한 경로)는 차단.
+   근본적 분당 상한은 ai-feature 월예산 가드와 병행. */
+const REGEN_COOLDOWN_MS = 15_000;
+const lastRegenAt = new Map<string, number>();
+
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== "POST") return methodNotAllowed();
 
@@ -27,6 +33,17 @@ export default async (req: Request, _ctx: Context) => {
     return badRequest("type은 summary | risk | completion 중 하나");
   }
 
+  /* OP-047: 쿨다운 검사 */
+  const cooldownKey = `${id}:${type}`;
+  const nowMs = Date.now();
+  if (nowMs - (lastRegenAt.get(cooldownKey) || 0) < REGEN_COOLDOWN_MS) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "방금 재생성했습니다. 잠시 후 다시 시도해 주세요.", step: "cooldown" }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  lastRegenAt.set(cooldownKey, nowMs);
+
   try {
     let result: any;
     if (type === "summary") {
@@ -38,7 +55,11 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     if (!result.ok) {
-      return ok({ ok: false, error: result.error || "AI 처리 실패" }, "AI 처리 실패");
+      /* OP-048: AI 실패를 HTTP 200으로 감싸 보내면 프론트가 성공으로 오인 → 비-200 + step 표준 에러 */
+      return new Response(
+        JSON.stringify({ ok: false, error: result.error || "AI 처리 실패", step: "ai_generate" }),
+        { status: 502, headers: { "Content-Type": "application/json" } }
+      );
     }
     return ok(result, `${type} 재생성 완료`);
   } catch (err: any) {

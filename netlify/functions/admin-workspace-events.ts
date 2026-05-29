@@ -374,6 +374,15 @@ export default async (req: Request, _ctx: Context) => {
       // ★ Q3-006 fix: 응답은 workspace_event_rsvps 단일 출처에 upsert (attendees JSONB는 초대 명단 전용으로 보존).
       //   기존엔 응답을 attendees JSONB에 써서 캘린더 UI(workspace-event-rsvp)의 rsvps 테이블과 이원화됐다.
       if (action === "rsvp") {
+        /* OP-037: 초대 여부 검증 — 주최자이거나 attendees에 포함된 사람만 응답 가능(주최자 알림 스팸 방지). */
+        const evAttendeeIds: number[] = Array.isArray(ev.attendees)
+          ? ev.attendees
+              .map((a: any) => (typeof a === "number" ? a : Number(a?.memberId)))
+              .filter((n: number) => Number.isFinite(n) && n > 0)
+          : [];
+        if (ev.memberId !== meId && !evAttendeeIds.includes(meId)) {
+          return forbidden("초대된 일정에만 응답할 수 있습니다");
+        }
         const statusMap: Record<string, string> = { accepted: "yes", declined: "no", invited: "maybe", yes: "yes", no: "no", maybe: "maybe" };
         const rsvpStatus = statusMap[String(body.status || "")];
         if (!rsvpStatus) return badRequest("status는 yes/no/maybe (또는 accepted/declined)");

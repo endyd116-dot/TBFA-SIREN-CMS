@@ -137,7 +137,9 @@ export default async (req: Request, _ctx: Context) => {
           .where(
             and(
               eq(workspaceFileShares.targetType, "file"),
-              or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith))
+              or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith)),
+              /* OP-036: 만료된 공유는 목록 가시성에서도 제외 — 단건 GET·다운로드(Q3-007)와 정합. */
+              or(isNull(workspaceFileShares.expiresAt), sql`${workspaceFileShares.expiresAt} > NOW()`)
             )
           );
         const sharedIds = sharedFileIdsRows.map((r: any) => r.targetId);
@@ -150,13 +152,21 @@ export default async (req: Request, _ctx: Context) => {
       }
 
       const finalWhere = visibilityCond ? and(...baseConds, visibilityCond) : and(...baseConds);
+      /* OP-038: offset 페이지네이션 + 실제 total — 상한(500) 초과분에 '더 보기'로 도달 가능하게. */
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+      const totalRow: any = await db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(workspaceFiles)
+        .where(finalWhere);
+      const total = Number(totalRow[0]?.c ?? 0);
       const items: any = await db
         .select()
         .from(workspaceFiles)
         .where(finalWhere)
         .orderBy(desc(workspaceFiles.updatedAt))
-        .limit(limit);
-      return ok({ items, total: items.length });
+        .limit(limit)
+        .offset(offset);
+      return ok({ items, total, offset, limit });
     }
 
     /* =========================

@@ -1949,18 +1949,22 @@
 
     try {
       const res = await api(`/api/admin-task-ai-regenerate?id=${taskId}&type=${type}`, { method: 'POST', body: {} });
-      const inner = res.data || res;
+      /* OP-048: 응답이 {ok, message, data:result}로 한 겹 감싸여 옴 → 실제 값은 res.data.data.
+         api()가 비-200·본문 ok:false를 모두 res.ok=false로 접어주므로 그것으로 성공/실패 판정. */
+      const body = res.data || {};
+      const payload = (body && body.data) || body;
 
-      if (inner && inner.ok === false) {
-        toast(`AI ${type} 실패: ${inner.error || '알 수 없는 오류'}`, 'error');
+      if (!res.ok) {
+        const errMsg = (payload && payload.error) || (body && body.error) || '알 수 없는 오류';
+        toast(`AI ${type} 실패: ${errMsg}`, 'error');
       } else {
         toast(`${type === 'summary' ? '요약' : type === 'risk' ? '리스크' : '완료 보고서'} ${type === 'completion' ? '생성됨' : '재계산됨'}`, 'success');
 
-        if (type === 'summary' && inner.summary) {
-          TAB_STATE.currentTask.aiSummary = inner.summary;
+        if (type === 'summary' && payload.summary) {
+          TAB_STATE.currentTask.aiSummary = payload.summary;
           renderAi();
-        } else if (type === 'risk' && typeof inner.score === 'number') {
-          TAB_STATE.currentTask.aiRiskScore = inner.score;
+        } else if (type === 'risk' && typeof payload.score === 'number') {
+          TAB_STATE.currentTask.aiRiskScore = payload.score;
           renderAi();
         } else if (type === 'completion') {
           // 보고 탭 캐시 무효화

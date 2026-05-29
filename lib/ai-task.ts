@@ -255,11 +255,28 @@ ${commentSummary || "(댓글 없음)"}
       return { ok: false, error: result.error || "AI 응답 없음" };
     }
 
+    /* OP-046: 같은 task의 기존 미검토(pending) 완료 보고서 초안 정리 — 재생성/done 자동생성이
+       매번 새 pending 초안을 INSERT해 중복 누적되던 문제. 직전 미검토 초안을 대체한다.
+       (approved/rejected 처리된 보고서는 보존.) */
+    try {
+      await db.delete(workspaceTaskReports).where(and(
+        eq(workspaceTaskReports.taskId, taskId),
+        eq(workspaceTaskReports.type, "completion"),
+        eq(workspaceTaskReports.reviewStatus, "pending"),
+      ));
+    } catch (e: any) {
+      console.warn("[ai-task.completion] 기존 초안 정리 실패:", e?.message || e);
+    }
+
+    /* OP-051: 보고서 작성자는 재생성을 누른 사람이 아니라 작업 수행자로 기록
+       (완료자 → 지시대상 → 소유자 순). 재생성 호출자 식별은 별도 감사로그 영역(메인). */
+    const reportAuthorId = (task.completedBy ?? task.assignedTo ?? task.memberId ?? authorMemberId) as number;
+
     const inserted: any = await db
       .insert(workspaceTaskReports)
       .values({
         taskId,
-        memberId: authorMemberId,
+        memberId: reportAuthorId,
         type: "completion",
         title: String(result.data.title || `${task.title} - 완료 보고서 (AI 초안)`).slice(0, 300),
         content: String(result.data.content).slice(0, 10000),
