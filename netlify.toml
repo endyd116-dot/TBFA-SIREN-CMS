@@ -442,6 +442,10 @@
   schedule = "0 0 * * *"
 [functions."cron-tracking-stats-rollup"]
   schedule = "0 */6 * * *"
+# ★ 2026-05-29 운영 전 점검: 인라인 config.schedule만 있던 카카오 알림톡 템플릿 자동 검수 cron 누락 등록.
+#  (운영자가 CMS에서 등록·검수요청한 알림톡 템플릿의 승인 상태가 매시간 자동 반영되도록.)
+[functions."cron-kakao-template-status"]
+  schedule = "0 * * * *"
 
 # ============================================================
 # Dev 설정
