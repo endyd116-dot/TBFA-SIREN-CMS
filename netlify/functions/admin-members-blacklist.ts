@@ -68,7 +68,9 @@ export default async (req: Request, _ctx: Context) => {
 
       const memberId = Number(body.memberId);
       if (!memberId) return badRequest("memberId 필수");
-      const reason = body.reason ? String(body.reason).slice(0, 1000).trim() : null;
+      // AD-065: 블랙(차단)은 비가역 위험 작업 — 사유 필수(추적성). 강제변경·자격반려와 동일 기준.
+      const reason = String(body.reason || "").slice(0, 1000).trim();
+      if (reason.length < 5) return badRequest("블랙 처리 사유를 5자 이상 입력해주세요");
 
       // 본인은 블랙 처리 불가
       if (memberId === meId) return badRequest("본인을 블랙 처리할 수 없습니다");

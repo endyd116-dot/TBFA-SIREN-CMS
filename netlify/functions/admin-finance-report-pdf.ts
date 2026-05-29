@@ -52,7 +52,7 @@ async function buildPlData(startDate: string, endDate: string, fiscalYear: numbe
       .from(donations)
       .where(and(
         eq(donations.status, "completed"),
-        sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
+        sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
       ));
     donationGross = Number(rows[0]?.total || 0);
   } catch (err) { console.warn("[report-pdf] 후원 집계 실패", err); }
@@ -63,7 +63,7 @@ async function buildPlData(startDate: string, endDate: string, fiscalYear: numbe
       .from(donations)
       .where(and(
         eq(donations.status, "refunded"),
-        sql`COALESCE(${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
+        sql`COALESCE(${donations.paidAt}, ${donations.hyosungPaidDate}, ${donations.createdAt})::date BETWEEN ${startDate}::date AND ${endDate}::date`
       ));
     donationRefund = Number(rows[0]?.total || 0);
   } catch (err) { console.warn("[report-pdf] 후원 환불 집계 실패", err); }

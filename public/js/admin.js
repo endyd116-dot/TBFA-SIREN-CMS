@@ -3951,10 +3951,10 @@ const OPERATOR_CATEGORIES = [
             '<label style="font-size:12.5px;font-weight:600;color:var(--text-1);display:block;margin-bottom:4px">새 자격 유형</label>' +
             '<select id="miEligTypeSelect_' + member.id + '" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:13px;font-family:inherit">' +
               '<option value="">선택...</option>' +
-              '<option value="active_teacher">현직 교원</option>' +
-              '<option value="retired_teacher">은퇴 교원</option>' +
-              '<option value="pre_teacher">예비 교원</option>' +
-              '<option value="general">일반인</option>' +
+              '<option value="현직">현직 교원</option>' +
+              '<option value="은퇴">은퇴 교원</option>' +
+              '<option value="예비">예비 교원</option>' +
+              '<option value="일반">일반인</option>' +
               '<option value="lawyer">변호사</option>' +
               '<option value="counselor">상담사</option>' +
             '</select>' +

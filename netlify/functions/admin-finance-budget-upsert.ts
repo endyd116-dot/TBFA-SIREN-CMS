@@ -20,25 +20,17 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   }
 
-  try {
-    await db.execute(sql`
-      INSERT INTO budgets (fiscal_year, category_id, planned_amount, note, created_by)
-      VALUES (${fiscalYear}, ${categoryId}, ${plannedAmount}, ${note || null}, ${auth.ctx.admin.uid})
-      ON CONFLICT (fiscal_year, category_id)
-      DO UPDATE SET planned_amount = EXCLUDED.planned_amount, note = EXCLUDED.note
-    `);
-    return new Response(
-      JSON.stringify({ ok: true, message: "예산 편성 완료" }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (err: any) {
-    return new Response(
-      JSON.stringify({
-        ok: false, error: "예산 편성 실패", step: "upsert",
-        detail: String(err?.message || err).slice(0, 500),
-        stack: String(err?.stack || "").slice(0, 1000),
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
+  // AD-069: 이 API는 폐기된 `budgets` 테이블에 쓰던 데드 코드(어느 화면도 호출 안 함).
+  // 예산 편성은 22-B-R2부터 예산안(budget_plans/budget_lines) 결재 흐름으로 이관됨
+  // (admin-budget-plan-create/-submit/-approve). 잘못 호출 시 폐기 테이블 INSERT로
+  // 항상 500이 나던 잠재 장애를 제거하고, 올바른 흐름을 안내하는 410으로 명시 차단.
+  void fiscalYear; void categoryId; void plannedAmount; void note;
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: "이 예산 편성 API는 폐기되었습니다. 예산안 작성·결재(예산 편성) 화면을 사용하세요.",
+      step: "deprecated",
+    }),
+    { status: 410, headers: { "Content-Type": "application/json" } }
+  );
 }

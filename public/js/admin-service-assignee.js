@@ -125,7 +125,12 @@
     if (_membersCache) return _membersCache;
     try {
       const res = await api('/api/admin-workspace-members');
-      const items = (res && res.data && res.data.items) || (res && res.items) || (res && res.data) || [];
+      // AD-016: 엔드포인트가 ok({ data: rows })로 이중 래핑(body.data.data=rows) → data.data까지 확인
+      const items = (res && res.data && Array.isArray(res.data.data) && res.data.data)
+        || (res && res.data && res.data.items)
+        || (res && res.items)
+        || (res && res.data)
+        || [];
       _membersCache = Array.isArray(items) ? items : [];
     } catch (_) {
       _membersCache = [];
