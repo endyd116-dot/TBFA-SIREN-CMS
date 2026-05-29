@@ -7,7 +7,7 @@
  *
  * 권한: 관리자/슈퍼관리자/운영자
  */
-import { eq, desc, asc, and, or, like, count } from "drizzle-orm";
+import { eq, desc, asc, and, or, ilike, count } from "drizzle-orm";
 import { db, faqs } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { faqSchema, safeValidate } from "../../lib/validation";
@@ -61,7 +61,7 @@ export default async (req: Request) => {
 
       if (q && q.length >= 2) {
         const pattern = `%${q}%`;
-        conditions.push(or(like(faqs.question, pattern), like(faqs.answer, pattern)));
+        conditions.push(or(ilike(faqs.question, pattern), ilike(faqs.answer, pattern)));
       }
 
       if (activeFilter === "true") {

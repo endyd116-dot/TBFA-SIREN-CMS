@@ -84,7 +84,8 @@ export default async (req: Request) => {
       const aggResult: any = await db.execute(sql`
         SELECT
           COALESCE(SUM(amount), 0)::bigint AS "totalAmount",
-          COUNT(DISTINCT COALESCE(member_id, 0))::int AS "uniqueDonors",
+          (COUNT(DISTINCT member_id) FILTER (WHERE member_id IS NOT NULL)
+            + COUNT(*) FILTER (WHERE member_id IS NULL))::int AS "uniqueDonors",
           COUNT(*)::int AS "totalDonations",
           COUNT(*) FILTER (WHERE type = 'regular')::int AS "regularCount",
           COUNT(*) FILTER (WHERE type = 'onetime')::int AS "onetimeCount",
