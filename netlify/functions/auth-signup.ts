@@ -238,11 +238,20 @@ export default async (req: Request, _ctx: Context) => {
     if (!agreeTerms) return badRequest("이용약관에 동의해주세요");
     if (!agreePrivacy) return badRequest("개인정보처리방침에 동의해주세요");
 
-    /* 4. 회원 유형 검증 */
-    if (!isValidMemberType(memberTypeInput)) {
+    /* 4. 회원 유형 검증 — R45 US-001(P0): 가입 모달 값(volunteer/expert)을 서버 키로 정규화.
+       모달: regular/family/volunteer(봉사자)/expert(+expertType=lawyer|counselor)
+       서버: regular/family/teacher(교원)/lawyer/counselor → 전문가·봉사자 가입이 거절되던 문제 해소. */
+    let normalizedType: string = memberTypeInput;
+    if (memberTypeInput === "expert") {
+      const et = String((body as any).expertType || "").trim();
+      normalizedType = (et === "lawyer" || et === "counselor") ? et : "";
+    } else if (memberTypeInput === "volunteer") {
+      normalizedType = "teacher"; // 봉사자 = 교원(members.type='volunteer' 직군) 슬롯
+    }
+    if (!isValidMemberType(normalizedType)) {
       return badRequest(`유효하지 않은 회원 유형: ${memberTypeInput}`);
     }
-    const memberType = memberTypeInput as MemberTypeKey;
+    const memberType = normalizedType as MemberTypeKey;
     const config = MEMBER_TYPE_CONFIG[memberType];
 
     /* 5. 증빙 파일 검증 (필요한 경우) */

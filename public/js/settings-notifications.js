@@ -12,26 +12,29 @@
 
 
   /* 이벤트 분류·라벨 — 새 키는 여기에 추가만 하면 자동 인식 */
+  /* R45 US-058: 키를 NotifyEvent 정규값(점 표기)으로 통일 — 기존 underscore 키(donation_confirmed·
+     support_status_change·incident_reply·workspace_mention)는 디스패처(점 표기)와 불일치해 수신거부가 무시됐음. */
   const CATEGORY = {
-    billing:   ["donation_confirmed", "billing.success", "billing.failed", "billing.canceled", "card.expiring"],
-    service:   ["support_status_change", "support.reply", "siren.assigned",
-                "member.eligibility_decided", "incident_reply", "admin.daily_briefing"],
-    workspace: ["workspace_mention", "workspace.activity"],
+    billing:   ["billing.success", "billing.failed", "billing.canceled", "card.expiring", "billing.upcoming", "donation.receipt_annual"],
+    service:   ["support.reply", "siren.assigned", "legal.assigned",
+                "member.eligibility_decided", "comment.report_resolved", "donor.info_changed"],
+    workspace: ["workspace.mention", "workspace.activity"],
   };
   const EVENT_LABELS = {
-    "support_status_change":      "유가족 신청 상태 변경",
-    "donation_confirmed":         "후원 결제 완료",
-    "workspace_mention":          "워크스페이스 멘션",
-    "incident_reply":             "사건 보고 댓글",
     "billing.success":            "결제 성공",
     "billing.failed":             "결제 실패",
     "billing.canceled":           "결제 취소",
+    "billing.upcoming":           "정기결제 예정 안내",
     "card.expiring":              "카드 만료 예정",
+    "donation.receipt_annual":    "연말 기부금 영수증 안내",
+    "support.reply":              "유가족 지원 회신",
+    "siren.assigned":             "SIREN 신고 배정",
+    "legal.assigned":             "법률 상담 배정",
+    "member.eligibility_decided": "회원 자격 심사 결과",
+    "comment.report_resolved":    "댓글 신고 처리 결과",
+    "donor.info_changed":         "후원 정보 변경 안내",
+    "workspace.mention":          "워크스페이스 멘션",
     "workspace.activity":         "워크스페이스 활동",
-    "admin.daily_briefing":       "어드민 일일 브리핑",
-    "support.reply":              "지원 회신",
-    "siren.assigned":             "SIREN 할당",
-    "member.eligibility_decided": "회원 자격 결정",
   };
 
   let preferences = []; // [{eventType, channels:[...]}]
