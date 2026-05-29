@@ -8,7 +8,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../../db";
 import { incidentReports } from "../../db/schema";
 import { requireActiveUser } from "../../lib/auth";
-import { notifyAllOperators } from "../../lib/notify";
+import { notifyAllOperators, createNotification } from "../../lib/notify";
 import {
   ok, badRequest, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -84,6 +84,23 @@ export default async (req: Request, _ctx: Context) => {
       } catch (e) {
         console.warn("[incident-report-confirm] 알림 실패", e);
       }
+
+      /* ★ US-021: 신고자 본인에게도 '정식 접수·검토 시작' 1회 통지 (기존엔 운영자에게만 알림이 가서
+         신고자는 운영자가 단계를 수동으로 바꾸기 전까지 진행 통지를 못 받았음). */
+      try {
+        await createNotification({
+          recipientId: user.uid,
+          recipientType: "user",
+          category: "system",
+          severity: "info",
+          title: "사건 제보가 정식 접수되었습니다",
+          message: `'${(row as any).reportNo}' 제보가 사이렌에 정식 접수되어 운영진 검토가 시작되었습니다.`,
+          link: "/my-reports.html",
+          refTable: "incident_reports",
+          refId: reportId,
+          expiresInDays: 60,
+        });
+      } catch (e) { console.warn("[incident-report-confirm] 신고자 알림 예외(무시):", e); }
     }
 
     /* 감사 로그 */
