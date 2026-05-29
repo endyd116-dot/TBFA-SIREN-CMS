@@ -20,6 +20,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
 /* ★ Q3-012/013: 비스트리밍(admin-ai-agent)의 동적 도구 로딩·입력 토큰 추정 헬퍼 재사용 (단일 출처) */
 import { selectRelevantTools, estimateInputTokens } from "./admin-ai-agent";
@@ -68,6 +69,10 @@ export default async (req: Request, _ctx: Context) => {
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
   const adminRole = (auth as any).ctx?.member?.role ?? null; // R45 CLUSTER-1: DB 역할(도구 권한 판정·JWT 신뢰 금지)
+  // R45 §4-AI: AI 비서 진입 권한(ai_agent_chat·운영자 허용·권한정책 토글)
+  if (!(await canAccess(adminRole ?? "", "ai_agent_chat"))) {
+    return jsonError("auth_role", "AI 비서 사용 권한이 없습니다", 403);
+  }
 
   /* 사전 검증 — SSE 시작 전에 JSON으로 거부 */
   const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);

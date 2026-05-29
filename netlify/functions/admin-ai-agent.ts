@@ -26,6 +26,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { TOOL_DECLARATIONS, executeTool } from "../../lib/ai-agent-tools";
 
 /* === Phase 1~4 비용 안전장치 === */
@@ -483,6 +484,10 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
+  // R45 §4-AI: AI 비서 채팅 진입 권한(ai_agent_chat·운영자 허용·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx?.member?.role ?? "", "ai_agent_chat"))) {
+    return new Response(JSON.stringify({ ok: false, error: "AI 비서 사용 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   /* === Phase 1.5: 'AI 비서 채팅' 기능 토글 + 기능별·전체 월 한도 체크 === */
   const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);

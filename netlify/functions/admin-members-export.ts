@@ -6,6 +6,7 @@ import { eq, and, or, like, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { members, signupSources, donations } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { logAdminAction } from "../../lib/audit";
 import { buildCSV, csvResponse } from "../../lib/csv-export";
 import {
@@ -60,6 +61,10 @@ export default async (req: Request) => {
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin } = guard.ctx;
+  // R45 §4-3: 회원 명단 엑셀 내보내기는 admin+ (전 회원 PII 대량추출·운영자 차단·권한정책 토글)
+  if (!(await canAccess(guard.ctx.member.role ?? "", "member_directory_export"))) {
+    return new Response(JSON.stringify({ ok: false, error: "회원 내보내기 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   try {
     const url = new URL(req.url);
