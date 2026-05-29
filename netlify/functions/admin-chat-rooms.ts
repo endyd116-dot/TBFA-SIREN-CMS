@@ -112,11 +112,21 @@ export default async (req: Request) => {
           .where(and(eq(chatBlacklist.memberId, room.memberId), eq(chatBlacklist.isActive, true)))
           .limit(1);
 
+        /* OP-067: 운영자(operator)에게는 응대에 불필요한 민감 필드 축소 — 전화 마스킹·후원총액 숨김.
+           (게이트는 유지하고 표시 범위만 조정. admin/super_admin은 전체 노출.) */
+        const viewerRole = guard.ctx.member?.role || "";
+        const isOperatorOnly = viewerRole === "operator";
+        const maskPhone = (p: any) => {
+          const d = String(p || "").replace(/\D/g, "");
+          return d.length >= 7 ? `${d.slice(0, 3)}-****-${d.slice(-4)}` : (p ? "***" : p);
+        };
         return ok({
           room,
-          member,
+          member: member
+            ? { ...member, phone: isOperatorOnly ? maskPhone(member.phone) : member.phone }
+            : member,
           summary: {
-            donationTotal: Number(donationStats[0]?.total ?? 0),
+            donationTotal: isOperatorOnly ? null : Number(donationStats[0]?.total ?? 0),
             donationCount: Number(donationStats[0]?.cnt ?? 0),
             supportCount: Number(supportCnt[0]?.c ?? 0),
           },
@@ -192,6 +202,8 @@ export default async (req: Request) => {
           archived: Number(archivedCnt?.c ?? 0),
           totalUnread: Number(unreadRows[0]?.s ?? 0),
         },
+        /* OP-064: 1글자 검색은 무시됨을 클라이언트에 알려 '검색이 안 먹힌다'는 혼란 방지 */
+        searchIgnored: !!q && q.length < 2,
       });
     }
 
@@ -294,10 +306,20 @@ export default async (req: Request) => {
       }
 
       if (typeof body.status === "string" && ["active", "closed", "archived"].includes(body.status)) {
+        /* OP-062: 보관(archived)은 종결 상태 — active 역전환 금지(종료 기록 불변성 우회 차단). */
+        if (room.status === "archived" && body.status === "active") {
+          return badRequest("보관된 상담은 다시 활성화할 수 없습니다");
+        }
         updateData.status = body.status;
         if (body.status === "closed" && !room.closedAt) {
           updateData.closedAt = new Date();
           updateData.closedBy = admin.uid;
+          /* OP-062: 종료 사유 기록 — 별도 컬럼이 없어 운영 메모에 보존(종료 후 워크플로우 기초). */
+          if (typeof body.closeReason === "string" && body.closeReason.trim()) {
+            const reasonNote = `[종료사유] ${body.closeReason.trim().slice(0, 300)}`;
+            const baseMemo = (updateData.adminMemo ?? room.adminMemo) || "";
+            updateData.adminMemo = baseMemo ? `${baseMemo}\n${reasonNote}` : reasonNote;
+          }
         }
         if (body.status === "archived" && !room.archivedAt) {
           updateData.archivedAt = new Date();

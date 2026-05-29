@@ -35,6 +35,8 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "legal_consultation_analysis",  name: "법률 상담 1차 자문",        category: "user_request",  description: "법률 상담 신청에서 카테고리·시급도·관련 법령 추출",     sortOrder: 140 },
   { key: "task_auto_summary",            name: "워크스페이스 작업 자동 요약", category: "user_request",  description: "워크스페이스 카드 생성 시 description 3줄 요약 자동",   sortOrder: 150 },
   { key: "task_completion_report",       name: "작업 완료 보고서 초안",     category: "user_request",  description: "워크스페이스 작업 'done' 이동 시 마크다운 보고서 초안",  sortOrder: 160 },
+  /* OP-052: 근태/성과 AI 키 등록 — 미등록이라 어드민 AI 기능 화면 토글·월예산 제어가 불가했음 */
+  { key: "att_remote_draft",             name: "재택근무 보고서 초안",       category: "user_request",  description: "재택근무 보고 작성 시 활동 내용 기반 보고서 초안 자동 생성", sortOrder: 165 },
 
   /* === 운영자 즉시 호출 (6) === */
   { key: "support_reply_draft",          name: "AI 답변 초안 생성",         category: "admin_action",  description: "지원 신청·사건·악성민원·법률·게시판 답변 초안 자동 작성", sortOrder: 210 },
@@ -50,6 +52,9 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "milestone_matrix_mapping",     name: "마일스톤 매트릭스 AI 매핑", category: "admin_action",  description: "분기 성과 기준표(매트릭스) 텍스트에서 마일스톤 정의 추출·기존 충돌 판정", sortOrder: 296 },
   { key: "org_news_analysis",            name: "뉴스·여론 동향 분석",        category: "cron_daily",    description: "네이버 검색 수집 기사를 AI로 분석해 동향·감성·키워드 추출", sortOrder: 297 },
   { key: "memorial_story_detail",        name: "유가족이야기 상세 초안",      category: "admin_action",  description: "유튜브 영상 정보·운영자 메모로 추모 상세페이지 초안 생성",  sortOrder: 298 },
+  /* OP-052: 근태 흐름파악·성과 인사이트 AI 키 등록 */
+  { key: "att_ai_insight",               name: "근태 흐름 파악 AI",         category: "admin_action",  description: "직원 근태·재택보고·작업 패턴을 AI가 분석해 흐름·이상치 요약 (수동 트리거)", sortOrder: 299 },
+  { key: "milestone_insight",            name: "성과 인사이트 AI",          category: "admin_action",  description: "분기 성과(매출·비매출) 데이터로 인사이트·코칭 포인트 AI 생성",  sortOrder: 300 },
 
   /* === Cron 자동 실행 (4) === */
   { key: "task_daily_risk_evaluation",   name: "작업 리스크 일일 평가",     category: "cron_daily",    description: "매일 06:30 KST — 진행 중 작업 리스크 점수 갱신",        sortOrder: 310 },

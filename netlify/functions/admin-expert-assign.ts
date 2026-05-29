@@ -25,6 +25,7 @@ import {
   expertMatches,
 } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { createNotification } from "../../lib/notify";
 import {
   checkExpertEligibility,
   buildExpertChatRoomTitle,
@@ -185,6 +186,34 @@ export default async (req: Request, _ctx: Context) => {
     chatRoomId = result;
   } catch (err) {
     return jsonError("transaction", err);
+  }
+
+  /* OP-060: 배정 완료를 사용자·전문가 양측에 알림 — 기존엔 양측이 직접 목록을 봐야 매칭을 인지(상담 시작 지연). */
+  try {
+    await createNotification({
+      recipientId: match!.userId,
+      recipientType: "user",
+      category: "chat",
+      severity: "info",
+      title: "전문가 상담이 배정되었습니다",
+      message: `${expertName || "전문가"}님과의 1:1 상담이 시작되었습니다. 마이페이지에서 대화를 시작하세요.`,
+      link: "/mypage.html",
+      refTable: "chat_rooms",
+      refId: chatRoomId,
+    });
+    await createNotification({
+      recipientId: expertId,
+      recipientType: "user",
+      category: "chat",
+      severity: "info",
+      title: "새 상담이 배정되었습니다",
+      message: `${userName || "상담 신청자"}님과의 1:1 상담이 배정되었습니다.`,
+      link: "/mypage.html",
+      refTable: "chat_rooms",
+      refId: chatRoomId,
+    });
+  } catch (notifyErr) {
+    console.warn("[admin-expert-assign] 배정 알림 실패:", notifyErr);
   }
 
   /* 7. 응답 */

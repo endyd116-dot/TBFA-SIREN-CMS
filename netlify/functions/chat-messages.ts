@@ -8,8 +8,8 @@
  * ★ STEP H-1: 응답에 attachment 객체 합쳐서 전달
  * ★ 6순위 #8: expert_1on1 룸 — canEnterExpertRoom 가드 추가
  */
-import { eq, and, gt, asc, inArray } from "drizzle-orm";
-import { db, chatRooms, chatMessages, chatBlacklist, chatAttachments } from "../../db";
+import { eq, and, gt, asc, inArray, sql, ne } from "drizzle-orm";
+import { db, chatRooms, chatMessages, chatBlacklist, chatAttachments, members } from "../../db";
 import { authenticateUser, authenticateAdmin } from "../../lib/auth";
 import { canEnterExpertRoom, ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 import {
@@ -131,6 +131,8 @@ export default async (req: Request) => {
       if (!Number.isFinite(roomId)) return badRequest("roomId가 필요합니다");
       if (!content && !attachmentId) return badRequest("내용 또는 첨부파일이 필요합니다");
       if (!["text", "image"].includes(messageType)) return badRequest("유효하지 않은 메시지 타입");
+      /* OP-063: image 타입 메시지는 첨부 필수 — 빈 이미지 말풍선 방지 */
+      if (messageType === "image" && !attachmentId) return badRequest("이미지 메시지에는 첨부가 필요합니다");
 
       /* 블랙리스트 체크 (사용자만, 어드민·전문가 제외) */
       if (!isAdmin) {
@@ -164,10 +166,33 @@ export default async (req: Request) => {
 
       if (room.status !== "active") return forbidden("종료된 채팅방입니다");
 
+      /* OP-059: 첨부가 지정되면 이 방에 속한 첨부인지 검증 — 타 방 첨부 참조(IDOR성 메타 누출) 차단 */
+      if (attachmentId) {
+        const [att] = await db
+          .select({ id: chatAttachments.id, roomId: chatAttachments.roomId })
+          .from(chatAttachments)
+          .where(eq(chatAttachments.id, attachmentId))
+          .limit(1);
+        if (!att || att.roomId !== roomId) return badRequest("유효하지 않은 첨부입니다");
+      }
+
       /* ★ senderRole 결정 — 어드민·전문가·일반 사용자 분기 */
       let senderRole: string = senderBaseRole;
       if (!isAdmin && room.roomType === ROOM_TYPE_EXPERT && room.expertId === viewerMemberId) {
         senderRole = "expert";
+      }
+
+      /* OP-066: 전문가 발신 자격 재확인 — 정지·탈퇴된 전문가가 expertId만 남아 계속 발신하던 갭 차단.
+         (채팅은 authenticateUser만 써서 status 차단이 안 걸리므로 발신 시점에 재검증) */
+      if (senderRole === "expert") {
+        const [exp] = await db
+          .select({ status: members.status, withdrawnAt: members.withdrawnAt })
+          .from(members)
+          .where(eq(members.id, viewerMemberId))
+          .limit(1);
+        if (!exp || exp.status !== "active" || exp.withdrawnAt) {
+          return forbidden("상담 자격이 유효하지 않습니다");
+        }
       }
 
       const insertData: any = {
@@ -188,17 +213,14 @@ export default async (req: Request) => {
 
       /* ★ 읽음 카운터 — 보낸 역할에 따라 상대방 카운터 증가 */
       const isUserSender = senderRole === "user";
+      /* OP-065: 미읽음 카운터를 SQL 원자 증감으로 — 기존 read-modify-write는 동시 발신 시 경합으로 어긋남 */
       const updateMeta: any = {
         lastMessageAt: new Date(),
         lastMessagePreview: preview,
-        unreadForAdmin: isUserSender
-          ? (room.unreadForAdmin || 0) + 1  // 사용자 발신 → 전문가/어드민 측 미읽음
-          : room.unreadForAdmin,
-        unreadForUser: !isUserSender
-          ? (room.unreadForUser || 0) + 1   // 전문가/어드민 발신 → 사용자 측 미읽음
-          : room.unreadForUser,
         updatedAt: new Date(),
       };
+      if (isUserSender) updateMeta.unreadForAdmin = sql`${chatRooms.unreadForAdmin} + 1`;  // 사용자 발신 → 전문가/어드민 측 미읽음
+      else updateMeta.unreadForUser = sql`${chatRooms.unreadForUser} + 1`;                 // 전문가/어드민 발신 → 사용자 측 미읽음
       await db
         .update(chatRooms)
         .set(updateMeta)
@@ -247,6 +269,21 @@ export default async (req: Request) => {
         .update(chatRooms)
         .set(updateRead)
         .where(eq(chatRooms.id, roomId));
+
+      /* OP-065: 메시지별 읽음 추적 — 상대방이 보낸 미읽음 메시지의 isRead/readAt 갱신
+         (기존엔 방 단위 카운터만 리셋해 메시지별 '읽음 표시'를 제공할 수 없었음) */
+      try {
+        await db
+          .update(chatMessages)
+          .set({ isRead: true, readAt: new Date() } as any)
+          .where(and(
+            eq(chatMessages.roomId, roomId),
+            ne(chatMessages.senderId, viewerMemberId),
+            eq(chatMessages.isRead, false)
+          ));
+      } catch (e) {
+        console.warn("[chat-messages] 메시지 읽음 표시 실패:", e);
+      }
 
       return ok({}, "읽음 처리 완료");
     }
