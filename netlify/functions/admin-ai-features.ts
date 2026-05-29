@@ -21,6 +21,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { getFeatureStats, invalidateFeatureCache, isKnownFeature, getFeatureMeta, FEATURE_REGISTRY } from "../../lib/ai-feature";
 import { getCostStats } from "../../lib/ai-cost-monitor";
 
@@ -31,6 +32,10 @@ const JSON_HEADER = { "Content-Type": "application/json; charset=utf-8" };
 export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  // R45 §4(AI): AI 기능 토글·월한도·통계는 admin+ (운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "ai_config"))) {
+    return new Response(JSON.stringify({ ok: false, error: "AI 설정 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+  }
 
   if (req.method === "GET") return handleGet();
   if (req.method === "POST") return handlePost(req);

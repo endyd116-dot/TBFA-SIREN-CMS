@@ -20,6 +20,7 @@
 
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { getCostStats, checkMonthlyBudget } from "../../lib/ai-cost-monitor";
 import { getFeatureStats } from "../../lib/ai-feature";
 import { getCacheStats } from "../../lib/ai-cache";
@@ -38,6 +39,10 @@ export default async (req: Request, _ctx: Context) => {
 
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  // R45 §4(AI): AI 비용 통계는 admin+ (경영 데이터·운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "ai_config"))) {
+    return new Response(JSON.stringify({ ok: false, error: "AI 비용 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+  }
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
 
   try {

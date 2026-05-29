@@ -19,6 +19,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin-ai-usage-logs" };
 
@@ -31,6 +32,10 @@ export default async (req: Request, _ctx: Context) => {
   }
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
+  // R45 §4(AI): AI 사용 로그는 admin+ (관리자별 사용내역·운영자 차단·권한정책 토글)
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "ai_config"))) {
+    return new Response(JSON.stringify({ ok: false, error: "AI 사용 로그 권한이 없습니다", step: "auth_role" }), { status: 403, headers: JSON_HEADER });
+  }
 
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
