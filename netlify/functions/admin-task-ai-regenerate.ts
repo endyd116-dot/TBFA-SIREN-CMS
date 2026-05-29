@@ -8,6 +8,8 @@
  */
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
+import { db, workspaceTasks } from "../../db";
+import { eq } from "drizzle-orm";
 import { generateTaskSummary, calculateTaskRisk, generateCompletionReport } from "../../lib/ai-task";
 import { ok, badRequest, methodNotAllowed, serverError } from "../../lib/response";
 
@@ -31,6 +33,17 @@ export default async (req: Request, _ctx: Context) => {
   const type = String(url.searchParams.get("type") || "");
   if (!["summary", "risk", "completion"].includes(type)) {
     return badRequest("type은 summary | risk | completion 중 하나");
+  }
+
+  /* R45 OP-042: 작업 소유권 검증 — 타인 작업 AI 강제 재생성(비용·덮어쓰기) 차단 */
+  if ((auth.ctx.member as any).role !== "super_admin") {
+    const [t] = await db
+      .select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy })
+      .from(workspaceTasks).where(eq(workspaceTasks.id, id)).limit(1);
+    if (!t) return badRequest("작업을 찾을 수 없습니다");
+    if (!(t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId)) {
+      return new Response(JSON.stringify({ ok: false, error: "본인 관련 작업만 재생성할 수 있습니다", step: "auth" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    }
   }
 
   /* OP-047: 쿨다운 검사 */

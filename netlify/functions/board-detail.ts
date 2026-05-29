@@ -62,7 +62,8 @@ export default async (req: Request, _ctx: Context) => {
       post: {
         id: r.id, postNo: r.postNo, category: r.category,
         title: r.title, contentHtml: r.contentHtml,
-        authorName: r.authorName,
+        // R45 US-039: 익명 글은 본인이 아니면 작성자명도 마스킹(실명 노출 차단)
+        authorName: (r.isAnonymous && !isOwner) ? "익명" : r.authorName,
         // Q2-024: 익명 글은 본인이 아니면 작성자 식별값(memberId) 노출 차단
         memberId: (r.isAnonymous && !isOwner) ? null : r.memberId,
         isAnonymous: r.isAnonymous, isPinned: r.isPinned,
@@ -75,7 +76,9 @@ export default async (req: Request, _ctx: Context) => {
       comments: comments.map((c: any) => {
         const cIsOwner = !!(user && c.memberId === user.uid);
         return {
-          id: c.id, content: c.content, authorName: c.authorName,
+          id: c.id, content: c.content,
+          // R45 US-039: 익명 댓글 작성자명 마스킹
+          authorName: (c.isAnonymous && !cIsOwner) ? "익명" : c.authorName,
           // Q2-024: 익명 댓글은 본인이 아니면 작성자 식별값(memberId) 노출 차단
           memberId: (c.isAnonymous && !cIsOwner) ? null : c.memberId,
           isAnonymous: c.isAnonymous,

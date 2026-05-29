@@ -651,8 +651,7 @@ document.addEventListener('change', async function (e) {
 
       const finalConfirm = confirm(
         '정말 탈퇴하시겠습니까?\n\n' +
-        '• 탈퇴 후 복구가 불가능합니다\n' +
-        '• 같은 이메일로 재가입할 수 없습니다\n' +
+        '• 탈퇴 후 복구가 불가능합니다 (개인정보 즉시 삭제)\n' +
         '• 즉시 로그아웃됩니다\n\n' +
         '계속하시려면 [확인]을 눌러주세요.'
       );

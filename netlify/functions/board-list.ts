@@ -57,8 +57,10 @@ export default async (req: Request, _ctx: Context) => {
       .limit(limit)
       .offset((page - 1) * limit);
 
+    // R45 US-039: 익명 글은 목록에서도 작성자명 마스킹(실명 노출 차단)
+    const maskedList = list.map((p: any) => (p.isAnonymous ? { ...p, authorName: "익명" } : p));
     return ok({
-      list,
+      list: maskedList,
       pagination: {
         page, limit,
         total: Number(total),

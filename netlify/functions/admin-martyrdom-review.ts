@@ -93,7 +93,7 @@ export default async (req: Request, _ctx: Context) => {
 
     try {
       /* ★ R41 Q2-027: 현재 status 포함 SELECT — pending일 때만 결정 허용(이미 결정된 건 재결정 차단·전이 보호) */
-      const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId", status FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
+      const rv: any = await db.execute(sql.raw(`SELECT id, case_id AS "caseId", output_id AS "outputId", status, assigned_to AS "assignedTo" FROM martyrdom_reviews WHERE id = ${reviewId} LIMIT 1`));
       const row = (rv?.rows ?? rv ?? [])[0];
       if (!row) {
         return new Response(JSON.stringify({ ok: false, error: "검토 배정을 찾을 수 없습니다" }), {
@@ -108,6 +108,11 @@ export default async (req: Request, _ctx: Context) => {
           step: "already_decided",
           currentStatus: curStatus,
         }), { status: 409, headers: { "Content-Type": "application/json" } });
+      }
+
+      /* R45 AD-021: 배정된 검토자(또는 super_admin)만 결정 가능 — UI 차단 외 서버 검증(책임 추적) */
+      if (member.role !== "super_admin" && Number(row.assignedTo) !== Number(member.id)) {
+        return new Response(JSON.stringify({ ok: false, error: "배정된 검토자만 검토 결정을 할 수 있습니다", step: "reviewer_check" }), { status: 403, headers: { "Content-Type": "application/json" } });
       }
 
       /* pending → 결정으로만 원자 전이 (동시 PATCH 경합 방어) */

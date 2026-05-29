@@ -14,6 +14,7 @@
  *       donationId→활성 빌키 매칭만 확인한다(없으면 404). 잘못 입력해도 알림만 빗나갈 뿐.
  */
 import { db, donations } from "../../db";
+import { authenticateUser } from "../../lib/auth";
 import { eq, sql } from "drizzle-orm";
 
 export const config = { path: "/api/billing-card-expiry-set" };
@@ -26,6 +27,10 @@ function json(status: number, data: unknown) {
 
 export default async (req: Request) => {
   if (req.method !== "POST") return json(405, { ok: false, error: "POST만 허용됩니다" });
+
+  // R45 US-012: 인증·소유자 검증 — 결제번호 추측으로 타인 빌키 만료월 변조(IDOR) 차단
+  const auth = authenticateUser(req);
+  if (!auth) return json(401, { ok: false, error: "로그인이 필요합니다" });
 
   let body: any;
   try { body = await req.json(); } catch { body = {}; }
@@ -46,13 +51,16 @@ export default async (req: Request) => {
 
   try {
     const [donation] = await db
-      .select({ id: donations.id, billingKeyId: donations.billingKeyId })
+      .select({ id: donations.id, billingKeyId: donations.billingKeyId, memberId: donations.memberId })
       .from(donations)
       .where(eq(donations.id, donationId))
       .limit(1);
 
     if (!donation || !donation.billingKeyId) {
       return json(404, { ok: false, error: "결제 정보를 찾을 수 없습니다" });
+    }
+    if (donation.memberId !== auth.uid) {
+      return json(403, { ok: false, error: "본인 결제 건만 수정할 수 있습니다" });
     }
 
     await db.execute(sql`

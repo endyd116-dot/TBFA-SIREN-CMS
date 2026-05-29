@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { ok, badRequest, notFound, forbidden, serverError, parseJson, corsPreflight, methodNotAllowed } from "../../lib/response";
 import { invalidatePermissionCache } from "../../lib/role-permission-check";
+import { logAdminAction } from "../../lib/audit";
 
 export const config = { path: "/api/admin-role-permissions" };
 
@@ -47,6 +48,10 @@ export default async (req: Request) => {
 
       if (!updated) return notFound("해당 권한 규칙을 찾을 수 없습니다");
       invalidatePermissionCache();
+      // R45 SU-023: 권한 정책 변경(최고민감)은 감사 로그 필수 — critical 등급 자동 부여
+      try {
+        await logAdminAction(req, auth.ctx.member.id, auth.ctx.member.name, "admin_permission_change", { target: `perm-${id}`, detail: updateData });
+      } catch (e) { console.warn("[admin-role-permissions] 감사 로그 실패:", e); }
       return ok({ permission: updated });
     }
 
