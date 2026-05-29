@@ -470,7 +470,14 @@
           html += `<div style="margin-bottom:6px"><a href="${escapeHtml(a.url)}&download=1" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(a.originalName || '첨부파일')}</a></div>`;
         } else if (typeof a === 'string') {
           const fileName = a.split('/').pop() || a;
-          html += `<div style="margin-bottom:6px;color:var(--text-2);font-size:12.5px">📎 ${escapeHtml(fileName)} <span style="color:var(--text-3);font-size:11px">(다운로드는 운영자 확인 후 안내)</span></div>`;
+          /* ★ US-023: 본인 신청 첨부는 support-download(소유자 허용·key 검증)로 직접 다운로드 가능.
+             서버 권한·attachments 포함 검증을 이미 하므로 보안 추가비용 없이 끝단만 연결. */
+          if (item.id) {
+            const dlUrl = '/api/support/download?key=' + encodeURIComponent(a) + '&id=' + encodeURIComponent(item.id);
+            html += `<div style="margin-bottom:6px"><a href="${escapeHtml(dlUrl)}" target="_blank" rel="noopener" style="color:var(--brand);text-decoration:none">⬇ ${escapeHtml(fileName)}</a></div>`;
+          } else {
+            html += `<div style="margin-bottom:6px;color:var(--text-2);font-size:12.5px">📎 ${escapeHtml(fileName)}</div>`;
+          }
         }
       });
       html += '</div></div>';

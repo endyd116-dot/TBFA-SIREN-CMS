@@ -6,7 +6,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../../db";
 import { legalConsultations } from "../../db/schema";
 import { requireActiveUser } from "../../lib/auth";
-import { notifyAllOperators } from "../../lib/notify";
+import { notifyAllOperators, createNotification } from "../../lib/notify";
 import {
   ok, badRequest, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -80,6 +80,22 @@ export default async (req: Request, _ctx: Context) => {
       } catch (e) {
         console.warn("[legal-consultation-confirm] 알림 실패", e);
       }
+
+      /* ★ US-021: 신고자(상담 신청자) 본인에게도 '매칭 신청 접수' 1회 통지 */
+      try {
+        await createNotification({
+          recipientId: user.uid,
+          recipientType: "user",
+          category: "system",
+          severity: "info",
+          title: "변호사 매칭이 신청되었습니다",
+          message: `'${(row as any).consultationNo}' 상담의 변호사 매칭이 접수되어 운영진 검토가 시작되었습니다.`,
+          link: "/my-reports.html",
+          refTable: "legal_consultations",
+          refId: consultationId,
+          expiresInDays: 60,
+        });
+      } catch (e) { console.warn("[legal-consultation-confirm] 신청자 알림 예외(무시):", e); }
     }
 
     try {

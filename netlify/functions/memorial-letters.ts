@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { memorialLetters } from "../../db/schema";
-import { requireActiveUser } from "../../lib/auth";
+import { requireActiveUser, authenticateUser } from "../../lib/auth";
 import { moderateMemorialText } from "../../lib/memorial-moderation";
 import { notifyAllOperators } from "../../lib/notify";
 import { eq, and, desc } from "drizzle-orm";
@@ -34,6 +34,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const rows = await db
         .select({
           id:         memorialLetters.id,
+          memberId:   memorialLetters.memberId,   /* ★US-028: isMine 판정용(응답엔 미포함) */
           authorName: memorialLetters.authorName,
           title:      memorialLetters.title,
           content:    memorialLetters.content,
@@ -43,7 +44,18 @@ export default async function handler(req: Request, _ctx: Context) {
         .where(and(eq(memorialLetters.teacherId, teacherId), eq(memorialLetters.isHidden, false)))
         .orderBy(desc(memorialLetters.createdAt));
 
-      return new Response(JSON.stringify({ ok: true, data: { letters: rows } }), {
+      /* ★US-028: 로그인 회원이 본인 편지를 식별하도록 isMine만 노출(memberId는 제외) */
+      const viewer = authenticateUser(req);
+      const letters = rows.map((r) => ({
+        id: r.id,
+        authorName: r.authorName,
+        title: r.title,
+        content: r.content,
+        createdAt: r.createdAt,
+        isMine: !!(viewer && r.memberId === viewer.uid),
+      }));
+
+      return new Response(JSON.stringify({ ok: true, data: { letters } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {
@@ -51,11 +63,33 @@ export default async function handler(req: Request, _ctx: Context) {
     }
   }
 
-  /* ───────────── POST: 작성 (회원만) ───────────── */
+  /* ───────────── POST: 작성·삭제 (회원만) ───────────── */
   if (method === "POST") {
     const guard = await requireActiveUser(req);
     if (!guard.ok) return (guard as { ok: false; res: Response }).res;
     const user = (guard as { ok: true; user: import("../../lib/auth").UserPayload }).user;
+
+    /* ★ US-028: 본인 편지 삭제 (작성자 본인만) */
+    if (url.searchParams.get("action") === "delete") {
+      const lid = parseInt(url.searchParams.get("id") || "0", 10);
+      if (!lid) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      try {
+        const [letter] = await db.select({ id: memorialLetters.id, memberId: memorialLetters.memberId })
+          .from(memorialLetters).where(eq(memorialLetters.id, lid)).limit(1);
+        if (!letter) {
+          return new Response(JSON.stringify({ ok: false, error: "대상 편지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
+        if (letter.memberId !== user.uid) {
+          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 편지만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        }
+        await db.delete(memorialLetters).where(and(eq(memorialLetters.id, lid), eq(memorialLetters.memberId, user.uid)));
+        return new Response(JSON.stringify({ ok: true, message: "편지가 삭제되었습니다." }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      } catch (err: any) {
+        return jsonError("delete_letter", err);
+      }
+    }
 
     let body: any;
     try { body = await req.json(); } catch { body = {}; }

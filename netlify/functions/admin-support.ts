@@ -13,6 +13,13 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { sendEmail, tplSupportAnsweredUser } from "../../lib/email";
+import { createNotification } from "../../lib/notify";
+
+/* ★ US-022: 유가족 지원 상태 한글 라벨 (인앱 알림 문구용) */
+const SUPPORT_STATUS_LABEL: Record<string, string> = {
+  submitted: "접수", reviewing: "검토 중", supplement: "보완 요청",
+  matched: "담당 배정", in_progress: "진행 중", completed: "완료", rejected: "반려",
+};
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -185,6 +192,25 @@ const { admin } = guard.ctx;
           detail: { newStatus: body.status },
         });
 
+        /* ★ US-022: 인라인 단계 변경에도 신청자에게 인앱 알림 (특히 '보완 요청'을 모르고 방치되던 문제).
+           자격변경(admin-eligibility-review)은 항상 알림을 적재하는데 지원만 비대칭으로 빠져 있었음. */
+        if (updated.memberId) {
+          try {
+            const label = SUPPORT_STATUS_LABEL[body.status] || body.status;
+            await createNotification({
+              recipientId: updated.memberId,
+              recipientType: "user",
+              category: "support",
+              severity: body.status === "supplement" ? "warning" : "info",
+              title: `유가족 지원 신청 ${label}`,
+              message: `'${updated.title}' 신청이 '${label}' 상태로 변경되었습니다. 마이페이지에서 확인해 주세요.`,
+              link: "/mypage.html#support",
+              refTable: "support_requests",
+              refId: updated.id,
+            });
+          } catch (e) { console.warn("[admin-support] 인라인 상태변경 알림 예외(무시):", e); }
+        }
+
         return ok({ request: updated }, "단계가 변경되었습니다");
       }
 
@@ -261,6 +287,24 @@ const { admin } = guard.ctx;
         target: updated.requestNo,
         detail: { newStatus: data.status, emailSent, emailError, hasNote: !!data.adminNote },
       });
+
+      /* ★ US-022: 신청자에게 인앱 알림 (메일은 옵트인이라 끄면 통지 0이던 문제 보완 — 인앱은 기본 발송) */
+      if (updated.memberId) {
+        try {
+          const label = SUPPORT_STATUS_LABEL[data.status] || data.status;
+          await createNotification({
+            recipientId: updated.memberId,
+            recipientType: "user",
+            category: "support",
+            severity: data.status === "supplement" ? "warning" : "info",
+            title: `유가족 지원 신청 ${label}`,
+            message: `'${updated.title}' 신청이 '${label}' 상태로 변경되었습니다.${data.adminNote ? " 담당자 답변이 등록되었습니다." : ""} 마이페이지에서 확인해 주세요.`,
+            link: "/mypage.html#support",
+            refTable: "support_requests",
+            refId: updated.id,
+          });
+        } catch (e) { console.warn("[admin-support] 상태변경 알림 예외(무시):", e); }
+      }
 
       const message = emailSent
         ? "상태가 변경되고 신청자에게 알림 메일이 발송되었습니다"

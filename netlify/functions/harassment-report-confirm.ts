@@ -6,7 +6,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../../db";
 import { harassmentReports } from "../../db/schema";
 import { requireActiveUser } from "../../lib/auth";
-import { notifyAllOperators } from "../../lib/notify";
+import { notifyAllOperators, createNotification } from "../../lib/notify";
 import {
   ok, badRequest, forbidden, notFound, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -80,6 +80,22 @@ export default async (req: Request, _ctx: Context) => {
       } catch (e) {
         console.warn("[harassment-report-confirm] 알림 실패", e);
       }
+
+      /* ★ US-021: 신고자 본인에게도 '정식 접수·검토 시작' 1회 통지 */
+      try {
+        await createNotification({
+          recipientId: user.uid,
+          recipientType: "user",
+          category: "system",
+          severity: "info",
+          title: "악성민원 신고가 정식 접수되었습니다",
+          message: `'${(row as any).reportNo}' 신고가 사이렌에 정식 접수되어 운영진 검토가 시작되었습니다.`,
+          link: "/my-reports.html",
+          refTable: "harassment_reports",
+          refId: reportId,
+          expiresInDays: 60,
+        });
+      } catch (e) { console.warn("[harassment-report-confirm] 신고자 알림 예외(무시):", e); }
     }
 
     try {

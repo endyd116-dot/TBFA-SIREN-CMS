@@ -29,11 +29,15 @@
     rejected:    '반려',
   };
 
-  /* 신고 유형별 단계 흐름 */
+  /* 신고 유형별 단계 흐름 — ★US-020: 실제 DB status enum과 1:1 정합.
+     (incident/harassment enum: submitted·ai_analyzed·reviewing·responded·closed·rejected
+      legal enum: submitted·ai_analyzed·matching·matched·in_progress·responded·closed·rejected)
+     이전엔 in_progress·completed·responding 같이 enum에 없는 '유령 단계'가 타임라인에 항상 회색으로 떠
+     '아직 처리 중 단계가 남았나' 오해를 유발했음. rejected는 종결 분기라 배지로만 표시. */
   const STAGE_FLOW = {
-    incident: ['submitted', 'ai_analyzed', 'reviewing', 'in_progress', 'responded', 'completed', 'closed'],
-    harassment: ['submitted', 'ai_analyzed', 'reviewing', 'responding', 'responded', 'closed'],
-    legal: ['submitted', 'ai_analyzed', 'reviewing', 'matching', 'matched', 'in_progress', 'completed', 'closed'],
+    incident: ['submitted', 'ai_analyzed', 'reviewing', 'responded', 'closed'],
+    harassment: ['submitted', 'ai_analyzed', 'reviewing', 'responded', 'closed'],
+    legal: ['submitted', 'ai_analyzed', 'matching', 'matched', 'in_progress', 'responded', 'closed'],
   };
 
   function escapeHtml(s) {

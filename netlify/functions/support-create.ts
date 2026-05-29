@@ -77,10 +77,13 @@ export default async (req: Request) => {
     let priority = "normal";
     let priorityReason = skipAi ? "AI 분석 건너뜀 (사용자 선택)" : "AI 미실행";
     if (!skipAi) try {
-      const attachIds = attachments && attachments.length > 0
-        ? attachments.map((k: string) => Number(k)).filter(Number.isFinite)
-        : [];
-      const analysis = await analyzePriority({ category, title, content, attachmentIds: attachIds });
+      /* ★ US-027: 지원 첨부는 R2 키 문자열(support/{uid}/...)이라 숫자 blob ID로 변환 불가
+         (기존 Number(key)→NaN→.filter로 전부 제거되어 첨부가 우선순위 분석에 한 번도 반영 안 됐음).
+         loadAttachmentsForAI는 숫자 blob ID 전용이므로, 첨부 개수를 분석 컨텍스트에 시그널로 포함한다. */
+      const attachNote = safeAttachments.length > 0
+        ? `\n\n[참고: 신청자가 증빙 파일 ${safeAttachments.length}건을 함께 제출했습니다]`
+        : "";
+      const analysis = await analyzePriority({ category, title, content: content + attachNote });
       priority = analysis.priority;
       priorityReason = analysis.reason;
       console.log(`[support-create] AI 우선순위: ${priority} (${analysis.confidence}) - ${analysis.reason}`);

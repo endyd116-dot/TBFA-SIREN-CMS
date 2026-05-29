@@ -11,6 +11,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { sql } from "drizzle-orm";
+import { notifyPostSubscribers } from "../../lib/board-notify";
 
 export const config = { path: "/api/board/comment-create" };
 
@@ -71,7 +72,10 @@ export default async (req: Request, _ctx: Context) => {
       .set(incPayload)
       .where(eq(boardPosts.id, postId))
       .catch(() => {});
-      
+
+    /* ★ US-036: 구독자에게 새 댓글 알림 (직접 호출 — 기존엔 발송 함수가 어디서도 호출되지 않는 죽은 기능이었음) */
+    notifyPostSubscribers(postId, (record as any).id, user.uid).catch(() => {});
+
     return created({
       id: (record as any).id,
       content: (record as any).content,

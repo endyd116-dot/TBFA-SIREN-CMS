@@ -23,12 +23,13 @@
 import type { Context } from "@netlify/functions";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { db } from "../../db";
-import { members, blobUploads } from "../../db/schema";
+import { members, blobUploads, emailVerificationTokens } from "../../db/schema";
 import { signUserToken, buildCookie } from "../../lib/auth";
 import { notifyAllSuperAdmins } from "../../lib/notify";
 import { logAudit } from "../../lib/audit";
-import { sendEmail } from "../../lib/email";
+import { sendEmail, tplEmailVerify } from "../../lib/email";
 import {
   ok, badRequest, conflict, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -39,7 +40,7 @@ import { consumeVerifyToken, normalizePhone as normPhoneVerify } from "../../lib
 import { getSignupSourceId } from "../../lib/member-classifier";
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 10;
-const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+const SITE_URL = process.env.SITE_URL || "https://tbfa.co.kr";   /* ★US-010: 공식 도메인 폴백 */
 const ORG_NAME = process.env.ORG_NAME || "(사)교사유가족협의회";
 
 /* ───────── 직업군별 설정 ───────── */
@@ -511,6 +512,25 @@ export default async (req: Request, _ctx: Context) => {
       }).catch(() => {});
     } catch (_) {}
 
+    /* 12-b. ★ US-002: 이메일 인증 메일 자동 발송 (가입 직후·활성/대기 무관)
+       기존엔 가입 시 인증 메일이 발송되지 않아 emailVerified가 영구 false로 남고,
+       사용자가 마이페이지에서 '재발송'을 직접 눌러야만 인증할 수 있었음. */
+    try {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await db.insert(emailVerificationTokens).values({
+        memberId: created.id,
+        tokenHash,
+        email: created.email,
+        expiresAt,
+      } as any);
+      const vtpl = tplEmailVerify({ userName: created.name, rawToken, ttlHours: 24 });
+      await sendEmail({ to: created.email, subject: vtpl.subject, html: vtpl.html }).catch(() => {});
+    } catch (e) {
+      console.warn("[auth-signup] 이메일 인증 메일 자동발송 실패:", e);
+    }
+
     /* 13. 즉시 활성화된 경우만 로그인 토큰 발급 */
     if (config.initialStatus === "active") {
     const token = await signUserToken({
@@ -523,18 +543,22 @@ export default async (req: Request, _ctx: Context) => {
         maxAge: 14 * 24 * 60 * 60, // 14일
       });
 
+      const memberPayload = {
+        id: created.id,
+        email: created.email,
+        name: created.name,
+        status: created.status,
+        type: created.type,
+        memberCategory: created.memberCategory,
+        subtype: created.memberSubtype,
+        requiresApproval: false,
+        displayName: config.displayName,
+      };
       const response = ok({
-        member: {
-          id: created.id,
-          email: created.email,
-          name: created.name,
-          status: created.status,
-          type: created.type,
-          memberCategory: created.memberCategory,
-          subtype: created.memberSubtype,
-          requiresApproval: false,
-          displayName: config.displayName,
-        },
+        member: memberPayload,
+        /* ★ US-006: 클라이언트(auth.js)가 res.data.data.user를 읽어 가입 직후 헤더를
+           로그인 상태로 전환함. auth.js는 보호 파일이라 서버에서 user 별칭을 함께 반환. */
+        user: memberPayload,
       }, "회원가입이 완료되었습니다 🎉");
 
       /* Set-Cookie 헤더 추가 */

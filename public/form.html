@@ -111,7 +111,10 @@ function renderField(f) {
     case 'date':
       input = `<input type="date" name="${esc(f.fieldKey)}" ${f.required ? 'required' : ''}>`; break;
     case 'file':
-      input = `<input type="file" name="${esc(f.fieldKey)}" ${f.acceptFileTypes ? `accept="${esc(f.acceptFileTypes)}"` : ''}><div class="help">파일 업로드는 D5 단계에서 지원 예정</div>`; break;
+      /* ★ US-025: 파일 업로드 미구현 — 실제 파일 input을 렌더하면 제출 시 File이 {}로 직렬화되어
+         서버 필수검증을 거짓 통과(빈 값 저장)하고, 사용자는 파일이 저장된 줄 오해함.
+         input 없이 안내만 표시하고, 서버(form-submit)에서도 file 타입은 필수/검증을 건너뜀. */
+      input = `<div class="help" style="color:var(--text-3)">📎 현재 이 폼에서는 파일 첨부를 지원하지 않습니다. 파일 제출이 필요하면 담당자에게 별도 안내를 받아 주세요.</div>`; break;
     default:
       input = `<input type="text" name="${esc(f.fieldKey)}" placeholder="${esc(f.placeholder || '')}" ${f.required ? 'required' : ''} ${f.pattern ? `pattern="${esc(f.pattern)}"` : ''}>`;
   }

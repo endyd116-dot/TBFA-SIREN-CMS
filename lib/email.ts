@@ -5,8 +5,9 @@ import { fmtKSTSimple, fmtKSTDate } from "./datetime";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const FROM_EMAIL = process.env.EMAIL_FROM || "SIREN <onboarding@resend.dev>";
 
-/* 사이트 기본 URL — 메일 내 링크에 사용 */
-const SITE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
+/* 사이트 기본 URL — 메일 내 링크에 사용. ★US-010: 미설정 시 공식 도메인으로 폴백
+   (운영은 Netlify 환경변수 SITE_URL=https://tbfa.co.kr 설정 필수) */
+const SITE_URL = process.env.SITE_URL || "https://tbfa.co.kr";
 
 /* ───────────────────── 공용 발송 함수 (디버그 강화) ───────────────────── */
 /* ───────────────────── 공용 발송 함수 (★ 임시 redirect 모드) ─────────────────────
@@ -1016,9 +1017,9 @@ export function tplWithdrawConfirm(opts: {
     <div style="margin:24px 0 0;padding:14px 16px;background:#f5f4f2;
                 border-radius:6px;font-size:12px;color:#8a8a8a;line-height:1.7;">
       📞 <strong>문의 안내</strong><br />
-      • 잘못 탈퇴하셨거나 복구를 원하시는 경우<br />
-        &nbsp;&nbsp;<strong>contact@siren-org.kr</strong>로 문의해 주세요<br />
-      • 보관 중인 개인정보 열람·정정·삭제 요청도 가능합니다
+      • 탈퇴 즉시 이름·연락처·이메일은 영구 삭제되어 <strong>복구가 불가능</strong>합니다<br />
+      • 법령에 따라 보관 중인 후원 내역 등의 열람·정정·삭제 요청은<br />
+        &nbsp;&nbsp;<strong>contact@siren-org.kr</strong>로 가능합니다
     </div>
   `;
 

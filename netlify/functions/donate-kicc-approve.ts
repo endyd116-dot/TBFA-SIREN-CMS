@@ -17,6 +17,7 @@ import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
 import { checkAndAwardBadges } from "../../lib/badge-checker";
 import { approveTrade } from "../../lib/kicc";
+import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -101,8 +102,9 @@ export default async (req: Request) => {
       return failRedirect(result.errorMessage || "결제 승인에 실패했습니다");
     }
 
-    /* 승인금액 == 등록금액 대조 */
-    if (typeof result.amount === "number" && result.amount !== donation.amount) {
+    /* 승인금액 == 등록금액 대조 — ★US-016 fail-closed:
+       PG 승인금액이 숫자가 아니거나(누락·NaN) 등록금액과 다르면 거부(이전엔 number일 때만 대조). */
+    if (typeof result.amount !== "number" || !Number.isFinite(result.amount) || result.amount !== donation.amount) {
       await db
         .update(donations)
         .set({ status: "failed", pgTid: result.pgTid, failureReason: "승인금액 불일치", updatedAt: new Date() } as any)
@@ -176,6 +178,9 @@ export default async (req: Request) => {
     } catch (e) {
       console.warn("[donate-kicc-approve] 포인트 적립 실패", e);
     }
+
+    /* ★ US-044: 캠페인 지정 후원이면 모금현황(모금액·후원자수) 즉시 재계산 */
+    await recalcCampaignStatsSafe((donation as any).campaignId);
 
     await logUserAction(req, updated.memberId, updated.donorName, "donate_kicc_approve_success", {
       target: pgOrderNo,

@@ -39,6 +39,7 @@ export default async function handler(req: Request, _ctx: Context) {
       const rows = await db
         .select({
           id:         memorialMessages.id,
+          memberId:   memorialMessages.memberId,   /* ★US-028: isMine 판정용(응답엔 미포함 — 익명성 유지) */
           authorName: memorialMessages.authorName,
           content:    memorialMessages.content,
           likeCount:  memorialMessages.likeCount,
@@ -78,6 +79,8 @@ export default async function handler(req: Request, _ctx: Context) {
         likeCount: r.likeCount,
         createdAt: r.createdAt,
         liked:     likedSet.has(r.id),
+        /* ★US-028: 로그인 회원이 본인 글을 식별해 삭제 버튼을 띄울 수 있도록 isMine만 노출(memberId는 미노출) */
+        isMine:    !!(user && r.memberId === user.uid),
       }));
 
       return new Response(JSON.stringify({
@@ -143,10 +146,34 @@ export default async function handler(req: Request, _ctx: Context) {
       if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
       try {
         /* ★ R41 Q2-047: 존재하는 메시지에만 신고 누적 */
-        const [msg] = await db.select({ id: memorialMessages.id })
+        const [msg] = await db.select({ id: memorialMessages.id, memberId: memorialMessages.memberId })
           .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
         if (!msg) {
           return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
+        /* ★ US-030: 본인 글 신고 차단 */
+        if (msg.memberId === user.uid) {
+          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 글은 신고할 수 없습니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+        /* ★ US-030: 1인 1신고 멱등 — memorial_report_logs UNIQUE(member_id,ref_table,ref_id).
+           마이그(migrate-r45-memorial-report-log) 적용 전이면 테이블이 없어 catch로 degrade(기존 동작). */
+        let alreadyReported = false;
+        try {
+          const ins: any = await db.execute(sql`
+            INSERT INTO memorial_report_logs (member_id, ref_table, ref_id)
+            VALUES (${user.uid}, 'memorial_messages', ${id})
+            ON CONFLICT (member_id, ref_table, ref_id) DO NOTHING
+            RETURNING id
+          `);
+          const insRows = ins?.rows ?? ins ?? [];
+          alreadyReported = insRows.length === 0;
+        } catch (e) {
+          console.warn("[memorial-messages] report dedup 생략(테이블 미존재 가능)", e);
+        }
+        if (alreadyReported) {
+          return new Response(JSON.stringify({ ok: true, message: "이미 신고하신 글입니다." }), {
+            status: 200, headers: { "Content-Type": "application/json" },
+          });
         }
         const setReport: any = { reportCount: sql`${memorialMessages.reportCount} + 1` };
         await db.update(memorialMessages)
@@ -157,6 +184,28 @@ export default async function handler(req: Request, _ctx: Context) {
         });
       } catch (err: any) {
         return jsonError("report", err);
+      }
+    }
+
+    /* ★ US-028: 본인 추모 메시지 삭제 (작성자 본인만) */
+    if (action === "delete") {
+      if (!id) return new Response(JSON.stringify({ ok: false, error: "id가 필요합니다" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      try {
+        const [msg] = await db.select({ id: memorialMessages.id, memberId: memorialMessages.memberId })
+          .from(memorialMessages).where(eq(memorialMessages.id, id)).limit(1);
+        if (!msg) {
+          return new Response(JSON.stringify({ ok: false, error: "대상 메시지를 찾을 수 없습니다" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
+        if (msg.memberId !== user.uid) {
+          return new Response(JSON.stringify({ ok: false, error: "본인이 작성한 글만 삭제할 수 있습니다" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        }
+        await db.delete(memorialMessageLikes).where(eq(memorialMessageLikes.messageId, id));
+        await db.delete(memorialMessages).where(and(eq(memorialMessages.id, id), eq(memorialMessages.memberId, user.uid)));
+        return new Response(JSON.stringify({ ok: true, message: "추모 메시지가 삭제되었습니다." }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      } catch (err: any) {
+        return jsonError("delete", err);
       }
     }
 

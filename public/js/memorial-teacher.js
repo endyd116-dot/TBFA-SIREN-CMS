@@ -183,10 +183,25 @@
       '<div class="mt-msg-actions">' +
         '<button type="button" class="act-like' + (m.liked ? ' liked' : '') + '">♡ <span class="lc">' + (Number(m.likeCount) || 0) + '</span></button>' +
         '<button type="button" class="act-report">🚩 신고</button>' +
+        /* ★US-028: 본인 글이면 삭제 버튼 노출 */
+        (m.isMine ? '<button type="button" class="act-delete">🗑 삭제</button>' : '') +
       '</div>';
     wrap.querySelector('.act-like').addEventListener('click', function () { likeMsg(m.id, wrap); });
     wrap.querySelector('.act-report').addEventListener('click', function () { reportMsg(m.id); });
+    if (m.isMine) {
+      var delBtn = wrap.querySelector('.act-delete');
+      if (delBtn) delBtn.addEventListener('click', function () { deleteMsg(m.id, wrap); });
+    }
     return wrap;
+  }
+  /* ★US-028: 본인 추모 메시지 삭제 */
+  function deleteMsg(id, wrap) {
+    if (!confirm('이 추모 메시지를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.')) return;
+    api('/api/memorial-messages?action=delete&id=' + id, { method: 'POST' }).then(function (res) {
+      if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패'); return; }
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      toast('추모 메시지가 삭제되었습니다.');
+    }).catch(function () { toast('삭제 실패'); });
   }
   function renderMessages(list) {
     var listEl = document.getElementById('mtMsgList');
@@ -239,10 +254,18 @@
           var msg = unwrap(res, 'message');
           var listEl = document.getElementById('mtMsgList');
           var empty = document.getElementById('mtMsgEmpty');
-          if (empty) empty.style.display = 'none';
-          if (msg) listEl.insertBefore(msgEl(msg), listEl.firstChild);
-          else loadMessages();
-          toast('추모의 글이 등록되었습니다.');
+          /* ★US-029: AI 검토 보류(pendingReview) 글은 비공개라 목록에 넣지 않음(새로고침 시 사라지는 혼란 방지) */
+          if (msg && msg.pendingReview) {
+            toast('등록되었습니다. 검토 후 공개되며, 부적절 판정 시 비공개될 수 있습니다.');
+          } else if (msg) {
+            if (empty) empty.style.display = 'none';
+            msg.isMine = true;
+            listEl.insertBefore(msgEl(msg), listEl.firstChild);
+            toast('추모의 글이 등록되었습니다.');
+          } else {
+            loadMessages();
+            toast('추모의 글이 등록되었습니다.');
+          }
         }).catch(function () { btn.disabled = false; toast('작성 실패'); });
     });
   }
@@ -255,7 +278,9 @@
       (l.title ? '<h3 class="mt-letter-title">' + esc(l.title) + '</h3>' : '') +
       '<div class="mt-letter-meta">' + esc(l.authorName || '익명') + ' · ' + fmtDate(l.createdAt) + '</div>' +
       '<div class="mt-letter-body">' + esc(l.content) + '</div>' +
-      '<button type="button" class="mt-letter-toggle" style="display:none">더 보기 ▾</button>';
+      '<button type="button" class="mt-letter-toggle" style="display:none">더 보기 ▾</button>' +
+      /* ★US-028: 본인 편지면 삭제 버튼 노출 */
+      (l.isMine ? '<button type="button" class="mt-letter-delete" style="margin-left:8px;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12.5px">🗑 삭제</button>' : '');
     var body = wrap.querySelector('.mt-letter-body');
     var toggle = wrap.querySelector('.mt-letter-toggle');
     /* 긴 글일 때만 더보기 노출 */
@@ -266,7 +291,20 @@
       var open = body.classList.toggle('open');
       toggle.textContent = open ? '접기 ▴' : '더 보기 ▾';
     });
+    if (l.isMine) {
+      var ld = wrap.querySelector('.mt-letter-delete');
+      if (ld) ld.addEventListener('click', function () { deleteLetter(l.id, wrap); });
+    }
     return wrap;
+  }
+  /* ★US-028: 본인 기억의 편지 삭제 */
+  function deleteLetter(id, wrap) {
+    if (!confirm('이 편지를 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.')) return;
+    api('/api/memorial-letters?action=delete&id=' + id, { method: 'POST' }).then(function (res) {
+      if (!res.ok) { toast((res.data && res.data.error) || '삭제 실패'); return; }
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      toast('편지가 삭제되었습니다.');
+    }).catch(function () { toast('삭제 실패'); });
   }
   function renderLetters(list) {
     var listEl = document.getElementById('mtLetterList');
@@ -305,10 +343,18 @@
           var letter = unwrap(res, 'letter');
           var listEl = document.getElementById('mtLetterList');
           var empty = document.getElementById('mtLetterEmpty');
-          if (empty) empty.style.display = 'none';
-          if (letter) listEl.insertBefore(letterEl(letter), listEl.firstChild);
-          else loadLetters();
-          toast('편지가 등록되었습니다.');
+          /* ★US-029: 보류된 편지는 비공개라 목록에 넣지 않음 */
+          if (letter && letter.pendingReview) {
+            toast('등록되었습니다. 검토 후 공개되며, 부적절 판정 시 비공개될 수 있습니다.');
+          } else if (letter) {
+            if (empty) empty.style.display = 'none';
+            letter.isMine = true;
+            listEl.insertBefore(letterEl(letter), listEl.firstChild);
+            toast('편지가 등록되었습니다.');
+          } else {
+            loadLetters();
+            toast('편지가 등록되었습니다.');
+          }
         }).catch(function () { btn.disabled = false; toast('작성 실패'); });
     });
   }
