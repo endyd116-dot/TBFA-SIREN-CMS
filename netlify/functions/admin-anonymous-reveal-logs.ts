@@ -1,6 +1,7 @@
 // admin-anonymous-reveal-logs.ts — 익명 식별 감사 로그 조회
 // GET /api/admin-anonymous-reveal-logs?reportType=&reportId=&page=1
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
 import { anonymousRevealLogs, members } from "../../db/schema";
 import { and, eq, desc, inArray, sql } from "drizzle-orm";
@@ -24,6 +25,10 @@ export default async (req: Request) => {
 
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
+  // R45 CLUSTER-2: 신원 식별 감사로그 조회도 같은 권한 게이트(operator 차단)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "anonymous_reveal"))) {
+    return new Response(JSON.stringify({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   const url = new URL(req.url);
   const reportType = url.searchParams.get("reportType");

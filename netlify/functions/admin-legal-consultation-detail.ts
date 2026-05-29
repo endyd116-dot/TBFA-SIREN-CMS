@@ -72,6 +72,10 @@ export default async (req: Request, _ctx: Context) => {
       return ok({
         consultation: {
           ...r,
+          // R45 CLUSTER-2(OP-007): 익명 상담 작성자 입력 신원 마스킹
+          reporterName:  anon ? null : r.reporterName,
+          reporterPhone: anon ? null : r.reporterPhone,
+          reporterEmail: anon ? null : r.reporterEmail,
           memberName: anon ? null : row.memberName,
           memberEmail: anon ? null : row.memberEmail,
           memberPhone: anon ? null : row.memberPhone,

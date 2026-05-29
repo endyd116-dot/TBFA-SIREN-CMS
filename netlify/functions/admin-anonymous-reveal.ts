@@ -2,6 +2,7 @@
 // POST /api/admin-anonymous-reveal
 // body: { reportType: 'incident'|'harassment'|'legal', reportId, revealLevel: 1|2, reason }
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
 import {
   incidentReports, harassmentReports, legalConsultations,
@@ -34,7 +35,11 @@ export default async (req: Request) => {
 
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  const adminId = auth.ctx.admin.uid as number;
+  // R45 CLUSTER-2(AD-003/OP-008): 익명 신원 식별은 권한 게이트 — DB 역할(operator 차단·super는 UI에서 admin까지 제한 가능)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "anonymous_reveal"))) {
+    return new Response(JSON.stringify({ ok: false, error: "신원 식별 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
+  const adminId = auth.ctx.member.id as number;
 
   let body: any;
   try {

@@ -78,6 +78,10 @@ export default async (req: Request, _ctx: Context) => {
       return ok({
         report: {
           ...r,
+          // R45 CLUSTER-2(OP-007): 익명 신고는 작성자 입력 신원(reporter*)도 마스킹 — 신원은 reveal 감사흐름으로만
+          reporterName:  anon ? null : r.reporterName,
+          reporterPhone: anon ? null : r.reporterPhone,
+          reporterEmail: anon ? null : r.reporterEmail,
           incidentTitle: row.incidentTitle,
           incidentSlug: row.incidentSlug,
           memberName: anon ? null : row.memberName,
