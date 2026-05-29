@@ -195,11 +195,19 @@ export default async (req: Request, _ctx: Context) => {
     try {
       /* ★ R41 Q2-007: 현재 상태 확인 후 전이 검증 — 검수(reviewed) 없이 발간(published) 직행 차단 */
       const curRes: any = await db.execute(sql.raw(
-        `SELECT status FROM martyrdom_publications WHERE id = ${id} LIMIT 1`
+        `SELECT status, title, (content_html IS NULL OR content_html = '') AS "isEmpty" FROM martyrdom_publications WHERE id = ${id} LIMIT 1`
       ));
       const curRow = (curRes?.rows ?? curRes ?? [])[0];
       if (!curRow) return badRequest("발간물을 찾을 수 없습니다");
       const cur = String(curRow.status || "draft");
+
+      /* AD-080: 본문 생성 실패/미완료('(생성 실패)' 마커 또는 본문 없음) 발간물은 검수·발간 차단 — 실패 더미 발간 방지 */
+      if (status === "reviewed" || status === "published") {
+        const isEmpty = curRow.isEmpty === true || curRow.isEmpty === "t";
+        if (String(curRow.title || "").includes("(생성 실패)") || isEmpty) {
+          return badRequest("본문 생성이 완료되지 않았거나 실패한 발간물은 검수·발간할 수 없습니다. 본문을 재생성한 뒤 진행해 주세요.");
+        }
+      }
 
       /* 허용 전이: draft→reviewed, reviewed→published, 발간/검수 취소(→draft), 동일 상태(멱등) */
       const allowed: Record<string, string[]> = {

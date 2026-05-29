@@ -45,10 +45,11 @@ export default async function handler(req: Request): Promise<Response> {
 
   const rev = existing[0];
 
-  // draft 상태만 수정 가능
-  if (rev.status !== "draft") {
-    return new Response(JSON.stringify({ ok: false, error: "draft 상태만 수정 가능합니다", step: "validate_status" }), { status: 400 });
+  // AD-012: draft 또는 반려(rejected) 항목만 수정 가능 — 반려 건은 재상신 허용(승인 건 불변)
+  if (rev.status !== "draft" && rev.status !== "rejected") {
+    return new Response(JSON.stringify({ ok: false, error: "draft 또는 반려 상태만 수정 가능합니다", step: "validate_status" }), { status: 400 });
   }
+  const wasRejected = rev.status === "rejected";
 
   // 권한: admin+ 또는 등록자 본인 (R45 CLUSTER-1: DB 역할·JWT 신뢰 금지·admin=super)
   const adminRole = auth.ctx.member.role;
@@ -88,6 +89,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (payerName !== undefined) updateData.payerName = payerName ? String(payerName) : null;
   if (description !== undefined) updateData.description = description ? String(description) : null;
   if (receiptUrl !== undefined) updateData.receiptUrl = receiptUrl ? String(receiptUrl) : null;
+  // AD-012: 반려 건 수정 시 재상신을 위해 draft 복귀 + 이전 반려 사유 제거
+  if (wasRejected) { updateData.status = "draft"; updateData.rejectionReason = null; }
 
   let updated: typeof otherRevenues.$inferSelect[] = [];
   try {

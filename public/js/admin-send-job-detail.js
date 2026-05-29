@@ -189,6 +189,13 @@
     $("statFailedPct").textContent  = pctOf(failed);
     $("statPendingPct").textContent = pctOf(pending);
 
+    // AD-058: 정책상 발송 안 함(skipped) 표시 — 총계 = 성공+실패+대기+취소+발송안함
+    const skipped = Number(stats.skipped || 0);
+    const elSkip = $("statSkipped");
+    if (elSkip) elSkip.textContent = skipped.toLocaleString();
+    const elSkipPct = $("statSkippedPct");
+    if (elSkipPct) elSkipPct.textContent = pctOf(skipped);
+
     if (job.lastError) {
       $("errorBox").style.display = "";
       $("errorBox").textContent = "최근 오류: " + job.lastError;
@@ -259,6 +266,13 @@
     $("statSentPct").textContent    = pctOf(sent);
     $("statFailedPct").textContent  = pctOf(failed);
     $("statPendingPct").textContent = pctOf(pending);
+
+    // AD-058: 정책상 발송 안 함(skipped) 표시 — 총계 = 성공+실패+대기+취소+발송안함
+    const skipped = Number(stats.skipped || 0);
+    const elSkip = $("statSkipped");
+    if (elSkip) elSkip.textContent = skipped.toLocaleString();
+    const elSkipPct = $("statSkippedPct");
+    if (elSkipPct) elSkipPct.textContent = pctOf(skipped);
 
     if (p.lastError) {
       $("errorBox").style.display = "";
@@ -376,7 +390,9 @@
       showToast("재발송 실패: " + (res.data?.error || res.data?.detail || "오류"), "error");
       return;
     }
-    const n = res.data?.recipientsCreated || res.data?.data?.recipientsCreated || "?";
+    // AD-059: 서버 응답 키는 retriedCount — 기존 recipientsCreated만 읽어 항상 '?'였음
+    const d = res.data?.data || res.data || {};
+    const n = d.retriedCount ?? d.recipientsCreated ?? "?";
     showToast(`${n}명에게 재발송이 등록되었습니다.`);
   }
 

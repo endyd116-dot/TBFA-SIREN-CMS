@@ -760,6 +760,7 @@
           <tr><td style="color:var(--text-3)">비고</td><td>${item.description || '—'}</td></tr>
           <tr><td style="color:var(--text-3)">상태</td>
             <td><span style="color:${statusColor(item.status)};font-weight:600">${statusLabel(item.status)}</span></td></tr>
+          ${item.status === 'rejected' && item.rejectionReason ? `<tr><td style="color:var(--text-3)">반려 사유</td><td>${escapeHtml(item.rejectionReason)}</td></tr>` : ''}
           <tr><td style="color:var(--text-3)">등록일</td><td>${fmtDate(item.recordedAt)}</td></tr>
           <tr><td style="color:var(--text-3)">승인일</td><td>${item.approvedAt ? fmtDate(item.approvedAt) : '—'}</td></tr>
         </tbody>
@@ -839,8 +840,10 @@
 
     const body = { id, action };
     if (action === 'reject') {
-      const reason = prompt('반려 사유를 입력하세요 (선택)');
-      if (reason !== null) body.rejectionReason = reason;
+      // AD-067: 서버가 반려 사유를 필수로 요구 — 지출 화면과 동일하게 필수 안내·검증
+      const reason = prompt('반려 사유를 입력하세요 (필수)');
+      if (!reason || !reason.trim()) { alert('반려 사유는 필수입니다.'); return; }
+      body.rejectionReason = reason.trim();
     }
 
     const res = await api('POST', '/api/admin-revenue-approve', body);

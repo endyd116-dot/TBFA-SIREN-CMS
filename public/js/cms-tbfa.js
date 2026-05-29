@@ -619,7 +619,7 @@
     }
 
     tbody.innerHTML = allMembers.map(m => {
-      const status = m.status === 'blacklist'
+      const status = m.status === 'suspended'
         ? '<span class="cms-badge cms-b-danger" title="차단됨">🚫 차단</span>'
         : (m.status === 'withdrawn'
             ? '<span class="cms-badge cms-b-mute">탈퇴</span>'

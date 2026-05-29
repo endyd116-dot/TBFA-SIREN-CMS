@@ -16,7 +16,9 @@
 
 import { eq, and, notInArray, desc } from "drizzle-orm";
 import { db, members, chatRooms, expertMatches } from "../../db";
+import { supportRequests, legalConsultations } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
+import { createNotification } from "../../lib/notify";
 import {
   checkExpertEligibility,
   buildExpertChatRoomTitle,
@@ -203,6 +205,56 @@ export default async (req: Request) => {
   } catch (err) {
     return jsonError("transaction", err);
   }
+
+  /* 7. AD-018: 원본 신청서에 배정 반영 (안 하면 신청 화면에 계속 '미배정'으로 남아 중복 배정 유발) */
+  try {
+    if (sourceDomain === "support") {
+      await db.update(supportRequests).set({
+        assignedMemberId: expertId,
+        assignedExpertName: expertName,
+        assignedAt: new Date(),
+        updatedAt: new Date(),
+      } as any).where(eq(supportRequests.id, sourceId));
+    } else if (sourceDomain === "legal") {
+      await db.update(legalConsultations).set({
+        assignedLawyerId: expertId,
+        assignedLawyerName: expertName,
+        assignedAt: new Date(),
+        updatedAt: new Date(),
+      } as any).where(eq(legalConsultations.id, sourceId));
+    }
+  } catch (err) {
+    console.warn("[admin-expert-direct-assign] 원본 신청 반영 실패:", (err as any)?.message);
+  }
+
+  /* 8. AD-019: 신청자·전문가 양측 알림 (채팅방 개설 안내) — best-effort, 응답 흐름 비방해 */
+  const matchLabel = matchType === "lawyer" ? "변호사" : "심리상담사";
+  try {
+    await createNotification({
+      recipientId: userId,
+      recipientType: "user",
+      category: "support",
+      severity: "info",
+      title: `🤝 담당 ${matchLabel}가 배정되었습니다`,
+      message: `${expertName || matchLabel}님과의 1:1 상담 채팅방이 개설되었습니다. 마이페이지에서 상담을 시작하세요.`,
+      link: `/mypage.html#chat`,
+      refTable: "chat_rooms",
+      refId: chatRoomId,
+    });
+  } catch (err) { console.warn("[admin-expert-direct-assign] 신청자 알림 실패:", (err as any)?.message); }
+  try {
+    await createNotification({
+      recipientId: expertId,
+      recipientType: "user",
+      category: "support",
+      severity: "info",
+      title: "🤝 새 1:1 상담이 배정되었습니다",
+      message: `${userName || "신청자"}님의 상담이 배정되었습니다. 상담 채팅방에서 진행해 주세요.`,
+      link: `/mypage.html#chat`,
+      refTable: "chat_rooms",
+      refId: chatRoomId,
+    });
+  } catch (err) { console.warn("[admin-expert-direct-assign] 전문가 알림 실패:", (err as any)?.message); }
 
   return new Response(
     JSON.stringify({

@@ -47,9 +47,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (exp.status === "approved") {
     return new Response(JSON.stringify({ ok: false, error: "승인된 항목은 수정할 수 없습니다", step: "validate_status" }), { status: 400 });
   }
-  if (exp.status === "rejected") {
-    return new Response(JSON.stringify({ ok: false, error: "반려된 항목은 수정할 수 없습니다", step: "validate_status" }), { status: 400 });
-  }
+  // AD-012: 반려된 항목은 수정 후 재제출(draft 복귀) 허용 — '막다른 카드' 방지(전표·예산안과 일관)
+  const wasRejected = exp.status === "rejected";
 
   // 권한: admin+ 또는 등록자 본인 (R45 CLUSTER-1: DB 역할·JWT 신뢰 금지·admin=super)
   const adminRole = auth.ctx.member.role;
@@ -90,6 +89,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (payeeName !== undefined) updateData.payeeName = payeeName ? String(payeeName) : null;
   if (description !== undefined) updateData.description = description ? String(description) : null;
   if (receiptUrl !== undefined) updateData.receiptUrl = receiptUrl ? String(receiptUrl) : null;
+  // AD-012: 반려 건 수정 시 재상신을 위해 draft로 되돌리고 이전 반려 사유 제거
+  if (wasRejected) { updateData.status = "draft"; updateData.rejectionReason = null; }
 
   let updated: typeof expenses.$inferSelect[] = [];
   try {

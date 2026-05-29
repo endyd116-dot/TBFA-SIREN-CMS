@@ -406,6 +406,9 @@
     else if (kind === 'board') renderBoardDetail(body, data.post, data.comments || []);
   }
 
+  // AD-073: 담당자 변경 박스(admin-service-assignee.js)가 저장 후 상세를 새로고침할 수 있도록 노출
+  window.reloadSirenDetail = function (kind, id) { return openDetail(kind, id); };
+
   /* ============ 상세 — 사건제보 ============ */
   function renderIncidentDetail(body, r) {
     if (!r) return;
@@ -434,6 +437,7 @@
       </div>` : '';
 
     body.innerHTML = `
+      <div style="display:none" data-current-assignee-uid="${r.assignedTo || ''}" data-service-category="${r.category || ''}" data-workspace-task-id="${r.workspaceTaskId || ''}"></div>
       <div class="srn-modal-info-grid">
         <div>접수번호</div><div style="font-family:Inter;font-weight:600">${escapeHtml(r.reportNo)}</div>
         <div>제목</div><div><strong>${escapeHtml(r.title)}</strong></div>
@@ -496,6 +500,7 @@
       </div>` : '';
 
     body.innerHTML = `
+      <div style="display:none" data-current-assignee-uid="${r.assignedTo || ''}" data-service-category="${r.category || ''}" data-workspace-task-id="${r.workspaceTaskId || ''}"></div>
       <div class="srn-modal-info-grid">
         <div>신고번호</div><div style="font-family:Inter;font-weight:600">${escapeHtml(r.reportNo)}</div>
         <div>제목</div><div><strong>${escapeHtml(r.title)}</strong></div>
@@ -560,6 +565,7 @@
       </div>` : '';
 
     body.innerHTML = `
+      <div style="display:none" data-current-assignee-uid="${r.assignedTo || ''}" data-service-category="${r.category || ''}" data-workspace-task-id="${r.workspaceTaskId || ''}"></div>
       <div class="srn-modal-info-grid">
         <div>접수번호</div><div style="font-family:Inter;font-weight:600">${escapeHtml(r.consultationNo)}</div>
         <div>제목</div><div><strong>${escapeHtml(r.title)}</strong></div>

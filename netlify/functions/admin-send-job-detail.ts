@@ -37,7 +37,7 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   let job: any = null;
-  let stats: any = { pending: 0, sending: 0, sent: 0, failed: 0, cancelled: 0 };
+  let stats: any = { pending: 0, sending: 0, sent: 0, failed: 0, cancelled: 0, skipped: 0 };
 
   try {
     /* ★ 2026-05-17: images_override + template.images 조건부 SELECT */

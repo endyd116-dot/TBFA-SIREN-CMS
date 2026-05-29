@@ -197,6 +197,12 @@ body {
         <div class="stat-value" id="statPending">0</div>
         <div class="stat-pct" id="statPendingPct">0%</div>
       </div>
+      <!-- AD-058: 정책상 발송되지 않은(예: 카카오 미동의) 건 — 성공/실패/대기 어디에도 안 잡혀 합이 어긋나던 문제 -->
+      <div class="stat-item">
+        <div class="stat-label">발송 안 함(정책)</div>
+        <div class="stat-value" id="statSkipped" style="color:#6b7280;">0</div>
+        <div class="stat-pct" id="statSkippedPct">0%</div>
+      </div>
     </div>
 
     <div id="errorBox" class="alert-error" style="display:none;"></div>

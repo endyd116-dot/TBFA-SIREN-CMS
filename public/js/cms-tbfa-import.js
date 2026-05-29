@@ -349,7 +349,8 @@
       }
       return `<a href="#" data-action="open-donation" data-id="${r.confirmedDonationId || ''}" style="color:#1a5ec4;font-size:11.5px">후원 보기</a>`;
     }
-    if (r.status === 'ignored') {
+    if (r.status === 'ignored' || r.status === 'held') {
+      // AD-051/052: 무시·보류 건은 검토 대기로 복원 가능
       return `<button data-action="restore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">↩ 복원</button>`;
     }
     /* pending / matched — 효성 계약은 매칭 없어도 통과 가능 (신규 회원 자동 생성) */
@@ -360,8 +361,10 @@
       : (r.matchedMemberId ? '' : '회원 매칭 후 가능');
     const confirmBtn = `<button data-action="confirm" data-id="${r.id}" class="cms-btn cms-btn-primary" style="padding:3px 8px;font-size:11.5px;margin-right:4px"${canConfirm ? '' : ' disabled'}${confirmTitle ? ` title="${confirmTitle}"` : ''}>✅ 통과</button>`;
     const rematchBtn = `<button data-action="rematch" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px">🔍 매칭 변경</button>`;
+    // AD-052: 판단 보류 — 미확정 더미에 섞이지 않게 격리(복원 가능)
+    const holdBtn = `<button data-action="hold" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px;margin-right:4px" title="판단 보류 — 나중에 복원 가능">⏸ 보류</button>`;
     const ignoreBtn = `<button data-action="ignore" data-id="${r.id}" class="cms-btn cms-btn-ghost" style="padding:3px 8px;font-size:11.5px">🗑 무시</button>`;
-    return confirmBtn + rematchBtn + ignoreBtn;
+    return confirmBtn + rematchBtn + holdBtn + ignoreBtn;
   }
 
   async function onRowAction(e) {
@@ -380,8 +383,14 @@
       const res = await apiPost('/api/admin-donation-confirm', { ids: [id], action: 'ignore' });
       handleConfirmResult(res);
     } else if (action === 'restore') {
-      /* 복원: ignored → pending (matched_member_id 있으면 matched, 없으면 pending) */
-      toast('복원 기능은 추후 추가 예정입니다');
+      /* AD-051: 복원 — ignored/held → matched(매칭 있으면) | pending */
+      const res = await apiPost('/api/admin-donation-confirm', { ids: [id], action: 'restore' });
+      handleConfirmResult(res);
+    } else if (action === 'hold') {
+      /* AD-052: 보류 — 판단 유보 격리 */
+      if (!confirm('이 항목을 보류 처리하시겠습니까?\n판단을 미뤄두고 나중에 복원할 수 있습니다.')) return;
+      const res = await apiPost('/api/admin-donation-confirm', { ids: [id], action: 'hold' });
+      handleConfirmResult(res);
     } else if (action === 'rematch') {
       const memberIdStr = prompt('수동으로 매칭할 회원 ID를 입력하세요 (admin 회원 검색 페이지에서 확인):');
       if (!memberIdStr) return;

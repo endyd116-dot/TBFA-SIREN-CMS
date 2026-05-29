@@ -1,8 +1,8 @@
 import type { Context } from "@netlify/functions";
 import { requireAdmin } from "../../lib/admin-guard";
 import { db } from "../../db";
-import { memorialTeachers } from "../../db/schema";
-import { eq, asc } from "drizzle-orm";
+import { memorialTeachers, memorialOfferings, memorialMessages, memorialLetters } from "../../db/schema";
+import { eq, asc, sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-memorial-teachers" };
 
@@ -137,8 +137,16 @@ export default async function handler(req: Request, _ctx: Context) {
       });
     }
     try {
-      await db.delete(memorialTeachers).where(eq(memorialTeachers.id, id));
-      return new Response(JSON.stringify({ ok: true, message: "삭제되었습니다" }), {
+      // AD-030: 선생님 삭제 시 자식(헌화·방명록·편지·좋아요)을 함께 정리 — FK가 없어 고아로 남던 문제 해소
+      // ('함께 정리됩니다' 안내가 실제로 동작하도록). 트랜잭션으로 원자 처리.
+      await db.transaction(async (tx) => {
+        await tx.execute(sql`DELETE FROM memorial_message_likes WHERE message_id IN (SELECT id FROM memorial_messages WHERE teacher_id = ${id})`);
+        await tx.delete(memorialMessages).where(eq(memorialMessages.teacherId, id));
+        await tx.delete(memorialLetters).where(eq(memorialLetters.teacherId, id));
+        await tx.delete(memorialOfferings).where(eq(memorialOfferings.teacherId, id));
+        await tx.delete(memorialTeachers).where(eq(memorialTeachers.id, id));
+      });
+      return new Response(JSON.stringify({ ok: true, message: "선생님과 관련 헌화·방명록·편지를 모두 삭제했습니다" }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
     } catch (err: any) {

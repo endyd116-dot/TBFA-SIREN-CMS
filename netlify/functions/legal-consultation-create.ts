@@ -188,7 +188,7 @@ export default async (req: Request, _ctx: Context) => {
               params: {
                 title: "담당 변호사가 배정되었습니다",
                 message: `${lawyer.name || "변호사"}님이 법률 상담 담당으로 배정되었습니다.`,
-                link: `/mypage-siren.html#legal-${consultationId}`,
+                link: `/mypage.html#support`,
                 category: "legal",
                 severity: "info",
                 refTable: "legal_consultations",

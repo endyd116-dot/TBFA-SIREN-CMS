@@ -150,7 +150,10 @@
       actions = '<button class="btn-sm btn-sm-primary" ' +
         'data-em-assign="' + it.id + '" ' +
         'data-em-match-type="' + escapeHtml(it.matchType || '') + '" ' +
-        'type="button">배정</button>';
+        'type="button">배정</button> ' +
+        '<button class="btn-sm" data-em-reject="' + it.id + '" type="button" ' +
+          'style="border:1px solid #d1d5db;color:#6b7280;background:#fff;border-radius:4px;' +
+          'padding:4px 10px;font-size:11.5px;cursor:pointer;font-weight:600">반려</button>';
     } else if (it.status === 'matched' || it.status === 'active') {
       actions = '' +
         (it.chatRoomId
@@ -361,6 +364,19 @@
       return toast('세션 종료 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
     }
     toast((r.data && r.data.message) || '세션이 종료되었습니다.');
+    load(_currentStatus);
+  }
+
+  /* AD-057: 대기(미배정) 신청 반려 — 부적절·중복 신청 정리 */
+  async function doRejectPending(matchId) {
+    var r = await api('/api/expert-session-end', {
+      method: 'POST',
+      body: { matchId: Number(matchId), rejectPending: true },
+    });
+    if (!r.ok) {
+      return toast('반려 실패: ' + ((r.data && r.data.error) || ('HTTP ' + r.status)));
+    }
+    toast((r.data && r.data.message) || '대기 신청을 반려했습니다.');
     load(_currentStatus);
   }
 
@@ -618,6 +634,14 @@
     if (endBtn) {
       e.preventDefault();
       if (confirm('이 매칭 세션을 종료하시겠습니까?')) doSessionEnd(endBtn.dataset.emEndSession);
+      return;
+    }
+
+    /* AD-057: 대기 신청 반려 */
+    var rejectBtn = e.target.closest && e.target.closest('[data-em-reject]');
+    if (rejectBtn) {
+      e.preventDefault();
+      if (confirm('이 대기 신청을 반려하시겠습니까?\n신청자는 같은 종류를 다시 신청할 수 있습니다.')) doRejectPending(rejectBtn.dataset.emReject);
       return;
     }
 

@@ -471,7 +471,8 @@ function saveSettings() {
   _settings.scopes = scopes;
   _settings.autoEnabled = ae ? ae.checked : true;
 
-  api('/api/admin-org-news-settings', { method: 'PUT', body: { keywords: _settings.keywords, scopes: _settings.scopes, autoEnabled: _settings.autoEnabled } })
+  // AD-086: perCombo·cronHourKst를 함께 전송해야 서버 DEFAULT 폴백으로 초기화되지 않음(저장 시 보존)
+  api('/api/admin-org-news-settings', { method: 'PUT', body: { keywords: _settings.keywords, scopes: _settings.scopes, autoEnabled: _settings.autoEnabled, perCombo: _settings.perCombo, cronHourKst: _settings.cronHourKst } })
     .then(function(res) {
       if (!res.ok) {
         var msg = (res.data && (res.data.error || (res.data.data && res.data.data.error))) || '저장 실패';
