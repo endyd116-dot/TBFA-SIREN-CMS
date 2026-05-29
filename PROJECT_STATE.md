@@ -23,6 +23,16 @@
 
 ## 2. 현재 상태 (2026-05-29)
 
+### 🛡️ R45 운영 시작(06.01) 전 최종 점검 — 역할 4티어 전수 감사 + 수정 라운드 (2026-05-29 최신·★상단)
+운영 직전 사용자/슈퍼어드민/어드민/운영자 4역할 시나리오 전수 감사 → 빠진 기능·워크플로우 + 결함 발굴 → 수정·머지. **역할 관점 4분할**(메인=슈퍼어드민·A=어드민·B=운영자·C=사용자·Swain 결정).
+- **감사(읽기전용)**: 원시 269건(P0 7·P1 76) → 9개 클러스터. 산출물 `docs/active/audit/R45-AUDIT-PLAN·R45-MASTER·R45-report-S/A/B/C`. 메인·A·B 독립 3중 확정: '관리자 모드' 진입(`auth-admin-elevate`)이 모든 어드민에 super JWT 발급 → JWT등급 신뢰 게이트 우회(권한정책 토글 등)=최우선 P0.
+- **권한 정책(Swain 확정)**: 권한정책 편집만 super 전용, 그 외 **admin=super 기본**, operator는 근태결재·게시판중재·AI진입만 허용·나머지 차단, **전부 권한정책 UI(`admin-role-policy`)에서 토글**. → `canAccess(member.role, featureKey)` 통일 + featureKey 20종 시드.
+- **메인 직접 fix(보안 코어)**: ① 무인증 시뮬결제 `/api/donate` 삭제(US-011) ② elevate DB등급 발급 + JWT등급 게이트 7곳→DB등급(CLUSTER-1) ③ 익명 신고자 신원 마스킹 5곳 + reveal 권한 게이트(CLUSTER-2) ④ 감사로그 게이트·AI대화/워크스페이스/AI재생성/카드만료 IDOR(CLUSTER-3) ⑤ US-001 전문가·봉사자 가입 매핑(P0)·US-058 알림 수신거부 키·US-039 게시판 익명·SU-023 권한변경 감사·AD-021 검토 배정자.
+- **A·B·C 도메인 fix 머지**: A(어드민 38)·B(운영자 78)·C(사용자 66) 전부 main 통합·머지본 tsc 0·충돌 1곳(expert-assign 알림 3중복 통합) 해소. 신고 무통보·이력 단절 복구·효성 자동이체 단절·마감일변경 UI·게시글 영구삭제·예약발행 등.
+- **▶ Swain 액션(배포 후)**: 마이그 4종 순차 호출(`migrate-r45-rbac-seed`★먼저 → `migrate-r45-b` → `migrate-siren-rejected-reason` → `migrate-r45-memorial-report-log`·전부 `?run=1`) + env `SITE_URL=https://tbfa.co.kr`. 호출 후 메인이 schema 활성화(rejected status·deletedAt)·1회용 마이그 4파일 삭제.
+- **▶ 후속(P2/P3·비차단)**: SU-026 감사 위험등급 매핑·OP-055 1:1상담 cms 통합(독립 admin-chat.html iframe·라이브 검증 필요)·OP-031 정산 앵커·US-044 효성/계좌 모금현황 recalc·AD-022 발간 검수자 배정 등. R45-MASTER §2·§4 참조.
+- **C Phase 2**: 머지본 라이브 재검증(권한 경계·익명성·결제·핵심 여정) 대기 → `docs/history/verify/2026-05-29-r45-fix.md`.
+
 ### 🕊️ R44 딥릴리프 서면 본문 출처 분리 — 종결 + BUG-A 후속 분리 (2026-05-29 최신·★상단)
 유족급여신청서 본문 생성 시 자료 출처를 Swain 3분류로 분리. 메인 단일 커밋(9d494e7)·라이브 검증 PASS·R43 종결 직후 후속.
 - **Swain 3분류 정책**: ① 사실·정황·진술 = 본 사건 자료에만 한정 (`martyr_active` + `loadExtraction` + `strategy`) ② 분석 기법·전개 = `martyr_case` 형식·전개만 (다른 사건 사실 인용 금지) ③ 통계·비교·법령 = `martyr_law` + `martyr_case`의 법령 인용 부분 자유 활용.
