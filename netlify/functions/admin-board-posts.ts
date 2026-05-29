@@ -294,6 +294,31 @@ export default async (req: Request, _ctx: Context) => {
         return ok({ commentId }, "댓글이 삭제되었습니다");
       }
 
+      /* ===== OP-068: 게시글 영구 삭제 ===== (기존엔 숨김(isHidden)만 가능, 본문 제거 불가) */
+      if (action === "post" || url.searchParams.get("id")) {
+        const postId = Number(url.searchParams.get("id"));
+        if (!Number.isFinite(postId)) return badRequest("id 필요");
+
+        const [p] = await db
+          .select({ id: boardPosts.id, postNo: boardPosts.postNo })
+          .from(boardPosts)
+          .where(eq(boardPosts.id, postId))
+          .limit(1);
+        if (!p) return notFound("게시글을 찾을 수 없습니다");
+
+        /* 게시글 삭제 — 연결 댓글은 board_comments.postId FK(onDelete cascade)로 함께 정리 */
+        await db.delete(boardPosts).where(eq(boardPosts.id, postId));
+
+        try {
+          await logAdminAction(req, (admin as any).uid, (admin as any).name, "board_admin_delete_post", {
+            target: `post-${postId}`,
+            detail: { postNo: (p as any).postNo },
+          });
+        } catch (_) {}
+
+        return ok({ id: postId }, "게시글이 삭제되었습니다");
+      }
+
       return badRequest("action 파라미터 필요");
     }
 
