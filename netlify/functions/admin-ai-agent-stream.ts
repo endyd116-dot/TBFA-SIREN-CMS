@@ -67,7 +67,7 @@ export default async (req: Request, _ctx: Context) => {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
   const adminId = (auth as any).ctx?.admin?.uid ?? null;
-  const adminRole = (auth as any).ctx?.admin?.role ?? null;
+  const adminRole = (auth as any).ctx?.member?.role ?? null; // R45 CLUSTER-1: DB 역할(도구 권한 판정·JWT 신뢰 금지)
 
   /* 사전 검증 — SSE 시작 전에 JSON으로 거부 */
   const featureCheck = await checkFeatureBeforeCall(AGENT_FEATURE_KEY);

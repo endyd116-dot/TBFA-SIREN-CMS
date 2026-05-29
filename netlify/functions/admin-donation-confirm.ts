@@ -307,7 +307,7 @@ export default async (req: Request, _ctx: Context) => {
 
   /* ★ R41 Q1-009: 후원 통과 처리 권한 게이트 — 권한 정책 메뉴(admin-role-policy)에서 토글.
      시드 기본값 operator 허용(현행 유지)이라 미시드/현행 동작 동일, super_admin이 제한 가능. */
-  if (!(await canAccess(admin.role ?? "", "donation_confirm"))) {
+  if (!(await canAccess(adminMember.role ?? "", "donation_confirm"))) {
     return forbidden("후원 통과 처리 권한이 없습니다");
   }
 

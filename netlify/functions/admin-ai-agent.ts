@@ -656,7 +656,7 @@ export default async (req: Request, _ctx: Context) => {
     : "";
 
   const systemPrompt = `현재 한국 시간(KST) 기준 오늘 날짜: ${todayIso} (${dayName}요일). 내일: ${tomorrowIso}.\n날짜 인자(dueDate·startAt 등)는 이 정보 기준으로 정확히 계산하세요.\n\n${baseSystemPrompt}${offTopicContext}`;
-  const adminRole = (auth as any).ctx?.admin?.role ?? null;
+  const adminRole = (auth as any).ctx?.member?.role ?? null; // R45 CLUSTER-1: DB 역할(도구 권한 판정·JWT 신뢰 금지)
 
   /* === 의도별 모델 체인 선택 (변경 키워드 → HIGH, 그 외 → LOW) === */
   const modelChain = pickModelChain(userMessage);

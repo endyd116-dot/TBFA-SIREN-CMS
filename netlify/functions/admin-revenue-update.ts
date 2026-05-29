@@ -50,10 +50,10 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ ok: false, error: "draft 상태만 수정 가능합니다", step: "validate_status" }), { status: 400 });
   }
 
-  // 권한: super_admin 또는 등록자 본인
-  const adminRole = auth.ctx.admin.role;
-  const adminUid = auth.ctx.admin.uid;
-  if (adminRole !== "super_admin" && rev.recordedBy !== adminUid) {
+  // 권한: admin+ 또는 등록자 본인 (R45 CLUSTER-1: DB 역할·JWT 신뢰 금지·admin=super)
+  const adminRole = auth.ctx.member.role;
+  const adminUid = auth.ctx.member.id;
+  if (adminRole !== "super_admin" && adminRole !== "admin" && rev.recordedBy !== adminUid) {
     return new Response(JSON.stringify({ ok: false, error: "수정 권한이 없습니다 (등록자 또는 슈퍼어드민만 가능)", step: "auth_check" }), { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { otherRevenues } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { eq } from "drizzle-orm";
 
 export const config = { path: "/api/admin-revenue-approve" };
@@ -13,9 +14,9 @@ export default async function handler(req: Request): Promise<Response> {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
 
-  // 슈퍼어드민만 승인/반려 가능
-  if (auth.ctx.admin.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민만 승인·반려할 수 있습니다", step: "auth_role" }), { status: 403 });
+  // R45 CLUSTER-1: 재정 승인 권한 — DB 역할 기반(admin=super 기본·operator 차단·권한정책 UI 토글)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "finance_bookkeeping"))) {
+    return new Response(JSON.stringify({ ok: false, error: "재정 승인 권한이 없습니다", step: "auth_role" }), { status: 403 });
   }
 
   let body: any;
