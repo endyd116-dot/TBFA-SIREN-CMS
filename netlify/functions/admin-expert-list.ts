@@ -157,7 +157,20 @@ export default async (req: Request) => {
       r.assignedBy != null ? (memberMap.get(r.assignedBy)?.name ?? null) : null,
   }));
 
-  return ok({ matches, total: totalCount, page, limit });
+  /* AD-055: 상태별 건수(특히 pending) — 클라이언트 대기 배지가 counts.pending을 읽는데
+     서버가 미제공해 항상 0이던 문제 해소. 현재 필터와 무관하게 전체 상태 집계. */
+  const counts: Record<string, number> = {};
+  try {
+    const cntRows: any = await db
+      .select({ status: expertMatches.status, n: sql<number>`count(*)::int` })
+      .from(expertMatches)
+      .groupBy(expertMatches.status);
+    for (const c of (cntRows || [])) counts[String(c.status)] = Number(c.n);
+  } catch (err) {
+    console.warn("[admin-expert-list] counts 집계 실패:", String(err));
+  }
+
+  return ok({ matches, total: totalCount, page, limit, counts });
 };
 
 export const config = { path: "/api/admin-expert-list" };

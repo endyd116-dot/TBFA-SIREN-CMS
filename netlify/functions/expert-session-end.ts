@@ -108,8 +108,21 @@ export default async (req: Request) => {
     return badRequest(`이미 종료된 매칭입니다 (status=${match.status})`);
   }
   if (match.status === "pending") {
+    /* AD-057: 어드민은 대기(미배정) 신청을 반려할 수 있음 — 부적절·중복 신청 정리 출구
+       (기존엔 반려 수단이 없어 대기 목록에 영구 잔존) */
+    if (isAdmin && body?.rejectPending === true) {
+      try {
+        await db
+          .update(expertMatches)
+          .set({ status: "rejected", closedAt: new Date(), updatedAt: new Date() } as any)
+          .where(eq(expertMatches.id, matchId));
+      } catch (err) {
+        return jsonError("reject_pending", err);
+      }
+      return ok({ matchId, status: "rejected" }, "대기 신청을 반려했습니다");
+    }
     return badRequest(
-      "아직 전문가가 배정되지 않은 매칭입니다. 어드민 배정 후 종료할 수 있습니다.",
+      "아직 전문가가 배정되지 않은 매칭입니다. 어드민 배정 후 종료하거나, 부적절한 신청은 반려할 수 있습니다.",
     );
   }
 
