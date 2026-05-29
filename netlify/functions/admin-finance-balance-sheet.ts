@@ -11,6 +11,7 @@
 import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/admin-finance-balance-sheet" };
@@ -26,6 +27,10 @@ function jsonError(step: string, err: any) {
 export default async function handler(req: Request, _ctx: Context) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
+  // R45 §4-2: 전사 재무 열람은 admin+ (운영자 차단·권한정책 토글)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
+    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   const url = new URL(req.url);
   const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);

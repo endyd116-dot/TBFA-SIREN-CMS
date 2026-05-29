@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { donations, otherRevenues, revenueCategories, expenses, expenseCategories } from "../../db/schema";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { eq, and, sql } from "drizzle-orm";
 import { resolvePeriod } from "../../lib/period-filter";
 import { getCache, setCache } from "../../lib/cache";
@@ -10,6 +11,10 @@ export const config = { path: "/api/admin-finance-pl-summary" };
 export default async function handler(req: Request): Promise<Response> {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
+  // R45 §4-2: 전사 재무(손익) 열람은 admin+ (운영자 차단·권한정책 토글)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "finance_view"))) {
+    return new Response(JSON.stringify({ ok: false, error: "재무 열람 권한이 없습니다", step: "auth_role" }), { status: 403, headers: { "Content-Type": "application/json" } });
+  }
 
   const url = new URL(req.url);
   const { startDate, endDate, period, fiscalYear, includeMonthly } = resolvePeriod({
