@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attLeaveRequests, attLeaveBalances, attHolidays, attRecords, attLeaveTypes, members } from "../../db/schema";
 import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-att-leave-review" };
@@ -22,8 +23,9 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+  // R45 §4-1: 근태 일상 결재는 운영자 허용(att_manage)·정책/마스터/기록수정은 super 유지
+  if (!(await canAccess((auth as any).ctx.member.role ?? "", "att_manage"))) {
+    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

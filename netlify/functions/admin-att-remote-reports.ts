@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attRemoteWorkReports, members, workspaceTasks } from "../../db/schema";
 import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 // R35-GAP-P2 M-G5: wbsCardIds → wbsCards JOIN helper
 async function fetchWbsCardsMap(allCardIds: number[]): Promise<Record<number, any>> {
@@ -44,8 +45,9 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
-  if (auth.ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용", step: "role_check" }), {
+  // R45 §4-1: 재택보고서 확인은 운영자 허용(att_manage)
+  if (!(await canAccess(auth.ctx.member.role ?? "", "att_manage"))) {
+    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }
