@@ -43,6 +43,12 @@ export default async (req: Request, _ctx: Context) => {
       const taskId = Number(taskIdRaw);
       if (!taskId) return badRequest("taskId 유효하지 않음");
 
+      // R45 OP-035: 작업 접근 권한 확인 후 첨부 목록 반환(IDOR 차단)
+      if (!isSuperAdmin) {
+        const [t] = await db.select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy }).from(workspaceTasks).where(eq(workspaceTasks.id, taskId)).limit(1);
+        if (!(t && (t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))) return forbidden("조회 권한이 없습니다");
+      }
+
       const items: any = await db
         .select({
           id: workspaceTaskAttachments.id,

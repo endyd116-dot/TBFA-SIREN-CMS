@@ -75,12 +75,23 @@ export default async (req: Request, _ctx: Context) => {
           .where(eq(workspaceTaskReports.id, Number(id)))
           .limit(1);
         if (!rows[0]) return notFound("보고서를 찾을 수 없습니다");
+        // R45 OP-034: 보고서의 작업 접근 권한 확인(IDOR 차단)
+        if (!isSuperAdmin) {
+          const [t] = await db.select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy }).from(workspaceTasks).where(eq(workspaceTasks.id, rows[0].taskId)).limit(1);
+          if (!(t && (t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))) return forbidden("조회 권한이 없습니다");
+        }
         return ok(rows[0]);
       }
 
       if (!taskIdRaw) return badRequest("taskId 또는 id 필수");
       const taskId = Number(taskIdRaw);
       if (!taskId) return badRequest("taskId 유효하지 않음");
+
+      // R45 OP-034: 작업 접근 권한 확인(IDOR 차단)
+      if (!isSuperAdmin) {
+        const [t] = await db.select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy }).from(workspaceTasks).where(eq(workspaceTasks.id, taskId)).limit(1);
+        if (!(t && (t.memberId === meId || t.assignedTo === meId || t.assignedBy === meId || t.completedBy === meId))) return forbidden("조회 권한이 없습니다");
+      }
 
       const items: any = await db
         .select({

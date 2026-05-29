@@ -30,6 +30,16 @@ export default async (req: Request, _ctx: Context) => {
   if (!Number.isFinite(parentId) || parentId <= 0) return jsonError(400, "validate", "parentId 필수");
 
   try {
+    // R45 OP-033: 부모 작업 접근 권한 확인 후 하위업무 반환(IDOR 차단)
+    const meId = (auth as any).ctx.member.id as number;
+    const isSuperAdmin = ((auth as any).ctx.member.role || "") === "super_admin";
+    const [parent] = await db
+      .select({ memberId: workspaceTasks.memberId, assignedTo: workspaceTasks.assignedTo, assignedBy: workspaceTasks.assignedBy, completedBy: workspaceTasks.completedBy })
+      .from(workspaceTasks).where(eq(workspaceTasks.id, parentId)).limit(1);
+    if (!parent) return jsonError(404, "parent", "상위 작업을 찾을 수 없습니다");
+    const canView = isSuperAdmin || parent.memberId === meId || parent.assignedTo === meId || parent.assignedBy === meId || parent.completedBy === meId;
+    if (!canView) return jsonError(403, "auth", "조회 권한이 없습니다");
+
     const rows: any = await db
       .select({
         id: workspaceTasks.id,
