@@ -45,6 +45,27 @@ export default async function handler(req: Request, _ctx: Context) {
     );
   }
 
+  /* AD-061: 사용 중(예약·대기 발송 작업·자동발송 트리거) 검사 — 삭제 시 발송 시점 실패 방지. force=1로 강제 삭제 가능. */
+  const force = url.searchParams.get("force") === "1";
+  if (!force) {
+    let usedJobs = 0, usedTriggers = 0;
+    try {
+      const jr: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM communication_send_jobs WHERE template_id = ${id} AND status IN ('pending','scheduled','processing')`);
+      usedJobs = Number((jr?.rows ?? jr ?? [])[0]?.n || 0);
+    } catch {}
+    try {
+      const tr: any = await db.execute(sql`SELECT COUNT(*)::int AS n FROM communication_auto_triggers WHERE template_id = ${id} AND is_active = true`);
+      usedTriggers = Number((tr?.rows ?? tr ?? [])[0]?.n || 0);
+    } catch {}
+    if (usedJobs > 0 || usedTriggers > 0) {
+      return new Response(JSON.stringify({
+        ok: false, step: "in_use",
+        error: `이 템플릿은 예약·대기 발송 ${usedJobs}건, 자동발송 트리거 ${usedTriggers}건에서 사용 중입니다. 삭제하면 해당 발송이 발송 시점에 실패합니다. 먼저 발송을 취소·변경하거나, 강제 삭제(force=1)로 진행하세요.`,
+        inUse: { jobs: usedJobs, triggers: usedTriggers },
+      }), { status: 409, headers: JSON_HEADER });
+    }
+  }
+
   try {
     const adminId = auth.ctx.admin.uid;
     await db.execute(

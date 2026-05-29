@@ -166,6 +166,13 @@ export default async (req: Request, _ctx: Context) => {
     const content = String(body?.content || "").trim();
     if (!name || name.length > 120) return bad("템플릿 이름(1~120자)을 입력하세요");
     if (content.length < 10) return bad("본문을 입력하세요(10자 이상)");
+    /* AD-062: 같은 이름 활성 템플릿 중복 등록 방지(더블클릭·재시도 시 솔라피+DB 이중 생성·고아 차단) */
+    try {
+      const dup: any = await db.execute(sql`SELECT id FROM kakao_alimtalk_templates WHERE name = ${name} AND is_active = true LIMIT 1`);
+      if ((dup?.rows ?? dup ?? []).length > 0) {
+        return bad("같은 이름의 알림톡 템플릿이 이미 있습니다. 이름을 바꾸거나 기존 템플릿을 사용하세요.");
+      }
+    } catch { /* 조회 실패는 무시하고 진행 */ }
     const categoryCode = String(body?.categoryCode || "004001");
     const emphasizeTitle = body?.emphasizeTitle ? String(body.emphasizeTitle).slice(0, 50) : "";
     const emphasizeSubtitle = body?.emphasizeSubtitle ? String(body.emphasizeSubtitle).slice(0, 50) : "교사유가족협의회";
