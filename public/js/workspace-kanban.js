@@ -635,6 +635,96 @@
     });
   }
 
+  /* ═══════════ OP-043/044/049: 마감일 변경 요청·승인·취소 ═══════════ */
+  function _dueErr(res) {
+    return (res && res.data && (res.data.error || res.data.message)) || '처리 실패';
+  }
+  async function renderDueChange(t) {
+    const box = $('#wkCardDueChange');
+    if (!box) return;
+    box.style.display = 'none';
+    box.innerHTML = '';
+    const me = STATE.me;
+    if (!me || !t || !t.id) return;
+
+    const isPerformer = t.assignedTo === me.id && !!t.assignedBy;      // 지시받은 수행자
+    const isApprover = me.role === 'super_admin' || t.assignedBy === me.id; // 지시자·슈퍼
+    if (!isPerformer && !isApprover) return;
+
+    let pending = null;
+    try {
+      const res = await api('/api/admin-task-due-changes?list=1&status=pending');
+      const items = (res.data && res.data.data && res.data.data.items)
+        || (res.data && res.data.items) || [];
+      pending = items.find(function (x) { return x.taskId === t.id; }) || null;
+    } catch (e) { /* 조회 실패해도 요청 폼은 노출 */ }
+
+    const fmt = function (d) {
+      return d ? new Date(d).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }) : '—';
+    };
+    const esc = function (s) { return String(s || '').replace(/[<>&]/g, function (c) { return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]; }); };
+
+    if (pending) {
+      const mineReq = pending.requestedBy === me.id;
+      let html = '<div style="font-weight:600;margin-bottom:6px">📅 마감일 변경 요청 (대기 중)</div>'
+        + '<div style="font-size:13px;color:#4b5563;line-height:1.6">현재: ' + fmt(pending.currentDue)
+        + '<br>요청: <strong>' + fmt(pending.newDue) + '</strong><br>사유: ' + esc(pending.reason) + '</div>';
+      if (isApprover && !mineReq) {
+        html += '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+          + '<input type="text" id="wkDueReviewNote" class="wk-input" placeholder="반려 사유(반려 시 필수)" style="flex:1;min-width:160px">'
+          + '<button type="button" id="wkDueApprove" class="wk-btn-primary">승인</button>'
+          + '<button type="button" id="wkDueReject" class="wk-btn-secondary">반려</button></div>';
+      }
+      if (mineReq) {
+        html += '<div style="margin-top:8px"><button type="button" id="wkDueCancel" class="wk-btn-secondary">요청 취소</button></div>';
+      }
+      box.innerHTML = html;
+      box.style.display = 'block';
+      const ap = $('#wkDueApprove'); if (ap) ap.onclick = function () { reviewDue(pending.id, 'approve'); };
+      const rj = $('#wkDueReject'); if (rj) rj.onclick = function () { reviewDue(pending.id, 'reject'); };
+      const cn = $('#wkDueCancel'); if (cn) cn.onclick = function () { reviewDue(pending.id, 'cancel'); };
+    } else if (isPerformer) {
+      box.innerHTML = '<div style="font-weight:600;margin-bottom:6px">📅 마감일 변경 요청</div>'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+        + '<input type="datetime-local" id="wkDueNewDate" class="wk-input" style="min-width:180px">'
+        + '<input type="text" id="wkDueReason" class="wk-input" placeholder="변경 사유" style="flex:1;min-width:160px">'
+        + '<button type="button" id="wkDueRequest" class="wk-btn-primary">요청</button></div>'
+        + '<small class="wk-hint">지시받은 작업의 마감일은 지시자 승인을 거쳐 변경됩니다.</small>';
+      box.style.display = 'block';
+      const rq = $('#wkDueRequest'); if (rq) rq.onclick = function () { requestDue(t.id); };
+    }
+  }
+  async function requestDue(taskId) {
+    const dueEl = $('#wkDueNewDate'), reasonEl = $('#wkDueReason');
+    const newDue = dueEl ? dueEl.value : '';
+    const reason = reasonEl ? reasonEl.value.trim() : '';
+    if (!newDue) { toast('새 마감일을 입력하세요.', 'error'); return; }
+    if (!reason) { toast('변경 사유를 입력하세요.', 'error'); return; }
+    try {
+      const res = await api('/api/admin-task-due-changes', { method: 'POST', body: { taskId: taskId, newDue: new Date(newDue).toISOString(), reason: reason } });
+      if (!res.ok) { toast(_dueErr(res), 'error'); return; }
+      toast('마감일 변경이 요청되었습니다.', 'success');
+      const t = STATE.tasks.find(function (x) { return x.id === taskId; }); if (t) renderDueChange(t);
+    } catch (e) { toast('요청 실패: ' + e.message, 'error'); }
+  }
+  async function reviewDue(reqId, action) {
+    const body = {};
+    if (action === 'reject') {
+      const noteEl = $('#wkDueReviewNote');
+      const note = noteEl ? noteEl.value.trim() : '';
+      if (!note) { toast('반려 사유를 입력하세요.', 'error'); return; }
+      body.reviewNote = note;
+    }
+    try {
+      const res = await api('/api/admin-task-due-changes?id=' + reqId + '&action=' + action, { method: 'PATCH', body: body });
+      if (!res.ok) { toast(_dueErr(res), 'error'); return; }
+      toast(action === 'approve' ? '승인되었습니다.' : action === 'reject' ? '반려되었습니다.' : '취소되었습니다.', 'success');
+      if (typeof window.wkReloadTasks === 'function') window.wkReloadTasks();
+      const cardId = Number($('#wkCardId').value);
+      const t = STATE.tasks.find(function (x) { return x.id === cardId; }); if (t) renderDueChange(t);
+    } catch (e) { toast('처리 실패: ' + e.message, 'error'); }
+  }
+
   /* ═══════════════════ 카드 모달 ═══════════════════ */
   function openCardModal(id) {
     const t = STATE.tasks.find(x => x.id === id);
@@ -651,6 +741,7 @@
     $('#wkCardTags').value = Array.isArray(t.tags) ? t.tags.join(', ') : '';
 
     renderChecklistInModal(Array.isArray(t.checklistItems) ? t.checklistItems : []);
+    renderDueChange(t); // OP-043/044/049: 마감일 변경 요청·승인·취소 패널
 
     const bookmarkBtn = $('#wkCardBookmark');
     const isMarked = Array.isArray(t.bookmarkedBy) && STATE.me && t.bookmarkedBy.includes(STATE.me.id);

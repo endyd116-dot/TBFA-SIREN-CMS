@@ -245,8 +245,8 @@ export default async (req: Request, _ctx: Context) => {
       const body: any = await parseJson(req);
       if (!body) return badRequest("JSON body 필요");
 
-      if (!["approve", "reject"].includes(action || "")) {
-        return badRequest("action은 approve 또는 reject");
+      if (!["approve", "reject", "cancel"].includes(action || "")) {
+        return badRequest("action은 approve | reject | cancel");
       }
 
       const [request]: any = await db
@@ -265,6 +265,28 @@ export default async (req: Request, _ctx: Context) => {
         .where(eq(workspaceTasks.id, request.taskId))
         .limit(1);
       if (!task) return notFound("관련 작업이 삭제되었습니다");
+
+      /* OP-049: 요청자 본인이 pending 요청을 취소 — 잘못 올린 요청에 갇히지 않고 재요청 가능하게.
+         (취소는 승인권자가 아니라 요청자 권한) */
+      if (action === "cancel") {
+        if (request.requestedBy !== meId) return forbidden("본인이 요청한 건만 취소할 수 있습니다");
+        const [cancelled]: any = await db
+          .update(taskDueChangeRequests)
+          .set({ status: "cancelled", reviewedBy: meId, reviewedAt: new Date() } as any)
+          .where(eq(taskDueChangeRequests.id, id))
+          .returning();
+        await logWorkspaceActivity({
+          actorId: meId,
+          actorName: adminMember.name,
+          actionType: "due.cancel",
+          targetType: "due_request",
+          targetId: id,
+          targetTitle: `${task.title} 마감일 변경 요청 취소`,
+          metadata: { taskId: request.taskId },
+          visibility: "team",
+        });
+        return ok(cancelled, "요청이 취소되었습니다");
+      }
 
       // 권한: super_admin 또는 task.assignedBy
       if (!isSuperAdmin && task.assignedBy !== meId) {

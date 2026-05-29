@@ -41,7 +41,7 @@ export type ActivityActionType =
   // Memo
   | "memo.create" | "memo.update" | "memo.delete" | "memo.pin"
   // Due date
-  | "due.request" | "due.approve" | "due.reject"
+  | "due.request" | "due.approve" | "due.reject" | "due.cancel"
   // AI Agent
   | "agent.task.create" | "agent.briefing.generate" | "agent.reminder.send";
 
@@ -303,6 +303,7 @@ export const ACTION_LABELS: Record<ActivityActionType, string> = {
   "due.request": "마감일 변경 요청",
   "due.approve": "마감일 변경 승인",
   "due.reject": "마감일 변경 반려",
+  "due.cancel": "마감일 변경 요청 취소",
   "agent.task.create": "AI 자동 생성",
   "agent.briefing.generate": "일일 브리핑 생성",
   "agent.reminder.send": "자동 알림 발송",
