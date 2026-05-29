@@ -4,7 +4,7 @@
 import type { Context } from "@netlify/functions";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import { legalConsultations, members, blobUploads } from "../../db/schema";
+import { legalConsultations, members, blobUploads, reportStatusLogs } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { sendEmail, tplLegalResponseUser } from "../../lib/email";
 import { createNotification } from "../../lib/notify";
@@ -125,8 +125,34 @@ export default async (req: Request, _ctx: Context) => {
       const [member] = await db.select({ id: members.id, name: members.name, email: members.email })
         .from(members).where(eq(members.id, (row as any).memberId)).limit(1);
 
+      /* AD-014/015: 상태 전이 감지 — 답변 본문이 없어도 상태만 바뀌면 이력 기록 + 신청자 통지 */
+      const prevStatus = (row as any).status;
+      const statusChanged = !!status && status !== prevStatus;
+      const STATUS_LABEL: Record<string, string> = {
+        submitted: "접수", ai_analyzed: "AI 분석 완료", matching: "변호사 매칭 중",
+        matched: "매칭 완료", in_progress: "상담 진행 중", responded: "답변 완료",
+        closed: "종결", rejected: "반려",
+      };
+      const willNotify = sendNotifyFlag && !!member && (!!adminResponse || statusChanged);
+
+      if (statusChanged) {
+        try {
+          await db.insert(reportStatusLogs).values({
+            reportType: "legal",
+            reportId: id,
+            fromStatus: prevStatus,
+            toStatus: status,
+            changedBy: (admin as any).uid,
+            note: adminResponse || (body.rejectionReason ? String(body.rejectionReason).slice(0, 500) : null),
+            notifiedAt: willNotify ? new Date() : null,
+          } as any);
+        } catch (e) {
+          console.warn("[admin-legal-consultation-detail] 단계 이력 기록 실패:", e);
+        }
+      }
+
       let emailSent = false;
-      if (sendMailFlag && adminResponse && member?.email) {
+      if (sendMailFlag && (adminResponse || statusChanged) && member?.email) {
         try {
           const tpl = tplLegalResponseUser({
             applicantName: member.name,
@@ -142,14 +168,16 @@ export default async (req: Request, _ctx: Context) => {
         }
       }
 
-      if (sendNotifyFlag && adminResponse && member) {
+      if (willNotify) {
         try {
           await createNotification({
             recipientId: member.id,
             recipientType: "user",
             category: "support",
             severity: "info",
-            title: "⚖️ 법률 상담에 답변이 등록되었습니다",
+            title: adminResponse
+              ? "⚖️ 법률 상담에 답변이 등록되었습니다"
+              : `⚖️ 법률 상담 처리 상태: ${STATUS_LABEL[status] || status}`,
             message: (row as any).title,
             link: `/mypage.html#support`,
             refTable: "legal_consultations",
