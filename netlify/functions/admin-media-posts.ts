@@ -1,7 +1,7 @@
 // netlify/functions/admin-media-posts.ts
 // ★ M-11: 언론보도/갤러리 CRUD (어드민)
 
-import { eq, and, desc, count, or, like } from "drizzle-orm";
+import { eq, and, desc, count, or, ilike } from "drizzle-orm";
 import { db } from "../../db";
 import { mediaPosts } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -47,7 +47,7 @@ export default async (req: Request) => {
       if (published === "true") conds.push(eq(mediaPosts.isPublished, true));
       else if (published === "false") conds.push(eq(mediaPosts.isPublished, false));
       if (q && q.length >= 2) {
-        conds.push(or(like(mediaPosts.title, `%${q}%`), like(mediaPosts.source, `%${q}%`)));
+        conds.push(or(ilike(mediaPosts.title, `%${q}%`), ilike(mediaPosts.source, `%${q}%`)));
       }
       const where = conds.length === 0 ? undefined : (conds.length === 1 ? conds[0] : and(...conds));
 

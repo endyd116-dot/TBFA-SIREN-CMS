@@ -11,7 +11,7 @@
 //  - GET: 모든 운영자 (목록 조회)
 //  - POST/PATCH/DELETE: super_admin 또는 'all' 카테고리 담당자
 
-import { eq, and, desc, sql, or, like } from "drizzle-orm";
+import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
 import { db } from "../../db";
 import { resources, resourceCategories, members, blobUploads } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
@@ -287,8 +287,8 @@ export default async (req: Request) => {
       }
       if (q && q.length >= 2) {
         conds.push(or(
-          like(resources.title, `%${q}%`),
-          like(resources.description, `%${q}%`),
+          ilike(resources.title, `%${q}%`),
+          ilike(resources.description, `%${q}%`),
         ));
       }
       const where = conds.length === 0 ? undefined : (conds.length === 1 ? conds[0] : and(...conds));

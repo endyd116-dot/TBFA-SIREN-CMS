@@ -371,6 +371,7 @@ export default async (req: Request, _ctx: Context) => {
         const sourceId = url.searchParams.get("sourceId");
         const priority = url.searchParams.get("priority");
         const limit = Math.min(Number(url.searchParams.get("limit") || 100), 500);
+        const offset = Math.max(0, Number(url.searchParams.get("offset") || 0)); // OP-038
 
         const conds: any[] = [];
 
@@ -409,6 +410,14 @@ export default async (req: Request, _ctx: Context) => {
 
         const whereClause = conds.length ? and(...conds) : undefined;
 
+        /* OP-038: 실제 total + offset — 상한(500) 초과분이 화면에서 영구 누락되던 문제.
+           '더 보기'와 정확한 건수 표시가 가능하도록 별도 COUNT + offset 지원(기본 offset=0). */
+        const totalRow: any = await db
+          .select({ c: sql<number>`count(*)::int` })
+          .from(workspaceTasks)
+          .where(whereClause as any);
+        const total = Number(totalRow[0]?.c ?? 0);
+
         const items: any = await db
           .select()
           .from(workspaceTasks)
@@ -417,7 +426,8 @@ export default async (req: Request, _ctx: Context) => {
             sql`CASE status WHEN 'blocked' THEN 0 WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 ELSE 4 END`,
             asc(workspaceTasks.dueDate)
           )
-          .limit(limit);
+          .limit(limit)
+          .offset(offset);
 
         // 서브태스크 집계 (별도 GROUP BY 쿼리 — drizzle 다중 leftJoin 금지 원칙)
         const taskIds = (items as any[]).map((t: any) => t.id) as number[];
@@ -450,7 +460,7 @@ export default async (req: Request, _ctx: Context) => {
           subtaskDoneCount: subtaskMap[t.id]?.subtaskDoneCount ?? 0,
         }));
 
-        return ok({ items: enriched, total: enriched.length });
+        return ok({ items: enriched, total, offset, limit });
       }
 
       return badRequest("list=1 / id=N / stats=1 / feed=1 중 하나 필수");

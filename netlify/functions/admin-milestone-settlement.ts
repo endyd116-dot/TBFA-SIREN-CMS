@@ -161,7 +161,7 @@ export default async function handler(req: Request, _ctx: Context) {
           category: "milestone", severity: "info",
           title: `결산 지급 처리 완료: ${periodLabel}`,
           message: `${settle.member_name || "운영자"} (${settle.milestone_role || "-"}) 결산 PAID 처리됨.`,
-          link: "/admin#milestone-review",
+          link: "/cms-tbfa.html#milestone-review",
         }).catch(() => {});
 
         /* ★ R29-MS-GAP1-G: PAID 후 다음 분기 자동 생성 */

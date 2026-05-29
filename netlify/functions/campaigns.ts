@@ -34,6 +34,8 @@ export default async (req: Request) => {
       const conds: any[] = [
         eq(campaigns.isPublished, true),
         sql`${campaigns.status} IN ('active', 'closed')`,
+        /* OP-069: 예약 발행 — 시작일이 미래인 캠페인은 직접 링크로도 아직 노출 안 함 */
+        sql`(${campaigns.startDate} IS NULL OR ${campaigns.startDate} <= NOW())`,
       ];
       if (slug) {
         conds.push(eq(campaigns.slug, slug));
@@ -106,6 +108,9 @@ export default async (req: Request) => {
         .where(and(
           eq(campaigns.isPublished, true),
           eq(campaigns.status, "active"),
+          /* OP-069: 시작 전·종료 후 캠페인은 홈 노출에서 제외 */
+          sql`(${campaigns.startDate} IS NULL OR ${campaigns.startDate} <= NOW())`,
+          sql`(${campaigns.endDate} IS NULL OR ${campaigns.endDate} >= NOW())`,
         ))
         .orderBy(desc(campaigns.isPinned), desc(campaigns.createdAt))
         .limit(5);
@@ -131,11 +136,17 @@ export default async (req: Request) => {
     const type = url.searchParams.get("type") || "";
     const includeClosed = url.searchParams.get("includeClosed") === "1";
 
-    const conds: any[] = [eq(campaigns.isPublished, true)];
+    const conds: any[] = [
+      eq(campaigns.isPublished, true),
+      /* OP-069: 예약 발행 — 시작일이 미래인 캠페인은 아직 공개 안 함 */
+      sql`(${campaigns.startDate} IS NULL OR ${campaigns.startDate} <= NOW())`,
+    ];
     if (includeClosed) {
       conds.push(sql`${campaigns.status} IN ('active', 'closed')`);
     } else {
       conds.push(eq(campaigns.status, "active"));
+      /* OP-069: 종료일이 지난 캠페인은 active 기본 목록에서 자동 제외(status 수동변경 전이라도) */
+      conds.push(sql`(${campaigns.endDate} IS NULL OR ${campaigns.endDate} >= NOW())`);
     }
     if (VALID_TYPES.includes(type)) {
       conds.push(eq(campaigns.type, type as any));

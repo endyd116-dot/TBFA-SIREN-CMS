@@ -285,6 +285,10 @@
 [functions."cleanup-chat-images"]
   schedule = "0 18 * * *"
 
+# ★ R45 OP-061: 장기 방치 1:1 상담 자동 종료 (매일 KST 02:30 = UTC 17:30, 전문가 1:1 제외)
+[functions."cron-chat-auto-close"]
+  schedule = "30 17 * * *"
+
 # ★ R40: KICC 정기 결제 자동청구 cron (매일 새벽 3시 KST = UTC 18:00)
 # cron-toss-billing·cron-billing-monthly 통합 대체(A안) — 이중청구 원천 제거
 [functions."cron-kicc-billing"]

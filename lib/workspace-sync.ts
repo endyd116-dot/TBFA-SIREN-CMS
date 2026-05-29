@@ -405,6 +405,37 @@ export async function transferWorkspaceTask(opts: {
     });
   }
 
+  /* OP-039: 워처에게도 인계 알림 — 카드를 관찰 등록한 사람이 담당자 변경을 통지받지 못하던 갭.
+     마감 알림 cron(cron-workspace-due-reminder)은 워처를 수신자에 포함하는데 토스 경로엔 없었음.
+     받는 사람·원담당자·실행자 본인은 제외(중복 방지). */
+  try {
+    const wres: any = await db.execute(sql`
+      SELECT watcher_uid FROM workspace_task_watchers WHERE task_id = ${taskId}
+    `);
+    const wrows = Array.isArray(wres) ? wres : ((wres as any).rows ?? []);
+    const exclude = new Set<number>([toUid, transferredBy, ...(fromUid ? [fromUid] : [])]);
+    const watcherUids = Array.from(new Set(
+      wrows
+        .map((r: any) => Number(r.watcher_uid))
+        .filter((n: number) => Number.isFinite(n) && n > 0 && !exclude.has(n))
+    ));
+    for (const w of watcherUids) {
+      await sendWorkspaceNotification({
+        memberId: w as number,
+        sourceType: "task",
+        sourceId: taskId,
+        notifType: "status_changed",
+        channel: "bell",
+        title: `관찰 중인 카드가 인계됨: ${String(task.title).slice(0, 100)}`,
+        body: reason ?? null,
+        actionUrl: `/workspace-kanban.html#task=${taskId}`,
+        category: "transfer",
+      });
+    }
+  } catch (e: any) {
+    console.warn("[transferWorkspaceTask] 워처 알림 실패:", e?.message || e);
+  }
+
   return { transferId, fromUid, toUid };
 }
 

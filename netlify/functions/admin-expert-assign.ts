@@ -25,6 +25,7 @@ import {
   expertMatches,
 } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { createNotification } from "../../lib/notify";
 import {
   checkExpertEligibility,
   buildExpertChatRoomTitle,
@@ -32,7 +33,6 @@ import {
   ROOM_TYPE_EXPERT,
   type MatchType,
 } from "../../lib/expert-match";
-import { createNotification } from "../../lib/notify";   /* ★US-051(= OP-060/AD-019 중복·머지 dedup) */
 
 interface Body {
   matchId?: number;
@@ -188,21 +188,33 @@ export default async (req: Request, _ctx: Context) => {
     return jsonError("transaction", err);
   }
 
-  /* ★ US-051 (= OP-060·AD-019 중복 — 메인 머지 시 한 곳으로 dedup): 배정 완료 시 사용자에게 알림.
-     기존엔 사용자가 우연히 마이페이지를 다시 열 때까지 채팅방 개설을 몰라 상담이 지연됐음. */
+  /* OP-060 (US-051·AD-019 dedup·메인 통합): 배정 완료를 사용자·전문가 양측에 알림 — 기존엔 양측이 직접 목록을 봐야 매칭 인지(상담 지연) */
   try {
     await createNotification({
-      recipientId: (match as any).userId,
+      recipientId: match!.userId,
       recipientType: "user",
       category: "chat",
       severity: "info",
       title: "전문가 상담이 배정되었습니다",
-      message: `${expertName} 전문가와의 상담 채팅방이 열렸습니다. 마이페이지에서 확인해 주세요.`,
-      link: "/mypage.html#expertMatch",
-      refTable: "expert_matches",
-      refId: matchId,
+      message: `${expertName || "전문가"}님과의 1:1 상담이 시작되었습니다. 마이페이지에서 대화를 시작하세요.`,
+      link: "/mypage.html",
+      refTable: "chat_rooms",
+      refId: chatRoomId,
     });
-  } catch (e) { console.warn("[admin-expert-assign] 사용자 배정 알림 예외(무시):", e); }
+    await createNotification({
+      recipientId: expertId,
+      recipientType: "user",
+      category: "chat",
+      severity: "info",
+      title: "새 상담이 배정되었습니다",
+      message: `${userName || "상담 신청자"}님과의 1:1 상담이 배정되었습니다.`,
+      link: "/mypage.html",
+      refTable: "chat_rooms",
+      refId: chatRoomId,
+    });
+  } catch (notifyErr) {
+    console.warn("[admin-expert-assign] 배정 알림 실패:", notifyErr);
+  }
 
   /* 7. 응답 */
   return new Response(

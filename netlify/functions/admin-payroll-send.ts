@@ -58,7 +58,7 @@ function buildEmailHtml(opts: { name: string; year: number; month: number; gross
         </div>
         <p style="font-size:13px;color:#4b5563;line-height:1.7;margin:16px 0">
           상세 내역은 첨부된 PDF 명세서를 확인해 주세요.<br>
-          ※ 본 명세서는 세전 금액 기준이며, 소득세·4대보험 공제는 외부 회계 처리에서 반영됩니다.
+          ※ 위 금액은 세전 총액(Gross)이며, 첨부 PDF 명세서에 4대보험·소득세 공제 내역과 실수령액(Net)이 모두 포함되어 있습니다.
         </p>
         <p style="font-size:12px;color:#6b7280;margin:20px 0 0;padding-top:16px;border-top:1px solid #e5e7eb">
           본 메일은 발신 전용입니다. 문의 사항은 협의회 사무국으로 연락 부탁드립니다.

@@ -1,7 +1,7 @@
 ﻿import type { Context } from "@netlify/functions";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import { commentReports, members } from "../../db/schema";
+import { commentReports, members, incidentComments, incidents } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { serverError, corsPreflight, methodNotAllowed } from "../../lib/response";
 
@@ -49,16 +49,82 @@ export default async (req: Request, _ctx: Context) => {
         .limit(limit)
         .offset(offset);
 
-      reports = rows.map((r) => ({
-        id: r.id,
-        reportType: r.reportType,
-        commentId: r.commentId ?? null,
-        incidentId: r.incidentId ?? null,
-        reason: r.reason,
-        status: r.status,
-        reporterName: r.reporterName ?? "알 수 없음",
-        createdAt: r.createdAt,
-      }));
+      /* OP-072: 신고 대상 본문을 함께 제공 — 운영자가 맥락 없이 판단하지 않도록.
+         (drizzle 다중 leftJoin 회피 — separate query + Map 매칭) */
+      const commentIds = Array.from(new Set(rows.map((r) => r.commentId).filter(Boolean))) as number[];
+      const commentMap = new Map<number, any>();
+      if (commentIds.length) {
+        try {
+          const crows = await db
+            .select({
+              id: incidentComments.id,
+              content: incidentComments.content,
+              authorName: incidentComments.authorName,
+              isHidden: incidentComments.isHidden,
+              isAnonymous: incidentComments.isAnonymous,
+              createdAt: incidentComments.createdAt,
+              incidentId: incidentComments.incidentId,
+            })
+            .from(incidentComments)
+            .where(inArray(incidentComments.id, commentIds));
+          crows.forEach((c) => commentMap.set(c.id, c));
+        } catch (err) {
+          console.warn("[admin-comment-reports] 대상 댓글 조회 실패:", err);
+        }
+      }
+
+      const incidentIds = Array.from(
+        new Set([
+          ...rows.map((r) => r.incidentId).filter(Boolean),
+          ...Array.from(commentMap.values()).map((c) => c.incidentId).filter(Boolean),
+        ])
+      ) as number[];
+      const incidentMap = new Map<number, any>();
+      if (incidentIds.length) {
+        try {
+          const irows = await db
+            .select({
+              id: incidents.id,
+              title: incidents.title,
+              slug: incidents.slug,
+              status: incidents.status,
+            })
+            .from(incidents)
+            .where(inArray(incidents.id, incidentIds));
+          irows.forEach((i) => incidentMap.set(i.id, i));
+        } catch (err) {
+          console.warn("[admin-comment-reports] 대상 사건 조회 실패:", err);
+        }
+      }
+
+      reports = rows.map((r) => {
+        const c = r.commentId ? commentMap.get(r.commentId) : null;
+        const inc = r.incidentId
+          ? incidentMap.get(r.incidentId)
+          : (c?.incidentId ? incidentMap.get(c.incidentId) : null);
+        const target = r.reportType === "incident"
+          ? { kind: "incident", incidentTitle: inc?.title ?? null, incidentSlug: inc?.slug ?? null, incidentStatus: inc?.status ?? null }
+          : {
+              kind: "comment",
+              content: c?.content ?? null,
+              authorName: c?.isAnonymous ? "익명" : (c?.authorName ?? null),
+              isHidden: c?.isHidden ?? null,
+              commentCreatedAt: c?.createdAt ?? null,
+              incidentTitle: inc?.title ?? null,
+              incidentSlug: inc?.slug ?? null,
+            };
+        return {
+          id: r.id,
+          reportType: r.reportType,
+          commentId: r.commentId ?? null,
+          incidentId: r.incidentId ?? null,
+          reason: r.reason,
+          status: r.status,
+          reporterName: r.reporterName ?? "알 수 없음",
+          createdAt: r.createdAt,
+          target,
+        };
+      });
     } catch (err) {
       console.warn("[admin-comment-reports] 목록 조회 실패:", err);
     }

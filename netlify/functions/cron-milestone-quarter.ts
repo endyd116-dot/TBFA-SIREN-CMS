@@ -75,7 +75,7 @@ export default async function handler(_req: Request, _ctx: Context) {
               category: "milestone", severity: "warning",
               title: `결산 미제출 에스컬레이션: ${q.year}년 ${q.quarter}분기`,
               message: `미제출자: ${names}`,
-              link: "/admin#milestone-review",
+              link: "/cms-tbfa.html#milestone-review",
             });
             results.push(`미제출 에스컬레이션: ${q.year}Q${q.quarter} — ${unsubmitted.length}명`);
           } catch (e: any) {
@@ -185,7 +185,7 @@ export default async function handler(_req: Request, _ctx: Context) {
                   category: "milestone", severity: "info",
                   title: `[성과 임계점${phaseLabel}] ${memberName}의 ${m.name} 임계 도달`,
                   message: `${memberName}님이 ${m.name} 임계점(${thrVal.toLocaleString()}원)을 초과했습니다. 누적 ${total.toLocaleString()}원.`,
-                  link: "/admin#milestone-review",
+                  link: "/cms-tbfa.html#milestone-review",
                   refTable: "milestone_threshold",
                   refId: m.id,
                 });
@@ -196,7 +196,7 @@ export default async function handler(_req: Request, _ctx: Context) {
                 category: "milestone", severity: "warning",
                 title: `[성과 임계점${phaseLabel}] ${memberName}의 ${m.name} 임계 도달 (담당 미배정)`,
                 message: `${m.target_milestone_role} 담당 admin이 배정되지 않았습니다. ${memberName}님 ${m.name} 임계점(${thrVal.toLocaleString()}원) 초과 — 누적 ${total.toLocaleString()}원.`,
-                link: "/admin#milestone-review",
+                link: "/cms-tbfa.html#milestone-review",
                 refTable: "milestone_threshold",
                 refId: m.id,
               }).catch(() => {});

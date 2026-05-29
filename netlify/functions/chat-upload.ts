@@ -14,6 +14,16 @@ import { ok, badRequest, unauthorized, forbidden, serverError, corsPreflight, me
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
+/* OP-063: 매직바이트로 실제 이미지 여부 확인 (Content-Type 위조 방어) */
+function sniffImage(b: Uint8Array): boolean {
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return true;                  // JPEG
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return true; // PNG
+  if (b.length >= 4 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return true; // GIF8
+  if (b.length >= 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
+      && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return true;             // RIFF....WEBP
+  return false;
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
   if (req.method !== "POST") return methodNotAllowed();
@@ -61,6 +71,10 @@ export default async (req: Request) => {
     const ext = file.name.split(".").pop() || "jpg";
     const key = `chat/${roomId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const buffer = await file.arrayBuffer();
+    /* OP-063: 확장자·Content-Type만 신뢰하면 이미지로 위장한 파일이 통과 → 실제 바이트 시그니처 확인 */
+    if (!sniffImage(new Uint8Array(buffer))) {
+      return badRequest("이미지 파일이 아닙니다 (형식 위조가 감지되었습니다)");
+    }
     await store.set(key, Buffer.from(new Uint8Array(buffer)) as any, { metadata: { contentType: file.type } });
 
     /* DB 기록 */

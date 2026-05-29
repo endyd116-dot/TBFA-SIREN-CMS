@@ -6,9 +6,10 @@
  * ★ 6순위 #8: GET 시 전문가(expert_id)로 배정된 expert_1on1 룸도 함께 반환
  */
 import { eq, and, or, desc } from "drizzle-orm";
-import { db, chatRooms, chatBlacklist } from "../../db";
+import { db, chatRooms, chatBlacklist, members } from "../../db";
 import { authenticateUser } from "../../lib/auth";
 import { ROOM_TYPE_EXPERT } from "../../lib/expert-match";
+import { notifyAllOperators } from "../../lib/notify";
 import {
   ok, badRequest, unauthorized, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -134,6 +135,26 @@ export default async (req: Request) => {
         .insert(chatRooms)
         .values(insertData)
         .returning();
+
+      /* OP-057: 새 1:1 상담 시작을 운영자에게 알림 — 기존엔 폴링 배지로만 인지해 화면 안 보면 방치됐다. */
+      try {
+        const [requester] = await db
+          .select({ name: members.name })
+          .from(members)
+          .where(eq(members.id, auth.uid))
+          .limit(1);
+        await notifyAllOperators({
+          category: "support",
+          severity: "info",
+          title: `💬 새 1:1 상담 접수 — ${requester?.name || "회원"}`,
+          message: `${title} · 응대가 필요합니다`,
+          link: "/admin.html",
+          refTable: "chat_rooms",
+          refId: room.id,
+        });
+      } catch (notifyErr) {
+        console.warn("[chat-mine] 신규 상담 알림 실패:", notifyErr);
+      }
 
       return ok({ room, isNew: true }, "채팅방이 생성되었습니다");
     }

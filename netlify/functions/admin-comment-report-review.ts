@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
-import { commentReports, incidentComments } from "../../db/schema";
+import { commentReports, incidentComments, incidents } from "../../db/schema";
 import { requireAdmin } from "../../lib/admin-guard";
 import { badRequest, serverError, corsPreflight, methodNotAllowed, parseJson } from "../../lib/response";
 
@@ -52,12 +52,17 @@ export default async (req: Request, _ctx: Context) => {
     // action에 따른 댓글 처리
     if (action === "hide_comment" || action === "delete_comment") {
       const [report] = await db
-        .select({ commentId: commentReports.commentId })
+        .select({
+          commentId: commentReports.commentId,
+          incidentId: commentReports.incidentId,
+          reportType: commentReports.reportType,
+        })
         .from(commentReports)
         .where(eq(commentReports.id, reportId))
         .limit(1);
 
       const cid = (report as any)?.commentId;
+      const iid = (report as any)?.incidentId;
       if (cid) {
         if (action === "hide_comment") {
           await db
@@ -71,6 +76,15 @@ export default async (req: Request, _ctx: Context) => {
         } else {
           await db.delete(incidentComments).where(eq(incidentComments.id, cid));
         }
+      } else if (iid) {
+        /* OP-076: 사건(게시판) 자체 신고 — 댓글이 아니라 사건 본문 후속 조치.
+           기존엔 commentId 없으면 아무 동작 안 함(신고가 '기록'만 됨).
+           hide/delete 모두 사건을 공개 목록에서 숨김(status='hidden')으로 처리.
+           하드 삭제는 사건관리(admin-incidents-crud)에서만 — 여기선 비가역 삭제 금지. */
+        await db
+          .update(incidents)
+          .set({ status: "hidden", updatedAt: new Date() } as any)
+          .where(eq(incidents.id, iid));
       }
     }
 

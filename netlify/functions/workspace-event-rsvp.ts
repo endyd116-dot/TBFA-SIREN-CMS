@@ -7,7 +7,7 @@ import { db } from "../../db";
 import { workspaceEventRsvps, workspaceEvents, members } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
-import { ok, badRequest, methodNotAllowed, serverError, parseJson } from "../../lib/response";
+import { ok, badRequest, forbidden, methodNotAllowed, serverError, parseJson } from "../../lib/response";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 const VALID_STATUSES = ["yes", "no", "maybe"] as const;
@@ -33,6 +33,27 @@ export default async (req: Request, _ctx: Context) => {
     if (!eventId) return badRequest("eventId 필수");
     if (!(VALID_STATUSES as readonly string[]).includes(status)) {
       return badRequest("status는 yes/no/maybe 중 하나");
+    }
+
+    /* OP-037: 초대 여부 검증 — 주최자이거나 attendees에 포함된 사람만 RSVP 가능.
+       미초대자가 임의 eventId로 응답해 주최자에게 알림 스팸이 가던 갭 차단. */
+    const [ev]: any = await db
+      .select({
+        memberId: workspaceEvents.memberId,
+        title: workspaceEvents.title,
+        attendees: workspaceEvents.attendees,
+      })
+      .from(workspaceEvents)
+      .where(eq(workspaceEvents.id, eventId))
+      .limit(1);
+    if (!ev) return badRequest("일정을 찾을 수 없습니다");
+    const attendeeIds: number[] = Array.isArray(ev.attendees)
+      ? ev.attendees
+          .map((a: any) => (typeof a === "number" ? a : Number(a?.memberId)))
+          .filter((n: number) => Number.isFinite(n) && n > 0)
+      : [];
+    if (ev.memberId !== meId && !attendeeIds.includes(meId)) {
+      return forbidden("초대된 일정에만 응답할 수 있습니다");
     }
 
     // upsert — 같은 (eventId, memberId) 이미 있으면 status·note 갱신
@@ -72,11 +93,7 @@ export default async (req: Request, _ctx: Context) => {
     /* ★ Q3-006 fix: 주최자에게 응답 알림 — 기존엔 RSVP가 workspace_event_rsvps에만 저장되고
        주최자 알림이 전혀 없었다(주최자가 누가 응답했는지 알 수 없음). 일정 주최자(memberId)에게 통지. */
     try {
-      const [ev]: any = await db
-        .select({ memberId: workspaceEvents.memberId, title: workspaceEvents.title })
-        .from(workspaceEvents)
-        .where(eq(workspaceEvents.id, eventId))
-        .limit(1);
+      /* OP-037: 위에서 이미 조회·검증한 ev 재사용(중복 조회 제거) */
       if (ev && ev.memberId && ev.memberId !== meId) {
         const label = status === "yes" ? "참석" : status === "no" ? "불참" : "미정";
         await sendWorkspaceNotification({

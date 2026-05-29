@@ -185,7 +185,7 @@ export default async function handler(req: Request, _ctx: Context) {
           category: "milestone", severity: "info",
           title: `마일스톤 정의 변경: ${updated.name || ""}`,
           message: "성과 마일스톤 정의가 수정되었습니다. 확인해주세요.",
-          link: "/admin#milestone-review",
+          link: "/cms-tbfa.html#milestone-review",
         }).catch(() => {});
       } catch { /* 알림 실패는 본 응답에 영향 없음 */ }
 

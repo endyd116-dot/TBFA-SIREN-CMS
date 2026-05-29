@@ -85,6 +85,14 @@ export default async function handler(req: Request, _ctx: Context) {
     try {
       const calc = await calcSettlement(admin.id, Number(quarterId));
 
+      /* OP-026: 캡 정보 로드 실패 시 제출 차단(과지급 방지) — 일시 오류면 재시도 안내 */
+      if ((calc as any).capLoadError) {
+        return Response.json(
+          { ok: false, error: "역할별 인센티브 상한 정보를 불러오지 못했습니다. 잠시 후 다시 제출해 주세요.", step: "cap_load" },
+          { status: 503 }
+        );
+      }
+
       // UPSERT quarterly_settlements
       const existing = await db.execute(sql`
         SELECT id, status FROM quarterly_settlements
@@ -124,7 +132,7 @@ export default async function handler(req: Request, _ctx: Context) {
         category: "milestone", severity: "info",
         title: `분기 결산 제출: ${admin.name || admin.email}`,
         message: `총 변동급 ${calc.totalBonus.toLocaleString()}원 결산이 제출되었습니다.`,
-        link: "/admin#milestone-review",
+        link: "/cms-tbfa.html#milestone-review",
       }).catch(() => {});
 
       return Response.json({ ok: true, data: calc });
@@ -235,6 +243,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
   /* ★ v4 폴리시 P2: 캡 값을 DB에서 동적 로드 (null이면 무캡). 하드코딩 ROLE_CAPS 제거. */
   let revenueCap: number | null = null;
   let nonRevenueCap: number | null = null;
+  let capLoadError = false;
   if (milestoneRole) {
     try {
       const capRows = await db.execute(sql`
@@ -249,7 +258,9 @@ async function calcSettlement(memberId: number, quarterId: number) {
         nonRevenueCap = capRow.non_revenue_cap != null ? Number(capRow.non_revenue_cap) : null;
       }
     } catch {
-      // DB 오류 시 무캡으로 계속 (fail-open — 보상 오지급보다 차단이 더 나쁨)
+      /* OP-026: 캡 로드 실패를 무캡(fail-open)으로 흘리면 상한 초과 변동급이 결산에 그대로 반영된다.
+         실패를 플래그로 전파 → 제출 시점에서 fail-closed로 차단(캡 미설정 null과 일시 조회오류 구분). */
+      capLoadError = true;
     }
   }
 
@@ -262,7 +273,7 @@ async function calcSettlement(memberId: number, quarterId: number) {
     memberId, quarterId, milestoneRole,
     revenueLinkedTotal, nonRevenueTotal, totalBonus: revenueLinkedTotal + nonRevenueTotal,
     revenueRaw, nonRevenueRaw,
-    revenueCap, nonRevenueCap,
+    revenueCap, nonRevenueCap, capLoadError,
     revenueBreakdown, nonRevenueBreakdown,
   };
 }
