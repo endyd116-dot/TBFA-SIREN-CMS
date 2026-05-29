@@ -8,6 +8,7 @@
 import { eq, and, gt, asc, inArray } from "drizzle-orm";
 import { db, chatRooms, chatMessages, chatAttachments } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 import {
   ok, badRequest, notFound, forbidden, serverError,
   parseJson, corsPreflight, methodNotAllowed,
@@ -68,6 +69,10 @@ export default async (req: Request) => {
         .where(eq(chatRooms.id, roomId))
         .limit(1);
       if (!room) return notFound("채팅방을 찾을 수 없습니다");
+      // R45 §4-4(OP-056): 민감 1:1 상담(법률·심리)은 admin+ 만 열람(운영자 차단·권한정책 토글). 일반 문의 상담은 운영자 허용.
+      if ((room as any).roomType === "expert_1on1" && !(await canAccess(guard.ctx.member.role ?? "", "chat_expert_view"))) {
+        return forbidden("민감 상담 열람 권한이 없습니다");
+      }
 
       let whereClause: any = eq(chatMessages.roomId, roomId);
       if (since) {
