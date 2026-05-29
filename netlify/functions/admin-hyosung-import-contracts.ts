@@ -155,22 +155,35 @@ export default async (req: Request, ctx: Context) => {
       };
 
       if (dryRun) {
-        /* 미리보기 모드: 매칭만 확인 */
+        /* 미리보기 모드: 매칭만 확인.
+           AD-070: 실제 import(upsertMemberFromContract)와 동일한 우선순위로 예측해야 통계가 일치.
+           실제 매칭 = ① hyosung_member_no 1순위 → ② phone 단일 → ③ 미매칭은 '신규 생성(autoCreated)'.
+           (기존 미리보기는 phone만 보고 미매칭을 unlinked로 잡아 실제와 어긋났음) */
         for (const row of parsed.rows) {
+          /* ① hyosung_member_no 매칭 */
+          const [byNo] = await db
+            .select({ id: members.id })
+            .from(members)
+            .where(eq((members as any).hyosungMemberNo, row.memberNo))
+            .limit(1);
+          if (byNo) { report.linked++; continue; }
+
+          /* ② phone 단일 매칭 */
           if (row.phone) {
-            const matched = await db
-              .select({ id: members.id, name: members.name })
+            const byPhone = await db
+              .select({ id: members.id })
               .from(members)
               .where(eq(members.phone, row.phone));
-            if (matched.length === 1) report.linked++;
-            else if (matched.length > 1) {
-              report.conflicts.push({ memberNo: row.memberNo, phone: row.phone, matches: matched.length });
-            } else {
+            if (byPhone.length === 1) { report.linked++; continue; }
+            if (byPhone.length > 1) {
+              report.conflicts.push({ memberNo: row.memberNo, phone: row.phone, matches: byPhone.length });
               report.unlinked++;
+              continue;
             }
-          } else {
-            report.unlinked++;
           }
+
+          /* ③ 미매칭 → 실제 import는 신규 회원 자동 생성 */
+          report.autoCreated++;
         }
         return ok({ ...report, rowsPreview: parsed.rows.slice(0, 5) });
       }

@@ -250,10 +250,16 @@ export default async (req: Request) => {
 
       conditions.push(inArray(donations.id, ids));
     } else if (status !== "all") {
-      if (!["pending", "completed", "cancelled", "failed"].includes(status)) {
+      if (!["pending", "pending_hyosung", "completed", "cancelled", "failed"].includes(status)) {
         return badRequest("유효하지 않은 status");
       }
-      conditions.push(eq(donations.status, status as any));
+      // AD-009: '대기' 추출은 신규 효성 의향(donate-hyosung-intent가 저장하는 status='pending_hyosung')을
+      // 의미하지만, 화면 필터는 'pending'을 보냄 → 두 값을 모두 포함해야 대량등록 대상이 잡힘(기존엔 항상 0건).
+      if (status === "pending" || status === "pending_hyosung") {
+        conditions.push(inArray(donations.status, ["pending", "pending_hyosung"] as any));
+      } else {
+        conditions.push(eq(donations.status, status as any));
+      }
     }
 
     const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
