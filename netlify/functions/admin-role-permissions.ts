@@ -24,8 +24,9 @@ export default async (req: Request) => {
 
     /* PATCH — super_admin 전용 */
     if (req.method === "PATCH") {
-      const admin = (auth as any).ctx?.admin;
-      if (admin?.role !== "super_admin") return forbidden("super_admin 권한이 필요합니다");
+      // R45 CLUSTER-1: 권한정책 편집은 super_admin 전용 — DB 역할로 판정
+      // (JWT role은 elevate가 type 기반으로 부풀릴 수 있어 신뢰 금지)
+      if (auth.ctx.member.role !== "super_admin") return forbidden("super_admin 권한이 필요합니다");
       if (!id) return badRequest("id 파라미터가 필요합니다");
 
       const body = await parseJson(req);

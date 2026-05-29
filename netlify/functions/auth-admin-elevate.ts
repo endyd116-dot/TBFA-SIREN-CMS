@@ -29,7 +29,7 @@ export default async (req: Request) => {
     const [user] = await db
       .select({
         id: members.id, email: members.email, name: members.name,
-        type: members.type, status: members.status,
+        type: members.type, status: members.status, role: members.role,
         operatorActive: members.operatorActive,
       })
       .from(members)
@@ -48,7 +48,7 @@ export default async (req: Request) => {
     const adminToken = signAdminToken({
       uid:   user.id,
       email: user.email,
-      role:  isAdmin ? "super_admin" : "operator",
+      role:  (user.role ?? "operator"),
       name:  user.name,
     });
     const cookie = buildCookie("siren_admin_token", adminToken, {
@@ -56,7 +56,7 @@ export default async (req: Request) => {
     });
 
     const res = ok({
-      admin: { id: user.id, email: user.email, name: user.name, role: isAdmin ? "super_admin" : "operator" },
+      admin: { id: user.id, email: user.email, name: user.name, role: (user.role ?? "operator") },
       redirect: "/cms-tbfa.html",
     }, "관리자 모드 진입");
     res.headers.set("Set-Cookie", cookie);
