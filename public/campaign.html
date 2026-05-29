@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>캠페인 | 교사유가족협의회</title>
-<meta name="description" content="교사유가족협의회 캠페인 상세 — 후원·서명·참여로 함께해 주세요.">
+<meta name="description" content="교사유가족협의회 캠페인 상세 — 여러분의 후원으로 함께해 주세요.">
 <meta property="og:title" content="캠페인 | 교사유가족협의회">
-<meta property="og:description" content="교사유가족협의회 캠페인 상세 — 후원·서명·참여로 함께해 주세요.">
+<meta property="og:description" content="교사유가족협의회 캠페인 상세 — 여러분의 후원으로 함께해 주세요.">
 <meta property="og:image" content="https://tbfa.co.kr/og-default.png">
 <meta property="og:url" content="https://tbfa.co.kr/campaign.html">
 <meta property="og:type" content="article">
@@ -14,7 +14,7 @@
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="캠페인 | 교사유가족협의회">
-<meta name="twitter:description" content="교사유가족협의회 캠페인 상세 — 후원·서명·참여로 함께해 주세요.">
+<meta name="twitter:description" content="교사유가족협의회 캠페인 상세 — 여러분의 후원으로 함께해 주세요.">
 <meta name="twitter:image" content="https://tbfa.co.kr/og-default.png">
 <link rel="canonical" href="https://tbfa.co.kr/campaign.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,12 +104,15 @@
      서식 태그(p/b/img/a 등)는 유지. 완전한 살균이 필요하면 서버 화이트리스트/ DOMPurify 도입 권장. */
   function sanitizeHtml(html) {
     var s = String(html == null ? '' : html);
-    s = s.replace(/<\s*(script|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
-    s = s.replace(/<\s*(script|iframe|object|embed)\b[^>]*>/gi, '');
-    s = s.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
-    s = s.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
-    s = s.replace(/\son\w+\s*=\s*[^\s>]+/gi, '');
-    s = s.replace(/(href|src)\s*=\s*("|')\s*(javascript|data)\s*:[^"']*\2/gi, '$1="#"');
+    /* ★US-049: 위험 태그에 svg/math/form 추가, on* 핸들러 구분자에 '/'도 포함(<svg/onload=> 우회 차단),
+       javascript/data/vbscript 스킴은 xlink:href 까지 무력화. 정규식 살균은 한계가 있어
+       근본 대책(서버 화이트리스트/DOMPurify)은 Swain 라이브러리 결정 후 도입 권장. */
+    s = s.replace(/<\s*(script|iframe|object|embed|svg|math|form)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
+    s = s.replace(/<\s*(script|iframe|object|embed|svg|math|form)\b[^>]*>/gi, '');
+    s = s.replace(/[\s/]on\w+\s*=\s*"[^"]*"/gi, ' ');
+    s = s.replace(/[\s/]on\w+\s*=\s*'[^']*'/gi, ' ');
+    s = s.replace(/[\s/]on\w+\s*=\s*[^\s>]+/gi, ' ');
+    s = s.replace(/(href|src|xlink:href)\s*=\s*("|')\s*(javascript|data|vbscript)\s*:[^"']*\2/gi, '$1="#"');
     return s;
   }
 
