@@ -174,7 +174,7 @@
       if (submitBtn) {
         submitBtn.textContent = onetimeChoice === 'bank_transfer'
           ? '🏦 계좌이체 신청하기'
-          : '💳 카드로 결제하기';
+          : '💳 카드·간편결제로 결제하기';
       }
     }
   }

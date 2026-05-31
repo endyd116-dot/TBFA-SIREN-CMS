@@ -16,7 +16,7 @@ import { pointRules, memberPointLogs } from "../../db/schema";
 import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplDonationThanks } from "../../lib/email";
 import { checkAndAwardBadges } from "../../lib/badge-checker";
-import { approveTrade } from "../../lib/kicc";
+import { approveTrade, kiccPayMethod } from "../../lib/kicc";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
@@ -112,6 +112,20 @@ export default async (req: Request) => {
       return failRedirect("결제 금액 검증에 실패했습니다");
     }
 
+    /* ★R45 통합 결제창: 실제 선택된 결제수단(카드/간편결제 등) 기록 — register 때 'card' 가정값을 덮어씀 */
+    const actualPayMethod = kiccPayMethod(result.payMethodTypeCode, result.cpCode);
+
+    /* ★R45 방어 가드: 가상계좌(입금 대기형)는 즉시승인 흐름과 불일치 — 채번 응답은 금액이 맞아도
+       실제 입금 전이라 '완료'로 기록하면 안 됨(입금통보 webhook 미구현). 원장 설정상 노출 안 되게
+       하는 게 1차 통제이나, 만일 섞여 들어오면 여기서 pending 유지 후 거절. */
+    if (actualPayMethod === "vbank") {
+      await db
+        .update(donations)
+        .set({ payMethod: "vbank", pgTid: result.pgTid, failureReason: "미지원 결제수단(가상계좌)", updatedAt: new Date() } as any)
+        .where(eq(donations.id, donation.id));
+      return failRedirect("현재 후원은 카드·간편결제만 지원합니다");
+    }
+
     /* 확정 */
     const now = new Date();
     const receiptNumber = generateReceiptNumber(donation.id);
@@ -119,6 +133,7 @@ export default async (req: Request) => {
       .update(donations)
       .set({
         status: "completed",
+        payMethod: actualPayMethod,
         pgTid: result.pgTid,
         transactionId: result.pgTid,
         receiptIssued: true,
@@ -135,6 +150,7 @@ export default async (req: Request) => {
         donorEmail: donations.donorEmail,
         amount: donations.amount,
         type: donations.type,
+        payMethod: donations.payMethod,
         memberId: donations.memberId,
         receiptNumber: donations.receiptNumber,
       });
@@ -147,7 +163,7 @@ export default async (req: Request) => {
           donorName: updated.donorName,
           amount: updated.amount,
           donationType: updated.type as string,
-          payMethod: "card",
+          payMethod: updated.payMethod || "card",
           donationId: updated.id,
           donationDate: now,
           isMember: !!updated.memberId,

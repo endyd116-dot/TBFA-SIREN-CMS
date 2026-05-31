@@ -65,6 +65,8 @@ export interface ApproveResult {
   cardNumberMasked?: string; // cardInfo.cardMaskNo(빌키발급) | cardInfo.cardNo(일시)
   cardType?: string; // 신용 | 체크 | 기프트
   billKey?: string; // 빌키발급 시 cardInfo.cardNo
+  payMethodTypeCode?: string; // ★R45: 실제 결제수단 코드(11 카드·21 계좌이체·22 가상계좌·31 휴대폰)
+  cpCode?: string; // ★R45: 간편결제 제공사 코드(KKO 등) — 있으면 간편결제 결제
   approvedAt?: string;
   errorCode?: string;
   errorMessage?: string;
@@ -233,7 +235,8 @@ export async function registerTrade(p: RegisterTradeParams): Promise<RegisterRes
     mallId,
     shopOrderNo: p.shopOrderNo,
     amount: p.isBillingKey ? 0 : p.amount,
-    payMethodTypeCode: p.isBillingKey ? "81" : "11",
+    // ★R45 A안: 일시 후원은 통합 결제창("00") — 카드+간편결제 함께 노출. 정기 빌키는 "81" 유지.
+    payMethodTypeCode: p.isBillingKey ? "81" : "00",
     currency: "00",
     clientTypeCode: "00", // 통합형 고정
     returnUrl: p.returnUrl,
@@ -248,6 +251,11 @@ export async function registerTrade(p: RegisterTradeParams): Promise<RegisterRes
   };
   if (p.isBillingKey) {
     body.payMethodInfo = { billKeyMethodInfo: { certType: "0" } };
+  } else {
+    // ★R45 A안: 일시 통합 결제창에서 카드 + 간편결제만 노출(displayArea CARD·SPAY).
+    // 가상계좌(입금 대기형)는 제외 — 입금통보 webhook이 없어 동기 승인 흐름과 불일치.
+    // 계좌 기반 후원은 효성 CMS+·직접 계좌이체(donate-bank-intent) 별도 경로 사용.
+    body.payMethodInfo = { cardMethodInfo: { displayArea: ["CARD", "SPAY"] } };
   }
   const r = await kiccPost("/api/ep9/trades/webpay", body);
   if (r.networkError)
@@ -309,7 +317,8 @@ export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult
   if (j.msgAuthValue && !verifyMsgAuth(j)) {
     console.warn(`[kicc] approval 응답 msgAuthValue 불일치(비차단) shopOrderNo=${p.shopOrderNo}`);
   }
-  const cardInfo = (j.paymentInfo && j.paymentInfo.cardInfo) || {};
+  const paymentInfo = j.paymentInfo || {};
+  const cardInfo = paymentInfo.cardInfo || {};
   // 빌키발급 응답: cardInfo.cardNo = 빌키, cardInfo.cardMaskNo = 마스킹번호.
   // 일시 승인 응답: cardInfo.cardNo = 마스킹번호(빌키 없음).
   const hasBillKey = typeof cardInfo.cardMaskNo === "string" && cardInfo.cardMaskNo.length > 0;
@@ -322,9 +331,28 @@ export async function approveTrade(p: ApproveTradeParams): Promise<ApproveResult
     cardNumberMasked: hasBillKey ? cardInfo.cardMaskNo : cardInfo.cardNo,
     cardType: cardTypeKo(cardInfo.cardGubun),
     billKey: hasBillKey ? cardInfo.cardNo : undefined,
+    payMethodTypeCode: paymentInfo.payMethodTypeCode, // ★R45 통합창: 실제 결제수단 구분
+    cpCode: paymentInfo.cpCode, // ★R45 통합창: 간편결제 제공사(있으면 간편결제)
     approvedAt: j.transactionDate,
     raw: j,
   };
+}
+
+/** ★R45 KICC 결제수단 코드 → 내부 payMethod 토큰(donations.pay_method, varchar 20).
+ *  통합 결제창에서 실제로 선택된 수단을 기록 — 간편결제를 카드로 잘못 기록하지 않기 위함.
+ *  cpCode(간편결제 제공사 코드)가 있으면 간편결제. 제공사 세분화는 실제 코드 확인 후 추가. */
+export function kiccPayMethod(payMethodTypeCode?: string, cpCode?: string): string {
+  if (cpCode && cpCode.trim()) return "simplepay"; // 카카오페이·네이버페이·페이코·토스페이 등
+  switch (payMethodTypeCode) {
+    case "21":
+      return "transfer"; // 실시간 계좌이체
+    case "22":
+      return "vbank"; // 가상계좌
+    case "31":
+      return "mobile"; // 휴대폰 결제
+    default:
+      return "card"; // "11" 신용카드 (기본)
+  }
 }
 
 /* =========================================================

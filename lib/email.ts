@@ -504,6 +504,10 @@ export function tplDonationThanks(opts: {
   const typeKr = donationType === "regular" ? "정기 후원" : "일시 후원";
   const payKr =
     payMethod === "card" ? "신용카드" :
+    payMethod === "simplepay" ? "간편결제" :
+    payMethod === "transfer" ? "실시간 계좌이체" :
+    payMethod === "mobile" ? "휴대폰 결제" :
+    payMethod === "vbank" ? "가상계좌" :
     payMethod === "bank" ? "계좌이체" :
     payMethod === "cms"  ? "자동이체(CMS)" : payMethod;
 
