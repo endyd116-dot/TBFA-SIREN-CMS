@@ -38,7 +38,7 @@ import { maskPII } from "../../lib/pii-mask";
 
 /* === SSE === */
 import { createSSEStream, sseHeaders, type SSEWrite } from "../../lib/sse-writer";
-import { streamGemini } from "../../lib/gemini-stream";
+import { streamGemini, fetchGenerateContent } from "../../lib/gemini-stream";
 /* ★ Q3-037: 비스트리밍과 동일한 RAG 격리 검색 주입 */
 import { searchRag } from "../../lib/ai-embedding";
 
@@ -215,14 +215,12 @@ export default async (req: Request, _ctx: Context) => {
               ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
               generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
             };
-            let dbgFinish = "", dbgPartKinds: string[] = [], dbgChunks = 0;
+            let chunkCount = 0;
             for await (const chunk of streamGemini(usedModel, reqBody, GEMINI_API_KEY, ttfbMs)) {
-              dbgChunks++;
+              chunkCount++;
               const cand = chunk.candidates?.[0];
-              if (cand?.finishReason) dbgFinish = String(cand.finishReason);
               const parts = cand?.content?.parts || [];
               for (const p of parts) {
-                dbgPartKinds.push(Object.keys(p).join("+"));
                 if (typeof p.text === "string") {
                   write("text", { text: p.text });
                   stepText += p.text;
@@ -233,8 +231,23 @@ export default async (req: Request, _ctx: Context) => {
               }
               if (chunk.usageMetadata) usage = chunk.usageMetadata;
             }
-            console.info(`[ai-agent-stream] ${usedModel} chunks=${dbgChunks} finish=${dbgFinish} parts=[${dbgPartKinds.join(",")}] text=${stepText.length} fn=${stepFnCalls.length}`);
-            (globalThis as any).__lastDbg = { usedModel, dbgChunks, dbgFinish, dbgPartKinds, textLen: stepText.length, fnLen: stepFnCalls.length };
+            /* ★ 2026-06-01 핵심 FIX: 이 Netlify 런타임에서 streamGenerateContent가
+               빈 본문(0청크)을 반환하는 환경 이슈 발견 → 스트리밍이 비면 같은 모델로
+               비스트리밍 generateContent 1회 구제. (비스트리밍은 34개 도구 검증 정상.) */
+            if (chunkCount === 0 && stepText === "" && stepFnCalls.length === 0) {
+              console.warn(`[ai-agent-stream] ${usedModel} 스트리밍 0청크 — 비스트리밍 구제 호출`);
+              const ns = await fetchGenerateContent(usedModel, reqBody, GEMINI_API_KEY, ttfbMs);
+              if (ns.usageMetadata) usage = ns.usageMetadata;
+              for (const p of ns.parts) {
+                if (typeof p.text === "string") {
+                  write("text", { text: p.text });
+                  stepText += p.text;
+                } else if (p.functionCall) {
+                  stepFnCalls.push(p);
+                  stepParts.push(p);
+                }
+              }
+            }
             /* ★ 빈 응답(텍스트·도구 0) — lite가 STOP/no-parts로 끝나는 패턴. 다음 모델로 폴백.
                (아직 아무것도 스트리밍 안 했으므로 재시도해도 클라이언트 중복 없음) */
             if (stepText === "" && stepFnCalls.length === 0 && !isLastModel) {
@@ -370,7 +383,6 @@ export default async (req: Request, _ctx: Context) => {
       finalReply: piiResult.masked,
       piiRedacted: piiResult.redactCount,
       costWarning: budget.warn ? budget.message : undefined,
-      _dbg: (globalThis as any).__lastDbg || null,   /* 2026-06-01 진단 — 빈 응답 원인 추적용(확인 후 제거) */
     });
   });
 

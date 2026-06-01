@@ -96,6 +96,35 @@ export async function* streamGemini(
   }
 }
 
+/** 비스트리밍 generateContent — 스트리밍이 빈 응답(0청크)일 때 구제용.
+ *  Netlify 런타임에서 streamGenerateContent가 빈 본문을 반환하는 환경 이슈 우회.
+ *  반환: { parts, finishReason, usageMetadata } (parts는 text/functionCall 배열). */
+export async function fetchGenerateContent(
+  model: string,
+  body: any,
+  apiKey: string,
+  timeoutMs: number = 14000,
+): Promise<{ parts: any[]; finishReason: string; usageMetadata: any }> {
+  const url = `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`generateContent ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  const data: any = await res.json();
+  const cand = data?.candidates?.[0];
+  return {
+    parts: cand?.content?.parts || [],
+    finishReason: String(cand?.finishReason || ""),
+    usageMetadata: data?.usageMetadata || null,
+  };
+}
+
 /** 모든 chunk를 합쳐 최종 응답으로 — non-stream과 동일한 형태 (편의용) */
 export async function collectStreamGemini(
   model: string,
