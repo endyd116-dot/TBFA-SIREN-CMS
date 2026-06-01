@@ -28,20 +28,30 @@ export async function* streamGemini(
   apiKey: string,
 ): AsyncGenerator<GeminiStreamChunk, void, void> {
   const url = `${GEMINI_API_URL}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  /* ★ 2026-05-17: 첫 응답 헤더까지의 timeout — stream이 시작되면 무한 유지되어도
-     OK이나 헤더 단계에서 hang하면 504 원인. 8초로 명시. */
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(8000),
-  });
+  /* ★ 2026-06-01: TTFB(첫 토큰)까지만 9초 타임아웃 보호. 기존 AbortSignal.timeout(8s)은
+     요청 전체를 8초에 끊어 긴 답변이 생성 중 잘리는 문제 → 수동 컨트롤러로 변경해
+     첫 청크 수신 시 타이머 해제. 이후엔 길게 생성돼도 안 끊김(스트림 정상). */
+  const controller = new AbortController();
+  let ttfbTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 9000);
+  const clearTtfb = () => { if (ttfbTimer) { clearTimeout(ttfbTimer); ttfbTimer = null; } };
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (e) { clearTtfb(); throw e; }
 
   if (!res.ok) {
+    clearTtfb();
     const errText = await res.text().catch(() => "");
     throw new Error(`Gemini stream ${res.status}: ${errText.slice(0, 300)}`);
   }
   if (!res.body) {
+    clearTtfb();
     throw new Error("Gemini stream — 응답 본문 없음");
   }
 
@@ -52,6 +62,7 @@ export async function* streamGemini(
   try {
     while (true) {
       const { done, value } = await reader.read();
+      clearTtfb();   /* 첫 청크(또는 종료) 수신 — TTFB 달성, 타임아웃 해제 */
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
@@ -78,6 +89,7 @@ export async function* streamGemini(
       }
     }
   } finally {
+    clearTtfb();
     reader.releaseLock();
   }
 }

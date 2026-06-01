@@ -45,7 +45,12 @@ import { searchRag } from "../../lib/ai-embedding";
 export const config = { path: "/api/admin-ai-agent-stream" };
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const MODEL_CHAIN = ["gemini-3.1-flash-lite", "gemini-2.5-flash"];
+/* 2026-06-01: 의도별 모델 체인 — 변경(고성능)은 gemini-3.5-flash 1순위(Swain 요청),
+   단순 조회는 lite 1순위(저렴·빠름). 비스트리밍(admin-ai-agent.ts)과 정책 일치.
+   스트리밍은 지연 민감 → 체인 길이 2~3으로 짧게(폴백 누적 시간 억제). */
+const HIGH_MODEL_CHAIN = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
+const LOW_MODEL_CHAIN  = ["gemini-3.1-flash-lite", "gemini-2.5-flash"];
+const HIGH_INTENT_RE = /(추가|등록|생성|만들|넣어|수정|변경|바꿔|고쳐|업데이트|삭제|지워|제거|없애|차단|해제|정지|발송|보내|환불|복구|롤백)/;
 const MAX_STEPS = 4;
 const MAX_TOOLS_PER_CONV = 20;
 const MAX_SAME_TOOL_CONSECUTIVE = 2;
@@ -107,36 +112,9 @@ export default async (req: Request, _ctx: Context) => {
   /* 사용자 메시지 추가 */
   if (userMessage) messages.push({ role: "user", parts: [{ text: userMessage }] });
 
-  /* ★ Q3-037 fix: RAG 주입 — 스트리밍(위젯 주 경로)에도 비스트리밍과 동일하게 qna·manual 격리 검색 top-5 주입.
-     기존엔 스트리밍에 RAG가 없어 사용법 답변 품질이 fallback보다 낮았다. 순직(martyr_*) 민감자료는 검색 제외(격리 필수). */
-  if (userMessage) {
-    try {
-      const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
-      if (ragCheck.ok) {
-        const ragHits = await searchRag(userMessage, 5, ["qna", "manual"]);
-        if (ragHits.length > 0) {
-          const ragBlock = "[참고 자료]\n" + ragHits
-            .map(h => `- ${h.title || h.sourceRef}: ${h.content.slice(0, 300)}`)
-            .join("\n");
-          const lastMsg = messages[messages.length - 1];
-          if (lastMsg?.role === "user" && Array.isArray(lastMsg.parts)) {
-            const textIdx = lastMsg.parts.findIndex((p: any) => typeof p.text === "string");
-            if (textIdx >= 0) lastMsg.parts[textIdx] = { text: `${ragBlock}\n\n${lastMsg.parts[textIdx].text}` };
-            else lastMsg.parts.unshift({ text: ragBlock });
-          }
-          void recordFeatureUsage({
-            featureKey: "ai_rag_search",
-            model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",
-            inputTokens: Math.ceil(userMessage.length / 4),
-            outputTokens: 0,
-            adminId, conversationId,
-          });
-        }
-      }
-    } catch (ragErr) {
-      console.warn("[ai-agent-stream] RAG 검색 실패 — 기존 동작 계속", (ragErr as any)?.message);
-    }
-  }
+  /* 2026-06-01 504 fix: RAG 임베딩 검색(외부 Gemini 호출·콜드스타트 시 수 초)은
+     아래 SSE 스트림 시작 이후로 이동 → 인증 통과 즉시 연결을 열어 게이트웨이 504 방지.
+     (기존엔 RAG·시스템프롬프트까지 끝낸 뒤에야 첫 바이트 전송 → 콜드스타트 첫 호출 504.) */
 
   const systemPrompt = await getSystemPrompt();
 
@@ -165,9 +143,43 @@ export default async (req: Request, _ctx: Context) => {
       `이 대화의 누적 입력이 한도(${MAX_INPUT_TOKENS_PER_CONV.toLocaleString()} 토큰, 추정 ${estimatedInputTokens.toLocaleString()})를 초과해 비용 폭증 위험이 있습니다. 새 대화를 시작해주세요.`, 429);
   }
 
+  /* 의도별 모델 체인 — 변경(고성능)=gemini-3.5-flash 1순위, 조회=lite (순수·빠름) */
+  const modelChain = HIGH_INTENT_RE.test(userMessage) ? HIGH_MODEL_CHAIN : LOW_MODEL_CHAIN;
+
   /* === SSE 응답 시작 === */
   const stream = createSSEStream(async (write: SSEWrite) => {
     write("start", { conversationId });
+
+    /* 2026-06-01 504 fix: RAG 임베딩 검색을 첫 바이트 전송 이후로 이동(콜드스타트 504 방지).
+       qna·manual 격리 검색 top-5 주입. 순직(martyr_*) 민감자료는 검색 제외(격리 필수). */
+    if (userMessage) {
+      try {
+        const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
+        if (ragCheck.ok) {
+          const ragHits = await searchRag(userMessage, 5, ["qna", "manual"]);
+          if (ragHits.length > 0) {
+            const ragBlock = "[참고 자료]\n" + ragHits
+              .map(h => `- ${h.title || h.sourceRef}: ${h.content.slice(0, 300)}`)
+              .join("\n");
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg?.role === "user" && Array.isArray(lastMsg.parts)) {
+              const textIdx = lastMsg.parts.findIndex((p: any) => typeof p.text === "string");
+              if (textIdx >= 0) lastMsg.parts[textIdx] = { text: `${ragBlock}\n\n${lastMsg.parts[textIdx].text}` };
+              else lastMsg.parts.unshift({ text: ragBlock });
+            }
+            void recordFeatureUsage({
+              featureKey: "ai_rag_search",
+              model: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-001",
+              inputTokens: Math.ceil(userMessage.length / 4),
+              outputTokens: 0,
+              adminId, conversationId,
+            });
+          }
+        }
+      } catch (ragErr) {
+        console.warn("[ai-agent-stream] RAG 검색 실패 — 기존 동작 계속", (ragErr as any)?.message);
+      }
+    }
 
     const executedTools: any[] = [];
     let pendingApproval: any = null;
@@ -177,8 +189,8 @@ export default async (req: Request, _ctx: Context) => {
 
     try {
       for (let step = 0; step < MAX_STEPS; step++) {
-        /* Gemini stream 호출 — 모델 폴백 체인 (첫 모델 실패 시 다음) */
-        let usedModel = MODEL_CHAIN[0];
+        /* Gemini stream 호출 — 의도별 모델 폴백 체인 (첫 모델 실패 시 다음) */
+        let usedModel = modelChain[0];
         let usage: any = null;
         let stepParts: any[] = [];
         let stepText = "";
@@ -186,8 +198,8 @@ export default async (req: Request, _ctx: Context) => {
 
         let success = false;
         let lastError = "";
-        for (let m = 0; m < MODEL_CHAIN.length; m++) {
-          usedModel = MODEL_CHAIN[m];
+        for (let m = 0; m < modelChain.length; m++) {
+          usedModel = modelChain[m];
           try {
             const reqBody: any = {
               contents: messages,
