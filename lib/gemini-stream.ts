@@ -26,13 +26,15 @@ export async function* streamGemini(
   model: string,
   body: any,
   apiKey: string,
+  ttfbMs: number = 9000,
 ): AsyncGenerator<GeminiStreamChunk, void, void> {
   const url = `${GEMINI_API_URL}/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  /* ★ 2026-06-01: TTFB(첫 토큰)까지만 9초 타임아웃 보호. 기존 AbortSignal.timeout(8s)은
+  /* ★ 2026-06-01: TTFB(첫 토큰)까지만 타임아웃 보호. 기존 AbortSignal.timeout(8s)은
      요청 전체를 8초에 끊어 긴 답변이 생성 중 잘리는 문제 → 수동 컨트롤러로 변경해
-     첫 청크 수신 시 타이머 해제. 이후엔 길게 생성돼도 안 끊김(스트림 정상). */
+     첫 청크 수신 시 타이머 해제. 이후엔 길게 생성돼도 안 끊김(스트림 정상).
+     ttfbMs는 호출자가 모델별로 조정(느린 1순위엔 길게, 빠른 폴백엔 짧게). */
   const controller = new AbortController();
-  let ttfbTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 9000);
+  let ttfbTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), ttfbMs);
   const clearTtfb = () => { if (ttfbTimer) { clearTimeout(ttfbTimer); ttfbTimer = null; } };
 
   let res: Response;

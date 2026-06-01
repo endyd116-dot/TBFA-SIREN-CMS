@@ -49,7 +49,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
    단순 조회는 lite 1순위(저렴·빠름). 비스트리밍(admin-ai-agent.ts)과 정책 일치.
    스트리밍은 지연 민감 → 체인 길이 2~3으로 짧게(폴백 누적 시간 억제). */
 const HIGH_MODEL_CHAIN = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
-const LOW_MODEL_CHAIN  = ["gemini-3.1-flash-lite", "gemini-2.5-flash"];
+/* LOW 1순위는 gemini-2.5-flash — 도구 호출 안정(lite는 7k 프롬프트+도구 declarations에
+   빈 응답 빈발 → 평소 "처음엔 실패" 원인). lite는 저렴한 폴백으로 보존. 비스트리밍과 일치. */
+const LOW_MODEL_CHAIN  = ["gemini-2.5-flash", "gemini-3.1-flash-lite"];
 const HIGH_INTENT_RE = /(추가|등록|생성|만들|넣어|수정|변경|바꿔|고쳐|업데이트|삭제|지워|제거|없애|차단|해제|정지|발송|보내|환불|복구|롤백)/;
 const MAX_STEPS = 4;
 const MAX_TOOLS_PER_CONV = 20;
@@ -200,6 +202,11 @@ export default async (req: Request, _ctx: Context) => {
         let lastError = "";
         for (let m = 0; m < modelChain.length; m++) {
           usedModel = modelChain[m];
+          const isLastModel = m === modelChain.length - 1;
+          /* 매 시도마다 상태 초기화 — 이전 모델의 부분 출력 carryover 방지 */
+          stepParts = []; stepText = ""; stepFnCalls = [];
+          /* 1순위(느릴 수 있는 고성능 모델)엔 TTFB 14초, 폴백 모델은 8초 (worst-case<함수한도) */
+          const ttfbMs = m === 0 ? 14000 : 8000;
           try {
             const reqBody: any = {
               contents: messages,
@@ -208,7 +215,7 @@ export default async (req: Request, _ctx: Context) => {
               ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
               generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
             };
-            for await (const chunk of streamGemini(usedModel, reqBody, GEMINI_API_KEY)) {
+            for await (const chunk of streamGemini(usedModel, reqBody, GEMINI_API_KEY, ttfbMs)) {
               const cand = chunk.candidates?.[0];
               const parts = cand?.content?.parts || [];
               for (const p of parts) {
@@ -221,6 +228,13 @@ export default async (req: Request, _ctx: Context) => {
                 }
               }
               if (chunk.usageMetadata) usage = chunk.usageMetadata;
+            }
+            /* ★ 빈 응답(텍스트·도구 0) — lite가 STOP/no-parts로 끝나는 패턴. 다음 모델로 폴백.
+               (아직 아무것도 스트리밍 안 했으므로 재시도해도 클라이언트 중복 없음) */
+            if (stepText === "" && stepFnCalls.length === 0 && !isLastModel) {
+              lastError = `${usedModel} 빈 응답(STOP/no-parts)`;
+              console.warn(`[ai-agent-stream] ${usedModel} 빈 응답 — 다음 모델 시도`);
+              continue;
             }
             /* text는 마지막에 한 번에 part로 보관 (messages 저장용) */
             if (stepText) stepParts.unshift({ text: stepText });
@@ -235,7 +249,8 @@ export default async (req: Request, _ctx: Context) => {
               lastError.includes("NOT_FOUND") || lastError.includes("not supported") ||
               lastError.includes("UNAVAILABLE") || lastError.includes("high demand") ||
               lastError.includes("RESOURCE_EXHAUSTED") ||
-              lastError.includes("thought_signature");   /* Gemini 3.x lite 가끔 누락 */
+              lastError.includes("thought_signature") ||  /* Gemini 3.x lite 가끔 누락 */
+              lastError.includes("abort");                 /* TTFB 타임아웃 → 다음(빠른) 모델로 폴백 */
             if (!isRetryable) break;
           }
         }
