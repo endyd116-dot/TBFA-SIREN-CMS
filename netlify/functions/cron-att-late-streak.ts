@@ -117,7 +117,7 @@ export default async (req: Request, _ctx: Context) => {
             channel: "bell" as any,
             title: `[근태] ${name} 지각 ${lateCount}회`,
             body: `${name}님이 최근 ${WINDOW_DAYS}일간 ${lateCount}회 지각했습니다. 확인이 필요합니다.`,
-            actionUrl: "/admin-workspace-management.html",
+            actionUrl: "/cms-tbfa.html#att-ops",
             category: "system" as any,
           });
           supAlertCount++;

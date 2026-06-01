@@ -23,15 +23,25 @@
     b.id = BTN_ID;
     b.type = 'button';
     b.title = '알림';
-    b.style.cssText = [
-      'position:fixed', 'top:14px', 'right:130px', 'z-index:9998',
-      'box-shadow:0 2px 8px rgba(0,0,0,.10)',
-      'display:none', 'align-items:center', 'gap:4px',
+    /* 공통(외형) 스타일 */
+    var common = [
+      'align-items:center', 'gap:4px',
       'padding:6px 11px', 'border-radius:8px',
       'border:1px solid #e2e8f0', 'background:#f8fafc',
       'color:#475569', 'font-size:14px',
       'cursor:pointer', 'font-family:inherit'
-    ].join(';');
+    ];
+    /* ★ 2026-06-01 fix: cms-tbfa 헤더(.cms-top-user)가 있으면 그 안 흐름에 삽입해
+       세션 타이머(고정 위치 아님)와 겹치지 않게 한다. 없으면(admin.html 등) 기존 고정 배치. */
+    var host = document.querySelector('.cms-top-user');
+    if (host) {
+      b.style.cssText = ['display:none', 'order:-1'].concat(common).join(';');
+    } else {
+      b.style.cssText = [
+        'position:fixed', 'top:14px', 'right:130px', 'z-index:9998',
+        'box-shadow:0 2px 8px rgba(0,0,0,.10)', 'display:none'
+      ].concat(common).join(';');
+    }
     b.innerHTML =
       '<span aria-hidden="true">🔔</span>' +
       '<span id="' + BADGE_ID + '" style="' +
@@ -41,7 +51,8 @@
     b.addEventListener('click', function () {
       window.open('/workspace-notifications.html', '_blank', 'noopener');
     });
-    document.body.appendChild(b);
+    if (host) host.insertBefore(b, host.firstChild);
+    else document.body.appendChild(b);
     return b;
   }
 

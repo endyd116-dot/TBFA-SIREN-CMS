@@ -131,7 +131,7 @@ export default async (_req: Request, _ctx: Context) => {
           title: `[근태] 미출근 ${absentIds.length}명`,
           body: `${today} 출근 미체크: ${absentNames}`,
           // R34-P2 (round2 M10): 미출근 요약 → 근태 현황 탭
-          actionUrl: "/admin-workspace-management.html",
+          actionUrl: "/cms-tbfa.html#att-ops",
           category: "system" as any,
         });
       } catch (err) {
