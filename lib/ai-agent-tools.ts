@@ -119,8 +119,8 @@ export const TOOL_DECLARATIONS = [
   /* 발송·트리거 (Phase 추가 — 읽기) */
   { name: "dispatch_logs_recent", description: "알림 발송 이력 (이메일·SMS·카카오·푸시)",
     parameters: { type: "OBJECT", properties: {
-      channel: { type: "STRING", description: "email|sms|kakao|push" },
-      status: { type: "STRING", description: "sent|failed|delivered" },
+      channel: { type: "STRING", description: "inapp|email|sms|kakao" },
+      status: { type: "STRING", description: "pending|sent|failed|dead" },
       limit: { type: "INTEGER" },
     }}},
   { name: "auto_triggers_recent", description: "자동 트리거 실행 이력",
@@ -1116,14 +1116,16 @@ async function tool_contentPagesList(args: any): Promise<ToolResult> {
   const keyFilter = String(args?.keyFilter || "").trim();
   const limit = Math.min(Number(args?.limit) || 30, 100);
   const where = keyFilter ? sql`WHERE page_key ILIKE ${`%${keyFilter}%`}` : sql``;
+  /* content_pages 컬럼은 content_html (content 아님 — 2026-06-01 라이브 검증 FIX). */
   const r: any = await db.execute(sql`
-    SELECT page_key, content, updated_at FROM content_pages ${where}
+    SELECT page_key, title, content_html, updated_at FROM content_pages ${where}
      ORDER BY updated_at DESC LIMIT ${limit}
   `);
   const rows = r?.rows ?? r ?? [];
   return { ok: true, output: { count: rows.length, pages: rows.map((p: any) => ({
     pageKey: p.page_key,
-    contentPreview: String(p.content || "").slice(0, 300),
+    title: p.title || null,
+    contentPreview: String(p.content_html || "").slice(0, 300),
     updatedAt: p.updated_at,
   })) } };
 }
@@ -1134,20 +1136,21 @@ async function tool_contentPagesUpdate(args: any, adminId: number | null): Promi
   const requireApproval = args?.requireApproval !== false;
   if (!pageKey) return { ok: false, error: "pageKey 필수" };
   if (!newContent) return { ok: false, error: "newContent 필수" };
-  const cur: any = await db.execute(sql`SELECT page_key, content FROM content_pages WHERE page_key = ${pageKey} LIMIT 1`);
+  /* content_pages 컬럼은 content_html (content 아님 — 2026-06-01 라이브 검증 FIX). */
+  const cur: any = await db.execute(sql`SELECT page_key, content_html FROM content_pages WHERE page_key = ${pageKey} LIMIT 1`);
   const curRow = (cur?.rows ?? cur ?? [])[0];
   if (!curRow) return { ok: false, error: `페이지 키 '${pageKey}' 없음` };
   if (requireApproval) return { ok: true, preview: {
-    pageKey, before: String(curRow.content || "").slice(0, 500),
+    pageKey, before: String(curRow.content_html || "").slice(0, 500),
     after: newContent.slice(0, 500),
     message: "승인 후 requireApproval=false로 다시 호출하세요.",
   }};
   await db.execute(sql`
-    UPDATE content_pages SET content = ${newContent}, updated_at = NOW(), updated_by = ${adminId}
+    UPDATE content_pages SET content_html = ${newContent}, updated_at = NOW(), updated_by = ${adminId}
      WHERE page_key = ${pageKey}
   `);
   return { ok: true, output: { pageKey, applied: true, message: "적용 완료" },
-    rollbackData: { pageKey, prevContent: curRow.content } };
+    rollbackData: { pageKey, prevContent: curRow.content_html } };
 }
 
 async function tool_noticeCreate(args: any, adminId: number | null): Promise<ToolResult> {
@@ -1201,8 +1204,9 @@ async function tool_campaignCreate(args: any, adminId: number | null): Promise<T
 async function tool_navMenusList(args: any): Promise<ToolResult> {
   const location = ["header","footer"].includes(String(args?.location)) ? String(args.location) : "header";
   try {
+    /* 테이블=nav_menu_items, 컬럼=label/href (nav_menus·title·url 아님 — 2026-06-01 라이브 검증 FIX). */
     const r: any = await db.execute(sql`
-      SELECT id, title, url, parent_id, sort_order, is_active FROM nav_menus
+      SELECT id, label, href, parent_id, sort_order, is_active FROM nav_menu_items
        WHERE menu_location = ${location} AND is_active = true
        ORDER BY parent_id NULLS FIRST, sort_order ASC LIMIT 100
     `);
@@ -2170,10 +2174,12 @@ async function tool_dispatchLogsRecent(args: any): Promise<ToolResult> {
   if (args?.status) conds.push(sql`status = ${String(args.status)}`);
   const where = conds.length > 0 ? sql`WHERE ${sql.join(conds, sql` AND `)}` : sql``;
   try {
+    /* notification_dispatch_logs 실제 컬럼: event_type/target_type/target_id/status/error
+       (recipient_email·subject·error_message 없음 — 2026-06-01 라이브 검증 FIX). */
     const r: any = await db.execute(sql`
-      SELECT id, channel, recipient_email, recipient_phone, subject, status, error_message, sent_at
+      SELECT id, channel, event_type, target_type, target_id, status, attempt, error, created_at, sent_at
         FROM notification_dispatch_logs ${where}
-       ORDER BY sent_at DESC LIMIT ${limit}
+       ORDER BY created_at DESC LIMIT ${limit}
     `);
     const rows = r?.rows ?? r ?? [];
     return { ok: true, output: { count: rows.length, logs: rows } };
