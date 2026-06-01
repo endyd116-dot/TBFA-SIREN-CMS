@@ -235,7 +235,7 @@ export const TOOL_DECLARATIONS = [
       dueDate: { type: "STRING", description: "YYYY-MM-DD (생략 시 7일 후)" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["title"] }},
-  { name: "email_send", description: "이메일 발송 (회원 ID 목록 또는 직접 이메일 주소, 파일함 파일 첨부 가능). memberIds와 toEmails 중 하나 이상 필수. wrapWithLayout=true 시 SIREN 공식 브랜드 템플릿(흑백+금색 테두리, 깔끔)으로 자동 래핑 — '가장 깔끔한 템플릿', '격식 있게' 요청 시 반드시 true.",
+  { name: "email_send", description: "이메일 발송. ★사용자가 원시 이메일 주소(예: abc@gmail.com)를 직접 주면 members_search로 회원을 찾지 말고 그 주소를 toEmails 배열에 그대로 넣어 즉시 호출하라 — 외부 주소도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toEmails 중 하나 이상 필수, subject·body 필수. 파일함 파일 첨부 가능. wrapWithLayout=true 시 SIREN 공식 브랜드 템플릿(흑백+금색 테두리, 깔끔)으로 자동 래핑 — '가장 깔끔한 템플릿', '격식 있게' 요청 시 반드시 true.",
     parameters: { type: "OBJECT", properties: {
       memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명). toEmails와 함께 쓸 수 있음." },
       toEmails: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 이메일 주소 목록 (최대 10개). 회원이 아닌 외부 주소 포함 가능." },
