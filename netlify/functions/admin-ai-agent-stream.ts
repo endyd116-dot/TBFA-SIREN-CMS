@@ -215,10 +215,14 @@ export default async (req: Request, _ctx: Context) => {
               ...(toolDeclarations.length > 0 ? { tools: [{ functionDeclarations: toolDeclarations }] } : {}),
               generationConfig: { temperature: 0.2, maxOutputTokens: MAX_OUTPUT_TOKENS },
             };
+            let dbgFinish = "", dbgPartKinds: string[] = [], dbgChunks = 0;
             for await (const chunk of streamGemini(usedModel, reqBody, GEMINI_API_KEY, ttfbMs)) {
+              dbgChunks++;
               const cand = chunk.candidates?.[0];
+              if (cand?.finishReason) dbgFinish = String(cand.finishReason);
               const parts = cand?.content?.parts || [];
               for (const p of parts) {
+                dbgPartKinds.push(Object.keys(p).join("+"));
                 if (typeof p.text === "string") {
                   write("text", { text: p.text });
                   stepText += p.text;
@@ -229,6 +233,8 @@ export default async (req: Request, _ctx: Context) => {
               }
               if (chunk.usageMetadata) usage = chunk.usageMetadata;
             }
+            console.info(`[ai-agent-stream] ${usedModel} chunks=${dbgChunks} finish=${dbgFinish} parts=[${dbgPartKinds.join(",")}] text=${stepText.length} fn=${stepFnCalls.length}`);
+            (globalThis as any).__lastDbg = { usedModel, dbgChunks, dbgFinish, dbgPartKinds, textLen: stepText.length, fnLen: stepFnCalls.length };
             /* ★ 빈 응답(텍스트·도구 0) — lite가 STOP/no-parts로 끝나는 패턴. 다음 모델로 폴백.
                (아직 아무것도 스트리밍 안 했으므로 재시도해도 클라이언트 중복 없음) */
             if (stepText === "" && stepFnCalls.length === 0 && !isLastModel) {
@@ -364,6 +370,7 @@ export default async (req: Request, _ctx: Context) => {
       finalReply: piiResult.masked,
       piiRedacted: piiResult.redactCount,
       costWarning: budget.warn ? budget.message : undefined,
+      _dbg: (globalThis as any).__lastDbg || null,   /* 2026-06-01 진단 — 빈 응답 원인 추적용(확인 후 제거) */
     });
   });
 
