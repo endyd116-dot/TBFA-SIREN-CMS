@@ -269,26 +269,30 @@ async function summarizeOldMessages(
 interface ToolGroup { name: string; tools: string[]; keywords: string[] }
 
 const TOOL_GROUPS: ToolGroup[] = [
-  { name: "members",  tools: ["members_search", "members_stats", "members_recent", "members_detail", "members_recent_logins"],
-    keywords: ["회원", "가입", "유족", "유가족", "후원회원", "신규", "탈퇴", "로그인"] },
-  { name: "donations", tools: ["donations_recent", "donations_stats", "donations_by_member", "donors_top", "donors_at_risk", "email_send_by_filter", "bulk_pipeline"],
-    keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제", "고액", "이탈", "위험", "감사 이메일", "필터 이메일", "대상자 이메일", "이메일 보내줘", "재참여", "파이프라인", "일괄 처리"] },
+  { name: "members",  tools: ["members_search", "members_stats", "members_recent", "members_detail", "members_recent_logins", "members_update", "members_block", "members_unblock"],
+    keywords: ["회원", "가입", "유족", "유가족", "후원회원", "신규", "탈퇴", "로그인", "차단", "정지", "해제", "차단 해제", "정보 수정", "등급 변경", "블랙리스트"] },
+  { name: "donations", tools: ["donations_recent", "donations_stats", "donations_by_member", "donors_top", "donors_at_risk", "donations_status_update", "email_send_by_filter", "bulk_pipeline"],
+    keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제", "고액", "이탈", "위험", "감사 이메일", "필터 이메일", "대상자 이메일", "이메일 보내줘", "재참여", "파이프라인", "일괄 처리", "후원 상태", "결제 상태"] },
+  /* 직접 이메일·인앱 알림 발송 — email_send/notification_send는 어떤 그룹에도 없으면
+     키워드 매칭 시 미로드되어 모델이 호출 불가(2026-06-01 BUG fix). 직접 발송 전용 그룹. */
+  { name: "email",   tools: ["email_send", "notification_send", "email_templates_list", "email_template_create", "email_template_update", "email_template_delete", "recipient_group_create", "recipient_group_update", "recipient_group_delete", "email_send_by_filter"],
+    keywords: ["메일", "이메일", "발송", "보내", "보낼", "보냄", "전송해", "알림 보내", "인앱 알림", "공지 메일", "이메일 템플릿", "메일 템플릿", "수신자 그룹", "뉴스레터", "안내 메일", "단체 메일", "단체 이메일"] },
   { name: "audit",    tools: ["audit_logs_recent"],
     keywords: ["감사", "이력", "로그", "audit", "기록"] },
   { name: "dispatch", tools: ["dispatch_logs_recent", "auto_triggers_recent"],
     keywords: ["발송", "전송", "트리거", "자동", "이메일 이력", "sms 이력"] },
-  { name: "siren",    tools: ["incidents_list", "incidents_detail", "harassment_reports_list", "legal_consultations_list", "legal_reply_batch", "harassment_reply_batch", "bulk_pipeline"],
-    keywords: ["사건", "신고", "악성", "민원", "법률", "상담", "siren", "SIREN", "교권", "괴롭힘", "일괄 답변", "일괄답변", "거절", "전부 답변", "상태 바꿔", "검토 중", "일괄 상태"] },
-  { name: "board",    tools: ["board_posts_list", "board_post_create", "board_post_update", "board_comments_list", "board_comment_hide", "notice_create", "notice_update", "notice_delete", "notices_list"],
-    keywords: ["게시판", "공지", "공고", "글", "포스트", "알림글", "댓글", "숨김"] },
+  { name: "siren",    tools: ["incidents_list", "incidents_detail", "harassment_reports_list", "legal_consultations_list", "legal_reply_batch", "harassment_reply_batch", "incidents_status_update", "harassment_status_update", "harassment_reply", "legal_status_update", "legal_reply", "bulk_pipeline"],
+    keywords: ["사건", "신고", "악성", "민원", "법률", "상담", "siren", "SIREN", "교권", "괴롭힘", "일괄 답변", "일괄답변", "거절", "전부 답변", "상태 바꿔", "검토 중", "일괄 상태", "답변", "답변해", "처리 완료", "종결"] },
+  { name: "board",    tools: ["board_posts_list", "board_post_create", "board_post_update", "board_post_delete", "board_comments_list", "board_comment_hide", "notice_create", "notice_update", "notice_delete", "notices_list"],
+    keywords: ["게시판", "공지", "공고", "글", "포스트", "알림글", "댓글", "숨김", "게시글 삭제"] },
   { name: "campaign", tools: ["campaigns_list", "campaigns_detail", "campaign_create", "campaigns_update", "campaign_archive"],
     keywords: ["캠페인", "카피", "광고", "모금", "아카이브", "종료"] },
   { name: "faq",      tools: ["faqs_list", "faq_create", "faq_update", "faq_delete"],
     keywords: ["faq", "FAQ", "자주묻", "자주 묻는", "질의응답"] },
   { name: "resources", tools: ["resources_list", "resource_categories_list"],
     keywords: ["자료", "자료실", "다운로드", "문서", "양식"] },
-  { name: "templates", tools: ["templates_list", "template_create", "template_update", "recipient_groups_list"],
-    keywords: ["템플릿", "양식문", "수신자", "발송 그룹", "타겟"] },
+  { name: "templates", tools: ["templates_list", "template_create", "template_update", "recipient_groups_list", "email_templates_list", "email_template_create", "email_template_update", "email_template_delete", "recipient_group_create", "recipient_group_update", "recipient_group_delete"],
+    keywords: ["템플릿", "양식문", "수신자", "발송 그룹", "타겟", "수신자 그룹"] },
   { name: "siren_admin", tools: ["incident_comment_add"],
     keywords: ["사건 답변", "사건 의견", "내부 메모", "코멘트", "운영자 의견"] },
   { name: "potential_donors", tools: ["potential_donors_list", "potential_donor_link"],
@@ -296,7 +300,7 @@ const TOOL_GROUPS: ToolGroup[] = [
   { name: "resources_cud", tools: ["resource_create", "resource_update", "resource_delete"],
     keywords: ["자료 등록", "자료 수정", "자료 삭제"] },
   { name: "finance", tools: [
-      "budgets_list", "budget_summary", "donation_policy_get",
+      "budgets_list", "budget_summary", "donation_policy_get", "donation_policy_update",
       /* Phase 22-A 매출 */
       "revenue_categories_list", "revenue_list", "revenue_create", "revenue_update", "revenue_approve", "revenue_refund",
       /* Phase 22-C 지출 */
@@ -326,8 +330,8 @@ const TOOL_GROUPS: ToolGroup[] = [
       /* 22-D-R2 통장 대사 — substring 매칭 */
       "통장", "거래내역", "대사", "입출금", "입금", "출금", "묶음정산", "정산",
     ] },
-  { name: "chat", tools: ["chat_rooms_list", "chat_message_broadcast"],
-    keywords: ["채팅", "상담", "1:1", "메시지", "대화방", "전부 보내", "일괄 전송", "브로드캐스트", "미답변"] },
+  { name: "chat", tools: ["chat_rooms_list", "chat_message_broadcast", "chat_message_send", "chat_room_close", "chat_room_messages_list"],
+    keywords: ["채팅", "상담", "1:1", "메시지", "대화방", "전부 보내", "일괄 전송", "브로드캐스트", "미답변", "채팅방", "대화 종료", "상담 종료"] },
   { name: "workspace", tools: ["tasks_list", "task_create", "task_update", "task_delete", "task_comments_list", "task_comment_add", "notifications_recent"],
     keywords: ["작업", "할 일", "할일", "태스크", "워크스페이스", "투두", "todo", "카드", "댓글", "보고서"] },
   { name: "memos",     tools: ["memos_list", "memo_create", "memo_update", "memo_delete"],
@@ -336,8 +340,12 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["일정", "캘린더", "약속", "미팅", "회의", "이벤트", "스케줄", "예약", "마감일"] },
   { name: "files",     tools: ["files_list"],
     keywords: ["파일", "폴더", "자료", "문서함", "업로드"] },
-  { name: "notifications", tools: ["notifications_recent", "notification_batch"],
-    keywords: ["알림", "안내", "공지", "일괄 알림", "전체 알림"] },
+  { name: "notifications", tools: ["notifications_recent", "notification_batch", "notification_send"],
+    keywords: ["알림", "안내", "공지", "일괄 알림", "전체 알림", "알림 발송", "푸시"] },
+  /* 예약 명령(스케줄 도구) — 어떤 그룹에도 없으면 미로드(2026-06-01 BUG fix).
+     calendar(일정) 그룹과 키워드 충돌 피하려 '예약 실행/명령' 등 구체 키워드만. */
+  { name: "schedule", tools: ["schedule_command", "schedule_cancel", "scheduled_commands_list"],
+    keywords: ["예약 실행", "예약 명령", "예약된 작업", "정기 실행", "자동 실행", "나중에 실행", "스케줄 명령", "예약 취소", "예약 목록"] },
   { name: "kpi",      tools: ["kpi_summary"],
     keywords: ["지표", "통계", "KPI", "현황", "요약", "대시보드"] },
   { name: "content",  tools: ["content_pages_list", "content_pages_update", "page_create", "page_delete"],
@@ -357,6 +365,19 @@ const TOOL_GROUPS: ToolGroup[] = [
  *  - 매칭 4개↑ (광범위) → 전체 도구
  *  - 그 외 → 관련 도구만 */
 const GREETING_PATTERNS = /^(야|응|네|예|아니|아니오|ok|오케이|안녕|하이|hi|hello|뭐해|왜|진행|확인|취소|좋아|싫어|괜찮)/i;
+
+/* 어떤 TOOL_GROUP에도 속하지 않은 선언 도구 목록 — 모듈 로드 시 1회 계산.
+   selectRelevantTools가 키워드 매칭 결과에 항상 합쳐서 반환(미로드 BUG 재발 방지). */
+const ORPHAN_TOOL_NAMES: string[] = (() => {
+  const grouped = new Set<string>();
+  for (const g of TOOL_GROUPS) for (const t of g.tools) grouped.add(t);
+  const orphans = (TOOL_DECLARATIONS as any[])
+    .map((t: any) => t?.name).filter((n: any): n is string => typeof n === "string" && !grouped.has(n));
+  if (orphans.length > 0) {
+    console.warn(`[ai-agent] ⚠️ TOOL_GROUP 미분류 도구 ${orphans.length}개 — 항상 로드로 폴백: ${orphans.join(", ")}`);
+  }
+  return orphans;
+})();
 
 /* ★ Q3-013: 스트리밍 핸들러와 공유 — TOOL_GROUPS 중복 정의 방지 위해 export */
 export function selectRelevantTools(userMessage: string): string[] | null {
@@ -378,6 +399,10 @@ export function selectRelevantTools(userMessage: string): string[] | null {
 
   const set = new Set<string>();
   for (const g of matched) for (const t of g.tools) set.add(t);
+  /* 2026-06-01 안전망: 어떤 그룹에도 속하지 않은 선언 도구(누락)는 키워드 매칭 시
+     영영 미로드되어 모델이 호출 불가 → 항상 포함시켜 도달 가능성 보장.
+     평소 누락이 0이면 빈 배열이라 오버헤드 없음(BUG: email_send 등 26개 미로드 재발 방지). */
+  for (const t of ORPHAN_TOOL_NAMES) set.add(t);
   return Array.from(set);
 }
 
