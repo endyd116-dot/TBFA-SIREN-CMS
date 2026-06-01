@@ -63,10 +63,11 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 /* ★ 비용 최적화 정책 — 의도별 모델 체인 분리 (2026-05-13 업데이트)
  *
  * HIGH (변경 CRUD·복잡 작업) — 정확도 우선
- *   1) gemini-3-flash-preview (최신·정확)
- *   2) gemini-3.1-flash-lite  (폴백)
- *   3) gemini-2.5-flash       (안정 폴백)
- *   4) gemini-2.5-flash-lite  (최후 폴백)
+ *   1) gemini-3.5-flash       (최신·최고 성능, 2026-06-01 추가)
+ *   2) gemini-3-flash-preview (폴백)
+ *   3) gemini-3.1-flash-lite  (폴백)
+ *   4) gemini-2.5-flash       (안정 폴백)
+ *   5) gemini-2.5-flash-lite  (최후 폴백)
  *
  * LOW (단순 조회·통계) — 속도·비용 우선
  *   1) gemini-3.1-flash-lite  (저렴·충분)
@@ -75,6 +76,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
  * NONE (인사·확인 8자↓) — 도구 없이 lite로 즉시 (selectRelevantTools에서 처리)
  */
 const HIGH_MODEL_CHAIN: string[] = Array.from(new Set([
+  "gemini-3.5-flash",
   "gemini-3-flash-preview",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",

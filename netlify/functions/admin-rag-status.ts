@@ -40,12 +40,18 @@ export default async function handler(req: Request, ctx: Context) {
       const embedModels = all
         .filter((m: any) => (m.supportedGenerationMethods || []).includes("embedContent"))
         .map((m: any) => m.name);
+      /* 생성(generateContent) 가능 모델 — AI 비서 체인 모델명 검증용 (gemini-* 만 노출) */
+      const genModels = all
+        .filter((m: any) => (m.supportedGenerationMethods || []).includes("generateContent"))
+        .map((m: any) => String(m.name).replace(/^models\//, ""))
+        .filter((n: string) => n.startsWith("gemini"));
       return new Response(JSON.stringify({
         ok: true,
         data: {
           httpStatus: r.status,
           totalModels: all.length,
           embedModels,                                  // ← 이 중 하나를 GEMINI_EMBED_MODEL에 설정
+          genModels,                                    // ← AI 비서 모델 체인 검증용
           currentModel: process.env.GEMINI_EMBED_MODEL || "text-embedding-004",
           apiError: j?.error?.message || null,
         },
