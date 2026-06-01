@@ -5,6 +5,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { sendEmail, renderEmailLayout } from "./email";
+import { solapiSendSms } from "./solapi-client";
 import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
 
@@ -253,6 +254,14 @@ export const TOOL_DECLARATIONS = [
       title: { type: "STRING" }, body: { type: "STRING" }, linkUrl: { type: "STRING" },
       requireApproval: { type: "BOOLEAN" },
     }, required: ["memberIds", "title"] }},
+  { name: "sms_send", description: "문자(SMS/LMS) 발송. ★사용자가 회원이 아닌 외부 전화번호(예: 010-1234-5678)를 직접 주면 회원 검색하지 말고 그 번호를 toPhones 배열에 그대로 넣어 즉시 발송하라 — 외부 번호도 발송 가능하므로 '회원을 찾을 수 없다'고 포기하지 말 것. 등록 회원에게 보낼 때만 memberIds(정수 배열) 사용. memberIds와 toPhones 중 하나 이상 필수, message 필수. 본문 90바이트(한글 약 45자) 초과 시 자동 LMS 전환.",
+    parameters: { type: "OBJECT", properties: {
+      memberIds: { type: "ARRAY", items: { type: "INTEGER" }, description: "회원 ID 목록 (최대 50명, 휴대폰 등록 회원만). toPhones와 함께 쓸 수 있음." },
+      toPhones: { type: "ARRAY", items: { type: "STRING" }, description: "직접 지정 전화번호 목록 (최대 20개, 대시 포함 무관). 회원이 아닌 외부 번호 포함 가능." },
+      message: { type: "STRING", description: "문자 본문. 90바이트 초과 시 자동 LMS." },
+      title: { type: "STRING", description: "LMS 제목(자동 LMS 분류 시 사용, 생략 시 '알림')." },
+      requireApproval: { type: "BOOLEAN" },
+    }, required: ["message"] }},
 
   /* === Phase 1 워크스페이스 확장 (12개) === */
   /* 메모 */
@@ -1000,6 +1009,7 @@ export async function executeTool(
       /* F-7: 변경 도구 3종 */
       case "task_create":          return await tool_taskCreate(args, adminId);
       case "email_send":           return await tool_emailSend(args, adminId);
+      case "sms_send":             return await tool_smsSend(args, adminId);
       case "notification_send":    return await tool_notificationSend(args, adminId);
       /* Phase 1: 워크스페이스 확장 (메모·캘린더·댓글·작업삭제·파일목록) */
       case "memos_list":           return await tool_memosList(args, adminId);
@@ -1690,6 +1700,79 @@ async function tool_emailSend(args: any, adminId: number | null): Promise<ToolRe
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       results.sent++;
+    } catch (e: any) {
+      results.failed++;
+      results.errors.push(`${rcpt.name}: ${(e?.message || "").slice(0, 80)}`);
+    }
+  }
+  return { ok: true, output: results, suggestedNextSteps: buildNextSteps("email_send") };
+}
+
+async function tool_smsSend(args: any, adminId: number | null): Promise<ToolResult> {
+  const memberIds: number[] = toIdArray(args?.memberIds);
+  const toPhonesRaw: string[] = Array.isArray(args?.toPhones) ? args.toPhones.map(String) : [];
+  if (memberIds.length === 0 && toPhonesRaw.length === 0) return { ok: false, error: "memberIds 또는 toPhones 중 하나 이상 필수" };
+  if (memberIds.length > 50) return { ok: false, error: "memberIds 최대 50명까지" };
+  if (toPhonesRaw.length > 20) return { ok: false, error: "toPhones 최대 20개까지" };
+  const message = String(args?.message || "").trim();
+  const title = String(args?.title || "").trim() || "알림";
+  if (!message) return { ok: false, error: "message 필수" };
+
+  /* 수신자 목록 구성 — { name, phone } */
+  let recipients: { name: string; phone: string }[] = [];
+
+  /* memberIds → DB 조회 (휴대폰 등록 회원만) */
+  if (memberIds.length > 0) {
+    try {
+      const idsLiteral = `ARRAY[${memberIds.join(",")}]::int[]`;
+      const r: any = await db.execute(sql`
+        SELECT id, name, phone FROM members
+         WHERE id = ANY(${sql.raw(idsLiteral)}) AND phone IS NOT NULL AND phone <> ''
+         LIMIT 50
+      `);
+      for (const row of (r?.rows ?? r ?? [])) {
+        recipients.push({ name: String(row.name || ""), phone: String(row.phone) });
+      }
+    } catch (e: any) {
+      return { ok: false, error: `수신자 조회 실패: ${e?.message?.slice(0, 200)}` };
+    }
+  }
+
+  /* toPhones → 직접 추가 (외부 번호 포함, 숫자 10자리 이상만) */
+  for (const raw of toPhonesRaw) {
+    const digits = raw.replace(/[^0-9]/g, "");
+    if (digits.length >= 10) recipients.push({ name: raw, phone: raw });
+  }
+
+  /* 중복 번호 제거(숫자 기준) */
+  const seen = new Set<string>();
+  recipients = recipients.filter(r => {
+    const k = r.phone.replace(/[^0-9]/g, "");
+    if (seen.has(k)) return false; seen.add(k); return true;
+  });
+  if (recipients.length === 0) return { ok: false, error: "유효한 수신 번호 없음 (휴대폰 미등록 회원이거나 번호 형식 오류)" };
+
+  const bytes = Buffer.byteLength(message, "utf8");
+  const msgType = bytes > 90 ? "LMS" : "SMS";
+
+  if (args?.requireApproval !== false) {
+    return { ok: true,
+      preview: {
+        recipientCount: recipients.length,
+        recipients: recipients.slice(0, 5).map(r => `${r.name} <${r.phone}>`),
+        type: msgType, messagePreview: message.slice(0, 200),
+        ...(msgType === "LMS" ? { title } : {}),
+      },
+      output: { dry_run: true, message: `승인 대기. ${recipients.length}명에게 ${msgType} 발송 예정. requireApproval=false로 재호출하면 실제 발송.` } };
+  }
+
+  /* 실제 발송 — 솔라피 단건 루프 */
+  const results = { sent: 0, failed: 0, type: msgType, errors: [] as string[] };
+  for (const rcpt of recipients) {
+    try {
+      const r = await solapiSendSms({ receiver: rcpt.phone, msg: message, title });
+      if (r.ok) results.sent++;
+      else { results.failed++; results.errors.push(`${rcpt.name}: ${(r.error || r.message || "").slice(0, 80)}`); }
     } catch (e: any) {
       results.failed++;
       results.errors.push(`${rcpt.name}: ${(e?.message || "").slice(0, 80)}`);

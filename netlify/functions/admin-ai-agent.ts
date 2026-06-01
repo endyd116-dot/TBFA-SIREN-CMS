@@ -275,8 +275,8 @@ const TOOL_GROUPS: ToolGroup[] = [
     keywords: ["후원", "정기", "일시", "기부", "금액", "후원금", "후원자", "정기결제", "고액", "이탈", "위험", "감사 이메일", "필터 이메일", "대상자 이메일", "이메일 보내줘", "재참여", "파이프라인", "일괄 처리", "후원 상태", "결제 상태"] },
   /* 직접 이메일·인앱 알림 발송 — email_send/notification_send는 어떤 그룹에도 없으면
      키워드 매칭 시 미로드되어 모델이 호출 불가(2026-06-01 BUG fix). 직접 발송 전용 그룹. */
-  { name: "email",   tools: ["email_send", "notification_send", "email_templates_list", "email_template_create", "email_template_update", "email_template_delete", "recipient_group_create", "recipient_group_update", "recipient_group_delete", "email_send_by_filter"],
-    keywords: ["메일", "이메일", "발송", "보내", "보낼", "보냄", "전송해", "알림 보내", "인앱 알림", "공지 메일", "이메일 템플릿", "메일 템플릿", "수신자 그룹", "뉴스레터", "안내 메일", "단체 메일", "단체 이메일"] },
+  { name: "email",   tools: ["email_send", "sms_send", "notification_send", "email_templates_list", "email_template_create", "email_template_update", "email_template_delete", "recipient_group_create", "recipient_group_update", "recipient_group_delete", "email_send_by_filter"],
+    keywords: ["메일", "이메일", "발송", "보내", "보낼", "보냄", "전송해", "알림 보내", "인앱 알림", "공지 메일", "이메일 템플릿", "메일 템플릿", "수신자 그룹", "뉴스레터", "안내 메일", "단체 메일", "단체 이메일", "문자", "SMS", "sms", "LMS", "lms", "문자메시지", "문자 메시지", "휴대폰 문자", "단체 문자"] },
   { name: "audit",    tools: ["audit_logs_recent"],
     keywords: ["감사", "이력", "로그", "audit", "기록"] },
   { name: "dispatch", tools: ["dispatch_logs_recent", "auto_triggers_recent"],
