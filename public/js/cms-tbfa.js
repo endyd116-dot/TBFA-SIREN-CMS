@@ -2493,6 +2493,69 @@
   }
 
   /* ============ 초기화 ============ */
+  /* ★ 2026-06-03 R46: 사이드바 역할별 권한 게이팅 (메뉴→권한키 매핑).
+     map에 없는 탭(dashboard 등)은 항상 표시. super_admin은 전체 표시. */
+  const MENU_PERM = {
+    members: 'siren_member',
+    'donor-regular': 'siren_donation', 'donor-prospect': 'siren_donation', 'donor-potential': 'siren_donation',
+    import: 'donation_confirm',
+    hyosung: 'finance_view', 'toss-billing': 'finance_view',
+    'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view',
+    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
+    'send-jobs': 'send_job', 'send-analytics': 'send_job', 'notification-logs': 'send_job',
+    'send-template': 'send_template', 'recipient-groups': 'send_template',
+    'auto-trigger': 'send_auto', 'system-notification': 'send_auto',
+    'kakao-templates': 'kakao_template',
+    'ai-chat': 'ai_agent_chat', 'ai-history': 'ai_agent_chat',
+    'ai-cost': 'ai_config', 'ai-logs': 'ai_config', 'ai-config': 'ai_config',
+    payroll: 'payroll_manage',
+    'role-policy': 'cms_role_policy',
+    'milestone-review': 'milestone:manage',
+    'att-ops': 'att_manage', 'att-config': 'att_config',
+    'org-news': 'org_news',
+    'receipt-settings': 'receipt_config',
+    'forms-builder': 'cms_forms', gamification: 'cms_gamification', popups: 'cms_popup',
+    memorial: 'cms_memorial', 'family-stories': 'cms_family_stories',
+    martyrdom: 'martyrdom_external_review',
+  };
+
+  function _permAllows(role, key, permMap) {
+    if (role === 'super_admin') return true;
+    const p = permMap[key];
+    if (!p) return role === 'admin';          // 미등록 키: admin 허용·operator 불가 (백엔드 canAccess와 동일)
+    if (role === 'admin') return !!p.adminAllowed;
+    if (role === 'operator') return !!p.operatorAllowed;
+    return false;
+  }
+
+  async function applySidebarPermissions() {
+    const role = currentAdmin && currentAdmin.role;
+    if (!role || role === 'super_admin') return;  // 슈퍼어드민은 전체 표시
+    let permMap = {};
+    try {
+      const res = await api('/api/admin-role-permissions');
+      const rows = (res.data && (res.data.data && res.data.data.permissions || res.data.permissions)) || [];
+      rows.forEach(r => { permMap[r.featureKey] = { adminAllowed: r.adminAllowed, operatorAllowed: r.operatorAllowed }; });
+    } catch (_) { return; }  // 조회 실패 시 메뉴 그대로(백엔드 게이트가 최종 차단)
+    document.querySelectorAll('.cms-menu a[data-tab]').forEach(a => {
+      const key = MENU_PERM[a.getAttribute('data-tab')];
+      if (!key) return;
+      if (!_permAllows(role, key, permMap)) {
+        const li = a.closest('li');
+        if (li) li.style.display = 'none';
+        a.setAttribute('data-perm-hidden', '1');
+      }
+    });
+    /* 자식이 전부 숨겨진 그룹은 그룹 헤더까지 숨김 */
+    document.querySelectorAll('.cms-menu-group').forEach(g => {
+      const sub = g.querySelector('.cms-submenu');
+      if (!sub) return;
+      const lis = Array.prototype.slice.call(sub.children).filter(el => el.tagName === 'LI');
+      const anyVisible = lis.some(li => li.style.display !== 'none');
+      if (lis.length > 0 && !anyVisible) g.style.display = 'none';
+    });
+  }
+
   async function init() {
     const auth = await checkAuth();
     if (!auth) return;
@@ -2522,15 +2585,16 @@
 
     renderDashboard();
 
+    /* ★ R46: 역할별 사이드바 권한 게이팅 (hash 진입 전에 적용) */
+    await applySidebarPermissions();
+
     /* ★ 2026-05-16: location.hash 기반 자동 탭 진입.
-       예: /cms-tbfa.html#send-jobs 로 진입 시 발송 작업 메뉴 자동 선택.
-       발송 상세 페이지의 '← 발송 작업 목록으로' 버튼이 hash=#send-jobs로
-       navigate하면 이 코드가 해당 탭으로 자동 전환. 옛 코드는 hash 처리 없어
-       dashboard만 표시되던 결함. */
+       예: /cms-tbfa.html#send-jobs 로 진입 시 발송 작업 메뉴 자동 선택. */
     const hash = (location.hash || '').replace('#', '');
     if (hash) {
       const targetLink = document.querySelector('.cms-menu a[data-tab="' + hash + '"]');
-      if (targetLink) {
+      /* 권한으로 숨겨진 탭으로는 진입 금지 (operator가 직접 #payroll 입력 등) */
+      if (targetLink && !targetLink.hasAttribute('data-perm-hidden')) {
         try { targetLink.click(); } catch (_) {}
       }
     }
