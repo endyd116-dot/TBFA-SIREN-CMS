@@ -85,6 +85,20 @@ function monthRange(year: number, month: number): { first: string; last: string 
   return { first, last };
 }
 
+/** ★ 2026-06-03 Swain 모델: 그 달의 '영업일수'(분모) — 월~금(주말 제외), 공휴일은 빼지 않고 포함.
+ *  일급 = (월급여) ÷ 이 값. 공휴일은 분모에 있지만 근무 안 하므로 자동 무급(5인 미만).
+ *  예) 연봉 3,500 → 월급 ≈ 291.7만 ÷ 그달영업일수 = 일급. 실제 출근일 × 일급 = 지급액.
+ *  (주6일 등 근무요일이 다르면 정책 확정 후 이 함수 조정) */
+function businessDaysInMonth(year: number, month: number): number {
+  const lastDay = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= lastDay; d++) {
+    const dow = new Date(Date.UTC(year, month - 1, d)).getUTCDay(); // 0=일,6=토
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
 export async function calculatePayrollForMonth(
   year: number,
   month: number,
@@ -92,6 +106,7 @@ export async function calculatePayrollForMonth(
 ): Promise<PayrollCalcResult> {
   const force = !!options.force;
   const { first, last } = monthRange(year, month);
+  const monthBusinessDays = businessDaysInMonth(year, month);   // 그 달 영업일수(분모·공휴일 포함)
   const q = quarterOfMonth(month);
   const settings = await loadPayrollSettings();
 
@@ -195,7 +210,8 @@ export async function calculatePayrollForMonth(
       //   기본급 = (실제 출근일 + 유급휴가일) × 일급.  유급휴가는 지급일에 포함.
       //   공휴일·결근·무급휴가는 '출근일'이 아니므로 자동으로 미지급(무급) — 월급제 일할(proration) 불필요.
       //   (만근 시 출근일 ≈ monthlyWorkDays 라 기본급 ≈ 월급으로 수렴.)
-      const dailyWage = (baseSalary / 12) / settings.monthlyWorkDays;
+      //   일급 = 월급여(연봉/12) ÷ 그 달 영업일수(공휴일 포함). 영업일수 0인 비정상 달은 설정값으로 폴백.
+      const dailyWage = (baseSalary / 12) / (monthBusinessDays || settings.monthlyWorkDays);
       const paidDays = workingDays + paidLeaveDays;
       const baseSalaryMonth = paidDays * dailyWage;
       const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급(야근 단가)
@@ -225,7 +241,8 @@ export async function calculatePayrollForMonth(
         quarter: { year, q, totalBonusPaid: quarterTotalBonus },
         derived: {
           hourly: r2(hourly),
-          dailyWage: r2(dailyWage),              // 일급 (연봉/12/월표준근무일)
+          dailyWage: r2(dailyWage),              // 일급 (월급여 ÷ 그달 영업일수)
+          monthBusinessDays,                     // 그 달 영업일수 (분모·공휴일 포함)
           paidDays,                              // 지급 대상일 (출근일 + 유급휴가일)
           baseSalaryMonth: r2(baseSalaryMonth),
           overtimePay: r2(overtimePay),

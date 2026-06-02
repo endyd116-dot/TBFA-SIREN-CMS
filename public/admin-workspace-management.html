@@ -961,113 +961,6 @@
     </div>
   </div>
 
-  <!-- ════════════ 흡수: 근무형태 관리 (구 admin-attendance-settings) ════════════ -->
-  <div class="att-panel" id="awmPanelWorkmodes">
-    <div class="awm-section">
-      <p style="font-size:13px;color:#6b7280;margin:0 0 18px">직원별 기본 근무형태(OFFICE/REMOTE/FIELD/HYBRID) 및 HYBRID 시 요일별 설정을 관리합니다.</p>
-
-      <!-- 직원 선택 -->
-      <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb">
-        <div>
-          <label style="font-size:12.5px;color:#374151;font-weight:600;display:block;margin-bottom:4px">직원 선택</label>
-          <select id="wmMemberSel" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;min-width:160px">
-            <option value="">-- 직원 선택 --</option>
-          </select>
-        </div>
-        <button class="att-btn att-btn-primary" id="btnWmLoad">조회</button>
-      </div>
-
-      <!-- 근무형태 에디터 -->
-      <div id="wmEditorArea" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <h4 id="wmEditorTitle" style="font-size:14px;font-weight:700;margin:0;color:#111827">근무형태 설정</h4>
-        </div>
-
-        <!-- 기본 근무형태 라디오 -->
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px">기본 근무형태</div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
-              <input type="radio" name="wmMode" value="OFFICE"> 🏢 사무실
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
-              <input type="radio" name="wmMode" value="REMOTE"> 🏠 재택
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
-              <input type="radio" name="wmMode" value="FIELD"> 🚗 외근
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px">
-              <input type="radio" name="wmMode" value="HYBRID"> 🔀 HYBRID
-            </label>
-          </div>
-        </div>
-
-        <!-- HYBRID 요일별 설정 -->
-        <div id="wmHybridDays" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px">요일별 근무형태 (HYBRID)</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px" id="wmDayGrid">
-            <!-- JS로 생성 -->
-          </div>
-        </div>
-
-        <!-- 적용 기간 -->
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px">적용 기간</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <div>
-              <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:3px">시작일 *</label>
-              <input type="date" id="wmStartDate" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px">
-            </div>
-            <div>
-              <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:3px">종료일 (없으면 무기한)</label>
-              <input type="date" id="wmEndDate" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px">
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:10px;margin-top:4px">
-          <button class="att-btn att-btn-primary" id="btnWmSave">💾 저장</button>
-        </div>
-
-        <!-- 기존 스케줄 목록 -->
-        <div style="margin-top:28px">
-          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">등록된 스케줄</div>
-          <div class="att-table-wrap" style="border:none;box-shadow:none;border-radius:0;margin:0">
-            <table class="att-table">
-              <thead>
-                <tr><th>근무형태</th><th>시작일</th><th>종료일</th><th>요일규칙</th><th style="width:60px">삭제</th></tr>
-              </thead>
-              <tbody id="wmScheduleBody">
-                <tr><td colspan="5" class="att-empty">등록된 스케줄이 없습니다</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div><!-- /wmEditorArea -->
-    </div>
-  </div>
-
-</div><!-- /awm-wrap -->
-
-<!-- 주소 검색 모달 -->
-<div id="awmAddrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:22px 24px;width:min(560px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <strong style="font-size:15px">주소 검색</strong>
-      <button id="awmBtnAddrModalClose" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280">✕</button>
-    </div>
-    <div style="font-size:11.5px;color:#6b7280;background:#f3f4f6;padding:8px 12px;border-radius:6px;line-height:1.5">
-      💡 정확한 <strong>행정구역(시·도)</strong>과 <strong>도로명</strong>을 함께 입력하면 검색 정확도가 높아집니다.
-    </div>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="awmAddrQuery" placeholder="예: 서울특별시 강남구 테헤란로 152"
-        style="flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit">
-      <button class="att-btn att-btn-primary" id="awmBtnAddrSearch">검색</button>
-    </div>
-    <div id="awmAddrResults" style="flex:1;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;padding:8px;min-height:200px;max-height:50vh;background:#fafafa">
-      <div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0">주소를 입력 후 검색하세요</div>
-    </div>
-  </div>
 </div>
 
 <!-- R39 Stage 7 A-2/A-3: 어드민 출퇴근 직접 수정 모달 -->
@@ -1137,6 +1030,6 @@
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-att-map.js?v=2-loc"></script>
-<script src="/js/admin-workspace-management.js?v=22-tabflash-records"></script>
+<script src="/js/admin-workspace-management.js?v=23-r46cleanup"></script>
 </body>
 </html>

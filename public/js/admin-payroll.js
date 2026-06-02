@@ -422,6 +422,17 @@
         (slip.perfectAttendance ? '<strong style="color:#16a34a">만근</strong>' : '아님') +
       '</dd>' +
 
+      /* ★ 2026-06-03: 출근일 기반 일급 산정 근거 */
+      (function () {
+        var dv = (slip.calculationSnapshot && slip.calculationSnapshot.derived) || {};
+        if (dv.dailyWage == null) return '';
+        return '<dt>일급 산정 (출근일 기반)</dt><dd>' +
+          '그달 영업일수 ' + (dv.monthBusinessDays != null ? dv.monthBusinessDays : '—') + '일 · ' +
+          '일급 ' + won(dv.dailyWage) + ' × 지급일 ' + (dv.paidDays != null ? dv.paidDays : (slip.workingDays || 0)) + '일' +
+          ' = 기본급 ' + won(slip.baseSalaryMonth) +
+          ' <span style="color:#94a3b8;font-size:11px">(공휴일·결근은 출근일에서 제외돼 무급)</span></dd>';
+      })() +
+
       '<div class="pay-section-title">지급 항목' + (editable ? ' <span style="font-weight:400;color:#9ca3af">(직접 수정 가능)</span>' : '') + '</div>' +
       payHtml +
 

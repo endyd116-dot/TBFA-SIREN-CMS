@@ -90,7 +90,7 @@
         if (btn.dataset.tab === 'monthrecords' && !window._awmMrInit) initMonthRecordsTab();
         if (btn.dataset.tab === 'workmodeChanges' && !window._awmWmcInit) initWorkmodeChangesTab();
         if (btn.dataset.tab === 'remotereports' && !window._awmRrInit) initRemoteReportsTab();
-        if (btn.dataset.tab === 'workmodes' && !window._awmWmInit) initWorkModesTab();
+        /* 2026-06-03 R46-3: '근무형태 관리' 탭 흡수(직원 스케줄로 통합) — 진입분기 제거. */
       });
     });
   }
