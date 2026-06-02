@@ -54,38 +54,39 @@ export default async (req: Request, _ctx: Context) => {
       const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
 
       step = "select_items";
-      const conditions: any[] = [eq(workspaceNotifications.memberId, meId)];
-      if (category) conditions.push(eq(workspaceNotifications.category as any, category));
-      if (onlyUnread) conditions.push(isNull(workspaceNotifications.readAt));
+      /* ★ 2026-06-03 알림 통합: workspace_notifications + notifications 두 테이블을
+         하나의 피드로 UNION. 프런트 호환 위해 키 유지(actionUrl·readAt·sentAt·category)
+         + source('ws'|'notif') 추가(읽음 처리 시 대상 테이블 식별). */
+      const catFrag    = category   ? sql` AND category = ${category}` : sql``;
+      const wsUnread   = onlyUnread ? sql` AND read_at IS NULL`        : sql``;
+      const ntUnread   = onlyUnread ? sql` AND is_read = false`        : sql``;
 
-      const items = await db
-        .select({
-          id:         workspaceNotifications.id,
-          memberId:   workspaceNotifications.memberId,
-          sourceType: workspaceNotifications.sourceType,
-          sourceId:   workspaceNotifications.sourceId,
-          notifType:  workspaceNotifications.notifType,
-          channel:    workspaceNotifications.channel,
-          title:      workspaceNotifications.title,
-          body:       workspaceNotifications.body,
-          actionUrl:  workspaceNotifications.actionUrl,
-          category:   (workspaceNotifications as any).category,
-          sentAt:     workspaceNotifications.sentAt,
-          readAt:     workspaceNotifications.readAt,
-        })
-        .from(workspaceNotifications)
-        .where(and(...conditions))
-        .orderBy(desc(workspaceNotifications.sentAt))
-        .limit(limit)
-        .offset(offset);
+      const feed: any = await db.execute(sql`
+        SELECT * FROM (
+          SELECT 'ws' AS source, id, title, body, action_url AS "actionUrl",
+                 category, 'info' AS severity, read_at AS "readAt", sent_at AS "sentAt"
+            FROM workspace_notifications
+           WHERE member_id = ${meId}${catFrag}${wsUnread}
+          UNION ALL
+          SELECT 'notif' AS source, id, title, message AS body, link AS "actionUrl",
+                 category, severity, read_at AS "readAt", created_at AS "sentAt"
+            FROM notifications
+           WHERE recipient_id = ${meId}
+             AND (expires_at IS NULL OR expires_at > NOW())${catFrag}${ntUnread}
+        ) merged
+        ORDER BY "sentAt" DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+      const items = feed?.rows ?? feed ?? [];
 
       step = "select_unread_count";
       let unreadCount = 0;
       try {
         const cnt: any = await db.execute(sql`
-          SELECT COUNT(*)::int AS c
-          FROM workspace_notifications
-          WHERE member_id = ${meId} AND read_at IS NULL
+          SELECT
+            (SELECT COUNT(*)::int FROM workspace_notifications WHERE member_id = ${meId} AND read_at IS NULL)
+          + (SELECT COUNT(*)::int FROM notifications WHERE recipient_id = ${meId} AND is_read = false
+               AND (expires_at IS NULL OR expires_at > NOW())) AS c
         `);
         const row = Array.isArray(cnt) ? cnt[0] : (cnt as any).rows?.[0];
         unreadCount = Number(row?.c ?? 0);
@@ -93,13 +94,15 @@ export default async (req: Request, _ctx: Context) => {
         console.warn("[notifications] unreadCount 조회 실패:", e);
       }
 
-      // 전체 건수 (페이지네이션 '더 보기' 판단용)
+      // 전체 건수 (페이지네이션 '더 보기' 판단용) — 같은 필터로 두 테이블 합산
       let total = items.length;
       try {
-        const tc: any = await db
-          .select({ c: sql<number>`COUNT(*)::int` })
-          .from(workspaceNotifications)
-          .where(and(...conditions));
+        const tc: any = await db.execute(sql`
+          SELECT
+            (SELECT COUNT(*)::int FROM workspace_notifications WHERE member_id = ${meId}${catFrag}${wsUnread})
+          + (SELECT COUNT(*)::int FROM notifications WHERE recipient_id = ${meId}
+               AND (expires_at IS NULL OR expires_at > NOW())${catFrag}${ntUnread}) AS c
+        `);
         const trow = Array.isArray(tc) ? tc[0] : (tc as any).rows?.[0];
         total = Number(trow?.c ?? items.length);
       } catch (e) {
@@ -116,28 +119,25 @@ export default async (req: Request, _ctx: Context) => {
 
       const all = body?.all === true;
       const id = Number(body?.id);
+      const source = String(body?.source || "ws");  // 'ws' | 'notif' (기본 ws=하위호환)
 
       step = "mark_read";
-      const now = new Date();
       if (all) {
-        await db
-          .update(workspaceNotifications)
-          .set({ readAt: now } as any)
-          .where(and(eq(workspaceNotifications.memberId, meId), isNull(workspaceNotifications.readAt)));
+        /* ★ 알림 통합: 두 테이블 모두 읽음 처리 */
+        await db.execute(sql`UPDATE workspace_notifications SET read_at = NOW() WHERE member_id = ${meId} AND read_at IS NULL`);
+        await db.execute(sql`UPDATE notifications SET is_read = true, read_at = NOW() WHERE recipient_id = ${meId} AND is_read = false`);
         return jsonOk({ all: true }, "모든 알림을 읽음 처리했어요");
       }
       if (!Number.isFinite(id) || id <= 0) {
         return jsonError(400, "id 또는 all 필수", step);
       }
-      /* 본인 것만 갱신 */
-      await db
-        .update(workspaceNotifications)
-        .set({ readAt: now } as any)
-        .where(and(
-          eq(workspaceNotifications.id, id),
-          eq(workspaceNotifications.memberId, meId),
-        ));
-      return jsonOk({ id, readAt: now });
+      /* 본인 것만 갱신 — source로 대상 테이블 식별(두 테이블 id 충돌 방지) */
+      if (source === "notif") {
+        await db.execute(sql`UPDATE notifications SET is_read = true, read_at = NOW() WHERE id = ${id} AND recipient_id = ${meId}`);
+      } else {
+        await db.execute(sql`UPDATE workspace_notifications SET read_at = NOW() WHERE id = ${id} AND member_id = ${meId}`);
+      }
+      return jsonOk({ id, source });
     }
 
     return jsonError(405, "허용되지 않은 메서드", "method");

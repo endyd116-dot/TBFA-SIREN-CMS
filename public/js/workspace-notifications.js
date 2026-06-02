@@ -124,7 +124,7 @@
       // B 명세: actionUrl (옛 linkUrl)
       const url = n.actionUrl || n.linkUrl || '';
       return `
-        <li class="wsn-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${n.id}" data-url="${escapeHtml(url)}">
+        <li class="wsn-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${n.id}" data-source="${n.source || 'ws'}" data-url="${escapeHtml(url)}">
           <span class="wsn-dot">${isRead ? '○' : '●'}</span>
           <div class="wsn-body">
             <div class="wsn-title">${escapeHtml(n.title || n.message || '알림')}</div>
@@ -183,8 +183,9 @@
       if (!item) return;
       const id = Number(item.dataset.id);
       const url = item.dataset.url;
+      const source = item.dataset.source || 'ws';
       try {
-        await api('/api/admin-workspace-notifications', { method: 'POST', body: { id } });
+        await api('/api/admin-workspace-notifications', { method: 'POST', body: { id, source } });
       } catch (_) { /* 읽음 실패는 무시 */ }
       if (url) location.href = url;
     });
