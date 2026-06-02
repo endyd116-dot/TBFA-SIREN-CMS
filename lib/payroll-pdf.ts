@@ -164,13 +164,15 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
   ctx.y -= 22;
 
   type Row = [string, string, "plus" | "minus" | "calc"];
+  /* 2026-06-03: 출근일 기반 일급제 — 기본급=출근일×일급. 무급차감은 분모 처리로 항상 0이라
+     0일 때 줄 숨김(혼란 방지). 라벨도 일급제 기준으로 정정. */
   const payRows: Row[] = [
-    ["월 기본급",   won(slip.baseSalaryMonth), "plus"],
+    ["기본급(출근일 기반)", won(slip.baseSalaryMonth), "plus"],
     ["야근 수당",   won(slip.overtimePay),     "plus"],
-    ["무급 차감",   won(slip.deductionUnpaid), "minus"],
-    ["성과 보너스", won(slip.performanceBonus),"plus"],
-    ["만근 보너스", won(slip.perfectBonus),    "plus"],
   ];
+  if (Number(slip.deductionUnpaid) > 0) payRows.push(["무급 차감", won(slip.deductionUnpaid), "minus"]);
+  payRows.push(["성과 보너스", won(slip.performanceBonus), "plus"]);
+  if (Number(slip.perfectBonus) > 0) payRows.push(["만근 보너스", won(slip.perfectBonus), "plus"]);
   // 조정 라인 (수기 가감)
   const adjList = Array.isArray(slip.adjustments) ? slip.adjustments : [];
   for (const a of adjList) {
