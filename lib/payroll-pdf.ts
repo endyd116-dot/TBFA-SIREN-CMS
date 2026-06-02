@@ -148,6 +148,15 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
     ["결근", `${slip.absentCount}회`, "유급 휴가", `${slip.paidLeaveDays}일`],
     ["무급 휴가", `${slip.unpaidLeaveDays}일`, "만근", slip.perfectAttendance ? "예" : "아니오"],
   ];
+  /* 2026-06-03 일급제(B): 일급 산정 근거 + 미산입(무급) 일수 표기 */
+  const _dv: any = ((slip as any).calculationSnapshot && (slip as any).calculationSnapshot.derived) || {};
+  if (_dv.dailyWage != null) {
+    const _biz = _dv.monthBusinessDays;
+    const _pay = _dv.paidDays != null ? _dv.paidDays : slip.workingDays;
+    attRows.push(["영업일수", _biz != null ? `${_biz}일` : "—", "일급", won(_dv.dailyWage)]);
+    const _unpaid = _biz != null ? Math.max(0, _biz - _pay) : null;
+    attRows.push(["지급일(출근+유급)", `${_pay}일`, "미산입(무급)", _unpaid != null ? `${_unpaid}일` : "—"]);
+  }
   for (const [aLabel, aVal, bLabel, bVal] of attRows) {
     text(ctx, aLabel, colA, 10, rgb(0.4, 0.4, 0.4));
     textRight(ctx, aVal, colAVal, 10);

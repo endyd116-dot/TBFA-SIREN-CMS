@@ -266,10 +266,11 @@
   /* ════════════════ 상세 모달 (편집) ════════════════ */
 
   /* 지급 항목 (편집 가능 금액) */
+  /* 2026-06-03 일급제(B): 무급차감은 항상 0(무급일=출근일 미산입으로 처리)이라 편집 항목에서 제외.
+     무급 일수는 '일급 산정' 줄에 정보로 표기. */
   const PAY_FIELDS = [
-    { f: 'baseSalaryMonth', label: '월 기본급', sign: '+' },
+    { f: 'baseSalaryMonth', label: '기본급(출근일 기반)', sign: '+' },
     { f: 'overtimePay',     label: '야근 수당', sign: '+' },
-    { f: 'deductionUnpaid', label: '무급 차감', sign: '−' },
     { f: 'performanceBonus',label: '성과 보너스', sign: '+' },
     { f: 'perfectBonus',    label: '만근 보너스', sign: '+' },
   ];
@@ -426,11 +427,17 @@
       (function () {
         var dv = (slip.calculationSnapshot && slip.calculationSnapshot.derived) || {};
         if (dv.dailyWage == null) return '';
+        var bizDays = (dv.monthBusinessDays != null) ? dv.monthBusinessDays : null;
+        var payDays = (dv.paidDays != null) ? dv.paidDays : (slip.workingDays || 0);
+        var unpaidDays = (bizDays != null) ? Math.max(0, bizDays - payDays) : null;
         return '<dt>일급 산정 (출근일 기반)</dt><dd>' +
-          '그달 영업일수 ' + (dv.monthBusinessDays != null ? dv.monthBusinessDays : '—') + '일 · ' +
-          '일급 ' + won(dv.dailyWage) + ' × 지급일 ' + (dv.paidDays != null ? dv.paidDays : (slip.workingDays || 0)) + '일' +
+          '그달 영업일수 ' + (bizDays != null ? bizDays : '—') + '일 · ' +
+          '일급 ' + won(dv.dailyWage) + ' × 지급일 ' + payDays + '일' +
           ' = 기본급 ' + won(slip.baseSalaryMonth) +
-          ' <span style="color:#94a3b8;font-size:11px">(공휴일·결근은 출근일에서 제외돼 무급)</span></dd>';
+          (unpaidDays != null
+            ? ' <span style="color:#b45309;font-size:11px">· 미산입(무급) ' + unpaidDays + '일 — 공휴일·결근·무급휴가는 미지급</span>'
+            : ' <span style="color:#94a3b8;font-size:11px">(공휴일·결근은 출근일에서 제외돼 무급)</span>') +
+          '</dd>';
       })() +
 
       '<div class="pay-section-title">지급 항목' + (editable ? ' <span style="font-weight:400;color:#9ca3af">(직접 수정 가능)</span>' : '') + '</div>' +
