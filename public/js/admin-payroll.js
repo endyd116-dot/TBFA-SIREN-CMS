@@ -113,11 +113,11 @@
     const y = $('selYear').value, m = $('selMonth').value;
     syncExportLink();
     const tbody = $('slipTbody');
-    tbody.innerHTML = '<tr class="loading-row"><td colspan="11">불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="9">불러오는 중...</td></tr>';
 
     const res = await api('/api/admin-payroll?year=' + y + '&month=' + m);
     if (!res.ok) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="11" style="color:#dc2626">' +
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="9" style="color:#dc2626">' +
         esc(res.data?.error || ('HTTP ' + res.status)) + '</td></tr>';
       return;
     }
@@ -135,7 +135,7 @@
     $('cntHold').textContent     = counts.HOLD     || 0;
 
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="11">해당 월 명세서가 없습니다. "재집계"로 자동 생성하세요. (직원별 <b>기본연봉</b>이 설정돼 있어야 생성됩니다 — 회원 상세에서 설정)</td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="9">해당 월 명세서가 없습니다. "재집계"로 자동 생성하세요. (직원별 <b>기본연봉</b>이 설정돼 있어야 생성됩니다 — 회원 상세에서 설정)</td></tr>';
       return;
     }
 
@@ -159,10 +159,8 @@
         '<td>' + name + editMark + '</td>' +
         '<td>' + role + '</td>' +
         '<td class="r">' + (r.workingDays || 0) + '</td>' +
-        '<td class="r">' + hours(r.overtimeMins) + '</td>' +
         '<td class="r">' + won(r.baseSalaryMonth) + '</td>' +
         '<td class="r">' + won(r.performanceBonus) + '</td>' +
-        '<td class="r" style="color:#b91c1c">' + (Number(r.deductionUnpaid) > 0 ? '−' + won(r.deductionUnpaid) : '0') + '</td>' +
         '<td class="r" style="font-weight:700">' + won(r.grossPay) + '</td>' +
         '<td class="r" style="font-weight:700;color:#0f766e">' + won(r.netPay) + '</td>' +
         '<td class="c">' + statusBadge(r.status) + '</td>' +
@@ -270,7 +268,6 @@
      무급 일수는 '일급 산정' 줄에 정보로 표기. */
   const PAY_FIELDS = [
     { f: 'baseSalaryMonth', label: '기본급(출근일 기반)', sign: '+' },
-    { f: 'overtimePay',     label: '야근 수당', sign: '+' },
     { f: 'performanceBonus',label: '성과 보너스', sign: '+' },
     { f: 'perfectBonus',    label: '만근 보너스', sign: '+' },
   ];
@@ -335,14 +332,12 @@
   /* 실시간 미리보기 (백엔드 공식과 동일) */
   function recomputePreview() {
     const base = fieldVal('baseSalaryMonth');
-    const ot = fieldVal('overtimePay');
-    const unp = fieldVal('deductionUnpaid');
     const perf = fieldVal('performanceBonus');
     const perfect = fieldVal('perfectBonus');
     const adj = readAdjustments();
     const adjAdd = adj.filter(a => a.kind === 'ADD').reduce((s, a) => s + (Number(a.amount) || 0), 0);
     const adjDeduct = adj.filter(a => a.kind === 'DEDUCT').reduce((s, a) => s + (Number(a.amount) || 0), 0);
-    const gross = base + ot - unp + perf + perfect + adjAdd - adjDeduct;
+    const gross = base + perf + perfect + adjAdd - adjDeduct;  // 야근·무급차감 제외
 
     const totalDeduction = DED_FIELDS.reduce((s, d) => s + fieldVal(d.f), 0);
     const net = gross - totalDeduction;
@@ -411,11 +406,10 @@
     body.innerHTML =
       '<dt>상태</dt><dd>' + statusBadge(slip.status) +
         (editable ? '' : ' <span style="color:#0f766e;font-size:12px;font-weight:600">지급 완료 — 편집 잠금</span>') + '</dd>' +
-      '<dt>근태 (출근·근무·야근·지각·결근·유급·무급·만근)</dt>' +
+      '<dt>근태 (출근·근무·지각·결근·유급·무급·만근)</dt>' +
       '<dd>' +
         (slip.workingDays || 0) + '일 · ' +
         hours(slip.workingMins) + 'h · ' +
-        hours(slip.overtimeMins) + 'h · ' +
         (slip.lateCount || 0) + '회 · ' +
         (slip.absentCount || 0) + '회 · ' +
         (Number(slip.paidLeaveDays) || 0) + '일 · ' +
@@ -570,9 +564,8 @@
   }
 
   /* ════════════════ 계산기준 설정 ════════════════ */
+  /* 2026-06-03: 야근 미운영 — 야근배율·연기준근로시간 설정 제거(미사용) */
   const SETTING_FIELDS = [
-    ['overtimeMultiplier', 'setOvertimeMultiplier'],
-    ['annualHours',        'setAnnualHours'],
     ['monthlyWorkDays',    'setMonthlyWorkDays'],
     ['pensionRate',        'setPensionRate'],
     ['healthRate',         'setHealthRate'],
@@ -582,7 +575,6 @@
   ];
   // settings 행은 snake_case 컬럼 그대로 반환됨
   const SETTING_SNAKE = {
-    overtimeMultiplier: 'overtime_multiplier', annualHours: 'annual_hours',
     monthlyWorkDays: 'monthly_work_days', pensionRate: 'pension_rate',
     healthRate: 'health_rate', longtermRate: 'longterm_rate',
     employmentRate: 'employment_rate', incomeTaxRate: 'income_tax_rate',

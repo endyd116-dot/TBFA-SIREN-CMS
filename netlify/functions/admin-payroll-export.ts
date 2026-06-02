@@ -70,9 +70,9 @@ export default async function handler(req: Request) {
 
     const header = [
       "회원UID", "이름", "이메일", "연도", "월",
-      "근무일수", "총근무분", "야근분", "지각횟수", "결근횟수",
+      "근무일수", "총근무분", "지각횟수", "결근횟수",
       "유급휴가일", "무급휴가일", "만근여부",
-      "월기본급", "야근수당", "무급차감", "성과보너스", "만근보너스", "조정합계", "세전총액",
+      "기본급(출근일기반)", "성과보너스", "만근보너스", "조정합계", "세전총액",
       "소득세", "지방소득세", "국민연금", "건강보험", "장기요양", "고용보험", "기타공제", "공제합계", "실수령액",
       "상태", "승인일", "발송일", "지급일",
     ];
@@ -85,9 +85,9 @@ export default async function handler(req: Request) {
         s + (a?.kind === "DEDUCT" ? -(Number(a?.amount) || 0) : (Number(a?.amount) || 0)), 0);
       lines.push([
         r.memberUid, m?.name ?? "", m?.email ?? "", r.payYear, r.payMonth,
-        r.workingDays, r.workingMins, r.overtimeMins, r.lateCount, r.absentCount,
+        r.workingDays, r.workingMins, r.lateCount, r.absentCount,
         r.paidLeaveDays, r.unpaidLeaveDays, r.perfectAttendance ? "Y" : "N",
-        r.baseSalaryMonth, r.overtimePay, r.deductionUnpaid, r.performanceBonus, r.perfectBonus, adjNet, r.grossPay,
+        r.baseSalaryMonth, r.performanceBonus, r.perfectBonus, adjNet, r.grossPay,
         r.incomeTax, r.localTax, r.nationalPension, r.healthInsurance, r.longTermCare, r.employmentInsurance, r.otherDeduction, r.totalDeduction, r.netPay,
         r.status,
         r.approvedAt ? new Date(r.approvedAt as any).toISOString().slice(0, 10) : "",

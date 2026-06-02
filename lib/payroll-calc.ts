@@ -214,12 +214,12 @@ export async function calculatePayrollForMonth(
       const dailyWage = (baseSalary / 12) / (monthBusinessDays || settings.monthlyWorkDays);
       const paidDays = workingDays + paidLeaveDays;
       const baseSalaryMonth = paidDays * dailyWage;
-      const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급(야근 단가)
-      const overtimePay = (overtimeMins / 60) * hourly * settings.overtimeMultiplier;
+      const hourly = 0;                                      // ★ 2026-06-03: 야근시스템 없음 — 시급/야근단가 미사용
+      const overtimePay = 0;                                 // ★ 야근수당 미운영(항상 0)
       const deductionUnpaid = 0;                              // 일급제: 무급일은 출근일에서 제외돼 자동 미지급(별도 공제 라인 없음)
       const performanceBonus = quarterTotalBonus / 3;         // 분기 3개월 균등 안분
       const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (이번 범위 외)
-      const grossPay = baseSalaryMonth + overtimePay - deductionUnpaid + performanceBonus + perfectBonus;
+      const grossPay = baseSalaryMonth + performanceBonus + perfectBonus;  // 야근·무급차감 제외
 
       // 3-2. 공제·실수령 (4대보험 요율 자동 + 소득세 정률 + 지방세 10%)
       const ded = computeDeductions(grossPay, settings);

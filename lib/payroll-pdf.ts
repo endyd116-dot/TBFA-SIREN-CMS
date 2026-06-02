@@ -144,9 +144,9 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
 
   const attRows: Array<[string, string, string, string]> = [
     ["출근 일수", `${slip.workingDays}일`, "총 근무", hours(slip.workingMins)],
-    ["야근", hours(slip.overtimeMins), "지각", `${slip.lateCount}회`],
-    ["결근", `${slip.absentCount}회`, "유급 휴가", `${slip.paidLeaveDays}일`],
-    ["무급 휴가", `${slip.unpaidLeaveDays}일`, "만근", slip.perfectAttendance ? "예" : "아니오"],
+    ["지각", `${slip.lateCount}회`, "결근", `${slip.absentCount}회`],
+    ["유급 휴가", `${slip.paidLeaveDays}일`, "무급 휴가", `${slip.unpaidLeaveDays}일`],
+    ["만근", slip.perfectAttendance ? "예" : "아니오", "", ""],
   ];
   /* 2026-06-03 일급제(B): 일급 산정 근거 + 미산입(무급) 일수 표기 */
   const _dv: any = ((slip as any).calculationSnapshot && (slip as any).calculationSnapshot.derived) || {};
@@ -177,7 +177,6 @@ export async function generatePayrollSlipPdf(input: PayrollSlipPdfInput): Promis
      0일 때 줄 숨김(혼란 방지). 라벨도 일급제 기준으로 정정. */
   const payRows: Row[] = [
     ["기본급(출근일 기반)", won(slip.baseSalaryMonth), "plus"],
-    ["야근 수당",   won(slip.overtimePay),     "plus"],
   ];
   if (Number(slip.deductionUnpaid) > 0) payRows.push(["무급 차감", won(slip.deductionUnpaid), "minus"]);
   payRows.push(["성과 보너스", won(slip.performanceBonus), "plus"]);

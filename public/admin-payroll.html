@@ -209,7 +209,7 @@
         <button class="btn btn-warning" id="btnRecalcForce" title="REVIEWED/APPROVED/SENT도 강제 덮어쓰기">⚠ 강제 재집계</button>
         <button class="btn btn-light" id="btnAnalyze" title="이상치 탐지·입력 점검·집계 요약 AI 분석">🤖 AI 분석</button>
         <span style="flex:1"></span>
-        <button class="btn btn-light" id="btnSettings" title="급여 계산 기준 설정 (야근배율·기준시간·공제 요율)">⚙ 계산기준</button>
+        <button class="btn btn-light" id="btnSettings" title="급여 계산 기준 설정 (월 소정 근무일·공제 요율)">⚙ 계산기준</button>
         <a class="btn btn-light" id="btnExport" title="해당 월 명세서 CSV 다운로드" target="_blank" rel="noopener">⬇ CSV</a>
         <button class="btn btn-success" id="btnSendAll" title="APPROVED 명세서 일괄 이메일 발송">📧 전체 발송</button>
       </div>
@@ -219,8 +219,6 @@
     <div class="card" id="settingsCard" style="display:none">
       <div class="card-title">⚙ 급여 계산 기준 <span style="font-weight:400;color:#9ca3af;font-size:12px">— 재집계 시 적용됩니다 (이미 수동 수정·승인된 명세서는 보존)</span></div>
       <div class="settings-grid">
-        <div class="field"><label>야근 배율</label><input type="number" step="0.1" id="setOvertimeMultiplier"><div class="hint">통상 1.5배</div></div>
-        <div class="field"><label>연 기준 근로시간</label><input type="number" step="1" id="setAnnualHours"><div class="hint">시급 산정 분모 (예: 2080)</div></div>
         <div class="field"><label>월 소정 근무일</label><input type="number" step="1" id="setMonthlyWorkDays"><div class="hint">일급 산정 분모 — 일급 = 연봉÷12÷이 값 (예: 22). 출근일×일급으로 기본급 계산</div></div>
         <div class="field"><label>국민연금 요율</label><input type="number" step="0.0001" id="setPensionRate"><div class="hint">예: 0.045 (4.5%)</div></div>
         <div class="field"><label>건강보험 요율</label><input type="number" step="0.0001" id="setHealthRate"><div class="hint">예: 0.03545</div></div>
@@ -273,10 +271,8 @@
             <th>회원</th>
             <th>직책</th>
             <th class="r">근무일</th>
-            <th class="r">야근(h)</th>
-            <th class="r">월기본급</th>
+            <th class="r">기본급(출근일)</th>
             <th class="r">성과</th>
-            <th class="r">차감</th>
             <th class="r">세전총액</th>
             <th class="r">실수령</th>
             <th class="c">상태</th>
@@ -284,7 +280,7 @@
           </tr>
         </thead>
         <tbody id="slipTbody">
-          <tr class="loading-row"><td colspan="11">조회를 시작하세요.</td></tr>
+          <tr class="loading-row"><td colspan="9">조회를 시작하세요.</td></tr>
         </tbody>
       </table>
     </div>
@@ -308,6 +304,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260603-unpaidinfo"></script>
+  <script src="/js/admin-payroll.js?v=20260603-noovertime"></script>
 </body>
 </html>
