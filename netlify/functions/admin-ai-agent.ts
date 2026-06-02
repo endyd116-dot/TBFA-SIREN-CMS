@@ -711,8 +711,11 @@ export default async (req: Request, _ctx: Context) => {
     messages.push({ role: "user", parts });
   }
 
-  /* 2.5. RAG 주입 — featureKey ai_rag_search ON 시 top-5 검색 결과를 사용자 메시지 앞에 삽입 */
-  if (userMessage) {
+  /* 2.5. RAG 주입 — featureKey ai_rag_search ON 시 top-5 검색 결과를 사용자 메시지 앞에 삽입.
+     ★ 2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략한다.
+     매뉴얼에 "이메일은 발송 관리 메뉴에서 직접" 류 절차가 있어 RAG로 주입되면 모델이 도구(email_send 등)를
+     호출하지 않고 "메뉴에서 하세요"라고 떠넘긴다(간헐적 도구 미실행의 근본 원인). RAG는 정보성 질문에만. */
+  if (userMessage && modelChain !== HIGH_MODEL_CHAIN) {
     try {
       const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
       if (ragCheck.ok) {

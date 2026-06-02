@@ -153,8 +153,12 @@ export default async (req: Request, _ctx: Context) => {
     write("start", { conversationId });
 
     /* 2026-06-01 504 fix: RAG 임베딩 검색을 첫 바이트 전송 이후로 이동(콜드스타트 504 방지).
-       qna·manual 격리 검색 top-5 주입. 순직(martyr_*) 민감자료는 검색 제외(격리 필수). */
-    if (userMessage) {
+       qna·manual 격리 검색 top-5 주입. 순직(martyr_*) 민감자료는 검색 제외(격리 필수).
+       ★ 2026-06-03 fix: 발송·생성·수정·삭제 등 행동(HIGH intent) 요청엔 RAG 매뉴얼 주입을 생략.
+       매뉴얼에 "이메일은 발송 관리 메뉴에서 직접" 같은 절차 안내가 있어 RAG로 주입되면
+       모델이 도구(email_send 등)를 호출하지 않고 매뉴얼대로 "메뉴에서 하세요"라고 떠넘김(간헐적 도구 미실행의 근본 원인).
+       RAG는 정보성 질문(LOW intent)에만 사용한다. */
+    if (userMessage && !HIGH_INTENT_RE.test(userMessage)) {
       try {
         const ragCheck = await checkFeatureBeforeCall("ai_rag_search");
         if (ragCheck.ok) {
