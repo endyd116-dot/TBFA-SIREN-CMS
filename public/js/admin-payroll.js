@@ -607,6 +607,35 @@
     if (show && !_settingsLoaded) { _settingsLoaded = true; loadSettings(); }
   }
 
+  /* ── 직원 연봉 설정 (super 전용, 회원 모달 대신 여기서 관리) ── */
+  const ROLE_LABEL_KO = { super_admin: '슈퍼관리자', admin: '관리자', operator: '운영자' };
+  function escP(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  async function loadStaffSalaries() {
+    const tb = $('staffSalaryBody');
+    if (!tb) return;
+    const res = await api('/api/admin-payroll?staff=1');
+    if (!res.ok) { tb.innerHTML = '<tr class="loading-row"><td colspan="4">불러오기 실패</td></tr>'; return; }
+    const staff = (res.data?.data?.staff || res.data?.staff || []);
+    if (!staff.length) { tb.innerHTML = '<tr class="loading-row"><td colspan="4">활성 직원(운영자·관리자)이 없습니다</td></tr>'; return; }
+    tb.innerHTML = staff.map(s => `
+      <tr data-sid="${s.id}">
+        <td>${escP(s.name)}</td>
+        <td>${ROLE_LABEL_KO[s.role] || escP(s.role) || '—'}</td>
+        <td><input type="number" min="0" step="100000" value="${Number(s.baseSalary) || 0}" id="staffSal_${s.id}" style="width:170px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px"> 원</td>
+        <td><button class="btn btn-primary" onclick="saveStaffSalary(${s.id})">저장</button></td>
+      </tr>`).join('');
+  }
+  async function saveStaffSalary(id) {
+    const inp = document.getElementById('staffSal_' + id);
+    if (!inp) return;
+    const v = Number(inp.value);
+    if (!Number.isFinite(v) || v < 0) { toast('0 이상의 숫자를 입력하세요', 'err'); return; }
+    const res = await api('/api/admin/members', { method: 'PATCH', body: { id, baseSalary: v } });
+    if (!res.ok || res.data?.ok === false) { toast(res.data?.error || '저장 실패', 'err'); return; }
+    toast('연봉 저장 완료 — 해당 월 재집계 시 출근일 기반으로 반영됩니다', 'ok');
+  }
+  window.saveStaffSalary = saveStaffSalary;
+
   /* ── 글로벌 노출 (인라인 onclick 용) ── */
   window.openDetail = openDetail;
   window.closeModal = closeModal;
@@ -625,6 +654,7 @@
     $('selYear').addEventListener('change', syncExportLink);
     $('selMonth').addEventListener('change', syncExportLink);
     const ok = await checkSuperAdmin();
+    if (ok) { const sc = $('staffSalaryCard'); if (sc) sc.style.display = 'block'; loadStaffSalaries(); }
     $('btnLoad').addEventListener('click', loadList);
     $('btnRecalc').addEventListener('click', () => recalc(false));
     $('btnRecalcForce').addEventListener('click', () => recalc(true));

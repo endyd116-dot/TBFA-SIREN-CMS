@@ -234,6 +234,18 @@
       </div>
     </div>
 
+    <!-- ★ 2026-06-03: 직원 연봉 설정 (super 전용) — 회원 모달 대신 여기서 직접 관리 -->
+    <div class="card" id="staffSalaryCard" style="display:none">
+      <div class="card-title">👤 직원 연봉 설정 <span style="font-weight:400;color:#9ca3af;font-size:12px">— 활성 직원(운영자·관리자)만 표시 · 연봉 입력 후 저장하면 그 달 재집계 시 출근일 기반으로 반영</span></div>
+      <table class="list" style="margin-top:8px">
+        <thead><tr>
+          <th style="width:30%">직원</th><th style="width:18%">역할</th>
+          <th style="width:32%">연봉(원)</th><th style="width:20%">처리</th>
+        </tr></thead>
+        <tbody id="staffSalaryBody"><tr class="loading-row"><td colspan="4">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+
     <!-- 통계 카드 -->
     <div class="stat-grid">
       <div class="stat-card draft">    <div class="stat-label">DRAFT (초안)</div>     <div class="stat-value" id="cntDraft">0</div></div>
@@ -296,6 +308,6 @@
 
   <div id="toast"></div>
 
-  <script src="/js/admin-payroll.js?v=20260603-daybased"></script>
+  <script src="/js/admin-payroll.js?v=20260603-staffsal"></script>
 </body>
 </html>

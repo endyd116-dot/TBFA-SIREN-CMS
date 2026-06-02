@@ -55,6 +55,23 @@ export default async function handler(req: Request) {
 
   // GET
   if (method === "GET") {
+    // ★ 2026-06-03: 직원 연봉 설정용 — 활성 직원(운영자·관리자) 목록 + 현재 연봉.
+    //   회원 모달이 아닌 급여관리에서 직원 연봉을 직접 관리(통합 일반 회원과 분리).
+    if (url.searchParams.get("staff") === "1") {
+      try {
+        const r = await db.execute(sql`
+          SELECT id, name, email, role, COALESCE(base_salary, 0)::numeric AS base_salary
+          FROM members
+          WHERE status = 'active' AND (type = 'admin' OR operator_active = TRUE)
+          ORDER BY name
+        `);
+        const staff = (((r as any).rows || (r as any[])) || []).map((m: any) => ({
+          id: Number(m.id), name: m.name, email: m.email, role: m.role,
+          baseSalary: Number(m.base_salary || 0),
+        }));
+        return jsonOk({ staff });
+      } catch (err) { return jsonError("select_staff", err); }
+    }
     // 상세
     if (idNum) {
       try {
