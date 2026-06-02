@@ -139,6 +139,13 @@
   }
 
   function bind() {
+    // 로그아웃 (2026-06-03)
+    const _logout = document.getElementById('wsBtnLogout');
+    if (_logout) _logout.addEventListener('click', async () => {
+      if (!confirm('로그아웃 하시겠습니까?')) return;
+      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+      location.href = '/admin.html';
+    });
     // 필터 탭
     $$('.wsn-filter').forEach(btn => {
       btn.addEventListener('click', () => {

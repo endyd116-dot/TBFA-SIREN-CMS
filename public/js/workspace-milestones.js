@@ -54,6 +54,15 @@
   }
 
   /* ─── 초기화 ─── */
+  /* 2026-06-03: 로그아웃 (워크스페이스 공통 버튼) */
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('wsBtnLogout')?.addEventListener('click', async () => {
+      if (!confirm('로그아웃 하시겠습니까?')) return;
+      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+      location.href = '/admin.html';
+    });
+  });
+
   document.addEventListener('DOMContentLoaded', async () => {
     const _hideSpinner = () => {
       const _l = document.querySelector('#overviewLoading');

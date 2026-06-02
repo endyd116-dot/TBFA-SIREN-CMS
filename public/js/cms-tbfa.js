@@ -2569,6 +2569,13 @@
     if (nameEl && auth.admin.name) nameEl.textContent = auth.admin.name + '님';
     if (avatarEl && auth.admin.name) avatarEl.textContent = auth.admin.name.charAt(0);
 
+    /* 2026-06-03: 로그아웃 (통합 CMS 우상단) */
+    document.getElementById('cmsLogout')?.addEventListener('click', async function () {
+      if (!confirm('로그아웃하시겠습니까?')) return;
+      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+      location.href = '/admin.html';
+    });
+
     setupTabs();
     setupMembersFilter();
     setupMemberDetailModal(); /* ★ Phase 1 단계 B */

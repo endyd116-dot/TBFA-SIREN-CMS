@@ -597,6 +597,11 @@ if (window.self !== window.top) {
         </button>
         <span class="cms-user-name" id="cmsUserName">관리자</span>
         <div class="cms-avatar" id="cmsAvatar">A</div>
+        <!-- 2026-06-03: 로그아웃 (Swain — 통합 CMS에 로그아웃 부재) -->
+        <button type="button" id="cmsLogout" title="로그아웃"
+          style="display:inline-flex;align-items:center;gap:5px;margin-left:4px;padding:6px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
+          <span aria-hidden="true">🚪</span><span>로그아웃</span>
+        </button>
       </div>
     </header>
 
@@ -2526,7 +2531,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260603-r46perm"></script>
+  <script src="/js/cms-tbfa.js?v=20260603-logout"></script>
   <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->
