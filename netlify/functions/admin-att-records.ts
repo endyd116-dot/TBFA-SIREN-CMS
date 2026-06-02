@@ -127,6 +127,29 @@ export default async function handler(req: Request) {
       .where(whereConditions)
       .orderBy(attRecords.memberUid);
 
+    /* ★ 2026-06-02 fix(출퇴근 기록 빈칸): member_uid(=members.id 문자열)로 이름 매핑 +
+       프런트가 읽는 키(memberName/mode/checkinAt/checkoutAt)로 별칭 부여.
+       기존엔 원본 행만 반환해 직원·근무형태·출퇴근시각이 전부 '—'로 표시됐다. */
+    let recNameMap: Record<string, string> = {};
+    try {
+      const ids = Array.from(new Set(records.map((r: any) => Number(r.memberUid)).filter((n) => Number.isFinite(n) && n > 0)));
+      if (ids.length > 0) {
+        const nr: any = await db.execute(sql`
+          SELECT id, name FROM members WHERE id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
+        `);
+        for (const row of (nr?.rows ?? nr ?? [])) recNameMap[String(row.id)] = String(row.name ?? "");
+      }
+    } catch (err) {
+      console.warn("[admin-att-records] 이름 매핑 실패:", err);
+    }
+    const recordsEnriched = records.map((r: any) => ({
+      ...r,
+      memberName: recNameMap[String(r.memberUid)] || r.memberUid,
+      mode: r.workMode,
+      checkinAt: r.checkInTime,
+      checkoutAt: r.checkOutTime,
+    }));
+
     // 오늘 집계 — status·work_mode 양쪽 (R34-P2: round2 M2·M3 정합)
     let statusCnt: Record<string, number> = {};
     let workModeCnt: Record<string, number> = {};
@@ -176,7 +199,7 @@ export default async function handler(req: Request) {
 
     return jsonOk({
       date,
-      records,
+      records: recordsEnriched,
       summary: {
         // R34-P2 (round2 M3): lowerCamelCase 키로 통일, JS 직접 사용
         checkinCount,

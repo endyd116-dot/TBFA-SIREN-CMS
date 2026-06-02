@@ -278,7 +278,7 @@ export default async function handler(req: Request) {
           severity: "info",
           title: `🌴 휴가 결재 대기 — ${requesterName}`,
           message: `${periodText} (${days}일${isHalfDay === true ? `·반차 ${halfDayPeriod}` : ""})${reason ? ` · ${String(reason).slice(0, 80)}` : ""}`,
-          link: "/admin.html#att-leave",
+          link: "/cms-tbfa.html#att-ops",
           refTable: "att_leave_requests",
           refId: leaveId,
         });

@@ -2070,14 +2070,10 @@
 
   /* ─── 초기화 ─── */
   async function init() {
-    const admin = await checkAuth();
-    if (!admin) return;
-
+    /* ★ 2026-06-02 fix(탭 깜빡임): 그룹 필터를 인증·데이터 API 대기 '전에' 즉시 적용.
+       기존엔 checkAuth/initRecordsTab/initLiveStatus(수 초)를 다 기다린 뒤 필터해서
+       그동안 ops+config 탭이 전부 보이다가 뒤늦게 걸러지는 깜빡임 발생. */
     setupTabs();
-    await initRecordsTab();
-    await initLiveStatus();
-
-    /* 근태 메뉴 재배치: ?group=ops|config 필터 + 돌아가기 버튼 */
     const group = new URLSearchParams(location.search).get('group') || 'ops';
     applyGroupFilter(group);
     document.getElementById('awmBackToOps')?.addEventListener('click', function () {
@@ -2086,6 +2082,12 @@
       history.replaceState(null, '', url);
       applyGroupFilter('ops');
     });
+
+    const admin = await checkAuth();
+    if (!admin) return;
+
+    await initRecordsTab();
+    await initLiveStatus();
 
     /* R39 Stage 7: 어드민 출퇴근 수정 모달 이벤트 */
     document.getElementById('awmBtnRecEditClose')?.addEventListener('click', _closeRecEditModal);

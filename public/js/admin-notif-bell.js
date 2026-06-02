@@ -61,7 +61,10 @@
     var badge = document.getElementById(BADGE_ID);
     if (!btn || !badge) return;
     try {
-      var res = await fetch('/api/notifications/mine?limit=1', {
+      /* ★ 2026-06-02 fix: 벨이 여는 페이지(workspace-notifications)와 '같은 테이블'
+         (workspace_notifications)의 미읽음 수를 센다. 기존엔 notifications 테이블을 세서
+         페이지에서 '모두 읽음' 해도 배지(+99)가 안 줄어드는 불일치 버그가 있었다. */
+      var res = await fetch('/api/admin-workspace-notifications?limit=1', {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
