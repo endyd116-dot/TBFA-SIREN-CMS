@@ -135,7 +135,7 @@
     $('cntHold').textContent     = counts.HOLD     || 0;
 
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr class="loading-row"><td colspan="11">해당 월 명세서가 없습니다. "재집계" 버튼으로 자동 생성하세요.</td></tr>';
+      tbody.innerHTML = '<tr class="loading-row"><td colspan="11">해당 월 명세서가 없습니다. "재집계"로 자동 생성하세요. (직원별 <b>기본연봉</b>이 설정돼 있어야 생성됩니다 — 회원 상세에서 설정)</td></tr>';
       return;
     }
 
@@ -187,9 +187,14 @@
         return;
       }
       const d = res.data?.data || res.data;
-      toast('재집계 완료 — 대상 ' + (d.candidateCount || 0) + '명 · 신규 ' + (d.created || 0)
-        + ' · 갱신 ' + (d.updated || 0) + ' · 보존 ' + (d.skipped || 0)
-        + (d.errors?.length ? ' · 오류 ' + d.errors.length : ''), d.errors?.length ? 'err' : 'ok');
+      /* ★ 2026-06-03: 대상 0명이면 원인(연봉 미설정) 안내 — 빈 결과의 진짜 이유 */
+      if ((d.candidateCount || 0) === 0) {
+        toast('재집계 대상 0명 — 연봉(기본급)이 설정된 직원이 없습니다. 회원 상세 → 기본연봉 설정 후 다시 시도하세요.', 'err');
+      } else {
+        toast('재집계 완료 — 대상 ' + d.candidateCount + '명 · 신규 ' + (d.created || 0)
+          + ' · 갱신 ' + (d.updated || 0) + ' · 보존 ' + (d.skipped || 0)
+          + (d.errors?.length ? ' · 오류 ' + d.errors.length : ''), d.errors?.length ? 'err' : 'ok');
+      }
       await loadList();
     } finally {
       $('btnRecalc').disabled = false; $('btnRecalcForce').disabled = false;

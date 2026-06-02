@@ -190,27 +190,17 @@ export async function calculatePayrollForMonth(
       const qs = ((qsRows as any).rows || (qsRows as any[]))[0] || {};
       const quarterTotalBonus = Number(qs.total_bonus || 0);
 
-      // 3. 급여 구성 계산 (계산 기준은 payroll_settings)
-      /* 2026-05-29 P2-5 fix — 월 중 입사 시 일할(prorate). hire_date가 해당 월 안에 있으면
-         (월말 - 입사일 + 1) / (월 전체 일수) 만큼 baseSalaryMonth 축소. */
-      let prorationFactor = 1.0;
-      const hireDateStr = m.hire_date ? String(m.hire_date).slice(0, 10) : null;
-      if (hireDateStr) {
-        const hireT = new Date(`${hireDateStr}T00:00:00Z`).getTime();
-        const firstT = new Date(`${first}T00:00:00Z`).getTime();
-        const lastT = new Date(`${last}T00:00:00Z`).getTime();
-        if (Number.isFinite(hireT) && hireT >= firstT && hireT <= lastT) {
-          const totalDays = Math.round((lastT - firstT) / 86_400_000) + 1;
-          const remainDays = Math.round((lastT - hireT) / 86_400_000) + 1;
-          if (totalDays > 0 && remainDays > 0 && remainDays < totalDays) {
-            prorationFactor = remainDays / totalDays;
-          }
-        }
-      }
-      const baseSalaryMonth = (baseSalary / 12) * prorationFactor;
-      const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급
+      // 3. 급여 구성 계산 — ★ 2026-06-03 출근일 기반 일급제 (Swain 결정, 5인 미만 무급 공휴일)
+      //   일급 = (연봉 ÷ 12) ÷ 월 표준근무일(payroll_settings.monthlyWorkDays).
+      //   기본급 = (실제 출근일 + 유급휴가일) × 일급.  유급휴가는 지급일에 포함.
+      //   공휴일·결근·무급휴가는 '출근일'이 아니므로 자동으로 미지급(무급) — 월급제 일할(proration) 불필요.
+      //   (만근 시 출근일 ≈ monthlyWorkDays 라 기본급 ≈ 월급으로 수렴.)
+      const dailyWage = (baseSalary / 12) / settings.monthlyWorkDays;
+      const paidDays = workingDays + paidLeaveDays;
+      const baseSalaryMonth = paidDays * dailyWage;
+      const hourly = baseSalary / settings.annualHours;       // 연 기준시간 시급(야근 단가)
       const overtimePay = (overtimeMins / 60) * hourly * settings.overtimeMultiplier;
-      const deductionUnpaid = unpaidLeaveDays * (baseSalaryMonth / settings.monthlyWorkDays);
+      const deductionUnpaid = 0;                              // 일급제: 무급일은 출근일에서 제외돼 자동 미지급(별도 공제 라인 없음)
       const performanceBonus = quarterTotalBonus / 3;         // 분기 3개월 균등 안분
       const perfectBonus = 0;                                 // 만근 보너스 정책 미정의 (이번 범위 외)
       const grossPay = baseSalaryMonth + overtimePay - deductionUnpaid + performanceBonus + perfectBonus;
@@ -235,6 +225,8 @@ export async function calculatePayrollForMonth(
         quarter: { year, q, totalBonusPaid: quarterTotalBonus },
         derived: {
           hourly: r2(hourly),
+          dailyWage: r2(dailyWage),              // 일급 (연봉/12/월표준근무일)
+          paidDays,                              // 지급 대상일 (출근일 + 유급휴가일)
           baseSalaryMonth: r2(baseSalaryMonth),
           overtimePay: r2(overtimePay),
           deductionUnpaid: r2(deductionUnpaid),
