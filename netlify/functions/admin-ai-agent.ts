@@ -758,9 +758,6 @@ export default async (req: Request, _ctx: Context) => {
   const executedTools: any[] = [];
   let pendingApproval: any = null;
   let finalReply = "";
-  /* ★ 임시 진단(2026-06-03): 실제 사용 모델·finishReason·도구 수 노출 — 도구 미호출 원인 추적 후 제거 */
-  let _diagModel = ""; let _diagFinish = ""; const _diagToolCount = toolDeclarations.length;
-  let _diagPartKinds = "";
 
   /* ★ 무한루프·비용 폭발 방지 카운터 (대화 전체 누적) */
   let totalToolCallsThisRequest = 0;
@@ -818,14 +815,11 @@ export default async (req: Request, _ctx: Context) => {
         }
       } catch (_) { /* 비용 기록 실패는 무시 — 응답은 정상 진행 */ }
 
-      _diagModel = usedModel;
       const candidate = geminiRes?.candidates?.[0];
       if (!candidate) {
         finalReply = "AI가 응답하지 않았습니다.";
         break;
       }
-      _diagFinish = candidate.finishReason || "";
-      _diagPartKinds = (candidate.content?.parts || []).map((p: any) => p.functionCall ? "fn" : (p.text ? "text" : (p.thought ? "thought" : "other"))).join(",");
       const parts = candidate.content?.parts || [];
       const textParts = parts.filter((p: any) => typeof p.text === "string");
       const fnCalls = parts.filter((p: any) => p.functionCall);
@@ -989,6 +983,5 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
-    _diag: { model: _diagModel, finish: _diagFinish, toolCount: _diagToolCount, partKinds: _diagPartKinds, intent: modelChain === HIGH_MODEL_CHAIN ? "HIGH" : "LOW", chain0: modelChain[0], msgEcho: (userMessage||"").slice(0,40), hasEmailSend: (selectedToolNames||[]).includes("email_send"), selNames: (selectedToolNames||["ALL"]).slice(0,60) },
   }), { status: 200, headers: JSON_HEADER });
 };
