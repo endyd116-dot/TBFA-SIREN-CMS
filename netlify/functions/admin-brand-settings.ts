@@ -40,7 +40,8 @@ export default async (req: Request, _ctx: Context) => {
   const guard: any = await requireAdmin(req);
   if (!guard.ok) return (guard as { ok: false; res: Response }).res;
   const { admin, member } = guard.ctx;
-  const store = getStore("brand");
+  /* strong consistency — 저장 직후 공개 서빙이 최신값을 읽도록 보장 */
+  const store = getStore({ name: "brand", consistency: "strong" });
 
   try {
     /* ── GET ── */

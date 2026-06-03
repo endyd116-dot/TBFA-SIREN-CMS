@@ -32,7 +32,8 @@ export default async (req: Request, _ctx: Context) => {
   try {
     const url = new URL(req.url);
     const asset = url.searchParams.get("asset");
-    const store = getStore("brand");
+    /* strong consistency — 운영자 저장 직후에도 최신값 보장(eventual이면 이전 쓰기로 지연됨). */
+    const store = getStore({ name: "brand", consistency: "strong" });
 
     /* ── 이미지 바이트 서빙 ── */
     if (asset === "logo" || asset === "favicon") {
