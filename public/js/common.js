@@ -490,6 +490,49 @@
     console.log('[Phase B] 미리보기 모드 활성화');
   }
 
+  /* ------------ 13.5 브랜드 설정 적용 (운영자가 사이트빌더에서 변경) ------------
+   * 2026-06-03: 로고·파비콘·사이트이름·홈타이틀을 /api/public/brand 에서 읽어 적용.
+   * 전적으로 fallback-safe — 미설정/조회실패 시 정적 기본값(코드 로고·파비콘·타이틀) 그대로 유지.
+   * 헤더/푸터 DOM이 그려진 뒤 호출. */
+  async function applyBrand() {
+    try {
+      const res = await fetch('/api/public/brand', { cache: 'no-store' });
+      if (!res.ok) return;
+      const b = await res.json().catch(function () { return null; });
+      if (!b) return;
+
+      /* 1) 로고 심볼 — 헤더/푸터 img 교체 */
+      if (b.logoUrl) {
+        document.querySelectorAll('.brand-img, .foot-brand img').forEach(function (img) { img.src = b.logoUrl; });
+      }
+      /* 2) 파비콘 — 기존 icon 링크 href 교체(없으면 생성) */
+      if (b.faviconUrl) {
+        var icons = document.querySelectorAll("link[rel~='icon']");
+        if (icons.length === 0) {
+          var l = document.createElement('link'); l.rel = 'icon'; document.head.appendChild(l); icons = [l];
+        }
+        icons.forEach(function (l) { l.href = b.faviconUrl; });
+      }
+      /* 3) 사이트 이름 — 헤더/푸터에 표시된 단체명 텍스트만 교체(아이콘·small 보존) */
+      if (b.siteName) {
+        var bt = document.querySelector('.brand-text');
+        if (bt && bt.firstChild && bt.firstChild.nodeType === 3) bt.firstChild.textContent = b.siteName;
+        var fb = document.querySelector('.foot-brand');
+        if (fb) {
+          for (var i = 0; i < fb.childNodes.length; i++) {
+            var n = fb.childNodes[i];
+            if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = b.siteName; break; }
+          }
+        }
+      }
+      /* 4) 홈 타이틀 — 홈 페이지에서만 탭 제목 교체(타 페이지 SEO 제목 보존) */
+      if (b.homeTitle) {
+        var p = location.pathname;
+        if (p === '/' || p === '/index.html' || /\/index\.html$/.test(p)) document.title = b.homeTitle;
+      }
+    } catch (_) { /* 무시 — 정적 기본값 유지 */ }
+  }
+
   /* ------------ 14. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
@@ -501,6 +544,7 @@
     setupRelatedSelect();
     setupCommonForms();
     setupPreviewBanner();
+    applyBrand();   /* ★ 2026-06-03 브랜드 설정 적용 (fallback-safe·비차단) */
     if (typeof window.SIREN_PAGE_INIT === 'function') {
       window.SIREN_PAGE_INIT();
     }

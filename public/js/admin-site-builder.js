@@ -7,6 +7,7 @@
 
   /* ============ 카테고리 트리 정의 ============ */
   const TREE = [
+    { key: 'brand', label: '🎴 로고·파비콘·타이틀', leaf: true },
     {
       key: 'header', label: '🏠 헤더', expanded: true,
       children: [
@@ -206,6 +207,15 @@
 
   /* ============ 폼 렌더러 ============ */
   const RENDERERS = {
+    /* ★ 2026-06-03: 브랜드(로고·파비콘·사이트이름·홈타이틀) 편집 */
+    'brand': function () {
+      if (window.SIREN_HOME_BRAND && window.SIREN_HOME_BRAND.render) {
+        window.SIREN_HOME_BRAND.render();
+      } else {
+        const inner = $('#sbContentInner');
+        inner.innerHTML = '<div class="sb-placeholder"><p>브랜드 편집 모듈 로드 실패 — admin-home-brand.js 스크립트 태그 확인</p></div>';
+      }
+    },
     'stats': function () {
       const inner = $('#sbContentInner');
       inner.innerHTML = '<div id="statsEditContainer"></div>';
