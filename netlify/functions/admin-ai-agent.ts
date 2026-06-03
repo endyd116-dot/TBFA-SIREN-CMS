@@ -989,6 +989,6 @@ export default async (req: Request, _ctx: Context) => {
     inputTokenEstimate: estimatedInputTokens,
     inputTokenWarn,
     piiRedacted: piiResult.redactCount,
-    _diag: { model: _diagModel, finish: _diagFinish, toolCount: _diagToolCount, partKinds: _diagPartKinds, intent: modelChain === HIGH_MODEL_CHAIN ? "HIGH" : "LOW" },
+    _diag: { model: _diagModel, finish: _diagFinish, toolCount: _diagToolCount, partKinds: _diagPartKinds, intent: modelChain === HIGH_MODEL_CHAIN ? "HIGH" : "LOW", chain0: modelChain[0], msgEcho: (userMessage||"").slice(0,40), hasEmailSend: (selectedToolNames||[]).includes("email_send"), selNames: (selectedToolNames||["ALL"]).slice(0,60) },
   }), { status: 200, headers: JSON_HEADER });
 };
