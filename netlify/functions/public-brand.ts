@@ -16,7 +16,9 @@ import { getStore } from "@netlify/blobs";
 
 export const config = { path: "/api/public/brand" };
 
-const JSON_HEADER = { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=120" };
+/* 캐시 짧게(30초) — 운영자가 브랜드 변경 시 최대 ~30초 내 전 페이지 반영.
+   (max-age 길면 엣지 CDN이 옛 설정을 오래 캐시해 변경이 늦게 반영됨.) */
+const JSON_HEADER = { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=30" };
 
 async function loadConfig(store: ReturnType<typeof getStore>): Promise<any> {
   try {
