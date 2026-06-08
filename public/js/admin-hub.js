@@ -54,6 +54,37 @@
     }
   }
 
+  /* ============ SSO 위성앱 카드 권한 게이팅 ============
+     진입 권한 없는 role에겐 카드 숨김(클릭 후 허브로 튕기는 혼란 방지).
+     서버 canAccess 미러: super_admin 항상 허용, 미등록 키는 admin만 허용. */
+  const SSO_CARD_FEATURE = { on: 'sso_on', si: 'sso_si', marketing: 'sso_marketing' };
+
+  function ssoAllows(role, key, permMap) {
+    if (role === 'super_admin') return true;
+    const p = permMap[key];
+    if (!p) return role === 'admin';           // 미등록(시드 전) 기본값: admin 허용·operator 차단
+    if (role === 'admin') return !!p.adminAllowed;
+    if (role === 'operator') return !!p.operatorAllowed;
+    return false;
+  }
+
+  async function applyCardPermissions(admin) {
+    const role = admin && admin.role;
+    if (!role || role === 'super_admin') return; // 슈퍼어드민은 전체 표시
+    let permMap = {};
+    try {
+      const res = await api('/api/admin-role-permissions');
+      const rows = (res.data && (res.data.data && res.data.data.permissions || res.data.permissions)) || [];
+      rows.forEach(r => { permMap[r.featureKey] = { adminAllowed: r.adminAllowed, operatorAllowed: r.operatorAllowed }; });
+    } catch (_) { return; } // 조회 실패 시 카드 그대로(백엔드 게이트가 최종 차단)
+    Object.keys(SSO_CARD_FEATURE).forEach(svc => {
+      if (!ssoAllows(role, SSO_CARD_FEATURE[svc], permMap)) {
+        const card = document.querySelector('.hub-card[data-service="' + svc + '"]');
+        if (card) card.style.display = 'none';
+      }
+    });
+  }
+
   /* ============ 통계 렌더링 ============ */
   function renderStats(kpi) {
     if (!kpi) return;
@@ -129,6 +160,7 @@
     renderUserInfo(userData.admin);
     renderStats(userData.kpi);
     setupCardClicks();
+    await applyCardPermissions(userData.admin);
 
     // 로그아웃 버튼
     const logoutBtn = document.getElementById('btnHubLogout');

@@ -49,6 +49,11 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/admin-auto-trigger-runs": "send_auto",
   "/api/admin-system-notification-list": "send_auto",
   "/api/admin-system-notification-update": "send_auto",
+  /* ★ 2026-06-09: SSO 위성앱 진입 권한. operator_allowed=false면 토큰 발급 전 차단(진입 불가).
+     기본 admin 허용·operator 차단. super_admin은 canAccess 항상 통과. 정책 화면 'SSO 위성앱' 탭에서 앱별 조정. */
+  "/api/sso-on": "sso_on",
+  "/api/sso-si": "sso_si",
+  "/api/sso-marketing": "sso_marketing",
 };
 
 export async function requireAdmin(req: Request): Promise<

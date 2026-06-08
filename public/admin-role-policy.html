@@ -185,6 +185,10 @@
         style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151">
         📦 통합 CMS
       </button>
+      <button id="tabSso" onclick="switchMatrixTab('sso')"
+        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151">
+        🔗 SSO 위성앱
+      </button>
     </div>
 
     <div id="matrixArea">
@@ -552,14 +556,16 @@
     let _allPerms = [];
     let _currentTab = 'siren';
 
+    var _TAB_ACTIVE   = 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff';
+    var _TAB_INACTIVE = 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
+    var _MATRIX_TABS  = { siren: 'tabSiren', cms: 'tabCms', sso: 'tabSso' };
+
     function switchMatrixTab(tab) {
       _currentTab = tab;
-      document.getElementById('tabSiren').style.cssText = tab === 'siren'
-        ? 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff'
-        : 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
-      document.getElementById('tabCms').style.cssText = tab === 'cms'
-        ? 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff'
-        : 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
+      Object.keys(_MATRIX_TABS).forEach(function (k) {
+        var el = document.getElementById(_MATRIX_TABS[k]);
+        if (el) el.style.cssText = (k === tab) ? _TAB_ACTIVE : _TAB_INACTIVE;
+      });
       renderMatrix();
     }
 
