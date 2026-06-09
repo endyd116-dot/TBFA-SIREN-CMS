@@ -38,20 +38,16 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
  *   = 비용 폭발 방지를 위해 가장 비싼 모델(2.5-flash)은 cron 깊은 분석에만,
  *     나머지(작업 요약·트리거 평가·AI 추출)는 모두 lite 사용.
  *   env로 override 가능. */
+// 체인 기본값(Swain 확정·2026-06-10). env GEMINI_CHAIN_HIGH/LOW(콤마)로 전 사이트 일괄 override.
+//   HIGH(pro·복잡): preview→3.1-lite→2.5-flash→3.5-flash / LOW(flash·간단): 2.5-lite→3.1-lite.
+const DEFAULT_CHAIN_HIGH = "gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-2.5-flash,gemini-3.5-flash";
+const DEFAULT_CHAIN_LOW = "gemini-2.5-flash-lite,gemini-3.1-flash-lite";
 function buildFallbackChain(mode: "pro" | "flash"): string[] {
-  const chain: string[] = [];
-  const push = (m: string) => { if (m && !chain.includes(m)) chain.push(m); };
-
-  if (mode === "pro") {
-    push(PRO_MODEL);
-    push("gemini-2.5-flash");
-    push("gemini-3.1-flash-lite");
-  } else {
-    push(EFFECTIVE_FLASH);
-    push("gemini-3.1-flash-lite");
-    push("gemini-2.5-flash-lite");
-  }
-  return chain;
+  const raw = mode === "pro"
+    ? (process.env.GEMINI_CHAIN_HIGH || DEFAULT_CHAIN_HIGH)
+    : (process.env.GEMINI_CHAIN_LOW || DEFAULT_CHAIN_LOW);
+  const chain = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return chain.length ? chain : [mode === "pro" ? PRO_MODEL : EFFECTIVE_FLASH];
 }
 
 /* ★ B-9: 인라인 파일 정의 */
@@ -159,14 +155,17 @@ async function callSingleModel(
   /* 텍스트는 파일 뒤에 배치 */
   parts.push({ text: prompt });
 
+  const _mode = opts.mode ?? "flash";
   const body: any = {
     contents: [{ role: "user", parts }],
     generationConfig: {
       temperature: opts.temperature ?? 0.7,
-      /* 적정 수준 — 보수치(1024)에서 상향. 호출처에서 명시 시 그 값 우선. */
-      maxOutputTokens: opts.maxOutputTokens ?? 2000,
+      /* 적정 수준. pro=thinking ON이라 사고+답변 위해 최소 2048 확보(안 그러면 답변 잘림). */
+      maxOutputTokens: _mode === "pro" ? Math.max(opts.maxOutputTokens ?? 2000, 2048) : (opts.maxOutputTokens ?? 2000),
       topP: 0.95,
       topK: 40,
+      /* flash=사고 끄기(thinkingBudget 0·빠름·저비용). pro=모델 기본(사고 ON·정확). */
+      ...(_mode === "flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
     },
   };
 
