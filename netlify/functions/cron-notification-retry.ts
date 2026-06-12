@@ -1,5 +1,5 @@
 // netlify/functions/cron-notification-retry.ts
-// Phase 8 — 알림 발송 실패 재시도 cron (1분 주기)
+// Phase 8 — 알림 발송 실패 재시도 cron (10분 주기 — 2026-06-13 DB 비용 절감: 1분 → 10분)
 //
 // 동작:
 // - status='pending' AND next_retry_at <= now() AND attempt < 3 인 로그를 최대 50건 처리
@@ -71,5 +71,5 @@ export default async (_req: Request) => {
 };
 
 export const config = {
-  schedule: "* * * * *",
+  schedule: "*/10 * * * *",
 };

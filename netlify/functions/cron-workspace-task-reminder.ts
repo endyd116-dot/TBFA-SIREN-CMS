@@ -1,5 +1,5 @@
 // netlify/functions/cron-workspace-task-reminder.ts
-// 라운드 11 — 워크스페이스 태스크 리마인더 cron (15분 주기)
+// 라운드 11 — 워크스페이스 태스크 리마인더 cron (30분 주기 — 2026-06-13 DB 비용 절감: 15분 → 30분)
 //
 // reminder_config JSONB 안에 remindAt(발송 예정 시각) + firedAt(발송 완료 시각) 포함.
 // remindAt <= NOW()+2min 이고 firedAt 미기록인 태스크를 조회하여
@@ -94,5 +94,5 @@ export default async (_req: Request, _ctx: Context) => {
 };
 
 export const config = {
-  schedule: "*/15 * * * *",
+  schedule: "*/30 * * * *",
 };

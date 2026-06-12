@@ -1,5 +1,5 @@
 // netlify/functions/cron-communication-send-dispatcher.ts
-// Phase 10 R3 — 발송 큐 디스패처 (1분 단위)
+// Phase 10 R3 — 발송 큐 디스패처 (10분 단위 — 2026-06-13 DB 비용 절감: 1분 → 10분)
 //
 // 처리 단계:
 //   1단계 — pending 작업 픽업 (scheduledAt <= NOW()): 그룹 resolve → 수신자 스냅샷 INSERT → status='processing'
@@ -29,7 +29,7 @@ import {
 
 const BASE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
 
-export const config = { schedule: "* * * * *" };
+export const config = { schedule: "*/10 * * * *" };
 
 const PENDING_PICKUP_LIMIT = 10;
 const PROCESSING_JOB_LIMIT = 5;
