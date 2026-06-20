@@ -130,14 +130,15 @@
         const service = card.dataset.service;
         const status = card.dataset.status;
         
-        // 데모/베타 경고
+        // 데모 경고 (베타 → 정식 서비스 전환으로 베타 경고 제거)
         if (status === 'demo') {
           if (!confirm('⚠️ 이 서비스는 DEMO 버전입니다.\n실제 데이터가 저장되지 않습니다.\n\n계속하시겠습니까?')) {
             e.preventDefault();
             return;
           }
-        } else if (status === 'beta') {
-          toast(`${card.querySelector('.hub-card-title').textContent} — 베타 서비스입니다`);
+        } else if (status === 'active' && service === 'on') {
+          // 함께워크 ON 정식 오픈 안내 (베타 경고 대체 알림)
+          toast('함께워크 ON 정식 오픈! 🎉 서비스로 이동합니다');
         }
 
         console.log('[Hub] Navigating to service:', service);
