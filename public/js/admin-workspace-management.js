@@ -231,12 +231,19 @@
   /* ═══════════════════════════════════
      탭 2: 직원 스케줄
   ═══════════════════════════════════ */
+  /* 스케줄 편집 상태 — null이면 신규 등록, 값이 있으면 해당 id 수정 모드 */
+  let _awmSchEditId = null;
+  /* 직원 uid → 이름 매핑 (스케줄 목록·기록 표시용) */
+  const _awmSchMembers = {};
+  /* 스케줄 목록 행 캐시 (id → row) — 수정 버튼에서 재사용 */
+  let _awmSchRows = {};
+
   async function initScheduleTab() {
     window._awmSchInit = true;
     await loadMemberDropdown('awmScheduleMember');
     await loadWorkplaceDropdown('awmScheduleWorkplace');
 
-    // R34-P2 (P2): FIELD 모드 선택 시 거점 셀렉트 노출
+    // FIELD/HYBRID 모드 선택 시 해당 영역 노출
     document.getElementById('awmScheduleMode')?.addEventListener('change', (e) => {
       const hybrid = document.getElementById('awmHybridConfig');
       const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
@@ -244,11 +251,91 @@
       if (wpWrap) wpWrap.style.display = e.target.value === 'FIELD' ? '' : 'none';
     });
 
-    const today = toDateStr();
-    const fromEl = document.getElementById('awmScheduleFrom');
-    if (fromEl) fromEl.value = today;
+    _resetScheduleForm();
 
     document.getElementById('awmBtnSaveSchedule')?.addEventListener('click', saveSchedule);
+    document.getElementById('awmBtnCancelScheduleEdit')?.addEventListener('click', _resetScheduleForm);
+    await loadScheduleList();
+  }
+
+  /* 폼을 신규 등록 상태로 초기화 */
+  function _resetScheduleForm() {
+    _awmSchEditId = null;
+    const memberEl = document.getElementById('awmScheduleMember');
+    const modeEl = document.getElementById('awmScheduleMode');
+    if (memberEl) { memberEl.value = ''; memberEl.disabled = false; }
+    if (modeEl) modeEl.value = 'OFFICE';
+    document.getElementById('awmScheduleFrom') && (document.getElementById('awmScheduleFrom').value = toDateStr());
+    document.getElementById('awmScheduleTo') && (document.getElementById('awmScheduleTo').value = '');
+    const wpEl = document.getElementById('awmScheduleWorkplace');
+    if (wpEl) wpEl.value = '';
+    // 혼합 체크박스·요일별 모드 초기화
+    document.querySelectorAll('[name="hybridDay"]').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('.hybrid-day-mode').forEach(s => { s.value = 'OFFICE'; });
+    const hybrid = document.getElementById('awmHybridConfig');
+    const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
+    if (hybrid) hybrid.style.display = 'none';
+    if (wpWrap) wpWrap.style.display = 'none';
+    // 버튼 라벨 복원
+    const saveBtn = document.getElementById('awmBtnSaveSchedule');
+    if (saveBtn) saveBtn.textContent = '스케줄 저장';
+    hideEl('awmBtnCancelScheduleEdit');
+    const titleEl = document.getElementById('awmScheduleFormTitle');
+    if (titleEl) titleEl.textContent = '직원 근무 스케줄 설정';
+  }
+
+  /* 목록의 '수정' 클릭 → 폼에 기존 값 채우고 수정 모드 진입 */
+  function _editSchedule(row) {
+    _awmSchEditId = Number(row.id);
+    const memberEl = document.getElementById('awmScheduleMember');
+    const modeEl = document.getElementById('awmScheduleMode');
+    // 직원은 수정 대상 고정 (다른 직원으로 옮기는 건 신규 등록으로 처리)
+    if (memberEl) { memberEl.value = String(row.memberUid); memberEl.disabled = true; }
+    if (modeEl) modeEl.value = row.workMode || 'OFFICE';
+    const fromEl = document.getElementById('awmScheduleFrom');
+    const toEl = document.getElementById('awmScheduleTo');
+    if (fromEl) fromEl.value = (row.startDate || '').slice(0, 10);
+    if (toEl) toEl.value = row.endDate ? String(row.endDate).slice(0, 10) : '';
+
+    // 거점(FIELD)
+    const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
+    const wpEl = document.getElementById('awmScheduleWorkplace');
+    if (wpEl) wpEl.value = row.workplaceId != null ? String(row.workplaceId) : '';
+    if (wpWrap) wpWrap.style.display = row.workMode === 'FIELD' ? '' : 'none';
+
+    // 혼합(요일별) — recurringRule {MON:'OFFICE',...} 복원
+    const hybrid = document.getElementById('awmHybridConfig');
+    document.querySelectorAll('[name="hybridDay"]').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('.hybrid-day-mode').forEach(s => { s.value = 'OFFICE'; });
+    if (row.workMode === 'HYBRID' && row.recurringRule && typeof row.recurringRule === 'object') {
+      const KEY_DAY = { MON: '1', TUE: '2', WED: '3', THU: '4', FRI: '5', SAT: '6', SUN: '7' };
+      Object.keys(row.recurringRule).forEach(k => {
+        const dayVal = KEY_DAY[String(k).toUpperCase()] || String(k);
+        const cb = document.querySelector(`[name="hybridDay"][value="${dayVal}"]`);
+        const modeSel = document.querySelector(`.hybrid-day-mode[data-day="${dayVal}"]`);
+        if (cb) cb.checked = true;
+        if (modeSel) modeSel.value = row.recurringRule[k];
+      });
+    }
+    if (hybrid) hybrid.style.display = row.workMode === 'HYBRID' ? '' : 'none';
+
+    // 버튼·제목 수정 모드로
+    const saveBtn = document.getElementById('awmBtnSaveSchedule');
+    if (saveBtn) saveBtn.textContent = '수정 저장';
+    showEl('awmBtnCancelScheduleEdit');
+    const titleEl = document.getElementById('awmScheduleFormTitle');
+    if (titleEl) titleEl.textContent = '스케줄 수정 — ' + (_awmSchMembers[String(row.memberUid)] || row.memberUid);
+    // 폼으로 스크롤
+    document.getElementById('awmScheduleMode')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function _deleteSchedule(id) {
+    if (!id) return;
+    if (!confirm('이 스케줄을 삭제하시겠습니까?')) return;
+    const res = await api('/api/admin-att-schedules?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || '')); return; }
+    toast('스케줄이 삭제되었습니다');
+    if (_awmSchEditId === Number(id)) _resetScheduleForm();
     await loadScheduleList();
   }
 
@@ -277,6 +364,8 @@
       opt.value = m.uid || m.id;
       opt.textContent = m.name || m.username || m.uid;
       sel.appendChild(opt);
+      // 스케줄 목록에서 uid → 이름 표시용 매핑 축적
+      _awmSchMembers[String(m.uid || m.id)] = m.name || m.username || String(m.uid || m.id);
     });
   }
 
@@ -311,18 +400,29 @@
       ? Number(document.getElementById('awmScheduleWorkplace')?.value) || null
       : null;
 
-    const res = await api('/api/admin-att-schedules', {
-      method: 'POST',
-      body: { memberUid: uid, workMode: mode, startDate: from, endDate: to || null, recurringRule: hybridConfig, workplaceId },
-    });
+    const body = { memberUid: uid, workMode: mode, startDate: from, endDate: to || null, recurringRule: hybridConfig, workplaceId };
+    // 수정 모드면 PUT, 신규면 POST
+    const res = _awmSchEditId
+      ? await api('/api/admin-att-schedules?id=' + encodeURIComponent(_awmSchEditId), { method: 'PUT', body })
+      : await api('/api/admin-att-schedules', { method: 'POST', body });
     if (!res.ok) {
       toast('저장 실패: ' + (res.data?.error || ''));
       if (btn) btn.disabled = false;
       return;
     }
-    toast('스케줄이 저장되었습니다');
+    toast(_awmSchEditId ? '스케줄이 수정되었습니다' : '스케줄이 저장되었습니다');
     if (btn) btn.disabled = false;
+    _resetScheduleForm();
     await loadScheduleList();
+  }
+
+  /* 혼합(요일별) 규칙을 사람이 읽는 텍스트로 — {MON:'OFFICE',TUE:'REMOTE'} → "월 사무실 · 화 재택" */
+  function _hybridSummary(rule) {
+    if (!rule || typeof rule !== 'object') return '';
+    const DAY_LABEL = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' };
+    const MODE_SHORT = { OFFICE: '사무실', REMOTE: '재택', FIELD: '외근', BUSINESS_TRIP: '출장' };
+    const ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    return ORDER.filter(d => rule[d]).map(d => `${DAY_LABEL[d]} ${MODE_SHORT[rule[d]] || rule[d]}`).join(' · ');
   }
 
   async function loadScheduleList() {
@@ -331,15 +431,40 @@
     const tbody = document.getElementById('awmScheduleListBody');
     if (!tbody) return;
     if (!Array.isArray(rows) || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="att-empty">설정된 스케줄이 없습니다</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="att-empty">설정된 스케줄이 없습니다</td></tr>';
       return;
     }
-    tbody.innerHTML = rows.map(r => `
+    // 행 데이터를 id로 캐싱해 수정 버튼에서 재사용
+    _awmSchRows = {};
+    tbody.innerHTML = rows.map(r => {
+      _awmSchRows[String(r.id)] = r;
+      const name = r.memberName || _awmSchMembers[String(r.memberUid)] || r.memberUid || '—';
+      const hybridTxt = r.workMode === 'HYBRID' ? _hybridSummary(r.recurringRule) : '';
+      return `
       <tr>
-        <td>${escHtml(r.memberName || r.memberUid || '—')}</td>
-        <td><span class="awm-tag ${r.workMode || ''}">${MODE_LABEL[r.workMode] || r.workMode || '—'}</span></td>
-        <td>${escHtml(r.startDate || '—')} ~ ${escHtml(r.endDate || '계속')}</td>
-      </tr>`).join('');
+        <td>${escHtml(name)}</td>
+        <td>
+          <span class="awm-tag ${r.workMode || ''}">${MODE_LABEL[r.workMode] || r.workMode || '—'}</span>
+          ${hybridTxt ? `<div style="font-size:11px;color:#6b7280;margin-top:3px">${escHtml(hybridTxt)}</div>` : ''}
+        </td>
+        <td>${escHtml((r.startDate || '—').slice(0, 10))} ~ ${escHtml(r.endDate ? String(r.endDate).slice(0, 10) : '계속')}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="awm-sch-edit" data-id="${r.id}" style="font-size:12px;padding:3px 9px;border:1px solid #d1d5db;border-radius:5px;background:#fff;cursor:pointer">수정</button>
+          <button type="button" class="awm-sch-del" data-id="${r.id}" style="font-size:12px;padding:3px 9px;border:1px solid #fecaca;color:#dc2626;border-radius:5px;background:#fff;cursor:pointer;margin-left:4px">삭제</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // 버튼 이벤트 위임 (1회 바인딩)
+    if (!tbody.dataset.crudBound) {
+      tbody.dataset.crudBound = '1';
+      tbody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.awm-sch-edit');
+        const delBtn = e.target.closest('.awm-sch-del');
+        if (editBtn) { const row = _awmSchRows[String(editBtn.dataset.id)]; if (row) _editSchedule(row); }
+        else if (delBtn) { _deleteSchedule(delBtn.dataset.id); }
+      });
+    }
   }
 
   /* ═══════════════════════════════════
@@ -1350,11 +1475,12 @@
       const leaveTxt = ln.leaves.length
         ? ln.leaves.map(lv => (lv.is_half_day || lv.isHalfDay) ? '반차' : '휴가').join(', ')
         : '—';
-      /* R39 Stage 7 A-2: 어드민 수정 버튼 — 기록이 있는 일자만 */
+      /* R39 Stage 7 A-2: 어드민 수정 버튼 / 슈퍼어드민 생성·삭제 (기록 유무로 분기) */
       const recId = r && r.id;
       const editBtn = recId
-        ? `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmOpenRecordEdit(${recId})" title="어드민 직접 수정">✏️</button>`
-        : '';
+        ? `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmOpenRecordEdit(${recId})" title="어드민 직접 수정">✏️</button>` +
+          `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px;color:#dc2626" onclick="awmDeleteRecord(${recId})" title="기록 삭제">🗑</button>`
+        : `<button class="att-btn att-btn-default att-btn-sm" style="padding:2px 6px;font-size:11px;margin-left:3px" onclick="awmCreateRecordForDate('${ln.date}')" title="기록 생성">＋</button>`;
       return '<tr' + (isWeekend ? ' style="background:#fafbfc"' : '') + '>' +
         '<td style="font-variant-numeric:tabular-nums">' + ln.date + '</td>' +
         '<td style="color:' + dayColor + ';font-weight:600">' + ln.dayName + '</td>' +
@@ -1544,6 +1670,82 @@
     });
     if (!res.ok) { toast('알림 발송 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
     toast('📨 직원에게 확인 요청 알림을 보냈습니다');
+  }
+
+  /* ───────────────────────────────────────────────
+     슈퍼어드민 출퇴근 기록 삭제 (D)
+     ─────────────────────────────────────────────── */
+  window.awmDeleteRecord = async function (recordId) {
+    if (!recordId) return;
+    const reason = prompt('이 출퇴근 기록을 삭제합니다. 삭제 사유를 입력하세요 (감사 추적용·필수):', '');
+    if (reason == null) return;            // 취소
+    if (!reason.trim()) { toast('삭제 사유는 필수입니다'); return; }
+    if (!confirm('정말 이 기록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+
+    const res = await api('/api/admin-att-record-edit', {
+      method: 'DELETE',
+      body: { recordId: Number(recordId), reason: reason.trim() },
+    });
+    if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
+    toast('출퇴근 기록이 삭제되었습니다');
+    try { await loadMonthRecords(); } catch (_) {}
+  };
+
+  /* ───────────────────────────────────────────────
+     슈퍼어드민 출퇴근 기록 생성 (C) — 기록 없는 날짜에 직접 추가
+     ─────────────────────────────────────────────── */
+  let _recCreateCtx = null;  // { memberUid, date }
+
+  window.awmCreateRecordForDate = function (dateStr) {
+    const memberUid = document.getElementById('awmMrMember')?.value;
+    if (!memberUid) { toast('먼저 직원을 선택하세요'); return; }
+    if (!dateStr) return;
+    _recCreateCtx = { memberUid, date: dateStr };
+
+    const memberSel = document.getElementById('awmMrMember');
+    const memberName = memberSel ? (memberSel.options[memberSel.selectedIndex]?.text || '직원') : '직원';
+    setText('awmRecCreateMeta', memberName + ' · ' + dateStr);
+    // 폼 초기화
+    document.getElementById('awmRecCreateWorkMode').value = 'OFFICE';
+    // datetime-local 기본값 = 해당 날짜 09:00 / 18:00
+    document.getElementById('awmRecCreateCheckIn').value  = dateStr + 'T09:00';
+    document.getElementById('awmRecCreateCheckOut').value = dateStr + 'T18:00';
+    document.getElementById('awmRecCreateNote').value = '';
+    document.getElementById('awmRecCreateReason').value = '';
+    document.getElementById('awmRecCreateModal').style.display = 'flex';
+  };
+
+  function _closeRecCreateModal() {
+    document.getElementById('awmRecCreateModal').style.display = 'none';
+    _recCreateCtx = null;
+  }
+
+  async function _saveRecCreate() {
+    if (!_recCreateCtx) return;
+    const ci = document.getElementById('awmRecCreateCheckIn').value;
+    const co = document.getElementById('awmRecCreateCheckOut').value;
+    const wm = document.getElementById('awmRecCreateWorkMode').value;
+    const note = document.getElementById('awmRecCreateNote').value;
+    const reason = document.getElementById('awmRecCreateReason').value.trim();
+    if (!reason) { toast('생성 사유는 필수입니다'); return; }
+
+    const body = { memberUid: _recCreateCtx.memberUid, date: _recCreateCtx.date, reason };
+    if (wm) body.workMode = wm;
+    if (ci) body.checkInTime  = new Date(ci).toISOString();
+    if (co) body.checkOutTime = new Date(co).toISOString();
+    if (note !== '') body.note = note;
+
+    const btn = document.getElementById('awmBtnRecCreateSave');
+    if (btn) btn.disabled = true;
+    try {
+      const res = await api('/api/admin-att-record-edit', { method: 'POST', body });
+      if (!res.ok) { toast('생성 실패: ' + (res.data?.error || res.data?.detail || '')); return; }
+      toast('출퇴근 기록이 생성되었습니다');
+      _closeRecCreateModal();
+      try { await loadMonthRecords(); } catch (_) {}
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   /* ═══════════════════════════════════
@@ -1918,6 +2120,14 @@
     document.getElementById('awmBtnRecRequestConfirm')?.addEventListener('click', _requestConfirm);
     document.getElementById('awmRecEditModal')?.addEventListener('click', function (e) {
       if (e.target === this) _closeRecEditModal();
+    });
+
+    /* 슈퍼어드민 출퇴근 기록 생성 모달 이벤트 */
+    document.getElementById('awmBtnRecCreateClose')?.addEventListener('click', _closeRecCreateModal);
+    document.getElementById('awmBtnRecCreateCancel')?.addEventListener('click', _closeRecCreateModal);
+    document.getElementById('awmBtnRecCreateSave')?.addEventListener('click', _saveRecCreate);
+    document.getElementById('awmRecCreateModal')?.addEventListener('click', function (e) {
+      if (e.target === this) _closeRecCreateModal();
     });
   }
 

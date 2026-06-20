@@ -371,6 +371,9 @@
 .fc .fc-event.att-ev-remote  { background: var(--att-remote);  border-color: var(--att-remote);  }
 .fc .fc-event.att-ev-field   { background: var(--att-field);   border-color: var(--att-field);   }
 .fc .fc-event.att-ev-holiday { background: var(--att-holiday); border-color: var(--att-holiday); }
+/* G16: 출퇴근 시각 라인 — 배경 없이 텍스트만 (셀에 일별 출퇴근 시각 명시) */
+.fc .fc-event.att-ev-time { background: transparent; border-color: transparent; color: #374151; font-weight: 600; font-size: 11px; }
+.fc .fc-event.att-ev-time .fc-event-title { white-space: normal; }
 #attCalendar .fc-daygrid-day.att-bg-normal  { background: rgba(34,197,94,0.08); }
 #attCalendar .fc-daygrid-day.att-bg-late    { background: rgba(245,158,11,0.1); }
 #attCalendar .fc-daygrid-day.att-bg-early   { background: rgba(251,113,133,0.12); }  /* G4 조퇴 */

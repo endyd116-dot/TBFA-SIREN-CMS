@@ -540,12 +540,27 @@
 
     rows.forEach(row => {
       const cls = STATUS_CLASS[row.status] || '';
+      const statusLabel = ATT_STATUS_LABEL[row.status] || row.status || '';
+      // 출퇴근 시각 — 캘린더 셀에 직접 명시 (G16: 일별 출퇴근기록 표시)
+      const ci = row.checkInTime ? fmtTime(row.checkInTime) : null;
+      const co = row.checkOutTime ? fmtTime(row.checkOutTime) : null;
+
+      // 1행: 상태 배지 (+ 출근 시각 요약)
       calendar.addEvent({
-        title: ATT_STATUS_LABEL[row.status] || row.status || '',
+        title: ci ? `${statusLabel} ${ci}` : statusLabel,
         start: row.date,
         allDay: true,
         classNames: [cls],
       });
+      // 2행: 출근~퇴근 시각 (기록이 있을 때만)
+      if (ci || co) {
+        calendar.addEvent({
+          title: `🟢${ci || '—'} → 🔴${co || '근무 중'}`,
+          start: row.date,
+          allDay: true,
+          classNames: ['att-ev-time'],
+        });
+      }
       // 배경 셀 착색
       const bgCls = BG_CLASS[row.status];
       if (bgCls) {

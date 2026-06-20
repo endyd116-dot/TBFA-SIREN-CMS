@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/css/components.css?v=3">
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
-<link rel="stylesheet" href="/css/workspace-attendance.css?v=1">
+<link rel="stylesheet" href="/css/workspace-attendance.css?v=2-caltime">
 
 <style>
 /* ─── 어드민 레이아웃 ─── */
@@ -378,7 +378,7 @@
   <!-- ════════════ 탭 2: 직원 스케줄 ════════════ -->
   <div class="att-panel" id="awmPanelSchedule">
     <div class="awm-section">
-      <div class="awm-section-title">직원 근무 스케줄 설정</div>
+      <div class="awm-section-title" id="awmScheduleFormTitle">직원 근무 스케줄 설정</div>
 
       <div class="att-form-card" style="border:none;padding:0;box-shadow:none">
         <div class="att-form-row">
@@ -484,7 +484,10 @@
           </div>
         </div>
 
-        <button class="att-btn att-btn-primary" id="awmBtnSaveSchedule" style="margin-top:4px">스케줄 저장</button>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="att-btn att-btn-primary" id="awmBtnSaveSchedule">스케줄 저장</button>
+          <button class="att-btn" id="awmBtnCancelScheduleEdit" style="display:none;background:#f3f4f6;border:1px solid #d1d5db">수정 취소</button>
+        </div>
       </div>
 
       <!-- 직원별 현재 스케줄 목록 -->
@@ -497,10 +500,11 @@
                 <th>직원</th>
                 <th>근무형태</th>
                 <th>적용 기간</th>
+                <th>관리</th>
               </tr>
             </thead>
             <tbody id="awmScheduleListBody">
-              <tr><td colspan="3" class="att-empty">스케줄 정보를 불러오는 중...</td></tr>
+              <tr><td colspan="4" class="att-empty">스케줄 정보를 불러오는 중...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1025,11 +1029,66 @@
   </div>
 </div>
 
+<!-- ════════════ 슈퍼어드민 출퇴근 기록 생성 모달 ════════════ -->
+<div id="awmRecCreateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:min(560px,96vw);max-height:92vh;overflow-y:auto;padding:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <strong style="font-size:16px">＋ 출퇴근 기록 생성</strong>
+      <button id="awmBtnRecCreateClose" type="button" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6b7280">✕</button>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#1e3a8a;line-height:1.7;margin-bottom:14px">
+      기록이 없는 날짜에 어드민이 출퇴근 기록을 직접 만듭니다.<br>
+      <strong>사유 입력 필수</strong>·이력에 저장되며 <strong>수동 생성</strong>으로 마킹됩니다.
+    </div>
+
+    <div id="awmRecCreateMeta" style="font-size:12.5px;color:#6b7280;margin-bottom:12px">—</div>
+
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>출근 시각</label>
+        <input type="datetime-local" id="awmRecCreateCheckIn">
+      </div>
+      <div class="att-form-group">
+        <label>퇴근 시각</label>
+        <input type="datetime-local" id="awmRecCreateCheckOut">
+      </div>
+    </div>
+    <div class="att-form-row">
+      <div class="att-form-group">
+        <label>근무형태</label>
+        <select id="awmRecCreateWorkMode">
+          <option value="OFFICE">🏢 사무실 (OFFICE)</option>
+          <option value="REMOTE">🏠 재택 (REMOTE)</option>
+          <option value="FIELD">🚗 외근 (FIELD)</option>
+          <option value="BUSINESS_TRIP">✈️ 출장 (BUSINESS_TRIP)</option>
+          <option value="HYBRID">🔀 혼합 (HYBRID)</option>
+          <option value="FLEXIBLE">⏱ 탄력 (FLEXIBLE)</option>
+        </select>
+      </div>
+      <div class="att-form-group">
+        <label>메모</label>
+        <input type="text" id="awmRecCreateNote" placeholder="선택">
+      </div>
+    </div>
+    <div class="att-form-row full">
+      <div class="att-form-group">
+        <label>사유 <span style="color:#ef4444">*</span></label>
+        <textarea id="awmRecCreateReason" rows="2" placeholder="생성 사유 (감사 추적용·필수)" style="resize:vertical"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button class="att-btn att-btn-default" id="awmBtnRecCreateCancel" type="button">취소</button>
+      <button class="att-btn att-btn-primary" id="awmBtnRecCreateSave" type="button">기록 생성</button>
+    </div>
+  </div>
+</div>
+
 <!-- 토스트 -->
 <div id="awmToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1f2b;color:#fff;padding:10px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
 
 <script src="/js/lib-kst.js?v=1" defer></script>
 <script src="/js/lib-att-map.js?v=2-loc"></script>
-<script src="/js/admin-workspace-management.js?v=24-deadwm"></script>
+<script src="/js/admin-workspace-management.js?v=25-attcrud"></script>
 </body>
 </html>

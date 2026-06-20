@@ -21,6 +21,7 @@ import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { getDefaultPolicy, calcWorkingMins } from "../../lib/att-utils";
 import { rebuildSingleSession } from "../../lib/att-session";
+import { logAdminAction } from "../../lib/audit";
 
 export const config = { path: "/api/admin-att-record-edit" };
 
@@ -54,8 +55,9 @@ function parseTs(v: any): string | null | undefined {
 }
 
 export default async function handler(req: Request, _ctx: Context) {
-  if (req.method !== "PATCH") {
-    return jsonErr("PATCH만 지원합니다", 405);
+  const method = req.method;
+  if (method !== "PATCH" && method !== "POST" && method !== "DELETE") {
+    return jsonErr("지원하지 않는 메서드입니다 (PATCH 수정 / POST 생성 / DELETE 삭제)", 405);
   }
 
   const auth = await requireAdmin(req);
@@ -65,8 +67,13 @@ export default async function handler(req: Request, _ctx: Context) {
   }
 
   let body: any;
-  try { body = await req.json(); } catch { return jsonErr("요청 본문 파싱 실패", 400); }
+  try { body = await req.json(); } catch { body = {}; }
 
+  // POST = 기록 생성, DELETE = 기록 삭제 (슈퍼어드민 직접 CRUD)
+  if (method === "POST")   return createRecord(req, auth, body);
+  if (method === "DELETE") return deleteRecord(req, auth, body);
+
+  // ── 이하 PATCH: 기존 출퇴근 직접 수정 ──
   const recordId = Number(body.recordId);
   const reason = typeof body.reason === "string" ? body.reason.trim() : "";
 
@@ -204,4 +211,131 @@ export default async function handler(req: Request, _ctx: Context) {
   } catch (err) {
     return jsonStepErr("update", err);
   }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   POST — 슈퍼어드민이 직원 출퇴근 기록을 직접 '생성'
+   body: { memberUid, date, workMode?, checkInTime?, checkOutTime?, status?, note?, reason }
+   ────────────────────────────────────────────────────────────── */
+async function createRecord(req: Request, auth: any, body: any) {
+  const memberUid = body.memberUid != null ? String(body.memberUid) : "";
+  const date = typeof body.date === "string" ? body.date.trim() : "";
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+
+  if (!memberUid) return jsonErr("직원(memberUid) 필수", 400);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonErr("날짜(date) 형식 오류 (YYYY-MM-DD)", 400);
+  if (!reason) return jsonErr("사유(reason) 필수 — 어드민 생성 시 감사 추적용", 400);
+
+  let ci: string | null | undefined, co: string | null | undefined;
+  try { ci = parseTs(body.checkInTime); co = parseTs(body.checkOutTime); }
+  catch (e: any) { return jsonErr(e.message || "시각 형식 오류", 400); }
+  const effIn = ci ?? null;
+  const effOut = co ?? null;
+
+  const workMode = body.workMode ? String(body.workMode) : null;
+  const status = body.status ? String(body.status) : "NORMAL";
+  const note = body.note != null && body.note !== "" ? String(body.note) : null;
+
+  /* 같은 직원·날짜 중복 방지 (member_uid+date UNIQUE) */
+  try {
+    const dup = await db.execute(sql`
+      SELECT id FROM att_records WHERE member_uid = ${memberUid} AND date = ${date}::date LIMIT 1
+    `);
+    if ((((dup as any).rows ?? dup) as any[])[0]) {
+      return jsonErr("해당 직원의 그 날짜 기록이 이미 있습니다. 수정 기능을 이용하세요.", 409);
+    }
+  } catch (err) { return jsonStepErr("dup_check", err); }
+
+  /* 양쪽 시각이 다 있으면 근무시간·세션 계산 */
+  let workingMins: number | null = null;
+  let overtimeMins = 0;
+  let sessions: any[] = [];
+  if (effIn && effOut) {
+    try {
+      const policy = await getDefaultPolicy();
+      if (policy) {
+        const r = calcWorkingMins(new Date(effIn), new Date(effOut), {
+          dailyHours: Number(policy.dailyHours),
+          breakMins: policy.breakMins,
+          breakThresholdHours: Number(policy.breakThresholdHours),
+        });
+        workingMins = r.workingMins;
+        overtimeMins = r.overtimeMins;
+      }
+    } catch (e) { console.warn("[admin-att-record-edit:create] 근무시간 계산 실패(무시):", e); }
+    sessions = rebuildSingleSession(effIn, effOut, {
+      inLat: null, inLng: null, outLat: null, outLng: null, workplaceId: null,
+    });
+  }
+
+  try {
+    const insRes = await db.execute(sql`
+      INSERT INTO att_records
+        (member_uid, date, work_mode, status, check_in_time, check_out_time,
+         working_mins, overtime_mins, is_manually_adjusted, note, sessions)
+      VALUES
+        (${memberUid}, ${date}::date, ${workMode}, ${status},
+         ${effIn}::timestamp, ${effOut}::timestamp,
+         ${workingMins}, ${overtimeMins}, TRUE, ${note}, ${JSON.stringify(sessions)}::jsonb)
+      RETURNING id, member_uid, date, check_in_time, check_out_time, work_mode, note,
+                status, working_mins, overtime_mins
+    `);
+    const created = (((insRes as any).rows ?? insRes) as any[])[0];
+
+    /* 이력 적재 (생성) */
+    try {
+      const adminUid = String(auth.ctx.member.id);
+      await db.execute(sql`
+        INSERT INTO att_record_admin_edits
+          (record_id, edited_by, new_check_in, new_check_out, new_work_mode, reason)
+        VALUES
+          (${created.id}, ${adminUid}, ${effIn}::timestamp, ${effOut}::timestamp,
+           ${workMode}, ${"[기록 생성] " + reason})
+      `);
+    } catch (e) { console.warn("[admin-att-record-edit:create] 이력 적재 실패:", e); }
+
+    return jsonOk({ record: created, created: true });
+  } catch (err) {
+    return jsonStepErr("insert", err);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DELETE — 슈퍼어드민이 출퇴근 기록을 '삭제'
+   body: { recordId, reason }
+   (att_record_admin_edits는 record FK cascade로 함께 삭제되므로 일반 감사 로그로 추적)
+   ────────────────────────────────────────────────────────────── */
+async function deleteRecord(req: Request, auth: any, body: any) {
+  const recordId = Number(body.recordId);
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (!recordId || !Number.isFinite(recordId)) return jsonErr("recordId 필수", 400);
+  if (!reason) return jsonErr("사유(reason) 필수 — 어드민 삭제 시 감사 추적용", 400);
+
+  let old: any;
+  try {
+    const r = await db.execute(sql`
+      SELECT id, member_uid, date, check_in_time, check_out_time, work_mode, status
+      FROM att_records WHERE id = ${recordId} LIMIT 1
+    `);
+    old = (((r as any).rows ?? r) as any[])[0];
+    if (!old) return jsonErr("해당 출퇴근 기록을 찾을 수 없습니다", 404);
+  } catch (err) { return jsonStepErr("select_old", err); }
+
+  try {
+    await db.execute(sql`DELETE FROM att_records WHERE id = ${recordId}`);
+  } catch (err) { return jsonStepErr("delete", err); }
+
+  /* 감사 로그 (삭제는 되돌릴 수 없으므로 audit_logs에 영구 기록) */
+  try {
+    const m = auth.ctx.member;
+    await logAdminAction(req, Number(m.id), String(m.name ?? m.username ?? m.id), "att_record_delete", {
+      target: `att_records#${recordId}`,
+      detail: {
+        memberUid: old.member_uid, date: old.date,
+        workMode: old.work_mode, status: old.status, reason,
+      },
+    });
+  } catch (e) { console.warn("[admin-att-record-edit:delete] 감사 로그 실패:", e); }
+
+  return jsonOk({ deleted: recordId });
 }
