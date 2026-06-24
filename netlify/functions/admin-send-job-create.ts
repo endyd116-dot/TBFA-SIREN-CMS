@@ -8,6 +8,7 @@ import { db } from "../../db";
 import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { validateSendJob } from "../../lib/communication-send";
+import { triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
 export const config = { path: "/api/admin-send-job-create" };
 
@@ -211,8 +212,29 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("insert_job_no_id", lastInsertError || "INSERT는 성공했으나 id를 받지 못함");
   }
 
+  /* ★ 2026-06-25 즉시 발송 = 이벤트 기반: "지금 발송" 작업은 발송 큐 적재 직후
+     백그라운드 드레이너를 즉시 fire(지연 0). 예약 발송은 도래 시 30분 안전망 크론이 처리.
+     fire 실패해도 안전망 크론이 줍게 이중화 → 발송 누락 0(여기서 throw 금지). */
+  let dispatch: { ok: boolean; status: number; error?: string } | null = null;
+  if (scheduleType === "now") {
+    try {
+      dispatch = await triggerDispatchBackground();
+      if (!dispatch.ok) {
+        console.warn("[send-job-create] 즉시 발송 fire 실패(안전망 크론이 처리)", dispatch.status, dispatch.error);
+      }
+    } catch (err: any) {
+      console.warn("[send-job-create] 즉시 발송 fire 예외(안전망 크론이 처리)", String(err?.message || err));
+    }
+  }
+
   return new Response(
-    JSON.stringify({ ok: true, id: createdIds[0] || 0, ids: createdIds, channels }),
+    JSON.stringify({
+      ok: true,
+      id: createdIds[0] || 0,
+      ids: createdIds,
+      channels,
+      dispatched: dispatch?.ok ?? false,
+    }),
     { status: 200, headers: JSON_HEADER },
   );
 }

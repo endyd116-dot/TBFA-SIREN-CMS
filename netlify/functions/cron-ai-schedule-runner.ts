@@ -146,5 +146,6 @@ export default async (_req: Request, _ctx: Context) => {
 };
 
 export const config = {
-  schedule: "*/10 * * * *",
+  // ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. AI 예약 명령은 30분 지연 무해.
+  schedule: "*/30 * * * *",
 };

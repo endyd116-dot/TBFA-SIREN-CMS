@@ -1,5 +1,7 @@
 // netlify/functions/cron-notification-retry.ts
-// Phase 8 — 알림 발송 실패 재시도 cron (10분 주기 — 2026-06-13 DB 비용 절감: 1분 → 10분)
+// Phase 8 — 알림 발송 실패 재시도 cron (30분 주기)
+// ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. 실패분 재시도는 초단위가 아니라
+//   30분 지연 무해. 빈발 폴링이 Neon DB를 24/7 깨우던 것을 완화(깨우기 144→48회/일).
 //
 // 동작:
 // - status='pending' AND next_retry_at <= now() AND attempt < 3 인 로그를 최대 50건 처리
@@ -71,5 +73,5 @@ export default async (_req: Request) => {
 };
 
 export const config = {
-  schedule: "*/10 * * * *",
+  schedule: "*/30 * * * *",
 };

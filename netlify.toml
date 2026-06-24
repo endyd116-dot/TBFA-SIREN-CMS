@@ -351,19 +351,18 @@
 [functions."cron-ai-logs-cleanup"]
   schedule = "0 18 * * *"
 
-# ★ Phase 8: 알림 발송 실패 재시도 cron (10분 주기)
-# ★ 2026-06-13 DB 비용 절감: 1분 → 10분. 빈발 크론이 Neon autosuspend(5분)를 매분 깨워
-#   DB 24시간 상시가동 → 크레딧 폭증. 빈발 크론 전부를 :00/:10/:30 등 같은 분(minute)에
-#   정렬해 DB가 사이클마다 잠들 수 있게 함 (가동 약 50% 절감).
+# ★ Phase 8: 알림 발송 실패 재시도 cron (30분 주기)
+# ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. 실패분 재시도는 30분 지연 무해.
+#   빈발 폴링이 Neon autosuspend(5분)를 무력화해 DB 24/7 가동 → 크레딧 폭증을 완화.
 [functions."cron-notification-retry"]
-  schedule = "*/10 * * * *"
+  schedule = "*/30 * * * *"
 
-# ★ Phase 10 R3: 발송 큐 디스패처 (10분 주기) — 발송 작업을 실제로 픽업·처리
-# 함수 파일 내에 export const config = { schedule } 있지만 일부 환경에서 인식 안 됨 →
-# netlify.toml에도 명시해 이중 등록 (2026-05-16)
-# ★ 2026-06-13 DB 비용 절감: 1분 → 10분 (즉시 발송 최대 10분 내 — 시간당 1,500건 처리 유지)
+# ★ Phase 10 R3: 발송 큐 디스패처 — 안전망 크론 (30분 주기)
+# ★ 2026-06-25 DB 비용 절감(wake-on-demand): */10 상시 폴링 → 이벤트 기반 전환.
+#   즉시 발송은 admin-send-job-create가 발송 큐 적재 직후 백그라운드 드레이너를 즉시 fire(지연 0).
+#   이 크론은 안전망 — 예약 도래분·즉시-fire 누락분이 있을 때만 백그라운드를 깨우고 종료(DB 다시 잠).
 [functions."cron-communication-send-dispatcher"]
-  schedule = "*/10 * * * *"
+  schedule = "*/30 * * * *"
 
 # ★ 라운드 11: 워크스페이스 태스크 리마인더 (30분 주기) — reminder_config.remindAt 기반
 # ★ 2026-06-13 DB 비용 절감: 15분 → 30분 (:00/:30 정렬 — 리마인더 최대 30분 지연 허용)
@@ -400,9 +399,10 @@
 # ============================================================
 # Dev 설정
 # ============================================================
-# ★ Layer 4: AI 스케줄 명령 자동 실행 — 10분마다
+# ★ Layer 4: AI 스케줄 명령 자동 실행 — 30분마다
+# ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. AI 예약 명령은 30분 지연 무해.
 [functions."cron-ai-schedule-runner"]
-  schedule = "*/10 * * * *"
+  schedule = "*/30 * * * *"
 
 # ★ Phase 27: 근태 오전 알림 — 09:30 KST (00:30 UTC) 출근 미체크
 [functions."cron-att-morning"]

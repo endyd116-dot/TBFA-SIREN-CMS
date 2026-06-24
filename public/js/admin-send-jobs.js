@@ -8,6 +8,7 @@
 
   const STATUS_LABEL = {
     pending:    "대기",
+    preparing:  "준비 중",
     processing: "진행 중",
     completed:  "완료",
     failed:     "실패",

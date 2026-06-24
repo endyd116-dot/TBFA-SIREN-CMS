@@ -9,6 +9,7 @@ import { requireAdmin } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import { triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
 export const config = { path: "/api/admin-send-job-retry-failed" };
 
@@ -100,6 +101,9 @@ export default async function handler(req: Request) {
              updated_at   = NOW()
        WHERE id = ${jobId}
     `);
+
+    /* ★ 2026-06-25 즉시 처리: 30분 안전망 크론 대기 없이 백그라운드 드레이너 즉시 fire. */
+    void triggerDispatchBackground().catch(() => {});
 
     return new Response(
       JSON.stringify({
