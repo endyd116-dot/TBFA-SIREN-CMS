@@ -1,16 +1,19 @@
 // netlify/functions/cron-auto-trigger-evaluator.ts
-// Phase 10 R4 — 자동 트리거 평가기 (30분 단위)
+// Phase 10 R4 — 자동 트리거 평가기 (1시간 단위·:00 정렬)
 //
 // 활성화된 모든 트리거를 순회하며:
 //   1. evaluateTrigger → 발송 대상 후보 추출 + 쿨다운 필터
 //   2. 대상 있으면 executeTrigger → send_job + recipients 생성
 //   3. auto_trigger_runs에 실행 기록
+//   4. 발송 job이 생성됐으면 발송 큐 백그라운드 드레이너를 즉시 fire(자동 트리거 발송 지연 0)
 
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { evaluateTrigger, executeTrigger, type TriggerType } from "../../lib/communication-auto-trigger";
+import { triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
-export const config = { schedule: "*/30 * * * *" };
+// ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬·:30 wake 제거).
+export const config = { schedule: "0 * * * *" };
 
 export default async function handler(_req: Request) {
   const t0 = Date.now();
@@ -127,6 +130,14 @@ export default async function handler(_req: Request) {
     } catch (e) {
       console.warn(`[cron-auto-trigger] runs 기록 실패 triggerId=${trigger.id}`, e);
     }
+  }
+
+  /* ★ 2026-06-25: 트리거가 발송 job을 만들었으면 발송 큐 드레이너 즉시 fire.
+     (안전망 디스패처가 1시간 주기로 바뀌어, fire 없으면 자동 트리거 발송이 최대 1시간 지연됨)
+     fire 실패해도 안전망 크론이 줍게 이중화. */
+  if (stats.triggered > 0) {
+    try { await triggerDispatchBackground(); }
+    catch (e) { console.warn("[cron-auto-trigger] 드레이너 fire 실패(안전망이 처리)", e); }
   }
 
   console.log(

@@ -12,7 +12,8 @@
 
 import { hasDispatchWork, triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
-export const config = { schedule: "*/30 * * * *" };
+// ★ 2026-06-25 DB 비용 절감 2차: 30분 → 1시간(:00 정렬·:30 wake 제거). 예약 발송만 최대 1시간 지연(즉시 발송은 이벤트로 무관).
+export const config = { schedule: "0 * * * *" };
 
 export default async function handler(_req: Request) {
   const t0 = Date.now();

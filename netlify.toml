@@ -351,23 +351,25 @@
 [functions."cron-ai-logs-cleanup"]
   schedule = "0 18 * * *"
 
-# ★ Phase 8: 알림 발송 실패 재시도 cron (30분 주기)
-# ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. 실패분 재시도는 30분 지연 무해.
-#   빈발 폴링이 Neon autosuspend(5분)를 무력화해 DB 24/7 가동 → 크레딧 폭증을 완화.
+# ★ Phase 8: 알림 발송 실패 재시도 cron (1시간 주기·:00 정렬)
+# ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간. Netlify 관리형 Neon은
+#   autosuspend 최저가 5분이라 더 못 낮춤 → 대신 깨우는 횟수를 줄여 5분 잠을 더 길게.
+#   :30 깨우기를 없애려 모든 빈발 크론을 :00로 정렬(시간당 1회 wake). 실패 재시도 1시간 지연 무해.
 [functions."cron-notification-retry"]
-  schedule = "*/30 * * * *"
+  schedule = "0 * * * *"
 
-# ★ Phase 10 R3: 발송 큐 디스패처 — 안전망 크론 (30분 주기)
+# ★ Phase 10 R3: 발송 큐 디스패처 — 안전망 크론 (1시간 주기·:00 정렬)
 # ★ 2026-06-25 DB 비용 절감(wake-on-demand): */10 상시 폴링 → 이벤트 기반 전환.
 #   즉시 발송은 admin-send-job-create가 발송 큐 적재 직후 백그라운드 드레이너를 즉시 fire(지연 0).
 #   이 크론은 안전망 — 예약 도래분·즉시-fire 누락분이 있을 때만 백그라운드를 깨우고 종료(DB 다시 잠).
+#   2차: 30분 → 1시간(:00 정렬). 예약 발송만 최대 1시간 지연(즉시 발송은 이벤트로 무관).
 [functions."cron-communication-send-dispatcher"]
-  schedule = "*/30 * * * *"
+  schedule = "0 * * * *"
 
-# ★ 라운드 11: 워크스페이스 태스크 리마인더 (30분 주기) — reminder_config.remindAt 기반
-# ★ 2026-06-13 DB 비용 절감: 15분 → 30분 (:00/:30 정렬 — 리마인더 최대 30분 지연 허용)
+# ★ 라운드 11: 워크스페이스 태스크 리마인더 (1시간 주기·:00 정렬) — reminder_config.remindAt 기반
+# ★ 2026-06-25 DB 비용 절감 2차: 30분 → 1시간(:00 정렬·:30 wake 제거). 리마인더 최대 1시간 지연 허용.
 [functions."cron-workspace-task-reminder"]
-  schedule = "*/30 * * * *"
+  schedule = "0 * * * *"
 
 # ★ P2 순직 인정 지원: 기한 임박·소멸시효 + 저장용량 임계 알림 (매일 KST 08:00 = UTC 23:00)
 [functions."cron-martyrdom-deadline"]
@@ -399,10 +401,10 @@
 # ============================================================
 # Dev 설정
 # ============================================================
-# ★ Layer 4: AI 스케줄 명령 자동 실행 — 30분마다
-# ★ 2026-06-25 DB 비용 절감(wake-on-demand): 10분 → 30분. AI 예약 명령은 30분 지연 무해.
+# ★ Layer 4: AI 스케줄 명령 자동 실행 — 1시간 주기·:00 정렬
+# ★ 2026-06-25 DB 비용 절감 2차(wake-on-demand): 30분 → 1시간(:00 정렬). AI 예약 명령 1시간 지연 무해.
 [functions."cron-ai-schedule-runner"]
-  schedule = "*/30 * * * *"
+  schedule = "0 * * * *"
 
 # ★ Phase 27: 근태 오전 알림 — 09:30 KST (00:30 UTC) 출근 미체크
 [functions."cron-att-morning"]
@@ -433,8 +435,9 @@
   schedule = "0 18 * * *"
 [functions."cron-payroll-monthly"]
   schedule = "0 17 1 * *"
+# ★ 2026-06-25 DB 비용 절감 2차: 30분 → 1시간(:00 정렬·:30 wake 제거). 자동 트리거 평가 1시간 지연 무해.
 [functions."cron-auto-trigger-evaluator"]
-  schedule = "*/30 * * * *"
+  schedule = "0 * * * *"
 [functions."cron-att-late-streak"]
   schedule = "5 23 * * *"
 [functions."cron-att-remote-streak"]

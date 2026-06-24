@@ -80,3 +80,20 @@
 2. 대량 그룹발송도 백그라운드가 끝까지 완주(중간에 멈추지 않음).
 3. 유휴 시간대 Neon Compute(GB-hrs) 급감(다음 청구주기 그래프로 확인).
 4. 실패 재발송·작업 재시작도 즉시 반영.
+
+---
+
+## 8. 2차 — 빈발 크론 :00 정렬 (2026-06-25 · Swain 승인)
+
+**핵심 발견**: Netlify 관리형 Neon은 **autosuspend 최저가 5분**(Configure 옵션이 5분/15분/1시간/3시간/Always On뿐 — 5분 미만 불가). 또한 tbfa DB는 Netlify 관리형 별도 Neon 조직 소속이라 사용자 Neon API 키(PLEO org: automarketing-us·hamkkework-on·icy-union만 접근)로는 제어 불가 — 엔드포인트 `ep-autumn-mud-ajr6byqs`는 그 키로 404. (인계 문서의 `ep-polished-pond`는 사실 AutoMarketing DB였음.)
+
+→ autosuspend는 이미 최적(못 낮춤). **유일한 추가 지렛대 = 깨우는 횟수를 줄여 5분 잠을 더 길게.**
+
+**조치**: 1차 후 남은 sub-hourly 크론 5종을 **30분 → 1시간(:00 정렬)**로. :30 wake를 없애 **시간당 wake 2회 → 1회**.
+- `cron-notification-retry`·`cron-ai-schedule-runner`·`cron-auto-trigger-evaluator`·`cron-communication-send-dispatcher`(안전망)·`cron-workspace-task-reminder` → 모두 `0 * * * *`.
+- 남은 `cron-tracking-stats-rollup`(`0 */6`)·`cron-kakao-template-status`(`0 * * * *`)도 :00 정렬이라 같은 wake에 흡수.
+- **트레이드오프**: 예약발송·태스크 리마인더·자동 트리거 발송만 최대 1시간 지연. **즉시 발송·결제·후원 알림은 영향 0**(이벤트로 즉시).
+- 자동 트리거(`cron-auto-trigger-evaluator`)는 job 생성 시 드레이너를 즉시 fire하도록 보강 → 자동 발송 지연 0 유지.
+
+**기대치**: 19 GB-hr/일 → 약 2~3 GB-hr/일.
+**불변**: 사람 트래픽(접속·로그인·결제·API)은 언제나 Neon이 자동 wake(~0.5s) → 정상 작동. 크론 변경은 "유휴 시 불필요한 wake"만 줄임.
