@@ -247,7 +247,10 @@
     document.getElementById('awmScheduleMode')?.addEventListener('change', (e) => {
       const hybrid = document.getElementById('awmHybridConfig');
       const wpWrap = document.getElementById('awmScheduleWorkplaceWrap');
-      if (hybrid) hybrid.style.display = e.target.value === 'HYBRID' ? '' : 'none';
+      /* ★ 2026-06-25 FIX: '.awm-schedule-hybrid'는 CSS에 display:none이 걸려 있어
+         style.display=''(인라인 제거)면 CSS none으로 되돌아가 영영 안 보임 → 'block' 명시.
+         (혼합 선택 시 요일별 재택/사무실 선택 UI가 통합 후 사라진 원인) */
+      if (hybrid) hybrid.style.display = e.target.value === 'HYBRID' ? 'block' : 'none';
       if (wpWrap) wpWrap.style.display = e.target.value === 'FIELD' ? '' : 'none';
     });
 
@@ -317,7 +320,7 @@
         if (modeSel) modeSel.value = row.recurringRule[k];
       });
     }
-    if (hybrid) hybrid.style.display = row.workMode === 'HYBRID' ? '' : 'none';
+    if (hybrid) hybrid.style.display = row.workMode === 'HYBRID' ? 'block' : 'none';
 
     // 버튼·제목 수정 모드로
     const saveBtn = document.getElementById('awmBtnSaveSchedule');
