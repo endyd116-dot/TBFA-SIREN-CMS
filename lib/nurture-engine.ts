@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { executeTrigger } from "./communication-auto-trigger";
 import { triggerDispatchBackground } from "./communication-dispatcher-core";
+import { sendNurtureKakao } from "./kakao-nurture-notice";
 
 const GRACE_DAYS = 2;   // 단계 due 윈도우(빈도 상한에 밀린 단계 만회 여유)
 const DAILY_CAP = 1;    // 하루 1통
@@ -128,8 +129,15 @@ async function sendMulti(due: any[], journeyId: number, name: string, primaryCh:
   }
   let any = false; let emailJobId: number | null = null;
   if (prim.length && primaryTpl) {
-    try { const r = await executeTrigger({ id: journeyId, name, templateId: primaryTpl, channel: primaryCh }, prim, { unsubscribe: true }); if (r.jobId) any = true; }
-    catch (e: any) { console.error("[nurture] 1차 발송 실패:", e?.message || e); }
+    if (primaryCh === "kakao") {
+      /* ★ 우회: 알림톡은 등록 템플릿만 → 대량발송 디스패처가 정책상 스킵.
+         "소식 도착 알림"(정보성) 알림톡 직접 발송 + 실제 본문은 SMS 대체발송/문자 강등. */
+      try { const r = await sendNurtureKakao(prim.map((mid) => ({ member_id: mid })), primaryTpl, name); if (r.ok) any = true; }
+      catch (e: any) { console.error("[nurture] 카톡 우회 발송 실패:", e?.message || e); }
+    } else {
+      try { const r = await executeTrigger({ id: journeyId, name, templateId: primaryTpl, channel: primaryCh }, prim, { unsubscribe: true }); if (r.jobId) any = true; }
+      catch (e: any) { console.error("[nurture] 1차 발송 실패:", e?.message || e); }
+    }
   }
   if (mail.length && emailTpl) {
     try { const r = await executeTrigger({ id: journeyId, name, templateId: emailTpl, channel: "email" }, mail, { unsubscribe: true }); if (r.jobId) { any = true; emailJobId = r.jobId; } }
