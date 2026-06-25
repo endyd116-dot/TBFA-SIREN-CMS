@@ -19,7 +19,8 @@ import {
 export const config = { path: "/api/kakao-register-nurture-notice" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
 
-/* 정보성 "소식 도착 알림" 본문 — #{이름} 1변수. 풍부한 실제 내용은 문자/메일로 전달, 알림톡은 도착 안내. */
+/* 정보성 "소식 도착 알림" 본문 — #{이름} 1변수. 풍부한 실제 내용은 문자·이메일·마이페이지 알림함으로
+   전달, 알림톡은 도착 안내 + 버튼으로 알림함의 실제 소식을 연다(B안). */
 const NOTICE_CONTENT =
 `[교사유가족협의회]
 
@@ -27,9 +28,9 @@ const NOTICE_CONTENT =
 교사유가족협의회입니다.
 
 #{이름}님께 전해드리고 싶은 협의회 소식과 활동 이야기를
-문자·이메일로 보내드렸습니다.
+문자·이메일과 마이페이지 알림함으로 보내드렸습니다.
 
-아래 버튼에서 확인하실 수 있습니다.
+아래 버튼을 누르시면 받은 소식을 바로 확인하실 수 있습니다.
 선생님들을 기억하고 유가족과 함께해 주셔서 깊이 감사드립니다.`;
 
 const NOTICE_NAME = "너처링 소식 도착 알림";
@@ -38,7 +39,7 @@ const CATEGORY_CODE = "004001";
 const EMPHASIZE_TITLE = "협의회 소식이 도착했어요";
 const EMPHASIZE_SUBTITLE = "교사유가족협의회";
 const BUTTONS = [
-  { buttonType: "WL", buttonName: "소식 확인하기", linkMo: "https://tbfa.co.kr/mypage.html", linkPc: "https://tbfa.co.kr/mypage.html" },
+  { buttonType: "WL", buttonName: "소식 확인하기", linkMo: "https://tbfa.co.kr/mypage.html#notifications", linkPc: "https://tbfa.co.kr/mypage.html#notifications" },
 ];
 
 function out(obj: object, status = 200) {

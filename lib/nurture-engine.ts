@@ -16,6 +16,39 @@ import { db } from "../db";
 import { executeTrigger } from "./communication-auto-trigger";
 import { triggerDispatchBackground } from "./communication-dispatcher-core";
 import { sendNurtureKakao } from "./kakao-nurture-notice";
+import { createNotification } from "./notify";
+import { renderTemplate } from "./template-render";
+import { buildMemberRenderData } from "./communication-send";
+
+/* 너처링 소식을 마이페이지 알림함(인앱)에도 기록으로 남김 — 문자·메일은 흘러가도 인앱은 남아
+   신뢰·브랜드 축적. 카톡 알림톡 '확인하기' 버튼(→/mypage.html#notifications)이 여는 실제 소식.
+   계정 내 수신함이라 마케팅 동의 게이트 불필요(블랙은 상위 due 쿼리에서 이미 제외). */
+const INAPP_LINK = "/mypage.html#notifications";
+async function deliverNurtureInApp(memberIds: number[], primaryTpl: number | null, _label: string): Promise<void> {
+  if (!memberIds.length || !primaryTpl) return;
+  try {
+    const tRes: any = await db.execute(sql`SELECT body_template, variables FROM communication_templates WHERE id = ${primaryTpl} AND is_active = true LIMIT 1`);
+    const tpl = (tRes?.rows ?? tRes ?? [])[0];
+    if (!tpl) return;
+    const vars: any[] = Array.isArray(tpl.variables) ? tpl.variables : [];
+    const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${memberIds}::int[])`);
+    const mMap = new Map<number, any>();
+    for (const m of (mRes?.rows ?? mRes ?? [])) mMap.set(Number(m.id), m);
+    for (const mid of memberIds) {
+      const member = mMap.get(mid); if (!member) continue;
+      const data = buildMemberRenderData({ id: member.id, name: member.name, email: member.email, phone: member.phone });
+      const raw = renderTemplate(String(tpl.body_template || ""), vars, data).rendered;
+      const text = String(raw).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 480);
+      if (!text) continue;
+      try {
+        await createNotification({
+          recipientId: mid, recipientType: "user", category: "donation", severity: "info",
+          title: "교사유가족협의회 소식이 도착했어요", message: text, link: INAPP_LINK,
+        });
+      } catch (e: any) { console.warn(`[nurture] 인앱 알림 실패 mid=${mid}: ${e?.message || e}`); }
+    }
+  } catch (e: any) { console.error("[nurture] 인앱 전달 실패:", e?.message || e); }
+}
 
 const GRACE_DAYS = 2;   // 단계 due 윈도우(빈도 상한에 밀린 단계 만회 여유)
 const DAILY_CAP = 1;    // 하루 1통
@@ -142,6 +175,13 @@ async function sendMulti(due: any[], journeyId: number, name: string, primaryCh:
   if (mail.length && emailTpl) {
     try { const r = await executeTrigger({ id: journeyId, name, templateId: emailTpl, channel: "email" }, mail, { unsubscribe: true }); if (r.jobId) { any = true; emailJobId = r.jobId; } }
     catch (e: any) { console.error("[nurture] 보조 메일 발송 실패:", e?.message || e); }
+  }
+  /* ★ B안(2026-06-26): 모든 너처링 소식을 마이페이지 알림함(인앱)에도 기록 — 카톡 '확인하기' 버튼이 여는 실제 소식.
+     대상 회원 전체(due)에 남김(인앱은 계정 수신함이라 채널 도달성 무관). 본문은 1차 텍스트 템플릿 기준. */
+  if (primaryTpl) {
+    const allIds = due.map((d) => Number(d.member_id)).filter(Boolean);
+    await deliverNurtureInApp(allIds, primaryTpl, name);
+    if (allIds.length) any = true; // 인앱은 항상 도달 → 단계 발송 성립
   }
   return { ok: any, emailJobId };
 }
