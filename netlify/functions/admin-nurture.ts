@@ -115,6 +115,28 @@ export default async function handler(req: Request) {
         await db.execute(sql`DELETE FROM nurture_evergreen_rules WHERE id=${id}`);
         return new Response(JSON.stringify({ ok: true }), { status: 200, headers: H });
       }
+      case "analytics": {
+        /* 성과 대시보드 — 여정 퍼널·발송·채널·단계별 */
+        const journeys = rows(await db.execute(sql`SELECT id, segment, name, is_active AS "isActive" FROM nurture_journeys ORDER BY id`));
+        const funnel = rows(await db.execute(sql`
+          SELECT journey_id AS "journeyId",
+            COUNT(*)::int AS enrolled,
+            COUNT(*) FILTER (WHERE status='active')::int AS active,
+            COUNT(*) FILTER (WHERE status='converted')::int AS converted,
+            COUNT(*) FILTER (WHERE status='exited')::int AS exited
+          FROM nurture_enrollments GROUP BY journey_id`));
+        const sentByJourney = rows(await db.execute(sql`
+          SELECT e.journey_id AS "journeyId", COUNT(s.id)::int AS sent
+          FROM nurture_sends s JOIN nurture_enrollments e ON e.id = s.enrollment_id
+          GROUP BY e.journey_id`));
+        const stepSends = rows(await db.execute(sql`SELECT step_id AS "stepId", COUNT(*)::int AS cnt FROM nurture_sends WHERE step_id IS NOT NULL GROUP BY step_id`));
+        const channelTotals = rows(await db.execute(sql`SELECT channel, COUNT(*)::int AS cnt FROM nurture_sends GROUP BY channel`));
+        const recent = rows(await db.execute(sql`
+          SELECT COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days')::int AS d7,
+                 COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days')::int AS d30,
+                 COUNT(*)::int AS total FROM nurture_sends`))[0] || {};
+        return new Response(JSON.stringify({ ok: true, data: { journeys, funnel, sentByJourney, stepSends, channelTotals, recent } }), { status: 200, headers: H });
+      }
       case "preview": {
         /* 오늘 실제로 무엇이 발송될지(dryRun) — 아무것도 안 보냄 */
         const summary = await runNurture({ dryRun: true });

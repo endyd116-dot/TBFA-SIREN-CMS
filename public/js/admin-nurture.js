@@ -33,6 +33,7 @@
 
   function render() {
     document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === curTab); });
+    if (curTab === 'analytics') { renderAnalytics(); return; }
     var segs = TAB_SEG[curTab];
     var html = '';
     segs.forEach(function (seg) {
@@ -43,6 +44,34 @@
     if (!html) html = '<div class="hint">이 세그먼트 여정이 없습니다. (migrate-nurture-schema 필요)</div>';
     document.getElementById('content').innerHTML = html;
     wire();
+  }
+
+  function renderAnalytics() {
+    var box = document.getElementById('content');
+    box.innerHTML = '<div class="hint">성과 불러오는 중…</div>';
+    var SEGNAME = { regular: '정기', prospect_onetime: '예비-일시', prospect_cancelled: '예비-이탈', potential: '잠재' };
+    api('POST', { action: 'analytics' }).then(function (r) {
+      if (!r.ok) { box.innerHTML = '<div class="hint">성과 불러오기 실패</div>'; return; }
+      var d = r.data.data || {};
+      var fm = {}, sm = {}, ch = {}; var rec = d.recent || {};
+      (d.funnel || []).forEach(function (f) { fm[f.journeyId] = f; });
+      (d.sentByJourney || []).forEach(function (s) { sm[s.journeyId] = s.sent; });
+      (d.channelTotals || []).forEach(function (c) { ch[c.channel] = c.cnt; });
+      var h = '';
+      h += '<div class="jcard"><div class="jname">📈 전체 발송</div>';
+      h += '<div class="kpi" style="font-size:14px;margin-top:6px">최근 7일 <b>' + (rec.d7 || 0) + '</b>건 · 30일 <b>' + (rec.d30 || 0) + '</b>건 · 누적 <b>' + (rec.total || 0) + '</b>건</div>';
+      h += '<div class="kpi" style="margin-top:8px">채널: 💬 문자 <b>' + (ch.sms || 0) + '</b> · 📨 카톡 <b>' + (ch.kakao || 0) + '</b> · 📧 메일 <b>' + (ch.email || 0) + '</b> · 🔔 앱 <b>' + (ch.inapp || 0) + '</b></div></div>';
+      (d.journeys || []).forEach(function (j) {
+        var f = fm[j.id] || {}; var sent = sm[j.id] || 0;
+        var conv = f.converted || 0; var denom = conv + (f.active || 0) + (f.exited || 0);
+        var rate = denom ? Math.round(conv * 1000 / denom) / 10 : 0;
+        h += '<div class="jcard"><div class="jhead"><div class="jname">' + esc(SEGNAME[j.segment] || j.segment) + ' — ' + esc(j.name) + '</div>';
+        h += '<div class="kpi">' + (j.isActive ? '<span style="color:#1a8b46">발송 ON</span>' : '<span style="color:#c47a00">OFF</span>') + '</div></div>';
+        h += '<div class="kpi" style="font-size:13.5px;margin-top:6px">등록 <b>' + (f.enrolled || 0) + '</b> · 활성 <b>' + (f.active || 0) + '</b> · 전환 <b>' + conv + '</b> · 이탈 <b>' + (f.exited || 0) + '</b> · 발송 <b>' + sent + '</b>건</div>';
+        h += '<div class="kpi" style="margin-top:4px">전환율 <b style="color:#7a1f2b">' + rate + '%</b> <span class="hint">(전환 ÷ (전환+활성+이탈))</span></div></div>';
+      });
+      box.innerHTML = h;
+    }).catch(function () { box.innerHTML = '<div class="hint">성과 불러오기 실패</div>'; });
   }
 
   function journeyCard(j) {
