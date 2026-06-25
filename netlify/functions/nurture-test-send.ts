@@ -136,6 +136,24 @@ export default async (req: Request, _ctx: Context) => {
       engineSummary: summary, note: summary.stepsFired > 0 ? "엔진이 발송 큐에 적재(디스패처가 곧 전송)" : "발송 0 — 도달성/조건 확인" });
   }
 
+  /* ── 발송결과 조회: 이 회원 최근 수신자 상태·에러 (시크릿) ── */
+  if (action === "status") {
+    if (!authed) return out({ ok: false, error: "시크릿 불일치" }, 403);
+    const m = await findMember();
+    if (!m) return out({ ok: false, error: "회원 없음" }, 404);
+    const recips = rows(await db.execute(sql`
+      SELECT r.id, r.job_id AS "jobId", r.channel, r.status, r.error, r.sent_at AS "sentAt", r.retry_count AS "retry",
+             LEFT(r.rendered_body, 50) AS "bodyHead", j.status AS "jobStatus", j.name AS "jobName"
+        FROM communication_send_recipients r JOIN communication_send_jobs j ON j.id = r.job_id
+       WHERE r.member_id = ${m.id} ORDER BY r.id DESC LIMIT 12`));
+    const ns = rows(await db.execute(sql`
+      SELECT s.id, s.step_id AS "stepId", s.channel, s.status, s.sent_at AS "sentAt"
+        FROM nurture_sends s JOIN nurture_enrollments e ON e.id = s.enrollment_id
+       WHERE e.member_id = ${m.id} ORDER BY s.id DESC LIMIT 12`));
+    return out({ ok: true, action: "status", memberId: m.id, sender: process.env.SOLAPI_SENDER || "(미설정)",
+      recipients: recips, nurtureSends: ns });
+  }
+
   /* ── 진단 ── */
   const member = await findMember();
   const jid = await regularJourneyId();
