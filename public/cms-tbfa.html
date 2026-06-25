@@ -492,6 +492,7 @@ if (window.self !== window.top) {
           <li><a href="#donor-regular" data-tab="donor-regular"><i>🔁</i><span>정기 후원자</span></a></li>
           <li><a href="#donor-prospect" data-tab="donor-prospect"><i>💡</i><span>예비 후원자</span></a></li>
           <li><a href="#donor-potential" data-tab="donor-potential"><i>🌱</i><span>잠재 후원자</span></a></li>
+          <li><a href="#nurture" data-tab="nurture"><i>💌</i><span>후원자 너처링</span></a></li>
           <li><a href="#import" data-tab="import"><i>📥</i><span>입금 매칭·통과</span></a></li>
           <li><a href="#hyosung" data-tab="hyosung"><i>🏦</i><span>효성 자동이체</span></a></li>
           <li><a href="#toss-billing" data-tab="toss-billing"><i>💳</i><span>KICC 자동결제</span></a></li>
@@ -2020,6 +2021,11 @@ if (window.self !== window.top) {
       <!-- ============ 알림 발송 관리 ============ -->
       <!-- ============ 📤 발송 작업 ============ -->
 
+      <!-- ============ 💌 후원자 너처링 (iframe 통합) ============ -->
+      <section class="cms-page nf-iframe-page" id="page-nurture">
+        <iframe class="nf-iframe" data-nf-src="/admin-nurture.html" title="후원자 너처링"></iframe>
+      </section>
+
       <!-- ============ 알림 발송 5탭 (원본 페이지를 iframe으로 통합) ============ -->
       <section class="cms-page nf-iframe-page" id="page-send-jobs">
         <iframe class="nf-iframe" data-nf-src="/admin-send-jobs.html" title="발송 작업"></iframe>
@@ -2531,7 +2537,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260626-kicc-label"></script>
+  <script src="/js/cms-tbfa.js?v=20260626-nurture"></script>
   <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->

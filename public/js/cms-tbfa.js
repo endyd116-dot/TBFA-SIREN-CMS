@@ -259,6 +259,7 @@
           'donor-regular': '🔁 정기 후원자 관리',
           'donor-prospect': '💡 예비 후원자 관리',
           'donor-potential': '🌱 잠재 후원자 관리',
+          'nurture': '💌 후원자 너처링',
           'notify-send': '📨 알림 발송',
           'send-jobs': '📤 발송 작업',
           'send-template': '📝 발송 템플릿',
@@ -317,6 +318,7 @@
         else if (tab === 'donor-regular') renderDonorRegular(); /* ★ Phase 2 C10 */
         else if (tab === 'donor-prospect') renderDonorProspect();
         else if (tab === 'donor-potential') renderPotentialDonor();
+        else if (tab === 'nurture') renderNurture();
         else if (tab === 'notify-send') renderNotifySend();
         else if (tab === 'send-jobs') renderSendJobs();
         else if (tab === 'send-template') renderSendTemplate();
@@ -2499,7 +2501,7 @@
      map에 없는 탭(dashboard 등)은 항상 표시. super_admin은 전체 표시. */
   const MENU_PERM = {
     members: 'siren_member',
-    'donor-regular': 'siren_donation', 'donor-prospect': 'siren_donation', 'donor-potential': 'siren_donation',
+    'donor-regular': 'siren_donation', 'donor-prospect': 'siren_donation', 'donor-potential': 'siren_donation', nurture: 'siren_donation',
     import: 'donation_confirm',
     hyosung: 'finance_view', 'toss-billing': 'finance_view',
     'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view',
@@ -3996,6 +3998,7 @@ function _nfLoadIframe(pageId) {
   }
   iframe.src = src;
 }
+function renderNurture()         { _nfLoadIframe('page-nurture'); }
 function renderSendJobs()        { _nfLoadIframe('page-send-jobs'); }
 function renderSendTemplate()    { _nfLoadIframe('page-send-template'); }
 function renderRecipientGroups() { _nfLoadIframe('page-recipient-groups'); }
