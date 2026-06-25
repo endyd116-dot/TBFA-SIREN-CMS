@@ -24,12 +24,13 @@ import { buildMemberRenderData } from "./communication-send";
    신뢰·브랜드 축적. 카톡 알림톡 '확인하기' 버튼(→/mypage.html#notifications)이 여는 실제 소식.
    계정 내 수신함이라 마케팅 동의 게이트 불필요(블랙은 상위 due 쿼리에서 이미 제외). */
 const INAPP_LINK = "/mypage.html#notifications";
-async function deliverNurtureInApp(memberIds: number[], primaryTpl: number | null, _label: string): Promise<void> {
-  if (!memberIds.length || !primaryTpl) return;
+async function deliverNurtureInApp(memberIds: number[], primaryTpl: number | null, _label: string): Promise<number> {
+  if (!memberIds.length || !primaryTpl) return 0;
+  let delivered = 0;
   try {
     const tRes: any = await db.execute(sql`SELECT body_template, variables FROM communication_templates WHERE id = ${primaryTpl} AND is_active = true LIMIT 1`);
     const tpl = (tRes?.rows ?? tRes ?? [])[0];
-    if (!tpl) return;
+    if (!tpl) return 0;
     const vars: any[] = Array.isArray(tpl.variables) ? tpl.variables : [];
     const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${memberIds}::int[])`);
     const mMap = new Map<number, any>();
@@ -41,13 +42,15 @@ async function deliverNurtureInApp(memberIds: number[], primaryTpl: number | nul
       const text = String(raw).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 480);
       if (!text) continue;
       try {
-        await createNotification({
+        const nid = await createNotification({
           recipientId: mid, recipientType: "user", category: "donation", severity: "info",
           title: "교사유가족협의회 소식이 도착했어요", message: text, link: INAPP_LINK,
         });
+        if (nid != null) delivered++;
       } catch (e: any) { console.warn(`[nurture] 인앱 알림 실패 mid=${mid}: ${e?.message || e}`); }
     }
   } catch (e: any) { console.error("[nurture] 인앱 전달 실패:", e?.message || e); }
+  return delivered;
 }
 
 const GRACE_DAYS = 2;   // 단계 due 윈도우(빈도 상한에 밀린 단계 만회 여유)
@@ -180,8 +183,8 @@ async function sendMulti(due: any[], journeyId: number, name: string, primaryCh:
      대상 회원 전체(due)에 남김(인앱은 계정 수신함이라 채널 도달성 무관). 본문은 1차 텍스트 템플릿 기준. */
   if (primaryTpl) {
     const allIds = due.map((d) => Number(d.member_id)).filter(Boolean);
-    await deliverNurtureInApp(allIds, primaryTpl, name);
-    if (allIds.length) any = true; // 인앱은 항상 도달 → 단계 발송 성립
+    const inappDelivered = await deliverNurtureInApp(allIds, primaryTpl, name);
+    if (inappDelivered > 0) any = true; // 실제 인앱 전달된 경우에만 발송 성립(실패 가림 방지)
   }
   return { ok: any, emailJobId };
 }

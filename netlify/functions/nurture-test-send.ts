@@ -156,6 +156,15 @@ export default async (req: Request, _ctx: Context) => {
       recipients: recips, nurtureSends: ns });
   }
 
+  /* ── migrate: recipient_group_id NOT NULL 제약 해제 (자동/시스템 발송용·시크릿·멱등) ── */
+  if (action === "migrate") {
+    if (!authed) return out({ ok: false, error: "시크릿 불일치" }, 403);
+    const before = rows(await db.execute(sql`SELECT is_nullable FROM information_schema.columns WHERE table_name='communication_send_jobs' AND column_name='recipient_group_id'`))[0];
+    await db.execute(sql`ALTER TABLE communication_send_jobs ALTER COLUMN recipient_group_id DROP NOT NULL`);
+    const after = rows(await db.execute(sql`SELECT is_nullable FROM information_schema.columns WHERE table_name='communication_send_jobs' AND column_name='recipient_group_id'`))[0];
+    return out({ ok: true, action: "migrate", column: "recipient_group_id", before: before?.is_nullable, after: after?.is_nullable });
+  }
+
   /* ── probe: 문자 발송(executeTrigger) 직접 호출해 에러 노출 (시크릿) ── */
   if (action === "probe") {
     if (!authed) return out({ ok: false, error: "시크릿 불일치" }, 403);
