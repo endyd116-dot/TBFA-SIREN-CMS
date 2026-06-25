@@ -69,14 +69,18 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
     /* 3) 새 예비 후원자 생성 + 후원 연결 (prospect_entry_path 컬럼 없으면 폴백) */
     let newId = 0;
     try {
+      /* ★ 2026-06-26: 일시 후원자 = 마케팅 수신 자동 동의(Swain). 신규 생성 시 명시 ON.
+         (기존 회원에 연결되는 경우는 그들의 기존 동의/거부를 덮어쓰지 않음 — 위 매칭 분기) */
       const ins: any = await db.execute(sql`
         INSERT INTO members (
           name, email, phone, type, status,
           donor_type, prospect_subtype, prospect_entry_path,
+          agree_email, agree_sms,
           donor_evaluated_at, created_at, updated_at
         ) VALUES (
           ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
           'prospect', 'onetime', ${entryPath},
+          true, true,
           NOW(), NOW(), NOW()
         )
         RETURNING id
@@ -89,10 +93,12 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
           INSERT INTO members (
             name, email, phone, type, status,
             donor_type, prospect_subtype,
+            agree_email, agree_sms,
             donor_evaluated_at, created_at, updated_at
           ) VALUES (
             ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
             'prospect', 'onetime',
+            true, true,
             NOW(), NOW(), NOW()
           )
           RETURNING id

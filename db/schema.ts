@@ -2655,6 +2655,7 @@ export const potentialDonors = pgTable("potential_donors", {
   id:             serial("id").primaryKey(),
   name:           varchar("name", { length: 50 }).notNull(),
   phone:          varchar("phone", { length: 20 }),
+  email:          varchar("email", { length: 100 }),   // ★ 2026-06-26 schema 누락 보정(DB엔 존재·CRUD가 사용) — 잠재 너처링 발송용
   address:        varchar("address", { length: 200 }),
   birthdate:      varchar("birthdate", { length: 10 }),
   eventName:      varchar("event_name", { length: 100 }),
