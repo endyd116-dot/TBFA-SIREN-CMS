@@ -21,6 +21,10 @@ function err(step: string, e: any, status = 500) {
 }
 function rows(r: any): any[] { return (r?.rows ?? r ?? []) as any[]; }
 
+/* ★ A검증 #1 fix: SQL 주입 차단 — 채널·주기는 반드시 화이트리스트만 저장 (엔진이 sql.raw에 인터폴레이션). */
+const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"];
+const VALID_CADENCES = ["monthly", "quarterly", "anniversary", "yearend"];
+
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
@@ -68,6 +72,7 @@ export default async function handler(req: Request) {
         const isActive = body.isActive !== false;
         const conditions = body.conditions && typeof body.conditions === "object" ? JSON.stringify(body.conditions) : "{}";
         if (!journeyId || !Number.isFinite(dayOffset)) return err("validate", "journeyId·dayOffset 필요", 400);
+        if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
         if (body.id) {
           await db.execute(sql`
             UPDATE nurture_steps SET day_offset=${dayOffset}, channel=${channel}, template_id=${templateId},
@@ -94,6 +99,8 @@ export default async function handler(req: Request) {
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         if (!journeyId) return err("validate", "journeyId 필요", 400);
+        if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
+        if (!VALID_CADENCES.includes(cadence)) return err("validate", "지원하지 않는 주기", 400);
         if (body.id) {
           await db.execute(sql`UPDATE nurture_evergreen_rules SET cadence=${cadence}, channel=${channel}, template_id=${templateId}, label=${label}, is_active=${isActive}, updated_at=NOW() WHERE id=${Number(body.id)}`);
           return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });

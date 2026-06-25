@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>수신 설정 — 교사유가족협의회</title>
+<style>
+  body { margin: 0; font-family: -apple-system, "Noto Sans KR", sans-serif; background: #f6f7f9; color: #1f2430; }
+  .card { max-width: 460px; margin: 8vh auto; background: #fff; border: 1px solid #e8eaee; border-radius: 14px; padding: 30px 26px; box-shadow: 0 4px 18px rgba(0,0,0,.04); }
+  h1 { font-size: 19px; margin: 0 0 6px; }
+  .muted { color: #6b7280; font-size: 13.5px; line-height: 1.6; }
+  .status { margin: 18px 0; padding: 13px 15px; border-radius: 10px; font-size: 14px; }
+  .on { background: #e8f5ed; color: #1a8b46; }
+  .off { background: #fdecec; color: #c5293a; }
+  button { width: 100%; padding: 13px; border: none; border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; font-family: inherit; }
+  .btn-off { background: #7a1f2b; color: #fff; }
+  .btn-on { background: #1a8b46; color: #fff; }
+  .btn-ghost { background: #fff; color: #6b7280; border: 1px solid #d8dce2; }
+  .hint { font-size: 12px; color: #9aa0a8; margin-top: 14px; text-align: center; }
+  .err { color: #c5293a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📬 수신 설정</h1>
+  <div id="body"><p class="muted">불러오는 중…</p></div>
+</div>
+<script>
+(function () {
+  var t = new URLSearchParams(location.search).get('t') || '';
+  var box = document.getElementById('body');
+  var st = {};
+
+  function api(method, payload) {
+    var opt = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (payload) opt.body = JSON.stringify(payload);
+    return fetch('/api/unsubscribe' + (method === 'GET' ? '?t=' + encodeURIComponent(t) : ''), opt).then(function (r) { return r.json(); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+  function render() {
+    var name = st.name ? esc(st.name) + '님' : '회원';
+    var ch = esc(st.channelLabel || '');
+    if (st.subscribed) {
+      box.innerHTML =
+        '<p class="muted">' + name + ', 현재 <b>' + ch + '</b> 소식을 받고 계십니다.</p>' +
+        '<div class="status on">✅ 수신 중</div>' +
+        '<button class="btn-off" id="go">' + ch + ' 수신 거부하기</button>' +
+        '<div class="hint">언제든 다시 받으실 수 있습니다.</div>';
+      document.getElementById('go').onclick = function () { act('off'); };
+    } else {
+      box.innerHTML =
+        '<p class="muted">' + name + ', 현재 <b>' + ch + '</b> 수신을 거부하셨습니다.</p>' +
+        '<div class="status off">🔕 수신 거부됨</div>' +
+        '<button class="btn-on" id="go">다시 받기 (재동의)</button>' +
+        '<div class="hint">실수로 누르셨다면 위 버튼으로 즉시 다시 받으실 수 있습니다.</div>';
+      document.getElementById('go').onclick = function () { act('on'); };
+    }
+  }
+
+  function act(action) {
+    var btn = document.getElementById('go'); if (btn) { btn.disabled = true; btn.textContent = '처리 중…'; }
+    api('POST', { t: t, action: action }).then(function (d) {
+      if (!d.ok) { box.innerHTML = '<p class="err">처리에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>'; return; }
+      st.subscribed = d.subscribed;
+      if (action === 'off') {
+        box.innerHTML =
+          '<div class="status off">🔕 수신이 거부되었습니다</div>' +
+          '<p class="muted">앞으로 <b>' + esc(st.channelLabel) + '</b> 소식을 보내지 않겠습니다. 그동안 함께해 주셔서 감사합니다.</p>' +
+          '<button class="btn-on" id="go">실수로 누르셨나요? 다시 받기</button>';
+        document.getElementById('go').onclick = function () { act('on'); };
+      } else {
+        box.innerHTML =
+          '<div class="status on">✅ 다시 받기로 설정되었습니다</div>' +
+          '<p class="muted">감사합니다. 앞으로도 따뜻한 소식 전해드리겠습니다.</p>' +
+          '<button class="btn-ghost" id="go">' + esc(st.channelLabel) + ' 수신 거부하기</button>';
+        document.getElementById('go').onclick = function () { act('off'); };
+      }
+    });
+  }
+
+  if (!t) { box.innerHTML = '<p class="err">유효하지 않은 링크입니다.</p>'; return; }
+  api('GET').then(function (d) {
+    if (!d.ok) { box.innerHTML = '<p class="err">' + esc(d.error || '유효하지 않은 링크입니다') + '</p>'; return; }
+    st = d; render();
+  }).catch(function () { box.innerHTML = '<p class="err">불러오기 실패</p>'; });
+})();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 import { generateTrackingToken, injectTrackingIntoHtml } from "./communication-tracking";
 import { renderTemplate } from "./template-render";
 import { buildMemberRenderData } from "./communication-send";
+import { unsubUrl } from "./unsubscribe-token";
 
 const BASE_URL = process.env.SITE_URL || "https://tbfa-siren-cms.netlify.app";
 
@@ -172,7 +173,7 @@ export async function executeTrigger(trigger: {
   name: string;
   templateId: number;
   channel: string;
-}, memberIds: number[]): Promise<{ jobId: number | null; error?: string }> {
+}, memberIds: number[], opts?: { unsubscribe?: boolean }): Promise<{ jobId: number | null; error?: string }> {
   if (memberIds.length === 0) {
     return { jobId: null };
   }
@@ -230,6 +231,15 @@ export async function executeTrigger(trigger: {
         const trackingToken = generateTrackingToken();
         if (channel === "email") {
           bodyStr = injectTrackingIntoHtml(bodyStr, trackingToken, BASE_URL);
+        }
+        /* ★ 2026-06-26: 너처링 등 마케팅 발송엔 수신거부 링크 자동 삽입(정보통신망법·재동의 가능). */
+        if (opts?.unsubscribe && (channel === "email" || channel === "sms" || channel === "kakao")) {
+          const link = unsubUrl(BASE_URL, Number(mid), channel);
+          if (channel === "email") {
+            bodyStr += `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#9aa0a8;text-align:center">교사유가족협의회 · 더 이상 받지 않으시려면 <a href="${link}" style="color:#9aa0a8">수신거부</a> (실수로 누르셔도 같은 화면에서 다시 받기 가능)</div>`;
+          } else {
+            bodyStr += `\n\n[무료수신거부] ${link}`;
+          }
         }
         fragments.push(
           sql`(${jobId}, ${mid}, ${channel}, 'pending', ${subjectStr}, ${bodyStr}, ${trackingToken})`

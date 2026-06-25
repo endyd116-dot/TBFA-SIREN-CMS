@@ -27,6 +27,9 @@ const SEGMENT_MEMBER_WHERE: Record<string, string> = {
   prospect_cancelled: "m.donor_type = 'prospect' AND m.prospect_subtype = 'cancelled'",
 };
 
+/* ★ A검증 #1 fix: 엔진 1차 방어 — sql.raw 인터폴레이션 전 채널 화이트리스트 */
+const VALID_CHANNELS = new Set(["email", "sms", "kakao", "inapp"]);
+
 /* 채널별 수신 동의 WHERE */
 function consentWhere(channel: string): string {
   switch (channel) {
@@ -78,7 +81,7 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
       INSERT INTO nurture_enrollments (member_id, journey_id, enrolled_at, status)
       SELECT m.id, ${Number(j.id)}, COALESCE(m.donor_evaluated_at, NOW()), 'active'
       FROM members m
-      WHERE (${segWhere}) AND m.status = 'active' AND m.withdrawn_at IS NULL
+      WHERE (${segWhere}) AND m.status = 'active' AND m.withdrawn_at IS NULL AND m.blacklisted_at IS NULL
       ON CONFLICT (member_id, journey_id) DO NOTHING
     `));
     s.enrolled += affected(ins);
@@ -107,12 +110,13 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
 
   let queuedAny = false;
   for (const st of steps) {
+    if (!VALID_CHANNELS.has(String(st.channel))) continue; // 방어: 비정상 채널 skip
     const cons = consentWhere(String(st.channel));
     const dueRes: any = await db.execute(sql.raw(`
       SELECT e.id AS enrollment_id, e.member_id
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
-      WHERE e.journey_id = ${Number(st.journey_id)} AND e.status = 'active'
+      WHERE e.journey_id = ${Number(st.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= ${Number(st.day_offset)}
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) <= ${Number(st.day_offset) + GRACE_DAYS}
         AND NOT EXISTS (SELECT 1 FROM nurture_sends ns WHERE ns.enrollment_id = e.id AND ns.step_id = ${Number(st.id)})
@@ -137,6 +141,7 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
       const r = await executeTrigger(
         { id: Number(st.journey_id), name: String(st.label || `너처링 D+${st.day_offset}`), templateId: Number(st.template_id), channel: String(st.channel) },
         memberIds,
+        { unsubscribe: true },
       );
       jobId = r.jobId;
       if (r.error) console.warn(`[nurture] step ${st.id} executeTrigger 경고: ${r.error}`);
@@ -171,13 +176,14 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
   `);
   const evRules = (evRes?.rows ?? evRes ?? []);
   for (const r of evRules) {
+    if (!VALID_CHANNELS.has(String(r.channel))) continue; // 방어: 비정상 채널 skip
     const interval = CADENCE_DAYS[String(r.cadence)] ?? 90;
     const cons = consentWhere(String(r.channel));
     const dueRes: any = await db.execute(sql.raw(`
       SELECT e.id AS enrollment_id, e.member_id
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
-      WHERE e.journey_id = ${Number(r.journey_id)} AND e.status = 'active'
+      WHERE e.journey_id = ${Number(r.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= 30
         AND (e.last_evergreen_at IS NULL OR e.last_evergreen_at <= NOW() - INTERVAL '${interval} days')
         AND (${cons})
@@ -199,6 +205,7 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
       const rr = await executeTrigger(
         { id: Number(r.journey_id), name: String(r.label || `너처링 영구 ${r.cadence}`), templateId: Number(r.template_id), channel: String(r.channel) },
         memberIds,
+        { unsubscribe: true },
       );
       jobId = rr.jobId;
     } catch (e: any) {
