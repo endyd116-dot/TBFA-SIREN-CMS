@@ -51,12 +51,69 @@ async function loadRegularCandidates() {
   return { journey: j, candidates };
 }
 
+/* 정기 환영 시리즈 보강용 신규 단계(D+3·D+7) — 멱등 시드 */
+const EXTRA_STEPS = [
+  { dayOffset: 3, tplName: "[너처링·문자] 정기 D3",
+    body: "{{이름}}님, 보내주신 후원은 순직 교사 유가족의 심리상담·법률지원·장학에 쓰입니다. 한 분의 마음이 유가족께 큰 힘이 됩니다. 그 변화를 꾸준히 전해드릴게요. -교사유가족협의회" },
+  { dayOffset: 7, tplName: "[너처링·문자] 정기 D7",
+    body: "{{이름}}님, 교사유가족협의회와 함께해 주셔서 감사합니다. 우리는 선생님들을 기억하고 유가족이 다시 일어설 수 있도록 곁을 지킵니다. {{이름}}님도 그 길에 함께 계십니다. -교사유가족협의회" },
+];
+
 export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const email = (url.searchParams.get("email") || DEFAULT_EMAIL).trim();
   const secret = url.searchParams.get("secret") || "";
+  const action = url.searchParams.get("action") || "";
   const send = url.searchParams.get("send") === "1";
   const seq = Number(url.searchParams.get("seq") || "0");
+
+  /* ── 셋업: 테스트 회원 등록 + 정기 시퀀스 D+3·D+7 보강 (시크릿) ── */
+  if (action === "setup") {
+    const expected0 = process.env.INTERNAL_TRIGGER_SECRET || "";
+    if (!expected0 || secret !== expected0) return out({ ok: false, error: "시크릿 불일치" }, 403);
+    const phone = String(url.searchParams.get("phone") || "").replace(/[^0-9]/g, "");
+    const nm = (url.searchParams.get("name") || "테스트후원자").trim().slice(0, 40);
+    if (phone.length < 10) return out({ ok: false, error: "phone 필요(숫자 10자리+)" }, 400);
+
+    /* 1) 회원 upsert (정기후원자·동의·인증 ON) */
+    const ex = rows(await db.execute(sql`SELECT id FROM members WHERE LOWER(email) = LOWER(${email}) LIMIT 1`))[0];
+    let memberId: number;
+    if (ex) {
+      await db.execute(sql`UPDATE members SET name=${nm}, phone=${phone}, donor_type='regular', status='active',
+        agree_sms=true, agree_email=true, phone_verified_at=COALESCE(phone_verified_at, NOW()),
+        kakao_marketing_consent_at=COALESCE(kakao_marketing_consent_at, NOW()), updated_at=NOW() WHERE id=${ex.id}`);
+      memberId = ex.id;
+    } else {
+      const ins = rows(await db.execute(sql`INSERT INTO members (name, email, phone, type, status, donor_type, prospect_entry_path,
+        agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at, donor_evaluated_at, created_at, updated_at)
+        VALUES (${nm}, ${email}, ${phone}, 'regular', 'active', 'regular', 'nurture_test',
+          true, true, NOW(), NOW(), NOW(), NOW(), NOW()) RETURNING id`))[0];
+      memberId = Number(ins?.id);
+    }
+
+    /* 2) 정기 여정 D+3·D+7 단계 보강 (멱등) */
+    const j = rows(await db.execute(sql`SELECT id FROM nurture_journeys WHERE segment='regular' ORDER BY id LIMIT 1`))[0];
+    const seeded: any[] = [];
+    if (j) {
+      /* 기존 D0 템플릿 variables 재사용(렌더 일관성) */
+      const baseVars = rows(await db.execute(sql`SELECT variables FROM communication_templates WHERE category='nurture' AND channel='sms' AND variables IS NOT NULL LIMIT 1`))[0]?.variables;
+      const varsJson = JSON.stringify(Array.isArray(baseVars) ? baseVars : []);
+      for (const st of EXTRA_STEPS) {
+        const haveStep = rows(await db.execute(sql`SELECT id FROM nurture_steps WHERE journey_id=${j.id} AND day_offset=${st.dayOffset} LIMIT 1`))[0];
+        if (haveStep) { seeded.push({ dayOffset: st.dayOffset, status: "이미있음" }); continue; }
+        let tpl = rows(await db.execute(sql`SELECT id FROM communication_templates WHERE name=${st.tplName} LIMIT 1`))[0];
+        let tplId = tpl?.id;
+        if (!tplId) {
+          tplId = rows(await db.execute(sql`INSERT INTO communication_templates (name, channel, category, subject, body_template, variables, is_active, created_at, updated_at)
+            VALUES (${st.tplName}, 'sms', 'nurture', NULL, ${st.body}, ${varsJson}::jsonb, true, NOW(), NOW()) RETURNING id`))[0]?.id;
+        }
+        await db.execute(sql`INSERT INTO nurture_steps (journey_id, day_offset, channel, template_id, label, is_active, conditions, sort_order)
+          VALUES (${j.id}, ${st.dayOffset}, 'sms', ${tplId}, ${"정기 환영 D+" + st.dayOffset}, true, '{}'::jsonb, ${st.dayOffset})`);
+        seeded.push({ dayOffset: st.dayOffset, tplId, status: "신규" });
+      }
+    }
+    return out({ ok: true, action: "setup", memberId, email, phoneMasked: mask(phone), name: nm, journeyId: j?.id, seeded });
+  }
 
   /* 회원 조회 */
   const member = rows(await db.execute(sql`
