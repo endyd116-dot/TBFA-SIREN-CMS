@@ -71,16 +71,19 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
     try {
       /* ★ 2026-06-26: 일시 후원자 = 마케팅 수신 자동 동의(Swain). 신규 생성 시 명시 ON.
          (기존 회원에 연결되는 경우는 그들의 기존 동의/거부를 덮어쓰지 않음 — 위 매칭 분기) */
+      /* 일시후원=마케팅 동의(Swain). 문자 1차 너처링 위해 전화 있으면 인증·카톡 동의도 ON
+         (후원 시 직접 입력한 번호 + 동의 기반). */
+      const phoneVer = phone ? sql`NOW()` : sql`NULL`;
       const ins: any = await db.execute(sql`
         INSERT INTO members (
           name, email, phone, type, status,
           donor_type, prospect_subtype, prospect_entry_path,
-          agree_email, agree_sms,
+          agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at,
           donor_evaluated_at, created_at, updated_at
         ) VALUES (
           ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
           'prospect', 'onetime', ${entryPath},
-          true, true,
+          true, true, ${phoneVer}, ${phoneVer},
           NOW(), NOW(), NOW()
         )
         RETURNING id
@@ -89,16 +92,17 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
     } catch (err: any) {
       const msg = String(err?.message || "");
       if (msg.includes("prospect_entry_path")) {
+        const phoneVer2 = phone ? sql`NOW()` : sql`NULL`;
         const ins2: any = await db.execute(sql`
           INSERT INTO members (
             name, email, phone, type, status,
             donor_type, prospect_subtype,
-            agree_email, agree_sms,
+            agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at,
             donor_evaluated_at, created_at, updated_at
           ) VALUES (
             ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
             'prospect', 'onetime',
-            true, true,
+            true, true, ${phoneVer2}, ${phoneVer2},
             NOW(), NOW(), NOW()
           )
           RETURNING id
