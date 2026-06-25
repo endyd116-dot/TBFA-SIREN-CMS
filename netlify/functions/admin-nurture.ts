@@ -135,7 +135,14 @@ export default async function handler(req: Request) {
           SELECT COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days')::int AS d7,
                  COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days')::int AS d30,
                  COUNT(*)::int AS total FROM nurture_sends`))[0] || {};
-        return new Response(JSON.stringify({ ok: true, data: { journeys, funnel, sentByJourney, stepSends, channelTotals, recent } }), { status: 200, headers: H });
+        /* 보조 메일 오픈/클릭(nurture_sends.job_id = 메일 job → 수신자 추적) */
+        const emailTracking = rows(await db.execute(sql`
+          SELECT COUNT(DISTINCT r.id)::int AS sent,
+                 COUNT(DISTINCT r.id) FILTER (WHERE r.opened_at IS NOT NULL)::int AS opens,
+                 COUNT(DISTINCT r.id) FILTER (WHERE r.clicked_at IS NOT NULL)::int AS clicks
+          FROM nurture_sends ns JOIN communication_send_recipients r ON r.job_id = ns.job_id
+          WHERE ns.job_id IS NOT NULL`))[0] || {};
+        return new Response(JSON.stringify({ ok: true, data: { journeys, funnel, sentByJourney, stepSends, channelTotals, recent, emailTracking } }), { status: 200, headers: H });
       }
       case "preview": {
         /* 오늘 실제로 무엇이 발송될지(dryRun) — 아무것도 안 보냄 */

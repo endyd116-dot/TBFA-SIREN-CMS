@@ -60,7 +60,11 @@
       var h = '';
       h += '<div class="jcard"><div class="jname">📈 전체 발송</div>';
       h += '<div class="kpi" style="font-size:14px;margin-top:6px">최근 7일 <b>' + (rec.d7 || 0) + '</b>건 · 30일 <b>' + (rec.d30 || 0) + '</b>건 · 누적 <b>' + (rec.total || 0) + '</b>건</div>';
-      h += '<div class="kpi" style="margin-top:8px">채널: 💬 문자 <b>' + (ch.sms || 0) + '</b> · 📨 카톡 <b>' + (ch.kakao || 0) + '</b> · 📧 메일 <b>' + (ch.email || 0) + '</b> · 🔔 앱 <b>' + (ch.inapp || 0) + '</b></div></div>';
+      h += '<div class="kpi" style="margin-top:8px">채널: 💬 문자 <b>' + (ch.sms || 0) + '</b> · 📨 카톡 <b>' + (ch.kakao || 0) + '</b> · 📧 메일 <b>' + (ch.email || 0) + '</b> · 🔔 앱 <b>' + (ch.inapp || 0) + '</b></div>';
+      var et = d.emailTracking || {};
+      var or = et.sent ? Math.round((et.opens || 0) * 1000 / et.sent) / 10 : 0;
+      var cr = et.sent ? Math.round((et.clicks || 0) * 1000 / et.sent) / 10 : 0;
+      h += '<div class="kpi" style="margin-top:6px">보조 메일 추적: 발송 <b>' + (et.sent || 0) + '</b> · 오픈 <b>' + (et.opens || 0) + '</b> (' + or + '%) · 클릭 <b>' + (et.clicks || 0) + '</b> (' + cr + '%) <span class="hint">문자는 발송수만</span></div></div>';
       (d.journeys || []).forEach(function (j) {
         var f = fm[j.id] || {}; var sent = sm[j.id] || 0;
         var conv = f.converted || 0; var denom = conv + (f.active || 0) + (f.exited || 0);
