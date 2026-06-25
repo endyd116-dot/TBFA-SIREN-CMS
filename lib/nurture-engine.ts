@@ -107,10 +107,10 @@ async function syncPotentialLeads(): Promise<number> {
         const phoneVerified = phoneDigits ? sql`NOW()` : sql`NULL`;
         const kakaoConsent = phoneDigits ? sql`NOW()` : sql`NULL`;
         const ins: any = await db.execute(sql`
-          INSERT INTO members (name, email, phone, type, status, donor_type, prospect_entry_path,
+          INSERT INTO members (name, email, phone, password_hash, type, status, donor_type, prospect_entry_path,
             agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at,
             donor_evaluated_at, created_at, updated_at)
-          VALUES (${name}, ${emailVal}, ${phone || null}, 'regular', 'active', 'none', 'potential_lead',
+          VALUES (${name}, ${emailVal}, ${phone || null}, ${"!nurture-lead-no-login"}, 'regular', 'active', 'none', 'potential_lead',
             ${agreeEmail}, true, ${phoneVerified}, ${kakaoConsent},
             NOW(), NOW(), NOW())
           RETURNING id`);
@@ -204,15 +204,31 @@ export interface NurtureSummary {
   dryRun: boolean;
 }
 
-export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSummary> {
+/* 테스트 스코프 옵션(2026-06-26): 실제 엔진을 회원 1명·특정 여정·빈도제한 우회로 구동해
+   "너처링 시스템이 직접 발송"하는 테스트를 가능하게 함. 운영 cron은 옵션 없이 호출(기존 동작). */
+export async function runNurture(opts?: {
+  dryRun?: boolean;
+  onlyMemberId?: number;          // 이 회원만 enroll/sync/발송 (테스트)
+  journeyOverrideId?: number;     // is_active 무시하고 이 여정만 구동 (테스트)
+  bypassFrequencyCap?: boolean;   // 하루1/주3 상한 무시 (테스트)
+  skipEvergreen?: boolean;        // 영구 단계 스킵 (테스트: 특정 step만 발송)
+}): Promise<NurtureSummary> {
   const dryRun = !!opts?.dryRun;
+  const onlyMemberId = opts?.onlyMemberId ? Number(opts.onlyMemberId) : 0;
+  const journeyOverrideId = opts?.journeyOverrideId ? Number(opts.journeyOverrideId) : 0;
+  const bypassCap = !!opts?.bypassFrequencyCap;
+  const skipEvergreen = !!opts?.skipEvergreen;
+  const memFilterEnroll = onlyMemberId ? `AND m.id = ${onlyMemberId}` : "";
+  const memFilterEnr = onlyMemberId ? `AND e.member_id = ${onlyMemberId}` : "";
   const s: NurtureSummary = {
     journeys: 0, enrolled: 0, ended: 0, stepsFired: 0, recipients: 0,
     evergreenFired: 0, evergreenRecipients: 0, dryRun,
   };
 
-  /* 활성 여정 */
-  const jr: any = await db.execute(sql`SELECT id, segment, name FROM nurture_journeys WHERE is_active = true`);
+  /* 활성 여정 (테스트: journeyOverrideId면 is_active 무시) */
+  const jr: any = journeyOverrideId
+    ? await db.execute(sql`SELECT id, segment, name FROM nurture_journeys WHERE id = ${journeyOverrideId}`)
+    : await db.execute(sql`SELECT id, segment, name FROM nurture_journeys WHERE is_active = true`);
   const journeys = (jr?.rows ?? jr ?? []);
   s.journeys = journeys.length;
   if (!journeys.length) return s;
@@ -232,7 +248,7 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
       INSERT INTO nurture_enrollments (member_id, journey_id, enrolled_at, status)
       SELECT m.id, ${Number(j.id)}, COALESCE(m.donor_evaluated_at, NOW()), 'active'
       FROM members m
-      WHERE (${segWhere}) AND m.status = 'active' AND m.withdrawn_at IS NULL AND m.blacklisted_at IS NULL
+      WHERE (${segWhere}) AND m.status = 'active' AND m.withdrawn_at IS NULL AND m.blacklisted_at IS NULL ${memFilterEnroll}
       ON CONFLICT (member_id, journey_id) DO NOTHING
     `));
     s.enrolled += affected(ins);
@@ -244,7 +260,7 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
           updated_at = NOW()
       FROM members m
       WHERE e.member_id = m.id AND e.journey_id = ${Number(j.id)} AND e.status = 'active'
-        AND NOT (${segWhere})
+        AND NOT (${segWhere}) ${memFilterEnr}
     `));
     s.ended += affected(upd);
   }
@@ -266,20 +282,21 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
     const emailTpl = st.email_template_id ? Number(st.email_template_id) : null;
     /* 도달성: 1차 채널 OR (보조 메일 설정 시) 메일 */
     const elig = emailTpl ? `((${primaryGateSql(ch)}) OR (${EMAIL_GATE_SQL}))` : `(${primaryGateSql(ch)})`;
+    const capSql = bypassCap ? "" : `
+        AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
+              WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}
+        AND (SELECT COUNT(*) FROM nurture_sends nw JOIN nurture_enrollments ew ON ew.id = nw.enrollment_id
+              WHERE ew.member_id = e.member_id AND nw.sent_at >= NOW() - INTERVAL '7 days') < ${WEEKLY_CAP}`;
     const dueRes: any = await db.execute(sql.raw(`
       SELECT e.id AS enrollment_id, e.member_id,
              m.agree_sms, m.phone_verified_at, m.kakao_marketing_consent_at, m.agree_email, m.email
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
-      WHERE e.journey_id = ${Number(st.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
+      WHERE e.journey_id = ${Number(st.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL ${memFilterEnr}
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= ${Number(st.day_offset)}
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) <= ${Number(st.day_offset) + GRACE_DAYS}
         AND NOT EXISTS (SELECT 1 FROM nurture_sends ns WHERE ns.enrollment_id = e.id AND ns.step_id = ${Number(st.id)})
-        AND ${elig}
-        AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
-              WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}
-        AND (SELECT COUNT(*) FROM nurture_sends nw JOIN nurture_enrollments ew ON ew.id = nw.enrollment_id
-              WHERE ew.member_id = e.member_id AND nw.sent_at >= NOW() - INTERVAL '7 days') < ${WEEKLY_CAP}
+        AND ${elig}${capSql}
       LIMIT 400
     `));
     const due = (dueRes?.rows ?? dueRes ?? []);
@@ -308,8 +325,9 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
     queuedAny = true;
   }
 
-  /* 4) Evergreen — 타임라인(>=30일) 경과 후 cadence 주기로 발송 */
+  /* 4) Evergreen — 타임라인(>=30일) 경과 후 cadence 주기로 발송 (테스트 skipEvergreen이면 건너뜀) */
   const CADENCE_DAYS: Record<string, number> = { monthly: 30, quarterly: 90, anniversary: 365, yearend: 365 };
+  if (skipEvergreen) { if (!dryRun && queuedAny) { try { await triggerDispatchBackground(); } catch (_) {} } return s; }
   const evRes: any = await db.execute(sql`
     SELECT r.id, r.journey_id, r.cadence, r.channel, r.template_id, r.email_template_id, r.label
     FROM nurture_evergreen_rules r
@@ -323,17 +341,19 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
     const interval = CADENCE_DAYS[String(r.cadence)] ?? 90;
     const emailTpl = r.email_template_id ? Number(r.email_template_id) : null;
     const elig = emailTpl ? `((${primaryGateSql(ch)}) OR (${EMAIL_GATE_SQL}))` : `(${primaryGateSql(ch)})`;
+    const evCapSql = bypassCap ? "" : `
+        AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
+              WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}`;
+    const evMinDays = bypassCap ? 0 : 30;
     const dueRes: any = await db.execute(sql.raw(`
       SELECT e.id AS enrollment_id, e.member_id,
              m.agree_sms, m.phone_verified_at, m.kakao_marketing_consent_at, m.agree_email, m.email
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
-      WHERE e.journey_id = ${Number(r.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
-        AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= 30
+      WHERE e.journey_id = ${Number(r.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL ${memFilterEnr}
+        AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= ${evMinDays}
         AND (e.last_evergreen_at IS NULL OR e.last_evergreen_at <= NOW() - INTERVAL '${interval} days')
-        AND ${elig}
-        AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
-              WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}
+        AND ${elig}${evCapSql}
       LIMIT 400
     `));
     const due = (dueRes?.rows ?? dueRes ?? []);
