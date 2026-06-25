@@ -269,7 +269,7 @@ export async function runNurture(opts?: {
   const stepsRes: any = await db.execute(sql`
     SELECT s.id, s.journey_id, s.day_offset, s.channel, s.template_id, s.email_template_id, s.label
     FROM nurture_steps s
-    JOIN nurture_journeys j ON j.id = s.journey_id AND j.is_active = true
+    JOIN nurture_journeys j ON j.id = s.journey_id AND ${journeyOverrideId ? sql`j.id = ${journeyOverrideId}` : sql`j.is_active = true`}
     WHERE s.is_active = true AND s.template_id IS NOT NULL
     ORDER BY s.journey_id, s.day_offset
   `);
@@ -331,7 +331,7 @@ export async function runNurture(opts?: {
   const evRes: any = await db.execute(sql`
     SELECT r.id, r.journey_id, r.cadence, r.channel, r.template_id, r.email_template_id, r.label
     FROM nurture_evergreen_rules r
-    JOIN nurture_journeys j ON j.id = r.journey_id AND j.is_active = true
+    JOIN nurture_journeys j ON j.id = r.journey_id AND ${journeyOverrideId ? sql`j.id = ${journeyOverrideId}` : sql`j.is_active = true`}
     WHERE r.is_active = true AND r.template_id IS NOT NULL
   `);
   const evRules = (evRes?.rows ?? evRes ?? []);
