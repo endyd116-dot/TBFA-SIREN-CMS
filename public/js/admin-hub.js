@@ -138,7 +138,8 @@
           }
         } else if (status === 'active' && service === 'on') {
           // 함께워크 ON 정식 오픈 안내 (베타 경고 대체 알림)
-          toast('함께워크 ON 정식 오픈! 🎉 서비스로 이동합니다');
+          // 다른 서비스 카드는 새 탭(target="_blank")으로 열림 → 허브는 그대로 유지
+          toast('함께워크 ON 정식 오픈! 🎉 새 탭에서 엽니다');
         }
 
         console.log('[Hub] Navigating to service:', service);
