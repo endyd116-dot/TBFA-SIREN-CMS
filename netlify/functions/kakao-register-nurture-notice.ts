@@ -46,6 +46,18 @@ function out(obj: object, status = 200) {
   return new Response(JSON.stringify(obj, null, 2), { status, headers: H });
 }
 
+/* ★ 카카오 채널 2개 이상 연동(교사유가족협의회 + 함께워크on) → [0] 금지.
+   교사유가족협의회 채널을 이름으로 선택, 못 찾으면 SOLAPI_KAKAO_PFID env, 최후로 첫 번째. */
+function pickOrgChannel(list: any[]): { pfId: string; name: string } | null {
+  if (!Array.isArray(list) || !list.length) return null;
+  const norm = (c: any) => ({ pfId: String(c?.channelId || c?.pfId || ""), name: String(c?.name || c?.searchId || "") });
+  const matched = list.map(norm).find((c) => /교사유가족|협의회|tbfa/i.test(c.name));
+  if (matched && matched.pfId) return matched;
+  const envPf = process.env.SOLAPI_KAKAO_PFID || "";
+  if (envPf) { const byEnv = list.map(norm).find((c) => c.pfId === envPf); if (byEnv) return byEnv; }
+  return norm(list[0]);
+}
+
 export default async (req: Request, _ctx: Context) => {
   const url = new URL(req.url);
   const run = url.searchParams.get("run") === "1";
@@ -74,6 +86,7 @@ export default async (req: Request, _ctx: Context) => {
     return out({
       ok: true, mode: "diagnostic", eventKey: EVENT_KEY, existing,
       channelsConnected: channels.length, channels, channelErr,
+      willUseChannel: pickOrgChannel(channels.length ? (channels as any[]) : []),
       noticeContent: NOTICE_CONTENT, buttons: BUTTONS,
       hint: "등록하려면 ?secret=<INTERNAL_TRIGGER_SECRET>&run=1",
     });
@@ -89,11 +102,11 @@ export default async (req: Request, _ctx: Context) => {
   }
 
   try {
-    /* 1) 카카오 채널(pfId) 자동 조회 */
+    /* 1) 카카오 채널(pfId) 조회 — 교사유가족협의회 채널 선택(함께워크on 등 타 채널 혼입 방지) */
     const ch = await solapiListChannels();
     if (!ch.ok) return out({ ok: false, step: "list_channels", detail: ch.error }, 502);
-    const channel = (ch.data || [])[0];
-    const pfId = String(channel?.channelId || channel?.pfId || "");
+    const picked = pickOrgChannel(ch.data || []);
+    const pfId = picked?.pfId || "";
     if (!pfId) return out({ ok: false, step: "no_channel", detail: "솔라피에 연동된 카카오 채널이 없습니다. 솔라피 콘솔에서 채널 연동 필요." }, 400);
 
     /* 2) 솔라피 템플릿 등록 */

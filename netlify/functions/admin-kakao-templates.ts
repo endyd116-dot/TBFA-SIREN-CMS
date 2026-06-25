@@ -183,11 +183,16 @@ export default async (req: Request, _ctx: Context) => {
     const variables = extractVariables(content);
 
     try {
-      /* 1) 채널(pfId) 자동 조회 */
+      /* 1) 채널(pfId) 조회 — 교사유가족협의회 채널 선택(함께워크on 등 타 채널 혼입 방지·2채널 연동) */
       const ch = await solapiListChannels();
       if (!ch.ok) return bad(ch.error || "솔라피 카카오 채널 조회 실패", 502);
-      const channel = (ch.data || [])[0];
-      const pfId = String(channel?.channelId || channel?.pfId || "");
+      const list = (ch.data || []) as any[];
+      const norm = (c: any) => ({ pfId: String(c?.channelId || c?.pfId || ""), name: String(c?.name || c?.searchId || "") });
+      const envPf = process.env.SOLAPI_KAKAO_PFID || "";
+      const picked = list.map(norm).find((c) => /교사유가족|협의회|tbfa/i.test(c.name))
+        || (envPf ? list.map(norm).find((c) => c.pfId === envPf) : null)
+        || (list.length ? norm(list[0]) : null);
+      const pfId = picked?.pfId || "";
       if (!pfId) return bad("솔라피에 연동된 카카오 채널이 없습니다. 솔라피 콘솔에서 채널을 먼저 연동하세요.");
 
       /* 2) 솔라피 템플릿 등록 */
