@@ -29,7 +29,7 @@
       valueType: "selectMulti",
       options: [
         { value: "hyosung", label: "효성 CMS+" },
-        { value: "toss",    label: "토스 빌링" },
+        { value: "toss",    label: "KICC 빌링" },
         { value: "manual",  label: "수기 등록" },
       ],
     },

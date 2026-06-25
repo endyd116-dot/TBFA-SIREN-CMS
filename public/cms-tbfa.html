@@ -974,7 +974,7 @@ if (window.self !== window.top) {
                 <li>실패 시 <strong>1일 후 → 3일 후</strong> 자동 재시도</li>
                 <li><strong>3회 연속 실패 시 자동 해지</strong> + 회원 통보</li>
                 <li>카드 만료 <strong>30일 전 + 14일 전</strong>에 갱신 요청 알림 발송</li>
-                <li>만료월은 토스 응답에 포함되지 않아 <strong>수동 입력</strong>이 필요할 수 있습니다</li>
+                <li>만료월은 KICC 응답에 포함되지 않아 <strong>수동 입력</strong>이 필요할 수 있습니다</li>
               </ul>
             </div>
           </div>
@@ -1325,7 +1325,7 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-finance-income">
         <div style="background:#f0f7ff;border:1px solid #c5daf5;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#1a5ec4;line-height:1.7">
           📊 <strong>손익 현황 — 수입·지출 통합 보고</strong><br>
-          • 수입 합산: 토스 (정기·일시) + 효성 자동이체 + IBK 통장(직접 계좌이체 통과) + 후원 외 매출<br>
+          • 수입 합산: KICC (정기·일시) + 효성 자동이체 + IBK 통장(직접 계좌이체 통과) + 후원 외 매출<br>
           • 지출 합산: 지출 관리에서 승인된 행 전체<br>
           • 당기 순이익 = 총 매출(환불 차감) − 총 지출(환불 차감). 음수면 "당기 순손실"로 표시.
         </div>
@@ -1572,9 +1572,9 @@ if (window.self !== window.top) {
           </div>
           <div class="cms-kpi">
             <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">💳</div>
-            <div class="cms-kpi-label">토스</div>
+            <div class="cms-kpi-label">KICC</div>
             <div class="cms-kpi-value" id="drKpiToss">-</div>
-            <div class="cms-kpi-delta">토스 빌링 활성</div>
+            <div class="cms-kpi-delta">KICC 빌링 활성</div>
           </div>
           <div class="cms-kpi">
             <div class="cms-kpi-icon" style="background:#fff4e0;color:#c47a00">🏦</div>
@@ -1586,7 +1586,7 @@ if (window.self !== window.top) {
             <div class="cms-kpi-icon" style="background:#f4f4f2;color:#525252">⚡</div>
             <div class="cms-kpi-label">두 채널 모두</div>
             <div class="cms-kpi-value" id="drKpiBoth">-</div>
-            <div class="cms-kpi-delta">토스 + 효성 동시</div>
+            <div class="cms-kpi-delta">KICC + 효성 동시</div>
           </div>
           <div class="cms-kpi">
             <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">💰</div>
@@ -1605,9 +1605,9 @@ if (window.self !== window.top) {
             <div class="cms-filter-group">
               <select id="drFilterChannel">
                 <option value="all">전체 채널</option>
-                <option value="toss">토스만</option>
+                <option value="toss">KICC만</option>
                 <option value="hyosung">효성만</option>
-                <option value="both">⚠ 효성+토스 중복</option>
+                <option value="both">⚠ 효성+KICC 중복</option>
               </select>
               <input type="text" id="drFilterSearch" placeholder="이름·연락처 검색...">
             </div>
@@ -1662,7 +1662,7 @@ if (window.self !== window.top) {
             <div class="cms-kpi-icon" style="background:#fde7ea;color:#c5293a">⏸</div>
             <div class="cms-kpi-label">정기 중단자</div>
             <div class="cms-kpi-value" id="dpKpiCancelled">-</div>
-            <div class="cms-kpi-delta">토스/효성 해지 회원</div>
+            <div class="cms-kpi-delta">KICC/효성 해지 회원</div>
           </div>
         </div>
 
@@ -2079,7 +2079,7 @@ if (window.self !== window.top) {
           </div>
           <div class="cms-kpi">
             <div class="cms-kpi-icon" style="background:#e6f0ff;color:#1a5ec4">💳</div>
-            <div class="cms-kpi-label">토스 채널</div>
+            <div class="cms-kpi-label">KICC 채널</div>
             <div class="cms-kpi-value" id="ddKpiToss">-</div>
           </div>
           <div class="cms-kpi" data-dd-jump="donor-prospect" style="cursor:pointer" title="잠재 후원자 관리 탭으로 이동">
@@ -2531,7 +2531,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260603-logout"></script>
+  <script src="/js/cms-tbfa.js?v=20260626-kicc-label"></script>
   <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
   <!-- ★ 작업 C(#15): CSV 자동 매핑 모듈 -->

@@ -883,7 +883,7 @@
       return;
     }
 
-    const channelLabel = { toss: '💳 토스', hyosung: '🏦 효성', ibk: '🏛 IBK', manual: '✍️ 수기' };
+    const channelLabel = { toss: '💳 KICC', hyosung: '🏦 효성', ibk: '🏛 IBK', manual: '✍️ 수기' };
     const kindLabel    = { regular: '🔁 정기', onetime: '💡 일시' };
 
     body.innerHTML = resp.data.map(d => `
@@ -2029,8 +2029,10 @@
      ========================================================= */
 
   /* ---------- 채널 뱃지 (toss/hyosung) ---------- */
+  /* ★ 2026-06-26: PG가 토스→KICC로 전환됨. 내부 채널 키는 레거시 'toss' 유지(백엔드 호환),
+     화면 표시 라벨만 KICC로 정정. */
   const CHANNEL_LABEL = {
-    toss:    { icon: '💳', text: '토스', cls: 'cms-b-info' },
+    toss:    { icon: '💳', text: 'KICC', cls: 'cms-b-info' },
     hyosung: { icon: '🏦', text: '효성', cls: 'cms-b-warn' },
   };
   function renderChannelBadges(channels) {
@@ -2041,11 +2043,11 @@
       const meta = CHANNEL_LABEL[ch] || { icon: '·', text: ch, cls: 'cms-b-mute' };
       return `<span class="cms-badge ${meta.cls}" title="${escapeHtml(meta.text)}">${meta.icon} ${escapeHtml(meta.text)}</span>`;
     });
-    /* #7/#8 정기후원 중복 경고 — 효성·토스 양쪽 정기후원이 동시 활성이면 이중 청구 위험 */
+    /* #7/#8 정기후원 중복 경고 — 효성·KICC 양쪽 정기후원이 동시 활성이면 이중 청구 위험 */
     if (channels.includes('toss') && channels.includes('hyosung')) {
       badges.push(
         `<span class="cms-badge cms-b-danger" style="background:#fde8e8;color:#c5293a;font-weight:600"` +
-        ` title="효성·토스 정기후원이 동시 활성입니다. 이중 청구 위험 — 한 채널을 해지하세요 (토스: 빌링 관리 화면, 효성: 효성 CMS+).">` +
+        ` title="효성·KICC 정기후원이 동시 활성입니다. 이중 청구 위험 — 한 채널을 해지하세요 (KICC: 빌링 관리 화면, 효성: 효성 CMS+).">` +
         `⚠ 중복</span>`
       );
     }
@@ -2295,7 +2297,7 @@
 
     const channelBadge = (ch) => {
       if (ch === 'hyosung')   return '<span class="cms-badge cms-b-info" title="효성 CMS+">효성</span>';
-      if (ch === 'donations') return '<span class="cms-badge cms-b-success" title="토스/일반 후원">토스</span>';
+      if (ch === 'donations') return '<span class="cms-badge cms-b-success" title="KICC/카드 후원">KICC</span>';
       if (ch === 'contract')  return '<span class="cms-badge cms-b-warn" title="효성 약정만 등록 (수납 기록 없음)">약정</span>';
       return '<span style="color:#bbb">—</span>';
     };
@@ -2405,7 +2407,7 @@
     const ps = kpi.prospectBySubtype || {};
     set('ddKpiTotal',          (kpi.membersTotal ?? 0).toLocaleString() + '명');
     set('ddKpiRegular',        (kpi.regularTotal ?? 0).toLocaleString() + '명');
-    set('ddKpiRegularDetail',  `효성 ${ch.hyosung ?? 0}·토스 ${ch.toss ?? 0}·둘다 ${ch.both ?? 0}`);
+    set('ddKpiRegularDetail',  `효성 ${ch.hyosung ?? 0}·KICC ${ch.toss ?? 0}·둘다 ${ch.both ?? 0}`);
     set('ddKpiHyosung',        (ch.hyosung ?? 0).toLocaleString() + '명');
     set('ddKpiToss',           (ch.toss ?? 0).toLocaleString() + '명');
     set('ddKpiProspect',       (kpi.prospectTotal ?? 0).toLocaleString() + '명');
@@ -2461,7 +2463,7 @@
       hyosung_contracts: '📋 효성 계약정보',
       hyosung_billings:  '📅 효성 수납내역',
       ibk:               '🏛 IBK 거래',
-      toss:              '💳 토스',
+      toss:              '💳 KICC',
     };
     const imports = resp.recentCsvImports || [];
     if (csvHistory) {
