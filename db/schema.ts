@@ -4480,3 +4480,98 @@ export const martyrdomExternalSettings = pgTable("martyrdom_external_settings", 
 export type MartyrdomExternalSettings    = typeof martyrdomExternalSettings.$inferSelect;
 export type NewMartyrdomExternalSettings = typeof martyrdomExternalSettings.$inferInsert;
 /* === R43 딥릴리프 데이터 축적 하이브리드 끝 === */
+
+/* =========================================================
+   === 후원자 너처링 시스템 (2026-06-26) ===
+   세그먼트(정기/예비-일시/예비-이탈/잠재)별 D0~D365 여정 + Evergreen.
+   발송 자체는 communication_send_jobs/recipients 재사용 — 본 테이블은 오케스트레이션.
+   migrate-nurture-schema 로 DB 생성.
+   ========================================================= */
+
+// 여정(=탭) — 세그먼트당 1개
+export const nurtureJourneys = pgTable("nurture_journeys", {
+  id:          serial("id").primaryKey(),
+  segment:     varchar("segment", { length: 40 }).notNull().unique(), // regular | prospect_onetime | prospect_cancelled | potential
+  name:        varchar("name", { length: 150 }).notNull(),
+  isActive:    boolean("is_active").notNull().default(false),         // 기본 OFF — 운영자가 검토 후 켬
+  entryBasis:  varchar("entry_basis", { length: 30 }).notNull().default("classified"), // D0 기준
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+});
+export type NurtureJourney    = typeof nurtureJourneys.$inferSelect;
+export type NewNurtureJourney = typeof nurtureJourneys.$inferInsert;
+
+// 단계 — D0~D365 타임라인
+export const nurtureSteps = pgTable("nurture_steps", {
+  id:          serial("id").primaryKey(),
+  journeyId:   integer("journey_id").notNull().references(() => nurtureJourneys.id, { onDelete: "cascade" }),
+  dayOffset:   integer("day_offset").notNull(),                       // 0~365
+  channel:     varchar("channel", { length: 20 }).notNull(),         // email|sms|kakao|inapp
+  templateId:  integer("template_id"),                               // communication_templates.id (참조·nullable)
+  conditions:  jsonb("conditions").default(sql`'{}'::jsonb`),        // {notConverted, minAmount, cancelReason, ...}
+  label:       varchar("label", { length: 120 }),
+  sortOrder:   integer("sort_order").notNull().default(0),
+  isActive:    boolean("is_active").notNull().default(true),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  journeyIdx: index("nurture_steps_journey_idx").on(t.journeyId),
+}));
+export type NurtureStep    = typeof nurtureSteps.$inferSelect;
+export type NewNurtureStep = typeof nurtureSteps.$inferInsert;
+
+// D365 이후 영구 규칙 (Evergreen)
+export const nurtureEvergreenRules = pgTable("nurture_evergreen_rules", {
+  id:          serial("id").primaryKey(),
+  journeyId:   integer("journey_id").notNull().references(() => nurtureJourneys.id, { onDelete: "cascade" }),
+  cadence:     varchar("cadence", { length: 20 }).notNull(),         // monthly|quarterly|anniversary|yearend
+  channel:     varchar("channel", { length: 20 }).notNull(),
+  templateId:  integer("template_id"),
+  conditions:  jsonb("conditions").default(sql`'{}'::jsonb`),
+  label:       varchar("label", { length: 120 }),
+  isActive:    boolean("is_active").notNull().default(true),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  journeyIdx: index("nurture_evergreen_journey_idx").on(t.journeyId),
+}));
+export type NurtureEvergreenRule    = typeof nurtureEvergreenRules.$inferSelect;
+export type NewNurtureEvergreenRule = typeof nurtureEvergreenRules.$inferInsert;
+
+// 회원×여정 진행 상태
+export const nurtureEnrollments = pgTable("nurture_enrollments", {
+  id:              serial("id").primaryKey(),
+  memberId:        integer("member_id").notNull().references(() => members.id, { onDelete: "cascade" }),
+  journeyId:       integer("journey_id").notNull().references(() => nurtureJourneys.id, { onDelete: "cascade" }),
+  enrolledAt:      timestamp("enrolled_at").notNull(),               // D0
+  status:          varchar("status", { length: 20 }).notNull().default("active"), // active|converted|exited|completed
+  convertedAt:     timestamp("converted_at"),
+  lastEvergreenAt: timestamp("last_evergreen_at"),
+  createdAt:       timestamp("created_at").defaultNow().notNull(),
+  updatedAt:       timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  memberJourneyUq: uniqueIndex("nurture_enroll_member_journey_uq").on(t.memberId, t.journeyId),
+  statusIdx:       index("nurture_enroll_status_idx").on(t.status),
+}));
+export type NurtureEnrollment    = typeof nurtureEnrollments.$inferSelect;
+export type NewNurtureEnrollment = typeof nurtureEnrollments.$inferInsert;
+
+// 단계별 발송 로그 (멱등·중복방지·KPI)
+export const nurtureSends = pgTable("nurture_sends", {
+  id:              serial("id").primaryKey(),
+  enrollmentId:    integer("enrollment_id").notNull().references(() => nurtureEnrollments.id, { onDelete: "cascade" }),
+  stepId:          integer("step_id").references(() => nurtureSteps.id, { onDelete: "set null" }),
+  evergreenRuleId: integer("evergreen_rule_id").references(() => nurtureEvergreenRules.id, { onDelete: "set null" }),
+  channel:         varchar("channel", { length: 20 }).notNull(),
+  jobId:           integer("job_id"),                               // communication_send_jobs.id
+  status:          varchar("status", { length: 20 }).notNull().default("queued"),
+  sentAt:          timestamp("sent_at").defaultNow().notNull(),
+}, (t) => ({
+  enrollIdx: index("nurture_sends_enroll_idx").on(t.enrollmentId),
+  // 타임라인 단계 멱등 — 같은 enrollment+step 1회만 (evergreen은 stepId NULL이라 별도)
+  stepUq:    uniqueIndex("nurture_sends_enroll_step_uq").on(t.enrollmentId, t.stepId),
+}));
+export type NurtureSend    = typeof nurtureSends.$inferSelect;
+export type NewNurtureSend = typeof nurtureSends.$inferInsert;
+
+/* === 후원자 너처링 시스템 끝 === */
