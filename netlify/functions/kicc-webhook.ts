@@ -108,6 +108,12 @@ export default async (req: Request) => {
     const next = priority[newStatus] || 0;
     const downgradeAllowed = donation.status === "completed" && (newStatus === "cancelled" || newStatus === "refunded");
 
+    /* ★ 2026-06-26 FIX: 승인 응답 미수신으로 pending/failed에 갇힌 결제를 KICC 노티가 completed로
+       구제. failed(3)>completed(2)라 기존엔 우선순위 가드에 막혀 영영 미반영됐음. 위에서 노티 금액==
+       저장 금액 검증을 이미 통과한 'completed' 노티만 여기 도달하므로(위조 방지), pending·failed →
+       completed 승격은 허용한다. */
+    const promoteToCompleted = newStatus === "completed" && (donation.status === "pending" || donation.status === "failed");
+
     /* ★ R41 Q1-003 FIX: 완료건 취소/환불 다운그레이드는 노티 서명(msgAuthValue) 검증 통과 시에만 자동 반영.
        KICC 노티는 서명이 없을 수 있어, 미검증 취소/환불 노티를 그대로 적용하면 내부 ID(pgCno·shopOrderNo)를
        아는 자가 위조 노티로 완료 후원을 취소·환불 상태로 둔갑시킬 수 있음(회계·영수증 무결성).
@@ -138,7 +144,7 @@ export default async (req: Request) => {
       return ack({ skipped: "downgrade_unverified" });
     }
 
-    if (cur > next && !downgradeAllowed) return ack({ skipped: "already_advanced" });
+    if (cur > next && !downgradeAllowed && !promoteToCompleted) return ack({ skipped: "already_advanced" });
 
     const updatePayload: any = { status: newStatus, updatedAt: new Date() };
     if (newStatus === "completed" && !donation.pgTid && pgTid) {

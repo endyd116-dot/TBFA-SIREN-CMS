@@ -90,13 +90,18 @@ export default async (req: Request) => {
     const result = await approveTrade({ authorizationId, shopOrderNo: pgOrderNo });
 
     if (!result.success) {
+      /* ★ 2026-06-26 FIX: 네트워크 단절/타임아웃은 KICC 승인 여부가 불확실하다(KICC는 승인·매입
+         완료됐는데 응답만 못 받은 경우 존재 → 돈은 빠지고 우리만 미반영). 이때 'failed'로 굳히면
+         웹훅 백업이 failed→completed 승격을 거부해 영영 미반영됨. → 네트워크성 실패는 'pending'을
+         유지해 웹훅/거래조회 복구가 확정하게 한다. 명확한 거절(카드오류 등)만 'failed'. */
+      const isNetwork = result.errorCategory === "network" || result.errorCode === "NETWORK_ERROR";
       await db
         .update(donations)
-        .set({ status: "failed", pgTid: result.pgTid, failureReason: (result.errorMessage || "승인 실패").slice(0, 500), updatedAt: new Date() } as any)
+        .set({ status: isNetwork ? "pending" : "failed", pgTid: result.pgTid, failureReason: (result.errorMessage || "승인 실패").slice(0, 500), updatedAt: new Date() } as any)
         .where(eq(donations.id, donation.id));
       await logUserAction(req, donation.memberId, donation.donorName, "donate_kicc_approve_failed", {
         target: pgOrderNo,
-        detail: { code: result.errorCode, message: result.errorMessage },
+        detail: { code: result.errorCode, message: result.errorMessage, keptPending: isNetwork },
         success: false,
       });
       return failRedirect(result.errorMessage || "결제 승인에 실패했습니다");
