@@ -34,8 +34,8 @@ export default async function handler(req: Request) {
   if (req.method === "GET") {
     try {
       const journeys = rows(await db.execute(sql`SELECT id, segment, name, is_active AS "isActive", entry_basis AS "entryBasis" FROM nurture_journeys ORDER BY id`));
-      const steps = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", day_offset AS "dayOffset", channel, template_id AS "templateId", label, conditions, sort_order AS "sortOrder", is_active AS "isActive" FROM nurture_steps ORDER BY journey_id, day_offset`));
-      const evergreen = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", cadence, channel, template_id AS "templateId", label, is_active AS "isActive" FROM nurture_evergreen_rules ORDER BY journey_id`));
+      const steps = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", day_offset AS "dayOffset", channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, conditions, sort_order AS "sortOrder", is_active AS "isActive" FROM nurture_steps ORDER BY journey_id, day_offset`));
+      const evergreen = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", cadence, channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, is_active AS "isActive" FROM nurture_evergreen_rules ORDER BY journey_id`));
       const templates = rows(await db.execute(sql`SELECT id, name, channel FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
       /* KPI: 여정별 active enrollment 수 + 누적 발송 수 */
       const kpi = rows(await db.execute(sql`
@@ -66,8 +66,9 @@ export default async function handler(req: Request) {
       case "saveStep": {
         const journeyId = Number(body.journeyId);
         const dayOffset = Math.max(0, Math.min(365, Number(body.dayOffset)));
-        const channel = String(body.channel || "email");
+        const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
         const templateId = body.templateId ? Number(body.templateId) : null;
+        const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null; // ★ 보조 메일
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         const conditions = body.conditions && typeof body.conditions === "object" ? JSON.stringify(body.conditions) : "{}";
@@ -75,14 +76,14 @@ export default async function handler(req: Request) {
         if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
         if (body.id) {
           await db.execute(sql`
-            UPDATE nurture_steps SET day_offset=${dayOffset}, channel=${channel}, template_id=${templateId},
+            UPDATE nurture_steps SET day_offset=${dayOffset}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId},
               label=${label}, is_active=${isActive}, conditions=${conditions}::jsonb, updated_at=NOW()
             WHERE id=${Number(body.id)}`);
           return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
         }
         const r = rows(await db.execute(sql`
-          INSERT INTO nurture_steps (journey_id, day_offset, channel, template_id, label, is_active, conditions, sort_order)
-          VALUES (${journeyId}, ${dayOffset}, ${channel}, ${templateId}, ${label}, ${isActive}, ${conditions}::jsonb, ${dayOffset})
+          INSERT INTO nurture_steps (journey_id, day_offset, channel, template_id, email_template_id, label, is_active, conditions, sort_order)
+          VALUES (${journeyId}, ${dayOffset}, ${channel}, ${templateId}, ${emailTemplateId}, ${label}, ${isActive}, ${conditions}::jsonb, ${dayOffset})
           RETURNING id`));
         return new Response(JSON.stringify({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
       }
@@ -94,18 +95,19 @@ export default async function handler(req: Request) {
       case "saveEvergreen": {
         const journeyId = Number(body.journeyId);
         const cadence = String(body.cadence || "quarterly");
-        const channel = String(body.channel || "email");
+        const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
         const templateId = body.templateId ? Number(body.templateId) : null;
+        const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null;
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         if (!journeyId) return err("validate", "journeyId 필요", 400);
         if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
         if (!VALID_CADENCES.includes(cadence)) return err("validate", "지원하지 않는 주기", 400);
         if (body.id) {
-          await db.execute(sql`UPDATE nurture_evergreen_rules SET cadence=${cadence}, channel=${channel}, template_id=${templateId}, label=${label}, is_active=${isActive}, updated_at=NOW() WHERE id=${Number(body.id)}`);
+          await db.execute(sql`UPDATE nurture_evergreen_rules SET cadence=${cadence}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId}, label=${label}, is_active=${isActive}, updated_at=NOW() WHERE id=${Number(body.id)}`);
           return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
         }
-        const r = rows(await db.execute(sql`INSERT INTO nurture_evergreen_rules (journey_id, cadence, channel, template_id, label, is_active) VALUES (${journeyId}, ${cadence}, ${channel}, ${templateId}, ${label}, ${isActive}) RETURNING id`));
+        const r = rows(await db.execute(sql`INSERT INTO nurture_evergreen_rules (journey_id, cadence, channel, template_id, email_template_id, label, is_active) VALUES (${journeyId}, ${cadence}, ${channel}, ${templateId}, ${emailTemplateId}, ${label}, ${isActive}) RETURNING id`));
         return new Response(JSON.stringify({ ok: true, id: r[0]?.id }), { status: 200, headers: H });
       }
       case "deleteEvergreen": {

@@ -95,15 +95,47 @@ async function syncPotentialLeads(): Promise<number> {
 
 /* ★ A검증 #1 fix: 엔진 1차 방어 — sql.raw 인터폴레이션 전 채널 화이트리스트 */
 const VALID_CHANNELS = new Set(["email", "sms", "kakao", "inapp"]);
+const PLACEHOLDER_SUFFIX = "@noemail.tbfa.local"; // 이메일 없는 리드 placeholder(비전송)
 
-/* 채널별 수신 동의 WHERE */
-function consentWhere(channel: string): string {
+/* 1차 채널 도달성(동의+발송가능) SQL gate */
+function primaryGateSql(channel: string): string {
   switch (channel) {
-    case "email": return "m.agree_email IS NOT FALSE";
     case "sms":   return "m.agree_sms IS NOT FALSE AND m.phone_verified_at IS NOT NULL";
     case "kakao": return "m.kakao_marketing_consent_at IS NOT NULL AND m.phone_verified_at IS NOT NULL";
+    case "email": return `m.agree_email IS NOT FALSE AND m.email NOT LIKE '%${PLACEHOLDER_SUFFIX}'`;
     default:      return "TRUE"; // inapp
   }
+}
+const EMAIL_GATE_SQL = `m.agree_email IS NOT FALSE AND m.email NOT LIKE '%${PLACEHOLDER_SUFFIX}'`;
+
+function isPlaceholder(email: any): boolean { return String(email || "").toLowerCase().endsWith(PLACEHOLDER_SUFFIX); }
+function reachablePrimary(d: any, ch: string): boolean {
+  if (ch === "sms")   return d.agree_sms !== false && d.phone_verified_at != null;
+  if (ch === "kakao") return d.kakao_marketing_consent_at != null && d.phone_verified_at != null;
+  if (ch === "email") return d.agree_email !== false && !isPlaceholder(d.email);
+  if (ch === "inapp") return true;
+  return false;
+}
+function reachableEmail(d: any): boolean { return d.agree_email !== false && !!d.email && !isPlaceholder(d.email); }
+
+/* 1차 채널(문자/카톡) + 보조 메일 다채널 발송. 하나라도 보냈으면 true. */
+async function sendMulti(due: any[], journeyId: number, name: string, primaryCh: string, primaryTpl: number | null, emailTpl: number | null): Promise<boolean> {
+  const prim: number[] = [], mail: number[] = [];
+  for (const d of due) {
+    const mid = Number(d.member_id); if (!mid) continue;
+    if (primaryTpl && reachablePrimary(d, primaryCh)) prim.push(mid);
+    if (emailTpl && primaryCh !== "email" && reachableEmail(d)) mail.push(mid);
+  }
+  let any = false;
+  if (prim.length && primaryTpl) {
+    try { const r = await executeTrigger({ id: journeyId, name, templateId: primaryTpl, channel: primaryCh }, prim, { unsubscribe: true }); if (r.jobId) any = true; }
+    catch (e: any) { console.error("[nurture] 1차 발송 실패:", e?.message || e); }
+  }
+  if (mail.length && emailTpl) {
+    try { const r = await executeTrigger({ id: journeyId, name, templateId: emailTpl, channel: "email" }, mail, { unsubscribe: true }); if (r.jobId) any = true; }
+    catch (e: any) { console.error("[nurture] 보조 메일 발송 실패:", e?.message || e); }
+  }
+  return any;
 }
 
 function affected(r: any): number {
@@ -169,9 +201,9 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
     s.ended += affected(upd);
   }
 
-  /* 3) due 단계 발송 */
+  /* 3) due 단계 발송 — 1차 채널(문자/카톡) + 보조 메일(있으면) */
   const stepsRes: any = await db.execute(sql`
-    SELECT s.id, s.journey_id, s.day_offset, s.channel, s.template_id, s.label
+    SELECT s.id, s.journey_id, s.day_offset, s.channel, s.template_id, s.email_template_id, s.label
     FROM nurture_steps s
     JOIN nurture_journeys j ON j.id = s.journey_id AND j.is_active = true
     WHERE s.is_active = true AND s.template_id IS NOT NULL
@@ -181,17 +213,21 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
 
   let queuedAny = false;
   for (const st of steps) {
-    if (!VALID_CHANNELS.has(String(st.channel))) continue; // 방어: 비정상 채널 skip
-    const cons = consentWhere(String(st.channel));
+    const ch = String(st.channel);
+    if (!VALID_CHANNELS.has(ch)) continue; // 방어: 비정상 채널 skip
+    const emailTpl = st.email_template_id ? Number(st.email_template_id) : null;
+    /* 도달성: 1차 채널 OR (보조 메일 설정 시) 메일 */
+    const elig = emailTpl ? `((${primaryGateSql(ch)}) OR (${EMAIL_GATE_SQL}))` : `(${primaryGateSql(ch)})`;
     const dueRes: any = await db.execute(sql.raw(`
-      SELECT e.id AS enrollment_id, e.member_id
+      SELECT e.id AS enrollment_id, e.member_id,
+             m.agree_sms, m.phone_verified_at, m.kakao_marketing_consent_at, m.agree_email, m.email
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
       WHERE e.journey_id = ${Number(st.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= ${Number(st.day_offset)}
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) <= ${Number(st.day_offset) + GRACE_DAYS}
         AND NOT EXISTS (SELECT 1 FROM nurture_sends ns WHERE ns.enrollment_id = e.id AND ns.step_id = ${Number(st.id)})
-        AND (${cons})
+        AND ${elig}
         AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
               WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}
         AND (SELECT COUNT(*) FROM nurture_sends nw JOIN nurture_enrollments ew ON ew.id = nw.enrollment_id
@@ -200,34 +236,19 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
     `));
     const due = (dueRes?.rows ?? dueRes ?? []);
     if (!due.length) continue;
-    const memberIds = due.map((d: any) => Number(d.member_id)).filter(Boolean);
-    if (!memberIds.length) continue;
 
     s.stepsFired++;
-    s.recipients += memberIds.length;
+    s.recipients += due.length;
     if (dryRun) continue;
 
-    let jobId: number | null = null;
-    try {
-      const r = await executeTrigger(
-        { id: Number(st.journey_id), name: String(st.label || `너처링 D+${st.day_offset}`), templateId: Number(st.template_id), channel: String(st.channel) },
-        memberIds,
-        { unsubscribe: true },
-      );
-      jobId = r.jobId;
-      if (r.error) console.warn(`[nurture] step ${st.id} executeTrigger 경고: ${r.error}`);
-    } catch (e: any) {
-      console.error(`[nurture] step ${st.id} 발송 실패:`, e?.message || e);
-      continue; // 기록 안 함 → 다음 실행에 재시도
-    }
-    if (!jobId) continue; // 템플릿 문제 등 — 기록 안 함(재시도)
+    const sent = await sendMulti(due, Number(st.journey_id), String(st.label || `너처링 D+${st.day_offset}`), ch, st.template_id ? Number(st.template_id) : null, emailTpl);
+    if (!sent) continue; // 둘 다 실패 — 다음 실행 재시도
 
-    const valuesSql = due
-      .map((d: any) => `(${Number(d.enrollment_id)}, ${Number(st.id)}, '${String(st.channel)}', ${jobId}, 'queued')`)
-      .join(",");
+    /* 단계당 enrollment 1행 기록(채널은 1차) — cap은 '하루 1단계'. 보조 메일은 같은 단계로 묶음. */
+    const valuesSql = due.map((d: any) => `(${Number(d.enrollment_id)}, ${Number(st.id)}, '${ch}', 'queued')`).join(",");
     try {
       await db.execute(sql.raw(`
-        INSERT INTO nurture_sends (enrollment_id, step_id, channel, job_id, status)
+        INSERT INTO nurture_sends (enrollment_id, step_id, channel, status)
         VALUES ${valuesSql}
         ON CONFLICT (enrollment_id, step_id) DO NOTHING
       `));
@@ -240,56 +261,46 @@ export async function runNurture(opts?: { dryRun?: boolean }): Promise<NurtureSu
   /* 4) Evergreen — 타임라인(>=30일) 경과 후 cadence 주기로 발송 */
   const CADENCE_DAYS: Record<string, number> = { monthly: 30, quarterly: 90, anniversary: 365, yearend: 365 };
   const evRes: any = await db.execute(sql`
-    SELECT r.id, r.journey_id, r.cadence, r.channel, r.template_id, r.label
+    SELECT r.id, r.journey_id, r.cadence, r.channel, r.template_id, r.email_template_id, r.label
     FROM nurture_evergreen_rules r
     JOIN nurture_journeys j ON j.id = r.journey_id AND j.is_active = true
     WHERE r.is_active = true AND r.template_id IS NOT NULL
   `);
   const evRules = (evRes?.rows ?? evRes ?? []);
   for (const r of evRules) {
-    if (!VALID_CHANNELS.has(String(r.channel))) continue; // 방어: 비정상 채널 skip
+    const ch = String(r.channel);
+    if (!VALID_CHANNELS.has(ch)) continue; // 방어: 비정상 채널 skip
     const interval = CADENCE_DAYS[String(r.cadence)] ?? 90;
-    const cons = consentWhere(String(r.channel));
+    const emailTpl = r.email_template_id ? Number(r.email_template_id) : null;
+    const elig = emailTpl ? `((${primaryGateSql(ch)}) OR (${EMAIL_GATE_SQL}))` : `(${primaryGateSql(ch)})`;
     const dueRes: any = await db.execute(sql.raw(`
-      SELECT e.id AS enrollment_id, e.member_id
+      SELECT e.id AS enrollment_id, e.member_id,
+             m.agree_sms, m.phone_verified_at, m.kakao_marketing_consent_at, m.agree_email, m.email
       FROM nurture_enrollments e
       JOIN members m ON m.id = e.member_id
       WHERE e.journey_id = ${Number(r.journey_id)} AND e.status = 'active' AND m.blacklisted_at IS NULL
         AND FLOOR(EXTRACT(EPOCH FROM (NOW() - e.enrolled_at)) / 86400) >= 30
         AND (e.last_evergreen_at IS NULL OR e.last_evergreen_at <= NOW() - INTERVAL '${interval} days')
-        AND (${cons})
+        AND ${elig}
         AND (SELECT COUNT(*) FROM nurture_sends nd JOIN nurture_enrollments ed ON ed.id = nd.enrollment_id
               WHERE ed.member_id = e.member_id AND nd.sent_at >= NOW() - INTERVAL '1 day') < ${DAILY_CAP}
       LIMIT 400
     `));
     const due = (dueRes?.rows ?? dueRes ?? []);
     if (!due.length) continue;
-    const memberIds = due.map((d: any) => Number(d.member_id)).filter(Boolean);
-    if (!memberIds.length) continue;
 
     s.evergreenFired++;
-    s.evergreenRecipients += memberIds.length;
+    s.evergreenRecipients += due.length;
     if (dryRun) continue;
 
-    let jobId: number | null = null;
-    try {
-      const rr = await executeTrigger(
-        { id: Number(r.journey_id), name: String(r.label || `너처링 영구 ${r.cadence}`), templateId: Number(r.template_id), channel: String(r.channel) },
-        memberIds,
-        { unsubscribe: true },
-      );
-      jobId = rr.jobId;
-    } catch (e: any) {
-      console.error(`[nurture] evergreen ${r.id} 발송 실패:`, e?.message || e);
-      continue;
-    }
-    if (!jobId) continue;
+    const sent = await sendMulti(due, Number(r.journey_id), String(r.label || `너처링 영구 ${r.cadence}`), ch, r.template_id ? Number(r.template_id) : null, emailTpl);
+    if (!sent) continue;
 
     const enrollIds = due.map((d: any) => Number(d.enrollment_id));
     try {
-      const valuesSql = enrollIds.map((eid) => `(${eid}, ${Number(r.id)}, '${String(r.channel)}', ${jobId}, 'queued')`).join(",");
+      const valuesSql = enrollIds.map((eid) => `(${eid}, ${Number(r.id)}, '${ch}', 'queued')`).join(",");
       await db.execute(sql.raw(`
-        INSERT INTO nurture_sends (enrollment_id, evergreen_rule_id, channel, job_id, status)
+        INSERT INTO nurture_sends (enrollment_id, evergreen_rule_id, channel, status)
         VALUES ${valuesSql}
       `));
       await db.execute(sql.raw(`

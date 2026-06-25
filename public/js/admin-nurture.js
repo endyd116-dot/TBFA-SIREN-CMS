@@ -3,7 +3,7 @@
   'use strict';
   var API = '/api/admin-nurture';
   var STATE = null;
-  var CHANNELS = [['email', '📧 메일'], ['sms', '💬 문자'], ['kakao', '📨 알림톡'], ['inapp', '🔔 앱']];
+  var CHANNELS = [['sms', '💬 문자'], ['kakao', '📨 알림톡(승인필요)'], ['email', '📧 메일'], ['inapp', '🔔 앱']];
   var CADENCES = [['monthly', '매월'], ['quarterly', '분기'], ['anniversary', '기념일'], ['yearend', '연말']];
   /* 탭 → 포함 세그먼트 */
   var TAB_SEG = { regular: ['regular'], prospect: ['prospect_onetime', 'prospect_cancelled'], potential: ['potential'] };
@@ -55,14 +55,14 @@
     h += '<div class="toggle" data-act="toggle"><span>' + (j.isActive ? '발송 ON' : '발송 OFF') + '</span><div class="switch ' + (j.isActive ? 'on' : '') + '"><i></i></div></div></div>';
     if (!j.isActive) h += '<div class="off-note">⚠ 현재 OFF — 단계를 검토하고 테스트한 뒤 켜면 매일 자동 발송됩니다.</div>';
 
-    h += '<div class="sec-title">타임라인 (D0~D365)</div>';
-    h += '<table><thead><tr><th style="width:80px">시점(D+)</th><th style="width:110px">채널</th><th>템플릿</th><th style="width:150px">라벨</th><th style="width:60px">사용</th><th style="width:120px"></th></tr></thead><tbody>';
+    h += '<div class="sec-title">타임라인 (D0~D365) <span class="hint">— 문자/카톡이 1차, 메일은 보조(있으면 추가 발송)</span></div>';
+    h += '<table><thead><tr><th style="width:74px">시점(D+)</th><th style="width:130px">1차 채널</th><th>1차 템플릿</th><th>보조 메일(선택)</th><th style="width:120px">라벨</th><th style="width:46px">사용</th><th style="width:120px"></th></tr></thead><tbody>';
     steps.forEach(function (s) { h += stepRow(j.id, s); });
     h += stepRow(j.id, null); // 새 단계 입력 행
     h += '</tbody></table>';
 
     h += '<div class="sec-title">🔁 D365 이후 영구 규칙</div>';
-    h += '<table><thead><tr><th style="width:110px">주기</th><th style="width:110px">채널</th><th>템플릿</th><th style="width:150px">라벨</th><th style="width:60px">사용</th><th style="width:120px"></th></tr></thead><tbody>';
+    h += '<table><thead><tr><th style="width:110px">주기</th><th style="width:130px">1차 채널</th><th>1차 템플릿</th><th>보조 메일(선택)</th><th style="width:120px">라벨</th><th style="width:46px">사용</th><th style="width:120px"></th></tr></thead><tbody>';
     evs.forEach(function (e) { h += evRow(j.id, e); });
     h += evRow(j.id, null);
     h += '</tbody></table>';
@@ -78,8 +78,9 @@
     var id = s ? s.id : '';
     return '<tr data-sid="' + id + '" data-jid="' + jid + '" class="steprow">' +
       '<td>D+<input class="day f-day" type="number" min="0" max="365" value="' + (s ? s.dayOffset : '') + '"></td>' +
-      '<td><select class="f-ch">' + selOptions(CHANNELS, s ? s.channel : 'email') + '</select></td>' +
+      '<td><select class="f-ch">' + selOptions(CHANNELS, s ? s.channel : 'sms') + '</select></td>' +
       '<td><select class="f-tpl">' + tplOptions(s ? s.templateId : '') + '</select></td>' +
+      '<td><select class="f-emailtpl">' + tplOptions(s ? s.emailTemplateId : '') + '</select></td>' +
       '<td><input class="label f-label" value="' + esc(s ? s.label : '') + '" placeholder="단계 이름"></td>' +
       '<td><input type="checkbox" class="f-active"' + (!s || s.isActive ? ' checked' : '') + '></td>' +
       '<td><div class="row-actions"><button class="btn btn-sm" data-act="saveStep">' + (s ? '저장' : '추가') + '</button>' +
@@ -91,8 +92,9 @@
     var id = e ? e.id : '';
     return '<tr data-eid="' + id + '" data-jid="' + jid + '" class="evrow">' +
       '<td><select class="f-cad">' + selOptions(CADENCES, e ? e.cadence : 'quarterly') + '</select></td>' +
-      '<td><select class="f-ch">' + selOptions(CHANNELS, e ? e.channel : 'email') + '</select></td>' +
+      '<td><select class="f-ch">' + selOptions(CHANNELS, e ? e.channel : 'sms') + '</select></td>' +
       '<td><select class="f-tpl">' + tplOptions(e ? e.templateId : '') + '</select></td>' +
+      '<td><select class="f-emailtpl">' + tplOptions(e ? e.emailTemplateId : '') + '</select></td>' +
       '<td><input class="label f-label" value="' + esc(e ? e.label : '') + '" placeholder="규칙 이름"></td>' +
       '<td><input type="checkbox" class="f-active"' + (!e || e.isActive ? ' checked' : '') + '></td>' +
       '<td><div class="row-actions"><button class="btn btn-sm" data-act="saveEv">' + (e ? '저장' : '추가') + '</button>' +
@@ -116,7 +118,7 @@
         btn.onclick = function () {
           var act = btn.dataset.act, jid = Number(tr.dataset.jid), sid = tr.dataset.sid ? Number(tr.dataset.sid) : 0;
           if (act === 'saveStep') {
-            var p = { action: 'saveStep', journeyId: jid, dayOffset: Number(tr.querySelector('.f-day').value), channel: tr.querySelector('.f-ch').value, templateId: tr.querySelector('.f-tpl').value || null, label: tr.querySelector('.f-label').value, isActive: tr.querySelector('.f-active').checked };
+            var p = { action: 'saveStep', journeyId: jid, dayOffset: Number(tr.querySelector('.f-day').value), channel: tr.querySelector('.f-ch').value, templateId: tr.querySelector('.f-tpl').value || null, emailTemplateId: tr.querySelector('.f-emailtpl').value || null, label: tr.querySelector('.f-label').value, isActive: tr.querySelector('.f-active').checked };
             if (sid) p.id = sid;
             api('POST', p).then(function (r) { if (r.ok) { toast('저장됨'); load(); } else toast('실패: ' + (r.data.detail || '')); });
           } else if (act === 'delStep') {
@@ -136,7 +138,7 @@
         btn.onclick = function () {
           var act = btn.dataset.act, jid = Number(tr.dataset.jid), eid = tr.dataset.eid ? Number(tr.dataset.eid) : 0;
           if (act === 'saveEv') {
-            var p = { action: 'saveEvergreen', journeyId: jid, cadence: tr.querySelector('.f-cad').value, channel: tr.querySelector('.f-ch').value, templateId: tr.querySelector('.f-tpl').value || null, label: tr.querySelector('.f-label').value, isActive: tr.querySelector('.f-active').checked };
+            var p = { action: 'saveEvergreen', journeyId: jid, cadence: tr.querySelector('.f-cad').value, channel: tr.querySelector('.f-ch').value, templateId: tr.querySelector('.f-tpl').value || null, emailTemplateId: tr.querySelector('.f-emailtpl').value || null, label: tr.querySelector('.f-label').value, isActive: tr.querySelector('.f-active').checked };
             if (eid) p.id = eid;
             api('POST', p).then(function (r) { if (r.ok) { toast('저장됨'); load(); } else toast('실패'); });
           } else if (act === 'delEv') {

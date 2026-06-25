@@ -4507,8 +4507,9 @@ export const nurtureSteps = pgTable("nurture_steps", {
   id:          serial("id").primaryKey(),
   journeyId:   integer("journey_id").notNull().references(() => nurtureJourneys.id, { onDelete: "cascade" }),
   dayOffset:   integer("day_offset").notNull(),                       // 0~365
-  channel:     varchar("channel", { length: 20 }).notNull(),         // email|sms|kakao|inapp
-  templateId:  integer("template_id"),                               // communication_templates.id (참조·nullable)
+  channel:     varchar("channel", { length: 20 }).notNull(),         // 기본(1차) 채널: sms|kakao|email|inapp
+  templateId:  integer("template_id"),                               // 1차 채널 템플릿 (communication_templates.id)
+  emailTemplateId: integer("email_template_id"),                     // ★ 보조 메일 템플릿(선택) — 이메일 있는 수신자에 추가 발송
   conditions:  jsonb("conditions").default(sql`'{}'::jsonb`),        // {notConverted, minAmount, cancelReason, ...}
   label:       varchar("label", { length: 120 }),
   sortOrder:   integer("sort_order").notNull().default(0),
@@ -4526,8 +4527,9 @@ export const nurtureEvergreenRules = pgTable("nurture_evergreen_rules", {
   id:          serial("id").primaryKey(),
   journeyId:   integer("journey_id").notNull().references(() => nurtureJourneys.id, { onDelete: "cascade" }),
   cadence:     varchar("cadence", { length: 20 }).notNull(),         // monthly|quarterly|anniversary|yearend
-  channel:     varchar("channel", { length: 20 }).notNull(),
+  channel:     varchar("channel", { length: 20 }).notNull(),         // 1차 채널
   templateId:  integer("template_id"),
+  emailTemplateId: integer("email_template_id"),                     // ★ 보조 메일 템플릿(선택)
   conditions:  jsonb("conditions").default(sql`'{}'::jsonb`),
   label:       varchar("label", { length: 120 }),
   isActive:    boolean("is_active").notNull().default(true),
