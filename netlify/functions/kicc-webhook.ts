@@ -13,6 +13,7 @@ import { db, donations } from "../../db";
 import { logAudit } from "../../lib/audit";
 import { verifyMsgAuth } from "../../lib/kicc";
 import { notifyAllSuperAdmins } from "../../lib/notify";
+import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
 
 function ack(extra?: Record<string, any>): Response {
   return new Response(JSON.stringify({ resCd: "0000", resMsg: "정상", ...(extra || {}) }), {
@@ -158,6 +159,19 @@ export default async (req: Request) => {
     }
 
     await db.update(donations).set(updatePayload).where(eq(donations.id, donation.id));
+
+    /* ★ 2026-06-26: 웹훅이 일시후원을 완료로 승격(승인 미수신 복구)한 경우에도
+       예비 후원자 자동 등록. 정기(regular)는 제외(별도 분류). fire-and-forget. */
+    if (newStatus === "completed" && donation.type === "onetime") {
+      void ensureProspectFromDonation({
+        donationId: donation.id,
+        memberId: donation.member_id,
+        donorName: donation.donor_name,
+        donorEmail: donation.donor_email,
+        donorPhone: donation.donor_phone,
+        entryPath: "onetime_donation",
+      });
+    }
 
     await logAudit({
       userId: donation.memberId,

@@ -18,6 +18,7 @@ import { sendEmail, tplDonationThanks } from "../../lib/email";
 import { checkAndAwardBadges } from "../../lib/badge-checker";
 import { approveTrade, kiccPayMethod } from "../../lib/kicc";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
+import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -202,6 +203,17 @@ export default async (req: Request) => {
 
     /* ★ US-044: 캠페인 지정 후원이면 모금현황(모금액·후원자수) 즉시 재계산 */
     await recalcCampaignStatsSafe((donation as any).campaignId);
+
+    /* ★ 2026-06-26: 일시후원 완료 → 예비 후원자로 자동 등록(회원 연결·또는 게스트는 매칭/생성).
+       fire-and-forget — 실패해도 결제 완료에 영향 0. */
+    void ensureProspectFromDonation({
+      donationId: updated.id,
+      memberId: updated.memberId,
+      donorName: updated.donorName,
+      donorEmail: updated.donorEmail,
+      donorPhone: (donation as any).donorPhone,
+      entryPath: "onetime_donation",
+    });
 
     await logUserAction(req, updated.memberId, updated.donorName, "donate_kicc_approve_success", {
       target: pgOrderNo,
