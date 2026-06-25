@@ -66,12 +66,12 @@ export default async function handler(req: Request) {
   try {
     const since = new Date(Date.now() - days * 86400_000);
 
-    /* 미반영 후보: KICC · pending/failed · 최근 N일 (또는 지정 주문번호) */
+    /* ★ 2026-06-26 2차: 실제 결제된 주문(매입완료)이 어느 상태로 있는지 찾기 위해
+       최근 N일 KICC 후원을 '전 상태'로 스캔(또는 지정 주문번호). pending/failed만 복구 시도. */
     const whereClause = orderNoFilter.length > 0
       ? inArray(donations.pgOrderNo, orderNoFilter)
       : and(
           eq(donations.pgProvider, "kicc"),
-          inArray(donations.status, ["pending", "failed"] as any),
           gte(donations.createdAt, since),
         );
 
@@ -100,8 +100,9 @@ export default async function handler(req: Request) {
         report.push({ id: d.id, status: d.status, kicc: "조회불가(주문번호 없음)", action: "skip" });
         continue;
       }
-      if (d.status === "completed") {
-        report.push({ id: d.id, pgOrderNo: d.pgOrderNo, status: "completed", action: "already" });
+      if (d.status !== "pending" && d.status !== "failed") {
+        /* completed·cancelled·refunded 등 — 복구 대상 아님. 현황 파악용으로 그대로 보고. */
+        report.push({ id: d.id, pgOrderNo: d.pgOrderNo, donor: d.donorName, amount: d.amount, ourStatus: d.status, pgTid: d.pgTid, action: "현황(복구불필요)" });
         continue;
       }
 
@@ -202,9 +203,13 @@ export default async function handler(req: Request) {
       report.push(entry);
     }
 
+    const statusBreakdown: Record<string, number> = {};
+    for (const d of rows) statusBreakdown[String(d.status)] = (statusBreakdown[String(d.status)] || 0) + 1;
+
     const summary = {
       mode: run ? "복구실행" : "진단(읽기전용)",
       scanned: rows.length,
+      statusBreakdown,
       confirmedPaid: report.filter((r) => r.confirmedPaid).length,
       recovered: report.filter((r) => r.action === "복구완료(completed)").length,
     };
