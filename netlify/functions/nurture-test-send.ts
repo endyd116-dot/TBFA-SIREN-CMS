@@ -14,6 +14,8 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { runNurture } from "../../lib/nurture-engine";
+import { executeTrigger } from "../../lib/communication-auto-trigger";
+import { triggerDispatchBackground } from "../../lib/communication-dispatcher-core";
 
 export const config = { path: "/api/nurture-test-send" };
 const H = { "Content-Type": "application/json; charset=utf-8" };
@@ -152,6 +154,27 @@ export default async (req: Request, _ctx: Context) => {
        WHERE e.member_id = ${m.id} ORDER BY s.id DESC LIMIT 12`));
     return out({ ok: true, action: "status", memberId: m.id, sender: process.env.SOLAPI_SENDER || "(미설정)",
       recipients: recips, nurtureSends: ns });
+  }
+
+  /* ── probe: 문자 발송(executeTrigger) 직접 호출해 에러 노출 (시크릿) ── */
+  if (action === "probe") {
+    if (!authed) return out({ ok: false, error: "시크릿 불일치" }, 403);
+    const m = await findMember();
+    if (!m) return out({ ok: false, error: "회원 없음" }, 404);
+    const jid = await regularJourneyId();
+    const steps = await regularSteps(jid);
+    const step = Number(url.searchParams.get("step") || "0");
+    const target = steps[step];
+    if (!target) return out({ ok: false, error: `단계 없음 step=${step}` }, 400);
+    /* 템플릿 활성 여부 확인 */
+    const tpl = rows(await db.execute(sql`SELECT id, name, channel, is_active AS "isActive" FROM communication_templates WHERE id = ${Number(target.tplId)} LIMIT 1`))[0];
+    /* 실제 발송 큐 생성 시도 */
+    const r = await executeTrigger({ id: 9999, name: `probe ${target.label}`, templateId: Number(target.tplId), channel: "sms" }, [Number(m.id)], { unsubscribe: true });
+    /* 디스패처 구동 */
+    let dispatch: any = null;
+    if (r.jobId) { try { dispatch = await triggerDispatchBackground(); } catch (e: any) { dispatch = { error: String(e?.message || e).slice(0, 200) }; } }
+    return out({ ok: true, action: "probe", step, templateId: target.tplId, template: tpl || "(템플릿 행 없음)",
+      executeTrigger: { jobId: r.jobId, error: r.error || null }, dispatch });
   }
 
   /* ── 진단 ── */
