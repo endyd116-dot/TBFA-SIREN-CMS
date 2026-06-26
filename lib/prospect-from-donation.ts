@@ -76,12 +76,12 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
       const phoneVer = phone ? sql`NOW()` : sql`NULL`;
       const ins: any = await db.execute(sql`
         INSERT INTO members (
-          name, email, phone, type, status,
+          name, email, phone, password_hash, type, status,
           donor_type, prospect_subtype, prospect_entry_path,
           agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at,
           donor_evaluated_at, created_at, updated_at
         ) VALUES (
-          ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
+          ${name}, ${email || null}, ${phone || null}, ${"!prospect-no-login"}, 'regular', 'active',
           'prospect', 'onetime', ${entryPath},
           true, true, ${phoneVer}, ${phoneVer},
           NOW(), NOW(), NOW()
@@ -95,12 +95,12 @@ export async function ensureProspectFromDonation(input: ProspectDonationInput): 
         const phoneVer2 = phone ? sql`NOW()` : sql`NULL`;
         const ins2: any = await db.execute(sql`
           INSERT INTO members (
-            name, email, phone, type, status,
+            name, email, phone, password_hash, type, status,
             donor_type, prospect_subtype,
             agree_email, agree_sms, phone_verified_at, kakao_marketing_consent_at,
             donor_evaluated_at, created_at, updated_at
           ) VALUES (
-            ${name}, ${email || null}, ${phone || null}, 'regular', 'active',
+            ${name}, ${email || null}, ${phone || null}, ${"!prospect-no-login"}, 'regular', 'active',
             'prospect', 'onetime',
             true, true, ${phoneVer2}, ${phoneVer2},
             NOW(), NOW(), NOW()
