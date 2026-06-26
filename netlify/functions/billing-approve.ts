@@ -63,11 +63,6 @@ function generateCustomerKey(memberId: number | null): string {
 function generateReceiptNumber(donationId: number): string {
   return `TBFA-${new Date().getFullYear()}-${String(donationId).padStart(6, "0")}`;
 }
-function addMonth(from: Date): Date {
-  const d = new Date(from);
-  d.setMonth(d.getMonth() + 1);
-  return d;
-}
 
 export default async (req: Request) => {
   if (req.method !== "POST" && req.method !== "GET") return failRedirect("잘못된 접근입니다");
@@ -211,7 +206,9 @@ export default async (req: Request) => {
 
     /* 3) billing_keys INSERT (활성) */
     const now = new Date();
-    const nextCharge = addMonth(now);
+    /* ★ 2026-06-27 FIX: 월말(29~31일) 가입자 첫 정기청구가 한 달 건너뛰던 버그.
+       단순 +1달(addMonth)은 1/31→3/3로 2월을 건너뜀 → 월말 보정된 calculateNextBillingDate 사용. */
+    const nextCharge = calculateNextBillingDate(now.getDate(), now);
     let customerKey = "";
     for (let i = 0; i < 3; i++) {
       customerKey = generateCustomerKey(memberId);

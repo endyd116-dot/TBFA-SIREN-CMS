@@ -151,7 +151,7 @@ async function getCandidates(trigger: {
         SELECT DISTINCT d.member_id AS id
           FROM donations d
           JOIN members m ON m.id = d.member_id
-         WHERE d.donation_type = 'regular'
+         WHERE d.type = 'regular'
            AND d.status = 'completed'
            AND m.status = 'active'
            AND m.withdrawn_at IS NULL
@@ -190,34 +190,48 @@ export async function executeTrigger(trigger: {
       return { jobId: null, error: `템플릿 없음 또는 비활성 (id=${trigger.templateId})` };
     }
 
-    /* send_job INSERT */
+    /* ★ 2026-06-27 보안 FIX: 자동 발송 경로 수신동의·차단 게이트.
+       executeTrigger는 memberIds를 직접 받아 스냅샷하므로(그룹 resolve 미경유) 동의/차단이
+       누락됐다 → 채널별 수신동의·차단(blacklisted)·탈퇴/비활성을 여기서 선행 필터(정보통신망법).
+       (너처링 등 이미 선행 필터한 호출은 결과 동일·멱등.) */
+    const idArr = memberIds.map(Number).filter(Number.isFinite);
+    const consentSql =
+      trigger.channel === "sms"   ? "m.agree_sms IS NOT FALSE AND m.phone_verified_at IS NOT NULL" :
+      trigger.channel === "kakao" ? "m.kakao_marketing_consent_at IS NOT NULL AND m.phone_verified_at IS NOT NULL" :
+      trigger.channel === "email" ? "m.agree_email IS NOT FALSE AND m.email IS NOT NULL AND m.email NOT LIKE '%@noemail.tbfa.local'" :
+      "TRUE";
+    const membersRes: any = await db.execute(sql.raw(`
+      SELECT id, name, email, phone FROM members m
+       WHERE m.id = ANY(ARRAY[${idArr.join(",") || "0"}]::int[])
+         AND m.blacklisted_at IS NULL AND m.status = 'active' AND m.withdrawn_at IS NULL
+         AND (${consentSql})
+    `));
+    const memberRows = membersRes?.rows ?? membersRes ?? [];
+    const eligibleIds: number[] = memberRows.map((m: any) => Number(m.id)).filter(Boolean);
+    if (eligibleIds.length === 0) return { jobId: null, error: "수신동의·차단 필터 후 대상 0명" };
+    const memberMap = new Map<number, any>();
+    for (const m of memberRows) memberMap.set(m.id, m);
+
+    /* send_job INSERT (동의·차단 필터 후 인원 기준) */
     const jobInsRes: any = await db.execute(sql`
       INSERT INTO communication_send_jobs
         (name, template_id, recipient_group_id, channel, schedule_type, scheduled_at,
          status, total_recipients, started_at, created_at, updated_at)
       VALUES
         (${`[자동] ${trigger.name}`}, ${trigger.templateId}, NULL, ${trigger.channel},
-         'now', NOW(), 'processing', ${memberIds.length}, NOW(), NOW(), NOW())
+         'now', NOW(), 'processing', ${eligibleIds.length}, NOW(), NOW(), NOW())
       RETURNING id
     `);
     const jobId: number = ((jobInsRes?.rows ?? jobInsRes)[0] ?? {}).id;
     if (!jobId) throw new Error("send_job INSERT 후 id 반환 없음");
-
-    /* 회원 정보 조회 */
-    const membersRes: any = await db.execute(sql`
-      SELECT id, name, email, phone FROM members WHERE id = ANY(${sql.raw(`ARRAY[${memberIds.map(Number).filter(Number.isFinite).join(",") || "0"}]::int[]`)})
-    `);
-    const memberRows = membersRes?.rows ?? membersRes ?? [];
-    const memberMap = new Map<number, any>();
-    for (const m of memberRows) memberMap.set(m.id, m);
 
     const variables = Array.isArray(template.variables) ? template.variables : [];
     const channel = trigger.channel;
 
     /* 수신자 스냅샷 INSERT (500건씩·드리즐 타입 insert로 숫자 파라미터 안전 처리) */
     const INSERT_BATCH = 500;
-    for (let i = 0; i < memberIds.length; i += INSERT_BATCH) {
-      const batch = memberIds.slice(i, i + INSERT_BATCH);
+    for (let i = 0; i < eligibleIds.length; i += INSERT_BATCH) {
+      const batch = eligibleIds.slice(i, i + INSERT_BATCH);
       const valuesArr: any[] = [];
       for (const mid of batch) {
         const member = memberMap.get(mid) || { id: mid, name: "", email: "", phone: "" };

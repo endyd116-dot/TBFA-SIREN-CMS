@@ -14,7 +14,7 @@
  */
 import { eq } from "drizzle-orm";
 import { db, supportRequests, members } from "../../db";
-import { authenticateUser } from "../../lib/auth";
+import { requireActiveUser } from "../../lib/auth";
 import { logUserAction } from "../../lib/audit";
 import { sendEmail } from "../../lib/email";
 import {
@@ -29,9 +29,10 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
-    /* 1. 인증 */
-    const auth = authenticateUser(req);
-    if (!auth) return unauthorized("로그인이 필요합니다");
+    /* 1. 인증 + 차단(블랙) 회원 진입 차단 (★ 2026-06-27 FIX) */
+    const _r = await requireActiveUser(req);
+    if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+    const auth = _r.user;
 
     /* 2. 입력 파싱 */
     const body: any = await parseJson(req);

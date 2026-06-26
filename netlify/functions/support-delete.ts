@@ -10,7 +10,7 @@
  */
 import { eq } from "drizzle-orm";
 import { db, supportRequests } from "../../db";
-import { authenticateUser } from "../../lib/auth";
+import { requireActiveUser } from "../../lib/auth";
 import {
   ok, badRequest, unauthorized, notFound, forbidden, serverError,
   corsPreflight, methodNotAllowed,
@@ -24,8 +24,10 @@ export default async (req: Request) => {
   if (req.method !== "POST") return methodNotAllowed();
 
   try {
-    const auth = authenticateUser(req);
-    if (!auth) return unauthorized("로그인이 필요합니다");
+    /* ★ 2026-06-27 FIX: 차단(블랙) 회원 진입 차단 — support-create/update와 동일 게이트 */
+    const _r = await requireActiveUser(req);
+    if (!_r.ok) return (_r as { ok: false; res: Response }).res;
+    const auth = _r.user;
 
     const body: any = await req.json().catch(() => ({}));
     const id = Number(body?.id);
