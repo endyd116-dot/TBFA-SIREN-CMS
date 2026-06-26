@@ -25,6 +25,33 @@ function rows(r: any): any[] { return (r?.rows ?? r ?? []) as any[]; }
 const VALID_CHANNELS = ["email", "sms", "kakao", "inapp"];
 const VALID_CADENCES = ["monthly", "quarterly", "anniversary", "yearend"];
 
+/* ★ 2026-06-26: 문자 내용 인라인 CRUD — 카드에서 작성한 본문(bodyText)을 템플릿에 upsert.
+   id 있으면 그 템플릿 수정, 없으면 신규 생성. 본문 비면 기존 templateId 유지. */
+async function upsertTpl(opts: { id: number | null; channel: string; subject: string | null; body: string; label: string | null; imageUrl?: string | null; hasImageKey?: boolean }): Promise<number | null> {
+  const bodyText = String(opts.body || "").trim();
+  if (!bodyText) return opts.id;
+  const subject = opts.channel === "email" ? (opts.subject ? String(opts.subject).slice(0, 200) : "교사유가족협의회 소식") : null;
+  /* 이미지: 기존 시스템 images(jsonb) 재사용 → SMS는 자동 MMS, 메일은 본문 삽입. imageUrl=''면 제거. */
+  const imgJson = opts.imageUrl
+    ? JSON.stringify([{ url: String(opts.imageUrl), order: 0, position: "below", align: "center", width: 600, alt: "교사유가족협의회" }])
+    : "[]";
+  let id = opts.id;
+  if (id) {
+    await db.execute(sql`UPDATE communication_templates SET channel=${opts.channel}, subject=${subject}, body_template=${bodyText}, category='nurture', is_active=true, updated_at=NOW() WHERE id=${id}`);
+  } else {
+    const name = `[너처링] ${String(opts.label || "단계").slice(0, 60)} ${String(Date.now()).slice(-6)}`;
+    const r = (await db.execute(sql`INSERT INTO communication_templates (name, channel, category, subject, body_template, variables, is_active, created_at, updated_at)
+      VALUES (${name}, ${opts.channel}, 'nurture', ${subject}, ${bodyText}, '[{"key":"이름","label":"회원이름","sample":"김후원"}]'::jsonb, true, NOW(), NOW()) RETURNING id`) as any);
+    id = Number((r?.rows ?? r ?? [])[0]?.id) || null;
+  }
+  /* images 컬럼이 있을 때만 갱신(기존 MMS 시스템 컬럼). imageUrl 키가 요청에 있을 때만 덮어씀. */
+  if (id && opts.hasImageKey) {
+    try { await db.execute(sql`UPDATE communication_templates SET images=${imgJson}::jsonb WHERE id=${id}`); }
+    catch (e) { console.warn("[nurture] images 컬럼 갱신 실패(무시):", String((e as any)?.message || e)); }
+  }
+  return id;
+}
+
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
@@ -36,7 +63,12 @@ export default async function handler(req: Request) {
       const journeys = rows(await db.execute(sql`SELECT id, segment, name, is_active AS "isActive", entry_basis AS "entryBasis" FROM nurture_journeys ORDER BY id`));
       const steps = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", day_offset AS "dayOffset", channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, conditions, sort_order AS "sortOrder", is_active AS "isActive" FROM nurture_steps ORDER BY journey_id, day_offset`));
       const evergreen = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", cadence, channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, is_active AS "isActive" FROM nurture_evergreen_rules ORDER BY journey_id`));
-      const templates = rows(await db.execute(sql`SELECT id, name, channel, subject, LEFT(body_template, 700) AS "body" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
+      /* images 컬럼 존재 시에만 포함(기존 MMS 시스템 컬럼·환경별 상이) */
+      let hasImages = false;
+      try { hasImages = ((rows(await db.execute(sql`SELECT 1 AS ok FROM information_schema.columns WHERE table_name='communication_templates' AND column_name='images' LIMIT 1`))[0] || {}) as any).ok === 1; } catch { hasImages = false; }
+      const templates = hasImages
+        ? rows(await db.execute(sql`SELECT id, name, channel, subject, body_template AS "body", images FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`))
+        : rows(await db.execute(sql`SELECT id, name, channel, subject, body_template AS "body" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
       /* KPI: 여정별 active enrollment 수 + 누적 발송 수 */
       const kpi = rows(await db.execute(sql`
         SELECT j.id AS "journeyId",
@@ -67,13 +99,15 @@ export default async function handler(req: Request) {
         const journeyId = Number(body.journeyId);
         const dayOffset = Math.max(0, Math.min(365, Number(body.dayOffset)));
         const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
-        const templateId = body.templateId ? Number(body.templateId) : null;
+        let templateId = body.templateId ? Number(body.templateId) : null;
         const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null; // ★ 보조 메일
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         const conditions = body.conditions && typeof body.conditions === "object" ? JSON.stringify(body.conditions) : "{}";
         if (!journeyId || !Number.isFinite(dayOffset)) return err("validate", "journeyId·dayOffset 필요", 400);
         if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
+        /* 인라인 작성 본문이 있으면 템플릿 upsert → templateId 확정 (이미지 포함) */
+        if (typeof body.bodyText === "string") templateId = await upsertTpl({ id: templateId, channel, subject: body.subject ?? null, body: body.bodyText, label, imageUrl: body.imageUrl ?? null, hasImageKey: "imageUrl" in body });
         if (body.id) {
           await db.execute(sql`
             UPDATE nurture_steps SET day_offset=${dayOffset}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId},
@@ -96,13 +130,14 @@ export default async function handler(req: Request) {
         const journeyId = Number(body.journeyId);
         const cadence = String(body.cadence || "quarterly");
         const channel = String(body.channel || "sms"); // ★ 문자 1차 기본
-        const templateId = body.templateId ? Number(body.templateId) : null;
+        let templateId = body.templateId ? Number(body.templateId) : null;
         const emailTemplateId = body.emailTemplateId ? Number(body.emailTemplateId) : null;
         const label = body.label ? String(body.label).slice(0, 120) : null;
         const isActive = body.isActive !== false;
         if (!journeyId) return err("validate", "journeyId 필요", 400);
         if (!VALID_CHANNELS.includes(channel)) return err("validate", "지원하지 않는 채널", 400);
         if (!VALID_CADENCES.includes(cadence)) return err("validate", "지원하지 않는 주기", 400);
+        if (typeof body.bodyText === "string") templateId = await upsertTpl({ id: templateId, channel, subject: body.subject ?? null, body: body.bodyText, label, imageUrl: body.imageUrl ?? null, hasImageKey: "imageUrl" in body });
         if (body.id) {
           await db.execute(sql`UPDATE nurture_evergreen_rules SET cadence=${cadence}, channel=${channel}, template_id=${templateId}, email_template_id=${emailTemplateId}, label=${label}, is_active=${isActive}, updated_at=NOW() WHERE id=${Number(body.id)}`);
           return new Response(JSON.stringify({ ok: true, id: Number(body.id) }), { status: 200, headers: H });
