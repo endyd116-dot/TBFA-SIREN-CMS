@@ -6,6 +6,7 @@
 
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { communicationSendRecipients } from "../db/schema";
 import { generateTrackingToken, injectTrackingIntoHtml } from "./communication-tracking";
 import { renderTemplate } from "./template-render";
 import { buildMemberRenderData } from "./communication-send";
@@ -213,11 +214,11 @@ export async function executeTrigger(trigger: {
     const variables = Array.isArray(template.variables) ? template.variables : [];
     const channel = trigger.channel;
 
-    /* 수신자 스냅샷 INSERT (500건씩) */
+    /* 수신자 스냅샷 INSERT (500건씩·드리즐 타입 insert로 숫자 파라미터 안전 처리) */
     const INSERT_BATCH = 500;
     for (let i = 0; i < memberIds.length; i += INSERT_BATCH) {
       const batch = memberIds.slice(i, i + INSERT_BATCH);
-      const fragments: ReturnType<typeof sql>[] = [];
+      const valuesArr: any[] = [];
       for (const mid of batch) {
         const member = memberMap.get(mid) || { id: mid, name: "", email: "", phone: "" };
         const data = buildMemberRenderData({
@@ -241,16 +242,12 @@ export async function executeTrigger(trigger: {
             bodyStr += `\n\n[무료수신거부] ${link}`;
           }
         }
-        fragments.push(
-          sql`(${jobId}, ${mid}, ${channel}, 'pending', ${subjectStr}, ${bodyStr}, ${trackingToken})`
-        );
+        valuesArr.push({
+          jobId: Number(jobId), memberId: Number(mid), channel, status: "pending",
+          renderedSubject: subjectStr, renderedBody: bodyStr, trackingToken,
+        });
       }
-      const joined = fragments.reduce((a, b, idx) => (idx === 0 ? b : sql`${a}, ${b}`));
-      await db.execute(sql`
-        INSERT INTO communication_send_recipients
-          (job_id, member_id, channel, status, rendered_subject, rendered_body, tracking_token)
-        VALUES ${joined}
-      `);
+      await db.insert(communicationSendRecipients).values(valuesArr);
     }
 
     return { jobId };
