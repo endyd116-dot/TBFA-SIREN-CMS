@@ -67,8 +67,8 @@ export default async function handler(req: Request) {
       let hasImages = false;
       try { hasImages = ((rows(await db.execute(sql`SELECT 1 AS ok FROM information_schema.columns WHERE table_name='communication_templates' AND column_name='images' LIMIT 1`))[0] || {}) as any).ok === 1; } catch { hasImages = false; }
       const templates = hasImages
-        ? rows(await db.execute(sql`SELECT id, name, channel, subject, body_template AS "body", images FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`))
-        : rows(await db.execute(sql`SELECT id, name, channel, subject, body_template AS "body" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
+        ? rows(await db.execute(sql`SELECT id, name, channel, CASE WHEN category='nurture' THEN subject END AS "subject", CASE WHEN category='nurture' THEN body_template END AS "body", CASE WHEN category='nurture' THEN images END AS "images" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`))
+        : rows(await db.execute(sql`SELECT id, name, channel, CASE WHEN category='nurture' THEN subject END AS "subject", CASE WHEN category='nurture' THEN body_template END AS "body" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
       /* KPI: 여정별 active enrollment 수 + 누적 발송 수 */
       const kpi = rows(await db.execute(sql`
         SELECT j.id AS "journeyId",
