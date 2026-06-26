@@ -3,7 +3,7 @@
 import { requireActiveUser } from "../../lib/auth";
 import { db } from "../../db";
 import { incidentReports, harassmentReports, legalConsultations } from "../../db/schema";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, sql } from "drizzle-orm";
 
 export const config = { path: "/api/user-my-reports" };
 
@@ -154,6 +154,39 @@ export default async (req: Request) => {
 
   // createdAt 내림차순 정렬 (all 모드)
   results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  /* ★ 2026-06-27: 반려 사유 노출 — 반려 시 사유는 report_status_logs.note(to_status='rejected')에
+     보존됨(AD-014). 신고별 최신 반려 note를 rejectedReason로 부착해 마이페이지 타임라인에 표시.
+     실패해도 목록은 정상 반환(보조 조회). */
+  try {
+    const rejected = results.filter((r) => r.status === "rejected");
+    if (rejected.length) {
+      const byType: Record<string, number[]> = { incident: [], harassment: [], legal: [] };
+      for (const r of rejected) {
+        if (byType[r.reportType]) byType[r.reportType].push(Number(r.id));
+      }
+      const reasonMap = new Map<string, string | null>();
+      for (const t of Object.keys(byType)) {
+        const ids = byType[t];
+        if (!ids.length) continue;
+        const logs: any = await db.execute(sql`
+          SELECT DISTINCT ON (report_id) report_id, note
+            FROM report_status_logs
+           WHERE report_type = ${t} AND to_status = 'rejected'
+             AND report_id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
+           ORDER BY report_id, created_at DESC
+        `);
+        for (const row of (logs?.rows ?? logs ?? [])) {
+          reasonMap.set(`${t}:${row.report_id}`, row.note ?? null);
+        }
+      }
+      for (const r of results) {
+        if (r.status === "rejected") r.rejectedReason = reasonMap.get(`${r.reportType}:${r.id}`) ?? null;
+      }
+    }
+  } catch (err) {
+    console.warn("[user-my-reports] 반려사유 부착 실패(무시):", err);
+  }
 
   /* ★ R41 Q2-012: total·limit·totalPages 추가 (페이지네이션이 실제 전체 건수 사용) */
   return new Response(JSON.stringify({
