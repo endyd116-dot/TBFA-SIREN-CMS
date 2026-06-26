@@ -32,7 +32,7 @@ async function deliverNurtureInApp(memberIds: number[], primaryTpl: number | nul
     const tpl = (tRes?.rows ?? tRes ?? [])[0];
     if (!tpl) return 0;
     const vars: any[] = Array.isArray(tpl.variables) ? tpl.variables : [];
-    const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${memberIds}::int[])`);
+    const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${sql.raw(`ARRAY[${memberIds.map(Number).filter(Number.isFinite).join(",") || "0"}]::int[]`)})`);
     const mMap = new Map<number, any>();
     for (const m of (mRes?.rows ?? mRes ?? [])) mMap.set(Number(m.id), m);
     for (const mid of memberIds) {

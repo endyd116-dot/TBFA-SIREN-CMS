@@ -52,7 +52,7 @@ export async function evaluateTrigger(trigger: {
     SELECT DISTINCT r.member_id
       FROM communication_send_recipients r
       JOIN communication_send_jobs j ON j.id = r.job_id
-     WHERE r.member_id = ANY(${rawCandidates}::int[])
+     WHERE r.member_id = ANY(${sql.raw(`ARRAY[${rawCandidates.map(Number).filter(Number.isFinite).join(",") || "0"}]::int[]`)})
        AND r.status = 'sent'
        AND r.created_at >= ${cooldownCutoff}
        AND j.id IN (
@@ -204,7 +204,7 @@ export async function executeTrigger(trigger: {
 
     /* 회원 정보 조회 */
     const membersRes: any = await db.execute(sql`
-      SELECT id, name, email, phone FROM members WHERE id = ANY(${memberIds}::int[])
+      SELECT id, name, email, phone FROM members WHERE id = ANY(${sql.raw(`ARRAY[${memberIds.map(Number).filter(Number.isFinite).join(",") || "0"}]::int[]`)})
     `);
     const memberRows = membersRes?.rows ?? membersRes ?? [];
     const memberMap = new Map<number, any>();

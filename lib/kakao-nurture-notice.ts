@@ -59,7 +59,7 @@ export async function sendNurtureKakao(due: any[], primaryTpl: number, _journeyN
   const variables: any[] = Array.isArray(tpl.variables) ? tpl.variables : [];
 
   /* 회원 이름·전화 */
-  const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${memberIds}::int[])`);
+  const mRes: any = await db.execute(sql`SELECT id, name, email, phone FROM members WHERE id = ANY(${sql.raw(`ARRAY[${memberIds.map(Number).filter(Number.isFinite).join(",") || "0"}]::int[]`)})`);
   const mMap = new Map<number, any>();
   for (const m of (mRes?.rows ?? mRes ?? [])) mMap.set(Number(m.id), m);
 
