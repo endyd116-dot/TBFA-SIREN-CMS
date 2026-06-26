@@ -7,7 +7,7 @@
  */
 import { eq, and, or, desc } from "drizzle-orm";
 import { db, chatRooms, chatBlacklist, members } from "../../db";
-import { authenticateUser } from "../../lib/auth";
+import { authenticateUser, requireActiveUser } from "../../lib/auth";
 import { ROOM_TYPE_EXPERT } from "../../lib/expert-match";
 import { notifyAllOperators } from "../../lib/notify";
 import {
@@ -82,6 +82,10 @@ export default async (req: Request) => {
 
     /* ===== POST — 새 채팅방 생성 ===== */
     if (req.method === "POST") {
+      /* ★ 2026-06-27: 전역 차단(정지/탈퇴/블랙) 회원 채팅 개설 차단 — 채팅 전용 블랙 외 계정 상태도 게이트 */
+      const _act = await requireActiveUser(req);
+      if (!_act.ok) return (_act as { ok: false; res: Response }).res;
+
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
 

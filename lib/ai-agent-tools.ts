@@ -8,6 +8,7 @@ import { sendEmail, renderEmailLayout } from "./email";
 import { solapiSendSms } from "./solapi-client";
 import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
+import { recalcCampaignStatsSafe } from "./campaign-stats";
 
 /* =========================================================
    Gemini Function Declaration — OpenAPI 3.0 schema (대문자 type)
@@ -2147,7 +2148,7 @@ async function tool_donationsStatusUpdate(args: any, adminId: number | null): Pr
   let before: any = null;
   try {
     const r: any = await db.execute(sql`
-      SELECT id, donor_name, amount, status, failure_reason FROM donations WHERE id = ${donationId} LIMIT 1
+      SELECT id, donor_name, amount, status, failure_reason, campaign_id FROM donations WHERE id = ${donationId} LIMIT 1
     `);
     before = (r?.rows ?? r ?? [])[0];
   } catch {}
@@ -2168,6 +2169,13 @@ async function tool_donationsStatusUpdate(args: any, adminId: number | null): Pr
       await db.execute(sql`
         UPDATE donations SET status = ${status} WHERE id = ${donationId}
       `);
+    }
+    /* ★ 2026-06-27: 환불 시 영수증 무효화 + 캠페인 모금현황 재계산(타 환불 경로와 정합) */
+    if (status === "refunded") {
+      await db.execute(sql`
+        UPDATE donations SET receipt_issued = false, receipt_number = NULL, receipt_issued_at = NULL WHERE id = ${donationId}
+      `);
+      try { await recalcCampaignStatsSafe(Number(before.campaign_id) || null); } catch {}
     }
     return { ok: true, output: { updated: true, donationId, status, reason }, rollbackData: { table: "donations", id: donationId, before } };
   } catch (e: any) {
