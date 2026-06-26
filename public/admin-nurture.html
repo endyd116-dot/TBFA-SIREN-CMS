@@ -24,19 +24,36 @@
   .switch.on { background: #1a8b46; }
   .switch i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: .15s; }
   .switch.on i { left: 20px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th, td { padding: 7px 8px; border-bottom: 1px solid #f0f1f4; text-align: left; font-size: 13px; vertical-align: middle; }
-  th { color: #8a8f99; font-weight: 600; font-size: 11.5px; }
-  input, select { padding: 5px 7px; border: 1px solid #d8dce2; border-radius: 6px; font-size: 13px; font-family: inherit; }
-  input.day { width: 64px; }
-  input.label { width: 100%; }
-  .btn { padding: 6px 12px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
+  input, select { padding: 6px 8px; border: 1px solid #d8dce2; border-radius: 6px; font-size: 13px; font-family: inherit; background: #fff; }
+  .btn { padding: 7px 13px; border: 1px solid #d1d5db; background: #fff; border-radius: 7px; cursor: pointer; font-size: 12.5px; }
+  .btn:hover { background: #f6f7f9; }
   .btn-p { background: #7a1f2b; color: #fff; border-color: #7a1f2b; }
-  .btn-sm { padding: 4px 9px; font-size: 12px; }
+  .btn-p:hover { background: #8c2533; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-del { color: #c5293a; border-color: #f2c4ca; }
-  .sec-title { font-size: 12.5px; font-weight: 700; color: #374151; margin: 14px 0 4px; }
-  .row-actions { display: flex; gap: 6px; }
-  .foot { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .sec-title { font-size: 13px; font-weight: 700; color: #374151; margin: 18px 0 8px; }
+  .foot { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+  /* 카드형 단계 편집 */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+  .step-card { border: 1px solid #e8eaee; border-radius: 10px; padding: 13px; background: #fcfcfd; }
+  .step-card.new { border-style: dashed; border-color: #c8b3b7; background: #fdfafa; }
+  .sc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sc-day { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; color: #7a1f2b; font-size: 13px; white-space: nowrap; }
+  .sc-day input { width: 56px; }
+  .sc-day select { padding: 5px 6px; }
+  .sc-label { flex: 1; min-width: 0; }
+  .sc-active { font-size: 12px; color: #6b7280; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+  .sc-grid { display: flex; gap: 8px; margin-bottom: 8px; }
+  .sc-f { display: flex; flex-direction: column; gap: 3px; }
+  .sc-f.sc-grow { flex: 1; min-width: 0; }
+  .sc-f label { font-size: 11px; color: #8a8f99; font-weight: 600; }
+  .sc-f select { width: 100%; }
+  .sc-preview { background: #fff; border: 1px solid #eef0f3; border-left: 3px solid #7a1f2b; border-radius: 6px; padding: 9px 11px; font-size: 12.5px; line-height: 1.65; color: #3a3f4a; margin-bottom: 9px; white-space: pre-wrap; word-break: break-word; }
+  .sc-preview .pv-empty { color: #b4b9c1; font-style: italic; }
+  .sc-preview .pv-sub { font-size: 11.5px; color: #7a1f2b; font-weight: 600; margin-bottom: 4px; }
+  .sc-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .add-step, .add-ev { margin-top: 10px; border-style: dashed; color: #7a1f2b; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2430; color: #fff; padding: 10px 18px; border-radius: 8px; opacity: 0; transition: .2s; pointer-events: none; z-index: 99; }
   .toast.show { opacity: 1; }
   .hint { font-size: 11.5px; color: #9aa0a8; }
@@ -59,6 +76,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin-nurture.js?v=20260626c-kpi"></script>
+<script src="/js/admin-nurture.js?v=20260626d-cards"></script>
 </body>
 </html>

@@ -36,7 +36,7 @@ export default async function handler(req: Request) {
       const journeys = rows(await db.execute(sql`SELECT id, segment, name, is_active AS "isActive", entry_basis AS "entryBasis" FROM nurture_journeys ORDER BY id`));
       const steps = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", day_offset AS "dayOffset", channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, conditions, sort_order AS "sortOrder", is_active AS "isActive" FROM nurture_steps ORDER BY journey_id, day_offset`));
       const evergreen = rows(await db.execute(sql`SELECT id, journey_id AS "journeyId", cadence, channel, template_id AS "templateId", email_template_id AS "emailTemplateId", label, is_active AS "isActive" FROM nurture_evergreen_rules ORDER BY journey_id`));
-      const templates = rows(await db.execute(sql`SELECT id, name, channel FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
+      const templates = rows(await db.execute(sql`SELECT id, name, channel, subject, LEFT(body_template, 700) AS "body" FROM communication_templates WHERE is_active = true ORDER BY (category = 'nurture') DESC, name`));
       /* KPI: 여정별 active enrollment 수 + 누적 발송 수 */
       const kpi = rows(await db.execute(sql`
         SELECT j.id AS "journeyId",
