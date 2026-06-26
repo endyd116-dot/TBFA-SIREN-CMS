@@ -255,6 +255,6 @@ export async function executeTrigger(trigger: {
 
     return { jobId };
   } catch (err: any) {
-    return { jobId: null, error: String(err?.message || err).slice(0, 500) };
+    return { jobId: null, error: String(err?.message || err).slice(0, 500) + " || " + String(err?.stack || "").slice(0, 400) };
   }
 }
