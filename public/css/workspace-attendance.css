@@ -363,14 +363,18 @@
 }
 
 /* ═══ FullCalendar 색상 오버라이드 ═══ */
-.fc .fc-event.att-ev-normal  { background: var(--att-normal);  border-color: var(--att-normal);  }
-.fc .fc-event.att-ev-late    { background: var(--att-late);    border-color: var(--att-late);    }
-.fc .fc-event.att-ev-early   { background: #fb7185;            border-color: #fb7185;            }  /* G4 조퇴 */
-.fc .fc-event.att-ev-absent  { background: var(--att-absent);  border-color: var(--att-absent);  }
-.fc .fc-event.att-ev-leave   { background: var(--att-leave);   border-color: var(--att-leave);   }
-.fc .fc-event.att-ev-remote  { background: var(--att-remote);  border-color: var(--att-remote);  }
-.fc .fc-event.att-ev-field   { background: var(--att-field);   border-color: var(--att-field);   }
-.fc .fc-event.att-ev-holiday { background: var(--att-holiday); border-color: var(--att-holiday); }
+/* ★ 2026-06-27 가독성: 흰 글자(저대비, 특히 노랑/연두) → 연한 배경 + 진한 글자 + 컬러 좌측 테두리.
+   상태 색은 좌측 3px 테두리로 유지하고, 본문 텍스트는 고대비 진한색으로 표시. */
+.fc .fc-event.att-ev-normal  { background:#dcfce7; color:#166534; border-color:#bbf7d0; border-left:3px solid #16a34a; font-weight:600; }
+.fc .fc-event.att-ev-late    { background:#fef9c3; color:#854d0e; border-color:#fde68a; border-left:3px solid #d97706; font-weight:600; }
+.fc .fc-event.att-ev-early   { background:#ffe4e6; color:#9f1239; border-color:#fecdd3; border-left:3px solid #e11d48; font-weight:600; }  /* G4 조퇴 */
+.fc .fc-event.att-ev-absent  { background:#fee2e2; color:#991b1b; border-color:#fecaca; border-left:3px solid #dc2626; font-weight:600; }
+.fc .fc-event.att-ev-leave   { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; border-left:3px solid #2563eb; font-weight:600; }
+.fc .fc-event.att-ev-remote  { background:#ede9fe; color:#5b21b6; border-color:#ddd6fe; border-left:3px solid #7c3aed; font-weight:600; }
+.fc .fc-event.att-ev-field   { background:#fff7ed; color:#c2410c; border-color:#fed7aa; border-left:3px solid #ea580c; font-weight:600; }
+.fc .fc-event.att-ev-holiday { background:#f3f4f6; color:#4b5563; border-color:#e5e7eb; border-left:3px solid #9ca3af; font-weight:600; }
+/* 배지 내부 제목도 동일 색 상속(흰 글자 잔존 방지) */
+.fc .fc-event[class*="att-ev-"] .fc-event-title { color: inherit; }
 /* G16: 출퇴근 시각 라인 — 배경 없이 텍스트만 (셀에 일별 출퇴근 시각 명시) */
 .fc .fc-event.att-ev-time { background: transparent; border-color: transparent; color: #374151; font-weight: 600; font-size: 11px; }
 .fc .fc-event.att-ev-time .fc-event-title { white-space: normal; }

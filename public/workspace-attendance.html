@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <!-- 워크스페이스 전용 -->
 <link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
-<link rel="stylesheet" href="/css/workspace-attendance.css?v=15-caltime">
+<link rel="stylesheet" href="/css/workspace-attendance.css?v=16-readable">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 
 <!-- FullCalendar CDN -->
@@ -205,6 +205,8 @@
         <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-field)"></div>외근</div>
         <div class="att-legend-item"><div class="att-legend-dot" style="background:var(--att-holiday)"></div>공휴일</div>
       </div>
+      <!-- ★ 2026-06-27: 표시 중인 달 총 근무시간 요약 -->
+      <div id="attCalSummary" style="margin:0 0 12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:14px;color:#166534;font-weight:600;display:none"></div>
       <div id="attCalendar"></div>
     </div>
 
@@ -473,7 +475,7 @@
 <!-- 워크스페이스 공통 JS -->
 <script src="/js/workspace-common.js?v=20260603brand"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=18-caltime"></script>
+<script src="/js/workspace-attendance.js?v=19-readable"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
 <script src="/js/workspace-payroll.js?v=20260520stage3"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>

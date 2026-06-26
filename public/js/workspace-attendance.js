@@ -568,6 +568,20 @@
         if (cell) cell.classList.add(bgCls);
       }
     });
+
+    // ★ 2026-06-27: 표시 중인 달 총 근무시간 요약 (통계 탭과 동일 집계 재사용)
+    try {
+      const sres = await api(`/api/att-my-stats?year=${yr}&month=${mo}`);
+      const mm = (sres.data?.data || sres.data || {}).monthly || {};
+      const mins = Number(mm.total_working_mins || 0);
+      const el = document.getElementById('attCalSummary');
+      if (el) {
+        const h = Math.floor(mins / 60), mn = mins % 60;
+        const hhmm = mins > 0 ? `${h}시간${mn ? ' ' + mn + '분' : ''}` : '0시간';
+        el.textContent = `${yr}년 ${mo}월 총 근무시간: ${hhmm} · 근무 ${mm.work_days ?? 0}일`;
+        el.style.display = 'block';
+      }
+    } catch (_) { /* 요약 실패해도 캘린더는 정상 */ }
   }
 
   /* ═══════════════════════════════════
