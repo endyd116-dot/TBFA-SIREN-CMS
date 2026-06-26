@@ -364,17 +364,22 @@
 
 /* ═══ FullCalendar 색상 오버라이드 ═══ */
 /* ★ 2026-06-27 가독성: 흰 글자(저대비, 특히 노랑/연두) → 연한 배경 + 진한 글자 + 컬러 좌측 테두리.
-   상태 색은 좌측 3px 테두리로 유지하고, 본문 텍스트는 고대비 진한색으로 표시. */
-.fc .fc-event.att-ev-normal  { background:#dcfce7; color:#166534; border-color:#bbf7d0; border-left:3px solid #16a34a; font-weight:600; }
-.fc .fc-event.att-ev-late    { background:#fef9c3; color:#854d0e; border-color:#fde68a; border-left:3px solid #d97706; font-weight:600; }
-.fc .fc-event.att-ev-early   { background:#ffe4e6; color:#9f1239; border-color:#fecdd3; border-left:3px solid #e11d48; font-weight:600; }  /* G4 조퇴 */
-.fc .fc-event.att-ev-absent  { background:#fee2e2; color:#991b1b; border-color:#fecaca; border-left:3px solid #dc2626; font-weight:600; }
-.fc .fc-event.att-ev-leave   { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; border-left:3px solid #2563eb; font-weight:600; }
-.fc .fc-event.att-ev-remote  { background:#ede9fe; color:#5b21b6; border-color:#ddd6fe; border-left:3px solid #7c3aed; font-weight:600; }
-.fc .fc-event.att-ev-field   { background:#fff7ed; color:#c2410c; border-color:#fed7aa; border-left:3px solid #ea580c; font-weight:600; }
-.fc .fc-event.att-ev-holiday { background:#f3f4f6; color:#4b5563; border-color:#e5e7eb; border-left:3px solid #9ca3af; font-weight:600; }
-/* 배지 내부 제목도 동일 색 상속(흰 글자 잔존 방지) */
-.fc .fc-event[class*="att-ev-"] .fc-event-title { color: inherit; }
+   FullCalendar v6가 내부 .fc-event-main/title에 흰색(--fc-event-text-color)을 강제하므로
+   루트 color에 !important + 내부 요소 inherit !important로 확실히 덮는다. */
+.fc .fc-event.att-ev-normal  { background:#dcfce7 !important; color:#14532d !important; border-color:#86efac !important; border-left:3px solid #16a34a !important; font-weight:700; }
+.fc .fc-event.att-ev-late    { background:#fef9c3 !important; color:#713f12 !important; border-color:#fde047 !important; border-left:3px solid #d97706 !important; font-weight:700; }
+.fc .fc-event.att-ev-early   { background:#ffe4e6 !important; color:#881337 !important; border-color:#fda4af !important; border-left:3px solid #e11d48 !important; font-weight:700; }  /* G4 조퇴 */
+.fc .fc-event.att-ev-absent  { background:#fee2e2 !important; color:#7f1d1d !important; border-color:#fca5a5 !important; border-left:3px solid #dc2626 !important; font-weight:700; }
+.fc .fc-event.att-ev-leave   { background:#dbeafe !important; color:#1e3a8a !important; border-color:#93c5fd !important; border-left:3px solid #2563eb !important; font-weight:700; }
+.fc .fc-event.att-ev-remote  { background:#ede9fe !important; color:#4c1d95 !important; border-color:#c4b5fd !important; border-left:3px solid #7c3aed !important; font-weight:700; }
+.fc .fc-event.att-ev-field   { background:#fff7ed !important; color:#7c2d12 !important; border-color:#fdba74 !important; border-left:3px solid #ea580c !important; font-weight:700; }
+.fc .fc-event.att-ev-holiday { background:#f3f4f6 !important; color:#374151 !important; border-color:#d1d5db !important; border-left:3px solid #9ca3af !important; font-weight:700; }
+/* 내부 텍스트 요소가 루트의 진한 색을 강제 상속 (흰 글자 잔존 차단) */
+.fc .fc-event[class*="att-ev-"] .fc-event-main,
+.fc .fc-event[class*="att-ev-"] .fc-event-main-frame,
+.fc .fc-event[class*="att-ev-"] .fc-event-title,
+.fc .fc-event[class*="att-ev-"] .fc-event-title-container,
+.fc .fc-event[class*="att-ev-"] .fc-event-time { color: inherit !important; }
 /* G16: 출퇴근 시각 라인 — 배경 없이 텍스트만 (셀에 일별 출퇴근 시각 명시) */
 .fc .fc-event.att-ev-time { background: transparent; border-color: transparent; color: #374151; font-weight: 600; font-size: 11px; }
 .fc .fc-event.att-ev-time .fc-event-title { white-space: normal; }
