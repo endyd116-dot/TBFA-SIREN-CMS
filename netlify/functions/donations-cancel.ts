@@ -30,6 +30,7 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logUserAction } from "../../lib/audit";
+import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 const cancelSchema = z.object({
   id: z.number().int().positive("유효하지 않은 후원 ID"),
@@ -102,6 +103,10 @@ export default async (req: Request) => {
     const updatePayload: any = {
       status: "cancelled",
       memo: newMemo,
+      /* ★ 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
+      receiptIssued: false,
+      receiptNumber: null,
+      receiptIssuedAt: null,
       updatedAt: now,
     };
 
@@ -138,6 +143,9 @@ export default async (req: Request) => {
       console.warn("[donations-cancel] 빌키 해지 예외(무시):", e);
     }
     await safeReevaluate(auth.uid, "donations-cancel");
+
+    /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(완료분만 집계 → 취소분 차감 반영) */
+    await recalcCampaignStatsSafe((donation as any).campaignId);
 
     /* 8. 감사 로그 */
     await logUserAction(req, auth.uid, auth.name, "donation_cancel_success", {

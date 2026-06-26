@@ -116,6 +116,14 @@ export async function runDispatcher(opts?: { maxMs?: number }): Promise<Dispatch
     cancelledCleaned: 0,
   };
 
+  /* ★ 2026-06-27: 야간 발송 보류(KST 23:00~06:00). 대량·마케팅·자동 발송은 이 디스패처를
+     거치므로 야간엔 발송하지 않고 보류한다. 잔여 pending은 다음 시간대 크론(매시 정각)이
+     06시 이후 이어받아 드레인. (영수증 등 거래성 메일은 sendEmail 직접 호출이라 무관·즉시 발송) */
+  const kstHour = (new Date().getUTCHours() + 9) % 24;
+  if (kstHour >= 23 || kstHour < 6) {
+    return total; // quiet hours — 발송 보류(누락 아님: pending 유지 → 06시 이후 처리)
+  }
+
   /* 안전 상한 — 예기치 못한 무한루프 차단 */
   const MAX_PASSES = 5000;
   let passes = 0;

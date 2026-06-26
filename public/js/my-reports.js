@@ -117,8 +117,9 @@
     const anonBadge = report.isAnonymous ? '<span class="anon-badge">익명</span>' : '';
     const title = report.title || report.subject || cfg.typeLabel;
     const cardId = 'card-tl-' + report.id;
-    /* ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용 */
-    const isEditable = ['submitted', 'ai_analyzed'].includes(report.status || '');
+    /* ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정/삭제 허용
+       ★ 2026-06-27: 반려(rejected)도 수정 후 재제출 허용(저장 시 접수 상태로 복귀) */
+    const isEditable = ['submitted', 'ai_analyzed', 'rejected'].includes(report.status || '');
 
     const editBtn = isEditable
       ? `<button type="button" class="rpt-edit-btn" data-rpt-edit="${report.id}" data-tab="${tabKey}">✏️ 수정</button>`

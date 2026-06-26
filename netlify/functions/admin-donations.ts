@@ -28,6 +28,7 @@ import {
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
 import { cancelPayment } from "../../lib/kicc";
+import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
@@ -235,6 +236,10 @@ export default async (req: Request) => {
           .set({
             status: "refunded",
             memo: newMemo,
+            /* ★ 2026-06-27: 환불 시 기부영수증 무효화(세무 정합) */
+            receiptIssued: false,
+            receiptNumber: null,
+            receiptIssuedAt: null,
             updatedAt: now,
           } as any)
           .where(eq(donations.id, donationId))
@@ -244,6 +249,9 @@ export default async (req: Request) => {
             amount: donations.amount,
             donorName: donations.donorName,
           });
+
+        /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(환불분 차감 반영) */
+        await recalcCampaignStatsSafe((existing as any).campaignId);
 
         await logAdminAction(req, admin.uid, admin.name, "donation_refund", {
           target: `D-${donationId}`,
@@ -290,6 +298,10 @@ export default async (req: Request) => {
           .set({
             status: "cancelled",
             memo: newMemo,
+            /* ★ 2026-06-27: 취소 시 기부영수증 무효화(세무 정합) */
+            receiptIssued: false,
+            receiptNumber: null,
+            receiptIssuedAt: null,
             updatedAt: now,
           } as any)
           .where(eq(donations.id, donationId))
@@ -299,6 +311,9 @@ export default async (req: Request) => {
             amount: donations.amount,
             donorName: donations.donorName,
           });
+
+        /* ★ 2026-06-27: 캠페인 지정 후원이면 모금현황 재계산(취소분 차감 반영) */
+        await recalcCampaignStatsSafe((existing as any).campaignId);
 
         await logAdminAction(req, admin.uid, admin.name, "donation_cancel_admin", {
           target: `D-${donationId}`,

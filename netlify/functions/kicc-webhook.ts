@@ -14,6 +14,7 @@ import { logAudit } from "../../lib/audit";
 import { verifyMsgAuth } from "../../lib/kicc";
 import { notifyAllSuperAdmins } from "../../lib/notify";
 import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
+import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 
 function ack(extra?: Record<string, any>): Response {
   return new Response(JSON.stringify({ resCd: "0000", resMsg: "정상", ...(extra || {}) }), {
@@ -156,9 +157,18 @@ export default async (req: Request) => {
     } else if (newStatus === "cancelled" || newStatus === "refunded") {
       const memo = `[KICC 노티 ${new Date().toISOString().slice(0, 10)} ${newStatus}] ${p.resMsg || ""}`.slice(0, 200);
       updatePayload.memo = donation.memo ? `${donation.memo}\n${memo}` : memo;
+      /* ★ 2026-06-27: 취소/환불 시 기부영수증 무효화(세무 정합) */
+      updatePayload.receiptIssued = false;
+      updatePayload.receiptNumber = null;
+      updatePayload.receiptIssuedAt = null;
     }
 
     await db.update(donations).set(updatePayload).where(eq(donations.id, donation.id));
+
+    /* ★ 2026-06-27: 취소/환불이면 캠페인 모금현황 재계산(완료분만 집계 → 차감 반영) */
+    if (newStatus === "cancelled" || newStatus === "refunded") {
+      await recalcCampaignStatsSafe((donation as any).campaignId);
+    }
 
     /* ★ 2026-06-26: 웹훅이 일시후원을 완료로 승격(승인 미수신 복구)한 경우에도
        예비 후원자 자동 등록. 정기(regular)는 제외(별도 분류). fire-and-forget. */

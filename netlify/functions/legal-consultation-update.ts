@@ -57,7 +57,7 @@ export default async (req: Request, _ctx: Context) => {
     if (!row) return notFound("법률 상담 신청을 찾을 수 없습니다");
 
     /* check_status — ★ R41 Q2-004: 운영자 검토 전(submitted·ai_analyzed)까지 본인 수정 허용 */
-    if (row.status !== "submitted" && row.status !== "ai_analyzed") {
+    if (row.status !== "submitted" && row.status !== "ai_analyzed" && row.status !== "rejected") {
       return new Response(
         JSON.stringify({ ok: false, error: "이미 처리 중인 항목은 수정할 수 없습니다." }),
         { status: 403, headers: { "Content-Type": "application/json" } }
@@ -65,6 +65,8 @@ export default async (req: Request, _ctx: Context) => {
     }
 
     const updateData: any = { updatedAt: new Date() };
+    /* ★ 2026-06-27: 반려된 신고를 본인이 수정하면 재제출(접수 상태로 복귀) */
+    if (row.status === "rejected") updateData.status = "submitted";
     if (title !== undefined) updateData.title = title;
     if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
     if (category !== undefined && category) updateData.category = category;
