@@ -165,10 +165,10 @@ export default async (req: Request) => {
     if (newStatus === "completed" && donation.type === "onetime") {
       void ensureProspectFromDonation({
         donationId: donation.id,
-        memberId: donation.member_id,
-        donorName: donation.donor_name,
-        donorEmail: donation.donor_email,
-        donorPhone: donation.donor_phone,
+        memberId: donation.memberId,
+        donorName: donation.donorName,
+        donorEmail: donation.donorEmail,
+        donorPhone: donation.donorPhone,
         entryPath: "onetime_donation",
       });
     }
