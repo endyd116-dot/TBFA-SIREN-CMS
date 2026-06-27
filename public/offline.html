@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- PWA(앱 설치) -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#7a1f2b" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="SIREN" />
+<script src="/js/pwa.js?v=1" defer></script>
+<title>오프라인 — 교사유가족협의회</title>
+<style>
+  body{margin:0;font-family:"Noto Sans KR",system-ui,sans-serif;background:#faf8f6;color:#3a2a2c;
+       display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px}
+  .box{max-width:360px}
+  img{width:72px;height:72px;margin-bottom:16px;opacity:.9}
+  h1{font-size:1.25rem;margin:0 0 8px}
+  p{color:#7a6a6c;line-height:1.6;margin:0 0 20px}
+  button{background:#7a1f2b;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-size:1rem;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="/img/icon-192.png" alt="교사유가족협의회" />
+    <h1>인터넷 연결이 끊겼어요</h1>
+    <p>네트워크에 다시 연결되면 이용하실 수 있습니다.<br>연결 상태를 확인해 주세요.</p>
+    <button onclick="location.reload()">다시 시도</button>
+  </div>
+</body>
+</html>

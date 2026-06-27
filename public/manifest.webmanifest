@@ -1,0 +1,22 @@
+{
+  "name": "교사유가족협의회 SIREN",
+  "short_name": "SIREN",
+  "description": "교사유가족협의회 — 후원·유가족 지원·SIREN 신고·추모 통합 플랫폼",
+  "lang": "ko",
+  "start_url": "/index.html?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#7a1f2b",
+  "icons": [
+    { "src": "/img/icon-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-maskable-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "후원하기", "short_name": "후원", "url": "/donate.html?source=pwa" },
+    { "name": "사이렌 신고", "short_name": "신고", "url": "/incidents.html?source=pwa" },
+    { "name": "마이페이지", "short_name": "MY", "url": "/mypage.html?source=pwa" }
+  ]
+}

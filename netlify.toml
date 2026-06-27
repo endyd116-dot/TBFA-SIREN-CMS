@@ -120,6 +120,18 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# ★ PWA 서비스워커 — 항상 최신 확인(업데이트 즉시 반영)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/manifest+json; charset=utf-8"
+
 # ★ API 응답 캐시 방지
 [[headers]]
   for = "/api/*"
