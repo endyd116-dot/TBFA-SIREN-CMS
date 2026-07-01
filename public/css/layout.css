@@ -301,7 +301,8 @@ section.block{padding:90px 0}
 @media (max-width:560px){
   .container{padding:0 20px}
   .top-right{gap:14px}
-  .top-right > a{display:none}
+  /* 관리자 모드 버튼은 모바일/앱에서도 항상 노출 (d-none 해제 시 표시 유지) */
+  .top-right > a:not(#topbarAdminMode){display:none}
   .topbar .related-select{display:none}
   .lang-toggle{display:none}
   .cta{padding:9px 14px;font-size:12px}

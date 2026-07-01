@@ -500,6 +500,15 @@
 /* ═══ 카드 모달 7개 탭 (Step 7-B.3) ═══ */
 .wk-modal-lg { width: 800px; max-width: 95vw; }
 
+/* 개요 탭 확장 — 개요를 볼 때 모달을 넓혀 크게 표시 (2026-07-01) */
+.wk-modal-lg.wk-overview-wide { width: 1140px; }
+.wk-modal-lg.wk-overview-wide .wk-tab-panel[data-panel="overview"] { max-width: 960px; margin: 0 auto; }
+.wk-modal-lg.wk-overview-wide .wk-tab-panel[data-panel="overview"] .wk-textarea { min-height: 200px; }
+
+/* 새 작업 모달 — 개요(제목·설명) 크게 입력 (2026-07-01) */
+.wk-modal-dialog.wk-modal-new-lg { width: 860px; }
+.wk-modal-dialog.wk-modal-new-lg #wkNewDescription { min-height: 220px; }
+
 .wk-tabs {
   display: flex;
   gap: 0;

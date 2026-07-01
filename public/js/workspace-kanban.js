@@ -1427,6 +1427,9 @@
     $$('.wk-tab-panel').forEach(p => {
       p.hidden = p.dataset.panel !== tabName;
     });
+    // 개요 탭일 때 카드 모달을 넓게 확장 표시 (2026-07-01)
+    const cardDialog = document.querySelector('#wkCardModal .wk-modal-dialog');
+    if (cardDialog) cardDialog.classList.toggle('wk-overview-wide', tabName === 'overview');
     if (TAB_STATE.currentTask && !TAB_STATE.loadedTabs.has(tabName)) {
       TAB_STATE.loadedTabs.add(tabName);
       lazyLoadTab(tabName);

@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/admin.css?v=3">
 <link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
-<link rel="stylesheet" href="/css/workspace-kanban.css?v=20260519sub">
+<link rel="stylesheet" href="/css/workspace-kanban.css?v=20260701ov">
 <link rel="stylesheet" href="/css/workspace-kanban-views.css?v=1">
 <link rel="stylesheet" href="/css/workspace-notifications.css?v=1">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
@@ -487,7 +487,7 @@
 ═════════════════════════════════════════════════════ -->
 <div class="wk-modal" id="wkNewModal" aria-hidden="true">
   <div class="wk-modal-backdrop" data-close-modal="wkNewModal"></div>
-  <div class="wk-modal-dialog">
+  <div class="wk-modal-dialog wk-modal-new-lg">
     <header class="wk-modal-header">
       <h2>＋ 새 작업</h2>
       <button class="wk-modal-close" data-close-modal="wkNewModal" type="button">✕</button>
@@ -505,8 +505,8 @@
       <label class="wk-field-label">제목 *</label>
       <input type="text" id="wkNewTitle" class="wk-input" maxlength="300">
 
-      <label class="wk-field-label">설명</label>
-      <textarea id="wkNewDescription" class="wk-textarea" rows="3"></textarea>
+      <label class="wk-field-label">설명 (개요)</label>
+      <textarea id="wkNewDescription" class="wk-textarea" rows="10"></textarea>
 
       <div class="wk-row">
         <div class="wk-col">
@@ -573,7 +573,7 @@
 <script src="/js/workspace-task-modal.js?v=3" defer></script>
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
-<script src="/js/workspace-kanban.js?v=18" defer></script>
+<script src="/js/workspace-kanban.js?v=19" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/ws-sidebar-role.js?v=1" defer></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
