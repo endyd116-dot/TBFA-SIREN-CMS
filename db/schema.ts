@@ -4621,3 +4621,93 @@ export const budgetAccountCodeMap = pgTable("budget_account_code_map", {
 export type BudgetAccountCodeMap    = typeof budgetAccountCodeMap.$inferSelect;
 export type NewBudgetAccountCodeMap = typeof budgetAccountCodeMap.$inferInsert;
 /* === 예산안 고도화 관-항-목 끝 === */
+
+/* =========================================================
+   === 지출 결재라인·위임·지출결의서 === (2026-07-01·배치2)
+   마이그: migrate-approval-system (적용 완료 후 활성)
+   설계: docs/specs/예산안-고도화-설계-v1.md §0
+   3계층 직책: operator(기안)/admin(국장·1차)/super_admin(이사장·최종)
+   ========================================================= */
+export const approvalLines = pgTable("approval_lines", {
+  id:            serial("id").primaryKey(),
+  name:          varchar("name", { length: 80 }).notNull(),
+  minAmount:     bigint("min_amount", { mode: "number" }).notNull().default(0),
+  maxAmount:     bigint("max_amount", { mode: "number" }),                 // null = 무제한
+  steps:         jsonb("steps").notNull().default([]),                     // 직책 순서 배열 ["admin","super_admin"]
+  boardRequired: boolean("board_required").notNull().default(false),
+  isActive:      boolean("is_active").notNull().default(true),
+  sortOrder:     integer("sort_order").notNull().default(0),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export type ApprovalLine    = typeof approvalLines.$inferSelect;
+export type NewApprovalLine = typeof approvalLines.$inferInsert;
+
+export const approvalRequests = pgTable("approval_requests", {
+  id:                serial("id").primaryKey(),
+  requestNo:         varchar("request_no", { length: 30 }).unique(),
+  title:             varchar("title", { length: 200 }).notNull(),
+  amount:            bigint("amount", { mode: "number" }).notNull(),
+  description:       text("description"),
+  budgetAccountId:   integer("budget_account_id"),                          // 예산 목(目)
+  fiscalYear:        integer("fiscal_year").notNull(),
+  occurredAt:        date("occurred_at"),
+  payeeName:         varchar("payee_name", { length: 200 }),
+  evidenceUrl:       varchar("evidence_url", { length: 500 }),
+  drafterId:         integer("drafter_id"),
+  drafterName:       varchar("drafter_name", { length: 100 }),
+  approvalLineId:    integer("approval_line_id"),
+  boardRequired:     boolean("board_required").notNull().default(false),
+  steps:             jsonb("steps").notNull().default([]),                  // 직책 스냅샷
+  currentStep:       integer("current_step").notNull().default(0),
+  status:            varchar("status", { length: 20 }).notNull().default("pending"), // pending|approved|rejected|canceled
+  expenseId:         integer("expense_id"),
+  resolutionNo:      varchar("resolution_no", { length: 30 }),              // 제YYYY-NNNN호
+  resolutionPdfUrl:  varchar("resolution_pdf_url", { length: 500 }),
+  resolutionIssuedAt: timestamp("resolution_issued_at", { withTimezone: true }),
+  createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  decidedAt:         timestamp("decided_at", { withTimezone: true }),
+}, (t) => ({
+  statusIdx:  index("approval_requests_status_idx").on(t.status),
+  fyIdx:      index("approval_requests_fy_idx").on(t.fiscalYear),
+  drafterIdx: index("approval_requests_drafter_idx").on(t.drafterId),
+}));
+export type ApprovalRequest    = typeof approvalRequests.$inferSelect;
+export type NewApprovalRequest = typeof approvalRequests.$inferInsert;
+
+export const approvalRequestSteps = pgTable("approval_request_steps", {
+  id:            serial("id").primaryKey(),
+  requestId:     integer("request_id").notNull().references(() => approvalRequests.id, { onDelete: "cascade" }),
+  stepIndex:     integer("step_index").notNull(),
+  role:          varchar("role", { length: 20 }).notNull(),
+  decision:      varchar("decision", { length: 20 }).notNull().default("pending"), // pending|approved|rejected|delegated
+  decidedBy:     integer("decided_by"),
+  decidedByName: varchar("decided_by_name", { length: 100 }),
+  comment:       text("comment"),
+  decidedAt:     timestamp("decided_at", { withTimezone: true }),
+}, (t) => ({
+  uq:        uniqueIndex("approval_steps_req_step_uq").on(t.requestId, t.stepIndex),
+  requestIdx: index("approval_steps_request_idx").on(t.requestId),
+}));
+export type ApprovalRequestStep    = typeof approvalRequestSteps.$inferSelect;
+export type NewApprovalRequestStep = typeof approvalRequestSteps.$inferInsert;
+
+export const approvalDelegations = pgTable("approval_delegations", {
+  id:           serial("id").primaryKey(),
+  delegateRole: varchar("delegate_role", { length: 20 }).notNull(),        // 위임되는 직책(예: super_admin)
+  toMemberId:   integer("to_member_id").notNull(),
+  toMemberName: varchar("to_member_name", { length: 100 }),
+  startAt:      date("start_at").notNull(),
+  endAt:        date("end_at").notNull(),
+  reason:       text("reason"),
+  isActive:     boolean("is_active").notNull().default(true),
+  createdBy:    integer("created_by"),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  roleIdx:   index("approval_delegations_role_idx").on(t.delegateRole),
+  activeIdx: index("approval_delegations_active_idx").on(t.isActive),
+}));
+export type ApprovalDelegation    = typeof approvalDelegations.$inferSelect;
+export type NewApprovalDelegation = typeof approvalDelegations.$inferInsert;
+/* === 지출 결재라인·위임·지출결의서 끝 === */

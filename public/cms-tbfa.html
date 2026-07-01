@@ -513,6 +513,9 @@ if (window.self !== window.top) {
           <li><a href="#expenses" data-tab="expenses"><i>💸</i><span>지출 관리</span></a></li>
           <li><a href="#finance-budget" data-tab="finance-budget"><i>📋</i><span>예산 관리</span></a></li>
           <li><a href="#budget-accounts" data-tab="budget-accounts"><i>🗂</i><span>예산과목 체계(관·항·목)</span></a></li>
+          <li><a href="#approval-inbox" data-tab="approval-inbox"><i>🧾</i><span>지출 결재함</span></a></li>
+          <li><a href="#approval-resolutions" data-tab="approval-resolutions"><i>📑</i><span>지출결의서</span></a></li>
+          <li><a href="#approval-lines" data-tab="approval-lines"><i>🛡️</i><span>결재라인·위임 설정</span></a></li>
           <li><a href="#bank-transactions" data-tab="bank-transactions"><i>🏦</i><span>지출 자동 추출 시스템</span></a></li>
           <li><a href="#finance-report" data-tab="finance-report"><i>📊</i><span>재무 보고서</span></a></li>
         </ul>
@@ -1410,6 +1413,9 @@ if (window.self !== window.top) {
       <section class="cms-page" id="page-expenses"></section>
       <section class="cms-page" id="page-finance-budget"></section>
       <section class="cms-page" id="page-budget-accounts"></section>
+      <section class="cms-page" id="page-approval-inbox"></section>
+      <section class="cms-page" id="page-approval-resolutions"></section>
+      <section class="cms-page" id="page-approval-lines"></section>
       <section class="cms-page" id="page-bank-transactions"></section>
       <section class="cms-page" id="page-finance-report"></section>
 
@@ -2539,7 +2545,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260701-budget"></script>
+  <script src="/js/cms-tbfa.js?v=20260701-approval"></script>
   <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
   <script src="/js/ai-assistant-proactive.js?v=20260701" defer></script>
@@ -2566,6 +2572,7 @@ if (window.self !== window.top) {
   <!-- Phase 22-B-R2: 예산 편성 + 결재 -->
   <script src="/js/admin-finance-budget.js?v=20260701mok"></script>
   <script src="/js/admin-budget-accounts.js?v=20260701"></script>
+  <script src="/js/admin-approval.js?v=20260701"></script>
   <script src="/js/admin-finance-report.js?v=20260516banners"></script>
   <!-- Phase 22-D-R2: 통장 거래내역 자동화 -->
   <script src="/js/admin-bank-transactions.js?v=20260516rename"></script>

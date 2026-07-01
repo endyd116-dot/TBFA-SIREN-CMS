@@ -285,6 +285,9 @@
           'expenses': '💸 지출 관리',
           'finance-budget': '📋 예산 관리',
           'budget-accounts': '🗂 예산과목 체계(관·항·목)',
+          'approval-inbox': '🧾 지출 결재함',
+          'approval-resolutions': '📑 지출결의서',
+          'approval-lines': '🛡️ 결재라인·위임 설정',
           'bank-transactions': '🏦 지출 자동 추출 시스템',
           'finance-report': '📊 재무 보고서',
           'csv-import': '📥 CSV 종합 검증 매핑 (효성 + 기업은행 + 토스)',
@@ -373,6 +376,15 @@
         }
         else if (tab === 'budget-accounts') {
           if (window.SIREN_BUDGET_ACCOUNTS) window.SIREN_BUDGET_ACCOUNTS.init();
+        }
+        else if (tab === 'approval-inbox') {
+          if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.inbox();
+        }
+        else if (tab === 'approval-resolutions') {
+          if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.resolutions();
+        }
+        else if (tab === 'approval-lines') {
+          if (window.SIREN_APPROVAL) window.SIREN_APPROVAL.lines();
         }
         else if (tab === 'finance-report') {
           if (window.SIREN_FINANCE_REPORT) {
@@ -2509,7 +2521,7 @@
     import: 'donation_confirm',
     hyosung: 'finance_view', 'toss-billing': 'finance_view',
     'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view',
-    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
+    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'approval-inbox': 'finance_bookkeeping', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
     'send-jobs': 'send_job', 'send-analytics': 'send_job', 'notification-logs': 'send_job',
     'send-template': 'send_template', 'recipient-groups': 'send_template',
     'auto-trigger': 'send_auto', 'system-notification': 'send_auto',
