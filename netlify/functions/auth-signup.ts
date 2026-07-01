@@ -442,7 +442,7 @@ export default async (req: Request, _ctx: Context) => {
       const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
       await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SUPPORT_SIGNUP, {
         이름: String(created.name || ""),
-        유형: String(config.displayName || ""),
+        구분: String(config.displayName || ""),
       });
     } catch (e) { console.warn("[auth-signup] 운영자 알림톡 예외(무시):", e); }
 

@@ -250,7 +250,7 @@ export default async (req: Request) => {
       const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
       await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SUPPORT_SIGNUP, {
         이름: String(user.name || "회원"),
-        카테고리: String(category || ""),
+        구분: String(category || ""),
       });
     } catch (e) { console.warn("[support-create] 운영자 알림톡 예외(무시):", e); }
 
