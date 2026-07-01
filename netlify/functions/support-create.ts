@@ -17,6 +17,7 @@ import {
 import { logUserAction } from "../../lib/audit";
 import { sendEmail, tplSupportReceivedAdmin, tplSupportReceiptUser } from "../../lib/email";
 import { analyzePriority } from "../../lib/ai-priority";
+import { notifyAllOperators } from "../../lib/notify";
 
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || "";
 
@@ -224,6 +225,24 @@ export default async (req: Request) => {
       }
     } else {
       console.warn("[support-create] 메일 수신자 없음 — ADMIN_NOTIFY_EMAIL 또는 운영자 알림 설정 필요");
+    }
+
+    /* 운영자 인앱 알림 (2026-07-01) */
+    try {
+      const isUrgent = priority === "urgent";
+      await notifyAllOperators({
+        category: "support",
+        severity: isUrgent ? "critical" : "info",
+        title: isUrgent ? "🚨 긴급 지원 신청" : "🔔 새 유가족 지원 신청",
+        message: isUrgent
+          ? `긴급 유가족 지원 신청이 접수됐어요. ${user.name || "회원"}님 · ${category} — 바로 확인이 필요해요. (${requestNo})`
+          : `방금 유가족 지원 신청이 들어왔어요. ${user.name || "회원"}님 · ${category} — 확인해 보세요. (${requestNo})`,
+        link: `/admin-support.html#support-${record.id}`,
+        refTable: "support_requests",
+        refId: record.id,
+      }, isUrgent ? { category: "support" } : { category: "support", onlyNotifyOnSupport: true });
+    } catch (e) {
+      console.warn("[support-create] 운영자 인앱 알림 실패:", e);
     }
 
     /* ★ STEP H-4: 신청자에게 접수 확인 메일 발송

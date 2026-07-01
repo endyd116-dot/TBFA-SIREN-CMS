@@ -19,6 +19,7 @@ import { checkAndAwardBadges } from "../../lib/badge-checker";
 import { approveTrade, kiccPayMethod } from "../../lib/kicc";
 import { recalcCampaignStatsSafe } from "../../lib/campaign-stats";
 import { ensureProspectFromDonation } from "../../lib/prospect-from-donation";
+import { notifyAllOperators } from "../../lib/notify";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -214,6 +215,19 @@ export default async (req: Request) => {
       donorPhone: (donation as any).donorPhone,
       entryPath: "onetime_donation",
     });
+
+    /* 운영자 인앱 알림 (2026-07-01) */
+    try {
+      await notifyAllOperators({
+        category: "donation",
+        severity: "info",
+        title: "🔔 새 일시후원",
+        message: `방금 일시후원이 들어왔어요. ${updated.donorName}님 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        link: "/admin.html#donations",
+        refTable: "donations",
+        refId: updated.id,
+      }, { category: "donation" });
+    } catch (e) { console.warn("[donate-kicc-approve] 운영자 인앱 알림 예외(무시):", e); }
 
     await logUserAction(req, updated.memberId, updated.donorName, "donate_kicc_approve_success", {
       target: pgOrderNo,

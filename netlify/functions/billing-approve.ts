@@ -20,7 +20,7 @@ import { safeReevaluate } from "../../lib/donor-status";
 import { approveTrade, chargeWithBillingKey, calculateNextBillingDate } from "../../lib/kicc";
 import { dispatch } from "../../lib/notify-dispatcher";
 import { NotifyEvent } from "../../lib/notify-events";
-import { notifyAllSuperAdmins } from "../../lib/notify";
+import { notifyAllSuperAdmins, notifyAllOperators } from "../../lib/notify";
 
 const SITE_URL = (process.env.SITE_URL || "https://tbfa.co.kr").replace(/\/+$/, "");
 
@@ -298,6 +298,19 @@ export default async (req: Request) => {
       }
     }
     await safeReevaluate(memberId, "billing-approve");
+
+    /* 운영자 인앱 알림 (2026-07-01) */
+    try {
+      await notifyAllOperators({
+        category: "donation",
+        severity: "info",
+        title: "🔔 새 정기후원",
+        message: `방금 새 정기후원이 시작됐어요. ${updated.donorName}님 월 ${Number(updated.amount).toLocaleString()}원 — 확인해 보세요.`,
+        link: "/admin.html#donations",
+        refTable: "donations",
+        refId: updated.id,
+      }, { category: "donation" });
+    } catch (e) { console.warn("[billing-approve] 운영자 인앱 알림 예외(무시):", e); }
 
     await logUserAction(req, memberId, updated.donorName, "billing_register_success", {
       target: pgOrderNo,

@@ -27,7 +27,7 @@ import crypto from "crypto";
 import { db } from "../../db";
 import { members, blobUploads, emailVerificationTokens } from "../../db/schema";
 import { signUserToken, buildCookie } from "../../lib/auth";
-import { notifyAllSuperAdmins } from "../../lib/notify";
+import { notifyAllOperators } from "../../lib/notify";
 import { logAudit } from "../../lib/audit";
 import { sendEmail, tplEmailVerify } from "../../lib/email";
 import {
@@ -399,37 +399,39 @@ export default async (req: Request, _ctx: Context) => {
       } catch (_) {}
     }
 
-    /* 10. 관리자 알림 (승인 필요한 경우) */
+    /* 10. 운영자 알림 (신규 가입) */
     if (config.requiresApproval) {
+      /* 운영자 인앱 알림 (2026-07-01) — 승인 필요 유형은 모든 운영자에게(super_admin 포함) */
       try {
-        await notifyAllSuperAdmins({
+        await notifyAllOperators({
           category: "member",
           severity: config.requiresSecondaryVerification ? "critical" : "warning",
-          title: `🔔 ${config.icon} ${config.displayName} 회원 가입 신청`,
-          message: `${created.name}님이 ${config.displayName} 회원으로 가입 신청했습니다.${
-            config.requiresSecondaryVerification ? " ⚠️ 2단계 검증 필요!" : ""
+          title: `🔔 ${config.icon} ${config.displayName} 가입 신청`,
+          message: `${created.name}님이 ${config.displayName} 회원으로 가입 신청했어요.${
+            config.requiresSecondaryVerification ? " 2단계 검증이 필요해요!" : " 승인을 확인해 주세요."
           }`,
           link: "/admin.html#pending-approvals",
           refTable: "members",
           refId: created.id,
-        });
+        }, { category: "all" });
       } catch (e) {
-        console.warn("[auth-signup] 관리자 알림 실패:", e);
+        console.warn("[auth-signup] 운영자 가입 알림 실패:", e);
       }
     } else {
       /* 2026-05-29 P1-3 fix — 일반 후원자(regular) 가입은 승인 불필요지만 협회 직원이 첫 출근 전
-         이 경로로 가입할 수 있어 슈퍼어드민이 신규 가입을 인지하도록 info 알림 발송.
+         이 경로로 가입할 수 있어 신규 가입을 인지하도록 info 알림 발송.
          운영자 승급 흐름의 단서. 시끄러우면 운영자가 옵트아웃 가능. */
+      /* 운영자 인앱 알림 (2026-07-01) — 모든 운영자에게(super_admin 포함) */
       try {
-        await notifyAllSuperAdmins({
+        await notifyAllOperators({
           category: "member",
           severity: "info",
           title: `🆕 신규 회원 가입 — ${config.displayName}`,
-          message: `${created.name}님이 가입했습니다. 협회 직원이라면 운영자 승급이 필요합니다.`,
+          message: `${created.name}님이 가입했어요. 협회 직원이라면 운영자 승급이 필요해요.`,
           link: "/admin.html#members",
           refTable: "members",
           refId: created.id,
-        });
+        }, { category: "all" });
       } catch (e) {
         console.warn("[auth-signup] 신규 가입 info 알림 실패:", e);
       }

@@ -81,6 +81,21 @@ export default async (req: Request, _ctx: Context) => {
     const [record] = await db.insert(legalConsultations).values(insertData).returning();
     const consultationId = (record as any).id;
 
+    /* 운영자 인앱 알림 (2026-07-01) */
+    try {
+      await notifyAllOperators({
+        category: "support",
+        severity: "warning",
+        title: `⚖️ 새 법률 상담 신청: ${consultationNo}`,
+        message: `방금 법률 상담 신청이 접수됐어요. "${title}" — 확인이 필요해요.`,
+        link: `/admin.html#legal-consultations`,
+        refTable: "legal_consultations",
+        refId: consultationId,
+      }, { category: "legal" });
+    } catch (e) {
+      console.warn("[legal-consultation-create] 운영자 인앱 알림 실패:", e);
+    }
+
     /* AI 분석 — skipAi=true면 건너뜀 */
     let aiResult: any = null;
     if (!skipAi) try {
@@ -204,22 +219,7 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[legal-consultation-create] AI 변호사 자동 배정 실패:", assignErr);
     }
 
-    /* ★ R41 Q2-009: AI 건너뛴(skipAi) 신청은 변호사 매칭 결정 단계가 없어 운영자 통지 누락 → 생성 시점 1회 발송 */
-    if (skipAi) {
-      try {
-        await notifyAllOperators({
-          category: "support",
-          severity: "info",
-          title: `⚖️ 법률 상담 신청 접수(직접 검토 요청): ${consultationNo}`,
-          message: title,
-          link: `/admin.html#legal-consultations`,
-          refTable: "legal_consultations",
-          refId: consultationId,
-        }, { category: "legal" });
-      } catch (e) {
-        console.warn("[legal-consultation-create] skipAi 운영자 알림 실패:", e);
-      }
-    }
+    /* (운영자 알림은 접수 성공 직후 항상 발송하도록 위로 이동 — 2026-07-01) */
 
    // netlify/functions/legal-consultation-create.ts — 감사 로그 + return 블록 교체
     /* ★ M-17: 후원자 검증 */

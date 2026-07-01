@@ -82,6 +82,21 @@ export default async (req: Request, _ctx: Context) => {
     const [record] = await db.insert(harassmentReports).values(insertData).returning();
     const reportId = (record as any).id;
 
+    /* 운영자 인앱 알림 (2026-07-01) */
+    try {
+      await notifyAllOperators({
+        category: "support",
+        severity: "warning",
+        title: `🚨 새 악성민원 신고: ${reportNo}`,
+        message: `방금 악성민원(괴롭힘) 신고가 접수됐어요. "${title}" — 확인이 필요해요.`,
+        link: `/admin.html#harassment-reports`,
+        refTable: "harassment_reports",
+        refId: reportId,
+      }, { category: "harassment" });
+    } catch (e) {
+      console.warn("[harassment-report-create] 운영자 인앱 알림 실패:", e);
+    }
+
     /* AI 분석 (격리) — skipAi=true면 건너뜀 */
     let aiResult: any = null;
     if (!skipAi) try {
@@ -135,22 +150,7 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[harassment-report-create] 카드 생성 훅 실패:", hookErr);
     }
 
-    /* ★ R41 Q2-009: AI 건너뛴(skipAi) 신고는 정식접수 결정 단계가 없어 운영자 통지 누락 → 생성 시점 1회 발송 */
-    if (skipAi) {
-      try {
-        await notifyAllOperators({
-          category: "support",
-          severity: "info",
-          title: `📢 악성민원 신고 접수(직접 검토 요청): ${reportNo}`,
-          message: title,
-          link: `/admin.html#harassment-reports`,
-          refTable: "harassment_reports",
-          refId: reportId,
-        }, { category: "harassment" });
-      } catch (e) {
-        console.warn("[harassment-report-create] skipAi 운영자 알림 실패:", e);
-      }
-    }
+    /* (운영자 알림은 접수 성공 직후 항상 발송하도록 위로 이동 — 2026-07-01) */
 
     // netlify/functions/harassment-report-create.ts — 감사 로그 + return 블록 교체
     /* ★ M-17: 후원자 검증 */
