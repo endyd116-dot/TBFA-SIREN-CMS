@@ -228,7 +228,7 @@ ${snippets}
   "incidents": [
     {
       "title": "기사 제목",
-      "link": "기사 URL",
+      "ref": 위 목록에서 이 사건에 해당하는 원문 번호([N]의 N 숫자만, 예: 3),
       "source": "수집 키워드",
       "pubDate": "날짜(ISO 또는 원본)",
       "incidentType": "사망|순직|자살|과로사|공무상재해|교권침해|학교안전사고|기타",
@@ -257,18 +257,24 @@ urgency 기준:
   if (result.ok && result.data && Array.isArray(result.data.incidents)) {
     return result.data.incidents
       .filter((it: any) => it && typeof it.title === "string" && it.title)
-      .map((it: any): IncidentItem => ({
-        title:           String(it.title           || "").slice(0, 300),
-        link:            String(it.link            || ""),
-        source:          String(it.source          || ""),
-        pubDate:         String(it.pubDate         || ""),
+      .map((it: any): IncidentItem => {
+        /* ref(원문 번호)로 실제 수집 기사의 URL을 매칭 — AI가 지어낸 링크 대신 원문 링크 사용(404 방지) */
+        const ref = Number(it.ref);
+        const src = (Number.isFinite(ref) && ref >= 1 && ref <= items.length) ? items[ref - 1] : null;
+        const rawLink = src?.link || String(it.link || "");
+        return {
+        title:           String(it.title           || src?.title || "").slice(0, 300),
+        link:            /^https?:\/\//i.test(rawLink) ? rawLink : "",   // 절대 URL만 저장(상대·깨짐은 빈 값→프론트에서 검색 폴백)
+        source:          String(it.source          || src?.keyword || ""),
+        pubDate:         String(it.pubDate         || src?.date || ""),
         incidentType:    String(it.incidentType    || "기타").slice(0, 20),
         relevance:       typeof it.relevance === "number" ? Math.max(0, Math.min(100, it.relevance)) : 50,
         urgency:         ["높음", "보통", "낮음"].includes(it.urgency) ? it.urgency : "보통",
         affected:        String(it.affected        || "").slice(0, 200),
         reason:          String(it.reason          || "").slice(0, 300),
         suggestedAction: String(it.suggestedAction || "").slice(0, 300),
-      }));
+        };
+      });
   }
 
   console.warn("[org-news-analyze] judgeIncidents AI 실패 — 빈 배열 반환:", result.error);

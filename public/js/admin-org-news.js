@@ -69,7 +69,11 @@ function renderIncidentsCard(incidents) {
     if (inc.incidentType) html += '<span class="stat-chip">' + esc(inc.incidentType) + '</span>';
     html += '<span class="incident-relevance">관련도 ' + (inc.relevance != null ? inc.relevance : '—') + '%</span>';
     html += '</div>';
-    html += '<a class="incident-title" href="' + esc(inc.link || '#') + '" target="_blank" rel="noopener">' + esc(inc.title) + '</a>';
+    /* 링크가 정상 절대 URL이면 원문으로, 아니면(빈 값·상대·깨짐) 제목으로 네이버 뉴스 검색 → 404 방지·항상 기사 도달 */
+    var _incLink = /^https?:\/\//i.test(inc.link || '')
+      ? inc.link
+      : ('https://search.naver.com/search.naver?where=news&query=' + encodeURIComponent(inc.title || ''));
+    html += '<a class="incident-title" href="' + esc(_incLink) + '" target="_blank" rel="noopener">' + esc(inc.title) + '</a>';
     var meta = [];
     if (inc.source) meta.push('#' + esc(inc.source));
     if (inc.pubDate) meta.push(esc(fmtDateShort(inc.pubDate)));
