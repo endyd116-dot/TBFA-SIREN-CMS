@@ -96,6 +96,15 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[legal-consultation-create] 운영자 인앱 알림 실패:", e);
     }
 
+    /* 운영자 카카오 알림톡 (승인 템플릿 있을 때만·no-op 안전) */
+    try {
+      const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
+      await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SIREN_REPORT, {
+        유형: "법률 상담 신청",
+        제목: String(title || ""),
+      });
+    } catch (e) { console.warn("[legal-consultation-create] 운영자 알림톡 예외(무시):", e); }
+
     /* AI 분석 — skipAi=true면 건너뜀 */
     let aiResult: any = null;
     if (!skipAi) try {

@@ -11,6 +11,8 @@ import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
 import { createNotification, notifyMany } from "../../lib/notify";
+import { generateResolutionPDF } from "../../lib/pdf-resolution";
+import { uploadToR2 } from "../../lib/r2-server";
 
 export const config = { path: "/api/admin-approval-decide" };
 
@@ -183,7 +185,43 @@ export default async function handler(req: Request, _ctx: Context) {
        WHERE id = ${requestId}
     `);
 
-    // 4) 기안자 알림 (최종 승인 + 결의번호)
+    // 4) 지출결의서 PDF 생성 → R2 박제 (실패해도 승인·결의번호는 유효)
+    try {
+      const stepHist = await rowsOf(await db.execute(sql`
+        SELECT role, decided_by_name, decided_at FROM approval_request_steps
+         WHERE request_id = ${requestId} ORDER BY step_index
+      `));
+      let budgetPath = "";
+      if (r.budget_account_id) {
+        const bp = await rowsOf(await db.execute(sql`
+          SELECT gwan.name AS g, hang.name AS h, mok.name AS m
+            FROM budget_accounts mok
+            LEFT JOIN budget_accounts hang ON hang.id = mok.parent_id
+            LEFT JOIN budget_accounts gwan ON gwan.id = hang.parent_id
+           WHERE mok.id = ${r.budget_account_id} LIMIT 1
+        `));
+        if (bp[0]) budgetPath = [bp[0].g, bp[0].h, bp[0].m].filter(Boolean).join(" > ");
+      }
+      const RL: any = { operator: "담당자", admin: "국장", super_admin: "이사장" };
+      const pdfSteps = [{ roleLabel: "기안", name: r.drafter_name || "", date: "" }].concat(
+        (stepHist as any[]).map((s) => ({ roleLabel: RL[s.role] || s.role, name: s.decided_by_name || "", date: s.decided_at || "" }))
+      );
+      const pdfBytes = await generateResolutionPDF({
+        resolutionNo: resolutionNo!, title: r.title, amount: Number(r.amount), budgetPath,
+        payeeName: r.payee_name, occurredAt: r.occurred_at, description: r.description,
+        drafterName: r.drafter_name, steps: pdfSteps,
+      });
+      const up = await uploadToR2({
+        buffer: pdfBytes, originalName: `resolution_${resolutionNo}.pdf`,
+        mimeType: "application/pdf", context: "approval_resolution",
+        uploadedByAdmin: myId, isPublic: false,
+      });
+      if (up.ok && up.url) {
+        await db.execute(sql`UPDATE approval_requests SET resolution_pdf_url = ${up.url} WHERE id = ${requestId}`);
+      }
+    } catch (e) { console.warn("[approval-decide] 결의서 PDF 실패(무시):", e); }
+
+    // 5) 기안자 알림 (최종 승인 + 결의번호)
     if (r.drafter_id) {
       await createNotification({
         recipientId: Number(r.drafter_id), recipientType: "operator",

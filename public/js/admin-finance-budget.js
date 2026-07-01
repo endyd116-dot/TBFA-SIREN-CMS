@@ -534,86 +534,67 @@
     const year = plan?.fiscal_year || plan?.fiscalYear || new Date().getFullYear();
     if (titleEl) titleEl.textContent = (plan?.title || year + '년도 예산안') + ' — 집행률';
 
-    const res = await api('GET', `/api/admin-finance-budget-list?year=${year}`);
+    /* 관-항-목 집행 롤업 — 예산과목 트리 API 재사용 */
+    const res = await api('GET', `/api/admin-budget-accounts?fiscalYear=${year}`);
     if (!res.ok) {
       bodyEl.innerHTML = `<div style="color:var(--danger)">조회 실패: ${escapeHtml(res.error || '')}</div>`;
       return;
     }
-
-    const d = res.data?.data || res.data;
-    if (d?.noPlan) {
-      bodyEl.innerHTML = '<div style="color:var(--text-3);padding:16px">승인된 예산안이 없습니다.</div>';
+    const tree = res.data?.data?.tree || res.data?.tree || [];
+    if (!tree.length) {
+      bodyEl.innerHTML = '<div style="color:var(--text-3);padding:16px">예산과목(관-항-목)이 없습니다. "예산과목 체계" 화면에서 먼저 구성하세요.</div>';
       return;
     }
 
-    const items        = d?.items || [];
-    const totalPlanned = d?.totalPlanned || 0;
-    const totalExecuted= d?.totalExecuted || 0;
-    const totalReserved= d?.totalReserved || 0;
+    const totalPlanned  = tree.reduce((s, n) => s + (n.planned || 0), 0);
+    const totalExecuted = tree.reduce((s, n) => s + (n.executed || 0), 0);
     const totalRemaining = totalPlanned - totalExecuted;
-    const totalAvailable = d?.totalAvailable != null ? d.totalAvailable : (totalPlanned - totalExecuted - totalReserved);
-    const totalRate    = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
+    const totalRate = totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0;
 
     let anyOver = false;
-    const rows = items.map(item => {
-      const rate = item.rate !== undefined ? item.rate : (item.planned > 0 ? Math.round((item.executed / item.planned) * 100) : 0);
-      const planned  = item.planned  || item.plannedAmount  || item.planned_amount  || 0;
-      const executed = item.executed || item.executedAmount || item.executed_amount || 0;
-      const reserved = item.reserved || item.reservedAmount || item.reserved_amount || 0;
-      const remaining= item.remaining || (planned - executed);
-      const available= item.available != null ? item.available : (planned - executed - reserved);
-      const rateColor = rate >= 90 ? 'var(--danger)' : rate >= 70 ? '#f59e0b' : 'var(--success)';
-      const over = available < 0;
+    const rowFor = (n, depth) => {
+      const planned = n.planned || 0, executed = n.executed || 0;
+      const remaining = planned - executed;
+      const rate = n.rate != null ? Math.round(n.rate * 100) : (planned > 0 ? Math.round((executed / planned) * 100) : 0);
+      const over = executed > planned && planned > 0;
       if (over) anyOver = true;
-      const availColor = over ? 'var(--danger)' : 'var(--success)';
-
-      return `<tr${over ? ' style="background:#fef2f2"' : ''}>
-        <td>${escapeHtml(item.category || item.categoryName || item.name || '')}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">⚠️ 예산 초과</span>' : ''}</td>
+      const rateColor = over ? 'var(--danger)' : rate >= 90 ? 'var(--danger)' : rate >= 70 ? '#f59e0b' : 'var(--success)';
+      const pad = 6 + depth * 20;
+      const bg = n.level === '관' ? 'background:#fdf2f4;' : n.level === '항' ? 'background:#fffbeb;' : '';
+      const wt = n.level === '관' ? 'font-weight:700;' : n.level === '항' ? 'font-weight:600;' : '';
+      let html = `<tr style="${bg}${over ? 'background:#fef2f2;' : ''}">
+        <td style="padding-left:${pad}px;${wt}"><span style="font-size:10px;color:var(--text-3)">${n.level}</span> ${escapeHtml(n.name)}${over ? ' <span style="color:var(--danger);font-size:11px;font-weight:700">⚠️ 초과</span>' : ''}</td>
         <td class="num">${fmtKRW(planned)}</td>
-        <td class="num" style="color:#f59e0b">${reserved ? fmtKRW(reserved) : '—'}</td>
         <td class="num">${fmtKRW(executed)}</td>
-        <td class="num" style="color:${availColor};font-weight:${over ? '700' : '400'}">${fmtKRW(available)}</td>
-        <td style="min-width:160px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="pct-bar" style="flex:1;height:10px;border-radius:5px;background:#e5e7eb;overflow:hidden">
-              <div style="height:100%;width:${Math.min(rate, 100)}%;background:${rateColor};border-radius:5px;transition:width .3s"></div>
-            </div>
-            <span style="color:${rateColor};font-weight:600;min-width:40px;font-size:13px">${rate}%</span>
-          </div>
-        </td>
+        <td class="num" style="color:${remaining < 0 ? 'var(--danger)' : 'var(--success)'};${remaining < 0 ? 'font-weight:700' : ''}">${fmtKRW(remaining)}</td>
+        <td style="min-width:150px"><div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:9px;border-radius:5px;background:#e5e7eb;overflow:hidden"><div style="height:100%;width:${Math.min(rate, 100)}%;background:${rateColor}"></div></div>
+          <span style="color:${rateColor};font-weight:600;min-width:38px;font-size:12px">${rate}%</span>
+        </div></td>
       </tr>`;
-    }).join('');
+      (n.children || []).forEach(c => { html += rowFor(c, depth + 1); });
+      return html;
+    };
+    const rows = tree.map(n => rowFor(n, 0)).join('');
 
-    const rateColor = totalRate >= 90 ? 'var(--danger)' : totalRate >= 70 ? '#f59e0b' : 'var(--success)';
-    const availColorT = totalAvailable < 0 ? 'var(--danger)' : 'var(--success)';
+    const rateColorT = totalRate >= 90 ? 'var(--danger)' : totalRate >= 70 ? '#f59e0b' : 'var(--success)';
+    const remColorT = totalRemaining < 0 ? 'var(--danger)' : 'var(--success)';
 
     bodyEl.innerHTML = `
       ${anyOver
-        ? '<div style="margin-bottom:16px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:var(--danger);font-size:13px;font-weight:600">⚠️ 일부 예산 항목의 가용액이 마이너스입니다. 제출·승인 대기 전표를 확인하세요.</div>'
+        ? '<div style="margin-bottom:16px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:var(--danger);font-size:13px;font-weight:600">⚠️ 집행이 편성을 초과한 항목이 있습니다.</div>'
         : ''}
-      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
         <div class="kpi"><div class="kpi-label">편성 합계</div><div class="kpi-value">${fmtKRW(totalPlanned)}</div></div>
-        <div class="kpi"><div class="kpi-label">예약 합계 (제출 대기)</div><div class="kpi-value" style="color:#f59e0b">${fmtKRW(totalReserved)}</div></div>
-        <div class="kpi"><div class="kpi-label">집행 합계 (승인)</div><div class="kpi-value" style="color:var(--danger)">${fmtKRW(totalExecuted)}</div></div>
-        <div class="kpi"><div class="kpi-label">가용액</div><div class="kpi-value" style="color:${availColorT}">${fmtKRW(totalAvailable)}</div></div>
-        <div class="kpi"><div class="kpi-label">전체 집행률</div><div class="kpi-value" style="color:${rateColor}">${totalRate}%</div></div>
+        <div class="kpi"><div class="kpi-label">집행 합계 (승인 지출)</div><div class="kpi-value" style="color:var(--danger)">${fmtKRW(totalExecuted)}</div></div>
+        <div class="kpi"><div class="kpi-label">잔액</div><div class="kpi-value" style="color:${remColorT}">${fmtKRW(totalRemaining)}</div></div>
+        <div class="kpi"><div class="kpi-label">전체 집행률</div><div class="kpi-value" style="color:${rateColorT}">${totalRate}%</div></div>
       </div>
       <table class="data-table" style="width:100%">
-        <thead>
-          <tr>
-            <th>카테고리</th>
-            <th class="num">편성</th>
-            <th class="num">예약</th>
-            <th class="num">집행</th>
-            <th class="num">가용액</th>
-            <th>집행률</th>
-          </tr>
-        </thead>
+        <thead><tr><th>예산과목 (관·항·목)</th><th class="num">편성</th><th class="num">집행</th><th class="num">잔액</th><th>집행률</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div style="margin-top:10px;font-size:12px;color:var(--text-3)">
-        ※ 예약 = 제출 후 승인 대기 전표 합계 · 집행 = 승인 완료 전표 합계 · 가용액 = 편성 − 예약 − 집행
-      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-3)">※ 집행 = 승인 완료 지출 합계 · 잔액 = 편성 − 집행 · 계층별 소계는 자동 합산</div>
     `;
   }
 

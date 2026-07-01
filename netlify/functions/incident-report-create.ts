@@ -105,6 +105,15 @@ export default async (req: Request, _ctx: Context) => {
       console.warn("[incident-report-create] 운영자 인앱 알림 실패:", e);
     }
 
+    /* 운영자 카카오 알림톡 (승인 템플릿 있을 때만·no-op 안전) */
+    try {
+      const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
+      await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SIREN_REPORT, {
+        유형: "사건 제보",
+        제목: String(title || ""),
+      });
+    } catch (e) { console.warn("[incident-report-create] 운영자 알림톡 예외(무시):", e); }
+
     /* AI 분석 (try-catch 격리) — skipAi=true면 건너뜀 */
     let aiResult: any = null;
     if (!skipAi) try {

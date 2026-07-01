@@ -2977,7 +2977,7 @@ export const expenses = pgTable("expenses", {
   id:               serial("id").primaryKey(),
   fiscalYear:       integer("fiscal_year").notNull(),
   occurredAt:       date("occurred_at").notNull(),                                       // 지출 발생일
-  categoryId:       integer("category_id").notNull().references(() => expenseCategories.id),
+  categoryId:       integer("category_id").references(() => expenseCategories.id),        // nullable(migrate-expenses-category-nullable) — 결재 승인 지출은 목 기준
   budgetAccountId:  integer("budget_account_id"),                                         // 관-항-목 목(leaf) — 집행 롤업 (2026-07-01)
   amount:           bigint("amount", { mode: "number" }).notNull(),                      // 원 단위
   payeeName:        varchar("payee_name", { length: 200 }),                              // 지급처

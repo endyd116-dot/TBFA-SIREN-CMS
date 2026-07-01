@@ -2521,7 +2521,7 @@
     import: 'donation_confirm',
     hyosung: 'finance_view', 'toss-billing': 'finance_view',
     'finance-income': 'finance_view', donations: 'finance_view', 'other-revenues': 'finance_view', 'finance-report': 'finance_view',
-    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'approval-inbox': 'finance_bookkeeping', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
+    expenses: 'finance_bookkeeping', 'finance-budget': 'finance_bookkeeping', 'budget-accounts': 'finance_bookkeeping', 'approval-inbox': 'finance_approval_submit', 'approval-resolutions': 'finance_bookkeeping', 'approval-lines': 'finance_bookkeeping', 'bank-transactions': 'finance_bookkeeping',
     'send-jobs': 'send_job', 'send-analytics': 'send_job', 'notification-logs': 'send_job',
     'send-template': 'send_template', 'recipient-groups': 'send_template',
     'auto-trigger': 'send_auto', 'system-notification': 'send_auto',

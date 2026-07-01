@@ -300,7 +300,7 @@
       <tbody>${list.map(r => `<tr>
         <td><b>${esc(r.resolutionNo)}</b></td><td>${esc(r.title)}</td><td class="num">${fmtKRW(r.amount)}</td>
         <td>${esc(r.budgetAccountName || '—')}</td><td>${fmtDate(r.decidedAt || r.createdAt)}</td>
-        <td><button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">🖨 결의서</button></td>
+        <td style="white-space:nowrap">${r.resolutionPdfUrl ? `<a class="btn-sm btn-sm-ghost" href="${esc(r.resolutionPdfUrl)}" target="_blank" style="text-decoration:none">📄 발행본</a> ` : ''}<button class="btn-sm btn-sm-ghost" type="button" onclick="window.SIREN_APPROVAL._print(${r.id})">🖨 인쇄</button></td>
       </tr>`).join('')}</tbody></table>`;
   }
   async function printResolution(id) {

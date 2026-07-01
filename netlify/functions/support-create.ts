@@ -245,6 +245,15 @@ export default async (req: Request) => {
       console.warn("[support-create] 운영자 인앱 알림 실패:", e);
     }
 
+    /* 운영자 카카오 알림톡 (승인 템플릿 있을 때만·no-op 안전) */
+    try {
+      const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
+      await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SUPPORT_SIGNUP, {
+        이름: String(user.name || "회원"),
+        카테고리: String(category || ""),
+      });
+    } catch (e) { console.warn("[support-create] 운영자 알림톡 예외(무시):", e); }
+
     /* ★ STEP H-4: 신청자에게 접수 확인 메일 발송
        - 결정 Q3-A안: 긴급 신청자에게만 1:1 채팅 안내 추가
        - try-catch로 격리 → 메일 실패해도 신청 처리 응답은 정상 반환 */

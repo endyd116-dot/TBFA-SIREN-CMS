@@ -229,6 +229,15 @@ export default async (req: Request) => {
       }, { category: "donation" });
     } catch (e) { console.warn("[donate-kicc-approve] 운영자 인앱 알림 예외(무시):", e); }
 
+    /* 운영자 카카오 알림톡 (승인 템플릿 있을 때만·no-op 안전) */
+    try {
+      const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
+      await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.DONATION, {
+        금액: Number(updated.amount).toLocaleString(),
+        이름: String(updated.donorName || ""),
+      });
+    } catch (e) { console.warn("[donate-kicc-approve] 운영자 알림톡 예외(무시):", e); }
+
     await logUserAction(req, updated.memberId, updated.donorName, "donate_kicc_approve_success", {
       target: pgOrderNo,
       detail: { donationId: updated.id, amount: updated.amount, pgTid: result.pgTid, receiptNumber, emailSent },

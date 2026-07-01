@@ -202,7 +202,7 @@ async function handleList(box: string, statusFilter: string | null, myId: number
       SELECT
         ar.id, ar.request_no, ar.title, ar.amount, ar.status,
         ar.current_step, ar.steps, ar.board_required, ar.drafter_name,
-        ar.fiscal_year, ar.occurred_at, ar.resolution_no, ar.created_at,
+        ar.fiscal_year, ar.occurred_at, ar.resolution_no, ar.resolution_pdf_url, ar.created_at,
         ar.budget_account_id, ba.name AS budget_account_name
       FROM approval_requests ar
       LEFT JOIN budget_accounts ba ON ba.id = ar.budget_account_id
@@ -231,6 +231,7 @@ async function handleList(box: string, statusFilter: string | null, myId: number
       fiscalYear:        Number(r.fiscal_year),
       occurredAt:        r.occurred_at,
       resolutionNo:      r.resolution_no,
+      resolutionPdfUrl:  r.resolution_pdf_url || null,
       createdAt:         r.created_at,
       _stepRole:         currentStepRole(stepsArr, curStep),
     };

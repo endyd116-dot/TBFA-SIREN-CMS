@@ -437,6 +437,15 @@ export default async (req: Request, _ctx: Context) => {
       }
     }
 
+    /* 운영자 카카오 알림톡 (승인 템플릿 있을 때만·no-op 안전·두 분기 공통) */
+    try {
+      const { sendOperatorAlimtalk, OPERATOR_KAKAO_EVENT_KEYS } = await import("../../lib/notify-operator-kakao");
+      await sendOperatorAlimtalk(OPERATOR_KAKAO_EVENT_KEYS.SUPPORT_SIGNUP, {
+        이름: String(created.name || ""),
+        유형: String(config.displayName || ""),
+      });
+    } catch (e) { console.warn("[auth-signup] 운영자 알림톡 예외(무시):", e); }
+
     /* 11. 감사 로그 */
     try {
       await logAudit({

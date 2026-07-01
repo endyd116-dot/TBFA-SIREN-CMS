@@ -54,6 +54,10 @@ const PATH_FEATURE: Record<string, string> = {
   "/api/sso-on": "sso_on",
   "/api/sso-si": "sso_si",
   "/api/sso-marketing": "sso_marketing",
+  /* ★ 2026-07-01: 지출 결재 기안은 직원(operator)도 가능(finance_approval_submit·operator 허용 시드).
+     결재 처리(decide)·라인/위임 설정은 PATH_FEATURE 미등록 → 기본 admin/이사장만. */
+  "/api/admin-approval-request-create": "finance_approval_submit",
+  "/api/admin-approval-requests": "finance_approval_submit",
 };
 
 export async function requireAdmin(req: Request): Promise<
