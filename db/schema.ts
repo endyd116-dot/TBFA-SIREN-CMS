@@ -2978,6 +2978,7 @@ export const expenses = pgTable("expenses", {
   fiscalYear:       integer("fiscal_year").notNull(),
   occurredAt:       date("occurred_at").notNull(),                                       // 지출 발생일
   categoryId:       integer("category_id").notNull().references(() => expenseCategories.id),
+  budgetAccountId:  integer("budget_account_id"),                                         // 관-항-목 목(leaf) — 집행 롤업 (2026-07-01)
   amount:           bigint("amount", { mode: "number" }).notNull(),                      // 원 단위
   payeeName:        varchar("payee_name", { length: 200 }),                              // 지급처
   description:      text("description"),
@@ -3032,6 +3033,8 @@ export const budgetLines = pgTable("budget_lines", {
   id:             serial("id").primaryKey(),
   planId:         integer("plan_id").notNull().references(() => budgetPlans.id, { onDelete: "cascade" }),
   categoryId:     integer("category_id").notNull().references(() => expenseCategories.id),
+  /* 관-항-목 3계층: 편성은 목(leaf)에서 (migrate-budget-hierarchy 적용 후 활성·2026-07-01) */
+  budgetAccountId: integer("budget_account_id"),
   plannedAmount:  bigint("planned_amount", { mode: "number" }).notNull().default(0),
   prevYearActual: bigint("prev_year_actual", { mode: "number" }).notNull().default(0),
   note:           text("note"),
@@ -3039,6 +3042,7 @@ export const budgetLines = pgTable("budget_lines", {
   planCatUnique: uniqueIndex("budget_lines_plan_cat_unique").on(t.planId, t.categoryId),
   planIdx:       index("budget_lines_plan_idx").on(t.planId),
   categoryIdx:   index("budget_lines_category_idx").on(t.categoryId),
+  budgetAccountIdx: index("budget_lines_ba_idx").on(t.budgetAccountId),
 }));
 
 export type BudgetLine    = typeof budgetLines.$inferSelect;
@@ -4578,3 +4582,41 @@ export type NurtureSend    = typeof nurtureSends.$inferSelect;
 export type NewNurtureSend = typeof nurtureSends.$inferInsert;
 
 /* === 후원자 너처링 시스템 끝 === */
+
+/* =========================================================
+   === 예산안 고도화: 관-항-목 3계층 예산과목 === (2026-07-01)
+   마이그: migrate-budget-hierarchy (적용 완료 후 활성)
+   설계: docs/specs/예산안-고도화-설계-v1.md
+   - budget_accounts:         관/항/목 트리 (parent_id 자기참조)
+   - budget_account_code_map: 목 ↔ 회계 계정과목(account_codes.code) 연결
+   ========================================================= */
+export const budgetAccounts = pgTable("budget_accounts", {
+  id:        serial("id").primaryKey(),
+  level:     varchar("level", { length: 4 }).notNull(),          // '관'|'항'|'목'
+  parentId:  integer("parent_id"),                                // → budget_accounts.id (관은 NULL)
+  code:      varchar("code", { length: 30 }).notNull().unique(),
+  name:      varchar("name", { length: 120 }).notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive:  boolean("is_active").notNull().default(true),
+  isSystem:  boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  parentIdx: index("budget_accounts_parent_idx").on(t.parentId),
+  levelIdx:  index("budget_accounts_level_idx").on(t.level),
+}));
+export type BudgetAccount    = typeof budgetAccounts.$inferSelect;
+export type NewBudgetAccount = typeof budgetAccounts.$inferInsert;
+
+export const budgetAccountCodeMap = pgTable("budget_account_code_map", {
+  id:              serial("id").primaryKey(),
+  budgetAccountId: integer("budget_account_id").notNull().references(() => budgetAccounts.id, { onDelete: "cascade" }),
+  accountCode:     varchar("account_code", { length: 20 }).notNull(),   // → account_codes.code
+}, (t) => ({
+  uq:            uniqueIndex("bacm_ba_code_uq").on(t.budgetAccountId, t.accountCode),
+  accountCodeIdx: index("bacm_account_code_idx").on(t.accountCode),
+  baIdx:          index("bacm_ba_idx").on(t.budgetAccountId),
+}));
+export type BudgetAccountCodeMap    = typeof budgetAccountCodeMap.$inferSelect;
+export type NewBudgetAccountCodeMap = typeof budgetAccountCodeMap.$inferInsert;
+/* === 예산안 고도화 관-항-목 끝 === */

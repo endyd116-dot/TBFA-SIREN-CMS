@@ -17,7 +17,7 @@ import type { Context } from "@netlify/functions";
 import { db } from "../../db/index";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { sql } from "drizzle-orm";
-import { learnCounterparty } from "../../lib/bank-reconcile";
+import { learnCounterparty, resolveBudgetLineByAccountCode } from "../../lib/bank-reconcile";
 import { nextVoucherNumber } from "../../lib/voucher-number";
 
 export const config = { path: "/api/admin-bank-batch-voucher" };
@@ -115,6 +115,11 @@ export default async function handler(req: Request, _ctx: Context) {
       const fiscalYear = parseInt(txnDate.slice(0, 4));
       const yyyymm = txnDate.slice(0, 7).replace("-", "");
 
+      // 예산 관-항-목 연동 — 계정과목 → 예산 목 → 편성 라인 (없으면 null, 기존 동작 유지)
+      let budgetLineId: number | null = null;
+      try { budgetLineId = await resolveBudgetLineByAccountCode(accountCode, fiscalYear); }
+      catch (e) { console.warn("[bank-batch-voucher] 예산 라인 해석 실패:", e); }
+
       /* Q4-023/Q4-024: 발번(advisory lock) + 전표 INSERT + 통장거래 UPDATE를 한 트랜잭션으로.
          이전엔 분리돼 있어 중간 실패 시 전표만 생기고 거래는 pending → 재실행 시 중복 전표 위험. */
       const voucherNumber = await db.transaction(async (tx) => {
@@ -124,14 +129,14 @@ export default async function handler(req: Request, _ctx: Context) {
             voucher_number, voucher_date, fiscal_year,
             account_code, account_name,
             description, payee_name, amount,
-            evidence_type, bank_txn_id,
+            evidence_type, budget_line_id, bank_txn_id,
             status, created_by, created_at, updated_at
           ) VALUES (
             ${vnum}, ${txnDate}, ${fiscalYear},
             ${accountCode}, ${acRow.name},
             ${txn.description || `통장 출금 — ${txn.counterpart_name || ""}`},
             ${txn.counterpart_name || null}, ${amount},
-            'transfer_confirm', ${id},
+            'transfer_confirm', ${budgetLineId}, ${id},
             'draft', ${adminEmail}, NOW(), NOW()
           ) RETURNING id`);
         const voucherId = Number((vr?.rows ?? vr ?? [])[0].id);
@@ -139,6 +144,7 @@ export default async function handler(req: Request, _ctx: Context) {
           UPDATE bank_transactions SET
             match_type = 'voucher', status = 'voucher_created',
             admin_account_code = ${accountCode},
+            admin_budget_id = ${budgetLineId},
             voucher_id = ${voucherId},
             confirmed_at = NOW(), confirmed_by = ${adminEmail}
           WHERE id = ${id}`);

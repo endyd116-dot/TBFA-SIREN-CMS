@@ -187,6 +187,7 @@ export default async function handler(req: Request, _ctx: Context) {
                 match_type = 'voucher', status = 'voucher_created',
                 counterparty_id = ${result.counterpartyId ?? null},
                 ai_account_code = ${result.accountCode},
+                ai_budget_id = ${result.budgetLineId ?? null},
                 ai_confidence = ${result.confidence},
                 ai_reasoning = ${result.reasoning},
                 voucher_id = ${voucherId},
@@ -201,6 +202,7 @@ export default async function handler(req: Request, _ctx: Context) {
               match_type = 'pending',
               counterparty_id = ${result.counterpartyId ?? null},
               ai_account_code = ${result.accountCode ?? null},
+              ai_budget_id = ${result.budgetLineId ?? null},
               ai_confidence = ${result.confidence},
               ai_reasoning = ${result.reasoning}
             WHERE id = ${t.id}`);

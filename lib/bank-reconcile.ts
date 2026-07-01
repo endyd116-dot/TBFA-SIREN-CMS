@@ -470,6 +470,47 @@ async function findMemberCandidates(name: string | null): Promise<
 }
 
 /* =========================================================
+   5.5) 예산 관-항-목 연동 — 계정과목 → 예산 목 → 편성 라인
+   ---------------------------------------------------------
+   2026-07-01 additive: AI/키워드가 확정한 계정과목(account_code)을
+   budget_account_code_map을 통해 예산 목(budget_accounts, level='목')으로 잇고,
+   해당 회계연도(budget_plans.fiscal_year)의 편성 라인(budget_lines.budget_account_id=목)
+   id를 반환한다. 매핑/편성이 없으면 null → 기존 동작 그대로 (fallback 안전).
+   ========================================================= */
+
+/**
+ * 계정과목(accountCode) → 예산 목 → 해당 연도 편성 라인 id 해석.
+ * @returns budget_lines.id | null (매핑·편성 없으면 null — 절대 throw 안 함)
+ *
+ * 조회 흐름:
+ *  1) budget_account_code_map에서 accountCode에 매핑된 budget_account_id(목) 조회
+ *  2) 그 목을 참조하는 budget_lines 중 planId가 해당 fiscalYear의 budget_plans에 속하는 행
+ *     - status='approved' 플랜 우선, 그다음 최신 plan, budget_lines.id ASC
+ */
+export async function resolveBudgetLineByAccountCode(
+  accountCode: string | null,
+  fiscalYear: number,
+): Promise<number | null> {
+  if (!accountCode || !fiscalYear || !Number.isFinite(fiscalYear)) return null;
+  try {
+    const r: any = await db.execute(sql`
+      SELECT bl.id AS id
+      FROM budget_account_code_map bacm
+      JOIN budget_lines bl        ON bl.budget_account_id = bacm.budget_account_id
+      JOIN budget_plans bp        ON bp.id = bl.plan_id
+      WHERE bacm.account_code = ${accountCode}
+        AND bp.fiscal_year   = ${fiscalYear}
+      ORDER BY (bp.status = 'approved') DESC, bp.id DESC, bl.id ASC
+      LIMIT 1`);
+    const row = (r?.rows ?? r ?? [])[0];
+    return row?.id != null ? Number(row.id) : null;
+  } catch (e) {
+    console.warn("[bank-reconcile] resolveBudgetLineByAccountCode 실패:", e);
+    return null;
+  }
+}
+
+/* =========================================================
    6) 출금 대사 — vouchers 자동 생성
    ========================================================= */
 
@@ -496,17 +537,23 @@ export async function reconcileExpense(
   txn: NormalizedTxn,
   threshold: number = 0.75,
 ): Promise<ExpenseMatchResult> {
+  // 회계연도 — 거래일 연도 (예산 편성 매칭용)
+  const fiscalYear = parseInt(String(txn.txnDate).slice(0, 4)) || 0;
+
   // ── ① 거래처 마스터 ──────────────────────────────────────
   const cp = await findCounterparty(txn.counterpartAccount, txn.counterpartName);
   if (cp && cp.default_match_type === "voucher" && cp.default_account_code) {
     const accountName = await lookupAccountName(cp.default_account_code);
+    // 학습된 예산 라인 우선, 없으면 계정과목→예산 목→편성 라인으로 보완 (additive)
+    const budgetLineId = cp.default_budget_line_id
+      ?? await resolveBudgetLineByAccountCode(cp.default_account_code, fiscalYear);
     return {
       matchType: "voucher",
       status: "confirmed",
       counterpartyId: cp.id,
       accountCode: cp.default_account_code,
       accountName,
-      budgetLineId: cp.default_budget_line_id,
+      budgetLineId: budgetLineId ?? undefined,
       confidence: 1,
       reasoning: `학습된 거래처 '${cp.name}' — 계정과목 ${cp.default_account_code} 자동 적용`,
       autoCreateVoucher: true,
@@ -522,12 +569,17 @@ export async function reconcileExpense(
     if (kwName) account = { code: kw.code, name: kwName };
     if (!account) account = await pickAccountByCategory(kw.category);
     const branch = kw.confidence >= threshold;
+    // 예산 관-항-목 연동 — 계정과목 → 예산 목 → 편성 라인 (없으면 null, 기존 동작 유지)
+    const budgetLineId = account?.code
+      ? await resolveBudgetLineByAccountCode(account.code, fiscalYear)
+      : null;
     return {
       matchType: "voucher",
       status: branch ? "confirmed" : "pending",
       counterpartyId: cp?.id ?? null,
       accountCode: account?.code ?? null,
       accountName: account?.name ?? null,
+      budgetLineId: budgetLineId ?? undefined,
       confidence: kw.confidence,
       reasoning: kw.reason,
       autoCreateVoucher: branch && !!account,
@@ -540,12 +592,17 @@ export async function reconcileExpense(
   const account = ai.accountCode
     ? { code: ai.accountCode, name: await lookupAccountName(ai.accountCode) }
     : await pickAccountByCategory(ai.category);
+  // 예산 관-항-목 연동 — 계정과목 → 예산 목 → 편성 라인 (없으면 null, 기존 동작 유지)
+  const aiBudgetLineId = account?.code
+    ? await resolveBudgetLineByAccountCode(account.code, fiscalYear)
+    : null;
   return {
     matchType: "voucher",
     status: branch ? "confirmed" : "pending",
     counterpartyId: cp?.id ?? null,
     accountCode: account?.code ?? null,
     accountName: account?.name ?? null,
+    budgetLineId: aiBudgetLineId ?? undefined,
     confidence: ai.confidence,
     reasoning: ai.reasoning,
     autoCreateVoucher: branch && !!account,
