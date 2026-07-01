@@ -47,32 +47,32 @@ export default async function handler(req: Request, _ctx: Context) {
     return jsonError("check_dup", err);
   }
 
-  // 전년 실적 집계 (Y-1 연도 expenses)
+  // 전년 실적 집계 (Y-1 연도 expenses) — 목(budget_account_id) 단위
   let prevActualMap: Map<number, number> = new Map();
   try {
     const prevYear = fiscalYear - 1;
     const actuals: any = await db.execute(sql`
-      SELECT category_id, COALESCE(SUM(amount - refund_amount), 0)::bigint AS actual
+      SELECT budget_account_id, COALESCE(SUM(amount - refund_amount), 0)::bigint AS actual
       FROM expenses
-      WHERE fiscal_year = ${prevYear} AND status = 'approved'
-      GROUP BY category_id
+      WHERE fiscal_year = ${prevYear} AND status = 'approved' AND budget_account_id IS NOT NULL
+      GROUP BY budget_account_id
     `);
     for (const r of (actuals?.rows ?? actuals ?? [])) {
-      prevActualMap.set(Number(r.category_id), Number(r.actual));
+      prevActualMap.set(Number(r.budget_account_id), Number(r.actual));
     }
   } catch (err: any) {
     console.warn("전년 실적 집계 실패 (빈 값으로 계속):", err?.message);
   }
 
-  // 활성 expense_categories 목록
-  let categories: any[] = [];
+  // 활성 예산과목 '목(目·leaf)' 목록 — 편성은 목 단위
+  let moks: any[] = [];
   try {
-    const catRows: any = await db.execute(sql`
-      SELECT id FROM expense_categories WHERE is_active = TRUE ORDER BY sort_order, id
+    const mokRows: any = await db.execute(sql`
+      SELECT id FROM budget_accounts WHERE level = '목' AND is_active = TRUE ORDER BY sort_order, code
     `);
-    categories = catRows?.rows ?? catRows ?? [];
+    moks = mokRows?.rows ?? mokRows ?? [];
   } catch (err: any) {
-    return jsonError("select_categories", err);
+    return jsonError("select_moks", err);
   }
 
   // 예산안 생성 + budget_lines 일괄 INSERT
@@ -90,14 +90,14 @@ export default async function handler(req: Request, _ctx: Context) {
 
   let totalPlanned = 0;
   try {
-    for (const cat of categories) {
-      const catId = Number(cat.id);
-      const prevActual = prevActualMap.get(catId) ?? 0;
+    for (const m of moks) {
+      const mokId = Number(m.id);
+      const prevActual = prevActualMap.get(mokId) ?? 0;
       totalPlanned += prevActual;
       await db.execute(sql`
-        INSERT INTO budget_lines (plan_id, category_id, planned_amount, prev_year_actual)
-        VALUES (${newPlanId}, ${catId}, ${prevActual}, ${prevActual})
-        ON CONFLICT (plan_id, category_id) DO NOTHING
+        INSERT INTO budget_lines (plan_id, budget_account_id, category_id, planned_amount, prev_year_actual)
+        VALUES (${newPlanId}, ${mokId}, NULL, ${prevActual}, ${prevActual})
+        ON CONFLICT (plan_id, budget_account_id) DO NOTHING
       `);
     }
     // total_planned 캐시 갱신
@@ -115,9 +115,9 @@ export default async function handler(req: Request, _ctx: Context) {
       planId: newPlanId,
       fiscalYear,
       title: planTitle,
-      lineCount: categories.length,
+      lineCount: moks.length,
       totalPlanned,
-      message: `${fiscalYear}년도 예산안이 생성되었습니다. (전년 실적 자동 채움 ${categories.length}개 카테고리)`,
+      message: `${fiscalYear}년도 예산안이 생성되었습니다. (전년 실적 자동 채움 · 예산과목 목 ${moks.length}개)`,
     },
   }), { status: 201, headers: { "Content-Type": "application/json" } });
 }

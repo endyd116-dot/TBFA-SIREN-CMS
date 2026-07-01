@@ -3032,7 +3032,8 @@ export type NewBudgetPlan = typeof budgetPlans.$inferInsert;
 export const budgetLines = pgTable("budget_lines", {
   id:             serial("id").primaryKey(),
   planId:         integer("plan_id").notNull().references(() => budgetPlans.id, { onDelete: "cascade" }),
-  categoryId:     integer("category_id").notNull().references(() => expenseCategories.id),
+  /* 목 기반 편성 전환(migrate-budget-lines-mok 적용 후 nullable·2026-07-01): 레거시 라인만 categoryId 보유 */
+  categoryId:     integer("category_id").references(() => expenseCategories.id),
   /* 관-항-목 3계층: 편성은 목(leaf)에서 (migrate-budget-hierarchy 적용 후 활성·2026-07-01) */
   budgetAccountId: integer("budget_account_id"),
   plannedAmount:  bigint("planned_amount", { mode: "number" }).notNull().default(0),

@@ -278,25 +278,58 @@
     if (titleEl) titleEl.textContent = title + ' — ' + planStatusLabel(status);
 
     const editable = status === 'draft' || status === 'rejected';
-    const lineRows = lines.map(l => {
-      const lid   = l.id;
-      const name  = escapeHtml(l.category_name || l.categoryName || '');
-      const prev  = l.prev_year_actual || l.prevYearActual || 0;
-      const plan_ = l.planned_amount   || l.plannedAmount  || 0;
 
-      return `<tr>
-        <td>${name}</td>
-        <td class="num" style="color:var(--text-2)">${fmtKRW(prev)}</td>
-        <td class="num">
-          ${editable
-            ? `<input type="number" class="input-sm bp-line-input" style="width:150px;text-align:right"
-                data-lid="${lid}" value="${plan_}" min="0">`
-            : fmtKRW(plan_)}
-        </td>
+    /* 관-항-목 그룹핑 */
+    const groups = {};   // gk -> { name, hangs: { hk: { name, lines: [] } } }
+    lines.forEach(l => {
+      const gk = l.gwanId != null ? 'g' + l.gwanId : 'g0';
+      const hk = l.hangId != null ? 'h' + l.hangId : (gk + '-h0');
+      if (!groups[gk]) groups[gk] = { name: l.gwanName || '기타(미분류)', hangs: {} };
+      if (!groups[gk].hangs[hk]) groups[gk].hangs[hk] = { name: l.hangName || '기타', lines: [] };
+      groups[gk].hangs[hk].lines.push(l);
+    });
+
+    /* 초기 소계 */
+    const gwanSum = {}, hangSum = {};
+    lines.forEach(l => {
+      const gk = l.gwanId != null ? 'g' + l.gwanId : 'g0';
+      const hk = l.hangId != null ? 'h' + l.hangId : (gk + '-h0');
+      const v = l.plannedAmount || 0;
+      gwanSum[gk] = (gwanSum[gk] || 0) + v;
+      hangSum[hk] = (hangSum[hk] || 0) + v;
+    });
+
+    let rowsHtml = '';
+    Object.keys(groups).forEach(gk => {
+      const g = groups[gk];
+      rowsHtml += `<tr style="background:#fdf2f4">
+        <td style="font-weight:700;color:#7a1f2b">관 · ${escapeHtml(g.name)}</td>
+        <td></td>
+        <td class="num" style="font-weight:700"><span class="bp-gwan-sum" data-g="${gk}">${fmtKRW(gwanSum[gk] || 0)}</span></td>
       </tr>`;
-    }).join('');
+      Object.keys(g.hangs).forEach(hk => {
+        const h = g.hangs[hk];
+        rowsHtml += `<tr style="background:#fffbeb">
+          <td style="padding-left:24px;font-weight:600;color:#b45309">항 · ${escapeHtml(h.name)}</td>
+          <td></td>
+          <td class="num" style="font-weight:600;color:#b45309"><span class="bp-hang-sum" data-h="${hk}">${fmtKRW(hangSum[hk] || 0)}</span></td>
+        </tr>`;
+        h.lines.forEach(l => {
+          const prev = l.prevYearActual || 0;
+          const plan_ = l.plannedAmount || 0;
+          const codeTag = l.mokCode ? ` <span style="color:var(--text-3);font-size:11px;font-family:monospace">${escapeHtml(l.mokCode)}</span>` : '';
+          rowsHtml += `<tr>
+            <td style="padding-left:44px">목 · ${escapeHtml(l.mokName || l.categoryName || '')}${codeTag}</td>
+            <td class="num" style="color:var(--text-2)">${fmtKRW(prev)}</td>
+            <td class="num">${editable
+              ? `<input type="number" class="input-sm bp-line-input" style="width:150px;text-align:right" data-lid="${l.id}" data-g="${gk}" data-h="${hk}" value="${plan_}" min="0">`
+              : fmtKRW(plan_)}</td>
+          </tr>`;
+        });
+      });
+    });
 
-    const totalPlanned = lines.reduce((s, l) => s + (l.planned_amount || l.plannedAmount || 0), 0);
+    const totalPlanned = lines.reduce((s, l) => s + (l.plannedAmount || 0), 0);
 
     const submitBtn = editable
       ? `<button class="btn-sm btn-sm-primary" id="bpSaveBtn" type="button">임시저장</button>
@@ -304,18 +337,19 @@
       : '';
 
     bodyEl.innerHTML = `
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:8px">예산과목 관·항·목 체계로 편성합니다. 금액은 목(目)에서 입력하고 항·관 소계는 자동 합산됩니다.</div>
       <table class="data-table" style="width:100%;margin-bottom:16px">
         <thead>
           <tr>
-            <th>카테고리</th>
+            <th>예산과목 (관 · 항 · 목)</th>
             <th class="num">전년 실적</th>
             <th class="num">편성 금액 (원)</th>
           </tr>
         </thead>
-        <tbody>${lineRows}</tbody>
+        <tbody>${rowsHtml}</tbody>
         <tfoot>
           <tr style="font-weight:700">
-            <td>합계</td>
+            <td>총계</td>
             <td></td>
             <td class="num" id="bpComposeTotal">${fmtKRW(totalPlanned)}</td>
           </tr>
@@ -328,18 +362,20 @@
     `;
 
     if (editable) {
-      /* 금액 입력 실시간 합계 */
-      bodyEl.querySelectorAll('.bp-line-input').forEach(inp => {
-        inp.addEventListener('input', () => {
-          const lid = inp.dataset.lid;
-          lineEdits[lid] = parseInt(inp.value) || 0;
-          const allInputs = bodyEl.querySelectorAll('.bp-line-input');
-          let sum = 0;
-          allInputs.forEach(i => { sum += parseInt(i.value) || 0; });
-          const totalEl = document.getElementById('bpComposeTotal');
-          if (totalEl) totalEl.textContent = fmtKRW(sum);
+      const recompute = () => {
+        const hs = {}, gs = {}; let total = 0;
+        bodyEl.querySelectorAll('.bp-line-input').forEach(i => {
+          const v = parseInt(i.value) || 0;
+          total += v;
+          hs[i.dataset.h] = (hs[i.dataset.h] || 0) + v;
+          gs[i.dataset.g] = (gs[i.dataset.g] || 0) + v;
         });
-      });
+        bodyEl.querySelectorAll('.bp-hang-sum').forEach(s => s.textContent = fmtKRW(hs[s.dataset.h] || 0));
+        bodyEl.querySelectorAll('.bp-gwan-sum').forEach(s => s.textContent = fmtKRW(gs[s.dataset.g] || 0));
+        const totalEl = document.getElementById('bpComposeTotal');
+        if (totalEl) totalEl.textContent = fmtKRW(total);
+      };
+      bodyEl.querySelectorAll('.bp-line-input').forEach(inp => inp.addEventListener('input', recompute));
 
       document.getElementById('bpSaveBtn')?.addEventListener('click', () => saveDraft(false));
       document.getElementById('bpSubmitBtn')?.addEventListener('click', () => {

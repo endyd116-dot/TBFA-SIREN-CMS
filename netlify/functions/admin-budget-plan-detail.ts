@@ -51,21 +51,36 @@ export default async function handler(req: Request, _ctx: Context) {
 
   let lines: any[] = [];
   try {
+    // 목 기반 라인: 목→항→관 경로 조인 (레거시 category 라인은 LEFT JOIN으로 폴백)
     const lineRows: any = await db.execute(sql`
       SELECT
-        bl.id, bl.plan_id, bl.category_id, bl.planned_amount, bl.prev_year_actual, bl.note,
-        ec.code AS category_code, ec.name AS category_name
+        bl.id, bl.plan_id, bl.budget_account_id, bl.category_id,
+        bl.planned_amount, bl.prev_year_actual, bl.note,
+        mok.code  AS mok_code,  mok.name  AS mok_name,
+        hang.id   AS hang_id,   hang.code AS hang_code, hang.name AS hang_name,
+        gwan.id   AS gwan_id,   gwan.code AS gwan_code, gwan.name AS gwan_name,
+        ec.name AS category_name
       FROM budget_lines bl
-      JOIN expense_categories ec ON ec.id = bl.category_id
+      LEFT JOIN budget_accounts mok  ON mok.id  = bl.budget_account_id
+      LEFT JOIN budget_accounts hang ON hang.id = mok.parent_id
+      LEFT JOIN budget_accounts gwan ON gwan.id = hang.parent_id
+      LEFT JOIN expense_categories ec ON ec.id = bl.category_id
       WHERE bl.plan_id = ${Number(plan.id)}
-      ORDER BY ec.sort_order, ec.id
+      ORDER BY gwan.sort_order NULLS LAST, gwan.code, hang.sort_order, hang.code, mok.sort_order, mok.code
     `);
     lines = (lineRows?.rows ?? lineRows ?? []).map((r: any) => ({
       id:             Number(r.id),
       planId:         Number(r.plan_id),
-      categoryId:     Number(r.category_id),
-      categoryCode:   r.category_code,
-      categoryName:   r.category_name,
+      budgetAccountId: r.budget_account_id != null ? Number(r.budget_account_id) : null,
+      categoryId:     r.category_id != null ? Number(r.category_id) : null,
+      gwanId:         r.gwan_id != null ? Number(r.gwan_id) : null,
+      gwanName:       r.gwan_name || null,
+      hangId:         r.hang_id != null ? Number(r.hang_id) : null,
+      hangName:       r.hang_name || null,
+      mokCode:        r.mok_code || null,
+      mokName:        r.mok_name || r.category_name || '(미분류)',
+      // 하위호환: 기존 UI가 참조하던 키
+      categoryName:   r.mok_name || r.category_name || '',
       plannedAmount:  Number(r.planned_amount),
       prevYearActual: Number(r.prev_year_actual),
       note:           r.note,
