@@ -199,17 +199,21 @@
         // FullCalendar 종일 이벤트의 end는 배타적 → 종료일 +1일
         let endExclusive = null;
         try { const d = new Date(String(p.endDate).slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + 1); endExclusive = d.toISOString().slice(0, 10); } catch (_) {}
+        const isObj = p.kind === 'objective';
+        const label = isObj
+          ? `🎯 ${p.title}`
+          : `[단계] ${p.objectiveTitle ? p.objectiveTitle + ' · ' : ''}${p.title}`;
         return {
-          id: `roadmap-phase-${p.phaseId}`,
-          title: `[로드맵] ${p.objectiveTitle ? p.objectiveTitle + ' · ' : ''}${p.title}`,
+          id: isObj ? `roadmap-obj-${p.objectiveId}` : `roadmap-phase-${p.phaseId}`,
+          title: label,
           start: String(p.startDate).slice(0, 10),
           end: endExclusive || undefined,
           allDay: true,
-          classNames: ['wc-ev-roadmap'],
+          classNames: isObj ? ['wc-ev-roadmap', 'wc-ev-roadmap-obj'] : ['wc-ev-roadmap'],
           backgroundColor: hex,
           borderColor: hex,
           textColor: '#ffffff',
-          extendedProps: { type: 'roadmap', phaseId: p.phaseId, objectiveId: p.objectiveId, status: p.status, progress: p.progress },
+          extendedProps: { type: 'roadmap', kind: p.kind, phaseId: p.phaseId, objectiveId: p.objectiveId, status: p.status, progress: p.progress },
         };
       });
     } catch (err) {

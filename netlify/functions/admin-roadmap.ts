@@ -69,9 +69,10 @@ export default async (req: Request, _ctx: Context) => {
           objMap = new Map(objs.map(o => [o.id, o]));
         }
 
-        const items = phases.map(p => {
+        const phaseItems = phases.map(p => {
           const obj = objMap.get(p.objectiveId);
           return {
+            kind: "phase",
             phaseId: p.id,
             objectiveId: p.objectiveId,
             objectiveTitle: obj?.title || "",
@@ -84,7 +85,25 @@ export default async (req: Request, _ctx: Context) => {
             category: obj?.category || null,
           };
         });
-        return ok({ items });
+
+        // 기간(시작일+목표완료일)이 설정된 목표도 막대로 표시 (start<=to AND target>=from)
+        const objsInRange = await db.select().from(roadmapObjectives)
+          .where(and(lte(roadmapObjectives.startDate, to), gte(roadmapObjectives.targetDate, from)))
+          .orderBy(asc(roadmapObjectives.startDate));
+        const objItems = objsInRange.map(o => ({
+          kind: "objective",
+          objectiveId: o.id,
+          objectiveTitle: o.title,
+          title: o.title,
+          status: o.status,
+          progress: o.progress,
+          startDate: o.startDate,
+          endDate: o.targetDate,   // 목표 완료일을 종료로 매핑
+          color: o.color || "indigo",
+          category: o.category || null,
+        }));
+
+        return ok({ items: [...objItems, ...phaseItems] });
       }
 
       // ── 단일 목표 + 단계 ──
