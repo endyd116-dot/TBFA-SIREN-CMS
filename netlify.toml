@@ -220,8 +220,10 @@
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions"
-  # ★ 빌드 시간 단축: 폰트(6MB) 전역 포함 제거 — 영수증·증명서 5개 함수에만 포함
-  included_files = ["db/**/*", "lib/**/*"]
+  # ★ 2026-07-02 배포시간 단축: 전역 included_files(db/**+lib/** ≈2MB) 제거.
+  #   lib/db는 esbuild가 import를 코드로 번들하므로 파일 동봉 불필요(런타임 readFile 대상 전수 grep — lib/db 읽는 곳 0건).
+  #   기존엔 598개 함수 zip마다 ~2MB 원본이 복사돼(합산 ≈1.2GB) 패키징·업로드를 키우던 주범.
+  #   런타임 파일읽기는 assets/fonts(아래 함수별)·docs/law·public html(함수별 지정)뿐.
   # ★ 2026-05-16: 무거운 의존성 외부화로 함수 번들 시간·크기 단축.
   #   런타임에 node_modules에서 직접 로드되므로 콜드 스타트는 거의 영향 없고
   #   빌드 시간은 함수 수(170+) × 의존성 트리만큼 단축됨 (특히 aws-sdk 약 5MB).
@@ -287,6 +289,18 @@
 [functions."admin-martyrdom-export"]
   included_files = ["assets/fonts/**"]
 [functions."admin-martyrdom-package"]
+  included_files = ["assets/fonts/**"]
+# ★ 2026-07-02 폰트 누락 5건 수정: 폰트 읽는 lib(pdf-resolution·payroll-pdf·martyrdom-export)를
+#   쓰는데 include가 빠져 라이브에서 PDF 생성이 조용히 실패하던 함수들(전수 grep으로 확인).
+[functions."admin-approval-decide"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-payroll-pdf"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-payroll-send"]
+  included_files = ["assets/fonts/**"]
+[functions."payroll-my-pdf"]
+  included_files = ["assets/fonts/**"]
+[functions."admin-martyrdom-publication-export"]
   included_files = ["assets/fonts/**"]
 
 # ★ 뉴스·여론 분석 자동 수집 (매일 09:00 KST = UTC 00:00)
