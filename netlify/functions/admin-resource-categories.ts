@@ -8,6 +8,7 @@
 // DELETE /api/admin/resource-categories?id=N      — 삭제 (resources.categoryId는 SET NULL)
 //
 // 권한: super_admin 또는 'all' 카테고리 담당자만
+/* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
 import { eq, asc, sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -18,15 +19,11 @@ import {
   parseJson, corsPreflight, methodNotAllowed,
 } from "../../lib/response";
 import { logAdminAction } from "../../lib/audit";
+import { canAccess } from "../../lib/role-permission-check";
 
 /* ───────── 권한 체크 ───────── */
-function canEdit(adminMember: any): boolean {
-  if (!adminMember) return false;
-  if (adminMember.role === "super_admin") return true;
-  const cats: string[] = Array.isArray(adminMember.assignedCategories)
-    ? adminMember.assignedCategories
-    : [];
-  return cats.includes("all");
+async function canEdit(adminMember: any): Promise<boolean> {
+  return canAccess(String(adminMember?.role || ""), "content_edit");
 }
 
 /* ───────── code 정규화 (영소문자/숫자/언더스코어/하이픈) ───────── */
@@ -143,7 +140,7 @@ export default async (req: Request) => {
 
     /* ===== POST: 신규 생성 ===== */
     if (req.method === "POST") {
-      if (!canEdit(adminMember)) {
+      if (!(await canEdit(adminMember))) {
         return forbidden("카테고리 생성 권한이 없습니다 (super_admin 또는 'all' 담당자만 가능)");
       }
 
@@ -175,7 +172,7 @@ export default async (req: Request) => {
 
     /* ===== PATCH: 수정 ===== */
     if (req.method === "PATCH") {
-      if (!canEdit(adminMember)) return forbidden("카테고리 수정 권한이 없습니다");
+      if (!(await canEdit(adminMember))) return forbidden("카테고리 수정 권한이 없습니다");
 
       const body = await parseJson(req);
       if (!body) return badRequest("요청 본문이 비어있습니다");
@@ -221,7 +218,7 @@ export default async (req: Request) => {
 
     /* ===== DELETE ===== */
     if (req.method === "DELETE") {
-      if (!canEdit(adminMember)) return forbidden("카테고리 삭제 권한이 없습니다");
+      if (!(await canEdit(adminMember))) return forbidden("카테고리 삭제 권한이 없습니다");
 
       const url = new URL(req.url);
       const id = Number(url.searchParams.get("id"));

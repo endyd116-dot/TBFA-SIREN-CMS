@@ -175,21 +175,8 @@
       <span id="matrixEditNote" style="font-size:11px;font-weight:400;color:#9ca3af">불러오는 중...</span>
     </div>
 
-    <!-- 카테고리 탭 -->
-    <div style="display:flex;gap:6px;margin-bottom:14px">
-      <button id="tabSiren" onclick="switchMatrixTab('siren')"
-        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff">
-        🔴 SIREN
-      </button>
-      <button id="tabCms" onclick="switchMatrixTab('cms')"
-        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151">
-        📦 통합 CMS
-      </button>
-      <button id="tabSso" onclick="switchMatrixTab('sso')"
-        style="padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151">
-        🔗 SSO 위성앱
-      </button>
-    </div>
+    <!-- 카테고리 탭 (권한 데이터의 카테고리에서 동적 생성 — 2026-07-02 권한설계 동기화) -->
+    <div id="matrixTabs" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap"></div>
 
     <div id="matrixArea">
       <table class="matrix-table" id="matrixTable">
@@ -558,15 +545,41 @@
 
     var _TAB_ACTIVE   = 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;background:#1e40af;color:#fff';
     var _TAB_INACTIVE = 'padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:1px solid #d1d5db;cursor:pointer;background:#fff;color:#374151';
-    var _MATRIX_TABS  = { siren: 'tabSiren', cms: 'tabCms', sso: 'tabSso' };
+
+    /* 카테고리 라벨·순서 (lib/permission-catalog.ts와 동일하게 유지) — 미지정 카테고리는 키 그대로 뒤에 붙음 */
+    var _CATEGORY_LABELS = {
+      siren:   '🔴 SIREN 서비스',
+      content: '📚 콘텐츠 편집',
+      finance: '📊 재정',
+      send:    '📨 알림·발송',
+      ai:      '🤖 AI',
+      ops:     '🛎 운영 관리',
+      cms:     '📦 통합 CMS·기타',
+      sso:     '🔗 SSO 위성앱',
+    };
+    var _CATEGORY_ORDER = ['siren', 'content', 'finance', 'send', 'ai', 'ops', 'cms', 'sso'];
 
     function switchMatrixTab(tab) {
       _currentTab = tab;
-      Object.keys(_MATRIX_TABS).forEach(function (k) {
-        var el = document.getElementById(_MATRIX_TABS[k]);
-        if (el) el.style.cssText = (k === tab) ? _TAB_ACTIVE : _TAB_INACTIVE;
-      });
+      renderTabs();
       renderMatrix();
+    }
+
+    /* 권한 데이터에 실제 존재하는 카테고리만 탭으로 렌더 (신규 카테고리 자동 노출) */
+    function renderTabs() {
+      var box = document.getElementById('matrixTabs');
+      if (!box) return;
+      var present = {};
+      _allPerms.forEach(function (p) { if (p.category) present[p.category] = true; });
+      var cats = _CATEGORY_ORDER.filter(function (c) { return present[c]; });
+      Object.keys(present).forEach(function (c) { if (cats.indexOf(c) < 0) cats.push(c); });
+      if (!cats.length) { box.innerHTML = ''; return; }
+      if (cats.indexOf(_currentTab) < 0) _currentTab = cats[0];
+      box.innerHTML = cats.map(function (c) {
+        var label = _CATEGORY_LABELS[c] || c;
+        var style = (c === _currentTab) ? _TAB_ACTIVE : _TAB_INACTIVE;
+        return '<button type="button" style="' + style + '" onclick="switchMatrixTab(\'' + esc(c) + '\')">' + esc(label) + '</button>';
+      }).join('');
     }
 
     async function loadMatrix() {
@@ -574,6 +587,7 @@
       _allPerms = res.data?.data?.permissions || res.data?.permissions || [];
       document.getElementById('matrixEditNote').textContent =
         currentRole === 'super_admin' ? '(체크박스 클릭으로 즉시 저장)' : '(읽기 전용)';
+      renderTabs();
       renderMatrix();
     }
 

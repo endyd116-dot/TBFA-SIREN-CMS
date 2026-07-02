@@ -6,11 +6,13 @@
 //
 // 저장: Netlify Blobs 영구 스토어 "brand" (public-brand.ts와 공유). 만료 없음.
 // 권한: super_admin 또는 content/all 카테고리 (사이트 전역 변경이라 제한).
+/* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
 import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { requireAdmin } from "../../lib/admin-guard";
 import { logAdminAction } from "../../lib/audit";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin/brand-settings" };
 
@@ -22,11 +24,8 @@ function json(data: any, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADER });
 }
 
-function canEdit(member: any): boolean {
-  if (!member) return false;
-  if (member.role === "super_admin") return true;
-  const cats: string[] = Array.isArray(member.assignedCategories) ? member.assignedCategories : [];
-  return cats.includes("all") || cats.includes("content");
+async function canEdit(member: any): Promise<boolean> {
+  return canAccess(String(member?.role || ""), "content_edit");
 }
 
 async function loadConfig(store: ReturnType<typeof getStore>): Promise<any> {
@@ -62,7 +61,7 @@ export default async (req: Request, _ctx: Context) => {
 
     /* ── POST: 저장 ── */
     if (req.method === "POST") {
-      if (!canEdit(member)) return json({ ok: false, error: "브랜드 설정 변경 권한이 없습니다 (슈퍼관리자 또는 콘텐츠 담당)" }, 403);
+      if (!(await canEdit(member))) return json({ ok: false, error: "브랜드 설정 변경 권한이 없습니다 (슈퍼관리자 또는 콘텐츠 담당)" }, 403);
 
       const form = await req.formData();
       const cfg = await loadConfig(store);

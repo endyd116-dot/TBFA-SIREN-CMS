@@ -58,6 +58,17 @@ const PATH_FEATURE: Record<string, string> = {
      결재 처리(decide)·라인/위임 설정은 PATH_FEATURE 미등록 → 기본 admin/이사장만. */
   "/api/admin-approval-request-create": "finance_approval_submit",
   "/api/admin-approval-requests": "finance_approval_submit",
+  /* ★ 2026-07-02 권한설계 동기화: 프런트 메뉴에만 걸려있던 콘텐츠 게이트를 서버에도 강제.
+     키는 lib/permission-catalog.ts 카탈로그와 동일 — 권한정책관리 화면 토글이 실제 차단으로 이어짐. */
+  "/api/admin-popups": "cms_popup",
+  "/api/admin-form-save": "cms_forms",
+  "/api/admin-form-delete": "cms_forms",
+  "/api/admin-forms-list": "cms_forms",
+  "/api/admin-badge-definitions": "cms_gamification",
+  "/api/admin/board-posts": "board_manage",
+  "/api/admin/notices": "notice_manage",
+  "/api/admin/content-pages": "content_edit",
+  "/api/admin-curations": "content_edit",
 };
 
 export async function requireAdmin(req: Request): Promise<

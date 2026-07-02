@@ -14,6 +14,7 @@
 //        body: { items: [{id, sortOrder}, ...] }
 // DELETE /api/admin/nav-menus?id=N                      — 삭제 (자식 포함)
 // DELETE /api/admin/nav-menus?id=N&action=discard       — Draft 폐기
+/* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -29,15 +30,12 @@ import {
   discardMenuDraft, deleteMenuItem, countMenuDrafts,
 } from "../../lib/site-settings";
 import { logAdminAction } from "../../lib/audit";
+import { canAccess } from "../../lib/role-permission-check";
 
 const VALID_LOCATIONS = ["header", "footer", "siren", "mobile"];
 
-function canEdit(adminMember: any): boolean {
-  if (!adminMember) return false;
-  if (adminMember.role === "super_admin") return true;
-  const cats: string[] = Array.isArray(adminMember.assignedCategories)
-    ? adminMember.assignedCategories : [];
-  return cats.includes("all") || cats.includes("content") || cats.includes("stats_management");
+async function canEdit(adminMember: any): Promise<boolean> {
+  return canAccess(String(adminMember?.role || ""), "content_edit");
 }
 
 export default async (req: Request) => {
@@ -70,7 +68,7 @@ export default async (req: Request) => {
 
     /* ===== POST ===== */
     if (req.method === "POST") {
-      if (!canEdit(adminMember)) return forbidden("편집 권한이 없습니다");
+      if (!(await canEdit(adminMember))) return forbidden("편집 권한이 없습니다");
 
       const action = url.searchParams.get("action") || "create";
       const body = await parseJson(req);
@@ -154,7 +152,7 @@ export default async (req: Request) => {
 
     /* ===== PATCH ===== */
     if (req.method === "PATCH") {
-      if (!canEdit(adminMember)) return forbidden("편집 권한이 없습니다");
+      if (!(await canEdit(adminMember))) return forbidden("편집 권한이 없습니다");
 
       const action = url.searchParams.get("action") || "draft";
       const body = await parseJson(req);
@@ -219,7 +217,7 @@ export default async (req: Request) => {
 
     /* ===== DELETE ===== */
     if (req.method === "DELETE") {
-      if (!canEdit(adminMember)) return forbidden("편집 권한이 없습니다");
+      if (!(await canEdit(adminMember))) return forbidden("편집 권한이 없습니다");
 
       const id = Number(url.searchParams.get("id"));
       const action = url.searchParams.get("action") || "delete";

@@ -7,6 +7,7 @@
 // DELETE /api/admin/site-settings?id=N&action=discard  — Draft 폐기
 //
 // 권한: super_admin 또는 'stats_management' / 'all' / 'content' 카테고리
+/* 2026-07-02: assignedCategories canEdit → role_permissions canAccess('content_edit') 교체 — 권한설계 화면에서 중앙 제어 */
 
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db";
@@ -20,13 +21,10 @@ import {
   getAdminSettings, saveDraft, publishDrafts, discardDraft,
 } from "../../lib/site-settings";
 import { logAdminAction } from "../../lib/audit";
+import { canAccess } from "../../lib/role-permission-check";
 
-function canEdit(adminMember: any): boolean {
-  if (!adminMember) return false;
-  if (adminMember.role === "super_admin") return true;
-  const cats: string[] = Array.isArray(adminMember.assignedCategories)
-    ? adminMember.assignedCategories : [];
-  return cats.includes("all") || cats.includes("content") || cats.includes("stats_management");
+async function canEdit(adminMember: any): Promise<boolean> {
+  return canAccess(String(adminMember?.role || ""), "content_edit");
 }
 
 export default async (req: Request) => {
@@ -67,7 +65,7 @@ export default async (req: Request) => {
 
     /* ===== PATCH: Draft 저장 ===== */
     if (req.method === "PATCH") {
-      if (!canEdit(adminMember)) {
+      if (!(await canEdit(adminMember))) {
         return forbidden("편집 권한이 없습니다");
       }
 
@@ -110,7 +108,7 @@ export default async (req: Request) => {
 
     /* ===== POST: Publish (Draft → 운영 일괄 적용) ===== */
     if (req.method === "POST") {
-      if (!canEdit(adminMember)) {
+      if (!(await canEdit(adminMember))) {
         return forbidden("배포 권한이 없습니다");
       }
 
@@ -149,7 +147,7 @@ export default async (req: Request) => {
 
     /* ===== DELETE: Draft 폐기 ===== */
     if (req.method === "DELETE") {
-      if (!canEdit(adminMember)) {
+      if (!(await canEdit(adminMember))) {
         return forbidden("권한이 없습니다");
       }
 
