@@ -8,9 +8,10 @@
 // 안전 원칙(전부 fire-and-forget):
 //   - kakao_alimtalk_templates에서 eventKey로 조회 → status='approved' + solapi_template_id
 //     존재일 때만 발송. 없으면 즉시 return(no-op).
-//   - 대상: type='admin' AND operator_active=TRUE AND status='active'
-//           AND phone_verified_at IS NOT NULL AND kakao_marketing_consent_at IS NOT NULL
-//           (수신동의·번호검증된 운영자만).
+//   - 대상: type='admin' AND operator_active=TRUE AND status='active' AND phone IS NOT NULL
+//           (전화번호 등록된 활성 운영자 전원). 운영자 업무 알림은 '정보성'이라
+//           마케팅 수신동의 불요 — 후원자용 kakao_marketing_consent_at 게이트를 걸면
+//           직원은 사실상 아무도 못 받아 원래 요구('모든 운영자')와 어긋남(2026-07-02 fix).
 //   - 발송 실패는 로그만. 절대 throw 하지 않음(호출부 기존 로직 보호).
 //   - 발송 대상 0명·미승인·테이블 미생성 → 조용히 종료.
 //
@@ -54,14 +55,13 @@ async function loadApprovedTemplate(eventKey: string): Promise<ApprovedTemplate 
 /** 수신동의·번호검증된 활성 운영자의 전화번호 목록 조회. */
 async function loadOperatorPhones(): Promise<string[]> {
   try {
+    /* 정보성 운영자 알림 — 전화번호 등록된 활성 운영자 전원(마케팅 동의 불요) */
     const r: any = await db.execute(sql`
       SELECT phone
         FROM members
        WHERE type = 'admin'
          AND operator_active = TRUE
          AND status = 'active'
-         AND phone_verified_at IS NOT NULL
-         AND kakao_marketing_consent_at IS NOT NULL
          AND phone IS NOT NULL`);
     const rows = (r?.rows ?? r ?? []) as any[];
     const seen = new Set<string>();
