@@ -4711,3 +4711,55 @@ export const approvalDelegations = pgTable("approval_delegations", {
 export type ApprovalDelegation    = typeof approvalDelegations.$inferSelect;
 export type NewApprovalDelegation = typeof approvalDelegations.$inferInsert;
 /* === 지출 결재라인·위임·지출결의서 끝 === */
+
+/* =========================================================
+   === 사업 로드맵 (목표·단계) — 2026-07-02 ===
+   워크스페이스 로드맵: 사업 전체 목표(Objective)와 실행 단계(Phase)를
+   캘린더·리스트·타임라인으로 공유. 슈퍼어드민·어드민 편집, 오퍼레이터 열람.
+   ========================================================= */
+export const roadmapObjectives = pgTable("roadmap_objectives", {
+  id:          serial("id").primaryKey(),
+  title:       varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  category:    varchar("category", { length: 50 }),          // 후원|유가족지원|SIREN|캠페인|조직운영|기타 (자유 입력)
+  status:      varchar("status", { length: 20 }).notNull().default("active"), // planned|active|done|paused|cancelled
+  progress:    integer("progress").notNull().default(0),     // 0~100 (단계 없을 때 수동, 단계 있으면 API가 자동 집계)
+  ownerId:     integer("owner_id").references(() => members.id, { onDelete: "set null" }), // 담당자
+  ownerName:   varchar("owner_name", { length: 100 }),       // 담당자 표시명 스냅샷
+  startDate:   date("start_date"),
+  targetDate:  date("target_date"),                          // 목표 완료일
+  color:       varchar("color", { length: 20 }).notNull().default("indigo"),
+  sortOrder:   integer("sort_order").notNull().default(0),
+  createdBy:   integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  statusIdx:   index("roadmap_objectives_status_idx").on(t.status),
+  ownerIdx:    index("roadmap_objectives_owner_idx").on(t.ownerId),
+  sortIdx:     index("roadmap_objectives_sort_idx").on(t.sortOrder),
+}));
+export type RoadmapObjective    = typeof roadmapObjectives.$inferSelect;
+export type NewRoadmapObjective = typeof roadmapObjectives.$inferInsert;
+
+export const roadmapPhases = pgTable("roadmap_phases", {
+  id:          serial("id").primaryKey(),
+  objectiveId: integer("objective_id").notNull().references(() => roadmapObjectives.id, { onDelete: "cascade" }),
+  title:       varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  status:      varchar("status", { length: 20 }).notNull().default("planned"), // planned|in_progress|done|blocked
+  progress:    integer("progress").notNull().default(0),     // 0~100
+  startDate:   date("start_date").notNull(),
+  endDate:     date("end_date").notNull(),
+  color:       varchar("color", { length: 20 }),             // 미지정 시 목표 색상 상속
+  sortOrder:   integer("sort_order").notNull().default(0),
+  createdBy:   integer("created_by").references(() => members.id, { onDelete: "set null" }),
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  objIdx:      index("roadmap_phases_objective_idx").on(t.objectiveId),
+  rangeIdx:    index("roadmap_phases_range_idx").on(t.startDate, t.endDate),
+  sortIdx:     index("roadmap_phases_sort_idx").on(t.sortOrder),
+}));
+export type RoadmapPhase    = typeof roadmapPhases.$inferSelect;
+export type NewRoadmapPhase = typeof roadmapPhases.$inferInsert;
+/* === 사업 로드맵 끝 === */

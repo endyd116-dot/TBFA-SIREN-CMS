@@ -33,6 +33,7 @@
     showTasks: true,
     showEvents: true,
     showMemos: true,
+    showRoadmap: true, // 로드맵 단계 오버레이
     scope: 'mine',     // mine | all
     rangeStart: null,
     rangeEnd: null,
@@ -127,6 +128,7 @@
 
     if (STATE.showTasks) promises.push(loadTasks(start, end));
     promises.push(loadEventsAndMemos(start, end));  // 일정 + 메모 통합 (showEvents / showMemos 내부 적용)
+    if (STATE.showRoadmap) promises.push(loadRoadmapPhases(start, end));
 
     const results = await Promise.allSettled(promises);
     const all = [];
@@ -180,6 +182,38 @@
         });
     } catch (err) {
       console.warn('[calendar] tasks 로드 실패:', err);
+      return [];
+    }
+  }
+
+  // 로드맵 단계 → 기간 막대(종일 스팬)로 캘린더에 오버레이
+  const RM_COLORS = { indigo: '#4f46e5', blue: '#2563eb', green: '#16a34a', amber: '#d97706', rose: '#e11d48', teal: '#0d9488', slate: '#64748b' };
+  async function loadRoadmapPhases(start, end) {
+    const from = (start instanceof Date ? start : new Date(start)).toISOString().slice(0, 10);
+    const to = (end instanceof Date ? end : new Date(end)).toISOString().slice(0, 10);
+    try {
+      const res = await api(`/api/admin-roadmap?calendar=1&from=${from}&to=${to}`);
+      const items = res.data?.items || [];
+      return items.map(p => {
+        const hex = RM_COLORS[p.color] || RM_COLORS.indigo;
+        // FullCalendar 종일 이벤트의 end는 배타적 → 종료일 +1일
+        let endExclusive = null;
+        try { const d = new Date(String(p.endDate).slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + 1); endExclusive = d.toISOString().slice(0, 10); } catch (_) {}
+        return {
+          id: `roadmap-phase-${p.phaseId}`,
+          title: `[로드맵] ${p.objectiveTitle ? p.objectiveTitle + ' · ' : ''}${p.title}`,
+          start: String(p.startDate).slice(0, 10),
+          end: endExclusive || undefined,
+          allDay: true,
+          classNames: ['wc-ev-roadmap'],
+          backgroundColor: hex,
+          borderColor: hex,
+          textColor: '#ffffff',
+          extendedProps: { type: 'roadmap', phaseId: p.phaseId, objectiveId: p.objectiveId, status: p.status, progress: p.progress },
+        };
+      });
+    } catch (err) {
+      console.warn('[calendar] roadmap 로드 실패:', err);
       return [];
     }
   }
@@ -444,6 +478,12 @@
       return;
     }
 
+    if (ext.type === 'roadmap') {
+      // 로드맵 단계 → 로드맵 페이지로 이동
+      location.href = '/workspace-roadmap.html';
+      return;
+    }
+
     if (ext.type === 'memo') {
       // 메모 → 수정 모달
       if (window.WorkspaceMemoModal) {
@@ -660,6 +700,12 @@
       STATE.showMemos = e.target.checked;
       STATE.calendar?.refetchEvents();
     });
+    $('#wcFilterRoadmap')?.addEventListener('change', e => {
+      STATE.showRoadmap = e.target.checked;
+      STATE.calendar?.refetchEvents();
+    });
+    // 로드맵 페이지에서 목표·단계 변경 시 캘린더 자동 갱신
+    try { window.WorkspaceSync?.on?.('roadmap:changed', () => { try { STATE.calendar?.refetchEvents(); } catch (_) {} }); } catch (_) {}
     $('#wcFilterScope')?.addEventListener('change', e => {
       STATE.scope = e.target.value;
       STATE.calendar?.refetchEvents();

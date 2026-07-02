@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- PWA(앱 설치) -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#7a1f2b" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="SIREN" />
+<script src="/js/pwa.js?v=2" defer></script>
+<title>로드맵 - SIREN 워크스페이스</title>
+<meta name="robots" content="noindex,nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/css/base.css?v=3">
+<link rel="stylesheet" href="/css/components.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/workspace.css?v=20260515bugfix2">
+<link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
+
+<style>
+/* ═══════════ 로드맵 전용 스타일 (2026-07-02) ═══════════ */
+.rm-main { margin-left: var(--ws-sidebar-w, 64px); padding: 0; min-height: 100vh; background: #f8fafc; }
+.rm-header { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 26px; background: #fff; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; }
+.rm-header-left { display: flex; flex-direction: column; gap: 2px; }
+.rm-title { font-size: 20px; font-weight: 800; color: #1f2937; margin: 0; }
+.rm-subtitle { font-size: 12px; color: #6b7280; }
+.rm-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rm-select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; background: #fff; color: #374151; }
+.rm-viewtoggle { display: inline-flex; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
+.rm-viewtoggle button { border: 0; background: #fff; padding: 7px 14px; font-size: 13px; cursor: pointer; color: #6b7280; font-weight: 600; }
+.rm-viewtoggle button.is-active { background: #4f46e5; color: #fff; }
+.rm-btn { border: 0; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.rm-btn-primary { background: #4f46e5; color: #fff; }
+.rm-btn-primary:hover { background: #4338ca; }
+.rm-btn-ghost { background: #eef2ff; color: #4338ca; }
+.rm-btn-sm { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+.editonly { display: none; }
+body.can-edit .editonly { display: inline-flex; }
+
+.rm-body { padding: 22px 26px 60px; }
+.rm-empty { text-align: center; color: #9ca3af; padding: 60px 20px; font-size: 14px; }
+.rm-loading { text-align: center; color: #9ca3af; padding: 40px; }
+
+/* ── 카드(리스트) 뷰 ── */
+.rm-obj { background: #fff; border: 1px solid #e5e7eb; border-left: 5px solid var(--obj-color, #4f46e5);
+  border-radius: 12px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+.rm-obj-head { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; }
+.rm-obj-main { flex: 1; min-width: 0; }
+.rm-obj-titlerow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rm-obj-title { font-size: 16px; font-weight: 800; color: #111827; margin: 0; }
+.rm-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.rm-cat { background: #f1f5f9; color: #475569; }
+.st-planned { background: #f1f5f9; color: #64748b; }
+.st-active, .st-in_progress { background: #dbeafe; color: #1e40af; }
+.st-done { background: #dcfce7; color: #166534; }
+.st-paused, .st-blocked { background: #fef3c7; color: #92400e; }
+.st-cancelled { background: #fee2e2; color: #991b1b; }
+.rm-obj-meta { font-size: 12px; color: #6b7280; margin-top: 5px; display: flex; gap: 14px; flex-wrap: wrap; }
+.rm-obj-desc { font-size: 13px; color: #4b5563; margin: 8px 0 0; white-space: pre-wrap; }
+.rm-obj-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+.rm-progress { height: 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+.rm-progress > i { display: block; height: 100%; background: var(--obj-color, #4f46e5); border-radius: 999px; transition: width .3s; }
+.rm-progress-label { font-size: 11px; color: #6b7280; margin-top: 3px; }
+
+.rm-phases { border-top: 1px dashed #e5e7eb; padding: 6px 18px 14px; }
+.rm-phase { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f3f4f6; }
+.rm-phase:last-child { border-bottom: 0; }
+.rm-phase-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ph-color, #94a3b8); flex-shrink: 0; }
+.rm-phase-main { flex: 1; min-width: 0; }
+.rm-phase-title { font-size: 13.5px; font-weight: 600; color: #1f2937; }
+.rm-phase-dates { font-size: 11.5px; color: #9ca3af; }
+.rm-phase-mini { width: 120px; flex-shrink: 0; }
+.rm-phase-mini .rm-progress { margin-top: 3px; }
+.rm-phase-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.rm-addphase { margin-top: 6px; }
+
+/* ── 타임라인(간트) 뷰 ── */
+.rm-timeline { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow-x: auto; }
+.rm-tl-head { display: flex; border-bottom: 2px solid #e5e7eb; position: sticky; top: 0; background: #fff; }
+.rm-tl-labelcol { width: 220px; min-width: 220px; padding: 10px 14px; font-size: 12px; font-weight: 700; color: #64748b; border-right: 1px solid #e5e7eb; }
+.rm-tl-months { display: flex; flex: 1; }
+.rm-tl-month { flex: 1; min-width: 70px; text-align: center; padding: 10px 4px; font-size: 12px; font-weight: 700; color: #64748b; border-right: 1px solid #f1f5f9; }
+.rm-tl-row { display: flex; border-bottom: 1px solid #f1f5f9; }
+.rm-tl-row:hover { background: #fafbff; }
+.rm-tl-label { width: 220px; min-width: 220px; padding: 10px 14px; border-right: 1px solid #e5e7eb; }
+.rm-tl-label .t { font-size: 13px; font-weight: 700; color: #1f2937; }
+.rm-tl-label .s { font-size: 11px; color: #9ca3af; }
+.rm-tl-track { position: relative; flex: 1; min-height: 40px; }
+.rm-tl-bar { position: absolute; top: 9px; height: 22px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700;
+  padding: 3px 8px; box-sizing: border-box; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+.rm-tl-bar.is-obj { background: var(--obj-color, #4f46e5); opacity: .92; }
+.rm-tl-today { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 3; }
+</style>
+</head>
+
+<body class="ws-body">
+
+<!-- 슬림 사이드바 -->
+<aside class="ws-sidebar" id="wsSidebar">
+  <div class="ws-sidebar-inner">
+    <div class="quick-jump" data-quick-jump></div>
+    <a href="/admin-hub.html" class="ws-sidebar-logo" title="허브로 돌아가기">
+      <span class="ws-logo-icon">🏠</span>
+      <span class="ws-logo-text">허브</span>
+    </a>
+    <nav class="ws-sidebar-nav">
+      <ul>
+        <li class="ws-nav-group">
+          <a href="#" data-sidebar-group="workspace" aria-expanded="true">
+            <span class="ws-nav-icon">🛠</span>
+            <span class="ws-nav-text">워크스페이스</span>
+            <span class="sidebar-group-chevron">▾</span>
+          </a>
+          <ul data-sidebar-submenu="workspace" aria-hidden="false">
+            <li><a href="/workspace.html" title="워크툴"><span class="ws-nav-icon">📊</span><span class="ws-nav-text">워크툴</span></a></li>
+            <li><a href="/workspace-kanban.html" title="WBS"><span class="ws-nav-icon">📋</span><span class="ws-nav-text">WBS</span></a></li>
+            <li><a href="/workspace-calendar.html" title="캘린더"><span class="ws-nav-icon">🗓</span><span class="ws-nav-text">캘린더</span></a></li>
+            <li><a href="/workspace-roadmap.html" title="로드맵" class="is-active"><span class="ws-nav-icon">🎯</span><span class="ws-nav-text">로드맵</span></a></li>
+            <li><a href="/workspace-templates.html" title="템플릿"><span class="ws-nav-icon">📑</span><span class="ws-nav-text">템플릿</span></a></li>
+            <li><a href="/workspace-files.html" onclick="window.location.href='/workspace-files.html';return false;" title="파일함"><span class="ws-nav-icon">📁</span><span class="ws-nav-text">파일함</span></a></li>
+            <li><a href="/workspace.html#milestones" title="성과 관리"><span class="ws-nav-icon">🏆</span><span class="ws-nav-text">성과 관리</span></a></li>
+            <li><a href="/workspace-attendance.html" title="근태관리"><span class="ws-nav-icon">🕐</span><span class="ws-nav-text">근태관리</span></a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <div class="ws-sidebar-user">
+      <a href="/mypage.html" title="마이페이지" id="wsSidebarUser">
+        <span class="ws-user-avatar">👤</span>
+        <span class="ws-nav-text" id="wsSidebarUserName">사용자</span>
+      </a>
+      <button class="ws-sidebar-logout" id="wsBtnLogout" title="로그아웃">
+        <span class="ws-nav-icon">🚪</span>
+        <span class="ws-nav-text">로그아웃</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- 메인 -->
+<main class="rm-main">
+  <header class="rm-header">
+    <div class="rm-header-left">
+      <h1 class="rm-title">🎯 사업 로드맵</h1>
+      <span class="rm-subtitle">사업 전체 목표와 실행 단계 — 리스트·타임라인 공유</span>
+    </div>
+    <div class="rm-header-right">
+      <select id="rmFilterStatus" class="rm-select" aria-label="상태 필터">
+        <option value="">전체 상태</option>
+        <option value="planned">예정</option>
+        <option value="active">진행중</option>
+        <option value="done">완료</option>
+        <option value="paused">보류</option>
+        <option value="cancelled">취소</option>
+      </select>
+      <div class="rm-viewtoggle" role="tablist">
+        <button id="rmViewList" class="is-active" type="button">📋 리스트</button>
+        <button id="rmViewTimeline" type="button">📊 타임라인</button>
+      </div>
+      <button id="rmBtnRefresh" class="rm-btn rm-btn-ghost" type="button" title="새로고침">🔄</button>
+      <button id="rmBtnNewObj" class="rm-btn rm-btn-primary editonly" type="button">＋ 새 목표</button>
+    </div>
+  </header>
+
+  <div class="rm-body">
+    <div id="rmLoading" class="rm-loading">불러오는 중...</div>
+    <div id="rmListView" style="display:none"></div>
+    <div id="rmTimelineView" style="display:none"></div>
+  </div>
+</main>
+
+<!-- ════════ 모달: 목표 생성/수정 ════════ -->
+<div class="wk-modal" id="rmObjModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="rmObjModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2 id="rmObjModalTitle">새 목표</h2>
+      <button class="wk-modal-close" data-close-modal="rmObjModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="rmObjId">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="rm-flabel">목표명 *
+          <input type="text" id="rmObjTitle" maxlength="300" placeholder="예: 2026년 정기후원자 1만 명 달성" class="rm-finput"></label>
+        <div style="display:flex;gap:10px">
+          <label class="rm-flabel" style="flex:1">분야
+            <input type="text" id="rmObjCategory" list="rmCatList" maxlength="50" placeholder="후원/유가족지원/SIREN…" class="rm-finput">
+            <datalist id="rmCatList">
+              <option value="후원"></option><option value="유가족지원"></option><option value="SIREN 신고"></option>
+              <option value="캠페인"></option><option value="조직운영"></option><option value="기타"></option>
+            </datalist></label>
+          <label class="rm-flabel" style="flex:1">상태
+            <select id="rmObjStatus" class="rm-finput">
+              <option value="planned">예정</option><option value="active" selected>진행중</option>
+              <option value="done">완료</option><option value="paused">보류</option><option value="cancelled">취소</option>
+            </select></label>
+        </div>
+        <div style="display:flex;gap:10px">
+          <label class="rm-flabel" style="flex:1">시작일
+            <input type="date" id="rmObjStart" class="rm-finput"></label>
+          <label class="rm-flabel" style="flex:1">목표 완료일
+            <input type="date" id="rmObjTarget" class="rm-finput"></label>
+        </div>
+        <div style="display:flex;gap:10px">
+          <label class="rm-flabel" style="flex:1">담당자
+            <input type="text" id="rmObjOwner" maxlength="100" placeholder="담당자 이름(선택)" class="rm-finput"></label>
+          <label class="rm-flabel" style="flex:1">색상
+            <select id="rmObjColor" class="rm-finput">
+              <option value="indigo">남보라</option><option value="blue">파랑</option><option value="green">초록</option>
+              <option value="amber">주황</option><option value="rose">빨강</option><option value="teal">청록</option><option value="slate">회색</option>
+            </select></label>
+        </div>
+        <label class="rm-flabel" id="rmObjProgressWrap">진행률(단계 없을 때만 수동, 단계 있으면 자동 집계) <span id="rmObjProgressVal">0%</span>
+          <input type="range" id="rmObjProgress" min="0" max="100" value="0" style="width:100%"></label>
+        <label class="rm-flabel">설명
+          <textarea id="rmObjDesc" rows="3" placeholder="(선택)" class="rm-finput" style="resize:vertical"></textarea></label>
+      </div>
+    </div>
+    <footer class="wk-modal-footer">
+      <button class="wk-btn-secondary editonly" id="rmObjDeleteBtn" type="button" style="margin-right:auto;color:#b91c1c">삭제</button>
+      <button class="wk-btn-secondary" data-close-modal="rmObjModal" type="button">취소</button>
+      <button class="wk-btn-primary" id="rmObjSaveBtn" type="button">저장</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ════════ 모달: 단계 생성/수정 ════════ -->
+<div class="wk-modal" id="rmPhaseModal" aria-hidden="true">
+  <div class="wk-modal-backdrop" data-close-modal="rmPhaseModal"></div>
+  <div class="wk-modal-dialog wk-modal-sm">
+    <header class="wk-modal-header">
+      <h2 id="rmPhaseModalTitle">새 단계</h2>
+      <button class="wk-modal-close" data-close-modal="rmPhaseModal" type="button">✕</button>
+    </header>
+    <div class="wk-modal-body">
+      <input type="hidden" id="rmPhaseId">
+      <input type="hidden" id="rmPhaseObjId">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="rm-flabel">단계명 *
+          <input type="text" id="rmPhaseTitle" maxlength="300" placeholder="예: 1분기 캠페인 기획" class="rm-finput"></label>
+        <div style="display:flex;gap:10px">
+          <label class="rm-flabel" style="flex:1">시작일 *
+            <input type="date" id="rmPhaseStart" class="rm-finput"></label>
+          <label class="rm-flabel" style="flex:1">종료일 *
+            <input type="date" id="rmPhaseEnd" class="rm-finput"></label>
+        </div>
+        <label class="rm-flabel" style="flex:1">상태
+          <select id="rmPhaseStatus" class="rm-finput">
+            <option value="planned">예정</option><option value="in_progress">진행중</option>
+            <option value="done">완료</option><option value="blocked">막힘</option>
+          </select></label>
+        <label class="rm-flabel">진행률 <span id="rmPhaseProgressVal">0%</span>
+          <input type="range" id="rmPhaseProgress" min="0" max="100" value="0" style="width:100%"></label>
+        <label class="rm-flabel">설명
+          <textarea id="rmPhaseDesc" rows="2" placeholder="(선택)" class="rm-finput" style="resize:vertical"></textarea></label>
+      </div>
+    </div>
+    <footer class="wk-modal-footer">
+      <button class="wk-btn-secondary editonly" id="rmPhaseDeleteBtn" type="button" style="margin-right:auto;color:#b91c1c">삭제</button>
+      <button class="wk-btn-secondary" data-close-modal="rmPhaseModal" type="button">취소</button>
+      <button class="wk-btn-primary" id="rmPhaseSaveBtn" type="button">저장</button>
+    </footer>
+  </div>
+</div>
+
+<div id="rmToastRoot" class="wk-toast-root"></div>
+
+<style>
+.rm-flabel { display:block; font-size:13px; color:#374151; font-weight:600; }
+.rm-finput { width:100%; margin-top:4px; padding:8px; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box; font-weight:400; }
+</style>
+
+<script src="/js/lib-kst.js?v=1"></script>
+<script src="/js/auth.js?v=16"></script>
+<script src="/js/common.js?v=20260603brand"></script>
+<script src="/js/workspace-sync-channel.js?v=2" defer></script>
+<script src="/js/workspace-roadmap.js?v=20260702-r1" defer></script>
+<script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
+<script src="/js/ws-sidebar-role.js?v=1" defer></script>
+<script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
+<script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
+
+</body>
+</html>
