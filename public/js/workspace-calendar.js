@@ -34,7 +34,7 @@
     showEvents: true,
     showMemos: true,
     showRoadmap: true, // 로드맵 단계 오버레이
-    scope: 'mine',     // mine | all
+    scope: 'all',      // mine | all — 기본 '전체'(공유 캘린더: 모든 운영자 일정 표시)
     rangeStart: null,
     rangeEnd: null,
     // 빈 셀 클릭 팝업 DOM
