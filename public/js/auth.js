@@ -138,7 +138,9 @@
   function startChatAlarmPolling() {
     stopChatAlarmPolling();
     checkChatUnread();
-    _chatAlarmTimer = setInterval(checkChatUnread, 30000);
+    /* 백그라운드 탭이면 폴링 스킵 — 열어둔 탭이 DB를 30초마다 깨워 autosuspend를 막는 걸 방지(비용절감).
+       복귀 시 다음 틱(≤30초)에 자동 갱신되므로 배지 지연 무해. (shell nav-badge·notifications 와 동일 패턴) */
+    _chatAlarmTimer = setInterval(function () { if (!document.hidden) checkChatUnread(); }, 30000);
   }
 
   function stopChatAlarmPolling() {
