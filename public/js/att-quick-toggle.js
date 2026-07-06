@@ -42,9 +42,49 @@
   btn.innerHTML =
     '<span id="attQuickIcon">⏳</span><span id="attQuickLabel">확인 중...</span>';
   wrap.appendChild(btn);
+
+  /* 문 열기 버튼 — 근무 중일 때만 노출(잠깐 나갔다 올 때) */
+  var doorBtn = document.createElement('button');
+  doorBtn.type = 'button';
+  doorBtn.id = 'attQuickDoorBtn';
+  doorBtn.style.cssText =
+    'display:none;align-items:center;gap:6px;width:100%;justify-content:center;margin-top:6px;' +
+    'padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;' +
+    'background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;transition:all .15s';
+  doorBtn.innerHTML = '<span>🚪</span><span>문 열기</span>';
+  wrap.appendChild(doorBtn);
+
   container.insertAdjacentElement('afterend', wrap);
 
   function $(id) { return document.getElementById(id); }
+
+  /* 출퇴근/문열기 응답의 door 결과 → 안내 문구 */
+  function doorMsg(door) {
+    if (!door) return '';
+    if (door.ok && door.sim) return ' · 🚪 문 열림(시뮬레이션)';
+    if (door.ok) return ' · 🚪 문이 열렸습니다';
+    return ' · ⚠️ 문 열림 실패';
+  }
+
+  /* 수동 문 열기 */
+  async function doDoorOpen() {
+    if (state.busy) return;
+    doorBtn.disabled = true;
+    try {
+      var res = await fetch('/api/att-door-open', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      });
+      var data = null; try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
+      var d = (data && data.data) || {};
+      if (d.ok && d.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)');
+      else if (d.ok) toast('🚪 문이 열렸습니다');
+      else toast('⚠️ 문 열림 실패 — 관리자에게 문의하세요', 5000);
+    } catch (e) {
+      toast('문 열기 실패: ' + e.message, 5000);
+    } finally { doorBtn.disabled = false; }
+  }
+  doorBtn.addEventListener('click', doDoorOpen);
 
   function setBtn(stateName, opts) {
     opts = opts || {};
@@ -129,6 +169,8 @@
     if (rec === undefined) return;   /* 비운영자 — 위젯 이미 제거됨 */
     state.today = rec;
     wrap.style.display = '';
+    /* 문 열기 버튼: 근무 중(출근 O·퇴근 X)일 때만 노출 */
+    if (doorBtn) doorBtn.style.display = (rec && rec.checkinAt && !rec.checkoutAt) ? 'inline-flex' : 'none';
     if (!rec || !rec.checkinAt) {
       setBtn('checkin-ready', { icon: '🟢', label: '출근', title: '출근하기' });
       return;
@@ -161,7 +203,8 @@
         }
         throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       }
-      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }));
+      var cin = (data && data.data) || {};
+      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cin.door));
       applyTodayState(await fetchToday());
     } catch (e) {
       toast('출근 실패: ' + e.message, 6000);
@@ -184,7 +227,8 @@
       var data = null;
       try { data = await res.json(); } catch (_) {}
       if (!res.ok) throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
-      toast('🔴 퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }));
+      var cout = (data && data.data) || {};
+      toast('🔴 퇴근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg(cout.door));
       applyTodayState(await fetchToday());
     } catch (e) {
       toast('퇴근 실패: ' + e.message, 6000);

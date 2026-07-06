@@ -86,7 +86,7 @@
     if (nodes.length && !document.getElementById('attQuickToggleScript')) {
       var s = document.createElement('script');
       s.id = 'attQuickToggleScript';
-      s.src = '/js/att-quick-toggle.js?v=1';
+      s.src = '/js/att-quick-toggle.js?v=2-door';
       s.defer = true;
       document.head.appendChild(s);
     }
