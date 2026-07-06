@@ -5,6 +5,7 @@ import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { getDefaultPolicy, determineStatus, todayKST, hhmmKST, haversineDistance, isWithinRadius, getFlexRangeMins } from "../../lib/att-utils";
 import { normalizeSessions, isWorking, recomputeSummary, type AttSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { openDoor } from "../../lib/adapters/door";
 
 export const config = { path: "/api/att-checkout" };
 
@@ -161,10 +162,19 @@ export default async function handler(req: Request) {
       actionUrl: "/workspace-attendance.html", category: "system",
     }).catch(e => console.warn("[att-checkout] 알림 실패:", e));
 
+    // 퇴근 시 출입문 개방 — 사무실(OFFICE)만(재택·외근은 사무실 문과 무관). 퇴장 시 문 열어 나갈 수 있게.
+    let door: { ok: boolean; adapter: string; sim: boolean } | null = null;
+    if (existing.workMode === "OFFICE") {
+      try {
+        const r = await openDoor({ triggerType: "checkout", triggerId: record?.id ?? null, memberUid });
+        door = { ok: r.ok, adapter: r.adapter, sim: r.adapter === "sim" };
+      } catch (e) { console.warn("[att-checkout] 문 개방 호출 실패(비차단):", String((e as any)?.message || e).slice(0, 200)); }
+    }
+
     const requiredMins = Math.round(Number(policy.dailyHours) * 60);
     const underHours = (summary.workingMins ?? 0) < requiredMins;
     return jsonOk({
-      ...record, reportSubmitted,
+      ...record, reportSubmitted, door,
       underHours, requiredMins, shortfallMins: underHours ? requiredMins - (summary.workingMins ?? 0) : 0,
     });
   } catch (err) { return jsonError("update_record", err); }

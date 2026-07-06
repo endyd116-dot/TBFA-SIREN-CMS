@@ -112,6 +112,12 @@
         <span id="wsAttBtnIcon">⏳</span>
         <span class="ws-btn-label" id="wsAttBtnLabel">확인 중...</span>
       </button>
+      <!-- 문 열기 (근무 중일 때만·잠깐 나갔다 올 때) -->
+      <button class="ws-btn-quick" id="wsDoorBtn"
+              style="display:none;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe"
+              title="문 열기 (잠깐 나갔다 올 때)">
+        <span>🚪</span> <span class="ws-btn-label">문 열기</span>
+      </button>
       <button class="ws-btn-quick ws-btn-task" data-ws-action="new-task">
         <span>📋</span> <span class="ws-btn-label">새 작업</span>
       </button>
@@ -629,7 +635,7 @@
 <script src="/js/workspace-memo-modal.js?v=1" defer></script>
 <script src="/js/workspace-activity-render.js?v=1" defer></script>
 <script src="/js/workspace.js?v=11" defer></script>
-<script src="/js/workspace-topbar-attendance.js?v=2-door" defer></script>
+<script src="/js/workspace-topbar-attendance.js?v=3-door" defer></script>
 <script src="/js/quick-jump.js?v=2026-05-10-q3"></script>
 <script src="/js/sidebar-group.js?v=2026-05-10-q3"></script>
 <script src="/js/ai-agent-widget.js?v=2026-05-13-nostream"></script>
