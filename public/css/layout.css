@@ -301,8 +301,10 @@ section.block{padding:90px 0}
 @media (max-width:560px){
   .container{padding:0 20px}
   .top-right{gap:14px}
-  /* 관리자 모드 버튼은 모바일/앱에서도 항상 노출 (d-none 해제 시 표시 유지) */
-  .top-right > a:not(#topbarAdminMode){display:none}
+  /* 관리자 모드 버튼(#topbarAdminMode)·로그인/회원가입(.topbar-auth)은 모바일/앱에서도 노출.
+     (2026-07-06: 아이폰 PWA에서 로그인 진입점이 사라져 로그인 불가하던 문제 fix.
+      로그인/회원가입은 auth.js syncHeader가 로그인 상태에 따라 다시 숨김 처리) */
+  .top-right > a:not(#topbarAdminMode):not(.topbar-auth){display:none}
   .topbar .related-select{display:none}
   .lang-toggle{display:none}
   .cta{padding:9px 14px;font-size:12px}
