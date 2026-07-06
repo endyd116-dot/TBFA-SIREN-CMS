@@ -20,7 +20,7 @@ if (window.self !== window.top) {
 <meta name="description" content="교사유가족협의회 통합 회원 관리 시스템">
 
 <link rel="stylesheet" href="/css/base.css">
-<link rel="stylesheet" href="/css/cms-common.css?v=20260517sidebar">
+<link rel="stylesheet" href="/css/cms-common.css?v=20260706-mobile">
 <link rel="stylesheet" href="/css/cms-tbfa.css?v=2026-05-10-d2">
 <link rel="stylesheet" href="/css/quick-jump.css?v=2026-05-10-q3">
 <!-- Phase 22-B-R1: 재정 섹션 스타일 (admin.html 이전 — panel/kpi-grid/tbl 클래스 호환) -->
@@ -591,11 +591,17 @@ if (window.self !== window.top) {
     </nav>
   </aside>
 
+  <!-- 모바일 드로어 배경 오버레이 -->
+  <div class="cms-drawer-overlay" id="cmsDrawerOverlay"></div>
+
   <!-- ============ 메인 ============ -->
   <main class="cms-main">
     <!-- 상단 바 -->
     <header class="cms-top">
-      <div class="cms-top-title" id="cmsPageTitle">대시보드</div>
+      <div class="cms-top-left">
+        <button type="button" class="cms-hamburger" id="cmsHamburger" aria-label="메뉴 열기">☰</button>
+        <div class="cms-top-title" id="cmsPageTitle">대시보드</div>
+      </div>
       <div class="cms-top-user">
         <button type="button" id="sessionTimer" onclick="extendAdminSession()" title="클릭하면 세션이 연장됩니다"
           style="display:none;align-items:center;gap:6px;padding:6px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
@@ -2601,5 +2607,29 @@ if (window.self !== window.top) {
       </div>
     </div>
   </div>
+
+  <!-- 모바일 사이드바 드로어 토글 (2026-07-06: 모바일 UI 깨짐 fix) -->
+  <script>
+  (function () {
+    function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+    ready(function () {
+      var ham = document.getElementById('cmsHamburger');
+      var overlay = document.getElementById('cmsDrawerOverlay');
+      var side = document.querySelector('.cms-side');
+      if (!ham || !side) return;
+      function close(){ document.body.classList.remove('cms-drawer-open'); }
+      ham.addEventListener('click', function (e) { e.stopPropagation(); document.body.classList.toggle('cms-drawer-open'); });
+      if (overlay) overlay.addEventListener('click', close);
+      // 사이드바에서 이동/탭 링크를 누르면 드로어 닫기 (단, 서브메뉴 펼침 토글은 유지)
+      side.addEventListener('click', function (e) {
+        var a = e.target.closest('a[href], a[data-tab]');
+        if (!a || a.hasAttribute('data-sidebar-group')) return;
+        close();
+      });
+      // ESC로 닫기
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    });
+  })();
+  </script>
 </body>
 </html>

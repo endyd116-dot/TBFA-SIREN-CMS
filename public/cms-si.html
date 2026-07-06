@@ -8,7 +8,7 @@
 <meta name="description" content="SI 사업 프로젝트 관리 시스템">
 
 <link rel="stylesheet" href="/css/base.css">
-<link rel="stylesheet" href="/css/cms-common.css">
+<link rel="stylesheet" href="/css/cms-common.css?v=20260706-mobile">
 <link rel="stylesheet" href="/css/cms-si.css">
 </head>
 <body data-page="cms-si">
@@ -48,10 +48,16 @@
     </nav>
   </aside>
 
+  <!-- 모바일 드로어 배경 오버레이 -->
+  <div class="cms-drawer-overlay" id="cmsSiDrawerOverlay"></div>
+
   <!-- 메인 -->
   <main class="cms-main">
     <header class="cms-top">
-      <div class="cms-top-title" id="cmsSiPageTitle">대시보드</div>
+      <div class="cms-top-left">
+        <button type="button" class="cms-hamburger" id="cmsSiHamburger" aria-label="메뉴 열기">☰</button>
+        <div class="cms-top-title" id="cmsSiPageTitle">대시보드</div>
+      </div>
       <div class="cms-top-user">
         <span class="cms-user-name" id="cmsSiUserName">관리자</span>
         <div class="cms-avatar" id="cmsSiAvatar">A</div>
@@ -365,5 +371,27 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/js/cms-si.js"></script>
+
+  <!-- 모바일 사이드바 드로어 토글 (2026-07-06: 모바일 UI 깨짐 fix) -->
+  <script>
+  (function () {
+    function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+    ready(function () {
+      var ham = document.getElementById('cmsSiHamburger');
+      var overlay = document.getElementById('cmsSiDrawerOverlay');
+      var side = document.querySelector('.cms-side');
+      if (!ham || !side) return;
+      function close(){ document.body.classList.remove('cms-drawer-open'); }
+      ham.addEventListener('click', function (e) { e.stopPropagation(); document.body.classList.toggle('cms-drawer-open'); });
+      if (overlay) overlay.addEventListener('click', close);
+      side.addEventListener('click', function (e) {
+        var a = e.target.closest('a[href], a[data-tab]');
+        if (!a || a.hasAttribute('data-sidebar-group')) return;
+        close();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    });
+  })();
+  </script>
 </body>
 </html>
