@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>출입문 제어</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f8fafc; color: #1f2937; padding: 20px; }
+    h2 { margin: 0 0 4px; font-size: 20px; }
+    .sub { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.live { background: #dcfce7; color: #15803d; }
+    .badge.sim { background: #fef3c7; color: #b45309; }
+    .kv { font-size: 13px; color: #374151; }
+    .kv b { color: #111827; }
+    .btn { padding: 12px 22px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-open { background: #4338ca; color: #fff; }
+    .btn-open:hover { background: #3730a3; }
+    .btn-open:disabled { background: #c7d2fe; cursor: default; }
+    .btn-ghost { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #f1f5f9; }
+    th { color: #6b7280; font-weight: 600; background: #fafafa; }
+    .ok-y { color: #15803d; font-weight: 600; }
+    .ok-n { color: #dc2626; font-weight: 600; }
+    .muted { color: #9ca3af; }
+    .note { font-size: 12.5px; color: #6b7280; line-height: 1.6; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; }
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 9999; }
+  </style>
+</head>
+<body>
+  <h2>🚪 출입문 제어</h2>
+  <div class="sub">근태 출근·복귀 시 자동 개방 / 직원 수동 열기 / 관리자 원격 개방. 실제 개폐 이력을 함께 확인합니다.</div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <span class="kv"><b>연결 상태</b></span>
+        <span id="modeBadge" class="badge sim">확인 중…</span>
+        <span id="adapterInfo" class="kv muted"></span>
+      </div>
+      <div class="row">
+        <button class="btn btn-ghost" id="btnRefresh">↻ 새로고침</button>
+        <button class="btn btn-open" id="btnOpen" disabled>🚪 원격으로 문 열기</button>
+      </div>
+    </div>
+    <div id="simNote" class="note" style="margin-top:14px;display:none">
+      ⚠️ <b>시뮬레이션 모드</b> — 출입장치 접속 정보가 아직 입력되지 않았습니다. 지금은 문이 실제로 열리지 않고 기록만 남습니다.
+      Netlify 환경변수(<code>DOOR_ADAPTER_KIND</code>·<code>DOOR_ADAPTER_URL</code>·<code>DOOR_ADAPTER_TOKEN</code>·<code>DOOR_DEVICE_ID</code>)에
+      함께워크 ON과 동일한 장치 값을 입력하면 즉시 실제 개방으로 전환됩니다.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <b style="font-size:15px">최근 개방 이력 (50건)</b>
+      <span class="kv muted" id="histCount"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>시각</th><th>유형</th><th>대상</th><th>방식</th><th>결과</th></tr>
+        </thead>
+        <tbody id="histBody">
+          <tr><td colspan="5" class="muted">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+  (function () {
+    'use strict';
+    var TRIGGER_LABEL = { checkin: '🟢 출근', reentry: '🔄 복귀', mobilekey: '📱 수동열기', admin: '🖥️ 관리자' };
+
+    function $(id) { return document.getElementById(id); }
+    function toast(msg, ms) {
+      var el = $('toast'); el.textContent = msg; el.style.opacity = '1';
+      clearTimeout(window._t); window._t = setTimeout(function () { el.style.opacity = '0'; }, ms || 3000);
+    }
+    function fmt(at) {
+      if (!at) return '—';
+      try { return new Date(at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+      catch (_) { return String(at); }
+    }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }); }
+
+    async function api(path, opts) {
+      opts = opts || {};
+      var res = await fetch(path, {
+        method: opts.method || 'GET', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      var data = null; try { data = await res.json(); } catch (_) {}
+      return { status: res.status, ok: res.ok && (!data || data.ok !== false), data: data };
+    }
+
+    function renderStatus(d) {
+      var sim = !!d.sim;
+      var badge = $('modeBadge');
+      badge.className = 'badge ' + (sim ? 'sim' : 'live');
+      badge.textContent = sim ? '시뮬레이션 (장치 미연결)' : '실연결 (' + esc(d.adapter) + ')';
+      var info = [];
+      info.push('게이트: ' + esc(d.gateId || 'main'));
+      info.push('어댑터: ' + esc(d.adapter));
+      if (d.status && d.status.open != null) info.push('현재: ' + (d.status.open ? '열림' : '닫힘'));
+      $('adapterInfo').textContent = info.join(' · ');
+      $('simNote').style.display = sim ? 'block' : 'none';
+      $('btnOpen').disabled = false;
+    }
+
+    function renderHistory(rows) {
+      var tb = $('histBody');
+      if (!rows || !rows.length) { tb.innerHTML = '<tr><td colspan="5" class="muted">개방 이력이 없습니다.</td></tr>'; return; }
+      tb.innerHTML = rows.map(function (h) {
+        return '<tr>' +
+          '<td>' + fmt(h.at) + '</td>' +
+          '<td>' + (TRIGGER_LABEL[h.triggerType] || esc(h.triggerType)) + '</td>' +
+          '<td>' + (h.memberName ? esc(h.memberName) : '<span class="muted">—</span>') + '</td>' +
+          '<td>' + esc(h.adapter) + '</td>' +
+          '<td>' + (h.ok ? '<span class="ok-y">성공</span>' : '<span class="ok-n">실패</span>') + '</td>' +
+        '</tr>';
+      }).join('');
+      $('histCount').textContent = rows.length + '건';
+    }
+
+    async function load() {
+      var res = await api('/api/admin-door');
+      if (res.status === 401 || res.status === 403) { toast('관리자 인증이 필요합니다', 4000); return; }
+      if (!res.ok) { toast('불러오기 실패: ' + ((res.data && res.data.error) || res.status), 4000); return; }
+      var d = res.data.data || {};
+      renderStatus(d);
+      renderHistory(d.history || []);
+    }
+
+    async function doOpen() {
+      var btn = $('btnOpen');
+      if (!confirm('지금 원격으로 문을 여시겠습니까?')) return;
+      btn.disabled = true;
+      try {
+        var res = await api('/api/admin-door', { method: 'POST', body: { action: 'open' } });
+        if (!res.ok) throw new Error((res.data && (res.data.error || res.data.detail)) || 'HTTP ' + res.status);
+        var d = res.data.data || {};
+        if (d.ok && d.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)', 4000);
+        else if (d.ok) toast('🚪 문이 열렸습니다', 3000);
+        else toast('⚠️ 문 열림 실패: ' + (d.detail || '알 수 없음'), 5000);
+        await load();
+      } catch (e) {
+        toast('문 열기 실패: ' + e.message, 5000);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    $('btnRefresh').addEventListener('click', load);
+    $('btnOpen').addEventListener('click', doOpen);
+    load();
+  })();
+  </script>
+</body>
+</html>

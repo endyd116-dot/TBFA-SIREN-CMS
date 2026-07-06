@@ -171,7 +171,14 @@
         }
         throw new Error((data && (data.error || data.detail)) || 'HTTP ' + res.status);
       }
-      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }));
+      var door = (data && data.data && data.data.door) || null;
+      var doorMsg = '';
+      if (door) {
+        if (door.ok && door.sim) doorMsg = ' · 🚪 문 열림(시뮬레이션)';
+        else if (door.ok) doorMsg = ' · 🚪 문이 열렸습니다';
+        else doorMsg = ' · ⚠️ 문 열림 실패';
+      }
+      toast('✅ 출근이 기록되었습니다 ' + (new Date()).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }) + doorMsg);
       var fresh = await fetchToday();
       applyTodayState(fresh);
     } catch (e) {

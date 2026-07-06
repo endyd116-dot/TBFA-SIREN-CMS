@@ -14,6 +14,25 @@ import {
 } from "../../lib/att-utils";
 import { normalizeSessions, isWorking, isWithinWorkHours, type AttSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
+import { openDoor } from "../../lib/adapters/door";
+
+/** 출입문 자동 개방 — 사무실(OFFICE) 현장 출근/복귀만. REMOTE(재택)·FIELD(외근)는 사무실 문과 무관.
+ *  openDoor는 설계상 throw하지 않음(내부 try/catch). 응답엔 간단 요약만 실어 프론트가 안내. */
+async function autoOpenDoor(
+  workMode: { mode: string },
+  triggerType: "checkin" | "reentry",
+  triggerId: number | null,
+  memberUid: string,
+): Promise<{ ok: boolean; adapter: string; sim: boolean } | null> {
+  if (workMode.mode !== "OFFICE") return null;
+  try {
+    const r = await openDoor({ triggerType, triggerId, memberUid });
+    return { ok: r.ok, adapter: r.adapter, sim: r.adapter === "sim" };
+  } catch (e) {
+    console.warn("[att-checkin] 문 개방 호출 실패(비차단):", String((e as any)?.message || e).slice(0, 200));
+    return { ok: false, adapter: "unknown", sim: false };
+  }
+}
 
 export const config = { path: "/api/att-checkin" };
 
@@ -186,7 +205,8 @@ export default async function handler(req: Request) {
         actionUrl: "/workspace-attendance.html", category: "system",
       }).catch(e => console.warn("[att-checkin] 재출근 알림 실패:", e));
 
-      return jsonOk({ ...rec, reentry: true, sessionCount: ns.length }, 201);
+      const door = await autoOpenDoor(workMode, "reentry", rec?.id ?? existing.id, memberUid);
+      return jsonOk({ ...rec, reentry: true, sessionCount: ns.length, door }, 201);
     } catch (err) { return jsonError("reentry", err); }
   }
 
@@ -294,7 +314,8 @@ export default async function handler(req: Request) {
       } catch (err) { console.warn("[att-checkin] WBS 자동 카드 생성 실패:", err); }
     }
 
-    return jsonOk({ ...record, remoteReportRequired: workMode.mode === "REMOTE", autoCardId }, 201);
+    const door = await autoOpenDoor(workMode, "checkin", record.id, memberUid);
+    return jsonOk({ ...record, remoteReportRequired: workMode.mode === "REMOTE", autoCardId, door }, 201);
   } catch (err) {
     if (String(err).includes("unique") || String(err).includes("att_records_member_date_uq")) {
       return new Response(JSON.stringify({ ok: false, error: "이미 출근 처리됨", step: "insert_conflict" }),

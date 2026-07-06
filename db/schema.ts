@@ -4763,3 +4763,27 @@ export const roadmapPhases = pgTable("roadmap_phases", {
 export type RoadmapPhase    = typeof roadmapPhases.$inferSelect;
 export type NewRoadmapPhase = typeof roadmapPhases.$inferInsert;
 /* === 사업 로드맵 끝 === */
+
+/* =========================================================
+   === 출입문 자동 개폐 (ON 이식 · 2026-07-06) ===
+   근태 출근/복귀·수동버튼·관리자 원격 개방 시 도어 어댑터 호출 감사.
+   물리 개방은 lib/adapters/door(sim|relay|shelly_cloud|kocom485). SIREN·ON 동일 물리 문.
+   ========================================================= */
+export const doorCommand = pgTable("door_command", {
+  id:          serial("id").primaryKey(),
+  triggerType: varchar("trigger_type", { length: 20 }).notNull(), // checkin | reentry | mobilekey | admin
+  triggerId:   integer("trigger_id"),                             // 관련 근태기록 id 등(nullable)
+  memberUid:   varchar("member_uid", { length: 64 }),             // 개방 유발 회원 uid(감사, nullable)
+  adapter:     varchar("adapter", { length: 20 }).notNull(),      // sim | relay | shelly_cloud | kocom485
+  gateId:      varchar("gate_id", { length: 40 }).notNull().default("main"),
+  request:     jsonb("request"),
+  response:    jsonb("response"),
+  ok:          boolean("ok").notNull().default(false),
+  at:          timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({
+  atIdx:       index("door_command_at_idx").on(t.at),
+  triggerIdx:  index("door_command_trigger_idx").on(t.triggerType),
+}));
+export type DoorCommand    = typeof doorCommand.$inferSelect;
+export type NewDoorCommand = typeof doorCommand.$inferInsert;
+/* === 출입문 자동 개폐 끝 === */

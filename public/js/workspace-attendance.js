@@ -166,9 +166,17 @@
     const statusEl = document.getElementById('attCurrentStatus');
     const btnIn = document.getElementById('attBtnCheckin');
     const btnOut = document.getElementById('attBtnCheckout');
+    const btnDoor = document.getElementById('attBtnDoor');
     const gpsNote = document.getElementById('attGpsNote');
 
     if (!btnIn || !btnOut) return;
+
+    // 문 열기 버튼: OFFICE 근무 중일 때만 노출(사무실 문). onclick 재설정으로 리스너 중복 방지.
+    const showDoor = (mode === 'OFFICE') && rec.checkinAt && !rec.checkoutAt;
+    if (btnDoor) {
+      btnDoor.style.display = showDoor ? 'flex' : 'none';
+      btnDoor.onclick = showDoor ? doDoorOpen : null;
+    }
 
     const noGps = (mode === 'REMOTE' || mode === 'BUSINESS_TRIP');
     if (gpsNote) gpsNote.textContent = noGps ? '📡 GPS 위치 확인 없이 기록됩니다' : '📍 GPS 위치 정보가 함께 기록됩니다';
@@ -195,6 +203,31 @@
       btnOut.style.display = 'none';
       if (statusEl) statusEl.textContent = '아직 출근 기록이 없습니다.';
       btnIn.addEventListener('click', () => doCheckin(mode));
+    }
+  }
+
+  /* ─── 수동 문 열기(모바일 키) ─── */
+  function describeDoor(door) {
+    if (!door) return '';
+    if (door.ok && door.sim) return ' 🚪 문 열림(시뮬레이션 — 장치 연결 전)';
+    if (door.ok) return ' 🚪 문이 열렸습니다';
+    return ' ⚠️ 문 열림 실패 — 관리자에게 문의하세요';
+  }
+
+  async function doDoorOpen() {
+    const btn = document.getElementById('attBtnDoor');
+    if (btn) { btn.disabled = true; }
+    try {
+      const res = await api('/api/att-door-open', { method: 'POST' });
+      if (!res.ok) throw new Error(res.data?.error || res.data?.detail || 'HTTP ' + res.status);
+      const door = res.data?.data || {};
+      if (door.ok && door.sim) toast('🚪 문 열림(시뮬레이션 — 장치 연결 전)');
+      else if (door.ok) toast('🚪 문이 열렸습니다');
+      else toast('⚠️ 문 열림 실패 — 관리자에게 문의하세요', 5000);
+    } catch (e) {
+      toast('문 열기 실패: ' + e.message, 5000);
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -290,9 +323,11 @@
       return;
     }
     const d = res.data?.data || res.data || {};
-    toast(d.reopened ? '퇴근이 취소되어 다시 근무 중입니다 🟢'
-      : (d.reentry ? '재출근이 기록되었습니다 🟢' : '출근이 기록되었습니다 🟢'));
-    setTimeout(() => location.reload(), 800);
+    const doorMsg = describeDoor(d.door);
+    toast((d.reopened ? '퇴근이 취소되어 다시 근무 중입니다 🟢'
+      : (d.reentry ? '재출근이 기록되었습니다 🟢' : '출근이 기록되었습니다 🟢')) + doorMsg,
+      doorMsg ? 4200 : 2600);
+    setTimeout(() => location.reload(), doorMsg ? 1400 : 800);
   }
 
   /* 재출근/퇴근취소/시각수정 선택 모달 (동적 생성) */

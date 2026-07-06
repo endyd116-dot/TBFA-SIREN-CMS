@@ -566,6 +566,7 @@ if (window.self !== window.top) {
           <li><a href="#milestone-review" data-tab="milestone-review"><i>🏆</i><span>성과관리 설정</span></a></li>
           <li><a href="#att-ops" data-tab="att-ops"><i>🟢</i><span>근태 현황</span></a></li>
           <li><a href="#att-config" data-tab="att-config"><i>⚙️</i><span>근태 설정</span></a></li>
+          <li><a href="#att-door" data-tab="att-door"><i>🚪</i><span>출입문 제어</span></a></li>
         </ul>
       </li>
 
@@ -2297,6 +2298,10 @@ if (window.self !== window.top) {
       <section class="cms-page nf-iframe-page" id="page-att-config">
         <iframe class="nf-iframe" data-nf-src="/admin-workspace-management.html?group=config" title="근태 설정"></iframe>
       </section>
+      <!-- 2026-07-06 출입문 자동 개폐 제어(ON 이식) -->
+      <section class="cms-page nf-iframe-page" id="page-att-door">
+        <iframe class="nf-iframe" data-nf-src="/admin-door.html" title="출입문 제어"></iframe>
+      </section>
 
       <!-- 2026-05-24 여론·뉴스 분석 -->
       <section class="cms-page nf-iframe-page" id="page-org-news">
@@ -2545,7 +2550,7 @@ if (window.self !== window.top) {
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Our code -->
   <script src="/js/lib-kst.js?v=1" defer></script>
-  <script src="/js/cms-tbfa.js?v=20260701-approval2"></script>
+  <script src="/js/cms-tbfa.js?v=20260706-door"></script>
   <script src="/js/admin-session-timer.js?v=20260527-2"></script>
   <script src="/js/admin-notif-bell.js?v=20260603-dropdown"></script>
   <script src="/js/ai-assistant-proactive.js?v=20260701" defer></script>
