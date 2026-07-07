@@ -533,11 +533,45 @@
     } catch (_) { /* 무시 — 정적 기본값 유지 */ }
   }
 
+  /* ★ 2026-07-07 푸터를 DB 설정값(site_settings scope=footer)으로 렌더.
+     preview=1이면 임시발행(draft) 우선 → 편집기 저장·발행이 실제 푸터에 반영.
+     값이 없으면 정적 기본값 유지(폴백 안전·비차단). */
+  async function renderFooter() {
+    var footer = document.querySelector('footer');
+    if (!footer) return;
+    try {
+      var params = new URLSearchParams(location.search);
+      var previewParam = params.get('preview') === '1' ? '?preview=1' : '';
+      var res = await fetch('/api/public/footer-content' + previewParam, {
+        credentials: 'include', cache: previewParam ? 'no-store' : 'no-cache',
+      });
+      if (!res.ok) return;
+      var json = await res.json();
+      var f = (json && json.data && json.data.footer) || (json && json.footer) || {};
+
+      /* 회사정보 텍스트 — 값이 있을 때만 덮어씀 */
+      footer.querySelectorAll('[data-footer]').forEach(function (el) {
+        var v = f[el.getAttribute('data-footer')];
+        if (v != null && String(v).trim() !== '') el.textContent = String(v);
+      });
+      /* SNS 링크 — 실제 URL이 설정된 경우만 링크 연결(미설정 '#'는 정적 유지) */
+      footer.querySelectorAll('[data-footer-sns]').forEach(function (a) {
+        var v = f['sns.' + a.getAttribute('data-footer-sns')];
+        if (v && String(v).trim() !== '' && String(v) !== '#') {
+          a.href = String(v); a.target = '_blank'; a.rel = 'noopener noreferrer';
+        }
+      });
+    } catch (e) {
+      console.warn('[Footer] 렌더 실패(정적 폴백):', e);
+    }
+  }
+
   /* ------------ 14. 초기화 ------------ */
   async function init() {
     await loadAllPartials();
     /* ★ Phase B Step 5-A — partials 로드 직후 헤더를 DB 데이터로 다시 그림 */
     await renderHeaderMenu();
+    renderFooter();   /* ★ 2026-07-07 푸터 DB 설정 렌더(비차단) */
     activateGNB();
     setupLangToggle();
     setupSearch();
@@ -563,6 +597,7 @@
     isPartialsLoaded: () => partialsLoaded,
     /* ★ 외부에서 헤더 강제 새로고침 가능 (어드민 미리보기에서 활용) */
     reloadHeader: renderHeaderMenu,
+    reloadFooter: renderFooter,
   };
 
 })();
