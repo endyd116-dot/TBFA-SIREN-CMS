@@ -18,10 +18,16 @@
   var lastActivity = Date.now();
   var lastJwtRefresh = 0;
   var tick = null, warnOpen = false, authed = false;
+  /* ★ 로그인 유지(remember) 모드: 무활동 자동 로그아웃 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운 */
+  var rememberMode = false;
+  var absoluteExpiryMs = 0;   // remember 모드에서 실제 만료 시각(ms)
 
   function $(id) { return document.getElementById(id); }
   function fmt(s) { s = Math.max(0, s | 0); var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; var mm = (h && m < 10 ? '0' : '') + m; return (h ? h + ':' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss; }
-  function remainSec() { return Math.round((IDLE_MS - (Date.now() - lastActivity)) / 1000); }
+  function remainSec() {
+    if (rememberMode) return Math.round((absoluteExpiryMs - Date.now()) / 1000);  // 실제 만료까지
+    return Math.round((IDLE_MS - (Date.now() - lastActivity)) / 1000);            // 무활동 남은 시간
+  }
 
   function ensureUI() {
     var b = $('sessionTimer');
@@ -66,7 +72,9 @@
     try {
       var res = await fetch('/api/admin/session', { method: extend ? 'POST' : 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
       if (res.status === 401) return { ok: false, expired: true };
-      return { ok: res.ok };
+      var data = null; try { data = await res.json(); } catch (_) {}
+      var d = (data && data.data) || data || {};
+      return { ok: res.ok, remember: d.remember === true, expiresInSec: Number(d.expiresInSec) || 0 };
     } catch (e) { return { ok: false, netErr: true }; }
   }
 
@@ -99,6 +107,7 @@
   function resetIdle() { lastActivity = Date.now(); if (warnOpen) closeWarn(); render(); }
 
   function onActivity() {
+    if (rememberMode) return;    // 로그인 유지 모드: 무활동 리셋·주기 재발급 안 함(로그인 후 24시간 고정)
     if (warnOpen) return;        // 경고 중엔 활동으로 리셋 안 함 — 명시적 [세션 연장] 필요
     resetIdle();
     if (Date.now() - lastJwtRefresh > JWT_REFRESH_MS) {  // 활동 중 JWT 주기 갱신
@@ -114,6 +123,8 @@
       var sec = remainSec();
       render();
       if (sec <= 0) { doLogout(true); return; }
+      /* 로그인 유지 모드에선 무활동 경고 없이 실제 만료(24시간)까지 표시만 */
+      if (rememberMode) return;
       if (sec <= WARN_SEC && !warnOpen) openWarn();
       if (warnOpen) { var c = $('sessionWarnCountdown'); if (c) c.textContent = fmt(Math.max(0, sec)); }
     }, 1000);
@@ -132,6 +143,11 @@
     var r = await ping(false);             // 인증 확인(미인증=로그인 화면이면 조용히 숨김)
     if (!r.ok) { authed = false; render(); return; }
     authed = true; lastActivity = Date.now(); lastJwtRefresh = Date.now();
+    /* 로그인 유지 세션이면: 무활동 해제 + 실제 만료(로그인 후 24시간)까지 카운트다운 */
+    if (r.remember && r.expiresInSec > 0) {
+      rememberMode = true;
+      absoluteExpiryMs = Date.now() + r.expiresInSec * 1000;
+    }
     ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(function (e) {
       window.addEventListener(e, onActivity, { passive: true });
     });

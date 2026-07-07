@@ -45,14 +45,22 @@ export default async (req: Request) => {
       return forbidden("관리자 권한이 없습니다");
     }
 
+    /* ★ 로그인 유지(remember) 선택 시 관리자 세션 1일(KST 기준 로그인 후 24시간).
+       미선택 시 기존대로 2시간 JWT + 세션 쿠키(브라우저 종료 시 삭제). */
+    const wantRemember = (auth as any).remember === true;
+    const ADMIN_DAY_SEC = 60 * 60 * 24; // 24시간
+
     const adminToken = signAdminToken({
       uid:   user.id,
       email: user.email,
       role:  (user.role ?? "operator"),
       name:  user.name,
-    });
+      remember: wantRemember,
+    }, wantRemember ? "1d" : undefined);
     const cookie = buildCookie("siren_admin_token", adminToken, {
-      maxAge: null, /* 세션 쿠키 — 브라우저 종료 시 삭제 */
+      /* 유지 선택: 24시간 영속 쿠키(PWA·브라우저 종료 후 재실행에도 유지)
+         미선택: null → 세션 쿠키(브라우저 종료 시 삭제) */
+      maxAge: wantRemember ? ADMIN_DAY_SEC : null,
     });
 
     const res = ok({

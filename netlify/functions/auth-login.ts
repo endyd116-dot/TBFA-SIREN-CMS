@@ -182,6 +182,7 @@ export default async (req: Request) => {
         email: user.email,
         type: user.type,
         name: user.name,
+        remember: wantRemember,   // ★ 관리자 모드 진입(admin-elevate) 시 세션 1일 여부 판단용
       },
       wantRemember ? REMEMBER_JWT_EXPIRES : SHORT_JWT_EXPIRES
     );

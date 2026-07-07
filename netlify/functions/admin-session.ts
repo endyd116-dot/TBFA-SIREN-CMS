@@ -29,23 +29,36 @@ export default async (req: Request) => {
   const { admin, member } = auth.ctx;
 
   try {
-    /* GET — 현재 만료시각만 반환(연장 안 함) */
+    const remember = (admin as any)?.remember === true;
+
+    /* GET — 현재 만료시각만 반환(연장 안 함). remember 여부도 전달(클라 타이머가 무활동 해제 판단) */
     if (req.method === "GET") {
       const expSec = Number((admin as any)?.exp) || 0;
       const expiresAt = expSec ? new Date(expSec * 1000).toISOString() : null;
       const expiresInSec = expSec ? Math.max(0, expSec - Math.floor(Date.now() / 1000)) : 0;
-      return ok({ expiresAt, expiresInSec });
+      return ok({ expiresAt, expiresInSec, remember });
     }
 
-    /* POST — 세션 연장(동일 사용자로 새 토큰 재발급) */
+    /* POST — 세션 연장(동일 사용자로 새 토큰 재발급)
+       · remember: 로그인 후 24시간 '상한'을 유지 → 남은 시간만큼만 재발급(무한 슬라이딩 방지) + 영속 쿠키
+       · 미remember: 기존대로 2시간 재발급 + 세션 쿠키 */
+    let expiresIn: string | undefined = undefined;
+    let cookieMaxAge: number | null = null;
+    if (remember) {
+      const expSec = Number((admin as any)?.exp) || 0;
+      const remainSec = Math.max(60, expSec - Math.floor(Date.now() / 1000)); // 최소 60초
+      expiresIn = `${remainSec}s`;
+      cookieMaxAge = remainSec;
+    }
     const token = signAdminToken({
       uid: (admin as any).uid ?? member.id,
       email: member.email,
       role: member.role ?? (admin as any).role ?? "operator",
       name: member.name,
-    });
-    const cookie = buildCookie("siren_admin_token", token, { maxAge: null }); // 로그인과 동일(세션 쿠키)
-    const res = ok({ ...expFields(token), extended: true }, "세션이 연장되었습니다.");
+      remember,
+    }, expiresIn);
+    const cookie = buildCookie("siren_admin_token", token, { maxAge: cookieMaxAge });
+    const res = ok({ ...expFields(token), extended: true, remember }, "세션이 연장되었습니다.");
     res.headers.set("Set-Cookie", cookie);
     return res;
   } catch (err) {

@@ -33,6 +33,7 @@ export interface UserPayload {
   email: string;
   type: "regular" | "family" | "volunteer" | "admin";
   name: string;
+  remember?: boolean;   // 로그인 유지 선택 여부 (관리자 세션 1일 연동)
 }
 
 export interface AdminPayload {
@@ -40,6 +41,7 @@ export interface AdminPayload {
   email: string;
   role: string;
   name: string;
+  remember?: boolean;   // 로그인 유지 → 관리자 세션 1일 + 무활동 타이머 해제
 }
 
 /* JWT 발급/검증 — expiresIn을 매 호출마다 다르게 줄 수 있도록 인자 추가 */
