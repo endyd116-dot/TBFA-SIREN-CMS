@@ -876,8 +876,8 @@
       body: {
         targetDate: date,
         correctionType: CORRECTION_TYPE[type] || type,
-        requestedCheckIn:  ci ? `${date}T${ci}:00` : null,
-        requestedCheckOut: co ? `${date}T${co}:00` : null,
+        requestedCheckIn:  ci ? `${date}T${ci}:00+09:00` : null,   // ★ KST 오프셋 명시(서버 UTC 오해석 방지)
+        requestedCheckOut: co ? `${date}T${co}:00+09:00` : null,
         reason,
       },
     });

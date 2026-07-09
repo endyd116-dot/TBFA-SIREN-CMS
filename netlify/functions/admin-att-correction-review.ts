@@ -3,8 +3,8 @@ import { attCorrections, attRecords, members } from "../../db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
 import { canAccess } from "../../lib/role-permission-check";
-import { determineStatus, getDefaultPolicy } from "../../lib/att-utils";
-import { rebuildSingleSession } from "../../lib/att-session";
+import { determineStatus, getDefaultPolicy, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
+import { rebuildSingleSession, recomputeSummary } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { path: "/api/admin-att-correction-review" };
@@ -109,26 +109,13 @@ export default async function handler(req: Request) {
       return jsonError("already_reviewed", new Error("이미 처리된 요청"), 409);
     }
 
-    // 결재 상태 업데이트
-    const [updated] = await db
-      .update(attCorrections)
-      .set({
-        status: action,
-        reviewedBy: String(auth.ctx.member.id),
-        reviewNote: note ?? null,
-        updatedAt: new Date(),
-      } as any)
-      .where(eq(attCorrections.id, requestId))
-      .returning();
-
-    // APPROVED: att_records 해당 날짜 기록 UPSERT (없으면 INSERT, 있으면 UPDATE)
-    //           + 변경된 출퇴근으로 status 재산정
+    // ── APPROVED: 먼저 att_records에 반영(근무·야근 재계산 포함). 실패 시 결재 중단(조용한 실패 방지) ──
     if (action === "APPROVED") {
       try {
         const wantCI = correction.correctionType === "CHECK_IN"  || correction.correctionType === "BOTH";
         const wantCO = correction.correctionType === "CHECK_OUT" || correction.correctionType === "BOTH";
 
-        // 기존 row 조회 (status 재산정 시 기존 lat/lng 유지)
+        // 기존 row 조회 (기존 lat/lng·근무형태 유지)
         const [existing] = await db
           .select()
           .from(attRecords)
@@ -140,12 +127,15 @@ export default async function handler(req: Request) {
 
         const newCheckIn  = wantCI ? correction.requestedCheckIn  : (existing?.checkInTime ?? null);
         const newCheckOut = wantCO ? correction.requestedCheckOut : (existing?.checkOutTime ?? null);
+        const ciISO = newCheckIn  ? new Date(newCheckIn  as any).toISOString() : null;
+        const coISO = newCheckOut ? new Date(newCheckOut as any).toISOString() : null;
 
-        // status 재산정
+        const policy = await getDefaultPolicy();
+
+        // status 재산정 (유연근무 반영)
         let newStatus = existing?.status ?? "NORMAL";
-        try {
-          const policy = await getDefaultPolicy();
-          if (policy) {
+        if (policy) {
+          try {
             newStatus = determineStatus(
               newCheckIn ? new Date(newCheckIn as any) : null,
               newCheckOut ? new Date(newCheckOut as any) : null,
@@ -156,20 +146,17 @@ export default async function handler(req: Request) {
                 earlyLeaveGraceMins: policy.earlyLeaveGraceMins,
                 coreStartTime:       policy.coreStartTime ? String(policy.coreStartTime) : null,
                 coreEndTime:         policy.coreEndTime   ? String(policy.coreEndTime)   : null,
+                flexEnabled:         policy.flexEnabled,
+                flexRangeMins:       policy.flexEnabled ? await getFlexRangeMins() : undefined,
               },
-              false,
-              false,
-              existing?.workMode,
+              false, false, existing?.workMode,
             );
+          } catch (innerErr) {
+            console.warn("[admin-att-correction-review] status 재산정 실패:", innerErr);
           }
-        } catch (innerErr) {
-          console.warn("[admin-att-correction-review] status 재산정 실패:", innerErr);
         }
 
-        /* sessions 동기화 — 요약 시각과 정합화(안 하면 같은 날 직원 재출근·퇴근 시 stale 재계산으로 정정이 되돌아감).
-           기존 위치·거점 정보는 보존. */
-        const ciISO = newCheckIn  ? new Date(newCheckIn  as any).toISOString() : null;
-        const coISO = newCheckOut ? new Date(newCheckOut as any).toISOString() : null;
+        /* sessions 재구성 — 요약 시각과 정합화(위치·거점 보존) */
         const ns = rebuildSingleSession(ciISO, coISO, {
           inLat: existing?.checkInLat, inLng: existing?.checkInLng,
           outLat: existing?.checkOutLat, outLng: existing?.checkOutLng,
@@ -177,13 +164,29 @@ export default async function handler(req: Request) {
         });
         const nsJson = JSON.stringify(ns);
 
-        // UPSERT
+        // ★ 근무시간·야근시간 재계산 (유연 출근 하한 반영) — 승인이 집계에 반영되도록 (기존 누락 버그 fix)
+        let workingMins: number | null = null;
+        let overtimeMins = 0;
+        if (policy && ciISO && coISO) {
+          let minStart: Date | null = null;
+          if (policy.flexEnabled && existing?.workMode === "OFFICE") {
+            try { minStart = flexStartFloor(new Date(ciISO), String(policy.checkInTime), await getFlexRangeMins()); } catch {}
+          }
+          const summary = recomputeSummary(ns, {
+            dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
+          }, minStart);
+          workingMins = summary.workingMins;
+          overtimeMins = summary.overtimeMins;
+        }
+
+        // UPSERT (working_mins·overtime_mins 포함)
         await db.execute(sql`
           INSERT INTO att_records
-            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted, sessions)
+            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted, sessions, working_mins, overtime_mins)
           VALUES
             (${correction.memberUid}, ${String(correction.targetDate)}::date,
-             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true, ${nsJson}::jsonb)
+             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true, ${nsJson}::jsonb,
+             ${workingMins as any}, ${overtimeMins})
           ON CONFLICT (member_uid, date)
           DO UPDATE SET
             check_in_time  = ${newCheckIn as any},
@@ -191,12 +194,27 @@ export default async function handler(req: Request) {
             status         = ${newStatus},
             is_manually_adjusted = true,
             sessions       = ${nsJson}::jsonb,
+            working_mins   = ${workingMins as any},
+            overtime_mins  = ${overtimeMins},
             updated_at     = NOW()
         `);
       } catch (err) {
-        console.warn("[admin-att-correction-review] 출퇴근 기록 반영 실패:", err);
+        // 조용한 실패 방지 — 반영 실패 시 결재 중단(결재 상태도 안 바꿈)
+        return jsonError("apply_att_record", err);
       }
     }
+
+    // 결재 상태 업데이트 (att_records 반영 성공 후)
+    const [updated] = await db
+      .update(attCorrections)
+      .set({
+        status: action,
+        reviewedBy: String(auth.ctx.member.id),
+        reviewNote: note ?? null,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(attCorrections.id, requestId))
+      .returning();
 
     // 결과 알림 → 신청자
     try {
