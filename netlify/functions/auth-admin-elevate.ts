@@ -50,13 +50,14 @@ export default async (req: Request) => {
     const wantRemember = (auth as any).remember === true;
     const ADMIN_DAY_SEC = 60 * 60 * 24; // 24시간
 
+    /* 유지 선택: 1일 / 미선택: 6시간(2026-07-09 Swain — 무활동 세션 2h→6h) */
     const adminToken = signAdminToken({
       uid:   user.id,
       email: user.email,
       role:  (user.role ?? "operator"),
       name:  user.name,
       remember: wantRemember,
-    }, wantRemember ? "1d" : undefined);
+    }, wantRemember ? "1d" : "6h");
     const cookie = buildCookie("siren_admin_token", adminToken, {
       /* 유지 선택: 24시간 영속 쿠키(PWA·브라우저 종료 후 재실행에도 유지)
          미선택: null → 세션 쿠키(브라우저 종료 시 삭제) */

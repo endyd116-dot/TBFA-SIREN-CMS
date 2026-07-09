@@ -52,12 +52,13 @@ export interface PolicyLike {
  */
 export function recomputeSummary(
   sessions: AttSession[],
-  policy: PolicyLike
+  policy: PolicyLike,
+  minStart?: Date | null   // 유연근무 출근 하한(예 08:00). 이보다 이른 출근은 근무분 미산입(표시용 출근시각은 유지)
 ): { checkInTime: Date | null; checkOutTime: Date | null; workingMins: number | null; overtimeMins: number } {
   const valid = sessions.filter(s => s.in);
   if (valid.length === 0) return { checkInTime: null, checkOutTime: null, workingMins: null, overtimeMins: 0 };
 
-  const firstIn = new Date(valid[0].in);
+  const firstIn = new Date(valid[0].in);   // ★ 표시용 실제 출근시각 — 클램프 안 함
   const completed = valid.filter(s => s.out);
   const working = !valid[valid.length - 1].out;
 
@@ -68,18 +69,25 @@ export function recomputeSummary(
 
   const lastOut = new Date(completed[completed.length - 1].out as string);
 
-  if (completed.length === 1) {
+  // ★ 근무분 계산용 세션 — 유연 하한(minStart)보다 이른 첫 출근을 하한으로 당김(이른 출근 미산입)
+  let calc = completed;
+  if (minStart && completed.length && new Date(completed[0].in).getTime() < minStart.getTime()) {
+    calc = completed.slice();
+    calc[0] = { ...completed[0], in: minStart.toISOString() };
+  }
+
+  if (calc.length === 1) {
     const { workingMins, overtimeMins } = calcWorkingMins(
-      new Date(completed[0].in),
-      new Date(completed[0].out as string),
+      new Date(calc[0].in),
+      new Date(calc[0].out as string),
       { dailyHours: Number(policy.dailyHours), breakMins: policy.breakMins, breakThresholdHours: Number(policy.breakThresholdHours) }
     );
     return { checkInTime: firstIn, checkOutTime: lastOut, workingMins, overtimeMins };
   }
 
-  // 다중 세션: 각 세션 실근무분 합산
+  // 다중 세션: 각 세션 실근무분 합산 (첫 세션은 하한 클램프 반영)
   let total = 0;
-  for (const s of completed) {
+  for (const s of calc) {
     total += Math.max(0, (new Date(s.out as string).getTime() - new Date(s.in).getTime()) / 60000);
   }
   total = Math.round(total);

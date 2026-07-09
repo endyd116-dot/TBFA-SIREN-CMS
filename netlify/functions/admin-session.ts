@@ -42,7 +42,7 @@ export default async (req: Request) => {
     /* POST — 세션 연장(동일 사용자로 새 토큰 재발급)
        · remember: 로그인 후 24시간 '상한'을 유지 → 남은 시간만큼만 재발급(무한 슬라이딩 방지) + 영속 쿠키
        · 미remember: 기존대로 2시간 재발급 + 세션 쿠키 */
-    let expiresIn: string | undefined = undefined;
+    let expiresIn: string | undefined = "6h"; // 미remember 기본 6시간(2026-07-09 Swain — 2h→6h)
     let cookieMaxAge: number | null = null;
     if (remember) {
       const expSec = Number((admin as any)?.exp) || 0;

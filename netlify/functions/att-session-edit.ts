@@ -10,7 +10,7 @@ import { db } from "../../db/index";
 import { attRecords } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { getDefaultPolicy, determineStatus, todayKST } from "../../lib/att-utils";
+import { getDefaultPolicy, determineStatus, todayKST, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
 import { normalizeSessions, recomputeSummary, isWithinWorkHours, type AttSession } from "../../lib/att-session";
 
 export const config = { path: "/api/att-session-edit" };
@@ -79,9 +79,18 @@ export default async function handler(req: Request) {
     }
   }
 
+  /* ★ 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무만. 하한 이전 출근은 근무·야근 미산입. */
+  let minStart: Date | null = null;
+  if (policy.flexEnabled && existing.workMode === "OFFICE" && ns.length && ns[0].in) {
+    try {
+      const flexRange = await getFlexRangeMins();
+      minStart = flexStartFloor(new Date(ns[0].in), String(policy.checkInTime), flexRange);
+    } catch (e) { console.warn("[att-session-edit] 유연 하한 계산 실패:", e); }
+  }
+
   const summary = recomputeSummary(ns, {
     dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
-  });
+  }, minStart);
   const checkInForStatus = summary.checkInTime ?? new Date(existing.checkInTime ?? Date.now());
   const status = determineStatus(checkInForStatus, summary.checkOutTime, {
     checkInTime: String(policy.checkInTime), checkOutTime: String(policy.checkOutTime),

@@ -2,7 +2,7 @@ import { db } from "../../db/index";
 import { attRecords, attRemoteWorkReports, attWorkplaces } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
-import { getDefaultPolicy, determineStatus, todayKST, hhmmKST, haversineDistance, isWithinRadius, getFlexRangeMins } from "../../lib/att-utils";
+import { getDefaultPolicy, determineStatus, todayKST, hhmmKST, haversineDistance, isWithinRadius, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
 import { normalizeSessions, isWorking, recomputeSummary, type AttSession } from "../../lib/att-session";
 import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 import { openDoor } from "../../lib/adapters/door";
@@ -61,6 +61,17 @@ export default async function handler(req: Request) {
   const policy = await getDefaultPolicy();
   if (!policy) return jsonError("no_policy", new Error("근무 정책 없음"), 500);
 
+  /* ★ 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무에서만.
+     표준출근(예 09:00) − 유연범위(예 60분) = 08:00 이전 출근은 근무·야근 계산에 미산입.
+     (표시용 출근시각은 실제 도착 그대로 유지) */
+  let minStart: Date | null = null;
+  if (policy.flexEnabled && existing.workMode === "OFFICE" && sessions.length && sessions[0].in) {
+    try {
+      const flexRange = await getFlexRangeMins();
+      minStart = flexStartFloor(new Date(sessions[0].in), String(policy.checkInTime), flexRange);
+    } catch (e) { console.warn("[att-checkout] 유연 하한 계산 실패:", e); }
+  }
+
   // ① 근무시간 미달 경고용 미리보기 (DB 미반영·위치검증 전) — Swain 2026-05-26
   //   프론트가 퇴근 확정 전 호출 → 표준 근무시간 미달이면 확인창 표시(막지 않음)
   if (body.preview === true) {
@@ -68,7 +79,7 @@ export default async function handler(req: Request) {
     pv[pv.length - 1] = { ...pv[pv.length - 1], out: now.toISOString() };
     const ps = recomputeSummary(pv, {
       dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
-    });
+    }, minStart);
     const requiredMins = Math.round(Number(policy.dailyHours) * 60);
     const underHours = ps.workingMins < requiredMins;
     return jsonOk({
@@ -116,10 +127,10 @@ export default async function handler(req: Request) {
   const ns: AttSession[] = sessions.slice();
   ns[ns.length - 1] = { ...ns[ns.length - 1], out: now.toISOString(), outLat: outLatStr, outLng: outLngStr };
 
-  // 요약 재계산 (단일=휴게차감 / 다중=세션합산)
+  // 요약 재계산 (단일=휴게차감 / 다중=세션합산) — 유연 출근 하한 반영
   const summary = recomputeSummary(ns, {
     dailyHours: policy.dailyHours, breakMins: policy.breakMins, breakThresholdHours: policy.breakThresholdHours,
-  });
+  }, minStart);
 
   // 조퇴 판정 — 첫 출근 ~ 현재 기준 (유연근무 시 ±X 범위·조퇴 미판정)
   const flexRangeMins = policy.flexEnabled ? await getFlexRangeMins() : undefined;

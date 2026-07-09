@@ -19,7 +19,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
-import { getDefaultPolicy, calcWorkingMins } from "../../lib/att-utils";
+import { getDefaultPolicy, calcWorkingMins, getFlexRangeMins, flexStartFloor } from "../../lib/att-utils";
 import { rebuildSingleSession } from "../../lib/att-session";
 import { logAdminAction } from "../../lib/audit";
 
@@ -127,7 +127,14 @@ export default async function handler(req: Request, _ctx: Context) {
       try {
         const policy = await getDefaultPolicy();
         if (policy) {
-          const r = calcWorkingMins(new Date(effIn), new Date(effOut), {
+          /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+          let calcIn = new Date(effIn);
+          const wm = newWorkMode !== undefined ? newWorkMode : old.work_mode;
+          if (policy.flexEnabled && wm === "OFFICE") {
+            const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
+            if (calcIn.getTime() < floor.getTime()) calcIn = floor;
+          }
+          const r = calcWorkingMins(calcIn, new Date(effOut), {
             dailyHours: Number(policy.dailyHours),
             breakMins: policy.breakMins,
             breakThresholdHours: Number(policy.breakThresholdHours),
@@ -254,7 +261,13 @@ async function createRecord(req: Request, auth: any, body: any) {
     try {
       const policy = await getDefaultPolicy();
       if (policy) {
-        const r = calcWorkingMins(new Date(effIn), new Date(effOut), {
+        /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
+        let calcIn = new Date(effIn);
+        if (policy.flexEnabled && workMode === "OFFICE") {
+          const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
+          if (calcIn.getTime() < floor.getTime()) calcIn = floor;
+        }
+        const r = calcWorkingMins(calcIn, new Date(effOut), {
           dailyHours: Number(policy.dailyHours),
           breakMins: policy.breakMins,
           breakThresholdHours: Number(policy.breakThresholdHours),

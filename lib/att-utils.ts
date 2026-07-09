@@ -153,6 +153,23 @@ export interface WorkTimeResult {
   breakDeducted: boolean;
 }
 
+/**
+ * 유연근무 출근 하한(floor) UTC Date 계산.
+ *   floor = 표준출근(checkInTime HH:MM, KST) − flexRangeMins
+ *   예) 09:00 − 60분 = 08:00. 이 시각보다 이른 출근은 근무시간에 산입하지 않음(근무·야근 계산용).
+ *   ★ 표시용 출근시각(실제 도착)은 그대로 두고, 근무분 계산에만 사용.
+ *   firstIn(출근 UTC)의 KST 날짜에 floor 시각을 세팅해 UTC Date로 반환.
+ */
+export function flexStartFloor(firstIn: Date, checkInTimeHHMM: string, flexRangeMins: number): Date {
+  const kst = toKST(firstIn);
+  const parts = String(checkInTimeHHMM).split(":");
+  const ciH = Number(parts[0]) || 0;
+  const ciM = Number(parts[1]) || 0;
+  const floorMin = ciH * 60 + ciM - (Number(flexRangeMins) || 0);
+  const floorShiftedMs = Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate(), 0, 0, 0) + floorMin * 60_000;
+  return new Date(floorShiftedMs - 9 * 3_600_000);
+}
+
 export function calcWorkingMins(
   checkIn: Date,
   checkOut: Date,
