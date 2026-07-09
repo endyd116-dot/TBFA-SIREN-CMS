@@ -840,6 +840,14 @@
     window.addEventListener('wmm:saved', () => {
       try { STATE.calendar?.refetchEvents(); } catch (_) {}
     });
+
+    // 워크툴 '새 일정'에서 넘어온 경우(?new=event) 자동으로 새 일정 모달 열기
+    try {
+      if (/[?&]new=event/.test(location.search)) {
+        const today = new Date().toISOString().slice(0, 10);
+        openEventModal({ startDate: today });
+      }
+    } catch (_) {}
   }
 
   if (document.readyState === 'loading') {

@@ -638,6 +638,13 @@
       }
     });
 
+    // "새 일정" 버튼 → 캘린더 페이지에서 새 일정 작성(워크툴엔 일정 모달 미탑재) · fix: 무반응 해결
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ws-action="new-event"]');
+      if (!btn) return;
+      location.href = '/workspace-calendar.html?new=event';
+    });
+
     // 메모 모달 저장 → 목록 갱신
     window.addEventListener('wmm:saved', () => { loadMemos().catch(() => {}); });
 
