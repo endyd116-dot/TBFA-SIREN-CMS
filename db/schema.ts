@@ -1597,7 +1597,7 @@ export const workspaceTasks = pgTable("workspace_tasks", {
   description: text("description"),
   status: varchar("status", { length: 20 }).default("todo").notNull(),       // todo | doing(=in_progress) | blocked(=on_hold) | done | archived
   priority: varchar("priority", { length: 20 }).default("normal").notNull(), // low | normal | high | urgent
-  dueDate: timestamp("due_date").notNull(),                                  // ★ 필수
+  dueDate: timestamp("due_date"),                                            // 선택(개인 기록·보관용 카드는 마감일 없이 가능·2026-07-09)
   assignedBy: integer("assigned_by").references(() => members.id, { onDelete: "set null" }),
   assignedTo: integer("assigned_to").references(() => members.id, { onDelete: "set null" }), // ⭐ 지시 대상
   assignedAt: timestamp("assigned_at"),

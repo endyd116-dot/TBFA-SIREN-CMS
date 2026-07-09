@@ -461,6 +461,16 @@
       </div>
       <div style="font-size:12px;color:#9ca3af;margin-top:6px">임시저장 후 검토하고 최종 제출하세요. 제출 후에도 '수정'으로 다시 편집·재제출할 수 있습니다.</div>
 
+      <!-- 지난 보고서 히스토리 -->
+      <div class="att-section-header" style="margin-top:26px">
+        <span class="att-section-title">📋 지난 보고서</span>
+        <button type="button" id="attBtnTodayReport"
+          style="background:#f1f5f9;color:#374151;border:none;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:500;cursor:pointer">＋ 오늘 보고서</button>
+      </div>
+      <div id="attReportHistory" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <span style="font-size:13px;color:#9ca3af">불러오는 중...</span>
+      </div>
+
     </div><!-- /attPanelReport -->
 
     <!-- ══════════ 탭 7: 본인 급여명세서 (R37) ══════════ -->
@@ -496,7 +506,7 @@
 <!-- 워크스페이스 공통 JS -->
 <script src="/js/workspace-common.js?v=20260707-footer"></script>
 <!-- 근태관리 JS -->
-<script src="/js/workspace-attendance.js?v=21-report"></script>
+<script src="/js/workspace-attendance.js?v=22-history"></script>
 <!-- R37: 본인 급여명세서 탭 (지연 초기화) -->
 <script src="/js/workspace-payroll.js?v=20260520stage3"></script>
 <script src="/js/ws-sidebar-role.js?v=2" defer></script>

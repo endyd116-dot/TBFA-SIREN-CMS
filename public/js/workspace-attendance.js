@@ -920,8 +920,13 @@
   /* ═══════════════════════════════════
      탭 6: 재택보고서
   ═══════════════════════════════════ */
-  async function loadReport() {
-    const dateStr = toDateStr();
+  let currentReportDate = null;   // 편집 중인 보고서 날짜(히스토리 선택 지원)
+  function getReportDate() { return currentReportDate || toDateStr(); }
+
+  async function loadReport(pickDate) {
+    if (pickDate) currentReportDate = pickDate;
+    if (!currentReportDate) currentReportDate = toDateStr();
+    const dateStr = currentReportDate;
     const statusBar = document.getElementById('attReportStatusBar');
     const statusText = document.getElementById('attReportStatusText');
     const metaEl = document.getElementById('attReportMeta');
@@ -968,11 +973,54 @@
       btnEdit._bound = true;
       btnEdit.addEventListener('click', enableReportEdit);
     }
+    const btnToday = document.getElementById('attBtnTodayReport');
+    if (btnToday && !btnToday._bound) {
+      btnToday._bound = true;
+      btnToday.addEventListener('click', () => loadReport(toDateStr()));
+    }
+
+    // 지난 보고서 히스토리도 갱신
+    loadReportHistory();
+  }
+
+  /* ─── 지난 보고서 히스토리 ─── */
+  async function loadReportHistory() {
+    const box = document.getElementById('attReportHistory');
+    if (!box) return;
+    const res = await api('/api/att/remote-report?list=1');
+    const list = (res.data?.data?.list || res.data?.list || []);
+    if (!Array.isArray(list) || list.length === 0) {
+      box.innerHTML = '<span style="font-size:13px;color:#9ca3af">저장된 보고서가 없습니다.</span>';
+      return;
+    }
+    const today = toDateStr();
+    box.innerHTML = list.map(r => {
+      const isSel = r.date === currentReportDate;
+      const submitted = r.status === 'SUBMITTED';
+      const badge = submitted
+        ? '<span style="background:#dcfce7;color:#15803d;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600">제출</span>'
+        : '<span style="background:#fef9c3;color:#854d0e;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600">임시</span>';
+      const preview = escHtml(String(r.content || r.aiDraft || '').replace(/\s+/g, ' ').slice(0, 40));
+      return `
+      <button type="button" data-report-date="${r.date}"
+        style="display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:9px 12px;border:1px solid ${isSel ? '#7c3aed' : '#e5e7eb'};background:${isSel ? '#f5f3ff' : '#fff'};border-radius:9px;cursor:pointer;font-family:inherit">
+        <span style="font-weight:600;font-size:13px;color:#374151;min-width:88px">${r.date}${r.date === today ? ' (오늘)' : ''}</span>
+        ${badge}
+        <span style="flex:1;font-size:12.5px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${preview || '내용 없음'}</span>
+      </button>`;
+    }).join('');
+    box.querySelectorAll('[data-report-date]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        loadReport(btn.dataset.reportDate);
+        const panel = document.getElementById('attPanelReport');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
   }
 
   async function deleteReport() {
     if (!confirm('작성 중인 재택보고서를 삭제하시겠습니까?')) return;
-    const res = await api('/api/att/remote-report?date=' + toDateStr(), { method: 'DELETE' });
+    const res = await api('/api/att/remote-report?date=' + getReportDate(), { method: 'DELETE' });
     if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || 'HTTP ' + res.status)); return; }
     toast('보고서가 삭제되었습니다 🗑');
     await loadReport();
@@ -1042,7 +1090,7 @@
     const contentEl = document.getElementById('attReportContent');
     if (btn) { btn.disabled = true; btn.textContent = '✨ 생성 중...'; }
 
-    const res = await api('/api/att/ai-draft', { method: 'POST', body: { date: toDateStr() } });
+    const res = await api('/api/att/ai-draft', { method: 'POST', body: { date: getReportDate() } });
 
     if (btn) { btn.disabled = false; btn.textContent = '✨ AI 초안 생성'; }
 
@@ -1067,7 +1115,7 @@
 
     const res = await api('/api/att/remote-report', {
       method: 'POST',
-      body: { date: toDateStr(), content },
+      body: { date: getReportDate(), content },
     });
 
     if (!res.ok) {
@@ -1091,7 +1139,7 @@
 
     const res = await api('/api/att/remote-report', {
       method: 'PUT',
-      body: { date: toDateStr(), content },
+      body: { date: getReportDate(), content },
     });
 
     if (!res.ok) {

@@ -975,9 +975,10 @@
     const dueDate = $('#wkNewDueDate').value;
 
     if (!title) { toast('제목 필수', 'error'); return; }
-    if (!dueDate) { toast('마감일 필수', 'error'); return; }
 
-    const body = { title, description, priority, dueDate: new Date(dueDate).toISOString() };
+    // 마감일은 선택 — 없으면 개인 기록·보관용 카드로 생성
+    const body = { title, description, priority };
+    if (dueDate) body.dueDate = new Date(dueDate).toISOString();
     if (SELECTED_TEMPLATE_ID) body.templateId = SELECTED_TEMPLATE_ID;
 
     try {

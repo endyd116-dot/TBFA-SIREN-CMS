@@ -512,10 +512,13 @@ export default async (req: Request, _ctx: Context) => {
       }
 
       if (!body.title || typeof body.title !== "string") return badRequest("title 필수");
-      if (!body.dueDate) return badRequest("dueDate 필수");
 
-      const dueDateObj = new Date(body.dueDate);
-      if (isNaN(dueDateObj.getTime())) return badRequest("dueDate 형식 오류");
+      // 마감일 선택(개인 기록·보관용 카드는 마감일 없이 생성 가능·2026-07-09)
+      let dueDateObj: Date | null = null;
+      if (body.dueDate) {
+        dueDateObj = new Date(body.dueDate);
+        if (isNaN(dueDateObj.getTime())) return badRequest("dueDate 형식 오류");
+      }
 
       const assignedTo: number | null = body.assignedTo ? Number(body.assignedTo) : null;
       const ownerMemberId = assignedTo ?? meId;
@@ -540,7 +543,7 @@ export default async (req: Request, _ctx: Context) => {
           description: body.description || null,
           status: body.status || "todo",
           priority: body.priority || "normal",
-          dueDate: dueDateObj,
+          dueDate: dueDateObj,   // null 가능(마감일 선택)
           assignedBy: isAssignment ? meId : null,
           assignedTo: isAssignment ? assignedTo : null,
           assignedAt: isAssignment ? new Date() : null,
@@ -581,7 +584,7 @@ export default async (req: Request, _ctx: Context) => {
         notifyMemberIds: isAssignment ? [assignedTo!] : [],
         notifyType: "assigned",
         notifyTitle: `📋 새 작업이 지시되었습니다: ${newTask.title}`,
-        notifyBody: `마감: ${dueDateObj.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`,
+        notifyBody: dueDateObj ? `마감: ${dueDateObj.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}` : "마감일 없음",
         actionUrl: `/admin#task-${newTask.id}`,
       });
 

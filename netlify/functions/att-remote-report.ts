@@ -1,6 +1,6 @@
 import { db } from "../../db/index";
 import { attRemoteWorkReports, members } from "../../db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { todayKST } from "../../lib/att-utils";
 
@@ -27,9 +27,32 @@ export default async function handler(req: Request) {
   // att_remote_work_reports.member_uid 는 R29-ATT-GAP1 부터 varchar(36)
   const memberUidStr = String(memberId);
 
-  // GET: 오늘 또는 특정 날짜 보고서 조회
+  // GET: 오늘/특정 날짜 보고서 조회 (list=1이면 내 보고서 히스토리 목록)
   if (req.method === "GET") {
     const url = new URL(req.url);
+
+    // ── 히스토리 목록 ──
+    if (url.searchParams.get("list") === "1") {
+      try {
+        const rows = await db
+          .select({
+            date: attRemoteWorkReports.date,
+            status: attRemoteWorkReports.status,
+            content: attRemoteWorkReports.content,
+            aiDraft: attRemoteWorkReports.aiDraft,
+            submittedAt: attRemoteWorkReports.submittedAt,
+            updatedAt: attRemoteWorkReports.updatedAt,
+          })
+          .from(attRemoteWorkReports)
+          .where(eq(attRemoteWorkReports.memberUid, memberUidStr))
+          .orderBy(desc(attRemoteWorkReports.date))
+          .limit(60);
+        return jsonOk({ list: rows });
+      } catch (err) {
+        return jsonError("list_reports", err);
+      }
+    }
+
     const date = url.searchParams.get("date") ?? todayKST();
 
     try {
