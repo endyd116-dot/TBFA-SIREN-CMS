@@ -66,7 +66,8 @@ export default async function handler(req: Request) {
 
     const date: string = body.date ?? todayKST();
     const content: string | undefined = body.content;
-    const wbsCardIds: number[] = Array.isArray(body.wbsCardIds) ? body.wbsCardIds : [];
+    const hasWbs = Array.isArray(body.wbsCardIds);         // 미제공 시 기존 wbsCardIds 보존(AI 초안 유실 방지)
+    const wbsCardIds: number[] = hasWbs ? body.wbsCardIds : [];
 
     try {
       // upsert: ON CONFLICT DO UPDATE
@@ -83,7 +84,9 @@ export default async function handler(req: Request) {
           target: [attRemoteWorkReports.memberUid, attRemoteWorkReports.date],
           set: {
             content: content ?? null,
-            wbsCardIds,
+            status: "DRAFT",             // 임시저장은 항상 DRAFT (제출본 재편집 시 초안 복귀)
+            submittedAt: null,
+            ...(hasWbs ? { wbsCardIds } : {}),   // 미제공 시 기존 wbsCardIds 유지
             updatedAt: new Date(),
           } as any,
         })
@@ -108,20 +111,8 @@ export default async function handler(req: Request) {
     }
 
     try {
-      const existing = await db
-        .select({ id: attRemoteWorkReports.id, status: attRemoteWorkReports.status })
-        .from(attRemoteWorkReports)
-        .where(and(
-          eq(attRemoteWorkReports.memberUid, memberUidStr),
-          eq(attRemoteWorkReports.date, date),
-        ))
-        .limit(1);
-
-      if (existing.length > 0 && existing[0].status === "SUBMITTED") {
-        return new Response(JSON.stringify({ ok: false, error: "이미 제출된 보고서입니다", step: "already_submitted" }),
-          { status: 409, headers: { "Content-Type": "application/json" } });
-      }
-
+      /* 제출본 재제출(수정 후 다시 제출) 허용 — CRUD 정책(Swain 2026-07-09).
+         내용을 갱신하고 제출시각만 최신화. (이전엔 재제출 409 차단) */
       const now = new Date();
       await db
         .insert(attRemoteWorkReports)
@@ -145,6 +136,34 @@ export default async function handler(req: Request) {
       return jsonOk({ message: "제출 완료" });
     } catch (err) {
       return jsonError("submit_report", err);
+    }
+  }
+
+  // DELETE: 보고서 삭제 (임시저장/작성중만 — 제출본은 차단)
+  if (req.method === "DELETE") {
+    const url = new URL(req.url);
+    const date = url.searchParams.get("date") ?? todayKST();
+    try {
+      const rows = await db
+        .select({ id: attRemoteWorkReports.id, status: attRemoteWorkReports.status })
+        .from(attRemoteWorkReports)
+        .where(and(
+          eq(attRemoteWorkReports.memberUid, memberUidStr),
+          eq(attRemoteWorkReports.date, date),
+        ))
+        .limit(1);
+      if (!rows.length) return jsonOk({ deleted: false, message: "삭제할 보고서가 없습니다" });
+      if (rows[0].status === "SUBMITTED") {
+        return new Response(JSON.stringify({ ok: false, error: "제출된 보고서는 삭제할 수 없습니다. 먼저 '수정'으로 되돌린 뒤 삭제하세요.", step: "submitted_lock" }),
+          { status: 409, headers: { "Content-Type": "application/json" } });
+      }
+      await db.delete(attRemoteWorkReports).where(and(
+        eq(attRemoteWorkReports.memberUid, memberUidStr),
+        eq(attRemoteWorkReports.date, date),
+      ));
+      return jsonOk({ deleted: true });
+    } catch (err) {
+      return jsonError("delete_report", err);
     }
   }
 

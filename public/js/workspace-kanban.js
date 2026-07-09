@@ -1830,13 +1830,60 @@
     }
   }
 
+  /* 파일 선택 피커 — 폴더 탐색 + 현재 폴더 직접 업로드 지원 */
+  const PICKER = { folderId: 0, folders: [], path: [{ id: 0, name: '홈' }] };
+
   async function openFilePicker() {
-    const list = $('#wkFilePickerList');
     const search = $('#wkFilePickerSearch');
     search.value = '';
-    list.innerHTML = '<li class="wk-file-loading">불러오는 중...</li>';
+    PICKER.folderId = 0;
+    PICKER.path = [{ id: 0, name: '홈' }];
+    $('#wkFilePickerList').innerHTML = '<li class="wk-file-loading">불러오는 중...</li>';
     document.getElementById('wkFilePickerModal').classList.add('is-open');
     document.getElementById('wkFilePickerModal').setAttribute('aria-hidden', 'false');
+    // 폴더 트리 로드(1회)
+    try {
+      const fres = await api('/api/admin-workspace-folders?list=1');
+      PICKER.folders = fres.data?.items || fres.data?.data || (Array.isArray(fres.data) ? fres.data : []) || [];
+    } catch (_) { PICKER.folders = []; }
+    renderPickerCrumb();
+    await renderFilePickerList('');
+  }
+
+  function buildPickerPath(folderId) {
+    const path = [{ id: 0, name: '홈' }];
+    if (!folderId) return path;
+    const chain = [];
+    let cur = PICKER.folders.find(f => f.id === folderId);
+    while (cur) {
+      chain.unshift({ id: cur.id, name: cur.name });
+      if (!cur.parentId) break;
+      cur = PICKER.folders.find(f => f.id === cur.parentId);
+    }
+    return path.concat(chain);
+  }
+
+  function renderPickerCrumb() {
+    const bc = $('#wkPickerCrumb');
+    if (!bc) return;
+    bc.innerHTML = PICKER.path.map((p, i) => {
+      const last = i === PICKER.path.length - 1;
+      return `${i > 0 ? '<span style="color:#cbd5e1">›</span>' : ''}<span data-crumb="${p.id}" style="cursor:${last ? 'default' : 'pointer'};font-weight:${last ? '700' : '500'};color:${last ? '#1e293b' : '#2563eb'}">${i === 0 ? '🏠 ' : ''}${escapeHtml(p.name)}</span>`;
+    }).join('');
+    bc.querySelectorAll('[data-crumb]').forEach(el => {
+      el.addEventListener('click', () => {
+        const fid = Number(el.dataset.crumb);
+        if (fid === PICKER.folderId) return;
+        pickerNavigate(fid);
+      });
+    });
+  }
+
+  async function pickerNavigate(folderId) {
+    PICKER.folderId = folderId;
+    PICKER.path = buildPickerPath(folderId);
+    $('#wkFilePickerSearch').value = '';
+    renderPickerCrumb();
     await renderFilePickerList('');
   }
 
@@ -1844,22 +1891,34 @@
     const list = $('#wkFilePickerList');
     const taskId = TAB_STATE.currentTask?.id;
     if (!taskId) return;
+    list.innerHTML = '<li class="wk-file-loading">불러오는 중...</li>';
+    const crumb = $('#wkPickerCrumb');
+    if (crumb) crumb.style.display = searchQ ? 'none' : 'flex';
     try {
       // 현재 task의 첨부 ID 목록 (중복 비활성화용)
       const attachRes = await api(`/api/admin-workspace-task-attachments?taskId=${taskId}`);
       const attachedIds = new Set((attachRes.data?.items || []).map(it => it.fileId));
 
-      // 파일함 검색 또는 전체 (root)
+      // 검색이 아니면 현재 폴더의 하위 폴더를 먼저 표시(탐색용)
+      let foldersHtml = '';
+      if (!searchQ) {
+        const subs = PICKER.folders.filter(f => (f.parentId || 0) === PICKER.folderId);
+        foldersHtml = subs.map(f => `
+<li style="cursor:pointer">
+  <span class="wk-file-icon">📁</span>
+  <span class="wk-file-name">${escapeHtml(f.name)}${f.isShared ? ' 🔗' : ''}</span>
+  <span class="wk-file-size">폴더</span>
+  <button class="wk-file-pick-btn" data-open-folder="${f.id}" type="button">열기 ›</button>
+</li>`).join('');
+      }
+
+      // 검색: 전체 폴더에서 파일 검색 / 아니면 현재 폴더 파일
       const url = searchQ
         ? `/api/admin-workspace-files?search=${encodeURIComponent(searchQ)}&limit=50`
-        : `/api/admin-workspace-files?folderId=0&limit=50`;
+        : `/api/admin-workspace-files?folderId=${PICKER.folderId}&limit=50`;
       const res = await api(url);
       const items = res.data?.items || res.data || [];
-      if (!items.length) {
-        list.innerHTML = '<li class="wk-file-loading">파일이 없습니다.</li>';
-        return;
-      }
-      list.innerHTML = items.map(f => {
+      const filesHtml = items.map(f => {
         const isAttached = attachedIds.has(f.id);
         return `
 <li>
@@ -1871,19 +1930,24 @@
   </button>
 </li>`;
       }).join('');
-      $$('[data-pick-file]').forEach(btn => {
+
+      if (!foldersHtml && !filesHtml) {
+        list.innerHTML = '<li class="wk-file-loading">이 폴더에 파일이 없습니다. (아래 [이 폴더에 업로드]로 바로 올릴 수 있어요)</li>';
+        return;
+      }
+      list.innerHTML = foldersHtml + filesHtml;
+
+      list.querySelectorAll('[data-open-folder]').forEach(el => {
+        el.addEventListener('click', (e) => { e.stopPropagation(); pickerNavigate(Number(el.dataset.openFolder)); });
+      });
+      list.querySelectorAll('[data-pick-file]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (btn.classList.contains('is-attached')) return;
           const fileId = Number(btn.dataset.pickFile);
           try {
-            await api('/api/admin-workspace-task-attachments', {
-              method: 'POST',
-              body: { taskId, fileId }
-            });
+            await api('/api/admin-workspace-task-attachments', { method: 'POST', body: { taskId, fileId } });
             toast('파일 연결됨', 'success');
-            btn.textContent = '연결됨';
-            btn.classList.add('is-attached');
-            btn.disabled = true;
+            btn.textContent = '연결됨'; btn.classList.add('is-attached'); btn.disabled = true;
             loadFiles(taskId);
           } catch (err) {
             toast('연결 실패: ' + err.message, 'error');
@@ -1893,6 +1957,38 @@
     } catch (err) {
       list.innerHTML = `<li class="wk-file-loading">로드 실패: ${escapeHtml(err.message)}</li>`;
     }
+  }
+
+  // 현재 폴더에 새 파일 업로드 → 카드에 자동 연결
+  async function pickerUpload(files) {
+    const taskId = TAB_STATE.currentTask?.id;
+    if (!taskId || !files || !files.length) return;
+    for (const file of Array.from(files)) {
+      try {
+        toast(`업로드 중: ${file.name}`, 'info');
+        const presignRes = await api('/api/admin-workspace-file-presign', {
+          method: 'POST',
+          body: { name: file.name, sizeBytes: file.size, mimeType: file.type || 'application/octet-stream', folderId: PICKER.folderId || null },
+        });
+        const { uploadUrl, r2Key, fileId } = presignRes.data || presignRes || {};
+        if (!uploadUrl) throw new Error('업로드 URL 없음');
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error('업로드 HTTP ' + xhr.status));
+          xhr.onerror = () => reject(new Error('네트워크 오류'));
+          xhr.send(file);
+        });
+        await api('/api/admin-workspace-file-confirm', { method: 'POST', body: { fileId, r2Key } });
+        await api('/api/admin-workspace-task-attachments', { method: 'POST', body: { taskId, fileId } });
+        toast(`업로드·연결 완료: ${file.name}`, 'success');
+      } catch (err) {
+        toast(`업로드 실패(${file.name}): ${err.message}`, 'error');
+      }
+    }
+    await renderFilePickerList('');
+    loadFiles(taskId);
   }
 
   /* ═══════════════════ 보고 탭 ═══════════════════ */
@@ -2102,6 +2198,13 @@
     $('#wkFilePickerSearch')?.addEventListener('input', e => {
       clearTimeout(pickerTimer);
       pickerTimer = setTimeout(() => renderFilePickerList(e.target.value.trim()), 300);
+    });
+    // 현재 폴더에 직접 업로드 + 카드 연결
+    $('#wkPickerUploadBtn')?.addEventListener('click', () => $('#wkPickerUploadInput')?.click());
+    $('#wkPickerUploadInput')?.addEventListener('change', async e => {
+      const files = e.target.files;
+      e.target.value = '';
+      await pickerUpload(files);
     });
   }
 })();

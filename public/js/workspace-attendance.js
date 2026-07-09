@@ -41,7 +41,8 @@
     return new Date(d).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
   }
   function toDateStr(d) {
-    const dt = d ? new Date(d) : new Date();
+    // 인자 없으면 KST '오늘'(백엔드 todayKST와 일치 — UTC 00~09시 날짜 어긋남 방지)
+    const dt = d ? new Date(d) : new Date(Date.now() + 9 * 3600000);
     return dt.toISOString().slice(0, 10);
   }
 
@@ -932,7 +933,10 @@
     if (statusText) statusText.textContent = '보고서 상태를 불러오는 중...';
 
     const res = await api('/api/att/remote-report?date=' + dateStr);
-    const report = res.data?.data || res.data || null;
+    // ★ 빈 응답(envelope {ok:true,data:null})을 draft로 오인하지 않도록 정확히 추출
+    const report = (res.data && Object.prototype.hasOwnProperty.call(res.data, 'data'))
+      ? (res.data.data ?? null)
+      : (res.data ?? null);
 
     // WBS 카드 목록 (보고서 응답 내 포함 or 별도 조회)
     const wbsCards = (report && Array.isArray(report.wbsCards)) ? report.wbsCards : [];
@@ -954,6 +958,36 @@
       btnAi._bound = true;
       btnAi.addEventListener('click', generateAIDraft);
     }
+    const btnDelete = document.getElementById('attBtnDeleteReport');
+    if (btnDelete && !btnDelete._bound) {
+      btnDelete._bound = true;
+      btnDelete.addEventListener('click', deleteReport);
+    }
+    const btnEdit = document.getElementById('attBtnEditReport');
+    if (btnEdit && !btnEdit._bound) {
+      btnEdit._bound = true;
+      btnEdit.addEventListener('click', enableReportEdit);
+    }
+  }
+
+  async function deleteReport() {
+    if (!confirm('작성 중인 재택보고서를 삭제하시겠습니까?')) return;
+    const res = await api('/api/att/remote-report?date=' + toDateStr(), { method: 'DELETE' });
+    if (!res.ok) { toast('삭제 실패: ' + (res.data?.error || 'HTTP ' + res.status)); return; }
+    toast('보고서가 삭제되었습니다 🗑');
+    await loadReport();
+  }
+
+  // 제출 완료 보고서를 다시 편집 모드로 (재제출 가능)
+  function enableReportEdit() {
+    const contentEl = document.getElementById('attReportContent');
+    if (contentEl) { contentEl.disabled = false; contentEl.focus(); }
+    const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+    show('attBtnEditReport', false);
+    show('attBtnSaveDraft', true);
+    show('attBtnSubmitReport', true);
+    const sb = document.getElementById('attReportStatusText');
+    if (sb) sb.innerHTML = '✏️ <strong>수정 중</strong> — 임시저장하거나 다시 제출하세요.';
   }
 
   function renderReportWbsCards(container, cards) {
@@ -969,14 +1003,19 @@
   }
 
   function renderReport(report, { statusBar, statusText, metaEl, contentEl, btnDraft, btnSubmit, dateStr }) {
+    const btnDelete = document.getElementById('attBtnDeleteReport');
+    const btnEdit = document.getElementById('attBtnEditReport');
+    const show = (el, on) => { if (el) el.style.display = on ? '' : 'none'; };
+
     if (!report) {
       // 미작성
       if (statusBar) statusBar.style.background = '#f8fafc';
       if (statusText) statusText.innerHTML = '⬜ 오늘 재택보고서가 아직 작성되지 않았습니다.';
       if (metaEl) metaEl.textContent = dateStr;
       if (contentEl) { contentEl.value = ''; contentEl.disabled = false; }
-      if (btnDraft) { btnDraft.style.display = ''; btnDraft.disabled = false; }
-      if (btnSubmit) { btnSubmit.style.display = ''; btnSubmit.disabled = false; }
+      show(btnDraft, true); show(btnSubmit, true); show(btnDelete, false); show(btnEdit, false);
+      if (btnDraft) btnDraft.disabled = false;
+      if (btnSubmit) btnSubmit.disabled = false;
       return;
     }
     if (report.status === 'SUBMITTED') {
@@ -984,16 +1023,17 @@
       if (statusText) statusText.innerHTML = '✅ <strong>제출 완료</strong> — 보고서가 제출되었습니다.';
       if (metaEl) metaEl.textContent = '제출 시각: ' + fmtTime(report.submittedAt);
       if (contentEl) { contentEl.value = report.content || ''; contentEl.disabled = true; }
-      if (btnDraft) btnDraft.style.display = 'none';
-      if (btnSubmit) { btnSubmit.style.display = 'none'; }
+      // 제출 완료: '수정'으로 다시 편집·재제출 가능
+      show(btnDraft, false); show(btnSubmit, false); show(btnDelete, false); show(btnEdit, true);
     } else {
-      // DRAFT
+      // DRAFT (임시저장 / 작성 중)
       if (statusBar) statusBar.style.background = '#fefce8';
       if (statusText) statusText.innerHTML = '📝 <strong>임시저장</strong> — 작성 중인 보고서가 있습니다.';
-      if (metaEl) metaEl.textContent = '마지막 저장';
+      if (metaEl) metaEl.textContent = report.updatedAt ? ('마지막 저장: ' + fmtTime(report.updatedAt)) : '마지막 저장';
       if (contentEl) { contentEl.value = report.content || report.aiDraft || ''; contentEl.disabled = false; }
-      if (btnDraft) { btnDraft.style.display = ''; btnDraft.disabled = false; }
-      if (btnSubmit) { btnSubmit.style.display = ''; btnSubmit.disabled = false; }
+      show(btnDraft, true); show(btnSubmit, true); show(btnDelete, true); show(btnEdit, false);
+      if (btnDraft) btnDraft.disabled = false;
+      if (btnSubmit) btnSubmit.disabled = false;
     }
   }
 
@@ -1037,13 +1077,14 @@
     }
     toast('임시저장 완료 💾');
     if (btn) btn.disabled = false;
+    await loadReport();   // 상태·버튼(삭제 등) 갱신
   }
 
   async function submitReport() {
     const contentEl = document.getElementById('attReportContent');
     const content = contentEl?.value?.trim();
     if (!content) { toast('보고서 내용을 입력하세요'); return; }
-    if (!confirm('보고서를 최종 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
+    if (!confirm('보고서를 최종 제출하시겠습니까? (제출 후에도 필요하면 수정·재제출할 수 있습니다)')) return;
 
     const btn = document.getElementById('attBtnSubmitReport');
     if (btn) btn.disabled = true;
