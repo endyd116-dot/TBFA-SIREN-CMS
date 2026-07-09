@@ -25,10 +25,12 @@ import { logUserAction } from "../../lib/audit";
 const MAX_FAIL = Number(process.env.LOGIN_MAX_FAIL || 5);
 const LOCK_MIN = Number(process.env.LOGIN_LOCK_MINUTES || 30);
 
-/* ★ E: 쿠키 + JWT 만료 정책 */
-const REMEMBER_MAX_AGE = 60 * 60 * 24 * 14; // 14일 (체크 시 영속)
-const REMEMBER_JWT_EXPIRES = "14d";
-const SHORT_JWT_EXPIRES = "1d"; // 미체크 시 1일 토큰 (세션 쿠키와 함께)
+/* ★ E: 쿠키 + JWT 만료 정책
+   2026-07-09 Swain: '로그인 유지' 체크 시 일반회원 세션도 1일(KST 로그인 후 24시간)로 통일
+   (관리자 모드 세션과 동일 기준). 미체크는 세션 쿠키(브라우저 종료 시 로그아웃). */
+const REMEMBER_MAX_AGE = 60 * 60 * 24; // 1일 (체크 시 24시간 영속 쿠키)
+const REMEMBER_JWT_EXPIRES = "1d";
+const SHORT_JWT_EXPIRES = "1d"; // 미체크 시 1일 토큰 (세션 쿠키와 함께 — 브라우저 종료 시 삭제)
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return corsPreflight();
