@@ -56,7 +56,9 @@ export default async (req: Request, _ctx: Context) => {
       step = "select_items";
       /* ★ 2026-06-03 알림 통합: workspace_notifications + notifications 두 테이블을
          하나의 피드로 UNION. 프런트 호환 위해 키 유지(actionUrl·readAt·sentAt·category)
-         + source('ws'|'notif') 추가(읽음 처리 시 대상 테이블 식별). */
+         + source('ws'|'notif') 추가(읽음 처리 시 대상 테이블 식별).
+         [감사#84] workspace-logger.dispatch가 ws 알림을 notifications에도 복제(ref_table='workspace_notifications')
+         → 두 줄·2배 카운트 방지 위해 notifications 쪽에서 그 복제분 제외. */
       const catFrag    = category   ? sql` AND category = ${category}` : sql``;
       const wsUnread   = onlyUnread ? sql` AND read_at IS NULL`        : sql``;
       const ntUnread   = onlyUnread ? sql` AND is_read = false`        : sql``;
@@ -72,7 +74,8 @@ export default async (req: Request, _ctx: Context) => {
                  category, severity, read_at AS "readAt", created_at AS "sentAt"
             FROM notifications
            WHERE recipient_id = ${meId}
-             AND (expires_at IS NULL OR expires_at > NOW())${catFrag}${ntUnread}
+             AND (expires_at IS NULL OR expires_at > NOW())
+             AND (ref_table IS DISTINCT FROM 'workspace_notifications')${catFrag}${ntUnread}
         ) merged
         ORDER BY "sentAt" DESC
         LIMIT ${limit} OFFSET ${offset}
@@ -86,7 +89,8 @@ export default async (req: Request, _ctx: Context) => {
           SELECT
             (SELECT COUNT(*)::int FROM workspace_notifications WHERE member_id = ${meId} AND read_at IS NULL)
           + (SELECT COUNT(*)::int FROM notifications WHERE recipient_id = ${meId} AND is_read = false
-               AND (expires_at IS NULL OR expires_at > NOW())) AS c
+               AND (expires_at IS NULL OR expires_at > NOW())
+               AND (ref_table IS DISTINCT FROM 'workspace_notifications')) AS c
         `);
         const row = Array.isArray(cnt) ? cnt[0] : (cnt as any).rows?.[0];
         unreadCount = Number(row?.c ?? 0);
@@ -101,7 +105,8 @@ export default async (req: Request, _ctx: Context) => {
           SELECT
             (SELECT COUNT(*)::int FROM workspace_notifications WHERE member_id = ${meId}${catFrag}${wsUnread})
           + (SELECT COUNT(*)::int FROM notifications WHERE recipient_id = ${meId}
-               AND (expires_at IS NULL OR expires_at > NOW())${catFrag}${ntUnread}) AS c
+               AND (expires_at IS NULL OR expires_at > NOW())
+               AND (ref_table IS DISTINCT FROM 'workspace_notifications')${catFrag}${ntUnread}) AS c
         `);
         const trow = Array.isArray(tc) ? tc[0] : (tc as any).rows?.[0];
         total = Number(trow?.c ?? items.length);

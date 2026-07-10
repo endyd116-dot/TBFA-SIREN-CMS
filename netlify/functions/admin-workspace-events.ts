@@ -348,7 +348,7 @@ export default async (req: Request, _ctx: Context) => {
           channel: "bell",
           title: `📅 새 일정 초대: ${newEvent.title}`,
           body: `${startDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} · ${body.location || "장소 미정"}`,
-          actionUrl: `/admin#event-${newEvent.id}`,
+          actionUrl: `/workspace-calendar.html`,  // [감사#29] 죽은 해시 → 캘린더
         });
       }
 
@@ -424,7 +424,7 @@ export default async (req: Request, _ctx: Context) => {
             notifType: rsvpStatus === "yes" ? "approved" : "rejected",
             channel: "bell",
             title: `${adminMember.name}님이 ${label}: ${ev.title}`,
-            actionUrl: `/admin#event-${id}`,
+            actionUrl: `/workspace-calendar.html`,  // [감사#29] 죽은 해시 → 캘린더
           });
         }
 

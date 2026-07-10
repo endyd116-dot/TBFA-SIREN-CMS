@@ -585,7 +585,7 @@ export default async (req: Request, _ctx: Context) => {
         notifyType: "assigned",
         notifyTitle: `📋 새 작업이 지시되었습니다: ${newTask.title}`,
         notifyBody: dueDateObj ? `마감: ${dueDateObj.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}` : "마감일 없음",
-        actionUrl: `/admin#task-${newTask.id}`,
+        actionUrl: `/workspace-kanban.html#task=${newTask.id}`,  // [감사#29] 죽은 해시 정정
       });
 
       // ★ Phase 3 Step 7-C.2 — AI-1 요약 자동 트리거 (description 100자+)
@@ -669,7 +669,7 @@ export default async (req: Request, _ctx: Context) => {
           notifyTitle: newStatus === "done"
             ? `✅ 작업 완료: ${task.title}`
             : `🔄 상태 변경(${newStatus}): ${task.title}`,
-          actionUrl: `/admin#task-${id}`,
+          actionUrl: `/workspace-kanban.html#task=${id}`,  // [감사#29] 죽은 해시 정정
         });
 
         await logAudit({
@@ -792,7 +792,7 @@ export default async (req: Request, _ctx: Context) => {
           notifyMemberIds: [newAssignee],
           notifyType: "assigned",
           notifyTitle: `📋 새 작업이 지시되었습니다: ${task.title}`,
-          actionUrl: `/admin#task-${id}`,
+          actionUrl: `/workspace-kanban.html#task=${id}`,  // [감사#29] 죽은 해시 정정
         });
 
         return ok(updated, "지시가 완료되었습니다");
@@ -899,7 +899,7 @@ export default async (req: Request, _ctx: Context) => {
           notifyMemberIds: Array.from(notifyTargets),
           notifyType: "status_changed",
           notifyTitle: `⏸ 작업 보류: ${task.title}`,
-          actionUrl: `/admin#task-${id}`,
+          actionUrl: `/workspace-kanban.html#task=${id}`,  // [감사#29] 죽은 해시 정정
         });
         return ok(updated, "보류 처리되었습니다");
       }

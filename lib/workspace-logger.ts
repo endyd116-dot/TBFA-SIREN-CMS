@@ -237,7 +237,8 @@ export async function logTaskChange(params: TaskChangeLogParams): Promise<void> 
       channel: "bell",
       title: params.notifyTitle ?? params.taskTitle,
       body: params.notifyBody,
-      actionUrl: params.actionUrl ?? `/admin#task-${params.taskId}`,
+      // [감사#29] 죽은 해시 /admin#task-N → 실제 칸반 딥링크
+      actionUrl: params.actionUrl ?? `/workspace-kanban.html#task=${params.taskId}`,
     });
   }
 }

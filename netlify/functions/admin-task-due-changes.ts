@@ -228,7 +228,7 @@ export default async (req: Request, _ctx: Context) => {
           channel: "bell",
           title: `📅 마감일 변경 요청: ${task.title}`,
           body: `${new Date(task.dueDate).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })} → ${newDue.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}\n사유: ${body.reason}`,
-          actionUrl: `/admin#due-change-${newRequest.id}`,
+          actionUrl: `/workspace-kanban.html#task=${taskId}`,  // [감사#29] 죽은 해시 → 작업 카드(승인권자 검토)
         });
       }
 
@@ -357,7 +357,7 @@ export default async (req: Request, _ctx: Context) => {
         body: action === "approve"
           ? `새 마감일: ${new Date(request.newDue).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}`
           : `사유: ${body.reviewNote || ""}`,
-        actionUrl: `/admin#task-${request.taskId}`,
+        actionUrl: `/workspace-kanban.html#task=${request.taskId}`,  // [감사#29] 죽은 해시 정정
       });
 
       return ok(updated, action === "approve" ? "승인되었습니다" : "반려되었습니다");

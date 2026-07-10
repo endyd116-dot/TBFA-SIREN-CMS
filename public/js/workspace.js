@@ -58,19 +58,23 @@
     blocked: '보류'
   };
 
+  // [감사#87] 서버 ACTION_LABELS(lib/workspace-logger.ts)와 키 1:1 정합 — 기존엔 'task.created' 등 없는 키라 raw 코드 노출
   const ACTION_LABEL = {
-    'task.created': '작업 생성',
-    'task.updated': '작업 수정',
-    'task.deleted': '작업 삭제',
-    'task.status.changed': '상태 변경',
-    'task.assigned': '지시',
-    'task.completed': '완료',
-    'task.checklist.toggle': '체크리스트',
-    'memo.created': '메모 생성',
-    'memo.updated': '메모 수정',
-    'memo.pinned': '메모 고정',
-    'event.created': '일정 생성',
-    'event.updated': '일정 수정'
+    'task.create': '작업 생성', 'task.update': '작업 수정', 'task.delete': '작업 삭제',
+    'task.status': '상태 변경', 'task.complete': '작업 완료', 'task.reopen': '작업 재개',
+    'task.assign': '작업 지시', 'task.unassign': '지시 취소',
+    'task.checklist.add': '체크리스트 추가', 'task.checklist.toggle': '체크리스트 완료',
+    'task.attachment.add': '첨부 추가', 'task.attachment.remove': '첨부 제거',
+    'task.hold': '작업 보류', 'task.unhold': '보류 해제',
+    'task.archive': '작업 보관', 'task.unarchive': '보관 해제',
+    'event.create': '일정 등록', 'event.update': '일정 수정', 'event.delete': '일정 삭제',
+    'event.rsvp.accept': '참석 수락', 'event.rsvp.decline': '참석 거절',
+    'event.recurring.generate': '반복 일정 생성',
+    'memo.create': '메모 작성', 'memo.update': '메모 수정', 'memo.delete': '메모 삭제', 'memo.pin': '메모 고정',
+    'due.request': '마감일 변경 요청', 'due.approve': '마감일 변경 승인',
+    'due.reject': '마감일 변경 반려', 'due.cancel': '마감일 변경 요청 취소',
+    'agent.task.create': 'AI 자동 생성', 'agent.briefing.generate': '일일 브리핑 생성',
+    'agent.reminder.send': '자동 알림 발송'
   };
 
   // ────────────────────────────────────────────
@@ -291,7 +295,8 @@
     // 알림 벨
     const notifCount = $('#wsNotifCount');
     if (notifCount) {
-      const n = Number(d.unreadNotificationsCount || 0);
+      // [감사#85] 브리핑 응답 키는 unreadNotifCount — 기존 잘못된 키(unreadNotificationsCount)로 항상 0→배지 깜빡임
+      const n = Number(d.unreadNotifCount ?? d.unreadNotificationsCount ?? 0);
       if (n > 0) {
         notifCount.textContent = n > 99 ? '99+' : n;
         notifCount.style.display = '';
@@ -414,14 +419,17 @@
       grid.innerHTML = '<div class="ws-empty">📝 메모가 없습니다</div>';
       return;
     }
-    grid.innerHTML = items.slice(0, 12).map(m => `
+    grid.innerHTML = items.slice(0, 12).map(m => {
+      // [감사#89] 서버 목록 API는 contentHtml 키만 반환(content 컬럼 없음) → HTML 태그 제거 후 미리보기
+      const plain = String(m.contentHtml || m.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      return `
       <div class="ws-memo-card" data-id="${m.id}" style="background-color: ${escapeHtml(m.color || '#fff9c4')}">
         ${m.isPinned ? '<span class="ws-memo-pin">📌</span>' : ''}
         ${m.title ? `<div class="ws-memo-title">${escapeHtml(m.title)}</div>` : ''}
-        <div class="ws-memo-content">${escapeHtml((m.content || '').slice(0, 150))}${(m.content || '').length > 150 ? '…' : ''}</div>
+        <div class="ws-memo-content">${escapeHtml(plain.slice(0, 150))}${plain.length > 150 ? '…' : ''}</div>
         <div class="ws-memo-meta">${fmtDate(m.updatedAt || m.createdAt)}</div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   function renderMemosError() {
@@ -435,39 +443,48 @@
     const title = f.targetTitle ? `"${escapeHtml(f.targetTitle)}"` : '';
     const meta = f.metadata || {};
 
+    const toName = escapeHtml(meta.toName || meta.assigneeName || meta.newName || meta.newAssigneeName || '');
+
+    // [감사#87] 서버 actionType(task.create 등)과 정합 — 기존 'task.created' 키 오타로 대부분 raw 코드가 그대로 노출됨
     switch (f.actionType) {
-      case 'task.created':        return `${actor}이 작업 ${title}을 만들었어요`;
-      case 'task.updated':        return `${actor}이 작업 ${title}을 수정했어요`;
-      case 'task.deleted':        return `${actor}이 작업 ${title}을 삭제했어요`;
-      case 'task.status.changed': return `${actor}이 작업 ${title} 상태를 변경했어요`;
-      case 'task.assigned':       return `${actor}이 작업 ${title}을 지시했어요`;
-      case 'task.completed':      return `${actor}이 작업 ${title}을 완료했어요`;
+      case 'task.create':   return `${actor}이 작업 ${title}을 만들었어요`;
+      case 'task.update':   return `${actor}이 작업 ${title}을 수정했어요`;
+      case 'task.delete':   return `${actor}이 작업 ${title}을 삭제했어요`;
+      case 'task.status':   return `${actor}이 작업 ${title} 상태를 변경했어요`;
+      case 'task.complete': return `${actor}이 작업 ${title}을 완료했어요`;
+      case 'task.reopen':   return `${actor}이 작업 ${title}을 다시 열었어요`;
+      case 'task.assign':   return `${actor}이 작업 ${title}을 ${toName ? toName + '에게 ' : ''}지시했어요`;
+      case 'task.unassign': return `${actor}이 작업 ${title} 지시를 취소했어요`;
+      case 'task.hold':     return `${actor}이 작업 ${title}을 보류했어요`;
+      case 'task.unhold':   return `${actor}이 작업 ${title} 보류를 해제했어요`;
+      case 'task.archive':  return `${actor}이 작업 ${title}을 보관했어요`;
+      case 'task.unarchive':return `${actor}이 작업 ${title} 보관을 해제했어요`;
+      case 'task.checklist.add':    return `${actor}이 작업 ${title} 체크리스트를 추가했어요`;
       case 'task.checklist.toggle': return `${actor}이 작업 ${title} 체크리스트를 업데이트했어요`;
-      case 'task.transfer': {
-        const to = escapeHtml(meta.toName || meta.assigneeName || '');
-        return `${actor}이 작업 ${title}을 ${to ? to + '에게 ' : ''}토스했어요`;
-      }
-      case 'task.assign': {
-        const to = escapeHtml(meta.toName || meta.assigneeName || '');
-        return `${actor}이 작업 ${title}을 ${to ? to + '에게 ' : ''}배정했어요`;
-      }
+      case 'task.attachment.add':    return `${actor}이 작업 ${title}에 첨부를 추가했어요`;
+      case 'task.attachment.remove': return `${actor}이 작업 ${title} 첨부를 제거했어요`;
+      case 'memo.create': return `${actor}이 메모 ${title}를 작성했어요`;
+      case 'memo.update': return `${actor}이 메모 ${title}를 수정했어요`;
+      case 'memo.delete': return `${actor}이 메모 ${title}를 삭제했어요`;
+      case 'memo.pin':    return `${actor}이 메모 ${title}를 상단 고정했어요`;
+      case 'event.create': return `${actor}이 일정 ${title}을 등록했어요`;
+      case 'event.update': return `${actor}이 일정 ${title}을 수정했어요`;
+      case 'event.delete': return `${actor}이 일정 ${title}을 삭제했어요`;
+      case 'due.request': return `${actor}이 작업 ${title} 마감일 변경을 요청했어요`;
+      case 'due.approve': return `${actor}이 작업 ${title} 마감일 변경을 승인했어요`;
+      case 'due.reject':  return `${actor}이 작업 ${title} 마감일 변경을 반려했어요`;
+      case 'due.cancel':  return `${actor}이 작업 ${title} 마감일 변경 요청을 취소했어요`;
+      case 'agent.task.create': return `AI가 작업 ${title}을 자동 생성했어요`;
+      // 서비스 로그(다른 경로 유입 가능) — 유지
       case 'service.assignee_change': {
-        const newName = escapeHtml(meta.newName || meta.toName || '');
-        const kind = escapeHtml(meta.serviceKind || '');
-        const id = f.targetId || '';
-        return `${actor}이 ${kind} 신고 #${id} 담당을 ${newName ? newName + '에게 ' : ''}인계했어요`;
+        const kind = escapeHtml(meta.serviceKind || ''); const id = f.targetId || '';
+        return `${actor}이 ${kind} 신고 #${id} 담당을 ${toName ? toName + '에게 ' : ''}인계했어요`;
       }
       case 'service.closed': {
-        const kind = escapeHtml(meta.serviceKind || '');
-        const id = f.targetId || '';
+        const kind = escapeHtml(meta.serviceKind || ''); const id = f.targetId || '';
         return `${actor}이 ${kind} 신고 #${id}를 종결 처리했어요`;
       }
-      case 'memo.created':  return `${actor}이 메모 ${title}를 작성했어요`;
-      case 'memo.updated':  return `${actor}이 메모 ${title}를 수정했어요`;
-      case 'memo.pinned':   return `${actor}이 메모 ${title}를 상단 고정했어요`;
-      case 'event.created': return `${actor}이 일정 ${title}을 등록했어요`;
-      case 'event.updated': return `${actor}이 일정 ${title}을 수정했어요`;
-      default:              return `${actor} — ${ACTION_LABEL[f.actionType] || f.actionType || '활동'}`;
+      default: return `${actor} — ${ACTION_LABEL[f.actionType] || f.actionType || '활동'}`;
     }
   }
 
@@ -664,6 +681,37 @@
       }
     });
 
+    // [감사#90] 브리핑 카드·전체보기·새로고침 죽은 버튼 활성화 (기존엔 핸들러 없어 주소 해시만 바뀜)
+    document.addEventListener('click', (e) => {
+      // 브리핑 카드(지연/오늘/내일/지시받음/긴급/오늘일정) → 칸반 보드(오늘 일정만 캘린더)
+      const statCard = e.target.closest('[data-ws-filter]');
+      if (statCard) {
+        e.preventDefault();
+        location.href = statCard.dataset.wsFilter === 'today-events'
+          ? '/workspace-calendar.html' : '/workspace-kanban.html';
+        return;
+      }
+      const act = e.target.closest('[data-ws-action]');
+      if (!act) return;
+      switch (act.dataset.wsAction) {
+        case 'refresh':
+          e.preventDefault();
+          loadBriefing().catch(() => {}); loadMyTasks().catch(() => {}); loadInbox().catch(() => {});
+          loadEvents().catch(() => {}); loadMemos().catch(() => {}); loadFeed().catch(() => {});
+          showToast('새로고침했어요', 'success');
+          break;
+        case 'view-all-tasks':
+        case 'view-all-inbox':
+          e.preventDefault(); location.href = '/workspace-kanban.html'; break;
+        case 'open-calendar':
+        case 'view-all-memos':   // 메모 전용 목록 페이지 없음 → 캘린더(표시 메모 확인)
+          e.preventDefault(); location.href = '/workspace-calendar.html'; break;
+        case 'view-all-feed':
+          e.preventDefault(); loadFeed().catch(() => {}); break;
+        // new-task/new-memo/new-event/toggle-files 는 각자 핸들러 처리 — 여기선 무시
+      }
+    });
+
     // WorkspaceSync: 다른 탭에서 변경 시 내 작업/지시함 패널 자동 갱신
     if (window.WorkspaceSync) {
       WorkspaceSync.on('task:updated', () => { loadMyTasks().catch(() => {}); loadInbox().catch(() => {}); });
@@ -704,8 +752,9 @@
     // 3. 이벤트 바인딩
     bindEvents();
 
-    // 4. 폴링 (briefing만)
+    // 4. 폴링 (briefing만) — [감사#91] 백그라운드 탭이면 건너뜀(Neon 절전 방해·비용, a09eac89 패턴)
     STATE.pollTimer = setInterval(() => {
+      if (document.hidden) return;
       loadBriefing().catch(() => {});
     }, POLL_MS);
 
@@ -1057,7 +1106,8 @@
   }
   async function fetchMemos(q) {
     try {
-      const res = await fetch(`/api/admin-workspace-memos?q=${encodeURIComponent(q)}&limit=10`, {
+      // [감사#88] 서버는 list=1 또는 id=N만 처리 — list 누락 시 400 → 통합검색에서 메모가 항상 빈 결과
+      const res = await fetch(`/api/admin-workspace-memos?list=1&q=${encodeURIComponent(q)}&limit=10`, {
         credentials: 'include',
       });
       if (!res.ok) return [];
@@ -1388,7 +1438,7 @@
         // B 명세: 알림 클릭 시 이동 경로 = actionUrl (옛 linkUrl)
         const url = n.actionUrl || n.linkUrl || '';
         return `
-          <li class="ws-notif-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${n.id}" data-url="${escapeHtml(url)}">
+          <li class="ws-notif-item ${isRead ? 'is-read' : 'is-unread'}" data-id="${n.id}" data-source="${escapeHtml(n.source || 'ws')}" data-url="${escapeHtml(url)}">
             <span class="ws-notif-dot">${isRead ? '○' : '●'}</span>
             <div class="ws-notif-body">
               <div class="ws-notif-title">${escapeHtml(n.title || n.message || '알림')}</div>
@@ -1443,8 +1493,10 @@
       e.stopPropagation();
       const id = Number(item.dataset.id);
       const url = item.dataset.url;
+      // [감사#26] 통합 알림은 두 테이블(ws/notif) 혼재 — source를 함께 보내야 올바른 테이블이 읽음 처리됨
+      const source = item.dataset.source || 'ws';
       try {
-        await api('/api/admin-workspace-notifications', { method: 'POST', body: { id } });
+        await api('/api/admin-workspace-notifications', { method: 'POST', body: { id, source } });
       } catch (_) { /* 읽음 실패는 무시 */ }
       if (url) location.href = url;
     });
@@ -1608,8 +1660,9 @@
       WorkspaceSync.on('page:visible',     () => { loadNotifications().catch(() => {}); loadMentions().catch(() => {}); });
     }
 
-    // 폴링 (60초)
+    // 폴링 (60초) — [감사#91] 백그라운드 탭이면 건너뜀(Neon 절전 방해·비용, a09eac89 패턴)
     setInterval(() => {
+      if (document.hidden) return;
       loadNotifications().catch(() => {});
       loadMentions().catch(() => {});
     }, 60000);
