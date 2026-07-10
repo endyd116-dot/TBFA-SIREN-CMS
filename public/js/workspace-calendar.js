@@ -223,8 +223,14 @@
   }
 
   async function loadEventsAndMemos(start, end) {
-    const startDate = (start instanceof Date ? start : new Date(start)).toISOString().slice(0, 10);
-    const endDate = (end instanceof Date ? end : new Date(end)).toISOString().slice(0, 10);
+    // P1-15 fix: 로컬(KST) 날짜로 경계 전송. 과거 toISOString()은 UTC로 9시간 밀려
+    //           일 보기에서 오전 9시 이후 일정이 누락됐음. end는 FullCalendar 배타적 끝이라 -1ms 하여 마지막 표시일로.
+    const localYMD = (d) => {
+      const dt = d instanceof Date ? d : new Date(d);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
+    const startDate = localYMD(start);
+    const endDate = localYMD(new Date((end instanceof Date ? end : new Date(end)).getTime() - 1));
     const params = new URLSearchParams();
     params.set('list', '1');
     params.set('from', startDate);

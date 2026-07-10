@@ -554,8 +554,11 @@
       height: 'auto',
       headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
       datesSet: async (info) => {
-        const yr = info.start.getFullYear();
-        const mo = info.start.getMonth() + 2; // datesSet start is prev month end
+        // P1-18 fix: info.start는 전월 말(그리드 첫 칸)이라 +2 하드코딩이 1월=13월·일요일시작달 오류.
+        //           FullCalendar가 제공하는 당월 1일(currentStart)로 연·월 산출.
+        const cur = info.view.currentStart;
+        const yr = cur.getFullYear();
+        const mo = cur.getMonth() + 1;
         await loadCalendarData(calendar, yr, mo);
       },
       dayCellDidMount(info) {

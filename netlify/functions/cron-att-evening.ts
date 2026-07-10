@@ -22,24 +22,28 @@ import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 export const config = { schedule: "0 15 * * *" };
 
-function kstToday(): string {
+// 이 크론은 KST 00:00(자정)에 실행되므로 '방금 끝난 전일'을 대상으로 조회한다.
+// (P1-16 fix: 과거엔 '새로 시작된 당일'을 조회해 미퇴근·재택보고서·주52h 점검이 항상 0건이었음.
+//  스케줄을 저녁 시간대로 옮기려면 이 전일 기준도 함께 재검토할 것.)
+function kstYesterday(): string {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  kst.setUTCDate(kst.getUTCDate() - 1);
   return kst.toISOString().slice(0, 10);
 }
 
-function kstWeekStart(): string {
-  // ★ Q3-044 fix: 서버 로컬TZ 의존 제거 — KST(+9h) Date를 getUTC*로 읽어 주 시작(월요일) 계산 (att-utils 패턴과 일관).
-  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const day = kst.getUTCDay(); // 0=일,1=월,...
+function kstWeekStartOf(dateStr: string): string {
+  // dateStr(YYYY-MM-DD, KST)이 속한 주의 월요일 — 전일 기준이라 방금 완결된 주를 평가.
+  const d = new Date(dateStr + "T00:00:00Z");
+  const day = d.getUTCDay(); // 0=일,1=월,...
   const diff = day === 0 ? -6 : 1 - day;
-  kst.setUTCDate(kst.getUTCDate() + diff);
-  return kst.toISOString().slice(0, 10);
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
 }
 
 export default async (req: Request, _ctx: Context) => {
   const start = Date.now();
-  const today = kstToday();
-  const weekStart = kstWeekStart();
+  const today = kstYesterday();          // 대상일 = 전일(방금 끝난 날)
+  const weekStart = kstWeekStartOf(today);
 
   // ?dryRun=1 : DB 변경·알림 발송 없이 탐지 결과만 반환 (운영자 검증용)
   let dryRun = false;

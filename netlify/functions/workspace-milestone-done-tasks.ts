@@ -52,8 +52,9 @@ export default async function handler(req: Request, _ctx: Context) {
       LEFT JOIN milestone_definitions md ON md.id = t.milestone_def_id
       WHERE t.member_id = ${member.id}
         AND t.status = 'done'
-        AND t.completed_at >= ${sinceDate}
-        AND t.completed_at <= ${untilDate}
+        -- P2-19 fix: 완료시각(UTC)을 KST 날짜로 변환해 분기 경계 비교 (마지막날 완료 카드 누락 방지)
+        AND (t.completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date >= ${sinceDate}::date
+        AND (t.completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date <= ${untilDate}::date
       ORDER BY t.completed_at DESC
       LIMIT 200
     `);

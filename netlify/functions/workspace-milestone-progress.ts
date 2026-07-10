@@ -73,8 +73,9 @@ export default async function handler(req: Request, _ctx: Context) {
           AND milestone_def_id = ${def.id}
           AND milestone_match_status IN ('auto', 'user')
           AND status = 'done'
-          AND completed_at >= ${quarter.start_date}
-          AND completed_at <= ${quarter.end_date}
+          -- P2-19 fix: 완료시각(UTC)을 KST 날짜로 변환해 분기 경계 비교 (과거 9시간 밀려 분기 첫날 새벽·마지막날 오전 이후 완료분 누락)
+          AND (completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date >= ${quarter.start_date}::date
+          AND (completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date <= ${quarter.end_date}::date
       `);
       achieved = Number((cntRows as any).rows?.[0]?.cnt || (cntRows as any[])[0]?.cnt || 0);
     } catch { achieved = 0; }
@@ -97,7 +98,7 @@ export default async function handler(req: Request, _ctx: Context) {
         AND status = 'done'
         AND milestone_def_id IS NULL
         AND milestone_match_status IS NULL
-        AND completed_at >= ${quarter.start_date}
+        AND (completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date >= ${quarter.start_date}::date
     `);
     pendingCount = Number((pRows as any).rows?.[0]?.cnt || (pRows as any[])[0]?.cnt || 0);
   } catch { pendingCount = 0; }

@@ -96,8 +96,9 @@ export default async function handler(req: Request, _ctx: Context) {
           AND milestone_def_id = ${milestoneDefId}
           AND milestone_match_status IN ('auto', 'user')
           AND status = 'done'
-          AND completed_at >= ${quarter.start_date}
-          AND completed_at <= ${quarter.end_date}
+          -- P2-19 fix: 완료시각(UTC)을 KST 날짜로 변환해 분기 경계 비교
+          AND (completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date >= ${quarter.start_date}::date
+          AND (completed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Seoul')::date <= ${quarter.end_date}::date
       `);
       const achieved = Number((cntRows as any).rows?.[0]?.cnt || (cntRows as any[])[0]?.cnt || 0);
       const target = Number(def.threshold_value || 0);

@@ -203,8 +203,10 @@ export default async (req: Request, _ctx: Context) => {
           ));
         }
 
-        if (from) conds.push(gte(workspaceEvents.startAt, new Date(from)));
-        if (to) conds.push(lte(workspaceEvents.startAt, new Date(to)));
+        // P1-15 fix: 날짜만 온 from/to는 KST 하루 경계로 해석
+        // (과거 new Date('YYYY-MM-DD')=UTC 자정=KST 09:00라 일 보기에서 오전 9시 이후 일정 누락)
+        if (from) conds.push(gte(workspaceEvents.startAt, /T/.test(from) ? new Date(from) : new Date(from + "T00:00:00+09:00")));
+        if (to) conds.push(lte(workspaceEvents.startAt, /T/.test(to) ? new Date(to) : new Date(to + "T23:59:59.999+09:00")));
         if (type) conds.push(eq(workspaceEvents.eventType, type));
 
         const eventItems: any = await db

@@ -50,18 +50,17 @@ export default async (req: Request, _ctx: Context) => {
         const now = new Date();
         const kstOffsetMs = 9 * 60 * 60 * 1000;
         const kstNow = new Date(now.getTime() + kstOffsetMs);
-        const kstToday = new Date(kstNow);
-        kstToday.setHours(0, 0, 0, 0);
-        const kstTomorrow = new Date(kstToday);
-        kstTomorrow.setDate(kstTomorrow.getDate() + 1);
-        const kstDayAfter = new Date(kstTomorrow);
-        kstDayAfter.setDate(kstDayAfter.getDate() + 1);
-        const kstYesterday = new Date(kstToday);
-        kstYesterday.setDate(kstYesterday.getDate() - 1);
+        // P2-46 fix: KST 하루 경계를 실제 UTC instant로 계산
+        // (과거 setHours(0)은 UTC 서버에서 KST 09:00로 9시간 밀려 자정~09시 마감분이 어긋남)
+        const ky = kstNow.getUTCFullYear(), km = kstNow.getUTCMonth(), kd = kstNow.getUTCDate();
+        const kstToday = new Date(Date.UTC(ky, km, kd) - kstOffsetMs);          // 오늘 00:00 KST
+        const kstTomorrow = new Date(kstToday.getTime() + 24 * 60 * 60 * 1000);
+        const kstDayAfter = new Date(kstTomorrow.getTime() + 24 * 60 * 60 * 1000);
+        const kstYesterday = new Date(kstToday.getTime() - 24 * 60 * 60 * 1000);
 
         const stats: any = await db.execute(sql`
           SELECT
-            COUNT(*) FILTER (WHERE (member_id=${meId} OR assigned_to=${meId}) AND status!='done' AND due_date < now()) AS overdue,
+            COUNT(*) FILTER (WHERE (member_id=${meId} OR assigned_to=${meId}) AND status!='done' AND due_date < ${kstToday.toISOString()}) AS overdue,
             COUNT(*) FILTER (WHERE (member_id=${meId} OR assigned_to=${meId}) AND status!='done' AND due_date >= ${kstToday.toISOString()} AND due_date < ${kstTomorrow.toISOString()}) AS today_due,
             COUNT(*) FILTER (WHERE (member_id=${meId} OR assigned_to=${meId}) AND status!='done' AND due_date >= ${kstTomorrow.toISOString()} AND due_date < ${kstDayAfter.toISOString()}) AS tomorrow_due,
             COUNT(*) FILTER (WHERE (member_id=${meId} OR assigned_to=${meId}) AND status='doing') AS in_progress,

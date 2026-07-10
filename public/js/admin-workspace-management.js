@@ -49,8 +49,9 @@
     return new Date(d).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
   }
   function toDateStr(d) {
+    // KST 기준 날짜 (P1-21: UTC면 KST 0~9시에 어제로 잡혀 실시간 현황이 전원 미출근 오표시)
     const dt = d ? new Date(d) : new Date();
-    return dt.toISOString().slice(0, 10);
+    return new Date(dt.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
   }
   function setText(id, val) {
     const el = document.getElementById(id);
