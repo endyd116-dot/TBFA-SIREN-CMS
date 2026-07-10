@@ -63,7 +63,8 @@ export default async (req: Request, _ctx: Context) => {
     /* ★ Q3-004 fix: 작업 접근 권한 검증 (메인 PATCH와 동일 — 소유/담당/지시/super) */
     const meId = auth.ctx.member.id as number;
     const isSuperAdmin = (auth.ctx.member as any).role === "super_admin";
-    const canEdit = isSuperAdmin || task.memberId === meId || (task.assignedTo === meId && task.assignedBy) || task.assignedBy === meId;
+    // [감사#33] 토스받은 담당자면 편집 허용(assignedBy 무관·Swain 결정)
+    const canEdit = isSuperAdmin || task.memberId === meId || task.assignedTo === meId || task.assignedBy === meId;
     if (!canEdit) return jsonError(403, "forbidden", "이 작업을 수정할 권한이 없습니다");
 
     await db

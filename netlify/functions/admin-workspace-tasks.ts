@@ -622,7 +622,8 @@ export default async (req: Request, _ctx: Context) => {
       if (!task) return notFound("작업을 찾을 수 없습니다");
 
       const isOwner = task.memberId === meId;
-      const isAssignee = task.assignedTo === meId && task.assignedBy;
+      // [감사#33] 토스받은 담당자면 편집 허용(assignedBy 무관) — 개인카드 토스 시 assignedBy=null이라 진행 불가였음(Swain 결정)
+      const isAssignee = task.assignedTo === meId;
       const isAssigner = task.assignedBy === meId;
       const canEdit = isSuperAdmin || isOwner || isAssignee || isAssigner;
       if (!canEdit) return forbidden("수정 권한이 없습니다");
