@@ -9,6 +9,33 @@ import { solapiSendSms } from "./solapi-client";
 import { resolvePeriod } from "./period-filter";
 import { downloadFromR2 } from "./r2-server";
 import { recalcCampaignStatsSafe } from "./campaign-stats";
+import { logTaskChange } from "./workspace-logger";
+
+/* ─── [배치8·감사#1~8] AI 작업 도구 안전장치 — 본 API(admin-workspace-tasks)와 동일한 후속처리
+       (담당자 알림·신고 종결·마일스톤/완료보고서 트리거·소유권 검증)를 재사용. ─── */
+function aiTriggerMilestoneMatch(taskId: number, memberId: number) {
+  const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  fetch(`${base}/.netlify/functions/ai-task-milestone-match-background`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, memberId, secret }),
+  }).catch((err) => console.warn("[ai milestone-match]", err?.message || err));
+}
+function aiTriggerCompletion(taskId: number, authorMemberId: number) {
+  const base = process.env.URL || (process.env.SITE_URL ? `https://${process.env.SITE_URL}` : "https://tbfa-siren-cms.netlify.app");
+  const secret = process.env.INTERNAL_TRIGGER_SECRET || "";
+  fetch(`${base}/.netlify/functions/ai-task-completion-background`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ taskId, authorMemberId, secret }),
+  }).catch((err) => console.warn("[ai completion]", err?.message || err));
+}
+async function aiIsSuperAdmin(adminId: number | null): Promise<boolean> {
+  if (!adminId) return false;
+  try {
+    const m: any = await db.execute(sql`SELECT role FROM members WHERE id = ${adminId} LIMIT 1`);
+    return String((m?.rows ?? m ?? [])[0]?.role) === "super_admin";
+  } catch { return false; }
+}
 
 /* =========================================================
    Gemini Function Declaration — OpenAPI 3.0 schema (대문자 type)
@@ -1581,15 +1608,31 @@ async function tool_taskCreate(args: any, adminId: number | null): Promise<ToolR
   }
 
   try {
+    // [감사#6] 담당자 없는 개인 작업엔 assigned_by를 박지 않음(안 그러면 만든 본인이 칸반에서 삭제 불가)
+    const assignedBy = assignedTo ? adminId : null;
     const r: any = await db.execute(sql`
       INSERT INTO workspace_tasks
         (member_id, title, description, status, priority, due_date, assigned_by, assigned_to, source_type, source_id)
       VALUES
         (${adminId}, ${title}, ${description || null}, 'todo', ${priority}, ${dueDate.toISOString()}::timestamptz,
-         ${adminId}, ${assignedTo}, 'ai_agent', NULL)
+         ${assignedBy}, ${assignedTo}, 'ai_agent', NULL)
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    // [감사#2] 지시 대상에게 알림 — 본 API엔 있으나 AI 경로에선 통째로 누락됐던 부분
+    if (id && assignedTo && assignedTo !== adminId) {
+      try {
+        await logTaskChange({
+          actorId: adminId, taskId: id, taskTitle: title,
+          actionType: "task.assign",
+          metadata: { isAssignment: true, via: "ai_agent" },
+          notifyMemberIds: [assignedTo], notifyType: "assigned",
+          notifyTitle: `📋 새 작업이 지시되었습니다: ${title}`,
+          notifyBody: dueDateStr ? `마감: ${dueDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}` : "마감일 없음",
+          actionUrl: `/workspace-kanban.html#task=${id}`,
+        });
+      } catch (e) { console.warn("[ai task_create] 알림 실패:", e); }
+    }
     return { ok: true, output: { task_id: id, ...preview }, rollbackData: { table: "workspace_tasks", id }, suggestedNextSteps: buildNextSteps("task_create") };
   } catch (e: any) {
     return { ok: false, error: `작업 생성 실패: ${e?.message?.slice(0, 200)}` };
@@ -1979,10 +2022,20 @@ async function tool_taskUpdate(args: any, adminId: number | null): Promise<ToolR
 
   let before: any = null;
   try {
-    const r: any = await db.execute(sql`SELECT id, title, status, progress, priority, assigned_to, due_date FROM workspace_tasks WHERE id = ${id} LIMIT 1`);
+    const r: any = await db.execute(sql`SELECT id, title, status, progress, priority,
+      assigned_to AS "assignedTo", member_id AS "memberId", assigned_by AS "assignedBy",
+      completed_by AS "completedBy", source_type AS "sourceType", source_id AS "sourceId",
+      milestone_def_id AS "milestoneDefId", due_date FROM workspace_tasks WHERE id = ${id} LIMIT 1`);
     before = (r?.rows ?? r ?? [])[0];
   } catch {}
   if (!before) return { ok: false, error: "작업 없음" };
+
+  // [감사#8] 소유권 검증 — 본 API와 동일(소유/담당/지시/완료자/super_admin). 기존 AI 경로엔 전무해 누구든 남의 작업 수정 가능했음.
+  const isSuper = await aiIsSuperAdmin(adminId);
+  const owners = [before.memberId, before.assignedTo, before.assignedBy, before.completedBy].map(Number);
+  if (!isSuper && !owners.includes(Number(adminId))) {
+    return { ok: false, error: "이 작업을 수정할 권한이 없습니다 (본인 소유·담당·지시·완료한 작업만)" };
+  }
 
   const preview = { taskId: id, title: before.title, before, changes: patch };
   if (args?.requireApproval !== false) {
@@ -1990,10 +2043,56 @@ async function tool_taskUpdate(args: any, adminId: number | null): Promise<ToolR
   }
 
   try {
+    const goingDone = patch.status === "done" && before.status !== "done";
+    const leavingDone = before.status === "done" && typeof patch.status === "string" && patch.status !== "done";
+    if (goingDone) { patch.completed_by = adminId; if (patch.progress === undefined) patch.progress = 100; }
+    if (leavingDone) { patch.completed_at = null; patch.completed_by = null; }
+
     const setFragments: any[] = [];
     for (const [k, v] of Object.entries(patch)) setFragments.push(sql`${sql.identifier(k)} = ${v}`);
     setFragments.push(sql`updated_at = NOW()` as any);
     await db.execute(sql`UPDATE workspace_tasks SET ${sql.join(setFragments, sql`, `)} WHERE id = ${id}`);
+
+    // [감사#1·5] 본 API와 동일한 후속처리(알림·신고 종결·마일스톤/완료보고서) — AI 경로에서 통째로 누락됐던 부분
+    try {
+      if (typeof patch.status === "string" && patch.status !== before.status) {
+        const notify = new Set<number>();
+        if (before.assignedBy && Number(before.assignedBy) !== Number(adminId)) notify.add(Number(before.assignedBy));
+        if (Number(before.memberId) !== Number(adminId)) notify.add(Number(before.memberId));
+        await logTaskChange({
+          actorId: adminId!, taskId: id, taskTitle: before.title,
+          actionType: goingDone ? "task.complete" : "task.status",
+          metadata: { prevStatus: before.status, newStatus: patch.status, via: "ai_agent" },
+          notifyMemberIds: Array.from(notify),
+          notifyType: goingDone ? "completed" : "status_changed",
+          notifyTitle: goingDone ? `✅ 작업 완료: ${before.title}` : `🔄 상태 변경(${patch.status}): ${before.title}`,
+          actionUrl: `/workspace-kanban.html#task=${id}`,
+        });
+      }
+      // 재지시(#5) — 담당자 변경 시 새 담당자에게 알림
+      if (patch.assigned_to !== undefined && Number(patch.assigned_to) !== Number(before.assignedTo) && Number(patch.assigned_to) !== Number(adminId)) {
+        await logTaskChange({
+          actorId: adminId!, taskId: id, taskTitle: before.title,
+          actionType: "task.assign",
+          metadata: { prevAssignee: before.assignedTo, newAssignee: patch.assigned_to, via: "ai_agent" },
+          notifyMemberIds: [Number(patch.assigned_to)], notifyType: "assigned",
+          notifyTitle: `📋 새 작업이 지시되었습니다: ${before.title}`,
+          actionUrl: `/workspace-kanban.html#task=${id}`,
+        });
+      }
+      // done 이동(#1) — 원본 신고 종결 동기화 + 완료보고서·마일스톤 트리거
+      if (goingDone) {
+        if (before.sourceType && before.sourceId) {
+          try {
+            const { closeServiceFromTask } = await import("./workspace-sync");
+            await closeServiceFromTask({ taskId: id, closedBy: adminId! });
+          } catch (err) { console.warn("[ai task_update] closeServiceFromTask 실패:", err); }
+        }
+        aiTriggerCompletion(id, adminId!);
+        if (!before.milestoneDefId) aiTriggerMilestoneMatch(id, adminId!);
+      }
+    } catch (e) { console.warn("[ai task_update] 후속처리 실패:", e); }
+
     return { ok: true, output: { updated: true, taskId: id, changes: patch }, rollbackData: { table: "workspace_tasks", id, before } };
   } catch (e: any) {
     return { ok: false, error: `작업 수정 실패: ${e?.message?.slice(0, 200)}` };
@@ -2658,13 +2757,21 @@ async function tool_taskCommentAdd(args: any, adminId: number | null): Promise<T
   const mentions: number[] = Array.isArray(args?.mentions)
     ? args.mentions.map((n: any) => Number(n)).filter(Boolean) : [];
 
-  /* 작업 존재 확인 */
+  /* 작업 존재 + 접근 확인 */
   let task: any = null;
   try {
-    const r: any = await db.execute(sql`SELECT id, title FROM workspace_tasks WHERE id = ${taskId} LIMIT 1`);
+    const r: any = await db.execute(sql`SELECT id, title, member_id, assigned_to, assigned_by, completed_by FROM workspace_tasks WHERE id = ${taskId} LIMIT 1`);
     task = (r?.rows ?? r ?? [])[0];
   } catch {}
   if (!task) return { ok: false, error: "작업 없음" };
+  // [감사#3 관련] 접근 검증 — 본 API POST와 동일(소유/담당/지시/완료자/super_admin)
+  {
+    const isSuper = await aiIsSuperAdmin(adminId);
+    const owners = [task.member_id, task.assigned_to, task.assigned_by, task.completed_by].map(Number);
+    if (!isSuper && !owners.includes(Number(adminId))) {
+      return { ok: false, error: "이 작업에 댓글을 달 권한이 없습니다 (본인 관련 작업만)" };
+    }
+  }
 
   const preview = { taskId, taskTitle: task.title, contentPreview: content.slice(0, 200), mentionCount: mentions.length };
   if (args?.requireApproval !== false) {
@@ -2679,6 +2786,34 @@ async function tool_taskCommentAdd(args: any, adminId: number | null): Promise<T
       RETURNING id
     `);
     const id = Number((r?.rows ?? r ?? [])[0]?.id) || 0;
+    // [감사#3] 멘션·소유자·지시자 알림 + 멘션함 기록 — AI 경로에선 저장만 하고 안 보냈음
+    try {
+      const notify = new Set<number>();
+      for (const mid of mentions) if (mid && mid !== adminId) notify.add(mid);
+      if (task.assigned_by && Number(task.assigned_by) !== Number(adminId)) notify.add(Number(task.assigned_by));
+      if (Number(task.member_id) !== Number(adminId)) notify.add(Number(task.member_id));
+      for (const mid of mentions) {
+        if (!mid || mid === adminId) continue;
+        try {
+          await db.execute(sql`
+            INSERT INTO workspace_task_mentions (workspace_id, task_id, mentioned_member_id, mentioner_member_id, context, is_read, created_at)
+            SELECT 1, ${taskId}, ${mid}, ${adminId}, ${content.slice(0, 100)}, false, NOW()
+            WHERE NOT EXISTS (SELECT 1 FROM workspace_task_mentions WHERE task_id = ${taskId} AND mentioned_member_id = ${mid} AND is_read = false)
+          `);
+        } catch (e) { console.warn("[ai comment] 멘션 기록 실패:", e); }
+      }
+      if (notify.size > 0) {
+        await logTaskChange({
+          actorId: adminId!, taskId, taskTitle: task.title,
+          actionType: "task.update",
+          metadata: { subType: "comment.create", via: "ai_agent", mentionsCount: mentions.length },
+          notifyMemberIds: Array.from(notify), notifyType: "status_changed",
+          notifyTitle: `💬 새 댓글: ${task.title}`,
+          notifyBody: content.slice(0, 100),
+          actionUrl: `/workspace-kanban.html#task=${taskId}`,
+        });
+      }
+    } catch (e) { console.warn("[ai comment] 알림 실패:", e); }
     return { ok: true, output: { comment_id: id, ...preview }, rollbackData: { table: "workspace_task_comments", id } };
   } catch (e: any) {
     return { ok: false, error: `댓글 추가 실패: ${e?.message?.slice(0, 200)}` };
@@ -2694,15 +2829,17 @@ async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolR
   let before: any = null;
   try {
     const r: any = await db.execute(sql`
-      SELECT id, member_id, assigned_to, title, status, due_date, priority, progress
+      SELECT id, member_id, assigned_to, assigned_by, title, status, due_date, priority, progress
         FROM workspace_tasks WHERE id = ${id} LIMIT 1
     `);
     before = (r?.rows ?? r ?? [])[0];
   } catch {}
   if (!before) return { ok: false, error: "작업 없음" };
-  /* 소유자(member_id) 또는 배정자(assigned_to)만 삭제 가능 */
-  if (Number(before.member_id) !== adminId && Number(before.assigned_to) !== adminId) {
-    return { ok: false, error: "본인이 소유하거나 배정받은 작업만 삭제 가능합니다" };
+  // [감사#7] 본 API와 동일 — 지시받은 담당자는 삭제 불가(기존 AI 경로는 담당자 삭제를 허용해 지시자 몰래 영구삭제 가능).
+  //   본인 소유 '개인 작업'(지시 아님) 또는 super_admin만.
+  const canDelete = (Number(before.member_id) === adminId && !before.assigned_by) || await aiIsSuperAdmin(adminId);
+  if (!canDelete) {
+    return { ok: false, error: "지시받은 작업은 삭제할 수 없습니다 (본인 개인작업·이사장만 가능)" };
   }
 
   /* 종속 카운트 표시 */
@@ -2721,7 +2858,12 @@ async function tool_taskDelete(args: any, adminId: number | null): Promise<ToolR
     return { ok: true, preview, output: { dry_run: true, message: `승인 대기. 작업 + 댓글 ${commentCount}건 + 보고서 ${reportCount}건 + 첨부연결 ${attachmentCount}건 영구 삭제됩니다.` } };
   }
   try {
+    // [감사#4] 서브태스크 먼저 삭제(parent_task_id는 FK 아님 → 부모만 지우면 고아). 하위 댓글·첨부·워처는 FK cascade.
+    await db.execute(sql`DELETE FROM workspace_tasks WHERE parent_task_id = ${id}`);
     await db.execute(sql`DELETE FROM workspace_tasks WHERE id = ${id}`);
+    try {
+      await logTaskChange({ actorId: adminId!, taskId: id, taskTitle: before.title, actionType: "task.delete", metadata: { via: "ai_agent", status: before.status } });
+    } catch (e) { console.warn("[ai task_delete] 로그 실패:", e); }
     return { ok: true, output: { deleted: true, taskId: id, cascaded: { comments: commentCount, reports: reportCount, attachments: attachmentCount } }, rollbackData: { table: "workspace_tasks", id, before } };
   } catch (e: any) {
     return { ok: false, error: `작업 삭제 실패: ${e?.message?.slice(0, 200)}` };
