@@ -162,8 +162,6 @@ export default async function handler(req: Request) {
           outLat: existing?.checkOutLat, outLng: existing?.checkOutLng,
           workplaceId: existing?.workplaceId ?? null,
         });
-        const nsJson = JSON.stringify(ns);
-
         // ★ 근무시간·야근시간 재계산 (유연 출근 하한 반영) — 승인이 집계에 반영되도록 (기존 누락 버그 fix)
         let workingMins: number | null = null;
         let overtimeMins = 0;
@@ -179,25 +177,33 @@ export default async function handler(req: Request) {
           overtimeMins = summary.overtimeMins;
         }
 
-        // UPSERT (working_mins·overtime_mins 포함)
-        await db.execute(sql`
-          INSERT INTO att_records
-            (member_uid, date, check_in_time, check_out_time, status, is_manually_adjusted, sessions, working_mins, overtime_mins)
-          VALUES
-            (${correction.memberUid}, ${String(correction.targetDate)}::date,
-             ${newCheckIn as any}, ${newCheckOut as any}, ${newStatus}, true, ${nsJson}::jsonb,
-             ${workingMins as any}, ${overtimeMins})
-          ON CONFLICT (member_uid, date)
-          DO UPDATE SET
-            check_in_time  = ${newCheckIn as any},
-            check_out_time = ${newCheckOut as any},
-            status         = ${newStatus},
-            is_manually_adjusted = true,
-            sessions       = ${nsJson}::jsonb,
-            working_mins   = ${workingMins as any},
-            overtime_mins  = ${overtimeMins},
-            updated_at     = NOW()
-        `);
+        // UPSERT — drizzle insert(att-checkin/checkout와 동일 방식·타입 안전).
+        //   기존 raw SQL의 Date 바인딩이 조용히 실패해 '승인해도 반영 안됨'이었음.
+        const ciDate = newCheckIn  ? new Date(newCheckIn  as any) : null;
+        const coDate = newCheckOut ? new Date(newCheckOut as any) : null;
+        await db.insert(attRecords).values({
+          memberUid: correction.memberUid,
+          date: String(correction.targetDate),
+          checkInTime: ciDate,
+          checkOutTime: coDate,
+          status: newStatus,
+          isManuallyAdjusted: true,
+          sessions: ns as any,
+          workingMins,
+          overtimeMins,
+        } as any).onConflictDoUpdate({
+          target: [attRecords.memberUid, attRecords.date],
+          set: {
+            checkInTime: ciDate,
+            checkOutTime: coDate,
+            status: newStatus,
+            isManuallyAdjusted: true,
+            sessions: ns as any,
+            workingMins,
+            overtimeMins,
+            updatedAt: new Date(),
+          } as any,
+        });
       } catch (err) {
         // 조용한 실패 방지 — 반영 실패 시 결재 중단(결재 상태도 안 바꿈)
         return jsonError("apply_att_record", err);

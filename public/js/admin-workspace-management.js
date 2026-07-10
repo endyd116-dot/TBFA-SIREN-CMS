@@ -212,7 +212,7 @@
       method: 'POST',
       body: { requestId: id, action: 'APPROVED', note: '' },
     });
-    if (!res.ok) { toast('승인 실패: ' + (res.data?.error || '')); return; }
+    if (!res.ok) { toast('승인 실패: ' + (res.data?.error || '') + (res.data?.detail ? ' — ' + res.data.detail : '')); return; }
     toast('수정요청 승인 완료');
     await loadPendingAmends();
   };
