@@ -191,17 +191,14 @@ export default async (req: Request, _ctx: Context) => {
 
         const conds: any[] = [];
 
-        // 스코프
+        // 스코프 — [감사#18] 기본='전체(공유)': 전 운영자 일정 표시(Swain 결정·소유자명 병기).
+        //   mine=내가 만든 것만 / attending=초대받은 것만 / 그 외(기본)=전원 일정
         if (mine) {
           conds.push(eq(workspaceEvents.memberId, meId));
         } else if (attending) {
           conds.push(sql`${workspaceEvents.attendees} @> ${JSON.stringify([{ memberId: meId }])}::jsonb`);
-        } else {
-          conds.push(or(
-            eq(workspaceEvents.memberId, meId),
-            sql`${workspaceEvents.attendees} @> ${JSON.stringify([{ memberId: meId }])}::jsonb`
-          ));
         }
+        // else(전체 공유): member 조건 없음 — 모든 운영자 일정 반환
 
         // P1-15 fix: 날짜만 온 from/to는 KST 하루 경계로 해석
         // (과거 new Date('YYYY-MM-DD')=UTC 자정=KST 09:00라 일 보기에서 오전 9시 이후 일정 누락)
@@ -216,7 +213,17 @@ export default async (req: Request, _ctx: Context) => {
           .orderBy(asc(workspaceEvents.startAt))
           .limit(limit);
 
-        const typedEvents = eventItems.map((e: any) => ({ type: "event", ...e }));
+        // [감사#18] 공유 캘린더 — 소유자 이름 병기(전 운영자 일정 구분용)
+        let ownerMap: Record<number, string> = {};
+        const ownerIds = [...new Set(eventItems.map((e: any) => e.memberId).filter(Boolean))];
+        if (ownerIds.length > 0) {
+          try {
+            const owners: any = await db.select({ id: members.id, name: members.name })
+              .from(members).where(sql`${members.id} = ANY(${ownerIds})`);
+            for (const o of owners) ownerMap[o.id] = o.name;
+          } catch { /* 이름 조회 실패는 무시 */ }
+        }
+        const typedEvents = eventItems.map((e: any) => ({ type: "event", ...e, ownerName: ownerMap[e.memberId] || null }));
 
         // Phase 21 R4 — 메모 미러링 (includeMemos=1 + from/to 기간 내 showInCalendar=true 메모)
         let memoItems: any[] = [];

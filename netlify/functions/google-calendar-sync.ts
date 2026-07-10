@@ -79,6 +79,9 @@ export default async (req: Request, _ctx: Context) => {
     let synced = 0;
     let failed = 0;
 
+    const createUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+    const authHeaders = { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" };
+
     for (const ev of events as any[]) {
       try {
         const gEvent = {
@@ -93,19 +96,33 @@ export default async (req: Request, _ctx: Context) => {
           location: ev.location || "",
         };
 
-        const gcRes = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(gEvent),
+        // [감사#19] externalRef(구글 event id)가 있으면 PATCH(수정), 없으면 POST(생성) 후 id 저장
+        //   → 동기화를 반복해도 같은 일정이 중복 생성되지 않음. 구글에서 삭제됐으면(404/410) 재생성.
+        let gcRes: Response;
+        let newExternalRef: string | null = null;
+        if (ev.externalRef) {
+          gcRes = await fetch(`${createUrl}/${encodeURIComponent(ev.externalRef)}`, {
+            method: "PATCH", headers: authHeaders, body: JSON.stringify(gEvent),
+          });
+          if (gcRes.status === 404 || gcRes.status === 410) {
+            gcRes = await fetch(createUrl, { method: "POST", headers: authHeaders, body: JSON.stringify(gEvent) });
+            if (gcRes.ok) { const c: any = await gcRes.json().catch(() => ({})); newExternalRef = c?.id || null; }
           }
-        );
-        if (gcRes.ok) synced++;
-        else failed++;
+        } else {
+          gcRes = await fetch(createUrl, { method: "POST", headers: authHeaders, body: JSON.stringify(gEvent) });
+          if (gcRes.ok) { const c: any = await gcRes.json().catch(() => ({})); newExternalRef = c?.id || null; }
+        }
+
+        if (gcRes.ok) {
+          synced++;
+          if (newExternalRef) {
+            await db.update(workspaceEvents)
+              .set({ externalRef: newExternalRef, updatedAt: new Date() } as any)
+              .where(eq(workspaceEvents.id, ev.id));
+          }
+        } else {
+          failed++;
+        }
       } catch {
         failed++;
       }

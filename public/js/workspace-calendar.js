@@ -12,20 +12,7 @@
 (function () {
   'use strict';
 
-  // mock 데이터 (B 머지 전 사용 — B 머지 후 실제 API 응답으로 자동 대체)
-  const MOCK_EVENTS = [
-    { type: 'event', id: 7,  title: '운영회의', startAt: '2026-05-13T10:00:00', endAt: '2026-05-13T11:00:00', allDay: false },
-    { type: 'memo',  id: 12, title: '예시 메모', startAt: '2026-05-15T14:00:00', endAt: null, allDay: false, color: '#fff3cd', isPinned: false },
-  ];
-
-  // mock 데이터 — RSVP (B 머지 전)
-  const MOCK_RSVPS = {
-    ok: true,
-    data: { rsvps: [], summary: { yes: 0, no: 0, maybe: 0 } },
-  };
-
-  // mock 데이터 — 구글 캘린더 연동 상태 (B 머지 전)
-  const MOCK_GCAL_STATUS = { ok: true, data: { connected: false } };
+  // [감사#73] mock 데이터(MOCK_EVENTS/MOCK_RSVPS/MOCK_GCAL_STATUS) 제거 — 로드 실패 시 오류 안내로 전환
 
   const STATE = {
     calendar: null,
@@ -274,9 +261,12 @@
           const cls = row.eventType && row.eventType !== 'general'
             ? `wc-ev-event-${row.eventType}`
             : 'wc-ev-event';
+          // [감사#18] 공유 캘린더 — 남의 일정이면 소유자명 병기
+          const _mine = STATE.me && Number(row.memberId) === Number(STATE.me.id);
+          const _owner = (!_mine && row.ownerName) ? ` · ${row.ownerName}` : '';
           result.push({
             id: `event-${row.id}`,
-            title: `[일정] ${row.title}`,
+            title: `[일정] ${row.title}${_owner}`,
             start: row.startAt,
             end: row.endAt,
             allDay: !!row.allDay,
@@ -287,44 +277,17 @@
               location: row.location,
               description: row.description,
               eventType: row.eventType,
+              ownerName: row.ownerName || null,
             },
           });
         }
       }
       return result;
     } catch (err) {
-      // API 미존재(B 머지 전) 시 mock 데이터로 폴백
-      console.warn('[calendar] events/memos 로드 실패 — mock 사용:', err);
-      return MOCK_EVENTS.map(row => {
-        if (row.type === 'memo') {
-          if (!STATE.showMemos) return null;
-          /* ★ 2026-05-16: row.color에 named color('red')·잘못된 hex가 박힐 수 있음.
-             유효한 hex만 통과시키고 그 외엔 안전한 메모 기본색(연한 노랑)으로 폴백. */
-          const _rawColor = row.color || '';
-          const bgColor = /^#[0-9a-fA-F]{3,6}$/.test(_rawColor) ? _rawColor : '#fff3cd';
-          return {
-            id: `memo-${row.id}`,
-            title: `📝 ${row.title}`,
-            start: row.startAt,
-            allDay: !!row.allDay,
-            backgroundColor: bgColor,
-            borderColor: bgColor,
-            textColor: yiqTextColor(bgColor),
-            classNames: ['wc-ev-memo'],
-            extendedProps: { type: 'memo', memoId: row.id, color: bgColor },
-          };
-        }
-        if (!STATE.showEvents) return null;
-        return {
-          id: `event-${row.id}`,
-          title: `[일정] ${row.title}`,
-          start: row.startAt,
-          end: row.endAt,
-          allDay: !!row.allDay,
-          classNames: ['wc-ev-event'],
-          extendedProps: { type: 'event', eventId: row.id },
-        };
-      }).filter(Boolean);
+      // [감사#73] 로드 실패 시 가짜(mock) 일정을 그리지 않음 — 실재하지 않는 회의를 진짜로 오인하던 문제 제거
+      console.error('[calendar] events/memos 로드 실패:', err);
+      toast('일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      return [];
     }
   }
 
@@ -549,7 +512,8 @@
       const res = await api(`/api/workspace-event-rsvps?eventId=${eventId}`);
       data = res.data || res;
     } catch (_) {
-      data = MOCK_RSVPS.data;
+      // [감사#73] mock 제거 — 실패 시 빈 집계
+      data = { rsvps: [], summary: { yes: 0, no: 0, maybe: 0 } };
     }
     const summary = data.summary || { yes: 0, no: 0, maybe: 0 };
     const summaryEl = $('#wcRsvpSummary');
@@ -595,7 +559,7 @@
       const res = await api('/api/google-calendar-status');
       connected = !!((res.data || res).connected);
     } catch (_) {
-      connected = MOCK_GCAL_STATUS.data.connected;
+      connected = false;  // [감사#73] mock 제거 — 실패 시 미연동으로 간주(재연동 버튼 노출)
     }
     const connectBtn = $('#wcBtnGcalConnect');
     const syncBtn = $('#wcBtnGcalSync');
@@ -631,6 +595,36 @@
   }
 
   /* ═══════════════════ 캘린더 초기화 ═══════════════════ */
+  // [감사#69] 공휴일 배경 표시 — 서버 공휴일 API가 있으나 캘린더에 미연결이었음(연도 캐시)
+  const _holidayCache = {};
+  async function fetchHolidays(start, end) {
+    try {
+      const years = new Set();
+      const s = new Date(start), e = new Date(end);
+      for (let y = s.getFullYear(); y <= e.getFullYear(); y++) years.add(y);
+      const out = [];
+      for (const y of years) {
+        if (!_holidayCache[y]) {
+          try {
+            const res = await api(`/api/workspace-holidays?year=${y}`);
+            _holidayCache[y] = ((res.data || res).holidays) || [];
+          } catch (_) { _holidayCache[y] = []; }
+        }
+        for (const d of _holidayCache[y]) {
+          out.push({
+            start: d,
+            allDay: true,
+            display: 'background',
+            backgroundColor: 'rgba(239,68,68,0.13)',
+            classNames: ['wc-holiday'],
+            extendedProps: { type: 'holiday' },
+          });
+        }
+      }
+      return out;
+    } catch (_) { return []; }
+  }
+
   function initCalendar() {
     const el = $('#wcCalendar');
     if (!el) return;
@@ -685,8 +679,11 @@
       },
       events: async (info, success, failure) => {
         try {
-          const items = await fetchEvents(info.start, info.end);
-          success(items);
+          const [items, holidays] = await Promise.all([
+            fetchEvents(info.start, info.end),
+            fetchHolidays(info.start, info.end),  // [감사#69] 공휴일 배경 주입
+          ]);
+          success([...items, ...holidays]);
         } catch (err) {
           failure(err);
         }
@@ -780,15 +777,24 @@
         const res = await api('/api/google-calendar-auth');
         const authUrl = (res.data || res).authUrl;
         if (authUrl) {
-          window.open(authUrl, 'gcal_auth', 'width=600,height=700');
-          // 팝업 완료 후 상태 재확인 (5초 후)
-          setTimeout(() => loadGcalStatus(), 5000);
+          const popup = window.open(authUrl, 'gcal_auth', 'width=600,height=700');
+          // [감사#71] 5초 고정 재확인은 동의 지연 시 연동 전에 실행됨 → 팝업 종료를 감지해 재확인
+          const iv = setInterval(() => {
+            if (!popup || popup.closed) { clearInterval(iv); loadGcalStatus(); }
+          }, 1000);
+          setTimeout(() => { try { clearInterval(iv); } catch (_) {} loadGcalStatus(); }, 120000);
         } else {
           toast('인증 URL을 받지 못했어요', 'error');
         }
       } catch (err) {
         toast('구글 캘린더 연동 실패: ' + err.message, 'error');
       }
+    });
+
+    // [감사#71] 콜백 팝업의 완료 신호(postMessage) 수신 → 즉시 연동 상태 갱신
+    window.addEventListener('message', (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data && e.data.type === 'gcal-connected') loadGcalStatus();
     });
 
     // 구글 캘린더 동기화 버튼
