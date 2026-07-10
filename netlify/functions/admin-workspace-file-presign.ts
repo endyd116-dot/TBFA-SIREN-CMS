@@ -8,7 +8,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { db } from "../../db";
 import { workspaceFiles, workspaceFolders, workspaceFileShares } from "../../db/schema";
-import { eq, and, or, isNull } from "drizzle-orm";
+import { eq, and, or, isNull, sql } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
 import { getR2Client, R2_BUCKET, generateBlobKey } from "../../lib/r2-client";
 import {
@@ -34,7 +34,9 @@ async function checkFolderWriteAccess(folderId: number, meId: number, isSuperAdm
         eq(workspaceFileShares.targetType, "folder"),
         eq(workspaceFileShares.targetId, folderId),
         or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith)),
-        eq(workspaceFileShares.permission, "edit")
+        eq(workspaceFileShares.permission, "edit"),
+        // [감사#82] 만료된 폴더 편집공유로는 업로드 불가
+        or(isNull(workspaceFileShares.expiresAt), sql`${workspaceFileShares.expiresAt} > NOW()`)
       )
     )
     .limit(1);

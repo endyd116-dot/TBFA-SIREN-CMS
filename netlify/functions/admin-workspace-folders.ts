@@ -21,6 +21,7 @@ import {
   serverError, parseJson
 } from "../../lib/response";
 import { logAudit } from "../../lib/audit";
+import { deleteFromR2 } from "../../lib/r2-delete";
 
 const MAX_DEPTH = 10;
 const MAX_NAME_LEN = 200;
@@ -49,7 +50,9 @@ async function checkFolderAccess(folder: any, meId: number, isSuperAdmin: boolea
       and(
         eq(workspaceFileShares.targetType, "folder"),
         eq(workspaceFileShares.targetId, folder.id),
-        or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith))
+        or(eq(workspaceFileShares.sharedWith, meId), isNull(workspaceFileShares.sharedWith)),
+        // [감사#82] 만료된 폴더 공유는 접근 불가 (파일 공유와 정합)
+        or(isNull(workspaceFileShares.expiresAt), sql`${workspaceFileShares.expiresAt} > NOW()`)
       )
     )
     .limit(5);
@@ -157,7 +160,9 @@ export default async (req: Request, _context: Context) => {
                 or(
                   eq(workspaceFileShares.sharedWith, meId),
                   isNull(workspaceFileShares.sharedWith)
-                )
+                ),
+                // [감사#82] 만료된 폴더 공유는 트리에서 제외
+                or(isNull(workspaceFileShares.expiresAt), sql`${workspaceFileShares.expiresAt} > NOW()`)
               )
             );
           const sharedIds = sharedFolderIdsRows.map((r: any) => r.targetId);
@@ -415,24 +420,49 @@ export default async (req: Request, _context: Context) => {
       const allIds = await getDescendantFolderIds(id);
 
       if (hard) {
-        // 영구 삭제 (R2 정리는 향후 cron, 일단 DB에서만)
+        // [감사#78] 하위 파일의 R2 원본까지 삭제 후 DB 정리 — 기존 DB-only 삭제는 추적 불가 고아 양산
+        let r2Failed = 0;
         if (allIds.length > 0) {
-          await db.delete(workspaceFiles).where(inArray(workspaceFiles.folderId, allIds));
+          const filesInFolders: any = await db
+            .select({ id: workspaceFiles.id, r2Key: workspaceFiles.r2Key })
+            .from(workspaceFiles).where(inArray(workspaceFiles.folderId, allIds));
+          for (const f of (filesInFolders as any[])) {
+            let r2Ok = true;
+            if (f.r2Key) {
+              const r = await deleteFromR2(f.r2Key);
+              if (!r.success) r2Ok = false;
+            }
+            if (r2Ok) {
+              // 파일 단위 공유(targetType='file')도 함께 정리 후 DB 삭제
+              await db.delete(workspaceFileShares).where(
+                and(eq(workspaceFileShares.targetType, "file"), eq(workspaceFileShares.targetId, f.id))
+              );
+              await db.delete(workspaceFiles).where(eq(workspaceFiles.id, f.id));
+            } else {
+              r2Failed++;  // R2 실패 파일은 행 보존(다음 크론 재시도)
+            }
+          }
+          // 폴더 단위 공유 정리
           await db.delete(workspaceFileShares).where(
-            and(
-              eq(workspaceFileShares.targetType, "folder"),
-              inArray(workspaceFileShares.targetId, allIds)
-            )
+            and(eq(workspaceFileShares.targetType, "folder"), inArray(workspaceFileShares.targetId, allIds))
           );
-          await db.delete(workspaceFolders).where(inArray(workspaceFolders.id, allIds));
+          // R2 삭제 실패 파일이 남아 있으면 폴더를 지우면 미아 → 실패 0일 때만 폴더 삭제
+          if (r2Failed === 0) {
+            await db.delete(workspaceFolders).where(inArray(workspaceFolders.id, allIds));
+          }
         }
         await logAudit({
           userId: meId,
           action: "workspace.folder.delete.hard",
           target: `workspace_folder:${id}`,
-          detail: { name: folder.name, descendantCount: allIds.length }
+          detail: { name: folder.name, descendantCount: allIds.length, r2Failed }
         });
-        return ok({ id, deletedFolders: allIds.length }, "영구 삭제되었습니다");
+        return ok(
+          { id, deletedFolders: r2Failed === 0 ? allIds.length : 0, r2Failed },
+          r2Failed === 0
+            ? "영구 삭제되었습니다"
+            : `일부 파일의 저장소 삭제에 실패해 보존했습니다(${r2Failed}건). 잠시 후 다시 시도해 주세요`
+        );
       }
 
       // soft delete (재귀)

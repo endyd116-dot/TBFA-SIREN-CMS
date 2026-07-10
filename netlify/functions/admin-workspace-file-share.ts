@@ -16,6 +16,7 @@ import {
   methodNotAllowed, parseJson
 } from "../../lib/response";
 import { logAudit } from "../../lib/audit";
+import { sendWorkspaceNotification } from "../../lib/workspace-logger";
 
 async function getTarget(targetType: string, targetId: number): Promise<any | null> {
   if (targetType === "file") {
@@ -37,6 +38,7 @@ export default async (req: Request, _ctx: Context) => {
     if (!auth.ok) return (auth as { ok: false; res: Response }).res;
     const meId = (auth.ctx.member as any).id as number;
     const isSuperAdmin = ((auth.ctx.member as any).role || "") === "super_admin";
+    const adminName = (auth.ctx.member as any).name || "운영자";
 
     const url = new URL(req.url);
 
@@ -143,6 +145,27 @@ export default async (req: Request, _ctx: Context) => {
         target: `workspace_${targetType}:${targetId}`,
         detail: { sharedWith, permission, expiresAt: expiresAt?.toISOString() }
       });
+
+      // [감사#76] 공유 대상에게 벨 알림 — 작업 지시·일정 초대처럼 공유도 알림 발송(특정 대상만)
+      if (sharedWith && sharedWith !== meId) {
+        try {
+          const isFolder = targetType === "folder";
+          const linkFolder = isFolder ? targetId : (target.folderId || null);
+          await sendWorkspaceNotification({
+            memberId: sharedWith,
+            sourceType: "file_share",
+            sourceId: inserted[0].id,
+            notifType: "invited",
+            channel: "bell",
+            title: `${isFolder ? "📁 폴더" : "📎 파일"} 공유: ${target.name}`,
+            body: `${adminName}님이 ${permission === "edit" ? "편집" : "보기"} 권한으로 공유했어요`,
+            actionUrl: linkFolder ? `/workspace-files.html?folder=${linkFolder}` : `/workspace-files.html`,
+            category: "system",
+          });
+        } catch (e) {
+          console.warn("[file-share] 공유 알림 발송 실패(무시):", e);
+        }
+      }
 
       return ok(inserted[0], "공유가 생성되었습니다");
     }

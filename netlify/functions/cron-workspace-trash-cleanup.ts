@@ -29,6 +29,7 @@ export default async (req: Request, context: Context) => {
   let r2Failed = 0;
   let foldersPurged = 0;
   let blobOrphansDeleted = 0;
+  let staleUploadsPurged = 0;
   const errors: string[] = [];
 
   try {
@@ -47,19 +48,50 @@ export default async (req: Request, context: Context) => {
 
     for (const file of (targetFiles as any[])) {
       try {
+        let r2Ok = true;
         if (file.r2Key) {
           const r = await deleteFromR2(file.r2Key);
           if (r.success) r2Deleted++;
           else {
+            r2Ok = false;
             r2Failed++;
             errors.push(`R2: ${file.name} (${r.error})`);
           }
         }
-        await db.delete(workspaceFiles).where(eq(workspaceFiles.id, file.id));
-        filesPurged++;
+        // [감사#77] R2 삭제 실패 시 DB 행 보존 → 다음 크론에서 재시도(저장소 고아 방지)
+        if (r2Ok) {
+          await db.delete(workspaceFiles).where(eq(workspaceFiles.id, file.id));
+          filesPurged++;
+        }
       } catch (e: any) {
         errors.push(`File ${file.id}: ${e?.message || "unknown"}`);
       }
+    }
+
+    /* 1.5 [감사#79] 24h 경과 pending/failed 업로드 정리 — presign 후 중단된 조각(목록·휴지통에 안 보여 수동 삭제 불가) */
+    try {
+      const staleCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const staleRows: any = await db
+        .select()
+        .from(workspaceFiles)
+        .where(and(
+          inArray(workspaceFiles.uploadStatus, ["pending", "failed"]),
+          lt(workspaceFiles.createdAt, staleCutoff as any)
+        ));
+      for (const f of (staleRows as any[])) {
+        try {
+          let r2Ok = true;
+          if (f.r2Key) {
+            const r = await deleteFromR2(f.r2Key);
+            if (r.success) r2Deleted++;
+            else { r2Ok = false; r2Failed++; errors.push(`R2(stale): ${f.name} (${r.error})`); }
+          }
+          if (r2Ok) { await db.delete(workspaceFiles).where(eq(workspaceFiles.id, f.id)); staleUploadsPurged++; }
+        } catch (e: any) { errors.push(`Stale ${f.id}: ${e?.message || "unknown"}`); }
+      }
+    } catch (e: any) {
+      console.warn("[cron-trash] stale upload 정리 실패:", e?.message || e);
+      errors.push(`StaleUpload: ${e?.message || "unknown"}`);
     }
 
     /* 2. 30일 경과 폴더 처리 */
@@ -126,6 +158,7 @@ export default async (req: Request, context: Context) => {
           r2Failed,
           foldersPurged,
           blobOrphansDeleted,
+          staleUploadsPurged,
           durationMs,
           errors: errors.slice(0, 20),
         },
@@ -135,7 +168,7 @@ export default async (req: Request, context: Context) => {
     }
 
     /* 5. 처리 결과 요약 */
-    console.log(`[cron-trash] 완료: 파일 ${filesPurged}/${filesProcessed}, 폴더 ${foldersPurged}, R2 ${r2Deleted}/${r2Failed}, blob orphan ${blobOrphansDeleted}, ${durationMs}ms`);
+    console.log(`[cron-trash] 완료: 파일 ${filesPurged}/${filesProcessed}, 폴더 ${foldersPurged}, R2 ${r2Deleted}/${r2Failed}, blob orphan ${blobOrphansDeleted}, stale ${staleUploadsPurged}, ${durationMs}ms`);
 
     return new Response(
       JSON.stringify({
@@ -146,6 +179,7 @@ export default async (req: Request, context: Context) => {
         r2Failed,
         foldersPurged,
         blobOrphansDeleted,
+        staleUploadsPurged,
         durationMs,
         errorsCount: errors.length,
         errorsSample: errors.slice(0, 5),

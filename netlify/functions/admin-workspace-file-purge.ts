@@ -3,7 +3,7 @@
  * DELETE /api/admin-workspace-file-purge?fileId=N
  *   파일 영구 삭제 (DB row + R2 객체)
  *   - 권한: super_admin or 소유자
- *   - R2 실패해도 DB 삭제는 진행 (고아 파일은 cron이 정리)
+ *   - [감사#77] R2 삭제 성공 후에만 DB 삭제 (실패 시 행 보존·크론 재시도 — 저장소 고아 방지)
  */
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
@@ -45,6 +45,14 @@ export default async (req: Request) => {
     let r2Result: { success: boolean; error?: string } = { success: true };
     if ((file as any).r2Key) {
       r2Result = await deleteFromR2((file as any).r2Key);
+    }
+
+    // [감사#77] R2 삭제 실패 시 DB 행 보존 → 크론/재호출 재시도(추적 불가 고아 방지)
+    if (!r2Result.success) {
+      return ok(
+        { success: false, r2Deleted: false, r2Error: r2Result.error },
+        "저장소 파일 삭제에 실패했습니다. 기록을 보존했으니 잠시 후 다시 시도해 주세요"
+      );
     }
 
     await db.delete(workspaceFiles).where(eq(workspaceFiles.id, fileId));
