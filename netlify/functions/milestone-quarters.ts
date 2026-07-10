@@ -1,13 +1,15 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
 export const config = { path: "/api/milestone-quarters*" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  // P1-23 fix: 형제 성과 API(pending·progress·done·create-tasks)와 동일하게 운영자 허용.
+  //            쓰기(POST·PATCH)는 아래에서 isSuperAdmin 재검사하므로 GET만 완화돼도 안전.
+  const auth = await requireOperator(req);
+  if (operatorGuardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   const isSuperAdmin = admin?.role === "super_admin";
 

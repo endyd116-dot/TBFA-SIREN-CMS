@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attHolidays } from "../../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin-att-holidays" };
 
@@ -21,8 +22,13 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  if ((auth as any).ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+  // P2-39 fix: 조회(GET)는 근태 설정 권한(att_config) 국장 허용, 변경(POST/PUT/DELETE)은 이사장(super_admin) 전용.
+  //            (권한정책 카탈로그 att_config adminDefault·설정 라벨 '저장은 이사장 전용'과 일치)
+  const _role = (auth as any).ctx.member.role ?? "";
+  if (req.method === "GET"
+        ? !(_role === "super_admin" || await canAccess(_role, "att_config"))
+        : _role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

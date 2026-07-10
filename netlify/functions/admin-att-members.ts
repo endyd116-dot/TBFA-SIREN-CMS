@@ -9,6 +9,7 @@ import { db } from "../../db/index";
 import { members } from "../../db/schema";
 import { and, eq, isNull, asc, inArray } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin-att-members" };
 
@@ -28,8 +29,10 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
-  if (auth.ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용", step: "role_check" }), {
+  // P1-19 fix: 직원 목록은 근태 현황(att_manage) 화면이 함께 부르는 조회 API → 국장(admin)도 허용
+  //            (admin-att-records와 동일 게이트). GET 전용이라 쓰기 노출 없음.
+  if (!(await canAccess(auth.ctx.member.role ?? "", "att_manage"))) {
+    return new Response(JSON.stringify({ ok: false, error: "근태 관리 권한이 없습니다", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

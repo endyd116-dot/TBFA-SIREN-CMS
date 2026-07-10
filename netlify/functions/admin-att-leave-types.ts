@@ -8,6 +8,7 @@
 import { db } from "../../db/index";
 import { sql } from "drizzle-orm";
 import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin-att-leave-types" };
 
@@ -39,8 +40,12 @@ async function hasExtCols(): Promise<boolean> {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (guardFailed(auth)) return auth.res;
-  if (auth.ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용" }), {
+  // P2-39 fix: 조회(GET)는 근태 설정 권한(att_config) 국장 허용, 변경은 이사장(super_admin) 전용
+  const _role = auth.ctx.member.role ?? "";
+  if (req.method === "GET"
+        ? !(_role === "super_admin" || await canAccess(_role, "att_config"))
+        : _role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

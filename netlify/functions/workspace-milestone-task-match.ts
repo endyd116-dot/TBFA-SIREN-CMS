@@ -4,7 +4,7 @@
  * body: { taskId, milestoneDefId, action: 'confirm' | 'skip' }
  */
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 
@@ -13,8 +13,10 @@ export const config = { path: "/api/workspace-milestone-task-match" };
 export default async function handler(req: Request, _ctx: Context) {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST only" }, { status: 405 });
 
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  // P1-22 fix: 형제 성과 API(pending·progress·done·create-tasks)와 동일하게 운영자 허용.
+  //            아래 task.member_id === member.id 소유자 검증이 있어 IDOR 위험 없음.
+  const auth = await requireOperator(req);
+  if (operatorGuardFailed(auth)) return auth.res;
   const member = auth.ctx.member as any;
 
   let body: any = {};

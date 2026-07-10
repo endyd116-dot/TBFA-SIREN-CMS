@@ -2,6 +2,7 @@ import { db } from "../../db/index";
 import { attSchedules, attScheduleOverrides } from "../../db/schema";
 import { eq, and, lte, gte, or, isNull } from "drizzle-orm";
 import { requireAdmin } from "../../lib/admin-guard";
+import { canAccess } from "../../lib/role-permission-check";
 
 export const config = { path: "/api/admin/att/work-mode" };
 
@@ -21,8 +22,12 @@ function jsonError(step: string, err: any, status = 500) {
 export default async function handler(req: Request) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return (auth as any).res;
-  if (auth.ctx.member.role !== "super_admin") {
-    return new Response(JSON.stringify({ ok: false, error: "슈퍼어드민 전용", step: "role_check" }), {
+  // P2-39 fix: 조회(GET)는 근태 설정 권한(att_config) 국장 허용, 변경은 이사장(super_admin) 전용
+  const _role = auth.ctx.member.role ?? "";
+  if (req.method === "GET"
+        ? !(_role === "super_admin" || await canAccess(_role, "att_config"))
+        : _role !== "super_admin") {
+    return new Response(JSON.stringify({ ok: false, error: req.method === "GET" ? "근태 설정 조회 권한이 없습니다" : "슈퍼어드민 전용", step: "role_check" }), {
       status: 403, headers: { "Content-Type": "application/json" },
     });
   }

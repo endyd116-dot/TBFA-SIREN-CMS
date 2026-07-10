@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { requireAdmin, guardFailed } from "../../lib/admin-guard";
+import { requireOperator, operatorGuardFailed } from "../../lib/operator-guard";
 import { db } from "../../db";
 import { sql, eq } from "drizzle-orm";
 import { milestoneDefinitions } from "../../db/schema";
@@ -8,8 +8,10 @@ import { notifyMany } from "../../lib/notify";
 export const config = { path: "/api/milestone-definitions*" };
 
 export default async function handler(req: Request, _ctx: Context) {
-  const auth = await requireAdmin(req);
-  if (guardFailed(auth)) return auth.res;
+  // P1-24 fix: 매출 입력·WBS 카드 생성 폼의 마일스톤 목록. 형제 API처럼 운영자 허용(GET은 본인 role로 강제 필터).
+  //            쓰기(POST·PATCH·DELETE)는 아래에서 isSuperAdmin 재검사하므로 안전.
+  const auth = await requireOperator(req);
+  if (operatorGuardFailed(auth)) return auth.res;
   const admin = auth.ctx?.member as any;
   const isSuperAdmin = admin?.role === "super_admin";
 
