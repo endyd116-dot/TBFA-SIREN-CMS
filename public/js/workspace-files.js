@@ -21,6 +21,9 @@
     breadcrumbPath: [{ id: 0, name: '홈' }],
     contextTarget: null,         // { type, id, name } 우클릭 대상
     moveSelectedFolderId: 0,     // 이동 다이얼로그 선택
+    fileOffset: 0,               // [감사#74] 페이지네이션 offset
+    fileTotal: 0,                // [감사#74] 서버 총 파일 수
+    trashFolders: [],            // [감사#21] 휴지통 폴더 목록
   };
 
   /* ───────── API 클라이언트 ───────── */
@@ -278,25 +281,37 @@
   }
 
   /* ───────── 파일 리스트 ───────── */
-  async function loadFiles() {
+  const FILE_PAGE_SIZE = 100;
+  async function loadFiles(append = false) {
     const tbody = document.getElementById('wfFileListBody');
     const empty = document.getElementById('wfEmptyState');
     if (!tbody) return;
-    tbody.innerHTML = '<tr class="wf-list-loading"><td colspan="7">불러오는 중...</td></tr>';
-    if (empty) empty.style.display = 'none';
+    if (!append) {
+      state.fileOffset = 0;
+      tbody.innerHTML = '<tr class="wf-list-loading"><td colspan="7">불러오는 중...</td></tr>';
+      if (empty) empty.style.display = 'none';
+    }
 
     try {
       const params = new URLSearchParams();
       if (state.currentView === 'trash') {
         params.set('trash', '1');
+        // [감사#21] 휴지통 폴더도 함께 로드
+        await loadTrashFolders();
       } else {
         params.set('folderId', String(state.currentFolderId));
         if (state.currentView === 'mine') params.set('mine', '1');
         if (state.currentView === 'shared') params.set('shared', '1');
       }
       if (state.searchKeyword) params.set('search', state.searchKeyword);
+      // [감사#74] offset 페이지네이션 — 100건 초과분에 '더 보기'로 도달 가능하게
+      params.set('limit', String(FILE_PAGE_SIZE));
+      params.set('offset', String(state.fileOffset));
       const res = await api(`/api/admin-workspace-files?${params}`);
-      state.files = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
+      const items = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
+      state.fileTotal = Number(res.data?.total ?? items.length);
+      state.files = append ? state.files.concat(items) : items;
+      state.fileOffset = state.files.length;
       renderFileList();
     } catch (err) {
       console.error('[files] load failed:', err);
@@ -312,16 +327,39 @@
 
     let files = state.files.slice();
     files = sortFiles(files, state.sortBy);
-    if (count) count.textContent = `파일 ${files.length}개`;
+    // [감사#74] 로드된/전체 건수 표기 — 잘린 사실을 운영자가 알 수 있게
+    if (count) {
+      count.textContent = (state.fileTotal > files.length)
+        ? `파일 ${files.length}/${state.fileTotal}개`
+        : `파일 ${files.length}개`;
+    }
 
-    if (!files.length) {
+    const trashFolders = (state.currentView === 'trash') ? (state.trashFolders || []) : [];
+    if (!files.length && !trashFolders.length) {
       tbody.innerHTML = '';
       if (empty) empty.style.display = 'flex';
       return;
     }
     if (empty) empty.style.display = 'none';
 
-    tbody.innerHTML = files.map(f => {
+    // [감사#21] 휴지통 폴더 섹션 (파일 행 위에 표시)
+    const folderRowsHtml = trashFolders.map(fd => `
+        <tr class="wf-list-row wf-trash-folder-row" data-folder-id="${fd.id}">
+          <td class="wf-col-check"></td>
+          <td class="wf-col-icon">📁</td>
+          <td class="wf-col-name">${escapeHtml(fd.name)} <small style="color:#9ca3af">(폴더)</small></td>
+          <td class="wf-col-owner">${escapeHtml(fd.ownerName || fd.ownerEmail || '—')}</td>
+          <td class="wf-col-size">—</td>
+          <td class="wf-col-date">${renderDday(fd.deletedAt)}</td>
+          <td class="wf-col-actions">
+            <div class="wf-row-actions">
+              <button class="wf-row-action-btn" data-faction="restore-folder" data-fid="${fd.id}" title="복원">↩</button>
+              <button class="wf-row-action-btn" data-faction="purge-folder" data-fid="${fd.id}" data-fname="${escapeHtml(fd.name)}" title="영구 삭제">✕</button>
+            </div>
+          </td>
+        </tr>`).join('');
+
+    tbody.innerHTML = folderRowsHtml + files.map(f => {
       const isSelected = state.selectedFileIds.has(f.id);
       const ownerName = f.ownerName || f.ownerEmail || '—';
       const isTrash = state.currentView === 'trash';
@@ -353,7 +391,26 @@
           </td>
         </tr>
       `;
-    }).join('');
+    }).join('') + ((state.currentView !== 'trash' && state.fileTotal > files.length)
+      ? `<tr class="wf-load-more-row"><td colspan="7" style="text-align:center;padding:12px">
+           <button class="wf-load-more-btn" data-load-more style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer">
+             더 보기 (${files.length}/${state.fileTotal})
+           </button></td></tr>`
+      : '');
+
+    // [감사#21] 휴지통 폴더 복원·영구삭제 버튼
+    tbody.querySelectorAll('[data-faction]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const fid = parseInt(btn.dataset.fid, 10);
+        if (btn.dataset.faction === 'restore-folder') restoreFolder(fid);
+        else if (btn.dataset.faction === 'purge-folder') openPurgeConfirm('folder', fid, btn.dataset.fname || '폴더');
+      });
+    });
+
+    // [감사#74] 더 보기 — 다음 페이지 append 로드
+    const moreBtn = tbody.querySelector('[data-load-more]');
+    if (moreBtn) moreBtn.addEventListener('click', () => loadFiles(true));
 
     // 체크박스
     tbody.querySelectorAll('input[data-select]').forEach(cb => {
@@ -471,6 +528,29 @@
       await loadFiles();
     } catch (err) {
       toast('영구 삭제 실패: ' + err.message, 'error');
+    }
+  }
+
+  /* ───────── 휴지통 폴더 (감사#21) ───────── */
+  async function loadTrashFolders() {
+    try {
+      const res = await api('/api/admin-workspace-folders?trash=1');
+      state.trashFolders = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
+    } catch (err) {
+      console.warn('[files] 휴지통 폴더 로드 실패:', err);
+      state.trashFolders = [];
+    }
+  }
+
+  async function restoreFolder(folderId) {
+    if (!confirm('이 폴더를 복원하시겠습니까?')) return;
+    try {
+      await api(`/api/admin-workspace-folders?id=${folderId}&action=restore`, { method: 'PATCH' });
+      toast('폴더가 복원되었습니다', 'success');
+      await loadFolders();
+      await loadFiles();
+    } catch (err) {
+      toast('폴더 복원 실패: ' + err.message, 'error');
     }
   }
 
@@ -650,7 +730,11 @@
       // Q3-001 fix: 소유자 검증 있는 보호판 엔드포인트로 일원화 (무검증 workspace-file-share 폐기)
       const res = await api(`/api/admin-workspace-file-share?${params}`);
       const shares = res.shares || res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []) || [];
-      const isPublic = res.isShared || res.data?.isShared || false;
+      // [감사#23] 공유목록 API엔 isShared 필드가 없음 → 현재 파일/폴더 상태에서 공개 여부를 읽음(항상 OFF로 뜨던 문제·반전 사고 방지)
+      const cur = type === 'folder'
+        ? (state.folders || []).find(x => Number(x.id) === Number(id))
+        : (state.files || []).find(x => Number(x.id) === Number(id));
+      const isPublic = cur ? !!cur.isShared : false;
 
       const publicToggle = document.getElementById('wfSharePublic');
       if (publicToggle) publicToggle.checked = !!isPublic;
@@ -737,9 +821,11 @@
 
   async function togglePublicShare(type, id, isPublic) {
     try {
+      // [감사#23] 목표값(value)을 명시 전송 — 서버 맹목 반전으로 인한 공개/비공개 뒤집힘 방지
+      const val = isPublic ? '1' : '0';
       const endpoint = type === 'folder'
-        ? `/api/admin-workspace-folders?id=${id}&action=toggle-public`
-        : `/api/admin-workspace-files?id=${id}&action=toggle-public`;
+        ? `/api/admin-workspace-folders?id=${id}&action=toggle-public&value=${val}`
+        : `/api/admin-workspace-files?id=${id}&action=toggle-public&value=${val}`;
       await api(endpoint, { method: 'PATCH' });
       toast(isPublic ? '전체 공개됨' : '공개 해제됨', 'success');
       await loadFolders();

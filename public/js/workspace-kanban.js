@@ -1812,8 +1812,22 @@
     ${it.fileDeletedAt ? '<span class="wk-file-deleted"> (삭제됨)</span>' : ''}
   </span>
   <span class="wk-file-size">${escapeHtml(formatSize(it.fileSize))}</span>
+  ${it.fileDeletedAt ? '' : `<button class="wk-file-remove" data-file-download="${it.fileId}" title="다운로드" style="color:#2563eb">📥</button>`}
   <button class="wk-file-remove" data-file-remove="${it.id}" title="연결 해제">✕</button>
 </li>`).join('');
+      // [감사#93] 첨부 파일 다운로드 — 파일함과 동일하게 presigned URL 열기(카드 접근권자 허용은 서버에서 처리)
+      $$('[data-file-download]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            const dl = await api(`/api/admin-workspace-file-download?id=${btn.dataset.fileDownload}`);
+            const dlUrl = dl.data?.downloadUrl || dl.data?.url || dl.downloadUrl;
+            if (!dlUrl) throw new Error('다운로드 URL 없음');
+            window.open(dlUrl, '_blank');
+          } catch (err) {
+            toast('다운로드 실패: ' + err.message, 'error');
+          }
+        });
+      });
       $$('[data-file-remove]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!confirm('이 파일 연결을 해제하시겠습니까? (파일함의 파일 자체는 삭제되지 않습니다)')) return;

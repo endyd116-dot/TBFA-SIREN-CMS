@@ -288,7 +288,10 @@ export default async (req: Request, _context: Context) => {
 
       // 공개 토글
       if (action === "toggle-public") {
-        const newVal = !folder.isShared;
+        // [감사#23] 명시적 목표값 우선(?value=1/0) — 반전 사고 방지. 없으면 기존 반전.
+        let newVal = !folder.isShared;
+        const valueParam = url.searchParams.get("value");
+        if (valueParam === "1" || valueParam === "0") newVal = valueParam === "1";
         await db
           .update(workspaceFolders)
           .set({ isShared: newVal, updatedAt: new Date() } as any)

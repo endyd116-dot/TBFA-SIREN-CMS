@@ -53,6 +53,19 @@ export default async (req: Request, _ctx: Context) => {
         .limit(1);
       canAccess = shares.length > 0;
     }
+    if (!canAccess) {
+      // [감사#93] 이 파일이 첨부된 카드의 접근권자(소유/담당/지시/완료자)면 다운로드 허용 — 카드 첨부 공유가 실제로 동작하게
+      const attach: any = await db.execute(sql`
+        SELECT 1
+          FROM workspace_task_attachments a
+          JOIN workspace_tasks t ON t.id = a.task_id
+         WHERE a.file_id = ${id}
+           AND (t.member_id = ${meId} OR t.assigned_to = ${meId} OR t.assigned_by = ${meId} OR t.completed_by = ${meId})
+         LIMIT 1
+      `);
+      const arows = attach?.rows ?? attach ?? [];
+      if (arows.length > 0) canAccess = true;
+    }
     if (!canAccess) return forbidden("접근 권한이 없습니다");
 
     // Pre-signed GET URL (15분)
