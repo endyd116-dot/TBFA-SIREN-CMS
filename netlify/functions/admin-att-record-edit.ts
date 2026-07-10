@@ -130,7 +130,7 @@ export default async function handler(req: Request, _ctx: Context) {
           /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
           let calcIn = new Date(effIn);
           const wm = newWorkMode !== undefined ? newWorkMode : old.work_mode;
-          if (policy.flexEnabled && wm === "OFFICE") {
+          if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
             const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
             if (calcIn.getTime() < floor.getTime()) calcIn = floor;
           }
@@ -263,7 +263,7 @@ async function createRecord(req: Request, auth: any, body: any) {
       if (policy) {
         /* ★ 2026-07-09 유연근무 출근 하한 — OFFICE+유연근무면 표준출근-유연범위(예 08:00) 이전 출근 미산입 */
         let calcIn = new Date(effIn);
-        if (policy.flexEnabled && workMode === "OFFICE") {
+        if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
           const floor = flexStartFloor(calcIn, String(policy.checkInTime), await getFlexRangeMins());
           if (calcIn.getTime() < floor.getTime()) calcIn = floor;
         }

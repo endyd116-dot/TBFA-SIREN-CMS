@@ -81,7 +81,7 @@ export default async function handler(req: Request) {
 
   /* ★ 2026-07-09 유연근무 출근 하한(floor) — OFFICE + 유연근무만. 하한 이전 출근은 근무·야근 미산입. */
   let minStart: Date | null = null;
-  if (policy.flexEnabled && existing.workMode === "OFFICE" && ns.length && ns[0].in) {
+  if (policy.flexEnabled && ns.length && ns[0].in) {   // 2026-07-10: 전 근무형태 하한 적용
     try {
       const flexRange = await getFlexRangeMins();
       minStart = flexStartFloor(new Date(ns[0].in), String(policy.checkInTime), flexRange);

@@ -167,7 +167,7 @@ export default async function handler(req: Request) {
         let overtimeMins = 0;
         if (policy && ciISO && coISO) {
           let minStart: Date | null = null;
-          if (policy.flexEnabled && existing?.workMode === "OFFICE") {
+          if (policy.flexEnabled) {   // 2026-07-10: 전 근무형태 하한 적용
             try { minStart = flexStartFloor(new Date(ciISO), String(policy.checkInTime), await getFlexRangeMins()); } catch {}
           }
           const summary = recomputeSummary(ns, {

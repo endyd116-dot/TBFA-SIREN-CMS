@@ -65,7 +65,8 @@ export default async function handler(req: Request) {
      표준출근(예 09:00) − 유연범위(예 60분) = 08:00 이전 출근은 근무·야근 계산에 미산입.
      (표시용 출근시각은 실제 도착 그대로 유지) */
   let minStart: Date | null = null;
-  if (policy.flexEnabled && existing.workMode === "OFFICE" && sessions.length && sessions[0].in) {
+  /* 2026-07-10 Swain: 하한은 재택·외근 포함 모든 근무형태 적용 (8시 이전 출근 미산입) */
+  if (policy.flexEnabled && sessions.length && sessions[0].in) {
     try {
       const flexRange = await getFlexRangeMins();
       minStart = flexStartFloor(new Date(sessions[0].in), String(policy.checkInTime), flexRange);
