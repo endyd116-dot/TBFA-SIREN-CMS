@@ -37,9 +37,12 @@
       opts.body = JSON.stringify(opts.body);
     }
     const res = await fetch(path, opts);
+    // [감사#17] noAuthRedirect 옵션이면 알럿·리다이렉트 없이 throw만 (인증 탐침용 — admin/me 폴백 도달)
     if (res.status === 401) {
-      alert('관리자 로그인이 필요합니다');
-      location.href = '/admin.html';
+      if (!options.noAuthRedirect) {
+        alert('관리자 로그인이 필요합니다');
+        location.href = '/admin.html';
+      }
       throw new Error('unauthorized');
     }
     const text = await res.text();
@@ -1479,15 +1482,18 @@
   async function initSidebar() {
     let me = null;
     try {
-      const userRes = await api('/api/auth/me');
+      // [감사#17] 인증 탐침은 noAuthRedirect — auth/me 401이어도 즉시 튕기지 않고 admin/me 폴백으로 진행
+      const userRes = await api('/api/auth/me', { noAuthRedirect: true });
       if (userRes.ok) me = userRes.data?.data || userRes.data?.user || userRes.data || null;
     } catch { /* 무시 */ }
     if (!me) {
       try {
-        const adminRes = await api('/api/admin/me?light=1');
+        const adminRes = await api('/api/admin/me?light=1', { noAuthRedirect: true });
         if (adminRes.ok) me = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
       } catch { /* 무시 */ }
     }
+    // [감사#17] 사용자·관리자 인증 둘 다 실패한 경우에만 로그인 페이지로 이동
+    if (!me) { location.href = '/admin.html'; return; }
     if (me) {
       // R35-GAP-P2 M-G7: regular 회원은 워크스페이스 부적합
       const isAdmin = me.role === 'admin' || me.role === 'super_admin';

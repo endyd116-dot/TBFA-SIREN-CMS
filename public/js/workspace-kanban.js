@@ -77,8 +77,9 @@
       ...opts,
       body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body
     });
+    // [감사#17] noAuthRedirect 옵션이면 401에도 리다이렉트하지 않고 throw만 (인증 탐침용)
     if (res.status === 401) {
-      location.href = '/admin.html';
+      if (!opts.noAuthRedirect) location.href = '/admin.html';
       throw new Error('인증 만료');
     }
     let data = null;
@@ -1003,15 +1004,18 @@
   async function loadMe() {
     let me = null;
     try {
-      const userRes = await api('/api/auth/me');
+      // [감사#17] 인증 탐침은 noAuthRedirect — auth/me 401이어도 즉시 튕기지 않고 admin/me 폴백으로 진행
+      const userRes = await api('/api/auth/me', { noAuthRedirect: true });
       if (userRes.ok) me = userRes.data?.data || userRes.data?.user || userRes.data || null;
     } catch (_) {}
     if (!me) {
       try {
-        const adminRes = await api('/api/admin/me?light=1');
+        const adminRes = await api('/api/admin/me?light=1', { noAuthRedirect: true });
         if (adminRes.ok) me = adminRes.data?.admin || adminRes.data?.data || adminRes.data || null;
       } catch (_) {}
     }
+    // [감사#17] 사용자·관리자 인증 둘 다 실패한 경우에만 로그인 페이지로 이동
+    if (!me) { location.href = '/admin.html'; return; }
     if (me) {
       // R35-GAP-P2 M-G7: regular 회원은 워크스페이스 부적합
       const isAdmin = me.role === 'admin' || me.role === 'super_admin';
@@ -1024,7 +1028,7 @@
       const nameEl = $('#wsSidebarUserName');
       if (nameEl) nameEl.textContent = me.name || me.email || '사용자';
     }
-    // loadTasks가 401 처리하므로 여기서는 무시
+    // [감사#17] 둘 다 실패 시 위에서 이미 리다이렉트 처리됨 (기존엔 loadTasks의 401에 의존)
   }
 
   /* ═══════════════════ 이벤트 바인딩 ═══════════════════ */
